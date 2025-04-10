@@ -1,0 +1,107 @@
+{
+  "id": "4885089",
+  "name": "yamaape",
+  "font_family": "iconfont",
+  "css_prefix_text": "icon-",
+  "description": "",
+  "glyphs": [
+    {
+      "icon_id": "695134",
+      "name": "复制",
+      "font_class": "fuzhi",
+      "unicode": "e632",
+      "unicode_decimal": 58930
+    },
+    {
+      "icon_id": "9012603",
+      "name": "导入",
+      "font_class": "daoru",
+      "unicode": "e631",
+      "unicode_decimal": 58929
+    },
+    {
+      "icon_id": "27643731",
+      "name": "关闭",
+      "font_class": "dituweizhixinxi_chahao",
+      "unicode": "e600",
+      "unicode_decimal": 58880
+    },
+    {
+      "icon_id": "40250371",
+      "name": "添加",
+      "font_class": "a-addmusic",
+      "unicode": "e8be",
+      "unicode_decimal": 59582
+    },
+    {
+      "icon_id": "19463367",
+      "name": "蓝子 垃圾桶 删除",
+      "font_class": "lanzilajitongshanchu",
+      "unicode": "e61a",
+      "unicode_decimal": 58906
+    },
+    {
+      "icon_id": "19463386",
+      "name": "增加 添加 加减",
+      "font_class": "zengjiatianjiajiajian",
+      "unicode": "e61d",
+      "unicode_decimal": 58909
+    },
+    {
+      "icon_id": "15055351",
+      "name": "新建添加",
+      "font_class": "xinjiantianjia",
+      "unicode": "e677",
+      "unicode_decimal": 58999
+    },
+    {
+      "icon_id": "41172874",
+      "name": "080_设置",
+      "font_class": "a-080_shezhi",
+      "unicode": "e7bc",
+      "unicode_decimal": 59324
+    },
+    {
+      "icon_id": "10887081",
+      "name": "自定义",
+      "font_class": "zidingyi",
+      "unicode": "e629",
+      "unicode_decimal": 58921
+    },
+    {
+      "icon_id": "19121178",
+      "name": "空节点",
+      "font_class": "kongjiedian",
+      "unicode": "e62b",
+      "unicode_decimal": 58923
+    },
+    {
+      "icon_id": "26418566",
+      "name": "ocr",
+      "font_class": "ocr",
+      "unicode": "e7d2",
+      "unicode_decimal": 59346
+    },
+    {
+      "icon_id": "33476998",
+      "name": "图像",
+      "font_class": "tuxiang",
+      "unicode": "e704",
+      "unicode_decimal": 59140
+    },
+    {
+      "icon_id": "866461",
+      "name": "Github",
+      "font_class": "githublogo",
+      "unicode": "e607",
+      "unicode_decimal": 58887
+    },
+    {
+      "icon_id": "16266819",
+      "name": "地下管线管理",
+      "font_class": "dixiaguanxianguanli",
+      "unicode": "e825",
+      "unicode_decimal": 59429
+    }
+  ]
+}

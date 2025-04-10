@@ -1,0 +1,71 @@
+@font-face {
+  font-family: "iconfont"; /* Project id 4885089 */
+  src: url('iconfont.woff2?t=1744287385326') format('woff2'),
+       url('iconfont.woff?t=1744287385326') format('woff'),
+       url('iconfont.ttf?t=1744287385326') format('truetype');
+}
+
+.iconfont {
+  font-family: "iconfont" !important;
+  font-size: 16px;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-fuzhi:before {
+  content: "\e632";
+}
+
+.icon-daoru:before {
+  content: "\e631";
+}
+
+.icon-dituweizhixinxi_chahao:before {
+  content: "\e600";
+}
+
+.icon-a-addmusic:before {
+  content: "\e8be";
+}
+
+.icon-lanzilajitongshanchu:before {
+  content: "\e61a";
+}
+
+.icon-zengjiatianjiajiajian:before {
+  content: "\e61d";
+}
+
+.icon-xinjiantianjia:before {
+  content: "\e677";
+}
+
+.icon-a-080_shezhi:before {
+  content: "\e7bc";
+}
+
+.icon-zidingyi:before {
+  content: "\e629";
+}
+
+.icon-kongjiedian:before {
+  content: "\e62b";
+}
+
+.icon-ocr:before {
+  content: "\e7d2";
+}
+
+.icon-tuxiang:before {
+  content: "\e704";
+}
+
+.icon-githublogo:before {
+  content: "\e607";
+}
+
+.icon-dixiaguanxianguanli:before {
+  content: "\e825";
+}
+
