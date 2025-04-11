@@ -25,6 +25,7 @@ export const actionFields = {
     description: `线性滑动。`,
     extras: {
       begin: {
+        required: true,
         type: "number[4]",
         description: `滑动起点。可选，默认 true 。值同上述 Click.target 。
                 true: 点击本节点中刚刚识别到的目标（即点击自身）。
@@ -39,6 +40,7 @@ export const actionFields = {
         default: [0, 0, 0, 0],
       },
       end: {
+        required: true,
         type: "number[4]",
         description: `滑动终点。可选，默认 true 。值同上述 Click.target 。
                 true: 点击本节点中刚刚识别到的目标（即点击自身）。
@@ -48,7 +50,6 @@ export const actionFields = {
         default: [0, 0, 0, 0],
       },
       end_offset: {
-        required: true,
         type: "number[4]",
         description: `在 end 的基础上额外移动再作为终点，四个值分别相加。可选，默认 [0, 0, 0, 0] 。`,
         default: [0, 0, 0, 0],
@@ -67,7 +68,7 @@ export const actionFields = {
         required: true,
         type: "number[]",
         description: `要按的键，仅支持对应控制器的虚拟按键码。`,
-        default: [],
+        default: [7],
       },
     },
   },

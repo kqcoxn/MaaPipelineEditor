@@ -23,6 +23,7 @@
       closable
       @tab-remove="removeTab"
       @tab-change="fileStore.switchFile"
+      @tab-click="onTabClick"
     >
       <el-tab-pane
         v-for="file in fileStore.files"
@@ -53,6 +54,12 @@ function removeTab(targetName) {
 // 挂载
 onMounted(async () => {});
 
+function onTabClick() {
+  setTimeout(() => {
+    Page.focus({ padding: 0.1 });
+  }, 100);
+}
+
 /**常量 */
 /**参数 */
 /**导入 */
@@ -61,6 +68,8 @@ import { ref, computed, onMounted } from "vue";
 // pinia
 import { useFileStore } from "../stores/fileStore";
 const fileStore = useFileStore();
+// utils
+import Page from "../utils/page";
 
 /**组件 */
 

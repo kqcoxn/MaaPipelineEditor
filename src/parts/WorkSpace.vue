@@ -14,7 +14,12 @@
   <div :id="appName">
     <ToolBar :viewer="viewer" />
     <AttrPanel />
-    <VueFlow :nodes="nodeStore.nodes" :edges="nodeStore.edges">
+    <VueFlow
+      :nodes="nodeStore.nodes"
+      :edges="nodeStore.edges"
+      :max-zoom="2"
+      :min-zoom="0.2"
+    >
       <!-- 插件 -->
       <Background />
       <Controls />
@@ -57,7 +62,10 @@ onMounted(async () => {
   });
   // 选中节点
   onNodeClick(({ node }) => {
-    nodeStore.currentNodeId = node.id;
+    nodeStore.currentNodeId = null;
+    nextTick(() => {
+      nodeStore.currentNodeId = node.id;
+    });
   });
   // 更新节点
   onNodesChange((nodes) => {

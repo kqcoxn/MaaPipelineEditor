@@ -6,9 +6,19 @@
 
 可以看作是低代码的低代码，即把 json 文件使用工作流封装了一下。
 
+你可以使用 YAMaaPE 快速搓出这样的流水线：
+
+<img src="./docs/images/display_1.png" alt="display" width="100%">
+
+当然大多时候是这样的：
+
+<img src="./docs/images/display_2.png" alt="demo" width="100%">
+
 **在线体验**：https://yamaape.codax.site/
 
 **使用方式**：[在线文档](./docs/guide.md)
+
+**应用案例**：[MaaNewMoonAccompanying](https://github.com/kqcoxn/MaaNewMoonAccompanying)（新月同行小助手）
     
 ## What's the Point?
 
@@ -25,6 +35,7 @@
 
 ## TODO
 
+- 边权重设置
 - 本地文件自动读写
 - 自定义模板节点
 - 补全所有可选字段（目前 ML 类暂不支持）
@@ -34,6 +45,37 @@
 
 - 官方版本：[MaaJsonViewer](https://github.com/MaaXYZ/MaaJsonViewer)（archived）
 - [@YantaoMou](https://github.com/YantaoMou)：[MAAVisualEditor](https://github.com/YantaoMou/MAAVisualEditor)
+
+## 更新记录
+
+### Beta-0.1.1
+
+> 2025.4.12
+
+- **新增功能**
+  - 添加了复制粘贴功能
+  - 选中节点新增时，自动连接两个节点
+  - 新增/切换页面、导入 JSON 时自动聚焦
+  - 导入 JSON 时自动更改文件名称
+- **优化修复**
+  - 修复了指针污染问题
+  - 修复了部分字段属性模板错误
+  - 修复了`interrupt`字段与`on_error`字段缓存失效的问题
+  - 新增节点位置改为：若有选中节点，则新增在该节点右侧，否则在最右侧节点的右侧
+  - 调整界面缩放范围
+
+<!-- 折叠 -->
+<details>
+<summary>更早的版本</summary>
+
+### Beta-0.1.0
+
+> 2025.4.11
+
+初次提交，基础功能实装
+
+</details>
+
 
 ## 鸣谢
 

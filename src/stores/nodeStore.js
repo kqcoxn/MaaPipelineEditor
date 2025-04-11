@@ -1,9 +1,11 @@
 import { defineStore } from "pinia";
+import { nextTick } from "vue";
 
 import { TopNotice } from "../utils/notice";
+import Transfer from "../core/transfer";
 import Page from "../utils/page";
 
-let nodeCounter = 0;
+let nodeCounter = 1;
 
 export const useNodeStore = defineStore("NodeStore", {
   state: () => ({
@@ -30,20 +32,18 @@ export const useNodeStore = defineStore("NodeStore", {
       return state.edges.length;
     },
     addPosition: (state) => {
-      // 找到所有节点的最右侧
-      let maxX = -Infinity;
-      state.nodes.forEach((node) => {
-        if (node.position.x > maxX) {
-          maxX = node.position.x;
+      if (state.currentNode?.position) {
+        const position = state.currentNode.position;
+        return { x: position.x + 260, y: position.y };
+      } else {
+        let rightNodePos = state.nodes[0].position;
+        for (let i = 1; i < state.nodeCount; i++) {
+          if (state.nodes[i].position.x > rightNodePos.x) {
+            rightNodePos = state.nodes[i].position;
+          }
         }
-      });
-      // 计算所有节点的平均y值
-      let avgY = 0;
-      state.nodes.forEach((node) => {
-        avgY += node.position.y;
-      });
-      avgY /= state.nodeCount;
-      return { x: maxX + 260, y: Math.round(avgY) };
+        return { x: rightNodePos.x + 260, y: rightNodePos.y };
+      }
     },
   },
   actions: {
@@ -76,31 +76,50 @@ export const useNodeStore = defineStore("NodeStore", {
     addNode(
       recognition = "DirectHit",
       action = "DoNothing",
-      { viewer, autoSelect } = { viewer: null, autoSelect: false }
+      { viewer, autoSelect, autoConnect } = {
+        viewer: null,
+        autoSelect: false,
+        autoConnect: false,
+      }
     ) {
       // 检查节点是否存在
-      if (this.findNodeIndex(nodeCounter) != -1) {
-        nodeCounter++;
+      const id = nodeCounter.toString();
+      const label = "新增节点" + nodeCounter++;
+      if (this.findNode(id) || this.findNodeByLabel(label)) {
         return this.addNode();
       }
-      const id = nodeCounter.toString();
+      // 创建节点
       const position = { ...this.addPosition };
       const node = {
         id,
         type: "template",
         data: {
-          label: "新增节点" + nodeCounter++,
+          label,
           recognition,
           action,
         },
         position,
       };
       this.nodes.push(node);
+      // 自动连接
+      if (autoConnect && this.currentNode) {
+        this.addEdge({
+          source: this.currentNodeId,
+          target: id,
+          sourceHandle:
+            this.currentNode.data.label == "开始任务" ? null : "next",
+          targetHandle: "target",
+        });
+      }
+      // 自动选中
       if (autoSelect) {
-        this.currentNodeId = id;
+        this.currentNodeId = null;
+        nextTick(() => {
+          this.currentNodeId = id;
+        });
       }
       if (viewer) {
-        Page.focus(viewer, { position });
+        Page.focus({ position });
       }
       return node;
     },
@@ -109,6 +128,30 @@ export const useNodeStore = defineStore("NodeStore", {
     updateNode(id, data) {
       const node = this.findNode(id);
       Object.assign(node, data);
+    },
+
+    // 复制节点
+    copyNode(
+      id,
+      config = { viewer: null, autoSelect: true, autoConnect: false }
+    ) {
+      const originNode = id
+        ? this.findNode(id) || this.currentNode
+        : this.currentNode;
+      const newNode = this.addNode(
+        originNode.data.recognition,
+        originNode.data.action,
+        config
+      );
+      const validFields = Transfer.getValidFields(originNode.data);
+      Object.keys(validFields).forEach((key) => {
+        const value = validFields[key];
+        if (typeof value == "object") {
+          newNode.data[key] = [...value];
+        } else {
+          newNode.data[key] = value;
+        }
+      });
     },
 
     // 删除节点

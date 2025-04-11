@@ -6,6 +6,13 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "39645254",
+      "name": "副本复制",
+      "font_class": "a-copyfubenfuzhi",
+      "unicode": "e6cc",
+      "unicode_decimal": 59084
+    },
+    {
       "icon_id": "695134",
       "name": "复制",
       "font_class": "fuzhi",

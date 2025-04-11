@@ -42,31 +42,49 @@ const viewer = ref(null);
 /**监听 */
 // 挂载
 onMounted(async () => {
+  // 初始化
   onInit((i) => {
     viewer.value = i;
-    Page.focus(viewer.value);
+    Page.updateVueFlow(i);
   });
   nextTick(() => {
     fileStore.clear();
     let exist = Storage.load((filename, jsonObj) => {
-      fileStore.addFile(filename, false);
+      fileStore.addFile(filename);
       Transfer.jsonToNodes(jsonObj, false);
       setTimeout(() => {
         if (viewer.value) {
-          Page.focus(viewer.value, { viewport: true, padding: 0.2 });
+          Page.focus({ padding: 0.1 });
         }
       }, 100);
     });
     if (!exist) {
-      fileStore.addFile(null, false);
+      fileStore.addFile(null);
       setTimeout(() => {
         if (viewer.value) {
-          Page.focus(viewer.value, { viewport: true, padding: 0.2 });
+          Page.focus({ padding: 0.1 });
         }
       }, 100);
     }
   });
+
+  // 注册事件
+  // document.addEventListener("keydown", handleKeyDown, { passive: false });
 });
+
+// 快捷键
+function handleKeyDown(event) {
+  const ctrlKey = event.ctrlKey;
+  switch (event.key) {
+    // 复制
+    case "c":
+      if (ctrlKey && nodeStore.currentNodeId) {
+        console.log("复制");
+        event.preventDefault();
+      }
+      break;
+  }
+}
 
 /**常量 */
 /**参数 */

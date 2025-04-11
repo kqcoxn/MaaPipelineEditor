@@ -87,6 +87,9 @@ const jsonData = computed(() => {
 async function loadFromCopy() {
   const jsonStr = await Payaboard.paste();
   if (!Transfer.jsonToNodes(jsonStr)) return;
+  setTimeout(() => {
+    Page.focus({ padding: 0.1 });
+  }, 100);
 }
 
 /**监听 */
@@ -118,7 +121,7 @@ function onNodeChange() {
 /**参数 */
 /**导入 */
 // vue
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, watch, nextTick } from "vue";
 // json-editor
 import VueJsonPretty from "vue-json-pretty";
 import "vue-json-pretty/lib/styles.css";
@@ -131,6 +134,7 @@ const nodeStore = useNodeStore();
 import Transfer from "../core/transfer";
 // utils
 import { Payaboard, Storage } from "../utils/storage";
+import Page from "../utils/page";
 
 /**组件 */
 

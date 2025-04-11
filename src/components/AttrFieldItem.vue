@@ -175,7 +175,15 @@ function removeList(index) {
 // 挂载
 onMounted(async () => {
   typeParser.init(props.fieldType.type);
-  value.value = props.fieldType?.default;
+  let defaultValue = null;
+  switch (typeParser.type) {
+    case "list":
+      defaultValue = [...props.fieldType.default];
+      break;
+    default:
+      defaultValue = props.fieldType.default;
+  }
+  value.value = nodeData.value[props.fieldKey] || defaultValue;
 });
 
 watch(

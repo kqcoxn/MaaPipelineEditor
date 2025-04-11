@@ -1,3 +1,5 @@
+var vueFlowInstance = null;
+
 export default class Page {
   // 跳转页面
   static go(url, blank = true) {
@@ -9,22 +11,24 @@ export default class Page {
     window.location.reload();
   }
 
+  // 聚焦
+  static updateVueFlow(instance) {
+    vueFlowInstance = instance;
+  }
   static focus(
-    viewer,
-    { viewport, position, padding } = {
-      viewport: false,
+    { position, padding } = {
       position: { x: 0, y: 0 },
       padding: 0,
     }
   ) {
-    if (!viewport) return;
+    if (!padding || !vueFlowInstance) return;
     const container = document.querySelector(".vue-flow__transformationpane");
     container.classList.add("vue-flow-transition");
-    if (viewport) {
-      viewer.fitView({ padding });
+    if (padding) {
+      vueFlowInstance.fitView({ padding });
     } else {
-      const attr = viewer.getViewport();
-      viewer.setViewport({
+      const attr = vueFlowInstance.getViewport();
+      vueFlowInstance.setViewport({
         x: -position.x,
         y: -position.y,
         zoom: attr.zoom,

@@ -19,8 +19,20 @@
     justify-content: space-between;
     align-items: center;
 
+    .left {
+      width: 20%;
+    }
+
     .title {
       font-size: 18px;
+      flex: 1;
+    }
+
+    .right {
+      width: 20%;
+      display: flex;
+      justify-content: right;
+      gap: 6px;
     }
 
     .icon {
@@ -77,6 +89,13 @@
         <div class="left"></div>
         <div class="title text-center">节点字段</div>
         <div class="right">
+          <svg
+            class="icon hide icon-effect"
+            aria-hidden="true"
+            @click="nodeStore.copyNode"
+          >
+            <use xlink:href="#icon-a-copyfubenfuzhi"></use>
+          </svg>
           <svg
             class="icon hide icon-effect"
             aria-hidden="true"
@@ -308,9 +327,17 @@ const nodeData = computed(() => {
 });
 
 /**函数 */
+
 // 添加字段
 function addField(key, type) {
-  nodeData.value[key] = type.default || null;
+  const typeParser = new TypeParser(type.type);
+  switch (typeParser.type) {
+    case "list":
+      nodeData.value[key] = [...type.default];
+      break;
+    default:
+      nodeData.value[key] = type.default;
+  }
 }
 
 /**监听 */
@@ -331,7 +358,6 @@ function onActionChange(value) {
   if (!extras) return;
   Object.keys(extras).forEach((key) => {
     if (!extras[key].required) return;
-    console.log(key, extras[key]);
     addField(key, extras[key]);
   });
 }
@@ -348,6 +374,7 @@ const nodeStore = useNodeStore();
 import { recognitionFields } from "../fields/recognitions";
 import { actionFields } from "../fields/actions";
 import { extraFields } from "../fields/extras";
+import { TypeParser } from "../fields/types";
 
 /**组件 */
 import AttrFieldItem from "./AttrFieldItem.vue";

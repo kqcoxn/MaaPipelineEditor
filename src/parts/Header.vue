@@ -51,7 +51,7 @@
       </div>
       <div class="title">YAMaaPE - Maa Pipeline 可视化工作流式编辑器</div>
       <el-tag class="tag" type="danger" effect="dark" size="small" round>
-        Beta-0.1.0
+        {{ settings.version }}
       </el-tag>
     </div>
     <!-- 右侧 -->
@@ -84,6 +84,7 @@ onMounted(async () => {});
 // vue
 import { ref, computed, onMounted } from "vue";
 // utils
+import settings from "../settings";
 import Page from "../utils/page";
 
 /**组件 */

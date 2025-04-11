@@ -165,11 +165,13 @@ const nodes = [
   {
     label: "空节点",
     icon: "kongjiedian",
-    click: () =>
+    click: () => {
       nodeStore.addNode("DirectHit", "DoNothing", {
         viewer: props.viewer,
         autoSelect: true,
-      }),
+        autoConnect: true,
+      });
+    },
   },
   // {
   //   label: "模板节点",
@@ -179,20 +181,26 @@ const nodes = [
   {
     label: "OCR 节点",
     icon: "ocr",
-    click: () =>
-      nodeStore.addNode("OCR", "Click", {
+    click: () => {
+      const node = nodeStore.addNode("OCR", "Click", {
         viewer: props.viewer,
         autoSelect: true,
-      }),
+        autoConnect: true,
+      });
+      node.data.expected = [""];
+    },
   },
   {
     label: "图像识别节点",
     icon: "tuxiang",
-    click: () =>
-      nodeStore.addNode("TemplateMatch", "Click", {
+    click: () => {
+      const node = nodeStore.addNode("TemplateMatch", "Click", {
         viewer: props.viewer,
         autoSelect: true,
-      }),
+        autoConnect: true,
+      });
+      node.data.template = [""];
+    },
   },
 ];
 
@@ -202,7 +210,7 @@ const tools = [
     label: "新建文件",
     icon: "xinjiantianjia",
     fontSize: 24,
-    click: () => fileStore.addFile(),
+    click: () => fileStore.addFile(null, { isTip: true, autoFit: true }),
   },
   {
     label: "通用设置",

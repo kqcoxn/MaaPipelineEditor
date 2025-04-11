@@ -5,8 +5,9 @@ import { recognitionFields } from "../fields/recognitions";
 import { actionFields } from "../fields/actions";
 import { extraFields } from "../fields/extras";
 import { useNodeStore } from "../stores/nodeStore";
+import { useFileStore } from "../stores/fileStore";
 
-function parseNodeKey(filename, label) {
+function parseNodeKey(filename, label, id) {
   return `${filename}_${label}`;
 }
 
@@ -73,17 +74,17 @@ export default class Transfer {
       // 生成节点名
       const sourceNode = nodeStore.findNode(source);
       const sourceNodeData = sourceNode?.data;
+      const targetNode = nodeStore.findNode(target);
+      const targetNodeData = targetNode.data;
       const sourceKey =
         sourceNodeData.label == "开始任务"
           ? filename
           : parseNodeKey(filename, sourceNodeData.label);
-      const targetNode = nodeStore.findNode(target);
-      const targetNodeData = targetNode.data;
       const targetKey = parseNodeKey(filename, targetNodeData.label);
 
       // 创建节点
       if (!jsonObj[sourceKey]) {
-        jsonObj[sourceKey] = sourceNodeData ? {} : parseFields(sourceNodeData);
+        jsonObj[sourceKey] = parseFields(sourceNodeData);
         jsonObj[sourceKey].__yamaape = {
           position: sourceNode.position,
         };
@@ -119,7 +120,16 @@ export default class Transfer {
       Object.keys(json).forEach((key) => {
         const obj = json[key];
         const label = key.split("_")[1];
-        if (label == "开始任务" || label == undefined) return;
+        if (label == "开始任务" || label == undefined) {
+          if (obj.__yamaape) {
+            Object.keys(obj.__yamaape).forEach((key) => {
+              nodeStore.nodes[0][key] = obj.__yamaape[key];
+            });
+          }
+          const fileStore = useFileStore();
+          fileStore.currentFile.name = key.split("_")[0];
+          return;
+        }
         // 添加节点
         const node = nodeStore.addNode();
         if (obj.__yamaape) {
@@ -136,6 +146,8 @@ export default class Transfer {
         const label = key.split("_")[1];
         const node = nodeStore.findNodeByLabel(label);
         addEdgeFromLabels(node, obj.next, "next");
+        addEdgeFromLabels(node, obj.interrupt, "interrupt");
+        addEdgeFromLabels(node, obj.on_error, "on_error");
       });
       if (isTip) {
         TopNotice.success("Json转换成功");

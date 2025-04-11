@@ -1,8 +1,10 @@
 import { defineStore } from "pinia";
+import { useVueFlow } from "@vue-flow/core";
 
 import { TopNotice } from "../utils/notice";
 import { Storage } from "../utils/storage";
 import Transfer from "../core/transfer";
+import Page from "../utils/page";
 
 let fileCounter = 0;
 
@@ -40,17 +42,20 @@ export const useFileStore = defineStore("FileStore", {
     },
 
     // 新建文件
-    addFile(filename, isTip = true) {
+    addFile(filename, { isTip, autoFit } = { isTip: false, autoFit: false }) {
       if (!filename) {
         filename = `新建文件${++fileCounter}`;
       }
       // 检查是否已经有同名文件
       if (this.find(filename)) {
-        this.addFile();
+        this.addFile(null, { isTip, autoFit });
         return;
       }
       this.files.push({ name: filename, json: {} });
       this.switchFile(filename);
+      if (autoFit) {
+        Page.focus({ padding: 0.4 });
+      }
       if (isTip) {
         TopNotice.success("已创建：" + filename);
       }
