@@ -1,6 +1,6 @@
 <style lang="scss" scoped>
 #JsonViewer {
-  width: 30%;
+  width: 400px;
   height: 100%;
   border-left: 1px solid #ccc;
 
@@ -80,13 +80,15 @@ const appName = ref("JsonViewer");
 
 /**属性 */
 const jsonData = computed(() => {
-  return fileStore.currentJson;
+  return fileStore.currentJson || {};
 });
 
 /**函数 */
 async function loadFromCopy() {
   const jsonStr = await Payaboard.paste();
-  if (!Transfer.jsonToNodes(jsonStr)) return;
+  const filename = Transfer.jsonToNodes(jsonStr);
+  if (!filename) return;
+  fileStore.changeName(filename);
   setTimeout(() => {
     Page.focus({ padding: 0.1 });
   }, 100);
@@ -109,11 +111,15 @@ onMounted(async () => {
 
 // 监测变化
 function onNodeChange() {
+  if (!fileStore.currentFile) return;
   const jsonObj = Transfer.nodeToJsonObj(
     fileStore.currentName,
     nodeStore.edges
   );
-  fileStore.currentFile.json = jsonObj;
+  nextTick(() => {
+    fileStore.currentFile.json =
+      Object.keys(jsonObj)?.length > 0 ? jsonObj : {};
+  });
   Storage.save(fileStore.currentName, jsonObj);
 }
 

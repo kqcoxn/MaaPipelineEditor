@@ -175,7 +175,7 @@
                         recognitionFields[nodeData.recognition].extras[item]
                           .description
                       "
-                      placement="left"
+                      placement="right"
                       :offset="34"
                       :width="240"
                     >
@@ -242,7 +242,7 @@
                       :content="
                         actionFields[nodeData.action].extras[item].description
                       "
-                      placement="left"
+                      placement="right"
                       :offset="34"
                       :width="240"
                     >
@@ -283,7 +283,7 @@
                     ><el-popover
                       :title="item"
                       :content="extraFields[item].description"
-                      placement="left"
+                      placement="right"
                       :offset="34"
                       :width="240"
                     >

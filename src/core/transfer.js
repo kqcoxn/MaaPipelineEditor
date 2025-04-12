@@ -110,6 +110,7 @@ export default class Transfer {
     const nodeStore = useNodeStore();
     const backupNodes = toRaw(nodeStore.nodes);
     const backupEdges = toRaw(nodeStore.edges);
+    let filename = true;
     try {
       // 格式转化
       if (typeof json != "object") {
@@ -126,8 +127,7 @@ export default class Transfer {
               nodeStore.nodes[0][key] = obj.__yamaape[key];
             });
           }
-          const fileStore = useFileStore();
-          fileStore.currentFile.name = key.split("_")[0];
+          filename = key.split("_")[0];
           return;
         }
         // 添加节点
@@ -152,7 +152,7 @@ export default class Transfer {
       if (isTip) {
         TopNotice.success("Json转换成功");
       }
-      return true;
+      return filename;
     } catch (e) {
       nodeStore.nodes = backupNodes;
       nodeStore.edges = backupEdges;

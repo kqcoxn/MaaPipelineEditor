@@ -1,5 +1,5 @@
 const settings = {
-  version: "Beta-0.1.1",
+  version: "Beta-0.2.1",
 };
 
 export default settings
