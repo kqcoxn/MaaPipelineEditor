@@ -17,13 +17,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
+          cache: "yarn"
+
+      - name: 安装 Yarn
+        run: npm install -g yarn
 
       - name: 安装依赖
-        run: npm ci
+        run: yarn install --frozen-lockfile
 
       - name: 构建项目
-        run: npm run build
+        run: yarn build
 
       - name: 压缩构建产物
         run: |
