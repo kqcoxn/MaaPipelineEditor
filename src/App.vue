@@ -8,10 +8,27 @@
 
   .main {
     display: flex;
-    position: relative;
 
-    .workspace {
-      flex: 1;
+    .place {
+      display: flex;
+      flex-direction: column;
+
+      .workspace {
+        flex: 1;
+      }
+
+      .tips {
+        border-top: solid 1px #ccc;
+        height: auto;
+        padding: 10px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        p {
+          color: red;
+        }
+      }
     }
   }
 }
@@ -22,7 +39,12 @@
     <Header class="header" />
     <FileManager />
     <div class="main fill">
-      <WorkSpace class="worlspace" />
+      <div class="place fill">
+        <WorkSpace class="worlspace" />
+        <div class="tips" v-if="stateStore.tips.length">
+          <p v-for="(tip, index) in stateStore.tips">*{{ tip }}</p>
+        </div>
+      </div>
       <JsonViewer />
     </div>
   </div>
@@ -49,15 +71,20 @@ onMounted(async () => {
   });
   nextTick(() => {
     fileStore.clear();
-    let exist = Storage.load((filename, jsonObj) => {
-      fileStore.addFile(filename);
-      Transfer.jsonToNodes(jsonObj, false);
-      setTimeout(() => {
-        if (viewer.value) {
-          Page.focus({ padding: 0.1 });
-        }
-      }, 100);
-    });
+    let exist = Storage.load(
+      (filename, jsonObj) => {
+        fileStore.addFile(filename);
+        Transfer.jsonToNodes(jsonObj, false);
+        setTimeout(() => {
+          if (viewer.value) {
+            Page.focus({ padding: 0.1 });
+          }
+        }, 100);
+      },
+      () => {
+        nodeStore.nodeCounter = 1;
+      }
+    );
     if (!exist) {
       fileStore.addFile(null);
       setTimeout(() => {
@@ -99,6 +126,8 @@ import { useFileStore } from "./stores/fileStore";
 const fileStore = useFileStore();
 import { useNodeStore } from "./stores/nodeStore";
 const nodeStore = useNodeStore();
+import { useStateStore } from "./stores/stateStore";
+const stateStore = useStateStore();
 // core
 import Transfer from "./core/transfer";
 // utils

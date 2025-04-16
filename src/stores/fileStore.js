@@ -54,7 +54,9 @@ export const useFileStore = defineStore("FileStore", {
       this.files.push({ name: filename, json: {} });
       this.switchFile(filename);
       if (autoFit) {
-        Page.focus({ padding: 0.4 });
+        setTimeout(() => {
+          Page.focus({ padding: 0.4 });
+        }, 200);
       }
       if (isTip) {
         TopNotice.success("已创建：" + filename);
@@ -85,6 +87,9 @@ export const useFileStore = defineStore("FileStore", {
       this.files.splice(fileIndex, 1);
       if (isCurrent) {
         this.switchFile(fileIndex - 1);
+        setTimeout(() => {
+          Page.focus({ padding: 0.4 });
+        }, 200);
       }
       Storage.remove(filename);
       if (isTip) {

@@ -19,24 +19,28 @@
     justify-content: space-between;
     align-items: center;
 
-    .left {
-      width: 20%;
-    }
-
     .title {
       font-size: 18px;
       flex: 1;
     }
 
+    .left,
     .right {
       width: 20%;
       display: flex;
-      justify-content: right;
       gap: 6px;
+    }
+
+    .right {
+      justify-content: right;
     }
 
     .icon {
       font-size: 20px;
+    }
+
+    .copy {
+      font-size: 22px;
     }
   }
 
@@ -86,15 +90,30 @@
   <div :id="appName">
     <div v-if="isShow" class="container">
       <div class="header">
-        <div class="left"></div>
+        <div class="left">
+          <svg
+            class="icon copy-content icon-effect"
+            aria-hidden="true"
+            @click="copyData"
+          >
+            <use xlink:href="#icon-a-copyfubenfuzhi"></use>
+          </svg>
+          <svg
+            class="icon copy-title icon-effect"
+            aria-hidden="true"
+            @click="copyTitle"
+          >
+            <use xlink:href="#icon-xiaohongshubiaoti"></use>
+          </svg>
+        </div>
         <div class="title text-center">节点字段</div>
         <div class="right">
           <svg
-            class="icon hide icon-effect"
+            class="icon copy icon-effect"
             aria-hidden="true"
             @click="nodeStore.copyNode"
           >
-            <use xlink:href="#icon-a-copyfubenfuzhi"></use>
+            <use xlink:href="#icon-beifen"></use>
           </svg>
           <svg
             class="icon hide icon-effect"
@@ -325,8 +344,21 @@ const isShow = computed(() => {
 const nodeData = computed(() => {
   return nodeStore.currentNode?.data || {};
 });
+const transNodeName = computed(() => {
+  return fileStore?.currentName + "_" + nodeStore.currentNode?.data?.label;
+});
+const transNode = computed(() => {
+  return fileStore?.currentJson[transNodeName.value] || {};
+});
 
 /**函数 */
+// 复制
+function copyTitle() {
+  Payaboard.copy(transNodeName.value);
+}
+function copyData() {
+  Payaboard.copy(`"${transNodeName.value}":${JSON.stringify(transNode.value)}`);
+}
 
 // 添加字段
 function addField(key, type) {
@@ -370,11 +402,16 @@ import { ref, computed, onMounted } from "vue";
 // pinia
 import { useNodeStore } from "../stores/nodeStore";
 const nodeStore = useNodeStore();
+import { useFileStore } from "../stores/fileStore";
+const fileStore = useFileStore();
 // fields
 import { recognitionFields } from "../fields/recognitions";
 import { actionFields } from "../fields/actions";
 import { extraFields } from "../fields/extras";
 import { TypeParser } from "../fields/types";
+// utils
+import { Payaboard } from "../utils/storage";
+import { TopNotice } from "../utils/notice";
 
 /**组件 */
 import AttrFieldItem from "./AttrFieldItem.vue";

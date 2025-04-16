@@ -5,7 +5,6 @@ import { recognitionFields } from "../fields/recognitions";
 import { actionFields } from "../fields/actions";
 import { extraFields } from "../fields/extras";
 import { useNodeStore } from "../stores/nodeStore";
-import { useFileStore } from "../stores/fileStore";
 
 function parseNodeKey(filename, label, id) {
   return `${filename}_${label}`;
@@ -62,9 +61,12 @@ export default class Transfer {
     return parseFields(nodeData);
   }
 
-  static nodeToJsonObj(filename, edges) {
+  // 节点转Json
+  static nodeToJsonObj(filename) {
     const nodeStore = useNodeStore();
+    const edges = nodeStore.edges;
     const jsonObj = {};
+
     // 连接节点
     edges.forEach((edge) => {
       const source = edge.source;
@@ -103,9 +105,14 @@ export default class Transfer {
       jsonObj[sourceKey][type || "next"].push(targetKey);
     });
 
+    if (jsonObj[filename]) {
+      delete jsonObj[filename].recognition;
+      delete jsonObj[filename].action;
+    }
     return jsonObj;
   }
 
+  // Json转节点
   static jsonToNodes(json, isTip = true) {
     const nodeStore = useNodeStore();
     const backupNodes = toRaw(nodeStore.nodes);

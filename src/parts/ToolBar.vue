@@ -173,11 +173,18 @@ const nodes = [
       });
     },
   },
-  // {
-  //   label: "模板节点",
-  //   icon: "zidingyi",
-  //   click: () => nodeStore.addNode(),
-  // },
+  {
+    label: "区域点击节点",
+    icon: "dianji",
+    click: () => {
+      const node = nodeStore.addNode("DirectHit", "Click", {
+        viewer: props.viewer,
+        autoSelect: true,
+        autoConnect: true,
+      });
+      node.data.target = [0, 0, 1, 1];
+    },
+  },
   {
     label: "OCR 节点",
     icon: "ocr",
@@ -199,7 +206,7 @@ const nodes = [
         autoSelect: true,
         autoConnect: true,
       });
-      node.data.template = [""];
+      node.data.template = ["../image/"];
     },
   },
 ];

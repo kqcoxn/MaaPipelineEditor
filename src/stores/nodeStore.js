@@ -1,11 +1,10 @@
 import { defineStore } from "pinia";
 import { nextTick } from "vue";
+import { useStateStore } from "./stateStore";
 
 import { TopNotice } from "../utils/notice";
 import Transfer from "../core/transfer";
 import Page from "../utils/page";
-
-let nodeCounter = 1;
 
 export const useNodeStore = defineStore("NodeStore", {
   state: () => ({
@@ -18,6 +17,7 @@ export const useNodeStore = defineStore("NodeStore", {
         sourcePosition: "right",
       },
     ],
+    nodeCounter: 1,
     edges: [],
     currentNodeId: null,
   }),
@@ -83,8 +83,8 @@ export const useNodeStore = defineStore("NodeStore", {
       }
     ) {
       // 检查节点是否存在
-      const id = nodeCounter.toString();
-      const label = "新增节点" + nodeCounter++;
+      const id = this.nodeCounter.toString();
+      const label = "新增节点" + this.nodeCounter++;
       if (this.findNode(id) || this.findNodeByLabel(label)) {
         return this.addNode();
       }
@@ -152,6 +152,25 @@ export const useNodeStore = defineStore("NodeStore", {
           newNode.data[key] = value;
         }
       });
+    },
+
+    // 检查节点合法性
+    check() {
+      const stateStore = useStateStore();
+
+      // label不能重名
+      const labelSet = new Set();
+      this.nodes.forEach((node) => {
+        labelSet.add(node.data.label);
+      });
+      if (labelSet.size < this.nodeCount) {
+        TopNotice.error("节点名称不能重复");
+        stateStore.transferTip = "存在重复的节点名称！";
+        return false;
+      }
+
+      stateStore.transferTip = "";
+      return true;
     },
 
     // 删除节点

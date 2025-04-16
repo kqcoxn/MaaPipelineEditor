@@ -38,9 +38,25 @@ const appName = ref("WorkSpace");
 const viewer = ref(false);
 // 状态
 // 数据
+const nodeUpdateTimeouts = ref({});
 
 /**属性 */
 /**函数 */
+// 更新节点位置
+function updateNodePosition(node) {
+  if (!node.position) return;
+  if (nodeUpdateTimeouts[node.id]) {
+    clearInterval(nodeUpdateTimeouts[node.id]);
+  }
+  nodeUpdateTimeouts[node.id] = setTimeout(() => {
+    nodeStore.updateNode(node.id, {
+      position: {
+        x: Math.round(node.position.x),
+        y: Math.round(node.position.y),
+      },
+    });
+  }, 200);
+}
 
 /**监听 */
 // 挂载
@@ -48,16 +64,6 @@ onMounted(async () => {
   nextTick(() => {
     onInit((i) => {
       viewer.value = i;
-    });
-  });
-  // 更新位置
-  onNodeDragStop(({ node }) => {
-    const {
-      id,
-      position: { x, y },
-    } = node;
-    nodeStore.updateNode(id, {
-      position: { x: Math.round(x), y: Math.round(y) },
     });
   });
   // 选中节点
@@ -74,6 +80,9 @@ onMounted(async () => {
       switch (type) {
         case "remove":
           nodeStore.removeNode(node);
+          break;
+        case "position":
+          updateNodePosition(node);
           break;
       }
     });
@@ -109,7 +118,6 @@ import { ref, computed, onMounted, nextTick } from "vue";
 import { VueFlow, useVueFlow } from "@vue-flow/core";
 const {
   onPaneClick,
-  onNodeDragStop,
   onNodeClick,
   onNodesChange,
   onConnect,

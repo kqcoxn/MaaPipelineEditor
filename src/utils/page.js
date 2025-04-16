@@ -16,26 +16,29 @@ export default class Page {
     vueFlowInstance = instance;
   }
   static focus(
-    { position, padding } = {
+    { position, padding, timeout } = {
       position: { x: 0, y: 0 },
       padding: 0,
+      timeout: 0,
     }
   ) {
     if (!padding || !vueFlowInstance) return;
-    const container = document.querySelector(".vue-flow__transformationpane");
-    container.classList.add("vue-flow-transition");
-    if (padding) {
-      vueFlowInstance.fitView({ padding });
-    } else {
-      const attr = vueFlowInstance.getViewport();
-      vueFlowInstance.setViewport({
-        x: -position.x,
-        y: -position.y,
-        zoom: attr.zoom,
-      });
-    }
     setTimeout(() => {
-      container.classList.remove("vue-flow-transition");
-    }, 500);
+      const container = document.querySelector(".vue-flow__transformationpane");
+      container.classList.add("vue-flow-transition");
+      if (padding) {
+        vueFlowInstance.fitView({ padding });
+      } else {
+        const attr = vueFlowInstance.getViewport();
+        vueFlowInstance.setViewport({
+          x: -position.x,
+          y: -position.y,
+          zoom: attr.zoom,
+        });
+      }
+      setTimeout(() => {
+        container.classList.remove("vue-flow-transition");
+      }, 500);
+    }, timeout);
   }
 }

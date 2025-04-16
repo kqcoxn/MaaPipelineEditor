@@ -1,0 +1,1 @@
+借鉴 @package.json 的配置，帮我在 @build.yml  写一个github action，用于在发布版本后自动打包，并发布到release

@@ -6,6 +6,34 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "7177275",
+      "name": "备份",
+      "font_class": "beifen",
+      "unicode": "e68e",
+      "unicode_decimal": 59022
+    },
+    {
+      "icon_id": "35634100",
+      "name": "小红书标题",
+      "font_class": "xiaohongshubiaoti",
+      "unicode": "e617",
+      "unicode_decimal": 58903
+    },
+    {
+      "icon_id": "37424687",
+      "name": "参赛内容_高亮_48",
+      "font_class": "cansaineirong_gaoliang_48",
+      "unicode": "e7d3",
+      "unicode_decimal": 59347
+    },
+    {
+      "icon_id": "40802696",
+      "name": "点击",
+      "font_class": "dianji",
+      "unicode": "e630",
+      "unicode_decimal": 58928
+    },
+    {
       "icon_id": "39645254",
       "name": "副本复制",
       "font_class": "a-copyfubenfuzhi",

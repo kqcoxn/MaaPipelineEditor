@@ -111,7 +111,7 @@ onMounted(async () => {
 
 // 监测变化
 function onNodeChange() {
-  if (!fileStore.currentFile) return;
+  if (!fileStore.currentFile || !nodeStore.check()) return;
   const jsonObj = Transfer.nodeToJsonObj(
     fileStore.currentName,
     nodeStore.edges
