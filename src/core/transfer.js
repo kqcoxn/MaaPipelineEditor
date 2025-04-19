@@ -81,11 +81,10 @@ export default class Transfer {
     const nodeStore = useNodeStore();
     const fileStore = useFileStore();
     const edges = nodeStore.edges;
-    const jsonObj = {
-      __yamaape_config: {
-        version: settings.version,
-        export: fileStore.currentConfig?.export || "",
-      },
+    const jsonObj = {};
+    jsonObj["__yamaape_config_" + filename] = {
+      version: settings.version,
+      export: fileStore.currentConfig?.export || "",
     };
 
     // 连接节点
@@ -127,7 +126,7 @@ export default class Transfer {
 
     if (fileStore.currentConfig?.export) {
       Object.keys(jsonObj).forEach((key) => {
-        if (key == "__yamaape_config") return;
+        if (key.includes("__yamaape_config")) return;
         if (!jsonObj[key]["on_error"]) {
           jsonObj[key].on_error = [];
         }
@@ -156,7 +155,7 @@ export default class Transfer {
       keys.forEach((key) => {
         // 设置节点
         const obj = json[key];
-        if (key == "__yamaape_config") {
+        if (key.includes("__yamaape_config")) {
           fileStore.currentConfig.export = obj.export || "";
           return;
         }
@@ -199,8 +198,11 @@ export default class Transfer {
         addEdgeFromLabels(node, obj.on_error, "on_error");
       });
 
-      if (!keys.includes("__yamaape_config")) {
-        fileStore.currentConfig.export = "";
+      for (const key of keys) {
+        if (key.includes("__yamaape_config")) {
+          fileStore.currentConfig.export = "";
+          break;
+        }
       }
 
       if (isTip) {
