@@ -5,6 +5,8 @@ import { recognitionFields } from "../fields/recognitions";
 import { actionFields } from "../fields/actions";
 import { extraFields } from "../fields/extras";
 import { useNodeStore } from "../stores/nodeStore";
+import { useFileStore } from "../stores/fileStore";
+import settings from "../settings";
 
 function parseNodeKey(filename, label, id) {
   return `${filename}_${label}`;
@@ -36,6 +38,7 @@ function parseFields(nodeData) {
   return fields;
 }
 
+// 添加边
 function addEdgeFromLabels(sourceNode, edgeIds, type) {
   if (typeof edgeIds != "object") return;
   const nodeStore = useNodeStore();
@@ -56,6 +59,18 @@ function addEdgeFromLabels(sourceNode, edgeIds, type) {
   });
 }
 
+// 节点转Json
+function createSingleNodeObj(node, data) {
+  const nodeObj = parseFields(data);
+  if (nodeObj.jump_yamaape) {
+    nodeObj.next = [nodeObj.jump_yamaape];
+  }
+  nodeObj.__yamaape = {
+    position: node.position,
+  };
+  return nodeObj;
+}
+
 export default class Transfer {
   static getValidFields(nodeData) {
     return parseFields(nodeData);
@@ -64,8 +79,14 @@ export default class Transfer {
   // 节点转Json
   static nodeToJsonObj(filename) {
     const nodeStore = useNodeStore();
+    const fileStore = useFileStore();
     const edges = nodeStore.edges;
-    const jsonObj = {};
+    const jsonObj = {
+      __yamaape_config: {
+        version: settings.version,
+        export: fileStore.currentConfig?.export || "",
+      },
+    };
 
     // 连接节点
     edges.forEach((edge) => {
@@ -86,16 +107,10 @@ export default class Transfer {
 
       // 创建节点
       if (!jsonObj[sourceKey]) {
-        jsonObj[sourceKey] = parseFields(sourceNodeData);
-        jsonObj[sourceKey].__yamaape = {
-          position: sourceNode.position,
-        };
+        jsonObj[sourceKey] = createSingleNodeObj(sourceNode, sourceNodeData);
       }
       if (!jsonObj[targetKey]) {
-        jsonObj[targetKey] = parseFields(targetNodeData);
-        jsonObj[targetKey].__yamaape = {
-          position: targetNode.position,
-        };
+        jsonObj[targetKey] = createSingleNodeObj(targetNode, targetNodeData);
       }
 
       // 连接节点
@@ -109,12 +124,24 @@ export default class Transfer {
       delete jsonObj[filename].recognition;
       delete jsonObj[filename].action;
     }
+
+    if (fileStore.currentConfig?.export) {
+      Object.keys(jsonObj).forEach((key) => {
+        if (key == "__yamaape_config") return;
+        if (!jsonObj[key]["on_error"]) {
+          jsonObj[key].on_error = [];
+        }
+        jsonObj[key].on_error.push(fileStore.currentConfig.export);
+      });
+    }
+
     return jsonObj;
   }
 
   // Json转节点
   static jsonToNodes(json, isTip = true) {
     const nodeStore = useNodeStore();
+    const fileStore = useFileStore();
     const backupNodes = toRaw(nodeStore.nodes);
     const backupEdges = toRaw(nodeStore.edges);
     let filename = true;
@@ -125,9 +152,16 @@ export default class Transfer {
       }
       nodeStore.clear();
       // 提取节点
-      Object.keys(json).forEach((key) => {
+      const keys = Object.keys(json);
+      keys.forEach((key) => {
+        // 设置节点
         const obj = json[key];
+        if (key == "__yamaape_config") {
+          fileStore.currentConfig.export = obj.export || "";
+          return;
+        }
         const label = key.split("_")[1];
+        // 开始节点
         if (label == "开始任务" || label == undefined) {
           if (obj.__yamaape) {
             Object.keys(obj.__yamaape).forEach((key) => {
@@ -148,14 +182,27 @@ export default class Transfer {
         Object.assign(node.data, parseFields(obj));
       });
       // 添加连接
-      Object.keys(json).forEach((key) => {
+      keys.forEach((key) => {
         const obj = json[key];
         const label = key.split("_")[1];
         const node = nodeStore.findNodeByLabel(label);
+        if (obj.jump_yamaape && obj.next) {
+          obj.next = obj.next.filter((item) => item != obj.jump_yamaape);
+        }
         addEdgeFromLabels(node, obj.next, "next");
         addEdgeFromLabels(node, obj.interrupt, "interrupt");
+        if (obj.on_error?.includes(fileStore.currentConfig.export)) {
+          obj.on_error = obj.on_error.filter(
+            (item) => item != fileStore.currentConfig.export
+          );
+        }
         addEdgeFromLabels(node, obj.on_error, "on_error");
       });
+
+      if (!keys.includes("__yamaape_config")) {
+        fileStore.currentConfig.export = "";
+      }
+
       if (isTip) {
         TopNotice.success("Json转换成功");
       }

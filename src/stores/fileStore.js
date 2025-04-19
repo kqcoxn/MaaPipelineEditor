@@ -26,6 +26,9 @@ export const useFileStore = defineStore("FileStore", {
     currentJson: (state) => {
       return state.currentFile?.json;
     },
+    currentConfig: (state) => {
+      return state.currentFile?.config;
+    },
   },
   actions: {
     // 查找文件
@@ -42,7 +45,13 @@ export const useFileStore = defineStore("FileStore", {
     },
 
     // 新建文件
-    addFile(filename, { isTip, autoFit } = { isTip: false, autoFit: false }) {
+    addFile(
+      filename,
+      { isTip, autoFit } = {
+        isTip: false,
+        autoFit: false,
+      }
+    ) {
       if (!filename) {
         filename = `新建文件${++fileCounter}`;
       }
@@ -51,7 +60,7 @@ export const useFileStore = defineStore("FileStore", {
         this.addFile(null, { isTip, autoFit });
         return;
       }
-      this.files.push({ name: filename, json: {} });
+      this.files.push({ name: filename, json: {}, config: {} });
       this.switchFile(filename);
       if (autoFit) {
         setTimeout(() => {

@@ -77,6 +77,7 @@ const appName = ref("JsonViewer");
 // 控件
 // 状态
 // 数据
+const updateTimeout = ref(null);
 
 /**属性 */
 const jsonData = computed(() => {
@@ -97,30 +98,37 @@ async function loadFromCopy() {
 /**监听 */
 // 挂载
 onMounted(async () => {
-  watch(() => nodeStore.nodes, onNodeChange, { deep: true });
-  watch(() => nodeStore.edges, onNodeChange, { deep: true });
+  watch(() => nodeStore.nodes, onChange, { deep: true });
+  watch(() => nodeStore.edges, onChange, { deep: true });
+  watch(() => fileStore.currentConfig, onChange, { deep: true });
   watch(
     () => fileStore.currentName,
     (newValue, oldValue) => {
       if (oldValue == null || fileStore.findIndex(oldValue) != -1) return;
-      onNodeChange();
+      onChange();
       Storage.remove(oldValue);
     }
   );
 });
 
 // 监测变化
-function onNodeChange() {
-  if (!fileStore.currentFile || !nodeStore.check()) return;
-  const jsonObj = Transfer.nodeToJsonObj(
-    fileStore.currentName,
-    nodeStore.edges
-  );
-  nextTick(() => {
-    fileStore.currentFile.json =
-      Object.keys(jsonObj)?.length > 0 ? jsonObj : {};
-  });
-  Storage.save(fileStore.currentName, jsonObj);
+function onChange() {
+  nodeStore.check();
+  if (!fileStore.currentFile || stateStore.length > 0) return;
+  if (updateTimeout.value) {
+    clearTimeout(updateTimeout.value);
+  }
+  updateTimeout.value = setTimeout(() => {
+    const jsonObj = Transfer.nodeToJsonObj(
+      fileStore.currentName,
+      nodeStore.edges
+    );
+    nextTick(() => {
+      fileStore.currentFile.json =
+        Object.keys(jsonObj)?.length > 0 ? jsonObj : {};
+    });
+    Storage.save(fileStore.currentName, jsonObj);
+  }, 200);
 }
 
 /**常量 */
@@ -136,6 +144,8 @@ import { useFileStore } from "../stores/fileStore";
 const fileStore = useFileStore();
 import { useNodeStore } from "../stores/nodeStore";
 const nodeStore = useNodeStore();
+import { useStateStore } from "../stores/stateStore";
+const stateStore = useStateStore();
 // core
 import Transfer from "../core/transfer";
 // utils

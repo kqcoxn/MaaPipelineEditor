@@ -223,6 +223,7 @@ const tools = [
     label: "通用设置",
     icon: "a-080_shezhi",
     fontSize: 32,
+    click: () => (stateStore.isShowSettingPanel = true),
   },
 ];
 
@@ -239,6 +240,8 @@ import { useFileStore } from "../stores/fileStore";
 const fileStore = useFileStore();
 import { useNodeStore } from "../stores/nodeStore";
 const nodeStore = useNodeStore();
+import { useStateStore } from "../stores/stateStore";
+const stateStore = useStateStore();
 // utils
 import { Storage } from "../utils/storage";
 

@@ -2,10 +2,13 @@ import { defineStore } from "pinia";
 
 export const useStateStore = defineStore("StateStore", {
   state: () => ({
-    transferTip: "",
+    isShowSettingPanel: false,
+    tips: {
+      transferTip: "",
+    }
   }),
   getters: {
-    tips: (state) => {
+    tipList: (state) => {
       const list = [];
       [state.transferTip].forEach((tip) => {
         if (tip) {

@@ -41,13 +41,17 @@
     <div class="main fill">
       <div class="place fill">
         <WorkSpace class="worlspace" />
-        <div class="tips" v-if="stateStore.tips.length">
-          <p v-for="(tip, index) in stateStore.tips">*{{ tip }}</p>
+        <div class="tips" v-if="stateStore.tipList.length">
+          <p>存在错误的设置：</p>
+          <p v-for="(tip, index) in stateStore.tipList">
+            [{{ index + 1 }}] {{ tip }}
+          </p>
         </div>
       </div>
       <JsonViewer />
     </div>
   </div>
+  <SettingPanel />
 </template>
 
 <script setup>
@@ -81,9 +85,7 @@ onMounted(async () => {
           }
         }, 100);
       },
-      () => {
-        nodeStore.nodeCounter = 1;
-      }
+      () => {}
     );
     if (!exist) {
       fileStore.addFile(null);
@@ -139,6 +141,7 @@ import Header from "./parts/Header.vue";
 import WorkSpace from "./parts/WorkSpace.vue";
 import FileManager from "./parts/FileManager.vue";
 import JsonViewer from "./parts/JsonViewer.vue";
+import SettingPanel from "./components/SettingPanel.vue";
 
 /** */
 </script>

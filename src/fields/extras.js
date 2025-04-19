@@ -4,7 +4,7 @@ export const extraFields = {
     description: `识别速率限制，单位毫秒。可选，默认 1000 。
       每轮识别 next + interrupt 最低消耗 rate_limit 毫秒，不足的时间将会 sleep 等待。
       `,
-    default: 1000,
+    default: 2000,
   },
   timeout: {
     type: "number",
@@ -12,6 +12,25 @@ export const extraFields = {
         具体逻辑为 while(!timeout) { foreach(next + interrupt); sleep_until(rate_limit); } 。
       `,
     default: 3 * 1000,
+  },
+  pre_delay: {
+    type: "number",
+    description: `识别到 到 执行动作前 的延迟，毫秒。可选，默认 200 。
+        推荐尽可能增加中间过程节点，少用延迟，不然既慢还不稳定。
+        `,
+    default: 400,
+  },
+  post_delay: {
+    type: "number",
+    description: `执行动作后 到 识别 next 的延迟，毫秒。可选，默认 200 。
+          推荐尽可能增加中间过程节点，少用延迟，不然既慢还不稳定。
+          `,
+    default: 1000,
+  },
+  jump_yamaape: {
+    type: "string",
+    description: `同 next，会合并至 next 最前面，但在编译为 pipeline 时不会添加文件名前缀`,
+    default: "",
   },
   inverse: {
     type: "boolean",
@@ -26,20 +45,6 @@ export const extraFields = {
         若为 false，其他 node 的 next 列表中的该 node 会被跳过，既不会被识别也不会被执行。
         `,
     default: false,
-  },
-  pre_delay: {
-    type: "number",
-    description: `识别到 到 执行动作前 的延迟，毫秒。可选，默认 200 。
-        推荐尽可能增加中间过程节点，少用延迟，不然既慢还不稳定。
-        `,
-    default: 400,
-  },
-  post_delay: {
-    type: "number",
-    description: `执行动作后 到 识别 next 的延迟，毫秒。可选，默认 200 。
-          推荐尽可能增加中间过程节点，少用延迟，不然既慢还不稳定。
-          `,
-    default: 500,
   },
   pre_wait_freezes: {
     type: "number",

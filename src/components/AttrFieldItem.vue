@@ -63,7 +63,7 @@
         <div class="key ellipsis">{{ fieldKey }}</div>
       </template>
     </el-popover>
-    <div v-if="value != null" class="value">
+    <div v-if="value !== undefined" class="value">
       <!-- 数组 -->
       <div v-if="typeParser.type == 'list'">
         <!-- 无限列表 -->
@@ -183,14 +183,17 @@ onMounted(async () => {
     default:
       defaultValue = props.fieldType.default;
   }
-  value.value = nodeData.value[props.fieldKey] || defaultValue;
+  value.value =
+    nodeData.value[props.fieldKey] == undefined ||
+    nodeData.value[props.fieldKey] == null
+      ? defaultValue
+      : nodeData.value[props.fieldKey];
 });
 
 watch(
   value,
   (newValue) => {
     nodeData.value[props.fieldKey] = newValue;
-    emit("update", value);
   },
   {
     deep: true,

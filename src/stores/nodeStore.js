@@ -1,7 +1,8 @@
 import { defineStore } from "pinia";
 import { nextTick } from "vue";
-import { useStateStore } from "./stateStore";
+import { useVueFlow } from "@vue-flow/core";
 
+import { useStateStore } from "./stateStore";
 import { TopNotice } from "../utils/notice";
 import Transfer from "../core/transfer";
 import Page from "../utils/page";
@@ -15,6 +16,7 @@ export const useNodeStore = defineStore("NodeStore", {
         data: { label: "开始任务" },
         position: { x: 0, y: 0 },
         sourcePosition: "right",
+        selected: false,
       },
     ],
     nodeCounter: 1,
@@ -55,6 +57,7 @@ export const useNodeStore = defineStore("NodeStore", {
           data: { label: "开始任务" },
           position: { x: 0, y: 0 },
           sourcePosition: "right",
+          selected: false,
         },
       ];
       this.edges = [];
@@ -98,6 +101,7 @@ export const useNodeStore = defineStore("NodeStore", {
           recognition,
           action,
         },
+        selected: false,
         position,
       };
       this.nodes.push(node);
@@ -113,6 +117,10 @@ export const useNodeStore = defineStore("NodeStore", {
       }
       // 自动选中
       if (autoSelect) {
+        for (const n of this.nodes) {
+          n.selected = false;
+        }
+        node.selected = true;
         this.currentNodeId = null;
         nextTick(() => {
           this.currentNodeId = id;
@@ -157,6 +165,7 @@ export const useNodeStore = defineStore("NodeStore", {
     // 检查节点合法性
     check() {
       const stateStore = useStateStore();
+      let isError = false;
 
       // label不能重名
       const labelSet = new Set();
@@ -166,10 +175,21 @@ export const useNodeStore = defineStore("NodeStore", {
       if (labelSet.size < this.nodeCount) {
         TopNotice.error("节点名称不能重复");
         stateStore.transferTip = "存在重复的节点名称！";
-        return false;
+        isError = true;
       }
 
-      stateStore.transferTip = "";
+      for (const node of this.nodes) {
+        if (node.data.label.includes("_")) {
+          TopNotice.error("节点名称不能包含下划线");
+          stateStore.transferTip = "节点名称不能包含下划线！";
+          isError = true;
+          break;
+        }
+      }
+
+      if (!isError) {
+        stateStore.transferTip = "";
+      }
       return true;
     },
 
