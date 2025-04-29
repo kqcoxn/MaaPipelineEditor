@@ -107,10 +107,7 @@ export default class Transfer {
       const sourceNodeData = sourceNode?.data;
       const targetNode = nodeStore.findNode(target);
       const targetNodeData = targetNode.data;
-      const sourceKey =
-        sourceNodeData.label == "开始任务"
-          ? filename
-          : createNodeKey(sourceNodeData.label, config?.prefix);
+      const sourceKey = createNodeKey(sourceNodeData.label, config?.prefix);
       const targetKey = createNodeKey(targetNodeData.label, config?.prefix);
 
       // 创建节点
@@ -128,10 +125,15 @@ export default class Transfer {
       jsonObj[sourceKey][type || "next"].push(targetKey);
     });
 
-    // // 补全孤节点
-    // for (const node of nodes) {
-    //   console.log(node);
-    // }
+    // 补全孤节点
+    const jsonKeys = Object.keys(jsonObj);
+    for (const node of nodes) {
+      const label = node.data.label;
+      if (!jsonKeys.includes(label)) {
+        const key = createNodeKey(label, config?.prefix);
+        jsonObj[key] = createSingleNodeObj(node, node.data);
+      }
+    }
 
     // 处理统一错误出口
     if (config?.export) {
