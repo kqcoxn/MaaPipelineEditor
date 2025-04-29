@@ -9,16 +9,7 @@ import Page from "../utils/page";
 
 export const useNodeStore = defineStore("NodeStore", {
   state: () => ({
-    nodes: [
-      {
-        id: "0",
-        type: "input",
-        data: { label: "开始任务" },
-        position: { x: 0, y: 0 },
-        sourcePosition: "right",
-        selected: false,
-      },
-    ],
+    nodes: [],
     nodeCounter: 1,
     edges: [],
     currentNodeId: null,
@@ -34,6 +25,9 @@ export const useNodeStore = defineStore("NodeStore", {
       return state.edges.length;
     },
     addPosition: (state) => {
+      if (state.nodeCount == 0) {
+        return { x: 0, y: 0 };
+      }
       if (state.currentNode?.position) {
         const position = state.currentNode.position;
         return { x: position.x + 260, y: position.y };
@@ -50,16 +44,7 @@ export const useNodeStore = defineStore("NodeStore", {
   },
   actions: {
     clear() {
-      this.nodes = [
-        {
-          id: "0",
-          type: "input",
-          data: { label: "开始任务" },
-          position: { x: 0, y: 0 },
-          sourcePosition: "right",
-          selected: false,
-        },
-      ];
+      this.nodes = [];
       this.edges = [];
       this.currentNodeId = null;
     },

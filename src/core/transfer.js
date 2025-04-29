@@ -8,8 +8,17 @@ import { useNodeStore } from "../stores/nodeStore";
 import { useFileStore } from "../stores/fileStore";
 import settings from "../settings";
 
-function parseNodeKey(filename, label, id) {
-  return `${filename}_${label}`;
+function createNodeKey(label, prefix = "") {
+  if (prefix) {
+    return `${prefix}_${label}`;
+  }
+  return label;
+}
+function parseNodeKey(key, prefix = "") {
+  if (prefix) {
+    return key.split("_").at(-1);
+  }
+  return key;
 }
 
 function parseFields(nodeData) {
@@ -42,17 +51,14 @@ function parseFields(nodeData) {
 function addEdgeFromLabels(sourceNode, edgeIds, type) {
   if (typeof edgeIds != "object") return;
   const nodeStore = useNodeStore();
+  const fileStore = useFileStore();
   edgeIds.forEach((label) => {
-    const targetLabel = label.split("_")[1];
+    const targetLabel = parseNodeKey(label, fileStore.currentConfig?.prefix);
     const targetNode = nodeStore.findNodeByLabel(targetLabel);
     const edge = {
       source: sourceNode?.id || "0",
       target: targetNode.id,
-      sourceHandle:
-        sourceNode?.data?.label == undefined ||
-        sourceNode.data.label == "开始任务"
-          ? null
-          : type,
+      sourceHandle: type,
       targetHandle: "target",
     };
     nodeStore.addEdge(edge);
@@ -80,11 +86,14 @@ export default class Transfer {
   static nodeToJsonObj(filename) {
     const nodeStore = useNodeStore();
     const fileStore = useFileStore();
+    const nodes = nodeStore.nodes;
     const edges = nodeStore.edges;
+    const config = fileStore.currentConfig;
     const jsonObj = {};
     jsonObj["__yamaape_config_" + filename] = {
+      filename: filename,
       version: settings.version,
-      export: fileStore.currentConfig?.export || "",
+      ...config,
     };
 
     // 连接节点
@@ -101,8 +110,8 @@ export default class Transfer {
       const sourceKey =
         sourceNodeData.label == "开始任务"
           ? filename
-          : parseNodeKey(filename, sourceNodeData.label);
-      const targetKey = parseNodeKey(filename, targetNodeData.label);
+          : createNodeKey(sourceNodeData.label, config?.prefix);
+      const targetKey = createNodeKey(targetNodeData.label, config?.prefix);
 
       // 创建节点
       if (!jsonObj[sourceKey]) {
@@ -119,18 +128,19 @@ export default class Transfer {
       jsonObj[sourceKey][type || "next"].push(targetKey);
     });
 
-    if (jsonObj[filename]) {
-      delete jsonObj[filename].recognition;
-      delete jsonObj[filename].action;
-    }
+    // // 补全孤节点
+    // for (const node of nodes) {
+    //   console.log(node);
+    // }
 
-    if (fileStore.currentConfig?.export) {
+    // 处理统一错误出口
+    if (config?.export) {
       Object.keys(jsonObj).forEach((key) => {
         if (key.includes("__yamaape_config")) return;
         if (!jsonObj[key]["on_error"]) {
           jsonObj[key].on_error = [];
         }
-        jsonObj[key].on_error.push(fileStore.currentConfig.export);
+        jsonObj[key].on_error.push(config.export);
       });
     }
 
@@ -143,7 +153,8 @@ export default class Transfer {
     const fileStore = useFileStore();
     const backupNodes = toRaw(nodeStore.nodes);
     const backupEdges = toRaw(nodeStore.edges);
-    let filename = true;
+    const config = fileStore.currentConfig;
+    let filename = false;
     try {
       // 格式转化
       if (typeof json != "object") {
@@ -152,24 +163,26 @@ export default class Transfer {
       nodeStore.clear();
       // 提取节点
       const keys = Object.keys(json);
-      keys.forEach((key) => {
+      // 特殊节点
+      for (const key of keys) {
         // 设置节点
-        const obj = json[key];
         if (key.includes("__yamaape_config")) {
-          fileStore.currentConfig.export = obj.export || "";
-          return;
-        }
-        const label = key.split("_")[1];
-        // 开始节点
-        if (label == "开始任务" || label == undefined) {
-          if (obj.__yamaape) {
-            Object.keys(obj.__yamaape).forEach((key) => {
-              nodeStore.nodes[0][key] = obj.__yamaape[key];
-            });
+          delete json[key].version;
+          fileStore.currentFile.config = json[key];
+          if (config.filename) {
+            filename = config.filename;
           }
-          filename = key.split("_")[0];
+        }
+      }
+      // 普通节点
+      keys.forEach((key) => {
+        const obj = json[key];
+        // 跳过特殊节点
+        if (key.includes("__yamaape_config")) {
           return;
         }
+        // 解析节点数据
+        const label = parseNodeKey(key, config?.prefix);
         // 添加节点
         const node = nodeStore.addNode();
         if (obj.__yamaape) {
@@ -183,24 +196,30 @@ export default class Transfer {
       // 添加连接
       keys.forEach((key) => {
         const obj = json[key];
-        const label = key.split("_")[1];
+        // 解析节点数据
+        const label = parseNodeKey(key, config?.prefix);
+        // 跳过特殊节点
+        if (key.includes("__yamaape_config")) {
+          return;
+        }
+        // 获取节点
         const node = nodeStore.findNodeByLabel(label);
+        // 删除跳跃节点
         if (obj.jump_yamaape && obj.next) {
           obj.next = obj.next.filter((item) => item != obj.jump_yamaape);
         }
+        // 添加边
         addEdgeFromLabels(node, obj.next, "next");
         addEdgeFromLabels(node, obj.interrupt, "interrupt");
-        if (obj.on_error?.includes(fileStore.currentConfig.export)) {
-          obj.on_error = obj.on_error.filter(
-            (item) => item != fileStore.currentConfig.export
-          );
+        if (obj.on_error?.includes(config.export)) {
+          obj.on_error = obj.on_error.filter((item) => item != config.export);
         }
         addEdgeFromLabels(node, obj.on_error, "on_error");
       });
 
       for (const key of keys) {
         if (key.includes("__yamaape_config")) {
-          fileStore.currentConfig.export = "";
+          config.export = "";
           break;
         }
       }
@@ -218,9 +237,3 @@ export default class Transfer {
     }
   }
 }
-
-/*
-const testJsonStr = `
-{"新建文件1_开始任务":{"next":["新建文件1_新增节点1","新建文件1_新增节点2"]},"新建文件1_新增节点1":{"recognition":"OCR","action":"Click","index":0,"target":[0,0,0,0],"timeout":20000,"next":["新建文件1_新增节点3"]},"新建文件1_新增节点2":{"recognition":"DirectHit","action":"DoNothing","interrupt":["新建文件1_新增节点3"],"on_error":["新建文件1_新增节点3"]},"新建文件1_新增节点3":{"recognition":"DirectHit","action":"DoNothing"}}
-`;
-*/

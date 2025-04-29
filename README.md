@@ -19,27 +19,26 @@
 **使用方式**：[在线文档](./docs/guide.md)
 
 **应用案例**：[MaaNewMoonAccompanying](https://github.com/kqcoxn/MaaNewMoonAccompanying)（新月同行小助手）
-    
+
 ## What's the Point?
 
-- ✨工作流交互面板
-- ✨额外字段筛选显示
-- ✨类型预判/字段说明
-- ✨错误检查
-- ✨自动生成 `next`、`interrupt`、`on_error` 字段
-- ✨自动添加必选字段
-- ✨JSON预览
-- ✨导入/导出
-- ✨多文件编辑
-- ✨本地缓存
-- ✨更多特性等你体验！
+- ✨ 工作流交互面板
+- ✨ 额外字段筛选显示
+- ✨ 类型预判/字段说明
+- ✨ 错误检查
+- ✨ 自动生成 `next`、`interrupt`、`on_error` 字段
+- ✨ 自动添加必选字段
+- ✨JSON 预览
+- ✨ 导入/导出
+- ✨ 多文件编辑
+- ✨ 本地缓存
+- ✨ 更多特性等你体验！
 
 ## TODO
 
 - 边权重设置
 - 自定义模板节点
 - `interface.json`支持
-- 本地文件自动读写
 - 类型可选
 - 分秒转换器
 
@@ -49,6 +48,15 @@
 - [@YantaoMou](https://github.com/YantaoMou)：[MAAVisualEditor](https://github.com/YantaoMou/MAAVisualEditor)
 
 ## 更新记录
+
+### v0.3.2
+
+> 2025.4.28
+
+- **新增**
+  - 添加`prefix`通用设置
+- **优化修复**
+  - 优化转换逻辑，取消强制规范
 
 ### v0.3.1
 
@@ -63,7 +71,10 @@
   - 修复了删除时若值为空则字段失效的问题
   - 修复了新增节点后删除操作仍然对原选中节点生效的问题
   - 加入延迟抖动更新
-  
+
+<details>
+<summary>更早的版本</summary>
+
 ### v0.3.0
 
 > 2025.4.17
@@ -75,10 +86,6 @@
 - **优化修复**
   - 修复了批量移动节点后节点位置记录混乱的问题
   - 调整了部分字段的默认属性与自动额外字段添加，更接近实际使用
-
-<!-- 折叠 -->
-<details>
-<summary>更早的版本</summary>
 
 ### Beta-0.2.1
 
@@ -111,7 +118,6 @@
 初次提交，基础功能实装
 
 </details>
-
 
 ## 鸣谢
 

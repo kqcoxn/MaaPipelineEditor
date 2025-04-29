@@ -13,7 +13,14 @@
       @close="handleClose"
       @open="handleOpen"
     >
-      <el-form :inline="true">
+      <el-form label-width="auto">
+        <el-form-item label="节点前缀">
+          <el-input
+            v-model="fileStore.currentConfig.prefix"
+            placeholder="转换后：prefix_label"
+            clearable
+          />
+        </el-form-item>
         <el-form-item label="任务错误出口">
           <el-input
             v-model="fileStore.currentConfig.export"
