@@ -193,7 +193,19 @@ onMounted(async () => {
 watch(
   value,
   (newValue) => {
-    nodeData.value[props.fieldKey] = newValue;
+    const key = props.fieldKey;
+    switch (key) {
+      // 补全template后缀
+      case "template":
+        newValue = newValue.map((path) => {
+          if (!path.endsWith(".png")) {
+            path += ".png";
+          }
+          return path;
+        });
+        break;
+    }
+    nodeData.value[key] = newValue;
   },
   {
     deep: true,
