@@ -107,6 +107,21 @@ onMounted(async () => {
       }
     });
   });
+  // 按键映射
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Delete") {
+      event.preventDefault();
+      const backspaceEvent = new KeyboardEvent("keydown", {
+        key: "Backspace",
+        code: "Backspace",
+        keyCode: 8,
+        which: 8,
+        bubbles: true,
+        cancelable: true,
+      });
+      event.target.dispatchEvent(backspaceEvent);
+    }
+  });
 });
 
 /**常量 */
