@@ -128,9 +128,8 @@ export default class Transfer {
     // 补全孤节点
     const jsonKeys = Object.keys(jsonObj);
     for (const node of nodes) {
-      const label = node.data.label;
-      if (!jsonKeys.includes(label)) {
-        const key = createNodeKey(label, config?.prefix);
+      const key = createNodeKey(node.data.label, config?.prefix);
+      if (!jsonKeys.includes(key)) {
         jsonObj[key] = createSingleNodeObj(node, node.data);
       }
     }
@@ -171,11 +170,13 @@ export default class Transfer {
         if (key.includes("__yamaape_config")) {
           delete json[key].version;
           fileStore.currentFile.config = json[key];
+          const config = fileStore.currentConfig;
           if (config.filename) {
             filename = config.filename;
           }
         }
       }
+      const config = fileStore.currentConfig;
       // 普通节点
       keys.forEach((key) => {
         const obj = json[key];

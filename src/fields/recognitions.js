@@ -188,13 +188,15 @@ export const recognitionFields = {
           `,
     extras: {
       roi: {
-        type: "number[4]",
+        required: true,
+        type: "string",
         description: `
+                  YAMaaPE目前仅支持字符串。
                   ROI 区域。可选，默认 [0, 0, 0, 0] 。
                   若为字符串，则表示图片文件夹中的图片路径。
                   若为数组，则表示 ROI 区域的坐标。
                   `,
-        default: [0, 0, 0, 0],
+        default: "",
       },
       roi_offset: {
         type: "number[4]",
@@ -219,7 +221,7 @@ export const recognitionFields = {
         description: `
                   颜色下限值。必选。最内层 list 长度需和 method 的通道数一致。
                   `,
-        default: [0, 0, 0, 0],
+        default: [0, 0, 0],
       },
       upper: {
         required: true,
@@ -227,7 +229,7 @@ export const recognitionFields = {
         description: `
                   颜色上限值。必选。最内层 list 长度需和 method 的通道数一致。
                   `,
-        default: [255, 255, 255, 255],
+        default: [255, 255, 255],
       },
       count: {
         type: "number",

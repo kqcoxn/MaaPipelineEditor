@@ -378,6 +378,15 @@ onMounted(async () => {});
 
 // 添加必选
 function onRecognitionChange(value) {
+  // 先删除旧的额外字段
+  const oldExtras = recognitionFields[nodeData.value.recognition]?.extras || {};
+  Object.keys(oldExtras).forEach((key) => {
+    if (key in nodeData.value) {
+      delete nodeData.value[key];
+    }
+  });
+
+  // 添加新的必选字段
   const extras = recognitionFields[value].extras;
   if (!extras) return;
   Object.keys(extras).forEach((key) => {
@@ -386,6 +395,15 @@ function onRecognitionChange(value) {
   });
 }
 function onActionChange(value) {
+  // 先删除旧的额外字段
+  const oldExtras = actionFields[nodeData.value.action]?.extras || {};
+  Object.keys(oldExtras).forEach((key) => {
+    if (key in nodeData.value) {
+      delete nodeData.value[key];
+    }
+  });
+
+  // 添加新的必选字段
   const extras = actionFields[value].extras;
   if (!extras) return;
   Object.keys(extras).forEach((key) => {
