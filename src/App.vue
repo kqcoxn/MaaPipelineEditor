@@ -72,6 +72,7 @@ onMounted(async () => {
   onInit((i) => {
     viewer.value = i;
     Page.updateVueFlow(i);
+    stateStore.vueFlowInstance = i;
   });
   nextTick(() => {
     fileStore.clear();

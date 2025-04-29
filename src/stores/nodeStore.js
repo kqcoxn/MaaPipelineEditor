@@ -7,6 +7,62 @@ import { TopNotice } from "../utils/notice";
 import Transfer from "../core/transfer";
 import Page from "../utils/page";
 
+function getAddPosition(nodes, currentNode, nodeCount) {
+  try {
+    // 获取画布偏移量
+    const dom = document.getElementsByClassName(
+      "vue-flow__transformationpane"
+    )[0];
+    const transform = dom.style.transform;
+    const spacePosition = transform
+      .split("translate(")[1]
+      .split(") scale")[0]
+      .split("px");
+    const left = -Number(spacePosition[0]);
+    const right = -Number(spacePosition[1].split(", ")[1]);
+    const width = dom.offsetWidth;
+    const height = dom.offsetHeight;
+
+    // 无节点
+    if (nodeCount == 0) {
+      return {
+        x: Math.round(left + width / 2),
+        y: Math.round(right + height / 2),
+      };
+    }
+    // 有选中的节点
+    if (currentNode?.position) {
+      const position = currentNode.position;
+      return { x: position.x + 260, y: position.y };
+    }
+    // 放在最右侧
+    let rightNodePos = nodes[0].position;
+    for (let i = 1; i < nodeCount; i++) {
+      if (nodes[i].position.x > rightNodePos.x) {
+        rightNodePos = nodes[i].position;
+      }
+    }
+    return { x: rightNodePos.x + 260, y: rightNodePos.y };
+  } catch {
+    // 无节点
+    if (nodeCount == 0) {
+      return { x: 0, y: 0 };
+    }
+    if (currentNode?.position) {
+      const position = currentNode.position;
+      return { x: position.x + 260, y: position.y };
+    } else {
+      let rightNodePos = nodes[0].position;
+      for (let i = 1; i < nodeCount; i++) {
+        if (nodes[i].position.x > rightNodePos.x) {
+          rightNodePos = nodes[i].position;
+        }
+      }
+      return { x: rightNodePos.x + 260, y: rightNodePos.y };
+    }
+  }
+}
+
 export const useNodeStore = defineStore("NodeStore", {
   state: () => ({
     nodes: [],
@@ -23,23 +79,6 @@ export const useNodeStore = defineStore("NodeStore", {
     },
     edgeCount: (state) => {
       return state.edges.length;
-    },
-    addPosition: (state) => {
-      if (state.nodeCount == 0) {
-        return { x: 0, y: 0 };
-      }
-      if (state.currentNode?.position) {
-        const position = state.currentNode.position;
-        return { x: position.x + 260, y: position.y };
-      } else {
-        let rightNodePos = state.nodes[0].position;
-        for (let i = 1; i < state.nodeCount; i++) {
-          if (state.nodes[i].position.x > rightNodePos.x) {
-            rightNodePos = state.nodes[i].position;
-          }
-        }
-        return { x: rightNodePos.x + 260, y: rightNodePos.y };
-      }
     },
   },
   actions: {
@@ -77,7 +116,9 @@ export const useNodeStore = defineStore("NodeStore", {
         return this.addNode();
       }
       // 创建节点
-      const position = { ...this.addPosition };
+      const position = {
+        ...getAddPosition(this.nodes, this.currentNode, this.nodeCount),
+      };
       const node = {
         id,
         type: "template",

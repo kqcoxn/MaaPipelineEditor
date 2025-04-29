@@ -1,5 +1,4 @@
 import { defineStore } from "pinia";
-import { useVueFlow } from "@vue-flow/core";
 
 import { TopNotice } from "../utils/notice";
 import { Storage } from "../utils/storage";

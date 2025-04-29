@@ -3,9 +3,10 @@ import { defineStore } from "pinia";
 export const useStateStore = defineStore("StateStore", {
   state: () => ({
     isShowSettingPanel: false,
+    vueFlowInstance: null,
     tips: {
       transferTip: "",
-    }
+    },
   }),
   getters: {
     tipList: (state) => {
