@@ -61,6 +61,7 @@ function updateNodePosition(node) {
 function alignSelectedNodes(direction) {
   const selectedNodes = getSelectedNodes.value;
   if (selectedNodes.length < 2) return;
+  if (selectedNodes.length < 3 && direction.includes("distribute")) return;
 
   let reference;
   switch (direction) {
@@ -84,6 +85,34 @@ function alignSelectedNodes(direction) {
       );
       selectedNodes.forEach((n) => (n.position.y = reference - (n.height || 0)));
       break;
+    case "horizontal-distribute": {
+      const nodes = [...selectedNodes].sort((a, b) => a.position.x - b.position.x);
+      const left = nodes[0].position.x;
+      const right = nodes[nodes.length - 1].position.x;
+      const totalWidth = nodes.reduce((sum, n) => sum + (n.width || 0), 0);
+      const spacing = (right - left - totalWidth) / (nodes.length - 1);
+
+      let currentX = left;
+      for (const node of nodes) {
+        node.position.x = currentX;
+        currentX += (node.width || 0) + spacing;
+      }
+      break;
+    }
+    case "vertical-distribute": {
+      const nodes = [...selectedNodes].sort((a, b) => a.position.y - b.position.y);
+      const top = nodes[0].position.y;
+      const bottom = nodes[nodes.length - 1].position.y;
+      const totalHeight = nodes.reduce((sum, n) => sum + (n.height || 0), 0);
+      const spacing = (bottom - top - totalHeight) / (nodes.length - 1);
+
+      let currentY = top;
+      for (const node of nodes) {
+        node.position.y = currentY;
+        currentY += (node.height || 0) + spacing;
+      }
+      break;
+    }
   }
 }
 

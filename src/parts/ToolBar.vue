@@ -80,11 +80,12 @@
   .layout-tools {
     right: 10px;
     bottom: 10px;
+    flex-direction: row;
 
     .divider {
-      width: 70%;
-      height: 1px;
-      top: 0;
+      width: 1px;
+      height: 70%;
+      left: 0;
     }
   }
 }
@@ -152,7 +153,7 @@
         class="item"
         @click="layoutTool.click ? layoutTool.click() : () => {}"
       >
-        <el-tooltip effect="dark" :content="layoutTool.label" placement="left">
+        <el-tooltip effect="dark" :content="layoutTool.label" placement="top">
           <div class="content ease">
             <svg
               class="icon"
@@ -266,6 +267,17 @@ const layoutTools = [
     icon: "align-bottom",
     click: () => emit("align", "bottom"),
   },
+  {
+  label: "水平平均分布",
+  icon: "align-space-between-horizontal",
+  click: () => emit("align", "horizontal-distribute"),
+},
+{
+  label: "垂直平均分布",
+  icon: "align-space-between-vertical",
+  click: () => emit("align", "vertical-distribute"),
+},
+
 ];
 
 // 工具
