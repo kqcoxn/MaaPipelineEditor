@@ -12,7 +12,7 @@
 
 <template>
   <div :id="appName">
-    <ToolBar :viewer="viewer" />
+    <ToolBar :viewer="viewer" @align="alignSelectedNodes" />
     <AttrPanel />
     <VueFlow
       :nodes="nodeStore.nodes"
@@ -56,6 +56,35 @@ function updateNodePosition(node) {
       },
     });
   }, 200);
+}
+
+function alignSelectedNodes(direction) {
+  const selectedNodes = getSelectedNodes.value;
+  if (selectedNodes.length < 2) return;
+
+  let reference;
+  switch (direction) {
+    case "left":
+      reference = Math.min(...selectedNodes.map((n) => n.position.x));
+      selectedNodes.forEach((n) => (n.position.x = reference));
+      break;
+    case "right":
+      reference = Math.max(
+        ...selectedNodes.map((n) => n.position.x + (n.width || 0))
+      );
+      selectedNodes.forEach((n) => (n.position.x = reference - (n.width || 0)));
+      break;
+    case "top":
+      reference = Math.min(...selectedNodes.map((n) => n.position.y));
+      selectedNodes.forEach((n) => (n.position.y = reference));
+      break;
+    case "bottom":
+      reference = Math.max(
+        ...selectedNodes.map((n) => n.position.y + (n.height || 0))
+      );
+      selectedNodes.forEach((n) => (n.position.y = reference - (n.height || 0)));
+      break;
+  }
 }
 
 /**监听 */
@@ -136,7 +165,9 @@ const {
   onNodeClick,
   onNodesChange,
   onConnect,
-  onEdgesChange,
+  onEdgesChange,  
+  getSelectedNodes, 
+  getNodes,
   onInit,
 } = useVueFlow();
 import { Background } from "@vue-flow/background";
