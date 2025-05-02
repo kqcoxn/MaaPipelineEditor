@@ -1,8 +1,8 @@
 @font-face {
   font-family: "iconfont"; /* Project id 4885089 */
-  src: url('iconfont.woff2?t=1744820052116') format('woff2'),
-       url('iconfont.woff?t=1744820052116') format('woff'),
-       url('iconfont.ttf?t=1744820052116') format('truetype');
+  src: url('iconfont.woff2?t=1746194759503') format('woff2'),
+       url('iconfont.woff?t=1746194759503') format('woff'),
+       url('iconfont.ttf?t=1746194759503') format('truetype');
 }
 
 .iconfont {
@@ -11,6 +11,26 @@
   font-style: normal;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-jurassic_HorFensan-align:before {
+  content: "\e706";
+}
+
+.icon-jurassic_horizalign-center:before {
+  content: "\e707";
+}
+
+.icon-jurassic_VerFensan-align:before {
+  content: "\e70f";
+}
+
+.icon-jurassic_verticalalign-bottom:before {
+  content: "\e710";
+}
+
+.icon-jurassic_verticalalign-top:before {
+  content: "\e711";
 }
 
 .icon-beifen:before {

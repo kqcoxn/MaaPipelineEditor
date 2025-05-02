@@ -69,6 +69,7 @@ export const useNodeStore = defineStore("NodeStore", {
     nodeCounter: 1,
     edges: [],
     currentNodeId: null,
+    selectedNodes: [],
   }),
   getters: {
     currentNode: (state) => {

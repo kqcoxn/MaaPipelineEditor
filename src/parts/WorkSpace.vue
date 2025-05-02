@@ -83,10 +83,14 @@ function alignSelectedNodes(direction) {
       reference = Math.max(
         ...selectedNodes.map((n) => n.position.y + (n.height || 0))
       );
-      selectedNodes.forEach((n) => (n.position.y = reference - (n.height || 0)));
+      selectedNodes.forEach(
+        (n) => (n.position.y = reference - (n.height || 0))
+      );
       break;
     case "horizontal-distribute": {
-      const nodes = [...selectedNodes].sort((a, b) => a.position.x - b.position.x);
+      const nodes = [...selectedNodes].sort(
+        (a, b) => a.position.x - b.position.x
+      );
       const left = nodes[0].position.x;
       const right = nodes[nodes.length - 1].position.x;
       const totalWidth = nodes.reduce((sum, n) => sum + (n.width || 0), 0);
@@ -100,7 +104,9 @@ function alignSelectedNodes(direction) {
       break;
     }
     case "vertical-distribute": {
-      const nodes = [...selectedNodes].sort((a, b) => a.position.y - b.position.y);
+      const nodes = [...selectedNodes].sort(
+        (a, b) => a.position.y - b.position.y
+      );
       const top = nodes[0].position.y;
       const bottom = nodes[nodes.length - 1].position.y;
       const totalHeight = nodes.reduce((sum, n) => sum + (n.height || 0), 0);
@@ -141,6 +147,10 @@ onMounted(async () => {
           break;
         case "position":
           updateNodePosition(node);
+          break;
+        case "select":
+          const selectedNodes = getSelectedNodes.value;
+          nodeStore.selectedNodes = selectedNodes;
           break;
       }
     });
@@ -194,8 +204,8 @@ const {
   onNodeClick,
   onNodesChange,
   onConnect,
-  onEdgesChange,  
-  getSelectedNodes, 
+  onEdgesChange,
+  getSelectedNodes,
   getNodes,
   onInit,
 } = useVueFlow();

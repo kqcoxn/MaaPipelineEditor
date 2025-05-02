@@ -6,6 +6,41 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "10793712",
+      "name": "水平分散对齐_对齐操作_jurassic",
+      "font_class": "jurassic_HorFensan-align",
+      "unicode": "e706",
+      "unicode_decimal": 59142
+    },
+    {
+      "icon_id": "10793713",
+      "name": "水平居中对齐_对齐操作_jurassic",
+      "font_class": "jurassic_horizalign-center",
+      "unicode": "e707",
+      "unicode_decimal": 59143
+    },
+    {
+      "icon_id": "10793756",
+      "name": "垂直分散对齐_对齐操作_jurassic",
+      "font_class": "jurassic_VerFensan-align",
+      "unicode": "e70f",
+      "unicode_decimal": 59151
+    },
+    {
+      "icon_id": "10793757",
+      "name": "垂直底对齐_对齐操作_jurassic",
+      "font_class": "jurassic_verticalalign-bottom",
+      "unicode": "e710",
+      "unicode_decimal": 59152
+    },
+    {
+      "icon_id": "10793759",
+      "name": "垂直顶对齐_对齐操作_jurassic",
+      "font_class": "jurassic_verticalalign-top",
+      "unicode": "e711",
+      "unicode_decimal": 59153
+    },
+    {
       "icon_id": "7177275",
       "name": "备份",
       "font_class": "beifen",

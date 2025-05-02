@@ -147,9 +147,10 @@
       </div>
     </div>
     <!-- 格式设置工具 -->
-    <div class="bar layout-tools">
+    <div v-if="nodeStore.selectedNodes.length > 1" class="bar layout-tools">
       <div
-        v-for="(layoutTool, index) in layoutTools"
+        v-for="(layoutTool, index) in visibleLayoutTools"
+        :key="index"
         class="item"
         @click="layoutTool.click ? layoutTool.click() : () => {}"
       >
@@ -181,6 +182,10 @@ const appName = ref("ToolBar");
 const filename = ref("");
 
 /**属性 */
+const visibleLayoutTools = computed(() =>
+  layoutTools.filter((tool) => !tool.if || tool.if())
+);
+
 /**函数 */
 
 /**监听 */
@@ -241,43 +246,35 @@ const nodes = [
         autoSelect: true,
         autoConnect: true,
       });
-      node.data.template = ["../image/"];
+      node.data.template = [""];
     },
   },
 ];
+
+// 排版工具
 const layoutTools = [
-  // 使用 $emit() 方法在单击按钮时向父组件触发自定义事件。
   {
-    label: "左对齐",
-    icon: "align-left",
+    label: "水平居中对齐",
+    icon: "jurassic_horizalign-center",
     click: () => emit("align", "left"),
   },
   {
-    label: "右对齐",
-    icon: "align-right",
-    click: () => emit("align", "right"),
-  },
-  {
     label: "上对齐",
-    icon: "align-top",
+    icon: "jurassic_verticalalign-top",
     click: () => emit("align", "top"),
   },
   {
-    label: "下对齐",
-    icon: "align-bottom",
-    click: () => emit("align", "bottom"),
+    if: () => nodeStore.selectedNodes.length > 2,
+    label: "水平平均分布",
+    icon: "jurassic_VerFensan-align",
+    click: () => emit("align", "horizontal-distribute"),
   },
   {
-  label: "水平平均分布",
-  icon: "align-space-between-horizontal",
-  click: () => emit("align", "horizontal-distribute"),
-},
-{
-  label: "垂直平均分布",
-  icon: "align-space-between-vertical",
-  click: () => emit("align", "vertical-distribute"),
-},
-
+    if: () => nodeStore.selectedNodes.length > 2,
+    label: "垂直平均分布",
+    icon: "jurassic_HorFensan-align",
+    click: () => emit("align", "vertical-distribute"),
+  },
 ];
 
 // 工具
