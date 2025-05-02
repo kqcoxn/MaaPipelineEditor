@@ -266,13 +266,13 @@ const layoutTools = [
   {
     if: () => nodeStore.selectedNodes.length > 2,
     label: "水平平均分布",
-    icon: "jurassic_VerFensan-align",
+    icon: "jurassic_HorFensan-align",
     click: () => emit("align", "horizontal-distribute"),
   },
   {
     if: () => nodeStore.selectedNodes.length > 2,
     label: "垂直平均分布",
-    icon: "jurassic_HorFensan-align",
+    icon: "jurassic_VerFensan-align",
     click: () => emit("align", "vertical-distribute"),
   },
 ];
