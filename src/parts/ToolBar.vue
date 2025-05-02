@@ -76,6 +76,18 @@
       left: 0;
     }
   }
+
+  .layout-tools {
+    right: 10px;
+    bottom: 10px;
+    flex-direction: row;
+
+    .divider {
+      width: 1px;
+      height: 70%;
+      left: 0;
+    }
+  }
 }
 </style>
 
@@ -128,6 +140,29 @@
               aria-hidden="true"
             >
               <use :xlink:href="`#icon-${tool.icon}`"></use>
+            </svg>
+            <div v-if="index > 0" class="divider"></div>
+          </div>
+        </el-tooltip>
+      </div>
+    </div>
+    <!-- 格式设置工具 -->
+    <div class="bar layout-tools">
+      <div
+        v-for="(layoutTool, index) in layoutTools"
+        class="item"
+        @click="layoutTool.click ? layoutTool.click() : () => {}"
+      >
+        <el-tooltip effect="dark" :content="layoutTool.label" placement="top">
+          <div class="content ease">
+            <svg
+              class="icon"
+              :style="{
+                fontSize: layoutTool.fontSize || '28px',
+              }"
+              aria-hidden="true"
+            >
+              <use :xlink:href="`#icon-${layoutTool.icon}`"></use>
             </svg>
             <div v-if="index > 0" class="divider"></div>
           </div>
@@ -210,6 +245,40 @@ const nodes = [
     },
   },
 ];
+const layoutTools = [
+  // 使用 $emit() 方法在单击按钮时向父组件触发自定义事件。
+  {
+    label: "左对齐",
+    icon: "align-left",
+    click: () => emit("align", "left"),
+  },
+  {
+    label: "右对齐",
+    icon: "align-right",
+    click: () => emit("align", "right"),
+  },
+  {
+    label: "上对齐",
+    icon: "align-top",
+    click: () => emit("align", "top"),
+  },
+  {
+    label: "下对齐",
+    icon: "align-bottom",
+    click: () => emit("align", "bottom"),
+  },
+  {
+  label: "水平平均分布",
+  icon: "align-space-between-horizontal",
+  click: () => emit("align", "horizontal-distribute"),
+},
+{
+  label: "垂直平均分布",
+  icon: "align-space-between-vertical",
+  click: () => emit("align", "vertical-distribute"),
+},
+
+];
 
 // 工具
 const tools = [
@@ -231,6 +300,7 @@ const tools = [
 const props = defineProps({
   viewer: {},
 });
+const emit = defineEmits(["align"]);
 
 /**导入 */
 // vue

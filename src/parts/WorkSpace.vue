@@ -12,7 +12,7 @@
 
 <template>
   <div :id="appName">
-    <ToolBar :viewer="viewer" />
+    <ToolBar :viewer="viewer" @align="alignSelectedNodes" />
     <AttrPanel />
     <VueFlow
       :nodes="nodeStore.nodes"
@@ -56,6 +56,64 @@ function updateNodePosition(node) {
       },
     });
   }, 200);
+}
+
+function alignSelectedNodes(direction) {
+  const selectedNodes = getSelectedNodes.value;
+  if (selectedNodes.length < 2) return;
+  if (selectedNodes.length < 3 && direction.includes("distribute")) return;
+
+  let reference;
+  switch (direction) {
+    case "left":
+      reference = Math.min(...selectedNodes.map((n) => n.position.x));
+      selectedNodes.forEach((n) => (n.position.x = reference));
+      break;
+    case "right":
+      reference = Math.max(
+        ...selectedNodes.map((n) => n.position.x + (n.width || 0))
+      );
+      selectedNodes.forEach((n) => (n.position.x = reference - (n.width || 0)));
+      break;
+    case "top":
+      reference = Math.min(...selectedNodes.map((n) => n.position.y));
+      selectedNodes.forEach((n) => (n.position.y = reference));
+      break;
+    case "bottom":
+      reference = Math.max(
+        ...selectedNodes.map((n) => n.position.y + (n.height || 0))
+      );
+      selectedNodes.forEach((n) => (n.position.y = reference - (n.height || 0)));
+      break;
+    case "horizontal-distribute": {
+      const nodes = [...selectedNodes].sort((a, b) => a.position.x - b.position.x);
+      const left = nodes[0].position.x;
+      const right = nodes[nodes.length - 1].position.x;
+      const totalWidth = nodes.reduce((sum, n) => sum + (n.width || 0), 0);
+      const spacing = (right - left - totalWidth) / (nodes.length - 1);
+
+      let currentX = left;
+      for (const node of nodes) {
+        node.position.x = currentX;
+        currentX += (node.width || 0) + spacing;
+      }
+      break;
+    }
+    case "vertical-distribute": {
+      const nodes = [...selectedNodes].sort((a, b) => a.position.y - b.position.y);
+      const top = nodes[0].position.y;
+      const bottom = nodes[nodes.length - 1].position.y;
+      const totalHeight = nodes.reduce((sum, n) => sum + (n.height || 0), 0);
+      const spacing = (bottom - top - totalHeight) / (nodes.length - 1);
+
+      let currentY = top;
+      for (const node of nodes) {
+        node.position.y = currentY;
+        currentY += (node.height || 0) + spacing;
+      }
+      break;
+    }
+  }
 }
 
 /**监听 */
@@ -136,7 +194,9 @@ const {
   onNodeClick,
   onNodesChange,
   onConnect,
-  onEdgesChange,
+  onEdgesChange,  
+  getSelectedNodes, 
+  getNodes,
   onInit,
 } = useVueFlow();
 import { Background } from "@vue-flow/background";
