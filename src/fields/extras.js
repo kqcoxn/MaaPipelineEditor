@@ -27,11 +27,6 @@ export const extraFields = {
           `,
     default: 1000,
   },
-  jump_yamaape: {
-    type: "string",
-    description: `同 next，会合并至 next 最前面，但在编译为 pipeline 时不会添加文件名前缀`,
-    default: "",
-  },
   inverse: {
     type: "boolean",
     description: `反转识别结果，识别到了当做没识别到，没识别到的当做识别到了。可选，默认 false 。

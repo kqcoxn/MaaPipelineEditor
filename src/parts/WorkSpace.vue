@@ -206,7 +206,6 @@ const {
   onConnect,
   onEdgesChange,
   getSelectedNodes,
-  getNodes,
   onInit,
 } = useVueFlow();
 import { Background } from "@vue-flow/background";
