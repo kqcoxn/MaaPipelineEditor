@@ -79,6 +79,9 @@ export const useFileStore = defineStore("FileStore", {
     changeName(filename) {
       if (!filename) return;
       this.currentFile.name = this.currentName = filename;
+      if (this.currentFile.config) {
+        this.currentFile.config.filename = filename;
+      }
     },
 
     // 移除文件
