@@ -50,14 +50,17 @@
     <div class="container">
       <div class="title text-center">JSON预览</div>
       <div class="operates">
-        <span
-          class="iconfont icon-fuzhi icon-effect"
-          @click="Payaboard.copy(fileStore.currentJson)"
-        ></span>
-        <span
-          class="iconfont icon-daoru icon-effect"
-          @click="loadFromCopy"
-        ></span>
+        <el-tooltip
+          v-for="(tool, index) in tools"
+          effect="dark"
+          :content="tool.label"
+          placement="top"
+        >
+          <span
+            :class="['iconfont', `icon-${tool.icon}`, 'icon-effect']"
+            @click="tool.click"
+          ></span>
+        </el-tooltip>
       </div>
       <div class="viewer">
         <vue-json-pretty
@@ -132,6 +135,23 @@ function onChange() {
 }
 
 /**常量 */
+const tools = [
+  {
+    label: "复制到粘贴板",
+    icon: "fuzhi",
+    click: () => {
+      return Payaboard.copy(fileStore.currentJson);
+    },
+  },
+  {
+    label: "从粘贴板导入",
+    icon: "daoru",
+    click: () => {
+      return loadFromCopy();
+    },
+  },
+];
+
 /**参数 */
 /**导入 */
 // vue
