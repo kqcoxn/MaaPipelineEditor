@@ -27,6 +27,11 @@ export const extraFields = {
           `,
     default: 1000,
   },
+  focus: {
+    type: "string",
+    description: `输出的提示，根据不同 GUI 实现可能效果不同。可选，默认为空。`,
+    default: "",
+  },
   inverse: {
     type: "boolean",
     description: `反转识别结果，识别到了当做没识别到，没识别到的当做识别到了。可选，默认 false 。
