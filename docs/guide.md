@@ -1,3 +1,6 @@
+> [!TIP]
+> 本文档为AI生成后改编的版本，仅供参考，推荐使用在线网站尝试一两个节点后观察JSON预览以熟悉格式
+
 This page provides comprehensive instructions for installing, configuring, and beginning to use YAMaaPE (Yet Another Maa Pipeline Editor). YAMaaPE is a visual workflow editor for creating MaaFramework Pipeline configurations through an intuitive graphical interface.  
 本页面提供了安装、配置和开始使用 YAMaaPE（Yet Another Maa Pipeline Editor）的全面说明。YAMaaPE 是一个通过直观的图形界面创建 MaaFramework Pipeline 配置的可视化工作流编辑器。
 
