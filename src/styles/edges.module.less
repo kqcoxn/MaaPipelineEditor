@@ -1,0 +1,36 @@
+@import "./flow.less";
+
+.edge {
+  stroke: @norm-color;
+  stroke-width: 3;
+  stroke-dasharray: 30, 5;
+  animation: dash-animation 1s linear infinite;
+  --xy-edge-stroke-selected-default: #ff0000;
+  @trans: 0.2s ease;
+  transition: stroke @trans, stroke-width @trans;
+}
+
+@keyframes dash-animation {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -35;
+  }
+}
+
+.edge-next {
+  stroke: @next-color;
+}
+
+.edge-interrupt {
+  stroke: @interrupt-color;
+}
+
+.edge-error {
+  stroke: @error-color;
+}
+
+.edge-selected {
+  stroke-width: 4;
+}

@@ -7,6 +7,7 @@ import Header from "./components/Header";
 import Editor from "./components/Editor";
 import JsonViewer from "./components/JsonViewer";
 import FieldPanel from "./components/panels/FieldPanel";
+import ToolPanel from "./components/panels/ToolPanel";
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
             <Splitter.Panel className={style.left}>
               <Editor />
               <FieldPanel />
+              <ToolPanel.AddPanel />
             </Splitter.Panel>
             {/* <Splitter.Panel defaultSize="20%" min="0%" max="50%" collapsible>
               <JsonViewer />

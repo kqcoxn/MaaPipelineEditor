@@ -1,6 +1,8 @@
 @import "./global.less";
+@import "./flow.less";
 
 .node {
+  position: relative;
   width: 210px;
   min-height: 80px;
   box-sizing: border-box;
@@ -63,12 +65,38 @@
       }
     }
   }
+
+  .handle {
+    position: absolute;
+    height: 18px;
+    width: 8px;
+    border-radius: 4px;
+  }
+
+  .source {
+    background-color: @norm-color;
+  }
+
+  .next {
+    top: 25%;
+    background-color: @next-color;
+  }
+
+  .interrupt {
+    top: 50%;
+    background-color: @interrupt-color;
+  }
+
+  .error {
+    top: 75%;
+    background-color: @error-color;
+  }
 }
 
 .pipeline-node {
 }
 
-.selected {
+.node-selected {
   box-shadow: 1px 1px 5px rgba(black, 0.2);
   border: 1px solid rgba(black, 1);
 }

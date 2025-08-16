@@ -1,12 +1,14 @@
 import { create } from "zustand";
-
 import {
   applyNodeChanges,
   applyEdgeChanges,
   addEdge,
   type NodeChange,
   type EdgeChange,
+  type Connection,
 } from "@xyflow/react";
+
+import { SourceHandleTypeEnum, NodeTypeEnum } from "../components/flow/nodes";
 
 type XYWH = [number, number, number, number];
 export type RecognitionParamType = {
@@ -88,17 +90,6 @@ export type NodeType = {
   dragging?: boolean;
 };
 
-interface FlowState {
-  nodes: any[];
-  selectedNodes: any[];
-  targetNode: any;
-  edges: any[];
-  updateNodes: (changes: NodeChange[]) => void;
-  updateEdges: (changes: EdgeChange[]) => void;
-  addEdge: (params: any) => void;
-  setNodeData: (id: string, type: string, key: string, value: any) => void;
-}
-
 // 查找节点
 export function findNodeById(id: string) {
   return useFlowStore
@@ -113,30 +104,29 @@ function getSelectedNodes(nodes: any[]) {
   return nodes.filter((node) => node.selected) as NodeType[];
 }
 
+let nodeIdCounter = 1;
+interface FlowState {
+  nodes: any[];
+  selectedNodes: any[];
+  targetNode: any;
+  edges: any[];
+  updateNodes: (changes: NodeChange[]) => void;
+  addNode: (options?: {
+    type?: NodeTypeEnum;
+    data?: NodeDataType;
+    position?: { x: number; y: number };
+  }) => void;
+  updateEdges: (changes: EdgeChange[]) => void;
+  addEdge: (co: Connection, options?: { isCheck?: Boolean }) => void;
+  setNodeData: (id: string, type: string, key: string, value: any) => void;
+}
 export const useFlowStore = create<FlowState>()((set) => ({
   /**工作流更新 */
-  nodes: [
-    {
-      id: "1",
-      type: "pipelineNode",
-      data: {
-        label: "test node",
-        recognition: {
-          type: "DirectHit",
-          param: {},
-        },
-        action: {
-          type: "DoNothing",
-          param: {},
-        },
-        others: {},
-      },
-      position: { x: 0, y: 0 },
-    },
-  ],
+  nodes: [],
   selectedNodes: [],
   targetNode: null,
   edges: [],
+
   // 更新节点
   updateNodes(changes) {
     set((state) => {
@@ -152,14 +142,63 @@ export const useFlowStore = create<FlowState>()((set) => ({
       return setter;
     });
   },
+  // 添加节点
+  addNode(options) {
+    const { type = NodeTypeEnum.Pipeline, data, position } = options || {};
+    set((state) => {
+      const nodes = [...state.nodes];
+      const id = String(nodeIdCounter++);
+      nodes.push({
+        id,
+        type,
+        data: {
+          label: "新建节点" + id,
+          recognition: {
+            type: "DirectHit",
+            param: {},
+          },
+          action: {
+            type: "DoNothing",
+            param: {},
+          },
+          others: {},
+          ...data,
+        },
+        position: { x: 0, y: 0 },
+      });
+      return { nodes };
+    });
+  },
+
   // 更新边
   updateEdges(changes) {
     set((state) => ({ edges: applyEdgeChanges(changes, state.edges) }));
   },
   // 添加边
-  addEdge(params) {
+  addEdge(co, options) {
+    const { isCheck = true } = options || {};
     set((state) => {
-      const newEdges = addEdge(params, state.edges);
+      // 检查冲突项
+      if (isCheck) {
+        if (co.sourceHandle === SourceHandleTypeEnum.Next) {
+          const crash = state.edges.find(
+            (edge) =>
+              (edge as Connection).source === co.source &&
+              (edge as Connection).sourceHandle === SourceHandleTypeEnum.Error
+          );
+          if (crash) return {};
+        } else if (co.sourceHandle === SourceHandleTypeEnum.Error) {
+          const crash = state.edges.find(
+            (edge) =>
+              (edge as Connection).source === co.source &&
+              (edge as Connection).sourceHandle === SourceHandleTypeEnum.Next
+          );
+          if (crash) return {};
+        }
+      }
+      // 更新边属性
+      const newEdge = { ...co, type: "marked" };
+      const newEdges = addEdge(newEdge, state.edges);
       return { edges: newEdges };
     });
   },

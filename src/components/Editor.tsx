@@ -8,10 +8,12 @@ import {
   Background,
   type NodeChange,
   type EdgeChange,
+  type Connection,
 } from "@xyflow/react";
 
 import { useFlowStore } from "../stores/flowStore";
 import { nodeTypes } from "./flow/nodes";
+import { edgeTypes } from "./flow/edges";
 
 function Editor() {
   // store
@@ -30,7 +32,7 @@ function Editor() {
     (changes: EdgeChange[]) => updateEdges(changes),
     []
   );
-  const onConnect = useCallback((params: any) => addEdge(params), []);
+  const onConnect = useCallback((co: Connection) => addEdge(co), []);
 
   // 渲染
   return (
@@ -39,6 +41,7 @@ function Editor() {
         nodeTypes={nodeTypes}
         nodes={nodes}
         onNodesChange={onNodesChange}
+        edgeTypes={edgeTypes}
         edges={edges}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}

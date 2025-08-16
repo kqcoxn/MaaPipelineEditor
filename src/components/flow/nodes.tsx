@@ -1,11 +1,26 @@
 import style from "../../styles/nodes.module.less";
 
 import { memo } from "react";
-import type { Node, NodeProps } from "@xyflow/react";
+import {
+  Handle,
+  Position,
+  type Node,
+  type NodeProps,
+} from "@xyflow/react";
 import classNames from "classnames";
 
 import { useFlowStore, type NodeDataType } from "../../stores/flowStore";
 import { JsonHelper } from "../../utils/jsonHelper";
+
+export enum SourceHandleTypeEnum {
+  Next = "next",
+  Interrupt = "interrupt",
+  Error = "on_error",
+}
+export enum NodeTypeEnum {
+  Pipeline = "pipeline",
+  External = "external",
+}
 
 type PipelineNodeData = Node<NodeDataType, "pipeline">;
 
@@ -55,15 +70,39 @@ function PipelineNode({ data, selected }: NodeProps<PipelineNodeData>) {
       className={classNames({
         [style.node]: true,
         [style["pipeline-node"]]: true,
-        [style.selected]: selected,
+        [style["node-selected"]]: selected,
       })}
     >
       <div className={style.title}>{data.label}</div>
       {ParamListElem(data)}
+      <Handle
+        id="target"
+        className={classNames(style.handle, style.source)}
+        type="target"
+        position={Position.Left}
+      />
+      <Handle
+        id={SourceHandleTypeEnum.Next}
+        className={classNames(style.handle, style.next)}
+        type="source"
+        position={Position.Right}
+      />
+      <Handle
+        id={SourceHandleTypeEnum.Interrupt}
+        className={classNames(style.handle, style.interrupt)}
+        type="source"
+        position={Position.Right}
+      />
+      <Handle
+        id={SourceHandleTypeEnum.Error}
+        className={classNames(style.handle, style.error)}
+        type="source"
+        position={Position.Right}
+      />
     </div>
   );
 }
 
 export const nodeTypes = {
-  pipelineNode: memo(PipelineNode),
+  [NodeTypeEnum.Pipeline]: memo(PipelineNode),
 };
