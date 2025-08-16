@@ -1,6 +1,6 @@
 # MaaPipelineEditor
 
-项目正在绝赞重构中！
+项目正在绝赞重构中！（预计8月底完成）
 
 您仍然可以访问现有版本**在线编辑器**：https://yamaape.codax.site
 

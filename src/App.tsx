@@ -6,6 +6,7 @@ const { Header: HeaderSection, Content } = Layout;
 import Header from "./components/Header";
 import Editor from "./components/Editor";
 import JsonViewer from "./components/JsonViewer";
+import FieldPanel from "./components/panels/FieldPanel";
 
 function App() {
   return (
@@ -16,12 +17,13 @@ function App() {
         </HeaderSection>
         <Content className={style.content}>
           <Splitter>
-            <Splitter.Panel>
+            <Splitter.Panel className={style.left}>
               <Editor />
+              <FieldPanel />
             </Splitter.Panel>
-            <Splitter.Panel defaultSize="20%" min="10%" max="50%" collapsible>
+            {/* <Splitter.Panel defaultSize="20%" min="0%" max="50%" collapsible>
               <JsonViewer />
-            </Splitter.Panel>
+            </Splitter.Panel> */}
           </Splitter>
         </Content>
       </Layout>

@@ -2,6 +2,8 @@
 /* eslint-disable */
 
 import React, { SVGAttributes, FunctionComponent } from 'react';
+import IconShanchu from './IconShanchu';
+import IconXinghaoxiangqingCanshuduibiJishucanshu20 from './IconXinghaoxiangqingCanshuduibiJishucanshu20';
 import IconIconWendangziliaopeizhi from './IconIconWendangziliaopeizhi';
 import IconGithubFill from './IconGithubFill';
 import IconBiji from './IconBiji';
@@ -29,6 +31,8 @@ import IconOcr from './IconOcr';
 import IconTuxiang from './IconTuxiang';
 import IconGithublogo from './IconGithublogo';
 import IconDixiaguanxianguanli from './IconDixiaguanxianguanli';
+export { default as IconShanchu } from './IconShanchu';
+export { default as IconXinghaoxiangqingCanshuduibiJishucanshu20 } from './IconXinghaoxiangqingCanshuduibiJishucanshu20';
 export { default as IconIconWendangziliaopeizhi } from './IconIconWendangziliaopeizhi';
 export { default as IconGithubFill } from './IconGithubFill';
 export { default as IconBiji } from './IconBiji';
@@ -57,7 +61,7 @@ export { default as IconTuxiang } from './IconTuxiang';
 export { default as IconGithublogo } from './IconGithublogo';
 export { default as IconDixiaguanxianguanli } from './IconDixiaguanxianguanli';
 
-export type IconNames = 'icon_wendangziliaopeizhi' | 'github-fill' | 'biji' | 'jurassic_HorFensan-align' | 'jurassic_horizalign-center' | 'jurassic_VerFensan-align' | 'jurassic_verticalalign-bottom' | 'jurassic_verticalalign-top' | 'beifen' | 'xiaohongshubiaoti' | 'cansaineirong_gaoliang_48' | 'dianji' | 'a-copyfubenfuzhi' | 'fuzhi' | 'daoru' | 'dituweizhixinxi_chahao' | 'a-addmusic' | 'lanzilajitongshanchu' | 'zengjiatianjiajiajian' | 'xinjiantianjia' | 'a-080_shezhi' | 'zidingyi' | 'kongjiedian' | 'ocr' | 'tuxiang' | 'githublogo' | 'dixiaguanxianguanli';
+export type IconNames = 'icon-shanchu' | 'icon-xinghaoxiangqing-canshuduibi-jishucanshu-20' | 'icon-icon_wendangziliaopeizhi' | 'icon-github-fill' | 'icon-biji' | 'icon-jurassic_HorFensan-align' | 'icon-jurassic_horizalign-center' | 'icon-jurassic_VerFensan-align' | 'icon-jurassic_verticalalign-bottom' | 'icon-jurassic_verticalalign-top' | 'icon-beifen' | 'icon-xiaohongshubiaoti' | 'icon-cansaineirong_gaoliang_48' | 'icon-dianji' | 'icon-a-copyfubenfuzhi' | 'icon-fuzhi' | 'icon-daoru' | 'icon-dituweizhixinxi_chahao' | 'icon-a-addmusic' | 'icon-lanzilajitongshanchu' | 'icon-zengjiatianjiajiajian' | 'icon-xinjiantianjia' | 'icon-a-080_shezhi' | 'icon-zidingyi' | 'icon-kongjiedian' | 'icon-ocr' | 'icon-tuxiang' | 'icon-githublogo' | 'icon-dixiaguanxianguanli';
 
 interface Props extends Omit<SVGAttributes<SVGElement>, 'color'> {
   name: IconNames;
@@ -67,59 +71,63 @@ interface Props extends Omit<SVGAttributes<SVGElement>, 'color'> {
 
 const IconFont: FunctionComponent<Props> = ({ name, ...rest }) => {
   switch (name) {
-    case 'icon_wendangziliaopeizhi':
+    case 'icon-shanchu':
+      return <IconShanchu {...rest} />;
+    case 'icon-xinghaoxiangqing-canshuduibi-jishucanshu-20':
+      return <IconXinghaoxiangqingCanshuduibiJishucanshu20 {...rest} />;
+    case 'icon-icon_wendangziliaopeizhi':
       return <IconIconWendangziliaopeizhi {...rest} />;
-    case 'github-fill':
+    case 'icon-github-fill':
       return <IconGithubFill {...rest} />;
-    case 'biji':
+    case 'icon-biji':
       return <IconBiji {...rest} />;
-    case 'jurassic_HorFensan-align':
+    case 'icon-jurassic_HorFensan-align':
       return <IconJurassicHorFensanAlign {...rest} />;
-    case 'jurassic_horizalign-center':
+    case 'icon-jurassic_horizalign-center':
       return <IconJurassicHorizalignCenter {...rest} />;
-    case 'jurassic_VerFensan-align':
+    case 'icon-jurassic_VerFensan-align':
       return <IconJurassicVerFensanAlign {...rest} />;
-    case 'jurassic_verticalalign-bottom':
+    case 'icon-jurassic_verticalalign-bottom':
       return <IconJurassicVerticalalignBottom {...rest} />;
-    case 'jurassic_verticalalign-top':
+    case 'icon-jurassic_verticalalign-top':
       return <IconJurassicVerticalalignTop {...rest} />;
-    case 'beifen':
+    case 'icon-beifen':
       return <IconBeifen {...rest} />;
-    case 'xiaohongshubiaoti':
+    case 'icon-xiaohongshubiaoti':
       return <IconXiaohongshubiaoti {...rest} />;
-    case 'cansaineirong_gaoliang_48':
+    case 'icon-cansaineirong_gaoliang_48':
       return <IconCansaineirongGaoliang48 {...rest} />;
-    case 'dianji':
+    case 'icon-dianji':
       return <IconDianji {...rest} />;
-    case 'a-copyfubenfuzhi':
+    case 'icon-a-copyfubenfuzhi':
       return <IconACopyfubenfuzhi {...rest} />;
-    case 'fuzhi':
+    case 'icon-fuzhi':
       return <IconFuzhi {...rest} />;
-    case 'daoru':
+    case 'icon-daoru':
       return <IconDaoru {...rest} />;
-    case 'dituweizhixinxi_chahao':
+    case 'icon-dituweizhixinxi_chahao':
       return <IconDituweizhixinxiChahao {...rest} />;
-    case 'a-addmusic':
+    case 'icon-a-addmusic':
       return <IconAAddmusic {...rest} />;
-    case 'lanzilajitongshanchu':
+    case 'icon-lanzilajitongshanchu':
       return <IconLanzilajitongshanchu {...rest} />;
-    case 'zengjiatianjiajiajian':
+    case 'icon-zengjiatianjiajiajian':
       return <IconZengjiatianjiajiajian {...rest} />;
-    case 'xinjiantianjia':
+    case 'icon-xinjiantianjia':
       return <IconXinjiantianjia {...rest} />;
-    case 'a-080_shezhi':
+    case 'icon-a-080_shezhi':
       return <IconA080Shezhi {...rest} />;
-    case 'zidingyi':
+    case 'icon-zidingyi':
       return <IconZidingyi {...rest} />;
-    case 'kongjiedian':
+    case 'icon-kongjiedian':
       return <IconKongjiedian {...rest} />;
-    case 'ocr':
+    case 'icon-ocr':
       return <IconOcr {...rest} />;
-    case 'tuxiang':
+    case 'icon-tuxiang':
       return <IconTuxiang {...rest} />;
-    case 'githublogo':
+    case 'icon-githublogo':
       return <IconGithublogo {...rest} />;
-    case 'dixiaguanxianguanli':
+    case 'icon-dixiaguanxianguanli':
       return <IconDixiaguanxianguanli {...rest} />;
 
   }

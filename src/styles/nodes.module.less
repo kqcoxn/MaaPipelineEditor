@@ -1,0 +1,74 @@
+@import "./global.less";
+
+.node {
+  width: 210px;
+  min-height: 80px;
+  box-sizing: border-box;
+  padding: 12px;
+  border: solid 1px #ccc;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 12px;
+  transition: all 0.1s ease;
+
+  .title {
+    text-align: center;
+    font-size: 12px;
+  }
+
+  .list {
+    width: 100%;
+    margin-top: 8px;
+
+    .module {
+      width: 100%;
+
+      li {
+        width: 100%;
+        background-color: #f0f0f0;
+        box-sizing: border-box;
+        border-radius: 4px;
+        padding: 4px;
+        font-size: 10px;
+        display: flex;
+        height: 26px;
+        margin-top: 4px;
+
+        .key {
+          .ellipsis();
+          width: 60px;
+          text-align: right;
+          line-height: 18px;
+          font-size: 10px;
+        }
+
+        .value {
+          margin-left: 4px;
+          flex: 1;
+          position: relative;
+
+          .container {
+            .ellipsis();
+            .block-center();
+            width: 99%;
+            height: 99%;
+            line-height: 19px;
+            border-radius: 4px;
+            background-color: #fff;
+            box-sizing: border-box;
+            padding: 0 6px;
+            font-size: 10px;
+          }
+        }
+      }
+    }
+  }
+}
+
+.pipeline-node {
+}
+
+.selected {
+  box-shadow: 1px 1px 5px rgba(black, 0.2);
+  border: 1px solid rgba(black, 1);
+}
