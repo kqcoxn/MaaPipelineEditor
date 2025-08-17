@@ -12,6 +12,15 @@ import {
 
 import { SourceHandleTypeEnum, NodeTypeEnum } from "../components/flow/nodes";
 
+export type EdgeType = {
+  id: string;
+  source: string;
+  sourceHandle: SourceHandleTypeEnum;
+  target: string;
+  targetHandle: "target";
+  label: number;
+};
+
 type XYWH = [number, number, number, number];
 export type RecognitionParamType = {
   roi?: XYWH | string;
@@ -69,7 +78,6 @@ export type OtherParamType = {
   [key: string]: any;
 };
 export type ParamType = RecognitionParamType | ActionParamType | OtherParamType;
-
 export type PipelineNodeDataType = {
   label: string;
   recognition: {
@@ -106,10 +114,8 @@ export interface ExternalNodeType {
 export type NodeType = PipelineNodeType | ExternalNodeType;
 
 // 查找节点
-export function findNodeById(id: string) {
-  return useFlowStore
-    .getState()
-    .nodes.find((node) => node.id === id) as PipelineNodeType;
+export function findNodeById(id: string): PipelineNodeType {
+  return useFlowStore.getState().nodes.find((node) => node.id === id);
 }
 export function findNodeIndexById(id: string) {
   return useFlowStore.getState().nodes.findIndex((node) => node.id === id);
@@ -117,9 +123,9 @@ export function findNodeIndexById(id: string) {
 export function findNodeLabelById(id: string) {
   return findNodeById(id)?.data?.label;
 }
-// 查找选中的节点
-function getSelectedNodes(nodes: any[]) {
-  return nodes.filter((node) => node.selected) as PipelineNodeType[];
+// 筛选选中的节点
+function getSelectedNodes(nodes: any[]): PipelineNodeType[] {
+  return nodes.filter((node) => node.selected);
 }
 // 取消所有节点选中
 function getUnselectedNodes(params?: {
@@ -163,6 +169,19 @@ function calcuNodePosition(): { x: number; y: number } {
       y: -((viewport.y - size.height / 2) / viewport.zoom + 80),
     };
   }
+}
+// 获取节点
+function findEdgeById(id: string): EdgeType {
+  return useFlowStore.getState().edges.find((edge) => edge.id === id);
+}
+// 计算链接次序
+function calcuLinkOrder(source: string, type: SourceHandleTypeEnum): number {
+  const edges = useFlowStore.getState().edges as EdgeType[];
+  let order = 1;
+  edges.forEach((edge) => {
+    if (edge.source === source && edge.sourceHandle === type) order++;
+  });
+  return order;
 }
 
 /**仓库 */
@@ -295,7 +314,28 @@ export const useFlowStore = create<FlowState>()((set) => ({
 
   // 更新边
   updateEdges(changes) {
-    set((state) => ({ edges: applyEdgeChanges(changes, state.edges) }));
+    set((state) => {
+      // 更新前处理
+      const edges = state.edges as EdgeType[];
+      changes.forEach((change) => {
+        switch (change.type) {
+          case "remove":
+            const removedEdge = findEdgeById(change.id);
+            edges.forEach((edge) => {
+              if (
+                edge.source === removedEdge.source &&
+                edge.sourceHandle === removedEdge.sourceHandle &&
+                edge.label > removedEdge.label
+              )
+                edge.label--;
+            });
+            break;
+        }
+      });
+      // 更新数据
+      const newEdges = applyEdgeChanges(changes, edges);
+      return { edges: newEdges };
+    });
   },
   // 添加边
   addEdge(co, options) {
@@ -303,7 +343,7 @@ export const useFlowStore = create<FlowState>()((set) => ({
     set((state) => {
       // 检查冲突项
       if (isCheck) {
-        const edges = state.edges as Connection[];
+        const edges = state.edges as EdgeType[];
         let crash = null;
         switch (co.sourceHandle) {
           case SourceHandleTypeEnum.Next:
@@ -333,7 +373,15 @@ export const useFlowStore = create<FlowState>()((set) => ({
         if (crash) return {};
       }
       // 更新边属性
-      const newEdge = { ...co, type: "marked" };
+      const order = calcuLinkOrder(
+        co.source,
+        co.sourceHandle as SourceHandleTypeEnum
+      );
+      const newEdge = {
+        type: "marked",
+        label: order,
+        ...co,
+      };
       const newEdges = addEdge(newEdge, state.edges);
       return { edges: newEdges };
     });

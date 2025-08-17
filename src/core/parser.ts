@@ -2,7 +2,6 @@ import { type Connection } from "@xyflow/react";
 
 import {
   useFlowStore,
-  findNodeById,
   findNodeLabelById,
   type NodeType,
   type PipelineNodeType,
@@ -53,7 +52,7 @@ function parsePipelineNode(fNode: PipelineNodeType): ParsedPipelineNodeType {
   };
   return pNode;
 }
-// 连线
+// 链接
 function addLink(
   fromPNode: ParsedPipelineNodeType,
   toPNodeKey: string,
@@ -88,6 +87,5 @@ export function flowToPipeline(): PipelineObjType {
     );
   });
 
-  console.log(pipelineObj);
   return pipelineObj;
 }
