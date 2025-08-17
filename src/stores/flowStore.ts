@@ -114,6 +114,9 @@ export function findNodeById(id: string) {
 export function findNodeIndexById(id: string) {
   return useFlowStore.getState().nodes.findIndex((node) => node.id === id);
 }
+export function findNodeLabelById(id: string) {
+  return findNodeById(id)?.data?.label;
+}
 // 查找选中的节点
 function getSelectedNodes(nodes: any[]) {
   return nodes.filter((node) => node.selected) as PipelineNodeType[];
@@ -300,20 +303,30 @@ export const useFlowStore = create<FlowState>()((set) => ({
     set((state) => {
       // 检查冲突项
       if (isCheck) {
+        const edges = state.edges as Connection[];
         let crash = null;
         switch (co.sourceHandle) {
           case SourceHandleTypeEnum.Next:
-            crash = state.edges.find(
+            crash = edges.find(
               (edge) =>
-                (edge as Connection).source === co.source &&
-                (edge as Connection).sourceHandle === SourceHandleTypeEnum.Error
+                edge.source === co.source &&
+                edge.target === co.target &&
+                edge.sourceHandle === SourceHandleTypeEnum.Error
             );
             break;
           case SourceHandleTypeEnum.Error:
+            if (
+              co.source === co.target &&
+              co.sourceHandle === SourceHandleTypeEnum.Error
+            ) {
+              crash = true;
+              break;
+            }
             crash = state.edges.find(
               (edge) =>
-                (edge as Connection).source === co.source &&
-                (edge as Connection).sourceHandle === SourceHandleTypeEnum.Next
+                edge.source === co.source &&
+                edge.target === co.target &&
+                edge.sourceHandle === SourceHandleTypeEnum.Next
             );
             break;
         }
