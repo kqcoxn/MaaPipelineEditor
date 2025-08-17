@@ -4,7 +4,7 @@ import { Flex, Layout, Splitter } from "antd";
 const { Header: HeaderSection, Content } = Layout;
 
 import Header from "./components/Header";
-import Editor from "./components/Editor";
+import MainFlow from "./components/Flow";
 import JsonViewer from "./components/JsonViewer";
 import FieldPanel from "./components/panels/FieldPanel";
 import ToolPanel from "./components/panels/ToolPanel";
@@ -19,7 +19,7 @@ function App() {
         <Content className={style.content}>
           <Splitter>
             <Splitter.Panel className={style.left}>
-              <Editor />
+              <MainFlow />
               <FieldPanel />
               <ToolPanel.AddPanel />
             </Splitter.Panel>

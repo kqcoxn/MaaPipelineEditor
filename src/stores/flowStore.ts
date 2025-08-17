@@ -6,6 +6,8 @@ import {
   type NodeChange,
   type EdgeChange,
   type Connection,
+  type ReactFlowInstance,
+  type Viewport,
 } from "@xyflow/react";
 
 import { SourceHandleTypeEnum, NodeTypeEnum } from "../components/flow/nodes";
@@ -82,13 +84,14 @@ export type NodeDataType = {
   extras?: any;
 };
 
-export type NodeType = {
+export interface NodeType {
   id: string;
   type: string;
   data: NodeDataType;
   position: { x: number; y: number };
   dragging?: boolean;
-};
+  selected?: boolean;
+}
 
 // 查找节点
 export function findNodeById(id: string) {
@@ -103,29 +106,95 @@ export function findNodeIndexById(id: string) {
 function getSelectedNodes(nodes: any[]) {
   return nodes.filter((node) => node.selected) as NodeType[];
 }
+// 取消所有节点选中
+function getUnselectedNodes(params?: {
+  nodes?: NodeType[];
+  selectedNodes?: NodeType[];
+}): NodeType[] {
+  const state = useFlowStore.getState();
+  let { nodes = state.nodes, selectedNodes = state.selectedNodes } =
+    params || {};
+  const changes = selectedNodes.map((node) => ({
+    id: node.id,
+    selected: false,
+    type: "select",
+  }));
+  nodes = applyNodeChanges(changes as NodeChange[], nodes);
+  return nodes;
+}
+// 计算新节点位置
+function calcuNodePosition(): { x: number; y: number } {
+  const state = useFlowStore.getState();
+  // 有选中节点
+  const selectedNodes = state.selectedNodes;
+  if (selectedNodes.length > 0) {
+    let rightestPosition = { x: -Infinity, y: -Infinity };
+    selectedNodes.forEach((node) => {
+      if ((node as NodeType).position.x > rightestPosition.x) {
+        rightestPosition = (node as NodeType).position;
+      }
+    });
+    return {
+      x: rightestPosition.x + 260,
+      y: rightestPosition.y,
+    };
+  }
+  // 无选中节点
+  else {
+    const viewport = state.viewport;
+    const size = state.size;
+    return {
+      x: -((viewport.x - size.width) / viewport.zoom + 260),
+      y: -((viewport.y - size.height / 2) / viewport.zoom + 80),
+    };
+  }
+}
 
+/**仓库 */
 let nodeIdCounter = 1;
 interface FlowState {
+  instance: ReactFlowInstance | null;
+  viewport: Viewport;
+  size: { width: number; height: number };
   nodes: any[];
   selectedNodes: any[];
   targetNode: any;
   edges: any[];
+  updateInstance: (instance: ReactFlowInstance) => void;
+  updateViewport: (viewport: Viewport) => void;
+  updateSize: (width: number, height: number) => void;
   updateNodes: (changes: NodeChange[]) => void;
   addNode: (options?: {
     type?: NodeTypeEnum;
-    data?: NodeDataType;
+    data?: any;
     position?: { x: number; y: number };
+    select?: boolean;
+    link?: boolean;
+    focus?: boolean;
   }) => void;
   updateEdges: (changes: EdgeChange[]) => void;
   addEdge: (co: Connection, options?: { isCheck?: Boolean }) => void;
   setNodeData: (id: string, type: string, key: string, value: any) => void;
 }
 export const useFlowStore = create<FlowState>()((set) => ({
-  /**工作流更新 */
+  instance: null,
+  viewport: { x: 0, y: 0, zoom: 1 },
+  size: { width: 0, height: 0 },
   nodes: [],
   selectedNodes: [],
   targetNode: null,
   edges: [],
+
+  // 更新视口
+  updateInstance(instance) {
+    set(() => ({ instance }));
+  },
+  updateViewport(viewport) {
+    set(() => ({ viewport }));
+  },
+  updateSize(width, height) {
+    set(() => ({ size: { width, height } }));
+  },
 
   // 更新节点
   updateNodes(changes) {
@@ -144,11 +213,20 @@ export const useFlowStore = create<FlowState>()((set) => ({
   },
   // 添加节点
   addNode(options) {
-    const { type = NodeTypeEnum.Pipeline, data, position } = options || {};
+    const {
+      type = NodeTypeEnum.Pipeline,
+      data,
+      position,
+      select = false,
+      link = false,
+      focus = false,
+    } = options || {};
     set((state) => {
-      const nodes = [...state.nodes];
+      const selectedNodes = state.selectedNodes;
+      let nodes = select ? getUnselectedNodes() : [...state.nodes];
+      // 创建节点
       const id = String(nodeIdCounter++);
-      nodes.push({
+      const newNode = {
         id,
         type,
         data: {
@@ -164,9 +242,38 @@ export const useFlowStore = create<FlowState>()((set) => ({
           others: {},
           ...data,
         },
-        position: { x: 0, y: 0 },
-      });
-      return { nodes };
+        position: position ?? calcuNodePosition(),
+        selected: select,
+      };
+      // 添加连接
+      if (link && selectedNodes.length > 0) {
+        selectedNodes.forEach((node) => {
+          state.addEdge({
+            source: (node as NodeType).id,
+            sourceHandle: SourceHandleTypeEnum.Next,
+            target: id,
+            targetHandle: "target",
+          });
+        });
+      }
+      // 添加节点
+      nodes.push(newNode);
+      const setter: any = { nodes };
+      if (select) setter.selectedNodes = [newNode];
+      // 聚焦
+      if (focus) {
+        const viewport = state.viewport;
+        setTimeout(() => {
+          state.instance?.fitView({
+            nodes: [newNode],
+            interpolate: "linear",
+            duration: 500,
+            minZoom: viewport.zoom,
+            maxZoom: viewport.zoom,
+          });
+        }, 200);
+      }
+      return setter;
     });
   },
 
@@ -203,8 +310,7 @@ export const useFlowStore = create<FlowState>()((set) => ({
     });
   },
 
-  /**数据更新 */
-  // 节点数据
+  // 更新节点数据
   setNodeData(id, type, key, value) {
     set((state) => {
       // 获取节点索引

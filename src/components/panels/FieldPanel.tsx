@@ -101,7 +101,7 @@ function ListValueElem(
           <InputNumber
             placeholder={placeholder}
             style={{ flex: 1 }}
-            defaultValue={value}
+            value={value}
             step={step}
             onChange={(e) => {
               valueList[index] = e;
@@ -111,7 +111,7 @@ function ListValueElem(
         ) : (
           <TextArea
             placeholder={placeholder}
-            defaultValue={JsonHelper.objToString(value) ?? value}
+            value={JsonHelper.objToString(value) ?? value}
             autoSize={{ minRows: 1, maxRows: 4 }}
             onChange={(e) => {
               valueList[index] = e.target.value;
@@ -174,7 +174,7 @@ function ParamFieldListElem(
         <Select
           className={style.value}
           options={options}
-          defaultValue={value}
+          value={value}
           onChange={(e) => onChange(key, e)}
         />
       );
@@ -212,7 +212,7 @@ function ParamFieldListElem(
           InputElem = (
             <InputNumber
               className={style.value}
-              defaultValue={value}
+              value={value}
               precision={0}
               step={type.step ?? 1}
               onChange={(e) => onChange(key, e)}
@@ -224,7 +224,7 @@ function ParamFieldListElem(
           InputElem = (
             <InputNumber
               className={style.value}
-              defaultValue={value}
+              value={value}
               step={type.step ?? 0.01}
               onChange={(e) => onChange(key, e)}
             />
@@ -249,7 +249,7 @@ function ParamFieldListElem(
           InputElem = (
             <TextArea
               className={style.value}
-              defaultValue={JsonHelper.objToString(value) ?? value}
+              value={JsonHelper.objToString(value) ?? value}
               placeholder={String(paramType)}
               autoSize={{ minRows: 1, maxRows: 4 }}
               onChange={(e) => onChange(key, e.target.value)}
@@ -377,7 +377,7 @@ function FieldPanel() {
             <Select
               style={{ width: "100%" }}
               options={recoOptions}
-              defaultValue={currentRecoName}
+              value={currentRecoName}
               onChange={handleRecoChange}
             />
           </div>
@@ -434,7 +434,7 @@ function FieldPanel() {
             <Select
               style={{ width: "100%" }}
               options={actionOptions}
-              defaultValue={currentActionName}
+              value={currentActionName}
               onChange={handleActionChange}
             />
           </div>

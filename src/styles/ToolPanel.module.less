@@ -9,11 +9,13 @@
   display: flex;
 
   .item {
-    width: 50px;
-    height: 50px;
+    width: 52px;
+    height: 52px;
     display: flex;
     justify-content: center;
     align-items: center;
+    cursor: pointer;
+    position: relative;
 
     .icon {
       transition: all 0.2s ease;
@@ -21,6 +23,21 @@
       &:hover {
         transform: scale(1.1);
       }
+    }
+  }
+
+  .devider {
+    width: 100%;
+    height: 4px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    > div {
+      background-color: rgba(gray, 0.3);
+      border-radius: 60px;
+      width: 72%;
+      height: 50%;
     }
   }
 }

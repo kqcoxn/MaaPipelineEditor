@@ -1,12 +1,11 @@
 export class JsonHelper {
   static isObj(obj: any) {
-    return obj !== null && typeof obj === "object";
+    return obj != null && typeof obj === "object";
   }
 
   static isStringObj(str: string) {
     try {
-      JSON.parse(str);
-      return true;
+      return JsonHelper.isObj(JSON.parse(str));
     } catch {
       return false;
     }

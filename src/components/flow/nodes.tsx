@@ -64,7 +64,7 @@ function ParamListElem(data: NodeDataType) {
 }
 
 function PipelineNode({ data, selected }: NodeProps<PipelineNodeData>) {
-  const currentNode = useFlowStore((state) => state.targetNode);
+  useFlowStore((state) => state.targetNode);
   return (
     <div
       className={classNames({
