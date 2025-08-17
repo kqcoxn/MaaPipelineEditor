@@ -17,6 +17,7 @@ import {
 import { useFlowStore } from "../stores/flowStore";
 import { nodeTypes } from "./flow/nodes";
 import { edgeTypes } from "./flow/edges";
+import { flowToPipeline } from "../core/parser";
 
 /**工作流 */
 // 工作流监视器
@@ -39,6 +40,7 @@ function ViewportChangeMonitor() {
   return null;
 }
 
+let transTimeout: number | null = null;
 function MainFlow() {
   // store
   const nodes = useFlowStore((state) => state.nodes);
@@ -78,6 +80,12 @@ function MainFlow() {
     };
   });
 
+  // 监听响应
+  if (transTimeout) clearTimeout(transTimeout);
+  transTimeout = setTimeout(() => {
+    flowToPipeline();
+  }, 200);
+
   // 渲染
   return (
     <div className={style.editor} ref={ref}>
@@ -91,6 +99,7 @@ function MainFlow() {
         onConnect={onConnect}
         minZoom={0.2}
         maxZoom={2.5}
+        fitView
       >
         <Background />
         <Controls />

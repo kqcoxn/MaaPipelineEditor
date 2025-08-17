@@ -1,15 +1,14 @@
 import style from "../../styles/nodes.module.less";
 
 import { memo } from "react";
-import {
-  Handle,
-  Position,
-  type Node,
-  type NodeProps,
-} from "@xyflow/react";
+import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 import classNames from "classnames";
 
-import { useFlowStore, type NodeDataType } from "../../stores/flowStore";
+import {
+  useFlowStore,
+  type PipelineNodeDataType,
+  type ExternalNodeDataType,
+} from "../../stores/flowStore";
 import { JsonHelper } from "../../utils/jsonHelper";
 
 export enum SourceHandleTypeEnum {
@@ -21,8 +20,6 @@ export enum NodeTypeEnum {
   Pipeline = "pipeline",
   External = "external",
 }
-
-type PipelineNodeData = Node<NodeDataType, "pipeline">;
 
 /**模块 */
 function KVElem(key: string, value: any = "") {
@@ -38,8 +35,11 @@ function KVElem(key: string, value: any = "") {
   );
 }
 
-function ParamListElem(data: NodeDataType) {
-  return (
+type PipelineNodeData = Node<PipelineNodeDataType, NodeTypeEnum.Pipeline>;
+function PipelineNode({ data, selected }: NodeProps<PipelineNodeData>) {
+  useFlowStore((state) => state.targetNode);
+
+  const ParamList = (
     <ul className={style.list}>
       <ul className={style.module}>
         {KVElem("recognition", data.recognition.type)}
@@ -61,10 +61,7 @@ function ParamListElem(data: NodeDataType) {
       </ul>
     </ul>
   );
-}
 
-function PipelineNode({ data, selected }: NodeProps<PipelineNodeData>) {
-  useFlowStore((state) => state.targetNode);
   return (
     <div
       className={classNames({
@@ -74,10 +71,10 @@ function PipelineNode({ data, selected }: NodeProps<PipelineNodeData>) {
       })}
     >
       <div className={style.title}>{data.label}</div>
-      {ParamListElem(data)}
+      {ParamList}
       <Handle
         id="target"
-        className={classNames(style.handle, style.source)}
+        className={classNames(style.handle, style.target)}
         type="target"
         position={Position.Left}
       />
@@ -103,6 +100,30 @@ function PipelineNode({ data, selected }: NodeProps<PipelineNodeData>) {
   );
 }
 
+type ExternalNodeData = Node<ExternalNodeDataType, NodeTypeEnum.External>;
+function ExternalNode({ data, selected }: NodeProps<ExternalNodeData>) {
+  useFlowStore((state) => state.targetNode);
+
+  return (
+    <div
+      className={classNames({
+        [style.node]: true,
+        [style["external-node"]]: true,
+        [style["node-selected"]]: selected,
+      })}
+    >
+      <div className={style.title}>{data.label}</div>
+      <Handle
+        id="target"
+        className={classNames(style.handle, style.external)}
+        type="target"
+        position={Position.Left}
+      />
+    </div>
+  );
+}
+
 export const nodeTypes = {
   [NodeTypeEnum.Pipeline]: memo(PipelineNode),
+  [NodeTypeEnum.External]: memo(ExternalNode),
 };

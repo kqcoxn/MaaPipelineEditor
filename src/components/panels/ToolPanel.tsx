@@ -72,6 +72,15 @@ const addTools: AddToolType[] = [
       },
     }),
   },
+  {
+    label: "外部节点",
+    iconName: "icon-xiaofangtongdao",
+    iconSize: 24,
+    nodeType: NodeTypeEnum.External,
+    data: () => ({
+      label: "外部节点",
+    }),
+  },
 ];
 function AddPanel() {
   const addNode = useFlowStore((state) => state.addNode);
@@ -91,7 +100,7 @@ function AddPanel() {
                   data: item.data ? item.data() : null,
                   select: true,
                   focus: true,
-                  link:true
+                  link: true,
                 })
               }
             />

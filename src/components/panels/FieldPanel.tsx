@@ -5,7 +5,12 @@ import classNames from "classnames";
 import { Popover, Input, InputNumber, Select, Switch } from "antd";
 const { TextArea } = Input;
 
-import { useFlowStore, type ParamType } from "../../stores/flowStore";
+import {
+  useFlowStore,
+  type ParamType,
+  type PipelineNodeType,
+  type ExternalNodeType,
+} from "../../stores/flowStore";
 import {
   recoFields,
   actionFields,
@@ -16,6 +21,7 @@ import {
 import { JsonHelper } from "../../utils/jsonHelper";
 
 import IconFont from "../iconfonts";
+import { NodeTypeEnum } from "../flow/nodes";
 
 /**字段 */
 const recoOptions = Object.keys(recoFields).map((key) => {
@@ -283,16 +289,13 @@ function ParamFieldListElem(
   });
 }
 
-// 面板
-function FieldPanel() {
-  // store
-  const currentNode = useFlowStore((state) => state.targetNode);
-
+// Pipeline节点
+function PipelineElem({ currentNode }: { currentNode: PipelineNodeType }) {
   // 标题
   const setNodeData = useFlowStore((state) => state.setNodeData);
   const currentLabel = useMemo(
-    () => currentNode?.data.label || "",
-    [currentNode?.data.label]
+    () => currentNode.data.label || "",
+    [currentNode.data.label]
   );
   const onLabelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!currentNode) return;
@@ -300,10 +303,10 @@ function FieldPanel() {
   };
 
   // 识别算法
-  const currentRecoName = currentNode?.data.recognition.type || "DirectHit";
+  const currentRecoName = currentNode.data.recognition.type || "DirectHit";
   const currentReco = useMemo(
     () => recoFields[currentRecoName],
-    [currentNode?.data.recognition.type]
+    [currentNode.data.recognition.type]
   );
   const handleRecoChange = (value: string) => {
     if (!currentNode) return;
@@ -311,10 +314,10 @@ function FieldPanel() {
   };
 
   // 动作
-  const currentActionName = currentNode?.data.action.type || "DoNothing";
+  const currentActionName = currentNode.data.action.type || "DoNothing";
   const currentAction = useMemo(
     () => actionFields[currentActionName],
-    [currentNode?.data.action.type]
+    [currentNode.data.action.type]
   );
   const handleActionChange = (value: string) => {
     if (!currentNode) return;
@@ -326,6 +329,252 @@ function FieldPanel() {
     if (!currentNode) return;
     setNodeData(currentNode.id, "extras", "extras", value);
   };
+
+  return (
+    <div className={style.list}>
+      {/* 节点名 */}
+      <div className={style.item}>
+        <Popover
+          placement="left"
+          title={"key"}
+          content={"节点名，会被编译为 pipeline 的 key。"}
+        >
+          <div className={classNames([style.key, style["head-key"]])}>key</div>
+        </Popover>
+        <div className={style.value}>
+          <Input
+            placeholder="节点名"
+            value={currentLabel}
+            onChange={onLabelChange}
+          />
+        </div>
+      </div>
+      {/* 识别算法 */}
+      <div className={style.item}>
+        <Popover
+          style={{ maxWidth: 10 }}
+          placement="left"
+          title={"recognition"}
+          content={LeftTipContentElem(
+            `识别算法(${currentRecoName})：${currentReco.desc}`
+          )}
+        >
+          <div className={classNames([style.key, style["head-key"]])}>
+            recognition
+          </div>
+        </Popover>
+        <div className={style.value}>
+          <Select
+            style={{ width: "100%" }}
+            options={recoOptions}
+            value={currentRecoName}
+            onChange={handleRecoChange}
+          />
+        </div>
+        {currentNode
+          ? AddFieldElem(
+              currentReco.params,
+              currentNode.data.recognition.param,
+              (param) =>
+                setNodeData(
+                  currentNode.id,
+                  "recognition",
+                  param.key,
+                  param.default
+                )
+            )
+          : null}
+      </div>
+      {/* 算法字段 */}
+      {currentNode
+        ? ParamFieldListElem(
+            currentNode.data.recognition.param,
+            recoFields[currentNode.data.recognition.type]?.params || [],
+            (key, value) =>
+              setNodeData(currentNode.id, "recognition", key, value),
+            (key) =>
+              setNodeData(currentNode.id, "recognition", key, "__mpe_delete"),
+            (key, valueList) =>
+              setNodeData(currentNode.id, "recognition", key, valueList),
+            (key, valueList) => {
+              valueList.push(valueList[valueList.length - 1]);
+              setNodeData(currentNode.id, "recognition", key, valueList);
+            },
+            (key, valueList, index) => {
+              valueList.splice(index, 1);
+              setNodeData(currentNode.id, "recognition", key, valueList);
+            }
+          )
+        : null}
+      {/* 动作类型 */}
+      <div className={style.item}>
+        <Popover
+          style={{ maxWidth: 10 }}
+          placement="left"
+          title={"action"}
+          content={LeftTipContentElem(
+            `动作类型(${currentActionName})：${currentAction.desc}`
+          )}
+        >
+          <div className={classNames([style.key, style["head-key"]])}>
+            action
+          </div>
+        </Popover>
+        <div className={style.value}>
+          <Select
+            style={{ width: "100%" }}
+            options={actionOptions}
+            value={currentActionName}
+            onChange={handleActionChange}
+          />
+        </div>
+        {currentNode
+          ? AddFieldElem(
+              currentAction.params,
+              currentNode.data.action.param,
+              (param) =>
+                setNodeData(currentNode.id, "action", param.key, param.default)
+            )
+          : null}
+      </div>
+      {/* 动作字段 */}
+      {currentNode
+        ? ParamFieldListElem(
+            currentNode.data.action.param,
+            actionFields[currentNode.data.action.type]?.params || [],
+            (key, value) => setNodeData(currentNode.id, "action", key, value),
+            (key) => setNodeData(currentNode.id, "action", key, "__mpe_delete"),
+            (key, valueList) =>
+              setNodeData(currentNode.id, "action", key, valueList),
+            (key, valueList) => {
+              valueList.push(valueList[valueList.length - 1]);
+              setNodeData(currentNode.id, "action", key, valueList);
+            },
+            (key, valueList, index) => {
+              valueList.splice(index, 1);
+              setNodeData(currentNode.id, "action", key, valueList);
+            }
+          )
+        : null}
+      {/* 其他 */}
+      <div className={style.item}>
+        <Popover
+          placement="left"
+          title={"others"}
+          content={"除 recognition 与 action 之外的字段"}
+        >
+          <div className={classNames([style.key, style["head-key"]])}>
+            others
+          </div>
+        </Popover>
+        <div className={classNames([style.value, style.line])}>
+          —————————————
+        </div>
+        {currentNode
+          ? AddFieldElem(otherFieldParams, currentNode.data.others, (param) =>
+              setNodeData(currentNode.id, "others", param.key, param.default)
+            )
+          : null}
+      </div>
+      {/* 其他字段 */}
+      {currentNode
+        ? ParamFieldListElem(
+            currentNode.data.others,
+            otherFieldParams,
+            (key, value) => setNodeData(currentNode.id, "others", key, value),
+            (key) => setNodeData(currentNode.id, "others", key, "__mpe_delete"),
+            (key, valueList) =>
+              setNodeData(currentNode.id, "others", key, valueList),
+            (key, valueList) => {
+              valueList.push(valueList[valueList.length - 1]);
+              setNodeData(currentNode.id, "others", key, valueList);
+            },
+            (key, valueList, index) => {
+              valueList.splice(index, 1);
+              setNodeData(currentNode.id, "others", key, valueList);
+            }
+          )
+        : null}
+      {/* 自定义字段 */}
+      <div className={style.item}>
+        <Popover
+          placement="left"
+          title={"extras"}
+          content={"自定义字段，JSON格式，会直接渲染在节点上"}
+        >
+          <div className={classNames([style.key, style["head-key"]])}>
+            extras
+          </div>
+        </Popover>
+        <div className={style.value}>
+          <TextArea
+            placeholder="自定义字段，完整 JSON 格式"
+            autoSize={{ minRows: 1, maxRows: 6 }}
+            onChange={(e) => handleExtraChange(e.target.value)}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// External节点
+function ExternalElem({ currentNode }: { currentNode: ExternalNodeType }) {
+  // 标题
+  const setNodeData = useFlowStore((state) => state.setNodeData);
+  const currentLabel = useMemo(
+    () => currentNode.data.label || "",
+    [currentNode.data.label]
+  );
+  const onLabelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!currentNode) return;
+    setNodeData(currentNode.id, "", "label", e.target.value);
+  };
+
+  return (
+    <div className={style.list}>
+      {/* 节点名 */}
+      <div className={style.item}>
+        <Popover
+          placement="left"
+          title={"key"}
+          content={"节点名，转录时不会添加 prefix 前缀"}
+        >
+          <div
+            className={classNames([style.key, style["head-key"]])}
+            style={{ width: 48 }}
+          >
+            key
+          </div>
+        </Popover>
+        <div className={style.value}>
+          <Input
+            placeholder="节点名 (转录时不会添加前缀)"
+            value={currentLabel}
+            onChange={onLabelChange}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 面板
+function FieldPanel() {
+  // store
+  const currentNode = useFlowStore((state) => state.targetNode);
+  let RenderElem = null;
+  if (!currentNode) {
+  } else {
+    switch (currentNode.type) {
+      case NodeTypeEnum.Pipeline:
+        RenderElem = <PipelineElem currentNode={currentNode} />;
+        break;
+      case NodeTypeEnum.External:
+        RenderElem = <ExternalElem currentNode={currentNode} />;
+        break;
+    }
+  }
 
   // 渲染
   return (
@@ -339,207 +588,7 @@ function FieldPanel() {
       <div className={style.header}>
         <div className={style.title}>节点字段</div>
       </div>
-      <div className={style.list}>
-        {/* 节点名 */}
-        <div className={style.item}>
-          <Popover
-            placement="left"
-            title={"label"}
-            content={"节点名，会被编译为 pipeline 的 key。"}
-          >
-            <div className={classNames([style.key, style["head-key"]])}>
-              label
-            </div>
-          </Popover>
-          <div className={style.value}>
-            <Input
-              placeholder="节点名"
-              value={currentLabel}
-              onChange={onLabelChange}
-            />
-          </div>
-        </div>
-        {/* 识别算法 */}
-        <div className={style.item}>
-          <Popover
-            style={{ maxWidth: 10 }}
-            placement="left"
-            title={"recognition"}
-            content={LeftTipContentElem(
-              `识别算法(${currentRecoName})：${currentReco.desc}`
-            )}
-          >
-            <div className={classNames([style.key, style["head-key"]])}>
-              recognition
-            </div>
-          </Popover>
-          <div className={style.value}>
-            <Select
-              style={{ width: "100%" }}
-              options={recoOptions}
-              value={currentRecoName}
-              onChange={handleRecoChange}
-            />
-          </div>
-          {currentNode
-            ? AddFieldElem(
-                currentReco.params,
-                currentNode?.data.recognition.param,
-                (param) =>
-                  setNodeData(
-                    currentNode.id,
-                    "recognition",
-                    param.key,
-                    param.default
-                  )
-              )
-            : null}
-        </div>
-        {/* 算法字段 */}
-        {currentNode
-          ? ParamFieldListElem(
-              currentNode.data.recognition.param,
-              recoFields[currentNode.data.recognition.type]?.params || [],
-              (key, value) =>
-                setNodeData(currentNode.id, "recognition", key, value),
-              (key) =>
-                setNodeData(currentNode.id, "recognition", key, "__mpe_delete"),
-              (key, valueList) =>
-                setNodeData(currentNode.id, "recognition", key, valueList),
-              (key, valueList) => {
-                valueList.push(valueList[valueList.length - 1]);
-                setNodeData(currentNode.id, "recognition", key, valueList);
-              },
-              (key, valueList, index) => {
-                valueList.splice(index, 1);
-                setNodeData(currentNode.id, "recognition", key, valueList);
-              }
-            )
-          : null}
-        {/* 动作类型 */}
-        <div className={style.item}>
-          <Popover
-            style={{ maxWidth: 10 }}
-            placement="left"
-            title={"action"}
-            content={LeftTipContentElem(
-              `动作类型(${currentActionName})：${currentAction.desc}`
-            )}
-          >
-            <div className={classNames([style.key, style["head-key"]])}>
-              action
-            </div>
-          </Popover>
-          <div className={style.value}>
-            <Select
-              style={{ width: "100%" }}
-              options={actionOptions}
-              value={currentActionName}
-              onChange={handleActionChange}
-            />
-          </div>
-          {currentNode
-            ? AddFieldElem(
-                currentAction.params,
-                currentNode?.data.action.param,
-                (param) =>
-                  setNodeData(
-                    currentNode.id,
-                    "action",
-                    param.key,
-                    param.default
-                  )
-              )
-            : null}
-        </div>
-        {/* 动作字段 */}
-        {currentNode
-          ? ParamFieldListElem(
-              currentNode.data.action.param,
-              actionFields[currentNode.data.action.type]?.params || [],
-              (key, value) => setNodeData(currentNode.id, "action", key, value),
-              (key) =>
-                setNodeData(currentNode.id, "action", key, "__mpe_delete"),
-              (key, valueList) =>
-                setNodeData(currentNode.id, "action", key, valueList),
-              (key, valueList) => {
-                valueList.push(valueList[valueList.length - 1]);
-                setNodeData(currentNode.id, "action", key, valueList);
-              },
-              (key, valueList, index) => {
-                valueList.splice(index, 1);
-                setNodeData(currentNode.id, "action", key, valueList);
-              }
-            )
-          : null}
-        {/* 其他 */}
-        <div className={style.item}>
-          <Popover
-            placement="left"
-            title={"others"}
-            content={"除 recognition 与 action 之外的字段"}
-          >
-            <div className={classNames([style.key, style["head-key"]])}>
-              others
-            </div>
-          </Popover>
-          <div className={classNames([style.value, style.line])}>
-            —————————————
-          </div>
-          {currentNode
-            ? AddFieldElem(
-                otherFieldParams,
-                currentNode?.data.others,
-                (param) =>
-                  setNodeData(
-                    currentNode.id,
-                    "others",
-                    param.key,
-                    param.default
-                  )
-              )
-            : null}
-        </div>
-        {/* 其他字段 */}
-        {currentNode
-          ? ParamFieldListElem(
-              currentNode.data.others,
-              otherFieldParams,
-              (key, value) => setNodeData(currentNode.id, "others", key, value),
-              (key) =>
-                setNodeData(currentNode.id, "others", key, "__mpe_delete"),
-              (key, valueList) =>
-                setNodeData(currentNode.id, "others", key, valueList),
-              (key, valueList) => {
-                valueList.push(valueList[valueList.length - 1]);
-                setNodeData(currentNode.id, "others", key, valueList);
-              },
-              (key, valueList, index) => {
-                valueList.splice(index, 1);
-                setNodeData(currentNode.id, "others", key, valueList);
-              }
-            )
-          : null}
-        {/* 自定义字段 */}
-        <div className={style.item}>
-          <Popover
-            placement="left"
-            title={"extras"}
-            content={"自定义字段，JSON格式，会直接渲染在节点上"}
-          >
-            <div className={classNames([style.key, style["head-key"]])}>
-              extras
-            </div>
-          </Popover>
-          <div className={style.value}>
-            <TextArea
-              placeholder="自定义字段，完整 JSON 格式"
-              autoSize={{ minRows: 1, maxRows: 6 }}
-              onChange={(e) => handleExtraChange(e.target.value)}
-            />
-          </div>
-        </div>
-      </div>
+      {RenderElem}
     </div>
   );
 }

@@ -70,7 +70,7 @@ export type OtherParamType = {
 };
 export type ParamType = RecognitionParamType | ActionParamType | OtherParamType;
 
-export type NodeDataType = {
+export type PipelineNodeDataType = {
   label: string;
   recognition: {
     type: string;
@@ -82,35 +82,47 @@ export type NodeDataType = {
   };
   others: OtherParamType;
   extras?: any;
+  type?: NodeTypeEnum;
 };
-
-export interface NodeType {
+export type ExternalNodeDataType = {
+  label: string;
+};
+export interface PipelineNodeType {
   id: string;
   type: string;
-  data: NodeDataType;
+  data: PipelineNodeDataType;
   position: { x: number; y: number };
   dragging?: boolean;
   selected?: boolean;
 }
+export interface ExternalNodeType {
+  id: string;
+  type: string;
+  data: ExternalNodeDataType;
+  position: { x: number; y: number };
+  dragging?: boolean;
+  selected?: boolean;
+}
+export type NodeType = PipelineNodeType | ExternalNodeType;
 
 // 查找节点
 export function findNodeById(id: string) {
   return useFlowStore
     .getState()
-    .nodes.find((node) => node.id === id) as NodeType;
+    .nodes.find((node) => node.id === id) as PipelineNodeType;
 }
 export function findNodeIndexById(id: string) {
   return useFlowStore.getState().nodes.findIndex((node) => node.id === id);
 }
 // 查找选中的节点
 function getSelectedNodes(nodes: any[]) {
-  return nodes.filter((node) => node.selected) as NodeType[];
+  return nodes.filter((node) => node.selected) as PipelineNodeType[];
 }
 // 取消所有节点选中
 function getUnselectedNodes(params?: {
-  nodes?: NodeType[];
-  selectedNodes?: NodeType[];
-}): NodeType[] {
+  nodes?: PipelineNodeType[];
+  selectedNodes?: PipelineNodeType[];
+}): PipelineNodeType[] {
   const state = useFlowStore.getState();
   let { nodes = state.nodes, selectedNodes = state.selectedNodes } =
     params || {};
@@ -130,8 +142,8 @@ function calcuNodePosition(): { x: number; y: number } {
   if (selectedNodes.length > 0) {
     let rightestPosition = { x: -Infinity, y: -Infinity };
     selectedNodes.forEach((node) => {
-      if ((node as NodeType).position.x > rightestPosition.x) {
-        rightestPosition = (node as NodeType).position;
+      if ((node as PipelineNodeType).position.x > rightestPosition.x) {
+        rightestPosition = (node as PipelineNodeType).position;
       }
     });
     return {
@@ -248,8 +260,9 @@ export const useFlowStore = create<FlowState>()((set) => ({
       // 添加连接
       if (link && selectedNodes.length > 0) {
         selectedNodes.forEach((node) => {
+          if ((node as NodeType).type === NodeTypeEnum.External) return;
           state.addEdge({
-            source: (node as NodeType).id,
+            source: (node as PipelineNodeType).id,
             sourceHandle: SourceHandleTypeEnum.Next,
             target: id,
             targetHandle: "target",
@@ -287,21 +300,24 @@ export const useFlowStore = create<FlowState>()((set) => ({
     set((state) => {
       // 检查冲突项
       if (isCheck) {
-        if (co.sourceHandle === SourceHandleTypeEnum.Next) {
-          const crash = state.edges.find(
-            (edge) =>
-              (edge as Connection).source === co.source &&
-              (edge as Connection).sourceHandle === SourceHandleTypeEnum.Error
-          );
-          if (crash) return {};
-        } else if (co.sourceHandle === SourceHandleTypeEnum.Error) {
-          const crash = state.edges.find(
-            (edge) =>
-              (edge as Connection).source === co.source &&
-              (edge as Connection).sourceHandle === SourceHandleTypeEnum.Next
-          );
-          if (crash) return {};
+        let crash = null;
+        switch (co.sourceHandle) {
+          case SourceHandleTypeEnum.Next:
+            crash = state.edges.find(
+              (edge) =>
+                (edge as Connection).source === co.source &&
+                (edge as Connection).sourceHandle === SourceHandleTypeEnum.Error
+            );
+            break;
+          case SourceHandleTypeEnum.Error:
+            crash = state.edges.find(
+              (edge) =>
+                (edge as Connection).source === co.source &&
+                (edge as Connection).sourceHandle === SourceHandleTypeEnum.Next
+            );
+            break;
         }
+        if (crash) return {};
       }
       // 更新边属性
       const newEdge = { ...co, type: "marked" };
