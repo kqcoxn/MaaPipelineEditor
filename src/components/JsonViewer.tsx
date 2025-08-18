@@ -1,11 +1,14 @@
 import style from "../styles/JsonViewer.module.less";
 
 import { memo } from "react";
-import ReactJsonView from "@microlink/react-json-view";
+import ReactJsonView, {
+  type ReactJsonViewProps,
+} from "@microlink/react-json-view";
 import { Button, Flex } from "antd";
 
 import { useFlowStore, type NodeType } from "../stores/flowStore";
-import { flowToPipeline } from "../core/parser";
+import { flowToPipeline, uniqueMark } from "../core/parser";
+import { ClipboardHelper } from "../utils/clipboard";
 
 function JsonViewer() {
   // store
@@ -15,13 +18,21 @@ function JsonViewer() {
   useFlowStore((state) => state.targetNode);
   useFlowStore((state) => state.edges);
 
-  // 生成预览
-  let src = {};
+  // 生成 Pipeline
+  let pipelineObj = {};
   if (selectedNodes.length > 0) {
-    src = flowToPipeline({ nodes: selectedNodes });
+    pipelineObj = flowToPipeline({ nodes: selectedNodes });
   } else {
-    src = flowToPipeline();
+    pipelineObj = flowToPipeline();
   }
+  function copyToClipboard() {
+    ClipboardHelper.write(JSON.stringify(pipelineObj));
+  }
+
+  // 折叠项
+  const shouldCollapse = (field: ReactJsonViewProps) => {
+    return field.name === uniqueMark;
+  };
 
   // 渲染
   return (
@@ -35,13 +46,23 @@ function JsonViewer() {
           <Button variant="filled" size="small" color="primary">
             导入v2
           </Button>
-          <Button variant="filled" size="small" color="pink">
-            导出
+          <Button
+            variant="filled"
+            size="small"
+            color="pink"
+            onClick={copyToClipboard}
+          >
+            导出(v2)
           </Button>
         </Flex>
       </div>
       <div className={style["viewer-container"]}>
-        <ReactJsonView src={src} enableClipboard={false} iconStyle="square" />
+        <ReactJsonView
+          src={pipelineObj}
+          enableClipboard={false}
+          iconStyle="square"
+          shouldCollapse={shouldCollapse}
+        />
       </div>
     </div>
   );

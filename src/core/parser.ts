@@ -19,7 +19,7 @@ import {
 import { NodeTypeEnum, SourceHandleTypeEnum } from "../components/flow/nodes";
 import { JsonHelper } from "../utils/jsonHelper";
 
-const uniqueMark = "__mpe";
+export const uniqueMark = "__mpe";
 type ParsedPipelineNodeType = {
   [uniqueMark]: {
     position: { x: number; y: number };
