@@ -77,7 +77,7 @@ export type OtherParamType = {
   focus?: any;
   [key: string]: any;
 };
-export type ParamType = RecognitionParamType | ActionParamType | OtherParamType;
+export type ParamType = RecognitionParamType & ActionParamType & OtherParamType;
 export type PipelineNodeDataType = {
   label: string;
   recognition: {

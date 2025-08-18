@@ -19,4 +19,9 @@ export class JsonHelper {
       return null;
     }
   }
+
+  static stringObjToJson(obj: any) {
+    if (!JsonHelper.isStringObj(obj)) return null;
+    return JSON.parse(obj);
+  }
 }

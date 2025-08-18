@@ -1,12 +1,13 @@
 export enum FieldTypeEnum {
   Int = "int",
   Double = "double",
+  True = "true",
   Bool = "bool",
   String = "string",
   IntList = "list<int, >",
   IntListList = "list<list<int, >>",
-  StringList = "list<string, >",
   DoubleList = "list<double, >",
+  StringList = "list<string, >",
   XYWH = "array<int, 4>",
   StringPairList = "list<array<string, 2>>",
   Any = "any",
@@ -26,7 +27,7 @@ export type FieldType = {
 const recoFieldSchema = {
   roi: {
     key: "roi",
-    type: [FieldTypeEnum.String, FieldTypeEnum.XYWH],
+    type: [FieldTypeEnum.XYWH, FieldTypeEnum.String],
     default: [0, 0, 0, 0],
     desc: "识别区域坐标。可选，默认 [0, 0, 0, 0] ，即全屏。array<int, 4>: 识别区域坐标，[x, y, w, h]，若希望全屏可设为 [0, 0, 0, 0] 。string: 填写节点名，在之前执行过的某节点识别到的目标范围内识别。",
   },
@@ -217,7 +218,7 @@ const recoFieldSchema = {
   },
   customRoi: {
     key: "roi",
-    type: [FieldTypeEnum.String, FieldTypeEnum.XYWH],
+    type: [FieldTypeEnum.XYWH, FieldTypeEnum.String],
     default: [0, 0, 0, 0],
     desc: "识别区域坐标。可选，默认 [0, 0, 0, 0] ，即全屏。array<int, 4>: 识别区域坐标，[x, y, w, h]，若希望全屏可设为 [0, 0, 0, 0] 。string: 填写节点名，在之前执行过的某节点识别到的目标范围内识别。会通过 MaaCustomRecognitionCallback.roi 传出。",
   },
@@ -226,7 +227,7 @@ const recoFieldSchema = {
 const actionFieldSchema = {
   clickTarget: {
     key: "target",
-    type: [FieldTypeEnum.XYWH, FieldTypeEnum.Bool, FieldTypeEnum.String],
+    type: [FieldTypeEnum.XYWH, FieldTypeEnum.True, FieldTypeEnum.String],
     default: [0, 0, 0, 0],
     desc: "点击目标的位置。可选，默认 true 。true: 目标为本节点中刚刚识别到的位置（即自身）;string: 填写节点名，目标为之前执行过的某节点识别到的位置;array<int, 4>: 目标为固定坐标区域内随机一点，[x, y, w, h]，若希望全屏可设为 [0, 0, 0, 0] 。",
   },
@@ -238,7 +239,7 @@ const actionFieldSchema = {
   },
   longPressTarget: {
     key: "target",
-    type: [FieldTypeEnum.XYWH, FieldTypeEnum.Bool, FieldTypeEnum.String],
+    type: [FieldTypeEnum.XYWH, FieldTypeEnum.True, FieldTypeEnum.String],
     default: [0, 0, 0, 0],
     desc: "长按目标的位置。可选，默认 true 。true: 目标为本节点中刚刚识别到的位置（即自身）;string: 填写节点名，目标为之前执行过的某节点识别到的位置;array<int, 4>: 目标为固定坐标区域内随机一点，[x, y, w, h]，若希望全屏可设为 [0, 0, 0, 0] 。",
   },
@@ -251,7 +252,7 @@ const actionFieldSchema = {
   },
   begin: {
     key: "begin",
-    type: [FieldTypeEnum.XYWH, FieldTypeEnum.Bool, FieldTypeEnum.String],
+    type: [FieldTypeEnum.XYWH, FieldTypeEnum.True, FieldTypeEnum.String],
     default: [0, 0, 0, 0],
     desc: "滑动起点。可选，默认 true 。true: 目标为本节点中刚刚识别到的位置（即自身）;string: 填写节点名，目标为之前执行过的某节点识别到的位置;array<int, 4>: 目标为固定坐标区域内随机一点，[x, y, w, h]，若希望全屏可设为 [0, 0, 0, 0] 。",
   },
@@ -263,7 +264,7 @@ const actionFieldSchema = {
   },
   end: {
     key: "end",
-    type: [FieldTypeEnum.XYWH, FieldTypeEnum.Bool, FieldTypeEnum.String],
+    type: [FieldTypeEnum.XYWH, FieldTypeEnum.True, FieldTypeEnum.String],
     default: [0, 0, 0, 0],
     desc: "滑动终点。可选，默认 true 。true: 目标为本节点中刚刚识别到的位置（即自身）;string: 填写节点名，目标为之前执行过的某节点识别到的位置;array<int, 4>: 目标为固定坐标区域内随机一点，[x, y, w, h]，若希望全屏可设为 [0, 0, 0, 0] 。",
   },
@@ -357,7 +358,7 @@ const actionFieldSchema = {
   },
   customTarget: {
     key: "target",
-    type: [FieldTypeEnum.XYWH, FieldTypeEnum.Bool, FieldTypeEnum.String],
+    type: [FieldTypeEnum.XYWH, FieldTypeEnum.True, FieldTypeEnum.String],
     default: [0, 0, 0, 0],
     desc: "目标的位置，会通过 MaaCustomActionCallback.box 传出。可选，默认 true 。true: 目标为本节点中刚刚识别到的位置（即自身）;string: 填写节点名，目标为之前执行过的某节点识别到的位置;array<int, 4>: 目标为固定坐标区域内随机一点，[x, y, w, h]，若希望全屏可设为 [0, 0, 0, 0] 。",
   },
