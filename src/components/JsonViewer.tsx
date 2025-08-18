@@ -7,7 +7,7 @@ import ReactJsonView, {
 import { Button, Flex } from "antd";
 
 import { useFlowStore, type NodeType } from "../stores/flowStore";
-import { flowToPipeline, uniqueMark } from "../core/parser";
+import { flowToPipeline, uniqueMark, v1ToFlow } from "../core/parser";
 import { ClipboardHelper } from "../utils/clipboard";
 
 function JsonViewer() {
@@ -40,7 +40,12 @@ function JsonViewer() {
       <div className={style.header}>
         <div className={style.title}>Pipeline JSON</div>
         <Flex className={style.operations} gap="small" wrap>
-          <Button variant="filled" size="small" color="primary">
+          <Button
+            variant="filled"
+            size="small"
+            color="primary"
+            onClick={() => v1ToFlow()}
+          >
             导入v1
           </Button>
           <Button variant="filled" size="small" color="primary">
@@ -50,7 +55,7 @@ function JsonViewer() {
             variant="filled"
             size="small"
             color="pink"
-            onClick={copyToClipboard}
+            onClick={() => copyToClipboard()}
           >
             导出(v2)
           </Button>

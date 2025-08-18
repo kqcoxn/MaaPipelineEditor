@@ -1,6 +1,7 @@
 import {
   useFlowStore,
   findNodeLabelById,
+  createPipelineNode,
   type NodeType,
   type EdgeType,
   type PipelineNodeType,
@@ -9,17 +10,23 @@ import {
   type OtherParamType,
   type ParamType,
 } from "../stores/flowStore";
+import { type ConfigType } from "../stores/configStore";
 import {
   FieldTypeEnum,
   recoFields,
   actionFields,
   otherFieldParams,
+  recoFieldSchemaKeyList,
+  actionFieldSchemaKeyList,
+  otherFieldSchemaKeyList,
   type FieldType,
 } from "./fields";
 import { NodeTypeEnum, SourceHandleTypeEnum } from "../components/flow/nodes";
 import { JsonHelper } from "../utils/jsonHelper";
+import { ClipboardHelper } from "../utils/clipboard";
 
 export const uniqueMark = "__mpe";
+export const configMarkPrefix = uniqueMark + "_config_";
 type ParsedPipelineNodeType = {
   [uniqueMark]: {
     position: { x: number; y: number };
@@ -291,4 +298,140 @@ export function flowToPipeline(datas?: {
   });
 
   return pipelineObj;
+}
+
+/**导入 */
+type IdLabelPairsType = {
+  id: string;
+  label: string;
+}[];
+
+// 判断配置字段
+function isConfigKey(key: string): boolean {
+  return (
+    key.startsWith(configMarkPrefix) || key.startsWith("__yamaape_config_")
+  );
+}
+function isMark(key: string): boolean {
+  return key === uniqueMark || key === "__yamaape";
+}
+
+// 合成链接
+let externalIdCounter = 1;
+function linkEdge(
+  oSourceLabel: string,
+  oTargetLabels: string[],
+  type: SourceHandleTypeEnum,
+  idOLPairs: IdLabelPairsType
+): EdgeType[] {
+  // 检索节点名
+  const sourceId = idOLPairs.find((pair) => pair.label === oSourceLabel)
+    ?.id as string;
+  // 检查
+  const edges: EdgeType[] = [];
+  oTargetLabels.forEach((targetLabel, index) => {
+    const targetId = idOLPairs.find((pair) => pair.label === targetLabel)?.id;
+    // 创建外部节点
+    if (!targetId) {
+    }
+    // 连接
+    edges.push({
+      id: `${sourceId}_${type}_to_${targetId}`,
+      source: sourceId,
+      sourceHandle: type,
+      target: targetId ?? "e_" + externalIdCounter++,
+      targetHandle: "target",
+      label: index + 1,
+      type: "marked",
+    });
+  });
+  return edges;
+}
+// v1
+export async function v1ToFlow(v1String?: string) {
+  try {
+    // 获取参数
+    if (!v1String) v1String = await ClipboardHelper.read();
+    const v1Obj = JSON.parse(v1String);
+    // 解析配置
+    const objKeys = Object.keys(v1Obj);
+    const configs: ConfigType = {};
+    const configKey = objKeys.find((objKey) => isConfigKey(objKey));
+    if (configKey) Object.assign(configs, v1Obj[configKey]);
+    // 解析节点
+    const nodes: NodeType[] = [];
+    const originLabels: string[] = [];
+    const idOLPairs: IdLabelPairsType = [];
+    let idCounter = 1;
+    objKeys.forEach((objKey) => {
+      const obj = v1Obj[objKey];
+      // 跳过配置
+      if (isConfigKey(objKey)) return;
+      // 处理节点名
+      const id = "p_" + idCounter++;
+      let label = objKey;
+      idOLPairs.push({ id, label });
+      originLabels.push(label);
+      const prefix = configs.prefix;
+      if (prefix) label = label.substring(prefix.length + 1);
+      // 解析数据
+      const node = createPipelineNode(id, { label });
+      const keys = Object.keys(obj);
+      keys.forEach((key) => {
+        const value = obj[key];
+        // 标记字段
+        if (isMark(key)) Object.assign(node, value);
+        // 识别算法
+        else if (key === "recognition") node.data.recognition.type = value;
+        else if (recoFieldSchemaKeyList.includes(key))
+          node.data.recognition.param[key] = value;
+        // 动作类型
+        else if (key === "action") node.data.action.type = value;
+        else if (actionFieldSchemaKeyList.includes(key))
+          node.data.action.param[key] = value;
+        // 其他字段
+        else if (otherFieldSchemaKeyList.includes(key))
+          node.data.others[key] = value;
+        // 额外字段
+        else node.data.extras[key] = value;
+      });
+      nodes.push(node);
+    });
+
+    // console.log(nodes);
+
+    // 解析连接
+    let edges: EdgeType[] = [];
+    for (let index = 0; index < originLabels.length; index++) {
+      const objKey = originLabels[index];
+      const obj = v1Obj[objKey];
+      const originLabel = originLabels[index];
+      // next
+      const next = obj["next"] as string[];
+      if (next)
+        edges = edges.concat(
+          linkEdge(originLabel, next, SourceHandleTypeEnum.Next, idOLPairs)
+        );
+      // interrupt
+      const interrupt = obj["interrupt"] as string[];
+      if (interrupt)
+        edges = edges.concat(
+          linkEdge(
+            originLabel,
+            interrupt,
+            SourceHandleTypeEnum.Interrupt,
+            idOLPairs
+          )
+        );
+      // on_error
+      const onError = obj["on_error"] as string[];
+      if (onError)
+        edges = edges.concat(
+          linkEdge(originLabel, onError, SourceHandleTypeEnum.Error, idOLPairs)
+        );
+    }
+
+    // 更新flow
+    useFlowStore.getState().replace(nodes, edges);
+  } catch {}
 }

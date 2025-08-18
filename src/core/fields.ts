@@ -24,6 +24,29 @@ export type FieldType = {
   desc: string;
 };
 
+export const recoFieldSchemaKeyList = [
+  "roi",
+  "roi_offset",
+  "template",
+  "threshold",
+  "order_by",
+  "index",
+  "method",
+  "green_mask",
+  "count",
+  "detector",
+  "ratio",
+  "lower",
+  "upper",
+  "connected",
+  "expected",
+  "replace",
+  "only_rec",
+  "model",
+  "labels",
+  "custom_recognition",
+  "custom_recognition_param",
+];
 const recoFieldSchema = {
   roi: {
     key: "roi",
@@ -224,6 +247,24 @@ const recoFieldSchema = {
   },
 };
 
+export const actionFieldSchemaKeyList = [
+  "target",
+  "target_offset",
+  "duration",
+  "begin",
+  "begin_offset",
+  "end",
+  "end_offset",
+  "swipes",
+  "key",
+  "input_text",
+  "package",
+  "exec",
+  "args",
+  "detach",
+  "custom_action",
+  "custom_action_param",
+];
 const actionFieldSchema = {
   clickTarget: {
     key: "target",
@@ -364,6 +405,17 @@ const actionFieldSchema = {
   },
 };
 
+export const otherFieldSchemaKeyList = [
+  "rate_limit",
+  "timeout",
+  "inverse",
+  "enabled",
+  "pre_delay",
+  "post_delay",
+  "pre_wait_freezes",
+  "postWaitFreezes",
+  "focus",
+];
 const otherFieldSchema = {
   rateLimit: {
     key: "rate_limit",

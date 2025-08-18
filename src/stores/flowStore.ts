@@ -19,6 +19,7 @@ export type EdgeType = {
   target: string;
   targetHandle: "target";
   label: number;
+  type: "marked";
 };
 
 type XYWH = [number, number, number, number];
@@ -97,7 +98,7 @@ export type ExternalNodeDataType = {
 };
 export interface PipelineNodeType {
   id: string;
-  type: string;
+  type: NodeTypeEnum;
   data: PipelineNodeDataType;
   position: { x: number; y: number };
   dragging?: boolean;
@@ -105,7 +106,7 @@ export interface PipelineNodeType {
 }
 export interface ExternalNodeType {
   id: string;
-  type: string;
+  type: NodeTypeEnum;
   data: ExternalNodeDataType;
   position: { x: number; y: number };
   dragging?: boolean;
@@ -113,6 +114,98 @@ export interface ExternalNodeType {
 }
 export type NodeType = PipelineNodeType | ExternalNodeType;
 
+/**工具函数 */
+// 聚焦
+export function fitFlowView(options?: {
+  focusNodes?: any[];
+  interpolate?: "linear" | "smooth" | undefined;
+  duration?: number;
+  minZoom?: number;
+  maxZoom?: number;
+}) {
+  setTimeout(() => {
+    const state = useFlowStore.getState();
+    const fitView = state.instance?.fitView;
+    if (!fitView) return;
+    const viewport = state.viewport;
+    const {
+      focusNodes,
+      interpolate = "linear",
+      duration = 500,
+      minZoom = viewport.zoom,
+      maxZoom = viewport.zoom,
+    } = options || {};
+    fitView({
+      nodes: focusNodes,
+      interpolate,
+      duration,
+      minZoom,
+      maxZoom,
+    });
+  }, 100);
+}
+// 创建模板节点
+export function createPipelineNode(
+  id: string,
+  options?: {
+    label?: string;
+    position?: { x: number; y: number };
+    select?: boolean;
+    datas?: any;
+  }
+): PipelineNodeType {
+  const {
+    label = id,
+    position = { x: 0, y: 0 },
+    select = false,
+    datas = {},
+  } = options ?? {};
+  const node: PipelineNodeType = {
+    id,
+    type: NodeTypeEnum.Pipeline,
+    data: {
+      label,
+      recognition: {
+        type: "DirectHit",
+        param: {},
+      },
+      action: {
+        type: "DoNothing",
+        param: {},
+      },
+      others: {},
+      extras: {},
+      ...datas,
+    },
+    position,
+    selected: select,
+  };
+  return node;
+}
+export function createExternalNode(
+  id: string,
+  options?: {
+    label?: string;
+    position?: { x: number; y: number };
+    select?: boolean;
+    datas?: any;
+  }
+): ExternalNodeType {
+  const {
+    label = id,
+    position = { x: 0, y: 0 },
+    select = false,
+    datas = {},
+  } = options ?? {};
+  const node: ExternalNodeType = {
+    id,
+    type: NodeTypeEnum.External,
+    data: { label, ...datas },
+    position,
+    selected: select,
+  };
+  return node;
+}
 // 查找节点
 export function findNodeById(id: string): PipelineNodeType {
   return useFlowStore.getState().nodes.find((node) => node.id === id);
@@ -220,6 +313,7 @@ interface FlowState {
   updateEdges: (changes: EdgeChange[]) => void;
   addEdge: (co: Connection, options?: { isCheck?: Boolean }) => void;
   setNodeData: (id: string, type: string, key: string, value: any) => void;
+  replace: (nodes: NodeType[], edges: EdgeType[]) => void;
 }
 export const useFlowStore = create<FlowState>()((set) => ({
   instance: null,
@@ -231,7 +325,7 @@ export const useFlowStore = create<FlowState>()((set) => ({
   targetNode: null,
   edges: [],
 
-  // 更新视口
+  /**工作流全局 */
   updateInstance(instance) {
     set(() => ({ instance }));
   },
@@ -242,6 +336,7 @@ export const useFlowStore = create<FlowState>()((set) => ({
     set(() => ({ size: { width, height } }));
   },
 
+  /**节点操作 */
   // 更新节点
   updateNodes(changes) {
     set((state) => {
@@ -275,25 +370,21 @@ export const useFlowStore = create<FlowState>()((set) => ({
       let nodes = select ? getUnselectedNodes() : [...state.nodes];
       // 创建节点
       const id = String(nodeIdCounter++);
-      const newNode = {
-        id,
-        type,
-        data: {
-          label: "新建节点" + id,
-          recognition: {
-            type: "DirectHit",
-            param: {},
-          },
-          action: {
-            type: "DoNothing",
-            param: {},
-          },
-          others: {},
-          ...data,
-        },
+      const nodeOptions = {
+        label: "新建节点" + id,
         position: position ?? calcuNodePosition(),
-        selected: select,
+        datas: data,
+        select,
       };
+      let newNode: any;
+      switch (type) {
+        case NodeTypeEnum.Pipeline:
+          newNode = createPipelineNode(id, nodeOptions);
+          break;
+        case NodeTypeEnum.External:
+          newNode = createExternalNode(id, nodeOptions);
+          break;
+      }
       // 添加连接
       if (link && selectedNodes.length > 0) {
         selectedNodes.forEach((node) => {
@@ -311,22 +402,44 @@ export const useFlowStore = create<FlowState>()((set) => ({
       const setter: any = { nodes };
       if (select) setter.selectedNodes = [newNode];
       // 聚焦
-      if (focus) {
-        const viewport = state.viewport;
-        setTimeout(() => {
-          state.instance?.fitView({
-            nodes: [newNode],
-            interpolate: "linear",
-            duration: 500,
-            minZoom: viewport.zoom,
-            maxZoom: viewport.zoom,
-          });
-        }, 200);
-      }
+      if (focus) fitFlowView({ focusNodes: [newNode] });
       return setter;
     });
   },
+  // 更新节点数据
+  setNodeData(id, type, key, value) {
+    set((state) => {
+      // 获取节点索引
+      const nodeIndex = findNodeIndexById(id);
+      if (nodeIndex < 0) return {};
+      let nodes = state.nodes;
+      const targetNode = { ...nodes[nodeIndex] };
 
+      // 更新节点数据
+      if (type === "recognition" || type === "action") {
+        if (value == "__mpe_delete") {
+          delete targetNode.data[type].param[key];
+        } else {
+          targetNode.data[type].param[key] = value;
+        }
+      } else if (type === "others") {
+        if (value == "__mpe_delete") {
+          delete targetNode.data.others[key];
+        } else {
+          targetNode.data.others[key] = value;
+        }
+      } else if (type === "type") {
+        targetNode.data[key].type = value;
+      } else {
+        targetNode.data[key] = value;
+      }
+
+      nodes[nodeIndex] = targetNode;
+      return { nodes, targetNode };
+    });
+  },
+
+  /**边操作 */
   // 更新边
   updateEdges(changes) {
     set((state) => {
@@ -402,36 +515,19 @@ export const useFlowStore = create<FlowState>()((set) => ({
     });
   },
 
-  // 更新节点数据
-  setNodeData(id, type, key, value) {
-    set((state) => {
-      // 获取节点索引
-      const nodeIndex = findNodeIndexById(id);
-      if (nodeIndex < 0) return {};
-      let nodes = state.nodes;
-      const targetNode = { ...nodes[nodeIndex] };
-
-      // 更新节点数据
-      if (type === "recognition" || type === "action") {
-        if (value == "__mpe_delete") {
-          delete targetNode.data[type].param[key];
-        } else {
-          targetNode.data[type].param[key] = value;
-        }
-      } else if (type === "others") {
-        if (value == "__mpe_delete") {
-          delete targetNode.data.others[key];
-        } else {
-          targetNode.data.others[key] = value;
-        }
-      } else if (type === "type") {
-        targetNode.data[key].type = value;
-      } else {
-        targetNode.data[key] = value;
-      }
-
-      nodes[nodeIndex] = targetNode;
-      return { nodes, targetNode };
+  /**整体更新 */
+  // 替换新的节点与边
+  replace(nodes: NodeType[], edges: EdgeType[]) {
+    set(() => {
+      const setter = {
+        nodes,
+        edges,
+        selectedNodes: [],
+        bfSelectedNodes: [],
+        targetNode: null,
+      };
+      fitFlowView();
+      return setter;
     });
   },
 }));
