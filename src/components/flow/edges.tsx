@@ -44,7 +44,10 @@ function MarkedEdge(props: EdgeProps & EdgeType) {
       {Edge}
       <EdgeLabelRenderer>
         <div
-          className={style.label}
+          className={classNames({
+            [style.label]: true,
+            [style["label-selected"]]: props.selected,
+          })}
           style={{
             position: "absolute",
             transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,

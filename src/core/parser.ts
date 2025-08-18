@@ -237,7 +237,6 @@ function parsePipelineNode(fNode: PipelineNodeType): ParsedPipelineNodeType {
     JsonHelper.stringObjToJson(
       String(fNodeData.extras).replaceAll(/[“”]/g, `"`)
     ) ?? {};
-  console.log(extras);
   // 赋值
   const pNode: ParsedPipelineNodeType = {
     recognition,
@@ -285,6 +284,5 @@ export function flowToPipeline(): PipelineObjType {
     );
   });
 
-  console.log("pipelineObj", pipelineObj);
   return pipelineObj;
 }
