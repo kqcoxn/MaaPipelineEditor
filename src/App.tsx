@@ -23,9 +23,9 @@ function App() {
               <FieldPanel />
               <ToolPanel.AddPanel />
             </Splitter.Panel>
-            {/* <Splitter.Panel defaultSize="20%" min="0%" max="50%" collapsible>
+            <Splitter.Panel defaultSize={350} min={300} max="50%" collapsible>
               <JsonViewer />
-            </Splitter.Panel> */}
+            </Splitter.Panel>
           </Splitter>
         </Content>
       </Layout>

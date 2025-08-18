@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@ant-design/v5-patch-for-react-19": "^1.0.3",
+    "@microlink/react-json-view": "^1.27.0",
     "@xyflow/react": "^12.7.1",
     "antd": "^5.26.2",
     "classnames": "^2.5.1",

@@ -1,0 +1,33 @@
+.json-viewer {
+  padding: 20px;
+  height: calc(100vh - 64px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: start;
+
+  .header {
+    width: 100%;
+
+    .title {
+      font-size: 18px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .operations {
+      margin-top: 8px;
+      margin-bottom: 12px;
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  .viewer-container {
+    flex: 1;
+    width: 100%;
+    overflow-y: auto;
+    overflow-x: auto;
+  }
+}

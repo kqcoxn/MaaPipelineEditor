@@ -10,9 +10,8 @@ import {
 import classNames from "classnames";
 
 import { SourceHandleTypeEnum } from "./nodes";
-import { type EdgeType } from "../../stores/flowStore";
 
-function MarkedEdge(props: EdgeProps & EdgeType) {
+function MarkedEdge(props: EdgeProps) {
   const [edgePath, labelX, labelY] = getBezierPath({ ...props });
   let markClass = "";
   if (props.selected) {
@@ -39,26 +38,26 @@ function MarkedEdge(props: EdgeProps & EdgeType) {
     />
   );
 
-  return props.label ? (
+  return (
     <>
       {Edge}
-      <EdgeLabelRenderer>
-        <div
-          className={classNames({
-            [style.label]: true,
-            [style["label-selected"]]: props.selected,
-          })}
-          style={{
-            position: "absolute",
-            transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-          }}
-        >
-          {props.label}
-        </div>
-      </EdgeLabelRenderer>
+      {props.label != null ? (
+        <EdgeLabelRenderer>
+          <div
+            className={classNames({
+              [style.label]: true,
+              [style["label-selected"]]: props.selected,
+            })}
+            style={{
+              position: "absolute",
+              transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+            }}
+          >
+            {props.label}
+          </div>
+        </EdgeLabelRenderer>
+      ) : null}
     </>
-  ) : (
-    Edge
   );
 }
 

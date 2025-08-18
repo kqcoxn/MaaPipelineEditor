@@ -1,9 +1,8 @@
-import { type Connection } from "@xyflow/react";
-
 import {
   useFlowStore,
   findNodeLabelById,
   type NodeType,
+  type EdgeType,
   type PipelineNodeType,
   type RecognitionParamType,
   type ActionParamType,
@@ -244,8 +243,12 @@ function parsePipelineNode(fNode: PipelineNodeType): ParsedPipelineNodeType {
     ...others,
     ...extras,
   };
+  const position = fNode.position;
   pNode[uniqueMark] = {
-    position: fNode.position,
+    position: {
+      x: Math.round(position.x),
+      y: Math.round(position.y),
+    },
   };
   return pNode;
 }
@@ -260,11 +263,16 @@ function addLink(
 }
 
 // 转录
-export function flowToPipeline(): PipelineObjType {
+export function flowToPipeline(datas?: {
+  nodes?: NodeType[];
+  edges?: EdgeType[];
+}): PipelineObjType {
   // 获取当前 flow 数据
   const state = useFlowStore.getState();
-  const nodes = state.nodes as NodeType[];
-  const edges = state.edges as Connection[];
+  const { nodes, edges } = {
+    nodes: datas?.nodes ?? (state.nodes as NodeType[]),
+    edges: datas?.edges ?? (state.edges as EdgeType[]),
+  };
 
   // 生成节点
   const pipelineObj: PipelineObjType = {};
@@ -277,11 +285,9 @@ export function flowToPipeline(): PipelineObjType {
   edges.forEach((edge) => {
     const sourceKey = findNodeLabelById(edge.source);
     const targetKey = findNodeLabelById(edge.target);
-    addLink(
-      pipelineObj[sourceKey],
-      targetKey,
-      edge.sourceHandle as SourceHandleTypeEnum
-    );
+    const pNode = pipelineObj[sourceKey];
+    if (!pNode) return;
+    addLink(pNode, targetKey, edge.sourceHandle as SourceHandleTypeEnum);
   });
 
   return pipelineObj;

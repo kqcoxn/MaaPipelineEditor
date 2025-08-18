@@ -81,10 +81,10 @@ function MainFlow() {
   });
 
   // 监听响应
-  if (transTimeout) clearTimeout(transTimeout);
-  transTimeout = setTimeout(() => {
-    flowToPipeline();
-  }, 200);
+  // if (transTimeout) clearTimeout(transTimeout);
+  // transTimeout = setTimeout(() => {
+  //   flowToPipeline();
+  // }, 200);
 
   // 渲染
   return (
@@ -97,9 +97,9 @@ function MainFlow() {
         edges={edges}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        defaultViewport={{ x: 0, y: 0, zoom: 1.5 }}
         minZoom={0.2}
         maxZoom={2.5}
-        fitView
       >
         <Background />
         <Controls />

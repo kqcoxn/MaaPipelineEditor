@@ -183,6 +183,16 @@ function calcuLinkOrder(source: string, type: SourceHandleTypeEnum): number {
   });
   return order;
 }
+// 缓冲存储
+const buTimeout: Record<string, number> = {
+  bfSelectedNodes: -1,
+};
+function buData(key: string, data: any) {
+  if (buTimeout[key]) clearTimeout(buTimeout[key]);
+  buTimeout[key] = setTimeout(() => {
+    useFlowStore.setState(() => ({ [key]: data }));
+  }, 400);
+}
 
 /**仓库 */
 let nodeIdCounter = 1;
@@ -192,6 +202,7 @@ interface FlowState {
   size: { width: number; height: number };
   nodes: any[];
   selectedNodes: any[];
+  bfSelectedNodes: any[];
   targetNode: any;
   edges: any[];
   updateInstance: (instance: ReactFlowInstance) => void;
@@ -216,6 +227,7 @@ export const useFlowStore = create<FlowState>()((set) => ({
   size: { width: 0, height: 0 },
   nodes: [],
   selectedNodes: [],
+  bfSelectedNodes: [],
   targetNode: null,
   edges: [],
 
@@ -237,6 +249,9 @@ export const useFlowStore = create<FlowState>()((set) => ({
       // 筛选选中的节点
       const selectedNodes = getSelectedNodes(nodes);
       const setter: any = { nodes, selectedNodes };
+      // 缓冲存储
+      buData("bfSelectedNodes", selectedNodes);
+      // 选中节点
       if (selectedNodes.length !== 1) {
         setter.targetNode = null;
       } else if (!selectedNodes[0].dragging) {
