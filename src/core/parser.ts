@@ -1,3 +1,5 @@
+import { notification } from "antd";
+
 import {
   useFlowStore,
   findNodeLabelById,
@@ -317,7 +319,7 @@ function isMark(key: string): boolean {
 }
 
 // 合成链接
-let externalIdCounter = 1;
+let idCounter = 1;
 function linkEdge(
   oSourceLabel: string,
   oTargetLabels: string[],
@@ -339,7 +341,7 @@ function linkEdge(
       id: `${sourceId}_${type}_to_${targetId}`,
       source: sourceId,
       sourceHandle: type,
-      target: targetId ?? "e_" + externalIdCounter++,
+      target: targetId ?? "e_" + idCounter++,
       targetHandle: "target",
       label: index + 1,
       type: "marked",
@@ -347,6 +349,18 @@ function linkEdge(
   });
   return edges;
 }
+
+// 错误提示
+function impErrorTip(err: any) {
+  notification.error({
+    message: "导入失败！",
+    description:
+      "请检查pipeline格式是否正确，或版本是否一致，详细程序错误请在控制台查看",
+    placement: "top",
+  });
+  console.error(err);
+}
+
 // v1
 export async function v1ToFlow(v1String?: string) {
   try {
@@ -362,7 +376,6 @@ export async function v1ToFlow(v1String?: string) {
     const nodes: NodeType[] = [];
     const originLabels: string[] = [];
     const idOLPairs: IdLabelPairsType = [];
-    let idCounter = 1;
     objKeys.forEach((objKey) => {
       const obj = v1Obj[objKey];
       // 跳过配置
@@ -398,8 +411,6 @@ export async function v1ToFlow(v1String?: string) {
       nodes.push(node);
     });
 
-    // console.log(nodes);
-
     // 解析连接
     let edges: EdgeType[] = [];
     for (let index = 0; index < originLabels.length; index++) {
@@ -433,5 +444,7 @@ export async function v1ToFlow(v1String?: string) {
 
     // 更新flow
     useFlowStore.getState().replace(nodes, edges);
-  } catch {}
+  } catch (err) {
+    impErrorTip(err);
+  }
 }
