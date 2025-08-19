@@ -282,10 +282,7 @@ function calcuLinkOrder(source: string, type: SourceHandleTypeEnum): number {
   return order;
 }
 // 缓冲存储
-const buTimeout: Record<string, number> = {
-  bfSelectedNodes: -1,
-  bfSelectedEdges: -1,
-};
+const buTimeout: Record<string, number> = {};
 function buData(key: string, data: any) {
   if (buTimeout[key]) clearTimeout(buTimeout[key]);
   buTimeout[key] = setTimeout(() => {
@@ -348,8 +345,8 @@ export const useFlowStore = create<FlowState>()((set) => ({
   // 更新节点
   updateNodes(changes) {
     set((state) => {
-      const nodes = applyNodeChanges(changes, state.nodes);
       // 筛选选中的节点
+      const nodes = applyNodeChanges(changes, state.nodes);
       const selectedNodes = getSelectedNodes(nodes);
       const setter: any = { nodes, selectedNodes };
       // 缓冲存储

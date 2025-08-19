@@ -11,6 +11,8 @@ import {
   type ActionParamType,
   type OtherParamType,
   type ParamType,
+  createExternalNode,
+  type ExternalNodeDataType,
 } from "../stores/flowStore";
 import { type ConfigType } from "../stores/configStore";
 import {
@@ -325,29 +327,32 @@ function linkEdge(
   oTargetLabels: string[],
   type: SourceHandleTypeEnum,
   idOLPairs: IdLabelPairsType
-): EdgeType[] {
+): [EdgeType[], NodeType[]] {
   // 检索节点名
   const sourceId = idOLPairs.find((pair) => pair.label === oSourceLabel)
     ?.id as string;
   // 检查
   const edges: EdgeType[] = [];
+  const nodes: NodeType[] = [];
   oTargetLabels.forEach((targetLabel, index) => {
     const targetId = idOLPairs.find((pair) => pair.label === targetLabel)?.id;
     // 创建外部节点
+    const externalId = "e_" + idCounter++;
     if (!targetId) {
+      nodes.push(createExternalNode(externalId, { label: targetLabel }));
     }
     // 连接
     edges.push({
       id: `${sourceId}_${type}_to_${targetId}`,
       source: sourceId,
       sourceHandle: type,
-      target: targetId ?? "e_" + idCounter++,
+      target: targetId ?? externalId,
       targetHandle: "target",
       label: index + 1,
       type: "marked",
     });
   });
-  return edges;
+  return [edges, nodes];
 }
 
 // 错误提示
@@ -377,7 +382,7 @@ export async function pipelineToFlow(options?: {
     const configKey = objKeys.find((objKey) => isConfigKey(objKey));
     if (configKey) Object.assign(configs, v1Obj[configKey]);
     // 解析节点
-    const nodes: NodeType[] = [];
+    let nodes: NodeType[] = [];
     const originLabels: string[] = [];
     const idOLPairs: IdLabelPairsType = [];
     objKeys.forEach((objKey) => {
@@ -439,27 +444,40 @@ export async function pipelineToFlow(options?: {
       const originLabel = originLabels[index];
       // next
       const next = obj["next"] as string[];
-      if (next)
-        edges = edges.concat(
-          linkEdge(originLabel, next, SourceHandleTypeEnum.Next, idOLPairs)
+      if (next) {
+        const [newEdges, newNodes] = linkEdge(
+          originLabel,
+          next,
+          SourceHandleTypeEnum.Next,
+          idOLPairs
         );
+        edges = edges.concat(newEdges);
+        nodes = nodes.concat(newNodes);
+      }
       // interrupt
       const interrupt = obj["interrupt"] as string[];
-      if (interrupt)
-        edges = edges.concat(
-          linkEdge(
-            originLabel,
-            interrupt,
-            SourceHandleTypeEnum.Interrupt,
-            idOLPairs
-          )
+      if (interrupt) {
+        const [newEdges, newNodes] = linkEdge(
+          originLabel,
+          interrupt,
+          SourceHandleTypeEnum.Interrupt,
+          idOLPairs
         );
+        edges = edges.concat(newEdges);
+        nodes = nodes.concat(newNodes);
+      }
       // on_error
       const onError = obj["on_error"] as string[];
-      if (onError)
-        edges = edges.concat(
-          linkEdge(originLabel, onError, SourceHandleTypeEnum.Error, idOLPairs)
+      if (onError) {
+        const [newEdges, newNodes] = linkEdge(
+          originLabel,
+          onError,
+          SourceHandleTypeEnum.Error,
+          idOLPairs
         );
+        edges = edges.concat(newEdges);
+        nodes = nodes.concat(newNodes);
+      }
     }
 
     // 更新flow

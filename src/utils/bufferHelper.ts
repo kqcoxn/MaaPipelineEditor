@@ -1,17 +1,16 @@
-export class BufferManager<BufType, NoBufRtType> {
-  buffer: Record<string, BufType | NoBufRtType>;
-  noBufferRt: NoBufRtType;
-  constructor(noBufferRt: NoBufRtType) {
+/**缓冲存储 */
+export class BufferManager<BufType> {
+  buffer: Record<string, BufType>;
+  constructor() {
     this.buffer = {};
-    this.noBufferRt = noBufferRt;
   }
   // 缓冲
-  buf(key: string, cache: BufType | NoBufRtType) {
+  buf(key: string, cache: BufType) {
     this.buffer[key] = cache;
   }
   // 获取
-  read(key: string): BufType | NoBufRtType {
-    return this.buffer[key] ?? this.noBufferRt;
+  read(key: string): BufType | undefined {
+    return this.buffer[key];
   }
   // 清空
   clear() {
