@@ -1,8 +1,9 @@
-name: Preview on Github-Page
+name: Preview on Github Page
 
 on:
   push:
-    branches: ["main"]
+    branches: [main]
+
   workflow_dispatch:
 
 permissions:
@@ -11,31 +12,46 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
-  cancel-in-progress: true
+  group: pages
+  cancel-in-progress: false
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
-      - name: Set up Node
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 
+          
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: lts/*
-          cache: "yarn"
-      - name: Install dependencies
-        run: yarn
-      - name: Build
-        run: yarn build
+          node-version: 22
+          cache: yarn
+          
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v4
+        
+      - name: Install dependencies
+        run: yarn install
+        
+      - name: Build with VitePress
+        run: yarn build
+        
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # 上传 dist 文件夹
-          path: "./dist"
+          path: ./dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: build
+    runs-on: ubuntu-latest
+    name: Deploy
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
