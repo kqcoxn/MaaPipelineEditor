@@ -7,7 +7,7 @@ import ReactJsonView, {
 import { Button, Flex } from "antd";
 
 import { useFlowStore, type NodeType } from "../stores/flowStore";
-import { flowToPipeline, uniqueMark, v1ToFlow } from "../core/parser";
+import { flowToPipeline, uniqueMark, pipelineToFlow } from "../core/parser";
 import { ClipboardHelper } from "../utils/clipboard";
 
 function JsonViewer() {
@@ -20,7 +20,8 @@ function JsonViewer() {
 
   // 生成 Pipeline
   let pipelineObj = {};
-  if (false) {
+  const autoUpdate = false;
+  if (autoUpdate) {
     if (selectedNodes.length > 0) {
       pipelineObj = flowToPipeline({ nodes: selectedNodes });
     } else {
@@ -28,7 +29,7 @@ function JsonViewer() {
     }
   }
   function copyToClipboard() {
-    ClipboardHelper.write(JSON.stringify(pipelineObj));
+    ClipboardHelper.write(autoUpdate ? pipelineObj : flowToPipeline());
   }
 
   // 折叠项
@@ -46,11 +47,16 @@ function JsonViewer() {
             variant="filled"
             size="small"
             color="primary"
-            onClick={() => v1ToFlow()}
+            onClick={() => pipelineToFlow({ pVersion: 1 })}
           >
             导入v1
           </Button>
-          <Button variant="filled" size="small" color="primary">
+          <Button
+            variant="filled"
+            size="small"
+            color="primary"
+            onClick={() => pipelineToFlow({ pVersion: 2 })}
+          >
             导入v2
           </Button>
           <Button

@@ -362,11 +362,15 @@ function impErrorTip(err: any) {
 }
 
 // v1
-export async function v1ToFlow(v1String?: string) {
+export async function pipelineToFlow(options?: {
+  pString?: string;
+  pVersion?: number;
+}) {
   try {
     // 获取参数
-    if (!v1String) v1String = await ClipboardHelper.read();
-    const v1Obj = JSON.parse(v1String);
+    const { pString = await ClipboardHelper.read(), pVersion = 2 } =
+      options || {};
+    const v1Obj = JSON.parse(pString);
     // 解析配置
     const objKeys = Object.keys(v1Obj);
     const configs: ConfigType = {};
@@ -395,12 +399,28 @@ export async function v1ToFlow(v1String?: string) {
         // 标记字段
         if (isMark(key)) Object.assign(node, value);
         // 识别算法
-        else if (key === "recognition") node.data.recognition.type = value;
-        else if (recoFieldSchemaKeyList.includes(key))
+        else if (key === "recognition") {
+          switch (pVersion) {
+            case 1:
+              node.data.recognition.type = value;
+              break;
+            case 2:
+              node.data.recognition = value;
+              break;
+          }
+        } else if (recoFieldSchemaKeyList.includes(key) && pVersion === 1)
           node.data.recognition.param[key] = value;
         // 动作类型
-        else if (key === "action") node.data.action.type = value;
-        else if (actionFieldSchemaKeyList.includes(key))
+        else if (key === "action") {
+          switch (pVersion) {
+            case 1:
+              node.data.action.type = value;
+              break;
+            case 2:
+              node.data.action = value;
+              break;
+          }
+        } else if (actionFieldSchemaKeyList.includes(key) && pVersion === 1)
           node.data.action.param[key] = value;
         // 其他字段
         else if (otherFieldSchemaKeyList.includes(key))

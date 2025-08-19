@@ -1,16 +1,206 @@
 {
-    "延迟提醒_开始": {
-        "recognition": "DirectHit",
-        "action": "DoNothing",
+    "识别活动": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
         "pre_delay": 0,
         "post_delay": 0,
-        "__yamaape": {
+        "__mpe": {
             "position": {
-                "x": 1481,
-                "y": 188
+                "x": 1353,
+                "y": 189
+            }
+        },
+        "next": [
+            "识别到指定活动",
+            "新增节点20"
+        ],
+        "interrupt": [
+            "检查时间"
+        ]
+    },
+    "识别到指定活动": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "活动名称"
+                ],
+                "roi": [
+                    14,
+                    79,
+                    257,
+                    555
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 400,
+        "__mpe": {
+            "position": {
+                "x": 1613,
+                "y": 189
+            }
+        },
+        "next": [
+            "结束"
+        ]
+    },
+    "结束": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe": {
+            "position": {
+                "x": 1873,
+                "y": 189
+            }
+        }
+    },
+    "检查时间": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "check_time",
+                "custom_action_param": "key=find_activity"
+            }
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe": {
+            "position": {
+                "x": 1615,
+                "y": 417
+            }
+        },
+        "next": [
+            "向下滑动"
+        ],
+        "on_error": [
+            "识别超时"
+        ]
+    },
+    "向下滑动": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Swipe",
+            "param": {
+                "begin": [
+                    140,
+                    530,
+                    1,
+                    1
+                ],
+                "end": [
+                    140,
+                    200,
+                    1,
+                    1
+                ],
+                "duration": 600
+            }
+        },
+        "post_delay": 0,
+        "pre_delay": 0,
+        "__mpe": {
+            "position": {
+                "x": 1864,
+                "y": 414
+            }
+        },
+        "next": [
+            "点停"
+        ]
+    },
+    "识别超时": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "break"
+            }
+        },
+        "focus": "> 未找到指定活动！",
+        "__mpe": {
+            "position": {
+                "x": 1864,
+                "y": 703
+            }
+        }
+    },
+    "点停": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Swipe",
+            "param": {
+                "begin": [
+                    140,
+                    200,
+                    1,
+                    1
+                ],
+                "end": [
+                    140,
+                    200,
+                    1,
+                    1
+                ],
+                "duration": 400
+            }
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe": {
+            "position": {
+                "x": 2124,
+                "y": 414
+            }
+        }
+    },
+    "新增节点20": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe": {
+            "position": {
+                "x": 1616,
+                "y": -9
             }
         }
     }
 }
-
-

@@ -15,7 +15,7 @@ interface AddToolType {
   iconName: string;
   iconSize?: number;
   nodeType?: NodeTypeEnum;
-  data?: any;
+  data?: () => any;
 }
 const addTools: AddToolType[] = [
   {
@@ -69,6 +69,10 @@ const addTools: AddToolType[] = [
       action: {
         type: "Custom",
         param: { custom_action: "", custom_action_param: "" },
+      },
+      others: {
+        pre_delay: 0,
+        post_delay: 0,
       },
     }),
   },
