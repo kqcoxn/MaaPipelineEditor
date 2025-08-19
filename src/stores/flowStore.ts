@@ -421,7 +421,10 @@ export const useFlowStore = create<FlowState>()((set) => ({
       const nodeIndex = findNodeIndexById(id);
       if (nodeIndex < 0) return {};
       let nodes = state.nodes;
-      const targetNode = { ...nodes[nodeIndex] };
+      let targetNode = { ...nodes[nodeIndex] };
+
+      // 数据处理
+      if (Array.isArray(value)) value = [...value];
 
       // 更新节点数据
       if (type === "recognition" || type === "action") {

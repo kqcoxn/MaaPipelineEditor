@@ -1,0 +1,16 @@
+{
+    "延迟提醒_开始": {
+        "recognition": "DirectHit",
+        "action": "DoNothing",
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__yamaape": {
+            "position": {
+                "x": 1481,
+                "y": 188
+            }
+        }
+    }
+}
+
+

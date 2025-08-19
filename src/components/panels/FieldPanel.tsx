@@ -545,7 +545,6 @@ const PipelineElem = lazy(() =>
             ) : null}
           </div>
           {/* 其他字段 */}
-
           {currentNode ? (
             <ParamFieldListElem
               paramData={currentNode.data.others}
