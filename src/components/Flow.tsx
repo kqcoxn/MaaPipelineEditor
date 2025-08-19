@@ -1,7 +1,7 @@
 import style from "../styles/Flow.module.less";
 import "@xyflow/react/dist/style.css";
 
-import { useCallback, useRef, useEffect } from "react";
+import { useCallback, useRef, useEffect, useMemo } from "react";
 import {
   ReactFlow,
   Controls,
@@ -40,7 +40,6 @@ function ViewportChangeMonitor() {
   return null;
 }
 
-let transTimeout: number | null = null;
 function MainFlow() {
   // store
   const nodes = useFlowStore((state) => state.nodes);
@@ -61,6 +60,9 @@ function MainFlow() {
   );
   const onConnect = useCallback((co: Connection) => addEdge(co), []);
 
+  // 记忆
+  const defaultViewport = useMemo(() => ({ x: 0, y: 0, zoom: 1.5 }), []);
+
   // hook
   const ref = useRef(null);
   useEffect(() => {
@@ -80,12 +82,6 @@ function MainFlow() {
     };
   });
 
-  // 监听响应
-  // if (transTimeout) clearTimeout(transTimeout);
-  // transTimeout = setTimeout(() => {
-  //   flowToPipeline();
-  // }, 200);
-
   // 渲染
   return (
     <div className={style.editor} ref={ref}>
@@ -97,7 +93,7 @@ function MainFlow() {
         edges={edges}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        defaultViewport={{ x: 0, y: 0, zoom: 1.5 }}
+        defaultViewport={defaultViewport}
         minZoom={0.2}
         maxZoom={2.5}
       >

@@ -267,6 +267,11 @@ function calcuNodePosition(): { x: number; y: number } {
 function findEdgeById(id: string): EdgeType {
   return useFlowStore.getState().edges.find((edge) => edge.id === id);
 }
+// 筛选选中的边
+function getSelectedEdges(edges?: any[]): EdgeType[] {
+  if (!edges) edges = useFlowStore.getState().edges;
+  return edges.filter((edge) => edge.selected);
+}
 // 计算链接次序
 function calcuLinkOrder(source: string, type: SourceHandleTypeEnum): number {
   const edges = useFlowStore.getState().edges as EdgeType[];
@@ -279,12 +284,13 @@ function calcuLinkOrder(source: string, type: SourceHandleTypeEnum): number {
 // 缓冲存储
 const buTimeout: Record<string, number> = {
   bfSelectedNodes: -1,
+  bfSelectedEdges: -1,
 };
 function buData(key: string, data: any) {
   if (buTimeout[key]) clearTimeout(buTimeout[key]);
   buTimeout[key] = setTimeout(() => {
     useFlowStore.setState(() => ({ [key]: data }));
-  }, 400);
+  }, 500);
 }
 
 /**仓库 */
@@ -298,6 +304,7 @@ interface FlowState {
   bfSelectedNodes: any[];
   targetNode: any;
   edges: any[];
+  bfSelectedEdges: any[];
   updateInstance: (instance: ReactFlowInstance) => void;
   updateViewport: (viewport: Viewport) => void;
   updateSize: (width: number, height: number) => void;
@@ -324,6 +331,7 @@ export const useFlowStore = create<FlowState>()((set) => ({
   bfSelectedNodes: [],
   targetNode: null,
   edges: [],
+  bfSelectedEdges: [],
 
   /**工作流全局 */
   updateInstance(instance) {
@@ -462,6 +470,8 @@ export const useFlowStore = create<FlowState>()((set) => ({
       });
       // 更新数据
       const newEdges = applyEdgeChanges(changes, edges);
+      const selectedEdges = getSelectedEdges();
+      buData("bfSelectedEdges", selectedEdges);
       return { edges: newEdges };
     });
   },

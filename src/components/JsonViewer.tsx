@@ -16,14 +16,16 @@ function JsonViewer() {
     (state) => state.bfSelectedNodes
   ) as NodeType[];
   useFlowStore((state) => state.targetNode);
-  useFlowStore((state) => state.edges);
+  useFlowStore((state) => state.bfSelectedEdges);
 
   // 生成 Pipeline
   let pipelineObj = {};
-  if (selectedNodes.length > 0) {
-    pipelineObj = flowToPipeline({ nodes: selectedNodes });
-  } else {
-    pipelineObj = flowToPipeline();
+  if (false) {
+    if (selectedNodes.length > 0) {
+      pipelineObj = flowToPipeline({ nodes: selectedNodes });
+    } else {
+      pipelineObj = flowToPipeline();
+    }
   }
   function copyToClipboard() {
     ClipboardHelper.write(JSON.stringify(pipelineObj));

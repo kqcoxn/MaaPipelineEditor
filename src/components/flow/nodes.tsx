@@ -1,6 +1,6 @@
 import style from "../../styles/nodes.module.less";
 
-import { memo } from "react";
+import { memo, useMemo, type JSX } from "react";
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 import classNames from "classnames";
 
@@ -8,6 +8,7 @@ import {
   useFlowStore,
   type PipelineNodeDataType,
   type ExternalNodeDataType,
+  type NodeType,
 } from "../../stores/flowStore";
 import { JsonHelper } from "../../utils/jsonHelper";
 
@@ -22,10 +23,19 @@ export enum NodeTypeEnum {
 }
 
 /**模块 */
-function KVElem(key: string, value: any = "") {
+function isUpdateNode(pre: any, post: any) {
   return (
-    <li key={key}>
-      <div className={style.key}>{key}</div>
+    post.targetNode != null &&
+    post.targetNode.id === post.props.id &&
+    !post.props.dragging &&
+    pre.props.selected === post.props.selected
+  );
+}
+
+const KVElem = memo(({ paramKey, value }: { paramKey: string; value: any }) => {
+  return (
+    <li key={paramKey}>
+      <div className={style.key}>{paramKey}</div>
       <div className={style.value}>
         <div className={style.container}>
           {JsonHelper.objToString(value) ?? String(value) ?? ""}
@@ -33,94 +43,151 @@ function KVElem(key: string, value: any = "") {
       </div>
     </li>
   );
-}
+});
 
-type PipelineNodeData = Node<PipelineNodeDataType, NodeTypeEnum.Pipeline>;
-function PipelineNode({ data, selected }: NodeProps<PipelineNodeData>) {
-  useFlowStore((state) => state.targetNode);
+/**内部节点 */
+const PNodeDataContent = memo(
+  ({
+    data,
+  }: {
+    data: PipelineNodeDataType;
+    props: NodeProps;
+    targetNode?: NodeType;
+  }) => {
+    return (
+      <>
+        <div className={style.title}>{data.label}</div>
+        <ul className={style.list}>
+          <ul className={style.module}>
+            <KVElem paramKey="recognition" value={data.recognition.type} />
+            {Object.keys(data.recognition.param).map((key) => (
+              <KVElem
+                key={key}
+                paramKey={key}
+                value={data.recognition.param[key]}
+              />
+            ))}
+          </ul>
+          <ul className={style.module}>
+            <KVElem paramKey="action" value={data.action.type} />
+            {Object.keys(data.action.param).map((key) => (
+              <KVElem key={key} paramKey={key} value={data.action.param[key]} />
+            ))}
+          </ul>
+          <ul className={style.module}>
+            {Object.keys(data.others).map((key) => (
+              <KVElem key={key} paramKey={key} value={data.others[key]} />
+            ))}
+            {JsonHelper.isStringObj(data.extras) ? (
+              <KVElem paramKey={"extras"} value={data.extras} />
+            ) : null}
+          </ul>
+        </ul>
+        <Handle
+          id="target"
+          className={classNames(style.handle, style.target)}
+          type="target"
+          position={Position.Left}
+        />
+        <Handle
+          id={SourceHandleTypeEnum.Next}
+          className={classNames(style.handle, style.next)}
+          type="source"
+          position={Position.Right}
+        />
+        <Handle
+          id={SourceHandleTypeEnum.Interrupt}
+          className={classNames(style.handle, style.interrupt)}
+          type="source"
+          position={Position.Right}
+        />
+        <Handle
+          id={SourceHandleTypeEnum.Error}
+          className={classNames(style.handle, style.error)}
+          type="source"
+          position={Position.Right}
+        />
+      </>
+    );
+  },
+  (pre, post) => {
+    return !isUpdateNode(pre, post);
+  }
+);
 
-  const ParamList = (
-    <ul className={style.list}>
-      <ul className={style.module}>
-        {KVElem("recognition", data.recognition.type)}
-        {Object.keys(data.recognition.param).map((key) =>
-          KVElem(key, data.recognition.param[key])
-        )}
-      </ul>
-      <ul className={style.module}>
-        {KVElem("action", data.action.type)}
-        {Object.keys(data.action.param).map((key) =>
-          KVElem(key, data.action.param[key])
-        )}
-      </ul>
-      <ul className={style.module}>
-        {Object.keys(data.others).map((key) => KVElem(key, data.others[key]))}
-        {JsonHelper.isStringObj(data.extras)
-          ? KVElem("extras", data.extras)
-          : null}
-      </ul>
-    </ul>
-  );
+type PNodeData = Node<PipelineNodeDataType, NodeTypeEnum.Pipeline>;
+function PipelineNode(props: NodeProps<PNodeData>) {
+  const targetNode = useFlowStore((state) => state.targetNode) as
+    | NodeType
+    | undefined;
 
-  return (
-    <div
-      className={classNames({
+  const nodeClass = useMemo(
+    () =>
+      classNames({
         [style.node]: true,
         [style["pipeline-node"]]: true,
-        [style["node-selected"]]: selected,
-      })}
-    >
-      <div className={style.title}>{data.label}</div>
-      {ParamList}
-      <Handle
-        id="target"
-        className={classNames(style.handle, style.target)}
-        type="target"
-        position={Position.Left}
-      />
-      <Handle
-        id={SourceHandleTypeEnum.Next}
-        className={classNames(style.handle, style.next)}
-        type="source"
-        position={Position.Right}
-      />
-      <Handle
-        id={SourceHandleTypeEnum.Interrupt}
-        className={classNames(style.handle, style.interrupt)}
-        type="source"
-        position={Position.Right}
-      />
-      <Handle
-        id={SourceHandleTypeEnum.Error}
-        className={classNames(style.handle, style.error)}
-        type="source"
-        position={Position.Right}
+        [style["node-selected"]]: props.selected,
+      }),
+    [props.selected]
+  );
+
+  return (
+    <div className={nodeClass}>
+      <PNodeDataContent
+        data={props.data}
+        props={props}
+        targetNode={targetNode}
       />
     </div>
   );
 }
 
-type ExternalNodeData = Node<ExternalNodeDataType, NodeTypeEnum.External>;
-function ExternalNode({ data, selected }: NodeProps<ExternalNodeData>) {
-  useFlowStore((state) => state.targetNode);
+/**外部节点 */
+const ENodeContent = memo(
+  ({
+    data,
+  }: {
+    data: ExternalNodeDataType;
+    props: NodeProps;
+    targetNode?: NodeType;
+  }) => {
+    return (
+      <>
+        <div className={style.title}>{data.label}</div>
+        <Handle
+          id="target"
+          className={classNames(style.handle, style.external)}
+          type="target"
+          position={Position.Left}
+        />
+      </>
+    );
+  },
+  (pre, post) => {
+    return !isUpdateNode(pre, post);
+  }
+);
 
-  return (
-    <div
-      className={classNames({
+type ExternalNodeData = Node<ExternalNodeDataType, NodeTypeEnum.External>;
+function ExternalNode(props: NodeProps<ExternalNodeData>) {
+  const targetNode = useFlowStore((state) => state.targetNode);
+
+  const nodeClass = useMemo(
+    () =>
+      classNames({
         [style.node]: true,
         [style["external-node"]]: true,
-        [style["node-selected"]]: selected,
-      })}
-    >
-      <div className={style.title}>{data.label}</div>
-      <Handle
-        id="target"
-        className={classNames(style.handle, style.external)}
-        type="target"
-        position={Position.Left}
-      />
+        [style["node-selected"]]: props.selected,
+      }),
+    [props.selected]
+  );
+
+  const Node = (
+    <div className={nodeClass}>
+      <ENodeContent data={props.data} props={props} targetNode={targetNode} />
     </div>
   );
+  return Node;
 }
 
 export const nodeTypes = {

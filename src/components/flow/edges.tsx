@@ -1,6 +1,6 @@
 import style from "../../styles/edges.module.less";
 
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import {
   BaseEdge,
   getBezierPath,
@@ -13,46 +13,47 @@ import { SourceHandleTypeEnum } from "./nodes";
 
 function MarkedEdge(props: EdgeProps) {
   const [edgePath, labelX, labelY] = getBezierPath({ ...props });
-  let markClass = "";
-  if (props.selected) {
-    markClass = style["edge-selected"];
-  } else {
-    switch (props.sourceHandleId) {
-      case SourceHandleTypeEnum.Next:
-        markClass = style["edge-next"];
-        break;
-      case SourceHandleTypeEnum.Interrupt:
-        markClass = style["edge-interrupt"];
-        break;
-      case SourceHandleTypeEnum.Error:
-        markClass = style["edge-error"];
-        break;
-    }
-  }
 
-  const Edge = (
-    <BaseEdge
-      className={classNames(style.edge, markClass)}
-      id={props.id}
-      path={edgePath}
-    />
+  const edgeClass = useMemo(() => {
+    let markClass = "";
+    if (props.selected) {
+      markClass = style["edge-selected"];
+    } else {
+      switch (props.sourceHandleId) {
+        case SourceHandleTypeEnum.Next:
+          markClass = style["edge-next"];
+          break;
+        case SourceHandleTypeEnum.Interrupt:
+          markClass = style["edge-interrupt"];
+          break;
+        case SourceHandleTypeEnum.Error:
+          markClass = style["edge-error"];
+          break;
+      }
+    }
+    return classNames(style.edge, markClass);
+  }, [props.selected]);
+
+  const labelClass = useMemo(
+    () =>
+      classNames({
+        [style.label]: true,
+        [style["label-selected"]]: props.selected,
+      }),
+    [props.selected]
   );
+  const labelStyle = useMemo(() => {
+    return {
+      transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+    };
+  }, [labelX, labelY]);
 
   return (
     <>
-      {Edge}
+      <BaseEdge className={edgeClass} id={props.id} path={edgePath} />
       {props.label != null ? (
         <EdgeLabelRenderer>
-          <div
-            className={classNames({
-              [style.label]: true,
-              [style["label-selected"]]: props.selected,
-            })}
-            style={{
-              position: "absolute",
-              transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-            }}
-          >
+          <div className={labelClass} style={labelStyle}>
             {props.label}
           </div>
         </EdgeLabelRenderer>
