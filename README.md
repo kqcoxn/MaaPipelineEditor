@@ -47,7 +47,7 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
 ### 开源库/框架
 
 - [vite](https://github.com/vitejs/vite)  
-  Next Generation Frontend Tooling
+  Next Generation Frontend Tooling.
 - [TypeScript](https://github.com/microsoft/TypeScript)  
   A language for application-scale JavaScript.
 - [less.js](https://github.com/less/less.js)  
@@ -62,6 +62,8 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
   An enterprise-class UI design language and React UI library.
 - [react-json-view](https://github.com/microlinkhq/react-json-view)  
   React-json-view (rjv) is a React component for displaying and editing javascript arrays and JSON objects.
+- [dnd-kit](https://github.com/clauderic/dnd-kit)  
+  The modern drag & drop toolkitfor React.
 - [react-iconfont-cli](https://github.com/iconfont-cli/react-iconfont-cli)  
   Use pure JS to convert iconfont.cn icons into React components.
 - ~~[vue.js](https://github.com/vuejs/vue)~~  

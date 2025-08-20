@@ -12,6 +12,9 @@
   },
   "dependencies": {
     "@ant-design/v5-patch-for-react-19": "^1.0.3",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@microlink/react-json-view": "^1.27.0",
     "@xyflow/react": "^12.7.1",
     "antd": "^5.26.2",

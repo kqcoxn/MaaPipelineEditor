@@ -290,7 +290,7 @@ function buData(key: string, data: any) {
   }, 500);
 }
 
-/**仓库 */
+/**Flow仓库 */
 let nodeIdCounter = 1;
 interface FlowState {
   instance: ReactFlowInstance | null;

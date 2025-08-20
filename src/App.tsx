@@ -8,6 +8,7 @@ import MainFlow from "./components/Flow";
 import JsonViewer from "./components/JsonViewer";
 import FieldPanel from "./components/panels/FieldPanel";
 import ToolPanel from "./components/panels/ToolPanel";
+import FilePanel from "./components/panels/FilePanel";
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
           <Header />
         </HeaderSection>
         <Content className={style.content}>
+          <FilePanel />
           <Splitter>
             <Splitter.Panel className={style.left}>
               <MainFlow />
