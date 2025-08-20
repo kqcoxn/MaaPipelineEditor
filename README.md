@@ -20,7 +20,7 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
   <a href="https://lesscss.org/" target="_blank"><img alt="less" src="https://img.shields.io/badge/Less-1D365D?logo=less&logoColor=fff"></a>
   <a href="https://reactflow.dev/" target="_blank"><img alt="react-flow" src="https://img.shields.io/badge/React Flow 12-%23ff0072?logoColor=fff&logo=flathub"></a>
   <br/>
-  <a href="https://github.com/kqcoxn/MaaPipelineEditor/LICENSE.md" target="_blank"><img alt="committs" src="https://img.shields.io/github/license/kqcoxn/MaaPipelineEditor"></a>
+  <a href="https://github.com/kqcoxn/MaaPipelineEditor/blob/main/LICENSE.md" target="_blank"><img alt="committs" src="https://img.shields.io/github/license/kqcoxn/MaaPipelineEditor"></a>
   <a href="https://github.com/kqcoxn/MaaPipelineEditor/stargazers" target="_blank"><img alt="stars" src="https://img.shields.io/github/stars/kqcoxn/MaaPipelineEditor?style=social"></a>
   <a href="https://github.com/kqcoxn/MaaPipelineEditor/commits/main/" target="_blank"><img alt="committs" src="https://img.shields.io/github/commit-activity/m/kqcoxn/MaaPipelineEditor?color=%23ff69b4"></a>
 </p>
@@ -33,12 +33,13 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
 
 **MaaPipelineEditor** 是基于 Web 前端相关开发框架、运用 [YAMaaPE](https://github.com/kqcoxn/YAMaaPE) 开发经验去芜存菁、资源开发者充分微调、完全重写的 [MaaFramework](https://github.com/MaaXYZ/MaaFramework) [Pipeline](https://maafw.xyz/docs/3.1-PipelineProtocol.html) 工作流式可视化编辑器。
 
-_“由你设计，由我们支持。”_ 你所需要的东西已经存在：添加、配置、连接，只需整理思绪，除你的想法之外尽在其中！
+_“由你设计，由我们支持。”_ 您所需要的东西皆已存在：添加、配置、连接，只需整理思绪，除去您的想法之外尽在其中！
 
 ## 开箱即用
 
-- [在线稳定版](https://yamaape.codax.site/MaaPipelineEditor)（推荐）
-- [最新预览版](https://kqcoxn.github.io/MaaPipelineEditor/)（最新推送）
+- ~~[文档站](https://yamaape.codax.site/docs)~~（即将上线！）
+- ~~[稳定版](https://yamaape.codax.site/MaaPipelineEditor)~~（即将上线！）
+- [预览版](https://kqcoxn.github.io/MaaPipelineEditor/)（最新推送）
 - [YAMaaPE](https://yamaape.codax.site)（重构前版本）
 
 ## 鸣谢

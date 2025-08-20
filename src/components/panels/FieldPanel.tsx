@@ -1,9 +1,9 @@
 import style from "../../styles/FieldPanel.module.less";
 
 import React, { useMemo, memo, useCallback, lazy, Suspense } from "react";
-import classNames from "classnames";
 import { Popover, Input, InputNumber, Select, Switch, Spin } from "antd";
 const { TextArea } = Input;
+import classNames from "classnames";
 
 import {
   useFlowStore,

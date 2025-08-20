@@ -1,14 +1,27 @@
 import style from "../styles/Header.module.less";
 
+import { Tag } from "antd";
 import IconFont from "./iconfonts";
+
+import { globalConfig } from "../stores/configStore";
 
 function Header() {
   return (
     <div className={style.container}>
       <div className={style.left}>
-        <IconFont name="icon-dixiaguanxianguanli" color={"#1296db"} size={28} />
+        <img className={style.logo} src="/MaaPipelineEditor/logo.png" />
         <div className={style.title}>
           MaaPipelineEditor - 可视化 MaaFramework Pipeline 编辑器
+        </div>
+        <div className={style.version}>
+          <Tag bordered={false} color="processing">
+            {globalConfig.version}
+          </Tag>
+          {globalConfig.dev ? (
+            <Tag bordered={false} color="magenta">
+              Preview Version
+            </Tag>
+          ) : null}
         </div>
       </div>
       <div className={style.links}>

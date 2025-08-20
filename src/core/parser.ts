@@ -4,6 +4,7 @@ import {
   useFlowStore,
   findNodeLabelById,
   createPipelineNode,
+  createExternalNode,
   type NodeType,
   type EdgeType,
   type PipelineNodeType,
@@ -11,8 +12,6 @@ import {
   type ActionParamType,
   type OtherParamType,
   type ParamType,
-  createExternalNode,
-  type ExternalNodeDataType,
 } from "../stores/flowStore";
 import { type ConfigType } from "../stores/configStore";
 import {
