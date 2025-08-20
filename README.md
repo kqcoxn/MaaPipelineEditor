@@ -33,7 +33,7 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
 
 **MaaPipelineEditor** 是基于 Web 前端相关开发框架、运用 [YAMaaPE](https://github.com/kqcoxn/YAMaaPE) 开发经验去芜存菁、资源开发者充分微调、完全重写的 [MaaFramework](https://github.com/MaaXYZ/MaaFramework) [Pipeline](https://maafw.xyz/docs/3.1-PipelineProtocol.html) 工作流式可视化编辑器。
 
-_“由你设计，由我们支持。”_ 您所需要的东西皆已存在：添加、配置、连接，只需整理思绪，除去您的想法之外尽在其中！
+**_“由你设计，由我们支持。”_** 您所需要的东西皆已存在：添加、配置、连接，只需整理思绪，除去您的想法之外尽在其中！
 
 ## 开箱即用
 
