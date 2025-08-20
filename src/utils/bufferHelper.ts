@@ -17,3 +17,4 @@ export class BufferManager<BufType> {
     this.buffer = {};
   }
 }
+

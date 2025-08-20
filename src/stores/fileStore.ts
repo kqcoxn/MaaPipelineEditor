@@ -61,6 +61,29 @@ function createFile(options?: { fileName?: string; config?: any }): FileType {
 }
 const defaltFile = createFile();
 
+// 保存Flow
+export function saveFlow(): FileType | null {
+  try {
+    const flowState = useFlowStore.getState();
+    const currentFile = useFileStore.getState().currentFile;
+    currentFile.nodes = flowState.nodes;
+    currentFile.edges = flowState.edges;
+    return currentFile;
+  } catch {
+    return null;
+  }
+}
+// 本地存储
+export function localSave(): any {
+  if (!saveFlow()) return null;
+  try {
+    const state = useFileStore.getState();
+    localStorage.setItem("files", JSON.stringify(state.files));
+  } catch (err) {
+    return err;
+  }
+}
+
 /**文件仓库 */
 type FileState = {
   files: FileType[];
@@ -70,6 +93,7 @@ type FileState = {
   addFile: (options?: { isSwitch: boolean }) => string | null;
   removeFile: (fileName: string) => string | null;
   onDragEnd: (result: DragEndEvent) => void;
+  replace: (files?: FileType[]) => any;
 };
 export const useFileStore = create<FileState>()((set) => ({
   files: [defaltFile],
@@ -116,11 +140,9 @@ export const useFileStore = create<FileState>()((set) => ({
       if (!targetFile) return {};
       activeKey = targetFile.fileName;
       // 保存当前flow
-      const flowState = useFlowStore.getState();
-      currentFile.nodes = flowState.nodes;
-      currentFile.edges = flowState.edges;
+      saveFlow();
       // 更新flow
-      flowState.replace(targetFile.nodes, targetFile.edges);
+      useFlowStore.getState().replace(targetFile.nodes, targetFile.edges);
       return { currentFile: targetFile };
     });
     return activeKey;
@@ -178,5 +200,22 @@ export const useFileStore = create<FileState>()((set) => ({
         return { files };
       });
     }
+  },
+
+  // 替换
+  replace(files) {
+    try {
+      if (!files) {
+        const ls = localStorage.getItem("files");
+        if (!ls) return null;
+        files = JSON.parse(ls) as FileType[];
+      }
+      const currentFile = files[0];
+      set({ files, currentFile });
+      useFlowStore.getState().replace(currentFile.nodes, currentFile.edges);
+    } catch (err) {
+      return err;
+    }
+    return null;
   },
 }));

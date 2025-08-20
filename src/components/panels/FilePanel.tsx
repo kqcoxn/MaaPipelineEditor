@@ -1,8 +1,7 @@
 import { CSS } from "@dnd-kit/utilities";
 import style from "../../styles/FilePanel.module.less";
 
-import React, { useState, memo, useMemo, useEffect, useCallback } from "react";
-import type { DragEndEvent } from "@dnd-kit/core";
+import React, { useState, memo, useMemo, useCallback } from "react";
 import {
   closestCenter,
   DndContext,
@@ -10,12 +9,11 @@ import {
   useSensor,
 } from "@dnd-kit/core";
 import {
-  arrayMove,
   horizontalListSortingStrategy,
   SortableContext,
   useSortable,
 } from "@dnd-kit/sortable";
-import { Tabs, Input, type TabsProps } from "antd";
+import { Tabs, Input } from "antd";
 
 import { useFileStore } from "../../stores/fileStore";
 
