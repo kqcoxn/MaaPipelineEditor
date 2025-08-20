@@ -5,7 +5,7 @@ export const globalConfig = {
   version: "v0.5.0",
 };
 
-export type ConfigType = {
+export type PipelineConfigType = {
   filename?: string;
   version?: string;
   prefix?: string;
@@ -13,5 +13,5 @@ export type ConfigType = {
 };
 
 /**配置 */
-type ConfigState = {} & ConfigType;
+type ConfigState = {} & PipelineConfigType;
 export const useConfigStore = create<ConfigState>()((set) => ({}));

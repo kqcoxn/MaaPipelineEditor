@@ -13,13 +13,13 @@ import FilePanel from "./components/panels/FilePanel";
 function App() {
   return (
     <Flex className={style.container} gap="middle" wrap>
-      <Layout>
+      <Layout className={style.layout}>
         <HeaderSection className={style.header}>
           <Header />
         </HeaderSection>
         <Content className={style.content}>
           <FilePanel />
-          <Splitter>
+          <Splitter className={style.workspace}>
             <Splitter.Panel className={style.left}>
               <MainFlow />
               <FieldPanel />

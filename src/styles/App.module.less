@@ -2,18 +2,30 @@
   width: 100%;
   height: 100%;
 
-  .header {
-    background-color: white;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    z-index: 1;
-  }
+  .layout {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 
-  .content {
-    background-color: white;
-    overflow: hidden;
+    .header {
+      background-color: white;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      z-index: 1;
+    }
 
-    .left {
-      position: relative;
+    .content {
+      background-color: white;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+
+      .workspace {
+        flex: 1;
+
+        .left {
+          position: relative;
+        }
+      }
     }
   }
 }

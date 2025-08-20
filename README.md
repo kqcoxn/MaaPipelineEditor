@@ -16,8 +16,8 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
 
 <p align="center">
   <a href="https://react.dev/" target="_blank"><img alt="react" src="https://img.shields.io/badge/React 19-%2320232a.svg?logo=react&logoColor=%2361DAFB"></a>
-  <a href="https://www.typescriptlang.org/" target="_blank"><img alt="ts" src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=fff"></a>
-  <a href="https://lesscss.org/" target="_blank"><img alt="less" src="https://img.shields.io/badge/Less-1D365D?logo=less&logoColor=fff"></a>
+  <a href="https://www.typescriptlang.org/" target="_blank"><img alt="ts" src="https://img.shields.io/badge/TypeScript 5.8-3178C6?logo=typescript&logoColor=fff"></a>
+  <!-- <a href="https://lesscss.org/" target="_blank"><img alt="less" src="https://img.shields.io/badge/Less-1D365D?logo=less&logoColor=fff"></a> -->
   <a href="https://reactflow.dev/" target="_blank"><img alt="react-flow" src="https://img.shields.io/badge/React Flow 12-%23ff0072?logoColor=fff&logo=flathub"></a>
   <br/>
   <a href="https://github.com/kqcoxn/MaaPipelineEditor/blob/main/LICENSE.md" target="_blank"><img alt="committs" src="https://img.shields.io/github/license/kqcoxn/MaaPipelineEditor"></a>
@@ -49,11 +49,11 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
 - [vite](https://github.com/vitejs/vite)  
   Next Generation Frontend Tooling.
 - [TypeScript](https://github.com/microsoft/TypeScript)  
-  A language for application-scale JavaScript.
+  JavaScript with syntax for types.
 - [less.js](https://github.com/less/less.js)  
   It's CSS, with just a little more.
 - [react](https://github.com/facebook/react)  
-  React is a JavaScript library for building user interfaces.
+  A JavaScript library for building user interfaces.
 - [zustand](https://github.com/pmndrs/zustand)  
   A small, fast and scalable bearbones state-management solution using simplified flux principles.
 - [classnames](https://github.com/JedWatson/classnames)  
@@ -61,7 +61,7 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
 - [ant-design](https://github.com/ant-design/ant-design)  
   An enterprise-class UI design language and React UI library.
 - [react-json-view](https://github.com/microlinkhq/react-json-view)  
-  React-json-view (rjv) is a React component for displaying and editing javascript arrays and JSON objects.
+  A React component for displaying and editing javascript arrays and JSON objects.
 - [dnd-kit](https://github.com/clauderic/dnd-kit)  
   The modern drag & drop toolkitfor React.
 - [react-iconfont-cli](https://github.com/iconfont-cli/react-iconfont-cli)  

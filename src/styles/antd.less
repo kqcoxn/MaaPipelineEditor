@@ -1,7 +1,41 @@
+@import "./global.less";
+
 .ant-tabs-nav {
   margin-bottom: 0 !important;
 
   &::before {
     content: none !important;
+  }
+
+  .ant-tabs-tab {
+    border: none !important;
+    background-color: rgba(0, 0, 0, 0) !important ;
+    @trans: 0.3s ease;
+    transition: background-color @trans;
+
+    &::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 0;
+      width: 0;
+      height: 2px;
+      background-color: #1677ff;
+      transition: width @trans;
+    }
+
+    .ant-tabs-tab-btn {
+      .ellipsis() !important;
+    }
+  }
+
+  .ant-tabs-tab-active {
+    background-color: rgba(0, 0, 0, 0.02) !important;
+
+    &::after {
+      content: "";
+      width: 80%;
+    }
   }
 }

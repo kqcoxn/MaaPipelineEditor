@@ -13,7 +13,7 @@ import {
   type OtherParamType,
   type ParamType,
 } from "../stores/flowStore";
-import { type ConfigType } from "../stores/configStore";
+import { type PipelineConfigType } from "../stores/configStore";
 import {
   FieldTypeEnum,
   recoFields,
@@ -377,7 +377,7 @@ export async function pipelineToFlow(options?: {
     const v1Obj = JSON.parse(pString);
     // 解析配置
     const objKeys = Object.keys(v1Obj);
-    const configs: ConfigType = {};
+    const configs: PipelineConfigType = {};
     const configKey = objKeys.find((objKey) => isConfigKey(objKey));
     if (configKey) Object.assign(configs, v1Obj[configKey]);
     // 解析节点
