@@ -642,6 +642,8 @@ const ExternalElem = memo(
 // 面板
 function FieldPanel() {
   const currentNode = useFlowStore((state) => state.targetNode);
+
+  // 内容
   const renderContent = useMemo(() => {
     if (!currentNode) return null;
     switch (currentNode.type) {
@@ -663,14 +665,21 @@ function FieldPanel() {
         return null;
     }
   }, [currentNode]);
+
+  // 样式
+  const panelClass = useMemo(
+    () =>
+      classNames({
+        "panel-base": true,
+        [style.panel]: true,
+        "panel-show": currentNode !== null,
+      }),
+    [currentNode]
+  );
+
   // 渲染
   return (
-    <div
-      className={classNames({
-        [style.panel]: true,
-        [style.show]: currentNode !== null,
-      })}
-    >
+    <div className={panelClass}>
       <div className={style.header}>
         <div className={style.title}>节点字段</div>
       </div>

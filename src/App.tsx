@@ -12,6 +12,7 @@ import JsonViewer from "./components/JsonViewer";
 import FieldPanel from "./components/panels/FieldPanel";
 import ToolPanel from "./components/panels/ToolPanel";
 import FilePanel from "./components/panels/FilePanel";
+import ConfigPanel from "./components/panels/ConfigPanel";
 
 function App() {
   // onMounted
@@ -33,7 +34,9 @@ function App() {
             <Splitter.Panel className={style.left}>
               <MainFlow />
               <FieldPanel />
+              <ConfigPanel />
               <ToolPanel.AddPanel />
+              <ToolPanel.GlobalPanel />
             </Splitter.Panel>
             <Splitter.Panel defaultSize={350} min={300} max="50%" collapsible>
               <JsonViewer />

@@ -98,7 +98,7 @@ function MainFlow() {
         maxZoom={2.5}
       >
         <Background />
-        <Controls />
+        <Controls orientation={"horizontal"} />
         <InstanceMonitor />
         <ViewportChangeMonitor />
       </ReactFlow>

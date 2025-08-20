@@ -2,6 +2,9 @@
 /* eslint-disable */
 
 import React, { SVGAttributes, FunctionComponent } from 'react';
+import IconIconYichang from './IconIconYichang';
+import IconFanhui from './IconFanhui';
+import IconQianjin from './IconQianjin';
 import IconXiaofangtongdao from './IconXiaofangtongdao';
 import IconDaima from './IconDaima';
 import IconShanchu from './IconShanchu';
@@ -32,6 +35,9 @@ import IconOcr from './IconOcr';
 import IconTuxiang from './IconTuxiang';
 import IconGithublogo from './IconGithublogo';
 import IconDixiaguanxianguanli from './IconDixiaguanxianguanli';
+export { default as IconIconYichang } from './IconIconYichang';
+export { default as IconFanhui } from './IconFanhui';
+export { default as IconQianjin } from './IconQianjin';
 export { default as IconXiaofangtongdao } from './IconXiaofangtongdao';
 export { default as IconDaima } from './IconDaima';
 export { default as IconShanchu } from './IconShanchu';
@@ -63,7 +69,7 @@ export { default as IconTuxiang } from './IconTuxiang';
 export { default as IconGithublogo } from './IconGithublogo';
 export { default as IconDixiaguanxianguanli } from './IconDixiaguanxianguanli';
 
-export type IconNames = 'icon-xiaofangtongdao' | 'icon-daima' | 'icon-shanchu' | 'icon-xinghaoxiangqing-canshuduibi-jishucanshu-20' | 'icon-icon_wendangziliaopeizhi' | 'icon-github-fill' | 'icon-jurassic_HorFensan-align' | 'icon-jurassic_horizalign-center' | 'icon-jurassic_VerFensan-align' | 'icon-jurassic_verticalalign-bottom' | 'icon-jurassic_verticalalign-top' | 'icon-beifen' | 'icon-xiaohongshubiaoti' | 'icon-cansaineirong_gaoliang_48' | 'icon-dianji' | 'icon-a-copyfubenfuzhi' | 'icon-fuzhi' | 'icon-daoru' | 'icon-dituweizhixinxi_chahao' | 'icon-a-addmusic' | 'icon-lanzilajitongshanchu' | 'icon-zengjiatianjiajiajian' | 'icon-xinjiantianjia' | 'icon-a-080_shezhi' | 'icon-zidingyi' | 'icon-kongjiedian' | 'icon-ocr' | 'icon-tuxiang' | 'icon-githublogo' | 'icon-dixiaguanxianguanli';
+export type IconNames = 'icon-icon-yichang' | 'icon-fanhui' | 'icon-qianjin' | 'icon-xiaofangtongdao' | 'icon-daima' | 'icon-shanchu' | 'icon-xinghaoxiangqing-canshuduibi-jishucanshu-20' | 'icon-icon_wendangziliaopeizhi' | 'icon-github-fill' | 'icon-jurassic_HorFensan-align' | 'icon-jurassic_horizalign-center' | 'icon-jurassic_VerFensan-align' | 'icon-jurassic_verticalalign-bottom' | 'icon-jurassic_verticalalign-top' | 'icon-beifen' | 'icon-xiaohongshubiaoti' | 'icon-cansaineirong_gaoliang_48' | 'icon-dianji' | 'icon-a-copyfubenfuzhi' | 'icon-fuzhi' | 'icon-daoru' | 'icon-dituweizhixinxi_chahao' | 'icon-a-addmusic' | 'icon-lanzilajitongshanchu' | 'icon-zengjiatianjiajiajian' | 'icon-xinjiantianjia' | 'icon-a-080_shezhi' | 'icon-zidingyi' | 'icon-kongjiedian' | 'icon-ocr' | 'icon-tuxiang' | 'icon-githublogo' | 'icon-dixiaguanxianguanli';
 
 interface Props extends Omit<SVGAttributes<SVGElement>, 'color'> {
   name: IconNames;
@@ -73,6 +79,12 @@ interface Props extends Omit<SVGAttributes<SVGElement>, 'color'> {
 
 const IconFont: FunctionComponent<Props> = ({ name, ...rest }) => {
   switch (name) {
+    case 'icon-icon-yichang':
+      return <IconIconYichang {...rest} />;
+    case 'icon-fanhui':
+      return <IconFanhui {...rest} />;
+    case 'icon-qianjin':
+      return <IconQianjin {...rest} />;
     case 'icon-xiaofangtongdao':
       return <IconXiaofangtongdao {...rest} />;
     case 'icon-daima':

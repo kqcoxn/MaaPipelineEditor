@@ -42,8 +42,33 @@
   }
 }
 
+.h-panel {
+  .group {
+    display: flex;
+  }
+
+  .devider {
+    height: 100%;
+    width: 5px;
+
+    > div {
+      background-color: rgba(gray, 0.3);
+      border-radius: 60px;
+      height: 72%;
+      width: 50%;
+    }
+  }
+}
+
 .add-panel {
   left: 10px;
-  top: 10px;
+  // top: calc(50% - 52px);
+  // transform: translateY(-50%);
+  top: 80px;
   flex-direction: column;
+}
+
+.global-panel {
+  top: 10px;
+  left: 10px;
 }

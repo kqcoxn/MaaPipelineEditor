@@ -1,6 +1,6 @@
 import style from "../../styles/nodes.module.less";
 
-import { memo, useMemo, type JSX } from "react";
+import { memo, useMemo } from "react";
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 import classNames from "classnames";
 

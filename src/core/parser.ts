@@ -13,7 +13,6 @@ import {
   type OtherParamType,
   type ParamType,
 } from "../stores/flowStore";
-import { type PipelineConfigType } from "../stores/configStore";
 import {
   FieldTypeEnum,
   recoFields,
@@ -365,7 +364,13 @@ function impErrorTip(err: any) {
   console.error(err);
 }
 
-// v1
+// 转换
+type PipelineConfigType = {
+  filename?: string;
+  version?: string;
+  prefix?: string;
+  [key: string]: any;
+};
 export async function pipelineToFlow(options?: {
   pString?: string;
   pVersion?: number;

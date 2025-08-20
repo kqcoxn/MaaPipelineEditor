@@ -5,13 +5,40 @@ export const globalConfig = {
   version: "v0.5.0",
 };
 
-export type PipelineConfigType = {
-  filename?: string;
-  version?: string;
-  prefix?: string;
-  [key: string]: any;
-};
-
 /**配置 */
-type ConfigState = {} & PipelineConfigType;
-export const useConfigStore = create<ConfigState>()((set) => ({}));
+type ConfigState = {
+  configs: {
+    isRealTimePreview: boolean;
+  };
+  setConfig: <K extends keyof ConfigState["configs"]>(
+    key: K,
+    value: ConfigState["configs"][K],
+    refresh?: boolean
+  ) => void;
+  status: {
+    isShowConfigPanel: boolean;
+  };
+  setStatus: <K extends keyof ConfigState["status"]>(
+    key: K,
+    value: ConfigState["status"][K],
+    refreshAll?: boolean
+  ) => void;
+};
+export const useConfigStore = create<ConfigState>()((set) => ({
+  configs: { isRealTimePreview: false },
+  setConfig(key, value, refresh = false) {
+    set((state) => {
+      const configs = state.configs;
+      configs[key] = value;
+      return refresh ? { ...configs } : {};
+    });
+  },
+  status: { isShowConfigPanel: true },
+  setStatus(key, value, refresh = false) {
+    set((state) => {
+      const status = state.status;
+      status[key] = value;
+      return refresh ? { ...status } : {};
+    });
+  },
+}));

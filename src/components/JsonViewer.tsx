@@ -10,6 +10,7 @@ import { useFlowStore, type NodeType } from "../stores/flowStore";
 import { flowToPipeline, uniqueMark, pipelineToFlow } from "../core/parser";
 import { ClipboardHelper } from "../utils/clipboard";
 import { localSave, useFileStore } from "../stores/fileStore";
+import { useConfigStore } from "../stores/configStore";
 
 function JsonViewer() {
   // store
@@ -18,11 +19,14 @@ function JsonViewer() {
   ) as NodeType[];
   useFlowStore((state) => state.targetNode);
   useFlowStore((state) => state.bfSelectedEdges);
+  const isRealTimePreview = useConfigStore(
+    (state) => state.configs.isRealTimePreview
+  );
 
   // 生成 Pipeline
   let pipelineObj = {};
   const autoUpdate = false;
-  if (autoUpdate) {
+  if (isRealTimePreview) {
     if (selectedNodes.length > 0) {
       pipelineObj = flowToPipeline({ nodes: selectedNodes });
     } else {
@@ -38,22 +42,12 @@ function JsonViewer() {
     return field.name === uniqueMark;
   };
 
-  const replace = useFileStore((state) => state.replace);
-
   // 渲染
   return (
     <div className={style["json-viewer"]}>
       <div className={style.header}>
         <div className={style.title}>Pipeline JSON</div>
         <Flex className={style.operations} gap="small" wrap>
-          <Button
-            variant="filled"
-            size="small"
-            color="primary"
-            onClick={() => replace()}
-          >
-            test
-          </Button>
           <Button
             variant="filled"
             size="small"

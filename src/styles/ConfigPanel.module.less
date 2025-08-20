@@ -1,43 +1,28 @@
-@import "./iconfonts.less";
-@import "./global.less";
-
 .panel {
-  width: 380px;
-  min-height: 120px;
-  border-radius: 6px;
-  right: 10px;
-  top: 10px;
-
-  .spin {
-    width: 100%;
-    height: 110px;
-  }
+  left: 6px;
+  top: 6px;
+  width: 260px;
+  border-radius: 16px;
 
   .list {
-    max-height: 70vh;
-    overflow-y: auto;
+    width: 100%;
 
     .item {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: start;
       border-radius: 4px;
       box-sizing: border-box;
       padding: 4px;
 
       .key {
-        .ellipsis();
-        width: 98px;
+        width: 82px;
         text-align: right;
-        font-size: 18px;
-      }
-
-      .head-key {
-        font-weight: 700;
+        font-size: 16px;
       }
 
       .value {
-        margin-left: 12px;
+        margin-left: 24px;
         flex: 1;
       }
 
@@ -76,24 +61,6 @@
         font-weight: bold;
         text-align: center;
       }
-    }
-  }
-}
-
-.param-list {
-  .param {
-    box-sizing: border-box;
-    padding: 0 8px;
-    font-size: 16px;
-    height: 32px;
-    line-height: 32px;
-    width: 100%;
-    text-align: center;
-    border-radius: 6px;
-    transition: all 0.2s ease;
-
-    &:hover {
-      background-color: rgba(gray, 0.1);
     }
   }
 }

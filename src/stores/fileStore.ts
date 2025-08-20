@@ -75,7 +75,7 @@ export function saveFlow(): FileType | null {
 }
 // 本地存储
 export function localSave(): any {
-  if (!saveFlow()) return null;
+  if (!saveFlow()) return Error.call("页面未初始化结束");
   try {
     const state = useFileStore.getState();
     localStorage.setItem("files", JSON.stringify(state.files));
@@ -207,7 +207,7 @@ export const useFileStore = create<FileState>()((set) => ({
     try {
       if (!files) {
         const ls = localStorage.getItem("files");
-        if (!ls) return null;
+        if (!ls) return Error.call("未找到本地files缓存");
         files = JSON.parse(ls) as FileType[];
       }
       const currentFile = files[0];

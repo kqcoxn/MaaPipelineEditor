@@ -8,8 +8,9 @@ import IconFont from "../iconfonts";
 import { type IconNames } from "../iconfonts";
 import { useFlowStore } from "../../stores/flowStore";
 import { NodeTypeEnum } from "../flow/nodes";
+import { useConfigStore } from "../../stores/configStore";
 
-// 添加工具
+/**添加工具 */
 interface AddToolType {
   label: string;
   iconName: string;
@@ -125,7 +126,76 @@ function AddPanel() {
   );
 }
 
+/**全局工具 */
+type StatusKey = keyof ReturnType<typeof useConfigStore.getState>["status"];
+type GlobalToolType = {
+  label: string;
+  iconName: string;
+  iconSize?: number;
+  key: StatusKey;
+};
+const globalTools: GlobalToolType[] = [
+  {
+    label: "设置",
+    iconName: "icon-a-080_shezhi",
+    iconSize: 39,
+    key: "isShowConfigPanel",
+  },
+  // {
+  //   label: "通知记录",
+  //   iconName: "icon-icon-yichang",
+  //   iconSize: 27,
+  // },
+  // {
+  //   label: "撤销",
+  //   iconName: "icon-fanhui",
+  // },
+];
+
+function GlobalPanel() {
+  const setStatus = useConfigStore((state) => state.setStatus);
+
+  // 生成
+  const tools = globalTools.map((item, index) => {
+    return (
+      <div key={item.label} className={style.group}>
+        <li className={style.item}>
+          <Tooltip placement="right" title={item.label}>
+            <IconFont
+              className={style.icon}
+              name={item.iconName as IconNames}
+              size={item.iconSize ?? 24}
+              onClick={() => {
+                setStatus(item.key, true);
+              }}
+            />
+          </Tooltip>
+        </li>
+        {index < globalTools.length - 1 ? (
+          <div className={style.devider}>
+            <div></div>
+          </div>
+        ) : null}
+      </div>
+    );
+  });
+
+  // 渲染
+  return (
+    <ul
+      className={classNames(
+        style.panel,
+        style["h-panel"],
+        style["global-panel"]
+      )}
+    >
+      {tools}
+    </ul>
+  );
+}
+
 const ToolPanel = {
   AddPanel: memo(AddPanel),
+  GlobalPanel: memo(GlobalPanel),
 };
 export default ToolPanel;
