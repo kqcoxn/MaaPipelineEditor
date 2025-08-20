@@ -3,6 +3,9 @@ name: Preview on Github Page
 on:
   push:
     branches: [main]
+    paths:
+      - "src/**"
+      - "package.json"
 
   workflow_dispatch:
 
@@ -22,23 +25,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 
-          
+          fetch-depth: 0
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: yarn
-          
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
-        
+
       - name: Install dependencies
         run: yarn install
-        
+
       - name: Build with VitePress
         run: yarn build
-        
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
