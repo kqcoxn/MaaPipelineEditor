@@ -7,6 +7,7 @@ export const globalConfig = {
 
 /**配置 */
 type ConfigState = {
+  // 设置
   configs: {
     isRealTimePreview: boolean;
   };
@@ -15,6 +16,7 @@ type ConfigState = {
     value: ConfigState["configs"][K],
     refresh?: boolean
   ) => void;
+  // 状态
   status: {
     isShowConfigPanel: boolean;
   };
@@ -25,6 +27,7 @@ type ConfigState = {
   ) => void;
 };
 export const useConfigStore = create<ConfigState>()((set) => ({
+  // 设置
   configs: { isRealTimePreview: false },
   setConfig(key, value, refresh = false) {
     set((state) => {
@@ -33,7 +36,8 @@ export const useConfigStore = create<ConfigState>()((set) => ({
       return refresh ? { ...configs } : {};
     });
   },
-  status: { isShowConfigPanel: false },
+  // 状态
+  status: { isShowConfigPanel: true },
   setStatus(key, value, refresh = false) {
     set((state) => {
       const status = state.status;

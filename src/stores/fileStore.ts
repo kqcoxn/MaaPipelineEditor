@@ -6,7 +6,7 @@ import { notification } from "antd";
 import { useFlowStore, type NodeType, type EdgeType } from "./flowStore";
 import { globalConfig } from "./configStore";
 
-type FileConfigType = {
+export type FileConfigType = {
   prefix: string;
 };
 type FileType = {
@@ -89,6 +89,10 @@ type FileState = {
   files: FileType[];
   currentFile: FileType;
   setFileName: (fileName: string) => boolean;
+  setFileConfig: <K extends keyof FileConfigType>(
+    key: K,
+    value: FileConfigType[K]
+  ) => void;
   switchFile: (fileName: string) => string | null;
   addFile: (options?: { isSwitch: boolean }) => string | null;
   removeFile: (fileName: string) => string | null;
@@ -127,6 +131,15 @@ export const useFileStore = create<FileState>()((set) => ({
       });
     }
     return isValid;
+  },
+
+  // 设置文件配置
+  setFileConfig(key, value) {
+    set((state) => {
+      const config = { ...state.currentFile.config, [key]: value };
+      state.currentFile.config = config;
+      return {};
+    });
   },
 
   // 切换文件

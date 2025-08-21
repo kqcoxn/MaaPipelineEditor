@@ -1,5 +1,129 @@
 {
-    "识别活动": {
+    "__mpe_config_进入活动面板": {
+        "prefix": "进入活动面板",
+        "filename": "进入活动面板"
+    },
+    "进入活动面板_开始": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe": {
+            "position": {
+                "x": 37,
+                "y": 160
+            }
+        },
+        "next": [
+            "进入活动面板_执行前返回主页"
+        ]
+    },
+    "进入活动面板_执行前返回主页": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "run",
+                "custom_action_param": "key=全局前置返回主页"
+            }
+        },
+        "__mpe": {
+            "position": {
+                "x": 296,
+                "y": 83
+            }
+        },
+        "next": [
+            "进入活动面板_进入活动界面"
+        ],
+        "on_error": [
+            "进入活动面板_直接开始"
+        ]
+    },
+    "进入活动面板_进入活动界面": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "活动"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 400,
+        "focus": "> 进入活动界面",
+        "__mpe": {
+            "position": {
+                "x": 579,
+                "y": 188
+            }
+        },
+        "next": [
+            "进入活动面板_已进入活动界面"
+        ]
+    },
+    "进入活动面板_已进入活动界面": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "home.png"
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "pre_delay": 0,
+        "post_delay": 1000,
+        "__mpe": {
+            "position": {
+                "x": 833,
+                "y": 189
+            }
+        },
+        "next": [
+            "进入活动面板_初始化计时器"
+        ]
+    },
+    "进入活动面板_初始化计时器": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "init_timer",
+                "custom_action_param": "key=find_activity&limit=20"
+            }
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe": {
+            "position": {
+                "x": 1093,
+                "y": 189
+            }
+        },
+        "next": [
+            "进入活动面板_识别活动"
+        ]
+    },
+    "进入活动面板_识别活动": {
         "recognition": {
             "type": "DirectHit",
             "param": {}
@@ -17,14 +141,11 @@
             }
         },
         "next": [
-            "识别到指定活动",
-            "新增节点20"
-        ],
-        "interrupt": [
-            "检查时间"
+            "进入活动面板_识别到指定活动",
+            "进入活动面板_检查时间"
         ]
     },
-    "识别到指定活动": {
+    "进入活动面板_识别到指定活动": {
         "recognition": {
             "type": "OCR",
             "param": {
@@ -51,10 +172,10 @@
             }
         },
         "next": [
-            "结束"
+            "进入活动面板_结束"
         ]
     },
-    "结束": {
+    "进入活动面板_结束": {
         "recognition": {
             "type": "DirectHit",
             "param": {}
@@ -70,12 +191,9 @@
                 "x": 1873,
                 "y": 189
             }
-        },
-        "next": [
-            "外部节点"
-        ]
+        }
     },
-    "检查时间": {
+    "进入活动面板_检查时间": {
         "recognition": {
             "type": "DirectHit",
             "param": {}
@@ -96,13 +214,13 @@
             }
         },
         "next": [
-            "向下滑动"
+            "进入活动面板_向下滑动"
         ],
         "on_error": [
-            "识别超时"
+            "进入活动面板_识别超时"
         ]
     },
-    "向下滑动": {
+    "进入活动面板_向下滑动": {
         "recognition": {
             "type": "DirectHit",
             "param": {}
@@ -134,29 +252,10 @@
             }
         },
         "next": [
-            "点停"
+            "进入活动面板_点停"
         ]
     },
-    "识别超时": {
-        "recognition": {
-            "type": "DirectHit",
-            "param": {}
-        },
-        "action": {
-            "type": "Custom",
-            "param": {
-                "custom_action": "break"
-            }
-        },
-        "focus": "> 未找到指定活动！",
-        "__mpe": {
-            "position": {
-                "x": 1864,
-                "y": 703
-            }
-        }
-    },
-    "点停": {
+    "进入活动面板_点停": {
         "recognition": {
             "type": "DirectHit",
             "param": {}
@@ -186,9 +285,12 @@
                 "x": 2124,
                 "y": 414
             }
-        }
+        },
+        "next": [
+            "进入活动面板_识别活动"
+        ]
     },
-    "新增节点20": {
+    "进入活动面板_直接开始": {
         "recognition": {
             "type": "DirectHit",
             "param": {}
@@ -201,8 +303,30 @@
         "post_delay": 0,
         "__mpe": {
             "position": {
-                "x": 1616,
-                "y": -9
+                "x": 323,
+                "y": 272
+            }
+        },
+        "next": [
+            "进入活动面板_进入活动界面"
+        ]
+    },
+    "进入活动面板_识别超时": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "break"
+            }
+        },
+        "focus": "> 未找到指定活动！",
+        "__mpe": {
+            "position": {
+                "x": 1864,
+                "y": 703
             }
         }
     }

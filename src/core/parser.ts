@@ -13,6 +13,8 @@ import {
   type OtherParamType,
   type ParamType,
 } from "../stores/flowStore";
+import { useFileStore, type FileConfigType } from "../stores/fileStore";
+import { globalConfig } from "../stores/configStore";
 import {
   FieldTypeEnum,
   recoFields,
@@ -275,31 +277,48 @@ function addLink(
 export function flowToPipeline(datas?: {
   nodes?: NodeType[];
   edges?: EdgeType[];
+  fileName?: string;
+  config?: FileConfigType;
 }): PipelineObjType {
   // 获取当前 flow 数据
-  const state = useFlowStore.getState();
-  const { nodes, edges } = {
-    nodes: datas?.nodes ?? (state.nodes as NodeType[]),
-    edges: datas?.edges ?? (state.edges as EdgeType[]),
+  const flowState = useFlowStore.getState();
+  const fileState = useFileStore.getState();
+  const { nodes, edges, config, fileName } = {
+    nodes: datas?.nodes ?? (flowState.nodes as NodeType[]),
+    edges: datas?.edges ?? (flowState.edges as EdgeType[]),
+    fileName: datas?.fileName ?? fileState.currentFile.fileName,
+    config: datas?.config ?? fileState.currentFile.config,
   };
 
   // 生成节点
+  const prefix = config.prefix ? config.prefix + "_" : "";
   const pipelineObj: PipelineObjType = {};
   nodes.forEach((node) => {
     if (node.type === NodeTypeEnum.External) return;
-    pipelineObj[node.data.label] = parsePipelineNode(node as PipelineNodeType);
+    pipelineObj[prefix + node.data.label] = parsePipelineNode(
+      node as PipelineNodeType
+    );
   });
 
   // 链接
   edges.forEach((edge) => {
     const sourceKey = findNodeLabelById(edge.source);
     const targetKey = findNodeLabelById(edge.target);
-    const pNode = pipelineObj[sourceKey];
+    const pNode = pipelineObj[prefix + sourceKey];
     if (!pNode) return;
-    addLink(pNode, targetKey, edge.sourceHandle as SourceHandleTypeEnum);
+    addLink(
+      pNode,
+      prefix + targetKey,
+      edge.sourceHandle as SourceHandleTypeEnum
+    );
   });
 
-  return pipelineObj;
+  // 配置
+  const configName = configMarkPrefix + fileName;
+  return {
+    [configName]: { ...config, filename: fileState.currentFile.fileName },
+    ...pipelineObj,
+  };
 }
 
 /**导入 */
@@ -486,6 +505,10 @@ export async function pipelineToFlow(options?: {
 
     // 更新flow
     useFlowStore.getState().replace(nodes, edges);
+    const fileState = useFileStore.getState();
+    if (configs.filename) fileState.setFileName(configs.filename);
+    const setFileConfig = fileState.setFileConfig;
+    if (configs.prefix) setFileConfig("prefix", configs.prefix);
   } catch (err) {
     impErrorTip(err);
   }

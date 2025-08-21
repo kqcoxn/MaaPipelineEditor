@@ -1,8 +1,18 @@
 .panel {
   left: 6px;
   top: 6px;
-  width: 260px;
+  width: 360px;
   border-radius: 16px;
+
+  .header {
+    .right {
+      position: absolute;
+      right: 15px;
+      top: 15px;
+      display: flex;
+      gap: 10px;
+    }
+  }
 
   .list {
     width: 100%;
@@ -16,7 +26,7 @@
       padding: 4px;
 
       .key {
-        width: 82px;
+        width: 110px;
         text-align: right;
         font-size: 16px;
       }
@@ -62,5 +72,17 @@
         text-align: center;
       }
     }
+  }
+
+  .global {
+    .key {
+      width: 146px !important;
+    }
+  }
+
+  .divider {
+    width: 100%;
+    text-align: center;
+    margin: 12px 0;
   }
 }
