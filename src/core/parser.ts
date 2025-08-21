@@ -46,7 +46,7 @@ type ParsedPipelineNodeType = {
   [SourceHandleTypeEnum.Error]: string[];
 } & OtherParamType &
   any;
-type PipelineObjType = Record<string, ParsedPipelineNodeType>;
+export type PipelineObjType = Record<string, ParsedPipelineNodeType>;
 
 /**转录为 PipelineObj */
 // 数据匹配

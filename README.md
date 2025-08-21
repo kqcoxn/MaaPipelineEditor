@@ -56,20 +56,24 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
   A JavaScript library for building user interfaces.
 - [zustand](https://github.com/pmndrs/zustand)  
   A small, fast and scalable bearbones state-management solution using simplified flux principles.
-- [classnames](https://github.com/JedWatson/classnames)  
-  A simple JavaScript utility for conditionally joining classNames together.
+- [xyflow/react](https://github.com/xyflow/xyflow/tree/main/packages/react)  
+  Powerful open source libraries for building node-based UIs with React or Svelte.
 - [ant-design](https://github.com/ant-design/ant-design)  
   An enterprise-class UI design language and React UI library.
 - [react-json-view](https://github.com/microlinkhq/react-json-view)  
   A React component for displaying and editing javascript arrays and JSON objects.
 - [dnd-kit](https://github.com/clauderic/dnd-kit)  
   The modern drag & drop toolkitfor React.
+- [classnames](https://github.com/JedWatson/classnames)  
+  A simple JavaScript utility for conditionally joining classNames together.
 - [react-iconfont-cli](https://github.com/iconfont-cli/react-iconfont-cli)  
   Use pure JS to convert iconfont.cn icons into React components.
 - ~~[vue.js](https://github.com/vuejs/vue)~~  
   ~~An approachable, performant and versatile framework for building web user interfaces.~~
 - ~~[sass](https://github.com/sass/sass)~~  
   ~~Sass is an extension of CSS, adding nested rules, variables, mixins, selector inheritance, and more.~~
+- ~~[vue-flow](https://github.com/bcakmakoglu/vue-flow)~~  
+  ~~A highly customizable Flowchart component for Vue 3.~~
 
 ### 开发者
 

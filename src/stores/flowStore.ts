@@ -287,7 +287,7 @@ function buData(key: string, data: any) {
   if (buTimeout[key]) clearTimeout(buTimeout[key]);
   buTimeout[key] = setTimeout(() => {
     useFlowStore.setState(() => ({ [key]: data }));
-  }, 500);
+  }, 400);
 }
 
 /**Flow仓库 */

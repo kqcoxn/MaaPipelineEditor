@@ -48,7 +48,7 @@ function ConfigPanel() {
       <div className={style.list}>
         <div className={style.item}>
           <Popover
-            placement="right"
+            placement="bottomLeft"
             title={"实时编译"}
             content={
               <TipElem

@@ -33,7 +33,7 @@ export const useConfigStore = create<ConfigState>()((set) => ({
       return refresh ? { ...configs } : {};
     });
   },
-  status: { isShowConfigPanel: true },
+  status: { isShowConfigPanel: false },
   setStatus(key, value, refresh = false) {
     set((state) => {
       const status = state.status;

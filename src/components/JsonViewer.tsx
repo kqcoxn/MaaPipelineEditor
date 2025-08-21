@@ -1,6 +1,6 @@
 import style from "../styles/JsonViewer.module.less";
 
-import { memo } from "react";
+import { memo, useMemo, useState } from "react";
 import ReactJsonView, {
   type ReactJsonViewProps,
 } from "@microlink/react-json-view";
@@ -9,33 +9,28 @@ import { Button, Flex } from "antd";
 import { useFlowStore, type NodeType } from "../stores/flowStore";
 import { flowToPipeline, uniqueMark, pipelineToFlow } from "../core/parser";
 import { ClipboardHelper } from "../utils/clipboard";
-import { localSave, useFileStore } from "../stores/fileStore";
 import { useConfigStore } from "../stores/configStore";
 
 function JsonViewer() {
   // store
+  const isRealTimePreview = useConfigStore(
+    (state) => state.configs.isRealTimePreview
+  );
   const selectedNodes = useFlowStore(
     (state) => state.bfSelectedNodes
   ) as NodeType[];
   useFlowStore((state) => state.targetNode);
   useFlowStore((state) => state.bfSelectedEdges);
-  const isRealTimePreview = useConfigStore(
-    (state) => state.configs.isRealTimePreview
-  );
 
   // 生成 Pipeline
-  let pipelineObj = {};
-  const autoUpdate = false;
-  if (isRealTimePreview) {
-    if (selectedNodes.length > 0) {
-      pipelineObj = flowToPipeline({ nodes: selectedNodes });
-    } else {
-      pipelineObj = flowToPipeline();
-    }
-  }
-  function copyToClipboard() {
-    ClipboardHelper.write(autoUpdate ? pipelineObj : flowToPipeline());
-  }
+  const isPartable = selectedNodes.length > 0;
+  const [rtpTrigger, setRtpTrigger] = useState(0);
+  const rtpPipelineObj = useMemo(() => {
+    return flowToPipeline(isPartable ? { nodes: selectedNodes } : {});
+  }, [isRealTimePreview ? selectedNodes : null, rtpTrigger]);
+  const manuPelineObj = useMemo(() => {
+    return flowToPipeline(isPartable ? { nodes: selectedNodes } : {});
+  }, [rtpTrigger]);
 
   // 折叠项
   const shouldCollapse = (field: ReactJsonViewProps) => {
@@ -65,18 +60,32 @@ function JsonViewer() {
             导入v2
           </Button>
           <Button
+            style={{ display: isRealTimePreview ? "none" : "block" }}
+            variant="filled"
+            size="small"
+            color="primary"
+            onClick={() => {
+              setRtpTrigger(rtpTrigger + 1);
+            }}
+          >
+            编译预览
+          </Button>
+          <Button
             variant="filled"
             size="small"
             color="pink"
-            onClick={() => copyToClipboard()}
+            onClick={() => {
+              ClipboardHelper.write(flowToPipeline());
+              setRtpTrigger(rtpTrigger + 1);
+            }}
           >
-            导出(v2)
+            全部导出
           </Button>
         </Flex>
       </div>
       <div className={style["viewer-container"]}>
         <ReactJsonView
-          src={pipelineObj}
+          src={(isRealTimePreview ? rtpPipelineObj : manuPelineObj) as any}
           enableClipboard={false}
           iconStyle="square"
           shouldCollapse={shouldCollapse}

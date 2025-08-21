@@ -680,8 +680,8 @@ function FieldPanel() {
   // 渲染
   return (
     <div className={panelClass}>
-      <div className={style.header}>
-        <div className={style.title}>节点字段</div>
+      <div className="header">
+        <div className="title">节点字段</div>
       </div>
       {renderContent}
     </div>
