@@ -214,8 +214,11 @@ function matchParamType(params: ParamType, types: FieldType[]): ParamType {
     if (matchedValue !== null) {
       matchedDatas[key] = matchedValue;
     } else {
-      console.log("类型错误");
-      // 类型错误
+      notification.error({
+        message: "类型错误",
+        description: `部分参数类型错误，请检查各节点字段是否符合Pipeline协议；可能的参数：${key}`,
+        placement: "top",
+      });
     }
   });
   return matchedDatas;
@@ -282,51 +285,61 @@ export function flowToPipeline(datas?: {
   fileName?: string;
   config?: FileConfigType;
 }): PipelineObjType {
-  // 获取当前 flow 数据
-  const flowState = useFlowStore.getState();
-  const fileState = useFileStore.getState();
-  const { nodes, edges, config, fileName } = {
-    nodes: datas?.nodes ?? (flowState.nodes as NodeType[]),
-    edges: datas?.edges ?? (flowState.edges as EdgeType[]),
-    fileName: datas?.fileName ?? fileState.currentFile.fileName,
-    config: datas?.config ?? fileState.currentFile.config,
-  };
+  try {
+    // 获取当前 flow 数据
+    const flowState = useFlowStore.getState();
+    const fileState = useFileStore.getState();
+    const { nodes, edges, config, fileName } = {
+      nodes: datas?.nodes ?? (flowState.nodes as NodeType[]),
+      edges: datas?.edges ?? (flowState.edges as EdgeType[]),
+      fileName: datas?.fileName ?? fileState.currentFile.fileName,
+      config: datas?.config ?? fileState.currentFile.config,
+    };
 
-  // 生成节点
-  const prefix = config.prefix ? config.prefix + "_" : "";
-  const pipelineObj: PipelineObjType = {};
-  nodes.forEach((node) => {
-    if (node.type === NodeTypeEnum.External) return;
-    pipelineObj[prefix + node.data.label] = parsePipelineNode(
-      node as PipelineNodeType
-    );
-  });
+    // 生成节点
+    const prefix = config.prefix ? config.prefix + "_" : "";
+    const pipelineObj: PipelineObjType = {};
+    nodes.forEach((node) => {
+      if (node.type === NodeTypeEnum.External) return;
+      pipelineObj[prefix + node.data.label] = parsePipelineNode(
+        node as PipelineNodeType
+      );
+    });
 
-  // 链接
-  edges.forEach((edge) => {
-    const sourceKey = findNodeLabelById(edge.source);
-    const targetKey = findNodeLabelById(edge.target);
-    const pNode = pipelineObj[prefix + sourceKey];
-    if (!pNode) return;
-    addLink(
-      pNode,
-      prefix + targetKey,
-      edge.sourceHandle as SourceHandleTypeEnum
-    );
-  });
+    // 链接
+    edges.forEach((edge) => {
+      const sourceKey = findNodeLabelById(edge.source);
+      const targetKey = findNodeLabelById(edge.target);
+      const pNode = pipelineObj[prefix + sourceKey];
+      if (!pNode) return;
+      addLink(
+        pNode,
+        prefix + targetKey,
+        edge.sourceHandle as SourceHandleTypeEnum
+      );
+    });
 
-  // 配置
-  const generalConfig = useConfigStore.getState().configs;
-  return generalConfig.isExportConfig
-    ? {
-        [configMarkPrefix + fileName]: {
-          ...config,
-          filename: fileState.currentFile.fileName,
-          version: globalConfig.version,
-        },
-        ...pipelineObj,
-      }
-    : pipelineObj;
+    // 配置
+    const generalConfig = useConfigStore.getState().configs;
+    return generalConfig.isExportConfig
+      ? {
+          [configMarkPrefix + fileName]: {
+            ...config,
+            filename: fileState.currentFile.fileName,
+            version: globalConfig.version,
+          },
+          ...pipelineObj,
+        }
+      : pipelineObj;
+  } catch (err) {
+    notification.error({
+      message: "导出失败！",
+      description: "请检查个节点字段是否符合格式，详细程序错误请在控制台查看",
+      placement: "top",
+    });
+    console.error(err);
+    return {};
+  }
 }
 
 /**导入 */
@@ -360,11 +373,13 @@ function linkEdge(
   const edges: EdgeType[] = [];
   const nodes: NodeType[] = [];
   oTargetLabels.forEach((targetLabel, index) => {
-    const targetId = idOLPairs.find((pair) => pair.label === targetLabel)?.id;
+    let targetId = idOLPairs.find((pair) => pair.label === targetLabel)?.id;
     // 创建外部节点
     const externalId = "e_" + idCounter++;
     if (!targetId) {
-      nodes.push(createExternalNode(externalId, { label: targetLabel }));
+      const node = createExternalNode(externalId, { label: targetLabel });
+      nodes.push(node);
+      targetId = node.id;
     }
     // 连接
     edges.push({
@@ -378,17 +393,6 @@ function linkEdge(
     });
   });
   return [edges, nodes];
-}
-
-// 错误提示
-function impErrorTip(err: any) {
-  notification.error({
-    message: "导入失败！",
-    description:
-      "请检查pipeline格式是否正确，或版本是否一致，详细程序错误请在控制台查看",
-    placement: "top",
-  });
-  console.error(err);
 }
 
 // 转换
@@ -431,8 +435,10 @@ export async function pipelineToFlow(options?: {
       const node = createPipelineNode(id, { label });
       const keys = Object.keys(obj);
       keys.forEach((key) => {
-        const value = obj[key];
+        // 跳过链接
+        if (key === "next" || key === "interrupt" || key === "on_error") return;
         // 标记字段
+        const value = obj[key];
         if (isMark(key)) Object.assign(node, value);
         // 识别算法
         else if (key === "recognition") {
@@ -464,6 +470,9 @@ export async function pipelineToFlow(options?: {
         // 额外字段
         else node.data.extras[key] = value;
       });
+      // 检查节点
+      node.data.recognition.param ??= {};
+      node.data.action.param ??= {};
       nodes.push(node);
     });
 
@@ -518,6 +527,12 @@ export async function pipelineToFlow(options?: {
     const setFileConfig = fileState.setFileConfig;
     if (configs.prefix) setFileConfig("prefix", configs.prefix);
   } catch (err) {
-    impErrorTip(err);
+    notification.error({
+      message: "导入失败！",
+      description:
+        "请检查pipeline格式是否正确，或版本是否一致，详细程序错误请在控制台查看",
+      placement: "top",
+    });
+    console.error(err);
   }
 }

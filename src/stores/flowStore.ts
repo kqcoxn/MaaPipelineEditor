@@ -656,7 +656,6 @@ export const useFlowStore = create<FlowState>()((set) => ({
       // 更新边数据
       edges = cloneDeep(edges);
       edges.forEach((edge) => {
-        console.log(edge.id);
         edge.source = pairs[edge.source];
         edge.target = pairs[edge.target];
         edge.id = `${edge.source}_${edge.sourceHandle}_${edge.target}`;

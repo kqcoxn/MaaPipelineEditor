@@ -208,7 +208,6 @@ export const useFileStore = create<FileState>()((set) => ({
         let files = state.files;
         const activeIndex = findFileIndex(active.id as string);
         const overIndex = findFileIndex(over?.id as string);
-        console.log(activeIndex, overIndex);
         files = arrayMove(files, activeIndex, overIndex);
         return { files };
       });
