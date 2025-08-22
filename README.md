@@ -68,6 +68,8 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
   A simple JavaScript utility for conditionally joining classNames together.
 - [react-iconfont-cli](https://github.com/iconfont-cli/react-iconfont-cli)  
   Use pure JS to convert iconfont.cn icons into React components.
+- [lodash](https://github.com/lodash/lodash)  
+  A modern JavaScript utility library delivering modularity, performance & extras.
 - ~~[vue.js](https://github.com/vuejs/vue)~~  
   ~~An approachable, performant and versatile framework for building web user interfaces.~~
 - ~~[sass](https://github.com/sass/sass)~~  

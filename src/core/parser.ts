@@ -368,7 +368,7 @@ function linkEdge(
     }
     // 连接
     edges.push({
-      id: `${sourceId}_${type}_to_${targetId}`,
+      id: `${sourceId}_${type}_${targetId}`,
       source: sourceId,
       sourceHandle: type,
       target: targetId ?? externalId,

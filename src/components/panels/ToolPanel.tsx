@@ -1,7 +1,7 @@
 import style from "../../styles/ToolPanel.module.less";
 
-import { memo } from "react";
-import { Tooltip } from "antd";
+import { memo, useMemo } from "react";
+import { message, Tooltip } from "antd";
 import classNames from "classnames";
 
 import IconFont from "../iconfonts";
@@ -127,46 +127,72 @@ function AddPanel() {
 }
 
 /**全局工具 */
-type StatusKey = keyof ReturnType<typeof useConfigStore.getState>["status"];
 type GlobalToolType = {
   label: string;
   iconName: string;
   iconSize?: number;
-  key: StatusKey;
+  disabled?: boolean;
+  onClick?: () => void;
+  onDisableClick?: () => void;
 };
-const globalTools: GlobalToolType[] = [
-  {
-    label: "设置",
-    iconName: "icon-a-080_shezhi",
-    iconSize: 39,
-    key: "showConfigPanel",
-  },
-  // {
-  //   label: "通知记录",
-  //   iconName: "icon-icon-yichang",
-  //   iconSize: 27,
-  // },
-  // {
-  //   label: "撤销",
-  //   iconName: "icon-fanhui",
-  // },
-];
-
 function GlobalPanel() {
+  // store
+  const clipBoard = useConfigStore((state) => state.clipBoard);
+  const selectedNodes = useFlowStore((state) => state.bfSelectedNodes);
   const setStatus = useConfigStore((state) => state.setStatus);
+  const setClipBoard = useConfigStore((state) => state.setClipBoard);
+  const applyClipBoard = useConfigStore((state) => state.applyClipBoard);
+
+  // 列表
+  const globalTools = useMemo<GlobalToolType[]>(
+    () => [
+      {
+        label: "设置",
+        iconName: "icon-a-080_shezhi",
+        iconSize: 39,
+        onClick: () => setStatus("showConfigPanel", true),
+      },
+      {
+        label: "复制 (Ctrl+C)",
+        iconName: "icon-a-copyfubenfuzhi",
+        iconSize: 25,
+        disabled: selectedNodes.length === 0,
+        onClick: () => setClipBoard(),
+        onDisableClick: () => message.error("未选中节点"),
+      },
+      {
+        label: "粘贴 (Ctrl+V)",
+        iconName: "icon-niantie1",
+        iconSize: 29,
+        disabled: clipBoard.nodes.length === 0,
+        onDisableClick: () => message.error("粘贴板中无已复制节点"),
+        onClick: () => applyClipBoard(),
+      },
+      // {
+      //   label: "撤销",
+      //   iconName: "icon-fanhui",
+      // },
+    ],
+    [clipBoard, selectedNodes]
+  );
 
   // 生成
   const tools = globalTools.map((item, index) => {
     return (
       <div key={item.label} className={style.group}>
         <li className={style.item}>
-          <Tooltip placement="right" title={item.label}>
+          <Tooltip placement="bottom" title={item.label}>
             <IconFont
+              style={{ opacity: item.disabled ? 0.2 : 1 }}
               className={style.icon}
               name={item.iconName as IconNames}
               size={item.iconSize ?? 24}
               onClick={() => {
-                setStatus(item.key, true);
+                if (item.disabled) {
+                  item.onDisableClick?.();
+                  return;
+                }
+                item.onClick?.();
               }}
             />
           </Tooltip>

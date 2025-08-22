@@ -15,11 +15,58 @@ import {
   useKeyPress,
 } from "@xyflow/react";
 
-import { useFlowStore, type NodeType } from "../stores/flowStore";
+import {
+  useFlowStore,
+  type EdgeType,
+  type NodeType,
+} from "../stores/flowStore";
+import { useConfigStore } from "../stores/configStore";
 import { nodeTypes } from "./flow/nodes";
 import { edgeTypes } from "./flow/edges";
 
 /**工作流 */
+// 按键监听
+const KeyListener = memo(() => {
+  // store
+  const selectedNodes = useFlowStore(
+    (state) => state.selectedNodes
+  ) as NodeType[];
+  const selectedEdges = useFlowStore(
+    (state) => state.selectedEdges
+  ) as EdgeType[];
+  const updateNodes = useFlowStore((state) => state.updateNodes);
+  const setClipBoard = useConfigStore((state) => state.setClipBoard);
+  const clipBoard = useConfigStore((state) => state.clipBoard);
+  const applyClipBoard = useConfigStore((state) => state.applyClipBoard);
+
+  // 删除节点
+  const deletePressed = useKeyPress("Delete");
+  useEffect(() => {
+    if (!deletePressed || selectedNodes.length === 0) return;
+    updateNodes(
+      selectedNodes.map((node) => ({
+        id: node.id,
+        type: "remove",
+      }))
+    );
+  }, [deletePressed]);
+
+  // 复制节点
+  const copyPressed = useKeyPress("Control+c");
+  useEffect(() => {
+    if (!copyPressed || selectedNodes.length === 0) return;
+    setClipBoard(selectedNodes, selectedEdges);
+  }, [copyPressed]);
+
+  // 粘贴节点
+  const pastePressed = useKeyPress("Control+v");
+  useEffect(() => {
+    if (!pastePressed || clipBoard.nodes.length === 0) return;
+    applyClipBoard();
+  }, [pastePressed, clipBoard]);
+
+  return null;
+});
 // 实例监视器
 const InstanceMonitor = memo(() => {
   const updateInstance = useFlowStore((state) => state.updateInstance);
@@ -37,27 +84,6 @@ const ViewportChangeMonitor = memo(() => {
       updateViewport(viewport);
     },
   });
-  return null;
-});
-// 按键监听
-const KeyListener = memo(() => {
-  // 删除节点
-  const deletePressed = useKeyPress("Delete");
-  const selectedNodes = useFlowStore(
-    (state) => state.selectedNodes
-  ) as NodeType[];
-  const updateNodes = useFlowStore((state) => state.updateNodes);
-  useEffect(() => {
-    if (!deletePressed) return;
-    if (selectedNodes.length === 0) return;
-    updateNodes(
-      selectedNodes.map((node) => ({
-        id: node.id,
-        type: "remove",
-      }))
-    );
-  }, [deletePressed, selectedNodes]);
-
   return null;
 });
 

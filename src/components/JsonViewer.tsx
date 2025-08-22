@@ -108,7 +108,11 @@ function JsonViewer() {
               color="pink"
               onClick={() => {
                 ClipboardHelper.write(
-                  flowToPipeline({ nodes: selectedNodes, edges: selectedEdges })
+                  flowToPipeline({
+                    nodes: selectedNodes,
+                    edges: selectedEdges,
+                  }),
+                  { successMsg: "已将选中节点 Pipeline 复制到粘贴板" }
                 );
                 setRtpTrigger(rtpTrigger + 1);
               }}
@@ -120,7 +124,9 @@ function JsonViewer() {
               size="small"
               color="pink"
               onClick={() => {
-                ClipboardHelper.write(flowToPipeline());
+                ClipboardHelper.write(flowToPipeline(), {
+                  successMsg: "已将全部节点 Pipeline 复制到粘贴板",
+                });
                 setRtpTrigger(rtpTrigger + 1);
               }}
             >

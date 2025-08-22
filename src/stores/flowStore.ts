@@ -9,6 +9,7 @@ import {
   type ReactFlowInstance,
   type Viewport,
 } from "@xyflow/react";
+import { cloneDeep } from "lodash";
 
 import { ErrorTypeEnum, findErrorsByType, useErrorStore } from "./errorStore";
 import { SourceHandleTypeEnum, NodeTypeEnum } from "../components/flow/nodes";
@@ -97,11 +98,15 @@ export type PipelineNodeDataType = {
 export type ExternalNodeDataType = {
   label: string;
 };
+export type PositionType = {
+  x: number;
+  y: number;
+};
 export interface PipelineNodeType {
   id: string;
   type: NodeTypeEnum;
   data: PipelineNodeDataType;
-  position: { x: number; y: number };
+  position: PositionType;
   dragging?: boolean;
   selected?: boolean;
 }
@@ -109,7 +114,7 @@ export interface ExternalNodeType {
   id: string;
   type: NodeTypeEnum;
   data: ExternalNodeDataType;
-  position: { x: number; y: number };
+  position: PositionType;
   dragging?: boolean;
   selected?: boolean;
 }
@@ -150,7 +155,7 @@ export function createPipelineNode(
   id: string,
   options?: {
     label?: string;
-    position?: { x: number; y: number };
+    position?: PositionType;
     select?: boolean;
     datas?: any;
   }
@@ -187,7 +192,7 @@ export function createExternalNode(
   id: string,
   options?: {
     label?: string;
-    position?: { x: number; y: number };
+    position?: PositionType;
     select?: boolean;
     datas?: any;
   }
@@ -258,7 +263,7 @@ function getRepateNodeLabelList(): string[] {
 }
 
 // 计算新节点位置
-function calcuNodePosition(): { x: number; y: number } {
+function calcuNodePosition(): PositionType {
   const state = useFlowStore.getState();
   // 有选中节点
   const selectedNodes = state.selectedNodes;
@@ -293,6 +298,22 @@ function getSelectedEdges(edges?: any[]): EdgeType[] {
   if (!edges) edges = useFlowStore.getState().edges;
   return edges.filter((edge) => edge.selected);
 }
+// 取消所有边选中
+function getUnselectedEdges(params?: {
+  edges?: EdgeType[];
+  selectedEdges?: EdgeType[];
+}): EdgeType[] {
+  const state = useFlowStore.getState();
+  let { edges = state.edges, selectedEdges = state.selectedEdges } =
+    params || {};
+  const changes = selectedEdges.map((edge) => ({
+    id: edge.id,
+    selected: false,
+    type: "select",
+  }));
+  edges = applyNodeChanges(changes as NodeChange[], edges);
+  return edges;
+}
 // 计算链接次序
 function calcuLinkOrder(source: string, type: SourceHandleTypeEnum): number {
   const edges = useFlowStore.getState().edges as EdgeType[];
@@ -313,6 +334,7 @@ function buData(key: string, data: any) {
 
 /**Flow仓库 */
 let nodeIdCounter = 1;
+let pasteIdCounter = 1;
 interface FlowState {
   instance: ReactFlowInstance | null;
   viewport: Viewport;
@@ -322,6 +344,7 @@ interface FlowState {
   bfSelectedNodes: any[];
   targetNode: any;
   edges: any[];
+  selectedEdges: any[];
   bfSelectedEdges: any[];
   updateInstance: (instance: ReactFlowInstance) => void;
   updateViewport: (viewport: Viewport) => void;
@@ -330,7 +353,7 @@ interface FlowState {
   addNode: (options?: {
     type?: NodeTypeEnum;
     data?: any;
-    position?: { x: number; y: number };
+    position?: PositionType;
     select?: boolean;
     link?: boolean;
     focus?: boolean;
@@ -339,6 +362,7 @@ interface FlowState {
   addEdge: (co: Connection, options?: { isCheck?: Boolean }) => void;
   setNodeData: (id: string, type: string, key: string, value: any) => void;
   replace: (nodes: NodeType[], edges: EdgeType[]) => void;
+  paste: (nodes: NodeType[], edges: EdgeType[]) => void;
 }
 export const useFlowStore = create<FlowState>()((set) => ({
   instance: null,
@@ -349,6 +373,7 @@ export const useFlowStore = create<FlowState>()((set) => ({
   bfSelectedNodes: [],
   targetNode: null,
   edges: [],
+  selectedEdges: [],
   bfSelectedEdges: [],
 
   /**工作流全局 */
@@ -526,7 +551,7 @@ export const useFlowStore = create<FlowState>()((set) => ({
       const newEdges = applyEdgeChanges(changes, edges);
       const selectedEdges = getSelectedEdges(newEdges);
       buData("bfSelectedEdges", selectedEdges);
-      return { edges: newEdges };
+      return { edges: newEdges, selectedEdges };
     });
   },
   // 添加边
@@ -592,6 +617,38 @@ export const useFlowStore = create<FlowState>()((set) => ({
       };
       fitFlowView();
       return setter;
+    });
+  },
+
+  // 批量拷贝
+  paste(nodes, edges) {
+    set((state) => {
+      // 获取未选中状态
+      const originNodes = getUnselectedNodes();
+      const originEdges = getUnselectedEdges();
+
+      // 更新节点数据
+      nodes = cloneDeep(nodes);
+      const pairs: Record<string, string> = {};
+      nodes.forEach((node) => {
+        const newId = "paste_" + pasteIdCounter++;
+        pairs[node.id] = newId;
+        node.id = newId;
+        node.data.label = newId + "_副本";
+      });
+
+      // 更新边数据
+      edges = cloneDeep(edges);
+      edges.forEach((edge) => {
+        console.log(edge.id);
+        edge.source = pairs[edge.source];
+        edge.target = pairs[edge.target];
+        edge.id = `${edge.source}_${edge.sourceHandle}_${edge.target}`;
+      });
+      return {
+        nodes: [...originNodes, ...nodes],
+        edges: [...originEdges, ...edges],
+      };
     });
   },
 }));
