@@ -38,7 +38,7 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     });
   },
   // 状态
-  status: { isShowConfigPanel: true },
+  status: { isShowConfigPanel: false },
   setStatus(key, value, refresh = false) {
     set((state) => {
       const status = state.status;

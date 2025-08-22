@@ -1,9 +1,18 @@
 import style from "../../styles/FieldPanel.module.less";
 
 import React, { useMemo, memo, useCallback, lazy, Suspense } from "react";
-import { Popover, Input, InputNumber, Select, Switch, Spin } from "antd";
+import {
+  Popover,
+  Input,
+  InputNumber,
+  Select,
+  Switch,
+  Spin,
+  Tooltip,
+} from "antd";
 const { TextArea } = Input;
 import classNames from "classnames";
+import IconFont from "../iconfonts";
 
 import {
   useFlowStore,
@@ -11,6 +20,8 @@ import {
   type PipelineNodeType,
   type ExternalNodeType,
 } from "../../stores/flowStore";
+import { useConfigStore } from "../../stores/configStore";
+import { useFileStore } from "../../stores/fileStore";
 import {
   recoFields,
   actionFields,
@@ -19,9 +30,8 @@ import {
   type FieldType,
 } from "../../core/fields";
 import { JsonHelper } from "../../utils/jsonHelper";
-
-import IconFont from "../iconfonts";
 import { NodeTypeEnum } from "../flow/nodes";
+import { ClipboardHelper } from "../../utils/clipboard";
 
 /**模块 */
 // 提示词
@@ -639,6 +649,26 @@ const ExternalElem = memo(
   }
 );
 
+// 工具栏
+const ToolBarElem = memo(({ nodeName }: { nodeName: string }) => {
+  const prefix = useFileStore((state) => state.currentFile.config.prefix);
+  if (prefix) nodeName = prefix + "_" + nodeName;
+
+  return (
+    <div className={classNames(style.tools, "icon-interactive")}>
+      <Tooltip placement="top" title={"复制节点名"}>
+        <IconFont
+          name="icon-xiaohongshubiaoti"
+          size={24}
+          onClick={() => {
+            ClipboardHelper.write(nodeName);
+          }}
+        />
+      </Tooltip>
+    </div>
+  );
+});
+
 // 面板
 function FieldPanel() {
   const currentNode = useFlowStore((state) => state.targetNode);
@@ -680,6 +710,7 @@ function FieldPanel() {
   // 渲染
   return (
     <div className={panelClass}>
+      <ToolBarElem nodeName={currentNode?.data.label ?? ""} />
       <div className="header">
         <div className="title">节点字段</div>
       </div>
