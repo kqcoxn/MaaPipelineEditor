@@ -9,10 +9,12 @@ import {
 } from "@xyflow/react";
 import classNames from "classnames";
 
+import { useConfigStore } from "../../stores/configStore";
 import { SourceHandleTypeEnum } from "./nodes";
 
 function MarkedEdge(props: EdgeProps) {
   const [edgePath, labelX, labelY] = getBezierPath({ ...props });
+  const showEdgeLabel = useConfigStore((state) => state.configs.showEdgeLabel);
 
   const edgeClass = useMemo(() => {
     let markClass = "";
@@ -51,7 +53,7 @@ function MarkedEdge(props: EdgeProps) {
   return (
     <>
       <BaseEdge className={edgeClass} id={props.id} path={edgePath} />
-      {props.label != null ? (
+      {showEdgeLabel && props.label != null ? (
         <EdgeLabelRenderer>
           <div className={labelClass} style={labelStyle}>
             {props.label}

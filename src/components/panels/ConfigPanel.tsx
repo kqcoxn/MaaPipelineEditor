@@ -22,6 +22,7 @@ function ConfigPanel() {
   const isRealTimePreview = useConfigStore(
     (state) => state.configs.isRealTimePreview
   );
+  const showEdgeLabel = useConfigStore((state) => state.configs.showEdgeLabel);
   const isExportConfig = useConfigStore(
     (state) => state.configs.isExportConfig
   );
@@ -58,6 +59,7 @@ function ConfigPanel() {
       </div>
       <div className={style.list}>
         <div className={style.divider}>————— Pipeline 配置 —————</div>
+        {/* 节点前缀 */}
         <div className={style.item}>
           <div className={style.key}>
             <Popover
@@ -84,6 +86,7 @@ function ConfigPanel() {
           />
         </div>
         <div className={style.divider}>—————— 全局配置 ——————</div>
+        {/* 实时编译 */}
         <div className={globalClass}>
           <div className={style.key}>
             <Popover
@@ -109,6 +112,31 @@ function ConfigPanel() {
             onChange={(value: boolean) => setConfig("isRealTimePreview", value)}
           />
         </div>
+        {/* 显示边标签 */}
+        <div className={globalClass}>
+          <div className={style.key}>
+            <Popover
+              placement="bottomLeft"
+              title={"显示边标签"}
+              content={
+                <TipElem
+                  content={"开启时边中心会显示连接次序，若影响观察可关闭此选项；显示时会稍微增加拖拽节点时性能损耗，若造成明显卡顿请关闭此选项。"}
+                />
+              }
+            >
+              <span>显示边标签</span>
+            </Popover>
+          </div>
+          <Switch
+            className={style.value}
+            style={switchStyle}
+            checkedChildren="显示"
+            unCheckedChildren="隐藏"
+            value={showEdgeLabel}
+            onChange={(value: boolean) => setConfig("showEdgeLabel", value)}
+          />
+        </div>
+        {/* 导出时附带配置 */}
         <div className={globalClass}>
           <div className={style.key}>
             <Popover
