@@ -1,4 +1,5 @@
 import { notification } from "antd";
+import { flatten } from "lodash";
 
 import {
   useFlowStore,
@@ -138,7 +139,8 @@ function matchParamType(params: ParamType, types: FieldType[]): ParamType {
                 number2DList.push(temp);
               }
               if (length > 0) {
-                matchedValue = number2DList;
+                matchedValue =
+                  length === 1 ? flatten(number2DList) : number2DList;
               }
             }
             break;
@@ -331,7 +333,6 @@ export function flowToPipeline(datas?: {
 
     // 配置
     const generalConfig = useConfigStore.getState().configs;
-    console.log(pipelineObj);
     return generalConfig.isExportConfig
       ? {
           [configMarkPrefix + fileName]: {
@@ -537,7 +538,6 @@ export async function pipelineToFlow(options?: {
     if (configs.filename) fileState.setFileName(configs.filename);
     const setFileConfig = fileState.setFileConfig;
     if (configs.prefix) setFileConfig("prefix", configs.prefix);
-    console.log(nodes[0]);
   } catch (err) {
     notification.error({
       message: "导入失败！",
