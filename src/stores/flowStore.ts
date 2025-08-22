@@ -10,6 +10,7 @@ import {
   type Viewport,
 } from "@xyflow/react";
 
+import { ErrorTypeEnum, useErrorStore } from "./errorStore";
 import { SourceHandleTypeEnum, NodeTypeEnum } from "../components/flow/nodes";
 
 export type EdgeType = {
@@ -216,6 +217,11 @@ export function findNodeIndexById(id: string) {
 export function findNodeLabelById(id: string) {
   return findNodeById(id)?.data?.label;
 }
+function findNodeByLabel(label: string) {
+  return useFlowStore
+    .getState()
+    .nodes.find((node) => node.data.label === label);
+}
 // 筛选选中的节点
 function getSelectedNodes(nodes: any[]): PipelineNodeType[] {
   return nodes.filter((node) => node.selected);
@@ -236,6 +242,21 @@ function getUnselectedNodes(params?: {
   nodes = applyNodeChanges(changes as NodeChange[], nodes);
   return nodes;
 }
+// 查找同名节点
+function getRepateNodeLabelList(): string[] {
+  const nodes = useFlowStore.getState().nodes as NodeType[];
+  const repates: string[] = [];
+  const counter: Record<string, number> = {};
+  for (const node of nodes) {
+    const label = node.data.label;
+    counter[label] = (counter[label] ?? 0) + 1;
+    if (counter[label] == 2) {
+      repates.push(label);
+    }
+  }
+  return repates;
+}
+
 // 计算新节点位置
 function calcuNodePosition(): { x: number; y: number } {
   const state = useFlowStore.getState();
@@ -374,7 +395,12 @@ export const useFlowStore = create<FlowState>()((set) => ({
       const selectedNodes = state.selectedNodes;
       let nodes = select ? getUnselectedNodes() : [...state.nodes];
       // 创建节点
-      const id = String(nodeIdCounter++);
+      let id = String(nodeIdCounter++);
+      let label = "新建节点" + id;
+      while (findNodeByLabel(label)) {
+        id = String(nodeIdCounter++);
+        label = "新建节点" + id;
+      }
       const nodeOptions = {
         label: "新建节点" + id,
         position: position ?? calcuNodePosition(),
@@ -424,27 +450,43 @@ export const useFlowStore = create<FlowState>()((set) => ({
       if (Array.isArray(value)) value = [...value];
 
       // 更新节点数据
+      // 常规字段
       if (type === "recognition" || type === "action") {
         if (value == "__mpe_delete") {
           delete targetNode.data[type].param[key];
         } else {
           targetNode.data[type].param[key] = value;
         }
-      } else if (type === "others") {
+      }
+      // 其他字段
+      else if (type === "others") {
         if (value == "__mpe_delete") {
           delete targetNode.data.others[key];
         } else {
           targetNode.data.others[key] = value;
         }
-      } else if (type === "type") {
+      }
+      // v2类型
+      else if (type === "type") {
         targetNode.data[key].type = value;
-      } else {
+      }
+      // 其他类型
+      else {
         targetNode.data[key] = value;
       }
 
       nodes[nodeIndex] = targetNode;
       return { nodes, targetNode };
     });
+    // 检查重复
+    if (key === "label") {
+      useErrorStore.getState().setError(ErrorTypeEnum.NodeNameRepeat, () => {
+        return getRepateNodeLabelList().map((label) => ({
+          type: ErrorTypeEnum.NodeNameRepeat,
+          msg: label,
+        }));
+      });
+    }
   },
 
   /**边操作 */

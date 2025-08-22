@@ -1,13 +1,13 @@
 import { create } from "zustand";
 
-enum ErrorTypeEnum {
+export enum ErrorTypeEnum {
   NodeNameRepeat = "节点名重复",
 }
-type ErrorType = {
+export type ErrorType = {
   type: ErrorTypeEnum;
   msg: string;
   mark?: string;
-  onClick?: (props: any) => any;
+  onClick?: (props?: any) => any;
 };
 
 function findErrorsByType(type: ErrorTypeEnum) {
@@ -18,30 +18,21 @@ type ErrorState = {
   errors: ErrorType[];
   setError: (
     type: ErrorTypeEnum,
-    cb: (errors: ErrorType[]) => ErrorType[]
+    cb: (errors?: ErrorType[]) => ErrorType[]
   ) => void;
 };
 export const useErrorStore = create<ErrorState>()((set) => ({
-  errors: [
-    {
-      type: ErrorTypeEnum.NodeNameRepeat,
-      msg: "重复节点：新建节点1",
-    },
-    {
-      type: ErrorTypeEnum.NodeNameRepeat,
-      msg: "重复节点：新建节点2",
-    },
-    {
-      type: ErrorTypeEnum.NodeNameRepeat,
-      msg: "重复节点：新建节点3",
-    },
-  ],
+  errors: [],
   setError(type, cb) {
     set((state) => {
       // 过滤对应错误
-      const errors = findErrorsByType(type);
-      const newErrors = cb(errors);
-      return { errors: { ...state.errors, ...newErrors } };
+      const originErrors = findErrorsByType(type);
+      const newErrors = cb(originErrors);
+      const errors = [
+        ...state.errors.filter((error) => !originErrors.includes(error)),
+        ...newErrors,
+      ];
+      return { errors };
     });
   },
 }));
