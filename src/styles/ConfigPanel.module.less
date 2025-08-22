@@ -27,8 +27,13 @@
 
       .key {
         width: 110px;
-        text-align: right;
-        font-size: 16px;
+        position: relative;
+        display: flex;
+        justify-content: right;
+
+        span {
+          font-size: 16px;
+        }
       }
 
       .value {
@@ -84,5 +89,6 @@
     width: 100%;
     text-align: center;
     margin: 12px 0;
+    font-size: 15px;
   }
 }

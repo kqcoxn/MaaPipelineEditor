@@ -10,6 +10,7 @@ type ConfigState = {
   // 设置
   configs: {
     isRealTimePreview: boolean;
+    isExportConfig: boolean;
   };
   setConfig: <K extends keyof ConfigState["configs"]>(
     key: K,
@@ -28,7 +29,7 @@ type ConfigState = {
 };
 export const useConfigStore = create<ConfigState>()((set) => ({
   // 设置
-  configs: { isRealTimePreview: false },
+  configs: { isRealTimePreview: false, isExportConfig: true },
   setConfig(key, value, refresh = false) {
     set((state) => {
       const configs = state.configs;

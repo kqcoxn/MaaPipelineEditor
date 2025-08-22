@@ -7,7 +7,12 @@ import ReactJsonView, {
 import { Button, Flex } from "antd";
 
 import { useFlowStore, type NodeType } from "../stores/flowStore";
-import { flowToPipeline, uniqueMark, pipelineToFlow } from "../core/parser";
+import {
+  flowToPipeline,
+  uniqueMark,
+  configMarkPrefix,
+  pipelineToFlow,
+} from "../core/parser";
 import { ClipboardHelper } from "../utils/clipboard";
 import { useConfigStore } from "../stores/configStore";
 
@@ -34,7 +39,10 @@ function JsonViewer() {
 
   // 折叠项
   const shouldCollapse = (field: ReactJsonViewProps) => {
-    return field.name === uniqueMark;
+    return (
+      field.name === uniqueMark ||
+      (field.name as string).startsWith(configMarkPrefix)
+    );
   };
 
   // 渲染

@@ -14,7 +14,7 @@ import {
   type ParamType,
 } from "../stores/flowStore";
 import { useFileStore, type FileConfigType } from "../stores/fileStore";
-import { globalConfig } from "../stores/configStore";
+import { globalConfig, useConfigStore } from "../stores/configStore";
 import {
   FieldTypeEnum,
   recoFields,
@@ -254,13 +254,15 @@ function parsePipelineNode(fNode: PipelineNodeType): ParsedPipelineNodeType {
     ...others,
     ...extras,
   };
-  const position = fNode.position;
-  pNode[uniqueMark] = {
-    position: {
-      x: Math.round(position.x),
-      y: Math.round(position.y),
-    },
-  };
+  if (useConfigStore.getState().configs.isExportConfig) {
+    const position = fNode.position;
+    pNode[uniqueMark] = {
+      position: {
+        x: Math.round(position.x),
+        y: Math.round(position.y),
+      },
+    };
+  }
   return pNode;
 }
 // 链接
@@ -314,11 +316,17 @@ export function flowToPipeline(datas?: {
   });
 
   // 配置
-  const configName = configMarkPrefix + fileName;
-  return {
-    [configName]: { ...config, filename: fileState.currentFile.fileName },
-    ...pipelineObj,
-  };
+  const generalConfig = useConfigStore.getState().configs;
+  return generalConfig.isExportConfig
+    ? {
+        [configMarkPrefix + fileName]: {
+          ...config,
+          filename: fileState.currentFile.fileName,
+          version: globalConfig.version,
+        },
+        ...pipelineObj,
+      }
+    : pipelineObj;
 }
 
 /**导入 */
