@@ -1,0 +1,25 @@
+.panel {
+  bottom: 60px;
+  left: 15px;
+  border-radius: 8px;
+  width: 340px;
+  min-height: 80px;
+  border: 1px solid rgba(red, 0.2);
+  box-shadow: 0 0 5px rgba(red, 0.5);
+
+  @color: rgb(255, 42, 0);
+
+  .title {
+    color: @color;
+  }
+
+  .list {
+    margin-bottom: 8px;
+
+    .item {
+      color: @color;
+      text-align: center;
+      font-size: 16px;
+    }
+  }
+}

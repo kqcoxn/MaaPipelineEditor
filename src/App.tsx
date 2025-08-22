@@ -13,6 +13,7 @@ import FieldPanel from "./components/panels/FieldPanel";
 import ToolPanel from "./components/panels/ToolPanel";
 import FilePanel from "./components/panels/FilePanel";
 import ConfigPanel from "./components/panels/ConfigPanel";
+import ErrorPanel from "./components/panels/ErrorPanel";
 
 function App() {
   // onMounted
@@ -37,6 +38,7 @@ function App() {
               <ConfigPanel />
               <ToolPanel.AddPanel />
               <ToolPanel.GlobalPanel />
+              <ErrorPanel />
             </Splitter.Panel>
             <Splitter.Panel defaultSize={350} min={300} max="50%" collapsible>
               <JsonViewer />

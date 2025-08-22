@@ -20,7 +20,7 @@ type ConfigState = {
   ) => void;
   // 状态
   status: {
-    isShowConfigPanel: boolean;
+    showConfigPanel: boolean;
   };
   setStatus: <K extends keyof ConfigState["status"]>(
     key: K,
@@ -43,7 +43,7 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     });
   },
   // 状态
-  status: { isShowConfigPanel: false },
+  status: { showConfigPanel: false },
   setStatus(key, value, refresh = false) {
     set((state) => {
       const status = state.status;

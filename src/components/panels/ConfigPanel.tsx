@@ -15,8 +15,8 @@ const TipElem = memo(({ content }: { content: string }) => (
 
 function ConfigPanel() {
   // store
-  const isShowConfigPanel = useConfigStore(
-    (state) => state.status.isShowConfigPanel
+  const showConfigPanel = useConfigStore(
+    (state) => state.status.showConfigPanel
   );
   const setStatus = useConfigStore((state) => state.setStatus);
   const isRealTimePreview = useConfigStore(
@@ -36,9 +36,9 @@ function ConfigPanel() {
       classNames({
         "panel-base": true,
         [style.panel]: true,
-        "panel-show": isShowConfigPanel,
+        "panel-show": showConfigPanel,
       }),
-    [isShowConfigPanel]
+    [showConfigPanel]
   );
   const globalClass = useMemo(() => classNames(style.item, style.global), []);
   const switchStyle = useMemo(() => ({ maxWidth: 60 }), []);
@@ -53,7 +53,7 @@ function ConfigPanel() {
             className="icon-interactive"
             name="icon-dituweizhixinxi_chahao"
             size={20}
-            onClick={() => setStatus("isShowConfigPanel", false)}
+            onClick={() => setStatus("showConfigPanel", false)}
           />
         </div>
       </div>
@@ -120,7 +120,9 @@ function ConfigPanel() {
               title={"显示边标签"}
               content={
                 <TipElem
-                  content={"开启时边中心会显示连接次序，若影响观察可关闭此选项；显示时会稍微增加拖拽节点时性能损耗，若造成明显卡顿请关闭此选项。"}
+                  content={
+                    "开启时边中心会显示连接次序，若影响观察可关闭此选项；显示时会稍微增加拖拽节点时性能损耗，若造成明显卡顿请关闭此选项。"
+                  }
                 />
               }
             >

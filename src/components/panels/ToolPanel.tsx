@@ -139,7 +139,7 @@ const globalTools: GlobalToolType[] = [
     label: "设置",
     iconName: "icon-a-080_shezhi",
     iconSize: 39,
-    key: "isShowConfigPanel",
+    key: "showConfigPanel",
   },
   // {
   //   label: "通知记录",
