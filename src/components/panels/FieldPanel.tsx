@@ -537,7 +537,7 @@ const PipelineElem = lazy(() =>
               </div>
             </Popover>
             <div className={classNames([style.value, style.line])}>
-              —————————————
+              ————————————
             </div>
             {currentNode ? (
               <AddFieldElem

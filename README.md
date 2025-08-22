@@ -64,6 +64,8 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
   A React component for displaying and editing javascript arrays and JSON objects.
 - [dnd-kit](https://github.com/clauderic/dnd-kit)  
   The modern drag & drop toolkitfor React.
+- [dagre](https://github.com/dagrejs/dagre)  
+  A JavaScript library that makes it easy to lay out directed graphs on the client-side.
 - [classnames](https://github.com/JedWatson/classnames)  
   A simple JavaScript utility for conditionally joining classNames together.
 - [react-iconfont-cli](https://github.com/iconfont-cli/react-iconfont-cli)  

@@ -165,6 +165,15 @@ function matchParamType(params: ParamType, types: FieldType[]): ParamType {
             }
             break;
           // 键值对
+          case FieldTypeEnum.StringPair:
+            temp = String(value)
+              .replaceAll(/[" \[\]]/g, "")
+              .split(",");
+            if (temp.length === 2) {
+              matchedValue = temp;
+            }
+            break;
+          // 键值对数组
           case FieldTypeEnum.StringPairList:
             if (Array.isArray(value)) {
               const stringPairList: any[] = [];
@@ -210,6 +219,7 @@ function matchParamType(params: ParamType, types: FieldType[]): ParamType {
             break;
         }
       } catch {}
+      if (matchedValue !== null) continue;
     }
     if (matchedValue !== null) {
       matchedDatas[key] = matchedValue;
@@ -321,6 +331,7 @@ export function flowToPipeline(datas?: {
 
     // 配置
     const generalConfig = useConfigStore.getState().configs;
+    console.log(pipelineObj);
     return generalConfig.isExportConfig
       ? {
           [configMarkPrefix + fileName]: {
@@ -526,6 +537,7 @@ export async function pipelineToFlow(options?: {
     if (configs.filename) fileState.setFileName(configs.filename);
     const setFileConfig = fileState.setFileConfig;
     if (configs.prefix) setFileConfig("prefix", configs.prefix);
+    console.log(nodes[0]);
   } catch (err) {
     notification.error({
       message: "导入失败！",

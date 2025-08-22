@@ -9,6 +9,7 @@ export enum FieldTypeEnum {
   DoubleList = "list<double, >",
   StringList = "list<string, >",
   XYWH = "array<int, 4>",
+  StringPair = "array<string, 2>",
   StringPairList = "list<array<string, 2>>",
   Any = "any",
   ObjectList = "list<object,>",
@@ -62,14 +63,14 @@ const recoFieldSchema = {
   },
   template: {
     key: "template",
-    type: FieldTypeEnum.StringList,
+    type: [FieldTypeEnum.StringList, FieldTypeEnum.String],
     required: true,
     default: [""],
     desc: `模板图片路径，需要 image 文件夹的相对路径。必选。所使用的图片需要是无损原图缩放到 720p 后的裁剪。支持填写文件夹路径，将递归加载其中所有图片文件。`,
   },
   templateMatchThreshold: {
     key: "threshold",
-    type: FieldTypeEnum.DoubleList,
+    type: [FieldTypeEnum.DoubleList, FieldTypeEnum.Double],
     default: [0.7],
     step: 0.01,
     desc: `模板匹配阈值。可选，默认 0.7 。若为数组，长度需和 template 数组长度相同。`,
@@ -142,14 +143,14 @@ const recoFieldSchema = {
   },
   lower: {
     key: "lower",
-    type: FieldTypeEnum.IntListList,
+    type: [FieldTypeEnum.IntListList, FieldTypeEnum.IntList],
     required: true,
     default: [[0, 0, 0]],
     desc: `颜色下限值。必选。最内层 list 长度需和 method 的通道数一致。`,
   },
   upper: {
     key: "upper",
-    type: FieldTypeEnum.IntListList,
+    type: [FieldTypeEnum.IntListList, FieldTypeEnum.IntList],
     required: true,
     default: [[255, 255, 255]],
     desc: `颜色上限值。必选。最内层 list 长度需和 method 的通道数一致。`,
@@ -168,21 +169,21 @@ const recoFieldSchema = {
   },
   ocrExpected: {
     key: "expected",
-    type: FieldTypeEnum.StringList,
+    type: [FieldTypeEnum.StringList, FieldTypeEnum.String],
     required: true,
     default: [""],
     desc: `期望的结果，支持正则。必选。`,
   },
   ocrThreshold: {
     key: "threshold",
-    type: FieldTypeEnum.DoubleList,
+    type: [FieldTypeEnum.DoubleList, FieldTypeEnum.Double],
     default: [0.3],
     step: 0.01,
     desc: `模型置信度阈值。可选，默认 0.3 。`,
   },
   replace: {
     key: "replace",
-    type: FieldTypeEnum.StringPairList,
+    type: [FieldTypeEnum.StringPairList, FieldTypeEnum.StringPair],
     default: [["origin", "target"]],
     desc: `部分文字识别结果不准确，进行替换。可选。`,
   },
@@ -200,7 +201,7 @@ const recoFieldSchema = {
   },
   labels: {
     key: "labels",
-    type: FieldTypeEnum.StringList,
+    type: [FieldTypeEnum.StringList, FieldTypeEnum.String],
     default: [""],
     desc: `标注，即每个分类的名字。可选。 仅影响调试图片及日志等，若未填写则会填充 "Unknown" 。`,
   },
@@ -213,7 +214,7 @@ const recoFieldSchema = {
   },
   neuralNetworkExpected: {
     key: "expected",
-    type: FieldTypeEnum.IntList,
+    type: [FieldTypeEnum.IntList, FieldTypeEnum.Int],
     required: true,
     default: [0],
     step: 1,
@@ -331,7 +332,7 @@ const actionFieldSchema = {
   },
   clickKey: {
     key: "key",
-    type: FieldTypeEnum.IntList,
+    type: [FieldTypeEnum.IntList, FieldTypeEnum.Int],
     required: true,
     default: [1],
     step: 1,
@@ -374,7 +375,7 @@ const actionFieldSchema = {
   },
   commandArgs: {
     key: "args",
-    type: FieldTypeEnum.StringList,
+    type: [FieldTypeEnum.StringList, FieldTypeEnum.String],
     default: "",
     desc: "执行的参数。可选。 支持部分运行期参数替换： {ENTRY}: 任务入口名。 {NODE}: 当前节点名。 {IMAGE}: 截图保存到文件的路径。该文件在进程退出前删除，若要持久保存请自行复制。 {BOX}: 识别命中的目标，格式为 [x, y, w, h]。 {RESOURCE_DIR}: 最后一次加载的资源文件夹路径。 {LIBRARY_DIR}: MaaFW 库所在的文件夹路径。",
   },
@@ -474,6 +475,12 @@ const otherFieldSchema = {
     type: FieldTypeEnum.Any,
     default: "",
     desc: "关注节点，会额外产生部分回调消息。可选，默认 null，不产生回调消息。 详见 节点通知。",
+  },
+  isSub: {
+    key: "is_sub",
+    type: FieldTypeEnum.Bool,
+    default: true,
+    desc: "（已在 2.x 版本中废弃，但保留兼容性，推荐使用 interrupt 替代） 是否是子节点。可选，默认 false 。 如果是子节点，执行完本节点（及后续 next 等）后，会返回来再次识别本节点 所在的 next 列表。 例如：A.next = [B, Sub_C, D]，这里的 Sub_C.is_sub = true， 若匹配上了 Sub_C，在完整执行完 Sub_C 及后续节点后，会返回来再次识别 [B, Sub_C, D] 并执行命中项及后续节点。",
   },
 };
 
@@ -664,4 +671,5 @@ export const otherFieldParams: FieldType[] = [
   otherFieldSchema.preWaitFreezes,
   otherFieldSchema.postWaitFreezes,
   otherFieldSchema.focus,
+  otherFieldSchema.isSub,
 ];
