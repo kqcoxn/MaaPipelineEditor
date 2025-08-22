@@ -10,7 +10,7 @@ export type ErrorType = {
   onClick?: (props?: any) => any;
 };
 
-function findErrorsByType(type: ErrorTypeEnum) {
+export function findErrorsByType(type: ErrorTypeEnum) {
   return useErrorStore.getState().errors.filter((error) => error.type === type);
 }
 

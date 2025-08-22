@@ -10,7 +10,7 @@ import {
   type Viewport,
 } from "@xyflow/react";
 
-import { ErrorTypeEnum, useErrorStore } from "./errorStore";
+import { ErrorTypeEnum, findErrorsByType, useErrorStore } from "./errorStore";
 import { SourceHandleTypeEnum, NodeTypeEnum } from "../components/flow/nodes";
 
 export type EdgeType = {
@@ -380,6 +380,18 @@ export const useFlowStore = create<FlowState>()((set) => ({
       }
       return setter;
     });
+    // 检查重复
+    if (
+      changes.some((change) => change.type === "remove") &&
+      findErrorsByType(ErrorTypeEnum.NodeNameRepeat).length > 0
+    ) {
+      useErrorStore.getState().setError(ErrorTypeEnum.NodeNameRepeat, () => {
+        return getRepateNodeLabelList().map((label) => ({
+          type: ErrorTypeEnum.NodeNameRepeat,
+          msg: label,
+        }));
+      });
+    }
   },
   // 添加节点
   addNode(options) {

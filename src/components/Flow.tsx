@@ -1,7 +1,7 @@
 import style from "../styles/Flow.module.less";
 import "@xyflow/react/dist/style.css";
 
-import { useCallback, useRef, useEffect, useMemo } from "react";
+import { useCallback, useRef, useEffect, useMemo, memo } from "react";
 import {
   ReactFlow,
   Controls,
@@ -12,25 +12,25 @@ import {
   type EdgeChange,
   type Connection,
   type Viewport,
+  useKeyPress,
 } from "@xyflow/react";
 
-import { useFlowStore } from "../stores/flowStore";
+import { useFlowStore, type NodeType } from "../stores/flowStore";
 import { nodeTypes } from "./flow/nodes";
 import { edgeTypes } from "./flow/edges";
-import { flowToPipeline } from "../core/parser";
 
 /**工作流 */
-// 工作流监视器
-function InstanceMonitor() {
+// 实例监视器
+const InstanceMonitor = memo(() => {
   const updateInstance = useFlowStore((state) => state.updateInstance);
   const instance = useReactFlow();
   useEffect(() => {
     updateInstance(instance);
   }, [instance, updateInstance]);
   return null;
-}
+});
 // 视口监视器
-function ViewportChangeMonitor() {
+const ViewportChangeMonitor = memo(() => {
   const updateViewport = useFlowStore((state) => state.updateViewport);
   useOnViewportChange({
     onEnd: (viewport: Viewport) => {
@@ -38,7 +38,28 @@ function ViewportChangeMonitor() {
     },
   });
   return null;
-}
+});
+// 按键监听
+const KeyListener = memo(() => {
+  // 删除节点
+  const deletePressed = useKeyPress("Delete");
+  const selectedNodes = useFlowStore(
+    (state) => state.selectedNodes
+  ) as NodeType[];
+  const updateNodes = useFlowStore((state) => state.updateNodes);
+  useEffect(() => {
+    if (!deletePressed) return;
+    if (selectedNodes.length === 0) return;
+    updateNodes(
+      selectedNodes.map((node) => ({
+        id: node.id,
+        type: "remove",
+      }))
+    );
+  }, [deletePressed, selectedNodes]);
+
+  return null;
+});
 
 function MainFlow() {
   // store
@@ -101,6 +122,7 @@ function MainFlow() {
         <Controls orientation={"horizontal"} />
         <InstanceMonitor />
         <ViewportChangeMonitor />
+        <KeyListener />
       </ReactFlow>
     </div>
   );

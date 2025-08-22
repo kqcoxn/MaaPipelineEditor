@@ -1,6 +1,6 @@
 import style from "./styles/App.module.less";
 
-import { useEffect } from "react";
+import { useEffect, memo } from "react";
 import { Flex, Layout, Splitter, message } from "antd";
 const { Header: HeaderSection, Content } = Layout;
 
@@ -15,6 +15,7 @@ import FilePanel from "./components/panels/FilePanel";
 import ConfigPanel from "./components/panels/ConfigPanel";
 import ErrorPanel from "./components/panels/ErrorPanel";
 
+/**主程序 */
 function App() {
   // onMounted
   useEffect(() => {
