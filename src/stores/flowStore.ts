@@ -470,7 +470,7 @@ export const useFlowStore = create<FlowState>()((set) => ({
       });
       // 更新数据
       const newEdges = applyEdgeChanges(changes, edges);
-      const selectedEdges = getSelectedEdges();
+      const selectedEdges = getSelectedEdges(newEdges);
       buData("bfSelectedEdges", selectedEdges);
       return { edges: newEdges };
     });

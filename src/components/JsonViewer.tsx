@@ -25,16 +25,24 @@ function JsonViewer() {
     (state) => state.bfSelectedNodes
   ) as NodeType[];
   useFlowStore((state) => state.targetNode);
-  useFlowStore((state) => state.bfSelectedEdges);
+  const selectedEdges = useFlowStore((state) => state.bfSelectedEdges);
 
   // 生成 Pipeline
   const isPartable = selectedNodes.length > 0;
   const [rtpTrigger, setRtpTrigger] = useState(0);
   const rtpPipelineObj = useMemo(() => {
-    return flowToPipeline(isPartable ? { nodes: selectedNodes } : {});
-  }, [isRealTimePreview ? selectedNodes : null, rtpTrigger]);
+    return flowToPipeline(
+      isPartable ? { nodes: selectedNodes, edges: selectedEdges } : {}
+    );
+  }, [
+    isRealTimePreview ? selectedNodes : null,
+    isRealTimePreview ? selectedEdges : null,
+    rtpTrigger,
+  ]);
   const manuPelineObj = useMemo(() => {
-    return flowToPipeline(isPartable ? { nodes: selectedNodes } : {});
+    return flowToPipeline(
+      isPartable ? { nodes: selectedNodes, edges: selectedEdges } : {}
+    );
   }, [rtpTrigger]);
 
   // 折叠项
@@ -50,46 +58,64 @@ function JsonViewer() {
     <div className={style["json-viewer"]}>
       <div className={style.header}>
         <div className={style.title}>Pipeline JSON</div>
-        <Flex className={style.operations} gap="small" wrap>
-          <Button
-            variant="filled"
-            size="small"
-            color="primary"
-            onClick={() => pipelineToFlow({ pVersion: 1 })}
-          >
-            导入v1
-          </Button>
-          <Button
-            variant="filled"
-            size="small"
-            color="primary"
-            onClick={() => pipelineToFlow({ pVersion: 2 })}
-          >
-            导入v2
-          </Button>
-          <Button
-            style={{ display: isRealTimePreview ? "none" : "block" }}
-            variant="filled"
-            size="small"
-            color="primary"
-            onClick={() => {
-              setRtpTrigger(rtpTrigger + 1);
-            }}
-          >
-            编译预览
-          </Button>
-          <Button
-            variant="filled"
-            size="small"
-            color="pink"
-            onClick={() => {
-              ClipboardHelper.write(flowToPipeline());
-              setRtpTrigger(rtpTrigger + 1);
-            }}
-          >
-            全部导出
-          </Button>
-        </Flex>
+        <div className={style.operations}>
+          <Flex className={style.group} gap="small" wrap>
+            <Button
+              variant="filled"
+              size="small"
+              color="primary"
+              onClick={() => pipelineToFlow({ pVersion: 1 })}
+            >
+              导入v1
+            </Button>
+            <Button
+              variant="filled"
+              size="small"
+              color="primary"
+              onClick={() => pipelineToFlow({ pVersion: 2 })}
+            >
+              导入v2
+            </Button>
+          </Flex>
+          <Flex className={style.group} gap="small" wrap>
+            <Button
+              style={{ display: isRealTimePreview ? "none" : "block" }}
+              variant="filled"
+              size="small"
+              color="primary"
+              onClick={() => {
+                setRtpTrigger(rtpTrigger + 1);
+              }}
+            >
+              编译预览
+            </Button>
+            <Button
+              style={{ display: isPartable ? "block" : "none" }}
+              variant="filled"
+              size="small"
+              color="pink"
+              onClick={() => {
+                ClipboardHelper.write(
+                  flowToPipeline({ nodes: selectedNodes, edges: selectedEdges })
+                );
+                setRtpTrigger(rtpTrigger + 1);
+              }}
+            >
+              部分导出
+            </Button>
+            <Button
+              variant="filled"
+              size="small"
+              color="pink"
+              onClick={() => {
+                ClipboardHelper.write(flowToPipeline());
+                setRtpTrigger(rtpTrigger + 1);
+              }}
+            >
+              全部导出
+            </Button>
+          </Flex>
+        </div>
       </div>
       <div className={style["viewer-container"]}>
         <ReactJsonView
