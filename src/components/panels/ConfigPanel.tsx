@@ -23,6 +23,7 @@ function ConfigPanel() {
     (state) => state.configs.isRealTimePreview
   );
   const showEdgeLabel = useConfigStore((state) => state.configs.showEdgeLabel);
+  const isAutoFocus = useConfigStore((state) => state.configs.isAutoFocus);
   const isExportConfig = useConfigStore(
     (state) => state.configs.isExportConfig
   );
@@ -136,6 +137,28 @@ function ConfigPanel() {
             unCheckedChildren="隐藏"
             value={showEdgeLabel}
             onChange={(value: boolean) => setConfig("showEdgeLabel", value)}
+          />
+        </div>
+        {/* 自动聚焦 */}
+        <div className={globalClass}>
+          <div className={style.key}>
+            <Popover
+              placement="bottomLeft"
+              title={"自动聚焦"}
+              content={
+                <TipElem content={"开启时若出现新节点则自动移动视口以聚焦"} />
+              }
+            >
+              <span>自动聚焦</span>
+            </Popover>
+          </div>
+          <Switch
+            className={style.value}
+            style={switchStyle}
+            checkedChildren="启用"
+            unCheckedChildren="关闭"
+            value={isAutoFocus}
+            onChange={(value: boolean) => setConfig("isAutoFocus", value)}
           />
         </div>
         {/* 导出时附带配置 */}

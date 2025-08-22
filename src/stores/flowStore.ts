@@ -13,6 +13,7 @@ import { cloneDeep } from "lodash";
 
 import { ErrorTypeEnum, findErrorsByType, useErrorStore } from "./errorStore";
 import { SourceHandleTypeEnum, NodeTypeEnum } from "../components/flow/nodes";
+import { useConfigStore } from "./configStore";
 
 export type EdgeType = {
   id: string;
@@ -470,7 +471,8 @@ export const useFlowStore = create<FlowState>()((set) => ({
       const setter: any = { nodes };
       if (select) setter.selectedNodes = [newNode];
       // 聚焦
-      if (focus) fitFlowView({ focusNodes: [newNode] });
+      if (focus && useConfigStore.getState().configs.isAutoFocus)
+        fitFlowView({ focusNodes: [newNode] });
       return setter;
     });
   },
@@ -622,7 +624,8 @@ export const useFlowStore = create<FlowState>()((set) => ({
 
   // 批量拷贝
   paste(nodes, edges) {
-    set((state) => {
+    if (nodes.length === 0) return;
+    set(() => {
       // 获取未选中状态
       const originNodes = getUnselectedNodes();
       const originEdges = getUnselectedEdges();
@@ -635,6 +638,11 @@ export const useFlowStore = create<FlowState>()((set) => ({
         pairs[node.id] = newId;
         node.id = newId;
         node.data.label = newId + "_副本";
+        const position = node.position;
+        node.position = {
+          x: position.x + 100,
+          y: position.y + 50,
+        };
       });
 
       // 更新边数据
@@ -645,10 +653,15 @@ export const useFlowStore = create<FlowState>()((set) => ({
         edge.target = pairs[edge.target];
         edge.id = `${edge.source}_${edge.sourceHandle}_${edge.target}`;
       });
+
       return {
         nodes: [...originNodes, ...nodes],
         edges: [...originEdges, ...edges],
+        targetNode: null,
       };
     });
+    // 自动聚焦
+    if (useConfigStore.getState().configs.isAutoFocus)
+      fitFlowView({ focusNodes: nodes });
   },
 }));
