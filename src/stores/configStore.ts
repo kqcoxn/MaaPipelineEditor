@@ -17,6 +17,7 @@ type ConfigState = {
     isExportConfig: boolean;
     showEdgeLabel: boolean;
     isAutoFocus: boolean;
+    isShowV1: boolean;
   };
   setConfig: <K extends keyof ConfigState["configs"]>(
     key: K,
@@ -44,6 +45,7 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     isExportConfig: true,
     showEdgeLabel: true,
     isAutoFocus: true,
+    isShowV1: true,
   },
   setConfig(key, value, refresh = false) {
     set((state) => {

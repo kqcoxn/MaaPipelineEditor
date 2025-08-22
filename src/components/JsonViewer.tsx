@@ -41,6 +41,7 @@ function JsonViewer() {
   const isRealTimePreview = useConfigStore(
     (state) => state.configs.isRealTimePreview
   );
+  const isShowV1 = useConfigStore((state) => state.configs.isShowV1);
   const selectedNodes = useFlowStore(
     (state) => state.bfSelectedNodes
   ) as NodeType[];
@@ -72,14 +73,16 @@ function JsonViewer() {
         <div className={style.title}>Pipeline JSON</div>
         <div className={style.operations}>
           <Flex className={style.group} gap="small" wrap>
-            <Button
-              variant="filled"
-              size="small"
-              color="primary"
-              onClick={() => pipelineToFlow({ pVersion: 1 })}
-            >
-              导入v1
-            </Button>
+            {isShowV1 && (
+              <Button
+                variant="filled"
+                size="small"
+                color="primary"
+                onClick={() => pipelineToFlow({ pVersion: 1 })}
+              >
+                导入v1
+              </Button>
+            )}
             <Button
               variant="filled"
               size="small"

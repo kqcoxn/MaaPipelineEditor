@@ -27,6 +27,7 @@ function ConfigPanel() {
   const isExportConfig = useConfigStore(
     (state) => state.configs.isExportConfig
   );
+  const isShowV1 = useConfigStore((state) => state.configs.isShowV1);
   const setConfig = useConfigStore((state) => state.setConfig);
   const fileConfig = useFileStore((state) => state.currentFile.config);
   const setFileConfig = useFileStore((state) => state.setFileConfig);
@@ -183,6 +184,26 @@ function ConfigPanel() {
             unCheckedChildren="否"
             value={isExportConfig}
             onChange={(value: boolean) => setConfig("isExportConfig", value)}
+          />
+        </div>
+        {/* 显示v1导入 */}
+        <div className={globalClass}>
+          <div className={style.key}>
+            <Popover
+              placement="bottomLeft"
+              title={"显示v1导入"}
+              content={<TipElem content={"关闭时将隐藏右侧导入v1按键"} />}
+            >
+              <span>显示v1导入</span>
+            </Popover>
+          </div>
+          <Switch
+            className={style.value}
+            style={switchStyle}
+            checkedChildren="显示"
+            unCheckedChildren="隐藏"
+            value={isShowV1}
+            onChange={(value: boolean) => setConfig("isShowV1", value)}
           />
         </div>
       </div>
