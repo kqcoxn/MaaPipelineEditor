@@ -110,6 +110,10 @@ export interface PipelineNodeType {
   position: PositionType;
   dragging?: boolean;
   selected?: boolean;
+  measured?: {
+    width: number;
+    height: number;
+  };
 }
 export interface ExternalNodeType {
   id: string;
@@ -118,6 +122,10 @@ export interface ExternalNodeType {
   position: PositionType;
   dragging?: boolean;
   selected?: boolean;
+  measured?: {
+    width: number;
+    height: number;
+  };
 }
 export type NodeType = PipelineNodeType | ExternalNodeType;
 

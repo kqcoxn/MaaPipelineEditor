@@ -37,8 +37,9 @@ function App() {
               <MainFlow />
               <FieldPanel />
               <ConfigPanel />
-              <ToolPanel.AddPanel />
-              <ToolPanel.GlobalPanel />
+              <ToolPanel.Add />
+              <ToolPanel.Global />
+              <ToolPanel.Layout />
               <ErrorPanel />
             </Splitter.Panel>
             <Splitter.Panel defaultSize={350} min={300} max="50%" collapsible>

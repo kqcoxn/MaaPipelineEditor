@@ -9,6 +9,7 @@ import { type IconNames } from "../iconfonts";
 import { useFlowStore } from "../../stores/flowStore";
 import { NodeTypeEnum } from "../flow/nodes";
 import { useConfigStore } from "../../stores/configStore";
+import { autoLayout } from "../../core/layout";
 
 /**添加工具 */
 interface AddToolType {
@@ -18,78 +19,83 @@ interface AddToolType {
   nodeType?: NodeTypeEnum;
   data?: () => any;
 }
-const addTools: AddToolType[] = [
-  {
-    label: "空节点",
-    iconName: "icon-kongjiedian",
-    iconSize: 32,
-  },
-  {
-    label: "文字识别",
-    iconName: "icon-ocr",
-    data: () => ({
-      recognition: {
-        type: "OCR",
-        param: { expected: [""] },
-      },
-      action: {
-        type: "Click",
-        param: {},
-      },
-    }),
-  },
-  {
-    label: "图像识别",
-    iconName: "icon-tuxiang",
-    data: () => ({
-      recognition: {
-        type: "TemplateMatch",
-        param: { template: [""] },
-      },
-      action: {
-        type: "Click",
-        param: {},
-      },
-    }),
-  },
-  {
-    label: "直接点击",
-    iconName: "icon-dianji",
-    data: () => ({
-      action: {
-        type: "Click",
-        param: { target: [0, 0, 0, 0] },
-      },
-    }),
-  },
-  {
-    label: "Custom",
-    iconName: "icon-daima",
-    iconSize: 27,
-    data: () => ({
-      action: {
-        type: "Custom",
-        param: { custom_action: "", custom_action_param: "" },
-      },
-      others: {
-        pre_delay: 0,
-        post_delay: 0,
-      },
-    }),
-  },
-  {
-    label: "外部节点",
-    iconName: "icon-xiaofangtongdao",
-    iconSize: 24,
-    nodeType: NodeTypeEnum.External,
-    data: () => ({
-      label: "外部节点",
-    }),
-  },
-];
 function AddPanel() {
   const addNode = useFlowStore((state) => state.addNode);
 
+  const addTools = useMemo<AddToolType[]>(
+    () => [
+      {
+        label: "空节点",
+        iconName: "icon-kongjiedian",
+        iconSize: 32,
+      },
+      {
+        label: "文字识别",
+        iconName: "icon-ocr",
+        data: () => ({
+          recognition: {
+            type: "OCR",
+            param: { expected: [""] },
+          },
+          action: {
+            type: "Click",
+            param: {},
+          },
+        }),
+      },
+      {
+        label: "图像识别",
+        iconName: "icon-tuxiang",
+        data: () => ({
+          recognition: {
+            type: "TemplateMatch",
+            param: { template: [""] },
+          },
+          action: {
+            type: "Click",
+            param: {},
+          },
+        }),
+      },
+      {
+        label: "直接点击",
+        iconName: "icon-dianji",
+        data: () => ({
+          action: {
+            type: "Click",
+            param: { target: [0, 0, 0, 0] },
+          },
+        }),
+      },
+      {
+        label: "Custom",
+        iconName: "icon-daima",
+        iconSize: 27,
+        data: () => ({
+          action: {
+            type: "Custom",
+            param: { custom_action: "", custom_action_param: "" },
+          },
+          others: {
+            pre_delay: 0,
+            post_delay: 0,
+          },
+        }),
+      },
+      {
+        label: "外部节点",
+        iconName: "icon-xiaofangtongdao",
+        iconSize: 24,
+        nodeType: NodeTypeEnum.External,
+        data: () => ({
+          label: "外部节点",
+        }),
+      },
+    ],
+    []
+  );
+
+  // 渲染
   const tools = addTools.map((item, index) => {
     return (
       <div key={item.label}>
@@ -102,7 +108,7 @@ function AddPanel() {
               onClick={() =>
                 addNode({
                   type: item.nodeType ?? NodeTypeEnum.Pipeline,
-                  data: item.data ? item.data() : null,
+                  data: item.data?.(),
                   select: true,
                   focus: true,
                   link: true,
@@ -119,11 +125,11 @@ function AddPanel() {
       </div>
     );
   });
-
-  // 渲染
-  return (
-    <ul className={classNames(style.panel, style["add-panel"])}>{tools}</ul>
+  const panelClass = useMemo(
+    () => classNames(style.panel, style["add-panel"]),
+    []
   );
+  return <ul className={panelClass}>{tools}</ul>;
 }
 
 /**全局工具 */
@@ -132,7 +138,7 @@ type GlobalToolType = {
   iconName: string;
   iconSize?: number;
   disabled?: boolean;
-  onClick?: () => void;
+  onClick: () => void;
   onDisableClick?: () => void;
 };
 function GlobalPanel() {
@@ -197,31 +203,78 @@ function GlobalPanel() {
             />
           </Tooltip>
         </li>
-        {index < globalTools.length - 1 ? (
+        {index < globalTools.length - 1 && (
           <div className={style.devider}>
             <div></div>
           </div>
-        ) : null}
+        )}
       </div>
     );
   });
 
   // 渲染
-  return (
-    <ul
-      className={classNames(
-        style.panel,
-        style["h-panel"],
-        style["global-panel"]
-      )}
-    >
-      {tools}
-    </ul>
+  const panelClass = useMemo(
+    () => classNames(style.panel, style["h-panel"], style["global-panel"]),
+    []
   );
+  return <ul className={panelClass}>{tools}</ul>;
+}
+
+/**添加工具 */
+interface LayoutToolType {
+  label: string;
+  iconName: string;
+  iconSize?: number;
+  disabled?: boolean;
+  onClick: () => any;
+}
+function LayoutPanel() {
+  const layoutTools = useMemo<LayoutToolType[]>(() => {
+    return [
+      {
+        label: "自动布局",
+        iconName: "icon-liuchengtu",
+        iconSize: 30,
+        onClick: () => autoLayout(),
+      },
+    ];
+  }, []);
+
+  // 生成
+  const tools = layoutTools.map((item, index) => {
+    return (
+      <div key={item.label} className={style.group}>
+        <li className={style.item}>
+          <Tooltip placement="top" title={item.label}>
+            <IconFont
+              style={{ opacity: item.disabled ? 0.2 : 1 }}
+              className={style.icon}
+              name={item.iconName as IconNames}
+              size={item.iconSize ?? 24}
+              onClick={() => item.onClick?.()}
+            />
+          </Tooltip>
+        </li>
+        {index < layoutTools.length - 1 && (
+          <div className={style.devider}>
+            <div></div>
+          </div>
+        )}
+      </div>
+    );
+  });
+
+  // 渲染
+  const panelClass = useMemo(
+    () => classNames(style.panel, style["h-panel"], style["layout-panel"]),
+    []
+  );
+  return <ul className={panelClass}>{tools}</ul>;
 }
 
 const ToolPanel = {
-  AddPanel: memo(AddPanel),
-  GlobalPanel: memo(GlobalPanel),
+  Add: memo(AddPanel),
+  Global: memo(GlobalPanel),
+  Layout: memo(LayoutPanel),
 };
 export default ToolPanel;
