@@ -14,6 +14,7 @@ import { cloneDeep } from "lodash";
 import { ErrorTypeEnum, findErrorsByType, useErrorStore } from "./errorStore";
 import { SourceHandleTypeEnum, NodeTypeEnum } from "../components/flow/nodes";
 import { useConfigStore } from "./configStore";
+import { useFileStore } from "./fileStore";
 
 export type EdgeType = {
   id: string;
@@ -257,17 +258,33 @@ function getUnselectedNodes(params?: {
   return nodes;
 }
 // 查找同名节点
-function getRepateNodeLabelList(): string[] {
+export function checkRepateNodeLabelList(): string[] {
+  // 获取当前配置
+  let prefix = useFileStore.getState().currentFile.config.prefix;
+  const configs = useConfigStore.getState().configs;
   const nodes = useFlowStore.getState().nodes as NodeType[];
   const repates: string[] = [];
+  const isAddPrefix = configs.isExportConfig && prefix;
+  if (isAddPrefix) prefix += "_";
+  // 查重
   const counter: Record<string, number> = {};
   for (const node of nodes) {
-    const label = node.data.label;
+    let label = node.data.label;
+    if (isAddPrefix && node.type === NodeTypeEnum.Pipeline)
+      label = prefix + label;
     counter[label] = (counter[label] ?? 0) + 1;
     if (counter[label] == 2) {
       repates.push(label);
     }
   }
+  // 添加错误提示
+  useErrorStore.getState().setError(ErrorTypeEnum.NodeNameRepeat, () => {
+    return repates.map((label) => ({
+      type: ErrorTypeEnum.NodeNameRepeat,
+      msg: label,
+    }));
+  });
+
   return repates;
 }
 
@@ -418,14 +435,8 @@ export const useFlowStore = create<FlowState>()((set) => ({
     if (
       changes.some((change) => change.type === "remove") &&
       findErrorsByType(ErrorTypeEnum.NodeNameRepeat).length > 0
-    ) {
-      useErrorStore.getState().setError(ErrorTypeEnum.NodeNameRepeat, () => {
-        return getRepateNodeLabelList().map((label) => ({
-          type: ErrorTypeEnum.NodeNameRepeat,
-          msg: label,
-        }));
-      });
-    }
+    )
+      checkRepateNodeLabelList();
   },
   // 添加节点
   addNode(options) {
@@ -526,14 +537,7 @@ export const useFlowStore = create<FlowState>()((set) => ({
       return { nodes, targetNode };
     });
     // 检查重复
-    if (key === "label") {
-      useErrorStore.getState().setError(ErrorTypeEnum.NodeNameRepeat, () => {
-        return getRepateNodeLabelList().map((label) => ({
-          type: ErrorTypeEnum.NodeNameRepeat,
-          msg: label,
-        }));
-      });
-    }
+    if (key === "label") checkRepateNodeLabelList();
   },
 
   /**边操作 */

@@ -5,6 +5,7 @@ import { Popover, Switch, Input } from "antd";
 import classNames from "classnames";
 import IconFont from "../iconfonts";
 
+import { checkRepateNodeLabelList } from "../../stores/flowStore";
 import { useConfigStore } from "../../stores/configStore";
 import { useFileStore } from "../../stores/fileStore";
 import { configMarkPrefix, uniqueMark } from "../../core/parser";
@@ -82,9 +83,10 @@ function ConfigPanel() {
             className={style.value}
             style={{ maxWidth: 160 }}
             value={fileConfig.prefix}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setFileConfig("prefix", e.target.value)
-            }
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              setFileConfig("prefix", e.target.value);
+              checkRepateNodeLabelList();
+            }}
           />
         </div>
         <div className={style.divider}>—————— 全局配置 ——————</div>

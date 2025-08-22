@@ -32,21 +32,22 @@ import { ClipboardHelper } from "../utils/clipboard";
 
 export const uniqueMark = "__mpe";
 export const configMarkPrefix = uniqueMark + "_config_";
+export const externalMarkPrefix = uniqueMark + "_external_";
 type ParsedPipelineNodeType = {
-  [uniqueMark]: {
+  [uniqueMark]?: {
     position: { x: number; y: number };
   };
-  recognition: {
+  recognition?: {
     type: "TemplateMatch";
     param: RecognitionParamType;
   };
-  action: {
+  action?: {
     type: "TemplateMatch";
     param: ActionParamType;
   };
-  [SourceHandleTypeEnum.Next]: string[];
-  [SourceHandleTypeEnum.Interrupt]: string[];
-  [SourceHandleTypeEnum.Error]: string[];
+  [SourceHandleTypeEnum.Next]?: string[];
+  [SourceHandleTypeEnum.Interrupt]?: string[];
+  [SourceHandleTypeEnum.Error]?: string[];
 } & OtherParamType &
   any;
 export type PipelineObjType = Record<string, ParsedPipelineNodeType>;
@@ -280,6 +281,19 @@ function parsePipelineNode(fNode: PipelineNodeType): ParsedPipelineNodeType {
   }
   return pNode;
 }
+// 保存外部节点位置
+function parseExternalNode(fNode: PipelineNodeType): ParsedPipelineNodeType {
+  const position = fNode.position;
+  const pNode: ParsedPipelineNodeType = {
+    [uniqueMark]: {
+      position: {
+        x: Math.round(position.x),
+        y: Math.round(position.y),
+      },
+    },
+  };
+  return pNode;
+}
 // 链接
 function addLink(
   fromPNode: ParsedPipelineNodeType,
@@ -307,32 +321,42 @@ export function flowToPipeline(datas?: {
       fileName: datas?.fileName ?? fileState.currentFile.fileName,
       config: datas?.config ?? fileState.currentFile.config,
     };
+    const generalConfig = useConfigStore.getState().configs;
 
     // 生成节点
     const prefix = config.prefix ? config.prefix + "_" : "";
     const pipelineObj: PipelineObjType = {};
     nodes.forEach((node) => {
-      if (node.type === NodeTypeEnum.External) return;
-      pipelineObj[prefix + node.data.label] = parsePipelineNode(
-        node as PipelineNodeType
-      );
+      switch (node.type) {
+        case NodeTypeEnum.Pipeline:
+          pipelineObj[prefix + node.data.label] = parsePipelineNode(
+            node as PipelineNodeType
+          );
+          break;
+        case NodeTypeEnum.External:
+          if (!generalConfig.isExportConfig) break;
+          pipelineObj[externalMarkPrefix + node.data.label + "_" + fileName] =
+            parseExternalNode(node as PipelineNodeType);
+          break;
+      }
     });
 
     // 链接
     edges.forEach((edge) => {
+      // 获取节点数据
       const sourceKey = findNodeLabelById(edge.source);
+      const pSourceNode = pipelineObj[prefix + sourceKey];
+      if (!pSourceNode) return;
       const targetKey = findNodeLabelById(edge.target);
-      const pNode = pipelineObj[prefix + sourceKey];
-      if (!pNode) return;
-      addLink(
-        pNode,
-        prefix + targetKey,
-        edge.sourceHandle as SourceHandleTypeEnum
-      );
+      const pTargetNode = pipelineObj[prefix + targetKey];
+      // 添加链接
+      const toPNodeKey = pTargetNode ? prefix + targetKey : targetKey;
+      const linkType = edge.sourceHandle as SourceHandleTypeEnum;
+      if (!(linkType in pSourceNode)) pSourceNode[linkType] = [];
+      pSourceNode[linkType].push(toPNodeKey);
     });
 
     // 配置
-    const generalConfig = useConfigStore.getState().configs;
     return generalConfig.isExportConfig
       ? {
           [configMarkPrefix + fileName]: {
@@ -379,6 +403,7 @@ function linkEdge(
   idOLPairs: IdLabelPairsType
 ): [EdgeType[], NodeType[]] {
   // 检索节点名
+  console.log(oSourceLabel, oTargetLabels, type, idOLPairs);
   const sourceId = idOLPairs.find((pair) => pair.label === oSourceLabel)
     ?.id as string;
   // 检查
@@ -439,12 +464,27 @@ export async function pipelineToFlow(options?: {
       // 处理节点名
       const id = "p_" + idCounter++;
       let label = objKey;
-      idOLPairs.push({ id, label });
-      originLabels.push(label);
-      const prefix = configs.prefix;
-      if (prefix) label = label.substring(prefix.length + 1);
+      // 删除前后缀
+      let type = NodeTypeEnum.Pipeline;
+      if (objKey.startsWith(externalMarkPrefix)) {
+        type = NodeTypeEnum.External;
+        label = label.substring(externalMarkPrefix.length);
+        const filename = configs.filename;
+        if (filename)
+          label = label.substring(0, label.length - filename.length - 1);
+        originLabels.push(label);
+        idOLPairs.push({ id, label });
+      } else {
+        originLabels.push(label);
+        idOLPairs.push({ id, label });
+        const prefix = configs.prefix;
+        if (prefix) label = label.substring(prefix.length + 1);
+      }
       // 解析数据
-      const node = createPipelineNode(id, { label });
+      const node =
+        type === NodeTypeEnum.Pipeline
+          ? createPipelineNode(id, { label })
+          : (createExternalNode(id, { label }) as PipelineNodeType);
       const keys = Object.keys(obj);
       keys.forEach((key) => {
         // 跳过链接
@@ -483,8 +523,11 @@ export async function pipelineToFlow(options?: {
         else node.data.extras[key] = value;
       });
       // 检查节点
-      node.data.recognition.param ??= {};
-      node.data.action.param ??= {};
+      if (type === NodeTypeEnum.Pipeline) {
+        node.data.recognition.param ??= {};
+        node.data.action.param ??= {};
+      }
+      // 保存数据
       nodes.push(node);
     });
 
@@ -493,6 +536,7 @@ export async function pipelineToFlow(options?: {
     for (let index = 0; index < originLabels.length; index++) {
       const objKey = originLabels[index];
       const obj = v1Obj[objKey];
+      if (!obj) continue;
       const originLabel = originLabels[index];
       // next
       const next = obj["next"] as string[];
