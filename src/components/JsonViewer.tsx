@@ -1,6 +1,6 @@
 import style from "../styles/JsonViewer.module.less";
 
-import { memo, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import ReactJsonView, {
   type ReactJsonViewProps,
 } from "@microlink/react-json-view";
@@ -15,6 +15,26 @@ import {
 } from "../core/parser";
 import { ClipboardHelper } from "../utils/clipboard";
 import { useConfigStore } from "../stores/configStore";
+
+// viewer
+const ViewerElem = memo(({ obj }: { obj: any }) => {
+  // 过滤器
+  const shouldCollapse = useCallback((field: ReactJsonViewProps) => {
+    return (
+      field.name === uniqueMark ||
+      (field.name as string).startsWith(configMarkPrefix)
+    );
+  }, []);
+
+  return (
+    <ReactJsonView
+      src={obj}
+      enableClipboard={false}
+      iconStyle="square"
+      shouldCollapse={shouldCollapse}
+    />
+  );
+});
 
 function JsonViewer() {
   // store
@@ -44,14 +64,6 @@ function JsonViewer() {
       isPartable ? { nodes: selectedNodes, edges: selectedEdges } : {}
     );
   }, [rtpTrigger]);
-
-  // 折叠项
-  const shouldCollapse = (field: ReactJsonViewProps) => {
-    return (
-      field.name === uniqueMark ||
-      (field.name as string).startsWith(configMarkPrefix)
-    );
-  };
 
   // 渲染
   return (
@@ -117,12 +129,10 @@ function JsonViewer() {
           </Flex>
         </div>
       </div>
+      {/* <div className={style.divider}></div> */}
       <div className={style["viewer-container"]}>
-        <ReactJsonView
-          src={(isRealTimePreview ? rtpPipelineObj : manuPelineObj) as any}
-          enableClipboard={false}
-          iconStyle="square"
-          shouldCollapse={shouldCollapse}
+        <ViewerElem
+          obj={(isRealTimePreview ? rtpPipelineObj : manuPelineObj) as any}
         />
       </div>
     </div>
