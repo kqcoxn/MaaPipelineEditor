@@ -29,7 +29,7 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
 
 ## 简介
 
-**MaaPipelineEditor (MPE)** 是基于 Web 前端相关开发框架、运用 [YAMaaPE](https://github.com/kqcoxn/YAMaaPE) 开发经验去芜存菁、资源开发者充分微调、完全重写的 [MaaFramework](https://github.com/MaaXYZ/MaaFramework) [Pipeline](https://maafw.xyz/docs/3.1-PipelineProtocol.html) 工作流式可视化编辑器。
+**MaaPipelineEditor (MPE)** 是基于一款 Web 前端相关开发框架、运用 [YAMaaPE](https://github.com/kqcoxn/YAMaaPE) 开发经验去芜存菁、资源开发者充分微调、完全重写的 [MaaFramework](https://github.com/MaaXYZ/MaaFramework) [Pipeline](https://maafw.xyz/docs/3.1-PipelineProtocol.html) 工作流式可视化编辑器。
 
 **_“由您设计，由我们支持。”_** 如您所需皆已存在：添加、配置、连接，只需稍作思考，想法之外尽在其中！
 
@@ -39,6 +39,9 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
 - ~~[稳定版](https://yamaape.codax.site/MaaPipelineEditor)~~（即将上线！）
 - [预览版](https://kqcoxn.github.io/MaaPipelineEditor/)（最新推送）
 - [YAMaaPE](https://yamaape.codax.site)（重构前版本）
+
+> [!IMPORTANT]
+> 由于 MPE 本身不属于 [MaaXYZ](https://github.com/MaaXYZ) 官方维护项目，因此部分特性适配可能存在延迟或遗漏。若您发现相关问题，请提交 ISSUE 或 PR，或在集成开发交流群内指正。
 
 ## 讨论与帮助
 
@@ -64,6 +67,8 @@ MPE 项目本身没有交流群，但您可以在 MaaFramework 集成/开发交�
   A JavaScript library for building user interfaces.
 - [zustand](https://github.com/pmndrs/zustand)  
   A small, fast and scalable bearbones state-management solution using simplified flux principles.
+- [ahooks](https://github.com/alibaba/hooks)  
+  A high-quality & reliable React Hooks library.
 - [xyflow/react](https://github.com/xyflow/xyflow/tree/main/packages/react)  
   Powerful open source libraries for building node-based UIs with React.
 - [ant-design](https://github.com/ant-design/ant-design)  

@@ -1,7 +1,7 @@
 import { CSS } from "@dnd-kit/utilities";
 import style from "../../styles/FilePanel.module.less";
 
-import React, { useState, memo, useMemo, useCallback } from "react";
+import React, { useState, memo, useMemo, useCallback, useEffect } from "react";
 import {
   closestCenter,
   DndContext,
@@ -46,6 +46,7 @@ const DraggableTabNode: React.FC<Readonly<DraggableTabPaneProps>> = memo(
 
 function FilePanel() {
   // 当前文件名
+  const files = useFileStore((state) => state.files);
   const fileName = useFileStore((state) => state.currentFile.fileName);
   const setFileName = useFileStore((state) => state.setFileName);
   const switchFile = useFileStore((state) => state.switchFile);
@@ -56,19 +57,18 @@ function FilePanel() {
   >("");
 
   // 文件列表
-  const files = useFileStore((state) => state.files);
+  const [activeKey, setActiveKey] = useState("");
   const tabs = useMemo(() => {
+    setActiveKey(fileName);
     return files.map((file) => ({
       key: file.fileName,
       label: file.fileName,
     }));
   }, [files, fileName]);
-
   // 变化监测
   const sensor = useSensor(PointerSensor, {
     activationConstraint: { distance: 10 },
   });
-  const [activeKey, setActiveKey] = useState(tabs[0].key);
   const onLabelChange = useCallback((e: any) => {
     const key = e.target.value;
     const isValid = setFileName(key);

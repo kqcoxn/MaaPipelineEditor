@@ -21,6 +21,7 @@ import {
   type Viewport,
   useKeyPress,
 } from "@xyflow/react";
+import { useDebounceEffect } from "ahooks";
 
 import {
   useFlowStore,
@@ -30,6 +31,7 @@ import {
 import { useConfigStore } from "../stores/configStore";
 import { nodeTypes } from "./flow/nodes";
 import { edgeTypes } from "./flow/edges";
+import { localSave, useFileStore } from "../stores/fileStore";
 
 /**工作流 */
 // 按键监听
@@ -103,6 +105,25 @@ const ViewportChangeMonitor = memo(() => {
   });
   return null;
 });
+// 更新器
+const UpdateMonitor = memo(() => {
+  const bfSelectedNodes = useFlowStore((state) => state.bfSelectedNodes);
+  const bfSelectedEdges = useFlowStore((state) => state.bfSelectedEdges);
+  const bfTargetNode = useFlowStore((state) => state.bfTargetNode);
+  const filesLength = useFileStore((state) => state.files.length);
+
+  useDebounceEffect(
+    () => {
+      localSave();
+    },
+    [bfSelectedNodes, bfSelectedEdges, bfTargetNode, filesLength],
+    {
+      wait: 500,
+    }
+  );
+
+  return null;
+});
 
 function MainFlow() {
   // store
@@ -168,6 +189,7 @@ function MainFlow() {
         <InstanceMonitor />
         <ViewportChangeMonitor />
         <KeyListener targetRef={selfElem} />
+        <UpdateMonitor />
       </ReactFlow>
     </div>
   );

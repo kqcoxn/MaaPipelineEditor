@@ -2,6 +2,7 @@ import { create } from "zustand";
 
 import { useFlowStore, type NodeType, type EdgeType } from "./flowStore";
 import { message } from "antd";
+import { JsonHelper } from "../utils/jsonHelper";
 
 /**固有配置 */
 export const globalConfig = {
@@ -24,6 +25,7 @@ type ConfigState = {
     value: ConfigState["configs"][K],
     refresh?: boolean
   ) => void;
+  replaceConfig: (configs: any) => void;
   // 状态
   status: {
     showConfigPanel: boolean;
@@ -52,6 +54,17 @@ export const useConfigStore = create<ConfigState>()((set) => ({
       const configs = state.configs;
       configs[key] = value;
       return refresh ? { ...configs } : {};
+    });
+  },
+  replaceConfig(configs) {
+    set((state) => {
+      if (JsonHelper.isStringObj(configs)) configs = JSON.parse(configs);
+      const keys = Object.keys(state.configs);
+      const newConfigs: Record<string, any> = {};
+      Object.keys(configs).forEach((key) => {
+        if (keys.includes(key)) newConfigs[key] = configs[key];
+      });
+      return { configs: { ...state.configs, ...newConfigs } };
     });
   },
   // 状态

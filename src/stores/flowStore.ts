@@ -369,6 +369,7 @@ interface FlowState {
   selectedNodes: any[];
   bfSelectedNodes: any[];
   targetNode: any;
+  bfTargetNode: any;
   edges: any[];
   selectedEdges: any[];
   bfSelectedEdges: any[];
@@ -398,6 +399,7 @@ export const useFlowStore = create<FlowState>()((set) => ({
   selectedNodes: [],
   bfSelectedNodes: [],
   targetNode: null,
+  bfTargetNode: null,
   edges: [],
   selectedEdges: [],
   bfSelectedEdges: [],
@@ -428,6 +430,9 @@ export const useFlowStore = create<FlowState>()((set) => ({
         setter.targetNode = null;
       } else if (!selectedNodes[0].dragging) {
         setter.targetNode = selectedNodes[0];
+      }
+      if ("targetNode" in setter) {
+        buData("bfTargetNode", setter.targetNode);
       }
       return setter;
     });
@@ -543,6 +548,7 @@ export const useFlowStore = create<FlowState>()((set) => ({
       }
 
       nodes[nodeIndex] = targetNode;
+      buData("bfTargetNode", targetNode);
       return { nodes, targetNode };
     });
     // 检查重复
@@ -637,6 +643,7 @@ export const useFlowStore = create<FlowState>()((set) => ({
         selectedNodes: [],
         bfSelectedNodes: [],
         targetNode: null,
+        bfTargetNode: null,
       };
       fitFlowView();
       return setter;
@@ -676,8 +683,13 @@ export const useFlowStore = create<FlowState>()((set) => ({
 
       return {
         nodes: [...originNodes, ...nodes],
+        selectedNodes: nodes,
+        bfSelectedNodes: nodes,
         edges: [...originEdges, ...edges],
+        selectedEdges: edges,
+        bfSelectedEdges: edges,
         targetNode: null,
+        bfTargetNode: null,
       };
     });
     // 自动聚焦

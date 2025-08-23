@@ -18,6 +18,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@microlink/react-json-view": "^1.27.0",
     "@xyflow/react": "^12.7.1",
+    "ahooks": "^3.9.4",
     "antd": "^5.26.2",
     "classnames": "^2.5.1",
     "lodash": "^4.17.21",
