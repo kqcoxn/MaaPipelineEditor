@@ -197,11 +197,10 @@ function matchParamType(params: ParamType, types: FieldType[]): ParamType {
             break;
           // Any
           case FieldTypeEnum.Any:
-            temp = String(value).replaceAll(/[“”]/g, `"`);
-            try {
-              matchedValue = JSON.parse(temp);
-            } catch {
-              matchedValue = temp;
+            if (JsonHelper.isObj(value)) matchedValue = value;
+            else {
+              temp = String(value).replaceAll(/[“”]/g, `"`);
+              matchedValue = JsonHelper.stringObjToJson(temp) ?? temp;
             }
             break;
           // ObjectList
@@ -209,10 +208,11 @@ function matchParamType(params: ParamType, types: FieldType[]): ParamType {
             if (Array.isArray(value)) {
               const objList = [];
               for (let obj of value) {
-                try {
-                  objList.push(JSON.parse(obj));
-                } catch {
-                  break;
+                if (JsonHelper.isObj(obj)) objList.push(obj);
+                else {
+                  temp = String(obj).replaceAll(/[“”]/g, `"`);
+                  JsonHelper.isStringObj(temp) &&
+                    objList.push(JsonHelper.stringObjToJson(temp));
                 }
               }
               if (objList.length === value.length) {
