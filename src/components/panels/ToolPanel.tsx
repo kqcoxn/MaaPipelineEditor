@@ -3,13 +3,13 @@ import style from "../../styles/ToolPanel.module.less";
 import { memo, useMemo } from "react";
 import { message, Tooltip } from "antd";
 import classNames from "classnames";
-
 import IconFont from "../iconfonts";
 import { type IconNames } from "../iconfonts";
+
 import { useFlowStore } from "../../stores/flowStore";
-import { NodeTypeEnum } from "../flow/nodes";
 import { useConfigStore } from "../../stores/configStore";
-import { autoLayout } from "../../core/layout";
+import { NodeTypeEnum } from "../flow/nodes";
+import { LayoutHelper, AlignmentEnum } from "../../core/layout";
 
 /**添加工具 */
 interface AddToolType {
@@ -139,7 +139,7 @@ type GlobalToolType = {
   iconSize?: number;
   disabled?: boolean;
   onClick: () => void;
-  onDisableClick?: () => void;
+  onDisabledClick?: () => void;
 };
 function GlobalPanel() {
   // store
@@ -164,14 +164,14 @@ function GlobalPanel() {
         iconSize: 25,
         disabled: selectedNodes.length === 0,
         onClick: () => setClipBoard(),
-        onDisableClick: () => message.error("未选中节点"),
+        onDisabledClick: () => message.error("未选中节点"),
       },
       {
         label: "粘贴 (Ctrl+V)",
         iconName: "icon-niantie1",
         iconSize: 29,
         disabled: clipBoard.nodes.length === 0,
-        onDisableClick: () => message.error("粘贴板中无已复制节点"),
+        onDisabledClick: () => message.error("粘贴板中无已复制节点"),
         onClick: () => applyClipBoard(),
       },
       // {
@@ -195,7 +195,7 @@ function GlobalPanel() {
               size={item.iconSize ?? 24}
               onClick={() => {
                 if (item.disabled) {
-                  item.onDisableClick?.();
+                  item.onDisabledClick?.();
                   return;
                 }
                 item.onClick?.();
@@ -226,19 +226,51 @@ interface LayoutToolType {
   iconName: string;
   iconSize?: number;
   disabled?: boolean;
-  onClick: () => any;
+  onClick: () => void;
+  onDisabledClick?: () => void;
 }
 function LayoutPanel() {
+  const selectedNodes = useFlowStore((state) => state.bfSelectedNodes);
+
   const layoutTools = useMemo<LayoutToolType[]>(() => {
     return [
+      {
+        label: "居中对齐",
+        iconName: "icon-jurassic_horizalign-center",
+        iconSize: 30,
+        disabled: selectedNodes.length < 2,
+        onClick: () => LayoutHelper.align(AlignmentEnum.Center, selectedNodes),
+        onDisabledClick: () =>
+          message.error("请选择两个以上的节点进行对齐操作"),
+      },
+      {
+        label: "顶部对齐",
+        iconName: "icon-jurassic_verticalalign-top",
+        iconSize: 30,
+        disabled: selectedNodes.length < 2,
+        onClick: () => LayoutHelper.align(AlignmentEnum.Top, selectedNodes),
+        onDisabledClick: () =>
+          message.error("请选择两个以上的节点进行对齐操作"),
+      },
+      {
+        label: "底部对齐",
+        iconName: "icon-jurassic_verticalalign-bottom",
+        iconSize: 30,
+        disabled: selectedNodes.length < 2,
+        onClick: () => LayoutHelper.align(AlignmentEnum.Bottom, selectedNodes),
+        onDisabledClick: () =>
+          message.error("请选择两个以上的节点进行对齐操作"),
+      },
       {
         label: "自动布局",
         iconName: "icon-liuchengtu",
         iconSize: 30,
-        onClick: () => autoLayout(),
+        disabled: selectedNodes.length > 0,
+        onClick: () => LayoutHelper.auto(),
+        onDisabledClick: () => message.error("自动布局仅支持全局操作"),
       },
     ];
-  }, []);
+  }, [selectedNodes]);
 
   // 生成
   const tools = layoutTools.map((item, index) => {
@@ -251,7 +283,13 @@ function LayoutPanel() {
               className={style.icon}
               name={item.iconName as IconNames}
               size={item.iconSize ?? 24}
-              onClick={() => item.onClick?.()}
+              onClick={() => {
+                if (item.disabled) {
+                  item.onDisabledClick?.();
+                  return;
+                }
+                item.onClick?.();
+              }}
             />
           </Tooltip>
         </li>

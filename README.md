@@ -57,7 +57,7 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
 - [zustand](https://github.com/pmndrs/zustand)  
   A small, fast and scalable bearbones state-management solution using simplified flux principles.
 - [xyflow/react](https://github.com/xyflow/xyflow/tree/main/packages/react)  
-  Powerful open source libraries for building node-based UIs with React or Svelte.
+  Powerful open source libraries for building node-based UIs with React.
 - [ant-design](https://github.com/ant-design/ant-design)  
   An enterprise-class UI design language and React UI library.
 - [react-json-view](https://github.com/microlinkhq/react-json-view)  
@@ -74,10 +74,16 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
   A modern JavaScript utility library delivering modularity, performance & extras.
 - ~~[vue.js](https://github.com/vuejs/vue)~~  
   ~~An approachable, performant and versatile framework for building web user interfaces.~~
+- ~~[pinia](https://github.com/vuejs/pinia)~~  
+  ~~Intuitive, type safe and flexible Store for Vue~~
 - ~~[sass](https://github.com/sass/sass)~~  
   ~~Sass is an extension of CSS, adding nested rules, variables, mixins, selector inheritance, and more.~~
 - ~~[vue-flow](https://github.com/bcakmakoglu/vue-flow)~~  
   ~~A highly customizable Flowchart component for Vue 3.~~
+- ~~[element-plus](https://github.com/element-plus/element-plus)~~  
+  ~~A Vue.js 3 UI library~~
+- ~~[json-editor-vue](https://github.com/cloydlau/json-editor-vue)~~  
+  ~~Vue and Nuxt 2/3 isomorphic JSON editor, viewer, formatter and validator.~~
 
 ### 开发者
 
