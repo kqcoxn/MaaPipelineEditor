@@ -453,13 +453,22 @@ export const useFlowStore = create<FlowState>()((set) => ({
       let nodes = select ? getUnselectedNodes() : [...state.nodes];
       // 创建节点
       let id = String(nodeIdCounter++);
-      let label = "新建节点" + id;
+      let labelBase;
+      switch (type) {
+        case NodeTypeEnum.Pipeline:
+          labelBase = "新建节点";
+          break;
+        case NodeTypeEnum.External:
+          labelBase = "外部节点";
+          break;
+      }
+      let label = labelBase + id;
       while (findNodeByLabel(label)) {
         id = String(nodeIdCounter++);
-        label = "新建节点" + id;
+        label = labelBase + id;
       }
       const nodeOptions = {
-        label: "新建节点" + id,
+        label,
         position: position ?? calcuNodePosition(),
         datas: data,
         select,

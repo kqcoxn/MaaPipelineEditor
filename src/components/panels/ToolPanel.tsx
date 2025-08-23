@@ -87,9 +87,6 @@ function AddPanel() {
         iconName: "icon-xiaofangtongdao",
         iconSize: 24,
         nodeType: NodeTypeEnum.External,
-        data: () => ({
-          label: "外部节点",
-        }),
       },
     ],
     []

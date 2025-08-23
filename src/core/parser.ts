@@ -393,13 +393,14 @@ function linkEdge(
   oTargetLabels: string[],
   type: SourceHandleTypeEnum,
   idOLPairs: IdLabelPairsType
-): [EdgeType[], NodeType[]] {
+): [EdgeType[], NodeType[], IdLabelPairsType] {
   // 检索节点名
   const sourceId = idOLPairs.find((pair) => pair.label === oSourceLabel)
     ?.id as string;
   // 检查
   const edges: EdgeType[] = [];
   const nodes: NodeType[] = [];
+  const newIdOLPairs: IdLabelPairsType = [];
   if (!Array.isArray(oTargetLabels)) oTargetLabels = [oTargetLabels];
   oTargetLabels.forEach((targetLabel, index) => {
     let targetId = idOLPairs.find((pair) => pair.label === targetLabel)?.id;
@@ -407,8 +408,12 @@ function linkEdge(
     const externalId = "e_" + idCounter++;
     if (!targetId) {
       const node = createExternalNode(externalId, { label: targetLabel });
-      nodes.push(node);
       targetId = node.id;
+      nodes.push(node);
+      newIdOLPairs.push({
+        id: targetId,
+        label: targetLabel,
+      });
     }
     // 连接
     edges.push({
@@ -421,7 +426,7 @@ function linkEdge(
       type: "marked",
     });
   });
-  return [edges, nodes];
+  return [edges, nodes, newIdOLPairs];
 }
 
 // 转换
@@ -452,7 +457,7 @@ export async function pipelineToFlow(options?: {
     // 解析节点
     let nodes: NodeType[] = [];
     const originLabels: string[] = [];
-    const idOLPairs: IdLabelPairsType = [];
+    let idOLPairs: IdLabelPairsType = [];
     objKeys.forEach((objKey) => {
       const obj = v1Obj[objKey];
       // 跳过配置
@@ -537,38 +542,41 @@ export async function pipelineToFlow(options?: {
       // next
       const next = obj["next"] as string[];
       if (next) {
-        const [newEdges, newNodes] = linkEdge(
+        const [newEdges, newNodes, newIdOLPairs] = linkEdge(
           originLabel,
           next,
           SourceHandleTypeEnum.Next,
           idOLPairs
         );
-        edges = edges.concat(newEdges);
-        nodes = nodes.concat(newNodes);
+        newEdges.length > 0 && (edges = edges.concat(newEdges));
+        newNodes.length > 0 && (nodes = nodes.concat(newNodes));
+        newIdOLPairs.length > 0 && (idOLPairs = idOLPairs.concat(newIdOLPairs));
       }
       // interrupt
       const interrupt = obj["interrupt"] as string[];
       if (interrupt) {
-        const [newEdges, newNodes] = linkEdge(
+        const [newEdges, newNodes, newIdOLPairs] = linkEdge(
           originLabel,
           interrupt,
           SourceHandleTypeEnum.Interrupt,
           idOLPairs
         );
-        edges = edges.concat(newEdges);
-        nodes = nodes.concat(newNodes);
+        newEdges.length > 0 && (edges = edges.concat(newEdges));
+        newNodes.length > 0 && (nodes = nodes.concat(newNodes));
+        newIdOLPairs.length > 0 && (idOLPairs = idOLPairs.concat(newIdOLPairs));
       }
       // on_error
       const onError = obj["on_error"] as string[];
       if (onError) {
-        const [newEdges, newNodes] = linkEdge(
+        const [newEdges, newNodes, newIdOLPairs] = linkEdge(
           originLabel,
           onError,
           SourceHandleTypeEnum.Error,
           idOLPairs
         );
-        edges = edges.concat(newEdges);
-        nodes = nodes.concat(newNodes);
+        newEdges.length > 0 && (edges = edges.concat(newEdges));
+        newNodes.length > 0 && (nodes = nodes.concat(newNodes));
+        newIdOLPairs.length > 0 && (idOLPairs = idOLPairs.concat(newIdOLPairs));
       }
     }
 
