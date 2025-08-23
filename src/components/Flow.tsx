@@ -56,7 +56,6 @@ const KeyListener = memo(
     );
 
     // 删除节点
-    console.log(targetRef.current);
     const deletePressed = useKeyPress("Delete", keyPressOptions);
     useEffect(() => {
       if (!deletePressed || selectedNodes.length === 0) return;

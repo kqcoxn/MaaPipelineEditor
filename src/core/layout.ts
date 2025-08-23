@@ -9,7 +9,7 @@ import {
 export function autoLayout() {
   // 初始化
   const g = new Dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: "LR" });
+  g.setGraph({ rankdir: "LR", ranksep: 80 });
   // 加载节点
   const flowState = useFlowStore.getState();
   const nodes = flowState.nodes as NodeType[];
