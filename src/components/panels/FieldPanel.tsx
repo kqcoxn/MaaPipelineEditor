@@ -371,6 +371,10 @@ const PipelineElem = lazy(() =>
       );
 
       // 自定义节点
+      const currentExtra = useMemo(() => {
+        const extra = currentNode.data.extras;
+        return JsonHelper.objToString(extra) ?? extra;
+      }, [currentNode]);
       const handleExtraChange = useCallback(
         (value: string) => {
           setNodeData(currentNode.id, "extras", "extras", value);
@@ -583,7 +587,7 @@ const PipelineElem = lazy(() =>
             <Popover
               placement="left"
               title={"extras"}
-              content={"自定义字段，JSON格式，会直接渲染在节点上"}
+              content={"自定义字段，JSON格式，会直接将一级字段渲染在节点上"}
             >
               <div className={classNames([style.key, style["head-key"]])}>
                 extras
@@ -593,6 +597,7 @@ const PipelineElem = lazy(() =>
               <TextArea
                 placeholder="自定义字段，完整 JSON 格式"
                 autoSize={{ minRows: 1, maxRows: 6 }}
+                value={currentExtra}
                 onChange={(e) => handleExtraChange(e.target.value)}
               />
             </div>

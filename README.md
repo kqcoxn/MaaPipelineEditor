@@ -12,6 +12,8 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
 
 目前您仍然可以访问 [现有版本**在线编辑器**](https://yamaape.codax.site)
 
+~~[在线使用](https://yamaape.codax.site/MaaPipelineEditor)~~ · ~~[文档](https://yamaape.codax.site/docs)~~ · [讨论](#讨论与帮助)
+
 </div>
 
 <p align="center">
@@ -25,13 +27,9 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
   <a href="https://github.com/kqcoxn/MaaPipelineEditor/commits/main/" target="_blank"><img alt="committs" src="https://img.shields.io/github/commit-activity/m/kqcoxn/MaaPipelineEditor?color=%23ff69b4"></a>
 </p>
 
-<div align="center">
-
-</div>
-
 ## 简介
 
-**MaaPipelineEditor** 是基于 Web 前端相关开发框架、运用 [YAMaaPE](https://github.com/kqcoxn/YAMaaPE) 开发经验去芜存菁、资源开发者充分微调、完全重写的 [MaaFramework](https://github.com/MaaXYZ/MaaFramework) [Pipeline](https://maafw.xyz/docs/3.1-PipelineProtocol.html) 工作流式可视化编辑器。
+**MaaPipelineEditor (MPE)** 是基于 Web 前端相关开发框架、运用 [YAMaaPE](https://github.com/kqcoxn/YAMaaPE) 开发经验去芜存菁、资源开发者充分微调、完全重写的 [MaaFramework](https://github.com/MaaXYZ/MaaFramework) [Pipeline](https://maafw.xyz/docs/3.1-PipelineProtocol.html) 工作流式可视化编辑器。
 
 **_“由您设计，由我们支持。”_** 如您所需皆已存在：添加、配置、连接，只需稍作思考，想法之外尽在其中！
 
@@ -42,7 +40,17 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
 - [预览版](https://kqcoxn.github.io/MaaPipelineEditor/)（最新推送）
 - [YAMaaPE](https://yamaape.codax.site)（重构前版本）
 
+## 讨论与帮助
+
+MPE 项目本身没有交流群，但您可以在 MaaFramework 集成/开发交流 QQ 群（[595990173](https://qm.qq.com/q/gqSv6ukjV8)）询问相关问题或参与讨论。
+
 ## 鸣谢
+
+### 开发者
+
+感谢以下开发者对 MaaPipelineEditor 作出的贡献：
+
+[![贡献者](https://contrib.rocks/image?repo=kqcoxn/MaaPipelineEditor)](https://github.com/kqcoxn/MaaPipelineEditor/graphs/contributors)
 
 ### 开源库/框架
 
@@ -85,20 +93,10 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
 - ~~[json-editor-vue](https://github.com/cloydlau/json-editor-vue)~~  
   ~~Vue and Nuxt 2/3 isomorphic JSON editor, viewer, formatter and validator.~~
 
-### 开发者
-
-感谢以下开发者对 MaaPipelineEditor 作出的贡献：
-
-[![贡献者](https://contrib.rocks/image?repo=kqcoxn/MaaPipelineEditor)](https://github.com/kqcoxn/MaaPipelineEditor/graphs/contributors)
-
 ### 特别感谢
 
 - [MaaFramework](https://github.com/MaaXYZ/MaaFramework)
 
-## 讨论
-
-- MaaFramework 集成/开发交流 QQ 群: [595990173](https://qm.qq.com/q/gqSv6ukjV8)
-
 ## 其他
 
-原项目备份仓库：https://github.com/kqcoxn/YAMaaPE
+- 原项目备份仓库：https://github.com/kqcoxn/YAMaaPE

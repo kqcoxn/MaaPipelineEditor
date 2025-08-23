@@ -49,6 +49,21 @@ const PNodeDataContent = memo(
     props: NodeProps;
     targetNode?: NodeType;
   }) => {
+    const ExtrasElem = useMemo(() => {
+      if (JsonHelper.isObj(data.extras)) {
+        return Object.keys(data.extras).map((key) => (
+          <KVElem key={key} paramKey={key} value={data.extras[key]} />
+        ));
+      }
+      const extras = JsonHelper.stringObjToJson(data.extras);
+      if (extras) {
+        return Object.keys(extras).map((key) => (
+          <KVElem key={key} paramKey={key} value={extras[key]} />
+        ));
+      }
+      return null;
+    }, [data.extras]);
+
     return (
       <>
         <div className={style.title}>{data.label}</div>
@@ -73,9 +88,7 @@ const PNodeDataContent = memo(
             {Object.keys(data.others).map((key) => (
               <KVElem key={key} paramKey={key} value={data.others[key]} />
             ))}
-            {JsonHelper.isStringObj(data.extras) ? (
-              <KVElem paramKey={"extras"} value={data.extras} />
-            ) : null}
+            {ExtrasElem}
           </ul>
         </ul>
         <Handle
