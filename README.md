@@ -41,7 +41,7 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
 
 - ~~[文档站](https://yamaape.codax.site/docs)~~（即将上线！）
 - ~~[稳定版](https://yamaape.codax.site/MaaPipelineEditor)~~（即将上线！）
-- [预览版](https://kqcoxn.github.io/MaaPipelineEditor/)（最新推送）
+- [预览版](https://kqcoxn.github.io/MaaPipelineEditor/)（最新推送，未彻底结束重构前不建议使用）
 - [YAMaaPE](https://yamaape.codax.site)（重构前版本）
 
 > [!IMPORTANT]
@@ -59,7 +59,11 @@ MPE 项目本身没有交流群，但您可以在 MaaFramework 集成/开发交�
 
 [![贡献者](https://contrib.rocks/image?repo=kqcoxn/MaaPipelineEditor)](https://github.com/kqcoxn/MaaPipelineEditor/graphs/contributors)
 
-### 开源库/框架
+### 特别感谢
+
+- [MaaFramework](https://github.com/MaaXYZ/MaaFramework)
+
+### 框架/依赖
 
 - [vite](https://github.com/vitejs/vite)  
   Next Generation Frontend Tooling.
@@ -89,22 +93,24 @@ MPE 项目本身没有交流群，但您可以在 MaaFramework 集成/开发交�
   Use pure JS to convert iconfont.cn icons into React components.
 - [lodash](https://github.com/lodash/lodash)  
   A modern JavaScript utility library delivering modularity, performance & extras.
-- ~~[vue.js](https://github.com/vuejs/vue)~~  
-  ~~An approachable, performant and versatile framework for building web user interfaces.~~
+- [vitepress](https://github.com/vuejs/vitepress)  
+  Vite & Vue powered static site generator.
+- [vue.js](https://github.com/vuejs/vue)
+  An approachable, performant and versatile framework for building web user interfaces.
+- [sass](https://github.com/sass/sass)
+  An extension of CSS, adding nested rules, variables, mixins, selector inheritance, and more.
+- [vitepress-theme-teek](https://github.com/lodash/lodash)  
+  A lightweight, simple and efficient VitePress theme that is flexible to configure and easy to expand.
+- [vitepress-plugin-llms](https://github.com/okineadev/vitepress-plugin-llms)
+  A VitePress plugin for generating LLM-friendly documentation.
 - ~~[pinia](https://github.com/vuejs/pinia)~~  
   ~~Intuitive, type safe and flexible Store for Vue~~
-- ~~[sass](https://github.com/sass/sass)~~  
-  ~~Sass is an extension of CSS, adding nested rules, variables, mixins, selector inheritance, and more.~~
 - ~~[vue-flow](https://github.com/bcakmakoglu/vue-flow)~~  
   ~~A highly customizable Flowchart component for Vue 3.~~
 - ~~[element-plus](https://github.com/element-plus/element-plus)~~  
   ~~A Vue.js 3 UI library~~
 - ~~[json-editor-vue](https://github.com/cloydlau/json-editor-vue)~~  
   ~~Vue and Nuxt 2/3 isomorphic JSON editor, viewer, formatter and validator.~~
-
-### 特别感谢
-
-- [MaaFramework](https://github.com/MaaXYZ/MaaFramework)
 
 ## 其他
 
