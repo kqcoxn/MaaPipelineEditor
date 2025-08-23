@@ -12,8 +12,6 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
 
 目前您仍然可以访问 [现有版本**在线编辑器**](https://yamaape.codax.site)
 
-~~[在线使用](https://yamaape.codax.site/MaaPipelineEditor)~~ · ~~[文档](https://yamaape.codax.site/docs)~~ · [讨论](#讨论与帮助)
-
 </div>
 
 <p align="center">
@@ -26,6 +24,12 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
   <a href="https://github.com/kqcoxn/MaaPipelineEditor/stargazers" target="_blank"><img alt="stars" src="https://img.shields.io/github/stars/kqcoxn/MaaPipelineEditor?style=social"></a>
   <a href="https://github.com/kqcoxn/MaaPipelineEditor/commits/main/" target="_blank"><img alt="committs" src="https://img.shields.io/github/commit-activity/m/kqcoxn/MaaPipelineEditor?color=%23ff69b4"></a>
 </p>
+
+<div align="center">
+
+~~[在线使用](https://yamaape.codax.site/MaaPipelineEditor)~~ · ~~[文档](https://yamaape.codax.site/docs)~~ · [讨论](#讨论与帮助)
+
+</div>
 
 ## 简介
 
