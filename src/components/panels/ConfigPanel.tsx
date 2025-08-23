@@ -8,7 +8,7 @@ import IconFont from "../iconfonts";
 import { checkRepateNodeLabelList } from "../../stores/flowStore";
 import { useConfigStore } from "../../stores/configStore";
 import { useFileStore } from "../../stores/fileStore";
-import { configMarkPrefix, uniqueMark } from "../../core/parser";
+import { configMarkPrefix, configMark } from "../../core/parser";
 
 const TipElem = memo(({ content }: { content: string }) => (
   <div style={{ maxWidth: 260 }}>{content}</div>
@@ -172,7 +172,7 @@ function ConfigPanel() {
               title={"导出时附带配置"}
               content={
                 <TipElem
-                  content={`将Pipeline配置保存至"${configMarkPrefix}"，将节点配置保存至"${uniqueMark}"，若不开启则在再次导入时会丢失位置、前缀等信息`}
+                  content={`将Pipeline配置保存至"${configMarkPrefix}"，将节点配置保存至"${configMark}"，若不开启则在再次导入时会丢失位置、前缀等信息`}
                 />
               }
             >

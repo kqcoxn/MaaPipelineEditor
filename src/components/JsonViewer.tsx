@@ -9,7 +9,7 @@ import { Button, Flex } from "antd";
 import { useFlowStore, type NodeType } from "../stores/flowStore";
 import {
   flowToPipeline,
-  uniqueMark,
+  configMark,
   configMarkPrefix,
   externalMarkPrefix,
   pipelineToFlow,
@@ -22,7 +22,7 @@ const ViewerElem = memo(({ obj }: { obj: any }) => {
   // 过滤器
   const shouldCollapse = useCallback((field: ReactJsonViewProps) => {
     return (
-      field.name === uniqueMark ||
+      field.name === configMark ||
       (field.name as string).startsWith(configMarkPrefix) ||
       (field.name as string).startsWith(externalMarkPrefix)
     );

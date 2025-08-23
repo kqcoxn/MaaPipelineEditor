@@ -30,11 +30,11 @@ import { NodeTypeEnum, SourceHandleTypeEnum } from "../components/flow/nodes";
 import { JsonHelper } from "../utils/jsonHelper";
 import { ClipboardHelper } from "../utils/clipboard";
 
-export const uniqueMark = "__mpe";
-export const configMarkPrefix = uniqueMark + "_config_";
-export const externalMarkPrefix = uniqueMark + "_external_";
+export const configMark = "__mpe_code";
+export const configMarkPrefix = "__mpe_config_";
+export const externalMarkPrefix = "__mpe_external_";
 type ParsedPipelineNodeType = {
-  [uniqueMark]?: {
+  [configMark]?: {
     position: { x: number; y: number };
   };
   recognition?: {
@@ -272,7 +272,7 @@ function parsePipelineNode(fNode: PipelineNodeType): ParsedPipelineNodeType {
   };
   if (useConfigStore.getState().configs.isExportConfig) {
     const position = fNode.position;
-    pNode[uniqueMark] = {
+    pNode[configMark] = {
       position: {
         x: Math.round(position.x),
         y: Math.round(position.y),
@@ -285,7 +285,7 @@ function parsePipelineNode(fNode: PipelineNodeType): ParsedPipelineNodeType {
 function parseExternalNode(fNode: PipelineNodeType): ParsedPipelineNodeType {
   const position = fNode.position;
   const pNode: ParsedPipelineNodeType = {
-    [uniqueMark]: {
+    [configMark]: {
       position: {
         x: Math.round(position.x),
         y: Math.round(position.y),
@@ -293,15 +293,6 @@ function parseExternalNode(fNode: PipelineNodeType): ParsedPipelineNodeType {
     },
   };
   return pNode;
-}
-// 链接
-function addLink(
-  fromPNode: ParsedPipelineNodeType,
-  toPNodeKey: string,
-  linkType: SourceHandleTypeEnum
-) {
-  if (!(linkType in fromPNode)) fromPNode[linkType] = [];
-  fromPNode[linkType].push(toPNodeKey);
 }
 
 // 转录
@@ -391,7 +382,7 @@ function isConfigKey(key: string): boolean {
   );
 }
 function isMark(key: string): boolean {
-  return key === uniqueMark || key === "__yamaape";
+  return key === configMark || key === "__yamaape";
 }
 
 // 合成链接
