@@ -348,16 +348,17 @@ export function flowToPipeline(datas?: {
     });
 
     // 配置
-    return generalConfig.isExportConfig
-      ? {
-          [configMarkPrefix + fileName]: {
-            ...config,
-            filename: fileState.currentFile.fileName,
-            version: globalConfig.version,
-          },
-          ...pipelineObj,
-        }
-      : pipelineObj;
+    if (!generalConfig.isExportConfig) return pipelineObj;
+    return {
+      [configMarkPrefix + fileName]: {
+        [configMark]: {
+          ...config,
+          filename: fileState.currentFile.fileName,
+          version: globalConfig.version,
+        },
+      },
+      ...pipelineObj,
+    };
   } catch (err) {
     notification.error({
       message: "导出失败！",
@@ -443,7 +444,11 @@ export async function pipelineToFlow(options?: {
     const objKeys = Object.keys(v1Obj);
     const configs: PipelineConfigType = {};
     const configKey = objKeys.find((objKey) => isConfigKey(objKey));
-    if (configKey) Object.assign(configs, v1Obj[configKey]);
+    if (configKey) {
+      let configObj = v1Obj[configKey];
+      if (configObj[configMark]) configObj = configObj[configMark];
+      Object.assign(configs, configObj);
+    }
     // 解析节点
     let nodes: NodeType[] = [];
     const originLabels: string[] = [];
