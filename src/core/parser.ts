@@ -403,12 +403,12 @@ function linkEdge(
   idOLPairs: IdLabelPairsType
 ): [EdgeType[], NodeType[]] {
   // 检索节点名
-  console.log(oSourceLabel, oTargetLabels, type, idOLPairs);
   const sourceId = idOLPairs.find((pair) => pair.label === oSourceLabel)
     ?.id as string;
   // 检查
   const edges: EdgeType[] = [];
   const nodes: NodeType[] = [];
+  if (!Array.isArray(oTargetLabels)) oTargetLabels = [oTargetLabels];
   oTargetLabels.forEach((targetLabel, index) => {
     let targetId = idOLPairs.find((pair) => pair.label === targetLabel)?.id;
     // 创建外部节点
