@@ -11,6 +11,7 @@ import {
   flowToPipeline,
   uniqueMark,
   configMarkPrefix,
+  externalMarkPrefix,
   pipelineToFlow,
 } from "../core/parser";
 import { ClipboardHelper } from "../utils/clipboard";
@@ -22,7 +23,8 @@ const ViewerElem = memo(({ obj }: { obj: any }) => {
   const shouldCollapse = useCallback((field: ReactJsonViewProps) => {
     return (
       field.name === uniqueMark ||
-      (field.name as string).startsWith(configMarkPrefix)
+      (field.name as string).startsWith(configMarkPrefix) ||
+      (field.name as string).startsWith(externalMarkPrefix)
     );
   }, []);
 
