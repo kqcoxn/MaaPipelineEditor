@@ -8,7 +8,7 @@
 
 _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 ✨_
 
-项目正在绝赞重构中！（预计 8 月底完全完成）
+**项目正在绝赞重构中！（预计 8 月底彻底完成）**
 
 目前您仍然可以访问 [现有版本**在线编辑器**](https://yamaape.codax.site)
 
@@ -27,7 +27,7 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
 
 <div align="center">
 
-~~[在线使用](https://yamaape.codax.site/MaaPipelineEditor)~~ · ~~[文档](https://yamaape.codax.site/docs)~~ · [讨论](#讨论与帮助)
+~~[🚀 在线使用](https://yamaape.codax.site/MaaPipelineEditor)~~ | [📖 文档](https://yamaape.codax.site/docs) | [💬 讨论反馈](#讨论与帮助)
 
 </div>
 
@@ -39,7 +39,7 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
 
 ## 开箱即用
 
-- ~~[文档站](https://yamaape.codax.site/docs)~~（即将上线！）
+- [文档站](https://yamaape.codax.site/docs)
 - ~~[稳定版](https://yamaape.codax.site/MaaPipelineEditor)~~（即将上线！）
 - [预览版](https://kqcoxn.github.io/MaaPipelineEditor/)（最新推送，未彻底结束重构前不建议使用）
 - [YAMaaPE](https://yamaape.codax.site)（重构前版本）
@@ -49,7 +49,7 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
 
 ## 讨论与帮助
 
-MPE 项目本身没有交流群，但您可以在 MaaFramework 集成/开发交流 QQ 群（[595990173](https://qm.qq.com/q/gqSv6ukjV8)）询问相关问题或参与讨论。
+MPE 项目没有单独的交流群，您可以在 MaaFramework 集成/开发交流 QQ 群（[595990173](https://qm.qq.com/q/gqSv6ukjV8)）询问相关问题或参与讨论。
 
 ## 鸣谢
 
@@ -95,13 +95,13 @@ MPE 项目本身没有交流群，但您可以在 MaaFramework 集成/开发交�
   A modern JavaScript utility library delivering modularity, performance & extras.
 - [vitepress](https://github.com/vuejs/vitepress)  
   Vite & Vue powered static site generator.
-- [vue.js](https://github.com/vuejs/vue)
+- [vue.js](https://github.com/vuejs/vue)  
   An approachable, performant and versatile framework for building web user interfaces.
-- [sass](https://github.com/sass/sass)
+- [sass](https://github.com/sass/sass)  
   An extension of CSS, adding nested rules, variables, mixins, selector inheritance, and more.
 - [vitepress-theme-teek](https://github.com/lodash/lodash)  
   A lightweight, simple and efficient VitePress theme that is flexible to configure and easy to expand.
-- [vitepress-plugin-llms](https://github.com/okineadev/vitepress-plugin-llms)
+- [vitepress-plugin-llms](https://github.com/okineadev/vitepress-plugin-llms)  
   A VitePress plugin for generating LLM-friendly documentation.
 - ~~[pinia](https://github.com/vuejs/pinia)~~  
   ~~Intuitive, type safe and flexible Store for Vue~~

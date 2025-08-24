@@ -1,3 +1,5 @@
+test.json
+
 # Logs
 logs
 *.log
@@ -13,6 +15,7 @@ dist
 dist-ssr
 coverage
 *.local
+*.zip
 
 /cypress/videos/
 /cypress/screenshots/

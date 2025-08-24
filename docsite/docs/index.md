@@ -11,12 +11,13 @@ hero:
   actions:
     - theme: brand
       text: ⚡快速入门
-      link: /guide/quick-start
-    - theme: brand
+      link: /guide/start/quick-start
+    - theme: alt
       text: 即刻使用
+      link: https://yamaape.codax.site/MaaPipelineEditor
     - theme: alt
       text: 最佳实践
-      link: /practices/config
+      link: /practices/intro
   image:
     src: /logo.png
     alt: logo
@@ -24,10 +25,10 @@ hero:
 features:
   - icon: 📖
     title: 配套文档
-    details: 足量的使用说明，立刻阅读以开启您的 MaaFramework 项目开发之旅！
+    details: 足量的使用说明，文图并茂，立即阅读以开启您的 MaaFramework 项目开发之旅！
   - icon: 🎉
     title: 简单易用
-    details: 如同思维导图一般编写您的 Pipeline，思路清晰；基本支持所有协议内容，兼容旧文件。
+    details: 使用流程图编写您的 Pipeline，思路清晰；基本支持所有协议内容，兼容旧文件。
   - icon: 🌐
     title: 在线使用
     details: 无需本地部署，使用浏览器打开网站即可使用，提供稳定版与预览版两种方案！

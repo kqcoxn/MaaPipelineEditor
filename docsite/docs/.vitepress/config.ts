@@ -45,8 +45,12 @@ const teekConfig = defineTeekConfig({
   },
   markdown: {
     demo: {
-      githubUrl: "https://github.com/kqcoxn/MaaPipelineEditor/docs",
+      githubUrl: "https://github.com/kqcoxn/MaaPipelineEditor/docsite",
     },
+  },
+  articleAnalyze: {
+    dateFormat: "yyyy-MM-dd",
+    showCreateDate: false,
   },
   articleUpdate: {
     enabled: false,
@@ -56,7 +60,7 @@ const teekConfig = defineTeekConfig({
 export default defineConfig({
   extends: teekConfig,
   base: "/docs/",
-  title: "MaaPipelineEditor - 文档站",
+  title: "MaaPipelineEditor",
   description: description,
   cleanUrls: false,
   lastUpdated: true,
@@ -109,7 +113,7 @@ export default defineConfig({
     },
   },
   themeConfig: {
-    logo: "/docs/logo.png",
+    logo: "/logo.png",
     darkModeSwitchLabel: "主题",
     sidebarMenuLabel: "菜单",
     returnToTopLabel: "返回顶部",
@@ -126,8 +130,43 @@ export default defineConfig({
       { text: "首页", link: "/" },
       {
         text: "指南",
-        link: "/guide/intro",
+        link: "/guide/start/intro",
         activeMatch: "/01.指南/",
+      },
+      {
+        text: "最佳实践",
+        link: "/practices/intro",
+        activeMatch: "/02.最佳实践/",
+      },
+      {
+        text: "参与开发",
+        link: "/dev/env",
+        activeMatch: "03.参与开发",
+      },
+      {
+        text: "相关链接",
+        items: [
+          {
+            text: "MaaPipelineEditor",
+            link: "https://yamaape.codax.site/MaaPipelineEditor",
+          },
+          {
+            text: "Pipeline 协议",
+            link: "https://maafw.xyz/docs/3.1-PipelineProtocol.html",
+          },
+          {
+            text: "MaaFramework",
+            link: "https://github.com/MaaXYZ/MaaFramework",
+          },
+          {
+            text: "MPE 预览版",
+            link: "https://kqcoxn.github.io/MaaPipelineEditor/",
+          },
+          {
+            text: "YAMaaPE",
+            link: "https://yamaape.codax.site",
+          },
+        ],
       },
     ],
     socialLinks: [
@@ -141,7 +180,7 @@ export default defineConfig({
     },
     editLink: {
       text: "在 GitHub 上编辑此页",
-      pattern: "https://github.com/kqcoxn/MaaPipelineEditor/docs/:path",
+      pattern: "https://github.com/kqcoxn/MaaPipelineEditor/docsite/:path",
     },
   },
   vite: {
