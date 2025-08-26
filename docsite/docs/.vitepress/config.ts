@@ -180,7 +180,8 @@ export default defineConfig({
     },
     editLink: {
       text: "在 GitHub 上编辑此页",
-      pattern: "https://github.com/kqcoxn/MaaPipelineEditor/docsite/:path",
+      pattern:
+        "https://github.com/kqcoxn/MaaPipelineEditor/tree/main/docsite/docs/:path",
     },
   },
   vite: {

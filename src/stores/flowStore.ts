@@ -15,6 +15,7 @@ import { ErrorTypeEnum, findErrorsByType, useErrorStore } from "./errorStore";
 import { SourceHandleTypeEnum, NodeTypeEnum } from "../components/flow/nodes";
 import { useConfigStore } from "./configStore";
 import { useFileStore } from "./fileStore";
+import { recoParamKeys, actionParamKeys } from "../core/fields";
 
 export type EdgeType = {
   id: string;
@@ -522,13 +523,30 @@ export const useFlowStore = create<FlowState>()((set) => ({
       if (Array.isArray(value)) value = [...value];
 
       // 更新节点数据
-      // 常规字段
+      // 识别与动作字段
       if (type === "recognition" || type === "action") {
         if (value == "__mpe_delete") {
           delete targetNode.data[type].param[key];
         } else {
           targetNode.data[type].param[key] = value;
         }
+      }
+      // 识别与动作类型
+      else if (type === "type") {
+        const field = targetNode.data[key];
+        field.type = value;
+        const fieldParamKeys =
+          key === "recognition" ? recoParamKeys[value] : actionParamKeys[value];
+        // 删除不存在的字段
+        const curKeys = Object.keys(field.param);
+        curKeys.forEach((key) => {
+          fieldParamKeys.all.includes(key) || delete field.param[key];
+        });
+        // 添加必选字段
+        fieldParamKeys.requires.forEach((req, index) => {
+          req in field.param ||
+            (field.param[req] = fieldParamKeys.required_default[index]);
+        });
       }
       // 其他字段
       else if (type === "others") {
@@ -537,10 +555,6 @@ export const useFlowStore = create<FlowState>()((set) => ({
         } else {
           targetNode.data.others[key] = value;
         }
-      }
-      // v2类型
-      else if (type === "type") {
-        targetNode.data[key].type = value;
       }
       // 其他类型
       else {

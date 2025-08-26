@@ -327,7 +327,7 @@ const actionFieldSchema = {
     key: "swipes",
     type: FieldTypeEnum.ObjectList,
     required: true,
-    default: [{}, {}],
+    default: [{}],
     desc: "多个滑动的数组。必选。 数组元素顺序没有影响，只基于 starting 确定顺序。 starting: uint 滑动起始时间，单位毫秒。可选，默认 0 。 MultiSwipe 额外字段，该滑动会在本 action 中第 starting 毫秒才开始。 begin: true | string | array<int, 4> 滑动起点。可选，默认 true 。值同上述 Click.target 。 begin_offset: array<int, 4> 在 begin 的基础上额外移动再作为起点，四个值分别相加。可选，默认 [0, 0, 0, 0] 。 end: true | string | array<int, 4> 滑动终点。可选，默认 true 。值同上述 Click.target 。 end_offset: array<int, 4> 在 end 的基础上额外移动再作为终点，四个值分别相加。可选，默认 [0, 0, 0, 0] 。 duration: uint 滑动持续时间，单位毫秒。可选，默认 200 。",
   },
   clickKey: {
@@ -660,6 +660,47 @@ export const actionFields: Record<string, FieldsType> = {
     desc: "执行通过 MaaResourceRegisterCustomAction 接口传入的动作句柄。",
   },
 };
+
+type TypeParamKeysType = Record<
+  string,
+  {
+    all: string[];
+    requires: string[];
+    required_default: any[];
+  }
+>;
+export const recoParamKeys = (() => {
+  const dict: TypeParamKeysType = {};
+  Object.keys(recoFields).forEach((fieldKey) => {
+    const field = recoFields[fieldKey];
+    dict[fieldKey] = {
+      all: field.params.map((param) => param.key),
+      requires: field.params.flatMap((param) =>
+        param.required ? param.key : []
+      ),
+      required_default: field.params.flatMap((param) =>
+        param.required ? param.default : []
+      ),
+    };
+  });
+  return dict;
+})();
+export const actionParamKeys = (() => {
+  const dict: TypeParamKeysType = {};
+  Object.keys(actionFields).forEach((fieldKey) => {
+    const field = actionFields[fieldKey];
+    dict[fieldKey] = {
+      all: field.params.map((param) => param.key),
+      requires: field.params.flatMap((param) =>
+        param.required ? param.key : []
+      ),
+      required_default: field.params.flatMap((param) =>
+        param.required ? param.default : []
+      ),
+    };
+  });
+  return dict;
+})();
 
 export const otherFieldParams: FieldType[] = [
   otherFieldSchema.rateLimit,

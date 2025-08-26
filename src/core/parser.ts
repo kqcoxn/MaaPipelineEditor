@@ -248,7 +248,7 @@ function parsePipelineNode(fNode: PipelineNodeType): ParsedPipelineNodeType {
       recoFields[recoType].params
     ),
   };
-  // 行为
+  // 动作
   const actionType = fNodeData.action.type;
   const action = {
     type: actionType,
