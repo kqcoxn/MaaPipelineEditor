@@ -4,11 +4,12 @@ on:
   push:
     branches: [main]
     paths:
-      - "/src/**"
-      - "/public/**"
-      - "/index.html"
-      - "/package.json"
-      - "/vite.config.ts"
+      - "src/**"
+      - "public/**"
+      - "index.html"
+      - "package.json"
+      - "vite.config.ts"
+      - ".github/workflows/**"
 
   workflow_dispatch:
 
@@ -42,7 +43,7 @@ jobs:
       - name: Install dependencies
         run: yarn install
 
-      - name: Build with VitePress
+      - name: Build with Vite
         run: yarn build
 
       - name: Upload artifact

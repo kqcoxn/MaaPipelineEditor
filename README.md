@@ -6,7 +6,7 @@
 
 # MaaPipelineEditor
 
-_✨ **基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器** ✨_
+_✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 ✨_
 
 </div>
 
