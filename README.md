@@ -29,15 +29,15 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
 
 ## 简介
 
-**MaaPipelineEditor (MPE)** 是基于一款 Web 前端相关开发框架、运用 [YAMaaPE](https://github.com/kqcoxn/YAMaaPE) 开发经验去芜存菁、资源开发者充分微调、完全重写的 [MaaFramework](https://github.com/MaaXYZ/MaaFramework) [Pipeline](https://maafw.xyz/docs/3.1-PipelineProtocol.html) 工作流式可视化编辑器。
+**MaaPipelineEditor (MPE)** 是一款基于 Web 前端相关框架、运用 [YAMaaPE](https://github.com/kqcoxn/YAMaaPE) 开发经验去芜存菁、经过资源开发者充分微调、完全重写的 [MaaFramework](https://github.com/MaaXYZ/MaaFramework) [Pipeline](https://maafw.xyz/docs/3.1-PipelineProtocol.html) 工作流式可视化编辑器。
 
 **_“由您设计，由我们支持。”_** 如您所需皆已存在：添加、配置、连接，只需稍作思考，想法之外尽在其中！
 
 ## 开箱即用
 
 - [文档站](https://yamaape.codax.site/docs)
-- [稳定版](https://yamaape.codax.site/MaaPipelineEditor)
-- [预览版](https://kqcoxn.github.io/MaaPipelineEditor/)
+- [稳定版](https://yamaape.codax.site/MaaPipelineEditor)_**（推荐！）**_
+- [预览版](https://kqcoxn.github.io/MaaPipelineEditor/)（最新 commit）
 - [YAMaaPE](https://yamaape.codax.site)（重构前版本）
 
 > [!IMPORTANT]
