@@ -33,6 +33,16 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
 
 **_“由您设计，由我们支持。”_** 如您所需皆已存在：添加、配置、连接，只需稍作思考，想法之外尽在其中！
 
+您可以使用 MPE 轻松构造出如下 Pipeline：
+
+![](./image/布局展示1.png)
+
+（示例 Pipeline：[MNMA-清体力.json](https://github.com/kqcoxn/MaaNewMoonAccompanying/blob/v2.2.3/assets/resource/base/pipeline/%E6%97%A5%E5%B8%B8%E6%B4%BB%E5%8A%A8/%E6%B8%85%E4%BD%93%E5%8A%9B.json), 1996 lines）
+
+![](./image/布局展示2.png)
+
+（示例 Pipeline：[MNMA-城市探索.json](https://github.com/kqcoxn/MaaNewMoonAccompanying/blob/v2.2.3/assets/resource/base/pipeline/%E6%97%A5%E5%B8%B8%E6%B4%BB%E5%8A%A8/%E5%9F%8E%E5%B8%82%E6%8E%A2%E7%B4%A2.json), 2186 lines）
+
 ## 开箱即用
 
 - [文档站](https://yamaape.codax.site/docs)
