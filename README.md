@@ -33,7 +33,7 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
 
 **_“由您设计，由我们支持。”_** 如您所需皆已存在：添加、配置、连接，只需稍作思考，想法之外尽在其中！
 
-您可以使用 MPE 轻松构造出如下 Pipeline：
+您可以使用 MPE 轻松构造出如下 Pipeline，兼具易用性与可读性：
 
 ![](./image/布局展示1.png)
 

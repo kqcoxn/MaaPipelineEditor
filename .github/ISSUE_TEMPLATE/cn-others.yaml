@@ -1,0 +1,23 @@
+name: 请求帮助
+description: 不理解某项功能如何使用，或某个协议内容如何被编译
+labels: ["help wanted"]
+body:
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 在提问之前...
+      options:
+        - label: 我只是不太会用，而不是遇到了 Bug 或目前没有这个功能
+          required: true
+        - label: 我已经查阅了文档相关内容，但仍然无法理解
+          required: true
+        - label: 我已检查了置顶议题（Pinned Issue）（公告）、活跃议题（Open Issue）、已关闭议题（Closed Issue），确认我的疑问未被提及
+          required: true
+        - label: 我填写了简短且清晰明确的标题，以便他人在翻阅 Issue 列表时能快速确定大致问题。而不是“提问”等
+          required: true
+  - type: textarea
+    id: describe
+    attributes:
+      label: 发生什么事了？
+    validations:
+      required: true
