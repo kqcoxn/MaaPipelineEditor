@@ -44,7 +44,6 @@ const KeyListener = memo(
     const selectedEdges = useFlowStore(
       (state) => state.selectedEdges
     ) as EdgeType[];
-    const updateNodes = useFlowStore((state) => state.updateNodes);
     const setClipBoard = useConfigStore((state) => state.setClipBoard);
     const clipBoard = useConfigStore((state) => state.clipBoard);
     const applyClipBoard = useConfigStore((state) => state.applyClipBoard);
@@ -56,18 +55,6 @@ const KeyListener = memo(
       }),
       [targetRef.current]
     );
-
-    // 删除节点
-    const deletePressed = useKeyPress("Delete", keyPressOptions);
-    useEffect(() => {
-      if (!deletePressed || selectedNodes.length === 0) return;
-      updateNodes(
-        selectedNodes.map((node) => ({
-          id: node.id,
-          type: "remove",
-        }))
-      );
-    }, [deletePressed]);
 
     // 复制节点
     const copyPressed = useKeyPress("Control+c", keyPressOptions);

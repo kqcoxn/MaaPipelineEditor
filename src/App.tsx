@@ -19,8 +19,25 @@ import ErrorPanel from "./components/panels/ErrorPanel";
 function App() {
   // onMounted
   useEffect(() => {
+    // 读取本地存储
     const err = useFileStore.getState().replace();
     if (!err) message.success("已读取本地缓存");
+
+    // 按键重定向
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Delete") {
+        event.preventDefault();
+        const backspaceEvent = new KeyboardEvent("keydown", {
+          key: "Backspace",
+          code: "Backspace",
+          keyCode: 8,
+          which: 8,
+          bubbles: true,
+          cancelable: true,
+        });
+        event.target?.dispatchEvent(backspaceEvent);
+      }
+    });
   }, []);
 
   // 渲染组件
