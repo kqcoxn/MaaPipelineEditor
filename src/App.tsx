@@ -19,13 +19,10 @@ import ErrorPanel from "./components/panels/ErrorPanel";
 function keyRedirection() {
   document.addEventListener(
     "keydown",
-    function (event) {
+    (event) => {
       if (event.key === "Delete") {
-        // 阻止原始事件，防止冲突
         event.preventDefault();
         event.stopImmediatePropagation();
-
-        // 创建更完整的 Backspace 事件
         const backspaceEvent = new KeyboardEvent("keydown", {
           key: "Backspace",
           code: "Backspace",
@@ -34,7 +31,6 @@ function keyRedirection() {
           bubbles: true,
           cancelable: true,
           composed: true,
-          // 保持修饰键状态
           altKey: event.altKey,
           ctrlKey: event.ctrlKey,
           shiftKey: event.shiftKey,
@@ -42,16 +38,12 @@ function keyRedirection() {
           repeat: event.repeat,
           location: event.location,
         });
-
-        // 使用 setTimeout 确保事件在下一个事件循环中触发
         setTimeout(() => {
-          // 尝试多个可能的目标
           const reactFlowElement =
             document.querySelector(".react-flow") ||
             document.querySelector('[data-testid="rf__wrapper"]') ||
             document.activeElement ||
             document.body;
-
           if (reactFlowElement) {
             reactFlowElement.dispatchEvent(backspaceEvent);
           }
@@ -59,7 +51,7 @@ function keyRedirection() {
       }
     },
     true
-  ); // 使用捕获阶段，确保我们的处理优先
+  );
 }
 
 /**主程序 */
