@@ -7,7 +7,7 @@ import { JsonHelper } from "../utils/jsonHelper";
 /**固有配置 */
 export const globalConfig = {
   dev: true,
-  version: "v0.5.2_beta1",
+  version: "v0.5.2_beta2",
 };
 
 /**配置 */

@@ -9,6 +9,8 @@ export enum FieldTypeEnum {
   DoubleList = "list<double, >",
   StringList = "list<string, >",
   XYWH = "array<int, 4>",
+  XYWHList = "list<array<int, 4>>",
+  PositionList = "list<true | string | array<int, 4>>",
   StringPair = "array<string, 2>",
   StringPairList = "list<array<string, 2>>",
   Any = "any",
@@ -306,22 +308,40 @@ const actionFieldSchema = {
   },
   end: {
     key: "end",
-    type: [FieldTypeEnum.XYWH, FieldTypeEnum.True, FieldTypeEnum.String],
-    default: [0, 0, 0, 0],
-    desc: "滑动终点。可选，默认 true 。true: 目标为本节点中刚刚识别到的位置（即自身）;string: 填写节点名，目标为之前执行过的某节点识别到的位置;array<int, 4>: 目标为固定坐标区域内随机一点，[x, y, w, h]，若希望全屏可设为 [0, 0, 0, 0] 。",
+    type: [
+      FieldTypeEnum.PositionList,
+      FieldTypeEnum.XYWH,
+      FieldTypeEnum.True,
+      FieldTypeEnum.String,
+    ],
+    default: [[0, 0, 0, 0]],
+    desc: "滑动终点。可选，默认 true 。true: 目标为本节点中刚刚识别到的位置（即自身）;string: 填写节点名，目标为之前执行过的某节点识别到的位置;array<int, 4>: 目标为固定坐标区域内随机一点，[x, y, w, h]，若希望全屏可设为 [0, 0, 0, 0] 。v4.5.x 版本新增支持 list，可用于添加滑动途径点！相较多次 swipe 的区别是多个 end 之间不会抬手，即一次折线滑动。",
   },
   endOffset: {
     key: "end_offset",
-    type: FieldTypeEnum.XYWH,
-    default: [0, 0, 0, 0],
+    type: [FieldTypeEnum.XYWHList, FieldTypeEnum.XYWH],
+    default: [[0, 0, 0, 0]],
     desc: "在 end 的基础上额外移动再作为起点，四个值分别相加。可选，默认 [0, 0, 0, 0] 。",
   },
   swipeDuration: {
     key: "duration",
-    type: FieldTypeEnum.Int,
-    default: 400,
+    type: [FieldTypeEnum.IntList, FieldTypeEnum.Int],
+    default: [1000],
     step: 100,
     desc: "滑动持续时间，单位毫秒。可选，默认 200 。",
+  },
+  endHold: {
+    key: "end_hold",
+    type: [FieldTypeEnum.IntList, FieldTypeEnum.Int],
+    default: [200],
+    step: 100,
+    desc: "滑动到终点后，额外等待一定时间再抬起，单位 ms。可选，默认 0。",
+  },
+  onlyHover: {
+    key: "only_hover",
+    type: FieldTypeEnum.Bool,
+    default: true,
+    desc: "仅鼠标悬停移动，无按下/抬起动作。可选，默认 false。",
   },
   swipes: {
     key: "swipes",
@@ -593,6 +613,15 @@ export const actionFields: Record<string, FieldsType> = {
     params: [actionFieldSchema.clickTarget, actionFieldSchema.targetOffset],
     desc: "点击。",
   },
+  Custom: {
+    params: [
+      actionFieldSchema.customAction,
+      actionFieldSchema.customActionParam,
+      actionFieldSchema.customTarget,
+      actionFieldSchema.targetOffset,
+    ],
+    desc: "执行通过 MaaResourceRegisterCustomAction 接口传入的动作句柄。",
+  },
   LongPress: {
     params: [
       actionFieldSchema.longPressTarget,
@@ -608,6 +637,8 @@ export const actionFields: Record<string, FieldsType> = {
       actionFieldSchema.end,
       actionFieldSchema.endOffset,
       actionFieldSchema.swipeDuration,
+      actionFieldSchema.endHold,
+      actionFieldSchema.onlyHover,
     ],
     desc: "线性滑动。",
   },
@@ -649,15 +680,6 @@ export const actionFields: Record<string, FieldsType> = {
       actionFieldSchema.detach,
     ],
     desc: "执行命令。",
-  },
-  Custom: {
-    params: [
-      actionFieldSchema.customAction,
-      actionFieldSchema.customActionParam,
-      actionFieldSchema.customTarget,
-      actionFieldSchema.targetOffset,
-    ],
-    desc: "执行通过 MaaResourceRegisterCustomAction 接口传入的动作句柄。",
   },
 };
 

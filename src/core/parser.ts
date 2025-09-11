@@ -167,6 +167,63 @@ function matchParamType(params: ParamType, types: FieldType[]): ParamType {
               matchedValue = temp;
             }
             break;
+          // XYWH数组
+          case FieldTypeEnum.XYWHList:
+            if (Array.isArray(value)) {
+              // [x,y,w,h] -> [[x,y,w,h]]
+              const allInt = value.every((n) => Number.isInteger(Number(n)));
+              if (value.length === 4 && allInt) {
+                matchedValue = [value.map((n) => Number(n))];
+                break;
+              }
+              // 每一项为 XYWH
+              const list: any[] = [];
+              let ok = true;
+              for (const item of value) {
+                const nums = puraStringList(item).map((c) => Number(c));
+                if (nums.length === 4 && nums.every((n) => Number.isInteger(n)))
+                  list.push(nums);
+                else {
+                  ok = false;
+                  break;
+                }
+              }
+              if (ok) matchedValue = list;
+            } else {
+              // XYWH 字符串
+              const nums = puraStringList(value).map((c) => Number(c));
+              if (nums.length === 4 && nums.every((n) => Number.isInteger(n))) {
+                matchedValue = [nums];
+              }
+            }
+            break;
+          // 位置数组
+          case FieldTypeEnum.PositionList:
+            const buildPosition = (pos: any) => {
+              // true
+              if (pos === true || String(pos) === "true") return true;
+              // [x,y,w,h]
+              let nums = puraStringList(pos).map((c) => Number(c));
+              if (nums.length === 4 && nums.every((n) => Number.isInteger(n)))
+                return nums;
+              // label string
+              return String(pos);
+            };
+            if (Array.isArray(value)) {
+              const allInt = value.every((n) => Number.isInteger(Number(n)));
+              if (value.length === 4 && allInt) {
+                matchedValue = [value.map((n) => Number(n))];
+                break;
+              }
+              const list: any[] = [];
+              for (const item of value) {
+                list.push(buildPosition(item));
+              }
+              matchedValue = list;
+            } else {
+              matchedValue = [buildPosition(value)];
+            }
+            break;
           // 键值对
           case FieldTypeEnum.StringPair:
             temp = String(value)

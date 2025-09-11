@@ -201,6 +201,8 @@ const ParamFieldListElem = memo(
           case FieldTypeEnum.StringList:
           case FieldTypeEnum.IntListList:
           case FieldTypeEnum.StringPairList:
+          case FieldTypeEnum.XYWHList:
+          case FieldTypeEnum.PositionList:
           case FieldTypeEnum.ObjectList:
             InputElem = ListValueElem(
               key,
