@@ -676,10 +676,10 @@ export const useFlowStore = create<FlowState>()((set) => ({
       nodes = cloneDeep(nodes);
       const pairs: Record<string, string> = {};
       nodes.forEach((node) => {
-        const newId = "paste_" + pasteIdCounter++;
+        const newId = "paste_" + pasteIdCounter;
         pairs[node.id] = newId;
         node.id = newId;
-        node.data.label = newId + "_副本";
+        node.data.label = node.data.label + "_副本" + pasteIdCounter++;
         const position = node.position;
         node.position = {
           x: position.x + 100,
