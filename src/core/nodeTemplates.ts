@@ -15,17 +15,6 @@ export const nodeTemplates: NodeTemplateType[] = [
     iconSize: 32,
   },
   {
-    label: "无延迟节点",
-    iconName: "icon-weizhihang",
-    iconSize: 27,
-    data: () => ({
-      others: {
-        pre_delay: 0,
-        post_delay: 0,
-      },
-    }),
-  },
-  {
     label: "文字识别",
     iconName: "icon-ocr",
     data: () => ({
@@ -50,6 +39,17 @@ export const nodeTemplates: NodeTemplateType[] = [
       action: {
         type: "Click",
         param: {},
+      },
+    }),
+  },
+  {
+    label: "无延迟节点",
+    iconName: "icon-weizhihang",
+    iconSize: 30,
+    data: () => ({
+      others: {
+        pre_delay: 0,
+        post_delay: 0,
       },
     }),
   },
