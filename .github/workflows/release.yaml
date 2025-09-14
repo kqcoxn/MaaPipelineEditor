@@ -61,14 +61,6 @@ jobs:
 
           $COMMITS
 
-          ## 📦 下载
-
-          请下载对应的压缩包文件。
-
-          ---
-
-          *此release由GitHub Actions自动生成*"
-
           # 将changelog保存到文件
           echo "$CHANGELOG" > CHANGELOG.md
 
