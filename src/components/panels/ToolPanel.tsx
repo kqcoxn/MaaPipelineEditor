@@ -10,87 +10,13 @@ import { useFlowStore } from "../../stores/flowStore";
 import { useConfigStore } from "../../stores/configStore";
 import { NodeTypeEnum } from "../flow/nodes";
 import { LayoutHelper, AlignmentEnum } from "../../core/layout";
+import { nodeTemplates, type NodeTemplateType } from "../../core/nodeTemplates";
 
 /**添加工具 */
-interface AddToolType {
-  label: string;
-  iconName: string;
-  iconSize?: number;
-  nodeType?: NodeTypeEnum;
-  data?: () => any;
-}
 function AddPanel() {
   const addNode = useFlowStore((state) => state.addNode);
 
-  const addTools = useMemo<AddToolType[]>(
-    () => [
-      {
-        label: "空节点",
-        iconName: "icon-kongjiedian",
-        iconSize: 32,
-      },
-      {
-        label: "文字识别",
-        iconName: "icon-ocr",
-        data: () => ({
-          recognition: {
-            type: "OCR",
-            param: { expected: [""] },
-          },
-          action: {
-            type: "Click",
-            param: {},
-          },
-        }),
-      },
-      {
-        label: "图像识别",
-        iconName: "icon-tuxiang",
-        data: () => ({
-          recognition: {
-            type: "TemplateMatch",
-            param: { template: [""] },
-          },
-          action: {
-            type: "Click",
-            param: {},
-          },
-        }),
-      },
-      {
-        label: "直接点击",
-        iconName: "icon-dianji",
-        data: () => ({
-          action: {
-            type: "Click",
-            param: { target: [0, 0, 0, 0] },
-          },
-        }),
-      },
-      {
-        label: "Custom",
-        iconName: "icon-daima",
-        iconSize: 27,
-        data: () => ({
-          action: {
-            type: "Custom",
-            param: { custom_action: "", custom_action_param: "" },
-          },
-          others: {
-            pre_delay: 0,
-            post_delay: 0,
-          },
-        }),
-      },
-      {
-        label: "外部节点",
-        iconName: "icon-xiaofangtongdao",
-        iconSize: 24,
-        nodeType: NodeTypeEnum.External,
-      },
-    ],
-    []
-  );
+  const addTools = useMemo<NodeTemplateType[]>(() => nodeTemplates, []);
 
   // 渲染
   const tools = addTools.map((item, index) => {
@@ -217,7 +143,7 @@ function GlobalPanel() {
   return <ul className={panelClass}>{tools}</ul>;
 }
 
-/**添加工具 */
+/**布局工具 */
 interface LayoutToolType {
   label: string;
   iconName: string;
