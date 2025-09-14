@@ -434,7 +434,7 @@ export const otherFieldSchemaKeyList = [
   "pre_delay",
   "post_delay",
   "pre_wait_freezes",
-  "postWaitFreezes",
+  "post_wait_freezes",
   "focus",
 ];
 const otherFieldSchema = {
@@ -480,13 +480,13 @@ const otherFieldSchema = {
   },
   preWaitFreezes: {
     key: "pre_wait_freezes",
-    type: [FieldTypeEnum.Any, FieldTypeEnum.Int],
+    type: [FieldTypeEnum.Int, FieldTypeEnum.Any],
     default: 0,
     desc: "识别到 到 执行动作前，等待画面不动了的时间，毫秒。可选，默认 0 ，即不等待。 连续 pre_wait_freezes 毫秒 画面 没有较大变化 才会退出动作。 若为 object，可设置更多参数，详见 等待画面静止。 具体的顺序为 pre_wait_freezes - pre_delay - action - post_wait_freezes - post_delay 。",
   },
   postWaitFreezes: {
     key: "post_wait_freezes",
-    type: [FieldTypeEnum.Any, FieldTypeEnum.Int],
+    type: [FieldTypeEnum.Int, FieldTypeEnum.Any],
     default: 0,
     desc: "行动动作后 到 识别 next，等待画面不动了的时间，毫秒。可选，默认 0 ，即不等待。 连续 pre_wait_freezes 毫秒 画面 没有较大变化 才会退出动作。 若为 object，可设置更多参数，详见 等待画面静止。 具体的顺序为 pre_wait_freezes - pre_delay - action - post_wait_freezes - post_delay 。",
   },
