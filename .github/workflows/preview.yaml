@@ -9,7 +9,7 @@ on:
       - "index.html"
       - "package.json"
       - "vite.config.ts"
-      - ".github/workflows/**"
+      - ".github/workflows/preview.yaml"
 
   workflow_dispatch:
 
