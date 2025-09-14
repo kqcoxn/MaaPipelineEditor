@@ -1,0 +1,90 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Modify config for production build
+        run: |
+          # 将configStore.ts中的globalConfig.dev改为false
+          sed -i 's/dev: true,/dev: false,/g' src/stores/configStore.ts
+          echo "已修改configStore.ts中的dev配置为false"
+
+      - name: Build project
+        run: yarn build
+
+      - name: Create archive
+        run: |
+          cd dist
+          zip -r ../MaaPipelineEditor-${{ github.ref_name }}-stable.zip .
+          cd ..
+
+      - name: Generate Changelog
+        id: changelog
+        run: |
+          # 获取上一个tag
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+
+          if [ -z "$PREVIOUS_TAG" ]; then
+            echo "这是第一个release，获取所有commits"
+            COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges)
+          else
+            echo "获取从 $PREVIOUS_TAG 到 ${{ github.ref_name }} 的commits"
+            COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges $PREVIOUS_TAG..HEAD)
+          fi
+
+          # 生成changelog
+          CHANGELOG="## 📝 更新内容
+
+          $COMMITS
+
+          ## 📦 下载
+
+          请下载对应的压缩包文件。
+
+          ---
+
+          *此release由GitHub Actions自动生成*"
+
+          # 将changelog保存到文件
+          echo "$CHANGELOG" > CHANGELOG.md
+
+          # 输出到GitHub Actions
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            MaaPipelineEditor-${{ github.ref_name }}-stable.zip
+          body_path: CHANGELOG.md
+          generate_release_notes: false
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
