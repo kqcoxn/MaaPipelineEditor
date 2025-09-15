@@ -9,7 +9,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "release": "git tag -a v0.5.2 -m \"v0.5.2\" && git push origin v0.5.2"
+    "release": "git tag -a v0.5.3 -m \"v0.5.3\" && git push origin v0.5.3"
   },
   "dependencies": {
     "@ant-design/v5-patch-for-react-19": "^1.0.3",

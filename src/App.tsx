@@ -1,7 +1,15 @@
 import style from "./styles/App.module.less";
 
 import { useEffect } from "react";
-import { Flex, Layout, Splitter, message } from "antd";
+import {
+  Flex,
+  Layout,
+  Splitter,
+  message,
+  notification,
+  Button,
+  Space,
+} from "antd";
 const { Header: HeaderSection, Content } = Layout;
 
 import { useFileStore } from "./stores/fileStore";
@@ -54,16 +62,71 @@ function keyRedirection() {
   );
 }
 
+// 轮询提醒
+let isShowStarRemind = false;
+function starRemind() {
+  isShowStarRemind = true;
+  const key = `open${Date.now()}`;
+  const operations = (
+    <Space>
+      <Button
+        type="primary"
+        onClick={() => {
+          window.open("https://github.com/kqcoxn/MaaPipelineEditor");
+          localStorage.setItem("mpe_stared", "true");
+          notification.destroy();
+        }}
+      >
+        这就去点！
+      </Button>
+      <Button
+        onClick={() => {
+          isShowStarRemind = false;
+          notification.destroy();
+        }}
+      >
+        稍后提醒
+      </Button>
+      <Button
+        style={{ color: "gray" }}
+        type="dashed"
+        onClick={() => {
+          localStorage.setItem("_mpe_stared", "true");
+          notification.destroy();
+        }}
+      >
+        不再提醒
+      </Button>
+    </Space>
+  );
+  notification.open({
+    message: "来点 Star，秋梨膏！",
+    description:
+      "如果您觉得 MaaPipelineEditor 对您有帮助的话，可以为项目点一个免费的 Star⭐ 吗？",
+    actions: operations,
+    key,
+    duration: null,
+    closeIcon: false,
+  });
+}
+
 /**主程序 */
 function App() {
   // onMounted
   useEffect(() => {
+    // 按键重定向
+    keyRedirection();
     // 读取本地存储
     const err = useFileStore.getState().replace();
     if (!err) message.success("已读取本地缓存");
-
-    // 按键重定向
-    keyRedirection();
+    // Star定时提醒
+    if (localStorage.getItem("_mpe_stared") !== "true") {
+      setInterval(() => {
+        if (!isShowStarRemind) {
+          starRemind();
+        }
+      }, 5 * 60 * 1000);
+    }
   }, []);
 
   // 渲染组件

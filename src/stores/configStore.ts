@@ -5,8 +5,8 @@ import { message } from "antd";
 import { JsonHelper } from "../utils/jsonHelper";
 
 /**固有配置 */
-const mainVersion = "0.5.2";
-const betaIndex = 4;
+const mainVersion = "0.5.3";
+const betaIndex = 1;
 export const globalConfig = {
   dev: true,
   version: `v${mainVersion}`,
