@@ -57,9 +57,17 @@ jobs:
           fi
 
           # 生成changelog
-          CHANGELOG="## 📝 更新内容
+          CHANGELOG="
+          **Full Changelog**: https://github.com/kqcoxn/MaaPipelineEditor/compare/$PREVIOUS_TAG...${{ github.ref_name }}
+
+          ## 📝 更新内容
 
           $COMMITS
+
+          ## 🌐 在线使用
+
+          推荐您使用 [在线方案](https://github.com/kqcoxn/MaaPipelineEditor?tab=readme-ov-file#%E5%BC%80%E7%AE%B1%E5%8D%B3%E7%94%A8)，Release 仅作为网站崩溃时备用自部署方案
+          "
 
           # 将changelog保存到文件
           echo "$CHANGELOG" > CHANGELOG.md

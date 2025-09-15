@@ -102,7 +102,7 @@ function starRemind() {
   notification.open({
     message: "来点 Star，秋梨膏！",
     description:
-      "如果您觉得 MaaPipelineEditor 对您有帮助的话，可以为项目点一个免费的 Star⭐ 吗？",
+      "如果 MaaPipelineEditor 对您有帮助，可以为项目点一个免费的 Star⭐ 吗 QAQ",
     actions: operations,
     key,
     duration: null,
@@ -125,7 +125,7 @@ function App() {
         if (!isShowStarRemind) {
           starRemind();
         }
-      }, 5 * 60 * 1000);
+      }, 10 * 60 * 1000);
     }
   }, []);
 
