@@ -1,6 +1,6 @@
 import style from "./styles/App.module.less";
 
-import { useEffect } from "react";
+import { memo, useCallback, useEffect } from "react";
 import {
   Flex,
   Layout,
@@ -11,6 +11,13 @@ import {
   Space,
 } from "antd";
 const { Header: HeaderSection, Content } = Layout;
+import {
+  enable as enableDarkMode,
+  disable as disableDarkMode,
+  auto as followSystemColorScheme,
+  exportGeneratedCSS as collectCSS,
+  isEnabled as isDarkReaderEnabled,
+} from "darkreader";
 
 import { useFileStore } from "./stores/fileStore";
 
@@ -22,6 +29,7 @@ import ToolPanel from "./components/panels/ToolPanel";
 import FilePanel from "./components/panels/FilePanel";
 import ConfigPanel from "./components/panels/ConfigPanel";
 import ErrorPanel from "./components/panels/ErrorPanel";
+import { useConfigStore } from "./stores/configStore";
 
 // 按键重定向
 function keyRedirection() {
@@ -110,6 +118,25 @@ function starRemind() {
   });
 }
 
+// 全局监听
+const GlobalListener = memo(() => {
+  // 黑夜模式
+  const useDarkMode = useConfigStore((state) => state.configs.useDarkMode);
+  useEffect(() => {
+    if (useDarkMode) {
+      enableDarkMode({
+        brightness: 100,
+        contrast: 90,
+        sepia: 10,
+      });
+    } else {
+      disableDarkMode();
+    }
+  }, [useDarkMode]);
+
+  return null;
+});
+
 /**主程序 */
 function App() {
   // onMounted
@@ -131,30 +158,33 @@ function App() {
 
   // 渲染组件
   return (
-    <Flex className={style.container} gap="middle" wrap>
-      <Layout className={style.layout}>
-        <HeaderSection className={style.header}>
-          <Header />
-        </HeaderSection>
-        <Content className={style.content}>
-          <FilePanel />
-          <Splitter className={style.workspace}>
-            <Splitter.Panel className={style.left}>
-              <MainFlow />
-              <FieldPanel />
-              <ConfigPanel />
-              <ToolPanel.Add />
-              <ToolPanel.Global />
-              <ToolPanel.Layout />
-              <ErrorPanel />
-            </Splitter.Panel>
-            <Splitter.Panel defaultSize={350} min={300} max="50%" collapsible>
-              <JsonViewer />
-            </Splitter.Panel>
-          </Splitter>
-        </Content>
-      </Layout>
-    </Flex>
+    <>
+      <Flex className={style.container} gap="middle" wrap>
+        <Layout className={style.layout}>
+          <HeaderSection className={style.header}>
+            <Header />
+          </HeaderSection>
+          <Content className={style.content}>
+            <FilePanel />
+            <Splitter className={style.workspace}>
+              <Splitter.Panel className={style.left}>
+                <MainFlow />
+                <FieldPanel />
+                <ConfigPanel />
+                <ToolPanel.Add />
+                <ToolPanel.Global />
+                <ToolPanel.Layout />
+                <ErrorPanel />
+              </Splitter.Panel>
+              <Splitter.Panel defaultSize={350} min={300} max="50%" collapsible>
+                <JsonViewer />
+              </Splitter.Panel>
+            </Splitter>
+          </Content>
+        </Layout>
+      </Flex>
+      <GlobalListener />
+    </>
   );
 }
 

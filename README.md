@@ -99,6 +99,8 @@ MPE 项目没有单独的交流群，您可以在 MaaFramework 集成/开发交�
   Use pure JS to convert iconfont.cn icons into React components.
 - [lodash](https://github.com/lodash/lodash)  
   A modern JavaScript utility library delivering modularity, performance & extras.
+- [darkreader](https://github.com/darkreader/darkreader)  
+  Dark Reader analyzes web pages and aims to reduce eyestrain while browsing the web.
 - [vitepress](https://github.com/vuejs/vitepress)  
   Vite & Vue powered static site generator.
 - [vue.js](https://github.com/vuejs/vue)  

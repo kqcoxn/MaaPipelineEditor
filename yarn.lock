@@ -1166,6 +1166,16 @@ d3-zoom@^3.0.0:
     d3-selection "2 - 3"
     d3-transition "2 - 3"
 
+darkreader@^4.9.109:
+  version "4.9.109"
+  resolved "https://registry.npmjs.org/darkreader/-/darkreader-4.9.109.tgz#07872e16a82b41e2507f8c90a370aae38e796c98"
+  integrity sha512-Jd7a+ywBvV3k6zuA246/BJBKwSl7D2puN16m4ZmULp4lPGJHJoWcc+8Kq2mQthkSrh5Bvn7JhVBcpth9Mm29BQ==
+  dependencies:
+    malevic "0.20.2"
+  optionalDependencies:
+    "@rollup/rollup-linux-x64-gnu" "4.44.0"
+    "@rollup/rollup-win32-x64-msvc" "4.44.0"
+
 dayjs@^1.11.11, dayjs@^1.9.1:
   version "1.11.13"
   resolved "https://registry.npmjs.org/dayjs/-/dayjs-1.11.13.tgz#92430b0139055c3ebb60150aa13e860a4b5a366c"
@@ -1666,6 +1676,11 @@ make-dir@^2.1.0:
   dependencies:
     pify "^4.0.1"
     semver "^5.6.0"
+
+malevic@0.20.2:
+  version "0.20.2"
+  resolved "https://registry.npmjs.org/malevic/-/malevic-0.20.2.tgz#2d8ab54a5d9f4bebc21fc1cc0c6eec1e77d13530"
+  integrity sha512-s44yEUyfDaONt7nPT7NDQ+Z2oAswErG70ok2Q95bJFh1Bdcn4dZQVMrLE02ZIjTtYfQ/LFOVxF+yB3bdGw/GtQ==
 
 merge2@^1.3.0:
   version "1.4.1"

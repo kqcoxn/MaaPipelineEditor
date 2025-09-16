@@ -1,14 +1,16 @@
 import style from "../styles/Header.module.less";
 
 import { useMemo } from "react";
-import { Tag, Dropdown, Space, Tooltip, type MenuProps } from "antd";
-import { DownOutlined } from "@ant-design/icons";
+import { Button, Tag, Dropdown, Space, Tooltip, type MenuProps } from "antd";
+import { DownOutlined, SunOutlined, MoonOutlined } from "@ant-design/icons";
 import IconFont from "./iconfonts";
 
-import { globalConfig } from "../stores/configStore";
+import { globalConfig, useConfigStore } from "../stores/configStore";
 import classNames from "classnames";
 
 function Header() {
+  const useDarkMode = useConfigStore((state) => state.configs.useDarkMode);
+  const setConfig = useConfigStore((state) => state.setConfig);
   const otherVersions = useMemo<MenuProps["items"]>(() => {
     return [
       {
@@ -62,18 +64,23 @@ function Header() {
         </div>
       </div>
       <div className={style.right}>
-        <Dropdown
-          className={style.version}
-          menu={{ items: otherVersions }}
-          placement="bottom"
-        >
-          <a>
-            <Space>
-              {globalConfig.version}
-              <DownOutlined />
-            </Space>
-          </a>
-        </Dropdown>
+        <div className={style.version}>
+          <Dropdown menu={{ items: otherVersions }} placement="bottom">
+            <a>
+              <Space>
+                {globalConfig.version}
+                <DownOutlined />
+              </Space>
+            </a>
+          </Dropdown>
+        </div>
+        <div className={style.theme}>
+          <Button
+            shape="circle"
+            icon={useDarkMode ? <MoonOutlined /> : <SunOutlined />}
+            onClick={() => setConfig("useDarkMode", !useDarkMode)}
+          />
+        </div>
         <div className={style.links}>
           <Tooltip placement="bottom" title="文档站">
             <IconFont
