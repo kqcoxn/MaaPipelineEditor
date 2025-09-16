@@ -681,6 +681,10 @@ export const actionFields: Record<string, FieldsType> = {
     ],
     desc: "执行命令。",
   },
+  Key: {
+    params: [actionFieldSchema.clickKey],
+    desc: "（已在 4.5 版本中废弃，但保留兼容性，推荐使用 ClickKey 替代）按键。",
+  },
 };
 
 type TypeParamKeysType = Record<

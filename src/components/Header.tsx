@@ -6,7 +6,6 @@ import { DownOutlined, SunOutlined, MoonOutlined } from "@ant-design/icons";
 import IconFont from "./iconfonts";
 
 import { globalConfig, useConfigStore } from "../stores/configStore";
-import classNames from "classnames";
 
 function Header() {
   const useDarkMode = useConfigStore((state) => state.configs.useDarkMode);
