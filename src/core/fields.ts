@@ -514,6 +514,20 @@ export const recoFields: Record<string, FieldsType> = {
     params: [],
     desc: "直接命中，即不进行识别，直接执行动作。",
   },
+  OCR: {
+    params: [
+      recoFieldSchema.roi,
+      recoFieldSchema.roiOffset,
+      recoFieldSchema.ocrExpected,
+      recoFieldSchema.ocrThreshold,
+      recoFieldSchema.replace,
+      recoFieldSchema.lengthOrderBy,
+      recoFieldSchema.index,
+      recoFieldSchema.onlyRec,
+      recoFieldSchema.ocrModel,
+    ],
+    desc: "文字识别。",
+  },
   TemplateMatch: {
     params: [
       recoFieldSchema.roi,
@@ -526,20 +540,6 @@ export const recoFields: Record<string, FieldsType> = {
       recoFieldSchema.greenMask,
     ],
     desc: "模板匹配，即“找图”。",
-  },
-  FeatureMatch: {
-    params: [
-      recoFieldSchema.roi,
-      recoFieldSchema.roiOffset,
-      recoFieldSchema.template,
-      recoFieldSchema.featureMatchCount,
-      recoFieldSchema.areaOrderBy,
-      recoFieldSchema.index,
-      recoFieldSchema.greenMask,
-      recoFieldSchema.detector,
-      recoFieldSchema.ratio,
-    ],
-    desc: "特征匹配，泛化能力更强的“找图”，具有抗透视、抗尺寸变化等特点。",
   },
   ColorMatch: {
     params: [
@@ -554,19 +554,28 @@ export const recoFields: Record<string, FieldsType> = {
     ],
     desc: "颜色匹配，即“找色”。",
   },
-  OCR: {
+  Custom: {
+    params: [
+      recoFieldSchema.customRecognition,
+      recoFieldSchema.customRecognitionParam,
+      recoFieldSchema.customRoi,
+      recoFieldSchema.roiOffset,
+    ],
+    desc: "执行通过 MaaResourceRegisterCustomRecognition 接口传入的识别器句柄。",
+  },
+  FeatureMatch: {
     params: [
       recoFieldSchema.roi,
       recoFieldSchema.roiOffset,
-      recoFieldSchema.ocrExpected,
-      recoFieldSchema.ocrThreshold,
-      recoFieldSchema.replace,
-      recoFieldSchema.lengthOrderBy,
+      recoFieldSchema.template,
+      recoFieldSchema.featureMatchCount,
+      recoFieldSchema.areaOrderBy,
       recoFieldSchema.index,
-      recoFieldSchema.onlyRec,
-      recoFieldSchema.ocrModel,
+      recoFieldSchema.greenMask,
+      recoFieldSchema.detector,
+      recoFieldSchema.ratio,
     ],
-    desc: "文字识别。",
+    desc: "特征匹配，泛化能力更强的“找图”，具有抗透视、抗尺寸变化等特点。",
   },
   NeuralNetworkClassify: {
     params: [
@@ -593,15 +602,6 @@ export const recoFields: Record<string, FieldsType> = {
     ],
     desc: "深度学习目标检测，高级版“找图”。与分类器主要区别在于“找”，即支持任意位置。但通常来说模型复杂度会更高，需要更多的训练集、训练时间，使用时的资源占用（推理开销）也会成倍上涨。",
   },
-  Custom: {
-    params: [
-      recoFieldSchema.customRecognition,
-      recoFieldSchema.customRecognitionParam,
-      recoFieldSchema.customRoi,
-      recoFieldSchema.roiOffset,
-    ],
-    desc: "执行通过 MaaResourceRegisterCustomRecognition 接口传入的识别器句柄。",
-  },
 };
 
 export const actionFields: Record<string, FieldsType> = {
@@ -622,14 +622,6 @@ export const actionFields: Record<string, FieldsType> = {
     ],
     desc: "执行通过 MaaResourceRegisterCustomAction 接口传入的动作句柄。",
   },
-  LongPress: {
-    params: [
-      actionFieldSchema.longPressTarget,
-      actionFieldSchema.targetOffset,
-      actionFieldSchema.longPressDuration,
-    ],
-    desc: "长按。",
-  },
   Swipe: {
     params: [
       actionFieldSchema.begin,
@@ -642,20 +634,28 @@ export const actionFields: Record<string, FieldsType> = {
     ],
     desc: "线性滑动。",
   },
-  MultiSwipe: {
-    params: [actionFieldSchema.swipes],
-    desc: "多指线性滑动。",
-  },
   ClickKey: {
     params: [actionFieldSchema.clickKey],
     desc: "单击按键。",
+  },
+  LongPress: {
+    params: [
+      actionFieldSchema.longPressTarget,
+      actionFieldSchema.targetOffset,
+      actionFieldSchema.longPressDuration,
+    ],
+    desc: "长按。",
+  },
+  MultiSwipe: {
+    params: [actionFieldSchema.swipes],
+    desc: "多指线性滑动。",
   },
   LongPressKey: {
     params: [
       actionFieldSchema.longPressKey,
       actionFieldSchema.longPressKeyDuration,
     ],
-    desc: "单击按键。",
+    desc: "长按按键。",
   },
   InputText: {
     params: [actionFieldSchema.inputText],
@@ -727,12 +727,12 @@ export const actionParamKeys = (() => {
 export const otherFieldParams: FieldType[] = [
   otherFieldSchema.rateLimit,
   otherFieldSchema.timeout,
-  otherFieldSchema.inverse,
-  otherFieldSchema.enabled,
   otherFieldSchema.preDelay,
   otherFieldSchema.postDelay,
+  otherFieldSchema.focus,
+  otherFieldSchema.enabled,
+  otherFieldSchema.inverse,
   otherFieldSchema.preWaitFreezes,
   otherFieldSchema.postWaitFreezes,
-  otherFieldSchema.focus,
   otherFieldSchema.isSub,
 ];
