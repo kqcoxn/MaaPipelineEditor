@@ -279,7 +279,7 @@ function matchParamType(params: ParamType, types: FieldType[]): ParamType {
             }
             break;
         }
-      } catch {}
+      } catch { }
       if (matchedValue !== null) continue;
     }
     if (matchedValue !== null) {
@@ -588,11 +588,6 @@ export async function pipelineToFlow(options?: {
       }
       // 保存数据
       nodes.push(node);
-
-      // 在宏队列中执行以避免数据未完成读取的问题
-      setTimeout(() => {
-        LayoutHelper.auto()
-      }, 0);
     });
 
     // 解析连接
@@ -649,6 +644,14 @@ export async function pipelineToFlow(options?: {
     if (configs.filename) fileState.setFileName(configs.filename);
     const setFileConfig = fileState.setFileConfig;
     if (configs.prefix) setFileConfig("prefix", configs.prefix);
+
+    // 如果自带布局则不使用自动布局
+    if (!useConfigStore.getState().configs.isExportConfig) {
+      // 在宏队列中执行以避免数据未完成读取的问题
+      setTimeout(() => {
+        LayoutHelper.auto()
+      }, 0);
+    }
   } catch (err) {
     notification.error({
       message: "导入失败！",
