@@ -645,13 +645,10 @@ export async function pipelineToFlow(options?: {
     const setFileConfig = fileState.setFileConfig;
     if (configs.prefix) setFileConfig("prefix", configs.prefix);
 
-    // 如果自带布局则不使用自动布局
-    if (!useConfigStore.getState().configs.isExportConfig) {
-      // 在宏队列中执行以避免数据未完成读取的问题
-      setTimeout(() => {
-        LayoutHelper.auto()
-      }, 0);
-    }
+    // 在宏队列中执行以避免数据未完成读取的问题
+    setTimeout(() => {
+      LayoutHelper.auto()
+    }, 0);
   } catch (err) {
     notification.error({
       message: "导入失败！",
