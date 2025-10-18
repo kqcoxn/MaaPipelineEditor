@@ -12,6 +12,7 @@
     "release": "git tag -a v0.5.4 -m \"v0.5.4\" && git push origin v0.5.4"
   },
   "dependencies": {
+    "@ant-design/icons": "^6.1.0",
     "@ant-design/v5-patch-for-react-19": "^1.0.3",
     "@dagrejs/dagre": "^1.1.5",
     "@dnd-kit/core": "^6.3.1",
