@@ -444,6 +444,10 @@ function isMark(key: string): boolean {
   return key === configMark || key === "__yamaape";
 }
 
+function isExportByMPE(key: string): boolean {
+  return key === configMark;
+}
+
 // 合成链接
 let idCounter = 1;
 function linkEdge(
@@ -516,6 +520,7 @@ export async function pipelineToFlow(options?: {
     let nodes: NodeType[] = [];
     const originLabels: string[] = [];
     let idOLPairs: IdLabelPairsType = [];
+    let exportByMPE = false;
     objKeys.forEach((objKey) => {
       const obj = v1Obj[objKey];
       // 跳过配置
@@ -551,6 +556,7 @@ export async function pipelineToFlow(options?: {
         // 标记字段
         const value = obj[key];
         if (isMark(key)) Object.assign(node, value);
+        if (isExportByMPE(key)) exportByMPE = true;
         // 识别算法
         else if (key === "recognition") {
           switch (pVersion) {
@@ -645,10 +651,13 @@ export async function pipelineToFlow(options?: {
     const setFileConfig = fileState.setFileConfig;
     if (configs.prefix) setFileConfig("prefix", configs.prefix);
 
-    // 在宏队列中执行以避免数据未完成读取的问题
-    setTimeout(() => {
-      LayoutHelper.auto()
-    }, 0);
+    // 如果不是由 MPE 导出则使用自动布局
+    if (!exportByMPE) {
+      // 在宏队列中执行以避免数据未完成读取的问题
+      setTimeout(() => {
+        LayoutHelper.auto()
+      }, 0);
+    }
   } catch (err) {
     notification.error({
       message: "导入失败！",
