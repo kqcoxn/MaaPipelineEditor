@@ -29,6 +29,7 @@ import {
 import { NodeTypeEnum, SourceHandleTypeEnum } from "../components/flow/nodes";
 import { JsonHelper } from "../utils/jsonHelper";
 import { ClipboardHelper } from "../utils/clipboard";
+import { LayoutHelper } from "./layout";
 
 export const configMark = "__mpe_code";
 export const configMarkPrefix = "__mpe_config_";
@@ -587,6 +588,11 @@ export async function pipelineToFlow(options?: {
       }
       // 保存数据
       nodes.push(node);
+
+      // 在宏队列中执行以避免数据未完成读取的问题
+      setTimeout(() => {
+        LayoutHelper.auto()
+      }, 0);
     });
 
     // 解析连接
