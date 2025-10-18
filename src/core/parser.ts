@@ -656,7 +656,9 @@ export async function pipelineToFlow(options?: {
       // 在宏队列中执行以避免数据未完成读取的问题
       setTimeout(() => {
         LayoutHelper.auto()
-      }, 0);
+      }, 10);
+      // replace中的fitFlowView是个异步函数
+      // 故这里延时以确保布局计算完成
     }
   } catch (err) {
     notification.error({
