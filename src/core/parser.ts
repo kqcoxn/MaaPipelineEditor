@@ -58,7 +58,7 @@ export type PipelineObjType = Record<string, ParsedPipelineNodeType>;
 function puraStringList(list: any): string[] {
   return String(list)
     .replace(/[\s\[\]]/g, "")
-    .split(",");
+    .split(/[,，]/);
 }
 function matchParamType(params: ParamType, types: FieldType[]): ParamType {
   const paramKeys = Object.keys(params);

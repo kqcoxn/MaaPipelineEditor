@@ -5,15 +5,14 @@ import { message } from "antd";
 import { JsonHelper } from "../utils/jsonHelper";
 
 /**固有配置 */
-const mainVersion = "0.5.4";
-const betaIndex = 3;
 export const globalConfig = {
   dev: true,
-  version: `v${mainVersion}`,
+  version: `v0.5.4`,
   mfwVersion: "4.5",
 };
+
 if (globalConfig.dev) {
-  globalConfig.version += `_beta${betaIndex}`;
+  globalConfig.version += `_beta4`;
 }
 
 /**配置 */
