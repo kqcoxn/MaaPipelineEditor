@@ -389,7 +389,11 @@ interface FlowState {
   updateEdges: (changes: EdgeChange[]) => void;
   addEdge: (co: Connection, options?: { isCheck?: Boolean }) => void;
   setNodeData: (id: string, type: string, key: string, value: any) => void;
-  replace: (nodes: NodeType[], edges: EdgeType[]) => void;
+  replace: (
+    nodes: NodeType[],
+    edges: EdgeType[],
+    options?: { isFitView?: Boolean }
+  ) => void;
   paste: (nodes: NodeType[], edges: EdgeType[]) => void;
 }
 export const useFlowStore = create<FlowState>()((set) => ({
@@ -649,7 +653,8 @@ export const useFlowStore = create<FlowState>()((set) => ({
 
   /**整体更新 */
   // 替换新的节点与边
-  replace(nodes: NodeType[], edges: EdgeType[]) {
+  replace(nodes: NodeType[], edges: EdgeType[], options) {
+    const { isFitView = true } = options || {};
     set(() => {
       const setter = {
         nodes,
@@ -659,7 +664,7 @@ export const useFlowStore = create<FlowState>()((set) => ({
         targetNode: null,
         bfTargetNode: null,
       };
-      fitFlowView();
+      if (isFitView) fitFlowView();
       return setter;
     });
   },

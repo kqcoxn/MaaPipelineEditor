@@ -1,4 +1,4 @@
-import { Position, type NodeChange } from "@xyflow/react";
+import { type NodeChange } from "@xyflow/react";
 import Dagre from "@dagrejs/dagre";
 
 import {
@@ -16,10 +16,27 @@ export enum AlignmentEnum {
 export class LayoutHelper {
   // 自动布局
   static auto() {
+    requestAnimationFrame(() => LayoutHelper.performLayout());
+  }
+
+  // 执行布局计算
+  private static performLayout() {
     // 加载节点
     const flowState = useFlowStore.getState();
     const nodes = flowState.nodes as NodeType[];
     const edges = flowState.edges as EdgeType[];
+
+    // 检查节点是否已测量
+    const allMeasured = nodes.every(
+      (node) => node.measured?.width && node.measured?.height
+    );
+    if (!allMeasured && nodes.length > 0) {
+      setTimeout(() => {
+        LayoutHelper.performLayout();
+      }, 10);
+      return;
+    }
+
     // 初始化
     const g = new Dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
     g.setGraph({ rankdir: "LR", ranksep: 80 });
