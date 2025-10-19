@@ -39,7 +39,12 @@ export class LayoutHelper {
 
     // 初始化
     const g = new Dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
-    g.setGraph({ rankdir: "LR", ranksep: 80 });
+    g.setGraph({
+      rankdir: "LR",
+      align: "UL",
+      ranksep: 80,
+      ranker: "network-simplex",
+    });
     // 载入
     edges.forEach((edge) => g.setEdge(edge.source, edge.target));
     nodes.forEach((node) =>
