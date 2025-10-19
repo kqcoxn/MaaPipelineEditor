@@ -60,6 +60,9 @@ function Header() {
               Stable Version
             </Tag>
           )}
+          <Tag bordered={false} color="purple">
+            MFW v{globalConfig.mfwVersion}
+          </Tag>
         </div>
       </div>
       <div className={style.right}>

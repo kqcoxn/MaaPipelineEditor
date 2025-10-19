@@ -10,6 +10,7 @@ const betaIndex = 3;
 export const globalConfig = {
   dev: true,
   version: `v${mainVersion}`,
+  mfwVersion: "4.5",
 };
 if (globalConfig.dev) {
   globalConfig.version += `_beta${betaIndex}`;
