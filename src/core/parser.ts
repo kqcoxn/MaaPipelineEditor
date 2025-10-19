@@ -29,6 +29,7 @@ import {
 import { NodeTypeEnum, SourceHandleTypeEnum } from "../components/flow/nodes";
 import { JsonHelper } from "../utils/jsonHelper";
 import { ClipboardHelper } from "../utils/clipboard";
+import { LayoutHelper } from "./layout";
 
 export const configMark = "__mpe_code";
 export const configMarkPrefix = "__mpe_config_";
@@ -278,7 +279,7 @@ function matchParamType(params: ParamType, types: FieldType[]): ParamType {
             }
             break;
         }
-      } catch {}
+      } catch { }
       if (matchedValue !== null) continue;
     }
     if (matchedValue !== null) {
@@ -443,6 +444,10 @@ function isMark(key: string): boolean {
   return key === configMark || key === "__yamaape";
 }
 
+function isExportByMPE(key: string): boolean {
+  return key === configMark;
+}
+
 // 合成链接
 let idCounter = 1;
 function linkEdge(
@@ -515,6 +520,7 @@ export async function pipelineToFlow(options?: {
     let nodes: NodeType[] = [];
     const originLabels: string[] = [];
     let idOLPairs: IdLabelPairsType = [];
+    let exportByMPE = false;
     objKeys.forEach((objKey) => {
       const obj = v1Obj[objKey];
       // 跳过配置
@@ -550,6 +556,7 @@ export async function pipelineToFlow(options?: {
         // 标记字段
         const value = obj[key];
         if (isMark(key)) Object.assign(node, value);
+        if (isExportByMPE(key)) exportByMPE = true;
         // 识别算法
         else if (key === "recognition") {
           switch (pVersion) {
@@ -643,6 +650,16 @@ export async function pipelineToFlow(options?: {
     if (configs.filename) fileState.setFileName(configs.filename);
     const setFileConfig = fileState.setFileConfig;
     if (configs.prefix) setFileConfig("prefix", configs.prefix);
+
+    // 如果不是由 MPE 导出则使用自动布局
+    if (!exportByMPE) {
+      // 在宏队列中执行以避免数据未完成读取的问题
+      setTimeout(() => {
+        LayoutHelper.auto()
+      }, 10);
+      // replace中的fitFlowView是个异步函数
+      // 故这里延时以确保布局计算完成
+    }
   } catch (err) {
     notification.error({
       message: "导入失败！",
