@@ -6,6 +6,7 @@ import { DownOutlined, SunOutlined, MoonOutlined } from "@ant-design/icons";
 import IconFont from "./iconfonts";
 
 import { globalConfig, useConfigStore } from "../stores/configStore";
+import classNames from "classnames";
 
 function Header() {
   const useDarkMode = useConfigStore((state) => state.configs.useDarkMode);
@@ -48,7 +49,12 @@ function Header() {
       <div className={style.left}>
         <img className={style.logo} src="/MaaPipelineEditor/logo.png" />
         <div className={style.title}>
-          MaaPipelineEditor - 可视化 MaaFramework Pipeline 编辑器
+          <span className={classNames(style.title, style["full-title"])}>
+            MaaPipelineEditor - 可视化 MaaFramework Pipeline 编辑器
+          </span>
+          <span className={classNames(style.title, style["short-title"])}>
+            MaaPipelineEditor
+          </span>
         </div>
         <div className={style.version}>
           {globalConfig.dev ? (
