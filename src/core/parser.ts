@@ -24,6 +24,9 @@ import {
   recoFieldSchemaKeyList,
   actionFieldSchemaKeyList,
   otherFieldSchemaKeyList,
+  upperRecoValues,
+  upperActionValues,
+  upperOtherValues,
   type FieldType,
 } from "./fields";
 import { NodeTypeEnum, SourceHandleTypeEnum } from "../components/flow/nodes";
@@ -550,7 +553,7 @@ export async function pipelineToFlow(options?: {
         // 跳过链接
         if (key === "next" || key === "interrupt" || key === "on_error") return;
         // 标记字段
-        const value = obj[key];
+        let value = obj[key];
         if (isMark(key)) {
           Object.assign(node, value);
           isIncludePos = true;
@@ -559,9 +562,23 @@ export async function pipelineToFlow(options?: {
         else if (key === "recognition") {
           switch (pVersion) {
             case 1:
+              if (!Object.values(upperRecoValues).includes(value)) {
+                let idx = Object.keys(upperRecoValues).findIndex(
+                  (k) => k === value.toUpperCase()
+                );
+                if (idx >= 0) value = Object.values(upperRecoValues)[idx];
+                else throw new Error("识别算法类型错误");
+              }
               node.data.recognition.type = value;
               break;
             case 2:
+              if (!Object.values(upperRecoValues).includes(value.type)) {
+                let idx = Object.keys(upperRecoValues).findIndex(
+                  (k) => k === value.type.toUpperCase()
+                );
+                if (idx >= 0) value.type = Object.values(upperRecoValues)[idx];
+                else throw new Error("识别算法类型错误");
+              }
               node.data.recognition = value;
               break;
           }
@@ -571,9 +588,24 @@ export async function pipelineToFlow(options?: {
         else if (key === "action") {
           switch (pVersion) {
             case 1:
+              if (!Object.values(upperActionValues).includes(value)) {
+                let idx = Object.keys(upperActionValues).findIndex(
+                  (k) => k === value.toUpperCase()
+                );
+                if (idx >= 0) value = Object.values(upperActionValues)[idx];
+                else throw new Error("动作类型错误");
+              }
               node.data.action.type = value;
               break;
             case 2:
+              if (!Object.values(upperActionValues).includes(value.type)) {
+                let idx = Object.keys(upperActionValues).findIndex(
+                  (k) => k === value.type.toUpperCase()
+                );
+                if (idx >= 0)
+                  value.type = Object.values(upperActionValues)[idx];
+                else throw new Error("动作类型错误");
+              }
               node.data.action = value;
               break;
           }

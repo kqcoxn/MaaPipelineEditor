@@ -740,3 +740,20 @@ export const otherFieldParams: FieldType[] = [
   otherFieldSchema.postWaitFreezes,
   otherFieldSchema.isSub,
 ];
+
+// 大写值
+export const upperRecoValues = (() => {
+  const dict: Record<string, string> = {};
+  Object.keys(recoFields).forEach((fieldKey) => {
+    dict[fieldKey.toUpperCase()] = fieldKey;
+  });
+  return dict;
+})();
+
+export const upperActionValues = (() => {
+  const dict: Record<string, string> = {};
+  Object.keys(actionFields).forEach((fieldKey) => {
+    dict[fieldKey.toUpperCase()] = fieldKey;
+  });
+  return dict;
+})();

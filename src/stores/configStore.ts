@@ -6,13 +6,14 @@ import { JsonHelper } from "../utils/jsonHelper";
 
 /**固有配置 */
 export const globalConfig = {
-  dev: false,
-  version: `v0.5.4`,
+  dev: true,
+  version: `v0.5.5`,
+  betaIteration: 1,
   mfwVersion: "4.5",
 };
 
 if (globalConfig.dev) {
-  globalConfig.version += `_beta4`;
+  globalConfig.version += `_beta` + globalConfig.betaIteration;
 }
 
 /**配置 */
