@@ -26,7 +26,6 @@ import {
   otherFieldSchemaKeyList,
   upperRecoValues,
   upperActionValues,
-  upperOtherValues,
   type FieldType,
 } from "./fields";
 import { NodeTypeEnum, SourceHandleTypeEnum } from "../components/flow/nodes";
@@ -320,10 +319,11 @@ function parsePipelineNode(fNode: PipelineNodeType): ParsedPipelineNodeType {
   };
   // 其他节点
   const others = matchParamType(fNodeData.others, otherFieldParams);
-  const extras =
-    JsonHelper.stringObjToJson(
-      String(fNodeData.extras).replaceAll(/[“”]/g, `"`)
-    ) ?? {};
+  const extras = JsonHelper.isObj(fNodeData.extras)
+    ? fNodeData.extras
+    : JsonHelper.stringObjToJson(
+        String(fNodeData.extras).replaceAll(/[“”]/g, `"`)
+      ) ?? {};
   // 赋值
   const pNode: ParsedPipelineNodeType = {
     recognition,
