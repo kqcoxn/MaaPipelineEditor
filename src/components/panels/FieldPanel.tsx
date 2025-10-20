@@ -20,7 +20,6 @@ import {
   type PipelineNodeType,
   type ExternalNodeType,
 } from "../../stores/flowStore";
-import { useConfigStore } from "../../stores/configStore";
 import { useFileStore } from "../../stores/fileStore";
 import {
   recoFields,
@@ -346,7 +345,7 @@ const PipelineElem = lazy(() =>
         [currentNode.data.recognition.type]
       );
       const currentReco = useMemo(
-        () => recoFields[currentRecoName],
+        () => recoFields[currentRecoName] || { params: [], desc: "" },
         [currentRecoName]
       );
       const handleRecoChange = useCallback(
@@ -362,7 +361,7 @@ const PipelineElem = lazy(() =>
         [currentNode.data.action.type]
       );
       const currentAction = useMemo(
-        () => actionFields[currentActionName],
+        () => actionFields[currentActionName] || { params: [], desc: "" },
         [currentActionName]
       );
       const handleActionChange = useCallback(
