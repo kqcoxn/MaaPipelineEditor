@@ -26,18 +26,18 @@ hero:
     alt: logo
 
 features:
-  - icon: 📖
-    title: 配套文档
-    details: 足量的使用说明，文图并茂，立即阅读以开启您的 MaaFramework 项目开发之旅！
   - icon: 🎉
     title: 简单易用
     details: 使用流程图编写您的 Pipeline，思路清晰；基本支持所有协议内容，兼容已有项目。
-  - icon: 🌐
-    title: 开箱即用
-    details: 无需本地编译部署或下载安装，使用浏览器打开网站即可使用，提供稳定版与预览版两种方案！
   - icon: 📝
     title: 专注内容
     details: “由您设计，由我们支持。” 如您所需皆已存在：添加、配置、连接，只需稍作思考，想法之外尽在其中！
+  - icon: 🌐
+    title: 开箱即用
+    details: 无需本地编译部署或下载安装，使用浏览器打开网站即可使用！
+  - icon: 📖
+    title: 配套文档
+    details: 足量的使用说明，文图并茂，立即阅读以开启您的 MPE 开发之旅！
 ---
 
 <script setup lang="ts">
