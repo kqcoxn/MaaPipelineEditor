@@ -139,11 +139,6 @@ export default defineConfig({
         activeMatch: "/02.最佳实践/",
       },
       {
-        text: "参与开发",
-        link: "/dev/env",
-        activeMatch: "03.参与开发",
-      },
-      {
         text: "相关链接",
         items: [
           {
