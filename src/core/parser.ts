@@ -1,5 +1,6 @@
 import { notification } from "antd";
 import { flatten } from "lodash";
+import { parse as parseJsonc } from "jsonc-parser";
 
 import {
   useFlowStore,
@@ -505,7 +506,7 @@ export async function pipelineToFlow(options?: {
     // 获取参数
     const { pString = await ClipboardHelper.read(), pVersion = 2 } =
       options || {};
-    const v1Obj = JSON.parse(pString);
+    const v1Obj = parseJsonc(pString);
     // 解析配置
     const objKeys = Object.keys(v1Obj);
     const configs: PipelineConfigType = {};
