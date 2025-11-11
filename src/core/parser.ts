@@ -33,9 +33,9 @@ import { JsonHelper } from "../utils/jsonHelper";
 import { ClipboardHelper } from "../utils/clipboard";
 import { LayoutHelper } from "./layout";
 
-export const configMark = "__mpe_code";
-export const configMarkPrefix = "__mpe_config_";
-export const externalMarkPrefix = "__mpe_external_";
+export const configMark = "$__mpe_code";
+export const configMarkPrefix = "$__mpe_config_";
+export const externalMarkPrefix = "$__mpe_external_";
 type ParsedPipelineNodeType = {
   [configMark]?: {
     position: { x: number; y: number };
@@ -440,11 +440,13 @@ type IdLabelPairsType = {
 // 判断配置字段
 function isConfigKey(key: string): boolean {
   return (
-    key.startsWith(configMarkPrefix) || key.startsWith("__yamaape_config_")
+    key.startsWith(configMarkPrefix) ||
+    key.startsWith("__mpe_config_") ||
+    key.startsWith("__yamaape_config_")
   );
 }
 function isMark(key: string): boolean {
-  return key === configMark || key === "__yamaape";
+  return key === configMark || key === "__mpe_code" || key === "__yamaape";
 }
 
 // 合成链接

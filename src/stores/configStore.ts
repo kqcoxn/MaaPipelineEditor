@@ -8,7 +8,7 @@ import { JsonHelper } from "../utils/jsonHelper";
 export const globalConfig = {
   dev: true,
   version: `v0.5.6`,
-  betaIteration: 1,
+  betaIteration: 2,
   mfwVersion: "4.5",
 };
 
