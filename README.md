@@ -99,6 +99,8 @@ MPE 项目没有单独的交流群，您可以在 MaaFramework 集成/开发交�
   Use pure JS to convert iconfont.cn icons into React components.
 - [lodash](https://github.com/lodash/lodash)  
   A modern JavaScript utility library delivering modularity, performance & extras.
+- [node-jsonc-parser](https://github.com/microsoft/node-jsonc-parser)  
+  Scanner and parser for JSON with comments.
 - [darkreader](https://github.com/darkreader/darkreader)  
   Dark Reader analyzes web pages and aims to reduce eyestrain while browsing the web.
 - [vitepress](https://github.com/vuejs/vitepress)  
@@ -107,7 +109,7 @@ MPE 项目没有单独的交流群，您可以在 MaaFramework 集成/开发交�
   An approachable, performant and versatile framework for building web user interfaces.
 - [sass](https://github.com/sass/sass)  
   An extension of CSS, adding nested rules, variables, mixins, selector inheritance, and more.
-- [vitepress-theme-teek](https://github.com/lodash/lodash)  
+- [vitepress-theme-teek](https://github.com/Kele-Bingtang/vitepress-theme-teek)  
   A lightweight, simple and efficient VitePress theme that is flexible to configure and easy to expand.
 - [vitepress-plugin-llms](https://github.com/okineadev/vitepress-plugin-llms)  
   A VitePress plugin for generating LLM-friendly documentation.
