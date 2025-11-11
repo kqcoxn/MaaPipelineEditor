@@ -573,7 +573,8 @@ export async function pipelineToFlow(options?: { pString?: string }) {
     }
     // 解析节点
     let nodes: NodeType[] = [];
-    const originLabels: string[] = [];
+    const originLabels: string[] = []; // 去掉前缀后的节点名
+    const originalKeys: string[] = []; // 原始完整节点名（包含前缀）
     let idOLPairs: IdLabelPairsType = [];
     let isIncludePos = false;
     objKeys.forEach((objKey) => {
@@ -595,9 +596,11 @@ export async function pipelineToFlow(options?: { pString?: string }) {
         if (filename)
           label = label.substring(0, label.length - filename.length - 1);
         originLabels.push(label);
+        originalKeys.push(objKey);
         idOLPairs.push({ id, label });
       } else {
         originLabels.push(label);
+        originalKeys.push(objKey);
         idOLPairs.push({ id, label });
         const prefix = configs.prefix;
         if (prefix) label = label.substring(prefix.length + 1);
@@ -688,7 +691,7 @@ export async function pipelineToFlow(options?: { pString?: string }) {
     // 解析连接
     let edges: EdgeType[] = [];
     for (let index = 0; index < originLabels.length; index++) {
-      const objKey = originLabels[index];
+      const objKey = originalKeys[index]; // 使用原始完整节点名
       const obj = pipelineObj[objKey];
       if (!obj) continue;
       const originLabel = originLabels[index];
