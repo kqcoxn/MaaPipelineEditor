@@ -1,10 +1,10 @@
 import style from "../styles/JsonViewer.module.less";
 
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState, useRef } from "react";
 import ReactJsonView, {
   type ReactJsonViewProps,
 } from "@microlink/react-json-view";
-import { Button, Flex } from "antd";
+import { Button, Flex, message } from "antd";
 
 import { useFlowStore, type NodeType } from "../stores/flowStore";
 import {
@@ -48,6 +48,32 @@ function JsonViewer() {
     (state) => state.configs.isRealTimePreview
   );
   useFlowStore((state) => state.targetNode);
+
+  // 文件输入引用
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 处理文件导入
+  const handleFileImport = async (file: File) => {
+    try {
+      const text = await file.text();
+      await pipelineToFlow({ pString: text });
+      message.success("文件导入成功");
+    } catch (err) {
+      message.error("文件导入失败，请检查文件格式");
+      console.error(err);
+    }
+  };
+
+  // 文件选择事件
+  const onFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFileImport(file);
+      // 清空input值，允许选择同一文件
+      e.target.value = "";
+    }
+  };
+
   // 生成 Pipeline
   const isPartable = selectedNodes.length > 0;
   const [rtpTrigger, setRtpTrigger] = useState(0);
@@ -69,6 +95,13 @@ function JsonViewer() {
   // 渲染
   return (
     <div className={style["json-viewer"]}>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json,.jsonc"
+        style={{ display: "none" }}
+        onChange={onFileSelect}
+      />
       <div className={style.header}>
         <div className={style.title}>Pipeline JSON</div>
         <div className={style.operations}>
@@ -79,7 +112,15 @@ function JsonViewer() {
               color="primary"
               onClick={() => pipelineToFlow()}
             >
-              导入
+              从粘贴板导入
+            </Button>
+            <Button
+              variant="filled"
+              size="small"
+              color="primary"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              从文件导入
             </Button>
           </Flex>
           <Flex className={style.group} gap="small" wrap>

@@ -14,9 +14,6 @@ const { Header: HeaderSection, Content } = Layout;
 import {
   enable as enableDarkMode,
   disable as disableDarkMode,
-  auto as followSystemColorScheme,
-  exportGeneratedCSS as collectCSS,
-  isEnabled as isDarkReaderEnabled,
 } from "darkreader";
 
 import { useFileStore } from "./stores/fileStore";
@@ -30,6 +27,7 @@ import FilePanel from "./components/panels/FilePanel";
 import ConfigPanel from "./components/panels/ConfigPanel";
 import ErrorPanel from "./components/panels/ErrorPanel";
 import { useConfigStore } from "./stores/configStore";
+import { pipelineToFlow } from "./core/parser";
 
 // 按键重定向
 function keyRedirection() {
@@ -139,6 +137,36 @@ const GlobalListener = memo(() => {
 
 /**主程序 */
 function App() {
+  // 处理文件拖拽
+  const handleFileDrop = useCallback(async (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const files = e.dataTransfer?.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    // 检查文件类型
+    if (!file.name.endsWith(".json") && !file.name.endsWith(".jsonc")) {
+      message.error("仅支持 .json 或 .jsonc 文件");
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      await pipelineToFlow({ pString: text });
+      message.success(`已导入文件: ${file.name}`);
+    } catch (err) {
+      message.error("文件导入失败，请检查文件格式");
+      console.error(err);
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
   // onMounted
   useEffect(() => {
     // 按键重定向
@@ -154,7 +182,17 @@ function App() {
         }
       }, 10 * 60 * 1000);
     }
-  }, []);
+
+    // 文件拖拽监听
+    document.addEventListener("drop", handleFileDrop);
+    document.addEventListener("dragover", handleDragOver);
+
+    // 清理监听器
+    return () => {
+      document.removeEventListener("drop", handleFileDrop);
+      document.removeEventListener("dragover", handleDragOver);
+    };
+  }, [handleFileDrop, handleDragOver]);
 
   // 渲染组件
   return (
