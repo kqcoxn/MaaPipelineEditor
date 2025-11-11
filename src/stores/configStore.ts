@@ -8,7 +8,7 @@ import { JsonHelper } from "../utils/jsonHelper";
 export const globalConfig = {
   dev: true,
   version: `v0.5.6`,
-  betaIteration: 2,
+  betaIteration: 3,
   mfwVersion: "4.5",
 };
 
@@ -24,7 +24,6 @@ type ConfigState = {
     isExportConfig: boolean;
     showEdgeLabel: boolean;
     isAutoFocus: boolean;
-    isShowV1: boolean;
     useDarkMode: boolean;
   };
   setConfig: <K extends keyof ConfigState["configs"]>(
@@ -54,7 +53,6 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     isExportConfig: true,
     showEdgeLabel: true,
     isAutoFocus: true,
-    isShowV1: true,
     useDarkMode: false,
   },
   setConfig(key, value, refresh = false) {

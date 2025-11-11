@@ -40,16 +40,14 @@ const ViewerElem = memo(({ obj }: { obj: any }) => {
 
 function JsonViewer() {
   // store
-  const isRealTimePreview = useConfigStore(
-    (state) => state.configs.isRealTimePreview
-  );
-  const isShowV1 = useConfigStore((state) => state.configs.isShowV1);
   const selectedNodes = useFlowStore(
     (state) => state.bfSelectedNodes
   ) as NodeType[];
-  useFlowStore((state) => state.targetNode);
   const selectedEdges = useFlowStore((state) => state.bfSelectedEdges);
-
+  const isRealTimePreview = useConfigStore(
+    (state) => state.configs.isRealTimePreview
+  );
+  useFlowStore((state) => state.targetNode);
   // 生成 Pipeline
   const isPartable = selectedNodes.length > 0;
   const [rtpTrigger, setRtpTrigger] = useState(0);
@@ -75,23 +73,13 @@ function JsonViewer() {
         <div className={style.title}>Pipeline JSON</div>
         <div className={style.operations}>
           <Flex className={style.group} gap="small" wrap>
-            {isShowV1 && (
-              <Button
-                variant="filled"
-                size="small"
-                color="primary"
-                onClick={() => pipelineToFlow({ pVersion: 1 })}
-              >
-                导入v1
-              </Button>
-            )}
             <Button
               variant="filled"
               size="small"
               color="primary"
-              onClick={() => pipelineToFlow({ pVersion: 2 })}
+              onClick={() => pipelineToFlow()}
             >
-              导入v2
+              导入
             </Button>
           </Flex>
           <Flex className={style.group} gap="small" wrap>

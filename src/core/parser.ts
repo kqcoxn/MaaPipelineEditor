@@ -500,21 +500,74 @@ type PipelineConfigType = {
   prefix?: string;
   [key: string]: any;
 };
-export async function pipelineToFlow(options?: {
-  pString?: string;
-  pVersion?: number;
-}) {
+// 检测单个节点的版本
+function detectNodeVersion(node: any): number {
+  if (!node || typeof node !== "object") return 2;
+
+  // 检查 recognition 字段
+  if (node.recognition !== undefined) {
+    // v2: recognition 是对象，包含 type 和 param
+    if (
+      typeof node.recognition === "object" &&
+      node.recognition !== null &&
+      "type" in node.recognition
+    ) {
+      return 2;
+    }
+    // v1: recognition 是字符串
+    if (typeof node.recognition === "string") {
+      return 1;
+    }
+  }
+
+  // 检查 action 字段
+  if (node.action !== undefined) {
+    // v2: action 是对象，包含 type 和 param
+    if (
+      typeof node.action === "object" &&
+      node.action !== null &&
+      "type" in node.action
+    ) {
+      return 2;
+    }
+    // v1: action 是字符串
+    if (typeof node.action === "string") {
+      return 1;
+    }
+  }
+
+  // 检查是否有 v1 特征：识别和动作参数字段直接在节点根层级
+  const nodeKeys = Object.keys(node);
+  const hasRecoParams = nodeKeys.some((k) =>
+    recoFieldSchemaKeyList.includes(k)
+  );
+  const hasActionParams = nodeKeys.some((k) =>
+    actionFieldSchemaKeyList.includes(k)
+  );
+  if (hasRecoParams || hasActionParams) {
+    // 但如果同时有 recognition.param 或 action.param，则是 v2
+    const hasV2Structure =
+      node.recognition?.param !== undefined || node.action?.param !== undefined;
+    if (!hasV2Structure) {
+      return 1;
+    }
+  }
+
+  // 默认返回 v2
+  return 2;
+}
+
+export async function pipelineToFlow(options?: { pString?: string }) {
   try {
     // 获取参数
-    const { pString = await ClipboardHelper.read(), pVersion = 2 } =
-      options || {};
-    const v1Obj = parseJsonc(pString);
+    const pString = options?.pString ?? (await ClipboardHelper.read());
+    const pipelineObj = parseJsonc(pString);
     // 解析配置
-    const objKeys = Object.keys(v1Obj);
+    const objKeys = Object.keys(pipelineObj);
     const configs: PipelineConfigType = {};
     const configKey = objKeys.find((objKey) => isConfigKey(objKey));
     if (configKey) {
-      let configObj = v1Obj[configKey];
+      let configObj = pipelineObj[configKey];
       if (configObj[configMark]) configObj = configObj[configMark];
       Object.assign(configs, configObj);
     }
@@ -524,9 +577,12 @@ export async function pipelineToFlow(options?: {
     let idOLPairs: IdLabelPairsType = [];
     let isIncludePos = false;
     objKeys.forEach((objKey) => {
-      const obj = v1Obj[objKey];
+      const obj = pipelineObj[objKey];
       // 跳过配置
       if (isConfigKey(objKey)) return;
+
+      // 检测当前节点的版本
+      const nodeVersion = detectNodeVersion(obj);
       // 处理节点名
       const id = "p_" + idCounter++;
       let label = objKey;
@@ -563,7 +619,7 @@ export async function pipelineToFlow(options?: {
         }
         // 识别算法
         else if (key === "recognition") {
-          switch (pVersion) {
+          switch (nodeVersion) {
             case 1:
               if (!Object.values(upperRecoValues).includes(value)) {
                 let idx = Object.keys(upperRecoValues).findIndex(
@@ -585,11 +641,11 @@ export async function pipelineToFlow(options?: {
               node.data.recognition = value;
               break;
           }
-        } else if (recoFieldSchemaKeyList.includes(key) && pVersion === 1)
+        } else if (recoFieldSchemaKeyList.includes(key) && nodeVersion === 1)
           node.data.recognition.param[key] = value;
         // 动作类型
         else if (key === "action") {
-          switch (pVersion) {
+          switch (nodeVersion) {
             case 1:
               if (!Object.values(upperActionValues).includes(value)) {
                 let idx = Object.keys(upperActionValues).findIndex(
@@ -612,7 +668,7 @@ export async function pipelineToFlow(options?: {
               node.data.action = value;
               break;
           }
-        } else if (actionFieldSchemaKeyList.includes(key) && pVersion === 1)
+        } else if (actionFieldSchemaKeyList.includes(key) && nodeVersion === 1)
           node.data.action.param[key] = value;
         // 其他字段
         else if (otherFieldSchemaKeyList.includes(key))
@@ -633,7 +689,7 @@ export async function pipelineToFlow(options?: {
     let edges: EdgeType[] = [];
     for (let index = 0; index < originLabels.length; index++) {
       const objKey = originLabels[index];
-      const obj = v1Obj[objKey];
+      const obj = pipelineObj[objKey];
       if (!obj) continue;
       const originLabel = originLabels[index];
       // next
