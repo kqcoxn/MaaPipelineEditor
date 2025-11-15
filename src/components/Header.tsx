@@ -44,7 +44,7 @@ function Header() {
   return (
     <div className={style.container}>
       <div className={style.left}>
-        <img className={style.logo} src="/MaaPipelineEditor/logo.png" />
+        <img className={style.logo} src={`${import.meta.env.BASE_URL}logo.png`} />
         <div className={style.title}>
           <span className={classNames(style.title, style["full-title"])}>
             MaaPipelineEditor - 可视化 MaaFramework Pipeline 编辑器
@@ -101,7 +101,7 @@ function Header() {
             <img
               className="icon-interactive"
               style={{ width: 29, marginLeft: 7, marginRight: 2 }}
-              src="/MaaPipelineEditor/maafw.png"
+              src={`${import.meta.env.BASE_URL}maafw.png`}
               onClick={() => {
                 window.open(
                   "https://maafw.xyz/docs/3.1-PipelineProtocol.html?source=mpe"
