@@ -44,7 +44,7 @@ jobs:
         run: yarn install
 
       - name: Build with Vite
-        run: yarn build
+        run: yarn build --mode preview
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
