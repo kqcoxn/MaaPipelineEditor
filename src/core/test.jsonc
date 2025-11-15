@@ -1,0 +1,14 @@
+{
+  "$__mpe_config_抽卡记录": {
+    "$__mpe_code": {
+      "prefix": "抽卡记录",
+      "filename": "抽卡记录",
+      "version": "v0.6.0_beta6"
+    }
+  },
+  "抽卡记录_Shopping": {
+    "recognition": { "type": "DirectHit", "param": {} },
+    "action": { "type": "Click", "param": { "target": [1, 2, 3, 4] } },
+    "$__mpe_code": { "position": { "x": -5, "y": -6 } }
+  }
+}

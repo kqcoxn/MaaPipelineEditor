@@ -206,9 +206,12 @@ function matchParamType(params: ParamType, types: FieldType[]): ParamType {
             const buildPosition = (pos: any) => {
               // true
               if (pos === true || String(pos) === "true") return true;
-              // [x,y,w,h]
+              // [x,y,w,h] or [x,y]
               let nums = puraStringList(pos).map((c) => Number(c));
-              if (nums.length === 4 && nums.every((n) => Number.isInteger(n)))
+              if (
+                (nums.length === 4 || nums.length === 2) &&
+                nums.every((n) => Number.isInteger(n))
+              )
                 return nums;
               // label string
               return String(pos);
@@ -226,6 +229,13 @@ function matchParamType(params: ParamType, types: FieldType[]): ParamType {
               matchedValue = list;
             } else {
               matchedValue = [buildPosition(value)];
+            }
+            break;
+          // 整型键值对
+          case FieldTypeEnum.IntPair:
+            temp = puraStringList(value).map((c) => Number(c));
+            if (temp.length === 2 && temp.every((n) => Number.isInteger(n))) {
+              matchedValue = temp;
             }
             break;
           // 键值对
