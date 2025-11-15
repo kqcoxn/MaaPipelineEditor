@@ -1,6 +1,5 @@
 import style from "../styles/Header.module.less";
 
-import { useMemo } from "react";
 import { Button, Tag, Dropdown, Space, Tooltip, type MenuProps } from "antd";
 import { DownOutlined, SunOutlined, MoonOutlined } from "@ant-design/icons";
 import IconFont from "./iconfonts";
@@ -8,41 +7,39 @@ import IconFont from "./iconfonts";
 import { globalConfig, useConfigStore } from "../stores/configStore";
 import classNames from "classnames";
 
+const versionLinks = [
+  {
+    key: "stable",
+    href: "https://mpe.codax.site/stable",
+    text: "稳定版",
+  },
+  {
+    key: "preview",
+    href: "https://kqcoxn.github.io/MaaPipelineEditor/",
+    text: "预览版",
+  },
+  {
+    key: "mfw 4.5",
+    href: "https://mpe.codax.site/mfw_4_5",
+    text: "MFW v4.5",
+  },
+  { key: "yamaape", href: "https://yamaape.codax.site", text: "YAMaaPE" },
+];
+
+const otherVersions: MenuProps["items"] = versionLinks.map(
+  ({ key, href, text }) => ({
+    key,
+    label: (
+      <a target="_self" rel="noopener noreferrer" href={href}>
+        {text}
+      </a>
+    ),
+  })
+);
+
 function Header() {
   const useDarkMode = useConfigStore((state) => state.configs.useDarkMode);
   const setConfig = useConfigStore((state) => state.setConfig);
-  const otherVersions = useMemo<MenuProps["items"]>(() => {
-    return [
-      {
-        key: "switch",
-        label: (
-          <a
-            target="_self"
-            rel="noopener noreferrer"
-            href={
-              globalConfig.dev
-                ? "https://yamaape.codax.site/MaaPipelineEditor"
-                : "https://kqcoxn.github.io/MaaPipelineEditor/"
-            }
-          >
-            {globalConfig.dev ? "稳定版" : "预览版"}
-          </a>
-        ),
-      },
-      {
-        key: "yamaape",
-        label: (
-          <a
-            target="_self"
-            rel="noopener noreferrer"
-            href="https://yamaape.codax.site"
-          >
-            YAMaaPE
-          </a>
-        ),
-      },
-    ];
-  }, [globalConfig.dev]);
 
   return (
     <div className={style.container}>
@@ -96,7 +93,7 @@ function Header() {
               name="icon-icon_wendangziliaopeizhi"
               size={25}
               onClick={() => {
-                window.open("https://yamaape.codax.site/docs");
+                window.open("https://mpe.codax.site/docs");
               }}
             />
           </Tooltip>
