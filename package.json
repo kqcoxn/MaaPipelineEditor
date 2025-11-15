@@ -9,7 +9,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "release": "git tag -a v0.6.1 -m \"v0.6.1\" && git push origin v0.6.1"
+    "release": "git tag -a v0.6.3 -m \"v0.6.3\" && git push origin v0.6.3"
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.0",
