@@ -23,7 +23,7 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
 
 <div align="center">
 
-[🚀 在线使用](https://yamaape.codax.site/MaaPipelineEditor) | [📖 文档](https://yamaape.codax.site/docs) | [💬 讨论反馈](#讨论与帮助)
+[🚀 在线使用](https://mpe.codax.site/stable) | [📖 文档](https://mpe.codax.site/docs) | [💬 讨论反馈](#讨论与帮助)
 
 </div>
 
@@ -45,8 +45,8 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
 
 ## 开箱即用
 
-- [文档站](https://yamaape.codax.site/docs)
-- [稳定版](https://yamaape.codax.site/MaaPipelineEditor)_**（推荐！）**_
+- [文档站](https://mpe.codax.site/docs)
+- [稳定版](https://mpe.codax.site/stable)_**（推荐！）**_
 - [预览版](https://kqcoxn.github.io/MaaPipelineEditor/)（最新 commit）
 - [YAMaaPE](https://yamaape.codax.site)（重构前版本）
 

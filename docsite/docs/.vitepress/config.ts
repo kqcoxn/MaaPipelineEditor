@@ -99,7 +99,7 @@ export default defineConfig({
     },
   },
   sitemap: {
-    hostname: "https://yamaape.codax.site",
+    hostname: "https://mpe.codax.site",
     transformItems: (items) => {
       const permalinkItemBak: typeof items = [];
       const permalinks = (globalThis as any).VITEPRESS_CONFIG.site.themeConfig
@@ -143,7 +143,7 @@ export default defineConfig({
         items: [
           {
             text: "MaaPipelineEditor",
-            link: "https://yamaape.codax.site/MaaPipelineEditor",
+            link: "https://mpe.codax.site/stable",
           },
           {
             text: "Pipeline 协议",

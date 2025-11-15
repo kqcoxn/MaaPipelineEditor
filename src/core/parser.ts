@@ -426,7 +426,7 @@ export function flowToPipeline(datas?: {
         [configMark]: {
           ...config,
           filename: fileState.currentFile.fileName,
-          version: globalConfig.version,
+          version: `v${globalConfig.version}`,
         },
       },
       ...pipelineObj,

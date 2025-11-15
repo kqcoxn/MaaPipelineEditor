@@ -73,7 +73,7 @@ function Header() {
           <Dropdown menu={{ items: otherVersions }} placement="bottom">
             <a>
               <Space>
-                {globalConfig.version}
+                {`v${globalConfig.version}`}
                 <DownOutlined />
               </Space>
             </a>

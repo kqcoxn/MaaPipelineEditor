@@ -14,7 +14,7 @@ hero:
       link: /guide/start/quick-start
     - theme: brand
       text: 即刻使用
-      link: https://yamaape.codax.site/MaaPipelineEditor
+      link: https://mpe.codax.site/stable
     - theme: alt
       text: 迁移指南
       link: /guide/migrate/old
