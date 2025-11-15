@@ -1,5 +1,5 @@
 {
-  "name": "MaaPipelineEditor",
+  "name": "maa-pipeline-editor",
   "private": true,
   "version": "0.0.1",
   "type": "module",
@@ -10,7 +10,7 @@
     "build-past": "vite build --mode mfw_4_5",
     "lint": "eslint .",
     "preview": "vite preview",
-    "release": "git tag -a v0.6.4 -m \"v0.6.4\" && git push origin v0.6.4"
+    "release": "git tag -a v0.7.1 -m \"v0.7.1\" && git push origin v0.7.1"
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.0",
