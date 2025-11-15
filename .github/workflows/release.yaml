@@ -34,7 +34,7 @@ jobs:
           echo "已修改configStore.ts中的dev配置为false"
 
       - name: Build project
-        run: yarn build
+        run: yarn build --mode stable
 
       - name: Create archive
         run: |
