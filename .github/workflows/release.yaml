@@ -50,101 +50,31 @@ jobs:
 
           if [ -z "$PREVIOUS_TAG" ]; then
             echo "这是第一个release，获取所有commits"
-            COMMITS=$(git log --pretty=format:"%s (%h)" --no-merges)
+            COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges)
           else
             echo "获取从 $PREVIOUS_TAG 到 ${{ github.ref_name }} 的commits"
-            COMMITS=$(git log --pretty=format:"%s (%h)" --no-merges $PREVIOUS_TAG..HEAD)
+            COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges $PREVIOUS_TAG..HEAD)
           fi
 
-          # 初始化各类型的commits
-          FEAT=""
-          FIX=""
-          DOCS=""
-          STYLE=""
-          REFACTOR=""
-          PERF=""
-          TEST=""
-          CHORE=""
-          OTHERS=""
-
-          # 分类commits
-          while IFS= read -r line; do
-            if [[ $line =~ ^feat[:(] ]]; then
-              FEAT="${FEAT}- ${line}\n"
-            elif [[ $line =~ ^fix[:(] ]]; then
-              FIX="${FIX}- ${line}\n"
-            elif [[ $line =~ ^docs[:(] ]]; then
-              DOCS="${DOCS}- ${line}\n"
-            elif [[ $line =~ ^style[:(] ]]; then
-              STYLE="${STYLE}- ${line}\n"
-            elif [[ $line =~ ^refactor[:(] ]]; then
-              REFACTOR="${REFACTOR}- ${line}\n"
-            elif [[ $line =~ ^perf[:(] ]]; then
-              PERF="${PERF}- ${line}\n"
-            elif [[ $line =~ ^test[:(] ]]; then
-              TEST="${TEST}- ${line}\n"
-            elif [[ $line =~ ^chore[:(] ]]; then
-              CHORE="${CHORE}- ${line}\n"
-            else
-              OTHERS="${OTHERS}- ${line}\n"
-            fi
-          done <<< "$COMMITS"
-
-          # 按顺序组装changelog内容
-          CHANGES=""
-          
-          if [ -n "$FEAT" ]; then
-            CHANGES="${CHANGES}### ✨ 新功能\n\n${FEAT}\n"
-          fi
-          
-          if [ -n "$FIX" ]; then
-            CHANGES="${CHANGES}### 🐛 Bug 修复\n\n${FIX}\n"
-          fi
-          
-          if [ -n "$PERF" ]; then
-            CHANGES="${CHANGES}### ⚡ 性能优化\n\n${PERF}\n"
-          fi
-          
-          if [ -n "$REFACTOR" ]; then
-            CHANGES="${CHANGES}### ♻️ 代码重构\n\n${REFACTOR}\n"
-          fi
-          
-          if [ -n "$DOCS" ]; then
-            CHANGES="${CHANGES}### 📝 文档更新\n\n${DOCS}\n"
-          fi
-          
-          if [ -n "$STYLE" ]; then
-            CHANGES="${CHANGES}### 💄 样式调整\n\n${STYLE}\n"
-          fi
-          
-          if [ -n "$TEST" ]; then
-            CHANGES="${CHANGES}### ✅ 测试相关\n\n${TEST}\n"
-          fi
-          
-          if [ -n "$CHORE" ]; then
-            CHANGES="${CHANGES}### 🔧 其他更新\n\n${CHORE}\n"
-          fi
-          
-          if [ -n "$OTHERS" ]; then
-            CHANGES="${CHANGES}### 📦 其他提交\n\n${OTHERS}\n"
-          fi
-
-          # 生成完整changelog
-          CHANGELOG="**Full Changelog**: https://github.com/kqcoxn/MaaPipelineEditor/compare/$PREVIOUS_TAG...${{ github.ref_name }}
+          # 生成changelog
+          CHANGELOG="
+          **Full Changelog**: https://github.com/kqcoxn/MaaPipelineEditor/compare/$PREVIOUS_TAG...${{ github.ref_name }}
 
           ## 📝 更新内容
 
-          ${CHANGES}
+          $COMMITS
+
           ## 🌐 在线使用
 
-          推荐您使用 [在线方案](https://github.com/kqcoxn/MaaPipelineEditor?tab=readme-ov-file#%E5%BC%80%E7%AE%B1%E5%8D%B3%E7%94%A8)，Release 仅作为网站崩溃时备用自部署方案"
+          推荐您使用 [在线方案](https://github.com/kqcoxn/MaaPipelineEditor?tab=readme-ov-file#%E5%BC%80%E7%AE%B1%E5%8D%B3%E7%94%A8)，Release 仅作为网站崩溃时备用自部署方案
+          "
 
           # 将changelog保存到文件
-          echo -e "$CHANGELOG" > CHANGELOG.md
+          echo "$CHANGELOG" > CHANGELOG.md
 
           # 输出到GitHub Actions
           echo "changelog<<EOF" >> $GITHUB_OUTPUT
-          echo -e "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create Release
