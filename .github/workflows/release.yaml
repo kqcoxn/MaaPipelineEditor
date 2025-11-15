@@ -36,11 +36,24 @@ jobs:
       - name: Build project
         run: yarn build --mode stable
 
-      - name: Create archive
+      - name: Build docs
         run: |
+          cd docsite
+          yarn install
+          yarn build
+          cd ..
+
+      - name: Create archives
+        run: |
+          # 打包主项目
           cd dist
           zip -r ../MaaPipelineEditor-${{ github.ref_name }}-stable.zip .
           cd ..
+          
+          # 打包文档
+          cd docsite/docs/.vitepress/dist
+          zip -r ../../../../MaaPipelineEditor-${{ github.ref_name }}-docs.zip .
+          cd ../../../..
 
       - name: Generate Changelog
         id: changelog
@@ -82,6 +95,7 @@ jobs:
         with:
           files: |
             MaaPipelineEditor-${{ github.ref_name }}-stable.zip
+            MaaPipelineEditor-${{ github.ref_name }}-docs.zip
           body_path: CHANGELOG.md
           generate_release_notes: false
           draft: false
