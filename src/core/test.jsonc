@@ -1,7 +1,17 @@
 {
-  "抽卡记录_Shopping": {
-    "recognition": "DirectHit",
-    "action": "Click",
-    "target": [1, 2, 3, 4]
+  "__mpe_config_新建Pipeline2": {
+    "__mpe_code": {
+      "prefix": "",
+      "filename": "新建Pipeline2",
+      "version": "v0.5.5"
+    }
+  },
+  "新建节点1": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": { "template": ["111"] }
+    },
+    "action": { "type": "Custom", "param": { "custom_action": "aaa" } },
+    "__mpe_code": { "position": { "x": 3248, "y": 1187 } }
   }
 }

@@ -487,6 +487,8 @@ export const otherFieldSchemaKeyList = [
   "pre_wait_freezes",
   "post_wait_freezes",
   "focus",
+  "attach",
+  "is_sub",
 ];
 const otherFieldSchema = {
   rateLimit: {
@@ -546,6 +548,12 @@ const otherFieldSchema = {
     type: FieldTypeEnum.Any,
     default: "",
     desc: "关注节点，会额外产生部分回调消息。可选，默认 null，不产生回调消息。 详见 节点通知。",
+  },
+  attach: {
+    key: "attach",
+    type: FieldTypeEnum.Any,
+    default: {},
+    desc: "附加 JSON 对象，用于保存节点的附加配置。可选，默认空对象。 该字段可用于存储自定义的配置信息，这些信息不会影响节点的执行逻辑，但可以通过相关接口获取。 注意：该字段会与默认值中的 attach 进行字典合并（dict merge），而不是覆盖。即节点中的 attach 会与默认值中的 attach 合并，相同键的值会被节点中的值覆盖，但其他键会保留。",
   },
   isSub: {
     key: "is_sub",
@@ -819,6 +827,7 @@ export const otherFieldParams: FieldType[] = [
   otherFieldSchema.inverse,
   otherFieldSchema.preWaitFreezes,
   otherFieldSchema.postWaitFreezes,
+  otherFieldSchema.attach,
   otherFieldSchema.isSub,
 ];
 

@@ -1,0 +1,17 @@
+{
+  "$__mpe_config_抽卡记录": {
+    "$__mpe_code": {
+      "prefix": "抽卡记录",
+      "filename": "抽卡记录",
+      "version": "v0.6.0"
+    }
+  },
+  "抽卡记录_新建节点1": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": { "template": ["111"] }
+    },
+    "action": { "type": "Custom", "param": { "custom_action": "aaa" } },
+    "$__mpe_code": { "position": { "x": 3248, "y": 1187 } }
+  }
+}
