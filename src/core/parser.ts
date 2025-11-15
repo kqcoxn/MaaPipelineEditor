@@ -459,6 +459,16 @@ function isConfigKey(key: string): boolean {
 function isMark(key: string): boolean {
   return key === configMark || key === "__mpe_code" || key === "__yamaape";
 }
+function getConfigMark(configObj: any): any {
+  if (configObj[configMark]) {
+    return configObj[configMark];
+  } else if (configObj["__mpe_code"]) {
+    return configObj["__mpe_code"];
+  } else if (configObj["__yamaape"]) {
+    return configObj["__yamaape"];
+  }
+  return null;
+}
 
 // 合成链接
 let idCounter = 1;
@@ -578,7 +588,11 @@ export async function pipelineToFlow(options?: { pString?: string }) {
     const configKey = objKeys.find((objKey) => isConfigKey(objKey));
     if (configKey) {
       let configObj = pipelineObj[configKey];
-      if (configObj[configMark]) configObj = configObj[configMark];
+      // 兼容新旧版本的配置标记
+      const markedConfig = getConfigMark(configObj);
+      if (markedConfig) {
+        configObj = markedConfig;
+      }
       Object.assign(configs, configObj);
     }
     // 解析节点
