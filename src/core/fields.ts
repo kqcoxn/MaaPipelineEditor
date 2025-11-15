@@ -287,7 +287,7 @@ const actionFieldSchema = {
   },
   targetOffset: {
     key: "target_offset",
-    type: FieldTypeEnum.XYWH,
+    type: [FieldTypeEnum.XYWH, FieldTypeEnum.IntPair],
     default: [0, 0, 0, 0],
     desc: "在 target 的基础上额外移动再作为点击目标，四个值分别相加。可选，默认 [0, 0, 0, 0] 。",
   },
