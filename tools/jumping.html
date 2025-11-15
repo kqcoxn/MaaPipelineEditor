@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MPE - 跳转中...</title>
+
+    <!-- ========================================== -->
+    <script>
+      // 目标跳转地址
+      const TARGET_URL = "https://github.com/kqcoxn/MaaPipelineEditor";
+      // 延迟时间（毫秒）
+      const DELAY_MS = 2000;
+    </script>
+    <!-- ========================================== -->
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+
+      .container {
+        text-align: center;
+        color: white;
+        animation: fadeIn 0.8s ease-in-out;
+      }
+
+      .logo {
+        width: auto;
+        height: 80px;
+        margin: 0 auto 30px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        font-weight: bold;
+        letter-spacing: 3px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        animation: bounce 2s infinite;
+        padding: 0 10px;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+        margin-bottom: 20px;
+        font-weight: 600;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      .subtitle {
+        font-size: 1.2rem;
+        margin-bottom: 40px;
+        opacity: 0.9;
+      }
+
+      .loading {
+        width: 60px;
+        height: 60px;
+        margin: 0 auto;
+        position: relative;
+      }
+
+      .loading::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        animation: spin 1s linear infinite;
+      }
+
+      .dots {
+        margin-top: 30px;
+        font-size: 1rem;
+        letter-spacing: 2px;
+      }
+
+      .dots span {
+        animation: blink 1.4s infinite;
+      }
+
+      .dots span:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+
+      .dots span:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+
+      .info {
+        margin-top: 50px;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 15px;
+        backdrop-filter: blur(10px);
+        display: inline-block;
+        min-width: 300px;
+      }
+
+      .info p {
+        font-size: 0.9rem;
+        opacity: 0.8;
+        margin: 8px 0;
+      }
+
+      .url {
+        word-break: break-all;
+        font-family: "Courier New", monospace;
+        background: rgba(0, 0, 0, 0.2);
+        padding: 10px;
+        border-radius: 8px;
+        margin-top: 10px;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @keyframes bounce {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+      }
+
+      @keyframes blink {
+        0%,
+        100% {
+          opacity: 0.2;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+
+      /* 响应式设计 */
+      @media (max-width: 600px) {
+        h1 {
+          font-size: 2rem;
+        }
+        .subtitle {
+          font-size: 1rem;
+        }
+        .info {
+          min-width: auto;
+          width: 90%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="logo">MaaPipelineEditor</div>
+      <h1>正在跳转</h1>
+      <p class="subtitle">即将为您打开目标页面</p>
+
+      <div class="loading"></div>
+
+      <div class="dots">
+        <span>●</span>
+        <span>●</span>
+        <span>●</span>
+      </div>
+
+      <div class="info">
+        <p style="font-size: 0.95rem; margin-bottom: 15px">📢 网址迁移提示</p>
+        <p style="font-size: 0.85rem; opacity: 0.9">当前网址已迁移至:</p>
+        <p class="url" id="targetUrl">-</p>
+        <p style="margin-top: 15px; font-size: 0.85rem">
+          如果没有自动跳转，请点击上方链接
+        </p>
+      </div>
+    </div>
+
+    <script>
+      // 显示目标URL
+      const urlElement = document.getElementById("targetUrl");
+      urlElement.textContent = TARGET_URL;
+      urlElement.style.cursor = "pointer";
+      urlElement.onclick = () => (window.location.href = TARGET_URL);
+
+      // 延迟跳转
+      setTimeout(() => {
+        window.location.href = TARGET_URL;
+      }, DELAY_MS);
+    </script>
+  </body>
+</html>
