@@ -7,6 +7,7 @@
     "icon": "npx iconfont-h5",
     "dev": "vite",
     "build": "vite build",
+    "build-past": "vite build --mode mfw_4_5",
     "lint": "eslint .",
     "preview": "vite preview",
     "release": "git tag -a v0.6.3 -m \"v0.6.3\" && git push origin v0.6.3"

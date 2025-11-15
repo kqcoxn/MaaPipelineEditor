@@ -44,7 +44,10 @@ function Header() {
   return (
     <div className={style.container}>
       <div className={style.left}>
-        <img className={style.logo} src={`${import.meta.env.BASE_URL}logo.png`} />
+        <img
+          className={style.logo}
+          src={`${import.meta.env.BASE_URL}logo.png`}
+        />
         <div className={style.title}>
           <span className={classNames(style.title, style["full-title"])}>
             MaaPipelineEditor - 可视化 MaaFramework Pipeline 编辑器
