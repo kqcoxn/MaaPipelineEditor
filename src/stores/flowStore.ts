@@ -368,6 +368,7 @@ type HistorySnapshot = {
 let historyStack: HistorySnapshot[] = [];
 let historyIndex = -1;
 let saveHistoryTimeout: number | null = null;
+let lastSavedState: string | null = null;
 
 // 获取历史状态
 export function getHistoryState() {
@@ -377,17 +378,57 @@ export function getHistoryState() {
   };
 }
 
+// 快速序列化状态
+function serializeState(nodes: NodeType[], edges: EdgeType[]): string {
+  // 排除 UI 状态
+  const cleanNodes = nodes.map((node) => ({
+    id: node.id,
+    type: node.type,
+    data: node.data,
+    position: node.position,
+    measured: node.measured,
+  }));
+  const cleanEdges = edges.map((edge) => ({
+    id: edge.id,
+    source: edge.source,
+    sourceHandle: edge.sourceHandle,
+    target: edge.target,
+    targetHandle: edge.targetHandle,
+    label: edge.label,
+  }));
+  return JSON.stringify({ nodes: cleanNodes, edges: cleanEdges });
+}
+
+// 快速克隆
+function fastClone<T>(data: T): T {
+  if (typeof structuredClone !== "undefined") {
+    try {
+      return structuredClone(data);
+    } catch (e) {}
+  }
+  return JSON.parse(JSON.stringify(data));
+}
+
 // 保存历史记录
 export function saveHistory(delay: number = 500) {
   if (saveHistoryTimeout) clearTimeout(saveHistoryTimeout);
   saveHistoryTimeout = setTimeout(() => {
     const state = useFlowStore.getState();
     const limit = useConfigStore.getState().configs.historyLimit;
-    // 克隆当前状态
+
+    // 差异检测
+    const currentStateStr = serializeState(state.nodes, state.edges);
+    if (lastSavedState === currentStateStr) {
+      saveHistoryTimeout = null;
+      return;
+    }
+    lastSavedState = currentStateStr;
+
     const snapshot: HistorySnapshot = {
-      nodes: cloneDeep(state.nodes),
-      edges: cloneDeep(state.edges),
+      nodes: fastClone(state.nodes),
+      edges: fastClone(state.edges),
     };
+
     // 如果当前不在历史栈顶部，删除后面的记录
     if (historyIndex < historyStack.length - 1) {
       historyStack = historyStack.slice(0, historyIndex + 1);
@@ -414,14 +455,16 @@ export function undo() {
   historyIndex--;
   const snapshot = historyStack[historyIndex];
   // 清除所有选中状态
-  const nodes = cloneDeep(snapshot.nodes).map((node: NodeType) => ({
+  const nodes = fastClone(snapshot.nodes).map((node: NodeType) => ({
     ...node,
     selected: false,
   }));
-  const edges = cloneDeep(snapshot.edges).map((edge: EdgeType) => ({
+  const edges = fastClone(snapshot.edges).map((edge: EdgeType) => ({
     ...edge,
     selected: false,
   }));
+  // 更新保存的状态
+  lastSavedState = serializeState(nodes, edges);
   useFlowStore.getState().replace(nodes, edges, {
     isFitView: false,
     skipHistory: true,
@@ -439,14 +482,16 @@ export function redo() {
   historyIndex++;
   const snapshot = historyStack[historyIndex];
   // 清除所有选中状态
-  const nodes = cloneDeep(snapshot.nodes).map((node: NodeType) => ({
+  const nodes = fastClone(snapshot.nodes).map((node: NodeType) => ({
     ...node,
     selected: false,
   }));
-  const edges = cloneDeep(snapshot.edges).map((edge: EdgeType) => ({
+  const edges = fastClone(snapshot.edges).map((edge: EdgeType) => ({
     ...edge,
     selected: false,
   }));
+  // 更新最后保存的状态
+  lastSavedState = serializeState(nodes, edges);
   useFlowStore.getState().replace(nodes, edges, {
     isFitView: false,
     skipHistory: true,
@@ -458,17 +503,20 @@ export function redo() {
 export function initHistory(nodes: NodeType[], edges: EdgeType[]) {
   historyStack = [
     {
-      nodes: cloneDeep(nodes),
-      edges: cloneDeep(edges),
+      nodes: fastClone(nodes),
+      edges: fastClone(edges),
     },
   ];
   historyIndex = 0;
+  // 更新最后保存的状态
+  lastSavedState = serializeState(nodes, edges);
 }
 
 // 清空历史记录
 export function clearHistory() {
   historyStack = [];
   historyIndex = -1;
+  lastSavedState = null;
   if (saveHistoryTimeout) {
     clearTimeout(saveHistoryTimeout);
     saveHistoryTimeout = null;
@@ -795,7 +843,7 @@ export const useFlowStore = create<FlowState>()((set) => ({
       skipHistory = false,
       skipSave = false,
     } = options || {};
-    set((state) => {
+    set(() => {
       const processedNodes = nodes.map((node: NodeType) => ({ ...node }));
       const processedEdges = edges.map((edge: EdgeType) => ({ ...edge }));
 
