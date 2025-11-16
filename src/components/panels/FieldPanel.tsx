@@ -20,7 +20,6 @@ import {
   type PipelineNodeType,
   type ExternalNodeType,
 } from "../../stores/flowStore";
-import { useConfigStore } from "../../stores/configStore";
 import { useFileStore } from "../../stores/fileStore";
 import {
   recoFields,
