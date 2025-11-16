@@ -17,6 +17,7 @@ import {
 } from "darkreader";
 
 import { useFileStore } from "./stores/fileStore";
+import { undo, redo } from "./stores/flowStore";
 
 import Header from "./components/Header";
 import MainFlow from "./components/Flow";
@@ -34,6 +35,7 @@ function keyRedirection() {
   document.addEventListener(
     "keydown",
     (event) => {
+      // Delete 键重定向为 Backspace
       if (event.key === "Delete") {
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -62,6 +64,53 @@ function keyRedirection() {
             reactFlowElement.dispatchEvent(backspaceEvent);
           }
         }, 0);
+      }
+      // Ctrl+Z 撤销
+      else if (
+        (event.ctrlKey || event.metaKey) &&
+        event.key === "z" &&
+        !event.shiftKey
+      ) {
+        // 检查是否在输入框中
+        const target = event.target as HTMLElement;
+        if (
+          target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable
+        ) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        if (undo()) {
+          message.success("撤销成功");
+        } else {
+          message.warning("真的没有了😭");
+        }
+      }
+      // Ctrl+Y 或 Ctrl+Shift+Z 重做
+      else if (
+        (event.ctrlKey || event.metaKey) &&
+        (event.key === "y" || (event.key === "z" && event.shiftKey))
+      ) {
+        // 检查是否在输入框中
+        const target = event.target as HTMLElement;
+        if (
+          target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable
+        ) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        if (redo()) {
+          message.success("重做成功");
+        } else {
+          message.warning("真的没有了😭");
+        }
       }
     },
     true

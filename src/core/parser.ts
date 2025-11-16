@@ -7,6 +7,7 @@ import {
   findNodeLabelById,
   createPipelineNode,
   createExternalNode,
+  initHistory,
   type NodeType,
   type EdgeType,
   type PipelineNodeType,
@@ -762,6 +763,8 @@ export async function pipelineToFlow(options?: { pString?: string }) {
 
     // 更新flow
     useFlowStore.getState().replace(nodes, edges, { isFitView: isIncludePos });
+    // 初始化历史记录
+    initHistory(nodes, edges);
     const fileState = useFileStore.getState();
     if (configs.filename) fileState.setFileName(configs.filename);
     const setFileConfig = fileState.setFileConfig;

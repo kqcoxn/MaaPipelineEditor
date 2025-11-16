@@ -3,7 +3,12 @@ import type { DragEndEvent } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 import { notification } from "antd";
 
-import { useFlowStore, type NodeType, type EdgeType } from "./flowStore";
+import {
+  useFlowStore,
+  type NodeType,
+  type EdgeType,
+  initHistory,
+} from "./flowStore";
 import { useConfigStore } from "./configStore";
 
 export type FileConfigType = {
@@ -67,8 +72,15 @@ export function saveFlow(): FileType | null {
   try {
     const flowState = useFlowStore.getState();
     const currentFile = useFileStore.getState().currentFile;
-    currentFile.nodes = flowState.nodes;
-    currentFile.edges = flowState.edges;
+    // 清除选中状态
+    currentFile.nodes = flowState.nodes.map((node: NodeType) => ({
+      ...node,
+      selected: undefined,
+    }));
+    currentFile.edges = flowState.edges.map((edge: EdgeType) => ({
+      ...edge,
+      selected: undefined,
+    }));
     return currentFile;
   } catch {
     return null;
@@ -158,7 +170,11 @@ export const useFileStore = create<FileState>()((set) => ({
       // 保存当前flow
       saveFlow();
       // 更新flow
-      useFlowStore.getState().replace(targetFile.nodes, targetFile.edges);
+      useFlowStore
+        .getState()
+        .replace(targetFile.nodes, targetFile.edges, { skipSave: true });
+      // 初始化历史记录
+      initHistory(targetFile.nodes, targetFile.edges);
       return { currentFile: targetFile };
     });
     return activeKey;
@@ -229,7 +245,11 @@ export const useFileStore = create<FileState>()((set) => ({
       }
       const currentFile = files[0];
       set({ files, currentFile });
-      useFlowStore.getState().replace(currentFile.nodes, currentFile.edges);
+      useFlowStore
+        .getState()
+        .replace(currentFile.nodes, currentFile.edges, { skipSave: true });
+      // 初始化历史记录
+      initHistory(currentFile.nodes, currentFile.edges);
     } catch (err) {
       return err;
     }

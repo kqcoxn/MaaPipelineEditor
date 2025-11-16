@@ -1,7 +1,7 @@
 import style from "../../styles/ConfigPanel.module.less";
 
 import { memo, useMemo } from "react";
-import { Popover, Switch, Input } from "antd";
+import { Popover, Switch, Input, InputNumber } from "antd";
 import classNames from "classnames";
 import IconFont from "../iconfonts";
 
@@ -28,6 +28,7 @@ function ConfigPanel() {
   const isExportConfig = useConfigStore(
     (state) => state.configs.isExportConfig
   );
+  const historyLimit = useConfigStore((state) => state.configs.historyLimit);
   const setConfig = useConfigStore((state) => state.setConfig);
   const fileConfig = useFileStore((state) => state.currentFile.config);
   const setFileConfig = useFileStore((state) => state.setFileConfig);
@@ -89,6 +90,28 @@ function ConfigPanel() {
           />
         </div>
         <div className={style.divider}>—————— 全局配置 ——————</div>
+        {/* 历史记录上限 */}
+        <div className={globalClass}>
+          <div className={style.key}>
+            <Popover
+              placement="bottomLeft"
+              title={"历史记录上限"}
+              content="设置撤销/重做功能的最大历史记录数量，设置过大可能占用较多内存并产生卡顿"
+            >
+              <span>历史记录上限</span>
+            </Popover>
+          </div>
+          <InputNumber
+            className={style.value}
+            style={{ maxWidth: 80 }}
+            min={10}
+            max={10000}
+            value={historyLimit}
+            onChange={(value: number | null) => {
+              if (value !== null) setConfig("historyLimit", value);
+            }}
+          />
+        </div>
         {/* 实时编译 */}
         <div className={globalClass}>
           <div className={style.key}>

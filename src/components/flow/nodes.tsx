@@ -23,10 +23,6 @@ export enum NodeTypeEnum {
 }
 
 /**模块 */
-function isUpdateNodeContent(pre: any, post: any) {
-  return post.targetNode != null && !post.props.dragging;
-}
-
 const KVElem = memo(({ paramKey, value }: { paramKey: string; value: any }) => {
   return (
     <li key={paramKey}>
@@ -117,9 +113,6 @@ const PNodeDataContent = memo(
         />
       </>
     );
-  },
-  (pre, post) => {
-    return !isUpdateNodeContent(pre, post);
   }
 );
 
@@ -170,9 +163,6 @@ const ENodeContent = memo(
         />
       </>
     );
-  },
-  (pre, post) => {
-    return !isUpdateNodeContent(pre, post);
   }
 );
 

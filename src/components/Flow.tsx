@@ -98,12 +98,18 @@ const UpdateMonitor = memo(() => {
   const bfSelectedEdges = useFlowStore((state) => state.bfSelectedEdges);
   const bfTargetNode = useFlowStore((state) => state.bfTargetNode);
   const filesLength = useFileStore((state) => state.files.length);
+  const skipSave = useFlowStore((state) => state._skipSave);
 
   useDebounceEffect(
     () => {
+      // 跳过保存时重置标志
+      if (skipSave) {
+        useFlowStore.setState({ _skipSave: false });
+        return;
+      }
       localSave();
     },
-    [bfSelectedNodes, bfSelectedEdges, bfTargetNode, filesLength],
+    [bfSelectedNodes, bfSelectedEdges, bfTargetNode, filesLength, skipSave],
     {
       wait: 500,
     }
@@ -121,7 +127,7 @@ function MainFlow() {
   const addEdge = useFlowStore((state) => state.addEdge);
   const updateSize = useFlowStore((state) => state.updateSize);
   const selfElem = useRef<HTMLDivElement>(null);
-  
+
   // 回调
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => updateNodes(changes),

@@ -1,12 +1,17 @@
 import style from "../../styles/ToolPanel.module.less";
 
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState, useEffect } from "react";
 import { message, Tooltip } from "antd";
 import classNames from "classnames";
 import IconFont from "../iconfonts";
 import { type IconNames } from "../iconfonts";
 
-import { useFlowStore } from "../../stores/flowStore";
+import {
+  useFlowStore,
+  undo,
+  redo,
+  getHistoryState,
+} from "../../stores/flowStore";
 import { useConfigStore } from "../../stores/configStore";
 import { NodeTypeEnum } from "../flow/nodes";
 import { LayoutHelper, AlignmentEnum } from "../../core/layout";
@@ -72,6 +77,10 @@ function GlobalPanel() {
   const setClipBoard = useConfigStore((state) => state.setClipBoard);
   const applyClipBoard = useConfigStore((state) => state.applyClipBoard);
 
+  // 历史状态 - 使用状态强制更新
+  const [, forceUpdate] = useState({});
+  const historyState = getHistoryState();
+
   // 列表
   const globalTools = useMemo<GlobalToolType[]>(
     () => [
@@ -97,12 +106,34 @@ function GlobalPanel() {
         onDisabledClick: () => message.error("粘贴板中无已复制节点"),
         onClick: () => applyClipBoard(),
       },
-      // {
-      //   label: "撤销",
-      //   iconName: "icon-fanhui",
-      // },
+      {
+        label: "撤销 (Ctrl+Z)",
+        iconName: "icon-fanhui",
+        iconSize: 22,
+        disabled: !historyState.canUndo,
+        onDisabledClick: () => message.warning("真的没有了😭"),
+        onClick: () => {
+          if (undo()) {
+            message.success("撤销成功");
+            forceUpdate({});
+          }
+        },
+      },
+      {
+        label: "重做 (Ctrl+Y)",
+        iconName: "icon-qianjin",
+        iconSize: 22,
+        disabled: !historyState.canRedo,
+        onDisabledClick: () => message.warning("真的没有了😭"),
+        onClick: () => {
+          if (redo()) {
+            message.success("重做成功");
+            forceUpdate({});
+          }
+        },
+      },
     ],
-    [clipBoard, selectedNodes]
+    [clipBoard, selectedNodes, historyState]
   );
 
   // 生成

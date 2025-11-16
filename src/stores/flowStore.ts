@@ -359,6 +359,122 @@ function buData(key: string, data: any) {
   }, 400);
 }
 
+/**历史记录 */
+type HistorySnapshot = {
+  nodes: NodeType[];
+  edges: EdgeType[];
+};
+
+let historyStack: HistorySnapshot[] = [];
+let historyIndex = -1;
+let saveHistoryTimeout: number | null = null;
+
+// 获取历史状态
+export function getHistoryState() {
+  return {
+    canUndo: historyIndex > 0,
+    canRedo: historyIndex < historyStack.length - 1,
+  };
+}
+
+// 保存历史记录
+export function saveHistory(delay: number = 500) {
+  if (saveHistoryTimeout) clearTimeout(saveHistoryTimeout);
+  saveHistoryTimeout = setTimeout(() => {
+    const state = useFlowStore.getState();
+    const limit = useConfigStore.getState().configs.historyLimit;
+    // 克隆当前状态
+    const snapshot: HistorySnapshot = {
+      nodes: cloneDeep(state.nodes),
+      edges: cloneDeep(state.edges),
+    };
+    // 如果当前不在历史栈顶部，删除后面的记录
+    if (historyIndex < historyStack.length - 1) {
+      historyStack = historyStack.slice(0, historyIndex + 1);
+    }
+    // 添加新记录
+    historyStack.push(snapshot);
+    // 限制历史记录数量
+    if (historyStack.length > limit) {
+      historyStack.shift();
+    } else {
+      historyIndex++;
+    }
+    saveHistoryTimeout = null;
+  }, delay);
+}
+
+// 撤销
+export function undo() {
+  if (historyIndex <= 0) return false;
+  if (saveHistoryTimeout) {
+    clearTimeout(saveHistoryTimeout);
+    saveHistoryTimeout = null;
+  }
+  historyIndex--;
+  const snapshot = historyStack[historyIndex];
+  // 清除所有选中状态
+  const nodes = cloneDeep(snapshot.nodes).map((node: NodeType) => ({
+    ...node,
+    selected: false,
+  }));
+  const edges = cloneDeep(snapshot.edges).map((edge: EdgeType) => ({
+    ...edge,
+    selected: false,
+  }));
+  useFlowStore.getState().replace(nodes, edges, {
+    isFitView: false,
+    skipHistory: true,
+  });
+  return true;
+}
+
+// 重做
+export function redo() {
+  if (historyIndex >= historyStack.length - 1) return false;
+  if (saveHistoryTimeout) {
+    clearTimeout(saveHistoryTimeout);
+    saveHistoryTimeout = null;
+  }
+  historyIndex++;
+  const snapshot = historyStack[historyIndex];
+  // 清除所有选中状态
+  const nodes = cloneDeep(snapshot.nodes).map((node: NodeType) => ({
+    ...node,
+    selected: false,
+  }));
+  const edges = cloneDeep(snapshot.edges).map((edge: EdgeType) => ({
+    ...edge,
+    selected: false,
+  }));
+  useFlowStore.getState().replace(nodes, edges, {
+    isFitView: false,
+    skipHistory: true,
+  });
+  return true;
+}
+
+// 初始化历史记录
+export function initHistory(nodes: NodeType[], edges: EdgeType[]) {
+  historyStack = [
+    {
+      nodes: cloneDeep(nodes),
+      edges: cloneDeep(edges),
+    },
+  ];
+  historyIndex = 0;
+}
+
+// 清空历史记录
+export function clearHistory() {
+  historyStack = [];
+  historyIndex = -1;
+  if (saveHistoryTimeout) {
+    clearTimeout(saveHistoryTimeout);
+    saveHistoryTimeout = null;
+  }
+}
+
 /**Flow仓库 */
 let nodeIdCounter = 1;
 let pasteIdCounter = 1;
@@ -374,6 +490,7 @@ interface FlowState {
   edges: any[];
   selectedEdges: any[];
   bfSelectedEdges: any[];
+  _skipSave?: boolean;
   updateInstance: (instance: ReactFlowInstance) => void;
   updateViewport: (viewport: Viewport) => void;
   updateSize: (width: number, height: number) => void;
@@ -392,7 +509,7 @@ interface FlowState {
   replace: (
     nodes: NodeType[],
     edges: EdgeType[],
-    options?: { isFitView?: Boolean }
+    options?: { isFitView?: Boolean; skipHistory?: Boolean; skipSave?: Boolean }
   ) => void;
   paste: (nodes: NodeType[], edges: EdgeType[]) => void;
 }
@@ -441,6 +558,14 @@ export const useFlowStore = create<FlowState>()((set) => ({
       }
       return setter;
     });
+    // 保存历史记录
+    const hasRemove = changes.some((change) => change.type === "remove");
+    const hasPosition = changes.some((change) => change.type === "position");
+    if (hasRemove) {
+      saveHistory(0);
+    } else if (hasPosition) {
+      saveHistory(500);
+    }
     // 检查重复
     if (
       changes.some((change) => change.type === "remove") &&
@@ -513,6 +638,8 @@ export const useFlowStore = create<FlowState>()((set) => ({
         fitFlowView({ focusNodes: [newNode] });
       return setter;
     });
+    // 保存历史记录（添加操作立即保存）
+    saveHistory(0);
   },
   // 更新节点数据
   setNodeData(id, type, key, value) {
@@ -569,6 +696,8 @@ export const useFlowStore = create<FlowState>()((set) => ({
       buData("bfTargetNode", targetNode);
       return { nodes, targetNode };
     });
+    // 保存历史记录
+    saveHistory(1000);
     // 检查重复
     if (key === "label") checkRepateNodeLabelList();
   },
@@ -600,6 +729,11 @@ export const useFlowStore = create<FlowState>()((set) => ({
       buData("bfSelectedEdges", selectedEdges);
       return { edges: newEdges, selectedEdges };
     });
+    // 保存历史记录
+    const hasRemove = changes.some((change) => change.type === "remove");
+    if (hasRemove) {
+      saveHistory(0);
+    }
   },
   // 添加边
   addEdge(co, options) {
@@ -649,24 +783,41 @@ export const useFlowStore = create<FlowState>()((set) => ({
       const newEdges = addEdge(newEdge, state.edges);
       return { edges: newEdges };
     });
+    // 保存历史记录
+    saveHistory(0);
   },
 
   /**整体更新 */
   // 替换新的节点与边
   replace(nodes: NodeType[], edges: EdgeType[], options) {
-    const { isFitView = true } = options || {};
-    set(() => {
-      const setter = {
-        nodes,
-        edges,
+    const {
+      isFitView = true,
+      skipHistory = false,
+      skipSave = false,
+    } = options || {};
+    set((state) => {
+      const processedNodes = nodes.map((node: NodeType) => ({ ...node }));
+      const processedEdges = edges.map((edge: EdgeType) => ({ ...edge }));
+
+      const setter: any = {
+        nodes: [...processedNodes],
+        edges: [...processedEdges],
         selectedNodes: [],
         bfSelectedNodes: [],
         targetNode: null,
         bfTargetNode: null,
       };
+
       if (isFitView) fitFlowView();
+      // 跳过保存
+      if (skipSave) {
+        setter._skipSave = true;
+      }
       return setter;
     });
+    if (!skipHistory) {
+      saveHistory(0);
+    }
   },
 
   // 批量拷贝
@@ -714,5 +865,7 @@ export const useFlowStore = create<FlowState>()((set) => ({
     // 自动聚焦
     if (useConfigStore.getState().configs.isAutoFocus)
       fitFlowView({ focusNodes: nodes });
+    // 保存历史记录
+    saveHistory(0);
   },
 }));

@@ -25,6 +25,7 @@ type ConfigState = {
     showEdgeLabel: boolean;
     isAutoFocus: boolean;
     useDarkMode: boolean;
+    historyLimit: number;
   };
   setConfig: <K extends keyof ConfigState["configs"]>(
     key: K,
@@ -54,6 +55,7 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     showEdgeLabel: true,
     isAutoFocus: true,
     useDarkMode: false,
+    historyLimit: 200,
   },
   setConfig(key, value, refresh = false) {
     set((state) => {
