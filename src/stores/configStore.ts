@@ -26,6 +26,10 @@ type ConfigState = {
     isAutoFocus: boolean;
     useDarkMode: boolean;
     historyLimit: number;
+    wsPort: number;
+    wsConnected: boolean;
+    wsConnecting: boolean;
+    wsAutoConnect: boolean;
   };
   setConfig: <K extends keyof ConfigState["configs"]>(
     key: K,
@@ -56,6 +60,10 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     isAutoFocus: true,
     useDarkMode: false,
     historyLimit: 100,
+    wsPort: 9066,
+    wsConnected: false,
+    wsConnecting: false,
+    wsAutoConnect: false,
   },
   setConfig(key, value, refresh = false) {
     set((state) => {

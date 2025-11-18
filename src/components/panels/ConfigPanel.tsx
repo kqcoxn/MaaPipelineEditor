@@ -1,7 +1,7 @@
 import style from "../../styles/ConfigPanel.module.less";
 
-import { memo, useMemo } from "react";
-import { Popover, Switch, Input, InputNumber } from "antd";
+import { memo, useMemo, useEffect } from "react";
+import { Popover, Switch, Input, InputNumber, Button } from "antd";
 import classNames from "classnames";
 import IconFont from "../iconfonts";
 
@@ -9,6 +9,7 @@ import { checkRepateNodeLabelList } from "../../stores/flowStore";
 import { useConfigStore } from "../../stores/configStore";
 import { useFileStore } from "../../stores/fileStore";
 import { configMarkPrefix, configMark } from "../../core/parser";
+import { localServer } from "../../services";
 
 const TipElem = memo(({ content }: { content: string }) => (
   <div style={{ maxWidth: 260 }}>{content}</div>
@@ -29,9 +30,37 @@ function ConfigPanel() {
     (state) => state.configs.isExportConfig
   );
   const historyLimit = useConfigStore((state) => state.configs.historyLimit);
+  const wsPort = useConfigStore((state) => state.configs.wsPort);
+  const wsConnected = useConfigStore((state) => state.configs.wsConnected);
+  const wsConnecting = useConfigStore((state) => state.configs.wsConnecting);
+  const wsAutoConnect = useConfigStore((state) => state.configs.wsAutoConnect);
   const setConfig = useConfigStore((state) => state.setConfig);
   const fileConfig = useFileStore((state) => state.currentFile.config);
   const setFileConfig = useFileStore((state) => state.setFileConfig);
+
+  // WebSocket连接
+  useEffect(() => {
+    localServer.setPort(wsPort);
+    localServer.onStatus((connected) => {
+      setConfig("wsConnected", connected);
+    });
+    localServer.onConnecting((isConnecting) => {
+      setConfig("wsConnecting", isConnecting);
+    });
+    if (wsAutoConnect) {
+      localServer.connect();
+    }
+    return () => {};
+  }, [wsPort, wsAutoConnect, setConfig]);
+  const handleWSConnect = () => {
+    if (wsConnecting) return;
+
+    if (wsConnected) {
+      localServer.disconnect();
+    } else {
+      localServer.connect();
+    }
+  };
 
   // 样式
   const panelClass = useMemo(
@@ -89,7 +118,7 @@ function ConfigPanel() {
             }}
           />
         </div>
-        <div className={style.divider}>—————— 全局配置 ——————</div>
+        <div className={style.divider}>—————— 面板配置 ——————</div>
         {/* 历史记录上限 */}
         <div className={globalClass}>
           <div className={style.key}>
@@ -208,6 +237,89 @@ function ConfigPanel() {
             unCheckedChildren="否"
             value={isExportConfig}
             onChange={(value: boolean) => setConfig("isExportConfig", value)}
+          />
+        </div>
+        <div className={style.divider}>—————— 本地通信 ——————</div>
+        {/* WebSocket 端口 */}
+        <div className={globalClass}>
+          <div className={style.key}>
+            <Popover
+              placement="bottomLeft"
+              title={"WebSocket 端口"}
+              content={
+                <TipElem content={"本地服务端口，修改端口后需要重新连接"} />
+              }
+            >
+              <span>端口</span>
+            </Popover>
+          </div>
+          <InputNumber
+            className={style.value}
+            style={{ maxWidth: 100 }}
+            min={1024}
+            max={65535}
+            value={wsPort}
+            onChange={(value: number | null) => {
+              if (value !== null) setConfig("wsPort", value);
+            }}
+          />
+        </div>
+        {/* 连接状态 */}
+        <div className={globalClass}>
+          <div className={style.key}>
+            <span>连接状态</span>
+          </div>
+          <div
+            className={style.value}
+            style={{ display: "flex", gap: 8, alignItems: "center" }}
+          >
+            <Button
+              size="small"
+              type={wsConnected ? "default" : "primary"}
+              loading={wsConnecting}
+              disabled={wsConnecting}
+              onClick={handleWSConnect}
+            >
+              {wsConnecting ? "连接中" : wsConnected ? "断开" : "连接"}
+            </Button>
+            <div
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                backgroundColor: wsConnecting
+                  ? "#1890ff"
+                  : wsConnected
+                  ? "#52c41a"
+                  : "#ff4d4f",
+                marginLeft: 6,
+                marginTop: 2,
+              }}
+            />
+          </div>
+        </div>
+        {/* 自动连接 */}
+        <div className={globalClass}>
+          <div className={style.key}>
+            <Popover
+              placement="bottomLeft"
+              title={"自动连接"}
+              content={
+                <TipElem
+                  content={"开启后，进入页面时会自动尝试连接本地通信服务"}
+                />
+              }
+            >
+              <span>自动连接</span>
+            </Popover>
+          </div>
+          <Switch
+            className={style.value}
+            style={switchStyle}
+            checkedChildren="开启"
+            unCheckedChildren="关闭"
+            value={wsAutoConnect}
+            onChange={(value: boolean) => setConfig("wsAutoConnect", value)}
           />
         </div>
       </div>
