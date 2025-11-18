@@ -1,4 +1,4 @@
-import { type MessageHandler, type APIRoute } from "./type";
+import { type MessageHandler, type APIRoute } from "./type.ts";
 import { message } from "antd";
 
 export class LocalWebSocketServer {
