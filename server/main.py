@@ -2,12 +2,13 @@ import asyncio
 import json
 import logging
 import threading
-import tkinter as tk
-from tkinter import ttk, scrolledtext, filedialog, messagebox
+from tkinter import filedialog, messagebox, scrolledtext
 from typing import Any, Optional
 from datetime import datetime
 import os
 
+import ttkbootstrap as ttk
+from ttkbootstrap.constants import *
 import websockets
 
 # 配置日志
@@ -163,7 +164,7 @@ class WebSocketTestServer:
 
         self.server = await websockets.serve(self.handle_client, self.host, self.port)
         self.log("✓ 服务器已启动，等待客户端连接...")
-        await asyncio.Future()  # 保持运行
+        await asyncio.Future()
 
     async def stop(self):
         """停止服务器"""
@@ -198,9 +199,13 @@ class ServerUI:
     """服务器 UI 界面"""
 
     def __init__(self):
-        self.root = tk.Tk()
+        # 使用 ttkbootstrap 主题
+        self.root = ttk.Window(themename="flatly")
         self.root.title("Pipeline WebSocket 服务器")
-        self.root.geometry("900x700")
+        self.root.geometry("1000x750")
+
+        # 设置窗口背景色
+        self.root.configure(bg="#ecf0f1")
 
         self.server: Optional[WebSocketTestServer] = None
         self.server_thread: Optional[threading.Thread] = None
@@ -209,137 +214,207 @@ class ServerUI:
 
         self.setup_ui()
 
+        # 开启时自动启动服务器
+        self.root.after(100, self.auto_start_server)
+
     def setup_ui(self):
         """设置 UI 界面"""
-        # 顶部控制面板
-        control_frame = ttk.LabelFrame(self.root, text="服务器控制", padding=10)
-        control_frame.pack(fill=tk.X, padx=10, pady=5)
+        # 主容器
+        main_container = ttk.Frame(self.root, padding=20)
+        main_container.pack(fill=BOTH, expand=YES)
+
+        # 顶部控制面板 - 使用圆角卡片
+        control_card = ttk.Labelframe(
+            main_container, text="⚙️  服务器控制", bootstyle="primary", padding=20
+        )
+        control_card.pack(fill=X, pady=(0, 20))
+
+        # 配置网格布局
+        config_frame = ttk.Frame(control_card)
+        config_frame.pack(fill=X, pady=(0, 15))
 
         # 端口配置
-        ttk.Label(control_frame, text="端口:").grid(
-            row=0, column=0, sticky=tk.W, padx=5
+        ttk.Label(config_frame, text="端口:", font=("Microsoft YaHei UI", 10)).grid(
+            row=0, column=0, sticky=W, padx=(0, 8)
         )
-        self.port_var = tk.StringVar(value="9066")
-        ttk.Entry(control_frame, textvariable=self.port_var, width=10).grid(
-            row=0, column=1, padx=5
+
+        self.port_var = ttk.StringVar(value="9066")
+        port_entry = ttk.Entry(
+            config_frame,
+            textvariable=self.port_var,
+            width=10,
+            font=("Microsoft YaHei UI", 10),
         )
+        port_entry.grid(row=0, column=1, sticky=W, padx=(0, 30))
 
         # 状态指示
-        ttk.Label(control_frame, text="状态:").grid(
-            row=0, column=2, sticky=tk.W, padx=(20, 5)
+        ttk.Label(config_frame, text="状态:", font=("Microsoft YaHei UI", 10)).grid(
+            row=0, column=2, sticky=W, padx=(0, 8)
         )
-        self.status_var = tk.StringVar(value="已停止")
-        self.status_label = ttk.Label(
-            control_frame, textvariable=self.status_var, foreground="red"
-        )
-        self.status_label.grid(row=0, column=3, sticky=tk.W)
 
-        # 客户端数量
-        ttk.Label(control_frame, text="客户端:").grid(
-            row=0, column=4, sticky=tk.W, padx=(20, 5)
+        self.status_var = ttk.StringVar(value="● 已停止")
+        self.status_label = ttk.Label(
+            config_frame,
+            textvariable=self.status_var,
+            font=("Microsoft YaHei UI", 10, "bold"),
+            bootstyle="danger",
         )
-        self.client_count_var = tk.StringVar(value="0")
-        ttk.Label(control_frame, textvariable=self.client_count_var).grid(
-            row=0, column=5, sticky=tk.W
-        )
+        self.status_label.grid(row=0, column=3, sticky=W)
 
         # 控制按钮
-        button_frame = ttk.Frame(control_frame)
-        button_frame.grid(row=0, column=6, sticky=tk.E, padx=(20, 0))
+        button_frame = ttk.Frame(control_card)
+        button_frame.pack(fill=X)
 
         self.start_btn = ttk.Button(
-            button_frame, text="启动服务器", command=self.start_server
+            button_frame,
+            text="▶  启动服务器",
+            command=self.start_server,
+            bootstyle="success",
+            width=18,
         )
-        self.start_btn.pack(side=tk.LEFT, padx=2)
+        self.start_btn.pack(side=LEFT, padx=(0, 10))
 
         self.stop_btn = ttk.Button(
-            button_frame, text="停止服务器", command=self.stop_server, state=tk.DISABLED
+            button_frame,
+            text="⏹  停止服务器",
+            command=self.stop_server,
+            state=DISABLED,
+            bootstyle="danger",
+            width=18,
         )
-        self.stop_btn.pack(side=tk.LEFT, padx=2)
-
-        control_frame.columnconfigure(6, weight=1)
+        self.stop_btn.pack(side=LEFT)
 
         # Pipeline 管理面板
-        pipeline_frame = ttk.LabelFrame(self.root, text="Pipeline 管理", padding=10)
-        pipeline_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        pipeline_card = ttk.Labelframe(
+            main_container, text="📦  Pipeline 管理", bootstyle="info", padding=20
+        )
+        pipeline_card.pack(fill=BOTH, expand=YES, pady=(0, 20))
 
         # Pipeline 列表
-        list_frame = ttk.Frame(pipeline_frame)
-        list_frame.pack(fill=tk.BOTH, expand=True)
+        list_frame = ttk.Frame(pipeline_card)
+        list_frame.pack(fill=BOTH, expand=YES, pady=(0, 15))
 
-        # 创建 Treeview
-        columns = ("文件路径", "节点数", "接收时间")
+        # 创建 Treeview - 添加文件名列
+        columns = ("文件名", "文件路径", "节点数", "接收时间")
         self.pipeline_tree = ttk.Treeview(
-            list_frame, columns=columns, show="headings", height=8
+            list_frame, columns=columns, show="headings", height=7
         )
-        self.pipeline_tree.heading("文件路径", text="文件路径")
-        self.pipeline_tree.heading("节点数", text="节点数")
-        self.pipeline_tree.heading("接收时间", text="接收时间")
-        self.pipeline_tree.column("文件路径", width=400)
+        self.pipeline_tree.heading("文件名", text="📄 文件名")
+        self.pipeline_tree.heading("文件路径", text="📂 文件路径")
+        self.pipeline_tree.heading("节点数", text="🔢 节点数")
+        self.pipeline_tree.heading("接收时间", text="⏰ 接收时间")
+        self.pipeline_tree.column("文件名", width=150)
+        self.pipeline_tree.column("文件路径", width=350)
         self.pipeline_tree.column("节点数", width=100)
         self.pipeline_tree.column("接收时间", width=150)
 
         # 滚动条
         scrollbar = ttk.Scrollbar(
-            list_frame, orient=tk.VERTICAL, command=self.pipeline_tree.yview
+            list_frame, orient=VERTICAL, command=self.pipeline_tree.yview
         )
         self.pipeline_tree.configure(yscrollcommand=scrollbar.set)
 
-        self.pipeline_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.pipeline_tree.pack(side=LEFT, fill=BOTH, expand=YES)
+        scrollbar.pack(side=RIGHT, fill=Y)
 
         # Pipeline 操作按钮
-        pipeline_btn_frame = ttk.Frame(pipeline_frame)
-        pipeline_btn_frame.pack(fill=tk.X, pady=(5, 0))
+        pipeline_btn_frame = ttk.Frame(pipeline_card)
+        pipeline_btn_frame.pack(fill=X)
 
         ttk.Button(
             pipeline_btn_frame,
-            text="从文件加载 Pipeline",
+            text="📁  从文件加载",
             command=self.load_pipeline_from_file,
-        ).pack(side=tk.LEFT, padx=2)
+            bootstyle="primary",
+        ).pack(side=LEFT, padx=(0, 8))
         ttk.Button(
-            pipeline_btn_frame, text="发送到客户端", command=self.send_selected_pipeline
-        ).pack(side=tk.LEFT, padx=2)
+            pipeline_btn_frame,
+            text="📤  发送到客户端",
+            command=self.send_selected_pipeline,
+            bootstyle="info",
+        ).pack(side=LEFT, padx=(0, 8))
         ttk.Button(
-            pipeline_btn_frame, text="查看详情", command=self.view_pipeline_detail
-        ).pack(side=tk.LEFT, padx=2)
+            pipeline_btn_frame,
+            text="👁  查看详情",
+            command=self.view_pipeline_detail,
+            bootstyle="secondary",
+        ).pack(side=LEFT, padx=(0, 8))
         ttk.Button(
-            pipeline_btn_frame, text="删除", command=self.delete_selected_pipeline
-        ).pack(side=tk.LEFT, padx=2)
+            pipeline_btn_frame,
+            text="🗑  删除",
+            command=self.delete_selected_pipeline,
+            bootstyle="warning",
+        ).pack(side=LEFT, padx=(0, 8))
         ttk.Button(
-            pipeline_btn_frame, text="清空全部", command=self.clear_all_pipelines
-        ).pack(side=tk.LEFT, padx=2)
+            pipeline_btn_frame,
+            text="🧹  清空全部",
+            command=self.clear_all_pipelines,
+            bootstyle="danger",
+        ).pack(side=LEFT)
 
         # 日志面板
-        log_frame = ttk.LabelFrame(self.root, text="服务器日志", padding=10)
-        log_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        log_card = ttk.Labelframe(
+            main_container, text="📋  服务器日志", bootstyle="success", padding=20
+        )
+        log_card.pack(fill=BOTH, expand=YES)
+
+        # 日志文本框
+        log_text_frame = ttk.Frame(log_card)
+        log_text_frame.pack(fill=BOTH, expand=YES, pady=(0, 15))
 
         self.log_text = scrolledtext.ScrolledText(
-            log_frame, height=12, state=tk.DISABLED
+            log_text_frame, height=8, state=DISABLED, font=("Consolas", 9), wrap="word"
         )
-        self.log_text.pack(fill=tk.BOTH, expand=True)
+        self.log_text.pack(fill=BOTH, expand=YES)
+
+        # 配置日志标签颜色
+        self.log_text.tag_config("INFO", foreground="#3498db")
+        self.log_text.tag_config("WARNING", foreground="#f39c12")
+        self.log_text.tag_config("ERROR", foreground="#e74c3c")
+        self.log_text.tag_config("SUCCESS", foreground="#27ae60")
 
         # 日志控制按钮
-        log_btn_frame = ttk.Frame(log_frame)
-        log_btn_frame.pack(fill=tk.X, pady=(5, 0))
+        log_btn_frame = ttk.Frame(log_card)
+        log_btn_frame.pack(fill=X)
 
-        ttk.Button(log_btn_frame, text="清空日志", command=self.clear_log).pack(
-            side=tk.LEFT
-        )
-
-        # 定时更新客户端数量
-        self.update_client_count()
+        ttk.Button(
+            log_btn_frame,
+            text="🧹  清空日志",
+            command=self.clear_log,
+            bootstyle="secondary-outline",
+        ).pack(side=LEFT)
 
     def log_message(self, message: str):
         """添加日志消息"""
 
         def append_log():
-            self.log_text.config(state=tk.NORMAL)
-            self.log_text.insert(tk.END, message + "\n")
-            self.log_text.see(tk.END)
-            self.log_text.config(state=tk.DISABLED)
+            self.log_text.config(state=NORMAL)
+
+            # 根据日志级别添加不同颜色
+            if "INFO" in message:
+                tag = "INFO"
+            elif "WARNING" in message or "警告" in message:
+                tag = "WARNING"
+            elif "ERROR" in message or "错误" in message:
+                tag = "ERROR"
+            elif "✓" in message or "成功" in message:
+                tag = "SUCCESS"
+            else:
+                tag = None
+
+            if tag:
+                self.log_text.insert("end", message + "\n", tag)
+            else:
+                self.log_text.insert("end", message + "\n")
+
+            self.log_text.see("end")
+            self.log_text.config(state=DISABLED)
 
         self.root.after(0, append_log)
+
+    def auto_start_server(self):
+        """自动启动服务器"""
+        self.start_server()
 
     def start_server(self):
         """启动服务器"""
@@ -360,10 +435,10 @@ class ServerUI:
         self.server_thread.start()
 
         self.is_running = True
-        self.status_var.set("运行中")
-        self.status_label.config(foreground="green")
-        self.start_btn.config(state=tk.DISABLED)
-        self.stop_btn.config(state=tk.NORMAL)
+        self.status_var.set("● 运行中")
+        self.status_label.config(bootstyle="success")
+        self.start_btn.config(state=DISABLED)
+        self.stop_btn.config(state=NORMAL)
         self.log_message("[系统] 正在启动服务器...")
 
     def _run_server(self, port: int):
@@ -395,19 +470,10 @@ class ServerUI:
             self.loop.call_soon_threadsafe(self.loop.stop)
 
         self.is_running = False
-        self.status_var.set("已停止")
-        self.status_label.config(foreground="red")
-        self.start_btn.config(state=tk.NORMAL)
-        self.stop_btn.config(state=tk.DISABLED)
-        self.client_count_var.set("0")
-
-    def update_client_count(self):
-        """更新客户端数量显示"""
-        if self.server:
-            count = len(self.server.clients)
-            self.client_count_var.set(str(count))
-
-        self.root.after(1000, self.update_client_count)
+        self.status_var.set("● 已停止")
+        self.status_label.config(bootstyle="danger")
+        self.start_btn.config(state=NORMAL)
+        self.stop_btn.config(state=DISABLED)
 
     def load_pipeline_from_file(self):
         """从文件加载 Pipeline"""
@@ -437,13 +503,17 @@ class ServerUI:
 
     def add_pipeline_to_tree(self, file_path: str, pipeline: dict):
         """添加 Pipeline 到列表"""
+        # 提取文件名
+        file_name = os.path.basename(file_path)
+
         # 检查是否已存在
         for item in self.pipeline_tree.get_children():
-            if self.pipeline_tree.item(item)["values"][0] == file_path:
+            if self.pipeline_tree.item(item)["values"][1] == file_path:
                 # 更新现有项
                 self.pipeline_tree.item(
                     item,
                     values=(
+                        file_name,
                         file_path,
                         len(pipeline),
                         datetime.now().strftime("%H:%M:%S"),
@@ -454,8 +524,13 @@ class ServerUI:
         # 添加新项
         self.pipeline_tree.insert(
             "",
-            tk.END,
-            values=(file_path, len(pipeline), datetime.now().strftime("%H:%M:%S")),
+            "end",
+            values=(
+                file_name,
+                file_path,
+                len(pipeline),
+                datetime.now().strftime("%H:%M:%S"),
+            ),
         )
 
     def send_selected_pipeline(self):
@@ -470,7 +545,7 @@ class ServerUI:
             return
 
         item = selection[0]
-        file_path = self.pipeline_tree.item(item)["values"][0]
+        file_path = self.pipeline_tree.item(item)["values"][1]
 
         if file_path in self.server.pipelines:
             pipeline = self.server.pipelines[file_path]
@@ -493,23 +568,25 @@ class ServerUI:
             return
 
         item = selection[0]
-        file_path = self.pipeline_tree.item(item)["values"][0]
+        file_path = self.pipeline_tree.item(item)["values"][1]
 
         if file_path in self.server.pipelines:
             pipeline = self.server.pipelines[file_path]
 
             # 创建详情窗口
-            detail_window = tk.Toplevel(self.root)
-            detail_window.title(f"Pipeline 详情 - {os.path.basename(file_path)}")
-            detail_window.geometry("700x500")
+            detail_window = ttk.Toplevel(self.root)
+            detail_window.title(f"📄 Pipeline 详情 - {os.path.basename(file_path)}")
+            detail_window.geometry("800x600")
 
-            text_widget = scrolledtext.ScrolledText(detail_window, wrap=tk.WORD)
-            text_widget.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+            text_widget = scrolledtext.ScrolledText(
+                detail_window, wrap="word", font=("Consolas", 10)
+            )
+            text_widget.pack(fill=BOTH, expand=YES, padx=15, pady=15)
 
             # 格式化显示 JSON
             json_str = json.dumps(pipeline, indent=2, ensure_ascii=False)
-            text_widget.insert(tk.END, json_str)
-            text_widget.config(state=tk.DISABLED)
+            text_widget.insert("1.0", json_str)
+            text_widget.config(state=DISABLED)
         else:
             messagebox.showerror("错误", "Pipeline 数据不存在")
 
@@ -524,7 +601,7 @@ class ServerUI:
             return
 
         item = selection[0]
-        file_path = self.pipeline_tree.item(item)["values"][0]
+        file_path = self.pipeline_tree.item(item)["values"][1]
 
         if self.server and file_path in self.server.pipelines:
             del self.server.pipelines[file_path]
@@ -547,9 +624,9 @@ class ServerUI:
 
     def clear_log(self):
         """清空日志"""
-        self.log_text.config(state=tk.NORMAL)
-        self.log_text.delete(1.0, tk.END)
-        self.log_text.config(state=tk.DISABLED)
+        self.log_text.config(state=NORMAL)
+        self.log_text.delete(1.0, "end")
+        self.log_text.config(state=DISABLED)
 
     def run(self):
         """运行 UI"""
