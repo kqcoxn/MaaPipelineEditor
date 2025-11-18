@@ -25,11 +25,34 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      should_deploy: ${{ steps.check_iteration.outputs.changed }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Check betaIteration change
+        id: check_iteration
+        run: |
+          # 获取当前 betaIteration 值
+          CURRENT=$(grep -oP 'betaIteration:\s*\K\d+' src/stores/configStore.ts)
+          echo "Current betaIteration: $CURRENT"
+          
+          # 获取上一次 commit 的 betaIteration 值
+          git fetch origin gh-pages || echo "No gh-pages branch yet"
+          PREVIOUS=$(git show HEAD~1:src/stores/configStore.ts 2>/dev/null | grep -oP 'betaIteration:\s*\K\d+' || echo "0")
+          echo "Previous betaIteration: $PREVIOUS"
+          
+          # 比较是否有变化
+          if [ "$CURRENT" != "$PREVIOUS" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "✅ betaIteration changed from $PREVIOUS to $CURRENT, will deploy"
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ betaIteration unchanged ($CURRENT), will skip deployment"
+          fi
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -38,6 +61,7 @@ jobs:
           cache: yarn
 
       - name: Setup Pages
+        if: steps.check_iteration.outputs.changed == 'true'
         uses: actions/configure-pages@v4
 
       - name: Install dependencies
@@ -47,11 +71,13 @@ jobs:
         run: yarn build --mode preview
 
       - name: Upload artifact
+        if: steps.check_iteration.outputs.changed == 'true'
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./dist
 
   deploy:
+    if: needs.build.outputs.should_deploy == 'true'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
