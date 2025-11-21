@@ -13,9 +13,11 @@ import {
   getHistoryState,
 } from "../../stores/flowStore";
 import { useConfigStore } from "../../stores/configStore";
+import { useFileStore } from "../../stores/fileStore";
 import { NodeTypeEnum } from "../flow/nodes";
 import { LayoutHelper, AlignmentEnum } from "../../core/layout";
 import { nodeTemplates, type NodeTemplateType } from "../../core/nodeTemplates";
+import { saveNodesToImage } from "../../utils/snapper";
 
 /**添加工具 */
 function AddPanel() {
@@ -185,6 +187,8 @@ interface LayoutToolType {
 }
 function LayoutPanel() {
   const selectedNodes = useFlowStore((state) => state.bfSelectedNodes);
+  const allNodes = useFlowStore((state) => state.nodes);
+  const currentFileName = useFileStore((state) => state.currentFile.fileName);
 
   const layoutTools = useMemo<LayoutToolType[]>(() => {
     return [
@@ -219,12 +223,22 @@ function LayoutPanel() {
         label: "自动布局",
         iconName: "icon-liuchengtu",
         iconSize: 30,
-        disabled: selectedNodes.length > 0,
+        disabled: selectedNodes.length > 0 || allNodes.length === 0,
         onClick: () => LayoutHelper.auto(),
         onDisabledClick: () => message.error("自动布局仅支持全局操作"),
       },
+      {
+        label: "将布局保存为图片",
+        iconName: "icon-guangquan",
+        iconSize: 24,
+        disabled: allNodes.length === 0,
+        onClick: () => {
+          saveNodesToImage(selectedNodes, allNodes, currentFileName);
+        },
+        onDisabledClick: () => message.error("没有可保存的节点"),
+      },
     ];
-  }, [selectedNodes]);
+  }, [selectedNodes, currentFileName]);
 
   // 生成
   const tools = layoutTools.map((item, index) => {
