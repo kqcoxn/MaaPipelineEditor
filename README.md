@@ -93,6 +93,8 @@ MPE 项目没有单独的交流群，您可以在 MaaFramework 集成/开发交�
   The modern drag & drop toolkitfor React.
 - [dagre](https://github.com/dagrejs/dagre)  
   A JavaScript library that makes it easy to lay out directed graphs on the client-side.
+- [html-to-image](https://github.com/bubkoo/html-to-image)  
+  Generates an image from a DOM node using HTML5 canvas and SVG.
 - [classnames](https://github.com/JedWatson/classnames)  
   A simple JavaScript utility for conditionally joining classNames together.
 - [react-iconfont-cli](https://github.com/iconfont-cli/react-iconfont-cli)  

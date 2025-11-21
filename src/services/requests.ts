@@ -14,7 +14,7 @@ export function sendCompiledPipeline(
   // 如果未提供则编译当前流程图
   try {
     const pipeline = pipelineJson ?? flowToPipeline();
-    const success = localServer.send("/api/send_pipeline", {
+    const success = localServer.send("/etc/send_pipeline", {
       file_path: filePath,
       pipeline,
     });

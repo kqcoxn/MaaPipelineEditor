@@ -31,6 +31,7 @@ class WebSocketTestServer:
         self.server = None
         self.pipelines = {}
         self.loop = None
+        self.stop_event = None  # 添加停止事件
 
     def log(self, message: str, level: str = "INFO"):
         """记录日志到控制台和UI"""
@@ -51,7 +52,7 @@ class WebSocketTestServer:
         return websocket.send(message)
 
     async def handle_send_pipeline(self, data: Any, websocket):
-        """处理 /api/send_pipeline 路由 - 接收客户端发送的 Pipeline"""
+        """处理 /etc/send_pipeline 路由 - 接收客户端发送的 Pipeline"""
         try:
             file_path = data.get("file_path", "unknown")
             pipeline = data.get("pipeline")
@@ -72,7 +73,7 @@ class WebSocketTestServer:
             # 发送确认消息
             await self.send_message(
                 websocket,
-                "/api/send_pipeline/ack",
+                "/etc/send_pipeline/ack",
                 {"status": "ok", "file_path": file_path, "message": "Pipeline 已接收"},
             )
 
@@ -122,7 +123,7 @@ class WebSocketTestServer:
             self.log(f"← 收到消息 [{path}]")
 
             # 路由分发
-            if path == "/api/send_pipeline":
+            if path == "/etc/send_pipeline":
                 await self.handle_send_pipeline(data, websocket)
             elif path == "/api/request_pipeline":
                 await self.handle_request_pipeline(data, websocket)
@@ -162,13 +163,23 @@ class WebSocketTestServer:
         """启动服务器"""
         self.log(f"启动 WebSocket 服务器: ws://{self.host}:{self.port}")
 
+        # 创建停止事件
+        self.stop_event = asyncio.Event()
+
         self.server = await websockets.serve(self.handle_client, self.host, self.port)
         self.log("✓ 服务器已启动，等待客户端连接...")
-        await asyncio.Future()
+
+        # 等待停止事件
+        await self.stop_event.wait()
 
     async def stop(self):
         """停止服务器"""
         if self.server:
+            # 设置停止事件
+            if self.stop_event:
+                self.stop_event.set()
+
+            # 关闭服务器
             self.server.close()
             await self.server.wait_closed()
             self.log("服务器已停止")
@@ -184,7 +195,7 @@ class WebSocketTestServer:
             for client in self.clients:
                 await self.send_message(
                     client,
-                    "/api/import_pipeline",
+                    "/cte/send_pipeline",
                     {"file_path": file_path, "pipeline": pipeline},
                 )
 
@@ -201,7 +212,7 @@ class ServerUI:
     def __init__(self):
         # 使用 ttkbootstrap 主题
         self.root = ttk.Window(themename="flatly")
-        self.root.title("Pipeline WebSocket 服务器")
+        self.root.title("MaaPipelineEditor WebSocket Server for Test")
         self.root.geometry("1000x750")
 
         # 设置窗口背景色
@@ -465,15 +476,25 @@ class ServerUI:
         self.log_message("[系统] 正在停止服务器...")
 
         if self.loop and self.server:
-            # 在服务器的事件循环中执行停止操作
-            asyncio.run_coroutine_threadsafe(self.server.stop(), self.loop)
-            self.loop.call_soon_threadsafe(self.loop.stop)
+            try:
+                # 在服务器的事件循环中执行停止操作
+                future = asyncio.run_coroutine_threadsafe(self.server.stop(), self.loop)
+                # 等待停止完成（缩短超时时间）
+                future.result(timeout=1)
+            except (asyncio.TimeoutError, Exception):
+                pass  # 静默处理异常
+
+        # 清理引用
+        self.server = None
+        self.loop = None
+        self.server_thread = None
 
         self.is_running = False
         self.status_var.set("● 已停止")
         self.status_label.config(bootstyle="danger")
         self.start_btn.config(state=NORMAL)
         self.stop_btn.config(state=DISABLED)
+        self.log_message("[系统] 服务器已完全停止")
 
     def load_pipeline_from_file(self):
         """从文件加载 Pipeline"""

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "icon": "npx iconfont-h5",
-    "server": "python server/test_server.py",
+    "server": "python server/main.py",
     "dev": "vite",
     "build": "vite build",
     "build-past": "vite build --mode mfw_4_5",

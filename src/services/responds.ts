@@ -3,7 +3,7 @@ import { pipelineToFlow } from "../core/parser";
 import { localServer, initializeRoutes } from "./server";
 
 // 接收来自服务端的 Pipeline JSON 及文件路径，并导入到编辑器
-localServer.registerRoute("/api/import_pipeline", async (data) => {
+localServer.registerRoute("/cte/send_pipeline", async (data) => {
   try {
     const { file_path, pipeline } = data;
     if (!pipeline) {
