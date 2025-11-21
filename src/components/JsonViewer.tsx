@@ -7,6 +7,7 @@ import ReactJsonView, {
 import { Button, Flex, message } from "antd";
 
 import { useFlowStore, type NodeType } from "../stores/flowStore";
+import { useFileStore } from "../stores/fileStore";
 import {
   flowToPipeline,
   configMark,
@@ -16,6 +17,7 @@ import {
 } from "../core/parser";
 import { ClipboardHelper } from "../utils/clipboard";
 import { useConfigStore } from "../stores/configStore";
+import { sendCompiledPipeline } from "../services/requests";
 
 // viewer
 const ViewerElem = memo(({ obj }: { obj: any }) => {
@@ -47,6 +49,8 @@ function JsonViewer() {
   const isRealTimePreview = useConfigStore(
     (state) => state.configs.isRealTimePreview
   );
+  const wsConnected = useConfigStore((state) => state.configs.wsConnected);
+  const filePath = useFileStore((state) => state.currentFile.config.filePath);
   useFlowStore((state) => state.targetNode);
 
   // 文件输入引用
@@ -151,7 +155,7 @@ function JsonViewer() {
                 setRtpTrigger(rtpTrigger + 1);
               }}
             >
-              部分导出
+              部分至粘贴板
             </Button>
             <Button
               variant="filled"
@@ -164,7 +168,25 @@ function JsonViewer() {
                 setRtpTrigger(rtpTrigger + 1);
               }}
             >
-              全部导出
+              导出至粘贴板
+            </Button>
+          </Flex>
+          <Flex
+            className={style.group}
+            gap="small"
+            wrap
+            style={{ display: wsConnected && filePath ? "flex" : "none" }}
+          >
+            <Button
+              variant="filled"
+              size="small"
+              color="purple"
+              onClick={() => {
+                sendCompiledPipeline(undefined, flowToPipeline());
+                setRtpTrigger(rtpTrigger + 1);
+              }}
+            >
+              应用到本地
             </Button>
           </Flex>
         </div>

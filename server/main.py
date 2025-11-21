@@ -66,15 +66,50 @@ class WebSocketTestServer:
                 )
                 return
 
-            # 存储 Pipeline
+            # 检查本地文件是否存在
+            if not os.path.exists(file_path):
+                self.log(f"✗ 本地文件不存在: {file_path}", "ERROR")
+                await self.send_message(
+                    websocket,
+                    "/error",
+                    {
+                        "status": "error",
+                        "message": f"本地文件不存在: {file_path}",
+                    },
+                )
+                return
+
+            # 将 Pipeline 写入本地文件
+            try:
+                with open(file_path, "w", encoding="utf-8") as f:
+                    json.dump(pipeline, f, ensure_ascii=False, indent=2)
+                self.log(
+                    f"✓ 已保存 Pipeline 到本地文件: {file_path} (节点数: {len(pipeline)})"
+                )
+            except Exception as write_error:
+                self.log(f"写入文件失败: {write_error}", "ERROR")
+                await self.send_message(
+                    websocket,
+                    "/error",
+                    {
+                        "status": "error",
+                        "message": f"写入文件失败: {str(write_error)}",
+                    },
+                )
+                return
+
+            # 存储 Pipeline 到内存
             self.pipelines[file_path] = pipeline
-            self.log(f"✓ 已接收 Pipeline: {file_path} (节点数: {len(pipeline)})")
 
             # 发送确认消息
             await self.send_message(
                 websocket,
                 "/etc/send_pipeline/ack",
-                {"status": "ok", "file_path": file_path, "message": "Pipeline 已接收"},
+                {
+                    "status": "ok",
+                    "file_path": file_path,
+                    "message": "Pipeline 已接收并保存",
+                },
             )
 
         except Exception as e:

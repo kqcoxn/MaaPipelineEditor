@@ -1,6 +1,6 @@
 import style from "../../styles/ToolPanel.module.less";
 
-import { memo, useMemo, useState, useEffect } from "react";
+import { memo, useMemo, useState } from "react";
 import { message, Tooltip } from "antd";
 import classNames from "classnames";
 import IconFont from "../iconfonts";

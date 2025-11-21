@@ -118,6 +118,33 @@ function ConfigPanel() {
             }}
           />
         </div>
+        {/* 文件路径 */}
+        <div className={style.item}>
+          <div className={style.key}>
+            <Popover
+              placement="bottomLeft"
+              title={"文件路径"}
+              content={
+                <TipElem
+                  content={
+                    "本地JSON文件的完整路径，用于与本地服务通信时标识文件。留空则无法使用本地通信功能。"
+                  }
+                />
+              }
+            >
+              <span>文件路径</span>
+            </Popover>
+          </div>
+          <Input
+            className={style.value}
+            style={{ maxWidth: 160 }}
+            placeholder="例如: D:/path/to/your/pipeline.json"
+            value={fileConfig.filePath || ""}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              setFileConfig("filePath", e.target.value);
+            }}
+          />
+        </div>
         <div className={style.divider}>—————— 面板配置 ——————</div>
         {/* 历史记录上限 */}
         <div className={globalClass}>

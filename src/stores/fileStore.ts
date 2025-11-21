@@ -13,6 +13,7 @@ import { useConfigStore } from "./configStore";
 
 export type FileConfigType = {
   prefix: string;
+  filePath?: string;
 };
 type FileType = {
   fileName: string;
