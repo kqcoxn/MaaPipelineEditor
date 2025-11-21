@@ -43,6 +43,19 @@ jobs:
           yarn build
           cd ..
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build Python Test Client
+        run: |
+          cd server
+          pip install -r requirements.txt
+          pip install pyinstaller pillow
+          pyinstaller --onefile --windowed --name MPETestClient --icon=../public/maafw.png --add-data "../public/maafw.png:assets" main.py
+          cd ..
+
       - name: Create archives
         run: |
           # 打包主项目
@@ -54,6 +67,9 @@ jobs:
           cd docsite/docs/.vitepress/dist
           zip -r ../../../../MaaPipelineEditor-${{ github.ref_name }}-docs.zip .
           cd ../../../..
+          
+          # 复制Python客户端到根目录
+          cp server/dist/MPETestClient.exe .
 
       - name: Generate Changelog
         id: changelog
@@ -96,6 +112,7 @@ jobs:
           files: |
             MaaPipelineEditor-${{ github.ref_name }}-stable.zip
             MaaPipelineEditor-${{ github.ref_name }}-docs.zip
+            MPETestClient.exe
           body_path: CHANGELOG.md
           generate_release_notes: false
           draft: false
