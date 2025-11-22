@@ -3,9 +3,11 @@ import style from "../styles/Header.module.less";
 import { Button, Tag, Dropdown, Space, Tooltip, type MenuProps } from "antd";
 import { DownOutlined, SunOutlined, MoonOutlined } from "@ant-design/icons";
 import IconFont from "./iconfonts";
+import UpdateLog from "./modals/UpdateLog";
 
 import { globalConfig, useConfigStore } from "../stores/configStore";
 import classNames from "classnames";
+import { useState, useEffect } from "react";
 
 const versionLinks = [
   {
@@ -35,6 +37,19 @@ const otherVersions: MenuProps["items"] = versionLinks.map(
 function Header() {
   const useDarkMode = useConfigStore((state) => state.configs.useDarkMode);
   const setConfig = useConfigStore((state) => state.setConfig);
+  const [updateLogOpen, setUpdateLogOpen] = useState(false);
+
+  // 检测版本更新
+  useEffect(() => {
+    const lastVersion = localStorage.getItem("mpe_last_version");
+    const currentVersion = globalConfig.version;
+    if (lastVersion !== currentVersion) {
+      setTimeout(() => {
+        setUpdateLogOpen(true);
+      }, 500);
+      localStorage.setItem("mpe_last_version", currentVersion);
+    }
+  }, []);
 
   return (
     <div className={style.container}>
@@ -107,6 +122,14 @@ function Header() {
               }}
             />
           </Tooltip>
+          <Tooltip placement="bottom" title="更新日志">
+            <IconFont
+              className="icon-interactive"
+              name="icon-gengxinrizhi"
+              size={32}
+              onClick={() => setUpdateLogOpen(true)}
+            />
+          </Tooltip>
           <Tooltip placement="bottom" title="Github">
             <IconFont
               className="icon-interactive"
@@ -119,6 +142,7 @@ function Header() {
           </Tooltip>
         </div>
       </div>
+      <UpdateLog open={updateLogOpen} onClose={() => setUpdateLogOpen(false)} />
     </div>
   );
 }
