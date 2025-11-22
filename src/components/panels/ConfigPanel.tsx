@@ -127,7 +127,7 @@ function ConfigPanel() {
               content={
                 <TipElem
                   content={
-                    "本地JSON文件的完整路径，用于与本地服务通信时标识文件。留空则无法使用本地通信功能。"
+                    "本地JSON文件的完整路径，用于与本地服务通信时标识文件。留空则无法使用本地通信功能。例如: D:/path/to/your/pipeline.json"
                   }
                 />
               }
@@ -138,7 +138,6 @@ function ConfigPanel() {
           <Input
             className={style.value}
             style={{ maxWidth: 160 }}
-            placeholder="例如: D:/path/to/your/pipeline.json"
             value={fileConfig.filePath || ""}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               setFileConfig("filePath", e.target.value);
