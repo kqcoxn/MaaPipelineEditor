@@ -5,7 +5,8 @@ import { DownOutlined, SunOutlined, MoonOutlined } from "@ant-design/icons";
 import IconFont from "./iconfonts";
 import UpdateLog from "./modals/UpdateLog";
 
-import { globalConfig, useConfigStore } from "../stores/configStore";
+import { globalConfig } from "../stores/configStore";
+import { useTheme } from "../contexts/ThemeContext";
 import classNames from "classnames";
 import { useState, useEffect } from "react";
 
@@ -35,8 +36,7 @@ const otherVersions: MenuProps["items"] = versionLinks.map(
 );
 
 function Header() {
-  const useDarkMode = useConfigStore((state) => state.configs.useDarkMode);
-  const setConfig = useConfigStore((state) => state.setConfig);
+  const { isDark, toggleTheme } = useTheme();
   const [updateLogOpen, setUpdateLogOpen] = useState(false);
 
   // 检测版本更新
@@ -93,11 +93,19 @@ function Header() {
           </Dropdown>
         </div>
         <div className={style.theme}>
-          <Button
-            shape="circle"
-            icon={useDarkMode ? <MoonOutlined /> : <SunOutlined />}
-            onClick={() => setConfig("useDarkMode", !useDarkMode)}
-          />
+          <Tooltip
+            placement="bottom"
+            title={isDark ? "切换到亮色模式" : "切换到暗色模式"}
+          >
+            <Button
+              type="text"
+              shape="circle"
+              icon={isDark ? <MoonOutlined /> : <SunOutlined />}
+              onClick={toggleTheme}
+              className={style.themeButton}
+              aria-label={isDark ? "切换到亮色模式" : "切换到暗色模式"}
+            />
+          </Tooltip>
         </div>
         <div className={style.links}>
           <Tooltip placement="bottom" title="文档站">

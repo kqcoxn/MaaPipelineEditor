@@ -11,10 +11,6 @@ import {
   Space,
 } from "antd";
 const { Header: HeaderSection, Content } = Layout;
-import {
-  enable as enableDarkMode,
-  disable as disableDarkMode,
-} from "darkreader";
 
 import { useFileStore } from "./stores/fileStore";
 
@@ -29,6 +25,7 @@ import ConfigPanel from "./components/panels/ConfigPanel";
 import ErrorPanel from "./components/panels/ErrorPanel";
 import { useConfigStore } from "./stores/configStore";
 import { pipelineToFlow } from "./core/parser";
+import { ThemeProvider } from "./contexts/ThemeContext";
 
 
 
@@ -82,20 +79,6 @@ function starRemind() {
 
 // 全局监听
 const GlobalListener = memo(() => {
-  // 黑夜模式
-  const useDarkMode = useConfigStore((state) => state.configs.useDarkMode);
-  useEffect(() => {
-    if (useDarkMode) {
-      enableDarkMode({
-        brightness: 100,
-        contrast: 90,
-        sepia: 10,
-      });
-    } else {
-      disableDarkMode();
-    }
-  }, [useDarkMode]);
-
   return null;
 });
 
@@ -161,7 +144,7 @@ function App() {
 
   // 渲染组件
   return (
-    <>
+    <ThemeProvider>
       <Flex className={style.container} gap="middle" wrap>
         <Layout className={style.layout}>
           <HeaderSection className={style.header}>
@@ -187,7 +170,7 @@ function App() {
         </Layout>
       </Flex>
       <GlobalListener />
-    </>
+    </ThemeProvider>
   );
 }
 

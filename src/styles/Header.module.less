@@ -57,6 +57,26 @@
 
     .theme {
       margin-right: 24px;
+
+      .themeButton {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        font-size: 18px;
+        transition: all 0.3s ease;
+
+        &:hover {
+          color: #1890ff;
+          transform: scale(1.1);
+          background-color: rgba(24, 144, 255, 0.08);
+        }
+
+        &:active {
+          transform: scale(0.95);
+        }
+      }
     }
 
     .links {
