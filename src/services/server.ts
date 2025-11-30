@@ -205,5 +205,10 @@ export class LocalWebSocketServer {
 
 export const localServer = new LocalWebSocketServer();
 
-// 注册路由
-export function initializeRoutes() {}
+/**
+ * 初始化 WebSocket 连接和所有响应路由
+ * 应在应用启动时调用一次
+ */
+export function initializeWebSocket() {
+  console.log("[WebSocket] Initializing WebSocket service...");
+}

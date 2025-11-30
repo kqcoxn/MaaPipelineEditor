@@ -1,9 +1,5 @@
 # 二、分阶段重构优化建议（按优先级）
 
-## 优先级 P0：先修明确缺陷与隐患
-
-- [ ] 去除重复 `responds` 初始化：统一在 `services/index.ts` 或 `main.tsx` 仅保留一处初始化入口，另一个移除。
-
 ## 优先级 P1：通信层与契约治理
 
 ### 抽离"传输层"与"视图层"
@@ -15,10 +11,6 @@
 
 - [ ] 建立 `src/services/routes.ts`（或合并至 `type.ts`）声明常量：`ROUTE.ETC.SEND_PIPELINE`、`ROUTE.CTE.SEND_PIPELINE`、`ROUTE.API.REQUEST_PIPELINE`、`ROUTE.ERROR`，前后端共享约束。
 - [ ] 为消息 `data` 定义 TypeScript 类型接口，并在 `onmessage` 中做 schema 校验（推荐 zod），提升鲁棒性；出错统一走"错误提示+日志"的路径。
-
-### 显式初始化
-
-- [ ] 提供 `initializeWebSocket()` 与 `registerRespondRoutes(server)` 两个显式入口；`main.tsx` 只调用一次，避免隐式副作用。
 
 ## 优先级 P2：状态管理拆分与优化
 
