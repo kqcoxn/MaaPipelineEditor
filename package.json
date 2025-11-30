@@ -11,6 +11,10 @@
     "build-past": "vite build --mode mfw_4_5",
     "lint": "eslint .",
     "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "release": "git tag -a v0.8.0 -m \"v0.8.0\" && git push origin v0.8.0"
   },
   "dependencies": {
@@ -35,6 +39,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",
+    "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@types/lodash": "^4.17.21",
