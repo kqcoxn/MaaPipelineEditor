@@ -39,12 +39,19 @@ jobs:
           # 获取当前 betaIteration 值
           CURRENT=$(grep -oP 'betaIteration:\s*\K\d+' src/stores/configStore.ts)
           echo "Current betaIteration: $CURRENT"
-          
+
+          # 如果 betaIteration 小于等于 0，仅校验不部署
+          if [ "$CURRENT" -le "0" ]; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ betaIteration is $CURRENT (<=0), will skip deployment (validate only)"
+            exit 0
+          fi
+
           # 获取上一次 commit 的 betaIteration 值
           git fetch origin gh-pages || echo "No gh-pages branch yet"
           PREVIOUS=$(git show HEAD~1:src/stores/configStore.ts 2>/dev/null | grep -oP 'betaIteration:\s*\K\d+' || echo "0")
           echo "Previous betaIteration: $PREVIOUS"
-          
+
           # 比较是否有变化
           if [ "$CURRENT" != "$PREVIOUS" ]; then
             echo "changed=true" >> $GITHUB_OUTPUT
