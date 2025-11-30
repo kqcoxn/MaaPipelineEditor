@@ -4,8 +4,7 @@
 export interface UpdateCategory {
   features?: string[]; // 新功能
   fixes?: string[]; // Bug修复
-  optimizations?: string[]; // 性能优化/体验优化
-  refactors?: string[]; // 代码重构
+  perfs?: string[]; // 性能优化/体验优化
   docs?: string[]; // 文档更新
   others?: string[]; // 其他更新
 }
@@ -53,7 +52,7 @@ export const updateLogs: UpdateLogItem[] = [
         "支持 JSONC 格式文件导入（支持注释）",
         "支持从文件管理器拖拽导入 Pipeline 文件",
       ],
-      optimizations: ["统一了不同协议版本的导入方式"],
+      perfs: ["统一了不同协议版本的导入方式"],
       fixes: [
         "修复旧版本配置文件无法导入的问题",
         "修复文件导入时不解析配置的问题",
@@ -66,7 +65,7 @@ export const updateLogs: UpdateLogItem[] = [
     type: "fix",
     updates: {
       features: ["新增大小写自动校正功能"],
-      optimizations: ["优化识别类型与动作类型的校验机制"],
+      perfs: ["优化识别类型与动作类型的校验机制"],
       fixes: ["修复 extras 字段未修改时无法导出的问题"],
     },
   },
@@ -76,7 +75,7 @@ export const updateLogs: UpdateLogItem[] = [
     type: "feature",
     updates: {
       features: ["新增 MaaFramework 版本提示"],
-      optimizations: [
+      perfs: [
         "优化自动布局算法，提升节点排列效果",
         "数字数组现在支持中文逗号分隔",
         "优化响应式标题显示",
@@ -92,7 +91,7 @@ export const updateLogs: UpdateLogItem[] = [
     type: "major",
     updates: {
       features: ["新增暗色/夜间模式支持", "新增 Star 提醒功能"],
-      optimizations: ["优化在线使用提示", "精简版本发布说明内容"],
+      perfs: ["优化在线使用提示", "精简版本发布说明内容"],
     },
   },
   {
@@ -105,7 +104,7 @@ export const updateLogs: UpdateLogItem[] = [
         "修复 wait_freezes 字段的解析与编译错误",
         "修复复制节点时名称异常的问题",
       ],
-      optimizations: ["调整无延迟节点模板的显示位置"],
+      perfs: ["调整无延迟节点模板的显示位置"],
     },
   },
 ];
