@@ -23,12 +23,34 @@
       display: inline;
     }
 
+    .medium-title {
+      display: none;
+    }
+
     .short-title {
       display: none;
     }
 
-    @media (max-width: 1200px) {
+    @media (max-width: 1250px) {
       .full-title {
+        display: none;
+      }
+
+      .medium-title {
+        display: inline;
+      }
+
+      .short-title {
+        display: none;
+      }
+    }
+
+    @media (max-width: 690px) {
+      .full-title {
+        display: none;
+      }
+
+      .medium-title {
         display: none;
       }
 
@@ -42,6 +64,12 @@
 
       > * {
         margin-right: 4px;
+      }
+    }
+
+    @media (max-width: 880px) {
+      .version {
+        display: none;
       }
     }
   }
