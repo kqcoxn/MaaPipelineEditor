@@ -19,6 +19,7 @@ import {
   type EdgeChange,
   type Connection,
   type Viewport,
+  type OnSelectionChangeParams,
   useKeyPress,
 } from "@xyflow/react";
 import { useDebounceEffect } from "ahooks";
@@ -27,8 +28,9 @@ import {
   useFlowStore,
   type EdgeType,
   type NodeType,
-} from "../stores/flowStore";
+} from "../stores/flow";
 import { useConfigStore } from "../stores/configStore";
+import { useClipboardStore } from "../stores/clipboardStore";
 import { nodeTypes } from "./flow/nodes";
 import { edgeTypes } from "./flow/edges";
 import { localSave, useFileStore } from "../stores/fileStore";
@@ -44,9 +46,10 @@ const KeyListener = memo(
     const selectedEdges = useFlowStore(
       (state) => state.selectedEdges
     ) as EdgeType[];
-    const setClipBoard = useConfigStore((state) => state.setClipBoard);
-    const clipBoard = useConfigStore((state) => state.clipBoard);
-    const applyClipBoard = useConfigStore((state) => state.applyClipBoard);
+    const copy = useClipboardStore((state) => state.copy);
+    const clipboardNodes = useClipboardStore((state) => state.clipboardNodes);
+    const paste = useClipboardStore((state) => state.paste);
+    const flowPaste = useFlowStore((state) => state.paste);
 
     const keyPressOptions = useMemo(
       () => ({
@@ -60,15 +63,18 @@ const KeyListener = memo(
     const copyPressed = useKeyPress("Control+c", keyPressOptions);
     useEffect(() => {
       if (!copyPressed || selectedNodes.length === 0) return;
-      setClipBoard(selectedNodes, selectedEdges);
+      copy(selectedNodes, selectedEdges);
     }, [copyPressed]);
 
     // 粘贴节点
     const pastePressed = useKeyPress("Control+v", keyPressOptions);
     useEffect(() => {
-      if (!pastePressed || clipBoard.nodes.length === 0) return;
-      applyClipBoard();
-    }, [pastePressed, clipBoard]);
+      if (!pastePressed || clipboardNodes.length === 0) return;
+      const content = paste();
+      if (content) {
+        flowPaste(content.nodes, content.edges);
+      }
+    }, [pastePressed, clipboardNodes]);
 
     return null;
   }
@@ -94,22 +100,16 @@ const ViewportChangeMonitor = memo(() => {
 });
 // 更新器
 const UpdateMonitor = memo(() => {
-  const bfSelectedNodes = useFlowStore((state) => state.bfSelectedNodes);
-  const bfSelectedEdges = useFlowStore((state) => state.bfSelectedEdges);
-  const bfTargetNode = useFlowStore((state) => state.bfTargetNode);
+  const debouncedSelectedNodes = useFlowStore((state) => state.debouncedSelectedNodes);
+  const debouncedSelectedEdges = useFlowStore((state) => state.debouncedSelectedEdges);
+  const debouncedTargetNode = useFlowStore((state) => state.debouncedTargetNode);
   const filesLength = useFileStore((state) => state.files.length);
-  const skipSave = useFlowStore((state) => state._skipSave);
 
   useDebounceEffect(
     () => {
-      // 跳过保存时重置标志
-      if (skipSave) {
-        useFlowStore.setState({ _skipSave: false });
-        return;
-      }
       localSave();
     },
-    [bfSelectedNodes, bfSelectedEdges, bfTargetNode, filesLength, skipSave],
+    [debouncedSelectedNodes, debouncedSelectedEdges, debouncedTargetNode, filesLength],
     {
       wait: 500,
     }
@@ -126,6 +126,7 @@ function MainFlow() {
   const updateEdges = useFlowStore((state) => state.updateEdges);
   const addEdge = useFlowStore((state) => state.addEdge);
   const updateSize = useFlowStore((state) => state.updateSize);
+  const updateSelection = useFlowStore((state) => state.updateSelection);
   const selfElem = useRef<HTMLDivElement>(null);
 
   // 回调
@@ -138,6 +139,12 @@ function MainFlow() {
     []
   );
   const onConnect = useCallback((co: Connection) => addEdge(co), []);
+  const onSelectionChange = useCallback(
+    (params: OnSelectionChangeParams) => {
+      updateSelection(params.nodes as NodeType[], params.edges as EdgeType[]);
+    },
+    []
+  );
 
   // 记忆
   const defaultViewport = useMemo(() => ({ x: 0, y: 0, zoom: 1.5 }), []);
@@ -173,6 +180,7 @@ function MainFlow() {
         edges={edges}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onSelectionChange={onSelectionChange}
         defaultViewport={defaultViewport}
         minZoom={0.2}
         maxZoom={2.5}

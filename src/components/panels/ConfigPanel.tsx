@@ -5,7 +5,7 @@ import { Popover, Switch, Input, InputNumber, Button } from "antd";
 import classNames from "classnames";
 import IconFont from "../iconfonts";
 
-import { checkRepateNodeLabelList } from "../../stores/flowStore";
+import { checkRepeatNodeLabelList } from "../../stores/flow";
 import { useConfigStore } from "../../stores/configStore";
 import { useFileStore } from "../../stores/fileStore";
 import { configMarkPrefix, configMark } from "../../core/parser";

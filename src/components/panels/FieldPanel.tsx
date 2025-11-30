@@ -19,7 +19,7 @@ import {
   type ParamType,
   type PipelineNodeType,
   type ExternalNodeType,
-} from "../../stores/flowStore";
+} from "../../stores/flow";
 import { useFileStore } from "../../stores/fileStore";
 import {
   recoFields,
@@ -692,11 +692,11 @@ function FieldPanel() {
               </Spin>
             }
           >
-            <PipelineElem currentNode={currentNode} />
+            <PipelineElem currentNode={currentNode as PipelineNodeType} />
           </Suspense>
         );
       case NodeTypeEnum.External:
-        return <ExternalElem currentNode={currentNode} />;
+        return <ExternalElem currentNode={currentNode as ExternalNodeType} />;
       default:
         return null;
     }

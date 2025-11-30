@@ -7,7 +7,6 @@ import {
   findNodeLabelById,
   createPipelineNode,
   createExternalNode,
-  initHistory,
   type NodeType,
   type EdgeType,
   type PipelineNodeType,
@@ -15,7 +14,7 @@ import {
   type ActionParamType,
   type OtherParamType,
   type ParamType,
-} from "../stores/flowStore";
+} from "../stores/flow";
 import { useFileStore, type FileConfigType } from "../stores/fileStore";
 import { globalConfig, useConfigStore } from "../stores/configStore";
 import {
@@ -408,10 +407,10 @@ export function flowToPipeline(datas?: {
     // 链接
     edges.forEach((edge) => {
       // 获取节点数据
-      const sourceKey = findNodeLabelById(edge.source);
+      const sourceKey = findNodeLabelById(nodes, edge.source);
       const pSourceNode = pipelineObj[prefix + sourceKey];
       if (!pSourceNode) return;
-      const targetKey = findNodeLabelById(edge.target);
+      const targetKey = findNodeLabelById(nodes, edge.target);
       const pTargetNode = pipelineObj[prefix + targetKey];
       // 添加链接
       const toPNodeKey = pTargetNode ? prefix + targetKey : targetKey;
@@ -598,8 +597,8 @@ export async function pipelineToFlow(options?: { pString?: string }) {
     }
     // 解析节点
     let nodes: NodeType[] = [];
-    const originLabels: string[] = []; // 去掉前缀后的节点名
-    const originalKeys: string[] = []; // 原始完整节点名（包含前缀）
+    const originLabels: string[] = [];
+    const originalKeys: string[] = [];
     let idOLPairs: IdLabelPairsType = [];
     let isIncludePos = false;
     objKeys.forEach((objKey) => {
@@ -764,7 +763,7 @@ export async function pipelineToFlow(options?: { pString?: string }) {
     // 更新flow
     useFlowStore.getState().replace(nodes, edges, { isFitView: isIncludePos });
     // 初始化历史记录
-    initHistory(nodes, edges);
+    useFlowStore.getState().initHistory(nodes, edges);
     const fileState = useFileStore.getState();
     if (configs.filename) fileState.setFileName(configs.filename);
     const setFileConfig = fileState.setFileConfig;

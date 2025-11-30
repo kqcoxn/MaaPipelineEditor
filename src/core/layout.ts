@@ -5,7 +5,7 @@ import {
   useFlowStore,
   type EdgeType,
   type NodeType,
-} from "../stores/flowStore";
+} from "../stores/flow";
 
 export enum AlignmentEnum {
   Top,

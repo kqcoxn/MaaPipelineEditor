@@ -7,8 +7,7 @@ import {
   useFlowStore,
   type NodeType,
   type EdgeType,
-  initHistory,
-} from "./flowStore";
+} from "./flow";
 import { useConfigStore } from "./configStore";
 
 export type FileConfigType = {
@@ -175,7 +174,7 @@ export const useFileStore = create<FileState>()((set) => ({
         .getState()
         .replace(targetFile.nodes, targetFile.edges, { skipSave: true });
       // 初始化历史记录
-      initHistory(targetFile.nodes, targetFile.edges);
+      useFlowStore.getState().initHistory(targetFile.nodes, targetFile.edges);
       return { currentFile: targetFile };
     });
     return activeKey;
@@ -250,7 +249,7 @@ export const useFileStore = create<FileState>()((set) => ({
         .getState()
         .replace(currentFile.nodes, currentFile.edges, { skipSave: true });
       // 初始化历史记录
-      initHistory(currentFile.nodes, currentFile.edges);
+      useFlowStore.getState().initHistory(currentFile.nodes, currentFile.edges);
     } catch (err) {
       return err;
     }

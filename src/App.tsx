@@ -17,7 +17,7 @@ import {
 } from "darkreader";
 
 import { useFileStore } from "./stores/fileStore";
-import { undo, redo } from "./stores/flowStore";
+import { useFlowStore } from "./stores/flow";
 
 import Header from "./components/Header";
 import MainFlow from "./components/Flow";
@@ -83,7 +83,7 @@ function keyRedirection() {
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation();
-        if (undo()) {
+        if (useFlowStore.getState().undo()) {
           message.success("撤销成功");
         } else {
           message.warning("真的没有了😭");
@@ -106,7 +106,7 @@ function keyRedirection() {
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation();
-        if (redo()) {
+        if (useFlowStore.getState().redo()) {
           message.success("重做成功");
         } else {
           message.warning("真的没有了😭");

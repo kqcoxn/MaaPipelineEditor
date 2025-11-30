@@ -9,7 +9,7 @@ import {
   type PipelineNodeDataType,
   type ExternalNodeDataType,
   type NodeType,
-} from "../../stores/flowStore";
+} from "../../stores/flow";
 import { JsonHelper } from "../../utils/jsonHelper";
 
 export enum SourceHandleTypeEnum {
@@ -43,7 +43,7 @@ const PNodeDataContent = memo(
   }: {
     data: PipelineNodeDataType;
     props: NodeProps;
-    targetNode?: NodeType;
+    targetNode?: NodeType | null;
   }) => {
     const ExtrasElem = useMemo(() => {
       if (JsonHelper.isObj(data.extras)) {
@@ -150,7 +150,7 @@ const ENodeContent = memo(
   }: {
     data: ExternalNodeDataType;
     props: NodeProps;
-    targetNode?: NodeType;
+    targetNode?: NodeType | null;
   }) => {
     return (
       <>
@@ -182,7 +182,7 @@ function ExternalNode(props: NodeProps<ExternalNodeData>) {
 
   const Node = (
     <div className={nodeClass}>
-      <ENodeContent data={props.data} props={props} targetNode={targetNode} />
+      <ENodeContent data={props.data} props={props} targetNode={targetNode as NodeType | undefined} />
     </div>
   );
   return Node;

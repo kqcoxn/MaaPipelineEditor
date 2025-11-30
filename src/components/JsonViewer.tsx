@@ -6,7 +6,7 @@ import ReactJsonView, {
 } from "@microlink/react-json-view";
 import { Button, Flex, message } from "antd";
 
-import { useFlowStore, type NodeType } from "../stores/flowStore";
+import { useFlowStore, type NodeType } from "../stores/flow";
 import { useFileStore } from "../stores/fileStore";
 import {
   flowToPipeline,
@@ -43,9 +43,9 @@ const ViewerElem = memo(({ obj }: { obj: any }) => {
 function JsonViewer() {
   // store
   const selectedNodes = useFlowStore(
-    (state) => state.bfSelectedNodes
+    (state) => state.debouncedSelectedNodes
   ) as NodeType[];
-  const selectedEdges = useFlowStore((state) => state.bfSelectedEdges);
+  const selectedEdges = useFlowStore((state) => state.debouncedSelectedEdges);
   const isRealTimePreview = useConfigStore(
     (state) => state.configs.isRealTimePreview
   );

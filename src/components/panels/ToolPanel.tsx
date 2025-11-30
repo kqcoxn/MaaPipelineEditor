@@ -6,13 +6,9 @@ import classNames from "classnames";
 import IconFont from "../iconfonts";
 import { type IconNames } from "../iconfonts";
 
-import {
-  useFlowStore,
-  undo,
-  redo,
-  getHistoryState,
-} from "../../stores/flowStore";
+import { useFlowStore } from "../../stores/flow";
 import { useConfigStore } from "../../stores/configStore";
+import { useClipboardStore } from "../../stores/clipboardStore";
 import { useFileStore } from "../../stores/fileStore";
 import { NodeTypeEnum } from "../flow/nodes";
 import { LayoutHelper, AlignmentEnum } from "../../core/layout";
@@ -73,11 +69,15 @@ type GlobalToolType = {
 };
 function GlobalPanel() {
   // store
-  const clipBoard = useConfigStore((state) => state.clipBoard);
-  const selectedNodes = useFlowStore((state) => state.bfSelectedNodes);
+  const clipboardNodes = useClipboardStore((state) => state.clipboardNodes);
+  const debouncedSelectedNodes = useFlowStore((state) => state.debouncedSelectedNodes);
   const setStatus = useConfigStore((state) => state.setStatus);
-  const setClipBoard = useConfigStore((state) => state.setClipBoard);
-  const applyClipBoard = useConfigStore((state) => state.applyClipBoard);
+  const copy = useClipboardStore((state) => state.copy);
+  const clipboardPaste = useClipboardStore((state) => state.paste);
+  const flowPaste = useFlowStore((state) => state.paste);
+  const undo = useFlowStore((state) => state.undo);
+  const redo = useFlowStore((state) => state.redo);
+  const getHistoryState = useFlowStore((state) => state.getHistoryState);
 
   // 历史状态 - 使用状态强制更新
   const [, forceUpdate] = useState({});
@@ -96,17 +96,22 @@ function GlobalPanel() {
         label: "复制 (Ctrl+C)",
         iconName: "icon-a-copyfubenfuzhi",
         iconSize: 25,
-        disabled: selectedNodes.length === 0,
-        onClick: () => setClipBoard(),
+        disabled: debouncedSelectedNodes.length === 0,
+        onClick: () => copy(debouncedSelectedNodes as any, []),
         onDisabledClick: () => message.error("未选中节点"),
       },
       {
         label: "粘贴 (Ctrl+V)",
         iconName: "icon-niantie1",
         iconSize: 29,
-        disabled: clipBoard.nodes.length === 0,
+        disabled: clipboardNodes.length === 0,
         onDisabledClick: () => message.error("粘贴板中无已复制节点"),
-        onClick: () => applyClipBoard(),
+        onClick: () => {
+          const content = clipboardPaste();
+          if (content) {
+            flowPaste(content.nodes, content.edges);
+          }
+        },
       },
       {
         label: "撤销 (Ctrl+Z)",
@@ -135,7 +140,7 @@ function GlobalPanel() {
         },
       },
     ],
-    [clipBoard, selectedNodes, historyState]
+    [clipboardNodes, debouncedSelectedNodes, historyState]
   );
 
   // 生成
@@ -186,7 +191,7 @@ interface LayoutToolType {
   onDisabledClick?: () => void;
 }
 function LayoutPanel() {
-  const selectedNodes = useFlowStore((state) => state.bfSelectedNodes);
+  const debouncedSelectedNodes = useFlowStore((state) => state.debouncedSelectedNodes);
   const allNodes = useFlowStore((state) => state.nodes);
   const currentFileName = useFileStore((state) => state.currentFile.fileName);
 
@@ -196,8 +201,8 @@ function LayoutPanel() {
         label: "居中对齐",
         iconName: "icon-jurassic_horizalign-center",
         iconSize: 30,
-        disabled: selectedNodes.length < 2,
-        onClick: () => LayoutHelper.align(AlignmentEnum.Center, selectedNodes),
+        disabled: debouncedSelectedNodes.length < 2,
+        onClick: () => LayoutHelper.align(AlignmentEnum.Center, debouncedSelectedNodes as any),
         onDisabledClick: () =>
           message.error("请选择两个以上的节点进行对齐操作"),
       },
@@ -205,8 +210,8 @@ function LayoutPanel() {
         label: "顶部对齐",
         iconName: "icon-jurassic_verticalalign-top",
         iconSize: 30,
-        disabled: selectedNodes.length < 2,
-        onClick: () => LayoutHelper.align(AlignmentEnum.Top, selectedNodes),
+        disabled: debouncedSelectedNodes.length < 2,
+        onClick: () => LayoutHelper.align(AlignmentEnum.Top, debouncedSelectedNodes as any),
         onDisabledClick: () =>
           message.error("请选择两个以上的节点进行对齐操作"),
       },
@@ -214,8 +219,8 @@ function LayoutPanel() {
         label: "底部对齐",
         iconName: "icon-jurassic_verticalalign-bottom",
         iconSize: 30,
-        disabled: selectedNodes.length < 2,
-        onClick: () => LayoutHelper.align(AlignmentEnum.Bottom, selectedNodes),
+        disabled: debouncedSelectedNodes.length < 2,
+        onClick: () => LayoutHelper.align(AlignmentEnum.Bottom, debouncedSelectedNodes as any),
         onDisabledClick: () =>
           message.error("请选择两个以上的节点进行对齐操作"),
       },
@@ -223,7 +228,7 @@ function LayoutPanel() {
         label: "自动布局",
         iconName: "icon-liuchengtu",
         iconSize: 30,
-        disabled: selectedNodes.length > 0 || allNodes.length === 0,
+        disabled: debouncedSelectedNodes.length > 0 || allNodes.length === 0,
         onClick: () => LayoutHelper.auto(),
         onDisabledClick: () => message.error("自动布局仅支持全局操作"),
       },
@@ -233,12 +238,12 @@ function LayoutPanel() {
         iconSize: 24,
         disabled: allNodes.length === 0,
         onClick: () => {
-          saveNodesToImage(selectedNodes, allNodes, currentFileName);
+          saveNodesToImage(debouncedSelectedNodes as any, allNodes as any, currentFileName);
         },
         onDisabledClick: () => message.error("没有可保存的节点"),
       },
     ];
-  }, [selectedNodes, currentFileName]);
+  }, [debouncedSelectedNodes, currentFileName]);
 
   // 生成
   const tools = layoutTools.map((item, index) => {

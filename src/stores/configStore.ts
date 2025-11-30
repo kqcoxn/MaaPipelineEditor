@@ -1,9 +1,5 @@
 import { create } from "zustand";
 
-import { useFlowStore, type NodeType, type EdgeType } from "./flowStore";
-import { message } from "antd";
-import { JsonHelper } from "../utils/jsonHelper";
-
 /**固有配置 */
 export const globalConfig = {
   dev: true,
@@ -44,11 +40,8 @@ type ConfigState = {
     key: K,
     value: ConfigState["status"][K]
   ) => void;
-  // 粘贴板
-  clipBoard: { nodes: NodeType[]; edges: EdgeType[] };
-  setClipBoard: (nodes?: NodeType[], edges?: EdgeType[]) => void;
-  applyClipBoard: () => void;
 };
+
 export const useConfigStore = create<ConfigState>()((set) => ({
   // 设置
   configs: {
@@ -70,7 +63,6 @@ export const useConfigStore = create<ConfigState>()((set) => ({
   },
   replaceConfig(configs) {
     set((state) => {
-      if (JsonHelper.isStringObj(configs)) configs = JSON.parse(configs);
       const keys = Object.keys(state.configs);
       const newConfigs: Record<string, any> = {};
       Object.keys(configs).forEach((key) => {
@@ -85,38 +77,5 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     set((state) => ({
       status: { ...state.status, [key]: value },
     }));
-  },
-  // 粘贴板
-  clipBoard: {
-    nodes: [],
-    edges: [],
-  },
-  setClipBoard(nodes, edges) {
-    set(() => {
-      const flowState = useFlowStore.getState();
-      if (!nodes) nodes = flowState.selectedNodes;
-      if (!edges) edges = flowState.selectedEdges;
-
-      if (nodes.length === 0) {
-        message.error("未选中节点");
-        return {};
-      }
-
-      message.success("已将选中节点加载至内部粘贴板");
-      return { clipBoard: { nodes, edges } };
-    });
-  },
-  applyClipBoard() {
-    set((state) => {
-      const clipBoard = state.clipBoard;
-      if (clipBoard.nodes.length === 0) {
-        message.error("粘贴板中无已复制节点");
-        return {};
-      }
-      const paste = useFlowStore.getState().paste;
-      paste(clipBoard.nodes, clipBoard.edges);
-      message.success("粘贴成功");
-      return {};
-    });
   },
 }));
