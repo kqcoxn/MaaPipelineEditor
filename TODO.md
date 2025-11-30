@@ -10,7 +10,6 @@
 
 - **flowStore.ts 体量过大**：单文件体量巨大（900+行），同时承担视图实例、选中态、历史、粘贴板、连接顺序等职责，难以维护与单元测试。
 - **configStore.ts 返回值隐患**：`setConfig/setStatus` 在 `refresh=true` 时返回 `{...configs}/{...status}`，会把嵌套字段提升到顶层状态，隐患极大（默认虽不传 `refresh`，但这是一个"脚枪"）。
-- **flowStore.ts 方法错误**：`getUnselectedEdges` 使用了 `applyNodeChanges` 处理边，明显错误，应使用 `applyEdgeChanges`（潜在导致选中状态失效或历史记录异常）。
 
 ## 3. 通信契约与类型约束不足
 

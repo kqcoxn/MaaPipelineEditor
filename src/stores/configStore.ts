@@ -8,7 +8,7 @@ import { JsonHelper } from "../utils/jsonHelper";
 export const globalConfig = {
   dev: true,
   version: `0.8.0`,
-  betaIteration: 0,
+  betaIteration: 1,
   mfwVersion: "5.0",
 };
 
@@ -33,8 +33,7 @@ type ConfigState = {
   };
   setConfig: <K extends keyof ConfigState["configs"]>(
     key: K,
-    value: ConfigState["configs"][K],
-    refresh?: boolean
+    value: ConfigState["configs"][K]
   ) => void;
   replaceConfig: (configs: any) => void;
   // 状态
@@ -43,8 +42,7 @@ type ConfigState = {
   };
   setStatus: <K extends keyof ConfigState["status"]>(
     key: K,
-    value: ConfigState["status"][K],
-    refreshAll?: boolean
+    value: ConfigState["status"][K]
   ) => void;
   // 粘贴板
   clipBoard: { nodes: NodeType[]; edges: EdgeType[] };
@@ -65,12 +63,10 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     wsConnecting: false,
     wsAutoConnect: false,
   },
-  setConfig(key, value, refresh = false) {
-    set((state) => {
-      const configs = state.configs;
-      configs[key] = value;
-      return refresh ? { ...configs } : {};
-    });
+  setConfig(key, value) {
+    set((state) => ({
+      configs: { ...state.configs, [key]: value },
+    }));
   },
   replaceConfig(configs) {
     set((state) => {
@@ -85,12 +81,10 @@ export const useConfigStore = create<ConfigState>()((set) => ({
   },
   // 状态
   status: { showConfigPanel: false },
-  setStatus(key, value, refresh = false) {
-    set((state) => {
-      const status = state.status;
-      status[key] = value;
-      return refresh ? { ...status } : {};
-    });
+  setStatus(key, value) {
+    set((state) => ({
+      status: { ...state.status, [key]: value },
+    }));
   },
   // 粘贴板
   clipBoard: {
