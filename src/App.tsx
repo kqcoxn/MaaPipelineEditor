@@ -17,9 +17,9 @@ import {
 } from "darkreader";
 
 import { useFileStore } from "./stores/fileStore";
-import { useFlowStore } from "./stores/flow";
 
 import Header from "./components/Header";
+import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
 import MainFlow from "./components/Flow";
 import JsonViewer from "./components/JsonViewer";
 import FieldPanel from "./components/panels/FieldPanel";
@@ -30,92 +30,7 @@ import ErrorPanel from "./components/panels/ErrorPanel";
 import { useConfigStore } from "./stores/configStore";
 import { pipelineToFlow } from "./core/parser";
 
-// 按键重定向
-function keyRedirection() {
-  document.addEventListener(
-    "keydown",
-    (event) => {
-      // Delete 键重定向为 Backspace
-      if (event.key === "Delete") {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        const backspaceEvent = new KeyboardEvent("keydown", {
-          key: "Backspace",
-          code: "Backspace",
-          keyCode: 8,
-          which: 8,
-          bubbles: true,
-          cancelable: true,
-          composed: true,
-          altKey: event.altKey,
-          ctrlKey: event.ctrlKey,
-          shiftKey: event.shiftKey,
-          metaKey: event.metaKey,
-          repeat: event.repeat,
-          location: event.location,
-        });
-        setTimeout(() => {
-          const reactFlowElement =
-            document.querySelector(".react-flow") ||
-            document.querySelector('[data-testid="rf__wrapper"]') ||
-            document.activeElement ||
-            document.body;
-          if (reactFlowElement) {
-            reactFlowElement.dispatchEvent(backspaceEvent);
-          }
-        }, 0);
-      }
-      // Ctrl+Z 撤销
-      else if (
-        (event.ctrlKey || event.metaKey) &&
-        event.key === "z" &&
-        !event.shiftKey
-      ) {
-        // 检查是否在输入框中
-        const target = event.target as HTMLElement;
-        if (
-          target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.isContentEditable
-        ) {
-          return;
-        }
-        event.preventDefault();
-        event.stopPropagation();
-        event.stopImmediatePropagation();
-        if (useFlowStore.getState().undo()) {
-          message.success("撤销成功");
-        } else {
-          message.warning("真的没有了😭");
-        }
-      }
-      // Ctrl+Y 或 Ctrl+Shift+Z 重做
-      else if (
-        (event.ctrlKey || event.metaKey) &&
-        (event.key === "y" || (event.key === "z" && event.shiftKey))
-      ) {
-        // 检查是否在输入框中
-        const target = event.target as HTMLElement;
-        if (
-          target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.isContentEditable
-        ) {
-          return;
-        }
-        event.preventDefault();
-        event.stopPropagation();
-        event.stopImmediatePropagation();
-        if (useFlowStore.getState().redo()) {
-          message.success("重做成功");
-        } else {
-          message.warning("真的没有了😭");
-        }
-      }
-    },
-    true
-  );
-}
+
 
 // 轮询提醒
 let isShowStarRemind = false;
@@ -216,10 +131,11 @@ function App() {
     e.stopPropagation();
   }, []);
 
+  // 启用全局快捷键
+  useGlobalShortcuts();
+
   // onMounted
   useEffect(() => {
-    // 按键重定向
-    keyRedirection();
     // 读取本地存储
     const err = useFileStore.getState().replace();
     if (!err) message.success("已读取本地缓存");
