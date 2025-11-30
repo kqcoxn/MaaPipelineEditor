@@ -1,42 +1,7 @@
-一、主要问题与风险点
-
-## 1. 通信模块耦合与初始化分散
-
-- **传输层与视图层混杂**：`LocalWebSocketServer` 内直接耦合 antd 的 UI 消息（`server.ts` 中频繁 `message.success/error`），导致"传输层"与"视图层"混杂，不利于复用与测试。
-- **初始化重复**：`services/index.ts` 与 `main.tsx` 都有对 `responds.ts` 的导入，初始化存在重复与隐式副作用，难以定位路由注册来源。
-- **路由字符串不一致**：前端主动发送用 `/etc/send_pipeline`，服务端推送用 `/cte/send_pipeline`，另有 `/api/request_pipeline` 等，缺少统一常量与契约定义。
-
-## 2. 状态管理过于庞杂、部分实现存在瑕疵
-
-- **flowStore.ts 体量过大**：单文件体量巨大（900+行），同时承担视图实例、选中态、历史、粘贴板、连接顺序等职责，难以维护与单元测试。
-- **configStore.ts 返回值隐患**：`setConfig/setStatus` 在 `refresh=true` 时返回 `{...configs}/{...status}`，会把嵌套字段提升到顶层状态，隐患极大（默认虽不传 `refresh`，但这是一个"脚枪"）。
-
-## 3. 通信契约与类型约束不足
-
-- **类型定义不足**：`type.ts` 仅定义 `MessageHandler` 与 `APIRoute`，消息 `data` 区域基本是 `any`，前后端契约靠字符串与注释记忆，易出错。
-- **缺少运行时校验**：前端对收到消息的结构没有 runtime 校验（例如 zod/valibot），异常路径统一性不足（虽然服务端会发 `/error`，但前端未统一处理）。
-
-## 4. 隐式副作用较多
-
-- **路由注册隐式**：通过导入执行来注册 WebSocket 路由（`responds.ts` import），缺少显式 `initialize` 入口，阅读与控制成本高。
-- **全局键盘绑定**：`App.tsx` 中的全局键盘重定向直接绑定 `document`，属于"系统级"hook，建议抽象为可控 hook 并集中管理。
-
-## 5. Python 服务端的契约分散
-
-- **路由硬编码**：`handlers.py` 中路由字符串硬编码，与前端缺乏共享常量；主动推送路径是 `/cte/send_pipeline`，前端注册相同路径但缺乏集中声明。
-- **资源路径问题**：`server_ui.py` 的图标路径依赖 `public/maafw.png`，仓库中未见 `public` 目录，可能存在资源缺失问题（UI 已做降级，但仍建议统一资源管理）。
-
-## 6. 工程化与可测试性不足
-
-- **缺少单元测试**：parser、stores、services 的关键路径都适合添加单元测试，也无契约测试（WebSocket 消息编解码）。
-- ## **打包流程不明确**：脚本与打包流程（尤其 Python 单文件打包为 exe 的流程）未在前端工程侧联动标注，协作门槛稍高。
-
 # 二、分阶段重构优化建议（按优先级）
 
 ## 优先级 P0：先修明确缺陷与隐患
 
-- [ ] 修复 `configStore.ts` 的 `setConfig/setStatus` 返回值，避免刷新时把 `configs/status` 平铺到顶层状态。
-- [ ] 修复 `flowStore.ts` 的 `getUnselectedEdges` 使用 `applyNodeChanges` 的错误。
 - [ ] 去除重复 `responds` 初始化：统一在 `services/index.ts` 或 `main.tsx` 仅保留一处初始化入口，另一个移除。
 
 ## 优先级 P1：通信层与契约治理

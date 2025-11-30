@@ -25,6 +25,15 @@ export interface UpdateLogItem {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "0.8.0",
+    date: "2025-12",
+    type: "major",
+    updates: {
+      features: [],
+      fixes: ["修复潜在的选中状态失效或历史记录异常"],
+    },
+  },
+  {
     version: "0.7.2",
     date: "2025-11-22",
     type: "feature",
