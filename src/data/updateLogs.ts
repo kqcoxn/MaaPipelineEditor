@@ -31,6 +31,7 @@ export const updateLogs: UpdateLogItem[] = [
     updates: {
       features: [],
       fixes: ["修复潜在的选中状态失效或历史记录异常"],
+      perfs: ["优化页面响应式显示"],
     },
   },
   {
