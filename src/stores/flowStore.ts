@@ -338,7 +338,7 @@ function getUnselectedEdges(params?: {
     selected: false,
     type: "select",
   }));
-  edges = applyNodeChanges(changes as NodeChange[], edges);
+  edges = applyEdgeChanges(changes as EdgeChange[], edges);
   return edges;
 }
 // 计算链接次序
