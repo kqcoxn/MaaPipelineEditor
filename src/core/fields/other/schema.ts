@@ -17,7 +17,13 @@ const otherFieldSchema: Record<string, FieldType> = {
     type: FieldTypeEnum.Int,
     default: 20000,
     step: 1000,
-    desc: "next 识别超时时间，毫秒。可选，默认 20 * 1000 。 具体逻辑为 while(!timeout) { foreach(next); sleep_until(rate_limit); } 。",
+    desc: "识别超时时间，毫秒。可选，默认 20 * 1000 。 具体逻辑为 while(!timeout) { foreach(next); sleep_until(rate_limit); } 。",
+  },
+  anchor: {
+    key: "anchor",
+    type: [FieldTypeEnum.StringList, FieldTypeEnum.String],
+    default: [""],
+    desc: "锚点名称。可选，默认空。 当节点执行成功后，会将该锚点名设置为当前节点。多个节点可设置同一个锚点名，后执行的会覆盖先执行的。 在 next 或 on_error 中可通过 [Anchor] 属性引用该锚点，运行时会解析为最后设置该锚点的节点。",
   },
   inverse: {
     key: "inverse",
@@ -30,6 +36,12 @@ const otherFieldSchema: Record<string, FieldType> = {
     type: FieldTypeEnum.Bool,
     default: false,
     desc: "是否启用该 node。可选，默认 true 。 若为 false，其他 node 的 next 列表中的该 node 会被跳过，既不会被识别也不会被执行。",
+  },
+  maxHit: {
+    key: "max_hit",
+    type: FieldTypeEnum.Int,
+    default: 5,
+    desc: "该节点最多可被识别成功多少次。可选，默认 UINT_MAX ，即无限制。 若超过该次数，其他 node 的 next 列表中的该 node 会被跳过，既不会被识别也不会被执行。",
   },
   preDelay: {
     key: "pre_delay",
@@ -86,6 +98,8 @@ export const otherFieldParams: FieldType[] = [
   otherFieldSchema.timeout,
   otherFieldSchema.preDelay,
   otherFieldSchema.postDelay,
+  otherFieldSchema.anchor,
+  otherFieldSchema.maxHit,
   otherFieldSchema.focus,
   otherFieldSchema.enabled,
   otherFieldSchema.inverse,
