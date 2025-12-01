@@ -8,13 +8,9 @@
     "server": "python server/main.py",
     "dev": "vite",
     "build": "vite build",
-    "build-past": "vite build --mode mfw_4_5",
+    "build-past": "vite build --mode mfw_5_0",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest",
-    "test:ui": "vitest --ui",
-    "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage",
     "release": "git tag -a v0.8.0 -m \"v0.8.0\" && git push origin v0.8.0"
   },
   "dependencies": {

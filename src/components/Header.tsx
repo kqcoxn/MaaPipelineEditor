@@ -29,6 +29,11 @@ const versionLinks = [
     href: "https://kqcoxn.github.io/MaaPipelineEditor/",
     text: "预览版",
   },
+  {
+    key: "mfw_5_0",
+    href: "https://mpe.codax.site/mfw_5_0/",
+    text: "MFW 5.0 快照",
+  },
   { key: "yamaape", href: "https://yamaape.codax.site", text: "YAMaaPE" },
 ];
 
