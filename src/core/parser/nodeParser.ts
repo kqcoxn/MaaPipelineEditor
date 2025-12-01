@@ -148,14 +148,16 @@ export function parseActionField(
  * @param node 目标节点
  * @param key 字段键
  * @param value 字段值
- * @param nodeVersion 节点版本
- * @returns 是否解析成功（已处理）
+ * @param recognitionVersion recognition字段的版本
+ * @param actionVersion action字段的版本
+ * @returns 是否解析成功
  */
 export function parseNodeField(
   node: PipelineNodeType,
   key: string,
   value: any,
-  nodeVersion: number
+  recognitionVersion: number,
+  actionVersion: number
 ): boolean {
   // 跳过连接字段
   if (key === "next" || key === "interrupt" || key === "on_error") {
@@ -164,24 +166,24 @@ export function parseNodeField(
 
   // 识别算法
   if (key === "recognition") {
-    parseRecognitionField(node, value, nodeVersion);
+    parseRecognitionField(node, value, recognitionVersion);
     return true;
   }
 
   // 识别参数（v1版本）
-  if (recoFieldSchemaKeyList.includes(key) && nodeVersion === 1) {
+  if (recoFieldSchemaKeyList.includes(key) && recognitionVersion === 1) {
     node.data.recognition.param[key] = value;
     return true;
   }
 
   // 动作类型
   if (key === "action") {
-    parseActionField(node, value, nodeVersion);
+    parseActionField(node, value, actionVersion);
     return true;
   }
 
   // 动作参数（v1版本）
-  if (actionFieldSchemaKeyList.includes(key) && nodeVersion === 1) {
+  if (actionFieldSchemaKeyList.includes(key) && actionVersion === 1) {
     node.data.action.param[key] = value;
     return true;
   }

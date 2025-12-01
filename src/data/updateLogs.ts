@@ -29,7 +29,7 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2025-12",
     type: "major",
     updates: {
-      features: [],
+      features: ["单节点内部可混合协议导入"],
       fixes: ["修复潜在的选中状态失效或历史记录异常"],
       perfs: ["优化页面响应式显示"],
     },

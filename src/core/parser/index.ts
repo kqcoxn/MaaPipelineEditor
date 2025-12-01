@@ -36,6 +36,7 @@ export type {
   OtherParamType,
   ParamType,
 } from "./types";
+export type { NodeVersionInfo } from "./versionDetector";
 
 // 导出常量
 export { configMark, configMarkPrefix, externalMarkPrefix } from "./types";
@@ -44,6 +45,8 @@ export { configMark, configMarkPrefix, externalMarkPrefix } from "./types";
 export { matchParamType } from "./typeMatchers";
 export {
   detectNodeVersion,
+  detectRecognitionVersion,
+  detectActionVersion,
   normalizeRecoType,
   normalizeActionType,
 } from "./versionDetector";

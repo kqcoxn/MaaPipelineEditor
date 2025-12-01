@@ -6,16 +6,42 @@ import {
 } from "../fields";
 
 /**
+ * 节点版本检测结果
+ */
+export interface NodeVersionInfo {
+  /** recognition 字段版本 */
+  recognitionVersion: number;
+  /** action 字段版本 */
+  actionVersion: number;
+}
+
+/**
  * 检测单个节点的Pipeline版本
  * @param node Pipeline节点对象
- * @returns 1表示v1版本，2表示v2版本
+ * @returns 包含recognition和action各自版本的对象
  */
-export function detectNodeVersion(node: any): number {
+export function detectNodeVersion(node: any): NodeVersionInfo {
+  if (!node || typeof node !== "object") {
+    return { recognitionVersion: 2, actionVersion: 2 };
+  }
+
+  const recognitionVersion = detectRecognitionVersion(node);
+  const actionVersion = detectActionVersion(node);
+
+  return { recognitionVersion, actionVersion };
+}
+
+/**
+ * 检测 recognition 字段的版本
+ * @param node Pipeline节点对象
+ * @returns 版本
+ */
+export function detectRecognitionVersion(node: any): number {
   if (!node || typeof node !== "object") return 2;
 
   // 检查 recognition 字段
   if (node.recognition !== undefined) {
-    // v2: recognition 是对象，包含 type 和 param
+    // v2: recognition 是对象，必须包含 type
     if (
       typeof node.recognition === "object" &&
       node.recognition !== null &&
@@ -29,9 +55,32 @@ export function detectNodeVersion(node: any): number {
     }
   }
 
+  // 检查是否有 v1 特征
+  const nodeKeys = Object.keys(node);
+  const hasRecoParams = nodeKeys.some((k) =>
+    recoFieldSchemaKeyList.includes(k)
+  );
+
+  if (hasRecoParams) {
+    if (node.recognition?.type !== undefined) {
+      return 2;
+    }
+    return 1;
+  }
+  return 2;
+}
+
+/**
+ * 检测 action 字段的版本
+ * @param node Pipeline节点对象
+ * @returns 版本
+ */
+export function detectActionVersion(node: any): number {
+  if (!node || typeof node !== "object") return 2;
+
   // 检查 action 字段
   if (node.action !== undefined) {
-    // v2: action 是对象，包含 type 和 param
+    // v2: action 是对象，必须包含 type
     if (
       typeof node.action === "object" &&
       node.action !== null &&
@@ -45,25 +94,18 @@ export function detectNodeVersion(node: any): number {
     }
   }
 
-  // 检查是否有 v1 特征：识别和动作参数字段直接在节点根层级
+  // 检查是否有 v1 特征
   const nodeKeys = Object.keys(node);
-  const hasRecoParams = nodeKeys.some((k) =>
-    recoFieldSchemaKeyList.includes(k)
-  );
   const hasActionParams = nodeKeys.some((k) =>
     actionFieldSchemaKeyList.includes(k)
   );
 
-  if (hasRecoParams || hasActionParams) {
-    // 但如果同时有 recognition.param 或 action.param，则是 v2
-    const hasV2Structure =
-      node.recognition?.param !== undefined || node.action?.param !== undefined;
-    if (!hasV2Structure) {
-      return 1;
+  if (hasActionParams) {
+    if (node.action?.type !== undefined) {
+      return 2;
     }
+    return 1;
   }
-
-  // 默认返回 v2
   return 2;
 }
 

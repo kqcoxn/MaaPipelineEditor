@@ -59,7 +59,7 @@ export async function pipelineToFlow(options?: PipelineToFlowOptions) {
       }
 
       // 检测当前节点的版本
-      const nodeVersion = detectNodeVersion(obj);
+      const { recognitionVersion, actionVersion } = detectNodeVersion(obj);
 
       // 处理节点名
       const id = "p_" + getNextId();
@@ -107,7 +107,13 @@ export async function pipelineToFlow(options?: PipelineToFlowOptions) {
         }
 
         // 解析其他字段
-        const isHandled = parseNodeField(node, key, value, nodeVersion);
+        const isHandled = parseNodeField(
+          node,
+          key,
+          value,
+          recognitionVersion,
+          actionVersion
+        );
 
         // 如果字段未被处理，作为额外字段
         if (!isHandled) {
