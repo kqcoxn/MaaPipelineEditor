@@ -40,8 +40,7 @@ const UpdateLog = ({ open, onClose }: UpdateLogProps) => {
   const categoryConfig = [
     { key: "features", label: "新功能", icon: "✨" },
     { key: "fixes", label: "问题修复", icon: "🐞" },
-    { key: "optimizations", label: "体验优化", icon: "🚀" },
-    { key: "refactors", label: "代码重构", icon: "🛠️" },
+    { key: "perfs", label: "体验优化", icon: "🚀" },
     { key: "docs", label: "文档更新", icon: "📝" },
     { key: "others", label: "其他更新", icon: "📦" },
   ];
