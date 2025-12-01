@@ -27,8 +27,6 @@ import { useConfigStore } from "./stores/configStore";
 import { pipelineToFlow } from "./core/parser";
 import { ThemeProvider } from "./contexts/ThemeContext";
 
-
-
 // 轮询提醒
 let isShowStarRemind = false;
 function starRemind() {
@@ -101,8 +99,10 @@ function App() {
 
     try {
       const text = await file.text();
-      await pipelineToFlow({ pString: text });
-      message.success(`已导入文件: ${file.name}`);
+      const success = await pipelineToFlow({ pString: text });
+      if (success) {
+        message.success(`已导入文件: ${file.name}`);
+      }
     } catch (err) {
       message.error("文件导入失败，请检查文件格式");
       console.error(err);

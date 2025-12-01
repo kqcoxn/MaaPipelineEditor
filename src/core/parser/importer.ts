@@ -1,4 +1,5 @@
-import { notification } from "antd";
+import React from "react";
+import { Modal } from "antd";
 import { parse as parseJsonc } from "jsonc-parser";
 import {
   useFlowStore,
@@ -29,7 +30,9 @@ import { parseNodeField } from "./nodeParser";
  * 将Pipeline对象导入为Flow
  * @param options 导入选项，可以传入Pipeline字符串
  */
-export async function pipelineToFlow(options?: PipelineToFlowOptions) {
+export async function pipelineToFlow(
+  options?: PipelineToFlowOptions
+): Promise<boolean> {
   try {
     // 获取参数
     const pString = options?.pString ?? (await ClipboardHelper.read());
@@ -38,6 +41,61 @@ export async function pipelineToFlow(options?: PipelineToFlowOptions) {
     // 解析配置
     const configs = parsePipelineConfig(pipelineObj);
 
+    // 检测废弃字段
+    let hasDeprecatedFields = false;
+    const objKeys = Object.keys(pipelineObj);
+    for (const objKey of objKeys) {
+      const obj = pipelineObj[objKey];
+      if (obj && typeof obj === "object") {
+        if ("interrupt" in obj || "is_sub" in obj) {
+          hasDeprecatedFields = true;
+          break;
+        }
+      }
+    }
+    if (hasDeprecatedFields) {
+      Modal.error({
+        title: "导入失败：检测到已废弃字段",
+        content: React.createElement(
+          "div",
+          null,
+          React.createElement(
+            "p",
+            null,
+            "MFW v5.1 后已废除 interrupt 与 is_sub 字段。"
+          ),
+          React.createElement("p", null, "请使用以下方式之一处理："),
+          React.createElement(
+            "ol",
+            { style: { paddingLeft: "20px", marginTop: "8px" } },
+            React.createElement(
+              "li",
+              { style: { marginBottom: "8px" } },
+              "使用官方提供的升级脚本进行迁移：",
+              React.createElement("br"),
+              React.createElement(
+                "a",
+                {
+                  href: "https://github.com/MaaXYZ/MaaFramework/blob/main/tools/migrate_pipeline_v5.py",
+                  target: "_blank",
+                  rel: "noopener noreferrer",
+                  style: { color: "#1890ff" },
+                },
+                "migrate_pipeline_v5.py"
+              )
+            ),
+            React.createElement(
+              "li",
+              null,
+              "在 MPE 导航栏版本选择下拉菜单使用旧版快照"
+            )
+          )
+        ),
+        width: 500,
+      });
+      return false;
+    }
+
     // 解析节点
     let nodes: NodeType[] = [];
     const originLabels: string[] = [];
@@ -45,7 +103,6 @@ export async function pipelineToFlow(options?: PipelineToFlowOptions) {
     let idOLPairs: IdLabelPairsType = [];
     let isIncludePos = false;
 
-    const objKeys = Object.keys(pipelineObj);
     objKeys.forEach((objKey) => {
       const obj = pipelineObj[objKey];
 
@@ -153,20 +210,6 @@ export async function pipelineToFlow(options?: PipelineToFlowOptions) {
         if (newIdOLPairs.length > 0) idOLPairs = idOLPairs.concat(newIdOLPairs);
       }
 
-      // 解析 interrupt 连接
-      const interrupt = obj["interrupt"] as string[];
-      if (interrupt) {
-        const [newEdges, newNodes, newIdOLPairs] = linkEdge(
-          originLabel,
-          interrupt,
-          SourceHandleTypeEnum.Interrupt,
-          idOLPairs
-        );
-        if (newEdges.length > 0) edges = edges.concat(newEdges);
-        if (newNodes.length > 0) nodes = nodes.concat(newNodes);
-        if (newIdOLPairs.length > 0) idOLPairs = idOLPairs.concat(newIdOLPairs);
-      }
-
       // 解析 on_error 连接
       const onError = obj["on_error"] as string[];
       if (onError) {
@@ -196,13 +239,15 @@ export async function pipelineToFlow(options?: PipelineToFlowOptions) {
 
     // 自动布局
     if (!isIncludePos) LayoutHelper.auto();
+
+    return true;
   } catch (err) {
-    notification.error({
-      message: "导入失败！",
-      description:
-        "请检查pipeline格式是否正确，或版本是否一致，详细程序错误请在控制台查看",
-      placement: "top",
+    Modal.error({
+      title: "导入失败！",
+      content:
+        "请检查pipeline格式是否正确，或版本是否一致，详细程序错误请在控制台查看。",
     });
     console.error(err);
+    return false;
   }
 }

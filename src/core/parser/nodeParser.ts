@@ -160,7 +160,7 @@ export function parseNodeField(
   actionVersion: number
 ): boolean {
   // 跳过连接字段
-  if (key === "next" || key === "interrupt" || key === "on_error") {
+  if (key === "next" || key === "on_error") {
     return true;
   }
 

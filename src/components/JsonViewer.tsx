@@ -60,8 +60,10 @@ function JsonViewer() {
   const handleFileImport = async (file: File) => {
     try {
       const text = await file.text();
-      await pipelineToFlow({ pString: text });
-      message.success("文件导入成功");
+      const success = await pipelineToFlow({ pString: text });
+      if (success) {
+        message.success("文件导入成功");
+      }
     } catch (err) {
       message.error("文件导入失败，请检查文件格式");
       console.error(err);
@@ -114,7 +116,12 @@ function JsonViewer() {
               variant="filled"
               size="small"
               color="primary"
-              onClick={() => pipelineToFlow()}
+              onClick={async () => {
+                const success = await pipelineToFlow();
+                if (success) {
+                  message.success("导入成功");
+                }
+              }}
             >
               从粘贴板导入
             </Button>

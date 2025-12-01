@@ -29,7 +29,6 @@ export type ParsedPipelineNodeType = {
     param: ActionParamType;
   };
   [SourceHandleTypeEnum.Next]?: string[];
-  [SourceHandleTypeEnum.Interrupt]?: string[];
   [SourceHandleTypeEnum.Error]?: string[];
 } & OtherParamType &
   any;

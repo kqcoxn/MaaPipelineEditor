@@ -14,7 +14,6 @@ import { JsonHelper } from "../../utils/jsonHelper";
 
 export enum SourceHandleTypeEnum {
   Next = "next",
-  Interrupt = "interrupt",
   Error = "on_error",
 }
 export enum NodeTypeEnum {
@@ -100,12 +99,6 @@ const PNodeDataContent = memo(
           position={Position.Right}
         />
         <Handle
-          id={SourceHandleTypeEnum.Interrupt}
-          className={classNames(style.handle, style.interrupt)}
-          type="source"
-          position={Position.Right}
-        />
-        <Handle
           id={SourceHandleTypeEnum.Error}
           className={classNames(style.handle, style.error)}
           type="source"
@@ -182,7 +175,11 @@ function ExternalNode(props: NodeProps<ExternalNodeData>) {
 
   const Node = (
     <div className={nodeClass}>
-      <ENodeContent data={props.data} props={props} targetNode={targetNode as NodeType | undefined} />
+      <ENodeContent
+        data={props.data}
+        props={props}
+        targetNode={targetNode as NodeType | undefined}
+      />
     </div>
   );
   return Node;

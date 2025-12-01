@@ -10,14 +10,14 @@ const otherFieldSchema: Record<string, FieldType> = {
     type: FieldTypeEnum.Int,
     default: 1000,
     step: 500,
-    desc: "识别速率限制，单位毫秒。可选，默认 1000 。 每轮识别 next + interrupt 最低消耗 rate_limit 毫秒，不足的时间将会 sleep 等待。",
+    desc: "识别速率限制，单位毫秒。可选，默认 1000 。 每轮识别 next 最低消耗 rate_limit 毫秒，不足的时间将会 sleep 等待。",
   },
   timeout: {
     key: "timeout",
     type: FieldTypeEnum.Int,
     default: 20000,
     step: 1000,
-    desc: "next + interrupt 识别超时时间，毫秒。可选，默认 20 * 1000 。 具体逻辑为 while(!timeout) { foreach(next + interrupt); sleep_until(rate_limit); } 。",
+    desc: "next 识别超时时间，毫秒。可选，默认 20 * 1000 。 具体逻辑为 while(!timeout) { foreach(next); sleep_until(rate_limit); } 。",
   },
   inverse: {
     key: "inverse",
@@ -69,12 +69,6 @@ const otherFieldSchema: Record<string, FieldType> = {
     default: {},
     desc: "附加 JSON 对象，用于保存节点的附加配置。可选，默认空对象。 该字段可用于存储自定义的配置信息，这些信息不会影响节点的执行逻辑，但可以通过相关接口获取。 注意：该字段会与默认值中的 attach 进行字典合并（dict merge），而不是覆盖。即节点中的 attach 会与默认值中的 attach 合并，相同键的值会被节点中的值覆盖，但其他键会保留。",
   },
-  isSub: {
-    key: "is_sub",
-    type: FieldTypeEnum.Bool,
-    default: true,
-    desc: "（已在 2.x 版本中废弃，但保留兼容性，推荐使用 interrupt 替代） 是否是子节点。可选，默认 false 。 如果是子节点，执行完本节点（及后续 next 等）后，会返回来再次识别本节点 所在的 next 列表。 例如：A.next = [B, Sub_C, D]，这里的 Sub_C.is_sub = true， 若匹配上了 Sub_C，在完整执行完 Sub_C 及后续节点后，会返回来再次识别 [B, Sub_C, D] 并执行命中项及后续节点。",
-  },
 };
 
 /**
@@ -98,5 +92,4 @@ export const otherFieldParams: FieldType[] = [
   otherFieldSchema.preWaitFreezes,
   otherFieldSchema.postWaitFreezes,
   otherFieldSchema.attach,
-  otherFieldSchema.isSub,
 ];

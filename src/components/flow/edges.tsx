@@ -25,9 +25,6 @@ function MarkedEdge(props: EdgeProps) {
         case SourceHandleTypeEnum.Next:
           markClass = style["edge-next"];
           break;
-        case SourceHandleTypeEnum.Interrupt:
-          markClass = style["edge-interrupt"];
-          break;
         case SourceHandleTypeEnum.Error:
           markClass = style["edge-error"];
           break;
