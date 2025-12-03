@@ -8,6 +8,7 @@ import {
   useFlowStore,
   type PipelineNodeDataType,
   type ExternalNodeDataType,
+  type AnchorNodeDataType,
   type NodeType,
 } from "../../stores/flow";
 import { JsonHelper } from "../../utils/jsonHelper";
@@ -19,6 +20,7 @@ export enum SourceHandleTypeEnum {
 export enum NodeTypeEnum {
   Pipeline = "pipeline",
   External = "external",
+  Anchor = "anchor",
 }
 
 /**模块 */
@@ -185,7 +187,57 @@ function ExternalNode(props: NodeProps<ExternalNodeData>) {
   return Node;
 }
 
+/**重定向节点 */
+const ANodeContent = memo(
+  ({
+    data,
+  }: {
+    data: AnchorNodeDataType;
+    props: NodeProps;
+    targetNode?: NodeType | null;
+  }) => {
+    return (
+      <>
+        <div className={style.title}>{data.label}</div>
+        <Handle
+          id="target"
+          className={classNames(style.handle, style.anchor)}
+          type="target"
+          position={Position.Left}
+        />
+      </>
+    );
+  }
+);
+
+type AnchorNodeData = Node<AnchorNodeDataType, NodeTypeEnum.Anchor>;
+function AnchorNode(props: NodeProps<AnchorNodeData>) {
+  const targetNode = useFlowStore((state) => state.targetNode);
+
+  const nodeClass = useMemo(
+    () =>
+      classNames({
+        [style.node]: true,
+        [style["anchor-node"]]: true,
+        [style["node-selected"]]: props.selected,
+      }),
+    [props.selected]
+  );
+
+  const Node = (
+    <div className={nodeClass}>
+      <ANodeContent
+        data={props.data}
+        props={props}
+        targetNode={targetNode as NodeType | undefined}
+      />
+    </div>
+  );
+  return Node;
+}
+
 export const nodeTypes = {
   [NodeTypeEnum.Pipeline]: memo(PipelineNode),
   [NodeTypeEnum.External]: memo(ExternalNode),
+  [NodeTypeEnum.Anchor]: memo(AnchorNode),
 };

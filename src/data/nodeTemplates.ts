@@ -84,4 +84,10 @@ export const nodeTemplates: NodeTemplateType[] = [
     iconSize: 24,
     nodeType: NodeTypeEnum.External,
   },
+  {
+    label: "重定向节点 (Anchor)",
+    iconName: "icon-ziyuan",
+    iconSize: 24,
+    nodeType: NodeTypeEnum.Anchor,
+  },
 ];

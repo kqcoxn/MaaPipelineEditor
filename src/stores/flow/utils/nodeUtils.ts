@@ -2,6 +2,7 @@ import type {
   NodeType,
   PipelineNodeType,
   ExternalNodeType,
+  AnchorNodeType,
   PositionType,
 } from "../types";
 import { NodeTypeEnum } from "../../../components/flow/nodes";
@@ -73,8 +74,38 @@ export function createExternalNode(
   return node;
 }
 
+// 创建 Anchor 重定向节点
+export function createAnchorNode(
+  id: string,
+  options?: {
+    label?: string;
+    position?: PositionType;
+    select?: boolean;
+    datas?: any;
+  }
+): AnchorNodeType {
+  const {
+    label = id,
+    position = { x: 0, y: 0 },
+    select = false,
+    datas = {},
+  } = options ?? {};
+
+  const node: AnchorNodeType = {
+    id,
+    type: NodeTypeEnum.Anchor,
+    data: { label, ...datas },
+    position,
+    selected: select,
+  };
+  return node;
+}
+
 // 查找节点
-export function findNodeById(nodes: NodeType[], id: string): NodeType | undefined {
+export function findNodeById(
+  nodes: NodeType[],
+  id: string
+): NodeType | undefined {
   return nodes.find((node) => node.id === id);
 }
 
@@ -82,12 +113,18 @@ export function findNodeIndexById(nodes: NodeType[], id: string): number {
   return nodes.findIndex((node) => node.id === id);
 }
 
-export function findNodeLabelById(nodes: NodeType[], id: string): string | undefined {
+export function findNodeLabelById(
+  nodes: NodeType[],
+  id: string
+): string | undefined {
   const node = findNodeById(nodes, id);
   return node?.data?.label;
 }
 
-export function findNodeByLabel(nodes: NodeType[], label: string): NodeType | undefined {
+export function findNodeByLabel(
+  nodes: NodeType[],
+  label: string
+): NodeType | undefined {
   return nodes.find((node) => node.data.label === label);
 }
 

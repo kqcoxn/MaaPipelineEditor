@@ -1,18 +1,16 @@
 import style from "../../styles/ToolPanel.module.less";
-
 import { memo, useMemo, useState } from "react";
 import { message, Tooltip } from "antd";
 import classNames from "classnames";
 import IconFont from "../iconfonts";
 import { type IconNames } from "../iconfonts";
-
 import { useFlowStore } from "../../stores/flow";
 import { useConfigStore } from "../../stores/configStore";
 import { useClipboardStore } from "../../stores/clipboardStore";
 import { useFileStore } from "../../stores/fileStore";
 import { NodeTypeEnum } from "../flow/nodes";
 import { LayoutHelper, AlignmentEnum } from "../../core/layout";
-import { nodeTemplates, type NodeTemplateType } from "../../core/nodeTemplates";
+import { nodeTemplates, type NodeTemplateType } from "../../data/nodeTemplates";
 import { saveNodesToImage } from "../../utils/snapper";
 
 /**添加工具 */
@@ -70,7 +68,9 @@ type GlobalToolType = {
 function GlobalPanel() {
   // store
   const clipboardNodes = useClipboardStore((state) => state.clipboardNodes);
-  const debouncedSelectedNodes = useFlowStore((state) => state.debouncedSelectedNodes);
+  const debouncedSelectedNodes = useFlowStore(
+    (state) => state.debouncedSelectedNodes
+  );
   const setStatus = useConfigStore((state) => state.setStatus);
   const copy = useClipboardStore((state) => state.copy);
   const clipboardPaste = useClipboardStore((state) => state.paste);
@@ -191,7 +191,9 @@ interface LayoutToolType {
   onDisabledClick?: () => void;
 }
 function LayoutPanel() {
-  const debouncedSelectedNodes = useFlowStore((state) => state.debouncedSelectedNodes);
+  const debouncedSelectedNodes = useFlowStore(
+    (state) => state.debouncedSelectedNodes
+  );
   const allNodes = useFlowStore((state) => state.nodes);
   const currentFileName = useFileStore((state) => state.currentFile.fileName);
 
@@ -202,7 +204,11 @@ function LayoutPanel() {
         iconName: "icon-jurassic_horizalign-center",
         iconSize: 30,
         disabled: debouncedSelectedNodes.length < 2,
-        onClick: () => LayoutHelper.align(AlignmentEnum.Center, debouncedSelectedNodes as any),
+        onClick: () =>
+          LayoutHelper.align(
+            AlignmentEnum.Center,
+            debouncedSelectedNodes as any
+          ),
         onDisabledClick: () =>
           message.error("请选择两个以上的节点进行对齐操作"),
       },
@@ -211,7 +217,8 @@ function LayoutPanel() {
         iconName: "icon-jurassic_verticalalign-top",
         iconSize: 30,
         disabled: debouncedSelectedNodes.length < 2,
-        onClick: () => LayoutHelper.align(AlignmentEnum.Top, debouncedSelectedNodes as any),
+        onClick: () =>
+          LayoutHelper.align(AlignmentEnum.Top, debouncedSelectedNodes as any),
         onDisabledClick: () =>
           message.error("请选择两个以上的节点进行对齐操作"),
       },
@@ -220,7 +227,11 @@ function LayoutPanel() {
         iconName: "icon-jurassic_verticalalign-bottom",
         iconSize: 30,
         disabled: debouncedSelectedNodes.length < 2,
-        onClick: () => LayoutHelper.align(AlignmentEnum.Bottom, debouncedSelectedNodes as any),
+        onClick: () =>
+          LayoutHelper.align(
+            AlignmentEnum.Bottom,
+            debouncedSelectedNodes as any
+          ),
         onDisabledClick: () =>
           message.error("请选择两个以上的节点进行对齐操作"),
       },
@@ -238,7 +249,11 @@ function LayoutPanel() {
         iconSize: 24,
         disabled: allNodes.length === 0,
         onClick: () => {
-          saveNodesToImage(debouncedSelectedNodes as any, allNodes as any, currentFileName);
+          saveNodesToImage(
+            debouncedSelectedNodes as any,
+            allNodes as any,
+            currentFileName
+          );
         },
         onDisabledClick: () => message.error("没有可保存的节点"),
       },

@@ -20,6 +20,7 @@ export type {
   NodeType,
   PipelineNodeType,
   ExternalNodeType,
+  AnchorNodeType,
   EdgeType,
   PositionType,
   RecognitionParamType,
@@ -28,10 +29,12 @@ export type {
   ParamType,
   PipelineNodeDataType,
   ExternalNodeDataType,
+  AnchorNodeDataType,
 } from "./types";
 export {
   createPipelineNode,
   createExternalNode,
+  createAnchorNode,
   findNodeById,
   findNodeIndexById,
   findNodeLabelById,

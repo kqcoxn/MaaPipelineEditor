@@ -1,5 +1,14 @@
-import type { ReactFlowInstance, Viewport, NodeChange, EdgeChange, Connection } from "@xyflow/react";
-import { NodeTypeEnum, SourceHandleTypeEnum } from "../../components/flow/nodes";
+import type {
+  ReactFlowInstance,
+  Viewport,
+  NodeChange,
+  EdgeChange,
+  Connection,
+} from "@xyflow/react";
+import {
+  NodeTypeEnum,
+  SourceHandleTypeEnum,
+} from "../../components/flow/nodes";
 
 // 位置类型
 export type PositionType = {
@@ -107,6 +116,11 @@ export type ExternalNodeDataType = {
   label: string;
 };
 
+// Anchor 重定向节点数据类型
+export type AnchorNodeDataType = {
+  label: string;
+};
+
 // Pipeline 节点类型
 export interface PipelineNodeType {
   id: string;
@@ -135,8 +149,22 @@ export interface ExternalNodeType {
   };
 }
 
+// Anchor 重定向节点类型
+export interface AnchorNodeType {
+  id: string;
+  type: NodeTypeEnum;
+  data: AnchorNodeDataType;
+  position: PositionType;
+  dragging?: boolean;
+  selected?: boolean;
+  measured?: {
+    width: number;
+    height: number;
+  };
+}
+
 // 节点联合类型
-export type NodeType = PipelineNodeType | ExternalNodeType;
+export type NodeType = PipelineNodeType | ExternalNodeType | AnchorNodeType;
 
 // ========== Slice 状态类型定义 ==========
 
@@ -208,4 +236,7 @@ export interface FlowGraphState {
 }
 
 // 合并的 Flow Store 类型
-export type FlowStore = FlowViewState & FlowSelectionState & FlowHistoryState & FlowGraphState;
+export type FlowStore = FlowViewState &
+  FlowSelectionState &
+  FlowHistoryState &
+  FlowGraphState;

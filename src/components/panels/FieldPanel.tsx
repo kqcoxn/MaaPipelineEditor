@@ -19,6 +19,7 @@ import {
   type ParamType,
   type PipelineNodeType,
   type ExternalNodeType,
+  type AnchorNodeType,
 } from "../../stores/flow";
 import { useFileStore } from "../../stores/fileStore";
 import {
@@ -655,6 +656,50 @@ const ExternalElem = memo(
   }
 );
 
+// Anchor重定向节点
+const AnchorElem = memo(({ currentNode }: { currentNode: AnchorNodeType }) => {
+  const setNodeData = useFlowStore((state) => state.setNodeData);
+
+  // 标题
+  const currentLabel = useMemo(
+    () => currentNode.data.label ?? "",
+    [currentNode.data.label]
+  );
+  const onLabelChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setNodeData(currentNode.id, "", "label", e.target.value);
+    },
+    [currentNode]
+  );
+
+  return (
+    <div className={style.list}>
+      {/* 节点名 */}
+      <div className={style.item}>
+        <Popover
+          placement="left"
+          title={"key"}
+          content={"重定向节点名，编译时会添加 [Anchor] 前缀"}
+        >
+          <div
+            className={classNames([style.key, style["head-key"]])}
+            style={{ width: 48 }}
+          >
+            key
+          </div>
+        </Popover>
+        <div className={style.value}>
+          <Input
+            placeholder="重定向节点名 (编译时添加 [Anchor] 前缀)"
+            value={currentLabel}
+            onChange={onLabelChange}
+          />
+        </div>
+      </div>
+    </div>
+  );
+});
+
 // 工具栏
 const ToolBarElem = memo(({ nodeName }: { nodeName: string }) => {
   const prefix = useFileStore((state) => state.currentFile.config.prefix);
@@ -697,6 +742,8 @@ function FieldPanel() {
         );
       case NodeTypeEnum.External:
         return <ExternalElem currentNode={currentNode as ExternalNodeType} />;
+      case NodeTypeEnum.Anchor:
+        return <AnchorElem currentNode={currentNode as AnchorNodeType} />;
       default:
         return null;
     }

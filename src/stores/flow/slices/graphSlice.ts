@@ -8,24 +8,34 @@ import {
   type Connection,
 } from "@xyflow/react";
 import { cloneDeep } from "lodash";
-import type { FlowStore, FlowGraphState, NodeType, EdgeType, PositionType } from "../types";
-import { NodeTypeEnum, SourceHandleTypeEnum } from "../../../components/flow/nodes";
+import type { FlowStore, FlowGraphState, NodeType, EdgeType } from "../types";
+import {
+  NodeTypeEnum,
+  SourceHandleTypeEnum,
+} from "../../../components/flow/nodes";
 import { recoParamKeys, actionParamKeys } from "../../../core/fields";
 import {
   createPipelineNode,
   createExternalNode,
+  createAnchorNode,
   findNodeByLabel,
   findNodeIndexById,
   getSelectedNodes,
   calcuNodePosition,
 } from "../utils/nodeUtils";
-import { findEdgeById, calcuLinkOrder, getSelectedEdges } from "../utils/edgeUtils";
+import {
+  findEdgeById,
+  calcuLinkOrder,
+  getSelectedEdges,
+} from "../utils/edgeUtils";
 import { fitFlowView } from "../utils/viewportUtils";
 
-export const createGraphSlice: StateCreator<FlowStore, [], [], FlowGraphState> = (
-  set,
-  get
-) => ({
+export const createGraphSlice: StateCreator<
+  FlowStore,
+  [],
+  [],
+  FlowGraphState
+> = (set, get) => ({
   // 初始状态
   nodes: [],
   edges: [],
@@ -83,11 +93,14 @@ export const createGraphSlice: StateCreator<FlowStore, [], [], FlowGraphState> =
         case NodeTypeEnum.External:
           labelBase = "外部节点";
           break;
+        case NodeTypeEnum.Anchor:
+          labelBase = "重定向节点";
+          break;
       }
 
       let label = labelBase + id;
       let counter = state.idCounters.node;
-      
+
       while (findNodeByLabel(nodes, label)) {
         counter++;
         id = String(counter);
@@ -97,7 +110,9 @@ export const createGraphSlice: StateCreator<FlowStore, [], [], FlowGraphState> =
       // 创建节点
       const nodeOptions = {
         label,
-        position: position ?? calcuNodePosition(selectedNodes, state.viewport, state.size),
+        position:
+          position ??
+          calcuNodePosition(selectedNodes, state.viewport, state.size),
         datas: data,
         select,
       };
@@ -110,6 +125,9 @@ export const createGraphSlice: StateCreator<FlowStore, [], [], FlowGraphState> =
         case NodeTypeEnum.External:
           newNode = createExternalNode(id, nodeOptions);
           break;
+        case NodeTypeEnum.Anchor:
+          newNode = createAnchorNode(id, nodeOptions);
+          break;
         default:
           throw new Error(`Unknown node type: ${type}`);
       }
@@ -117,7 +135,11 @@ export const createGraphSlice: StateCreator<FlowStore, [], [], FlowGraphState> =
       // 添加连接
       if (link && selectedNodes.length > 0) {
         selectedNodes.forEach((node) => {
-          if (node.type === NodeTypeEnum.External) return;
+          if (
+            node.type === NodeTypeEnum.External ||
+            node.type === NodeTypeEnum.Anchor
+          )
+            return;
           get().addEdge({
             source: node.id,
             sourceHandle: SourceHandleTypeEnum.Next,
@@ -179,7 +201,7 @@ export const createGraphSlice: StateCreator<FlowStore, [], [], FlowGraphState> =
         field.type = value;
         const fieldParamKeys =
           key === "recognition" ? recoParamKeys[value] : actionParamKeys[value];
-        
+
         // 删除不存在的字段
         const curKeys = Object.keys(field.param);
         curKeys.forEach((paramKey) => {
@@ -278,7 +300,10 @@ export const createGraphSlice: StateCreator<FlowStore, [], [], FlowGraphState> =
             );
             break;
           case SourceHandleTypeEnum.Error:
-            if (co.source === co.target && co.sourceHandle === SourceHandleTypeEnum.Error) {
+            if (
+              co.source === co.target &&
+              co.sourceHandle === SourceHandleTypeEnum.Error
+            ) {
               crash = true;
               break;
             }
@@ -295,7 +320,11 @@ export const createGraphSlice: StateCreator<FlowStore, [], [], FlowGraphState> =
       }
 
       // 计算链接次序
-      const order = calcuLinkOrder(state.edges, co.source, co.sourceHandle as SourceHandleTypeEnum);
+      const order = calcuLinkOrder(
+        state.edges,
+        co.source,
+        co.sourceHandle as SourceHandleTypeEnum
+      );
 
       const newEdge = {
         type: "marked",
@@ -348,8 +377,14 @@ export const createGraphSlice: StateCreator<FlowStore, [], [], FlowGraphState> =
 
     set((state) => {
       // 取消所有选中
-      const originNodes = state.nodes.map((node) => ({ ...node, selected: false }));
-      const originEdges = state.edges.map((edge) => ({ ...edge, selected: false }));
+      const originNodes = state.nodes.map((node) => ({
+        ...node,
+        selected: false,
+      }));
+      const originEdges = state.edges.map((edge) => ({
+        ...edge,
+        selected: false,
+      }));
 
       // 克隆并更新节点数据
       nodes = cloneDeep(nodes);

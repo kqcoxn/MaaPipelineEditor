@@ -63,9 +63,14 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
       const pSourceNode = pipelineObj[prefix + sourceKey];
       if (!pSourceNode) return;
       const targetKey = findNodeLabelById(nodes, edge.target);
+      const targetNode = nodes.find((n) => n.id === edge.target);
       const pTargetNode = pipelineObj[prefix + targetKey];
       // 添加链接
-      const toPNodeKey = pTargetNode ? prefix + targetKey : targetKey;
+      let toPNodeKey = pTargetNode ? prefix + targetKey : targetKey;
+      // [Anchor] 节点
+      if (targetNode?.type === NodeTypeEnum.Anchor) {
+        toPNodeKey = `[Anchor]${targetKey}`;
+      }
       const linkType = edge.sourceHandle as SourceHandleTypeEnum;
       if (!(linkType in pSourceNode)) pSourceNode[linkType] = [];
       pSourceNode[linkType].push(toPNodeKey);
@@ -85,7 +90,7 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
     };
   } catch (err) {
     notification.error({
-      message: "导出失败！",
+      title: "导出失败！",
       description: "请检查个节点字段是否符合格式，详细程序错误请在控制台查看",
       placement: "top",
     });
