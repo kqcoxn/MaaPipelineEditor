@@ -1,7 +1,7 @@
 import style from "../../styles/EdgePanel.module.less";
 
 import { memo, useMemo, useCallback } from "react";
-import { Switch, Popover } from "antd";
+import { Switch, Popover, Tag, InputNumber } from "antd";
 import classNames from "classnames";
 
 import {
@@ -22,13 +22,18 @@ const EdgeInfoElem = memo(
     edge,
     sourceLabel,
     targetLabel,
+    maxOrder,
+    onOrderChange,
   }: {
     edge: EdgeType;
     sourceLabel: string;
     targetLabel: string;
+    maxOrder: number;
+    onOrderChange: (value: number) => void;
   }) => {
-    const handleType =
-      edge.sourceHandle === SourceHandleTypeEnum.Next ? "next" : "on_error";
+    const isNext = edge.sourceHandle === SourceHandleTypeEnum.Next;
+    const handleType = isNext ? "next" : "on_error";
+    const tagColor = isNext ? "green" : "magenta";
 
     return (
       <div className={style.info}>
@@ -42,11 +47,26 @@ const EdgeInfoElem = memo(
         </div>
         <div className={style["info-item"]}>
           <span className={style.label}>连接类型</span>
-          <span className={style.content}>{handleType}</span>
+          <span className={style.content}>
+            <Tag color={tagColor}>{handleType}</Tag>
+          </span>
         </div>
         <div className={style["info-item"]}>
           <span className={style.label}>顺序</span>
-          <span className={style.content}>{edge.label}</span>
+          <span className={style.content}>
+            <InputNumber
+              size="small"
+              min={1}
+              max={maxOrder}
+              value={edge.label as number}
+              onChange={(val) => val && onOrderChange(val)}
+              style={{ width: 50 }}
+              controls={true}
+            />
+            <span style={{ marginLeft: 8, color: "#999", fontSize: 14 }}>
+              / {maxOrder}
+            </span>
+          </span>
         </div>
       </div>
     );
@@ -108,6 +128,9 @@ function EdgePanel() {
     return null;
   }, [selectedEdges, targetNode]);
 
+  const edges = useFlowStore((state) => state.edges);
+  const setEdgeLabel = useFlowStore((state) => state.setEdgeLabel);
+
   // 获取源节点和目标节点的名称
   const { sourceLabel, targetLabel } = useMemo(() => {
     if (!currentEdge) {
@@ -118,6 +141,26 @@ function EdgePanel() {
       targetLabel: findNodeLabelById(nodes, currentEdge.target) ?? "未知",
     };
   }, [currentEdge, nodes]);
+
+  // 计算同源同类型边的总数
+  const maxOrder = useMemo(() => {
+    if (!currentEdge) return 1;
+    return edges.filter(
+      (e) =>
+        e.source === currentEdge.source &&
+        e.sourceHandle === currentEdge.sourceHandle
+    ).length;
+  }, [currentEdge, edges]);
+
+  // 顺序变更处理
+  const handleOrderChange = useCallback(
+    (value: number) => {
+      if (currentEdge) {
+        setEdgeLabel(currentEdge.id, value);
+      }
+    },
+    [currentEdge, setEdgeLabel]
+  );
 
   // 样式
   const panelClass = useMemo(
@@ -142,6 +185,8 @@ function EdgePanel() {
             edge={currentEdge}
             sourceLabel={sourceLabel}
             targetLabel={targetLabel}
+            maxOrder={maxOrder}
+            onOrderChange={handleOrderChange}
           />
           <EdgeEditorElem edge={currentEdge} />
         </>

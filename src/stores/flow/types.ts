@@ -233,6 +233,7 @@ export interface FlowGraphState {
   setNodeData: (id: string, type: string, key: string, value: any) => void;
   updateEdges: (changes: EdgeChange[]) => void;
   setEdgeData: (id: string, key: string, value: any) => void;
+  setEdgeLabel: (id: string, newLabel: number) => void;
   addEdge: (co: Connection, options?: { isCheck?: boolean }) => void;
   replace: (
     nodes: NodeType[],

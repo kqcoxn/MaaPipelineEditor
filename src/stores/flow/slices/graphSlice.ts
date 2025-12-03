@@ -319,6 +319,53 @@ export const createGraphSlice: StateCreator<
     get().saveHistory(500);
   },
 
+  // 更新边顺序
+  setEdgeLabel(id: string, newLabel: number) {
+    set((state) => {
+      const edgeIndex = state.edges.findIndex((e) => e.id === id);
+      if (edgeIndex < 0) return {};
+
+      const edges = [...state.edges];
+      const targetEdge = edges[edgeIndex];
+      const oldLabel = targetEdge.label as number;
+
+      if (newLabel === oldLabel) return {};
+
+      // 更新其他同源同类型边的顺序
+      edges.forEach((edge, index) => {
+        if (
+          edge.source === targetEdge.source &&
+          edge.sourceHandle === targetEdge.sourceHandle
+        ) {
+          const label = edge.label as number;
+          if (newLabel < oldLabel) {
+            // 向前移动
+            if (label >= newLabel && label < oldLabel) {
+              edges[index] = { ...edge, label: label + 1 };
+            }
+          } else {
+            // 向后移动
+            if (label > oldLabel && label <= newLabel) {
+              edges[index] = { ...edge, label: label - 1 };
+            }
+          }
+        }
+      });
+
+      // 更新目标边的顺序
+      edges[edgeIndex] = { ...targetEdge, label: newLabel };
+
+      // 更新选中边列表
+      const selectedEdges = getSelectedEdges(edges);
+      get().updateSelection(state.selectedNodes, selectedEdges);
+
+      return { edges };
+    });
+
+    // 保存历史记录
+    get().saveHistory(500);
+  },
+
   // 添加边
   addEdge(co: Connection, options) {
     const { isCheck = true } = options || {};
