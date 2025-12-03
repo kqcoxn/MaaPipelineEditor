@@ -69,12 +69,26 @@ export const recoFieldSchema: Record<string, FieldType> = {
     default: "Horizontal",
     desc: `结果排序方式。可选，默认 Horizontal。 可选的值：Horizontal | Vertical | Score | Area | Random 。 可结合 index 字段使用。`,
   },
-  lengthOrderBy: {
+  expectedOrderBy: {
     key: "order_by",
     type: FieldTypeEnum.String,
-    options: ["Horizontal", "Vertical", "Area", "Length ", "Random"],
+    options: ["Horizontal", "Vertical", "Score", "Random", "Expected"],
     default: "Horizontal",
-    desc: `结果排序方式。可选，默认 Horizontal。 可选的值：Horizontal | Vertical | Area | Length | Random 。 可结合 index 字段使用。`,
+    desc: `结果排序方式。可选，默认 Horizontal 。 可选的值：Horizontal | Vertical | Score | Random | Expected 。 可结合 index 字段使用。`,
+  },
+  areaExpectedOrderBy: {
+    key: "order_by",
+    type: FieldTypeEnum.String,
+    options: ["Horizontal", "Vertical", "Score", "Area", "Random", "Expected"],
+    default: "Horizontal",
+    desc: `结果排序方式。可选，默认 Horizontal 。 可选的值：Horizontal | Vertical | Score | Area | Random | Expected 。 可结合 index 字段使用。`,
+  },
+  lengthExpectedOrderBy: {
+    key: "order_by",
+    type: FieldTypeEnum.String,
+    options: ["Horizontal", "Vertical", "Area", "Length", "Random", "Expected"],
+    default: "Horizontal",
+    desc: `结果排序方式。可选，默认 Horizontal。 可选的值：Horizontal | Vertical | Area | Length | Random | Expected 。 可结合 index 字段使用。`,
   },
 
   // 特征匹配字段

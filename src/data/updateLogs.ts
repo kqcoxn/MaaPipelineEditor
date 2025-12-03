@@ -26,10 +26,16 @@ export interface UpdateLogItem {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "0.8.0",
-    date: "2025-12",
+    date: "2025-12-3",
     type: "major",
     updates: {
-      features: ["单节点内部可混合协议导入"],
+      features: [
+        "单节点内部可混合协议导入",
+        "提供 MFW 快照版本选择功能",
+        "适配 anchor、maxHit、scroll、order_by 字段更新",
+        "新增边编辑器，可调节 jumpback 与连接顺序",
+        "新增重定向节点模板，视为 Anchor 到的位置",
+      ],
       fixes: ["修复潜在的选中状态失效或历史记录异常"],
       perfs: ["优化页面响应式显示"],
     },
