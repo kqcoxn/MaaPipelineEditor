@@ -129,11 +129,18 @@ export function linkEdge(
       });
     }
 
+    // 确定实际的源端点类型
+    let actualType = type;
+    if (attributes.jump_back && type === SourceHandleTypeEnum.Next) {
+      actualType = SourceHandleTypeEnum.JumpBack;
+      delete attributes.jump_back;
+    }
+
     // 创建连接
     const edge: EdgeType = {
-      id: `${sourceId}_${type}_${targetId ?? externalId}`,
+      id: `${sourceId}_${actualType}_${targetId ?? externalId}`,
       source: sourceId,
-      sourceHandle: type,
+      sourceHandle: actualType,
       target: targetId ?? externalId,
       targetHandle: "target",
       label: index + 1,

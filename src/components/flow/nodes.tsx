@@ -15,6 +15,7 @@ import { JsonHelper } from "../../utils/jsonHelper";
 
 export enum SourceHandleTypeEnum {
   Next = "next",
+  JumpBack = "jump_back",
   Error = "on_error",
 }
 export enum NodeTypeEnum {
@@ -97,6 +98,12 @@ const PNodeDataContent = memo(
         <Handle
           id={SourceHandleTypeEnum.Next}
           className={classNames(style.handle, style.next)}
+          type="source"
+          position={Position.Right}
+        />
+        <Handle
+          id={SourceHandleTypeEnum.JumpBack}
+          className={classNames(style.handle, style.jumpback)}
           type="source"
           position={Position.Right}
         />

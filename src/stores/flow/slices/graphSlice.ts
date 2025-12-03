@@ -252,13 +252,25 @@ export const createGraphSlice: StateCreator<
         if (change.type === "remove") {
           const removedEdge = findEdgeById(edges, change.id);
           if (removedEdge) {
+            // 检查被删除的边是否属于 next/jumpback 组
+            const removedIsNextGroup =
+              removedEdge.sourceHandle === SourceHandleTypeEnum.Next ||
+              removedEdge.sourceHandle === SourceHandleTypeEnum.JumpBack;
+
             edges.forEach((edge) => {
-              if (
-                edge.source === removedEdge.source &&
-                edge.sourceHandle === removedEdge.sourceHandle &&
-                edge.label > removedEdge.label
-              ) {
-                edge.label--;
+              if (edge.source === removedEdge.source) {
+                // 检查是否属于同一组
+                const edgeIsNextGroup =
+                  edge.sourceHandle === SourceHandleTypeEnum.Next ||
+                  edge.sourceHandle === SourceHandleTypeEnum.JumpBack;
+
+                const isSameGroup = removedIsNextGroup
+                  ? edgeIsNextGroup
+                  : edge.sourceHandle === removedEdge.sourceHandle;
+
+                if (isSameGroup && edge.label > removedEdge.label) {
+                  edge.label--;
+                }
               }
             });
           }
@@ -331,22 +343,35 @@ export const createGraphSlice: StateCreator<
 
       if (newLabel === oldLabel) return {};
 
+      // 检查是否是 next/jumpback 组
+      const isNextGroup =
+        targetEdge.sourceHandle === SourceHandleTypeEnum.Next ||
+        targetEdge.sourceHandle === SourceHandleTypeEnum.JumpBack;
+
       // 更新其他同源同类型边的顺序
       edges.forEach((edge, index) => {
-        if (
-          edge.source === targetEdge.source &&
-          edge.sourceHandle === targetEdge.sourceHandle
-        ) {
-          const label = edge.label as number;
-          if (newLabel < oldLabel) {
-            // 向前移动
-            if (label >= newLabel && label < oldLabel) {
-              edges[index] = { ...edge, label: label + 1 };
-            }
-          } else {
-            // 向后移动
-            if (label > oldLabel && label <= newLabel) {
-              edges[index] = { ...edge, label: label - 1 };
+        if (edge.source === targetEdge.source) {
+          // 检查是否属于同一组
+          const edgeIsNextGroup =
+            edge.sourceHandle === SourceHandleTypeEnum.Next ||
+            edge.sourceHandle === SourceHandleTypeEnum.JumpBack;
+
+          const isSameGroup = isNextGroup
+            ? edgeIsNextGroup
+            : edge.sourceHandle === targetEdge.sourceHandle;
+
+          if (isSameGroup) {
+            const label = edge.label as number;
+            if (newLabel < oldLabel) {
+              // 向前移动
+              if (label >= newLabel && label < oldLabel) {
+                edges[index] = { ...edge, label: label + 1 };
+              }
+            } else {
+              // 向后移动
+              if (label > oldLabel && label <= newLabel) {
+                edges[index] = { ...edge, label: label - 1 };
+              }
             }
           }
         }
@@ -378,12 +403,40 @@ export const createGraphSlice: StateCreator<
 
         switch (co.sourceHandle) {
           case SourceHandleTypeEnum.Next:
+            // next-on_error
             crash = edges.find(
               (edge) =>
                 edge.source === co.source &&
                 edge.target === co.target &&
                 edge.sourceHandle === SourceHandleTypeEnum.Error
             );
+            // next-jumpback
+            if (!crash) {
+              crash = edges.find(
+                (edge) =>
+                  edge.source === co.source &&
+                  edge.target === co.target &&
+                  edge.sourceHandle === SourceHandleTypeEnum.JumpBack
+              );
+            }
+            break;
+          case SourceHandleTypeEnum.JumpBack:
+            // jumpback-on_error
+            crash = edges.find(
+              (edge) =>
+                edge.source === co.source &&
+                edge.target === co.target &&
+                edge.sourceHandle === SourceHandleTypeEnum.Error
+            );
+            // jumpback-next
+            if (!crash) {
+              crash = edges.find(
+                (edge) =>
+                  edge.source === co.source &&
+                  edge.target === co.target &&
+                  edge.sourceHandle === SourceHandleTypeEnum.Next
+              );
+            }
             break;
           case SourceHandleTypeEnum.Error:
             if (
@@ -393,12 +446,22 @@ export const createGraphSlice: StateCreator<
               crash = true;
               break;
             }
+            // on_error-next
             crash = edges.find(
               (edge) =>
                 edge.source === co.source &&
                 edge.target === co.target &&
                 edge.sourceHandle === SourceHandleTypeEnum.Next
             );
+            // on_error-jumpback
+            if (!crash) {
+              crash = edges.find(
+                (edge) =>
+                  edge.source === co.source &&
+                  edge.target === co.target &&
+                  edge.sourceHandle === SourceHandleTypeEnum.JumpBack
+              );
+            }
             break;
         }
 

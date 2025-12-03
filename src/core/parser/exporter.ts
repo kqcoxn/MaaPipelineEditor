@@ -58,7 +58,14 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
     });
 
     // 链接
-    edges.forEach((edge) => {
+    const sortedEdges = [...edges].sort((a, b) => {
+      if (a.source === b.source) {
+        return (a.label as number) - (b.label as number);
+      }
+      return 0;
+    });
+
+    sortedEdges.forEach((edge) => {
       // 获取节点数据
       const sourceKey = findNodeLabelById(nodes, edge.source);
       const pSourceNode = pipelineObj[prefix + sourceKey];
@@ -72,7 +79,7 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
       const isAnchor =
         targetNode?.type === NodeTypeEnum.Anchor || edge.attributes?.anchor;
       // 判断是否有 jump_back 属性
-      const hasJumpBack = edge.attributes?.jump_back;
+      const hasJumpBack = edge.sourceHandle === SourceHandleTypeEnum.JumpBack;
 
       // 构建目标节点引用
       let toPNodeRef: string | NodeAttr;
@@ -97,7 +104,10 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
       }
 
       // 添加链接
-      const linkType = edge.sourceHandle as SourceHandleTypeEnum;
+      const linkType =
+        edge.sourceHandle === SourceHandleTypeEnum.JumpBack
+          ? SourceHandleTypeEnum.Next
+          : (edge.sourceHandle as SourceHandleTypeEnum);
       if (!(linkType in pSourceNode)) pSourceNode[linkType] = [];
       pSourceNode[linkType].push(toPNodeRef);
     });

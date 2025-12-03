@@ -1,7 +1,7 @@
 import style from "../../styles/EdgePanel.module.less";
 
 import { memo, useMemo, useCallback } from "react";
-import { Switch, Popover, Tag, InputNumber } from "antd";
+import { Tag, InputNumber } from "antd";
 import classNames from "classnames";
 
 import {
@@ -10,11 +10,6 @@ import {
   type EdgeType,
 } from "../../stores/flow";
 import { SourceHandleTypeEnum } from "../flow/nodes";
-
-// 提示词
-function LeftTipContentElem(content: string) {
-  return <div style={{ maxWidth: 260 }}>{content}</div>;
-}
 
 // 边信息展示
 const EdgeInfoElem = memo(
@@ -31,9 +26,27 @@ const EdgeInfoElem = memo(
     maxOrder: number;
     onOrderChange: (value: number) => void;
   }) => {
-    const isNext = edge.sourceHandle === SourceHandleTypeEnum.Next;
-    const handleType = isNext ? "next" : "on_error";
-    const tagColor = isNext ? "green" : "magenta";
+    // 连接类型显示
+    let handleType: string;
+    let tagColor: string;
+
+    switch (edge.sourceHandle) {
+      case SourceHandleTypeEnum.Next:
+        handleType = "next";
+        tagColor = "green";
+        break;
+      case SourceHandleTypeEnum.JumpBack:
+        handleType = "jump_back";
+        tagColor = "orange";
+        break;
+      case SourceHandleTypeEnum.Error:
+        handleType = "on_error";
+        tagColor = "magenta";
+        break;
+      default:
+        handleType = "unknown";
+        tagColor = "default";
+    }
 
     return (
       <div className={style.info}>
@@ -73,47 +86,6 @@ const EdgeInfoElem = memo(
   }
 );
 
-// 边编辑器内容
-const EdgeEditorElem = memo(({ edge }: { edge: EdgeType }) => {
-  const setEdgeData = useFlowStore((state) => state.setEdgeData);
-
-  const jumpBackValue = useMemo(
-    () => edge.attributes?.jump_back ?? false,
-    [edge.attributes?.jump_back]
-  );
-
-  const handleJumpBackChange = useCallback(
-    (checked: boolean) => {
-      setEdgeData(edge.id, "jump_back", checked);
-    },
-    [edge.id, setEdgeData]
-  );
-
-  return (
-    <div className={style.list}>
-      <div className={style.item}>
-        <Popover
-          placement="left"
-          title="jump_back"
-          content={LeftTipContentElem(
-            "启用跳回机制。当该节点识别命中，系统会在其后续节点链全部执行完毕后，重新返回到该节点所在的父节点，继续尝试识别该父节点的 next 列表。"
-          )}
-        >
-          <div className={style.key}>jump_back</div>
-        </Popover>
-        <div className={style.value}>
-          <Switch
-            checkedChildren="开启"
-            unCheckedChildren="关闭"
-            checked={jumpBackValue}
-            onChange={handleJumpBackChange}
-          />
-        </div>
-      </div>
-    </div>
-  );
-});
-
 // 边编辑面板
 function EdgePanel() {
   const selectedEdges = useFlowStore((state) => state.selectedEdges);
@@ -142,14 +114,28 @@ function EdgePanel() {
     };
   }, [currentEdge, nodes]);
 
-  // 计算同源同类型边的总数
+  // 总边数
   const maxOrder = useMemo(() => {
     if (!currentEdge) return 1;
-    return edges.filter(
-      (e) =>
-        e.source === currentEdge.source &&
-        e.sourceHandle === currentEdge.sourceHandle
-    ).length;
+
+    const isNextGroup =
+      currentEdge.sourceHandle === SourceHandleTypeEnum.Next ||
+      currentEdge.sourceHandle === SourceHandleTypeEnum.JumpBack;
+
+    return edges.filter((e) => {
+      if (e.source !== currentEdge.source) return false;
+
+      if (isNextGroup) {
+        // next 和 jumpback 共享排序
+        return (
+          e.sourceHandle === SourceHandleTypeEnum.Next ||
+          e.sourceHandle === SourceHandleTypeEnum.JumpBack
+        );
+      } else {
+        // 独立计数
+        return e.sourceHandle === currentEdge.sourceHandle;
+      }
+    }).length;
   }, [currentEdge, edges]);
 
   // 顺序变更处理
@@ -188,7 +174,6 @@ function EdgePanel() {
             maxOrder={maxOrder}
             onOrderChange={handleOrderChange}
           />
-          <EdgeEditorElem edge={currentEdge} />
         </>
       )}
     </div>
