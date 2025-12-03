@@ -26,7 +26,7 @@ export interface UpdateLogItem {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "0.8.0",
-    date: "2025-12-3",
+    date: "2025-12-4",
     type: "major",
     updates: {
       features: [
