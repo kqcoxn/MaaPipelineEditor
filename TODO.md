@@ -2,8 +2,8 @@
 
 ## Perf
 
-- 解耦 graphSlice.ts
 - 新主题
+- 独立面板
 
 ## MPE Web
 

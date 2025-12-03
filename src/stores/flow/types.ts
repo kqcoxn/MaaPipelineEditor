@@ -213,14 +213,10 @@ export interface FlowHistoryState {
   getHistoryState: () => { canUndo: boolean; canRedo: boolean };
 }
 
-// 图数据 Slice 状态
-export interface FlowGraphState {
+// 节点 Slice 状态
+export interface FlowNodeState {
   nodes: NodeType[];
-  edges: EdgeType[];
-  idCounters: {
-    node: number;
-    paste: number;
-  };
+  nodeIdCounter: number;
   updateNodes: (changes: NodeChange[]) => void;
   addNode: (options?: {
     type?: NodeTypeEnum;
@@ -231,21 +227,36 @@ export interface FlowGraphState {
     focus?: boolean;
   }) => void;
   setNodeData: (id: string, type: string, key: string, value: any) => void;
+  setNodes: (nodes: NodeType[]) => void;
+  resetNodeCounter: () => void;
+}
+
+// 边 Slice 状态
+export interface FlowEdgeState {
+  edges: EdgeType[];
   updateEdges: (changes: EdgeChange[]) => void;
   setEdgeData: (id: string, key: string, value: any) => void;
   setEdgeLabel: (id: string, newLabel: number) => void;
   addEdge: (co: Connection, options?: { isCheck?: boolean }) => void;
+  setEdges: (edges: EdgeType[]) => void;
+}
+
+// 图数据 Slice 状态
+export interface FlowGraphState {
+  pasteIdCounter: number;
   replace: (
     nodes: NodeType[],
     edges: EdgeType[],
     options?: { isFitView?: boolean; skipHistory?: boolean; skipSave?: boolean }
   ) => void;
   paste: (nodes: NodeType[], edges: EdgeType[]) => void;
-  resetCounters: () => void;
+  resetPasteCounter: () => void;
 }
 
 // 合并的 Flow Store 类型
 export type FlowStore = FlowViewState &
   FlowSelectionState &
   FlowHistoryState &
+  FlowNodeState &
+  FlowEdgeState &
   FlowGraphState;
