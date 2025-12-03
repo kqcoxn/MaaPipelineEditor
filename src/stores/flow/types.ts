@@ -16,6 +16,12 @@ export type PositionType = {
   y: number;
 };
 
+// 边属性类型
+export type EdgeAttributesType = {
+  jump_back?: boolean;
+  anchor?: boolean;
+};
+
 // 边类型
 export type EdgeType = {
   id: string;
@@ -26,6 +32,7 @@ export type EdgeType = {
   label: number;
   type: "marked";
   selected?: boolean;
+  attributes?: EdgeAttributesType;
 };
 
 // XYWH 坐标类型
@@ -225,6 +232,7 @@ export interface FlowGraphState {
   }) => void;
   setNodeData: (id: string, type: string, key: string, value: any) => void;
   updateEdges: (changes: EdgeChange[]) => void;
+  setEdgeData: (id: string, key: string, value: any) => void;
   addEdge: (co: Connection, options?: { isCheck?: boolean }) => void;
   replace: (
     nodes: NodeType[],

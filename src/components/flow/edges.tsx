@@ -10,16 +10,25 @@ import {
 import classNames from "classnames";
 
 import { useConfigStore } from "../../stores/configStore";
+import { useFlowStore } from "../../stores/flow";
 import { SourceHandleTypeEnum } from "./nodes";
 
 function MarkedEdge(props: EdgeProps) {
   const [edgePath, labelX, labelY] = getBezierPath({ ...props });
   const showEdgeLabel = useConfigStore((state) => state.configs.showEdgeLabel);
 
+  const edge = useFlowStore((state) =>
+    state.edges.find((e) => e.id === props.id)
+  );
+  const hasJumpBack = edge?.attributes?.jump_back;
+
   const edgeClass = useMemo(() => {
     let markClass = "";
     if (props.selected) {
       markClass = style["edge-selected"];
+    } else if (hasJumpBack) {
+      // jump_back 属性优先显示橙色
+      markClass = style["edge-jumpback"];
     } else {
       switch (props.sourceHandleId) {
         case SourceHandleTypeEnum.Next:
@@ -31,7 +40,7 @@ function MarkedEdge(props: EdgeProps) {
       }
     }
     return classNames(style.edge, markClass);
-  }, [props.selected]);
+  }, [props.selected, hasJumpBack, props.sourceHandleId]);
 
   const labelClass = useMemo(
     () =>

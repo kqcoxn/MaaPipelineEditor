@@ -56,7 +56,13 @@ export {
   getConfigMark,
   parsePipelineConfig,
 } from "./configParser";
-export { linkEdge, resetIdCounter, getNextId } from "./edgeLinker";
+export {
+  linkEdge,
+  resetIdCounter,
+  getNextId,
+  parseNodeRef,
+} from "./edgeLinker";
+export type { NodeAttr, NodeRefType } from "./edgeLinker";
 export {
   parsePipelineNodeForExport,
   parseExternalNodeForExport,

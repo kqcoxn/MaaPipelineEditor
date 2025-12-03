@@ -17,6 +17,7 @@ function serializeState(nodes: NodeType[], edges: EdgeType[]): string {
     target: edge.target,
     targetHandle: edge.targetHandle,
     label: edge.label,
+    attributes: edge.attributes,
   }));
   return JSON.stringify({ nodes: cleanNodes, edges: cleanEdges });
 }
@@ -56,7 +57,7 @@ export const createHistorySlice: StateCreator<
 
     const timeout = setTimeout(() => {
       const currentState = get();
-      
+
       // 获取历史限制配置
       const limit = 100;
 

@@ -1,6 +1,7 @@
 import type {
   NodeType,
   EdgeType,
+  EdgeAttributesType,
   PipelineNodeType,
   RecognitionParamType,
   ActionParamType,
@@ -67,6 +68,7 @@ export type PipelineToFlowOptions = {
 export type {
   NodeType,
   EdgeType,
+  EdgeAttributesType,
   PipelineNodeType,
   RecognitionParamType,
   ActionParamType,

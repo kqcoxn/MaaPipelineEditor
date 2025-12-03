@@ -23,7 +23,7 @@ import type {
 import { externalMarkPrefix } from "./types";
 import { parsePipelineConfig, isMark } from "./configParser";
 import { detectNodeVersion } from "./versionDetector";
-import { linkEdge, getNextId } from "./edgeLinker";
+import { linkEdge, getNextId, type NodeRefType } from "./edgeLinker";
 import { parseNodeField } from "./nodeParser";
 
 /**
@@ -197,7 +197,7 @@ export async function pipelineToFlow(
       const originLabel = originLabels[index];
 
       // 解析 next 连接
-      const next = obj["next"] as string[];
+      const next = obj["next"] as NodeRefType[];
       if (next) {
         const [newEdges, newNodes, newIdOLPairs] = linkEdge(
           originLabel,
@@ -211,7 +211,7 @@ export async function pipelineToFlow(
       }
 
       // 解析 on_error 连接
-      const onError = obj["on_error"] as string[];
+      const onError = obj["on_error"] as NodeRefType[];
       if (onError) {
         const [newEdges, newNodes, newIdOLPairs] = linkEdge(
           originLabel,

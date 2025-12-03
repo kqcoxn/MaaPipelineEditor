@@ -280,6 +280,45 @@ export const createGraphSlice: StateCreator<
     }
   },
 
+  // 更新边数据
+  setEdgeData(id: string, key: string, value: any) {
+    set((state) => {
+      const edgeIndex = state.edges.findIndex((e) => e.id === id);
+      if (edgeIndex < 0) return {};
+
+      const edges = [...state.edges];
+      const targetEdge = { ...edges[edgeIndex] };
+
+      // 更新 attributes
+      if (!targetEdge.attributes) {
+        targetEdge.attributes = {};
+      }
+
+      if (value === undefined || value === null || value === false) {
+        // 删除属性
+        delete targetEdge.attributes[key as keyof typeof targetEdge.attributes];
+        // attributes为空
+        if (Object.keys(targetEdge.attributes).length === 0) {
+          delete targetEdge.attributes;
+        }
+      } else {
+        // 设置属性
+        (targetEdge.attributes as any)[key] = value;
+      }
+
+      edges[edgeIndex] = targetEdge;
+
+      // 更新选中边列表
+      const selectedEdges = getSelectedEdges(edges);
+      get().updateSelection(state.selectedNodes, selectedEdges);
+
+      return { edges };
+    });
+
+    // 保存历史记录
+    get().saveHistory(500);
+  },
+
   // 添加边
   addEdge(co: Connection, options) {
     const { isCheck = true } = options || {};

@@ -22,6 +22,7 @@ export type {
   ExternalNodeType,
   AnchorNodeType,
   EdgeType,
+  EdgeAttributesType,
   PositionType,
   RecognitionParamType,
   ActionParamType,

@@ -14,6 +14,7 @@ import type {
   PipelineNodeType,
 } from "./types";
 import { configMarkPrefix, externalMarkPrefix, configMark } from "./types";
+import type { NodeAttr } from "./edgeLinker";
 import {
   parsePipelineNodeForExport,
   parseExternalNodeForExport,
@@ -63,17 +64,42 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
       const pSourceNode = pipelineObj[prefix + sourceKey];
       if (!pSourceNode) return;
       const targetKey = findNodeLabelById(nodes, edge.target);
+      if (!targetKey) return;
       const targetNode = nodes.find((n) => n.id === edge.target);
       const pTargetNode = pipelineObj[prefix + targetKey];
-      // 添加链接
-      let toPNodeKey = pTargetNode ? prefix + targetKey : targetKey;
-      // [Anchor] 节点
-      if (targetNode?.type === NodeTypeEnum.Anchor) {
-        toPNodeKey = `[Anchor]${targetKey}`;
+
+      // 判断是否是 Anchor 节点或有 anchor 属性
+      const isAnchor =
+        targetNode?.type === NodeTypeEnum.Anchor || edge.attributes?.anchor;
+      // 判断是否有 jump_back 属性
+      const hasJumpBack = edge.attributes?.jump_back;
+
+      // 构建目标节点引用
+      let toPNodeRef: string | NodeAttr;
+
+      if (isAnchor || hasJumpBack) {
+        // 使用对象形式
+        const nodeAttr: NodeAttr = {
+          name: pTargetNode ? prefix + targetKey : targetKey,
+        };
+        // [Anchor] 节点或明确标记为 anchor
+        if (isAnchor) {
+          nodeAttr.anchor = true;
+        }
+        // jump_back 属性
+        if (hasJumpBack) {
+          nodeAttr.jump_back = true;
+        }
+        toPNodeRef = nodeAttr;
+      } else {
+        // 使用简单字符串形式
+        toPNodeRef = pTargetNode ? prefix + targetKey : targetKey;
       }
+
+      // 添加链接
       const linkType = edge.sourceHandle as SourceHandleTypeEnum;
       if (!(linkType in pSourceNode)) pSourceNode[linkType] = [];
-      pSourceNode[linkType].push(toPNodeKey);
+      pSourceNode[linkType].push(toPNodeRef);
     });
 
     // 配置

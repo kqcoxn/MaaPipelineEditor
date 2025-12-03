@@ -19,11 +19,11 @@ import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
 import MainFlow from "./components/Flow";
 import JsonViewer from "./components/JsonViewer";
 import FieldPanel from "./components/panels/FieldPanel";
+import EdgePanel from "./components/panels/EdgePanel";
 import ToolPanel from "./components/panels/ToolPanel";
 import FilePanel from "./components/panels/FilePanel";
 import ConfigPanel from "./components/panels/ConfigPanel";
 import ErrorPanel from "./components/panels/ErrorPanel";
-import { useConfigStore } from "./stores/configStore";
 import { pipelineToFlow } from "./core/parser";
 import { ThemeProvider } from "./contexts/ThemeContext";
 
@@ -156,6 +156,7 @@ function App() {
               <Splitter.Panel className={style.left}>
                 <MainFlow />
                 <FieldPanel />
+                <EdgePanel />
                 <ConfigPanel />
                 <ToolPanel.Add />
                 <ToolPanel.Global />
