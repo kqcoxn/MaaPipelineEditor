@@ -100,6 +100,18 @@ export const actionFieldSchema: Record<string, FieldType> = {
     default: true,
     desc: "仅鼠标悬停移动，无按下/抬起动作。可选，默认 false。",
   },
+  dx: {
+    key: "dx",
+    type: FieldTypeEnum.Int,
+    default: 0,
+    desc: "水平滚动距离，正值向右滚动，负值向左滚动。可选，默认 0 。",
+  },
+  dy: {
+    key: "dy",
+    type: FieldTypeEnum.Int,
+    default: 0,
+    desc: "垂直滚动距离，正值向下滚动，负值向上滚动。可选，默认 0 。",
+  },
   swipes: {
     key: "swipes",
     type: FieldTypeEnum.ObjectList,

@@ -65,12 +65,12 @@ function starRemind() {
     </Space>
   );
   notification.open({
-    message: "来点 Star，秋梨膏！",
+    title: "来点 Star，秋梨膏！",
     description:
       "如果 MaaPipelineEditor 对您有帮助，可以为项目点一个免费的 Star⭐ 吗 QAQ",
     actions: operations,
     key,
-    duration: null,
+    duration: 0,
     closeIcon: false,
   });
 }

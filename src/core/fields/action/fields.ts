@@ -34,6 +34,10 @@ export const actionFields: Record<string, FieldsType> = {
     ],
     desc: "线性滑动。",
   },
+  Scroll: {
+    params: [actionFieldSchema.dx, actionFieldSchema.dy],
+    desc: "鼠标滚轮滚动。注意：Adb 控制器不支持滚动操作。仅 Win32 控制器支持。",
+  },
   ClickKey: {
     params: [actionFieldSchema.clickKey],
     desc: "单击按键。",
