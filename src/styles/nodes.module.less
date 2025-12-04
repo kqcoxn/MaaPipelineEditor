@@ -11,7 +11,7 @@
   border-radius: 4px;
   background-color: white;
   font-size: 12px;
-  transition: all 0.1s ease;
+  transition: all 0.15s ease;
 
   .title {
     text-align: center;
@@ -67,9 +67,166 @@
   }
 }
 
+// 现代风格节点样式
+.modern-node {
+  width: 220px;
+  padding: 0;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+  .modernHeader {
+    border-radius: 6px 6px 0 0;
+    display: flex;
+    align-items: center;
+    padding: 8px 10px;
+    background-color: #f4f5f8;
+    border-bottom: 1px solid #e8e8e8;
+    min-height: 32px;
+
+    .headerLeft {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+
+      span {
+        display: flex;
+        align-items: center;
+      }
+
+      .typeIcon {
+        color: #666;
+      }
+    }
+
+    .headerTitle {
+      flex: 1;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 500;
+      color: #333;
+      padding: 0 8px;
+      word-break: break-word;
+      line-height: 1.3;
+    }
+
+    .headerRight {
+      flex-shrink: 0;
+
+      .moreBtn {
+        width: 22px;
+        height: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        cursor: pointer;
+        color: #999;
+        transition: all 0.15s ease;
+
+        &:hover {
+          background-color: #e0e0e0;
+          color: #666;
+        }
+      }
+    }
+  }
+
+  // 内容区域
+  .modernContent {
+    padding: 8px 10px;
+
+    .section {
+      margin-bottom: 8px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      .sectionHeader {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 9px;
+        font-weight: 500;
+        margin-bottom: 4px;
+        padding: 2px 0;
+
+        span {
+          font-size: 11px;
+        }
+      }
+
+      // 区域标题
+      .recoHeader {
+        color: #1890ff;
+      }
+      .actionHeader {
+        color: #fa8c16;
+      }
+      .otherHeader {
+        color: gray;
+      }
+
+      .sectionList {
+        width: 100%;
+
+        li {
+          width: 100%;
+          background-color: #f4f5f8;
+          box-sizing: border-box;
+          border-radius: 6px;
+          padding: 4px;
+          font-size: 11px;
+          display: flex;
+          align-items: center;
+          height: 28px;
+          margin-top: 4px;
+          transition: background-color 0.15s ease;
+
+          &:first-child {
+            margin-top: 0;
+          }
+
+          .key {
+            .ellipsis();
+            width: 60px;
+            text-align: right;
+            font-size: 11px;
+            color: rgba(0, 0, 0, 0.8);
+          }
+
+          .value {
+            margin-left: 4px;
+            flex: 1;
+            height: 100%;
+            display: flex;
+            align-items: center;
+
+            .container {
+              .ellipsis();
+              width: 100%;
+              height: 100%;
+              display: flex;
+              align-items: center;
+              border-radius: 5px;
+              background-color: #fff;
+              box-sizing: border-box;
+              padding: 0 6px;
+              font-size: 11px;
+              border: 1px solid #f0f0f0;
+              transition: all 0.15s ease;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
 .node-selected {
-  box-shadow: 1px 1px 5px rgba(black, 0.2);
-  border: 1px solid rgba(black, 1);
+  box-shadow: 0 0 0 0.5px #1890ff, 0 4px 12px rgba(24, 144, 255, 0.15);
+  border-color: rgba(#1890ff, 0.8);
 }
 
 .external-node {

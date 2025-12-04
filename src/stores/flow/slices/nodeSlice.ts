@@ -215,11 +215,12 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       nodes[nodeIndex] = targetNode;
 
       // 更新目标节点
+      const updates: any = { nodes };
       if (state.targetNode?.id === id) {
-        get().setTargetNode(targetNode);
+        updates.targetNode = targetNode;
       }
 
-      return { nodes };
+      return updates;
     });
 
     // 保存历史记录

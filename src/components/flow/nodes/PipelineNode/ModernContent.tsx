@@ -1,0 +1,192 @@
+import { memo, useMemo, useRef, useEffect, useState } from "react";
+import { Handle, Position, type NodeProps } from "@xyflow/react";
+import classNames from "classnames";
+
+import style from "../../../../styles/nodes.module.less";
+import type { PipelineNodeDataType } from "../../../../stores/flow";
+import IconFont from "../../../iconfonts";
+import { KVElem } from "../components/KVElem";
+import { getRecognitionIcon, getActionIcon, getNodeTypeIcon } from "../utils";
+import { SourceHandleTypeEnum } from "../constants";
+import { JsonHelper } from "../../../../utils/jsonHelper";
+
+/**现代风格Pipeline节点内容 */
+export const ModernContent = memo(
+  ({ data }: { data: PipelineNodeDataType; props: NodeProps }) => {
+    const headerRef = useRef<HTMLDivElement>(null);
+    const [headerHeight, setHeaderHeight] = useState(0);
+
+    useEffect(() => {
+      if (headerRef.current) {
+        const height = headerRef.current.offsetHeight;
+        setHeaderHeight(height);
+      }
+    }, [data.label]);
+
+    const ExtrasElem = useMemo(() => {
+      if (JsonHelper.isObj(data.extras)) {
+        return Object.keys(data.extras).map((key) => (
+          <KVElem key={key} paramKey={key} value={data.extras[key]} />
+        ));
+      }
+      const extras = JsonHelper.stringObjToJson(data.extras);
+      if (extras) {
+        return Object.keys(extras).map((key) => (
+          <KVElem key={key} paramKey={key} value={extras[key]} />
+        ));
+      }
+      return null;
+    }, [data.extras]);
+
+    const recoIconConfig = getRecognitionIcon(data.recognition.type);
+    const actionIconConfig = getActionIcon(data.action.type);
+    const nodeTypeIconConfig = getNodeTypeIcon("pipeline");
+
+    const hasRecoParams = Object.keys(data.recognition.param).length > 0;
+    const hasActionParams = Object.keys(data.action.param).length > 0;
+    const hasOtherParams =
+      Object.keys(data.others).length > 0 ||
+      (ExtrasElem && ExtrasElem.length > 0);
+
+    return (
+      <>
+        {/* 顶部区域 */}
+        <div ref={headerRef} className={style.modernHeader}>
+          <div className={style.headerLeft}>
+            <span title="Pipeline节点">
+              <IconFont
+                className={style.typeIcon}
+                name={nodeTypeIconConfig.name}
+                size={nodeTypeIconConfig.size}
+              />
+            </span>
+          </div>
+          <div className={style.headerTitle}>{data.label}</div>
+          <div className={style.headerRight}>
+            <div className={style.moreBtn}>
+              <IconFont name="icon-gengduo" size={14} />
+            </div>
+          </div>
+        </div>
+
+        {/* 字段区域 */}
+        <div className={style.modernContent}>
+          {/* 识别区域 */}
+          <div className={style.section}>
+            <div className={classNames(style.sectionHeader, style.recoHeader)}>
+              {recoIconConfig.name && (
+                <IconFont
+                  name={recoIconConfig.name}
+                  size={recoIconConfig.size}
+                />
+              )}
+              <span>识别 - {data.recognition.type}</span>
+            </div>
+            {hasRecoParams && (
+              <ul className={style.sectionList}>
+                {Object.keys(data.recognition.param).map((key) => (
+                  <KVElem
+                    key={key}
+                    paramKey={key}
+                    value={data.recognition.param[key]}
+                  />
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* 动作区域 */}
+          <div className={style.section}>
+            <div
+              className={classNames(style.sectionHeader, style.actionHeader)}
+            >
+              {actionIconConfig.name && (
+                <IconFont
+                  name={actionIconConfig.name}
+                  size={actionIconConfig.size}
+                />
+              )}
+              <span>动作 - {data.action.type}</span>
+            </div>
+            {hasActionParams && (
+              <ul className={style.sectionList}>
+                {Object.keys(data.action.param).map((key) => (
+                  <KVElem
+                    key={key}
+                    paramKey={key}
+                    value={data.action.param[key]}
+                  />
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* 其他区域 */}
+          {hasOtherParams && (
+            <div className={style.section}>
+              <div
+                className={classNames(style.sectionHeader, style.otherHeader)}
+              >
+                <IconFont name="icon-zidingyi" size={12} />
+                <span>其他</span>
+              </div>
+              <ul className={style.sectionList}>
+                {Object.keys(data.others).map((key) => (
+                  <KVElem key={key} paramKey={key} value={data.others[key]} />
+                ))}
+                {ExtrasElem}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        <Handle
+          id="target"
+          className={classNames(style.handle, style.target)}
+          type="target"
+          position={Position.Left}
+          style={{ top: "50%" }}
+        />
+        <Handle
+          id={SourceHandleTypeEnum.Next}
+          className={classNames(style.handle, style.next)}
+          type="source"
+          position={Position.Right}
+          style={
+            headerHeight
+              ? {
+                  top: `calc(${headerHeight}px + (100% - ${headerHeight}px) * 0.25)`,
+                }
+              : undefined
+          }
+        />
+        <Handle
+          id={SourceHandleTypeEnum.JumpBack}
+          className={classNames(style.handle, style.jumpback)}
+          type="source"
+          position={Position.Right}
+          style={
+            headerHeight
+              ? {
+                  top: `calc(${headerHeight}px + (100% - ${headerHeight}px) * 0.5)`,
+                }
+              : undefined
+          }
+        />
+        <Handle
+          id={SourceHandleTypeEnum.Error}
+          className={classNames(style.handle, style.error)}
+          type="source"
+          position={Position.Right}
+          style={
+            headerHeight
+              ? {
+                  top: `calc(${headerHeight}px + (100% - ${headerHeight}px) * 0.75)`,
+                }
+              : undefined
+          }
+        />
+      </>
+    );
+  }
+);

@@ -4,13 +4,16 @@ import { create } from "zustand";
 export const globalConfig = {
   dev: true,
   version: `0.8.2`,
-  betaIteration: 0,
+  betaIteration: 1,
   mfwVersion: "5.1",
 };
 
 if (globalConfig.dev) {
   globalConfig.version = `${globalConfig.version}_beta_${globalConfig.betaIteration}`;
 }
+
+// 节点风格类型
+export type NodeStyleType = "modern" | "classic";
 
 /**配置 */
 type ConfigState = {
@@ -22,6 +25,7 @@ type ConfigState = {
     isAutoFocus: boolean;
     useDarkMode: boolean;
     historyLimit: number;
+    nodeStyle: NodeStyleType;
     wsPort: number;
     wsConnected: boolean;
     wsConnecting: boolean;
@@ -51,6 +55,7 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     isAutoFocus: true,
     useDarkMode: false,
     historyLimit: 100,
+    nodeStyle: "modern" as NodeStyleType,
     wsPort: 9066,
     wsConnected: false,
     wsConnecting: false,

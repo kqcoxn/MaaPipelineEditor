@@ -1,7 +1,7 @@
 import style from "../../styles/ConfigPanel.module.less";
 
 import { memo, useMemo, useEffect } from "react";
-import { Popover, Switch, Input, InputNumber, Button } from "antd";
+import { Popover, Switch, Input, InputNumber, Button, Select } from "antd";
 import classNames from "classnames";
 import IconFont from "../iconfonts";
 
@@ -30,6 +30,7 @@ function ConfigPanel() {
     (state) => state.configs.isExportConfig
   );
   const historyLimit = useConfigStore((state) => state.configs.historyLimit);
+  const nodeStyle = useConfigStore((state) => state.configs.nodeStyle);
   const wsPort = useConfigStore((state) => state.configs.wsPort);
   const wsConnected = useConfigStore((state) => state.configs.wsConnected);
   const wsConnecting = useConfigStore((state) => state.configs.wsConnecting);
@@ -114,7 +115,7 @@ function ConfigPanel() {
             value={fileConfig.prefix}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               setFileConfig("prefix", e.target.value);
-              checkRepateNodeLabelList();
+              checkRepeatNodeLabelList();
             }}
           />
         </div>
@@ -145,6 +146,28 @@ function ConfigPanel() {
           />
         </div>
         <div className={style.divider}>—————— 面板配置 ——————</div>
+        {/* 节点风格 */}
+        <div className={globalClass}>
+          <div className={style.key}>
+            <Popover
+              placement="bottomLeft"
+              title={"节点风格"}
+              content="切换节点的显示风格：现代风格具有分组标题和图标，经典风格为原始平铺展示"
+            >
+              <span>节点风格</span>
+            </Popover>
+          </div>
+          <Select
+            className={style.value}
+            style={{ width: 70 }}
+            value={nodeStyle}
+            onChange={(value) => setConfig("nodeStyle", value)}
+            options={[
+              { value: "modern", label: "现代风格" },
+              { value: "classic", label: "经典风格" },
+            ]}
+          />
+        </div>
         {/* 历史记录上限 */}
         <div className={globalClass}>
           <div className={style.key}>

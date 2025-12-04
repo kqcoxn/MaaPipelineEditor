@@ -2,6 +2,30 @@
 /* eslint-disable */
 
 import React, { SVGAttributes, FunctionComponent } from 'react';
+import IconJiqiren from './IconJiqiren';
+import IconGengduo from './IconGengduo';
+import IconMAct from './IconMAct';
+import IconLianjie from './IconLianjie';
+import IconA11Maodian2 from './IconA11Maodian2';
+import IconA11Maodian1 from './IconA11Maodian1';
+import IconYanjizhushouShangchuanAnjiangongneng from './IconYanjizhushouShangchuanAnjiangongneng';
+import IconBiaodanzujianShurukuang from './IconBiaodanzujianShurukuang';
+import IconStart from './IconStart';
+import IconFinish from './IconFinish';
+import IconZidingyishujuchuli from './IconZidingyishujuchuli';
+import IconIconSecai from './IconIconSecai';
+import IconZidingyi1 from './IconZidingyi1';
+import IconImagetuxiangshibie from './IconImagetuxiangshibie';
+import IconXiahua from './IconXiahua';
+import IconCustom521 from './IconCustom521';
+import IconOcrYinshuawenzishibie from './IconOcrYinshuawenzishibie';
+import IconTezhengpipei from './IconTezhengpipei';
+import IconShubiaozuojian from './IconShubiaozuojian';
+import IconShell from './IconShell';
+import IconBDshenjingwangluofenlei01 from './IconBDshenjingwangluofenlei01';
+import IconQiyongshubiaogunlun from './IconQiyongshubiaogunlun';
+import IconDeactivate from './IconDeactivate';
+import IconA0415AnxiaqidongPushtoactivate from './IconA0415AnxiaqidongPushtoactivate';
 import IconZiyuan from './IconZiyuan';
 import IconGengxinrizhi from './IconGengxinrizhi';
 import IconGuangquan from './IconGuangquan';
@@ -41,6 +65,30 @@ import IconOcr from './IconOcr';
 import IconTuxiang from './IconTuxiang';
 import IconGithublogo from './IconGithublogo';
 import IconDixiaguanxianguanli from './IconDixiaguanxianguanli';
+export { default as IconJiqiren } from './IconJiqiren';
+export { default as IconGengduo } from './IconGengduo';
+export { default as IconMAct } from './IconMAct';
+export { default as IconLianjie } from './IconLianjie';
+export { default as IconA11Maodian2 } from './IconA11Maodian2';
+export { default as IconA11Maodian1 } from './IconA11Maodian1';
+export { default as IconYanjizhushouShangchuanAnjiangongneng } from './IconYanjizhushouShangchuanAnjiangongneng';
+export { default as IconBiaodanzujianShurukuang } from './IconBiaodanzujianShurukuang';
+export { default as IconStart } from './IconStart';
+export { default as IconFinish } from './IconFinish';
+export { default as IconZidingyishujuchuli } from './IconZidingyishujuchuli';
+export { default as IconIconSecai } from './IconIconSecai';
+export { default as IconZidingyi1 } from './IconZidingyi1';
+export { default as IconImagetuxiangshibie } from './IconImagetuxiangshibie';
+export { default as IconXiahua } from './IconXiahua';
+export { default as IconCustom521 } from './IconCustom521';
+export { default as IconOcrYinshuawenzishibie } from './IconOcrYinshuawenzishibie';
+export { default as IconTezhengpipei } from './IconTezhengpipei';
+export { default as IconShubiaozuojian } from './IconShubiaozuojian';
+export { default as IconShell } from './IconShell';
+export { default as IconBDshenjingwangluofenlei01 } from './IconBDshenjingwangluofenlei01';
+export { default as IconQiyongshubiaogunlun } from './IconQiyongshubiaogunlun';
+export { default as IconDeactivate } from './IconDeactivate';
+export { default as IconA0415AnxiaqidongPushtoactivate } from './IconA0415AnxiaqidongPushtoactivate';
 export { default as IconZiyuan } from './IconZiyuan';
 export { default as IconGengxinrizhi } from './IconGengxinrizhi';
 export { default as IconGuangquan } from './IconGuangquan';
@@ -81,7 +129,7 @@ export { default as IconTuxiang } from './IconTuxiang';
 export { default as IconGithublogo } from './IconGithublogo';
 export { default as IconDixiaguanxianguanli } from './IconDixiaguanxianguanli';
 
-export type IconNames = 'icon-ziyuan' | 'icon-gengxinrizhi' | 'icon-guangquan' | 'icon-weizhihang' | 'icon-liuchengtu' | 'icon-niantie1' | 'icon-icon-yichang' | 'icon-fanhui' | 'icon-qianjin' | 'icon-xiaofangtongdao' | 'icon-daima' | 'icon-shanchu' | 'icon-xinghaoxiangqing-canshuduibi-jishucanshu-20' | 'icon-icon_wendangziliaopeizhi' | 'icon-github-fill' | 'icon-jurassic_HorFensan-align' | 'icon-jurassic_horizalign-center' | 'icon-jurassic_VerFensan-align' | 'icon-jurassic_verticalalign-bottom' | 'icon-jurassic_verticalalign-top' | 'icon-beifen' | 'icon-xiaohongshubiaoti' | 'icon-cansaineirong_gaoliang_48' | 'icon-dianji' | 'icon-a-copyfubenfuzhi' | 'icon-fuzhi' | 'icon-daoru' | 'icon-dituweizhixinxi_chahao' | 'icon-a-addmusic' | 'icon-lanzilajitongshanchu' | 'icon-zengjiatianjiajiajian' | 'icon-xinjiantianjia' | 'icon-a-080_shezhi' | 'icon-zidingyi' | 'icon-kongjiedian' | 'icon-ocr' | 'icon-tuxiang' | 'icon-githublogo' | 'icon-dixiaguanxianguanli';
+export type IconNames = 'icon-jiqiren' | 'icon-gengduo' | 'icon-m_act' | 'icon-lianjie' | 'icon-a-11maodian2' | 'icon-a-11maodian1' | 'icon-yanjizhushou-shangchuan_anjiangongneng' | 'icon-biaodanzujian-shurukuang' | 'icon-start' | 'icon-finish' | 'icon-zidingyishujuchuli' | 'icon-icon_secai' | 'icon-zidingyi1' | 'icon-Imagetuxiangshibie' | 'icon-xiahua' | 'icon-custom521' | 'icon-ocr-yinshuawenzishibie' | 'icon-tezhengpipei' | 'icon-shubiaozuojian' | 'icon-shell' | 'icon-BDshenjingwangluofenlei-01' | 'icon-qiyongshubiaogunlun' | 'icon-Deactivate' | 'icon-a-04-15anxiaqidongPushtoactivate' | 'icon-ziyuan' | 'icon-gengxinrizhi' | 'icon-guangquan' | 'icon-weizhihang' | 'icon-liuchengtu' | 'icon-niantie1' | 'icon-icon-yichang' | 'icon-fanhui' | 'icon-qianjin' | 'icon-xiaofangtongdao' | 'icon-daima' | 'icon-shanchu' | 'icon-xinghaoxiangqing-canshuduibi-jishucanshu-20' | 'icon-icon_wendangziliaopeizhi' | 'icon-github-fill' | 'icon-jurassic_HorFensan-align' | 'icon-jurassic_horizalign-center' | 'icon-jurassic_VerFensan-align' | 'icon-jurassic_verticalalign-bottom' | 'icon-jurassic_verticalalign-top' | 'icon-beifen' | 'icon-xiaohongshubiaoti' | 'icon-cansaineirong_gaoliang_48' | 'icon-dianji' | 'icon-a-copyfubenfuzhi' | 'icon-fuzhi' | 'icon-daoru' | 'icon-dituweizhixinxi_chahao' | 'icon-a-addmusic' | 'icon-lanzilajitongshanchu' | 'icon-zengjiatianjiajiajian' | 'icon-xinjiantianjia' | 'icon-a-080_shezhi' | 'icon-zidingyi' | 'icon-kongjiedian' | 'icon-ocr' | 'icon-tuxiang' | 'icon-githublogo' | 'icon-dixiaguanxianguanli';
 
 interface Props extends Omit<SVGAttributes<SVGElement>, 'color'> {
   name: IconNames;
@@ -91,6 +139,54 @@ interface Props extends Omit<SVGAttributes<SVGElement>, 'color'> {
 
 const IconFont: FunctionComponent<Props> = ({ name, ...rest }) => {
   switch (name) {
+    case 'icon-jiqiren':
+      return <IconJiqiren {...rest} />;
+    case 'icon-gengduo':
+      return <IconGengduo {...rest} />;
+    case 'icon-m_act':
+      return <IconMAct {...rest} />;
+    case 'icon-lianjie':
+      return <IconLianjie {...rest} />;
+    case 'icon-a-11maodian2':
+      return <IconA11Maodian2 {...rest} />;
+    case 'icon-a-11maodian1':
+      return <IconA11Maodian1 {...rest} />;
+    case 'icon-yanjizhushou-shangchuan_anjiangongneng':
+      return <IconYanjizhushouShangchuanAnjiangongneng {...rest} />;
+    case 'icon-biaodanzujian-shurukuang':
+      return <IconBiaodanzujianShurukuang {...rest} />;
+    case 'icon-start':
+      return <IconStart {...rest} />;
+    case 'icon-finish':
+      return <IconFinish {...rest} />;
+    case 'icon-zidingyishujuchuli':
+      return <IconZidingyishujuchuli {...rest} />;
+    case 'icon-icon_secai':
+      return <IconIconSecai {...rest} />;
+    case 'icon-zidingyi1':
+      return <IconZidingyi1 {...rest} />;
+    case 'icon-Imagetuxiangshibie':
+      return <IconImagetuxiangshibie {...rest} />;
+    case 'icon-xiahua':
+      return <IconXiahua {...rest} />;
+    case 'icon-custom521':
+      return <IconCustom521 {...rest} />;
+    case 'icon-ocr-yinshuawenzishibie':
+      return <IconOcrYinshuawenzishibie {...rest} />;
+    case 'icon-tezhengpipei':
+      return <IconTezhengpipei {...rest} />;
+    case 'icon-shubiaozuojian':
+      return <IconShubiaozuojian {...rest} />;
+    case 'icon-shell':
+      return <IconShell {...rest} />;
+    case 'icon-BDshenjingwangluofenlei-01':
+      return <IconBDshenjingwangluofenlei01 {...rest} />;
+    case 'icon-qiyongshubiaogunlun':
+      return <IconQiyongshubiaogunlun {...rest} />;
+    case 'icon-Deactivate':
+      return <IconDeactivate {...rest} />;
+    case 'icon-a-04-15anxiaqidongPushtoactivate':
+      return <IconA0415AnxiaqidongPushtoactivate {...rest} />;
     case 'icon-ziyuan':
       return <IconZiyuan {...rest} />;
     case 'icon-gengxinrizhi':
