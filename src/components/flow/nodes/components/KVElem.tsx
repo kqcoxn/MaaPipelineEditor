@@ -1,5 +1,5 @@
 import { memo } from "react";
-import style from "../../../styles/nodes.module.less";
+import style from "../../../../styles/nodes.module.less";
 import { JsonHelper } from "../../../../utils/jsonHelper";
 
 /**键值对元素组件 */
