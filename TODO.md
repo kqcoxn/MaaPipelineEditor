@@ -2,7 +2,6 @@
 
 ## Perf
 
-- 自动调整 interrupt
 - 独立 json 面板
 
 ## MPE Web

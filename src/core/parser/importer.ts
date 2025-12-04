@@ -1,4 +1,3 @@
-import React from "react";
 import { Modal } from "antd";
 import { parse as parseJsonc } from "jsonc-parser";
 import {
@@ -27,6 +26,99 @@ import { linkEdge, getNextId, type NodeRefType } from "./edgeLinker";
 import { parseNodeField } from "./nodeParser";
 
 /**
+ * 迁移 Pipeline v5.1 废弃字段
+ */
+function migratePipelineV5(
+  pipelineObj: Record<string, unknown>,
+  objKeys: string[]
+): void {
+  const JUMPBACK_PREFIX = "[JumpBack]";
+  const subNodes = new Set<string>();
+  for (const objKey of objKeys) {
+    const obj = pipelineObj[objKey];
+    if (
+      obj &&
+      typeof obj === "object" &&
+      (obj as Record<string, unknown>)["is_sub"] === true
+    ) {
+      subNodes.add(objKey);
+    }
+  }
+
+  for (const objKey of objKeys) {
+    const obj = pipelineObj[objKey] as Record<string, unknown> | undefined;
+    if (!obj || typeof obj !== "object") continue;
+
+    // 处理 interrupt 字段
+    if ("interrupt" in obj) {
+      const interrupt = obj["interrupt"];
+      let interruptNodes: string[] = [];
+
+      if (typeof interrupt === "string") {
+        interruptNodes = [interrupt];
+      } else if (Array.isArray(interrupt)) {
+        interruptNodes = interrupt.filter(
+          (n): n is string => typeof n === "string"
+        );
+      }
+
+      if (interruptNodes.length > 0) {
+        // 给 interrupt 节点加上 [JumpBack] 前缀
+        const prefixedInterruptNodes = interruptNodes.map((n) =>
+          n.startsWith(JUMPBACK_PREFIX) ? n : `${JUMPBACK_PREFIX}${n}`
+        );
+
+        // 合并到 next
+        let currentNext: string[] = [];
+        if (obj["next"]) {
+          if (typeof obj["next"] === "string") {
+            currentNext = [obj["next"]];
+          } else if (Array.isArray(obj["next"])) {
+            currentNext = obj["next"].filter(
+              (n): n is string => typeof n === "string"
+            );
+          }
+        }
+        obj["next"] = [...currentNext, ...prefixedInterruptNodes];
+      }
+
+      // 删除 interrupt 字段
+      delete obj["interrupt"];
+    }
+
+    // 处理 next 和 on_error 中对 is_sub 节点的引用
+    const processRefs = (field: string) => {
+      if (!(field in obj)) return;
+      const refs = obj[field];
+      let refArray: string[] = [];
+
+      if (typeof refs === "string") {
+        refArray = [refs];
+      } else if (Array.isArray(refs)) {
+        refArray = refs.filter((n): n is string => typeof n === "string");
+      }
+
+      if (refArray.length > 0) {
+        obj[field] = refArray.map((n) => {
+          if (subNodes.has(n) && !n.startsWith(JUMPBACK_PREFIX)) {
+            return `${JUMPBACK_PREFIX}${n}`;
+          }
+          return n;
+        });
+      }
+    };
+
+    processRefs("next");
+    processRefs("on_error");
+
+    // 删除 is_sub 字段
+    if ("is_sub" in obj) {
+      delete obj["is_sub"];
+    }
+  }
+}
+
+/**
  * 将Pipeline对象导入为Flow
  * @param options 导入选项，可以传入Pipeline字符串
  */
@@ -41,60 +133,9 @@ export async function pipelineToFlow(
     // 解析配置
     const configs = parsePipelineConfig(pipelineObj);
 
-    // 检测废弃字段
-    let hasDeprecatedFields = false;
+    // 迁移废弃字段
     const objKeys = Object.keys(pipelineObj);
-    for (const objKey of objKeys) {
-      const obj = pipelineObj[objKey];
-      if (obj && typeof obj === "object") {
-        if ("interrupt" in obj || "is_sub" in obj) {
-          hasDeprecatedFields = true;
-          break;
-        }
-      }
-    }
-    if (hasDeprecatedFields) {
-      Modal.error({
-        title: "导入失败：检测到已废弃字段",
-        content: React.createElement(
-          "div",
-          null,
-          React.createElement(
-            "p",
-            null,
-            "MFW v5.1 后已废除 interrupt 与 is_sub 字段。"
-          ),
-          React.createElement("p", null, "请使用以下方式之一处理："),
-          React.createElement(
-            "ol",
-            { style: { paddingLeft: "20px", marginTop: "8px" } },
-            React.createElement(
-              "li",
-              { style: { marginBottom: "8px" } },
-              "使用官方提供的升级脚本进行迁移：",
-              React.createElement("br"),
-              React.createElement(
-                "a",
-                {
-                  href: "https://github.com/MaaXYZ/MaaFramework/blob/main/tools/migrate_pipeline_v5.py",
-                  target: "_blank",
-                  rel: "noopener noreferrer",
-                  style: { color: "#1890ff" },
-                },
-                "migrate_pipeline_v5.py"
-              )
-            ),
-            React.createElement(
-              "li",
-              null,
-              "在 MPE 导航栏版本选择下拉菜单使用旧版快照"
-            )
-          )
-        ),
-        width: 500,
-      });
-      return false;
-    }
+    migratePipelineV5(pipelineObj, objKeys);
 
     // 解析节点
     let nodes: NodeType[] = [];
