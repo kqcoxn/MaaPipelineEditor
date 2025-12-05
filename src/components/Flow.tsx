@@ -7,6 +7,7 @@ import {
   useEffect,
   useMemo,
   memo,
+  useState,
   type RefObject,
 } from "react";
 import {
@@ -24,16 +25,12 @@ import {
 } from "@xyflow/react";
 import { useDebounceEffect } from "ahooks";
 
-import {
-  useFlowStore,
-  type EdgeType,
-  type NodeType,
-} from "../stores/flow";
-import { useConfigStore } from "../stores/configStore";
+import { useFlowStore, type EdgeType, type NodeType } from "../stores/flow";
 import { useClipboardStore } from "../stores/clipboardStore";
 import { nodeTypes } from "./flow/nodes";
 import { edgeTypes } from "./flow/edges";
 import { localSave, useFileStore } from "../stores/fileStore";
+import NodeAddPanel from "./panels/NodeAddPanel";
 
 /**工作流 */
 // 按键监听
@@ -100,16 +97,27 @@ const ViewportChangeMonitor = memo(() => {
 });
 // 更新器
 const UpdateMonitor = memo(() => {
-  const debouncedSelectedNodes = useFlowStore((state) => state.debouncedSelectedNodes);
-  const debouncedSelectedEdges = useFlowStore((state) => state.debouncedSelectedEdges);
-  const debouncedTargetNode = useFlowStore((state) => state.debouncedTargetNode);
+  const debouncedSelectedNodes = useFlowStore(
+    (state) => state.debouncedSelectedNodes
+  );
+  const debouncedSelectedEdges = useFlowStore(
+    (state) => state.debouncedSelectedEdges
+  );
+  const debouncedTargetNode = useFlowStore(
+    (state) => state.debouncedTargetNode
+  );
   const filesLength = useFileStore((state) => state.files.length);
 
   useDebounceEffect(
     () => {
       localSave();
     },
-    [debouncedSelectedNodes, debouncedSelectedEdges, debouncedTargetNode, filesLength],
+    [
+      debouncedSelectedNodes,
+      debouncedSelectedEdges,
+      debouncedTargetNode,
+      filesLength,
+    ],
     {
       wait: 500,
     }
@@ -117,6 +125,50 @@ const UpdateMonitor = memo(() => {
 
   return null;
 });
+
+// 节点添加面板控制器
+interface NodeAddPanelControllerProps {
+  visible: boolean;
+  screenPos: { x: number; y: number };
+  setVisible: (v: boolean) => void;
+  setScreenPos: (pos: { x: number; y: number }) => void;
+  onClose: () => void;
+}
+const NodeAddPanelController = memo(
+  ({
+    visible,
+    screenPos,
+    setVisible,
+    setScreenPos,
+    onClose,
+  }: NodeAddPanelControllerProps) => {
+    const { screenToFlowPosition } = useReactFlow();
+
+    // 实时计算 flow 坐标
+    const flowPos = useMemo(() => {
+      if (!visible) return undefined;
+      return screenToFlowPosition(screenPos);
+    }, [visible, screenPos, screenToFlowPosition]);
+
+    // 在新位置重新打开
+    const handleReopen = useCallback(
+      (newPos: { x: number; y: number }) => {
+        setScreenPos(newPos);
+      },
+      [setScreenPos]
+    );
+
+    return (
+      <NodeAddPanel
+        visible={visible}
+        position={screenPos}
+        flowPosition={flowPos}
+        onClose={onClose}
+        onReopen={handleReopen}
+      />
+    );
+  }
+);
 
 function MainFlow() {
   // store
@@ -129,6 +181,10 @@ function MainFlow() {
   const updateSelection = useFlowStore((state) => state.updateSelection);
   const selfElem = useRef<HTMLDivElement>(null);
 
+  // 节点添加面板状态
+  const [nodeAddPanelVisible, setNodeAddPanelVisible] = useState(false);
+  const [nodeAddPanelPos, setNodeAddPanelPos] = useState({ x: 0, y: 0 });
+
   // 回调
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => updateNodes(changes),
@@ -139,12 +195,41 @@ function MainFlow() {
     []
   );
   const onConnect = useCallback((co: Connection) => addEdge(co), []);
-  const onSelectionChange = useCallback(
-    (params: OnSelectionChangeParams) => {
-      updateSelection(params.nodes as NodeType[], params.edges as EdgeType[]);
+  const onSelectionChange = useCallback((params: OnSelectionChangeParams) => {
+    updateSelection(params.nodes as NodeType[], params.edges as EdgeType[]);
+  }, []);
+
+  // 双击空白区域打开节点添加面板
+  const onPaneClick = useCallback(
+    (event: React.MouseEvent | MouseEvent) => {
+      // 单击关闭面板
+      if (nodeAddPanelVisible) {
+        setNodeAddPanelVisible(false);
+      }
+    },
+    [nodeAddPanelVisible]
+  );
+
+  // 双击处理
+  const onDoubleClick = useCallback((event: React.MouseEvent | MouseEvent) => {
+    setNodeAddPanelPos({ x: event.clientX, y: event.clientY });
+    setNodeAddPanelVisible(true);
+  }, []);
+
+  // 右键空白区域打开节点添加面板
+  const onPaneContextMenu = useCallback(
+    (event: React.MouseEvent | MouseEvent) => {
+      event.preventDefault();
+      setNodeAddPanelPos({ x: event.clientX, y: event.clientY });
+      setNodeAddPanelVisible(true);
     },
     []
   );
+
+  // 关闭节点添加面板
+  const closeNodeAddPanel = useCallback(() => {
+    setNodeAddPanelVisible(false);
+  }, []);
 
   // 记忆
   const defaultViewport = useMemo(() => ({ x: 0, y: 0, zoom: 1.5 }), []);
@@ -184,6 +269,9 @@ function MainFlow() {
         defaultViewport={defaultViewport}
         minZoom={0.2}
         maxZoom={2.5}
+        onPaneClick={onPaneClick}
+        onDoubleClick={onDoubleClick}
+        onPaneContextMenu={onPaneContextMenu}
       >
         <Background />
         <Controls orientation={"horizontal"} />
@@ -191,6 +279,13 @@ function MainFlow() {
         <ViewportChangeMonitor />
         <KeyListener targetRef={selfElem} />
         <UpdateMonitor />
+        <NodeAddPanelController
+          visible={nodeAddPanelVisible}
+          screenPos={nodeAddPanelPos}
+          setVisible={setNodeAddPanelVisible}
+          setScreenPos={setNodeAddPanelPos}
+          onClose={closeNodeAddPanel}
+        />
       </ReactFlow>
     </div>
   );

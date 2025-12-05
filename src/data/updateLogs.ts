@@ -26,10 +26,14 @@ export interface UpdateLogItem {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "0.8.2",
-    date: "2025-12-",
+    date: "2025-12",
     type: "feature",
     updates: {
-      features: [],
+      features: [
+        "全新现代主题（可在设置面板切回旧版主题）",
+        "节点搜索功能（with AI）",
+      ],
+      perfs: ["自动迁移 interrupt 与 is_sub 字段"],
     },
   },
   {

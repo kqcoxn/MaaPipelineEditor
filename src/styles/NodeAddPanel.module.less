@@ -1,0 +1,367 @@
+@import "./global.less";
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+}
+
+.panel {
+  position: fixed;
+  z-index: 101;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
+  display: flex;
+  overflow: hidden;
+  min-width: 520px;
+  max-width: 600px;
+  max-height: 420px;
+  animation: fadeIn 0.15s ease-out;
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  // 反转布局
+  &.reversed {
+    flex-direction: row-reverse;
+
+    .previewSection {
+      border-right: none;
+      border-left: 1px solid #e8e8e8;
+    }
+  }
+}
+
+// 左侧预览区域
+.previewSection {
+  width: 240px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #f0f2f5 100%);
+  border-right: 1px solid #e8e8e8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+
+  .previewTitle {
+    font-size: 12px;
+    color: #999;
+    margin-bottom: 12px;
+  }
+
+  .previewContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1;
+    width: 100%;
+    transform: scale(0.9);
+    transform-origin: center center;
+  }
+
+  .emptyPreview {
+    color: #bbb;
+    font-size: 13px;
+    text-align: center;
+  }
+}
+
+// 右侧列表区域
+.listSection {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: #fff;
+}
+
+.searchBox {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+
+  :global {
+    .ant-input-affix-wrapper {
+      border-radius: 8px;
+      background-color: #f5f5f5;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+
+      &:hover,
+      &:focus,
+      &.ant-input-affix-wrapper-focused {
+        background-color: #fff;
+        border-color: #1890ff;
+        box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+      }
+    }
+
+    .ant-input {
+      background: transparent;
+    }
+  }
+}
+
+.templateList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #ddd;
+    border-radius: 3px;
+
+    &:hover {
+      background: #ccc;
+    }
+  }
+}
+
+.templateItem {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-bottom: 4px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  &:hover {
+    background-color: #f5f7fa;
+  }
+
+  &.active {
+    background-color: #e6f4ff;
+    box-shadow: inset 0 0 0 1px rgba(24, 144, 255, 0.3);
+  }
+
+  .templateIcon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    margin-right: 12px;
+    flex-shrink: 0;
+  }
+
+  .templateInfo {
+    flex: 1;
+    min-width: 0;
+
+    .templateName {
+      font-size: 14px;
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 2px;
+      .ellipsis();
+    }
+
+    .templateDesc {
+      font-size: 11px;
+      color: #999;
+      .ellipsis();
+    }
+  }
+
+  .addBtn {
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    background-color: rgba(24, 144, 255, 0.85);
+    color: #fff;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+
+    &:hover {
+      background-color: #1890ff;
+      transform: scale(1.05);
+    }
+  }
+
+  &:hover .addBtn,
+  &.active .addBtn {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.emptyList {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: #999;
+
+  .emptyIcon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    opacity: 0.3;
+  }
+
+  .emptyText {
+    font-size: 13px;
+  }
+}
+
+// 节点预览样式
+.previewNode {
+  width: 200px;
+  padding: 0;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: solid 1px #e0e0e0;
+  background-color: white;
+  font-size: 12px;
+  pointer-events: none;
+
+  .previewHeader {
+    border-radius: 6px 6px 0 0;
+    display: flex;
+    align-items: center;
+    padding: 8px 10px;
+    background-color: #f4f5f8;
+    border-bottom: 1px solid #e8e8e8;
+    min-height: 32px;
+
+    .headerLeft {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+
+      span {
+        display: flex;
+        align-items: center;
+      }
+
+      .typeIcon {
+        color: #666;
+      }
+    }
+
+    .headerTitle {
+      flex: 1;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 500;
+      color: #333;
+      padding: 0 8px;
+      word-break: break-word;
+      line-height: 1.3;
+    }
+
+    .headerRight {
+      flex-shrink: 0;
+
+      .moreBtn {
+        width: 22px;
+        height: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        color: #999;
+      }
+    }
+  }
+
+  .previewContent {
+    padding: 8px 10px;
+
+    .section {
+      margin-bottom: 6px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      .sectionHeader {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 9px;
+        font-weight: 500;
+        margin-bottom: 4px;
+        padding: 2px 0;
+
+        span {
+          font-size: 10px;
+        }
+      }
+
+      .recoHeader {
+        color: #1890ff;
+      }
+
+      .actionHeader {
+        color: #fa8c16;
+      }
+
+      .otherHeader {
+        color: gray;
+      }
+    }
+  }
+}
+
+// 快捷键提示
+.shortcutHint {
+  padding: 8px 16px;
+  border-top: 1px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #999;
+  background-color: #fafafa;
+
+  .hintItem {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    kbd {
+      display: inline-block;
+      padding: 2px 6px;
+      font-size: 10px;
+      font-family: inherit;
+      background-color: #fff;
+      border: 1px solid #d9d9d9;
+      border-radius: 4px;
+      box-shadow: inset 0 -1px 0 #d9d9d9;
+    }
+  }
+}

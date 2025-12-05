@@ -4,7 +4,7 @@ import { create } from "zustand";
 export const globalConfig = {
   dev: true,
   version: `0.8.2`,
-  betaIteration: 2,
+  betaIteration: 3,
   mfwVersion: "5.1",
 };
 
@@ -44,6 +44,7 @@ type ConfigState = {
   status: {
     showConfigPanel: boolean;
     showAIHistoryPanel: boolean;
+    rightPanelWidth: number;
   };
   setStatus: <K extends keyof ConfigState["status"]>(
     key: K,
@@ -86,7 +87,11 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     });
   },
   // 状态
-  status: { showConfigPanel: false, showAIHistoryPanel: false },
+  status: {
+    showConfigPanel: false,
+    showAIHistoryPanel: false,
+    rightPanelWidth: 350,
+  },
   setStatus(key, value) {
     set((state) => ({
       status: { ...state.status, [key]: value },

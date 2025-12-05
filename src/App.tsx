@@ -13,6 +13,7 @@ import {
 const { Header: HeaderSection, Content } = Layout;
 
 import { useFileStore } from "./stores/fileStore";
+import { useConfigStore } from "./stores/configStore";
 
 import Header from "./components/Header";
 import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
@@ -154,7 +155,16 @@ function App() {
           </HeaderSection>
           <Content className={style.content}>
             <FilePanel />
-            <Splitter className={style.workspace}>
+            <Splitter
+              className={style.workspace}
+              onResizeEnd={(sizes) => {
+                if (sizes.length >= 2 && typeof sizes[1] === "number") {
+                  useConfigStore
+                    .getState()
+                    .setStatus("rightPanelWidth", sizes[1]);
+                }
+              }}
+            >
               <Splitter.Panel className={style.left}>
                 <MainFlow />
                 <FieldPanel />

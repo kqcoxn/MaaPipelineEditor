@@ -4,7 +4,6 @@ import type {
   FlowStore,
   FlowNodeState,
   NodeType,
-  PositionType,
 } from "../types";
 import {
   NodeTypeEnum,
