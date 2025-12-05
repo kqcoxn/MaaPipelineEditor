@@ -93,6 +93,12 @@ function GlobalPanel() {
         onClick: () => setStatus("showConfigPanel", true),
       },
       {
+        label: "AI 对话历史",
+        iconName: "icon-jiqiren",
+        iconSize: 26,
+        onClick: () => setStatus("showAIHistoryPanel", true),
+      },
+      {
         label: "复制 (Ctrl+C)",
         iconName: "icon-a-copyfubenfuzhi",
         iconSize: 25,

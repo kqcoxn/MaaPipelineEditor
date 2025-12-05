@@ -139,6 +139,7 @@ function SearchPanel() {
     }
 
     setAiSearching(true);
+    const userInput = searchValue.trim();
 
     try {
       // 构建节点上下文
@@ -148,9 +149,8 @@ function SearchPanel() {
         return;
       }
 
-      // 创建AI实例
-      const aiChat = new OpenAIChat({
-        systemPrompt: `你是一个节点搜索助手。用户会给你一个节点列表和搜索需求，你需要找到最匹配的节点。
+      // 构建提示词
+      const systemPrompt = `你是一个节点搜索助手。用户会给你一个节点列表和搜索需求，你需要找到最匹配的节点。
 
 重要规则：
 1. 仅返回最匹配的节点名称（label字段的值），不要有任何其他说明文字
@@ -165,14 +165,18 @@ function SearchPanel() {
 7. 根据用户描述，从节点的识别内容、动作内容、配置参数等维度综合判断最匹配的节点
 
 节点列表：
-${JSON.stringify(nodesContext, null, 2)}`,
+${JSON.stringify(nodesContext, null, 2)}`;
+
+      // 创建AI实例
+      const aiChat = new OpenAIChat({
+        systemPrompt,
         historyLimit: 0,
       });
 
       aiChatRef.current = aiChat;
 
       // 发送搜索请求
-      const result = await aiChat.send(searchValue.trim());
+      const result = await aiChat.send(userInput, userInput);
 
       if (!result.success) {
         message.error(`AI搜索失败: ${result.error}`);

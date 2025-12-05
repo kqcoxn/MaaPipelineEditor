@@ -24,6 +24,7 @@ import ToolPanel from "./components/panels/ToolPanel";
 import SearchPanel from "./components/panels/SearchPanel";
 import FilePanel from "./components/panels/FilePanel";
 import ConfigPanel from "./components/panels/ConfigPanel";
+import AIHistoryPanel from "./components/panels/AIHistoryPanel";
 import ErrorPanel from "./components/panels/ErrorPanel";
 import { pipelineToFlow } from "./core/parser";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -159,6 +160,7 @@ function App() {
                 <FieldPanel />
                 <EdgePanel />
                 <ConfigPanel />
+                <AIHistoryPanel />
                 <ToolPanel.Add />
                 <ToolPanel.Global />
                 <SearchPanel />
