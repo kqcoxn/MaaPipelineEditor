@@ -166,7 +166,24 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       if (nodeIndex < 0) return {};
 
       let nodes = [...state.nodes];
-      let targetNode = { ...nodes[nodeIndex] } as any;
+      const originalNode = nodes[nodeIndex] as any;
+      
+      // 深拷贝节点及其 data，确保引用变化能被 React 检测到
+      let targetNode = {
+        ...originalNode,
+        data: {
+          ...originalNode.data,
+          recognition: originalNode.data.recognition ? {
+            ...originalNode.data.recognition,
+            param: { ...originalNode.data.recognition.param },
+          } : undefined,
+          action: originalNode.data.action ? {
+            ...originalNode.data.action,
+            param: { ...originalNode.data.action.param },
+          } : undefined,
+          others: originalNode.data.others ? { ...originalNode.data.others } : undefined,
+        },
+      };
 
       // 数据处理
       if (Array.isArray(value)) value = [...value];

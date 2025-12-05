@@ -73,6 +73,51 @@
   left: 10px;
 }
 
+.search-panel {
+  top: 14px;
+  left: 300px;
+  display: flex;
+  align-items: center;
+  padding: 4px 4px;
+  gap: 8px;
+
+  .search-input {
+    width: 220px;
+  }
+
+  .search-buttons {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    .search-icon {
+      cursor: pointer;
+      transition: all 0.2s ease;
+      padding: 4px;
+      border-radius: 4px;
+
+      &:hover {
+        transform: scale(1.1);
+      }
+    }
+
+    .devider {
+      height: 20px;
+      width: 5px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      > div {
+        background-color: rgba(gray, 0.3);
+        border-radius: 60px;
+        height: 100%;
+        width: 2px;
+      }
+    }
+  }
+}
+
 .layout-panel {
   bottom: 20px;
   right: 20px;

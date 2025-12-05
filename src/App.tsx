@@ -21,6 +21,7 @@ import JsonViewer from "./components/JsonViewer";
 import FieldPanel from "./components/panels/FieldPanel";
 import EdgePanel from "./components/panels/EdgePanel";
 import ToolPanel from "./components/panels/ToolPanel";
+import SearchPanel from "./components/panels/SearchPanel";
 import FilePanel from "./components/panels/FilePanel";
 import ConfigPanel from "./components/panels/ConfigPanel";
 import ErrorPanel from "./components/panels/ErrorPanel";
@@ -160,6 +161,7 @@ function App() {
                 <ConfigPanel />
                 <ToolPanel.Add />
                 <ToolPanel.Global />
+                <SearchPanel />
                 <ToolPanel.Layout />
                 <ErrorPanel />
               </Splitter.Panel>
