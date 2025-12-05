@@ -3,11 +3,7 @@ import type { DragEndEvent } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 import { notification } from "antd";
 
-import {
-  useFlowStore,
-  type NodeType,
-  type EdgeType,
-} from "./flow";
+import { useFlowStore, type NodeType, type EdgeType } from "./flow";
 import { useConfigStore } from "./configStore";
 
 export type FileConfigType = {
@@ -238,7 +234,7 @@ export const useFileStore = create<FileState>()((set) => ({
     try {
       if (!files) {
         const config = localStorage.getItem("_mpe_config");
-        if (config) useConfigStore.getState().replaceConfig(config);
+        if (config) useConfigStore.getState().replaceConfig(JSON.parse(config));
         const ls = localStorage.getItem("_mpe_files");
         if (!ls) return Error.call("未找到本地files缓存");
         files = JSON.parse(ls) as FileType[];

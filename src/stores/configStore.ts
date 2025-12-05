@@ -30,6 +30,10 @@ type ConfigState = {
     wsConnected: boolean;
     wsConnecting: boolean;
     wsAutoConnect: boolean;
+    // AI 配置
+    aiApiUrl: string;
+    aiApiKey: string;
+    aiModel: string;
   };
   setConfig: <K extends keyof ConfigState["configs"]>(
     key: K,
@@ -60,6 +64,10 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     wsConnected: false,
     wsConnecting: false,
     wsAutoConnect: false,
+    // AI 配置
+    aiApiUrl: "",
+    aiApiKey: "",
+    aiModel: "",
   },
   setConfig(key, value) {
     set((state) => ({

@@ -17,7 +17,6 @@ import {
   createAnchorNode,
   findNodeByLabel,
   findNodeIndexById,
-  getSelectedNodes,
   calcuNodePosition,
 } from "../utils/nodeUtils";
 import { fitFlowView } from "../utils/viewportUtils";
@@ -35,8 +34,6 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
     set((state) => {
       const updatedNodes = applyNodeChanges(changes, state.nodes);
       const nodes = updatedNodes as NodeType[];
-      const selectedNodes = getSelectedNodes(updatedNodes as NodeType[]);
-      get().updateSelection(selectedNodes, state.selectedEdges);
       return { nodes };
     });
 
@@ -167,21 +164,27 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
 
       let nodes = [...state.nodes];
       const originalNode = nodes[nodeIndex] as any;
-      
+
       // 深拷贝节点及其 data，确保引用变化能被 React 检测到
       let targetNode = {
         ...originalNode,
         data: {
           ...originalNode.data,
-          recognition: originalNode.data.recognition ? {
-            ...originalNode.data.recognition,
-            param: { ...originalNode.data.recognition.param },
-          } : undefined,
-          action: originalNode.data.action ? {
-            ...originalNode.data.action,
-            param: { ...originalNode.data.action.param },
-          } : undefined,
-          others: originalNode.data.others ? { ...originalNode.data.others } : undefined,
+          recognition: originalNode.data.recognition
+            ? {
+                ...originalNode.data.recognition,
+                param: { ...originalNode.data.recognition.param },
+              }
+            : undefined,
+          action: originalNode.data.action
+            ? {
+                ...originalNode.data.action,
+                param: { ...originalNode.data.action.param },
+              }
+            : undefined,
+          others: originalNode.data.others
+            ? { ...originalNode.data.others }
+            : undefined,
         },
       };
 

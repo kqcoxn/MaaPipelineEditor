@@ -3,11 +3,7 @@ import type { Node, NodeProps } from "@xyflow/react";
 import classNames from "classnames";
 
 import style from "../../../../styles/nodes.module.less";
-import {
-  useFlowStore,
-  type PipelineNodeDataType,
-  type NodeType,
-} from "../../../../stores/flow";
+import type { PipelineNodeDataType } from "../../../../stores/flow";
 import { useConfigStore } from "../../../../stores/configStore";
 import { NodeTypeEnum } from "../constants";
 import { ModernContent } from "./ModernContent";
@@ -17,9 +13,6 @@ type PNodeData = Node<PipelineNodeDataType, NodeTypeEnum.Pipeline>;
 
 /**Pipeline节点组件 */
 export function PipelineNode(props: NodeProps<PNodeData>) {
-  const targetNode = useFlowStore((state) => state.targetNode) as
-    | NodeType
-    | undefined;
   const nodeStyle = useConfigStore((state) => state.configs.nodeStyle);
 
   const nodeClass = useMemo(
