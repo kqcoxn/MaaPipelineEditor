@@ -135,7 +135,7 @@ export const useFileStore = create<FileState>()((set) => ({
     });
     if (!isValid) {
       notification.warning({
-        message: `重复的文件名`,
+        title: `重复的文件名`,
         description:
           "预检测到目标文件名与现有文件重复，请使用不同的名称命名文件；若仅为中间状态，请先输入后续部分以区分。",
         placement: "topLeft",

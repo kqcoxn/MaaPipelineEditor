@@ -1,11 +1,13 @@
 import style from "../../styles/ToolPanel.module.less";
 import { memo, useMemo, useState, useCallback, useRef, useEffect } from "react";
-import { message, Tooltip, AutoComplete } from "antd";
+import { message, Tooltip, AutoComplete, Spin } from "antd";
 import type { AutoCompleteProps } from "antd";
 import classNames from "classnames";
 import { useDebounceFn } from "ahooks";
 import IconFont from "../iconfonts";
 import { useFlowStore, type NodeType } from "../../stores/flow";
+import { OpenAIChat } from "../../utils/openai";
+import { NodeTypeEnum } from "../flow/nodes";
 
 /**搜索工具 */
 function SearchPanel() {
@@ -18,7 +20,9 @@ function SearchPanel() {
   const [options, setOptions] = useState<AutoCompleteProps["options"]>([]);
   const [isFocused, setIsFocused] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [aiSearching, setAiSearching] = useState(false);
   const searchRef = useRef<any>(null);
+  const aiChatRef = useRef<OpenAIChat | null>(null);
 
   // 获取所有节点标签列表
   const getAllNodeLabels = useCallback(() => {
@@ -98,10 +102,100 @@ function SearchPanel() {
     }
   }, [searchValue, focusNode]);
 
+  // 构建节点上下文信息
+  const buildNodesContext = useCallback(() => {
+    return nodes.map((node: NodeType) => {
+      const baseInfo = {
+        label: node.data.label,
+        type: node.type,
+      };
+
+      // Pipeline 节点包含识别和动作信息
+      if (node.type === NodeTypeEnum.Pipeline) {
+        const pipelineNode = node as any;
+        return {
+          ...baseInfo,
+          recognition: {
+            type: pipelineNode.data.recognition?.type || "无",
+            param: pipelineNode.data.recognition?.param || {},
+          },
+          action: {
+            type: pipelineNode.data.action?.type || "无",
+            param: pipelineNode.data.action?.param || {},
+          },
+          others: pipelineNode.data.others || {},
+        };
+      }
+
+      return baseInfo;
+    });
+  }, [nodes]);
+
   // AI搜索
-  const handleAISearchClick = useCallback(() => {
-    message.info("AI搜索功能开发中...");
-  }, []);
+  const handleAISearchClick = useCallback(async () => {
+    if (!searchValue.trim()) {
+      message.info("请输入搜索内容");
+      return;
+    }
+
+    setAiSearching(true);
+
+    try {
+      // 构建节点上下文
+      const nodesContext = buildNodesContext();
+      if (nodesContext.length === 0) {
+        message.warning("当前没有任何节点");
+        return;
+      }
+
+      // 创建AI实例
+      const aiChat = new OpenAIChat({
+        systemPrompt: `你是一个节点搜索助手。用户会给你一个节点列表和搜索需求，你需要找到最匹配的节点。
+
+重要规则：
+1. 仅返回最匹配的节点名称（label字段的值），不要有任何其他说明文字
+2. 如果没有任何相关节点，返回：NOT_FOUND
+3. 节点类型说明：pipeline=流程节点，external=外部节点，anchor=锚点节点
+4. 对于pipeline节点：
+   - recognition 是识别方式，包含 type（识别类型）和 param（具体参数）
+   - action 是动作方式，包含 type（动作类型）和 param（具体参数）
+   - others 是其他配置参数
+5. 识别常见字段：template（模板图片）、threshold（阈值）、roi（识别区域）、expected（期望文本）等
+6. 动作常见字段：target（目标位置）、input_text（输入文本）、package（应用包名）等
+7. 根据用户描述，从节点的识别内容、动作内容、配置参数等维度综合判断最匹配的节点
+
+节点列表：
+${JSON.stringify(nodesContext, null, 2)}`,
+        historyLimit: 0,
+      });
+
+      aiChatRef.current = aiChat;
+
+      // 发送搜索请求
+      const result = await aiChat.send(searchValue.trim());
+
+      if (!result.success) {
+        message.error(`AI搜索失败: ${result.error}`);
+        return;
+      }
+
+      const response = result.content.trim();
+
+      // 检查是否找到节点
+      if (response === "NOT_FOUND") {
+        message.warning("未找到相关节点");
+        return;
+      }
+
+      // 定位到节点
+      focusNode(response);
+    } catch (error: any) {
+      message.error(`AI搜索异常: ${error.message || "未知错误"}`);
+    } finally {
+      setAiSearching(false);
+      aiChatRef.current = null;
+    }
+  }, [searchValue, buildNodesContext, focusNode]);
 
   // 处理输入变化
   const handleChange = useCallback(
@@ -173,15 +267,32 @@ function SearchPanel() {
         <div className={style.devider}>
           <div></div>
         </div>
-        <Tooltip placement="bottom" title="AI搜索（开发中）">
-          <IconFont
-            className={style["search-icon"]}
-            name="icon-AIsousuo"
-            size={28}
-            color={"#5f50ff"}
-            onClick={handleAISearchClick}
-            style={{ marginRight: 6 }}
-          />
+        <Tooltip
+          placement="bottom"
+          title={aiSearching ? "AI搜索中..." : "AI智能搜索"}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 28,
+              height: 28,
+              marginRight: 6,
+            }}
+          >
+            {aiSearching ? (
+              <Spin size="small" />
+            ) : (
+              <IconFont
+                className={style["search-icon"]}
+                name="icon-AIsousuo"
+                size={28}
+                color={"#5f50ff"}
+                onClick={handleAISearchClick}
+              />
+            )}
+          </div>
         </Tooltip>
       </div>
     </div>

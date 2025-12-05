@@ -165,7 +165,7 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       let nodes = [...state.nodes];
       const originalNode = nodes[nodeIndex] as any;
 
-      // 深拷贝节点及其 data，确保引用变化能被 React 检测到
+      // 深拷贝节点
       let targetNode = {
         ...originalNode,
         data: {
