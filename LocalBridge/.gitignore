@@ -18,11 +18,9 @@ cover.out
 /out/
 
 # Go build cache
-/pkg/
 /bin/
 
 # Go module support
-/go.sum
 /vendor/
 
 # Local development files

@@ -10,7 +10,7 @@ import (
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 )
 
-// ChangeType 文件变化类型
+// 文件变化类型
 type ChangeType string
 
 const (
@@ -19,16 +19,16 @@ const (
 	ChangeTypeDeleted  ChangeType = "deleted"
 )
 
-// FileChange 文件变化事件
+// 文件变化事件
 type FileChange struct {
 	Type     ChangeType
 	FilePath string
 }
 
-// ChangeHandler 文件变化处理函数类型
+// 文件变化处理函数类型
 type ChangeHandler func(change FileChange)
 
-// Watcher 文件监听器
+// 文件监听器
 type Watcher struct {
 	watcher    *fsnotify.Watcher
 	root       string
@@ -37,7 +37,7 @@ type Watcher struct {
 	debouncer  *debouncer
 }
 
-// NewWatcher 创建文件监听器
+// 创建文件监听器
 func NewWatcher(root string, extensions []string, handler ChangeHandler) (*Watcher, error) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -55,7 +55,7 @@ func NewWatcher(root string, extensions []string, handler ChangeHandler) (*Watch
 	return w, nil
 }
 
-// Start 启动文件监听
+// 启动文件监听
 func (w *Watcher) Start() error {
 	// 递归添加所有子目录到监听
 	err := filepath.Walk(w.root, func(path string, info os.FileInfo, err error) error {
@@ -79,7 +79,7 @@ func (w *Watcher) Start() error {
 	return nil
 }
 
-// Stop 停止文件监听
+// 停止文件监听
 func (w *Watcher) Stop() {
 	if w.watcher != nil {
 		w.watcher.Close()
@@ -88,7 +88,7 @@ func (w *Watcher) Stop() {
 	logger.Info("FileWatcher", "文件监听器已停止")
 }
 
-// handleEvents 处理文件系统事件
+// 处理文件系统事件
 func (w *Watcher) handleEvents() {
 	for {
 		select {
@@ -107,7 +107,7 @@ func (w *Watcher) handleEvents() {
 	}
 }
 
-// processEvent 处理单个文件系统事件
+// 处理单个文件系统事件
 func (w *Watcher) processEvent(event fsnotify.Event) {
 	// 检查文件扩展名
 	if !w.hasValidExtension(event.Name) {
@@ -123,7 +123,7 @@ func (w *Watcher) processEvent(event fsnotify.Event) {
 	} else if event.Op&fsnotify.Remove == fsnotify.Remove {
 		changeType = ChangeTypeDeleted
 	} else {
-		return // 忽略其他类型的事件
+		return 
 	}
 
 	// 使用防抖处理
@@ -137,7 +137,7 @@ func (w *Watcher) processEvent(event fsnotify.Event) {
 	})
 }
 
-// hasValidExtension 检查文件是否具有有效的扩展名
+// 检查文件是否具有有效的扩展名
 func (w *Watcher) hasValidExtension(path string) bool {
 	ext := strings.ToLower(filepath.Ext(path))
 	for _, validExt := range w.extensions {
@@ -148,14 +148,14 @@ func (w *Watcher) hasValidExtension(path string) bool {
 	return false
 }
 
-// debouncer 防抖器
+// 防抖器
 type debouncer struct {
 	delay   time.Duration
 	timers  map[string]*time.Timer
 	stopped bool
 }
 
-// newDebouncer 创建防抖器
+// 创建防抖器
 func newDebouncer(delay time.Duration) *debouncer {
 	return &debouncer{
 		delay:  delay,
@@ -163,7 +163,7 @@ func newDebouncer(delay time.Duration) *debouncer {
 	}
 }
 
-// debounce 对指定键的函数调用进行防抖
+// 对指定键的函数调用进行防抖
 func (d *debouncer) debounce(key string, fn func()) {
 	if d.stopped {
 		return
@@ -181,7 +181,7 @@ func (d *debouncer) debounce(key string, fn func()) {
 	})
 }
 
-// stop 停止所有定时器
+// 停止所有定时器
 func (d *debouncer) stop() {
 	d.stopped = true
 	for _, timer := range d.timers {

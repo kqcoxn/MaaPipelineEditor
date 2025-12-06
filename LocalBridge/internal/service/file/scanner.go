@@ -8,14 +8,14 @@ import (
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/pkg/models"
 )
 
-// Scanner 文件扫描器
+// 文件扫描器
 type Scanner struct {
 	root       string   // 根目录
 	exclude    []string // 排除目录列表
 	extensions []string // 包含的文件扩展名
 }
 
-// NewScanner 创建文件扫描器
+// 创建文件扫描器
 func NewScanner(root string, exclude []string, extensions []string) *Scanner {
 	return &Scanner{
 		root:       root,
@@ -24,7 +24,7 @@ func NewScanner(root string, exclude []string, extensions []string) *Scanner {
 	}
 }
 
-// Scan 扫描根目录下所有符合条件的文件
+// 扫描根目录下所有符合条件的文件
 func (s *Scanner) Scan() ([]models.File, error) {
 	var files []models.File
 
@@ -67,7 +67,7 @@ func (s *Scanner) Scan() ([]models.File, error) {
 	return files, err
 }
 
-// shouldExcludeDir 检查目录是否应该被排除
+// 检查目录是否应该被排除
 func (s *Scanner) shouldExcludeDir(dirName string) bool {
 	for _, excluded := range s.exclude {
 		if dirName == excluded {
@@ -77,7 +77,7 @@ func (s *Scanner) shouldExcludeDir(dirName string) bool {
 	return false
 }
 
-// hasValidExtension 检查文件是否具有有效的扩展名
+// 检查文件是否具有有效的扩展名
 func (s *Scanner) hasValidExtension(path string) bool {
 	ext := strings.ToLower(filepath.Ext(path))
 	for _, validExt := range s.extensions {
@@ -88,7 +88,7 @@ func (s *Scanner) hasValidExtension(path string) bool {
 	return false
 }
 
-// ScanSingle 扫描单个文件信息（用于文件变化时的更新）
+// 扫描单个文件信息
 func (s *Scanner) ScanSingle(absPath string) (*models.File, error) {
 	info, err := os.Stat(absPath)
 	if err != nil {

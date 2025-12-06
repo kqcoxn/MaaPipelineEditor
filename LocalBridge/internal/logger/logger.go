@@ -10,15 +10,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Logger 全局日志实例
+// 全局日志实例
 var Logger *logrus.Logger
 
-// LogPushFunc 日志推送函数类型
+// 日志推送函数类型
 type LogPushFunc func(level, module, message string)
 
 var pushFunc LogPushFunc
 
-// Init 初始化日志系统
+// 初始化日志系统
 func Init(logLevel string, logDir string, pushToClient bool) error {
 	Logger = logrus.New()
 
@@ -64,15 +64,15 @@ func Init(logLevel string, logDir string, pushToClient bool) error {
 	return nil
 }
 
-// SetPushFunc 设置日志推送函数
+// 设置日志推送函数
 func SetPushFunc(fn LogPushFunc) {
 	pushFunc = fn
 }
 
-// PushHook 用于推送日志到WebSocket客户端的Hook
+// 推送日志到 WebSocket 客户端 Hook
 type PushHook struct{}
 
-// Levels 返回Hook处理的日志级别
+// 返回 Hook 处理的日志级别
 func (hook *PushHook) Levels() []logrus.Level {
 	return []logrus.Level{
 		logrus.InfoLevel,
@@ -81,7 +81,7 @@ func (hook *PushHook) Levels() []logrus.Level {
 	}
 }
 
-// Fire 在日志记录时触发
+// 在日志记录时触发 Hook
 func (hook *PushHook) Fire(entry *logrus.Entry) error {
 	if pushFunc != nil {
 		module := "System"
@@ -98,29 +98,29 @@ func (hook *PushHook) Fire(entry *logrus.Entry) error {
 	return nil
 }
 
-// WithModule 返回带模块信息的日志Entry
+// 返回带模块信息的日志 Entry
 func WithModule(module string) *logrus.Entry {
 	return Logger.WithField("module", module)
 }
 
-// 便捷日志方法
+// 便捷日志方法 - TODO
 
-// Info 记录INFO级别日志
+// 记录 INFO 级别日志
 func Info(module, message string, args ...interface{}) {
 	WithModule(module).Infof(message, args...)
 }
 
-// Warn 记录WARN级别日志
+// 记录 WARN 级别日志
 func Warn(module, message string, args ...interface{}) {
 	WithModule(module).Warnf(message, args...)
 }
 
-// Error 记录ERROR级别日志
+// 记录 ERROR 级别日志
 func Error(module, message string, args ...interface{}) {
 	WithModule(module).Errorf(message, args...)
 }
 
-// Debug 记录DEBUG级别日志
+// 记录 DEBUG 级别日志
 func Debug(module, message string, args ...interface{}) {
 	WithModule(module).Debugf(message, args...)
 }

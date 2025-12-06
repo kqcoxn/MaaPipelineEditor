@@ -28,7 +28,7 @@ type LogConfig struct {
 	PushToClient bool   `mapstructure:"push_to_client"`
 }
 
-// MaaFWConfig MaaFramework配置（预留）
+// MaaFWConfig MaaFramework配置 - TODO
 type MaaFWConfig struct {
 	Enabled bool   `mapstructure:"enabled"`
 	LibDir  string `mapstructure:"lib_dir"`
@@ -42,17 +42,17 @@ type Config struct {
 	MaaFW  MaaFWConfig  `mapstructure:"maafw"`
 }
 
-// global config instance
+// 全局单例
 var globalConfig *Config
 
-// Load 加载配置
+// 加载配置
 func Load(configPath string) (*Config, error) {
 	v := viper.New()
 
 	// 设置默认值
 	setDefaults(v)
 
-	// 如果指定了配置文件路径
+	// 指定配置文件路径
 	if configPath != "" {
 		v.SetConfigFile(configPath)
 	} else {
@@ -68,7 +68,6 @@ func Load(configPath string) (*Config, error) {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
 			return nil, fmt.Errorf("读取配置文件失败: %w", err)
 		}
-		// 配置文件不存在，使用默认值
 	}
 
 	// 解析配置
@@ -86,29 +85,33 @@ func Load(configPath string) (*Config, error) {
 	return cfg, nil
 }
 
-// GetGlobal 获取全局配置
+// 获取全局配置
 func GetGlobal() *Config {
 	return globalConfig
 }
 
-// setDefaults 设置默认值
+// 设置默认值
 func setDefaults(v *viper.Viper) {
+	// 服务器配置
 	v.SetDefault("server.port", 9066)
 	v.SetDefault("server.host", "localhost")
 
+	// 文件相关配置
 	v.SetDefault("file.root", "./")
 	v.SetDefault("file.exclude", []string{"node_modules", ".git", "dist", "build"})
 	v.SetDefault("file.extensions", []string{".json", ".jsonc"})
 
+	// 日志配置
 	v.SetDefault("log.level", "INFO")
 	v.SetDefault("log.dir", "./logs")
 	v.SetDefault("log.push_to_client", false)
 
+	// MaaFramework 配置
 	v.SetDefault("maafw.enabled", false)
 	v.SetDefault("maafw.lib_dir", "")
 }
 
-// normalize 规范化配置路径
+// 规范化配置路径
 func (c *Config) normalize() error {
 	// 处理文件根目录路径
 	if !filepath.IsAbs(c.File.Root) {
@@ -136,7 +139,7 @@ func (c *Config) normalize() error {
 	return nil
 }
 
-// OverrideFromFlags 从命令行参数覆盖配置
+// 从命令行参数覆盖配置
 func (c *Config) OverrideFromFlags(root, logDir, logLevel string, port int) {
 	if root != "" {
 		c.File.Root = root

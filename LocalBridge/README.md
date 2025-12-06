@@ -43,7 +43,7 @@ Local Bridge (lb) 是连接本地文件系统与 MaaPipelineEditor 前端的桥�
 
 ```bash
 cd LocalBridge
-go build -o lb.exe ./cmd/lb
+go build -o mpelb.exe ./cmd/lb
 ```
 
 ### 运行
@@ -51,25 +51,25 @@ go build -o lb.exe ./cmd/lb
 使用默认配置运行（根目录为当前目录，端口 9066）：
 
 ```bash
-./lb
+mpelb
 ```
 
 指定根目录和端口：
 
 ```bash
-./lb --root ./pipelines --port 9066
+mpelb --root ./pipelines --port 9066
 ```
 
 使用配置文件：
 
 ```bash
-./lb --config ./config/default.json
+mpelb --config ./config/default.json
 ```
 
 完整参数示例：
 
 ```bash
-./lb --root D:/pipelines --port 9066 --log-level DEBUG --log-dir ./logs
+mpelb --root D:/pipelines --port 9066 --log-level DEBUG --log-dir ./logs
 ```
 
 ### 配置文件
@@ -380,5 +380,5 @@ eventBus.Subscribe("event.type", func(event eventbus.Event) {
 
 ## 参考资料
 
-- [Local Bridge 协议规范](./README/Agreement.md)
+- [Local Bridge 协议规范](./Agreement.md)
 - [MaaFramework Go Binding](https://github.com/MaaXYZ/maa-framework-go)

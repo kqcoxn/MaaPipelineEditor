@@ -16,14 +16,14 @@ var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		return true // 允许所有来源
+		return true
 	},
 }
 
-// MessageHandler 消息处理函数类型
+// 消息处理函数类型
 type MessageHandler func(msg models.Message, conn *Connection)
 
-// WebSocketServer WebSocket服务器
+// WebSocket 服务器
 type WebSocketServer struct {
 	host           string
 	port           int
@@ -36,7 +36,7 @@ type WebSocketServer struct {
 	server         *http.Server
 }
 
-// NewWebSocketServer 创建WebSocket服务器
+// 创建 WebSocket 服务器
 func NewWebSocketServer(host string, port int, eventBus *eventbus.EventBus) *WebSocketServer {
 	return &WebSocketServer{
 		host:        host,
@@ -48,21 +48,21 @@ func NewWebSocketServer(host string, port int, eventBus *eventbus.EventBus) *Web
 	}
 }
 
-// SetMessageHandler 设置消息处理器
+// 设置消息处理器
 func (s *WebSocketServer) SetMessageHandler(handler MessageHandler) {
 	s.messageHandler = handler
 }
 
-// Start 启动服务器
+// 启动服务器
 func (s *WebSocketServer) Start() error {
 	// 启动连接管理协程
 	go s.run()
 
-	// 设置HTTP路由
+	// 设置 HTTP 路由
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", s.handleWebSocket)
 
-	// 创建HTTP服务器
+	// 创建 HTTP 服务器
 	s.server = &http.Server{
 		Addr:         fmt.Sprintf("%s:%d", s.host, s.port),
 		Handler:      mux,
@@ -72,7 +72,7 @@ func (s *WebSocketServer) Start() error {
 
 	logger.Info("WebSocket", "服务器启动，监听地址: %s:%d", s.host, s.port)
 
-	// 启动服务器（阻塞）
+	// 启动服务器
 	if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		return fmt.Errorf("服务器启动失败: %w", err)
 	}
@@ -80,7 +80,7 @@ func (s *WebSocketServer) Start() error {
 	return nil
 }
 
-// Stop 停止服务器
+// 停止服务器
 func (s *WebSocketServer) Stop() error {
 	logger.Info("WebSocket", "正在关闭服务器...")
 
@@ -91,7 +91,7 @@ func (s *WebSocketServer) Stop() error {
 	}
 	s.mu.Unlock()
 
-	// 关闭HTTP服务器
+	// 关闭 HTTP 服务器
 	if s.server != nil {
 		return s.server.Close()
 	}
@@ -99,7 +99,7 @@ func (s *WebSocketServer) Stop() error {
 	return nil
 }
 
-// run 运行连接管理
+// 运行连接管理
 func (s *WebSocketServer) run() {
 	for {
 		select {
@@ -129,7 +129,7 @@ func (s *WebSocketServer) run() {
 	}
 }
 
-// handleWebSocket 处理WebSocket连接请求
+// 处理WebSocket连接请求
 func (s *WebSocketServer) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -148,7 +148,7 @@ func (s *WebSocketServer) handleWebSocket(w http.ResponseWriter, r *http.Request
 	go connection.readPump()
 }
 
-// Broadcast 广播消息给所有连接
+// 广播消息给所有连接
 func (s *WebSocketServer) Broadcast(msg models.Message) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -158,7 +158,7 @@ func (s *WebSocketServer) Broadcast(msg models.Message) {
 	}
 }
 
-// GetActiveConnections 获取活跃连接数
+// 获取活跃连接数
 func (s *WebSocketServer) GetActiveConnections() int {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

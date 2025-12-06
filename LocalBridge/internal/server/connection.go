@@ -9,7 +9,7 @@ import (
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/pkg/models"
 )
 
-// Connection WebSocket连接
+// WebSocket 连接
 type Connection struct {
 	ID     string
 	conn   *websocket.Conn
@@ -18,7 +18,7 @@ type Connection struct {
 	mu     sync.Mutex
 }
 
-// newConnection 创建新连接
+// 创建新连接
 func newConnection(id string, conn *websocket.Conn, server *WebSocketServer) *Connection {
 	return &Connection{
 		ID:     id,
@@ -28,7 +28,7 @@ func newConnection(id string, conn *websocket.Conn, server *WebSocketServer) *Co
 	}
 }
 
-// readPump 读取客户端消息
+// 读取客户端消息
 func (c *Connection) readPump() {
 	defer func() {
 		c.server.unregister <- c
@@ -58,29 +58,24 @@ func (c *Connection) readPump() {
 	}
 }
 
-// writePump 向客户端发送消息
+// 向客户端发送消息
 func (c *Connection) writePump() {
 	defer func() {
 		c.conn.Close()
 	}()
 
-	for {
-		select {
-		case message, ok := <-c.send:
-			if !ok {
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				return
-			}
-
-			if err := c.conn.WriteMessage(websocket.TextMessage, message); err != nil {
-				logger.Error("WebSocket", "发送消息失败: %v", err)
-				return
-			}
+	for message := range c.send {
+		if err := c.conn.WriteMessage(websocket.TextMessage, message); err != nil {
+			logger.Error("WebSocket", "发送消息失败: %v", err)
+			return
 		}
 	}
+
+	// 发送关闭消息
+	c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 }
 
-// Send 发送消息到客户端
+// 发送消息到客户端
 func (c *Connection) Send(msg models.Message) error {
 	data, err := json.Marshal(msg)
 	if err != nil {

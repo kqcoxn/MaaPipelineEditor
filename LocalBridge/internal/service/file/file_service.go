@@ -13,7 +13,7 @@ import (
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/pkg/models"
 )
 
-// Service 文件服务
+// 文件服务
 type Service struct {
 	root      string
 	scanner   *Scanner
@@ -23,7 +23,7 @@ type Service struct {
 	eventBus  *eventbus.EventBus
 }
 
-// NewService 创建文件服务实例
+// 创建文件服务实例
 func NewService(root string, exclude []string, extensions []string, eb *eventbus.EventBus) (*Service, error) {
 	s := &Service{
 		root:      root,
@@ -42,7 +42,7 @@ func NewService(root string, exclude []string, extensions []string, eb *eventbus
 	return s, nil
 }
 
-// Start 启动文件服务
+// 启动文件服务
 func (s *Service) Start() error {
 	// 初始扫描
 	files, err := s.scanner.Scan()
@@ -70,14 +70,14 @@ func (s *Service) Start() error {
 	return nil
 }
 
-// Stop 停止文件服务
+// 停止文件服务
 func (s *Service) Stop() {
 	if s.watcher != nil {
 		s.watcher.Stop()
 	}
 }
 
-// GetFileList 获取文件列表
+// 获取文件列表
 func (s *Service) GetFileList() []models.FileInfo {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -90,7 +90,7 @@ func (s *Service) GetFileList() []models.FileInfo {
 	return fileList
 }
 
-// ReadFile 读取文件内容
+// 读取文件内容
 func (s *Service) ReadFile(filePath string) (interface{}, error) {
 	// 验证路径安全性
 	if err := s.validatePath(filePath); err != nil {
@@ -121,14 +121,14 @@ func (s *Service) ReadFile(filePath string) (interface{}, error) {
 	return content, nil
 }
 
-// SaveFile 保存文件
+// 保存文件
 func (s *Service) SaveFile(filePath string, content interface{}) error {
 	// 验证路径安全性
 	if err := s.validatePath(filePath); err != nil {
 		return err
 	}
 
-	// 序列化JSON（格式化输出，缩进2空格）
+	// 序列化 JSON
 	data, err := json.MarshalIndent(content, "", "  ")
 	if err != nil {
 		return errors.NewInvalidJSONError(err)
@@ -143,7 +143,7 @@ func (s *Service) SaveFile(filePath string, content interface{}) error {
 	return nil
 }
 
-// CreateFile 创建新文件
+// 创建新文件
 func (s *Service) CreateFile(directory, fileName string, content interface{}) error {
 	// 验证目录路径安全性
 	if err := s.validatePath(directory); err != nil {
@@ -183,8 +183,7 @@ func (s *Service) CreateFile(directory, fileName string, content interface{}) er
 
 	logger.Info("FileService", "文件创建成功: %s", filePath)
 
-	// 文件监听器会自动检测到新文件并触发事件
-	// 但为了立即响应，手动添加到索引
+	// 添加新文件到索引
 	if fileInfo, err := s.scanner.ScanSingle(filePath); err == nil && fileInfo != nil {
 		s.mu.Lock()
 		s.fileIndex[filePath] = fileInfo
@@ -194,7 +193,7 @@ func (s *Service) CreateFile(directory, fileName string, content interface{}) er
 	return nil
 }
 
-// handleFileChange 处理文件变化事件
+// 处理文件变化事件
 func (s *Service) handleFileChange(change FileChange) {
 	filePath := change.FilePath
 
@@ -228,7 +227,7 @@ func (s *Service) handleFileChange(change FileChange) {
 	})
 }
 
-// validatePath 验证路径安全性
+// 验证路径安全性
 func (s *Service) validatePath(path string) error {
 	// 转换为绝对路径
 	absPath, err := filepath.Abs(path)

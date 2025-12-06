@@ -11,7 +11,7 @@ import (
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/pkg/models"
 )
 
-// Handler 文件协议处理器
+// 文件协议处理器
 type Handler struct {
 	fileService *fileService.Service
 	eventBus    *eventbus.EventBus
@@ -19,7 +19,7 @@ type Handler struct {
 	root        string
 }
 
-// NewHandler 创建文件协议处理器
+// 创建文件协议处理器
 func NewHandler(fileService *fileService.Service, eventBus *eventbus.EventBus, wsServer *server.WebSocketServer, root string) *Handler {
 	h := &Handler{
 		fileService: fileService,
@@ -34,7 +34,7 @@ func NewHandler(fileService *fileService.Service, eventBus *eventbus.EventBus, w
 	return h
 }
 
-// GetRoutePrefix 返回处理的路由前缀
+// 返回处理的路由前缀
 func (h *Handler) GetRoutePrefix() []string {
 	return []string{
 		"/etl/open_file",
@@ -43,7 +43,7 @@ func (h *Handler) GetRoutePrefix() []string {
 	}
 }
 
-// Handle 处理消息
+// 处理消息
 func (h *Handler) Handle(msg models.Message, conn *server.Connection) *models.Message {
 	switch msg.Path {
 	case "/etl/open_file":
@@ -57,7 +57,7 @@ func (h *Handler) Handle(msg models.Message, conn *server.Connection) *models.Me
 	}
 }
 
-// handleOpenFile 处理打开文件请求
+// 处理打开文件请求
 func (h *Handler) handleOpenFile(msg models.Message, conn *server.Connection) *models.Message {
 	// 解析请求
 	var req models.OpenFileRequest
@@ -87,7 +87,7 @@ func (h *Handler) handleOpenFile(msg models.Message, conn *server.Connection) *m
 	}
 }
 
-// handleSaveFile 处理保存文件请求
+// 处理保存文件请求
 func (h *Handler) handleSaveFile(msg models.Message, conn *server.Connection) *models.Message {
 	// 解析请求
 	var req models.SaveFileRequest
@@ -116,7 +116,7 @@ func (h *Handler) handleSaveFile(msg models.Message, conn *server.Connection) *m
 	}
 }
 
-// handleCreateFile 处理创建文件请求
+// 处理创建文件请求
 func (h *Handler) handleCreateFile(msg models.Message, conn *server.Connection) *models.Message {
 	// 解析请求
 	var req models.CreateFileRequest
@@ -141,19 +141,21 @@ func (h *Handler) handleCreateFile(msg models.Message, conn *server.Connection) 
 	return nil
 }
 
-// subscribeEvents 订阅事件
+// 订阅事件
 func (h *Handler) subscribeEvents() {
-	// 订阅连接建立事件，推送文件列表
+	// 订阅连接建立事件
 	h.eventBus.Subscribe(eventbus.EventConnectionEstablished, func(event eventbus.Event) {
+		// 推送文件列表
 		h.pushFileList()
 	})
 
-	// 订阅文件变化事件，推送变化通知
+	// 订阅文件变化事件
 	h.eventBus.Subscribe(eventbus.EventFileChanged, func(event eventbus.Event) {
 		if data, ok := event.Data.(map[string]interface{}); ok {
 			changeType, _ := data["type"].(string)
 			filePath, _ := data["file_path"].(string)
 
+			// 推送变化通知
 			h.wsServer.Broadcast(models.Message{
 				Path: "/lte/file_changed",
 				Data: models.FileChangedData{
@@ -167,7 +169,7 @@ func (h *Handler) subscribeEvents() {
 	})
 }
 
-// pushFileList 推送文件列表
+// 推送文件列表
 func (h *Handler) pushFileList() {
 	fileList := h.fileService.GetFileList()
 
@@ -182,9 +184,9 @@ func (h *Handler) pushFileList() {
 	logger.Info("FileProtocol", "推送文件列表，共 %d 个文件", len(fileList))
 }
 
-// parseData 解析消息数据
+// 解析消息数据
 func (h *Handler) parseData(data interface{}, target interface{}) *errors.LBError {
-	// 将data转为JSON，再解析到target
+	// 将 data 转为 JSON
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		return errors.NewInvalidJSONError(err)
@@ -197,7 +199,7 @@ func (h *Handler) parseData(data interface{}, target interface{}) *errors.LBErro
 	return nil
 }
 
-// sendError 发送错误消息
+// 发送错误消息
 func (h *Handler) sendError(conn *server.Connection, err *errors.LBError) {
 	logger.Error("FileProtocol", err.Error())
 

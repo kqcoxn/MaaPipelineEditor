@@ -1,0 +1,71 @@
+package models
+
+// WebSocket 消息通用结构。
+type Message struct {
+	Path string      `json:"path"` // 路由路径
+	Data interface{} `json:"data"` // 消息数据
+}
+
+// 错误消息
+type ErrorData struct {
+	Code    string      `json:"code"`             // 错误码
+	Message string      `json:"message"`          // 错误描述
+	Detail  interface{} `json:"detail,omitempty"` // 可选的详细信息
+}
+
+// 文件基本信息
+type FileInfo struct {
+	FilePath     string `json:"file_path"`     // 文件绝对路径
+	FileName     string `json:"file_name"`     // 文件名
+	RelativePath string `json:"relative_path"` // 相对路径
+}
+
+// 文件列表数据
+type FileListData struct {
+	Root  string     `json:"root"`  // 根目录绝对路径
+	Files []FileInfo `json:"files"` // 文件列表
+}
+
+// 文件内容数据
+type FileContentData struct {
+	FilePath string      `json:"file_path"` // 文件绝对路径
+	Content  interface{} `json:"content"`   // 文件内容（JSON对象）
+}
+
+// 文件变化通知
+type FileChangedData struct {
+	Type     string `json:"type"`      // 变化类型: "created", "modified", "deleted"
+	FilePath string `json:"file_path"` // 文件绝对路径
+}
+
+// 打开文件请求
+type OpenFileRequest struct {
+	FilePath string `json:"file_path"` // 文件绝对路径
+}
+
+// 保存文件请求
+type SaveFileRequest struct {
+	FilePath string      `json:"file_path"` // 文件绝对路径
+	Content  interface{} `json:"content"`   // 文件内容（JSON对象）
+}
+
+// 创建文件请求
+type CreateFileRequest struct {
+	FileName  string      `json:"file_name"`         // 文件名
+	Directory string      `json:"directory"`         // 目录绝对路径
+	Content   interface{} `json:"content,omitempty"` // 可选的初始内容
+}
+
+// 保存文件确认数据
+type SaveFileAckData struct {
+	FilePath string `json:"file_path"` // 文件绝对路径
+	Status   string `json:"status"`    // 状态: "ok"
+}
+
+// 日志数据
+type LogData struct {
+	Level     string `json:"level"`     // 日志级别: INFO, WARN, ERROR
+	Module    string `json:"module"`    // 模块名称
+	Message   string `json:"message"`   // 日志内容
+	Timestamp string `json:"timestamp"` // ISO 8601 时间戳
+}

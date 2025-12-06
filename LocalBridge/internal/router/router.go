@@ -9,28 +9,28 @@ import (
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/pkg/models"
 )
 
-// Handler 协议处理器接口
+// 协议处理器接口
 type Handler interface {
-	// GetRoutePrefix 返回处理的路由前缀
+	// 返回处理的路由前缀
 	GetRoutePrefix() []string
 
-	// Handle 处理消息
+	// 处理消息
 	Handle(msg models.Message, conn *server.Connection) *models.Message
 }
 
-// Router 路由分发器
+// 路由分发器
 type Router struct {
-	handlers map[string]Handler // key: route prefix
+	handlers map[string]Handler // key: 路由前缀
 }
 
-// New 创建路由分发器
+// 创建路由分发器
 func New() *Router {
 	return &Router{
 		handlers: make(map[string]Handler),
 	}
 }
 
-// RegisterHandler 注册处理器
+// 注册处理器
 func (r *Router) RegisterHandler(handler Handler) {
 	prefixes := handler.GetRoutePrefix()
 	for _, prefix := range prefixes {
@@ -39,7 +39,7 @@ func (r *Router) RegisterHandler(handler Handler) {
 	}
 }
 
-// Route 路由分发
+// 路由分发
 func (r *Router) Route(msg models.Message, conn *server.Connection) {
 	path := msg.Path
 
@@ -62,7 +62,7 @@ func (r *Router) Route(msg models.Message, conn *server.Connection) {
 	}
 }
 
-// findHandler 查找匹配的处理器
+// 查找匹配的处理器
 func (r *Router) findHandler(path string) Handler {
 	// 精确匹配
 	if handler, ok := r.handlers[path]; ok {
@@ -79,7 +79,7 @@ func (r *Router) findHandler(path string) Handler {
 	return nil
 }
 
-// sendError 发送错误消息
+// 发送错误消息
 func (r *Router) sendError(conn *server.Connection, err *errors.LBError) {
 	errorMsg := models.Message{
 		Path: "/error",
