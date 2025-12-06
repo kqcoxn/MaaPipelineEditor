@@ -42,4 +42,11 @@ export function ExternalNode(props: NodeProps<ExternalNodeData>) {
   );
 }
 
-export const ExternalNodeMemo = memo(ExternalNode);
+export const ExternalNodeMemo = memo(ExternalNode, (prev, next) => {
+  return (
+    prev.id === next.id &&
+    prev.selected === next.selected &&
+    prev.dragging === next.dragging &&
+    prev.data === next.data
+  );
+});

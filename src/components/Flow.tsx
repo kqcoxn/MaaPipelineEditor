@@ -23,9 +23,10 @@ import {
   type OnSelectionChangeParams,
   useKeyPress,
 } from "@xyflow/react";
-import { useDebounceEffect } from "ahooks";
+import { useDebounceEffect, useDebounceFn } from "ahooks";
 
 import { useFlowStore, type EdgeType, type NodeType } from "../stores/flow";
+import { useShallow } from "zustand/shallow";
 import { useClipboardStore } from "../stores/clipboardStore";
 import { nodeTypes } from "./flow/nodes";
 import { edgeTypes } from "./flow/edges";
@@ -36,16 +37,19 @@ import NodeAddPanel from "./panels/NodeAddPanel";
 // 按键监听
 const KeyListener = memo(
   ({ targetRef }: { targetRef: RefObject<HTMLDivElement | null> }) => {
-    // store
-    const selectedNodes = useFlowStore(
-      (state) => state.selectedNodes
-    ) as NodeType[];
-    const selectedEdges = useFlowStore(
-      (state) => state.selectedEdges
-    ) as EdgeType[];
-    const copy = useClipboardStore((state) => state.copy);
-    const clipboardNodes = useClipboardStore((state) => state.clipboardNodes);
-    const paste = useClipboardStore((state) => state.paste);
+    const { selectedNodes, selectedEdges } = useFlowStore(
+      useShallow((state) => ({
+        selectedNodes: state.selectedNodes,
+        selectedEdges: state.selectedEdges,
+      }))
+    );
+    const { copy, clipboardNodes, paste } = useClipboardStore(
+      useShallow((state) => ({
+        copy: state.copy,
+        clipboardNodes: state.clipboardNodes,
+        paste: state.paste,
+      }))
+    );
     const flowPaste = useFlowStore((state) => state.paste);
 
     const keyPressOptions = useMemo(
@@ -97,14 +101,16 @@ const ViewportChangeMonitor = memo(() => {
 });
 // 更新器
 const UpdateMonitor = memo(() => {
-  const debouncedSelectedNodes = useFlowStore(
-    (state) => state.debouncedSelectedNodes
-  );
-  const debouncedSelectedEdges = useFlowStore(
-    (state) => state.debouncedSelectedEdges
-  );
-  const debouncedTargetNode = useFlowStore(
-    (state) => state.debouncedTargetNode
+  const {
+    debouncedSelectedNodes,
+    debouncedSelectedEdges,
+    debouncedTargetNode,
+  } = useFlowStore(
+    useShallow((state) => ({
+      debouncedSelectedNodes: state.debouncedSelectedNodes,
+      debouncedSelectedEdges: state.debouncedSelectedEdges,
+      debouncedTargetNode: state.debouncedTargetNode,
+    }))
   );
   const filesLength = useFileStore((state) => state.files.length);
 
@@ -171,14 +177,25 @@ const NodeAddPanelController = memo(
 );
 
 function MainFlow() {
-  // store
-  const nodes = useFlowStore((state) => state.nodes);
-  const edges = useFlowStore((state) => state.edges);
-  const updateNodes = useFlowStore((state) => state.updateNodes);
-  const updateEdges = useFlowStore((state) => state.updateEdges);
-  const addEdge = useFlowStore((state) => state.addEdge);
-  const updateSize = useFlowStore((state) => state.updateSize);
-  const updateSelection = useFlowStore((state) => state.updateSelection);
+  const {
+    nodes,
+    edges,
+    updateNodes,
+    updateEdges,
+    addEdge,
+    updateSize,
+    updateSelection,
+  } = useFlowStore(
+    useShallow((state) => ({
+      nodes: state.nodes,
+      edges: state.edges,
+      updateNodes: state.updateNodes,
+      updateEdges: state.updateEdges,
+      addEdge: state.addEdge,
+      updateSize: state.updateSize,
+      updateSelection: state.updateSelection,
+    }))
+  );
   const selfElem = useRef<HTMLDivElement>(null);
 
   // 节点添加面板状态
@@ -188,16 +205,16 @@ function MainFlow() {
   // 回调
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => updateNodes(changes),
-    []
+    [updateNodes]
   );
   const onEdgesChange = useCallback(
     (changes: EdgeChange[]) => updateEdges(changes),
-    []
+    [updateEdges]
   );
-  const onConnect = useCallback((co: Connection) => addEdge(co), []);
+  const onConnect = useCallback((co: Connection) => addEdge(co), [addEdge]);
   const onSelectionChange = useCallback((params: OnSelectionChangeParams) => {
     updateSelection(params.nodes as NodeType[], params.edges as EdgeType[]);
-  }, []);
+  }, [updateSelection]);
 
   // 双击空白区域打开节点添加面板
   const onPaneClick = useCallback(
@@ -236,11 +253,16 @@ function MainFlow() {
 
   // hook
   const ref = useRef(null);
+  const debouncedUpdateSize = useDebounceFn(
+    (width: number, height: number) => updateSize(width, height),
+    { wait: 300 }
+  );
+  
   useEffect(() => {
     const observer = new ResizeObserver((entries) => {
       entries.forEach((e) => {
         const { width, height } = e.contentRect;
-        updateSize(width, height);
+        debouncedUpdateSize.run(width, height);
       });
     });
     if (ref.current) {
@@ -272,6 +294,9 @@ function MainFlow() {
         onPaneClick={onPaneClick}
         onDoubleClick={onDoubleClick}
         onPaneContextMenu={onPaneContextMenu}
+        autoPanOnConnect={false}
+        autoPanOnNodeDrag={false}
+        preventScrolling={true}
       >
         <Background />
         <Controls orientation={"horizontal"} />

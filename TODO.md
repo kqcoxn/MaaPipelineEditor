@@ -1,9 +1,5 @@
 [ISSUE](https://github.com/kqcoxn/MaaPipelineEditor/issues)
 
-## Perf
-
-- 独立 json 面板
-
 ## MPE Web
 
 > 纯前端应用，用户通过浏览器访问。

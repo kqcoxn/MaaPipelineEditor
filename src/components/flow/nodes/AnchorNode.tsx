@@ -42,4 +42,11 @@ export function AnchorNode(props: NodeProps<AnchorNodeData>) {
   );
 }
 
-export const AnchorNodeMemo = memo(AnchorNode);
+export const AnchorNodeMemo = memo(AnchorNode, (prev, next) => {
+  return (
+    prev.id === next.id &&
+    prev.selected === next.selected &&
+    prev.dragging === next.dragging &&
+    prev.data === next.data
+  );
+});

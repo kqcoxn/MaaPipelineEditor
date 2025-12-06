@@ -37,4 +37,11 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
   );
 }
 
-export const PipelineNodeMemo = memo(PipelineNode);
+export const PipelineNodeMemo = memo(PipelineNode, (prev, next) => {
+  return (
+    prev.id === next.id &&
+    prev.selected === next.selected &&
+    prev.dragging === next.dragging &&
+    prev.data === next.data
+  );
+});
