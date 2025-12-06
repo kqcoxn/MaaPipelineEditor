@@ -106,4 +106,54 @@ export const createGraphSlice: StateCreator<
   resetPasteCounter() {
     set({ pasteIdCounter: 1 });
   },
+
+  // 移动节点
+  shiftNodes(
+    direction: "horizontal" | "vertical",
+    delta: number,
+    targetNodeIds?: string[]
+  ) {
+    set((state) => {
+      if (state.nodes.length === 0) return {};
+
+      // 确定要调整的节点
+      const targetNodes = targetNodeIds
+        ? state.nodes.filter((node) => targetNodeIds.includes(node.id))
+        : state.nodes;
+      if (targetNodes.length === 0) return {};
+
+      // 找到最左上侧的节点位置作为基准点
+      const positions = targetNodes.map((node) =>
+        direction === "horizontal" ? node.position.x : node.position.y
+      );
+      const minPosition = Math.min(...positions);
+      const targetNodeIdSet = new Set(targetNodes.map((n) => n.id));
+
+      // 根据距离基准点的距离计算移动量
+      const nodes = state.nodes.map((node) => {
+        if (!targetNodeIdSet.has(node.id)) {
+          return node;
+        }
+
+        const currentPosition =
+          direction === "horizontal" ? node.position.x : node.position.y;
+        const distanceFromBase = currentPosition - minPosition;
+
+        const scaleFactor = distanceFromBase / 100;
+        const offset = scaleFactor * delta;
+
+        const newPosition = { ...node.position };
+        if (direction === "horizontal") {
+          newPosition.x += offset;
+        } else {
+          newPosition.y += offset;
+        }
+        return { ...node, position: newPosition };
+      });
+      return { nodes };
+    });
+
+    // 保存历史记录
+    get().saveHistory(0);
+  },
 });

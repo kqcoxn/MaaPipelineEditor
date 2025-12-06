@@ -192,6 +192,7 @@ interface LayoutToolType {
   label: string;
   iconName: string;
   iconSize?: number;
+  iconColor?: string;
   disabled?: boolean;
   onClick: () => void;
   onDisabledClick?: () => void;
@@ -202,6 +203,30 @@ function LayoutPanel() {
   );
   const allNodes = useFlowStore((state) => state.nodes);
   const currentFileName = useFileStore((state) => state.currentFile.fileName);
+  const shiftNodes = useFlowStore((state) => state.shiftNodes);
+
+  // 间距调整
+  const createShiftTool = (
+    label: string,
+    iconName: string,
+    direction: "horizontal" | "vertical",
+    delta: number
+  ): LayoutToolType => ({
+    label,
+    iconName,
+    iconSize: 25,
+    iconColor: "#487aaa",
+    disabled:
+      debouncedSelectedNodes.length >= 2 ? false : allNodes.length === 0,
+    onClick: () => {
+      const targetIds =
+        debouncedSelectedNodes.length >= 2
+          ? debouncedSelectedNodes.map((n) => n.id)
+          : undefined;
+      shiftNodes(direction, delta, targetIds);
+    },
+    onDisabledClick: () => message.error("没有可调整的节点"),
+  });
 
   const layoutTools = useMemo<LayoutToolType[]>(() => {
     return [
@@ -241,6 +266,10 @@ function LayoutPanel() {
         onDisabledClick: () =>
           message.error("请选择两个以上的节点进行对齐操作"),
       },
+      createShiftTool("缩减水平间距", "icon-shuipingsuoxiao", "horizontal", -5),
+      createShiftTool("增加水平间距", "icon-shuipingfangda", "horizontal", 5),
+      createShiftTool("缩减垂直间距", "icon-chuizhisuoxiao", "vertical", -5),
+      createShiftTool("增加垂直间距", "icon-chuizhifangda", "vertical", 5),
       {
         label: "自动布局",
         iconName: "icon-liuchengtu",
@@ -264,7 +293,7 @@ function LayoutPanel() {
         onDisabledClick: () => message.error("没有可保存的节点"),
       },
     ];
-  }, [debouncedSelectedNodes, currentFileName]);
+  }, [debouncedSelectedNodes, currentFileName, shiftNodes]);
 
   // 生成
   const tools = layoutTools.map((item, index) => {
@@ -277,6 +306,7 @@ function LayoutPanel() {
               className={style.icon}
               name={item.iconName as IconNames}
               size={item.iconSize ?? 24}
+              {...(item.iconColor ? { color: item.iconColor } : {})}
               onClick={() => {
                 if (item.disabled) {
                   item.onDisabledClick?.();

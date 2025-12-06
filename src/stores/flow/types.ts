@@ -251,6 +251,11 @@ export interface FlowGraphState {
   ) => void;
   paste: (nodes: NodeType[], edges: EdgeType[]) => void;
   resetPasteCounter: () => void;
+  shiftNodes: (
+    direction: "horizontal" | "vertical",
+    delta: number,
+    targetNodeIds?: string[]
+  ) => void;
 }
 
 // 合并的 Flow Store 类型

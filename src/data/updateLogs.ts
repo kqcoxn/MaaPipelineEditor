@@ -30,8 +30,11 @@ export const updateLogs: UpdateLogItem[] = [
     type: "feature",
     updates: {
       features: [
-        "全新现代主题（可在设置面板切回旧版主题）",
-        "节点搜索功能（with AI）",
+        "⭐ 全新现代主题（可在设置面板切回旧版主题）",
+        "🔧 排版栏新增节点间距缩放工具（配合迁移新主题）",
+        "⭐ 全新右键节点模板预览与添加面板",
+        "🔍 节点搜索功能（with AI 🤖）",
+        "🤖 添加 AI 对话记录面板与相关配置",
       ],
       perfs: ["自动迁移 interrupt 与 is_sub 字段"],
     },
