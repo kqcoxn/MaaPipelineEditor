@@ -70,10 +70,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+      # - name: Setup Python
+      #   uses: actions/setup-python@v5
+      #   with:
+      #     python-version: '3.12'
 
       # - name: Build Python Test Client
       #   run: |
@@ -104,10 +104,10 @@ jobs:
         with:
           name: web-packages
 
-      - name: Download client artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: python-client
+      # - name: Download client artifact
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: python-client
 
       - name: Generate Changelog
         id: changelog
