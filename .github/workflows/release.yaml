@@ -75,19 +75,19 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Build Python Test Client
-        run: |
-          cd server
-          pip install -r requirements.txt
-          pip install pyinstaller pillow
-          pyinstaller --onefile --windowed --name MPETestClient --icon=../public/maafw.png --add-data "../public/maafw.png;assets" main.py
-          cd ..
+      # - name: Build Python Test Client
+      #   run: |
+      #     cd server
+      #     pip install -r requirements.txt
+      #     pip install pyinstaller pillow
+      #     pyinstaller --onefile --windowed --name MPETestClient --icon=../public/maafw.png --add-data "../public/maafw.png;assets" main.py
+      #     cd ..
 
-      - name: Upload client artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-client
-          path: server/dist/MPETestClient.exe
+      # - name: Upload client artifact
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: python-client
+      #     path: server/dist/MPETestClient.exe
 
   release:
     needs: [build-web, build-client]
@@ -150,7 +150,7 @@ jobs:
           files: |
             MaaPipelineEditor-${{ github.ref_name }}-stable.zip
             MaaPipelineEditor-${{ github.ref_name }}-docs.zip
-            MPETestClient.exe
+          # MPETestClient.exe
           body_path: CHANGELOG.md
           generate_release_notes: false
           draft: false
