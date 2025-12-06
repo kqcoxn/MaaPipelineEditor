@@ -86,6 +86,10 @@ function ConfigPanel() {
     [showConfigPanel]
   );
   const globalClass = useMemo(() => classNames(style.item, style.global), []);
+  const aiConfigClass = useMemo(
+    () => classNames(style.item, style.aiConfig),
+    []
+  );
   const switchStyle = useMemo(() => ({ maxWidth: 60 }), []);
 
   // 渲染
@@ -404,7 +408,7 @@ function ConfigPanel() {
           </div>
         </div>
         {/* API URL */}
-        <div className={globalClass}>
+        <div className={aiConfigClass}>
           <div className={style.key}>
             <Popover
               placement="bottomLeft"
@@ -422,7 +426,6 @@ function ConfigPanel() {
           </div>
           <Input
             className={style.value}
-            style={{ maxWidth: 160 }}
             placeholder="输入 API 地址"
             value={aiApiUrl}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -431,7 +434,7 @@ function ConfigPanel() {
           />
         </div>
         {/* API Key */}
-        <div className={globalClass}>
+        <div className={aiConfigClass}>
           <div className={style.key}>
             <Popover
               placement="bottomLeft"
@@ -447,7 +450,6 @@ function ConfigPanel() {
           </div>
           <Input.Password
             className={style.value}
-            style={{ maxWidth: 160 }}
             placeholder="输入 API Key"
             value={aiApiKey}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -456,7 +458,7 @@ function ConfigPanel() {
           />
         </div>
         {/* 模型名称 */}
-        <div className={globalClass}>
+        <div className={aiConfigClass}>
           <div className={style.key}>
             <Popover
               placement="bottomLeft"
@@ -474,7 +476,6 @@ function ConfigPanel() {
           </div>
           <Input
             className={style.value}
-            style={{ maxWidth: 160 }}
             placeholder="输入模型名称"
             value={aiModel}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -483,7 +484,7 @@ function ConfigPanel() {
           />
         </div>
         {/* 测试连接 */}
-        <div className={globalClass}>
+        <div className={aiConfigClass}>
           <div className={style.key}>
             <span>测试</span>
           </div>
