@@ -11,7 +11,8 @@
 - [nodeParser.ts](file://src/core/parser/nodeParser.ts)
 - [importer.ts](file://src/core/parser/importer.ts)
 - [configStore.ts](file://src/stores/configStore.ts)
-- [websocket_server.py](file://server/core/websocket_server.py)
+- [1.2-术语解释.md](file://instructions/maafw-pipeline/1.2-术语解释.md)
+- [3.1-任务流水线协议.md](file://instructions/maafw-pipeline/3.1-任务流水线协议.md)
 </cite>
 
 ## 目录
@@ -119,10 +120,6 @@ C[外部程序] -- "接收: /cte/send_pipeline" --> B
 B -- "广播: /cte/send_pipeline" --> C
 B -- "接收并处理" --> D[Python Server]
 D --> B
-style A fill:#f9f,stroke:#333
-style B fill:#bbf,stroke:#333,color:#fff
-style C fill:#f96,stroke:#333
-style D fill:#6f9,stroke:#333
 ```
 
 **Diagram sources**

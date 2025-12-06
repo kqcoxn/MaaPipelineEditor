@@ -1,0 +1,28 @@
+{
+  "server": {
+    "port": 9066,
+    "host": "localhost"
+  },
+  "file": {
+    "root": "./",
+    "exclude": [
+      "node_modules",
+      ".git",
+      "dist",
+      "build"
+    ],
+    "extensions": [
+      ".json",
+      ".jsonc"
+    ]
+  },
+  "log": {
+    "level": "INFO",
+    "dir": "./logs",
+    "push_to_client": false
+  },
+  "maafw": {
+    "enabled": false,
+    "lib_dir": ""
+  }
+}
