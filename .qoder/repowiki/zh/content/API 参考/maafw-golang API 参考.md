@@ -1,0 +1,496 @@
+# maafw-golang API 参考
+
+<cite>
+**本文档中引用的文件**
+- [maa.go](file://maa.go)
+- [tasker.go](file://tasker.go)
+- [controller.go](file://controller.go)
+- [resource.go](file://resource.go)
+- [job.go](file://job.go)
+- [status.go](file://status.go)
+- [custom_action.go](file://custom_action.go)
+- [custom_recognition.go](file://custom_recognition.go)
+- [custom_controller.go](file://custom_controller.go)
+- [event.go](file://event.go)
+- [context.go](file://context.go)
+- [rect.go](file://rect.go)
+- [internal/native/native.go](file://internal/native/native.go)
+- [internal/native/toolkit.go](file://internal/native/toolkit.go)
+- [internal/store/store.go](file://internal/store/store.go)
+- [examples/quick-start/main.go](file://examples/quick-start/main.go)
+- [examples/custom-action/main.go](file://examples/custom-action/main.go)
+- [examples/custom-recognition/main.go](file://examples/custom-recognition/main.go)
+- [examples/agent-client/main.go](file://examples/agent-client/main.go)
+- [examples/agent-server/main.go](file://examples/agent-server/main.go)
+</cite>
+
+## 目录
+1. [简介](#简介)
+2. [项目结构](#项目结构)
+3. [核心组件](#核心组件)
+4. [架构总览](#架构总览)
+5. [详细组件分析](#详细组件分析)
+6. [依赖关系分析](#依赖关系分析)
+7. [性能考虑](#性能考虑)
+8. [故障排查指南](#故障排查指南)
+9. [结论](#结论)
+10. [附录](#附录)
+
+## 简介
+本文件为 maa-framework-go 的 API 参考与使用指南，面向希望在 Go 语言中使用 MaaFramework 的开发者。文档系统性梳理了框架初始化、任务管理、控制器操作、资源管理、自定义扩展、事件回调、上下文操作与状态/作业模型等核心能力，并通过示例与图示帮助读者快速上手与深入理解。
+
+## 项目结构
+仓库采用按职责分层的组织方式：
+- 核心 API 层：tasker.go、resource.go、controller.go、context.go、event.go、job.go
+- 自定义扩展层：custom_action.go、custom_recognition.go、custom_controller.go
+- 示例层：examples 下包含快速开始、自定义动作、自定义识别、Agent 客户端/服务器等示例
+- 内部工具与桥接：internal 目录下的 native、store、buffer 等
+
+```mermaid
+graph TB
+subgraph "核心API层"
+T["Tasker<br/>任务调度中枢"]
+R["Resource<br/>资源与流水线配置"]
+C["Controller<br/>设备控制抽象"]
+X["Context<br/>执行上下文"]
+E["Event<br/>事件回调系统"]
+J["Job/TaskJob<br/>异步作业模型"]
+end
+subgraph "扩展层"
+CA["CustomAction<br/>自定义动作"]
+CR["CustomRecognition<br/>自定义识别"]
+CC["CustomController<br/>自定义控制器"]
+end
+subgraph "示例"
+QS["quick-start 示例"]
+CAE["custom-action 示例"]
+CRE["custom-recognition 示例"]
+AC["agent-client 示例"]
+AS["agent-server 示例"]
+end
+T --> R
+T --> C
+X --> T
+E --> T
+E --> R
+E --> C
+E --> X
+J --> T
+J --> R
+J --> C
+CA --> R
+CR --> R
+CC --> C
+QS --> T
+QS --> R
+QS --> C
+CAE --> T
+CAE --> R
+CRE --> T
+CRE --> R
+AC --> T
+AC --> R
+AC --> C
+AS --> T
+AS --> R
+AS --> C
+```
+
+图表来源
+- [tasker.go](file://tasker.go#L1-L120)
+- [resource.go](file://resource.go#L1-L120)
+- [controller.go](file://controller.go#L1-L120)
+- [context.go](file://context.go#L1-L120)
+- [event.go](file://event.go#L1-L120)
+- [job.go](file://job.go#L1-L96)
+- [examples/quick-start/main.go](file://examples/quick-start/main.go#L1-L41)
+- [examples/custom-action/main.go](file://examples/custom-action/main.go#L1-L49)
+- [examples/custom-recognition/main.go](file://examples/custom-recognition/main.go#L1-L77)
+- [examples/agent-client/main.go](file://examples/agent-client/main.go#L1-L56)
+- [examples/agent-server/main.go](file://examples/agent-server/main.go#L1-L37)
+
+章节来源
+- [tasker.go](file://tasker.go#L1-L120)
+- [resource.go](file://resource.go#L1-L120)
+- [controller.go](file://controller.go#L1-L120)
+- [context.go](file://context.go#L1-L120)
+- [event.go](file://event.go#L1-L120)
+- [job.go](file://job.go#L1-L96)
+
+## 核心组件
+- Tasker：负责任务提交、状态查询、停止信号、事件回调注册、节点详情查询等，是任务执行的中枢。
+- Resource：负责资源加载、流水线覆盖、自定义识别/动作注册、事件回调注册等，承载识别与动作的配置与能力。
+- Controller：负责设备连接、截图、输入、应用启停、滚动等操作，抽象出 ADB/Win32/自定义控制器。
+- Context：提供在单次任务执行中运行识别/动作的能力，支持覆盖流水线、锚点、命中计数等上下文级操作。
+- Event：统一的事件回调代理与分发器，将底层事件映射到 Tasker/Resource/Controller/Context 的回调接口。
+- Job/TaskJob：封装异步作业的状态查询与等待逻辑，TaskJob 还可获取任务详情。
+
+章节来源
+- [tasker.go](file://tasker.go#L1-L120)
+- [resource.go](file://resource.go#L1-L120)
+- [controller.go](file://controller.go#L1-L120)
+- [context.go](file://context.go#L1-L120)
+- [event.go](file://event.go#L1-L120)
+- [job.go](file://job.go#L1-L96)
+
+## 架构总览
+下图展示了从应用调用到底层原生交互的关键路径，以及事件回调的分发链路。
+
+```mermaid
+sequenceDiagram
+participant App as "应用"
+participant Tasker as "Tasker"
+participant Res as "Resource"
+participant Ctrl as "Controller"
+participant Ctx as "Context"
+participant Ev as "Event回调"
+participant Native as "原生MaaFramework"
+App->>Tasker : "创建并绑定资源/控制器"
+App->>Tasker : "PostTask(...)"
+Tasker->>Native : "提交任务"
+Native-->>Ev : "触发事件(任务开始/成功/失败)"
+Ev->>Tasker : "TaskerEventSink回调"
+Ev->>Res : "ResourceEventSink回调"
+Ev->>Ctrl : "ControllerEventSink回调"
+Ev->>Ctx : "ContextEventSink回调"
+Tasker->>Tasker : "查询任务详情/节点详情"
+App->>Tasker : "Wait()/GetDetail()"
+Tasker-->>App : "返回任务结果"
+```
+
+图表来源
+- [tasker.go](file://tasker.go#L85-L120)
+- [event.go](file://event.go#L296-L334)
+- [context.go](file://context.go#L197-L214)
+
+章节来源
+- [tasker.go](file://tasker.go#L85-L120)
+- [event.go](file://event.go#L120-L220)
+- [context.go](file://context.go#L197-L214)
+
+## 详细组件分析
+
+### 初始化与配置
+- maa.Init()：加载与 MaaFramework 相关的动态库并注册其相关函数。必须在调用任何其他 Maa 相关函数之前调用此函数。支持 InitOption 配置库目录、日志目录、保存绘图、输出级别、调试模式、插件路径等。
+- maa.IsInited()：检查 Maa 框架是否已初始化。
+- maa.Release()：释放 Maa 框架的动态库资源并注销其相关函数。
+- maa.SetLogDir/SetSaveDraw/SetStdoutLevel/SetDebugMode：运行时设置日志目录、是否保存绘制、标准输出日志级别、调试模式。
+- maa.LoadPlugin：加载插件。
+- maa.ConfigInitOption：配置初始化选项（用户路径与默认配置 JSON）。
+
+章节来源
+- [maa.go](file://maa.go#L108-L210)
+- [internal/native/native.go](file://internal/native/native.go#L5-L23)
+- [internal/native/toolkit.go](file://internal/native/toolkit.go#L42-L91)
+
+### 任务管理器（Tasker）
+- NewTasker()：创建一个新的任务管理器实例。
+- Destroy()：释放任务管理器实例。
+- BindResource(BindController)：将任务管理器绑定到已初始化的资源/控制器。
+- Initialized()：检查任务管理器是否已初始化。
+- PostTask(PostStop)：提交任务/停止信号，返回 TaskJob。
+- Running/Stopping：检查实例是否正在运行/停止中。
+- GetResource/GetController：获取资源/控制器句柄。
+- ClearCache：清理运行时缓存。
+- GetLatestNode：获取最新节点的详细信息。
+- 事件回调：AddSink/RemoveSink/ClearSinks、AddContextSink/RemoveContextSink/ClearContextSinks。
+- 任务详情：getTaskDetail/getNodeDetail/getRecognitionDetail/getActionDetail。
+
+```mermaid
+classDiagram
+class Tasker {
++handle uintptr
++NewTasker() *Tasker
++Destroy() void
++BindResource(res) bool
++BindController(ctrl) bool
++Initialized() bool
++PostTask(entry, override...) *TaskJob
++PostStop() *TaskJob
++Running() bool
++Stopping() bool
++GetResource() *Resource
++GetController() *Controller
++ClearCache() bool
++AddSink(sink) int64
++RemoveSink(id) void
++ClearSinks() void
++AddContextSink(sink) int64
++RemoveContextSink(id) void
++ClearContextSinks() void
++GetLatestNode(taskName) *NodeDetail
+}
+```
+
+图表来源
+- [tasker.go](file://tasker.go#L1-L120)
+
+章节来源
+- [tasker.go](file://tasker.go#L1-L120)
+- [tasker.go](file://tasker.go#L120-L220)
+- [tasker.go](file://tasker.go#L220-L344)
+- [tasker.go](file://tasker.go#L344-L433)
+
+### 控制器（Controller）
+- NewAdbController/NewWin32Controller/NewCustomController：创建不同类型的控制器实例。
+- Destroy：释放控制器实例。
+- SetScreenshotTargetLongSide/SetScreenshotTargetShortSide/SetScreenshotUseRawSize：截图尺寸与原始尺寸策略。
+- PostConnect/PostClick/PostSwipe/PostClickKey/PostInputText/PostStartApp/PostStopApp/PostTouchDown/PostTouchMove/PostTouchUp/PostKeyDown/PostKeyUp/PostScreencap/PostScroll：设备操作。
+- Connected/CacheImage/GetUUID：连接状态、缓存图像、设备 UUID。
+- 事件回调：AddSink/RemoveSink/ClearSinks 及便捷注册方法。
+- ADB/Win32 方法枚举与解析：截图/输入方法集合与字符串解析。
+- 自定义控制器接口与桥接：CustomController 与回调代理。
+
+```mermaid
+classDiagram
+class Controller {
++handle uintptr
++NewAdbController(...) *Controller
++NewWin32Controller(...) *Controller
++NewCustomController(ctrl) *Controller
++Destroy() void
++PostConnect() *Job
++PostClick(x,y) *Job
++PostSwipe(x1,y1,x2,y2,duration) *Job
++PostInputText(text) *Job
++PostStartApp(intent) *Job
++PostStopApp(intent) *Job
++PostTouchDown(contact,x,y,pressure) *Job
++PostTouchMove(contact,x,y,pressure) *Job
++PostTouchUp(contact) *Job
++PostKeyDown(keycode) *Job
++PostKeyUp(keycode) *Job
++PostScreencap() *Job
++PostScroll(dx,dy) *Job
++SetScreenshotTargetLongSide(target) bool
++SetScreenshotTargetShortSide(target) bool
++SetScreenshotUseRawSize(enabled) bool
++Connected() bool
++CacheImage() image.Image
++GetUUID() (string, bool)
++AddSink(sink) int64
++RemoveSink(id) void
++ClearSinks() void
+}
+```
+
+图表来源
+- [controller.go](file://controller.go#L1-L120)
+
+章节来源
+- [controller.go](file://controller.go#L1-L120)
+- [controller.go](file://controller.go#L120-L220)
+- [controller.go](file://controller.go#L220-L300)
+
+### 资源管理器（Resource）
+- NewResource/Destroy：创建/销毁资源。
+- UseCPU/UseDirectml/UseCoreml/UseAutoExecutionProvider：推理设备与执行提供者设置。
+- RegisterCustomRecognition/UnregisterCustomRecognition/ClearCustomRecognition：自定义识别注册/注销/清空。
+- RegisterCustomAction/UnregisterCustomAction/ClearCustomAction：自定义动作注册/注销/清空。
+- PostBundle/Clear/Loaded/GetHash：资源包添加、清空、加载状态、资源哈希。
+- OverridePipeline/OverrideNext/OverrideImage：流水线/下一跳/图像覆盖。
+- GetNodeJSON/GetNodeList/GetCustomRecognitionList/GetCustomActionList：节点与列表查询。
+- AddSink/RemoveSink/ClearSinks：事件回调管理。
+
+```mermaid
+classDiagram
+class Resource {
++handle uintptr
++NewResource() *Resource
++Destroy() void
++PostBundle(path) *Job
++OverridePipeline(override) bool
++OverrideNext(name, nextList) bool
++OverrideImage(name, image) bool
++GetNodeJSON(name) (string, bool)
++GetNodeList() ([]string, bool)
++GetCustomRecognitionList() ([]string, bool)
++GetCustomActionList() ([]string, bool)
++RegisterCustomRecognition(name, rec) bool
++UnregisterCustomRecognition(name) bool
++ClearCustomRecognition() bool
++RegisterCustomAction(name, act) bool
++UnregisterCustomAction(name) bool
++ClearCustomAction() bool
++AddSink(sink) int64
++RemoveSink(id) void
++ClearSinks() void
++Loaded() bool
++GetHash() (string, bool)
+}
+```
+
+图表来源
+- [resource.go](file://resource.go#L1-L120)
+
+章节来源
+- [resource.go](file://resource.go#L1-L120)
+- [resource.go](file://resource.go#L120-L220)
+- [resource.go](file://resource.go#L220-L383)
+
+### 执行上下文（Context）
+- RunTask/RunRecognition/RunAction：在上下文中执行任务/识别/动作。
+- OverridePipeline/OverrideNext/OverrideImage：上下文级覆盖。
+- GetNodeJSON/GetNodeData：节点 JSON 与结构化数据。
+- GetTaskJob/GetTasker/Clone：当前任务作业、Tasker 实例、上下文克隆。
+- SetAnchor/GetAnchor/GetHitCount/ClearHitCount：锚点与命中计数管理。
+- override 参数支持 JSON 字符串或可序列化对象。
+
+```mermaid
+flowchart TD
+Start(["进入 Context 方法"]) --> BuildOverride["构建覆盖参数(JSON)"]
+BuildOverride --> CallNative["调用原生执行(任务/识别/动作)"]
+CallNative --> GetTasker["获取 Tasker 句柄"]
+GetTasker --> QueryDetail["查询任务/识别/动作详情"]
+QueryDetail --> Return(["返回结果"])
+```
+
+图表来源
+- [context.go](file://context.go#L1-L120)
+
+章节来源
+- [context.go](file://context.go#L1-L120)
+- [context.go](file://context.go#L120-L240)
+
+### 事件系统（Event）
+- 事件状态枚举：Unknown/Starting/Succeeded/Failed。
+- 事件详情结构体：ResourceLoadingDetail、ControllerActionDetail、TaskerTaskDetail、NodePipelineNodeDetail、NodeRecognitionNodeDetail、NodeActionNodeDetail、NodeNextListDetail、NodeRecognitionDetail、NodeActionDetail。
+- 事件回调接口：TaskerEventSink/ResourceEventSink/ControllerEventSink/ContextEventSink。
+- 注册与管理：registerEventCallback/unregisterEventCallback、AddSink/RemoveSink/ClearSinks、AddContextSink/RemoveContextSink/ClearContextSinks。
+- 消息路由：按消息后缀解析状态，按消息前缀匹配事件类型。
+
+```mermaid
+sequenceDiagram
+participant Native as "原生事件"
+participant Agent as "_MaaEventCallbackAgent"
+participant Store as "回调存储"
+participant Sink as "具体回调(sink)"
+Native->>Agent : "传入(handle,message,details,transArg)"
+Agent->>Store : "根据transArg查找回调ID"
+Store-->>Agent : "返回sink"
+Agent->>Sink : "调用对应回调(带事件状态与详情)"
+```
+
+图表来源
+- [event.go](file://event.go#L1-L120)
+- [event.go](file://event.go#L296-L334)
+
+章节来源
+- [event.go](file://event.go#L1-L120)
+- [event.go](file://event.go#L120-L220)
+- [event.go](file://event.go#L220-L334)
+
+### 自定义功能
+- 自定义动作（CustomAction）：实现 Run(ctx, arg) bool，通过 Resource.RegisterCustomAction 注册，流水线中以 action=Custom、custom_action=名称的方式触发。
+- 自定义识别（CustomRecognition）：实现 Run(ctx, arg) -> (result, bool)，通过 Resource.RegisterCustomRecognition 注册，可在 Run 中使用 Context 的 RunRecognition/OverridePipeline/Clone/OverrideNext 等能力。
+- 自定义控制器（CustomController）：实现 Connect/RequestUUID/GetFeature/StartApp/StopApp/Screencap/Click/Swipe/TouchDown/TouchMove/TouchUp/ClickKey/InputText/KeyDown/KeyUp 等方法，通过 NewCustomController 绑定。
+
+章节来源
+- [custom_action.go](file://custom_action.go#L1-L92)
+- [custom_recognition.go](file://custom_recognition.go#L1-L103)
+- [custom_controller.go](file://custom_controller.go#L1-L60)
+
+### Agent 架构
+- Agent 客户端：NewAgentClient/BindResource/Connect/Connected/Alive/SetTimeout/GetCustomActionList/GetCustomRecognitionList；与 Agent 服务器通过动态库桥接通信。
+- Agent 服务器：AgentServerRegisterCustomAction/AgentServerStartUp/AgentServerJoin/AgentServerShutDown；支持事件回调注册与自定义动作回调。
+
+章节来源
+- [examples/agent-client/main.go](file://examples/agent-client/main.go#L1-L56)
+- [examples/agent-server/main.go](file://examples/agent-server/main.go#L1-L37)
+- [agent_client.go](file://agent_client.go#L1-L112)
+- [agent_server.go](file://agent_server.go#L1-L102)
+
+## 依赖关系分析
+- 组件耦合
+  - Tasker 依赖 Resource 与 Controller（绑定与查询）
+  - Context 依赖 Tasker（获取任务详情、当前任务作业）
+  - Event 系统为 Tasker/Resource/Controller/Context 提供统一的回调入口
+  - Job/TaskJob 为 Tasker/Resource/Controller 的异步操作提供统一的状态查询与等待
+- 外部依赖
+  - 通过 internal/native 与原生 MaaFramework 交互
+  - 通过 internal/store 维护句柄到回调映射与自定义识别/动作的回调 ID 映射
+
+```mermaid
+graph LR
+Tasker["Tasker"] --> Resource["Resource"]
+Tasker --> Controller["Controller"]
+Context["Context"] --> Tasker
+Event["Event回调"] --> Tasker
+Event --> Resource
+Event --> Controller
+Event --> Context
+Job["Job/TaskJob"] --> Tasker
+Job --> Resource
+Job --> Controller
+```
+
+图表来源
+- [tasker.go](file://tasker.go#L1-L120)
+- [resource.go](file://resource.go#L1-L120)
+- [controller.go](file://controller.go#L1-L120)
+- [context.go](file://context.go#L1-L120)
+- [event.go](file://event.go#L1-L120)
+- [job.go](file://job.go#L1-L96)
+
+章节来源
+- [tasker.go](file://tasker.go#L1-L120)
+- [resource.go](file://resource.go#L1-L120)
+- [controller.go](file://controller.go#L1-L120)
+- [context.go](file://context.go#L1-L120)
+- [event.go](file://event.go#L1-L120)
+- [job.go](file://job.go#L1-L96)
+
+## 性能考虑
+- 异步作业模型：使用 Job/TaskJob 避免阻塞主线程，提高吞吐量。
+- 缓存与复用：Tasker/Resource/Controller 在销毁时会注销所有回调，避免内存泄漏；Context 提供 Clone，可在需要时复制上下文以减少重复配置。
+- 图像与缓冲：识别与动作过程中大量使用图像缓冲，注意及时释放缓冲区，避免内存占用过高。
+- 事件回调：回调注册/注销需成对出现，避免回调表膨胀导致性能下降。
+- 推理设备选择：UseAutoExecutionProvider 可自动选择最优执行提供者，但具体性能取决于运行环境；GPU 加速通常优于 CPU，但需考虑显存占用与驱动稳定性。
+
+章节来源
+- [tasker.go](file://tasker.go#L1-L120)
+- [resource.go](file://resource.go#L1-L120)
+- [controller.go](file://controller.go#L1-L120)
+- [context.go](file://context.go#L1-L120)
+- [event.go](file://event.go#L1-L120)
+- [job.go](file://job.go#L1-L96)
+
+## 故障排查指南
+- 初始化失败
+  - 确认已正确初始化并配置运行库路径
+  - 检查 Tasker/Resource/Controller 的初始化状态与错误返回值
+- 事件未回调
+  - 确认已正确注册 AddSink/RemoveSink，且回调 ID 未被重复使用
+  - 检查事件消息前缀与回调类型匹配
+- 任务无结果
+  - 使用 Wait() 等待完成后再调用 GetDetail()
+  - 检查 OverridePipeline/OverrideNext/OverrideImage 是否正确覆盖
+- 设备连接问题
+  - 确认 PostConnect 成功，Connected() 返回真
+  - 检查截图尺寸设置与缓存图像是否可用
+- 自定义动作/识别问题
+  - 确认名称唯一且已注册
+  - 检查 override 参数是否可序列化
+  - 检查 Context 句柄有效性与任务详情获取
+
+章节来源
+- [tasker.go](file://tasker.go#L1-L120)
+- [resource.go](file://resource.go#L1-L120)
+- [controller.go](file://controller.go#L1-L120)
+- [context.go](file://context.go#L1-L120)
+- [event.go](file://event.go#L1-L120)
+
+## 结论
+maa-framework-go 通过 Tasker、Resource、Controller、Context、Event 与 Job/TaskJob 的协同，构建了一个清晰、可扩展且高性能的自动化框架。Tasker 作为中枢协调任务执行，Resource 管理识别资源与流水线，Controller 抽象设备控制，Context 提供上下文级的执行能力，Event 以观察者模式实现异步通知，Job/TaskJob 则提供了统一的异步作业模型。工厂模式与门面模式的应用使得 API 更加简洁易用。遵循本文的最佳实践与排错建议，可有效提升开发效率与稳定性。
+
+## 附录
+- 快速开始示例展示了从初始化、设备连接、资源加载到任务执行的完整流程
+- 自定义动作与识别示例展示了如何扩展识别与动作能力
+- Agent 客户端/服务器示例展示了分布式自动化架构与跨语言扩展
+
+章节来源
+- [examples/quick-start/main.go](file://examples/quick-start/main.go#L1-L41)
+- [examples/custom-action/main.go](file://examples/custom-action/main.go#L1-L49)
+- [examples/custom-recognition/main.go](file://examples/custom-recognition/main.go#L1-L77)
+- [examples/agent-client/main.go](file://examples/agent-client/main.go#L1-L56)
+- [examples/agent-server/main.go](file://examples/agent-server/main.go#L1-L37)

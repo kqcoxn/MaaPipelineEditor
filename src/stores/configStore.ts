@@ -4,7 +4,7 @@ import { create } from "zustand";
 export const globalConfig = {
   dev: true,
   version: `0.8.2`,
-  betaIteration: 4,
+  betaIteration: 5,
   mfwVersion: "5.1",
 };
 
