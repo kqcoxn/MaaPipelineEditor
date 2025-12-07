@@ -19,7 +19,7 @@ const (
 	ErrInternalError    = "INTERNAL_ERROR"
 )
 
-// LBError 表示Local Bridge的业务错误
+// Local Bridge 业务错误
 type LBError struct {
 	Code    string      // 错误码
 	Message string      // 错误描述
@@ -27,7 +27,7 @@ type LBError struct {
 	Err     error       // 原始错误
 }
 
-// Error 实现error接口
+// error 接口
 func (e *LBError) Error() string {
 	if e.Err != nil {
 		return fmt.Sprintf("[%s] %s: %v", e.Code, e.Message, e.Err)
@@ -35,12 +35,12 @@ func (e *LBError) Error() string {
 	return fmt.Sprintf("[%s] %s", e.Code, e.Message)
 }
 
-// Unwrap 返回原始错误
+// 返回原始错误
 func (e *LBError) Unwrap() error {
 	return e.Err
 }
 
-// ToErrorData 转换为ErrorData结构
+// 转换为 ErrorData 结构
 func (e *LBError) ToErrorData() models.ErrorData {
 	return models.ErrorData{
 		Code:    e.Code,
@@ -49,7 +49,7 @@ func (e *LBError) ToErrorData() models.ErrorData {
 	}
 }
 
-// New 创建新的LBError
+// 创建新的 LBError
 func New(code, message string) *LBError {
 	return &LBError{
 		Code:    code,
@@ -57,7 +57,7 @@ func New(code, message string) *LBError {
 	}
 }
 
-// Wrap 包装原始错误
+// 包装原始错误
 func Wrap(code, message string, err error) *LBError {
 	return &LBError{
 		Code:    code,
@@ -66,7 +66,7 @@ func Wrap(code, message string, err error) *LBError {
 	}
 }
 
-// WithDetail 添加详细信息
+// 添加详细信息
 func (e *LBError) WithDetail(detail interface{}) *LBError {
 	e.Detail = detail
 	return e
@@ -74,7 +74,7 @@ func (e *LBError) WithDetail(detail interface{}) *LBError {
 
 // 预定义的错误构造函数
 
-// NewFileNotFoundError 文件不存在错误
+// 文件不存在错误
 func NewFileNotFoundError(path string) *LBError {
 	return &LBError{
 		Code:    ErrFileNotFound,
@@ -83,7 +83,7 @@ func NewFileNotFoundError(path string) *LBError {
 	}
 }
 
-// NewFileReadError 文件读取失败错误
+// 文件读取失败错误
 func NewFileReadError(path string, err error) *LBError {
 	return &LBError{
 		Code:    ErrFileReadError,
@@ -93,7 +93,7 @@ func NewFileReadError(path string, err error) *LBError {
 	}
 }
 
-// NewFileWriteError 文件写入失败错误
+// 文件写入失败错误
 func NewFileWriteError(path string, err error) *LBError {
 	return &LBError{
 		Code:    ErrFileWriteError,
@@ -103,7 +103,7 @@ func NewFileWriteError(path string, err error) *LBError {
 	}
 }
 
-// NewFileNameConflictError 文件名冲突错误
+// 文件名冲突错误
 func NewFileNameConflictError(path string) *LBError {
 	return &LBError{
 		Code:    ErrFileNameConflict,
@@ -112,7 +112,7 @@ func NewFileNameConflictError(path string) *LBError {
 	}
 }
 
-// NewInvalidJSONError JSON格式无效错误
+// JSON格式无效错误
 func NewInvalidJSONError(err error) *LBError {
 	return &LBError{
 		Code:    ErrInvalidJSON,
@@ -121,7 +121,7 @@ func NewInvalidJSONError(err error) *LBError {
 	}
 }
 
-// NewPermissionDeniedError 权限不足错误
+// 权限不足错误
 func NewPermissionDeniedError(reason string) *LBError {
 	return &LBError{
 		Code:    ErrPermissionDenied,
@@ -130,7 +130,7 @@ func NewPermissionDeniedError(reason string) *LBError {
 	}
 }
 
-// NewInvalidRequestError 请求参数无效错误
+// 请求参数无效错误
 func NewInvalidRequestError(reason string) *LBError {
 	return &LBError{
 		Code:    ErrInvalidRequest,

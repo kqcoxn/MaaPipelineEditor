@@ -8,33 +8,33 @@ import (
 	"github.com/spf13/viper"
 )
 
-// ServerConfig 服务器配置
+// 服务器配置
 type ServerConfig struct {
 	Port int    `mapstructure:"port"`
 	Host string `mapstructure:"host"`
 }
 
-// FileConfig 文件相关配置
+// 文件相关配置
 type FileConfig struct {
 	Root       string   `mapstructure:"root"`
 	Exclude    []string `mapstructure:"exclude"`
 	Extensions []string `mapstructure:"extensions"`
 }
 
-// LogConfig 日志配置
+// 日志配置
 type LogConfig struct {
 	Level        string `mapstructure:"level"`
 	Dir          string `mapstructure:"dir"`
 	PushToClient bool   `mapstructure:"push_to_client"`
 }
 
-// MaaFWConfig MaaFramework配置 - TODO
+// MaaFramework配置 - TODO
 type MaaFWConfig struct {
 	Enabled bool   `mapstructure:"enabled"`
 	LibDir  string `mapstructure:"lib_dir"`
 }
 
-// Config 全局配置
+// 全局配置
 type Config struct {
 	Server ServerConfig `mapstructure:"server"`
 	File   FileConfig   `mapstructure:"file"`

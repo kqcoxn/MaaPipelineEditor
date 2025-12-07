@@ -42,6 +42,11 @@ func Init(logLevel string, logDir string, pushToClient bool) error {
 			return fmt.Errorf("创建日志目录失败: %w", err)
 		}
 
+		// 清理旧日志文件
+		if err := cleanOldLogs(logDir, 3); err != nil {
+			fmt.Printf("清理旧日志失败: %v\n", err)
+		}
+
 		// 创建日志文件
 		logFileName := fmt.Sprintf("lb-%s.log", time.Now().Format("2006-01-02"))
 		logFilePath := filepath.Join(logDir, logFileName)
@@ -123,4 +128,48 @@ func Error(module, message string, args ...interface{}) {
 // 记录 DEBUG 级别日志
 func Debug(module, message string, args ...interface{}) {
 	WithModule(module).Debugf(message, args...)
+}
+
+// 清理旧日志文件
+func cleanOldLogs(logDir string, keepDays int) error {
+	// 计算截止时间
+	cutoffTime := time.Now().AddDate(0, 0, -keepDays)
+
+	// 读取日志目录
+	entries, err := os.ReadDir(logDir)
+	if err != nil {
+		return fmt.Errorf("读取日志目录失败: %w", err)
+	}
+
+	// 遍历并删除过期日志
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		// 只处理 lb- 开头的 .log 文件
+		fileName := entry.Name()
+		matched, err := filepath.Match("lb-*.log", fileName)
+		if err != nil || !matched {
+			continue
+		}
+
+		// 获取文件信息
+		filePath := filepath.Join(logDir, fileName)
+		fileInfo, err := os.Stat(filePath)
+		if err != nil {
+			continue
+		}
+
+		// 检查修改时间,删除过期文件
+		if fileInfo.ModTime().Before(cutoffTime) {
+			if err := os.Remove(filePath); err != nil {
+				fmt.Printf("删除旧日志失败 %s: %v\n", fileName, err)
+			} else {
+				fmt.Printf("已删除旧日志: %s\n", fileName)
+			}
+		}
+	}
+
+	return nil
 }
