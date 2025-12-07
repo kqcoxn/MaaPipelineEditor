@@ -217,6 +217,17 @@ lb 应监听根目录下文件的变化：
 }
 ```
 
+**`/etl/refresh_file_list`** - 请求刷新文件列表
+
+```json
+{
+  "path": "/etl/refresh_file_list",
+  "data": {}
+}
+```
+
+请求后 lb 会重新推送 `/lte/file_list`。
+
 #### 确认消息
 
 **`/ack/save_file`** - 保存成功确认

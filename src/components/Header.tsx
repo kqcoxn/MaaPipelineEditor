@@ -9,9 +9,17 @@ import {
   Alert,
   type MenuProps,
 } from "antd";
-import { DownOutlined, SunOutlined, MoonOutlined } from "@ant-design/icons";
+import {
+  DownOutlined,
+  SunOutlined,
+  MoonOutlined,
+  LinkOutlined,
+  DisconnectOutlined,
+  LoadingOutlined,
+} from "@ant-design/icons";
 import IconFont from "./iconfonts";
 import UpdateLog from "./modals/UpdateLog";
+import { localServer } from "../services/server";
 
 import { globalConfig } from "../stores/configStore";
 import { useTheme } from "../contexts/ThemeContext";
@@ -47,6 +55,102 @@ const otherVersions: MenuProps["items"] = versionLinks.map(
     ),
   })
 );
+
+type ConnectionStatus = "connected" | "disconnected" | "connecting";
+
+const ConnectionButton: React.FC = () => {
+  const [status, setStatus] = useState<ConnectionStatus>("disconnected");
+
+  useEffect(() => {
+    // 初始化状态
+    const updateStatus = () => {
+      if (localServer.isConnected()) {
+        setStatus("connected");
+      } else if (localServer.getIsConnecting()) {
+        setStatus("connecting");
+      } else {
+        setStatus("disconnected");
+      }
+    };
+
+    updateStatus();
+
+    // 注册状态变化回调
+    localServer.onStatus((connected) => {
+      setStatus(connected ? "connected" : "disconnected");
+    });
+
+    localServer.onConnecting((isConnecting) => {
+      if (isConnecting) {
+        setStatus("connecting");
+      }
+    });
+
+    // 定期检查状态
+    const interval = setInterval(() => {
+      updateStatus();
+    }, 1000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, []);
+
+  const handleClick = () => {
+    if (status === "connected") {
+      localServer.disconnect();
+    } else if (status === "disconnected") {
+      localServer.connect();
+    }
+  };
+
+  const getButtonConfig = () => {
+    switch (status) {
+      case "connected":
+        return {
+          icon: <LinkOutlined />,
+          text: "MPE LocalBridge",
+          type: "primary" as const,
+          tooltip: "点击断开本地服务连接",
+        };
+      case "connecting":
+        return {
+          icon: <LoadingOutlined />,
+          text: "连接服务中...",
+          type: "default" as const,
+          tooltip: "正在连接本地服务",
+        };
+      case "disconnected":
+        return {
+          icon: <DisconnectOutlined />,
+          text: "未连接本地服务",
+          type: "default" as const,
+          tooltip: "点击连接本地服务",
+        };
+    }
+  };
+
+  const config = getButtonConfig();
+
+  return (
+    <Tooltip title={config.tooltip}>
+      <Button
+        type={config.type}
+        icon={config.icon}
+        onClick={handleClick}
+        disabled={status === "connecting"}
+        size="small"
+        style={{
+          borderRadius: "999px",
+          paddingLeft: "12px",
+          paddingRight: "12px",
+        }}
+      >
+        {config.text}
+      </Button>
+    </Tooltip>
+  );
+};
 
 function Header() {
   const { isDark, toggleTheme } = useTheme();
@@ -96,7 +200,7 @@ function Header() {
           />
           <div className={style.title}>
             <span className={classNames(style.title, style["full-title"])}>
-              MaaPipelineEditor - 可视化 MaaFramework Pipeline 编辑器
+              MaaPipelineExtremer - Editor
             </span>
             <span className={classNames(style.title, style["medium-title"])}>
               MaaPipelineEditor
@@ -121,7 +225,8 @@ function Header() {
           </div>
         </div>
         <div className={style.right}>
-          <div className={style.version}>
+          <ConnectionButton />
+          <div className={style.versionInfo}>
             <Dropdown menu={{ items: otherVersions }} placement="bottom">
               <a>
                 <Space>

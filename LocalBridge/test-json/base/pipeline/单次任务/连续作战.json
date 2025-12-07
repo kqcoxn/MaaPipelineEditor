@@ -1,0 +1,123 @@
+{
+    "__mpe_config_连续作战": {
+        "__mpe_code": {
+            "prefix": "连续作战",
+            "filename": "连续作战",
+            "version": "v0.5.4"
+        }
+    },
+    "连续作战_开始": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "__mpe_code": {
+            "position": {
+                "x": 705,
+                "y": 127
+            }
+        },
+        "next": [
+            "连续作战_作战开始"
+        ]
+    },
+    "连续作战_作战开始": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "作战开始",
+                    "开始作战"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "timeout": 900000,
+        "rate_limit": 3000,
+        "focus": "> 开始作战",
+        "__mpe_code": {
+            "position": {
+                "x": 981,
+                "y": 56
+            }
+        },
+        "next": [
+            "连续作战_获取奖励",
+            "[JumpBack]连续作战_开始作战"
+        ]
+    },
+    "连续作战_开始作战": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "行动开始"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "__mpe_code": {
+            "position": {
+                "x": 1238,
+                "y": 292
+            }
+        }
+    },
+    "连续作战_获取奖励": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "确定"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 400,
+        "focus": "> 领取奖励",
+        "__mpe_code": {
+            "position": {
+                "x": 1238,
+                "y": 56
+            }
+        },
+        "next": [
+            "连续作战_下一关"
+        ]
+    },
+    "连续作战_下一关": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "focus": "> 进入下一关",
+        "__mpe_code": {
+            "position": {
+                "x": 1504,
+                "y": -77
+            }
+        },
+        "next": [
+            "连续作战_作战开始"
+        ]
+    }
+}

@@ -44,6 +44,7 @@ type ConfigState = {
   status: {
     showConfigPanel: boolean;
     showAIHistoryPanel: boolean;
+    showLocalFilePanel: boolean;
     rightPanelWidth: number;
   };
   setStatus: <K extends keyof ConfigState["status"]>(
@@ -90,6 +91,7 @@ export const useConfigStore = create<ConfigState>()((set) => ({
   status: {
     showConfigPanel: false,
     showAIHistoryPanel: false,
+    showLocalFilePanel: false,
     rightPanelWidth: 350,
   },
   setStatus(key, value) {

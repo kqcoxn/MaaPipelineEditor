@@ -1,0 +1,1216 @@
+{
+    "__mpe_config_每日采购": {
+        "__mpe_code": {
+            "prefix": "每日采购",
+            "filename": "每日采购",
+            "version": "v0.5.5"
+        }
+    },
+    "每日采购_采购中心": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "采购中心"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "post_delay": 3000,
+        "focus": "> 进入采购中心",
+        "__mpe_code": {
+            "position": {
+                "x": 192,
+                "y": -413
+            }
+        },
+        "next": [
+            "每日采购_补给包"
+        ]
+    },
+    "每日采购_补给包": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "补给包"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "focus": "> 采购每日免费补给包",
+        "pre_delay": 400,
+        "post_delay": 1000,
+        "__mpe_code": {
+            "position": {
+                "x": 451,
+                "y": -329
+            }
+        },
+        "next": [
+            "每日采购_特惠活动"
+        ]
+    },
+    "每日采购_特惠活动": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "特惠活动"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "post_delay": 400,
+        "timeout": 2000,
+        "pre_delay": 400,
+        "__mpe_code": {
+            "position": {
+                "x": 702,
+                "y": -326
+            }
+        },
+        "next": [
+            "每日采购_每日补给包"
+        ],
+        "on_error": [
+            "每日采购_已购买"
+        ]
+    },
+    "每日采购_每日补给包": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "免费"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "post_delay": 800,
+        "timeout": 3000,
+        "pre_delay": 400,
+        "__mpe_code": {
+            "position": {
+                "x": 962,
+                "y": -446
+            }
+        },
+        "next": [
+            "每日采购_免费购买"
+        ],
+        "on_error": [
+            "每日采购_已购买"
+        ]
+    },
+    "每日采购_已购买": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "focus": "> 今日免费物资已采购",
+        "__mpe_code": {
+            "position": {
+                "x": 1214,
+                "y": -224
+            }
+        },
+        "next": [
+            "每日采购_购买数构银物资"
+        ]
+    },
+    "每日采购_免费购买": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "免费购买"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "post_delay": 800,
+        "pre_delay": 400,
+        "__mpe_code": {
+            "position": {
+                "x": 1213,
+                "y": -448
+            }
+        },
+        "next": [
+            "每日采购_获取每日补给包物品"
+        ]
+    },
+    "每日采购_购买数构银物资": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": 1730,
+                "y": -275
+            }
+        },
+        "next": [
+            "每日采购_流动市场"
+        ]
+    },
+    "每日采购_获取每日补给包物品": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "点击以继续"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 800,
+        "timeout": 2000,
+        "__mpe_code": {
+            "position": {
+                "x": 1463,
+                "y": -446
+            }
+        },
+        "on_error": [
+            "每日采购_购买数构银物资"
+        ],
+        "next": [
+            "每日采购_每日补给包"
+        ]
+    },
+    "每日采购_流动市场": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "流动市场"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "post_delay": 500,
+        "focus": "> 采购数构银物资",
+        "__mpe_code": {
+            "position": {
+                "x": 261,
+                "y": -1
+            }
+        },
+        "next": [
+            "每日采购_特价交易所"
+        ]
+    },
+    "每日采购_特价交易所": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "特价交易所"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "post_delay": 500,
+        "__mpe_code": {
+            "position": {
+                "x": 519,
+                "y": 1
+            }
+        },
+        "next": [
+            "每日采购_检测当前数构银"
+        ]
+    },
+    "每日采购_检测当前数构银": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "check_silver_sufficient"
+            }
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": 779,
+                "y": 1
+            }
+        },
+        "next": [
+            "每日采购_滑动至底部"
+        ],
+        "on_error": [
+            "每日采购_数构银不足"
+        ]
+    },
+    "每日采购_滑动至底部": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Swipe",
+            "param": {
+                "begin": [
+                    764,
+                    542,
+                    0,
+                    0
+                ],
+                "end": [
+                    [
+                        764,
+                        211,
+                        0,
+                        0
+                    ]
+                ]
+            }
+        },
+        "post_delay": 400,
+        "__mpe_code": {
+            "position": {
+                "x": 1051,
+                "y": 2
+            }
+        },
+        "next": [
+            "每日采购_设置识别位置"
+        ]
+    },
+    "每日采购_设置识别位置": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "select_next_procurement"
+            }
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": 1320,
+                "y": 1
+            }
+        },
+        "next": [
+            "每日采购_开始识别"
+        ],
+        "on_error": [
+            "每日采购_采购情报物资"
+        ]
+    },
+    "每日采购_开始识别": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "timeout": 1000,
+        "__mpe_code": {
+            "position": {
+                "x": 1645,
+                "y": 173
+            }
+        },
+        "next": [
+            "每日采购_识别是否为数构银物资"
+        ],
+        "on_error": [
+            "每日采购_非数构银物资"
+        ]
+    },
+    "每日采购_识别是否为数构银物资": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "silver.png"
+                ],
+                "roi": [
+                    320,
+                    380,
+                    200,
+                    230
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "timeout": 2000,
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": 1906,
+                "y": 330
+            }
+        },
+        "next": [
+            "每日采购_检查是否已购买",
+            "每日采购_检测是否为超值",
+            "每日采购_检测是否为特惠"
+        ],
+        "on_error": [
+            "每日采购_非特惠"
+        ]
+    },
+    "每日采购_非数构银物资": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "focus": "> 并非数构银物资",
+        "__mpe_code": {
+            "position": {
+                "x": 1905,
+                "y": 172
+            }
+        },
+        "next": [
+            "每日采购_检查下个节点"
+        ]
+    },
+    "每日采购_采购情报物资": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "流动市场"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": 1921,
+                "y": 1163
+            }
+        },
+        "next": [
+            "每日采购_确保进入流动市场"
+        ]
+    },
+    "每日采购_检查是否已购买": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "procurement/sold_out.png"
+                ],
+                "roi": [
+                    320,
+                    380,
+                    200,
+                    230
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "focus": "> 该物资已采购",
+        "__mpe_code": {
+            "position": {
+                "x": 2191,
+                "y": 117
+            }
+        },
+        "next": [
+            "每日采购_检查下个节点"
+        ]
+    },
+    "每日采购_检测是否为超值": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "procurement/super.png"
+                ],
+                "roi": [
+                    320,
+                    380,
+                    200,
+                    230
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "timeout": 1000,
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": 2186,
+                "y": 788
+            }
+        },
+        "next": [
+            "每日采购_检测黑白名单"
+        ]
+    },
+    "每日采购_检测是否为特惠": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "procurement/special.png"
+                ],
+                "roi": [
+                    320,
+                    380,
+                    200,
+                    230
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "timeout": 1000,
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": 2187,
+                "y": 509
+            }
+        },
+        "next": [
+            "每日采购_检测黑白名单"
+        ]
+    },
+    "每日采购_非特惠": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "focus": "> 并非超值/特惠",
+        "__mpe_code": {
+            "position": {
+                "x": 2189,
+                "y": 339
+            }
+        },
+        "next": [
+            "每日采购_检查下个节点"
+        ]
+    },
+    "每日采购_检查下个节点": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": 3842,
+                "y": 28
+            }
+        },
+        "next": [
+            "每日采购_设置识别位置"
+        ]
+    },
+    "每日采购_检测黑白名单": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "timeout": 1000,
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": 2470,
+                "y": 340
+            }
+        },
+        "next": [
+            "每日采购_检测是否在白名单"
+        ],
+        "on_error": [
+            "每日采购_非白名单"
+        ]
+    },
+    "每日采购_检测是否在白名单": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    ""
+                ],
+                "roi": [
+                    320,
+                    380,
+                    200,
+                    230
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "timeout": 1000,
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": 2735,
+                "y": 340
+            }
+        },
+        "next": [
+            "每日采购_检测是否在黑名单"
+        ],
+        "on_error": [
+            "每日采购_点击详情页"
+        ]
+    },
+    "每日采购_非白名单": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "focus": "> 不在白名单内",
+        "__mpe_code": {
+            "position": {
+                "x": 2736,
+                "y": 185
+            }
+        },
+        "next": [
+            "每日采购_检查下个节点"
+        ]
+    },
+    "每日采购_检测是否在黑名单": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    ""
+                ],
+                "roi": [
+                    320,
+                    380,
+                    200,
+                    230
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "timeout": 1000,
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": 3004,
+                "y": 339
+            }
+        },
+        "next": [
+            "每日采购_黑名单"
+        ]
+    },
+    "每日采购_点击详情页": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    320,
+                    380,
+                    200,
+                    230
+                ],
+                "target_offset": [
+                    20,
+                    20,
+                    -60,
+                    -40
+                ]
+            }
+        },
+        "focus": "> 好东西，梭哈！",
+        "post_delay": 1200,
+        "__mpe_code": {
+            "position": {
+                "x": 3005,
+                "y": 625
+            }
+        },
+        "next": [
+            "每日采购_购买"
+        ]
+    },
+    "每日采购_黑名单": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "focus": "> 在黑名单内",
+        "__mpe_code": {
+            "position": {
+                "x": 3258,
+                "y": 335
+            }
+        },
+        "next": [
+            "每日采购_检查下个节点"
+        ]
+    },
+    "每日采购_购买": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "购买"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 400,
+        "__mpe_code": {
+            "position": {
+                "x": 3264,
+                "y": 622
+            }
+        },
+        "next": [
+            "每日采购_确定购买物资"
+        ]
+    },
+    "每日采购_结束": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "__mpe_code": {
+            "position": {
+                "x": 4220,
+                "y": 1163
+            }
+        }
+    },
+    "每日采购_确定购买物资": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "点击以继续"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 800,
+        "__mpe_code": {
+            "position": {
+                "x": 3524,
+                "y": 622
+            }
+        },
+        "next": [
+            "每日采购_检查下个节点"
+        ]
+    },
+    "每日采购_设置黑白名单": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "set_procurement_list",
+                "custom_action_param": "white=&black="
+            }
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": -347,
+                "y": -488
+            }
+        },
+        "next": [
+            "每日采购_执行前返回主页"
+        ]
+    },
+    "每日采购_执行前返回主页": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "run",
+                "custom_action_param": "key=全局前置返回主页"
+            }
+        },
+        "__mpe_code": {
+            "position": {
+                "x": -80,
+                "y": -459
+            }
+        },
+        "next": [
+            "每日采购_采购中心"
+        ]
+    },
+    "每日采购_开始": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "__mpe_code": {
+            "position": {
+                "x": -888,
+                "y": -487
+            }
+        },
+        "next": [
+            "每日采购_周期检查"
+        ]
+    },
+    "每日采购_周期检查": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "periodic_check",
+                "custom_action_param": "t=procurement"
+            }
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": -607,
+                "y": -488
+            }
+        },
+        "next": [
+            "每日采购_设置黑白名单"
+        ],
+        "on_error": [
+            "每日采购_今日已购买"
+        ]
+    },
+    "每日采购_今日已购买": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "focus": "> 今日已采购",
+        "__mpe_code": {
+            "position": {
+                "x": -346,
+                "y": -231
+            }
+        }
+    },
+    "每日采购_数构银不足": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "focus": "> 数构银余量不足！",
+        "__mpe_code": {
+            "position": {
+                "x": 1051,
+                "y": 232
+            }
+        },
+        "next": [
+            "每日采购_采购情报物资"
+        ]
+    },
+    "每日采购_数构银区域": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    ""
+                ],
+                "roi": [
+                    1163,
+                    16,
+                    104,
+                    37
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "__mpe_code": {
+            "position": {
+                "x": 777,
+                "y": 225
+            }
+        }
+    },
+    "每日采购_返回主界面": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "run",
+                "custom_action_param": "key=返回主页"
+            }
+        },
+        "__mpe_code": {
+            "position": {
+                "x": 3971,
+                "y": 1164
+            }
+        },
+        "next": [
+            "每日采购_结束"
+        ]
+    },
+    "每日采购_情报枢纽站": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "情报枢纽站"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 400,
+        "__mpe_code": {
+            "position": {
+                "x": 2409,
+                "y": 1160
+            }
+        },
+        "next": [
+            "每日采购_情报物资"
+        ]
+    },
+    "每日采购_确保进入流动市场": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "流动市场"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "focus": "> 采购情报物资",
+        "__mpe_code": {
+            "position": {
+                "x": 2162,
+                "y": 1160
+            }
+        },
+        "next": [
+            "每日采购_情报枢纽站"
+        ]
+    },
+    "每日采购_情报物资": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "支援演练券"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 1000,
+        "timeout": 2000,
+        "post_delay": 400,
+        "__mpe_code": {
+            "position": {
+                "x": 2669,
+                "y": 1160
+            }
+        },
+        "next": [
+            "每日采购_最大购买",
+            "每日采购_售罄提醒"
+        ]
+    },
+    "每日采购_最大购买": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "最多"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 400,
+        "__mpe_code": {
+            "position": {
+                "x": 2929,
+                "y": 1160
+            }
+        },
+        "next": [
+            "每日采购_购买情报物资"
+        ]
+    },
+    "每日采购_购买情报物资": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "购买"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "timeout": 2000,
+        "__mpe_code": {
+            "position": {
+                "x": 3189,
+                "y": 1160
+            }
+        },
+        "next": [
+            "每日采购_确认情报物资"
+        ],
+        "on_error": [
+            "每日采购_情报点数不足"
+        ]
+    },
+    "每日采购_确认情报物资": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "点击以继续"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 800,
+        "focus": "> 采购成功",
+        "__mpe_code": {
+            "position": {
+                "x": 3449,
+                "y": 1160
+            }
+        },
+        "next": [
+            "每日采购_周期记录"
+        ]
+    },
+    "每日采购_周期记录": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "record_period",
+                "custom_action_param": "t=procurement"
+            }
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": 3720,
+                "y": 1163
+            }
+        },
+        "next": [
+            "每日采购_返回主界面"
+        ]
+    },
+    "每日采购_售罄提醒": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "focus": "> 本周指定情报物资已售罄",
+        "__mpe_code": {
+            "position": {
+                "x": 2929,
+                "y": 1353
+            }
+        },
+        "next": [
+            "每日采购_周期记录"
+        ]
+    },
+    "每日采购_情报点数不足": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "focus": "> 情报点数不足",
+        "__mpe_code": {
+            "position": {
+                "x": 3450,
+                "y": 1391
+            }
+        },
+        "next": [
+            "每日采购_周期记录"
+        ]
+    }
+}

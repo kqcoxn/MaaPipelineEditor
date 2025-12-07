@@ -1,0 +1,425 @@
+{
+    "__mpe_config_返回主页": {
+        "__mpe_code": {
+            "prefix": "返回主页",
+            "filename": "返回主页",
+            "version": "v0.5.5"
+        }
+    },
+    "返回主页_紧急撤离": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "focus": "> 尝试返回主界面",
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": 210,
+                "y": -20
+            }
+        },
+        "next": [
+            "返回主页_主界面",
+            "返回主页_个人页",
+            "[JumpBack]返回主页_图像类",
+            "[JumpBack]返回主页_文本类",
+            "[JumpBack]返回主页_盲目尝试"
+        ]
+    },
+    "返回主页_主界面": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "招募热线"
+                ],
+                "roi": [
+                    19,
+                    624,
+                    195,
+                    78
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": 1058,
+                "y": -78
+            }
+        },
+        "next": [
+            "返回主页_计数"
+        ]
+    },
+    "返回主页_图像类": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "home.png",
+                    "back.png",
+                    "close.png",
+                    "jump.png",
+                    "chat_room/close.png"
+                ],
+                "index": -1,
+                "threshold": [
+                    0.8,
+                    0.8,
+                    0.8,
+                    0.8,
+                    0.9
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": 489,
+                "y": 126
+            }
+        },
+        "next": [
+            "返回主页_失败后检查超时"
+        ]
+    },
+    "返回主页_文本类": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "点击",
+                    "取消"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": 489,
+                "y": 378
+            }
+        },
+        "next": [
+            "返回主页_失败后检查超时"
+        ]
+    },
+    "返回主页_盲目尝试": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    5,
+                    5,
+                    1,
+                    1
+                ]
+            }
+        },
+        "pre_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": 487,
+                "y": 567
+            }
+        },
+        "next": [
+            "返回主页_失败后检查超时"
+        ]
+    },
+    "返回主页_计数": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "count",
+                "custom_action_param": "key=return_home"
+            }
+        },
+        "pre_delay": 0,
+        "post_delay": 1000,
+        "__mpe_code": {
+            "position": {
+                "x": 1311,
+                "y": -294
+            }
+        },
+        "next": [
+            "返回主页_成功后检查超时"
+        ],
+        "on_error": [
+            "返回主页_撤离成功"
+        ]
+    },
+    "返回主页_失败后检查超时": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "check_time",
+                "custom_action_param": "key=return_home&end=true"
+            }
+        },
+        "pre_delay": 0,
+        "post_delay": 1100,
+        "__mpe_code": {
+            "position": {
+                "x": 789,
+                "y": 207
+            }
+        },
+        "next": [
+            "返回主页_停止任务"
+        ]
+    },
+    "返回主页_成功后检查超时": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "check_time",
+                "custom_action_param": "key=return_home"
+            }
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": 1584,
+                "y": -291
+            }
+        },
+        "next": [
+            "返回主页_再次检查"
+        ],
+        "on_error": [
+            "返回主页_撤离成功"
+        ]
+    },
+    "返回主页_撤离成功": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "focus": "> 已回到主界面",
+        "__mpe_code": {
+            "position": {
+                "x": 1860,
+                "y": -14
+            }
+        }
+    },
+    "返回主页_停止任务": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "StopTask",
+            "param": {}
+        },
+        "focus": "返回主界面失败，请立即停止后续任务！",
+        "__mpe_code": {
+            "position": {
+                "x": 1058,
+                "y": 212
+            }
+        }
+    },
+    "返回主页_再次检查": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "timeout": 500,
+        "__mpe_code": {
+            "position": {
+                "x": 731,
+                "y": -466
+            }
+        },
+        "next": [
+            "返回主页_主界面"
+        ],
+        "on_error": [
+            "返回主页_初始化计数"
+        ]
+    },
+    "返回主页_初始化计数": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "init_counter",
+                "custom_action_param": "key=return_home&max=2"
+            }
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": -64,
+                "y": -23
+            }
+        },
+        "next": [
+            "返回主页_紧急撤离"
+        ]
+    },
+    "返回主页_开始": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": -591,
+                "y": -26
+            }
+        },
+        "next": [
+            "返回主页_初始化时间锁"
+        ]
+    },
+    "返回主页_初始化时间锁": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "init_timer",
+                "custom_action_param": "key=return_home&limit=25"
+            }
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": -331,
+                "y": -26
+            }
+        },
+        "next": [
+            "返回主页_初始化计数"
+        ]
+    },
+    "返回主页_个人页": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "入职时间",
+                    "组长生日"
+                ],
+                "roi": [
+                    23,
+                    606,
+                    99,
+                    83
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "focus": "> 检测到卡入个人页，即将返回",
+        "__mpe_code": {
+            "position": {
+                "x": 493,
+                "y": -233
+            }
+        },
+        "next": [
+            "返回主页_从个人页返回"
+        ]
+    },
+    "返回主页_从个人页返回": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "home.png"
+                ],
+                "roi": [
+                    197,
+                    11,
+                    121,
+                    67
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 800,
+        "timeout": 5000,
+        "__mpe_code": {
+            "position": {
+                "x": 751,
+                "y": -235
+            }
+        },
+        "next": [
+            "返回主页_主界面"
+        ],
+        "on_error": [
+            "返回主页_初始化计数"
+        ]
+    }
+}

@@ -1,0 +1,609 @@
+{
+    "__mpe_config_卡带升级": {
+        "__mpe_code": {
+            "prefix": "卡带升级",
+            "filename": "卡带升级",
+            "version": "v0.5.5"
+        }
+    },
+    "卡带升级_加纳！": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "card/max.png"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "focus": "> 加纳！",
+        "pre_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": 1025,
+                "y": 275
+            }
+        },
+        "next": [
+            "卡带升级_升级"
+        ]
+    },
+    "卡带升级_升级": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "card/upgrade.png"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "focus": "> 卡带升级",
+        "__mpe_code": {
+            "position": {
+                "x": 1285,
+                "y": 275
+            }
+        },
+        "next": [
+            "卡带升级_加速提升"
+        ]
+    },
+    "卡带升级_加速提升": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    640,
+                    100,
+                    1,
+                    1
+                ]
+            }
+        },
+        "timeout": 5000,
+        "pre_delay": 500,
+        "rate_limit": 500,
+        "__mpe_code": {
+            "position": {
+                "x": 1720,
+                "y": 503
+            }
+        },
+        "next": [
+            "卡带升级_确认属性",
+            "[JumpBack]卡带升级_确定突破"
+        ],
+        "on_error": [
+            "卡带升级_卡带不足结束"
+        ]
+    },
+    "卡带升级_确认属性": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "点击空白处关闭"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 800,
+        "__mpe_code": {
+            "position": {
+                "x": 2008,
+                "y": 180
+            }
+        },
+        "next": [
+            "卡带升级_检查返还材料",
+            "卡带升级_检测当前等级"
+        ]
+    },
+    "卡带升级_确定突破": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "confirm.png"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 400,
+        "__mpe_code": {
+            "position": {
+                "x": 2006,
+                "y": 519
+            }
+        }
+    },
+    "卡带升级_卡带不足结束": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "focus": "> 卡带不足！",
+        "__mpe_code": {
+            "position": {
+                "x": 2008,
+                "y": 743
+            }
+        }
+    },
+    "卡带升级_检查返还材料": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "获得物品"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 400,
+        "__mpe_code": {
+            "position": {
+                "x": 2304,
+                "y": 98
+            }
+        },
+        "next": [
+            "卡带升级_检测当前等级"
+        ]
+    },
+    "卡带升级_检测当前等级": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "focus": "> 检测当前等级",
+        "timeout": 1000,
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": 201,
+                "y": 141
+            }
+        },
+        "next": [
+            "卡带升级_检测40级"
+        ],
+        "on_error": [
+            "卡带升级_检测当前状态"
+        ]
+    },
+    "卡带升级_检测40级": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "/50"
+                ],
+                "roi": [
+                    830,
+                    170,
+                    160,
+                    90
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "__mpe_code": {
+            "position": {
+                "x": 520,
+                "y": -76
+            }
+        },
+        "next": [
+            "卡带升级_已升级至指定等级"
+        ]
+    },
+    "卡带升级_检测当前状态": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "focus": "> 检测当前状态",
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": 491,
+                "y": 276
+            }
+        },
+        "next": [
+            "卡带升级_升级状态",
+            "卡带升级_卡带突破"
+        ]
+    },
+    "卡带升级_已升级至指定等级": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "focus": "> 已提升至指定等级",
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": 777,
+                "y": -175
+            }
+        },
+        "next": [
+            "卡带升级_更新卡带位置"
+        ]
+    },
+    "卡带升级_升级状态": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "card/upgrade.png"
+                ],
+                "threshold": [
+                    0.94
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "focus": "> 卡带升级",
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": 765,
+                "y": 275
+            }
+        },
+        "next": [
+            "卡带升级_加纳！"
+        ]
+    },
+    "卡带升级_卡带突破": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "card/breakthrough.png"
+                ],
+                "threshold": [
+                    0.94
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "focus": "> 卡带突破",
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": 773,
+                "y": 693
+            }
+        },
+        "next": [
+            "卡带升级_选择卡带"
+        ]
+    },
+    "卡带升级_更新卡带位置": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "select_next_strap"
+            }
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": 1031,
+                "y": -175
+            }
+        },
+        "next": [
+            "卡带升级_切换卡带"
+        ],
+        "on_error": [
+            "卡带升级_切换结束"
+        ]
+    },
+    "卡带升级_选择卡带": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    300,
+                    160,
+                    60,
+                    60
+                ]
+            }
+        },
+        "focus": "> 选择卡带",
+        "pre_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": 1033,
+                "y": 690
+            }
+        },
+        "next": [
+            "卡带升级_卡带不足",
+            "卡带升级_突破"
+        ]
+    },
+    "卡带升级_切换卡带": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    66,
+                    442,
+                    1,
+                    1
+                ]
+            }
+        },
+        "focus": "> 切换卡带",
+        "post_delay": 1000,
+        "__mpe_code": {
+            "position": {
+                "x": 1289,
+                "y": -176
+            }
+        },
+        "next": [
+            "卡带升级_检测当前等级"
+        ]
+    },
+    "卡带升级_卡带不足": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "close.png"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "__mpe_code": {
+            "position": {
+                "x": 1288,
+                "y": 529
+            }
+        },
+        "next": [
+            "卡带升级_卡带不足结束"
+        ]
+    },
+    "卡带升级_突破": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "card/breakthrough.png"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "focus": "> 使用卡带突破",
+        "__mpe_code": {
+            "position": {
+                "x": 1286,
+                "y": 693
+            }
+        },
+        "next": [
+            "卡带升级_加速提升"
+        ]
+    },
+    "卡带升级_选择模块组": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    200,
+                    160,
+                    60,
+                    60
+                ]
+            }
+        },
+        "focus": "> 卡带不足，使用模块组突破",
+        "timeout": 2000,
+        "pre_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": 1031,
+                "y": 925
+            }
+        },
+        "next": [
+            "卡带升级_模块组突破"
+        ],
+        "on_error": [
+            "卡带升级_模组块不足结束"
+        ]
+    },
+    "卡带升级_模块组突破": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "card/breakthrough.png"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "__mpe_code": {
+            "position": {
+                "x": 1291,
+                "y": 928
+            }
+        },
+        "next": [
+            "卡带升级_加速提升"
+        ]
+    },
+    "卡带升级_模组块不足结束": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "close.png"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "focus": "> 模组块不足！",
+        "__mpe_code": {
+            "position": {
+                "x": 1291,
+                "y": 1086
+            }
+        }
+    },
+    "卡带升级_启动": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "init_strap_upgrade"
+            }
+        },
+        "__mpe_code": {
+            "position": {
+                "x": -68,
+                "y": 141
+            }
+        },
+        "next": [
+            "卡带升级_检测当前等级"
+        ]
+    },
+    "卡带升级_检测50级": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "50级"
+                ],
+                "roi": [
+                    425,
+                    175,
+                    100,
+                    50
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "__mpe_code": {
+            "position": {
+                "x": 518,
+                "y": -264
+            }
+        },
+        "next": [
+            "卡带升级_已升级至指定等级"
+        ]
+    },
+    "卡带升级_切换结束": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "focus": "> 卡带全部升级完成",
+        "__mpe_code": {
+            "position": {
+                "x": 1287,
+                "y": 46
+            }
+        }
+    }
+}

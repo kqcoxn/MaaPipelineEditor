@@ -1,7 +1,7 @@
 import { CSS } from "@dnd-kit/utilities";
 import style from "../../styles/FilePanel.module.less";
 
-import React, { useState, memo, useMemo, useCallback, useEffect } from "react";
+import React, { useState, memo, useMemo, useCallback } from "react";
 import {
   closestCenter,
   DndContext,
@@ -13,9 +13,10 @@ import {
   SortableContext,
   useSortable,
 } from "@dnd-kit/sortable";
-import { Tabs, Input } from "antd";
-
+import { Tabs, Input, Button, Tooltip } from "antd";
+import { FileAddOutlined } from "@ant-design/icons";
 import { useFileStore } from "../../stores/fileStore";
+import { CreateFileModal } from "../modals/CreateFileModal";
 
 interface DraggableTabPaneProps extends React.HTMLAttributes<HTMLDivElement> {
   "data-node-key": string;
@@ -50,6 +51,9 @@ function FilePanel() {
   const fileName = useFileStore((state) => state.currentFile.fileName);
   const setFileName = useFileStore((state) => state.setFileName);
   const switchFile = useFileStore((state) => state.switchFile);
+  
+  // 创建文件对话框状态
+  const [createModalVisible, setCreateModalVisible] = useState(false);
 
   // 文件名状态
   const [fileNameState, setFileNameState] = useState<
@@ -104,13 +108,23 @@ function FilePanel() {
   // 渲染
   return (
     <div className={style.panel}>
-      <Input
-        className={style.filename}
-        placeholder="文件名"
-        value={fileName}
-        status={fileNameState}
-        onChange={onLabelChange}
-      />
+      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <Input
+          className={style.filename}
+          placeholder="文件名"
+          value={fileName}
+          status={fileNameState}
+          onChange={onLabelChange}
+        />
+        <Tooltip title="保存并新建本地文件" placement="bottom">
+          <Button
+            type="primary"
+            icon={<FileAddOutlined />}
+            size="small"
+            onClick={() => setCreateModalVisible(true)}
+          />
+        </Tooltip>
+      </div>
       <Tabs
         className={style.tabs}
         type="editable-card"
@@ -142,6 +156,10 @@ function FilePanel() {
             </SortableContext>
           </DndContext>
         )}
+      />
+      <CreateFileModal
+        visible={createModalVisible}
+        onCancel={() => setCreateModalVisible(false)}
       />
     </div>
   );

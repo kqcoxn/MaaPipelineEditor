@@ -1,0 +1,338 @@
+{
+    "__mpe_config_领取邮件": {
+        "__mpe_code": {
+            "prefix": "领取邮件",
+            "filename": "领取邮件",
+            "version": "v0.5.5"
+        }
+    },
+    "领取邮件_领取邮件": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "email.png",
+                    "email-tip.png"
+                ],
+                "threshold": [
+                    0.8,
+                    0.8
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 400,
+        "post_delay": 1000,
+        "focus": "> 进入邮件面板",
+        "timeout": 2000,
+        "__mpe_code": {
+            "position": {
+                "x": 351,
+                "y": -70
+            }
+        },
+        "next": [
+            "领取邮件_领取全部邮件"
+        ],
+        "on_error": [
+            "领取邮件_领取结束"
+        ]
+    },
+    "领取邮件_领取全部邮件": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "领取全部"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 800,
+        "timeout": 2000,
+        "__mpe_code": {
+            "position": {
+                "x": 611,
+                "y": -70
+            }
+        },
+        "next": [
+            "领取邮件_获取邮件奖励",
+            "领取邮件_暂无奖励"
+        ],
+        "on_error": [
+            "领取邮件_领取结束"
+        ]
+    },
+    "领取邮件_领取结束": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "timeout": 2000,
+        "__mpe_code": {
+            "position": {
+                "x": 1172,
+                "y": 5
+            }
+        },
+        "next": [
+            "领取邮件_周期记录"
+        ]
+    },
+    "领取邮件_获取邮件奖励": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "点击以继续"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 800,
+        "focus": "> 领取全部邮件",
+        "__mpe_code": {
+            "position": {
+                "x": 889,
+                "y": -150
+            }
+        },
+        "next": [
+            "领取邮件_领取结束",
+            "[JumpBack]领取邮件_确认获取邮件奖励"
+        ]
+    },
+    "领取邮件_暂无奖励": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "当前暂无奖励可领取"
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "pre_delay": 1,
+        "post_delay": 1,
+        "focus": "> 暂无邮件可领取",
+        "__mpe_code": {
+            "position": {
+                "x": 888,
+                "y": 97
+            }
+        },
+        "next": [
+            "领取邮件_领取结束"
+        ]
+    },
+    "领取邮件_返回主页面": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "run",
+                "custom_action_param": "key=返回主页"
+            }
+        },
+        "__mpe_code": {
+            "position": {
+                "x": 1761,
+                "y": -76
+            }
+        },
+        "next": [
+            "领取邮件_结束"
+        ]
+    },
+    "领取邮件_确认获取邮件奖励": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "点击以继续"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "__mpe_code": {
+            "position": {
+                "x": 1171,
+                "y": -177
+            }
+        }
+    },
+    "领取邮件_结束": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "__mpe_code": {
+            "position": {
+                "x": 2023,
+                "y": -76
+            }
+        }
+    },
+    "领取邮件_删除已读": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "删除已读"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "focus": "> 删除已读邮件",
+        "__mpe_code": {
+            "position": {
+                "x": 1193,
+                "y": 174
+            }
+        },
+        "next": [
+            "领取邮件_周期记录"
+        ]
+    },
+    "领取邮件_开始": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "__mpe_code": {
+            "position": {
+                "x": -443,
+                "y": -73
+            }
+        },
+        "next": [
+            "领取邮件_周期检查"
+        ]
+    },
+    "领取邮件_执行前返回主页": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "run",
+                "custom_action_param": "key=全局前置返回主页"
+            }
+        },
+        "__mpe_code": {
+            "position": {
+                "x": 85,
+                "y": -71
+            }
+        },
+        "next": [
+            "领取邮件_领取邮件"
+        ]
+    },
+    "领取邮件_周期检查": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "periodic_check",
+                "custom_action_param": "t=检查邮件"
+            }
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": -183,
+                "y": -73
+            }
+        },
+        "next": [
+            "领取邮件_执行前返回主页"
+        ],
+        "on_error": [
+            "领取邮件_已检查"
+        ]
+    },
+    "领取邮件_周期记录": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "record_period",
+                "custom_action_param": "t=检查邮件"
+            }
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": 1495,
+                "y": -75
+            }
+        },
+        "next": [
+            "领取邮件_返回主页面"
+        ]
+    },
+    "领取邮件_已检查": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "focus": "> 今日已检查邮件",
+        "__mpe_code": {
+            "position": {
+                "x": 83,
+                "y": 133
+            }
+        }
+    }
+}

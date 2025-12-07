@@ -1,0 +1,559 @@
+{
+    "__yamaape_config_好友换新": {
+        "filename": "好友换新",
+        "version": "v0.3.4",
+        "prefix": "好友换新",
+        "export": ""
+    },
+    "好友换新_开始": {
+        "recognition": "DirectHit",
+        "action": "DoNothing",
+        "timeout": 2000,
+        "__yamaape": {
+            "position": {
+                "x": 507,
+                "y": 396
+            }
+        },
+        "next": [
+            "好友换新_检测是否可编辑"
+        ],
+        "on_error": [
+            "好友换新_进入管理",
+            "好友换新_不在界面提示"
+        ]
+    },
+    "好友换新_检测是否可编辑": {
+        "recognition": "OCR",
+        "action": "DoNothing",
+        "expected": [
+            "退出管理"
+        ],
+        "__yamaape": {
+            "position": {
+                "x": 797,
+                "y": 301
+            }
+        },
+        "next": [
+            "好友换新_划至底部"
+        ]
+    },
+    "好友换新_进入管理": {
+        "recognition": "OCR",
+        "action": "Click",
+        "expected": [
+            "好友管理"
+        ],
+        "focus": "> 进入编辑模式",
+        "__yamaape": {
+            "position": {
+                "x": 796,
+                "y": 468
+            }
+        },
+        "next": [
+            "好友换新_划至底部"
+        ]
+    },
+    "好友换新_不在界面提示": {
+        "recognition": "DirectHit",
+        "action": "DoNothing",
+        "focus": "> 请在好友界面执行此任务",
+        "__yamaape": {
+            "position": {
+                "x": 794,
+                "y": 664
+            }
+        }
+    },
+    "好友换新_划至底部": {
+        "recognition": "DirectHit",
+        "action": "DoNothing",
+        "focus": "> 划至列表底部",
+        "__yamaape": {
+            "position": {
+                "x": 1087,
+                "y": 385
+            }
+        },
+        "next": [
+            "好友换新_下滑1"
+        ]
+    },
+    "好友换新_下滑1": {
+        "recognition": "DirectHit",
+        "action": "Swipe",
+        "begin": [
+            1000,
+            560,
+            1,
+            1
+        ],
+        "end": [
+            1000,
+            160,
+            1,
+            1
+        ],
+        "duration": 100,
+        "post_delay": 800,
+        "__yamaape": {
+            "position": {
+                "x": 1353,
+                "y": 385
+            }
+        },
+        "next": [
+            "好友换新_下滑2"
+        ]
+    },
+    "好友换新_下滑2": {
+        "recognition": "DirectHit",
+        "action": "Swipe",
+        "begin": [
+            1000,
+            560,
+            1,
+            1
+        ],
+        "end": [
+            1000,
+            160,
+            1,
+            1
+        ],
+        "duration": 100,
+        "post_delay": 800,
+        "__yamaape": {
+            "position": {
+                "x": 1621,
+                "y": 385
+            }
+        },
+        "next": [
+            "好友换新_下滑3"
+        ]
+    },
+    "好友换新_下滑3": {
+        "recognition": "DirectHit",
+        "action": "Swipe",
+        "begin": [
+            1000,
+            560,
+            1,
+            1
+        ],
+        "end": [
+            1000,
+            160,
+            1,
+            1
+        ],
+        "duration": 100,
+        "post_delay": 800,
+        "__yamaape": {
+            "position": {
+                "x": 1886,
+                "y": 385
+            }
+        },
+        "next": [
+            "好友换新_下滑4"
+        ]
+    },
+    "好友换新_下滑4": {
+        "recognition": "DirectHit",
+        "action": "Swipe",
+        "begin": [
+            1000,
+            560,
+            1,
+            1
+        ],
+        "end": [
+            1000,
+            160,
+            1,
+            1
+        ],
+        "duration": 100,
+        "post_delay": 1500,
+        "__yamaape": {
+            "position": {
+                "x": 2146,
+                "y": 385
+            }
+        },
+        "next": [
+            "好友换新_停止滑动"
+        ]
+    },
+    "好友换新_停止滑动": {
+        "recognition": "DirectHit",
+        "action": "Click",
+        "target": [
+            1000,
+            160,
+            1,
+            1
+        ],
+        "__yamaape": {
+            "position": {
+                "x": 2406,
+                "y": 385
+            }
+        },
+        "next": [
+            "好友换新_准备删除好友"
+        ]
+    },
+    "好友换新_准备删除好友": {
+        "recognition": "DirectHit",
+        "action": "DoNothing",
+        "timeout": 2000,
+        "__yamaape": {
+            "position": {
+                "x": 1196,
+                "y": 761
+            }
+        },
+        "next": [
+            "好友换新_删除好友"
+        ],
+        "on_error": [
+            "好友换新_进入添加好友界面"
+        ]
+    },
+    "好友换新_删除好友": {
+        "recognition": "OCR",
+        "action": "Click",
+        "expected": [
+            "一周前"
+        ],
+        "focus": "> 删除好友",
+        "order_by": "Vertical",
+        "index": -1,
+        "target_offset": [
+            705,
+            -37,
+            0,
+            0
+        ],
+        "__yamaape": {
+            "position": {
+                "x": 1461,
+                "y": 762
+            }
+        },
+        "next": [
+            "好友换新_确定删除"
+        ]
+    },
+    "好友换新_进入添加好友界面": {
+        "recognition": "OCR",
+        "action": "Click",
+        "focus": "> 进入添加好友界面",
+        "expected": [
+            "添加好友"
+        ],
+        "post_delay": 1000,
+        "__yamaape": {
+            "position": {
+                "x": 622,
+                "y": 1171
+            }
+        },
+        "next": [
+            "好友换新_初始化轮次计数"
+        ]
+    },
+    "好友换新_确定删除": {
+        "recognition": "OCR",
+        "action": "Click",
+        "expected": [
+            "确定"
+        ],
+        "pre_delay": 400,
+        "post_delay": 400,
+        "__yamaape": {
+            "position": {
+                "x": 1721,
+                "y": 762
+            }
+        },
+        "next": [
+            "好友换新_再次检测"
+        ]
+    },
+    "好友换新_初始化轮次计数": {
+        "recognition": "DirectHit",
+        "action": "Custom",
+        "custom_action": "init_counter",
+        "custom_action_param": "key=friend_round&max=3",
+        "__yamaape": {
+            "position": {
+                "x": 879,
+                "y": 1172
+            }
+        },
+        "next": [
+            "好友换新_轮次计数"
+        ]
+    },
+    "好友换新_再次检测": {
+        "recognition": "DirectHit",
+        "action": "DoNothing",
+        "__yamaape": {
+            "position": {
+                "x": 1993,
+                "y": 676
+            }
+        },
+        "next": [
+            "好友换新_准备删除好友"
+        ]
+    },
+    "好友换新_轮次计数": {
+        "recognition": "DirectHit",
+        "action": "Custom",
+        "custom_action": "count",
+        "custom_action_param": "key=friend_round&t=检查推荐列表",
+        "__yamaape": {
+            "position": {
+                "x": 1139,
+                "y": 1172
+            }
+        },
+        "next": [
+            "好友换新_刷新名单"
+        ],
+        "on_error": [
+            "好友换新_结束"
+        ]
+    },
+    "好友换新_刷新名单": {
+        "recognition": "OCR",
+        "action": "Click",
+        "focus": "> 刷新推荐名单",
+        "expected": [
+            "换一批"
+        ],
+        "index": -1,
+        "__yamaape": {
+            "position": {
+                "x": 1399,
+                "y": 1172
+            }
+        },
+        "next": [
+            "好友换新_初始化添加计数"
+        ]
+    },
+    "好友换新_结束": {
+        "recognition": "DirectHit",
+        "action": "DoNothing",
+        "focus": "> 添加好友结束",
+        "__yamaape": {
+            "position": {
+                "x": 1400,
+                "y": 1399
+            }
+        }
+    },
+    "好友换新_初始化添加计数": {
+        "recognition": "DirectHit",
+        "action": "Custom",
+        "custom_action": "init_counter",
+        "custom_action_param": "key=add_friend&max=9",
+        "__yamaape": {
+            "position": {
+                "x": 1663,
+                "y": 1169
+            }
+        },
+        "next": [
+            "好友换新_添加计数"
+        ]
+    },
+    "好友换新_向下滑动": {
+        "recognition": "DirectHit",
+        "action": "Swipe",
+        "begin": [
+            930,
+            510,
+            1,
+            1
+        ],
+        "end": [
+            930,
+            388,
+            1,
+            1
+        ],
+        "duration": 400,
+        "post_delay": 0,
+        "pre_delay": 1,
+        "__yamaape": {
+            "position": {
+                "x": 3014,
+                "y": 1167
+            }
+        },
+        "next": [
+            "好友换新_停止滑动2"
+        ]
+    },
+    "好友换新_停止滑动2": {
+        "recognition": "DirectHit",
+        "action": "Click",
+        "target": [
+            930,
+            388,
+            1,
+            1
+        ],
+        "pre_delay": 0,
+        "__yamaape": {
+            "position": {
+                "x": 3274,
+                "y": 1167
+            }
+        },
+        "next": [
+            "好友换新_再次添加"
+        ]
+    },
+    "好友换新_再次添加": {
+        "recognition": "DirectHit",
+        "action": "DoNothing",
+        "__yamaape": {
+            "position": {
+                "x": 3533,
+                "y": 1050
+            }
+        },
+        "next": [
+            "好友换新_添加计数"
+        ]
+    },
+    "好友换新_添加计数": {
+        "recognition": "DirectHit",
+        "action": "Custom",
+        "custom_action": "count",
+        "custom_action_param": "key=add_friend",
+        "timeout": 2000,
+        "__yamaape": {
+            "position": {
+                "x": 1924,
+                "y": 1171
+            }
+        },
+        "next": [
+            "好友换新_识别检测"
+        ],
+        "on_error": [
+            "好友换新_轮次计数"
+        ]
+    },
+    "好友换新_识别检测": {
+        "recognition": "DirectHit",
+        "action": "DoNothing",
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__yamaape": {
+            "position": {
+                "x": 2195,
+                "y": 1174
+            }
+        },
+        "next": [
+            "好友换新_检测时间"
+        ],
+        "on_error": [
+            "好友换新_向下滑动"
+        ]
+    },
+    "好友换新_检测时间": {
+        "recognition": "OCR",
+        "action": "Click",
+        "expected": [
+            "今天",
+            "昨天"
+        ],
+        "target_offset": [
+            716,
+            -38,
+            0,
+            0
+        ],
+        "order_by": "Vertical",
+        "index": -1,
+        "timeout": 1000,
+        "__yamaape": {
+            "position": {
+                "x": 2461,
+                "y": 1171
+            }
+        },
+        "next": [
+            "好友换新_添加提示",
+            "好友换新_申请次数已满",
+            "好友换新_对方好友申请列表已满"
+        ],
+        "on_error": [
+            "好友换新_向下滑动"
+        ]
+    },
+    "好友换新_添加提示": {
+        "recognition": "OCR",
+        "action": "DoNothing",
+        "expected": [
+            "已向对方发送"
+        ],
+        "focus": "> 兄弟，兄弟！",
+        "pre_delay": 1,
+        "post_delay": 1,
+        "__yamaape": {
+            "position": {
+                "x": 2739,
+                "y": 1174
+            }
+        },
+        "next": [
+            "好友换新_向下滑动"
+        ]
+    },
+    "好友换新_申请次数已满": {
+        "recognition": "OCR",
+        "action": "DoNothing",
+        "expected": [
+            "请明天再试"
+        ],
+        "focus": "> 申请添加好友次数已满！",
+        "__yamaape": {
+            "position": {
+                "x": 2739,
+                "y": 1436
+            }
+        }
+    },
+    "好友换新_对方好友申请列表已满": {
+        "recognition": "OCR",
+        "action": "Click",
+        "expected": [
+            "确定"
+        ],
+        "focus": "> 对方好友申请列表已满",
+        "pre_delay": 400,
+        "__yamaape": {
+            "position": {
+                "x": 2739,
+                "y": 1634
+            }
+        },
+        "next": [
+            "好友换新_向下滑动"
+        ]
+    }
+}

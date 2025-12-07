@@ -17,7 +17,6 @@ import {
 } from "../core/parser";
 import { ClipboardHelper } from "../utils/clipboard";
 import { useConfigStore } from "../stores/configStore";
-import { sendCompiledPipeline } from "../services/requests";
 
 // viewer
 const ViewerElem = memo(({ obj }: { obj: any }) => {
@@ -50,7 +49,10 @@ function JsonViewer() {
     (state) => state.configs.isRealTimePreview
   );
   const wsConnected = useConfigStore((state) => state.configs.wsConnected);
-  const filePath = useFileStore((state) => state.currentFile.config.filePath);
+  const currentFilePath = useFileStore(
+    (state) => state.currentFile.config.filePath
+  );
+  const saveFileToLocal = useFileStore((state) => state.saveFileToLocal);
   useFlowStore((state) => state.targetNode);
 
   // 文件输入引用
@@ -182,18 +184,25 @@ function JsonViewer() {
             className={style.group}
             gap="small"
             wrap
-            style={{ display: wsConnected && filePath ? "flex" : "none" }}
+            style={{
+              display: wsConnected && currentFilePath ? "flex" : "none",
+            }}
           >
             <Button
               variant="filled"
               size="small"
               color="purple"
-              onClick={() => {
-                sendCompiledPipeline(undefined, flowToPipeline());
-                setRtpTrigger(rtpTrigger + 1);
+              onClick={async () => {
+                const success = await saveFileToLocal();
+                if (success) {
+                  message.success("文件保存成功");
+                  setRtpTrigger(rtpTrigger + 1);
+                } else {
+                  message.error("文件保存失败");
+                }
               }}
             >
-              应用到本地
+              保存到本地文件
             </Button>
           </Flex>
         </div>

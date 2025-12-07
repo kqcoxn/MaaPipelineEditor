@@ -1,0 +1,248 @@
+{
+    "$__mpe_config_镀金赝造": {
+        "$__mpe_code": {
+            "prefix": "镀金赝造",
+            "filename": "镀金赝造",
+            "version": "v0.7.0"
+        }
+    },
+    "镀金赝造_活动入口": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    1187,
+                    540,
+                    1,
+                    1
+                ]
+            }
+        },
+        "focus": "> 进入活动界面",
+        "$__mpe_code": {
+            "position": {
+                "x": 243,
+                "y": -69
+            }
+        },
+        "next": [
+            "镀金赝造_进入领取界面"
+        ]
+    },
+    "镀金赝造_进入领取界面": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "消费行动"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 800,
+        "focus": "> 领取每日活动奖励",
+        "$__mpe_code": {
+            "position": {
+                "x": 506,
+                "y": -70
+            }
+        },
+        "next": [
+            "镀金赝造_领取奖励"
+        ]
+    },
+    "镀金赝造_领取奖励": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "全部领取"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "timeout": 2000,
+        "pre_delay": 800,
+        "$__mpe_code": {
+            "position": {
+                "x": 767,
+                "y": -74
+            }
+        },
+        "next": [
+            "镀金赝造_获取奖励"
+        ],
+        "on_error": [
+            "镀金赝造_领取奖励完成"
+        ]
+    },
+    "镀金赝造_获取奖励": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "点击以继续"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 800,
+        "$__mpe_code": {
+            "position": {
+                "x": 1051,
+                "y": -170
+            }
+        },
+        "next": [
+            "镀金赝造_领取奖励完成"
+        ]
+    },
+    "镀金赝造_领取奖励完成": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "timeout": 1000,
+        "$__mpe_code": {
+            "position": {
+                "x": 1316,
+                "y": 5
+            }
+        },
+        "next": [
+            "镀金赝造_未全部完成"
+        ],
+        "on_error": [
+            "镀金赝造_回到主页"
+        ]
+    },
+    "镀金赝造_未全部完成": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "已领取"
+                ],
+                "roi": [
+                    1023,
+                    153,
+                    196,
+                    88
+                ]
+            }
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "delay_focus_hook",
+                "custom_action_param": "key=活动日活&focus=今日活动任务未全部完成！"
+            }
+        },
+        "inverse": true,
+        "$__mpe_code": {
+            "position": {
+                "x": 1580,
+                "y": -192
+            }
+        },
+        "next": [
+            "镀金赝造_回到主页"
+        ]
+    },
+    "镀金赝造_回到主页": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "run",
+                "custom_action_param": "key=返回主页"
+            }
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1865,
+                "y": 23
+            }
+        },
+        "next": [
+            "镀金赝造_结束"
+        ]
+    },
+    "镀金赝造_结束": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 2119,
+                "y": 23
+            }
+        }
+    },
+    "镀金赝造_执行前返回主页": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "run",
+                "custom_action_param": "key=全局前置返回主页"
+            }
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": -34,
+                "y": -67
+            }
+        },
+        "next": [
+            "镀金赝造_活动入口"
+        ]
+    },
+    "镀金赝造_开始": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": -313,
+                "y": -65
+            }
+        },
+        "next": [
+            "镀金赝造_执行前返回主页"
+        ]
+    }
+}

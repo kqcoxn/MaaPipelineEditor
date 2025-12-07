@@ -41,8 +41,6 @@ function ConfigPanel() {
   const historyLimit = useConfigStore((state) => state.configs.historyLimit);
   const nodeStyle = useConfigStore((state) => state.configs.nodeStyle);
   const wsPort = useConfigStore((state) => state.configs.wsPort);
-  const wsConnected = useConfigStore((state) => state.configs.wsConnected);
-  const wsConnecting = useConfigStore((state) => state.configs.wsConnecting);
   const wsAutoConnect = useConfigStore((state) => state.configs.wsAutoConnect);
   const aiApiUrl = useConfigStore((state) => state.configs.aiApiUrl);
   const aiApiKey = useConfigStore((state) => state.configs.aiApiKey);
@@ -51,29 +49,10 @@ function ConfigPanel() {
   const fileConfig = useFileStore((state) => state.currentFile.config);
   const setFileConfig = useFileStore((state) => state.setFileConfig);
 
-  // WebSocket连接
+  // WebSocket端口配置同步
   useEffect(() => {
     localServer.setPort(wsPort);
-    localServer.onStatus((connected) => {
-      setConfig("wsConnected", connected);
-    });
-    localServer.onConnecting((isConnecting) => {
-      setConfig("wsConnecting", isConnecting);
-    });
-    if (wsAutoConnect) {
-      localServer.connect();
-    }
-    return () => {};
-  }, [wsPort, wsAutoConnect, setConfig]);
-  const handleWSConnect = () => {
-    if (wsConnecting) return;
-
-    if (wsConnected) {
-      localServer.disconnect();
-    } else {
-      localServer.connect();
-    }
-  };
+  }, [wsPort]);
 
   // 样式
   const panelClass = useMemo(
@@ -328,40 +307,6 @@ function ConfigPanel() {
               if (value !== null) setConfig("wsPort", value);
             }}
           />
-        </div>
-        {/* 连接状态 */}
-        <div className={globalClass}>
-          <div className={style.key}>
-            <span>连接状态</span>
-          </div>
-          <div
-            className={style.value}
-            style={{ display: "flex", gap: 8, alignItems: "center" }}
-          >
-            <Button
-              size="small"
-              type={wsConnected ? "default" : "primary"}
-              loading={wsConnecting}
-              disabled={wsConnecting}
-              onClick={handleWSConnect}
-            >
-              {wsConnecting ? "连接中" : wsConnected ? "断开" : "连接"}
-            </Button>
-            <div
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                backgroundColor: wsConnecting
-                  ? "#1890ff"
-                  : wsConnected
-                  ? "#52c41a"
-                  : "#ff4d4f",
-                marginLeft: 6,
-                marginTop: 2,
-              }}
-            />
-          </div>
         </div>
         {/* 自动连接 */}
         <div className={globalClass}>

@@ -1,0 +1,108 @@
+{
+    "__yamaape_config_跳过剧情": {
+        "filename": "跳过剧情",
+        "version": "v0.3.4",
+        "prefix": "跳过剧情",
+        "export": ""
+    },
+    "跳过剧情_开始": {
+        "recognition": "DirectHit",
+        "action": "DoNothing",
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__yamaape": {
+            "position": {
+                "x": 1636,
+                "y": 200
+            }
+        },
+        "next": [
+            "跳过剧情_跳过剧情"
+        ]
+    },
+    "跳过剧情_跳过剧情": {
+        "recognition": "TemplateMatch",
+        "action": "Click",
+        "template": [
+            "jump.png"
+        ],
+        "pre_delay": 800,
+        "timeout": 1500,
+        "__yamaape": {
+            "position": {
+                "x": 1901,
+                "y": 200
+            }
+        },
+        "next": [
+            "跳过剧情_今天不再提醒"
+        ],
+        "on_error": [
+            "跳过剧情_结束"
+        ]
+    },
+    "跳过剧情_今天不再提醒": {
+        "recognition": "OCR",
+        "action": "Click",
+        "pre_delay": 800,
+        "expected": [
+            "今天不再提醒"
+        ],
+        "__yamaape": {
+            "position": {
+                "x": 2176,
+                "y": 198
+            }
+        },
+        "next": [
+            "跳过剧情_确定"
+        ]
+    },
+    "跳过剧情_结束": {
+        "recognition": "DirectHit",
+        "action": "DoNothing",
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__yamaape": {
+            "position": {
+                "x": 2737,
+                "y": 399
+            }
+        }
+    },
+    "跳过剧情_确定": {
+        "recognition": "OCR",
+        "action": "Click",
+        "expected": [
+            "确定"
+        ],
+        "__yamaape": {
+            "position": {
+                "x": 2436,
+                "y": 198
+            }
+        },
+        "next": [
+            "跳过剧情_结束"
+        ]
+    },
+    "跳过剧情_已点击跳过键": {
+        "recognition": "DirectHit",
+        "action": "DoNothing",
+        "pre_delay": 400,
+        "post_delay": 0,
+        "timeout": 1500,
+        "__yamaape": {
+            "position": {
+                "x": 1901,
+                "y": 425
+            }
+        },
+        "next": [
+            "跳过剧情_今天不再提醒"
+        ],
+        "on_error": [
+            "跳过剧情_结束"
+        ]
+    }
+}

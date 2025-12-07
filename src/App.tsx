@@ -14,6 +14,7 @@ const { Header: HeaderSection, Content } = Layout;
 
 import { useFileStore } from "./stores/fileStore";
 import { useConfigStore } from "./stores/configStore";
+import { localServer } from "./services/server";
 
 import Header from "./components/Header";
 import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
@@ -26,6 +27,7 @@ import SearchPanel from "./components/panels/SearchPanel";
 import FilePanel from "./components/panels/FilePanel";
 import ConfigPanel from "./components/panels/ConfigPanel";
 import AIHistoryPanel from "./components/panels/AIHistoryPanel";
+import { LocalFileListPanel } from "./components/panels/LocalFileListPanel";
 import ErrorPanel from "./components/panels/ErrorPanel";
 import { pipelineToFlow } from "./core/parser";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -125,6 +127,23 @@ function App() {
     // 读取本地存储
     const err = useFileStore.getState().replace();
     if (!err) message.success("已读取本地缓存");
+
+    // 注册WebSocket状态同步回调
+    const setConfig = useConfigStore.getState().setConfig;
+    localServer.onStatus((connected) => {
+      setConfig("wsConnected", connected);
+    });
+    localServer.onConnecting((isConnecting) => {
+      setConfig("wsConnecting", isConnecting);
+    });
+
+    // WebSocket自动连接
+    const wsAutoConnect = useConfigStore.getState().configs.wsAutoConnect;
+    if (wsAutoConnect) {
+      console.log("[App] Auto-connecting to local server...");
+      localServer.connect();
+    }
+
     // Star定时提醒
     if (localStorage.getItem("_mpe_stared") !== "true") {
       setInterval(() => {
@@ -171,6 +190,7 @@ function App() {
                 <EdgePanel />
                 <ConfigPanel />
                 <AIHistoryPanel />
+                <LocalFileListPanel />
                 <ToolPanel.Add />
                 <ToolPanel.Global />
                 <SearchPanel />

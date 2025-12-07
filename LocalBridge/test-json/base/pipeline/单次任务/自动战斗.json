@@ -1,0 +1,325 @@
+{
+    "__mpe_config_自动战斗": {
+        "__mpe_code": {
+            "prefix": "自动战斗",
+            "filename": "自动战斗",
+            "version": "v0.5.3"
+        }
+    },
+    "自动战斗_循环": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "timeout": 30000,
+        "__mpe_code": {
+            "position": {
+                "x": 302,
+                "y": 485
+            }
+        },
+        "next": [
+            "自动战斗_等待调度",
+            "自动战斗_等待进入文字",
+            "自动战斗_等待进入图像",
+            "自动战斗_结束战斗"
+        ]
+    },
+    "自动战斗_等待调度": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "瞬时调度",
+                    "快速充能"
+                ],
+                "roi": [
+                    1166,
+                    410,
+                    103,
+                    116
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "__mpe_code": {
+            "position": {
+                "x": 562,
+                "y": 485
+            }
+        },
+        "next": [
+            "自动战斗_瞬时调度",
+            "自动战斗_开大",
+            "自动战斗_等待进入文字",
+            "自动战斗_等待进入图像"
+        ]
+    },
+    "自动战斗_等待进入图像": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "close.png"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 800,
+        "__mpe_code": {
+            "position": {
+                "x": 850,
+                "y": 282
+            }
+        },
+        "next": [
+            "自动战斗_再次检测"
+        ]
+    },
+    "自动战斗_等待进入文字": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "开始试用",
+                    "行动开始"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 800,
+        "__mpe_code": {
+            "position": {
+                "x": 856,
+                "y": 93
+            }
+        },
+        "next": [
+            "自动战斗_再次检测"
+        ]
+    },
+    "自动战斗_结束战斗": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "行动成功",
+                    "行动失败"
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "focus": "> 战斗结束",
+        "__mpe_code": {
+            "position": {
+                "x": 558,
+                "y": 694
+            }
+        }
+    },
+    "自动战斗_再次检测": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "post_delay": 1250,
+        "__mpe_code": {
+            "position": {
+                "x": 1753,
+                "y": 303
+            }
+        },
+        "next": [
+            "自动战斗_循环"
+        ]
+    },
+    "自动战斗_开大": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    1115,
+                    632,
+                    1,
+                    1
+                ]
+            }
+        },
+        "post_delay": 0,
+        "focus": "> 使用角色技能",
+        "__mpe_code": {
+            "position": {
+                "x": 853,
+                "y": 773
+            }
+        },
+        "next": [
+            "自动战斗_确定开大"
+        ]
+    },
+    "自动战斗_确定开大": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    1115,
+                    632,
+                    1,
+                    1
+                ]
+            }
+        },
+        "pre_delay": 50,
+        "__mpe_code": {
+            "position": {
+                "x": 1113,
+                "y": 773
+            }
+        },
+        "next": [
+            "自动战斗_再次检测"
+        ]
+    },
+    "自动战斗_开始": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "__mpe_code": {
+            "position": {
+                "x": 41,
+                "y": 486
+            }
+        },
+        "next": [
+            "自动战斗_循环"
+        ]
+    },
+    "自动战斗_瞬时调度": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "battle/leader.png"
+                ],
+                "roi": [
+                    1171,
+                    412,
+                    90,
+                    105
+                ],
+                "threshold": [
+                    0.8
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "post_delay": 2000,
+        "focus": "> 使用瞬时调度",
+        "__mpe_code": {
+            "position": {
+                "x": 851,
+                "y": 484
+            }
+        },
+        "next": [
+            "自动战斗_快速充能"
+        ]
+    },
+    "自动战斗_快速充能": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "快速充能"
+                ],
+                "roi": [
+                    915,
+                    400,
+                    351,
+                    136
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "__mpe_code": {
+            "position": {
+                "x": 1111,
+                "y": 484
+            }
+        },
+        "next": [
+            "自动战斗_确定快速充能"
+        ]
+    },
+    "自动战斗_确定快速充能": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "快速充能"
+                ],
+                "roi": [
+                    915,
+                    400,
+                    351,
+                    136
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 400,
+        "__mpe_code": {
+            "position": {
+                "x": 1371,
+                "y": 484
+            }
+        },
+        "next": [
+            "自动战斗_再次检测"
+        ]
+    }
+}

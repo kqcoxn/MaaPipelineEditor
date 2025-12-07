@@ -1,0 +1,90 @@
+{
+    "__mpe_config_懒加载返回主页": {
+        "__mpe_code": {
+            "prefix": "懒加载返回主页",
+            "filename": "懒加载返回主页",
+            "version": "v0.5.5"
+        }
+    },
+    "懒加载返回主页_开始": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "timeout": 500,
+        "__mpe_code": {
+            "position": {
+                "x": -1474,
+                "y": -1055
+            }
+        },
+        "next": [
+            "懒加载返回主页_判断是否在主页",
+            "懒加载返回主页_未在主页"
+        ]
+    },
+    "懒加载返回主页_判断是否在主页": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "招募热线"
+                ],
+                "roi": [
+                    19,
+                    624,
+                    201,
+                    88
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "__mpe_code": {
+            "position": {
+                "x": -1214,
+                "y": -1055
+            }
+        }
+    },
+    "__mpe_external_返回主页_懒加载返回主页": {
+        "__mpe_code": {
+            "position": {
+                "x": -957,
+                "y": -755
+            }
+        }
+    },
+    "懒加载返回主页_未在主页": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "focus": "> 检测到任务开始界面异常",
+        "__mpe_code": {
+            "position": {
+                "x": -1215,
+                "y": -796
+            }
+        },
+        "next": [
+            "返回主页"
+        ]
+    }
+}

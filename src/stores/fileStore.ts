@@ -9,6 +9,10 @@ import { useConfigStore } from "./configStore";
 export type FileConfigType = {
   prefix: string;
   filePath?: string;
+  relativePath?: string;
+  isDeleted?: boolean;
+  isModifiedExternally?: boolean;
+  lastSyncTime?: number;
 };
 type FileType = {
   fileName: string;
@@ -88,8 +92,11 @@ export function localSave(): any {
   try {
     const fileState = useFileStore.getState();
     localStorage.setItem("_mpe_files", JSON.stringify(fileState.files));
+
+    // 保存用户配置项
     const configState = useConfigStore.getState();
-    localStorage.setItem("_mpe_config", JSON.stringify(configState.configs));
+    const { wsConnected, wsConnecting, ...userConfigs } = configState.configs;
+    localStorage.setItem("_mpe_config", JSON.stringify(userConfigs));
   } catch (err) {
     return err;
   }
@@ -109,6 +116,13 @@ type FileState = {
   removeFile: (fileName: string) => string | null;
   onDragEnd: (result: DragEndEvent) => void;
   replace: (files?: FileType[]) => any;
+  // 本地文件操作方法
+  openFileFromLocal: (filePath: string, content: any) => Promise<boolean>;
+  saveFileToLocal: (filePath?: string) => Promise<boolean>;
+  markFileDeleted: (filePath: string) => void;
+  markFileModified: (filePath: string) => void;
+  reloadFileFromLocal: (filePath: string, content: any) => Promise<boolean>;
+  findFileByPath: (filePath: string) => FileType | undefined;
 };
 export const useFileStore = create<FileState>()((set) => ({
   files: [defaltFile],
@@ -250,5 +264,197 @@ export const useFileStore = create<FileState>()((set) => ({
       return err;
     }
     return null;
+  },
+
+  // 从本地打开文件
+  async openFileFromLocal(filePath: string, content: any): Promise<boolean> {
+    try {
+      const { pipelineToFlow } = await import("../core/parser");
+      const contentString =
+        typeof content === "string" ? content : JSON.stringify(content);
+
+      // 查找是否已有相同路径的文件打开
+      const existingFile = useFileStore
+        .getState()
+        .files.find((file) => file.config.filePath === filePath);
+
+      if (existingFile) {
+        // 切换到已有文件并更新内容
+        useFileStore.getState().switchFile(existingFile.fileName);
+        await pipelineToFlow({ pString: contentString });
+        // 更新同步时间
+        set((state) => {
+          const config = {
+            ...state.currentFile.config,
+            lastSyncTime: Date.now(),
+          };
+          state.currentFile.config = config;
+          return {};
+        });
+        return true;
+      }
+
+      // 直接导入
+      const currentFile = useFileStore.getState().currentFile;
+      if (
+        currentFile.nodes.length === 0 &&
+        currentFile.edges.length === 0 &&
+        !currentFile.config.filePath
+      ) {
+        await pipelineToFlow({ pString: contentString });
+        set((state) => {
+          const config = {
+            ...state.currentFile.config,
+            filePath,
+            lastSyncTime: Date.now(),
+          };
+          state.currentFile.config = config;
+          return {};
+        });
+        return true;
+      }
+
+      // 新建文件
+      useFileStore.getState().addFile({ isSwitch: true });
+      await pipelineToFlow({ pString: contentString });
+      set((state) => {
+        const config = {
+          ...state.currentFile.config,
+          filePath,
+          lastSyncTime: Date.now(),
+        };
+        state.currentFile.config = config;
+        return {};
+      });
+      return true;
+    } catch (error) {
+      console.error("[fileStore] Failed to open file from local:", error);
+      return false;
+    }
+  },
+
+  // 保存文件到本地
+  async saveFileToLocal(filePath?: string): Promise<boolean> {
+    try {
+      const { flowToPipeline } = await import("../core/parser");
+      const currentFile = useFileStore.getState().currentFile;
+      const targetFilePath = filePath || currentFile.config.filePath;
+
+      if (!targetFilePath) {
+        console.error("[fileStore] No file path specified");
+        return false;
+      }
+
+      // 编译Pipeline
+      const pipeline = flowToPipeline();
+      const { localServer } = await import("../services/server");
+
+      if (!localServer.isConnected()) {
+        console.error("[fileStore] WebSocket not connected");
+        return false;
+      }
+
+      const success = localServer.send("/etl/save_file", {
+        file_path: targetFilePath,
+        content: pipeline,
+      });
+
+      if (success) {
+        // 更新同步时间
+        set((state) => {
+          const config = {
+            ...state.currentFile.config,
+            lastSyncTime: Date.now(),
+          };
+          state.currentFile.config = config;
+          return {};
+        });
+      }
+
+      return success;
+    } catch (error) {
+      console.error("[fileStore] Failed to save file to local:", error);
+      return false;
+    }
+  },
+
+  // 标记文件为已删除
+  markFileDeleted(filePath: string): void {
+    set((state) => {
+      const files = state.files.map((file) => {
+        if (file.config.filePath === filePath) {
+          return {
+            ...file,
+            config: { ...file.config, isDeleted: true },
+          };
+        }
+        return file;
+      });
+      return { files };
+    });
+  },
+
+  // 标记文件被外部修改
+  markFileModified(filePath: string): void {
+    set((state) => {
+      const files = state.files.map((file) => {
+        if (file.config.filePath === filePath) {
+          return {
+            ...file,
+            config: { ...file.config, isModifiedExternally: true },
+          };
+        }
+        return file;
+      });
+      return { files };
+    });
+  },
+
+  // 重新加载文件
+  async reloadFileFromLocal(filePath: string, content: any): Promise<boolean> {
+    try {
+      const { pipelineToFlow } = await import("../core/parser");
+      const contentString =
+        typeof content === "string" ? content : JSON.stringify(content);
+
+      // 查找文件
+      const targetFile = useFileStore
+        .getState()
+        .files.find((file) => file.config.filePath === filePath);
+
+      if (!targetFile) {
+        console.error("[fileStore] File not found:", filePath);
+        return false;
+      }
+
+      // 切换到该文件
+      useFileStore.getState().switchFile(targetFile.fileName);
+
+      // 重新加载Pipeline
+      await pipelineToFlow({ pString: contentString });
+
+      // 清除修改标记并更新同步时间
+      set((state) => {
+        const config = {
+          ...state.currentFile.config,
+          isModifiedExternally: false,
+          lastSyncTime: Date.now(),
+        };
+        state.currentFile.config = config;
+        return {};
+      });
+
+      return true;
+    } catch (error) {
+      console.error("[fileStore] Failed to reload file from local:", error);
+      return false;
+    }
+  },
+
+  // 根据路径查找文件
+  findFileByPath(filePath: string): FileType | undefined {
+    return useFileStore
+      .getState()
+      .files.find((file) => file.config.filePath === filePath);
   },
 }));

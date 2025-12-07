@@ -1,0 +1,216 @@
+{
+    "__yamaape_config_抽卡记录": {
+        "filename": "抽卡记录",
+        "version": "v0.3.4",
+        "export": "",
+        "prefix": "抽卡记录"
+    },
+    "抽卡记录_开始": {
+        "recognition": "DirectHit",
+        "action": "DoNothing",
+        "__yamaape": {
+            "position": {
+                "x": 829,
+                "y": 453
+            }
+        },
+        "next": [
+            "抽卡记录_通讯记录",
+            "抽卡记录_已进入面板"
+        ]
+    },
+    "抽卡记录_通讯记录": {
+        "recognition": "OCR",
+        "action": "Click",
+        "expected": [
+            "通讯记录"
+        ],
+        "focus": "> 进入通讯记录",
+        "roi": [
+            277,
+            565,
+            475,
+            146
+        ],
+        "__yamaape": {
+            "position": {
+                "x": 1083,
+                "y": 242
+            }
+        },
+        "next": [
+            "抽卡记录_已进入面板"
+        ]
+    },
+    "抽卡记录_已进入面板": {
+        "recognition": "OCR",
+        "action": "DoNothing",
+        "expected": [
+            "每种热线类型"
+        ],
+        "post_delay": 800,
+        "focus": "> 开始识别",
+        "__yamaape": {
+            "position": {
+                "x": 1344,
+                "y": 384
+            }
+        },
+        "next": [
+            "抽卡记录_批量识别"
+        ]
+    },
+    "抽卡记录_批量识别": {
+        "recognition": "DirectHit",
+        "action": "Custom",
+        "custom_action": "summary_liaison_record",
+        "__yamaape": {
+            "position": {
+                "x": 1602,
+                "y": 396
+            }
+        },
+        "next": [
+            "抽卡记录_结束"
+        ],
+        "on_error": [
+            "抽卡记录_新增节点23"
+        ]
+    },
+    "抽卡记录_结束": {
+        "recognition": "DirectHit",
+        "action": "DoNothing",
+        "focus": "> 识别完成，随后可手动输入至相关小程序！",
+        "__yamaape": {
+            "position": {
+                "x": 1862,
+                "y": 396
+            }
+        }
+    },
+    "抽卡记录_新增节点23": {
+        "recognition": "DirectHit",
+        "action": "DoNothing",
+        "focus": "> 未识别到抽卡记录！",
+        "__yamaape": {
+            "position": {
+                "x": 1857,
+                "y": 564
+            }
+        }
+    },
+    "抽卡记录_识别列表1": {
+        "recognition": "OCR",
+        "action": "DoNothing",
+        "expected": [
+            ""
+        ],
+        "roi": [
+            776,
+            262,
+            217,
+            63
+        ],
+        "__yamaape": {
+            "position": {
+                "x": 1593,
+                "y": 782
+            }
+        }
+    },
+    "抽卡记录_翻页键": {
+        "recognition": "OCR",
+        "action": "Click",
+        "expected": [
+            ">"
+        ],
+        "roi": [
+            684,
+            551,
+            55,
+            52
+        ],
+        "__yamaape": {
+            "position": {
+                "x": 1608,
+                "y": 176
+            }
+        }
+    },
+    "抽卡记录_识别列表2": {
+        "recognition": "OCR",
+        "action": "DoNothing",
+        "expected": [
+            ""
+        ],
+        "roi": [
+            776,
+            315,
+            217,
+            68
+        ],
+        "__yamaape": {
+            "position": {
+                "x": 1853,
+                "y": 782
+            }
+        }
+    },
+    "抽卡记录_识别列表3": {
+        "recognition": "OCR",
+        "action": "DoNothing",
+        "expected": [
+            ""
+        ],
+        "roi": [
+            776,
+            371,
+            217,
+            63
+        ],
+        "__yamaape": {
+            "position": {
+                "x": 2113,
+                "y": 782
+            }
+        }
+    },
+    "抽卡记录_识别列表4": {
+        "recognition": "OCR",
+        "action": "DoNothing",
+        "expected": [
+            ""
+        ],
+        "roi": [
+            776,
+            423,
+            217,
+            68
+        ],
+        "__yamaape": {
+            "position": {
+                "x": 2373,
+                "y": 782
+            }
+        }
+    },
+    "抽卡记录_识别列表5": {
+        "recognition": "OCR",
+        "action": "DoNothing",
+        "expected": [
+            ""
+        ],
+        "roi": [
+            776,
+            480,
+            217,
+            63
+        ],
+        "__yamaape": {
+            "position": {
+                "x": 2633,
+                "y": 782
+            }
+        }
+    }
+}

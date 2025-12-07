@@ -1,0 +1,3526 @@
+{
+  "$__mpe_config_城市探索": {
+    "$__mpe_code": {
+      "prefix": "城市探索",
+      "filename": "城市探索",
+      "version": "v0.8.4"
+    }
+  },
+  "城市探索_资源收取": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "city/resource.png"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "timeout": 2000,
+    "focus": "> 收取资源",
+    "pre_delay": 400,
+    "$__mpe_code": {
+      "position": {
+        "x": -1,
+        "y": 604
+      }
+    },
+    "next": [
+      "城市探索_获取资源"
+    ],
+    "on_error": [
+      "城市探索_设施管理"
+    ]
+  },
+  "城市探索_获取资源": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "点击以继续"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 800,
+    "$__mpe_code": {
+      "position": {
+        "x": 281,
+        "y": 611
+      }
+    },
+    "next": [
+      "城市探索_设施管理",
+      {
+        "name": "城市探索_确保获取资源",
+        "jump_back": true
+      }
+    ]
+  },
+  "城市探索_设施管理": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "city/facilities.png"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "focus": "> 进入设施管理",
+    "$__mpe_code": {
+      "position": {
+        "x": 583,
+        "y": 615
+      }
+    },
+    "next": [
+      "城市探索_确保今日未换班"
+    ]
+  },
+  "城市探索_一键入驻": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "键入驻"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "focus": "> 特工换班",
+    "pre_delay": 400,
+    "$__mpe_code": {
+      "position": {
+        "x": 1122,
+        "y": 573
+      }
+    },
+    "next": [
+      "城市探索_记录换班"
+    ]
+  },
+  "城市探索_加速类别": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "物资类"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "focus": "> 进入加速设施",
+    "post_delay": 1000,
+    "pre_delay": 400,
+    "$__mpe_code": {
+      "position": {
+        "x": 584,
+        "y": 873
+      }
+    },
+    "next": [
+      "城市探索_加速设施",
+      {
+        "name": "城市探索_确认进入物资类",
+        "jump_back": true
+      }
+    ]
+  },
+  "城市探索_加速设施": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "矢量创品"
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 853,
+        "y": 874
+      }
+    },
+    "next": [
+      "城市探索_进入矢量创品"
+    ]
+  },
+  "城市探索_确认进入物资类": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "物资类"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 853,
+        "y": 1081
+      }
+    }
+  },
+  "城市探索_进入矢量创品": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "进入"
+        ],
+        "order_by": "Vertical"
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 400,
+    "$__mpe_code": {
+      "position": {
+        "x": 1125,
+        "y": 871
+      }
+    },
+    "next": [
+      "城市探索_设施加速"
+    ]
+  },
+  "城市探索_设施加速": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "加速"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "focus": "> 设施加速",
+    "pre_delay": 800,
+    "$__mpe_code": {
+      "position": {
+        "x": 584,
+        "y": 1304
+      }
+    },
+    "next": [
+      "城市探索_最高设施加速"
+    ]
+  },
+  "城市探索_最高设施加速": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "最多"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 849,
+        "y": 1340
+      }
+    },
+    "next": [
+      "城市探索_确定设施加速"
+    ]
+  },
+  "城市探索_确定设施加速": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "确定"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 1109,
+        "y": 1335
+      }
+    },
+    "next": [
+      "城市探索_关闭设施加速"
+    ]
+  },
+  "城市探索_关闭设施加速": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          5,
+          5,
+          1,
+          1
+        ]
+      }
+    },
+    "timeout": 2000,
+    "$__mpe_code": {
+      "position": {
+        "x": 1360,
+        "y": 1334
+      }
+    },
+    "next": [
+      "城市探索_收取设施物资"
+    ],
+    "on_error": [
+      "城市探索_从设施返回1"
+    ]
+  },
+  "城市探索_收取设施物资": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "收取"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "timeout": 2000,
+    "$__mpe_code": {
+      "position": {
+        "x": 610,
+        "y": 1621
+      }
+    },
+    "next": [
+      "城市探索_获取设施物资"
+    ],
+    "on_error": [
+      "城市探索_从设施返回1"
+    ]
+  },
+  "城市探索_从设施返回1": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "back.png"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "focus": "> 结束物资加速",
+    "pre_delay": 800,
+    "post_delay": 1000,
+    "$__mpe_code": {
+      "position": {
+        "x": 1145,
+        "y": 1602
+      }
+    },
+    "next": [
+      "城市探索_从设施返回2"
+    ]
+  },
+  "城市探索_获取设施物资": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "点击以继续"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 400,
+    "focus": "> 收取加速后物资",
+    "$__mpe_code": {
+      "position": {
+        "x": 875,
+        "y": 1621
+      }
+    },
+    "next": [
+      "城市探索_从设施返回1"
+    ]
+  },
+  "城市探索_从设施返回2": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "back.png"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 800,
+    "$__mpe_code": {
+      "position": {
+        "x": 1415,
+        "y": 1598
+      }
+    },
+    "next": [
+      "城市探索_传闻调查"
+    ]
+  },
+  "城市探索_传闻调查": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "city/investigation.png"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "focus": "> 进入传闻调查",
+    "post_delay": 1500,
+    "$__mpe_code": {
+      "position": {
+        "x": -258,
+        "y": 2035
+      }
+    },
+    "next": [
+      "城市探索_尝试一键归档",
+      {
+        "name": "城市探索_新案件提示",
+        "jump_back": true
+      }
+    ]
+  },
+  "城市探索_开始审阅": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "开始审阅"
+        ],
+        "index": -1,
+        "roi": [
+          701,
+          398,
+          578,
+          321
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "timeout": 2000,
+    "focus": "> 审阅档案",
+    "$__mpe_code": {
+      "position": {
+        "x": 345,
+        "y": 2356
+      }
+    },
+    "next": [
+      "城市探索_调查战斗",
+      "城市探索_归档",
+      "城市探索_获取调查情报",
+      {
+        "name": "城市探索_防止审阅失败",
+        "jump_back": true
+      }
+    ]
+  },
+  "城市探索_归档": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "归档"
+        ],
+        "index": -1,
+        "roi": [
+          664,
+          540,
+          600,
+          179
+        ],
+        "order_by": "Vertical"
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 400,
+    "timeout": 6000,
+    "focus": "> 档案归档",
+    "$__mpe_code": {
+      "position": {
+        "x": 628,
+        "y": 2640
+      }
+    },
+    "next": [
+      "城市探索_获取调查情报",
+      "城市探索_调查战斗",
+      {
+        "name": "城市探索_确保点击",
+        "jump_back": true
+      }
+    ],
+    "on_error": [
+      "城市探索_完成情报收取"
+    ]
+  },
+  "城市探索_新案件提示": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "点击空白处关闭"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": -238,
+        "y": 2330
+      }
+    }
+  },
+  "城市探索_完成情报收取": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "pre_delay": 0,
+    "post_delay": 0,
+    "$__mpe_code": {
+      "position": {
+        "x": 946,
+        "y": 2175
+      }
+    },
+    "next": [
+      "城市探索_自动更换",
+      "城市探索_从调查返回"
+    ]
+  },
+  "城市探索_防止审阅失败": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "键审阅"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 400,
+    "$__mpe_code": {
+      "position": {
+        "x": 347,
+        "y": 2722
+      }
+    }
+  },
+  "城市探索_获取调查情报": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "点击以继续"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "timeout": 2000,
+    "pre_delay": 400,
+    "post_delay": 800,
+    "$__mpe_code": {
+      "position": {
+        "x": 630,
+        "y": 2313
+      }
+    },
+    "next": [
+      "城市探索_开始审阅",
+      "城市探索_调查战斗",
+      "城市探索_归档",
+      {
+        "name": "城市探索_确保点击",
+        "jump_back": true
+      }
+    ],
+    "on_error": [
+      "城市探索_完成情报收取"
+    ]
+  },
+  "城市探索_自动更换": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "请更换事件"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "post_delay": 800,
+    "$__mpe_code": {
+      "position": {
+        "x": 1229,
+        "y": 2410
+      }
+    },
+    "next": [
+      "城市探索_选择新事件",
+      "城市探索_切换自由调查"
+    ]
+  },
+  "城市探索_从调查返回": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "back.png"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 800,
+    "focus": "> 调查结束",
+    "$__mpe_code": {
+      "position": {
+        "x": 1535,
+        "y": 2107
+      }
+    },
+    "next": [
+      "城市探索_城市事件"
+    ]
+  },
+  "城市探索_确保点击": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "点击以继续",
+          "点击空白处关闭"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 400,
+    "$__mpe_code": {
+      "position": {
+        "x": 915,
+        "y": 2533
+      }
+    }
+  },
+  "城市探索_选择新事件": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "0%"
+        ],
+        "roi": [
+          427,
+          152,
+          622,
+          325
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 1491,
+        "y": 2407
+      }
+    },
+    "next": [
+      "城市探索_开始调查"
+    ]
+  },
+  "城市探索_切换自由调查": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "自由调查"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "post_delay": 800,
+    "$__mpe_code": {
+      "position": {
+        "x": 1495,
+        "y": 2661
+      }
+    },
+    "next": [
+      "城市探索_安排特工自由调查"
+    ]
+  },
+  "城市探索_城市事件": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "pre_delay": 0,
+    "post_delay": 0,
+    "$__mpe_code": {
+      "position": {
+        "x": 2005,
+        "y": 288
+      }
+    },
+    "next": [
+      "城市探索_初始化配队计数"
+    ]
+  },
+  "城市探索_开始调查": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "开始调查"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 1753,
+        "y": 2410
+      }
+    },
+    "next": [
+      "城市探索_从调查返回"
+    ]
+  },
+  "城市探索_安排特工自由调查": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "安排特工自由调查"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 1758,
+        "y": 2669
+      }
+    },
+    "next": [
+      "城市探索_开始调查"
+    ]
+  },
+  "城市探索_初始化配队计数": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "init_counter",
+        "custom_action_param": "key=squad&max=1"
+      }
+    },
+    "focus": "> 查阅城市事件",
+    "pre_delay": 0,
+    "post_delay": 0,
+    "$__mpe_code": {
+      "position": {
+        "x": 2011,
+        "y": 530
+      }
+    },
+    "next": [
+      "城市探索_设置战斗队伍"
+    ]
+  },
+  "城市探索_设置战斗队伍": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "set_event_squad"
+      }
+    },
+    "pre_delay": 0,
+    "post_delay": 0,
+    "$__mpe_code": {
+      "position": {
+        "x": 2014,
+        "y": 887
+      }
+    },
+    "next": [
+      "城市探索_检查事件面板",
+      {
+        "name": "城市探索_事件列表",
+        "jump_back": true
+      }
+    ]
+  },
+  "城市探索_检查事件面板": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "事件回顾"
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "post_delay": 800,
+    "$__mpe_code": {
+      "position": {
+        "x": 2353,
+        "y": 280
+      }
+    },
+    "next": [
+      "城市探索_判断是否检查快速事件"
+    ]
+  },
+  "城市探索_事件列表": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "city/events.png"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 400,
+    "$__mpe_code": {
+      "position": {
+        "x": 2345,
+        "y": 538
+      }
+    }
+  },
+  "城市探索_无剩余事件": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "focus": "> 事件执行完毕",
+    "$__mpe_code": {
+      "position": {
+        "x": 3565,
+        "y": -17
+      }
+    },
+    "next": [
+      "城市探索_回到主页"
+    ]
+  },
+  "城市探索_事件详情": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "enter_event"
+      }
+    },
+    "post_delay": 1200,
+    "focus": "> 判断事件类型",
+    "rate_limit": 500,
+    "timeout": 3000,
+    "$__mpe_code": {
+      "position": {
+        "x": 2900,
+        "y": 349
+      }
+    },
+    "next": [
+      "城市探索_战斗事件",
+      "城市探索_聊天事件",
+      "城市探索_委托事件",
+      "城市探索_线索行动事件",
+      "城市探索_剧情事件-普通",
+      "城市探索_剧情事件-特殊",
+      {
+        "name": "城市探索_未点击成功",
+        "jump_back": true
+      }
+    ],
+    "on_error": [
+      "城市探索_无剩余事件"
+    ]
+  },
+  "城市探索_回到主页": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "run",
+        "custom_action_param": "key=返回主页"
+      }
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 3883,
+        "y": -81
+      }
+    },
+    "next": [
+      "城市探索_结束"
+    ]
+  },
+  "城市探索_战斗事件": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "roi": [
+          784,
+          301,
+          487,
+          322
+        ],
+        "template": [
+          "city/fight_event.png"
+        ],
+        "threshold": [
+          0.6
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "focus": "> 战斗类事件",
+    "pre_delay": 400,
+    "$__mpe_code": {
+      "position": {
+        "x": 3266,
+        "y": 1662
+      }
+    },
+    "next": [
+      "城市探索_进入战斗"
+    ]
+  },
+  "城市探索_聊天事件": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "进入讨论"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 400,
+    "post_delay": 1000,
+    "focus": "> 水群类事件",
+    "$__mpe_code": {
+      "position": {
+        "x": 3256,
+        "y": 2627
+      }
+    },
+    "next": [
+      "城市探索_开始聊天",
+      {
+        "name": "城市探索_确保进入讨论",
+        "jump_back": true
+      }
+    ]
+  },
+  "城市探索_委托事件": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "处理委托"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 400,
+    "focus": "> 委托类事件",
+    "$__mpe_code": {
+      "position": {
+        "x": 3261,
+        "y": 3539
+      }
+    },
+    "next": [
+      "城市探索_进入委托界面"
+    ]
+  },
+  "城市探索_线索行动事件": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "疑犯追踪4",
+          "黑莲花4",
+          "暗度陈仓4",
+          "蚂蚁的触角4",
+          "适度文明5",
+          "四海来客4",
+          "泉流出行4",
+          "账目难平4",
+          "风中飞砂4",
+          "素质培训4"
+        ],
+        "roi": [
+          757,
+          54,
+          497,
+          82
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "focus": "> 线索行动类事件",
+    "pre_delay": 400,
+    "timeout": 5000,
+    "$__mpe_code": {
+      "position": {
+        "x": 3245,
+        "y": 279
+      }
+    },
+    "next": [
+      "城市探索_跳过线索"
+    ],
+    "on_error": [
+      "城市探索_跳过线索事件"
+    ]
+  },
+  "城市探索_剧情事件-特殊": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "疑犯追踪",
+          "黑莲花",
+          "暗度陈仓",
+          "蚂蚁的触角",
+          "适度文明",
+          "四海来客",
+          "泉流出行",
+          "账目难平",
+          "风中飞砂",
+          "素质培训",
+          "剧情"
+        ],
+        "roi": [
+          757,
+          54,
+          497,
+          82
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "focus": "> 剧情类事件",
+    "pre_delay": 400,
+    "$__mpe_code": {
+      "position": {
+        "x": 3246,
+        "y": 719
+      }
+    },
+    "next": [
+      "城市探索_进入剧情"
+    ]
+  },
+  "城市探索_结束": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 4156,
+        "y": -82
+      }
+    }
+  },
+  "城市探索_进入战斗": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "行动"
+        ],
+        "order_by": "Vertical",
+        "index": -1
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 400,
+    "post_delay": 800,
+    "timeout": 120000,
+    "$__mpe_code": {
+      "position": {
+        "x": 3555,
+        "y": 1659
+      }
+    },
+    "next": [
+      "城市探索_配队界面",
+      {
+        "name": "城市探索_跳过战前剧情",
+        "jump_back": true
+      },
+      {
+        "name": "城市探索_自动跳过战前剧情",
+        "jump_back": true
+      },
+      {
+        "name": "城市探索_新战前剧情选项",
+        "jump_back": true
+      },
+      {
+        "name": "城市探索_新战前剧情",
+        "jump_back": true
+      }
+    ]
+  },
+  "城市探索_开始聊天": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "志异七人行"
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 120000,
+    "$__mpe_code": {
+      "position": {
+        "x": 3547,
+        "y": 2626
+      }
+    },
+    "next": [
+      "城市探索_结束讨论",
+      {
+        "name": "城市探索_选项",
+        "jump_back": true
+      },
+      {
+        "name": "城市探索_加速群友",
+        "jump_back": true
+      }
+    ]
+  },
+  "城市探索_跳过线索": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "快速处理"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 3512,
+        "y": 275
+      }
+    },
+    "next": [
+      "城市探索_获取事件奖励",
+      "城市探索_无法跳过"
+    ]
+  },
+  "城市探索_进入剧情": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "行动"
+        ],
+        "order_by": "Vertical",
+        "index": -1
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 400,
+    "timeout": 120000,
+    "post_delay": 2000,
+    "$__mpe_code": {
+      "position": {
+        "x": 3515,
+        "y": 821
+      }
+    },
+    "next": [
+      "城市探索_获取事件奖励",
+      "城市探索_跳过剧情",
+      "城市探索_检查事件面板",
+      {
+        "name": "城市探索_新剧情选项",
+        "jump_back": true
+      },
+      {
+        "name": "城市探索_新剧情",
+        "jump_back": true
+      },
+      {
+        "name": "城市探索_重新唤出事件列表",
+        "jump_back": true
+      }
+    ],
+    "on_error": [
+      "城市探索_诱发中断"
+    ]
+  },
+  "城市探索_配队界面": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "快捷编队"
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "post_delay": 0,
+    "$__mpe_code": {
+      "position": {
+        "x": 3850,
+        "y": 1536
+      }
+    },
+    "next": [
+      "城市探索_检查配队计数"
+    ]
+  },
+  "城市探索_跳过战前剧情": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "jump.png"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 3850,
+        "y": 1795
+      }
+    }
+  },
+  "城市探索_自动跳过战前剧情": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "今天不再提醒"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 400,
+    "$__mpe_code": {
+      "position": {
+        "x": 3850,
+        "y": 1989
+      }
+    },
+    "next": [
+      "城市探索_确定跳过战前提醒"
+    ]
+  },
+  "城市探索_新战前剧情选项": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "chat_option.png"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "post_delay": 1,
+    "$__mpe_code": {
+      "position": {
+        "x": 4126,
+        "y": 2228
+      }
+    }
+  },
+  "城市探索_新战前剧情": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "log.png"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          25,
+          200,
+          1,
+          1
+        ]
+      }
+    },
+    "pre_delay": 1,
+    "post_delay": 1,
+    "$__mpe_code": {
+      "position": {
+        "x": 3850,
+        "y": 2228
+      }
+    }
+  },
+  "城市探索_结束讨论": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "结束讨论"
+        ],
+        "roi": [
+          864,
+          563,
+          127,
+          67
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 800,
+    "post_delay": 1000,
+    "$__mpe_code": {
+      "position": {
+        "x": 3858,
+        "y": 2627
+      }
+    },
+    "next": [
+      "城市探索_关闭聊天",
+      "城市探索_已关闭聊天",
+      {
+        "name": "城市探索_确保结束讨论",
+        "jump_back": true
+      }
+    ]
+  },
+  "城市探索_选项": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "roi": [
+          1041,
+          431,
+          101,
+          194
+        ],
+        "template": [
+          "chat_room/xiaochun.png",
+          "chat_room/chashao.png",
+          "chat_room/lei.png",
+          "chat_room/wenjing.png",
+          "chat_room/ju.png",
+          "chat_room/saturday.png",
+          "chat_room/zhenzhu.png"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 800,
+    "$__mpe_code": {
+      "position": {
+        "x": 3593,
+        "y": 2860
+      }
+    }
+  },
+  "城市探索_加速群友": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          700,
+          200,
+          500,
+          100
+        ]
+      }
+    },
+    "post_delay": 30,
+    "pre_delay": 1,
+    "$__mpe_code": {
+      "position": {
+        "x": 3594,
+        "y": 3136
+      }
+    }
+  },
+  "城市探索_进入委托界面": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "处理方式"
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "post_delay": 800,
+    "$__mpe_code": {
+      "position": {
+        "x": 3535,
+        "y": 3537
+      }
+    },
+    "next": [
+      "城市探索_优先高收益"
+    ]
+  },
+  "城市探索_获取事件奖励": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "点击以继续"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 800,
+    "focus": "> 获取事件奖励",
+    "post_delay": 800,
+    "timeout": 120000,
+    "$__mpe_code": {
+      "position": {
+        "x": 6159,
+        "y": 168
+      }
+    },
+    "next": [
+      "城市探索_确认回到城市探索",
+      {
+        "name": "城市探索_重新唤出事件列表",
+        "jump_back": true
+      },
+      {
+        "name": "城市探索_跳过战后剧情",
+        "jump_back": true
+      },
+      {
+        "name": "城市探索_自动跳过战后剧情",
+        "jump_back": true
+      },
+      {
+        "name": "城市探索_检测恢复体力界面",
+        "jump_back": true
+      },
+      {
+        "name": "城市探索_新战后剧情选项",
+        "jump_back": true
+      },
+      {
+        "name": "城市探索_确认获取事件奖励",
+        "jump_back": true
+      },
+      {
+        "name": "城市探索_新战后剧情",
+        "jump_back": true
+      },
+      {
+        "name": "城市探索_误触返回",
+        "jump_back": true
+      }
+    ]
+  },
+  "城市探索_跳过剧情": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "jump.png"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 400,
+    "$__mpe_code": {
+      "position": {
+        "x": 3792,
+        "y": 646
+      }
+    },
+    "next": [
+      "城市探索_获取事件奖励",
+      {
+        "name": "城市探索_自动跳过剧情",
+        "jump_back": true
+      }
+    ]
+  },
+  "城市探索_新剧情选项": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "chat_option.png"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "post_delay": 1,
+    "$__mpe_code": {
+      "position": {
+        "x": 4056,
+        "y": 1292
+      }
+    }
+  },
+  "城市探索_新剧情": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "log.png"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          25,
+          200,
+          1,
+          1
+        ]
+      }
+    },
+    "timeout": 3000,
+    "$__mpe_code": {
+      "position": {
+        "x": 3792,
+        "y": 897
+      }
+    },
+    "next": [
+      "城市探索_设置倍速"
+    ],
+    "on_error": [
+      "城市探索_结束倍速"
+    ]
+  },
+  "城市探索_诱发中断": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "break"
+      }
+    },
+    "focus": "> 新剧情，将中断任务",
+    "$__mpe_code": {
+      "position": {
+        "x": 3793,
+        "y": 1192
+      }
+    }
+  },
+  "城市探索_检查配队计数": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "count",
+        "custom_action_param": "key=squad"
+      }
+    },
+    "post_delay": 0,
+    "pre_delay": 0,
+    "$__mpe_code": {
+      "position": {
+        "x": 4126,
+        "y": 1537
+      }
+    },
+    "next": [
+      "城市探索_配置队伍"
+    ],
+    "on_error": [
+      "城市探索_开始战斗"
+    ]
+  },
+  "城市探索_确定跳过战前提醒": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "确定"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 4125,
+        "y": 2024
+      }
+    }
+  },
+  "城市探索_关闭聊天": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "点击空白区域关闭界面"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "focus": "> 水群结束",
+    "pre_delay": 800,
+    "$__mpe_code": {
+      "position": {
+        "x": 5610,
+        "y": 2572
+      }
+    },
+    "next": [
+      "城市探索_获取事件奖励"
+    ]
+  },
+  "城市探索_已关闭聊天": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "点击以继续"
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "focus": "> 水群结束",
+    "$__mpe_code": {
+      "position": {
+        "x": 5607,
+        "y": 2845
+      }
+    },
+    "next": [
+      "城市探索_获取事件奖励"
+    ]
+  },
+  "城市探索_确保结束讨论": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "结束讨论"
+        ],
+        "roi": [
+          864,
+          563,
+          127,
+          67
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 4122,
+        "y": 2753
+      }
+    }
+  },
+  "城市探索_选择特工1": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          270,
+          256,
+          1,
+          1
+        ]
+      }
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 4389,
+        "y": 3545
+      }
+    },
+    "next": [
+      "城市探索_选择特工2"
+    ]
+  },
+  "城市探索_确认回到城市探索": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "事件回顾"
+        ]
+      }
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "event_done"
+      }
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 6157,
+        "y": -82
+      }
+    },
+    "next": [
+      "城市探索_检查事件面板",
+      {
+        "name": "城市探索_重新唤出事件列表",
+        "jump_back": true
+      },
+      {
+        "name": "城市探索_误触返回",
+        "jump_back": true
+      }
+    ]
+  },
+  "城市探索_重新唤出事件列表": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "city/events.png"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 400,
+    "post_delay": 800,
+    "$__mpe_code": {
+      "position": {
+        "x": 6473,
+        "y": -129
+      }
+    }
+  },
+  "城市探索_跳过战后剧情": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "jump.png"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 800,
+    "post_delay": 1500,
+    "timeout": 2000,
+    "$__mpe_code": {
+      "position": {
+        "x": 6476,
+        "y": 161
+      }
+    }
+  },
+  "城市探索_自动跳过战后剧情": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "今天不再提醒"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 400,
+    "$__mpe_code": {
+      "position": {
+        "x": 6741,
+        "y": 159
+      }
+    },
+    "next": [
+      "城市探索_确定跳过战后剧情"
+    ]
+  },
+  "城市探索_检测恢复体力界面": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "后恢复至满额"
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "post_delay": 1000,
+    "$__mpe_code": {
+      "position": {
+        "x": 6477,
+        "y": 476
+      }
+    },
+    "next": [
+      "城市探索_关闭恢复体力界面"
+    ]
+  },
+  "城市探索_新战后剧情选项": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "chat_option.png"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 6474,
+        "y": 730
+      }
+    }
+  },
+  "城市探索_确认获取事件奖励": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "点击以继续"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 6475,
+        "y": 952
+      }
+    }
+  },
+  "城市探索_新战后剧情": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "log.png"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          25,
+          200,
+          1,
+          1
+        ]
+      }
+    },
+    "pre_delay": 1,
+    "post_delay": 30,
+    "$__mpe_code": {
+      "position": {
+        "x": 6475,
+        "y": 1158
+      }
+    }
+  },
+  "城市探索_误触返回": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "地点描述",
+          "设施描述"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          5,
+          5,
+          1,
+          1
+        ]
+      }
+    },
+    "post_delay": 3000,
+    "pre_delay": 800,
+    "$__mpe_code": {
+      "position": {
+        "x": 6472,
+        "y": -441
+      }
+    }
+  },
+  "城市探索_自动跳过剧情": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "今天不再提醒"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 400,
+    "$__mpe_code": {
+      "position": {
+        "x": 4062,
+        "y": 646
+      }
+    },
+    "next": [
+      "城市探索_确定跳过剧情"
+    ]
+  },
+  "城市探索_设置倍速": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "cycle_outlined.png"
+        ],
+        "green_mask": true,
+        "threshold": [
+          0.5
+        ],
+        "index": -1
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "post_delay": 1000,
+    "focus": "> 新剧情，自动打开倍速",
+    "$__mpe_code": {
+      "position": {
+        "x": 4057,
+        "y": 897
+      }
+    },
+    "next": [
+      "城市探索_二倍速"
+    ]
+  },
+  "城市探索_配置队伍": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "run_set_squad",
+        "custom_action_param": "e="
+      }
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 4395,
+        "y": 1536
+      }
+    },
+    "next": [
+      "城市探索_开始战斗"
+    ]
+  },
+  "城市探索_开始战斗": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "行动开始"
+        ],
+        "order_by": "Vertical",
+        "index": -1
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 800,
+    "timeout": 300000,
+    "rate_limit": 2000,
+    "focus": "> 开始战斗",
+    "$__mpe_code": {
+      "position": {
+        "x": 4692,
+        "y": 1320
+      }
+    },
+    "next": [
+      "城市探索_获取事件奖励",
+      "城市探索_作战失败",
+      {
+        "name": "城市探索_确认开始战斗",
+        "jump_back": true
+      },
+      {
+        "name": "城市探索_等待指令",
+        "jump_back": true
+      }
+    ]
+  },
+  "城市探索_选择特工2": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          380,
+          256,
+          1,
+          1
+        ]
+      }
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 4416,
+        "y": 3762
+      }
+    },
+    "next": [
+      "城市探索_选择特工3"
+    ]
+  },
+  "城市探索_确定跳过战后剧情": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "确定"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 6997,
+        "y": 158
+      }
+    }
+  },
+  "城市探索_关闭恢复体力界面": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "close.png"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 6749,
+        "y": 476
+      }
+    }
+  },
+  "城市探索_确定跳过剧情": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "确定"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 4317,
+        "y": 648
+      }
+    }
+  },
+  "城市探索_二倍速": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": "城市探索_设置倍速"
+      }
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 4340,
+        "y": 902
+      }
+    },
+    "next": [
+      "城市探索_四倍速"
+    ]
+  },
+  "城市探索_作战失败": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "结束行动"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 400,
+    "focus": "> 作战失败！",
+    "$__mpe_code": {
+      "position": {
+        "x": 5171,
+        "y": 1314
+      }
+    },
+    "next": [
+      "城市探索_结束失败作战"
+    ]
+  },
+  "城市探索_确认开始战斗": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "行动开始"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 5014,
+        "y": 1631
+      }
+    }
+  },
+  "城市探索_等待指令": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "瞬时调度"
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 5017,
+        "y": 1855
+      }
+    },
+    "next": [
+      "城市探索_开启自动战斗"
+    ]
+  },
+  "城市探索_选择特工3": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          495,
+          256,
+          1,
+          1
+        ]
+      }
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 4444,
+        "y": 3987
+      }
+    },
+    "next": [
+      "城市探索_执行委托"
+    ]
+  },
+  "城市探索_四倍速": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": "城市探索_设置倍速"
+      }
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 4622,
+        "y": 900
+      }
+    },
+    "next": [
+      "城市探索_结束倍速"
+    ]
+  },
+  "城市探索_结束失败作战": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "确定"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 400,
+    "$__mpe_code": {
+      "position": {
+        "x": 5433,
+        "y": 1318
+      }
+    },
+    "next": [
+      "城市探索_回到主页"
+    ]
+  },
+  "城市探索_开启自动战斗": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "cycle_outlined.png"
+        ],
+        "green_mask": true,
+        "threshold": [
+          0.5
+        ],
+        "index": -1
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "post_delay": 1000,
+    "$__mpe_code": {
+      "position": {
+        "x": 5287,
+        "y": 1852
+      }
+    }
+  },
+  "城市探索_执行委托": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "执行委托"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 800,
+    "$__mpe_code": {
+      "position": {
+        "x": 4729,
+        "y": 3546
+      }
+    },
+    "next": [
+      "城市探索_结算委托",
+      {
+        "name": "城市探索_确保执行委托",
+        "jump_back": true
+      }
+    ]
+  },
+  "城市探索_结束倍速": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "set_str_node_attrs",
+        "custom_action_param": "node=城市探索_新剧情&keys=next&values=[]"
+      }
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 4894,
+        "y": 900
+      }
+    }
+  },
+  "城市探索_结算委托": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "结算委托"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 400,
+    "focus": "> 委托结束",
+    "$__mpe_code": {
+      "position": {
+        "x": 5618,
+        "y": 3479
+      }
+    },
+    "next": [
+      "城市探索_获取事件奖励"
+    ]
+  },
+  "城市探索_开始": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "init_city_walk"
+      }
+    },
+    "timeout": 1000,
+    "$__mpe_code": {
+      "position": {
+        "x": -1124,
+        "y": 562
+      }
+    },
+    "next": [
+      "城市探索_已在城市探索"
+    ],
+    "on_error": [
+      "城市探索_执行前返回主页"
+    ]
+  },
+  "城市探索_已在城市探索": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "设施管理"
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": -575,
+        "y": 526
+      }
+    },
+    "next": [
+      "城市探索_城市界面"
+    ]
+  },
+  "城市探索_执行前返回主页": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "run",
+        "custom_action_param": "key=全局前置返回主页"
+      }
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": -852,
+        "y": 742
+      }
+    },
+    "next": [
+      "城市探索_进入城市探索"
+    ]
+  },
+  "城市探索_城市界面": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "pre_delay": 0,
+    "post_delay": 0,
+    "$__mpe_code": {
+      "position": {
+        "x": -277,
+        "y": 597
+      }
+    },
+    "next": [
+      "城市探索_资源收取"
+    ]
+  },
+  "城市探索_进入城市探索": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "城市探索"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "post_delay": 2000,
+    "focus": "> 进入城市探索界面",
+    "$__mpe_code": {
+      "position": {
+        "x": -574,
+        "y": 738
+      }
+    },
+    "next": [
+      "城市探索_城市界面"
+    ]
+  },
+  "城市探索_确保执行委托": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "执行委托"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 5013,
+        "y": 3663
+      }
+    }
+  },
+  "城市探索_选择委托处理方式": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "handle_delegation",
+        "custom_action_param": "target=整流元件"
+      }
+    },
+    "pre_delay": 0,
+    "post_delay": 0,
+    "$__mpe_code": {
+      "position": {
+        "x": 4107,
+        "y": 3541
+      }
+    },
+    "next": [
+      "城市探索_选择特工1"
+    ]
+  },
+  "城市探索_优先高收益": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "set_delegation_config",
+        "custom_action_param": "value=false"
+      }
+    },
+    "pre_delay": 0,
+    "post_delay": 0,
+    "$__mpe_code": {
+      "position": {
+        "x": 3811,
+        "y": 3536
+      }
+    },
+    "next": [
+      "城市探索_选择委托处理方式"
+    ]
+  },
+  "城市探索_委托项": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "整流元件"
+        ],
+        "roi": [
+          816,
+          215,
+          271,
+          365
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 4108,
+        "y": 3876
+      }
+    }
+  },
+  "城市探索_确保获取资源": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "点击以继续"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 303,
+        "y": 868
+      }
+    }
+  },
+  "城市探索_调查战斗": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "city/survey_battle.png"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 400,
+    "$__mpe_code": {
+      "position": {
+        "x": 629,
+        "y": 3083
+      }
+    },
+    "next": [
+      "城市探索_开始调查战斗"
+    ]
+  },
+  "城市探索_开始调查战斗": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "run",
+        "custom_action_param": "key=通用战斗_开始"
+      }
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 881,
+        "y": 3074
+      }
+    },
+    "next": [
+      "城市探索_归档",
+      "城市探索_调查战斗"
+    ]
+  },
+  "城市探索_尝试快速处理": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          465,
+          440,
+          58,
+          58
+        ]
+      }
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 2922,
+        "y": -418
+      }
+    },
+    "next": [
+      "城市探索_快速完成事件"
+    ]
+  },
+  "城市探索_判断是否检查快速事件": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "check_quick_event"
+      }
+    },
+    "pre_delay": 0,
+    "post_delay": 0,
+    "$__mpe_code": {
+      "position": {
+        "x": 2615,
+        "y": 277
+      }
+    },
+    "next": [
+      "城市探索_尝试快速处理"
+    ],
+    "on_error": [
+      "城市探索_检查新事件"
+    ]
+  },
+  "城市探索_快速完成事件": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "快速完成"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 400,
+    "$__mpe_code": {
+      "position": {
+        "x": 3185,
+        "y": -417
+      }
+    },
+    "next": [
+      "城市探索_算力不足",
+      "城市探索_获取快速事件奖励"
+    ]
+  },
+  "城市探索_算力不足": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "数量不足"
+        ]
+      }
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "increase_event_entry"
+      }
+    },
+    "pre_delay": 0,
+    "post_delay": 0,
+    "$__mpe_code": {
+      "position": {
+        "x": 3478,
+        "y": -614
+      }
+    },
+    "next": [
+      "城市探索_返回事件列表"
+    ]
+  },
+  "城市探索_返回事件列表": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "click_many",
+        "custom_action_param": "t=2&i=0.8"
+      }
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 3760,
+        "y": -504
+      }
+    },
+    "next": [
+      "城市探索_记录处理"
+    ]
+  },
+  "城市探索_记录处理": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "record_quick_event"
+      }
+    },
+    "pre_delay": 0,
+    "post_delay": 0,
+    "$__mpe_code": {
+      "position": {
+        "x": 2954,
+        "y": -123
+      }
+    },
+    "next": [
+      "城市探索_唤起事件列表"
+    ]
+  },
+  "城市探索_获取快速事件奖励": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "点击以继续"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 800,
+    "post_delay": 400,
+    "$__mpe_code": {
+      "position": {
+        "x": 3477,
+        "y": -300
+      }
+    },
+    "next": [
+      "城市探索_记录处理"
+    ]
+  },
+  "城市探索_尝试一键归档": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "键归档"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 400,
+    "timeout": 2000,
+    "focus": "> 尝试一键归档",
+    "post_delay": 1000,
+    "$__mpe_code": {
+      "position": {
+        "x": 14,
+        "y": 2035
+      }
+    },
+    "next": [
+      "城市探索_归档",
+      "城市探索_开始审阅",
+      {
+        "name": "城市探索_获取一键归档物资",
+        "jump_back": true
+      }
+    ],
+    "on_error": [
+      "城市探索_完成情报收取"
+    ]
+  },
+  "城市探索_获取一键归档物资": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "点击以继续"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "pre_delay": 400,
+    "$__mpe_code": {
+      "position": {
+        "x": 49,
+        "y": 2388
+      }
+    }
+  },
+  "城市探索_确保今日未换班": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "periodic_check",
+        "custom_action_param": "t=设施换班"
+      }
+    },
+    "pre_delay": 0,
+    "post_delay": 0,
+    "$__mpe_code": {
+      "position": {
+        "x": 851,
+        "y": 542
+      }
+    },
+    "next": [
+      "城市探索_一键入驻"
+    ],
+    "on_error": [
+      "城市探索_加速类别"
+    ]
+  },
+  "城市探索_记录换班": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "record_period",
+        "custom_action_param": "t=设施换班"
+      }
+    },
+    "pre_delay": 0,
+    "post_delay": 0,
+    "$__mpe_code": {
+      "position": {
+        "x": 1389,
+        "y": 534
+      }
+    },
+    "next": [
+      "城市探索_加速类别"
+    ]
+  },
+  "城市探索_识别快速处理": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "city/quick.png"
+        ],
+        "roi": [
+          407,
+          393,
+          195,
+          183
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 2614,
+        "y": 37
+      }
+    }
+  },
+  "城市探索_无法跳过": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "算力兑换券"
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "focus": "> 跳过券不足，请手动完成探索事件",
+    "$__mpe_code": {
+      "position": {
+        "x": 3787,
+        "y": 272
+      }
+    },
+    "next": [
+      "城市探索_从此事件返回"
+    ]
+  },
+  "城市探索_从此事件返回": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "click_many",
+        "custom_action_param": "t=2&i=0.8"
+      }
+    },
+    "pre_delay": 0,
+    "post_delay": 0,
+    "$__mpe_code": {
+      "position": {
+        "x": 4059,
+        "y": 272
+      }
+    },
+    "next": [
+      "城市探索_右移目标事件"
+    ]
+  },
+  "城市探索_右移目标事件": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "increase_event_entry"
+      }
+    },
+    "pre_delay": 0,
+    "post_delay": 0,
+    "$__mpe_code": {
+      "position": {
+        "x": 4332,
+        "y": 272
+      }
+    },
+    "next": [
+      "城市探索_唤起事件列表"
+    ]
+  },
+  "城市探索_唤起事件列表": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "pre_delay": 0,
+    "post_delay": 0,
+    "$__mpe_code": {
+      "position": {
+        "x": 2050,
+        "y": 27
+      }
+    },
+    "next": [
+      "城市探索_检查事件面板",
+      {
+        "name": "城市探索_事件列表",
+        "jump_back": true
+      },
+      {
+        "name": "城市探索_确保奖励已领取",
+        "jump_back": true
+      }
+    ]
+  },
+  "城市探索_不适用跳过券": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "increase_event_entry"
+      }
+    },
+    "pre_delay": 0,
+    "post_delay": 0,
+    "$__mpe_code": {
+      "position": {
+        "x": 2612,
+        "y": -269
+      }
+    },
+    "next": [
+      "城市探索_记录处理"
+    ]
+  },
+  "城市探索_剧情事件-普通": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "roi": [
+          784,
+          301,
+          487,
+          322
+        ],
+        "template": [
+          "city/plot_event.png"
+        ],
+        "threshold": [
+          0.6
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "focus": "> 剧情类事件",
+    "pre_delay": 400,
+    "$__mpe_code": {
+      "position": {
+        "x": 3245,
+        "y": 1048
+      }
+    },
+    "next": [
+      "城市探索_进入剧情"
+    ]
+  },
+  "城市探索_未点击成功": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "事件回顾"
+        ]
+      }
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "check_event_status"
+      }
+    },
+    "pre_delay": 0,
+    "post_delay": 0,
+    "$__mpe_code": {
+      "position": {
+        "x": 2898,
+        "y": 703
+      }
+    },
+    "next": [
+      "城市探索_再次点击"
+    ],
+    "on_error": [
+      "城市探索_未达到点击条件"
+    ]
+  },
+  "城市探索_再次点击": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "enter_event"
+      }
+    },
+    "pre_delay": 0,
+    "post_delay": 1200,
+    "$__mpe_code": {
+      "position": {
+        "x": 2923,
+        "y": 1306
+      }
+    }
+  },
+  "城市探索_未达到点击条件": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "abandon_event"
+      }
+    },
+    "pre_delay": 0,
+    "post_delay": 0,
+    "$__mpe_code": {
+      "position": {
+        "x": 2922,
+        "y": 1028
+      }
+    }
+  },
+  "城市探索_检查新事件": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "check_new_event"
+      }
+    },
+    "pre_delay": 0,
+    "post_delay": 0,
+    "$__mpe_code": {
+      "position": {
+        "x": 2616,
+        "y": 561
+      }
+    },
+    "next": [
+      "城市探索_事件详情"
+    ],
+    "on_error": [
+      "城市探索_检查到新事件"
+    ]
+  },
+  "城市探索_识别新事件": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "city/new_event.png"
+        ],
+        "roi": [
+          417,
+          413,
+          680,
+          70
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 2348,
+        "y": 36
+      }
+    }
+  },
+  "城市探索_检查到新事件": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "increase_event_entry"
+      }
+    },
+    "pre_delay": 0,
+    "post_delay": 0,
+    "focus": "> 检查到新事件，已跳过",
+    "$__mpe_code": {
+      "position": {
+        "x": 2340,
+        "y": 859
+      }
+    },
+    "next": [
+      "城市探索_延迟提醒"
+    ]
+  },
+  "城市探索_延迟提醒": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "delay_focus_hook",
+        "custom_action_param": "key=新城市事件&focus=出现了新的城市事件，已留存！"
+      }
+    },
+    "pre_delay": 0,
+    "post_delay": 0,
+    "$__mpe_code": {
+      "position": {
+        "x": 2612,
+        "y": 859
+      }
+    },
+    "next": [
+      "城市探索_检查新事件"
+    ]
+  },
+  "城市探索_跳过线索事件": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "increase_event_entry"
+      }
+    },
+    "pre_delay": 0,
+    "post_delay": 0,
+    "focus": "> 检查到线索事件，请手动完成",
+    "$__mpe_code": {
+      "position": {
+        "x": 3514,
+        "y": 479
+      }
+    }
+  },
+  "城市探索_确保奖励已领取": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "点击以继续"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 2346,
+        "y": -178
+      }
+    }
+  },
+  "城市探索_确保进入讨论": {
+    "recognition": {
+      "type": "OCR",
+      "param": {
+        "expected": [
+          "进入讨论"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "$__mpe_code": {
+      "position": {
+        "x": 3297,
+        "y": 2931
+      }
+    }
+  }
+}

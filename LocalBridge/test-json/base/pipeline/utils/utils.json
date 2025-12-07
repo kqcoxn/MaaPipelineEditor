@@ -1,0 +1,29 @@
+{
+    "null": {
+        "pre_delay": 0,
+        "post_delay": 0
+    },
+    "日志": {
+        "focus": [],
+        "pre_delay": 0,
+        "post_delay": 0
+    },
+    "返回主页": {
+        "action": "Custom",
+        "custom_action": "run",
+        "custom_action_param": "key=返回主页_开始",
+        "pre_delay": 0,
+        "post_delay": 0
+    },
+    "全局前置返回主页": {
+        "next": "懒加载返回主页_开始",
+        "pre_delay": 0,
+        "post_delay": 0
+    },
+    "通用战斗": {
+        "next": "通用战斗_开始",
+        "on_error": "null",
+        "pre_delay": 0,
+        "post_delay": 0
+    }
+}

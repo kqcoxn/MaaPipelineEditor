@@ -1,0 +1,1309 @@
+{
+    "$__mpe_config_每日升级": {
+        "$__mpe_code": {
+            "prefix": "每日升级",
+            "filename": "每日升级",
+            "version": "v0.7.0"
+        }
+    },
+    "每日升级_特工管理": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "特工管理"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "focus": "> 进入特工管理界面",
+        "$__mpe_code": {
+            "position": {
+                "x": -1127,
+                "y": -962
+            }
+        },
+        "next": [
+            "每日升级_进入特工详情页"
+        ]
+    },
+    "每日升级_进入特工详情页": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "基础"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "focus": "> 查找目标特工",
+        "pre_delay": 800,
+        "$__mpe_code": {
+            "position": {
+                "x": -851,
+                "y": -994
+            }
+        },
+        "next": [
+            "每日升级_初始化下滑计数"
+        ]
+    },
+    "每日升级_选择角色": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "特工名称"
+                ],
+                "roi": [
+                    105,
+                    525,
+                    137,
+                    52
+                ],
+                "order_by": "Vertical"
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": -37,
+                "y": -1028
+            }
+        },
+        "next": [
+            "每日升级_进入等级界面",
+            "[JumpBack]每日升级_确保进入详情页"
+        ]
+    },
+    "每日升级_左滑角色": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Swipe",
+            "param": {
+                "begin": [
+                    671,
+                    340,
+                    1,
+                    1
+                ],
+                "end": [
+                    [
+                        234,
+                        340,
+                        1,
+                        1
+                    ]
+                ],
+                "duration": [
+                    100
+                ]
+            }
+        },
+        "post_delay": 800,
+        "$__mpe_code": {
+            "position": {
+                "x": -38,
+                "y": -1297
+            }
+        },
+        "next": [
+            "每日升级_角色滑动计数"
+        ]
+    },
+    "每日升级_进入等级界面": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "character/grade_entry.png"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 400,
+        "$__mpe_code": {
+            "position": {
+                "x": -1372,
+                "y": -687
+            }
+        },
+        "next": [
+            "每日升级_角色等级加一",
+            "每日升级_需要认证",
+            "每日升级_已满级"
+        ]
+    },
+    "每日升级_角色等级加一": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "character/add_grade.png"
+                ],
+                "index": -1
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "focus": "> 升级",
+        "$__mpe_code": {
+            "position": {
+                "x": -1095,
+                "y": -685
+            }
+        },
+        "next": [
+            "每日升级_确认升级"
+        ]
+    },
+    "每日升级_需要认证": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "资格认证条件"
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "focus": "> 指定特工需要认证",
+        "$__mpe_code": {
+            "position": {
+                "x": -1080,
+                "y": -455
+            }
+        },
+        "next": [
+            "每日升级_取消升级"
+        ]
+    },
+    "每日升级_已满级": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "已达到最高"
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "focus": "> 指定特工已满级",
+        "$__mpe_code": {
+            "position": {
+                "x": -1346,
+                "y": -457
+            }
+        },
+        "next": [
+            "每日升级_取消升级"
+        ]
+    },
+    "每日升级_确认升级": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "升级"
+                ],
+                "index": -1
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": -849,
+                "y": -683
+            }
+        },
+        "next": [
+            "每日升级_记录角色升级"
+        ]
+    },
+    "每日升级_取消升级": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "back.png"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "post_delay": 1000,
+        "$__mpe_code": {
+            "position": {
+                "x": -830,
+                "y": -456
+            }
+        },
+        "next": [
+            "每日升级_切换特工"
+        ]
+    },
+    "每日升级_记录角色升级": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "record_period",
+                "custom_action_param": "t=character_upgrade"
+            }
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": -594,
+                "y": -682
+            }
+        },
+        "next": [
+            "每日升级_从角色升级返回主界面"
+        ]
+    },
+    "每日升级_切换特工": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "switch_upgrade_target"
+            }
+        },
+        "pre_delay": 0,
+        "$__mpe_code": {
+            "position": {
+                "x": -1939,
+                "y": -1297
+            }
+        },
+        "next": [
+            "每日升级_从角色返回列表"
+        ],
+        "on_error": [
+            "每日升级_列表已空"
+        ]
+    },
+    "每日升级_从角色升级返回主界面": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "home.png"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "focus": "> 返回主界面",
+        "$__mpe_code": {
+            "position": {
+                "x": -342,
+                "y": -678
+            }
+        },
+        "next": [
+            "每日升级_角色升级结束"
+        ]
+    },
+    "每日升级_从角色返回列表": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "back.png"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": -1668,
+                "y": -1299
+            }
+        },
+        "next": [
+            "每日升级_列表划至顶端1"
+        ]
+    },
+    "每日升级_列表已空": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "home.png"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "focus": "> 列表内无可升级特工！",
+        "$__mpe_code": {
+            "position": {
+                "x": -1602,
+                "y": -282
+            }
+        },
+        "next": [
+            "每日升级_角色升级结束"
+        ]
+    },
+    "每日升级_角色升级结束": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "$__mpe_code": {
+            "position": {
+                "x": -28,
+                "y": -223
+            }
+        },
+        "next": [
+            "每日升级_卡带升级开始"
+        ]
+    },
+    "每日升级_列表划至顶端1": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "基础"
+                ]
+            }
+        },
+        "action": {
+            "type": "Swipe",
+            "param": {
+                "begin": [
+                    1060,
+                    92,
+                    1,
+                    1
+                ],
+                "end": [
+                    [
+                        1060,
+                        668,
+                        1,
+                        1
+                    ]
+                ],
+                "duration": 100
+            }
+        },
+        "pre_delay": 800,
+        "post_delay": 1000,
+        "$__mpe_code": {
+            "position": {
+                "x": -1404,
+                "y": -1299
+            }
+        },
+        "next": [
+            "每日升级_列表划至顶端2"
+        ]
+    },
+    "每日升级_列表划至顶端2": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "基础"
+                ]
+            }
+        },
+        "action": {
+            "type": "Swipe",
+            "param": {
+                "begin": [
+                    1060,
+                    92,
+                    1,
+                    1
+                ],
+                "end": [
+                    [
+                        1060,
+                        668,
+                        1,
+                        1
+                    ]
+                ],
+                "duration": 100
+            }
+        },
+        "post_delay": 1000,
+        "$__mpe_code": {
+            "position": {
+                "x": -1127,
+                "y": -1296
+            }
+        },
+        "next": [
+            "每日升级_重置进度"
+        ]
+    },
+    "每日升级_角色升级开始": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "$__mpe_code": {
+            "position": {
+                "x": -1936,
+                "y": -959
+            }
+        },
+        "next": [
+            "每日升级_检查是否已升级"
+        ]
+    },
+    "每日升级_今日角色已升级": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "focus": "> 今日角色已升级",
+        "$__mpe_code": {
+            "position": {
+                "x": -356,
+                "y": -476
+            }
+        },
+        "next": [
+            "每日升级_角色升级结束"
+        ]
+    },
+    "每日升级_检查是否已升级": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "periodic_check",
+                "custom_action_param": "t=character_upgrade&p=day"
+            }
+        },
+        "pre_delay": 0,
+        "$__mpe_code": {
+            "position": {
+                "x": -1653,
+                "y": -962
+            }
+        },
+        "next": [
+            "每日升级_设置角色列表"
+        ],
+        "on_error": [
+            "每日升级_今日角色已升级"
+        ]
+    },
+    "每日升级_设置角色列表": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "set_upgrade_list",
+                "custom_action_param": "list=夜来"
+            }
+        },
+        "focus": "> 角色升级",
+        "pre_delay": 0,
+        "$__mpe_code": {
+            "position": {
+                "x": -1388,
+                "y": -963
+            }
+        },
+        "next": [
+            "每日升级_特工管理"
+        ],
+        "on_error": [
+            "每日升级_列表为空"
+        ]
+    },
+    "每日升级_列表为空": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "focus": "> 特工名单为空",
+        "$__mpe_code": {
+            "position": {
+                "x": -1048,
+                "y": -182
+            }
+        },
+        "next": [
+            "每日升级_角色升级结束"
+        ]
+    },
+    "每日升级_开始": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": -2483,
+                "y": -958
+            }
+        },
+        "next": [
+            "每日升级_执行前返回主页"
+        ]
+    },
+    "每日升级_执行前返回主页": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "run",
+                "custom_action_param": "key=全局前置返回主页"
+            }
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": -2212,
+                "y": -958
+            }
+        },
+        "next": [
+            "每日升级_角色升级开始"
+        ]
+    },
+    "每日升级_初始化下滑计数": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "init_counter",
+                "custom_action_param": "key=find_agent&max=80"
+            }
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "$__mpe_code": {
+            "position": {
+                "x": -585,
+                "y": -1023
+            }
+        },
+        "next": [
+            "每日升级_检测"
+        ]
+    },
+    "每日升级_检测": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "$__mpe_code": {
+            "position": {
+                "x": -321,
+                "y": -1022
+            }
+        },
+        "next": [
+            "每日升级_选择角色",
+            "每日升级_左滑角色"
+        ]
+    },
+    "每日升级_角色滑动计数": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "count",
+                "custom_action_param": "key=find_agent"
+            }
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "$__mpe_code": {
+            "position": {
+                "x": 226,
+                "y": -1296
+            }
+        },
+        "next": [
+            "每日升级_检测"
+        ],
+        "on_error": [
+            "每日升级_未找到角色切换特工"
+        ]
+    },
+    "每日升级_未找到角色切换特工": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "switch_upgrade_target"
+            }
+        },
+        "pre_delay": 0,
+        "$__mpe_code": {
+            "position": {
+                "x": -1939,
+                "y": -1514
+            }
+        },
+        "next": [
+            "每日升级_从角色返回列表"
+        ],
+        "on_error": [
+            "每日升级_列表已空"
+        ]
+    },
+    "每日升级_卡带升级开始": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "$__mpe_code": {
+            "position": {
+                "x": 837,
+                "y": -1146
+            }
+        },
+        "next": [
+            "每日升级_检查卡带是否已升级"
+        ]
+    },
+    "每日升级_进入仓储": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "storage.png"
+                ],
+                "green_mask": true,
+                "roi": [
+                    821,
+                    55,
+                    458,
+                    82
+                ],
+                "threshold": [
+                    0.45
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 400,
+        "focus": "> 卡带升级",
+        "$__mpe_code": {
+            "position": {
+                "x": 1387,
+                "y": -1150
+            }
+        },
+        "next": [
+            "每日升级_卡带面板"
+        ]
+    },
+    "每日升级_卡带面板": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "装载卡带"
+                ],
+                "roi": [
+                    11,
+                    89,
+                    135,
+                    495
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 800,
+        "focus": "> 尝试寻找可升级卡带",
+        "$__mpe_code": {
+            "position": {
+                "x": 1644,
+                "y": -1149
+            }
+        },
+        "next": [
+            "每日升级_筛选面板"
+        ]
+    },
+    "每日升级_筛选面板": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "filter.png"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 400,
+        "$__mpe_code": {
+            "position": {
+                "x": 1904,
+                "y": -1149
+            }
+        },
+        "next": [
+            "每日升级_重置筛选"
+        ]
+    },
+    "每日升级_重置筛选": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "重置"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 400,
+        "$__mpe_code": {
+            "position": {
+                "x": 854,
+                "y": -814
+            }
+        },
+        "next": [
+            "每日升级_确定重置"
+        ]
+    },
+    "每日升级_确定重置": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "确定"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "post_delay": 800,
+        "timeout": 2000,
+        "$__mpe_code": {
+            "position": {
+                "x": 1114,
+                "y": -814
+            }
+        },
+        "next": [
+            "每日升级_卡带可升级"
+        ],
+        "on_error": [
+            "每日升级_反转顺序"
+        ]
+    },
+    "每日升级_卡带可升级": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "0",
+                    "o"
+                ],
+                "roi": [
+                    175,
+                    208,
+                    62,
+                    33
+                ],
+                "only_rec": true
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "inverse": true,
+        "focus": "> 升级卡带",
+        "$__mpe_code": {
+            "position": {
+                "x": 1449,
+                "y": -814
+            }
+        },
+        "next": [
+            "每日升级_选中卡带"
+        ]
+    },
+    "每日升级_选中卡带": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    175,
+                    208,
+                    1,
+                    1
+                ]
+            }
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1709,
+                "y": -814
+            }
+        },
+        "next": [
+            "每日升级_进入强化面板"
+        ]
+    },
+    "每日升级_反转顺序": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    865,
+                    97,
+                    1,
+                    1
+                ]
+            }
+        },
+        "timeout": 3000,
+        "$__mpe_code": {
+            "position": {
+                "x": 1171,
+                "y": -574
+            }
+        },
+        "next": [
+            "每日升级_卡带可升级"
+        ],
+        "on_error": [
+            "每日升级_无可升级卡带"
+        ]
+    },
+    "每日升级_无可升级卡带": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "focus": "> 无可升级卡带",
+        "pre_delay": 0,
+        "post_delay": 0,
+        "$__mpe_code": {
+            "position": {
+                "x": 1455,
+                "y": -367
+            }
+        },
+        "next": [
+            "每日升级_返回主界面"
+        ]
+    },
+    "每日升级_进入强化面板": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "强化"
+                ],
+                "roi": [
+                    931,
+                    615,
+                    319,
+                    83
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1969,
+                "y": -814
+            }
+        },
+        "next": [
+            "每日升级_确保进入强化面板"
+        ]
+    },
+    "每日升级_等级加一": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "card/add.png"
+                ],
+                "roi": [
+                    1102,
+                    427,
+                    89,
+                    107
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1827,
+                "y": -577
+            }
+        },
+        "next": [
+            "每日升级_卡带升级"
+        ]
+    },
+    "每日升级_确保进入强化面板": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "激活"
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "post_delay": 800,
+        "$__mpe_code": {
+            "position": {
+                "x": 2229,
+                "y": -814
+            }
+        },
+        "next": [
+            "每日升级_等级加一"
+        ]
+    },
+    "每日升级_卡带升级": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    967,
+                    587,
+                    1,
+                    1
+                ]
+            }
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 2087,
+                "y": -577
+            }
+        },
+        "next": [
+            "每日升级_确认卡带升级"
+        ]
+    },
+    "每日升级_确认卡带升级": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "点击空白处关闭"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 800,
+        "focus": "> 卡带升级成功",
+        "$__mpe_code": {
+            "position": {
+                "x": 2347,
+                "y": -577
+            }
+        },
+        "next": [
+            "每日升级_记录卡带升级"
+        ]
+    },
+    "每日升级_卡带升级结束": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 3280,
+                "y": -1390
+            }
+        }
+    },
+    "每日升级_返回主界面": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "run",
+                "custom_action_param": "key=返回主页"
+            }
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 2900,
+                "y": -395
+            }
+        },
+        "next": [
+            "每日升级_卡带升级结束"
+        ]
+    },
+    "每日升级_记录卡带升级": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "record_period",
+                "custom_action_param": "t=strap_upgrade"
+            }
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 2613,
+                "y": -575
+            }
+        },
+        "next": [
+            "每日升级_返回主界面"
+        ]
+    },
+    "每日升级_检查卡带是否已升级": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "periodic_check",
+                "custom_action_param": "t=strap_upgrade"
+            }
+        },
+        "pre_delay": 0,
+        "$__mpe_code": {
+            "position": {
+                "x": 1115,
+                "y": -1149
+            }
+        },
+        "next": [
+            "每日升级_进入仓储"
+        ],
+        "on_error": [
+            "每日升级_卡带已升级"
+        ]
+    },
+    "每日升级_卡带已升级": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "focus": "> 今日卡带已升级",
+        "$__mpe_code": {
+            "position": {
+                "x": 1381,
+                "y": -1395
+            }
+        },
+        "next": [
+            "每日升级_卡带升级结束"
+        ]
+    },
+    "每日升级_重置进度": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    818,
+                    187,
+                    1,
+                    1
+                ]
+            }
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": -853,
+                "y": -1173
+            }
+        },
+        "next": [
+            "每日升级_进入特工详情页"
+        ]
+    },
+    "每日升级_确保进入详情页": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "基础"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "post_delay": 800,
+        "$__mpe_code": {
+            "position": {
+                "x": 228,
+                "y": -1026
+            }
+        }
+    }
+}

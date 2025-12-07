@@ -40,6 +40,7 @@ func (h *Handler) GetRoutePrefix() []string {
 		"/etl/open_file",
 		"/etl/save_file",
 		"/etl/create_file",
+		"/etl/refresh_file_list",
 	}
 }
 
@@ -52,6 +53,8 @@ func (h *Handler) Handle(msg models.Message, conn *server.Connection) *models.Me
 		return h.handleSaveFile(msg, conn)
 	case "/etl/create_file":
 		return h.handleCreateFile(msg, conn)
+	case "/etl/refresh_file_list":
+		return h.handleRefreshFileList(msg, conn)
 	default:
 		return nil
 	}
@@ -138,6 +141,12 @@ func (h *Handler) handleCreateFile(msg models.Message, conn *server.Connection) 
 	// 重新推送文件列表
 	h.pushFileList()
 
+	return nil
+}
+
+// 处理刷新文件列表请求
+func (h *Handler) handleRefreshFileList(msg models.Message, conn *server.Connection) *models.Message {
+	h.pushFileList()
 	return nil
 }
 

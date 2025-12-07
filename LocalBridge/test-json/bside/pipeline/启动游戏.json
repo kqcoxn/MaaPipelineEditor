@@ -1,0 +1,8 @@
+{
+    "启动游戏_启动游戏": {
+        "package": "com.firewick.p42.bilibili"
+    },
+    "启动游戏_关闭游戏": {
+        "package": "com.firewick.p42.bilibili"
+    }
+}

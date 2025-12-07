@@ -1,0 +1,2872 @@
+{
+    "$__mpe_config_清体力": {
+        "$__mpe_code": {
+            "prefix": "清体力",
+            "filename": "清体力",
+            "version": "v0.7.0"
+        }
+    },
+    "清体力_战略行动": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "战略行动"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "focus": "> 进入战略行动",
+        "$__mpe_code": {
+            "position": {
+                "x": 250,
+                "y": -48
+            }
+        },
+        "next": [
+            "清体力_关卡选择"
+        ]
+    },
+    "清体力_关卡选择": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "象征车厢"
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "pre_delay": 200,
+        "focus": "> 选择指定关卡",
+        "$__mpe_code": {
+            "position": {
+                "x": 567,
+                "y": -55
+            }
+        },
+        "next": [
+            "清体力_象征车厢"
+        ]
+    },
+    "清体力_象征车厢": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "象征车厢"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "post_delay": 500,
+        "$__mpe_code": {
+            "position": {
+                "x": 887,
+                "y": 114
+            }
+        },
+        "next": [
+            "清体力_经验本"
+        ]
+    },
+    "清体力_经验本": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "前往"
+                ],
+                "order_by": "Vertical",
+                "index": 0
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1151,
+                "y": 116
+            }
+        },
+        "next": [
+            "清体力_准备战斗"
+        ]
+    },
+    "清体力_准备战斗": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "开始挑战"
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "post_delay": 500,
+        "timeout": 1000,
+        "focus": "> 检查多倍战斗",
+        "$__mpe_code": {
+            "position": {
+                "x": 2648,
+                "y": 41
+            }
+        },
+        "next": [
+            "清体力_检查多倍战斗"
+        ],
+        "on_error": [
+            "清体力_倍率选择4"
+        ]
+    },
+    "清体力_检查多倍战斗": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "checkless.png"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 2910,
+                "y": 40
+            }
+        },
+        "next": [
+            "清体力_倍率选择4"
+        ]
+    },
+    "清体力_倍率选择4": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "cycle.png"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "focus": "> 尝试选择合适倍率",
+        "$__mpe_code": {
+            "position": {
+                "x": 3183,
+                "y": 127
+            }
+        },
+        "next": [
+            "清体力_4X"
+        ]
+    },
+    "清体力_4X": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "x",
+                    "×",
+                    "X"
+                ],
+                "roi": [
+                    848,
+                    416,
+                    118,
+                    175
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    903,
+                    442,
+                    1,
+                    1
+                ]
+            }
+        },
+        "pre_delay": 400,
+        "$__mpe_code": {
+            "position": {
+                "x": 3429,
+                "y": 68
+            }
+        },
+        "next": [
+            "清体力_开始挑战4"
+        ]
+    },
+    "清体力_开始挑战4": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "开始挑战"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 4024,
+                "y": 243
+            }
+        },
+        "next": [
+            "清体力_没的吃了",
+            "清体力_判断合剂余量",
+            "清体力_4x行动前检测1"
+        ]
+    },
+    "清体力_没的吃了": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "是否消耗40个超相尘"
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "focus": "> 合剂数量不足",
+        "$__mpe_code": {
+            "position": {
+                "x": 2655,
+                "y": 358
+            }
+        },
+        "next": [
+            "清体力_返回倍率选择3"
+        ]
+    },
+    "清体力_判断合剂余量": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "是否消耗1个"
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 2930,
+                "y": 359
+            }
+        },
+        "next": [
+            "清体力_判断设定余量"
+        ]
+    },
+    "清体力_4x行动前检测1": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "行动开始"
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 4292,
+                "y": 239
+            }
+        },
+        "next": [
+            "清体力_4x行动前检测2"
+        ]
+    },
+    "清体力_返回倍率选择3": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "close.png"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 3162,
+                "y": 871
+            }
+        },
+        "next": [
+            "清体力_倍率选择3"
+        ]
+    },
+    "清体力_判断设定余量": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "check_eat_times"
+            }
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "$__mpe_code": {
+            "position": {
+                "x": 3177,
+                "y": 341
+            }
+        },
+        "next": [
+            "清体力_使用稳定合剂"
+        ],
+        "on_error": [
+            "清体力_检查将过期合剂"
+        ]
+    },
+    "清体力_4x行动前检测2": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "行动开始"
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 4316,
+                "y": 414
+            }
+        },
+        "next": [
+            "清体力_4X行动"
+        ]
+    },
+    "清体力_倍率选择3": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "cycle.png"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 3417,
+                "y": 870
+            }
+        },
+        "next": [
+            "清体力_3X"
+        ]
+    },
+    "清体力_使用稳定合剂": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "确定"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "focus": "> 使用稳定合剂",
+        "$__mpe_code": {
+            "position": {
+                "x": 3430,
+                "y": 356
+            }
+        },
+        "next": [
+            "清体力_记录使用合剂"
+        ]
+    },
+    "清体力_检查将过期合剂": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "timeout": 1000,
+        "$__mpe_code": {
+            "position": {
+                "x": 2907,
+                "y": 633
+            }
+        },
+        "next": [
+            "清体力_存在将过期合剂"
+        ],
+        "on_error": [
+            "清体力_返回倍率选择3"
+        ]
+    },
+    "清体力_4X行动": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "行动开始"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 800,
+        "timeout": 300000,
+        "rate_limit": 2000,
+        "focus": "> 开始行动",
+        "$__mpe_code": {
+            "position": {
+                "x": 4588,
+                "y": 253
+            }
+        },
+        "next": [
+            "清体力_4X升级",
+            "清体力_结束行动并检查",
+            "[JumpBack]清体力_确定4X战斗",
+            "[JumpBack]清体力_等待指令"
+        ]
+    },
+    "清体力_3X": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "x",
+                    "×",
+                    "X"
+                ],
+                "roi": [
+                    848,
+                    416,
+                    118,
+                    175
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    904,
+                    486,
+                    1,
+                    1
+                ]
+            }
+        },
+        "pre_delay": 400,
+        "$__mpe_code": {
+            "position": {
+                "x": 3664,
+                "y": 781
+            }
+        },
+        "next": [
+            "清体力_开始挑战3"
+        ]
+    },
+    "清体力_记录使用合剂": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "record_period",
+                "custom_action_param": "t=eat"
+            }
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 3679,
+                "y": 353
+            }
+        },
+        "next": [
+            "清体力_关闭合剂界面"
+        ]
+    },
+    "清体力_4X升级": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "点击空白处关闭"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 800,
+        "focus": "> 玩家升级",
+        "$__mpe_code": {
+            "position": {
+                "x": 4861,
+                "y": 252
+            }
+        },
+        "next": [
+            "清体力_结束行动并检查"
+        ]
+    },
+    "清体力_结束行动并检查": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "确定"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 400,
+        "focus": "> 作战结束",
+        "$__mpe_code": {
+            "position": {
+                "x": 5168,
+                "y": 84
+            }
+        },
+        "next": [
+            "清体力_开始挑战4",
+            "清体力_再次尝试选择合适倍率"
+        ]
+    },
+    "清体力_确定4X战斗": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "行动开始"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 4860,
+                "y": 471
+            }
+        }
+    },
+    "清体力_等待指令": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "瞬时调度"
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 5250,
+                "y": 536
+            }
+        },
+        "next": [
+            "清体力_自动战斗"
+        ]
+    },
+    "清体力_开始挑战3": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "开始挑战"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 3922,
+                "y": 872
+            }
+        },
+        "next": [
+            "清体力_返回倍率选择2",
+            "清体力_3X及以下行动前检测1"
+        ]
+    },
+    "清体力_关闭合剂界面": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "取消"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 3935,
+                "y": 411
+            }
+        },
+        "next": [
+            "清体力_开始挑战4"
+        ]
+    },
+    "清体力_自动战斗": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "cycle_outlined.png"
+                ],
+                "green_mask": true,
+                "threshold": [
+                    0.5
+                ],
+                "index": -1
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "post_delay": 1000,
+        "$__mpe_code": {
+            "position": {
+                "x": 5502,
+                "y": 533
+            }
+        }
+    },
+    "清体力_返回倍率选择2": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "close.png"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 3157,
+                "y": 1092
+            }
+        },
+        "next": [
+            "清体力_倍率选择2"
+        ]
+    },
+    "清体力_3X及以下行动前检测1": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "行动开始"
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 4270,
+                "y": 1041
+            }
+        },
+        "next": [
+            "清体力_3X及以下行动前检测2"
+        ]
+    },
+    "清体力_倍率选择2": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "cycle.png"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 3402,
+                "y": 1089
+            }
+        },
+        "next": [
+            "清体力_2X"
+        ]
+    },
+    "清体力_3X及以下行动前检测2": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "行动开始"
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 4304,
+                "y": 1198
+            }
+        },
+        "next": [
+            "清体力_3X及以下行动"
+        ]
+    },
+    "清体力_2X": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "x",
+                    "×",
+                    "X"
+                ],
+                "roi": [
+                    848,
+                    416,
+                    118,
+                    175
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    904,
+                    525,
+                    1,
+                    1
+                ]
+            }
+        },
+        "pre_delay": 400,
+        "$__mpe_code": {
+            "position": {
+                "x": 3666,
+                "y": 1059
+            }
+        },
+        "next": [
+            "清体力_开始挑战2"
+        ]
+    },
+    "清体力_3X及以下行动": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "行动开始"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 800,
+        "timeout": 300000,
+        "rate_limit": 2000,
+        "focus": "> 开始行动",
+        "$__mpe_code": {
+            "position": {
+                "x": 4576,
+                "y": 1071
+            }
+        },
+        "next": [
+            "清体力_3X及以下升级",
+            "清体力_行动结束",
+            "[JumpBack]清体力_确定3X及以下战斗",
+            "[JumpBack]清体力_等待指令"
+        ]
+    },
+    "清体力_开始挑战2": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "开始挑战"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 3939,
+                "y": 1104
+            }
+        },
+        "next": [
+            "清体力_返回倍率选择1",
+            "清体力_3X及以下行动前检测1"
+        ]
+    },
+    "清体力_3X及以下升级": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "点击空白处关闭"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 800,
+        "focus": "> 玩家升级",
+        "$__mpe_code": {
+            "position": {
+                "x": 4865,
+                "y": 1071
+            }
+        },
+        "next": [
+            "清体力_再动"
+        ]
+    },
+    "清体力_行动结束": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "确定"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 400,
+        "focus": "> 体力耗尽",
+        "$__mpe_code": {
+            "position": {
+                "x": 4863,
+                "y": 1294
+            }
+        },
+        "next": [
+            "清体力_回到主页"
+        ]
+    },
+    "清体力_确定3X及以下战斗": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "行动开始"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 4602,
+                "y": 1350
+            }
+        }
+    },
+    "清体力_返回倍率选择1": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "close.png"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 3161,
+                "y": 1329
+            }
+        },
+        "next": [
+            "清体力_倍率选择1"
+        ]
+    },
+    "清体力_再动": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "确定"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 400,
+        "focus": "> 作战结束，使用升级体力再次作战",
+        "$__mpe_code": {
+            "position": {
+                "x": 5154,
+                "y": 983
+            }
+        },
+        "next": [
+            "清体力_倍率选择2"
+        ]
+    },
+    "清体力_回到主页": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "run",
+                "custom_action_param": "key=返回主页"
+            }
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 5154,
+                "y": 1470
+            }
+        },
+        "next": [
+            "清体力_结束"
+        ]
+    },
+    "清体力_倍率选择1": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "cycle.png"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 3405,
+                "y": 1334
+            }
+        },
+        "next": [
+            "清体力_1X"
+        ]
+    },
+    "清体力_结束": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 5402,
+                "y": 1472
+            }
+        }
+    },
+    "清体力_1X": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "x",
+                    "×",
+                    "X"
+                ],
+                "roi": [
+                    848,
+                    416,
+                    118,
+                    175
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    907,
+                    567,
+                    1,
+                    1
+                ]
+            }
+        },
+        "pre_delay": 400,
+        "$__mpe_code": {
+            "position": {
+                "x": 3663,
+                "y": 1333
+            }
+        },
+        "next": [
+            "清体力_开始挑战1"
+        ]
+    },
+    "清体力_开始挑战1": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "开始挑战"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 3940,
+                "y": 1333
+            }
+        },
+        "next": [
+            "清体力_体力耗尽",
+            "清体力_3X及以下行动前检测1"
+        ]
+    },
+    "清体力_体力耗尽": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "close.png"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "focus": "> 体力耗尽",
+        "pre_delay": 400,
+        "$__mpe_code": {
+            "position": {
+                "x": 4247,
+                "y": 1501
+            }
+        },
+        "next": [
+            "清体力_回到主页"
+        ]
+    },
+    "清体力_设置助战": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "设置助战"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "focus": "> 设置助战",
+        "post_delay": 1200,
+        "$__mpe_code": {
+            "position": {
+                "x": 3890,
+                "y": 2705
+            }
+        },
+        "next": [
+            "清体力_检查剩余助战次数",
+            "清体力_选择助战"
+        ]
+    },
+    "清体力_检查剩余助战次数": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "今日助战次数已不足"
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "focus": "> 今日助战次数已耗尽",
+        "$__mpe_code": {
+            "position": {
+                "x": 4158,
+                "y": 2958
+            }
+        },
+        "next": [
+            "清体力_设置助战结束"
+        ]
+    },
+    "清体力_选择助战": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "battle/assistance.png"
+                ],
+                "order_by": "Vertical",
+                "roi": [
+                    1028,
+                    87,
+                    123,
+                    604
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 400,
+        "$__mpe_code": {
+            "position": {
+                "x": 4157,
+                "y": 2703
+            }
+        },
+        "next": [
+            "清体力_编入7号位"
+        ]
+    },
+    "清体力_设置助战结束": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 4928,
+                "y": 3062
+            }
+        }
+    },
+    "清体力_编入7号位": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    124,
+                    518,
+                    100,
+                    100
+                ]
+            }
+        },
+        "timeout": 2000,
+        "$__mpe_code": {
+            "position": {
+                "x": 4411,
+                "y": 2699
+            }
+        },
+        "next": [
+            "清体力_已存在相同特工",
+            "清体力_选择助战"
+        ],
+        "on_error": [
+            "清体力_助战周期记录"
+        ]
+    },
+    "清体力_已存在相同特工": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "已存在相同特工"
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "focus": "> 已存在相同特工，尝试重新选择助战",
+        "$__mpe_code": {
+            "position": {
+                "x": 4671,
+                "y": 2699
+            }
+        },
+        "next": [
+            "清体力_取消下阵"
+        ]
+    },
+    "清体力_助战周期记录": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "record_period",
+                "custom_action_param": "t=assistance"
+            }
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 4673,
+                "y": 2899
+            }
+        },
+        "next": [
+            "清体力_设置助战结束"
+        ]
+    },
+    "清体力_取消下阵": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "取消"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 400,
+        "$__mpe_code": {
+            "position": {
+                "x": 4919,
+                "y": 2692
+            }
+        },
+        "next": [
+            "清体力_返回重选"
+        ]
+    },
+    "清体力_返回重选": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "back.png"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 400,
+        "$__mpe_code": {
+            "position": {
+                "x": 5179,
+                "y": 2527
+            }
+        },
+        "next": [
+            "清体力_刷新助战"
+        ]
+    },
+    "清体力_刷新助战": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "刷新列表"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 400,
+        "post_delay": 1200,
+        "$__mpe_code": {
+            "position": {
+                "x": 3903,
+                "y": 2466
+            }
+        },
+        "next": [
+            "清体力_选择助战"
+        ]
+    },
+    "清体力_数构银本": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "前往"
+                ],
+                "order_by": "Vertical",
+                "index": 1
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1150,
+                "y": 334
+            }
+        },
+        "next": [
+            "清体力_准备战斗"
+        ]
+    },
+    "清体力_作战认证书": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "分析车厢"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "post_delay": 500,
+        "$__mpe_code": {
+            "position": {
+                "x": 889,
+                "y": 792
+            }
+        },
+        "next": [
+            "清体力_红本"
+        ]
+    },
+    "清体力_红本": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "前往"
+                ],
+                "order_by": "Vertical",
+                "index": 0
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1149,
+                "y": 796
+            }
+        },
+        "next": [
+            "清体力_准备战斗"
+        ]
+    },
+    "清体力_蓝本": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "前往"
+                ],
+                "order_by": "Vertical",
+                "index": 1
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1149,
+                "y": 1017
+            }
+        },
+        "next": [
+            "清体力_准备战斗"
+        ]
+    },
+    "清体力_绿本": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "前往"
+                ],
+                "order_by": "Vertical",
+                "index": 2
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1148,
+                "y": 1241
+            }
+        },
+        "next": [
+            "清体力_准备战斗"
+        ]
+    },
+    "清体力_黄本": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "前往"
+                ],
+                "order_by": "Vertical",
+                "index": -2
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1405,
+                "y": 1463
+            }
+        },
+        "next": [
+            "清体力_准备战斗"
+        ]
+    },
+    "清体力_紫本": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "前往"
+                ],
+                "order_by": "Vertical",
+                "index": -1
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1401,
+                "y": 1687
+            }
+        },
+        "next": [
+            "清体力_准备战斗"
+        ]
+    },
+    "清体力_强攻本": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "前往"
+                ],
+                "order_by": "Vertical",
+                "index": 0
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1143,
+                "y": 1919
+            }
+        },
+        "next": [
+            "清体力_准备战斗"
+        ]
+    },
+    "清体力_特攻本": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "前往"
+                ],
+                "order_by": "Vertical",
+                "index": 1
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1141,
+                "y": 2151
+            }
+        },
+        "next": [
+            "清体力_准备战斗"
+        ]
+    },
+    "清体力_突击本": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "前往"
+                ],
+                "order_by": "Vertical",
+                "index": 2
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1137,
+                "y": 2378
+            }
+        },
+        "next": [
+            "清体力_准备战斗"
+        ]
+    },
+    "清体力_防护本": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "前往"
+                ],
+                "order_by": "Vertical",
+                "index": -2
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1390,
+                "y": 2605
+            }
+        },
+        "next": [
+            "清体力_准备战斗"
+        ]
+    },
+    "清体力_辅助本": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "前往"
+                ],
+                "order_by": "Vertical",
+                "index": -1
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1392,
+                "y": 2840
+            }
+        },
+        "next": [
+            "清体力_准备战斗"
+        ]
+    },
+    "清体力_演练卷": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "景观车厢"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "post_delay": 500,
+        "$__mpe_code": {
+            "position": {
+                "x": 890,
+                "y": 1919
+            }
+        },
+        "next": [
+            "清体力_强攻本"
+        ]
+    },
+    "清体力_整流器本": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "前往"
+                ],
+                "order_by": "Vertical",
+                "index": 1
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1136,
+                "y": 3071
+            }
+        },
+        "next": [
+            "清体力_准备战斗"
+        ]
+    },
+    "清体力_卡带本": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "前往"
+                ],
+                "order_by": "Vertical",
+                "index": 0
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1135,
+                "y": 3548
+            }
+        },
+        "next": [
+            "清体力_选择卡带"
+        ]
+    },
+    "清体力_选择卡带": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "查看详情"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 400,
+        "post_delay": 500,
+        "timeout": 1000,
+        "$__mpe_code": {
+            "position": {
+                "x": 1393,
+                "y": 3548
+            }
+        },
+        "next": [
+            "清体力_冷酷者"
+        ],
+        "on_error": [
+            "清体力_卡带堆顶"
+        ]
+    },
+    "清体力_冷酷者": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "冷酷者产线"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1898,
+                "y": 3545
+            }
+        },
+        "next": [
+            "清体力_确认卡带"
+        ]
+    },
+    "清体力_卡带堆顶": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Swipe",
+            "param": {
+                "begin": [
+                    380,
+                    220,
+                    1,
+                    1
+                ],
+                "end": [
+                    [
+                        380,
+                        500,
+                        1,
+                        1
+                    ]
+                ],
+                "duration": 200
+            }
+        },
+        "post_delay": 1500,
+        "timeout": 10000,
+        "$__mpe_code": {
+            "position": {
+                "x": 1642,
+                "y": 3547
+            }
+        },
+        "next": [
+            "清体力_冷酷者",
+            "[JumpBack]清体力_卡带下滑"
+        ]
+    },
+    "清体力_确认卡带": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "确定"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 2213,
+                "y": 1924
+            }
+        },
+        "next": [
+            "清体力_准备战斗"
+        ]
+    },
+    "清体力_卡带下滑": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Swipe",
+            "param": {
+                "begin": [
+                    380,
+                    400,
+                    1,
+                    1
+                ],
+                "end": [
+                    [
+                        380,
+                        300,
+                        1,
+                        1
+                    ]
+                ],
+                "duration": 200
+            }
+        },
+        "post_delay": 400,
+        "$__mpe_code": {
+            "position": {
+                "x": 1375,
+                "y": 3850
+            }
+        },
+        "next": [
+            "清体力_卡带停住"
+        ]
+    },
+    "清体力_卡带停住": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    380,
+                    220,
+                    1,
+                    1
+                ]
+            }
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1642,
+                "y": 3846
+            }
+        }
+    },
+    "清体力_承压者": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "承压者产线"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1904,
+                "y": 2263
+            }
+        },
+        "next": [
+            "清体力_确认卡带"
+        ]
+    },
+    "清体力_顿悟者": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "顿悟者产线"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1902,
+                "y": 2429
+            }
+        },
+        "next": [
+            "清体力_确认卡带"
+        ]
+    },
+    "清体力_苦修者": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "苦修者产线"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1900,
+                "y": 2587
+            }
+        },
+        "next": [
+            "清体力_确认卡带"
+        ]
+    },
+    "清体力_隐世者": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "隐世者产线"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1901,
+                "y": 2746
+            }
+        },
+        "next": [
+            "清体力_确认卡带"
+        ]
+    },
+    "清体力_惊惧者": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "惊惧者产线"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1900,
+                "y": 2906
+            }
+        },
+        "next": [
+            "清体力_确认卡带"
+        ]
+    },
+    "清体力_改造者": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "改造者产线"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1900,
+                "y": 3066
+            }
+        },
+        "next": [
+            "清体力_确认卡带"
+        ]
+    },
+    "清体力_震荡者": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "震荡者产线"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1901,
+                "y": 3222
+            }
+        },
+        "next": [
+            "清体力_确认卡带"
+        ]
+    },
+    "清体力_扭曲者": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "扭曲者产线"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1899,
+                "y": 3382
+            }
+        },
+        "next": [
+            "清体力_确认卡带"
+        ]
+    },
+    "清体力_紫本下划": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Swipe",
+            "param": {
+                "begin": [
+                    760,
+                    540,
+                    1,
+                    1
+                ],
+                "end": [
+                    [
+                        760,
+                        210,
+                        1,
+                        1
+                    ]
+                ]
+            }
+        },
+        "post_delay": 500,
+        "$__mpe_code": {
+            "position": {
+                "x": 1141,
+                "y": 1687
+            }
+        },
+        "next": [
+            "清体力_紫本"
+        ]
+    },
+    "清体力_黄本下划": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Swipe",
+            "param": {
+                "begin": [
+                    760,
+                    540,
+                    1,
+                    1
+                ],
+                "end": [
+                    [
+                        760,
+                        210,
+                        1,
+                        1
+                    ]
+                ]
+            }
+        },
+        "post_delay": 500,
+        "$__mpe_code": {
+            "position": {
+                "x": 1150,
+                "y": 1466
+            }
+        },
+        "next": [
+            "清体力_黄本"
+        ]
+    },
+    "清体力_防护本下划": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Swipe",
+            "param": {
+                "begin": [
+                    760,
+                    540,
+                    1,
+                    1
+                ],
+                "end": [
+                    [
+                        760,
+                        210,
+                        1,
+                        1
+                    ]
+                ]
+            }
+        },
+        "post_delay": 500,
+        "$__mpe_code": {
+            "position": {
+                "x": 1136,
+                "y": 2608
+            }
+        },
+        "next": [
+            "清体力_防护本"
+        ]
+    },
+    "清体力_辅助本下划": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Swipe",
+            "param": {
+                "begin": [
+                    760,
+                    540,
+                    1,
+                    1
+                ],
+                "end": [
+                    [
+                        760,
+                        210,
+                        1,
+                        1
+                    ]
+                ]
+            }
+        },
+        "post_delay": 500,
+        "$__mpe_code": {
+            "position": {
+                "x": 1135,
+                "y": 2840
+            }
+        },
+        "next": [
+            "清体力_辅助本"
+        ]
+    },
+    "清体力_卡带": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "卡带车厢"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "post_delay": 500,
+        "$__mpe_code": {
+            "position": {
+                "x": 881,
+                "y": 3071
+            }
+        },
+        "next": [
+            "清体力_整流器本"
+        ]
+    },
+    "清体力_设定合剂消耗": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "set_eat_times"
+            }
+        },
+        "post_delay": 0,
+        "$__mpe_code": {
+            "position": {
+                "x": -838,
+                "y": -139
+            }
+        },
+        "next": [
+            "清体力_设定指定队伍"
+        ]
+    },
+    "清体力_设定指定队伍": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "cr_set_squad"
+            }
+        },
+        "post_delay": 0,
+        "$__mpe_code": {
+            "position": {
+                "x": -578,
+                "y": -139
+            }
+        },
+        "next": [
+            "清体力_设定检查队伍次数"
+        ]
+    },
+    "清体力_设定检查队伍次数": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "init_counter",
+                "custom_action_param": "key=check_squad&max=1"
+            }
+        },
+        "pre_delay": 1,
+        "post_delay": 1,
+        "$__mpe_code": {
+            "position": {
+                "x": -318,
+                "y": -136
+            }
+        },
+        "next": [
+            "清体力_执行前返回主页"
+        ]
+    },
+    "清体力_执行前返回主页": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "run",
+                "custom_action_param": "key=全局前置返回主页"
+            }
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": -36,
+                "y": -110
+            }
+        },
+        "next": [
+            "清体力_战略行动"
+        ]
+    },
+    "清体力_指定作战队伍": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "post_delay": 0,
+        "pre_delay": 0,
+        "$__mpe_code": {
+            "position": {
+                "x": 3749,
+                "y": 1985
+            }
+        },
+        "next": [
+            "清体力_检测是否已检测"
+        ]
+    },
+    "清体力_检测是否已检测": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "count",
+                "custom_action_param": "key=check_squad"
+            }
+        },
+        "focus": "> 检查配队",
+        "pre_delay": 0,
+        "post_delay": 0,
+        "$__mpe_code": {
+            "position": {
+                "x": 4009,
+                "y": 1937
+            }
+        },
+        "next": [
+            "清体力_调整配队"
+        ],
+        "on_error": [
+            "清体力_结束配队"
+        ]
+    },
+    "清体力_调整配队": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "run_set_squad",
+                "custom_action_param": "e="
+            }
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 4267,
+                "y": 1919
+            }
+        },
+        "next": [
+            "清体力_结束配队"
+        ]
+    },
+    "清体力_结束配队": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "$__mpe_code": {
+            "position": {
+                "x": 4530,
+                "y": 2047
+            }
+        }
+    },
+    "清体力_4X队伍": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "set_str_node_attrs",
+                "custom_action_param": "node=清体力_结束配队&keys=next&values=清体力_4x行动前检测2"
+            }
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "$__mpe_code": {
+            "position": {
+                "x": 3465,
+                "y": 1862
+            }
+        },
+        "next": [
+            "清体力_指定作战队伍"
+        ]
+    },
+    "清体力_3X队伍": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "set_str_node_attrs",
+                "custom_action_param": "node=清体力_结束配队&keys=next&values=清体力_3X及以下行动前检测2"
+            }
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "$__mpe_code": {
+            "position": {
+                "x": 3468,
+                "y": 2118
+            }
+        },
+        "next": [
+            "清体力_指定作战队伍"
+        ]
+    },
+    "清体力_跳过使用合剂节点": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "set_str_node_attrs",
+                "custom_action_param": "node=清体力_判断合剂余量&keys=next&values=清体力_检查将过期合剂"
+            }
+        },
+        "post_delay": 0,
+        "$__mpe_code": {
+            "position": {
+                "x": -832,
+                "y": 90
+            }
+        },
+        "next": [
+            "清体力_设定指定队伍"
+        ]
+    },
+    "清体力_开始": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": -1378,
+                "y": -82
+            }
+        },
+        "next": [
+            "清体力_设定合剂消耗"
+        ]
+    },
+    "清体力_是否仅首次使用合剂": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "periodic_check",
+                "custom_action_param": "t=eat"
+            }
+        },
+        "post_delay": 0,
+        "$__mpe_code": {
+            "position": {
+                "x": -1113,
+                "y": 40
+            }
+        },
+        "next": [
+            "清体力_设定合剂消耗"
+        ],
+        "on_error": [
+            "清体力_跳过使用合剂节点"
+        ]
+    },
+    "清体力_4X助战": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "set_str_node_attrs",
+                "custom_action_param": "node=清体力_设置助战结束&keys=next&values=清体力_4X行动"
+            }
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "$__mpe_code": {
+            "position": {
+                "x": 3087,
+                "y": 2580
+            }
+        },
+        "next": [
+            "清体力_助战"
+        ]
+    },
+    "清体力_助战": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "$__mpe_code": {
+            "position": {
+                "x": 3365,
+                "y": 2703
+            }
+        },
+        "next": [
+            "清体力_助战周期检查"
+        ]
+    },
+    "清体力_助战周期检查": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "periodic_check",
+                "custom_action_param": "t=assistance"
+            }
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "$__mpe_code": {
+            "position": {
+                "x": 3625,
+                "y": 2703
+            }
+        },
+        "next": [
+            "清体力_设置助战"
+        ],
+        "on_error": [
+            "清体力_今日已助战"
+        ]
+    },
+    "清体力_今日已助战": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "focus": "> 今日已助战",
+        "$__mpe_code": {
+            "position": {
+                "x": 3694,
+                "y": 2982
+            }
+        },
+        "next": [
+            "清体力_设置助战结束"
+        ]
+    },
+    "清体力_3X助战": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "set_str_node_attrs",
+                "custom_action_param": "node=清体力_设置助战结束&keys=next&values=清体力_3X及以下行动"
+            }
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "$__mpe_code": {
+            "position": {
+                "x": 3089,
+                "y": 2840
+            }
+        },
+        "next": [
+            "清体力_助战"
+        ]
+    },
+    "清体力_合约本": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "前往"
+                ],
+                "order_by": "Vertical",
+                "index": 2
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1151,
+                "y": 560
+            }
+        },
+        "next": [
+            "清体力_准备战斗"
+        ]
+    },
+    "清体力_苦味喷剂本": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "前往"
+                ],
+                "order_by": "Vertical",
+                "index": 2
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1137,
+                "y": 3302
+            }
+        },
+        "next": [
+            "清体力_准备战斗"
+        ]
+    },
+    "清体力_存在将过期合剂": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "时"
+                ],
+                "roi": [
+                    484,
+                    301,
+                    547,
+                    151
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "focus": "> 存在即将过期合剂",
+        "$__mpe_code": {
+            "position": {
+                "x": 3168,
+                "y": 635
+            }
+        },
+        "next": [
+            "清体力_使用稳定合剂"
+        ]
+    },
+    "清体力_冒险者": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "冒险者产线"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1903,
+                "y": 2090
+            }
+        },
+        "next": [
+            "清体力_确认卡带"
+        ]
+    },
+    "清体力_再次尝试选择合适倍率": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "focus": "> 再次尝试选择合适倍率",
+        "$__mpe_code": {
+            "position": {
+                "x": 4587,
+                "y": 26
+            }
+        },
+        "next": [
+            "清体力_开始挑战4"
+        ]
+    },
+    "清体力_彷徨者": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "彷徨者产线",
+                    "仿徨者产线",
+                    "仿者产线"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1902,
+                "y": 1925
+            }
+        },
+        "next": [
+            "清体力_确认卡带"
+        ]
+    }
+}

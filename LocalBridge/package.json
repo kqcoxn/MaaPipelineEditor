@@ -1,0 +1,5 @@
+{
+    "scripts": {
+        "server": "go build -o ./build/mpelb.exe ./cmd/lb && ./build/mpelb.exe --root ./test-json"
+    }
+}

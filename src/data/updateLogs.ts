@@ -25,6 +25,16 @@ export interface UpdateLogItem {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "0.8.6",
+    date: "2025-12",
+    type: "feature",
+    updates: {
+      features: [
+        "🌉 正式版 LocalBridge 已上线！现已支持极致的😎本地文件传输功能，具体请参考文档本地服务部分。",
+      ],
+    },
+  },
+  {
     version: "0.8.5",
     date: "2025-12-7",
     type: "fix",

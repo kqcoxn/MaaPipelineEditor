@@ -1,0 +1,465 @@
+{
+    "$__mpe_config_列车长": {
+        "$__mpe_code": {
+            "prefix": "列车长",
+            "filename": "列车长",
+            "version": "v0.7.0"
+        }
+    },
+    "列车长_进入活动面板": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "run_enter_activity",
+                "custom_action_param": "title=列车长的见面礼"
+            }
+        },
+        "timeout": 2000,
+        "$__mpe_code": {
+            "position": {
+                "x": 1512,
+                "y": 607
+            }
+        },
+        "next": [
+            "列车长_获取补给",
+            "列车长_今日已领取"
+        ],
+        "on_error": [
+            "列车长_返回主页"
+        ]
+    },
+    "列车长_获取补给": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "今日补给"
+                ],
+                "roi": [
+                    786,
+                    468,
+                    172,
+                    169
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 800,
+        "focus": "> 领取今日补给",
+        "$__mpe_code": {
+            "position": {
+                "x": 1772,
+                "y": 607
+            }
+        },
+        "next": [
+            "列车长_领取体力"
+        ]
+    },
+    "列车长_领取体力": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "点击以继续"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 400,
+        "$__mpe_code": {
+            "position": {
+                "x": 2032,
+                "y": 607
+            }
+        },
+        "next": [
+            "列车长_前往挑战",
+            "[JumpBack]列车长_确保已领取体力"
+        ]
+    },
+    "列车长_前往挑战": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "前往挑战"
+                ],
+                "index": -1
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "pre_delay": 400,
+        "$__mpe_code": {
+            "position": {
+                "x": 2292,
+                "y": 607
+            }
+        },
+        "next": [
+            "列车长_确保进入选关界面"
+        ]
+    },
+    "列车长_确保已领取体力": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "点击以继续"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 2294,
+                "y": 828
+            }
+        }
+    },
+    "列车长_确保进入选关界面": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "车厢清理奖励"
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "post_delay": 400,
+        "focus": "> 前往双倍关卡",
+        "$__mpe_code": {
+            "position": {
+                "x": 1040,
+                "y": 1118
+            }
+        },
+        "next": [
+            "列车长_双倍单元"
+        ]
+    },
+    "列车长_双倍单元": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "双倍"
+                ],
+                "order_by": "Vertical",
+                "roi": [
+                    14,
+                    72,
+                    274,
+                    374
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target_offset": [
+                    -111,
+                    -18,
+                    0,
+                    0
+                ]
+            }
+        },
+        "pre_delay": 400,
+        "post_delay": 1000,
+        "$__mpe_code": {
+            "position": {
+                "x": 1293,
+                "y": 1119
+            }
+        },
+        "next": [
+            "列车长_双倍关卡"
+        ]
+    },
+    "列车长_双倍关卡": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "双倍"
+                ],
+                "order_by": "Vertical",
+                "roi": [
+                    1013,
+                    60,
+                    258,
+                    586
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target_offset": [
+                    -86,
+                    -22,
+                    0,
+                    0
+                ]
+            }
+        },
+        "pre_delay": 400,
+        "$__mpe_code": {
+            "position": {
+                "x": 1557,
+                "y": 1121
+            }
+        },
+        "next": [
+            "列车长_设定合剂消耗"
+        ]
+    },
+    "列车长_设定合剂消耗": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "set_eat_times"
+            }
+        },
+        "post_delay": 0,
+        "$__mpe_code": {
+            "position": {
+                "x": 1817,
+                "y": 1123
+            }
+        },
+        "next": [
+            "列车长_战斗"
+        ]
+    },
+    "列车长_战斗": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "run",
+                "custom_action_param": "key=清体力_准备战斗&stop=清体力_结束行动并检查"
+            }
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 2075,
+                "y": 1123
+            }
+        },
+        "next": [
+            "列车长_周期记录"
+        ]
+    },
+    "列车长_开始": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 733,
+                "y": 606
+            }
+        },
+        "next": [
+            "列车长_周期检查"
+        ]
+    },
+    "列车长_全局前置返回主页": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "run",
+                "custom_action_param": "key=全局前置返回主页"
+            }
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 1252,
+                "y": 607
+            }
+        },
+        "next": [
+            "列车长_进入活动面板"
+        ]
+    },
+    "列车长_今日已领取": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "后重置"
+                ],
+                "roi": [
+                    786,
+                    468,
+                    172,
+                    169
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "focus": "> 今日体力已领取",
+        "$__mpe_code": {
+            "position": {
+                "x": 1772,
+                "y": 868
+            }
+        },
+        "next": [
+            "列车长_周期记录"
+        ]
+    },
+    "列车长_返回主页": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "run",
+                "custom_action_param": "key=返回主页"
+            }
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 2607,
+                "y": 1120
+            }
+        },
+        "next": [
+            "列车长_结束"
+        ]
+    },
+    "列车长_结束": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "$__mpe_code": {
+            "position": {
+                "x": 2867,
+                "y": 1120
+            }
+        }
+    },
+    "列车长_周期检查": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "periodic_check",
+                "custom_action_param": "t=列车长"
+            }
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "$__mpe_code": {
+            "position": {
+                "x": 993,
+                "y": 606
+            }
+        },
+        "next": [
+            "列车长_全局前置返回主页"
+        ],
+        "on_error": [
+            "列车长_已领取"
+        ]
+    },
+    "列车长_周期记录": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "record_period",
+                "custom_action_param": "t=列车长"
+            }
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "$__mpe_code": {
+            "position": {
+                "x": 2347,
+                "y": 1122
+            }
+        },
+        "next": [
+            "列车长_返回主页"
+        ]
+    },
+    "列车长_已领取": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "pre_delay": 0,
+        "post_delay": 0,
+        "focus": "> 今日体力已领取",
+        "$__mpe_code": {
+            "position": {
+                "x": 1251,
+                "y": 822
+            }
+        },
+        "next": [
+            "列车长_结束"
+        ]
+    }
+}
