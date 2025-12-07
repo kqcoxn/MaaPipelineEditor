@@ -25,6 +25,14 @@ export interface UpdateLogItem {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "0.8.5",
+    date: "2025-12-7",
+    type: "fix",
+    updates: {
+      fixes: ["修复无法导入异构数组式 jump_back 的问题"],
+    },
+  },
+  {
     version: "0.8.4",
     date: "2025-12-7",
     type: "feature",

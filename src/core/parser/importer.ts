@@ -22,7 +22,12 @@ import type {
 import { externalMarkPrefix } from "./types";
 import { parsePipelineConfig, isMark } from "./configParser";
 import { detectNodeVersion } from "./versionDetector";
-import { linkEdge, getNextId, type NodeRefType } from "./edgeLinker";
+import {
+  linkEdge,
+  getNextId,
+  type NodeRefType,
+  type NodeAttr,
+} from "./edgeLinker";
 import { parseNodeField } from "./nodeParser";
 
 /**
@@ -52,31 +57,33 @@ function migratePipelineV5(
     // 处理 interrupt 字段
     if ("interrupt" in obj) {
       const interrupt = obj["interrupt"];
-      let interruptNodes: string[] = [];
+      let interruptNodes: NodeRefType[] = [];
 
       if (typeof interrupt === "string") {
         interruptNodes = [interrupt];
       } else if (Array.isArray(interrupt)) {
-        interruptNodes = interrupt.filter(
-          (n): n is string => typeof n === "string"
-        );
+        interruptNodes = interrupt;
       }
 
       if (interruptNodes.length > 0) {
-        // 给 interrupt 节点加上 [JumpBack] 前缀
-        const prefixedInterruptNodes = interruptNodes.map((n) =>
-          n.startsWith(JUMPBACK_PREFIX) ? n : `${JUMPBACK_PREFIX}${n}`
-        );
+        // [JumpBack] 前缀
+        const prefixedInterruptNodes = interruptNodes.map((n) => {
+          if (typeof n === "string") {
+            return n.startsWith(JUMPBACK_PREFIX) ? n : `${JUMPBACK_PREFIX}${n}`;
+          } else if (typeof n === "object" && n !== null) {
+            // 对象形式，添加 jump_back 属性
+            return { ...n, jump_back: true };
+          }
+          return n;
+        });
 
         // 合并到 next
-        let currentNext: string[] = [];
+        let currentNext: NodeRefType[] = [];
         if (obj["next"]) {
           if (typeof obj["next"] === "string") {
             currentNext = [obj["next"]];
           } else if (Array.isArray(obj["next"])) {
-            currentNext = obj["next"].filter(
-              (n): n is string => typeof n === "string"
-            );
+            currentNext = obj["next"];
           }
         }
         obj["next"] = [...currentNext, ...prefixedInterruptNodes];
@@ -90,18 +97,30 @@ function migratePipelineV5(
     const processRefs = (field: string) => {
       if (!(field in obj)) return;
       const refs = obj[field];
-      let refArray: string[] = [];
+      let refArray: NodeRefType[] = [];
 
       if (typeof refs === "string") {
         refArray = [refs];
       } else if (Array.isArray(refs)) {
-        refArray = refs.filter((n): n is string => typeof n === "string");
+        refArray = refs;
       }
 
       if (refArray.length > 0) {
         obj[field] = refArray.map((n) => {
-          if (subNodes.has(n) && !n.startsWith(JUMPBACK_PREFIX)) {
-            return `${JUMPBACK_PREFIX}${n}`;
+          // 字符串形式
+          if (typeof n === "string") {
+            if (subNodes.has(n) && !n.startsWith(JUMPBACK_PREFIX)) {
+              return `${JUMPBACK_PREFIX}${n}`;
+            }
+            return n;
+          }
+          // 对象形式
+          if (typeof n === "object" && n !== null) {
+            const nodeName = (n as NodeAttr).name;
+            if (nodeName && subNodes.has(nodeName)) {
+              return { ...n, jump_back: true };
+            }
+            return n;
           }
           return n;
         });

@@ -9,6 +9,11 @@
 - [LocalBridge/internal/config/config.go](file://LocalBridge/internal/config/config.go)
 - [LocalBridge/internal/logger/logger.go](file://LocalBridge/internal/logger/logger.go)
 - [LocalBridge/internal/eventbus/eventbus.go](file://LocalBridge/internal/eventbus/eventbus.go)
+- [LocalBridge/internal/server/websocket.go](file://LocalBridge/internal/server/websocket.go)
+- [LocalBridge/internal/service/file/file_service.go](file://LocalBridge/internal/service/file/file_service.go)
+- [LocalBridge/internal/protocol/file/file_handler.go](file://LocalBridge/internal/protocol/file/file_handler.go)
+- [LocalBridge/pkg/models/message.go](file://LocalBridge/pkg/models/message.go)
+- [LocalBridge/pkg/models/file.go](file://LocalBridge/pkg/models/file.go)
 - [docsite/docs/01.指南/10.其他/10.通信协议.md](file://docsite/docs/01.指南/10.其他/10.通信协议.md)
 - [src/services/server.ts](file://src/services/server.ts)
 - [src/services/requests.ts](file://src/services/requests.ts)
@@ -21,9 +26,10 @@
 
 ## 更新摘要
 **变更内容**
-- 更新了“简介”、“项目结构”、“核心组件”、“架构总览”、“详细组件分析”、“依赖关系分析”、“性能考量”、“故障排查指南”、“附录”等章节，以反映新实现的 CLI 应用、配置系统、日志系统、事件总线、文件服务和 WebSocket 通信功能。
-- 新增了对配置文件、日志推送、事件订阅、文件扫描与监听、协议处理等核心模块的详细说明。
-- 更新了架构图和流程图以反映新的模块依赖关系。
+- 新增了对 `pkg/models` 包中定义的 WebSocket 消息类型（`Message`, `ErrorData`, `FileListData` 等）和文件模型（`File`, `FileInfo`）的详细说明。
+- 更新了“文件服务”和“协议处理器”章节，以反映 `file_handler.go` 中将连接建立事件（`EventConnectionEstablished`）和文件变更事件（`EventFileChanged`）分开处理的最新实现。
+- 修正了“架构总览”中的序列图，以准确展示事件总线的两种不同订阅逻辑。
+- 更新了“详细组件分析”中“协议处理器”的流程图，以反映其事件订阅的分离逻辑。
 
 ## 目录
 1. [简介](#简介)
@@ -284,7 +290,8 @@ LogExit --> End["结束"]
 - **事件类型**
   - `EventFileScanCompleted`: 文件扫描完成。
   - `EventFileChanged`: 文件内容变更。
-  - `EventConnectionEstablished/Closed`: 连接状态变更。
+  - `EventConnectionEstablished`: 连接建立。
+  - `EventConnectionClosed`: 连接关闭。
 
 **Section sources**
 - [LocalBridge/internal/eventbus/eventbus.go](file://LocalBridge/internal/eventbus/eventbus.go#L1-L81)
@@ -307,6 +314,50 @@ LogExit --> End["结束"]
 - [LocalBridge/internal/service/file/scanner.go](file://LocalBridge/internal/service/file/scanner.go#L1-L100)
 - [LocalBridge/internal/service/file/watcher.go](file://LocalBridge/internal/service/file/watcher.go#L1-L100)
 - [LocalBridge/DEVELOPMENT.md](file://LocalBridge/DEVELOPMENT.md#L24-L43)
+
+### 协议处理器 (file_handler.go)
+- **核心功能**
+  - 实现 `/etl/open_file`, `/etl/save_file`, `/etl/create_file` 等文件操作协议。
+  - 作为路由分发器的处理器，接收消息并调用文件服务。
+- **事件订阅逻辑**
+  - **连接建立事件**: 订阅 `EventConnectionEstablished` 事件，当有新客户端连接时，立即推送当前的文件列表（`/lte/file_list`）。
+  - **文件变更事件**: 订阅 `EventFileChanged` 事件，当文件被创建、修改或删除时，向所有客户端广播文件变化通知（`/lte/file_changed`）。
+  - 这种分离的订阅逻辑确保了文件列表的推送与文件变更通知的推送是独立且互不干扰的。
+
+```mermaid
+flowchart TD
+A["NewHandler"] --> B["subscribeEvents"]
+B --> C["订阅 EventConnectionEstablished"]
+C --> D["连接建立时\n推送 /lte/file_list"]
+B --> E["订阅 EventFileChanged"]
+E --> F["文件变更时\n广播 /lte/file_changed"]
+```
+
+**Section sources**
+- [LocalBridge/internal/protocol/file/file_handler.go](file://LocalBridge/internal/protocol/file/file_handler.go#L1-L213)
+- [LocalBridge/internal/eventbus/eventbus.go](file://LocalBridge/internal/eventbus/eventbus.go#L77-L78)
+
+### 消息与数据模型 (pkg/models)
+- **WebSocket 消息结构**
+  - 所有消息均采用统一的 `Message` 结构，包含 `path` (路由) 和 `data` (数据) 两个字段。
+  - **Message**: `{ path: string, data: any }`
+- **核心数据模型**
+  - **ErrorData**: 错误消息，包含 `code` (错误码), `message` (描述), `detail` (可选详情)。
+  - **FileInfo**: 文件基本信息，包含 `file_path` (绝对路径), `file_name` (文件名), `relative_path` (相对路径)。
+  - **FileListData**: 文件列表数据，包含 `root` (根目录) 和 `files` (FileInfo 数组)。
+  - **FileContentData**: 文件内容数据，包含 `file_path` 和 `content` (JSON 对象)。
+  - **FileChangedData**: 文件变化通知，包含 `type` ("created", "modified", "deleted") 和 `file_path`。
+  - **OpenFileRequest**: 打开文件请求，包含 `file_path`。
+  - **SaveFileRequest**: 保存文件请求，包含 `file_path` 和 `content`。
+  - **SaveFileAckData**: 保存文件确认，包含 `file_path` 和 `status` ("ok")。
+  - **LogData**: 日志数据，包含 `level`, `module`, `message`, `timestamp`。
+- **文件内部模型**
+  - **File**: 本地文件模型，包含 `AbsPath`, `RelPath`, `Name`, `LastModified`。
+  - **ToFileInfo()**: `File` 结构体的方法，用于将其转换为对外的 `FileInfo` 结构。
+
+**Section sources**
+- [LocalBridge/pkg/models/message.go](file://LocalBridge/pkg/models/message.go#L1-L72)
+- [LocalBridge/pkg/models/file.go](file://LocalBridge/pkg/models/file.go#L1-L19)
 
 ### 协议与实现对照
 - **协议来源**
