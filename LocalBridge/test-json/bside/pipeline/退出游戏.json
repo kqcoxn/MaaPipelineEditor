@@ -1,6 +1,0 @@
-{
-    "退出游戏_退出游戏": {
-        "action": "StopApp",
-        "package": "com.firewick.p42.bilibili"
-    }
-}
