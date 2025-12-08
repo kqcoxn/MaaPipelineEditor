@@ -17,6 +17,7 @@ import {
 } from "../core/parser";
 import { ClipboardHelper } from "../utils/clipboard";
 import { useConfigStore } from "../stores/configStore";
+import { useWSStore } from "../stores/wsStore";
 import { CreateFileModal } from "./modals/CreateFileModal";
 
 // viewer
@@ -49,7 +50,7 @@ function JsonViewer() {
   const isRealTimePreview = useConfigStore(
     (state) => state.configs.isRealTimePreview
   );
-  const wsConnected = useConfigStore((state) => state.configs.wsConnected);
+  const wsConnected = useWSStore((state) => state.connected);
   const currentFilePath = useFileStore(
     (state) => state.currentFile.config.filePath
   );

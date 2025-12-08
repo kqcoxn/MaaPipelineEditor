@@ -28,8 +28,6 @@ type ConfigState = {
     historyLimit: number;
     nodeStyle: NodeStyleType;
     wsPort: number;
-    wsConnected: boolean;
-    wsConnecting: boolean;
     wsAutoConnect: boolean;
     // AI 配置
     aiApiUrl: string;
@@ -65,8 +63,6 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     historyLimit: 100,
     nodeStyle: "modern" as NodeStyleType,
     wsPort: 9066,
-    wsConnected: false,
-    wsConnecting: false,
     wsAutoConnect: false,
     // AI 配置
     aiApiUrl: "",

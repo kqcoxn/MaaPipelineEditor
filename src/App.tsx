@@ -14,6 +14,7 @@ const { Header: HeaderSection, Content } = Layout;
 
 import { useFileStore } from "./stores/fileStore";
 import { useConfigStore } from "./stores/configStore";
+import { useWSStore } from "./stores/wsStore";
 import { localServer } from "./services/server";
 
 import Header from "./components/Header";
@@ -129,12 +130,13 @@ function App() {
     if (!err) message.success("已读取本地缓存");
 
     // 注册WebSocket状态同步回调
-    const setConfig = useConfigStore.getState().setConfig;
+    const setConnected = useWSStore.getState().setConnected;
+    const setConnecting = useWSStore.getState().setConnecting;
     localServer.onStatus((connected) => {
-      setConfig("wsConnected", connected);
+      setConnected(connected);
     });
     localServer.onConnecting((isConnecting) => {
-      setConfig("wsConnecting", isConnecting);
+      setConnecting(isConnecting);
     });
 
     // WebSocket自动连接

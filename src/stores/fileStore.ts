@@ -95,8 +95,7 @@ export function localSave(): any {
 
     // 保存用户配置项
     const configState = useConfigStore.getState();
-    const { wsConnected, wsConnecting, ...userConfigs } = configState.configs;
-    localStorage.setItem("_mpe_config", JSON.stringify(userConfigs));
+    localStorage.setItem("_mpe_config", JSON.stringify(configState.configs));
   } catch (err) {
     return err;
   }
