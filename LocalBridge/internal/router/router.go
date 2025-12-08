@@ -9,6 +9,12 @@ import (
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/pkg/models"
 )
 
+// 系统路由常量
+const (
+	PathHandshake         = "/system/handshake"
+	PathHandshakeResponse = "/system/handshake/response"
+)
+
 // 协议处理器接口
 type Handler interface {
 	// 返回处理的路由前缀
@@ -42,6 +48,12 @@ func (r *Router) RegisterHandler(handler Handler) {
 // 路由分发
 func (r *Router) Route(msg models.Message, conn *server.Connection) {
 	path := msg.Path
+
+	// 处理版本握手
+	if path == PathHandshake {
+		r.handleHandshake(msg, conn)
+		return
+	}
 
 	// 查找匹配的处理器
 	handler := r.findHandler(path)
@@ -88,5 +100,47 @@ func (r *Router) sendError(conn *server.Connection, err *errors.LBError) {
 
 	if sendErr := conn.Send(errorMsg); sendErr != nil {
 		logger.Error("Router", "发送错误消息失败: %v", sendErr)
+	}
+}
+
+// 处理版本握手请求
+func (r *Router) handleHandshake(msg models.Message, conn *server.Connection) {
+	// 解析客户端版本
+	dataMap, ok := msg.Data.(map[string]interface{})
+	if !ok {
+		logger.Error("Router", "握手消息格式错误")
+		r.sendHandshakeResponse(conn, false, "握手消息格式错误")
+		return
+	}
+
+	clientVersion, _ := dataMap["protocol_version"].(string)
+	logger.Info("Router", "收到客户端握手请求，协议版本: %s", clientVersion)
+
+	// 版本验证
+	if clientVersion != server.ProtocolVersion {
+		logger.Warn("Router", "协议版本不匹配，客户端: %s，服务端: %s", clientVersion, server.ProtocolVersion)
+		r.sendHandshakeResponse(conn, false, "协议版本不匹配")
+		return
+	}
+
+	// 版本匹配
+	logger.Info("Router", "协议版本验证成功: %s", clientVersion)
+	r.sendHandshakeResponse(conn, true, "连接成功")
+}
+
+// 发送握手响应
+func (r *Router) sendHandshakeResponse(conn *server.Connection, success bool, message string) {
+	response := models.Message{
+		Path: PathHandshakeResponse,
+		Data: models.HandshakeResponse{
+			Success:         success,
+			ServerVersion:   server.ProtocolVersion,
+			RequiredVersion: server.ProtocolVersion,
+			Message:         message,
+		},
+	}
+
+	if err := conn.Send(response); err != nil {
+		logger.Error("Router", "发送握手响应失败: %v", err)
 	}
 }

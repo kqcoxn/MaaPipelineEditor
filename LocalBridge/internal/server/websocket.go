@@ -12,6 +12,15 @@ import (
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/pkg/models"
 )
 
+// 协议版本
+const ProtocolVersion = "0.1"
+
+// 版本握手路由
+const (
+	PathHandshake         = "/system/handshake"
+	PathHandshakeResponse = "/system/handshake/response"
+)
+
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,

@@ -1,6 +1,14 @@
-import { type MessageHandler, type APIRoute } from "./type.ts";
+import {
+  type MessageHandler,
+  type APIRoute,
+  type HandshakeResponse,
+  SystemRoutes,
+} from "./type.ts";
 import { message } from "antd";
 import { FileProtocol } from "./protocols/FileProtocol";
+import { globalConfig } from "../stores/configStore";
+
+const PROTOCOL_VERSION = globalConfig.protocolVersion;
 
 export class LocalWebSocketServer {
   private ws: WebSocket | null = null;
@@ -10,10 +18,44 @@ export class LocalWebSocketServer {
   private onConnectingChange?: (isConnecting: boolean) => void;
   private connectTimeout: number | null = null;
   private isConnecting: boolean = false;
+  private handshakeCompleted: boolean = false;
   private readonly CONNECTION_TIMEOUT = 3000;
 
   constructor(port: number = 9066) {
     this.url = `ws://localhost:${port}`;
+    // 注册系统级路由
+    this.registerSystemRoutes();
+  }
+
+  // 注册系统级路由
+  private registerSystemRoutes() {
+    // 握手响应处理
+    this.routes.set(
+      SystemRoutes.HANDSHAKE_RESPONSE,
+      (data: HandshakeResponse) => {
+        if (data.success) {
+          console.log("[WebSocket] 协议版本验证成功:", data.server_version);
+          this.handshakeCompleted = true;
+          this.clearConnectTimeout();
+          this.isConnecting = false;
+          this.onConnectingChange?.(false);
+          message.success(`已连接到本地服务`);
+          this.onStatusChange?.(true);
+        } else {
+          console.error(
+            "[WebSocket] 协议版本不匹配，前端:",
+            PROTOCOL_VERSION,
+            "，后端需要:",
+            data.required_version
+          );
+          message.error(
+            `协议版本不匹配，前端: ${PROTOCOL_VERSION}，后端需要: ${data.required_version}，请更新版本`
+          );
+          // 主动断开连接
+          this.disconnect();
+        }
+      }
+    );
   }
 
   // 设置端口
@@ -92,11 +134,8 @@ export class LocalWebSocketServer {
 
       this.ws.onopen = () => {
         console.log("[WebSocket] Connected to", this.url);
-        this.clearConnectTimeout();
-        this.isConnecting = false;
-        this.onConnectingChange?.(false);
-        message.success(`已连接到本地服务`);
-        this.onStatusChange?.(true);
+        // 发送版本握手请求
+        this.sendHandshake();
       };
 
       this.ws.onmessage = (event) => {
@@ -150,6 +189,7 @@ export class LocalWebSocketServer {
   disconnect() {
     this.clearConnectTimeout();
     this.isConnecting = false;
+    this.handshakeCompleted = false;
     this.onConnectingChange?.(false);
 
     if (this.ws) {
@@ -158,6 +198,24 @@ export class LocalWebSocketServer {
     }
 
     this.onStatusChange?.(false);
+  }
+
+  // 发送版本握手请求
+  private sendHandshake() {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      console.error("[WebSocket] Cannot send handshake, not connected");
+      return;
+    }
+
+    const handshakeData = {
+      path: SystemRoutes.HANDSHAKE,
+      data: {
+        protocol_version: PROTOCOL_VERSION,
+      },
+    };
+
+    console.log("[WebSocket] Sending handshake, version:", PROTOCOL_VERSION);
+    this.ws.send(JSON.stringify(handshakeData));
   }
 
   // 发送消息
@@ -179,7 +237,11 @@ export class LocalWebSocketServer {
 
   // 获取连接状态
   isConnected(): boolean {
-    return this.ws !== null && this.ws.readyState === WebSocket.OPEN;
+    return (
+      this.ws !== null &&
+      this.ws.readyState === WebSocket.OPEN &&
+      this.handshakeCompleted
+    );
   }
 
   // 是否正在连接中

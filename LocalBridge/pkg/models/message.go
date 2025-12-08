@@ -69,3 +69,16 @@ type LogData struct {
 	Message   string `json:"message"`   // 日志内容
 	Timestamp string `json:"timestamp"` // ISO 8601 时间戳
 }
+
+// 版本握手请求
+type HandshakeRequest struct {
+	ProtocolVersion string `json:"protocol_version"` // 前端协议版本
+}
+
+// 版本握手响应
+type HandshakeResponse struct {
+	Success         bool   `json:"success"`          // 是否成功
+	ServerVersion   string `json:"server_version"`   // 后端协议版本
+	RequiredVersion string `json:"required_version"` // 需要的协议版本
+	Message         string `json:"message"`          // 消息说明
+}
