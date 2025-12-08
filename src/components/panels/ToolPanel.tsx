@@ -93,15 +93,6 @@ function GlobalPanel() {
         onClick: () => setStatus("showConfigPanel", true),
       },
       {
-        label: "本地文件",
-        iconName: "icon-bendiwenjianjia",
-        iconSize: 30,
-        onClick: () => {
-          console.log("[ToolPanel] 点击本地文件按钮");
-          setStatus("showLocalFilePanel", true);
-        },
-      },
-      {
         label: "AI 对话历史",
         iconName: "icon-jiqiren",
         iconSize: 27,

@@ -17,6 +17,7 @@ import {
 } from "../core/parser";
 import { ClipboardHelper } from "../utils/clipboard";
 import { useConfigStore } from "../stores/configStore";
+import { CreateFileModal } from "./modals/CreateFileModal";
 
 // viewer
 const ViewerElem = memo(({ obj }: { obj: any }) => {
@@ -54,6 +55,9 @@ function JsonViewer() {
   );
   const saveFileToLocal = useFileStore((state) => state.saveFileToLocal);
   useFlowStore((state) => state.targetNode);
+
+  // 创建文件对话框状态
+  const [createModalVisible, setCreateModalVisible] = useState(false);
 
   // 文件输入引用
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -202,7 +206,15 @@ function JsonViewer() {
                 }
               }}
             >
-              保存到本地文件
+              保存到本地
+            </Button>
+            <Button
+              variant="filled"
+              size="small"
+              color="purple"
+              onClick={() => setCreateModalVisible(true)}
+            >
+              新建本地文件并保存
             </Button>
           </Flex>
         </div>
@@ -213,6 +225,10 @@ function JsonViewer() {
           obj={(isRealTimePreview ? rtpPipelineObj : manuPelineObj) as any}
         />
       </div>
+      <CreateFileModal
+        visible={createModalVisible}
+        onCancel={() => setCreateModalVisible(false)}
+      />
     </div>
   );
 }

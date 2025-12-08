@@ -16,7 +16,7 @@ import {
 import { Tabs, Input, Button, Tooltip } from "antd";
 import { FileAddOutlined } from "@ant-design/icons";
 import { useFileStore } from "../../stores/fileStore";
-import { CreateFileModal } from "../modals/CreateFileModal";
+import { useConfigStore } from "../../stores/configStore";
 
 interface DraggableTabPaneProps extends React.HTMLAttributes<HTMLDivElement> {
   "data-node-key": string;
@@ -51,9 +51,7 @@ function FilePanel() {
   const fileName = useFileStore((state) => state.currentFile.fileName);
   const setFileName = useFileStore((state) => state.setFileName);
   const switchFile = useFileStore((state) => state.switchFile);
-  
-  // 创建文件对话框状态
-  const [createModalVisible, setCreateModalVisible] = useState(false);
+  const setStatus = useConfigStore((state) => state.setStatus);
 
   // 文件名状态
   const [fileNameState, setFileNameState] = useState<
@@ -116,12 +114,15 @@ function FilePanel() {
           status={fileNameState}
           onChange={onLabelChange}
         />
-        <Tooltip title="保存并新建本地文件" placement="bottom">
+        <Tooltip title="本地文件" placement="bottom">
           <Button
             type="primary"
             icon={<FileAddOutlined />}
             size="small"
-            onClick={() => setCreateModalVisible(true)}
+            onClick={() => {
+              console.log("[FilePanel] 点击本地文件按钮");
+              setStatus("showLocalFilePanel", true);
+            }}
           />
         </Tooltip>
       </div>
@@ -156,10 +157,6 @@ function FilePanel() {
             </SortableContext>
           </DndContext>
         )}
-      />
-      <CreateFileModal
-        visible={createModalVisible}
-        onCancel={() => setCreateModalVisible(false)}
       />
     </div>
   );
