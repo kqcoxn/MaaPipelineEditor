@@ -43,10 +43,19 @@ export function AnchorNode(props: NodeProps<AnchorNodeData>) {
 }
 
 export const AnchorNodeMemo = memo(AnchorNode, (prev, next) => {
-  return (
-    prev.id === next.id &&
-    prev.selected === next.selected &&
-    prev.dragging === next.dragging &&
-    prev.data === next.data
-  );
+  // 基础属性比较
+  if (
+    prev.id !== next.id ||
+    prev.selected !== next.selected ||
+    prev.dragging !== next.dragging
+  ) {
+    return false;
+  }
+
+  // data 字段比较
+  if (prev.data.label !== next.data.label) {
+    return false;
+  }
+
+  return true;
 });

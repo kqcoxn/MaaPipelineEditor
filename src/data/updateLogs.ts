@@ -32,6 +32,7 @@ export const updateLogs: UpdateLogItem[] = [
       features: [
         "🌉 正式版 LocalBridge 已上线！现已支持极致的😎本地文件传输功能，具体请参考文档本地服务部分。",
       ],
+      perfs: ["优化节点渲染性能"],
     },
   },
   {

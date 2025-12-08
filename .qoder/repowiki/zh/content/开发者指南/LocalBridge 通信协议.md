@@ -2,34 +2,20 @@
 
 <cite>
 **本文引用的文件**
-- [LocalBridge/README/Agreement.md](file://LocalBridge/README/Agreement.md)
-- [LocalBridge/DEVELOPMENT.md](file://LocalBridge/DEVELOPMENT.md)
-- [LocalBridge/cmd/lb/main.go](file://LocalBridge/cmd/lb/main.go)
-- [LocalBridge/config/default.json](file://LocalBridge/config/default.json)
-- [LocalBridge/internal/config/config.go](file://LocalBridge/internal/config/config.go)
-- [LocalBridge/internal/logger/logger.go](file://LocalBridge/internal/logger/logger.go)
-- [LocalBridge/internal/eventbus/eventbus.go](file://LocalBridge/internal/eventbus/eventbus.go)
-- [LocalBridge/internal/server/websocket.go](file://LocalBridge/internal/server/websocket.go)
-- [LocalBridge/internal/service/file/file_service.go](file://LocalBridge/internal/service/file/file_service.go)
+- [LocalBridge/Agreement.md](file://LocalBridge/Agreement.md)
 - [LocalBridge/internal/protocol/file/file_handler.go](file://LocalBridge/internal/protocol/file/file_handler.go)
+- [LocalBridge/internal/service/file/file_service.go](file://LocalBridge/internal/service/file/file_service.go)
 - [LocalBridge/pkg/models/message.go](file://LocalBridge/pkg/models/message.go)
-- [LocalBridge/pkg/models/file.go](file://LocalBridge/pkg/models/file.go)
+- [src/services/protocols/FileProtocol.ts](file://src/services/protocols/FileProtocol.ts)
 - [docsite/docs/01.指南/10.其他/10.通信协议.md](file://docsite/docs/01.指南/10.其他/10.通信协议.md)
-- [src/services/server.ts](file://src/services/server.ts)
-- [src/services/requests.ts](file://src/services/requests.ts)
-- [src/services/responds.ts](file://src/services/responds.ts)
-- [src/services/type.ts](file://src/services/type.ts)
-- [src/services/index.ts](file://src/services/index.ts)
-- [src/main.tsx](file://src/main.tsx)
-- [src/stores/fileStore.ts](file://src/stores/fileStore.ts)
 </cite>
 
 ## 更新摘要
 **变更内容**
-- 新增了对 `pkg/models` 包中定义的 WebSocket 消息类型（`Message`, `ErrorData`, `FileListData` 等）和文件模型（`File`, `FileInfo`）的详细说明。
-- 更新了“文件服务”和“协议处理器”章节，以反映 `file_handler.go` 中将连接建立事件（`EventConnectionEstablished`）和文件变更事件（`EventFileChanged`）分开处理的最新实现。
-- 修正了“架构总览”中的序列图，以准确展示事件总线的两种不同订阅逻辑。
-- 更新了“详细组件分析”中“协议处理器”的流程图，以反映其事件订阅的分离逻辑。
+- 新增了对 `/etl/create_file` 和 `/etl/refresh_file_list` 文件操作协议的详细说明。
+- 更新了“文件服务”和“协议处理器”章节，以反映新增的文件创建和文件列表刷新功能。
+- 扩展了“消息与数据模型”章节，增加了 `CreateFileRequest` 数据结构的说明。
+- 更新了“前端实现要点”以包含文件创建请求的处理逻辑。
 
 ## 目录
 1. [简介](#简介)
@@ -44,11 +30,11 @@
 10. [附录](#附录)
 
 ## 简介
-本文档系统性梳理 LocalBridge（简称 LB）通信协议，覆盖连接管理、消息规范、文件协议、日志协议、事件总线、配置系统、CLI 应用以及前端 WebSocket 服务端实现。文档结合仓库内的协议说明、开发文档与前端实现，帮助开发者理解并正确集成本地服务与前端编辑器之间的双向通信。新增了对配置加载、日志系统、事件总线、文件扫描与监听等核心模块的详细说明。
+本文档系统性梳理 LocalBridge（简称 LB）通信协议，覆盖连接管理、消息规范、文件协议、日志协议、事件总线、配置系统、CLI 应用以及前端 WebSocket 服务端实现。文档结合仓库内的协议说明、开发文档与前端实现，帮助开发者理解并正确集成本地服务与前端编辑器之间的双向通信。本次更新重点新增了文件创建协议和文件列表刷新协议的详细说明，并完善了文件状态管理功能的描述。
 
 **Section sources**
-- [LocalBridge/README/Agreement.md](file://LocalBridge/README/Agreement.md#L1-L191)
-- [LocalBridge/DEVELOPMENT.md](file://LocalBridge/DEVELOPMENT.md#L1-L178)
+- [LocalBridge/Agreement.md](file://LocalBridge/Agreement.md#L1-L300)
+- [docsite/docs/01.指南/10.其他/10.通信协议.md](file://docsite/docs/01.指南/10.其他/10.通信协议.md#L1-L166)
 
 ## 项目结构
 围绕 LocalBridge 通信协议的相关文件分布如下：
@@ -145,7 +131,7 @@ SERVER --> DOC
   - **文件监听**: 基于 fsnotify 实现，监听文件的创建、修改、删除事件，包含防抖处理。
   - 通过事件总线通知其他模块文件变更。
 - **协议处理器 (file_handler.go)**
-  - 实现文件相关协议（/etl/open_file, /etl/save_file 等）的处理逻辑。
+  - 实现文件相关协议（/etl/open_file, /etl/save_file, /etl/create_file, /etl/refresh_file_list 等）的处理逻辑。
   - 作为路由分发器的处理器，接收消息并调用文件服务。
 - **WebSocket 服务器 (websocket.go)**
   - 基于 gorilla/websocket 实现，管理连接、消息收发。
@@ -308,21 +294,25 @@ LogExit --> End["结束"]
   - 事件触发后发布 `EventFileChanged` 事件。
 - **文件操作**
   - 提供 `OpenFile`, `SaveFile`, `CreateFile` 等方法，封装 JSON 读写和路径安全验证。
+  - **新增 `CreateFile` 方法**: 接收目录路径、文件名和可选的初始内容，在指定目录下创建新文件。会验证路径安全性、文件名合法性，并检查文件名冲突。创建成功后，将新文件信息添加到内存索引中。
 
 **Section sources**
-- [LocalBridge/internal/service/file/file_service.go](file://LocalBridge/internal/service/file/file_service.go#L1-L200)
+- [LocalBridge/internal/service/file/file_service.go](file://LocalBridge/internal/service/file/file_service.go#L1-L245)
 - [LocalBridge/internal/service/file/scanner.go](file://LocalBridge/internal/service/file/scanner.go#L1-L100)
 - [LocalBridge/internal/service/file/watcher.go](file://LocalBridge/internal/service/file/watcher.go#L1-L100)
 - [LocalBridge/DEVELOPMENT.md](file://LocalBridge/DEVELOPMENT.md#L24-L43)
 
 ### 协议处理器 (file_handler.go)
 - **核心功能**
-  - 实现 `/etl/open_file`, `/etl/save_file`, `/etl/create_file` 等文件操作协议。
+  - 实现 `/etl/open_file`, `/etl/save_file`, `/etl/create_file`, `/etl/refresh_file_list` 等文件操作协议。
   - 作为路由分发器的处理器，接收消息并调用文件服务。
 - **事件订阅逻辑**
   - **连接建立事件**: 订阅 `EventConnectionEstablished` 事件，当有新客户端连接时，立即推送当前的文件列表（`/lte/file_list`）。
   - **文件变更事件**: 订阅 `EventFileChanged` 事件，当文件被创建、修改或删除时，向所有客户端广播文件变化通知（`/lte/file_changed`）。
   - 这种分离的订阅逻辑确保了文件列表的推送与文件变更通知的推送是独立且互不干扰的。
+- **新增协议处理**
+  - **`/etl/create_file`**: 处理前端发来的创建文件请求。调用 `fileService.CreateFile` 方法创建文件，成功后调用 `pushFileList()` 重新向所有客户端推送更新后的文件列表。
+  - **`/etl/refresh_file_list`**: 处理前端发来的刷新文件列表请求。直接调用 `pushFileList()` 重新向所有客户端推送当前文件列表。
 
 ```mermaid
 flowchart TD
@@ -334,7 +324,7 @@ E --> F["文件变更时\n广播 /lte/file_changed"]
 ```
 
 **Section sources**
-- [LocalBridge/internal/protocol/file/file_handler.go](file://LocalBridge/internal/protocol/file/file_handler.go#L1-L213)
+- [LocalBridge/internal/protocol/file/file_handler.go](file://LocalBridge/internal/protocol/file/file_handler.go#L1-L222)
 - [LocalBridge/internal/eventbus/eventbus.go](file://LocalBridge/internal/eventbus/eventbus.go#L77-L78)
 
 ### 消息与数据模型 (pkg/models)
@@ -349,6 +339,7 @@ E --> F["文件变更时\n广播 /lte/file_changed"]
   - **FileChangedData**: 文件变化通知，包含 `type` ("created", "modified", "deleted") 和 `file_path`。
   - **OpenFileRequest**: 打开文件请求，包含 `file_path`。
   - **SaveFileRequest**: 保存文件请求，包含 `file_path` 和 `content`。
+  - **CreateFileRequest**: 新增的创建文件请求，包含 `file_name` (文件名), `directory` (目录绝对路径), `content` (可选的初始内容)。
   - **SaveFileAckData**: 保存文件确认，包含 `file_path` 和 `status` ("ok")。
   - **LogData**: 日志数据，包含 `level`, `module`, `message`, `timestamp`。
 - **文件内部模型**
@@ -367,6 +358,7 @@ E --> F["文件变更时\n广播 /lte/file_changed"]
   - 前端请求封装使用的是 `/etc/send_pipeline`，响应路由处理的是 `/cte/send_pipeline`。
   - 两者与协议中的 `/etl/*`、`/lte/*` 命名不一致，但语义一致（编辑器→本地服务 vs 本地服务→编辑器）。
   - 新增的日志推送功能通过事件总线和 `PushHook` 实现，当 `push_to_client` 启用时，日志会以特定格式推送到前端。
+  - **新增协议实现**: `/etl/create_file` 和 `/etl/refresh_file_list` 已在 `file_handler.go` 中实现，并在 `Agreement.md` 中明确定义。
 
 **Section sources**
 - [LocalBridge/README/Agreement.md](file://LocalBridge/README/Agreement.md#L36-L191)
@@ -463,6 +455,9 @@ LocalBridge 通信协议以 WebSocket 为基础，通过明确的消息格式与
   - 统一 JSON 结构：{path, data}；路由命名约定：/lte/*（LB→MPE）、/etl/*（MPE→LB）、/ack/*（确认）、/error（错误）。
 - **本地文件协议**
   - 根目录扫描规则、文件列表推送、文件内容返回、文件变化通知、错误码与错误消息格式。
+  - **新增协议**:
+    - `/etl/create_file`: 请求在指定目录创建新文件。
+    - `/etl/refresh_file_list`: 请求刷新并重新推送文件列表。
 - **日志协议**
   - CLI 日志格式与 `/lte/log` 推送消息格式（当 `push_to_client` 启用时）。
 
@@ -483,9 +478,11 @@ LocalBridge 通信协议以 WebSocket 为基础，通过明确的消息格式与
   - 通过 registerRespondRoutes 注册 `/cte/send_pipeline`，导入并切换文件。
 - **文件状态**
   - 使用 useFileStore 维护文件标签页、路径配置与切换逻辑。
+  - **新增文件创建请求**: 通过 `FileProtocol.requestCreateFile()` 方法发送 `/etl/create_file` 请求，包含文件名、目录和可选内容。
 
 **Section sources**
 - [src/main.tsx](file://src/main.tsx#L1-L23)
 - [src/services/requests.ts](file://src/services/requests.ts#L1-L46)
 - [src/services/responds.ts](file://src/services/responds.ts#L1-L69)
 - [src/stores/fileStore.ts](file://src/stores/fileStore.ts#L147-L217)
+- [src/services/protocols/FileProtocol.ts](file://src/services/protocols/FileProtocol.ts#L218-L233)

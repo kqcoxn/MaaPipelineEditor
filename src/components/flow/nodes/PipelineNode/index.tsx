@@ -38,10 +38,39 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
 }
 
 export const PipelineNodeMemo = memo(PipelineNode, (prev, next) => {
-  return (
-    prev.id === next.id &&
-    prev.selected === next.selected &&
-    prev.dragging === next.dragging &&
-    prev.data === next.data
-  );
+  // 基础属性比较
+  if (
+    prev.id !== next.id ||
+    prev.selected !== next.selected ||
+    prev.dragging !== next.dragging
+  ) {
+    return false;
+  }
+
+  // 比较 data
+  const prevData = prev.data;
+  const nextData = next.data;
+  if (prevData.label !== nextData.label) {
+    return false;
+  }
+  if (
+    prevData.recognition.type !== nextData.recognition.type ||
+    prevData.recognition.param !== nextData.recognition.param
+  ) {
+    return false;
+  }
+  if (
+    prevData.action.type !== nextData.action.type ||
+    prevData.action.param !== nextData.action.param
+  ) {
+    return false;
+  }
+  if (
+    prevData.others !== nextData.others ||
+    prevData.extras !== nextData.extras
+  ) {
+    return false;
+  }
+
+  return true;
 });

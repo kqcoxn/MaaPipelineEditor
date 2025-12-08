@@ -39,10 +39,14 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
     // 保存历史记录
     const hasRemove = changes.some((change) => change.type === "remove");
     const hasPosition = changes.some((change) => change.type === "position");
+    const isDragging = changes.some(
+      (change) => change.type === "position" && change.dragging
+    );
+    
     if (hasRemove) {
       get().saveHistory(0);
     } else if (hasPosition) {
-      get().saveHistory(500);
+      get().saveHistory(isDragging ? 1000 : 0);
     }
   },
 
