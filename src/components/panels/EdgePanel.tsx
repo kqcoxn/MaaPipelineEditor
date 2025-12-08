@@ -1,8 +1,9 @@
 import style from "../../styles/EdgePanel.module.less";
 
 import { memo, useMemo, useCallback } from "react";
-import { Tag, InputNumber } from "antd";
+import { Tag, InputNumber, Tooltip } from "antd";
 import classNames from "classnames";
+import IconFont from "../iconfonts";
 
 import {
   useFlowStore,
@@ -102,6 +103,7 @@ function EdgePanel() {
 
   const edges = useFlowStore((state) => state.edges);
   const setEdgeLabel = useFlowStore((state) => state.setEdgeLabel);
+  const updateEdges = useFlowStore((state) => state.updateEdges);
 
   // 获取源节点和目标节点的名称
   const { sourceLabel, targetLabel } = useMemo(() => {
@@ -148,6 +150,13 @@ function EdgePanel() {
     [currentEdge, setEdgeLabel]
   );
 
+  // 删除连接
+  const handleDelete = useCallback(() => {
+    if (currentEdge) {
+      updateEdges([{ type: "remove", id: currentEdge.id }]);
+    }
+  }, [currentEdge, updateEdges]);
+
   // 样式
   const panelClass = useMemo(
     () =>
@@ -163,7 +172,23 @@ function EdgePanel() {
   return (
     <div className={panelClass}>
       <div className="header">
-        <div className="title">连接设置</div>
+        <div className="header-left"></div>
+        <div className="header-center">
+          <div className="title">连接设置</div>
+        </div>
+        <div className="header-right">
+          {currentEdge && (
+            <Tooltip placement="top" title="删除连接">
+              <IconFont
+                className="icon-interactive"
+                name="icon-shanchu"
+                size={20}
+                color="#ff4a4a"
+                onClick={handleDelete}
+              />
+            </Tooltip>
+          )}
+        </div>
       </div>
       {currentEdge && (
         <>

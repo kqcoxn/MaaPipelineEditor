@@ -703,6 +703,7 @@ const AnchorElem = memo(({ currentNode }: { currentNode: AnchorNodeType }) => {
 // 工具栏
 const ToolBarElem = memo(({ nodeName }: { nodeName: string }) => {
   const prefix = useFileStore((state) => state.currentFile.config.prefix);
+
   if (prefix) nodeName = prefix + "_" + nodeName;
 
   return (
@@ -760,12 +761,37 @@ function FieldPanel() {
     [currentNode]
   );
 
+  // 删除节点
+  const handleDelete = useCallback(() => {
+    if (currentNode) {
+      const updateNodes = useFlowStore.getState().updateNodes;
+      updateNodes([{ type: "remove", id: currentNode.id }]);
+    }
+  }, [currentNode]);
+
   // 渲染
   return (
     <div className={panelClass}>
-      <ToolBarElem nodeName={currentNode?.data.label ?? ""} />
       <div className="header">
-        <div className="title">节点字段</div>
+        <div className="header-left">
+          <ToolBarElem nodeName={currentNode?.data.label ?? ""} />
+        </div>
+        <div className="header-center">
+          <div className="title">节点字段</div>
+        </div>
+        <div className="header-right">
+          {currentNode && (
+            <Tooltip placement="top" title="删除节点">
+              <IconFont
+                className="icon-interactive"
+                name="icon-shanchu"
+                size={20}
+                color="#ff4a4a"
+                onClick={handleDelete}
+              />
+            </Tooltip>
+          )}
+        </div>
       </div>
       {renderContent}
     </div>
