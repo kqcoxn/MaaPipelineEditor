@@ -1,0 +1,80 @@
+name: Release LocalBridge
+
+on:
+  push:
+    tags:
+      - 'lb-v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            goos: windows
+            goarch: amd64
+            ext: .exe
+            name: mpelb-windows-amd64.exe
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            ext: ''
+            name: mpelb-linux-amd64
+          - os: macos-latest
+            goos: darwin
+            goarch: amd64
+            ext: ''
+            name: mpelb-darwin-amd64
+          - os: macos-latest
+            goos: darwin
+            goarch: arm64
+            ext: ''
+            name: mpelb-darwin-arm64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache-dependency-path: LocalBridge/go.sum
+
+      - name: Build
+        working-directory: LocalBridge
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          go build -ldflags="-s -w" -o ../build/${{ matrix.name }} ./cmd/lb
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: build/${{ matrix.name }}
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: artifacts/*/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true

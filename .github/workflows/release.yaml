@@ -9,6 +9,54 @@ permissions:
   contents: write
 
 jobs:
+  build-localbridge:
+    name: Build LocalBridge for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            goos: windows
+            goarch: amd64
+            name: mpelb-windows-amd64.exe
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            name: mpelb-linux-amd64
+          - os: macos-latest
+            goos: darwin
+            goarch: amd64
+            name: mpelb-darwin-amd64
+          - os: macos-latest
+            goos: darwin
+            goarch: arm64
+            name: mpelb-darwin-arm64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache-dependency-path: LocalBridge/go.sum
+
+      - name: Build LocalBridge
+        working-directory: LocalBridge
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          go build -ldflags="-s -w" -o ../build/${{ matrix.name }} ./cmd/lb
+
+      - name: Upload LocalBridge artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: build/${{ matrix.name }}
+
   build-web:
     runs-on: ubuntu-latest
 
@@ -63,34 +111,8 @@ jobs:
             MaaPipelineEditor-${{ github.ref_name }}-stable.zip
             MaaPipelineEditor-${{ github.ref_name }}-docs.zip
 
-  build-client:
-    runs-on: windows-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      # - name: Setup Python
-      #   uses: actions/setup-python@v5
-      #   with:
-      #     python-version: '3.12'
-
-      # - name: Build Python Test Client
-      #   run: |
-      #     cd server
-      #     pip install -r requirements.txt
-      #     pip install pyinstaller pillow
-      #     pyinstaller --onefile --windowed --name MPETestClient --icon=../public/maafw.png --add-data "../public/maafw.png;assets" main.py
-      #     cd ..
-
-      # - name: Upload client artifact
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: python-client
-      #     path: server/dist/MPETestClient.exe
-
   release:
-    needs: [build-web, build-client]
+    needs: [build-web, build-localbridge]
     runs-on: ubuntu-latest
 
     steps:
@@ -104,10 +126,10 @@ jobs:
         with:
           name: web-packages
 
-      # - name: Download client artifact
-      #   uses: actions/download-artifact@v4
-      #   with:
-      #     name: python-client
+      - name: Download LocalBridge artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: localbridge-artifacts
 
       - name: Generate Changelog
         id: changelog
@@ -150,7 +172,7 @@ jobs:
           files: |
             MaaPipelineEditor-${{ github.ref_name }}-stable.zip
             MaaPipelineEditor-${{ github.ref_name }}-docs.zip
-          # MPETestClient.exe
+            localbridge-artifacts/*/*
           body_path: CHANGELOG.md
           generate_release_notes: false
           draft: false
