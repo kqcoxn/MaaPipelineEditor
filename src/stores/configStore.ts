@@ -3,7 +3,7 @@ import { create } from "zustand";
 /**固有配置 */
 export const globalConfig = {
   dev: true,
-  version: `0.8.6`,
+  version: `0.8.7`,
   betaIteration: 0,
   mfwVersion: "5.2",
 };

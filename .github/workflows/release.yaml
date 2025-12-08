@@ -167,7 +167,7 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v1
         with:
           files: |
             MaaPipelineEditor-${{ github.ref_name }}-stable.zip
@@ -177,5 +177,6 @@ jobs:
           generate_release_notes: false
           draft: false
           prerelease: false
+          fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
