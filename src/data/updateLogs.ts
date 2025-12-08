@@ -31,6 +31,7 @@ export const updateLogs: UpdateLogItem[] = [
     updates: {
       features: [
         "🌉 正式版 LocalBridge 已上线！现已支持极致的😎本地文件传输功能，具体请参考文档本地服务部分。",
+        "⭐ 关闭或切换面板时会自动保存视口位置，下次打开时会自动恢复",
       ],
       perfs: ["优化节点渲染性能"],
     },

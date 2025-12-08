@@ -92,9 +92,12 @@ const InstanceMonitor = memo(() => {
 // 视口监视器
 const ViewportChangeMonitor = memo(() => {
   const updateViewport = useFlowStore((state) => state.updateViewport);
+  const setFileConfig = useFileStore((state) => state.setFileConfig);
   useOnViewportChange({
     onEnd: (viewport: Viewport) => {
       updateViewport(viewport);
+      // 保存视口位置到当前文件配置
+      setFileConfig("savedViewport", { ...viewport });
     },
   });
   return null;
@@ -212,9 +215,12 @@ function MainFlow() {
     [updateEdges]
   );
   const onConnect = useCallback((co: Connection) => addEdge(co), [addEdge]);
-  const onSelectionChange = useCallback((params: OnSelectionChangeParams) => {
-    updateSelection(params.nodes as NodeType[], params.edges as EdgeType[]);
-  }, [updateSelection]);
+  const onSelectionChange = useCallback(
+    (params: OnSelectionChangeParams) => {
+      updateSelection(params.nodes as NodeType[], params.edges as EdgeType[]);
+    },
+    [updateSelection]
+  );
 
   // 双击空白区域打开节点添加面板
   const onPaneClick = useCallback(
@@ -257,7 +263,7 @@ function MainFlow() {
     (width: number, height: number) => updateSize(width, height),
     { wait: 300 }
   );
-  
+
   useEffect(() => {
     const observer = new ResizeObserver((entries) => {
       entries.forEach((e) => {

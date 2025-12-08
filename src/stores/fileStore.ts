@@ -13,6 +13,7 @@ export type FileConfigType = {
   isDeleted?: boolean;
   isModifiedExternally?: boolean;
   lastSyncTime?: number;
+  savedViewport?: { x: number; y: number; zoom: number };
 };
 type FileType = {
   fileName: string;
@@ -176,14 +177,35 @@ export const useFileStore = create<FileState>()((set) => ({
       const targetFile = findFile(fileName);
       if (!targetFile) return {};
       activeKey = targetFile.fileName;
-      // 保存当前flow
+      // 保存当前flow和视口位置
       saveFlow();
+      const flowStore = useFlowStore.getState();
+      // 保存当前文件的视口位置到files数组中
+      const currentViewport = flowStore.viewport;
+      const currentFileIndex = findFileIndex(currentFile.fileName);
+      if (currentFileIndex >= 0) {
+        state.files[currentFileIndex].config.savedViewport = {
+          ...currentViewport,
+        };
+      }
       // 更新flow
-      useFlowStore
-        .getState()
-        .replace(targetFile.nodes, targetFile.edges, { skipSave: true });
+      flowStore.replace(targetFile.nodes, targetFile.edges, {
+        skipSave: true,
+        isFitView: false,
+      });
       // 初始化历史记录
-      useFlowStore.getState().initHistory(targetFile.nodes, targetFile.edges);
+      flowStore.initHistory(targetFile.nodes, targetFile.edges);
+      // 恢复目标文件的视口位置
+      if (targetFile.config.savedViewport) {
+        setTimeout(() => {
+          const instance = flowStore.instance;
+          if (instance) {
+            instance.setViewport(targetFile.config.savedViewport!, {
+              duration: 300,
+            });
+          }
+        }, 50);
+      }
       return { currentFile: targetFile };
     });
     return activeKey;
@@ -300,6 +322,7 @@ export const useFileStore = create<FileState>()((set) => ({
         currentFile.edges.length === 0 &&
         !currentFile.config.filePath
       ) {
+        const savedViewport = currentFile.config.savedViewport;
         await pipelineToFlow({ pString: contentString });
         set((state) => {
           const config = {
@@ -310,6 +333,15 @@ export const useFileStore = create<FileState>()((set) => ({
           state.currentFile.config = config;
           return {};
         });
+        // 恢复视口
+        if (savedViewport) {
+          setTimeout(() => {
+            const instance = useFlowStore.getState().instance;
+            if (instance) {
+              instance.setViewport(savedViewport, { duration: 300 });
+            }
+          }, 50);
+        }
         return true;
       }
 
