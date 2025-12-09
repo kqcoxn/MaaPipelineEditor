@@ -1,6 +1,7 @@
-import { Modal, Timeline, Typography, Tag, Divider } from "antd";
+import { Modal, Timeline, Typography, Tag, Divider, Alert } from "antd";
 import { ClockCircleOutlined } from "@ant-design/icons";
-import { updateLogs } from "../../data/updateLogs";
+import { updateLogs, pinnedNotice } from "../../data/updateLogs";
+import React from "react";
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -10,6 +11,48 @@ interface UpdateLogProps {
 }
 
 const UpdateLog = ({ open, onClose }: UpdateLogProps) => {
+  // 将 Markdown 链接格式转换为 React 元素
+  const parseMarkdownLinks = (text: string) => {
+    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    const parts: (string | React.ReactElement)[] = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = linkRegex.exec(text)) !== null) {
+      // 添加链接前的文本
+      if (match.index > lastIndex) {
+        parts.push(text.substring(lastIndex, match.index));
+      }
+
+      // 添加链接元素
+      const linkText = match[1];
+      const linkUrl = match[2];
+      parts.push(
+        <a
+          key={match.index}
+          href={linkUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            color: "#1890ff",
+            textDecoration: "underline",
+          }}
+        >
+          {linkText}
+        </a>
+      );
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    // 添加剩余文本
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+
+    return parts.length > 0 ? parts : text;
+  };
+
   const getTypeColor = (type: string) => {
     switch (type) {
       case "major":
@@ -82,7 +125,7 @@ const UpdateLog = ({ open, onClose }: UpdateLogProps) => {
               >
                 •
               </span>
-              {item}
+              {parseMarkdownLinks(item)}
             </Paragraph>
           ))}
         </div>
@@ -110,6 +153,44 @@ const UpdateLog = ({ open, onClose }: UpdateLogProps) => {
         },
       }}
     >
+      {/* 置顶公告部分 */}
+      {pinnedNotice.content && pinnedNotice.content.length > 0 && (
+        <>
+          <Alert
+            message={pinnedNotice.title || "置顶公告"}
+            description={
+              <div>
+                {pinnedNotice.content.map((item, idx) => (
+                  <Paragraph
+                    key={idx}
+                    style={{
+                      margin: "6px 0",
+                      paddingLeft: 16,
+                      position: "relative",
+                      fontSize: 14,
+                    }}
+                  >
+                    <span
+                      style={{
+                        position: "absolute",
+                        left: 0,
+                        color: "#8c8c8c",
+                      }}
+                    >
+                      •
+                    </span>
+                    {parseMarkdownLinks(item)}
+                  </Paragraph>
+                ))}
+              </div>
+            }
+            type={pinnedNotice.type || "info"}
+            showIcon
+            style={{ marginBottom: 24 }}
+          />
+        </>
+      )}
+
       <Timeline
         items={updateLogs.map((log, index) => ({
           color: getTypeColor(log.type),

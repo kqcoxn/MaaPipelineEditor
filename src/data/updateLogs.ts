@@ -1,4 +1,13 @@
 /**
+ * 置顶公告内容
+ */
+export interface PinnedNotice {
+  title?: string; // 公告标题
+  content: string[]; // 公告内容列表
+  type?: "info" | "warning" | "success"; // 公告类型
+}
+
+/**
  * 更新内容分类
  */
 export interface UpdateCategory {
@@ -23,18 +32,32 @@ export interface UpdateLogItem {
   updates: UpdateCategory;
 }
 
+/**
+ * 置顶公告内容配置
+ * 此部分内容将始终显示在更新日志顶部
+ */
+export const pinnedNotice: PinnedNotice = {
+  title: "置顶公告",
+  type: "info",
+  content: [
+    "正式版 LocalBridge 🌉已上线！我们十分推荐您尝试，详情可查阅 [本地服务文档](https://mpe.codax.site/docs/guide/start/local-server.html)",
+  ],
+};
+
 export const updateLogs: UpdateLogItem[] = [
   {
-    version: "0.8.8",
-    date: "2025-12-8",
-    type: "feature",
+    version: "0.9.0",
+    date: "2025-12-10",
+    type: "major",
     updates: {
       features: [
         "🌉 正式版 LocalBridge 已上线！现已支持极致的😎本地文件传输功能，具体请参考文档本地服务部分。",
-        "🗺️ 关闭或切换面板时会自动保存视口位置，下次打开时会自动恢复",
         "🖱️ 为字段面板与连接面板添加了删除节点与连接按键",
       ],
-      perfs: ["优化节点渲染性能"],
+      perfs: [
+        "🗺️ 关闭或切换面板时会自动保存视口位置，下次打开时会自动恢复",
+        "👍优化节点渲染性能",
+      ],
     },
   },
   {
