@@ -16,6 +16,9 @@ if (globalConfig.dev) {
 // 节点风格类型
 export type NodeStyleType = "modern" | "classic";
 
+// 节点属性导出形式
+export type NodeAttrExportStyle = "object" | "prefix";
+
 /**配置 */
 type ConfigState = {
   // 设置
@@ -27,6 +30,7 @@ type ConfigState = {
     useDarkMode: boolean;
     historyLimit: number;
     nodeStyle: NodeStyleType;
+    nodeAttrExportStyle: NodeAttrExportStyle;
     wsPort: number;
     wsAutoConnect: boolean;
     // AI 配置
@@ -62,6 +66,7 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     useDarkMode: false,
     historyLimit: 100,
     nodeStyle: "modern" as NodeStyleType,
+    nodeAttrExportStyle: "object" as NodeAttrExportStyle,
     wsPort: 9066,
     wsAutoConnect: false,
     // AI 配置

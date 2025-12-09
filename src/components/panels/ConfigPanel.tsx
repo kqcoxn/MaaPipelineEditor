@@ -40,6 +40,9 @@ function ConfigPanel() {
   );
   const historyLimit = useConfigStore((state) => state.configs.historyLimit);
   const nodeStyle = useConfigStore((state) => state.configs.nodeStyle);
+  const nodeAttrExportStyle = useConfigStore(
+    (state) => state.configs.nodeAttrExportStyle
+  );
   const wsPort = useConfigStore((state) => state.configs.wsPort);
   const wsAutoConnect = useConfigStore((state) => state.configs.wsAutoConnect);
   const aiApiUrl = useConfigStore((state) => state.configs.aiApiUrl);
@@ -86,7 +89,7 @@ function ConfigPanel() {
         </div>
       </div>
       <div className={style.list}>
-        <div className={style.divider}>————— Pipeline 配置 —————</div>
+        <div className={style.divider}>—————— 文件配置 ——————</div>
         {/* 节点前缀 */}
         <div className={style.item}>
           <div className={style.key}>
@@ -138,6 +141,36 @@ function ConfigPanel() {
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               setFileConfig("filePath", e.target.value);
             }}
+          />
+        </div>
+        <div className={style.divider}>————— Pipeline 配置 —————</div>
+
+        {/* 节点属性导出形式 */}
+        <div className={globalClass}>
+          <div className={style.key}>
+            <Popover
+              placement="bottomLeft"
+              title={"节点属性导出形式"}
+              content={
+                <TipElem
+                  content={
+                    "对象形式：{ name: 'C', anchor: true, jump_back: true }\n前缀形式：'[Anchor][JumpBack]C'"
+                  }
+                />
+              }
+            >
+              <span>节点属性导出形式</span>
+            </Popover>
+          </div>
+          <Select
+            className={style.value}
+            style={{ width: 90 }}
+            value={nodeAttrExportStyle}
+            onChange={(value) => setConfig("nodeAttrExportStyle", value)}
+            options={[
+              { value: "object", label: "对象形式" },
+              { value: "prefix", label: "前缀形式" },
+            ]}
           />
         </div>
         <div className={style.divider}>—————— 面板配置 ——————</div>

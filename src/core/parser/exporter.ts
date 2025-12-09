@@ -83,24 +83,26 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
 
       // 构建目标节点引用
       let toPNodeRef: string | NodeAttr;
+      const nodeName = pTargetNode ? prefix + targetKey : targetKey;
 
       if (isAnchor || hasJumpBack) {
-        // 使用对象形式
-        const nodeAttr: NodeAttr = {
-          name: pTargetNode ? prefix + targetKey : targetKey,
-        };
-        // [Anchor] 节点或明确标记为 anchor
-        if (isAnchor) {
-          nodeAttr.anchor = true;
+        // 导出形式
+        if (generalConfig.nodeAttrExportStyle === "prefix") {
+          // 使用前缀形式
+          let prefixStr = "";
+          if (isAnchor) prefixStr += "[Anchor]";
+          if (hasJumpBack) prefixStr += "[JumpBack]";
+          toPNodeRef = prefixStr + nodeName;
+        } else {
+          // 使用对象形式
+          const nodeAttr: NodeAttr = { name: nodeName };
+          if (isAnchor) nodeAttr.anchor = true;
+          if (hasJumpBack) nodeAttr.jump_back = true;
+          toPNodeRef = nodeAttr;
         }
-        // jump_back 属性
-        if (hasJumpBack) {
-          nodeAttr.jump_back = true;
-        }
-        toPNodeRef = nodeAttr;
       } else {
         // 使用简单字符串形式
-        toPNodeRef = pTargetNode ? prefix + targetKey : targetKey;
+        toPNodeRef = nodeName;
       }
 
       // 添加链接

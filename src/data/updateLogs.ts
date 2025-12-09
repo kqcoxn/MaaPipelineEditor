@@ -40,7 +40,7 @@ export const pinnedNotice: PinnedNotice = {
   title: "置顶公告",
   type: "info",
   content: [
-    "正式版 LocalBridge 🌉已上线！我们十分推荐您尝试，详情可查阅 [本地服务文档](https://mpe.codax.site/docs/guide/start/local-server.html)",
+    "正式版 LocalBridge🌉 已上线！我们十分推荐您尝试，详情可查阅 [本地服务文档](https://mpe.codax.site/docs/guide/start/local-server.html)",
   ],
 };
 
@@ -51,7 +51,7 @@ export const updateLogs: UpdateLogItem[] = [
     type: "major",
     updates: {
       features: [
-        "🌉 正式版 LocalBridge 已上线！现已支持极致的😎本地文件传输功能，具体请参考文档本地服务部分。",
+        "🌉 正式版 LocalBridge 已上线！现已支持极致的😎本地文件传输功能，具体请参考[文档本地服务部分](https://mpe.codax.site/docs/guide/start/local-server.html)。",
         "🖱️ 为字段面板与连接面板添加了删除节点与连接按键",
       ],
       perfs: [
