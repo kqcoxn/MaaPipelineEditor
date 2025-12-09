@@ -9,7 +9,9 @@ import (
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/config"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/eventbus"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/mfw"
 	fileProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/file"
+	mfwProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/mfw"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/router"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/server"
 	fileService "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/service/file"
@@ -85,6 +87,15 @@ func runServer(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
+	// 创建 MFW 服务
+	mfwSvc := mfw.NewService()
+	// 初始化 MFW 服务
+	if err := mfwSvc.Initialize(); err != nil {
+		logger.Warn("Main", "MFW 服务初始化失败: %v (将继续启动但MFW功能可能不可用)", err)
+	} else {
+		logger.Info("Main", "MFW 服务初始化成功")
+	}
+
 	// 启动文件服务
 	if err := fileSvc.Start(); err != nil {
 		logger.Error("Main", "启动文件服务失败: %v", err)
@@ -100,6 +111,10 @@ func runServer(cmd *cobra.Command, args []string) {
 	// 注册协议处理器
 	fileHandler := fileProtocol.NewHandler(fileSvc, eventBus, wsServer, cfg.File.Root)
 	rt.RegisterHandler(fileHandler)
+
+	// 注册 MFW 协议处理器
+	mfwHandler := mfwProtocol.NewMFWHandler(mfwSvc)
+	rt.RegisterHandler(mfwHandler)
 
 	// 设置消息处理器
 	wsServer.SetMessageHandler(rt.Route)
@@ -122,6 +137,11 @@ func runServer(cmd *cobra.Command, args []string) {
 
 	wsServer.Stop()
 	fileSvc.Stop()
+	
+	// 关闭 MFW 服务
+	if err := mfwSvc.Shutdown(); err != nil {
+		logger.Error("Main", "MFW 服务关闭失败: %v", err)
+	}
 
 	logger.Info("Main", "Local Bridge 已退出")
 }
