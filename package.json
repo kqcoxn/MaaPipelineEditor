@@ -6,6 +6,7 @@
   "scripts": {
     "icon": "npx iconfont-h5",
     "dev": "vite",
+    "server": "cd LocalBridge && yarn server",
     "build": "vite build",
     "build-past": "vite build --mode mfw_5_0",
     "lint": "eslint .",

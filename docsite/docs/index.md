@@ -5,7 +5,7 @@ tk:
   teekHome: false
 
 hero:
-  name: MaaPipelineEditor
+  name: MaaPipelineExtremer
   text: '"连接你的想法"'
   tagline: ✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器
   actions:
@@ -19,8 +19,8 @@ hero:
       text: 迁移指南
       link: /guide/migrate/old
     - theme: alt
-      text: 最佳实践
-      link: /practices/intro
+      text: 本地服务
+      link: /guide/start/local-server
   image:
     src: /logo.png
     alt: logo
@@ -35,9 +35,9 @@ features:
   - icon: 🌐
     title: 开箱即用
     details: 无需本地编译部署或下载安装，使用浏览器打开网站即可使用！
-  - icon: 📖
-    title: 配套文档
-    details: 足量的使用说明，文图并茂，立即阅读以开启您的 MPE 开发之旅！
+  - icon: ⭐
+    title: 本地服务
+    details: 可增量的本地功能服务，使用一行命令为 MPE 添加文件快捷管理等实用功能！
 ---
 
 <script setup lang="ts">
