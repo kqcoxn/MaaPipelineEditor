@@ -8,14 +8,16 @@
 - [LocalBridge/pkg/models/message.go](file://LocalBridge/pkg/models/message.go)
 - [src/services/protocols/FileProtocol.ts](file://src/services/protocols/FileProtocol.ts)
 - [docsite/docs/01.指南/10.其他/10.通信协议.md](file://docsite/docs/01.指南/10.其他/10.通信协议.md)
+- [LocalBridge/internal/server/websocket.go](file://LocalBridge/internal/server/websocket.go)
 </cite>
 
 ## 更新摘要
 **变更内容**
-- 新增了对 `/etl/create_file` 和 `/etl/refresh_file_list` 文件操作协议的详细说明。
-- 更新了“文件服务”和“协议处理器”章节，以反映新增的文件创建和文件列表刷新功能。
-- 扩展了“消息与数据模型”章节，增加了 `CreateFileRequest` 数据结构的说明。
-- 更新了“前端实现要点”以包含文件创建请求的处理逻辑。
+- 新增了对 WebSocket 握手协议的详细说明，包括 `/system/handshake` 和 `/system/handshake/response` 路由。
+- 在“通用协议”章节中增加了“版本兼容性检查”小节，描述握手流程和协议版本验证机制。
+- 更新了“架构总览”序列图，体现握手阶段的消息交互。
+- 扩展了“消息与数据模型”章节，增加握手请求与响应的数据结构定义。
+- 在“前端实现要点”中补充了前端发起握手请求的逻辑说明。
 
 ## 目录
 1. [简介](#简介)
@@ -30,7 +32,7 @@
 10. [附录](#附录)
 
 ## 简介
-本文档系统性梳理 LocalBridge（简称 LB）通信协议，覆盖连接管理、消息规范、文件协议、日志协议、事件总线、配置系统、CLI 应用以及前端 WebSocket 服务端实现。文档结合仓库内的协议说明、开发文档与前端实现，帮助开发者理解并正确集成本地服务与前端编辑器之间的双向通信。本次更新重点新增了文件创建协议和文件列表刷新协议的详细说明，并完善了文件状态管理功能的描述。
+本文档系统性梳理 LocalBridge（简称 LB）通信协议，覆盖连接管理、消息规范、文件协议、日志协议、事件总线、配置系统、CLI 应用以及前端 WebSocket 服务端实现。文档结合仓库内的协议说明、开发文档与前端实现，帮助开发者理解并正确集成本地服务与前端编辑器之间的双向通信。本次更新重点新增了文件创建协议和文件列表刷新协议的详细说明，并完善了文件状态管理功能的描述。**本次更新新增了 WebSocket 握手协议，用于在连接建立初期进行前后端协议版本兼容性检查，确保通信协议的一致性。**
 
 **Section sources**
 - [LocalBridge/Agreement.md](file://LocalBridge/Agreement.md#L1-L300)
@@ -137,6 +139,7 @@ SERVER --> DOC
   - 基于 gorilla/websocket 实现，管理连接、消息收发。
   - 与路由分发器集成，将收到的消息分发给对应的协议处理器。
   - 支持广播和单播消息发送。
+  - **新增版本握手功能**: 在连接建立后，通过 `/system/handshake` 和 `/system/handshake/response` 路由进行协议版本协商，确保前后端通信协议兼容。
 
 **Section sources**
 - [LocalBridge/cmd/lb/main.go](file://LocalBridge/cmd/lb/main.go#L1-L128)
@@ -147,7 +150,7 @@ SERVER --> DOC
 - [LocalBridge/DEVELOPMENT.md](file://LocalBridge/DEVELOPMENT.md#L1-L178)
 
 ## 架构总览
-LocalBridge 通信架构以 WebSocket 为基础，采用分层设计，各模块通过事件总线解耦。CLI 应用作为入口，协调配置、日志、事件总线、文件服务和 WebSocket 服务器的初始化。文件服务负责文件的扫描、监听和操作，并通过事件总线通知 WebSocket 服务器推送文件列表或变更通知。前端通过 WebSocket 与本地服务进行双向通信。
+LocalBridge 通信架构以 WebSocket 为基础，采用分层设计，各模块通过事件总线解耦。CLI 应用作为入口，协调配置、日志、事件总线、文件服务和 WebSocket 服务器的初始化。文件服务负责文件的扫描、监听和操作，并通过事件总线通知 WebSocket 服务器推送文件列表或变更通知。前端通过 WebSocket 与本地服务进行双向通信。**在连接建立后，会立即进行版本握手，验证协议兼容性。**
 
 ```mermaid
 sequenceDiagram
@@ -167,6 +170,10 @@ FILE->>EVENT : Subscribe(EventFileScanCompleted)
 FILE->>EVENT : PublishAsync(EventFileScanCompleted)
 CLI->>WS : NewWebSocketServer(..., eventBus)
 WS->>EVENT : Subscribe(EventFileScanCompleted)
+MPE->>WS : 发起连接
+WS-->>MPE : 连接建立
+MPE->>WS : 发送 /system/handshake
+WS-->>MPE : 返回 /system/handshake/response
 EVENT-->>WS : 通知扫描完成
 WS->>MPE : 推送 /lte/file_list
 MPE->>WS : 发送 /etl/open_file
@@ -342,6 +349,8 @@ E --> F["文件变更时\n广播 /lte/file_changed"]
   - **CreateFileRequest**: 新增的创建文件请求，包含 `file_name` (文件名), `directory` (目录绝对路径), `content` (可选的初始内容)。
   - **SaveFileAckData**: 保存文件确认，包含 `file_path` 和 `status` ("ok")。
   - **LogData**: 日志数据，包含 `level`, `module`, `message`, `timestamp`。
+  - **HandshakeRequest**: 握手请求，包含 `client_version` (客户端协议版本)。
+  - **HandshakeResponseData**: 握手响应，包含 `server_version` (服务端协议版本), `compatible` (布尔值，表示版本是否兼容), `message` (可选的描述信息)。
 - **文件内部模型**
   - **File**: 本地文件模型，包含 `AbsPath`, `RelPath`, `Name`, `LastModified`。
   - **ToFileInfo()**: `File` 结构体的方法，用于将其转换为对外的 `FileInfo` 结构。
@@ -357,8 +366,9 @@ E --> F["文件变更时\n广播 /lte/file_changed"]
 - **实际实现**
   - 前端请求封装使用的是 `/etc/send_pipeline`，响应路由处理的是 `/cte/send_pipeline`。
   - 两者与协议中的 `/etl/*`、`/lte/*` 命名不一致，但语义一致（编辑器→本地服务 vs 本地服务→编辑器）。
-  - 新增的日志推送功能通过事件总线和 `PushHook` 实现，当 `push_to_client` 启用时，日志会以特定格式推送到前端。
+  - 新增的日志推送功能通过事件总线和 `PushHook` 实现，当 `push_to_client` 为启用时，日志会以特定格式推送到前端。
   - **新增协议实现**: `/etl/create_file` 和 `/etl/refresh_file_list` 已在 `file_handler.go` 中实现，并在 `Agreement.md` 中明确定义。
+  - **新增握手协议**: 在 `websocket.go` 中定义了 `ProtocolVersion` 常量和 `/system/handshake` 路由，用于在连接建立后进行版本兼容性检查。
 
 **Section sources**
 - [LocalBridge/README/Agreement.md](file://LocalBridge/README/Agreement.md#L36-L191)
@@ -366,6 +376,7 @@ E --> F["文件变更时\n广播 /lte/file_changed"]
 - [src/services/requests.ts](file://src/services/requests.ts#L1-L46)
 - [src/services/responds.ts](file://src/services/responds.ts#L1-L69)
 - [LocalBridge/internal/logger/logger.go](file://LocalBridge/internal/logger/logger.go#L59-L98)
+- [LocalBridge/internal/server/websocket.go](file://LocalBridge/internal/server/websocket.go#L15-L22)
 
 ## 依赖关系分析
 - **入口初始化**
@@ -460,6 +471,11 @@ LocalBridge 通信协议以 WebSocket 为基础，通过明确的消息格式与
     - `/etl/refresh_file_list`: 请求刷新并重新推送文件列表。
 - **日志协议**
   - CLI 日志格式与 `/lte/log` 推送消息格式（当 `push_to_client` 启用时）。
+- **版本兼容性检查**
+  - **握手流程**: 连接建立后，前端立即发送 `/system/handshake` 消息，服务端根据 `ProtocolVersion` 常量返回 `/system/handshake/response` 消息，包含兼容性判断结果。
+  - **路由**:
+    - `/system/handshake` (MPE→LB): 客户端发起握手，携带 `client_version`。
+    - `/system/handshake/response` (LB→MPE): 服务端返回握手结果，包含 `server_version`, `compatible`, `message`。
 
 **Section sources**
 - [LocalBridge/README/Agreement.md](file://LocalBridge/README/Agreement.md#L7-L21)
@@ -468,6 +484,7 @@ LocalBridge 通信协议以 WebSocket 为基础，通过明确的消息格式与
 - [LocalBridge/README/Agreement.md](file://LocalBridge/README/Agreement.md#L134-L176)
 - [LocalBridge/README/Agreement.md](file://LocalBridge/README/Agreement.md#L250-L289)
 - [LocalBridge/internal/logger/logger.go](file://LocalBridge/internal/logger/logger.go#L59-L98)
+- [LocalBridge/internal/server/websocket.go](file://LocalBridge/internal/server/websocket.go#L15-L22)
 
 ### 前端实现要点
 - **初始化**
@@ -479,6 +496,8 @@ LocalBridge 通信协议以 WebSocket 为基础，通过明确的消息格式与
 - **文件状态**
   - 使用 useFileStore 维护文件标签页、路径配置与切换逻辑。
   - **新增文件创建请求**: 通过 `FileProtocol.requestCreateFile()` 方法发送 `/etl/create_file` 请求，包含文件名、目录和可选内容。
+- **版本握手**
+  - **新增握手逻辑**: 在 WebSocket 连接建立后，前端 `FileProtocol` 会立即发送 `/system/handshake` 消息，携带客户端协议版本，等待服务端的兼容性响应。
 
 **Section sources**
 - [src/main.tsx](file://src/main.tsx#L1-L23)
@@ -486,3 +505,4 @@ LocalBridge 通信协议以 WebSocket 为基础，通过明确的消息格式与
 - [src/services/responds.ts](file://src/services/responds.ts#L1-L69)
 - [src/stores/fileStore.ts](file://src/stores/fileStore.ts#L147-L217)
 - [src/services/protocols/FileProtocol.ts](file://src/services/protocols/FileProtocol.ts#L218-L233)
+- [LocalBridge/internal/server/websocket.go](file://LocalBridge/internal/server/websocket.go#L15-L22)

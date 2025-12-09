@@ -242,9 +242,511 @@ lb 应监听根目录下文件的变化：
 }
 ```
 
-## MaaFrameowrk 协议
+## MaaFramework 协议
 
-// TODO（现在不用管）
+MaaFramework 协议（简称 MFW 协议）用于支持 MaaMpeGoDebugger 调试器与参数传输，提供 MaaFramework 底层能力的 WebSocket 接口封装。该协议基于 maa-framework-go API 实现，支持设备连接、控制器管理、截图传输等核心功能。
+
+### 功能概述
+
+MFW 协议主要提供以下能力：
+
+1. **设备列表维护**
+
+   - ADB 设备列表的发现与维护
+   - Win32 窗体列表的发现与维护
+   - 设备状态实时同步
+
+2. **连接参数传输**
+
+   - ADB 连接参数配置（路径、地址、截图/输入方法等）
+   - Win32 连接参数配置（窗口句柄、截图/输入方法等）
+   - 自定义控制器参数传输
+
+3. **截图与图像传输**
+
+   - 实时截图获取
+   - 图像数据编码与传输
+   - 缓存图像的复用机制
+
+4. **控制器操作**
+
+   - 点击、滑动、输入等基础操作
+   - 应用启动/停止控制
+   - 触摸与按键事件模拟
+
+5. **任务执行与调试**
+   - 任务提交与状态查询
+   - 任务详情获取
+   - 执行日志与事件回调
+
+### 设备发现与管理
+
+#### ADB 设备列表
+
+**`/lte/mfw/adb_devices`** - 推送 ADB 设备列表
+
+```json
+{
+  "path": "/lte/mfw/adb_devices",
+  "data": {
+    "devices": [
+      {
+        "adb_path": "/path/to/adb",
+        "address": "127.0.0.1:5555",
+        "name": "device_name",
+        "screencap_methods": ["Encode", "RawByNetcat", "MinicapDirect"],
+        "input_methods": ["Maatouch", "AdbShell"],
+        "config": "{}"
+      }
+    ]
+  }
+}
+```
+
+**`/etl/mfw/refresh_adb_devices`** - 请求刷新 ADB 设备列表
+
+```json
+{
+  "path": "/etl/mfw/refresh_adb_devices",
+  "data": {}
+}
+```
+
+#### Win32 窗体列表
+
+**`/lte/mfw/win32_windows`** - 推送 Win32 窗体列表
+
+```json
+{
+  "path": "/lte/mfw/win32_windows",
+  "data": {
+    "windows": [
+      {
+        "hwnd": "0x12345678",
+        "class_name": "WindowClass",
+        "window_name": "Window Title",
+        "screencap_methods": ["DXGI_DesktopDup", "GDI", "FramePool"],
+        "input_methods": ["Seize", "SendMessage", "PostMessage"]
+      }
+    ]
+  }
+}
+```
+
+**`/etl/mfw/refresh_win32_windows`** - 请求刷新 Win32 窗体列表
+
+```json
+{
+  "path": "/etl/mfw/refresh_win32_windows",
+  "data": {}
+}
+```
+
+### 控制器连接管理
+
+#### 创建 ADB 控制器
+
+**`/etl/mfw/create_adb_controller`** - 创建并连接 ADB 控制器
+
+```json
+{
+  "path": "/etl/mfw/create_adb_controller",
+  "data": {
+    "adb_path": "/path/to/adb",
+    "address": "127.0.0.1:5555",
+    "screencap_method": ["Encode", "RawByNetcat"],
+    "input_method": ["Maatouch", "AdbShell"],
+    "config": "{}",
+    "agent_path": "/path/to/MaaAgentBinary"
+  }
+}
+```
+
+**`/lte/mfw/controller_created`** - 控制器创建结果
+
+```json
+{
+  "path": "/lte/mfw/controller_created",
+  "data": {
+    "success": true,
+    "controller_id": "ctrl_uuid_123",
+    "uuid": "device_uuid",
+    "error": null
+  }
+}
+```
+
+#### 创建 Win32 控制器
+
+**`/etl/mfw/create_win32_controller`** - 创建并连接 Win32 控制器
+
+```json
+{
+  "path": "/etl/mfw/create_win32_controller",
+  "data": {
+    "hwnd": "0x12345678",
+    "screencap_method": "DXGI_DesktopDup",
+    "input_method": "Seize"
+  }
+}
+```
+
+#### 控制器连接状态
+
+**`/lte/mfw/controller_status`** - 推送控制器状态
+
+```json
+{
+  "path": "/lte/mfw/controller_status",
+  "data": {
+    "controller_id": "ctrl_uuid_123",
+    "connected": true,
+    "uuid": "device_uuid"
+  }
+}
+```
+
+**`/etl/mfw/disconnect_controller`** - 断开控制器连接
+
+```json
+{
+  "path": "/etl/mfw/disconnect_controller",
+  "data": {
+    "controller_id": "ctrl_uuid_123"
+  }
+}
+```
+
+### 截图与图像传输
+
+#### 请求截图
+
+**`/etl/mfw/request_screencap`** - 请求设备截图
+
+```json
+{
+  "path": "/etl/mfw/request_screencap",
+  "data": {
+    "controller_id": "ctrl_uuid_123",
+    "use_cache": false,
+    "target_long_side": 1280,
+    "target_short_side": 720,
+    "use_raw_size": false
+  }
+}
+```
+
+**`/lte/mfw/screencap_result`** - 返回截图数据
+
+```json
+{
+  "path": "/lte/mfw/screencap_result",
+  "data": {
+    "controller_id": "ctrl_uuid_123",
+    "success": true,
+    "image_data": "base64_encoded_png_data",
+    "width": 1920,
+    "height": 1080,
+    "timestamp": "2025-12-09T19:23:09Z",
+    "error": null
+  }
+}
+```
+
+### 控制器操作
+
+#### 点击操作
+
+**`/etl/mfw/controller_click`** - 发送点击指令
+
+```json
+{
+  "path": "/etl/mfw/controller_click",
+  "data": {
+    "controller_id": "ctrl_uuid_123",
+    "x": 100,
+    "y": 200
+  }
+}
+```
+
+#### 滑动操作
+
+**`/etl/mfw/controller_swipe`** - 发送滑动指令
+
+```json
+{
+  "path": "/etl/mfw/controller_swipe",
+  "data": {
+    "controller_id": "ctrl_uuid_123",
+    "x1": 100,
+    "y1": 200,
+    "x2": 300,
+    "y2": 400,
+    "duration": 500
+  }
+}
+```
+
+#### 输入文本
+
+**`/etl/mfw/controller_input_text`** - 发送文本输入指令
+
+```json
+{
+  "path": "/etl/mfw/controller_input_text",
+  "data": {
+    "controller_id": "ctrl_uuid_123",
+    "text": "Hello World"
+  }
+}
+```
+
+#### 应用控制
+
+**`/etl/mfw/controller_start_app`** - 启动应用
+
+```json
+{
+  "path": "/etl/mfw/controller_start_app",
+  "data": {
+    "controller_id": "ctrl_uuid_123",
+    "intent": "com.example.app/.MainActivity"
+  }
+}
+```
+
+**`/etl/mfw/controller_stop_app`** - 停止应用
+
+```json
+{
+  "path": "/etl/mfw/controller_stop_app",
+  "data": {
+    "controller_id": "ctrl_uuid_123",
+    "intent": "com.example.app"
+  }
+}
+```
+
+#### 操作结果通知
+
+**`/lte/mfw/controller_operation_result`** - 控制器操作结果
+
+```json
+{
+  "path": "/lte/mfw/controller_operation_result",
+  "data": {
+    "controller_id": "ctrl_uuid_123",
+    "operation": "click" | "swipe" | "input_text" | "start_app" | "stop_app",
+    "job_id": 123456,
+    "success": true,
+    "status": "Success" | "Failure" | "Pending" | "Running",
+    "error": null
+  }
+}
+```
+
+### 任务管理
+
+#### 任务提交
+
+**`/etl/mfw/submit_task`** - 提交 MaaFramework 任务
+
+```json
+{
+  "path": "/etl/mfw/submit_task",
+  "data": {
+    "controller_id": "ctrl_uuid_123",
+    "resource_path": "/path/to/resource",
+    "entry": "Startup",
+    "override": {
+      /* 可选的覆盖参数 */
+    }
+  }
+}
+```
+
+**`/lte/mfw/task_submitted`** - 任务提交结果
+
+```json
+{
+  "path": "/lte/mfw/task_submitted",
+  "data": {
+    "success": true,
+    "task_id": 789012,
+    "error": null
+  }
+}
+```
+
+#### 任务状态查询
+
+**`/etl/mfw/query_task_status`** - 查询任务状态
+
+```json
+{
+  "path": "/etl/mfw/query_task_status",
+  "data": {
+    "task_id": 789012
+  }
+}
+```
+
+**`/lte/mfw/task_status`** - 任务状态更新
+
+```json
+{
+  "path": "/lte/mfw/task_status",
+  "data": {
+    "task_id": 789012,
+    "status": "Success" | "Failure" | "Pending" | "Running",
+    "detail": {
+      /* 任务详情对象，包含执行信息 */
+    }
+  }
+}
+```
+
+#### 任务停止
+
+**`/etl/mfw/stop_task`** - 停止正在执行的任务
+
+```json
+{
+  "path": "/etl/mfw/stop_task",
+  "data": {
+    "task_id": 789012
+  }
+}
+```
+
+### 事件回调
+
+#### 控制器事件
+
+**`/lte/mfw/controller_event`** - 控制器事件通知
+
+```json
+{
+  "path": "/lte/mfw/controller_event",
+  "data": {
+    "controller_id": "ctrl_uuid_123",
+    "event_type": "ResourceLoading" | "ControllerAction" | "TaskerTask" | "NodeRecognition" | "NodeAction",
+    "message": "事件消息内容",
+    "detail": {
+      /* 事件详细数据 */
+    },
+    "timestamp": "2025-12-09T19:23:09Z"
+  }
+}
+```
+
+#### 任务执行事件
+
+**`/lte/mfw/task_event`** - 任务执行事件通知
+
+```json
+{
+  "path": "/lte/mfw/task_event",
+  "data": {
+    "task_id": 789012,
+    "event_type": "TaskNextList" | "TaskRecognition" | "TaskAction" | "NodePipelineNode",
+    "message": "事件消息内容",
+    "detail": {
+      /* 事件详细数据 */
+    },
+    "timestamp": "2025-12-09T19:23:09Z"
+  }
+}
+```
+
+### 资源管理
+
+#### 资源加载
+
+**`/etl/mfw/load_resource`** - 加载资源包
+
+```json
+{
+  "path": "/etl/mfw/load_resource",
+  "data": {
+    "resource_path": "/path/to/resource"
+  }
+}
+```
+
+**`/lte/mfw/resource_loaded`** - 资源加载结果
+
+```json
+{
+  "path": "/lte/mfw/resource_loaded",
+  "data": {
+    "success": true,
+    "resource_id": "res_uuid_456",
+    "hash": "resource_hash_value",
+    "error": null
+  }
+}
+```
+
+#### 自定义识别/动作注册
+
+**`/etl/mfw/register_custom_recognition`** - 注册自定义识别
+
+```json
+{
+  "path": "/etl/mfw/register_custom_recognition",
+  "data": {
+    "resource_id": "res_uuid_456",
+    "name": "MyCustomRecognition"
+  }
+}
+```
+
+**`/etl/mfw/register_custom_action`** - 注册自定义动作
+
+```json
+{
+  "path": "/etl/mfw/register_custom_action",
+  "data": {
+    "resource_id": "res_uuid_456",
+    "name": "MyCustomAction"
+  }
+}
+```
+
+### 错误处理
+
+MFW 协议相关错误使用统一的错误消息格式：
+
+```json
+{
+  "path": "/error",
+  "data": {
+    "code": "MFW_ERROR_CODE",
+    "message": "错误描述",
+    "detail": {
+      "controller_id": "ctrl_uuid_123",
+      "operation": "create_controller"
+    }
+  }
+}
+```
+
+MFW 错误码：
+
+| 错误码                       | 说明                  |
+| ---------------------------- | --------------------- |
+| `MFW_CONTROLLER_CREATE_FAIL` | 控制器创建失败        |
+| `MFW_CONTROLLER_NOT_FOUND`   | 控制器不存在          |
+| `MFW_CONNECTION_FAILED`      | 设备连接失败          |
+| `MFW_SCREENCAP_FAILED`       | 截图失败              |
+| `MFW_OPERATION_FAILED`       | 控制器操作失败        |
+| `MFW_TASK_SUBMIT_FAILED`     | 任务提交失败          |
+| `MFW_RESOURCE_LOAD_FAILED`   | 资源加载失败          |
+| `MFW_INVALID_PARAMETER`      | 参数无效              |
+| `MFW_DEVICE_NOT_FOUND`       | 未找到可用设备        |
+| `MFW_NOT_INITIALIZED`        | MaaFramework 未初始化 |
 
 ## MaaMpeGoDebugger
 
