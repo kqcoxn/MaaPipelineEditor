@@ -4,6 +4,7 @@ import {
   useFlowStore,
   createPipelineNode,
   createExternalNode,
+  createAnchorNode,
 } from "../../stores/flow";
 import { useFileStore } from "../../stores/fileStore";
 import {
@@ -19,7 +20,7 @@ import type {
   IdLabelPairsType,
   PipelineNodeType,
 } from "./types";
-import { externalMarkPrefix } from "./types";
+import { externalMarkPrefix, anchorMarkPrefix } from "./types";
 import { parsePipelineConfig, isMark } from "./configParser";
 import { detectNodeVersion } from "./versionDetector";
 import {
@@ -182,11 +183,21 @@ export async function pipelineToFlow(
       const id = "p_" + getNextId();
       let label = objKey;
 
-      // 判断是否为外部节点
+      // 判断是否为外部节点或重定向节点
       let type = NodeTypeEnum.Pipeline;
       if (objKey.startsWith(externalMarkPrefix)) {
         type = NodeTypeEnum.External;
         label = label.substring(externalMarkPrefix.length);
+        const filename = configs.filename;
+        if (filename) {
+          label = label.substring(0, label.length - filename.length - 1);
+        }
+        originLabels.push(label);
+        originalKeys.push(objKey);
+        idOLPairs.push({ id, label });
+      } else if (objKey.startsWith(anchorMarkPrefix)) {
+        type = NodeTypeEnum.Anchor;
+        label = label.substring(anchorMarkPrefix.length);
         const filename = configs.filename;
         if (filename) {
           label = label.substring(0, label.length - filename.length - 1);
@@ -209,7 +220,9 @@ export async function pipelineToFlow(
       const node =
         type === NodeTypeEnum.Pipeline
           ? createPipelineNode(id, { label })
-          : (createExternalNode(id, { label }) as PipelineNodeType);
+          : type === NodeTypeEnum.External
+          ? (createExternalNode(id, { label }) as PipelineNodeType)
+          : (createAnchorNode(id, { label }) as PipelineNodeType);
 
       // 解析节点字段
       const keys = Object.keys(obj);

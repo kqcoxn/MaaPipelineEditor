@@ -39,7 +39,12 @@ export type {
 export type { NodeVersionInfo } from "./versionDetector";
 
 // 导出常量
-export { configMark, configMarkPrefix, externalMarkPrefix } from "./types";
+export {
+  configMark,
+  configMarkPrefix,
+  externalMarkPrefix,
+  anchorMarkPrefix,
+} from "./types";
 
 // 工具函数
 export { matchParamType } from "./typeMatchers";

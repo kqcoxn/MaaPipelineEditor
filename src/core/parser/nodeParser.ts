@@ -96,6 +96,26 @@ export function parseExternalNodeForExport(
 }
 
 /**
+ * 解析重定向节点位置信息
+ * @param fNode Flow节点
+ * @returns 包含位置信息的节点
+ */
+export function parseAnchorNodeForExport(
+  fNode: PipelineNodeType
+): ParsedPipelineNodeType {
+  const position = fNode.position;
+  const pNode: ParsedPipelineNodeType = {
+    [configMark]: {
+      position: {
+        x: Math.round(position.x),
+        y: Math.round(position.y),
+      },
+    },
+  };
+  return pNode;
+}
+
+/**
  * 解析识别字段
  * @param node 目标节点
  * @param value 识别字段值

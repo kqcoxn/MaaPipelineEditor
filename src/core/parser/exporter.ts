@@ -13,11 +13,17 @@ import type {
   EdgeType,
   PipelineNodeType,
 } from "./types";
-import { configMarkPrefix, externalMarkPrefix, configMark } from "./types";
+import {
+  configMarkPrefix,
+  externalMarkPrefix,
+  anchorMarkPrefix,
+  configMark,
+} from "./types";
 import type { NodeAttr } from "./edgeLinker";
 import {
   parsePipelineNodeForExport,
   parseExternalNodeForExport,
+  parseAnchorNodeForExport,
 } from "./nodeParser";
 
 /**
@@ -53,6 +59,11 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
           if (!generalConfig.isExportConfig) break;
           pipelineObj[externalMarkPrefix + node.data.label + "_" + fileName] =
             parseExternalNodeForExport(node as PipelineNodeType);
+          break;
+        case NodeTypeEnum.Anchor:
+          if (!generalConfig.isExportConfig) break;
+          pipelineObj[anchorMarkPrefix + node.data.label + "_" + fileName] =
+            parseAnchorNodeForExport(node as PipelineNodeType);
           break;
       }
     });

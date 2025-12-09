@@ -15,6 +15,7 @@ import { SourceHandleTypeEnum } from "../../components/flow/nodes";
 export const configMark = "$__mpe_code";
 export const configMarkPrefix = "$__mpe_config_";
 export const externalMarkPrefix = "$__mpe_external_";
+export const anchorMarkPrefix = "$__mpe_anchor_";
 
 // 解析后的Pipeline节点类型
 export type ParsedPipelineNodeType = {

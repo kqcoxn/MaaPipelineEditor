@@ -52,12 +52,14 @@ export const updateLogs: UpdateLogItem[] = [
     updates: {
       features: [
         "🌉 正式版 LocalBridge 已上线！现已支持极致的😎本地文件传输功能，具体请参考[文档本地服务部分](https://mpe.codax.site/docs/guide/start/local-server.html)。",
+        "🎯 现在可以在配置面板自由选择节点属性的导出形式了！",
         "🖱️ 为字段面板与连接面板添加了删除节点与连接按键",
       ],
       perfs: [
         "🗺️ 关闭或切换面板时会自动保存视口位置，下次打开时会自动恢复",
         "👍优化节点渲染性能",
       ],
+      fixes: ["修复锚点节点无法保存位置的问题"],
     },
   },
   {
