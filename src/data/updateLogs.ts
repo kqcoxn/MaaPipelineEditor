@@ -52,7 +52,7 @@ export const updateLogs: UpdateLogItem[] = [
     updates: {
       features: [
         "🔃 新增**自动同步本地文件变更配置**，双向协同，效率翻倍！",
-        "📜 新增**自定义模板**功能，可在选中节点后在字段面板左上角按钮添加！",
+        "📜 新增**自定义模板**功能，可在选中节点后在字段面板左上角按钮添加，详情请参考[文档节点模板面板部分](https://mpe.codax.site/docs/guide/core/node-template-panel.html)。",
       ],
       fixes: [
         "修复了变更通知没有确认按钮的问题，变更确认面板一定要有确认✍️✍️✍️",
@@ -65,7 +65,7 @@ export const updateLogs: UpdateLogItem[] = [
     type: "major",
     updates: {
       features: [
-        "🌉 正式版 LocalBridge 已上线！现已支持极致😎的**本地文件传输**功能，具体请参考[文档本地服务部分](https://mpe.codax.site/docs/guide/start/local-server.html)。",
+        "🌉 正式版 LocalBridge 已上线！现已支持极致😎的**本地文件传输**功能，详情请参考[文档本地服务部分](https://mpe.codax.site/docs/guide/start/local-server.html)。",
         "🎯 现在可以在配置面板自由选择节点属性的导出形式了！",
         "🖱️ 为字段面板与连接面板添加了删除节点与连接按键",
       ],
