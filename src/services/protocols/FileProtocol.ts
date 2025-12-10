@@ -1,7 +1,9 @@
-import { message } from "antd";
+import { message, Modal, Button, Space } from "antd";
+import { createElement } from "react";
 import { BaseProtocol } from "./BaseProtocol";
 import type { LocalWebSocketServer } from "../server";
 import { useFileStore } from "../../stores/fileStore";
+import { useConfigStore } from "../../stores/configStore";
 import {
   useLocalFileStore,
   type LocalFileInfo,
@@ -12,6 +14,10 @@ import {
  * 处理所有文件相关的WebSocket消息
  */
 export class FileProtocol extends BaseProtocol {
+  // 当前显示的Modal实例
+  private currentModal: ReturnType<typeof Modal.confirm> | null = null;
+  // 最近保存的文件路径
+  private recentlySavedFiles: Set<string> = new Set();
   getName(): string {
     return "FileProtocol";
   }
@@ -134,25 +140,21 @@ export class FileProtocol extends BaseProtocol {
           console.log("[FileProtocol] File modified:", file_path);
           localFileStore.updateFile(file_path);
 
+          // 忽略刚保存的文件
+          if (this.recentlySavedFiles.has(file_path)) {
+            console.log(
+              "[FileProtocol] Ignoring self-triggered file change:",
+              file_path
+            );
+            this.recentlySavedFiles.delete(file_path);
+            return;
+          }
+
           // 检查是否已在编辑器中打开
           const openedFile = fileStore.findFileByPath(file_path);
           if (openedFile) {
             fileStore.markFileModified(file_path);
-            message.warning({
-              content: `文件"${fileName}"已被外部修改，是否重新加载？`,
-              duration: 0,
-              key: file_path,
-              btn: [
-                {
-                  label: "重新加载",
-                  onClick: () => this.requestFileReload(file_path),
-                },
-                {
-                  label: "稍后处理",
-                  onClick: () => message.destroy(file_path),
-                },
-              ],
-            } as any);
+            this.showFileChangedNotification(file_path, fileName);
           }
           break;
 
@@ -188,6 +190,13 @@ export class FileProtocol extends BaseProtocol {
         const fileName = file_path.split(/[\/\\]/).pop() || file_path;
         message.success(`文件已保存: ${fileName}`);
         console.log("[FileProtocol] File saved successfully:", file_path);
+
+        // 忽略刚保存文件的变更通知
+        this.recentlySavedFiles.add(file_path);
+        // 清除记录
+        setTimeout(() => {
+          this.recentlySavedFiles.delete(file_path);
+        }, 3000);
       } else {
         message.error("文件保存失败");
       }
@@ -236,12 +245,74 @@ export class FileProtocol extends BaseProtocol {
    * 请求重新加载文件
    */
   private requestFileReload(filePath: string): void {
-    message.destroy(filePath);
+    this.currentModal?.destroy();
+    this.currentModal = null;
 
     if (this.requestOpenFile(filePath)) {
       console.log("[FileProtocol] Reloading file:", filePath);
     } else {
       message.error("重新加载请求发送失败");
     }
+  }
+
+  /**
+   * 显示文件变更对话框
+   */
+  private showFileChangedNotification(
+    filePath: string,
+    fileName: string
+  ): void {
+    const configStore = useConfigStore.getState();
+
+    // 自动重载
+    if (configStore.configs.fileAutoReload) {
+      this.requestFileReload(filePath);
+      message.info(`文件"${fileName}"已自动重新加载`);
+      return;
+    }
+
+    // 确保只显示一个
+    if (this.currentModal) {
+      this.currentModal.destroy();
+    }
+
+    const handleReload = () => {
+      this.requestFileReload(filePath);
+    };
+
+    const handleDismiss = () => {
+      this.currentModal?.destroy();
+      this.currentModal = null;
+    };
+
+    const handleAutoReload = () => {
+      configStore.setConfig("fileAutoReload", true);
+      this.requestFileReload(filePath);
+      message.success("已开启自动重载，后续文件变更将自动应用");
+    };
+
+    this.currentModal = Modal.confirm({
+      title: "文件已被外部修改",
+      content: `文件"${fileName}"已被外部修改，请选择处理方式：`,
+      icon: null,
+      closable: true,
+      maskClosable: false,
+      footer: createElement(
+        Space,
+        {
+          style: { display: "flex", justifyContent: "flex-end", marginTop: 16 },
+        },
+        createElement(Button, { onClick: handleDismiss }, "稍后处理"),
+        createElement(Button, { onClick: handleAutoReload }, "自动重载"),
+        createElement(
+          Button,
+          { type: "primary", onClick: handleReload },
+          "重新加载"
+        )
+      ),
+      onCancel: () => {
+        this.currentModal = null;
+      },
+    });
   }
 }

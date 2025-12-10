@@ -3,7 +3,7 @@ import { create } from "zustand";
 /**固有配置 */
 export const globalConfig = {
   dev: true,
-  version: `0.9.0`,
+  version: `0.9.1`,
   betaIteration: 1,
   mfwVersion: "5.2",
   protocolVersion: "0.1",
@@ -33,6 +33,7 @@ type ConfigState = {
     nodeAttrExportStyle: NodeAttrExportStyle;
     wsPort: number;
     wsAutoConnect: boolean;
+    fileAutoReload: boolean;
     // AI 配置
     aiApiUrl: string;
     aiApiKey: string;
@@ -69,6 +70,7 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     nodeAttrExportStyle: "object" as NodeAttrExportStyle,
     wsPort: 9066,
     wsAutoConnect: false,
+    fileAutoReload: false,
     // AI 配置
     aiApiUrl: "",
     aiApiKey: "",

@@ -45,6 +45,9 @@ function ConfigPanel() {
   );
   const wsPort = useConfigStore((state) => state.configs.wsPort);
   const wsAutoConnect = useConfigStore((state) => state.configs.wsAutoConnect);
+  const fileAutoReload = useConfigStore(
+    (state) => state.configs.fileAutoReload
+  );
   const aiApiUrl = useConfigStore((state) => state.configs.aiApiUrl);
   const aiApiKey = useConfigStore((state) => state.configs.aiApiKey);
   const aiModel = useConfigStore((state) => state.configs.aiModel);
@@ -363,6 +366,32 @@ function ConfigPanel() {
             unCheckedChildren="关闭"
             value={wsAutoConnect}
             onChange={(value: boolean) => setConfig("wsAutoConnect", value)}
+          />
+        </div>
+        {/* 自动重载 */}
+        <div className={globalClass}>
+          <div className={style.key}>
+            <Popover
+              placement="bottomLeft"
+              title={"自动重载变更文件"}
+              content={
+                <TipElem
+                  content={
+                    "开启后，当文件被外部修改时会自动重新加载文件内容，无需手动确认"
+                  }
+                />
+              }
+            >
+              <span>自动重载变更文件</span>
+            </Popover>
+          </div>
+          <Switch
+            className={style.value}
+            style={switchStyle}
+            checkedChildren="开启"
+            unCheckedChildren="关闭"
+            value={fileAutoReload}
+            onChange={(value: boolean) => setConfig("fileAutoReload", value)}
           />
         </div>
         <div className={style.divider}>—————— AI 配置 ——————</div>
