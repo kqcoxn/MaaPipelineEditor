@@ -130,6 +130,8 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: localbridge-artifacts
+          pattern: mpelb-*
+          merge-multiple: true
 
       - name: Generate Changelog
         id: changelog
@@ -172,7 +174,7 @@ jobs:
           files: |
             MaaPipelineEditor-${{ github.ref_name }}-stable.zip
             MaaPipelineEditor-${{ github.ref_name }}-docs.zip
-            localbridge-artifacts/*/*
+            localbridge-artifacts/*
           body_path: CHANGELOG.md
           generate_release_notes: false
           draft: false
