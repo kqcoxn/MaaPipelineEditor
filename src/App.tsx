@@ -15,6 +15,7 @@ const { Header: HeaderSection, Content } = Layout;
 import { useFileStore } from "./stores/fileStore";
 import { useConfigStore } from "./stores/configStore";
 import { useWSStore } from "./stores/wsStore";
+import { useCustomTemplateStore } from "./stores/customTemplateStore";
 import { localServer } from "./services/server";
 
 import Header from "./components/Header";
@@ -128,6 +129,9 @@ function App() {
     // 读取本地存储
     const err = useFileStore.getState().replace();
     if (!err) message.success("已读取本地缓存");
+
+    // 加载自定义模板
+    useCustomTemplateStore.getState().loadTemplates();
 
     // 注册WebSocket状态同步回调
     const setConnected = useWSStore.getState().setConnected;

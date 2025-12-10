@@ -24,6 +24,9 @@ export function createPipelineNode(
     datas = {},
   } = options ?? {};
 
+  // 自动生成 label
+  const { label: _removedLabel, ...templateData } = datas;
+
   const node: PipelineNodeType = {
     id,
     type: NodeTypeEnum.Pipeline,
@@ -39,7 +42,7 @@ export function createPipelineNode(
       },
       others: {},
       extras: {},
-      ...datas,
+      ...templateData,
     },
     position,
     selected: select,
@@ -64,10 +67,13 @@ export function createExternalNode(
     datas = {},
   } = options ?? {};
 
+  // 自动生成 label
+  const { label: _removedLabel, ...templateData } = datas;
+
   const node: ExternalNodeType = {
     id,
     type: NodeTypeEnum.External,
-    data: { label, ...datas },
+    data: { label, ...templateData },
     position,
     selected: select,
   };
@@ -91,10 +97,13 @@ export function createAnchorNode(
     datas = {},
   } = options ?? {};
 
+  // 自动生成 label
+  const { label: _removedLabel, ...templateData } = datas;
+
   const node: AnchorNodeType = {
     id,
     type: NodeTypeEnum.Anchor,
-    data: { label, ...datas },
+    data: { label, ...templateData },
     position,
     selected: select,
   };

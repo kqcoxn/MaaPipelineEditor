@@ -1,11 +1,12 @@
 import { memo, useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { Input } from "antd";
+import { Input, Modal } from "antd";
 import classNames from "classnames";
 import style from "../../styles/NodeAddPanel.module.less";
 import IconFont from "../iconfonts";
 import type { IconNames } from "../iconfonts";
 import { nodeTemplates, type NodeTemplateType } from "../../data/nodeTemplates";
 import { useFlowStore } from "../../stores/flow";
+import { useCustomTemplateStore } from "../../stores/customTemplateStore";
 import { NodeTypeEnum } from "../flow/nodes";
 import {
   getRecognitionIcon,
@@ -19,6 +20,30 @@ interface NodeAddPanelProps {
   onClose: () => void;
   onReopen?: (screenPos: { x: number; y: number }) => void;
   flowPosition?: { x: number; y: number };
+}
+
+// 格式化参数值为可读字符串
+function formatParamValue(value: unknown): string {
+  if (value === null || value === undefined) return "null";
+  if (typeof value === "string") {
+    return value === "" ? '""' : `"${value}"`;
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  if (Array.isArray(value)) {
+    if (value.length === 0) return "[]";
+    if (value.length <= 4 && value.every((v) => typeof v !== "object")) {
+      return `[${value.map((v) => formatParamValue(v)).join(", ")}]`;
+    }
+    return `[...${value.length}项]`;
+  }
+  if (typeof value === "object") {
+    const keys = Object.keys(value);
+    if (keys.length === 0) return "{}";
+    return `{...${keys.length}项}`;
+  }
+  return String(value);
 }
 
 // 获取模板描述
@@ -139,8 +164,15 @@ const NodePreview = memo(
               <span>识别 - {recoType}</span>
             </div>
             {hasRecoParams && (
-              <div style={{ fontSize: 10, color: "#666", paddingLeft: 14 }}>
-                {Object.keys(data.recognition.param).join(", ")}
+              <div className={style.paramList}>
+                {Object.entries(data.recognition.param).map(([key, value]) => (
+                  <div key={key} className={style.paramItem}>
+                    <span className={style.paramKey}>{key}:</span>
+                    <span className={style.paramValue}>
+                      {formatParamValue(value)}
+                    </span>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -159,8 +191,15 @@ const NodePreview = memo(
               <span>动作 - {actionType}</span>
             </div>
             {hasActionParams && (
-              <div style={{ fontSize: 10, color: "#666", paddingLeft: 14 }}>
-                {Object.keys(data.action.param).join(", ")}
+              <div className={style.paramList}>
+                {Object.entries(data.action.param).map(([key, value]) => (
+                  <div key={key} className={style.paramItem}>
+                    <span className={style.paramKey}>{key}:</span>
+                    <span className={style.paramValue}>
+                      {formatParamValue(value)}
+                    </span>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -174,8 +213,15 @@ const NodePreview = memo(
                 <IconFont name="icon-zidingyi" size={10} />
                 <span>其他</span>
               </div>
-              <div style={{ fontSize: 10, color: "#666", paddingLeft: 14 }}>
-                {Object.keys(data.others).join(", ")}
+              <div className={style.paramList}>
+                {Object.entries(data.others).map(([key, value]) => (
+                  <div key={key} className={style.paramItem}>
+                    <span className={style.paramKey}>{key}:</span>
+                    <span className={style.paramValue}>
+                      {formatParamValue(value)}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -195,17 +241,33 @@ function NodeAddPanel({
 }: NodeAddPanelProps) {
   const [searchText, setSearchText] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const inputRef = useRef<any>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   const addNode = useFlowStore((state) => state.addNode);
+  const customTemplates = useCustomTemplateStore(
+    (state) => state.customTemplates
+  );
+  const getAllTemplates = useCustomTemplateStore(
+    (state) => state.getAllTemplates
+  );
+  const removeTemplate = useCustomTemplateStore(
+    (state) => state.removeTemplate
+  );
+
+  // 获取所有模板
+  const allTemplates = useMemo(
+    () => getAllTemplates(nodeTemplates),
+    [getAllTemplates, customTemplates]
+  );
 
   // 过滤模板
   const filteredTemplates = useMemo(() => {
-    if (!searchText.trim()) return nodeTemplates;
+    if (!searchText.trim()) return allTemplates;
     const keyword = searchText.toLowerCase();
-    return nodeTemplates.filter((t) => t.label.toLowerCase().includes(keyword));
-  }, [searchText]);
+    return allTemplates.filter((t) => t.label.toLowerCase().includes(keyword));
+  }, [searchText, allTemplates]);
 
   // 当前选中的模板
   const selectedTemplate = filteredTemplates[selectedIndex] || null;
@@ -224,6 +286,26 @@ function NodeAddPanel({
       onClose();
     },
     [addNode, flowPosition, onClose]
+  );
+
+  // 删除自定义模板
+  const handleDeleteTemplate = useCallback(
+    (e: React.MouseEvent, template: NodeTemplateType) => {
+      e.stopPropagation();
+      if (!template.isCustom) return;
+
+      Modal.confirm({
+        title: "删除自定义模板",
+        content: `确定要删除模板“${template.label}”吗？此操作不可恢复。`,
+        okText: "确定",
+        cancelText: "取消",
+        okButtonProps: { danger: true },
+        onOk: () => {
+          removeTemplate(template.label);
+        },
+      });
+    },
+    [removeTemplate]
   );
 
   // 键盘事件
@@ -377,12 +459,19 @@ function NodeAddPanel({
             {filteredTemplates.length > 0 ? (
               filteredTemplates.map((template, index) => (
                 <div
-                  key={template.label}
+                  key={`${template.label}-${
+                    template.isCustom ? "custom" : "preset"
+                  }`}
                   className={classNames(style.templateItem, {
                     [style.active]: index === selectedIndex,
+                    [style.customTemplate]: template.isCustom,
                   })}
                   onClick={() => handleAddNode(template)}
-                  onMouseEnter={() => setSelectedIndex(index)}
+                  onMouseEnter={() => {
+                    setSelectedIndex(index);
+                    setHoveredIndex(index);
+                  }}
+                  onMouseLeave={() => setHoveredIndex(null)}
                 >
                   <div className={style.templateIcon}>
                     <IconFont
@@ -391,18 +480,31 @@ function NodeAddPanel({
                     />
                   </div>
                   <div className={style.templateInfo}>
-                    <div className={style.templateName}>{template.label}</div>
+                    <div className={style.templateName}>
+                      {template.label}
+                      {template.isCustom && (
+                        <span className={style.customBadge}>自定义</span>
+                      )}
+                    </div>
                     <div className={style.templateDesc}>
                       {getTemplateDescription(template)}
                     </div>
                   </div>
-                  <div className={style.addBtn}>
-                    <IconFont
-                      name="icon-zengjiatianjiajiajian"
-                      size={14}
-                      color="#fff"
-                    />
-                  </div>
+                  {template.isCustom ? (
+                    hoveredIndex === index ? (
+                      <div
+                        className={style.deleteBtn}
+                        onClick={(e) => handleDeleteTemplate(e, template)}
+                        title="删除模板"
+                      >
+                        <IconFont
+                          name="icon-shanchu"
+                          size={16}
+                          color="#ff4a4a"
+                        />
+                      </div>
+                    ) : null
+                  ) : null}
                 </div>
               ))
             ) : (

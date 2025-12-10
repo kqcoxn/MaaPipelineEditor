@@ -181,6 +181,20 @@
       color: #333;
       margin-bottom: 2px;
       .ellipsis();
+      display: flex;
+      align-items: center;
+      gap: 6px;
+
+      .customBadge {
+        display: inline-block;
+        padding: 1px 6px;
+        font-size: 10px;
+        font-weight: 500;
+        color: #fff;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 4px;
+        flex-shrink: 0;
+      }
     }
 
     .templateDesc {
@@ -206,6 +220,25 @@
 
     &:hover {
       background-color: #1890ff;
+      transform: scale(1.05);
+    }
+  }
+
+  .deleteBtn {
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    background-color: rgba(255, 74, 74, 0.1);
+    color: #ff4a4a;
+    transform: scale(1);
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+
+    &:hover {
+      background-color: rgba(255, 74, 74, 0.2);
       transform: scale(1.05);
     }
   }
@@ -332,6 +365,33 @@
 
       .otherHeader {
         color: gray;
+      }
+
+      .paramList {
+        padding-left: 14px;
+        font-size: 10px;
+
+        .paramItem {
+          display: flex;
+          align-items: flex-start;
+          gap: 4px;
+          line-height: 1.4;
+          margin-bottom: 2px;
+
+          &:last-child {
+            margin-bottom: 0;
+          }
+
+          .paramKey {
+            color: #888;
+            flex-shrink: 0;
+          }
+
+          .paramValue {
+            color: #333;
+            word-break: break-all;
+          }
+        }
       }
     }
   }

@@ -6,6 +6,8 @@ export interface NodeTemplateType {
   iconSize?: number;
   nodeType?: NodeTypeEnum;
   data?: () => any;
+  isCustom?: boolean; // 是否为自定义模板
+  createTime?: number; // 创建时间戳
 }
 
 export const nodeTemplates: NodeTemplateType[] = [

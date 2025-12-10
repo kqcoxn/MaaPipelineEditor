@@ -47,10 +47,13 @@ export const pinnedNotice: PinnedNotice = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "0.9.1",
-    date: "2025-12",
+    date: "2025-12-11",
     type: "feature",
     updates: {
-      features: ["🔃 新增自动同步本地文件变更配置，双向协同，效率翻倍！"],
+      features: [
+        "🔃 新增自动同步本地文件变更配置，双向协同，效率翻倍！",
+        "📜 新增自定义模板功能，可在选中节点后在字段面板左上角按钮添加！",
+      ],
       fixes: ["修复了变更通知没有确认按钮的问题，变更确认一定要有确认✍️✍️✍️"],
     },
   },
