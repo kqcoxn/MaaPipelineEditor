@@ -33,13 +33,15 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
 
 **_“由您设计，由我们支持。”_** 如您所需皆已存在：添加、配置、连接，只需稍作思考，想法之外尽在其中！
 
-**MPE 正在进行一轮[精细化重定位](https://github.com/kqcoxn/MaaPipelineEditor/issues/31)，将为您提供能加细分的业务需求解决方案！**
+您可以使用 MPE 在各类便捷工具的加持下轻松构造出如下 Pipeline，**兼具易用性与可读性**：
 
-目前，您可以使用 MPE 轻松构造出如下 Pipeline，兼具易用性与可读性：
+![](./image/展示.png)
 
-![](./image/布局展示1.png)
+（演示 Pipeline：[MNMA-城市探索.json](https://github.com/kqcoxn/MaaNewMoonAccompanying/blob/v3.1.8/assets/resource/base/pipeline/%E6%97%A5%E5%B8%B8%E6%B4%BB%E5%8A%A8/%E5%9F%8E%E5%B8%82%E6%8E%A2%E7%B4%A2.json), 3529 lines）
 
-（演示 Pipeline：[MNMA-清体力.json](https://github.com/kqcoxn/MaaNewMoonAccompanying/blob/v2.2.3/assets/resource/base/pipeline/%E6%97%A5%E5%B8%B8%E6%B4%BB%E5%8A%A8/%E6%B8%85%E4%BD%93%E5%8A%9B.json), 1996 lines）
+**MPE 正在进行一轮 [精细化重定位](https://github.com/kqcoxn/MaaPipelineEditor/issues/31)**，将为您提供能加细分的业务需求解决方案！目前，您可以使用一行命令下载并安装 MPE 的 [本地服务](https://mpe.codax.site/docs/guide/start/local-server.html)，**渐进式模块化补充编辑器的功能**，兼具灵活性与功能性：
+
+![](./image/big-pie.png)
 
 ## 开箱即用
 
