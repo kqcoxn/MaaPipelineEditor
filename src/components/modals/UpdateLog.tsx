@@ -11,36 +11,43 @@ interface UpdateLogProps {
 }
 
 const UpdateLog = ({ open, onClose }: UpdateLogProps) => {
-  // 将 Markdown 链接格式转换为 React 元素
-  const parseMarkdownLinks = (text: string) => {
-    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  // Markdown 格式转换
+  const parseMarkdown = (text: string): (string | React.ReactElement)[] => {
+    // 合并正则
+    const combinedRegex = /(\[([^\]]+)\]\(([^)]+)\))|(\*\*([^*]+)\*\*)/g;
     const parts: (string | React.ReactElement)[] = [];
     let lastIndex = 0;
     let match;
 
-    while ((match = linkRegex.exec(text)) !== null) {
-      // 添加链接前的文本
+    while ((match = combinedRegex.exec(text)) !== null) {
+      // 添加匹配前的文本
       if (match.index > lastIndex) {
         parts.push(text.substring(lastIndex, match.index));
       }
 
-      // 添加链接元素
-      const linkText = match[1];
-      const linkUrl = match[2];
-      parts.push(
-        <a
-          key={match.index}
-          href={linkUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            color: "#1890ff",
-            textDecoration: "underline",
-          }}
-        >
-          {linkText}
-        </a>
-      );
+      if (match[1]) {
+        // 链接匹配: [text](url)
+        const linkText = match[2];
+        const linkUrl = match[3];
+        parts.push(
+          <a
+            key={`link-${match.index}`}
+            href={linkUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: "#1890ff",
+              textDecoration: "underline",
+            }}
+          >
+            {linkText}
+          </a>
+        );
+      } else if (match[4]) {
+        // 加粗匹配: **text**
+        const boldText = match[5];
+        parts.push(<strong key={`bold-${match.index}`}>{boldText}</strong>);
+      }
 
       lastIndex = match.index + match[0].length;
     }
@@ -50,7 +57,7 @@ const UpdateLog = ({ open, onClose }: UpdateLogProps) => {
       parts.push(text.substring(lastIndex));
     }
 
-    return parts.length > 0 ? parts : text;
+    return parts.length > 0 ? parts : [text];
   };
 
   const getTypeColor = (type: string) => {
@@ -125,7 +132,7 @@ const UpdateLog = ({ open, onClose }: UpdateLogProps) => {
               >
                 •
               </span>
-              {parseMarkdownLinks(item)}
+              {parseMarkdown(item)}
             </Paragraph>
           ))}
         </div>
@@ -179,7 +186,7 @@ const UpdateLog = ({ open, onClose }: UpdateLogProps) => {
                     >
                       •
                     </span>
-                    {parseMarkdownLinks(item)}
+                    {parseMarkdown(item)}
                   </Paragraph>
                 ))}
               </div>

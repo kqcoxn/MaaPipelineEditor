@@ -40,7 +40,7 @@ export const pinnedNotice: PinnedNotice = {
   title: "置顶公告",
   type: "info",
   content: [
-    "正式版 LocalBridge🌉 已上线！我们十分推荐您尝试，详情可查阅 [本地服务文档](https://mpe.codax.site/docs/guide/start/local-server.html)",
+    "**正式版 LocalBridge🌉 已上线**！我们十分推荐您尝试，详情可查阅 [本地服务文档](https://mpe.codax.site/docs/guide/start/local-server.html)",
   ],
 };
 
@@ -51,10 +51,12 @@ export const updateLogs: UpdateLogItem[] = [
     type: "feature",
     updates: {
       features: [
-        "🔃 新增自动同步本地文件变更配置，双向协同，效率翻倍！",
-        "📜 新增自定义模板功能，可在选中节点后在字段面板左上角按钮添加！",
+        "🔃 新增**自动同步本地文件变更配置**，双向协同，效率翻倍！",
+        "📜 新增**自定义模板**功能，可在选中节点后在字段面板左上角按钮添加！",
       ],
-      fixes: ["修复了变更通知没有确认按钮的问题，变更确认一定要有确认✍️✍️✍️"],
+      fixes: [
+        "修复了变更通知没有确认按钮的问题，变更确认面板一定要有确认✍️✍️✍️",
+      ],
     },
   },
   {
@@ -63,7 +65,7 @@ export const updateLogs: UpdateLogItem[] = [
     type: "major",
     updates: {
       features: [
-        "🌉 正式版 LocalBridge 已上线！现已支持极致的😎本地文件传输功能，具体请参考[文档本地服务部分](https://mpe.codax.site/docs/guide/start/local-server.html)。",
+        "🌉 正式版 LocalBridge 已上线！现已支持极致😎的**本地文件传输**功能，具体请参考[文档本地服务部分](https://mpe.codax.site/docs/guide/start/local-server.html)。",
         "🎯 现在可以在配置面板自由选择节点属性的导出形式了！",
         "🖱️ 为字段面板与连接面板添加了删除节点与连接按键",
       ],
@@ -88,10 +90,10 @@ export const updateLogs: UpdateLogItem[] = [
     type: "feature",
     updates: {
       features: [
-        "⭐ 全新现代主题（可在设置面板切回旧版主题）",
+        "⭐ 全新**现代主题**（可在设置面板切回旧版主题）",
         "🔧 排版栏新增节点间距缩放工具（配合迁移新主题）",
-        "⭐ 全新右键节点模板预览与添加面板",
-        "🔍 节点搜索功能（with AI 🤖）",
+        "⭐ 全新**右键节点模板预览与添加面板**",
+        "🔍 新增**节点搜索**功能（with AI 🤖）",
         "🤖 添加 AI 对话记录面板与相关配置",
       ],
       perfs: [
