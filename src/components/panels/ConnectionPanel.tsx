@@ -18,6 +18,7 @@ import {
   CheckCircleOutlined,
   DesktopOutlined,
   MobileOutlined,
+  SwapOutlined,
 } from "@ant-design/icons";
 import {
   useMFWStore,
@@ -291,6 +292,46 @@ export const ConnectionPanel = memo(
     const canConnect =
       hasSelectedDevice && hasValidMethods && connectionStatus !== "connecting";
 
+    // 判断当前选中的设备是否是已连接的设备
+    const isCurrentDevice = useMemo(() => {
+      if (connectionStatus !== "connected" || !deviceInfo) return false;
+
+      if (
+        activeTab === "adb" &&
+        controllerType === "adb" &&
+        selectedAdbDevice
+      ) {
+        return selectedAdbDevice.address === (deviceInfo as any)?.address;
+      } else if (
+        activeTab === "win32" &&
+        controllerType === "win32" &&
+        selectedWin32Window
+      ) {
+        return selectedWin32Window.hwnd === (deviceInfo as any)?.hwnd;
+      }
+      return false;
+    }, [
+      connectionStatus,
+      controllerType,
+      deviceInfo,
+      activeTab,
+      selectedAdbDevice,
+      selectedWin32Window,
+    ]);
+
+    // 连接新设备
+    const handleConnectNew = useCallback(() => {
+      if (!controllerId) return;
+
+      // 先断开当前连接
+      mfwProtocol.disconnectController(controllerId);
+
+      // 等待断开完成后再连接新设备
+      setTimeout(() => {
+        handleConnect();
+      }, 500);
+    }, [controllerId, handleConnect]);
+
     // 渲染 ADB 设备列表
     const renderAdbDevices = () => (
       <List
@@ -485,16 +526,32 @@ export const ConnectionPanel = memo(
             {/* 操作按钮组 */}
             <div style={{ display: "flex", gap: 12 }}>
               {connectionStatus === "connected" ? (
-                <Button
-                  type="primary"
-                  danger
-                  icon={<DisconnectOutlined />}
-                  onClick={handleDisconnect}
-                  size="large"
-                  block
-                >
-                  断开连接
-                </Button>
+                <>
+                  {!isCurrentDevice && canConnect && (
+                    <Button
+                      type="primary"
+                      icon={<SwapOutlined />}
+                      onClick={handleConnectNew}
+                      size="large"
+                      style={{ flex: 1 }}
+                    >
+                      连接新设备
+                    </Button>
+                  )}
+                  <Button
+                    type="primary"
+                    danger
+                    icon={<DisconnectOutlined />}
+                    onClick={handleDisconnect}
+                    size="large"
+                    style={{
+                      flex: isCurrentDevice || !canConnect ? 1 : undefined,
+                    }}
+                    block={isCurrentDevice || !canConnect}
+                  >
+                    断开连接
+                  </Button>
+                </>
               ) : (
                 <>
                   <Button
