@@ -117,7 +117,11 @@ export const ConnectionPanel = memo(
         setCustomScreencap(selectedDeviceMethods.screencap[0]);
         setCustomInput(selectedDeviceMethods.input[0]);
       }
-    }, [selectedAdbDevice?.address, selectedWin32Window?.hwnd]);
+    }, [
+      selectedAdbDevice?.address,
+      selectedWin32Window?.hwnd,
+      selectedDeviceMethods,
+    ]);
 
     // 打开面板时的初始化逻辑
     useEffect(() => {

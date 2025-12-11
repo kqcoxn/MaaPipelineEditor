@@ -16,6 +16,11 @@ export class MFWProtocol extends BaseProtocol {
   private screencapCallbacks: Array<(data: any) => void> = [];
   // OCR结果回调函数
   private ocrCallbacks: Array<(data: any) => void> = [];
+  // 记录最后一次连接请求的设备信息
+  private lastConnectionDevice: {
+    type: "adb" | "win32";
+    deviceInfo: AdbDevice | Win32Window;
+  } | null = null;
   getName(): string {
     return "MFWProtocol";
   }
@@ -125,19 +130,25 @@ export class MFWProtocol extends BaseProtocol {
       const mfwStore = useMFWStore.getState();
 
       if (success && controller_id) {
-        // 根据类型获取设备信息
+        // 使用记录的设备信息
         const deviceInfo =
-          type === "adb"
-            ? mfwStore.adbDevices.find((d) => true) // 简化处理
-            : mfwStore.win32Windows.find((w) => true);
+          this.lastConnectionDevice?.type === type
+            ? this.lastConnectionDevice?.deviceInfo
+            : null;
 
         mfwStore.setControllerInfo(type, controller_id, deviceInfo || null);
         message.success(`控制器连接成功`);
         console.log("[MFWProtocol] Controller created:", controller_id);
+
+        // 清除记录的设备信息
+        this.lastConnectionDevice = null;
       } else {
         mfwStore.setErrorMessage(error || "控制器连接失败");
         message.error(error || "控制器连接失败");
         console.error("[MFWProtocol] Controller creation failed:", error);
+
+        // 清除记录的设备信息
+        this.lastConnectionDevice = null;
       }
     } catch (error) {
       console.error(
@@ -147,6 +158,9 @@ export class MFWProtocol extends BaseProtocol {
       const mfwStore = useMFWStore.getState();
       mfwStore.setErrorMessage("控制器连接失败");
       message.error("控制器连接失败");
+
+      // 清除记录的设备信息
+      this.lastConnectionDevice = null;
     }
   }
 
@@ -258,6 +272,17 @@ export class MFWProtocol extends BaseProtocol {
     const mfwStore = useMFWStore.getState();
     mfwStore.setConnectionStatus("connecting");
 
+    // 记录设备信息
+    const device = mfwStore.adbDevices.find(
+      (d) => d.address === params.address
+    );
+    if (device) {
+      this.lastConnectionDevice = {
+        type: "adb",
+        deviceInfo: device,
+      };
+    }
+
     return this.wsClient.send("/etl/mfw/create_adb_controller", params);
   }
 
@@ -276,6 +301,15 @@ export class MFWProtocol extends BaseProtocol {
 
     const mfwStore = useMFWStore.getState();
     mfwStore.setConnectionStatus("connecting");
+
+    // 记录设备信息
+    const window = mfwStore.win32Windows.find((w) => w.hwnd === params.hwnd);
+    if (window) {
+      this.lastConnectionDevice = {
+        type: "win32",
+        deviceInfo: window,
+      };
+    }
 
     return this.wsClient.send("/etl/mfw/create_win32_controller", params);
   }
