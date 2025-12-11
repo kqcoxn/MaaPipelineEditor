@@ -38,6 +38,7 @@ export const ConnectionPanel = memo(
     const {
       connectionStatus,
       controllerId,
+      controllerType,
       deviceInfo,
       adbDevices,
       win32Windows,
@@ -51,6 +52,7 @@ export const ConnectionPanel = memo(
       useState<Win32Window | null>(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [visitedTabs, setVisitedTabs] = useState<Set<string>>(new Set());
+    const [hasInitialized, setHasInitialized] = useState(false);
 
     // 自定义截图和输入方法
     const [customScreencap, setCustomScreencap] = useState<string | undefined>(
@@ -80,18 +82,104 @@ export const ConnectionPanel = memo(
       };
     }, [adbDevices, win32Windows]);
 
-    // 第一次打开时自动刷新设备列表
+    // 获取当前选中设备的方法列表
+    const selectedDeviceMethods = useMemo(() => {
+      if (activeTab === "adb" && selectedAdbDevice) {
+        return {
+          screencap: selectedAdbDevice.screencap_methods,
+          input: selectedAdbDevice.input_methods,
+        };
+      } else if (activeTab === "win32" && selectedWin32Window) {
+        return {
+          screencap: selectedWin32Window.screencap_methods,
+          input: selectedWin32Window.input_methods,
+        };
+      }
+      return { screencap: [], input: [] };
+    }, [activeTab, selectedAdbDevice, selectedWin32Window]);
+
+    // 初始化时设置默认值为第一个方法
     useEffect(() => {
-      if (open && !visitedTabs.has(activeTab)) {
+      if (
+        selectedDeviceMethods.screencap.length > 0 &&
+        customScreencap === undefined
+      ) {
+        setCustomScreencap(selectedDeviceMethods.screencap[0]);
+      }
+      if (selectedDeviceMethods.input.length > 0 && customInput === undefined) {
+        setCustomInput(selectedDeviceMethods.input[0]);
+      }
+    }, [selectedDeviceMethods]);
+
+    // 切换设备时重置方法选择
+    useEffect(() => {
+      if (selectedAdbDevice || selectedWin32Window) {
+        setCustomScreencap(selectedDeviceMethods.screencap[0]);
+        setCustomInput(selectedDeviceMethods.input[0]);
+      }
+    }, [selectedAdbDevice?.address, selectedWin32Window?.hwnd]);
+
+    // 打开面板时的初始化逻辑
+    useEffect(() => {
+      if (open && !hasInitialized) {
+        setHasInitialized(true);
+
+        // 如果已连接，设置对应的 Tab 和设备选中状态
+        if (connectionStatus === "connected" && deviceInfo) {
+          if (controllerType === "adb") {
+            setActiveTab("adb");
+            // 尝试找到当前连接的设备
+            const connectedDevice = adbDevices.find(
+              (d) => d.address === (deviceInfo as any)?.address
+            );
+            if (connectedDevice) {
+              setSelectedAdbDevice(connectedDevice);
+            }
+          } else if (controllerType === "win32") {
+            setActiveTab("win32");
+            // 尝试找到当前连接的窗口
+            const connectedWindow = win32Windows.find(
+              (w) => w.hwnd === (deviceInfo as any)?.hwnd
+            );
+            if (connectedWindow) {
+              setSelectedWin32Window(connectedWindow);
+            }
+          }
+          // 已连接状态下不触发刷新
+          return;
+        }
+
+        // 未连接时触发刷新
+        handleRefresh();
+        setVisitedTabs((prev) => new Set(prev).add(activeTab));
+      }
+    }, [
+      open,
+      hasInitialized,
+      connectionStatus,
+      controllerType,
+      deviceInfo,
+      adbDevices,
+      win32Windows,
+    ]);
+
+    // 未连接且第一次打开时自动刷新设备列表
+    useEffect(() => {
+      if (
+        open &&
+        !visitedTabs.has(activeTab) &&
+        connectionStatus !== "connected"
+      ) {
         setVisitedTabs((prev) => new Set(prev).add(activeTab));
         handleRefresh();
       }
-    }, [activeTab, open, visitedTabs]);
+    }, [activeTab, open, visitedTabs, connectionStatus]);
 
-    // 关闭面板时重置访问记录
+    // 关闭面板时重置访问记录和初始化状态
     useEffect(() => {
       if (!open) {
         setVisitedTabs(new Set());
+        setHasInitialized(false);
       }
     }, [open]);
 
@@ -109,25 +197,32 @@ export const ConnectionPanel = memo(
     // 连接设备
     const handleConnect = useCallback(() => {
       if (activeTab === "adb" && selectedAdbDevice) {
-        const screencapMethods = customScreencap
-          ? [customScreencap]
-          : selectedAdbDevice.screencap_methods;
-        const inputMethods = customInput
-          ? [customInput]
-          : selectedAdbDevice.input_methods;
+        // 检查是否有可用的方法
+        const screencapMethod =
+          customScreencap || selectedAdbDevice.screencap_methods[0];
+        const inputMethod = customInput || selectedAdbDevice.input_methods[0];
+
+        if (!screencapMethod || !inputMethod) {
+          message.warning("设备没有可用的截图或输入方法");
+          return;
+        }
 
         mfwProtocol.createAdbController({
           adb_path: selectedAdbDevice.adb_path,
           address: selectedAdbDevice.address,
-          screencap_methods: screencapMethods,
-          input_methods: inputMethods,
+          screencap_methods: [screencapMethod],
+          input_methods: [inputMethod],
           config: selectedAdbDevice.config,
         });
       } else if (activeTab === "win32" && selectedWin32Window) {
         const screencapMethod =
-          customScreencap || selectedWin32Window.screencap_methods[0] || "";
-        const inputMethod =
-          customInput || selectedWin32Window.input_methods[0] || "";
+          customScreencap || selectedWin32Window.screencap_methods[0];
+        const inputMethod = customInput || selectedWin32Window.input_methods[0];
+
+        if (!screencapMethod || !inputMethod) {
+          message.warning("窗口没有可用的截图或输入方法");
+          return;
+        }
 
         mfwProtocol.createWin32Controller({
           hwnd: selectedWin32Window.hwnd,
@@ -166,7 +261,31 @@ export const ConnectionPanel = memo(
     // 获取当前选中设备
     const hasSelectedDevice =
       activeTab === "adb" ? !!selectedAdbDevice : !!selectedWin32Window;
-    const canConnect = hasSelectedDevice && connectionStatus !== "connecting";
+
+    // 检查是否有可用的方法
+    const hasValidMethods = useMemo(() => {
+      if (activeTab === "adb" && selectedAdbDevice) {
+        const screencap =
+          customScreencap || selectedAdbDevice.screencap_methods[0];
+        const input = customInput || selectedAdbDevice.input_methods[0];
+        return !!screencap && !!input;
+      } else if (activeTab === "win32" && selectedWin32Window) {
+        const screencap =
+          customScreencap || selectedWin32Window.screencap_methods[0];
+        const input = customInput || selectedWin32Window.input_methods[0];
+        return !!screencap && !!input;
+      }
+      return false;
+    }, [
+      activeTab,
+      selectedAdbDevice,
+      selectedWin32Window,
+      customScreencap,
+      customInput,
+    ]);
+
+    const canConnect =
+      hasSelectedDevice && hasValidMethods && connectionStatus !== "connecting";
 
     // 渲染 ADB 设备列表
     const renderAdbDevices = () => (
@@ -421,10 +540,17 @@ export const ConnectionPanel = memo(
                   value={customScreencap}
                   onChange={setCustomScreencap}
                   style={{ width: "100%" }}
-                  options={allMethods.screencap.map((m) => ({
-                    label: m,
-                    value: m,
-                  }))}
+                  options={
+                    selectedDeviceMethods.screencap.length > 0
+                      ? selectedDeviceMethods.screencap.map((m) => ({
+                          label: m,
+                          value: m,
+                        }))
+                      : allMethods.screencap.map((m) => ({
+                          label: m,
+                          value: m,
+                        }))
+                  }
                 />
               </div>
               <div style={{ flex: 1 }}>
@@ -440,10 +566,14 @@ export const ConnectionPanel = memo(
                   value={customInput}
                   onChange={setCustomInput}
                   style={{ width: "100%" }}
-                  options={allMethods.input.map((m) => ({
-                    label: m,
-                    value: m,
-                  }))}
+                  options={
+                    selectedDeviceMethods.input.length > 0
+                      ? selectedDeviceMethods.input.map((m) => ({
+                          label: m,
+                          value: m,
+                        }))
+                      : allMethods.input.map((m) => ({ label: m, value: m }))
+                  }
                 />
               </div>
             </div>

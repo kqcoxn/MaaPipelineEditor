@@ -16,11 +16,14 @@ import {
   LinkOutlined,
   DisconnectOutlined,
   LoadingOutlined,
+  MobileOutlined,
+  DesktopOutlined,
 } from "@ant-design/icons";
 import IconFont from "./iconfonts";
 import UpdateLog from "./modals/UpdateLog";
 import { ConnectionPanel } from "./panels/ConnectionPanel";
 import { localServer } from "../services/server";
+import { useMFWStore } from "../stores/mfwStore";
 
 import { globalConfig } from "../stores/configStore";
 import { useTheme } from "../contexts/ThemeContext";
@@ -153,6 +156,67 @@ const ConnectionButton: React.FC = () => {
   );
 };
 
+// 设备连接按钮 - 显示设备类型和名称
+const DeviceConnectionButton: React.FC<{ onOpenPanel: () => void }> = ({
+  onOpenPanel,
+}) => {
+  const { connectionStatus, controllerType, deviceInfo } = useMFWStore();
+
+  // 获取设备名称（最大长度15个字符）
+  const getDeviceName = () => {
+    if (!deviceInfo) return "未知设备";
+    const name =
+      (deviceInfo as any)?.name ||
+      (deviceInfo as any)?.window_name ||
+      (deviceInfo as any)?.address ||
+      (deviceInfo as any)?.class_name ||
+      "未知设备";
+    return name.length > 15 ? name.substring(0, 15) + "..." : name;
+  };
+
+  const isConnected = connectionStatus === "connected";
+
+  if (isConnected) {
+    return (
+      <Tooltip placement="bottom" title="点击管理设备连接">
+        <Button
+          type="primary"
+          size="small"
+          icon={
+            controllerType === "adb" ? <MobileOutlined /> : <DesktopOutlined />
+          }
+          onClick={onOpenPanel}
+          style={{
+            borderRadius: "999px",
+            paddingLeft: "12px",
+            paddingRight: "12px",
+          }}
+        >
+          {getDeviceName()}
+        </Button>
+      </Tooltip>
+    );
+  }
+
+  return (
+    <Tooltip placement="bottom" title="设备连接配置">
+      <Button
+        type="default"
+        size="small"
+        icon={<LinkOutlined />}
+        onClick={onOpenPanel}
+        style={{
+          borderRadius: "999px",
+          paddingLeft: "12px",
+          paddingRight: "12px",
+        }}
+      >
+        连接设备
+      </Button>
+    </Tooltip>
+  );
+};
+
 function Header() {
   const { isDark, toggleTheme } = useTheme();
   const [updateLogOpen, setUpdateLogOpen] = useState(false);
@@ -253,21 +317,9 @@ function Header() {
         <div className={style.right}>
           <ConnectionButton />
           {wsConnected && (
-            <Tooltip placement="bottom" title="设备连接配置">
-              <Button
-                type="default"
-                size="small"
-                icon={<LinkOutlined />}
-                onClick={() => setConnectionPanelOpen(true)}
-                style={{
-                  borderRadius: "999px",
-                  paddingLeft: "12px",
-                  paddingRight: "12px",
-                }}
-              >
-                连接设备
-              </Button>
-            </Tooltip>
+            <DeviceConnectionButton
+              onOpenPanel={() => setConnectionPanelOpen(true)}
+            />
           )}
           <div className={style.versionInfo}>
             <Dropdown menu={{ items: otherVersions }} placement="bottom">
