@@ -149,10 +149,18 @@ func (h *MFWHandler) handleCreateAdbController(conn *server.Connection, msg mode
 		return
 	}
 
+	// 自动连接控制器
+	if err := h.service.ControllerManager().ConnectController(controllerID); err != nil {
+		logger.Error("MFW", "连接ADB控制器失败: %v", err)
+		h.sendMFWError(conn, mfw.ErrCodeControllerConnectFail, "控制器连接失败", err.Error())
+		return
+	}
+
 	// 发送控制器创建响应
 	response := models.Message{
 		Path: "/lte/mfw/controller_created",
 		Data: map[string]interface{}{
+			"success":       true,
 			"controller_id": controllerID,
 			"type":          "adb",
 		},
@@ -180,10 +188,18 @@ func (h *MFWHandler) handleCreateWin32Controller(conn *server.Connection, msg mo
 		return
 	}
 
+	// 自动连接控制器
+	if err := h.service.ControllerManager().ConnectController(controllerID); err != nil {
+		logger.Error("MFW", "连接Win32控制器失败: %v", err)
+		h.sendMFWError(conn, mfw.ErrCodeControllerConnectFail, "控制器连接失败", err.Error())
+		return
+	}
+
 	// 发送控制器创建响应
 	response := models.Message{
 		Path: "/lte/mfw/controller_created",
 		Data: map[string]interface{}{
+			"success":       true,
 			"controller_id": controllerID,
 			"type":          "win32",
 		},
@@ -244,6 +260,7 @@ func (h *MFWHandler) handleScreencap(conn *server.Connection, msg models.Message
 		Path: "/lte/mfw/screencap_result",
 		Data: map[string]interface{}{
 			"controller_id": controllerID,
+			"success":       true,
 			"image":         result.ImageData,
 			"width":         result.Width,
 			"height":        result.Height,

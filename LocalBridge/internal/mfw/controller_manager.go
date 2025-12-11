@@ -4,9 +4,15 @@ import (
 	"bytes"
 	"encoding/base64"
 	"image/png"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
+	"unsafe"
 
+	maa "github.com/MaaXYZ/maa-framework-go/v3"
+	"github.com/MaaXYZ/maa-framework-go/v3/controller/adb"
+	"github.com/MaaXYZ/maa-framework-go/v3/controller/win32"
 	"github.com/google/uuid"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 )
@@ -30,15 +36,31 @@ func (cm *ControllerManager) CreateAdbController(adbPath, address string, screen
 
 	controllerID := uuid.New().String()
 
-	// TODO: 实际调用maa.NewAdbController
-	// ctrl := maa.NewAdbController(adbPath, address, ...)
-	// if ctrl == nil {
-	//     return "", NewMFWError(ErrCodeControllerCreateFail, "failed to create adb controller", nil)
-	// }
+	// 解析截图方法
+	var scMethod adb.ScreencapMethod
+	for _, m := range screencapMethod {
+		parsed, _ := adb.ParseScreencapMethod(m)
+		scMethod |= parsed
+	}
+	// 如果未指定方法，使用传入的第一个方法作为默认，maafw-golang 库会处理默认值
+
+	// 解析输入方法
+	var inMethod adb.InputMethod
+	for _, m := range inputMethod {
+		parsed, _ := adb.ParseInputMethod(m)
+		inMethod |= parsed
+	}
+
+	// 创建 ADB 控制器
+	ctrl := maa.NewAdbController(adbPath, address, scMethod, inMethod, config, agentPath)
+	if ctrl == nil {
+		return "", NewMFWError(ErrCodeControllerCreateFail, "failed to create adb controller", nil)
+	}
 
 	info := &ControllerInfo{
 		ControllerID: controllerID,
 		Type:         "ADB",
+		Controller:   ctrl,
 		Connected:    false,
 		CreatedAt:    time.Now(),
 		LastActiveAt: time.Now(),
@@ -58,11 +80,38 @@ func (cm *ControllerManager) CreateWin32Controller(hwnd, screencapMethod, inputM
 
 	controllerID := uuid.New().String()
 
-	// TODO: 实际调用maa.NewWin32Controller
+	// 解析窗口句柄
+	var hwndPtr unsafe.Pointer
+	if hwnd != "" {
+		// 去掉 "0x" 或 "0X" 前缀
+		hexStr := strings.TrimPrefix(hwnd, "0x")
+		hexStr = strings.TrimPrefix(hexStr, "0X")
+		if val, err := strconv.ParseUint(hexStr, 16, 64); err == nil {
+			hwndPtr = unsafe.Pointer(uintptr(val))
+			logger.Info("MFW", "解析窗口句柄: %s -> %v", hwnd, hwndPtr)
+		} else {
+			logger.Error("MFW", "解析窗口句柄失败: %s, %v", hwnd, err)
+		}
+	}
+
+	// 解析截图方法
+	scMethod, _ := win32.ParseScreencapMethod(screencapMethod)
+	// maafw-golang 库会处理默认值
+
+	// 解析鼠标输入方法
+	mouseMethod, _ := win32.ParseInputMethod(inputMethod)
+	// maafw-golang 库会处理默认值
+
+	// 创建 Win32 控制器
+	ctrl := maa.NewWin32Controller(hwndPtr, scMethod, mouseMethod, mouseMethod)
+	if ctrl == nil {
+		return "", NewMFWError(ErrCodeControllerCreateFail, "failed to create win32 controller", nil)
+	}
 
 	info := &ControllerInfo{
 		ControllerID: controllerID,
 		Type:         "Win32",
+		Controller:   ctrl,
 		Connected:    false,
 		CreatedAt:    time.Now(),
 		LastActiveAt: time.Now(),
@@ -86,8 +135,29 @@ func (cm *ControllerManager) ConnectController(controllerID string) error {
 		return ErrControllerNotFound
 	}
 
-	// TODO: 实际调用controller.PostConnect().Wait()
-	
+	// 获取控制器实例
+	ctrl, ok := info.Controller.(*maa.Controller)
+	if !ok || ctrl == nil {
+		return NewMFWError(ErrCodeControllerNotConnected, "controller instance not available", nil)
+	}
+
+	// 异步连接并等待完成
+	job := ctrl.PostConnect()
+	if job == nil {
+		return NewMFWError(ErrCodeControllerConnectFail, "failed to post connect", nil)
+	}
+	job.Wait()
+
+	// 检查连接状态
+	if !ctrl.Connected() {
+		return NewMFWError(ErrCodeControllerConnectFail, "controller connection failed", nil)
+	}
+
+	// 获取 UUID
+	if uuidStr, ok := ctrl.GetUUID(); ok {
+		info.UUID = uuidStr
+	}
+
 	info.Connected = true
 	info.LastActiveAt = time.Now()
 
@@ -100,12 +170,15 @@ func (cm *ControllerManager) DisconnectController(controllerID string) error {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 
-	_, exists := cm.controllers[controllerID]
+	info, exists := cm.controllers[controllerID]
 	if !exists {
 		return ErrControllerNotFound
 	}
 
-	// TODO: 实际调用controller.Destroy()
+	// 销毁控制器实例
+	if ctrl, ok := info.Controller.(*maa.Controller); ok && ctrl != nil {
+		ctrl.Destroy()
+	}
 
 	delete(cm.controllers, controllerID)
 
@@ -140,14 +213,24 @@ func (cm *ControllerManager) Click(controllerID string, x, y int32) (*Controller
 		return nil, ErrNotConnected
 	}
 
-	// TODO: 实际调用controller.PostClick(x, y).Wait()
+	ctrl, ok := info.Controller.(*maa.Controller)
+	if !ok || ctrl == nil {
+		return nil, ErrNotConnected
+	}
+
+	// 执行点击操作
+	job := ctrl.PostClick(x, y)
+	if job == nil {
+		return nil, NewMFWError(ErrCodeOperationFail, "failed to post click", nil)
+	}
+	job.Wait()
 
 	info.LastActiveAt = time.Now()
 
 	return &ControllerOperationResult{
 		ControllerID: controllerID,
 		Operation:    OpClick,
-		Success:      true,
+		Success:      job.Success(),
 		Status:       "Success",
 	}, nil
 }
@@ -166,14 +249,24 @@ func (cm *ControllerManager) Swipe(controllerID string, x1, y1, x2, y2, duration
 		return nil, ErrNotConnected
 	}
 
-	// TODO: 实际调用controller.PostSwipe(x1, y1, x2, y2, duration).Wait()
+	ctrl, ok := info.Controller.(*maa.Controller)
+	if !ok || ctrl == nil {
+		return nil, ErrNotConnected
+	}
+
+	// 执行滑动操作
+	job := ctrl.PostSwipe(x1, y1, x2, y2, time.Duration(duration)*time.Millisecond)
+	if job == nil {
+		return nil, NewMFWError(ErrCodeOperationFail, "failed to post swipe", nil)
+	}
+	job.Wait()
 
 	info.LastActiveAt = time.Now()
 
 	return &ControllerOperationResult{
 		ControllerID: controllerID,
 		Operation:    OpSwipe,
-		Success:      true,
+		Success:      job.Success(),
 		Status:       "Success",
 	}, nil
 }
@@ -192,14 +285,24 @@ func (cm *ControllerManager) InputText(controllerID, text string) (*ControllerOp
 		return nil, ErrNotConnected
 	}
 
-	// TODO: 实际调用controller.PostInputText(text).Wait()
+	ctrl, ok := info.Controller.(*maa.Controller)
+	if !ok || ctrl == nil {
+		return nil, ErrNotConnected
+	}
+
+	// 执行输入文本操作
+	job := ctrl.PostInputText(text)
+	if job == nil {
+		return nil, NewMFWError(ErrCodeOperationFail, "failed to post input text", nil)
+	}
+	job.Wait()
 
 	info.LastActiveAt = time.Now()
 
 	return &ControllerOperationResult{
 		ControllerID: controllerID,
 		Operation:    OpInputText,
-		Success:      true,
+		Success:      job.Success(),
 		Status:       "Success",
 	}, nil
 }
@@ -218,14 +321,24 @@ func (cm *ControllerManager) StartApp(controllerID, intent string) (*ControllerO
 		return nil, ErrNotConnected
 	}
 
-	// TODO: 实际调用controller.PostStartApp(intent).Wait()
+	ctrl, ok := info.Controller.(*maa.Controller)
+	if !ok || ctrl == nil {
+		return nil, ErrNotConnected
+	}
+
+	// 执行启动应用操作
+	job := ctrl.PostStartApp(intent)
+	if job == nil {
+		return nil, NewMFWError(ErrCodeOperationFail, "failed to post start app", nil)
+	}
+	job.Wait()
 
 	info.LastActiveAt = time.Now()
 
 	return &ControllerOperationResult{
 		ControllerID: controllerID,
 		Operation:    OpStartApp,
-		Success:      true,
+		Success:      job.Success(),
 		Status:       "Success",
 	}, nil
 }
@@ -244,14 +357,24 @@ func (cm *ControllerManager) StopApp(controllerID, intent string) (*ControllerOp
 		return nil, ErrNotConnected
 	}
 
-	// TODO: 实际调用controller.PostStopApp(intent).Wait()
+	ctrl, ok := info.Controller.(*maa.Controller)
+	if !ok || ctrl == nil {
+		return nil, ErrNotConnected
+	}
+
+	// 执行停止应用操作
+	job := ctrl.PostStopApp(intent)
+	if job == nil {
+		return nil, NewMFWError(ErrCodeOperationFail, "failed to post stop app", nil)
+	}
+	job.Wait()
 
 	info.LastActiveAt = time.Now()
 
 	return &ControllerOperationResult{
 		ControllerID: controllerID,
 		Operation:    OpStopApp,
-		Success:      true,
+		Success:      job.Success(),
 		Status:       "Success",
 	}, nil
 }
@@ -270,33 +393,59 @@ func (cm *ControllerManager) Screencap(req *ScreencapRequest) (*ScreencapResult,
 		return nil, ErrNotConnected
 	}
 
-	// TODO: 实际实现
-	// if !req.UseCache {
-	//     if req.TargetLongSide > 0 {
-	//         controller.SetScreenshotTargetLongSide(req.TargetLongSide)
-	//     }
-	//     controller.PostScreencap().Wait()
-	// }
-	// img := controller.CacheImage()
-	// 编码为PNG并转Base64
+	ctrl, ok := info.Controller.(*maa.Controller)
+	if !ok || ctrl == nil {
+		return nil, ErrNotConnected
+	}
 
+	// 设置截图参数
+	if req.TargetLongSide > 0 {
+		ctrl.SetScreenshotTargetLongSide(req.TargetLongSide)
+	}
+	if req.TargetShortSide > 0 {
+		ctrl.SetScreenshotTargetShortSide(req.TargetShortSide)
+	}
+	if req.UseRawSize {
+		ctrl.SetScreenshotUseRawSize(true)
+	}
+
+	// 执行截图
+	if !req.UseCache {
+		job := ctrl.PostScreencap()
+		if job == nil {
+			return nil, NewMFWError(ErrCodeOperationFail, "failed to post screencap", nil)
+		}
+		job.Wait()
+	}
+
+	// 获取缓存图像
+	img := ctrl.CacheImage()
 	info.LastActiveAt = time.Now()
 
-	// 临时返回空图像数据
-	emptyImg := make([]byte, 1)
+	if img == nil {
+		return &ScreencapResult{
+			ControllerID: req.ControllerID,
+			Success:      false,
+			Error:        "no image captured",
+			Timestamp:    time.Now().Format(time.RFC3339),
+		}, nil
+	}
+
+	// 编码为 PNG 并转为 Base64
 	var buf bytes.Buffer
-	_ = png.Encode(&buf, nil)
-	
+	if err := png.Encode(&buf, img); err != nil {
+		return nil, NewMFWError(ErrCodeOperationFail, "failed to encode image", nil)
+	}
+
+	bounds := img.Bounds()
 	result := &ScreencapResult{
 		ControllerID: req.ControllerID,
 		Success:      true,
 		ImageData:    base64.StdEncoding.EncodeToString(buf.Bytes()),
-		Width:        0,
-		Height:       0,
+		Width:        bounds.Dx(),
+		Height:       bounds.Dy(),
 		Timestamp:    time.Now().Format(time.RFC3339),
 	}
-
-	_ = emptyImg // 避免未使用变量警告
 
 	return result, nil
 }
@@ -335,9 +484,30 @@ func (cm *ControllerManager) CleanupInactive(timeout time.Duration) {
 	now := time.Now()
 	for id, info := range cm.controllers {
 		if now.Sub(info.LastActiveAt) > timeout {
-			// TODO: 调用Destroy释放资源
+			// 销毁控制器实例
+			if ctrl, ok := info.Controller.(*maa.Controller); ok && ctrl != nil {
+				ctrl.Destroy()
+			}
 			delete(cm.controllers, id)
 			logger.Info("MFW", "清理非活跃控制器: %s", id)
 		}
 	}
+}
+
+// 断开所有控制器
+func (cm *ControllerManager) DisconnectAll() {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+
+	for id, info := range cm.controllers {
+		// 销毁控制器实例
+		if ctrl, ok := info.Controller.(*maa.Controller); ok && ctrl != nil {
+			ctrl.Destroy()
+		}
+		logger.Info("MFW", "断开控制器: %s", id)
+	}
+
+	// 清空控制器列表
+	cm.controllers = make(map[string]*ControllerInfo)
+	logger.Info("MFW", "所有控制器已断开")
 }

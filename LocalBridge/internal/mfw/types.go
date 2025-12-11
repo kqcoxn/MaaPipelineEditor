@@ -2,8 +2,6 @@ package mfw
 
 import (
 	"time"
-	// TODO: 需要配置 MaaFramework 动态库路径后再启用
-	// maa "github.com/MaaXYZ/maa-framework-go"
 )
 
 // ADB设备信息

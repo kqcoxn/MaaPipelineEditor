@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	maa "github.com/MaaXYZ/maa-framework-go/v3"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 )
 
@@ -24,19 +25,19 @@ func NewTaskManager() *TaskManager {
 func (tm *TaskManager) SubmitTask(controllerID, resourceID, entry string, override map[string]interface{}) (int64, error) {
 	logger.Info("MFW", "提交任务: entry=%s, controller=%s, resource=%s", entry, controllerID, resourceID)
 
-	// TODO: 实际实现
-	// tasker := maa.NewTasker()
-	// tasker.BindController(controller)
-	// tasker.BindResource(resource)
-	// taskJob := tasker.PostTask(entry, override)
-	// taskID := taskJob.ID
+	// 创建 Tasker
+	tasker := maa.NewTasker()
+	if tasker == nil {
+		return 0, NewMFWError(ErrCodeTaskSubmitFailed, "failed to create tasker", nil)
+	}
 
-	taskID := time.Now().UnixNano() // 临时使用时间戳作为ID
+	taskID := time.Now().UnixNano()
 
 	info := &TaskInfo{
 		TaskID:       taskID,
 		ControllerID: controllerID,
 		ResourceID:   resourceID,
+		Tasker:       tasker,
 		Entry:        entry,
 		Override:     override,
 		Status:       "Pending",
@@ -61,8 +62,6 @@ func (tm *TaskManager) GetTaskStatus(taskID int64) (string, error) {
 		return "", ErrTaskNotFound
 	}
 
-	// TODO: 实际查询taskJob.Status()
-
 	return info.Status, nil
 }
 
@@ -76,10 +75,39 @@ func (tm *TaskManager) StopTask(taskID int64) error {
 		return ErrTaskNotFound
 	}
 
-	// TODO: 调用tasker.PostStop()
+	// 调用 Tasker 的停止方法
+	if tasker, ok := info.Tasker.(*maa.Tasker); ok && tasker != nil {
+		job := tasker.PostStop()
+		if job != nil {
+			job.Wait()
+		}
+	}
 
 	info.Status = "Stopped"
 
 	logger.Info("MFW", "任务已停止: %d", taskID)
 	return nil
+}
+
+// 停止所有任务
+func (tm *TaskManager) StopAll() {
+	tm.mu.Lock()
+	defer tm.mu.Unlock()
+
+	for taskID, info := range tm.tasks {
+		// 调用 Tasker 的停止方法
+		if tasker, ok := info.Tasker.(*maa.Tasker); ok && tasker != nil {
+			job := tasker.PostStop()
+			if job != nil {
+				job.Wait()
+			}
+			tasker.Destroy()
+		}
+		info.Status = "Stopped"
+		logger.Info("MFW", "停止任务: %d", taskID)
+	}
+
+	// 清空任务列表
+	tm.tasks = make(map[int64]*TaskInfo)
+	logger.Info("MFW", "所有任务已停止")
 }

@@ -19,6 +19,7 @@ import {
 } from "@ant-design/icons";
 import IconFont from "./iconfonts";
 import UpdateLog from "./modals/UpdateLog";
+import { ConnectionPanel } from "./panels/ConnectionPanel";
 import { localServer } from "../services/server";
 
 import { globalConfig } from "../stores/configStore";
@@ -155,6 +156,7 @@ const ConnectionButton: React.FC = () => {
 function Header() {
   const { isDark, toggleTheme } = useTheme();
   const [updateLogOpen, setUpdateLogOpen] = useState(false);
+  const [connectionPanelOpen, setConnectionPanelOpen] = useState(false);
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
 
   // 检测页面宽度
@@ -226,6 +228,21 @@ function Header() {
         </div>
         <div className={style.right}>
           <ConnectionButton />
+          <Tooltip placement="bottom" title="设备连接配置">
+            <Button
+              type="default"
+              size="small"
+              icon={<LinkOutlined />}
+              onClick={() => setConnectionPanelOpen(true)}
+              style={{
+                borderRadius: "999px",
+                paddingLeft: "12px",
+                paddingRight: "12px",
+              }}
+            >
+              连接设备
+            </Button>
+          </Tooltip>
           <div className={style.versionInfo}>
             <Dropdown menu={{ items: otherVersions }} placement="bottom">
               <a>
@@ -296,6 +313,10 @@ function Header() {
         </div>
       </div>
       <UpdateLog open={updateLogOpen} onClose={() => setUpdateLogOpen(false)} />
+      <ConnectionPanel
+        open={connectionPanelOpen}
+        onClose={() => setConnectionPanelOpen(false)}
+      />
     </>
   );
 }

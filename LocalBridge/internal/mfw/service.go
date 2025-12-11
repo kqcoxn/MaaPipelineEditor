@@ -3,6 +3,7 @@ package mfw
 import (
 	"sync"
 
+	maa "github.com/MaaXYZ/maa-framework-go/v3"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 )
 
@@ -38,14 +39,17 @@ func (s *Service) Initialize() error {
 
 	logger.Info("MFW", "初始化 MaaFramework")
 
-	// TODO: 实际调用maa.Init()
-	// err := maa.Init(
-	//     maa.WithLogDir("./logs"),
-	//     maa.WithStdoutLevel(maa.LoggingLevelInfo),
-	// )
-	// if err != nil {
-	//     return err
-	// }
+	err := maa.Init(
+		maa.WithLibDir("C:\\programs\\MaaNewMoonAccompanying\\deps\\bin"),
+		maa.WithLogDir("./logs"),
+		maa.WithSaveDraw(false),
+		maa.WithStdoutLevel(maa.LoggingLevelInfo),
+		maa.WithDebugMode(false),
+	)
+	if err != nil {
+		logger.Error("MFW", "MaaFramework 初始化失败: %v", err)
+		return err
+	}
 
 	s.initialized = true
 
@@ -64,11 +68,20 @@ func (s *Service) Shutdown() error {
 
 	logger.Info("MFW", "关闭 MaaFramework")
 
-	// TODO: 清理所有资源
-	// - 停止所有任务
-	// - 断开所有控制器
-	// - 卸载所有资源
-	// - 调用maa.Release()
+	// 停止所有任务
+	s.taskManager.StopAll()
+
+	// 断开所有控制器
+	s.controllerManager.DisconnectAll()
+
+	// 卸载所有资源
+	s.resourceManager.UnloadAll()
+
+	// 释放框架资源
+	if err := maa.Release(); err != nil {
+		logger.Error("MFW", "MaaFramework 释放失败: %v", err)
+		return err
+	}
 
 	s.initialized = false
 

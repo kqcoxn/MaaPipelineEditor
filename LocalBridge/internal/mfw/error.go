@@ -4,16 +4,19 @@ import "errors"
 
 // MFW错误码定义
 const (
-	ErrCodeControllerCreateFail = "MFW_CONTROLLER_CREATE_FAIL"
-	ErrCodeControllerNotFound   = "MFW_CONTROLLER_NOT_FOUND"
-	ErrCodeConnectionFailed     = "MFW_CONNECTION_FAILED"
-	ErrCodeScreencapFailed      = "MFW_SCREENCAP_FAILED"
-	ErrCodeOperationFailed      = "MFW_OPERATION_FAILED"
-	ErrCodeTaskSubmitFailed     = "MFW_TASK_SUBMIT_FAILED"
-	ErrCodeResourceLoadFailed   = "MFW_RESOURCE_LOAD_FAILED"
-	ErrCodeInvalidParameter     = "MFW_INVALID_PARAMETER"
-	ErrCodeDeviceNotFound       = "MFW_DEVICE_NOT_FOUND"
-	ErrCodeNotInitialized       = "MFW_NOT_INITIALIZED"
+	ErrCodeControllerCreateFail   = "MFW_CONTROLLER_CREATE_FAIL"
+	ErrCodeControllerNotFound     = "MFW_CONTROLLER_NOT_FOUND"
+	ErrCodeControllerConnectFail  = "MFW_CONTROLLER_CONNECT_FAIL"
+	ErrCodeControllerNotConnected = "MFW_CONTROLLER_NOT_CONNECTED"
+	ErrCodeConnectionFailed       = "MFW_CONNECTION_FAILED"
+	ErrCodeScreencapFailed        = "MFW_SCREENCAP_FAILED"
+	ErrCodeOperationFailed        = "MFW_OPERATION_FAILED"
+	ErrCodeOperationFail          = "MFW_OPERATION_FAIL"
+	ErrCodeTaskSubmitFailed       = "MFW_TASK_SUBMIT_FAILED"
+	ErrCodeResourceLoadFailed     = "MFW_RESOURCE_LOAD_FAILED"
+	ErrCodeInvalidParameter       = "MFW_INVALID_PARAMETER"
+	ErrCodeDeviceNotFound         = "MFW_DEVICE_NOT_FOUND"
+	ErrCodeNotInitialized         = "MFW_NOT_INITIALIZED"
 )
 
 // 预定义错误
