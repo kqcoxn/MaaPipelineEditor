@@ -9,6 +9,13 @@
 - [src/services/protocols/FileProtocol.ts](file://src/services/protocols/FileProtocol.ts)
 - [docsite/docs/01.指南/10.其他/10.通信协议.md](file://docsite/docs/01.指南/10.其他/10.通信协议.md)
 - [LocalBridge/internal/server/websocket.go](file://LocalBridge/internal/server/websocket.go)
+- [LocalBridge/internal/protocol/mfw/handler.go](file://LocalBridge/internal/protocol/mfw/handler.go)
+- [LocalBridge/pkg/models/mfw.go](file://LocalBridge/pkg/models/mfw.go)
+- [LocalBridge/internal/mfw/device_manager.go](file://LocalBridge/internal/mfw/device_manager.go)
+- [LocalBridge/internal/mfw/controller_manager.go](file://LocalBridge/internal/mfw/controller_manager.go)
+- [LocalBridge/internal/mfw/task_manager.go](file://LocalBridge/internal/mfw/task_manager.go)
+- [LocalBridge/internal/mfw/resource_manager.go](file://LocalBridge/internal/mfw/resource_manager.go)
+- [LocalBridge/internal/mfw/types.go](file://LocalBridge/internal/mfw/types.go)
 </cite>
 
 ## 更新摘要
@@ -18,6 +25,7 @@
 - 更新了“架构总览”序列图，体现握手阶段的消息交互。
 - 扩展了“消息与数据模型”章节，增加握手请求与响应的数据结构定义。
 - 在“前端实现要点”中补充了前端发起握手请求的逻辑说明。
+- **新增 MaaFramework (MFW) 协议的详细说明**，涵盖设备管理、控制器操作和任务执行等核心API，包括设备发现、控制器创建与连接、截图传输、基础操作、任务提交与状态查询等功能。
 
 ## 目录
 1. [简介](#简介)
@@ -32,7 +40,7 @@
 10. [附录](#附录)
 
 ## 简介
-本文档系统性梳理 LocalBridge（简称 LB）通信协议，覆盖连接管理、消息规范、文件协议、日志协议、事件总线、配置系统、CLI 应用以及前端 WebSocket 服务端实现。文档结合仓库内的协议说明、开发文档与前端实现，帮助开发者理解并正确集成本地服务与前端编辑器之间的双向通信。本次更新重点新增了文件创建协议和文件列表刷新协议的详细说明，并完善了文件状态管理功能的描述。**本次更新新增了 WebSocket 握手协议，用于在连接建立初期进行前后端协议版本兼容性检查，确保通信协议的一致性。**
+本文档系统性梳理 LocalBridge（简称 LB）通信协议，覆盖连接管理、消息规范、文件协议、日志协议、事件总线、配置系统、CLI 应用以及前端 WebSocket 服务端实现。文档结合仓库内的协议说明、开发文档与前端实现，帮助开发者理解并正确集成本地服务与前端编辑器之间的双向通信。本次更新重点新增了文件创建协议和文件列表刷新协议的详细说明，并完善了文件状态管理功能的描述。**本次更新新增了 WebSocket 握手协议，用于在连接建立初期进行前后端协议版本兼容性检查，确保通信协议的一致性。** **同时，本次更新全面引入了 MaaFramework (MFW) 协议的详细说明，为调试器和参数传输提供了完整的底层能力封装。**
 
 **Section sources**
 - [LocalBridge/Agreement.md](file://LocalBridge/Agreement.md#L1-L300)
@@ -359,6 +367,71 @@ E --> F["文件变更时\n广播 /lte/file_changed"]
 - [LocalBridge/pkg/models/message.go](file://LocalBridge/pkg/models/message.go#L1-L72)
 - [LocalBridge/pkg/models/file.go](file://LocalBridge/pkg/models/file.go#L1-L19)
 
+### MaaFramework (MFW) 协议
+MaaFramework (MFW) 协议是 LocalBridge 的核心扩展，为 MaaMpeGoDebugger 提供了与 MaaFramework 底层能力交互的 WebSocket 接口。该协议基于 `maa-framework-go` API 实现，支持设备连接、控制器管理、截图传输、任务执行等核心功能。
+
+#### MFW 协议处理器 (mfw/handler.go)
+MFW 协议处理器 (`MFWHandler`) 是处理所有 MFW 相关消息的核心组件。它通过 `Handle` 方法根据消息的 `path` 字段分发到不同的处理函数。
+
+- **路由前缀**: `/etl/mfw/`
+- **核心处理逻辑**:
+  - **设备管理**: 处理 `/etl/mfw/refresh_adb_devices` 和 `/etl/mfw/refresh_win32_windows` 请求，调用 `DeviceManager` 获取设备列表并推送 `/lte/mfw/adb_devices` 或 `/lte/mfw/win32_windows`。
+  - **控制器管理**: 处理 `/etl/mfw/create_adb_controller`、`/etl/mfw/create_win32_controller` 和 `/etl/mfw/disconnect_controller` 请求，调用 `ControllerManager` 创建或断开控制器，并推送 `controller_created` 或 `controller_status` 事件。
+  - **控制器操作**: 处理 `/etl/mfw/controller_click`、`/etl/mfw/controller_swipe` 等操作请求，调用 `ControllerManager` 执行相应操作，并通过 `controller_operation_result` 返回结果。
+  - **任务管理**: 处理 `/etl/mfw/submit_task`、`/etl/mfw/query_task_status` 和 `/etl/mfw/stop_task` 请求，调用 `TaskManager` 提交、查询和停止任务。
+  - **资源管理**: 处理 `/etl/mfw/load_resource` 请求，调用 `ResourceManager` 加载资源包。
+
+**Section sources**
+- [LocalBridge/internal/protocol/mfw/handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L1-L536)
+
+#### 设备管理
+设备管理功能允许前端发现并获取可用的 ADB 设备和 Win32 窗体。
+
+- **设备发现**:
+  - **ADB 设备**: 通过 `/etl/mfw/refresh_adb_devices` 请求刷新 ADB 设备列表。服务端调用 `DeviceManager.RefreshAdbDevices()` 获取设备信息，并通过 `/lte/mfw/adb_devices` 推送包含 `adb_path`, `address`, `screencap_methods`, `input_methods` 等信息的设备列表。
+  - **Win32 窗体**: 通过 `/etl/mfw/refresh_win32_windows` 请求刷新 Win32 窗体列表。服务端调用 `DeviceManager.RefreshWin32Windows()` 获取窗体信息，并通过 `/lte/mfw/win32_windows` 推送包含 `hwnd`, `class_name`, `window_name` 等信息的窗体列表。
+
+**Section sources**
+- [LocalBridge/internal/mfw/device_manager.go](file://LocalBridge/internal/mfw/device_manager.go#L1-L74)
+- [LocalBridge/Agreement.md](file://LocalBridge/Agreement.md#L282-L343)
+
+#### 控制器操作
+控制器操作是 MFW 协议的核心，允许前端对连接的设备执行各种交互。
+
+- **控制器创建**:
+  - **ADB 控制器**: 通过 `/etl/mfw/create_adb_controller` 请求创建 ADB 控制器，需提供 `adb_path`, `address`, `screencap_method`, `input_method` 等参数。创建成功后返回 `controller_id`。
+  - **Win32 控制器**: 通过 `/etl/mfw/create_win32_controller` 请求创建 Win32 控制器，需提供 `hwnd`, `screencap_method`, `input_method` 等参数。
+- **基础操作**:
+  - **点击**: `/etl/mfw/controller_click`，指定 `controller_id` 和坐标 `(x, y)`。
+  - **滑动**: `/etl/mfw/controller_swipe`，指定起点 `(x1, y1)`、终点 `(x2, y2)` 和持续时间 `duration`。
+  - **输入文本**: `/etl/mfw/controller_input_text`，指定 `controller_id` 和 `text`。
+  - **应用控制**: `/etl/mfw/controller_start_app` 和 `/etl/mfw/controller_stop_app`，用于启动和停止应用。
+- **操作结果**: 所有操作的结果通过 `/lte/mfw/controller_operation_result` 事件返回，包含 `controller_id`, `operation`, `success`, `status` 等信息。
+
+**Section sources**
+- [LocalBridge/internal/mfw/controller_manager.go](file://LocalBridge/internal/mfw/controller_manager.go#L1-L344)
+- [LocalBridge/Agreement.md](file://LocalBridge/Agreement.md#L345-L547)
+
+#### 任务执行
+任务执行功能允许前端提交 MaaFramework 任务并监控其状态。
+
+- **任务提交**: 通过 `/etl/mfw/submit_task` 请求提交任务，需提供 `controller_id`, `resource_path`, `entry` (入口节点) 和可选的 `override` 参数。提交成功后返回 `task_id`。
+- **状态查询**: 通过 `/etl/mfw/query_task_status` 请求查询任务状态，返回 `task_id`, `status` (如 "Running", "Success") 和 `detail` 信息。
+- **任务停止**: 通过 `/etl/mfw/stop_task` 请求停止正在执行的任务。
+
+**Section sources**
+- [LocalBridge/internal/mfw/task_manager.go](file://LocalBridge/internal/mfw/task_manager.go#L1-L86)
+- [LocalBridge/Agreement.md](file://LocalBridge/Agreement.md#L549-L621)
+
+#### 资源管理
+资源管理功能用于加载和管理 MaaFramework 的资源包。
+
+- **加载资源**: 通过 `/etl/mfw/load_resource` 请求加载指定路径的资源包。加载成功后通过 `/lte/mfw/resource_loaded` 返回 `resource_id` 和 `hash`。
+
+**Section sources**
+- [LocalBridge/internal/mfw/resource_manager.go](file://LocalBridge/internal/mfw/resource_manager.go#L1-L79)
+- [LocalBridge/Agreement.md](file://LocalBridge/Agreement.md#L664-L689)
+
 ### 协议与实现对照
 - **协议来源**
   - `LocalBridge/README/Agreement.md`：定义了 `/lte/*`（LB→MPE）、`/etl/*`（MPE→LB）、`/ack/*` 确认消息与 `/error` 错误消息等路由。
@@ -369,6 +442,7 @@ E --> F["文件变更时\n广播 /lte/file_changed"]
   - 新增的日志推送功能通过事件总线和 `PushHook` 实现，当 `push_to_client` 为启用时，日志会以特定格式推送到前端。
   - **新增协议实现**: `/etl/create_file` 和 `/etl/refresh_file_list` 已在 `file_handler.go` 中实现，并在 `Agreement.md` 中明确定义。
   - **新增握手协议**: 在 `websocket.go` 中定义了 `ProtocolVersion` 常量和 `/system/handshake` 路由，用于在连接建立后进行版本兼容性检查。
+  - **新增 MFW 协议实现**: `mfw/handler.go` 实现了完整的 MFW 协议，包括设备管理、控制器操作、任务执行和资源管理等 API。
 
 **Section sources**
 - [LocalBridge/README/Agreement.md](file://LocalBridge/README/Agreement.md#L36-L191)
@@ -377,6 +451,7 @@ E --> F["文件变更时\n广播 /lte/file_changed"]
 - [src/services/responds.ts](file://src/services/responds.ts#L1-L69)
 - [LocalBridge/internal/logger/logger.go](file://LocalBridge/internal/logger/logger.go#L59-L98)
 - [LocalBridge/internal/server/websocket.go](file://LocalBridge/internal/server/websocket.go#L15-L22)
+- [LocalBridge/internal/protocol/mfw/handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L1-L536)
 
 ## 依赖关系分析
 - **入口初始化**
@@ -476,6 +551,12 @@ LocalBridge 通信协议以 WebSocket 为基础，通过明确的消息格式与
   - **路由**:
     - `/system/handshake` (MPE→LB): 客户端发起握手，携带 `client_version`。
     - `/system/handshake/response` (LB→MPE): 服务端返回握手结果，包含 `server_version`, `compatible`, `message`。
+- **MaaFramework (MFW) 协议**
+  - **设备管理**: `/etl/mfw/refresh_adb_devices`, `/etl/mfw/refresh_win32_windows`。
+  - **控制器操作**: `/etl/mfw/create_adb_controller`, `/etl/mfw/controller_click`, `/etl/mfw/controller_swipe`。
+  - **任务执行**: `/etl/mfw/submit_task`, `/etl/mfw/query_task_status`。
+  - **资源管理**: `/etl/mfw/load_resource`。
+  - **错误码**: `MFW_CONTROLLER_CREATE_FAIL`, `MFW_SCREENCAP_FAILED`, `MFW_TASK_SUBMIT_FAILED` 等。
 
 **Section sources**
 - [LocalBridge/README/Agreement.md](file://LocalBridge/README/Agreement.md#L7-L21)
@@ -485,6 +566,7 @@ LocalBridge 通信协议以 WebSocket 为基础，通过明确的消息格式与
 - [LocalBridge/README/Agreement.md](file://LocalBridge/README/Agreement.md#L250-L289)
 - [LocalBridge/internal/logger/logger.go](file://LocalBridge/internal/logger/logger.go#L59-L98)
 - [LocalBridge/internal/server/websocket.go](file://LocalBridge/internal/server/websocket.go#L15-L22)
+- [LocalBridge/README/Agreement.md](file://LocalBridge/README/Agreement.md#L245-L749)
 
 ### 前端实现要点
 - **初始化**
