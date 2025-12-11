@@ -158,6 +158,30 @@ function Header() {
   const [updateLogOpen, setUpdateLogOpen] = useState(false);
   const [connectionPanelOpen, setConnectionPanelOpen] = useState(false);
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
+  const [wsConnected, setWsConnected] = useState(false);
+
+  // 检测WebSocket连接状态
+  useEffect(() => {
+    const updateWsStatus = () => {
+      setWsConnected(localServer.isConnected());
+    };
+
+    updateWsStatus();
+
+    // 注册状态变化回调
+    localServer.onStatus((connected) => {
+      setWsConnected(connected);
+    });
+
+    // 定期检查状态
+    const interval = setInterval(() => {
+      updateWsStatus();
+    }, 1000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, []);
 
   // 检测页面宽度
   useEffect(() => {
@@ -228,21 +252,23 @@ function Header() {
         </div>
         <div className={style.right}>
           <ConnectionButton />
-          <Tooltip placement="bottom" title="设备连接配置">
-            <Button
-              type="default"
-              size="small"
-              icon={<LinkOutlined />}
-              onClick={() => setConnectionPanelOpen(true)}
-              style={{
-                borderRadius: "999px",
-                paddingLeft: "12px",
-                paddingRight: "12px",
-              }}
-            >
-              连接设备
-            </Button>
-          </Tooltip>
+          {wsConnected && (
+            <Tooltip placement="bottom" title="设备连接配置">
+              <Button
+                type="default"
+                size="small"
+                icon={<LinkOutlined />}
+                onClick={() => setConnectionPanelOpen(true)}
+                style={{
+                  borderRadius: "999px",
+                  paddingLeft: "12px",
+                  paddingRight: "12px",
+                }}
+              >
+                连接设备
+              </Button>
+            </Tooltip>
+          )}
           <div className={style.versionInfo}>
             <Dropdown menu={{ items: otherVersions }} placement="bottom">
               <a>

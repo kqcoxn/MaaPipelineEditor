@@ -40,7 +40,7 @@ func (s *Service) Initialize() error {
 	logger.Info("MFW", "初始化 MaaFramework")
 
 	err := maa.Init(
-		maa.WithLibDir("C:\\programs\\MaaNewMoonAccompanying\\deps\\bin"),
+		maa.WithLibDir("D:/_Projects/programs/MaaNewMoonAccompanying/deps/bin"),
 		maa.WithLogDir("./logs"),
 		maa.WithSaveDraw(false),
 		maa.WithStdoutLevel(maa.LoggingLevelInfo),
