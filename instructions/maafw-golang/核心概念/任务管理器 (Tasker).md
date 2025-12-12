@@ -14,6 +14,14 @@
 - [tasker_test.go](file://tasker_test.go)
 </cite>
 
+## 更新摘要
+**变更内容**   
+- 新增 `PostRecognition` 和 `PostAction` 方法的详细说明
+- 扩展“任务生命周期”章节以涵盖直接提交识别与动作任务的功能
+- 更新架构总览序列图以反映新增方法
+- 增加新的组件详解小节“直接提交识别与动作任务”
+- 更新类图以包含新增方法
+
 ## 目录
 1. [简介](#简介)
 2. [项目结构](#项目结构)
@@ -27,7 +35,7 @@
 10. [附录](#附录)
 
 ## 简介
-本文件系统性阐述 Tasker 在 maa-framework-go 中作为“任务调度与执行中枢”的核心作用。围绕结构体定义、内部句柄管理、任务生命周期（提交、等待、状态查询）、与 Resource 和 Controller 的协同、异步执行模型与事件回调集成、最佳实践与并发安全策略展开，帮助读者从原理到实战全面掌握 Tasker 的使用与优化。
+本文件系统性阐述 Tasker 在 maa-framework-go 中作为“任务调度与执行中枢”的核心作用。围绕结构体定义、内部句柄管理、任务生命周期（提交、等待、状态查询）、与 Resource 和 Controller 的协同、异步执行模型与事件回调集成、最佳实践与并发安全策略展开，帮助读者从原理到实战全面掌握 Tasker 的使用与优化。特别说明新增的 `PostRecognition` 和 `PostAction` 方法，支持直接提交识别和动作任务，提供更灵活的自动化控制能力。
 
 ## 项目结构
 Tasker 所在模块位于仓库根目录，主要文件包括：
@@ -98,7 +106,7 @@ E --> ST
 - [internal/store/store.go](file://internal/store/store.go#L1-L65)
 
 ## 架构总览
-Tasker 作为中枢，协调 Resource 与 Controller 完成任务生命周期管理；所有操作以异步 Job 形式返回，支持 Wait 阻塞等待；事件通过回调适配器分发至用户实现的 TaskerEventSink 接口。
+Tasker 作为中枢，协调 Resource 与 Controller 完成任务生命周期管理；所有操作以异步 Job 形式返回，支持 Wait 阻塞等待；事件通过回调适配器分发至用户实现的 TaskerEventSink 接口。新增的 `PostRecognition` 和 `PostAction` 方法允许直接提交识别和动作任务，提供更细粒度的控制。
 
 ```mermaid
 sequenceDiagram
@@ -113,6 +121,8 @@ U->>C : 初始化并连接
 U->>R : 加载资源
 U->>T : 绑定 Resource/Controller
 U->>T : 提交任务(可带覆盖参数)
+U->>T : 直接提交识别任务
+U->>T : 直接提交动作任务
 T->>N : 异步提交任务
 N-->>CB : 触发事件回调
 CB-->>U : 分发到 TaskerEventSink
@@ -212,6 +222,32 @@ U->>T : PostTask("Startup").Wait().GetDetail()
 - [tasker.go](file://tasker.go#L124-L134)
 - [examples/quick-start/main.go](file://examples/quick-start/main.go#L1-L41)
 
+### 直接提交识别与动作任务
+- **PostRecognition**：直接提交识别任务，接收识别类型、参数和图像，返回 TaskJob 用于状态查询和等待。适用于需要独立执行识别操作的场景。
+- **PostAction**：直接提交动作任务，接收动作类型、参数、目标区域和识别结果，返回 TaskJob。适用于需要独立执行动作操作的场景。
+- **灵活性**：这两个方法提供了比 PostTask 更细粒度的控制，允许开发者在不定义完整任务流程的情况下执行特定的识别或动作。
+- **参数处理**：识别参数和动作参数会被序列化为 JSON 字符串，识别结果详情也会被序列化后传递给原生接口。
+
+```mermaid
+sequenceDiagram
+participant U as "用户代码"
+participant T as "Tasker"
+participant N as "原生框架"
+U->>T : PostRecognition(类型, 参数, 图像)
+T->>N : 调用MaaTaskerPostRecognition
+N-->>U : 返回TaskJob
+U->>T : PostAction(类型, 参数, 区域, 识别结果)
+T->>N : 调用MaaTaskerPostAction
+N-->>U : 返回TaskJob
+```
+
+**图表来源**
+- [tasker.go](file://tasker.go#L102-L124)
+- [internal/native/framework.go](file://internal/native/framework.go#L35-L36)
+
+**章节来源**
+- [tasker.go](file://tasker.go#L102-L124)
+
 ### 异步执行模型与事件回调系统
 - 异步作业：Job/TaskJob 封装状态查询与等待，避免阻塞主线程。
 - 事件回调：Tasker/Resource/Controller 均支持 AddSink/AddContextSink 注册回调，内部通过全局回调表进行分发。
@@ -225,6 +261,8 @@ class Tasker {
 +BindController(ctrl)
 +PostTask(entry, override...)
 +PostStop()
++PostRecognition(recType, recParam, img)
++PostAction(actionType, actionParam, box, recoDetail)
 +AddSink(sink) int64
 +AddContextSink(sink) int64
 +GetResource() *Resource
@@ -364,7 +402,7 @@ T -.-> C["Controller"]
 - [controller.go](file://controller.go#L279-L300)
 
 ## 结论
-Tasker 以简洁的结构体与完善的异步作业体系，成为 maa-framework-go 的任务中枢。通过与 Resource/Controller 的松耦合绑定、统一的状态查询与等待机制、以及强大的事件回调系统，开发者可以高效地构建自动化流程。遵循本文的最佳实践与并发安全建议，可在保证稳定性的同时获得良好的性能表现。
+Tasker 以简洁的结构体与完善的异步作业体系，成为 maa-framework-go 的任务中枢。通过与 Resource/Controller 的松耦合绑定、统一的状态查询与等待机制、以及强大的事件回调系统，开发者可以高效地构建自动化流程。新增的 `PostRecognition` 和 `PostAction` 方法提供了更灵活的控制方式，允许直接提交识别和动作任务。遵循本文的最佳实践与并发安全建议，可在保证稳定性的同时获得良好的性能表现。
 
 [本节为总结性内容，无需列出具体文件来源]
 

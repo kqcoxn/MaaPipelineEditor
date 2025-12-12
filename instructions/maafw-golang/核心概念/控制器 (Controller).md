@@ -176,9 +176,14 @@ Ctrl-->>App : "结果"
   - 优先级：EmulatorExtras > Maatouch > MinitouchAndAdbKey > AdbShell
 - 字符串解析与回转
   - 提供 ParseXxx 与 String 方法，支持大小写不敏感、空白处理、数值字符串解析
+- Shell 命令执行
+  - 新增 PostShell 方法，用于在 ADB 控制器上执行 shell 命令，返回 Job 对象
+  - 新增 GetShellOutput 方法，用于获取上一次 shell 命令的输出结果，返回字符串和成功标志
 
 章节来源
 - [controller\adb\adb.go](file://controller\adb\adb.go#L1-L170)
+- [controller.go](file://controller.go#L239-L256)
+- [internal\native\framework.go](file://internal\native\framework.go#L186-L187)
 
 ### Win32 控制器
 - 截图方法（ScreencapMethod）
@@ -212,6 +217,9 @@ Ctrl-->>App : "结果"
 - 缓存与元数据
   - CacheImage 通过 MaaControllerCachedImage 获取图像缓冲
   - GetUUID 通过 MaaControllerGetUuid 获取字符串缓冲
+- Shell 命令交互
+  - PostShell 调用 MaaControllerPostShell，传递命令和超时时间
+  - GetShellOutput 调用 MaaControllerGetShellOutput，通过 StringBuffer 获取输出结果
 
 章节来源
 - [internal\native\native.go](file://internal\native\native.go#L1-L41)
@@ -227,6 +235,9 @@ Ctrl-->>App : "结果"
   - PostClick、PostSwipe、PostInputText、PostClickKey 等
 - 应用控制
   - PostStartApp/PostStopApp
+- Shell 命令执行
+  - 使用 PostShell 执行 shell 命令，通过 Wait 等待执行完成
+  - 使用 GetShellOutput 获取命令输出结果
 
 章节来源
 - [examples\quick-start\main.go](file://examples\quick-start\main.go#L1-L41)
@@ -260,6 +271,8 @@ class Controller {
 +RemoveSink(id) void
 +ClearSinks() void
 +Destroy() void
++PostShell(cmd string, timeout time.Duration) Job
++GetShellOutput() (string, bool)
 }
 class ADBMethods {
 +ScreencapMethod
@@ -340,13 +353,17 @@ Controller --> CustomController : "委托"
   - 降低截图频率，合并输入操作，合理设置 Wait 轮询间隔
 - 自定义控制器未生效
   - 检查 NewCustomController 注册流程与回调 ID 映射；确保 Destroy 时正确注销
+- Shell 命令执行失败
+  - 确认控制器为 ADB 类型，非 ADB 控制器不支持 Shell 命令
+  - 检查命令语法和权限，确保设备已授权 ADB 调试
+  - 通过事件 Sink 观察命令执行日志，分析失败原因
 
 章节来源
 - [controller_test.go](file://controller_test.go#L1-L220)
 - [controller.go](file://controller.go#L1-L300)
 
 ## 结论
-控制器通过统一抽象屏蔽了平台差异，使上层逻辑无需关心底层设备细节。借助 native 层导出函数与原生库协作，实现了稳定的设备连接、高效的屏幕捕获与可靠的输入模拟。配合异步作业模型与事件回调机制，能够满足复杂自动化场景的需求。在实际部署中，应根据设备类型与环境特征选择合适的截图与输入策略，并结合缓存与延迟优化提升整体性能与稳定性。
+控制器通过统一抽象屏蔽了平台差异，使上层逻辑无需关心底层设备细节。借助 native 层导出函数与原生库协作，实现了稳定的设备连接、高效的屏幕捕获与可靠的输入模拟。配合异步作业模型与事件回调机制，能够满足复杂自动化场景的需求。在实际部署中，应根据设备类型与环境特征选择合适的截图与输入策略，并结合缓存与延迟优化提升整体性能与稳定性。新增的 Shell 命令执行功能进一步增强了 ADB 控制器的设备交互能力，为更复杂的自动化任务提供了支持。
 
 [本节为总结性内容，无需列出具体文件来源]
 
@@ -362,6 +379,7 @@ Controller --> CustomController : "委托"
   - NewAdbController 的参数需与设备匹配（adbPath、address、screencapMethod、inputMethod、config、agentPath）
   - PostConnect 后再进行后续操作
   - 使用 CacheImage 获取截图结果
+  - 使用 PostShell 执行 shell 命令，GetShellOutput 获取输出
 
 章节来源
 - [examples\quick-start\main.go](file://examples\quick-start\main.go#L1-L41)

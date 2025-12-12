@@ -15,6 +15,12 @@
 - [pipeline.go](file://pipeline.go)
 </cite>
 
+## 更新摘要
+**变更内容**
+- 在 `handleOverride` 方法中增加了对 `nil` 值的处理，防止 JSON 序列化时出现空指针异常
+- 更新了 `RunTask`、`RunRecognition`、`RunAction` 和 `OverridePipeline` 方法中对覆盖参数的处理逻辑
+- 增强了上下文处理的健壮性，确保在传入 `nil` 值时能够正确处理并返回默认空 JSON 对象
+
 ## 目录
 1. [简介](#简介)
 2. [项目结构](#项目结构)

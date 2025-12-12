@@ -53,6 +53,7 @@ export const updateLogs: UpdateLogItem[] = [
       features: [
         "🧰 新增**字段截图小工具**，支持 expected 字段 OCR、template 字段截图、颜色拾取、roi 字段划选区域等功能，启动 LocalBridge 并连接到你的模拟器即可享用！",
       ],
+      perfs: ["优化嵌套列表的编辑体验"],
     },
   },
   {
