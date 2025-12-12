@@ -16,7 +16,16 @@
 - [instructions/maafw-golang/示例与用例/Agent服务器示例.md](file://instructions/maafw-golang/示例与用例/Agent服务器示例.md)
 - [src/App.tsx](file://src/App.tsx)
 - [package.json](file://package.json)
+- [instructions/maafw-golang/核心概念/任务管理器 (Tasker).md](file://instructions/maafw-golang/核心概念/任务管理器 (Tasker).md)
 </cite>
+
+## 更新摘要
+**变更内容**
+- 新增 `PostRecognition` 和 `PostAction` 方法的详细说明
+- 扩展“任务生命周期”章节以涵盖直接提交识别与动作任务的功能
+- 更新架构总览序列图以反映新增方法
+- 增加新的组件详解小节“直接提交识别与动作任务”
+- 更新类图以包含新增方法
 
 ## 目录
 1. [引言](#引言)
@@ -391,6 +400,32 @@ TaskJob --|> Job
 
 **章节来源**
 - [instructions/maafw-golang/API参考/任务管理器.md](file://instructions/maafw-golang/API参考/任务管理器.md#L365-L401)
+
+### 直接提交识别与动作任务
+- **PostRecognition**：直接提交识别任务，接收识别类型、参数和图像，返回 TaskJob 用于状态查询和等待。适用于需要独立执行识别操作的场景。
+- **PostAction**：直接提交动作任务，接收动作类型、参数、目标区域和识别结果，返回 TaskJob。适用于需要独立执行动作操作的场景。
+- **灵活性**：这两个方法提供了比 PostTask 更细粒度的控制，允许开发者在不定义完整任务流程的情况下执行特定的识别或动作。
+- **参数处理**：识别参数和动作参数会被序列化为 JSON 字符串，识别结果详情也会被序列化后传递给原生接口。
+
+```mermaid
+sequenceDiagram
+participant U as "用户代码"
+participant T as "Tasker"
+participant N as "原生框架"
+U->>T : PostRecognition(类型, 参数, 图像)
+T->>N : 调用MaaTaskerPostRecognition
+N-->>U : 返回TaskJob
+U->>T : PostAction(类型, 参数, 区域, 识别结果)
+T->>N : 调用MaaTaskerPostAction
+N-->>U : 返回TaskJob
+```
+
+**图表来源**
+- [tasker.go](file://tasker.go#L102-L124)
+- [internal/native/framework.go](file://internal/native/framework.go#L35-L36)
+
+**章节来源**
+- [tasker.go](file://tasker.go#L102-L124)
 
 ### 工厂模式与门面模式的应用
 - 工厂模式
