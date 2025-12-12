@@ -156,13 +156,13 @@ const ConnectionButton: React.FC = () => {
   );
 };
 
-// 设备连接按钮 - 显示设备类型和名称
+// 设备连接按钮
 const DeviceConnectionButton: React.FC<{ onOpenPanel: () => void }> = ({
   onOpenPanel,
 }) => {
   const { connectionStatus, controllerType, deviceInfo } = useMFWStore();
 
-  // 获取设备名称（最大长度15个字符）
+  // 获取设备名称
   const getDeviceName = () => {
     if (!deviceInfo) return "未知设备";
     const name =
@@ -186,10 +186,12 @@ const DeviceConnectionButton: React.FC<{ onOpenPanel: () => void }> = ({
             controllerType === "adb" ? <MobileOutlined /> : <DesktopOutlined />
           }
           onClick={onOpenPanel}
+          className={style.deviceButton}
           style={{
             borderRadius: "999px",
             paddingLeft: "12px",
             paddingRight: "12px",
+            maxWidth: "140px",
           }}
         >
           {getDeviceName()}
@@ -205,10 +207,12 @@ const DeviceConnectionButton: React.FC<{ onOpenPanel: () => void }> = ({
         size="small"
         icon={<LinkOutlined />}
         onClick={onOpenPanel}
+        className={style.deviceButton}
         style={{
           borderRadius: "999px",
           paddingLeft: "12px",
           paddingRight: "12px",
+          maxWidth: "140px",
         }}
       >
         连接设备
@@ -250,7 +254,7 @@ function Header() {
   // 检测页面宽度
   useEffect(() => {
     const checkWidth = () => {
-      setIsNarrowScreen(window.innerWidth < 580);
+      setIsNarrowScreen(window.innerWidth < 720);
     };
 
     checkWidth();
@@ -274,7 +278,7 @@ function Header() {
     <>
       {isNarrowScreen && (
         <Alert
-          message="页面宽度过窄"
+          title="页面宽度过窄"
           description="当前页面宽度过小，可能影响使用体验，建议使用更大的屏幕或调整浏览器窗口大小。"
           type="warning"
           closable
@@ -301,15 +305,15 @@ function Header() {
           </div>
           <div className={style.version}>
             {globalConfig.dev ? (
-              <Tag bordered={false} color="magenta">
+              <Tag variant="filled" color="magenta">
                 Preview Version
               </Tag>
             ) : (
-              <Tag bordered={false} color="green">
+              <Tag variant="filled" color="green">
                 Stable Version
               </Tag>
             )}
-            <Tag bordered={false} color="purple">
+            <Tag variant="filled" color="purple">
               MFW v{globalConfig.mfwVersion}
             </Tag>
           </div>

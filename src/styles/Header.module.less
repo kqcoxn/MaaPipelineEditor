@@ -31,7 +31,7 @@
       display: none;
     }
 
-    @media (max-width: 1250px) {
+    @media (max-width: 1280px) {
       .full-title {
         display: none;
       }
@@ -45,7 +45,7 @@
       }
     }
 
-    @media (max-width: 690px) {
+    @media (max-width: 1170px) {
       .full-title {
         display: none;
       }
@@ -78,7 +78,21 @@
     display: flex;
     justify-content: right;
     align-items: center;
-    gap: 16px;
+    gap: 10px;
+
+    .deviceButton {
+      :global(.ant-btn-icon) {
+        flex-shrink: 0;
+      }
+
+      > span:not(.anticon) {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        display: inline-block;
+        max-width: 100%;
+      }
+    }
 
     .theme {
       .themeButton {

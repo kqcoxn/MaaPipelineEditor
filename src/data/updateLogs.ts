@@ -46,6 +46,16 @@ export const pinnedNotice: PinnedNotice = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "0.10.1",
+    date: "2025-12",
+    type: "feature",
+    updates: {
+      features: [
+        "🧰 新增**字段截图小工具**，支持 expected 字段 OCR、template 字段截图、颜色拾取、roi 字段划选区域等功能，启动 LocalBridge 并连接到你的模拟器即可享用！",
+      ],
+    },
+  },
+  {
     version: "0.9.1",
     date: "2025-12-11",
     type: "feature",
