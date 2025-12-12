@@ -1,7 +1,7 @@
 import style from "../../../styles/FieldPanel.module.less";
 import { memo, useState, useCallback } from "react";
-import { Popover, Input, InputNumber, Select, Switch, Tooltip } from "antd";
-import IconFont from "../../iconfonts";
+import { Popover, Input, InputNumber, Select, Switch } from "antd";
+import IconFont, { type IconNames } from "../../iconfonts";
 import type { ParamType } from "../../../stores/flow";
 import type { FieldType } from "../../../core/fields";
 import { FieldTypeEnum } from "../../../core/fields";
@@ -10,6 +10,15 @@ import { useMFWStore } from "../../../stores/mfwStore";
 import { ROIModal, OCRModal, TemplateModal, ColorModal } from "../../modals";
 import { ListValueElem } from "./ListValueElem";
 import { message } from "antd";
+
+// 快捷工具配置
+const QUICK_TOOLS: Record<string, IconNames> = {
+  roi: "icon-kuangxuanzhong",
+  expected: "icon-ocr1",
+  template: "icon-jietu",
+  lower: "icon-ic_quseqi",
+  upper: "icon-ic_quseqi",
+};
 
 const { TextArea } = Input;
 
@@ -49,15 +58,20 @@ export const ParamFieldListElem = memo(
     );
     const [currentLowerKey, setCurrentLowerKey] = useState<string | null>(null);
     const [currentUpperKey, setCurrentUpperKey] = useState<string | null>(null);
+    // 记录当前操作的列表索引
+    const [currentListIndex, setCurrentListIndex] = useState<number | null>(
+      null
+    );
 
     // 打开 ROI 配置面板
     const handleOpenROI = useCallback(
-      (key: string) => {
+      (key: string, listIndex?: number) => {
         if (connectionStatus !== "connected") {
           message.warning("请先连接设备");
           return;
         }
         setCurrentROIKey(key);
+        setCurrentListIndex(listIndex ?? null);
         setRoiModalOpen(true);
       },
       [connectionStatus]
@@ -65,12 +79,13 @@ export const ParamFieldListElem = memo(
 
     // 打开 OCR 配置面板
     const handleOpenOCR = useCallback(
-      (key: string) => {
+      (key: string, listIndex?: number) => {
         if (connectionStatus !== "connected") {
           message.warning("请先连接设备");
           return;
         }
         setCurrentExpectedKey(key);
+        setCurrentListIndex(listIndex ?? null);
         setOcrModalOpen(true);
       },
       [connectionStatus]
@@ -78,12 +93,13 @@ export const ParamFieldListElem = memo(
 
     // 打开模板配置面板
     const handleOpenTemplate = useCallback(
-      (key: string) => {
+      (key: string, listIndex?: number) => {
         if (connectionStatus !== "connected") {
           message.warning("请先连接设备");
           return;
         }
         setCurrentTemplateKey(key);
+        setCurrentListIndex(listIndex ?? null);
         setTemplateModalOpen(true);
       },
       [connectionStatus]
@@ -91,13 +107,14 @@ export const ParamFieldListElem = memo(
 
     // 打开颜色配置面板
     const handleOpenColor = useCallback(
-      (key: string, isUpper: boolean = false) => {
+      (key: string, isUpper: boolean = false, listIndex?: number) => {
         if (connectionStatus !== "connected") {
           message.warning("请先连接设备");
           return;
         }
         setCurrentLowerKey(isUpper ? null : key);
         setCurrentUpperKey(isUpper ? key : null);
+        setCurrentListIndex(listIndex ?? null);
         setColorModalOpen(true);
       },
       [connectionStatus]
@@ -107,24 +124,46 @@ export const ParamFieldListElem = memo(
     const handleROIConfirm = useCallback(
       (roi: [number, number, number, number]) => {
         if (currentROIKey) {
-          onChange(currentROIKey, roi);
+          // 列表类型只替换指定索引的值
+          if (currentListIndex !== null) {
+            const currentValue = paramData[currentROIKey];
+            if (Array.isArray(currentValue)) {
+              const newList = [...currentValue];
+              newList[currentListIndex] = roi;
+              onChange(currentROIKey, newList);
+            }
+          } else {
+            onChange(currentROIKey, roi);
+          }
         }
         setRoiModalOpen(false);
         setCurrentROIKey(null);
+        setCurrentListIndex(null);
       },
-      [currentROIKey, onChange]
+      [currentROIKey, currentListIndex, paramData, onChange]
     );
 
     // OCR 确认回调
     const handleOCRConfirm = useCallback(
       (text: string, roi?: [number, number, number, number]) => {
         if (currentExpectedKey) {
-          onChange(currentExpectedKey, text);
+          // 列表类型只替换指定索引的值
+          if (currentListIndex !== null) {
+            const currentValue = paramData[currentExpectedKey];
+            if (Array.isArray(currentValue)) {
+              const newList = [...currentValue];
+              newList[currentListIndex] = text;
+              onChange(currentExpectedKey, newList);
+            }
+          } else {
+            onChange(currentExpectedKey, text);
+          }
         }
         setOcrModalOpen(false);
         setCurrentExpectedKey(null);
+        setCurrentListIndex(null);
       },
-      [currentExpectedKey, onChange]
+      [currentExpectedKey, currentListIndex, paramData, onChange]
     );
 
     // 模板确认回调
@@ -135,7 +174,17 @@ export const ParamFieldListElem = memo(
         roi?: [number, number, number, number]
       ) => {
         if (currentTemplateKey) {
-          onChange(currentTemplateKey, templatePath);
+          // 列表类型只替换指定索引的值
+          if (currentListIndex !== null) {
+            const currentValue = paramData[currentTemplateKey];
+            if (Array.isArray(currentValue)) {
+              const newList = [...currentValue];
+              newList[currentListIndex] = templatePath;
+              onChange(currentTemplateKey, newList);
+            }
+          } else {
+            onChange(currentTemplateKey, templatePath);
+          }
           // 如果有涂绿需要设置 green_mask 字段
           if (greenMask) {
             onChange("green_mask", true);
@@ -143,82 +192,97 @@ export const ParamFieldListElem = memo(
         }
         setTemplateModalOpen(false);
         setCurrentTemplateKey(null);
+        setCurrentListIndex(null);
       },
-      [currentTemplateKey, onChange]
+      [currentTemplateKey, currentListIndex, paramData, onChange]
     );
 
     // 颜色确认回调
     const handleColorConfirm = useCallback(
       (lower: [number, number, number], upper: [number, number, number]) => {
-        if (currentLowerKey) {
-          onChange(currentLowerKey, lower);
-        }
-        if (currentUpperKey) {
-          onChange(currentUpperKey, upper);
-        }
-        // 如果都没有，同时填充两个
-        if (!currentLowerKey && !currentUpperKey) {
-          onChange("lower", lower);
-          onChange("upper", upper);
+        // 列表类型只替换指定索引的值
+        if (currentListIndex !== null) {
+          if (currentLowerKey) {
+            const currentValue = paramData[currentLowerKey];
+            if (Array.isArray(currentValue)) {
+              const newList = [...currentValue];
+              newList[currentListIndex] = lower;
+              onChange(currentLowerKey, newList);
+            }
+          }
+          if (currentUpperKey) {
+            const currentValue = paramData[currentUpperKey];
+            if (Array.isArray(currentValue)) {
+              const newList = [...currentValue];
+              newList[currentListIndex] = upper;
+              onChange(currentUpperKey, newList);
+            }
+          }
+        } else {
+          if (currentLowerKey) {
+            onChange(currentLowerKey, lower);
+          }
+          if (currentUpperKey) {
+            onChange(currentUpperKey, upper);
+          }
+          // 如果都没有，同时填充两个
+          if (!currentLowerKey && !currentUpperKey) {
+            onChange("lower", lower);
+            onChange("upper", upper);
+          }
         }
         setColorModalOpen(false);
         setCurrentLowerKey(null);
         setCurrentUpperKey(null);
+        setCurrentListIndex(null);
       },
-      [currentLowerKey, currentUpperKey, onChange]
+      [currentLowerKey, currentUpperKey, currentListIndex, paramData, onChange]
     );
 
-    // 判断字段是否支持快速配置
-    const supportsQuickConfig = useCallback((key: string): boolean => {
-      return (
-        key === "roi" ||
-        key === "expected" ||
-        key === "template" ||
-        key === "lower" ||
-        key === "upper"
-      );
-    }, []);
+    // 获取字段对应的快捷工具图标
+    const getQuickToolIcon = useCallback(
+      (key: string): IconNames | undefined => {
+        return QUICK_TOOLS[key];
+      },
+      []
+    );
 
-    // 渲染快速配置按钮
-    const renderQuickConfigButton = useCallback(
-      (key: string) => {
-        if (!supportsQuickConfig(key) || connectionStatus !== "connected") {
+    // 处理快捷工具点击
+    const handleQuickToolClick = useCallback(
+      (key: string, listIndex?: number) => {
+        if (key === "roi") {
+          handleOpenROI(key, listIndex);
+        } else if (key === "expected") {
+          handleOpenOCR(key, listIndex);
+        } else if (key === "template") {
+          handleOpenTemplate(key, listIndex);
+        } else if (key === "lower" || key === "upper") {
+          handleOpenColor(key, key === "upper", listIndex);
+        }
+      },
+      [handleOpenROI, handleOpenOCR, handleOpenTemplate, handleOpenColor]
+    );
+
+    // 渲染快捷工具按钮
+    const renderQuickTool = useCallback(
+      (key: string, listIndex?: number) => {
+        const icon = getQuickToolIcon(key);
+        if (!icon || connectionStatus !== "connected") {
           return null;
         }
 
         return (
-          <Tooltip title="打开辅助配置面板">
-            <div className={style.operation}>
-              <IconFont
-                className="icon-interactive"
-                style={{ width: 20 }}
-                name="icon-a-080_shezhi"
-                size={18}
-                color="#1296db"
-                onClick={() => {
-                  if (key === "roi") {
-                    handleOpenROI(key);
-                  } else if (key === "expected") {
-                    handleOpenOCR(key);
-                  } else if (key === "template") {
-                    handleOpenTemplate(key);
-                  } else if (key === "lower" || key === "upper") {
-                    handleOpenColor(key, key === "upper");
-                  }
-                }}
-              />
-            </div>
-          </Tooltip>
+          <div className={style.operation}>
+            <IconFont
+              className="icon-interactive"
+              name={icon}
+              size={18}
+              onClick={() => handleQuickToolClick(key, listIndex)}
+            />
+          </div>
         );
       },
-      [
-        supportsQuickConfig,
-        connectionStatus,
-        handleOpenROI,
-        handleOpenOCR,
-        handleOpenTemplate,
-        handleOpenColor,
-      ]
+      [getQuickToolIcon, connectionStatus, handleQuickToolClick]
     );
 
     const existingFields = Object.keys(paramData);
@@ -229,6 +293,7 @@ export const ParamFieldListElem = memo(
       // 输入方案
       let InputElem = null;
       let paramType = Array.isArray(type.type) ? type.type[0] : type.type;
+      let isListType = false;
       // 可选类型
       if ("options" in type) {
         const options =
@@ -253,18 +318,7 @@ export const ParamFieldListElem = memo(
           case FieldTypeEnum.XYWHList:
           case FieldTypeEnum.PositionList:
           case FieldTypeEnum.ObjectList:
-            InputElem = ListValueElem(
-              key,
-              value,
-              onListChange,
-              onListAdd,
-              onListDelete,
-              paramType
-            );
-            break;
-          // 数字列表
-          case FieldTypeEnum.IntList:
-          case FieldTypeEnum.DoubleList:
+            isListType = true;
             InputElem = ListValueElem(
               key,
               value,
@@ -272,7 +326,23 @@ export const ParamFieldListElem = memo(
               onListAdd,
               onListDelete,
               paramType,
-              type.step
+              0,
+              renderQuickTool
+            );
+            break;
+          // 数字列表
+          case FieldTypeEnum.IntList:
+          case FieldTypeEnum.DoubleList:
+            isListType = true;
+            InputElem = ListValueElem(
+              key,
+              value,
+              onListChange,
+              onListAdd,
+              onListDelete,
+              paramType,
+              type.step,
+              renderQuickTool
             );
             break;
           // 整型
@@ -337,7 +407,7 @@ export const ParamFieldListElem = memo(
             <div className={style.key}>{key}</div>
           </Popover>
           {InputElem}
-          {renderQuickConfigButton(key)}
+          {!isListType && renderQuickTool(key)}
           <div className={style.operation}>
             <IconFont
               className="icon-interactive"
@@ -359,12 +429,18 @@ export const ParamFieldListElem = memo(
             onClose={() => {
               setRoiModalOpen(false);
               setCurrentROIKey(null);
+              setCurrentListIndex(null);
             }}
             onConfirm={handleROIConfirm}
             initialROI={
-              paramData[currentROIKey] as
-                | [number, number, number, number]
-                | undefined
+              currentListIndex !== null &&
+              Array.isArray(paramData[currentROIKey])
+                ? (paramData[currentROIKey][currentListIndex] as
+                    | [number, number, number, number]
+                    | undefined)
+                : (paramData[currentROIKey] as
+                    | [number, number, number, number]
+                    | undefined)
             }
           />
         )}
@@ -374,6 +450,7 @@ export const ParamFieldListElem = memo(
             onClose={() => {
               setOcrModalOpen(false);
               setCurrentExpectedKey(null);
+              setCurrentListIndex(null);
             }}
             onConfirm={handleOCRConfirm}
           />
@@ -384,6 +461,7 @@ export const ParamFieldListElem = memo(
             onClose={() => {
               setTemplateModalOpen(false);
               setCurrentTemplateKey(null);
+              setCurrentListIndex(null);
             }}
             onConfirm={handleTemplateConfirm}
           />
@@ -395,6 +473,7 @@ export const ParamFieldListElem = memo(
               setColorModalOpen(false);
               setCurrentLowerKey(null);
               setCurrentUpperKey(null);
+              setCurrentListIndex(null);
             }}
             onConfirm={handleColorConfirm}
           />

@@ -2,6 +2,7 @@ import style from "../../../styles/FieldPanel.module.less";
 import { Input, InputNumber } from "antd";
 import IconFont from "../../iconfonts";
 import { JsonHelper } from "../../../utils/jsonHelper";
+import type { ReactNode } from "react";
 
 const { TextArea } = Input;
 
@@ -12,12 +13,20 @@ export function ListValueElem(
   onAdd: (key: string, valueList: any[]) => void,
   onDelete: (key: string, valueList: any[], index: number) => void,
   placeholder = "list",
-  step = 0
+  step = 0,
+  quickToolRender?: (key: string, index: number) => ReactNode
 ) {
   if (!Array.isArray(valueList)) {
     valueList = [valueList];
   }
   const ListValue = valueList.map((value, index) => {
+    const quickToolElem = quickToolRender?.(key, index);
+    // 计算图标数量
+    const iconCount =
+      (quickToolElem ? 1 : 0) +
+      (valueList.length > 1 ? 1 : 0) +
+      (index === valueList.length - 1 ? 1 : 0);
+
     return (
       <div key={index}>
         {step > 0 ? (
@@ -42,28 +51,34 @@ export function ListValueElem(
             }}
           />
         )}
-        {valueList.length > 1 ? (
-          <div className={style.operation}>
-            <IconFont
-              className="icon-interactive"
-              name={"icon-shanchu"}
-              size={18}
-              color={"#ff4a4a"}
-              onClick={() => onDelete(key, valueList, index)}
-            />
-          </div>
-        ) : null}
-        {index === valueList.length - 1 ? (
-          <div className={style.operation}>
-            <IconFont
-              className="icon-interactive"
-              name={"icon-zengjiatianjiajiajian"}
-              size={18}
-              color={"#83be42"}
-              onClick={() => onAdd(key, valueList)}
-            />
-          </div>
-        ) : null}
+        <div
+          className={style["icons-container"]}
+          style={{ width: `${iconCount * 26}px` }}
+        >
+          {quickToolElem}
+          {valueList.length > 1 ? (
+            <div className={style.operation}>
+              <IconFont
+                className="icon-interactive"
+                name={"icon-shanchu"}
+                size={18}
+                color={"#ff4a4a"}
+                onClick={() => onDelete(key, valueList, index)}
+              />
+            </div>
+          ) : null}
+          {index === valueList.length - 1 ? (
+            <div className={style.operation}>
+              <IconFont
+                className="icon-interactive"
+                name={"icon-zengjiatianjiajiajian"}
+                size={18}
+                color={"#83be42"}
+                onClick={() => onAdd(key, valueList)}
+              />
+            </div>
+          ) : null}
+        </div>
       </div>
     );
   });
