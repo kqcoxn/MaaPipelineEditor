@@ -109,6 +109,9 @@ export const OCRModal = memo(
         if (connectionStatus !== "connected" || !controllerId) {
           return;
         }
+        if (isOCRing) {
+          return;
+        }
 
         setIsOCRing(true);
         mfwProtocol.requestOCR({
@@ -121,7 +124,7 @@ export const OCRModal = memo(
           ],
         });
       },
-      [connectionStatus, controllerId]
+      [connectionStatus, controllerId, isOCRing]
     );
 
     // 监听截图结果
@@ -280,6 +283,9 @@ export const OCRModal = memo(
         endPan();
         return;
       }
+      if (!isDrawing) {
+        return;
+      }
 
       setIsDrawing(false);
       setStartPoint(null);
@@ -293,7 +299,16 @@ export const OCRModal = memo(
           requestOCR(rectangle);
         }, 500);
       }
-    }, [rectangle, requestOCR, isPanning, endPan]);
+    }, [rectangle, requestOCR, isPanning, endPan, isDrawing]);
+
+    // 结束状态
+    const handleMouseLeave = useCallback(() => {
+      if (isPanning) {
+        endPan();
+      }
+      setIsDrawing(false);
+      setStartPoint(null);
+    }, [isPanning, endPan]);
 
     // 手动输入坐标
     const handleCoordinateChange = useCallback(
@@ -428,7 +443,7 @@ export const OCRModal = memo(
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
+                onMouseLeave={handleMouseLeave}
                 style={{
                   cursor: getCursorStyle(),
                   transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${scale})`,

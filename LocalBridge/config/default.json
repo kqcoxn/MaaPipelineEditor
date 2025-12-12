@@ -23,6 +23,7 @@
   },
   "maafw": {
     "enabled": false,
-    "lib_dir": ""
+    "lib_dir": "D:\\_Projects\\programs\\MaaNewMoonAccompanying\\deps\\bin",
+    "resource_dir": "D:\\_Projects\\programs\\MaaNewMoonAccompanying\\MFAAvalonia\\Resource\\base"
   }
 }

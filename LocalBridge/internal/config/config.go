@@ -28,10 +28,11 @@ type LogConfig struct {
 	PushToClient bool   `mapstructure:"push_to_client"`
 }
 
-// MaaFramework配置 - TODO
+// MaaFramework配置
 type MaaFWConfig struct {
-	Enabled bool   `mapstructure:"enabled"`
-	LibDir  string `mapstructure:"lib_dir"`
+	Enabled     bool   `mapstructure:"enabled"`
+	LibDir      string `mapstructure:"lib_dir"`
+	ResourceDir string `mapstructure:"resource_dir"`
 }
 
 // 全局配置
@@ -109,6 +110,7 @@ func setDefaults(v *viper.Viper) {
 	// MaaFramework 配置
 	v.SetDefault("maafw.enabled", false)
 	v.SetDefault("maafw.lib_dir", "")
+	v.SetDefault("maafw.resource_dir", "")
 }
 
 // 规范化配置路径

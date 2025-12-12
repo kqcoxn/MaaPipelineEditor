@@ -8,6 +8,7 @@ import (
 	"image/png"
 
 	maa "github.com/MaaXYZ/maa-framework-go/v3"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/config"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/errors"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/mfw"
@@ -139,8 +140,10 @@ func (h *UtilityHandler) performOCR(controllerID, resourceID string, roi [4]int3
 	defer tasker.Destroy()
 
 	if !tasker.BindController(ctrl) {
+		logger.Error("Utility", "绑定 Controller 失败")
 		return nil, mfw.NewMFWError(mfw.ErrCodeTaskSubmitFailed, "failed to bind controller", nil)
 	}
+	logger.Info("Utility", "Controller 绑定成功")
 
 	// 如果没有提供资源，创建一个临时资源
 	if res == nil {
@@ -149,11 +152,37 @@ func (h *UtilityHandler) performOCR(controllerID, resourceID string, roi [4]int3
 			return nil, mfw.NewMFWError(mfw.ErrCodeResourceLoadFailed, "failed to create resource", nil)
 		}
 		defer res.Destroy()
+
+		// 从配置加载 OCR 资源
+		cfg := config.GetGlobal()
+		if cfg != nil && cfg.MaaFW.ResourceDir != "" {
+			logger.Info("Utility", "从配置加载 OCR 资源: %s", cfg.MaaFW.ResourceDir)
+			job := res.PostBundle(cfg.MaaFW.ResourceDir)
+			if job == nil {
+				logger.Warn("Utility", "加载 OCR 资源失败")
+			} else {
+				status := job.Wait()
+				logger.Info("Utility", "OCR 资源加载状态: %v", status)
+			}
+		} else {
+			logger.Warn("Utility", "未配置 OCR 资源路径 (maafw.resource_dir)")
+		}
 	}
 
 	if !tasker.BindResource(res) {
+		logger.Error("Utility", "绑定 Resource 失败")
 		return nil, mfw.NewMFWError(mfw.ErrCodeTaskSubmitFailed, "failed to bind resource", nil)
 	}
+	logger.Info("Utility", "Resource 绑定成功")
+
+	// 等待 Tasker 初始化完成
+	if !tasker.Initialized() {
+		logger.Error("Utility", "Tasker 未初始化 - 请检查 OCR 资源目录结构")
+		logger.Error("Utility", "MaaFramework 期望 OCR 模型在: <resource_dir>/model/ocr/ 目录下")
+		logger.Error("Utility", "需要文件: det.onnx, rec.onnx, keys.txt")
+		return nil, mfw.NewMFWError(mfw.ErrCodeTaskSubmitFailed, "tasker not initialized - OCR model path may be incorrect, expected: <resource_dir>/model/ocr/", nil)
+	}
+	logger.Info("Utility", "Tasker 初始化成功")
 
 	// 构造 OCR 识别节点的 override 配置
 	ocrNodeName := "_OCR_TEMP_NODE_"

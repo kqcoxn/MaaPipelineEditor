@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	maa "github.com/MaaXYZ/maa-framework-go/v3"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/config"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 )
 
@@ -39,8 +40,16 @@ func (s *Service) Initialize() error {
 
 	logger.Info("MFW", "初始化 MaaFramework")
 
+	// 从配置获取库路径
+	cfg := config.GetGlobal()
+	libDir := "./"
+	if cfg != nil && cfg.MaaFW.LibDir != "" {
+		libDir = cfg.MaaFW.LibDir
+		logger.Info("MFW", "使用配置的库路径: %s", libDir)
+	}
+
 	err := maa.Init(
-		maa.WithLibDir("D:/_Projects/programs/MaaNewMoonAccompanying/deps/bin"),
+		maa.WithLibDir(libDir),
 		maa.WithLogDir("./logs"),
 		maa.WithSaveDraw(false),
 		maa.WithStdoutLevel(maa.LoggingLevelInfo),
