@@ -441,7 +441,7 @@ func (cm *ControllerManager) Screencap(req *ScreencapRequest) (*ScreencapResult,
 	result := &ScreencapResult{
 		ControllerID: req.ControllerID,
 		Success:      true,
-		ImageData:    base64.StdEncoding.EncodeToString(buf.Bytes()),
+		ImageData:    "data:image/png;base64," + base64.StdEncoding.EncodeToString(buf.Bytes()),
 		Width:        bounds.Dx(),
 		Height:       bounds.Dy(),
 		Timestamp:    time.Now().Format(time.RFC3339),

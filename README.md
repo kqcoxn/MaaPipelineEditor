@@ -6,14 +6,13 @@
 
 # MaaPipelineEditor
 
-_✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 ✨_
+_✨ 可视化构建 MaaFramework Pipeline 的下一代工作流编辑器 ✨_</br>🛠️ 告别手调千行 JSON！用拖拽+配置的方式，高效构建、分享你的 Maa 自动化流程 🛠️
 
 </div>
 
 <p align="center">
   <a href="https://react.dev/" target="_blank"><img alt="react" src="https://img.shields.io/badge/React 19-%2320232a.svg?logo=react&logoColor=%2361DAFB"></a>
   <a href="https://www.typescriptlang.org/" target="_blank"><img alt="ts" src="https://img.shields.io/badge/TypeScript 5.8-3178C6?logo=typescript&logoColor=fff"></a>
-  <!-- <a href="https://lesscss.org/" target="_blank"><img alt="less" src="https://img.shields.io/badge/Less-1D365D?logo=less&logoColor=fff"></a> -->
   <a href="https://reactflow.dev/" target="_blank"><img alt="react-flow" src="https://img.shields.io/badge/React Flow 12-%23ff0072?logoColor=fff&logo=flathub"></a>
   <br/>
   <a href="https://github.com/kqcoxn/MaaPipelineEditor/blob/main/LICENSE.md" target="_blank"><img alt="committs" src="https://img.shields.io/github/license/kqcoxn/MaaPipelineEditor"></a>
@@ -29,9 +28,16 @@ _✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器 
 
 ## 简介
 
-**MaaPipelineEditor (MPE)** 是一款基于 Web 前端相关框架、运用 [YAMaaPE](https://github.com/kqcoxn/YAMaaPE) 开发经验去芜存菁、经过资源开发者充分微调、完全重写的 [MaaFramework](https://github.com/MaaXYZ/MaaFramework) [Pipeline](https://maafw.xyz/docs/3.1-PipelineProtocol.html) 工作流式可视化编辑器。
+**MaaPipelineEditor (MPE)** 是一款前后端完全分离架构、运用 [YAMaaPE](https://github.com/kqcoxn/YAMaaPE) 开发经验去芜存菁、经过资源开发者充分微调的 [MaaFramework](https://github.com/MaaXYZ/MaaFramework) [Pipeline](https://maafw.xyz/docs/3.1-PipelineProtocol.html) 工作流式可视化编辑器。
 
 **_“由您设计，由我们支持。”_** 如您所需皆已存在：添加、配置、连接，只需稍作思考，想法之外尽在其中！
+
+## 亮点
+
+- **极致轻量化**：使用[在线网站](https://mpe.codax.site/stable)即可开启你的可视化编辑之旅，无需下载与额外的环境配置，真正的跨平台 & 可集成，随时随地在任意环境中 Review & Edit 在线/本地 Pipeline
+- **渐进式扩展**：可增量使用一行命令下载并安装[本地服务](https://mpe.codax.site/docs/guide/start/local-server.html)，全局模块化调用本地文件管理、截图小工具等本地扩展功能，可自行指定本地框架版本
+
+## 展示
 
 您可以使用 MPE 在各类便捷工具的加持下轻松构造出如下 Pipeline，**兼具易用性与可读性**：
 
@@ -67,7 +73,12 @@ MPE 项目没有单独的交流群，您可以在 MaaFramework 集成/开发交�
 ### 特别感谢
 
 - [MaaFramework](https://github.com/MaaXYZ/MaaFramework)
+- [Mirror 酱](https://mirrorchyan.com)
 
 ## 其他
 
 - 原项目备份仓库：https://github.com/kqcoxn/YAMaaPE
+
+## 统计
+
+[![Star History Chart](https://api.star-history.com/svg?repos=kqcoxn/MaaPipelineEditor&type=Date)](https://www.star-history.com/#kqcoxn/MaaPipelineEditor&Date)
