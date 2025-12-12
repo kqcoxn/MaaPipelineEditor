@@ -1,5 +1,5 @@
-import { memo, useState, useCallback, useRef } from "react";
-import { Slider, InputNumber, message } from "antd";
+import { memo, useState, useCallback, useRef, useEffect } from "react";
+import { message } from "antd";
 import {
   ScreenshotModalBase,
   type CanvasRenderProps,
@@ -8,20 +8,22 @@ import {
 interface ColorModalProps {
   open: boolean;
   onClose: () => void;
-  onConfirm: (
-    lower: [number, number, number],
-    upper: [number, number, number]
-  ) => void;
+  onConfirm: (color: [number, number, number]) => void;
+  targetKey?: string; // 添加目标字段名,用于显示标题
 }
 
 export const ColorModal = memo(
-  ({ open, onClose, onConfirm }: ColorModalProps) => {
+  ({ open, onClose, onConfirm, targetKey }: ColorModalProps) => {
+    const [screenshot, setScreenshot] = useState<string | null>(null);
     const [pickedColor, setPickedColor] = useState<
       [number, number, number] | null
     >(null);
-    const [tolerance, setTolerance] = useState(10);
 
     const imageRef = useRef<HTMLImageElement | null>(null);
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const initializeImageRef = useRef<((img: HTMLImageElement) => void) | null>(
+      null
+    );
 
     // 点击取色
     const handleCanvasClick = useCallback(
@@ -50,31 +52,6 @@ export const ColorModal = memo(
       []
     );
 
-    // 计算颜色范围
-    const calculateRange = useCallback(
-      (
-        color: [number, number, number],
-        tol: number
-      ): {
-        lower: [number, number, number];
-        upper: [number, number, number];
-      } => {
-        return {
-          lower: [
-            Math.max(0, color[0] - tol),
-            Math.max(0, color[1] - tol),
-            Math.max(0, color[2] - tol),
-          ],
-          upper: [
-            Math.min(255, color[0] + tol),
-            Math.min(255, color[1] + tol),
-            Math.min(255, color[2] + tol),
-          ],
-        };
-      },
-      []
-    );
-
     // 确定回填
     const handleConfirm = useCallback(() => {
       if (!pickedColor) {
@@ -82,15 +59,44 @@ export const ColorModal = memo(
         return;
       }
 
-      const { lower, upper } = calculateRange(pickedColor, tolerance);
-      onConfirm(lower, upper);
+      onConfirm(pickedColor);
       onClose();
-    }, [pickedColor, tolerance, calculateRange, onConfirm, onClose]);
+    }, [pickedColor, onConfirm, onClose]);
+
+    // 加载截图图片
+    useEffect(() => {
+      if (!screenshot || !canvasRef.current) return;
+
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      // 如果已有图片且是同一张直接重绘
+      if (imageRef.current && imageRef.current.src === screenshot) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(imageRef.current, 0, 0);
+        return;
+      }
+
+      const img = new Image();
+      img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        imageRef.current = img;
+        ctx.drawImage(img, 0, 0);
+        // 初始化视口
+        initializeImageRef.current?.(img);
+      };
+      img.src = screenshot;
+    }, [screenshot]);
 
     // 重置状态
     const handleReset = useCallback(() => {
+      setScreenshot(null);
       setPickedColor(null);
-      setTolerance(10);
+      imageRef.current = null;
+      canvasRef.current = null;
+      initializeImageRef.current = null;
     }, []);
 
     // 渲染 Canvas
@@ -99,8 +105,6 @@ export const ColorModal = memo(
         const {
           scale,
           panOffset,
-          canvasRef,
-          screenshot,
           initializeImage,
           getBaseCursorStyle,
           isPanning,
@@ -110,22 +114,7 @@ export const ColorModal = memo(
           endPan,
         } = props;
 
-        // 加载图片
-        if (screenshot && canvasRef.current) {
-          const canvas = canvasRef.current;
-          const ctx = canvas.getContext("2d");
-          if (ctx && !imageRef.current) {
-            const img = new Image();
-            img.onload = () => {
-              canvas.width = img.width;
-              canvas.height = img.height;
-              imageRef.current = img;
-              initializeImage(img);
-              ctx.drawImage(img, 0, 0);
-            };
-            img.src = screenshot;
-          }
-        }
+        initializeImageRef.current = initializeImage;
 
         const baseCursor = getBaseCursorStyle();
         const cursorStyle = baseCursor || "crosshair";
@@ -143,7 +132,8 @@ export const ColorModal = memo(
             return;
           }
           // 取色
-          handleCanvasClick(e, scale, canvasRef);
+          const tempCanvasRef = { current: canvasRef.current };
+          handleCanvasClick(e, scale, tempCanvasRef);
         };
 
         const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -158,13 +148,19 @@ export const ColorModal = memo(
           }
         };
 
+        const handleMouseLeave = () => {
+          if (isPanning) {
+            endPan();
+          }
+        };
+
         return (
           <canvas
             ref={canvasRef}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
+            onMouseLeave={handleMouseLeave}
             style={{
               cursor: cursorStyle,
               transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${scale})`,
@@ -177,92 +173,59 @@ export const ColorModal = memo(
       [handleCanvasClick]
     );
 
-    // 计算当前的 lower 和 upper
-    const currentRange = pickedColor
-      ? calculateRange(pickedColor, tolerance)
-      : null;
+    // 根据 targetKey 生成标题
+    const title =
+      targetKey === "lower"
+        ? "颜色取点工具 - 下界颜色"
+        : targetKey === "upper"
+        ? "颜色取点工具 - 上界颜色"
+        : "颜色取点工具";
 
     return (
       <ScreenshotModalBase
         open={open}
         onClose={onClose}
-        title="颜色取点工具"
+        title={title}
         width={900}
         confirmDisabled={!pickedColor}
         onConfirm={handleConfirm}
         renderCanvas={renderCanvas}
+        onScreenshotChange={setScreenshot}
         onReset={handleReset}
       >
         {/* 颜色预览 */}
-        {pickedColor && (
-          <div
-            style={{
-              marginBottom: 16,
-              padding: 12,
-              backgroundColor: "#fafafa",
-              borderRadius: 4,
-            }}
-          >
-            <div style={{ marginBottom: 12 }}>
-              <span style={{ fontWeight: 500, marginRight: 8 }}>已选颜色:</span>
-              <div
-                style={{
-                  display: "inline-block",
-                  width: 40,
-                  height: 40,
-                  backgroundColor: `rgb(${pickedColor[0]}, ${pickedColor[1]}, ${pickedColor[2]})`,
-                  border: "1px solid #d9d9d9",
-                  verticalAlign: "middle",
-                  marginRight: 8,
-                }}
-              />
-              <span>
-                RGB({pickedColor[0]}, {pickedColor[1]}, {pickedColor[2]})
-              </span>
-            </div>
-
-            {/* 容差调节 */}
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ marginBottom: 8, fontWeight: 500 }}>容差值:</div>
-              <div style={{ display: "flex", alignItems: "center" }}>
-                <Slider
-                  value={tolerance}
-                  onChange={setTolerance}
-                  min={0}
-                  max={100}
-                  style={{ flex: 1, maxWidth: 300 }}
+        <div
+          style={{
+            marginBottom: 16,
+            padding: 12,
+            backgroundColor: "#fafafa",
+            borderRadius: 4,
+          }}
+        >
+          <div style={{ marginBottom: 12 }}>
+            <span style={{ fontWeight: 500, marginRight: 8 }}>已选颜色:</span>
+            {pickedColor ? (
+              <>
+                <div
+                  style={{
+                    display: "inline-block",
+                    width: 20,
+                    height: 20,
+                    backgroundColor: `rgb(${pickedColor[0]}, ${pickedColor[1]}, ${pickedColor[2]})`,
+                    border: "1px solid #d9d9d9",
+                    verticalAlign: "middle",
+                    marginRight: 8,
+                  }}
                 />
-                <InputNumber
-                  value={tolerance}
-                  onChange={(v) => v !== null && setTolerance(v)}
-                  min={0}
-                  max={100}
-                  style={{ marginLeft: 16, width: 80 }}
-                />
-              </div>
-            </div>
-
-            {/* lower/upper 预览 */}
-            {currentRange && (
-              <div>
-                <div style={{ marginBottom: 4 }}>
-                  <span style={{ fontWeight: 500 }}>Lower:</span>
-                  <span style={{ marginLeft: 8, fontFamily: "monospace" }}>
-                    [{currentRange.lower[0]}, {currentRange.lower[1]},{" "}
-                    {currentRange.lower[2]}]
-                  </span>
-                </div>
-                <div>
-                  <span style={{ fontWeight: 500 }}>Upper:</span>
-                  <span style={{ marginLeft: 8, fontFamily: "monospace" }}>
-                    [{currentRange.upper[0]}, {currentRange.upper[1]},{" "}
-                    {currentRange.upper[2]}]
-                  </span>
-                </div>
-              </div>
+                <span>
+                  RGB({pickedColor[0]}, {pickedColor[1]}, {pickedColor[2]})
+                </span>
+              </>
+            ) : (
+              <span style={{ color: "#999" }}>请在截图上点击取色</span>
             )}
           </div>
-        )}
+        </div>
       </ScreenshotModalBase>
     );
   }

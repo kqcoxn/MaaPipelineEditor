@@ -56,8 +56,7 @@ export const ParamFieldListElem = memo(
     const [currentTemplateKey, setCurrentTemplateKey] = useState<string | null>(
       null
     );
-    const [currentLowerKey, setCurrentLowerKey] = useState<string | null>(null);
-    const [currentUpperKey, setCurrentUpperKey] = useState<string | null>(null);
+    const [currentColorKey, setCurrentColorKey] = useState<string | null>(null);
     // 记录当前操作的列表索引
     const [currentListIndex, setCurrentListIndex] = useState<number | null>(
       null
@@ -107,13 +106,12 @@ export const ParamFieldListElem = memo(
 
     // 打开颜色配置面板
     const handleOpenColor = useCallback(
-      (key: string, isUpper: boolean = false, listIndex?: number) => {
+      (key: string, listIndex?: number) => {
         if (connectionStatus !== "connected") {
           message.warning("请先连接设备");
           return;
         }
-        setCurrentLowerKey(isUpper ? null : key);
-        setCurrentUpperKey(isUpper ? key : null);
+        setCurrentColorKey(key);
         setCurrentListIndex(listIndex ?? null);
         setColorModalOpen(true);
       },
@@ -205,48 +203,33 @@ export const ParamFieldListElem = memo(
 
     // 颜色确认回调
     const handleColorConfirm = useCallback(
-      (lower: [number, number, number], upper: [number, number, number]) => {
+      (color: [number, number, number]) => {
+        if (!currentColorKey) return;
+
         // 列表类型只替换指定索引的值
         if (currentListIndex !== null) {
-          if (currentLowerKey) {
-            let currentValue = paramData[currentLowerKey];
-            // 非数组值转为数组
-            if (!Array.isArray(currentValue)) {
-              currentValue = [currentValue];
-            }
-            const newList = [...currentValue];
-            newList[currentListIndex] = lower;
-            onChange(currentLowerKey, newList);
+          let currentValue = paramData[currentColorKey];
+          // 非数组值转为数组
+          if (!Array.isArray(currentValue)) {
+            currentValue = [currentValue];
           }
-          if (currentUpperKey) {
-            let currentValue = paramData[currentUpperKey];
-            // 非数组值转为数组
-            if (!Array.isArray(currentValue)) {
-              currentValue = [currentValue];
-            }
-            const newList = [...currentValue];
-            newList[currentListIndex] = upper;
-            onChange(currentUpperKey, newList);
+          // 规范化为二维数组
+          if (currentValue.length > 0 && !Array.isArray(currentValue[0])) {
+            currentValue = [currentValue];
           }
+          const newList = [...currentValue];
+          newList[currentListIndex] = color;
+          onChange(currentColorKey, newList);
         } else {
-          if (currentLowerKey) {
-            onChange(currentLowerKey, lower);
-          }
-          if (currentUpperKey) {
-            onChange(currentUpperKey, upper);
-          }
-          // 如果都没有，同时填充两个
-          if (!currentLowerKey && !currentUpperKey) {
-            onChange("lower", lower);
-            onChange("upper", upper);
-          }
+          // 规范化为二维数组
+          onChange(currentColorKey, [color]);
         }
+
         setColorModalOpen(false);
-        setCurrentLowerKey(null);
-        setCurrentUpperKey(null);
+        setCurrentColorKey(null);
         setCurrentListIndex(null);
       },
-      [currentLowerKey, currentUpperKey, currentListIndex, paramData, onChange]
+      [currentColorKey, currentListIndex, paramData, onChange]
     );
 
     // 获取字段对应的快捷工具图标
@@ -267,7 +250,7 @@ export const ParamFieldListElem = memo(
         } else if (key === "template") {
           handleOpenTemplate(key, listIndex);
         } else if (key === "lower" || key === "upper") {
-          handleOpenColor(key, key === "upper", listIndex);
+          handleOpenColor(key, listIndex);
         }
       },
       [handleOpenROI, handleOpenOCR, handleOpenTemplate, handleOpenColor]
@@ -476,16 +459,16 @@ export const ParamFieldListElem = memo(
             onConfirm={handleTemplateConfirm}
           />
         )}
-        {(currentLowerKey || currentUpperKey) && (
+        {currentColorKey && (
           <ColorModal
             open={colorModalOpen}
             onClose={() => {
               setColorModalOpen(false);
-              setCurrentLowerKey(null);
-              setCurrentUpperKey(null);
+              setCurrentColorKey(null);
               setCurrentListIndex(null);
             }}
             onConfirm={handleColorConfirm}
+            targetKey={currentColorKey}
           />
         )}
       </>
