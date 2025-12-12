@@ -71,7 +71,6 @@ export const OCRModal = memo(
       panOffset,
       isPanning,
       isSpacePressed,
-      isMiddleMouseDown,
       containerRef,
       imageRef,
       handleZoomIn,

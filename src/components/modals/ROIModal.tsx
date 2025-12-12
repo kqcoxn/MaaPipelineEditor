@@ -54,7 +54,6 @@ export const ROIModal = memo(
       panOffset,
       isPanning,
       isSpacePressed,
-      isMiddleMouseDown,
       containerRef,
       imageRef,
       handleZoomIn,

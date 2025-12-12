@@ -61,6 +61,9 @@ export const TemplateModal = memo(
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const maskCanvasRef = useRef<HTMLCanvasElement>(null);
+    const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(
+      null
+    );
 
     // 使用视口控制 Hook
     const {
@@ -68,7 +71,6 @@ export const TemplateModal = memo(
       panOffset,
       isPanning,
       isSpacePressed,
-      isMiddleMouseDown,
       containerRef,
       imageRef,
       handleZoomIn,
@@ -191,7 +193,19 @@ export const TemplateModal = memo(
           rectangle.height
         );
       }
-    }, [rectangle, currentTool]);
+
+      // 绘制画笔/橡皮擦预览圆
+      if (mousePos && (currentTool === "brush" || currentTool === "eraser")) {
+        ctx.beginPath();
+        ctx.arc(mousePos.x, mousePos.y, brushSize / 2, 0, Math.PI * 2);
+        ctx.strokeStyle =
+          currentTool === "brush"
+            ? "rgba(0, 255, 0, 0.8)"
+            : "rgba(255, 0, 0, 0.8)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }, [rectangle, currentTool, mousePos, brushSize]);
 
     useEffect(() => {
       redrawCanvas();
@@ -235,6 +249,18 @@ export const TemplateModal = memo(
     // 鼠标移动
     const handleMouseMove = useCallback(
       (e: React.MouseEvent<HTMLCanvasElement>) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const currentX = (e.clientX - rect.left) / scale;
+        const currentY = (e.clientY - rect.top) / scale;
+
+        // 更新鼠标位置用于显示画笔预览
+        if (currentTool === "brush" || currentTool === "eraser") {
+          setMousePos({ x: currentX, y: currentY });
+        }
+
         // 拖动模式
         if (isPanning) {
           updatePan(e.clientX, e.clientY);
@@ -242,13 +268,6 @@ export const TemplateModal = memo(
         }
 
         if (!isDrawing || !startPoint) return;
-
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-
-        const rect = canvas.getBoundingClientRect();
-        const currentX = (e.clientX - rect.left) / scale;
-        const currentY = (e.clientY - rect.top) / scale;
 
         if (currentTool === "select") {
           const width = currentX - startPoint.x;
@@ -266,6 +285,17 @@ export const TemplateModal = memo(
       [isDrawing, startPoint, scale, currentTool, isPanning, updatePan]
     );
 
+    // 鼠标离开画布时隐藏预览圆
+    const handleMouseLeave = useCallback(() => {
+      setMousePos(null);
+      if (isPanning) {
+        endPan();
+        return;
+      }
+      setIsDrawing(false);
+      setStartPoint(null);
+    }, [isPanning, endPan]);
+
     // 鼠标抬起
     const handleMouseUp = useCallback(() => {
       if (isPanning) {
@@ -275,6 +305,21 @@ export const TemplateModal = memo(
       setIsDrawing(false);
       setStartPoint(null);
     }, [isPanning, endPan]);
+
+    // 鼠标进入画布时更新位置
+    const handleMouseEnter = useCallback(
+      (e: React.MouseEvent<HTMLCanvasElement>) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / scale;
+        const y = (e.clientY - rect.top) / scale;
+        if (currentTool === "brush" || currentTool === "eraser") {
+          setMousePos({ x, y });
+        }
+      },
+      [scale, currentTool]
+    );
 
     // 绘制遮罩
     const drawMask = useCallback(
@@ -324,7 +369,7 @@ export const TemplateModal = memo(
     );
 
     // 保存模板
-    const handleSave = useCallback(() => {
+    const handleSave = useCallback(async () => {
       if (!rectangle || !canvasRef.current || !imageRef.current) {
         message.warning("请先框选模板区域");
         return;
@@ -369,36 +414,64 @@ export const TemplateModal = memo(
       }
 
       // 导出为 PNG
-      tempCanvas.toBlob((blob) => {
-        if (!blob) {
-          message.error("生成模板图片失败");
-          return;
+      const blob = await new Promise<Blob | null>((resolve) =>
+        tempCanvas.toBlob(resolve, "image/png")
+      );
+
+      if (!blob) {
+        message.error("生成模板图片失败");
+        return;
+      }
+
+      const timestamp = Date.now();
+      const defaultFilename = `template_${timestamp}.png`;
+
+      const roi: [number, number, number, number] = [
+        Math.round(rectangle.x),
+        Math.round(rectangle.y),
+        Math.round(rectangle.width),
+        Math.round(rectangle.height),
+      ];
+
+      // 尝试使用 File System Access API
+      if ("showSaveFilePicker" in window) {
+        try {
+          const fileHandle = await (window as any).showSaveFilePicker({
+            suggestedName: defaultFilename,
+            types: [
+              {
+                description: "PNG 图片",
+                accept: { "image/png": [".png"] },
+              },
+            ],
+          });
+
+          const writable = await fileHandle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+
+          // 获取文件名
+          const filename = fileHandle.name;
+          message.success("模板已保存");
+          onConfirm(filename, hasGreenMask, roi);
+        } catch (err: any) {
+          if (err.name !== "AbortError") {
+            message.error("保存失败: " + err.message);
+          }
         }
-
-        const timestamp = Date.now();
-        const filename = `template_${timestamp}.png`;
+      } else {
+        // 降级方案：传统下载
         const url = URL.createObjectURL(blob);
-
-        // 创建下载链接
         const a = document.createElement("a");
         a.href = url;
-        a.download = filename;
+        a.download = defaultFilename;
         a.click();
-
         URL.revokeObjectURL(url);
 
-        // 简化路径处理：使用文件名作为相对路径
-        const templatePath = `templates/${filename}`;
         message.success("模板已保存");
-        onConfirm(templatePath, hasGreenMask, [
-          Math.round(rectangle.x),
-          Math.round(rectangle.y),
-          Math.round(rectangle.width),
-          Math.round(rectangle.height),
-        ]);
-        onClose();
-      }, "image/png");
-    }, [rectangle, hasGreenMask, onConfirm, onClose]);
+        onConfirm(defaultFilename, hasGreenMask, roi);
+      }
+    }, [rectangle, hasGreenMask, onConfirm]);
 
     // 关闭时重置状态
     const handleClose = useCallback(() => {
@@ -539,7 +612,8 @@ export const TemplateModal = memo(
                   onMouseDown={handleMouseDown}
                   onMouseMove={handleMouseMove}
                   onMouseUp={handleMouseUp}
-                  onMouseLeave={handleMouseUp}
+                  onMouseLeave={handleMouseLeave}
+                  onMouseEnter={handleMouseEnter}
                   style={{
                     cursor: getCursorStyle(),
                     transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${scale})`,

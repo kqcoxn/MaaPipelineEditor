@@ -267,7 +267,7 @@ export const ParamFieldListElem = memo(
     const renderQuickTool = useCallback(
       (key: string, listIndex?: number) => {
         const icon = getQuickToolIcon(key);
-        if (!icon || connectionStatus !== "connected") {
+        if (!icon) {
           return null;
         }
 
@@ -282,7 +282,7 @@ export const ParamFieldListElem = memo(
           </div>
         );
       },
-      [getQuickToolIcon, connectionStatus, handleQuickToolClick]
+      [getQuickToolIcon, handleQuickToolClick]
     );
 
     const existingFields = Object.keys(paramData);
