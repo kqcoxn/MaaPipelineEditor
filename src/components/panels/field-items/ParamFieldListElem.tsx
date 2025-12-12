@@ -126,12 +126,14 @@ export const ParamFieldListElem = memo(
         if (currentROIKey) {
           // 列表类型只替换指定索引的值
           if (currentListIndex !== null) {
-            const currentValue = paramData[currentROIKey];
-            if (Array.isArray(currentValue)) {
-              const newList = [...currentValue];
-              newList[currentListIndex] = roi;
-              onChange(currentROIKey, newList);
+            let currentValue = paramData[currentROIKey];
+            // 非数组值转为数组
+            if (!Array.isArray(currentValue)) {
+              currentValue = [currentValue];
             }
+            const newList = [...currentValue];
+            newList[currentListIndex] = roi;
+            onChange(currentROIKey, newList);
           } else {
             onChange(currentROIKey, roi);
           }
@@ -149,12 +151,14 @@ export const ParamFieldListElem = memo(
         if (currentExpectedKey) {
           // 列表类型只替换指定索引的值
           if (currentListIndex !== null) {
-            const currentValue = paramData[currentExpectedKey];
-            if (Array.isArray(currentValue)) {
-              const newList = [...currentValue];
-              newList[currentListIndex] = text;
-              onChange(currentExpectedKey, newList);
+            let currentValue = paramData[currentExpectedKey];
+            // 非数组值转为数组
+            if (!Array.isArray(currentValue)) {
+              currentValue = [currentValue];
             }
+            const newList = [...currentValue];
+            newList[currentListIndex] = text;
+            onChange(currentExpectedKey, newList);
           } else {
             onChange(currentExpectedKey, text);
           }
@@ -176,12 +180,14 @@ export const ParamFieldListElem = memo(
         if (currentTemplateKey) {
           // 列表类型只替换指定索引的值
           if (currentListIndex !== null) {
-            const currentValue = paramData[currentTemplateKey];
-            if (Array.isArray(currentValue)) {
-              const newList = [...currentValue];
-              newList[currentListIndex] = templatePath;
-              onChange(currentTemplateKey, newList);
+            let currentValue = paramData[currentTemplateKey];
+            // 非数组值转为数组
+            if (!Array.isArray(currentValue)) {
+              currentValue = [currentValue];
             }
+            const newList = [...currentValue];
+            newList[currentListIndex] = templatePath;
+            onChange(currentTemplateKey, newList);
           } else {
             onChange(currentTemplateKey, templatePath);
           }
@@ -203,20 +209,24 @@ export const ParamFieldListElem = memo(
         // 列表类型只替换指定索引的值
         if (currentListIndex !== null) {
           if (currentLowerKey) {
-            const currentValue = paramData[currentLowerKey];
-            if (Array.isArray(currentValue)) {
-              const newList = [...currentValue];
-              newList[currentListIndex] = lower;
-              onChange(currentLowerKey, newList);
+            let currentValue = paramData[currentLowerKey];
+            // 非数组值转为数组
+            if (!Array.isArray(currentValue)) {
+              currentValue = [currentValue];
             }
+            const newList = [...currentValue];
+            newList[currentListIndex] = lower;
+            onChange(currentLowerKey, newList);
           }
           if (currentUpperKey) {
-            const currentValue = paramData[currentUpperKey];
-            if (Array.isArray(currentValue)) {
-              const newList = [...currentValue];
-              newList[currentListIndex] = upper;
-              onChange(currentUpperKey, newList);
+            let currentValue = paramData[currentUpperKey];
+            // 非数组值转为数组
+            if (!Array.isArray(currentValue)) {
+              currentValue = [currentValue];
             }
+            const newList = [...currentValue];
+            newList[currentListIndex] = upper;
+            onChange(currentUpperKey, newList);
           }
         } else {
           if (currentLowerKey) {
