@@ -11,6 +11,7 @@ interface ViewportState {
   panOffset: { x: number; y: number };
   isPanning: boolean;
   isSpacePressed: boolean;
+  isMiddleMouseDown: boolean;
 }
 
 interface UseCanvasViewportOptions {
@@ -28,6 +29,7 @@ interface UseCanvasViewportReturn {
   panOffset: { x: number; y: number };
   isPanning: boolean;
   isSpacePressed: boolean;
+  isMiddleMouseDown: boolean;
   initialScale: number;
 
   // Refs
@@ -42,7 +44,11 @@ interface UseCanvasViewportReturn {
   setPanOffset: React.Dispatch<React.SetStateAction<{ x: number; y: number }>>;
 
   // 拖动处理
-  startPan: (clientX: number, clientY: number) => void;
+  startPan: (
+    clientX: number,
+    clientY: number,
+    isMiddleButton?: boolean
+  ) => void;
   updatePan: (clientX: number, clientY: number) => void;
   endPan: () => void;
 
@@ -73,6 +79,7 @@ export function useCanvasViewport({
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [isSpacePressed, setIsSpacePressed] = useState(false);
+  const [isMiddleMouseDown, setIsMiddleMouseDown] = useState(false);
   const [panStart, setPanStart] = useState<{ x: number; y: number } | null>(
     null
   );
@@ -96,8 +103,11 @@ export function useCanvasViewport({
       if (e.code === "Space") {
         e.preventDefault();
         setIsSpacePressed(false);
-        setIsPanning(false);
-        setPanStart(null);
+        // 只有在非中键拖动时才结束拖动
+        if (!isMiddleMouseDown) {
+          setIsPanning(false);
+          setPanStart(null);
+        }
       }
     };
 
@@ -206,8 +216,11 @@ export function useCanvasViewport({
 
   // 开始拖动
   const startPan = useCallback(
-    (clientX: number, clientY: number) => {
+    (clientX: number, clientY: number, isMiddleButton: boolean = false) => {
       setIsPanning(true);
+      if (isMiddleButton) {
+        setIsMiddleMouseDown(true);
+      }
       setPanStart({
         x: clientX - panOffset.x,
         y: clientY - panOffset.y,
@@ -231,6 +244,7 @@ export function useCanvasViewport({
   // 结束拖动
   const endPan = useCallback(() => {
     setIsPanning(false);
+    setIsMiddleMouseDown(false);
     setPanStart(null);
   }, []);
 
@@ -240,6 +254,7 @@ export function useCanvasViewport({
     setPanOffset({ x: 0, y: 0 });
     setIsPanning(false);
     setIsSpacePressed(false);
+    setIsMiddleMouseDown(false);
     setPanStart(null);
     imageRef.current = null;
   }, []);
@@ -250,9 +265,9 @@ export function useCanvasViewport({
     | "grabbing"
     | undefined => {
     if (isPanning) return "grabbing";
-    if (isSpacePressed) return "grab";
+    if (isSpacePressed || isMiddleMouseDown) return "grab";
     return undefined;
-  }, [isSpacePressed, isPanning]);
+  }, [isSpacePressed, isPanning, isMiddleMouseDown]);
 
   return {
     // 状态
@@ -260,6 +275,7 @@ export function useCanvasViewport({
     panOffset,
     isPanning,
     isSpacePressed,
+    isMiddleMouseDown,
     initialScale,
 
     // Refs

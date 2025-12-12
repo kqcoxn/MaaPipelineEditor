@@ -184,13 +184,14 @@ func (h *UtilityHandler) performOCR(controllerID, resourceID string, roi [4]int3
 	}
 	logger.Info("Utility", "Tasker 初始化成功")
 
-	// 构造 OCR 识别节点的 override 配置
+	// 构造 OCR 识别节点
 	ocrNodeName := "_OCR_TEMP_NODE_"
 	ocrConfig := map[string]interface{}{
 		ocrNodeName: map[string]interface{}{
 			"recognition": "OCR",
 			"roi":         []int32{roi[0], roi[1], roi[2], roi[3]},
 			"action":      "DoNothing",
+			"timeout":     0,
 		},
 	}
 
@@ -219,12 +220,15 @@ func (h *UtilityHandler) buildEmptyOCRResult(img image.Image, roi [4]int32) (map
 		return nil, err
 	}
 
+	logger.Info("Utility", "OCR 识别完成，未检测到文字内容")
+
 	return map[string]interface{}{
-		"success": true,
-		"text":    "",
-		"boxes":   []map[string]interface{}{},
-		"image":   imageData,
-		"roi":     []int32{roi[0], roi[1], roi[2], roi[3]},
+		"success":    true,
+		"text":       "",
+		"boxes":      []map[string]interface{}{},
+		"image":      imageData,
+		"roi":        []int32{roi[0], roi[1], roi[2], roi[3]},
+		"no_content": true,
 	}, nil
 }
 
@@ -314,12 +318,20 @@ func (h *UtilityHandler) parseOCRResult(taskDetail *maa.TaskDetail, img image.Im
 		}
 	}
 
+	// 检查是否识别到内容
+	hasContent := allText != "" || len(boxes) > 0
+
+	if !hasContent {
+		logger.Info("Utility", "OCR 识别完成，未检测到文字内容")
+	}
+
 	return map[string]interface{}{
-		"success": true,
-		"text":    allText,
-		"boxes":   boxes,
-		"image":   imageData,
-		"roi":     []int32{roi[0], roi[1], roi[2], roi[3]},
+		"success":    true,
+		"text":       allText,
+		"boxes":      boxes,
+		"image":      imageData,
+		"roi":        []int32{roi[0], roi[1], roi[2], roi[3]},
+		"no_content": !hasContent,
 	}, nil
 }
 

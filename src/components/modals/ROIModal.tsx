@@ -54,6 +54,7 @@ export const ROIModal = memo(
       panOffset,
       isPanning,
       isSpacePressed,
+      isMiddleMouseDown,
       containerRef,
       imageRef,
       handleZoomIn,
@@ -182,6 +183,13 @@ export const ROIModal = memo(
       (e: React.MouseEvent<HTMLCanvasElement>) => {
         const canvas = canvasRef.current;
         if (!canvas || !screenshot) return;
+
+        // 中键拖动模式
+        if (e.button === 1) {
+          e.preventDefault();
+          startPan(e.clientX, e.clientY, true);
+          return;
+        }
 
         // 空格拖动模式
         if (isSpacePressed) {
@@ -333,7 +341,7 @@ export const ROIModal = memo(
                 </Tooltip>
               </Space>
               <span style={{ color: "#999", fontSize: 12 }}>
-                提示：滚轮缩放 | 按住空格拖动
+                提示：滚轮缩放 | 按住空格或中键拖动
               </span>
             </div>
           )}

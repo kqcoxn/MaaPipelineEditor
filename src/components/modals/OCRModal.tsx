@@ -16,6 +16,8 @@ import {
   ZoomInOutlined,
   ZoomOutOutlined,
   FullscreenOutlined,
+  ClearOutlined,
+  CheckCircleOutlined,
 } from "@ant-design/icons";
 import { useMFWStore } from "../../stores/mfwStore";
 import { mfwProtocol } from "../../services/server";
@@ -42,6 +44,7 @@ interface OCRResult {
   text?: string;
   boxes?: Array<{ x: number; y: number; w: number; h: number; text: string }>;
   error?: string;
+  no_content?: boolean;
 }
 
 export const OCRModal = memo(
@@ -57,6 +60,7 @@ export const OCRModal = memo(
       y: number;
     } | null>(null);
     const [ocrText, setOcrText] = useState<string>("");
+    const [ocrSuccess, setOcrSuccess] = useState<boolean | null>(null);
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const ocrDebounceRef = useRef<NodeJS.Timeout | null>(null);
@@ -67,6 +71,7 @@ export const OCRModal = memo(
       panOffset,
       isPanning,
       isSpacePressed,
+      isMiddleMouseDown,
       containerRef,
       imageRef,
       handleZoomIn,
@@ -81,16 +86,22 @@ export const OCRModal = memo(
     } = useCanvasViewport({ open, screenshot });
 
     // 初始化 ROI
+    const initializedRef = useRef(false);
     useEffect(() => {
-      if (initialROI && screenshot) {
+      if (initialROI && screenshot && !initializedRef.current) {
         setRectangle({
           x: initialROI[0],
           y: initialROI[1],
           width: initialROI[2],
           height: initialROI[3],
         });
+        initializedRef.current = true;
       }
-    }, [initialROI, screenshot]);
+
+      if (!open) {
+        initializedRef.current = false;
+      }
+    }, [initialROI, screenshot, open]);
 
     // 请求截图
     const requestScreenshot = useCallback(() => {
@@ -150,10 +161,18 @@ export const OCRModal = memo(
       // 监听 OCR 结果
       const handleOCRResult = (data: OCRResult) => {
         setIsOCRing(false);
-        if (data.success && data.text !== undefined) {
-          setOcrText(data.text);
+        if (data.success) {
+          setOcrText(data.text ?? "");
+
+          // 检查是否未检测到内容
+          if (data.no_content) {
+            setOcrSuccess(false);
+          } else {
+            setOcrSuccess(true);
+          }
         } else if (data.error) {
           message.error(data.error);
+          setOcrSuccess(false);
         }
       };
 
@@ -226,6 +245,13 @@ export const OCRModal = memo(
         const canvas = canvasRef.current;
         if (!canvas || !screenshot) return;
 
+        // 中键拖动模式
+        if (e.button === 1) {
+          e.preventDefault();
+          startPan(e.clientX, e.clientY, true);
+          return;
+        }
+
         // 空格拖动模式
         if (isSpacePressed) {
           startPan(e.clientX, e.clientY);
@@ -295,6 +321,9 @@ export const OCRModal = memo(
         if (ocrDebounceRef.current) {
           clearTimeout(ocrDebounceRef.current);
         }
+        // 标记为识别中状态
+        setIsOCRing(true);
+        setOcrSuccess(null);
         ocrDebounceRef.current = setTimeout(() => {
           requestOCR(rectangle);
         }, 500);
@@ -324,6 +353,9 @@ export const OCRModal = memo(
           if (ocrDebounceRef.current) {
             clearTimeout(ocrDebounceRef.current);
           }
+          // 标记为识别中状态
+          setIsOCRing(true);
+          setOcrSuccess(null);
           ocrDebounceRef.current = setTimeout(() => {
             requestOCR(newRect);
           }, 500);
@@ -359,6 +391,7 @@ export const OCRModal = memo(
       setIsDrawing(false);
       setStartPoint(null);
       setOcrText("");
+      setOcrSuccess(null);
       resetViewport();
       if (ocrDebounceRef.current) {
         clearTimeout(ocrDebounceRef.current);
@@ -420,7 +453,7 @@ export const OCRModal = memo(
                 </Tooltip>
               </Space>
               <span style={{ color: "#999", fontSize: 12 }}>
-                提示：滚轮缩放 | 按住空格拖动
+                提示：滚轮缩放 | 按住空格或中键拖动
               </span>
             </div>
           )}
@@ -508,19 +541,54 @@ export const OCRModal = memo(
 
           {/* OCR 识别结果 */}
           <div style={{ marginBottom: 16 }}>
-            <div style={{ marginBottom: 8, fontWeight: 500 }}>
-              识别结果:
-              {isOCRing && (
-                <span style={{ marginLeft: 8, color: "#1890ff" }}>
-                  识别中...
-                </span>
-              )}
+            <div
+              style={{
+                marginBottom: 8,
+                fontWeight: 500,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <div>
+                识别结果:
+                {isOCRing && (
+                  <span style={{ marginLeft: 8, color: "#1890ff" }}>
+                    识别中...
+                  </span>
+                )}
+                {!isOCRing && ocrSuccess === true && (
+                  <span style={{ marginLeft: 8, color: "#52c41a" }}>
+                    <CheckCircleOutlined /> 识别成功
+                  </span>
+                )}
+                {!isOCRing && ocrSuccess === false && ocrText === "" && (
+                  <span style={{ marginLeft: 8, color: "#faad14" }}>
+                    未检测到文字内容
+                  </span>
+                )}
+              </div>
+              <Button
+                size="small"
+                icon={<ClearOutlined />}
+                onClick={() => {
+                  setOcrText("");
+                  setOcrSuccess(null);
+                }}
+                disabled={!ocrText}
+              >
+                清空
+              </Button>
             </div>
             <TextArea
               value={ocrText}
-              onChange={(e) => setOcrText(e.target.value)}
+              onChange={(e) => {
+                setOcrText(e.target.value);
+                if (ocrSuccess !== null) setOcrSuccess(null);
+              }}
               placeholder="在截图上框选区域后，系统将自动识别文字"
-              autoSize={{ minRows: 3, maxRows: 6 }}
+              rows={4}
+              style={{ resize: "none" }}
               disabled={isOCRing}
             />
           </div>
@@ -543,7 +611,7 @@ export const OCRModal = memo(
               onClick={handleConfirm}
               disabled={!ocrText}
             >
-              确定
+              确定（添加到字段）
             </Button>
           </Space>
         </Spin>
