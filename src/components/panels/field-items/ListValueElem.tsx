@@ -3,6 +3,7 @@ import { Input, InputNumber } from "antd";
 import IconFont from "../../iconfonts";
 import { JsonHelper } from "../../../utils/jsonHelper";
 import type { ReactNode } from "react";
+import { FieldTypeEnum } from "../../../core/fields";
 
 const { TextArea } = Input;
 
@@ -18,6 +19,13 @@ export function ListValueElem(
 ) {
   if (!Array.isArray(valueList)) {
     valueList = [valueList];
+  }
+
+  // 内层数组被视为一个整体
+  if (placeholder === FieldTypeEnum.IntListList) {
+    if (valueList.length > 0 && !Array.isArray(valueList[0])) {
+      valueList = [valueList];
+    }
   }
   const ListValue = valueList.map((value, index) => {
     const quickToolElem = quickToolRender?.(key, index);
