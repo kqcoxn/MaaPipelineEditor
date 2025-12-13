@@ -30,13 +30,13 @@ _✨ 可视化构建 MaaFramework Pipeline 的下一代工作流编辑器 ✨_</
 
 **MaaPipelineEditor (MPE)** 是一款前后端完全分离架构、运用 [YAMaaPE](https://github.com/kqcoxn/YAMaaPE) 开发经验去芜存菁、经过资源开发者充分微调的 [MaaFramework](https://github.com/MaaXYZ/MaaFramework) [Pipeline](https://maafw.xyz/docs/3.1-PipelineProtocol.html) 工作流式可视化编辑器。
 
-**_“由您设计，由我们支持。”_** 如您所需皆已存在：添加、配置、连接，只需稍作思考，想法之外尽在其中！
+**_“由您设计，由我们支持。”_** 如您所需皆已存在：添加、设计、连接，只需稍作思考，想法之外尽在其中！
 
 ## 亮点
 
 #### ✨ 极致轻量，开箱即用
 
-- **无需安装**、无需配置，打开 [在线编辑器 🌐](https://mpe.codax.site/stable) 即可开始可视化 Pipeline 编辑之旅。
+- **无需下载、无需安装**，打开 [在线编辑器 🌐](https://mpe.codax.site/stable) 即可开始可视化 Pipeline 编辑之旅。
 - 基于 Web 的**真正意义跨平台**、可集成，随时随地 🖥💻 甚至纯文本查看与编辑项目。
 
 #### 🚀 渐进扩展，模块增强
@@ -46,20 +46,21 @@ _✨ 可视化构建 MaaFramework Pipeline 的下一代工作流编辑器 ✨_</
 
 #### 🧠 所见即所思，流程即逻辑
 
-- 注重编辑功能，更注重阅读体验！
+- 注重**编辑功能**，更注重**阅读体验**！
 - **多种节点样式** 🎨，依据数据查阅场景随意切换。
-- 布局紧凑、逻辑清晰，三路连接，让复杂任务一目了然 🧩。
+- 路径类字段全量适配、跨文件逻辑支持，灵活调控你的 Pipeline。
+- 布局紧凑、逻辑清晰，让复杂任务一目了然 🧩。
 
 #### 🧰 全面辅助，模板自由
 
-- 内置**识别小工具**（文本识别、截图裁剪、取色框选等 🎯）
+- 内置**识别小工具**（文本识别、截图裁剪、取色框选等 🎯），快捷填充字段内容
 - 搭配丰富**节点预制模板** 📦，并支持创建与保存**自定义模板**，一次配置，处处复用 ♻️！
 
 #### 🔄 全面兼容，平滑迁移
 
 - **旧项目一键导入** ✅，自动**识别废弃字段并智能迁移**，提供**自动排版**功能
 - 支持节点级 v1 与 v2 **协议混合导入**，
-- 涵盖复合类型等高级结构，提供[常用特性结构兼容](https://mpe.codax.site/docs/guide/migrate/old.html#%E5%8F%AF%E9%80%89-%E7%89%B9%E6%80%A7%E5%85%BC%E5%AE%B9)
+- 涵盖复合类型等高级结构，提供 [常用命名结构兼容](https://mpe.codax.site/docs/guide/migrate/old.html#%E5%8F%AF%E9%80%89-%E7%89%B9%E6%80%A7%E5%85%BC%E5%AE%B9)
 
 #### ⌨️ 类原生交互，高效编辑
 
@@ -68,19 +69,19 @@ _✨ 可视化构建 MaaFramework Pipeline 的下一代工作流编辑器 ✨_</
 
 #### 🤖 AI 赋能，未来已来
 
-- 智能节点搜索已上线 🔍，精准推荐、快速定位；
+- **智能节点搜索**已上线 🔍，模糊搜索、精准推荐、快速定位；
 - 更多 AI 辅助功能正在路上 🚧——让 Pipeline 编辑更聪明、更自然 ✨。
 
-#### ➕ 更多功能，还有高手
+#### ➕ 更多功能，还有高手！
 
 当前正在开发流程级调试功能！预计 `12.22` 前实装。
 
 > [!IMPORTANT]
 > 如果您有更多的需求或优化建议，欢迎提交 ISSUE，我们真的非常在意您的体验！
 
-## 展示
+## 预览
 
-您可以使用 MPE 在各类便捷工具的加持下轻松构造出如下 Pipeline，**兼具易用性与可读性**：
+您可以使用 MPE 在各类便捷工具的加持下轻松构造出如下 Pipeline，即使复杂也能维持清晰的逻辑，**兼具易用性与可读性**：
 
 ![](./image/展示.png)
 
@@ -120,7 +121,7 @@ MPE 项目没有单独的交流群，您可以在 MaaFramework 集成/开发交�
 
 [![Star History Chart](https://api.star-history.com/svg?repos=kqcoxn/MaaPipelineEditor&type=Date)](https://www.star-history.com/#kqcoxn/MaaPipelineEditor&Date)
 
-- `2025.5`：[YaMaaPE](https://github.com/kqcoxn/YAMaaPE)
-- `2025.5-8`：MNMA 应用、逐步完善
+- **`2025.10-Now`：LocalBridge 协议**
 - `2025.8-10`：重构，MaaPipelineEditor！
-- `2025.11-Now`：LocalBridge 协议
+- `2025.5-8`：MNMA 应用、逐步完善
+- `2025.5`：[YaMaaPE](https://github.com/kqcoxn/YAMaaPE)

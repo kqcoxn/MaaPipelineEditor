@@ -1,5 +1,10 @@
 [ISSUE](https://github.com/kqcoxn/MaaPipelineEditor/issues)
 
+- 性能优化
+- 直接 ocr，而不是调用节点，且不能刷新（需要截图缓存）
+- 自动更新后端
+- 截图有边缘红框
+
 ## MPE Web
 
 > 纯前端应用，用户通过浏览器访问。

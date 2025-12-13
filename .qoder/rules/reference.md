@@ -1,6 +1,6 @@
 ---
 trigger: model_decision
-description: 当需要查阅依赖或框架的本地文档时启用（mfw go API、pipeline协议）
+description: 当需要查阅依赖或框架的文档时启用（目前mfw go API、pipeline协议）
 ---
 
 ## 说明

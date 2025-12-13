@@ -106,21 +106,8 @@ func (h *UtilityHandler) performOCR(controllerID, resourceID string, roi [4]int3
 		return nil, mfw.NewMFWError(mfw.ErrCodeControllerNotConnected, "controller instance not available", nil)
 	}
 
-	// 获取资源（如果提供了resourceID）
-	var res *maa.Resource
-	if resourceID != "" {
-		resourceInfo, err := h.mfwService.ResourceManager().GetResource(resourceID)
-		if err != nil {
-			logger.Warn("Utility", "获取资源失败，将使用默认OCR配置: %v", err)
-		} else if r, ok := resourceInfo.Resource.(*maa.Resource); ok {
-			res = r
-			logger.Info("Utility", "使用资源 %s 进行OCR识别", resourceInfo.ResourceID)
-		}
-	}
-
-	logger.Info("Utility", "使用控制器 %s 进行OCR识别", controllerInfo.ControllerID)
-
 	// 执行截图获取当前屏幕图像
+	logger.Info("Utility", "使用控制器 %s 进行截图", controllerInfo.ControllerID)
 	job := ctrl.PostScreencap()
 	if job == nil {
 		return nil, mfw.NewMFWError(mfw.ErrCodeOperationFail, "failed to post screencap", nil)
@@ -131,37 +118,44 @@ func (h *UtilityHandler) performOCR(controllerID, resourceID string, roi [4]int3
 	if img == nil {
 		return nil, mfw.NewMFWError(mfw.ErrCodeOperationFail, "failed to get screenshot", nil)
 	}
+	logger.Info("Utility", "截图获取成功")
 
-	// 创建 Tasker 并绑定控制器和资源
-	tasker := maa.NewTasker()
-	if tasker == nil {
-		return nil, mfw.NewMFWError(mfw.ErrCodeTaskSubmitFailed, "failed to create tasker", nil)
+	// 获取或创建资源
+	var res *maa.Resource
+	var shouldDestroyRes bool
+
+	if resourceID != "" {
+		resourceInfo, err := h.mfwService.ResourceManager().GetResource(resourceID)
+		if err != nil {
+			logger.Warn("Utility", "获取资源失败,将创建临时资源: %v", err)
+		} else if r, ok := resourceInfo.Resource.(*maa.Resource); ok {
+			res = r
+			logger.Info("Utility", "使用已有资源 %s 进行OCR识别", resourceInfo.ResourceID)
+		}
 	}
-	defer tasker.Destroy()
 
-	if !tasker.BindController(ctrl) {
-		logger.Error("Utility", "绑定 Controller 失败")
-		return nil, mfw.NewMFWError(mfw.ErrCodeTaskSubmitFailed, "failed to bind controller", nil)
-	}
-	logger.Info("Utility", "Controller 绑定成功")
-
-	// 如果没有提供资源，创建一个临时资源
+	// 如果没有可用资源,创建临时资源
 	if res == nil {
 		res = maa.NewResource()
 		if res == nil {
 			return nil, mfw.NewMFWError(mfw.ErrCodeResourceLoadFailed, "failed to create resource", nil)
 		}
-		defer res.Destroy()
+		shouldDestroyRes = true
+		defer func() {
+			if shouldDestroyRes && res != nil {
+				res.Destroy()
+			}
+		}()
 
 		// 从配置加载 OCR 资源
 		cfg := config.GetGlobal()
 		if cfg != nil && cfg.MaaFW.ResourceDir != "" {
 			logger.Info("Utility", "从配置加载 OCR 资源: %s", cfg.MaaFW.ResourceDir)
-			job := res.PostBundle(cfg.MaaFW.ResourceDir)
-			if job == nil {
+			resJob := res.PostBundle(cfg.MaaFW.ResourceDir)
+			if resJob == nil {
 				logger.Warn("Utility", "加载 OCR 资源失败")
 			} else {
-				status := job.Wait()
+				status := resJob.Wait()
 				logger.Info("Utility", "OCR 资源加载状态: %v", status)
 			}
 		} else {
@@ -169,11 +163,23 @@ func (h *UtilityHandler) performOCR(controllerID, resourceID string, roi [4]int3
 		}
 	}
 
+	// 创建临时 Tasker
+	tasker := maa.NewTasker()
+	if tasker == nil {
+		return nil, mfw.NewMFWError(mfw.ErrCodeTaskSubmitFailed, "failed to create tasker", nil)
+	}
+	defer tasker.Destroy()
+
+	// 绑定控制器和资源
+	if !tasker.BindController(ctrl) {
+		logger.Error("Utility", "绑定 Controller 失败")
+		return nil, mfw.NewMFWError(mfw.ErrCodeTaskSubmitFailed, "failed to bind controller", nil)
+	}
+
 	if !tasker.BindResource(res) {
 		logger.Error("Utility", "绑定 Resource 失败")
 		return nil, mfw.NewMFWError(mfw.ErrCodeTaskSubmitFailed, "failed to bind resource", nil)
 	}
-	logger.Info("Utility", "Resource 绑定成功")
 
 	// 等待 Tasker 初始化完成
 	if !tasker.Initialized() {
@@ -185,7 +191,7 @@ func (h *UtilityHandler) performOCR(controllerID, resourceID string, roi [4]int3
 	logger.Info("Utility", "Tasker 初始化成功")
 
 	// 构造 OCR 识别节点
-	ocrNodeName := "_OCR_TEMP_NODE_"
+	ocrNodeName := "_OCR_TEMP_"
 	ocrConfig := map[string]interface{}{
 		ocrNodeName: map[string]interface{}{
 			"recognition": "OCR",
@@ -196,16 +202,20 @@ func (h *UtilityHandler) performOCR(controllerID, resourceID string, roi [4]int3
 	}
 
 	// 提交 OCR 任务
+	logger.Info("Utility", "提交 OCR 识别任务,ROI: %v", roi)
 	taskJob := tasker.PostTask(ocrNodeName, ocrConfig)
 	if taskJob == nil {
 		return nil, mfw.NewMFWError(mfw.ErrCodeTaskSubmitFailed, "failed to post OCR task", nil)
 	}
-	taskJob.Wait()
 
-	// 获取任务详情
+	// 等待识别完成
+	status := taskJob.Wait()
+	logger.Info("Utility", "OCR 识别任务完成,状态: %v", status)
+
+	// 获取识别详情
 	taskDetail := taskJob.GetDetail()
 	if taskDetail == nil {
-		logger.Warn("Utility", "OCR任务执行完成但无法获取详情")
+		logger.Warn("Utility", "OCR识别完成但无法获取详情")
 		return h.buildEmptyOCRResult(img, roi)
 	}
 
