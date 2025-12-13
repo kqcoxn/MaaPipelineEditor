@@ -3,6 +3,10 @@ trigger: always_on
 alwaysApply: true
 ---
 
+## 项目地址
+
+https://github.com/kqcoxn/MaaPipelineEditor
+
 ## 禁止的工作
 
 - 使用`yarn`作为 Node.js 的包管理器

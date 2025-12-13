@@ -1,10 +1,10 @@
 #!/bin/bash
 # MPE Local Bridge 安装脚本 (Linux/macOS)
-# 使用方式: curl -fsSL https://raw.githubusercontent.com/kqcoxn/visible-maafw-pipeline-editor/main/tools/install.sh | bash
+# 使用方式: curl -fsSL https://raw.githubusercontent.com/kqcoxn/MaaPipelineEditor/main/tools/install.sh | bash
 
 set -e
 
-REPO="kqcoxn/visible-maafw-pipeline-editor"
+REPO="kqcoxn/MaaPipelineEditor"
 INSTALL_DIR="$HOME/.local/bin"
 BIN_NAME="mpelb"
 

@@ -1,9 +1,9 @@
 # MPE Local Bridge 安装脚本 (Windows)
-# 使用方式: irm https://raw.githubusercontent.com/kqcoxn/visible-maafw-pipeline-editor/main/tools/install.ps1 | iex
+# 使用方式: irm https://raw.githubusercontent.com/kqcoxn/MaaPipelineEditor/main/tools/install.ps1 | iex
 
 $ErrorActionPreference = "Stop"
 
-$REPO = "kqcoxn/visible-maafw-pipeline-editor"
+$REPO = "kqcoxn/MaaPipelineEditor"
 $INSTALL_DIR = "$env:LOCALAPPDATA\mpelb"
 $BIN_PATH = "$INSTALL_DIR\mpelb.exe"
 

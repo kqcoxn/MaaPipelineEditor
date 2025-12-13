@@ -1,10 +1,10 @@
 @echo off
 REM MPE Local Bridge Installer for Windows CMD
-REM Usage: curl -fsSL https://raw.githubusercontent.com/kqcoxn/visible-maafw-pipeline-editor/main/tools/install.bat -o %TEMP%\install-mpelb.bat && %TEMP%\install-mpelb.bat
+REM Usage: curl -fsSL https://raw.githubusercontent.com/kqcoxn/MaaPipelineEditor/main/tools/install.bat -o %TEMP%\install-mpelb.bat && %TEMP%\install-mpelb.bat
 
 setlocal enabledelayedexpansion
 
-set "REPO=kqcoxn/visible-maafw-pipeline-editor"
+set "REPO=kqcoxn/MaaPipelineEditor"
 set "INSTALL_DIR=%LOCALAPPDATA%\mpelb"
 set "BIN_PATH=%INSTALL_DIR%\mpelb.exe"
 set "API_URL=https://api.github.com/repos/%REPO%/releases/latest"
@@ -39,8 +39,11 @@ set "VERSION="
 for /f "usebackq tokens=*" %%a in (`findstr /i "tag_name" "%TEMP%\mpelb-release.json"`) do (
     set "LINE=%%a"
     REM Extract version from line like: "tag_name": "v1.0.0",
-    for /f "tokens=2 delims=:\" " %%b in ("!LINE!") do (
+    REM Remove quotes and extract version
+    set "LINE=!LINE:~0,-1!"
+    for /f "tokens=2 delims=: " %%b in ("!LINE!") do (
         set "VERSION=%%b"
+        set "VERSION=!VERSION:~1!"
         goto :version_found
     )
 )
