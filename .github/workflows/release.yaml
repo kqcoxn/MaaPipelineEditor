@@ -116,8 +116,30 @@ jobs:
             MaaPipelineEditor-${{ github.ref_name }}-stable.zip
             MaaPipelineEditor-${{ github.ref_name }}-docs.zip
 
+  # 打包 deps 依赖包
+  package-deps:
+    name: Package deps
+    runs-on: ubuntu-latest
+    # 跳过测试版本 tag
+    if: ${{ !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test') }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create deps package
+        run: |
+          mkdir -p build
+          cd LocalBridge/deps
+          zip -r ../../build/deps.zip .
+
+      - name: Upload deps artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deps.zip
+          path: build/deps.zip
+
   release:
-    needs: [build-web, build-localbridge]
+    needs: [build-web, build-localbridge, package-deps]
     runs-on: ubuntu-latest
     # 跳过测试版本 tag
     if: ${{ !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test') }}
@@ -139,6 +161,12 @@ jobs:
           path: localbridge-artifacts
           pattern: mpelb-*
           merge-multiple: true
+
+      - name: Download deps artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: deps.zip
+          path: deps-artifact
 
       - name: Generate Changelog
         id: changelog
@@ -182,6 +210,7 @@ jobs:
             MaaPipelineEditor-${{ github.ref_name }}-stable.zip
             MaaPipelineEditor-${{ github.ref_name }}-docs.zip
             localbridge-artifacts/*
+            deps-artifact/deps.zip
           body_path: CHANGELOG.md
           generate_release_notes: false
           draft: false

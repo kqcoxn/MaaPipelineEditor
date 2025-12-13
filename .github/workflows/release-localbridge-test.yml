@@ -152,6 +152,7 @@ jobs:
 
       - name: Create deps package
         run: |
+          mkdir -p build
           cd LocalBridge/deps
           zip -r ../../build/deps.zip .
 
