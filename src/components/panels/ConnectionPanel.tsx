@@ -57,12 +57,12 @@ export const ConnectionPanel = memo(
 
     // 自定义截图和输入方法
     // ADB 支持多选(数组),Win32 只支持单选(字符串)
-    const [customScreencap, setCustomScreencap] = useState<string | string[] | undefined>(
-      undefined
-    );
-    const [customInput, setCustomInput] = useState<string | string[] | undefined>(
-      undefined
-    );
+    const [customScreencap, setCustomScreencap] = useState<
+      string | string[] | undefined
+    >(undefined);
+    const [customInput, setCustomInput] = useState<
+      string | string[] | undefined
+    >(undefined);
 
     // 收集所有可用的截图和输入方法
     const allMethods = useMemo(() => {

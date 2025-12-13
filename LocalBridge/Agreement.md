@@ -294,8 +294,21 @@ MFW 协议主要提供以下能力：
         "adb_path": "/path/to/adb",
         "address": "127.0.0.1:5555",
         "name": "device_name",
-        "screencap_methods": ["EncodeToFileAndPull", "Encode", "RawWithGzip", "RawByNetcat", "MinicapDirect", "MinicapStream", "EmulatorExtras"],
-        "input_methods": ["AdbShell", "MinitouchAndAdbKey", "Maatouch", "EmulatorExtras"],
+        "screencap_methods": [
+          "EncodeToFileAndPull",
+          "Encode",
+          "RawWithGzip",
+          "RawByNetcat",
+          "MinicapDirect",
+          "MinicapStream",
+          "EmulatorExtras"
+        ],
+        "input_methods": [
+          "AdbShell",
+          "MinitouchAndAdbKey",
+          "Maatouch",
+          "EmulatorExtras"
+        ],
         "config": "{}"
       }
     ]

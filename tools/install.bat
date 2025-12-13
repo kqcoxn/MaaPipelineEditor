@@ -1,6 +1,6 @@
 @echo off
-REM MPE Local Bridge 安装脚本 (Windows CMD)
-REM 使用方式: curl -fsSL https://raw.githubusercontent.com/kqcoxn/visible-maafw-pipeline-editor/main/tools/install.bat -o %TEMP%\install-mpelb.bat && %TEMP%\install-mpelb.bat
+REM MPE Local Bridge Installer for Windows CMD
+REM Usage: curl -fsSL https://raw.githubusercontent.com/kqcoxn/visible-maafw-pipeline-editor/main/tools/install.bat -o %TEMP%\install-mpelb.bat && %TEMP%\install-mpelb.bat
 
 setlocal enabledelayedexpansion
 
@@ -10,24 +10,24 @@ set "BIN_PATH=%INSTALL_DIR%\mpelb.exe"
 set "API_URL=https://api.github.com/repos/%REPO%/releases/latest"
 
 echo.
-echo 🚀 正在安装 MPE Local Bridge...
+echo Installing MPE Local Bridge...
 echo.
 
-REM 创建安装目录
+REM Create installation directory
 if not exist "%INSTALL_DIR%" (
     mkdir "%INSTALL_DIR%"
 )
 
-REM 获取最新版本信息
-echo 📡 正在获取最新版本...
+REM Get latest release info
+echo Fetching latest version...
 curl -s "%API_URL%" > "%TEMP%\mpelb-release.json"
 
 if errorlevel 1 (
-    echo ❌ 获取版本信息失败，请检查网络连接
+    echo ERROR: Failed to fetch release info. Please check your network connection.
     exit /b 1
 )
 
-REM 解析 JSON 获取版本号和下载链接
+REM Parse JSON to get version and download URL
 for /f "tokens=2 delims=:," %%a in ('findstr /i "tag_name" "%TEMP%\mpelb-release.json"') do (
     set "VERSION=%%a"
     set "VERSION=!VERSION: =!"
@@ -35,54 +35,54 @@ for /f "tokens=2 delims=:," %%a in ('findstr /i "tag_name" "%TEMP%\mpelb-release
 )
 
 if "!VERSION!"=="" (
-    echo ❌ 无法解析版本信息
+    echo ERROR: Failed to parse version info
     exit /b 1
 )
 
-echo ✅ 最新版本: !VERSION!
+echo Latest version: !VERSION!
 
-REM 构建下载 URL
+REM Build download URL
 set "DOWNLOAD_URL=https://github.com/%REPO%/releases/download/!VERSION!/mpelb-windows-amd64.exe"
 
-REM 下载二进制文件
-echo ⬇️  正在下载: mpelb-windows-amd64.exe
+REM Download binary
+echo Downloading: mpelb-windows-amd64.exe
 curl -fsSL "%DOWNLOAD_URL%" -o "%BIN_PATH%"
 
 if errorlevel 1 (
-    echo ❌ 下载失败
+    echo ERROR: Download failed
     exit /b 1
 )
 
-echo ✅ 下载完成
+echo Download complete
 
-REM 检查并添加到 PATH
+REM Check and add to PATH
 set "PATH_ADDED=0"
 echo %PATH% | findstr /i "%INSTALL_DIR%" >nul
 if errorlevel 1 (
-    echo 📌 正在添加到系统 PATH...
+    echo Adding to system PATH...
     setx PATH "%PATH%;%INSTALL_DIR%" >nul
     set "PATH=%PATH%;%INSTALL_DIR%"
-    echo ✅ 已添加到 PATH
+    echo Added to PATH
     set "PATH_ADDED=1"
 ) else (
-    echo ✅ 已在 PATH 中
+    echo Already in PATH
 )
 
-REM 清理临时文件
+REM Clean up temp files
 del "%TEMP%\mpelb-release.json" >nul 2>&1
 
 echo.
-echo 🎉 安装完成！
+echo Installation complete!
 echo.
-echo 运行以下命令开始使用:
+echo Usage:
 echo   mpelb --help
 echo.
-echo 快速启动服务:
-echo   mpelb --root .\你的项目目录
+echo Quick start:
+echo   mpelb --root .\your-project-directory
 echo.
 
 if "!PATH_ADDED!"=="1" (
-    echo 注意: 请重启 CMD 窗口以使 PATH 环境变量生效
+    echo NOTE: Please restart CMD to apply PATH changes
 )
 
 endlocal
