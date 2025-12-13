@@ -3,7 +3,10 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"os/signal"
+	"path/filepath"
+	"runtime"
 	"syscall"
 
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/config"
@@ -39,6 +42,13 @@ var rootCmd = &cobra.Command{
 	Run:     runServer,
 }
 
+var configCmd = &cobra.Command{
+	Use:   "config",
+	Short: "打开配置文件",
+	Long:  `使用系统默认编辑器打开配置文件`,
+	Run:   openConfig,
+}
+
 func init() {
 	rootCmd.Flags().StringVar(&configPath, "config", "", "配置文件路径")
 	rootCmd.Flags().StringVar(&rootDir, "root", "", "文件扫描根目录")
@@ -47,6 +57,10 @@ func init() {
 	rootCmd.Flags().StringVar(&logLevel, "log-level", "", "日志级别 (DEBUG, INFO, WARN, ERROR)")
 	rootCmd.Flags().BoolVarP(&showVersion, "version", "v", false, "显示版本号")
 	rootCmd.Flags().BoolVar(&doUpdate, "update", false, "检查并执行更新")
+
+	// 添加子命令
+	rootCmd.AddCommand(configCmd)
+	configCmd.Flags().StringVar(&configPath, "config", "", "配置文件路径（默认为 config/default.json）")
 }
 
 // 主函数
@@ -160,4 +174,64 @@ func runServer(cmd *cobra.Command, args []string) {
 	}
 
 	logger.Info("Main", "Local Bridge 已退出")
+}
+
+// 打开配置文件
+func openConfig(cmd *cobra.Command, args []string) {
+	// 确定配置文件路径
+	var cfgPath string
+	if configPath != "" {
+		cfgPath = configPath
+	} else {
+		// 使用默认配置文件路径
+		defaultPath := filepath.Join("config", "default.json")
+		if _, err := os.Stat(defaultPath); err == nil {
+			cfgPath = defaultPath
+		} else {
+			// 尝试当前目录
+			if _, err := os.Stat("default.json"); err == nil {
+				cfgPath = "default.json"
+			} else {
+				fmt.Fprintf(os.Stderr, "错误: 找不到配置文件，请使用 --config 参数指定配置文件路径\n")
+				os.Exit(1)
+			}
+		}
+	}
+
+	// 转换为绝对路径
+	absPath, err := filepath.Abs(cfgPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "错误: 无法获取配置文件的绝对路径: %v\n", err)
+		os.Exit(1)
+	}
+
+	// 检查文件是否存在
+	if _, err := os.Stat(absPath); os.IsNotExist(err) {
+		fmt.Fprintf(os.Stderr, "错误: 配置文件不存在: %s\n", absPath)
+		os.Exit(1)
+	}
+
+	fmt.Printf("正在打开配置文件: %s\n", absPath)
+
+	// 根据不同操作系统使用不同的命令打开文件
+	var command *exec.Cmd
+	switch runtime.GOOS {
+	case "windows":
+		command = exec.Command("cmd", "/c", "start", "", absPath)
+	case "darwin":
+		command = exec.Command("open", absPath)
+	case "linux":
+		command = exec.Command("xdg-open", absPath)
+	default:
+		fmt.Fprintf(os.Stderr, "错误: 不支持的操作系统: %s\n", runtime.GOOS)
+		os.Exit(1)
+	}
+
+	// 执行命令
+	if err := command.Start(); err != nil {
+		fmt.Fprintf(os.Stderr, "错误: 打开配置文件失败: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("✅ 配置文件已在默认编辑器中打开")
 }
