@@ -6,6 +6,7 @@ import (
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/errors"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/server"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/utils"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/pkg/models"
 )
 
@@ -118,8 +119,11 @@ func (r *Router) handleHandshake(msg models.Message, conn *server.Connection) {
 
 	// 版本验证
 	if clientVersion != server.ProtocolVersion {
-		logger.Warn("Router", "协议版本不匹配，客户端: %s，服务端: %s", clientVersion, server.ProtocolVersion)
-		r.sendHandshakeResponse(conn, false, "协议版本不匹配")
+		message := "协议版本不匹配，前端需求: " + clientVersion + "，当前本地服务协议: " + server.ProtocolVersion + "，请按后端提示更新"
+		logger.Warn("Router", message)
+		logger.Info("Router", "建议更新方式:")
+		utils.PrintInstallCommand()
+		r.sendHandshakeResponse(conn, false, message)
 		return
 	}
 

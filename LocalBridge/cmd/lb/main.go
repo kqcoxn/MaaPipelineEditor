@@ -26,6 +26,7 @@ import (
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/router"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/server"
 	fileService "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/service/file"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -539,32 +540,11 @@ func checkAndPrintUpdateNotice() {
 		fmt.Println("   下载地址:")
 		fmt.Printf("   %s\n", releaseURL)
 		fmt.Println("   快速更新指令:")
-		printInstallCommand()
+		utils.PrintInstallCommand()
 		fmt.Println("══════════════════════════════════════════════════")
 		fmt.Println()
 	} else {
 		logger.Debug("Update", "当前版本 v%s 已是最新版本 (最新: v%s)", currentVersion, latestVersion)
-	}
-}
-
-// 输出适合当前平台的安装命令
-func printInstallCommand() {
-	switch runtime.GOOS {
-	case "windows":
-		// 检测是否在 PowerShell 环境
-		shell := os.Getenv("PSModulePath")
-		if shell != "" {
-			// PowerShell 环境
-			fmt.Println("   irm https://raw.githubusercontent.com/kqcoxn/MaaPipelineEditor/main/tools/install.ps1 | iex")
-		} else {
-			// CMD 环境
-			fmt.Println("   curl -fsSL https://raw.githubusercontent.com/kqcoxn/MaaPipelineEditor/main/tools/install.bat -o %%TEMP%%\\install-mpelb.bat && %%TEMP%%\\install-mpelb.bat")
-		}
-	case "darwin", "linux":
-		// Linux/macOS
-		fmt.Println("   curl -fsSL https://raw.githubusercontent.com/kqcoxn/MaaPipelineEditor/main/tools/install.sh | bash")
-	default:
-		fmt.Println("   请访问上述下载地址手动下载")
 	}
 }
 

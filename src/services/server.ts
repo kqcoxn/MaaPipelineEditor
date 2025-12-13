@@ -45,13 +45,13 @@ export class LocalWebSocketServer {
           this.onStatusChange?.(true);
         } else {
           console.error(
-            "[WebSocket] 协议版本不匹配，前端:",
+            "[WebSocket] 协议版本不匹配，前端需求:",
             PROTOCOL_VERSION,
-            "，后端需要:",
+            "，当前本地服务协议:",
             data.required_version
           );
           message.error(
-            `协议版本不匹配，前端: ${PROTOCOL_VERSION}，后端需要: ${data.required_version}，请更新版本`
+            `协议版本不匹配，前端需求: ${PROTOCOL_VERSION}，当前本地服务协议: ${data.required_version}，请按后端提示更新`
           );
           // 主动断开连接
           this.disconnect();

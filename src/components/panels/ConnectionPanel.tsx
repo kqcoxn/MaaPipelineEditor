@@ -56,7 +56,6 @@ export const ConnectionPanel = memo(
     const [hasInitialized, setHasInitialized] = useState(false);
 
     // 自定义截图和输入方法
-    // ADB 支持多选(数组),Win32 只支持单选(字符串)
     const [customScreencap, setCustomScreencap] = useState<
       string | string[] | undefined
     >(undefined);
@@ -101,7 +100,6 @@ export const ConnectionPanel = memo(
     }, [activeTab, selectedAdbDevice, selectedWin32Window]);
 
     // 初始化时设置默认值
-    // ADB 设备默认选择所有方法，Win32 默认选择第一个方法
     useEffect(() => {
       if (
         selectedDeviceMethods.screencap.length > 0 &&
