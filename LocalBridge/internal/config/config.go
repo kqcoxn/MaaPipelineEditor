@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -78,6 +79,9 @@ func Load(configPath string) (*Config, error) {
 			return nil, fmt.Errorf("读取配置文件失败: %w", err)
 		}
 	}
+
+	// 记录配置文件路径
+	configFilePath = v.ConfigFileUsed()
 
 	// 解析配置
 	cfg := &Config{}
@@ -171,4 +175,43 @@ func (c *Config) OverrideFromFlags(root, logDir, logLevel string, port int) {
 
 	// 重新规范化路径
 	c.normalize()
+}
+
+// 配置文件路径
+var configFilePath string
+
+// 返回当前配置文件路径
+func GetConfigFilePath() string {
+	return configFilePath
+}
+
+// 保存配置到文件
+func (c *Config) Save() error {
+	if configFilePath == "" {
+		return fmt.Errorf("配置文件路径未知，无法保存")
+	}
+
+	// 读取原始文件内容以保留格式
+	data, err := json.MarshalIndent(c, "", "  ")
+	if err != nil {
+		return fmt.Errorf("序列化配置失败: %w", err)
+	}
+
+	if err := os.WriteFile(configFilePath, data, 0644); err != nil {
+		return fmt.Errorf("写入配置文件失败: %w", err)
+	}
+
+	return nil
+}
+
+// 设置 MaaFramework lib 目录并保存
+func (c *Config) SetMaaFWLibDir(libDir string) error {
+	c.MaaFW.LibDir = libDir
+	return c.Save()
+}
+
+// 设置 MaaFramework 资源目录并保存
+func (c *Config) SetMaaFWResourceDir(resourceDir string) error {
+	c.MaaFW.ResourceDir = resourceDir
+	return c.Save()
 }
