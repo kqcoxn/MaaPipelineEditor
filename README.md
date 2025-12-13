@@ -14,6 +14,7 @@ _✨ 可视化构建 MaaFramework Pipeline 的下一代工作流编辑器 ✨_</
   <a href="https://react.dev/" target="_blank"><img alt="react" src="https://img.shields.io/badge/React 19-%2320232a.svg?logo=react&logoColor=%2361DAFB"></a>
   <a href="https://www.typescriptlang.org/" target="_blank"><img alt="ts" src="https://img.shields.io/badge/TypeScript 5.8-3178C6?logo=typescript&logoColor=fff"></a>
   <a href="https://reactflow.dev/" target="_blank"><img alt="react-flow" src="https://img.shields.io/badge/React Flow 12-%23ff0072?logoColor=fff&logo=flathub"></a>
+  <a href="https://github.com/golang/go" target="_blank"><img alt="go" src="https://img.shields.io/badge/Golang 1.24-007d9c?logo=go&logoColor=fff"></a>
   <br/>
   <a href="https://github.com/kqcoxn/MaaPipelineEditor/blob/main/LICENSE.md" target="_blank"><img alt="committs" src="https://img.shields.io/github/license/kqcoxn/MaaPipelineEditor"></a>
   <a href="https://github.com/kqcoxn/MaaPipelineEditor/stargazers" target="_blank"><img alt="stars" src="https://img.shields.io/github/stars/kqcoxn/MaaPipelineEditor?style=social"></a>
@@ -36,45 +37,46 @@ _✨ 可视化构建 MaaFramework Pipeline 的下一代工作流编辑器 ✨_</
 
 #### ✨ 极致轻量，开箱即用
 
-- **无需下载、无需安装**，打开 [在线编辑器 🌐](https://mpe.codax.site/stable) 即可开始可视化 Pipeline 编辑之旅。
-- 基于 Web 的**真正意义跨平台**、可集成，随时随地 🖥💻 甚至纯文本查看与编辑项目。
+- **无需下载、无需安装**，打开 [在线编辑器 🌐](https://mpe.codax.site/stable) 即可开始可视化 Pipeline 编辑之旅
+- 基于 Web 的**真正意义跨平台**、可集成，随时随地 🖥💻 甚至无文件纯文本查看与编辑项目
 
 #### 🚀 渐进扩展，模块增强
 
-- 通过**一行命令即可增量启用** [本地服务](https://mpe.codax.site/docs.html)，无缝接入**文件管理**、**截图工具**等本地能力，
-- 支持自定义框架与 OCR 路径，直接**对齐本地环境**。
+- 通过**一行命令即可增量启用** [本地服务](https://mpe.codax.site/docs.html)，不需要时完全解耦
+- 无缝接入**文件管理**、**截图工具**等本地能力
+- 支持自定义框架与 OCR 路径，直接**对齐本地环境**
 
 #### 🧠 所见即所思，流程即逻辑
 
-- 注重**编辑功能**，更注重**阅读体验**！
-- **多种节点样式** 🎨，依据数据查阅场景随意切换。
-- 路径类字段全量适配、跨文件逻辑支持，灵活调控你的 Pipeline。
-- 布局紧凑、逻辑清晰，让复杂任务一目了然 🧩。
+- 注重**编辑功能**，更注重**阅读体验**
+- **多种节点样式** 🎨，依据数据查阅场景随意切换
+- 路径类字段全量适配、跨文件逻辑支持，灵活调控你的 Pipeline
+- 布局紧凑、逻辑清晰，让复杂任务一目了然 🧩
 
 #### 🧰 全面辅助，模板自由
 
 - 内置**识别小工具**（文本识别、截图裁剪、取色框选等 🎯），快捷填充字段内容
-- 搭配丰富**节点预制模板** 📦，并支持创建与保存**自定义模板**，一次配置，处处复用 ♻️！
+- 搭配丰富**节点预制模板** 📦，并支持创建与保存**自定义模板**，一次配置，处处复用 ♻️
 
 #### 🔄 全面兼容，平滑迁移
 
 - **旧项目一键导入** ✅，自动**识别废弃字段并智能迁移**，提供**自动排版**功能
-- 支持节点级 v1 与 v2 **协议混合导入**，
+- 支持节点级 v1 与 v2 **协议混合导入**
 - 涵盖复合类型等高级结构，提供 [常用命名结构兼容](https://mpe.codax.site/docs/guide/migrate/old.html#%E5%8F%AF%E9%80%89-%E7%89%B9%E6%80%A7%E5%85%BC%E5%AE%B9)
 
 #### ⌨️ 类原生交互，高效编辑
 
-- **单面板分类字段添加**，减少上下文切换；字段编辑媲美 IDE 级体验 💡，
-- 内置多种[语法糖 🍬](https://mpe.codax.site/docs/guide/trait/parser.html#%E8%AF%AD%E6%B3%95%E7%B3%96)，大幅简化类型配置与结构书写。
+- **单面板分类字段添加**，减少上下文切换；字段编辑媲美 IDE 级体验 💡
+- 内置多种[语法糖 🍬](https://mpe.codax.site/docs/guide/trait/parser.html#%E8%AF%AD%E6%B3%95%E7%B3%96)，大幅简化类型配置与结构书写
 
 #### 🤖 AI 赋能，未来已来
 
-- **智能节点搜索**已上线 🔍，模糊搜索、精准推荐、快速定位；
-- 更多 AI 辅助功能正在路上 🚧——让 Pipeline 编辑更聪明、更自然 ✨。
+- **智能节点搜索**已上线 🔍，模糊搜索、精准推荐、快速定位
+- 更多 AI 辅助功能正在路上 🚧——让 Pipeline 编辑更聪明、更自然 ✨
 
 #### ➕ 更多功能，还有高手！
 
-当前正在开发流程级调试功能！预计 `12.22` 前实装。
+当前正在开发流程级标记式调试功能，为您带来与众不同的方案与体验，预计 `12.22` 前实装！
 
 > [!IMPORTANT]
 > 如果您有更多的需求或优化建议，欢迎提交 ISSUE，我们真的非常在意您的体验！
