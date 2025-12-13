@@ -5,6 +5,7 @@ import ReactJsonView, {
   type ReactJsonViewProps,
 } from "@microlink/react-json-view";
 import { Button, Flex, message } from "antd";
+import { useShallow } from "zustand/shallow";
 
 import { useFlowStore, type NodeType } from "../stores/flow";
 import { useFileStore } from "../stores/fileStore";
@@ -42,11 +43,12 @@ const ViewerElem = memo(({ obj }: { obj: any }) => {
 });
 
 function JsonViewer() {
-  // store
-  const selectedNodes = useFlowStore(
-    (state) => state.debouncedSelectedNodes
-  ) as NodeType[];
-  const selectedEdges = useFlowStore((state) => state.debouncedSelectedEdges);
+  const { selectedNodes, selectedEdges } = useFlowStore(
+    useShallow((state) => ({
+      selectedNodes: state.debouncedSelectedNodes as NodeType[],
+      selectedEdges: state.debouncedSelectedEdges,
+    }))
+  );
   const isRealTimePreview = useConfigStore(
     (state) => state.configs.isRealTimePreview
   );
@@ -55,7 +57,6 @@ function JsonViewer() {
     (state) => state.currentFile.config.filePath
   );
   const saveFileToLocal = useFileStore((state) => state.saveFileToLocal);
-  useFlowStore((state) => state.targetNode);
 
   // 创建文件对话框状态
   const [createModalVisible, setCreateModalVisible] = useState(false);

@@ -1,5 +1,13 @@
 import type { StateCreator } from "zustand";
-import type { FlowStore, FlowSelectionState, NodeType, EdgeType } from "../types";
+import type {
+  FlowStore,
+  FlowSelectionState,
+  NodeType,
+  EdgeType,
+} from "../types";
+
+// 全局防抖定时器
+let debounceTimeout: NodeJS.Timeout | null = null;
 
 export const createSelectionSlice: StateCreator<
   FlowStore,
@@ -31,30 +39,20 @@ export const createSelectionSlice: StateCreator<
         newState.targetNode = nodes[0];
       }
 
-      // 防抖更新
-      const timeouts = { ...state.debounceTimeouts };
-      
-      // 清除旧的超时
-      if (timeouts.selectedNodes) clearTimeout(timeouts.selectedNodes);
-      if (timeouts.selectedEdges) clearTimeout(timeouts.selectedEdges);
-      if (timeouts.targetNode) clearTimeout(timeouts.targetNode);
-
-      // 设置新的超时
-      timeouts.selectedNodes = setTimeout(() => {
-        set({ debouncedSelectedNodes: get().selectedNodes });
-      }, 400) as unknown as number;
-
-      timeouts.selectedEdges = setTimeout(() => {
-        set({ debouncedSelectedEdges: get().selectedEdges });
-      }, 400) as unknown as number;
-
-      if ("targetNode" in newState) {
-        timeouts.targetNode = setTimeout(() => {
-          set({ debouncedTargetNode: get().targetNode });
-        }, 400) as unknown as number;
+      // 清除旧的防抖定时器
+      if (debounceTimeout) {
+        clearTimeout(debounceTimeout);
       }
 
-      newState.debounceTimeouts = timeouts;
+      // 设置新的防抖定时器
+      debounceTimeout = setTimeout(() => {
+        const currentState = get();
+        set({
+          debouncedSelectedNodes: currentState.selectedNodes,
+          debouncedSelectedEdges: currentState.selectedEdges,
+          debouncedTargetNode: currentState.targetNode,
+        });
+      }, 400);
 
       return newState;
     });
@@ -62,39 +60,35 @@ export const createSelectionSlice: StateCreator<
 
   // 设置目标节点
   setTargetNode(node: NodeType | null) {
-    set((state) => {
-      const timeouts = { ...state.debounceTimeouts };
-      
-      if (timeouts.targetNode) clearTimeout(timeouts.targetNode);
+    set({ targetNode: node });
 
-      timeouts.targetNode = setTimeout(() => {
-        set({ debouncedTargetNode: get().targetNode });
-      }, 400) as unknown as number;
+    // 清除旧的防抖定时器
+    if (debounceTimeout) {
+      clearTimeout(debounceTimeout);
+    }
 
-      return {
-        targetNode: node,
-        debounceTimeouts: timeouts,
-      };
-    });
+    // 设置新的防抖定时器
+    debounceTimeout = setTimeout(() => {
+      set({ debouncedTargetNode: get().targetNode });
+    }, 400);
   },
 
   // 清空选择
   clearSelection() {
-    set((state) => {
-      // 清除所有防抖超时
-      Object.values(state.debounceTimeouts).forEach((timeout) => {
-        if (timeout) clearTimeout(timeout);
-      });
+    // 清除防抖定时器
+    if (debounceTimeout) {
+      clearTimeout(debounceTimeout);
+      debounceTimeout = null;
+    }
 
-      return {
-        selectedNodes: [],
-        selectedEdges: [],
-        targetNode: null,
-        debouncedSelectedNodes: [],
-        debouncedSelectedEdges: [],
-        debouncedTargetNode: null,
-        debounceTimeouts: {},
-      };
+    set({
+      selectedNodes: [],
+      selectedEdges: [],
+      targetNode: null,
+      debouncedSelectedNodes: [],
+      debouncedSelectedEdges: [],
+      debouncedTargetNode: null,
+      debounceTimeouts: {},
     });
   },
 });

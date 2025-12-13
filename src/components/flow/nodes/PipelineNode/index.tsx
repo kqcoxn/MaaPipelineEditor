@@ -53,18 +53,39 @@ export const PipelineNodeMemo = memo(PipelineNode, (prev, next) => {
   if (prevData.label !== nextData.label) {
     return false;
   }
-  if (
-    prevData.recognition.type !== nextData.recognition.type ||
-    prevData.recognition.param !== nextData.recognition.param
-  ) {
+
+  if (prevData.recognition.type !== nextData.recognition.type) {
     return false;
   }
-  if (
-    prevData.action.type !== nextData.action.type ||
-    prevData.action.param !== nextData.action.param
-  ) {
+  try {
+    if (
+      JSON.stringify(prevData.recognition.param) !==
+      JSON.stringify(nextData.recognition.param)
+    ) {
+      return false;
+    }
+  } catch {
+    if (prevData.recognition.param !== nextData.recognition.param) {
+      return false;
+    }
+  }
+
+  if (prevData.action.type !== nextData.action.type) {
     return false;
   }
+  try {
+    if (
+      JSON.stringify(prevData.action.param) !==
+      JSON.stringify(nextData.action.param)
+    ) {
+      return false;
+    }
+  } catch {
+    if (prevData.action.param !== nextData.action.param) {
+      return false;
+    }
+  }
+
   if (
     prevData.others !== nextData.others ||
     prevData.extras !== nextData.extras

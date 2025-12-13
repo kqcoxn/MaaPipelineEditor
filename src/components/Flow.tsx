@@ -303,6 +303,7 @@ function MainFlow() {
         autoPanOnConnect={false}
         autoPanOnNodeDrag={false}
         preventScrolling={true}
+        elevateNodesOnSelect={true}
       >
         <Background />
         <Controls orientation={"horizontal"} />

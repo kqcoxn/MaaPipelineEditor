@@ -1,6 +1,5 @@
 [ISSUE](https://github.com/kqcoxn/MaaPipelineEditor/issues)
 
-- 性能优化
 - 自动更新后端
 
 ## MPE Web

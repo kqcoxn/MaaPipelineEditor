@@ -38,15 +38,30 @@ export const ModernContent = memo(
       return null;
     }, [data.extras]);
 
-    const recoIconConfig = getRecognitionIcon(data.recognition.type);
-    const actionIconConfig = getActionIcon(data.action.type);
-    const nodeTypeIconConfig = getNodeTypeIcon("pipeline");
+    const recoIconConfig = useMemo(
+      () => getRecognitionIcon(data.recognition.type),
+      [data.recognition.type]
+    );
+    const actionIconConfig = useMemo(
+      () => getActionIcon(data.action.type),
+      [data.action.type]
+    );
+    const nodeTypeIconConfig = useMemo(() => getNodeTypeIcon("pipeline"), []);
 
-    const hasRecoParams = Object.keys(data.recognition.param).length > 0;
-    const hasActionParams = Object.keys(data.action.param).length > 0;
-    const hasOtherParams =
-      Object.keys(data.others).length > 0 ||
-      (ExtrasElem && ExtrasElem.length > 0);
+    const hasRecoParams = useMemo(
+      () => Object.keys(data.recognition.param).length > 0,
+      [data.recognition.param]
+    );
+    const hasActionParams = useMemo(
+      () => Object.keys(data.action.param).length > 0,
+      [data.action.param]
+    );
+    const hasOtherParams = useMemo(
+      () =>
+        Object.keys(data.others).length > 0 ||
+        (ExtrasElem && ExtrasElem.length > 0),
+      [data.others, ExtrasElem]
+    );
 
     return (
       <>
