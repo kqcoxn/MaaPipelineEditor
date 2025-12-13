@@ -30,8 +30,10 @@ const (
 
 // GitHub Release 信息
 type GitHubRelease struct {
-	TagName string         `json:"tag_name"`
-	Assets  []ReleaseAsset `json:"assets"`
+	TagName    string         `json:"tag_name"`
+	Prerelease bool           `json:"prerelease"`
+	Draft      bool           `json:"draft"`
+	Assets     []ReleaseAsset `json:"assets"`
 }
 
 // Release Asset 信息
@@ -191,7 +193,8 @@ func (d *Downloader) EnsureDeps() error {
 
 // 获取最新 Release
 func (d *Downloader) getLatestRelease() (*GitHubRelease, error) {
-	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/latest", GitHubOwner, GitHubRepo)
+	// 获取所有 releases
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases", GitHubOwner, GitHubRepo)
 
 	req, err := http.NewRequest("GET", apiURL, nil)
 	if err != nil {
@@ -210,12 +213,19 @@ func (d *Downloader) getLatestRelease() (*GitHubRelease, error) {
 		return nil, fmt.Errorf("GitHub API 返回状态码: %d", resp.StatusCode)
 	}
 
-	var release GitHubRelease
-	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
+	var releases []GitHubRelease
+	if err := json.NewDecoder(resp.Body).Decode(&releases); err != nil {
 		return nil, fmt.Errorf("解析响应失败: %w", err)
 	}
 
-	return &release, nil
+	// 过滤 prerelease 和 draft
+	for _, release := range releases {
+		if !release.Prerelease && !release.Draft {
+			return &release, nil
+		}
+	}
+
+	return nil, fmt.Errorf("未找到正式版本")
 }
 
 // 下载并解压依赖包

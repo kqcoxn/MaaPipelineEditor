@@ -12,6 +12,8 @@ jobs:
   build-localbridge:
     name: Build LocalBridge for ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
+    # 跳过测试版本 tag
+    if: ${{ !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test') }}
     strategy:
       matrix:
         include:
@@ -60,6 +62,8 @@ jobs:
 
   build-web:
     runs-on: ubuntu-latest
+    # 跳过测试版本 tag
+    if: ${{ !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test') }}
 
     steps:
       - name: Checkout
@@ -115,6 +119,8 @@ jobs:
   release:
     needs: [build-web, build-localbridge]
     runs-on: ubuntu-latest
+    # 跳过测试版本 tag
+    if: ${{ !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test') }}
 
     steps:
       - name: Checkout
