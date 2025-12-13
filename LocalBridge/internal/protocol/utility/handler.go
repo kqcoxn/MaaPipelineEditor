@@ -89,7 +89,19 @@ func (h *UtilityHandler) handleOCRRecognize(conn *server.Connection, msg models.
 	result, err := h.performOCR(controllerID, resourceID, roi)
 	if err != nil {
 		logger.Error("Utility", "OCR识别失败: %v", err)
-		h.sendUtilityError(conn, "OCR_FAILED", "OCR识别失败", err.Error())
+		// 返回错误
+		errorResult := map[string]interface{}{
+			"success": false,
+			"error":   err.Error(),
+		}
+		// 附加错误码
+		if mfwErr, ok := err.(*mfw.MFWError); ok {
+			errorResult["code"] = mfwErr.Code
+		}
+		conn.Send(models.Message{
+			Path: "/lte/utility/ocr_result",
+			Data: errorResult,
+		})
 		return
 	}
 
@@ -144,6 +156,13 @@ func (h *UtilityHandler) performOCR(controllerID, resourceID string, roi [4]int3
 
 	// 如果没有可用资源,创建临时资源
 	if res == nil {
+		// 检查配置中是否有 OCR 资源路径
+		cfg := config.GetGlobal()
+		if cfg == nil || cfg.MaaFW.ResourceDir == "" {
+			logger.Error("Utility", "未配置 OCR 资源路径 (maafw.resource_dir)")
+			return nil, mfw.NewMFWError(mfw.ErrCodeOCRResourceNotConfigured, "OCR 资源路径未配置，请在后端运行 'mpelb config set-resource' 进行配置", nil)
+		}
+
 		res = maa.NewResource()
 		if res == nil {
 			return nil, mfw.NewMFWError(mfw.ErrCodeResourceLoadFailed, "failed to create resource", nil)
@@ -156,18 +175,13 @@ func (h *UtilityHandler) performOCR(controllerID, resourceID string, roi [4]int3
 		}()
 
 		// 从配置加载 OCR 资源
-		cfg := config.GetGlobal()
-		if cfg != nil && cfg.MaaFW.ResourceDir != "" {
-			logger.Info("Utility", "从配置加载 OCR 资源: %s", cfg.MaaFW.ResourceDir)
-			resJob := res.PostBundle(cfg.MaaFW.ResourceDir)
-			if resJob == nil {
-				logger.Warn("Utility", "加载 OCR 资源失败")
-			} else {
-				status := resJob.Wait()
-				logger.Info("Utility", "OCR 资源加载状态: %v", status)
-			}
+		logger.Info("Utility", "从配置加载 OCR 资源: %s", cfg.MaaFW.ResourceDir)
+		resJob := res.PostBundle(cfg.MaaFW.ResourceDir)
+		if resJob == nil {
+			logger.Warn("Utility", "加载 OCR 资源失败")
 		} else {
-			logger.Warn("Utility", "未配置 OCR 资源路径 (maafw.resource_dir)")
+			status := resJob.Wait()
+			logger.Info("Utility", "OCR 资源加载状态: %v", status)
 		}
 	}
 

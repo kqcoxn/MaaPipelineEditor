@@ -55,11 +55,6 @@ var configCmd = &cobra.Command{
 	Use:   "config",
 	Short: "配置管理命令",
 	Long:  `管理 LocalBridge 配置，包括打开配置文件、设置 MaaFramework 路径等`,
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		// 设置便携模式
-		paths.SetPortableMode(portableMode)
-		paths.Init()
-	},
 }
 
 var configOpenCmd = &cobra.Command{
@@ -219,6 +214,10 @@ func runServer(cmd *cobra.Command, args []string) {
 		logger.Warn("Main", "MFW 服务初始化失败: %v (当前状态仅可使用文件管理功能)", err)
 	} else {
 		logger.Info("Main", "MFW 服务初始化成功")
+		// 检查 OCR 资源路径是否配置
+		if cfg.MaaFW.ResourceDir == "" {
+			logger.Warn("Main", "OCR 资源路径未配置，原生 OCR 功能将不可用（但仍可用前段 OCR，若无需求无需配置）。请运行 'mpelb config set-resource' 进行配置")
+		}
 	}
 
 	// 启动文件服务
@@ -280,6 +279,9 @@ func runServer(cmd *cobra.Command, args []string) {
 
 // 打开配置文件
 func openConfig(cmd *cobra.Command, args []string) {
+	// 初始化路径系统
+	paths.Init()
+
 	// 确定配置文件路径
 	var cfgPath string
 	if configPath != "" {
@@ -329,6 +331,9 @@ func openConfig(cmd *cobra.Command, args []string) {
 
 // 设置 MaaFramework lib 路径
 func setLibDir(cmd *cobra.Command, args []string) {
+	// 初始化路径系统
+	paths.Init()
+
 	// 加载配置
 	cfg, err := config.Load(configPath)
 	if err != nil {
@@ -362,6 +367,9 @@ func setLibDir(cmd *cobra.Command, args []string) {
 		if _, err := os.Stat(libDir); os.IsNotExist(err) {
 			fmt.Fprintf(os.Stderr, "⚠️  警告: 指定的路径不存在: %s\n", libDir)
 		}
+
+		// 设置路径后自动启用 MaaFramework
+		cfg.MaaFW.Enabled = true
 	}
 
 	if err := cfg.SetMaaFWLibDir(libDir); err != nil {
@@ -370,10 +378,16 @@ func setLibDir(cmd *cobra.Command, args []string) {
 	}
 
 	fmt.Printf("✅ MaaFramework lib 路径已设置为: %s\n", libDir)
+	if libDir != "" {
+		fmt.Println("✅ 已设置 MaaFramework 自启用")
+	}
 }
 
 // 设置 OCR 资源路径
 func setResourceDir(cmd *cobra.Command, args []string) {
+	// 初始化路径系统
+	paths.Init()
+
 	// 加载配置
 	cfg, err := config.Load(configPath)
 	if err != nil {
@@ -390,7 +404,8 @@ func setResourceDir(cmd *cobra.Command, args []string) {
 			"📁 OCR 资源路径",
 			"model 文件夹所在目录，目录结构应为:\n"+
 				"   <路径>/model/ocr/...\n"+
-				"   示例: C:\\MaaResource 或 /opt/maa-resource",
+				"   示例: D:assets/resource/base"+
+				"   （注意是 model 文件夹所在的根目录，而不是 ocr 文件夹的目录）",
 			cfg.MaaFW.ResourceDir,
 		)
 	}
@@ -407,6 +422,9 @@ func setResourceDir(cmd *cobra.Command, args []string) {
 		if _, err := os.Stat(resourceDir); os.IsNotExist(err) {
 			fmt.Fprintf(os.Stderr, "⚠️  警告: 指定的路径不存在: %s\n", resourceDir)
 		}
+
+		// 设置资源路径时自动启用 MaaFramework
+		cfg.MaaFW.Enabled = true
 	}
 
 	if err := cfg.SetMaaFWResourceDir(resourceDir); err != nil {
@@ -415,6 +433,9 @@ func setResourceDir(cmd *cobra.Command, args []string) {
 	}
 
 	fmt.Printf("✅ OCR 资源路径已设置为: %s\n", resourceDir)
+	if resourceDir != "" {
+		fmt.Println("✅ MaaFramework 已自动启用")
+	}
 }
 
 // 交互式提示输入路径
@@ -439,64 +460,36 @@ func promptForPath(title, hint, currentValue string) string {
 
 // 检查并提示 MaaFramework 配置
 func checkAndPromptMaaFWConfig(cfg *config.Config) error {
-	needSave := false
-
-	// 检查 lib_dir
-	if cfg.MaaFW.LibDir == "" {
-		fmt.Println()
-		fmt.Println("══════════════════════════════════════════════════")
-		fmt.Println("🔧 MaaFramework 初始配置")
-		fmt.Println("══════════════════════════════════════════════════")
-		fmt.Println("检测到 MaaFramework 已启用但尚未配置路径，请进行初始设置。")
-
-		libDir := promptForPath(
-			"📁 MaaFramework lib 路径",
-			"MaaFramework Release 包解压后的 bin 文件夹路径\n"+
-				"   其中应包含 MaaFramework.dll/.so 等库文件\n"+
-				"   示例: C:\\MaaFramework\\bin 或 /opt/maaframework/bin",
-			"",
-		)
-
-		if libDir != "" {
-			absPath, err := filepath.Abs(libDir)
-			if err != nil {
-				return fmt.Errorf("解析 lib 路径失败: %w", err)
-			}
-			cfg.MaaFW.LibDir = absPath
-			needSave = true
-
-			if _, err := os.Stat(absPath); os.IsNotExist(err) {
-				fmt.Printf("⚠️  警告: 指定的路径不存在: %s\n", absPath)
-			}
-		}
+	if cfg.MaaFW.LibDir != "" {
+		return nil
 	}
 
-	// 检查 resource_dir
-	if cfg.MaaFW.ResourceDir == "" {
-		resourceDir := promptForPath(
-			"📁 OCR 资源路径",
-			"model 文件夹所在目录，目录结构应为:\n"+
-				"   <路径>/model/ocr/...\n"+
-				"   示例: C:\\MaaResource 或 /opt/maa-resource",
-			"",
-		)
+	// lib_dir 未配置
+	fmt.Println()
+	fmt.Println("══════════════════════════════════════════════════")
+	fmt.Println("🔧 MaaFramework 初始配置")
+	fmt.Println("══════════════════════════════════════════════════")
+	fmt.Println("检测到 MaaFramework 已启用但尚未配置路径，请进行初始设置。")
 
-		if resourceDir != "" {
-			absPath, err := filepath.Abs(resourceDir)
-			if err != nil {
-				return fmt.Errorf("解析资源路径失败: %w", err)
-			}
-			cfg.MaaFW.ResourceDir = absPath
-			needSave = true
+	libDir := promptForPath(
+		"📁 MaaFramework lib 路径",
+		"MaaFramework Release 包解压后的 bin 文件夹路径\n"+
+			"   其中应包含 MaaFramework.dll/.so 等库文件\n"+
+			"   示例: C:\\MaaFramework\\bin 或 /opt/maaframework/bin",
+		"",
+	)
 
-			if _, err := os.Stat(absPath); os.IsNotExist(err) {
-				fmt.Printf("⚠️  警告: 指定的路径不存在: %s\n", absPath)
-			}
+	if libDir != "" {
+		absPath, err := filepath.Abs(libDir)
+		if err != nil {
+			return fmt.Errorf("解析 lib 路径失败: %w", err)
 		}
-	}
+		cfg.MaaFW.LibDir = absPath
 
-	// 保存配置
-	if needSave {
+		if _, err := os.Stat(absPath); os.IsNotExist(err) {
+			fmt.Printf("⚠️  警告: 指定的路径不存在: %s\n", absPath)
+		}
+
 		if err := cfg.Save(); err != nil {
 			return fmt.Errorf("保存配置失败: %w", err)
 		}

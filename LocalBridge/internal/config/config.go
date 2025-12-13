@@ -12,37 +12,37 @@ import (
 
 // 服务器配置
 type ServerConfig struct {
-	Port int    `mapstructure:"port"`
-	Host string `mapstructure:"host"`
+	Port int    `mapstructure:"port" json:"port"`
+	Host string `mapstructure:"host" json:"host"`
 }
 
 // 文件相关配置
 type FileConfig struct {
-	Root       string   `mapstructure:"root"`
-	Exclude    []string `mapstructure:"exclude"`
-	Extensions []string `mapstructure:"extensions"`
+	Root       string   `mapstructure:"root" json:"root"`
+	Exclude    []string `mapstructure:"exclude" json:"exclude"`
+	Extensions []string `mapstructure:"extensions" json:"extensions"`
 }
 
 // 日志配置
 type LogConfig struct {
-	Level        string `mapstructure:"level"`
-	Dir          string `mapstructure:"dir"`
-	PushToClient bool   `mapstructure:"push_to_client"`
+	Level        string `mapstructure:"level" json:"level"`
+	Dir          string `mapstructure:"dir" json:"dir"`
+	PushToClient bool   `mapstructure:"push_to_client" json:"push_to_client"`
 }
 
 // MaaFramework配置
 type MaaFWConfig struct {
-	Enabled     bool   `mapstructure:"enabled"`
-	LibDir      string `mapstructure:"lib_dir"`
-	ResourceDir string `mapstructure:"resource_dir"`
+	Enabled     bool   `mapstructure:"enabled" json:"enabled"`
+	LibDir      string `mapstructure:"lib_dir" json:"lib_dir"`
+	ResourceDir string `mapstructure:"resource_dir" json:"resource_dir"`
 }
 
 // 全局配置
 type Config struct {
-	Server ServerConfig `mapstructure:"server"`
-	File   FileConfig   `mapstructure:"file"`
-	Log    LogConfig    `mapstructure:"log"`
-	MaaFW  MaaFWConfig  `mapstructure:"maafw"`
+	Server ServerConfig `mapstructure:"server" json:"server"`
+	File   FileConfig   `mapstructure:"file" json:"file"`
+	Log    LogConfig    `mapstructure:"log" json:"log"`
+	MaaFW  MaaFWConfig  `mapstructure:"maafw" json:"maafw"`
 }
 
 // 全局单例

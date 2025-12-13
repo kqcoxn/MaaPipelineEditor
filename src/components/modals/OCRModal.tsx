@@ -43,6 +43,7 @@ interface OCRResult {
   text?: string;
   boxes?: Array<{ x: number; y: number; w: number; h: number; text: string }>;
   error?: string;
+  code?: string;
   no_content?: boolean;
 }
 
@@ -200,7 +201,14 @@ export const OCRModal = memo(
             setOcrSuccess(true);
           }
         } else if (data.error) {
-          message.error(data.error);
+          // 检测 OCR 资源未配置的特定错误码
+          if (data.code === "MFW_OCR_RESOURCE_NOT_CONFIGURED") {
+            message.error(
+              "OCR 资源路径未配置，请在后端运行 'mpelb config set-resource' 进行配置"
+            );
+          } else {
+            message.error(data.error);
+          }
           setOcrSuccess(false);
         }
       };
