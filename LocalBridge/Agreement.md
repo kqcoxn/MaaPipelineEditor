@@ -294,8 +294,8 @@ MFW 协议主要提供以下能力：
         "adb_path": "/path/to/adb",
         "address": "127.0.0.1:5555",
         "name": "device_name",
-        "screencap_methods": ["Encode", "RawByNetcat", "MinicapDirect"],
-        "input_methods": ["Maatouch", "AdbShell"],
+        "screencap_methods": ["EncodeToFileAndPull", "Encode", "RawWithGzip", "RawByNetcat", "MinicapDirect", "MinicapStream", "EmulatorExtras"],
+        "input_methods": ["AdbShell", "MinitouchAndAdbKey", "Maatouch", "EmulatorExtras"],
         "config": "{}"
       }
     ]
@@ -325,8 +325,21 @@ MFW 协议主要提供以下能力：
         "hwnd": "0x12345678",
         "class_name": "WindowClass",
         "window_name": "Window Title",
-        "screencap_methods": ["DXGI_DesktopDup", "GDI", "FramePool"],
-        "input_methods": ["Seize", "SendMessage", "PostMessage"]
+        "screencap_methods": [
+          "GDI",
+          "FramePool",
+          "DXGIDesktopDup",
+          "DXGIDesktopDupWindow",
+          "PrintWindow",
+          "ScreenDC"
+        ],
+        "input_methods": [
+          "Seize",
+          "SendMessage",
+          "PostMessage",
+          "LegacyEvent",
+          "PostThreadMessage"
+        ]
       }
     ]
   }

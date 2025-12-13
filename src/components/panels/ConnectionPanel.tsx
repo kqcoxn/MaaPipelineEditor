@@ -56,10 +56,11 @@ export const ConnectionPanel = memo(
     const [hasInitialized, setHasInitialized] = useState(false);
 
     // 自定义截图和输入方法
-    const [customScreencap, setCustomScreencap] = useState<string | undefined>(
+    // ADB 支持多选(数组),Win32 只支持单选(字符串)
+    const [customScreencap, setCustomScreencap] = useState<string | string[] | undefined>(
       undefined
     );
-    const [customInput, setCustomInput] = useState<string | undefined>(
+    const [customInput, setCustomInput] = useState<string | string[] | undefined>(
       undefined
     );
 
@@ -99,22 +100,36 @@ export const ConnectionPanel = memo(
       return { screencap: [], input: [] };
     }, [activeTab, selectedAdbDevice, selectedWin32Window]);
 
-    // 初始化时设置默认值为第一个方法
+    // 初始化时设置默认值
+    // ADB 设备默认选择所有方法，Win32 默认选择第一个方法
     useEffect(() => {
       if (
         selectedDeviceMethods.screencap.length > 0 &&
         customScreencap === undefined
       ) {
-        setCustomScreencap(selectedDeviceMethods.screencap[0]);
+        if (activeTab === "adb") {
+          setCustomScreencap(selectedDeviceMethods.screencap);
+        } else {
+          setCustomScreencap(selectedDeviceMethods.screencap[0]);
+        }
       }
       if (selectedDeviceMethods.input.length > 0 && customInput === undefined) {
-        setCustomInput(selectedDeviceMethods.input[0]);
+        if (activeTab === "adb") {
+          setCustomInput(selectedDeviceMethods.input);
+        } else {
+          setCustomInput(selectedDeviceMethods.input[0]);
+        }
       }
-    }, [selectedDeviceMethods]);
+    }, [selectedDeviceMethods, activeTab]);
 
     // 切换设备时重置方法选择
     useEffect(() => {
-      if (selectedAdbDevice || selectedWin32Window) {
+      if (selectedAdbDevice) {
+        // ADB 设备默认选择所有方法
+        setCustomScreencap(selectedDeviceMethods.screencap);
+        setCustomInput(selectedDeviceMethods.input);
+      } else if (selectedWin32Window) {
+        // Win32 窗口默认选择第一个方法
         setCustomScreencap(selectedDeviceMethods.screencap[0]);
         setCustomInput(selectedDeviceMethods.input[0]);
       }
@@ -202,12 +217,19 @@ export const ConnectionPanel = memo(
     // 连接设备
     const handleConnect = useCallback(() => {
       if (activeTab === "adb" && selectedAdbDevice) {
-        // 检查是否有可用的方法
-        const screencapMethod =
-          customScreencap || selectedAdbDevice.screencap_methods[0];
-        const inputMethod = customInput || selectedAdbDevice.input_methods[0];
+        // ADB 设备的方法支持多选
+        const screencapMethods = customScreencap
+          ? Array.isArray(customScreencap)
+            ? customScreencap
+            : [customScreencap]
+          : selectedAdbDevice.screencap_methods;
+        const inputMethods = customInput
+          ? Array.isArray(customInput)
+            ? customInput
+            : [customInput]
+          : selectedAdbDevice.input_methods;
 
-        if (!screencapMethod || !inputMethod) {
+        if (screencapMethods.length === 0 || inputMethods.length === 0) {
           message.warning("设备没有可用的截图或输入方法");
           return;
         }
@@ -215,14 +237,18 @@ export const ConnectionPanel = memo(
         mfwProtocol.createAdbController({
           adb_path: selectedAdbDevice.adb_path,
           address: selectedAdbDevice.address,
-          screencap_methods: [screencapMethod],
-          input_methods: [inputMethod],
+          screencap_methods: screencapMethods,
+          input_methods: inputMethods,
           config: selectedAdbDevice.config,
         });
       } else if (activeTab === "win32" && selectedWin32Window) {
-        const screencapMethod =
-          customScreencap || selectedWin32Window.screencap_methods[0];
-        const inputMethod = customInput || selectedWin32Window.input_methods[0];
+        // Win32 窗口的方法只支持单选
+        const screencapMethod = Array.isArray(customScreencap)
+          ? customScreencap[0]
+          : customScreencap || selectedWin32Window.screencap_methods[0];
+        const inputMethod = Array.isArray(customInput)
+          ? customInput[0]
+          : customInput || selectedWin32Window.input_methods[0];
 
         if (!screencapMethod || !inputMethod) {
           message.warning("窗口没有可用的截图或输入方法");
@@ -270,14 +296,24 @@ export const ConnectionPanel = memo(
     // 检查是否有可用的方法
     const hasValidMethods = useMemo(() => {
       if (activeTab === "adb" && selectedAdbDevice) {
-        const screencap =
-          customScreencap || selectedAdbDevice.screencap_methods[0];
-        const input = customInput || selectedAdbDevice.input_methods[0];
-        return !!screencap && !!input;
+        const screencapMethods = customScreencap
+          ? Array.isArray(customScreencap)
+            ? customScreencap
+            : [customScreencap]
+          : selectedAdbDevice.screencap_methods;
+        const inputMethods = customInput
+          ? Array.isArray(customInput)
+            ? customInput
+            : [customInput]
+          : selectedAdbDevice.input_methods;
+        return screencapMethods.length > 0 && inputMethods.length > 0;
       } else if (activeTab === "win32" && selectedWin32Window) {
-        const screencap =
-          customScreencap || selectedWin32Window.screencap_methods[0];
-        const input = customInput || selectedWin32Window.input_methods[0];
+        const screencap = Array.isArray(customScreencap)
+          ? customScreencap[0]
+          : customScreencap || selectedWin32Window.screencap_methods[0];
+        const input = Array.isArray(customInput)
+          ? customInput[0]
+          : customInput || selectedWin32Window.input_methods[0];
         return !!screencap && !!input;
       }
       return false;
@@ -593,9 +629,10 @@ export const ConnectionPanel = memo(
                   type="secondary"
                   style={{ fontSize: 12, marginBottom: 6, display: "block" }}
                 >
-                  截图方法
+                  截图方法 {activeTab === "adb" && "(可多选)"}
                 </Text>
                 <Select
+                  mode={activeTab === "adb" ? "multiple" : undefined}
                   placeholder="自动选择"
                   allowClear
                   value={customScreencap}
@@ -619,9 +656,10 @@ export const ConnectionPanel = memo(
                   type="secondary"
                   style={{ fontSize: 12, marginBottom: 6, display: "block" }}
                 >
-                  输入方法
+                  输入方法 {activeTab === "adb" && "(可多选)"}
                 </Text>
                 <Select
+                  mode={activeTab === "adb" ? "multiple" : undefined}
                   placeholder="自动选择"
                   allowClear
                   value={customInput}

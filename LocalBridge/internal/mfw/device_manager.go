@@ -30,6 +30,12 @@ func (dm *DeviceManager) RefreshAdbDevices() ([]AdbDeviceInfo, error) {
 	// FindAdbDevices API
 	devices := maa.FindAdbDevices()
 
+	// ADB 可用的截图和输入方法（完整列表供用户选择）
+	// 截图方法：编码写入后拉取、直接编码、压缩原始流、网络直连、Minicap直连/流式、模拟器扩展等
+	screencapMethods := []string{"EncodeToFileAndPull", "Encode", "RawWithGzip", "RawByNetcat", "MinicapDirect", "MinicapStream", "EmulatorExtras"}
+	// 输入方法：ADB Shell、Minitouch+ADB键盘、Maatouch、模拟器扩展
+	inputMethods := []string{"AdbShell", "MinitouchAndAdbKey", "Maatouch", "EmulatorExtras"}
+
 	dm.mu.Lock()
 	defer dm.mu.Unlock()
 
@@ -39,8 +45,8 @@ func (dm *DeviceManager) RefreshAdbDevices() ([]AdbDeviceInfo, error) {
 			AdbPath:          dev.AdbPath,
 			Address:          dev.Address,
 			Name:             dev.Name,
-			ScreencapMethods: []string{dev.ScreencapMethod.String()},
-			InputMethods:     []string{dev.InputMethod.String()},
+			ScreencapMethods: screencapMethods,
+			InputMethods:     inputMethods,
 			Config:           dev.Config,
 		}
 		dm.adbDevices = append(dm.adbDevices, info)
@@ -58,9 +64,10 @@ func (dm *DeviceManager) RefreshWin32Windows() ([]Win32WindowInfo, error) {
 	windows := maa.FindDesktopWindows()
 
 	// Win32 可用的截图和输入方法
-	// 方法名称必须与 maa-framework-go 的枚举值一致
-	screencapMethods := []string{"GDI", "FramePool", "DXGIDesktopDup"}
-	inputMethods := []string{"Seize", "SendMessage"}
+	// 截图方法: GDI、FramePool、DXGI桌面复制、DXGI窗口模式、PrintWindow、ScreenDC
+	screencapMethods := []string{"GDI", "FramePool", "DXGIDesktopDup", "DXGIDesktopDupWindow", "PrintWindow", "ScreenDC"}
+	// 输入方法: Seize、SendMessage、PostMessage、LegacyEvent、PostThreadMessage、带光标位置的消息、阻塞输入
+	inputMethods := []string{"Seize", "SendMessage", "PostMessage", "LegacyEvent", "PostThreadMessage", "SendMessageWithCursorPos", "PostMessageWithCursorPos", "SendMessageWithCursorPosAndBlockInput", "PostMessageWithCursorPosAndBlockInput"}
 
 	dm.mu.Lock()
 	defer dm.mu.Unlock()
