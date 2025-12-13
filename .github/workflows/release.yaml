@@ -53,6 +53,7 @@ jobs:
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           go build -ldflags="-s -w -X main.Version=${VERSION}" -o ../build/${{ matrix.name }} ./cmd/lb
+        shell: bash
 
       - name: Upload LocalBridge artifact
         uses: actions/upload-artifact@v4

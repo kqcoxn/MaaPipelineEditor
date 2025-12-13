@@ -29,7 +29,7 @@ jobs:
             goarch: amd64
             ext: ''
             name: mpelb-linux-amd64
-          - os: macos-latest
+          - os: macos-13
             goos: darwin
             goarch: amd64
             ext: ''
