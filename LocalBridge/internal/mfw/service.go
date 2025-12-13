@@ -1,6 +1,7 @@
 package mfw
 
 import (
+	"fmt"
 	"sync"
 
 	maa "github.com/MaaXYZ/maa-framework-go/v3"
@@ -41,17 +42,15 @@ func (s *Service) Initialize() error {
 
 	logger.Info("MFW", "初始化 MaaFramework")
 
-	// 从配置获取库路径，如果未配置则使用默认的 deps 目录
+	// 从配置获取库路径
 	cfg := config.GetGlobal()
-	libDir := paths.GetMaafwDir() // 默认使用 deps/maafw 目录
-	if cfg != nil && cfg.MaaFW.LibDir != "" {
-		libDir = cfg.MaaFW.LibDir
-		logger.Info("MFW", "使用配置的库路径: %s", libDir)
-	} else {
-		logger.Info("MFW", "使用默认库路径: %s", libDir)
+	if cfg == nil || cfg.MaaFW.LibDir == "" {
+		return fmt.Errorf("MaaFramework 库路径未配置，请使用 'mpelb config set-lib' 设置路径")
 	}
+	libDir := cfg.MaaFW.LibDir
+	logger.Info("MFW", "使用配置的库路径: %s", libDir)
 
-	// 日志目录也使用 paths 包
+	// 日志目录使用 paths 包
 	logDir := paths.GetLogDir()
 
 	err := maa.Init(

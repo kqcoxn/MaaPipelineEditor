@@ -169,22 +169,6 @@ func GetConfigFile() string {
 	return filepath.Join(configDir, "config.json")
 }
 
-// GetDepsDir 获取依赖目录
-func GetDepsDir() string {
-	Init()
-	return filepath.Join(dataDir, "deps")
-}
-
-// GetMaafwDir 获取 MaaFramework 依赖目录
-func GetMaafwDir() string {
-	return filepath.Join(GetDepsDir(), "maafw")
-}
-
-// GetOcrModelDir 获取 OCR 模型目录
-func GetOcrModelDir() string {
-	return filepath.Join(GetDepsDir(), "ocr_model_res")
-}
-
 // GetLogDir 获取日志目录
 func GetLogDir() string {
 	Init()
@@ -195,7 +179,6 @@ func GetLogDir() string {
 func EnsureAllDirs() error {
 	dirs := []string{
 		GetConfigDir(),
-		GetDepsDir(),
 		GetLogDir(),
 	}
 	for _, dir := range dirs {
@@ -226,11 +209,6 @@ func GetDefaultConfigContent() []byte {
     "enabled": false,
     "lib_dir": "",
     "resource_dir": ""
-  },
-  "update": {
-    "enabled": true,
-    "auto_update": false,
-    "proxy_url": ""
   }
 }
 `)

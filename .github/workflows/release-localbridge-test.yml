@@ -69,7 +69,7 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: 0
         run: |
-          go build -ldflags="-s -w -X github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/updater.Version=${{ steps.version.outputs.version }}" -o ../build/${{ matrix.name }} ./cmd/lb
+          go build -ldflags="-s -w -X main.Version=${{ steps.version.outputs.version }}" -o ../build/${{ matrix.name }} ./cmd/lb
 
       - name: Upload LocalBridge artifact
         uses: actions/upload-artifact@v4
@@ -142,29 +142,9 @@ jobs:
             MaaPipelineEditor-${{ steps.version.outputs.tag }}-stable.zip
             MaaPipelineEditor-${{ steps.version.outputs.tag }}-docs.zip
 
-  # 打包 deps 依赖包
-  package-deps:
-    name: Package deps
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Create deps package
-        run: |
-          mkdir -p build
-          cd LocalBridge/deps
-          zip -r ../../build/deps.zip .
-
-      - name: Upload deps artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: deps.zip
-          path: build/deps.zip
-
   release:
     name: Create Pre-release
-    needs: [build-localbridge, build-web, package-deps]
+    needs: [build-localbridge, build-web]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -185,12 +165,6 @@ jobs:
           path: localbridge-artifacts
           pattern: mpelb-*
           merge-multiple: true
-
-      - name: Download deps artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: deps.zip
-          path: deps-artifact
 
       - name: Extract tag name
         id: tag
@@ -247,7 +221,6 @@ jobs:
           files: |
             MaaPipelineEditor-*.zip
             localbridge-artifacts/*
-            deps-artifact/deps.zip
           body_path: CHANGELOG.md
           draft: false
           prerelease: true

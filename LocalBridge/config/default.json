@@ -23,12 +23,7 @@
   },
   "maafw": {
     "enabled": false,
-    "lib_dir": "./deps/maafw",
-    "resource_dir": "./deps/ocr_model_res"
-  },
-  "update": {
-    "enabled": true,
-    "auto_update": false,
-    "proxy_url": ""
+    "lib_dir": "",
+    "resource_dir": ""
   }
 }

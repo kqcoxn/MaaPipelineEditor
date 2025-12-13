@@ -12,7 +12,6 @@ import (
 	"syscall"
 
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/config"
-	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/deps"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/eventbus"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/mfw"
@@ -23,9 +22,11 @@ import (
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/router"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/server"
 	fileService "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/service/file"
-	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/updater"
 	"github.com/spf13/cobra"
 )
+
+// 版本号（由构建时注入）
+var Version = "dev"
 
 // 命令行
 var (
@@ -35,7 +36,6 @@ var (
 	logDir       string
 	logLevel     string
 	showVersion  bool
-	doUpdate     bool
 	portableMode bool
 )
 
@@ -43,7 +43,7 @@ var rootCmd = &cobra.Command{
 	Use:     "mpelb",
 	Short:   "⭐ MPE Local Bridge - 为 MaaPipelineEditor 构建本地的桥梁 🌉",
 	Long:    `MPE Local Bridge 是连接本地各系统与 MaaPipelineEditor 前端的桥梁服务，目前支持文件管理功能，更多集成即将更新！`,
-	Version: updater.GetVersion(),
+	Version: Version,
 	Run:     runServer,
 }
 
@@ -124,8 +124,7 @@ func init() {
 	rootCmd.Flags().StringVar(&logDir, "log-dir", "", "日志输出目录")
 	rootCmd.Flags().StringVar(&logLevel, "log-level", "", "日志级别 (DEBUG, INFO, WARN, ERROR)")
 	rootCmd.Flags().BoolVarP(&showVersion, "version", "v", false, "显示版本号")
-	rootCmd.Flags().BoolVar(&doUpdate, "update", false, "检查并执行更新")
-	rootCmd.Flags().BoolVar(&portableMode, "portable", false, "便携模式：使用可执行文件同目录存储配置和依赖")
+	rootCmd.Flags().BoolVar(&portableMode, "portable", false, "便携模式：使用可执行文件同目录存储配置")
 
 	// 添加子命令
 	rootCmd.AddCommand(configCmd)
@@ -181,22 +180,14 @@ func runServer(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	logger.Info("Main", "Local Bridge 启动中... 版本: %s", updater.GetVersion())
+	logger.Info("Main", "Local Bridge 启动中... 版本: %s", Version)
 	logger.Info("Main", "运行模式: %s", paths.GetModeName())
 	logger.Info("Main", "数据目录: %s", paths.GetDataDir())
 	logger.Info("Main", "根目录: %s", cfg.File.Root)
 	logger.Info("Main", "监听端口: %d", cfg.Server.Port)
 
-	// 检查并下载依赖
-	if err := ensureDeps(cfg); err != nil {
-		logger.Warn("Main", "依赖下载失败: %v (将继续启动但部分功能可能不可用)", err)
-		fmt.Println()
-		fmt.Println("⚠️  依赖下载失败，但程序将继续运行")
-		fmt.Printf("   错误信息: %v\n", err)
-		fmt.Println("   请检查网络连接或手动下载依赖")
-		fmt.Printf("   手动下载地址: https://github.com/%s/%s/releases\n", "kqcoxn", "MaaPipelineEditor")
-		fmt.Println()
-	}
+	// 显示更新提醒
+	printUpdateNotice()
 
 	// 检查 MaaFramework 配置
 	if cfg.MaaFW.Enabled {
@@ -204,11 +195,6 @@ func runServer(cmd *cobra.Command, args []string) {
 			logger.Error("Main", "MaaFramework 配置检查失败: %v", err)
 			os.Exit(1)
 		}
-	}
-
-	// 检查更新
-	if cfg.Update.Enabled || doUpdate {
-		go updater.CheckAndUpdate(cfg.Update.AutoUpdate || doUpdate, cfg.Update.ProxyURL)
 	}
 
 	// 创建事件总线
@@ -230,7 +216,7 @@ func runServer(cmd *cobra.Command, args []string) {
 	mfwSvc := mfw.NewService()
 	// 初始化 MFW 服务
 	if err := mfwSvc.Initialize(); err != nil {
-		logger.Warn("Main", "MFW 服务初始化失败: %v (将继续启动但MFW功能可能不可用)", err)
+		logger.Warn("Main", "MFW 服务初始化失败: %v (当前状态仅可使用文件管理功能)", err)
 	} else {
 		logger.Info("Main", "MFW 服务初始化成功")
 	}
@@ -520,20 +506,17 @@ func checkAndPromptMaaFWConfig(cfg *config.Config) error {
 	return nil
 }
 
-// 检查并确保依赖存在
-func ensureDeps(cfg *config.Config) error {
-	// 创建依赖下载器
-	downloader, err := deps.NewDownloader(cfg.Update.ProxyURL)
-	if err != nil {
-		return fmt.Errorf("创建依赖下载器失败: %w", err)
-	}
-
-	// 检查并下载缺失的依赖
-	if err := downloader.EnsureDeps(); err != nil {
-		return err
-	}
-
-	return nil
+// 显示更新提醒
+func printUpdateNotice() {
+	fmt.Println()
+	fmt.Println("══════════════════════════════════════════════════")
+	fmt.Println("💡 温馨提示")
+	fmt.Println("══════════════════════════════════════════════════")
+	fmt.Println("   如需更新到最新版本，请访问:")
+	fmt.Println("   https://github.com/kqcoxn/MaaPipelineEditor/releases")
+	fmt.Println("   下载最新的 mpelb 版本")
+	fmt.Println("══════════════════════════════════════════════════")
+	fmt.Println()
 }
 
 // 显示路径信息
@@ -548,13 +531,8 @@ func showInfo(cmd *cobra.Command, args []string) {
 	fmt.Println("📂 目录路径:")
 	fmt.Printf("   数据目录:     %s\n", paths.GetDataDir())
 	fmt.Printf("   配置文件:     %s\n", paths.GetConfigFile())
-	fmt.Printf("   依赖目录:     %s\n", paths.GetDepsDir())
 	fmt.Printf("   日志目录:     %s\n", paths.GetLogDir())
 	fmt.Printf("   可执行文件:   %s\n", paths.GetExeDir())
-	fmt.Println()
-	fmt.Println("📦 依赖路径:")
-	fmt.Printf("   MaaFramework: %s\n", paths.GetMaafwDir())
-	fmt.Printf("   OCR 模型:     %s\n", paths.GetOcrModelDir())
 	fmt.Println()
 	fmt.Println("──────────────────────────────────────────────────")
 	fmt.Println("💡 提示:")
