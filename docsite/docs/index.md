@@ -20,7 +20,7 @@ hero:
       link: /guide/migrate/old
     - theme: alt
       text: 本地服务
-      link: /guide/start/local-server
+      link: /guide/server/deploy
   image:
     src: /logo.png
     alt: logo

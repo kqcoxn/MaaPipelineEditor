@@ -28,7 +28,7 @@ func (h *MFWHandler) GetRoutePrefix() []string {
 // 处理消息
 func (h *MFWHandler) Handle(msg models.Message, conn *server.Connection) *models.Message {
 	path := msg.Path
-	logger.Info("MFW", "处理MFW消息: %s", path)
+	logger.Debug("MFW", "处理MFW消息: %s", path)
 
 	// 检查 MFW 服务是否已初始化
 	if !h.service.IsInitialized() {

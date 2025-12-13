@@ -41,7 +41,7 @@ _✨ 可视化构建 MaaFramework Pipeline 的下一代工作流编辑器 ✨_</
 
 #### 🚀 渐进扩展，模块增强
 
-- 通过**一行命令即可增量启用** [本地服务](https://mpe.codax.site/docs/guide/start/local-server.html)，无缝接入**文件管理**、**截图工具**等本地能力，
+- 通过**一行命令即可增量启用** [本地服务](https://mpe.codax.site/docs.html)，无缝接入**文件管理**、**截图工具**等本地能力，
 - 支持自定义框架与 OCR 路径，直接**对齐本地环境**。
 
 #### 🧠 所见即所思，流程即逻辑
@@ -87,7 +87,7 @@ _✨ 可视化构建 MaaFramework Pipeline 的下一代工作流编辑器 ✨_</
 
 （演示 Pipeline：[MNMA-城市探索.json](https://github.com/kqcoxn/MaaNewMoonAccompanying/blob/v3.1.8/assets/resource/base/pipeline/%E6%97%A5%E5%B8%B8%E6%B4%BB%E5%8A%A8/%E5%9F%8E%E5%B8%82%E6%8E%A2%E7%B4%A2.json), 3529 lines）
 
-**MPE 正在进行一轮 [精细化重定位](https://github.com/kqcoxn/MaaPipelineEditor/issues/31)**，将为您提供能加细分的业务需求解决方案！目前，您可以使用一行命令下载并安装 MPE 的 [本地服务](https://mpe.codax.site/docs/guide/start/local-server.html)，**渐进式模块化补充编辑器的功能**，兼具灵活性与功能性：
+**MPE 正在进行一轮 [精细化重定位](https://github.com/kqcoxn/MaaPipelineEditor/issues/31)**，将为您提供能加细分的业务需求解决方案！目前，您可以使用一行命令下载并安装 MPE 的 [本地服务](https://mpe.codax.site/docs/guide/server/deploy.html)，**渐进式模块化补充编辑器的功能**，兼具灵活性与功能性：
 
 ![](./image/big-pie.png)
 
