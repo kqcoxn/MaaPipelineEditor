@@ -12,7 +12,7 @@
     "build-past": "vite build --mode mfw_5_0",
     "lint": "eslint .",
     "preview": "vite preview",
-    "release": "vite build && git tag -a v0.10.1 -m \"v0.10.1\" && git push origin v0.10.1"
+    "release": "vite build && git tag -a v0.10.2 -m \"v0.10.2\" && git push origin v0.10.2"
   },
   "dependencies": {
     "@ant-design/icons": "6",
