@@ -39,11 +39,12 @@ set "VERSION="
 for /f "usebackq tokens=*" %%a in (`findstr /i "tag_name" "%TEMP%\mpelb-release.json"`) do (
     set "LINE=%%a"
     REM Extract version from line like: "tag_name": "v1.0.0",
-    REM Remove quotes and extract version
-    set "LINE=!LINE:~0,-1!"
-    for /f "tokens=2 delims=: " %%b in ("!LINE!") do (
+    REM Remove all quotes and spaces, then extract version
+    set "LINE=!LINE:"=!"
+    set "LINE=!LINE: =!"
+    REM Now LINE looks like: tag_name:v1.0.0,
+    for /f "tokens=2 delims=:," %%b in ("!LINE!") do (
         set "VERSION=%%b"
-        set "VERSION=!VERSION:~1!"
         goto :version_found
     )
 )
