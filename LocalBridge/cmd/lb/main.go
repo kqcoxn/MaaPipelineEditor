@@ -151,8 +151,13 @@ func runServer(cmd *cobra.Command, args []string) {
 
 	// 检查并下载依赖
 	if err := ensureDeps(cfg); err != nil {
-		logger.Error("Main", "依赖检查失败: %v", err)
-		os.Exit(1)
+		logger.Warn("Main", "依赖下载失败: %v (将继续启动但部分功能可能不可用)", err)
+		fmt.Println()
+		fmt.Println("⚠️  依赖下载失败，但程序将继续运行")
+		fmt.Printf("   错误信息: %v\n", err)
+		fmt.Println("   请检查网络连接或手动下载依赖")
+		fmt.Printf("   手动下载地址: https://github.com/%s/%s/releases\n", "kqcoxn", "MaaPipelineEditor")
+		fmt.Println()
 	}
 
 	// 检查 MaaFramework 配置

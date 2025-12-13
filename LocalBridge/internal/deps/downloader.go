@@ -9,10 +9,12 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
+	"golang.org/x/sys/windows/registry"
 )
 
 const (
@@ -57,6 +59,7 @@ func NewDownloader(depsDir string, proxyURL string) (*Downloader, error) {
 
 	// 配置代理
 	if proxyURL != "" {
+		// 使用指定的代理地址
 		proxyURLParsed, err := url.Parse(proxyURL)
 		if err != nil {
 			return nil, fmt.Errorf("解析代理地址失败: %w", err)
@@ -64,11 +67,25 @@ func NewDownloader(depsDir string, proxyURL string) (*Downloader, error) {
 		client.Transport = &http.Transport{
 			Proxy: http.ProxyURL(proxyURLParsed),
 		}
-		logger.Info(ModuleName, "使用代理: %s", proxyURL)
+		logger.Info(ModuleName, "使用指定代理: %s", proxyURL)
 	} else {
-		// 使用系统代理设置
+		// 优先使用环境变量代理，如果没有则尝试读取系统代理
 		client.Transport = &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
+			Proxy: func(req *http.Request) (*url.URL, error) {
+				// 先尝试环境变量
+				proxyURL, err := http.ProxyFromEnvironment(req)
+				if err == nil && proxyURL != nil {
+					return proxyURL, nil
+				}
+				// Windows 下尝试读取系统代理
+				if runtime.GOOS == "windows" {
+					if systemProxy := getWindowsSystemProxy(); systemProxy != "" {
+						logger.Info(ModuleName, "使用 Windows 系统代理: %s", systemProxy)
+						return url.Parse(systemProxy)
+					}
+				}
+				return nil, nil
+			},
 		}
 	}
 
@@ -362,4 +379,40 @@ func (d *Downloader) GetMaafwDir() string {
 // GetOcrModelDir 获取 ocr_model_res 目录路径
 func (d *Downloader) GetOcrModelDir() string {
 	return filepath.Join(d.depsDir, OcrModelResSubDir)
+}
+
+// getWindowsSystemProxy 从 Windows 注册表读取系统代理设置
+func getWindowsSystemProxy() string {
+	if runtime.GOOS != "windows" {
+		return ""
+	}
+
+	// 打开注册表键
+	key, err := registry.OpenKey(registry.CURRENT_USER,
+		`Software\Microsoft\Windows\CurrentVersion\Internet Settings`,
+		registry.QUERY_VALUE)
+	if err != nil {
+		return ""
+	}
+	defer key.Close()
+
+	// 检查是否启用代理
+	proxyEnable, _, err := key.GetIntegerValue("ProxyEnable")
+	if err != nil || proxyEnable == 0 {
+		return ""
+	}
+
+	// 读取代理服务器地址
+	proxyServer, _, err := key.GetStringValue("ProxyServer")
+	if err != nil || proxyServer == "" {
+		return ""
+	}
+
+	// 处理代理地址格式
+	// ProxyServer 可能是 "http://proxy:port" 或 "proxy:port"
+	if !strings.HasPrefix(proxyServer, "http://") && !strings.HasPrefix(proxyServer, "https://") {
+		proxyServer = "http://" + proxyServer
+	}
+
+	return proxyServer
 }
