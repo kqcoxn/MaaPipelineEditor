@@ -20,22 +20,43 @@ if not exist "%INSTALL_DIR%" (
 
 REM Get latest release info
 echo Fetching latest version...
-curl -s "%API_URL%" > "%TEMP%\mpelb-release.json"
+curl -sL "%API_URL%" > "%TEMP%\mpelb-release.json"
 
 if errorlevel 1 (
     echo ERROR: Failed to fetch release info. Please check your network connection.
     exit /b 1
 )
 
-REM Parse JSON to get version and download URL
-for /f "tokens=2 delims=:," %%a in ('findstr /i "tag_name" "%TEMP%\mpelb-release.json"') do (
-    set "VERSION=%%a"
-    set "VERSION=!VERSION: =!"
-    set "VERSION=!VERSION:"=!"
+REM Debug: Show what we got
+echo Debug: Checking response...
+findstr /i "tag_name" "%TEMP%\mpelb-release.json" > "%TEMP%\mpelb-tag.txt"
+if exist "%TEMP%\mpelb-tag.txt" (
+    type "%TEMP%\mpelb-tag.txt"
 )
+
+REM Parse JSON to get version and download URL
+set "VERSION="
+for /f "usebackq tokens=*" %%a in (`findstr /i "tag_name" "%TEMP%\mpelb-release.json"`) do (
+    set "LINE=%%a"
+    REM Extract version from line like: "tag_name": "v1.0.0",
+    for /f "tokens=2 delims=:\" " %%b in ("!LINE!") do (
+        set "VERSION=%%b"
+        goto :version_found
+    )
+)
+:version_found
 
 if "!VERSION!"=="" (
     echo ERROR: Failed to parse version info
+    echo.
+    echo This may happen if:
+    echo 1. No release has been published yet
+    echo 2. Network connectivity issues
+    echo 3. GitHub API rate limit reached
+    echo.
+    echo Please check: https://github.com/%REPO%/releases
+    del "%TEMP%\mpelb-release.json" >nul 2>&1
+    del "%TEMP%\mpelb-tag.txt" >nul 2>&1
     exit /b 1
 )
 
@@ -70,6 +91,7 @@ if errorlevel 1 (
 
 REM Clean up temp files
 del "%TEMP%\mpelb-release.json" >nul 2>&1
+del "%TEMP%\mpelb-tag.txt" >nul 2>&1
 
 echo.
 echo Installation complete!
