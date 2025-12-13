@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/paths"
 	"github.com/spf13/viper"
 )
 
@@ -66,11 +67,12 @@ func Load(configPath string) (*Config, error) {
 	if configPath != "" {
 		v.SetConfigFile(configPath)
 	} else {
-		// 查找默认配置文件
-		v.SetConfigName("default")
-		v.SetConfigType("json")
-		v.AddConfigPath("./config")
-		v.AddConfigPath(".")
+		// 确保配置文件存在
+		defaultConfigPath, err := paths.EnsureConfigFile()
+		if err != nil {
+			return nil, fmt.Errorf("创建配置文件失败: %w", err)
+		}
+		v.SetConfigFile(defaultConfigPath)
 	}
 
 	// 读取配置文件
@@ -116,13 +118,13 @@ func setDefaults(v *viper.Viper) {
 
 	// 日志配置
 	v.SetDefault("log.level", "INFO")
-	v.SetDefault("log.dir", "./logs")
+	v.SetDefault("log.dir", paths.GetLogDir())
 	v.SetDefault("log.push_to_client", false)
 
 	// MaaFramework 配置
 	v.SetDefault("maafw.enabled", false)
-	v.SetDefault("maafw.lib_dir", "./deps/maafw")
-	v.SetDefault("maafw.resource_dir", "./deps/ocr_model_res")
+	v.SetDefault("maafw.lib_dir", "")
+	v.SetDefault("maafw.resource_dir", "")
 
 	// 更新配置
 	v.SetDefault("update.enabled", true)
@@ -182,7 +184,10 @@ var configFilePath string
 
 // 返回当前配置文件路径
 func GetConfigFilePath() string {
-	return configFilePath
+	if configFilePath != "" {
+		return configFilePath
+	}
+	return paths.GetConfigFile()
 }
 
 // 保存配置到文件

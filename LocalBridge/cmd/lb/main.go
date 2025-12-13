@@ -16,6 +16,7 @@ import (
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/eventbus"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/mfw"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/paths"
 	fileProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/file"
 	mfwProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/mfw"
 	utilityProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/utility"
@@ -28,13 +29,14 @@ import (
 
 // 命令行
 var (
-	configPath  string
-	rootDir     string
-	port        int
-	logDir      string
-	logLevel    string
-	showVersion bool
-	doUpdate    bool
+	configPath   string
+	rootDir      string
+	port         int
+	logDir       string
+	logLevel     string
+	showVersion  bool
+	doUpdate     bool
+	portableMode bool
 )
 
 var rootCmd = &cobra.Command{
@@ -50,6 +52,11 @@ var configCmd = &cobra.Command{
 	Short: "配置管理命令",
 	Long:  `管理 LocalBridge 配置，包括打开配置文件、设置 MaaFramework 路径等`,
 	Run:   openConfig,
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		// 设置便携模式
+		paths.SetPortableMode(portableMode)
+		paths.Init()
+	},
 }
 
 var configOpenCmd = &cobra.Command{
@@ -99,6 +106,17 @@ var setResourceDirCmd = &cobra.Command{
 	Run:  setResourceDir,
 }
 
+var infoCmd = &cobra.Command{
+	Use:   "info",
+	Short: "显示路径信息",
+	Long:  `显示当前的运行模式和各路径配置信息`,
+	Run:   showInfo,
+	PreRun: func(cmd *cobra.Command, args []string) {
+		paths.SetPortableMode(portableMode)
+		paths.Init()
+	},
+}
+
 func init() {
 	rootCmd.Flags().StringVar(&configPath, "config", "", "配置文件路径")
 	rootCmd.Flags().StringVar(&rootDir, "root", "", "文件扫描根目录")
@@ -107,16 +125,22 @@ func init() {
 	rootCmd.Flags().StringVar(&logLevel, "log-level", "", "日志级别 (DEBUG, INFO, WARN, ERROR)")
 	rootCmd.Flags().BoolVarP(&showVersion, "version", "v", false, "显示版本号")
 	rootCmd.Flags().BoolVar(&doUpdate, "update", false, "检查并执行更新")
+	rootCmd.Flags().BoolVar(&portableMode, "portable", false, "便携模式：使用可执行文件同目录存储配置和依赖")
 
 	// 添加子命令
 	rootCmd.AddCommand(configCmd)
+	rootCmd.AddCommand(infoCmd)
+
+	// info 子命令
+	infoCmd.Flags().BoolVar(&portableMode, "portable", false, "便携模式")
 
 	// config 子命令
 	configCmd.AddCommand(configOpenCmd)
 	configCmd.AddCommand(setLibDirCmd)
 	configCmd.AddCommand(setResourceDirCmd)
 
-	configCmd.Flags().StringVar(&configPath, "config", "", "配置文件路径（默认为 config/default.json）")
+	configCmd.Flags().StringVar(&configPath, "config", "", "配置文件路径")
+	configCmd.PersistentFlags().BoolVar(&portableMode, "portable", false, "便携模式")
 }
 
 // 主函数
@@ -129,6 +153,18 @@ func main() {
 
 // 启动服务
 func runServer(cmd *cobra.Command, args []string) {
+	// 设置便携模式
+	paths.SetPortableMode(portableMode)
+
+	// 初始化路径系统
+	paths.Init()
+
+	// 确保所有必要目录存在
+	if err := paths.EnsureAllDirs(); err != nil {
+		fmt.Fprintf(os.Stderr, "创建数据目录失败: %v\n", err)
+		os.Exit(1)
+	}
+
 	// 加载配置
 	cfg, err := config.Load(configPath)
 	if err != nil {
@@ -146,6 +182,8 @@ func runServer(cmd *cobra.Command, args []string) {
 	}
 
 	logger.Info("Main", "Local Bridge 启动中... 版本: %s", updater.GetVersion())
+	logger.Info("Main", "运行模式: %s", paths.GetModeName())
+	logger.Info("Main", "数据目录: %s", paths.GetDataDir())
 	logger.Info("Main", "根目录: %s", cfg.File.Root)
 	logger.Info("Main", "监听端口: %d", cfg.Server.Port)
 
@@ -258,19 +296,8 @@ func openConfig(cmd *cobra.Command, args []string) {
 	if configPath != "" {
 		cfgPath = configPath
 	} else {
-		// 使用默认配置文件路径
-		defaultPath := filepath.Join("config", "default.json")
-		if _, err := os.Stat(defaultPath); err == nil {
-			cfgPath = defaultPath
-		} else {
-			// 尝试当前目录
-			if _, err := os.Stat("default.json"); err == nil {
-				cfgPath = "default.json"
-			} else {
-				fmt.Fprintf(os.Stderr, "错误: 找不到配置文件，请使用 --config 参数指定配置文件路径\n")
-				os.Exit(1)
-			}
-		}
+		// 使用 paths 包获取配置文件路径
+		cfgPath = paths.GetConfigFile()
 	}
 
 	// 转换为绝对路径
@@ -496,7 +523,7 @@ func checkAndPromptMaaFWConfig(cfg *config.Config) error {
 // 检查并确保依赖存在
 func ensureDeps(cfg *config.Config) error {
 	// 创建依赖下载器
-	downloader, err := deps.NewDownloader(deps.DefaultDepsDir, cfg.Update.ProxyURL)
+	downloader, err := deps.NewDownloader(cfg.Update.ProxyURL)
 	if err != nil {
 		return fmt.Errorf("创建依赖下载器失败: %w", err)
 	}
@@ -507,4 +534,33 @@ func ensureDeps(cfg *config.Config) error {
 	}
 
 	return nil
+}
+
+// 显示路径信息
+func showInfo(cmd *cobra.Command, args []string) {
+	fmt.Println()
+	fmt.Println("══════════════════════════════════════════════════")
+	fmt.Println("📁 MPE Local Bridge 路径信息")
+	fmt.Println("══════════════════════════════════════════════════")
+	fmt.Println()
+	fmt.Printf("🎯 运行模式:     %s\n", paths.GetModeName())
+	fmt.Println()
+	fmt.Println("📂 目录路径:")
+	fmt.Printf("   数据目录:     %s\n", paths.GetDataDir())
+	fmt.Printf("   配置文件:     %s\n", paths.GetConfigFile())
+	fmt.Printf("   依赖目录:     %s\n", paths.GetDepsDir())
+	fmt.Printf("   日志目录:     %s\n", paths.GetLogDir())
+	fmt.Printf("   可执行文件:   %s\n", paths.GetExeDir())
+	fmt.Println()
+	fmt.Println("📦 依赖路径:")
+	fmt.Printf("   MaaFramework: %s\n", paths.GetMaafwDir())
+	fmt.Printf("   OCR 模型:     %s\n", paths.GetOcrModelDir())
+	fmt.Println()
+	fmt.Println("──────────────────────────────────────────────────")
+	fmt.Println("💡 提示:")
+	fmt.Println("   - 使用 --portable 参数可切换到便携模式")
+	fmt.Println("   - 开发模式: 可执行文件旁存在 config/ 目录时自动启用")
+	fmt.Println("   - 用户模式: 使用系统用户数据目录")
+	fmt.Println("══════════════════════════════════════════════════")
+	fmt.Println()
 }

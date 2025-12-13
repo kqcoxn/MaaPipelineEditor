@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/paths"
 	"golang.org/x/sys/windows/registry"
 )
 
@@ -23,9 +24,8 @@ const (
 	ModuleName  = "DepsDownloader"
 )
 
-// 默认 deps 目录结构
+// deps 子目录名称
 const (
-	DefaultDepsDir    = "./deps"
 	MaafwSubDir       = "maafw"
 	OcrModelResSubDir = "ocr_model_res"
 )
@@ -52,7 +52,7 @@ type Downloader struct {
 }
 
 // 创建下载器实例
-func NewDownloader(depsDir string, proxyURL string) (*Downloader, error) {
+func NewDownloader(proxyURL string) (*Downloader, error) {
 	client := &http.Client{
 		Timeout: 10 * time.Minute,
 	}
@@ -89,10 +89,8 @@ func NewDownloader(depsDir string, proxyURL string) (*Downloader, error) {
 		}
 	}
 
-	// 如果未指定，使用默认目录
-	if depsDir == "" {
-		depsDir = DefaultDepsDir
-	}
+	// 使用 paths 包获取 deps 目录
+	depsDir := paths.GetDepsDir()
 
 	return &Downloader{
 		httpClient: client,

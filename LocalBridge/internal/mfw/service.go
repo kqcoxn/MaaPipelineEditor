@@ -6,6 +6,7 @@ import (
 	maa "github.com/MaaXYZ/maa-framework-go/v3"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/config"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/paths"
 )
 
 // MFW服务管理器
@@ -40,17 +41,22 @@ func (s *Service) Initialize() error {
 
 	logger.Info("MFW", "初始化 MaaFramework")
 
-	// 从配置获取库路径
+	// 从配置获取库路径，如果未配置则使用默认的 deps 目录
 	cfg := config.GetGlobal()
-	libDir := "./"
+	libDir := paths.GetMaafwDir() // 默认使用 deps/maafw 目录
 	if cfg != nil && cfg.MaaFW.LibDir != "" {
 		libDir = cfg.MaaFW.LibDir
 		logger.Info("MFW", "使用配置的库路径: %s", libDir)
+	} else {
+		logger.Info("MFW", "使用默认库路径: %s", libDir)
 	}
+
+	// 日志目录也使用 paths 包
+	logDir := paths.GetLogDir()
 
 	err := maa.Init(
 		maa.WithLibDir(libDir),
-		maa.WithLogDir("./logs"),
+		maa.WithLogDir(logDir),
 		maa.WithSaveDraw(false),
 		maa.WithStdoutLevel(maa.LoggingLevelInfo),
 		maa.WithDebugMode(false),
