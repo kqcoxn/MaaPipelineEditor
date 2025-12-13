@@ -310,7 +310,7 @@ export const TemplateModal = memo(
         rectangle.height
       );
 
-      // 如果有遮罩层，叠加绘制
+      // 叠加绘制遮罩层
       const maskCanvas = maskCanvasRef.current;
       if (maskCanvas && hasGreenMask) {
         tempCtx.drawImage(
