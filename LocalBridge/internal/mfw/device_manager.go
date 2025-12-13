@@ -25,7 +25,7 @@ func NewDeviceManager() *DeviceManager {
 
 // 刷新ADB设备列表
 func (dm *DeviceManager) RefreshAdbDevices() ([]AdbDeviceInfo, error) {
-	logger.Info("MFW", "开始刷新 ADB 设备列表")
+	logger.Debug("MFW", "开始刷新 ADB 设备列表")
 
 	// FindAdbDevices API
 	devices := maa.FindAdbDevices()
@@ -58,7 +58,7 @@ func (dm *DeviceManager) RefreshAdbDevices() ([]AdbDeviceInfo, error) {
 
 // 刷新Win32窗体列表
 func (dm *DeviceManager) RefreshWin32Windows() ([]Win32WindowInfo, error) {
-	logger.Info("MFW", "开始刷新 Win32 窗体列表")
+	logger.Debug("MFW", "开始刷新 Win32 窗体列表")
 
 	// FindDesktopWindows API
 	windows := maa.FindDesktopWindows()

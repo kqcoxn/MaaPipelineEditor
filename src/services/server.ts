@@ -7,6 +7,7 @@ import {
 import { message } from "antd";
 import { FileProtocol } from "./protocols/FileProtocol";
 import { MFWProtocol } from "./protocols/MFWProtocol";
+import { ErrorProtocol } from "./protocols/ErrorProtocol";
 import { globalConfig } from "../stores/configStore";
 
 const PROTOCOL_VERSION = globalConfig.protocolVersion;
@@ -272,6 +273,7 @@ export const localServer = new LocalWebSocketServer();
 // 创建全局协议实例
 export const fileProtocol = new FileProtocol();
 export const mfwProtocol = new MFWProtocol();
+export const errorProtocol = new ErrorProtocol();
 
 /**
  * 初始化 WebSocket 连接和所有响应路由
@@ -279,6 +281,10 @@ export const mfwProtocol = new MFWProtocol();
  */
 export function initializeWebSocket() {
   console.log("[WebSocket] Initializing WebSocket service...");
+
+  // 注册 ErrorProtocol
+  errorProtocol.register(localServer);
+  console.log("[WebSocket] ErrorProtocol registered");
 
   // 注册 FileProtocol
   fileProtocol.register(localServer);

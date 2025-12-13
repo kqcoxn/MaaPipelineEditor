@@ -204,7 +204,7 @@ export const OCRModal = memo(
           // 检测 OCR 资源未配置的特定错误码
           if (data.code === "MFW_OCR_RESOURCE_NOT_CONFIGURED") {
             message.error(
-              "OCR 资源路径未配置，请在后端运行 'mpelb config set-resource' 进行配置"
+              "OCR 资源路径未配置，请请运行 'mpelb config set-resource' 并按提示输入后重启服务"
             );
           } else {
             message.error(data.error);

@@ -182,7 +182,7 @@ func runServer(cmd *cobra.Command, args []string) {
 	logger.Info("Main", "运行模式: %s", paths.GetModeName())
 	logger.Info("Main", "数据目录: %s", paths.GetDataDir())
 	logger.Info("Main", "运行目录: %s", cfg.File.Root)
-	logger.Info("Main", "监听端口: %d", cfg.Server.Port)
+	logger.Debug("Main", "监听端口: %d", cfg.Server.Port)
 
 	// 检查 MaaFramework 配置
 	if cfg.MaaFW.Enabled {

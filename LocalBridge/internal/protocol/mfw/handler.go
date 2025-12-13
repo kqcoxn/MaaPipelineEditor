@@ -30,6 +30,16 @@ func (h *MFWHandler) Handle(msg models.Message, conn *server.Connection) *models
 	path := msg.Path
 	logger.Info("MFW", "处理MFW消息: %s", path)
 
+	// 检查 MFW 服务是否已初始化
+	if !h.service.IsInitialized() {
+		logger.Warn("MFW", "服务未初始化，拒绝请求")
+		logger.Error("MFW", "MaaFramework 库路径未配置，请运行 'mpelb config set-lib' 并按提示输入后重启服务")
+		h.sendMFWError(conn, mfw.ErrCodeNotInitialized,
+			"MaaFramework 未初始化",
+			"请在后端运行 'mpelb config set-lib' 设置 MaaFramework 库路径后重启服务")
+		return nil
+	}
+
 	// 根据路由分发到不同的处理器
 	switch path {
 	// 设备相关路由

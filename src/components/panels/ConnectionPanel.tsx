@@ -169,8 +169,6 @@ export const ConnectionPanel = memo(
           return;
         }
 
-        // 未连接时触发刷新
-        handleRefresh();
         setVisitedTabs((prev) => new Set(prev).add(activeTab));
       }
     }, [
@@ -181,6 +179,7 @@ export const ConnectionPanel = memo(
       deviceInfo,
       adbDevices,
       win32Windows,
+      activeTab,
     ]);
 
     // 未连接且第一次打开时自动刷新设备列表

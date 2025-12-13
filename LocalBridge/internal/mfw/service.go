@@ -57,7 +57,7 @@ func (s *Service) Initialize() error {
 		maa.WithLibDir(libDir),
 		maa.WithLogDir(logDir),
 		maa.WithSaveDraw(false),
-		maa.WithStdoutLevel(maa.LoggingLevelInfo),
+		maa.WithStdoutLevel(maa.LoggingLevelOff),
 		maa.WithDebugMode(false),
 	)
 	if err != nil {
@@ -80,7 +80,7 @@ func (s *Service) Shutdown() error {
 		return nil
 	}
 
-	logger.Info("MFW", "关闭 MaaFramework")
+	logger.Debug("MFW", "关闭 MaaFramework")
 
 	// 停止所有任务
 	s.taskManager.StopAll()
@@ -99,7 +99,7 @@ func (s *Service) Shutdown() error {
 
 	s.initialized = false
 
-	logger.Info("MFW", "MaaFramework 已关闭")
+	logger.Debug("MFW", "MaaFramework 已关闭")
 	return nil
 }
 

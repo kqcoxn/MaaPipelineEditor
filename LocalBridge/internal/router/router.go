@@ -41,7 +41,7 @@ func (r *Router) RegisterHandler(handler Handler) {
 	prefixes := handler.GetRoutePrefix()
 	for _, prefix := range prefixes {
 		r.handlers[prefix] = handler
-		logger.Info("Router", "注册路由处理器: %s", prefix)
+		logger.Debug("Router", "注册路由处理器: %s", prefix)
 	}
 }
 
@@ -114,7 +114,7 @@ func (r *Router) handleHandshake(msg models.Message, conn *server.Connection) {
 	}
 
 	clientVersion, _ := dataMap["protocol_version"].(string)
-	logger.Info("Router", "收到客户端握手请求，协议版本: %s", clientVersion)
+	logger.Debug("Router", "收到客户端握手请求，协议版本: %s", clientVersion)
 
 	// 版本验证
 	if clientVersion != server.ProtocolVersion {
@@ -124,7 +124,7 @@ func (r *Router) handleHandshake(msg models.Message, conn *server.Connection) {
 	}
 
 	// 版本匹配
-	logger.Info("Router", "协议版本验证成功: %s", clientVersion)
+	logger.Debug("Router", "协议版本验证成功: %s", clientVersion)
 	r.sendHandshakeResponse(conn, true, "连接成功")
 }
 
