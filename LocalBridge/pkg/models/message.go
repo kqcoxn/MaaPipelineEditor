@@ -82,3 +82,16 @@ type HandshakeResponse struct {
 	RequiredVersion string `json:"required_version"` // 需要的协议版本
 	Message         string `json:"message"`          // 消息说明
 }
+
+// 解析图片路径请求
+type ResolveImagePathRequest struct {
+	FileName string `json:"file_name"` // 文件名 (如 "template_123.png")
+}
+
+// 解析图片路径响应
+type ResolveImagePathResponse struct {
+	Success      bool   `json:"success"`       // 是否成功
+	RelativePath string `json:"relative_path"` // 相对于 image 目录的路径
+	AbsolutePath string `json:"absolute_path"` // 文件的绝对路径
+	Message      string `json:"message"`       // 错误信息或说明
+}

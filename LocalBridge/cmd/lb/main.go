@@ -118,7 +118,7 @@ func runServer(cmd *cobra.Command, args []string) {
 	rt.RegisterHandler(mfwHandler)
 
 	// 注册 Utility 协议处理器
-	utilityHandler := utilityProtocol.NewUtilityHandler(mfwSvc)
+	utilityHandler := utilityProtocol.NewUtilityHandler(mfwSvc, cfg.File.Root)
 	rt.RegisterHandler(utilityHandler)
 
 	// 设置消息处理器
@@ -142,7 +142,7 @@ func runServer(cmd *cobra.Command, args []string) {
 
 	wsServer.Stop()
 	fileSvc.Stop()
-	
+
 	// 关闭 MFW 服务
 	if err := mfwSvc.Shutdown(); err != nil {
 		logger.Error("Main", "MFW 服务关闭失败: %v", err)

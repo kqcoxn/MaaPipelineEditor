@@ -6,6 +6,9 @@ import (
 	"encoding/json"
 	"image"
 	"image/png"
+	"os"
+	"path/filepath"
+	"strings"
 
 	maa "github.com/MaaXYZ/maa-framework-go/v3"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/config"
@@ -19,12 +22,14 @@ import (
 // Utility协议处理器
 type UtilityHandler struct {
 	mfwService *mfw.Service
+	root       string // 根目录路径
 }
 
 // 创建Utility协议处理器
-func NewUtilityHandler(mfwService *mfw.Service) *UtilityHandler {
+func NewUtilityHandler(mfwService *mfw.Service, root string) *UtilityHandler {
 	return &UtilityHandler{
 		mfwService: mfwService,
+		root:       root,
 	}
 }
 
@@ -42,6 +47,9 @@ func (h *UtilityHandler) Handle(msg models.Message, conn *server.Connection) *mo
 	switch path {
 	case "/etl/utility/ocr_recognize":
 		h.handleOCRRecognize(conn, msg)
+
+	case "/etl/utility/resolve_image_path":
+		h.handleResolveImagePath(conn, msg)
 
 	default:
 		logger.Warn("Utility", "未知的Utility路由: %s", path)
@@ -384,4 +392,149 @@ func (h *UtilityHandler) sendUtilityError(conn *server.Connection, code, message
 		},
 	}
 	conn.Send(errorMsg)
+}
+
+// 处理解析图片路径请求
+func (h *UtilityHandler) handleResolveImagePath(conn *server.Connection, msg models.Message) {
+	// 解析请求
+	dataMap, ok := msg.Data.(map[string]interface{})
+	if !ok {
+		h.sendError(conn, errors.NewInvalidRequestError("请求数据格式错误"))
+		return
+	}
+
+	fileName, _ := dataMap["file_name"].(string)
+	if fileName == "" {
+		h.sendUtilityError(conn, "INVALID_REQUEST", "文件名不能为空", nil)
+		return
+	}
+
+	logger.Info("Utility", "解析图片路径 - 文件名: %s", fileName)
+
+	// 在根目录下搜索所有 image 目录中的文件
+	result, imageDir, err := h.searchFileInAllImageDirs(h.root, fileName)
+	if err != nil {
+		logger.Error("Utility", "搜索文件失败: %v", err)
+		conn.Send(models.Message{
+			Path: "/lte/utility/image_path_resolved",
+			Data: models.ResolveImagePathResponse{
+				Success: false,
+				Message: err.Error(),
+			},
+		})
+		return
+	}
+
+	if result == nil {
+		logger.Warn("Utility", "未找到文件: %s", fileName)
+		conn.Send(models.Message{
+			Path: "/lte/utility/image_path_resolved",
+			Data: models.ResolveImagePathResponse{
+				Success: false,
+				Message: "未找到文件，请手动输入路径",
+			},
+		})
+		return
+	}
+
+	// 计算相对路径
+	relPath, err := filepath.Rel(imageDir, result.AbsPath)
+	if err != nil {
+		relPath = result.Name
+	}
+	// 统一使用正斜杠
+	relPath = strings.ReplaceAll(relPath, "\\", "/")
+
+	logger.Info("Utility", "找到文件 - image目录: %s, 相对路径: %s, 绝对路径: %s", imageDir, relPath, result.AbsPath)
+
+	conn.Send(models.Message{
+		Path: "/lte/utility/image_path_resolved",
+		Data: models.ResolveImagePathResponse{
+			Success:      true,
+			RelativePath: relPath,
+			AbsolutePath: result.AbsPath,
+			Message:      "ok",
+		},
+	})
+}
+
+// 文件搜索结果
+type fileSearchResult struct {
+	AbsPath      string
+	Name         string
+	LastModified int64
+}
+
+// 在所有 image 目录中搜索文件
+func (h *UtilityHandler) searchFileInAllImageDirs(root string, fileName string) (*fileSearchResult, string, error) {
+	var latestFile *fileSearchResult
+	var latestImageDir string
+
+	// 遍历根目录
+	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil // 跳过错误，继续搜索
+		}
+
+		// 如果是目录且名为 "image"
+		if info.IsDir() && info.Name() == "image" {
+			logger.Info("Utility", "发现 image 目录: %s", path)
+
+			// 在该 image 目录中搜索文件
+			result := h.searchFileInSingleDir(path, fileName)
+
+			// 比较修改时间
+			if result != nil {
+				if latestFile == nil || result.LastModified > latestFile.LastModified {
+					latestFile = result
+					latestImageDir = path
+					logger.Info("Utility", "在 %s 中找到更新的文件: %s (修改时间: %d)", path, fileName, result.LastModified)
+				}
+			}
+
+			// 跳过遍历该 image 目录的子目录
+			return filepath.SkipDir
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, "", err
+	}
+
+	return latestFile, latestImageDir, nil
+}
+
+// 在单个目录中搜索文件
+func (h *UtilityHandler) searchFileInSingleDir(dir string, fileName string) *fileSearchResult {
+	var latestFile *fileSearchResult
+
+	// 遍历目录
+	filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+
+		// 跳过目录
+		if info.IsDir() {
+			return nil
+		}
+
+		// 检查文件名是否匹配
+		if info.Name() == fileName {
+			// 优先返回最新图片
+			if latestFile == nil || info.ModTime().Unix() > latestFile.LastModified {
+				latestFile = &fileSearchResult{
+					AbsPath:      path,
+					Name:         info.Name(),
+					LastModified: info.ModTime().Unix(),
+				}
+			}
+		}
+
+		return nil
+	})
+
+	return latestFile
 }

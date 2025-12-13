@@ -16,6 +16,8 @@ export class MFWProtocol extends BaseProtocol {
   private screencapCallbacks: Array<(data: any) => void> = [];
   // OCR结果回调函数
   private ocrCallbacks: Array<(data: any) => void> = [];
+  // 图片路径解析结果回调函数
+  private imagePathCallbacks: Array<(data: any) => void> = [];
   // 记录最后一次连接请求的设备信息
   private lastConnectionDevice: {
     type: "adb" | "win32";
@@ -56,6 +58,11 @@ export class MFWProtocol extends BaseProtocol {
     // 注册 OCR 结果路由
     this.wsClient.registerRoute("/lte/utility/ocr_result", (data) =>
       this.handleOCRResult(data)
+    );
+
+    // 注册图片路径解析结果路由
+    this.wsClient.registerRoute("/lte/utility/image_path_resolved", (data) =>
+      this.handleImagePathResolved(data)
     );
 
     // 注册操作结果路由
@@ -227,6 +234,23 @@ export class MFWProtocol extends BaseProtocol {
     });
   }
 
+  /**
+   * 处理图片路径解析结果
+   * 路由: /lte/utility/image_path_resolved
+   */
+  private handleImagePathResolved(data: any): void {
+    console.log("[MFWProtocol] Image path resolved:", data);
+
+    // 触发所有注册的回调
+    this.imagePathCallbacks.forEach((callback) => {
+      try {
+        callback(data);
+      } catch (error) {
+        console.error("[MFWProtocol] Error in image path callback:", error);
+      }
+    });
+  }
+
   // === 发送方法 ===
 
   /**
@@ -392,6 +416,44 @@ export class MFWProtocol extends BaseProtocol {
       const index = this.ocrCallbacks.indexOf(callback);
       if (index > -1) {
         this.ocrCallbacks.splice(index, 1);
+      }
+    };
+  }
+
+  /**
+   * 请求解析图片路径
+   */
+  public requestResolveImagePath(fileName: string): boolean {
+    if (!this.wsClient) {
+      console.error("[MFWProtocol] WebSocket client not initialized");
+      return false;
+    }
+
+    return this.wsClient.send("/etl/utility/resolve_image_path", {
+      file_name: fileName,
+    });
+  }
+
+  /**
+   * 注册图片路径解析结果回调
+   * @param callback 图片路径解析结果回调函数
+   * @returns 注销函数
+   */
+  public onImagePathResolved(
+    callback: (data: {
+      success: boolean;
+      relative_path: string;
+      absolute_path: string;
+      message: string;
+    }) => void
+  ): () => void {
+    this.imagePathCallbacks.push(callback);
+
+    // 返回注销函数
+    return () => {
+      const index = this.imagePathCallbacks.indexOf(callback);
+      if (index > -1) {
+        this.imagePathCallbacks.splice(index, 1);
       }
     };
   }

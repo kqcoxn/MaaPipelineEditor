@@ -6,6 +6,7 @@ import {
   type CanvasRenderProps,
   type ViewportProps,
 } from "./ScreenshotModalBase";
+import { mfwProtocol } from "../../services/server";
 
 interface TemplateModalProps {
   open: boolean;
@@ -46,6 +47,13 @@ export const TemplateModal = memo(
       null
     );
 
+    // 用于存储待确认的 ROI
+    const pendingRoiRef = useRef<[number, number, number, number] | null>(null);
+    // 用于存储绿色遮罩状态
+    const pendingGreenMaskRef = useRef<boolean>(false);
+    // 用于存储文件名
+    const pendingFileNameRef = useRef<string>("");
+
     // 初始化 ROI
     useEffect(() => {
       if (initialROI && screenshot) {
@@ -57,6 +65,29 @@ export const TemplateModal = memo(
         });
       }
     }, [initialROI, screenshot]);
+
+    // 监听图片路径解析结果
+    useEffect(() => {
+      const unsubscribe = mfwProtocol.onImagePathResolved((data) => {
+        const roi = pendingRoiRef.current;
+        const greenMask = pendingGreenMaskRef.current;
+        const fileName = pendingFileNameRef.current;
+
+        if (data.success && roi) {
+          onConfirm(data.relative_path, greenMask, roi);
+        } else if (roi && fileName) {
+          message.warning("无法自动确定路径，已填充文件名，请手动调整");
+          onConfirm(fileName, greenMask, roi);
+        }
+
+        // 清空待确认的数据
+        pendingRoiRef.current = null;
+        pendingGreenMaskRef.current = false;
+        pendingFileNameRef.current = "";
+      });
+
+      return () => unsubscribe();
+    }, [onConfirm]);
 
     // 重绘 canvas
     const redrawCanvas = useCallback(
@@ -365,7 +396,16 @@ export const TemplateModal = memo(
 
           const filename = fileHandle.name;
           message.success("模板已保存");
-          onConfirm(filename, hasGreenMask, roi);
+
+          // 存储待确认的数据
+          pendingRoiRef.current = roi;
+          pendingGreenMaskRef.current = hasGreenMask;
+          pendingFileNameRef.current = filename;
+
+          // 请求后端解析相对路径
+          setTimeout(() => {
+            mfwProtocol.requestResolveImagePath(filename);
+          }, 500);
         } catch (err: any) {
           if (err.name !== "AbortError") {
             message.error("保存失败: " + err.message);
@@ -381,9 +421,17 @@ export const TemplateModal = memo(
         URL.revokeObjectURL(url);
 
         message.success("模板已保存");
-        onConfirm(defaultFilename, hasGreenMask, roi);
+
+        // 存储待确认的数据并尝试解析
+        pendingRoiRef.current = roi;
+        pendingGreenMaskRef.current = hasGreenMask;
+        pendingFileNameRef.current = defaultFilename;
+
+        setTimeout(() => {
+          mfwProtocol.requestResolveImagePath(defaultFilename);
+        }, 500);
       }
-    }, [rectangle, hasGreenMask, onConfirm]);
+    }, [rectangle, hasGreenMask]);
 
     // 重置状态
     const handleReset = useCallback(() => {
