@@ -1,6 +1,19 @@
 import { memo, useState, useCallback, useEffect, useRef } from "react";
-import { Space, InputNumber, message, Input, Button } from "antd";
-import { ClearOutlined, CheckCircleOutlined } from "@ant-design/icons";
+import {
+  Space,
+  InputNumber,
+  message,
+  Input,
+  Button,
+  Radio,
+  Tooltip,
+} from "antd";
+import {
+  ClearOutlined,
+  CheckCircleOutlined,
+  QuestionCircleOutlined,
+} from "@ant-design/icons";
+import { createWorker, type Worker } from "tesseract.js";
 import { useMFWStore } from "../../stores/mfwStore";
 import { mfwProtocol } from "../../services/server";
 import {
@@ -33,6 +46,8 @@ interface OCRResult {
   no_content?: boolean;
 }
 
+type OCRMode = "native" | "frontend";
+
 export const OCRModal = memo(
   ({ open, onClose, onConfirm, initialROI }: OCRModalProps) => {
     const { connectionStatus, controllerId } = useMFWStore();
@@ -46,8 +61,10 @@ export const OCRModal = memo(
     } | null>(null);
     const [ocrText, setOcrText] = useState<string>("");
     const [ocrSuccess, setOcrSuccess] = useState<boolean | null>(null);
+    const [ocrMode, setOcrMode] = useState<OCRMode>("frontend");
 
     const imageRef = useRef<HTMLImageElement | null>(null);
+    const tesseractWorkerRef = useRef<Worker | null>(null);
     const ocrDebounceRef = useRef<NodeJS.Timeout | null>(null);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const viewportPropsRef = useRef<ViewportProps | null>(null);
@@ -70,8 +87,71 @@ export const OCRModal = memo(
       }
     }, [initialROI, screenshot, open]);
 
-    // 请求 OCR 识别
-    const requestOCR = useCallback(
+    // 前端 OCR 识别
+    const requestFrontendOCR = useCallback(
+      async (roi: Rectangle) => {
+        if (!screenshot || !canvasRef.current) return;
+
+        setIsOCRing(true);
+        setOcrSuccess(null);
+
+        try {
+          // 从当前截图中裁剪 ROI 区域
+          const tempCanvas = document.createElement("canvas");
+          const tempCtx = tempCanvas.getContext("2d");
+          if (!tempCtx || !imageRef.current) {
+            throw new Error("无法创建画布");
+          }
+
+          tempCanvas.width = Math.round(roi.width);
+          tempCanvas.height = Math.round(roi.height);
+          tempCtx.drawImage(
+            imageRef.current,
+            Math.round(roi.x),
+            Math.round(roi.y),
+            Math.round(roi.width),
+            Math.round(roi.height),
+            0,
+            0,
+            Math.round(roi.width),
+            Math.round(roi.height)
+          );
+
+          // 初始化或复用 Tesseract worker
+          if (!tesseractWorkerRef.current) {
+            tesseractWorkerRef.current = await createWorker(["chi_sim", "eng"]);
+          }
+
+          const {
+            data: { text },
+          } = await tesseractWorkerRef.current.recognize(tempCanvas);
+
+          // 移除中文字符之间的空格
+          let processedText = text.trim();
+          while (/([\u4e00-\u9fa5])\s+([\u4e00-\u9fa5])/.test(processedText)) {
+            processedText = processedText.replace(
+              /([\u4e00-\u9fa5])\s+([\u4e00-\u9fa5])/g,
+              "$1$2"
+            );
+          }
+          setOcrText(processedText);
+          setOcrSuccess(processedText.length > 0);
+        } catch (error) {
+          message.error(
+            `前端OCR识别失败: ${
+              error instanceof Error ? error.message : "未知错误"
+            }`
+          );
+          setOcrSuccess(false);
+        } finally {
+          setIsOCRing(false);
+        }
+      },
+      [screenshot]
+    );
+
+    // 请求后端 OCR 识别
+    const requestNativeOCR = useCallback(
       (roi: Rectangle) => {
         if (connectionStatus !== "connected" || !controllerId) {
           return;
@@ -92,6 +172,18 @@ export const OCRModal = memo(
         });
       },
       [connectionStatus, controllerId, isOCRing]
+    );
+
+    // 根据模式选择 OCR 方法
+    const requestOCR = useCallback(
+      (roi: Rectangle) => {
+        if (ocrMode === "frontend") {
+          requestFrontendOCR(roi);
+        } else {
+          requestNativeOCR(roi);
+        }
+      },
+      [ocrMode, requestFrontendOCR, requestNativeOCR]
     );
 
     // 监听 OCR 结果
@@ -313,6 +405,16 @@ export const OCRModal = memo(
       }
     }, []);
 
+    // 清理 Tesseract worker
+    useEffect(() => {
+      return () => {
+        if (tesseractWorkerRef.current) {
+          tesseractWorkerRef.current.terminate();
+          tesseractWorkerRef.current = null;
+        }
+      };
+    }, []);
+
     // 渲染 Canvas
     const renderCanvas = useCallback(
       (props: CanvasRenderProps) => {
@@ -384,6 +486,65 @@ export const OCRModal = memo(
         onScreenshotChange={setScreenshot}
         onReset={handleReset}
       >
+        {/* OCR 模式切换 */}
+        <div style={{ marginBottom: 16 }}>
+          <div
+            style={{
+              marginBottom: 8,
+              fontWeight: 500,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            识别模式:
+          </div>
+          <Radio.Group
+            value={ocrMode}
+            onChange={(e) => setOcrMode(e.target.value)}
+            optionType="button"
+            buttonStyle="solid"
+          >
+            <Tooltip
+              title={
+                <div>
+                  <div style={{ fontWeight: 500, marginBottom: 4 }}>
+                    前端OCR（Tesseract.js）
+                  </div>
+                  <div>• 基于当前已截取的图片识别</div>
+                  <div>• 支持100+多语言混合识别</div>
+                  <div>• 速度较快（初次需要加载模型）</div>
+                  <div style={{ color: "#52c41a", marginTop: 4 }}>
+                    ✓ 不会因窗口更新导致内容不一致
+                  </div>
+                </div>
+              }
+            >
+              <Radio.Button value="frontend">
+                前端 <QuestionCircleOutlined style={{ marginLeft: 4 }} />
+              </Radio.Button>
+            </Tooltip>
+            <Tooltip
+              title={
+                <div>
+                  <div style={{ fontWeight: 500, marginBottom: 4 }}>
+                    原生OCR（MaaFramework）
+                  </div>
+                  <div>• 使用本地 OCR 模型识别</div>
+                  <div>• 速度较慢，无后处理</div>
+                  <div style={{ color: "#faad14", marginTop: 4 }}>
+                    ⚠️ 后端会重新截取当前窗口画面，可能因窗口更新导致内容不一致
+                  </div>
+                </div>
+              }
+            >
+              <Radio.Button value="native">
+                原生 <QuestionCircleOutlined style={{ marginLeft: 4 }} />
+              </Radio.Button>
+            </Tooltip>
+          </Radio.Group>
+        </div>
+
         {/* ROI 参数显示与输入 */}
         <div style={{ marginBottom: 16 }}>
           <div style={{ marginBottom: 8, fontWeight: 500 }}>
