@@ -1,7 +1,5 @@
 [ISSUE](https://github.com/kqcoxn/MaaPipelineEditor/issues)
 
-- 自动更新后端
-
 ## MPE Web
 
 > 纯前端应用，用户通过浏览器访问。

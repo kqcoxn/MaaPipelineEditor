@@ -16,23 +16,27 @@ import (
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/router"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/server"
 	fileService "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/service/file"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/updater"
 	"github.com/spf13/cobra"
 )
 
 // 命令行
 var (
-	configPath string
-	rootDir    string
-	port       int
-	logDir     string
-	logLevel   string
+	configPath  string
+	rootDir     string
+	port        int
+	logDir      string
+	logLevel    string
+	showVersion bool
+	doUpdate    bool
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "mpelb",
-	Short: "⭐ MPE Local Bridge - 为 MaaPipelineEditor 构建本地的桥梁 🌉",
-	Long:  `MPE Local Bridge 是连接本地各系统与 MaaPipelineEditor 前端的桥梁服务，目前支持文件管理功能，更多集成即将更新！`,
-	Run:   runServer,
+	Use:     "mpelb",
+	Short:   "⭐ MPE Local Bridge - 为 MaaPipelineEditor 构建本地的桥梁 🌉",
+	Long:    `MPE Local Bridge 是连接本地各系统与 MaaPipelineEditor 前端的桥梁服务，目前支持文件管理功能，更多集成即将更新！`,
+	Version: updater.GetVersion(),
+	Run:     runServer,
 }
 
 func init() {
@@ -41,6 +45,8 @@ func init() {
 	rootCmd.Flags().IntVar(&port, "port", 0, "WebSocket 监听端口")
 	rootCmd.Flags().StringVar(&logDir, "log-dir", "", "日志输出目录")
 	rootCmd.Flags().StringVar(&logLevel, "log-level", "", "日志级别 (DEBUG, INFO, WARN, ERROR)")
+	rootCmd.Flags().BoolVarP(&showVersion, "version", "v", false, "显示版本号")
+	rootCmd.Flags().BoolVar(&doUpdate, "update", false, "检查并执行更新")
 }
 
 // 主函数
@@ -69,9 +75,14 @@ func runServer(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	logger.Info("Main", "Local Bridge 启动中...")
+	logger.Info("Main", "Local Bridge 启动中... 版本: %s", updater.GetVersion())
 	logger.Info("Main", "根目录: %s", cfg.File.Root)
 	logger.Info("Main", "监听端口: %d", cfg.Server.Port)
+
+	// 检查更新
+	if cfg.Update.Enabled || doUpdate {
+		go updater.CheckAndUpdate(cfg.Update.AutoUpdate || doUpdate, cfg.Update.ProxyURL)
+	}
 
 	// 创建事件总线
 	eventBus := eventbus.GetGlobalBus()

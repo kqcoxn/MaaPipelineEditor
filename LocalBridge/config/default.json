@@ -25,5 +25,10 @@
     "enabled": false,
     "lib_dir": "D:\\_Projects\\programs\\MaaNewMoonAccompanying\\deps\\bin",
     "resource_dir": "D:\\_Projects\\programs\\MaaNewMoonAccompanying\\MFAAvalonia\\Resource\\base"
+  },
+  "update": {
+    "enabled": true,
+    "auto_update": false,
+    "proxy_url": ""
   }
 }

@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   build-localbridge:
-    name: Build LocalBridge for ${{ matrix.os }}
+    name: Build LocalBridge for ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -23,7 +23,7 @@ jobs:
             goos: linux
             goarch: amd64
             name: mpelb-linux-amd64
-          - os: macos-latest
+          - os: macos-13
             goos: darwin
             goarch: amd64
             name: mpelb-darwin-amd64
@@ -49,7 +49,8 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: 0
         run: |
-          go build -ldflags="-s -w" -o ../build/${{ matrix.name }} ./cmd/lb
+          VERSION=${GITHUB_REF#refs/tags/v}
+          go build -ldflags="-s -w -X github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/updater.Version=${VERSION}" -o ../build/${{ matrix.name }} ./cmd/lb
 
       - name: Upload LocalBridge artifact
         uses: actions/upload-artifact@v4

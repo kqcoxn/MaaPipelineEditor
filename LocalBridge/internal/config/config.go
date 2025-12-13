@@ -35,12 +35,20 @@ type MaaFWConfig struct {
 	ResourceDir string `mapstructure:"resource_dir"`
 }
 
+// 更新配置
+type UpdateConfig struct {
+	Enabled    bool   `mapstructure:"enabled"`     // 是否启用更新检查
+	AutoUpdate bool   `mapstructure:"auto_update"` // 是否自动更新
+	ProxyURL   string `mapstructure:"proxy_url"`   // HTTP(S) 代理地址，留空则使用系统代理
+}
+
 // 全局配置
 type Config struct {
 	Server ServerConfig `mapstructure:"server"`
 	File   FileConfig   `mapstructure:"file"`
 	Log    LogConfig    `mapstructure:"log"`
 	MaaFW  MaaFWConfig  `mapstructure:"maafw"`
+	Update UpdateConfig `mapstructure:"update"`
 }
 
 // 全局单例
@@ -111,6 +119,11 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("maafw.enabled", false)
 	v.SetDefault("maafw.lib_dir", "")
 	v.SetDefault("maafw.resource_dir", "")
+
+	// 更新配置
+	v.SetDefault("update.enabled", true)
+	v.SetDefault("update.auto_update", false)
+	v.SetDefault("update.proxy_url", "")
 }
 
 // 规范化配置路径
