@@ -16,7 +16,7 @@ const (
 type Mode int
 
 const (
-	ModeUser     Mode = iota // 用户模式：使用系统用户数据目录
+	ModeUser     Mode = iota // 本地模式：使用系统用户数据目录
 	ModeDev                  // 开发模式：使用可执行文件同目录
 	ModePortable             // 便携模式：使用可执行文件同目录（用户指定）
 )
@@ -82,7 +82,7 @@ func detectMode() Mode {
 		return ModeDev
 	}
 
-	// 3. 默认使用用户模式
+	// 3. 默认使用本地模式
 	return ModeUser
 }
 
@@ -132,7 +132,7 @@ func GetModeName() string {
 	case ModePortable:
 		return "便携模式"
 	default:
-		return "用户模式"
+		return "本地模式"
 	}
 }
 

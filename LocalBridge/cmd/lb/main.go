@@ -2,7 +2,10 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -10,6 +13,7 @@ import (
 	"runtime"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/config"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/eventbus"
@@ -51,7 +55,6 @@ var configCmd = &cobra.Command{
 	Use:   "config",
 	Short: "配置管理命令",
 	Long:  `管理 LocalBridge 配置，包括打开配置文件、设置 MaaFramework 路径等`,
-	Run:   openConfig,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		// 设置便携模式
 		paths.SetPortableMode(portableMode)
@@ -183,11 +186,8 @@ func runServer(cmd *cobra.Command, args []string) {
 	logger.Info("Main", "Local Bridge 启动中... 版本: %s", Version)
 	logger.Info("Main", "运行模式: %s", paths.GetModeName())
 	logger.Info("Main", "数据目录: %s", paths.GetDataDir())
-	logger.Info("Main", "根目录: %s", cfg.File.Root)
+	logger.Info("Main", "运行目录: %s", cfg.File.Root)
 	logger.Info("Main", "监听端口: %d", cfg.Server.Port)
-
-	// 显示更新提醒
-	printUpdateNotice()
 
 	// 检查 MaaFramework 配置
 	if cfg.MaaFW.Enabled {
@@ -226,6 +226,9 @@ func runServer(cmd *cobra.Command, args []string) {
 		logger.Error("Main", "启动文件服务失败: %v", err)
 		os.Exit(1)
 	}
+
+	// 检查更新
+	checkAndPrintUpdateNotice()
 
 	// 创建 WebSocket 服务器
 	wsServer := server.NewWebSocketServer(cfg.Server.Host, cfg.Server.Port, eventBus)
@@ -506,17 +509,99 @@ func checkAndPromptMaaFWConfig(cfg *config.Config) error {
 	return nil
 }
 
-// 显示更新提醒
-func printUpdateNotice() {
-	fmt.Println()
-	fmt.Println("══════════════════════════════════════════════════")
-	fmt.Println("💡 温馨提示")
-	fmt.Println("══════════════════════════════════════════════════")
-	fmt.Println("   如需更新到最新版本，请访问:")
-	fmt.Println("   https://github.com/kqcoxn/MaaPipelineEditor/releases")
-	fmt.Println("   下载最新的 mpelb 版本")
-	fmt.Println("══════════════════════════════════════════════════")
-	fmt.Println()
+// GitHub Release 响应结构
+type GitHubRelease struct {
+	TagName string `json:"tag_name"`
+	HTMLURL string `json:"html_url"`
+}
+
+// 检查并显示更新提醒
+func checkAndPrintUpdateNotice() {
+	// 跳过开发版本的检查
+	if Version == "dev" {
+		logger.Debug("Update", "当前为开发版本，跳过更新检查")
+		return
+	}
+
+	// 获取最新版本信息
+	latestVersion, releaseURL, err := getLatestVersion()
+	if err != nil {
+		logger.Debug("Update", "检查更新失败: %v", err)
+		return
+	}
+
+	// 比较版本号
+	currentVersion := strings.TrimPrefix(Version, "v")
+	latestVersion = strings.TrimPrefix(latestVersion, "v")
+
+	// 使用语义化版本比较
+	if compareVersion(latestVersion, currentVersion) > 0 {
+		fmt.Println()
+		fmt.Println("══════════════════════════════════════════════════")
+		fmt.Println("🎉 发现新版本")
+		fmt.Println("══════════════════════════════════════════════════")
+		fmt.Printf("   当前版本: v%s\n", currentVersion)
+		fmt.Printf("   最新版本: v%s\n", latestVersion)
+		fmt.Println()
+		fmt.Println("   下载地址:")
+		fmt.Printf("   %s\n", releaseURL)
+		fmt.Println("   快速更新指令:")
+		printInstallCommand()
+		fmt.Println("══════════════════════════════════════════════════")
+		fmt.Println()
+	} else {
+		logger.Debug("Update", "当前版本 v%s 已是最新版本 (最新: v%s)", currentVersion, latestVersion)
+	}
+}
+
+// 输出适合当前平台的安装命令
+func printInstallCommand() {
+	switch runtime.GOOS {
+	case "windows":
+		// 检测是否在 PowerShell 环境
+		shell := os.Getenv("PSModulePath")
+		if shell != "" {
+			// PowerShell 环境
+			fmt.Println("   irm https://raw.githubusercontent.com/kqcoxn/MaaPipelineEditor/main/tools/install.ps1 | iex")
+		} else {
+			// CMD 环境
+			fmt.Println("   curl -fsSL https://raw.githubusercontent.com/kqcoxn/MaaPipelineEditor/main/tools/install.bat -o %%TEMP%%\\install-mpelb.bat && %%TEMP%%\\install-mpelb.bat")
+		}
+	case "darwin", "linux":
+		// Linux/macOS
+		fmt.Println("   curl -fsSL https://raw.githubusercontent.com/kqcoxn/MaaPipelineEditor/main/tools/install.sh | bash")
+	default:
+		fmt.Println("   请访问上述下载地址手动下载")
+	}
+}
+
+// 获取最新版本信息
+func getLatestVersion() (string, string, error) {
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+	}
+
+	resp, err := client.Get("https://api.github.com/repos/kqcoxn/MaaPipelineEditor/releases/latest")
+	if err != nil {
+		return "", "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", "", fmt.Errorf("GitHub API 返回状态码: %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", "", err
+	}
+
+	var release GitHubRelease
+	if err := json.Unmarshal(body, &release); err != nil {
+		return "", "", err
+	}
+
+	return release.TagName, release.HTMLURL, nil
 }
 
 // 显示路径信息
@@ -538,7 +623,69 @@ func showInfo(cmd *cobra.Command, args []string) {
 	fmt.Println("💡 提示:")
 	fmt.Println("   - 使用 --portable 参数可切换到便携模式")
 	fmt.Println("   - 开发模式: 可执行文件旁存在 config/ 目录时自动启用")
-	fmt.Println("   - 用户模式: 使用系统用户数据目录")
+	fmt.Println("   - 本地模式: 使用系统用户数据目录")
 	fmt.Println("══════════════════════════════════════════════════")
 	fmt.Println()
+}
+
+// compareVersion 比较两个语义化版本号
+// 返回值: 1 表示 v1 > v2, -1 表示 v1 < v2, 0 表示 v1 == v2
+func compareVersion(v1, v2 string) int {
+	// 移除可能的 v 前缀
+	v1 = strings.TrimPrefix(v1, "v")
+	v2 = strings.TrimPrefix(v2, "v")
+
+	// 分割版本号
+	parts1 := strings.Split(v1, ".")
+	parts2 := strings.Split(v2, ".")
+
+	// 补齐到相同长度
+	maxLen := len(parts1)
+	if len(parts2) > maxLen {
+		maxLen = len(parts2)
+	}
+
+	for len(parts1) < maxLen {
+		parts1 = append(parts1, "0")
+	}
+	for len(parts2) < maxLen {
+		parts2 = append(parts2, "0")
+	}
+
+	// 逐段比较
+	for i := 0; i < maxLen; i++ {
+		// 提取数字部分（忽略预发布标识）
+		num1 := extractNumber(parts1[i])
+		num2 := extractNumber(parts2[i])
+
+		if num1 > num2 {
+			return 1
+		}
+		if num1 < num2 {
+			return -1
+		}
+	}
+
+	return 0
+}
+
+// extractNumber 从版本号段中提取数字部分
+func extractNumber(s string) int {
+	// 移除非数字字符（如 -alpha, -beta 等）
+	var numStr string
+	for _, c := range s {
+		if c >= '0' && c <= '9' {
+			numStr += string(c)
+		} else {
+			break
+		}
+	}
+
+	if numStr == "" {
+		return 0
+	}
+
+	num := 0
+	fmt.Sscanf(numStr, "%d", &num)
+	return num
 }
