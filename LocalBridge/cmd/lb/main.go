@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/config"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/deps"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/eventbus"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/mfw"
@@ -147,6 +148,12 @@ func runServer(cmd *cobra.Command, args []string) {
 	logger.Info("Main", "Local Bridge 启动中... 版本: %s", updater.GetVersion())
 	logger.Info("Main", "根目录: %s", cfg.File.Root)
 	logger.Info("Main", "监听端口: %d", cfg.Server.Port)
+
+	// 检查并下载依赖
+	if err := ensureDeps(cfg); err != nil {
+		logger.Error("Main", "依赖检查失败: %v", err)
+		os.Exit(1)
+	}
 
 	// 检查 MaaFramework 配置
 	if cfg.MaaFW.Enabled {
@@ -476,6 +483,22 @@ func checkAndPromptMaaFWConfig(cfg *config.Config) error {
 		fmt.Println("✅ 配置已保存")
 		fmt.Println("══════════════════════════════════════════════════")
 		fmt.Println()
+	}
+
+	return nil
+}
+
+// 检查并确保依赖存在
+func ensureDeps(cfg *config.Config) error {
+	// 创建依赖下载器
+	downloader, err := deps.NewDownloader(deps.DefaultDepsDir, cfg.Update.ProxyURL)
+	if err != nil {
+		return fmt.Errorf("创建依赖下载器失败: %w", err)
+	}
+
+	// 检查并下载缺失的依赖
+	if err := downloader.EnsureDeps(); err != nil {
+		return err
 	}
 
 	return nil

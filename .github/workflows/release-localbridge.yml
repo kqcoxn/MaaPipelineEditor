@@ -54,15 +54,35 @@ jobs:
           VERSION=${GITHUB_REF#refs/tags/lb-v}
           go build -ldflags="-s -w -X github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/updater.Version=${VERSION}" -o ../build/${{ matrix.name }} ./cmd/lb
 
-      - name: Upload artifact
+      - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.name }}
           path: build/${{ matrix.name }}
 
+  # 打包 deps 依赖包
+  package-deps:
+    name: Package deps
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create deps package
+        run: |
+          cd LocalBridge/deps
+          # 直接打包 deps 目录下的所有内容
+          zip -r ../../build/deps.zip .
+
+      - name: Upload deps artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deps.zip
+          path: build/deps.zip
+
   release:
     name: Create Release
-    needs: build
+    needs: [build, package-deps]
     runs-on: ubuntu-latest
     permissions:
       contents: write

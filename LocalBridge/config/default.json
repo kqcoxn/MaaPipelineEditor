@@ -23,8 +23,8 @@
   },
   "maafw": {
     "enabled": false,
-    "lib_dir": "",
-    "resource_dir": ""
+    "lib_dir": "./deps/maafw",
+    "resource_dir": "./deps/ocr_model_res"
   },
   "update": {
     "enabled": true,

@@ -121,8 +121,8 @@ func setDefaults(v *viper.Viper) {
 
 	// MaaFramework 配置
 	v.SetDefault("maafw.enabled", false)
-	v.SetDefault("maafw.lib_dir", "")
-	v.SetDefault("maafw.resource_dir", "")
+	v.SetDefault("maafw.lib_dir", "./deps/maafw")
+	v.SetDefault("maafw.resource_dir", "./deps/ocr_model_res")
 
 	// 更新配置
 	v.SetDefault("update.enabled", true)
