@@ -104,7 +104,6 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("server.host", "localhost")
 
 	// 文件相关配置
-	v.SetDefault("file.root", "./")
 	v.SetDefault("file.exclude", []string{"node_modules", ".git", "dist", "build"})
 	v.SetDefault("file.extensions", []string{".json", ".jsonc"})
 
@@ -122,7 +121,7 @@ func setDefaults(v *viper.Viper) {
 // 规范化配置路径
 func (c *Config) normalize() error {
 	// 处理文件根目录路径
-	if !filepath.IsAbs(c.File.Root) {
+	if c.File.Root != "" && !filepath.IsAbs(c.File.Root) {
 		absPath, err := filepath.Abs(c.File.Root)
 		if err != nil {
 			return fmt.Errorf("解析根目录路径失败: %w", err)
@@ -131,8 +130,10 @@ func (c *Config) normalize() error {
 	}
 
 	// 验证根目录是否存在
-	if _, err := os.Stat(c.File.Root); os.IsNotExist(err) {
-		return fmt.Errorf("根目录不存在: %s", c.File.Root)
+	if c.File.Root != "" {
+		if _, err := os.Stat(c.File.Root); os.IsNotExist(err) {
+			return fmt.Errorf("根目录不存在: %s", c.File.Root)
+		}
 	}
 
 	// 处理日志目录路径
@@ -151,7 +152,17 @@ func (c *Config) normalize() error {
 func (c *Config) OverrideFromFlags(root, logDir, logLevel string, port int) {
 	if root != "" {
 		c.File.Root = root
+	} else {
+		// 使用当前工作目录
+		wd, err := os.Getwd()
+		if err != nil {
+			// 如果获取失败，回退到 "./"
+			c.File.Root = "./"
+		} else {
+			c.File.Root = wd
+		}
 	}
+
 	if logDir != "" {
 		c.Log.Dir = logDir
 	}
