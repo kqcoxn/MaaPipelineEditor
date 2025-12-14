@@ -47,11 +47,10 @@ export const pinnedNotice: PinnedNotice = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "0.10.4",
-    date: "2025-12",
+    date: "2025-12-14",
     type: "feature",
     updates: {
-      features: [],
-      perfs: [],
+      features: ["🤖 节点级 AI 预测，使用大模型起草你的新节点！"],
       fixes: [
         "修复了运行目录确认后无法更改的问题，文件索引逻辑：指定 --root 参数优先于运行 mpelb 的目录，无其他配置项。",
       ],
