@@ -227,6 +227,10 @@ export interface FlowNodeState {
     focus?: boolean;
   }) => void;
   setNodeData: (id: string, type: string, key: string, value: any) => void;
+  batchSetNodeData: (
+    id: string,
+    updates: Array<{ type: string; key: string; value: any }>
+  ) => void;
   setNodes: (nodes: NodeType[]) => void;
   resetNodeCounter: () => void;
 }

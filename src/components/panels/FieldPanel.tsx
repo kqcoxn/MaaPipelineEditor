@@ -1,7 +1,7 @@
 import style from "../../styles/FieldPanel.module.less";
 
-import { useMemo, memo, useCallback } from "react";
-import { Tooltip } from "antd";
+import { useMemo, memo, useCallback, useState } from "react";
+import { Tooltip, Spin } from "antd";
 import classNames from "classnames";
 import IconFont from "../iconfonts";
 
@@ -22,25 +22,82 @@ import { FieldPanelToolbar } from "./field-tools";
 // 面板
 function FieldPanel() {
   const currentNode = useFlowStore((state) => state.targetNode);
+  const [isLoading, setIsLoading] = useState(false);
+  const [progressStage, setProgressStage] = useState("");
+  const [progressDetail, setProgressDetail] = useState("");
 
   // 内容
   const renderContent = useMemo(() => {
     if (!currentNode) return null;
-    switch (currentNode.type) {
-      case NodeTypeEnum.Pipeline:
-        return (
-          <PipelineEditorWithSuspense
-            currentNode={currentNode as PipelineNodeType}
-          />
-        );
-      case NodeTypeEnum.External:
-        return <ExternalEditor currentNode={currentNode as ExternalNodeType} />;
-      case NodeTypeEnum.Anchor:
-        return <AnchorEditor currentNode={currentNode as AnchorNodeType} />;
-      default:
-        return null;
+
+    const content = (() => {
+      switch (currentNode.type) {
+        case NodeTypeEnum.Pipeline:
+          return (
+            <PipelineEditorWithSuspense
+              currentNode={currentNode as PipelineNodeType}
+            />
+          );
+        case NodeTypeEnum.External:
+          return (
+            <ExternalEditor currentNode={currentNode as ExternalNodeType} />
+          );
+        case NodeTypeEnum.Anchor:
+          return <AnchorEditor currentNode={currentNode as AnchorNodeType} />;
+        default:
+          return null;
+      }
+    })();
+
+    // 添加遮罩层
+    if (isLoading) {
+      return (
+        <div style={{ position: "relative" }}>
+          {content}
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(255, 255, 255, 0.9)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 1000,
+            }}
+          >
+            <Spin size="large" />
+            <div
+              style={{
+                marginTop: 16,
+                fontSize: 16,
+                fontWeight: 500,
+                color: "#1890ff",
+              }}
+            >
+              {progressStage}
+            </div>
+            {progressDetail && (
+              <div
+                style={{
+                  marginTop: 8,
+                  fontSize: 14,
+                  color: "#666",
+                }}
+              >
+                {progressDetail}
+              </div>
+            )}
+          </div>
+        </div>
+      );
     }
-  }, [currentNode]);
+
+    return content;
+  }, [currentNode, isLoading, progressStage, progressDetail]);
 
   // 样式
   const panelClass = useMemo(
@@ -61,6 +118,12 @@ function FieldPanel() {
     }
   }, [currentNode]);
 
+  // 进度变化回调
+  const handleProgressChange = useCallback((stage: string, detail?: string) => {
+    setProgressStage(stage);
+    setProgressDetail(detail || "");
+  }, []);
+
   // 渲染
   return (
     <div className={panelClass}>
@@ -69,6 +132,8 @@ function FieldPanel() {
           <FieldPanelToolbar
             nodeName={currentNode?.data.label ?? ""}
             currentNode={currentNode}
+            onLoadingChange={setIsLoading}
+            onProgressChange={handleProgressChange}
           />
         </div>
         <div className="header-center">
