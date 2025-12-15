@@ -10,17 +10,24 @@ import {
 import classNames from "classnames";
 
 import { useConfigStore } from "../../stores/configStore";
+import { useFlowStore } from "../../stores/flow";
 import { SourceHandleTypeEnum } from "./nodes";
 
 function MarkedEdge(props: EdgeProps) {
   const [edgePath, labelX, labelY] = getBezierPath({ ...props });
   const showEdgeLabel = useConfigStore((state) => state.configs.showEdgeLabel);
 
+  const edge = useFlowStore((state) =>
+    state.edges.find((e) => e.id === props.id)
+  );
+
   const edgeClass = useMemo(() => {
     let markClass = "";
     if (props.selected) {
       markClass = style["edge-selected"];
     } else {
+      const hasJumpBack = edge?.attributes?.jump_back;
+
       switch (props.sourceHandleId) {
         case SourceHandleTypeEnum.Next:
           markClass = style["edge-next"];
@@ -29,12 +36,14 @@ function MarkedEdge(props: EdgeProps) {
           markClass = style["edge-jumpback"];
           break;
         case SourceHandleTypeEnum.Error:
-          markClass = style["edge-error"];
+          markClass = hasJumpBack
+            ? style["edge-error-jumpback"]
+            : style["edge-error"];
           break;
       }
     }
     return classNames(style.edge, markClass);
-  }, [props.selected, props.sourceHandleId]);
+  }, [props.selected, props.sourceHandleId, edge?.attributes?.jump_back]);
 
   const labelClass = useMemo(
     () =>

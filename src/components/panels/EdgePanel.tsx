@@ -1,7 +1,7 @@
 import style from "../../styles/EdgePanel.module.less";
 
 import { memo, useMemo, useCallback } from "react";
-import { Tag, InputNumber, Tooltip } from "antd";
+import { Tag, InputNumber, Tooltip, Switch } from "antd";
 import classNames from "classnames";
 import IconFont from "../iconfonts";
 
@@ -12,6 +12,23 @@ import {
 } from "../../stores/flow";
 import { SourceHandleTypeEnum } from "../flow/nodes";
 
+// 获取连接类型和颜色
+const getEdgeTypeInfo = (edge: EdgeType) => {
+  switch (edge.sourceHandle) {
+    case SourceHandleTypeEnum.Next:
+      return { handleType: "next", tagColor: "green" };
+    case SourceHandleTypeEnum.JumpBack:
+      return { handleType: "jump_back", tagColor: "orange" };
+    case SourceHandleTypeEnum.Error:
+      return {
+        handleType: "on_error",
+        tagColor: edge.attributes?.jump_back ? "purple" : "magenta",
+      };
+    default:
+      return { handleType: "unknown", tagColor: "default" };
+  }
+};
+
 // 边信息展示
 const EdgeInfoElem = memo(
   ({
@@ -19,70 +36,70 @@ const EdgeInfoElem = memo(
     sourceLabel,
     targetLabel,
     maxOrder,
+    handleType,
+    tagColor,
     onOrderChange,
+    onJumpBackChange,
   }: {
     edge: EdgeType;
     sourceLabel: string;
     targetLabel: string;
     maxOrder: number;
+    handleType: string;
+    tagColor: string;
     onOrderChange: (value: number) => void;
+    onJumpBackChange: (checked: boolean) => void;
   }) => {
-    // 连接类型显示
-    let handleType: string;
-    let tagColor: string;
-
-    switch (edge.sourceHandle) {
-      case SourceHandleTypeEnum.Next:
-        handleType = "next";
-        tagColor = "green";
-        break;
-      case SourceHandleTypeEnum.JumpBack:
-        handleType = "jump_back";
-        tagColor = "orange";
-        break;
-      case SourceHandleTypeEnum.Error:
-        handleType = "on_error";
-        tagColor = "magenta";
-        break;
-      default:
-        handleType = "unknown";
-        tagColor = "default";
-    }
-
     return (
-      <div className={style.info}>
-        <div className={style["info-item"]}>
-          <span className={style.label}>源节点</span>
-          <span className={style.content}>{sourceLabel}</span>
-        </div>
-        <div className={style["info-item"]}>
-          <span className={style.label}>目标节点</span>
-          <span className={style.content}>{targetLabel}</span>
-        </div>
-        <div className={style["info-item"]}>
-          <span className={style.label}>连接类型</span>
-          <span className={style.content}>
-            <Tag color={tagColor}>{handleType}</Tag>
-          </span>
-        </div>
-        <div className={style["info-item"]}>
-          <span className={style.label}>顺序</span>
-          <span className={style.content}>
-            <InputNumber
-              size="small"
-              min={1}
-              max={maxOrder}
-              value={edge.label as number}
-              onChange={(val) => val && onOrderChange(val)}
-              style={{ width: 50 }}
-              controls={true}
-            />
-            <span style={{ marginLeft: 8, color: "#999", fontSize: 14 }}>
-              / {maxOrder}
+      <>
+        <div className={style.info}>
+          <div className={style["info-item"]}>
+            <span className={style.label}>源节点</span>
+            <span className={style.content}>{sourceLabel}</span>
+          </div>
+          <div className={style["info-item"]}>
+            <span className={style.label}>目标节点</span>
+            <span className={style.content}>{targetLabel}</span>
+          </div>
+          <div className={style["info-item"]}>
+            <span className={style.label}>连接类型</span>
+            <span className={style.content}>
+              <Tag color={tagColor}>{handleType}</Tag>
             </span>
-          </span>
+          </div>
+          <div className={style["info-item"]}>
+            <span className={style.label}>顺序</span>
+            <span className={style.content}>
+              <InputNumber
+                size="small"
+                min={1}
+                max={maxOrder}
+                value={edge.label as number}
+                onChange={(val) => val && onOrderChange(val)}
+                style={{ width: 50 }}
+                controls={true}
+              />
+              <span style={{ marginLeft: 8, color: "#999", fontSize: 16 }}>
+                / {maxOrder}
+              </span>
+            </span>
+          </div>
         </div>
-      </div>
+        {edge.sourceHandle === SourceHandleTypeEnum.Error && (
+          <div className={style["jumpback-section"]}>
+            <div className={style["info-item"]}>
+              <span className={style.label}>JumpBack</span>
+              <span className={style.content}>
+                <Switch
+                  size="small"
+                  checked={edge.attributes?.jump_back ?? false}
+                  onChange={onJumpBackChange}
+                />
+              </span>
+            </div>
+          </div>
+        )}
+      </>
     );
   }
 );
@@ -103,6 +120,7 @@ function EdgePanel() {
 
   const edges = useFlowStore((state) => state.edges);
   const setEdgeLabel = useFlowStore((state) => state.setEdgeLabel);
+  const setEdgeData = useFlowStore((state) => state.setEdgeData);
   const updateEdges = useFlowStore((state) => state.updateEdges);
 
   // 获取源节点和目标节点的名称
@@ -148,6 +166,16 @@ function EdgePanel() {
       }
     },
     [currentEdge, setEdgeLabel]
+  );
+
+  // jump_back 开关变更处理
+  const handleJumpBackChange = useCallback(
+    (checked: boolean) => {
+      if (currentEdge) {
+        setEdgeData(currentEdge.id, "jump_back", checked);
+      }
+    },
+    [currentEdge, setEdgeData]
   );
 
   // 删除连接
@@ -197,7 +225,10 @@ function EdgePanel() {
             sourceLabel={sourceLabel}
             targetLabel={targetLabel}
             maxOrder={maxOrder}
+            handleType={getEdgeTypeInfo(currentEdge).handleType}
+            tagColor={getEdgeTypeInfo(currentEdge).tagColor}
             onOrderChange={handleOrderChange}
+            onJumpBackChange={handleJumpBackChange}
           />
         </>
       )}

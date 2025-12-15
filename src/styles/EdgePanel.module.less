@@ -2,7 +2,7 @@
 @import "./global.less";
 
 .panel {
-  width: 300px;
+  width: 280px;
   min-height: 80px;
   border-radius: 6px;
   right: 10px;
@@ -41,30 +41,55 @@
       }
     }
   }
+}
 
-  .info {
-    padding: 8px 12px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-    margin-bottom: 8px;
+// 基础信息区域
+.info {
+  padding: 8px 12px;
 
-    .info-item {
-      display: flex;
-      align-items: center;
-      padding: 4px 0;
-      font-size: 16px;
+  .info-item {
+    display: flex;
+    align-items: center;
+    padding: 4px 0;
+    font-size: 14px;
 
-      .label {
-        color: #666;
-        width: 80px;
-        text-align: center;
-        margin-right: 8px;
-      }
+    .label {
+      color: #666;
+      width: 80px;
+      text-align: right;
+      margin-right: 8px;
+    }
 
-      .content {
-        color: #333;
-        flex: 1;
-        .ellipsis();
-      }
+    .content {
+      color: #333;
+      flex: 1;
+      .ellipsis();
+    }
+  }
+}
+
+// JumpBack 配置区域
+.jumpback-section {
+  padding: 8px 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+
+  .info-item {
+    display: flex;
+    align-items: center;
+    padding: 4px 0;
+    font-size: 14px;
+
+    .label {
+      color: #666;
+      width: 80px;
+      text-align: right;
+      margin-right: 8px;
+    }
+
+    .content {
+      color: #333;
+      flex: 1;
+      .ellipsis();
     }
   }
 }

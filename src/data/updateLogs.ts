@@ -50,7 +50,10 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2025-12-15",
     type: "feature",
     updates: {
-      features: ["🔗 新增分享链接功能，一键分享你的 Pipeline"],
+      features: [
+        "🔗 新增分享链接功能，一键分享你的 Pipeline",
+        "🍟 适配 on_error jump_back 节点属性",
+      ],
     },
   },
   {
