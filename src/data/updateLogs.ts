@@ -40,7 +40,7 @@ export const pinnedNotice: PinnedNotice = {
   title: "置顶公告",
   type: "info",
   content: [
-    "**正式版 LocalBridge🌉 已上线**！我们十分推荐您尝试，详情可查阅 [本地服务文档](https://mpe.codax.site/docs/guide/server/deploy.html)",
+    "**正式版 LocalBridge🌉 已上线**！目前已全面支持**本地文档管理**与**字段快捷填充**（OCR、图片裁剪等）功能，**仅需一行指令即可下载安装**，我们十分推荐您尝试，详情可查阅 [本地服务文档](https://mpe.codax.site/docs/guide/server/deploy.html)",
   ],
 };
 
