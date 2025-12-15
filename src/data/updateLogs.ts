@@ -46,6 +46,14 @@ export const pinnedNotice: PinnedNotice = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "0.11.0",
+    date: "2025-12-15",
+    type: "feature",
+    updates: {
+      features: ["🔗 新增分享链接功能，一键分享你的 Pipeline"],
+    },
+  },
+  {
     version: "0.10.4",
     date: "2025-12-14",
     type: "feature",

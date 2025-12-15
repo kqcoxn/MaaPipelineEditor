@@ -33,6 +33,7 @@ import { LocalFileListPanel } from "./components/panels/LocalFileListPanel";
 import ErrorPanel from "./components/panels/ErrorPanel";
 import { pipelineToFlow } from "./core/parser";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { getShareParam, loadFromShareUrl } from "./utils/shareHelper";
 
 // 轮询提醒
 let isShowStarRemind = false;
@@ -126,9 +127,19 @@ function App() {
 
   // onMounted
   useEffect(() => {
+    // 检查是否有分享链接参数
+    const hasShareParam = !!getShareParam();
+
     // 读取本地存储
-    const err = useFileStore.getState().replace();
-    if (!err) message.success("已读取本地缓存");
+    if (!hasShareParam) {
+      const err = useFileStore.getState().replace();
+      if (!err) message.success("已读取本地缓存");
+    }
+
+    // 从分享链接加载
+    if (hasShareParam) {
+      loadFromShareUrl();
+    }
 
     // 加载自定义模板
     useCustomTemplateStore.getState().loadTemplates();

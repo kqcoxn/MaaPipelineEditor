@@ -18,6 +18,7 @@ import {
   LoadingOutlined,
   MobileOutlined,
   DesktopOutlined,
+  ShareAltOutlined,
 } from "@ant-design/icons";
 import IconFont from "./iconfonts";
 import UpdateLog from "./modals/UpdateLog";
@@ -29,6 +30,7 @@ import { globalConfig } from "../stores/configStore";
 import { useTheme } from "../contexts/ThemeContext";
 import classNames from "classnames";
 import { useState, useEffect } from "react";
+import { generateShareLink } from "../utils/shareHelper";
 
 const versionLinks = [
   {
@@ -254,7 +256,7 @@ function Header() {
   // 检测页面宽度
   useEffect(() => {
     const checkWidth = () => {
-      setIsNarrowScreen(window.innerWidth < 720);
+      setIsNarrowScreen(window.innerWidth < 790);
     };
 
     checkWidth();
@@ -320,6 +322,21 @@ function Header() {
         </div>
         <div className={style.right}>
           <ConnectionButton />
+          <Tooltip placement="bottom" title="生成分享链接">
+            <Button
+              type="default"
+              size="small"
+              icon={<ShareAltOutlined />}
+              onClick={generateShareLink}
+              style={{
+                borderRadius: "999px",
+                paddingLeft: "12px",
+                paddingRight: "12px",
+              }}
+            >
+              分享
+            </Button>
+          </Tooltip>
           {wsConnected && (
             <DeviceConnectionButton
               onOpenPanel={() => setConnectionPanelOpen(true)}
