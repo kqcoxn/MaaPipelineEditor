@@ -149,8 +149,25 @@ func main() {
 	}
 }
 
+// 打印启动 Banner
+func printBanner() {
+	fmt.Println()
+	fmt.Println("\033[36m   __  __ ____  _____ _     ____ ")
+	fmt.Println("  |  \\/  |  _ \\| ____| |   | __ ) ")
+	fmt.Println("  | |\\/| | |_) |  _| | |   |  _ \\ ")
+	fmt.Println("  | |  | |  __/| |___| |___| |_) |")
+	fmt.Println("  |_|  |_|_|   |_____|_____|____/ ")
+	fmt.Println("\033[0m")
+	fmt.Printf("  \033[90mMaaPipelineEditor Local Bridge v%s\033[0m\n", Version)
+	fmt.Println("  \033[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m")
+	fmt.Println()
+}
+
 // 启动服务
 func runServer(cmd *cobra.Command, args []string) {
+	// 打印启动 Banner
+	printBanner()
+
 	// 设置便携模式
 	paths.SetPortableMode(portableMode)
 
