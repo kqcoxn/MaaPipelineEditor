@@ -57,3 +57,41 @@
   border: 1px solid rgba(black, 0.6);
   font-size: 16px;
 }
+
+// 可拖拽的控制点
+.control-point {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background-color: rgba(white, 0.9);
+  border: 2px solid @norm-color;
+  border-radius: 50%;
+  cursor: grab;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: all;
+  z-index: 10;
+
+  &:hover {
+    opacity: 1;
+    background-color: white;
+  }
+}
+
+.control-point-dragging {
+  opacity: 1;
+  cursor: grabbing;
+  background-color: @next-color;
+  border-color: @next-color;
+}
+
+.control-point-offset {
+  opacity: 0.7;
+  background-color: #fef3c7;
+  border-color: #f59e0b;
+
+  &:hover {
+    opacity: 1;
+    background-color: #fde68a;
+  }
+}

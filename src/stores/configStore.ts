@@ -4,7 +4,7 @@ import { create } from "zustand";
 export const globalConfig = {
   dev: true,
   version: `0.11.1`,
-  betaIteration: 2,
+  betaIteration: 3,
   mfwVersion: "5.3",
   protocolVersion: "0.2",
 };
@@ -40,6 +40,8 @@ type ConfigState = {
     aiModel: string;
     // 聚焦透明度
     focusOpacity: number;
+    // 边控制点
+    showEdgeControlPoint: boolean;
   };
   setConfig: <K extends keyof ConfigState["configs"]>(
     key: K,
@@ -79,6 +81,8 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     aiModel: "",
     // 聚焦透明度
     focusOpacity: 0.3,
+    // 边控制点
+    showEdgeControlPoint: true,
   },
   setConfig(key, value) {
     set((state) => ({

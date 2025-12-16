@@ -52,6 +52,9 @@ function ConfigPanel() {
   const aiApiKey = useConfigStore((state) => state.configs.aiApiKey);
   const aiModel = useConfigStore((state) => state.configs.aiModel);
   const focusOpacity = useConfigStore((state) => state.configs.focusOpacity);
+  const showEdgeControlPoint = useConfigStore(
+    (state) => state.configs.showEdgeControlPoint
+  );
   const setConfig = useConfigStore((state) => state.setConfig);
   const fileConfig = useFileStore((state) => state.currentFile.config);
   const setFileConfig = useFileStore((state) => state.setFileConfig);
@@ -274,6 +277,34 @@ function ConfigPanel() {
             onChange={(value: boolean) => setConfig("showEdgeLabel", value)}
           />
         </div>
+        {/* 边拖拽手柄 */}
+        <div className={globalClass}>
+          <div className={style.key}>
+            <Popover
+              placement="bottomLeft"
+              title={"边拖拽手柄"}
+              content={
+                <TipElem
+                  content={
+                    "开启时可以拖拽连接线中间的手柄来调整路径形状，该效果不会保存。双击手柄可重置单条连接线，排版工具中可一键重置所有连接线。"
+                  }
+                />
+              }
+            >
+              <span>边拖拽手柄</span>
+            </Popover>
+          </div>
+          <Switch
+            className={style.value}
+            style={switchStyle}
+            checkedChildren="显示"
+            unCheckedChildren="隐藏"
+            value={showEdgeControlPoint}
+            onChange={(value: boolean) =>
+              setConfig("showEdgeControlPoint", value)
+            }
+          />
+        </div>
         {/* 自动聚焦 */}
         <div className={globalClass}>
           <div className={style.key}>
@@ -296,12 +327,12 @@ function ConfigPanel() {
             onChange={(value: boolean) => setConfig("isAutoFocus", value)}
           />
         </div>
-        {/* 聚焦透明度 */}
+        {/* 非聚焦节点不透明度 */}
         <div className={globalClass}>
           <div className={style.key}>
             <Popover
               placement="bottomLeft"
-              title={"聚焦透明度"}
+              title={"非聚焦节点不透明度"}
               content={
                 <TipElem
                   content={
@@ -310,7 +341,7 @@ function ConfigPanel() {
                 />
               }
             >
-              <span>聚焦透明度</span>
+              <span>非聚焦节点不透明度</span>
             </Popover>
           </div>
           <InputNumber

@@ -370,6 +370,7 @@ function LayoutPanel() {
   const allNodes = useFlowStore((state) => state.nodes);
   const currentFileName = useFileStore((state) => state.currentFile.fileName);
   const shiftNodes = useFlowStore((state) => state.shiftNodes);
+  const resetEdgeControls = useFlowStore((state) => state.resetEdgeControls);
 
   // 间距调整
   const createShiftTool = (
@@ -437,6 +438,15 @@ function LayoutPanel() {
       createShiftTool("缩减垂直间距", "icon-chuizhisuoxiao", "vertical", -5),
       createShiftTool("增加垂直间距", "icon-chuizhifangda", "vertical", 5),
       {
+        label: "还原连接线路径",
+        iconName: "icon-connecting_line",
+        iconSize: 24,
+        onClick: () => {
+          resetEdgeControls();
+          message.success("连接线路径已还原");
+        },
+      },
+      {
         label: "自动布局",
         iconName: "icon-liuchengtu",
         iconSize: 30,
@@ -459,7 +469,7 @@ function LayoutPanel() {
         onDisabledClick: () => message.error("没有可保存的节点"),
       },
     ];
-  }, [debouncedSelectedNodes, currentFileName, shiftNodes]);
+  }, [debouncedSelectedNodes, currentFileName, shiftNodes, resetEdgeControls]);
 
   // 生成
   const tools = layoutTools.map((item, index) => {

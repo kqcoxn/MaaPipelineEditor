@@ -19,6 +19,7 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
 ) => ({
   // 初始状态
   edges: [],
+  edgeControlResetKey: 0,
 
   // 更新边
   updateEdges(changes: EdgeChange[]) {
@@ -270,5 +271,10 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
   // 设置边列表
   setEdges(edges: EdgeType[]) {
     set({ edges });
+  },
+
+  // 重置所有边的控制点
+  resetEdgeControls() {
+    set((state) => ({ edgeControlResetKey: state.edgeControlResetKey + 1 }));
   },
 });
