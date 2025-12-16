@@ -262,10 +262,25 @@ export interface FlowGraphState {
   ) => void;
 }
 
+// 路径 Slice 状态
+export interface FlowPathState {
+  pathMode: boolean; // 是否开启路径模式
+  pathStartNodeId: string | null; // 起始节点ID
+  pathEndNodeId: string | null; // 结束节点ID
+  pathNodeIds: Set<string>; // 路径上的节点ID集合
+  pathEdgeIds: Set<string>; // 路径上的边ID集合
+  setPathMode: (enabled: boolean) => void;
+  setPathStartNode: (nodeId: string | null) => void;
+  setPathEndNode: (nodeId: string | null) => void;
+  calculatePath: () => void; // 计算路径
+  clearPath: () => void; // 清除路径
+}
+
 // 合并的 Flow Store 类型
 export type FlowStore = FlowViewState &
   FlowSelectionState &
   FlowHistoryState &
   FlowNodeState &
   FlowEdgeState &
-  FlowGraphState;
+  FlowGraphState &
+  FlowPathState;

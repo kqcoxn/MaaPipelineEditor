@@ -18,19 +18,28 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
   const nodeStyle = useConfigStore((state) => state.configs.nodeStyle);
   const focusOpacity = useConfigStore((state) => state.configs.focusOpacity);
 
-  // 获取选中状态和边信息
-  const { selectedNodes, selectedEdges, edges } = useFlowStore(
-    useShallow((state) => ({
-      selectedNodes: state.selectedNodes,
-      selectedEdges: state.selectedEdges,
-      edges: state.edges,
-    }))
-  );
+  // 获取选中状态、边信息和路径状态
+  const { selectedNodes, selectedEdges, edges, pathMode, pathNodeIds } =
+    useFlowStore(
+      useShallow((state) => ({
+        selectedNodes: state.selectedNodes,
+        selectedEdges: state.selectedEdges,
+        edges: state.edges,
+        pathMode: state.pathMode,
+        pathNodeIds: state.pathNodeIds,
+      }))
+    );
 
   // 计算是否与选中元素相关联
   const isRelated = useMemo(() => {
     // 透明度为1
     if (focusOpacity === 1) return true;
+
+    // 路径模式
+    if (pathMode && pathNodeIds.size > 0) {
+      return pathNodeIds.has(props.id);
+    }
+
     // 没有选中任何内容
     if (selectedNodes.length === 0 && selectedEdges.length === 0) return true;
     // 当前节点被选中
@@ -66,6 +75,8 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
     edges,
     props.id,
     props.selected,
+    pathMode,
+    pathNodeIds,
   ]);
 
   const nodeClass = useMemo(

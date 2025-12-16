@@ -4,7 +4,7 @@ import { create } from "zustand";
 export const globalConfig = {
   dev: true,
   version: `0.11.1`,
-  betaIteration: 1,
+  betaIteration: 2,
   mfwVersion: "5.3",
   protocolVersion: "0.2",
 };
@@ -78,7 +78,7 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     aiApiKey: "",
     aiModel: "",
     // 聚焦透明度
-    focusOpacity: 1,
+    focusOpacity: 0.3,
   },
   setConfig(key, value) {
     set((state) => ({

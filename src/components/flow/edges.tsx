@@ -23,17 +23,25 @@ function MarkedEdge(props: EdgeProps) {
     state.edges.find((e) => e.id === props.id)
   );
 
-  // 获取选中状态
-  const { selectedNodes, selectedEdges } = useFlowStore(
+  // 获取选中状态和路径状态
+  const { selectedNodes, selectedEdges, pathMode, pathEdgeIds } = useFlowStore(
     useShallow((state) => ({
       selectedNodes: state.selectedNodes,
       selectedEdges: state.selectedEdges,
+      pathMode: state.pathMode,
+      pathEdgeIds: state.pathEdgeIds,
     }))
   );
 
   // 计算是否与选中元素相关联
   const isRelated = useMemo(() => {
     if (focusOpacity === 1) return true;
+
+    // 路径模式
+    if (pathMode && pathEdgeIds.size > 0) {
+      return pathEdgeIds.has(props.id);
+    }
+
     if (selectedNodes.length === 0 && selectedEdges.length === 0) return true;
     if (props.selected) return true;
 
@@ -55,6 +63,9 @@ function MarkedEdge(props: EdgeProps) {
     props.source,
     props.target,
     props.selected,
+    props.id,
+    pathMode,
+    pathEdgeIds,
   ]);
 
   const edgeClass = useMemo(() => {

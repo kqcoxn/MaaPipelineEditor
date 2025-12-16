@@ -6,6 +6,7 @@ import { createHistorySlice } from "./slices/historySlice";
 import { createNodeSlice } from "./slices/nodeSlice";
 import { createEdgeSlice } from "./slices/edgeSlice";
 import { createGraphSlice } from "./slices/graphSlice";
+import { createPathSlice } from "./slices/pathSlice";
 import { checkRepeatNodeLabelList as checkRepeatNodeLabelListUtil } from "./utils/nodeUtils";
 import { ErrorTypeEnum, useErrorStore } from "../errorStore";
 import { useConfigStore } from "../configStore";
@@ -19,6 +20,7 @@ export const useFlowStore = create<FlowStore>()((...a) => ({
   ...createNodeSlice(...a),
   ...createEdgeSlice(...a),
   ...createGraphSlice(...a),
+  ...createPathSlice(...a),
 }));
 export type {
   NodeType,

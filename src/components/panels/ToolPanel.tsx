@@ -1,6 +1,6 @@
 import style from "../../styles/ToolPanel.module.less";
 import { memo, useMemo, useState } from "react";
-import { message, Tooltip } from "antd";
+import { message, Tooltip, Popover, Select } from "antd";
 import classNames from "classnames";
 import IconFont from "../iconfonts";
 import { type IconNames } from "../iconfonts";
@@ -12,6 +12,122 @@ import { NodeTypeEnum } from "../flow/nodes";
 import { LayoutHelper, AlignmentEnum } from "../../core/layout";
 import { nodeTemplates, type NodeTemplateType } from "../../data/nodeTemplates";
 import { saveNodesToImage } from "../../utils/snapper";
+import { useShallow } from "zustand/shallow";
+
+/**路径选择浮层内容 */
+function PathSelector() {
+  const nodes = useFlowStore((state) => state.nodes);
+  const {
+    pathMode,
+    pathStartNodeId,
+    pathEndNodeId,
+    pathNodeIds,
+    setPathMode,
+    setPathStartNode,
+    setPathEndNode,
+    clearPath,
+  } = useFlowStore(
+    useShallow((state) => ({
+      pathMode: state.pathMode,
+      pathStartNodeId: state.pathStartNodeId,
+      pathEndNodeId: state.pathEndNodeId,
+      pathNodeIds: state.pathNodeIds,
+      setPathMode: state.setPathMode,
+      setPathStartNode: state.setPathStartNode,
+      setPathEndNode: state.setPathEndNode,
+      clearPath: state.clearPath,
+    }))
+  );
+
+  // 生成节点选项
+  const nodeOptions = useMemo(() => {
+    return nodes.map((node) => ({
+      label: node.data.label,
+      value: node.id,
+    }));
+  }, [nodes]);
+
+  const hasPath = pathNodeIds.size > 0;
+  const noPath = pathStartNodeId && pathEndNodeId && !hasPath;
+
+  return (
+    <div style={{ width: 240, padding: "8px 0" }}>
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ marginBottom: 4, fontSize: 12, color: "#666" }}>
+          起始节点
+        </div>
+        <Select
+          style={{ width: "100%" }}
+          placeholder="选择起始节点"
+          value={pathStartNodeId}
+          onChange={(value) => setPathStartNode(value)}
+          options={nodeOptions}
+          showSearch
+          filterOption={(input, option) =>
+            (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+          }
+          allowClear
+        />
+      </div>
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ marginBottom: 4, fontSize: 12, color: "#666" }}>
+          结束节点
+        </div>
+        <Select
+          style={{ width: "100%" }}
+          placeholder="选择结束节点"
+          value={pathEndNodeId}
+          onChange={(value) => setPathEndNode(value)}
+          options={nodeOptions}
+          showSearch
+          filterOption={(input, option) =>
+            (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+          }
+          allowClear
+        />
+      </div>
+      {hasPath && (
+        <div style={{ fontSize: 12, color: "#52c41a", marginBottom: 8 }}>
+          ✓ 找到路径，共 {pathNodeIds.size} 个节点
+        </div>
+      )}
+      {noPath && (
+        <div style={{ fontSize: 12, color: "#ff4d4f", marginBottom: 8 }}>
+          ✗ 未找到路径
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 8 }}>
+        <button
+          style={{
+            flex: 1,
+            padding: "4px 8px",
+            border: "1px solid #d9d9d9",
+            borderRadius: 4,
+            background: "#fff",
+            cursor: "pointer",
+          }}
+          onClick={() => clearPath()}
+        >
+          清除
+        </button>
+        <button
+          style={{
+            flex: 1,
+            padding: "4px 8px",
+            border: "1px solid #d9d9d9",
+            borderRadius: 4,
+            background: pathMode ? "#1890ff" : "#fff",
+            color: pathMode ? "#fff" : "#000",
+            cursor: "pointer",
+          }}
+          onClick={() => setPathMode(!pathMode)}
+        >
+          {pathMode ? "关闭路径模式" : "开启路径模式"}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 /**添加工具 */
 function AddPanel() {
@@ -81,6 +197,7 @@ function GlobalPanel() {
   const undo = useFlowStore((state) => state.undo);
   const redo = useFlowStore((state) => state.redo);
   const getHistoryState = useFlowStore((state) => state.getHistoryState);
+  const pathMode = useFlowStore((state) => state.pathMode);
 
   // 历史状态 - 使用状态强制更新
   const [, forceUpdate] = useState({});
@@ -203,7 +320,37 @@ function GlobalPanel() {
     () => classNames(style.panel, style["h-panel"], style["global-panel"]),
     []
   );
-  return <ul className={panelClass}>{tools}</ul>;
+  return (
+    <ul className={panelClass}>
+      {tools}
+      {/* 路径模式按钮 */}
+      <div className={style.devider}>
+        <div></div>
+      </div>
+      <div className={style.group}>
+        <li className={style.item}>
+          <Popover
+            placement="bottom"
+            title="节点路径"
+            content={<PathSelector />}
+            trigger="click"
+          >
+            <Tooltip
+              placement="bottom"
+              title={pathMode ? "节点路径（已开启）" : "节点路径"}
+            >
+              <IconFont
+                style={{ opacity: pathMode ? 1 : 0.4 }}
+                className={style.icon}
+                name="icon-lianjie"
+                size={24}
+              />
+            </Tooltip>
+          </Popover>
+        </li>
+      </div>
+    </ul>
+  );
 }
 
 /**布局工具 */
