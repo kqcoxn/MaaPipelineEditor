@@ -46,6 +46,14 @@ export const pinnedNotice: PinnedNotice = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "0.11.1",
+    date: "2025-12-16",
+    type: "feature",
+    updates: {
+      features: ["🦕 适配 repeat、repeat_delay、repeat_wait_freezes 字段", ""],
+    },
+  },
+  {
     version: "0.11.0",
     date: "2025-12-15",
     type: "feature",
