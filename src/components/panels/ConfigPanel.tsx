@@ -51,6 +51,7 @@ function ConfigPanel() {
   const aiApiUrl = useConfigStore((state) => state.configs.aiApiUrl);
   const aiApiKey = useConfigStore((state) => state.configs.aiApiKey);
   const aiModel = useConfigStore((state) => state.configs.aiModel);
+  const focusOpacity = useConfigStore((state) => state.configs.focusOpacity);
   const setConfig = useConfigStore((state) => state.setConfig);
   const fileConfig = useFileStore((state) => state.currentFile.config);
   const setFileConfig = useFileStore((state) => state.setFileConfig);
@@ -293,6 +294,35 @@ function ConfigPanel() {
             unCheckedChildren="关闭"
             value={isAutoFocus}
             onChange={(value: boolean) => setConfig("isAutoFocus", value)}
+          />
+        </div>
+        {/* 聚焦透明度 */}
+        <div className={globalClass}>
+          <div className={style.key}>
+            <Popover
+              placement="bottomLeft"
+              title={"聚焦透明度"}
+              content={
+                <TipElem
+                  content={
+                    "选中节点或边时，非相关元素的透明度。设置为1时关闭此功能，小于1时只完全显示与选中元素直接关联的节点和边"
+                  }
+                />
+              }
+            >
+              <span>聚焦透明度</span>
+            </Popover>
+          </div>
+          <InputNumber
+            className={style.value}
+            style={{ maxWidth: 80 }}
+            min={0}
+            max={1}
+            step={0.1}
+            value={focusOpacity}
+            onChange={(value: number | null) => {
+              if (value !== null) setConfig("focusOpacity", value);
+            }}
           />
         </div>
         {/* 导出时附带配置 */}

@@ -4,16 +4,69 @@ import classNames from "classnames";
 
 import style from "../../../../styles/nodes.module.less";
 import type { PipelineNodeDataType } from "../../../../stores/flow";
+import { useFlowStore } from "../../../../stores/flow";
 import { useConfigStore } from "../../../../stores/configStore";
 import { NodeTypeEnum } from "../constants";
 import { ModernContent } from "./ModernContent";
 import { ClassicContent } from "./ClassicContent";
+import { useShallow } from "zustand/shallow";
 
 type PNodeData = Node<PipelineNodeDataType, NodeTypeEnum.Pipeline>;
 
 /**Pipeline节点组件 */
 export function PipelineNode(props: NodeProps<PNodeData>) {
   const nodeStyle = useConfigStore((state) => state.configs.nodeStyle);
+  const focusOpacity = useConfigStore((state) => state.configs.focusOpacity);
+
+  // 获取选中状态和边信息
+  const { selectedNodes, selectedEdges, edges } = useFlowStore(
+    useShallow((state) => ({
+      selectedNodes: state.selectedNodes,
+      selectedEdges: state.selectedEdges,
+      edges: state.edges,
+    }))
+  );
+
+  // 计算是否与选中元素相关联
+  const isRelated = useMemo(() => {
+    // 透明度为1
+    if (focusOpacity === 1) return true;
+    // 没有选中任何内容
+    if (selectedNodes.length === 0 && selectedEdges.length === 0) return true;
+    // 当前节点被选中
+    if (props.selected) return true;
+
+    const nodeId = props.id;
+
+    // 检查是否与选中的节点直接连接
+    for (const selectedNode of selectedNodes) {
+      // 查找与选中节点相连的边
+      for (const edge of edges) {
+        if (
+          (edge.source === selectedNode.id && edge.target === nodeId) ||
+          (edge.target === selectedNode.id && edge.source === nodeId)
+        ) {
+          return true;
+        }
+      }
+    }
+
+    // 检查是否与选中的边相连
+    for (const selectedEdge of selectedEdges) {
+      if (selectedEdge.source === nodeId || selectedEdge.target === nodeId) {
+        return true;
+      }
+    }
+
+    return false;
+  }, [
+    focusOpacity,
+    selectedNodes,
+    selectedEdges,
+    edges,
+    props.id,
+    props.selected,
+  ]);
 
   const nodeClass = useMemo(
     () =>
@@ -26,8 +79,14 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
     [props.selected, nodeStyle]
   );
 
+  // 计算透明度样式
+  const opacityStyle = useMemo(() => {
+    if (isRelated || focusOpacity === 1) return undefined;
+    return { opacity: focusOpacity };
+  }, [isRelated, focusOpacity]);
+
   return (
-    <div className={nodeClass}>
+    <div className={nodeClass} style={opacityStyle}>
       {nodeStyle === "modern" ? (
         <ModernContent data={props.data} props={props} />
       ) : (

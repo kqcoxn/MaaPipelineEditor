@@ -1,9 +1,12 @@
 import { memo, useMemo } from "react";
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 import classNames from "classnames";
+import { useShallow } from "zustand/shallow";
 
 import style from "../../../styles/nodes.module.less";
 import type { ExternalNodeDataType } from "../../../stores/flow";
+import { useFlowStore } from "../../../stores/flow";
+import { useConfigStore } from "../../../stores/configStore";
 import { NodeTypeEnum } from "./constants";
 
 /**外部节点内容 */
@@ -25,6 +28,52 @@ type ExternalNodeData = Node<ExternalNodeDataType, NodeTypeEnum.External>;
 
 /**外部节点组件 */
 export function ExternalNode(props: NodeProps<ExternalNodeData>) {
+  const focusOpacity = useConfigStore((state) => state.configs.focusOpacity);
+
+  // 获取选中状态和边信息
+  const { selectedNodes, selectedEdges, edges } = useFlowStore(
+    useShallow((state) => ({
+      selectedNodes: state.selectedNodes,
+      selectedEdges: state.selectedEdges,
+      edges: state.edges,
+    }))
+  );
+
+  // 计算是否与选中元素相关联
+  const isRelated = useMemo(() => {
+    if (focusOpacity === 1) return true;
+    if (selectedNodes.length === 0 && selectedEdges.length === 0) return true;
+    if (props.selected) return true;
+
+    const nodeId = props.id;
+
+    for (const selectedNode of selectedNodes) {
+      for (const edge of edges) {
+        if (
+          (edge.source === selectedNode.id && edge.target === nodeId) ||
+          (edge.target === selectedNode.id && edge.source === nodeId)
+        ) {
+          return true;
+        }
+      }
+    }
+
+    for (const selectedEdge of selectedEdges) {
+      if (selectedEdge.source === nodeId || selectedEdge.target === nodeId) {
+        return true;
+      }
+    }
+
+    return false;
+  }, [
+    focusOpacity,
+    selectedNodes,
+    selectedEdges,
+    edges,
+    props.id,
+    props.selected,
+  ]);
+
   const nodeClass = useMemo(
     () =>
       classNames({
@@ -35,8 +84,13 @@ export function ExternalNode(props: NodeProps<ExternalNodeData>) {
     [props.selected]
   );
 
+  const opacityStyle = useMemo(() => {
+    if (isRelated || focusOpacity === 1) return undefined;
+    return { opacity: focusOpacity };
+  }, [isRelated, focusOpacity]);
+
   return (
-    <div className={nodeClass}>
+    <div className={nodeClass} style={opacityStyle}>
       <ENodeContent data={props.data} />
     </div>
   );

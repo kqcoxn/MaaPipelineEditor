@@ -50,7 +50,10 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2025-12-16",
     type: "feature",
     updates: {
-      features: ["🦕 适配 repeat、repeat_delay、repeat_wait_freezes 字段", ""],
+      features: [
+        "🦕 适配 repeat、repeat_delay、repeat_wait_freezes 字段",
+        "👀 新增聚焦透明度功能，可自由调控不透明度与是否启用，让节点关系更清晰！",
+      ],
     },
   },
   {

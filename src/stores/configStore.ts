@@ -38,6 +38,8 @@ type ConfigState = {
     aiApiUrl: string;
     aiApiKey: string;
     aiModel: string;
+    // 聚焦透明度
+    focusOpacity: number;
   };
   setConfig: <K extends keyof ConfigState["configs"]>(
     key: K,
@@ -75,6 +77,8 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     aiApiUrl: "",
     aiApiKey: "",
     aiModel: "",
+    // 聚焦透明度
+    focusOpacity: 1,
   },
   setConfig(key, value) {
     set((state) => ({

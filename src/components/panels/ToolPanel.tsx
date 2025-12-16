@@ -62,6 +62,7 @@ type GlobalToolType = {
   iconName: string;
   iconSize?: number;
   disabled?: boolean;
+  dimmed?: boolean;
   onClick: () => void;
   onDisabledClick?: () => void;
 };
@@ -72,6 +73,8 @@ function GlobalPanel() {
     (state) => state.debouncedSelectedNodes
   );
   const setStatus = useConfigStore((state) => state.setStatus);
+  const focusOpacity = useConfigStore((state) => state.configs.focusOpacity);
+  const setConfig = useConfigStore((state) => state.setConfig);
   const copy = useClipboardStore((state) => state.copy);
   const clipboardPaste = useClipboardStore((state) => state.paste);
   const flowPaste = useFlowStore((state) => state.paste);
@@ -97,6 +100,22 @@ function GlobalPanel() {
         iconName: "icon-jiqiren",
         iconSize: 27,
         onClick: () => setStatus("showAIHistoryPanel", true),
+      },
+      {
+        label:
+          focusOpacity === 1 ? "聚焦透明度（已关闭）" : "聚焦透明度（已开启）",
+        iconName: "icon-toumingdu",
+        iconSize: 27,
+        dimmed: focusOpacity === 1,
+        onClick: () => {
+          if (focusOpacity === 1) {
+            setConfig("focusOpacity", 0.3);
+            message.success("聚焦透明度已开启");
+          } else {
+            setConfig("focusOpacity", 1);
+            message.success("聚焦透明度已关闭");
+          }
+        },
       },
       {
         label: "复制 (Ctrl+C)",
@@ -146,7 +165,7 @@ function GlobalPanel() {
         },
       },
     ],
-    [clipboardNodes, debouncedSelectedNodes, historyState]
+    [clipboardNodes, debouncedSelectedNodes, historyState, focusOpacity]
   );
 
   // 生成
@@ -156,7 +175,7 @@ function GlobalPanel() {
         <li className={style.item}>
           <Tooltip placement="bottom" title={item.label}>
             <IconFont
-              style={{ opacity: item.disabled ? 0.2 : 1 }}
+              style={{ opacity: item.disabled ? 0.2 : item.dimmed ? 0.4 : 1 }}
               className={style.icon}
               name={item.iconName as IconNames}
               size={item.iconSize ?? 24}
