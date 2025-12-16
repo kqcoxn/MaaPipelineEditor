@@ -75,6 +75,24 @@ const otherFieldSchema: Record<string, FieldType> = {
     default: "",
     desc: "关注节点，会额外产生部分回调消息。可选，默认 null，不产生回调消息。 详见 节点通知。",
   },
+  repeat: {
+    key: "repeat",
+    type: FieldTypeEnum.Int,
+    default: 2,
+    desc: "动作重复执行次数。可选，默认 1 ，即不重复。 执行流程为 action - [repeat_wait_freezes - repeat_delay - action] × (repeat-1) 。",
+  },
+  repeatDelay: {
+    key: "repeat_delay",
+    type: FieldTypeEnum.Int,
+    default: 200,
+    desc: "每次重复动作之间的延迟，毫秒。可选，默认 0 。 仅当 repeat > 1 时生效，在第二次及之后的每次动作执行前等待。",
+  },
+  repeatWaitFreezes: {
+    key: "repeat_wait_freezes",
+    type: [FieldTypeEnum.Int, FieldTypeEnum.Any],
+    default: 200,
+    desc: "每次重复动作之间等待画面不动了的时间，毫秒。可选，默认 0 ，即不等待。 仅当 repeat > 1 时生效，在第二次及之后的每次动作执行前等待画面静止。 若为 object，可设置更多参数，详见 等待画面静止。",
+  },
   attach: {
     key: "attach",
     type: FieldTypeEnum.Any,
@@ -105,5 +123,8 @@ export const otherFieldParams: FieldType[] = [
   otherFieldSchema.inverse,
   otherFieldSchema.preWaitFreezes,
   otherFieldSchema.postWaitFreezes,
+  otherFieldSchema.repeat,
+  otherFieldSchema.repeatDelay,
+  otherFieldSchema.repeatWaitFreezes,
   otherFieldSchema.attach,
 ];
