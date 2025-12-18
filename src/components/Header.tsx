@@ -256,7 +256,7 @@ function Header() {
   // 检测页面宽度
   useEffect(() => {
     const checkWidth = () => {
-      setIsNarrowScreen(window.innerWidth < 790);
+      setIsNarrowScreen(window.innerWidth < 950);
     };
 
     checkWidth();

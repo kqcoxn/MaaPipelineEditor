@@ -324,10 +324,10 @@ function GlobalPanel() {
     <ul className={panelClass}>
       {tools}
       {/* 路径模式按钮 */}
-      <div className={style.devider}>
-        <div></div>
-      </div>
       <div className={style.group}>
+        <div className={style.devider}>
+          <div></div>
+        </div>
         <li className={style.item}>
           <Popover
             placement="bottom"
