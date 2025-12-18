@@ -10,9 +10,22 @@ import { message } from "antd";
 
 // URL 参数名
 const SHARE_PARAM = "shared";
+const IMPORT_PARAM = "import";
+const IMPORT_FILE_PARAM = "file";
 
 // 版本号
 const SHARE_VERSION = 1;
+
+/**
+ * 预定义起始目录类型
+ */
+export type StartInDirectory =
+  | "desktop"
+  | "documents"
+  | "downloads"
+  | "music"
+  | "pictures"
+  | "videos";
 
 /**
  * 编码分享内容
@@ -114,6 +127,85 @@ export function getShareParam(): string | null {
 }
 
 /**
+ * 检查 URL 是否包含导入参数
+ * @returns 起始目录值，不存在返回 null
+ */
+export function getImportParam(): StartInDirectory | null {
+  const urlParams = new URLSearchParams(window.location.search);
+  const value = urlParams.get(IMPORT_PARAM);
+
+  // 验证是否为有效的起始目录
+  const validDirs: StartInDirectory[] = [
+    "desktop",
+    "documents",
+    "downloads",
+    "music",
+    "pictures",
+    "videos",
+  ];
+
+  if (value && validDirs.includes(value as StartInDirectory)) {
+    return value as StartInDirectory;
+  }
+  return null;
+}
+
+/**
+ * 获取 URL 中期望的文件名参数
+ * @returns 文件名，不存在返回 null
+ */
+export function getImportFileParam(): string | null {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get(IMPORT_FILE_PARAM);
+}
+
+/**
+ * 清除 URL 中的导入参数
+ */
+export function clearImportParam(): void {
+  const url = new URL(window.location.href);
+  url.searchParams.delete(IMPORT_PARAM);
+  url.searchParams.delete(IMPORT_FILE_PARAM);
+  window.history.replaceState({}, "", url.toString());
+}
+
+/**
+ * 检查是否有待处理的导入请求
+ * 用于页面加载时检测，返回导入信息供 UI 显示确认
+ */
+export function checkPendingImport(): {
+  hasPending: boolean;
+  startIn: StartInDirectory | null;
+  expectedFile: string | null;
+} {
+  const startIn = getImportParam();
+  const expectedFile = getImportFileParam();
+  return {
+    hasPending: startIn !== null,
+    startIn,
+    expectedFile,
+  };
+}
+
+/**
+ * 处理导入请求
+ * @returns 是否成功导入
+ */
+export async function handleImportFromUrl(): Promise<boolean> {
+  const startIn = getImportParam();
+
+  if (!startIn) {
+    return false;
+  }
+
+  // 清除参数
+  clearImportParam();
+
+  // 执行导入
+  return importFromLocalFile(startIn);
+}
+
+/**
  * 从 URL 加载分享内容
  * @returns 是否成功加载
  */
@@ -134,7 +226,7 @@ export async function loadFromShareUrl(): Promise<boolean> {
       return false;
     }
 
-    // 新建文件用于加载分享内容
+    // 新建文件
     const { useFileStore } = await import("../stores/fileStore");
     const newFileName = useFileStore.getState().addFile({ isSwitch: true });
 
@@ -173,4 +265,78 @@ function clearShareParam(): void {
   const url = new URL(window.location.href);
   url.searchParams.delete(SHARE_PARAM);
   window.history.replaceState({}, "", url.toString());
+}
+
+/**
+ * 从本地文件导入 Pipeline
+ * 使用 File System Access API 让用户选择文件
+ * @param startIn 起始目录（可选），如 'downloads'、'documents' 等
+ * @returns 是否成功导入
+ */
+export async function importFromLocalFile(
+  startIn?: StartInDirectory
+): Promise<boolean> {
+  // 检查浏览器是否支持 File System Access API
+  if (!("showOpenFilePicker" in window)) {
+    message.warning("当前浏览器不支持文件选择功能，请使用 Chrome/Edge 浏览器");
+    return false;
+  }
+
+  try {
+    // 打开文件选择器
+    const [fileHandle] = await (window as any).showOpenFilePicker({
+      startIn: startIn || "downloads",
+      types: [
+        {
+          description: "JSON Files",
+          accept: {
+            "application/json": [".json", ".jsonc"],
+          },
+        },
+      ],
+      multiple: false,
+    });
+
+    // 读取文件内容
+    const file = await fileHandle.getFile();
+    const content = await file.text();
+
+    // 解析 JSON
+    let pipelineObj;
+    try {
+      pipelineObj = JSON.parse(content);
+    } catch {
+      message.error("文件内容不是有效的 JSON 格式");
+      return false;
+    }
+
+    // 新建文件用于加载内容
+    const { useFileStore } = await import("../stores/fileStore");
+    const newFileName = useFileStore.getState().addFile({ isSwitch: true });
+
+    if (!newFileName) {
+      message.error("创建新文件失败");
+      return false;
+    }
+
+    // 导入到新文件
+    const pString = JSON.stringify(pipelineObj);
+    const success = await pipelineToFlow({ pString });
+
+    if (success) {
+      message.success(`已从 ${file.name} 导入 Pipeline`);
+      return true;
+    } else {
+      message.error("文件导入失败");
+      return false;
+    }
+  } catch (err: any) {
+    // 用户取消选择不显示错误
+    if (err?.name === "AbortError") {
+      return false;
+    }
+    console.error("[shareHelper] 导入文件失败:", err);
+    message.error("导入文件失败");
+    return false;
+  }
 }

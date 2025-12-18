@@ -9,6 +9,7 @@ import {
   notification,
   Button,
   Space,
+  Modal,
 } from "antd";
 const { Header: HeaderSection, Content } = Layout;
 
@@ -33,7 +34,13 @@ import { LocalFileListPanel } from "./components/panels/LocalFileListPanel";
 import ErrorPanel from "./components/panels/ErrorPanel";
 import { pipelineToFlow } from "./core/parser";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import { getShareParam, loadFromShareUrl } from "./utils/shareHelper";
+import {
+  getShareParam,
+  loadFromShareUrl,
+  checkPendingImport,
+  handleImportFromUrl,
+  clearImportParam,
+} from "./utils/shareHelper";
 
 // 轮询提醒
 let isShowStarRemind = false;
@@ -130,8 +137,11 @@ function App() {
     // 检查是否有分享链接参数
     const hasShareParam = !!getShareParam();
 
+    // 检查是否有导入请求
+    const { hasPending, startIn, expectedFile } = checkPendingImport();
+
     // 读取本地存储
-    if (!hasShareParam) {
+    if (!hasShareParam && !hasPending) {
       const err = useFileStore.getState().replace();
       if (!err) message.success("已读取本地缓存");
     }
@@ -139,6 +149,32 @@ function App() {
     // 从分享链接加载
     if (hasShareParam) {
       loadFromShareUrl();
+    }
+
+    // 处理导入请求
+    if (hasPending) {
+      const dirMap: Record<string, string> = {
+        desktop: "桌面",
+        documents: "文档",
+        downloads: "下载",
+        music: "音乐",
+        pictures: "图片",
+        videos: "视频",
+      };
+
+      const dirName = dirMap[startIn || "downloads"] || startIn;
+      const content = expectedFile
+        ? `是否从 "${dirName}" 目录选择文件 "${expectedFile}" 导入？`
+        : `是否从 "${dirName}" 目录选择文件导入？`;
+
+      Modal.confirm({
+        title: "检测到导入请求",
+        content,
+        okText: "选择文件",
+        cancelText: "取消",
+        onOk: () => handleImportFromUrl(),
+        onCancel: () => clearImportParam(),
+      });
     }
 
     // 加载自定义模板
