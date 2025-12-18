@@ -17,7 +17,7 @@
  */
 
 // 导出主要API
-export { flowToPipeline } from "./exporter";
+export { flowToPipeline, flowToPipelineString } from "./exporter";
 export { pipelineToFlow } from "./importer";
 
 // 导出类型

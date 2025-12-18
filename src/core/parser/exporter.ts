@@ -149,3 +149,13 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
     return {};
   }
 }
+
+/**
+ * 将Flow转换为Pipeline JSON字符串
+ * @param datas 可选的数据，包含节点、边、文件名、配置
+ * @returns Pipeline JSON字符串
+ */
+export function flowToPipelineString(datas?: FlowToOptions): string {
+  const pipelineObj = flowToPipeline(datas);
+  return JSON.stringify(pipelineObj, null, 2);
+}

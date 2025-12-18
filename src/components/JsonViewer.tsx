@@ -20,6 +20,7 @@ import { ClipboardHelper } from "../utils/clipboard";
 import { useConfigStore } from "../stores/configStore";
 import { useWSStore } from "../stores/wsStore";
 import { CreateFileModal } from "./modals/CreateFileModal";
+import { ExportFileModal } from "./modals/ExportFileModal";
 
 // viewer
 const ViewerElem = memo(({ obj }: { obj: any }) => {
@@ -58,8 +59,8 @@ function JsonViewer() {
   );
   const saveFileToLocal = useFileStore((state) => state.saveFileToLocal);
 
-  // 创建文件对话框状态
   const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [exportModalVisible, setExportModalVisible] = useState(false);
 
   // 文件输入引用
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -210,14 +211,27 @@ function JsonViewer() {
             >
               保存到本地
             </Button>
-            <Button
-              variant="filled"
-              size="small"
-              color="purple"
-              onClick={() => setCreateModalVisible(true)}
-            >
-              新建本地文件并保存
-            </Button>
+          </Flex>
+          <Flex className={style.group} gap="small" wrap>
+            {wsConnected ? (
+              <Button
+                variant="filled"
+                size="small"
+                color="purple"
+                onClick={() => setCreateModalVisible(true)}
+              >
+                新建本地文件并保存(LB)
+              </Button>
+            ) : (
+              <Button
+                variant="filled"
+                size="small"
+                color="purple"
+                onClick={() => setExportModalVisible(true)}
+              >
+                导出为文件
+              </Button>
+            )}
           </Flex>
         </div>
       </div>
@@ -230,6 +244,10 @@ function JsonViewer() {
       <CreateFileModal
         visible={createModalVisible}
         onCancel={() => setCreateModalVisible(false)}
+      />
+      <ExportFileModal
+        visible={exportModalVisible}
+        onCancel={() => setExportModalVisible(false)}
       />
     </div>
   );
