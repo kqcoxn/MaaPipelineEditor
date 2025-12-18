@@ -51,6 +51,7 @@ export const updateLogs: UpdateLogItem[] = [
     type: "feature",
     updates: {
       features: ["📄 未连接本地服务时也可以直接导出为文件了！"],
+      fixes: ["修复了无法高亮全部的关键路径的问题"],
     },
   },
   {
