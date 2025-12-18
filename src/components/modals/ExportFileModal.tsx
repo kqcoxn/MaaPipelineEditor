@@ -81,7 +81,43 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
       // 获取内容
       const content = flowToPipelineString();
 
-      // 创建 Blob 并下载
+      // 检查是否支持 File System Access API
+      if ("showSaveFilePicker" in window) {
+        try {
+          // 使用 File System Access API 选择保存位置
+          const handle = await (window as any).showSaveFilePicker({
+            suggestedName: fullFileName,
+            types: [
+              {
+                description: "JSON Files",
+                accept: {
+                  "application/json": [`.${format}`],
+                },
+              },
+            ],
+          });
+
+          // 创建可写流并写入内容
+          const writable = await handle.createWritable();
+          await writable.write(content);
+          await writable.close();
+
+          message.success(`已导出 ${fullFileName}`);
+          onCancel();
+          return;
+        } catch (err: any) {
+          // 用户取消选择
+          if (err.name === "AbortError") {
+            return;
+          }
+          console.warn(
+            "[ExportFileModal] File System Access API failed, fallback to download:",
+            err
+          );
+        }
+      }
+
+      // 降级使用传统下载方式
       const blob = new Blob([content], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
