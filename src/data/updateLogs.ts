@@ -46,6 +46,14 @@ export const pinnedNotice: PinnedNotice = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "0.11.2",
+    date: "2025-12-18",
+    type: "feature",
+    updates: {
+      features: ["📄 未连接本地服务时也可以直接导出为文件了！"],
+    },
+  },
+  {
     version: "0.11.1",
     date: "2025-12-16",
     type: "feature",

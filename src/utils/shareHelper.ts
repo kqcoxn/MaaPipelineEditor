@@ -144,11 +144,6 @@ export async function loadFromShareUrl(): Promise<boolean> {
       return false;
     }
 
-    // 设置文件名
-    setTimeout(() => {
-      useFileStore.getState().setFileName("来自分享");
-    }, 100);
-
     // 导入到新文件
     const pString = JSON.stringify(pipelineObj);
     const success = await pipelineToFlow({ pString });
