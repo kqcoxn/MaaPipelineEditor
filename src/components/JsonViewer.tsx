@@ -187,14 +187,7 @@ function JsonViewer() {
               导出至粘贴板
             </Button>
           </Flex>
-          <Flex
-            className={style.group}
-            gap="small"
-            wrap
-            style={{
-              display: wsConnected && currentFilePath ? "flex" : "none",
-            }}
-          >
+          <Flex className={style.group} gap="small" wrap>
             <Button
               variant="filled"
               size="small"
@@ -202,17 +195,18 @@ function JsonViewer() {
               onClick={async () => {
                 const success = await saveFileToLocal();
                 if (success) {
-                  message.success("文件保存成功");
                   setRtpTrigger(rtpTrigger + 1);
                 } else {
                   message.error("文件保存失败");
                 }
               }}
+              style={{
+                display:
+                  wsConnected && currentFilePath ? "inline-flex" : "none",
+              }}
             >
               保存到本地
             </Button>
-          </Flex>
-          <Flex className={style.group} gap="small" wrap>
             {wsConnected ? (
               <Button
                 variant="filled"
@@ -220,7 +214,7 @@ function JsonViewer() {
                 color="purple"
                 onClick={() => setCreateModalVisible(true)}
               >
-                新建本地文件并保存(LB)
+                导出为文件
               </Button>
             ) : (
               <Button
