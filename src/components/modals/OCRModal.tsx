@@ -120,7 +120,17 @@ export const OCRModal = memo(
 
           // 初始化或复用 Tesseract worker
           if (!tesseractWorkerRef.current) {
+            message.loading({
+              content: "首次使用前端OCR，正在加载识别模型，请稍候...",
+              key: "ocr-loading",
+              duration: 0,
+            });
             tesseractWorkerRef.current = await createWorker(["chi_sim", "eng"]);
+            message.success({
+              content: "模型加载完成",
+              key: "ocr-loading",
+              duration: 2,
+            });
           }
 
           const {
@@ -610,6 +620,9 @@ export const OCRModal = memo(
               {isOCRing && (
                 <span style={{ marginLeft: 8, color: "#1890ff" }}>
                   识别中...
+                  {!tesseractWorkerRef.current &&
+                    ocrMode === "frontend" &&
+                    "（首次加载模型中，请稍候）"}
                 </span>
               )}
               {!isOCRing && ocrSuccess === true && (

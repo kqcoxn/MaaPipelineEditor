@@ -46,6 +46,15 @@ export const pinnedNotice: PinnedNotice = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "0.12.0",
+    date: "2025-12",
+    type: "major",
+    updates: {
+      features: [""],
+      perfs: ["优化 LB 导出交互体验", ""],
+    },
+  },
+  {
     version: "0.11.2",
     date: "2025-12-18",
     type: "fix",
