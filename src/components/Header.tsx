@@ -321,7 +321,6 @@ function Header() {
           </div>
         </div>
         <div className={style.right}>
-          <ConnectionButton />
           <Tooltip placement="bottom" title="生成分享链接">
             <Button
               type="default"
@@ -337,6 +336,7 @@ function Header() {
               分享
             </Button>
           </Tooltip>
+          <ConnectionButton />
           {wsConnected && (
             <DeviceConnectionButton
               onOpenPanel={() => setConnectionPanelOpen(true)}
