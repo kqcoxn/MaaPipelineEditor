@@ -73,7 +73,7 @@ export const otherFieldSchema: Record<string, FieldType> = {
     key: "focus",
     type: FieldTypeEnum.Any,
     default: "",
-    desc: "关注节点，会额外产生部分回调消息。可选，默认 null，不产生回调消息。 详见 节点通知。",
+    desc: "关注节点，会额外产生部分回调消息。可选，默认 null，不产生回调消息。详见 节点通知。",
     params: [
       {
         key: "Node.Recognition.Starting",

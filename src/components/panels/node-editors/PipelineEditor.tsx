@@ -329,13 +329,66 @@ export const PipelineEditor = lazy(() =>
               }}
             />
           ) : null}
+          {/* 其他 */}
+          <div className={style.item}>
+            <Popover
+              placement="left"
+              title={"others"}
+              content={"除 recognition、action、focus 之外的字段"}
+            >
+              <div className={classNames([style.key, style["head-key"]])}>
+                others
+              </div>
+            </Popover>
+            <div className={classNames([style.value, style.line])}>
+              ————————————
+            </div>
+            {currentNode ? (
+              <AddFieldElem
+                paramType={otherFieldParamsWithoutFocus}
+                paramData={currentNode.data.others}
+                onClick={(param) =>
+                  setNodeData(
+                    currentNode.id,
+                    "others",
+                    param.key,
+                    param.default
+                  )
+                }
+              />
+            ) : null}
+          </div>
+          {/* 其他字段 */}
+          {currentNode ? (
+            <ParamFieldListElem
+              paramData={currentNode.data.others}
+              paramType={otherFieldParamsWithoutFocus}
+              onChange={(key, value) =>
+                setNodeData(currentNode.id, "others", key, value)
+              }
+              onDelete={(key) =>
+                setNodeData(currentNode.id, "others", key, "__mpe_delete")
+              }
+              onListChange={(key, valueList) =>
+                setNodeData(currentNode.id, "others", key, valueList)
+              }
+              onListAdd={(key, valueList) => {
+                valueList.push(valueList[valueList.length - 1]);
+                setNodeData(currentNode.id, "others", key, valueList);
+              }}
+              onListDelete={(key, valueList, index) => {
+                valueList.splice(index, 1);
+                setNodeData(currentNode.id, "others", key, valueList);
+              }}
+            />
+          ) : null}
           {/* focus 字段 */}
           <div className={style.item}>
             <Popover
               placement="left"
               title={"focus"}
               content={
-                "关注节点，支持字符串或消息类型映射。可配置节点通知消息。"
+                "关注节点，会额外产生部分回调消息。可选，默认 null，不产生回调消息。详见 节点通知。"
               }
             >
               <div className={classNames([style.key, style["head-key"]])}>
@@ -392,59 +445,6 @@ export const PipelineEditor = lazy(() =>
               onListChange={() => {}}
               onListAdd={() => {}}
               onListDelete={() => {}}
-            />
-          ) : null}
-          {/* 其他 */}
-          <div className={style.item}>
-            <Popover
-              placement="left"
-              title={"others"}
-              content={"除 recognition 与 action 之外的字段"}
-            >
-              <div className={classNames([style.key, style["head-key"]])}>
-                others
-              </div>
-            </Popover>
-            <div className={classNames([style.value, style.line])}>
-              ————————————
-            </div>
-            {currentNode ? (
-              <AddFieldElem
-                paramType={otherFieldParamsWithoutFocus}
-                paramData={currentNode.data.others}
-                onClick={(param) =>
-                  setNodeData(
-                    currentNode.id,
-                    "others",
-                    param.key,
-                    param.default
-                  )
-                }
-              />
-            ) : null}
-          </div>
-          {/* 其他字段 */}
-          {currentNode ? (
-            <ParamFieldListElem
-              paramData={currentNode.data.others}
-              paramType={otherFieldParamsWithoutFocus}
-              onChange={(key, value) =>
-                setNodeData(currentNode.id, "others", key, value)
-              }
-              onDelete={(key) =>
-                setNodeData(currentNode.id, "others", key, "__mpe_delete")
-              }
-              onListChange={(key, valueList) =>
-                setNodeData(currentNode.id, "others", key, valueList)
-              }
-              onListAdd={(key, valueList) => {
-                valueList.push(valueList[valueList.length - 1]);
-                setNodeData(currentNode.id, "others", key, valueList);
-              }}
-              onListDelete={(key, valueList, index) => {
-                valueList.splice(index, 1);
-                setNodeData(currentNode.id, "others", key, valueList);
-              }}
             />
           ) : null}
           {/* 自定义字段 */}
