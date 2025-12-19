@@ -173,16 +173,6 @@ function FieldPanel() {
   const [progressDetail, setProgressDetail] = useState("");
   const [validationWarning, setValidationWarning] = useState<string | null>(null);
 
-  // 监控 currentNode 变化
-  useMemo(() => {
-    console.log("[FieldPanel] currentNode changed:", {
-      exists: !!currentNode,
-      id: currentNode?.id,
-      type: currentNode?.type,
-      label: currentNode?.data?.label,
-    });
-  }, [currentNode]);
-
   // 验证并修复节点数据
   const handleNodeRepair = useCallback(() => {
     if (!currentNode) return;
@@ -192,7 +182,6 @@ function FieldPanel() {
       // 更新节点数据
       updateNodes([{ type: "replace", id: currentNode.id, item: validation.repaired }]);
       setValidationWarning(null);
-      console.log("节点已修复:", validation.repaired);
     }
   }, [currentNode, updateNodes]);
 

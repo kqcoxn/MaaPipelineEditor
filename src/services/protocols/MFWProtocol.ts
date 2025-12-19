@@ -72,9 +72,7 @@ export class MFWProtocol extends BaseProtocol {
     );
   }
 
-  protected handleMessage(path: string, data: any): void {
-    console.log("[MFWProtocol] Received message:", path, data);
-  }
+  protected handleMessage(path: string, data: any): void {}
 
   /**
    * 处理 ADB 设备列表
@@ -91,10 +89,6 @@ export class MFWProtocol extends BaseProtocol {
 
       const mfwStore = useMFWStore.getState();
       mfwStore.updateAdbDevices(devices as AdbDevice[]);
-
-      console.log(
-        `[MFWProtocol] ADB devices updated: ${devices.length} devices`
-      );
     } catch (error) {
       console.error("[MFWProtocol] Failed to handle ADB devices:", error);
       message.error("设备列表更新失败");
@@ -116,10 +110,6 @@ export class MFWProtocol extends BaseProtocol {
 
       const mfwStore = useMFWStore.getState();
       mfwStore.updateWin32Windows(windows as Win32Window[]);
-
-      console.log(
-        `[MFWProtocol] Win32 windows updated: ${windows.length} windows`
-      );
     } catch (error) {
       console.error("[MFWProtocol] Failed to handle Win32 windows:", error);
       message.error("窗口列表更新失败");
@@ -145,7 +135,6 @@ export class MFWProtocol extends BaseProtocol {
 
         mfwStore.setControllerInfo(type, controller_id, deviceInfo || null);
         message.success(`控制器连接成功`);
-        console.log("[MFWProtocol] Controller created:", controller_id);
 
         // 清除记录的设备信息
         this.lastConnectionDevice = null;
@@ -185,7 +174,6 @@ export class MFWProtocol extends BaseProtocol {
         // 控制器断开
         mfwStore.clearConnection();
         message.info("控制器已断开");
-        console.log("[MFWProtocol] Controller disconnected:", controller_id);
       }
     } catch (error) {
       console.error("[MFWProtocol] Failed to handle controller status:", error);
@@ -197,8 +185,6 @@ export class MFWProtocol extends BaseProtocol {
    * 路由: /lte/mfw/screencap_result
    */
   private handleScreencapResult(data: any): void {
-    console.log("[MFWProtocol] Screencap result received", data);
-
     // 触发所有注册的回调
     this.screencapCallbacks.forEach((callback) => {
       try {
@@ -213,17 +199,13 @@ export class MFWProtocol extends BaseProtocol {
    * 处理操作结果（存根）
    * 路由: /lte/mfw/controller_operation_result
    */
-  private handleOperationResult(data: any): void {
-    console.log("[MFWProtocol] Operation result received:", data);
-  }
+  private handleOperationResult(data: any): void {}
 
   /**
    * 处理 OCR 识别结果
    * 路由: /lte/utility/ocr_result
    */
   private handleOCRResult(data: any): void {
-    console.log("[MFWProtocol] OCR result received:", data);
-
     // 触发所有注册的回调
     this.ocrCallbacks.forEach((callback) => {
       try {
@@ -239,8 +221,6 @@ export class MFWProtocol extends BaseProtocol {
    * 路由: /lte/utility/image_path_resolved
    */
   private handleImagePathResolved(data: any): void {
-    console.log("[MFWProtocol] Image path resolved:", data);
-
     // 触发所有注册的回调
     this.imagePathCallbacks.forEach((callback) => {
       try {

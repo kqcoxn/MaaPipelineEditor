@@ -26,16 +26,6 @@ export const createSelectionSlice: StateCreator<
 
   // 更新选择状态
   updateSelection(nodes: NodeType[], edges: EdgeType[]) {
-    console.log("[SelectionSlice] updateSelection called:", {
-      nodesCount: nodes.length,
-      edgesCount: edges.length,
-      nodes: nodes.map((n) => ({
-        id: n.id,
-        type: n.type,
-        dragging: n.dragging,
-      })),
-    });
-
     set((state) => {
       const newState: Partial<FlowSelectionState> = {
         selectedNodes: nodes,
@@ -46,24 +36,11 @@ export const createSelectionSlice: StateCreator<
       if (nodes.length !== 1) {
         // 多选或无选择时清空目标节点
         newState.targetNode = null;
-        console.log(
-          "[SelectionSlice] targetNode cleared (multiple or no selection)"
-        );
       } else {
         const selectedNode = nodes[0];
         // 只有在非拖拽状态下才更新目标节点
         if (!selectedNode.dragging || state.targetNode === null) {
           newState.targetNode = selectedNode;
-          console.log("[SelectionSlice] targetNode updated:", {
-            id: selectedNode.id,
-            type: selectedNode.type,
-            label: selectedNode.data?.label,
-            dragging: selectedNode.dragging,
-          });
-        } else {
-          console.log(
-            "[SelectionSlice] targetNode not updated (node is dragging)"
-          );
         }
       }
 
@@ -80,7 +57,6 @@ export const createSelectionSlice: StateCreator<
           debouncedSelectedEdges: currentState.selectedEdges,
           debouncedTargetNode: currentState.targetNode,
         });
-        console.log("[SelectionSlice] debounced state updated");
       }, 400);
 
       return newState;

@@ -106,9 +106,6 @@ export async function generateShareLink(): Promise<boolean> {
     await navigator.clipboard.writeText(shareUrl);
     message.success("分享链接已复制到剪贴板");
 
-    console.log(
-      `[shareHelper] 生成分享链接成功，长度: ${shareUrl.length} 字符`
-    );
     return true;
   } catch (err) {
     console.error("[shareHelper] 生成分享链接失败:", err);
@@ -214,8 +211,6 @@ export async function loadFromShareUrl(): Promise<boolean> {
   if (!shareParam) {
     return false;
   }
-
-  console.log("[shareHelper] 检测到分享参数，正在解析...");
 
   try {
     // 解码

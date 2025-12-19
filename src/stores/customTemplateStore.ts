@@ -87,7 +87,6 @@ export const useCustomTemplateStore = create<CustomTemplateState>(
         templates.sort((a, b) => (b.createTime || 0) - (a.createTime || 0));
 
         set({ customTemplates: templates, isLoaded: true });
-        console.log(`已加载 ${templates.length} 个自定义模板`);
       } catch (error) {
         console.error("加载自定义模板失败:", error);
         message.warning("加载自定义模板失败，已清空损坏数据");

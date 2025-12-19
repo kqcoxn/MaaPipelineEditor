@@ -36,7 +36,6 @@ export class LocalWebSocketServer {
       SystemRoutes.HANDSHAKE_RESPONSE,
       (data: HandshakeResponse) => {
         if (data.success) {
-          console.log("[WebSocket] 协议版本验证成功:", data.server_version);
           this.handshakeCompleted = true;
           this.clearConnectTimeout();
           this.isConnecting = false;
@@ -84,7 +83,6 @@ export class LocalWebSocketServer {
    * 注册 API 路由
    * @example
    * server.registerRoute('/api/hello', (data, ws) => {
-   *   console.log('Received:', data);
    *   server.send('/api/response', { message: 'Hello back!' });
    * });
    */
@@ -135,7 +133,6 @@ export class LocalWebSocketServer {
       }, this.CONNECTION_TIMEOUT);
 
       this.ws.onopen = () => {
-        console.log("[WebSocket] Connected to", this.url);
         // 发送版本握手请求
         this.sendHandshake();
       };
@@ -165,7 +162,6 @@ export class LocalWebSocketServer {
       };
 
       this.ws.onclose = () => {
-        console.log("[WebSocket] Disconnected");
         this.clearConnectTimeout();
         this.isConnecting = false;
         this.onConnectingChange?.(false);
@@ -216,7 +212,6 @@ export class LocalWebSocketServer {
       },
     };
 
-    console.log("[WebSocket] Sending handshake, version:", PROTOCOL_VERSION);
     this.ws.send(JSON.stringify(handshakeData));
   }
 
@@ -280,24 +275,15 @@ export const errorProtocol = new ErrorProtocol();
  * 应在应用启动时调用一次
  */
 export function initializeWebSocket() {
-  console.log("[WebSocket] Initializing WebSocket service...");
-
   // 注册 ErrorProtocol
   errorProtocol.register(localServer);
-  console.log("[WebSocket] ErrorProtocol registered");
 
   // 注册 FileProtocol
   fileProtocol.register(localServer);
-  console.log("[WebSocket] FileProtocol registered");
 
   // 注册 MFWProtocol
   mfwProtocol.register(localServer);
-  console.log("[WebSocket] MFWProtocol registered");
 
   // 监听连接成功事件，确保协议注册
-  localServer.onStatus((connected) => {
-    if (connected) {
-      console.log("[WebSocket] Connection established, protocols ready");
-    }
-  });
+  localServer.onStatus((connected) => {});
 }

@@ -48,7 +48,6 @@ export class FileProtocol extends BaseProtocol {
 
   protected handleMessage(path: string, data: any): void {
     // 统一的消息处理入口
-    console.log("[FileProtocol] Received message:", path, data);
   }
 
   /**
@@ -68,10 +67,6 @@ export class FileProtocol extends BaseProtocol {
       const localFileStore = useLocalFileStore.getState();
       const wasRefreshing = localFileStore.isRefreshing;
       localFileStore.setFileList(root, files as LocalFileInfo[]);
-
-      console.log(
-        `[FileProtocol] File list updated: ${files.length} files from ${root}`
-      );
 
       if (wasRefreshing) {
         message.success(`文件列表刷新完成，共 ${files.length} 个文件`);
@@ -133,19 +128,13 @@ export class FileProtocol extends BaseProtocol {
 
       switch (type) {
         case "created":
-          console.log("[FileProtocol] File created:", file_path);
           break;
 
         case "modified":
-          console.log("[FileProtocol] File modified:", file_path);
           localFileStore.updateFile(file_path);
 
           // 忽略刚保存的文件
           if (this.recentlySavedFiles.has(file_path)) {
-            console.log(
-              "[FileProtocol] Ignoring self-triggered file change:",
-              file_path
-            );
             this.recentlySavedFiles.delete(file_path);
             return;
           }
@@ -159,7 +148,6 @@ export class FileProtocol extends BaseProtocol {
           break;
 
         case "deleted":
-          console.log("[FileProtocol] File deleted:", file_path);
           localFileStore.removeFile(file_path);
 
           // 标记已打开的文件为已删除
@@ -189,7 +177,6 @@ export class FileProtocol extends BaseProtocol {
       if (status === "ok") {
         const fileName = file_path.split(/[\/\\]/).pop() || file_path;
         message.success(`文件已保存: ${fileName}`);
-        console.log("[FileProtocol] File saved successfully:", file_path);
 
         // 忽略刚保存文件的变更通知
         this.recentlySavedFiles.add(file_path);
@@ -248,9 +235,7 @@ export class FileProtocol extends BaseProtocol {
     this.currentModal?.destroy();
     this.currentModal = null;
 
-    if (this.requestOpenFile(filePath)) {
-      console.log("[FileProtocol] Reloading file:", filePath);
-    } else {
+    if (!this.requestOpenFile(filePath)) {
       message.error("重新加载请求发送失败");
     }
   }

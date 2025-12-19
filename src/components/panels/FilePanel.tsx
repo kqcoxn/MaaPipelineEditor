@@ -120,7 +120,6 @@ function FilePanel() {
             icon={<FileAddOutlined />}
             size="small"
             onClick={() => {
-              console.log("[FilePanel] 点击本地文件按钮");
               setStatus("showLocalFilePanel", true);
             }}
           />

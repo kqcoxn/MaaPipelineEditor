@@ -91,7 +91,6 @@ export const useLocalFileStore = create<LocalFileState>()((set, get) => ({
     set({
       lastUpdateTime: Date.now(),
     });
-    console.log("[localFileStore] File modified:", filePath);
   },
 
   // 根据路径查找文件

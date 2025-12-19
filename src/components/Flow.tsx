@@ -217,11 +217,6 @@ function MainFlow() {
   const onConnect = useCallback((co: Connection) => addEdge(co), [addEdge]);
   const onSelectionChange = useCallback(
     (params: OnSelectionChangeParams) => {
-      console.log("[Flow] onSelectionChange triggered:", {
-        nodesCount: params.nodes.length,
-        edgesCount: params.edges.length,
-        nodes: params.nodes.map((n: any) => ({ id: n.id, type: n.type })),
-      });
       updateSelection(params.nodes as NodeType[], params.edges as EdgeType[]);
     },
     [updateSelection]

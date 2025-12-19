@@ -193,7 +193,6 @@ function App() {
     // WebSocket自动连接
     const wsAutoConnect = useConfigStore.getState().configs.wsAutoConnect;
     if (wsAutoConnect) {
-      console.log("[App] Auto-connecting to local server...");
       localServer.connect();
     }
 
