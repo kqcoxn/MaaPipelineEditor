@@ -1,6 +1,13 @@
 import style from "../../styles/FieldPanel.module.less";
 
-import { useMemo, memo, useCallback, useState, Component, type ReactNode } from "react";
+import {
+  useMemo,
+  memo,
+  useCallback,
+  useState,
+  Component,
+  type ReactNode,
+} from "react";
 import { Tooltip, Spin, Alert, Button } from "antd";
 import classNames from "classnames";
 import IconFont from "../iconfonts";
@@ -21,7 +28,11 @@ import {
 import { FieldPanelToolbar } from "./field-tools";
 
 // 节点数据验证与修复
-function validateAndRepairNode(node: NodeType): { valid: boolean; error?: string; repaired?: NodeType } {
+function validateAndRepairNode(node: NodeType): {
+  valid: boolean;
+  error?: string;
+  repaired?: NodeType;
+} {
   if (!node) {
     return { valid: false, error: "节点数据为空" };
   }
@@ -41,7 +52,10 @@ function validateAndRepairNode(node: NodeType): { valid: boolean; error?: string
     const repairedData = { ...pipelineNode.data };
 
     // 检查并修复 recognition
-    if (!repairedData.recognition || typeof repairedData.recognition !== "object") {
+    if (
+      !repairedData.recognition ||
+      typeof repairedData.recognition !== "object"
+    ) {
       needsRepair = true;
       repairedData.recognition = { type: "DirectHit", param: {} };
     } else {
@@ -49,7 +63,10 @@ function validateAndRepairNode(node: NodeType): { valid: boolean; error?: string
         needsRepair = true;
         repairedData.recognition.type = "DirectHit";
       }
-      if (!repairedData.recognition.param || typeof repairedData.recognition.param !== "object") {
+      if (
+        !repairedData.recognition.param ||
+        typeof repairedData.recognition.param !== "object"
+      ) {
         needsRepair = true;
         repairedData.recognition.param = {};
       }
@@ -64,7 +81,10 @@ function validateAndRepairNode(node: NodeType): { valid: boolean; error?: string
         needsRepair = true;
         repairedData.action.type = "DoNothing";
       }
-      if (!repairedData.action.param || typeof repairedData.action.param !== "object") {
+      if (
+        !repairedData.action.param ||
+        typeof repairedData.action.param !== "object"
+      ) {
         needsRepair = true;
         repairedData.action.param = {};
       }
@@ -76,12 +96,6 @@ function validateAndRepairNode(node: NodeType): { valid: boolean; error?: string
       repairedData.others = {};
     }
 
-    // 检查并修复 label
-    if (!repairedData.label) {
-      needsRepair = true;
-      repairedData.label = "未命名节点";
-    }
-
     if (needsRepair) {
       return {
         valid: true,
@@ -91,24 +105,17 @@ function validateAndRepairNode(node: NodeType): { valid: boolean; error?: string
     }
   }
 
-  // 验证 External 和 Anchor 节点
-  if (node.type === NodeTypeEnum.External || node.type === NodeTypeEnum.Anchor) {
-    if (!node.data.label) {
-      const repairedData = { ...node.data, label: "未命名节点" };
-      return {
-        valid: true,
-        error: "节点名称缺失，已自动修复",
-        repaired: { ...node, data: repairedData } as NodeType,
-      };
-    }
-  }
-
   return { valid: true };
 }
 
 // 错误边界组件
 class EditorErrorBoundary extends Component<
-  { children: ReactNode; nodeName: string; nodeType: string; onRepair?: () => void },
+  {
+    children: ReactNode;
+    nodeName: string;
+    nodeType: string;
+    onRepair?: () => void;
+  },
   { hasError: boolean; error?: Error }
 > {
   constructor(props: any) {
@@ -171,7 +178,9 @@ function FieldPanel() {
   const [isLoading, setIsLoading] = useState(false);
   const [progressStage, setProgressStage] = useState("");
   const [progressDetail, setProgressDetail] = useState("");
-  const [validationWarning, setValidationWarning] = useState<string | null>(null);
+  const [validationWarning, setValidationWarning] = useState<string | null>(
+    null
+  );
 
   // 验证并修复节点数据
   const handleNodeRepair = useCallback(() => {
@@ -180,7 +189,9 @@ function FieldPanel() {
     const validation = validateAndRepairNode(currentNode);
     if (validation.repaired) {
       // 更新节点数据
-      updateNodes([{ type: "replace", id: currentNode.id, item: validation.repaired }]);
+      updateNodes([
+        { type: "replace", id: currentNode.id, item: validation.repaired },
+      ]);
       setValidationWarning(null);
     }
   }, [currentNode, updateNodes]);
@@ -189,14 +200,14 @@ function FieldPanel() {
   const nodeValidation = useMemo(() => {
     if (!currentNode) return { valid: true };
     const validation = validateAndRepairNode(currentNode);
-    
+
     // 节点有问题时警告
     if (validation.error && validation.repaired) {
       setValidationWarning(validation.error);
     } else {
       setValidationWarning(null);
     }
-    
+
     return validation;
   }, [currentNode]);
 
@@ -326,7 +337,14 @@ function FieldPanel() {
     }
 
     return content;
-  }, [currentNode, isLoading, progressStage, progressDetail, nodeValidation, handleNodeRepair]);
+  }, [
+    currentNode,
+    isLoading,
+    progressStage,
+    progressDetail,
+    nodeValidation,
+    handleNodeRepair,
+  ]);
 
   // 样式
   const panelClass = useMemo(

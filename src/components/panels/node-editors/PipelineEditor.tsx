@@ -398,7 +398,7 @@ export const PipelineEditor = lazy(() =>
             {isFocusObjectMode ? (
               <>
                 <div className={classNames([style.value, style.line])}>
-                  —————————————
+                  ————————————
                 </div>
                 {currentNode && otherFieldSchema.focus.params ? (
                   <AddFieldElem
