@@ -103,6 +103,14 @@ export const ScreenshotModalBase = memo(
       handleZoomReset,
     } = viewportProps;
 
+    // 存储回调
+    const onScreenshotChangeRef = useRef(onScreenshotChange);
+    const onResetRef = useRef(onReset);
+    useEffect(() => {
+      onScreenshotChangeRef.current = onScreenshotChange;
+      onResetRef.current = onReset;
+    }, [onScreenshotChange, onReset]);
+
     // 请求截图
     const requestScreenshot = useCallback(() => {
       if (connectionStatus !== "connected" || !controllerId) {
@@ -119,11 +127,11 @@ export const ScreenshotModalBase = memo(
 
       // 清除旧截图并请求新截图
       setScreenshot(null);
-      onScreenshotChange?.(null);
+      onScreenshotChangeRef.current?.(null);
       resetViewport();
-      onReset?.();
+      onResetRef.current?.();
       requestScreenshot();
-    }, [open]);
+    }, [open, requestScreenshot, resetViewport]);
 
     // 监听截图结果
     useEffect(() => {
@@ -137,7 +145,7 @@ export const ScreenshotModalBase = memo(
         setIsLoading(false);
         if (data.success && data.image) {
           setScreenshot(data.image);
-          onScreenshotChange?.(data.image);
+          onScreenshotChangeRef.current?.(data.image);
         }
       };
 
@@ -146,7 +154,7 @@ export const ScreenshotModalBase = memo(
       return () => {
         unregister();
       };
-    }, [open, onScreenshotChange]);
+    }, [open]);
 
     // 关闭时重置状态
     const handleClose = useCallback(() => {
