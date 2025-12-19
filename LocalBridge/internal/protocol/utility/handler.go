@@ -8,6 +8,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	maa "github.com/MaaXYZ/maa-framework-go/v3"
@@ -175,13 +176,48 @@ func (h *UtilityHandler) performOCR(controllerID, resourceID string, roi [4]int3
 		}()
 
 		// 从配置加载 OCR 资源
-		logger.Info("Utility", "从配置加载 OCR 资源: %s", cfg.MaaFW.ResourceDir)
-		resJob := res.PostBundle(cfg.MaaFW.ResourceDir)
+		resourcePath := cfg.MaaFW.ResourceDir
+		logger.Info("Utility", "从配置加载 OCR 资源: %s", resourcePath)
+
+		// Windows 下处理中文路径
+		actualPath := resourcePath
+		useWorkDirSwitch := false
+		var originalDir string
+		if runtime.GOOS == "windows" && mfw.ContainsNonASCII(resourcePath) {
+			logger.Debug("Utility", "OCR 资源路径包含非 ASCII 字符，尝试转换为短路径...")
+			shortPath, err := mfw.GetShortPathName(resourcePath)
+			if err == nil && shortPath != resourcePath && !mfw.ContainsNonASCII(shortPath) {
+				logger.Debug("Utility", "OCR 资源路径已转换为短路径: %s", shortPath)
+				actualPath = shortPath
+			} else {
+				// 工作目录切换方案
+				logger.Debug("Utility", "短路径无效，使用工作目录切换方案...")
+				originalDir, err = os.Getwd()
+				if err == nil {
+					if err := os.Chdir(resourcePath); err == nil {
+						logger.Debug("Utility", "已切换工作目录到: %s", resourcePath)
+						actualPath = "."
+						useWorkDirSwitch = true
+					}
+				}
+			}
+		}
+
+		resJob := res.PostBundle(actualPath)
 		if resJob == nil {
 			logger.Warn("Utility", "加载 OCR 资源失败")
 		} else {
 			status := resJob.Wait()
 			logger.Info("Utility", "OCR 资源加载状态: %v", status)
+		}
+
+		// 恢复工作目录
+		if useWorkDirSwitch && originalDir != "" {
+			if err := os.Chdir(originalDir); err != nil {
+				logger.Warn("Utility", "恢复工作目录失败: %v", err)
+			} else {
+				logger.Debug("Utility", "已恢复工作目录")
+			}
 		}
 	}
 

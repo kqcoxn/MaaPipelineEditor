@@ -47,12 +47,15 @@ export const pinnedNotice: PinnedNotice = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "0.11.3",
-    date: "2025-12",
+    date: "2025-12-20",
     type: "fix",
     updates: {
       features: ["支持全量 focus 子字段快捷配置"],
       perfs: ["JSON的导入与导出与原顺序相同了！", "优化 LB 导出交互体验"],
-      fixes: ["修复了字段工具无法重新截图的问题"],
+      fixes: [
+        "修复了字段工具无法重新截图的问题",
+        "修复了本地服务无法索引中文路径的问题",
+      ],
     },
   },
   {
