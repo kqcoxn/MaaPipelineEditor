@@ -4,7 +4,7 @@ import type { FieldType } from "../types";
 /**
  * 其他字段 Schema 定义
  */
-const otherFieldSchema: Record<string, FieldType> = {
+export const otherFieldSchema: Record<string, FieldType> = {
   rateLimit: {
     key: "rate_limit",
     type: FieldTypeEnum.Int,
@@ -74,6 +74,50 @@ const otherFieldSchema: Record<string, FieldType> = {
     type: FieldTypeEnum.Any,
     default: "",
     desc: "关注节点，会额外产生部分回调消息。可选，默认 null，不产生回调消息。 详见 节点通知。",
+    params: [
+      {
+        key: "Node.Recognition.Starting",
+        type: FieldTypeEnum.String,
+        default: "",
+        desc: "识别开始时触发。可用占位符: task_id, reco_id, name",
+        displayName: "Reco.Start",
+      },
+      {
+        key: "Node.Recognition.Succeeded",
+        type: FieldTypeEnum.String,
+        default: "",
+        desc: "识别成功时触发。可用占位符: task_id, reco_id, name",
+        displayName: "Reco.OK",
+      },
+      {
+        key: "Node.Recognition.Failed",
+        type: FieldTypeEnum.String,
+        default: "",
+        desc: "识别失败时触发。可用占位符: task_id, reco_id, name",
+        displayName: "Reco.Fail",
+      },
+      {
+        key: "Node.Action.Starting",
+        type: FieldTypeEnum.String,
+        default: "",
+        desc: "动作开始时触发。可用占位符: task_id, action_id, name",
+        displayName: "Action.Start",
+      },
+      {
+        key: "Node.Action.Succeeded",
+        type: FieldTypeEnum.String,
+        default: "",
+        desc: "动作成功时触发。可用占位符: task_id, action_id, name",
+        displayName: "Action.OK",
+      },
+      {
+        key: "Node.Action.Failed",
+        type: FieldTypeEnum.String,
+        default: "",
+        desc: "动作失败时触发。可用占位符: task_id, action_id, name",
+        displayName: "Action.Fail",
+      },
+    ],
   },
   repeat: {
     key: "repeat",
@@ -107,6 +151,26 @@ const otherFieldSchema: Record<string, FieldType> = {
 export const otherFieldSchemaKeyList = Array.from(
   new Set(Object.values(otherFieldSchema).map((field) => field.key))
 );
+
+/**
+ * 其他字段参数列表
+ */
+export const otherFieldParamsWithoutFocus: FieldType[] = [
+  otherFieldSchema.rateLimit,
+  otherFieldSchema.timeout,
+  otherFieldSchema.preDelay,
+  otherFieldSchema.postDelay,
+  otherFieldSchema.anchor,
+  otherFieldSchema.maxHit,
+  otherFieldSchema.enabled,
+  otherFieldSchema.inverse,
+  otherFieldSchema.preWaitFreezes,
+  otherFieldSchema.postWaitFreezes,
+  otherFieldSchema.repeat,
+  otherFieldSchema.repeatDelay,
+  otherFieldSchema.repeatWaitFreezes,
+  otherFieldSchema.attach,
+];
 
 /**
  * 其他字段参数列表

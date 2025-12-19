@@ -1,1 +1,6 @@
-export { otherFieldParams, otherFieldSchemaKeyList } from "./schema";
+export {
+  otherFieldParams,
+  otherFieldParamsWithoutFocus,
+  otherFieldSchemaKeyList,
+  otherFieldSchema,
+} from "./schema";

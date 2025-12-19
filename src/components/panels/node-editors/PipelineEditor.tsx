@@ -1,12 +1,13 @@
 import style from "../../../styles/FieldPanel.module.less";
 import { memo, useMemo, useCallback, lazy, Suspense } from "react";
-import { Popover, Input, Select, Spin } from "antd";
+import { Popover, Input, Select, Spin, Modal } from "antd";
 import classNames from "classnames";
 import { useFlowStore, type PipelineNodeType } from "../../../stores/flow";
 import {
   recoFields,
   actionFields,
-  otherFieldParams,
+  otherFieldParamsWithoutFocus,
+  otherFieldSchema,
 } from "../../../core/fields";
 import { JsonHelper } from "../../../utils/jsonHelper";
 import { AddFieldElem, ParamFieldListElem } from "../field-items";
@@ -92,6 +93,91 @@ export const PipelineEditor = lazy(() =>
       const handleExtraChange = useCallback(
         (value: string) => {
           setNodeData(currentNode.id, "extras", "extras", value);
+        },
+        [currentNode]
+      );
+
+      // focus 字段状态判断
+      const currentFocus = useMemo(
+        () => currentNode.data.others.focus,
+        [currentNode.data.others.focus]
+      );
+      const isFocusObjectMode = useMemo(() => {
+        return (
+          typeof currentFocus === "object" &&
+          currentFocus !== null &&
+          !Array.isArray(currentFocus) &&
+          Object.keys(currentFocus).length > 0
+        );
+      }, [currentFocus]);
+
+      // focus 字段更新处理
+      const handleFocusStringChange = useCallback(
+        (e: React.ChangeEvent<HTMLInputElement>) => {
+          setNodeData(currentNode.id, "others", "focus", e.target.value);
+        },
+        [currentNode]
+      );
+
+      const handleFocusFieldAdd = useCallback(
+        (param: any) => {
+          const currentFocusValue = currentNode.data.others.focus;
+          // 字符串有内容时提示
+          if (
+            typeof currentFocusValue === "string" &&
+            currentFocusValue.trim() !== ""
+          ) {
+            Modal.confirm({
+              title: "切换到结构化模式",
+              content: "切换到结构化模式会丢失当前的字符串值,是否继续?",
+              onOk: () => {
+                const newFocus = { [param.key]: param.default };
+                setNodeData(currentNode.id, "others", "focus", newFocus);
+              },
+            });
+          } else {
+            // 直接添加
+            const newFocus =
+              typeof currentFocusValue === "object" &&
+              currentFocusValue !== null
+                ? { ...currentFocusValue, [param.key]: param.default }
+                : { [param.key]: param.default };
+            setNodeData(currentNode.id, "others", "focus", newFocus);
+          }
+        },
+        [currentNode]
+      );
+
+      const handleFocusFieldChange = useCallback(
+        (key: string, value: any) => {
+          const currentFocusValue = currentNode.data.others.focus;
+          if (
+            typeof currentFocusValue === "object" &&
+            currentFocusValue !== null
+          ) {
+            const newFocus = { ...currentFocusValue, [key]: value };
+            setNodeData(currentNode.id, "others", "focus", newFocus);
+          }
+        },
+        [currentNode]
+      );
+
+      const handleFocusFieldDelete = useCallback(
+        (key: string) => {
+          const currentFocusValue = currentNode.data.others.focus;
+          if (
+            typeof currentFocusValue === "object" &&
+            currentFocusValue !== null
+          ) {
+            const newFocus = { ...currentFocusValue };
+            delete newFocus[key];
+            // 回退到字符串模式
+            if (Object.keys(newFocus).length === 0) {
+              setNodeData(currentNode.id, "others", "focus", "");
+            } else {
+              setNodeData(currentNode.id, "others", "focus", newFocus);
+            }
+          }
         },
         [currentNode]
       );
@@ -243,6 +329,71 @@ export const PipelineEditor = lazy(() =>
               }}
             />
           ) : null}
+          {/* focus 字段 */}
+          <div className={style.item}>
+            <Popover
+              placement="left"
+              title={"focus"}
+              content={
+                "关注节点，支持字符串或消息类型映射。可配置节点通知消息。"
+              }
+            >
+              <div className={classNames([style.key, style["head-key"]])}>
+                focus
+              </div>
+            </Popover>
+            {isFocusObjectMode ? (
+              <>
+                <div className={classNames([style.value, style.line])}>
+                  —————————————
+                </div>
+                {currentNode && otherFieldSchema.focus.params ? (
+                  <AddFieldElem
+                    paramType={otherFieldSchema.focus.params}
+                    paramData={
+                      typeof currentFocus === "object" && currentFocus !== null
+                        ? currentFocus
+                        : {}
+                    }
+                    onClick={handleFocusFieldAdd}
+                  />
+                ) : null}
+              </>
+            ) : (
+              <>
+                <div className={style.value}>
+                  <Input
+                    placeholder="字符串值，或点击右侧按钮添加消息类型"
+                    value={typeof currentFocus === "string" ? currentFocus : ""}
+                    onChange={handleFocusStringChange}
+                  />
+                </div>
+                {currentNode && otherFieldSchema.focus.params ? (
+                  <AddFieldElem
+                    paramType={otherFieldSchema.focus.params}
+                    paramData={{}}
+                    onClick={handleFocusFieldAdd}
+                  />
+                ) : null}
+              </>
+            )}
+          </div>
+          {/* focus 子字段 */}
+          {isFocusObjectMode && currentNode ? (
+            <ParamFieldListElem
+              paramData={
+                typeof currentFocus === "object" && currentFocus !== null
+                  ? currentFocus
+                  : {}
+              }
+              paramType={otherFieldSchema.focus.params || []}
+              onChange={handleFocusFieldChange}
+              onDelete={handleFocusFieldDelete}
+              onListChange={() => {}}
+              onListAdd={() => {}}
+              onListDelete={() => {}}
+            />
+          ) : null}
           {/* 其他 */}
           <div className={style.item}>
             <Popover
@@ -259,7 +410,7 @@ export const PipelineEditor = lazy(() =>
             </div>
             {currentNode ? (
               <AddFieldElem
-                paramType={otherFieldParams}
+                paramType={otherFieldParamsWithoutFocus}
                 paramData={currentNode.data.others}
                 onClick={(param) =>
                   setNodeData(
@@ -276,7 +427,7 @@ export const PipelineEditor = lazy(() =>
           {currentNode ? (
             <ParamFieldListElem
               paramData={currentNode.data.others}
-              paramType={otherFieldParams}
+              paramType={otherFieldParamsWithoutFocus}
               onChange={(key, value) =>
                 setNodeData(currentNode.id, "others", key, value)
               }

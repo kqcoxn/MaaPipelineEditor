@@ -19,7 +19,12 @@ export {
 } from "./action/index.js";
 
 // 其他字段
-export { otherFieldParams, otherFieldSchemaKeyList } from "./other/index.js";
+export {
+  otherFieldParams,
+  otherFieldParamsWithoutFocus,
+  otherFieldSchemaKeyList,
+  otherFieldSchema,
+} from "./other/index.js";
 
 // 工具函数
 export { generateParamKeys, generateUpperValues } from "./utils.js";

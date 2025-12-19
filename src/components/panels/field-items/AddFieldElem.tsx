@@ -25,6 +25,8 @@ export const AddFieldElem = memo(
     const currentParams = Object.keys(paramData);
     const paramList = paramType.flatMap((param) => {
       if (currentParams.includes(param.key)) return [];
+      // 使用 displayName 或 key 作为显示名称
+      const displayText = param.displayName || param.key;
       return (
         <Popover
           key={param.key}
@@ -33,7 +35,7 @@ export const AddFieldElem = memo(
           content={LeftTipContentElem(param.desc)}
         >
           <div className={style.param} onClick={() => onClick(param)}>
-            {param.key}
+            {displayText}
           </div>
         </Popover>
       );

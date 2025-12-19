@@ -50,8 +50,8 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2025-12",
     type: "major",
     updates: {
-      features: [""],
-      perfs: ["优化 LB 导出交互体验", "JSON的导入与导出与原顺序相同了！"],
+      features: ["支持全量 focus 子字段快捷配置"],
+      perfs: ["JSON的导入与导出与原顺序相同了！", "优化 LB 导出交互体验"],
     },
   },
   {

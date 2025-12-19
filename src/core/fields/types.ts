@@ -11,6 +11,8 @@ export type FieldType = {
   default: any;
   step?: number;
   desc: string;
+  params?: FieldType[];  // 子字段参数列表,用于支持结构化字段(如 focus)
+  displayName?: string;  // UI 显示名称,用于显示缩写
 };
 
 /**

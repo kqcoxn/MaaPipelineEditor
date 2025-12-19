@@ -388,7 +388,8 @@ export const ParamFieldListElem = memo(
             );
         }
       }
-      // 组合
+      // 使用 displayName 或 key 作为显示名称
+      const displayText = type.displayName || key;
       return (
         <div key={key} className={style.item}>
           <Popover
@@ -397,7 +398,7 @@ export const ParamFieldListElem = memo(
             title={key}
             content={LeftTipContentElem(type.desc)}
           >
-            <div className={style.key}>{key}</div>
+            <div className={style.key}>{displayText}</div>
           </Popover>
           {InputElem}
           {!isListType && renderQuickTool(key)}
