@@ -46,6 +46,19 @@ export function parsePipelineNodeForExport(
   // 其他参数
   const others = matchParamType(fNodeData.others, otherFieldParams);
 
+  // 过滤空的 focus 字段
+  if (
+    "focus" in others &&
+    (others.focus === "" ||
+      others.focus === null ||
+      others.focus === undefined ||
+      (typeof others.focus === "object" &&
+        others.focus !== null &&
+        Object.keys(others.focus).length === 0))
+  ) {
+    delete others.focus;
+  }
+
   // 额外字段
   const extras = JsonHelper.isObj(fNodeData.extras)
     ? fNodeData.extras

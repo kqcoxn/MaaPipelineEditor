@@ -26,6 +26,23 @@ export const ClassicContent = memo(
       return null;
     }, [data.extras]);
 
+    // 过滤空的 focus 字段
+    const filteredOthers = useMemo(() => {
+      const others = { ...data.others };
+      if (
+        "focus" in others &&
+        (others.focus === "" ||
+          others.focus === null ||
+          others.focus === undefined ||
+          (typeof others.focus === "object" &&
+            others.focus !== null &&
+            Object.keys(others.focus).length === 0))
+      ) {
+        delete others.focus;
+      }
+      return others;
+    }, [data.others]);
+
     return (
       <>
         <div className={style.title}>{data.label}</div>
@@ -47,8 +64,8 @@ export const ClassicContent = memo(
             ))}
           </ul>
           <ul className={style.module}>
-            {Object.keys(data.others).map((key) => (
-              <KVElem key={key} paramKey={key} value={data.others[key]} />
+            {Object.keys(filteredOthers).map((key) => (
+              <KVElem key={key} paramKey={key} value={filteredOthers[key]} />
             ))}
             {ExtrasElem}
           </ul>

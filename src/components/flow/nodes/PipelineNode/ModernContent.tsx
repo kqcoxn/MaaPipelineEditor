@@ -38,6 +38,23 @@ export const ModernContent = memo(
       return null;
     }, [data.extras]);
 
+    // 过滤空的 focus 字段
+    const filteredOthers = useMemo(() => {
+      const others = { ...data.others };
+      if (
+        "focus" in others &&
+        (others.focus === "" ||
+          others.focus === null ||
+          others.focus === undefined ||
+          (typeof others.focus === "object" &&
+            others.focus !== null &&
+            Object.keys(others.focus).length === 0))
+      ) {
+        delete others.focus;
+      }
+      return others;
+    }, [data.others]);
+
     const recoIconConfig = useMemo(
       () => getRecognitionIcon(data.recognition.type),
       [data.recognition.type]
@@ -58,9 +75,9 @@ export const ModernContent = memo(
     );
     const hasOtherParams = useMemo(
       () =>
-        Object.keys(data.others).length > 0 ||
+        Object.keys(filteredOthers).length > 0 ||
         (ExtrasElem && ExtrasElem.length > 0),
-      [data.others, ExtrasElem]
+      [filteredOthers, ExtrasElem]
     );
 
     return (
@@ -146,8 +163,12 @@ export const ModernContent = memo(
                 <span>其他</span>
               </div>
               <ul className={style.sectionList}>
-                {Object.keys(data.others).map((key) => (
-                  <KVElem key={key} paramKey={key} value={data.others[key]} />
+                {Object.keys(filteredOthers).map((key) => (
+                  <KVElem
+                    key={key}
+                    paramKey={key}
+                    value={filteredOthers[key]}
+                  />
                 ))}
                 {ExtrasElem}
               </ul>
