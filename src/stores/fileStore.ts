@@ -14,6 +14,9 @@ export type FileConfigType = {
   isModifiedExternally?: boolean;
   lastSyncTime?: number;
   savedViewport?: { x: number; y: number; zoom: number };
+  // 节点顺序管理
+  nodeOrderMap?: Record<string, number>;
+  nextOrderNumber?: number;
 };
 type FileType = {
   fileName: string;
@@ -100,6 +103,34 @@ export function localSave(): any {
   } catch (err) {
     return err;
   }
+}
+
+// 分配新的顺序号
+export function assignNodeOrder(nodeId: string): number {
+  const state = useFileStore.getState();
+  const config = state.currentFile.config;
+  const orderMap = { ...(config.nodeOrderMap ?? {}) };
+  const nextOrder = config.nextOrderNumber ?? 0;
+
+  orderMap[nodeId] = nextOrder;
+  useFileStore.getState().setFileConfig("nodeOrderMap", orderMap);
+  useFileStore.getState().setFileConfig("nextOrderNumber", nextOrder + 1);
+
+  return nextOrder;
+}
+
+// 移除节点顺序
+export function removeNodeOrder(nodeId: string): void {
+  const state = useFileStore.getState();
+  const orderMap = { ...(state.currentFile.config.nodeOrderMap ?? {}) };
+  delete orderMap[nodeId];
+  useFileStore.getState().setFileConfig("nodeOrderMap", orderMap);
+}
+
+// 获取节点顺序
+export function getNodeOrder(nodeId: string): number | undefined {
+  const state = useFileStore.getState();
+  return state.currentFile.config.nodeOrderMap?.[nodeId];
 }
 
 /**文件仓库 */

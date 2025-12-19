@@ -44,11 +44,19 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
     };
     const generalConfig = useConfigStore.getState().configs;
 
+    // 按顺序排序节点
+    const orderMap = config.nodeOrderMap ?? {};
+    const sortedNodes = [...nodes].sort((a, b) => {
+      const orderA = orderMap[a.id] ?? Infinity;
+      const orderB = orderMap[b.id] ?? Infinity;
+      return orderA - orderB;
+    });
+
     // 生成节点
     const prefix = config.prefix ? config.prefix + "_" : "";
     const pipelineObj: PipelineObjType = {};
 
-    nodes.forEach((node) => {
+    sortedNodes.forEach((node) => {
       switch (node.type) {
         case NodeTypeEnum.Pipeline:
           pipelineObj[prefix + node.data.label] = parsePipelineNodeForExport(

@@ -1,5 +1,5 @@
 import { Modal } from "antd";
-import { parse as parseJsonc } from "jsonc-parser";
+import { parse as parseJsonc, visit } from "jsonc-parser";
 import {
   useFlowStore,
   createPipelineNode,
@@ -148,13 +148,36 @@ export async function pipelineToFlow(
   try {
     // 获取参数
     const pString = options?.pString ?? (await ClipboardHelper.read());
+    
+    // 获取键顺序
+    const keyOrder: string[] = [];
+    let currentDepth = 0;
+    visit(
+      pString,
+      {
+        onObjectBegin: () => {
+          currentDepth++;
+        },
+        onObjectEnd: () => {
+          currentDepth--;
+        },
+        onObjectProperty: (property) => {
+          // 只记录顶层属性
+          if (currentDepth === 1) {
+            keyOrder.push(property);
+          }
+        },
+      },
+      { allowTrailingComma: true }
+    );
+    
     const pipelineObj = parseJsonc(pString);
 
     // 解析配置
     const configs = parsePipelineConfig(pipelineObj);
 
     // 迁移废弃字段
-    const objKeys = Object.keys(pipelineObj);
+    const objKeys = keyOrder.length > 0 ? keyOrder : Object.keys(pipelineObj);
     migratePipelineV5(pipelineObj, objKeys);
 
     // 解析节点
@@ -163,6 +186,10 @@ export async function pipelineToFlow(
     const originalKeys: string[] = [];
     let idOLPairs: IdLabelPairsType = [];
     let isIncludePos = false;
+    
+    // 初始化顺序映射
+    const orderMap: Record<string, number> = {};
+    let nextOrder = 0;
 
     objKeys.forEach((objKey) => {
       const obj = pipelineObj[objKey];
@@ -182,6 +209,9 @@ export async function pipelineToFlow(
       // 处理节点名
       const id = "p_" + getNextId();
       let label = objKey;
+      
+      // 分配顺序号
+      orderMap[id] = nextOrder++;
 
       // 判断是否为外部节点或重定向节点
       let type = NodeTypeEnum.Pipeline;
@@ -309,6 +339,10 @@ export async function pipelineToFlow(
     if (configs.filename) fileState.setFileName(configs.filename);
     const setFileConfig = fileState.setFileConfig;
     if (configs.prefix) setFileConfig("prefix", configs.prefix);
+    
+    // 保存顺序映射
+    setFileConfig("nodeOrderMap", orderMap);
+    setFileConfig("nextOrderNumber", nextOrder);
 
     // 自动布局
     if (!isIncludePos) LayoutHelper.auto();

@@ -2,6 +2,7 @@ import type { StateCreator } from "zustand";
 import { cloneDeep } from "lodash";
 import type { FlowStore, FlowGraphState, NodeType, EdgeType } from "../types";
 import { fitFlowView } from "../utils/viewportUtils";
+import { assignNodeOrder } from "../../fileStore";
 
 export const createGraphSlice: StateCreator<
   FlowStore,
@@ -69,6 +70,9 @@ export const createGraphSlice: StateCreator<
         node.id = newId;
         node.data.label = node.data.label + "_副本" + pasteCounter;
         pasteCounter++;
+        
+        // 分配顺序号
+        assignNodeOrder(newId);
 
         const position = node.position;
         node.position = {

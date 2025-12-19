@@ -20,6 +20,7 @@ import {
   calcuNodePosition,
 } from "../utils/nodeUtils";
 import { fitFlowView } from "../utils/viewportUtils";
+import { assignNodeOrder, removeNodeOrder } from "../../fileStore";
 
 export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
   set,
@@ -35,6 +36,14 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       const updatedNodes = applyNodeChanges(changes, state.nodes);
       const nodes = updatedNodes as NodeType[];
       return { nodes };
+    });
+
+    // 清理删除节点的顺序
+    const removeChanges = changes.filter((change) => change.type === "remove");
+    removeChanges.forEach((change) => {
+      if (change.type === "remove") {
+        removeNodeOrder(change.id);
+      }
     });
 
     // 保存历史记录
@@ -139,6 +148,9 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
 
       // 添加节点
       nodes.push(newNode);
+
+      // 分配顺序号
+      assignNodeOrder(id);
 
       // 更新选择状态
       if (select) {

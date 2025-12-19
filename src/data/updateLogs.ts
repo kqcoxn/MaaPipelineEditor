@@ -51,7 +51,7 @@ export const updateLogs: UpdateLogItem[] = [
     type: "major",
     updates: {
       features: [""],
-      perfs: ["优化 LB 导出交互体验", ""],
+      perfs: ["优化 LB 导出交互体验", "JSON的导入与导出与原顺序相同了！"],
     },
   },
   {
