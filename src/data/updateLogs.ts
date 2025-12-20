@@ -50,8 +50,14 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2025-12",
     type: "fix",
     updates: {
-      features: ["🧰 小工具支持 Action 系列字段了！（target、begin、end、dx、dy）"],
-      perfs: ["优化连接半透明表现", "优化 focus 渲染显示"],
+      features: [
+        "🧰 小工具支持 Action 系列字段了！（target、begin、end、dx、dy）",
+      ],
+      perfs: [
+        "优化了 focus 渲染显示",
+        "优化了连接半透明状态的表现",
+        "移除了不必要的节点顺序持久化",
+      ],
       fixes: [],
     },
   },

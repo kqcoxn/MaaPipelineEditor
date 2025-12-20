@@ -95,7 +95,15 @@ export function localSave(): any {
   if (!saveFlow()) return Error.call("页面未初始化结束");
   try {
     const fileState = useFileStore.getState();
-    localStorage.setItem("_mpe_files", JSON.stringify(fileState.files));
+    const filesToSave = fileState.files.map((file) => ({
+      ...file,
+      config: {
+        ...file.config,
+        nodeOrderMap: undefined,
+        nextOrderNumber: undefined,
+      },
+    }));
+    localStorage.setItem("_mpe_files", JSON.stringify(filesToSave));
 
     // 保存用户配置项
     const configState = useConfigStore.getState();
