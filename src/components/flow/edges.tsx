@@ -356,10 +356,15 @@ function MarkedEdge(props: EdgeProps) {
     [props.selected]
   );
   const labelStyle = useMemo(() => {
-    return {
+    const baseStyle: React.CSSProperties = {
       transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
     };
-  }, [labelX, labelY]);
+    // 应用透明度
+    if (!isRelated && focusOpacity !== 1) {
+      baseStyle.opacity = focusOpacity;
+    }
+    return baseStyle;
+  }, [labelX, labelY, isRelated, focusOpacity]);
 
   // 计算透明度样式
   const opacityStyle = useMemo(() => {
@@ -367,14 +372,25 @@ function MarkedEdge(props: EdgeProps) {
     return { opacity: focusOpacity };
   }, [isRelated, focusOpacity]);
 
+  // 是否有偏移
+  const hasOffset = controlOffset.x !== 0 || controlOffset.y !== 0;
+
   // 控制点样式
-  const controlPointStyle = useMemo(
-    () => ({
+  const controlPointStyle = useMemo(() => {
+    const baseStyle: React.CSSProperties = {
       transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
       cursor: isDragging ? "grabbing" : "grab",
-    }),
-    [labelX, labelY, isDragging]
-  );
+    };
+    // 拖拽过的控制点需要显示
+    if (hasOffset && !isDragging) {
+      baseStyle.opacity = 0.7;
+    }
+    // 应用聚焦透明度
+    if (!isRelated && focusOpacity !== 1) {
+      baseStyle.opacity = focusOpacity;
+    }
+    return baseStyle;
+  }, [labelX, labelY, isDragging, hasOffset, isRelated, focusOpacity]);
 
   return (
     <g style={opacityStyle}>

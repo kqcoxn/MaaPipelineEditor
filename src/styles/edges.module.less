@@ -48,8 +48,10 @@
   border-radius: 4px;
   padding: 0px 4px;
   box-sizing: border-box;
+  z-index: 11;
   @trans: 0.2s ease;
-  transition: background-color @trans, border @trans, font-size @trans;
+  transition: background-color @trans, border @trans, font-size @trans,
+    opacity @trans;
 }
 
 .label-selected {
@@ -86,12 +88,10 @@
 }
 
 .control-point-offset {
-  opacity: 0.7;
   background-color: #fef3c7;
   border-color: #f59e0b;
 
   &:hover {
-    opacity: 1;
     background-color: #fde68a;
   }
 }
