@@ -1,6 +1,6 @@
 import style from "../../styles/ConfigPanel.module.less";
 
-import { memo, useMemo, useEffect } from "react";
+import { memo, useMemo, useEffect, useState } from "react";
 import {
   Popover,
   Switch,
@@ -19,12 +19,16 @@ import { useFileStore } from "../../stores/fileStore";
 import { configMarkPrefix, configMark } from "../../core/parser";
 import { localServer } from "../../services";
 import { OpenAIChat } from "../../utils/openai";
+import { BackendConfigModal } from "../modals";
 
 const TipElem = memo(({ content }: { content: string }) => (
   <div style={{ maxWidth: 260 }}>{content}</div>
 ));
 
 function ConfigPanel() {
+  // 后端配置模态框状态
+  const [backendConfigOpen, setBackendConfigOpen] = useState(false);
+
   // store
   const showConfigPanel = useConfigStore(
     (state) => state.status.showConfigPanel
@@ -381,6 +385,38 @@ function ConfigPanel() {
           />
         </div>
         <div className={style.divider}>—————— 本地通信 ——————</div>
+        {/* 本地服务配置 */}
+        <div className={globalClass}>
+          <div className={style.key}>
+            <Popover
+              placement="bottomLeft"
+              title={"本地服务配置"}
+              content={
+                <TipElem
+                  content={
+                    "查看和修改后端服务的配置，包括服务器、文件、日志、MaaFramework 等设置"
+                  }
+                />
+              }
+            >
+              <span>本地服务配置</span>
+            </Popover>
+          </div>
+          <div className={style.value}>
+            <Button
+              size="small"
+              onClick={() => {
+                if (!localServer.isConnected()) {
+                  message.warning("请先连接本地服务");
+                  return;
+                }
+                setBackendConfigOpen(true);
+              }}
+            >
+              打开配置
+            </Button>
+          </div>
+        </div>
         {/* WebSocket 端口 */}
         <div className={globalClass}>
           <div className={style.key}>
@@ -391,7 +427,7 @@ function ConfigPanel() {
                 <TipElem content={"本地服务端口，修改端口后需要重新连接"} />
               }
             >
-              <span>端口</span>
+              <span>连接端口</span>
             </Popover>
           </div>
           <InputNumber
@@ -575,6 +611,11 @@ function ConfigPanel() {
           </div>
         </div>
       </div>
+      {/* 后端配置模态框 */}
+      <BackendConfigModal
+        open={backendConfigOpen}
+        onClose={() => setBackendConfigOpen(false)}
+      />
     </div>
   );
 }

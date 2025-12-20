@@ -20,6 +20,7 @@ import (
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/mfw"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/paths"
+	configProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/config"
 	fileProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/file"
 	mfwProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/mfw"
 	utilityProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/utility"
@@ -264,6 +265,10 @@ func runServer(cmd *cobra.Command, args []string) {
 	// 注册 Utility 协议处理器
 	utilityHandler := utilityProtocol.NewUtilityHandler(mfwSvc, cfg.File.Root)
 	rt.RegisterHandler(utilityHandler)
+
+	// 注册 Config 协议处理器
+	configHandler := configProtocol.NewConfigHandler()
+	rt.RegisterHandler(configHandler)
 
 	// 设置消息处理器
 	wsServer.SetMessageHandler(rt.Route)
