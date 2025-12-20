@@ -7,7 +7,13 @@ import type { FieldType } from "../../../core/fields";
 import { FieldTypeEnum } from "../../../core/fields";
 import { JsonHelper } from "../../../utils/jsonHelper";
 import { useMFWStore } from "../../../stores/mfwStore";
-import { ROIModal, OCRModal, TemplateModal, ColorModal } from "../../modals";
+import {
+  ROIModal,
+  OCRModal,
+  TemplateModal,
+  ColorModal,
+  DeltaModal,
+} from "../../modals";
 import { ListValueElem } from "./ListValueElem";
 import { message } from "antd";
 
@@ -21,6 +27,8 @@ const QUICK_TOOLS: Record<string, IconNames> = {
   target: "icon-kuangxuanzhong",
   begin: "icon-kuangxuanzhong",
   end: "icon-kuangxuanzhong",
+  dx: "icon-celiang-",
+  dy: "icon-celiang-",
 };
 
 const { TextArea } = Input;
@@ -60,6 +68,8 @@ export const ParamFieldListElem = memo(
       null
     );
     const [currentColorKey, setCurrentColorKey] = useState<string | null>(null);
+    const [deltaModalOpen, setDeltaModalOpen] = useState(false);
+    const [currentDeltaKey, setCurrentDeltaKey] = useState<string | null>(null);
     // 记录当前操作的列表索引
     const [currentListIndex, setCurrentListIndex] = useState<number | null>(
       null
@@ -117,6 +127,20 @@ export const ParamFieldListElem = memo(
         setCurrentColorKey(key);
         setCurrentListIndex(listIndex ?? null);
         setColorModalOpen(true);
+      },
+      [connectionStatus]
+    );
+
+    // 打开位移差值配置面板
+    const handleOpenDelta = useCallback(
+      (key: string, listIndex?: number) => {
+        if (connectionStatus !== "connected") {
+          message.warning("请先连接设备");
+          return;
+        }
+        setCurrentDeltaKey(key);
+        setCurrentListIndex(listIndex ?? null);
+        setDeltaModalOpen(true);
       },
       [connectionStatus]
     );
@@ -235,6 +259,20 @@ export const ParamFieldListElem = memo(
       [currentColorKey, currentListIndex, paramData, onChange]
     );
 
+    // 位移差值确认回调
+    const handleDeltaConfirm = useCallback(
+      (delta: number) => {
+        if (!currentDeltaKey) return;
+
+        onChange(currentDeltaKey, delta);
+
+        setDeltaModalOpen(false);
+        setCurrentDeltaKey(null);
+        setCurrentListIndex(null);
+      },
+      [currentDeltaKey, onChange]
+    );
+
     // 获取字段对应的快捷工具图标
     const getQuickToolIcon = useCallback(
       (key: string): IconNames | undefined => {
@@ -259,9 +297,17 @@ export const ParamFieldListElem = memo(
           handleOpenTemplate(key, listIndex);
         } else if (key === "lower" || key === "upper") {
           handleOpenColor(key, listIndex);
+        } else if (key === "dx" || key === "dy") {
+          handleOpenDelta(key, listIndex);
         }
       },
-      [handleOpenROI, handleOpenOCR, handleOpenTemplate, handleOpenColor]
+      [
+        handleOpenROI,
+        handleOpenOCR,
+        handleOpenTemplate,
+        handleOpenColor,
+        handleOpenDelta,
+      ]
     );
 
     // 渲染快捷工具按钮
@@ -478,6 +524,18 @@ export const ParamFieldListElem = memo(
             }}
             onConfirm={handleColorConfirm}
             targetKey={currentColorKey}
+          />
+        )}
+        {currentDeltaKey && (
+          <DeltaModal
+            open={deltaModalOpen}
+            onClose={() => {
+              setDeltaModalOpen(false);
+              setCurrentDeltaKey(null);
+              setCurrentListIndex(null);
+            }}
+            onConfirm={handleDeltaConfirm}
+            mode={currentDeltaKey as "dx" | "dy"}
           />
         )}
       </>
