@@ -18,9 +18,13 @@ import {
   findNodeByLabel,
   findNodeIndexById,
   calcuNodePosition,
+  checkRepeatNodeLabelList as checkRepeatNodeLabelListUtil,
 } from "../utils/nodeUtils";
 import { fitFlowView } from "../utils/viewportUtils";
 import { assignNodeOrder, removeNodeOrder } from "../../fileStore";
+import { ErrorTypeEnum, useErrorStore } from "../../errorStore";
+import { useConfigStore } from "../../configStore";
+import { useFileStore } from "../../fileStore";
 
 export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
   set,
@@ -259,6 +263,21 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       return updates;
     });
 
+    // 检查节点名重复
+    const configs = useConfigStore.getState().configs;
+    const fileConfig = useFileStore.getState().currentFile.config;
+    const nodes = get().nodes;
+    const repeats = checkRepeatNodeLabelListUtil(nodes, {
+      isExportConfig: configs.isExportConfig,
+      prefix: fileConfig.prefix,
+    });
+    useErrorStore.getState().setError(ErrorTypeEnum.NodeNameRepeat, () => {
+      return repeats.map((label) => ({
+        type: ErrorTypeEnum.NodeNameRepeat,
+        msg: label,
+      }));
+    });
+
     // 保存历史记录
     get().saveHistory(1000);
   },
@@ -364,6 +383,21 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       }
 
       return result;
+    });
+
+    // 检查节点名重复
+    const configs = useConfigStore.getState().configs;
+    const fileConfig = useFileStore.getState().currentFile.config;
+    const nodes = get().nodes;
+    const repeats = checkRepeatNodeLabelListUtil(nodes, {
+      isExportConfig: configs.isExportConfig,
+      prefix: fileConfig.prefix,
+    });
+    useErrorStore.getState().setError(ErrorTypeEnum.NodeNameRepeat, () => {
+      return repeats.map((label) => ({
+        type: ErrorTypeEnum.NodeNameRepeat,
+        msg: label,
+      }));
     });
 
     // 保存历史记录

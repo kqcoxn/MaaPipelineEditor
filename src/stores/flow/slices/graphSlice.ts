@@ -64,13 +64,27 @@ export const createGraphSlice: StateCreator<
       const pairs: Record<string, string> = {};
       let pasteCounter = state.pasteIdCounter;
 
+      const existingLabels = new Set(
+        [...originNodes, ...nodes].map((n) => n.data.label)
+      );
+
       nodes.forEach((node) => {
         const newId = "paste_" + pasteCounter;
         pairs[node.id] = newId;
         node.id = newId;
-        node.data.label = node.data.label + "_副本" + pasteCounter;
+
+        // 生成不重复的节点名
+        let newLabel = node.data.label + "_副本" + pasteCounter;
+        let labelCounter = pasteCounter;
+        while (existingLabels.has(newLabel)) {
+          labelCounter++;
+          newLabel = node.data.label + "_副本" + labelCounter;
+        }
+
+        node.data.label = newLabel;
+        existingLabels.add(newLabel);
         pasteCounter++;
-        
+
         // 分配顺序号
         assignNodeOrder(newId);
 

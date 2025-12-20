@@ -2,6 +2,7 @@ import { notification } from "antd";
 import { useFlowStore, findNodeLabelById } from "../../stores/flow";
 import { useFileStore } from "../../stores/fileStore";
 import { globalConfig, useConfigStore } from "../../stores/configStore";
+import { ErrorTypeEnum, findErrorsByType } from "../../stores/errorStore";
 import {
   NodeTypeEnum,
   SourceHandleTypeEnum,
@@ -33,6 +34,19 @@ import {
  */
 export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
   try {
+    // 检查是否有节点名重复错误
+    const repeatErrors = findErrorsByType(ErrorTypeEnum.NodeNameRepeat);
+    if (repeatErrors.length > 0) {
+      notification.error({
+        message: "导出失败！",
+        description: `存在重复的节点名: ${repeatErrors
+          .map((e) => e.msg)
+          .join(", ")}，请修改后再试。`,
+        placement: "top",
+      });
+      return {};
+    }
+
     // 获取当前 flow 数据
     const flowState = useFlowStore.getState();
     const fileState = useFileStore.getState();
