@@ -9,6 +9,20 @@ import { KVElem } from "../components/KVElem";
 import { getRecognitionIcon, getActionIcon, getNodeTypeIcon } from "../utils";
 import { SourceHandleTypeEnum } from "../constants";
 import { JsonHelper } from "../../../../utils/jsonHelper";
+import { otherFieldSchema } from "../../../../core/fields/other/schema";
+
+// focus 子项 key 到 displayName 的映射
+const focusDisplayNameMap: Record<string, string> = (() => {
+  const map: Record<string, string> = {};
+  if (otherFieldSchema.focus.params) {
+    for (const param of otherFieldSchema.focus.params) {
+      if (param.displayName) {
+        map[param.key] = param.displayName;
+      }
+    }
+  }
+  return map;
+})();
 
 /**现代风格Pipeline节点内容 */
 export const ModernContent = memo(
@@ -38,21 +52,34 @@ export const ModernContent = memo(
       return null;
     }, [data.extras]);
 
-    // 过滤空的 focus 字段
-    const filteredOthers = useMemo(() => {
+    // 过滤空的 focus 字段，并将 focus 对象拆分为子项
+    const { filteredOthers, focusItems } = useMemo(() => {
       const others = { ...data.others };
-      if (
-        "focus" in others &&
-        (others.focus === "" ||
-          others.focus === null ||
-          others.focus === undefined ||
-          (typeof others.focus === "object" &&
-            others.focus !== null &&
-            Object.keys(others.focus).length === 0))
-      ) {
-        delete others.focus;
+      let focusItems: { key: string; value: any }[] = [];
+
+      if ("focus" in others) {
+        const focus = others.focus;
+        // 空值检测
+        if (
+          focus === "" ||
+          focus === null ||
+          focus === undefined ||
+          (typeof focus === "object" &&
+            focus !== null &&
+            Object.keys(focus).length === 0)
+        ) {
+          delete others.focus;
+        } else if (typeof focus === "object" && focus !== null) {
+          // 使用 displayName 缩写
+          focusItems = Object.keys(focus).map((subKey) => ({
+            key: focusDisplayNameMap[subKey] || subKey,
+            value: focus[subKey],
+          }));
+          delete others.focus;
+        }
       }
-      return others;
+
+      return { filteredOthers: others, focusItems };
     }, [data.others]);
 
     const recoIconConfig = useMemo(
@@ -76,8 +103,9 @@ export const ModernContent = memo(
     const hasOtherParams = useMemo(
       () =>
         Object.keys(filteredOthers).length > 0 ||
+        focusItems.length > 0 ||
         (ExtrasElem && ExtrasElem.length > 0),
-      [filteredOthers, ExtrasElem]
+      [filteredOthers, focusItems, ExtrasElem]
     );
 
     return (
@@ -168,6 +196,13 @@ export const ModernContent = memo(
                     key={key}
                     paramKey={key}
                     value={filteredOthers[key]}
+                  />
+                ))}
+                {focusItems.map((item) => (
+                  <KVElem
+                    key={item.key}
+                    paramKey={item.key}
+                    value={item.value}
                   />
                 ))}
                 {ExtrasElem}

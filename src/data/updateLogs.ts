@@ -51,7 +51,7 @@ export const updateLogs: UpdateLogItem[] = [
     type: "fix",
     updates: {
       features: [],
-      perfs: ["优化连接半透明表现"],
+      perfs: ["优化连接半透明表现", "优化 focus 渲染显示"],
       fixes: [],
     },
   },
