@@ -50,7 +50,7 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2025-12",
     type: "fix",
     updates: {
-      features: [],
+      features: ["🧰 小工具支持 Action 系列字段了！"],
       perfs: ["优化连接半透明表现", "优化 focus 渲染显示"],
       fixes: [],
     },

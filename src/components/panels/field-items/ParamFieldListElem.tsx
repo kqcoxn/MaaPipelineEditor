@@ -18,6 +18,9 @@ const QUICK_TOOLS: Record<string, IconNames> = {
   template: "icon-jietu",
   lower: "icon-ic_quseqi",
   upper: "icon-ic_quseqi",
+  target: "icon-kuangxuanzhong",
+  begin: "icon-kuangxuanzhong",
+  end: "icon-kuangxuanzhong",
 };
 
 const { TextArea } = Input;
@@ -243,7 +246,12 @@ export const ParamFieldListElem = memo(
     // 处理快捷工具点击
     const handleQuickToolClick = useCallback(
       (key: string, listIndex?: number) => {
-        if (key === "roi") {
+        if (
+          key === "roi" ||
+          key === "target" ||
+          key === "begin" ||
+          key === "end"
+        ) {
           handleOpenROI(key, listIndex);
         } else if (key === "expected") {
           handleOpenOCR(key, listIndex);
