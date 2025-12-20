@@ -151,10 +151,12 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
 
     // 配置
     if (!generalConfig.isExportConfig) return pipelineObj;
+    // 过滤掉运行时字段
+    const { nodeOrderMap, nextOrderNumber, ...exportConfig } = config;
     return {
       [configMarkPrefix + fileName]: {
         [configMark]: {
-          ...config,
+          ...exportConfig,
           filename: fileState.currentFile.fileName,
           version: `v${globalConfig.version}`,
         },

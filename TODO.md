@@ -1,5 +1,14 @@
 [ISSUE](https://github.com/kqcoxn/MaaPipelineEditor/issues)
 
+## bug
+
+- ocr 加载提示会在每次打开 model 后就刷新
+- 控制器不存在时也无法关闭连接
+
+## perf
+
+- 导入时默认为{}
+
 ## MPE Web
 
 > 纯前端应用，用户通过浏览器访问。
