@@ -60,7 +60,7 @@ export const updateLogs: UpdateLogItem[] = [
         "移除了不必要的节点顺序持久化",
         "提高前端 OCR 精度，持久化模型加载",
       ],
-      fixes: [],
+      fixes: ["修复了意外断开重连后，控制器不存在也无法关闭连接的问题"],
     },
   },
   {

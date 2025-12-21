@@ -34,6 +34,17 @@ export class MFWProtocol extends BaseProtocol {
   register(wsClient: LocalWebSocketServer): void {
     this.wsClient = wsClient;
 
+    // 监听 WebSocket 连接状态变化
+    this.wsClient.onStatus((connected) => {
+      if (!connected) {
+        // WebSocket 断开时，清除控制器状态
+        const mfwStore = useMFWStore.getState();
+        mfwStore.clearConnection();
+        // 清除待连接设备信息
+        this.lastConnectionDevice = null;
+      }
+    });
+
     // 注册设备列表路由
     this.wsClient.registerRoute("/lte/mfw/adb_devices", (data) =>
       this.handleAdbDevices(data)
