@@ -195,11 +195,7 @@ export const OCRModal = memo(
           if (!worker) {
             setIsLoadingModel(true);
             worker = await createWorker(["chi_sim", "eng"], undefined, {
-              logger: (m) => {
-                if (m.status === "recognizing text") {
-                  console.log(`OCR进度: ${Math.round(m.progress * 100)}%`);
-                }
-              },
+              logger: () => {},
             });
 
             // Tesseract 参数
@@ -223,9 +219,6 @@ export const OCRModal = memo(
           const {
             data: { text, confidence },
           } = await worker.recognize(tempCanvas);
-
-          // 输出识别置信度供调试
-          console.log("OCR识别置信度:", confidence.toFixed(2) + "%");
 
           // 文本后处理
           let processedText = text.trim();

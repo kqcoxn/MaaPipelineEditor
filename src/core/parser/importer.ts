@@ -147,8 +147,14 @@ export async function pipelineToFlow(
 ): Promise<boolean> {
   try {
     // 获取参数
-    const pString = options?.pString ?? (await ClipboardHelper.read());
-    
+    let pString = options?.pString ?? (await ClipboardHelper.read());
+
+    // 处理空文件或只包含空格的文件
+    const trimmedString = pString.trim();
+    if (trimmedString === "") {
+      pString = "{}";
+    }
+
     // 获取键顺序
     const keyOrder: string[] = [];
     let currentDepth = 0;
@@ -170,7 +176,7 @@ export async function pipelineToFlow(
       },
       { allowTrailingComma: true }
     );
-    
+
     const pipelineObj = parseJsonc(pString);
 
     // 解析配置
@@ -186,7 +192,7 @@ export async function pipelineToFlow(
     const originalKeys: string[] = [];
     let idOLPairs: IdLabelPairsType = [];
     let isIncludePos = false;
-    
+
     // 初始化顺序映射
     const orderMap: Record<string, number> = {};
     let nextOrder = 0;
@@ -209,7 +215,7 @@ export async function pipelineToFlow(
       // 处理节点名
       const id = "p_" + getNextId();
       let label = objKey;
-      
+
       // 分配顺序号
       orderMap[id] = nextOrder++;
 
@@ -339,7 +345,7 @@ export async function pipelineToFlow(
     if (configs.filename) fileState.setFileName(configs.filename);
     const setFileConfig = fileState.setFileConfig;
     if (configs.prefix) setFileConfig("prefix", configs.prefix);
-    
+
     // 保存顺序映射
     setFileConfig("nodeOrderMap", orderMap);
     setFileConfig("nextOrderNumber", nextOrder);

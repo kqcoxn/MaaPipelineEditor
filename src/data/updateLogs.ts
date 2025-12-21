@@ -47,8 +47,8 @@ export const pinnedNotice: PinnedNotice = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "0.12.0",
-    date: "2025-12",
-    type: "fix",
+    date: "2025-12-21",
+    type: "feature",
     updates: {
       features: [
         "🧰 小工具支持 Action 系列字段了！（target、begin、end、dx、dy）",
@@ -57,8 +57,9 @@ export const updateLogs: UpdateLogItem[] = [
       perfs: [
         "优化了 focus 渲染显示",
         "优化了连接半透明状态的表现",
-        "移除了不必要的节点顺序持久化",
         "提高前端 OCR 精度，持久化模型加载",
+        "移除了不必要的节点顺序持久化",
+        "导入空文件时自动解析为空 JSON",
       ],
       fixes: ["修复了意外断开重连后，控制器不存在也无法关闭连接的问题"],
     },
