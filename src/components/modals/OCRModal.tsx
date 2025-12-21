@@ -13,7 +13,7 @@ import {
   CheckCircleOutlined,
   QuestionCircleOutlined,
 } from "@ant-design/icons";
-import { createWorker, type Worker } from "tesseract.js";
+import { createWorker, PSM, OEM, type Worker } from "tesseract.js";
 import { useMFWStore } from "../../stores/mfwStore";
 import { mfwProtocol } from "../../services/server";
 import {
@@ -63,9 +63,11 @@ export const OCRModal = memo(
     const [ocrText, setOcrText] = useState<string>("");
     const [ocrSuccess, setOcrSuccess] = useState<boolean | null>(null);
     const [ocrMode, setOcrMode] = useState<OCRMode>("frontend");
+    // Tesseract worker 状态管理
+    const [tesseractWorker, setTesseractWorker] = useState<Worker | null>(null);
+    const [isLoadingModel, setIsLoadingModel] = useState(false);
 
     const imageRef = useRef<HTMLImageElement | null>(null);
-    const tesseractWorkerRef = useRef<Worker | null>(null);
     const ocrDebounceRef = useRef<NodeJS.Timeout | null>(null);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const viewportPropsRef = useRef<ViewportProps | null>(null);
@@ -118,35 +120,132 @@ export const OCRModal = memo(
             Math.round(roi.height)
           );
 
+          // 图像预处理
+          const imageData = tempCtx.getImageData(
+            0,
+            0,
+            tempCanvas.width,
+            tempCanvas.height
+          );
+          const data = imageData.data;
+
+          // 灰度化
+          for (let i = 0; i < data.length; i += 4) {
+            const gray =
+              data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+            data[i] = gray;
+            data[i + 1] = gray;
+            data[i + 2] = gray;
+          }
+
+          // 二值化
+          // 计算灰度直方图
+          const histogram = new Array(256).fill(0);
+          for (let i = 0; i < data.length; i += 4) {
+            histogram[data[i]]++;
+          }
+
+          // 计算总像素数
+          const total = tempCanvas.width * tempCanvas.height;
+
+          // Otsu 算法计算最佳阈值
+          let sum = 0;
+          for (let i = 0; i < 256; i++) {
+            sum += i * histogram[i];
+          }
+
+          let sumB = 0;
+          let wB = 0;
+          let wF = 0;
+          let maxVariance = 0;
+          let threshold = 0;
+
+          for (let t = 0; t < 256; t++) {
+            wB += histogram[t];
+            if (wB === 0) continue;
+
+            wF = total - wB;
+            if (wF === 0) break;
+
+            sumB += t * histogram[t];
+
+            const mB = sumB / wB;
+            const mF = (sum - sumB) / wF;
+
+            const variance = wB * wF * (mB - mF) * (mB - mF);
+
+            if (variance > maxVariance) {
+              maxVariance = variance;
+              threshold = t;
+            }
+          }
+
+          // 应用二值化
+          for (let i = 0; i < data.length; i += 4) {
+            const value = data[i] > threshold ? 255 : 0;
+            data[i] = value;
+            data[i + 1] = value;
+            data[i + 2] = value;
+          }
+
+          tempCtx.putImageData(imageData, 0, 0);
+
           // 初始化或复用 Tesseract worker
-          if (!tesseractWorkerRef.current) {
-            message.loading({
-              content: "首次使用前端OCR，正在加载识别模型，请稍候...",
-              key: "ocr-loading",
-              duration: 0,
+          let worker = tesseractWorker;
+          if (!worker) {
+            setIsLoadingModel(true);
+            worker = await createWorker(["chi_sim", "eng"], undefined, {
+              logger: (m) => {
+                if (m.status === "recognizing text") {
+                  console.log(`OCR进度: ${Math.round(m.progress * 100)}%`);
+                }
+              },
             });
-            tesseractWorkerRef.current = await createWorker(["chi_sim", "eng"]);
-            message.success({
-              content: "模型加载完成",
-              key: "ocr-loading",
-              duration: 2,
+
+            // Tesseract 参数
+            await worker.setParameters({
+              // PSM (Page Segmentation Mode) - 页面分割模式
+              // PSM.SINGLE_LINE: 单行文本（推荐用于识别单行内容）
+              // PSM.SINGLE_BLOCK: 单个文本块
+              // PSM.SINGLE_WORD: 单个单词
+              // PSM.SPARSE_TEXT: 稀疏文本
+              tessedit_pageseg_mode: PSM.SPARSE_TEXT,
+
+              // OCR Engine Mode
+              // OEM.LSTM_ONLY: Neural nets LSTM engine (最佳精度)
+              tessedit_ocr_engine_mode: OEM.LSTM_ONLY,
             });
+
+            setTesseractWorker(worker);
+            setIsLoadingModel(false);
           }
 
           const {
-            data: { text },
-          } = await tesseractWorkerRef.current.recognize(tempCanvas);
+            data: { text, confidence },
+          } = await worker.recognize(tempCanvas);
+
+          // 输出识别置信度供调试
+          console.log("OCR识别置信度:", confidence.toFixed(2) + "%");
+
+          // 文本后处理
+          let processedText = text.trim();
 
           // 移除中文字符之间的空格
-          let processedText = text.trim();
-          while (/([\u4e00-\u9fa5])\s+([\u4e00-\u9fa5])/.test(processedText)) {
+          while (/([一-龥])\s+([一-龥])/.test(processedText)) {
             processedText = processedText.replace(
               /([\u4e00-\u9fa5])\s+([\u4e00-\u9fa5])/g,
               "$1$2"
             );
           }
+
+          // 移除常见的OCR误识别字符
+          processedText = processedText
+            .replace(/[\r\n]+/g, " ")
+            .replace(/\s{2,}/g, " ")
+            .trim();
+
           setOcrText(processedText);
-          setOcrSuccess(processedText.length > 0);
+          setOcrSuccess(processedText.length > 0 && confidence > 50);
         } catch (error) {
           message.error(
             `前端OCR识别失败: ${
@@ -158,7 +257,7 @@ export const OCRModal = memo(
           setIsOCRing(false);
         }
       },
-      [screenshot]
+      [screenshot, tesseractWorker]
     );
 
     // 请求后端 OCR 识别
@@ -423,16 +522,6 @@ export const OCRModal = memo(
       }
     }, []);
 
-    // 清理 Tesseract worker
-    useEffect(() => {
-      return () => {
-        if (tesseractWorkerRef.current) {
-          tesseractWorkerRef.current.terminate();
-          tesseractWorkerRef.current = null;
-        }
-      };
-    }, []);
-
     // 渲染 Canvas
     const renderCanvas = useCallback(
       (props: CanvasRenderProps) => {
@@ -533,7 +622,13 @@ export const OCRModal = memo(
                   <div>• 支持100+多语言混合识别</div>
                   <div>• 速度较快（初次需要加载模型）</div>
                   <div style={{ color: "#52c41a", marginTop: 4 }}>
+                    ✓ 无需额外配置资源位置
+                  </div>
+                  <div style={{ color: "#52c41a", marginTop: 4 }}>
                     ✓ 不会因窗口更新导致内容不一致
+                  </div>
+                  <div style={{ color: "#faad14", marginTop: 4 }}>
+                    ⚠️ 识别信息可能与原生 OCR 不一致
                   </div>
                 </div>
               }
@@ -620,7 +715,7 @@ export const OCRModal = memo(
               {isOCRing && (
                 <span style={{ marginLeft: 8, color: "#1890ff" }}>
                   识别中...
-                  {!tesseractWorkerRef.current &&
+                  {isLoadingModel &&
                     ocrMode === "frontend" &&
                     "（首次加载模型中，请稍候）"}
                 </span>

@@ -52,11 +52,13 @@ export const updateLogs: UpdateLogItem[] = [
     updates: {
       features: [
         "🧰 小工具支持 Action 系列字段了！（target、begin、end、dx、dy）",
+        "🌉 本地服务所有配置项可以在前端可视化更改了！",
       ],
       perfs: [
         "优化了 focus 渲染显示",
         "优化了连接半透明状态的表现",
         "移除了不必要的节点顺序持久化",
+        "提高前端 OCR 精度，持久化模型加载",
       ],
       fixes: [],
     },
