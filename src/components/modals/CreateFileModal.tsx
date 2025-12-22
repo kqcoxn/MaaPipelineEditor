@@ -24,6 +24,10 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
   const rootPath = useLocalFileStore((state) => state.rootPath);
   const files = useLocalFileStore((state) => state.files);
   const currentFileName = useFileStore((state) => state.currentFile.fileName);
+  const currentFilePath = useFileStore(
+    (state) => state.currentFile.config.filePath
+  );
+  const setFileConfig = useFileStore((state) => state.setFileConfig);
 
   // 提取目录列表
   const directoryOptions = useMemo(() => {
@@ -90,9 +94,22 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
       // 自动填充当前文件名
       const initialFileName = currentFileName || "";
 
+      // 优先使用当前文件所在目录，否则使用根路径
+      let initialDirectory = rootPath || "";
+      if (currentFilePath) {
+        // 从文件路径中提取目录路径
+        const lastSeparatorIndex = Math.max(
+          currentFilePath.lastIndexOf("/"),
+          currentFilePath.lastIndexOf("\\")
+        );
+        if (lastSeparatorIndex > 0) {
+          initialDirectory = currentFilePath.substring(0, lastSeparatorIndex);
+        }
+      }
+
       form.setFieldsValue({
         fileName: initialFileName,
-        directory: rootPath || "",
+        directory: initialDirectory,
         saveToLocal: true,
       });
 
@@ -103,7 +120,7 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
         // 检查重名
         const duplicate = checkDuplicateFileName(
           initialFileName,
-          rootPath || ""
+          initialDirectory
         );
         setIsDuplicate(duplicate);
       } else {
@@ -111,7 +128,7 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
         setIsDuplicate(false);
       }
     }
-  }, [visible, form, rootPath, currentFileName]);
+  }, [visible, form, rootPath, currentFileName, currentFilePath]);
 
   // 规范化文件名
   const normalizeFileName = (fileName: string): string => {
@@ -219,6 +236,11 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
       // 规范化文件名
       const normalizedFileName = normalizeFileName(fileName);
 
+      // 构建完整文件路径
+      const separator =
+        directory.endsWith("/") || directory.endsWith("\\") ? "" : "/";
+      const fullFilePath = `${directory}${separator}${normalizedFileName}`;
+
       // 获取当前编辑器的内容
       const content = flowToPipeline();
 
@@ -230,6 +252,9 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
       );
 
       if (success) {
+        // 更新 filePath
+        setFileConfig("filePath", fullFilePath);
+
         message.success("文件创建请求已发送");
         onCancel();
         form.resetFields();

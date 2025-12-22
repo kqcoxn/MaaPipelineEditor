@@ -51,7 +51,7 @@ export const updateLogs: UpdateLogItem[] = [
     type: "feature",
     updates: {
       features: [""],
-      perfs: [""],
+      perfs: ["导出文件后自动添加路径配置"],
       fixes: ["修复了以文件形式仍然无法导入空文件的问题"],
     },
   },
