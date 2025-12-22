@@ -52,17 +52,33 @@ export type PipelineConfigType = {
   [key: string]: any;
 };
 
+// MPE分离配置文件类型
+export type MpeConfigType = {
+  file_config: {
+    filename: string;
+    prefix?: string;
+    version?: string;
+    savedViewport?: { x: number; y: number; zoom: number };
+    [key: string]: any;
+  };
+  node_configs: Record<string, { position: { x: number; y: number } }>;
+  external_nodes?: Record<string, any>;
+  anchor_nodes?: Record<string, any>;
+};
+
 // 导出选项
 export type FlowToOptions = {
   nodes?: NodeType[];
   edges?: EdgeType[];
   fileName?: string;
   config?: FileConfigType;
+  forceExportConfig?: boolean; // 强制导出配置
 };
 
 // 导入选项
 export type PipelineToFlowOptions = {
-  pString?: string;
+  pString?: string; // Pipeline JSON 字符串
+  mpeConfig?: MpeConfigType; // 外部 MPE 配置
 };
 
 // 导出的公共类型

@@ -39,8 +39,8 @@ function ConfigPanel() {
   );
   const showEdgeLabel = useConfigStore((state) => state.configs.showEdgeLabel);
   const isAutoFocus = useConfigStore((state) => state.configs.isAutoFocus);
-  const isExportConfig = useConfigStore(
-    (state) => state.configs.isExportConfig
+  const configHandlingMode = useConfigStore(
+    (state) => state.configs.configHandlingMode
   );
   const historyLimit = useConfigStore((state) => state.configs.historyLimit);
   const nodeStyle = useConfigStore((state) => state.configs.nodeStyle);
@@ -360,28 +360,33 @@ function ConfigPanel() {
             }}
           />
         </div>
-        {/* 导出时附带配置 */}
+        {/* 配置处理方案 */}
         <div className={globalClass}>
           <div className={style.key}>
             <Popover
               placement="bottomLeft"
-              title={"导出时附带配置"}
+              title="配置处理方案"
               content={
                 <TipElem
-                  content={`将Pipeline配置保存至"${configMarkPrefix}"，将节点配置保存至"${configMark}"，若不开启则在再次导入时会丢失位置、前缀等信息`}
+                  content={
+                    "集成导出：配置嵌入 Pipeline 文件，适合单文件分享\n分离导出：配置存储至独立 .mpe.json 文件，便于版本管理\n不导出：不保存任何配置，导入时触发自动布局"
+                  }
                 />
               }
             >
-              <span>导出时附带配置</span>
+              <span>配置处理方案</span>
             </Popover>
           </div>
-          <Switch
+          <Select
             className={style.value}
-            style={switchStyle}
-            checkedChildren="是"
-            unCheckedChildren="否"
-            value={isExportConfig}
-            onChange={(value: boolean) => setConfig("isExportConfig", value)}
+            style={{ width: 90 }}
+            value={configHandlingMode}
+            onChange={(value) => setConfig("configHandlingMode", value)}
+            options={[
+              { value: "integrated", label: "集成导出" },
+              { value: "separated", label: "分离导出" },
+              { value: "none", label: "不导出" },
+            ]}
           />
         </div>
         <div className={style.divider}>—————— 本地通信 ——————</div>

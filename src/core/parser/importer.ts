@@ -19,6 +19,7 @@ import type {
   EdgeType,
   IdLabelPairsType,
   PipelineNodeType,
+  MpeConfigType,
 } from "./types";
 import { externalMarkPrefix, anchorMarkPrefix } from "./types";
 import { parsePipelineConfig, isMark } from "./configParser";
@@ -30,6 +31,7 @@ import {
   type NodeAttr,
 } from "./edgeLinker";
 import { parseNodeField } from "./nodeParser";
+import { mergePipelineAndConfig } from "./configSplitter";
 
 /**
  * 迁移 Pipeline v5.1 废弃字段
@@ -140,7 +142,7 @@ function migratePipelineV5(
 
 /**
  * 将Pipeline对象导入为Flow
- * @param options 导入选项，可以传入Pipeline字符串
+ * @param options 导入选项，可以传入Pipeline字符串和外部配置
  */
 export async function pipelineToFlow(
   options?: PipelineToFlowOptions
@@ -148,11 +150,22 @@ export async function pipelineToFlow(
   try {
     // 获取参数
     let pString = options?.pString ?? (await ClipboardHelper.read());
+    const mpeConfig = options?.mpeConfig;
 
     // 处理空文件或只包含空格的文件
     const trimmedString = pString.trim();
     if (trimmedString === "" || trimmedString === "null") {
       pString = "{}";
+    }
+
+    // 合并外部配置
+    let pipelineObj: Record<string, any> | undefined;
+    if (mpeConfig) {
+      // 解析 Pipeline 对象
+      const purePipeline = parseJsonc(pString);
+      // 合并配置
+      pipelineObj = mergePipelineAndConfig(purePipeline, mpeConfig);
+      pString = JSON.stringify(pipelineObj);
     }
 
     // 获取键顺序
@@ -183,7 +196,9 @@ export async function pipelineToFlow(
       );
     }
 
-    const pipelineObj = parseJsonc(pString);
+    if (!pipelineObj) {
+      pipelineObj = parseJsonc(pString);
+    }
 
     // 解析配置
     const configs = parsePipelineConfig(pipelineObj);

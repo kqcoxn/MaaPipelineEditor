@@ -1,8 +1,12 @@
 import { useState, useEffect } from "react";
-import { Modal, Form, Input, Select, message } from "antd";
+import { Modal, Form, Input, Select, message, Radio } from "antd";
 import { FileOutlined, DownloadOutlined } from "@ant-design/icons";
 import { useFileStore } from "../../stores/fileStore";
-import { flowToPipelineString } from "../../core/parser";
+import { useConfigStore } from "../../stores/configStore";
+import {
+  flowToPipelineString,
+  flowToSeparatedStrings,
+} from "../../core/parser";
 
 interface ExportFileModalProps {
   visible: boolean;
@@ -15,8 +19,14 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
 }) => {
   const [form] = Form.useForm();
   const [previewFileName, setPreviewFileName] = useState<string>("");
+  const [exportTarget, setExportTarget] = useState<
+    "pipeline" | "config" | "both"
+  >("both");
 
   const currentFileName = useFileStore((state) => state.currentFile.fileName);
+  const configHandlingMode = useConfigStore(
+    (state) => state.configs.configHandlingMode
+  );
 
   useEffect(() => {
     if (visible) {
@@ -35,9 +45,11 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
         format: "json",
       });
 
+      // 分离模式默认导出两个文件
+      setExportTarget(configHandlingMode === "separated" ? "both" : "pipeline");
       setPreviewFileName(`${baseName}.json`);
     }
-  }, [visible, form, currentFileName]);
+  }, [visible, form, currentFileName, configHandlingMode]);
 
   // 更新预览文件名
   const updatePreview = () => {
@@ -45,7 +57,18 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
     const format = form.getFieldValue("format") || "json";
 
     if (fileName.trim()) {
-      setPreviewFileName(`${fileName.trim()}.${format}`);
+      if (configHandlingMode === "separated" && exportTarget === "both") {
+        setPreviewFileName(
+          `${fileName.trim()}.${format} + ${fileName.trim()}.mpe.json`
+        );
+      } else if (
+        configHandlingMode === "separated" &&
+        exportTarget === "config"
+      ) {
+        setPreviewFileName(`${fileName.trim()}.mpe.json`);
+      } else {
+        setPreviewFileName(`${fileName.trim()}.${format}`);
+      }
     } else {
       setPreviewFileName("");
     }
@@ -58,6 +81,12 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
 
   // 处理格式变化
   const handleFormatChange = () => {
+    updatePreview();
+  };
+
+  // 处理导出目标变化
+  const handleExportTargetChange = (value: "pipeline" | "config" | "both") => {
+    setExportTarget(value);
     updatePreview();
   };
 
@@ -76,61 +105,86 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
       const { fileName, format } = values;
 
       const trimmedName = fileName.trim();
-      const fullFileName = `${trimmedName}.${format}`;
 
-      // 获取内容
-      const content = flowToPipelineString();
+      if (configHandlingMode === "separated") {
+        // 分离模式导出
+        const { pipelineString, configString } = flowToSeparatedStrings();
 
-      // 检查是否支持 File System Access API
-      if ("showSaveFilePicker" in window) {
-        try {
-          // 使用 File System Access API 选择保存位置
-          const handle = await (window as any).showSaveFilePicker({
-            suggestedName: fullFileName,
-            types: [
-              {
-                description: "JSON Files",
-                accept: {
-                  "application/json": [`.${format}`],
-                },
-              },
-            ],
-          });
-
-          // 创建可写流并写入内容
-          const writable = await handle.createWritable();
-          await writable.write(content);
-          await writable.close();
-
-          message.success(`已导出 ${fullFileName}`);
-          onCancel();
-          return;
-        } catch (err: any) {
-          // 用户取消选择
-          if (err.name === "AbortError") {
-            return;
-          }
-          console.warn(
-            "[ExportFileModal] File System Access API failed, fallback to download:",
-            err
-          );
+        if (exportTarget === "both" || exportTarget === "pipeline") {
+          await exportFile(`${trimmedName}.${format}`, pipelineString, format);
         }
+
+        if (exportTarget === "both" || exportTarget === "config") {
+          await exportFile(`${trimmedName}.mpe.json`, configString, "json");
+        }
+
+        message.success(
+          exportTarget === "both"
+            ? `已导出 ${trimmedName}.${format} 和 ${trimmedName}.mpe.json`
+            : exportTarget === "pipeline"
+            ? `已导出 ${trimmedName}.${format}`
+            : `已导出 ${trimmedName}.mpe.json`
+        );
+      } else {
+        // 集成模式导出
+        const content = flowToPipelineString();
+        await exportFile(`${trimmedName}.${format}`, content, format);
+        message.success(`已导出 ${trimmedName}.${format}`);
       }
 
-      // 降级使用传统下载方式
-      const blob = new Blob([content], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = fullFileName;
-      a.click();
-      URL.revokeObjectURL(url);
-
-      message.success(`已导出 ${fullFileName}`);
       onCancel();
     } catch (error) {
       console.error("[ExportFileModal] Failed to export file:", error);
     }
+  };
+
+  // 导出文件的通用函数
+  const exportFile = async (
+    fullFileName: string,
+    content: string,
+    format: string
+  ) => {
+    // 检查是否支持 File System Access API
+    if ("showSaveFilePicker" in window) {
+      try {
+        // 使用 File System Access API 选择保存位置
+        const handle = await (window as any).showSaveFilePicker({
+          suggestedName: fullFileName,
+          types: [
+            {
+              description: "JSON Files",
+              accept: {
+                "application/json": [`.${format}`],
+              },
+            },
+          ],
+        });
+
+        // 创建可写流并写入内容
+        const writable = await handle.createWritable();
+        await writable.write(content);
+        await writable.close();
+        return;
+      } catch (err: any) {
+        // 用户取消选择
+        if (err.name === "AbortError") {
+          throw err;
+        }
+        console.warn(
+          "[ExportFileModal] File System Access API failed, fallback to download:",
+          err
+        );
+      }
+    }
+
+    // 降级使用传统下载方式
+    const blob = new Blob([content], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fullFileName;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleCancel = () => {
@@ -202,6 +256,19 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
           </Select>
         </Form.Item>
 
+        {configHandlingMode === "separated" && (
+          <Form.Item label="导出目标">
+            <Radio.Group
+              value={exportTarget}
+              onChange={(e) => handleExportTargetChange(e.target.value)}
+            >
+              <Radio value="both">导出 Pipeline 和配置</Radio>
+              <Radio value="pipeline">仅导出 Pipeline</Radio>
+              <Radio value="config">仅导出配置</Radio>
+            </Radio.Group>
+          </Form.Item>
+        )}
+
         {previewFileName && (
           <Form.Item label="预览文件名">
             <div
@@ -222,6 +289,9 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
           <div style={{ fontSize: 12, color: "#8c8c8c" }}>
             <div>提示：</div>
             <div>• 将当前画布内容编译为 Pipeline 并导出</div>
+            {configHandlingMode === "separated" && (
+              <div>• 分离模式下可选择导出 Pipeline、配置或两者</div>
+            )}
             <div>• 使用浏览器下载功能保存到本地</div>
           </div>
         </Form.Item>

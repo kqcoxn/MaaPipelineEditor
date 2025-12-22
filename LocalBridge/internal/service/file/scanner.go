@@ -79,6 +79,12 @@ func (s *Scanner) shouldExcludeDir(dirName string) bool {
 
 // 检查文件是否具有有效的扩展名
 func (s *Scanner) hasValidExtension(path string) bool {
+	// 过滤 .mpe.json 分离配置文件
+	fileName := filepath.Base(path)
+	if strings.HasPrefix(fileName, ".") && strings.HasSuffix(strings.ToLower(fileName), ".mpe.json") {
+		return false
+	}
+	// 检查其他扩展名
 	ext := strings.ToLower(filepath.Ext(path))
 	for _, validExt := range s.extensions {
 		if ext == validExt {

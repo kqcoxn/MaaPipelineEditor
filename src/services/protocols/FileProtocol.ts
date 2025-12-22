@@ -44,6 +44,9 @@ export class FileProtocol extends BaseProtocol {
     this.wsClient.registerRoute("/ack/save_file", (data) =>
       this.handleSaveAck(data)
     );
+    this.wsClient.registerRoute("/ack/save_separated", (data) =>
+      this.handleSaveSeparatedAck(data)
+    );
   }
 
   protected handleMessage(path: string, data: any): void {
@@ -87,7 +90,7 @@ export class FileProtocol extends BaseProtocol {
    */
   private async handleFileContent(data: any): Promise<void> {
     try {
-      const { file_path, content } = data;
+      const { file_path, content, mpe_config, config_path } = data;
 
       if (!file_path || !content) {
         console.error("[FileProtocol] Invalid file content data:", data);
@@ -96,10 +99,20 @@ export class FileProtocol extends BaseProtocol {
       }
 
       const fileStore = useFileStore.getState();
-      const success = await fileStore.openFileFromLocal(file_path, content);
+      const success = await fileStore.openFileFromLocal(
+        file_path,
+        content,
+        mpe_config,
+        config_path
+      );
 
       if (success) {
-        message.success(`已打开文件: ${file_path.split(/[\/\\]/).pop()}`);
+        const fileName = file_path.split(/[\/\\]/).pop();
+        if (mpe_config) {
+          message.success(`已打开文件: ${fileName} (含配置)`);
+        } else {
+          message.success(`已打开文件: ${fileName}`);
+        }
       } else {
         message.error("文件打开失败");
       }
@@ -193,6 +206,39 @@ export class FileProtocol extends BaseProtocol {
   }
 
   /**
+   * 处理分离保存成功确认
+   * 路由: /ack/save_separated
+   */
+  private handleSaveSeparatedAck(data: any): void {
+    try {
+      const { pipeline_path, config_path, status } = data;
+
+      if (status === "ok") {
+        const pipelineName =
+          pipeline_path.split(/[\/\\]/).pop() || pipeline_path;
+        const configName = config_path.split(/[\/\\]/).pop() || config_path;
+        message.success(`文件已保存: ${pipelineName} + ${configName}`);
+
+        // 忽略刚保存文件的变更通知
+        this.recentlySavedFiles.add(pipeline_path);
+        this.recentlySavedFiles.add(config_path);
+        // 清除记录
+        setTimeout(() => {
+          this.recentlySavedFiles.delete(pipeline_path);
+          this.recentlySavedFiles.delete(config_path);
+        }, 3000);
+      } else {
+        message.error("文件保存失败");
+      }
+    } catch (error) {
+      console.error(
+        "[FileProtocol] Failed to handle save separated ack:",
+        error
+      );
+    }
+  }
+
+  /**
    * 请求打开文件
    * 发送路由: /etl/open_file
    */
@@ -225,6 +271,29 @@ export class FileProtocol extends BaseProtocol {
       file_name: fileName,
       directory,
       content,
+    });
+  }
+
+  /**
+   * 请求分离保存文件
+   * 发送路由: /etl/save_separated
+   */
+  public requestSaveSeparated(
+    pipelinePath: string,
+    configPath: string,
+    pipeline: any,
+    config: any
+  ): boolean {
+    if (!this.wsClient) {
+      console.error("[FileProtocol] WebSocket client not initialized");
+      return false;
+    }
+
+    return this.wsClient.send("/etl/save_separated", {
+      pipeline_path: pipelinePath,
+      config_path: configPath,
+      pipeline,
+      config,
     });
   }
 

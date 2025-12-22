@@ -39,6 +39,7 @@ func (h *Handler) GetRoutePrefix() []string {
 	return []string{
 		"/etl/open_file",
 		"/etl/save_file",
+		"/etl/save_separated",
 		"/etl/create_file",
 		"/etl/refresh_file_list",
 	}
@@ -51,6 +52,8 @@ func (h *Handler) Handle(msg models.Message, conn *server.Connection) *models.Me
 		return h.handleOpenFile(msg, conn)
 	case "/etl/save_file":
 		return h.handleSaveFile(msg, conn)
+	case "/etl/save_separated":
+		return h.handleSaveSeparated(msg, conn)
 	case "/etl/create_file":
 		return h.handleCreateFile(msg, conn)
 	case "/etl/refresh_file_list":
@@ -69,7 +72,7 @@ func (h *Handler) handleOpenFile(msg models.Message, conn *server.Connection) *m
 		return nil
 	}
 
-	// 读取文件
+	// 读取 Pipeline 文件
 	content, err := h.fileService.ReadFile(req.FilePath)
 	if err != nil {
 		if lbErr, ok := err.(*errors.LBError); ok {
@@ -80,12 +83,55 @@ func (h *Handler) handleOpenFile(msg models.Message, conn *server.Connection) *m
 		return nil
 	}
 
+	// 生成配置文件路径
+	var configPath string
+	var mpeConfig interface{}
+
+	// 从完整路径中提取目录和文件名
+	lastSlashIndex := -1
+	for i := len(req.FilePath) - 1; i >= 0; i-- {
+		if req.FilePath[i] == '/' || req.FilePath[i] == '\\' {
+			lastSlashIndex = i
+			break
+		}
+	}
+
+	if lastSlashIndex >= 0 {
+		directory := req.FilePath[:lastSlashIndex+1]
+		fileName := req.FilePath[lastSlashIndex+1:]
+
+		// 移除扩展名
+		baseName := fileName
+		if len(fileName) > 5 && (fileName[len(fileName)-5:] == ".json" || fileName[len(fileName)-6:] == ".jsonc") {
+			if fileName[len(fileName)-5:] == ".json" {
+				baseName = fileName[:len(fileName)-5]
+			} else {
+				baseName = fileName[:len(fileName)-6]
+			}
+		}
+
+		configPath = directory + "." + baseName + ".mpe.json"
+
+		// 尝试读取配置文件
+		configContent, err := h.fileService.ReadFile(configPath)
+		if err == nil {
+			// 配置文件存在
+			mpeConfig = configContent
+			logger.Info("FileService", "找到并加载配置文件: %s", configPath)
+		} else {
+			// 配置文件不存在，清空路径
+			configPath = ""
+		}
+	}
+
 	// 返回文件内容
 	return &models.Message{
 		Path: "/lte/file_content",
 		Data: models.FileContentData{
-			FilePath: req.FilePath,
-			Content:  content,
+			FilePath:   req.FilePath,
+			Content:    content,
+			MpeConfig:  mpeConfig,
+			ConfigPath: configPath,
 		},
 	}
 }
@@ -115,6 +161,48 @@ func (h *Handler) handleSaveFile(msg models.Message, conn *server.Connection) *m
 		Data: models.SaveFileAckData{
 			FilePath: req.FilePath,
 			Status:   "ok",
+		},
+	}
+}
+
+// 处理分离保存文件请求
+func (h *Handler) handleSaveSeparated(msg models.Message, conn *server.Connection) *models.Message {
+	// 解析请求
+	var req models.SaveSeparatedRequest
+	if err := h.parseData(msg.Data, &req); err != nil {
+		h.sendError(conn, err)
+		return nil
+	}
+
+	// 保存 Pipeline 文件
+	if err := h.fileService.SaveFile(req.PipelinePath, req.Pipeline); err != nil {
+		if lbErr, ok := err.(*errors.LBError); ok {
+			h.sendError(conn, lbErr)
+		} else {
+			h.sendError(conn, errors.Wrap(errors.ErrFileWriteError, "保存 Pipeline 文件失败", err))
+		}
+		return nil
+	}
+
+	// 保存配置文件
+	if err := h.fileService.SaveFile(req.ConfigPath, req.Config); err != nil {
+		if lbErr, ok := err.(*errors.LBError); ok {
+			h.sendError(conn, lbErr)
+		} else {
+			h.sendError(conn, errors.Wrap(errors.ErrFileWriteError, "保存配置文件失败", err))
+		}
+		return nil
+	}
+
+	logger.Info("FileService", "分离模式保存成功: %s + %s", req.PipelinePath, req.ConfigPath)
+
+	// 返回确认
+	return &models.Message{
+		Path: "/ack/save_separated",
+		Data: models.SaveSeparatedAckData{
+			PipelinePath: req.PipelinePath,
+			ConfigPath:   req.ConfigPath,
+			Status:       "ok",
 		},
 	}
 }

@@ -78,8 +78,8 @@ function decodeShareContent(compressed: string): any | null {
  */
 export async function generateShareLink(): Promise<boolean> {
   try {
-    // 编译当前 pipeline
-    const pipelineObj = flowToPipeline();
+    // 强制使用集成模式编译当前 pipeline
+    const pipelineObj = flowToPipeline({ forceExportConfig: true });
 
     if (!pipelineObj || Object.keys(pipelineObj).length === 0) {
       message.warning("当前画布为空，无法生成分享链接");

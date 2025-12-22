@@ -27,6 +27,7 @@ import {
   parseAnchorNodeForExport,
 } from "./nodeParser";
 import { normalizeViewport } from "../../stores/flow/utils/viewportUtils";
+import { splitPipelineAndConfig } from "./configSplitter";
 
 /**
  * 将Flow转换为Pipeline对象
@@ -51,13 +52,20 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
     // 获取当前 flow 数据
     const flowState = useFlowStore.getState();
     const fileState = useFileStore.getState();
-    const { nodes, edges, config, fileName } = {
+    const { nodes, edges, config, fileName, forceExportConfig } = {
       nodes: datas?.nodes ?? (flowState.nodes as NodeType[]),
       edges: datas?.edges ?? (flowState.edges as EdgeType[]),
       fileName: datas?.fileName ?? fileState.currentFile.fileName,
       config: datas?.config ?? fileState.currentFile.config,
+      forceExportConfig: datas?.forceExportConfig,
     };
     const generalConfig = useConfigStore.getState().configs;
+
+    // forceExportConfig > configHandlingMode
+    const shouldExportConfig =
+      forceExportConfig !== undefined
+        ? forceExportConfig
+        : generalConfig.configHandlingMode !== "none";
 
     // 按顺序排序节点
     const orderMap = config.nodeOrderMap ?? {};
@@ -79,12 +87,12 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
           );
           break;
         case NodeTypeEnum.External:
-          if (!generalConfig.isExportConfig) break;
+          if (!shouldExportConfig) break;
           pipelineObj[externalMarkPrefix + node.data.label + "_" + fileName] =
             parseExternalNodeForExport(node as PipelineNodeType);
           break;
         case NodeTypeEnum.Anchor:
-          if (!generalConfig.isExportConfig) break;
+          if (!shouldExportConfig) break;
           pipelineObj[anchorMarkPrefix + node.data.label + "_" + fileName] =
             parseAnchorNodeForExport(node as PipelineNodeType);
           break;
@@ -151,7 +159,7 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
     });
 
     // 配置
-    if (!generalConfig.isExportConfig) return pipelineObj;
+    if (!shouldExportConfig) return pipelineObj;
     // 过滤掉运行时字段
     const { nodeOrderMap, nextOrderNumber, savedViewport, ...exportConfig } =
       config;
@@ -187,4 +195,25 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
 export function flowToPipelineString(datas?: FlowToOptions): string {
   const pipelineObj = flowToPipeline(datas);
   return JSON.stringify(pipelineObj, null, 2);
+}
+
+/**
+ * 生成分离模式的导出内容
+ * @param datas 可选的数据
+ * @returns { pipelineString, configString } 两个 JSON 字符串
+ */
+export function flowToSeparatedStrings(datas?: FlowToOptions): {
+  pipelineString: string;
+  configString: string;
+} {
+  // 生成完整的 Pipeline 对象
+  const fullPipelineObj = flowToPipeline({ ...datas, forceExportConfig: true });
+
+  // 拆分为 Pipeline 和配置
+  const { pipeline, config } = splitPipelineAndConfig(fullPipelineObj);
+
+  return {
+    pipelineString: JSON.stringify(pipeline, null, 2),
+    configString: JSON.stringify(config, null, 2),
+  };
 }

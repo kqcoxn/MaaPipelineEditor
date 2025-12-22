@@ -28,8 +28,10 @@ type FileListData struct {
 
 // 文件内容数据
 type FileContentData struct {
-	FilePath string      `json:"file_path"` // 文件绝对路径
-	Content  interface{} `json:"content"`   // 文件内容（JSON对象）
+	FilePath   string      `json:"file_path"`             // 文件绝对路径
+	Content    interface{} `json:"content"`               // 文件内容
+	MpeConfig  interface{} `json:"mpe_config,omitempty"`  // MPE配置文件内容
+	ConfigPath string      `json:"config_path,omitempty"` // 配置文件路径
 }
 
 // 文件变化通知
@@ -49,6 +51,14 @@ type SaveFileRequest struct {
 	Content  interface{} `json:"content"`   // 文件内容（JSON对象）
 }
 
+// 分离保存文件请求
+type SaveSeparatedRequest struct {
+	PipelinePath string      `json:"pipeline_path"` // Pipeline 文件绝对路径
+	ConfigPath   string      `json:"config_path"`   // 配置文件绝对路径
+	Pipeline     interface{} `json:"pipeline"`      // Pipeline 内容
+	Config       interface{} `json:"config"`        // 配置内容
+}
+
 // 创建文件请求
 type CreateFileRequest struct {
 	FileName  string      `json:"file_name"`         // 文件名
@@ -60,6 +70,13 @@ type CreateFileRequest struct {
 type SaveFileAckData struct {
 	FilePath string `json:"file_path"` // 文件绝对路径
 	Status   string `json:"status"`    // 状态: "ok"
+}
+
+// 分离保存文件确认数据
+type SaveSeparatedAckData struct {
+	PipelinePath string `json:"pipeline_path"` // Pipeline 文件路径
+	ConfigPath   string `json:"config_path"`   // 配置文件路径
+	Status       string `json:"status"`        // 状态: "ok"
 }
 
 // 日志数据

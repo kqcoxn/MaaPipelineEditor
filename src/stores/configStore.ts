@@ -4,7 +4,7 @@ import { create } from "zustand";
 export const globalConfig = {
   dev: true,
   version: `0.13.0`,
-  betaIteration: 0,
+  betaIteration: 1,
   mfwVersion: "5.3",
   protocolVersion: "0.2",
 };
@@ -19,12 +19,16 @@ export type NodeStyleType = "modern" | "classic";
 // 节点属性导出形式
 export type NodeAttrExportStyle = "object" | "prefix";
 
+// 配置处理方案类型
+export type ConfigHandlingMode = "integrated" | "separated" | "none";
+
 /**配置 */
 type ConfigState = {
   // 设置
   configs: {
     isRealTimePreview: boolean;
     isExportConfig: boolean;
+    configHandlingMode: ConfigHandlingMode;
     showEdgeLabel: boolean;
     isAutoFocus: boolean;
     useDarkMode: boolean;
@@ -66,6 +70,7 @@ export const useConfigStore = create<ConfigState>()((set) => ({
   configs: {
     isRealTimePreview: false,
     isExportConfig: true,
+    configHandlingMode: "integrated" as ConfigHandlingMode,
     showEdgeLabel: true,
     isAutoFocus: true,
     useDarkMode: false,
@@ -85,9 +90,18 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     showEdgeControlPoint: true,
   },
   setConfig(key, value) {
-    set((state) => ({
-      configs: { ...state.configs, [key]: value },
-    }));
+    set((state) => {
+      const newConfigs = { ...state.configs, [key]: value };
+
+      // 同步 isExportConfig 与 configHandlingMode
+      if (key === "configHandlingMode") {
+        newConfigs.isExportConfig = value !== "none";
+      } else if (key === "isExportConfig") {
+        newConfigs.configHandlingMode = value ? "integrated" : "none";
+      }
+
+      return { configs: newConfigs };
+    });
   },
   replaceConfig(configs) {
     set((state) => {
@@ -96,7 +110,26 @@ export const useConfigStore = create<ConfigState>()((set) => ({
       Object.keys(configs).forEach((key) => {
         if (keys.includes(key)) newConfigs[key] = configs[key];
       });
-      return { configs: { ...state.configs, ...newConfigs } };
+
+      const mergedConfigs = { ...state.configs, ...newConfigs };
+
+      // 从 isExportConfig 迁移至 configHandlingMode
+      if (
+        !mergedConfigs.configHandlingMode &&
+        "isExportConfig" in mergedConfigs
+      ) {
+        mergedConfigs.configHandlingMode = mergedConfigs.isExportConfig
+          ? "integrated"
+          : "none";
+      }
+
+      // 同步 isExportConfig
+      if (mergedConfigs.configHandlingMode) {
+        mergedConfigs.isExportConfig =
+          mergedConfigs.configHandlingMode !== "none";
+      }
+
+      return { configs: mergedConfigs };
     });
   },
   // 状态

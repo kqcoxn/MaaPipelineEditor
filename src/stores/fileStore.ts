@@ -11,6 +11,7 @@ export type FileConfigType = {
   prefix: string;
   filePath?: string;
   relativePath?: string;
+  separatedConfigPath?: string;
   isDeleted?: boolean;
   isModifiedExternally?: boolean;
   lastSyncTime?: number;
@@ -159,7 +160,12 @@ type FileState = {
   onDragEnd: (result: DragEndEvent) => void;
   replace: (files?: FileType[]) => any;
   // 本地文件操作方法
-  openFileFromLocal: (filePath: string, content: any) => Promise<boolean>;
+  openFileFromLocal: (
+    filePath: string,
+    content: any,
+    mpeConfig?: any,
+    configPath?: string
+  ) => Promise<boolean>;
   saveFileToLocal: (filePath?: string) => Promise<boolean>;
   markFileDeleted: (filePath: string) => void;
   markFileModified: (filePath: string) => void;
@@ -330,11 +336,37 @@ export const useFileStore = create<FileState>()((set) => ({
   },
 
   // 从本地打开文件
-  async openFileFromLocal(filePath: string, content: any): Promise<boolean> {
+  async openFileFromLocal(
+    filePath: string,
+    content: any,
+    mpeConfig?: any,
+    configPath?: string
+  ): Promise<boolean> {
     try {
-      const { pipelineToFlow } = await import("../core/parser");
+      const { pipelineToFlow, mergePipelineAndConfig } = await import(
+        "../core/parser"
+      );
       const contentString =
         typeof content === "string" ? content : JSON.stringify(content);
+
+      // 合并配置文件
+      let finalContentString = contentString;
+      if (mpeConfig) {
+        try {
+          const pipelineObj = JSON.parse(contentString);
+          const mergedPipeline = mergePipelineAndConfig(pipelineObj, mpeConfig);
+          finalContentString = JSON.stringify(mergedPipeline);
+          console.log(
+            "[fileStore] Merged pipeline with config from:",
+            configPath
+          );
+        } catch (error) {
+          console.error(
+            "[fileStore] Failed to merge config, using pipeline only:",
+            error
+          );
+        }
+      }
 
       // 查找是否已有相同路径的文件打开
       const existingFile = useFileStore
@@ -344,13 +376,16 @@ export const useFileStore = create<FileState>()((set) => ({
       if (existingFile) {
         // 切换到已有文件并更新内容
         useFileStore.getState().switchFile(existingFile.fileName);
-        await pipelineToFlow({ pString: contentString });
-        // 更新同步时间
+        await pipelineToFlow({ pString: finalContentString });
+        // 更新同步时间和配置路径
         set((state) => {
           const config = {
             ...state.currentFile.config,
             lastSyncTime: Date.now(),
           };
+          if (configPath) {
+            config.separatedConfigPath = configPath;
+          }
           state.currentFile.config = config;
           return {};
         });
@@ -365,13 +400,16 @@ export const useFileStore = create<FileState>()((set) => ({
         !currentFile.config.filePath
       ) {
         const savedViewport = currentFile.config.savedViewport;
-        await pipelineToFlow({ pString: contentString });
+        await pipelineToFlow({ pString: finalContentString });
         set((state) => {
           const config = {
             ...state.currentFile.config,
             filePath,
             lastSyncTime: Date.now(),
           };
+          if (configPath) {
+            config.separatedConfigPath = configPath;
+          }
           state.currentFile.config = config;
           return {};
         });
@@ -389,13 +427,16 @@ export const useFileStore = create<FileState>()((set) => ({
 
       // 新建文件
       useFileStore.getState().addFile({ isSwitch: true });
-      await pipelineToFlow({ pString: contentString });
+      await pipelineToFlow({ pString: finalContentString });
       set((state) => {
         const config = {
           ...state.currentFile.config,
           filePath,
           lastSyncTime: Date.now(),
         };
+        if (configPath) {
+          config.separatedConfigPath = configPath;
+        }
         state.currentFile.config = config;
         return {};
       });
@@ -409,8 +450,11 @@ export const useFileStore = create<FileState>()((set) => ({
   // 保存文件到本地
   async saveFileToLocal(filePath?: string): Promise<boolean> {
     try {
-      const { flowToPipeline } = await import("../core/parser");
+      const { flowToPipeline, flowToSeparatedStrings, splitPipelineAndConfig } =
+        await import("../core/parser");
       const currentFile = useFileStore.getState().currentFile;
+      const configHandlingMode =
+        useConfigStore.getState().configs.configHandlingMode;
       const targetFilePath = filePath || currentFile.config.filePath;
 
       if (!targetFilePath) {
@@ -418,8 +462,6 @@ export const useFileStore = create<FileState>()((set) => ({
         return false;
       }
 
-      // 编译Pipeline
-      const pipeline = flowToPipeline();
       const { localServer } = await import("../services/server");
 
       if (!localServer.isConnected()) {
@@ -427,21 +469,64 @@ export const useFileStore = create<FileState>()((set) => ({
         return false;
       }
 
-      const success = localServer.send("/etl/save_file", {
-        file_path: targetFilePath,
-        content: pipeline,
-      });
+      let success = false;
 
-      if (success) {
-        // 更新同步时间
-        set((state) => {
-          const config = {
-            ...state.currentFile.config,
-            lastSyncTime: Date.now(),
-          };
-          state.currentFile.config = config;
-          return {};
+      if (configHandlingMode === "separated") {
+        // 分离模式保存
+        const { pipelineString, configString } = flowToSeparatedStrings();
+        const pipeline = JSON.parse(pipelineString);
+        const config = JSON.parse(configString);
+
+        // 生成配置文件路径
+        // 从完整路径中提取目录和文件名
+        const lastSlashIndex = Math.max(
+          targetFilePath.lastIndexOf("/"),
+          targetFilePath.lastIndexOf("\\")
+        );
+        const directory = targetFilePath.substring(0, lastSlashIndex + 1);
+        const fileName = targetFilePath.substring(lastSlashIndex + 1);
+        const baseName = fileName.replace(/\.(json|jsonc)$/i, "");
+        const configPath = `${directory}.${baseName}.mpe.json`;
+
+        success = localServer.send("/etl/save_separated", {
+          pipeline_path: targetFilePath,
+          config_path: configPath,
+          pipeline,
+          config,
         });
+
+        if (success) {
+          // 保存配置文件路径
+          set((state) => {
+            const config = {
+              ...state.currentFile.config,
+              separatedConfigPath: configPath,
+              lastSyncTime: Date.now(),
+            };
+            state.currentFile.config = config;
+            return {};
+          });
+        }
+      } else {
+        // 集成模式或不导出模式
+        const pipeline = flowToPipeline();
+
+        success = localServer.send("/etl/save_file", {
+          file_path: targetFilePath,
+          content: pipeline,
+        });
+
+        if (success) {
+          // 更新同步时间
+          set((state) => {
+            const config = {
+              ...state.currentFile.config,
+              lastSyncTime: Date.now(),
+            };
+            state.currentFile.config = config;
+            return {};
+          });
+        }
       }
 
       return success;

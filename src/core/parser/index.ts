@@ -16,8 +16,14 @@
  * - importer: 导入逻辑
  */
 
-export { flowToPipeline, flowToPipelineString } from "./exporter";
+export { flowToPipeline, flowToPipelineString, flowToSeparatedStrings } from "./exporter";
 export { pipelineToFlow } from "./importer";
+export {
+  splitPipelineAndConfig,
+  mergePipelineAndConfig,
+  getConfigFileName,
+  getPipelineFileNameFromConfig,
+} from "./configSplitter";
 
 // 导出类型
 export type {
@@ -25,6 +31,7 @@ export type {
   PipelineObjType,
   IdLabelPairsType,
   PipelineConfigType,
+  MpeConfigType,
   FlowToOptions,
   PipelineToFlowOptions,
   NodeType,

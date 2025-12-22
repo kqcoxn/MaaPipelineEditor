@@ -97,13 +97,18 @@ func (s *Service) ReadFile(filePath string) (interface{}, error) {
 		return nil, err
 	}
 
-	// 检查文件是否存在于索引中
-	s.mu.RLock()
-	_, exists := s.fileIndex[filePath]
-	s.mu.RUnlock()
+	// 允许直接读取 .mpe.json 配置文件，
+	isConfigFile := strings.HasPrefix(filepath.Base(filePath), ".") && strings.HasSuffix(strings.ToLower(filePath), ".mpe.json")
 
-	if !exists {
-		return nil, errors.NewFileNotFoundError(filePath)
+	// 检查文件是否存在于索引中
+	if !isConfigFile {
+		s.mu.RLock()
+		_, exists := s.fileIndex[filePath]
+		s.mu.RUnlock()
+
+		if !exists {
+			return nil, errors.NewFileNotFoundError(filePath)
+		}
 	}
 
 	// 读取文件内容
