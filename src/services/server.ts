@@ -9,6 +9,7 @@ import { FileProtocol } from "./protocols/FileProtocol";
 import { MFWProtocol } from "./protocols/MFWProtocol";
 import { ErrorProtocol } from "./protocols/ErrorProtocol";
 import { ConfigProtocol } from "./protocols/ConfigProtocol";
+import { DebugProtocol } from "./protocols/DebugProtocol";
 import { globalConfig } from "../stores/configStore";
 
 const PROTOCOL_VERSION = globalConfig.protocolVersion;
@@ -271,6 +272,7 @@ export const fileProtocol = new FileProtocol();
 export const mfwProtocol = new MFWProtocol();
 export const errorProtocol = new ErrorProtocol();
 export const configProtocol = new ConfigProtocol();
+export const debugProtocol = new DebugProtocol();
 
 /**
  * 初始化 WebSocket 连接和所有响应路由
@@ -288,6 +290,9 @@ export function initializeWebSocket() {
 
   // 注册 ConfigProtocol
   configProtocol.register(localServer);
+
+  // 注册 DebugProtocol
+  debugProtocol.register(localServer);
 
   // 监听连接成功事件，确保协议注册
   localServer.onStatus((connected) => {});

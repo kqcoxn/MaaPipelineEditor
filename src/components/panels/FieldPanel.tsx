@@ -8,7 +8,7 @@ import {
   Component,
   type ReactNode,
 } from "react";
-import { Tooltip, Spin, Alert, Button } from "antd";
+import { Tooltip, Spin, Alert, Button, Tabs } from "antd";
 import classNames from "classnames";
 import IconFont from "../iconfonts";
 
@@ -26,6 +26,8 @@ import {
   AnchorEditor,
 } from "./node-editors";
 import { FieldPanelToolbar } from "./field-tools";
+import { useDebugStore } from "../../stores/debugStore";
+import DebugInfoTab from "./DebugInfoTab";
 
 // 节点数据验证与修复
 function validateAndRepairNode(node: NodeType): {
@@ -175,12 +177,14 @@ class EditorErrorBoundary extends Component<
 function FieldPanel() {
   const currentNode = useFlowStore((state) => state.targetNode);
   const updateNodes = useFlowStore((state) => state.updateNodes);
+  const debugMode = useDebugStore((state) => state.debugMode);
   const [isLoading, setIsLoading] = useState(false);
   const [progressStage, setProgressStage] = useState("");
   const [progressDetail, setProgressDetail] = useState("");
   const [validationWarning, setValidationWarning] = useState<string | null>(
     null
   );
+  const [activeTab, setActiveTab] = useState("fields");
 
   // 验证并修复节点数据
   const handleNodeRepair = useCallback(() => {
@@ -417,7 +421,31 @@ function FieldPanel() {
           />
         </div>
       )}
-      {renderContent}
+      {/* 标签页 */}
+      {debugMode && currentNode ? (
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          type="card"
+          size="small"
+          items={[
+            {
+              key: "fields",
+              label: "字段配置",
+              children: renderContent,
+            },
+            {
+              key: "debug",
+              label: "调试信息",
+              children: <DebugInfoTab />,
+            },
+          ]}
+          style={{ flex: 1, display: "flex", flexDirection: "column" }}
+          tabBarStyle={{ margin: 0, paddingLeft: 12, paddingRight: 12 }}
+        />
+      ) : (
+        renderContent
+      )}
     </div>
   );
 }

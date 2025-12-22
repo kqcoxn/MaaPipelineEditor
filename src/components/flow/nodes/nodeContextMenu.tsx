@@ -12,6 +12,7 @@ import {
   saveNodeAsTemplate,
   deleteNode,
 } from "./utils/nodeOperations";
+import { useDebugStore } from "../../../stores/debugStore";
 
 /**菜单项类型 */
 export interface NodeContextMenuItem {
@@ -66,10 +67,23 @@ function handleDeleteNode(node: NodeContextMenuNode) {
   deleteNode(node.id);
 }
 
+/**切换断点处理器 */
+function handleToggleBreakpoint(node: NodeContextMenuNode) {
+  const { toggleBreakpoint, breakpoints } = useDebugStore.getState();
+  const hasBreakpoint = breakpoints.has(node.id);
+
+  toggleBreakpoint(node.id);
+
+  message.success(hasBreakpoint ? "断点已移除" : "断点已设置");
+}
+
 /**获取节点右键菜单配置 */
 export function getNodeContextMenuConfig(
   node: NodeContextMenuNode
 ): NodeContextMenuConfig[] {
+  const { debugMode, breakpoints } = useDebugStore.getState();
+  const hasBreakpoint = breakpoints.has(node.id);
+
   const config: NodeContextMenuConfig[] = [
     // 复制节点名
     {
@@ -86,6 +100,25 @@ export function getNodeContextMenuConfig(
       onClick: handleSaveAsTemplate,
       visible: (node) => node.type === NodeTypeEnum.Pipeline,
     },
+  ];
+
+  // 调试模式下添加断点选项
+  if (debugMode) {
+    config.push(
+      {
+        type: "divider",
+        key: "divider-debug",
+      },
+      {
+        key: "toggle-breakpoint",
+        label: hasBreakpoint ? "移除断点" : "设置断点",
+        icon: "icon-icon",
+        onClick: handleToggleBreakpoint,
+      }
+    );
+  }
+
+  config.push(
     // 分隔线
     {
       type: "divider",
@@ -98,8 +131,8 @@ export function getNodeContextMenuConfig(
       icon: "icon-shanchu",
       onClick: handleDeleteNode,
       danger: true,
-    },
-  ];
+    }
+  );
 
   return config;
 }

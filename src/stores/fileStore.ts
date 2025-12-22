@@ -356,10 +356,6 @@ export const useFileStore = create<FileState>()((set) => ({
           const pipelineObj = JSON.parse(contentString);
           const mergedPipeline = mergePipelineAndConfig(pipelineObj, mpeConfig);
           finalContentString = JSON.stringify(mergedPipeline);
-          console.log(
-            "[fileStore] Merged pipeline with config from:",
-            configPath
-          );
         } catch (error) {
           console.error(
             "[fileStore] Failed to merge config, using pipeline only:",

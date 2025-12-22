@@ -1,0 +1,322 @@
+// 调试面板特有样式
+
+// 状态信息区域
+.debug-status-group {
+  margin-left: auto;
+  padding-left: 12px;
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1px;
+    height: 24px;
+    background-color: rgba(0, 0, 0, 0.1);
+  }
+}
+
+.debug-status-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+}
+
+.debug-status-tag {
+  font-size: 12px;
+}
+
+.debug-current-node {
+  font-size: 12px;
+  color: var(--text-secondary);
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.debug-elapsed-time {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-family: monospace;
+}
+
+// 调试配置面板样式
+
+.debug-config-form {
+  width: 320px;
+  padding: 4px 0;
+}
+
+.debug-config-section {
+  margin-bottom: 20px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.debug-config-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 14px;
+  padding: 0 0 10px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+
+  &::before {
+    content: "";
+    width: 3px;
+    height: 14px;
+    background: linear-gradient(180deg, #1890ff 0%, #40a9ff 100%);
+    border-radius: 2px;
+    margin-right: 8px;
+  }
+}
+
+.debug-config-field {
+  margin-bottom: 16px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.debug-config-field-label {
+  font-size: 13px;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+
+  &::before {
+    content: "•";
+    color: #1890ff;
+    font-size: 16px;
+    margin-right: 6px;
+    line-height: 1;
+  }
+}
+
+.debug-config-input {
+  width: 92%;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  font-size: 13px;
+  transition: all 0.2s ease;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+
+  &:hover {
+    border-color: #40a9ff;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: #1890ff;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+  }
+
+  &::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.5;
+  }
+}
+
+// 断点管理面板样式
+
+.breakpoint-manager-content {
+  width: 280px;
+  padding: 8px 0;
+}
+
+.breakpoint-manager-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.breakpoint-list {
+  max-height: 300px;
+  overflow-y: auto;
+
+  // 滚动条样式
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.3);
+    }
+  }
+}
+
+.breakpoint-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  margin-bottom: 4px;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+}
+
+.breakpoint-item-name {
+  flex: 1;
+  font-size: 13px;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary);
+
+  &:hover {
+    color: var(--primary-color);
+  }
+}
+
+.breakpoint-item-remove {
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.breakpoint-empty {
+  padding: 24px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+// 节点调试状态样式
+
+.debug-node-executing {
+  animation: debug-node-pulse 1.5s ease-in-out infinite;
+  border-color: #1890ff !important;
+  border-width: 2px !important;
+  box-shadow: 0 0 8px rgba(24, 144, 255, 0.5);
+}
+
+.debug-node-executed {
+  opacity: 0.7;
+
+  &::after {
+    content: "✓";
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 16px;
+    height: 16px;
+    background-color: #52c41a;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: bold;
+  }
+}
+
+.debug-node-failed {
+  border-color: #ff4d4f !important;
+  border-width: 2px !important;
+  background-color: rgba(255, 77, 79, 0.1) !important;
+}
+
+.debug-node-breakpoint {
+  &::before {
+    content: "";
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    width: 12px;
+    height: 12px;
+    background-color: #ff4d4f;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+  }
+}
+
+@keyframes debug-node-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 8px rgba(24, 144, 255, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(24, 144, 255, 0.8);
+  }
+}
+
+.debug-edge-executed {
+  stroke: #52c41a !important;
+  stroke-width: 2px !important;
+  stroke-dasharray: none !important;
+}
+
+// 连接状态指示器
+
+.debug-connection-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-left: 4px;
+
+  &.connected {
+    background-color: #52c41a;
+    box-shadow: 0 0 4px rgba(82, 196, 26, 0.5);
+  }
+
+  &.disconnected {
+    background-color: #d9d9d9;
+  }
+}
+
+// 调试信息标签页样式
+
+.debug-info-tab {
+  flex: 1;
+  overflow-y: auto;
+
+  // 滚动条样式
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.3);
+    }
+  }
+}

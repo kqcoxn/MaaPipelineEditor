@@ -4,9 +4,11 @@ import { useReactFlow } from "@xyflow/react";
 import classNames from "classnames";
 
 import style from "../../../../styles/nodes.module.less";
+import debugStyle from "../../../../styles/DebugPanel.module.less";
 import type { PipelineNodeDataType } from "../../../../stores/flow";
 import { useFlowStore } from "../../../../stores/flow";
 import { useConfigStore } from "../../../../stores/configStore";
+import { useDebugStore } from "../../../../stores/debugStore";
 import { NodeTypeEnum } from "../constants";
 import { ModernContent } from "./ModernContent";
 import { ClassicContent } from "./ClassicContent";
@@ -40,6 +42,16 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
         pathNodeIds: state.pathNodeIds,
       }))
     );
+
+  // 获取调试状态
+  const { debugMode, executedNodes, currentNode, breakpoints } = useDebugStore(
+    useShallow((state) => ({
+      debugMode: state.debugMode,
+      executedNodes: state.executedNodes,
+      currentNode: state.currentNode,
+      breakpoints: state.breakpoints,
+    }))
+  );
 
   // 计算是否与选中元素相关联
   const isRelated = useMemo(() => {
@@ -97,8 +109,13 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
         [style["pipeline-node"]]: true,
         [style["node-selected"]]: props.selected,
         [style["modern-node"]]: nodeStyle === "modern",
+        // 调试相关样式
+        [debugStyle["debug-node-executed"]]:
+          debugMode && executedNodes.has(props.id),
+        [debugStyle["debug-node-executing"]]:
+          debugMode && currentNode === props.id,
       }),
-    [props.selected, nodeStyle]
+    [props.selected, nodeStyle, debugMode, executedNodes, currentNode, props.id]
   );
 
   // 计算透明度样式
@@ -126,6 +143,10 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
       onOpenChange={setContextMenuOpen}
     >
       <div className={nodeClass} style={opacityStyle}>
+        {/* 断点标记 */}
+        {debugMode && breakpoints.has(props.id) && (
+          <div className={debugStyle["debug-node-breakpoint"]} />
+        )}
         {nodeStyle === "modern" ? (
           <ModernContent data={props.data} props={props} />
         ) : (

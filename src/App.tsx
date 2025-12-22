@@ -17,6 +17,7 @@ import { useFileStore } from "./stores/fileStore";
 import { useConfigStore } from "./stores/configStore";
 import { useWSStore } from "./stores/wsStore";
 import { useCustomTemplateStore } from "./stores/customTemplateStore";
+import { useDebugStore } from "./stores/debugStore";
 import { localServer } from "./services/server";
 
 import Header from "./components/Header";
@@ -97,6 +98,9 @@ const GlobalListener = memo(() => {
 
 /**主程序 */
 function App() {
+  // 获取调试模式状态
+  const debugMode = useDebugStore((state) => state.debugMode);
+
   // 处理文件拖拽
   const handleFileDrop = useCallback(async (e: DragEvent) => {
     e.preventDefault();
@@ -246,6 +250,7 @@ function App() {
                 <ToolPanel.Add />
                 <ToolPanel.Global />
                 <SearchPanel />
+                {debugMode && <ToolPanel.Debug />}
                 <ToolPanel.Layout />
                 <ErrorPanel />
               </Splitter.Panel>
