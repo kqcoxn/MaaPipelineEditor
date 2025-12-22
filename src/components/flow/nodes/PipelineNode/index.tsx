@@ -1,5 +1,6 @@
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState } from "react";
 import type { Node, NodeProps } from "@xyflow/react";
+import { useReactFlow } from "@xyflow/react";
 import classNames from "classnames";
 
 import style from "../../../../styles/nodes.module.less";
@@ -10,6 +11,7 @@ import { NodeTypeEnum } from "../constants";
 import { ModernContent } from "./ModernContent";
 import { ClassicContent } from "./ClassicContent";
 import { useShallow } from "zustand/shallow";
+import { NodeContextMenu } from "../components/NodeContextMenu";
 
 type PNodeData = Node<PipelineNodeDataType, NodeTypeEnum.Pipeline>;
 
@@ -17,6 +19,15 @@ type PNodeData = Node<PipelineNodeDataType, NodeTypeEnum.Pipeline>;
 export function PipelineNode(props: NodeProps<PNodeData>) {
   const nodeStyle = useConfigStore((state) => state.configs.nodeStyle);
   const focusOpacity = useConfigStore((state) => state.configs.focusOpacity);
+  const { getNode } = useReactFlow();
+
+  // 右键菜单状态
+  const [contextMenuOpen, setContextMenuOpen] = useState(false);
+
+  // 获取完整的 Node 对象
+  const node = getNode(props.id) as
+    | Node<PipelineNodeDataType, NodeTypeEnum.Pipeline>
+    | undefined;
 
   // 获取选中状态、边信息和路径状态
   const { selectedNodes, selectedEdges, edges, pathMode, pathNodeIds } =
@@ -96,14 +107,32 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
     return { opacity: focusOpacity };
   }, [isRelated, focusOpacity]);
 
+  if (!node) {
+    return (
+      <div className={nodeClass} style={opacityStyle}>
+        {nodeStyle === "modern" ? (
+          <ModernContent data={props.data} props={props} />
+        ) : (
+          <ClassicContent data={props.data} props={props} />
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div className={nodeClass} style={opacityStyle}>
-      {nodeStyle === "modern" ? (
-        <ModernContent data={props.data} props={props} />
-      ) : (
-        <ClassicContent data={props.data} props={props} />
-      )}
-    </div>
+    <NodeContextMenu
+      node={node}
+      open={contextMenuOpen}
+      onOpenChange={setContextMenuOpen}
+    >
+      <div className={nodeClass} style={opacityStyle}>
+        {nodeStyle === "modern" ? (
+          <ModernContent data={props.data} props={props} />
+        ) : (
+          <ClassicContent data={props.data} props={props} />
+        )}
+      </div>
+    </NodeContextMenu>
   );
 }
 

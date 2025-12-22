@@ -1,4 +1,4 @@
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState } from "react";
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 import classNames from "classnames";
 import { useShallow } from "zustand/shallow";
@@ -8,6 +8,7 @@ import type { ExternalNodeDataType } from "../../../stores/flow";
 import { useFlowStore } from "../../../stores/flow";
 import { useConfigStore } from "../../../stores/configStore";
 import { NodeTypeEnum } from "./constants";
+import { NodeContextMenu } from "./components/NodeContextMenu";
 
 /**外部节点内容 */
 const ENodeContent = memo(({ data }: { data: ExternalNodeDataType }) => {
@@ -29,6 +30,9 @@ type ExternalNodeData = Node<ExternalNodeDataType, NodeTypeEnum.External>;
 /**外部节点组件 */
 export function ExternalNode(props: NodeProps<ExternalNodeData>) {
   const focusOpacity = useConfigStore((state) => state.configs.focusOpacity);
+
+  // 右键菜单状态
+  const [contextMenuOpen, setContextMenuOpen] = useState(false);
 
   // 获取选中状态、边信息和路径状态
   const { selectedNodes, selectedEdges, edges, pathMode, pathNodeIds } =
@@ -101,9 +105,15 @@ export function ExternalNode(props: NodeProps<ExternalNodeData>) {
   }, [isRelated, focusOpacity]);
 
   return (
-    <div className={nodeClass} style={opacityStyle}>
-      <ENodeContent data={props.data} />
-    </div>
+    <NodeContextMenu
+      node={props as Node<ExternalNodeDataType, NodeTypeEnum.External>}
+      open={contextMenuOpen}
+      onOpenChange={setContextMenuOpen}
+    >
+      <div className={nodeClass} style={opacityStyle}>
+        <ENodeContent data={props.data} />
+      </div>
+    </NodeContextMenu>
   );
 }
 

@@ -50,7 +50,10 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2025-12",
     type: "feature",
     updates: {
-      features: ["🔧 配置文件可以独立保存了，支持三模式切换！"],
+      features: [
+        "🔧 配置文件可以独立保存了，支持三模式切换！",
+        "📍 新增节点右键菜单，更快捷的处理整体级操作！",
+      ],
       perfs: ["导出文件后自动添加路径配置"],
       fixes: ["修复了以文件形式仍然无法导入空文件的问题"],
     },
