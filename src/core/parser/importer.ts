@@ -151,31 +151,37 @@ export async function pipelineToFlow(
 
     // 处理空文件或只包含空格的文件
     const trimmedString = pString.trim();
-    if (trimmedString === "") {
+    if (trimmedString === "" || trimmedString === "null") {
       pString = "{}";
     }
 
     // 获取键顺序
     const keyOrder: string[] = [];
     let currentDepth = 0;
-    visit(
-      pString,
-      {
-        onObjectBegin: () => {
-          currentDepth++;
+    try {
+      visit(
+        pString,
+        {
+          onObjectBegin: () => {
+            currentDepth++;
+          },
+          onObjectEnd: () => {
+            currentDepth--;
+          },
+          onObjectProperty: (property) => {
+            if (currentDepth === 1) {
+              keyOrder.push(property);
+            }
+          },
         },
-        onObjectEnd: () => {
-          currentDepth--;
-        },
-        onObjectProperty: (property) => {
-          // 只记录顶层属性
-          if (currentDepth === 1) {
-            keyOrder.push(property);
-          }
-        },
-      },
-      { allowTrailingComma: true }
-    );
+        { allowTrailingComma: true }
+      );
+    } catch (visitError) {
+      console.warn(
+        "[importer] visit parse failed, using empty object",
+        visitError
+      );
+    }
 
     const pipelineObj = parseJsonc(pString);
 

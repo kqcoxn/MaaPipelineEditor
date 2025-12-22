@@ -46,6 +46,16 @@ export const pinnedNotice: PinnedNotice = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "0.13.0",
+    date: "2025-12",
+    type: "feature",
+    updates: {
+      features: [""],
+      perfs: [""],
+      fixes: ["修复了以文件形式仍然无法导入空文件的问题"],
+    },
+  },
+  {
     version: "0.12.0",
     date: "2025-12-21",
     type: "feature",
