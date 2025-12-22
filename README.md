@@ -77,6 +77,7 @@ _✨ 可视化构建 MaaFramework Pipeline 的下一代工作流编辑器 ✨_</
 - **旧项目一键导入** ✅，自动**识别废弃字段并智能迁移**，提供**自动排版**功能
 - 支持节点级 v1 与 v2 **协议混合导入**
 - 涵盖复合类型等高级结构，提供 [常用命名结构兼容](https://mpe.codax.site/docs/guide/migrate/old.html#%E5%8F%AF%E9%80%89-%E7%89%B9%E6%80%A7%E5%85%BC%E5%AE%B9)
+- 支持**配置持久化**，提供集成与分离两种方案
 
 #### ➕ 更多功能，还有高手！
 
@@ -121,6 +122,7 @@ MPE 项目没有单独的交流群，您可以在 MaaFramework 集成/开发交�
 ### 特别感谢
 
 - [MaaFramework](https://github.com/MaaXYZ/MaaFramework)
+- [maa-framework-go](https://github.com/MaaXYZ/maa-framework-go)
 - [Mirror 酱](https://mirrorchyan.com)
 
 ## 统计与历史
