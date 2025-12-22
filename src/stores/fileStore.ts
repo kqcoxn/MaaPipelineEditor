@@ -5,6 +5,7 @@ import { notification } from "antd";
 
 import { useFlowStore, type NodeType, type EdgeType } from "./flow";
 import { useConfigStore } from "./configStore";
+import { normalizeViewport } from "./flow/utils/viewportUtils";
 
 export type FileConfigType = {
   prefix: string;
@@ -101,6 +102,8 @@ export function localSave(): any {
         ...file.config,
         nodeOrderMap: undefined,
         nextOrderNumber: undefined,
+        // 对 savedViewport 的值取整
+        savedViewport: normalizeViewport(file.config.savedViewport),
       },
     }));
     localStorage.setItem("_mpe_files", JSON.stringify(filesToSave));

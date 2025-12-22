@@ -26,6 +26,7 @@ import {
   parseExternalNodeForExport,
   parseAnchorNodeForExport,
 } from "./nodeParser";
+import { normalizeViewport } from "../../stores/flow/utils/viewportUtils";
 
 /**
  * 将Flow转换为Pipeline对象
@@ -152,11 +153,15 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
     // 配置
     if (!generalConfig.isExportConfig) return pipelineObj;
     // 过滤掉运行时字段
-    const { nodeOrderMap, nextOrderNumber, ...exportConfig } = config;
+    const { nodeOrderMap, nextOrderNumber, savedViewport, ...exportConfig } =
+      config;
+    // 对 savedViewport 的值取整
+    const normalizedViewport = normalizeViewport(savedViewport);
     return {
       [configMarkPrefix + fileName]: {
         [configMark]: {
           ...exportConfig,
+          ...(normalizedViewport && { savedViewport: normalizedViewport }),
           filename: fileState.currentFile.fileName,
           version: `v${globalConfig.version}`,
         },
