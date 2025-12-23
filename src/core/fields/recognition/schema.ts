@@ -43,9 +43,9 @@ export const recoFieldSchema: Record<string, FieldType> = {
   templateMatchModes: {
     key: "method",
     type: FieldTypeEnum.Int,
-    options: [1, 3, 5],
-    default: 1,
-    desc: `模板匹配算法，即 cv::TemplateMatchModes。可选，默认 5 。 仅支持 1、3、5，可简单理解为越大的越精确，但也会更慢。 详情请参考 OpenCV 官方文档。`,
+    options: [10001, 3, 5],
+    default: 5,
+    desc: `模板匹配算法，即 cv::TemplateMatchModes。可选，默认 5 。 详情请参考 OpenCV 官方文档。 10001 为 TM_SQDIFF_NORMED 的反转版本，分数越高越匹配（与原版相反）。`,
   },
   greenMask: {
     key: "green_mask",

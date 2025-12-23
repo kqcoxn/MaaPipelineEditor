@@ -147,6 +147,10 @@ export function parseRecognitionField(
     case 2:
       // v2版本：识别算法是对象
       value.type = normalizeRecoType(value.type);
+      // 迁移 method
+      if (value.param?.method === 1) {
+        value.param.method = 10001;
+      }
       node.data.recognition = value;
       break;
   }
@@ -205,7 +209,12 @@ export function parseNodeField(
 
   // 识别参数（v1版本）
   if (recoFieldSchemaKeyList.includes(key) && recognitionVersion === 1) {
-    node.data.recognition.param[key] = value;
+    // 特殊处理：将 method 字段的值 1 自动转换为 10001
+    if (key === "method" && value === 1) {
+      node.data.recognition.param[key] = 10001;
+    } else {
+      node.data.recognition.param[key] = value;
+    }
     return true;
   }
 

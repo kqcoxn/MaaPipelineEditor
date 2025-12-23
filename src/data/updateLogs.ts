@@ -47,14 +47,15 @@ export const pinnedNotice: PinnedNotice = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "0.13.0",
-    date: "2025-12",
+    date: "2025-12-24",
     type: "feature",
     updates: {
       features: [
         "🔧 配置文件可以独立保存了，支持三模式切换！",
         "📍 新增节点右键菜单，更快捷的处理整体级操作！",
+        "🐛 调试功能初步实装，支持进度可视、暂停、断点等操作（仍在进一步完善中，暂不建议完全使用）",
       ],
-      perfs: ["导出文件后自动添加路径配置"],
+      perfs: ["导出文件后自动添加路径配置", "自动将 TemplateMatch-method: 1 迁移为 10001"],
       fixes: ["修复了以文件形式仍然无法导入空文件的问题"],
     },
   },
