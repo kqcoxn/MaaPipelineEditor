@@ -105,16 +105,12 @@ func (ctx *Context) RunTask(entry string, override ...any) *TaskDetail
 func (ctx *Context) SetAnchor(anchorName, nodeName string) bool
 type ContextEventSink
 type ContextEventSinkAdapter
-func (a *ContextEventSinkAdapter) OnControllerAction(ctx *Context, status EventStatus, detail ControllerActionDetail)
+func (a *ContextEventSinkAdapter) OnNodeAction(ctx *Context, status EventStatus, detail NodeActionDetail)
 func (a *ContextEventSinkAdapter) OnNodeActionNode(ctx *Context, status EventStatus, detail NodeActionNodeDetail)
+func (a *ContextEventSinkAdapter) OnNodeNextList(ctx *Context, status EventStatus, detail NodeNextListDetail)
 func (a *ContextEventSinkAdapter) OnNodePipelineNode(ctx *Context, status EventStatus, detail NodePipelineNodeDetail)
+func (a *ContextEventSinkAdapter) OnNodeRecognition(ctx *Context, status EventStatus, detail NodeRecognitionDetail)
 func (a *ContextEventSinkAdapter) OnNodeRecognitionNode(ctx *Context, status EventStatus, detail NodeRecognitionNodeDetail)
-func (a *ContextEventSinkAdapter) OnResourceLoading(ctx *Context, status EventStatus, detail ResourceLoadingDetail)
-func (a *ContextEventSinkAdapter) OnTaskAction(ctx *Context, status EventStatus, detail NodeActionDetail)
-func (a *ContextEventSinkAdapter) OnTaskNextList(ctx *Context, status EventStatus, detail NodeNextListDetail)
-func (a *ContextEventSinkAdapter) OnTaskRecognition(ctx *Context, status EventStatus, detail NodeRecognitionDetail)
-func (a *ContextEventSinkAdapter) OnTaskerTask(ctx *Context, status EventStatus, detail TaskerTaskDetail)
-func (a *ContextEventSinkAdapter) OnUnknownEvent(ctx *Context, msg, detailsJSON string)
 type Controller
 func NewAdbController(adbPath, address string, screencapMethod adb.ScreencapMethod, ...) *Controller
 func NewBlankController() *Controller
@@ -129,15 +125,6 @@ func (c *Controller) Destroy()
 func (c *Controller) GetShellOutput() (string, bool)
 func (c *Controller) GetUUID() (string, bool)
 func (c *Controller) OnControllerAction(fn func(EventStatus, ControllerActionDetail)) int64
-func (c *Controller) OnNodeActionNode(fn func(EventStatus, NodeActionNodeDetail)) int64
-func (c *Controller) OnNodePipelineNode(fn func(EventStatus, NodePipelineNodeDetail)) int64
-func (c *Controller) OnNodeRecognitionNode(fn func(EventStatus, NodeRecognitionNodeDetail)) int64
-func (c *Controller) OnResourceLoading(fn func(EventStatus, ResourceLoadingDetail)) int64
-func (c *Controller) OnTaskAction(fn func(EventStatus, NodeActionDetail)) int64
-func (c *Controller) OnTaskNextList(fn func(EventStatus, NodeNextListDetail)) int64
-func (c *Controller) OnTaskRecognition(fn func(EventStatus, NodeRecognitionDetail)) int64
-func (c *Controller) OnTaskerTask(fn func(EventStatus, TaskerTaskDetail)) int64
-func (c *Controller) OnUnknownEvent(fn func(msg, detailsJSON string)) int64
 func (c *Controller) PostClick(x, y int32) *Job
 func (c *Controller) PostClickKey(keycode int32) *Job
 func (c *Controller) PostConnect() *Job
@@ -161,15 +148,6 @@ type ControllerActionDetail
 type ControllerEventSink
 type ControllerEventSinkAdapter
 func (a *ControllerEventSinkAdapter) OnControllerAction(ctrl *Controller, status EventStatus, detail ControllerActionDetail)
-func (a *ControllerEventSinkAdapter) OnNodeActionNode(ctrl *Controller, status EventStatus, detail NodeActionNodeDetail)
-func (a *ControllerEventSinkAdapter) OnNodePipelineNode(ctrl *Controller, status EventStatus, detail NodePipelineNodeDetail)
-func (a *ControllerEventSinkAdapter) OnNodeRecognitionNode(ctrl *Controller, status EventStatus, detail NodeRecognitionNodeDetail)
-func (a *ControllerEventSinkAdapter) OnResourceLoading(ctrl *Controller, status EventStatus, detail ResourceLoadingDetail)
-func (a *ControllerEventSinkAdapter) OnTaskAction(ctrl *Controller, status EventStatus, detail NodeActionDetail)
-func (a *ControllerEventSinkAdapter) OnTaskNextList(ctrl *Controller, status EventStatus, detail NodeNextListDetail)
-func (a *ControllerEventSinkAdapter) OnTaskRecognition(ctrl *Controller, status EventStatus, detail NodeRecognitionDetail)
-func (a *ControllerEventSinkAdapter) OnTaskerTask(ctrl *Controller, status EventStatus, detail TaskerTaskDetail)
-func (a *ControllerEventSinkAdapter) OnUnknownEvent(ctrl *Controller, msg, detailsJSON string)
 type ControllerFeature
 type CustomAction
 type CustomActionArg
@@ -406,16 +384,7 @@ func (r *Resource) GetHash() (string, bool)
 func (r *Resource) GetNodeJSON(name string) (string, bool)
 func (r *Resource) GetNodeList() ([]string, bool)
 func (r *Resource) Loaded() bool
-func (r *Resource) OnControllerAction(fn func(EventStatus, ControllerActionDetail)) int64
-func (r *Resource) OnNodeActionNode(fn func(EventStatus, NodeActionNodeDetail)) int64
-func (r *Resource) OnNodePipelineNode(fn func(EventStatus, NodePipelineNodeDetail)) int64
-func (r *Resource) OnNodeRecognitionNode(fn func(EventStatus, NodeRecognitionNodeDetail)) int64
 func (r *Resource) OnResourceLoading(fn func(EventStatus, ResourceLoadingDetail)) int64
-func (r *Resource) OnTaskAction(fn func(EventStatus, NodeActionDetail)) int64
-func (r *Resource) OnTaskNextList(fn func(EventStatus, NodeNextListDetail)) int64
-func (r *Resource) OnTaskRecognition(fn func(EventStatus, NodeRecognitionDetail)) int64
-func (r *Resource) OnTaskerTask(fn func(EventStatus, TaskerTaskDetail)) int64
-func (r *Resource) OnUnknownEvent(fn func(msg, detailsJSON string)) int64
 func (r *Resource) OverrideNext(name string, nextList []string) bool
 func (r *Resource) OverridePipeline(override any) bool
 func (r *Resource) OverriderImage(imageName string, image image.Image) bool
@@ -431,16 +400,7 @@ func (r *Resource) UseCoreml(coremlFlag InterenceDevice) bool
 func (r *Resource) UseDirectml(deviceID InterenceDevice) bool
 type ResourceEventSink
 type ResourceEventSinkAdapter
-func (a *ResourceEventSinkAdapter) OnControllerAction(res *Resource, status EventStatus, detail ControllerActionDetail)
-func (a *ResourceEventSinkAdapter) OnNodeActionNode(res *Resource, status EventStatus, detail NodeActionNodeDetail)
-func (a *ResourceEventSinkAdapter) OnNodePipelineNode(res *Resource, status EventStatus, detail NodePipelineNodeDetail)
-func (a *ResourceEventSinkAdapter) OnNodeRecognitionNode(res *Resource, status EventStatus, detail NodeRecognitionNodeDetail)
 func (a *ResourceEventSinkAdapter) OnResourceLoading(res *Resource, status EventStatus, detail ResourceLoadingDetail)
-func (a *ResourceEventSinkAdapter) OnTaskAction(res *Resource, status EventStatus, detail NodeActionDetail)
-func (a *ResourceEventSinkAdapter) OnTaskNextList(res *Resource, status EventStatus, detail NodeNextListDetail)
-func (a *ResourceEventSinkAdapter) OnTaskRecognition(res *Resource, status EventStatus, detail NodeRecognitionDetail)
-func (a *ResourceEventSinkAdapter) OnTaskerTask(res *Resource, status EventStatus, detail TaskerTaskDetail)
-func (a *ResourceEventSinkAdapter) OnUnknownEvent(res *Resource, msg, detailsJSON string)
 type ResourceLoadingDetail
 type ScrollOption
 func WithScrollDx(dx int) ScrollOption
@@ -484,26 +444,13 @@ func (t *Tasker) GetController() *Controller
 func (t *Tasker) GetLatestNode(taskName string) *NodeDetail
 func (t *Tasker) GetResource() *Resource
 func (t *Tasker) Initialized() bool
-func (t *Tasker) OnControllerAction(fn func(EventStatus, ControllerActionDetail)) int64
-func (t *Tasker) OnControllerActionInContext(fn func(*Context, EventStatus, ControllerActionDetail)) int64
-func (t *Tasker) OnNodeActionNode(fn func(EventStatus, NodeActionNodeDetail)) int64
+func (t *Tasker) OnNodeActionInContext(fn func(*Context, EventStatus, NodeActionDetail)) int64
 func (t *Tasker) OnNodeActionNodeInContext(fn func(*Context, EventStatus, NodeActionNodeDetail)) int64
-func (t *Tasker) OnNodePipelineNode(fn func(EventStatus, NodePipelineNodeDetail)) int64
+func (t *Tasker) OnNodeNextListInContext(fn func(*Context, EventStatus, NodeNextListDetail)) int64
 func (t *Tasker) OnNodePipelineNodeInContext(fn func(*Context, EventStatus, NodePipelineNodeDetail)) int64
-func (t *Tasker) OnNodeRecognitionNode(fn func(EventStatus, NodeRecognitionNodeDetail)) int64
+func (t *Tasker) OnNodeRecognitionInContext(fn func(*Context, EventStatus, NodeRecognitionDetail)) int64
 func (t *Tasker) OnNodeRecognitionNodeInContext(fn func(*Context, EventStatus, NodeRecognitionNodeDetail)) int64
-func (t *Tasker) OnResourceLoading(fn func(EventStatus, ResourceLoadingDetail)) int64
-func (t *Tasker) OnResourceLoadingInContext(fn func(*Context, EventStatus, ResourceLoadingDetail)) int64
-func (t *Tasker) OnTaskAction(fn func(EventStatus, NodeActionDetail)) int64
-func (t *Tasker) OnTaskActionInContext(fn func(*Context, EventStatus, NodeActionDetail)) int64
-func (t *Tasker) OnTaskNextList(fn func(EventStatus, NodeNextListDetail)) int64
-func (t *Tasker) OnTaskNextListInContext(fn func(*Context, EventStatus, NodeNextListDetail)) int64
-func (t *Tasker) OnTaskRecognition(fn func(EventStatus, NodeRecognitionDetail)) int64
-func (t *Tasker) OnTaskRecognitionInContext(fn func(*Context, EventStatus, NodeRecognitionDetail)) int64
 func (t *Tasker) OnTaskerTask(fn func(EventStatus, TaskerTaskDetail)) int64
-func (t *Tasker) OnTaskerTaskInContext(fn func(*Context, EventStatus, TaskerTaskDetail)) int64
-func (t *Tasker) OnUnknownEvent(fn func(msg, detailsJSON string)) int64
-func (t *Tasker) OnUnknownEventInContext(fn func(ctx *Context, msg, detailsJSON string)) int64
 func (t *Tasker) PostAction(actionType NodeActionType, actionParam NodeActionParam, box Rect, ...) *TaskJob
 func (t *Tasker) PostRecognition(recType NodeRecognitionType, recParam NodeRecognitionParam, img image.Image) *TaskJob
 func (t *Tasker) PostStop() *TaskJob
@@ -514,16 +461,7 @@ func (t *Tasker) Running() bool
 func (t *Tasker) Stopping() bool
 type TaskerEventSink
 type TaskerEventSinkAdapter
-func (a *TaskerEventSinkAdapter) OnControllerAction(tasker *Tasker, status EventStatus, detail ControllerActionDetail)
-func (a *TaskerEventSinkAdapter) OnNodeActionNode(tasker *Tasker, status EventStatus, detail NodeActionNodeDetail)
-func (a *TaskerEventSinkAdapter) OnNodePipelineNode(tasker *Tasker, status EventStatus, detail NodePipelineNodeDetail)
-func (a *TaskerEventSinkAdapter) OnNodeRecognitionNode(tasker *Tasker, status EventStatus, detail NodeRecognitionNodeDetail)
-func (a *TaskerEventSinkAdapter) OnResourceLoading(tasker *Tasker, status EventStatus, detail ResourceLoadingDetail)
-func (a *TaskerEventSinkAdapter) OnTaskAction(tasker *Tasker, status EventStatus, detail NodeActionDetail)
-func (a *TaskerEventSinkAdapter) OnTaskNextList(tasker *Tasker, status EventStatus, detail NodeNextListDetail)
-func (a *TaskerEventSinkAdapter) OnTaskRecognition(tasker *Tasker, status EventStatus, detail NodeRecognitionDetail)
 func (a *TaskerEventSinkAdapter) OnTaskerTask(tasker *Tasker, status EventStatus, detail TaskerTaskDetail)
-func (a *TaskerEventSinkAdapter) OnUnknownEvent(tasker \*Tasker, msg, detailsJSON string)
 type TaskerTaskDetail
 type TemplateMatchOption
 func WithTemplateMatchGreenMask(greenMask bool) TemplateMatchOption
@@ -1013,16 +951,12 @@ SetAnchor sets an anchor by name.
 
 type ContextEventSink
 type ContextEventSink interface {
-OnResourceLoading(ctx *Context, event EventStatus, detail ResourceLoadingDetail)
-OnControllerAction(ctx *Context, event EventStatus, detail ControllerActionDetail)
-OnTaskerTask(ctx *Context, event EventStatus, detail TaskerTaskDetail)
 OnNodePipelineNode(ctx *Context, event EventStatus, detail NodePipelineNodeDetail)
 OnNodeRecognitionNode(ctx *Context, event EventStatus, detail NodeRecognitionNodeDetail)
 OnNodeActionNode(ctx *Context, event EventStatus, detail NodeActionNodeDetail)
-OnTaskNextList(ctx *Context, event EventStatus, detail NodeNextListDetail)
-OnTaskRecognition(ctx *Context, event EventStatus, detail NodeRecognitionDetail)
-OnTaskAction(ctx *Context, event EventStatus, detail NodeActionDetail)
-OnUnknownEvent(ctx *Context, msg, detailsJSON string)
+OnNodeNextList(ctx *Context, event EventStatus, detail NodeNextListDetail)
+OnNodeRecognition(ctx *Context, event EventStatus, detail NodeRecognitionDetail)
+OnNodeAction(ctx *Context, event EventStatus, detail NodeActionDetail)
 }
 type ContextEventSinkAdapter
 type ContextEventSinkAdapter struct {
@@ -1030,26 +964,21 @@ type ContextEventSinkAdapter struct {
 }
 ContextEventSinkAdapter is a lightweight adapter that makes it easy to register a single-event handler via a callback function.
 
-func (*ContextEventSinkAdapter) OnControllerAction
-func (a *ContextEventSinkAdapter) OnControllerAction(ctx *Context, status EventStatus, detail ControllerActionDetail)
+func (*ContextEventSinkAdapter) OnNodeAction
+added in v3.3.0
+func (a *ContextEventSinkAdapter) OnNodeAction(ctx *Context, status EventStatus, detail NodeActionDetail)
 func (*ContextEventSinkAdapter) OnNodeActionNode
 func (a *ContextEventSinkAdapter) OnNodeActionNode(ctx *Context, status EventStatus, detail NodeActionNodeDetail)
+func (*ContextEventSinkAdapter) OnNodeNextList
+added in v3.3.0
+func (a *ContextEventSinkAdapter) OnNodeNextList(ctx *Context, status EventStatus, detail NodeNextListDetail)
 func (*ContextEventSinkAdapter) OnNodePipelineNode
 func (a *ContextEventSinkAdapter) OnNodePipelineNode(ctx *Context, status EventStatus, detail NodePipelineNodeDetail)
+func (*ContextEventSinkAdapter) OnNodeRecognition
+added in v3.3.0
+func (a *ContextEventSinkAdapter) OnNodeRecognition(ctx *Context, status EventStatus, detail NodeRecognitionDetail)
 func (*ContextEventSinkAdapter) OnNodeRecognitionNode
 func (a *ContextEventSinkAdapter) OnNodeRecognitionNode(ctx *Context, status EventStatus, detail NodeRecognitionNodeDetail)
-func (*ContextEventSinkAdapter) OnResourceLoading
-func (a *ContextEventSinkAdapter) OnResourceLoading(ctx *Context, status EventStatus, detail ResourceLoadingDetail)
-func (*ContextEventSinkAdapter) OnTaskAction
-func (a *ContextEventSinkAdapter) OnTaskAction(ctx *Context, status EventStatus, detail NodeActionDetail)
-func (*ContextEventSinkAdapter) OnTaskNextList
-func (a *ContextEventSinkAdapter) OnTaskNextList(ctx *Context, status EventStatus, detail NodeNextListDetail)
-func (*ContextEventSinkAdapter) OnTaskRecognition
-func (a *ContextEventSinkAdapter) OnTaskRecognition(ctx *Context, status EventStatus, detail NodeRecognitionDetail)
-func (*ContextEventSinkAdapter) OnTaskerTask
-func (a *ContextEventSinkAdapter) OnTaskerTask(ctx *Context, status EventStatus, detail TaskerTaskDetail)
-func (*ContextEventSinkAdapter) OnUnknownEvent
-func (a *ContextEventSinkAdapter) OnUnknownEvent(ctx *Context, msg, detailsJSON string)
 type Controller
 type Controller struct {
 // contains filtered or unexported fields
@@ -1114,42 +1043,6 @@ GetUUID gets the UUID of the controller.
 func (*Controller) OnControllerAction
 func (c *Controller) OnControllerAction(fn func(EventStatus, ControllerActionDetail)) int64
 OnControllerAction registers a callback sink that only handles Controller.Action events and returns the sink ID. The sink ID can be used to remove the sink later.
-
-func (*Controller) OnNodeActionNode
-func (c *Controller) OnNodeActionNode(fn func(EventStatus, NodeActionNodeDetail)) int64
-OnNodeActionNode registers a callback sink that only handles Node.ActionNode events and returns the sink ID. The sink ID can be used to remove the sink later.
-
-func (*Controller) OnNodePipelineNode
-func (c *Controller) OnNodePipelineNode(fn func(EventStatus, NodePipelineNodeDetail)) int64
-OnNodePipelineNode registers a callback sink that only handles Node.PipelineNode events and returns the sink ID. The sink ID can be used to remove the sink later.
-
-func (*Controller) OnNodeRecognitionNode
-func (c *Controller) OnNodeRecognitionNode(fn func(EventStatus, NodeRecognitionNodeDetail)) int64
-OnNodeRecognitionNode registers a callback sink that only handles Node.RecognitionNode events and returns the sink ID. The sink ID can be used to remove the sink later.
-
-func (*Controller) OnResourceLoading
-func (c *Controller) OnResourceLoading(fn func(EventStatus, ResourceLoadingDetail)) int64
-OnResourceLoading registers a callback sink that only handles Resource.Loading events and returns the sink ID. The sink ID can be used to remove the sink later.
-
-func (*Controller) OnTaskAction
-func (c *Controller) OnTaskAction(fn func(EventStatus, NodeActionDetail)) int64
-OnTaskAction registers a callback sink that only handles Node.Action events and returns the sink ID. The sink ID can be used to remove the sink later.
-
-func (*Controller) OnTaskNextList
-func (c *Controller) OnTaskNextList(fn func(EventStatus, NodeNextListDetail)) int64
-OnTaskNextList registers a callback sink that only handles Node.NextList events and returns the sink ID. The sink ID can be used to remove the sink later.
-
-func (*Controller) OnTaskRecognition
-func (c *Controller) OnTaskRecognition(fn func(EventStatus, NodeRecognitionDetail)) int64
-OnTaskRecognition registers a callback sink that only handles Node.Recognition events and returns the sink ID. The sink ID can be used to remove the sink later.
-
-func (*Controller) OnTaskerTask
-func (c *Controller) OnTaskerTask(fn func(EventStatus, TaskerTaskDetail)) int64
-OnTaskerTask registers a callback sink that only handles Tasker.Task events and returns the sink ID. The sink ID can be used to remove the sink later.
-
-func (*Controller) OnUnknownEvent
-func (c *Controller) OnUnknownEvent(fn func(msg, detailsJSON string)) int64
-OnUnknownEvent registers a callback sink that only handles unknown events and returns the sink ID. The sink ID can be used to remove the sink later.
 
 func (*Controller) PostClick
 func (c *Controller) PostClick(x, y int32) \*Job
@@ -1239,16 +1132,7 @@ ControllerActionDetail contains information about controller action events
 
 type ControllerEventSink
 type ControllerEventSink interface {
-OnResourceLoading(ctrl *Controller, event EventStatus, detail ResourceLoadingDetail)
-OnControllerAction(ctrl *Controller, event EventStatus, detail ControllerActionDetail)
-OnTaskerTask(ctrl *Controller, event EventStatus, detail TaskerTaskDetail)
-OnNodePipelineNode(ctrl *Controller, event EventStatus, detail NodePipelineNodeDetail)
-OnNodeRecognitionNode(ctrl *Controller, event EventStatus, detail NodeRecognitionNodeDetail)
-OnNodeActionNode(ctrl *Controller, event EventStatus, detail NodeActionNodeDetail)
-OnTaskNextList(ctrl *Controller, event EventStatus, detail NodeNextListDetail)
-OnTaskRecognition(ctrl *Controller, event EventStatus, detail NodeRecognitionDetail)
-OnTaskAction(ctrl *Controller, event EventStatus, detail NodeActionDetail)
-OnUnknownEvent(ctrl *Controller, msg, detailsJSON string)
+OnControllerAction(ctrl \*Controller, event EventStatus, detail ControllerActionDetail)
 }
 type ControllerEventSinkAdapter
 type ControllerEventSinkAdapter struct {
@@ -1258,24 +1142,6 @@ ControllerEventSinkAdapter is a lightweight adapter that makes it easy to regist
 
 func (*ControllerEventSinkAdapter) OnControllerAction
 func (a *ControllerEventSinkAdapter) OnControllerAction(ctrl *Controller, status EventStatus, detail ControllerActionDetail)
-func (*ControllerEventSinkAdapter) OnNodeActionNode
-func (a *ControllerEventSinkAdapter) OnNodeActionNode(ctrl *Controller, status EventStatus, detail NodeActionNodeDetail)
-func (*ControllerEventSinkAdapter) OnNodePipelineNode
-func (a *ControllerEventSinkAdapter) OnNodePipelineNode(ctrl *Controller, status EventStatus, detail NodePipelineNodeDetail)
-func (*ControllerEventSinkAdapter) OnNodeRecognitionNode
-func (a *ControllerEventSinkAdapter) OnNodeRecognitionNode(ctrl *Controller, status EventStatus, detail NodeRecognitionNodeDetail)
-func (*ControllerEventSinkAdapter) OnResourceLoading
-func (a *ControllerEventSinkAdapter) OnResourceLoading(ctrl *Controller, status EventStatus, detail ResourceLoadingDetail)
-func (*ControllerEventSinkAdapter) OnTaskAction
-func (a *ControllerEventSinkAdapter) OnTaskAction(ctrl *Controller, status EventStatus, detail NodeActionDetail)
-func (*ControllerEventSinkAdapter) OnTaskNextList
-func (a *ControllerEventSinkAdapter) OnTaskNextList(ctrl *Controller, status EventStatus, detail NodeNextListDetail)
-func (*ControllerEventSinkAdapter) OnTaskRecognition
-func (a *ControllerEventSinkAdapter) OnTaskRecognition(ctrl *Controller, status EventStatus, detail NodeRecognitionDetail)
-func (*ControllerEventSinkAdapter) OnTaskerTask
-func (a *ControllerEventSinkAdapter) OnTaskerTask(ctrl *Controller, status EventStatus, detail TaskerTaskDetail)
-func (*ControllerEventSinkAdapter) OnUnknownEvent
-func (a *ControllerEventSinkAdapter) OnUnknownEvent(ctrl *Controller, msg, detailsJSON string)
 type ControllerFeature
 type ControllerFeature uint64
 const (
@@ -1297,7 +1163,7 @@ RecognitionDetail *RecognitionDetail
 Box Rect
 }
 type CustomActionOption
-type CustomActionOption func(\*NodeCustomActionParam)
+type CustomActionOption func(*NodeCustomActionParam)
 CustomActionOption is a functional option for configuring NodeCustomActionParam.
 
 func WithCustomActionParam
@@ -2745,45 +2611,9 @@ func (*Resource) Loaded
 func (r *Resource) Loaded() bool
 Loaded checks if resources are loaded.
 
-func (*Resource) OnControllerAction
-func (r *Resource) OnControllerAction(fn func(EventStatus, ControllerActionDetail)) int64
-OnControllerAction registers a callback sink that only handles Controller.Action events and returns the sink ID. The sink ID can be used to remove the sink later.
-
-func (*Resource) OnNodeActionNode
-func (r *Resource) OnNodeActionNode(fn func(EventStatus, NodeActionNodeDetail)) int64
-OnNodeActionNode registers a callback sink that only handles Node.ActionNode events and returns the sink ID. The sink ID can be used to remove the sink later.
-
-func (*Resource) OnNodePipelineNode
-func (r *Resource) OnNodePipelineNode(fn func(EventStatus, NodePipelineNodeDetail)) int64
-OnNodePipelineNode registers a callback sink that only handles Node.PipelineNode events and returns the sink ID. The sink ID can be used to remove the sink later.
-
-func (*Resource) OnNodeRecognitionNode
-func (r *Resource) OnNodeRecognitionNode(fn func(EventStatus, NodeRecognitionNodeDetail)) int64
-OnNodeRecognitionNode registers a callback sink that only handles Node.RecognitionNode events and returns the sink ID. The sink ID can be used to remove the sink later.
-
 func (*Resource) OnResourceLoading
 func (r *Resource) OnResourceLoading(fn func(EventStatus, ResourceLoadingDetail)) int64
 OnResourceLoading registers a callback sink that only handles Resource.Loading events and returns the sink ID. The sink ID can be used to remove the sink later.
-
-func (*Resource) OnTaskAction
-func (r *Resource) OnTaskAction(fn func(EventStatus, NodeActionDetail)) int64
-OnTaskAction registers a callback sink that only handles Node.Action events and returns the sink ID. The sink ID can be used to remove the sink later.
-
-func (*Resource) OnTaskNextList
-func (r *Resource) OnTaskNextList(fn func(EventStatus, NodeNextListDetail)) int64
-OnTaskNextList registers a callback sink that only handles Node.NextList events and returns the sink ID. The sink ID can be used to remove the sink later.
-
-func (*Resource) OnTaskRecognition
-func (r *Resource) OnTaskRecognition(fn func(EventStatus, NodeRecognitionDetail)) int64
-OnTaskRecognition registers a callback sink that only handles Node.Recognition events and returns the sink ID. The sink ID can be used to remove the sink later.
-
-func (*Resource) OnTaskerTask
-func (r *Resource) OnTaskerTask(fn func(EventStatus, TaskerTaskDetail)) int64
-OnTaskerTask registers a callback sink that only handles Tasker.Task events and returns the sink ID. The sink ID can be used to remove the sink later.
-
-func (*Resource) OnUnknownEvent
-func (r *Resource) OnUnknownEvent(fn func(msg, detailsJSON string)) int64
-OnUnknownEvent registers a callback sink that only handles unknown events and returns the sink ID. The sink ID can be used to remove the sink later.
 
 func (*Resource) OverrideNext
 func (r *Resource) OverrideNext(name string, nextList []string) bool
@@ -2837,16 +2667,7 @@ UseDirectml
 
 type ResourceEventSink
 type ResourceEventSink interface {
-OnResourceLoading(res *Resource, event EventStatus, detail ResourceLoadingDetail)
-OnControllerAction(res *Resource, event EventStatus, detail ControllerActionDetail)
-OnTaskerTask(res *Resource, event EventStatus, detail TaskerTaskDetail)
-OnNodePipelineNode(res *Resource, event EventStatus, detail NodePipelineNodeDetail)
-OnNodeRecognitionNode(res *Resource, event EventStatus, detail NodeRecognitionNodeDetail)
-OnNodeActionNode(res *Resource, event EventStatus, detail NodeActionNodeDetail)
-OnTaskNextList(res *Resource, event EventStatus, detail NodeNextListDetail)
-OnTaskRecognition(res *Resource, event EventStatus, detail NodeRecognitionDetail)
-OnTaskAction(res *Resource, event EventStatus, detail NodeActionDetail)
-OnUnknownEvent(res *Resource, msg, detailsJSON string)
+OnResourceLoading(res \*Resource, event EventStatus, detail ResourceLoadingDetail)
 }
 type ResourceEventSinkAdapter
 type ResourceEventSinkAdapter struct {
@@ -2854,26 +2675,8 @@ type ResourceEventSinkAdapter struct {
 }
 ResourceEventSinkAdapter is a lightweight adapter that makes it easy to register a single-event handler via a callback function.
 
-func (*ResourceEventSinkAdapter) OnControllerAction
-func (a *ResourceEventSinkAdapter) OnControllerAction(res *Resource, status EventStatus, detail ControllerActionDetail)
-func (*ResourceEventSinkAdapter) OnNodeActionNode
-func (a *ResourceEventSinkAdapter) OnNodeActionNode(res *Resource, status EventStatus, detail NodeActionNodeDetail)
-func (*ResourceEventSinkAdapter) OnNodePipelineNode
-func (a *ResourceEventSinkAdapter) OnNodePipelineNode(res *Resource, status EventStatus, detail NodePipelineNodeDetail)
-func (*ResourceEventSinkAdapter) OnNodeRecognitionNode
-func (a *ResourceEventSinkAdapter) OnNodeRecognitionNode(res *Resource, status EventStatus, detail NodeRecognitionNodeDetail)
 func (*ResourceEventSinkAdapter) OnResourceLoading
-func (a *ResourceEventSinkAdapter) OnResourceLoading(res *Resource, status EventStatus, detail ResourceLoadingDetail)
-func (*ResourceEventSinkAdapter) OnTaskAction
-func (a *ResourceEventSinkAdapter) OnTaskAction(res *Resource, status EventStatus, detail NodeActionDetail)
-func (*ResourceEventSinkAdapter) OnTaskNextList
-func (a *ResourceEventSinkAdapter) OnTaskNextList(res *Resource, status EventStatus, detail NodeNextListDetail)
-func (*ResourceEventSinkAdapter) OnTaskRecognition
-func (a *ResourceEventSinkAdapter) OnTaskRecognition(res *Resource, status EventStatus, detail NodeRecognitionDetail)
-func (*ResourceEventSinkAdapter) OnTaskerTask
-func (a *ResourceEventSinkAdapter) OnTaskerTask(res *Resource, status EventStatus, detail TaskerTaskDetail)
-func (*ResourceEventSinkAdapter) OnUnknownEvent
-func (a *ResourceEventSinkAdapter) OnUnknownEvent(res *Resource, msg, detailsJSON string)
+func (a *ResourceEventSinkAdapter) OnResourceLoading(res \*Resource, status EventStatus, detail ResourceLoadingDetail)
 type ResourceLoadingDetail
 type ResourceLoadingDetail struct {
 ResID uint64 `json:"res_id"`
@@ -3049,85 +2852,36 @@ func (*Tasker) Initialized
 func (t *Tasker) Initialized() bool
 Initialized checks if the tasker is initialized.
 
-func (*Tasker) OnControllerAction
-func (t *Tasker) OnControllerAction(fn func(EventStatus, ControllerActionDetail)) int64
-OnControllerAction registers a callback sink that only handles Controller.Action events and returns the sink ID. The sink ID can be used to remove the sink later.
-
-func (*Tasker) OnControllerActionInContext
-func (t *Tasker) OnControllerActionInContext(fn func(\*Context, EventStatus, ControllerActionDetail)) int64
-OnControllerActionInContext registers a callback sink that only handles Controller.Action events and returns the sink ID. The sink ID can be used to remove the sink later.
-
-func (*Tasker) OnNodeActionNode
-func (t *Tasker) OnNodeActionNode(fn func(EventStatus, NodeActionNodeDetail)) int64
-OnNodeActionNode registers a callback sink that only handles Node.ActionNode events and returns the sink ID. The sink ID can be used to remove the sink later.
+func (*Tasker) OnNodeActionInContext
+added in v3.3.0
+func (t *Tasker) OnNodeActionInContext(fn func(\*Context, EventStatus, NodeActionDetail)) int64
+OnNodeActionInContext registers a callback sink that only handles Node.Action events and returns the sink ID. The sink ID can be used to remove the sink later.
 
 func (*Tasker) OnNodeActionNodeInContext
 func (t *Tasker) OnNodeActionNodeInContext(fn func(\*Context, EventStatus, NodeActionNodeDetail)) int64
 OnNodeActionNodeInContext registers a callback sink that only handles Node.ActionNode events and returns the sink ID. The sink ID can be used to remove the sink later.
 
-func (*Tasker) OnNodePipelineNode
-func (t *Tasker) OnNodePipelineNode(fn func(EventStatus, NodePipelineNodeDetail)) int64
-OnNodePipelineNode registers a callback sink that only handles Node.PipelineNode events and returns the sink ID. The sink ID can be used to remove the sink later.
+func (*Tasker) OnNodeNextListInContext
+added in v3.3.0
+func (t *Tasker) OnNodeNextListInContext(fn func(\*Context, EventStatus, NodeNextListDetail)) int64
+OnNodeNextListInContext registers a callback sink that only handles Node.NextList events and returns the sink ID. The sink ID can be used to remove the sink later.
 
 func (*Tasker) OnNodePipelineNodeInContext
 func (t *Tasker) OnNodePipelineNodeInContext(fn func(\*Context, EventStatus, NodePipelineNodeDetail)) int64
 OnNodePipelineNodeInContext registers a callback sink that only handles Node.PipelineNode events and returns the sink ID. The sink ID can be used to remove the sink later.
 
-func (*Tasker) OnNodeRecognitionNode
-func (t *Tasker) OnNodeRecognitionNode(fn func(EventStatus, NodeRecognitionNodeDetail)) int64
-OnNodeRecognitionNode registers a callback sink that only handles Node.RecognitionNode events and returns the sink ID. The sink ID can be used to remove the sink later.
+func (*Tasker) OnNodeRecognitionInContext
+added in v3.3.0
+func (t *Tasker) OnNodeRecognitionInContext(fn func(\*Context, EventStatus, NodeRecognitionDetail)) int64
+OnNodeRecognitionInContext registers a callback sink that only handles Node.Recognition events and returns the sink ID. The sink ID can be used to remove the sink later.
 
 func (*Tasker) OnNodeRecognitionNodeInContext
 func (t *Tasker) OnNodeRecognitionNodeInContext(fn func(\*Context, EventStatus, NodeRecognitionNodeDetail)) int64
 OnNodeRecognitionNodeInContext registers a callback sink that only handles Node.RecognitionNode events and returns the sink ID. The sink ID can be used to remove the sink later.
 
-func (*Tasker) OnResourceLoading
-func (t *Tasker) OnResourceLoading(fn func(EventStatus, ResourceLoadingDetail)) int64
-OnResourceLoading registers a callback sink that only handles Resource.Loading events and returns the sink ID. The sink ID can be used to remove the sink later.
-
-func (*Tasker) OnResourceLoadingInContext
-func (t *Tasker) OnResourceLoadingInContext(fn func(\*Context, EventStatus, ResourceLoadingDetail)) int64
-OnResourceLoadingInContext registers a callback sink that only handles Resource.Loading events and returns the sink ID. The sink ID can be used to remove the sink later.
-
-func (*Tasker) OnTaskAction
-func (t *Tasker) OnTaskAction(fn func(EventStatus, NodeActionDetail)) int64
-OnTaskAction registers a callback sink that only handles Node.Action events and returns the sink ID. The sink ID can be used to remove the sink later.
-
-func (*Tasker) OnTaskActionInContext
-func (t *Tasker) OnTaskActionInContext(fn func(\*Context, EventStatus, NodeActionDetail)) int64
-OnTaskActionInContext registers a callback sink that only handles Node.Action events and returns the sink ID. The sink ID can be used to remove the sink later.
-
-func (*Tasker) OnTaskNextList
-func (t *Tasker) OnTaskNextList(fn func(EventStatus, NodeNextListDetail)) int64
-OnTaskNextList registers a callback sink that only handles Node.NextList events and returns the sink ID. The sink ID can be used to remove the sink later.
-
-func (*Tasker) OnTaskNextListInContext
-func (t *Tasker) OnTaskNextListInContext(fn func(\*Context, EventStatus, NodeNextListDetail)) int64
-OnTaskNextListInContext registers a callback sink that only handles Node.NextList events and returns the sink ID. The sink ID can be used to remove the sink later.
-
-func (*Tasker) OnTaskRecognition
-func (t *Tasker) OnTaskRecognition(fn func(EventStatus, NodeRecognitionDetail)) int64
-OnTaskRecognition registers a callback sink that only handles Node.Recognition events and returns the sink ID. The sink ID can be used to remove the sink later.
-
-func (*Tasker) OnTaskRecognitionInContext
-func (t *Tasker) OnTaskRecognitionInContext(fn func(\*Context, EventStatus, NodeRecognitionDetail)) int64
-OnTaskRecognitionInContext registers a callback sink that only handles Node.Recognition events and returns the sink ID. The sink ID can be used to remove the sink later.
-
 func (*Tasker) OnTaskerTask
 func (t *Tasker) OnTaskerTask(fn func(EventStatus, TaskerTaskDetail)) int64
 OnTaskerTask registers a callback sink that only handles Tasker.Task events and returns the sink ID. The sink ID can be used to remove the sink later.
-
-func (*Tasker) OnTaskerTaskInContext
-func (t *Tasker) OnTaskerTaskInContext(fn func(\*Context, EventStatus, TaskerTaskDetail)) int64
-OnTaskerTaskInContext registers a callback sink that only handles Tasker.Task events and returns the sink ID. The sink ID can be used to remove the sink later.
-
-func (*Tasker) OnUnknownEvent
-func (t *Tasker) OnUnknownEvent(fn func(msg, detailsJSON string)) int64
-OnUnknownEvent registers a callback sink that only handles unknown events and returns the sink ID. The sink ID can be used to remove the sink later.
-
-func (*Tasker) OnUnknownEventInContext
-func (t *Tasker) OnUnknownEventInContext(fn func(ctx \*Context, msg, detailsJSON string)) int64
-OnUnknownEventInContext registers a callback sink that only handles unknown events and returns the sink ID. The sink ID can be used to remove the sink later.
 
 func (*Tasker) PostAction
 added in v3.1.0
@@ -3165,16 +2919,7 @@ Stopping checks whether the tasker is stopping.
 
 type TaskerEventSink
 type TaskerEventSink interface {
-OnResourceLoading(tasker *Tasker, event EventStatus, detail ResourceLoadingDetail)
-OnControllerAction(tasker *Tasker, event EventStatus, detail ControllerActionDetail)
-OnTaskerTask(tasker *Tasker, event EventStatus, detail TaskerTaskDetail)
-OnNodePipelineNode(tasker *Tasker, event EventStatus, detail NodePipelineNodeDetail)
-OnNodeRecognitionNode(tasker *Tasker, event EventStatus, detail NodeRecognitionNodeDetail)
-OnNodeActionNode(tasker *Tasker, event EventStatus, detail NodeActionNodeDetail)
-OnTaskNextList(tasker *Tasker, event EventStatus, detail NodeNextListDetail)
-OnTaskRecognition(tasker *Tasker, event EventStatus, detail NodeRecognitionDetail)
-OnTaskAction(tasker *Tasker, event EventStatus, detail NodeActionDetail)
-OnUnknownEvent(tasker *Tasker, msg, detailsJSON string)
+OnTaskerTask(tasker \*Tasker, event EventStatus, detail TaskerTaskDetail)
 }
 type TaskerEventSinkAdapter
 type TaskerEventSinkAdapter struct {
@@ -3182,26 +2927,8 @@ type TaskerEventSinkAdapter struct {
 }
 TaskerEventSinkAdapter is a lightweight adapter that makes it easy to register a single-event handler via a callback function.
 
-func (*TaskerEventSinkAdapter) OnControllerAction
-func (a *TaskerEventSinkAdapter) OnControllerAction(tasker *Tasker, status EventStatus, detail ControllerActionDetail)
-func (*TaskerEventSinkAdapter) OnNodeActionNode
-func (a *TaskerEventSinkAdapter) OnNodeActionNode(tasker *Tasker, status EventStatus, detail NodeActionNodeDetail)
-func (*TaskerEventSinkAdapter) OnNodePipelineNode
-func (a *TaskerEventSinkAdapter) OnNodePipelineNode(tasker *Tasker, status EventStatus, detail NodePipelineNodeDetail)
-func (*TaskerEventSinkAdapter) OnNodeRecognitionNode
-func (a *TaskerEventSinkAdapter) OnNodeRecognitionNode(tasker *Tasker, status EventStatus, detail NodeRecognitionNodeDetail)
-func (*TaskerEventSinkAdapter) OnResourceLoading
-func (a *TaskerEventSinkAdapter) OnResourceLoading(tasker *Tasker, status EventStatus, detail ResourceLoadingDetail)
-func (*TaskerEventSinkAdapter) OnTaskAction
-func (a *TaskerEventSinkAdapter) OnTaskAction(tasker *Tasker, status EventStatus, detail NodeActionDetail)
-func (*TaskerEventSinkAdapter) OnTaskNextList
-func (a *TaskerEventSinkAdapter) OnTaskNextList(tasker *Tasker, status EventStatus, detail NodeNextListDetail)
-func (*TaskerEventSinkAdapter) OnTaskRecognition
-func (a *TaskerEventSinkAdapter) OnTaskRecognition(tasker *Tasker, status EventStatus, detail NodeRecognitionDetail)
 func (*TaskerEventSinkAdapter) OnTaskerTask
-func (a *TaskerEventSinkAdapter) OnTaskerTask(tasker *Tasker, status EventStatus, detail TaskerTaskDetail)
-func (*TaskerEventSinkAdapter) OnUnknownEvent
-func (a *TaskerEventSinkAdapter) OnUnknownEvent(tasker *Tasker, msg, detailsJSON string)
+func (a *TaskerEventSinkAdapter) OnTaskerTask(tasker \*Tasker, status EventStatus, detail TaskerTaskDetail)
 type TaskerTaskDetail
 type TaskerTaskDetail struct {
 TaskID uint64 `json:"task_id"`
