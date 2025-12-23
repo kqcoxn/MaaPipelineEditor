@@ -2,6 +2,8 @@ import { message } from "antd";
 import { BaseProtocol } from "./BaseProtocol";
 import type { LocalWebSocketServer } from "../server";
 import { useDebugStore } from "../../stores/debugStore";
+import { useFlowStore } from "../../stores/flow";
+import { useFileStore } from "../../stores/fileStore";
 import { configProtocol } from "../server";
 import type { ConfigResponse } from "./ConfigProtocol";
 
@@ -64,6 +66,11 @@ export class DebugProtocol extends BaseProtocol {
     this.wsClient.registerRoute("/lte/debug/stopped", (data) =>
       this.handleDebugStopped(data)
     );
+
+    // 注册调试暂停响应路由
+    this.wsClient.registerRoute("/lte/debug/paused", (data) =>
+      this.handleDebugPaused(data)
+    );
   }
 
   protected handleMessage(path: string, data: any): void {
@@ -72,6 +79,10 @@ export class DebugProtocol extends BaseProtocol {
 
   /**
    * 加载后端配置并自动填充资源路径
+   * 优先级:
+   * 1. 优先使用 --root 参数指定的目录(如果该目录包含 pipeline 子目录)
+   * 2. 其次使用配置文件中的 resource_dir
+   * 3. 最后为空,让用户手动填写
    */
   private loadBackendConfig(): void {
     // 请求获取后端配置
@@ -83,26 +94,45 @@ export class DebugProtocol extends BaseProtocol {
 
     // 注册配置数据回调，仅监听一次
     const unsubscribe = configProtocol.onConfigData((data: ConfigResponse) => {
-      if (data.success && data.config?.maafw?.resource_dir) {
+      if (data.success && data.config) {
         const debugStore = useDebugStore.getState();
 
-        // 只有在资源路径为空时才自动填充，避免覆盖用户手动设置的值
         if (!debugStore.resourcePath) {
-          debugStore.setConfig("resourcePath", data.config.maafw.resource_dir);
-          console.log(
-            "[DebugProtocol] Auto-filled resource path from backend config:",
-            data.config.maafw.resource_dir
-          );
+          const resourcePath =
+            data.config.file?.root || data.config.maafw?.resource_dir || "";
+
+          if (resourcePath) {
+            debugStore.setConfig("resourcePath", resourcePath);
+          } else {
+            console.warn(
+              "[DebugProtocol] Backend config invalid or resource paths not set"
+            );
+          }
         }
       } else {
-        console.warn(
-          "[DebugProtocol] Backend config invalid or resource_dir not set"
-        );
+        console.warn("[DebugProtocol] Backend config invalid");
       }
 
       // 仅监听一次，收到配置后立即取消订阅
       unsubscribe();
     });
+  }
+
+  /**
+   * 将节点名称转换为节点 ID
+   */
+  private fullNameToNodeId(fullName: string): string | null {
+    const nodes = useFlowStore.getState().nodes;
+    const prefix = useFileStore.getState().currentFile.config.prefix;
+
+    let label = fullName;
+    if (prefix && fullName.startsWith(prefix + "_")) {
+      label = fullName.substring(prefix.length + 1);
+    }
+
+    // 根据 label 查找节点
+    const node = nodes.find((n) => n.data.label === label);
+    return node ? node.id : null;
   }
 
   /**
@@ -118,7 +148,6 @@ export class DebugProtocol extends BaseProtocol {
   private handleDebugEvent(data: any): void {
     try {
       const { event_name, task_id, node_id, timestamp, detail } = data;
-
       const debugStore = useDebugStore.getState();
 
       // 验证 task_id 是否匹配
@@ -137,19 +166,56 @@ export class DebugProtocol extends BaseProtocol {
         return;
       }
 
+      // 将后端的节点完整名称转换为前端节点 ID
+      const nodeIdInFlow = node_id ? this.fullNameToNodeId(node_id) : null;
+      if (node_id && !nodeIdInFlow) {
+        console.warn("[DebugProtocol] Cannot find node with name:", node_id);
+        return;
+      }
+
       // 处理不同类型的事件
       switch (event_name) {
         case "node_running":
-          this.handleNodeRunning(node_id, timestamp, detail);
+          this.handleNodeRunning(nodeIdInFlow!, timestamp, detail);
           break;
+        case "next_list":
+          this.handleNextList(nodeIdInFlow!, timestamp, detail);
+          break;
+        case "recognition_starting":
+          this.handleRecognitionStarting(nodeIdInFlow!, timestamp, detail);
+          break;
+        case "recognition_success":
+          this.handleRecognitionSuccess(nodeIdInFlow!, timestamp, detail);
+          break;
+        case "recognition_failed":
+          this.handleRecognitionFailed(nodeIdInFlow!, timestamp, detail);
+          break;
+        case "action_success":
+          this.handleActionSuccess(nodeIdInFlow!, timestamp, detail);
+          break;
+        case "action_failed":
+          this.handleActionFailed(nodeIdInFlow!, timestamp, detail);
+          break;
+        case "node_execution_completed":
+          this.handleNodeExecutionCompleted(nodeIdInFlow!, timestamp, detail);
+          break;
+        case "node_execution_failed":
+          this.handleNodeExecutionFailed(nodeIdInFlow!, timestamp, detail);
+          break;
+        // 兼容旧事件
         case "node_completed":
-          this.handleNodeCompleted(node_id, timestamp, detail);
+          this.handleNodeCompleted(nodeIdInFlow!, timestamp, detail);
+          break;
+        case "node_failed":
+          this.handleNodeFailed(nodeIdInFlow!, timestamp, detail);
           break;
         case "recognition":
-          this.handleRecognition(node_id, timestamp, detail);
+          this.handleRecognition(nodeIdInFlow!, timestamp, detail);
           break;
         case "action":
-          this.handleAction(node_id, timestamp, detail);
+          this.handleAction(nodeIdInFlow!, timestamp, detail);
+          break;
+        case "task_completed":
           break;
         default:
           console.warn("[DebugProtocol] Unknown event type:", event_name);
@@ -169,12 +235,6 @@ export class DebugProtocol extends BaseProtocol {
   ): void {
     const debugStore = useDebugStore.getState();
 
-    // 检查是否命中断点
-    if (debugStore.breakpoints.has(nodeId)) {
-      debugStore.pauseDebug();
-      message.info(`命中断点: ${nodeId}`);
-    }
-
     // 更新当前执行节点
     debugStore.handleDebugEvent({
       type: "node_running",
@@ -182,6 +242,14 @@ export class DebugProtocol extends BaseProtocol {
       timestamp,
       detail,
     });
+
+    // 检查是否命中断点
+    if (debugStore.breakpoints.has(nodeId)) {
+      if (debugStore.taskId) {
+        this.sendPauseDebug(debugStore.taskId);
+        message.info(`命中断点: ${nodeId}`);
+      }
+    }
   }
 
   /**
@@ -197,6 +265,23 @@ export class DebugProtocol extends BaseProtocol {
     // 添加到已执行节点集合
     debugStore.handleDebugEvent({
       type: "node_completed",
+      nodeId,
+      timestamp,
+      detail,
+    });
+  }
+
+  /**
+   * 处理节点执行失败事件
+   */
+  private handleNodeFailed(
+    nodeId: string,
+    timestamp: number,
+    detail: any
+  ): void {
+    const debugStore = useDebugStore.getState();
+    debugStore.handleDebugEvent({
+      type: "node_failed",
       nodeId,
       timestamp,
       detail,
@@ -222,6 +307,42 @@ export class DebugProtocol extends BaseProtocol {
   }
 
   /**
+   * 处理识别成功事件
+   */
+  private handleRecognitionSuccess(
+    nodeId: string,
+    timestamp: number,
+    detail: any
+  ): void {
+    const debugStore = useDebugStore.getState();
+
+    debugStore.handleDebugEvent({
+      type: "recognition_success",
+      nodeId,
+      timestamp,
+      detail,
+    });
+  }
+
+  /**
+   * 处理识别失败事件
+   */
+  private handleRecognitionFailed(
+    nodeId: string,
+    timestamp: number,
+    detail: any
+  ): void {
+    const debugStore = useDebugStore.getState();
+
+    debugStore.handleDebugEvent({
+      type: "recognition_failed",
+      nodeId,
+      timestamp,
+      detail,
+    });
+  }
+
+  /**
    * 处理动作结果事件
    */
   private handleAction(nodeId: string, timestamp: number, detail: any): void {
@@ -229,6 +350,112 @@ export class DebugProtocol extends BaseProtocol {
 
     debugStore.handleDebugEvent({
       type: "action",
+      nodeId,
+      timestamp,
+      detail,
+    });
+  }
+
+  /**
+   * 处理动作成功事件
+   */
+  private handleActionSuccess(
+    nodeId: string,
+    timestamp: number,
+    detail: any
+  ): void {
+    const debugStore = useDebugStore.getState();
+
+    debugStore.handleDebugEvent({
+      type: "action_success",
+      nodeId,
+      timestamp,
+      detail,
+    });
+  }
+
+  /**
+   * 处理动作失败事件
+   */
+  private handleActionFailed(
+    nodeId: string,
+    timestamp: number,
+    detail: any
+  ): void {
+    const debugStore = useDebugStore.getState();
+
+    debugStore.handleDebugEvent({
+      type: "action_failed",
+      nodeId,
+      timestamp,
+      detail,
+    });
+  }
+
+  /**
+   * 处理节点执行周期完成事件
+   */
+  private handleNodeExecutionCompleted(
+    nodeId: string,
+    timestamp: number,
+    detail: any
+  ): void {
+    const debugStore = useDebugStore.getState();
+
+    debugStore.handleDebugEvent({
+      type: "node_execution_completed",
+      nodeId,
+      timestamp,
+      detail,
+    });
+  }
+
+  /**
+   * 处理节点执行周期失败事件
+   */
+  private handleNodeExecutionFailed(
+    nodeId: string,
+    timestamp: number,
+    detail: any
+  ): void {
+    const debugStore = useDebugStore.getState();
+
+    debugStore.handleDebugEvent({
+      type: "node_execution_failed",
+      nodeId,
+      timestamp,
+      detail,
+    });
+  }
+
+  /**
+   * 处理 NextList 事件
+   * 当节点完成识别后，NextList 事件包含了即将要识别的节点列表
+   */
+  private handleNextList(nodeId: string, timestamp: number, detail: any): void {
+    const debugStore = useDebugStore.getState();
+
+    debugStore.handleDebugEvent({
+      type: "next_list",
+      nodeId,
+      timestamp,
+      detail,
+    });
+  }
+
+  /**
+   * 处理识别开始事件
+   * 当开始识别某个节点时，立即更新UI显示正确的识别目标
+   */
+  private handleRecognitionStarting(
+    nodeId: string,
+    timestamp: number,
+    detail: any
+  ): void {
+    const debugStore = useDebugStore.getState();
+
+    debugStore.handleDebugEvent({
+      type: "recognition_starting",
       nodeId,
       timestamp,
       detail,
@@ -246,7 +473,7 @@ export class DebugProtocol extends BaseProtocol {
       const debugStore = useDebugStore.getState();
 
       // 验证 task_id
-      if (debugStore.taskId !== task_id) {
+      if (task_id !== undefined && debugStore.taskId !== task_id) {
         console.warn(
           "[DebugProtocol] Error task_id mismatch:",
           task_id,
@@ -290,12 +517,23 @@ export class DebugProtocol extends BaseProtocol {
         return;
       }
 
+      // 忽略完成事件的暂停状态
+      if (debugStore.debugStatus === "paused") {
+        return;
+      }
+
       // 更新调试状态为完成
       debugStore.handleDebugEvent({
         type: "completed",
       });
 
       message.success("调试执行完成");
+      setTimeout(() => {
+        const currentStatus = useDebugStore.getState().debugStatus;
+        if (currentStatus === "completed") {
+          useDebugStore.getState().stopDebug();
+        }
+      }, 1000);
     } catch (error) {
       console.error("[DebugProtocol] Failed to handle debug completed:", error);
     }
@@ -345,7 +583,7 @@ export class DebugProtocol extends BaseProtocol {
       const debugStore = useDebugStore.getState();
 
       // 验证 task_id
-      if (debugStore.taskId !== task_id) {
+      if (task_id !== undefined && debugStore.taskId !== task_id) {
         console.warn(
           "[DebugProtocol] Stopped task_id mismatch:",
           task_id,
@@ -370,12 +608,46 @@ export class DebugProtocol extends BaseProtocol {
   }
 
   /**
+   * 处理调试暂停响应
+   * 路由: /lte/debug/paused
+   */
+  private handleDebugPaused(data: any): void {
+    try {
+      const { success, task_id, error } = data;
+
+      const debugStore = useDebugStore.getState();
+
+      // 验证 task_id
+      if (task_id !== undefined && debugStore.taskId !== task_id) {
+        console.warn(
+          "[DebugProtocol] Paused task_id mismatch:",
+          task_id,
+          "expected:",
+          debugStore.taskId
+        );
+        return;
+      }
+
+      if (success) {
+        debugStore.pauseDebug();
+        message.info("调试已暂停");
+      } else {
+        message.warning(error || "调试暂停失败");
+        console.error("[DebugProtocol] Debug pause failed:", error);
+      }
+    } catch (error) {
+      console.error("[DebugProtocol] Failed to handle debug paused:", error);
+    }
+  }
+
+  /**
    * 发送调试启动请求
    */
   sendStartDebug(
     resourcePath: string,
     entry: string,
-    controllerId: string
+    controllerId: string,
+    breakpoints: string[]
   ): boolean {
     if (!this.wsClient) {
       console.error("[DebugProtocol] WebSocket client not initialized");
@@ -386,6 +658,7 @@ export class DebugProtocol extends BaseProtocol {
       resource_path: resourcePath,
       entry,
       controller_id: controllerId,
+      breakpoints,
     });
   }
 
@@ -420,7 +693,11 @@ export class DebugProtocol extends BaseProtocol {
   /**
    * 发送继续调试请求
    */
-  sendContinueDebug(taskId: string): boolean {
+  sendContinueDebug(
+    taskId: string,
+    currentNode: string,
+    breakpoints: string[]
+  ): boolean {
     if (!this.wsClient) {
       console.error("[DebugProtocol] WebSocket client not initialized");
       return false;
@@ -428,13 +705,20 @@ export class DebugProtocol extends BaseProtocol {
 
     return this.wsClient.send("/mpe/debug/continue", {
       task_id: taskId,
+      current_node: currentNode,
+      breakpoints,
     });
   }
 
   /**
    * 发送单步执行请求
    */
-  sendStepDebug(taskId: string): boolean {
+  sendStepDebug(
+    taskId: string,
+    currentNode: string,
+    nextNodes: string[],
+    breakpoints: string[]
+  ): boolean {
     if (!this.wsClient) {
       console.error("[DebugProtocol] WebSocket client not initialized");
       return false;
@@ -442,6 +726,9 @@ export class DebugProtocol extends BaseProtocol {
 
     return this.wsClient.send("/mpe/debug/step", {
       task_id: taskId,
+      current_node: currentNode,
+      next_nodes: nextNodes,
+      breakpoints,
     });
   }
 }

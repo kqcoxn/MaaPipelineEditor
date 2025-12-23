@@ -19,6 +19,7 @@ export interface NodeContextMenuItem {
   key: string;
   label: string;
   icon: ReactNode | string;
+  iconSize?: number;
   onClick: (node: NodeContextMenuNode) => void;
   disabled?: boolean | ((node: NodeContextMenuNode) => boolean);
   disabledTip?: string;
@@ -77,6 +78,13 @@ function handleToggleBreakpoint(node: NodeContextMenuNode) {
   message.success(hasBreakpoint ? "断点已移除" : "断点已设置");
 }
 
+/**设为调试开始节点处理器 */
+function handleSetDebugEntry(node: NodeContextMenuNode) {
+  const { setConfig } = useDebugStore.getState();
+  setConfig("entryNode", node.data.label);
+  message.success(`已将 "${node.data.label}" 设为调试开始节点`);
+}
+
 /**获取节点右键菜单配置 */
 export function getNodeContextMenuConfig(
   node: NodeContextMenuNode
@@ -90,6 +98,7 @@ export function getNodeContextMenuConfig(
       key: "copy-node-name",
       label: "复制节点名",
       icon: "icon-a-copyfubenfuzhi",
+      iconSize: 16,
       onClick: handleCopyNodeName,
     },
     // 保存为模板
@@ -97,6 +106,7 @@ export function getNodeContextMenuConfig(
       key: "save-as-template",
       label: "保存为模板",
       icon: "icon-biaodanmoban",
+      iconSize: 16,
       onClick: handleSaveAsTemplate,
       visible: (node) => node.type === NodeTypeEnum.Pipeline,
     },
@@ -110,9 +120,17 @@ export function getNodeContextMenuConfig(
         key: "divider-debug",
       },
       {
+        key: "set-debug-entry",
+        label: "设为调试开始节点",
+        icon: "icon-tiaoshibeifen",
+        iconSize: 16,
+        onClick: handleSetDebugEntry,
+      },
+      {
         key: "toggle-breakpoint",
         label: hasBreakpoint ? "移除断点" : "设置断点",
-        icon: "icon-icon",
+        icon: "icon-duandian",
+        iconSize: 16,
         onClick: handleToggleBreakpoint,
       }
     );
@@ -129,6 +147,7 @@ export function getNodeContextMenuConfig(
       key: "delete-node",
       label: "删除",
       icon: "icon-shanchu",
+      iconSize: 16,
       onClick: handleDeleteNode,
       danger: true,
     }

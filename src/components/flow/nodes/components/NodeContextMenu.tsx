@@ -60,7 +60,7 @@ export const NodeContextMenu = memo<NodeContextMenuProps>(
                 {typeof menuItem.icon === "string" ? (
                   <IconFont
                     name={menuItem.icon as IconNames}
-                    size={16}
+                    size={menuItem.iconSize ?? 16}
                     color={menuItem.danger ? "#ff4d4f" : undefined}
                   />
                 ) : (

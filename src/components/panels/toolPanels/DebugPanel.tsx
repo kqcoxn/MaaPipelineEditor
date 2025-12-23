@@ -3,9 +3,10 @@ import { message, Select, Tag, Button, Dropdown, Tooltip, Popover } from "antd";
 import classNames from "classnames";
 import IconFont from "../../iconfonts";
 import { type IconNames } from "../../iconfonts";
-import { useFlowStore } from "../../../stores/flow";
+import { getNextNodes, useFlowStore } from "../../../stores/flow";
 import { useDebugStore } from "../../../stores/debugStore";
 import { useMFWStore } from "../../../stores/mfwStore";
+import { useFileStore } from "../../../stores/fileStore";
 import { debugProtocol, configProtocol } from "../../../services/server";
 import type { ConfigResponse } from "../../../services/protocols/ConfigProtocol";
 import { useShallow } from "zustand/shallow";
@@ -15,6 +16,7 @@ import debugStyle from "../../../styles/DebugPanel.module.less";
 /** 调试工具栏 */
 function DebugPanel() {
   const nodes = useFlowStore((state) => state.nodes);
+  const prefix = useFileStore((state) => state.currentFile.config.prefix);
   const connectionStatus = useMFWStore((state) => state.connectionStatus);
   const controllerId = useMFWStore((state) => state.controllerId);
   const {
@@ -25,6 +27,7 @@ function DebugPanel() {
     screenshotMode,
     logLevel,
     currentNode,
+    currentPhase,
     executionStartTime,
     executionHistory,
     breakpoints,
@@ -47,6 +50,7 @@ function DebugPanel() {
       screenshotMode: state.screenshotMode,
       logLevel: state.logLevel,
       currentNode: state.currentNode,
+      currentPhase: state.currentPhase,
       executionStartTime: state.executionStartTime,
       executionHistory: state.executionHistory,
       breakpoints: state.breakpoints,
@@ -65,7 +69,21 @@ function DebugPanel() {
 
   const selectedNodes = useFlowStore((state) => state.selectedNodes);
 
+  /**
+   * 将节点 ID 转换为 pipeline 中的节点名称
+   */
+  const nodeIdToFullName = (nodeId: string): string | null => {
+    const node = nodes.find((n) => n.id === nodeId);
+    if (!node) return null;
+    const label = node.data.label;
+    return prefix ? `${prefix}_${label}` : label;
+  };
+
   // 连接成功后自动加载后端配置填充资源路径
+  // 优先级:
+  // 1. 优先使用 --root 参数指定的目录
+  // 2. 其次使用配置文件中的 resource_dir
+  // 3. 最后为空,让用户手动填写
   useEffect(() => {
     if (connectionStatus === "connected" && !resourcePath) {
       // 请求后端配置
@@ -76,22 +94,33 @@ function DebugPanel() {
       }
 
       // 监听配置响应
-      const unsubscribe = configProtocol.onConfigData((data: ConfigResponse) => {
-        if (data.success && data.config?.maafw?.resource_dir) {
-          setConfig("resourcePath", data.config.maafw.resource_dir);
-        } else {
-          console.warn("[DebugPanel] Backend config invalid or resource_dir not set");
+      const unsubscribe = configProtocol.onConfigData(
+        (data: ConfigResponse) => {
+          if (data.success && data.config) {
+            const resourcePath =
+              data.config.file?.root || data.config.maafw?.resource_dir || "";
+
+            if (resourcePath) {
+              setConfig("resourcePath", resourcePath);
+            } else {
+              console.warn(
+                "[DebugPanel] Backend config invalid or resource paths not set"
+              );
+            }
+          } else {
+            console.warn("[DebugPanel] Backend config invalid");
+          }
+
+          // 仅监听一次后取消订阅
+          unsubscribe();
         }
-        
-        // 仅监听一次后取消订阅
-        unsubscribe();
-      });
+      );
     }
   }, [connectionStatus, resourcePath, setConfig]);
 
   // 计算经过时间
   const [elapsedTime, setElapsedTime] = useState(0);
-  useMemo(() => {
+  useEffect(() => {
     if (debugStatus === "running" && executionStartTime) {
       const timer = setInterval(() => {
         setElapsedTime(Math.floor((Date.now() - executionStartTime) / 1000));
@@ -283,11 +312,25 @@ function DebugPanel() {
         // 调用 debugStore 更新状态
         startDebug();
 
+        // 将节点 ID 转换为 pipeline 中的节点名称
+        const entryNodeFullName = nodeIdToFullName(entryNode);
+        if (!entryNodeFullName) {
+          message.error("入口节点不存在");
+          stopDebug();
+          return;
+        }
+
+        // 将断点节点 ID 转换为 pipeline 中的节点名称
+        const breakpointFullNames = Array.from(breakpoints)
+          .map((id) => nodeIdToFullName(id))
+          .filter((name): name is string => name !== null);
+
         // 发送 WebSocket 消息启动调试
         const success = debugProtocol.sendStartDebug(
           resourcePath,
-          entryNode,
-          controllerId
+          entryNodeFullName,
+          controllerId,
+          breakpointFullNames
         );
 
         if (!success) {
@@ -300,29 +343,41 @@ function DebugPanel() {
       key: "pause",
       icon: "icon-zanting",
       iconSize: 30,
-      label: "暂停调试",
+      label: "暂停调试（所有状态会清空）",
       disabled: debugStatus !== "running",
       onClick: () => {
         if (taskId) {
           // 发送 WebSocket 消息暂停调试
           debugProtocol.sendPauseDebug(taskId);
         }
-
-        // 调用 debugStore 更新状态
-        pauseDebug();
-        message.success("调试已暂停");
       },
     },
     {
       key: "continue",
       icon: "icon-jixu",
       iconSize: 20,
-      label: "继续执行",
+      label: "继续执行（所有状态会清空）",
       disabled: debugStatus !== "paused",
       onClick: () => {
-        if (taskId) {
+        if (taskId && currentNode) {
+          // 将当前节点 ID 转换为 pipeline 中的节点名称
+          const currentNodeFullName = nodeIdToFullName(currentNode);
+          if (!currentNodeFullName) {
+            message.error("当前节点不存在");
+            return;
+          }
+
+          // 将断点节点 ID 转换为 pipeline 中的节点名称
+          const breakpointFullNames = Array.from(breakpoints)
+            .map((id) => nodeIdToFullName(id))
+            .filter((name): name is string => name !== null);
+
           // 发送 WebSocket 消息继续调试
-          debugProtocol.sendContinueDebug(taskId);
+          debugProtocol.sendContinueDebug(
+            taskId,
+            currentNodeFullName,
+            breakpointFullNames
+          );
         }
 
         // 调用 debugStore 更新状态
@@ -330,22 +385,47 @@ function DebugPanel() {
         message.success("继续执行");
       },
     },
-    {
-      key: "step",
-      icon: "icon-jurassic_nextstep",
-      iconSize: 20,
-      label: "单步执行",
-      disabled: debugStatus !== "paused",
-      onClick: () => {
-        if (taskId) {
-          // 发送 WebSocket 消息单步执行
-          debugProtocol.sendStepDebug(taskId);
-        }
+    // {
+    //   key: "step",
+    //   icon: "icon-jurassic_nextstep",
+    //   iconSize: 20,
+    //   label: "单步执行（无上下文状态保存）",
+    //   disabled: debugStatus !== "paused",
+    //   onClick: () => {
+    //     if (taskId && currentNode) {
+    //       // 将当前节点 ID 转换为 pipeline 中的节点名称
+    //       const currentNodeFullName = nodeIdToFullName(currentNode);
+    //       if (!currentNodeFullName) {
+    //         message.error("当前节点不存在");
+    //         return;
+    //       }
 
-        // 调用 debugStore 更新状态
-        stepDebug();
-      },
-    },
+    //       // 获取当前节点的下一个节点 ID 列表
+    //       const nextNodeIds = getNextNodes(currentNode);
+
+    //       // 将下一个节点 ID 转换为 pipeline 中的节点名称
+    //       const nextNodeFullNames = nextNodeIds
+    //         .map((id) => nodeIdToFullName(id))
+    //         .filter((name): name is string => name !== null);
+
+    //       // 将断点节点 ID 转换为 pipeline 中的节点名称
+    //       const breakpointFullNames = Array.from(breakpoints)
+    //         .map((id) => nodeIdToFullName(id))
+    //         .filter((name): name is string => name !== null);
+
+    //       // 发送 WebSocket 消息单步执行
+    //       debugProtocol.sendStepDebug(
+    //         taskId,
+    //         currentNodeFullName,
+    //         nextNodeFullNames,
+    //         breakpointFullNames
+    //       );
+    //     }
+
+    //     // 调用 debugStore 更新状态
+    //     stepDebug();
+    //   },
+    // },
     {
       key: "stop",
       icon: "icon-tingzhi",
@@ -404,7 +484,16 @@ function DebugPanel() {
   const statusTagConfig = {
     idle: { text: "空闲", color: "default" },
     preparing: { text: "准备中", color: "processing" },
-    running: { text: "运行中", color: "processing" },
+    running: {
+      // 根据当前阶段显示不同状态
+      text:
+        currentPhase === "recognition"
+          ? "识别中"
+          : currentPhase === "action"
+          ? "执行中"
+          : "运行中",
+      color: "processing",
+    },
     paused: { text: "已暂停", color: "warning" },
     completed: { text: "已完成", color: "success" },
   };
@@ -424,17 +513,19 @@ function DebugPanel() {
               <Popover
                 content={btn.popover}
                 title={btn.label}
-                trigger="click"
+                trigger={btn.disabled ? [] : "click"}
                 placement="bottomRight"
                 overlayStyle={{ borderRadius: "8px" }}
               >
                 <Tooltip title={btn.label}>
                   <IconFont
-                    style={{ opacity: btn.disabled ? 0.2 : 1 }}
+                    style={{
+                      opacity: btn.disabled ? 0.2 : 1,
+                      cursor: btn.disabled ? "not-allowed" : "pointer",
+                    }}
                     className={style.icon}
                     name={btn.icon as IconNames}
                     size={btn.iconSize || 20}
-                    onClick={btn.onClick}
                   />
                 </Tooltip>
               </Popover>
@@ -453,7 +544,10 @@ function DebugPanel() {
               >
                 <Tooltip title={btn.label}>
                   <IconFont
-                    style={{ opacity: btn.disabled ? 0.2 : 1 }}
+                    style={{
+                      opacity: btn.disabled ? 0.2 : 1,
+                      cursor: btn.disabled ? "not-allowed" : "pointer",
+                    }}
                     className={style.icon}
                     name={btn.icon as IconNames}
                     size={btn.iconSize || 20}
@@ -463,11 +557,18 @@ function DebugPanel() {
             ) : (
               <Tooltip title={btn.label}>
                 <IconFont
-                  style={{ opacity: btn.disabled ? 0.2 : 1 }}
+                  style={{
+                    opacity: btn.disabled ? 0.2 : 1,
+                    cursor: btn.disabled ? "not-allowed" : "pointer",
+                  }}
                   className={style.icon}
                   name={btn.icon as IconNames}
                   size={btn.iconSize || 20}
-                  onClick={btn.onClick}
+                  onClick={(e) => {
+                    if (!btn.disabled) {
+                      btn.onClick();
+                    }
+                  }}
                 />
               </Tooltip>
             )}
@@ -490,11 +591,6 @@ function DebugPanel() {
           >
             {statusTagConfig[debugStatus].text}
           </Tag>
-          {currentNodeName && (
-            <span className={debugStyle["debug-current-node"]}>
-              {currentNodeName}
-            </span>
-          )}
           {debugStatus === "running" && (
             <span className={debugStyle["debug-elapsed-time"]}>
               {formatTime(elapsedTime)}

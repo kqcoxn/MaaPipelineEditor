@@ -77,3 +77,24 @@ export function checkRepeatNodeLabelList(): string[] {
 
   return repeats;
 }
+
+/**
+ * 获取指定节点通过 next 连接指向的所有节点 ID
+ * @param nodeId 节点 ID
+ * @returns 下一个节点 ID 数组
+ */
+export function getNextNodes(nodeId: string): string[] {
+  const edges = useFlowStore.getState().edges;
+  
+  // 筛选出 source 为指定 nodeId 且 sourceHandle 包含 "next" 的边
+  const nextEdges = edges.filter(
+    (edge) => edge.source === nodeId && edge.sourceHandle?.includes("next")
+  );
+  
+  // 提取 target 节点 ID 并去重
+  const nextNodeIds = Array.from(
+    new Set(nextEdges.map((edge) => edge.target))
+  );
+  
+  return nextNodeIds;
+}

@@ -44,14 +44,10 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
     );
 
   // 获取调试状态
-  const { debugMode, executedNodes, currentNode, breakpoints } = useDebugStore(
-    useShallow((state) => ({
-      debugMode: state.debugMode,
-      executedNodes: state.executedNodes,
-      currentNode: state.currentNode,
-      breakpoints: state.breakpoints,
-    }))
-  );
+  const debugMode = useDebugStore((state) => state.debugMode);
+  const executedNodes = useDebugStore((state) => state.executedNodes);
+  const currentNode = useDebugStore((state) => state.currentNode);
+  const breakpoints = useDebugStore((state) => state.breakpoints);
 
   // 计算是否与选中元素相关联
   const isRelated = useMemo(() => {

@@ -97,7 +97,7 @@ func (s *Service) Initialize() error {
 		maa.WithLogDir(logDir),
 		maa.WithSaveDraw(false),
 		maa.WithStdoutLevel(maa.LoggingLevelOff),
-		maa.WithDebugMode(false),
+		maa.WithDebugMode(true),
 	)
 
 	// 恢复原工作目录

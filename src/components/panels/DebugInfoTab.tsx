@@ -6,6 +6,7 @@ import {
   CloseCircleOutlined,
 } from "@ant-design/icons";
 import { useDebugStore } from "../../stores/debugStore";
+import { useFlowStore } from "../../stores/flow";
 import debugStyle from "../../styles/DebugPanel.module.less";
 
 /**
@@ -13,19 +14,24 @@ import debugStyle from "../../styles/DebugPanel.module.less";
  * 显示执行历史记录、识别结果、截图等详细信息
  */
 function DebugInfoTab() {
-  const {
-    debugStatus,
-    taskId,
-    currentNode,
-    executionHistory,
-    executionStartTime,
-  } = useDebugStore((state) => ({
-    debugStatus: state.debugStatus,
-    taskId: state.taskId,
-    currentNode: state.currentNode,
-    executionHistory: state.executionHistory,
-    executionStartTime: state.executionStartTime,
-  }));
+  // 获取状态
+  const debugStatus = useDebugStore((state) => state.debugStatus);
+  const taskId = useDebugStore((state) => state.taskId);
+  const executionHistory = useDebugStore((state) => state.executionHistory);
+  const executionStartTime = useDebugStore((state) => state.executionStartTime);
+
+  // 获取当前选中的节点
+  const selectedNode = useFlowStore((state) => state.targetNode);
+  const selectedNodeId = selectedNode?.id || null;
+
+  // 过滤出当前选中节点的执行历史
+  const nodeExecutionHistory = useMemo(() => {
+    if (!selectedNodeId) return [];
+    const filtered = executionHistory.filter(
+      (record) => record.nodeId === selectedNodeId
+    );
+    return filtered;
+  }, [executionHistory, selectedNodeId]);
 
   // 计算执行时间
   const executionTime = useMemo(() => {
@@ -39,15 +45,18 @@ function DebugInfoTab() {
 
   // 生成时间轴项
   const timelineItems = useMemo(() => {
-    return executionHistory.map((record, index) => {
+    return nodeExecutionHistory.map((record, index) => {
       const isRunning = record.status === "running";
       const isCompleted = record.status === "completed";
-      const isFailed = record.status === "failed";
 
       // 计算耗时
-      const duration = record.endTime
-        ? ((record.endTime - record.startTime) / 1000).toFixed(2)
+      const durationMs = record.latency
+        ? record.latency
+        : record.endTime
+        ? record.endTime - record.startTime
         : null;
+      const duration =
+        durationMs !== null ? (durationMs / 1000).toFixed(2) : null;
 
       // 时间轴项的图标和颜色
       const dot = isRunning ? (
@@ -71,12 +80,21 @@ function DebugInfoTab() {
             size="small"
             items={[
               {
-                key: record.nodeId,
+                key: `collapse-${record.nodeId}-${index}`,
                 label: (
                   <div
                     style={{ display: "flex", alignItems: "center", gap: 8 }}
                   >
-                    <span style={{ fontWeight: 500 }}>{record.nodeName}</span>
+                    <span style={{ fontWeight: 500 }}>
+                      {record.nodeName}
+                      {record.runIndex && record.runIndex > 1 && (
+                        <span
+                          style={{ fontSize: 11, color: "#999", marginLeft: 4 }}
+                        >
+                          (#{record.runIndex})
+                        </span>
+                      )}
+                    </span>
                     <Tag color={color} style={{ margin: 0 }}>
                       {record.status === "running"
                         ? "执行中"
@@ -122,24 +140,34 @@ function DebugInfoTab() {
                         <div
                           style={{
                             padding: 8,
-                            background: "#f5f5f5",
+                            background: record.recognition.success
+                              ? "#f6ffed"
+                              : "#fff2f0",
                             borderRadius: 4,
                             fontSize: 12,
                           }}
                         >
-                          <div>算法: {record.recognition.algorithm}</div>
-                          {record.recognition.result && (
-                            <div>
-                              结果:{" "}
-                              {typeof record.recognition.result === "string"
-                                ? record.recognition.result
-                                : JSON.stringify(record.recognition.result)}
-                            </div>
-                          )}
-                          {record.recognition.score !== undefined && (
-                            <div>
-                              置信度:{" "}
-                              {(record.recognition.score * 100).toFixed(1)}%
+                          <div>
+                            状态:{" "}
+                            <Tag
+                              color={
+                                record.recognition.success ? "success" : "error"
+                              }
+                              style={{ marginLeft: 4 }}
+                            >
+                              {record.recognition.success ? "成功" : "失败"}
+                            </Tag>
+                          </div>
+                          {record.recognition.detail && (
+                            <div style={{ marginTop: 4 }}>
+                              详情:{" "}
+                              {typeof record.recognition.detail === "string"
+                                ? record.recognition.detail
+                                : JSON.stringify(
+                                    record.recognition.detail,
+                                    null,
+                                    2
+                                  )}
                             </div>
                           )}
                         </div>
@@ -161,18 +189,30 @@ function DebugInfoTab() {
                         <div
                           style={{
                             padding: 8,
-                            background: "#f5f5f5",
+                            background: record.action.success
+                              ? "#f6ffed"
+                              : "#fff2f0",
                             borderRadius: 4,
                             fontSize: 12,
                           }}
                         >
-                          <div>类型: {record.action.type}</div>
-                          {record.action.target && (
-                            <div>
-                              目标:{" "}
-                              {typeof record.action.target === "string"
-                                ? record.action.target
-                                : JSON.stringify(record.action.target)}
+                          <div>
+                            状态:{" "}
+                            <Tag
+                              color={
+                                record.action.success ? "success" : "error"
+                              }
+                              style={{ marginLeft: 4 }}
+                            >
+                              {record.action.success ? "成功" : "失败"}
+                            </Tag>
+                          </div>
+                          {record.action.detail && (
+                            <div style={{ marginTop: 4 }}>
+                              详情:{" "}
+                              {typeof record.action.detail === "string"
+                                ? record.action.detail
+                                : JSON.stringify(record.action.detail, null, 2)}
                             </div>
                           )}
                         </div>
@@ -237,10 +277,10 @@ function DebugInfoTab() {
         ),
       };
     });
-  }, [executionHistory]);
+  }, [nodeExecutionHistory]);
 
   // 无调试会话时的提示
-  if (debugStatus === "idle") {
+  if (debugStatus === "idle" && executionHistory.length === 0) {
     return (
       <div style={{ padding: 20 }}>
         <Empty
@@ -251,10 +291,26 @@ function DebugInfoTab() {
     );
   }
 
+  // 当前节点未参与调试时的提示
+  if (nodeExecutionHistory.length === 0 && selectedNodeId) {
+    return (
+      <div style={{ padding: 20 }}>
+        <Empty
+          description="该节点暂无调试记录"
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       className={debugStyle["debug-info-tab"]}
-      style={{ padding: "12px 16px" }}
+      style={{
+        padding: "12px 16px",
+        maxHeight: "calc(85vh - 200px)",
+        overflowY: "auto",
+      }}
     >
       {/* 调试会话概览 */}
       <div style={{ marginBottom: 16 }}>
@@ -295,18 +351,18 @@ function DebugInfoTab() {
         {/* 统计信息 */}
         <div style={{ display: "flex", gap: 16 }}>
           <Statistic
-            title="已执行节点"
+            title="执行次数"
             value={
-              executionHistory.filter((r) => r.status !== "running").length
+              nodeExecutionHistory.filter((r) => r.status !== "running").length
             }
-            suffix={`/ ${executionHistory.length}`}
-            valueStyle={{ fontSize: 20 }}
+            suffix={`/ ${nodeExecutionHistory.length}`}
+            styles={{ content: { fontSize: 20 } }}
           />
           {executionTime && (
             <Statistic
               title="执行时间"
               value={executionTime}
-              valueStyle={{ fontSize: 20 }}
+              styles={{ content: { fontSize: 20 } }}
             />
           )}
         </div>

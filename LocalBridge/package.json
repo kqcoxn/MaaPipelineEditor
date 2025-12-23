@@ -2,6 +2,6 @@
     "scripts": {
         "build": "go build -o ./build/mpelb.exe ./cmd/lb",
         "run": "./build/mpelb.exe --root ./test-json",
-        "server": "go build -o ./build/mpelb.exe ./cmd/lb && ./build/mpelb.exe --root ./test-json"
+        "server": "go build -o ./build/mpelb.exe ./cmd/lb && ./build/mpelb.exe --root ./test-json/base --log-level DEBUG"
     }
 }

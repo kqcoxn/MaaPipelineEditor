@@ -12,6 +12,11 @@ export type DebugStatus =
   | "completed";
 
 /**
+ * 节点执行阶段
+ */
+export type ExecutionPhase = "recognition" | "action" | null;
+
+/**
  * 截图模式
  */
 export type ScreenshotMode = "all" | "breakpoint" | "none";
@@ -23,21 +28,27 @@ export type LogLevel = "verbose" | "normal" | "error";
 
 /**
  * 执行记录
+ * 每条记录对应一次完整的识别
  */
 export interface ExecutionRecord {
   nodeId: string;
   nodeName: string;
   startTime: number;
   endTime?: number;
+  latency?: number; // 执行耗时(毫秒),从后端获取
+  runIndex?: number; // 执行次数索引,用于区分多次执行
   status: "running" | "completed" | "failed";
+  // 识别阶段信息
   recognition?: {
-    algorithm: string;
-    result: any;
-    score: number;
+    success: boolean; // 识别是否成功
+    detail?: any; // 识别详细信息
+    timestamp?: number; // 识别完成时间戳
   };
+  // 动作阶段信息
   action?: {
-    type: string;
-    target: any;
+    success: boolean; // 动作是否成功
+    detail?: any; // 动作详细信息
+    timestamp?: number; // 动作完成时间戳
   };
   screenshot?: string; // Base64 编码
   error?: string;
@@ -67,6 +78,8 @@ interface DebugState {
   executedNodes: Set<string>; // 已执行节点 ID 集合
   executedEdges: Set<string>; // 已执行边 ID 集合
   currentNode: string | null; // 当前正在执行的节点 ID
+  currentPhase: ExecutionPhase; // 当前节点执行阶段（识别/动作）
+  recognitionNodeName: string | null; // 当前识别阶段的识别节点名称
 
   // 执行历史
   executionHistory: ExecutionRecord[]; // 执行历史记录
@@ -129,6 +142,8 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
   executedNodes: new Set(),
   executedEdges: new Set(),
   currentNode: null,
+  currentPhase: null,
+  recognitionNodeName: null,
   executionHistory: [],
   executionStartTime: null,
   error: null,
@@ -239,9 +254,13 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
 
   // 继续执行
   continueDebug: () => {
-    if (get().debugStatus === "paused") {
-      set({ debugStatus: "running" });
+    const state = get();
+
+    if (state.debugStatus !== "paused" || !state.currentNode) {
+      return;
     }
+
+    set({ debugStatus: "running" });
   },
 
   // 单步执行
@@ -308,8 +327,9 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
 
       case "node_running":
         get().updateExecutionState(nodeId, "running");
+        set({ currentPhase: "recognition", recognitionNodeName: null });
 
-        // 如果是单步模式，自动暂停
+        // 如果是单步模式,自动暂停
         if (get().stepMode) {
           set({ stepMode: false });
           get().pauseDebug();
@@ -320,69 +340,168 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
         if (get().breakpoints.has(nodeId)) {
           get().pauseDebug();
         }
+        break;
 
-        // 添加到执行历史
-        const runningRecord: ExecutionRecord = {
+      case "next_list": {
+        break;
+      }
+
+      case "recognition_starting": {
+        const recoNodeName = detail?.name || nodeId;
+        set({ currentPhase: "recognition", recognitionNodeName: recoNodeName });
+        break;
+      }
+
+      case "recognition_success":
+      case "recognition_failed": {
+        const history = get().executionHistory;
+        const runIndex = detail?.run_index || 1;
+        const isSuccess = type === "recognition_success";
+
+        set({ recognitionNodeName: detail?.name || null });
+
+        const newRecord: ExecutionRecord = {
+          nodeId,
+          nodeName: detail?.name || nodeId,
+          startTime: timestamp * 1000,
+          runIndex: runIndex,
+          status: isSuccess ? "running" : "failed",
+          recognition: {
+            success: isSuccess,
+            detail: detail,
+            timestamp: timestamp * 1000,
+          },
+          endTime: isSuccess ? undefined : timestamp * 1000,
+        };
+        set({ executionHistory: [...history, newRecord] });
+        break;
+      }
+
+      case "action_success":
+      case "action_failed": {
+        // 动作阶段事件
+        const history = get().executionHistory;
+        const runIndex = detail?.run_index || 1;
+
+        // 设置当前阶段为动作阶段，清除识别节点名称
+        set({ currentPhase: "action", recognitionNodeName: null });
+
+        // 查找对应的执行记录
+        const recordIndex = history.findIndex(
+          (r) =>
+            r.nodeId === nodeId &&
+            r.runIndex === runIndex &&
+            r.status === "running"
+        );
+
+        if (recordIndex !== -1) {
+          const updated = [...history];
+          updated[recordIndex] = {
+            ...updated[recordIndex],
+            action: {
+              success: type === "action_success",
+              detail: detail,
+              timestamp: timestamp * 1000,
+            },
+          };
+          set({ executionHistory: updated });
+        } else {
+          console.warn(
+            `[DebugStore] 未找到对应的执行记录: 节点=${nodeId}, runIndex=${runIndex}`
+          );
+        }
+        break;
+      }
+
+      case "node_execution_completed":
+      case "node_execution_failed": {
+        set({ currentPhase: null, recognitionNodeName: null });
+
+        get().updateExecutionState(
+          nodeId,
+          type === "node_execution_completed" ? "completed" : "failed"
+        );
+
+        const history = get().executionHistory;
+        const runIndex = detail?.run_index || 1;
+        const latency = detail?.latency || 0;
+
+        // 查找对应的执行记录
+        const recordIndex = history.findIndex(
+          (r) =>
+            r.nodeId === nodeId &&
+            r.runIndex === runIndex &&
+            r.status === "running"
+        );
+
+        if (recordIndex !== -1) {
+          const updated = [...history];
+          const record = updated[recordIndex];
+
+          // 根据识别和动作的实际结果判断最终状态
+          let finalStatus: ExecutionRecord["status"] = "completed";
+
+          // 如果识别失败，状态为 failed
+          if (record.recognition && !record.recognition.success) {
+            finalStatus = "failed";
+          }
+          // 如果识别成功但动作失败，状态为 failed
+          else if (record.action && !record.action.success) {
+            finalStatus = "failed";
+          }
+          // 其他情况（识别成功+动作成功，或识别成功+无动作），状态为 completed
+
+          updated[recordIndex] = {
+            ...record,
+            endTime: timestamp * 1000,
+            latency: latency,
+            status: finalStatus,
+          };
+          set({ executionHistory: updated });
+        }
+        break;
+      }
+
+      // 兼容旧事件名称
+      case "node_completed":
+      case "node_failed": {
+        get().updateExecutionState(
+          nodeId,
+          type === "node_completed" ? "completed" : "failed"
+        );
+
+        const runIndex = detail?.run_index || 1;
+        const latency = detail?.latency || 0;
+
+        const record: ExecutionRecord = {
           nodeId,
           nodeName: detail?.node_name || nodeId,
-          startTime: timestamp,
-          status: "running",
+          startTime: timestamp * 1000 - latency,
+          endTime: timestamp * 1000,
+          latency: latency,
+          runIndex: runIndex,
+          status: type === "node_completed" ? "completed" : "failed",
         };
-        set({
-          executionHistory: [...get().executionHistory, runningRecord],
-        });
+        set({ executionHistory: [...get().executionHistory, record] });
         break;
-
-      case "node_completed":
-        get().updateExecutionState(nodeId, "completed");
-
-        // 更新执行历史中的记录
-        const history = get().executionHistory;
-        const index = history.findIndex(
-          (r) => r.nodeId === nodeId && !r.endTime
-        );
-        if (index !== -1) {
-          history[index] = {
-            ...history[index],
-            endTime: timestamp,
-            status: "completed",
-          };
-          set({ executionHistory: [...history] });
-        }
-        break;
-
-      case "recognition":
-        // 更新执行历史中的识别结果
-        const recognitionHistory = get().executionHistory;
-        const recognitionIndex = recognitionHistory.findIndex(
-          (r) => r.nodeId === nodeId && !r.endTime
-        );
-        if (recognitionIndex !== -1) {
-          recognitionHistory[recognitionIndex] = {
-            ...recognitionHistory[recognitionIndex],
-            recognition: detail,
-          };
-          set({ executionHistory: [...recognitionHistory] });
-        }
-        break;
-
-      case "action":
-        // 更新执行历史中的动作结果
-        const actionHistory = get().executionHistory;
-        const actionIndex = actionHistory.findIndex(
-          (r) => r.nodeId === nodeId && !r.endTime
-        );
-        if (actionIndex !== -1) {
-          actionHistory[actionIndex] = {
-            ...actionHistory[actionIndex],
-            action: detail,
-          };
-          set({ executionHistory: [...actionHistory] });
-        }
-        break;
+      }
 
       case "completed":
-        set({ debugStatus: "completed" });
+        // 单步模式
+        if (get().stepMode) {
+          set({
+            stepMode: false,
+            debugStatus: "paused",
+            currentPhase: null,
+            recognitionNodeName: null,
+          });
+        } else {
+          set({
+            debugStatus: "completed",
+            currentPhase: null,
+            recognitionNodeName: null,
+          });
+        }
         break;
 
       case "error":
@@ -413,6 +532,8 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
       executedNodes: new Set(),
       executedEdges: new Set(),
       currentNode: null,
+      currentPhase: null,
+      recognitionNodeName: null,
       executionHistory: [],
       executionStartTime: null,
       error: null,
@@ -452,7 +573,11 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
     if (state.executionHistory.length > 0) {
       lines.push("===== 执行历史 =====");
       state.executionHistory.forEach((record, index) => {
-        lines.push(`\n[${index + 1}] ${record.nodeName} (${record.nodeId})`);
+        const runIndexStr =
+          record.runIndex && record.runIndex > 1 ? ` #${record.runIndex}` : "";
+        lines.push(
+          `\n[${index + 1}] ${record.nodeName}${runIndexStr} (${record.nodeId})`
+        );
         lines.push(`  状态: ${record.status}`);
         lines.push(
           `  开始: ${new Date(record.startTime).toLocaleTimeString()}`
@@ -461,27 +586,31 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
           lines.push(
             `  结束: ${new Date(record.endTime).toLocaleTimeString()}`
           );
-          lines.push(`  耗时: ${record.endTime - record.startTime}ms`);
+        }
+        const duration =
+          record.latency ||
+          (record.endTime ? record.endTime - record.startTime : null);
+        if (duration !== null) {
+          lines.push(`  耗时: ${duration}ms`);
         }
 
         if (record.recognition) {
-          lines.push(`  识别结果:`);
-          lines.push(`    算法: ${record.recognition.algorithm}`);
-          if (record.recognition.result) {
+          lines.push(`  识别阶段:`);
+          lines.push(
+            `    状态: ${record.recognition.success ? "成功" : "失败"}`
+          );
+          if (record.recognition.detail) {
             lines.push(
-              `    结果: ${JSON.stringify(record.recognition.result)}`
+              `    详情: ${JSON.stringify(record.recognition.detail)}`
             );
           }
-          lines.push(
-            `    置信度: ${(record.recognition.score * 100).toFixed(2)}%`
-          );
         }
 
         if (record.action) {
-          lines.push(`  动作:`);
-          lines.push(`    类型: ${record.action.type}`);
-          if (record.action.target) {
-            lines.push(`    目标: ${JSON.stringify(record.action.target)}`);
+          lines.push(`  动作阶段:`);
+          lines.push(`    状态: ${record.action.success ? "成功" : "失败"}`);
+          if (record.action.detail) {
+            lines.push(`    详情: ${JSON.stringify(record.action.detail)}`);
           }
         }
 
@@ -511,9 +640,13 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
       executionHistory: state.executionHistory.map((record) => ({
         nodeId: record.nodeId,
         nodeName: record.nodeName,
+        runIndex: record.runIndex,
         startTime: record.startTime,
         endTime: record.endTime,
-        duration: record.endTime ? record.endTime - record.startTime : null,
+        latency: record.latency,
+        duration:
+          record.latency ||
+          (record.endTime ? record.endTime - record.startTime : null),
         status: record.status,
         recognition: record.recognition,
         action: record.action,
