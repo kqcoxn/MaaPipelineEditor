@@ -1,4 +1,4 @@
-import { memo, useMemo, useState } from "react";
+import { memo, useMemo, useState, useEffect } from "react";
 import { message, Select, Tag, Button, Dropdown, Tooltip, Popover } from "antd";
 import classNames from "classnames";
 import IconFont from "../../iconfonts";
@@ -6,7 +6,8 @@ import { type IconNames } from "../../iconfonts";
 import { useFlowStore } from "../../../stores/flow";
 import { useDebugStore } from "../../../stores/debugStore";
 import { useMFWStore } from "../../../stores/mfwStore";
-import { debugProtocol } from "../../../services/server";
+import { debugProtocol, configProtocol } from "../../../services/server";
+import type { ConfigResponse } from "../../../services/protocols/ConfigProtocol";
 import { useShallow } from "zustand/shallow";
 import style from "../../../styles/ToolPanel.module.less";
 import debugStyle from "../../../styles/DebugPanel.module.less";
@@ -63,6 +64,30 @@ function DebugPanel() {
   );
 
   const selectedNodes = useFlowStore((state) => state.selectedNodes);
+
+  // 连接成功后自动加载后端配置填充资源路径
+  useEffect(() => {
+    if (connectionStatus === "connected" && !resourcePath) {
+      // 请求后端配置
+      const success = configProtocol.requestGetConfig();
+      if (!success) {
+        console.warn("[DebugPanel] Failed to request backend config");
+        return;
+      }
+
+      // 监听配置响应
+      const unsubscribe = configProtocol.onConfigData((data: ConfigResponse) => {
+        if (data.success && data.config?.maafw?.resource_dir) {
+          setConfig("resourcePath", data.config.maafw.resource_dir);
+        } else {
+          console.warn("[DebugPanel] Backend config invalid or resource_dir not set");
+        }
+        
+        // 仅监听一次后取消订阅
+        unsubscribe();
+      });
+    }
+  }, [connectionStatus, resourcePath, setConfig]);
 
   // 计算经过时间
   const [elapsedTime, setElapsedTime] = useState(0);

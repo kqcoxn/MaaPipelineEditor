@@ -200,6 +200,10 @@ export async function pipelineToFlow(
       pipelineObj = parseJsonc(pString);
     }
 
+    if (!pipelineObj || typeof pipelineObj !== "object") {
+      pipelineObj = {};
+    }
+
     // 解析配置
     const configs = parsePipelineConfig(pipelineObj);
 

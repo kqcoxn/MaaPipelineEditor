@@ -2,6 +2,8 @@ import { message } from "antd";
 import { BaseProtocol } from "./BaseProtocol";
 import type { LocalWebSocketServer } from "../server";
 import { useDebugStore } from "../../stores/debugStore";
+import { configProtocol } from "../server";
+import type { ConfigResponse } from "./ConfigProtocol";
 
 /**
  * 调试协议处理器
@@ -27,8 +29,16 @@ export class DebugProtocol extends BaseProtocol {
         if (debugStore.debugStatus !== "idle") {
           debugStore.stopDebug();
         }
+      } else {
+        // WebSocket 连接成功时，加载后端配置并自动填充资源路径
+        this.loadBackendConfig();
       }
     });
+
+    // 如果注册时 WebSocket 已经连接，立即加载配置
+    if (this.wsClient.isConnected()) {
+      this.loadBackendConfig();
+    }
 
     // 注册调试事件路由
     this.wsClient.registerRoute("/lte/debug/event", (data) =>
@@ -58,6 +68,41 @@ export class DebugProtocol extends BaseProtocol {
 
   protected handleMessage(path: string, data: any): void {
     // 基类要求实现的方法，实际处理在具体的 handler 中
+  }
+
+  /**
+   * 加载后端配置并自动填充资源路径
+   */
+  private loadBackendConfig(): void {
+    // 请求获取后端配置
+    const success = configProtocol.requestGetConfig();
+    if (!success) {
+      console.warn("[DebugProtocol] Failed to request backend config");
+      return;
+    }
+
+    // 注册配置数据回调，仅监听一次
+    const unsubscribe = configProtocol.onConfigData((data: ConfigResponse) => {
+      if (data.success && data.config?.maafw?.resource_dir) {
+        const debugStore = useDebugStore.getState();
+
+        // 只有在资源路径为空时才自动填充，避免覆盖用户手动设置的值
+        if (!debugStore.resourcePath) {
+          debugStore.setConfig("resourcePath", data.config.maafw.resource_dir);
+          console.log(
+            "[DebugProtocol] Auto-filled resource path from backend config:",
+            data.config.maafw.resource_dir
+          );
+        }
+      } else {
+        console.warn(
+          "[DebugProtocol] Backend config invalid or resource_dir not set"
+        );
+      }
+
+      // 仅监听一次，收到配置后立即取消订阅
+      unsubscribe();
+    });
   }
 
   /**
