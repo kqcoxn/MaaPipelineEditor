@@ -23,7 +23,7 @@ _✨ 可视化构建 MaaFramework Pipeline 的下一代工作流编辑器 ✨_</
 
 <div align="center">
 
-[🚀 在线使用](https://mpe.codax.site/stable) | [⭐ 亮点](#讨论与帮助) | [📖 文档](https://mpe.codax.site/docs) | [✨ 展示](#讨论与帮助) | [💬 讨论反馈](#讨论与帮助)
+[🚀 在线使用](https://mpe.codax.site/stable/) | [⭐ 亮点](#亮点) | [📖 文档](https://mpe.codax.site/docs/) | [✨ 展示](#应用场景展示) | [💬 讨论反馈](#讨论与帮助)
 
 </div>
 
@@ -86,7 +86,7 @@ _✨ 可视化构建 MaaFramework Pipeline 的下一代工作流编辑器 ✨_</
 >
 > **MPE 专为实际资源开发需求而存在，理念是架构为需求服务，而非虚空造靶或“爱用不用”**。若您在使用过程中有更多的需求或优化建议，欢迎提交 ISSUE，我们真的非常在意开发者的体验！
 
-## 使用场景预览
+## 应用场景展示
 
 ### 编辑您的 Pipeline
 
@@ -102,7 +102,7 @@ _✨ 可视化构建 MaaFramework Pipeline 的下一代工作流编辑器 ✨_</
 
 ![](./image/审阅.png)
 
-（演示 Pipeline：[M9A-combat.json](https://github.com/kqcoxn/MaaNewMoonAccompanying/blob/v3.1.8/assets/resource/base/pipeline/%E6%97%A5%E5%B8%B8%E6%B4%BB%E5%8A%A8/%E5%9F%8E%E5%B8%82%E6%8E%A2%E7%B4%A2.json), 987 lines）
+（演示 Pipeline：[M9A-combat.json](https://github.com/MAA1999/M9A/blob/v3.17.8/assets/resource/base/pipeline/combat.json), 987 lines）
 
 ## 开箱即用
 
