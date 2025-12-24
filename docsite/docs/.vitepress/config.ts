@@ -134,11 +134,6 @@ export default defineConfig({
         activeMatch: "/01.指南/",
       },
       {
-        text: "最佳实践",
-        link: "/practices/intro",
-        activeMatch: "/02.最佳实践/",
-      },
-      {
         text: "相关链接",
         items: [
           {
@@ -160,6 +155,19 @@ export default defineConfig({
           {
             text: "YAMaaPE",
             link: "https://yamaape.codax.site",
+          },
+        ],
+      },
+      {
+        text: "友情链接",
+        items: [
+          {
+            text: "MaaMCP",
+            link: "https://maa-ai.top/",
+          },
+          {
+            text: "MaaLogAnalyzer",
+            link: "https://maaloganalyzer.maafw.xyz/",
           },
         ],
       },

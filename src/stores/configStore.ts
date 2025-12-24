@@ -5,8 +5,8 @@ export const globalConfig = {
   dev: true,
   version: `0.13.0`,
   betaIteration: 3,
-  mfwVersion: "5.3",
-  protocolVersion: "0.2",
+  mfwVersion: "5.3.0",
+  protocolVersion: "0.3", // 通信协议版本
 };
 
 if (globalConfig.dev) {

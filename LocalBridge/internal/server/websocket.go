@@ -12,8 +12,8 @@ import (
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/pkg/models"
 )
 
-// 协议版本
-const ProtocolVersion = "0.2"
+// 通信协议版本
+const ProtocolVersion = "0.3"
 
 // 版本握手路由
 const (
