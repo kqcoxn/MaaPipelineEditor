@@ -211,6 +211,34 @@ export const recoFieldSchema: Record<string, FieldType> = {
     desc: `模型文件路径。使用 model/detect 文件夹的相对路径。必选。 目前支持 YoloV8 ONNX 模型，其他同样输入输出的 Yolo 模型理论上也可以支持，但未经测试。`,
   },
 
+  // 组合识别
+  allOf: {
+    key: "all_of",
+    type: FieldTypeEnum.ObjectList,
+    required: true,
+    default: [{}, {}],
+    desc: "子识别列表。所有子识别都命中才算成功。必选。 列表元素写法与普通节点的 recognition 一致（兼容 v1/v2，允许混用）。",
+  },
+  boxIndex: {
+    key: "box_index",
+    type: FieldTypeEnum.Int,
+    default: 1,
+    desc: "指定输出哪个子识别的识别框（box）作为当前节点的识别框。可选，默认 0。 需要满足 0 <= box_index < all_of.size。",
+  },
+  subName: {
+    key: "sub_name",
+    type: FieldTypeEnum.String,
+    default: "",
+    desc: "后续子识别可通过 roi: sub_name 引用之前子识别的 filtered 作为 ROI；同名以最后一个为准。 仅当前节点内有效。",
+  },
+  anyOf: {
+    key: "any_of",
+    type: FieldTypeEnum.ObjectList,
+    required: true,
+    default: [{}, {}],
+    desc: "子识别列表。命中第一个即成功，后续不再识别。必选。 列表元素写法与普通节点的 recognition 一致（兼容 v1/v2，允许混用）。",
+  },
+
   // 自定义识别字段
   customRecognition: {
     key: "custom_recognition",

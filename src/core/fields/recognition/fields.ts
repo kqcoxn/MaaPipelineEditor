@@ -72,6 +72,18 @@ export const recoFields: Record<string, FieldsType> = {
     ],
     desc: '特征匹配，泛化能力更强的"找图"，具有抗透视、抗尺寸变化等特点。',
   },
+  And: {
+    params: [
+      recoFieldSchema.allOf,
+      recoFieldSchema.boxIndex,
+      recoFieldSchema.subName,
+    ],
+    desc: "组合识别（逻辑与）。所有子识别都命中才算成功。",
+  },
+  Or: {
+    params: [recoFieldSchema.anyOf],
+    desc: "组合识别（逻辑或）。命中第一个即成功，后续不再识别。",
+  },
   NeuralNetworkClassify: {
     params: [
       recoFieldSchema.roi,

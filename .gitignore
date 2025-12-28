@@ -1,6 +1,8 @@
 # Tests
 test.json
 /.qoder/quests
+/config
+/.nicegui
 
 # Logs
 logs

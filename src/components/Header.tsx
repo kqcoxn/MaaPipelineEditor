@@ -321,7 +321,7 @@ function Header() {
           </div>
         </div>
         <div className={style.right}>
-          <Tooltip placement="bottom" title="生成分享链接">
+          {/* <Tooltip placement="bottom" title="生成分享链接">
             <Button
               type="default"
               size="small"
@@ -335,7 +335,7 @@ function Header() {
             >
               分享
             </Button>
-          </Tooltip>
+          </Tooltip> */}
           <ConnectionButton />
           {wsConnected && (
             <DeviceConnectionButton

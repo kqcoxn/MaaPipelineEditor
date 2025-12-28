@@ -26,6 +26,10 @@ export const getRecognitionIcon = (type: string): IconConfig => {
       return { name: "icon-zidingyi1", size: 15 };
     case "FeatureMatch":
       return { name: "icon-tezhengpipei", size: 14 };
+    case "And":
+      return { name: "icon-bingqie", size: 14 };
+    case "Or":
+      return { name: "icon-huozhe", size: 14 };
     case "NeuralNetworkClassify":
       return { name: "icon-BDshenjingwangluofenlei-01", size: 16 };
     case "NeuralNetworkDetect":
