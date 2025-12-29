@@ -15,31 +15,69 @@ import { useMFWStore } from "../../../stores/mfwStore";
 import {
   copyNodeName,
   saveNodeAsTemplate,
+  copyNodeRecoJSON,
 } from "../../flow/nodes/utils/nodeOperations";
 
-export const FieldPanelToolbar = memo(
-  ({
-    nodeName,
-    currentNode,
-    onLoadingChange,
-    onProgressChange,
-  }: {
-    nodeName: string;
-    currentNode: NodeType | null;
-    onLoadingChange?: (loading: boolean) => void;
-    onProgressChange?: (stage: string, detail?: string) => void;
-  }) => {
-    const prefix = useFileStore((state) => state.currentFile.config.prefix);
-    const [aiPredicting, setAiPredicting] = useState(false);
-    if (prefix) nodeName = prefix + "_" + nodeName;
-    
-    const showSaveButton =
+// 左侧工具栏
+export const FieldPanelToolbarLeft = memo(
+  ({ currentNode }: { currentNode: NodeType | null }) => {
+    const showCopyRecoButton =
       currentNode && currentNode.type === NodeTypeEnum.Pipeline;
 
     const handleCopyNodeName = () => {
       const pureNodeName = currentNode?.data.label || "";
       copyNodeName(pureNodeName);
     };
+
+    const handleCopyRecoJSON = () => {
+      if (!currentNode || currentNode.type !== NodeTypeEnum.Pipeline) {
+        return;
+      }
+      copyNodeRecoJSON(currentNode.id);
+    };
+
+    return (
+      <div style={{ display: "flex", gap: 8 }}>
+        <Tooltip placement="top" title={"复制节点名"}>
+          <IconFont
+            className="icon-interactive"
+            name="icon-xiaohongshubiaoti"
+            size={24}
+            onClick={handleCopyNodeName}
+          />
+        </Tooltip>
+        {showCopyRecoButton && (
+          <Tooltip placement="top" title="复制 Reco JSON">
+            <IconFont
+              className="icon-interactive"
+              name="icon-kapianshibie"
+              size={23}
+              onClick={handleCopyRecoJSON}
+            />
+          </Tooltip>
+        )}
+      </div>
+    );
+  }
+);
+
+// 右侧工具栏
+export const FieldPanelToolbarRight = memo(
+  ({
+    currentNode,
+    onLoadingChange,
+    onProgressChange,
+    onDelete,
+  }: {
+    currentNode: NodeType | null;
+    onLoadingChange?: (loading: boolean) => void;
+    onProgressChange?: (stage: string, detail?: string) => void;
+    onDelete?: () => void;
+  }) => {
+    const [aiPredicting, setAiPredicting] = useState(false);
+
+    const showButtons =
+      currentNode && currentNode.type === NodeTypeEnum.Pipeline;
 
     const handleSaveTemplate = () => {
       if (!currentNode || currentNode.type !== NodeTypeEnum.Pipeline) {
@@ -114,43 +152,42 @@ export const FieldPanelToolbar = memo(
       }
     };
 
+    if (!showButtons) {
+      return null;
+    }
+
     return (
-      <>
-        <div className={style.tools}>
-          <Tooltip placement="top" title={"复制节点名"}>
-            <IconFont
-              className="icon-interactive"
-              name="icon-xiaohongshubiaoti"
-              size={24}
-              onClick={handleCopyNodeName}
-            />
-          </Tooltip>
-          {showSaveButton && (
-            <>
-              <Tooltip placement="top" title="保存为模板">
-                <IconFont
-                  className="icon-interactive"
-                  name="icon-biaodanmoban"
-                  size={24}
-                  onClick={handleSaveTemplate}
-                />
-              </Tooltip>
-              <Tooltip placement="top" title="AI智能预测节点配置">
-                <IconFont
-                  className={aiPredicting ? "icon-loading" : "icon-interactive"}
-                  name="icon-jiqiren"
-                  size={24}
-                  onClick={aiPredicting ? undefined : handleAIPredict}
-                  style={{
-                    opacity: aiPredicting ? 0.6 : 1,
-                    cursor: aiPredicting ? "not-allowed" : "pointer",
-                  }}
-                />
-              </Tooltip>
-            </>
-          )}
-        </div>
-      </>
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <Tooltip placement="top" title="保存为模板">
+          <IconFont
+            className="icon-interactive"
+            name="icon-biaodanmoban"
+            size={24}
+            onClick={handleSaveTemplate}
+          />
+        </Tooltip>
+        <Tooltip placement="top" title="AI智能预测节点配置">
+          <IconFont
+            className={aiPredicting ? "icon-loading" : "icon-interactive"}
+            name="icon-jiqiren"
+            size={24}
+            onClick={aiPredicting ? undefined : handleAIPredict}
+            style={{
+              opacity: aiPredicting ? 0.6 : 1,
+              cursor: aiPredicting ? "not-allowed" : "pointer",
+            }}
+          />
+        </Tooltip>
+        <Tooltip placement="top" title="删除节点">
+          <IconFont
+            className="icon-interactive"
+            name="icon-shanchu"
+            size={19}
+            color="#ff4a4a"
+            onClick={onDelete}
+          />
+        </Tooltip>
+      </div>
     );
   }
 );

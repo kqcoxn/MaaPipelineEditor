@@ -47,10 +47,13 @@ export const pinnedNotice: PinnedNotice = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "0.13.1",
-    date: "2025-12",
+    date: "2025-12-29",
     type: "feature",
     updates: {
-      features: ["适配 And、Or 识别类型"],
+      features: [
+        "➕ 适配 And、Or 识别类型",
+        "🦕 添加快捷复制 reco json 功能，更丝滑的使用组合逻辑识别",
+      ],
     },
   },
   {

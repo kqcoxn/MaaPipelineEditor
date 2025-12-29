@@ -2,6 +2,7 @@
 /* eslint-disable */
 
 import React, { SVGAttributes, FunctionComponent } from 'react';
+import IconKapianshibie from './IconKapianshibie';
 import IconHuozhe from './IconHuozhe';
 import IconBingqie from './IconBingqie';
 import IconTiaoshibeifen from './IconTiaoshibeifen';
@@ -95,6 +96,7 @@ import IconOcr from './IconOcr';
 import IconTuxiang from './IconTuxiang';
 import IconGithublogo from './IconGithublogo';
 import IconDixiaguanxianguanli from './IconDixiaguanxianguanli';
+export { default as IconKapianshibie } from './IconKapianshibie';
 export { default as IconHuozhe } from './IconHuozhe';
 export { default as IconBingqie } from './IconBingqie';
 export { default as IconTiaoshibeifen } from './IconTiaoshibeifen';
@@ -189,7 +191,7 @@ export { default as IconTuxiang } from './IconTuxiang';
 export { default as IconGithublogo } from './IconGithublogo';
 export { default as IconDixiaguanxianguanli } from './IconDixiaguanxianguanli';
 
-export type IconNames = 'icon-huozhe' | 'icon-bingqie' | 'icon-tiaoshibeifen' | 'icon-duandian' | 'icon-kaishi' | 'icon-zanting' | 'icon-duandianxufei' | 'icon-jurassic_nextstep' | 'icon-rizhi' | 'icon-tingzhi' | 'icon-JSON' | 'icon-jixu' | 'icon-a-APItiaoshi' | 'icon-tiaoshi1' | 'icon-tiaoshi' | 'icon-celiang-' | 'icon-connecting_line' | 'icon-toumingdu' | 'icon-ocr1' | 'icon-kuangxuanzhong' | 'icon-ic_quseqi' | 'icon-jietu' | 'icon-biaodanmoban' | 'icon-bendiwenjianjia' | 'icon-shuipingsuoxiao' | 'icon-chuizhifangda' | 'icon-shuipingfangda' | 'icon-chuizhisuoxiao' | 'icon-AIsousuo' | 'icon-AIsousuo1' | 'icon-jiqiren' | 'icon-gengduo' | 'icon-m_act' | 'icon-lianjie' | 'icon-a-11maodian2' | 'icon-a-11maodian1' | 'icon-yanjizhushou-shangchuan_anjiangongneng' | 'icon-biaodanzujian-shurukuang' | 'icon-start' | 'icon-finish' | 'icon-zidingyishujuchuli' | 'icon-icon_secai' | 'icon-zidingyi1' | 'icon-Imagetuxiangshibie' | 'icon-xiahua' | 'icon-custom521' | 'icon-ocr-yinshuawenzishibie' | 'icon-tezhengpipei' | 'icon-shubiaozuojian' | 'icon-shell' | 'icon-BDshenjingwangluofenlei-01' | 'icon-qiyongshubiaogunlun' | 'icon-Deactivate' | 'icon-a-04-15anxiaqidongPushtoactivate' | 'icon-ziyuan' | 'icon-gengxinrizhi' | 'icon-guangquan' | 'icon-weizhihang' | 'icon-liuchengtu' | 'icon-niantie1' | 'icon-icon-yichang' | 'icon-fanhui' | 'icon-qianjin' | 'icon-xiaofangtongdao' | 'icon-daima' | 'icon-shanchu' | 'icon-xinghaoxiangqing-canshuduibi-jishucanshu-20' | 'icon-icon_wendangziliaopeizhi' | 'icon-github-fill' | 'icon-jurassic_HorFensan-align' | 'icon-jurassic_horizalign-center' | 'icon-jurassic_VerFensan-align' | 'icon-jurassic_verticalalign-bottom' | 'icon-jurassic_verticalalign-top' | 'icon-beifen' | 'icon-xiaohongshubiaoti' | 'icon-cansaineirong_gaoliang_48' | 'icon-dianji' | 'icon-a-copyfubenfuzhi' | 'icon-fuzhi' | 'icon-daoru' | 'icon-dituweizhixinxi_chahao' | 'icon-a-addmusic' | 'icon-lanzilajitongshanchu' | 'icon-zengjiatianjiajiajian' | 'icon-xinjiantianjia' | 'icon-a-080_shezhi' | 'icon-zidingyi' | 'icon-kongjiedian' | 'icon-ocr' | 'icon-tuxiang' | 'icon-githublogo' | 'icon-dixiaguanxianguanli';
+export type IconNames = 'icon-kapianshibie' | 'icon-huozhe' | 'icon-bingqie' | 'icon-tiaoshibeifen' | 'icon-duandian' | 'icon-kaishi' | 'icon-zanting' | 'icon-duandianxufei' | 'icon-jurassic_nextstep' | 'icon-rizhi' | 'icon-tingzhi' | 'icon-JSON' | 'icon-jixu' | 'icon-a-APItiaoshi' | 'icon-tiaoshi1' | 'icon-tiaoshi' | 'icon-celiang-' | 'icon-connecting_line' | 'icon-toumingdu' | 'icon-ocr1' | 'icon-kuangxuanzhong' | 'icon-ic_quseqi' | 'icon-jietu' | 'icon-biaodanmoban' | 'icon-bendiwenjianjia' | 'icon-shuipingsuoxiao' | 'icon-chuizhifangda' | 'icon-shuipingfangda' | 'icon-chuizhisuoxiao' | 'icon-AIsousuo' | 'icon-AIsousuo1' | 'icon-jiqiren' | 'icon-gengduo' | 'icon-m_act' | 'icon-lianjie' | 'icon-a-11maodian2' | 'icon-a-11maodian1' | 'icon-yanjizhushou-shangchuan_anjiangongneng' | 'icon-biaodanzujian-shurukuang' | 'icon-start' | 'icon-finish' | 'icon-zidingyishujuchuli' | 'icon-icon_secai' | 'icon-zidingyi1' | 'icon-Imagetuxiangshibie' | 'icon-xiahua' | 'icon-custom521' | 'icon-ocr-yinshuawenzishibie' | 'icon-tezhengpipei' | 'icon-shubiaozuojian' | 'icon-shell' | 'icon-BDshenjingwangluofenlei-01' | 'icon-qiyongshubiaogunlun' | 'icon-Deactivate' | 'icon-a-04-15anxiaqidongPushtoactivate' | 'icon-ziyuan' | 'icon-gengxinrizhi' | 'icon-guangquan' | 'icon-weizhihang' | 'icon-liuchengtu' | 'icon-niantie1' | 'icon-icon-yichang' | 'icon-fanhui' | 'icon-qianjin' | 'icon-xiaofangtongdao' | 'icon-daima' | 'icon-shanchu' | 'icon-xinghaoxiangqing-canshuduibi-jishucanshu-20' | 'icon-icon_wendangziliaopeizhi' | 'icon-github-fill' | 'icon-jurassic_HorFensan-align' | 'icon-jurassic_horizalign-center' | 'icon-jurassic_VerFensan-align' | 'icon-jurassic_verticalalign-bottom' | 'icon-jurassic_verticalalign-top' | 'icon-beifen' | 'icon-xiaohongshubiaoti' | 'icon-cansaineirong_gaoliang_48' | 'icon-dianji' | 'icon-a-copyfubenfuzhi' | 'icon-fuzhi' | 'icon-daoru' | 'icon-dituweizhixinxi_chahao' | 'icon-a-addmusic' | 'icon-lanzilajitongshanchu' | 'icon-zengjiatianjiajiajian' | 'icon-xinjiantianjia' | 'icon-a-080_shezhi' | 'icon-zidingyi' | 'icon-kongjiedian' | 'icon-ocr' | 'icon-tuxiang' | 'icon-githublogo' | 'icon-dixiaguanxianguanli';
 
 interface Props extends Omit<SVGAttributes<SVGElement>, 'color'> {
   name: IconNames;
@@ -199,6 +201,8 @@ interface Props extends Omit<SVGAttributes<SVGElement>, 'color'> {
 
 const IconFont: FunctionComponent<Props> = ({ name, ...rest }) => {
   switch (name) {
+    case 'icon-kapianshibie':
+      return <IconKapianshibie {...rest} />;
     case 'icon-huozhe':
       return <IconHuozhe {...rest} />;
     case 'icon-bingqie':

@@ -4,6 +4,8 @@ import { useFileStore } from "../../../../stores/fileStore";
 import { useCustomTemplateStore } from "../../../../stores/customTemplateStore";
 import { useFlowStore } from "../../../../stores/flow";
 import type { PipelineNodeDataType } from "../../../../stores/flow";
+import { parsePipelineNodeForExport } from "../../../../core/parser/nodeParser";
+import type { PipelineNodeType } from "../../../../core/parser/types";
 
 /**
  * 复制节点名（通用工具函数）
@@ -141,4 +143,37 @@ export function saveNodeAsTemplate(
 export function deleteNode(nodeId: string): void {
   const flowStore = useFlowStore.getState();
   flowStore.updateNodes([{ type: "remove", id: nodeId }]);
+}
+
+/**
+ * 复制节点的 Recognition JSON（通用工具函数）
+ * @param nodeId 节点ID
+ */
+export function copyNodeRecoJSON(nodeId: string): void {
+  const flowStore = useFlowStore.getState();
+  const node = flowStore.nodes.find((n) => n.id === nodeId) as
+    | PipelineNodeType
+    | undefined;
+
+  if (!node || node.type !== "pipeline") {
+    message.error("仅支持 Pipeline 节点复制 Reco JSON");
+    return;
+  }
+
+  try {
+    // 使用编译器解析节点
+    const parsedNode = parsePipelineNodeForExport(node);
+
+    // 提取 recognition 和 param
+    const recoJSON = parsedNode.recognition || {};
+
+    // 复制到剪贴板
+    const jsonString = JSON.stringify(recoJSON, null, 2);
+    ClipboardHelper.write(jsonString, {
+      successMsg: "Reco JSON 已复制到剪贴板",
+    });
+  } catch (error) {
+    console.error("复制 Reco JSON 失败:", error);
+    message.error("复制失败，请检查节点配置是否正确");
+  }
 }

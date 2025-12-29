@@ -1,1 +1,4 @@
-export { FieldPanelToolbar } from "./FieldPanelToolbar";
+export {
+  FieldPanelToolbarLeft,
+  FieldPanelToolbarRight,
+} from "./FieldPanelToolbar";

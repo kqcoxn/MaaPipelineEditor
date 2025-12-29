@@ -25,7 +25,7 @@ import {
   ExternalEditor,
   AnchorEditor,
 } from "./node-editors";
-import { FieldPanelToolbar } from "./field-tools";
+import { FieldPanelToolbarLeft, FieldPanelToolbarRight } from "./field-tools";
 import { useDebugStore } from "../../stores/debugStore";
 import DebugInfoTab from "./DebugInfoTab";
 
@@ -380,28 +380,18 @@ function FieldPanel() {
     <div className={panelClass}>
       <div className="header">
         <div className="header-left">
-          <FieldPanelToolbar
-            nodeName={currentNode?.data.label ?? ""}
-            currentNode={currentNode}
-            onLoadingChange={setIsLoading}
-            onProgressChange={handleProgressChange}
-          />
+          <FieldPanelToolbarLeft currentNode={currentNode} />
         </div>
         <div className="header-center">
           <div className="title">节点字段</div>
         </div>
         <div className="header-right">
-          {currentNode && (
-            <Tooltip placement="top" title="删除节点">
-              <IconFont
-                className="icon-interactive"
-                name="icon-shanchu"
-                size={20}
-                color="#ff4a4a"
-                onClick={handleDelete}
-              />
-            </Tooltip>
-          )}
+          <FieldPanelToolbarRight
+            currentNode={currentNode}
+            onLoadingChange={setIsLoading}
+            onProgressChange={handleProgressChange}
+            onDelete={handleDelete}
+          />
         </div>
       </div>
       {/* 数据验证警告 */}

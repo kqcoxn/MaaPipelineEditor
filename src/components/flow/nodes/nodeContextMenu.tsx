@@ -11,6 +11,7 @@ import {
   copyNodeName,
   saveNodeAsTemplate,
   deleteNode,
+  copyNodeRecoJSON,
 } from "./utils/nodeOperations";
 import { useDebugStore } from "../../../stores/debugStore";
 
@@ -85,6 +86,11 @@ function handleSetDebugEntry(node: NodeContextMenuNode) {
   message.success(`已将 "${node.data.label}" 设为调试开始节点`);
 }
 
+/**复制 Reco JSON 处理器 */
+function handleCopyRecoJSON(node: NodeContextMenuNode) {
+  copyNodeRecoJSON(node.id);
+}
+
 /**获取节点右键菜单配置 */
 export function getNodeContextMenuConfig(
   node: NodeContextMenuNode
@@ -100,6 +106,15 @@ export function getNodeContextMenuConfig(
       icon: "icon-a-copyfubenfuzhi",
       iconSize: 16,
       onClick: handleCopyNodeName,
+    },
+    // 复制 Reco JSON
+    {
+      key: "copy-reco-json",
+      label: "复制 Reco JSON",
+      icon: "icon-kapianshibie",
+      iconSize: 18,
+      onClick: handleCopyRecoJSON,
+      visible: (node) => node.type === NodeTypeEnum.Pipeline,
     },
     // 保存为模板
     {
