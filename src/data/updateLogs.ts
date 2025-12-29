@@ -53,6 +53,7 @@ export const updateLogs: UpdateLogItem[] = [
       features: [
         "➕ 适配 And、Or 识别类型",
         "🦕 添加快捷复制 reco json 功能，更丝滑的使用组合逻辑识别",
+        "🔧 添加配置导出功能，现在可以快速同步使用设备与版本的偏好了！",
       ],
     },
   },

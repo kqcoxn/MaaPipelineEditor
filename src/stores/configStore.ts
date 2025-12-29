@@ -13,6 +13,49 @@ if (globalConfig.dev) {
   globalConfig.version = `${globalConfig.version}_beta_${globalConfig.betaIteration}`;
 }
 
+/**配置分类 */
+export type ConfigCategory = "panel" | "pipeline" | "communication" | "ai";
+
+/**配置分类映射 - 用于确定哪些配置属于哪个类别 */
+export const configCategoryMap: Record<string, ConfigCategory> = {
+  // Pipeline 配置
+  nodeAttrExportStyle: "pipeline",
+  // 面板配置
+  nodeStyle: "panel",
+  historyLimit: "panel",
+  isRealTimePreview: "panel",
+  showEdgeLabel: "panel",
+  showEdgeControlPoint: "panel",
+  isAutoFocus: "panel",
+  focusOpacity: "panel",
+  configHandlingMode: "panel",
+  isExportConfig: "panel",
+  useDarkMode: "panel",
+  // 本地通信配置
+  wsPort: "communication",
+  wsAutoConnect: "communication",
+  fileAutoReload: "communication",
+  // AI 配置
+  aiApiUrl: "ai",
+  aiApiKey: "ai",
+  aiModel: "ai",
+};
+
+/**获取可导出的配置 */
+export const getExportableConfigs = (
+  configs: ConfigState["configs"],
+  excludeCategories: ConfigCategory[] = []
+): Partial<ConfigState["configs"]> => {
+  const result: Record<string, any> = {};
+  Object.entries(configs).forEach(([key, value]) => {
+    const category = configCategoryMap[key];
+    if (category && !excludeCategories.includes(category)) {
+      result[key] = value;
+    }
+  });
+  return result;
+};
+
 // 节点风格类型
 export type NodeStyleType = "modern" | "classic";
 
