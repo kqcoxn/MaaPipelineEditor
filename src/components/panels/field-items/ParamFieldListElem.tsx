@@ -9,6 +9,7 @@ import { JsonHelper } from "../../../utils/jsonHelper";
 import { useMFWStore } from "../../../stores/mfwStore";
 import {
   ROIModal,
+  ROIOffsetModal,
   OCRModal,
   TemplateModal,
   ColorModal,
@@ -20,6 +21,7 @@ import { message } from "antd";
 // 快捷工具配置
 const QUICK_TOOLS: Record<string, IconNames> = {
   roi: "icon-kuangxuanzhong",
+  roi_offset: "icon-celiang-",
   expected: "icon-ocr1",
   template: "icon-jietu",
   lower: "icon-ic_quseqi",
@@ -70,6 +72,10 @@ export const ParamFieldListElem = memo(
     const [currentColorKey, setCurrentColorKey] = useState<string | null>(null);
     const [deltaModalOpen, setDeltaModalOpen] = useState(false);
     const [currentDeltaKey, setCurrentDeltaKey] = useState<string | null>(null);
+    const [roiOffsetModalOpen, setRoiOffsetModalOpen] = useState(false);
+    const [currentROIOffsetKey, setCurrentROIOffsetKey] = useState<
+      string | null
+    >(null);
     // 记录当前操作的列表索引
     const [currentListIndex, setCurrentListIndex] = useState<number | null>(
       null
@@ -141,6 +147,20 @@ export const ParamFieldListElem = memo(
         setCurrentDeltaKey(key);
         setCurrentListIndex(listIndex ?? null);
         setDeltaModalOpen(true);
+      },
+      [connectionStatus]
+    );
+
+    // 打开 ROI 偏移配置面板
+    const handleOpenROIOffset = useCallback(
+      (key: string, listIndex?: number) => {
+        if (connectionStatus !== "connected") {
+          message.warning("请先连接设备");
+          return;
+        }
+        setCurrentROIOffsetKey(key);
+        setCurrentListIndex(listIndex ?? null);
+        setRoiOffsetModalOpen(true);
       },
       [connectionStatus]
     );
@@ -273,6 +293,32 @@ export const ParamFieldListElem = memo(
       [currentDeltaKey, onChange]
     );
 
+    // ROI 偏移确认回调
+    const handleROIOffsetConfirm = useCallback(
+      (offset: [number, number, number, number]) => {
+        if (!currentROIOffsetKey) return;
+
+        // 列表类型只替换指定索引的值
+        if (currentListIndex !== null) {
+          let currentValue = paramData[currentROIOffsetKey];
+          // 非数组值转为数组
+          if (!Array.isArray(currentValue)) {
+            currentValue = [currentValue];
+          }
+          const newList = [...currentValue];
+          newList[currentListIndex] = offset;
+          onChange(currentROIOffsetKey, newList);
+        } else {
+          onChange(currentROIOffsetKey, offset);
+        }
+
+        setRoiOffsetModalOpen(false);
+        setCurrentROIOffsetKey(null);
+        setCurrentListIndex(null);
+      },
+      [currentROIOffsetKey, currentListIndex, paramData, onChange]
+    );
+
     // 获取字段对应的快捷工具图标
     const getQuickToolIcon = useCallback(
       (key: string): IconNames | undefined => {
@@ -291,6 +337,8 @@ export const ParamFieldListElem = memo(
           key === "end"
         ) {
           handleOpenROI(key, listIndex);
+        } else if (key === "roi_offset") {
+          handleOpenROIOffset(key, listIndex);
         } else if (key === "expected") {
           handleOpenOCR(key, listIndex);
         } else if (key === "template") {
@@ -303,6 +351,7 @@ export const ParamFieldListElem = memo(
       },
       [
         handleOpenROI,
+        handleOpenROIOffset,
         handleOpenOCR,
         handleOpenTemplate,
         handleOpenColor,
@@ -536,6 +585,20 @@ export const ParamFieldListElem = memo(
             }}
             onConfirm={handleDeltaConfirm}
             mode={currentDeltaKey as "dx" | "dy"}
+          />
+        )}
+        {currentROIOffsetKey && (
+          <ROIOffsetModal
+            open={roiOffsetModalOpen}
+            onClose={() => {
+              setRoiOffsetModalOpen(false);
+              setCurrentROIOffsetKey(null);
+              setCurrentListIndex(null);
+            }}
+            onConfirm={handleROIOffsetConfirm}
+            initialROI={
+              paramData["roi"] as [number, number, number, number] | undefined
+            }
           />
         )}
       </>

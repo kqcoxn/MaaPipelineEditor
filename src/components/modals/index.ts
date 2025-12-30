@@ -1,4 +1,5 @@
 export { ROIModal } from "./ROIModal";
+export { ROIOffsetModal } from "./ROIOffsetModal";
 export { OCRModal } from "./OCRModal";
 export { TemplateModal } from "./TemplateModal";
 export { ColorModal } from "./ColorModal";
