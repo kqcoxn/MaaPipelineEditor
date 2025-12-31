@@ -3,6 +3,10 @@
  *
  * 统一管理应用的 URL 参数，在启动时统一解析
  * 各模块根据需要自行获取参数值
+ *
+ * 参数分为两类：
+ * 1. 一次性参数：处理后立即清除（如分享链接）
+ * 2. 持久性参数：保留在 URL 中（如便捷操作开关）
  */
 
 // ============ 类型定义 ============
@@ -16,8 +20,10 @@ export interface UrlParams {
 
 // ============ 参数名常量 ============
 
+/** 持久性参数：保留在 URL 中 */
 const LINK_LB_PARAM = "link_lb";
-// 后续添加的参数名也在这里定义
+
+/** 一次性参数：需要立即清除 */
 
 // ============ 核心解析函数 ============
 
@@ -43,10 +49,11 @@ export function clearUrlParams(...paramNames: string[]): void {
 }
 
 /**
- * 清除所有便捷操作参数
+ * 清除一次性参数
+ * 持久性参数不会被清除
  */
-export function clearActionParams(): void {
-  clearUrlParams(LINK_LB_PARAM);
+export function clearOneTimeParams(): void {
+  // 一次性参数列表
 }
 
 // ============ 内部工具函数 ============

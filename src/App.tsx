@@ -42,7 +42,7 @@ import {
   handleImportFromUrl,
   clearImportParam,
 } from "./utils/shareHelper";
-import { parseUrlParams, clearActionParams } from "./utils/urlHelper";
+import { parseUrlParams } from "./utils/urlHelper";
 
 // 轮询提醒
 let isShowStarRemind = false;
@@ -204,11 +204,6 @@ function App() {
     // 自动连接或者 URL 参数连接
     if (wsAutoConnect || urlParams.linkLb) {
       localServer.connect();
-    }
-
-    // 清除已处理的 URL 参数
-    if (urlParams.linkLb) {
-      clearActionParams();
     }
 
     // Star定时提醒
