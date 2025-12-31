@@ -1,13 +1,5 @@
 import { memo, useState, useCallback, useEffect, useRef } from "react";
-import {
-  Space,
-  InputNumber,
-  message,
-  Tag,
-  Button,
-  Tooltip,
-  Divider,
-} from "antd";
+import { Space, InputNumber, message, Button, Tooltip } from "antd";
 import {
   SwapOutlined,
   CopyOutlined,
@@ -537,7 +529,7 @@ export const ROIOffsetModal = memo(
         open={open}
         onClose={onClose}
         title="ROI 偏移计算工具"
-        width={1000}
+        width={1200}
         confirmText="应用偏移"
         confirmDisabled={!hasValidOffset}
         onConfirm={handleConfirm}
@@ -547,188 +539,396 @@ export const ROIOffsetModal = memo(
         onImageLoaded={handleImageLoaded}
         onReset={handleReset}
       >
-        {/* 原 ROI 参数 */}
-        <div style={{ marginBottom: 12 }}>
+        {/* 右侧参数配置区域 */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* 原 ROI 区域 */}
           <div
             style={{
-              marginBottom: 8,
-              fontWeight: 500,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
+              padding: 12,
+              backgroundColor: "#fff",
+              borderRadius: 8,
+              border: `1px solid ${sourceRect ? "#91d5ff" : "#e8e8e8"}`,
+              transition: "border-color 0.3s ease",
             }}
           >
-            <Tag color="blue">原 ROI</Tag>
-            [x, y, w, h]:
-            {sourceRect && (
-              <Tooltip title="清除原 ROI">
-                <Button
-                  type="text"
-                  size="small"
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={handleClearSource}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 10,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div
+                  style={{
+                    width: 3,
+                    height: 16,
+                    backgroundColor: "#1890ff",
+                    borderRadius: 2,
+                  }}
                 />
-              </Tooltip>
-            )}
-          </div>
-          <Space>
-            <span>X:</span>
-            <InputNumber
-              value={sourceRect?.x ?? 0}
-              onChange={(v) => handleSourceChange("x", v)}
-              precision={0}
-              style={{ width: 80 }}
-              disabled={!screenshot}
-            />
-            <span>Y:</span>
-            <InputNumber
-              value={sourceRect?.y ?? 0}
-              onChange={(v) => handleSourceChange("y", v)}
-              precision={0}
-              style={{ width: 80 }}
-              disabled={!screenshot}
-            />
-            <span>W:</span>
-            <InputNumber
-              value={sourceRect?.width ?? 0}
-              onChange={(v) => handleSourceChange("width", v)}
-              precision={0}
-              style={{ width: 80 }}
-              disabled={!screenshot}
-            />
-            <span>H:</span>
-            <InputNumber
-              value={sourceRect?.height ?? 0}
-              onChange={(v) => handleSourceChange("height", v)}
-              precision={0}
-              style={{ width: 80 }}
-              disabled={!screenshot}
-            />
-          </Space>
-        </div>
-
-        {/* 目标 ROI 参数 */}
-        <div style={{ marginBottom: 12 }}>
-          <div
-            style={{
-              marginBottom: 8,
-              fontWeight: 500,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-            }}
-          >
-            <Tag color="orange">期望 ROI</Tag>
-            [x, y, w, h]:
-            {targetRect && (
-              <Tooltip title="清除期望 ROI">
-                <Button
-                  type="text"
-                  size="small"
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={handleClearTarget}
-                />
-              </Tooltip>
-            )}
-          </div>
-          <Space>
-            <span>X:</span>
-            <InputNumber
-              value={targetRect?.x ?? 0}
-              onChange={(v) => handleTargetChange("x", v)}
-              precision={0}
-              style={{ width: 80 }}
-              disabled={!screenshot}
-            />
-            <span>Y:</span>
-            <InputNumber
-              value={targetRect?.y ?? 0}
-              onChange={(v) => handleTargetChange("y", v)}
-              precision={0}
-              style={{ width: 80 }}
-              disabled={!screenshot}
-            />
-            <span>W:</span>
-            <InputNumber
-              value={targetRect?.width ?? 0}
-              onChange={(v) => handleTargetChange("width", v)}
-              precision={0}
-              style={{ width: 80 }}
-              disabled={!screenshot}
-            />
-            <span>H:</span>
-            <InputNumber
-              value={targetRect?.height ?? 0}
-              onChange={(v) => handleTargetChange("height", v)}
-              precision={0}
-              style={{ width: 80 }}
-              disabled={!screenshot}
-            />
-          </Space>
-        </div>
-
-        <Divider style={{ margin: "12px 0" }} />
-
-        {/* 偏移量结果 */}
-        <div style={{ marginBottom: 16 }}>
-          <div
-            style={{
-              marginBottom: 8,
-              fontWeight: 500,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-            }}
-          >
-            <Tag color="green">计算结果</Tag>
-            roi_offset [Δx, Δy, Δw, Δh]:
-            {hasValidOffset && (
-              <span style={{ fontSize: 12, color: "#52c41a" }}>
-                = 期望 ROI - 原 ROI
-              </span>
-            )}
-          </div>
-          <Space>
-            <span>Δx:</span>
-            <InputNumber
-              value={offset[0]}
-              onChange={(v) => handleOffsetChange(0, v)}
-              precision={0}
-              style={{ width: 80 }}
-              disabled={!screenshot || !sourceRect}
-            />
-            <span>Δy:</span>
-            <InputNumber
-              value={offset[1]}
-              onChange={(v) => handleOffsetChange(1, v)}
-              precision={0}
-              style={{ width: 80 }}
-              disabled={!screenshot || !sourceRect}
-            />
-            <span>Δw:</span>
-            <InputNumber
-              value={offset[2]}
-              onChange={(v) => handleOffsetChange(2, v)}
-              precision={0}
-              style={{ width: 80 }}
-              disabled={!screenshot || !sourceRect}
-            />
-            <span>Δh:</span>
-            <InputNumber
-              value={offset[3]}
-              onChange={(v) => handleOffsetChange(3, v)}
-              precision={0}
-              style={{ width: 80 }}
-              disabled={!screenshot || !sourceRect}
-            />
-          </Space>
-          {!sourceRect && (
-            <div style={{ marginTop: 8, color: "#999", fontSize: 12 }}>
-              提示：先设置原 ROI，然后可通过直接输入偏移量自动计算期望 ROI
+                <span
+                  style={{ fontSize: 14, fontWeight: 500, color: "#262626" }}
+                >
+                  原 ROI
+                </span>
+                <span style={{ fontSize: 12, color: "#8c8c8c" }}>
+                  [x, y, w, h]
+                </span>
+              </div>
+              {sourceRect && (
+                <Tooltip title="清除原 ROI">
+                  <Button
+                    type="text"
+                    size="small"
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={handleClearSource}
+                    style={{ marginRight: -8 }}
+                  />
+                </Tooltip>
+              )}
             </div>
-          )}
+            <Space direction="vertical" size={8} style={{ width: "100%" }}>
+              <Space wrap size={8} align="center">
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: "#8c8c8c",
+                    width: 16,
+                    textAlign: "right",
+                    display: "inline-block",
+                    lineHeight: "24px",
+                  }}
+                >
+                  X
+                </span>
+                <InputNumber
+                  value={sourceRect?.x ?? 0}
+                  onChange={(v) => handleSourceChange("x", v)}
+                  precision={0}
+                  size="small"
+                  style={{ width: 80 }}
+                  disabled={!screenshot}
+                />
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: "#8c8c8c",
+                    width: 16,
+                    textAlign: "right",
+                    display: "inline-block",
+                    lineHeight: "24px",
+                  }}
+                >
+                  Y
+                </span>
+                <InputNumber
+                  value={sourceRect?.y ?? 0}
+                  onChange={(v) => handleSourceChange("y", v)}
+                  precision={0}
+                  size="small"
+                  style={{ width: 80 }}
+                  disabled={!screenshot}
+                />
+              </Space>
+              <Space wrap size={8} align="center">
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: "#8c8c8c",
+                    width: 16,
+                    textAlign: "right",
+                    display: "inline-block",
+                    lineHeight: "24px",
+                  }}
+                >
+                  W
+                </span>
+                <InputNumber
+                  value={sourceRect?.width ?? 0}
+                  onChange={(v) => handleSourceChange("width", v)}
+                  precision={0}
+                  size="small"
+                  style={{ width: 80 }}
+                  disabled={!screenshot}
+                />
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: "#8c8c8c",
+                    width: 16,
+                    textAlign: "right",
+                    display: "inline-block",
+                    lineHeight: "24px",
+                  }}
+                >
+                  H
+                </span>
+                <InputNumber
+                  value={sourceRect?.height ?? 0}
+                  onChange={(v) => handleSourceChange("height", v)}
+                  precision={0}
+                  size="small"
+                  style={{ width: 80 }}
+                  disabled={!screenshot}
+                />
+              </Space>
+            </Space>
+          </div>
+
+          {/* 期望 ROI 区域 */}
+          <div
+            style={{
+              padding: 12,
+              backgroundColor: "#fff",
+              borderRadius: 8,
+              border: `1px solid ${targetRect ? "#ffd591" : "#e8e8e8"}`,
+              transition: "border-color 0.3s ease",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 10,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div
+                  style={{
+                    width: 3,
+                    height: 16,
+                    backgroundColor: "#fa8c16",
+                    borderRadius: 2,
+                  }}
+                />
+                <span
+                  style={{ fontSize: 14, fontWeight: 500, color: "#262626" }}
+                >
+                  期望 ROI
+                </span>
+                <span style={{ fontSize: 12, color: "#8c8c8c" }}>
+                  [x, y, w, h]
+                </span>
+              </div>
+              {targetRect && (
+                <Tooltip title="清除期望 ROI">
+                  <Button
+                    type="text"
+                    size="small"
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={handleClearTarget}
+                    style={{ marginRight: -8 }}
+                  />
+                </Tooltip>
+              )}
+            </div>
+            <Space direction="vertical" size={8} style={{ width: "100%" }}>
+              <Space wrap size={8} align="center">
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: "#8c8c8c",
+                    width: 16,
+                    textAlign: "right",
+                    display: "inline-block",
+                    lineHeight: "24px",
+                  }}
+                >
+                  X
+                </span>
+                <InputNumber
+                  value={targetRect?.x ?? 0}
+                  onChange={(v) => handleTargetChange("x", v)}
+                  precision={0}
+                  size="small"
+                  style={{ width: 80 }}
+                  disabled={!screenshot}
+                />
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: "#8c8c8c",
+                    width: 16,
+                    textAlign: "right",
+                    display: "inline-block",
+                    lineHeight: "24px",
+                  }}
+                >
+                  Y
+                </span>
+                <InputNumber
+                  value={targetRect?.y ?? 0}
+                  onChange={(v) => handleTargetChange("y", v)}
+                  precision={0}
+                  size="small"
+                  style={{ width: 80 }}
+                  disabled={!screenshot}
+                />
+              </Space>
+              <Space wrap size={8} align="center">
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: "#8c8c8c",
+                    width: 16,
+                    textAlign: "right",
+                    display: "inline-block",
+                    lineHeight: "24px",
+                  }}
+                >
+                  W
+                </span>
+                <InputNumber
+                  value={targetRect?.width ?? 0}
+                  onChange={(v) => handleTargetChange("width", v)}
+                  precision={0}
+                  size="small"
+                  style={{ width: 80 }}
+                  disabled={!screenshot}
+                />
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: "#8c8c8c",
+                    width: 16,
+                    textAlign: "right",
+                    display: "inline-block",
+                    lineHeight: "24px",
+                  }}
+                >
+                  H
+                </span>
+                <InputNumber
+                  value={targetRect?.height ?? 0}
+                  onChange={(v) => handleTargetChange("height", v)}
+                  precision={0}
+                  size="small"
+                  style={{ width: 80 }}
+                  disabled={!screenshot}
+                />
+              </Space>
+            </Space>
+          </div>
+
+          {/* 偏移量结果区域 */}
+          <div
+            style={{
+              padding: 12,
+              backgroundColor: "#fff",
+              borderRadius: 8,
+              border: `1px solid ${hasValidOffset ? "#b7eb8f" : "#e8e8e8"}`,
+              transition: "border-color 0.3s ease",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                marginBottom: 10,
+              }}
+            >
+              <div
+                style={{
+                  width: 3,
+                  height: 16,
+                  backgroundColor: "#52c41a",
+                  borderRadius: 2,
+                  marginRight: 8,
+                }}
+              />
+              <span style={{ fontSize: 14, fontWeight: 500, color: "#262626" }}>
+                计算结果
+              </span>
+              <span style={{ fontSize: 12, color: "#8c8c8c", marginLeft: 8 }}>
+                roi_offset
+              </span>
+            </div>
+            {hasValidOffset && (
+              <div
+                style={{
+                  marginBottom: 10,
+                  padding: "6px 10px",
+                  backgroundColor: "#e6f7ff",
+                  borderRadius: 6,
+                  fontSize: 11,
+                  color: "#1890ff",
+                  textAlign: "center",
+                }}
+              >
+                = 期望 ROI - 原 ROI
+              </div>
+            )}
+            <Space direction="vertical" size={8} style={{ width: "100%" }}>
+              <Space wrap size={8}>
+                <span style={{ fontSize: 12, color: "#8c8c8c", width: 20 }}>
+                  Δx
+                </span>
+                <InputNumber
+                  value={offset[0]}
+                  onChange={(v) => handleOffsetChange(0, v)}
+                  precision={0}
+                  size="small"
+                  style={{ width: 80 }}
+                  disabled={!screenshot || !sourceRect}
+                />
+                <span style={{ fontSize: 12, color: "#8c8c8c", width: 20 }}>
+                  Δy
+                </span>
+                <InputNumber
+                  value={offset[1]}
+                  onChange={(v) => handleOffsetChange(1, v)}
+                  precision={0}
+                  size="small"
+                  style={{ width: 80 }}
+                  disabled={!screenshot || !sourceRect}
+                />
+              </Space>
+              <Space wrap size={8}>
+                <span style={{ fontSize: 12, color: "#8c8c8c", width: 20 }}>
+                  Δw
+                </span>
+                <InputNumber
+                  value={offset[2]}
+                  onChange={(v) => handleOffsetChange(2, v)}
+                  precision={0}
+                  size="small"
+                  style={{ width: 80 }}
+                  disabled={!screenshot || !sourceRect}
+                />
+                <span style={{ fontSize: 12, color: "#8c8c8c", width: 20 }}>
+                  Δh
+                </span>
+                <InputNumber
+                  value={offset[3]}
+                  onChange={(v) => handleOffsetChange(3, v)}
+                  precision={0}
+                  size="small"
+                  style={{ width: 80 }}
+                  disabled={!screenshot || !sourceRect}
+                />
+              </Space>
+            </Space>
+            {!sourceRect && (
+              <div
+                style={{
+                  marginTop: 10,
+                  padding: "6px 10px",
+                  backgroundColor: "#fffbe6",
+                  borderRadius: 6,
+                  color: "#faad14",
+                  fontSize: 11,
+                  lineHeight: 1.5,
+                }}
+              >
+                💡 先设置原 ROI，然后可直接输入偏移量自动计算期望 ROI
+              </div>
+            )}
+          </div>
         </div>
       </ScreenshotModalBase>
     );

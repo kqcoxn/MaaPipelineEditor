@@ -211,121 +211,192 @@ export const ScreenshotModalBase = memo(
         title={title}
         open={open}
         onCancel={handleClose}
-        width={width}
+        width={1300}
         footer={null}
+        centered
         styles={{
-          body: { maxHeight: "calc(100vh - 200px)", overflowY: "auto" },
+          body: {
+            maxHeight: "calc(100vh - 120px)",
+            overflowY: "auto",
+            padding: 16,
+          },
         }}
       >
         <Spin spinning={isLoading} tip="截图中...">
-          {/* 工具栏与缩放控制栏 */}
-          {screenshot && (
-            <div
-              style={{
-                marginBottom: 8,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                flexWrap: "wrap",
-                gap: 8,
-              }}
-            >
-              {/* 自定义工具栏 */}
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                {renderToolbar?.(viewportProps)}
-              </div>
-
-              {/* 缩放控制 */}
-              <Space>
-                <Tooltip title="缩小 (滚轮向下)">
-                  <Button
-                    size="small"
-                    icon={<ZoomOutOutlined />}
-                    onClick={handleZoomOut}
-                  />
-                </Tooltip>
-                <span style={{ minWidth: 50, textAlign: "center" }}>
-                  {Math.round(scale * 100)}%
-                </span>
-                <Tooltip title="放大 (滚轮向上)">
-                  <Button
-                    size="small"
-                    icon={<ZoomInOutlined />}
-                    onClick={handleZoomIn}
-                  />
-                </Tooltip>
-                <Tooltip title="适应窗口">
-                  <Button
-                    size="small"
-                    icon={<FullscreenOutlined />}
-                    onClick={handleZoomReset}
-                  />
-                </Tooltip>
-              </Space>
-            </div>
-          )}
-
-          {/* 截图显示区 */}
-          <div
-            ref={containerRef}
-            style={{
-              marginBottom: 16,
-              backgroundColor: "#f0f0f0",
-              borderRadius: 4,
-              height: 450,
-              overflow: "hidden",
-              position: "relative",
-            }}
-          >
-            {canvasRenderProps ? (
-              renderCanvas(canvasRenderProps)
-            ) : (
+          {/* 左右分栏布局 */}
+          <div style={{ display: "flex", gap: 16, minHeight: 500 }}>
+            {/* 截图显示区（左侧） */}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+              {/* 截图预览标题 */}
               <div
                 style={{
-                  height: "100%",
+                  marginBottom: 12,
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
+                  justifyContent: "space-between",
                 }}
               >
-                <span style={{ color: "#666" }}>等待截图...</span>
+                <div
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 500,
+                    color: "#262626",
+                  }}
+                >
+                  截图预览
+                </div>
+
+                {/* 视图控制 */}
+                {screenshot && (
+                  <Space size={4}>
+                    <Tooltip title="缩小 (滚轮向下)">
+                      <Button
+                        size="small"
+                        icon={<ZoomOutOutlined />}
+                        onClick={handleZoomOut}
+                      />
+                    </Tooltip>
+                    <Tooltip title="放大 (滚轮向上)">
+                      <Button
+                        size="small"
+                        icon={<ZoomInOutlined />}
+                        onClick={handleZoomIn}
+                      />
+                    </Tooltip>
+                    <Tooltip title="适应窗口">
+                      <Button
+                        size="small"
+                        icon={<FullscreenOutlined />}
+                        onClick={handleZoomReset}
+                      />
+                    </Tooltip>
+                    <span
+                      style={{
+                        marginLeft: 4,
+                        fontSize: 12,
+                        color: "#8c8c8c",
+                        minWidth: 42,
+                        textAlign: "center",
+                      }}
+                    >
+                      {Math.round(scale * 100)}%
+                    </span>
+                  </Space>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* 提示 */}
-          {screenshot && (
-            <div style={{ marginBottom: 8, textAlign: "right" }}>
-              <span style={{ color: "#999", fontSize: 12 }}>
-                提示：滚轮缩放 | 按住空格或中键拖动
-              </span>
+              {/* 截图显示区 */}
+              <div
+                ref={containerRef}
+                style={{
+                  width: "100%",
+                  paddingBottom: "56.25%",
+                  backgroundColor: "#fafafa",
+                  borderRadius: 8,
+                  overflow: "hidden",
+                  position: "relative",
+                  border: "1px solid #e8e8e8",
+                }}
+              >
+                {canvasRenderProps ? (
+                  renderCanvas(canvasRenderProps)
+                ) : (
+                  <div
+                    style={{
+                      height: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <span style={{ color: "#999" }}>等待截图...</span>
+                  </div>
+                )}
+              </div>
+
+              {/* 提示 */}
+              {screenshot && (
+                <div style={{ marginTop: 8, textAlign: "center" }}>
+                  <span style={{ color: "#8c8c8c", fontSize: 12 }}>
+                    💡 滚轮缩放 | 按住空格或中键拖动
+                  </span>
+                </div>
+              )}
             </div>
-          )}
 
-          {/* 子内容区（ROI坐标、OCR结果等） */}
-          {children}
+            {/* 参数配置区（右侧） */}
+            <div
+              style={{
+                width: 340,
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              {/* 调节参数标题 */}
+              <div
+                style={{
+                  marginBottom: 12,
+                  fontSize: 14,
+                  fontWeight: 500,
+                  color: "#262626",
+                }}
+              >
+                调节参数
+              </div>
 
-          {/* 操作按钮 */}
-          <Space style={{ width: "100%", justifyContent: "flex-end" }}>
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={requestScreenshot}
-              disabled={isLoading}
-            >
-              重新截图
-            </Button>
-            <Button icon={<CloseOutlined />} onClick={handleClose}>
-              取消
-            </Button>
-            <Button
-              type="primary"
-              icon={<CheckOutlined />}
-              onClick={onConfirm}
-              disabled={confirmDisabled}
-            >
-              {confirmText}
-            </Button>
-          </Space>
+              {/* 自定义工具栏 */}
+              {screenshot && renderToolbar && (
+                <div style={{ marginBottom: 16 }}>
+                  {renderToolbar(viewportProps)}
+                </div>
+              )}
+
+              {/* 参数配置区域 */}
+              <div style={{ flex: 1, overflowY: "auto" }}>{children}</div>
+
+              {/* 分割线 */}
+              <div
+                style={{
+                  marginTop: 16,
+                  marginBottom: 12,
+                  borderTop: "1px solid #f0f0f0",
+                }}
+              />
+
+              {/* 操作按钮 */}
+              <div>
+                <Space
+                  style={{ width: "100%", justifyContent: "flex-end" }}
+                  size="small"
+                >
+                  <Button
+                    icon={<ReloadOutlined />}
+                    onClick={requestScreenshot}
+                    disabled={isLoading}
+                    size="small"
+                  >
+                    重新截图
+                  </Button>
+                  <Button
+                    icon={<CloseOutlined />}
+                    onClick={handleClose}
+                    size="small"
+                  >
+                    取消
+                  </Button>
+                  <Button
+                    type="primary"
+                    icon={<CheckOutlined />}
+                    onClick={onConfirm}
+                    disabled={confirmDisabled}
+                    size="small"
+                  >
+                    {confirmText}
+                  </Button>
+                </Space>
+              </div>
+            </div>
+          </div>
         </Spin>
       </Modal>
     );

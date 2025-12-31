@@ -593,167 +593,289 @@ export const OCRModal = memo(
         onImageLoaded={handleImageLoaded}
         onReset={handleReset}
       >
-        {/* OCR 模式切换 */}
-        <div style={{ marginBottom: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* OCR 模式切换 */}
           <div
             style={{
-              marginBottom: 8,
-              fontWeight: 500,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
+              padding: 12,
+              backgroundColor: "#fff",
+              borderRadius: 8,
+              border: "1px solid #e8e8e8",
+              transition: "border-color 0.3s ease",
             }}
           >
-            识别模式:
-          </div>
-          <Radio.Group
-            value={ocrMode}
-            onChange={(e) => setOcrMode(e.target.value)}
-            optionType="button"
-            buttonStyle="solid"
-          >
-            <Tooltip
-              title={
-                <div>
-                  <div style={{ fontWeight: 500, marginBottom: 4 }}>
-                    前端OCR（Tesseract.js）
-                  </div>
-                  <div>• 基于当前已截取的图片识别</div>
-                  <div>• 支持100+多语言混合识别</div>
-                  <div>• 速度较快（初次需要加载模型）</div>
-                  <div style={{ color: "#52c41a", marginTop: 4 }}>
-                    ✓ 无需额外配置资源位置
-                  </div>
-                  <div style={{ color: "#52c41a", marginTop: 4 }}>
-                    ✓ 不会因窗口更新导致内容不一致
-                  </div>
-                  <div style={{ color: "#faad14", marginTop: 4 }}>
-                    ⚠️ 识别信息可能与原生 OCR 不一致
-                  </div>
-                </div>
-              }
-            >
-              <Radio.Button value="frontend">
-                前端 <QuestionCircleOutlined style={{ marginLeft: 4 }} />
-              </Radio.Button>
-            </Tooltip>
-            <Tooltip
-              title={
-                <div>
-                  <div style={{ fontWeight: 500, marginBottom: 4 }}>
-                    原生OCR（MaaFramework）
-                  </div>
-                  <div>• 使用本地 OCR 模型识别</div>
-                  <div>• 速度较慢，无后处理</div>
-                  <div style={{ color: "#faad14", marginTop: 4 }}>
-                    ⚠️ 后端会重新截取当前窗口画面，可能因窗口更新导致内容不一致
-                  </div>
-                </div>
-              }
-            >
-              <Radio.Button value="native">
-                原生 <QuestionCircleOutlined style={{ marginLeft: 4 }} />
-              </Radio.Button>
-            </Tooltip>
-          </Radio.Group>
-        </div>
-
-        {/* ROI 参数显示与输入 */}
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ marginBottom: 8, fontWeight: 500 }}>
-            ROI 坐标 [x, y, w, h]:
-          </div>
-          <Space>
-            <span>X:</span>
-            <InputNumber
-              value={rectangle?.x ?? 0}
-              onChange={(v) => handleCoordinateChange("x", v)}
-              precision={0}
-              style={{ width: 80 }}
-              disabled={!screenshot}
-            />
-            <span>Y:</span>
-            <InputNumber
-              value={rectangle?.y ?? 0}
-              onChange={(v) => handleCoordinateChange("y", v)}
-              precision={0}
-              style={{ width: 80 }}
-              disabled={!screenshot}
-            />
-            <span>W:</span>
-            <InputNumber
-              value={rectangle?.width ?? 0}
-              onChange={(v) => handleCoordinateChange("width", v)}
-              precision={0}
-              style={{ width: 80 }}
-              disabled={!screenshot}
-            />
-            <span>H:</span>
-            <InputNumber
-              value={rectangle?.height ?? 0}
-              onChange={(v) => handleCoordinateChange("height", v)}
-              precision={0}
-              style={{ width: 80 }}
-              disabled={!screenshot}
-            />
-          </Space>
-        </div>
-
-        {/* OCR 识别结果 */}
-        <div style={{ marginBottom: 16 }}>
-          <div
-            style={{
-              marginBottom: 8,
-              fontWeight: 500,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <div>
-              识别结果:
-              {isOCRing && (
-                <span style={{ marginLeft: 8, color: "#1890ff" }}>
-                  识别中...
-                  {isLoadingModel &&
-                    ocrMode === "frontend" &&
-                    "（首次加载模型中，请稍候）"}
-                </span>
-              )}
-              {!isOCRing && ocrSuccess === true && (
-                <span style={{ marginLeft: 8, color: "#52c41a" }}>
-                  <CheckCircleOutlined /> 识别成功
-                </span>
-              )}
-              {!isOCRing && ocrSuccess === false && ocrText === "" && (
-                <span style={{ marginLeft: 8, color: "#faad14" }}>
-                  未检测到文字内容
-                </span>
-              )}
-            </div>
-            <Button
-              size="small"
-              icon={<ClearOutlined />}
-              onClick={() => {
-                setOcrText("");
-                setOcrSuccess(null);
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 10,
               }}
-              disabled={!ocrText}
             >
-              清空
-            </Button>
+              <div
+                style={{
+                  width: 3,
+                  height: 16,
+                  backgroundColor: "#1890ff",
+                  borderRadius: 2,
+                }}
+              />
+              <span style={{ fontSize: 14, fontWeight: 500, color: "#262626" }}>
+                识别模式
+              </span>
+            </div>
+            <Radio.Group
+              value={ocrMode}
+              onChange={(e) => setOcrMode(e.target.value)}
+              optionType="button"
+              buttonStyle="solid"
+              size="small"
+            >
+              <Tooltip
+                title={
+                  <div>
+                    <div style={{ fontWeight: 500, marginBottom: 4 }}>
+                      前端OCR（Tesseract.js）
+                    </div>
+                    <div>• 基于当前已截取的图片识别</div>
+                    <div>• 支持100+多语言混合识别</div>
+                    <div>• 速度较快（初次需要加载模型）</div>
+                    <div style={{ color: "#52c41a", marginTop: 4 }}>
+                      ✓ 无需额外配置资源位置
+                    </div>
+                    <div style={{ color: "#52c41a", marginTop: 4 }}>
+                      ✓ 不会因窗口更新导致内容不一致
+                    </div>
+                    <div style={{ color: "#faad14", marginTop: 4 }}>
+                      ⚠️ 识别信息可能与原生 OCR 不一致
+                    </div>
+                  </div>
+                }
+              >
+                <Radio.Button value="frontend">
+                  前端 <QuestionCircleOutlined style={{ marginLeft: 4 }} />
+                </Radio.Button>
+              </Tooltip>
+              <Tooltip
+                title={
+                  <div>
+                    <div style={{ fontWeight: 500, marginBottom: 4 }}>
+                      原生OCR（MaaFramework）
+                    </div>
+                    <div>• 使用本地 OCR 模型识别</div>
+                    <div>• 速度较慢，无后处理</div>
+                    <div style={{ color: "#faad14", marginTop: 4 }}>
+                      ⚠️
+                      后端会重新截取当前窗口画面，可能因窗口更新导致内容不一致
+                    </div>
+                  </div>
+                }
+              >
+                <Radio.Button value="native">
+                  原生 <QuestionCircleOutlined style={{ marginLeft: 4 }} />
+                </Radio.Button>
+              </Tooltip>
+            </Radio.Group>
           </div>
-          <TextArea
-            value={ocrText}
-            onChange={(e) => {
-              setOcrText(e.target.value);
-              if (ocrSuccess !== null) setOcrSuccess(null);
+
+          {/* ROI 参数显示与输入 */}
+          <div
+            style={{
+              padding: 12,
+              backgroundColor: "#fff",
+              borderRadius: 8,
+              border: `1px solid ${rectangle ? "#91d5ff" : "#e8e8e8"}`,
+              transition: "border-color 0.3s ease",
             }}
-            placeholder="在截图上框选区域后，系统将自动识别文字"
-            rows={4}
-            style={{ resize: "none" }}
-            disabled={isOCRing}
-          />
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 10,
+              }}
+            >
+              <div
+                style={{
+                  width: 3,
+                  height: 16,
+                  backgroundColor: "#1890ff",
+                  borderRadius: 2,
+                }}
+              />
+              <span style={{ fontSize: 14, fontWeight: 500, color: "#262626" }}>
+                ROI 坐标
+              </span>
+              <span style={{ fontSize: 12, color: "#8c8c8c" }}>
+                [x, y, w, h]
+              </span>
+            </div>
+            <Space direction="vertical" size={8} style={{ width: "100%" }}>
+              <Space wrap size={8} align="center">
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: "#8c8c8c",
+                    width: 16,
+                    textAlign: "right",
+                    display: "inline-block",
+                    lineHeight: "24px",
+                  }}
+                >
+                  X
+                </span>
+                <InputNumber
+                  value={rectangle?.x ?? 0}
+                  onChange={(v) => handleCoordinateChange("x", v)}
+                  precision={0}
+                  size="small"
+                  style={{ width: 80 }}
+                  disabled={!screenshot}
+                />
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: "#8c8c8c",
+                    width: 16,
+                    textAlign: "right",
+                    display: "inline-block",
+                    lineHeight: "24px",
+                  }}
+                >
+                  Y
+                </span>
+                <InputNumber
+                  value={rectangle?.y ?? 0}
+                  onChange={(v) => handleCoordinateChange("y", v)}
+                  precision={0}
+                  size="small"
+                  style={{ width: 80 }}
+                  disabled={!screenshot}
+                />
+              </Space>
+              <Space wrap size={8} align="center">
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: "#8c8c8c",
+                    width: 16,
+                    textAlign: "right",
+                    display: "inline-block",
+                    lineHeight: "24px",
+                  }}
+                >
+                  W
+                </span>
+                <InputNumber
+                  value={rectangle?.width ?? 0}
+                  onChange={(v) => handleCoordinateChange("width", v)}
+                  precision={0}
+                  size="small"
+                  style={{ width: 80 }}
+                  disabled={!screenshot}
+                />
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: "#8c8c8c",
+                    width: 16,
+                    textAlign: "right",
+                    display: "inline-block",
+                    lineHeight: "24px",
+                  }}
+                >
+                  H
+                </span>
+                <InputNumber
+                  value={rectangle?.height ?? 0}
+                  onChange={(v) => handleCoordinateChange("height", v)}
+                  precision={0}
+                  size="small"
+                  style={{ width: 80 }}
+                  disabled={!screenshot}
+                />
+              </Space>
+            </Space>
+          </div>
+
+          {/* OCR 识别结果 */}
+          <div
+            style={{
+              padding: 12,
+              backgroundColor: "#fff",
+              borderRadius: 8,
+              border: `1px solid ${
+                ocrSuccess === true ? "#b7eb8f" : "#e8e8e8"
+              }`,
+              transition: "border-color 0.3s ease",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 10,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div
+                  style={{
+                    width: 3,
+                    height: 16,
+                    backgroundColor: "#52c41a",
+                    borderRadius: 2,
+                  }}
+                />
+                <span
+                  style={{ fontSize: 13, fontWeight: 500, color: "#262626" }}
+                >
+                  识别结果
+                </span>
+                {isOCRing && (
+                  <span style={{ fontSize: 11, color: "#1890ff" }}>
+                    识别中...
+                    {isLoadingModel &&
+                      ocrMode === "frontend" &&
+                      "（首次加载模型中）"}
+                  </span>
+                )}
+                {!isOCRing && ocrSuccess === true && (
+                  <span style={{ fontSize: 11, color: "#52c41a" }}>
+                    <CheckCircleOutlined /> 识别成功
+                  </span>
+                )}
+                {!isOCRing && ocrSuccess === false && ocrText === "" && (
+                  <span style={{ fontSize: 11, color: "#faad14" }}>
+                    未检测到文字内容
+                  </span>
+                )}
+              </div>
+              <Button
+                size="small"
+                icon={<ClearOutlined />}
+                onClick={() => {
+                  setOcrText("");
+                  setOcrSuccess(null);
+                }}
+                disabled={!ocrText}
+              >
+                清空
+              </Button>
+            </div>
+            <TextArea
+              value={ocrText}
+              onChange={(e) => {
+                setOcrText(e.target.value);
+                if (ocrSuccess !== null) setOcrSuccess(null);
+              }}
+              placeholder="在截图上框选区域后，系统将自动识别文字"
+              rows={4}
+              style={{ resize: "none" }}
+              disabled={isOCRing}
+            />
+          </div>
         </div>
       </ScreenshotModalBase>
     );

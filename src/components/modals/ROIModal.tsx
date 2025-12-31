@@ -270,43 +270,121 @@ export const ROIModal = memo(
         onReset={handleReset}
       >
         {/* ROI 参数显示与输入 */}
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ marginBottom: 8, fontWeight: 500 }}>
-            ROI 坐标 [x, y, w, h]:
+        <div
+          style={{
+            padding: 12,
+            backgroundColor: "#fff",
+            borderRadius: 8,
+            border: `1px solid ${rectangle ? "#91d5ff" : "#e8e8e8"}`,
+            transition: "border-color 0.3s ease",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              marginBottom: 10,
+            }}
+          >
+            <div
+              style={{
+                width: 3,
+                height: 16,
+                backgroundColor: "#1890ff",
+                borderRadius: 2,
+              }}
+            />
+            <span style={{ fontSize: 14, fontWeight: 500, color: "#262626" }}>
+              ROI 坐标
+            </span>
+            <span style={{ fontSize: 12, color: "#8c8c8c" }}>[x, y, w, h]</span>
           </div>
-          <Space>
-            <span>X:</span>
-            <InputNumber
-              value={rectangle?.x ?? 0}
-              onChange={(v) => handleCoordinateChange("x", v)}
-              precision={0}
-              style={{ width: 80 }}
-              disabled={!screenshot}
-            />
-            <span>Y:</span>
-            <InputNumber
-              value={rectangle?.y ?? 0}
-              onChange={(v) => handleCoordinateChange("y", v)}
-              precision={0}
-              style={{ width: 80 }}
-              disabled={!screenshot}
-            />
-            <span>W:</span>
-            <InputNumber
-              value={rectangle?.width ?? 0}
-              onChange={(v) => handleCoordinateChange("width", v)}
-              precision={0}
-              style={{ width: 80 }}
-              disabled={!screenshot}
-            />
-            <span>H:</span>
-            <InputNumber
-              value={rectangle?.height ?? 0}
-              onChange={(v) => handleCoordinateChange("height", v)}
-              precision={0}
-              style={{ width: 80 }}
-              disabled={!screenshot}
-            />
+          <Space direction="vertical" size={8} style={{ width: "100%" }}>
+            <Space wrap size={8} align="center">
+              <span
+                style={{
+                  fontSize: 12,
+                  color: "#8c8c8c",
+                  width: 16,
+                  textAlign: "right",
+                  display: "inline-block",
+                  lineHeight: "24px",
+                }}
+              >
+                X
+              </span>
+              <InputNumber
+                value={rectangle?.x ?? 0}
+                onChange={(v) => handleCoordinateChange("x", v)}
+                precision={0}
+                size="small"
+                style={{ width: 80 }}
+                disabled={!screenshot}
+              />
+              <span
+                style={{
+                  fontSize: 12,
+                  color: "#8c8c8c",
+                  width: 16,
+                  textAlign: "right",
+                  display: "inline-block",
+                  lineHeight: "24px",
+                }}
+              >
+                Y
+              </span>
+              <InputNumber
+                value={rectangle?.y ?? 0}
+                onChange={(v) => handleCoordinateChange("y", v)}
+                precision={0}
+                size="small"
+                style={{ width: 80 }}
+                disabled={!screenshot}
+              />
+            </Space>
+            <Space wrap size={8} align="center">
+              <span
+                style={{
+                  fontSize: 12,
+                  color: "#8c8c8c",
+                  width: 16,
+                  textAlign: "right",
+                  display: "inline-block",
+                  lineHeight: "24px",
+                }}
+              >
+                W
+              </span>
+              <InputNumber
+                value={rectangle?.width ?? 0}
+                onChange={(v) => handleCoordinateChange("width", v)}
+                precision={0}
+                size="small"
+                style={{ width: 80 }}
+                disabled={!screenshot}
+              />
+              <span
+                style={{
+                  fontSize: 12,
+                  color: "#8c8c8c",
+                  width: 16,
+                  textAlign: "right",
+                  display: "inline-block",
+                  lineHeight: "24px",
+                }}
+              >
+                H
+              </span>
+              <InputNumber
+                value={rectangle?.height ?? 0}
+                onChange={(v) => handleCoordinateChange("height", v)}
+                precision={0}
+                size="small"
+                style={{ width: 80 }}
+                disabled={!screenshot}
+              />
+            </Space>
           </Space>
         </div>
       </ScreenshotModalBase>

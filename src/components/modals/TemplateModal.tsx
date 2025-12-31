@@ -585,79 +585,218 @@ export const TemplateModal = memo(
         onImageLoaded={handleImageLoaded}
         onReset={handleReset}
       >
-        {/* 画笔大小调节 */}
-        {(currentTool === "brush" || currentTool === "eraser") && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* 画笔大小调节 */}
+          {(currentTool === "brush" || currentTool === "eraser") && (
+            <div
+              style={{
+                padding: 12,
+                backgroundColor: "#fff",
+                borderRadius: 8,
+                border: "1px solid #e8e8e8",
+                transition: "border-color 0.3s ease",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginBottom: 10,
+                }}
+              >
+                <div
+                  style={{
+                    width: 3,
+                    height: 16,
+                    backgroundColor: "#1890ff",
+                    borderRadius: 2,
+                  }}
+                />
+                <span
+                  style={{ fontSize: 14, fontWeight: 500, color: "#262626" }}
+                >
+                  画笔大小
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ fontSize: 12, color: "#8c8c8c", width: 60 }}>
+                  大小
+                </span>
+                <Slider
+                  value={brushSize}
+                  onChange={setBrushSize}
+                  min={5}
+                  max={50}
+                  style={{ flex: 1 }}
+                />
+                <span style={{ fontSize: 12, color: "#8c8c8c", width: 40 }}>
+                  {brushSize}px
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* ROI 参数 */}
           <div
             style={{
-              marginBottom: 16,
-              padding: "12px",
-              backgroundColor: "#fafafa",
-              borderRadius: "4px",
-              display: "flex",
-              alignItems: "center",
+              padding: 12,
+              backgroundColor: "#fff",
+              borderRadius: 8,
+              border: `1px solid ${rectangle ? "#91d5ff" : "#e8e8e8"}`,
+              transition: "border-color 0.3s ease",
             }}
           >
-            <span style={{ marginRight: 8, width: 80 }}>画笔大小:</span>
-            <Slider
-              value={brushSize}
-              onChange={setBrushSize}
-              min={5}
-              max={50}
-              style={{ flex: 1, maxWidth: 200 }}
-            />
-            <span style={{ marginLeft: 8, width: 40 }}>{brushSize}px</span>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 10,
+              }}
+            >
+              <div
+                style={{
+                  width: 3,
+                  height: 16,
+                  backgroundColor: "#1890ff",
+                  borderRadius: 2,
+                }}
+              />
+              <span style={{ fontSize: 14, fontWeight: 500, color: "#262626" }}>
+                模板区域
+              </span>
+              <span style={{ fontSize: 12, color: "#8c8c8c" }}>
+                [x, y, w, h]
+              </span>
+            </div>
+            <Space direction="vertical" size={8} style={{ width: "100%" }}>
+              <Space wrap size={8} align="center">
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: "#8c8c8c",
+                    width: 16,
+                    textAlign: "right",
+                    display: "inline-block",
+                    lineHeight: "24px",
+                  }}
+                >
+                  X
+                </span>
+                <InputNumber
+                  value={rectangle?.x ?? 0}
+                  onChange={(v) => handleCoordinateChange("x", v)}
+                  precision={0}
+                  size="small"
+                  style={{ width: 80 }}
+                  disabled={!screenshot || currentTool !== "select"}
+                />
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: "#8c8c8c",
+                    width: 16,
+                    textAlign: "right",
+                    display: "inline-block",
+                    lineHeight: "24px",
+                  }}
+                >
+                  Y
+                </span>
+                <InputNumber
+                  value={rectangle?.y ?? 0}
+                  onChange={(v) => handleCoordinateChange("y", v)}
+                  precision={0}
+                  size="small"
+                  style={{ width: 80 }}
+                  disabled={!screenshot || currentTool !== "select"}
+                />
+              </Space>
+              <Space wrap size={8} align="center">
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: "#8c8c8c",
+                    width: 16,
+                    textAlign: "right",
+                    display: "inline-block",
+                    lineHeight: "24px",
+                  }}
+                >
+                  W
+                </span>
+                <InputNumber
+                  value={rectangle?.width ?? 0}
+                  onChange={(v) => handleCoordinateChange("width", v)}
+                  precision={0}
+                  size="small"
+                  style={{ width: 80 }}
+                  disabled={!screenshot || currentTool !== "select"}
+                />
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: "#8c8c8c",
+                    width: 16,
+                    textAlign: "right",
+                    display: "inline-block",
+                    lineHeight: "24px",
+                  }}
+                >
+                  H
+                </span>
+                <InputNumber
+                  value={rectangle?.height ?? 0}
+                  onChange={(v) => handleCoordinateChange("height", v)}
+                  precision={0}
+                  size="small"
+                  style={{ width: 80 }}
+                  disabled={!screenshot || currentTool !== "select"}
+                />
+              </Space>
+            </Space>
           </div>
-        )}
 
-        {/* ROI 参数 */}
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ marginBottom: 8, fontWeight: 500 }}>
-            模板区域 [x, y, w, h]:
+          {/* 绿色遮罩状态 */}
+          <div
+            style={{
+              padding: 12,
+              backgroundColor: "#fff",
+              borderRadius: 8,
+              border: `1px solid ${hasGreenMask ? "#b7eb8f" : "#e8e8e8"}`,
+              transition: "border-color 0.3s ease",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <div
+                style={{
+                  width: 3,
+                  height: 16,
+                  backgroundColor: "#52c41a",
+                  borderRadius: 2,
+                }}
+              />
+              <span style={{ fontSize: 14, fontWeight: 500, color: "#262626" }}>
+                绿色遮罩
+              </span>
+              <BgColorsOutlined
+                style={{
+                  color: hasGreenMask ? "#52c41a" : "#999",
+                  marginLeft: 4,
+                }}
+              />
+              <span style={{ fontSize: 12, color: "#8c8c8c", marginLeft: 4 }}>
+                {hasGreenMask ? "已启用" : "未使用"}
+              </span>
+            </div>
           </div>
-          <Space>
-            <span>X:</span>
-            <InputNumber
-              value={rectangle?.x ?? 0}
-              onChange={(v) => handleCoordinateChange("x", v)}
-              precision={0}
-              style={{ width: 80 }}
-              disabled={!screenshot || currentTool !== "select"}
-            />
-            <span>Y:</span>
-            <InputNumber
-              value={rectangle?.y ?? 0}
-              onChange={(v) => handleCoordinateChange("y", v)}
-              precision={0}
-              style={{ width: 80 }}
-              disabled={!screenshot || currentTool !== "select"}
-            />
-            <span>W:</span>
-            <InputNumber
-              value={rectangle?.width ?? 0}
-              onChange={(v) => handleCoordinateChange("width", v)}
-              precision={0}
-              style={{ width: 80 }}
-              disabled={!screenshot || currentTool !== "select"}
-            />
-            <span>H:</span>
-            <InputNumber
-              value={rectangle?.height ?? 0}
-              onChange={(v) => handleCoordinateChange("height", v)}
-              precision={0}
-              style={{ width: 80 }}
-              disabled={!screenshot || currentTool !== "select"}
-            />
-          </Space>
-        </div>
-
-        {/* 绿色遮罩状态 */}
-        <div style={{ marginBottom: 16 }}>
-          <Space>
-            <BgColorsOutlined
-              style={{ color: hasGreenMask ? "#52c41a" : "#999" }}
-            />
-            <span>绿色遮罩: {hasGreenMask ? "已启用" : "未使用"}</span>
-          </Space>
         </div>
       </ScreenshotModalBase>
     );

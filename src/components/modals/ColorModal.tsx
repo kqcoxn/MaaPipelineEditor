@@ -201,35 +201,53 @@ export const ColorModal = memo(
         {/* 颜色预览 */}
         <div
           style={{
-            marginBottom: 16,
             padding: 12,
-            backgroundColor: "#fafafa",
-            borderRadius: 4,
+            backgroundColor: "#fff",
+            borderRadius: 8,
+            border: `1px solid ${pickedColor ? "#b7eb8f" : "#e8e8e8"}`,
+            transition: "border-color 0.3s ease",
           }}
         >
-          <div style={{ marginBottom: 12 }}>
-            <span style={{ fontWeight: 500, marginRight: 8 }}>已选颜色:</span>
-            {pickedColor ? (
-              <>
-                <div
-                  style={{
-                    display: "inline-block",
-                    width: 20,
-                    height: 20,
-                    backgroundColor: `rgb(${pickedColor[0]}, ${pickedColor[1]}, ${pickedColor[2]})`,
-                    border: "1px solid #d9d9d9",
-                    verticalAlign: "middle",
-                    marginRight: 8,
-                  }}
-                />
-                <span>
-                  RGB({pickedColor[0]}, {pickedColor[1]}, {pickedColor[2]})
-                </span>
-              </>
-            ) : (
-              <span style={{ color: "#999" }}>请在截图上点击取色</span>
-            )}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              marginBottom: pickedColor ? 10 : 0,
+            }}
+          >
+            <div
+              style={{
+                width: 3,
+                height: 16,
+                backgroundColor: "#52c41a",
+                borderRadius: 2,
+              }}
+            />
+            <span style={{ fontSize: 14, fontWeight: 500, color: "#262626" }}>
+              已选颜色
+            </span>
           </div>
+          {pickedColor ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div
+                style={{
+                  width: 24,
+                  height: 24,
+                  backgroundColor: `rgb(${pickedColor[0]}, ${pickedColor[1]}, ${pickedColor[2]})`,
+                  border: "1px solid #d9d9d9",
+                  borderRadius: 4,
+                }}
+              />
+              <span style={{ fontSize: 12, color: "#262626" }}>
+                RGB({pickedColor[0]}, {pickedColor[1]}, {pickedColor[2]})
+              </span>
+            </div>
+          ) : (
+            <span style={{ fontSize: 12, color: "#8c8c8c" }}>
+              请在截图上点击取色
+            </span>
+          )}
         </div>
       </ScreenshotModalBase>
     );
