@@ -1,5 +1,7 @@
 [ISSUE](https://github.com/kqcoxn/MaaPipelineEditor/issues)
 
+## 临时规划
+
 ## bug
 
 - -
@@ -12,7 +14,7 @@
 
 > 纯前端应用，用户通过浏览器访问。
 
-- 修改 json 模式
+- 配置导入导出支持更多存储
 - 可变编辑面板位置 #48
 - 自设置节点风格
 - 节点快捷填充

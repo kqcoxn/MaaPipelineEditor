@@ -10,9 +10,7 @@ import TipElem from "./TipElem";
 const PanelConfigSection = memo(() => {
   const nodeStyle = useConfigStore((state) => state.configs.nodeStyle);
   const historyLimit = useConfigStore((state) => state.configs.historyLimit);
-  const isRealTimePreview = useConfigStore(
-    (state) => state.configs.isRealTimePreview
-  );
+
   const showEdgeLabel = useConfigStore((state) => state.configs.showEdgeLabel);
   const showEdgeControlPoint = useConfigStore(
     (state) => state.configs.showEdgeControlPoint
@@ -77,32 +75,7 @@ const PanelConfigSection = memo(() => {
           }}
         />
       </div>
-      {/* 实时编译 */}
-      <div className={globalClass}>
-        <div className={style.key}>
-          <Popover
-            placement="bottomLeft"
-            title={"实时编译"}
-            content={
-              <TipElem
-                content={
-                  "若节点或边发生变化，或选中的节点与边发生变化，则在防抖后实时编译并渲染在右侧JSON预览面板。（此功能对电脑性能要求较高，否则会造成严重卡顿）"
-                }
-              />
-            }
-          >
-            <span>实时编译</span>
-          </Popover>
-        </div>
-        <Switch
-          className={style.value}
-          style={switchStyle}
-          checkedChildren="开启"
-          unCheckedChildren="关闭"
-          value={isRealTimePreview}
-          onChange={(value: boolean) => setConfig("isRealTimePreview", value)}
-        />
-      </div>
+
       {/* 显示边标签 */}
       <div className={globalClass}>
         <div className={style.key}>

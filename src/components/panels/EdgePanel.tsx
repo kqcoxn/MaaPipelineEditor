@@ -1,6 +1,6 @@
 import style from "../../styles/EdgePanel.module.less";
 
-import { memo, useMemo, useCallback } from "react";
+import { memo, useMemo, useCallback, useEffect } from "react";
 import { Tag, InputNumber, Tooltip, Switch } from "antd";
 import classNames from "classnames";
 import IconFont from "../iconfonts";
@@ -11,6 +11,7 @@ import {
   type EdgeType,
 } from "../../stores/flow";
 import { SourceHandleTypeEnum } from "../flow/nodes";
+import { useToolbarStore } from "../../stores/toolbarStore";
 
 // 获取连接类型和颜色
 const getEdgeTypeInfo = (edge: EdgeType) => {
@@ -109,6 +110,9 @@ function EdgePanel() {
   const selectedEdges = useFlowStore((state) => state.selectedEdges);
   const nodes = useFlowStore((state) => state.nodes);
   const targetNode = useFlowStore((state) => state.targetNode);
+  const setCurrentRightPanel = useToolbarStore(
+    (state) => state.setCurrentRightPanel
+  );
 
   // 判断是否只有一条边被选中且没有选中节点
   const currentEdge = useMemo(() => {
@@ -117,6 +121,13 @@ function EdgePanel() {
     }
     return null;
   }, [selectedEdges, targetNode]);
+
+  // 当面板打开时通知 toolbarStore
+  useEffect(() => {
+    if (currentEdge) {
+      setCurrentRightPanel("edge");
+    }
+  }, [currentEdge, setCurrentRightPanel]);
 
   const edges = useFlowStore((state) => state.edges);
   const setEdgeLabel = useFlowStore((state) => state.setEdgeLabel);

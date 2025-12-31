@@ -1,28 +1,21 @@
-import style from "../styles/JsonViewer.module.less";
+import style from "../styles/FloatingJsonPanel.module.less";
 
-import { memo, useCallback, useMemo, useState, useRef } from "react";
+import React, { memo, useCallback, useMemo, useEffect } from "react";
 import ReactJsonView, {
   type ReactJsonViewProps,
 } from "@microlink/react-json-view";
-import { Button, Flex, message } from "antd";
+import { Button, Tooltip } from "antd";
+import { CloseOutlined, ReloadOutlined } from "@ant-design/icons";
 import { useShallow } from "zustand/shallow";
 
 import { useFlowStore, type NodeType } from "../stores/flow";
-import { useFileStore } from "../stores/fileStore";
+import { useToolbarStore } from "../stores/toolbarStore";
 import {
   flowToPipeline,
-  flowToSeparatedStrings,
   configMark,
   configMarkPrefix,
   externalMarkPrefix,
-  pipelineToFlow,
-  mergePipelineAndConfig,
 } from "../core/parser";
-import { ClipboardHelper } from "../utils/clipboard";
-import { useConfigStore } from "../stores/configStore";
-import { useWSStore } from "../stores/wsStore";
-import { CreateFileModal } from "./modals/CreateFileModal";
-import { ExportFileModal } from "./modals/ExportFileModal";
 
 // viewer
 const ViewerElem = memo(({ obj }: { obj: any }) => {
@@ -46,324 +39,72 @@ const ViewerElem = memo(({ obj }: { obj: any }) => {
 });
 
 function JsonViewer() {
+  const jsonPanelVisible = useToolbarStore((state) => state.jsonPanelVisible);
+  const currentRightPanel = useToolbarStore((state) => state.currentRightPanel);
+  const setJsonPanelVisible = useToolbarStore(
+    (state) => state.setJsonPanelVisible
+  );
   const { selectedNodes, selectedEdges } = useFlowStore(
     useShallow((state) => ({
       selectedNodes: state.debouncedSelectedNodes as NodeType[],
       selectedEdges: state.debouncedSelectedEdges,
     }))
   );
-  const isRealTimePreview = useConfigStore(
-    (state) => state.configs.isRealTimePreview
-  );
-  const configHandlingMode = useConfigStore(
-    (state) => state.configs.configHandlingMode
-  );
-  const wsConnected = useWSStore((state) => state.connected);
-  const currentFilePath = useFileStore(
-    (state) => state.currentFile.config.filePath
-  );
-  const saveFileToLocal = useFileStore((state) => state.saveFileToLocal);
-
-  const [createModalVisible, setCreateModalVisible] = useState(false);
-  const [exportModalVisible, setExportModalVisible] = useState(false);
-
-  // 文件输入引用
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const configFileInputRef = useRef<HTMLInputElement>(null);
-
-  // 处理文件导入
-  const handleFileImport = async (file: File) => {
-    try {
-      const text = await file.text();
-      const success = await pipelineToFlow({ pString: text });
-      if (success) {
-        message.success("文件导入成功");
-      }
-    } catch (err) {
-      message.error("文件导入失败，请检查文件格式");
-      console.error(err);
-    }
-  };
-
-  // 文件选择事件
-  const onFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handleFileImport(file);
-      // 清空 input
-      e.target.value = "";
-    }
-  };
-
-  // 处理配置导入
-  const handleConfigImport = async (configText: string) => {
-    try {
-      const mpeConfig = JSON.parse(configText);
-
-      // 获取当前 Pipeline
-      const currentPipeline = flowToPipeline();
-
-      // 合并配置
-      const mergedPipeline = mergePipelineAndConfig(currentPipeline, mpeConfig);
-
-      // 重新导入
-      const success = await pipelineToFlow({
-        pString: JSON.stringify(mergedPipeline),
-      });
-      if (success) {
-        message.success("配置导入成功");
-      }
-    } catch (err) {
-      message.error("配置导入失败，请检查文件格式");
-      console.error(err);
-    }
-  };
-
-  // 处理配置文件导入
-  const handleConfigFileImport = async (file: File) => {
-    const text = await file.text();
-    await handleConfigImport(text);
-  };
-
-  // 从粘贴板导入配置
-  const handleConfigFromClipboard = async () => {
-    try {
-      const text = await ClipboardHelper.read();
-      if (!text) {
-        message.error("粘贴板内容为空");
-        return;
-      }
-      await handleConfigImport(text);
-    } catch (err) {
-      message.error("从粘贴板导入失败");
-      console.error(err);
-    }
-  };
-
-  // 配置文件选择事件
-  const onConfigFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handleConfigFileImport(file);
-      // 清空input
-      e.target.value = "";
-    }
-  };
-
   // 生成 Pipeline
-  const isPartable = selectedNodes.length > 0;
-  const [rtpTrigger, setRtpTrigger] = useState(0);
-  const rtpPipelineObj = useMemo(() => {
-    return flowToPipeline(
-      isPartable ? { nodes: selectedNodes, edges: selectedEdges } : {}
-    );
-  }, [
-    isRealTimePreview ? selectedNodes : null,
-    isRealTimePreview ? selectedEdges : null,
-    rtpTrigger,
-  ]);
-  const manuPelineObj = useMemo(() => {
-    return flowToPipeline(
-      isPartable ? { nodes: selectedNodes, edges: selectedEdges } : {}
-    );
-  }, [rtpTrigger]);
+  const [refreshTrigger, setRefreshTrigger] = React.useState(0);
+  const pipelineObj = useMemo(() => {
+    return flowToPipeline();
+  }, [selectedNodes, selectedEdges, refreshTrigger]);
+
+  // 手动刷新
+  const handleRefresh = () => {
+    setRefreshTrigger((prev) => prev + 1);
+  };
+
+  // 当其他面板打开时自动关闭 JSON 面板
+  useEffect(() => {
+    if (currentRightPanel !== "json" && currentRightPanel !== null) {
+      setJsonPanelVisible(false);
+    }
+  }, [currentRightPanel, setJsonPanelVisible]);
+
+  // 关闭面板
+  const handleClose = () => {
+    setJsonPanelVisible(false);
+  };
+
+  // 面板类名
+  const panelClassName = `${style.floatingJsonPanel} ${
+    jsonPanelVisible ? style.visible : style.hidden
+  }`;
 
   // 渲染
   return (
-    <div className={style["json-viewer"]}>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".json,.jsonc"
-        style={{ display: "none" }}
-        onChange={onFileSelect}
-      />
-      <input
-        ref={configFileInputRef}
-        type="file"
-        accept=".mpe.json"
-        style={{ display: "none" }}
-        onChange={onConfigFileSelect}
-      />
+    <div className={panelClassName}>
       <div className={style.header}>
         <div className={style.title}>Pipeline JSON</div>
-        <div className={style.operations}>
-          <Flex className={style.group} gap="small" wrap>
+        <div className={style.actions}>
+          <Tooltip title="刷新">
             <Button
-              variant="filled"
+              type="text"
               size="small"
-              color="primary"
-              onClick={async () => {
-                const success = await pipelineToFlow();
-                if (success) {
-                  message.success("导入成功");
-                }
-              }}
-            >
-              从粘贴板导入Pipeline
-            </Button>
+              icon={<ReloadOutlined />}
+              onClick={handleRefresh}
+            />
+          </Tooltip>
+          <Tooltip title="关闭">
             <Button
-              variant="filled"
+              type="text"
               size="small"
-              color="primary"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              从文件导入
-            </Button>
-          </Flex>
-          {configHandlingMode === "separated" && (
-            <Flex className={style.group} gap="small" wrap>
-              <Button
-                variant="filled"
-                size="small"
-                color="purple"
-                onClick={handleConfigFromClipboard}
-              >
-                从粘贴板导入配置
-              </Button>
-              <Button
-                variant="filled"
-                size="small"
-                color="purple"
-                onClick={() => configFileInputRef.current?.click()}
-              >
-                从文件导入
-              </Button>
-            </Flex>
-          )}
-          <Flex className={style.group} gap="small" wrap>
-            <Button
-              style={{ display: isPartable ? "block" : "none" }}
-              variant="filled"
-              size="small"
-              color="pink"
-              onClick={() => {
-                ClipboardHelper.write(
-                  flowToPipeline({
-                    nodes: selectedNodes,
-                    edges: selectedEdges,
-                  }),
-                  { successMsg: "已将选中节点 Pipeline 复制到粘贴板" }
-                );
-                setRtpTrigger(rtpTrigger + 1);
-              }}
-            >
-              部分至粘贴板
-            </Button>
-            {configHandlingMode === "separated" ? (
-              <>
-                <Button
-                  variant="filled"
-                  size="small"
-                  color="pink"
-                  onClick={() => {
-                    const { pipelineString } = flowToSeparatedStrings();
-                    ClipboardHelper.writeString(pipelineString, {
-                      successMsg: "已将 Pipeline 复制到粘贴板",
-                    });
-                    setRtpTrigger(rtpTrigger + 1);
-                  }}
-                >
-                  导出 Pipeline
-                </Button>
-                <Button
-                  variant="filled"
-                  size="small"
-                  color="pink"
-                  onClick={() => {
-                    const { configString } = flowToSeparatedStrings();
-                    ClipboardHelper.writeString(configString, {
-                      successMsg: "已将配置复制到粘贴板",
-                    });
-                    setRtpTrigger(rtpTrigger + 1);
-                  }}
-                >
-                  导出配置
-                </Button>
-              </>
-            ) : (
-              <Button
-                variant="filled"
-                size="small"
-                color="pink"
-                onClick={() => {
-                  ClipboardHelper.write(flowToPipeline(), {
-                    successMsg: "已将全部节点 Pipeline 复制到粘贴板",
-                  });
-                  setRtpTrigger(rtpTrigger + 1);
-                }}
-              >
-                导出至粘贴板
-              </Button>
-            )}
-          </Flex>
-          <Flex className={style.group} gap="small" wrap>
-            <Button
-              style={{ display: isRealTimePreview ? "none" : "block" }}
-              variant="filled"
-              size="small"
-              color="primary"
-              onClick={() => {
-                setRtpTrigger(rtpTrigger + 1);
-              }}
-            >
-              编译预览
-            </Button>
-            <Button
-              variant="filled"
-              size="small"
-              color="purple"
-              onClick={async () => {
-                const success = await saveFileToLocal();
-                if (success) {
-                  setRtpTrigger(rtpTrigger + 1);
-                } else {
-                  message.error("文件保存失败");
-                }
-              }}
-              style={{
-                display:
-                  wsConnected && currentFilePath ? "inline-flex" : "none",
-              }}
-            >
-              保存到本地
-            </Button>
-            {wsConnected ? (
-              <Button
-                variant="filled"
-                size="small"
-                color="purple"
-                onClick={() => setCreateModalVisible(true)}
-              >
-                导出为文件
-              </Button>
-            ) : (
-              <Button
-                variant="filled"
-                size="small"
-                color="purple"
-                onClick={() => setExportModalVisible(true)}
-              >
-                导出为文件
-              </Button>
-            )}
-          </Flex>
+              icon={<CloseOutlined />}
+              onClick={handleClose}
+            />
+          </Tooltip>
         </div>
       </div>
-      {/* <div className={style.divider}></div> */}
-      <div className={style["viewer-container"]}>
-        <ViewerElem
-          obj={(isRealTimePreview ? rtpPipelineObj : manuPelineObj) as any}
-        />
+      <div className={style.viewerContainer}>
+        <ViewerElem obj={pipelineObj as any} />
       </div>
-      <CreateFileModal
-        visible={createModalVisible}
-        onCancel={() => setCreateModalVisible(false)}
-      />
-      <ExportFileModal
-        visible={exportModalVisible}
-        onCancel={() => setExportModalVisible(false)}
-      />
     </div>
   );
 }

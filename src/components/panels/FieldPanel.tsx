@@ -7,6 +7,7 @@ import {
   useState,
   Component,
   type ReactNode,
+  useEffect,
 } from "react";
 import { Tooltip, Spin, Alert, Button, Tabs } from "antd";
 import classNames from "classnames";
@@ -27,6 +28,7 @@ import {
 } from "./node-editors";
 import { FieldPanelToolbarLeft, FieldPanelToolbarRight } from "./field-tools";
 import { useDebugStore } from "../../stores/debugStore";
+import { useToolbarStore } from "../../stores/toolbarStore";
 import DebugInfoTab from "./DebugInfoTab";
 
 // 节点数据验证与修复
@@ -178,6 +180,9 @@ function FieldPanel() {
   const currentNode = useFlowStore((state) => state.targetNode);
   const updateNodes = useFlowStore((state) => state.updateNodes);
   const debugMode = useDebugStore((state) => state.debugMode);
+  const setCurrentRightPanel = useToolbarStore(
+    (state) => state.setCurrentRightPanel
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [progressStage, setProgressStage] = useState("");
   const [progressDetail, setProgressDetail] = useState("");
@@ -185,6 +190,13 @@ function FieldPanel() {
     null
   );
   const [activeTab, setActiveTab] = useState("fields");
+
+  // 当面板打开时通知 toolbarStore
+  useEffect(() => {
+    if (currentNode) {
+      setCurrentRightPanel("field");
+    }
+  }, [currentNode, setCurrentRightPanel]);
 
   // 验证并修复节点数据
   const handleNodeRepair = useCallback(() => {

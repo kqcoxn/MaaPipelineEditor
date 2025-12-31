@@ -4,7 +4,6 @@ import { memo, useCallback, useEffect } from "react";
 import {
   Flex,
   Layout,
-  Splitter,
   message,
   notification,
   Button,
@@ -33,6 +32,7 @@ import ConfigPanel from "./components/panels/ConfigPanel";
 import AIHistoryPanel from "./components/panels/AIHistoryPanel";
 import { LocalFileListPanel } from "./components/panels/LocalFileListPanel";
 import ErrorPanel from "./components/panels/ErrorPanel";
+import ToolbarPanel from "./components/panels/ToolbarPanel";
 import { pipelineToFlow } from "./core/parser";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import {
@@ -236,34 +236,22 @@ function App() {
           </HeaderSection>
           <Content className={style.content}>
             <FilePanel />
-            <Splitter
-              className={style.workspace}
-              onResizeEnd={(sizes) => {
-                if (sizes.length >= 2 && typeof sizes[1] === "number") {
-                  useConfigStore
-                    .getState()
-                    .setStatus("rightPanelWidth", sizes[1]);
-                }
-              }}
-            >
-              <Splitter.Panel className={style.left}>
-                <MainFlow />
-                <FieldPanel />
-                <EdgePanel />
-                <ConfigPanel />
-                <AIHistoryPanel />
-                <LocalFileListPanel />
-                <ToolPanel.Add />
-                <ToolPanel.Global />
-                <SearchPanel />
-                {debugMode && <ToolPanel.Debug />}
-                <ToolPanel.Layout />
-                <ErrorPanel />
-              </Splitter.Panel>
-              <Splitter.Panel defaultSize={350} min={300} max="50%" collapsible>
-                <JsonViewer />
-              </Splitter.Panel>
-            </Splitter>
+            <div className={style.workspace}>
+              <ToolbarPanel />
+              <MainFlow />
+              <JsonViewer />
+              <FieldPanel />
+              <EdgePanel />
+              <ConfigPanel />
+              <AIHistoryPanel />
+              <LocalFileListPanel />
+              <ToolPanel.Add />
+              <ToolPanel.Global />
+              <SearchPanel />
+              {debugMode && <ToolPanel.Debug />}
+              <ToolPanel.Layout />
+              <ErrorPanel />
+            </div>
           </Content>
         </Layout>
       </Flex>
