@@ -41,12 +41,13 @@ export const pinnedNotice: PinnedNotice = {
   type: "info",
   content: [
     "**正式版 LocalBridge🌉 已上线**！目前已全面支持**本地文档管理**与**字段快捷填充**（OCR、图片裁剪等）功能，**仅需一行指令即可下载安装**，我们十分推荐您尝试，详情可查阅 [本地服务文档](https://mpe.codax.site/docs/guide/server/deploy.html)",
+    "**🎉 2026 新年快乐！MPE 将会以更开放、多元、独特的姿态带来极致的 Pipeline 交互体验，您可以在** [ISSUE](https://github.com/kqcoxn/MaaPipelineEditor/issues) **中查看我们的计划，并提交您的建议，期待与您继续同行！**",
   ],
 };
 
 export const updateLogs: UpdateLogItem[] = [
   {
-    version: "0.13.2",
+    version: "0.14.0",
     date: "2026-1-1",
     type: "feature",
     updates: {

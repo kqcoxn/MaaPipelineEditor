@@ -11,8 +11,8 @@ import JsonPreviewButton from "./toolbar-items/JsonPreviewButton.tsx";
 function ToolbarPanel() {
   return (
     <div className={style.toolbarPanel}>
-      <ImportButton />
       <ExportButton />
+      <ImportButton />
       <JsonPreviewButton />
     </div>
   );
