@@ -262,6 +262,8 @@ function clearShareParam(): void {
   window.history.replaceState({}, "", url.toString());
 }
 
+// ============ 本地文件导入 ============
+
 /**
  * 从本地文件导入 Pipeline
  * 使用 File System Access API 让用户选择文件
