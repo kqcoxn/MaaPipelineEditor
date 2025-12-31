@@ -52,6 +52,8 @@ export const ROIOffsetModal = memo(
     } | null>(null);
 
     const imageRef = useRef<HTMLImageElement | null>(null);
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const viewportPropsRef = useRef<CanvasRenderProps | null>(null);
 
     // 计算偏移量
     const calculateOffset = useCallback((): [
@@ -153,13 +155,14 @@ export const ROIOffsetModal = memo(
 
         // 绘制偏移箭头
         if (sourceRect && targetRect) {
-          const sourceCenter = {
-            x: sourceRect.x + sourceRect.width / 2,
-            y: sourceRect.y + sourceRect.height / 2,
+          // 使用左上角作为起止点
+          const sourcePoint = {
+            x: sourceRect.x,
+            y: sourceRect.y,
           };
-          const targetCenter = {
-            x: targetRect.x + targetRect.width / 2,
-            y: targetRect.y + targetRect.height / 2,
+          const targetPoint = {
+            x: targetRect.x,
+            y: targetRect.y,
           };
 
           // 绘制连接线
@@ -167,27 +170,27 @@ export const ROIOffsetModal = memo(
           ctx.strokeStyle = "#52c41a";
           ctx.lineWidth = 2;
           ctx.setLineDash([6, 4]);
-          ctx.moveTo(sourceCenter.x, sourceCenter.y);
-          ctx.lineTo(targetCenter.x, targetCenter.y);
+          ctx.moveTo(sourcePoint.x, sourcePoint.y);
+          ctx.lineTo(targetPoint.x, targetPoint.y);
           ctx.stroke();
           ctx.setLineDash([]);
 
           // 绘制箭头
           const angle = Math.atan2(
-            targetCenter.y - sourceCenter.y,
-            targetCenter.x - sourceCenter.x
+            targetPoint.y - sourcePoint.y,
+            targetPoint.x - sourcePoint.x
           );
           const arrowLength = 12;
           ctx.beginPath();
           ctx.fillStyle = "#52c41a";
-          ctx.moveTo(targetCenter.x, targetCenter.y);
+          ctx.moveTo(targetPoint.x, targetPoint.y);
           ctx.lineTo(
-            targetCenter.x - arrowLength * Math.cos(angle - Math.PI / 6),
-            targetCenter.y - arrowLength * Math.sin(angle - Math.PI / 6)
+            targetPoint.x - arrowLength * Math.cos(angle - Math.PI / 6),
+            targetPoint.y - arrowLength * Math.sin(angle - Math.PI / 6)
           );
           ctx.lineTo(
-            targetCenter.x - arrowLength * Math.cos(angle + Math.PI / 6),
-            targetCenter.y - arrowLength * Math.sin(angle + Math.PI / 6)
+            targetPoint.x - arrowLength * Math.cos(angle + Math.PI / 6),
+            targetPoint.y - arrowLength * Math.sin(angle + Math.PI / 6)
           );
           ctx.closePath();
           ctx.fill();
@@ -195,6 +198,13 @@ export const ROIOffsetModal = memo(
       },
       [sourceRect, targetRect]
     );
+
+    // sourceRect/targetRect 变化或图片加载后重绘
+    useEffect(() => {
+      if (canvasRef.current && imageRef.current) {
+        redrawCanvas(canvasRef.current);
+      }
+    }, [sourceRect, targetRect, redrawCanvas]);
 
     // 创建鼠标事件处理器
     const createMouseHandlers = useCallback(
@@ -206,7 +216,6 @@ export const ROIOffsetModal = memo(
           startPan,
           updatePan,
           endPan,
-          canvasRef,
         } = props;
 
         const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -464,37 +473,26 @@ export const ROIOffsetModal = memo(
     // 渲染 Canvas
     const renderCanvas = useCallback(
       (props: CanvasRenderProps) => {
-        const {
-          scale,
-          panOffset,
-          canvasRef,
-          screenshot,
-          initializeImage,
-          getBaseCursorStyle,
-        } = props;
+        const { scale, panOffset, getBaseCursorStyle, imageElement } = props;
+
+        // 存储最新的 props
+        viewportPropsRef.current = props;
+
+        // 存储图片到 ref
+        if (imageElement) {
+          imageRef.current = imageElement;
+        }
+
         const { handleMouseDown, handleMouseMove, handleMouseUp } =
           createMouseHandlers(props);
 
-        // 加载图片
-        if (screenshot && canvasRef.current) {
-          const canvas = canvasRef.current;
-          const ctx = canvas.getContext("2d");
-          if (ctx && !imageRef.current) {
-            const img = new Image();
-            img.onload = () => {
-              canvas.width = img.width;
-              canvas.height = img.height;
-              imageRef.current = img;
-              initializeImage(img);
-              redrawCanvas(canvas);
-            };
-            img.src = screenshot;
-          } else {
-            redrawCanvas(canvas);
-          }
-        }
-
         const cursorStyle = getBaseCursorStyle() || "crosshair";
+
+        // 滚轮缩放事件处理
+        const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
+          e.preventDefault();
+          e.stopPropagation();
+        };
 
         return (
           <canvas
@@ -503,6 +501,7 @@ export const ROIOffsetModal = memo(
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
+            onWheel={handleWheel}
             style={{
               cursor: cursorStyle,
               transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${scale})`,
@@ -512,7 +511,23 @@ export const ROIOffsetModal = memo(
           />
         );
       },
-      [createMouseHandlers, redrawCanvas]
+      [createMouseHandlers]
+    );
+
+    // 初始化 canvas
+    const handleImageLoaded = useCallback(
+      (img: HTMLImageElement) => {
+        imageRef.current = img;
+        const canvas = canvasRef.current;
+        const props = viewportPropsRef.current;
+        if (!canvas) return;
+
+        canvas.width = img.width;
+        canvas.height = img.height;
+        props?.initializeImage?.(img);
+        redrawCanvas(canvas);
+      },
+      [redrawCanvas]
     );
 
     const hasValidOffset = sourceRect && targetRect;
@@ -529,6 +544,7 @@ export const ROIOffsetModal = memo(
         renderToolbar={renderToolbar}
         renderCanvas={renderCanvas}
         onScreenshotChange={setScreenshot}
+        onImageLoaded={handleImageLoaded}
         onReset={handleReset}
       >
         {/* 原 ROI 参数 */}

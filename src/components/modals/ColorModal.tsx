@@ -1,4 +1,4 @@
-import { memo, useState, useCallback, useRef, useEffect } from "react";
+import { memo, useState, useCallback, useRef } from "react";
 import { message } from "antd";
 import {
   ScreenshotModalBase,
@@ -21,6 +21,7 @@ export const ColorModal = memo(
 
     const imageRef = useRef<HTMLImageElement | null>(null);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const viewportPropsRef = useRef<CanvasRenderProps | null>(null);
     const initializeImageRef = useRef<((img: HTMLImageElement) => void) | null>(
       null
     );
@@ -63,33 +64,6 @@ export const ColorModal = memo(
       onClose();
     }, [pickedColor, onConfirm, onClose]);
 
-    // 加载截图图片
-    useEffect(() => {
-      if (!screenshot || !canvasRef.current) return;
-
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
-      // 如果已有图片且是同一张直接重绘
-      if (imageRef.current && imageRef.current.src === screenshot) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(imageRef.current, 0, 0);
-        return;
-      }
-
-      const img = new Image();
-      img.onload = () => {
-        canvas.width = img.width;
-        canvas.height = img.height;
-        imageRef.current = img;
-        ctx.drawImage(img, 0, 0);
-        // 初始化视口
-        initializeImageRef.current?.(img);
-      };
-      img.src = screenshot;
-    }, [screenshot]);
-
     // 重置状态
     const handleReset = useCallback(() => {
       setScreenshot(null);
@@ -105,16 +79,22 @@ export const ColorModal = memo(
         const {
           scale,
           panOffset,
-          initializeImage,
           getBaseCursorStyle,
           isPanning,
           isSpacePressed,
           startPan,
           updatePan,
           endPan,
+          imageElement,
         } = props;
 
-        initializeImageRef.current = initializeImage;
+        // 存储最新的 props
+        viewportPropsRef.current = props;
+
+        // 存储图片到 ref
+        if (imageElement) {
+          imageRef.current = imageElement;
+        }
 
         const baseCursor = getBaseCursorStyle();
         const cursorStyle = baseCursor || "crosshair";
@@ -154,6 +134,12 @@ export const ColorModal = memo(
           }
         };
 
+        // 滚轮缩放事件处理
+        const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
+          e.preventDefault();
+          e.stopPropagation();
+        };
+
         return (
           <canvas
             ref={canvasRef}
@@ -161,6 +147,7 @@ export const ColorModal = memo(
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseLeave}
+            onWheel={handleWheel}
             style={{
               cursor: cursorStyle,
               transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${scale})`,
@@ -172,6 +159,23 @@ export const ColorModal = memo(
       },
       [handleCanvasClick]
     );
+
+    // 图片加载完成后初始化
+    const handleCanvasInit = useCallback((img: HTMLImageElement) => {
+      imageRef.current = img;
+      const canvas = canvasRef.current;
+      const props = viewportPropsRef.current;
+      if (!canvas) return;
+
+      canvas.width = img.width;
+      canvas.height = img.height;
+      props?.initializeImage?.(img);
+
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.drawImage(img, 0, 0);
+      }
+    }, []);
 
     // 根据 targetKey 生成标题
     const title =
@@ -191,6 +195,7 @@ export const ColorModal = memo(
         onConfirm={handleConfirm}
         renderCanvas={renderCanvas}
         onScreenshotChange={setScreenshot}
+        onImageLoaded={handleCanvasInit}
         onReset={handleReset}
       >
         {/* 颜色预览 */}

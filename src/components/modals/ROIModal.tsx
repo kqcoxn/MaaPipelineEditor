@@ -30,6 +30,8 @@ export const ROIModal = memo(
     } | null>(null);
 
     const imageRef = useRef<HTMLImageElement | null>(null);
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const viewportPropsRef = useRef<CanvasRenderProps | null>(null);
 
     // 初始化 ROI
     useEffect(() => {
@@ -74,6 +76,13 @@ export const ROIModal = memo(
       [rectangle]
     );
 
+    // rectangle 变化或图片加载后重绘
+    useEffect(() => {
+      if (canvasRef.current && imageRef.current) {
+        redrawCanvas(canvasRef.current);
+      }
+    }, [rectangle, redrawCanvas]);
+
     // 创建鼠标事件处理器
     const createMouseHandlers = useCallback(
       (props: CanvasRenderProps) => {
@@ -84,7 +93,6 @@ export const ROIModal = memo(
           startPan,
           updatePan,
           endPan,
-          canvasRef,
         } = props;
 
         const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -185,42 +193,32 @@ export const ROIModal = memo(
       setRectangle(null);
       setIsDrawing(false);
       setStartPoint(null);
+      imageRef.current = null;
     }, []);
 
     // 渲染 Canvas
     const renderCanvas = useCallback(
       (props: CanvasRenderProps) => {
-        const {
-          scale,
-          panOffset,
-          canvasRef,
-          screenshot,
-          initializeImage,
-          getBaseCursorStyle,
-        } = props;
+        const { scale, panOffset, getBaseCursorStyle, imageElement } = props;
+
+        // 存储最新的 props
+        viewportPropsRef.current = props;
+
+        // 存储图片到 ref
+        if (imageElement) {
+          imageRef.current = imageElement;
+        }
+
         const { handleMouseDown, handleMouseMove, handleMouseUp } =
           createMouseHandlers(props);
 
-        // 加载图片
-        if (screenshot && canvasRef.current) {
-          const canvas = canvasRef.current;
-          const ctx = canvas.getContext("2d");
-          if (ctx && !imageRef.current) {
-            const img = new Image();
-            img.onload = () => {
-              canvas.width = img.width;
-              canvas.height = img.height;
-              imageRef.current = img;
-              initializeImage(img);
-              redrawCanvas(canvas);
-            };
-            img.src = screenshot;
-          } else {
-            redrawCanvas(canvas);
-          }
-        }
-
         const cursorStyle = getBaseCursorStyle() || "crosshair";
+
+        // 滚轮缩放事件处理
+        const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
+          e.preventDefault();
+          e.stopPropagation();
+        };
 
         return (
           <canvas
@@ -229,6 +227,7 @@ export const ROIModal = memo(
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
+            onWheel={handleWheel}
             style={{
               cursor: cursorStyle,
               transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${scale})`,
@@ -238,7 +237,23 @@ export const ROIModal = memo(
           />
         );
       },
-      [createMouseHandlers, redrawCanvas]
+      [createMouseHandlers]
+    );
+
+    // 初始化 canvas
+    const handleImageLoaded = useCallback(
+      (img: HTMLImageElement) => {
+        imageRef.current = img;
+        const canvas = canvasRef.current;
+        const props = viewportPropsRef.current;
+        if (!canvas) return;
+
+        canvas.width = img.width;
+        canvas.height = img.height;
+        props?.initializeImage?.(img);
+        redrawCanvas(canvas);
+      },
+      [redrawCanvas]
     );
 
     return (
@@ -251,6 +266,7 @@ export const ROIModal = memo(
         onConfirm={handleConfirm}
         renderCanvas={renderCanvas}
         onScreenshotChange={setScreenshot}
+        onImageLoaded={handleImageLoaded}
         onReset={handleReset}
       >
         {/* ROI 参数显示与输入 */}

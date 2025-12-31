@@ -42,7 +42,9 @@ export const TemplateModal = memo(
     const [hasGreenMask, setHasGreenMask] = useState(false);
 
     const imageRef = useRef<HTMLImageElement | null>(null);
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const maskCanvasRef = useRef<HTMLCanvasElement>(null);
+    const viewportPropsRef = useRef<CanvasRenderProps | null>(null);
     const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(
       null
     );
@@ -186,6 +188,13 @@ export const TemplateModal = memo(
       [redrawCanvas]
     );
 
+    // rectangle/mousePos 变化或图片加载后重绘
+    useEffect(() => {
+      if (canvasRef.current && imageRef.current) {
+        redrawCanvas(canvasRef.current);
+      }
+    }, [rectangle, currentTool, mousePos, brushSize, redrawCanvas]);
+
     // 创建鼠标事件处理器
     const createMouseHandlers = useCallback(
       (props: CanvasRenderProps) => {
@@ -196,7 +205,6 @@ export const TemplateModal = memo(
           startPan,
           updatePan,
           endPan,
-          canvasRef,
         } = props;
 
         const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -480,14 +488,16 @@ export const TemplateModal = memo(
     // 渲染 Canvas
     const renderCanvas = useCallback(
       (props: CanvasRenderProps) => {
-        const {
-          scale,
-          panOffset,
-          canvasRef,
-          screenshot,
-          initializeImage,
-          getBaseCursorStyle,
-        } = props;
+        const { scale, panOffset, getBaseCursorStyle, imageElement } = props;
+
+        // 存储最新的 props
+        viewportPropsRef.current = props;
+
+        // 存储图片到 ref
+        if (imageElement) {
+          imageRef.current = imageElement;
+        }
+
         const {
           handleMouseDown,
           handleMouseMove,
@@ -495,30 +505,6 @@ export const TemplateModal = memo(
           handleMouseLeave,
           handleMouseEnter,
         } = createMouseHandlers(props);
-
-        // 加载图片
-        if (screenshot && canvasRef.current) {
-          const canvas = canvasRef.current;
-          const maskCanvas = maskCanvasRef.current;
-          const ctx = canvas.getContext("2d");
-          if (ctx && !imageRef.current) {
-            const img = new Image();
-            img.onload = () => {
-              canvas.width = img.width;
-              canvas.height = img.height;
-              if (maskCanvas) {
-                maskCanvas.width = img.width;
-                maskCanvas.height = img.height;
-              }
-              imageRef.current = img;
-              initializeImage(img);
-              redrawCanvas(canvas);
-            };
-            img.src = screenshot;
-          } else {
-            redrawCanvas(canvas);
-          }
-        }
 
         const baseCursor = getBaseCursorStyle();
         let cursorStyle: string;
@@ -532,6 +518,12 @@ export const TemplateModal = memo(
           cursorStyle = "not-allowed";
         }
 
+        // 滚轮缩放事件处理
+        const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
+          e.preventDefault();
+          e.stopPropagation();
+        };
+
         return (
           <>
             <canvas
@@ -541,6 +533,7 @@ export const TemplateModal = memo(
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseLeave}
               onMouseEnter={handleMouseEnter}
+              onWheel={handleWheel}
               style={{
                 cursor: cursorStyle,
                 transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${scale})`,
@@ -552,7 +545,29 @@ export const TemplateModal = memo(
           </>
         );
       },
-      [createMouseHandlers, redrawCanvas, currentTool]
+      [createMouseHandlers, currentTool]
+    );
+
+    // 初始化 canvas
+    const handleImageLoaded = useCallback(
+      (img: HTMLImageElement) => {
+        imageRef.current = img;
+        const canvas = canvasRef.current;
+        const props = viewportPropsRef.current;
+        if (!canvas) return;
+
+        const maskCanvas = maskCanvasRef.current;
+        if (maskCanvas) {
+          maskCanvas.width = img.width;
+          maskCanvas.height = img.height;
+        }
+
+        canvas.width = img.width;
+        canvas.height = img.height;
+        props?.initializeImage?.(img);
+        redrawCanvas(canvas);
+      },
+      [redrawCanvas]
     );
 
     return (
@@ -567,6 +582,7 @@ export const TemplateModal = memo(
         renderToolbar={renderToolbar}
         renderCanvas={renderCanvas}
         onScreenshotChange={setScreenshot}
+        onImageLoaded={handleImageLoaded}
         onReset={handleReset}
       >
         {/* 画笔大小调节 */}

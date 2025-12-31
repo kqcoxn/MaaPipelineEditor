@@ -39,6 +39,8 @@ export interface ViewportProps {
 export interface CanvasRenderProps extends ViewportProps {
   screenshot: string;
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
+  imageLoaded: boolean;
+  imageElement: HTMLImageElement | null;
 }
 
 // 基础组件 Props
@@ -66,6 +68,9 @@ interface ScreenshotModalBaseProps {
   // 截图变化回调
   onScreenshotChange?: (screenshot: string | null) => void;
 
+  // 图片加载完成回调
+  onImageLoaded?: (img: HTMLImageElement) => void;
+
   // 关闭时的额外重置逻辑
   onReset?: () => void;
 }
@@ -83,13 +88,16 @@ export const ScreenshotModalBase = memo(
     renderCanvas,
     children,
     onScreenshotChange,
+    onImageLoaded,
     onReset,
   }: ScreenshotModalBaseProps) => {
     const { connectionStatus, controllerId } = useMFWStore();
     const [screenshot, setScreenshot] = useState<string | null>(null);
+    const [imageLoaded, setImageLoaded] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const loadedImageRef = useRef<HTMLImageElement | null>(null);
 
     // 使用视口控制 Hook
     const viewportProps = useCanvasViewport({ open, screenshot });
@@ -105,11 +113,13 @@ export const ScreenshotModalBase = memo(
 
     // 存储回调
     const onScreenshotChangeRef = useRef(onScreenshotChange);
+    const onImageLoadedRef = useRef(onImageLoaded);
     const onResetRef = useRef(onReset);
     useEffect(() => {
       onScreenshotChangeRef.current = onScreenshotChange;
+      onImageLoadedRef.current = onImageLoaded;
       onResetRef.current = onReset;
-    }, [onScreenshotChange, onReset]);
+    }, [onScreenshotChange, onImageLoaded, onReset]);
 
     // 请求截图
     const requestScreenshot = useCallback(() => {
@@ -127,6 +137,7 @@ export const ScreenshotModalBase = memo(
 
       // 清除旧截图并请求新截图
       setScreenshot(null);
+      setImageLoaded(false);
       onScreenshotChangeRef.current?.(null);
       resetViewport();
       onResetRef.current?.();
@@ -145,6 +156,7 @@ export const ScreenshotModalBase = memo(
         setIsLoading(false);
         if (data.success && data.image) {
           setScreenshot(data.image);
+          setImageLoaded(false); // 重置加载状态
           onScreenshotChangeRef.current?.(data.image);
         }
       };
@@ -155,6 +167,25 @@ export const ScreenshotModalBase = memo(
         unregister();
       };
     }, [open]);
+
+    // 加载图片
+    useEffect(() => {
+      if (!screenshot) {
+        setImageLoaded(false);
+        loadedImageRef.current = null;
+        return;
+      }
+
+      const img = new Image();
+      img.onload = () => {
+        // 存储到 ref 并触发重渲染
+        loadedImageRef.current = img;
+        setImageLoaded(true);
+        // 通知子组件图片
+        onImageLoadedRef.current?.(img);
+      };
+      img.src = screenshot;
+    }, [screenshot]);
 
     // 关闭时重置状态
     const handleClose = useCallback(() => {
@@ -170,6 +201,8 @@ export const ScreenshotModalBase = memo(
           ...viewportProps,
           screenshot,
           canvasRef,
+          imageLoaded,
+          imageElement: loadedImageRef.current,
         }
       : null;
 

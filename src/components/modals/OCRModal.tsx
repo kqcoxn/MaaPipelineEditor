@@ -70,7 +70,7 @@ export const OCRModal = memo(
     const imageRef = useRef<HTMLImageElement | null>(null);
     const ocrDebounceRef = useRef<NodeJS.Timeout | null>(null);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
-    const viewportPropsRef = useRef<ViewportProps | null>(null);
+    const viewportPropsRef = useRef<CanvasRenderProps | null>(null);
 
     // 初始化 ROI
     const initializedRef = useRef(false);
@@ -351,30 +351,12 @@ export const OCRModal = memo(
       }
     }, [rectangle]);
 
-    // 加载截图图片
+    // rectangle 变化时重绘
     useEffect(() => {
-      if (!screenshot || !canvasRef.current) return;
-
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
-      // 如果已有图片且是同一张直接重绘
-      if (imageRef.current && imageRef.current.src === screenshot) {
+      if (canvasRef.current && imageRef.current) {
         redrawCanvas();
-        return;
       }
-
-      const img = new Image();
-      img.onload = () => {
-        canvas.width = img.width;
-        canvas.height = img.height;
-        imageRef.current = img;
-        viewportPropsRef.current?.initializeImage(img);
-        redrawCanvas();
-      };
-      img.src = screenshot;
-    }, [screenshot, redrawCanvas]);
+    }, [rectangle, redrawCanvas]);
 
     // 创建鼠标事件处理器
     const createMouseHandlers = useCallback(
@@ -518,9 +500,16 @@ export const OCRModal = memo(
     // 渲染 Canvas
     const renderCanvas = useCallback(
       (props: CanvasRenderProps) => {
-        const { scale, panOffset, getBaseCursorStyle } = props;
+        const { scale, panOffset, getBaseCursorStyle, imageElement } = props;
 
+        // 存储最新的 props
         viewportPropsRef.current = props;
+
+        // 存储图片到 ref
+        if (imageElement) {
+          imageRef.current = imageElement;
+        }
+
         const {
           handleMouseDown,
           handleMouseMove,
@@ -547,6 +536,23 @@ export const OCRModal = memo(
         );
       },
       [createMouseHandlers]
+    );
+
+    // 初始化 canvas
+    const handleImageLoaded = useCallback(
+      (img: HTMLImageElement) => {
+        imageRef.current = img;
+        const canvas = canvasRef.current;
+        const props = viewportPropsRef.current;
+
+        if (!canvas) return;
+
+        canvas.width = img.width;
+        canvas.height = img.height;
+        props?.initializeImage?.(img);
+        redrawCanvas();
+      },
+      [redrawCanvas]
     );
 
     // 手动输入坐标
@@ -584,6 +590,7 @@ export const OCRModal = memo(
         onConfirm={handleConfirm}
         renderCanvas={renderCanvas}
         onScreenshotChange={setScreenshot}
+        onImageLoaded={handleImageLoaded}
         onReset={handleReset}
       >
         {/* OCR 模式切换 */}
