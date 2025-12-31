@@ -31,6 +31,7 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   configHandlingMode: "panel",
   isExportConfig: "panel",
   useDarkMode: "panel",
+  canvasBackgroundMode: "panel",
   // 本地通信配置
   wsPort: "communication",
   wsAutoConnect: "communication",
@@ -65,6 +66,9 @@ export type NodeAttrExportStyle = "object" | "prefix";
 // 配置处理方案类型
 export type ConfigHandlingMode = "integrated" | "separated" | "none";
 
+// 画布背景模式
+export type CanvasBackgroundMode = "pure" | "eyecare";
+
 /**配置 */
 type ConfigState = {
   // 设置
@@ -89,6 +93,8 @@ type ConfigState = {
     focusOpacity: number;
     // 边控制点
     showEdgeControlPoint: boolean;
+    // 画布背景模式
+    canvasBackgroundMode: CanvasBackgroundMode;
   };
   setConfig: <K extends keyof ConfigState["configs"]>(
     key: K,
@@ -131,6 +137,8 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     focusOpacity: 0.3,
     // 边控制点
     showEdgeControlPoint: true,
+    // 画布背景模式
+    canvasBackgroundMode: "eyecare" as CanvasBackgroundMode,
   },
   setConfig(key, value) {
     set((state) => {

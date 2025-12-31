@@ -22,6 +22,9 @@ const PanelConfigSection = memo(() => {
   const configHandlingMode = useConfigStore(
     (state) => state.configs.configHandlingMode
   );
+  const canvasBackgroundMode = useConfigStore(
+    (state) => state.configs.canvasBackgroundMode
+  );
   const setConfig = useConfigStore((state) => state.setConfig);
 
   const globalClass = useMemo(() => classNames(style.item, style.global), []);
@@ -231,6 +234,34 @@ const PanelConfigSection = memo(() => {
             { value: "integrated", label: "集成导出" },
             { value: "separated", label: "分离导出" },
             { value: "none", label: "不导出" },
+          ]}
+        />
+      </div>
+      {/* 画布背景 */}
+      <div className={globalClass}>
+        <div className={style.key}>
+          <Popover
+            placement="bottomLeft"
+            title="画布背景"
+            content={
+              <TipElem
+                content={
+                  "纯白：纯白色背景，适合喜欢明亮界面的用户\n护眼：淡蓝灰色背景(#f9fafd)，柔和不刺眼"
+                }
+              />
+            }
+          >
+            <span>画布背景</span>
+          </Popover>
+        </div>
+        <Select
+          className={style.value}
+          style={{ width: 70 }}
+          value={canvasBackgroundMode}
+          onChange={(value) => setConfig("canvasBackgroundMode", value)}
+          options={[
+            { value: "eyecare", label: "护眼" },
+            { value: "pure", label: "纯白" },
           ]}
         />
       </div>

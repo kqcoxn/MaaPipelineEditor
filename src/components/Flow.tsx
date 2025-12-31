@@ -32,6 +32,7 @@ import { nodeTypes } from "./flow/nodes";
 import { edgeTypes } from "./flow/edges";
 import { localSave, useFileStore } from "../stores/fileStore";
 import NodeAddPanel from "./panels/NodeAddPanel";
+import { useConfigStore } from "../stores/configStore";
 
 /**工作流 */
 // 按键监听
@@ -199,6 +200,9 @@ function MainFlow() {
       updateSelection: state.updateSelection,
     }))
   );
+  const canvasBackgroundMode = useConfigStore(
+    (state) => state.configs.canvasBackgroundMode
+  );
   const selfElem = useRef<HTMLDivElement>(null);
 
   // 节点添加面板状态
@@ -257,6 +261,11 @@ function MainFlow() {
   // 记忆
   const defaultViewport = useMemo(() => ({ x: 0, y: 0, zoom: 1.5 }), []);
 
+  // 背景颜色
+  const backgroundColor = useMemo(() => {
+    return canvasBackgroundMode === "pure" ? "#ffffff" : "#f9fafd";
+  }, [canvasBackgroundMode]);
+
   // hook
   const ref = useRef(null);
   const debouncedUpdateSize = useDebounceFn(
@@ -305,7 +314,7 @@ function MainFlow() {
         preventScrolling={true}
         elevateNodesOnSelect={true}
       >
-        <Background />
+        <Background bgColor={backgroundColor} />
         <Controls orientation={"horizontal"} />
         <InstanceMonitor />
         <ViewportChangeMonitor />
