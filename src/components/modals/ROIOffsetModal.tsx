@@ -590,7 +590,7 @@ export const ROIOffsetModal = memo(
                 </Tooltip>
               )}
             </div>
-            <Space direction="vertical" size={8} style={{ width: "100%" }}>
+            <Space orientation="vertical" size={8} style={{ width: "100%" }}>
               <Space wrap size={8} align="center">
                 <span
                   style={{
@@ -727,7 +727,7 @@ export const ROIOffsetModal = memo(
                 </Tooltip>
               )}
             </div>
-            <Space direction="vertical" size={8} style={{ width: "100%" }}>
+            <Space orientation="vertical" size={8} style={{ width: "100%" }}>
               <Space wrap size={8} align="center">
                 <span
                   style={{
@@ -863,7 +863,7 @@ export const ROIOffsetModal = memo(
                 = 期望 ROI - 原 ROI
               </div>
             )}
-            <Space direction="vertical" size={8} style={{ width: "100%" }}>
+            <Space orientation="vertical" size={8} style={{ width: "100%" }}>
               <Space wrap size={8}>
                 <span style={{ fontSize: 12, color: "#8c8c8c", width: 20 }}>
                   Δx

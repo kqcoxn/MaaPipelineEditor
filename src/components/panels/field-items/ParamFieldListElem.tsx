@@ -250,7 +250,7 @@ export const ParamFieldListElem = memo(
 
     // 颜色确认回调
     const handleColorConfirm = useCallback(
-      (color: [number, number, number]) => {
+      (color: [number, number, number] | [number]) => {
         if (!currentColorKey) return;
 
         // 列表类型只替换指定索引的值
@@ -573,6 +573,7 @@ export const ParamFieldListElem = memo(
             }}
             onConfirm={handleColorConfirm}
             targetKey={currentColorKey}
+            initialMethod={paramData["method"] as number | undefined}
           />
         )}
         {currentDeltaKey && (

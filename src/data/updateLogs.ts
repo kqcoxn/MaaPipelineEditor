@@ -53,6 +53,7 @@ export const updateLogs: UpdateLogItem[] = [
       features: [
         "🔧 新增 roi 偏移小工具",
         "🧰 新增独立工具箱，字段小工具都可以单独使用了！（原字段位置的快捷填充入口依旧保留）",
+        "🧰 颜色小工具新增 HSV 与 GRAY 模式",
         "🌉 使用 LocalBridge 快捷打开界面时可以自动连接了！",
       ],
       perfs: ["重构小工具系列面板样式，交互更加自然！"],

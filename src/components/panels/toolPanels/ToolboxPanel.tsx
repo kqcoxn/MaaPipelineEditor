@@ -78,7 +78,7 @@ type ToolResult =
       greenMask: boolean;
       roi?: [number, number, number, number];
     }
-  | { type: "color"; color: [number, number, number] }
+  | { type: "color"; color: [number, number, number] | [number] }
   | { type: "roi"; roi: [number, number, number, number] }
   | { type: "roi_offset"; offset: [number, number, number, number] }
   | { type: "dx"; delta: number }
@@ -159,10 +159,13 @@ function ToolboxPanel() {
   );
 
   // 颜色确认回调
-  const handleColorConfirm = useCallback((color: [number, number, number]) => {
-    setLastResult({ type: "color", color });
-    message.success("颜色取点完成");
-  }, []);
+  const handleColorConfirm = useCallback(
+    (color: [number, number, number] | [number]) => {
+      setLastResult({ type: "color", color });
+      message.success("颜色取点完成");
+    },
+    []
+  );
 
   // ROI 确认回调
   const handleROIConfirm = useCallback(
@@ -213,7 +216,14 @@ function ToolboxPanel() {
         }
         break;
       case "color":
-        valueStr = `[[${lastResult.color.join(", ")}]]`;
+        // 根据颜色值长度判断模式
+        if (lastResult.color.length === 1) {
+          // GRAY模式
+          valueStr = `[[${lastResult.color[0]}]]`;
+        } else {
+          // RGB/HSV模式
+          valueStr = `[[${lastResult.color.join(", ")}]]`;
+        }
         break;
       case "roi":
         valueStr = `[${lastResult.roi.join(", ")}]`;
@@ -316,20 +326,38 @@ function ToolboxPanel() {
         break;
       case "color":
         label = "取色结果";
-        content = (
-          <div className={style.resultContent}>
-            <div
-              className={style.colorPreview}
-              style={{
-                backgroundColor: `rgb(${lastResult.color[0]}, ${lastResult.color[1]}, ${lastResult.color[2]})`,
-              }}
-            />
-            <span>
-              RGB({lastResult.color[0]}, {lastResult.color[1]},{" "}
-              {lastResult.color[2]})
-            </span>
-          </div>
-        );
+        // 根据颜色值长度判断模式
+        if (lastResult.color.length === 1) {
+          // GRAY模式
+          const gray = lastResult.color[0];
+          content = (
+            <div className={style.resultContent}>
+              <div
+                className={style.colorPreview}
+                style={{
+                  backgroundColor: `rgb(${gray}, ${gray}, ${gray})`,
+                }}
+              />
+              <span>GRAY({gray})</span>
+            </div>
+          );
+        } else {
+          // RGB/HSV模式
+          const [v1, v2, v3] = lastResult.color;
+          content = (
+            <div className={style.resultContent}>
+              <div
+                className={style.colorPreview}
+                style={{
+                  backgroundColor: `rgb(${v1}, ${v2}, ${v3})`,
+                }}
+              />
+              <span>
+                ({v1}, {v2}, {v3})
+              </span>
+            </div>
+          );
+        }
         break;
       case "roi":
         label = "区域结果";

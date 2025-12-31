@@ -711,7 +711,7 @@ export const OCRModal = memo(
                 [x, y, w, h]
               </span>
             </div>
-            <Space direction="vertical" size={8} style={{ width: "100%" }}>
+            <Space orientation="vertical" size={8} style={{ width: "100%" }}>
               <Space wrap size={8} align="center">
                 <span
                   style={{
