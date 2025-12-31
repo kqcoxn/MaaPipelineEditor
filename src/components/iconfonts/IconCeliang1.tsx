@@ -13,7 +13,7 @@ const DEFAULT_STYLE: CSSProperties = {
   display: 'block',
 };
 
-const IconCeliang: FunctionComponent<Props> = ({ size, color, style: _style, ...rest }) => {
+const IconCeliang1: FunctionComponent<Props> = ({ size, color, style: _style, ...rest }) => {
   const style = _style ? { ...DEFAULT_STYLE, ..._style } : DEFAULT_STYLE;
 
   return (
@@ -58,8 +58,8 @@ const IconCeliang: FunctionComponent<Props> = ({ size, color, style: _style, ...
   );
 };
 
-IconCeliang.defaultProps = {
+IconCeliang1.defaultProps = {
   size: 18,
 };
 
-export default IconCeliang;
+export default IconCeliang1;

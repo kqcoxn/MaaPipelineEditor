@@ -1,5 +1,5 @@
 import { memo, useState, useCallback, useRef } from "react";
-import { Space, InputNumber, message } from "antd";
+import { Space, InputNumber, message, Radio } from "antd";
 import {
   ScreenshotModalBase,
   type CanvasRenderProps,
@@ -10,8 +10,8 @@ type DeltaMode = "dx" | "dy";
 interface DeltaModalProps {
   open: boolean;
   onClose: () => void;
-  onConfirm: (delta: number) => void;
-  mode: DeltaMode;
+  onConfirm: (delta: number, mode: DeltaMode) => void;
+  initialMode?: DeltaMode;
 }
 
 interface Point {
@@ -20,11 +20,12 @@ interface Point {
 }
 
 export const DeltaModal = memo(
-  ({ open, onClose, onConfirm, mode }: DeltaModalProps) => {
+  ({ open, onClose, onConfirm, initialMode = "dx" }: DeltaModalProps) => {
     const [screenshot, setScreenshot] = useState<string | null>(null);
     const [startPoint, setStartPoint] = useState<Point | null>(null);
     const [endPoint, setEndPoint] = useState<Point | null>(null);
     const [isDrawing, setIsDrawing] = useState(false);
+    const [mode, setMode] = useState<DeltaMode>(initialMode);
 
     const imageRef = useRef<HTMLImageElement | null>(null);
 
@@ -203,9 +204,9 @@ export const DeltaModal = memo(
       }
 
       const delta = getDelta();
-      onConfirm(delta);
+      onConfirm(delta, mode);
       onClose();
-    }, [startPoint, endPoint, getDelta, onConfirm, onClose]);
+    }, [startPoint, endPoint, getDelta, onConfirm, onClose, mode]);
 
     // 重置状态
     const handleReset = useCallback(() => {
@@ -213,8 +214,9 @@ export const DeltaModal = memo(
       setStartPoint(null);
       setEndPoint(null);
       setIsDrawing(false);
+      setMode(initialMode);
       imageRef.current = null;
-    }, []);
+    }, [initialMode]);
 
     // 渲染 Canvas
     const renderCanvas = useCallback(
@@ -278,7 +280,7 @@ export const DeltaModal = memo(
       <ScreenshotModalBase
         open={open}
         onClose={onClose}
-        title={`位移差值配置 - ${modeLabel}`}
+        title="位移差值配置"
         width={900}
         confirmDisabled={!startPoint || !endPoint}
         onConfirm={handleConfirm}
@@ -286,6 +288,18 @@ export const DeltaModal = memo(
         onScreenshotChange={setScreenshot}
         onReset={handleReset}
       >
+        {/* 模式切换 */}
+        <div style={{ marginBottom: 12 }}>
+          <Radio.Group
+            value={mode}
+            onChange={(e) => setMode(e.target.value)}
+            buttonStyle="solid"
+          >
+            <Radio.Button value="dx">水平差 (dx)</Radio.Button>
+            <Radio.Button value="dy">垂直差 (dy)</Radio.Button>
+          </Radio.Group>
+        </div>
+
         {/* 提示信息 */}
         <div style={{ marginBottom: 12, color: "#666", fontSize: 13 }}>
           在截图上拖动鼠标，从起点拖到终点，将计算

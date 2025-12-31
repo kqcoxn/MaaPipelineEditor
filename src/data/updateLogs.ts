@@ -47,10 +47,13 @@ export const pinnedNotice: PinnedNotice = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "0.13.2",
-    date: "2026-1",
+    date: "2025-12-31",
     type: "feature",
     updates: {
-      features: ["🔧 新增 roi 偏移小工具"],
+      features: [
+        "🔧 新增 roi 偏移小工具",
+        "🧰 新增独立工具箱，字段小工具都可以单独使用了！（原字段位置的快捷填充入口依旧保留）",
+      ],
     },
   },
   {

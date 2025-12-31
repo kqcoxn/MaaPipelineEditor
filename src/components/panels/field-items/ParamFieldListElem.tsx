@@ -21,7 +21,7 @@ import { message } from "antd";
 // 快捷工具配置
 const QUICK_TOOLS: Record<string, IconNames> = {
   roi: "icon-kuangxuanzhong",
-  roi_offset: "icon-celiang-",
+  roi_offset: "icon-celiang1",
   expected: "icon-ocr1",
   template: "icon-jietu",
   lower: "icon-ic_quseqi",
@@ -29,8 +29,8 @@ const QUICK_TOOLS: Record<string, IconNames> = {
   target: "icon-kuangxuanzhong",
   begin: "icon-kuangxuanzhong",
   end: "icon-kuangxuanzhong",
-  dx: "icon-celiang-",
-  dy: "icon-celiang-",
+  dx: "icon-celiang2",
+  dy: "icon-celiang2",
 };
 
 const { TextArea } = Input;
@@ -281,7 +281,7 @@ export const ParamFieldListElem = memo(
 
     // 位移差值确认回调
     const handleDeltaConfirm = useCallback(
-      (delta: number) => {
+      (delta: number, mode: "dx" | "dy") => {
         if (!currentDeltaKey) return;
 
         onChange(currentDeltaKey, delta);
@@ -584,7 +584,7 @@ export const ParamFieldListElem = memo(
               setCurrentListIndex(null);
             }}
             onConfirm={handleDeltaConfirm}
-            mode={currentDeltaKey as "dx" | "dy"}
+            initialMode={currentDeltaKey as "dx" | "dy"}
           />
         )}
         {currentROIOffsetKey && (

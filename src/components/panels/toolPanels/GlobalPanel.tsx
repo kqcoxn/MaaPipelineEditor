@@ -9,6 +9,7 @@ import { useClipboardStore } from "../../../stores/clipboardStore";
 import { useDebugStore } from "../../../stores/debugStore";
 import { useMFWStore } from "../../../stores/mfwStore";
 import PathSelector from "./PathSelector";
+import ToolboxPanel from "./ToolboxPanel";
 import style from "../../../styles/ToolPanel.module.less";
 import debugStyle from "../../../styles/DebugPanel.module.less";
 
@@ -187,6 +188,28 @@ function GlobalPanel() {
                 style={{ opacity: pathMode ? 1 : 0.4 }}
                 className={style.icon}
                 name="icon-lianjie"
+                size={24}
+              />
+            </Tooltip>
+          </Popover>
+        </li>
+      </div>
+      {/* 工具箱按钮 */}
+      <div className={style.group}>
+        <div className={style.devider}>
+          <div></div>
+        </div>
+        <li className={style.item}>
+          <Popover
+            placement="bottom"
+            title="工具箱"
+            content={<ToolboxPanel />}
+            trigger="click"
+          >
+            <Tooltip placement="bottom" title="工具箱">
+              <IconFont
+                className={style.icon}
+                name="icon-gongjuxiang"
                 size={24}
               />
             </Tooltip>
