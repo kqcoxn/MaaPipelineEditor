@@ -9,11 +9,18 @@ import {
   getExportableConfigs,
   globalConfig,
 } from "../../../stores/configStore";
+import { useCustomTemplateStore } from "../../../stores/customTemplateStore";
 import TipElem from "./TipElem";
 
 const ConfigManagementSection = memo(() => {
   const configs = useConfigStore((state) => state.configs);
   const replaceConfig = useConfigStore((state) => state.replaceConfig);
+  const exportTemplates = useCustomTemplateStore(
+    (state) => state.exportTemplates
+  );
+  const importTemplates = useCustomTemplateStore(
+    (state) => state.importTemplates
+  );
 
   const globalClass = useMemo(() => classNames(style.item, style.global), []);
 
@@ -21,10 +28,14 @@ const ConfigManagementSection = memo(() => {
   const handleExportConfig = () => {
     // 获取可导出的配置
     const exportableConfigs = getExportableConfigs(configs, []);
+    // 获取自定义模板
+    const customTemplates = exportTemplates();
+
     const exportData = {
       version: globalConfig.version,
       exportTime: new Date().toISOString(),
       configs: exportableConfigs,
+      customTemplates: customTemplates,
     };
 
     const blob = new Blob([JSON.stringify(exportData, null, 2)], {
@@ -36,7 +47,13 @@ const ConfigManagementSection = memo(() => {
     a.download = `mpe-config-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    message.success("配置导出成功");
+
+    const templateCount = customTemplates.length;
+    const msg =
+      templateCount > 0
+        ? `配置导出成功（包含 ${templateCount} 个自定义模板）`
+        : "配置导出成功";
+    message.success(msg);
   };
 
   // 导入配置
@@ -57,8 +74,25 @@ const ConfigManagementSection = memo(() => {
           return;
         }
 
+        // 导入配置
         replaceConfig(data.configs);
-        message.success("配置导入成功");
+
+        // 导入自定义模板
+        let templateImportSuccess = false;
+        let templateCount = 0;
+        if (data.customTemplates && Array.isArray(data.customTemplates)) {
+          templateCount = data.customTemplates.length;
+          templateImportSuccess = importTemplates(data.customTemplates);
+        }
+
+        // 提示信息
+        if (templateCount > 0 && templateImportSuccess) {
+          message.success(`配置导入成功（包含 ${templateCount} 个自定义模板）`);
+        } else if (templateCount > 0 && !templateImportSuccess) {
+          message.warning("配置导入成功，但自定义模板导入失败");
+        } else {
+          message.success("配置导入成功");
+        }
       } catch (err) {
         message.error("配置文件解析失败");
       }
@@ -78,7 +112,7 @@ const ConfigManagementSection = memo(() => {
             content={
               <TipElem
                 content={
-                  '导出当前设置为 JSON 文件，或从 JSON 文件导入设置。注意："文件配置"（节点前缀、文件路径）不会被导出/导入。'
+                  "导出当前设置为 JSON 文件，或从 JSON 文件导入设置。包括：编辑器配置、自定义节点模板。"
                 }
               />
             }

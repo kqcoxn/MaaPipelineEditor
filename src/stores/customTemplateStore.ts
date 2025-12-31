@@ -5,7 +5,7 @@ import type { PipelineNodeDataType } from "./flow/types";
 import { NodeTypeEnum } from "../components/flow/nodes";
 
 // 存储结构
-interface StoredTemplate {
+export interface StoredTemplate {
   label: string;
   nodeType: NodeTypeEnum;
   data: Omit<PipelineNodeDataType, "label">;
@@ -24,24 +24,22 @@ const MAX_TEMPLATES = 50;
 interface CustomTemplateState {
   customTemplates: NodeTemplateType[];
   isLoaded: boolean;
-
   // 加载模板
   loadTemplates: () => void;
-
   // 添加新模板
   addTemplate: (label: string, nodeData: PipelineNodeDataType) => boolean;
-
   // 删除指定模板
   removeTemplate: (label: string) => void;
-
   // 更新已有模板
   updateTemplate: (label: string, nodeData: PipelineNodeDataType) => void;
-
   // 获取所有模板
   getAllTemplates: (presetTemplates: NodeTemplateType[]) => NodeTemplateType[];
-
   // 检查模板名称是否存在
   hasTemplate: (label: string) => boolean;
+  // 导出模板数据
+  exportTemplates: () => StoredTemplate[];
+  // 导入模板数据
+  importTemplates: (templates: StoredTemplate[]) => boolean;
 }
 
 export const useCustomTemplateStore = create<CustomTemplateState>(
@@ -235,6 +233,60 @@ export const useCustomTemplateStore = create<CustomTemplateState>(
     hasTemplate: (label: string) => {
       const { customTemplates } = get();
       return customTemplates.some((t) => t.label === label);
+    },
+
+    exportTemplates: () => {
+      const { customTemplates } = get();
+      const storedTemplates: StoredTemplate[] = customTemplates.map((t) => ({
+        label: t.label,
+        nodeType: t.nodeType || NodeTypeEnum.Pipeline,
+        data: t.data?.() || ({} as PipelineNodeDataType),
+        createTime: t.createTime || Date.now(),
+      }));
+      return storedTemplates;
+    },
+
+    importTemplates: (templates: StoredTemplate[]) => {
+      try {
+        // 验证模板数据格式
+        if (!Array.isArray(templates)) {
+          console.error("模板数据格式错误：不是数组");
+          return false;
+        }
+
+        // 转换为 NodeTemplateType
+        const convertedTemplates: NodeTemplateType[] = templates.map(
+          (template) => ({
+            label: template.label,
+            iconName: "icon-biaodanmoban",
+            iconSize: 24,
+            nodeType: NodeTypeEnum.Pipeline,
+            data: () => JSON.parse(JSON.stringify(template.data)),
+            isCustom: true,
+            createTime: template.createTime,
+          })
+        );
+
+        // 按创建时间倒序排列
+        convertedTemplates.sort(
+          (a, b) => (b.createTime || 0) - (a.createTime || 0)
+        );
+
+        // 更新状态
+        set({ customTemplates: convertedTemplates });
+
+        // 保存到 localStorage
+        const storageData: StorageData = {
+          version: STORAGE_VERSION,
+          templates: templates,
+        };
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(storageData));
+        return true;
+      } catch (error) {
+        console.error("导入模板失败:", error);
+        return false;
+      }
     },
   })
 );
