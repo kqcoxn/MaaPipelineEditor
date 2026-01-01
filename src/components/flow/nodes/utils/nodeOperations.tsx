@@ -6,18 +6,20 @@ import { useFlowStore } from "../../../../stores/flow";
 import type { PipelineNodeDataType } from "../../../../stores/flow";
 import { parsePipelineNodeForExport } from "../../../../core/parser/nodeParser";
 import type { PipelineNodeType } from "../../../../core/parser/types";
+import { NodeTypeEnum } from "../constants";
 
 /**
  * 复制节点名（通用工具函数）
  * @param nodeName 节点名称
+ * @param nodeType 节点类型（可选）
  */
-export function copyNodeName(nodeName: string): void {
+export function copyNodeName(nodeName: string, nodeType?: NodeTypeEnum): void {
   const fileStore = useFileStore.getState();
   const prefix = fileStore.currentFile.config.prefix;
   let fullName = nodeName;
 
   // 拼接前缀
-  if (prefix) {
+  if (prefix && nodeType === NodeTypeEnum.Pipeline) {
     fullName = prefix + "_" + nodeName;
   }
 

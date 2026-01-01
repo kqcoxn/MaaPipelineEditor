@@ -47,7 +47,7 @@ export type NodeContextMenuNode =
 
 /**复制节点名处理器 */
 function handleCopyNodeName(node: NodeContextMenuNode) {
-  copyNodeName(node.data.label);
+  copyNodeName(node.data.label, node.type);
 }
 
 /**保存为模板处理器 */

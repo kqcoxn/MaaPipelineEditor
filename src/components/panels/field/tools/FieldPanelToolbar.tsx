@@ -26,7 +26,8 @@ export const FieldPanelToolbarLeft = memo(
 
     const handleCopyNodeName = () => {
       const pureNodeName = currentNode?.data.label || "";
-      copyNodeName(pureNodeName);
+      const nodeType = currentNode?.type;
+      copyNodeName(pureNodeName, nodeType);
     };
 
     const handleCopyRecoJSON = () => {
