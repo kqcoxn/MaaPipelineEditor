@@ -1,18 +1,21 @@
 import { memo, useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Input, Modal } from "antd";
 import classNames from "classnames";
-import style from "../../styles/NodeAddPanel.module.less";
-import IconFont from "../iconfonts";
-import type { IconNames } from "../iconfonts";
-import { nodeTemplates, type NodeTemplateType } from "../../data/nodeTemplates";
-import { useFlowStore } from "../../stores/flow";
-import { useCustomTemplateStore } from "../../stores/customTemplateStore";
-import { NodeTypeEnum } from "../flow/nodes";
+import style from "../../../styles/NodeAddPanel.module.less";
+import IconFont from "../../iconfonts";
+import type { IconNames } from "../../iconfonts";
+import {
+  nodeTemplates,
+  type NodeTemplateType,
+} from "../../../data/nodeTemplates";
+import { useFlowStore } from "../../../stores/flow";
+import { useCustomTemplateStore } from "../../../stores/customTemplateStore";
+import { NodeTypeEnum } from "../../flow/nodes";
 import {
   getRecognitionIcon,
   getActionIcon,
   getNodeTypeIcon,
-} from "../flow/nodes/utils";
+} from "../../flow/nodes/utils";
 
 interface NodeAddPanelProps {
   visible: boolean;

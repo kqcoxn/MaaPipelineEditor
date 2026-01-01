@@ -1,12 +1,12 @@
-import style from "../../styles/AIHistoryPanel.module.less";
+import style from "../../../styles/AIHistoryPanel.module.less";
 
 import { memo, useMemo, useState, useEffect } from "react";
 import { Empty, Tag, Tooltip } from "antd";
 import classNames from "classnames";
-import IconFont from "../iconfonts";
+import IconFont from "../../iconfonts";
 
-import { useConfigStore } from "../../stores/configStore";
-import { aiHistoryManager, type AIHistoryRecord } from "../../utils/openai";
+import { useConfigStore } from "../../../stores/configStore";
+import { aiHistoryManager, type AIHistoryRecord } from "../../../utils/openai";
 
 /** 格式化时间 */
 function formatTime(timestamp: number): string {

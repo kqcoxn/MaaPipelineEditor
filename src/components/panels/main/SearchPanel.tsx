@@ -1,13 +1,13 @@
-import style from "../../styles/ToolPanel.module.less";
+import style from "../../../styles/ToolPanel.module.less";
 import { memo, useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { message, Tooltip, AutoComplete, Spin } from "antd";
 import type { AutoCompleteProps } from "antd";
 import classNames from "classnames";
 import { useDebounceFn } from "ahooks";
-import IconFont from "../iconfonts";
-import { useFlowStore, type NodeType } from "../../stores/flow";
-import { OpenAIChat } from "../../utils/openai";
-import { NodeTypeEnum } from "../flow/nodes";
+import IconFont from "../../iconfonts";
+import { useFlowStore, type NodeType } from "../../../stores/flow";
+import { OpenAIChat } from "../../../utils/openai";
+import { NodeTypeEnum } from "../../flow/nodes";
 
 /**搜索工具 */
 function SearchPanel() {

@@ -1,4 +1,4 @@
-import style from "../../styles/FieldPanel.module.less";
+import style from "../../../styles/FieldPanel.module.less";
 
 import {
   useMemo,
@@ -11,7 +11,7 @@ import {
 } from "react";
 import { Tooltip, Spin, Alert, Button, Tabs } from "antd";
 import classNames from "classnames";
-import IconFont from "../iconfonts";
+import IconFont from "../../iconfonts";
 
 import {
   useFlowStore,
@@ -19,19 +19,19 @@ import {
   type ExternalNodeType,
   type AnchorNodeType,
   type NodeType,
-} from "../../stores/flow";
-import { NodeTypeEnum } from "../flow/nodes";
+} from "../../../stores/flow";
+import { NodeTypeEnum } from "../../flow/nodes";
 import {
   PipelineEditorWithSuspense,
   ExternalEditor,
   AnchorEditor,
-} from "./node-editors";
-import { FieldPanelToolbarLeft, FieldPanelToolbarRight } from "./field-tools";
-import { useDebugStore } from "../../stores/debugStore";
-import { useToolbarStore } from "../../stores/toolbarStore";
-import { useConfigStore } from "../../stores/configStore";
-import DebugInfoTab from "./DebugInfoTab";
-import { DraggablePanel } from "./DraggablePanel";
+} from "../node-editors";
+import { FieldPanelToolbarLeft, FieldPanelToolbarRight } from "../field/tools";
+import { useDebugStore } from "../../../stores/debugStore";
+import { useToolbarStore } from "../../../stores/toolbarStore";
+import { useConfigStore } from "../../../stores/configStore";
+import DebugInfoTab from "../tools/DebugInfoTab";
+import { DraggablePanel } from "../common/DraggablePanel";
 
 // 节点数据验证与修复
 function validateAndRepairNode(node: NodeType): {

@@ -1,19 +1,19 @@
-import style from "../../styles/EdgePanel.module.less";
+import style from "../../../styles/EdgePanel.module.less";
 
 import { memo, useMemo, useCallback, useEffect } from "react";
 import { Tag, InputNumber, Tooltip, Switch } from "antd";
 import classNames from "classnames";
-import IconFont from "../iconfonts";
+import IconFont from "../../iconfonts";
 
 import {
   useFlowStore,
   findNodeLabelById,
   type EdgeType,
-} from "../../stores/flow";
-import { SourceHandleTypeEnum } from "../flow/nodes";
-import { useToolbarStore } from "../../stores/toolbarStore";
-import { useConfigStore } from "../../stores/configStore";
-import { DraggablePanel } from "./DraggablePanel";
+} from "../../../stores/flow";
+import { SourceHandleTypeEnum } from "../../flow/nodes";
+import { useToolbarStore } from "../../../stores/toolbarStore";
+import { useConfigStore } from "../../../stores/configStore";
+import { DraggablePanel } from "../common/DraggablePanel";
 
 // 获取连接类型和颜色
 const getEdgeTypeInfo = (edge: EdgeType) => {

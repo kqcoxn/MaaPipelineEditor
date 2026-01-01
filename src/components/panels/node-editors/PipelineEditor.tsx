@@ -10,7 +10,7 @@ import {
   otherFieldSchema,
 } from "../../../core/fields";
 import { JsonHelper } from "../../../utils/jsonHelper";
-import { AddFieldElem, ParamFieldListElem } from "../field-items";
+import { AddFieldElem, ParamFieldListElem } from "../field/items";
 
 const { TextArea } = Input;
 

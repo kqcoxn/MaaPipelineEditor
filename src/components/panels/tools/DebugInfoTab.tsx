@@ -5,9 +5,9 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
 } from "@ant-design/icons";
-import { useDebugStore } from "../../stores/debugStore";
-import { useFlowStore } from "../../stores/flow";
-import debugStyle from "../../styles/DebugPanel.module.less";
+import { useDebugStore } from "../../../stores/debugStore";
+import { useFlowStore } from "../../../stores/flow";
+import debugStyle from "../../../styles/DebugPanel.module.less";
 
 /**
  * 调试信息标签页

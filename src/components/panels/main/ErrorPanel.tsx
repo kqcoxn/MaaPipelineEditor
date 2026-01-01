@@ -1,9 +1,9 @@
-import style from "../../styles/ErrorPanel.module.less";
+import style from "../../../styles/ErrorPanel.module.less";
 
 import { memo, useMemo } from "react";
 import classNames from "classnames";
 
-import { useErrorStore } from "../../stores/errorStore";
+import { useErrorStore } from "../../../stores/errorStore";
 
 function ErrorPanel() {
   const errors = useErrorStore((state) => state.errors);
@@ -13,7 +13,7 @@ function ErrorPanel() {
     return classNames({
       "panel-base": true,
       [style.panel]: true,
-      "panel-show": errors.length > 0 ,
+      "panel-show": errors.length > 0,
     });
   }, [errors.length]);
 

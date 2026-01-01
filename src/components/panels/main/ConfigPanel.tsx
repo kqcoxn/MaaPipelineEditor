@@ -1,18 +1,18 @@
-import style from "../../styles/ConfigPanel.module.less";
+import style from "../../../styles/ConfigPanel.module.less";
 
 import { memo, useMemo, useEffect, useState } from "react";
 import classNames from "classnames";
-import IconFont from "../iconfonts";
+import IconFont from "../../iconfonts";
 
-import { useConfigStore } from "../../stores/configStore";
-import { localServer } from "../../services";
-import { BackendConfigModal } from "../modals";
-import FileConfigSection from "./config/FileConfigSection";
-import PipelineConfigSection from "./config/PipelineConfigSection";
-import PanelConfigSection from "./config/PanelConfigSection";
-import LocalServiceSection from "./config/LocalServiceSection";
-import AIConfigSection from "./config/AIConfigSection";
-import ConfigManagementSection from "./config/ConfigManagementSection";
+import { useConfigStore } from "../../../stores/configStore";
+import { localServer } from "../../../services";
+import { BackendConfigModal } from "../../modals";
+import FileConfigSection from "../config/FileConfigSection";
+import PipelineConfigSection from "../config/PipelineConfigSection";
+import PanelConfigSection from "../config/PanelConfigSection";
+import LocalServiceSection from "../config/LocalServiceSection";
+import AIConfigSection from "../config/AIConfigSection";
+import ConfigManagementSection from "../config/ConfigManagementSection";
 
 function ConfigPanel() {
   // 后端配置模态框状态

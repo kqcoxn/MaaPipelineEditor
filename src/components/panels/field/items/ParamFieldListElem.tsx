@@ -1,12 +1,12 @@
-import style from "../../../styles/FieldPanel.module.less";
+import style from "../../../../styles/FieldPanel.module.less";
 import { memo, useState, useCallback } from "react";
 import { Popover, Input, InputNumber, Select, Switch } from "antd";
-import IconFont, { type IconNames } from "../../iconfonts";
-import type { ParamType } from "../../../stores/flow";
-import type { FieldType } from "../../../core/fields";
-import { FieldTypeEnum } from "../../../core/fields";
-import { JsonHelper } from "../../../utils/jsonHelper";
-import { useMFWStore } from "../../../stores/mfwStore";
+import IconFont, { type IconNames } from "../../../iconfonts";
+import type { ParamType } from "../../../../stores/flow";
+import type { FieldType } from "../../../../core/fields";
+import { FieldTypeEnum } from "../../../../core/fields";
+import { JsonHelper } from "../../../../utils/jsonHelper";
+import { useMFWStore } from "../../../../stores/mfwStore";
 import {
   ROIModal,
   ROIOffsetModal,
@@ -14,7 +14,7 @@ import {
   TemplateModal,
   ColorModal,
   DeltaModal,
-} from "../../modals";
+} from "../../../modals";
 import { ListValueElem } from "./ListValueElem";
 import { message } from "antd";
 

@@ -31,7 +31,7 @@ import { useClipboardStore } from "../stores/clipboardStore";
 import { nodeTypes } from "./flow/nodes";
 import { edgeTypes } from "./flow/edges";
 import { localSave, useFileStore } from "../stores/fileStore";
-import NodeAddPanel from "./panels/NodeAddPanel";
+import NodeAddPanel from "./panels/main/NodeAddPanel";
 import { useConfigStore } from "../stores/configStore";
 
 /**工作流 */

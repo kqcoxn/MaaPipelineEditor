@@ -24,8 +24,8 @@ import {
   useMFWStore,
   type AdbDevice,
   type Win32Window,
-} from "../../stores/mfwStore";
-import { mfwProtocol } from "../../services/server";
+} from "../../../stores/mfwStore";
+import { mfwProtocol } from "../../../services/server";
 
 const { Text } = Typography;
 

@@ -22,7 +22,7 @@ import {
 } from "@ant-design/icons";
 import IconFont from "./iconfonts";
 import UpdateLog from "./modals/UpdateLog";
-import { ConnectionPanel } from "./panels/ConnectionPanel";
+import { ConnectionPanel } from "./panels/main/ConnectionPanel";
 import { localServer } from "../services/server";
 import { useMFWStore } from "../stores/mfwStore";
 

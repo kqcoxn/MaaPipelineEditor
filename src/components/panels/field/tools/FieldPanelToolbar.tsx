@@ -1,22 +1,22 @@
-import style from "../../../styles/FieldPanel.module.less";
+import style from "../../../../styles/FieldPanel.module.less";
 import { memo, useState } from "react";
 import { Tooltip, message } from "antd";
-import IconFont from "../../iconfonts";
-import type { NodeType } from "../../../stores/flow/types";
-import { useFileStore } from "../../../stores/fileStore";
-import { NodeTypeEnum } from "../../flow/nodes";
+import IconFont from "../../../iconfonts";
+import type { NodeType } from "../../../../stores/flow/types";
+import { useFileStore } from "../../../../stores/fileStore";
+import { NodeTypeEnum } from "../../../flow/nodes";
 import {
   collectNodeContext,
   predictNodeConfig,
   applyPrediction,
-} from "../../../utils/aiPredictor";
-import { useFlowStore } from "../../../stores/flow";
-import { useMFWStore } from "../../../stores/mfwStore";
+} from "../../../../utils/aiPredictor";
+import { useFlowStore } from "../../../../stores/flow";
+import { useMFWStore } from "../../../../stores/mfwStore";
 import {
   copyNodeName,
   saveNodeAsTemplate,
   copyNodeRecoJSON,
-} from "../../flow/nodes/utils/nodeOperations";
+} from "../../../flow/nodes/utils/nodeOperations";
 
 // 左侧工具栏
 export const FieldPanelToolbarLeft = memo(

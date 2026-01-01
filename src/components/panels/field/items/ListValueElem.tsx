@@ -1,9 +1,9 @@
-import style from "../../../styles/FieldPanel.module.less";
+import style from "../../../../styles/FieldPanel.module.less";
 import { Input, InputNumber } from "antd";
-import IconFont from "../../iconfonts";
-import { JsonHelper } from "../../../utils/jsonHelper";
+import IconFont from "../../../iconfonts";
+import { JsonHelper } from "../../../../utils/jsonHelper";
 import type { ReactNode } from "react";
-import { FieldTypeEnum } from "../../../core/fields";
+import { FieldTypeEnum } from "../../../../core/fields";
 
 const { TextArea } = Input;
 

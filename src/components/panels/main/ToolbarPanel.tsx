@@ -1,8 +1,8 @@
-import style from "../../styles/ToolbarPanel.module.less";
+import style from "../../../styles/ToolbarPanel.module.less";
 import { memo } from "react";
-import ImportButton from "./toolbar-items/ImportButton.tsx";
-import ExportButton from "./toolbar-items/ExportButton.tsx";
-import JsonPreviewButton from "./toolbar-items/JsonPreviewButton.tsx";
+import ImportButton from "../toolbar/ImportButton.tsx";
+import ExportButton from "../toolbar/ExportButton.tsx";
+import JsonPreviewButton from "../toolbar/JsonPreviewButton.tsx";
 
 /**
  * 横向工具栏组件

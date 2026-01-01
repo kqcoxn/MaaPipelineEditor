@@ -10,12 +10,12 @@ import {
 import {
   useLocalFileStore,
   type LocalFileInfo,
-} from "../../stores/localFileStore";
-import { useConfigStore } from "../../stores/configStore";
-import { localServer } from "../../services/server";
+} from "../../../stores/localFileStore";
+import { useConfigStore } from "../../../stores/configStore";
+import { localServer } from "../../../services/server";
 import classNames from "classnames";
 
-import styles from "../../styles/LocalFileListPanel.module.less";
+import styles from "../../../styles/LocalFileListPanel.module.less";
 
 export const LocalFileListPanel: React.FC = () => {
   const showLocalFilePanel = useConfigStore(

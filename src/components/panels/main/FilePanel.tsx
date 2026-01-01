@@ -1,5 +1,5 @@
 import { CSS } from "@dnd-kit/utilities";
-import style from "../../styles/FilePanel.module.less";
+import style from "../../../styles/FilePanel.module.less";
 
 import React, { useState, memo, useMemo, useCallback } from "react";
 import {
@@ -15,8 +15,8 @@ import {
 } from "@dnd-kit/sortable";
 import { Tabs, Input, Button, Tooltip } from "antd";
 import { FileAddOutlined } from "@ant-design/icons";
-import { useFileStore } from "../../stores/fileStore";
-import { useConfigStore } from "../../stores/configStore";
+import { useFileStore } from "../../../stores/fileStore";
+import { useConfigStore } from "../../../stores/configStore";
 
 interface DraggableTabPaneProps extends React.HTMLAttributes<HTMLDivElement> {
   "data-node-key": string;

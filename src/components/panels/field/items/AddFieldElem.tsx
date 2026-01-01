@@ -1,9 +1,9 @@
-import style from "../../../styles/FieldPanel.module.less";
+import style from "../../../../styles/FieldPanel.module.less";
 import { memo } from "react";
 import { Popover } from "antd";
-import IconFont from "../../iconfonts";
-import type { ParamType } from "../../../stores/flow";
-import type { FieldType } from "../../../core/fields";
+import IconFont from "../../../iconfonts";
+import type { ParamType } from "../../../../stores/flow";
+import type { FieldType } from "../../../../core/fields";
 
 function LeftTipContentElem(content: string) {
   return <div style={{ maxWidth: 260 }}>{content}</div>;
