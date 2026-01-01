@@ -7,6 +7,10 @@ alwaysApply: true
 
 https://github.com/kqcoxn/MaaPipelineEditor
 
+## 应该做的事
+
+- 当需要调用新的react-flow与maafw/pipeline功能时，应该参阅相关instructions参考文档，不要凭空生成
+
 ## 禁止的工作
 
 - 使用`yarn`作为 Node.js 的包管理器

@@ -1,0 +1,11 @@
+---
+description: A node that can be used to visualize a database schema
+---
+
+import UiComponentViewer from '@/components/ui-component-viewer.mdx';
+
+# Database Schema Node
+
+A node that can be used to visualize a database schema.
+
+<UiComponentViewer id="database-schema-node" />

@@ -1,0 +1,11 @@
+---
+description: A group node with an optional label.
+---
+
+import UiComponentViewer from '@/components/ui-component-viewer.mdx';
+
+# Labeled Group Node
+
+A group node with an optional label.
+
+<UiComponentViewer id="labeled-group-node" />

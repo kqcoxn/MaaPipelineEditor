@@ -1,0 +1,11 @@
+---
+description: A custom node that can be clicked to create a new node.
+---
+
+import UiComponentViewer from '@/components/ui-component-viewer.mdx';
+
+# Placeholder Node
+
+A custom node that can be clicked to create a new node.
+
+<UiComponentViewer id="placeholder-node" />
