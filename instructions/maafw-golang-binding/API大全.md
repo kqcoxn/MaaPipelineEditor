@@ -1,4 +1,3 @@
-Documentation
 Index
 Constants
 Variables
@@ -8,8 +7,8 @@ func AgentServerAddResourceSink(sink ResourceEventSink) int64
 func AgentServerAddTaskerSink(sink TaskerEventSink) int64
 func AgentServerDetach()
 func AgentServerJoin()
-func AgentServerRegisterCustomAction(name string, action CustomAction) bool
-func AgentServerRegisterCustomRecognition(name string, recognition CustomRecognition) bool
+func AgentServerRegisterCustomAction(name string, action CustomActionRunner) bool
+func AgentServerRegisterCustomRecognition(name string, recognition CustomRecognitionRunner) bool
 func AgentServerShutDown()
 func AgentServerStartUp(identifier string) bool
 func ConfigInitOption(userPath, defaultJson string) bool
@@ -40,6 +39,8 @@ func (ac *AgentClient) RegisterControllerSink(ctrl Controller) bool
 func (ac *AgentClient) RegisterResourceSink(res *Resource) bool
 func (ac *AgentClient) RegisterTaskerSink(tasker Tasker) bool
 func (ac *AgentClient) SetTimeout(duration time.Duration) bool
+type AndRecognitionOption
+func WithAndRecognitionBoxIndex(boxIndex int) AndRecognitionOption
 type BlankController
 func (c *BlankController) Click(x int32, y int32) bool
 func (c *BlankController) ClickKey(keycode int32) bool
@@ -116,6 +117,7 @@ func NewAdbController(adbPath, address string, screencapMethod adb.ScreencapMeth
 func NewBlankController() *Controller
 func NewCarouselImageController(path string) *Controller
 func NewCustomController(ctrl CustomController) *Controller
+func NewPlayCoverController(address, uuid string) *Controller
 func NewWin32Controller(hWnd unsafe.Pointer, screencapMethod win32.ScreencapMethod, ...) *Controller
 func (c *Controller) AddSink(sink ControllerEventSink) int64
 func (c *Controller) CacheImage() image.Image
@@ -149,20 +151,22 @@ type ControllerEventSink
 type ControllerEventSinkAdapter
 func (a *ControllerEventSinkAdapter) OnControllerAction(ctrl *Controller, status EventStatus, detail ControllerActionDetail)
 type ControllerFeature
-type CustomAction
+type CustomActiondeprecated
 type CustomActionArg
 type CustomActionOption
 func WithCustomActionParam(customParam any) CustomActionOption
 func WithCustomActionTarget(target Target) CustomActionOption
 func WithCustomActionTargetOffset(offset Rect) CustomActionOption
+type CustomActionRunner
 type CustomController
-type CustomRecognition
+type CustomRecognitiondeprecated
 type CustomRecognitionArg
 type CustomRecognitionOption
 func WithCustomRecognitionParam(customParam any) CustomRecognitionOption
 func WithCustomRecognitionROI(roi Target) CustomRecognitionOption
 func WithCustomRecognitionROIOffset(offset Rect) CustomRecognitionOption
 type CustomRecognitionResult
+type CustomRecognitionRunner
 type DesktopWindow
 func FindDesktopWindows() []*DesktopWindow
 type EventStatus
@@ -249,6 +253,9 @@ func (n *Node) SetPreDelay(preDelay time.Duration) *Node
 func (n *Node) SetPreWaitFreezes(preWaitFreezes *NodeWaitFreezes) *Node
 func (n *Node) SetRateLimit(rateLimit time.Duration) *Node
 func (n *Node) SetRecognition(rec *NodeRecognition) *Node
+func (n *Node) SetRepeat(repeat uint64) *Node
+func (n *Node) SetRepeatDelay(repeatDelay time.Duration) *Node
+func (n *Node) SetRepeatWaitFreezes(repeatWaitFreezes *NodeWaitFreezes) *Node
 func (n *Node) SetTimeout(timeout time.Duration) *Node
 type NodeAction
 func ActClick(opts ...ClickOption) *NodeAction
@@ -276,6 +283,9 @@ type NodeActionDetail
 type NodeActionNodeDetail
 type NodeActionParam
 type NodeActionType
+type NodeAndRecognitionItem
+func AndItem(subName string, recognition *NodeRecognition) NodeAndRecognitionItem
+type NodeAndRecognitionParam
 type NodeAttributeOption
 func WithAnchor() NodeAttributeOption
 func WithJumpBack() NodeAttributeOption
@@ -324,9 +334,14 @@ func WithPreDelay(preDelay time.Duration) NodeOption
 func WithPreWaitFreezes(waitFreezes *NodeWaitFreezes) NodeOption
 func WithRateLimit(rateLimit time.Duration) NodeOption
 func WithRecognition(rec *NodeRecognition) NodeOption
+func WithRepeat(repeat uint64) NodeOption
+func WithRepeatDelay(repeatDelay time.Duration) NodeOption
+func WithRepeatWaitFreezes(waitFreezes *NodeWaitFreezes) NodeOption
 func WithTimeout(timeout time.Duration) NodeOption
+type NodeOrRecognitionParam
 type NodePipelineNodeDetail
 type NodeRecognition
+func RecAnd(allOf []NodeAndRecognitionItem, opts ...AndRecognitionOption) *NodeRecognition
 func RecColorMatch(lower, upper [][]int, opts ...ColorMatchOption) *NodeRecognition
 func RecCustom(name string, opts ...CustomRecognitionOption) *NodeRecognition
 func RecDirectHit() *NodeRecognition
@@ -334,6 +349,7 @@ func RecFeatureMatch(template []string, opts ...FeatureMatchOption) *NodeRecogni
 func RecNeuralNetworkClassify(model string, opts ...NeuralClassifyOption) *NodeRecognition
 func RecNeuralNetworkDetect(model string, opts ...NeuralDetectOption) *NodeRecognition
 func RecOCR(opts ...OCROption) *NodeRecognition
+func RecOr(anyOf []*NodeRecognition) *NodeRecognition
 func RecTemplateMatch(template []string, opts ...TemplateMatchOption) *NodeRecognition
 func (nr *NodeRecognition) UnmarshalJSON(data []byte) error
 type NodeRecognitionDetail
@@ -389,8 +405,11 @@ func (r *Resource) OverrideNext(name string, nextList []string) bool
 func (r *Resource) OverridePipeline(override any) bool
 func (r *Resource) OverriderImage(imageName string, image image.Image) bool
 func (r *Resource) PostBundle(path string) *Job
-func (r *Resource) RegisterCustomAction(name string, action CustomAction) bool
-func (r *Resource) RegisterCustomRecognition(name string, recognition CustomRecognition) bool
+func (r *Resource) PostImage(path string) *Job
+func (r *Resource) PostOcrModel(path string) *Job
+func (r *Resource) PostPipeline(path string) *Job
+func (r *Resource) RegisterCustomAction(name string, action CustomActionRunner) bool
+func (r *Resource) RegisterCustomRecognition(name string, recognition CustomRecognitionRunner) bool
 func (r *Resource) RemoveSink(sinkId int64)
 func (r *Resource) UnregisterCustomAction(name string) bool
 func (r *Resource) UnregisterCustomRecognition(name string) bool
@@ -461,7 +480,7 @@ func (t *Tasker) Running() bool
 func (t *Tasker) Stopping() bool
 type TaskerEventSink
 type TaskerEventSinkAdapter
-func (a *TaskerEventSinkAdapter) OnTaskerTask(tasker *Tasker, status EventStatus, detail TaskerTaskDetail)
+func (a *TaskerEventSinkAdapter) OnTaskerTask(tasker \*Tasker, status EventStatus, detail TaskerTaskDetail)
 type TaskerTaskDetail
 type TemplateMatchOption
 func WithTemplateMatchGreenMask(greenMask bool) TemplateMatchOption
@@ -530,12 +549,12 @@ func AgentServerJoin()
 AgentServerJoin waits synchronously for the service thread to finish
 
 func AgentServerRegisterCustomAction
-func AgentServerRegisterCustomAction(name string, action CustomAction) bool
-AgentServerRegisterCustomAction registers a custom action with the given name.
+func AgentServerRegisterCustomAction(name string, action CustomActionRunner) bool
+AgentServerRegisterCustomAction registers a custom action runner with the given name.
 
 func AgentServerRegisterCustomRecognition
-func AgentServerRegisterCustomRecognition(name string, recognition CustomRecognition) bool
-AgentServerRegisterCustomRecognition registers a custom recognition with the given name.
+func AgentServerRegisterCustomRecognition(name string, recognition CustomRecognitionRunner) bool
+AgentServerRegisterCustomRecognition registers a custom recognition runner with the given name.
 
 func AgentServerShutDown
 func AgentServerShutDown()
@@ -669,6 +688,16 @@ RegisterTaskerSink registers tasker events to tasker
 func (*AgentClient) SetTimeout
 func (ac *AgentClient) SetTimeout(duration time.Duration) bool
 SetTimeout sets the timeout duration for the Agent server
+
+type AndRecognitionOption
+added in v3.4.0
+type AndRecognitionOption func(\*NodeAndRecognitionParam)
+AndRecognitionOption is a functional option for configuring NodeAndRecognitionParam.
+
+func WithAndRecognitionBoxIndex
+added in v3.4.0
+func WithAndRecognitionBoxIndex(boxIndex int) AndRecognitionOption
+WithAndRecognitionBoxIndex sets which recognition result's box to use as the final box.
 
 type BlankController
 type BlankController struct{}
@@ -1002,6 +1031,13 @@ ctrl CustomController,
 ) \*Controller
 NewCustomController creates a custom controller instance.
 
+func NewPlayCoverController
+added in v3.4.0
+func NewPlayCoverController(
+address, uuid string,
+) \*Controller
+NewPlayCoverController creates a new PlayCover controller.
+
 func NewWin32Controller
 func NewWin32Controller(
 hWnd unsafe.Pointer,
@@ -1149,10 +1185,9 @@ ControllerFeatureNone ControllerFeature = 0
 ControllerFeatureUseMouseDownAndUpInsteadOfClick ControllerFeature = 1
 ControllerFeatureUseKeyboardDownAndUpInsteadOfClick ControllerFeature = 1 << 1
 )
-type CustomAction
-type CustomAction interface {
-Run(ctx *Context, arg *CustomActionArg) bool
-}
+type
+CustomAction
+deprecated
 type CustomActionArg
 type CustomActionArg struct {
 TaskDetail *TaskDetail
@@ -1178,6 +1213,11 @@ func WithCustomActionTargetOffset
 func WithCustomActionTargetOffset(offset Rect) CustomActionOption
 WithCustomActionTargetOffset sets additional offset applied to target.
 
+type CustomActionRunner
+added in v3.4.0
+type CustomActionRunner interface {
+Run(ctx *Context, arg *CustomActionArg) bool
+}
 type CustomController
 type CustomController interface {
 Connect() bool
@@ -1198,10 +1238,9 @@ KeyUp(keycode int32) bool
 }
 CustomController defines an interface for custom controller. Implementers of this interface must embed a CustomControllerHandler struct and provide implementations for the following methods: Connect, RequestUUID, StartApp, StopApp, Screencap, Click, Swipe, TouchDown, TouchMove, TouchUp, ClickKey, InputText, KeyDown and KeyUp.
 
-type CustomRecognition
-type CustomRecognition interface {
-Run(ctx *Context, arg *CustomRecognitionArg) (*CustomRecognitionResult, bool)
-}
+type
+CustomRecognition
+deprecated
 type CustomRecognitionArg
 type CustomRecognitionArg struct {
 TaskDetail *TaskDetail
@@ -1212,7 +1251,7 @@ Img image.Image
 Roi Rect
 }
 type CustomRecognitionOption
-type CustomRecognitionOption func(\*NodeCustomRecognitionParam)
+type CustomRecognitionOption func(*NodeCustomRecognitionParam)
 CustomRecognitionOption is a functional option for configuring NodeCustomRecognitionParam.
 
 func WithCustomRecognitionParam
@@ -1231,6 +1270,11 @@ type CustomRecognitionResult
 type CustomRecognitionResult struct {
 Box Rect
 Detail string
+}
+type CustomRecognitionRunner
+added in v3.4.0
+type CustomRecognitionRunner interface {
+Run(ctx *Context, arg *CustomRecognitionArg) (\*CustomRecognitionResult, bool)
 }
 type DesktopWindow
 type DesktopWindow struct {
@@ -1578,6 +1622,12 @@ Name string `json:"-"`
     PreWaitFreezes *NodeWaitFreezes `json:"pre_wait_freezes,omitempty"`
     // PostWaitFreezes waits for screen to stabilize after action.
     PostWaitFreezes *NodeWaitFreezes `json:"post_wait_freezes,omitempty"`
+    // Repeat specifies the number of times to repeat the node. Default: 1.
+    Repeat *uint64 `json:"repeat,omitempty"`
+    // RepeatDelay sets the delay between repetitions in milliseconds. Default: 0.
+    RepeatDelay *int64 `json:"repeat_delay,omitempty"`
+    // RepeatWaitFreezes waits for screen to stabilize between repetitions.
+    RepeatWaitFreezes *NodeWaitFreezes `json:"repeat_wait_freezes,omitempty"`
     // Focus specifies custom focus data.
     Focus any `json:"focus,omitempty"`
     // Attach provides additional custom data for the node.
@@ -1673,6 +1723,21 @@ SetRateLimit sets the rate limit for the node and returns the node for chaining.
 func (*Node) SetRecognition
 func (n *Node) SetRecognition(rec *NodeRecognition) *Node
 SetRecognition sets the recognition for the node and returns the node for chaining.
+
+func (*Node) SetRepeat
+added in v3.4.0
+func (n *Node) SetRepeat(repeat uint64) \*Node
+SetRepeat sets the number of times to repeat the node and returns the node for chaining.
+
+func (*Node) SetRepeatDelay
+added in v3.4.0
+func (n *Node) SetRepeatDelay(repeatDelay time.Duration) \*Node
+SetRepeatDelay sets the delay between repetitions and returns the node for chaining.
+
+func (*Node) SetRepeatWaitFreezes
+added in v3.4.0
+func (n *Node) SetRepeatWaitFreezes(repeatWaitFreezes *NodeWaitFreezes) *Node
+SetRepeatWaitFreezes sets the wait freezes configuration between repetitions and returns the node for chaining.
 
 func (*Node) SetTimeout
 func (n *Node) SetTimeout(timeout time.Duration) \*Node
@@ -1818,6 +1883,25 @@ NodeActionTypeCommand NodeActionType = "Command"
 NodeActionTypeShell NodeActionType = "Shell"
 NodeActionTypeCustom NodeActionType = "Custom"
 )
+type NodeAndRecognitionItem
+added in v3.4.0
+type NodeAndRecognitionItem struct {
+SubName string `json:"sub_name,omitempty"`
+*NodeRecognition `json:"recognition,omitempty"`
+}
+func AndItem
+added in v3.4.0
+func AndItem(subName string, recognition *NodeRecognition) NodeAndRecognitionItem
+AndItem creates a NodeAndRecognitionItem with the given sub-name and recognition. If subName is empty, only the recognition will be used.
+
+type NodeAndRecognitionParam
+added in v3.4.0
+type NodeAndRecognitionParam struct {
+AllOf []NodeAndRecognitionItem `json:"all_of,omitempty"`
+BoxIndex int `json:"box_index,omitempty"`
+}
+NodeAndRecognitionParam defines parameters for AND recognition.
+
 type NodeAttributeOption
 type NodeAttributeOption func(\*NodeNextItem)
 NodeAttributeOption is a functional option for configuring NodeNextItem attributes.
@@ -2242,9 +2326,31 @@ func WithRecognition
 func WithRecognition(rec \*NodeRecognition) NodeOption
 WithRecognition sets the recognition for the node.
 
+func WithRepeat
+added in v3.4.0
+func WithRepeat(repeat uint64) NodeOption
+WithRepeat sets the number of times to repeat the node.
+
+func WithRepeatDelay
+added in v3.4.0
+func WithRepeatDelay(repeatDelay time.Duration) NodeOption
+WithRepeatDelay sets the delay between repetitions.
+
+func WithRepeatWaitFreezes
+added in v3.4.0
+func WithRepeatWaitFreezes(waitFreezes \*NodeWaitFreezes) NodeOption
+WithRepeatWaitFreezes sets the wait freezes configuration between repetitions.
+
 func WithTimeout
 func WithTimeout(timeout time.Duration) NodeOption
 WithTimeout sets the timeout for the node.
+
+type NodeOrRecognitionParam
+added in v3.4.0
+type NodeOrRecognitionParam struct {
+AnyOf []\*NodeRecognition `json:"any_of,omitempty"`
+}
+NodeOrRecognitionParam defines parameters for OR recognition.
 
 type NodePipelineNodeDetail
 type NodePipelineNodeDetail struct {
@@ -2263,6 +2369,11 @@ Type NodeRecognitionType `json:"type,omitempty"`
 Param NodeRecognitionParam `json:"param,omitempty"`
 }
 NodeRecognition defines the recognition configuration for a node.
+
+func RecAnd
+added in v3.4.0
+func RecAnd(allOf []NodeAndRecognitionItem, opts ...AndRecognitionOption) \*NodeRecognition
+RecAnd creates an AND recognition that requires all sub-recognitions to succeed.
 
 func RecColorMatch
 func RecColorMatch(lower, upper [][]int, opts ...ColorMatchOption) \*NodeRecognition
@@ -2291,6 +2402,11 @@ RecNeuralNetworkDetect creates a NeuralNetworkDetect recognition. This detects o
 func RecOCR
 func RecOCR(opts ...OCROption) \*NodeRecognition
 RecOCR creates an OCR recognition with the given expected text patterns.
+
+func RecOr
+added in v3.4.0
+func RecOr(anyOf []*NodeRecognition) *NodeRecognition
+RecOr creates an OR recognition that succeeds if any sub-recognition succeeds.
 
 func RecTemplateMatch
 func RecTemplateMatch(template []string, opts ...TemplateMatchOption) \*NodeRecognition
@@ -2334,6 +2450,8 @@ NodeRecognitionTypeColorMatch NodeRecognitionType = "ColorMatch"
 NodeRecognitionTypeOCR NodeRecognitionType = "OCR"
 NodeRecognitionTypeNeuralNetworkClassify NodeRecognitionType = "NeuralNetworkClassify"
 NodeRecognitionTypeNeuralNetworkDetect NodeRecognitionType = "NeuralNetworkDetect"
+NodeRecognitionTypeAnd NodeRecognitionType = "And"
+NodeRecognitionTypeOr NodeRecognitionType = "Or"
 NodeRecognitionTypeCustom NodeRecognitionType = "Custom"
 )
 type NodeScrollParam
@@ -2573,11 +2691,11 @@ Clear clears the resource loading paths.
 
 func (*Resource) ClearCustomAction
 func (r *Resource) ClearCustomAction() bool
-ClearCustomAction clears all custom actions registered from the resource.
+ClearCustomAction clears all custom actions runners registered from the resource.
 
 func (*Resource) ClearCustomRecognition
 func (r *Resource) ClearCustomRecognition() bool
-ClearCustomRecognition clears all custom recognitions registered from the resource.
+ClearCustomRecognition clears all custom recognitions runner registered from the resource.
 
 func (*Resource) ClearSinks
 func (r *Resource) ClearSinks()
@@ -2629,13 +2747,28 @@ func (*Resource) PostBundle
 func (r *Resource) PostBundle(path string) \*Job
 PostBundle adds a path to the resource loading paths. Return id of the resource.
 
+func (*Resource) PostImage
+added in v3.4.0
+func (r *Resource) PostImage(path string) \*Job
+PostImage adds an image to the resource loading paths.
+
+func (*Resource) PostOcrModel
+added in v3.4.0
+func (r *Resource) PostOcrModel(path string) \*Job
+PostOcrModel adds an OCR model to the resource loading paths.
+
+func (*Resource) PostPipeline
+added in v3.4.0
+func (r *Resource) PostPipeline(path string) \*Job
+PostPipeline adds a pipeline to the resource loading paths.
+
 func (*Resource) RegisterCustomAction
-func (r *Resource) RegisterCustomAction(name string, action CustomAction) bool
-RegisterCustomAction registers a custom action to the resource.
+func (r *Resource) RegisterCustomAction(name string, action CustomActionRunner) bool
+RegisterCustomAction registers a custom action runner to the resource.
 
 func (*Resource) RegisterCustomRecognition
-func (r *Resource) RegisterCustomRecognition(name string, recognition CustomRecognition) bool
-RegisterCustomRecognition registers a custom recognition to the resource.
+func (r *Resource) RegisterCustomRecognition(name string, recognition CustomRecognitionRunner) bool
+RegisterCustomRecognition registers a custom recognition runner to the resource.
 
 func (*Resource) RemoveSink
 func (r *Resource) RemoveSink(sinkId int64)
@@ -2643,11 +2776,11 @@ RemoveSink removes a event callback sink by sink ID.
 
 func (*Resource) UnregisterCustomAction
 func (r *Resource) UnregisterCustomAction(name string) bool
-UnregisterCustomAction unregisters a custom action from the resource.
+UnregisterCustomAction unregisters a custom action runner from the resource.
 
 func (*Resource) UnregisterCustomRecognition
 func (r *Resource) UnregisterCustomRecognition(name string) bool
-UnregisterCustomRecognition unregisters a custom recognition from the resource.
+UnregisterCustomRecognition unregisters a custom recognition runner from the resource.
 
 func (*Resource) UseAutoExecutionProvider
 func (r *Resource) UseAutoExecutionProvider() bool
