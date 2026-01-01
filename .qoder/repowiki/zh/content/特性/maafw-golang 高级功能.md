@@ -18,7 +18,6 @@
 - [resource.go](file://resource.go)
 - [context.go](file://context.go)
 - [tasker.go](file://tasker.go)
-- [event.go](file://event.go)
 - [job.go](file://job.go)
 - [rect.go](file://rect.go)
 - [internal/rect/rect.go](file://internal/rect/rect.go)
@@ -26,7 +25,19 @@
 - [internal/buffer/rect_buffer.go](file://internal/buffer/rect_buffer.go)
 - [internal/native/framework.go](file://internal/native/framework.go)
 - [internal/store/store.go](file://internal/store/store.go)
+- [node.go](file://node.go)
+- [pipeline_engine.go](file://LocalBridge/internal/mfw/pipeline_engine.go)
+- [nodeParser.ts](file://src/core/parser/nodeParser.ts)
+- [fields.ts](file://src/core/fields/recognition/fields.ts)
 </cite>
+
+## 更新摘要
+**变更内容**
+- 新增“基于节点的流水线系统”章节，详细说明节点式流水线架构
+- 新增“AND/OR复合识别”功能说明，涵盖逻辑与/或识别机制
+- 更新“核心组件”部分，增加对PipelineEngine和节点解析器的描述
+- 更新“架构总览”序列图，反映新的执行流程
+- 更新“详细组件分析”中的类图，包含新的识别类型
 
 ## 目录
 1. [简介](#简介)
@@ -46,6 +57,8 @@
 - 自定义动作逻辑：实现 CustomAction 接口、注册自定义动作、在流水线中使用 Custom 类型动作节点。
 - Agent 架构：AgentClient 如何与外部 AgentServer 进程通信；AgentServer 如何暴露自定义动作与识别功能。
 - 基于 JSON 的流水线配置协议：节点类型、识别算法配置、动作类型、条件分支与控制流。
+- **新增** 基于节点的流水线系统：介绍以节点为核心的任务流架构，支持复杂的流程控制与调试功能。
+- **新增** AND/OR复合识别：支持逻辑与(And)和逻辑或(Or)的复合识别机制，实现更复杂的条件判断。
 
 通过 examples 目录中的 custom-action、custom-recognition、agent-client/server 示例，给出完整的实现细节、调用关系与最佳实践，并讨论性能影响与调试策略。
 
@@ -54,6 +67,8 @@
 - 上层 Go API：提供用户友好的类型与方法（如 Pipeline、Node、CustomRecognition、CustomAction、AgentClient/AgentServer）。
 - 内部 native 层：通过 purego 动态加载平台库（MaaAgentClient、MaaAgentServer），桥接 Go 与底层 C/C++ 实现。
 - examples：提供可直接运行的示例，覆盖自定义识别、自定义动作、Agent 客户端/服务端通信。
+- **新增** LocalBridge：Go 编写的本地服务，提供 WebSocket 通信和文件管理功能，支持流程化调试。
+- **新增** 前端组件：基于 React Flow 的可视化工作流编辑器，支持节点式流水线构建与调试。
 
 ```mermaid
 graph TB
@@ -63,31 +78,41 @@ B["custom_action.go"]
 C["agent_client.go"]
 D["agent_server.go"]
 E["pipeline.go"]
+F["node.go"]
+G["pipeline_engine.go"]
 end
 subgraph "内部绑定"
-F["internal/native/agent_client.go"]
-G["internal/native/agent_server.go"]
+H["internal/native/agent_client.go"]
+I["internal/native/agent_server.go"]
 end
 subgraph "示例"
-H["examples/custom-action/main.go"]
-I["examples/custom-action/resource/pipeline/pipeline.json"]
-J["examples/custom-recognition/main.go"]
-K["examples/custom-recognition/resource/pipeline/pipeline.json"]
-L["examples/agent-client/main.go"]
-M["examples/agent-server/main.go"]
+J["examples/custom-action/main.go"]
+K["examples/custom-action/resource/pipeline/pipeline.json"]
+L["examples/custom-recognition/main.go"]
+M["examples/custom-recognition/resource/pipeline/pipeline.json"]
+N["examples/agent-client/main.go"]
+O["examples/agent-server/main.go"]
 end
-A --> F
-B --> F
-C --> F
-D --> G
+subgraph "前端"
+P["nodeParser.ts"]
+Q["fields.ts"]
+end
+A --> H
+B --> H
+C --> H
+D --> I
 E --> E
-H --> A
-H --> B
-H --> E
+F --> E
+G --> E
 J --> A
+J --> B
 J --> E
-L --> C
-M --> D
+L --> A
+L --> E
+N --> C
+O --> D
+P --> E
+Q --> P
 ```
 
 **图表来源**
@@ -96,6 +121,10 @@ M --> D
 - [agent_client.go](file://agent_client.go#L1-L112)
 - [agent_server.go](file://agent_server.go#L1-L102)
 - [pipeline.go](file://pipeline.go#L1-L2115)
+- [node.go](file://node.go#L1-L2245)
+- [pipeline_engine.go](file://LocalBridge/internal/mfw/pipeline_engine.go#L1-L250)
+- [nodeParser.ts](file://src/core/parser/nodeParser.ts#L1-L242)
+- [fields.ts](file://src/core/fields/recognition/fields.ts#L1-L113)
 - [internal/native/agent_client.go](file://internal/native/agent_client.go#L1-L79)
 - [internal/native/agent_server.go](file://internal/native/agent_server.go#L1-L72)
 - [examples/custom-action/main.go](file://examples/custom-action/main.go#L1-L49)
@@ -111,6 +140,10 @@ M --> D
 - [agent_client.go](file://agent_client.go#L1-L112)
 - [agent_server.go](file://agent_server.go#L1-L102)
 - [pipeline.go](file://pipeline.go#L1-L2115)
+- [node.go](file://node.go#L1-L2245)
+- [pipeline_engine.go](file://LocalBridge/internal/mfw/pipeline_engine.go#L1-L250)
+- [nodeParser.ts](file://src/core/parser/nodeParser.ts#L1-L242)
+- [fields.ts](file://src/core/fields/recognition/fields.ts#L1-L113)
 - [internal/native/agent_client.go](file://internal/native/agent_client.go#L1-L79)
 - [internal/native/agent_server.go](file://internal/native/agent_server.go#L1-L72)
 - [examples/custom-action/main.go](file://examples/custom-action/main.go#L1-L49)
@@ -136,8 +169,11 @@ M --> D
 - 流水线协议
   - Node 结构体支持 anchor、recognition、action、next、on_error、inverse、enabled、max_hit、pre/post delays、wait_freezes、focus、attach 等字段。
   - NodeRecognition 支持 DirectHit、TemplateMatch、FeatureMatch、ColorMatch、OCR、NeuralNetworkClassify、NeuralNetworkDetect、Custom 等类型及其参数。
+  - NodeRecognition 新增 And、Or 类型，支持复合逻辑识别。
   - NodeAction 支持 DoNothing、Click、LongPress、Swipe、MultiSwipe、TouchDown/Move/Up、ClickKey/LongPressKey/KeyDown/KeyUp、InputText、StartApp、StopApp、StopTask、Scroll、Command、Custom 等类型及其参数。
   - Custom 类型识别与动作通过 name 与自定义参数字段对接注册的处理器。
+- **新增** PipelineEngine：流水线执行引擎，负责加载 pipeline 配置、构造 override 配置以支持断点调试等功能。
+- **新增** 节点解析器：前端组件，负责将可视化节点解析为导出格式的 pipeline 节点。
 
 **章节来源**
 - [custom_recognition.go](file://custom_recognition.go#L1-L103)
@@ -145,6 +181,10 @@ M --> D
 - [agent_client.go](file://agent_client.go#L1-L112)
 - [agent_server.go](file://agent_server.go#L1-L102)
 - [pipeline.go](file://pipeline.go#L1-L2115)
+- [node.go](file://node.go#L1-L2245)
+- [pipeline_engine.go](file://LocalBridge/internal/mfw/pipeline_engine.go#L1-L250)
+- [nodeParser.ts](file://src/core/parser/nodeParser.ts#L1-L242)
+- [fields.ts](file://src/core/fields/recognition/fields.ts#L1-L113)
 
 ## 架构总览
 下图展示从 Go 用户代码到 AgentServer 的完整调用链路，以及流水线节点如何触发自定义识别/动作。
@@ -184,6 +224,164 @@ Tasker-->>User : 任务完成/错误处理
 - [custom_action.go](file://custom_action.go#L1-L92)
 
 ## 详细组件分析
+
+### 基于节点的流水线系统
+- 系统概述
+  - 基于节点的流水线系统是 MaaFramework 的核心架构，每个节点代表一个任务单元，包含识别、动作、跳转等配置。
+  - 支持复杂的流程控制，如条件分支、循环、错误处理等。
+  - 提供可视化编辑器，便于构建和调试流水线。
+- 节点类型
+  - 普通节点：包含识别和动作配置，执行识别后根据结果执行相应动作。
+  - 外部节点：用于引用外部流水线或作为入口点。
+  - 重定向节点：用于实现流程跳转，支持锚点引用。
+- 流程控制
+  - Next：识别成功后执行的下一个节点列表。
+  - OnError：识别超时或动作失败时执行的错误处理节点列表。
+  - Anchor：为节点设置锚点，可在 next/on_error 中通过 [Anchor] 引用。
+  - JumpBack：匹配后返回父节点，继续从 next 列表起始位置重新识别。
+- 调试功能
+  - 断点：将断点节点的 next/on_error 置为空数组，阻止继续前进。
+  - 继续：移除当前节点的断点 override，保留其余断点。
+  - 单步：保留断点，新增 next_nodes 临时断点。
+
+```mermaid
+classDiagram
+class Node {
++string Name
++[]string Anchor
++*NodeRecognition Recognition
++*NodeAction Action
++[]NodeNextItem Next
++*int64 RateLimit
++*int64 Timeout
++[]NodeNextItem OnError
++bool Inverse
++*bool Enabled
++*uint64 MaxHit
++*int64 PreDelay
++*int64 PostDelay
++*NodeWaitFreezes PreWaitFreezes
++*NodeWaitFreezes PostWaitFreezes
++*uint64 Repeat
++*int64 RepeatDelay
++*NodeWaitFreezes RepeatWaitFreezes
++any Focus
++map[string]any Attach
+}
+class NodeRecognition {
++NodeRecognitionType Type
++NodeRecognitionParam Param
+}
+class NodeAction {
++NodeActionType Type
++NodeActionParam Param
+}
+class NodeNextItem {
++string Name
++bool JumpBack
++bool Anchor
+}
+Node --> NodeRecognition : "包含"
+Node --> NodeAction : "包含"
+Node --> NodeNextItem : "包含多个"
+```
+
+**图表来源**
+- [node.go](file://node.go#L11-L319)
+- [pipeline.go](file://pipeline.go#L1-L42)
+
+**章节来源**
+- [node.go](file://node.go#L1-L2245)
+- [pipeline.go](file://pipeline.go#L1-L42)
+- [pipeline_engine.go](file://LocalBridge/internal/mfw/pipeline_engine.go#L1-L250)
+
+### AND/OR复合识别
+- And识别（逻辑与）
+  - 所有子识别都命中才算成功。
+  - 关键参数：
+    - all_of：子识别列表，所有子识别都命中才算成功。
+    - box_index：指定输出哪个子识别的识别框作为当前节点的识别框。
+    - sub_name：子识别别名，后续子识别可通过 roi: sub_name 引用之前子识别的 filtered 作为 ROI。
+  - 使用场景：需要同时满足多个条件时，如“图标存在且文字为OK”。
+- Or识别（逻辑或）
+  - 命中第一个即成功，后续不再识别。
+  - 关键参数：
+    - any_of：子识别列表，命中第一个即成功。
+  - 使用场景：多个可能的识别目标，如“点击任意一个奖励按钮”。
+- 配置示例
+  - And识别：
+    ```json
+    {
+      "NodeA": {
+        "recognition": "And",
+        "all_of": [
+          {
+            "sub_name": "icon",
+            "recognition": "TemplateMatch",
+            "template": "A.png",
+            "threshold": 0.7
+          },
+          {
+            "recognition": "OCR",
+            "roi": "icon",
+            "roi_offset": [0, 0, 100, 100],
+            "expected": "OK"
+          }
+        ],
+        "box_index": 0
+      }
+    }
+    ```
+  - Or识别：
+    ```json
+    {
+      "NodeB": {
+        "recognition": "Or",
+        "any_of": [
+          {
+            "recognition": "TemplateMatch",
+            "template": "reward1.png"
+          },
+          {
+            "recognition": "TemplateMatch",
+            "template": "reward2.png"
+          }
+        ]
+      }
+    }
+    ```
+
+```mermaid
+classDiagram
+class NodeRecognition {
++NodeRecognitionType Type
++NodeRecognitionParam Param
+}
+class NodeRecognitionParam {
+<<interface>>
++isRecognitionParam()
+}
+class NodeAndRecognitionParam {
++[]NodeRecognition all_of
++int box_index
++string sub_name
+}
+class NodeOrRecognitionParam {
++[]NodeRecognition any_of
+}
+NodeRecognition --> NodeRecognitionParam : "组合"
+NodeRecognitionParam <|-- NodeAndRecognitionParam
+NodeRecognitionParam <|-- NodeOrRecognitionParam
+```
+
+**图表来源**
+- [pipeline.go](file://pipeline.go#L1152-L1202)
+- [fields.ts](file://src/core/fields/recognition/fields.ts#L75-L86)
+
+**章节来源**
+- [pipeline.go](file://pipeline.go#L1152-L1202)
+- [fields.ts](file://src/core/fields/recognition/fields.ts#L75-L86)
+- [3.1-任务流水线协议.md](file://instructions/maafw-guide/3.1-任务流水线协议.md#L697-L742)
 
 ### 自定义识别算法（CustomRecognition）
 - 实现步骤
@@ -369,8 +567,10 @@ AC->>AS : Disconnect()
   - NodeNextItem：name、jump_back、anchor。
 - 识别算法配置
   - NodeRecognition：type、param。
-  - 支持类型：DirectHit、TemplateMatch、FeatureMatch、ColorMatch、OCR、NeuralNetworkClassify、NeuralNetworkDetect、Custom。
+  - 支持类型：DirectHit、TemplateMatch、FeatureMatch、ColorMatch、OCR、NeuralNetworkClassify、NeuralNetworkDetect、Custom、**And**、**Or**。
   - CustomRecognitionParam：CustomRecognition、CustomRecognitionParam、ROI、ROIOffset。
+  - **AndRecognitionParam**：all_of、box_index、sub_name。
+  - **OrRecognitionParam**：any_of。
 - 动作类型与参数
   - NodeAction：type、param。
   - 支持类型：DoNothing、Click、LongPress、Swipe、MultiSwipe、TouchDown/Move/Up、ClickKey/LongPressKey/KeyDown/KeyUp、InputText、StartApp、StopApp、StopTask、Scroll、Command、Custom。
@@ -489,7 +689,7 @@ PIPE["pipeline.go"] --> PIPE
 - [examples/agent-server/main.go](file://examples/agent-server/main.go#L1-L37)
 
 ## 结论
-通过 CustomRecognition/CustomAction 接口与 Agent 架构，MaaFramework 提供了强大的扩展能力。结合基于 JSON 的流水线协议，开发者可以灵活地定义识别算法与动作逻辑，并通过 AgentClient/AgentServer 实现跨进程协作。合理配置流水线参数、优化识别与动作性能、完善调试与监控，是构建稳定自动化流程的关键。
+通过 CustomRecognition/CustomAction 接口与 Agent 架构，MaaFramework 提供了强大的扩展能力。结合基于 JSON 的流水线协议，开发者可以灵活地定义识别算法与动作逻辑，并通过 AgentClient/AgentServer 实现跨进程协作。合理配置流水线参数、优化识别与动作性能、完善调试与监控，是构建稳定自动化流程的关键。新增的基于节点的流水线系统和 AND/OR 复合识别功能，进一步增强了系统的灵活性和表达能力，使得复杂任务流程的构建和调试更加直观和高效。
 
 ## 附录
 - 快速参考
@@ -497,3 +697,5 @@ PIPE["pipeline.go"] --> PIPE
   - 自定义动作：实现 Run(ctx, arg) -> ok，在 Resource 上注册，流水线使用 Custom 动作。
   - Agent 通信：客户端绑定资源/控制器，连接服务端；服务端注册处理器并启动生命周期管理。
   - 流水线配置：按 Node/NodeRecognition/NodeAction 的结构编写 JSON，使用 Next/OnError/jump_back/anchor 实现分支与跳转。
+  - **新增** AND识别：使用 "And" 类型，配置 all_of 列表，所有子识别都命中才算成功。
+  - **新增** OR识别：使用 "Or" 类型，配置 any_of 列表，命中第一个即成功。

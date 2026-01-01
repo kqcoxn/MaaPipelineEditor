@@ -3,20 +3,24 @@
 <cite>
 **本文引用的文件列表**
 - [README.md](file://README.md)
-- [instructions/maafw-golang/核心概念/核心概念.md](file://instructions/maafw-golang/核心概念/核心概念.md)
-- [instructions/maafw-golang/API参考/框架初始化.md](file://instructions/maafw-golang/API参考/框架初始化.md)
-- [instructions/maafw-golang/API参考/事件系统.md](file://instructions/maafw-golang/API参考/事件系统.md)
-- [instructions/maafw-golang/API参考/任务管理器.md](file://instructions/maafw-golang/API参考/任务管理器.md)
-- [instructions/maafw-golang/API参考/执行上下文.md](file://instructions/maafw-golang/API参考/执行上下文.md)
-- [instructions/maafw-golang/API参考/控制器.md](file://instructions/maafw-golang/API参考/控制器.md)
-- [instructions/maafw-golang/API参考/资源管理器.md](file://instructions/maafw-golang/API参考/资源管理器.md)
-- [instructions/maafw-golang/高级功能/Agent架构/Agent架构.md](file://instructions/maafw-golang/高级功能/Agent架构/Agent架构.md)
-- [instructions/maafw-golang/示例与用例/快速开始示例.md](file://instructions/maafw-golang/示例与用例/快速开始示例.md)
-- [instructions/maafw-golang/示例与用例/Agent客户端示例.md](file://instructions/maafw-golang/示例与用例/Agent客户端示例.md)
-- [instructions/maafw-golang/示例与用例/Agent服务器示例.md](file://instructions/maafw-golang/示例与用例/Agent服务器示例.md)
+- [instructions/maafw-golang-binding/核心概念/核心概念.md](file://instructions/maafw-golang-binding/核心概念/核心概念.md)
+- [instructions/maafw-golang-binding/API参考/框架初始化.md](file://instructions/maafw-golang-binding/API参考/框架初始化.md)
+- [instructions/maafw-golang-binding/API参考/事件系统.md](file://instructions/maafw-golang-binding/API参考/事件系统.md)
+- [instructions/maafw-golang-binding/API参考/任务管理器.md](file://instructions/maafw-golang-binding/API参考/任务管理器.md)
+- [instructions/maafw-golang-binding/API参考/执行上下文.md](file://instructions/maafw-golang-binding/API参考/执行上下文.md)
+- [instructions/maafw-golang-binding/API参考/控制器.md](file://instructions/maafw-golang-binding/API参考/控制器.md)
+- [instructions/maafw-golang-binding/API参考/资源管理器.md](file://instructions/maafw-golang-binding/API参考/资源管理器.md)
+- [instructions/maafw-golang-binding/高级功能/Agent架构/Agent架构.md](file://instructions/maafw-golang-binding/高级功能/Agent架构/Agent架构.md)
+- [instructions/maafw-golang-binding/示例与用例/快速开始示例.md](file://instructions/maafw-golang-binding/示例与用例/快速开始示例.md)
+- [instructions/maafw-golang-binding/示例与用例/Agent客户端示例.md](file://instructions/maafw-golang-binding/示例与用例/Agent客户端示例.md)
+- [instructions/maafw-golang-binding/示例与用例/Agent服务器示例.md](file://instructions/maafw-golang-binding/示例与用例/Agent服务器示例.md)
 - [src/App.tsx](file://src/App.tsx)
 - [package.json](file://package.json)
-- [instructions/maafw-golang/核心概念/任务管理器 (Tasker).md](file://instructions/maafw-golang/核心概念/任务管理器 (Tasker).md)
+- [instructions/maafw-golang-binding/核心概念/任务管理器 (Tasker).md](file://instructions/maafw-golang-binding/核心概念/任务管理器 (Tasker).md)
+- [instructions/maafw-golang-binding/核心概念/事件系统 (Event System).md](file://instructions/maafw-golang-binding/核心概念/事件系统 (Event System).md)
+- [instructions/maafw-golang-binding/核心概念/事件系统重构.md](file://instructions/maafw-golang-binding/核心概念/事件系统重构.md)
+- [instructions/maafw-golang-binding/核心概念/控制器 (Controller)/PlayCover控制器.md](file://instructions/maafw-golang-binding/核心概念/控制器 (Controller)/PlayCover控制器.md)
+- [instructions/maafw-golang-binding/高级功能/基于节点的流水线系统.md](file://instructions/maafw-golang-binding/高级功能/基于节点的流水线系统.md)
 </cite>
 
 ## 更新摘要
@@ -26,6 +30,9 @@
 - 更新架构总览序列图以反映新增方法
 - 增加新的组件详解小节“直接提交识别与动作任务”
 - 更新类图以包含新增方法
+- **新增“事件系统重构”章节，详细说明事件系统从代码生成到手写适配器模式的重构**
+- **新增“PlayCover控制器”章节，介绍针对iOS设备上PlayCover应用的专用控制器**
+- **新增“基于节点的流水线系统”章节，阐述基于节点的声明式任务流架构**
 
 ## 目录
 1. [引言](#引言)
@@ -40,7 +47,7 @@
 10. [附录](#附录)
 
 ## 引言
-本篇文档围绕 maa-framework-go 的核心概念与组件进行系统性阐述，目标是帮助开发者建立坚实的理论基础，理解 Tasker（任务调度中枢）、Resource（识别资源与流水线配置）、Controller（设备控制抽象，支持 ADB/Win32/自定义）、Context（任务执行上下文）、Event（事件回调系统）之间的协作关系与内部工作机制。文档同时结合代码库中的具体实现（如 NewTasker、PostTask、PostBundle 等），并通过图示展示组件间的数据流与依赖关系，并总结常见误用与最佳实践。
+本篇文档围绕 maa-framework-go 的核心概念与组件进行系统性阐述，目标是帮助开发者建立坚实的理论基础，理解 Tasker（任务调度中枢）、Resource（识别资源与流水线配置）、Controller（设备控制抽象，支持 ADB/Win32/自定义）、Context（任务执行上下文）、Event（事件回调系统）之间的协作关系与内部工作机制。文档同时结合代码库中的具体实现（如 NewTasker、PostTask、PostBundle 等），并通过图示展示组件间的数据流与依赖关系，并总结常见误用与最佳实践。**本次更新重点反映了事件系统重构、PlayCover控制器和基于节点的流水线系统等新功能。**
 
 ## 项目结构
 该仓库采用按职责分层的组织方式：
@@ -109,7 +116,7 @@ ASS --> C
 - Job/TaskJob：封装异步作业的状态查询与等待逻辑，TaskJob 还可获取任务详情。
 
 **章节来源**
-- [instructions/maafw-golang/核心概念/核心概念.md](file://instructions/maafw-golang/核心概念/核心概念.md#L84-L100)
+- [instructions/maafw-golang-binding/核心概念/核心概念.md](file://instructions/maafw-golang-binding/核心概念/核心概念.md#L84-L100)
 
 ## 架构总览
 下图展示了从应用调用到底层原生交互的关键路径，以及事件回调的分发链路。
@@ -137,10 +144,10 @@ Tasker-->>App : "返回任务结果"
 ```
 
 **图示来源**
-- [instructions/maafw-golang/核心概念/核心概念.md](file://instructions/maafw-golang/核心概念/核心概念.md#L100-L134)
+- [instructions/maafw-golang-binding/核心概念/核心概念.md](file://instructions/maafw-golang-binding/核心概念/核心概念.md#L100-L134)
 
 **章节来源**
-- [instructions/maafw-golang/核心概念/核心概念.md](file://instructions/maafw-golang/核心概念/核心概念.md#L100-L134)
+- [instructions/maafw-golang-binding/核心概念/核心概念.md](file://instructions/maafw-golang-binding/核心概念/核心概念.md#L100-L134)
 
 ## 详细组件分析
 
@@ -189,11 +196,11 @@ class Tasker {
 ```
 
 **图示来源**
-- [instructions/maafw-golang/API参考/任务管理器.md](file://instructions/maafw-golang/API参考/任务管理器.md#L150-L206)
+- [instructions/maafw-golang-binding/API参考/任务管理器.md](file://instructions/maafw-golang-binding/API参考/任务管理器.md#L150-L206)
 
 **章节来源**
-- [instructions/maafw-golang/API参考/任务管理器.md](file://instructions/maafw-golang/API参考/任务管理器.md#L150-L206)
-- [instructions/maafw-golang/API参考/任务管理器.md](file://instructions/maafw-golang/API参考/任务管理器.md#L206-L234)
+- [instructions/maafw-golang-binding/API参考/任务管理器.md](file://instructions/maafw-golang-binding/API参考/任务管理器.md#L150-L206)
+- [instructions/maafw-golang-binding/API参考/任务管理器.md](file://instructions/maafw-golang-binding/API参考/任务管理器.md#L206-L234)
 
 ### Resource 组件
 - 职责
@@ -241,10 +248,10 @@ class Resource {
 ```
 
 **图示来源**
-- [instructions/maafw-golang/API参考/资源管理器.md](file://instructions/maafw-golang/API参考/资源管理器.md#L221-L271)
+- [instructions/maafw-golang-binding/API参考/资源管理器.md](file://instructions/maafw-golang-binding/API参考/资源管理器.md#L221-L271)
 
 **章节来源**
-- [instructions/maafw-golang/API参考/资源管理器.md](file://instructions/maafw-golang/API参考/资源管理器.md#L140-L210)
+- [instructions/maafw-golang-binding/API参考/资源管理器.md](file://instructions/maafw-golang-binding/API参考/资源管理器.md#L140-L210)
 
 ### Controller 组件
 - 职责
@@ -296,10 +303,10 @@ class Controller {
 ```
 
 **图示来源**
-- [instructions/maafw-golang/API参考/控制器.md](file://instructions/maafw-golang/API参考/控制器.md#L236-L300)
+- [instructions/maafw-golang-binding/API参考/控制器.md](file://instructions/maafw-golang-binding/API参考/控制器.md#L236-L300)
 
 **章节来源**
-- [instructions/maafw-golang/API参考/控制器.md](file://instructions/maafw-golang/API参考/控制器.md#L118-L182)
+- [instructions/maafw-golang-binding/API参考/控制器.md](file://instructions/maafw-golang-binding/API参考/控制器.md#L118-L182)
 
 ### Context 组件
 - 职责
@@ -326,10 +333,10 @@ QueryDetail --> Return(["返回结果"])
 ```
 
 **图示来源**
-- [instructions/maafw-golang/API参考/执行上下文.md](file://instructions/maafw-golang/API参考/执行上下文.md#L300-L340)
+- [instructions/maafw-golang-binding/API参考/执行上下文.md](file://instructions/maafw-golang-binding/API参考/执行上下文.md#L300-L340)
 
 **章节来源**
-- [instructions/maafw-golang/API参考/执行上下文.md](file://instructions/maafw-golang/API参考/执行上下文.md#L300-L340)
+- [instructions/maafw-golang-binding/API参考/执行上下文.md](file://instructions/maafw-golang-binding/API参考/执行上下文.md#L300-L340)
 
 ### Event 系统（观察者模式）
 - 职责
@@ -357,10 +364,10 @@ Agent->>Sink : "调用对应回调(带事件状态与详情)"
 ```
 
 **图示来源**
-- [instructions/maafw-golang/API参考/事件系统.md](file://instructions/maafw-golang/API参考/事件系统.md#L344-L373)
+- [instructions/maafw-golang-binding/API参考/事件系统.md](file://instructions/maafw-golang-binding/API参考/事件系统.md#L344-L373)
 
 **章节来源**
-- [instructions/maafw-golang/API参考/事件系统.md](file://instructions/maafw-golang/API参考/事件系统.md#L331-L373)
+- [instructions/maafw-golang-binding/API参考/事件系统.md](file://instructions/maafw-golang-binding/API参考/事件系统.md#L331-L373)
 
 ### Job/TaskJob（异步作业模型）
 - 职责
@@ -396,10 +403,10 @@ TaskJob --|> Job
 ```
 
 **图示来源**
-- [instructions/maafw-golang/API参考/任务管理器.md](file://instructions/maafw-golang/API参考/任务管理器.md#L365-L401)
+- [instructions/maafw-golang-binding/API参考/任务管理器.md](file://instructions/maafw-golang-binding/API参考/任务管理器.md#L365-L401)
 
 **章节来源**
-- [instructions/maafw-golang/API参考/任务管理器.md](file://instructions/maafw-golang/API参考/任务管理器.md#L365-L401)
+- [instructions/maafw-golang-binding/API参考/任务管理器.md](file://instructions/maafw-golang-binding/API参考/任务管理器.md#L365-L401)
 
 ### 直接提交识别与动作任务
 - **PostRecognition**：直接提交识别任务，接收识别类型、参数和图像，返回 TaskJob 用于状态查询和等待。适用于需要独立执行识别操作的场景。
@@ -435,7 +442,106 @@ N-->>U : 返回TaskJob
   - Tasker/Resource/Controller 的多数方法也起到简化调用的作用，便于上层以统一方式使用
 
 **章节来源**
-- [instructions/maafw-golang/核心概念/核心概念.md](file://instructions/maafw-golang/核心概念/核心概念.md#L404-L416)
+- [instructions/maafw-golang-binding/核心概念/核心概念.md](file://instructions/maafw-golang-binding/核心概念/核心概念.md#L404-L416)
+
+### 事件系统重构
+**章节来源**
+- [instructions/maafw-golang-binding/核心概念/事件系统重构.md](file://instructions/maafw-golang-binding/核心概念/事件系统重构.md)
+- [instructions/maafw-golang-binding/核心概念/事件系统 (Event System).md](file://instructions/maafw-golang-binding/核心概念/事件系统 (Event System).md)
+
+事件系统已进行重构，主要变化如下：
+- **移除代码生成**：不再使用 `tools/gen-event-sink` 工具生成事件接口和适配器，改为手写实现，提高了代码的可读性和可维护性。
+- **引入手写适配器**：通过 `*EventSinkAdapter` 结构体（如 `TaskerEventSinkAdapter`）实现适配器模式，简化了单事件回调的注册。
+- **简化分发逻辑**：事件分发逻辑更加清晰，移除了 `event_sinks_gen.go` 文件，降低了系统复杂性。
+- **统一注册入口**：保留了 `AddSink`/`RemoveSink` 等统一的注册入口，但内部实现更简洁，通过全局映射表管理回调ID。
+
+```mermaid
+classDiagram
+class TaskerEventSink {
+<<interface>>
++OnTaskerTask(tasker *Tasker, event EventStatus, detail TaskerTaskDetail)
+}
+class TaskerEventSinkAdapter {
+-onTaskerTask func(EventStatus, TaskerTaskDetail)
++OnTaskerTask(tasker *Tasker, status EventStatus, detail TaskerTaskDetail)
+}
+TaskerEventSinkAdapter ..|> TaskerEventSink
+```
+
+**图示来源**
+- [instructions/maafw-golang-binding/核心概念/事件系统重构.md](file://instructions/maafw-golang-binding/核心概念/事件系统重构.md#L117-L140)
+- [instructions/maafw-golang-binding/核心概念/事件系统 (Event System).md](file://instructions/maafw-golang-binding/核心概念/事件系统 (Event System).md#L174-L205)
+
+### PlayCover控制器
+**章节来源**
+- [instructions/maafw-golang-binding/核心概念/控制器 (Controller)/PlayCover控制器.md](file://instructions/maafw-golang-binding/核心概念/控制器 (Controller)/PlayCover控制器.md)
+
+PlayCover控制器是专为与macOS上运行的iOS应用（通过PlayCover兼容层）进行交互而设计的控制器。
+- **创建方式**：通过 `NewPlayCoverController(address, uuid string)` 创建，需要提供PlayCover应用的地址和控制器的唯一标识符。
+- **核心功能**：支持连接管理、输入操作（点击、滑动、文本输入）、屏幕截图、应用管理（启动/停止）和事件回调。
+- **异步操作**：所有操作（如 `PostClick`, `PostSwipe`）均返回 `Job` 实例，采用异步模式执行。
+- **事件回调**：通过 `AddSink` 方法注册 `ControllerEventSink`，监听控制器的动作状态变化。
+
+```mermaid
+classDiagram
+class Controller {
++handle uintptr
++NewPlayCoverController(address, uuid string) *Controller
++Destroy()
++PostConnect() *Job
++PostClick(x, y int32) *Job
++PostSwipe(x1, y1, x2, y2 int32, duration time.Duration) *Job
++PostInputText(text string) *Job
++PostScreencap() *Job
++Connected() bool
++CacheImage() image.Image
++GetUUID() (string, bool)
++AddSink(sink ControllerEventSink) int64
+}
+```
+
+**图示来源**
+- [instructions/maafw-golang-binding/核心概念/控制器 (Controller)/PlayCover控制器.md](file://instructions/maafw-golang-binding/核心概念/控制器 (Controller)/PlayCover控制器.md#L100-L133)
+
+### 基于节点的流水线系统
+**章节来源**
+- [instructions/maafw-golang-binding/高级功能/基于节点的流水线系统.md](file://instructions/maafw-golang-binding/高级功能/基于节点的流水线系统.md)
+
+该系统采用声明式任务流与JSON配置相结合的方式，构建了基于节点的自动化任务执行流程。
+- **核心组件**：
+  - **节点 (Node)**：流水线的基本执行单元，包含识别、动作、跳转逻辑等配置。
+  - **流水线 (Pipeline)**：节点的集合，定义了任务的完整流程。
+  - **任务器 (Tasker)**：负责任务的调度和执行，协调资源与控制器。
+- **架构设计**：系统采用分层架构，上层为用户应用，中层为框架（Tasker, Context, Pipeline, Node），下层为资源（Resource）和控制器（Controller）。
+- **扩展性**：支持通过 `RegisterCustomAction` 和 `RegisterCustomRecognition` 注册自定义动作和识别算法，极大地增强了框架的灵活性。
+
+```mermaid
+graph TB
+subgraph "用户层"
+A[应用程序]
+end
+subgraph "框架层"
+B[Tasker]
+C[Context]
+D[Pipeline]
+E[Node]
+end
+subgraph "资源层"
+F[Resource]
+G[Controller]
+end
+A --> B
+B --> C
+C --> D
+D --> E
+B --> F
+B --> G
+F --> H[(资源文件)]
+G --> I[(目标设备)]
+```
+
+**图示来源**
+- [instructions/maafw-golang-binding/高级功能/基于节点的流水线系统.md](file://instructions/maafw-golang-binding/高级功能/基于节点的流水线系统.md#L96-L119)
 
 ## 依赖关系分析
 - 组件耦合
@@ -462,10 +568,10 @@ Job --> Controller
 ```
 
 **图示来源**
-- [instructions/maafw-golang/核心概念/核心概念.md](file://instructions/maafw-golang/核心概念/核心概念.md#L417-L449)
+- [instructions/maafw-golang-binding/核心概念/核心概念.md](file://instructions/maafw-golang-binding/核心概念/核心概念.md#L417-L449)
 
 **章节来源**
-- [instructions/maafw-golang/核心概念/核心概念.md](file://instructions/maafw-golang/核心概念/核心概念.md#L417-L449)
+- [instructions/maafw-golang-binding/核心概念/核心概念.md](file://instructions/maafw-golang-binding/核心概念/核心概念.md#L417-L449)
 
 ## 性能考量
 - 异步作业模型
@@ -495,10 +601,10 @@ Job --> Controller
   - 检查截图尺寸设置与缓存图像是否可用
 
 **章节来源**
-- [instructions/maafw-golang/核心概念/核心概念.md](file://instructions/maafw-golang/核心概念/核心概念.md#L470-L490)
+- [instructions/maafw-golang-binding/核心概念/核心概念.md](file://instructions/maafw-golang-binding/核心概念/核心概念.md#L470-L490)
 
 ## 结论
-maa-framework-go 通过 Tasker、Resource、Controller、Context、Event 与 Job/TaskJob 的协同，构建了一个清晰、可扩展且高性能的自动化框架。Tasker 作为中枢协调任务执行，Resource 管理识别资源与流水线，Controller 抽象设备控制，Context 提供上下文级的执行能力，Event 以观察者模式实现异步通知，Job/TaskJob 则提供了统一的异步作业模型。工厂模式与门面模式的应用使得 API 更加简洁易用。遵循本文的最佳实践与排错建议，可有效提升开发效率与稳定性。
+maa-framework-go 通过 Tasker、Resource、Controller、Context、Event 与 Job/TaskJob 的协同，构建了一个清晰、可扩展且高性能的自动化框架。Tasker 作为中枢协调任务执行，Resource 管理识别资源与流水线，Controller 抽象设备控制，Context 提供上下文级的执行能力，Event 以观察者模式实现异步通知，Job/TaskJob 则提供了统一的异步作业模型。工厂模式与门面模式的应用使得 API 更加简洁易用。**本次更新引入的事件系统重构、PlayCover控制器和基于节点的流水线系统，进一步增强了框架的可维护性、平台支持能力和任务编排的灵活性。** 遵循本文的最佳实践与排错建议，可有效提升开发效率与稳定性。
 
 ## 附录
 - 快速开始示例展示了从初始化、设备连接、资源加载到任务执行的完整流程
@@ -506,6 +612,6 @@ maa-framework-go 通过 Tasker、Resource、Controller、Context、Event 与 Job
 - Agent 客户端/服务器示例展示了跨进程协作的工作流
 
 **章节来源**
-- [instructions/maafw-golang/示例与用例/快速开始示例.md](file://instructions/maafw-golang/示例与用例/快速开始示例.md#L360-L369)
-- [instructions/maafw-golang/示例与用例/Agent客户端示例.md](file://instructions/maafw-golang/示例与用例/Agent客户端示例.md#L378-L391)
-- [instructions/maafw-golang/示例与用例/Agent服务器示例.md](file://instructions/maafw-golang/示例与用例/Agent服务器示例.md#L388-L411)
+- [instructions/maafw-golang-binding/示例与用例/快速开始示例.md](file://instructions/maafw-golang-binding/示例与用例/快速开始示例.md#L360-L369)
+- [instructions/maafw-golang-binding/示例与用例/Agent客户端示例.md](file://instructions/maafw-golang-binding/示例与用例/Agent客户端示例.md#L378-L391)
+- [instructions/maafw-golang-binding/示例与用例/Agent服务器示例.md](file://instructions/maafw-golang-binding/示例与用例/Agent服务器示例.md#L388-L411)

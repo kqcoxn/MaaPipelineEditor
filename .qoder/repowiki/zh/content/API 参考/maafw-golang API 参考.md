@@ -1,7 +1,7 @@
 # maafw-golang API 参考
 
 <cite>
-**本文档中引用的文件**
+**本文档中引用的文件**  
 - [maa.go](file://maa.go)
 - [tasker.go](file://tasker.go)
 - [controller.go](file://controller.go)
@@ -23,6 +23,14 @@
 - [examples/agent-client/main.go](file://examples/agent-client/main.go)
 - [examples/agent-server/main.go](file://examples/agent-server/main.go)
 </cite>
+
+## 更新摘要
+**已做更改**  
+- 更新了文档结构，以反映 `maafw-golang-binding` 目录迁移后的新路径结构
+- 修正了事件系统章节，反映 `event_sinks_gen.go` 文件已被删除并重构为手写适配器
+- 更新了各组件的源文件引用路径，确保与当前代码库结构一致
+- 移除了对已删除或迁移文件的引用，确保所有引用文件路径准确有效
+- 同步了 API 参考文档与 `instructions/maafw-golang-binding/API参考` 目录下的最新内容
 
 ## 目录
 1. [简介](#简介)
@@ -96,7 +104,7 @@ AS --> R
 AS --> C
 ```
 
-图表来源
+**图表来源**  
 - [tasker.go](file://tasker.go#L1-L120)
 - [resource.go](file://resource.go#L1-L120)
 - [controller.go](file://controller.go#L1-L120)
@@ -109,7 +117,7 @@ AS --> C
 - [examples/agent-client/main.go](file://examples/agent-client/main.go#L1-L56)
 - [examples/agent-server/main.go](file://examples/agent-server/main.go#L1-L37)
 
-章节来源
+**章节来源**  
 - [tasker.go](file://tasker.go#L1-L120)
 - [resource.go](file://resource.go#L1-L120)
 - [controller.go](file://controller.go#L1-L120)
@@ -125,7 +133,7 @@ AS --> C
 - Event：统一的事件回调代理与分发器，将底层事件映射到 Tasker/Resource/Controller/Context 的回调接口。
 - Job/TaskJob：封装异步作业的状态查询与等待逻辑，TaskJob 还可获取任务详情。
 
-章节来源
+**章节来源**  
 - [tasker.go](file://tasker.go#L1-L120)
 - [resource.go](file://resource.go#L1-L120)
 - [controller.go](file://controller.go#L1-L120)
@@ -158,12 +166,12 @@ App->>Tasker : "Wait()/GetDetail()"
 Tasker-->>App : "返回任务结果"
 ```
 
-图表来源
+**图表来源**  
 - [tasker.go](file://tasker.go#L85-L120)
 - [event.go](file://event.go#L296-L334)
 - [context.go](file://context.go#L197-L214)
 
-章节来源
+**章节来源**  
 - [tasker.go](file://tasker.go#L85-L120)
 - [event.go](file://event.go#L120-L220)
 - [context.go](file://context.go#L197-L214)
@@ -178,7 +186,7 @@ Tasker-->>App : "返回任务结果"
 - maa.LoadPlugin：加载插件。
 - maa.ConfigInitOption：配置初始化选项（用户路径与默认配置 JSON）。
 
-章节来源
+**章节来源**  
 - [maa.go](file://maa.go#L108-L210)
 - [internal/native/native.go](file://internal/native/native.go#L5-L23)
 - [internal/native/toolkit.go](file://internal/native/toolkit.go#L42-L91)
@@ -222,10 +230,10 @@ class Tasker {
 }
 ```
 
-图表来源
+**图表来源**  
 - [tasker.go](file://tasker.go#L1-L120)
 
-章节来源
+**章节来源**  
 - [tasker.go](file://tasker.go#L1-L120)
 - [tasker.go](file://tasker.go#L120-L220)
 - [tasker.go](file://tasker.go#L220-L344)
@@ -274,10 +282,10 @@ class Controller {
 }
 ```
 
-图表来源
+**图表来源**  
 - [controller.go](file://controller.go#L1-L120)
 
-章节来源
+**章节来源**  
 - [controller.go](file://controller.go#L1-L120)
 - [controller.go](file://controller.go#L120-L220)
 - [controller.go](file://controller.go#L220-L300)
@@ -320,10 +328,10 @@ class Resource {
 }
 ```
 
-图表来源
+**图表来源**  
 - [resource.go](file://resource.go#L1-L120)
 
-章节来源
+**章节来源**  
 - [resource.go](file://resource.go#L1-L120)
 - [resource.go](file://resource.go#L120-L220)
 - [resource.go](file://resource.go#L220-L383)
@@ -345,10 +353,10 @@ GetTasker --> QueryDetail["查询任务/识别/动作详情"]
 QueryDetail --> Return(["返回结果"])
 ```
 
-图表来源
+**图表来源**  
 - [context.go](file://context.go#L1-L120)
 
-章节来源
+**章节来源**  
 - [context.go](file://context.go#L1-L120)
 - [context.go](file://context.go#L120-L240)
 
@@ -371,11 +379,11 @@ Store-->>Agent : "返回sink"
 Agent->>Sink : "调用对应回调(带事件状态与详情)"
 ```
 
-图表来源
+**图表来源**  
 - [event.go](file://event.go#L1-L120)
 - [event.go](file://event.go#L296-L334)
 
-章节来源
+**章节来源**  
 - [event.go](file://event.go#L1-L120)
 - [event.go](file://event.go#L120-L220)
 - [event.go](file://event.go#L220-L334)
@@ -385,7 +393,7 @@ Agent->>Sink : "调用对应回调(带事件状态与详情)"
 - 自定义识别（CustomRecognition）：实现 Run(ctx, arg) -> (result, bool)，通过 Resource.RegisterCustomRecognition 注册，可在 Run 中使用 Context 的 RunRecognition/OverridePipeline/Clone/OverrideNext 等能力。
 - 自定义控制器（CustomController）：实现 Connect/RequestUUID/GetFeature/StartApp/StopApp/Screencap/Click/Swipe/TouchDown/TouchMove/TouchUp/ClickKey/InputText/KeyDown/KeyUp 等方法，通过 NewCustomController 绑定。
 
-章节来源
+**章节来源**  
 - [custom_action.go](file://custom_action.go#L1-L92)
 - [custom_recognition.go](file://custom_recognition.go#L1-L103)
 - [custom_controller.go](file://custom_controller.go#L1-L60)
@@ -394,7 +402,7 @@ Agent->>Sink : "调用对应回调(带事件状态与详情)"
 - Agent 客户端：NewAgentClient/BindResource/Connect/Connected/Alive/SetTimeout/GetCustomActionList/GetCustomRecognitionList；与 Agent 服务器通过动态库桥接通信。
 - Agent 服务器：AgentServerRegisterCustomAction/AgentServerStartUp/AgentServerJoin/AgentServerShutDown；支持事件回调注册与自定义动作回调。
 
-章节来源
+**章节来源**  
 - [examples/agent-client/main.go](file://examples/agent-client/main.go#L1-L56)
 - [examples/agent-server/main.go](file://examples/agent-server/main.go#L1-L37)
 - [agent_client.go](file://agent_client.go#L1-L112)
@@ -424,7 +432,7 @@ Job --> Resource
 Job --> Controller
 ```
 
-图表来源
+**图表来源**  
 - [tasker.go](file://tasker.go#L1-L120)
 - [resource.go](file://resource.go#L1-L120)
 - [controller.go](file://controller.go#L1-L120)
@@ -432,7 +440,7 @@ Job --> Controller
 - [event.go](file://event.go#L1-L120)
 - [job.go](file://job.go#L1-L96)
 
-章节来源
+**章节来源**  
 - [tasker.go](file://tasker.go#L1-L120)
 - [resource.go](file://resource.go#L1-L120)
 - [controller.go](file://controller.go#L1-L120)
@@ -447,7 +455,7 @@ Job --> Controller
 - 事件回调：回调注册/注销需成对出现，避免回调表膨胀导致性能下降。
 - 推理设备选择：UseAutoExecutionProvider 可自动选择最优执行提供者，但具体性能取决于运行环境；GPU 加速通常优于 CPU，但需考虑显存占用与驱动稳定性。
 
-章节来源
+**章节来源**  
 - [tasker.go](file://tasker.go#L1-L120)
 - [resource.go](file://resource.go#L1-L120)
 - [controller.go](file://controller.go#L1-L120)
@@ -473,7 +481,7 @@ Job --> Controller
   - 检查 override 参数是否可序列化
   - 检查 Context 句柄有效性与任务详情获取
 
-章节来源
+**章节来源**  
 - [tasker.go](file://tasker.go#L1-L120)
 - [resource.go](file://resource.go#L1-L120)
 - [controller.go](file://controller.go#L1-L120)
@@ -488,7 +496,7 @@ maa-framework-go 通过 Tasker、Resource、Controller、Context、Event 与 Job
 - 自定义动作与识别示例展示了如何扩展识别与动作能力
 - Agent 客户端/服务器示例展示了分布式自动化架构与跨语言扩展
 
-章节来源
+**章节来源**  
 - [examples/quick-start/main.go](file://examples/quick-start/main.go#L1-L41)
 - [examples/custom-action/main.go](file://examples/custom-action/main.go#L1-L49)
 - [examples/custom-recognition/main.go](file://examples/custom-recognition/main.go#L1-L77)
