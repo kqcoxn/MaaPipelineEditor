@@ -32,16 +32,15 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
     | undefined;
 
   // 获取选中状态、边信息和路径状态
-  const { selectedNodes, selectedEdges, edges, pathMode, pathNodeIds } =
-    useFlowStore(
-      useShallow((state) => ({
-        selectedNodes: state.selectedNodes,
-        selectedEdges: state.selectedEdges,
-        edges: state.edges,
-        pathMode: state.pathMode,
-        pathNodeIds: state.pathNodeIds,
-      }))
-    );
+  const { selectedNodes, selectedEdges, pathMode, pathNodeIds } = useFlowStore(
+    useShallow((state) => ({
+      selectedNodes: state.selectedNodes,
+      selectedEdges: state.selectedEdges,
+      pathMode: state.pathMode,
+      pathNodeIds: state.pathNodeIds,
+    }))
+  );
+  const edges = useFlowStore((state) => state.edges);
 
   // 获取调试状态
   const debugMode = useDebugStore((state) => state.debugMode);
@@ -51,8 +50,8 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
 
   // 计算是否与选中元素相关联
   const isRelated = useMemo(() => {
-    // 透明度为1
-    if (focusOpacity === 1) return true;
+    // 透明度为1或当前节点被选中
+    if (focusOpacity === 1 || props.selected) return true;
 
     // 路径模式
     if (pathMode && pathNodeIds.size > 0) {
@@ -61,23 +60,8 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
 
     // 没有选中任何内容
     if (selectedNodes.length === 0 && selectedEdges.length === 0) return true;
-    // 当前节点被选中
-    if (props.selected) return true;
 
     const nodeId = props.id;
-
-    // 检查是否与选中的节点直接连接
-    for (const selectedNode of selectedNodes) {
-      // 查找与选中节点相连的边
-      for (const edge of edges) {
-        if (
-          (edge.source === selectedNode.id && edge.target === nodeId) ||
-          (edge.target === selectedNode.id && edge.source === nodeId)
-        ) {
-          return true;
-        }
-      }
-    }
 
     // 检查是否与选中的边相连
     for (const selectedEdge of selectedEdges) {
@@ -86,16 +70,32 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
       }
     }
 
+    // 仅在有选中节点时检查节点连接关系
+    if (selectedNodes.length > 0) {
+      // 预先构建选中节点ID集合
+      const selectedNodeIds = new Set(selectedNodes.map((n) => n.id));
+
+      // 只检查与当前节点相关的边
+      for (const edge of edges) {
+        if (edge.target === nodeId && selectedNodeIds.has(edge.source)) {
+          return true;
+        }
+        if (edge.source === nodeId && selectedNodeIds.has(edge.target)) {
+          return true;
+        }
+      }
+    }
+
     return false;
   }, [
     focusOpacity,
-    selectedNodes,
-    selectedEdges,
-    edges,
-    props.id,
     props.selected,
     pathMode,
     pathNodeIds,
+    props.id,
+    selectedNodes,
+    selectedEdges,
+    edges,
   ]);
 
   const nodeClass = useMemo(

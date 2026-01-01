@@ -1,14 +1,12 @@
 import style from "../styles/FloatingJsonPanel.module.less";
 
-import React, { memo, useCallback, useMemo, useEffect } from "react";
+import React, { memo, useCallback, useMemo, useEffect, useRef } from "react";
 import ReactJsonView, {
   type ReactJsonViewProps,
 } from "@microlink/react-json-view";
 import { Button, Tooltip } from "antd";
 import { CloseOutlined, ReloadOutlined } from "@ant-design/icons";
-import { useShallow } from "zustand/shallow";
 
-import { useFlowStore, type NodeType } from "../stores/flow";
 import { useToolbarStore } from "../stores/toolbarStore";
 import {
   flowToPipeline,
@@ -44,21 +42,22 @@ function JsonViewer() {
   const setJsonPanelVisible = useToolbarStore(
     (state) => state.setJsonPanelVisible
   );
-  const { selectedNodes, selectedEdges } = useFlowStore(
-    useShallow((state) => ({
-      selectedNodes: state.debouncedSelectedNodes as NodeType[],
-      selectedEdges: state.debouncedSelectedEdges,
-    }))
-  );
-  // 生成 Pipeline
-  const [refreshTrigger, setRefreshTrigger] = React.useState(0);
-  const pipelineObj = useMemo(() => {
-    return flowToPipeline();
-  }, [selectedNodes, selectedEdges, refreshTrigger]);
+
+  // 存储编译后的 Pipeline 对象
+  const [pipelineObj, setPipelineObj] = React.useState<any>({});
+  const prevVisibleRef = useRef(jsonPanelVisible);
+
+  // 面板打开时编译
+  useEffect(() => {
+    if (jsonPanelVisible && !prevVisibleRef.current) {
+      setPipelineObj(flowToPipeline());
+    }
+    prevVisibleRef.current = jsonPanelVisible;
+  }, [jsonPanelVisible]);
 
   // 手动刷新
   const handleRefresh = () => {
-    setRefreshTrigger((prev) => prev + 1);
+    setPipelineObj(flowToPipeline());
   };
 
   // 当其他面板打开时自动关闭 JSON 面板

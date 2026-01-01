@@ -49,11 +49,10 @@ export const updateLogs: UpdateLogItem[] = [
   {
     version: "0.14.1",
     date: "2026-1-1",
-    type: "feature",
+    type: "fix",
     updates: {
       features: ["👐 现在面板可以拖动了，可在设置面板切换模式"],
-      perfs: [""],
-      fixes: [""],
+      perfs: ["优化编译时机，大幅提升交互时的性能表现"],
     },
   },
   {

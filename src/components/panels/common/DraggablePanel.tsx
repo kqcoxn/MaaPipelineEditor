@@ -5,6 +5,7 @@ import {
   useEffect,
   useState,
   type ReactNode,
+  type CSSProperties,
 } from "react";
 import { create } from "zustand";
 
@@ -47,11 +48,17 @@ export const DraggablePanel = memo(
     const dragStartRef = useRef({ x: 0, y: 0 });
     const positionStartRef = useRef({ x: 0, y: 0 });
 
-    // 从 store 获取位置（字段和连接面板共享）
+    // 从 store 获取位置
     const position = usePanelPositionStore((s) => s.panelPosition);
-    const setPosition = usePanelPositionStore((s) => s.setPanelPosition);
+    const setPositionToStore = usePanelPositionStore((s) => s.setPanelPosition);
 
-    // 计算默认位置（右上角）
+    // 拖动时的临时位置
+    const [draggingPosition, setDraggingPosition] = useState<{
+      x: number;
+      y: number;
+    } | null>(null);
+
+    // 计算默认位置
     const getDefaultPosition = useCallback(() => {
       if (typeof window === "undefined") return { x: 0, y: defaultTop };
       const panel = panelRef.current;
@@ -68,10 +75,10 @@ export const DraggablePanel = memo(
       if (isVisible && !position && panelRef.current) {
         // 延迟初始化以确保面板已渲染
         requestAnimationFrame(() => {
-          setPosition(getDefaultPosition());
+          setPositionToStore(getDefaultPosition());
         });
       }
-    }, [isVisible, position, setPosition, getDefaultPosition]);
+    }, [isVisible, position, setPositionToStore, getDefaultPosition]);
 
     // 拖动开始
     const handleMouseDown = useCallback(
@@ -110,17 +117,23 @@ export const DraggablePanel = memo(
           const maxX = window.innerWidth - rect.width;
           const maxY = window.innerHeight - rect.height;
 
-          setPosition({
+          // 更新本地状态
+          setDraggingPosition({
             x: Math.max(0, Math.min(newX, maxX)),
             y: Math.max(0, Math.min(newY, maxY)),
           });
         } else {
-          setPosition({ x: newX, y: newY });
+          setDraggingPosition({ x: newX, y: newY });
         }
       };
 
       const handleMouseUp = () => {
         setIsDragging(false);
+        // 拖动结束时更新 store
+        if (draggingPosition) {
+          setPositionToStore(draggingPosition);
+          setDraggingPosition(null);
+        }
       };
 
       document.addEventListener("mousemove", handleMouseMove);
@@ -130,13 +143,14 @@ export const DraggablePanel = memo(
         document.removeEventListener("mousemove", handleMouseMove);
         document.removeEventListener("mouseup", handleMouseUp);
       };
-    }, [isDragging, setPosition]);
+    }, [isDragging, draggingPosition, setPositionToStore]);
 
     // 位置样式
-    const positionStyle: React.CSSProperties = position
+    const currentPosition = draggingPosition || position;
+    const positionStyle: CSSProperties = currentPosition
       ? {
-          left: position.x,
-          top: position.y,
+          left: currentPosition.x,
+          top: currentPosition.y,
           right: "auto",
         }
       : {
