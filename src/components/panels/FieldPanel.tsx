@@ -29,7 +29,9 @@ import {
 import { FieldPanelToolbarLeft, FieldPanelToolbarRight } from "./field-tools";
 import { useDebugStore } from "../../stores/debugStore";
 import { useToolbarStore } from "../../stores/toolbarStore";
+import { useConfigStore } from "../../stores/configStore";
 import DebugInfoTab from "./DebugInfoTab";
+import { DraggablePanel } from "./DraggablePanel";
 
 // 节点数据验证与修复
 function validateAndRepairNode(node: NodeType): {
@@ -180,6 +182,9 @@ function FieldPanel() {
   const currentNode = useFlowStore((state) => state.targetNode);
   const updateNodes = useFlowStore((state) => state.updateNodes);
   const debugMode = useDebugStore((state) => state.debugMode);
+  const fieldPanelMode = useConfigStore(
+    (state) => state.configs.fieldPanelMode
+  );
   const setCurrentRightPanel = useToolbarStore(
     (state) => state.setCurrentRightPanel
   );
@@ -369,8 +374,9 @@ function FieldPanel() {
         "panel-base": true,
         [style.panel]: true,
         "panel-show": currentNode !== null,
+        "panel-draggable": fieldPanelMode === "draggable",
       }),
-    [currentNode]
+    [currentNode, fieldPanelMode]
   );
 
   // 删除节点
@@ -387,9 +393,9 @@ function FieldPanel() {
     setProgressDetail(detail || "");
   }, []);
 
-  // 渲染
-  return (
-    <div className={panelClass}>
+  // 面板内容
+  const panelContent = (
+    <>
       <div className="header">
         <div className="header-left">
           <FieldPanelToolbarLeft currentNode={currentNode} />
@@ -448,8 +454,25 @@ function FieldPanel() {
       ) : (
         renderContent
       )}
-    </div>
+    </>
   );
+
+  // 渲染
+  if (fieldPanelMode === "draggable") {
+    return (
+      <DraggablePanel
+        panelType="field"
+        isVisible={currentNode !== null}
+        className={panelClass}
+        defaultRight={10}
+        defaultTop={70}
+      >
+        {panelContent}
+      </DraggablePanel>
+    );
+  }
+
+  return <div className={panelClass}>{panelContent}</div>;
 }
 
 export default memo(FieldPanel);

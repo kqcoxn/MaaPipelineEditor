@@ -23,6 +23,9 @@ const PanelConfigSection = memo(() => {
   const canvasBackgroundMode = useConfigStore(
     (state) => state.configs.canvasBackgroundMode
   );
+  const fieldPanelMode = useConfigStore(
+    (state) => state.configs.fieldPanelMode
+  );
   const setConfig = useConfigStore((state) => state.setConfig);
 
   const globalClass = useMemo(() => classNames(style.item, style.global), []);
@@ -235,6 +238,34 @@ const PanelConfigSection = memo(() => {
           options={[
             { value: "eyecare", label: "护眼" },
             { value: "pure", label: "纯白" },
+          ]}
+        />
+      </div>
+      {/* 字段/连接面板模式 */}
+      <div className={globalClass}>
+        <div className={style.key}>
+          <Popover
+            placement="bottomLeft"
+            title="字段/连接面板模式"
+            content={
+              <TipElem
+                content={
+                  "固定模式：面板固定在右上角\n拖动模式：面板可拖动，切换选中时保持位置"
+                }
+              />
+            }
+          >
+            <span>字段/连接面板模式</span>
+          </Popover>
+        </div>
+        <Select
+          className={style.value}
+          style={{ width: 70 }}
+          value={fieldPanelMode}
+          onChange={(value) => setConfig("fieldPanelMode", value)}
+          options={[
+            { value: "fixed", label: "固定" },
+            { value: "draggable", label: "拖动" },
           ]}
         />
       </div>

@@ -60,3 +60,25 @@
   opacity: 1;
   pointer-events: all;
 }
+
+// 可拖动面板模式
+.panel-draggable {
+  transition: opacity 0.2s ease;
+
+  .header {
+    cursor: grab;
+    user-select: none;
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+
+  &.dragging {
+    transition: none;
+
+    .header {
+      cursor: grabbing;
+    }
+  }
+}

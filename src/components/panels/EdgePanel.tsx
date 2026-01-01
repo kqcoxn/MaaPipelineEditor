@@ -12,6 +12,8 @@ import {
 } from "../../stores/flow";
 import { SourceHandleTypeEnum } from "../flow/nodes";
 import { useToolbarStore } from "../../stores/toolbarStore";
+import { useConfigStore } from "../../stores/configStore";
+import { DraggablePanel } from "./DraggablePanel";
 
 // 获取连接类型和颜色
 const getEdgeTypeInfo = (edge: EdgeType) => {
@@ -110,6 +112,9 @@ function EdgePanel() {
   const selectedEdges = useFlowStore((state) => state.selectedEdges);
   const nodes = useFlowStore((state) => state.nodes);
   const targetNode = useFlowStore((state) => state.targetNode);
+  const fieldPanelMode = useConfigStore(
+    (state) => state.configs.fieldPanelMode
+  );
   const setCurrentRightPanel = useToolbarStore(
     (state) => state.setCurrentRightPanel
   );
@@ -203,13 +208,14 @@ function EdgePanel() {
         "panel-base": true,
         [style.panel]: true,
         "panel-show": currentEdge !== null,
+        "panel-draggable": fieldPanelMode === "draggable",
       }),
-    [currentEdge]
+    [currentEdge, fieldPanelMode]
   );
 
-  // 渲染
-  return (
-    <div className={panelClass}>
+  // 面板内容
+  const panelContent = (
+    <>
       <div className="header">
         <div className="header-left"></div>
         <div className="header-center">
@@ -243,8 +249,25 @@ function EdgePanel() {
           />
         </>
       )}
-    </div>
+    </>
   );
+
+  // 渲染
+  if (fieldPanelMode === "draggable") {
+    return (
+      <DraggablePanel
+        panelType="edge"
+        isVisible={currentEdge !== null}
+        className={panelClass}
+        defaultRight={10}
+        defaultTop={70}
+      >
+        {panelContent}
+      </DraggablePanel>
+    );
+  }
+
+  return <div className={panelClass}>{panelContent}</div>;
 }
 
 export default memo(EdgePanel);

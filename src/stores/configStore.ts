@@ -3,8 +3,8 @@ import { create } from "zustand";
 /**固有配置 */
 export const globalConfig = {
   dev: true,
-  version: `0.14.0`,
-  betaIteration: 1,
+  version: `0.14.1`,
+  betaIteration: 0,
   mfwVersion: "5.3.0",
   protocolVersion: "0.3",
 };
@@ -15,6 +15,9 @@ if (globalConfig.dev) {
 
 /**配置分类 */
 export type ConfigCategory = "panel" | "pipeline" | "communication" | "ai";
+
+/**字段面板模式 */
+export type FieldPanelMode = "fixed" | "draggable";
 
 /**配置分类映射 - 用于确定哪些配置属于哪个类别 */
 export const configCategoryMap: Record<string, ConfigCategory> = {
@@ -32,6 +35,7 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   isExportConfig: "panel",
   useDarkMode: "panel",
   canvasBackgroundMode: "panel",
+  fieldPanelMode: "panel",
   // 本地通信配置
   wsPort: "communication",
   wsAutoConnect: "communication",
@@ -95,6 +99,8 @@ type ConfigState = {
     showEdgeControlPoint: boolean;
     // 画布背景模式
     canvasBackgroundMode: CanvasBackgroundMode;
+    // 字段面板模式
+    fieldPanelMode: FieldPanelMode;
   };
   setConfig: <K extends keyof ConfigState["configs"]>(
     key: K,
@@ -139,6 +145,8 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     showEdgeControlPoint: true,
     // 画布背景模式
     canvasBackgroundMode: "eyecare" as CanvasBackgroundMode,
+    // 字段面板模式
+    fieldPanelMode: "fixed" as FieldPanelMode,
   },
   setConfig(key, value) {
     set((state) => {

@@ -47,6 +47,16 @@ export const pinnedNotice: PinnedNotice = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "0.14.1",
+    date: "2026-1-1",
+    type: "feature",
+    updates: {
+      features: ["👐 现在面板可以拖动了，可在设置面板切换模式"],
+      perfs: [""],
+      fixes: [""],
+    },
+  },
+  {
     version: "0.14.0",
     date: "2026-1-1",
     type: "feature",
