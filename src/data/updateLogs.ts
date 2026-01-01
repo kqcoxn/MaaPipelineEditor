@@ -52,7 +52,10 @@ export const updateLogs: UpdateLogItem[] = [
     type: "fix",
     updates: {
       features: ["👐 现在面板可以拖动了，可在设置面板切换模式"],
-      perfs: ["优化编译时机，大幅提升交互时的性能表现"],
+      fixes: [
+        "修复了部分操作导致交互卡顿的问题",
+        "修复了 JSON 预览窗口可能挡住布局工具栏的问题",
+      ],
     },
   },
   {
