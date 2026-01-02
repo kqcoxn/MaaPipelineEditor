@@ -32,6 +32,8 @@ import { nodeTypes } from "./flow/nodes";
 import { edgeTypes } from "./flow/edges";
 import { localSave, useFileStore } from "../stores/fileStore";
 import NodeAddPanel from "./panels/main/NodeAddPanel";
+import InlineFieldPanel from "./panels/main/InlineFieldPanel";
+import InlineEdgePanel from "./panels/main/InlineEdgePanel";
 import { useConfigStore } from "../stores/configStore";
 
 /**工作流 */
@@ -327,6 +329,8 @@ function MainFlow() {
           setScreenPos={setNodeAddPanelPos}
           onClose={closeNodeAddPanel}
         />
+        <InlineFieldPanel />
+        <InlineEdgePanel />
       </ReactFlow>
     </div>
   );

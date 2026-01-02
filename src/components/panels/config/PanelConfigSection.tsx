@@ -26,6 +26,9 @@ const PanelConfigSection = memo(() => {
   const fieldPanelMode = useConfigStore(
     (state) => state.configs.fieldPanelMode
   );
+  const inlinePanelScale = useConfigStore(
+    (state) => state.configs.inlinePanelScale
+  );
   const setConfig = useConfigStore((state) => state.setConfig);
 
   const globalClass = useMemo(() => classNames(style.item, style.global), []);
@@ -250,7 +253,7 @@ const PanelConfigSection = memo(() => {
             content={
               <TipElem
                 content={
-                  "固定模式：面板固定在右上角\n拖动模式：面板可拖动，切换选中时保持位置"
+                  "固定模式：面板固定在右上角\n拖动模式：面板可拖动，切换选中时保持位置\n内嵌模式：字段面板嵌入在节点旁边，直接在画布中编辑"
                 }
               />
             }
@@ -266,7 +269,37 @@ const PanelConfigSection = memo(() => {
           options={[
             { value: "fixed", label: "固定" },
             { value: "draggable", label: "拖动" },
+            { value: "inline", label: "内嵌" },
           ]}
+        />
+      </div>
+      {/* 内嵌面板缩放比例 */}
+      <div className={globalClass}>
+        <div className={style.key}>
+          <Popover
+            placement="bottomLeft"
+            title={"内嵌面板缩放比例"}
+            content={
+              <TipElem
+                content={
+                  "设置内嵌模式下字段面板的整体缩放大小，范围 0.5-1.0。可根据个人视图查阅缩放比例偏好调试，其他模式不起作用。"
+                }
+              />
+            }
+          >
+            <span>内嵌面板缩放比例</span>
+          </Popover>
+        </div>
+        <InputNumber
+          className={style.value}
+          style={{ maxWidth: 80 }}
+          min={0.5}
+          max={1.0}
+          step={0.05}
+          value={inlinePanelScale}
+          onChange={(value: number | null) => {
+            if (value !== null) setConfig("inlinePanelScale", value);
+          }}
         />
       </div>
     </>

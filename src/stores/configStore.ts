@@ -17,7 +17,7 @@ if (globalConfig.dev) {
 export type ConfigCategory = "panel" | "pipeline" | "communication" | "ai";
 
 /**字段面板模式 */
-export type FieldPanelMode = "fixed" | "draggable";
+export type FieldPanelMode = "fixed" | "draggable" | "inline";
 
 /**配置分类映射 - 用于确定哪些配置属于哪个类别 */
 export const configCategoryMap: Record<string, ConfigCategory> = {
@@ -36,6 +36,7 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   useDarkMode: "panel",
   canvasBackgroundMode: "panel",
   fieldPanelMode: "panel",
+  inlinePanelScale: "panel",
   // 本地通信配置
   wsPort: "communication",
   wsAutoConnect: "communication",
@@ -101,6 +102,8 @@ type ConfigState = {
     canvasBackgroundMode: CanvasBackgroundMode;
     // 字段面板模式
     fieldPanelMode: FieldPanelMode;
+    // 内嵌面板缩放比例
+    inlinePanelScale: number;
   };
   setConfig: <K extends keyof ConfigState["configs"]>(
     key: K,
@@ -147,6 +150,8 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     canvasBackgroundMode: "eyecare" as CanvasBackgroundMode,
     // 字段面板模式
     fieldPanelMode: "fixed" as FieldPanelMode,
+    // 内嵌面板缩放比例
+    inlinePanelScale: 0.8,
   },
   setConfig(key, value) {
     set((state) => {

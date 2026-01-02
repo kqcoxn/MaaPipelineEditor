@@ -1,0 +1,67 @@
+/* 内嵌字段面板样式 */
+
+.inlinePanel {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  border: 1px solid #e8e8e8;
+  overflow: hidden;
+  max-height: 500px;
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+
+  /* 缩放 - 从左上角开始以避免位置偏移 */
+  transform-origin: 0 0;
+
+  /* 重定位 */
+  position: absolute !important;
+  right: unset !important;
+  top: unset !important;
+  left: unset !important;
+  bottom: unset !important;
+  width: auto !important;
+  min-height: unset !important;
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  padding: 0;
+
+  // 隐藏滚动条
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.loadingOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.loadingText {
+  margin-top: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1890ff;
+}
+
+.loadingDetail {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #666;
+}

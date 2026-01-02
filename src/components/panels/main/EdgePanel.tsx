@@ -253,6 +253,10 @@ function EdgePanel() {
   );
 
   // 渲染
+  if (fieldPanelMode === "inline") {
+    return null;
+  }
+
   if (fieldPanelMode === "draggable") {
     return (
       <DraggablePanel
