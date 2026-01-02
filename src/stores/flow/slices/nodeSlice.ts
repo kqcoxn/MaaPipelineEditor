@@ -16,6 +16,7 @@ import {
   createExternalNode,
   createAnchorNode,
   findNodeByLabel,
+  findNodeById,
   findNodeIndexById,
   calcuNodePosition,
   checkRepeatNodeLabelList as checkRepeatNodeLabelListUtil,
@@ -36,18 +37,44 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
 
   // 更新节点
   updateNodes(changes: NodeChange[]) {
+    // 收集被删除的节点 ID
+    const removedIds = new Set<string>();
+    changes.forEach((change) => {
+      if (change.type === "remove") {
+        removedIds.add(change.id);
+      }
+    });
+
     set((state) => {
       const updatedNodes = applyNodeChanges(changes, state.nodes);
       const nodes = updatedNodes as NodeType[];
-      return { nodes };
+
+      const updates: Partial<typeof state> = { nodes };
+
+      // 清理被删除节点的选中状态
+      if (removedIds.size > 0) {
+        // 检查 targetNode 是否被删除
+        if (state.targetNode && removedIds.has(state.targetNode.id)) {
+          updates.targetNode = null;
+          updates.debouncedTargetNode = null;
+        }
+
+        // 清理 selectedNodes 中被删除的节点
+        const filteredSelectedNodes = state.selectedNodes.filter(
+          (node) => !removedIds.has(node.id)
+        );
+        if (filteredSelectedNodes.length !== state.selectedNodes.length) {
+          updates.selectedNodes = filteredSelectedNodes;
+          updates.debouncedSelectedNodes = filteredSelectedNodes;
+        }
+      }
+
+      return updates;
     });
 
     // 清理删除节点的顺序
-    const removeChanges = changes.filter((change) => change.type === "remove");
-    removeChanges.forEach((change) => {
-      if (change.type === "remove") {
-        removeNodeOrder(change.id);
-      }
+    removedIds.forEach((id) => {
+      removeNodeOrder(id);
     });
 
     // 保存历史记录
@@ -102,7 +129,7 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       let label = labelBase + id;
       let counter = state.nodeIdCounter;
 
-      while (findNodeByLabel(nodes, label)) {
+      while (findNodeByLabel(nodes, label) || findNodeById(nodes, id)) {
         counter++;
         id = String(counter);
         label = labelBase + id;

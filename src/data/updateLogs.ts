@@ -52,7 +52,10 @@ export const updateLogs: UpdateLogItem[] = [
     type: "feature",
     updates: {
       features: [""],
-      fixes: ["修复了外部节点与 Anchor 节点也会拼接前缀的问题"],
+      fixes: [
+        "修复了外部节点与 Anchor 节点也会拼接前缀的问题",
+        "修复了选中状态下节点与连接可能虚创建的问题",
+      ],
     },
   },
   {
