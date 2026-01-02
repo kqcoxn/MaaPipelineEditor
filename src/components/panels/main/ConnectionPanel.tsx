@@ -19,6 +19,7 @@ import {
   DesktopOutlined,
   MobileOutlined,
   SwapOutlined,
+  AppleOutlined,
 } from "@ant-design/icons";
 import {
   useMFWStore,
@@ -46,11 +47,17 @@ export const ConnectionPanel = memo(
       errorMessage,
     } = useMFWStore();
 
-    const [activeTab, setActiveTab] = useState<"adb" | "win32">("adb");
+    const [activeTab, setActiveTab] = useState<"adb" | "win32" | "playcover">(
+      "adb"
+    );
     const [selectedAdbDevice, setSelectedAdbDevice] =
       useState<AdbDevice | null>(null);
     const [selectedWin32Window, setSelectedWin32Window] =
       useState<Win32Window | null>(null);
+    // PlayCover 连接参数
+    const [playCoverAddress, setPlayCoverAddress] = useState<string>("");
+    const [playCoverUUID, setPlayCoverUUID] = useState<string>("");
+    const [playCoverName, setPlayCoverName] = useState<string>("");
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [visitedTabs, setVisitedTabs] = useState<Set<string>>(new Set());
     const [hasInitialized, setHasInitialized] = useState(false);
@@ -205,7 +212,7 @@ export const ConnectionPanel = memo(
       setIsRefreshing(true);
       if (activeTab === "adb") {
         mfwProtocol.refreshAdbDevices();
-      } else {
+      } else if (activeTab === "win32") {
         mfwProtocol.refreshWin32Windows();
       }
       setTimeout(() => setIsRefreshing(false), 1000);
@@ -257,6 +264,22 @@ export const ConnectionPanel = memo(
           screencap_method: screencapMethod,
           input_method: inputMethod,
         });
+      } else if (activeTab === "playcover") {
+        // PlayCover 连接
+        if (!playCoverAddress.trim()) {
+          message.warning("请输入 PlayCover 地址");
+          return;
+        }
+        if (!playCoverUUID.trim()) {
+          message.warning("请输入设备 UUID");
+          return;
+        }
+
+        mfwProtocol.createPlayCoverController({
+          address: playCoverAddress.trim(),
+          uuid: playCoverUUID.trim(),
+          name: playCoverName.trim() || "PlayCover Device",
+        });
       } else {
         message.warning("请先选择设备");
       }
@@ -266,6 +289,9 @@ export const ConnectionPanel = memo(
       selectedWin32Window,
       customScreencap,
       customInput,
+      playCoverAddress,
+      playCoverUUID,
+      playCoverName,
     ]);
 
     // 断开连接
@@ -288,7 +314,13 @@ export const ConnectionPanel = memo(
 
     // 获取当前选中设备
     const hasSelectedDevice =
-      activeTab === "adb" ? !!selectedAdbDevice : !!selectedWin32Window;
+      activeTab === "adb"
+        ? !!selectedAdbDevice
+        : activeTab === "win32"
+        ? !!selectedWin32Window
+        : activeTab === "playcover"
+        ? !!(playCoverAddress.trim() && playCoverUUID.trim())
+        : false;
 
     // 检查是否有可用的方法
     const hasValidMethods = useMemo(() => {
@@ -312,6 +344,8 @@ export const ConnectionPanel = memo(
           ? customInput[0]
           : customInput || selectedWin32Window.input_methods[0];
         return !!screencap && !!input;
+      } else if (activeTab === "playcover") {
+        return true;
       }
       return false;
     }, [
@@ -341,6 +375,8 @@ export const ConnectionPanel = memo(
         selectedWin32Window
       ) {
         return selectedWin32Window.hwnd === (deviceInfo as any)?.hwnd;
+      } else if (activeTab === "playcover" && controllerType === "playcover") {
+        return playCoverAddress === (deviceInfo as any)?.address;
       }
       return false;
     }, [
@@ -350,6 +386,7 @@ export const ConnectionPanel = memo(
       activeTab,
       selectedAdbDevice,
       selectedWin32Window,
+      playCoverAddress,
     ]);
 
     // 连接新设备
@@ -487,6 +524,100 @@ export const ConnectionPanel = memo(
       />
     );
 
+    // 渲染 PlayCover 连接表单
+    const renderPlayCoverForm = () => (
+      <div style={{ padding: "8px 0" }}>
+        <Card
+          size="small"
+          style={{
+            backgroundColor: "#f5f5f5",
+            borderColor: "#d9d9d9",
+            marginBottom: 16,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <AppleOutlined style={{ color: "#1890ff", fontSize: 20 }} />
+            <div>
+              <Text strong>PlayCover 连接</Text>
+              <br />
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                连接 macOS 上运行的 iOS 应用
+              </Text>
+            </div>
+          </div>
+        </Card>
+
+        <div style={{ marginBottom: 16 }}>
+          <Text
+            type="secondary"
+            style={{ fontSize: 12, marginBottom: 6, display: "block" }}
+          >
+            PlayCover 地址 <span style={{ color: "#ff4d4f" }}>*</span>
+          </Text>
+          <input
+            type="text"
+            value={playCoverAddress}
+            onChange={(e) => setPlayCoverAddress(e.target.value)}
+            placeholder="例如: 127.0.0.1:1234"
+            style={{
+              width: "100%",
+              padding: "8px 12px",
+              borderRadius: 6,
+              border: "1px solid #d9d9d9",
+              fontSize: 14,
+              outline: "none",
+            }}
+          />
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <Text
+            type="secondary"
+            style={{ fontSize: 12, marginBottom: 6, display: "block" }}
+          >
+            设备 UUID <span style={{ color: "#ff4d4f" }}>*</span>
+          </Text>
+          <input
+            type="text"
+            value={playCoverUUID}
+            onChange={(e) => setPlayCoverUUID(e.target.value)}
+            placeholder="例如: 12345678-1234-1234-1234-123456789abc"
+            style={{
+              width: "100%",
+              padding: "8px 12px",
+              borderRadius: 6,
+              border: "1px solid #d9d9d9",
+              fontSize: 14,
+              outline: "none",
+            }}
+          />
+        </div>
+
+        <div>
+          <Text
+            type="secondary"
+            style={{ fontSize: 12, marginBottom: 6, display: "block" }}
+          >
+            设备名称 (可选)
+          </Text>
+          <input
+            type="text"
+            value={playCoverName}
+            onChange={(e) => setPlayCoverName(e.target.value)}
+            placeholder="自定义设备名称"
+            style={{
+              width: "100%",
+              padding: "8px 12px",
+              borderRadius: 6,
+              border: "1px solid #d9d9d9",
+              fontSize: 14,
+              outline: "none",
+            }}
+          />
+        </div>
+      </div>
+    );
+
     const statusBadge = getStatusBadge();
 
     return (
@@ -612,74 +743,78 @@ export const ConnectionPanel = memo(
             </div>
           </div>
 
-          {/* 方法配置区 */}
-          <div
-            style={{
-              padding: "16px 24px",
-              backgroundColor: "#fafafa",
-              borderBottom: "1px solid #f0f0f0",
-            }}
-          >
-            <div style={{ display: "flex", gap: 12 }}>
-              <div style={{ flex: 1 }}>
-                <Text
-                  type="secondary"
-                  style={{ fontSize: 12, marginBottom: 6, display: "block" }}
-                >
-                  截图方法 {activeTab === "adb" && "(可多选)"}
-                </Text>
-                <Select
-                  mode={activeTab === "adb" ? "multiple" : undefined}
-                  placeholder="自动选择"
-                  allowClear
-                  value={customScreencap}
-                  onChange={setCustomScreencap}
-                  style={{ width: "100%" }}
-                  options={
-                    selectedDeviceMethods.screencap.length > 0
-                      ? selectedDeviceMethods.screencap.map((m) => ({
-                          label: m,
-                          value: m,
-                        }))
-                      : allMethods.screencap.map((m) => ({
-                          label: m,
-                          value: m,
-                        }))
-                  }
-                />
-              </div>
-              <div style={{ flex: 1 }}>
-                <Text
-                  type="secondary"
-                  style={{ fontSize: 12, marginBottom: 6, display: "block" }}
-                >
-                  输入方法 {activeTab === "adb" && "(可多选)"}
-                </Text>
-                <Select
-                  mode={activeTab === "adb" ? "multiple" : undefined}
-                  placeholder="自动选择"
-                  allowClear
-                  value={customInput}
-                  onChange={setCustomInput}
-                  style={{ width: "100%" }}
-                  options={
-                    selectedDeviceMethods.input.length > 0
-                      ? selectedDeviceMethods.input.map((m) => ({
-                          label: m,
-                          value: m,
-                        }))
-                      : allMethods.input.map((m) => ({ label: m, value: m }))
-                  }
-                />
+          {/* 方法配置区 - PlayCover 不显示 */}
+          {activeTab !== "playcover" && (
+            <div
+              style={{
+                padding: "16px 24px",
+                backgroundColor: "#fafafa",
+                borderBottom: "1px solid #f0f0f0",
+              }}
+            >
+              <div style={{ display: "flex", gap: 12 }}>
+                <div style={{ flex: 1 }}>
+                  <Text
+                    type="secondary"
+                    style={{ fontSize: 12, marginBottom: 6, display: "block" }}
+                  >
+                    截图方法 {activeTab === "adb" && "(可多选)"}
+                  </Text>
+                  <Select
+                    mode={activeTab === "adb" ? "multiple" : undefined}
+                    placeholder="自动选择"
+                    allowClear
+                    value={customScreencap}
+                    onChange={setCustomScreencap}
+                    style={{ width: "100%" }}
+                    options={
+                      selectedDeviceMethods.screencap.length > 0
+                        ? selectedDeviceMethods.screencap.map((m) => ({
+                            label: m,
+                            value: m,
+                          }))
+                        : allMethods.screencap.map((m) => ({
+                            label: m,
+                            value: m,
+                          }))
+                    }
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <Text
+                    type="secondary"
+                    style={{ fontSize: 12, marginBottom: 6, display: "block" }}
+                  >
+                    输入方法 {activeTab === "adb" && "(可多选)"}
+                  </Text>
+                  <Select
+                    mode={activeTab === "adb" ? "multiple" : undefined}
+                    placeholder="自动选择"
+                    allowClear
+                    value={customInput}
+                    onChange={setCustomInput}
+                    style={{ width: "100%" }}
+                    options={
+                      selectedDeviceMethods.input.length > 0
+                        ? selectedDeviceMethods.input.map((m) => ({
+                            label: m,
+                            value: m,
+                          }))
+                        : allMethods.input.map((m) => ({ label: m, value: m }))
+                    }
+                  />
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* 设备类型选择 */}
           <div style={{ padding: "0 24px" }}>
             <Tabs
               activeKey={activeTab}
-              onChange={(key) => setActiveTab(key as "adb" | "win32")}
+              onChange={(key) =>
+                setActiveTab(key as "adb" | "win32" | "playcover")
+              }
               items={[
                 {
                   key: "adb",
@@ -699,6 +834,15 @@ export const ConnectionPanel = memo(
                     </span>
                   ),
                 },
+                {
+                  key: "playcover",
+                  label: (
+                    <span>
+                      <AppleOutlined style={{ marginRight: 8 }} />
+                      PlayCover
+                    </span>
+                  ),
+                },
               ]}
               style={{ marginBottom: 0 }}
             />
@@ -706,7 +850,11 @@ export const ConnectionPanel = memo(
 
           {/* 设备列表 */}
           <div style={{ flex: 1, overflow: "auto", padding: "16px 24px" }}>
-            {activeTab === "adb" ? renderAdbDevices() : renderWin32Windows()}
+            {activeTab === "adb"
+              ? renderAdbDevices()
+              : activeTab === "win32"
+              ? renderWin32Windows()
+              : renderPlayCoverForm()}
           </div>
         </div>
       </Drawer>

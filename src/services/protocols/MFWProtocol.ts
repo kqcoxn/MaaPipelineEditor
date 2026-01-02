@@ -5,6 +5,7 @@ import {
   useMFWStore,
   type AdbDevice,
   type Win32Window,
+  type PlayCoverDevice,
 } from "../../stores/mfwStore";
 
 /**
@@ -20,8 +21,8 @@ export class MFWProtocol extends BaseProtocol {
   private imagePathCallbacks: Array<(data: any) => void> = [];
   // 记录最后一次连接请求的设备信息
   private lastConnectionDevice: {
-    type: "adb" | "win32";
-    deviceInfo: AdbDevice | Win32Window;
+    type: "adb" | "win32" | "playcover";
+    deviceInfo: AdbDevice | Win32Window | PlayCoverDevice;
   } | null = null;
   getName(): string {
     return "MFWProtocol";
@@ -327,6 +328,35 @@ export class MFWProtocol extends BaseProtocol {
     }
 
     return this.wsClient.send("/etl/mfw/create_win32_controller", params);
+  }
+
+  /**
+   * 创建 PlayCover 控制器 (macOS 上运行 iOS 应用)
+   */
+  public createPlayCoverController(params: {
+    address: string;
+    uuid: string;
+    name?: string;
+  }): boolean {
+    if (!this.wsClient) {
+      console.error("[MFWProtocol] WebSocket client not initialized");
+      return false;
+    }
+
+    const mfwStore = useMFWStore.getState();
+    mfwStore.setConnectionStatus("connecting");
+
+    // 记录设备信息
+    this.lastConnectionDevice = {
+      type: "playcover",
+      deviceInfo: {
+        address: params.address,
+        uuid: params.uuid,
+        name: params.name || "PlayCover Device",
+      },
+    };
+
+    return this.wsClient.send("/etl/mfw/create_playcover_controller", params);
   }
 
   /**

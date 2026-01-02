@@ -125,6 +125,36 @@ func (cm *ControllerManager) CreateWin32Controller(hwnd, screencapMethod, inputM
 	return controllerID, nil
 }
 
+// 创建PlayCover控制器 (macOS上运行iOS应用)
+func (cm *ControllerManager) CreatePlayCoverController(address, deviceUUID string) (string, error) {
+	logger.Info("MFW", "创建 PlayCover 控制器: %s", address)
+
+	controllerID := uuid.New().String()
+
+	// 创建 PlayCover 控制器
+	ctrl := maa.NewPlayCoverController(address, deviceUUID)
+	if ctrl == nil {
+		return "", NewMFWError(ErrCodeControllerCreateFail, "failed to create playcover controller", nil)
+	}
+
+	info := &ControllerInfo{
+		ControllerID: controllerID,
+		Type:         "PlayCover",
+		Controller:   ctrl,
+		Connected:    false,
+		UUID:         deviceUUID,
+		CreatedAt:    time.Now(),
+		LastActiveAt: time.Now(),
+	}
+
+	cm.mu.Lock()
+	cm.controllers[controllerID] = info
+	cm.mu.Unlock()
+
+	logger.Info("MFW", "控制器创建成功: %s", controllerID)
+	return controllerID, nil
+}
+
 // 连接控制器
 func (cm *ControllerManager) ConnectController(controllerID string) error {
 	cm.mu.Lock()

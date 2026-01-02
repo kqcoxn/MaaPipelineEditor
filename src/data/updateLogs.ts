@@ -48,11 +48,12 @@ export const pinnedNotice: PinnedNotice = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "0.14.2",
-    date: "2026-1-2",
+    date: "2026-1",
     type: "feature",
     updates: {
       features: [
         "🐛 新增内嵌式字段/连接面板模式，可自由调节缩放比例，让交互逻辑更便捷（可在设置面板切换）",
+        "🍎 LocalBridge 适配 PlayCover 控制器连接",
       ],
       fixes: [
         "修复了外部节点与 Anchor 节点也会拼接前缀的问题",

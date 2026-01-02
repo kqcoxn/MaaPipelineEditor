@@ -3,7 +3,7 @@ import { create } from "zustand";
 /**
  * 设备类型
  */
-export type DeviceType = "adb" | "win32" | null;
+export type DeviceType = "adb" | "win32" | "playcover" | null;
 
 /**
  * 连接状态
@@ -38,9 +38,22 @@ export interface Win32Window {
 }
 
 /**
+ * PlayCover 设备信息 (macOS 上运行 iOS 应用)
+ */
+export interface PlayCoverDevice {
+  address: string;
+  uuid: string;
+  name: string;
+}
+
+/**
  * 设备信息
  */
-export type DeviceInfo = Partial<AdbDevice> | Partial<Win32Window> | null;
+export type DeviceInfo =
+  | Partial<AdbDevice>
+  | Partial<Win32Window>
+  | Partial<PlayCoverDevice>
+  | null;
 
 /**
  * MaaFramework 状态

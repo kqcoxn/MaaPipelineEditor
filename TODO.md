@@ -18,7 +18,6 @@
 
 > 纯前端应用，用户通过浏览器访问。
 
-- 适配 playcover
 - jumpback 改为进入端口
 - 优化整体样式
 - tutorial

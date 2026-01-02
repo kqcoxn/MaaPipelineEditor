@@ -23,6 +23,13 @@ type Win32WindowInfo struct {
 	InputMethods     []string `json:"input_methods"`
 }
 
+// PlayCover设备信息 (macOS上运行iOS应用)
+type PlayCoverDeviceInfo struct {
+	Address string `json:"address"` // PlayCover 应用地址
+	UUID    string `json:"uuid"`    // 设备唯一标识符
+	Name    string `json:"name"`    // 设备显示名称
+}
+
 // 控制器实例信息
 type ControllerInfo struct {
 	ControllerID string    `json:"controller_id"`

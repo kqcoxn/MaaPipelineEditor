@@ -53,6 +53,8 @@ func (h *MFWHandler) Handle(msg models.Message, conn *server.Connection) *models
 		h.handleCreateAdbController(conn, msg)
 	case "/etl/mfw/create_win32_controller":
 		h.handleCreateWin32Controller(conn, msg)
+	case "/etl/mfw/create_playcover_controller":
+		h.handleCreatePlayCoverController(conn, msg)
 	case "/etl/mfw/disconnect_controller":
 		h.handleDisconnectController(conn, msg)
 	case "/etl/mfw/request_screencap":
@@ -212,6 +214,44 @@ func (h *MFWHandler) handleCreateWin32Controller(conn *server.Connection, msg mo
 			"success":       true,
 			"controller_id": controllerID,
 			"type":          "win32",
+		},
+	}
+	conn.Send(response)
+}
+
+func (h *MFWHandler) handleCreatePlayCoverController(conn *server.Connection, msg models.Message) {
+	dataMap, ok := msg.Data.(map[string]interface{})
+	if !ok {
+		h.sendError(conn, errors.NewInvalidRequestError("请求数据格式错误"))
+		return
+	}
+
+	address, _ := dataMap["address"].(string)
+	uuid, _ := dataMap["uuid"].(string)
+
+	controllerID, err := h.service.ControllerManager().CreatePlayCoverController(
+		address, uuid,
+	)
+	if err != nil {
+		logger.Error("MFW", "创建PlayCover控制器失败: %v", err)
+		h.sendMFWError(conn, mfw.ErrCodeControllerCreateFail, "控制器创建失败", err.Error())
+		return
+	}
+
+	// 自动连接控制器
+	if err := h.service.ControllerManager().ConnectController(controllerID); err != nil {
+		logger.Error("MFW", "连接PlayCover控制器失败: %v", err)
+		h.sendMFWError(conn, mfw.ErrCodeControllerConnectFail, "控制器连接失败", err.Error())
+		return
+	}
+
+	// 发送控制器创建响应
+	response := models.Message{
+		Path: "/lte/mfw/controller_created",
+		Data: map[string]interface{}{
+			"success":       true,
+			"controller_id": controllerID,
+			"type":          "playcover",
 		},
 	}
 	conn.Send(response)
