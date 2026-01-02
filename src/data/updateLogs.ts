@@ -55,6 +55,7 @@ export const updateLogs: UpdateLogItem[] = [
       fixes: [
         "修复了外部节点与 Anchor 节点也会拼接前缀的问题",
         "修复了选中状态下节点与连接可能虚创建的问题",
+        "修复不显示使用本地服务导出的问题",
       ],
     },
   },

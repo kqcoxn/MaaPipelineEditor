@@ -14,6 +14,7 @@ import { useShallow } from "zustand/shallow";
 import { flowToPipeline, flowToSeparatedStrings } from "../../../core/parser";
 import { ClipboardHelper } from "../../../utils/clipboard";
 import { ExportFileModal } from "../../modals/ExportFileModal";
+import { CreateFileModal } from "../../modals/CreateFileModal";
 import style from "../../../styles/ToolbarPanel.module.less";
 
 /**
@@ -38,6 +39,7 @@ function ExportButton() {
   );
 
   const [exportModalVisible, setExportModalVisible] = useState(false);
+  const [createFileModalVisible, setCreateFileModalVisible] = useState(false);
   const isPartable = selectedNodes.length > 0;
 
   // 导出操作处理
@@ -58,6 +60,10 @@ function ExportButton() {
     } else {
       message.error("文件保存失败");
     }
+  };
+
+  const handleCreateFileWithLocal = () => {
+    setCreateFileModalVisible(true);
   };
 
   const handlePartialExport = () => {
@@ -105,6 +111,9 @@ function ExportButton() {
       case "export-config":
         handleExportConfig();
         break;
+      case "create-local":
+        handleCreateFileWithLocal();
+        break;
     }
   };
 
@@ -142,6 +151,18 @@ function ExportButton() {
         onClick: () => {
           setDefaultExportAction("save-local");
           executeExportAction("save-local");
+        },
+      });
+    }
+
+    // 仅在已连接本地服务时显示
+    if (wsConnected) {
+      items.push({
+        key: "create-local",
+        label: "使用本地服务创建",
+        onClick: () => {
+          setDefaultExportAction("create-local");
+          executeExportAction("create-local");
         },
       });
     }
@@ -208,6 +229,8 @@ function ExportButton() {
         return { buttonLabel: "导出", currentActionDesc: "Pipeline" };
       case "export-config":
         return { buttonLabel: "导出", currentActionDesc: "配置" };
+      case "create-local":
+        return { buttonLabel: "导出", currentActionDesc: "本地创建" };
       default:
         return { buttonLabel: "导出", currentActionDesc: "粘贴板" };
     }
@@ -233,6 +256,10 @@ function ExportButton() {
       <ExportFileModal
         visible={exportModalVisible}
         onCancel={() => setExportModalVisible(false)}
+      />
+      <CreateFileModal
+        visible={createFileModalVisible}
+        onCancel={() => setCreateFileModalVisible(false)}
       />
     </>
   );

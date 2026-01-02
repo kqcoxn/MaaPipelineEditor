@@ -184,7 +184,7 @@ function ImportButton() {
   const { buttonLabel, currentActionDesc } = useMemo(() => {
     switch (defaultImportAction) {
       case "clipboard-pipeline":
-        return { buttonLabel: "导入", currentActionDesc: "粘贴板 Pipeline" };
+        return { buttonLabel: "导入", currentActionDesc: "粘贴板" };
       case "file-pipeline":
         return { buttonLabel: "导入", currentActionDesc: "文件" };
       case "clipboard-config":
@@ -192,7 +192,7 @@ function ImportButton() {
       case "file-config":
         return { buttonLabel: "导入", currentActionDesc: "配置文件" };
       default:
-        return { buttonLabel: "导入", currentActionDesc: "粘贴板 Pipeline" };
+        return { buttonLabel: "导入", currentActionDesc: "粘贴板" };
     }
   }, [defaultImportAction]);
 
