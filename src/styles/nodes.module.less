@@ -295,3 +295,106 @@
 .anchor {
   background-color: #2e8b7a !important;
 }
+
+// 极简风格节点样式
+.minimal-node {
+  width: 80px;
+  min-height: auto;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  // 节点主体方框
+  .minimalBody {
+    width: 80px;
+    height: 80px;
+    border-radius: 12px;
+    border: 2px solid;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    position: relative;
+
+    &:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+      transform: translateY(-1px);
+    }
+  }
+
+  // 图标容器
+  .minimalIconWrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
+  }
+
+  // 节点名称
+  .minimalLabel {
+    margin-top: 8px;
+    max-width: 90px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #333;
+    text-align: center;
+    line-height: 1.3;
+    word-break: break-word;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+  }
+
+  &.node-selected {
+    .minimalBody {
+      box-shadow: 0 0 0 2px #1890ff, 0 4px 12px rgba(24, 144, 255, 0.25);
+    }
+  }
+}
+
+// 极简风格 Handle
+.minimalHandle {
+  position: absolute !important;
+  width: 10px !important;
+  height: 10px !important;
+  border-radius: 50% !important;
+  border: 2px solid white !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  transition: all 0.15s ease;
+
+  &:hover {
+    width: 14px !important;
+    height: 14px !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  }
+}
+
+.minimalNext {
+  top: 22% !important;
+  right: 1px !important;
+  background-color: @next-color !important;
+}
+
+.minimalError {
+  top: 58% !important;
+  right: 1px !important;
+  background-color: @error-color !important;
+}
+
+.minimalTarget {
+  top: 22% !important;
+  left: 1px !important;
+  background-color: @norm-color !important;
+}
+
+.minimalTargetJumpback {
+  top: 58% !important;
+  left: 1px !important;
+  background-color: @jumpback-color !important;
+}

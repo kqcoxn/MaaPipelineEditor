@@ -100,3 +100,39 @@ export const getNodeTypeIcon = (nodeType: string): RequiredIconConfig => {
       return { name: "icon-m_act", size: 16 };
   }
 };
+
+/**极简节点颜色配置 */
+export type MinimalNodeColor = {
+  primary: string; // 主色（边框、图标）
+  background: string; // 背景色（带透明度）
+};
+
+/**根据识别类型获取极简节点颜色 */
+export const getMinimalNodeColor = (recoType: string): MinimalNodeColor => {
+  switch (recoType) {
+    // 识别类节点 - 科技蓝
+    case "OCR":
+      return { primary: "#1890ff", background: "#e6f4ff" };
+    case "TemplateMatch":
+      return { primary: "#13c2c2", background: "#e6fffb" };
+    case "ColorMatch":
+      return { primary: "#722ed1", background: "#f9f0ff" };
+    case "FeatureMatch":
+      return { primary: "#2f54eb", background: "#f0f5ff" };
+    // AI类节点 - 渐变紫
+    case "NeuralNetworkClassify":
+    case "NeuralNetworkDetect":
+      return { primary: "#9254de", background: "#f9f0ff" };
+    // 逻辑类节点 - 橙色
+    case "And":
+    case "Or":
+      return { primary: "#fa8c16", background: "#fff7e6" };
+    // 自定义节点 - 青色
+    case "Custom":
+      return { primary: "#52c41a", background: "#f6ffed" };
+    // 默认/DirectHit - 中性灰
+    case "DirectHit":
+    default:
+      return { primary: "#595959", background: "#fafafa" };
+  }
+};

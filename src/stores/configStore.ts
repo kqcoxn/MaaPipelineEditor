@@ -4,7 +4,7 @@ import { create } from "zustand";
 export const globalConfig = {
   dev: true,
   version: `0.14.2`,
-  betaIteration: 3,
+  betaIteration: 4,
   mfwVersion: "5.3.0",
   protocolVersion: "0.3",
 };
@@ -63,7 +63,7 @@ export const getExportableConfigs = (
 };
 
 // 节点风格类型
-export type NodeStyleType = "modern" | "classic";
+export type NodeStyleType = "modern" | "classic" | "minimal";
 
 // 节点属性导出形式
 export type NodeAttrExportStyle = "object" | "prefix";

@@ -12,6 +12,7 @@ import { useDebugStore } from "../../../../stores/debugStore";
 import { NodeTypeEnum } from "../constants";
 import { ModernContent } from "./ModernContent";
 import { ClassicContent } from "./ClassicContent";
+import { MinimalContent } from "./MinimalContent";
 import { useShallow } from "zustand/shallow";
 import { NodeContextMenu } from "../components/NodeContextMenu";
 
@@ -105,6 +106,7 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
         [style["pipeline-node"]]: true,
         [style["node-selected"]]: props.selected,
         [style["modern-node"]]: nodeStyle === "modern",
+        [style["minimal-node"]]: nodeStyle === "minimal",
         // 调试相关样式
         [debugStyle["debug-node-executed"]]:
           debugMode && executedNodes.has(props.id),
@@ -120,14 +122,22 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
     return { opacity: focusOpacity };
   }, [isRelated, focusOpacity]);
 
+  // 渲染内容组件
+  const renderContent = () => {
+    switch (nodeStyle) {
+      case "minimal":
+        return <MinimalContent data={props.data} props={props} />;
+      case "modern":
+        return <ModernContent data={props.data} props={props} />;
+      default:
+        return <ClassicContent data={props.data} props={props} />;
+    }
+  };
+
   if (!node) {
     return (
       <div className={nodeClass} style={opacityStyle}>
-        {nodeStyle === "modern" ? (
-          <ModernContent data={props.data} props={props} />
-        ) : (
-          <ClassicContent data={props.data} props={props} />
-        )}
+        {renderContent()}
       </div>
     );
   }
@@ -143,11 +153,7 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
         {debugMode && breakpoints.has(props.id) && (
           <div className={debugStyle["debug-node-breakpoint"]} />
         )}
-        {nodeStyle === "modern" ? (
-          <ModernContent data={props.data} props={props} />
-        ) : (
-          <ClassicContent data={props.data} props={props} />
-        )}
+        {renderContent()}
       </div>
     </NodeContextMenu>
   );

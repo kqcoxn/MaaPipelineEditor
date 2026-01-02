@@ -43,19 +43,20 @@ const PanelConfigSection = memo(() => {
           <Popover
             placement="bottomLeft"
             title={"节点风格"}
-            content="切换节点的显示风格：现代风格具有分组标题和图标，经典风格为原始平铺展示"
+            content="切换节点的显示风格：现代风格具有分组标题和图标，经典风格为原始平铺展示，极简风格仅显示图标和名称"
           >
             <span>节点风格</span>
           </Popover>
         </div>
         <Select
           className={style.value}
-          style={{ width: 70 }}
+          style={{ width: 90 }}
           value={nodeStyle}
           onChange={(value) => setConfig("nodeStyle", value)}
           options={[
             { value: "modern", label: "现代风格" },
             { value: "classic", label: "经典风格" },
+            { value: "minimal", label: "极简风格" },
           ]}
         />
       </div>
