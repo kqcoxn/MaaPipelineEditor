@@ -7,7 +7,7 @@ import type { PipelineNodeDataType } from "../../../../stores/flow";
 import IconFont from "../../../iconfonts";
 import { KVElem } from "../components/KVElem";
 import { getRecognitionIcon, getActionIcon, getNodeTypeIcon } from "../utils";
-import { SourceHandleTypeEnum } from "../constants";
+import { SourceHandleTypeEnum, TargetHandleTypeEnum } from "../constants";
 import { JsonHelper } from "../../../../utils/jsonHelper";
 import { otherFieldSchema } from "../../../../core/fields/other/schema";
 
@@ -212,50 +212,28 @@ export const ModernContent = memo(
         </div>
 
         <Handle
-          id="target"
+          id={TargetHandleTypeEnum.Target}
           className={classNames(style.handle, style.target)}
           type="target"
           position={Position.Left}
-          style={{ top: "50%" }}
+        />
+        <Handle
+          id={TargetHandleTypeEnum.JumpBack}
+          className={classNames(style.handle, style.targetJumpback)}
+          type="target"
+          position={Position.Left}
         />
         <Handle
           id={SourceHandleTypeEnum.Next}
           className={classNames(style.handle, style.next)}
           type="source"
           position={Position.Right}
-          style={
-            headerHeight
-              ? {
-                  top: `calc(${headerHeight}px + (100% - ${headerHeight}px) * 0.25)`,
-                }
-              : undefined
-          }
-        />
-        <Handle
-          id={SourceHandleTypeEnum.JumpBack}
-          className={classNames(style.handle, style.jumpback)}
-          type="source"
-          position={Position.Right}
-          style={
-            headerHeight
-              ? {
-                  top: `calc(${headerHeight}px + (100% - ${headerHeight}px) * 0.5)`,
-                }
-              : undefined
-          }
         />
         <Handle
           id={SourceHandleTypeEnum.Error}
           className={classNames(style.handle, style.error)}
           type="source"
           position={Position.Right}
-          style={
-            headerHeight
-              ? {
-                  top: `calc(${headerHeight}px + (100% - ${headerHeight}px) * 0.75)`,
-                }
-              : undefined
-          }
         />
       </>
     );

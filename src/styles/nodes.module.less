@@ -230,7 +230,11 @@
 }
 
 .external-node {
+  min-height: 60px;
   background-color: #918fbe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   .title {
     color: white;
@@ -239,7 +243,11 @@
 }
 
 .anchor-node {
+  min-height: 60px;
   background-color: #4a9d8e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   .title {
     color: white;
@@ -260,23 +268,24 @@
   }
 }
 
-.target {
-  background-color: @norm-color !important;
-}
-
 .next {
-  top: 25% !important;
+  top: 33.3% !important;
   background-color: @next-color !important;
 }
 
-.jumpback {
-  top: 50% !important;
-  background-color: @jumpback-color !important;
+.error {
+  top: 66.7% !important;
+  background-color: @error-color !important;
 }
 
-.error {
-  top: 75% !important;
-  background-color: @error-color !important;
+.target {
+  top: 33.3% !important;
+  background-color: @norm-color !important;
+}
+
+.targetJumpback {
+  top: 66.7% !important;
+  background-color: @jumpback-color !important;
 }
 
 .external {

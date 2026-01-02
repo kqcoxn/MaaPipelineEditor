@@ -9,6 +9,7 @@ import type {
 import {
   NodeTypeEnum,
   SourceHandleTypeEnum,
+  TargetHandleTypeEnum,
 } from "../../../components/flow/nodes";
 import { recoParamKeys, actionParamKeys } from "../../../core/fields";
 import {
@@ -172,7 +173,7 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
             source: node.id,
             sourceHandle: SourceHandleTypeEnum.Next,
             target: id,
-            targetHandle: "target",
+            targetHandle: TargetHandleTypeEnum.Target,
           });
         });
       }

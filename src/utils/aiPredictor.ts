@@ -1,6 +1,9 @@
 import { OpenAIChat } from "./openai";
 import type { NodeType, EdgeType, PipelineNodeType } from "../stores/flow";
-import { SourceHandleTypeEnum } from "../components/flow/nodes";
+import {
+  SourceHandleTypeEnum,
+  TargetHandleTypeEnum,
+} from "../components/flow/nodes";
 import { useMFWStore } from "../stores/mfwStore";
 import { useFlowStore } from "../stores/flow";
 import { mfwProtocol } from "../services/server";
@@ -116,10 +119,10 @@ export async function collectNodeContext(
     let connectionType: "next" | "jump_back" | "on_error";
     switch (edge.sourceHandle) {
       case SourceHandleTypeEnum.Next:
-        connectionType = "next";
-        break;
-      case SourceHandleTypeEnum.JumpBack:
-        connectionType = "jump_back";
+        connectionType =
+          edge.targetHandle === TargetHandleTypeEnum.JumpBack
+            ? "jump_back"
+            : "next";
         break;
       case SourceHandleTypeEnum.Error:
         connectionType = "on_error";

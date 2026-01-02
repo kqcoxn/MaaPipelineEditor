@@ -9,27 +9,44 @@ import {
   useFlowStore,
   findNodeLabelById,
   type EdgeType,
+  type NodeType,
 } from "../../../stores/flow";
-import { SourceHandleTypeEnum } from "../../flow/nodes";
+import {
+  NodeTypeEnum,
+  SourceHandleTypeEnum,
+  TargetHandleTypeEnum,
+} from "../../flow/nodes";
 import { useToolbarStore } from "../../../stores/toolbarStore";
 import { useConfigStore } from "../../../stores/configStore";
 import { DraggablePanel } from "../common/DraggablePanel";
 
-// 获取连接类型和颜色
-const getEdgeTypeInfo = (edge: EdgeType) => {
+// 获取连接类型信息
+const getEdgeTypeTags = (edge: EdgeType, nodes: NodeType[]) => {
+  const tags: { label: string; color: string }[] = [];
+
+  // jumpback
+  const isJumpBack = edge.targetHandle === TargetHandleTypeEnum.JumpBack;
+  if (isJumpBack) {
+    tags.push({ label: "jumpback", color: "orange" });
+  }
+
+  // anchor
+  const targetNode = nodes.find((n) => n.id === edge.target);
+  if (targetNode?.type === NodeTypeEnum.Anchor) {
+    tags.push({ label: "anchor", color: "blue" });
+  }
+
+  // 基础连接类型
   switch (edge.sourceHandle) {
     case SourceHandleTypeEnum.Next:
-      return { handleType: "next", tagColor: "green" };
-    case SourceHandleTypeEnum.JumpBack:
-      return { handleType: "jump_back", tagColor: "orange" };
+      tags.push({ label: "next", color: "green" });
+      break;
     case SourceHandleTypeEnum.Error:
-      return {
-        handleType: "on_error",
-        tagColor: edge.attributes?.jump_back ? "purple" : "magenta",
-      };
-    default:
-      return { handleType: "unknown", tagColor: "default" };
+      tags.push({ label: "on_error", color: "magenta" });
+      break;
   }
+
+  return tags;
 };
 
 // 边信息展示
@@ -39,8 +56,7 @@ const EdgeInfoElem = memo(
     sourceLabel,
     targetLabel,
     maxOrder,
-    handleType,
-    tagColor,
+    tags,
     onOrderChange,
     onJumpBackChange,
   }: {
@@ -48,8 +64,7 @@ const EdgeInfoElem = memo(
     sourceLabel: string;
     targetLabel: string;
     maxOrder: number;
-    handleType: string;
-    tagColor: string;
+    tags: { label: string; color: string }[];
     onOrderChange: (value: number) => void;
     onJumpBackChange: (checked: boolean) => void;
   }) => {
@@ -67,7 +82,11 @@ const EdgeInfoElem = memo(
           <div className={style["info-item"]}>
             <span className={style.label}>连接类型</span>
             <span className={style.content}>
-              <Tag color={tagColor}>{handleType}</Tag>
+              {tags.map((tag, index) => (
+                <Tag key={index} color={tag.color}>
+                  {tag.label}
+                </Tag>
+              ))}
             </span>
           </div>
           <div className={style["info-item"]}>
@@ -153,24 +172,9 @@ function EdgePanel() {
   // 总边数
   const maxOrder = useMemo(() => {
     if (!currentEdge) return 1;
-
-    const isNextGroup =
-      currentEdge.sourceHandle === SourceHandleTypeEnum.Next ||
-      currentEdge.sourceHandle === SourceHandleTypeEnum.JumpBack;
-
     return edges.filter((e) => {
       if (e.source !== currentEdge.source) return false;
-
-      if (isNextGroup) {
-        // next 和 jumpback 共享排序
-        return (
-          e.sourceHandle === SourceHandleTypeEnum.Next ||
-          e.sourceHandle === SourceHandleTypeEnum.JumpBack
-        );
-      } else {
-        // 独立计数
-        return e.sourceHandle === currentEdge.sourceHandle;
-      }
+      return e.sourceHandle === currentEdge.sourceHandle;
     }).length;
   }, [currentEdge, edges]);
 
@@ -242,8 +246,7 @@ function EdgePanel() {
             sourceLabel={sourceLabel}
             targetLabel={targetLabel}
             maxOrder={maxOrder}
-            handleType={getEdgeTypeInfo(currentEdge).handleType}
-            tagColor={getEdgeTypeInfo(currentEdge).tagColor}
+            tags={getEdgeTypeTags(currentEdge, nodes)}
             onOrderChange={handleOrderChange}
             onJumpBackChange={handleJumpBackChange}
           />

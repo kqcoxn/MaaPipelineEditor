@@ -9,5 +9,9 @@ export const nodeTypes = {
   [NodeTypeEnum.Anchor]: AnchorNodeMemo,
 };
 
-export { NodeTypeEnum, SourceHandleTypeEnum } from "./constants";
+export {
+  NodeTypeEnum,
+  SourceHandleTypeEnum,
+  TargetHandleTypeEnum,
+} from "./constants";
 export type { IconConfig, RequiredIconConfig } from "./utils";

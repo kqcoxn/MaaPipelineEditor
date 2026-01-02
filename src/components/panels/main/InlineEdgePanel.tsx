@@ -10,29 +10,46 @@ import {
   useFlowStore,
   findNodeLabelById,
   type EdgeType,
+  type NodeType,
 } from "../../../stores/flow";
-import { SourceHandleTypeEnum } from "../../flow/nodes";
+import {
+  NodeTypeEnum,
+  SourceHandleTypeEnum,
+  TargetHandleTypeEnum,
+} from "../../flow/nodes";
 import { useConfigStore } from "../../../stores/configStore";
 import IconFont from "../../iconfonts";
 
 // 面板默认宽度
 const PANEL_WIDTH = 240;
 
-// 获取连接类型和颜色
-const getEdgeTypeInfo = (edge: EdgeType) => {
+// 获取连接类型信息
+const getEdgeTypeTags = (edge: EdgeType, nodes: NodeType[]) => {
+  const tags: { label: string; color: string }[] = [];
+
+  // jumpback
+  const isJumpBack = edge.targetHandle === TargetHandleTypeEnum.JumpBack;
+  if (isJumpBack) {
+    tags.push({ label: "jumpback", color: "orange" });
+  }
+
+  // anchor
+  const targetNode = nodes.find((n) => n.id === edge.target);
+  if (targetNode?.type === NodeTypeEnum.Anchor) {
+    tags.push({ label: "anchor", color: "blue" });
+  }
+
+  // 基础连接类型
   switch (edge.sourceHandle) {
     case SourceHandleTypeEnum.Next:
-      return { handleType: "next", tagColor: "green" };
-    case SourceHandleTypeEnum.JumpBack:
-      return { handleType: "jump_back", tagColor: "orange" };
+      tags.push({ label: "next", color: "green" });
+      break;
     case SourceHandleTypeEnum.Error:
-      return {
-        handleType: "on_error",
-        tagColor: edge.attributes?.jump_back ? "purple" : "magenta",
-      };
-    default:
-      return { handleType: "unknown", tagColor: "default" };
+      tags.push({ label: "on_error", color: "magenta" });
+      break;
   }
+
+  return tags;
 };
 
 /**内嵌连接面板 - 在边中点附近渲染 */
@@ -120,22 +137,9 @@ function InlineEdgePanel() {
   // 总边数
   const maxOrder = useMemo(() => {
     if (!currentEdge) return 1;
-
-    const isNextGroup =
-      currentEdge.sourceHandle === SourceHandleTypeEnum.Next ||
-      currentEdge.sourceHandle === SourceHandleTypeEnum.JumpBack;
-
     return edges.filter((e) => {
       if (e.source !== currentEdge.source) return false;
-
-      if (isNextGroup) {
-        return (
-          e.sourceHandle === SourceHandleTypeEnum.Next ||
-          e.sourceHandle === SourceHandleTypeEnum.JumpBack
-        );
-      } else {
-        return e.sourceHandle === currentEdge.sourceHandle;
-      }
+      return e.sourceHandle === currentEdge.sourceHandle;
     }).length;
   }, [currentEdge, edges]);
 
@@ -181,7 +185,7 @@ function InlineEdgePanel() {
     return null;
   }
 
-  const { handleType, tagColor } = getEdgeTypeInfo(currentEdge);
+  const tags = getEdgeTypeTags(currentEdge, nodes);
 
   return (
     <ViewportPortal>
@@ -237,7 +241,11 @@ function InlineEdgePanel() {
             <div className={edgeStyle["info-item"]}>
               <span className={edgeStyle.label}>连接类型</span>
               <span className={edgeStyle.content}>
-                <Tag color={tagColor}>{handleType}</Tag>
+                {tags.map((tag, index) => (
+                  <Tag key={index} color={tag.color}>
+                    {tag.label}
+                  </Tag>
+                ))}
               </span>
             </div>
             <div className={edgeStyle["info-item"]}>

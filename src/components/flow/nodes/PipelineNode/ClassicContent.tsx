@@ -5,7 +5,7 @@ import classNames from "classnames";
 import style from "../../../../styles/nodes.module.less";
 import type { PipelineNodeDataType } from "../../../../stores/flow";
 import { KVElem } from "../components/KVElem";
-import { SourceHandleTypeEnum } from "../constants";
+import { SourceHandleTypeEnum, TargetHandleTypeEnum } from "../constants";
 import { JsonHelper } from "../../../../utils/jsonHelper";
 
 /**经典风格Pipeline节点内容 */
@@ -71,20 +71,22 @@ export const ClassicContent = memo(
           </ul>
         </ul>
         <Handle
-          id="target"
+          id={TargetHandleTypeEnum.Target}
           className={classNames(style.handle, style.target)}
           type="target"
           position={Position.Left}
+          style={{ top: "35%" }}
+        />
+        <Handle
+          id={TargetHandleTypeEnum.JumpBack}
+          className={classNames(style.handle, style.targetJumpback)}
+          type="target"
+          position={Position.Left}
+          style={{ top: "65%" }}
         />
         <Handle
           id={SourceHandleTypeEnum.Next}
           className={classNames(style.handle, style.next)}
-          type="source"
-          position={Position.Right}
-        />
-        <Handle
-          id={SourceHandleTypeEnum.JumpBack}
-          className={classNames(style.handle, style.jumpback)}
           type="source"
           position={Position.Right}
         />

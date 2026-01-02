@@ -5,7 +5,10 @@ import type {
   IdLabelPairsType,
   EdgeAttributesType,
 } from "./types";
-import { SourceHandleTypeEnum } from "../../components/flow/nodes";
+import {
+  SourceHandleTypeEnum,
+  TargetHandleTypeEnum,
+} from "../../components/flow/nodes";
 
 // 节点属性对象形式类型
 export type NodeAttr = {
@@ -129,20 +132,20 @@ export function linkEdge(
       });
     }
 
-    // 确定实际的源端点类型
-    let actualType = type;
+    // 确定目标入口类型
+    let targetHandle = TargetHandleTypeEnum.Target;
     if (attributes.jump_back && type === SourceHandleTypeEnum.Next) {
-      actualType = SourceHandleTypeEnum.JumpBack;
+      targetHandle = TargetHandleTypeEnum.JumpBack;
       delete attributes.jump_back;
     }
 
     // 创建连接
     const edge: EdgeType = {
-      id: `${sourceId}_${actualType}_${targetId ?? externalId}`,
+      id: `${sourceId}_${type}_${targetId ?? externalId}`,
       source: sourceId,
-      sourceHandle: actualType,
+      sourceHandle: type,
       target: targetId ?? externalId,
-      targetHandle: "target",
+      targetHandle: targetHandle,
       label: index + 1,
       type: "marked",
     };

@@ -8,6 +8,7 @@ import type {
 import {
   NodeTypeEnum,
   SourceHandleTypeEnum,
+  TargetHandleTypeEnum,
 } from "../../components/flow/nodes";
 
 // 位置类型
@@ -28,7 +29,7 @@ export type EdgeType = {
   source: string;
   sourceHandle: SourceHandleTypeEnum;
   target: string;
-  targetHandle: "target";
+  targetHandle: TargetHandleTypeEnum;
   label: number;
   type: "marked";
   selected?: boolean;

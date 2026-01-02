@@ -21,24 +21,10 @@ export function calcuLinkOrder(
   type: SourceHandleTypeEnum
 ): number {
   let order = 1;
-  const isNextGroup =
-    type === SourceHandleTypeEnum.Next ||
-    type === SourceHandleTypeEnum.JumpBack;
 
   edges.forEach((edge) => {
-    if (edge.source === source) {
-      if (isNextGroup) {
-        // next、jump_back
-        if (
-          edge.sourceHandle === SourceHandleTypeEnum.Next ||
-          edge.sourceHandle === SourceHandleTypeEnum.JumpBack
-        ) {
-          order++;
-        }
-      } else {
-        // 其他类型
-        if (edge.sourceHandle === type) order++;
-      }
+    if (edge.source === source && edge.sourceHandle === type) {
+      order++;
     }
   });
   return order;

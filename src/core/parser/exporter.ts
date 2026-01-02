@@ -6,6 +6,7 @@ import { ErrorTypeEnum, findErrorsByType } from "../../stores/errorStore";
 import {
   NodeTypeEnum,
   SourceHandleTypeEnum,
+  TargetHandleTypeEnum,
 } from "../../components/flow/nodes";
 import type {
   FlowToOptions,
@@ -120,9 +121,8 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
       // 判断是否是 Anchor 节点或有 anchor 属性
       const isAnchor =
         targetNode?.type === NodeTypeEnum.Anchor || edge.attributes?.anchor;
-      // 判断是否有 jump_back 属性
       const hasJumpBack =
-        edge.sourceHandle === SourceHandleTypeEnum.JumpBack ||
+        edge.targetHandle === TargetHandleTypeEnum.JumpBack ||
         edge.attributes?.jump_back;
 
       // 构建目标节点引用
@@ -150,10 +150,7 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
       }
 
       // 添加链接
-      const linkType =
-        edge.sourceHandle === SourceHandleTypeEnum.JumpBack
-          ? SourceHandleTypeEnum.Next
-          : (edge.sourceHandle as SourceHandleTypeEnum);
+      const linkType = edge.sourceHandle as SourceHandleTypeEnum;
       if (!(linkType in pSourceNode)) pSourceNode[linkType] = [];
       pSourceNode[linkType].push(toPNodeRef);
     });

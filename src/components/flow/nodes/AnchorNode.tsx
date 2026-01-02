@@ -13,7 +13,7 @@ import style from "../../../styles/nodes.module.less";
 import type { AnchorNodeDataType } from "../../../stores/flow";
 import { useFlowStore } from "../../../stores/flow";
 import { useConfigStore } from "../../../stores/configStore";
-import { NodeTypeEnum } from "./constants";
+import { NodeTypeEnum, TargetHandleTypeEnum } from "./constants";
 import { NodeContextMenu } from "./components/NodeContextMenu";
 
 /**重定向节点内容 */
@@ -22,10 +22,18 @@ const ANodeContent = memo(({ data }: { data: AnchorNodeDataType }) => {
     <>
       <div className={style.title}>{data.label}</div>
       <Handle
-        id="target"
+        id={TargetHandleTypeEnum.Target}
         className={classNames(style.handle, style.anchor)}
         type="target"
         position={Position.Left}
+        style={{ top: "30%" }}
+      />
+      <Handle
+        id={TargetHandleTypeEnum.JumpBack}
+        className={classNames(style.handle, style.targetJumpback)}
+        type="target"
+        position={Position.Left}
+        style={{ bottom: "10%" }}
       />
     </>
   );

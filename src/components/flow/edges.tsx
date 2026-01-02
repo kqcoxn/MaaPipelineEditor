@@ -14,7 +14,7 @@ import { useShallow } from "zustand/shallow";
 import { useConfigStore } from "../../stores/configStore";
 import { useFlowStore } from "../../stores/flow";
 import { useDebugStore } from "../../stores/debugStore";
-import { SourceHandleTypeEnum } from "./nodes";
+import { SourceHandleTypeEnum, TargetHandleTypeEnum } from "./nodes";
 
 // 计算带控制点偏移的贝塞尔曲线路径
 function getCustomBezierPath({
@@ -338,17 +338,14 @@ function MarkedEdge(props: EdgeProps) {
     if (props.selected) {
       markClass = style["edge-selected"];
     } else {
-      const hasJumpBack = edge?.attributes?.jump_back;
+      const isJumpBack = props.targetHandleId === TargetHandleTypeEnum.JumpBack;
 
       switch (props.sourceHandleId) {
         case SourceHandleTypeEnum.Next:
-          markClass = style["edge-next"];
-          break;
-        case SourceHandleTypeEnum.JumpBack:
-          markClass = style["edge-jumpback"];
+          markClass = isJumpBack ? style["edge-jumpback"] : style["edge-next"];
           break;
         case SourceHandleTypeEnum.Error:
-          markClass = hasJumpBack
+          markClass = isJumpBack
             ? style["edge-error-jumpback"]
             : style["edge-error"];
           break;
@@ -369,9 +366,9 @@ function MarkedEdge(props: EdgeProps) {
   }, [
     props.selected,
     props.sourceHandleId,
+    props.targetHandleId,
     props.source,
     props.target,
-    edge?.attributes?.jump_back,
     debugMode,
     executedNodes,
   ]);
