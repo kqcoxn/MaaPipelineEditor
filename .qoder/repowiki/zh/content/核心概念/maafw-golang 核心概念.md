@@ -21,6 +21,11 @@
 - [instructions/maafw-golang-binding/核心概念/事件系统重构.md](file://instructions/maafw-golang-binding/核心概念/事件系统重构.md)
 - [instructions/maafw-golang-binding/核心概念/控制器 (Controller)/PlayCover控制器.md](file://instructions/maafw-golang-binding/核心概念/控制器 (Controller)/PlayCover控制器.md)
 - [instructions/maafw-golang-binding/高级功能/基于节点的流水线系统.md](file://instructions/maafw-golang-binding/高级功能/基于节点的流水线系统.md)
+- [controller.go](file://controller.go)
+- [internal/native/framework.go](file://internal/native/framework.go)
+- [event.go](file://event.go)
+- [LocalBridge/internal/mfw/controller_manager.go](file://LocalBridge/internal/mfw/controller_manager.go)
+- [LocalBridge/internal/mfw/types.go](file://LocalBridge/internal/mfw/types.go)
 </cite>
 
 ## 更新摘要
@@ -475,12 +480,18 @@ TaskerEventSinkAdapter ..|> TaskerEventSink
 ### PlayCover控制器
 **章节来源**
 - [instructions/maafw-golang-binding/核心概念/控制器 (Controller)/PlayCover控制器.md](file://instructions/maafw-golang-binding/核心概念/控制器 (Controller)/PlayCover控制器.md)
+- [controller.go](file://controller.go#L54-L68)
+- [controller.go](file://controller.go#L179-L247)
+- [controller.go](file://controller.go#L336-L358)
+- [LocalBridge/internal/mfw/controller_manager.go](file://LocalBridge/internal/mfw/controller_manager.go#L128-L156)
+- [LocalBridge/internal/mfw/types.go](file://LocalBridge/internal/mfw/types.go#L26-L31)
 
 PlayCover控制器是专为与macOS上运行的iOS应用（通过PlayCover兼容层）进行交互而设计的控制器。
 - **创建方式**：通过 `NewPlayCoverController(address, uuid string)` 创建，需要提供PlayCover应用的地址和控制器的唯一标识符。
 - **核心功能**：支持连接管理、输入操作（点击、滑动、文本输入）、屏幕截图、应用管理（启动/停止）和事件回调。
 - **异步操作**：所有操作（如 `PostClick`, `PostSwipe`）均返回 `Job` 实例，采用异步模式执行。
-- **事件回调**：通过 `AddSink` 方法注册 `ControllerEventSink`，监听控制器的动作状态变化。
+- **特性标志**：PlayCover控制器的特性标志为 `MaaControllerFeature_UseMouseDownAndUpInsteadOfClick`，表示框架会使用 touch_down + touch_up 代替 click 操作。
+- **集成实现**：在 `LocalBridge/internal/mfw/controller_manager.go` 中，`CreatePlayCoverController` 方法封装了控制器的创建过程，生成唯一ID并维护控制器状态，确保与框架其他组件（如资源管理器、任务管理器）的协同工作。
 
 ```mermaid
 classDiagram
