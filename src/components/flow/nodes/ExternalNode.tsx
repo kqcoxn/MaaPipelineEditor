@@ -1,7 +1,5 @@
 import { memo, useMemo, useState } from "react";
 import {
-  Handle,
-  Position,
   type Node,
   type NodeProps,
   useReactFlow,
@@ -13,28 +11,16 @@ import style from "../../../styles/nodes.module.less";
 import type { ExternalNodeDataType } from "../../../stores/flow";
 import { useFlowStore } from "../../../stores/flow";
 import { useConfigStore } from "../../../stores/configStore";
-import { NodeTypeEnum, TargetHandleTypeEnum } from "./constants";
+import { NodeTypeEnum } from "./constants";
 import { NodeContextMenu } from "./components/NodeContextMenu";
+import { ExternalNodeHandles } from "./components/NodeHandles";
 
 /**外部节点内容 */
 const ENodeContent = memo(({ data }: { data: ExternalNodeDataType }) => {
   return (
     <>
       <div className={style.title}>{data.label}</div>
-      <Handle
-        id={TargetHandleTypeEnum.Target}
-        className={classNames(style.handle, style.external)}
-        type="target"
-        position={Position.Left}
-        style={{ top: "30%" }}
-      />
-      <Handle
-        id={TargetHandleTypeEnum.JumpBack}
-        className={classNames(style.handle, style.targetJumpback)}
-        type="target"
-        position={Position.Left}
-        style={{ bottom: "10%" }}
-      />
+      <ExternalNodeHandles direction={data.handleDirection} />
     </>
   );
 });
@@ -158,7 +144,10 @@ export const ExternalNodeMemo = memo(ExternalNode, (prev, next) => {
   }
 
   // data 字段比较
-  if (prev.data.label !== next.data.label) {
+  if (
+    prev.data.label !== next.data.label ||
+    prev.data.handleDirection !== next.data.handleDirection
+  ) {
     return false;
   }
 

@@ -1,7 +1,5 @@
 import { memo, useMemo, useState } from "react";
 import {
-  Handle,
-  Position,
   type Node,
   type NodeProps,
   useReactFlow,
@@ -13,28 +11,16 @@ import style from "../../../styles/nodes.module.less";
 import type { AnchorNodeDataType } from "../../../stores/flow";
 import { useFlowStore } from "../../../stores/flow";
 import { useConfigStore } from "../../../stores/configStore";
-import { NodeTypeEnum, TargetHandleTypeEnum } from "./constants";
+import { NodeTypeEnum } from "./constants";
 import { NodeContextMenu } from "./components/NodeContextMenu";
+import { AnchorNodeHandles } from "./components/NodeHandles";
 
 /**重定向节点内容 */
 const ANodeContent = memo(({ data }: { data: AnchorNodeDataType }) => {
   return (
     <>
       <div className={style.title}>{data.label}</div>
-      <Handle
-        id={TargetHandleTypeEnum.Target}
-        className={classNames(style.handle, style.anchor)}
-        type="target"
-        position={Position.Left}
-        style={{ top: "30%" }}
-      />
-      <Handle
-        id={TargetHandleTypeEnum.JumpBack}
-        className={classNames(style.handle, style.targetJumpback)}
-        type="target"
-        position={Position.Left}
-        style={{ bottom: "10%" }}
-      />
+      <AnchorNodeHandles direction={data.handleDirection} />
     </>
   );
 });
@@ -158,7 +144,10 @@ export const AnchorNodeMemo = memo(AnchorNode, (prev, next) => {
   }
 
   // data 字段比较
-  if (prev.data.label !== next.data.label) {
+  if (
+    prev.data.label !== next.data.label ||
+    prev.data.handleDirection !== next.data.handleDirection
+  ) {
     return false;
   }
 

@@ -268,6 +268,20 @@
   }
 }
 
+// 垂直方向 Handle（上下/下上）
+.handleVertical {
+  position: absolute !important;
+  width: 18px !important;
+  height: 8px !important;
+  border-radius: 4px !important;
+  transition: all 0.1s ease;
+
+  &:hover {
+    width: 20px !important;
+    height: 9px !important;
+  }
+}
+
 .next {
   top: 33.3% !important;
   background-color: @next-color !important;
@@ -285,6 +299,30 @@
 
 .targetJumpback {
   top: 66.7% !important;
+  background-color: @jumpback-color !important;
+}
+
+.nextVertical {
+  left: 33.3% !important;
+  transform: translateX(-50%);
+  background-color: @next-color !important;
+}
+
+.errorVertical {
+  left: 66.7% !important;
+  transform: translateX(-50%);
+  background-color: @error-color !important;
+}
+
+.targetVertical {
+  left: 33.3% !important;
+  transform: translateX(-50%);
+  background-color: @norm-color !important;
+}
+
+.targetJumpbackVertical {
+  left: 66.7% !important;
+  transform: translateX(-50%);
   background-color: @jumpback-color !important;
 }
 
@@ -396,5 +434,46 @@
 .minimalTargetJumpback {
   top: 58% !important;
   left: 1px !important;
+  background-color: @jumpback-color !important;
+}
+
+// 极简风格垂直方向 Handle
+.minimalHandleVertical {
+  position: absolute !important;
+  width: 10px !important;
+  height: 10px !important;
+  border-radius: 50% !important;
+  border: 2px solid white !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  transition: all 0.15s ease;
+
+  &:hover {
+    width: 14px !important;
+    height: 14px !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  }
+}
+
+.minimalNextVertical {
+  left: 22% !important;
+  transform: translateX(-50%);
+  background-color: @next-color !important;
+}
+
+.minimalErrorVertical {
+  left: 58% !important;
+  transform: translateX(-50%);
+  background-color: @error-color !important;
+}
+
+.minimalTargetVertical {
+  left: 22% !important;
+  transform: translateX(-50%);
+  background-color: @norm-color !important;
+}
+
+.minimalTargetJumpbackVertical {
+  left: 58% !important;
+  transform: translateX(-50%);
   background-color: @jumpback-color !important;
 }

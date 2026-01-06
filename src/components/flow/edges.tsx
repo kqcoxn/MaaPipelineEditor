@@ -14,7 +14,13 @@ import { useShallow } from "zustand/shallow";
 import { useConfigStore } from "../../stores/configStore";
 import { useFlowStore } from "../../stores/flow";
 import { useDebugStore } from "../../stores/debugStore";
-import { SourceHandleTypeEnum, TargetHandleTypeEnum } from "./nodes";
+import { SourceHandleTypeEnum, TargetHandleTypeEnum, getHandlePositions, DEFAULT_HANDLE_DIRECTION } from "./nodes";
+import type { HandleDirection } from "./nodes";
+
+// 判断位置是否为水平方向
+function isHorizontalPosition(position: string): boolean {
+  return position === "right" || position === "left";
+}
 
 // 计算带控制点偏移的贝塞尔曲线路径
 function getCustomBezierPath({
@@ -67,17 +73,28 @@ function getCustomBezierPath({
   // 计算基础控制点方向
   let baseCP1x: number, baseCP1y: number, baseCP2x: number, baseCP2y: number;
 
-  if (sourcePosition === "right" || sourcePosition === "left") {
+  const sourceIsHorizontal = isHorizontalPosition(sourcePosition);
+  const targetIsHorizontal = isHorizontalPosition(targetPosition);
+
+  // 根据源节点方向计算第一个基础控制点
+  if (sourceIsHorizontal) {
     const offset = Math.max(baseTangentLen, 30) * tangentScale;
     baseCP1x = sourcePosition === "right" ? sourceX + offset : sourceX - offset;
     baseCP1y = sourceY;
-    baseCP2x = targetPosition === "left" ? targetX - offset : targetX + offset;
-    baseCP2y = targetY;
   } else {
     const offset = Math.max(baseTangentLen, 30) * tangentScale;
     baseCP1x = sourceX;
     baseCP1y =
       sourcePosition === "bottom" ? sourceY + offset : sourceY - offset;
+  }
+
+  // 根据目标节点方向计算第二个基础控制点
+  if (targetIsHorizontal) {
+    const offset = Math.max(baseTangentLen, 30) * tangentScale;
+    baseCP2x = targetPosition === "left" ? targetX - offset : targetX + offset;
+    baseCP2y = targetY;
+  } else {
+    const offset = Math.max(baseTangentLen, 30) * tangentScale;
     baseCP2x = targetX;
     baseCP2y = targetPosition === "top" ? targetY - offset : targetY + offset;
   }
@@ -126,32 +143,46 @@ function getStandardBezierPath({
   sourcePosition: string;
   targetPosition: string;
 }): [string, number, number] {
-  const midX = (sourceX + targetX) / 2;
-  const midY = (sourceY + targetY) / 2;
-
   const curvature = 0.25;
   const deltaX = Math.abs(targetX - sourceX);
   const deltaY = Math.abs(targetY - sourceY);
 
   let cp1x: number, cp1y: number, cp2x: number, cp2y: number;
 
-  if (sourcePosition === "right" || sourcePosition === "left") {
-    const offset = deltaX * curvature;
+  const sourceIsHorizontal = isHorizontalPosition(sourcePosition);
+  const targetIsHorizontal = isHorizontalPosition(targetPosition);
+
+  // 根据源节点方向计算第一个控制点
+  if (sourceIsHorizontal) {
+    const offset = Math.max(deltaX * curvature, 30);
     cp1x = sourcePosition === "right" ? sourceX + offset : sourceX - offset;
     cp1y = sourceY;
+  } else {
+    const offset = Math.max(deltaY * curvature, 30);
+    cp1x = sourceX;
+    cp1y = sourcePosition === "bottom" ? sourceY + offset : sourceY - offset;
+  }
+
+  // 根据目标节点方向计算第二个控制点
+  if (targetIsHorizontal) {
+    const offset = Math.max(deltaX * curvature, 30);
     cp2x = targetPosition === "left" ? targetX - offset : targetX + offset;
     cp2y = targetY;
   } else {
-    const offset = deltaY * curvature;
-    cp1x = sourceX;
-    cp1y = sourcePosition === "bottom" ? sourceY + offset : sourceY - offset;
+    const offset = Math.max(deltaY * curvature, 30);
     cp2x = targetX;
     cp2y = targetPosition === "top" ? targetY - offset : targetY + offset;
   }
 
   const path = `M ${sourceX} ${sourceY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${targetX} ${targetY}`;
 
-  return [path, midX, midY];
+  // 计算贝塞尔曲线的实际中点 (t=0.5)
+  const t = 0.5;
+  const mt = 1 - t;
+  const labelX = mt * mt * mt * sourceX + 3 * mt * mt * t * cp1x + 3 * mt * t * t * cp2x + t * t * t * targetX;
+  const labelY = mt * mt * mt * sourceY + 3 * mt * mt * t * cp1y + 3 * mt * t * t * cp2y + t * t * t * targetY;
+
+  return [path, labelX, labelY];
 }
 
 function MarkedEdge(props: EdgeProps) {
@@ -161,6 +192,29 @@ function MarkedEdge(props: EdgeProps) {
   const showEdgeControlPoint = useConfigStore(
     (state) => state.configs.showEdgeControlPoint
   );
+
+  // 直接从节点数据获取方向信息
+  const { sourceDirection, targetDirection } = useFlowStore(
+    useShallow((state) => {
+      const sourceNode = state.nodes.find((n) => n.id === props.source);
+      const targetNode = state.nodes.find((n) => n.id === props.target);
+      return {
+        sourceDirection: (sourceNode?.data?.handleDirection as HandleDirection) || DEFAULT_HANDLE_DIRECTION,
+        targetDirection: (targetNode?.data?.handleDirection as HandleDirection) || DEFAULT_HANDLE_DIRECTION,
+      };
+    })
+  );
+
+  // 根据节点方向获取实际的 Handle 位置
+  const actualSourcePosition = useMemo(() => {
+    const { sourcePosition } = getHandlePositions(sourceDirection);
+    return sourcePosition.toLowerCase();
+  }, [sourceDirection]);
+
+  const actualTargetPosition = useMemo(() => {
+    const { targetPosition } = getHandlePositions(targetDirection);
+    return targetPosition.toLowerCase();
+  }, [targetDirection]);
 
   // 控制点拖拽状态
   const [controlOffset, setControlOffset] = useState({ x: 0, y: 0 });
@@ -188,8 +242,8 @@ function MarkedEdge(props: EdgeProps) {
         sourceY: props.sourceY,
         targetX: props.targetX,
         targetY: props.targetY,
-        sourcePosition: props.sourcePosition ?? "bottom",
-        targetPosition: props.targetPosition ?? "top",
+        sourcePosition: actualSourcePosition,
+        targetPosition: actualTargetPosition,
         controlOffset,
       });
     }
@@ -199,16 +253,16 @@ function MarkedEdge(props: EdgeProps) {
       sourceY: props.sourceY,
       targetX: props.targetX,
       targetY: props.targetY,
-      sourcePosition: props.sourcePosition ?? "bottom",
-      targetPosition: props.targetPosition ?? "top",
+      sourcePosition: actualSourcePosition,
+      targetPosition: actualTargetPosition,
     });
   }, [
     props.sourceX,
     props.sourceY,
     props.targetX,
     props.targetY,
-    props.sourcePosition,
-    props.targetPosition,
+    actualSourcePosition,
+    actualTargetPosition,
     controlOffset,
   ]);
 

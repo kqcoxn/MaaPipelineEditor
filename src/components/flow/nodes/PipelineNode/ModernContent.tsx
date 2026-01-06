@@ -1,13 +1,13 @@
 import { memo, useMemo, useRef, useEffect, useState } from "react";
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { type NodeProps } from "@xyflow/react";
 import classNames from "classnames";
 
 import style from "../../../../styles/nodes.module.less";
 import type { PipelineNodeDataType } from "../../../../stores/flow";
 import IconFont from "../../../iconfonts";
 import { KVElem } from "../components/KVElem";
+import { PipelineNodeHandles } from "../components/NodeHandles";
 import { getRecognitionIcon, getActionIcon, getNodeTypeIcon } from "../utils";
-import { SourceHandleTypeEnum, TargetHandleTypeEnum } from "../constants";
 import { JsonHelper } from "../../../../utils/jsonHelper";
 import { otherFieldSchema } from "../../../../core/fields/other/schema";
 
@@ -211,30 +211,7 @@ export const ModernContent = memo(
           )}
         </div>
 
-        <Handle
-          id={TargetHandleTypeEnum.Target}
-          className={classNames(style.handle, style.target)}
-          type="target"
-          position={Position.Left}
-        />
-        <Handle
-          id={TargetHandleTypeEnum.JumpBack}
-          className={classNames(style.handle, style.targetJumpback)}
-          type="target"
-          position={Position.Left}
-        />
-        <Handle
-          id={SourceHandleTypeEnum.Next}
-          className={classNames(style.handle, style.next)}
-          type="source"
-          position={Position.Right}
-        />
-        <Handle
-          id={SourceHandleTypeEnum.Error}
-          className={classNames(style.handle, style.error)}
-          type="source"
-          position={Position.Right}
-        />
+        <PipelineNodeHandles direction={data.handleDirection} />
       </>
     );
   }

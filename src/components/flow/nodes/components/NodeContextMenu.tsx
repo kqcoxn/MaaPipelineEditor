@@ -1,12 +1,15 @@
-import { Dropdown, Menu } from "antd";
+import { Dropdown } from "antd";
 import type { MenuProps } from "antd";
 import { memo, useMemo } from "react";
+import { CheckOutlined } from "@ant-design/icons";
 import IconFont from "../../../iconfonts";
 import type { IconNames } from "../../../iconfonts";
 import {
   getNodeContextMenuConfig,
   type NodeContextMenuNode,
   type NodeContextMenuItem,
+  type NodeContextMenuWithChildren,
+  type NodeContextMenuSubItem,
 } from "../nodeContextMenu";
 
 interface NodeContextMenuProps {
@@ -40,7 +43,69 @@ export const NodeContextMenu = memo<NodeContextMenuProps>(
             };
           }
 
-          // 菜单项
+          // 带子菜单的菜单项
+          if ("children" in item) {
+            const submenuItem = item as NodeContextMenuWithChildren;
+            return {
+              key: submenuItem.key,
+              label: (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  {typeof submenuItem.icon === "string" ? (
+                    <IconFont
+                      name={submenuItem.icon as IconNames}
+                      size={submenuItem.iconSize ?? 16}
+                    />
+                  ) : (
+                    submenuItem.icon
+                  )}
+                  <span>{submenuItem.label}</span>
+                </div>
+              ),
+              children: submenuItem.children.map((child: NodeContextMenuSubItem) => {
+                const isChecked =
+                  typeof child.checked === "function"
+                    ? child.checked(node)
+                    : child.checked;
+                const isDisabled =
+                  typeof child.disabled === "function"
+                    ? child.disabled(node)
+                    : child.disabled;
+                return {
+                  key: child.key,
+                  label: (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        minWidth: 60,
+                      }}
+                    >
+                      {isChecked && <CheckOutlined style={{ fontSize: 12 }} />}
+                      <span style={{ marginLeft: isChecked ? 0 : 20 }}>
+                        {child.label}
+                      </span>
+                    </div>
+                  ),
+                  onClick: () => {
+                    if (!isDisabled) {
+                      child.onClick(node);
+                      onOpenChange(false);
+                    }
+                  },
+                  disabled: isDisabled,
+                };
+              }),
+            };
+          }
+
+          // 普通菜单项
           const menuItem = item as NodeContextMenuItem;
           const disabled =
             typeof menuItem.disabled === "function"

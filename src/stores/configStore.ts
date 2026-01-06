@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { HandleDirection } from "../components/flow/nodes/constants";
 
 /**固有配置 */
 export const globalConfig = {
@@ -23,6 +24,7 @@ export type FieldPanelMode = "fixed" | "draggable" | "inline";
 export const configCategoryMap: Record<string, ConfigCategory> = {
   // Pipeline 配置
   nodeAttrExportStyle: "pipeline",
+  defaultHandleDirection: "pipeline",
   // 面板配置
   nodeStyle: "panel",
   historyLimit: "panel",
@@ -87,6 +89,7 @@ type ConfigState = {
     historyLimit: number;
     nodeStyle: NodeStyleType;
     nodeAttrExportStyle: NodeAttrExportStyle;
+    defaultHandleDirection: HandleDirection;
     wsPort: number;
     wsAutoConnect: boolean;
     fileAutoReload: boolean;
@@ -135,6 +138,7 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     historyLimit: 100,
     nodeStyle: "modern" as NodeStyleType,
     nodeAttrExportStyle: "object" as NodeAttrExportStyle,
+    defaultHandleDirection: "left-right" as HandleDirection,
     wsPort: 9066,
     wsAutoConnect: false,
     fileAutoReload: false,

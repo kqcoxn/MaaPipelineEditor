@@ -137,12 +137,23 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       }
 
       // 创建节点
+      // 获取默认节点方向
+      const defaultHandleDirection =
+        useConfigStore.getState().configs.defaultHandleDirection;
+      const handleDirection =
+        defaultHandleDirection === "left-right"
+          ? undefined
+          : defaultHandleDirection;
+
       const nodeOptions = {
         label,
         position:
           position ??
           calcuNodePosition(selectedNodes, state.viewport, state.size),
-        datas: data,
+        datas: {
+          ...data,
+          handleDirection,
+        },
         select,
       };
 

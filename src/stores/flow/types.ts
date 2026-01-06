@@ -10,6 +10,7 @@ import {
   SourceHandleTypeEnum,
   TargetHandleTypeEnum,
 } from "../../components/flow/nodes";
+import type { HandleDirection } from "../../components/flow/nodes/constants";
 
 // 位置类型
 export type PositionType = {
@@ -117,16 +118,19 @@ export type PipelineNodeDataType = {
   others: OtherParamType;
   extras?: any;
   type?: NodeTypeEnum;
+  handleDirection?: HandleDirection;
 };
 
 // External 节点数据类型
 export type ExternalNodeDataType = {
   label: string;
+  handleDirection?: HandleDirection;
 };
 
 // Anchor 重定向节点数据类型
 export type AnchorNodeDataType = {
   label: string;
+  handleDirection?: HandleDirection;
 };
 
 // Pipeline 节点类型

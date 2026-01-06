@@ -1,12 +1,14 @@
 import { message } from "antd";
 import type { ReactNode } from "react";
 import type { Node } from "@xyflow/react";
-import { NodeTypeEnum } from "./constants";
+import { NodeTypeEnum, HANDLE_DIRECTION_OPTIONS } from "./constants";
+import type { HandleDirection } from "./constants";
 import type {
   PipelineNodeDataType,
   ExternalNodeDataType,
   AnchorNodeDataType,
 } from "../../../stores/flow";
+import { useFlowStore } from "../../../stores/flow";
 import {
   copyNodeName,
   saveNodeAsTemplate,
@@ -28,6 +30,27 @@ export interface NodeContextMenuItem {
   danger?: boolean;
 }
 
+/**子菜单项类型 */
+export interface NodeContextMenuSubItem {
+  key: string;
+  label: string;
+  icon?: ReactNode | string;
+  iconSize?: number;
+  onClick: (node: NodeContextMenuNode) => void;
+  disabled?: boolean | ((node: NodeContextMenuNode) => boolean);
+  checked?: boolean | ((node: NodeContextMenuNode) => boolean);
+}
+
+/**带子菜单的菜单项类型 */
+export interface NodeContextMenuWithChildren {
+  key: string;
+  label: string;
+  icon: ReactNode | string;
+  iconSize?: number;
+  children: NodeContextMenuSubItem[];
+  visible?: (node: NodeContextMenuNode) => boolean;
+}
+
 /**分隔线类型 */
 export interface NodeContextMenuDivider {
   type: "divider";
@@ -37,7 +60,8 @@ export interface NodeContextMenuDivider {
 /**菜单配置项联合类型 */
 export type NodeContextMenuConfig =
   | NodeContextMenuItem
-  | NodeContextMenuDivider;
+  | NodeContextMenuDivider
+  | NodeContextMenuWithChildren;
 
 /**节点类型联合 */
 export type NodeContextMenuNode =
@@ -91,6 +115,31 @@ function handleCopyRecoJSON(node: NodeContextMenuNode) {
   copyNodeRecoJSON(node.id);
 }
 
+/**设置节点端点位置处理器 */
+function handleSetNodeDirection(node: NodeContextMenuNode, direction: HandleDirection) {
+  const { nodes, setNodes, saveHistory } = useFlowStore.getState();
+  const newNodes = nodes.map((n) => {
+    if (n.id === node.id) {
+      return {
+        ...n,
+        data: {
+          ...n.data,
+          handleDirection: direction === "left-right" ? undefined : direction,
+        },
+      };
+    }
+    return n;
+  });
+  setNodes(newNodes);
+  saveHistory(0);
+  message.success(`端点位置已设置为「${HANDLE_DIRECTION_OPTIONS.find(o => o.value === direction)?.label}」`);
+}
+
+/**获取当前节点的端点位置 */
+function getNodeDirection(node: NodeContextMenuNode): HandleDirection {
+  return (node.data as any).handleDirection || "left-right";
+}
+
 /**获取节点右键菜单配置 */
 export function getNodeContextMenuConfig(
   node: NodeContextMenuNode
@@ -124,6 +173,19 @@ export function getNodeContextMenuConfig(
       iconSize: 16,
       onClick: handleSaveAsTemplate,
       visible: (node) => node.type === NodeTypeEnum.Pipeline,
+    },
+    // 端点位置子菜单
+    {
+      key: "node-direction",
+      label: "端点位置",
+      icon: "icon-lianjie",
+      iconSize: 16,
+      children: HANDLE_DIRECTION_OPTIONS.map((option) => ({
+        key: `direction-${option.value}`,
+        label: option.label,
+        onClick: (node) => handleSetNodeDirection(node, option.value),
+        checked: (node) => getNodeDirection(node) === option.value,
+      })),
     },
   ];
 

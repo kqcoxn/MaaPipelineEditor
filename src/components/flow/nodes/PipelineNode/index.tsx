@@ -210,7 +210,8 @@ export const PipelineNodeMemo = memo(PipelineNode, (prev, next) => {
 
   if (
     prevData.others !== nextData.others ||
-    prevData.extras !== nextData.extras
+    prevData.extras !== nextData.extras ||
+    prevData.handleDirection !== nextData.handleDirection
   ) {
     return false;
   }

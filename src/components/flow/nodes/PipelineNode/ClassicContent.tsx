@@ -1,11 +1,10 @@
 import { memo, useMemo } from "react";
-import { Handle, Position, type NodeProps } from "@xyflow/react";
-import classNames from "classnames";
+import { type NodeProps } from "@xyflow/react";
 
 import style from "../../../../styles/nodes.module.less";
 import type { PipelineNodeDataType } from "../../../../stores/flow";
 import { KVElem } from "../components/KVElem";
-import { SourceHandleTypeEnum, TargetHandleTypeEnum } from "../constants";
+import { PipelineNodeHandles } from "../components/NodeHandles";
 import { JsonHelper } from "../../../../utils/jsonHelper";
 
 /**经典风格Pipeline节点内容 */
@@ -70,32 +69,7 @@ export const ClassicContent = memo(
             {ExtrasElem}
           </ul>
         </ul>
-        <Handle
-          id={TargetHandleTypeEnum.Target}
-          className={classNames(style.handle, style.target)}
-          type="target"
-          position={Position.Left}
-          style={{ top: "35%" }}
-        />
-        <Handle
-          id={TargetHandleTypeEnum.JumpBack}
-          className={classNames(style.handle, style.targetJumpback)}
-          type="target"
-          position={Position.Left}
-          style={{ top: "65%" }}
-        />
-        <Handle
-          id={SourceHandleTypeEnum.Next}
-          className={classNames(style.handle, style.next)}
-          type="source"
-          position={Position.Right}
-        />
-        <Handle
-          id={SourceHandleTypeEnum.Error}
-          className={classNames(style.handle, style.error)}
-          type="source"
-          position={Position.Right}
-        />
+        <PipelineNodeHandles direction={data.handleDirection} />
       </>
     );
   }

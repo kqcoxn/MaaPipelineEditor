@@ -74,15 +74,20 @@ export function parsePipelineNodeForExport(
     ...extras,
   };
 
-  // 保存位置信息
+  // 保存位置信息和端点位置
   if (useConfigStore.getState().configs.isExportConfig) {
     const position = fNode.position;
-    pNode[configMark] = {
+    const mpeCode: Record<string, any> = {
       position: {
         x: Math.round(position.x),
         y: Math.round(position.y),
       },
     };
+    // 保存端点位置
+    if (fNodeData.handleDirection) {
+      mpeCode.handleDirection = fNodeData.handleDirection;
+    }
+    pNode[configMark] = mpeCode;
   }
 
   return pNode;
@@ -97,13 +102,18 @@ export function parseExternalNodeForExport(
   fNode: PipelineNodeType
 ): ParsedPipelineNodeType {
   const position = fNode.position;
-  const pNode: ParsedPipelineNodeType = {
-    [configMark]: {
-      position: {
-        x: Math.round(position.x),
-        y: Math.round(position.y),
-      },
+  const mpeCode: Record<string, any> = {
+    position: {
+      x: Math.round(position.x),
+      y: Math.round(position.y),
     },
+  };
+  // 保存端点位置
+  if ((fNode.data as any).handleDirection) {
+    mpeCode.handleDirection = (fNode.data as any).handleDirection;
+  }
+  const pNode: ParsedPipelineNodeType = {
+    [configMark]: mpeCode,
   };
   return pNode;
 }
@@ -117,13 +127,18 @@ export function parseAnchorNodeForExport(
   fNode: PipelineNodeType
 ): ParsedPipelineNodeType {
   const position = fNode.position;
-  const pNode: ParsedPipelineNodeType = {
-    [configMark]: {
-      position: {
-        x: Math.round(position.x),
-        y: Math.round(position.y),
-      },
+  const mpeCode: Record<string, any> = {
+    position: {
+      x: Math.round(position.x),
+      y: Math.round(position.y),
     },
+  };
+  // 保存端点位置
+  if ((fNode.data as any).handleDirection) {
+    mpeCode.handleDirection = (fNode.data as any).handleDirection;
+  }
+  const pNode: ParsedPipelineNodeType = {
+    [configMark]: mpeCode,
   };
   return pNode;
 }

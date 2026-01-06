@@ -10,6 +10,7 @@ import type {
 } from "../../stores/flow";
 import type { FileConfigType } from "../../stores/fileStore";
 import { SourceHandleTypeEnum } from "../../components/flow/nodes";
+import type { HandleDirection } from "../../components/flow/nodes/constants";
 
 // 配置标记常量
 export const configMark = "$__mpe_code";
@@ -21,6 +22,7 @@ export const anchorMarkPrefix = "$__mpe_anchor_";
 export type ParsedPipelineNodeType = {
   [configMark]?: {
     position: { x: number; y: number };
+    handleDirection?: HandleDirection;
   };
   recognition?: {
     type: string;

@@ -290,9 +290,16 @@ export async function pipelineToFlow(
       keys.forEach((key) => {
         const value = obj[key];
 
-        // 标记字段 - 包含位置信息
+        // 标记字段
         if (isMark(key)) {
-          Object.assign(node, value);
+          // 处理位置信息
+          if (value.position) {
+            node.position = value.position;
+          }
+          // 处理端点位置
+          if (value.handleDirection) {
+            node.data.handleDirection = value.handleDirection;
+          }
           isIncludePos = true;
           return;
         }

@@ -13,5 +13,9 @@ export {
   NodeTypeEnum,
   SourceHandleTypeEnum,
   TargetHandleTypeEnum,
+  DEFAULT_HANDLE_DIRECTION,
+  HANDLE_DIRECTION_OPTIONS,
 } from "./constants";
+export type { HandleDirection } from "./constants";
 export type { IconConfig, RequiredIconConfig } from "./utils";
+export { getHandlePositions } from "./components/NodeHandles";

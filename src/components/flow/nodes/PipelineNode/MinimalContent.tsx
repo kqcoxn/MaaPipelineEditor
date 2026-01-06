@@ -1,12 +1,11 @@
 import { memo, useMemo } from "react";
-import { Handle, Position, type NodeProps } from "@xyflow/react";
-import classNames from "classnames";
+import { type NodeProps } from "@xyflow/react";
 
 import style from "../../../../styles/nodes.module.less";
 import type { PipelineNodeDataType } from "../../../../stores/flow";
 import IconFont from "../../../iconfonts";
 import { getRecognitionIcon, getMinimalNodeColor } from "../utils";
-import { SourceHandleTypeEnum, TargetHandleTypeEnum } from "../constants";
+import { PipelineNodeHandles } from "../components/NodeHandles";
 
 /**极简风格Pipeline节点 */
 export const MinimalContent = memo(
@@ -51,33 +50,7 @@ export const MinimalContent = memo(
         </div>
 
         {/* Handle  */}
-        <Handle
-          id={TargetHandleTypeEnum.Target}
-          className={classNames(style.minimalHandle, style.minimalTarget)}
-          type="target"
-          position={Position.Left}
-        />
-        <Handle
-          id={TargetHandleTypeEnum.JumpBack}
-          className={classNames(
-            style.minimalHandle,
-            style.minimalTargetJumpback
-          )}
-          type="target"
-          position={Position.Left}
-        />
-        <Handle
-          id={SourceHandleTypeEnum.Next}
-          className={classNames(style.minimalHandle, style.minimalNext)}
-          type="source"
-          position={Position.Right}
-        />
-        <Handle
-          id={SourceHandleTypeEnum.Error}
-          className={classNames(style.minimalHandle, style.minimalError)}
-          type="source"
-          position={Position.Right}
-        />
+        <PipelineNodeHandles direction={data.handleDirection} minimal />
       </>
     );
   }
