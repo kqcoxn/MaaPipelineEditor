@@ -24,10 +24,12 @@ import (
 	debugProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/debug"
 	fileProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/file"
 	mfwProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/mfw"
+	resourceProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/resource"
 	utilityProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/utility"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/router"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/server"
 	fileService "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/service/file"
+	resourceService "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/service/resource"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/utils"
 	"github.com/spf13/cobra"
 )
@@ -246,6 +248,14 @@ func runServer(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
+	// 创建资源扫描服务
+	resSvc := resourceService.NewService(cfg.File.Root, eventBus)
+	if err := resSvc.Start(); err != nil {
+		logger.Warn("Main", "资源扫描服务启动失败: %v", err)
+	} else {
+		logger.Debug("Main", "资源扫描服务启动成功")
+	}
+
 	// 检查更新
 	checkAndPrintUpdateNotice()
 
@@ -274,6 +284,10 @@ func runServer(cmd *cobra.Command, args []string) {
 	// 注册 Debug 协议处理器
 	debugHandler := debugProtocol.NewDebugHandler(mfwSvc)
 	rt.RegisterHandler(debugHandler)
+
+	// 注册 Resource 协议处理器
+	resourceHandler := resourceProtocol.NewHandler(resSvc, eventBus, wsServer, cfg.File.Root)
+	rt.RegisterHandler(resourceHandler)
 
 	// 设置消息处理器
 	wsServer.SetMessageHandler(rt.Route)

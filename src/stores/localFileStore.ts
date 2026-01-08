@@ -10,6 +10,33 @@ export type LocalFileInfo = {
 };
 
 /**
+ * MaaFramework 资源包信息
+ */
+export type ResourceBundle = {
+  abs_path: string; // 资源包绝对路径
+  rel_path: string; // 相对于根目录的路径
+  name: string; // 资源包名称（目录名）
+  has_pipeline: boolean; // 是否有 pipeline 目录
+  has_image: boolean; // 是否有 image 目录
+  has_model: boolean; // 是否有 model 目录
+  has_default_pipeline: boolean; // 是否有 default_pipeline.json
+  image_dir: string; // image 目录绝对路径
+};
+
+/**
+ * 图片缓存项
+ */
+export type ImageCacheItem = {
+  base64: string; // base64 编码
+  mimeType: string; // MIME 类型
+  width: number; // 图片宽度
+  height: number; // 图片高度
+  bundleName: string; // 所属资源包名称
+  absPath: string; // 绝对路径
+  timestamp: number; // 缓存时间戳
+};
+
+/**
  * 本地文件缓存状态
  */
 type LocalFileState = {
@@ -17,6 +44,12 @@ type LocalFileState = {
   files: LocalFileInfo[]; // 文件列表
   lastUpdateTime: number; // 最后更新时间戳
   isRefreshing: boolean; // 是否正在刷新
+
+  // 资源目录相关
+  resourceBundles: ResourceBundle[]; // 资源包列表
+  imageDirs: string[]; // 所有 image 目录的绝对路径
+  imageCache: Map<string, ImageCacheItem>; // 图片缓存
+  pendingImageRequests: Set<string>; // 正在请求的图片路径
 
   // 更新文件列表（全量替换）
   setFileList: (rootPath: string, files: LocalFileInfo[]) => void;
@@ -36,6 +69,15 @@ type LocalFileState = {
   // 设置刷新状态
   setRefreshing: (isRefreshing: boolean) => void;
 
+  // 资源目录相关
+  setResourceBundles: (bundles: ResourceBundle[], imageDirs: string[]) => void;
+
+  // 图片缓存相关
+  setImageCache: (relativePath: string, data: ImageCacheItem) => void;
+  getImageCache: (relativePath: string) => ImageCacheItem | undefined;
+  setPendingImageRequest: (relativePath: string, pending: boolean) => void;
+  isImagePending: (relativePath: string) => boolean;
+
   // 清空缓存
   clear: () => void;
 };
@@ -50,6 +92,12 @@ export const useLocalFileStore = create<LocalFileState>()((set, get) => ({
   files: [],
   lastUpdateTime: 0,
   isRefreshing: false,
+
+  // 资源目录相关
+  resourceBundles: [],
+  imageDirs: [],
+  imageCache: new Map<string, ImageCacheItem>(),
+  pendingImageRequests: new Set<string>(),
 
   // 更新文件列表
   setFileList(rootPath, files) {
@@ -103,6 +151,51 @@ export const useLocalFileStore = create<LocalFileState>()((set, get) => ({
     set({ isRefreshing });
   },
 
+  // 设置资源包列表
+  setResourceBundles(bundles, imageDirs) {
+    set({
+      resourceBundles: bundles,
+      imageDirs,
+    });
+  },
+
+  // 设置图片缓存
+  setImageCache(relativePath, data) {
+    set((state) => {
+      const newCache = new Map(state.imageCache);
+      newCache.set(relativePath, data);
+      const newPending = new Set(state.pendingImageRequests);
+      newPending.delete(relativePath);
+      return {
+        imageCache: newCache,
+        pendingImageRequests: newPending,
+      };
+    });
+  },
+
+  // 获取图片缓存
+  getImageCache(relativePath) {
+    return get().imageCache.get(relativePath);
+  },
+
+  // 设置图片请求状态
+  setPendingImageRequest(relativePath, pending) {
+    set((state) => {
+      const newPending = new Set(state.pendingImageRequests);
+      if (pending) {
+        newPending.add(relativePath);
+      } else {
+        newPending.delete(relativePath);
+      }
+      return { pendingImageRequests: newPending };
+    });
+  },
+
+  // 检查图片是否正在请求
+  isImagePending(relativePath) {
+    return get().pendingImageRequests.has(relativePath);
+  },
+
   // 清空缓存
   clear() {
     set({
@@ -110,6 +203,10 @@ export const useLocalFileStore = create<LocalFileState>()((set, get) => ({
       files: [],
       lastUpdateTime: 0,
       isRefreshing: false,
+      resourceBundles: [],
+      imageDirs: [],
+      imageCache: new Map<string, ImageCacheItem>(),
+      pendingImageRequests: new Set<string>(),
     });
   },
 }));

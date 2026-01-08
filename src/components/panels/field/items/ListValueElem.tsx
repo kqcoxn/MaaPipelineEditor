@@ -35,30 +35,33 @@ export function ListValueElem(
       (valueList.length > 1 ? 1 : 0) +
       (index === valueList.length - 1 ? 1 : 0);
 
+    // 输入框元素
+    const inputElement = step > 0 ? (
+      <InputNumber
+        placeholder={placeholder}
+        style={{ flex: 1 }}
+        value={value}
+        step={step}
+        onChange={(e) => {
+          valueList[index] = e;
+          onChange(key, valueList);
+        }}
+      />
+    ) : (
+      <TextArea
+        placeholder={placeholder}
+        value={JsonHelper.objToString(value) ?? value}
+        autoSize={{ minRows: 1, maxRows: 4 }}
+        onChange={(e) => {
+          valueList[index] = e.target.value;
+          onChange(key, valueList);
+        }}
+      />
+    );
+
     return (
       <div key={index}>
-        {step > 0 ? (
-          <InputNumber
-            placeholder={placeholder}
-            style={{ flex: 1 }}
-            value={value}
-            step={step}
-            onChange={(e) => {
-              valueList[index] = e;
-              onChange(key, valueList);
-            }}
-          />
-        ) : (
-          <TextArea
-            placeholder={placeholder}
-            value={JsonHelper.objToString(value) ?? value}
-            autoSize={{ minRows: 1, maxRows: 4 }}
-            onChange={(e) => {
-              valueList[index] = e.target.value;
-              onChange(key, valueList);
-            }}
-          />
-        )}
+        {inputElement}
         <div
           className={style["icons-container"]}
           style={{ width: `${iconCount * 26}px` }}

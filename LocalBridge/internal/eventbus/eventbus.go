@@ -77,4 +77,5 @@ const (
 	EventFileChanged           = "file.changed"
 	EventConnectionEstablished = "connection.established"
 	EventConnectionClosed      = "connection.closed"
+	EventResourceScanCompleted = "resource.scan.completed"
 )

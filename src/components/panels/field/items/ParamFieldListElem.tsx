@@ -16,6 +16,7 @@ import {
   DeltaModal,
 } from "../../../modals";
 import { ListValueElem } from "./ListValueElem";
+import { TemplatePreview } from "./TemplatePreview";
 import { message } from "antd";
 
 // 快捷工具配置
@@ -493,8 +494,33 @@ export const ParamFieldListElem = memo(
       }
       // 使用 displayName 或 key 作为显示名称
       const displayText = type.displayName || key;
-      return (
-        <div key={key} className={style.item}>
+      
+      // 判断是否需要图片预览
+      const isTemplateField = key === "template";
+      // 获取预览路径列表
+      let templatePaths: string[] = [];
+      if (isTemplateField) {
+        if (Array.isArray(value)) {
+          templatePaths = value.filter(v => typeof v === "string" && v.trim() !== "");
+        } else if (typeof value === "string" && value.trim() !== "") {
+          templatePaths = [value];
+        }
+      }
+
+      // 渲染标签
+      let wrappedLabelElement;
+      if (isTemplateField && templatePaths.length > 0) {
+        wrappedLabelElement = (
+          <TemplatePreview 
+            templatePaths={templatePaths} 
+            title={key}
+            description={type.desc}
+          >
+            <div className={style.key}>{displayText}</div>
+          </TemplatePreview>
+        );
+      } else {
+        wrappedLabelElement = (
           <Popover
             style={{ maxWidth: 10 }}
             placement="left"
@@ -503,6 +529,12 @@ export const ParamFieldListElem = memo(
           >
             <div className={style.key}>{displayText}</div>
           </Popover>
+        );
+      }
+
+      return (
+        <div key={key} className={style.item}>
+          {wrappedLabelElement}
           {InputElem}
           {!isListType && renderQuickTool(key)}
           <div className={style.operation}>
