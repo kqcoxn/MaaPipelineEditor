@@ -28,7 +28,7 @@ export const recoFieldSchema: Record<string, FieldType> = {
   // 模板匹配字段
   template: {
     key: "template",
-    type: [FieldTypeEnum.StringList, FieldTypeEnum.String],
+    type: [FieldTypeEnum.ImagePathList, FieldTypeEnum.ImagePath],
     required: true,
     default: [""],
     desc: `模板图片路径，需要 image 文件夹的相对路径。必选。所使用的图片需要是无损原图缩放到 720p 后的裁剪。支持填写文件夹路径，将递归加载其中所有图片文件。`,

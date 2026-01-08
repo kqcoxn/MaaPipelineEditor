@@ -17,6 +17,7 @@ import {
 } from "../../../modals";
 import { ListValueElem } from "./ListValueElem";
 import { TemplatePreview } from "./TemplatePreview";
+import { ImageSelect } from "./ImageSelect";
 import { message } from "antd";
 
 // 快捷工具配置
@@ -408,6 +409,73 @@ export const ParamFieldListElem = memo(
         );
       } else {
         switch (paramType) {
+          // 图片路径列表
+          case FieldTypeEnum.ImagePathList: {
+            isListType = true;
+            const valueList = Array.isArray(value) ? value : [value];
+            const listItems = valueList.map((item: string, index: number) => {
+              const quickToolElem = renderQuickTool(key, index);
+              // 计算图标数量
+              const iconCount =
+                (quickToolElem ? 1 : 0) +
+                (valueList.length > 1 ? 1 : 0) +
+                (index === valueList.length - 1 ? 1 : 0);
+              return (
+                <div key={index}>
+                  <ImageSelect
+                    value={item || ""}
+                    onChange={(newValue) => {
+                      const newList = [...valueList];
+                      newList[index] = newValue;
+                      onListChange(key, newList);
+                    }}
+                    placeholder="输入或选择图片路径"
+                    inList
+                  />
+                  <div
+                    className={style["icons-container"]}
+                    style={{ width: `${iconCount * 26}px` }}
+                  >
+                    {quickToolElem}
+                    {valueList.length > 1 ? (
+                      <div className={style.operation}>
+                        <IconFont
+                          className="icon-interactive"
+                          name="icon-shanchu"
+                          size={18}
+                          color="#ff4a4a"
+                          onClick={() => onListDelete(key, valueList, index)}
+                        />
+                      </div>
+                    ) : null}
+                    {index === valueList.length - 1 ? (
+                      <div className={style.operation}>
+                        <IconFont
+                          className="icon-interactive"
+                          name="icon-zengjiatianjiajiajian"
+                          size={18}
+                          color="#83be42"
+                          onClick={() => onListAdd(key, valueList)}
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            });
+            InputElem = <div className={style["list-value"]}>{listItems}</div>;
+            break;
+          }
+          // 单个图片路径
+          case FieldTypeEnum.ImagePath:
+            InputElem = (
+              <ImageSelect
+                value={value || ""}
+                onChange={(newValue) => onChange(key, newValue)}
+                placeholder="输入或选择图片路径"
+              />
+            );
+            break;
           // 字符串列表
           case FieldTypeEnum.StringList:
           case FieldTypeEnum.IntListList:
@@ -494,14 +562,16 @@ export const ParamFieldListElem = memo(
       }
       // 使用 displayName 或 key 作为显示名称
       const displayText = type.displayName || key;
-      
+
       // 判断是否需要图片预览
       const isTemplateField = key === "template";
       // 获取预览路径列表
       let templatePaths: string[] = [];
       if (isTemplateField) {
         if (Array.isArray(value)) {
-          templatePaths = value.filter(v => typeof v === "string" && v.trim() !== "");
+          templatePaths = value.filter(
+            (v) => typeof v === "string" && v.trim() !== ""
+          );
         } else if (typeof value === "string" && value.trim() !== "") {
           templatePaths = [value];
         }
@@ -511,8 +581,8 @@ export const ParamFieldListElem = memo(
       let wrappedLabelElement;
       if (isTemplateField && templatePaths.length > 0) {
         wrappedLabelElement = (
-          <TemplatePreview 
-            templatePaths={templatePaths} 
+          <TemplatePreview
+            templatePaths={templatePaths}
             title={key}
             description={type.desc}
           >

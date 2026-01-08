@@ -226,3 +226,111 @@ func (s *Service) shouldSkipDir(name string) bool {
 	}
 	return false
 }
+
+// 支持的图片扩展名
+var supportedImageExts = map[string]bool{
+	".png":  true,
+	".jpg":  true,
+	".jpeg": true,
+	".gif":  true,
+	".webp": true,
+	".bmp":  true,
+}
+
+// 获取图片列表
+// pipelinePath: 当前 pipeline 文件的绝对路径（可为空）
+// 返回：图片列表、当前资源包名称、是否为过滤结果
+func (s *Service) GetImageList(pipelinePath string) ([]models.ImageFileInfo, string, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	var images []models.ImageFileInfo
+	var bundleName string
+	var isFiltered bool
+
+	// 如果提供了 pipeline 路径，尝试查找其所属的资源包
+	var targetBundle *models.ResourceBundle
+	if pipelinePath != "" {
+		targetBundle = s.findBundleByPipelinePath(pipelinePath)
+	}
+
+	if targetBundle != nil && targetBundle.HasImage {
+		// 只返回当前资源包的图片
+		isFiltered = true
+		bundleName = targetBundle.Name
+		images = s.scanImageDir(targetBundle.ImageDir, targetBundle.Name)
+	} else {
+		// 返回所有资源包的图片，区分来源
+		isFiltered = false
+		for _, bundle := range s.bundles {
+			if bundle.HasImage && bundle.ImageDir != "" {
+				bundleImages := s.scanImageDir(bundle.ImageDir, bundle.Name)
+				images = append(images, bundleImages...)
+			}
+		}
+	}
+
+	return images, bundleName, isFiltered
+}
+
+// 根据 pipeline 路径查找所属的资源包
+func (s *Service) findBundleByPipelinePath(pipelinePath string) *models.ResourceBundle {
+	// 将路径统一为斜杠分隔符
+	normalizedPath := filepath.Clean(pipelinePath)
+
+	for i := range s.bundles {
+		bundle := &s.bundles[i]
+		bundlePath := filepath.Clean(bundle.AbsPath)
+
+		// 检查 pipeline 文件是否在该资源包目录下
+		if strings.HasPrefix(normalizedPath, bundlePath+string(filepath.Separator)) {
+			return bundle
+		}
+		// 特殊情况：pipeline 文件在 pipeline 子目录下
+		pipelineDir := filepath.Join(bundlePath, "pipeline")
+		if strings.HasPrefix(normalizedPath, pipelineDir+string(filepath.Separator)) {
+			return bundle
+		}
+	}
+
+	return nil
+}
+
+// 扫描 image 目录下的所有图片文件
+func (s *Service) scanImageDir(imageDir, bundleName string) []models.ImageFileInfo {
+	var images []models.ImageFileInfo
+
+	filepath.Walk(imageDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil // 继续扫描
+		}
+
+		// 跳过目录
+		if info.IsDir() {
+			return nil
+		}
+
+		// 检查扩展名
+		ext := strings.ToLower(filepath.Ext(path))
+		if !supportedImageExts[ext] {
+			return nil
+		}
+
+		// 计算相对路径
+		relPath, err := filepath.Rel(imageDir, path)
+		if err != nil {
+			return nil
+		}
+		// 统一使用斜杠分隔符
+		relPath = filepath.ToSlash(relPath)
+
+		images = append(images, models.ImageFileInfo{
+			RelativePath: relPath,
+			BundleName:   bundleName,
+		})
+
+		return nil
+	})
+
+	return images
+}

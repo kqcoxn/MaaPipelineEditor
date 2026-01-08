@@ -37,6 +37,14 @@ export type ImageCacheItem = {
 };
 
 /**
+ * 图片文件信息
+ */
+export type ImageFileInfo = {
+  relativePath: string; // 相对于 image 目录的路径
+  bundleName: string; // 所属资源包名称
+};
+
+/**
  * 本地文件缓存状态
  */
 type LocalFileState = {
@@ -50,6 +58,12 @@ type LocalFileState = {
   imageDirs: string[]; // 所有 image 目录的绝对路径
   imageCache: Map<string, ImageCacheItem>; // 图片缓存
   pendingImageRequests: Set<string>; // 正在请求的图片路径
+
+  // 图片列表相关
+  imageList: ImageFileInfo[]; // 图片文件列表
+  imageListBundleName: string; // 当前图片列表所属资源包
+  imageListIsFiltered: boolean; // 是否为过滤后的结果
+  imageListLoading: boolean; // 是否正在加载图片列表
 
   // 更新文件列表（全量替换）
   setFileList: (rootPath: string, files: LocalFileInfo[]) => void;
@@ -78,6 +92,15 @@ type LocalFileState = {
   setPendingImageRequest: (relativePath: string, pending: boolean) => void;
   isImagePending: (relativePath: string) => boolean;
 
+  // 图片列表相关
+  setImageList: (
+    images: ImageFileInfo[],
+    bundleName: string,
+    isFiltered: boolean
+  ) => void;
+  setImageListLoading: (loading: boolean) => void;
+  clearImageList: () => void;
+
   // 清空缓存
   clear: () => void;
 };
@@ -98,6 +121,12 @@ export const useLocalFileStore = create<LocalFileState>()((set, get) => ({
   imageDirs: [],
   imageCache: new Map<string, ImageCacheItem>(),
   pendingImageRequests: new Set<string>(),
+
+  // 图片列表相关
+  imageList: [],
+  imageListBundleName: "",
+  imageListIsFiltered: false,
+  imageListLoading: false,
 
   // 更新文件列表
   setFileList(rootPath, files) {
@@ -207,6 +236,35 @@ export const useLocalFileStore = create<LocalFileState>()((set, get) => ({
       imageDirs: [],
       imageCache: new Map<string, ImageCacheItem>(),
       pendingImageRequests: new Set<string>(),
+      imageList: [],
+      imageListBundleName: "",
+      imageListIsFiltered: false,
+      imageListLoading: false,
+    });
+  },
+
+  // 设置图片列表
+  setImageList(images, bundleName, isFiltered) {
+    set({
+      imageList: images,
+      imageListBundleName: bundleName,
+      imageListIsFiltered: isFiltered,
+      imageListLoading: false,
+    });
+  },
+
+  // 设置图片列表加载状态
+  setImageListLoading(loading) {
+    set({ imageListLoading: loading });
+  },
+
+  // 清空图片列表
+  clearImageList() {
+    set({
+      imageList: [],
+      imageListBundleName: "",
+      imageListIsFiltered: false,
+      imageListLoading: false,
     });
   },
 }));

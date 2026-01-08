@@ -46,3 +46,21 @@ type GetImagesRequest struct {
 type GetImagesResponse struct {
 	Images []GetImageResponse `json:"images"` // 图片列表
 }
+
+// 图片文件信息
+type ImageFileInfo struct {
+	RelativePath string `json:"relative_path"` // 相对于 image 目录的路径
+	BundleName   string `json:"bundle_name"`   // 所属资源包名称
+}
+
+// 获取图片列表请求
+type GetImageListRequest struct {
+	PipelinePath string `json:"pipeline_path,omitempty"` // 当前 pipeline 文件的绝对路径（可选）
+}
+
+// 获取图片列表响应
+type GetImageListResponse struct {
+	Images     []ImageFileInfo `json:"images"`      // 图片文件列表
+	BundleName string          `json:"bundle_name"` // 当前资源包名称（如果指定了 pipeline_path）
+	IsFiltered bool            `json:"is_filtered"` // 是否是过滤后的结果（仅当前资源包）
+}

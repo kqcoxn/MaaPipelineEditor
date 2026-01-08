@@ -47,6 +47,7 @@ func (h *Handler) GetRoutePrefix() []string {
 	return []string{
 		"/etl/get_image",
 		"/etl/get_images",
+		"/etl/get_image_list",
 		"/etl/refresh_resources",
 	}
 }
@@ -58,6 +59,8 @@ func (h *Handler) Handle(msg models.Message, conn *server.Connection) *models.Me
 		return h.handleGetImage(msg, conn)
 	case "/etl/get_images":
 		return h.handleGetImages(msg, conn)
+	case "/etl/get_image_list":
+		return h.handleGetImageList(msg, conn)
 	case "/etl/refresh_resources":
 		return h.handleRefreshResources(msg, conn)
 	default:
@@ -108,6 +111,29 @@ func (h *Handler) handleRefreshResources(msg models.Message, conn *server.Connec
 	}
 	h.pushResourceBundles()
 	return nil
+}
+
+// 处理获取图片列表请求
+func (h *Handler) handleGetImageList(msg models.Message, conn *server.Connection) *models.Message {
+	var req models.GetImageListRequest
+	if err := h.parseData(msg.Data, &req); err != nil {
+		h.sendError(conn, err)
+		return nil
+	}
+
+	images, bundleName, isFiltered := h.resourceService.GetImageList(req.PipelinePath)
+
+	logger.Debug("ResourceProtocol", "获取图片列表：pipelinePath=%s, 匹配资源包=%s, 图片数=%d",
+		req.PipelinePath, bundleName, len(images))
+
+	return &models.Message{
+		Path: "/lte/image_list",
+		Data: models.GetImageListResponse{
+			Images:     images,
+			BundleName: bundleName,
+			IsFiltered: isFiltered,
+		},
+	}
 }
 
 // 获取图片数据

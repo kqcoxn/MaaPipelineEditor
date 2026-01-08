@@ -122,3 +122,60 @@
     }
   }
 }
+
+// 图片选择列表样式
+.listContainer {
+  flex: 1;
+  margin-left: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+// 图片选择器固定高度样式
+.imageSelect {
+  height: 32px !important;
+
+  :global(.ant-select-selector) {
+    height: 32px !important;
+    min-height: 32px !important;
+    max-height: 32px !important;
+    padding: 0 11px !important;
+
+    input {
+      height: 30px !important;
+    }
+  }
+}
+
+.listItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  > :first-child {
+    flex: 1;
+  }
+
+  .operation {
+    margin-left: 0;
+  }
+}
+
+.addListItem {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-size: 12px;
+  color: #666;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+    color: #83be42;
+  }
+}

@@ -30,6 +30,9 @@ export class ResourceProtocol extends BaseProtocol {
     this.wsClient.registerRoute("/lte/images", (data) =>
       this.handleImages(data)
     );
+    this.wsClient.registerRoute("/lte/image_list", (data) =>
+      this.handleImageList(data)
+    );
   }
 
   protected handleMessage(path: string, data: any): void {
@@ -220,5 +223,58 @@ export class ResourceProtocol extends BaseProtocol {
     }
 
     return this.wsClient.send("/etl/refresh_resources", {});
+  }
+
+  /**
+   * 请求获取图片列表
+   * 发送路由: /etl/get_image_list
+   * @param pipelinePath 当前 pipeline 文件的绝对路径（可选）
+   */
+  public requestImageList(pipelinePath?: string): boolean {
+    if (!this.wsClient) {
+      console.error("[ResourceProtocol] WebSocket client not initialized");
+      return false;
+    }
+
+    // 标记正在请求
+    const localFileStore = useLocalFileStore.getState();
+    localFileStore.setImageListLoading(true);
+
+    return this.wsClient.send("/etl/get_image_list", {
+      pipeline_path: pipelinePath || "",
+    });
+  }
+
+  /**
+   * 处理图片列表响应
+   * 路由: /lte/image_list
+   */
+  private handleImageList(data: any): void {
+    try {
+      const { images, bundle_name, is_filtered } = data;
+
+      if (!Array.isArray(images)) {
+        console.error("[ResourceProtocol] Invalid image list data:", data);
+        return;
+      }
+
+      const localFileStore = useLocalFileStore.getState();
+      localFileStore.setImageList(
+        images.map((img: any) => ({
+          relativePath: img.relative_path,
+          bundleName: img.bundle_name,
+        })),
+        bundle_name || "",
+        is_filtered || false
+      );
+
+      console.log(
+        `[ResourceProtocol] 图片列表已更新，共 ${images.length} 张图片，资源包=${bundle_name}, 过滤=${is_filtered}`
+      );
+    } catch (error) {
+      console.error("[ResourceProtocol] Failed to handle image list:", error);
+      const localFileStore = useLocalFileStore.getState();
+      localFileStore.setImageListLoading(false);
+    }
   }
 }
