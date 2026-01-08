@@ -4,7 +4,8 @@ import {
   type HandshakeResponse,
   SystemRoutes,
 } from "./type.ts";
-import { message } from "antd";
+import { message, notification, Button } from "antd";
+import { createElement } from "react";
 import { FileProtocol } from "./protocols/FileProtocol";
 import { MFWProtocol } from "./protocols/MFWProtocol";
 import { ErrorProtocol } from "./protocols/ErrorProtocol";
@@ -125,7 +126,29 @@ export class LocalWebSocketServer {
       this.connectTimeout = window.setTimeout(() => {
         if (this.ws && this.ws.readyState !== WebSocket.OPEN) {
           console.error("[WebSocket] Connection timeout");
-          message.error(`连接超时，请检查本地服务或端口是否可用`);
+          const key = `connection-error-${Date.now()}`;
+          notification.error({
+            key,
+            message: "连接超时",
+            description: "请检查本地服务是否已启动或端口是否可用",
+            placement: "topRight",
+            duration: 0,
+            btn: createElement(
+              Button,
+              {
+                type: "primary",
+                size: "small",
+                onClick: () => {
+                  window.open(
+                    "https://mpe.codax.site/docs/guide/server/deploy.html",
+                    "_blank"
+                  );
+                  notification.destroy(key);
+                },
+              },
+              "查看文档"
+            ),
+          });
           this.ws.close();
           this.ws = null;
           this.isConnecting = false;
@@ -160,7 +183,29 @@ export class LocalWebSocketServer {
         this.clearConnectTimeout();
         this.isConnecting = false;
         this.onConnectingChange?.(false);
-        message.error(`连接失败，请检查本地服务或端口是否可用`);
+        const key = `connection-error-${Date.now()}`;
+        notification.error({
+          key,
+          message: "连接失败",
+          description: "请检查本地服务是否已启动或端口是否可用",
+          placement: "topRight",
+          duration: 0,
+          btn: createElement(
+            Button,
+            {
+              type: "primary",
+              size: "small",
+              onClick: () => {
+                window.open(
+                  "https://mpe.codax.site/docs/guide/server/deploy.html",
+                  "_blank"
+                );
+                notification.destroy(key);
+              },
+            },
+            "查看文档"
+          ),
+        });
       };
 
       this.ws.onclose = () => {
@@ -176,11 +221,30 @@ export class LocalWebSocketServer {
       this.clearConnectTimeout();
       this.isConnecting = false;
       this.onConnectingChange?.(false);
-      message.error(
-        `本地服务连接失败：${
-          error instanceof Error ? error.message : "未知错误"
-        }`
-      );
+      const key = `connection-error-${Date.now()}`;
+      const errorMsg = error instanceof Error ? error.message : "未知错误";
+      notification.error({
+        key,
+        message: "本地服务连接失败",
+        description: errorMsg,
+        placement: "topRight",
+        duration: 0,
+        btn: createElement(
+          Button,
+          {
+            type: "primary",
+            size: "small",
+            onClick: () => {
+              window.open(
+                "https://mpe.codax.site/docs/guide/server/deploy.html",
+                "_blank"
+              );
+              notification.destroy(key);
+            },
+          },
+          "查看文档"
+        ),
+      });
       this.onStatusChange?.(false);
     }
   }
