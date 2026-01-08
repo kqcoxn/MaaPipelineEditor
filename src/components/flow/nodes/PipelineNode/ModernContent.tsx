@@ -4,9 +4,11 @@ import classNames from "classnames";
 
 import style from "../../../../styles/nodes.module.less";
 import type { PipelineNodeDataType } from "../../../../stores/flow";
+import { useConfigStore } from "../../../../stores/configStore";
 import IconFont from "../../../iconfonts";
 import { KVElem } from "../components/KVElem";
 import { PipelineNodeHandles } from "../components/NodeHandles";
+import { NodeTemplateImages } from "../components/NodeTemplateImages";
 import { getRecognitionIcon, getActionIcon, getNodeTypeIcon } from "../utils";
 import { JsonHelper } from "../../../../utils/jsonHelper";
 import { otherFieldSchema } from "../../../../core/fields/other/schema";
@@ -29,6 +31,11 @@ export const ModernContent = memo(
   ({ data }: { data: PipelineNodeDataType; props: NodeProps }) => {
     const headerRef = useRef<HTMLDivElement>(null);
     const [headerHeight, setHeaderHeight] = useState(0);
+    
+    // 是否显示节点模板图片
+    const showNodeTemplateImages = useConfigStore(
+      (state) => state.configs.showNodeTemplateImages
+    );
 
     useEffect(() => {
       if (headerRef.current) {
@@ -107,6 +114,19 @@ export const ModernContent = memo(
         (ExtrasElem && ExtrasElem.length > 0),
       [filteredOthers, focusItems, ExtrasElem]
     );
+
+    // 提取 template 路径列表
+    const templatePaths = useMemo(() => {
+      const template = data.recognition.param?.template as unknown;
+      if (!template) return [];
+      if (Array.isArray(template)) {
+        return template.filter((p): p is string => typeof p === "string" && p.trim() !== "");
+      }
+      if (typeof template === "string" && template.trim() !== "") {
+        return [template];
+      }
+      return [];
+    }, [data.recognition.param]);
 
     return (
       <>
@@ -210,6 +230,11 @@ export const ModernContent = memo(
             </div>
           )}
         </div>
+
+        {/* 模板图片区域 */}
+        {showNodeTemplateImages && templatePaths.length > 0 && (
+          <NodeTemplateImages templatePaths={templatePaths} />
+        )}
 
         <PipelineNodeHandles direction={data.handleDirection} />
       </>

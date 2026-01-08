@@ -52,7 +52,7 @@ export const updateLogs: UpdateLogItem[] = [
     updates: {
       features: [
         "🐛 现在可以节点级灵活调整端点位置了，上下左右任意搭配，可持久化",
-        "🖼 连接 LB 服务后支持 template 悬停显示图片",
+        "🖼 连接 LB 服务后支持现代风格节点与 template 悬停显示图片（节点显示可配置是否启用，默认关闭）",
       ],
       perfs: [],
       fixes: [],

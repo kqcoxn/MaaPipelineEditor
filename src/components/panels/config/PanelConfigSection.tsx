@@ -29,6 +29,9 @@ const PanelConfigSection = memo(() => {
   const inlinePanelScale = useConfigStore(
     (state) => state.configs.inlinePanelScale
   );
+  const showNodeTemplateImages = useConfigStore(
+    (state) => state.configs.showNodeTemplateImages
+  );
   const setConfig = useConfigStore((state) => state.setConfig);
 
   const globalClass = useMemo(() => classNames(style.item, style.global), []);
@@ -301,6 +304,32 @@ const PanelConfigSection = memo(() => {
           onChange={(value: number | null) => {
             if (value !== null) setConfig("inlinePanelScale", value);
           }}
+        />
+      </div>
+      {/* 节点显示模板图片 */}
+      <div className={globalClass}>
+        <div className={style.key}>
+          <Popover
+            placement="bottomLeft"
+            title="节点显示模板图片"
+            content={
+              <TipElem
+                content={
+                  "开启时，现代风格节点底部会显示 template 字段的图片缩略图。需要连接本地服务后生效。"
+                }
+              />
+            }
+          >
+            <span>节点显示模板图片</span>
+          </Popover>
+        </div>
+        <Switch
+          className={style.value}
+          style={switchStyle}
+          checkedChildren="显示"
+          unCheckedChildren="隐藏"
+          value={showNodeTemplateImages}
+          onChange={(value: boolean) => setConfig("showNodeTemplateImages", value)}
         />
       </div>
     </>

@@ -222,6 +222,40 @@
       }
     }
   }
+
+  // 模板图片区域
+  .nodeTemplateImages {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 6px 10px 10px;
+    max-height: 80px;
+    overflow: hidden;
+    justify-content: center;
+    align-items: center;
+    border-radius: 0 0 6px 6px;
+
+    :global(.ant-image) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #fff;
+      border: 1px solid #e8e8e8;
+      border-radius: 2px;
+      padding: 2px;
+      transition: transform 0.15s ease;
+      cursor: pointer;
+
+      &:hover {
+        transform: scale(1.05);
+        border-color: #1890ff;
+      }
+
+      img {
+        border-radius: 1px;
+      }
+    }
+  }
 }
 
 .node-selected {
