@@ -21,13 +21,15 @@ function DebugPanel() {
   const controllerId = useMFWStore((state) => state.controllerId);
   const {
     debugStatus,
+    sessionId,
     taskId,
     resourcePath,
     entryNode,
     screenshotMode,
-    logLevel,
     currentNode,
     currentPhase,
+    recognitionTargetName,
+    lastNode,
     executionStartTime,
     executionHistory,
     breakpoints,
@@ -44,13 +46,15 @@ function DebugPanel() {
   } = useDebugStore(
     useShallow((state) => ({
       debugStatus: state.debugStatus,
+      sessionId: state.sessionId,
       taskId: state.taskId,
       resourcePath: state.resourcePath,
       entryNode: state.entryNode,
       screenshotMode: state.screenshotMode,
-      logLevel: state.logLevel,
       currentNode: state.currentNode,
       currentPhase: state.currentPhase,
+      recognitionTargetName: state.recognitionTargetName,
+      lastNode: state.lastNode,
       executionStartTime: state.executionStartTime,
       executionHistory: state.executionHistory,
       breakpoints: state.breakpoints,
@@ -198,19 +202,6 @@ function DebugPanel() {
             ]}
           />
         </div>
-        <div className={debugStyle["debug-config-field"]}>
-          <div className={debugStyle["debug-config-field-label"]}>日志级别</div>
-          <Select
-            style={{ width: "100%" }}
-            value={logLevel}
-            onChange={(value) => setConfig("logLevel", value)}
-            options={[
-              { label: "详细", value: "verbose" },
-              { label: "普通", value: "normal" },
-              { label: "仅错误", value: "error" },
-            ]}
-          />
-        </div>
       </div>
     </div>
   );
@@ -346,9 +337,10 @@ function DebugPanel() {
       label: "暂停调试（所有状态会清空）",
       disabled: debugStatus !== "running",
       onClick: () => {
-        if (taskId) {
-          // 发送 WebSocket 消息暂停调试
-          debugProtocol.sendPauseDebug(taskId);
+        const id = sessionId || taskId;
+        if (id) {
+          // V2: 暂停实际上是停止
+          debugProtocol.sendPauseDebug(id);
         }
       },
     },
@@ -356,26 +348,29 @@ function DebugPanel() {
       key: "continue",
       icon: "icon-jixu",
       iconSize: 20,
-      label: "继续执行（所有状态会清空）",
+      label: "继续执行（从上一个节点继续）",
       disabled: debugStatus !== "paused",
       onClick: () => {
-        if (taskId && currentNode) {
-          // 将当前节点 ID 转换为 pipeline 中的节点名称
-          const currentNodeFullName = nodeIdToFullName(currentNode);
-          if (!currentNodeFullName) {
+        const id = sessionId || taskId;
+        // V2: 使用 lastNode 作为 from_node
+        const fromNode = lastNode || currentNode;
+        if (id && fromNode) {
+          // 将节点 ID 转换为 pipeline 中的节点名称
+          const fromNodeFullName = nodeIdToFullName(fromNode);
+          if (!fromNodeFullName) {
             message.error("当前节点不存在");
             return;
           }
 
           // 将断点节点 ID 转换为 pipeline 中的节点名称
           const breakpointFullNames = Array.from(breakpoints)
-            .map((id) => nodeIdToFullName(id))
+            .map((bpId) => nodeIdToFullName(bpId))
             .filter((name): name is string => name !== null);
 
           // 发送 WebSocket 消息继续调试
           debugProtocol.sendContinueDebug(
-            taskId,
-            currentNodeFullName,
+            id,
+            fromNodeFullName,
             breakpointFullNames
           );
         }
@@ -433,9 +428,10 @@ function DebugPanel() {
       label: "停止调试",
       disabled: debugStatus === "idle",
       onClick: () => {
-        if (taskId) {
+        const id = sessionId || taskId;
+        if (id) {
           // 发送 WebSocket 消息停止调试
-          debugProtocol.sendStopDebug(taskId);
+          debugProtocol.sendStopDebug(id);
         }
 
         // 调用 debugStore 更新状态
@@ -481,17 +477,27 @@ function DebugPanel() {
   ];
 
   // 状态标签配置
+  // 根据 Pipeline 执行流程:
+  // - 识别中: 当前节点正在识别 next 列表中的目标节点
+  // - 执行中: 当前节点正在执行动作
+  const getRunningStatusText = () => {
+    if (currentPhase === "recognition") {
+      // 识别阶段，显示正在识别的目标节点
+      if (recognitionTargetName) {
+        return `识别中: ${recognitionTargetName}`;
+      }
+      return "识别中";
+    } else if (currentPhase === "action") {
+      return "执行中";
+    }
+    return "运行中";
+  };
+
   const statusTagConfig = {
     idle: { text: "空闲", color: "default" },
     preparing: { text: "准备中", color: "processing" },
     running: {
-      // 根据当前阶段显示不同状态
-      text:
-        currentPhase === "recognition"
-          ? "识别中"
-          : currentPhase === "action"
-          ? "执行中"
-          : "运行中",
+      text: getRunningStatusText(),
       color: "processing",
     },
     paused: { text: "已暂停", color: "warning" },

@@ -1,24 +1,31 @@
-import { memo, useMemo } from "react";
-import { Timeline, Tag, Empty, Image, Collapse, Statistic } from "antd";
+import { memo, useMemo, useState } from "react";
+import { Timeline, Tag, Empty, Image, Collapse, Statistic, Button } from "antd";
 import {
   ClockCircleOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
+  EyeOutlined,
+  PictureOutlined,
 } from "@ant-design/icons";
 import { useDebugStore } from "../../../stores/debugStore";
 import { useFlowStore } from "../../../stores/flow";
 import debugStyle from "../../../styles/DebugPanel.module.less";
+import RecognitionDetailModal from "./RecognitionDetailModal";
 
 /**
  * 调试信息标签页
  * 显示执行历史记录、识别结果、截图等详细信息
  */
 function DebugInfoTab() {
+  // Modal 状态
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+
   // 获取状态
   const debugStatus = useDebugStore((state) => state.debugStatus);
   const taskId = useDebugStore((state) => state.taskId);
   const executionHistory = useDebugStore((state) => state.executionHistory);
   const executionStartTime = useDebugStore((state) => state.executionStartTime);
+  const setSelectedRecoId = useDebugStore((state) => state.setSelectedRecoId);
 
   // 获取当前选中的节点
   const selectedNode = useFlowStore((state) => state.targetNode);
@@ -133,9 +140,25 @@ function DebugInfoTab() {
                             fontSize: 13,
                             fontWeight: 500,
                             marginBottom: 4,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
                           }}
                         >
-                          识别结果
+                          <span>识别结果</span>
+                          {record.recognition.detail && (
+                            <Button
+                              type="link"
+                              size="small"
+                              icon={<EyeOutlined />}
+                              onClick={() => {
+                                setSelectedRecoId(index + 1);
+                                setDetailModalOpen(true);
+                              }}
+                            >
+                              查看详情
+                            </Button>
+                          )}
                         </div>
                         <div
                           style={{
@@ -158,18 +181,64 @@ function DebugInfoTab() {
                               {record.recognition.success ? "成功" : "失败"}
                             </Tag>
                           </div>
-                          {record.recognition.detail && (
+                          {/* 算法信息 */}
+                          {record.recognition.detail?.algorithm && (
                             <div style={{ marginTop: 4 }}>
-                              详情:{" "}
-                              {typeof record.recognition.detail === "string"
-                                ? record.recognition.detail
-                                : JSON.stringify(
-                                    record.recognition.detail,
-                                    null,
-                                    2
-                                  )}
+                              算法:{" "}
+                              <Tag color="blue">
+                                {record.recognition.detail.algorithm}
+                              </Tag>
                             </div>
                           )}
+                          {/* 识别框 */}
+                          {record.recognition.detail?.box && (
+                            <div style={{ marginTop: 4 }}>
+                              识别框:{" "}
+                              <code>
+                                [{record.recognition.detail.box.join(", ")}]
+                              </code>
+                            </div>
+                          )}
+                          {/* 绘制图像 */}
+                          {record.recognition.detail?.draw_images &&
+                            record.recognition.detail.draw_images.length >
+                              0 && (
+                              <div style={{ marginTop: 8 }}>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 4,
+                                    marginBottom: 4,
+                                  }}
+                                >
+                                  <PictureOutlined />
+                                  <span>绘制图像:</span>
+                                </div>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    gap: 8,
+                                    flexWrap: "wrap",
+                                  }}
+                                >
+                                  {record.recognition.detail.draw_images.map(
+                                    (img: string, imgIndex: number) => (
+                                      <Image
+                                        key={imgIndex}
+                                        src={
+                                          img.startsWith("data:")
+                                            ? img
+                                            : `data:image/png;base64,${img}`
+                                        }
+                                        alt={`绘制图像 ${imgIndex + 1}`}
+                                        style={{ maxHeight: 100 }}
+                                      />
+                                    )
+                                  )}
+                                </div>
+                              </div>
+                            )}
                         </div>
                       </div>
                     )}
@@ -389,6 +458,12 @@ function DebugInfoTab() {
           />
         )}
       </div>
+
+      {/* 识别详情模态框 */}
+      <RecognitionDetailModal
+        open={detailModalOpen}
+        onClose={() => setDetailModalOpen(false)}
+      />
     </div>
   );
 }

@@ -47,7 +47,11 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
   const debugMode = useDebugStore((state) => state.debugMode);
   const executedNodes = useDebugStore((state) => state.executedNodes);
   const currentNode = useDebugStore((state) => state.currentNode);
+  const recognitionTargetNodeId = useDebugStore(
+    (state) => state.recognitionTargetNodeId
+  );
   const breakpoints = useDebugStore((state) => state.breakpoints);
+  const executionHistory = useDebugStore((state) => state.executionHistory);
 
   // 计算是否与选中元素相关联
   const isRelated = useMemo(() => {
@@ -112,8 +116,31 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
           debugMode && executedNodes.has(props.id),
         [debugStyle["debug-node-executing"]]:
           debugMode && currentNode === props.id,
+        // 正在被识别的节点（优先级高于执行中）
+        [debugStyle["debug-node-recognizing"]]:
+          debugMode && recognitionTargetNodeId === props.id,
+        [debugStyle["debug-node-failed"]]:
+          debugMode &&
+          (() => {
+            // 查找此节点最后一次执行记录，判断是否失败
+            const records = executionHistory.filter(
+              (r) => r.nodeId === props.id
+            );
+            if (records.length === 0) return false;
+            const lastRecord = records[records.length - 1];
+            return lastRecord.status === "failed";
+          })(),
       }),
-    [props.selected, nodeStyle, debugMode, executedNodes, currentNode, props.id]
+    [
+      props.selected,
+      nodeStyle,
+      debugMode,
+      executedNodes,
+      currentNode,
+      recognitionTargetNodeId,
+      executionHistory,
+      props.id,
+    ]
   );
 
   // 计算透明度样式

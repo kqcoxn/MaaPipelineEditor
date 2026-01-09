@@ -219,6 +219,24 @@
   box-shadow: 0 0 8px rgba(24, 144, 255, 0.5);
 }
 
+// 正在被识别的节点（橙色，区别于执行中的蓝色）
+.debug-node-recognizing {
+  animation: debug-node-recognizing-pulse 1s ease-in-out infinite;
+  border-color: #fa8c16 !important;
+  border-width: 2px !important;
+  box-shadow: 0 0 12px rgba(250, 140, 22, 0.6);
+}
+
+@keyframes debug-node-recognizing-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 8px rgba(250, 140, 22, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(250, 140, 22, 0.9);
+  }
+}
+
 .debug-node-executed {
   opacity: 0.7;
 
@@ -318,5 +336,240 @@
     &:hover {
       background: rgba(0, 0, 0, 0.3);
     }
+  }
+}
+
+// ============ 识别结果列表面板样式 ============
+
+.recognition-list-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 12px;
+}
+
+.recognition-list-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.recognition-list-count {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.recognition-list-content {
+  flex: 1;
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.3);
+    }
+  }
+}
+
+.recognition-list-pagination {
+  display: flex;
+  justify-content: center;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  margin-top: 8px;
+}
+
+.recognition-list-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  padding: 24px;
+}
+
+// 识别列表卡片
+.recognition-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.recognition-list-title {
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.recognition-list-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+// 识别项
+.recognition-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background-color: rgba(0, 0, 0, 0.02);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+}
+
+.recognition-item-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.recognition-item-index {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: monospace;
+  flex-shrink: 0;
+}
+
+.recognition-item-name {
+  font-size: 13px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recognition-item-status {
+  flex-shrink: 0;
+}
+
+.recognition-item-hit {
+  flex-shrink: 0;
+}
+
+.recognition-item-parent {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
+.recognition-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.recognition-item-run-index {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: monospace;
+}
+
+// ============ 识别详情模态框样式 ============
+
+.recognition-detail-modal {
+  .ant-modal-body {
+    padding: 16px;
+  }
+}
+
+.recognition-detail-section {
+  margin-bottom: 16px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.recognition-detail-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+
+  &::before {
+    content: "";
+    width: 3px;
+    height: 14px;
+    background: linear-gradient(180deg, #1890ff 0%, #40a9ff 100%);
+    border-radius: 2px;
+    margin-right: 8px;
+  }
+}
+
+.recognition-detail-field {
+  display: flex;
+  margin-bottom: 8px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.recognition-detail-label {
+  width: 80px;
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.recognition-detail-value {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+.recognition-detail-image {
+  max-width: 100%;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.recognition-detail-json {
+  background-color: rgba(0, 0, 0, 0.03);
+  border-radius: 4px;
+  padding: 12px;
+  font-size: 12px;
+  font-family: monospace;
+  overflow-x: auto;
+  max-height: 300px;
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
   }
 }

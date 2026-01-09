@@ -71,6 +71,20 @@ export class DebugProtocol extends BaseProtocol {
     this.wsClient.registerRoute("/lte/debug/paused", (data) =>
       this.handleDebugPaused(data)
     );
+
+    this.wsClient.registerRoute("/lte/debug/running", (data) =>
+      this.handleDebugRunning(data)
+    );
+
+    // V2 新路由: 继续执行
+    this.wsClient.registerRoute("/lte/debug/continued", (data) =>
+      this.handleDebugContinued(data)
+    );
+
+    // V2 新路由: 单步执行
+    this.wsClient.registerRoute("/lte/debug/stepped", (data) =>
+      this.handleDebugStepped(data)
+    );
   }
 
   protected handleMessage(path: string, data: any): void {
@@ -135,87 +149,73 @@ export class DebugProtocol extends BaseProtocol {
     return node ? node.id : null;
   }
 
-  /**
-   * 处理调试事件
-   * 路由: /lte/debug/event
-   *
-   * 接收后端推送的调试事件，包括:
-   * - node_running: 节点开始执行
-   * - node_completed: 节点执行完成
-   * - recognition: 识别结果
-   * - action: 动作结果
-   */
   private handleDebugEvent(data: any): void {
     try {
-      const { event_name, task_id, node_id, timestamp, detail } = data;
+      const { event_name, node_name, session_id, timestamp, detail, latency } =
+        data;
       const debugStore = useDebugStore.getState();
 
-      // 验证 task_id 是否匹配
-      if (debugStore.taskId !== task_id) {
+      if (
+        debugStore.sessionId &&
+        session_id &&
+        debugStore.sessionId !== session_id
+      ) {
         console.warn(
-          "[DebugProtocol] Event task_id mismatch:",
-          task_id,
+          "[DebugProtocol] Event session_id mismatch:",
+          session_id,
           "expected:",
-          debugStore.taskId
+          debugStore.sessionId
         );
         return;
       }
 
-      // 检查是否处于暂停状态
       if (debugStore.debugStatus === "paused") {
         return;
       }
 
-      // 将后端的节点完整名称转换为前端节点 ID
-      const nodeIdInFlow = node_id ? this.fullNameToNodeId(node_id) : null;
-      if (node_id && !nodeIdInFlow) {
-        console.warn("[DebugProtocol] Cannot find node with name:", node_id);
+      const nodeIdInFlow = node_name ? this.fullNameToNodeId(node_name) : null;
+      if (node_name && !nodeIdInFlow) {
+        console.warn(
+          `[DebugProtocol] Cannot find node: "${node_name}" (event: ${event_name})`
+        );
         return;
       }
 
-      // 处理不同类型的事件
       switch (event_name) {
-        case "node_running":
+        case "node_starting":
           this.handleNodeRunning(nodeIdInFlow!, timestamp, detail);
           break;
-        case "next_list":
-          this.handleNextList(nodeIdInFlow!, timestamp, detail);
+        case "node_succeeded":
+          this.handleV2NodeSucceeded(nodeIdInFlow!, timestamp, detail, latency);
           break;
-        case "recognition_starting":
+        case "node_failed":
+          this.handleV2NodeFailed(nodeIdInFlow!, timestamp, detail, latency);
+          break;
+        case "reco_starting":
           this.handleRecognitionStarting(nodeIdInFlow!, timestamp, detail);
           break;
-        case "recognition_success":
+        case "reco_succeeded":
           this.handleRecognitionSuccess(nodeIdInFlow!, timestamp, detail);
           break;
-        case "recognition_failed":
+        case "reco_failed":
           this.handleRecognitionFailed(nodeIdInFlow!, timestamp, detail);
           break;
-        case "action_success":
+        case "action_starting":
+          break;
+        case "action_succeeded":
           this.handleActionSuccess(nodeIdInFlow!, timestamp, detail);
           break;
         case "action_failed":
           this.handleActionFailed(nodeIdInFlow!, timestamp, detail);
           break;
-        case "node_execution_completed":
-          this.handleNodeExecutionCompleted(nodeIdInFlow!, timestamp, detail);
+        case "debug_paused":
+          this.handleV2DebugPaused(nodeIdInFlow!, timestamp, detail);
           break;
-        case "node_execution_failed":
-          this.handleNodeExecutionFailed(nodeIdInFlow!, timestamp, detail);
+        case "debug_completed":
+          this.handleV2DebugCompleted(timestamp);
           break;
-        // 兼容旧事件
-        case "node_completed":
-          this.handleNodeCompleted(nodeIdInFlow!, timestamp, detail);
-          break;
-        case "node_failed":
-          this.handleNodeFailed(nodeIdInFlow!, timestamp, detail);
-          break;
-        case "recognition":
-          this.handleRecognition(nodeIdInFlow!, timestamp, detail);
-          break;
-        case "action":
-          this.handleAction(nodeIdInFlow!, timestamp, detail);
-          break;
-        case "task_completed":
+        case "debug_error":
+          this.handleV2DebugError(detail);
           break;
         default:
           console.warn("[DebugProtocol] Unknown event type:", event_name);
@@ -225,9 +225,6 @@ export class DebugProtocol extends BaseProtocol {
     }
   }
 
-  /**
-   * 处理节点开始执行事件
-   */
   private handleNodeRunning(
     nodeId: string,
     timestamp: number,
@@ -235,7 +232,6 @@ export class DebugProtocol extends BaseProtocol {
   ): void {
     const debugStore = useDebugStore.getState();
 
-    // 更新当前执行节点
     debugStore.handleDebugEvent({
       type: "node_running",
       nodeId,
@@ -243,10 +239,9 @@ export class DebugProtocol extends BaseProtocol {
       detail,
     });
 
-    // 检查是否命中断点
     if (debugStore.breakpoints.has(nodeId)) {
-      if (debugStore.taskId) {
-        this.sendPauseDebug(debugStore.taskId);
+      if (debugStore.sessionId) {
+        this.sendPauseDebug(debugStore.sessionId);
         message.info(`命中断点: ${nodeId}`);
       }
     }
@@ -462,33 +457,22 @@ export class DebugProtocol extends BaseProtocol {
     });
   }
 
-  /**
-   * 处理调试错误
-   * 路由: /lte/debug/error
-   */
   private handleDebugError(data: any): void {
     try {
-      const { task_id, error } = data;
-
+      const { session_id, error } = data;
       const debugStore = useDebugStore.getState();
 
-      // 验证 task_id
-      if (task_id !== undefined && debugStore.taskId !== task_id) {
+      if (session_id !== undefined && debugStore.sessionId !== session_id) {
         console.warn(
-          "[DebugProtocol] Error task_id mismatch:",
-          task_id,
+          "[DebugProtocol] Error session_id mismatch:",
+          session_id,
           "expected:",
-          debugStore.taskId
+          debugStore.sessionId
         );
         return;
       }
 
-      // 更新错误状态
-      debugStore.handleDebugEvent({
-        type: "error",
-        error,
-      });
-
+      debugStore.handleDebugEvent({ type: "error", error });
       message.error(`调试错误: ${error}`);
       console.error("[DebugProtocol] Debug error:", error);
     } catch (error) {
@@ -496,37 +480,26 @@ export class DebugProtocol extends BaseProtocol {
     }
   }
 
-  /**
-   * 处理调试完成
-   * 路由: /lte/debug/completed
-   */
   private handleDebugCompleted(data: any): void {
     try {
-      const { task_id } = data;
-
+      const { session_id } = data;
       const debugStore = useDebugStore.getState();
 
-      // 验证 task_id
-      if (debugStore.taskId !== task_id) {
+      if (debugStore.sessionId !== session_id) {
         console.warn(
-          "[DebugProtocol] Completed task_id mismatch:",
-          task_id,
+          "[DebugProtocol] Completed session_id mismatch:",
+          session_id,
           "expected:",
-          debugStore.taskId
+          debugStore.sessionId
         );
         return;
       }
 
-      // 忽略完成事件的暂停状态
       if (debugStore.debugStatus === "paused") {
         return;
       }
 
-      // 更新调试状态为完成
-      debugStore.handleDebugEvent({
-        type: "completed",
-      });
-
+      debugStore.handleDebugEvent({ type: "completed" });
       message.success("调试执行完成");
       setTimeout(() => {
         const currentStatus = useDebugStore.getState().debugStatus;
@@ -539,31 +512,22 @@ export class DebugProtocol extends BaseProtocol {
     }
   }
 
-  /**
-   * 处理调试启动响应
-   * 路由: /lte/debug/started
-   */
   private handleDebugStarted(data: any): void {
     try {
-      const { success, task_id, error } = data;
-
+      const { success, session_id, error } = data;
       const debugStore = useDebugStore.getState();
 
-      if (success && task_id) {
-        // 更新 task_id 和状态
+      if (success && session_id) {
         debugStore.handleDebugEvent({
           type: "started",
-          taskId: task_id,
+          sessionId: session_id,
         });
-
         message.success("调试已启动");
       } else {
-        // 启动失败
         debugStore.handleDebugEvent({
           type: "error",
           error: error || "调试启动失败",
         });
-
         message.error(error || "调试启动失败");
         console.error("[DebugProtocol] Debug start failed:", error);
       }
@@ -572,23 +536,17 @@ export class DebugProtocol extends BaseProtocol {
     }
   }
 
-  /**
-   * 处理调试停止响应
-   * 路由: /lte/debug/stopped
-   */
   private handleDebugStopped(data: any): void {
     try {
-      const { success, task_id, error } = data;
-
+      const { success, session_id, error } = data;
       const debugStore = useDebugStore.getState();
 
-      // 验证 task_id
-      if (task_id !== undefined && debugStore.taskId !== task_id) {
+      if (session_id !== undefined && debugStore.sessionId !== session_id) {
         console.warn(
-          "[DebugProtocol] Stopped task_id mismatch:",
-          task_id,
+          "[DebugProtocol] Stopped session_id mismatch:",
+          session_id,
           "expected:",
-          debugStore.taskId
+          debugStore.sessionId
         );
         return;
       }
@@ -600,30 +558,23 @@ export class DebugProtocol extends BaseProtocol {
         console.error("[DebugProtocol] Debug stop failed:", error);
       }
 
-      // 无论成功与否，都清理状态
       debugStore.stopDebug();
     } catch (error) {
       console.error("[DebugProtocol] Failed to handle debug stopped:", error);
     }
   }
 
-  /**
-   * 处理调试暂停响应
-   * 路由: /lte/debug/paused
-   */
   private handleDebugPaused(data: any): void {
     try {
-      const { success, task_id, error } = data;
-
+      const { success, session_id, error } = data;
       const debugStore = useDebugStore.getState();
 
-      // 验证 task_id
-      if (task_id !== undefined && debugStore.taskId !== task_id) {
+      if (session_id !== undefined && debugStore.sessionId !== session_id) {
         console.warn(
-          "[DebugProtocol] Paused task_id mismatch:",
-          task_id,
+          "[DebugProtocol] Paused session_id mismatch:",
+          session_id,
           "expected:",
-          debugStore.taskId
+          debugStore.sessionId
         );
         return;
       }
@@ -638,6 +589,125 @@ export class DebugProtocol extends BaseProtocol {
     } catch (error) {
       console.error("[DebugProtocol] Failed to handle debug paused:", error);
     }
+  }
+
+  private handleDebugRunning(data: any): void {
+    const { success, session_id, entry, error } = data;
+    if (success) {
+      const debugStore = useDebugStore.getState();
+      debugStore.setSessionId(session_id);
+      debugStore.handleDebugEvent({
+        type: "started",
+        sessionId: session_id,
+      });
+    } else {
+      message.error(error || "启动调试失败");
+    }
+  }
+
+  /**
+   * 处理继续执行响应
+   */
+  private handleDebugContinued(data: any): void {
+    const { success, error } = data;
+    if (success) {
+      useDebugStore.getState().continueDebug();
+    } else {
+      message.error(error || "继续执行失败");
+    }
+  }
+
+  /**
+   * 处理单步执行响应
+   */
+  private handleDebugStepped(data: any): void {
+    const { success, error } = data;
+    if (success) {
+      useDebugStore.getState().stepDebug();
+    } else {
+      message.error(error || "单步执行失败");
+    }
+  }
+
+  // ============================================================================
+  // V2 新增事件处理器
+  // ============================================================================
+
+  /**
+   * 处理 V2 节点成功事件
+   */
+  private handleV2NodeSucceeded(
+    nodeId: string,
+    timestamp: number,
+    detail: any,
+    latency?: number
+  ): void {
+    const debugStore = useDebugStore.getState();
+    debugStore.handleDebugEvent({
+      type: "node_succeeded",
+      nodeId,
+      timestamp,
+      detail: { ...detail, latency },
+    });
+  }
+
+  /**
+   * 处理 V2 节点失败事件
+   */
+  private handleV2NodeFailed(
+    nodeId: string,
+    timestamp: number,
+    detail: any,
+    latency?: number
+  ): void {
+    const debugStore = useDebugStore.getState();
+    debugStore.handleDebugEvent({
+      type: "node_failed",
+      nodeId,
+      timestamp,
+      detail: { ...detail, latency },
+    });
+  }
+
+  /**
+   * 处理 V2 调试暂停事件 (到达断点)
+   */
+  private handleV2DebugPaused(
+    nodeId: string | null,
+    timestamp: number,
+    detail: any
+  ): void {
+    const debugStore = useDebugStore.getState();
+    debugStore.pauseDebug();
+    if (nodeId) {
+      debugStore.setLastNode(nodeId);
+      debugStore.setCurrentNode(nodeId);
+    }
+    message.info(`命中断点: ${detail?.reason || nodeId}`);
+  }
+
+  /**
+   * 处理 V2 调试完成事件
+   */
+  private handleV2DebugCompleted(timestamp: number): void {
+    const debugStore = useDebugStore.getState();
+    debugStore.handleDebugEvent({
+      type: "debug_completed",
+      timestamp,
+    });
+    message.success("调试执行完成");
+  }
+
+  /**
+   * 处理 V2 调试错误事件
+   */
+  private handleV2DebugError(detail: any): void {
+    const debugStore = useDebugStore.getState();
+    debugStore.handleDebugEvent({
+      type: "debug_error",
+      detail,
+    });
+    message.error(`调试错误: ${detail?.status || "未知错误"}`);
   }
 
   /**
@@ -664,38 +734,31 @@ export class DebugProtocol extends BaseProtocol {
 
   /**
    * 发送调试停止请求
+   * V2: 使用 session_id
    */
-  sendStopDebug(taskId: string): boolean {
+  sendStopDebug(sessionId: string): boolean {
     if (!this.wsClient) {
       console.error("[DebugProtocol] WebSocket client not initialized");
       return false;
     }
 
     return this.wsClient.send("/mpe/debug/stop", {
-      task_id: taskId,
+      session_id: sessionId,
     });
   }
 
-  /**
-   * 发送暂停调试请求
-   */
-  sendPauseDebug(taskId: string): boolean {
+  sendPauseDebug(sessionId: string): boolean {
     if (!this.wsClient) {
       console.error("[DebugProtocol] WebSocket client not initialized");
       return false;
     }
 
-    return this.wsClient.send("/mpe/debug/pause", {
-      task_id: taskId,
-    });
+    return this.wsClient.send("/mpe/debug/stop", { session_id: sessionId });
   }
 
-  /**
-   * 发送继续调试请求
-   */
   sendContinueDebug(
-    taskId: string,
-    currentNode: string,
+    sessionId: string,
+    fromNode: string,
     breakpoints: string[]
   ): boolean {
     if (!this.wsClient) {
@@ -704,18 +767,15 @@ export class DebugProtocol extends BaseProtocol {
     }
 
     return this.wsClient.send("/mpe/debug/continue", {
-      task_id: taskId,
-      current_node: currentNode,
+      session_id: sessionId,
+      from_node: fromNode,
       breakpoints,
     });
   }
 
-  /**
-   * 发送单步执行请求
-   */
   sendStepDebug(
-    taskId: string,
-    currentNode: string,
+    sessionId: string,
+    fromNode: string,
     nextNodes: string[],
     breakpoints: string[]
   ): boolean {
@@ -725,8 +785,8 @@ export class DebugProtocol extends BaseProtocol {
     }
 
     return this.wsClient.send("/mpe/debug/step", {
-      task_id: taskId,
-      current_node: currentNode,
+      session_id: sessionId,
+      from_node: fromNode,
       next_nodes: nextNodes,
       breakpoints,
     });

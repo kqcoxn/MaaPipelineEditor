@@ -514,7 +514,43 @@ func (s *debugContextSink) OnNodePipelineNode(ctx *maa.Context, status maa.Event
 }
 
 func (s *debugContextSink) OnNodeNextList(ctx *maa.Context, status maa.EventStatus, msg maa.NodeNextListDetail) {
-	logger.Debug("Debug", "下一跳列表事件: NodeName=%s, Status=%v", msg.Name, status)
+	logger.Info("Debug", "===== OnNodeNextList 被调用 ===== NodeName=%s, Status=%v, NextList条目数=%d", msg.Name, status, len(msg.NextList))
+
+	if s.handler == nil {
+		logger.Warn("Debug", "handler 为空，无法发送事件")
+		return
+	}
+
+	// 只在 Starting 状态时发送 next_list 事件
+	if status != maa.EventStatusStarting {
+		return
+	}
+
+	nextListData := make([]map[string]interface{}, 0, len(msg.NextList))
+	for _, item := range msg.NextList {
+		nextListData = append(nextListData, map[string]interface{}{
+			"name":      item.Name,
+			"jump_back": item.JumpBack,
+			"anchor":    item.Anchor,
+		})
+	}
+
+	// 发送 next_list 事件
+	event := DebugEvent{
+		Type:      "debug_event",
+		EventName: "next_list",
+		TaskID:    s.session.TaskID,
+		NodeID:    msg.Name,
+		Timestamp: time.Now().Unix(),
+		Detail: map[string]interface{}{
+			"task_id":   msg.TaskID,
+			"name":      msg.Name,
+			"next_list": nextListData,
+			"focus":     msg.Focus,
+		},
+	}
+	logger.Info("Debug", "发送调试事件: next_list, 节点=%s, NextList条目数=%d", msg.Name, len(msg.NextList))
+	s.handler.OnDebugEvent(event)
 }
 
 func (s *debugContextSink) OnNodeRecognition(ctx *maa.Context, status maa.EventStatus, msg maa.NodeRecognitionDetail) {
@@ -550,7 +586,7 @@ func (s *debugContextSink) OnNodeRecognition(ctx *maa.Context, status maa.EventS
 
 		logger.Info("Debug", "识别成功: 节点=%s, RecoID=%d, 第%d次尝试", msg.Name, msg.RecognitionID, recoIndex)
 
-		// 获取识别的详细数据
+		// 构建识别详情
 		recognitionDetail := map[string]interface{}{
 			"reco_id":   msg.RecognitionID,
 			"task_id":   msg.TaskID,
@@ -559,6 +595,101 @@ func (s *debugContextSink) OnNodeRecognition(ctx *maa.Context, status maa.EventS
 			"detail":    nil,
 			"hit":       true,
 			"run_index": recoIndex,
+		}
+
+		// 尝试获取完整的识别详情（包含 Algorithm, Box, DetailJson, Draws）
+		logger.Debug("Debug", "[调试] 开始获取完整识别详情, ctx=%v", ctx != nil)
+		if ctx != nil {
+			tasker := ctx.GetTasker()
+			logger.Debug("Debug", "[调试] Tasker=%v", tasker != nil)
+			if tasker != nil {
+				nodeDetail := tasker.GetLatestNode(msg.Name)
+				logger.Debug("Debug", "[调试] NodeDetail=%v", nodeDetail != nil)
+				if nodeDetail != nil {
+					logger.Debug("Debug", "[调试] Recognition=%v", nodeDetail.Recognition != nil)
+					if nodeDetail.Recognition != nil {
+						recoDetail := nodeDetail.Recognition
+						logger.Info("Debug", "✓ 获取到完整识别详情: 节点=%s, 算法=%s, Hit=%v", msg.Name, recoDetail.Algorithm, recoDetail.Hit)
+
+						// 更新识别详情
+						recognitionDetail["algorithm"] = recoDetail.Algorithm
+						recognitionDetail["hit"] = recoDetail.Hit
+
+						// Box 转换为数组 [x, y, w, h]
+						boxX := recoDetail.Box.X()
+						boxY := recoDetail.Box.Y()
+						boxW := recoDetail.Box.Width()
+						boxH := recoDetail.Box.Height()
+						logger.Debug("Debug", "[调试] Box: x=%d, y=%d, w=%d, h=%d", boxX, boxY, boxW, boxH)
+						if boxX != 0 || boxY != 0 || boxW != 0 || boxH != 0 {
+							recognitionDetail["box"] = []int{boxX, boxY, boxW, boxH}
+							logger.Info("Debug", "✓ 识别框: [%d, %d, %d, %d]", boxX, boxY, boxW, boxH)
+						}
+
+						// DetailJson 解析为对象
+						logger.Debug("Debug", "[调试] DetailJson 长度: %d", len(recoDetail.DetailJson))
+						if recoDetail.DetailJson != "" {
+							var detailObj interface{}
+							if err := json.Unmarshal([]byte(recoDetail.DetailJson), &detailObj); err == nil {
+								recognitionDetail["detail"] = detailObj
+								recognitionDetail["best_result"] = detailObj
+								logger.Info("Debug", "✓ 解析识别详情JSON成功")
+							} else {
+								recognitionDetail["detail"] = recoDetail.DetailJson
+								logger.Warn("Debug", "✗ 解析识别详情JSON失败: %v, 使用原始字符串", err)
+							}
+						}
+
+						// Raw 截图转换为 base64
+						logger.Debug("Debug", "[调试] Raw 截图=%v", recoDetail.Raw != nil)
+						if recoDetail.Raw != nil {
+							var buf bytes.Buffer
+							if err := png.Encode(&buf, recoDetail.Raw); err == nil {
+								b64 := base64.StdEncoding.EncodeToString(buf.Bytes())
+								recognitionDetail["raw_image"] = b64
+								logger.Info("Debug", "✓ 原始截图转换成功, 大小=%d bytes", len(buf.Bytes()))
+							} else {
+								logger.Warn("Debug", "✗ 原始截图编码失败: %v", err)
+							}
+						}
+
+						// 绘制图像转换为 base64
+						logger.Debug("Debug", "[调试] Draws 数量: %d", len(recoDetail.Draws))
+						if len(recoDetail.Draws) > 0 {
+							drawImages := make([]string, 0, len(recoDetail.Draws))
+							for i, img := range recoDetail.Draws {
+								if img != nil {
+									var buf bytes.Buffer
+									if err := png.Encode(&buf, img); err == nil {
+										b64 := base64.StdEncoding.EncodeToString(buf.Bytes())
+										drawImages = append(drawImages, b64)
+										logger.Debug("Debug", "✓ 绘制图像[%d]转换成功, 大小=%d bytes", i, len(buf.Bytes()))
+									} else {
+										logger.Warn("Debug", "✗ 绘制图像[%d]编码失败: %v", i, err)
+									}
+								}
+							}
+							if len(drawImages) > 0 {
+								recognitionDetail["draw_images"] = drawImages
+								logger.Info("Debug", "✓ 识别详情包含 %d 张绘制图像", len(drawImages))
+							}
+						}
+					} else {
+						logger.Warn("Debug", "✗ nodeDetail.Recognition 为空")
+					}
+				} else {
+					logger.Warn("Debug", "✗ nodeDetail 为空")
+				}
+			} else {
+				logger.Warn("Debug", "✗ tasker 为空")
+			}
+		} else {
+			logger.Warn("Debug", "✗ context 为空")
+		}
+
+		logger.Info("Debug", "[最终] 识别详情字段数: %d", len(recognitionDetail))
+		for key := range recognitionDetail {
+			logger.Debug("Debug", "[最终] 字段: %s", key)
 		}
 
 		event := DebugEvent{
@@ -655,459 +786,7 @@ func (s *debugContextSink) OnNodeAction(ctx *maa.Context, status maa.EventStatus
 	}
 }
 
-// 旧版本 debugEventSink
-type debugEventSink struct {
-	session *DebugSession
-	handler DebugEventHandler
-}
-
-// TaskerEventSink 接口
-func (s *debugEventSink) OnTaskerTask(tasker *maa.Tasker, status maa.EventStatus, detail maa.TaskerTaskDetail) {
-	logger.Info("Debug", "========== OnTaskerTask 被调用 ========== ID=%d, Entry=%s, Status=%v", detail.TaskID, detail.Entry, status)
-	logger.Debug("Debug", "TaskerTask 详情: TaskID=%d, Entry=%s, Hash=%s", detail.TaskID, detail.Entry, detail.Hash)
-	logger.Debug("Debug", "等待节点级事件 (OnTaskRecognition/OnNodePipelineNode 等) ...")
-}
-
-func (s *debugEventSink) OnTaskRecognition(tasker *maa.Tasker, status maa.EventStatus, msg maa.NodeRecognitionDetail) {
-	logger.Info("Debug", "===== OnTaskRecognition 被调用 ===== NodeName=%s, RecoID=%d, Status=%v", msg.Name, msg.RecognitionID, status)
-
-	if s.handler == nil {
-		logger.Warn("Debug", "handler 为空，无法发送事件")
-		return
-	}
-
-	switch status {
-	case maa.EventStatusStarting:
-		// 记录节点开始时间
-		s.session.mu.Lock()
-		s.session.NodeStartMap[msg.Name] = time.Now()
-		s.session.mu.Unlock()
-
-		// 发送 node_running 事件
-		event := DebugEvent{
-			Type:      "debug_event",
-			EventName: "node_running",
-			TaskID:    s.session.TaskID,
-			NodeID:    msg.Name,
-			Timestamp: time.Now().Unix(),
-			Detail: map[string]interface{}{
-				"node_name": msg.Name,
-				"reco_id":   msg.RecognitionID,
-				"task_id":   msg.TaskID,
-				"status":    status,
-			},
-		}
-		logger.Info("Debug", "发送调试事件: node_running, 节点=%s", msg.Name)
-		s.handler.OnDebugEvent(event)
-
-	case maa.EventStatusSucceeded:
-		// 递增节点执行次数
-		s.session.mu.Lock()
-		s.session.NodeCountMap[msg.Name]++
-		nodeRunIndex := s.session.NodeCountMap[msg.Name]
-		s.session.mu.Unlock()
-
-		// 计算执行耗时
-		var latency int64 = 0
-		s.session.mu.RLock()
-		if startTime, ok := s.session.NodeStartMap[msg.Name]; ok {
-			latency = time.Since(startTime).Milliseconds()
-		}
-		s.session.mu.RUnlock()
-
-		// 获取节点调试数据
-		var nodeData map[string]interface{}
-		if s.session.Resource != nil {
-			nodeJSON, ok := s.session.Resource.GetNodeJSON(msg.Name)
-			if ok && nodeJSON != "" {
-				logger.Debug("Debug", "获取到节点数据: %s", msg.Name)
-				if err := json.Unmarshal([]byte(nodeJSON), &nodeData); err != nil {
-					logger.Warn("Debug", "解析节点 JSON 失败: %v", err)
-				}
-			}
-		}
-
-		// 发送 node_completed 事件
-		event := DebugEvent{
-			Type:      "debug_event",
-			EventName: "node_completed",
-			TaskID:    s.session.TaskID,
-			NodeID:    msg.Name,
-			Timestamp: time.Now().Unix(),
-			Detail: map[string]interface{}{
-				"node_name": msg.Name,
-				"reco_id":   msg.RecognitionID,
-				"task_id":   msg.TaskID,
-				"status":    status,
-				"hit":       true,
-				"node_data": nodeData,
-				"run_index": nodeRunIndex,
-				"latency":   latency,
-			},
-		}
-		logger.Info("Debug", "发送调试事件: node_completed, 节点=%s, 次数=%d, 耗时=%dms", msg.Name, nodeRunIndex, latency)
-		s.handler.OnDebugEvent(event)
-
-	case maa.EventStatusFailed:
-		// 递增节点执行次数
-		s.session.mu.Lock()
-		s.session.NodeCountMap[msg.Name]++
-		nodeRunIndex := s.session.NodeCountMap[msg.Name]
-		s.session.mu.Unlock()
-
-		// 计算执行耗时
-		var latency int64 = 0
-		s.session.mu.RLock()
-		if startTime, ok := s.session.NodeStartMap[msg.Name]; ok {
-			latency = time.Since(startTime).Milliseconds()
-		}
-		s.session.mu.RUnlock()
-
-		// 发送 node_failed 事件
-		event := DebugEvent{
-			Type:      "debug_event",
-			EventName: "node_failed",
-			TaskID:    s.session.TaskID,
-			NodeID:    msg.Name,
-			Timestamp: time.Now().Unix(),
-			Detail: map[string]interface{}{
-				"node_name": msg.Name,
-				"reco_id":   msg.RecognitionID,
-				"task_id":   msg.TaskID,
-				"status":    status,
-				"hit":       false,
-				"run_index": nodeRunIndex,
-				"latency":   latency,
-			},
-		}
-		logger.Info("Debug", "发送调试事件: node_failed, 节点=%s, 次数=%d, 耗时=%dms", msg.Name, nodeRunIndex, latency)
-		s.handler.OnDebugEvent(event)
-
-	default:
-		logger.Debug("Debug", "OnTaskRecognition 未知状态: %v", status)
-	}
-}
-
-func (s *debugEventSink) OnTaskAction(tasker *maa.Tasker, status maa.EventStatus, msg maa.NodeActionDetail) {
-	logger.Debug("Debug", "动作事件: NodeID=%s, ActionID=%d", msg.Name, msg.ActionID)
-
-	if s.handler != nil {
-		detail := map[string]interface{}{
-			"node_name": msg.Name,
-			"action_id": msg.ActionID,
-			"task_id":   msg.TaskID,
-			"status":    status,
-		}
-
-		event := DebugEvent{
-			Type:      "debug_event",
-			EventName: "action",
-			TaskID:    s.session.TaskID,
-			NodeID:    msg.Name,
-			Timestamp: time.Now().Unix(),
-			Detail:    detail,
-		}
-		s.handler.OnDebugEvent(event)
-	}
-}
-
-func (s *debugEventSink) OnNodePipelineNode(tasker *maa.Tasker, status maa.EventStatus, msg maa.NodePipelineNodeDetail) {
-	logger.Info("Debug", "===== OnNodePipelineNode 被调用 ===== NodeName=%s, NodeID=%d, Status=%v", msg.Name, msg.NodeID, status)
-
-	if s.handler == nil {
-		logger.Warn("Debug", "handler 为空，无法发送事件")
-		return
-	}
-
-	// 根据状态发送不同事件
-	switch status {
-	case maa.EventStatusStarting:
-		// 记录节点开始时间
-		s.session.mu.Lock()
-		s.session.NodeStartMap[msg.Name] = time.Now()
-		s.session.mu.Unlock()
-
-		// 发送 node_running 事件
-		event := DebugEvent{
-			Type:      "debug_event",
-			EventName: "node_running",
-			TaskID:    s.session.TaskID,
-			NodeID:    msg.Name,
-			Timestamp: time.Now().Unix(),
-			Detail: map[string]interface{}{
-				"node_name": msg.Name,
-				"node_id":   msg.NodeID,
-				"task_id":   msg.TaskID,
-				"status":    status,
-			},
-		}
-		logger.Info("Debug", "发送调试事件: node_running, 节点=%s", msg.Name)
-		s.handler.OnDebugEvent(event)
-
-	case maa.EventStatusSucceeded:
-		// 递增节点执行次数
-		s.session.mu.Lock()
-		s.session.NodeCountMap[msg.Name]++
-		nodeRunIndex := s.session.NodeCountMap[msg.Name]
-		s.session.mu.Unlock()
-
-		// 计算执行耗时
-		var latency int64 = 0
-		s.session.mu.RLock()
-		if startTime, ok := s.session.NodeStartMap[msg.Name]; ok {
-			latency = time.Since(startTime).Milliseconds()
-		}
-		s.session.mu.RUnlock()
-
-		// 获取节点调试数据
-		var nodeData map[string]interface{}
-		if s.session.Resource != nil {
-			nodeJSON, ok := s.session.Resource.GetNodeJSON(msg.Name)
-			if ok && nodeJSON != "" {
-				logger.Info("Debug", "获取到节点数据: %s -> %s", msg.Name, nodeJSON[:min(100, len(nodeJSON))]+"...")
-				if err := json.Unmarshal([]byte(nodeJSON), &nodeData); err != nil {
-					logger.Warn("Debug", "解析节点 JSON 失败: %v", err)
-				}
-			} else {
-				logger.Warn("Debug", "未获取到节点数据: %s, ok=%v", msg.Name, ok)
-			}
-		}
-
-		// 发送 node_completed 事件
-		event := DebugEvent{
-			Type:      "debug_event",
-			EventName: "node_completed",
-			TaskID:    s.session.TaskID,
-			NodeID:    msg.Name,
-			Timestamp: time.Now().Unix(),
-			Detail: map[string]interface{}{
-				"node_name": msg.Name,
-				"node_id":   msg.NodeID,
-				"task_id":   msg.TaskID,
-				"status":    status,
-				"hit":       true,
-				"node_data": nodeData,
-				"run_index": nodeRunIndex,
-				"latency":   latency,
-			},
-		}
-		logger.Info("Debug", "发送调试事件: node_completed, 节点=%s, 次数=%d, 耗时=%dms", msg.Name, nodeRunIndex, latency)
-		s.handler.OnDebugEvent(event)
-
-	case maa.EventStatusFailed:
-		// 递增节点执行次数
-		s.session.mu.Lock()
-		s.session.NodeCountMap[msg.Name]++
-		nodeRunIndex := s.session.NodeCountMap[msg.Name]
-		s.session.mu.Unlock()
-
-		// 计算执行耗时
-		var latency int64 = 0
-		s.session.mu.RLock()
-		if startTime, ok := s.session.NodeStartMap[msg.Name]; ok {
-			latency = time.Since(startTime).Milliseconds()
-		}
-		s.session.mu.RUnlock()
-
-		// 发送 node_failed 事件
-		event := DebugEvent{
-			Type:      "debug_event",
-			EventName: "node_failed",
-			TaskID:    s.session.TaskID,
-			NodeID:    msg.Name,
-			Timestamp: time.Now().Unix(),
-			Detail: map[string]interface{}{
-				"node_name": msg.Name,
-				"node_id":   msg.NodeID,
-				"task_id":   msg.TaskID,
-				"status":    status,
-				"run_index": nodeRunIndex,
-				"latency":   latency,
-			},
-		}
-		logger.Info("Debug", "发送调试事件: node_failed, 节点=%s, 次数=%d, 耗时=%dms", msg.Name, nodeRunIndex, latency)
-		s.handler.OnDebugEvent(event)
-
-	default:
-		logger.Warn("Debug", "未知节点状态: %v", status)
-	}
-}
-
-func (s *debugEventSink) OnNodeRecognitionNode(tasker *maa.Tasker, status maa.EventStatus, msg maa.NodeRecognitionNodeDetail) {
-	logger.Info("Debug", "===== OnNodeRecognitionNode 被调用 ===== NodeName=%s, NodeID=%d, Status=%v", msg.Name, msg.NodeID, status)
-
-	if s.handler == nil {
-		logger.Warn("Debug", "handler 为空，无法发送事件")
-		return
-	}
-
-	// 实时节点事件
-	switch status {
-	case maa.EventStatusStarting:
-		// 记录节点开始时间
-		s.session.mu.Lock()
-		s.session.NodeStartMap[msg.Name] = time.Now()
-		s.session.mu.Unlock()
-
-		// 发送 node_running 事件
-		event := DebugEvent{
-			Type:      "debug_event",
-			EventName: "node_running",
-			TaskID:    s.session.TaskID,
-			NodeID:    msg.Name,
-			Timestamp: time.Now().Unix(),
-			Detail: map[string]interface{}{
-				"node_name": msg.Name,
-				"node_id":   msg.NodeID,
-				"task_id":   msg.TaskID,
-				"status":    status,
-			},
-		}
-		logger.Info("Debug", "发送调试事件: node_running, 节点=%s", msg.Name)
-		s.handler.OnDebugEvent(event)
-
-	case maa.EventStatusSucceeded:
-		// 递增节点执行次数
-		s.session.mu.Lock()
-		s.session.NodeCountMap[msg.Name]++
-		nodeRunIndex := s.session.NodeCountMap[msg.Name]
-		s.session.mu.Unlock()
-
-		// 计算执行耗时
-		var latency int64 = 0
-		s.session.mu.RLock()
-		if startTime, ok := s.session.NodeStartMap[msg.Name]; ok {
-			latency = time.Since(startTime).Milliseconds()
-		}
-		s.session.mu.RUnlock()
-
-		// 获取节点调试数据
-		var nodeData map[string]interface{}
-		if s.session.Resource != nil {
-			nodeJSON, ok := s.session.Resource.GetNodeJSON(msg.Name)
-			if ok && nodeJSON != "" {
-				logger.Debug("Debug", "获取到节点数据: %s", msg.Name)
-				if err := json.Unmarshal([]byte(nodeJSON), &nodeData); err != nil {
-					logger.Warn("Debug", "解析节点 JSON 失败: %v", err)
-				}
-			}
-		}
-
-		// 发送 node_completed 事件
-		event := DebugEvent{
-			Type:      "debug_event",
-			EventName: "node_completed",
-			TaskID:    s.session.TaskID,
-			NodeID:    msg.Name,
-			Timestamp: time.Now().Unix(),
-			Detail: map[string]interface{}{
-				"node_name": msg.Name,
-				"node_id":   msg.NodeID,
-				"task_id":   msg.TaskID,
-				"status":    status,
-				"hit":       true,
-				"node_data": nodeData,
-				"run_index": nodeRunIndex,
-				"latency":   latency,
-			},
-		}
-		logger.Info("Debug", "发送调试事件: node_completed, 节点=%s, 次数=%d, 耗时=%dms", msg.Name, nodeRunIndex, latency)
-		s.handler.OnDebugEvent(event)
-
-	case maa.EventStatusFailed:
-		// 递增节点执行次数
-		s.session.mu.Lock()
-		s.session.NodeCountMap[msg.Name]++
-		nodeRunIndex := s.session.NodeCountMap[msg.Name]
-		s.session.mu.Unlock()
-
-		// 计算执行耗时
-		var latency int64 = 0
-		s.session.mu.RLock()
-		if startTime, ok := s.session.NodeStartMap[msg.Name]; ok {
-			latency = time.Since(startTime).Milliseconds()
-		}
-		s.session.mu.RUnlock()
-
-		// 发送 node_failed 事件
-		event := DebugEvent{
-			Type:      "debug_event",
-			EventName: "node_failed",
-			TaskID:    s.session.TaskID,
-			NodeID:    msg.Name,
-			Timestamp: time.Now().Unix(),
-			Detail: map[string]interface{}{
-				"node_name": msg.Name,
-				"node_id":   msg.NodeID,
-				"task_id":   msg.TaskID,
-				"status":    status,
-				"hit":       false,
-				"run_index": nodeRunIndex,
-				"latency":   latency,
-			},
-		}
-		logger.Info("Debug", "发送调试事件: node_failed, 节点=%s, 次数=%d, 耗时=%dms", msg.Name, nodeRunIndex, latency)
-		s.handler.OnDebugEvent(event)
-
-	default:
-		logger.Debug("Debug", "OnNodeRecognitionNode 未知状态: %v", status)
-	}
-}
-
-func (s *debugEventSink) OnNodeActionNode(tasker *maa.Tasker, status maa.EventStatus, msg maa.NodeActionNodeDetail) {
-	logger.Info("Debug", "===== OnNodeActionNode 被调用 ===== NodeName=%s, NodeID=%d, Status=%v", msg.Name, msg.NodeID, status)
-	logger.Debug("Debug", "NodeActionNode 详情: TaskID=%d", msg.TaskID)
-}
-
-func (s *debugEventSink) OnResourceLoading(tasker *maa.Tasker, status maa.EventStatus, msg maa.ResourceLoadingDetail) {
-	logger.Info("Debug", "资源加载事件: Path=%s, Status=%v", msg.Path, status)
-}
-
-func (s *debugEventSink) OnControllerAction(tasker *maa.Tasker, status maa.EventStatus, msg maa.ControllerActionDetail) {
-	logger.Info("Debug", "控制器动作事件: Action=%s, Status=%v", msg.Action, status)
-}
-
-func (s *debugEventSink) OnTaskNextList(tasker *maa.Tasker, status maa.EventStatus, msg maa.NodeNextListDetail) {
-	logger.Info("Debug", "===== OnTaskNextList 被调用 ===== NodeName=%s, Status=%v, NextList=%v", msg.Name, status, msg.NextList)
-
-	if s.handler == nil {
-		logger.Warn("Debug", "handler 为空，无法发送事件")
-		return
-	}
-
-	nextListData := make([]map[string]interface{}, 0, len(msg.NextList))
-	for _, item := range msg.NextList {
-		nextListData = append(nextListData, map[string]interface{}{
-			"name":      item.Name,
-			"jump_back": item.JumpBack,
-			"anchor":    item.Anchor,
-		})
-	}
-
-	// 发送 next_list 事件
-	event := DebugEvent{
-		Type:      "debug_event",
-		EventName: "next_list",
-		TaskID:    s.session.TaskID,
-		NodeID:    msg.Name,
-		Timestamp: time.Now().Unix(),
-		Detail: map[string]interface{}{
-			"task_id":   msg.TaskID,
-			"name":      msg.Name,
-			"next_list": nextListData,
-			"focus":     msg.Focus,
-		},
-	}
-	logger.Info("Debug", "发送调试事件: next_list, 节点=%s, NextList条目数=%d", msg.Name, len(msg.NextList))
-	s.handler.OnDebugEvent(event)
-}
-
-func (s *debugEventSink) OnUnknownEvent(tasker *maa.Tasker, eventMsg, detailsJSON string) {
-	logger.Warn("Debug", "!!!!! 未知事件 !!!!! Message=%s", eventMsg)
-	logger.Debug("Debug", "未知事件详情 JSON: %s", detailsJSON)
-}
-
-// 截图功能(可选)
+// 截图功能
 func (ds *DebugService) Screencap(taskID string) (string, error) {
 	ds.mu.RLock()
 	defer ds.mu.RUnlock()

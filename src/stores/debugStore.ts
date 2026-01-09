@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { useMFWStore } from "./mfwStore";
+import { useFlowStore } from "./flow";
 
 /**
  * 调试执行状态
@@ -27,19 +28,67 @@ export type ScreenshotMode = "all" | "breakpoint" | "none";
 export type LogLevel = "verbose" | "normal" | "error";
 
 /**
+ * 识别状态（类似 MaaDebugger 的 Status 枚举）
+ */
+export type RecognitionStatus = "pending" | "running" | "succeeded" | "failed";
+
+/**
+ * 识别记录项（平铺结构）
+ * 每次 recognition_starting 创建一条新记录
+ * 记录的主体是「被识别的节点」
+ */
+export interface RecognitionRecord {
+  /** 自增ID（前端生成） */
+  id: number;
+  /** MaaFW 的 reco_id（识别完成后更新） */
+  recoId: number;
+  /** 被识别的节点名称（记录的主体） */
+  name: string;
+  /** 节点显示名称 (前端 label) */
+  displayName?: string;
+  /** 识别状态 */
+  status: RecognitionStatus;
+  /** 是否命中 */
+  hit: boolean;
+  /** 发起识别的节点名称（上下文信息） */
+  parentNode?: string;
+  /** 时间戳 */
+  timestamp: number;
+  /** 识别详情数据 */
+  detail?: RecognitionDetail;
+}
+
+/**
+ * 识别详情（类似 MaaDebugger 的 RecognitionDetail）
+ */
+export interface RecognitionDetail {
+  /** 识别算法类型 */
+  algorithm?: string;
+  /** 最佳结果 */
+  bestResult?: any;
+  /** 识别框 [x, y, w, h] */
+  box?: [number, number, number, number];
+  /** 绘制图像 (base64) */
+  drawImages?: string[];
+  /** 原始详情 JSON */
+  rawDetail?: any;
+}
+
+/**
  * 执行记录
- * 每条记录对应一次完整的识别
+ * 每条记录对应一个节点的完整执行周期（识别 next 列表中的目标 → 进入目标节点 → 执行动作）
  */
 export interface ExecutionRecord {
-  nodeId: string;
-  nodeName: string;
+  nodeId: string; // 节点的 flow ID
+  nodeName: string; // 节点名称
   startTime: number;
   endTime?: number;
   latency?: number; // 执行耗时(毫秒),从后端获取
   runIndex?: number; // 执行次数索引,用于区分多次执行
   status: "running" | "completed" | "failed";
-  // 识别阶段信息
+  // 识别阶段信息（识别的是 next 列表中的目标节点）
   recognition?: {
+    targetNodeName?: string; // 被识别的目标节点名称
     success: boolean; // 识别是否成功
     detail?: any; // 识别详细信息
     timestamp?: number; // 识别完成时间戳
@@ -64,7 +113,7 @@ interface DebugState {
   stepMode: boolean; // 是否为单步执行模式
 
   // 任务信息
-  taskId: string | null; // 当前调试任务的 Task ID
+  sessionId: string | null;
 
   // 配置
   resourcePath: string; // 资源路径
@@ -79,11 +128,20 @@ interface DebugState {
   executedEdges: Set<string>; // 已执行边 ID 集合
   currentNode: string | null; // 当前正在执行的节点 ID
   currentPhase: ExecutionPhase; // 当前节点执行阶段（识别/动作）
-  recognitionNodeName: string | null; // 当前识别阶段的识别节点名称
+  recognitionTargetName: string | null; // 当前正在被识别的目标节点名称（next 列表中的）
+  recognitionTargetNodeId: string | null; // 当前正在被识别的目标节点 flow ID
+  lastNode: string | null; // 上一个执行的节点 ID (用于 continue)
 
   // 执行历史
   executionHistory: ExecutionRecord[]; // 执行历史记录
   executionStartTime: number | null; // 执行开始时间戳
+
+  // 识别记录（平铺结构）
+  recognitionRecords: RecognitionRecord[]; // 识别记录列表（平铺）
+  recognitionRecordsMap: Map<number, RecognitionRecord>; // reco_id -> 识别记录
+  currentParentNode: string | null; // 当前发起识别的节点
+  nextRecordId: number; // 下一个记录ID
+  selectedRecoId: number | null; // 选中的识别 ID
 
   // 错误信息
   error: string | null;
@@ -114,14 +172,33 @@ interface DebugState {
   ) => void;
   handleDebugEvent: (event: any) => void;
 
-  setTaskId: (taskId: string | null) => void;
+  setSessionId: (sessionId: string | null) => void;
   setError: (error: string | null) => void;
+  setCurrentNode: (nodeId: string | null) => void;
+  setLastNode: (nodeId: string | null) => void;
   reset: () => void;
 
   // 日志导出
   exportLogAsText: () => string;
   exportLogAsJSON: () => string;
   downloadLog: (format: "text" | "json") => void;
+
+  // 识别记录操作
+  addRecognitionList: (
+    currentNode: string,
+    _nodesToRecognize: string[]
+  ) => void;
+  addRecognitionRecord: (name: string, parentNode?: string) => number;
+  updateRecognitionRecord: (
+    recordId: number,
+    status: RecognitionStatus,
+    hit: boolean,
+    recoId?: number,
+    detail?: RecognitionDetail
+  ) => void;
+  setSelectedRecoId: (recoId: number | null) => void;
+  clearRecognitionRecords: () => void;
+  getRecognitionRecord: (recoId: number) => RecognitionRecord | undefined;
 }
 
 /**
@@ -132,7 +209,7 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
   debugMode: false,
   debugStatus: "idle",
   stepMode: false,
-  taskId: null,
+  sessionId: null,
   resourcePath: "",
   entryNode: "",
   controllerId: null,
@@ -143,9 +220,16 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
   executedEdges: new Set(),
   currentNode: null,
   currentPhase: null,
-  recognitionNodeName: null,
+  recognitionTargetName: null,
+  recognitionTargetNodeId: null,
+  lastNode: null,
   executionHistory: [],
   executionStartTime: null,
+  recognitionRecords: [],
+  recognitionRecordsMap: new Map(),
+  currentParentNode: null,
+  nextRecordId: 1,
+  selectedRecoId: null,
   error: null,
 
   // 切换调试模式
@@ -239,12 +323,11 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
 
   // 停止调试
   stopDebug: () => {
-    const taskId = get().taskId;
-
     set({
       debugStatus: "idle",
-      taskId: null,
+      sessionId: null,
       currentNode: null,
+      lastNode: null,
       executionStartTime: null,
     });
 
@@ -313,23 +396,64 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
   },
 
   // 处理调试事件
+  // Pipeline 执行流程：
+  // 1. node_starting(A) - 节点 A 开始执行
+  // 2. reco_starting(B) - A 开始识别 next 列表中的节点 B
+  // 3. reco_failed(B) - B 识别失败，继续识别下一个
+  // 4. reco_starting(C) - A 开始识别节点 C
+  // 5. reco_succeeded(C) - C 识别成功
+  // 6. action_success(A) - A 的动作执行成功
+  // 7. node_succeeded(A) - 节点 A 执行完成
+  // 8. node_starting(C) - 进入节点 C...
   handleDebugEvent: (event) => {
-    const { type, nodeId, timestamp, detail, taskId, error } = event;
+    const { type, nodeId, timestamp, detail, error } = event;
 
     switch (type) {
       case "started":
         // 调试启动成功
         set({
-          taskId,
+          sessionId: event.sessionId,
           debugStatus: "running",
         });
         break;
 
-      case "node_running":
+      // === 节点开始执行 ===
+      case "node_starting":
+      case "node_running": {
+        // 设置当前执行节点
         get().updateExecutionState(nodeId, "running");
-        set({ currentPhase: "recognition", recognitionNodeName: null });
+        set({ currentPhase: "recognition", recognitionTargetName: null });
 
-        // 如果是单步模式,自动暂停
+        // 获取节点的显示名称（label），而非后端传来的 name
+        const nodes = useFlowStore.getState().nodes;
+        const node = nodes.find((n) => n.id === nodeId);
+        const displayName = node?.data?.label || detail?.name || nodeId;
+
+        // 检查是否已经有这个节点的 running 记录
+        const history = get().executionHistory;
+        const existingRunningRecord = history.find(
+          (r) => r.nodeId === nodeId && r.status === "running"
+        );
+
+        // 如果已经有 running 记录，不再重复创建
+        if (existingRunningRecord) {
+          break;
+        }
+
+        // 创建新的执行记录
+        const existingCount = history.filter((r) => r.nodeId === nodeId).length;
+        const runIndex = existingCount + 1;
+
+        const newRecord: ExecutionRecord = {
+          nodeId,
+          nodeName: displayName,
+          startTime: timestamp * 1000,
+          runIndex,
+          status: "running",
+        };
+        set({ executionHistory: [...history, newRecord] });
+
+        // 单步模式自动暂停
         if (get().stepMode) {
           set({ stepMode: false });
           get().pauseDebug();
@@ -341,120 +465,264 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
           get().pauseDebug();
         }
         break;
+      }
 
       case "next_list": {
+        // NextList 事件 - 记录当前发起识别的节点
+        const parentNode = detail?.name || nodeId;
+        set({ currentParentNode: parentNode });
         break;
       }
 
+      // === 识别阶段（识别的是 next 列表中的目标节点） ===
       case "recognition_starting": {
-        const recoNodeName = detail?.name || nodeId;
-        set({ currentPhase: "recognition", recognitionNodeName: recoNodeName });
+        // nodeId 是被识别节点的 flow ID（已由 DebugProtocol 从节点名称转换）
+        // detail.name 是被识别节点的原始名称（可能带前缀）
+        const targetNodeId = nodeId || null;
+
+        // 获取显示名称：优先从节点 label 获取，其次用 detail.name
+        const nodes = useFlowStore.getState().nodes;
+        const targetNode = nodeId ? nodes.find((n) => n.id === nodeId) : null;
+        const targetName =
+          targetNode?.data?.label || detail?.name || nodeId || "unknown";
+
+        set({
+          currentPhase: "recognition",
+          recognitionTargetName: targetName,
+          recognitionTargetNodeId: targetNodeId,
+        });
+
+        // 创建新的识别记录（平铺结构）
+        const records = get().recognitionRecords;
+        const nextId = get().nextRecordId;
+        const parentNode = get().currentParentNode;
+
+        const newRecord: RecognitionRecord = {
+          id: nextId,
+          recoId: detail?.reco_id || 0,
+          name: targetName,
+          displayName: targetNode?.data?.label,
+          status: "running",
+          hit: false,
+          parentNode: parentNode || undefined,
+          timestamp: Date.now(),
+        };
+
+        set({
+          recognitionRecords: [...records, newRecord],
+          nextRecordId: nextId + 1,
+        });
         break;
       }
 
       case "recognition_success":
       case "recognition_failed": {
-        const history = get().executionHistory;
-        const runIndex = detail?.run_index || 1;
         const isSuccess = type === "recognition_success";
+        const recoId = detail?.reco_id || 0;
 
-        set({ recognitionNodeName: detail?.name || null });
+        // nodeId 已经是被识别节点的 flow ID（由 DebugProtocol 转换）
+        // 从节点 label 获取显示名称，保持与 recognition_starting 一致
+        const nodes = useFlowStore.getState().nodes;
+        const targetNode = nodeId ? nodes.find((n) => n.id === nodeId) : null;
+        const targetName =
+          targetNode?.data?.label || detail?.name || nodeId || null;
 
-        const newRecord: ExecutionRecord = {
-          nodeId,
-          nodeName: detail?.name || nodeId,
-          startTime: timestamp * 1000,
-          runIndex: runIndex,
-          status: isSuccess ? "running" : "failed",
-          recognition: {
-            success: isSuccess,
-            detail: detail,
-            timestamp: timestamp * 1000,
-          },
-          endTime: isSuccess ? undefined : timestamp * 1000,
-        };
-        set({ executionHistory: [...history, newRecord] });
-        break;
-      }
+        // 更新显示状态
+        set({ recognitionTargetName: targetName });
 
-      case "action_success":
-      case "action_failed": {
-        // 动作阶段事件
-        const history = get().executionHistory;
-        const runIndex = detail?.run_index || 1;
+        // 检查是否为最后节点（没有 next）
+        // 如果是最后节点且识别成功，MaaFramework 不会触发节点级事件
+        // 需要手动创建 executionHistory 记录
+        if (isSuccess && targetNode) {
+          const edges = useFlowStore.getState().edges;
+          const hasNext = edges.some((edge) => edge.source === nodeId);
 
-        // 设置当前阶段为动作阶段，清除识别节点名称
-        set({ currentPhase: "action", recognitionNodeName: null });
+          if (!hasNext) {
+            // 这是最后一个节点，手动创建执行记录
+            const history = get().executionHistory;
+            const existingRunningRecord = history.find(
+              (r) => r.nodeId === nodeId && r.status === "running"
+            );
 
-        // 查找对应的执行记录
-        const recordIndex = history.findIndex(
-          (r) =>
-            r.nodeId === nodeId &&
-            r.runIndex === runIndex &&
-            r.status === "running"
-        );
+            if (!existingRunningRecord) {
+              const existingCount = history.filter(
+                (r) => r.nodeId === nodeId
+              ).length;
+              const runIndex = existingCount + 1;
+
+              const newRecord: ExecutionRecord = {
+                nodeId: nodeId!,
+                nodeName: targetNode.data.label,
+                startTime: timestamp * 1000,
+                runIndex,
+                status: "running",
+                recognition: {
+                  targetNodeName: targetName || undefined,
+                  success: true,
+                  detail: detail,
+                  timestamp: timestamp * 1000,
+                },
+              };
+              set({ executionHistory: [...history, newRecord] });
+
+              // 设置为当前执行节点
+              set({ currentNode: nodeId });
+              get().updateExecutionState(nodeId!, "running");
+            }
+          }
+        }
+
+        // 更新识别记录（平铺结构）- 找到最后一条该节点的 running 记录并更新
+        const records = get().recognitionRecords;
+        // 从后往前找最后一条匹配的 running 记录
+        let recordIndex = -1;
+        for (let i = records.length - 1; i >= 0; i--) {
+          // 匹配条件：名称匹配且状态为 running
+          if (
+            records[i].name === targetName &&
+            records[i].status === "running"
+          ) {
+            recordIndex = i;
+            break;
+          }
+        }
+
+        // 如果没找到，尝试找最后一条 running 的记录（容错）
+        if (recordIndex === -1) {
+          for (let i = records.length - 1; i >= 0; i--) {
+            if (records[i].status === "running") {
+              recordIndex = i;
+              break;
+            }
+          }
+        }
 
         if (recordIndex !== -1) {
-          const updated = [...history];
-          updated[recordIndex] = {
-            ...updated[recordIndex],
-            action: {
-              success: type === "action_success",
-              detail: detail,
-              timestamp: timestamp * 1000,
-            },
+          const updatedRecords = [...records];
+          updatedRecords[recordIndex] = {
+            ...updatedRecords[recordIndex],
+            status: isSuccess ? "succeeded" : "failed",
+            hit: isSuccess && detail?.hit !== false,
+            recoId: recoId,
+            detail: detail
+              ? {
+                  algorithm: detail.algorithm,
+                  bestResult: detail.best_result || detail.detail,
+                  box: detail.box,
+                  drawImages: detail.draw_images,
+                  rawDetail: detail,
+                }
+              : undefined,
           };
-          set({ executionHistory: updated });
-        } else {
-          console.warn(
-            `[DebugStore] 未找到对应的执行记录: 节点=${nodeId}, runIndex=${runIndex}`
+          set({ recognitionRecords: updatedRecords });
+
+          // 同时更新 recognitionRecordsMap
+          if (recoId > 0) {
+            const recordsMap = new Map(get().recognitionRecordsMap);
+            recordsMap.set(recoId, updatedRecords[recordIndex]);
+            set({ recognitionRecordsMap: recordsMap });
+          }
+        }
+
+        // 更新当前节点的识别结果（用于流程节点展示）
+        // 注意：只有识别成功时才更新 executionHistory
+        // 识别失败不影响执行节点的状态，因为可能会继续识别其他节点
+        const currentNodeId = get().currentNode;
+        if (currentNodeId && isSuccess) {
+          const history = get().executionHistory;
+          // 查找当前节点的运行中记录
+          const historyRecordIndex = history.findIndex(
+            (r) => r.nodeId === currentNodeId && r.status === "running"
           );
+
+          if (historyRecordIndex !== -1) {
+            const updated = [...history];
+            const record = updated[historyRecordIndex];
+
+            updated[historyRecordIndex] = {
+              ...record,
+              recognition: {
+                targetNodeName: targetName || undefined,
+                success: true,
+                detail: detail,
+                timestamp: timestamp * 1000,
+              },
+            };
+            set({ executionHistory: updated });
+          }
         }
         break;
       }
 
+      // === 动作阶段 ===
+      case "action_success":
+      case "action_failed": {
+        const isSuccess = type === "action_success";
+        set({
+          currentPhase: "action",
+          recognitionTargetName: null,
+          recognitionTargetNodeId: null,
+        });
+
+        // 更新当前节点的动作结果
+        const currentNodeId = get().currentNode;
+        if (currentNodeId) {
+          const history = get().executionHistory;
+          const recordIndex = history.findIndex(
+            (r) => r.nodeId === currentNodeId && r.status === "running"
+          );
+
+          if (recordIndex !== -1) {
+            const updated = [...history];
+            updated[recordIndex] = {
+              ...updated[recordIndex],
+              action: {
+                success: isSuccess,
+                detail: detail,
+                timestamp: timestamp * 1000,
+              },
+            };
+            set({ executionHistory: updated });
+          }
+        }
+        break;
+      }
+
+      // === 节点执行完成（旧版事件） ===
       case "node_execution_completed":
       case "node_execution_failed": {
-        set({ currentPhase: null, recognitionNodeName: null });
-
-        get().updateExecutionState(
-          nodeId,
-          type === "node_execution_completed" ? "completed" : "failed"
-        );
+        const isSuccess = type === "node_execution_completed";
+        set({
+          currentPhase: null,
+          recognitionTargetName: null,
+          recognitionTargetNodeId: null,
+        });
+        get().updateExecutionState(nodeId, isSuccess ? "completed" : "failed");
 
         const history = get().executionHistory;
-        const runIndex = detail?.run_index || 1;
-        const latency = detail?.latency || 0;
-
-        // 查找对应的执行记录
         const recordIndex = history.findIndex(
-          (r) =>
-            r.nodeId === nodeId &&
-            r.runIndex === runIndex &&
-            r.status === "running"
+          (r) => r.nodeId === nodeId && r.status === "running"
         );
 
         if (recordIndex !== -1) {
           const updated = [...history];
           const record = updated[recordIndex];
+          const latency = detail?.latency || 0;
 
           // 根据识别和动作的实际结果判断最终状态
-          let finalStatus: ExecutionRecord["status"] = "completed";
-
-          // 如果识别失败，状态为 failed
+          let finalStatus: ExecutionRecord["status"] = isSuccess
+            ? "completed"
+            : "failed";
           if (record.recognition && !record.recognition.success) {
             finalStatus = "failed";
-          }
-          // 如果识别成功但动作失败，状态为 failed
-          else if (record.action && !record.action.success) {
+          } else if (record.action && !record.action.success) {
             finalStatus = "failed";
           }
-          // 其他情况（识别成功+动作成功，或识别成功+无动作），状态为 completed
 
           updated[recordIndex] = {
             ...record,
             endTime: timestamp * 1000,
-            latency: latency,
+            latency,
             status: finalStatus,
           };
           set({ executionHistory: updated });
@@ -462,13 +730,182 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
         break;
       }
 
-      // 兼容旧事件名称
-      case "node_completed":
+      // === V2 节点成功 ===
+      case "node_succeeded": {
+        set({
+          currentPhase: null,
+          recognitionTargetName: null,
+          recognitionTargetNodeId: null,
+          lastNode: nodeId,
+        });
+        get().updateExecutionState(nodeId, "completed");
+
+        const history = get().executionHistory;
+        // 从后往前查找最后一条该节点的 running 记录
+        let recordIndex = -1;
+        for (let i = history.length - 1; i >= 0; i--) {
+          if (history[i].nodeId === nodeId && history[i].status === "running") {
+            recordIndex = i;
+            break;
+          }
+        }
+
+        if (recordIndex !== -1) {
+          const updated = [...history];
+          const latency = detail?.latency || 0;
+          updated[recordIndex] = {
+            ...updated[recordIndex],
+            endTime: timestamp * 1000,
+            latency,
+            status: "completed",
+          };
+          set({ executionHistory: updated });
+        }
+        break;
+      }
+
+      // === V2 节点失败 ===
       case "node_failed": {
-        get().updateExecutionState(
-          nodeId,
-          type === "node_completed" ? "completed" : "failed"
-        );
+        set({
+          currentPhase: null,
+          recognitionTargetName: null,
+          recognitionTargetNodeId: null,
+          lastNode: nodeId,
+        });
+        get().updateExecutionState(nodeId, "failed");
+
+        const history = get().executionHistory;
+        // 从后往前查找最后一条该节点的 running 记录
+        let recordIndex = -1;
+        for (let i = history.length - 1; i >= 0; i--) {
+          if (history[i].nodeId === nodeId && history[i].status === "running") {
+            recordIndex = i;
+            break;
+          }
+        }
+
+        if (recordIndex !== -1) {
+          const updated = [...history];
+          const latency = detail?.latency || 0;
+
+          // 设置错误信息
+          let errorMsg = detail?.error || detail?.status || "执行失败";
+
+          // 根据实际失败原因设置错误信息
+          if (
+            updated[recordIndex].recognition &&
+            !updated[recordIndex].recognition?.success
+          ) {
+            // 识别失败
+            errorMsg = "识别失败";
+          } else if (
+            updated[recordIndex].action &&
+            !updated[recordIndex].action?.success
+          ) {
+            // 动作失败
+            errorMsg = "动作失败";
+          }
+
+          updated[recordIndex] = {
+            ...updated[recordIndex],
+            endTime: timestamp * 1000,
+            latency,
+            status: "failed",
+            error: errorMsg,
+          };
+          set({ executionHistory: updated });
+        }
+        break;
+      }
+
+      // V2 新事件: 调试暂停 (到达断点)
+      case "debug_paused":
+        set({
+          debugStatus: "paused",
+          lastNode: detail?.node_name || nodeId,
+          currentPhase: null,
+          recognitionTargetName: null,
+          recognitionTargetNodeId: null,
+        });
+        break;
+
+      // V2 新事件: 调试完成
+      case "debug_completed":
+        // 将所有 running 状态的记录更新为 completed（处理最后节点）
+        const history = get().executionHistory;
+        const hasRunningRecords = history.some((r) => r.status === "running");
+
+        if (hasRunningRecords) {
+          const updated = history.map((r) => {
+            if (r.status === "running") {
+              return {
+                ...r,
+                endTime: timestamp * 1000,
+                status: "completed" as const,
+              };
+            }
+            return r;
+          });
+          set({ executionHistory: updated });
+        }
+
+        if (get().stepMode) {
+          set({
+            stepMode: false,
+            debugStatus: "paused",
+            currentPhase: null,
+            recognitionTargetName: null,
+            recognitionTargetNodeId: null,
+          });
+        } else {
+          set({
+            debugStatus: "completed",
+            currentPhase: null,
+            recognitionTargetName: null,
+            recognitionTargetNodeId: null,
+          });
+        }
+        break;
+
+      // V2 新事件: 调试错误
+      case "debug_error":
+        set({
+          debugStatus: "idle",
+          error: detail?.status || "调试错误",
+        });
+        break;
+
+      case "completed":
+        // 单步模式
+        if (get().stepMode) {
+          set({
+            stepMode: false,
+            debugStatus: "paused",
+            currentPhase: null,
+            recognitionTargetName: null,
+            recognitionTargetNodeId: null,
+          });
+        } else {
+          set({
+            debugStatus: "completed",
+            currentPhase: null,
+            recognitionTargetName: null,
+            recognitionTargetNodeId: null,
+          });
+        }
+        break;
+
+      case "error":
+        set({
+          debugStatus: "idle",
+          error: error || "调试错误",
+        });
+        break;
+
+      // 兼容旧事件名称
+      case "node_completed": {
+        get().updateExecutionState(nodeId, "completed");
+        set({ lastNode: nodeId });
 
         const runIndex = detail?.run_index || 1;
         const latency = detail?.latency || 0;
@@ -480,42 +917,27 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
           endTime: timestamp * 1000,
           latency: latency,
           runIndex: runIndex,
-          status: type === "node_completed" ? "completed" : "failed",
+          status: "completed",
         };
         set({ executionHistory: [...get().executionHistory, record] });
         break;
       }
-
-      case "completed":
-        // 单步模式
-        if (get().stepMode) {
-          set({
-            stepMode: false,
-            debugStatus: "paused",
-            currentPhase: null,
-            recognitionNodeName: null,
-          });
-        } else {
-          set({
-            debugStatus: "completed",
-            currentPhase: null,
-            recognitionNodeName: null,
-          });
-        }
-        break;
-
-      case "error":
-        set({
-          debugStatus: "idle",
-          error: error || "调试错误",
-        });
-        break;
     }
   },
 
-  // 设置 Task ID
-  setTaskId: (taskId) => {
-    set({ taskId });
+  // 设置 Session ID (V2)
+  setSessionId: (sessionId) => {
+    set({ sessionId });
+  },
+
+  // 设置当前节点
+  setCurrentNode: (nodeId) => {
+    set({ currentNode: nodeId });
+  },
+
+  // 设置上一个节点
+  setLastNode: (nodeId) => {
+    set({ lastNode: nodeId });
   },
 
   // 设置错误
@@ -528,12 +950,14 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
     set({
       debugStatus: "idle",
       stepMode: false,
-      taskId: null,
+      sessionId: null,
       executedNodes: new Set(),
       executedEdges: new Set(),
       currentNode: null,
       currentPhase: null,
-      recognitionNodeName: null,
+      recognitionTargetName: null,
+      recognitionTargetNodeId: null,
+      lastNode: null,
       executionHistory: [],
       executionStartTime: null,
       error: null,
@@ -547,7 +971,7 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
 
     // 添加基本信息
     lines.push("======== 调试会话日志 ========");
-    lines.push(`Task ID: ${state.taskId || "N/A"}`);
+    lines.push(`Session ID: ${state.sessionId || "N/A"}`);
     lines.push(`资源路径: ${state.resourcePath || "N/A"}`);
     lines.push(`入口节点: ${state.entryNode || "N/A"}`);
     lines.push(
@@ -599,6 +1023,9 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
           lines.push(
             `    状态: ${record.recognition.success ? "成功" : "失败"}`
           );
+          if (record.recognition.targetNodeName) {
+            lines.push(`    目标节点: ${record.recognition.targetNodeName}`);
+          }
           if (record.recognition.detail) {
             lines.push(
               `    详情: ${JSON.stringify(record.recognition.detail)}`
@@ -631,7 +1058,7 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
     const state = get();
 
     const logData = {
-      taskId: state.taskId,
+      sessionId: state.sessionId,
       resourcePath: state.resourcePath,
       entryNode: state.entryNode,
       startTime: state.executionStartTime,
@@ -690,5 +1117,88 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
     // 清理
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  },
+
+  // ============ 识别记录操作（平铺结构） ============
+
+  // 添加识别列表（兼容旧接口，仅记录当前父节点）
+  addRecognitionList: (currentNode: string, _nodesToRecognize: string[]) => {
+    // 平铺结构不再创建列表，仅记录父节点
+    set({ currentParentNode: currentNode });
+  },
+
+  // 添加识别记录
+  addRecognitionRecord: (name: string, parentNode?: string) => {
+    const records = get().recognitionRecords;
+    const nextId = get().nextRecordId;
+
+    const newRecord: RecognitionRecord = {
+      id: nextId,
+      recoId: 0,
+      name,
+      status: "running",
+      hit: false,
+      parentNode: parentNode || get().currentParentNode || undefined,
+      timestamp: Date.now(),
+    };
+
+    set({
+      recognitionRecords: [...records, newRecord],
+      nextRecordId: nextId + 1,
+    });
+
+    return nextId;
+  },
+
+  // 更新识别记录
+  updateRecognitionRecord: (
+    recordId: number,
+    status: RecognitionStatus,
+    hit: boolean,
+    recoId?: number,
+    detail?: RecognitionDetail
+  ) => {
+    const records = get().recognitionRecords;
+    const recordIndex = records.findIndex((r) => r.id === recordId);
+
+    if (recordIndex !== -1) {
+      const updatedRecords = [...records];
+      updatedRecords[recordIndex] = {
+        ...updatedRecords[recordIndex],
+        status,
+        hit,
+        recoId: recoId ?? updatedRecords[recordIndex].recoId,
+        detail: detail || updatedRecords[recordIndex].detail,
+      };
+      set({ recognitionRecords: updatedRecords });
+
+      // 同时更新 recognitionRecordsMap
+      if (recoId && recoId > 0) {
+        const recordsMap = new Map(get().recognitionRecordsMap);
+        recordsMap.set(recoId, updatedRecords[recordIndex]);
+        set({ recognitionRecordsMap: recordsMap });
+      }
+    }
+  },
+
+  // 设置选中的识别 ID
+  setSelectedRecoId: (recoId: number | null) => {
+    set({ selectedRecoId: recoId });
+  },
+
+  // 清空识别记录
+  clearRecognitionRecords: () => {
+    set({
+      recognitionRecords: [],
+      recognitionRecordsMap: new Map(),
+      currentParentNode: null,
+      nextRecordId: 1,
+      selectedRecoId: null,
+    });
+  },
+
+  // 获取识别记录
+  getRecognitionRecord: (recoId: number) => {
+    return get().recognitionRecordsMap.get(recoId);
   },
 }));

@@ -106,7 +106,8 @@ function handleToggleBreakpoint(node: NodeContextMenuNode) {
 /**设为调试开始节点处理器 */
 function handleSetDebugEntry(node: NodeContextMenuNode) {
   const { setConfig } = useDebugStore.getState();
-  setConfig("entryNode", node.data.label);
+  // 使用 node.id 而非 label，这样才能与 DebugPanel 中的选择器匹配
+  setConfig("entryNode", node.id);
   message.success(`已将 "${node.data.label}" 设为调试开始节点`);
 }
 
@@ -116,7 +117,10 @@ function handleCopyRecoJSON(node: NodeContextMenuNode) {
 }
 
 /**设置节点端点位置处理器 */
-function handleSetNodeDirection(node: NodeContextMenuNode, direction: HandleDirection) {
+function handleSetNodeDirection(
+  node: NodeContextMenuNode,
+  direction: HandleDirection
+) {
   const { nodes, setNodes, saveHistory } = useFlowStore.getState();
   const newNodes = nodes.map((n) => {
     if (n.id === node.id) {
@@ -132,7 +136,11 @@ function handleSetNodeDirection(node: NodeContextMenuNode, direction: HandleDire
   });
   setNodes(newNodes);
   saveHistory(0);
-  message.success(`端点位置已设置为「${HANDLE_DIRECTION_OPTIONS.find(o => o.value === direction)?.label}」`);
+  message.success(
+    `端点位置已设置为「${
+      HANDLE_DIRECTION_OPTIONS.find((o) => o.value === direction)?.label
+    }」`
+  );
 }
 
 /**获取当前节点的端点位置 */
