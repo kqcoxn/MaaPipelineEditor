@@ -564,7 +564,7 @@ func (s *debugContextSink) OnNodeRecognition(ctx *maa.Context, status maa.EventS
 		logger.Debug("Debug", "识别开始: NodeName=%s, RecoID=%d", msg.Name, msg.RecognitionID)
 		event := DebugEvent{
 			Type:      "debug_event",
-			EventName: "recognition_starting",
+			EventName: "reco_starting",
 			TaskID:    s.session.TaskID,
 			NodeID:    msg.Name,
 			Timestamp: time.Now().Unix(),
@@ -574,7 +574,7 @@ func (s *debugContextSink) OnNodeRecognition(ctx *maa.Context, status maa.EventS
 				"name":    msg.Name,
 			},
 		}
-		logger.Info("Debug", "发送调试事件: recognition_starting, 节点=%s", msg.Name)
+		logger.Info("Debug", "发送调试事件: reco_starting, 节点=%s", msg.Name)
 		s.handler.OnDebugEvent(event)
 
 	case maa.EventStatusSucceeded:
@@ -694,7 +694,7 @@ func (s *debugContextSink) OnNodeRecognition(ctx *maa.Context, status maa.EventS
 
 		event := DebugEvent{
 			Type:      "debug_event",
-			EventName: "recognition_success",
+			EventName: "reco_succeeded",
 			TaskID:    s.session.TaskID,
 			NodeID:    msg.Name,
 			Timestamp: time.Now().Unix(),
@@ -711,20 +711,93 @@ func (s *debugContextSink) OnNodeRecognition(ctx *maa.Context, status maa.EventS
 
 		logger.Info("Debug", "识别失败: 节点=%s, RecoID=%d, 第%d次尝试", msg.Name, msg.RecognitionID, recoIndex)
 
+		// 构建识别详情
+		recognitionDetail := map[string]interface{}{
+			"reco_id":   msg.RecognitionID,
+			"task_id":   msg.TaskID,
+			"name":      msg.Name,
+			"hit":       false,
+			"run_index": recoIndex,
+		}
+
+		// 尝试获取识别详情
+		if ctx != nil {
+			tasker := ctx.GetTasker()
+			if tasker != nil {
+				nodeDetail := tasker.GetLatestNode(msg.Name)
+				if nodeDetail != nil && nodeDetail.Recognition != nil {
+					recoDetail := nodeDetail.Recognition
+					logger.Info("Debug", "✓ 获取到失败识别详情: 节点=%s, 算法=%s", msg.Name, recoDetail.Algorithm)
+
+					// 更新识别详情
+					recognitionDetail["algorithm"] = recoDetail.Algorithm
+
+					// Box 转换为数组 [x, y, w, h]
+					boxX := recoDetail.Box.X()
+					boxY := recoDetail.Box.Y()
+					boxW := recoDetail.Box.Width()
+					boxH := recoDetail.Box.Height()
+					if boxX != 0 || boxY != 0 || boxW != 0 || boxH != 0 {
+						recognitionDetail["box"] = []int{boxX, boxY, boxW, boxH}
+					}
+
+					// DetailJson 解析为对象
+					if recoDetail.DetailJson != "" {
+						var detailObj interface{}
+						if err := json.Unmarshal([]byte(recoDetail.DetailJson), &detailObj); err == nil {
+							recognitionDetail["detail"] = detailObj
+							recognitionDetail["best_result"] = detailObj
+						} else {
+							recognitionDetail["detail"] = recoDetail.DetailJson
+						}
+					}
+
+					// Raw 截图转换为 base64
+					if recoDetail.Raw != nil {
+						var buf bytes.Buffer
+						if err := png.Encode(&buf, recoDetail.Raw); err == nil {
+							b64 := base64.StdEncoding.EncodeToString(buf.Bytes())
+							recognitionDetail["raw_image"] = b64
+							logger.Info("Debug", "✓ 失败识别原始截图转换成功")
+						}
+					}
+
+					// 绘制图像转换为 base64
+					if len(recoDetail.Draws) > 0 {
+						drawImages := make([]string, 0, len(recoDetail.Draws))
+						for _, img := range recoDetail.Draws {
+							if img != nil {
+								var buf bytes.Buffer
+								if err := png.Encode(&buf, img); err == nil {
+									b64 := base64.StdEncoding.EncodeToString(buf.Bytes())
+									drawImages = append(drawImages, b64)
+								}
+							}
+						}
+						if len(drawImages) > 0 {
+							recognitionDetail["draw_images"] = drawImages
+							logger.Info("Debug", "✓ 失败识别包含 %d 张绘制图像", len(drawImages))
+						}
+					}
+				}
+			}
+		}
+
 		event := DebugEvent{
 			Type:      "debug_event",
-			EventName: "recognition_failed",
+			EventName: "reco_failed", // 前端期望 reco_* 格式
 			TaskID:    s.session.TaskID,
 			NodeID:    msg.Name,
 			Timestamp: time.Now().Unix(),
-			Detail: map[string]interface{}{
-				"reco_id":   msg.RecognitionID,
-				"task_id":   msg.TaskID,
-				"name":      msg.Name,
-				"hit":       false,
-				"run_index": recoIndex,
-			},
+			Detail:    recognitionDetail,
 		}
+		logger.Info("Debug", "发送 reco_failed 事件: 节点=%s, 详情字段=%v", msg.Name, func() []string {
+			keys := make([]string, 0, len(recognitionDetail))
+			for k := range recognitionDetail {
+				keys = append(keys, k)
+			}
+			return keys
+		}())
 		s.handler.OnDebugEvent(event)
 	}
 }
@@ -752,7 +825,7 @@ func (s *debugContextSink) OnNodeAction(ctx *maa.Context, status maa.EventStatus
 
 		event := DebugEvent{
 			Type:      "debug_event",
-			EventName: "action_success",
+			EventName: "action_succeeded",
 			TaskID:    s.session.TaskID,
 			NodeID:    msg.Name,
 			Timestamp: time.Now().Unix(),

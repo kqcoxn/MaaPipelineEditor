@@ -20,15 +20,15 @@ type DebugEventType string
 
 const (
 	// 节点级事件
-	EventNodeStarting   DebugEventType = "node_starting"   // 节点开始执行
-	EventNodeSucceeded  DebugEventType = "node_succeeded"  // 节点执行成功
-	EventNodeFailed     DebugEventType = "node_failed"     // 节点执行失败
-	EventRecoStarting   DebugEventType = "reco_starting"   // 识别开始
-	EventRecoSucceeded  DebugEventType = "reco_succeeded"  // 识别成功
-	EventRecoFailed     DebugEventType = "reco_failed"     // 识别失败
-	EventActionStarting DebugEventType = "action_starting" // 动作开始
-	EventActionSuccess  DebugEventType = "action_success"  // 动作成功
-	EventActionFailed   DebugEventType = "action_failed"   // 动作失败
+	EventNodeStarting    DebugEventType = "node_starting"    // 节点开始执行
+	EventNodeSucceeded   DebugEventType = "node_succeeded"   // 节点执行成功
+	EventNodeFailed      DebugEventType = "node_failed"      // 节点执行失败
+	EventRecoStarting    DebugEventType = "reco_starting"    // 识别开始
+	EventRecoSucceeded   DebugEventType = "reco_succeeded"   // 识别成功
+	EventRecoFailed      DebugEventType = "reco_failed"      // 识别失败
+	EventActionStarting  DebugEventType = "action_starting"  // 动作开始
+	EventActionSucceeded DebugEventType = "action_succeeded" // 动作成功
+	EventActionFailed    DebugEventType = "action_failed"    // 动作失败
 
 	// 任务级事件
 	EventTaskStarting  DebugEventType = "task_starting"  // 任务开始
@@ -64,20 +64,32 @@ type DebugEventCallback func(event DebugEventData)
 // SimpleContextSink 简化的上下文事件接收器
 // 只处理关键事件，减少事件噪声
 type SimpleContextSink struct {
-	callback     DebugEventCallback
-	nodeStartMap map[string]time.Time // 节点开始时间记录
-	recoCountMap map[string]int       // 识别次数计数
-	enabled      bool
+	callback                DebugEventCallback
+	nodeStartMap            map[string]time.Time              // 节点开始时间记录
+	recoCountMap            map[string]int                    // 识别次数计数
+	pendingRecoDetails      map[string]map[string]interface{} // 待发送的识别详情 (nodeName -> detail)
+	pendingResendNodes      []string                          // 待补发的节点名称队列
+	lastActionSucceededNode string                            // 最后一个动作成功的节点
+	enabled                 bool
+	screenshotter           *Screenshotter // 截图器引用
+	ctxRef                  *maa.Context   // 上下文引用，用于节点成功时获取详情
 }
 
 // NewSimpleContextSink 创建简化的上下文事件接收器
 func NewSimpleContextSink(callback DebugEventCallback) *SimpleContextSink {
 	return &SimpleContextSink{
-		callback:     callback,
-		nodeStartMap: make(map[string]time.Time),
-		recoCountMap: make(map[string]int),
-		enabled:      true,
+		callback:           callback,
+		nodeStartMap:       make(map[string]time.Time),
+		recoCountMap:       make(map[string]int),
+		pendingRecoDetails: make(map[string]map[string]interface{}),
+		pendingResendNodes: make([]string, 0),
+		enabled:            true,
 	}
+}
+
+// SetScreenshotter 设置截图器引用
+func (s *SimpleContextSink) SetScreenshotter(screenshotter *Screenshotter) {
+	s.screenshotter = screenshotter
 }
 
 // SetEnabled 设置是否启用
@@ -89,6 +101,9 @@ func (s *SimpleContextSink) SetEnabled(enabled bool) {
 func (s *SimpleContextSink) Reset() {
 	s.nodeStartMap = make(map[string]time.Time)
 	s.recoCountMap = make(map[string]int)
+	s.pendingRecoDetails = make(map[string]map[string]interface{})
+	s.pendingResendNodes = make([]string, 0)
+	s.lastActionSucceededNode = ""
 }
 
 // emit 发送事件
@@ -105,6 +120,9 @@ func (s *SimpleContextSink) OnNodePipelineNode(ctx *maa.Context, status maa.Even
 	nodeName := detail.Name
 	nodeID := detail.NodeID
 	taskID := detail.TaskID
+
+	// 保存上下文引用
+	s.ctxRef = ctx
 
 	switch status {
 	case maa.EventStatusStarting:
@@ -127,6 +145,17 @@ func (s *SimpleContextSink) OnNodePipelineNode(ctx *maa.Context, status maa.Even
 		}
 
 		logger.Info("DebugSink", "节点成功: %s (耗时 %dms)", nodeName, latency)
+
+		// 处理待补发队列中的所有节点
+		if len(s.pendingResendNodes) > 0 {
+			logger.Debug("DebugSink", "处理待补发队列: %v", s.pendingResendNodes)
+			for _, pendingNode := range s.pendingResendNodes {
+				s.fetchAndEmitRecognitionDetail(ctx, pendingNode, taskID)
+			}
+			// 清空队列
+			s.pendingResendNodes = make([]string, 0)
+		}
+
 		s.emit(DebugEventData{
 			Type:     EventNodeSucceeded,
 			NodeName: nodeName,
@@ -151,6 +180,101 @@ func (s *SimpleContextSink) OnNodePipelineNode(ctx *maa.Context, status maa.Even
 			Latency:  latency,
 		})
 	}
+}
+
+// fetchAndEmitRecognitionDetail 获取并发送完整的识别详情
+func (s *SimpleContextSink) fetchAndEmitRecognitionDetail(ctx *maa.Context, nodeName string, taskID uint64) {
+	logger.Debug("DebugSink", "[补发开始] 节点=%s, taskID=%d", nodeName, taskID)
+
+	if ctx == nil {
+		logger.Warn("DebugSink", "[补发] context 为空, 节点=%s", nodeName)
+		return
+	}
+
+	tasker := ctx.GetTasker()
+	if tasker == nil {
+		logger.Warn("DebugSink", "[补发] tasker 为空, 节点=%s", nodeName)
+		return
+	}
+
+	nodeDetail := tasker.GetLatestNode(nodeName)
+	if nodeDetail == nil {
+		logger.Warn("DebugSink", "[补发] nodeDetail 为空: %s", nodeName)
+		return
+	}
+
+	if nodeDetail.Recognition == nil {
+		logger.Warn("DebugSink", "[补发] nodeDetail.Recognition 为空: %s", nodeName)
+		return
+	}
+
+	recoDetail := nodeDetail.Recognition
+	logger.Info("DebugSink", "[补发] ✓ 获取到完整识别详情: 节点=%s, 算法=%s, Hit=%v", nodeName, recoDetail.Algorithm, recoDetail.Hit)
+
+	// 构建详情
+	detailMap := map[string]interface{}{
+		"algorithm": recoDetail.Algorithm,
+		"hit":       recoDetail.Hit,
+		"task_id":   taskID,
+	}
+
+	// Box 转换为数组 [x, y, w, h]
+	boxX := recoDetail.Box.X()
+	boxY := recoDetail.Box.Y()
+	boxW := recoDetail.Box.Width()
+	boxH := recoDetail.Box.Height()
+	if boxX != 0 || boxY != 0 || boxW != 0 || boxH != 0 {
+		detailMap["box"] = []int{boxX, boxY, boxW, boxH}
+		logger.Info("DebugSink", "[补发] ✓ 识别框: [%d, %d, %d, %d]", boxX, boxY, boxW, boxH)
+	}
+
+	// DetailJson 解析为对象
+	if recoDetail.DetailJson != "" {
+		var detailObj interface{}
+		if err := json.Unmarshal([]byte(recoDetail.DetailJson), &detailObj); err == nil {
+			detailMap["detail"] = detailObj
+			detailMap["best_result"] = detailObj
+			logger.Info("DebugSink", "[补发] ✓ 解析识别JSON成功")
+		}
+	}
+
+	// Raw 截图转换为 base64
+	if recoDetail.Raw != nil {
+		var buf bytes.Buffer
+		if err := png.Encode(&buf, recoDetail.Raw); err == nil {
+			b64 := base64.StdEncoding.EncodeToString(buf.Bytes())
+			detailMap["raw_image"] = b64
+			logger.Info("DebugSink", "[补发] ✓ 原始截图转换成功, 大小=%d bytes", len(buf.Bytes()))
+		}
+	}
+
+	// 绘制图像转换为 base64
+	if len(recoDetail.Draws) > 0 {
+		drawImages := make([]string, 0, len(recoDetail.Draws))
+		for i, img := range recoDetail.Draws {
+			if img != nil {
+				var buf bytes.Buffer
+				if err := png.Encode(&buf, img); err == nil {
+					b64 := base64.StdEncoding.EncodeToString(buf.Bytes())
+					drawImages = append(drawImages, b64)
+					logger.Debug("DebugSink", "[补发] ✓ 绘制图像[%d]转换成功", i)
+				}
+			}
+		}
+		if len(drawImages) > 0 {
+			detailMap["draw_images"] = drawImages
+			logger.Info("DebugSink", "[补发] ✓ 识别详情包含 %d 张绘制图像", len(drawImages))
+		}
+	}
+
+	// 发送补充的识别成功事件
+	logger.Info("DebugSink", "[补发] 发送完整识别详情, 字段数: %d", len(detailMap))
+	s.emit(DebugEventData{
+		Type:     EventRecoSucceeded,
+		NodeName: nodeName,
+		TaskID:   taskID,
+		Detail:   detailMap,
+	})
 }
 
 // OnNodeRecognition 节点识别事件
@@ -228,19 +352,6 @@ func (s *SimpleContextSink) OnNodeRecognition(ctx *maa.Context, status maa.Event
 							}
 						}
 
-						// Raw 截图转换为 base64
-						logger.Debug("DebugSink", "[调试] Raw 截图=%v", recoDetail.Raw != nil)
-						if recoDetail.Raw != nil {
-							var buf bytes.Buffer
-							if err := png.Encode(&buf, recoDetail.Raw); err == nil {
-								b64 := base64.StdEncoding.EncodeToString(buf.Bytes())
-								detailMap["raw_image"] = b64
-								logger.Info("DebugSink", "✓ 原始截图转换成功, 大小=%d bytes", len(buf.Bytes()))
-							} else {
-								logger.Warn("DebugSink", "✗ 原始截图编码失败: %v", err)
-							}
-						}
-
 						// 绘制图像转换为 base64
 						logger.Debug("DebugSink", "[调试] Draws 数量: %d", len(recoDetail.Draws))
 						if len(recoDetail.Draws) > 0 {
@@ -273,6 +384,19 @@ func (s *SimpleContextSink) OnNodeRecognition(ctx *maa.Context, status maa.Event
 			}
 		} else {
 			logger.Warn("DebugSink", "✗ context 为空")
+		}
+
+		// 始终从控制器截图
+		if s.screenshotter != nil {
+			if _, hasRaw := detailMap["raw_image"]; !hasRaw {
+				logger.Debug("DebugSink", "[截图] 开始从控制器截图...")
+				if b64, err := s.screenshotter.CaptureBase64(); err == nil {
+					detailMap["raw_image"] = b64
+					logger.Info("DebugSink", "✓ 控制器截图成功")
+				} else {
+					logger.Warn("DebugSink", "✗ 控制器截图失败: %v", err)
+				}
+			}
 		}
 
 		logger.Info("DebugSink", "[最终] 识别详情字段数: %d", len(detailMap))
@@ -313,6 +437,11 @@ func (s *SimpleContextSink) OnNodeAction(ctx *maa.Context, status maa.EventStatu
 	actionID := detail.ActionID
 	taskID := detail.TaskID
 
+	// 保存上下文引用
+	if ctx != nil {
+		s.ctxRef = ctx
+	}
+
 	switch status {
 	case maa.EventStatusStarting:
 		logger.Debug("DebugSink", "动作开始: %s (ActionID=%d)", nodeName, actionID)
@@ -326,11 +455,15 @@ func (s *SimpleContextSink) OnNodeAction(ctx *maa.Context, status maa.EventStatu
 	case maa.EventStatusSucceeded:
 		logger.Debug("DebugSink", "动作成功: %s", nodeName)
 		s.emit(DebugEventData{
-			Type:     EventActionSuccess,
+			Type:     EventActionSucceeded,
 			NodeName: nodeName,
 			ActionID: actionID,
 			TaskID:   taskID,
 		})
+		// 将当前节点添加到待补发队列
+		s.pendingResendNodes = append(s.pendingResendNodes, nodeName)
+		s.lastActionSucceededNode = nodeName
+		logger.Debug("DebugSink", "添加到待补发队列: %s, 队列长度: %d", nodeName, len(s.pendingResendNodes))
 
 	case maa.EventStatusFailed:
 		logger.Info("DebugSink", "动作失败: %s", nodeName)

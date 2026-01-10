@@ -57,6 +57,8 @@ func (h *DebugHandlerV2) Handle(msg models.Message, conn *server.Connection) *mo
 		h.handleGetSession(conn, msg)
 
 	// 调试控制
+	case "/mpe/debug/start":
+		h.handleStart(conn, msg)
 	case "/mpe/debug/run":
 		h.handleRun(conn, msg)
 	case "/mpe/debug/continue":
@@ -216,6 +218,64 @@ func (h *DebugHandlerV2) handleGetSession(conn *server.Connection, msg models.Me
 // ============================================================================
 // 调试控制
 // ============================================================================
+
+// handleStart 启动调试
+// 自动创建会话并运行任务
+func (h *DebugHandlerV2) handleStart(conn *server.Connection, msg models.Message) {
+	dataMap, ok := msg.Data.(map[string]interface{})
+	if !ok {
+		h.sendError(conn, "请求数据格式错误")
+		return
+	}
+
+	resourcePath, _ := dataMap["resource_path"].(string)
+	entryNode, _ := dataMap["entry"].(string)
+	controllerID, _ := dataMap["controller_id"].(string)
+	breakpointsRaw, _ := dataMap["breakpoints"].([]interface{})
+
+	logger.Info("DebugV2", "启动调试: 资源=%s, 入口=%s, 控制器=%s", resourcePath, entryNode, controllerID)
+
+	if resourcePath == "" || entryNode == "" || controllerID == "" {
+		h.sendError(conn, "缺少必需参数: resource_path, entry, controller_id")
+		return
+	}
+
+	// 转换断点列表
+	breakpoints := h.parseStringArray(breakpointsRaw)
+
+	// 创建一个用于持有 session_id 的闭包变量
+	var sessionIDHolder string
+
+	// 创建事件回调
+	eventCallback := h.createEventCallbackWithSessionID(conn, &sessionIDHolder)
+
+	// 创建会话
+	session, err := h.debugService.CreateSession(resourcePath, controllerID, eventCallback)
+	if err != nil {
+		logger.Error("DebugV2", "创建会话失败: %v", err)
+		h.sendError(conn, err.Error())
+		return
+	}
+
+	// 更新 session_id holder
+	sessionIDHolder = session.SessionID
+
+	// 运行任务
+	err = session.RunTask(entryNode, breakpoints)
+	if err != nil {
+		logger.Error("DebugV2", "运行任务失败: %v", err)
+		h.sendError(conn, err.Error())
+		// 清理会话
+		h.debugService.DestroySession(session.SessionID)
+		return
+	}
+
+	// 发送启动成功响应
+	h.sendResponse(conn, "/lte/debug/started", map[string]interface{}{
+		"success":    true,
+		"session_id": session.SessionID,
+	})
+}
 
 // handleRun 运行任务
 func (h *DebugHandlerV2) handleRun(conn *server.Connection, msg models.Message) {

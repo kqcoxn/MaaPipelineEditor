@@ -76,12 +76,12 @@ export class DebugProtocol extends BaseProtocol {
       this.handleDebugRunning(data)
     );
 
-    // V2 新路由: 继续执行
+    // 继续执行
     this.wsClient.registerRoute("/lte/debug/continued", (data) =>
       this.handleDebugContinued(data)
     );
 
-    // V2 新路由: 单步执行
+    // 单步执行
     this.wsClient.registerRoute("/lte/debug/stepped", (data) =>
       this.handleDebugStepped(data)
     );
@@ -154,6 +154,26 @@ export class DebugProtocol extends BaseProtocol {
       const { event_name, node_name, session_id, timestamp, detail, latency } =
         data;
       const debugStore = useDebugStore.getState();
+
+      // 调试日志：输出收到的事件信息
+      if (
+        event_name?.includes("reco_") ||
+        event_name?.includes("node_failed")
+      ) {
+        console.log(
+          "[DebugProtocol] 收到事件:",
+          "\n  event_name:",
+          event_name,
+          "\n  node_name:",
+          node_name,
+          "\n  detail keys:",
+          detail ? Object.keys(detail) : [],
+          "\n  has raw_image:",
+          !!detail?.raw_image,
+          "\n  has draw_images:",
+          !!detail?.draw_images && detail.draw_images?.length > 0
+        );
+      }
 
       if (
         debugStore.sessionId &&

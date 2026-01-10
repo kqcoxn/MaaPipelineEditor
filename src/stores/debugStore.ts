@@ -70,6 +70,8 @@ export interface RecognitionDetail {
   box?: [number, number, number, number];
   /** 绘制图像 (base64) */
   drawImages?: string[];
+  /** 原始截图 (base64) */
+  rawImage?: string;
   /** 原始详情 JSON */
   rawDetail?: any;
 }
@@ -142,6 +144,7 @@ interface DebugState {
   currentParentNode: string | null; // 当前发起识别的节点
   nextRecordId: number; // 下一个记录ID
   selectedRecoId: number | null; // 选中的识别 ID
+  pendingRecognitionDetails: Map<string, any>; // 待处理的识别详情缓存 (nodeId -> detail)
 
   // 错误信息
   error: string | null;
@@ -230,6 +233,7 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
   currentParentNode: null,
   nextRecordId: 1,
   selectedRecoId: null,
+  pendingRecognitionDetails: new Map(), // 待处理的识别详情缓存
   error: null,
 
   // 切换调试模式
@@ -451,6 +455,25 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
           runIndex,
           status: "running",
         };
+
+        // 检查是否有待处理的识别详情
+        const pendingMap = get().pendingRecognitionDetails;
+        const pendingDetail = pendingMap.get(nodeId);
+        if (pendingDetail) {
+          // 合并待处理的详情
+          newRecord.recognition = {
+            targetNodeName: displayName,
+            success: true,
+            timestamp: Date.now(),
+            detail: pendingDetail,
+          };
+
+          // 从缓存中移除
+          const newPendingMap = new Map(pendingMap);
+          newPendingMap.delete(nodeId);
+          set({ pendingRecognitionDetails: newPendingMap });
+        }
+
         set({ executionHistory: [...history, newRecord] });
 
         // 单步模式自动暂停
@@ -572,63 +595,169 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
           }
         }
 
-        // 更新识别记录（平铺结构）- 找到最后一条该节点的 running 记录并更新
+        // 更新识别记录（平铺结构）
         const records = get().recognitionRecords;
-        // 从后往前找最后一条匹配的 running 记录
         let recordIndex = -1;
-        for (let i = records.length - 1; i >= 0; i--) {
-          // 匹配条件：名称匹配且状态为 running
-          if (
-            records[i].name === targetName &&
-            records[i].status === "running"
-          ) {
-            recordIndex = i;
-            break;
-          }
-        }
 
-        // 如果没找到，尝试找最后一条 running 的记录（容错）
-        if (recordIndex === -1) {
+        // 判断是否为补发事件：没有 reco_id 但有完整详情（algorithm, box 等）
+        const isResendEvent = !recoId && !!detail?.algorithm;
+
+        if (isResendEvent) {
+          // 补发事件：找最后一条该节点的记录（不管状态），用于合并详情
           for (let i = records.length - 1; i >= 0; i--) {
-            if (records[i].status === "running") {
+            if (records[i].name === targetName) {
               recordIndex = i;
               break;
+            }
+          }
+        } else {
+          // 正常事件：找最后一条该节点的 running 记录
+          for (let i = records.length - 1; i >= 0; i--) {
+            if (
+              records[i].name === targetName &&
+              records[i].status === "running"
+            ) {
+              recordIndex = i;
+              break;
+            }
+          }
+          // 如果没找到，尝试找最后一条 running 的记录（容错）
+          if (recordIndex === -1) {
+            for (let i = records.length - 1; i >= 0; i--) {
+              if (records[i].status === "running") {
+                recordIndex = i;
+                break;
+              }
             }
           }
         }
 
         if (recordIndex !== -1) {
           const updatedRecords = [...records];
+          const existingRecord = updatedRecords[recordIndex];
+          const existingDetail = existingRecord.detail;
+
+          // 对于补发事件，合并详情而不是覆盖
+          const newDetail = detail
+            ? {
+                // 保留原有数据，补充新数据
+                algorithm: detail.algorithm || existingDetail?.algorithm,
+                bestResult:
+                  detail.best_result ||
+                  detail.detail ||
+                  existingDetail?.bestResult,
+                box: detail.box || existingDetail?.box,
+                drawImages: detail.draw_images || existingDetail?.drawImages,
+                rawImage: detail.raw_image || existingDetail?.rawImage,
+                rawDetail: (() => {
+                  const { raw_image, draw_images, ...rest } = detail;
+                  // 合并原始详情
+                  return { ...existingDetail?.rawDetail, ...rest };
+                })(),
+              }
+            : existingDetail;
+
           updatedRecords[recordIndex] = {
-            ...updatedRecords[recordIndex],
-            status: isSuccess ? "succeeded" : "failed",
+            ...existingRecord,
+            // 补发事件不改变状态，正常事件更新状态
+            status: isResendEvent
+              ? existingRecord.status
+              : isSuccess
+              ? "succeeded"
+              : "failed",
             hit: isSuccess && detail?.hit !== false,
-            recoId: recoId,
-            detail: detail
-              ? {
-                  algorithm: detail.algorithm,
-                  bestResult: detail.best_result || detail.detail,
-                  box: detail.box,
-                  drawImages: detail.draw_images,
-                  rawDetail: detail,
-                }
-              : undefined,
+            recoId: recoId || existingRecord.recoId,
+            detail: newDetail,
           };
           set({ recognitionRecords: updatedRecords });
 
           // 同时更新 recognitionRecordsMap
-          if (recoId > 0) {
+          const finalRecoId = recoId || existingRecord.recoId;
+          if (finalRecoId && finalRecoId > 0) {
             const recordsMap = new Map(get().recognitionRecordsMap);
-            recordsMap.set(recoId, updatedRecords[recordIndex]);
+            recordsMap.set(finalRecoId, updatedRecords[recordIndex]);
             set({ recognitionRecordsMap: recordsMap });
+          }
+
+          // 补发事件：同时更新 executionHistory 中对应节点的 recognition.detail
+          // 这是关键修复：补发事件到达时，被识别节点自己的 executionHistory 记录应该已经创建
+          if (isResendEvent && nodeId && newDetail) {
+            const history = get().executionHistory;
+            // 从后往前找该节点的最后一条记录
+            let historyIdx = -1;
+            for (let i = history.length - 1; i >= 0; i--) {
+              if (history[i].nodeId === nodeId) {
+                historyIdx = i;
+                break;
+              }
+            }
+
+            if (historyIdx !== -1) {
+              const updated = [...history];
+              const historyRecord = updated[historyIdx];
+
+              // 合并详情到 executionHistory
+              // 注意：DebugInfoTab 使用下划线格式（draw_images, raw_image）
+              updated[historyIdx] = {
+                ...historyRecord,
+                recognition: {
+                  ...historyRecord.recognition,
+                  targetNodeName:
+                    targetName || historyRecord.recognition?.targetNodeName,
+                  success: historyRecord.recognition?.success ?? true,
+                  timestamp: historyRecord.recognition?.timestamp || Date.now(),
+                  detail: {
+                    ...historyRecord.recognition?.detail,
+                    algorithm: newDetail.algorithm,
+                    best_result: newDetail.bestResult,
+                    box: newDetail.box,
+                    draw_images: newDetail.drawImages, // 下划线格式
+                    raw_image: newDetail.rawImage, // 下划线格式
+                  },
+                },
+              };
+              set({ executionHistory: updated });
+            } else {
+              // 找不到 executionHistory 记录，存入待处理缓存
+              // 等待 node_starting 事件到达后再合并
+              const pendingMap = new Map(get().pendingRecognitionDetails);
+              pendingMap.set(nodeId, {
+                algorithm: newDetail.algorithm,
+                best_result: newDetail.bestResult,
+                box: newDetail.box,
+                draw_images: newDetail.drawImages,
+                raw_image: newDetail.rawImage,
+              });
+              set({ pendingRecognitionDetails: pendingMap });
+            }
           }
         }
 
         // 更新当前节点的识别结果（用于流程节点展示）
-        // 注意：只有识别成功时才更新 executionHistory
-        // 识别失败不影响执行节点的状态，因为可能会继续识别其他节点
+        // 识别成功和失败都需要保存，便于错误归属和调试
         const currentNodeId = get().currentNode;
-        if (currentNodeId && isSuccess) {
+        console.log(
+          "[debugStore] recognition_" +
+            (isSuccess ? "success" : "failed") +
+            " 保存识别结果:",
+          "\n  nodeId (被识别节点):",
+          nodeId,
+          "\n  targetName (被识别节点名称):",
+          targetName,
+          "\n  currentNodeId (当前执行节点):",
+          currentNodeId,
+          "\n  isSuccess:",
+          isSuccess,
+          "\n  has detail:",
+          !!detail,
+          "\n  detail keys:",
+          detail ? Object.keys(detail) : [],
+          "\n  has raw_image:",
+          !!detail?.raw_image,
+          "\n  has draw_images:",
+          !!detail?.draw_images && detail.draw_images.length > 0
+        );
+        if (currentNodeId) {
           const history = get().executionHistory;
           // 查找当前节点的运行中记录
           const historyRecordIndex = history.findIndex(
@@ -639,11 +768,21 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
             const updated = [...history];
             const record = updated[historyRecordIndex];
 
+            console.log(
+              "[debugStore] 更新 executionHistory 的 recognition:",
+              "\n  historyRecordIndex:",
+              historyRecordIndex,
+              "\n  record.nodeName:",
+              record.nodeName,
+              "\n  targetNodeName (将设置为):",
+              targetName
+            );
+
             updated[historyRecordIndex] = {
               ...record,
               recognition: {
                 targetNodeName: targetName || undefined,
-                success: true,
+                success: isSuccess,
                 detail: detail,
                 timestamp: timestamp * 1000,
               },
@@ -664,7 +803,7 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
           recognitionTargetNodeId: null,
         });
 
-        // 更新当前节点的动作结果
+        // 更新当前节点的动作结果，并根据 action 结果更新节点状态
         const currentNodeId = get().currentNode;
         if (currentNodeId) {
           const history = get().executionHistory;
@@ -674,15 +813,33 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
 
           if (recordIndex !== -1) {
             const updated = [...history];
+            const record = updated[recordIndex];
+
+            // 更新动作信息并根据 action 结果更新节点状态
+            // 用户期望：action 完成后就显示节点完成状态
+            const finalStatus: ExecutionRecord["status"] = isSuccess
+              ? "completed"
+              : "failed";
+
             updated[recordIndex] = {
-              ...updated[recordIndex],
+              ...record,
               action: {
                 success: isSuccess,
                 detail: detail,
                 timestamp: timestamp * 1000,
               },
+              endTime: timestamp * 1000,
+              status: finalStatus,
+              error: isSuccess ? undefined : "动作失败",
             };
             set({ executionHistory: updated });
+
+            // 更新执行状态（添加到已执行节点集合）
+            if (isSuccess) {
+              get().updateExecutionState(currentNodeId, "completed");
+            } else {
+              get().updateExecutionState(currentNodeId, "failed");
+            }
           }
         }
         break;
@@ -738,13 +895,14 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
           recognitionTargetNodeId: null,
           lastNode: nodeId,
         });
+        // 确保节点已标记为 completed
         get().updateExecutionState(nodeId, "completed");
 
         const history = get().executionHistory;
-        // 从后往前查找最后一条该节点的 running 记录
+        // 从后往前查找最后一条该节点的记录（可能是 running 或已经被 action_success 标记为 completed）
         let recordIndex = -1;
         for (let i = history.length - 1; i >= 0; i--) {
-          if (history[i].nodeId === nodeId && history[i].status === "running") {
+          if (history[i].nodeId === nodeId) {
             recordIndex = i;
             break;
           }
@@ -753,6 +911,7 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
         if (recordIndex !== -1) {
           const updated = [...history];
           const latency = detail?.latency || 0;
+          // 更新 latency 和终态（如果之前已经是 completed 则只更新 latency）
           updated[recordIndex] = {
             ...updated[recordIndex],
             endTime: timestamp * 1000,
@@ -784,20 +943,51 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
           }
         }
 
+        console.log(
+          "[debugStore] node_failed:",
+          "\n  nodeId:",
+          nodeId,
+          "\n  recordIndex:",
+          recordIndex,
+          "\n  record:",
+          recordIndex !== -1
+            ? {
+                nodeName: history[recordIndex].nodeName,
+                recognition: history[recordIndex].recognition,
+                action: history[recordIndex].action,
+              }
+            : "not found"
+        );
+
         if (recordIndex !== -1) {
           const updated = [...history];
           const latency = detail?.latency || 0;
 
-          // 设置错误信息
+          // 设置错误信息，包含失败节点的具体信息
           let errorMsg = detail?.error || detail?.status || "执行失败";
 
-          // 根据实际失败原因设置错误信息
+          console.log(
+            "[debugStore] node_failed 设置错误信息:",
+            "\n  recognition:",
+            updated[recordIndex].recognition,
+            "\n  recognition.success:",
+            updated[recordIndex].recognition?.success,
+            "\n  recognition.targetNodeName:",
+            updated[recordIndex].recognition?.targetNodeName,
+            "\n  action:",
+            updated[recordIndex].action,
+            "\n  action.success:",
+            updated[recordIndex].action?.success
+          );
+
+          // 根据实际失败原因设置错误信息，并显示失败的目标节点
           if (
             updated[recordIndex].recognition &&
             !updated[recordIndex].recognition?.success
           ) {
-            // 识别失败
-            errorMsg = "识别失败";
+            // 识别失败 - 显示被识别的目标节点名称
+            const targetName = updated[recordIndex].recognition?.targetNodeName;
+            errorMsg = targetName ? `识别「${targetName}」失败` : "识别失败";
           } else if (
             updated[recordIndex].action &&
             !updated[recordIndex].action?.success
@@ -960,6 +1150,7 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
       lastNode: null,
       executionHistory: [],
       executionStartTime: null,
+      pendingRecognitionDetails: new Map(), // 清空待处理缓存
       error: null,
     });
   },

@@ -11,6 +11,7 @@ import {
   type NodeContextMenuWithChildren,
   type NodeContextMenuSubItem,
 } from "../nodeContextMenu";
+import { useDebugStore } from "../../../../stores/debugStore";
 
 interface NodeContextMenuProps {
   node: NodeContextMenuNode;
@@ -22,6 +23,9 @@ interface NodeContextMenuProps {
 /**节点右键菜单组件 */
 export const NodeContextMenu = memo<NodeContextMenuProps>(
   ({ node, children, open, onOpenChange }) => {
+    // 监听 debugMode 变化
+    const debugMode = useDebugStore((state) => state.debugMode);
+
     // 生成菜单项
     const menuItems = useMemo<MenuProps["items"]>(() => {
       const config = getNodeContextMenuConfig(node);
@@ -67,41 +71,45 @@ export const NodeContextMenu = memo<NodeContextMenuProps>(
                   <span>{submenuItem.label}</span>
                 </div>
               ),
-              children: submenuItem.children.map((child: NodeContextMenuSubItem) => {
-                const isChecked =
-                  typeof child.checked === "function"
-                    ? child.checked(node)
-                    : child.checked;
-                const isDisabled =
-                  typeof child.disabled === "function"
-                    ? child.disabled(node)
-                    : child.disabled;
-                return {
-                  key: child.key,
-                  label: (
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        minWidth: 60,
-                      }}
-                    >
-                      {isChecked && <CheckOutlined style={{ fontSize: 12 }} />}
-                      <span style={{ marginLeft: isChecked ? 0 : 20 }}>
-                        {child.label}
-                      </span>
-                    </div>
-                  ),
-                  onClick: () => {
-                    if (!isDisabled) {
-                      child.onClick(node);
-                      onOpenChange(false);
-                    }
-                  },
-                  disabled: isDisabled,
-                };
-              }),
+              children: submenuItem.children.map(
+                (child: NodeContextMenuSubItem) => {
+                  const isChecked =
+                    typeof child.checked === "function"
+                      ? child.checked(node)
+                      : child.checked;
+                  const isDisabled =
+                    typeof child.disabled === "function"
+                      ? child.disabled(node)
+                      : child.disabled;
+                  return {
+                    key: child.key,
+                    label: (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          minWidth: 60,
+                        }}
+                      >
+                        {isChecked && (
+                          <CheckOutlined style={{ fontSize: 12 }} />
+                        )}
+                        <span style={{ marginLeft: isChecked ? 0 : 20 }}>
+                          {child.label}
+                        </span>
+                      </div>
+                    ),
+                    onClick: () => {
+                      if (!isDisabled) {
+                        child.onClick(node);
+                        onOpenChange(false);
+                      }
+                    },
+                    disabled: isDisabled,
+                  };
+                }
+              ),
             };
           }
 
@@ -144,7 +152,7 @@ export const NodeContextMenu = memo<NodeContextMenuProps>(
             danger: menuItem.danger,
           };
         });
-    }, [node, onOpenChange]);
+    }, [node, onOpenChange, debugMode]);
 
     return (
       <Dropdown

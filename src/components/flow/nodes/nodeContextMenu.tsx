@@ -16,6 +16,9 @@ import {
   copyNodeRecoJSON,
 } from "./utils/nodeOperations";
 import { useDebugStore } from "../../../stores/debugStore";
+import { useMFWStore } from "../../../stores/mfwStore";
+import { useFileStore } from "../../../stores/fileStore";
+import { debugProtocol } from "../../../services/server";
 
 /**菜单项类型 */
 export interface NodeContextMenuItem {
@@ -111,6 +114,72 @@ function handleSetDebugEntry(node: NodeContextMenuNode) {
   message.success(`已将 "${node.data.label}" 设为调试开始节点`);
 }
 
+/**从此节点开始调试处理器 */
+function handleStartDebugFromNode(node: NodeContextMenuNode) {
+  const { setConfig, resourcePath, startDebug } = useDebugStore.getState();
+  const { connectionStatus, controllerId } = useMFWStore.getState();
+  const { nodes } = useFlowStore.getState();
+  const prefix = useFileStore.getState().currentFile.config.prefix;
+
+  // 验证连接状态
+  if (connectionStatus !== "connected") {
+    message.error("请先连接 LocalBridge");
+    return;
+  }
+
+  // 验证控制器
+  if (!controllerId) {
+    message.error("请先连接控制器");
+    return;
+  }
+
+  // 验证资源路径
+  if (!resourcePath) {
+    message.error("请先配置资源路径");
+    return;
+  }
+
+  // 设置入口节点
+  setConfig("entryNode", node.id);
+
+  // 调用 startDebug 更新状态
+  startDebug();
+
+  // 将节点 ID 转换为 pipeline 中的节点名称
+  const nodeIdToFullName = (nodeId: string): string | null => {
+    const targetNode = nodes.find((n) => n.id === nodeId);
+    if (!targetNode) return null;
+    const label = targetNode.data.label;
+    return prefix ? `${prefix}_${label}` : label;
+  };
+
+  const entryNodeFullName = nodeIdToFullName(node.id);
+  if (!entryNodeFullName) {
+    message.error("入口节点不存在");
+    useDebugStore.getState().stopDebug();
+    return;
+  }
+
+  // 获取断点并转换
+  const breakpoints = useDebugStore.getState().breakpoints;
+  const breakpointFullNames = Array.from(breakpoints)
+    .map((id) => nodeIdToFullName(id))
+    .filter((name): name is string => name !== null);
+
+  // 发送 WebSocket 消息启动调试
+  const success = debugProtocol.sendStartDebug(
+    resourcePath,
+    entryNodeFullName,
+    controllerId,
+    breakpointFullNames
+  );
+
+  if (!success) {
+    message.error("启动调试失败，请检查连接状态");
+    useDebugStore.getState().stopDebug();
+  }
+}
+
 /**复制 Reco JSON 处理器 */
 function handleCopyRecoJSON(node: NodeContextMenuNode) {
   copyNodeRecoJSON(node.id);
@@ -203,6 +272,13 @@ export function getNodeContextMenuConfig(
       {
         type: "divider",
         key: "divider-debug",
+      },
+      {
+        key: "start-debug-from-node",
+        label: "从此节点开始调试",
+        icon: "icon-kaishi",
+        iconSize: 16,
+        onClick: handleStartDebugFromNode,
       },
       {
         key: "set-debug-entry",

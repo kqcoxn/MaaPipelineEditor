@@ -412,11 +412,19 @@ func (h *debugEventHandler) OnDebugEvent(event mfw.DebugEvent) {
 			Data: map[string]interface{}{
 				"event_name": event.EventName,
 				"task_id":    event.TaskID,
-				"node_id":    event.NodeID,
+				"node_name":  event.NodeID, // NodeID 实际存储的是节点名称
 				"timestamp":  event.Timestamp,
 				"detail":     event.Detail,
 			},
 		}
+		logger.Debug("Debug", "[发送事件] %s: node_name=%s, detail keys=%v",
+			event.EventName, event.NodeID, func() []string {
+				keys := make([]string, 0, len(event.Detail))
+				for k := range event.Detail {
+					keys = append(keys, k)
+				}
+				return keys
+			}())
 		h.conn.Send(response)
 
 	case "debug_completed":

@@ -489,6 +489,26 @@
 .recognition-detail-modal {
   .ant-modal-body {
     padding: 16px;
+    max-height: 70vh;
+    overflow-y: auto;
+
+    // 滚动条样式
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 3px;
+
+      &:hover {
+        background: rgba(0, 0, 0, 0.3);
+      }
+    }
   }
 }
 

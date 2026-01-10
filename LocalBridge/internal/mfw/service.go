@@ -95,7 +95,7 @@ func (s *Service) Initialize() error {
 	err := maa.Init(
 		maa.WithLibDir(libDir),
 		maa.WithLogDir(logDir),
-		maa.WithSaveDraw(false),
+		maa.WithSaveDraw(true),
 		maa.WithStdoutLevel(maa.LoggingLevelOff),
 		maa.WithDebugMode(true),
 	)

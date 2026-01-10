@@ -60,7 +60,12 @@ function RecognitionDetailModal({
                 historyRecord.recognition.detail.detail,
               box: historyRecord.recognition.detail.box,
               drawImages: historyRecord.recognition.detail.draw_images,
-              rawDetail: historyRecord.recognition.detail,
+              rawImage: historyRecord.recognition.detail.raw_image,
+              rawDetail: (() => {
+                const { raw_image, draw_images, ...rest } =
+                  historyRecord.recognition.detail;
+                return rest;
+              })(),
             }
           : undefined,
       };
@@ -167,7 +172,29 @@ function RecognitionDetailModal({
         </div>
       )}
 
-      {/* 识别结果 */}
+      {/* 绘制图像 */}
+      {record.detail?.drawImages && record.detail.drawImages.length > 0 && (
+        <div className={debugStyle["recognition-detail-section"]}>
+          <div className={debugStyle["recognition-detail-section-title"]}>
+            绘制图像
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {record.detail.drawImages.map((img, index) => (
+              <Image
+                key={index}
+                src={
+                  img.startsWith("data:") ? img : `data:image/png;base64,${img}`
+                }
+                alt={`绘制图像 ${index + 1}`}
+                className={debugStyle["recognition-detail-image"]}
+                style={{ maxHeight: 200 }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 最佳结果 */}
       {record.detail?.bestResult !== undefined && (
         <div className={debugStyle["recognition-detail-section"]}>
           <div className={debugStyle["recognition-detail-section-title"]}>
@@ -210,28 +237,6 @@ function RecognitionDetailModal({
         </div>
       )}
 
-      {/* 绘制图像 */}
-      {record.detail?.drawImages && record.detail.drawImages.length > 0 && (
-        <div className={debugStyle["recognition-detail-section"]}>
-          <div className={debugStyle["recognition-detail-section-title"]}>
-            绘制图像
-          </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {record.detail.drawImages.map((img, index) => (
-              <Image
-                key={index}
-                src={
-                  img.startsWith("data:") ? img : `data:image/png;base64,${img}`
-                }
-                alt={`绘制图像 ${index + 1}`}
-                className={debugStyle["recognition-detail-image"]}
-                style={{ maxHeight: 200 }}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* 原始详情 */}
       {record.detail?.rawDetail && (
         <div className={debugStyle["recognition-detail-section"]}>
@@ -243,6 +248,27 @@ function RecognitionDetailModal({
               src={record.detail.rawDetail}
               enableClipboard={false}
               iconStyle="square"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* 原始图像 */}
+      {record.detail?.rawImage && (
+        <div className={debugStyle["recognition-detail-section"]}>
+          <div className={debugStyle["recognition-detail-section-title"]}>
+            原始图像
+          </div>
+          <div>
+            <Image
+              src={
+                record.detail.rawImage.startsWith("data:")
+                  ? record.detail.rawImage
+                  : `data:image/png;base64,${record.detail.rawImage}`
+              }
+              alt="原始图像"
+              className={debugStyle["recognition-detail-image"]}
+              style={{ maxHeight: 300 }}
             />
           </div>
         </div>

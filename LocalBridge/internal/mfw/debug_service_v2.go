@@ -131,6 +131,9 @@ func (ds *DebugServiceV2) CreateSession(resourcePath, controllerID string, event
 		session.handleEvent(event)
 	})
 
+	// 设置截图器引用
+	session.contextSink.SetScreenshotter(adapter.GetScreenshotter())
+
 	// 注册事件监听器
 	session.contextSinkID = adapter.AddContextSink(session.contextSink)
 	logger.Debug("DebugV2", "注册 ContextSink: ID=%d", session.contextSinkID)

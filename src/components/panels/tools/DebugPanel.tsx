@@ -25,7 +25,6 @@ function DebugPanel() {
     taskId,
     resourcePath,
     entryNode,
-    screenshotMode,
     currentNode,
     currentPhase,
     recognitionTargetName,
@@ -50,7 +49,6 @@ function DebugPanel() {
       taskId: state.taskId,
       resourcePath: state.resourcePath,
       entryNode: state.entryNode,
-      screenshotMode: state.screenshotMode,
       currentNode: state.currentNode,
       currentPhase: state.currentPhase,
       recognitionTargetName: state.recognitionTargetName,
@@ -184,22 +182,6 @@ function DebugPanel() {
             filterOption={(input, option) =>
               (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
             }
-          />
-        </div>
-      </div>
-      <div className={debugStyle["debug-config-section"]}>
-        <div className={debugStyle["debug-config-section-title"]}>高级选项</div>
-        <div className={debugStyle["debug-config-field"]}>
-          <div className={debugStyle["debug-config-field-label"]}>截图模式</div>
-          <Select
-            style={{ width: "100%" }}
-            value={screenshotMode}
-            onChange={(value) => setConfig("screenshotMode", value)}
-            options={[
-              { label: "全程截图", value: "all" },
-              { label: "仅断点截图", value: "breakpoint" },
-              { label: "不截图", value: "none" },
-            ]}
           />
         </div>
       </div>
