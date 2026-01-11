@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/config"
@@ -301,7 +300,7 @@ func runServer(cmd *cobra.Command, args []string) {
 
 	// 等待退出信号
 	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(sigChan, getExitSignals()...)
 
 	<-sigChan
 

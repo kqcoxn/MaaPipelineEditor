@@ -11,7 +11,6 @@ import (
 	"reflect"
 	"runtime"
 	"sync"
-	"syscall"
 	"unsafe"
 
 	maa "github.com/MaaXYZ/maa-framework-go/v3"
@@ -115,12 +114,12 @@ func doInitNativeAPI() error {
 
 	libPath := filepath.Join(libDir, libName)
 
-	// 加载库（使用 syscall，适用于所有平台）
-	handle, err := syscall.LoadLibrary(libPath)
+	// 加载库（跨平台兼容）
+	handle, err := loadLibrary(libPath)
 	if err != nil {
-		return fmt.Errorf("加载 MaaFramework 库失败: %v", err)
+		return err
 	}
-	maaLibHandle = uintptr(handle)
+	maaLibHandle = handle
 
 	// 注册函数
 	registerNativeAPI()
