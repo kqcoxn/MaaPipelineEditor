@@ -67,23 +67,8 @@ export class DebugProtocol extends BaseProtocol {
       this.handleDebugStopped(data)
     );
 
-    // 注册调试暂停响应路由
-    this.wsClient.registerRoute("/lte/debug/paused", (data) =>
-      this.handleDebugPaused(data)
-    );
-
     this.wsClient.registerRoute("/lte/debug/running", (data) =>
       this.handleDebugRunning(data)
-    );
-
-    // 继续执行
-    this.wsClient.registerRoute("/lte/debug/continued", (data) =>
-      this.handleDebugContinued(data)
-    );
-
-    // 单步执行
-    this.wsClient.registerRoute("/lte/debug/stepped", (data) =>
-      this.handleDebugStepped(data)
     );
   }
 
@@ -280,13 +265,6 @@ export class DebugProtocol extends BaseProtocol {
       timestamp,
       detail,
     });
-
-    if (debugStore.breakpoints.has(nodeId)) {
-      if (debugStore.sessionId) {
-        this.sendPauseDebug(debugStore.sessionId);
-        message.info(`命中断点: ${nodeId}`);
-      }
-    }
   }
 
   /**
@@ -591,33 +569,6 @@ export class DebugProtocol extends BaseProtocol {
     }
   }
 
-  private handleDebugPaused(data: any): void {
-    try {
-      const { success, session_id, error } = data;
-      const debugStore = useDebugStore.getState();
-
-      if (session_id !== undefined && debugStore.sessionId !== session_id) {
-        console.warn(
-          "[DebugProtocol] Paused session_id mismatch:",
-          session_id,
-          "expected:",
-          debugStore.sessionId
-        );
-        return;
-      }
-
-      if (success) {
-        debugStore.pauseDebug();
-        message.info("调试已暂停");
-      } else {
-        message.warning(error || "调试暂停失败");
-        console.error("[DebugProtocol] Debug pause failed:", error);
-      }
-    } catch (error) {
-      console.error("[DebugProtocol] Failed to handle debug paused:", error);
-    }
-  }
-
   private handleDebugRunning(data: any): void {
     const { success, session_id, entry, error } = data;
     if (success) {
@@ -629,30 +580,6 @@ export class DebugProtocol extends BaseProtocol {
       });
     } else {
       message.error(error || "启动调试失败");
-    }
-  }
-
-  /**
-   * 处理继续执行响应
-   */
-  private handleDebugContinued(data: any): void {
-    const { success, error } = data;
-    if (success) {
-      useDebugStore.getState().continueDebug();
-    } else {
-      message.error(error || "继续执行失败");
-    }
-  }
-
-  /**
-   * 处理单步执行响应
-   */
-  private handleDebugStepped(data: any): void {
-    const { success, error } = data;
-    if (success) {
-      useDebugStore.getState().stepDebug();
-    } else {
-      message.error(error || "单步执行失败");
     }
   }
 
@@ -697,21 +624,13 @@ export class DebugProtocol extends BaseProtocol {
   }
 
   /**
-   * 处理 V2 调试暂停事件 (到达断点)
+   * 处理 V2 调试暂停事件
    */
   private handleV2DebugPaused(
     nodeId: string | null,
     timestamp: number,
     detail: any
-  ): void {
-    const debugStore = useDebugStore.getState();
-    debugStore.pauseDebug();
-    if (nodeId) {
-      debugStore.setLastNode(nodeId);
-      debugStore.setCurrentNode(nodeId);
-    }
-    message.info(`命中断点: ${detail?.reason || nodeId}`);
-  }
+  ): void {}
 
   /**
    * 处理 V2 调试完成事件
@@ -771,51 +690,6 @@ export class DebugProtocol extends BaseProtocol {
 
     return this.wsClient.send("/mpe/debug/stop", {
       session_id: sessionId,
-    });
-  }
-
-  sendPauseDebug(sessionId: string): boolean {
-    if (!this.wsClient) {
-      console.error("[DebugProtocol] WebSocket client not initialized");
-      return false;
-    }
-
-    return this.wsClient.send("/mpe/debug/stop", { session_id: sessionId });
-  }
-
-  sendContinueDebug(
-    sessionId: string,
-    fromNode: string,
-    breakpoints: string[]
-  ): boolean {
-    if (!this.wsClient) {
-      console.error("[DebugProtocol] WebSocket client not initialized");
-      return false;
-    }
-
-    return this.wsClient.send("/mpe/debug/continue", {
-      session_id: sessionId,
-      from_node: fromNode,
-      breakpoints,
-    });
-  }
-
-  sendStepDebug(
-    sessionId: string,
-    fromNode: string,
-    nextNodes: string[],
-    breakpoints: string[]
-  ): boolean {
-    if (!this.wsClient) {
-      console.error("[DebugProtocol] WebSocket client not initialized");
-      return false;
-    }
-
-    return this.wsClient.send("/mpe/debug/step", {
-      session_id: sessionId,
-      from_node: fromNode,
-      next_nodes: nextNodes,
-      breakpoints,
     });
   }
 }

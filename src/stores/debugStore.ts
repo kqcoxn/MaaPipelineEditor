@@ -18,11 +18,6 @@ export type DebugStatus =
 export type ExecutionPhase = "recognition" | "action" | null;
 
 /**
- * 截图模式
- */
-export type ScreenshotMode = "all" | "breakpoint" | "none";
-
-/**
  * 日志级别
  */
 export type LogLevel = "verbose" | "normal" | "error";
@@ -103,7 +98,6 @@ interface DebugState {
   // 模式与状态
   debugMode: boolean;
   debugStatus: DebugStatus;
-  stepMode: boolean;
 
   // 任务信息
   sessionId: string | null;
@@ -112,11 +106,9 @@ interface DebugState {
   resourcePath: string;
   entryNode: string;
   controllerId: string | null;
-  screenshotMode: ScreenshotMode;
   logLevel: LogLevel;
 
-  // 断点与执行状态
-  breakpoints: Set<string>;
+  // 执行状态
   executedNodes: Set<string>;
   executedEdges: Set<string>;
   currentNode: string | null;
@@ -145,18 +137,11 @@ interface DebugState {
   toggleDebugMode: () => void;
   setDebugMode: (mode: boolean) => void;
   setConfig: (
-    key: "resourcePath" | "entryNode" | "screenshotMode" | "logLevel",
+    key: "resourcePath" | "entryNode" | "logLevel",
     value: any
   ) => void;
-  setBreakpoint: (nodeId: string) => void;
-  removeBreakpoint: (nodeId: string) => void;
-  toggleBreakpoint: (nodeId: string) => void;
-  clearBreakpoints: () => void;
   startDebug: () => void;
-  pauseDebug: () => void;
   stopDebug: () => void;
-  continueDebug: () => void;
-  stepDebug: () => void;
   updateExecutionState: (
     nodeId: string,
     status: ExecutionRecord["status"]
@@ -167,11 +152,6 @@ interface DebugState {
   setCurrentNode: (nodeId: string | null) => void;
   setLastNode: (nodeId: string | null) => void;
   reset: () => void;
-
-  // 日志导出
-  exportLogAsText: () => string;
-  exportLogAsJSON: () => string;
-  downloadLog: (format: "text" | "json") => void;
 
   // 识别记录操作
   setSelectedRecoId: (recoId: number | null) => void;
@@ -189,14 +169,11 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
   // 初始状态
   debugMode: false,
   debugStatus: "idle",
-  stepMode: false,
   sessionId: null,
   resourcePath: "",
   entryNode: "",
   controllerId: null,
-  screenshotMode: "breakpoint",
   logLevel: "normal",
-  breakpoints: new Set(),
   executedNodes: new Set(),
   executedEdges: new Set(),
   currentNode: null,
@@ -233,32 +210,6 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
     set({ [key]: value });
   },
 
-  setBreakpoint: (nodeId) => {
-    const breakpoints = new Set(get().breakpoints);
-    breakpoints.add(nodeId);
-    set({ breakpoints });
-  },
-
-  removeBreakpoint: (nodeId) => {
-    const breakpoints = new Set(get().breakpoints);
-    breakpoints.delete(nodeId);
-    set({ breakpoints });
-  },
-
-  toggleBreakpoint: (nodeId) => {
-    const breakpoints = new Set(get().breakpoints);
-    if (breakpoints.has(nodeId)) {
-      breakpoints.delete(nodeId);
-    } else {
-      breakpoints.add(nodeId);
-    }
-    set({ breakpoints });
-  },
-
-  clearBreakpoints: () => {
-    set({ breakpoints: new Set() });
-  },
-
   startDebug: () => {
     const state = get();
     const controllerId = useMFWStore.getState().controllerId;
@@ -283,10 +234,6 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
     });
   },
 
-  pauseDebug: () => {
-    set({ debugStatus: "paused" });
-  },
-
   stopDebug: () => {
     set({
       debugStatus: "idle",
@@ -294,25 +241,6 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
       currentNode: null,
       lastNode: null,
       executionStartTime: null,
-    });
-  },
-
-  continueDebug: () => {
-    const state = get();
-    if (state.debugStatus !== "paused" || !state.currentNode) {
-      return;
-    }
-    set({ debugStatus: "running" });
-  },
-
-  stepDebug: () => {
-    const state = get();
-    if (state.debugStatus !== "paused") {
-      return;
-    }
-    set({
-      debugStatus: "running",
-      stepMode: true,
     });
   },
 
@@ -376,18 +304,6 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
           status: "running",
         };
         set({ executionHistory: [...history, newRecord] });
-
-        // 单步模式自动暂停
-        if (get().stepMode) {
-          set({ stepMode: false });
-          get().pauseDebug();
-          break;
-        }
-
-        // 检查断点
-        if (get().breakpoints.has(nodeId)) {
-          get().pauseDebug();
-        }
         break;
       }
 
@@ -637,22 +553,17 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
           set({ executionHistory: updated });
         }
 
-        if (get().stepMode) {
-          set({
-            stepMode: false,
-            debugStatus: "paused",
-            currentPhase: null,
-            recognitionTargetName: null,
-            recognitionTargetNodeId: null,
-          });
-        } else {
-          set({
-            debugStatus: "completed",
-            currentPhase: null,
-            recognitionTargetName: null,
-            recognitionTargetNodeId: null,
-          });
-        }
+        // 调试完成后自动重置状态为 idle
+        set({
+          debugStatus: "idle",
+          sessionId: null,
+          currentNode: null,
+          lastNode: null,
+          currentPhase: null,
+          recognitionTargetName: null,
+          recognitionTargetNodeId: null,
+          executionStartTime: null,
+        });
         break;
       }
 
@@ -664,22 +575,17 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
         break;
 
       case "completed":
-        if (get().stepMode) {
-          set({
-            stepMode: false,
-            debugStatus: "paused",
-            currentPhase: null,
-            recognitionTargetName: null,
-            recognitionTargetNodeId: null,
-          });
-        } else {
-          set({
-            debugStatus: "completed",
-            currentPhase: null,
-            recognitionTargetName: null,
-            recognitionTargetNodeId: null,
-          });
-        }
+        // 调试完成后自动重置状态为 idle
+        set({
+          debugStatus: "idle",
+          sessionId: null,
+          currentNode: null,
+          lastNode: null,
+          currentPhase: null,
+          recognitionTargetName: null,
+          recognitionTargetNodeId: null,
+          executionStartTime: null,
+        });
         break;
 
       case "error":
@@ -710,7 +616,6 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
   reset: () => {
     set({
       debugStatus: "idle",
-      stepMode: false,
       sessionId: null,
       executedNodes: new Set(),
       executedEdges: new Set(),
@@ -728,130 +633,6 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
       detailCache: new Map(),
       error: null,
     });
-  },
-
-  // ============================================================================
-  // 日志导出
-  // ============================================================================
-  exportLogAsText: () => {
-    const state = get();
-    const lines: string[] = [];
-
-    lines.push("======== 调试会话日志 ========");
-    lines.push(`Session ID: ${state.sessionId || "N/A"}`);
-    lines.push(`资源路径: ${state.resourcePath || "N/A"}`);
-    lines.push(`入口节点: ${state.entryNode || "N/A"}`);
-    lines.push(
-      `开始时间: ${
-        state.executionStartTime
-          ? new Date(state.executionStartTime).toLocaleString()
-          : "N/A"
-      }`
-    );
-    lines.push(`状态: ${state.debugStatus}`);
-    lines.push("");
-
-    if (state.breakpoints.size > 0) {
-      lines.push("===== 断点列表 =====");
-      Array.from(state.breakpoints).forEach((nodeId) => {
-        lines.push(`- ${nodeId}`);
-      });
-      lines.push("");
-    }
-
-    if (state.executionHistory.length > 0) {
-      lines.push("===== 执行历史 =====");
-      state.executionHistory.forEach((record, index) => {
-        const runIndexStr = record.runIndex > 1 ? ` #${record.runIndex}` : "";
-        lines.push(
-          `\n[${index + 1}] ${record.nodeName}${runIndexStr} (${record.nodeId})`
-        );
-        lines.push(`  状态: ${record.status}`);
-        lines.push(
-          `  开始: ${new Date(record.startTime).toLocaleTimeString()}`
-        );
-        if (record.endTime) {
-          lines.push(
-            `  结束: ${new Date(record.endTime).toLocaleTimeString()}`
-          );
-        }
-        if (record.latency) {
-          lines.push(`  耗时: ${record.latency}ms`);
-        }
-        if (record.error) {
-          lines.push(`  错误: ${record.error}`);
-        }
-      });
-    }
-
-    if (state.recognitionRecords.length > 0) {
-      lines.push("\n===== 识别记录 =====");
-      state.recognitionRecords.forEach((record, index) => {
-        const runIndexStr =
-          record.runIndex && record.runIndex > 1 ? ` #${record.runIndex}` : "";
-        lines.push(
-          `\n[${index + 1}] ${record.name}${runIndexStr} (recoId: ${
-            record.recoId
-          })`
-        );
-        lines.push(`  状态: ${record.status}`);
-        lines.push(`  命中: ${record.hit ? "是" : "否"}`);
-        if (record.parentNode) {
-          lines.push(`  父节点: ${record.parentNode}`);
-        }
-      });
-    }
-
-    lines.push("");
-    lines.push("======== 日志结束 ========");
-
-    return lines.join("\n");
-  },
-
-  exportLogAsJSON: () => {
-    const state = get();
-
-    const logData = {
-      sessionId: state.sessionId,
-      resourcePath: state.resourcePath,
-      entryNode: state.entryNode,
-      startTime: state.executionStartTime,
-      status: state.debugStatus,
-      breakpoints: Array.from(state.breakpoints),
-      executionHistory: state.executionHistory,
-      recognitionRecords: state.recognitionRecords,
-      exportTime: new Date().toISOString(),
-    };
-
-    return JSON.stringify(logData, null, 2);
-  },
-
-  downloadLog: (format: "text" | "json") => {
-    const state = get();
-    const content =
-      format === "text" ? state.exportLogAsText() : state.exportLogAsJSON();
-
-    const timestamp = new Date()
-      .toISOString()
-      .replace(/[:.]/g, "-")
-      .slice(0, -5);
-    const filename = `debug-log_${timestamp}.${
-      format === "text" ? "txt" : "json"
-    }`;
-
-    const blob = new Blob([content], {
-      type: format === "text" ? "text/plain" : "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   },
 
   // ============================================================================

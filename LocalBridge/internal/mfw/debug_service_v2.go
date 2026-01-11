@@ -21,7 +21,7 @@ const (
 	SessionStatusIdle      DebugSessionStatus = "idle"      // 空闲
 	SessionStatusPreparing DebugSessionStatus = "preparing" // 准备中
 	SessionStatusRunning   DebugSessionStatus = "running"   // 运行中
-	SessionStatusPaused    DebugSessionStatus = "paused"    // 已暂停（在断点处）
+	SessionStatusPaused    DebugSessionStatus = "paused"    // 已暂停
 	SessionStatusCompleted DebugSessionStatus = "completed" // 已完成
 	SessionStatusError     DebugSessionStatus = "error"     // 错误
 )
@@ -44,15 +44,13 @@ type DebugSessionV2 struct {
 	contextSinkID int64
 
 	// 执行状态
-	currentNode    string           // 当前节点
-	lastNode       string           // 上一个执行的节点
-	executedNodes  map[string]int   // 已执行节点计数
-	breakpoints    map[string]bool  // 断点集合
-	tempBreakpoint string           // 临时断点（单步执行）
-	taskJob        *maa.TaskJob     // 当前任务
-	pauseReason    string           // 暂停原因
-	lastError      error            // 最后一个错误
-	nodeStartTime  map[string]int64 // 节点开始时间
+	currentNode   string           // 当前节点
+	lastNode      string           // 上一个执行的节点
+	executedNodes map[string]int   // 已执行节点计数
+	taskJob       *maa.TaskJob     // 当前任务
+	pauseReason   string           // 暂停原因
+	lastError     error            // 最后一个错误
+	nodeStartTime map[string]int64 // 节点开始时间
 
 	mu sync.RWMutex
 }
@@ -122,7 +120,6 @@ func (ds *DebugServiceV2) CreateSession(resourcePath, controllerID string, event
 		adapter:       adapter,
 		eventCallback: eventCallback,
 		executedNodes: make(map[string]int),
-		breakpoints:   make(map[string]bool),
 		nodeStartTime: make(map[string]int64),
 	}
 
@@ -193,10 +190,7 @@ func (ds *DebugServiceV2) ListSessions() []*DebugSessionV2 {
 // ============================================================================
 
 // RunTask 运行任务
-// entryNode: 入口节点
-// breakpoints: 断点列表
-// 任务会在遇到断点时自然结束，状态变为 paused
-func (s *DebugSessionV2) RunTask(entryNode string, breakpoints []string) error {
+func (s *DebugSessionV2) RunTask(entryNode string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -204,7 +198,7 @@ func (s *DebugSessionV2) RunTask(entryNode string, breakpoints []string) error {
 		return fmt.Errorf("适配器未初始化")
 	}
 
-	logger.Info("DebugV2", "运行任务: Entry=%s, Breakpoints=%v", entryNode, breakpoints)
+	logger.Info("DebugV2", "运行任务: Entry=%s", entryNode)
 
 	// 验证入口节点是否存在于资源中
 	if _, exists := s.adapter.GetNodeJSON(entryNode); !exists {
@@ -219,133 +213,12 @@ func (s *DebugSessionV2) RunTask(entryNode string, breakpoints []string) error {
 	s.pauseReason = ""
 	s.lastError = nil
 
-	// 更新断点
-	s.breakpoints = make(map[string]bool)
-	for _, bp := range breakpoints {
-		s.breakpoints[bp] = true
-	}
-
 	// 重置事件监听器计数
 	s.contextSink.Reset()
 
-	// 构造 override（让断点节点的 next 为空，使任务自然结束）
-	override := s.buildBreakpointOverride(breakpoints)
-
 	// 提交任务
 	var err error
-	if override != nil {
-		s.taskJob, err = s.adapter.PostTask(entryNode, override)
-	} else {
-		s.taskJob, err = s.adapter.PostTask(entryNode)
-	}
-	if err != nil {
-		s.Status = SessionStatusError
-		s.lastError = err
-		return err
-	}
-
-	// 异步等待任务完成
-	go s.waitForTask()
-
-	return nil
-}
-
-// ContinueFrom 从指定节点继续执行
-// 这是分段执行的核心：每次"继续"实际上是提交一个新任务
-func (s *DebugSessionV2) ContinueFrom(fromNode string, breakpoints []string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if s.adapter == nil {
-		return fmt.Errorf("适配器未初始化")
-	}
-
-	if s.Status != SessionStatusPaused {
-		return fmt.Errorf("当前状态不允许继续: %s", s.Status)
-	}
-
-	logger.Info("DebugV2", "从节点继续: %s, Breakpoints=%v", fromNode, breakpoints)
-
-	// 更新状态
-	s.Status = SessionStatusRunning
-	s.currentNode = fromNode
-	s.pauseReason = ""
-	s.tempBreakpoint = ""
-
-	// 更新断点
-	s.breakpoints = make(map[string]bool)
-	for _, bp := range breakpoints {
-		s.breakpoints[bp] = true
-	}
-
-	// 构造 override
-	override := s.buildBreakpointOverride(breakpoints)
-
-	// 提交任务
-	var err error
-	if override != nil {
-		s.taskJob, err = s.adapter.PostTask(fromNode, override)
-	} else {
-		s.taskJob, err = s.adapter.PostTask(fromNode)
-	}
-	if err != nil {
-		s.Status = SessionStatusError
-		s.lastError = err
-		return err
-	}
-
-	// 异步等待任务完成
-	go s.waitForTask()
-
-	return nil
-}
-
-// StepFrom 单步执行（从指定节点执行到下一个节点）
-// nextNodes: 下一个可能的节点列表（作为临时断点）
-func (s *DebugSessionV2) StepFrom(fromNode string, nextNodes []string, breakpoints []string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if s.adapter == nil {
-		return fmt.Errorf("适配器未初始化")
-	}
-
-	if s.Status != SessionStatusPaused {
-		return fmt.Errorf("当前状态不允许单步执行: %s", s.Status)
-	}
-
-	logger.Info("DebugV2", "单步执行: From=%s, NextNodes=%v", fromNode, nextNodes)
-
-	// 更新状态
-	s.Status = SessionStatusRunning
-	s.currentNode = fromNode
-	s.pauseReason = ""
-
-	// 合并断点和下一个节点作为停止点
-	allStopPoints := append([]string{}, breakpoints...)
-	allStopPoints = append(allStopPoints, nextNodes...)
-
-	// 更新断点（包含临时断点）
-	s.breakpoints = make(map[string]bool)
-	for _, bp := range breakpoints {
-		s.breakpoints[bp] = true
-	}
-
-	// 记录临时断点
-	if len(nextNodes) > 0 {
-		s.tempBreakpoint = nextNodes[0]
-	}
-
-	// 构造 override
-	override := s.buildBreakpointOverride(allStopPoints)
-
-	// 提交任务
-	var err error
-	if override != nil {
-		s.taskJob, err = s.adapter.PostTask(fromNode, override)
-	} else {
-		s.taskJob, err = s.adapter.PostTask(fromNode)
-	}
+	s.taskJob, err = s.adapter.PostTask(entryNode)
 	if err != nil {
 		s.Status = SessionStatusError
 		s.lastError = err
@@ -374,53 +247,6 @@ func (s *DebugSessionV2) Stop() error {
 	s.pauseReason = "用户停止"
 
 	return nil
-}
-
-// ============================================================================
-// 断点管理
-// ============================================================================
-
-// SetBreakpoints 设置断点
-func (s *DebugSessionV2) SetBreakpoints(breakpoints []string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	s.breakpoints = make(map[string]bool)
-	for _, bp := range breakpoints {
-		s.breakpoints[bp] = true
-	}
-
-	logger.Debug("DebugV2", "设置断点: %v", breakpoints)
-}
-
-// AddBreakpoint 添加断点
-func (s *DebugSessionV2) AddBreakpoint(nodeName string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	s.breakpoints[nodeName] = true
-	logger.Debug("DebugV2", "添加断点: %s", nodeName)
-}
-
-// RemoveBreakpoint 移除断点
-func (s *DebugSessionV2) RemoveBreakpoint(nodeName string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	delete(s.breakpoints, nodeName)
-	logger.Debug("DebugV2", "移除断点: %s", nodeName)
-}
-
-// GetBreakpoints 获取断点列表
-func (s *DebugSessionV2) GetBreakpoints() []string {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	result := make([]string, 0, len(s.breakpoints))
-	for bp := range s.breakpoints {
-		result = append(result, bp)
-	}
-	return result
 }
 
 // ============================================================================
@@ -502,25 +328,6 @@ func (s *DebugSessionV2) GetNodeJSON(nodeName string) (map[string]interface{}, b
 // 内部方法
 // ============================================================================
 
-// buildBreakpointOverride 构造断点 override
-// 将断点节点的 next 和 on_error 设置为空，使任务在断点处自然结束
-func (s *DebugSessionV2) buildBreakpointOverride(breakpoints []string) map[string]interface{} {
-	if len(breakpoints) == 0 {
-		return nil
-	}
-
-	override := make(map[string]interface{})
-	for _, bp := range breakpoints {
-		override[bp] = map[string]interface{}{
-			"next":     []string{},
-			"on_error": []string{},
-		}
-	}
-
-	logger.Debug("DebugV2", "构造断点 override: %v", override)
-	return override
-}
-
 // waitForTask 等待任务完成
 func (s *DebugSessionV2) waitForTask() {
 	if s.taskJob == nil {
@@ -538,37 +345,16 @@ func (s *DebugSessionV2) waitForTask() {
 	logger.Info("DebugV2", "任务完成: Status=%v", status)
 
 	if status.Success() {
-		// 任务成功完成（可能是到达断点或自然结束）
-		if s.lastNode != "" && (s.breakpoints[s.lastNode] || s.tempBreakpoint == s.lastNode) {
-			// 到达断点
-			s.Status = SessionStatusPaused
-			s.currentNode = s.lastNode
-			s.pauseReason = fmt.Sprintf("断点: %s", s.lastNode)
-			logger.Info("DebugV2", "到达断点: %s", s.lastNode)
+		// 任务成功完成
+		s.Status = SessionStatusCompleted
+		logger.Info("DebugV2", "任务自然完成")
 
-			// 发送暂停事件
-			if s.eventCallback != nil {
-				s.eventCallback(DebugEventData{
-					Type:      "debug_paused",
-					Timestamp: time.Now().Unix(),
-					NodeName:  s.lastNode,
-					Detail: map[string]interface{}{
-						"reason": s.pauseReason,
-					},
-				})
-			}
-		} else {
-			// 任务自然完成
-			s.Status = SessionStatusCompleted
-			logger.Info("DebugV2", "任务自然完成")
-
-			// 发送完成事件
-			if s.eventCallback != nil {
-				s.eventCallback(DebugEventData{
-					Type:      "debug_completed",
-					Timestamp: time.Now().Unix(),
-				})
-			}
+		// 发送完成事件
+		if s.eventCallback != nil {
+			s.eventCallback(DebugEventData{
+				Type:      "debug_completed",
+				Timestamp: time.Now().Unix(),
+			})
 		}
 	} else {
 		// 任务失败或被停止

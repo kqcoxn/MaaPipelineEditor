@@ -96,16 +96,6 @@ function handleDeleteNode(node: NodeContextMenuNode) {
   deleteNode(node.id);
 }
 
-/**切换断点处理器 */
-function handleToggleBreakpoint(node: NodeContextMenuNode) {
-  const { toggleBreakpoint, breakpoints } = useDebugStore.getState();
-  const hasBreakpoint = breakpoints.has(node.id);
-
-  toggleBreakpoint(node.id);
-
-  message.success(hasBreakpoint ? "断点已移除" : "断点已设置");
-}
-
 /**设为调试开始节点处理器 */
 function handleSetDebugEntry(node: NodeContextMenuNode) {
   const { setConfig } = useDebugStore.getState();
@@ -160,18 +150,12 @@ function handleStartDebugFromNode(node: NodeContextMenuNode) {
     return;
   }
 
-  // 获取断点并转换
-  const breakpoints = useDebugStore.getState().breakpoints;
-  const breakpointFullNames = Array.from(breakpoints)
-    .map((id) => nodeIdToFullName(id))
-    .filter((name): name is string => name !== null);
-
   // 发送 WebSocket 消息启动调试
   const success = debugProtocol.sendStartDebug(
     resourcePath,
     entryNodeFullName,
     controllerId,
-    breakpointFullNames
+    []
   );
 
   if (!success) {
@@ -221,8 +205,7 @@ function getNodeDirection(node: NodeContextMenuNode): HandleDirection {
 export function getNodeContextMenuConfig(
   node: NodeContextMenuNode
 ): NodeContextMenuConfig[] {
-  const { debugMode, breakpoints } = useDebugStore.getState();
-  const hasBreakpoint = breakpoints.has(node.id);
+  const { debugMode } = useDebugStore.getState();
 
   const config: NodeContextMenuConfig[] = [
     // 复制节点名
@@ -266,7 +249,7 @@ export function getNodeContextMenuConfig(
     },
   ];
 
-  // 调试模式下添加断点选项
+  // 调试模式下添加调试选项
   if (debugMode) {
     config.push(
       {
@@ -286,13 +269,6 @@ export function getNodeContextMenuConfig(
         icon: "icon-tiaoshibeifen",
         iconSize: 16,
         onClick: handleSetDebugEntry,
-      },
-      {
-        key: "toggle-breakpoint",
-        label: hasBreakpoint ? "移除断点" : "设置断点",
-        icon: "icon-duandian",
-        iconSize: 16,
-        onClick: handleToggleBreakpoint,
       }
     );
   }

@@ -8,7 +8,11 @@ import { useDebugStore } from "../../../stores/debugStore";
 import { useMFWStore } from "../../../stores/mfwStore";
 import { useFileStore } from "../../../stores/fileStore";
 import { useToolbarStore } from "../../../stores/toolbarStore";
-import { debugProtocol, configProtocol } from "../../../services/server";
+import {
+  debugProtocol,
+  configProtocol,
+  mfwProtocol,
+} from "../../../services/server";
 import type { ConfigResponse } from "../../../services/protocols/ConfigProtocol";
 import { useShallow } from "zustand/shallow";
 import style from "../../../styles/ToolPanel.module.less";
@@ -29,7 +33,6 @@ function DebugPanel() {
   const {
     debugStatus,
     sessionId,
-    taskId,
     resourcePath,
     entryNode,
     currentNode,
@@ -38,22 +41,13 @@ function DebugPanel() {
     lastNode,
     executionStartTime,
     executionHistory,
-    breakpoints,
     startDebug,
-    pauseDebug,
     stopDebug,
-    continueDebug,
-    stepDebug,
-    setBreakpoint,
-    removeBreakpoint,
-    clearBreakpoints,
     setConfig,
-    downloadLog,
   } = useDebugStore(
     useShallow((state) => ({
       debugStatus: state.debugStatus,
       sessionId: state.sessionId,
-      taskId: state.taskId,
       resourcePath: state.resourcePath,
       entryNode: state.entryNode,
       currentNode: state.currentNode,
@@ -62,17 +56,9 @@ function DebugPanel() {
       lastNode: state.lastNode,
       executionStartTime: state.executionStartTime,
       executionHistory: state.executionHistory,
-      breakpoints: state.breakpoints,
       startDebug: state.startDebug,
-      pauseDebug: state.pauseDebug,
       stopDebug: state.stopDebug,
-      continueDebug: state.continueDebug,
-      stepDebug: state.stepDebug,
-      setBreakpoint: state.setBreakpoint,
-      removeBreakpoint: state.removeBreakpoint,
-      clearBreakpoints: state.clearBreakpoints,
       setConfig: state.setConfig,
-      downloadLog: state.downloadLog,
     }))
   );
 
@@ -126,6 +112,19 @@ function DebugPanel() {
       );
     }
   }, [connectionStatus, resourcePath, setConfig]);
+
+  // 监听打开日志结果
+  useEffect(() => {
+    const unsubscribe = mfwProtocol.onLogOpened((data) => {
+      if (data.success) {
+        message.success(`日志文件已打开：${data.path || ""}`);
+      } else {
+        message.error(data.message || "打开日志文件失败");
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // 计算经过时间
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -195,69 +194,6 @@ function DebugPanel() {
     </div>
   );
 
-  // 断点管理 Popover 内容
-  const breakpointManagerContent = (
-    <div className={debugStyle["breakpoint-manager-content"]}>
-      <div className={debugStyle["breakpoint-manager-actions"]}>
-        <Button
-          size="small"
-          disabled={selectedNodes.length === 0}
-          onClick={() => {
-            if (selectedNodes.length > 0) {
-              setBreakpoint(selectedNodes[0].id);
-              message.success("断点已设置");
-            } else {
-              message.error("请先选中节点");
-            }
-          }}
-        >
-          为当前节点设置断点
-        </Button>
-        <Button
-          size="small"
-          danger
-          disabled={breakpoints.size === 0}
-          onClick={() => {
-            clearBreakpoints();
-            message.success("已清除所有断点");
-          }}
-        >
-          清除所有断点
-        </Button>
-      </div>
-      <div className={debugStyle["breakpoint-list"]}>
-        {breakpoints.size === 0 ? (
-          <div className={debugStyle["breakpoint-empty"]}>
-            暂无断点,请选中节点后点击"设置断点"
-          </div>
-        ) : (
-          Array.from(breakpoints).map((nodeId) => {
-            const node = nodes.find((n) => n.id === nodeId);
-            return (
-              <div key={nodeId} className={debugStyle["breakpoint-item"]}>
-                <span className={debugStyle["breakpoint-item-name"]}>
-                  {node?.data.label || nodeId}
-                </span>
-                <Button
-                  type="text"
-                  size="small"
-                  danger
-                  className={debugStyle["breakpoint-item-remove"]}
-                  onClick={() => {
-                    removeBreakpoint(nodeId);
-                    message.success("断点已移除");
-                  }}
-                >
-                  删除
-                </Button>
-              </div>
-            );
-          })
-        )}
-      </div>
-    </div>
-  );
-
   // 按钮配置
   const debugButtons = [
     {
@@ -300,17 +236,12 @@ function DebugPanel() {
           return;
         }
 
-        // 将断点节点 ID 转换为 pipeline 中的节点名称
-        const breakpointFullNames = Array.from(breakpoints)
-          .map((id) => nodeIdToFullName(id))
-          .filter((name): name is string => name !== null);
-
         // 发送 WebSocket 消息启动调试
         const success = debugProtocol.sendStartDebug(
           resourcePath,
           entryNodeFullName,
           controllerId,
-          breakpointFullNames
+          []
         );
 
         if (!success) {
@@ -320,104 +251,13 @@ function DebugPanel() {
       },
     },
     {
-      key: "pause",
-      icon: "icon-zanting",
-      iconSize: 30,
-      label: "暂停调试（所有状态会清空）",
-      disabled: debugStatus !== "running",
-      onClick: () => {
-        const id = sessionId || taskId;
-        if (id) {
-          // V2: 暂停实际上是停止
-          debugProtocol.sendPauseDebug(id);
-        }
-      },
-    },
-    {
-      key: "continue",
-      icon: "icon-jixu",
-      iconSize: 20,
-      label: "继续执行（从上一个节点继续）",
-      disabled: debugStatus !== "paused",
-      onClick: () => {
-        const id = sessionId || taskId;
-        // V2: 使用 lastNode 作为 from_node
-        const fromNode = lastNode || currentNode;
-        if (id && fromNode) {
-          // 将节点 ID 转换为 pipeline 中的节点名称
-          const fromNodeFullName = nodeIdToFullName(fromNode);
-          if (!fromNodeFullName) {
-            message.error("当前节点不存在");
-            return;
-          }
-
-          // 将断点节点 ID 转换为 pipeline 中的节点名称
-          const breakpointFullNames = Array.from(breakpoints)
-            .map((bpId) => nodeIdToFullName(bpId))
-            .filter((name): name is string => name !== null);
-
-          // 发送 WebSocket 消息继续调试
-          debugProtocol.sendContinueDebug(
-            id,
-            fromNodeFullName,
-            breakpointFullNames
-          );
-        }
-
-        // 调用 debugStore 更新状态
-        continueDebug();
-        message.success("继续执行");
-      },
-    },
-    // {
-    //   key: "step",
-    //   icon: "icon-jurassic_nextstep",
-    //   iconSize: 20,
-    //   label: "单步执行（无上下文状态保存）",
-    //   disabled: debugStatus !== "paused",
-    //   onClick: () => {
-    //     if (taskId && currentNode) {
-    //       // 将当前节点 ID 转换为 pipeline 中的节点名称
-    //       const currentNodeFullName = nodeIdToFullName(currentNode);
-    //       if (!currentNodeFullName) {
-    //         message.error("当前节点不存在");
-    //         return;
-    //       }
-
-    //       // 获取当前节点的下一个节点 ID 列表
-    //       const nextNodeIds = getNextNodes(currentNode);
-
-    //       // 将下一个节点 ID 转换为 pipeline 中的节点名称
-    //       const nextNodeFullNames = nextNodeIds
-    //         .map((id) => nodeIdToFullName(id))
-    //         .filter((name): name is string => name !== null);
-
-    //       // 将断点节点 ID 转换为 pipeline 中的节点名称
-    //       const breakpointFullNames = Array.from(breakpoints)
-    //         .map((id) => nodeIdToFullName(id))
-    //         .filter((name): name is string => name !== null);
-
-    //       // 发送 WebSocket 消息单步执行
-    //       debugProtocol.sendStepDebug(
-    //         taskId,
-    //         currentNodeFullName,
-    //         nextNodeFullNames,
-    //         breakpointFullNames
-    //       );
-    //     }
-
-    //     // 调用 debugStore 更新状态
-    //     stepDebug();
-    //   },
-    // },
-    {
       key: "stop",
       icon: "icon-tingzhi",
       iconSize: 20,
       label: "停止调试",
       disabled: debugStatus === "idle",
       onClick: () => {
-        const id = sessionId || taskId;
+        const id = sessionId;
         if (id) {
           // 发送 WebSocket 消息停止调试
           debugProtocol.sendStopDebug(id);
@@ -429,39 +269,18 @@ function DebugPanel() {
       },
     },
     {
-      key: "breakpoint",
-      icon: "icon-duandianxufei",
-      iconSize: 22,
-      label: "断点管理",
-      disabled: false,
-      popover: breakpointManagerContent,
-      onClick: () => {},
-    },
-    {
-      key: "export",
+      key: "open-log",
       icon: "icon-rizhi",
       iconSize: 24,
-      label: "导出日志",
-      disabled: executionHistory.length === 0,
-      onClick: () => {},
-      menu: [
-        {
-          key: "export-text",
-          label: "导出为文本 (.txt)",
-          onClick: () => {
-            downloadLog("text");
-            message.success("日志已导出为文本文件");
-          },
-        },
-        {
-          key: "icon-JSON",
-          label: "导出为 JSON (.json)",
-          onClick: () => {
-            downloadLog("json");
-            message.success("日志已导出为 JSON 文件");
-          },
-        },
-      ],
+      label: "打开日志",
+      disabled: false,
+      onClick: () => {
+        // 调用后端 API 打开 maa.log
+        const success = mfwProtocol.requestOpenLog();
+        if (!success) {
+          message.error("发送请求失败，请检查连接状态");
+        }
+      },
     },
     {
       key: "recognition-panel",
@@ -535,31 +354,6 @@ function DebugPanel() {
                   />
                 </Tooltip>
               </Popover>
-            ) : btn.menu ? (
-              <Dropdown
-                menu={{
-                  items: btn.menu.map((item) => ({
-                    key: item.key,
-                    label: item.label,
-                    onClick: item.onClick,
-                  })),
-                }}
-                disabled={btn.disabled}
-                trigger={["click"]}
-                placement="bottomRight"
-              >
-                <Tooltip title={btn.label}>
-                  <IconFont
-                    style={{
-                      opacity: btn.disabled ? 0.2 : 1,
-                      cursor: btn.disabled ? "not-allowed" : "pointer",
-                    }}
-                    className={style.icon}
-                    name={btn.icon as IconNames}
-                    size={btn.iconSize || 20}
-                  />
-                </Tooltip>
-              </Dropdown>
             ) : (
               <Tooltip title={btn.label}>
                 <IconFont
@@ -585,7 +379,7 @@ function DebugPanel() {
               </Tooltip>
             )}
           </li>
-          {(index === 0 || index === 5 || index === 7) && (
+          {(index === 0 || index === 2) && (
             <div className={style.devider}>
               <div></div>
             </div>

@@ -61,16 +61,8 @@ func (h *DebugHandlerV2) Handle(msg models.Message, conn *server.Connection) *mo
 		h.handleStart(conn, msg)
 	case "/mpe/debug/run":
 		h.handleRun(conn, msg)
-	case "/mpe/debug/continue":
-		h.handleContinue(conn, msg)
-	case "/mpe/debug/step":
-		h.handleStep(conn, msg)
 	case "/mpe/debug/stop":
 		h.handleStop(conn, msg)
-
-	// 断点管理
-	case "/mpe/debug/set_breakpoints":
-		h.handleSetBreakpoints(conn, msg)
 
 	// 数据查询
 	case "/mpe/debug/get_node_data":
@@ -210,7 +202,6 @@ func (h *DebugHandlerV2) handleGetSession(conn *server.Connection, msg models.Me
 		"current_node":   session.GetCurrentNode(),
 		"last_node":      session.GetLastNode(),
 		"pause_reason":   session.GetPauseReason(),
-		"breakpoints":    session.GetBreakpoints(),
 		"executed_nodes": session.GetExecutedNodes(),
 	})
 }
@@ -231,7 +222,6 @@ func (h *DebugHandlerV2) handleStart(conn *server.Connection, msg models.Message
 	resourcePath, _ := dataMap["resource_path"].(string)
 	entryNode, _ := dataMap["entry"].(string)
 	controllerID, _ := dataMap["controller_id"].(string)
-	breakpointsRaw, _ := dataMap["breakpoints"].([]interface{})
 
 	logger.Info("DebugV2", "启动调试: 资源=%s, 入口=%s, 控制器=%s", resourcePath, entryNode, controllerID)
 
@@ -239,9 +229,6 @@ func (h *DebugHandlerV2) handleStart(conn *server.Connection, msg models.Message
 		h.sendError(conn, "缺少必需参数: resource_path, entry, controller_id")
 		return
 	}
-
-	// 转换断点列表
-	breakpoints := h.parseStringArray(breakpointsRaw)
 
 	// 创建一个用于持有 session_id 的闭包变量
 	var sessionIDHolder string
@@ -261,7 +248,7 @@ func (h *DebugHandlerV2) handleStart(conn *server.Connection, msg models.Message
 	sessionIDHolder = session.SessionID
 
 	// 运行任务
-	err = session.RunTask(entryNode, breakpoints)
+	err = session.RunTask(entryNode)
 	if err != nil {
 		logger.Error("DebugV2", "运行任务失败: %v", err)
 		h.sendError(conn, err.Error())
@@ -287,17 +274,13 @@ func (h *DebugHandlerV2) handleRun(conn *server.Connection, msg models.Message) 
 
 	sessionID, _ := dataMap["session_id"].(string)
 	entryNode, _ := dataMap["entry"].(string)
-	breakpointsRaw, _ := dataMap["breakpoints"].([]interface{})
 
 	if sessionID == "" || entryNode == "" {
 		h.sendError(conn, "缺少必需参数: session_id, entry")
 		return
 	}
 
-	// 转换断点列表
-	breakpoints := h.parseStringArray(breakpointsRaw)
-
-	logger.Info("DebugV2", "运行任务: Session=%s, Entry=%s, Breakpoints=%v", sessionID, entryNode, breakpoints)
+	logger.Info("DebugV2", "运行任务: Session=%s, Entry=%s", sessionID, entryNode)
 
 	session := h.debugService.GetSession(sessionID)
 	if session == nil {
@@ -305,7 +288,7 @@ func (h *DebugHandlerV2) handleRun(conn *server.Connection, msg models.Message) 
 		return
 	}
 
-	err := session.RunTask(entryNode, breakpoints)
+	err := session.RunTask(entryNode)
 	if err != nil {
 		h.sendError(conn, err.Error())
 		return
@@ -315,88 +298,6 @@ func (h *DebugHandlerV2) handleRun(conn *server.Connection, msg models.Message) 
 		"success":    true,
 		"session_id": sessionID,
 		"entry":      entryNode,
-	})
-}
-
-// handleContinue 继续执行
-func (h *DebugHandlerV2) handleContinue(conn *server.Connection, msg models.Message) {
-	dataMap, ok := msg.Data.(map[string]interface{})
-	if !ok {
-		h.sendError(conn, "请求数据格式错误")
-		return
-	}
-
-	sessionID, _ := dataMap["session_id"].(string)
-	fromNode, _ := dataMap["from_node"].(string)
-	breakpointsRaw, _ := dataMap["breakpoints"].([]interface{})
-
-	if sessionID == "" || fromNode == "" {
-		h.sendError(conn, "缺少必需参数: session_id, from_node")
-		return
-	}
-
-	breakpoints := h.parseStringArray(breakpointsRaw)
-
-	logger.Info("DebugV2", "继续执行: Session=%s, FromNode=%s", sessionID, fromNode)
-
-	session := h.debugService.GetSession(sessionID)
-	if session == nil {
-		h.sendError(conn, fmt.Sprintf("会话不存在: %s", sessionID))
-		return
-	}
-
-	err := session.ContinueFrom(fromNode, breakpoints)
-	if err != nil {
-		h.sendError(conn, err.Error())
-		return
-	}
-
-	h.sendResponse(conn, "/lte/debug/continued", map[string]interface{}{
-		"success":    true,
-		"session_id": sessionID,
-		"from_node":  fromNode,
-	})
-}
-
-// handleStep 单步执行
-func (h *DebugHandlerV2) handleStep(conn *server.Connection, msg models.Message) {
-	dataMap, ok := msg.Data.(map[string]interface{})
-	if !ok {
-		h.sendError(conn, "请求数据格式错误")
-		return
-	}
-
-	sessionID, _ := dataMap["session_id"].(string)
-	fromNode, _ := dataMap["from_node"].(string)
-	nextNodesRaw, _ := dataMap["next_nodes"].([]interface{})
-	breakpointsRaw, _ := dataMap["breakpoints"].([]interface{})
-
-	if sessionID == "" || fromNode == "" {
-		h.sendError(conn, "缺少必需参数: session_id, from_node")
-		return
-	}
-
-	nextNodes := h.parseStringArray(nextNodesRaw)
-	breakpoints := h.parseStringArray(breakpointsRaw)
-
-	logger.Info("DebugV2", "单步执行: Session=%s, FromNode=%s, NextNodes=%v", sessionID, fromNode, nextNodes)
-
-	session := h.debugService.GetSession(sessionID)
-	if session == nil {
-		h.sendError(conn, fmt.Sprintf("会话不存在: %s", sessionID))
-		return
-	}
-
-	err := session.StepFrom(fromNode, nextNodes, breakpoints)
-	if err != nil {
-		h.sendError(conn, err.Error())
-		return
-	}
-
-	h.sendResponse(conn, "/lte/debug/stepped", map[string]interface{}{
-		"success":    true,
-		"session_id": sessionID,
-		"from_node":  fromNode,
 	})
 }
 
@@ -432,45 +333,6 @@ func (h *DebugHandlerV2) handleStop(conn *server.Connection, msg models.Message)
 	h.sendResponse(conn, "/lte/debug/stopped", map[string]interface{}{
 		"success":    true,
 		"session_id": sessionID,
-	})
-}
-
-// ============================================================================
-// 断点管理
-// ============================================================================
-
-// handleSetBreakpoints 设置断点
-func (h *DebugHandlerV2) handleSetBreakpoints(conn *server.Connection, msg models.Message) {
-	dataMap, ok := msg.Data.(map[string]interface{})
-	if !ok {
-		h.sendError(conn, "请求数据格式错误")
-		return
-	}
-
-	sessionID, _ := dataMap["session_id"].(string)
-	breakpointsRaw, _ := dataMap["breakpoints"].([]interface{})
-
-	if sessionID == "" {
-		h.sendError(conn, "缺少必需参数: session_id")
-		return
-	}
-
-	breakpoints := h.parseStringArray(breakpointsRaw)
-
-	logger.Info("DebugV2", "设置断点: Session=%s, Breakpoints=%v", sessionID, breakpoints)
-
-	session := h.debugService.GetSession(sessionID)
-	if session == nil {
-		h.sendError(conn, fmt.Sprintf("会话不存在: %s", sessionID))
-		return
-	}
-
-	session.SetBreakpoints(breakpoints)
-
-	h.sendResponse(conn, "/lte/debug/breakpoints_set", map[string]interface{}{
-		"success":     true,
-		"session_id":  sessionID,
-		"breakpoints": breakpoints,
 	})
 }
 

@@ -7,6 +7,7 @@ import (
 	"image"
 	"image/png"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -51,6 +52,9 @@ func (h *UtilityHandler) Handle(msg models.Message, conn *server.Connection) *mo
 
 	case "/etl/utility/resolve_image_path":
 		h.handleResolveImagePath(conn, msg)
+
+	case "/etl/utility/open_log":
+		h.handleOpenLog(conn, msg)
 
 	default:
 		logger.Warn("Utility", "未知的Utility路由: %s", path)
@@ -587,4 +591,102 @@ func (h *UtilityHandler) searchFileInSingleDir(dir string, fileName string) *fil
 	})
 
 	return latestFile
+}
+
+// 处理打开日志文件请求
+func (h *UtilityHandler) handleOpenLog(conn *server.Connection, msg models.Message) {
+	// 获取日志目录
+	cfg := config.GetGlobal()
+	var logDir string
+	if cfg != nil && cfg.Log.Dir != "" {
+		logDir = cfg.Log.Dir
+	} else {
+		// 使用默认日志目录
+		logDir = filepath.Join(h.root, "debug")
+	}
+
+	// 构建 maa.log 路径
+	logPath := filepath.Join(logDir, "maa.log")
+
+	logger.Info("Utility", "尝试打开日志目录: %s", logDir)
+
+	// 检查目录是否存在
+	if _, err := os.Stat(logDir); os.IsNotExist(err) {
+		logger.Warn("Utility", "日志目录不存在: %s", logDir)
+		conn.Send(models.Message{
+			Path: "/lte/utility/log_opened",
+			Data: map[string]interface{}{
+				"success": false,
+				"message": "日志目录不存在，可能尚未执行过调试任务",
+			},
+		})
+		return
+	}
+
+	// 检查日志文件是否存在
+	logFileExists := false
+	if _, err := os.Stat(logPath); err == nil {
+		logFileExists = true
+	}
+
+	// 根据操作系统使用不同的命令打开日志目录
+	var cmd *exec.Cmd
+
+	switch runtime.GOOS {
+	case "windows":
+		// Windows: 使用 explorer 打开目录
+		// 如果文件存在，使用 /select 参数选中文件
+		if logFileExists {
+			cmd = exec.Command("explorer", "/select,", logPath)
+			logger.Info("Utility", "执行命令: explorer /select, %s", logPath)
+		} else {
+			cmd = exec.Command("explorer", logDir)
+			logger.Info("Utility", "执行命令: explorer %s", logDir)
+		}
+	case "darwin":
+		// macOS: 使用 open 命令打开目录
+		// 如果文件存在，使用 -R 参数选中文件
+		if logFileExists {
+			cmd = exec.Command("open", "-R", logPath)
+			logger.Info("Utility", "执行命令: open -R %s", logPath)
+		} else {
+			cmd = exec.Command("open", logDir)
+			logger.Info("Utility", "执行命令: open %s", logDir)
+		}
+	default:
+		// Linux: 使用 xdg-open 打开目录
+		cmd = exec.Command("xdg-open", logDir)
+		logger.Info("Utility", "执行命令: xdg-open %s", logDir)
+	}
+
+	// 执行命令
+	if err := cmd.Start(); err != nil {
+		logger.Error("Utility", "打开日志目录失败: %v", err)
+		conn.Send(models.Message{
+			Path: "/lte/utility/log_opened",
+			Data: map[string]interface{}{
+				"success": false,
+				"message": "打开日志目录失败: " + err.Error(),
+			},
+		})
+		return
+	}
+
+	logger.Info("Utility", "日志目录已打开")
+
+	var successMsg string
+	if logFileExists {
+		successMsg = "已打开日志目录并选中 maa.log"
+	} else {
+		successMsg = "已打开日志目录（maa.log 文件尚不存在）"
+	}
+
+	conn.Send(models.Message{
+		Path: "/lte/utility/log_opened",
+		Data: map[string]interface{}{
+			"success": true,
+			"message": successMsg,
+			"path":    logPath,
+		},
+	})
 }

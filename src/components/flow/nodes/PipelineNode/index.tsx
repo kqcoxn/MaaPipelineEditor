@@ -50,7 +50,6 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
   const recognitionTargetNodeId = useDebugStore(
     (state) => state.recognitionTargetNodeId
   );
-  const breakpoints = useDebugStore((state) => state.breakpoints);
   const executionHistory = useDebugStore((state) => state.executionHistory);
 
   // 计算是否与选中元素相关联
@@ -176,10 +175,6 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
       onOpenChange={setContextMenuOpen}
     >
       <div className={nodeClass} style={opacityStyle}>
-        {/* 断点标记 */}
-        {debugMode && breakpoints.has(props.id) && (
-          <div className={debugStyle["debug-node-breakpoint"]} />
-        )}
         {renderContent()}
       </div>
     </NodeContextMenu>

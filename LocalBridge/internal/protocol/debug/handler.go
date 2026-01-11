@@ -71,7 +71,6 @@ func (h *DebugHandler) handleStartDebug(conn *server.Connection, msg models.Mess
 	resourcePath, _ := dataMap["resource_path"].(string)
 	entry, _ := dataMap["entry"].(string)
 	controllerID, _ := dataMap["controller_id"].(string)
-	breakpointsRaw, _ := dataMap["breakpoints"].([]interface{})
 
 	logger.Info("Debug", "启动调试请求: 资源=%s, 入口=%s, 控制器=%s", resourcePath, entry, controllerID)
 
@@ -81,42 +80,11 @@ func (h *DebugHandler) handleStartDebug(conn *server.Connection, msg models.Mess
 		return
 	}
 
-	// 转换断点列表
-	var breakpoints []string
-	for _, bp := range breakpointsRaw {
-		if bpStr, ok := bp.(string); ok {
-			breakpoints = append(breakpoints, bpStr)
-		}
-	}
-
-	logger.Info("Debug", "断点数量: %d", len(breakpoints))
-
-	// 创建 PipelineEngine
-	pipelineEngine, err := mfw.NewPipelineEngine(resourcePath)
-	if err != nil {
-		logger.Error("Debug", "创建PipelineEngine失败: %v", err)
-		h.sendError(conn, fmt.Sprintf("加载Pipeline配置失败: %v", err))
-		return
-	}
-
-	// 验证断点有效性
-	validBreakpoints, invalidBreakpoints := pipelineEngine.ValidateBreakpoints(breakpoints)
-	if len(invalidBreakpoints) > 0 {
-		logger.Warn("Debug", "发现无效断点: %v", invalidBreakpoints)
-	}
-
-	// 构造 override
-	var override map[string]interface{}
-	if len(validBreakpoints) > 0 {
-		override = pipelineEngine.BuildOverrideForBreakpoints(validBreakpoints)
-		logger.Info("Debug", "已构造断点override, 有效断点数: %d", len(override))
-	}
-
 	// 创建事件处理器
 	handler := &debugEventHandler{conn: conn}
 
 	// 启动调试
-	taskID, err := h.debugService.StartDebug(resourcePath, entry, controllerID, override, handler)
+	taskID, err := h.debugService.StartDebug(resourcePath, entry, controllerID, nil, handler)
 	if err != nil {
 		logger.Error("Debug", "启动调试失败: %v", err)
 		h.sendError(conn, err.Error())
@@ -241,7 +209,6 @@ func (h *DebugHandler) handleContinueDebug(conn *server.Connection, msg models.M
 
 	taskID, _ := dataMap["task_id"].(string)
 	currentNode, _ := dataMap["current_node"].(string)
-	breakpointsRaw, _ := dataMap["breakpoints"].([]interface{})
 
 	logger.Info("Debug", "继续执行请求: task_id=%s, current_node=%s", taskID, currentNode)
 
@@ -251,38 +218,8 @@ func (h *DebugHandler) handleContinueDebug(conn *server.Connection, msg models.M
 		return
 	}
 
-	// 转换断点列表
-	var breakpoints []string
-	for _, bp := range breakpointsRaw {
-		if bpStr, ok := bp.(string); ok {
-			breakpoints = append(breakpoints, bpStr)
-		}
-	}
-
-	// 获取调试会话
-	session := h.debugService.GetSession(taskID)
-	if session == nil {
-		h.sendError(conn, fmt.Sprintf("调试会话不存在: %s", taskID))
-		return
-	}
-
-	// 创建 PipelineEngine
-	pipelineEngine, err := mfw.NewPipelineEngine(session.ResourcePath)
-	if err != nil {
-		logger.Error("Debug", "创建PipelineEngine失败: %v", err)
-		h.sendError(conn, fmt.Sprintf("加载Pipeline配置失败: %v", err))
-		return
-	}
-
-	// 验证断点有效性
-	validBreakpoints, _ := pipelineEngine.ValidateBreakpoints(breakpoints)
-
-	// 构造 override
-	override := pipelineEngine.BuildOverrideForContinue(validBreakpoints, currentNode)
-	logger.Info("Debug", "已构造继续执行override, 活跃断点数: %d", len(override))
-
 	// 继续执行
-	err = h.debugService.ContinueDebug(taskID, currentNode, override)
+	err := h.debugService.ContinueDebug(taskID, currentNode, nil)
 	if err != nil {
 		logger.Error("Debug", "继续执行失败: %v", err)
 		h.sendError(conn, err.Error())
@@ -313,7 +250,6 @@ func (h *DebugHandler) handleStepDebug(conn *server.Connection, msg models.Messa
 	taskID, _ := dataMap["task_id"].(string)
 	currentNode, _ := dataMap["current_node"].(string)
 	nextNodesRaw, _ := dataMap["next_nodes"].([]interface{})
-	breakpointsRaw, _ := dataMap["breakpoints"].([]interface{})
 
 	logger.Info("Debug", "单步执行请求: task_id=%s, current_node=%s", taskID, currentNode)
 
@@ -331,41 +267,10 @@ func (h *DebugHandler) handleStepDebug(conn *server.Connection, msg models.Messa
 		}
 	}
 
-	// 转换断点列表
-	var breakpoints []string
-	for _, bp := range breakpointsRaw {
-		if bpStr, ok := bp.(string); ok {
-			breakpoints = append(breakpoints, bpStr)
-		}
-	}
-
 	logger.Info("Debug", "下一个节点数: %d", len(nextNodes))
 
-	// 获取调试会话
-	session := h.debugService.GetSession(taskID)
-	if session == nil {
-		h.sendError(conn, fmt.Sprintf("调试会话不存在: %s", taskID))
-		return
-	}
-
-	// 创建PipelineEngine
-	pipelineEngine, err := mfw.NewPipelineEngine(session.ResourcePath)
-	if err != nil {
-		logger.Error("Debug", "创建PipelineEngine失败: %v", err)
-		h.sendError(conn, fmt.Sprintf("加载Pipeline配置失败: %v", err))
-		return
-	}
-
-	// 验证断点有效性
-	validBreakpoints, _ := pipelineEngine.ValidateBreakpoints(breakpoints)
-
-	// 构造 override
-	override := pipelineEngine.BuildOverrideForStep(validBreakpoints, currentNode, nextNodes)
-	logger.Info("Debug", "已构造单步执行override, 断点数: %d, 临时断点数: %d",
-		len(validBreakpoints), len(nextNodes))
-
 	// 单步执行
-	err = h.debugService.ContinueDebug(taskID, currentNode, override)
+	err := h.debugService.ContinueDebug(taskID, currentNode, nil)
 	if err != nil {
 		logger.Error("Debug", "单步执行失败: %v", err)
 		h.sendError(conn, err.Error())
@@ -417,14 +322,7 @@ func (h *debugEventHandler) OnDebugEvent(event mfw.DebugEvent) {
 				"detail":     event.Detail,
 			},
 		}
-		logger.Debug("Debug", "[发送事件] %s: node_name=%s, detail keys=%v",
-			event.EventName, event.NodeID, func() []string {
-				keys := make([]string, 0, len(event.Detail))
-				for k := range event.Detail {
-					keys = append(keys, k)
-				}
-				return keys
-			}())
+		logger.Debug("Debug", "[发送事件] %s: node_name=%s", event.EventName, event.NodeID)
 		h.conn.Send(response)
 
 	case "debug_completed":

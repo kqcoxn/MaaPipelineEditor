@@ -130,86 +130,6 @@
   }
 }
 
-// 断点管理面板样式
-
-.breakpoint-manager-content {
-  width: 280px;
-  padding: 8px 0;
-}
-
-.breakpoint-manager-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-}
-
-.breakpoint-list {
-  max-height: 300px;
-  overflow-y: auto;
-
-  // 滚动条样式
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 3px;
-
-    &:hover {
-      background: rgba(0, 0, 0, 0.3);
-    }
-  }
-}
-
-.breakpoint-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 8px;
-  border-radius: 6px;
-  transition: all 0.2s ease;
-  margin-bottom: 4px;
-
-  &:hover {
-    background-color: rgba(0, 0, 0, 0.04);
-  }
-}
-
-.breakpoint-item-name {
-  flex: 1;
-  font-size: 13px;
-  cursor: pointer;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--text-primary);
-
-  &:hover {
-    color: var(--primary-color);
-  }
-}
-
-.breakpoint-item-remove {
-  flex-shrink: 0;
-  margin-left: 8px;
-}
-
-.breakpoint-empty {
-  padding: 24px 16px;
-  text-align: center;
-  font-size: 13px;
-  color: var(--text-secondary);
-  line-height: 1.6;
-}
-
 // 节点调试状态样式
 
 .debug-node-executing {
@@ -262,22 +182,6 @@
   border-color: #ff4d4f !important;
   border-width: 2px !important;
   background-color: rgba(255, 77, 79, 0.1) !important;
-}
-
-.debug-node-breakpoint {
-  &::before {
-    content: "";
-    position: absolute;
-    top: -4px;
-    left: -4px;
-    width: 12px;
-    height: 12px;
-    background-color: #ff4d4f;
-    border-radius: 50%;
-    border: 2px solid white;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    z-index: 10;
-  }
 }
 
 @keyframes debug-node-pulse {
@@ -599,8 +503,10 @@
 .reco-card-list-container {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   padding: 12px;
+  overflow: hidden;
 }
 
 .reco-card-list-toolbar {
@@ -619,10 +525,12 @@
 
 .reco-card-list-content {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding-right: 4px;
 
   &::-webkit-scrollbar {
     width: 6px;
@@ -643,6 +551,7 @@
 }
 
 .reco-card-list-pagination {
+  flex-shrink: 0;
   display: flex;
   justify-content: center;
   padding-top: 12px;
@@ -660,6 +569,7 @@
 
 // 单个识别卡片
 .reco-card {
+  flex-shrink: 0;
   border-radius: 8px;
   border: 1px solid rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
@@ -686,6 +596,7 @@
 
   :global(.ant-card-body) {
     padding: 8px 12px;
+    min-height: 0;
   }
 }
 
@@ -786,7 +697,7 @@
   top: 150px;
   width: 400px;
   max-width: calc(100vw - 120px);
-  max-height: calc(100vh - 160px);
+  max-height: calc(80vh - 120px);
   overflow: hidden;
   display: flex;
   flex-direction: column;

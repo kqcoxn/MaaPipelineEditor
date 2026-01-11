@@ -19,6 +19,8 @@ export class MFWProtocol extends BaseProtocol {
   private ocrCallbacks: Array<(data: any) => void> = [];
   // 图片路径解析结果回调函数
   private imagePathCallbacks: Array<(data: any) => void> = [];
+  // 打开日志结果回调函数
+  private openLogCallbacks: Array<(data: any) => void> = [];
   // 记录最后一次连接请求的设备信息
   private lastConnectionDevice: {
     type: "adb" | "win32" | "playcover";
@@ -72,9 +74,14 @@ export class MFWProtocol extends BaseProtocol {
       this.handleOCRResult(data)
     );
 
-    // 注册图片路径解析结果路由
+    // 注图片路径解析结果路由
     this.wsClient.registerRoute("/lte/utility/image_path_resolved", (data) =>
       this.handleImagePathResolved(data)
+    );
+
+    // 注册打开日志结果路由
+    this.wsClient.registerRoute("/lte/utility/log_opened", (data) =>
+      this.handleLogOpened(data)
     );
 
     // 注册操作结果路由
@@ -239,6 +246,21 @@ export class MFWProtocol extends BaseProtocol {
         callback(data);
       } catch (error) {
         console.error("[MFWProtocol] Error in image path callback:", error);
+      }
+    });
+  }
+
+  /**
+   * 处理打开日志结果
+   * 路由: /lte/utility/log_opened
+   */
+  private handleLogOpened(data: any): void {
+    // 触发所有注册的回调
+    this.openLogCallbacks.forEach((callback) => {
+      try {
+        callback(data);
+      } catch (error) {
+        console.error("[MFWProtocol] Error in open log callback:", error);
       }
     });
   }
@@ -475,6 +497,41 @@ export class MFWProtocol extends BaseProtocol {
       const index = this.imagePathCallbacks.indexOf(callback);
       if (index > -1) {
         this.imagePathCallbacks.splice(index, 1);
+      }
+    };
+  }
+
+  /**
+   * 请求打开日志文件
+   */
+  public requestOpenLog(): boolean {
+    if (!this.wsClient) {
+      console.error("[MFWProtocol] WebSocket client not initialized");
+      return false;
+    }
+
+    return this.wsClient.send("/etl/utility/open_log", {});
+  }
+
+  /**
+   * 注册打开日志结果回调
+   * @param callback 打开日志结果回调函数
+   * @returns 注销函数
+   */
+  public onLogOpened(
+    callback: (data: {
+      success: boolean;
+      message: string;
+      path?: string;
+    }) => void
+  ): () => void {
+    this.openLogCallbacks.push(callback);
+
+    // 返回注销函数
+    return () => {
+      const index = this.openLogCallbacks.indexOf(callback);
+      if (index > -1) {
+        this.openLogCallbacks.splice(index, 1);
       }
     };
   }

@@ -606,16 +606,12 @@ func (s *debugContextSink) OnNodeRecognition(ctx *maa.Context, status maa.EventS
 			"run_index": recoIndex,
 		}
 
-		// 尝试获取完整的识别详情（包含 Algorithm, Box, DetailJson, Draws）
-		logger.Debug("Debug", "[调试] 开始获取完整识别详情, ctx=%v", ctx != nil)
+		// 尝试获取完整的识别详情
 		if ctx != nil {
 			tasker := ctx.GetTasker()
-			logger.Debug("Debug", "[调试] Tasker=%v", tasker != nil)
 			if tasker != nil {
 				nodeDetail := tasker.GetLatestNode(msg.Name)
-				logger.Debug("Debug", "[调试] NodeDetail=%v", nodeDetail != nil)
 				if nodeDetail != nil {
-					logger.Debug("Debug", "[调试] Recognition=%v", nodeDetail.Recognition != nil)
 					if nodeDetail.Recognition != nil {
 						recoDetail := nodeDetail.Recognition
 						logger.Info("Debug", "✓ 获取到完整识别详情: 节点=%s, 算法=%s, Hit=%v", msg.Name, recoDetail.Algorithm, recoDetail.Hit)
@@ -629,14 +625,12 @@ func (s *debugContextSink) OnNodeRecognition(ctx *maa.Context, status maa.EventS
 						boxY := recoDetail.Box.Y()
 						boxW := recoDetail.Box.Width()
 						boxH := recoDetail.Box.Height()
-						logger.Debug("Debug", "[调试] Box: x=%d, y=%d, w=%d, h=%d", boxX, boxY, boxW, boxH)
 						if boxX != 0 || boxY != 0 || boxW != 0 || boxH != 0 {
 							recognitionDetail["box"] = []int{boxX, boxY, boxW, boxH}
 							logger.Info("Debug", "✓ 识别框: [%d, %d, %d, %d]", boxX, boxY, boxW, boxH)
 						}
 
 						// DetailJson 解析为对象
-						logger.Debug("Debug", "[调试] DetailJson 长度: %d", len(recoDetail.DetailJson))
 						if recoDetail.DetailJson != "" {
 							var detailObj interface{}
 							if err := json.Unmarshal([]byte(recoDetail.DetailJson), &detailObj); err == nil {
@@ -650,7 +644,6 @@ func (s *debugContextSink) OnNodeRecognition(ctx *maa.Context, status maa.EventS
 						}
 
 						// Raw 截图转换为 base64
-						logger.Debug("Debug", "[调试] Raw 截图=%v", recoDetail.Raw != nil)
 						if recoDetail.Raw != nil {
 							var buf bytes.Buffer
 							if err := png.Encode(&buf, recoDetail.Raw); err == nil {
@@ -663,7 +656,6 @@ func (s *debugContextSink) OnNodeRecognition(ctx *maa.Context, status maa.EventS
 						}
 
 						// 绘制图像转换为 base64
-						logger.Debug("Debug", "[调试] Draws 数量: %d", len(recoDetail.Draws))
 						if len(recoDetail.Draws) > 0 {
 							drawImages := make([]string, 0, len(recoDetail.Draws))
 							for i, img := range recoDetail.Draws {
@@ -672,7 +664,6 @@ func (s *debugContextSink) OnNodeRecognition(ctx *maa.Context, status maa.EventS
 									if err := png.Encode(&buf, img); err == nil {
 										b64 := base64.StdEncoding.EncodeToString(buf.Bytes())
 										drawImages = append(drawImages, b64)
-										logger.Debug("Debug", "✓ 绘制图像[%d]转换成功, 大小=%d bytes", i, len(buf.Bytes()))
 									} else {
 										logger.Warn("Debug", "✗ 绘制图像[%d]编码失败: %v", i, err)
 									}
@@ -684,21 +675,10 @@ func (s *debugContextSink) OnNodeRecognition(ctx *maa.Context, status maa.EventS
 							}
 						}
 					} else {
-						logger.Warn("Debug", "✗ nodeDetail.Recognition 为空")
+						logger.Warn("Debug", "nodeDetail.Recognition 为空")
 					}
-				} else {
-					logger.Warn("Debug", "✗ nodeDetail 为空")
 				}
-			} else {
-				logger.Warn("Debug", "✗ tasker 为空")
 			}
-		} else {
-			logger.Warn("Debug", "✗ context 为空")
-		}
-
-		logger.Info("Debug", "[最终] 识别详情字段数: %d", len(recognitionDetail))
-		for key := range recognitionDetail {
-			logger.Debug("Debug", "[最终] 字段: %s", key)
 		}
 
 		event := DebugEvent{
@@ -730,16 +710,10 @@ func (s *debugContextSink) OnNodeRecognition(ctx *maa.Context, status maa.EventS
 		}
 
 		// 尝试获取识别详情
-		logger.Info("Debug", "[识别失败] 尝试获取详情: ctx=%v", ctx != nil)
 		if ctx != nil {
 			tasker := ctx.GetTasker()
-			logger.Info("Debug", "[识别失败] Tasker=%v", tasker != nil)
 			if tasker != nil {
 				nodeDetail := tasker.GetLatestNode(msg.Name)
-				logger.Info("Debug", "[识别失败] NodeDetail=%v", nodeDetail != nil)
-				if nodeDetail != nil {
-					logger.Info("Debug", "[识别失败] Recognition=%v", nodeDetail.Recognition != nil)
-				}
 				if nodeDetail != nil && nodeDetail.Recognition != nil {
 					recoDetail := nodeDetail.Recognition
 					logger.Info("Debug", "✓ 获取到失败识别详情: 节点=%s, 算法=%s", msg.Name, recoDetail.Algorithm)
@@ -795,18 +769,17 @@ func (s *debugContextSink) OnNodeRecognition(ctx *maa.Context, status maa.EventS
 						}
 					}
 				} else {
-					logger.Warn("Debug", "[识别失败] GetLatestNode 返回空，无法获取识别详情")
+					logger.Warn("Debug", "GetLatestNode 返回空，无法获取识别详情")
 				}
 			} else {
-				logger.Warn("Debug", "[识别失败] Tasker 为空")
+				logger.Warn("Debug", "Tasker 为空")
 			}
 		} else {
-			logger.Warn("Debug", "[识别失败] Context 为空")
+			logger.Warn("Debug", "Context 为空")
 		}
 
 		// 识别失败时从控制器截图
 		if _, hasRaw := recognitionDetail["raw_image"]; !hasRaw {
-			logger.Info("Debug", "[识别失败] 尝试从控制器截图")
 			s.session.mu.RLock()
 			ctrl := s.session.Controller
 			s.session.mu.RUnlock()
