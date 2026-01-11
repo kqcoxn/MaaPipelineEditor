@@ -411,8 +411,9 @@ func (ds *DebugService) StopAll() {
 
 // 调试事件接收器
 type debugContextSink struct {
-	session *DebugSession
-	handler DebugEventHandler
+	session         *DebugSession
+	handler         DebugEventHandler
+	currentNodeName string // 当前正在执行的节点名称，用于识别记录的 parentNode
 }
 
 // ContextEventSink 接口
@@ -433,6 +434,9 @@ func (s *debugContextSink) OnNodePipelineNode(ctx *maa.Context, status maa.Event
 	// 根据状态发送不同事件
 	switch status {
 	case maa.EventStatusStarting:
+		// 记录当前正在执行的节点
+		s.currentNodeName = msg.Name
+
 		// 记录节点开始时间
 		s.session.mu.Lock()
 		s.session.NodeStartMap[msg.Name] = time.Now()
@@ -562,6 +566,10 @@ func (s *debugContextSink) OnNodeRecognition(ctx *maa.Context, status maa.EventS
 	switch status {
 	case maa.EventStatusStarting:
 		logger.Debug("Debug", "识别开始: NodeName=%s, RecoID=%d", msg.Name, msg.RecognitionID)
+
+		// 使用 currentNodeName 作为 parentNode
+		parentNode := s.currentNodeName
+
 		event := DebugEvent{
 			Type:      "debug_event",
 			EventName: "reco_starting",
@@ -569,12 +577,13 @@ func (s *debugContextSink) OnNodeRecognition(ctx *maa.Context, status maa.EventS
 			NodeID:    msg.Name,
 			Timestamp: time.Now().Unix(),
 			Detail: map[string]interface{}{
-				"reco_id": msg.RecognitionID,
-				"task_id": msg.TaskID,
-				"name":    msg.Name,
+				"reco_id":     msg.RecognitionID,
+				"task_id":     msg.TaskID,
+				"name":        msg.Name,
+				"parent_node": parentNode, // 添加 parentNode
 			},
 		}
-		logger.Info("Debug", "发送调试事件: reco_starting, 节点=%s", msg.Name)
+		logger.Info("Debug", "发送调试事件: reco_starting, 节点=%s, ParentNode=%s", msg.Name, parentNode)
 		s.handler.OnDebugEvent(event)
 
 	case maa.EventStatusSucceeded:
@@ -721,10 +730,16 @@ func (s *debugContextSink) OnNodeRecognition(ctx *maa.Context, status maa.EventS
 		}
 
 		// 尝试获取识别详情
+		logger.Info("Debug", "[识别失败] 尝试获取详情: ctx=%v", ctx != nil)
 		if ctx != nil {
 			tasker := ctx.GetTasker()
+			logger.Info("Debug", "[识别失败] Tasker=%v", tasker != nil)
 			if tasker != nil {
 				nodeDetail := tasker.GetLatestNode(msg.Name)
+				logger.Info("Debug", "[识别失败] NodeDetail=%v", nodeDetail != nil)
+				if nodeDetail != nil {
+					logger.Info("Debug", "[识别失败] Recognition=%v", nodeDetail.Recognition != nil)
+				}
 				if nodeDetail != nil && nodeDetail.Recognition != nil {
 					recoDetail := nodeDetail.Recognition
 					logger.Info("Debug", "✓ 获取到失败识别详情: 节点=%s, 算法=%s", msg.Name, recoDetail.Algorithm)
@@ -779,7 +794,49 @@ func (s *debugContextSink) OnNodeRecognition(ctx *maa.Context, status maa.EventS
 							logger.Info("Debug", "✓ 失败识别包含 %d 张绘制图像", len(drawImages))
 						}
 					}
+				} else {
+					logger.Warn("Debug", "[识别失败] GetLatestNode 返回空，无法获取识别详情")
 				}
+			} else {
+				logger.Warn("Debug", "[识别失败] Tasker 为空")
+			}
+		} else {
+			logger.Warn("Debug", "[识别失败] Context 为空")
+		}
+
+		// 识别失败时从控制器截图
+		if _, hasRaw := recognitionDetail["raw_image"]; !hasRaw {
+			logger.Info("Debug", "[识别失败] 尝试从控制器截图")
+			s.session.mu.RLock()
+			ctrl := s.session.Controller
+			s.session.mu.RUnlock()
+
+			if ctrl != nil {
+				job := ctrl.PostScreencap()
+				if job != nil {
+					job.Wait()
+					if job.Success() {
+						img := ctrl.CacheImage()
+						if img != nil {
+							var buf bytes.Buffer
+							if err := png.Encode(&buf, img); err == nil {
+								b64 := base64.StdEncoding.EncodeToString(buf.Bytes())
+								recognitionDetail["raw_image"] = b64
+								logger.Info("Debug", "✓ 识别失败截图成功，大小=%d bytes", len(buf.Bytes()))
+							} else {
+								logger.Warn("Debug", "✗ 识别失败截图编码失败: %v", err)
+							}
+						} else {
+							logger.Warn("Debug", "✗ 识别失败获取图像失败")
+						}
+					} else {
+						logger.Warn("Debug", "✗ 识别失败截图任务失败")
+					}
+				} else {
+					logger.Warn("Debug", "✗ 识别失败截图job为空")
+				}
+			} else {
+				logger.Warn("Debug", "✗ 识别失败控制器为空")
 			}
 		}
 

@@ -74,7 +74,8 @@ const RecognitionItem = memo(function RecognitionItem({
   onViewDetail,
 }: RecognitionItemProps) {
   const config = statusConfig[record.status];
-  const hasDetail = record.recoId > 0 && record.detail;
+  // 只要有有效的 recoId 就可以查看详情
+  const hasDetail = record.recoId > 0;
 
   return (
     <div className={debugStyle["recognition-item"]}>

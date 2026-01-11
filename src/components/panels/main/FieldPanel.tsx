@@ -30,8 +30,8 @@ import { FieldPanelToolbarLeft, FieldPanelToolbarRight } from "../field/tools";
 import { useDebugStore } from "../../../stores/debugStore";
 import { useToolbarStore } from "../../../stores/toolbarStore";
 import { useConfigStore } from "../../../stores/configStore";
-import DebugInfoTab from "../tools/DebugInfoTab";
-import RecognitionListTab from "../tools/RecognitionListTab";
+import RecognitionCardList from "../tools/RecognitionCardList";
+import NodeRecognitionCardList from "../tools/NodeRecognitionCardList";
 import { DraggablePanel } from "../common/DraggablePanel";
 
 // 节点数据验证与修复
@@ -430,7 +430,7 @@ function FieldPanel() {
           />
         </div>
       )}
-      {/* 标签页 */}
+      {/* 调试模式下显示卡片列表，否则显示编辑器 */}
       {debugMode && currentNode ? (
         <Tabs
           activeKey={activeTab}
@@ -444,14 +444,24 @@ function FieldPanel() {
               children: renderContent,
             },
             {
-              key: "debug",
-              label: "调试信息",
-              children: <DebugInfoTab />,
+              key: "source",
+              label: "出发节点记录",
+              children: (
+                <NodeRecognitionCardList
+                  nodeName={currentNode.data?.label || ""}
+                  filterMode="source"
+                />
+              ),
             },
             {
-              key: "recognition",
-              label: "识别列表",
-              children: <RecognitionListTab />,
+              key: "target",
+              label: "目标节点记录",
+              children: (
+                <NodeRecognitionCardList
+                  nodeName={currentNode.data?.label || ""}
+                  filterMode="target"
+                />
+              ),
             },
           ]}
           style={{ flex: 1, display: "flex", flexDirection: "column" }}

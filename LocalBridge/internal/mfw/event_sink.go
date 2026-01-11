@@ -1,10 +1,7 @@
 package mfw
 
 import (
-	"bytes"
-	"encoding/base64"
 	"encoding/json"
-	"image/png"
 	"time"
 
 	maa "github.com/MaaXYZ/maa-framework-go/v3"
@@ -64,26 +61,22 @@ type DebugEventCallback func(event DebugEventData)
 // SimpleContextSink 简化的上下文事件接收器
 // 只处理关键事件，减少事件噪声
 type SimpleContextSink struct {
-	callback                DebugEventCallback
-	nodeStartMap            map[string]time.Time              // 节点开始时间记录
-	recoCountMap            map[string]int                    // 识别次数计数
-	pendingRecoDetails      map[string]map[string]interface{} // 待发送的识别详情 (nodeName -> detail)
-	pendingResendNodes      []string                          // 待补发的节点名称队列
-	lastActionSucceededNode string                            // 最后一个动作成功的节点
-	enabled                 bool
-	screenshotter           *Screenshotter // 截图器引用
-	ctxRef                  *maa.Context   // 上下文引用，用于节点成功时获取详情
+	callback        DebugEventCallback
+	nodeStartMap    map[string]time.Time // 节点开始时间记录
+	recoCountMap    map[string]int       // 识别次数计数
+	enabled         bool
+	screenshotter   *Screenshotter // 截图器引用
+	ctxRef          *maa.Context   // 上下文引用，用于节点成功时获取详情
+	currentNodeName string         // 当前正在执行的节点名称，用于识别记录的 parentNode
 }
 
 // NewSimpleContextSink 创建简化的上下文事件接收器
 func NewSimpleContextSink(callback DebugEventCallback) *SimpleContextSink {
 	return &SimpleContextSink{
-		callback:           callback,
-		nodeStartMap:       make(map[string]time.Time),
-		recoCountMap:       make(map[string]int),
-		pendingRecoDetails: make(map[string]map[string]interface{}),
-		pendingResendNodes: make([]string, 0),
-		enabled:            true,
+		callback:     callback,
+		nodeStartMap: make(map[string]time.Time),
+		recoCountMap: make(map[string]int),
+		enabled:      true,
 	}
 }
 
@@ -97,13 +90,11 @@ func (s *SimpleContextSink) SetEnabled(enabled bool) {
 	s.enabled = enabled
 }
 
-// Reset 重置计数器
+// Reset 重置计数器和状态
 func (s *SimpleContextSink) Reset() {
 	s.nodeStartMap = make(map[string]time.Time)
 	s.recoCountMap = make(map[string]int)
-	s.pendingRecoDetails = make(map[string]map[string]interface{})
-	s.pendingResendNodes = make([]string, 0)
-	s.lastActionSucceededNode = ""
+	s.currentNodeName = "" // 重置当前节点，用于入口节点识别
 }
 
 // emit 发送事件
@@ -126,6 +117,9 @@ func (s *SimpleContextSink) OnNodePipelineNode(ctx *maa.Context, status maa.Even
 
 	switch status {
 	case maa.EventStatusStarting:
+		// 记录当前正在执行的节点
+		s.currentNodeName = nodeName
+
 		// 记录节点开始时间
 		s.nodeStartMap[nodeName] = time.Now()
 
@@ -145,16 +139,6 @@ func (s *SimpleContextSink) OnNodePipelineNode(ctx *maa.Context, status maa.Even
 		}
 
 		logger.Info("DebugSink", "节点成功: %s (耗时 %dms)", nodeName, latency)
-
-		// 处理待补发队列中的所有节点
-		if len(s.pendingResendNodes) > 0 {
-			logger.Debug("DebugSink", "处理待补发队列: %v", s.pendingResendNodes)
-			for _, pendingNode := range s.pendingResendNodes {
-				s.fetchAndEmitRecognitionDetail(ctx, pendingNode, taskID)
-			}
-			// 清空队列
-			s.pendingResendNodes = make([]string, 0)
-		}
 
 		s.emit(DebugEventData{
 			Type:     EventNodeSucceeded,
@@ -182,101 +166,6 @@ func (s *SimpleContextSink) OnNodePipelineNode(ctx *maa.Context, status maa.Even
 	}
 }
 
-// fetchAndEmitRecognitionDetail 获取并发送完整的识别详情
-func (s *SimpleContextSink) fetchAndEmitRecognitionDetail(ctx *maa.Context, nodeName string, taskID uint64) {
-	logger.Debug("DebugSink", "[补发开始] 节点=%s, taskID=%d", nodeName, taskID)
-
-	if ctx == nil {
-		logger.Warn("DebugSink", "[补发] context 为空, 节点=%s", nodeName)
-		return
-	}
-
-	tasker := ctx.GetTasker()
-	if tasker == nil {
-		logger.Warn("DebugSink", "[补发] tasker 为空, 节点=%s", nodeName)
-		return
-	}
-
-	nodeDetail := tasker.GetLatestNode(nodeName)
-	if nodeDetail == nil {
-		logger.Warn("DebugSink", "[补发] nodeDetail 为空: %s", nodeName)
-		return
-	}
-
-	if nodeDetail.Recognition == nil {
-		logger.Warn("DebugSink", "[补发] nodeDetail.Recognition 为空: %s", nodeName)
-		return
-	}
-
-	recoDetail := nodeDetail.Recognition
-	logger.Info("DebugSink", "[补发] ✓ 获取到完整识别详情: 节点=%s, 算法=%s, Hit=%v", nodeName, recoDetail.Algorithm, recoDetail.Hit)
-
-	// 构建详情
-	detailMap := map[string]interface{}{
-		"algorithm": recoDetail.Algorithm,
-		"hit":       recoDetail.Hit,
-		"task_id":   taskID,
-	}
-
-	// Box 转换为数组 [x, y, w, h]
-	boxX := recoDetail.Box.X()
-	boxY := recoDetail.Box.Y()
-	boxW := recoDetail.Box.Width()
-	boxH := recoDetail.Box.Height()
-	if boxX != 0 || boxY != 0 || boxW != 0 || boxH != 0 {
-		detailMap["box"] = []int{boxX, boxY, boxW, boxH}
-		logger.Info("DebugSink", "[补发] ✓ 识别框: [%d, %d, %d, %d]", boxX, boxY, boxW, boxH)
-	}
-
-	// DetailJson 解析为对象
-	if recoDetail.DetailJson != "" {
-		var detailObj interface{}
-		if err := json.Unmarshal([]byte(recoDetail.DetailJson), &detailObj); err == nil {
-			detailMap["detail"] = detailObj
-			detailMap["best_result"] = detailObj
-			logger.Info("DebugSink", "[补发] ✓ 解析识别JSON成功")
-		}
-	}
-
-	// Raw 截图转换为 base64
-	if recoDetail.Raw != nil {
-		var buf bytes.Buffer
-		if err := png.Encode(&buf, recoDetail.Raw); err == nil {
-			b64 := base64.StdEncoding.EncodeToString(buf.Bytes())
-			detailMap["raw_image"] = b64
-			logger.Info("DebugSink", "[补发] ✓ 原始截图转换成功, 大小=%d bytes", len(buf.Bytes()))
-		}
-	}
-
-	// 绘制图像转换为 base64
-	if len(recoDetail.Draws) > 0 {
-		drawImages := make([]string, 0, len(recoDetail.Draws))
-		for i, img := range recoDetail.Draws {
-			if img != nil {
-				var buf bytes.Buffer
-				if err := png.Encode(&buf, img); err == nil {
-					b64 := base64.StdEncoding.EncodeToString(buf.Bytes())
-					drawImages = append(drawImages, b64)
-					logger.Debug("DebugSink", "[补发] ✓ 绘制图像[%d]转换成功", i)
-				}
-			}
-		}
-		if len(drawImages) > 0 {
-			detailMap["draw_images"] = drawImages
-			logger.Info("DebugSink", "[补发] ✓ 识别详情包含 %d 张绘制图像", len(drawImages))
-		}
-	}
-
-	// 发送补充的识别成功事件
-	logger.Info("DebugSink", "[补发] 发送完整识别详情, 字段数: %d", len(detailMap))
-	s.emit(DebugEventData{
-		Type:     EventRecoSucceeded,
-		NodeName: nodeName,
-		TaskID:   taskID,
-		Detail:   detailMap,
-	})
-}
-
 // OnNodeRecognition 节点识别事件
 // 记录每次识别尝试的结果
 func (s *SimpleContextSink) OnNodeRecognition(ctx *maa.Context, status maa.EventStatus, detail maa.NodeRecognitionDetail) {
@@ -286,12 +175,46 @@ func (s *SimpleContextSink) OnNodeRecognition(ctx *maa.Context, status maa.Event
 
 	switch status {
 	case maa.EventStatusStarting:
-		logger.Debug("DebugSink", "识别开始: %s (RecoID=%d)", nodeName, recoID)
+		// 使用 currentNodeName 作为 parentNode
+		parentNode := s.currentNodeName
+
+		// 判断识别类型：
+		// 1. 入口节点的初次识别：parentNode == nodeName && recoCountMap[nodeName] == 0
+		//    → 这是入口节点自己检查自己的识别条件，应该显示为入口卡片
+		// 2. 非入口节点的自我检查：parentNode == nodeName && recoCountMap[nodeName] > 0
+		//    → 这是 next 列表跳回自己后的自我检查，不需要显示
+		// 3. 正常识别 next 列表中的其他节点：parentNode != nodeName
+		//    → 正常显示在 parentNode 的卡片中
+
+		isEntryNodeRecognition := (parentNode == nodeName && s.recoCountMap[nodeName] == 0)
+		isNonEntrySelfCheck := (parentNode == nodeName && s.recoCountMap[nodeName] > 0)
+
+		// 构建 Detail
+		var detail map[string]interface{}
+		if isEntryNodeRecognition {
+			// 入口节点的初次识别，标记为入口
+			detail = map[string]interface{}{
+				"parent_node": "$entry",
+				"is_entry":    true,
+			}
+			logger.Debug("DebugSink", "识别开始: NodeName=%s, RecoID=%d (入口节点)", nodeName, recoID)
+		} else if !isNonEntrySelfCheck {
+			// 正常识别 next 列表中的节点
+			detail = map[string]interface{}{
+				"parent_node": parentNode,
+			}
+			logger.Debug("DebugSink", "识别开始: NodeName=%s, RecoID=%d, ParentNode=%s", nodeName, recoID, parentNode)
+		} else {
+			// 非入口节点的自我检查，不需要记录
+			logger.Debug("DebugSink", "识别开始: NodeName=%s, RecoID=%d (非入口自我检查)", nodeName, recoID)
+		}
+
 		s.emit(DebugEventData{
 			Type:     EventRecoStarting,
 			NodeName: nodeName,
 			RecoID:   recoID,
 			TaskID:   taskID,
+			Detail:   detail,
 		})
 
 	case maa.EventStatusSucceeded:
@@ -299,109 +222,39 @@ func (s *SimpleContextSink) OnNodeRecognition(ctx *maa.Context, status maa.Event
 		s.recoCountMap[nodeName]++
 		runIndex := s.recoCountMap[nodeName]
 
-		logger.Info("DebugSink", "识别成功: %s (第%d次)", nodeName, runIndex)
+		logger.Info("DebugSink", "识别成功: %s (第%d次, RecoID=%d)", nodeName, runIndex, recoID)
 
-		// 构建识别详情
-		detailMap := map[string]interface{}{
+		// 构建 Detail，包含识别详情
+		detail := map[string]interface{}{
 			"run_index": runIndex,
 			"hit":       true,
-			"reco_id":   recoID,
-			"task_id":   taskID,
+			"reco_id":   recoID, // 前端用于查找记录
 		}
 
-		// 尝试获取完整的识别详情（包含 Algorithm, Box, DetailJson, Draws, Raw）
-		logger.Debug("DebugSink", "[调试] 开始获取完整识别详情, ctx=%v", ctx != nil)
+		// 获取完整识别详情（包含 raw_image 和 draw_images）
 		if ctx != nil {
-			tasker := ctx.GetTasker()
-			logger.Debug("DebugSink", "[调试] Tasker=%v", tasker != nil)
-			if tasker != nil {
-				nodeDetail := tasker.GetLatestNode(nodeName)
-				logger.Debug("DebugSink", "[调试] NodeDetail=%v", nodeDetail != nil)
-				if nodeDetail != nil {
-					logger.Debug("DebugSink", "[调试] Recognition=%v", nodeDetail.Recognition != nil)
-					if nodeDetail.Recognition != nil {
-						recoDetail := nodeDetail.Recognition
-						logger.Info("DebugSink", "✓ 获取到完整识别详情: 节点=%s, 算法=%s, Hit=%v", nodeName, recoDetail.Algorithm, recoDetail.Hit)
-
-						// 更新识别详情
-						detailMap["algorithm"] = recoDetail.Algorithm
-						detailMap["hit"] = recoDetail.Hit
-
-						// Box 转换为数组 [x, y, w, h]
-						boxX := recoDetail.Box.X()
-						boxY := recoDetail.Box.Y()
-						boxW := recoDetail.Box.Width()
-						boxH := recoDetail.Box.Height()
-						logger.Debug("DebugSink", "[调试] Box: x=%d, y=%d, w=%d, h=%d", boxX, boxY, boxW, boxH)
-						if boxX != 0 || boxY != 0 || boxW != 0 || boxH != 0 {
-							detailMap["box"] = []int{boxX, boxY, boxW, boxH}
-							logger.Info("DebugSink", "✓ 识别框: [%d, %d, %d, %d]", boxX, boxY, boxW, boxH)
+			if tasker := ctx.GetTasker(); tasker != nil {
+				if recoDetail := GetRecognitionDetailByID(tasker, int64(recoID)); recoDetail != nil {
+					// 添加识别详情到 detail
+					detail["algorithm"] = recoDetail.Algorithm
+					detail["box"] = recoDetail.Box
+					if recoDetail.DetailJson != "" {
+						// 尝试解析 JSON
+						var rawDetail interface{}
+						if err := json.Unmarshal([]byte(recoDetail.DetailJson), &rawDetail); err == nil {
+							detail["raw_detail"] = rawDetail
+						} else {
+							detail["raw_detail"] = recoDetail.DetailJson
 						}
-
-						// DetailJson 解析为对象
-						logger.Debug("DebugSink", "[调试] DetailJson 长度: %d", len(recoDetail.DetailJson))
-						if recoDetail.DetailJson != "" {
-							var detailObj interface{}
-							if err := json.Unmarshal([]byte(recoDetail.DetailJson), &detailObj); err == nil {
-								detailMap["detail"] = detailObj
-								detailMap["best_result"] = detailObj
-								logger.Info("DebugSink", "✓ 解析识别详情JSON成功")
-							} else {
-								detailMap["detail"] = recoDetail.DetailJson
-								logger.Warn("DebugSink", "✗ 解析识别详情JSON失败: %v, 使用原始字符串", err)
-							}
-						}
-
-						// 绘制图像转换为 base64
-						logger.Debug("DebugSink", "[调试] Draws 数量: %d", len(recoDetail.Draws))
-						if len(recoDetail.Draws) > 0 {
-							drawImages := make([]string, 0, len(recoDetail.Draws))
-							for i, img := range recoDetail.Draws {
-								if img != nil {
-									var buf bytes.Buffer
-									if err := png.Encode(&buf, img); err == nil {
-										b64 := base64.StdEncoding.EncodeToString(buf.Bytes())
-										drawImages = append(drawImages, b64)
-										logger.Debug("DebugSink", "✓ 绘制图像[%d]转换成功, 大小=%d bytes", i, len(buf.Bytes()))
-									} else {
-										logger.Warn("DebugSink", "✗ 绘制图像[%d]编码失败: %v", i, err)
-									}
-								}
-							}
-							if len(drawImages) > 0 {
-								detailMap["draw_images"] = drawImages
-								logger.Info("DebugSink", "✓ 识别详情包含 %d 张绘制图像", len(drawImages))
-							}
-						}
-					} else {
-						logger.Warn("DebugSink", "✗ nodeDetail.Recognition 为空")
 					}
-				} else {
-					logger.Warn("DebugSink", "✗ nodeDetail 为空")
-				}
-			} else {
-				logger.Warn("DebugSink", "✗ tasker 为空")
-			}
-		} else {
-			logger.Warn("DebugSink", "✗ context 为空")
-		}
-
-		// 始终从控制器截图
-		if s.screenshotter != nil {
-			if _, hasRaw := detailMap["raw_image"]; !hasRaw {
-				logger.Debug("DebugSink", "[截图] 开始从控制器截图...")
-				if b64, err := s.screenshotter.CaptureBase64(); err == nil {
-					detailMap["raw_image"] = b64
-					logger.Info("DebugSink", "✓ 控制器截图成功")
-				} else {
-					logger.Warn("DebugSink", "✗ 控制器截图失败: %v", err)
+					if recoDetail.RawImage != "" {
+						detail["raw_image"] = recoDetail.RawImage
+					}
+					if len(recoDetail.DrawImages) > 0 {
+						detail["draw_images"] = recoDetail.DrawImages
+					}
 				}
 			}
-		}
-
-		logger.Info("DebugSink", "[最终] 识别详情字段数: %d", len(detailMap))
-		for key := range detailMap {
-			logger.Debug("DebugSink", "[最终] 字段: %s", key)
 		}
 
 		s.emit(DebugEventData{
@@ -409,7 +262,7 @@ func (s *SimpleContextSink) OnNodeRecognition(ctx *maa.Context, status maa.Event
 			NodeName: nodeName,
 			RecoID:   recoID,
 			TaskID:   taskID,
-			Detail:   detailMap,
+			Detail:   detail,
 		})
 
 	case maa.EventStatusFailed:
@@ -417,16 +270,56 @@ func (s *SimpleContextSink) OnNodeRecognition(ctx *maa.Context, status maa.Event
 		s.recoCountMap[nodeName]++
 		runIndex := s.recoCountMap[nodeName]
 
-		logger.Debug("DebugSink", "识别失败: %s (第%d次)", nodeName, runIndex)
+		logger.Info("DebugSink", "识别失败: %s (第%d次, RecoID=%d)", nodeName, runIndex, recoID)
+
+		// 实际失败的节点名称（默认为容器节点）
+		actualNodeName := nodeName
+
+		// 构建 Detail，包含识别详情
+		detail := map[string]interface{}{
+			"run_index": runIndex,
+			"hit":       false,
+			"reco_id":   recoID, // 前端用于查找记录
+		}
+
+		// 获取完整识别详情（包含 raw_image 和 draw_images）
+		if ctx != nil {
+			if tasker := ctx.GetTasker(); tasker != nil {
+				if recoDetail := GetRecognitionDetailByID(tasker, int64(recoID)); recoDetail != nil {
+					// 更新实际节点名（用于正确归属）
+					if recoDetail.Name != "" && recoDetail.Name != nodeName {
+						actualNodeName = recoDetail.Name
+						logger.Info("DebugSink", "✓ 实际失败节点: %s (容器: %s)", actualNodeName, nodeName)
+					}
+
+					// 添加识别详情到 detail
+					detail["algorithm"] = recoDetail.Algorithm
+					detail["box"] = recoDetail.Box
+					if recoDetail.DetailJson != "" {
+						// 尝试解析 JSON
+						var rawDetail interface{}
+						if err := json.Unmarshal([]byte(recoDetail.DetailJson), &rawDetail); err == nil {
+							detail["raw_detail"] = rawDetail
+						} else {
+							detail["raw_detail"] = recoDetail.DetailJson
+						}
+					}
+					if recoDetail.RawImage != "" {
+						detail["raw_image"] = recoDetail.RawImage
+					}
+					if len(recoDetail.DrawImages) > 0 {
+						detail["draw_images"] = recoDetail.DrawImages
+					}
+				}
+			}
+		}
+
 		s.emit(DebugEventData{
 			Type:     EventRecoFailed,
-			NodeName: nodeName,
+			NodeName: actualNodeName, // 使用实际失败的节点名
 			RecoID:   recoID,
 			TaskID:   taskID,
-			Detail: map[string]interface{}{
-				"run_index": runIndex,
-				"hit":       false,
-			},
+			Detail:   detail,
 		})
 	}
 }
@@ -460,10 +353,6 @@ func (s *SimpleContextSink) OnNodeAction(ctx *maa.Context, status maa.EventStatu
 			ActionID: actionID,
 			TaskID:   taskID,
 		})
-		// 将当前节点添加到待补发队列
-		s.pendingResendNodes = append(s.pendingResendNodes, nodeName)
-		s.lastActionSucceededNode = nodeName
-		logger.Debug("DebugSink", "添加到待补发队列: %s, 队列长度: %d", nodeName, len(s.pendingResendNodes))
 
 	case maa.EventStatusFailed:
 		logger.Info("DebugSink", "动作失败: %s", nodeName)

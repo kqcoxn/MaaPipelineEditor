@@ -593,3 +593,243 @@
     border-radius: 3px;
   }
 }
+
+// ============ 识别卡片列表样式 ============
+
+.reco-card-list-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 12px;
+}
+
+.reco-card-list-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.reco-card-list-count {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.reco-card-list-content {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.3);
+    }
+  }
+}
+
+.reco-card-list-pagination {
+  display: flex;
+  justify-content: center;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  margin-top: 8px;
+}
+
+.reco-card-list-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  padding: 24px;
+}
+
+// 单个识别卡片
+.reco-card {
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: rgba(24, 144, 255, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  :global(.ant-card-head) {
+    min-height: 36px;
+    padding: 0 12px;
+    background: linear-gradient(
+      135deg,
+      rgba(24, 144, 255, 0.05) 0%,
+      rgba(24, 144, 255, 0.02) 100%
+    );
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  :global(.ant-card-head-title) {
+    padding: 8px 0;
+  }
+
+  :global(.ant-card-body) {
+    padding: 8px 12px;
+  }
+}
+
+.reco-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reco-card-index {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: monospace;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.reco-card-node {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reco-card-time {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-family: monospace;
+}
+
+.reco-card-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.reco-card-empty {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  text-align: center;
+  padding: 8px 0;
+}
+
+// 卡片内的识别项
+.reco-card-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.02);
+  transition: all 0.15s ease;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+}
+
+.reco-card-item-index {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-family: monospace;
+  min-width: 24px;
+}
+
+.reco-card-item-status {
+  font-size: 14px;
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+}
+
+.reco-card-item-name {
+  font-size: 13px;
+  color: var(--text-primary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reco-card-item-action {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+
+  .reco-card-item:hover & {
+    opacity: 1;
+  }
+}
+
+// 识别记录历史面板
+.recognition-history-panel {
+  position: absolute;
+  left: 80px;
+  top: 150px;
+  width: 400px;
+  max-width: calc(100vw - 120px);
+  max-height: calc(100vh - 160px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  z-index: 80;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
+  background-color: white !important;
+  background: white !important;
+  opacity: 1 !important;
+  pointer-events: all !important;
+  border: 1px solid #d9d9d9 !important;
+  transition: none !important;
+
+  .header {
+    flex-shrink: 0;
+  }
+
+  // 内容区域可滚动
+  .reco-card-list-container,
+  .reco-card-list-empty {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0; // 允许 flex 子项收缩
+  }
+
+  // 滚动条样式
+  .reco-card-list-container::-webkit-scrollbar,
+  .reco-card-list-empty::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .reco-card-list-container::-webkit-scrollbar-track,
+  .reco-card-list-empty::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .reco-card-list-container::-webkit-scrollbar-thumb,
+  .reco-card-list-empty::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.3);
+    }
+  }
+}

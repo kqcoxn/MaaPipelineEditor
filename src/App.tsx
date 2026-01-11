@@ -32,6 +32,7 @@ import ConfigPanel from "./components/panels/main/ConfigPanel";
 import AIHistoryPanel from "./components/panels/main/AIHistoryPanel";
 import { LocalFileListPanel } from "./components/panels/main/LocalFileListPanel";
 import ErrorPanel from "./components/panels/main/ErrorPanel";
+import RecognitionHistoryPanel from "./components/panels/main/RecognitionHistoryPanel";
 import ToolbarPanel from "./components/panels/main/ToolbarPanel";
 import { pipelineToFlow } from "./core/parser";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -249,6 +250,7 @@ function App() {
               <ToolPanel.Global />
               <SearchPanel />
               {debugMode && <ToolPanel.Debug />}
+              {debugMode && <RecognitionHistoryPanel />}
               <ToolPanel.Layout />
               <ErrorPanel />
             </div>

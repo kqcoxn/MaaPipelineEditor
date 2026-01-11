@@ -7,6 +7,7 @@ import { getNextNodes, useFlowStore } from "../../../stores/flow";
 import { useDebugStore } from "../../../stores/debugStore";
 import { useMFWStore } from "../../../stores/mfwStore";
 import { useFileStore } from "../../../stores/fileStore";
+import { useToolbarStore } from "../../../stores/toolbarStore";
 import { debugProtocol, configProtocol } from "../../../services/server";
 import type { ConfigResponse } from "../../../services/protocols/ConfigProtocol";
 import { useShallow } from "zustand/shallow";
@@ -19,6 +20,12 @@ function DebugPanel() {
   const prefix = useFileStore((state) => state.currentFile.config.prefix);
   const connectionStatus = useMFWStore((state) => state.connectionStatus);
   const controllerId = useMFWStore((state) => state.controllerId);
+  const recognitionPanelVisible = useToolbarStore(
+    (state) => state.recognitionPanelVisible
+  );
+  const toggleRecognitionPanel = useToolbarStore(
+    (state) => state.toggleRecognitionPanel
+  );
   const {
     debugStatus,
     sessionId,
@@ -456,6 +463,17 @@ function DebugPanel() {
         },
       ],
     },
+    {
+      key: "recognition-panel",
+      icon: "icon-tiaoshijilu",
+      iconSize: 22,
+      label: recognitionPanelVisible ? "隐藏识别记录" : "显示识别记录",
+      disabled: false,
+      active: recognitionPanelVisible,
+      onClick: () => {
+        toggleRecognitionPanel();
+      },
+    },
   ];
 
   // 状态标签配置
@@ -546,7 +564,13 @@ function DebugPanel() {
               <Tooltip title={btn.label}>
                 <IconFont
                   style={{
-                    opacity: btn.disabled ? 0.2 : 1,
+                    opacity: btn.disabled
+                      ? 0.2
+                      : (btn as any).active !== undefined
+                      ? (btn as any).active
+                        ? 1
+                        : 0.4
+                      : 1,
                     cursor: btn.disabled ? "not-allowed" : "pointer",
                   }}
                   className={style.icon}
@@ -561,7 +585,7 @@ function DebugPanel() {
               </Tooltip>
             )}
           </li>
-          {(index === 0 || index === 5) && (
+          {(index === 0 || index === 5 || index === 7) && (
             <div className={style.devider}>
               <div></div>
             </div>

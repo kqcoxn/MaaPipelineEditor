@@ -1,11 +1,10 @@
 import { memo, useMemo, useState } from "react";
-import { Timeline, Tag, Empty, Image, Collapse, Statistic, Button } from "antd";
+import { Timeline, Tag, Empty, Collapse, Statistic, Button, List } from "antd";
 import {
   ClockCircleOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
   EyeOutlined,
-  PictureOutlined,
 } from "@ant-design/icons";
 import { useDebugStore } from "../../../stores/debugStore";
 import { useFlowStore } from "../../../stores/flow";
@@ -14,7 +13,7 @@ import RecognitionDetailModal from "./RecognitionDetailModal";
 
 /**
  * 调试信息标签页
- * 显示执行历史记录、识别结果、截图等详细信息
+ * 显示节点执行历史和识别记录
  */
 function DebugInfoTab() {
   // Modal 状态
@@ -22,23 +21,36 @@ function DebugInfoTab() {
 
   // 获取状态
   const debugStatus = useDebugStore((state) => state.debugStatus);
-  const taskId = useDebugStore((state) => state.taskId);
+  const sessionId = useDebugStore((state) => state.sessionId);
   const executionHistory = useDebugStore((state) => state.executionHistory);
   const executionStartTime = useDebugStore((state) => state.executionStartTime);
+  const recognitionRecords = useDebugStore((state) => state.recognitionRecords);
   const setSelectedRecoId = useDebugStore((state) => state.setSelectedRecoId);
 
   // 获取当前选中的节点
   const selectedNode = useFlowStore((state) => state.targetNode);
   const selectedNodeId = selectedNode?.id || null;
+  const selectedNodeName =
+    selectedNode?.data?.label || selectedNode?.id || null;
 
   // 过滤出当前选中节点的执行历史
   const nodeExecutionHistory = useMemo(() => {
     if (!selectedNodeId) return [];
-    const filtered = executionHistory.filter(
+    return executionHistory.filter(
       (record) => record.nodeId === selectedNodeId
     );
-    return filtered;
   }, [executionHistory, selectedNodeId]);
+
+  // 过滤出当前选中节点的识别记录（该节点自己被识别的记录）
+  const nodeRecognitionRecords = useMemo(() => {
+    if (!selectedNodeName) return [];
+    // 过滤出该节点自己被识别的记录
+    return recognitionRecords.filter(
+      (record) =>
+        record.name === selectedNodeName ||
+        record.displayName === selectedNodeName
+    );
+  }, [recognitionRecords, selectedNodeName]);
 
   // 计算执行时间
   const executionTime = useMemo(() => {
@@ -50,7 +62,7 @@ function DebugInfoTab() {
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   }, [executionStartTime, debugStatus]);
 
-  // 生成时间轴项
+  // 生成简化版时间轴项
   const timelineItems = useMemo(() => {
     return nodeExecutionHistory.map((record, index) => {
       const isRunning = record.status === "running";
@@ -76,7 +88,6 @@ function DebugInfoTab() {
 
       const color = isRunning ? "blue" : isCompleted ? "green" : "red";
 
-      // 时间轴项内容
       return {
         key: `${record.nodeId}-${index}`,
         color,
@@ -94,7 +105,7 @@ function DebugInfoTab() {
                   >
                     <span style={{ fontWeight: 500 }}>
                       {record.nodeName}
-                      {record.runIndex && record.runIndex > 1 && (
+                      {record.runIndex > 1 && (
                         <span
                           style={{ fontSize: 11, color: "#999", marginLeft: 4 }}
                         >
@@ -130,212 +141,25 @@ function DebugInfoTab() {
                           {new Date(record.endTime).toLocaleTimeString()}
                         </div>
                       )}
+                      {record.latency && (
+                        <div style={{ fontSize: 12, color: "#666" }}>
+                          耗时: {record.latency}ms
+                        </div>
+                      )}
                     </div>
-
-                    {/* 识别结果 */}
-                    {record.recognition && (
-                      <div style={{ marginBottom: 12 }}>
-                        <div
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 500,
-                            marginBottom: 4,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                          }}
-                        >
-                          <span>识别结果</span>
-                          {record.recognition.detail && (
-                            <Button
-                              type="link"
-                              size="small"
-                              icon={<EyeOutlined />}
-                              onClick={() => {
-                                setSelectedRecoId(index + 1);
-                                setDetailModalOpen(true);
-                              }}
-                            >
-                              查看详情
-                            </Button>
-                          )}
-                        </div>
-                        <div
-                          style={{
-                            padding: 8,
-                            background: record.recognition.success
-                              ? "#f6ffed"
-                              : "#fff2f0",
-                            borderRadius: 4,
-                            fontSize: 12,
-                          }}
-                        >
-                          <div>
-                            状态:{" "}
-                            <Tag
-                              color={
-                                record.recognition.success ? "success" : "error"
-                              }
-                              style={{ marginLeft: 4 }}
-                            >
-                              {record.recognition.success ? "成功" : "失败"}
-                            </Tag>
-                          </div>
-                          {/* 算法信息 */}
-                          {record.recognition.detail?.algorithm && (
-                            <div style={{ marginTop: 4 }}>
-                              算法:{" "}
-                              <Tag color="blue">
-                                {record.recognition.detail.algorithm}
-                              </Tag>
-                            </div>
-                          )}
-                          {/* 识别框 */}
-                          {record.recognition.detail?.box && (
-                            <div style={{ marginTop: 4 }}>
-                              识别框:{" "}
-                              <code>
-                                [{record.recognition.detail.box.join(", ")}]
-                              </code>
-                            </div>
-                          )}
-                          {/* 绘制图像 */}
-                          {record.recognition.detail?.draw_images &&
-                            record.recognition.detail.draw_images.length >
-                              0 && (
-                              <div style={{ marginTop: 8 }}>
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 4,
-                                    marginBottom: 4,
-                                  }}
-                                >
-                                  <PictureOutlined />
-                                  <span>绘制图像:</span>
-                                </div>
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    gap: 8,
-                                    flexWrap: "wrap",
-                                  }}
-                                >
-                                  {record.recognition.detail.draw_images.map(
-                                    (img: string, imgIndex: number) => (
-                                      <Image
-                                        key={imgIndex}
-                                        src={
-                                          img.startsWith("data:")
-                                            ? img
-                                            : `data:image/png;base64,${img}`
-                                        }
-                                        alt={`绘制图像 ${imgIndex + 1}`}
-                                        style={{ maxHeight: 100 }}
-                                      />
-                                    )
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* 动作结果 */}
-                    {record.action && (
-                      <div style={{ marginBottom: 12 }}>
-                        <div
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 500,
-                            marginBottom: 4,
-                          }}
-                        >
-                          动作结果
-                        </div>
-                        <div
-                          style={{
-                            padding: 8,
-                            background: record.action.success
-                              ? "#f6ffed"
-                              : "#fff2f0",
-                            borderRadius: 4,
-                            fontSize: 12,
-                          }}
-                        >
-                          <div>
-                            状态:{" "}
-                            <Tag
-                              color={
-                                record.action.success ? "success" : "error"
-                              }
-                              style={{ marginLeft: 4 }}
-                            >
-                              {record.action.success ? "成功" : "失败"}
-                            </Tag>
-                          </div>
-                          {record.action.detail && (
-                            <div style={{ marginTop: 4 }}>
-                              详情:{" "}
-                              {typeof record.action.detail === "string"
-                                ? record.action.detail
-                                : JSON.stringify(record.action.detail, null, 2)}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* 截图 */}
-                    {record.screenshot && (
-                      <div>
-                        <div
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 500,
-                            marginBottom: 4,
-                          }}
-                        >
-                          截图
-                        </div>
-                        <Image
-                          src={`data:image/png;base64,${record.screenshot}`}
-                          alt="节点执行截图"
-                          style={{
-                            maxWidth: "100%",
-                            borderRadius: 4,
-                            border: "1px solid #d9d9d9",
-                          }}
-                        />
-                      </div>
-                    )}
 
                     {/* 错误信息 */}
                     {record.error && (
-                      <div>
-                        <div
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 500,
-                            marginBottom: 4,
-                            color: "#ff4d4f",
-                          }}
-                        >
-                          错误信息
-                        </div>
-                        <div
-                          style={{
-                            padding: 8,
-                            background: "#fff2f0",
-                            borderRadius: 4,
-                            fontSize: 12,
-                            color: "#ff4d4f",
-                          }}
-                        >
-                          {record.error}
-                        </div>
+                      <div
+                        style={{
+                          padding: 8,
+                          background: "#fff2f0",
+                          borderRadius: 4,
+                          fontSize: 12,
+                          color: "#ff4d4f",
+                        }}
+                      >
+                        错误: {record.error}
                       </div>
                     )}
                   </div>
@@ -410,9 +234,9 @@ function DebugInfoTab() {
               ? "已暂停"
               : "已完成"}
           </Tag>
-          {taskId && (
+          {sessionId && (
             <span style={{ fontSize: 12, color: "#999" }}>
-              Task ID: {taskId.substring(0, 8)}...
+              Session ID: {sessionId.substring(0, 8)}...
             </span>
           )}
         </div>
@@ -438,7 +262,7 @@ function DebugInfoTab() {
       </div>
 
       {/* 执行历史时间轴 */}
-      <div>
+      <div style={{ marginBottom: 24 }}>
         <div
           style={{
             fontSize: 14,
@@ -458,6 +282,85 @@ function DebugInfoTab() {
           />
         )}
       </div>
+
+      {/* 识别记录列表（该节点自己被识别的记录） */}
+      {nodeRecognitionRecords.length > 0 && (
+        <div>
+          <div
+            style={{
+              fontSize: 14,
+              fontWeight: 500,
+              marginBottom: 12,
+              color: "#262626",
+            }}
+          >
+            识别记录
+          </div>
+          <List
+            size="small"
+            bordered
+            dataSource={nodeRecognitionRecords}
+            renderItem={(record, index) => {
+              const statusColor =
+                record.status === "succeeded"
+                  ? "success"
+                  : record.status === "failed"
+                  ? "error"
+                  : "processing";
+              const statusText =
+                record.status === "succeeded"
+                  ? "成功"
+                  : record.status === "failed"
+                  ? "失败"
+                  : "识别中";
+
+              return (
+                <List.Item
+                  style={{ padding: "8px 12px" }}
+                  actions={[
+                    record.recoId > 0 && (
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<EyeOutlined />}
+                        onClick={() => {
+                          setSelectedRecoId(record.recoId);
+                          setDetailModalOpen(true);
+                        }}
+                      >
+                        详情
+                      </Button>
+                    ),
+                  ]}
+                >
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 8 }}
+                  >
+                    <span
+                      style={{
+                        color: "#999",
+                        fontSize: 12,
+                        minWidth: 24,
+                      }}
+                    >
+                      [{nodeRecognitionRecords.length - index}]
+                    </span>
+                    <span style={{ fontWeight: 500 }}>{record.name}</span>
+                    <Tag color={statusColor} style={{ margin: 0 }}>
+                      {statusText}
+                    </Tag>
+                    {record.hit && (
+                      <Tag color="blue" style={{ margin: 0 }}>
+                        命中
+                      </Tag>
+                    )}
+                  </div>
+                </List.Item>
+              );
+            }}
+          />
+        </div>
+      )}
 
       {/* 识别详情模态框 */}
       <RecognitionDetailModal

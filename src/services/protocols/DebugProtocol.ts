@@ -193,8 +193,25 @@ export class DebugProtocol extends BaseProtocol {
         return;
       }
 
-      const nodeIdInFlow = node_name ? this.fullNameToNodeId(node_name) : null;
-      if (node_name && !nodeIdInFlow) {
+      // 混合策略：
+      // 1. 节点执行事件：需要 Flow ID（用于断点、高亮、状态更新）
+      // 2. 识别事件：使用 label（用于识别记录展示）
+      // 3. next_list 事件：使用 label（用于 parentNode 记录）
+
+      const needsFlowId = [
+        "node_starting",
+        "node_succeeded",
+        "node_failed",
+        "action_succeeded",
+        "action_failed",
+        "debug_paused",
+      ].includes(event_name);
+
+      const nodeIdOrLabel = needsFlowId
+        ? this.fullNameToNodeId(node_name!)
+        : node_name;
+
+      if (needsFlowId && node_name && !nodeIdOrLabel) {
         console.warn(
           `[DebugProtocol] Cannot find node: "${node_name}" (event: ${event_name})`
         );
@@ -203,33 +220,38 @@ export class DebugProtocol extends BaseProtocol {
 
       switch (event_name) {
         case "node_starting":
-          this.handleNodeRunning(nodeIdInFlow!, timestamp, detail);
+          this.handleNodeRunning(nodeIdOrLabel!, timestamp, detail);
           break;
         case "node_succeeded":
-          this.handleV2NodeSucceeded(nodeIdInFlow!, timestamp, detail, latency);
+          this.handleV2NodeSucceeded(
+            nodeIdOrLabel!,
+            timestamp,
+            detail,
+            latency
+          );
           break;
         case "node_failed":
-          this.handleV2NodeFailed(nodeIdInFlow!, timestamp, detail, latency);
+          this.handleV2NodeFailed(nodeIdOrLabel!, timestamp, detail, latency);
           break;
         case "reco_starting":
-          this.handleRecognitionStarting(nodeIdInFlow!, timestamp, detail);
+          this.handleRecognitionStarting(nodeIdOrLabel!, timestamp, detail);
           break;
         case "reco_succeeded":
-          this.handleRecognitionSuccess(nodeIdInFlow!, timestamp, detail);
+          this.handleRecognitionSuccess(nodeIdOrLabel!, timestamp, detail);
           break;
         case "reco_failed":
-          this.handleRecognitionFailed(nodeIdInFlow!, timestamp, detail);
+          this.handleRecognitionFailed(nodeIdOrLabel!, timestamp, detail);
           break;
         case "action_starting":
           break;
         case "action_succeeded":
-          this.handleActionSuccess(nodeIdInFlow!, timestamp, detail);
+          this.handleActionSuccess(nodeIdOrLabel!, timestamp, detail);
           break;
         case "action_failed":
-          this.handleActionFailed(nodeIdInFlow!, timestamp, detail);
+          this.handleActionFailed(nodeIdOrLabel!, timestamp, detail);
           break;
         case "debug_paused":
-          this.handleV2DebugPaused(nodeIdInFlow!, timestamp, detail);
+          this.handleV2DebugPaused(nodeIdOrLabel!, timestamp, detail);
           break;
         case "debug_completed":
           this.handleV2DebugCompleted(timestamp);
@@ -437,21 +459,6 @@ export class DebugProtocol extends BaseProtocol {
 
     debugStore.handleDebugEvent({
       type: "node_execution_failed",
-      nodeId,
-      timestamp,
-      detail,
-    });
-  }
-
-  /**
-   * 处理 NextList 事件
-   * 当节点完成识别后，NextList 事件包含了即将要识别的节点列表
-   */
-  private handleNextList(nodeId: string, timestamp: number, detail: any): void {
-    const debugStore = useDebugStore.getState();
-
-    debugStore.handleDebugEvent({
-      type: "next_list",
       nodeId,
       timestamp,
       detail,
