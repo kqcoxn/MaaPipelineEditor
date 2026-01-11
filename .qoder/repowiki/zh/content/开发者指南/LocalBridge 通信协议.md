@@ -2,20 +2,20 @@
 
 <cite>
 **本文引用的文件**
-- [LocalBridge/internal/protocol/resource/handler.go](file://LocalBridge/internal/protocol/resource/handler.go)
-- [LocalBridge/internal/service/resource/resource_service.go](file://LocalBridge/internal/service/resource/resource_service.go)
-- [LocalBridge/pkg/models/resource.go](file://LocalBridge/pkg/models/resource.go)
-- [src/services/protocols/ResourceProtocol.ts](file://src/services/protocols/ResourceProtocol.ts)
-- [docsite/docs/01.指南/100.其他/10.通信协议.md](file://docsite/docs/01.指南/100.其他/10.通信协议.md)
+- [LocalBridge/internal/protocol/debug/handler_v2.go](file://LocalBridge/internal/protocol/debug/handler_v2.go)
+- [LocalBridge/internal/mfw/debug_service_v2.go](file://LocalBridge/internal/mfw/debug_service_v2.go)
+- [LocalBridge/internal/mfw/event_sink.go](file://LocalBridge/internal/mfw/event_sink.go)
 - [LocalBridge/internal/server/websocket.go](file://LocalBridge/internal/server/websocket.go)
-- [LocalBridge/internal/eventbus/eventbus.go](file://LocalBridge/internal/eventbus/eventbus.go)
 - [LocalBridge/internal/router/router.go](file://LocalBridge/internal/router/router.go)
+- [docsite/docs/01.指南/100.其他/10.通信协议.md](file://docsite/docs/01.指南/100.其他/10.通信协议.md)
 </cite>
 
 ## 更新摘要
 **变更内容**
-- 新增资源协议相关的 WebSocket 消息路径，包括 /etl/get_image、/etl/get_images、/etl/get_image_list、/etl/refresh_resources 及对应的 /lte/ 响应路径。
-- 补充了资源协议的处理流程、数据模型与前端实现要点，完善了资源包扫描、图片检索与图片列表生成的完整链路。
+- 新增调试协议 V2 的完整路由、消息格式与事件类型说明，覆盖会话管理、调试控制、数据查询与事件推送。
+- 明确 /mpe/debug/ 请求路由与 /lte/debug/ 响应路由的对应关系，补充错误响应与成功响应的消息结构。
+- 新增调试事件类型与事件数据字段，完善节点执行、识别、动作等事件的传输规范。
+- 补充调试协议的处理流程与前后端交互时序，完善协议参考与故障排查指引。
 
 ## 目录
 1. [简介](#简介)
@@ -30,231 +30,197 @@
 10. [附录](#附录)
 
 ## 简介
-本文档系统性梳理 LocalBridge（简称 LB）通信协议，覆盖连接管理、消息规范、文件协议、日志协议、事件总线、配置系统、CLI 应用以及前端 WebSocket 服务端实现。本次更新重点新增资源协议，涵盖资源包扫描、图片获取与图片列表生成的完整流程，新增的 WebSocket 路由包括：
-- /etl/get_image：请求单张图片
-- /etl/get_images：请求多张图片
-- /etl/get_image_list：请求图片列表
-- /etl/refresh_resources：刷新资源列表
-
-对应的响应路由为：
-- /lte/resource_bundles：推送资源包列表
-- /lte/image：推送单张图片
-- /lte/images：推送多张图片
-- /lte/image_list：推送图片列表
-
-**Section sources**
-- [docsite/docs/01.指南/100.其他/10.通信协议.md](file://docsite/docs/01.指南/100.其他/10.通信协议.md#L1-L166)
+本文档系统性梳理 LocalBridge（简称 LB）通信协议，覆盖连接管理、消息规范、文件协议、日志协议、事件总线、配置系统、CLI 应用以及前端 WebSocket 服务端实现。本次更新重点新增调试协议 V2，提供统一的 /mpe/debug/ 请求路由与 /lte/debug/ 响应路由，涵盖会话管理、调试控制、数据查询与事件推送，完善前端与本地服务之间的调试交互规范。
 
 ## 项目结构
-围绕资源协议的相关文件分布如下：
-- 协议处理器：LocalBridge/internal/protocol/resource/handler.go
-- 资源服务：LocalBridge/internal/service/resource/resource_service.go
-- 数据模型：LocalBridge/pkg/models/resource.go
-- 前端协议封装：src/services/protocols/ResourceProtocol.ts
-- 事件总线：LocalBridge/internal/eventbus/eventbus.go
+围绕调试协议 V2 的相关文件分布如下：
+- 协议处理器：LocalBridge/internal/protocol/debug/handler_v2.go
+- 调试服务：LocalBridge/internal/mfw/debug_service_v2.go
+- 事件总线：LocalBridge/internal/mfw/event_sink.go
 - WebSocket 服务器：LocalBridge/internal/server/websocket.go
 - 路由接口：LocalBridge/internal/router/router.go
 
 ```mermaid
 graph TB
 subgraph "前端"
-RP["ResourceProtocol.ts"]
+FE["前端应用"]
 end
 subgraph "本地服务"
-RS["resource_service.go"]
-RH["resource_handler.go"]
-EB["eventbus.go"]
 WS["websocket.go"]
-RT["router.go"]
+RH["handler_v2.go (/mpe/debug/*)"]
+DS["debug_service_v2.go (DebugServiceV2)"]
+SK["event_sink.go (SimpleContextSink)"]
 end
-RP --> WS
+FE --> WS
 WS --> RH
-RH --> RS
-RS --> EB
-EB --> WS
-WS --> RP
+RH --> DS
+DS --> SK
+SK --> DS
+DS --> RH
+RH --> WS
+WS --> FE
 ```
 
 **Diagram sources**
-- [src/services/protocols/ResourceProtocol.ts](file://src/services/protocols/ResourceProtocol.ts#L1-L281)
-- [LocalBridge/internal/protocol/resource/handler.go](file://LocalBridge/internal/protocol/resource/handler.go#L1-L272)
-- [LocalBridge/internal/service/resource/resource_service.go](file://LocalBridge/internal/service/resource/resource_service.go#L1-L337)
-- [LocalBridge/internal/eventbus/eventbus.go](file://LocalBridge/internal/eventbus/eventbus.go#L1-L81)
+- [LocalBridge/internal/protocol/debug/handler_v2.go](file://LocalBridge/internal/protocol/debug/handler_v2.go#L1-L491)
+- [LocalBridge/internal/mfw/debug_service_v2.go](file://LocalBridge/internal/mfw/debug_service_v2.go#L1-L409)
+- [LocalBridge/internal/mfw/event_sink.go](file://LocalBridge/internal/mfw/event_sink.go#L1-L365)
 - [LocalBridge/internal/server/websocket.go](file://LocalBridge/internal/server/websocket.go#L1-L214)
 - [LocalBridge/internal/router/router.go](file://LocalBridge/internal/router/router.go#L1-L80)
 
 ## 核心组件
-- **资源协议处理器（Handler）**
-  - 负责注册路由前缀（/etl/get_image、/etl/get_images、/etl/get_image_list、/etl/refresh_resources）。
-  - 根据消息路径分发到具体处理函数，返回 /lte/ 响应消息。
-  - 订阅连接建立与资源扫描完成事件，推送资源包列表。
-- **资源服务（Service）**
-  - 扫描根目录，识别资源包（包含 pipeline、image、model、default_pipeline.json 等特征）。
-  - 提供图片查找、图片列表生成、资源包列表查询等能力。
-- **数据模型（models/resource.go）**
-  - 定义资源包、图片请求/响应、图片列表请求/响应等结构体。
-- **前端协议封装（ResourceProtocol.ts）**
-  - 注册 /lte/ 响应路由，处理资源包列表、单张/批量图片与图片列表。
-  - 提供请求单张图片、批量图片、刷新资源列表、获取图片列表等 API。
+- **调试协议处理器（DebugHandlerV2）**
+  - 路由前缀：/mpe/debug/
+  - 负责会话管理、调试控制、数据查询与事件推送的路由分发与响应构造。
+  - 对外暴露 /lte/debug/ 响应路由，如 /lte/debug/session_created、/lte/debug/started、/lte/debug/event 等。
+- **调试服务（DebugServiceV2）**
+  - 会话生命周期管理：创建、销毁、列举、查询。
+  - 调试控制：启动/运行/停止任务，校验入口节点存在性，异步等待任务完成并上报结果。
+  - 状态查询：当前节点、上一个节点、暂停原因、最后错误、已执行节点计数等。
+- **事件总线（SimpleContextSink）**
+  - 事件类型：节点开始/成功/失败、识别开始/成功/失败、动作开始/成功/失败。
+  - 事件数据：包含节点名、节点 ID、任务 ID、识别 ID、动作 ID、时间戳、耗时、详情等。
+  - 事件转发：将事件转换为 /lte/debug/event 并通过连接发送给前端。
 
 **Section sources**
-- [LocalBridge/internal/protocol/resource/handler.go](file://LocalBridge/internal/protocol/resource/handler.go#L1-L272)
-- [LocalBridge/internal/service/resource/resource_service.go](file://LocalBridge/internal/service/resource/resource_service.go#L1-L337)
-- [LocalBridge/pkg/models/resource.go](file://LocalBridge/pkg/models/resource.go#L1-L67)
-- [src/services/protocols/ResourceProtocol.ts](file://src/services/protocols/ResourceProtocol.ts#L1-L281)
+- [LocalBridge/internal/protocol/debug/handler_v2.go](file://LocalBridge/internal/protocol/debug/handler_v2.go#L1-L491)
+- [LocalBridge/internal/mfw/debug_service_v2.go](file://LocalBridge/internal/mfw/debug_service_v2.go#L1-L409)
+- [LocalBridge/internal/mfw/event_sink.go](file://LocalBridge/internal/mfw/event_sink.go#L1-L365)
 
 ## 架构总览
-资源协议的交互流程如下：
-- 连接建立后，服务端推送 /lte/resource_bundles，前端更新资源包信息。
-- 前端请求 /etl/get_image 或 /etl/get_images，服务端读取图片并返回 /lte/image 或 /lte/images。
-- 前端请求 /etl/get_image_list，服务端根据 pipeline 路径决定是否过滤到当前资源包的图片，并返回 /lte/image_list。
-- 前端请求 /etl/refresh_resources，服务端重新扫描并推送最新的 /lte/resource_bundles。
+调试协议 V2 的交互流程如下：
+- 前端发送 /mpe/debug/create_session 或 /mpe/debug/start 创建并启动会话。
+- 本地服务创建 DebugSessionV2，注册 SimpleContextSink 事件监听器。
+- 任务运行期间，事件通过 /lte/debug/event 推送至前端。
+- 前端可查询会话信息、节点数据、截图等。
+- 任务完成后，服务端发送 /lte/debug/event 并更新会话状态。
 
 ```mermaid
 sequenceDiagram
-participant FE as "前端<br/>ResourceProtocol.ts"
-participant WS as "WebSocket 服务器<br/>websocket.go"
-participant RH as "资源协议处理器<br/>resource_handler.go"
-participant RS as "资源服务<br/>resource_service.go"
-participant EB as "事件总线<br/>eventbus.go"
-FE->>WS : 发送 /etl/get_image 或 /etl/get_images
+participant FE as "前端"
+participant WS as "WebSocket 服务器"
+participant RH as "调试协议处理器"
+participant DS as "调试服务"
+participant SK as "事件总线"
+FE->>WS : 发送 /mpe/debug/start 或 /mpe/debug/create_session
 WS->>RH : 路由分发
-RH->>RS : 读取图片/查找图片
-RS-->>RH : 返回图片数据
-RH-->>WS : 返回 /lte/image 或 /lte/images
-WS-->>FE : 推送 /lte/image 或 /lte/images
-FE->>WS : 发送 /etl/get_image_list
+RH->>DS : 创建/获取会话并运行任务
+DS->>SK : 注册事件监听器
+loop 任务执行
+SK-->>DS : 事件回调
+DS-->>RH : 事件数据
+RH-->>WS : 发送 /lte/debug/event
+WS-->>FE : 推送事件
+end
+FE->>WS : 查询会话/节点数据/截图
 WS->>RH : 路由分发
-RH->>RS : 获取图片列表可按 pipeline 过滤
-RS-->>RH : 返回图片列表
-RH-->>WS : 返回 /lte/image_list
-WS-->>FE : 推送 /lte/image_list
-FE->>WS : 发送 /etl/refresh_resources
-WS->>RH : 路由分发
-RH->>RS : 执行扫描
-RS-->>EB : 发布扫描完成事件
-EB-->>WS : 事件回调
-WS-->>FE : 推送 /lte/resource_bundles
+RH-->>WS : 返回 /lte/debug/* 响应
+WS-->>FE : 推送响应
 ```
 
 **Diagram sources**
-- [src/services/protocols/ResourceProtocol.ts](file://src/services/protocols/ResourceProtocol.ts#L1-L281)
-- [LocalBridge/internal/protocol/resource/handler.go](file://LocalBridge/internal/protocol/resource/handler.go#L1-L272)
-- [LocalBridge/internal/service/resource/resource_service.go](file://LocalBridge/internal/service/resource/resource_service.go#L1-L337)
-- [LocalBridge/internal/eventbus/eventbus.go](file://LocalBridge/internal/eventbus/eventbus.go#L1-L81)
+- [LocalBridge/internal/protocol/debug/handler_v2.go](file://LocalBridge/internal/protocol/debug/handler_v2.go#L1-L491)
+- [LocalBridge/internal/mfw/debug_service_v2.go](file://LocalBridge/internal/mfw/debug_service_v2.go#L1-L409)
+- [LocalBridge/internal/mfw/event_sink.go](file://LocalBridge/internal/mfw/event_sink.go#L1-L365)
 - [LocalBridge/internal/server/websocket.go](file://LocalBridge/internal/server/websocket.go#L1-L214)
 
 ## 详细组件分析
 
-### 资源协议处理器（resource_handler.go）
-- 路由前缀
-  - /etl/get_image：获取单张图片
-  - /etl/get_images：批量获取图片
-  - /etl/get_image_list：获取图片列表
-  - /etl/refresh_resources：刷新资源列表
-- 处理逻辑
-  - /etl/get_image：解析请求，调用 getImageData，返回 /lte/image。
-  - /etl/get_images：解析相对路径数组，逐个获取图片，返回 /lte/images。
-  - /etl/get_image_list：根据 pipeline_path 决定是否过滤到当前资源包，返回 /lte/image_list。
-  - /etl/refresh_resources：触发资源扫描，推送 /lte/resource_bundles。
-- 响应与错误
-  - 成功时返回对应 /lte/ 路由消息。
-  - 解析失败或读取失败时返回 /error 消息。
+### 调试协议处理器（handler_v2.go）
+- 路由前缀：/mpe/debug/
+- 会话管理
+  - /mpe/debug/create_session：创建会话，返回 /lte/debug/session_created。
+  - /mpe/debug/destroy_session：销毁会话，返回 /lte/debug/session_destroyed。
+  - /mpe/debug/list_sessions：列出会话，返回 /lte/debug/sessions。
+  - /mpe/debug/get_session：查询会话信息，返回 /lte/debug/session_info。
+- 调试控制
+  - /mpe/debug/start：自动创建会话并运行任务，返回 /lte/debug/started。
+  - /mpe/debug/run：运行任务，返回 /lte/debug/running。
+  - /mpe/debug/stop：停止调试，返回 /lte/debug/stopped。
+- 数据查询
+  - /mpe/debug/get_node_data：获取节点 JSON 数据，返回 /lte/debug/node_data。
+  - /mpe/debug/screencap：截图，返回 /lte/debug/screencap。
+- 错误处理
+  - 未知路由或参数缺失时，返回 /lte/debug/error。
 
 **Section sources**
-- [LocalBridge/internal/protocol/resource/handler.go](file://LocalBridge/internal/protocol/resource/handler.go#L1-L272)
+- [LocalBridge/internal/protocol/debug/handler_v2.go](file://LocalBridge/internal/protocol/debug/handler_v2.go#L1-L491)
 
-### 资源服务（resource_service.go）
-- 资源包识别
-  - 检查目录是否包含 pipeline、image、model 或 default_pipeline.json，满足其一即视为资源包。
-  - 记录资源包的绝对路径、相对路径、名称及 image 目录。
-- 图片查找
-  - 在所有资源包的 image 目录中按相对路径查找图片，返回绝对路径、资源包名与是否找到。
-- 图片列表生成
-  - 支持两种模式：
-    - 全局：遍历所有资源包的 image 目录，返回全部图片并标注来源。
-    - 过滤：根据 pipeline_path 查找所属资源包，仅返回该资源包的图片。
-- 资源包列表
-  - 返回根目录、资源包数组与 image 目录列表。
+### 调试服务（debug_service_v2.go）
+- 会话管理
+  - CreateSession：加载控制器、资源，初始化 Tasker，创建 DebugSessionV2，注册事件监听器。
+  - GetSession/DestroySession/ListSessions：会话查询、销毁与列举。
+- 调试控制
+  - RunTask：校验入口节点存在性，提交任务并异步等待完成，更新状态并上报结果事件。
+  - Stop：停止任务并重置状态。
+- 状态查询
+  - GetStatus/GetCurrentNode/GetLastNode/GetPauseReason/GetLastError/GetExecutedNodes/GetNodeJSON/GetAdapter：提供会话状态与节点数据查询能力。
 
 **Section sources**
-- [LocalBridge/internal/service/resource/resource_service.go](file://LocalBridge/internal/service/resource/resource_service.go#L1-L337)
+- [LocalBridge/internal/mfw/debug_service_v2.go](file://LocalBridge/internal/mfw/debug_service_v2.go#L1-L409)
 
-### 数据模型（resource.go）
-- 资源包信息：包含绝对路径、相对路径、名称、是否包含 pipeline/image/model、默认 pipeline 文件、image 目录等。
-- 资源包列表数据：根目录、资源包数组、image 目录数组。
-- 图片请求/响应：
-  - 单张：请求包含 relative_path；响应包含 success、relative_path、absolute_path、bundle_name、base64、mime_type、width、height、message。
-  - 批量：请求包含 relative_paths；响应包含 images 数组。
-- 图片列表请求/响应：
-  - 请求包含 pipeline_path（可选）；响应包含 images（每项含 relative_path、bundle_name）、bundle_name（当前资源包名，可选）、is_filtered（是否过滤）。
-
-**Section sources**
-- [LocalBridge/pkg/models/resource.go](file://LocalBridge/pkg/models/resource.go#L1-L67)
-
-### 前端实现要点（ResourceProtocol.ts）
-- 注册路由
-  - /lte/resource_bundles：更新本地资源包信息与 image 目录。
-  - /lte/image：缓存单张图片（base64、mime、尺寸、来源）。
-  - /lte/images：批量处理图片缓存。
-  - /lte/image_list：更新图片列表与过滤状态。
-- 请求 API
-  - requestImage：发送 /etl/get_image。
-  - requestImages：发送 /etl/get_images。
-  - requestRefreshResources：发送 /etl/refresh_resources。
-  - requestImageList：发送 /etl/get_image_list，携带 pipeline_path（可选）。
+### 事件总线（event_sink.go）
+- 事件类型
+  - 节点：node_starting、node_succeeded、node_failed
+  - 识别：reco_starting、reco_succeeded、reco_failed
+  - 动作：action_starting、action_succeeded、action_failed
+- 事件数据字段
+  - type、timestamp、node_name、node_id、task_id、reco_id、action_id、latency(ms)、detail
+- 事件转发
+  - 将事件转换为 /lte/debug/event 并通过连接发送给前端。
 
 **Section sources**
-- [src/services/protocols/ResourceProtocol.ts](file://src/services/protocols/ResourceProtocol.ts#L1-L281)
+- [LocalBridge/internal/mfw/event_sink.go](file://LocalBridge/internal/mfw/event_sink.go#L1-L365)
 
 ## 依赖关系分析
-- 协议处理器依赖资源服务与事件总线，负责消息分发与响应。
-- 资源服务依赖事件总线发布扫描完成事件，驱动前端更新。
-- 前端协议封装依赖 WebSocket 服务器进行消息收发。
-- 路由接口定义处理器的路由前缀，保证协议一致性。
+- 协议处理器依赖调试服务与事件总线，负责消息分发与响应构造。
+- 调试服务依赖事件总线进行事件监听与转发。
+- WebSocket 服务器与路由接口确保协议一致性与消息路由。
+- 前端通过 /lte/debug/* 路由接收事件与响应。
 
 ```mermaid
 graph LR
-RH["resource_handler.go"] --> RS["resource_service.go"]
-RH --> EB["eventbus.go"]
-RS --> EB
-WS["websocket.go"] --> RH
-RP["ResourceProtocol.ts"] --> WS
+RH["handler_v2.go"] --> DS["debug_service_v2.go"]
+RH --> WS["websocket.go"]
+DS --> SK["event_sink.go"]
+WS --> RH
 RT["router.go"] --> RH
 ```
 
 **Diagram sources**
-- [LocalBridge/internal/protocol/resource/handler.go](file://LocalBridge/internal/protocol/resource/handler.go#L1-L272)
-- [LocalBridge/internal/service/resource/resource_service.go](file://LocalBridge/internal/service/resource/resource_service.go#L1-L337)
-- [LocalBridge/internal/eventbus/eventbus.go](file://LocalBridge/internal/eventbus/eventbus.go#L1-L81)
+- [LocalBridge/internal/protocol/debug/handler_v2.go](file://LocalBridge/internal/protocol/debug/handler_v2.go#L1-L491)
+- [LocalBridge/internal/mfw/debug_service_v2.go](file://LocalBridge/internal/mfw/debug_service_v2.go#L1-L409)
+- [LocalBridge/internal/mfw/event_sink.go](file://LocalBridge/internal/mfw/event_sink.go#L1-L365)
 - [LocalBridge/internal/server/websocket.go](file://LocalBridge/internal/server/websocket.go#L1-L214)
 - [LocalBridge/internal/router/router.go](file://LocalBridge/internal/router/router.go#L1-L80)
-- [src/services/protocols/ResourceProtocol.ts](file://src/services/protocols/ResourceProtocol.ts#L1-L281)
 
 ## 性能考量
-- 图片读取与编码：Base64 编码与尺寸解析可能带来 CPU 与内存开销，建议前端缓存与去重请求。
-- 批量请求：/etl/get_images 可显著降低往返次数，提升加载效率。
-- 资源扫描：扫描多层级目录与大量文件时，建议限制扫描深度与忽略目录，避免阻塞。
+- 事件频率：节点/识别/动作事件可能频繁产生，建议前端按需订阅与去重展示。
+- 截图传输：Base64 图像数据较大，建议前端缓存与按需请求。
+- 任务并发：避免同时发起多个长耗时任务，合理控制会话数量。
 
 [本节为通用指导，不直接分析具体文件]
 
 ## 故障排查指南
-- 图片未找到
-  - 检查 relative_path 是否正确，确认资源包内 image 目录结构。
-- 读取失败
-  - 检查文件权限与路径有效性，查看 /lte/image 响应中的 message 字段。
-- 资源包列表不更新
-  - 确认 /etl/refresh_resources 已发送，服务端是否成功扫描并推送 /lte/resource_bundles。
-- 图片列表为空
-  - 若提供了 pipeline_path，确认其是否位于某个资源包内；否则返回全部图片。
+- 服务未初始化
+  - 现象：收到 /lte/debug/error，提示“MaaFramework 未初始化”。
+  - 处理：先初始化 MFW 服务再发起调试请求。
+- 参数缺失
+  - 现象：收到 /lte/debug/error，提示缺少必需参数。
+  - 处理：检查 resource_path、controller_id、session_id、entry 等参数。
+- 会话不存在
+  - 现象：查询会话或操作会话时报错。
+  - 处理：确认会话 ID 是否正确，或重新创建会话。
+- 入口节点不存在
+  - 现象：运行任务时报错，提示入口节点不存在。
+  - 处理：检查资源路径与节点名称是否匹配。
 
 **Section sources**
-- [LocalBridge/internal/protocol/resource/handler.go](file://LocalBridge/internal/protocol/resource/handler.go#L1-L272)
-- [LocalBridge/internal/service/resource/resource_service.go](file://LocalBridge/internal/service/resource/resource_service.go#L1-L337)
-- [src/services/protocols/ResourceProtocol.ts](file://src/services/protocols/ResourceProtocol.ts#L1-L281)
+- [LocalBridge/internal/protocol/debug/handler_v2.go](file://LocalBridge/internal/protocol/debug/handler_v2.go#L1-L491)
+- [LocalBridge/internal/mfw/debug_service_v2.go](file://LocalBridge/internal/mfw/debug_service_v2.go#L1-L409)
 
 ## 结论
-资源协议为编辑器与本地服务之间的图片与资源包交互提供了标准化通道。通过统一的 /etl/* 请求与 /lte/* 响应，前端可高效获取图片、浏览图片列表并管理资源包。配合事件总线与 WebSocket 服务器，实现了低延迟、可扩展的资源管理能力。
+调试协议 V2 为编辑器与本地服务之间的流程级调试提供了标准化通道。通过统一的 /mpe/debug/ 请求与 /lte/debug/ 响应，前端可高效创建会话、运行/停止任务、查询节点数据与截图，并实时接收节点执行、识别与动作事件，从而实现可视化调试与问题定位。
 
 [本节为总结，不直接分析具体文件]
 
@@ -265,29 +231,92 @@ RT["router.go"] --> RH
   - 协议：WebSocket；默认端口：9066；连接超时：3 秒。
 - 消息规范
   - 统一 JSON 结构：{path, data}。
-- 资源协议
-  - 请求路由：
-    - /etl/get_image：请求单张图片（data: {relative_path}）
-    - /etl/get_images：请求多张图片（data: {relative_paths}）
-    - /etl/get_image_list：请求图片列表（data: {pipeline_path?}）
-    - /etl/refresh_resources：刷新资源列表（data: {}）
-  - 响应路由：
-    - /lte/resource_bundles：推送资源包列表（data: {root, bundles, image_dirs}）
-    - /lte/image：推送单张图片（data: {success, relative_path, absolute_path?, bundle_name?, base64?, mime_type?, width?, height?, message?}）
-    - /lte/images：推送多张图片（data: {images: [...]}）
-    - /lte/image_list：推送图片列表（data: {images: [{relative_path, bundle_name}], bundle_name?, is_filtered?}）
+- 调试协议 V2
+  - 请求路由（/mpe/debug/*）
+    - 会话管理：create_session、destroy_session、list_sessions、get_session
+    - 调试控制：start、run、stop
+    - 数据查询：get_node_data、screencap
+  - 响应路由（/lte/debug/*）
+    - 会话管理：session_created、session_destroyed、sessions、session_info
+    - 调试控制：started、running、stopped
+    - 数据查询：node_data、screencap
+    - 事件推送：event
+    - 错误响应：error
 
 **Section sources**
 - [docsite/docs/01.指南/100.其他/10.通信协议.md](file://docsite/docs/01.指南/100.其他/10.通信协议.md#L1-L166)
-- [LocalBridge/internal/protocol/resource/handler.go](file://LocalBridge/internal/protocol/resource/handler.go#L1-L272)
-- [LocalBridge/internal/service/resource/resource_service.go](file://LocalBridge/internal/service/resource/resource_service.go#L1-L337)
-- [LocalBridge/pkg/models/resource.go](file://LocalBridge/pkg/models/resource.go#L1-L67)
-- [src/services/protocols/ResourceProtocol.ts](file://src/services/protocols/ResourceProtocol.ts#L1-L281)
+- [LocalBridge/internal/protocol/debug/handler_v2.go](file://LocalBridge/internal/protocol/debug/handler_v2.go#L1-L491)
 
-### 前端实现要点
-- 注册 /lte/ 响应路由，处理资源包列表、单张/批量图片与图片列表。
-- 提供 requestImage、requestImages、requestRefreshResources、requestImageList 等 API。
-- 建议前端实现图片缓存与去重请求，提升加载性能。
+### 调试协议 V2 路由与消息格式
+
+#### 会话管理
+- /mpe/debug/create_session
+  - 请求数据：{resource_path, controller_id}
+  - 响应：/lte/debug/session_created {success, session_id}
+- /mpe/debug/destroy_session
+  - 请求数据：{session_id}
+  - 响应：/lte/debug/session_destroyed {success, session_id}
+- /mpe/debug/list_sessions
+  - 请求数据：{}
+  - 响应：/lte/debug/sessions {success, sessions: [{session_id, resource_path, entry_node, status, created_at}]}
+- /mpe/debug/get_session
+  - 请求数据：{session_id}
+  - 响应：/lte/debug/session_info {success, session_id, resource_path, entry_node, status, current_node, last_node, pause_reason, executed_nodes}
 
 **Section sources**
-- [src/services/protocols/ResourceProtocol.ts](file://src/services/protocols/ResourceProtocol.ts#L1-L281)
+- [LocalBridge/internal/protocol/debug/handler_v2.go](file://LocalBridge/internal/protocol/debug/handler_v2.go#L85-L206)
+- [LocalBridge/internal/mfw/debug_service_v2.go](file://LocalBridge/internal/mfw/debug_service_v2.go#L145-L185)
+
+#### 调试控制
+- /mpe/debug/start
+  - 请求数据：{resource_path, entry, controller_id}
+  - 响应：/lte/debug/started {success, session_id}
+- /mpe/debug/run
+  - 请求数据：{session_id, entry}
+  - 响应：/lte/debug/running {success, session_id, entry}
+- /mpe/debug/stop
+  - 请求数据：{session_id}
+  - 响应：/lte/debug/stopped {success, session_id}
+
+**Section sources**
+- [LocalBridge/internal/protocol/debug/handler_v2.go](file://LocalBridge/internal/protocol/debug/handler_v2.go#L214-L336)
+- [LocalBridge/internal/mfw/debug_service_v2.go](file://LocalBridge/internal/mfw/debug_service_v2.go#L192-L249)
+
+#### 数据查询
+- /mpe/debug/get_node_data
+  - 请求数据：{session_id, node_name}
+  - 响应：/lte/debug/node_data {success, node_name, node_data}
+- /mpe/debug/screencap
+  - 请求数据：{session_id}
+  - 响应：/lte/debug/screencap {success, session_id, image_data}
+
+**Section sources**
+- [LocalBridge/internal/protocol/debug/handler_v2.go](file://LocalBridge/internal/protocol/debug/handler_v2.go#L343-L415)
+- [LocalBridge/internal/mfw/debug_service_v2.go](file://LocalBridge/internal/mfw/debug_service_v2.go#L303-L305)
+
+#### 事件推送
+- /lte/debug/event
+  - 数据字段：{event_name, session_id, node_name, node_id, task_id, reco_id, action_id, timestamp, latency, detail}
+  - 事件类型：
+    - 节点：node_starting、node_succeeded、node_failed
+    - 识别：reco_starting、reco_succeeded、reco_failed
+    - 动作：action_starting、action_succeeded、action_failed
+
+**Section sources**
+- [LocalBridge/internal/protocol/debug/handler_v2.go](file://LocalBridge/internal/protocol/debug/handler_v2.go#L460-L489)
+- [LocalBridge/internal/mfw/event_sink.go](file://LocalBridge/internal/mfw/event_sink.go#L19-L51)
+
+#### 错误响应
+- /lte/debug/error
+  - 数据字段：{success=false, error}
+
+**Section sources**
+- [LocalBridge/internal/protocol/debug/handler_v2.go](file://LocalBridge/internal/protocol/debug/handler_v2.go#L431-L440)
+
+### 前端实现要点
+- 注册 /lte/debug/* 响应路由，处理会话信息、事件、节点数据与截图。
+- 提供创建会话、启动/运行/停止任务、查询节点数据与截图的 API。
+- 建议前端实现事件去重、节点计数统计与截图缓存，提升调试体验。
+
+**Section sources**
+- [LocalBridge/internal/protocol/debug/handler_v2.go](file://LocalBridge/internal/protocol/debug/handler_v2.go#L1-L491)
