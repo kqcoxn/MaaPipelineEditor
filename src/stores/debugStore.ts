@@ -140,7 +140,7 @@ interface DebugState {
     key: "resourcePath" | "entryNode" | "logLevel",
     value: any
   ) => void;
-  startDebug: () => void;
+  startDebug: () => Promise<void>;
   stopDebug: () => void;
   updateExecutionState: (
     nodeId: string,
@@ -210,13 +210,67 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
     set({ [key]: value });
   },
 
-  startDebug: () => {
+  startDebug: async () => {
     const state = get();
     const controllerId = useMFWStore.getState().controllerId;
 
     if (!state.resourcePath || !state.entryNode || !controllerId) {
       set({ error: "请先配置资源路径、入口节点和控制器" });
       return;
+    }
+
+    // 检查是否需要在调试前保存文件
+    const { useConfigStore } = await import("./configStore");
+    const { useFileStore } = await import("./fileStore");
+    const { localServer } = await import("../services/server");
+    const { message } = await import("antd");
+
+    const saveFilesBeforeDebug =
+      useConfigStore.getState().configs.saveFilesBeforeDebug;
+    const fileStore = useFileStore.getState();
+
+    if (saveFilesBeforeDebug && localServer.isConnected()) {
+      // 获取所有带有 filePath 的文件
+      const filesToSave = fileStore.files.filter(
+        (file) => file.config.filePath && !file.config.isDeleted
+      );
+
+      if (filesToSave.length > 0) {
+        // 保存当前文件到 files 数组
+        const { saveFlow } = await import("./fileStore");
+        saveFlow();
+
+        // 批量保存所有文件
+        let savedCount = 0;
+        let failedCount = 0;
+
+        for (const file of filesToSave) {
+          try {
+            const success = await fileStore.saveFileToLocal(
+              file.config.filePath
+            );
+            if (success) {
+              savedCount++;
+            } else {
+              failedCount++;
+            }
+          } catch (error) {
+            console.error(
+              `[debugStore] Failed to save file: ${file.fileName}`,
+              error
+            );
+            failedCount++;
+          }
+        }
+
+        if (savedCount > 0) {
+          message.success(`已保存 ${savedCount} 个文件`);
+        }
+
+        if (failedCount > 0) {
+          message.warning(`${failedCount} 个文件保存失败`);
+        }
+      }
     }
 
     set({

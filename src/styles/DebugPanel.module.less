@@ -87,10 +87,16 @@
   }
 }
 
+.debug-config-field-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
 .debug-config-field-label {
   font-size: 13px;
   color: var(--text-primary);
-  margin-bottom: 8px;
   font-weight: 500;
   display: flex;
   align-items: center;
@@ -102,6 +108,14 @@
     margin-right: 6px;
     line-height: 1;
   }
+}
+
+.debug-config-field-tip {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  line-height: 1.5;
+  opacity: 0.8;
 }
 
 .debug-config-input {

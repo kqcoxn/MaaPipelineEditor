@@ -1,5 +1,14 @@
 import { memo, useMemo, useState, useEffect } from "react";
-import { message, Select, Tag, Button, Dropdown, Tooltip, Popover } from "antd";
+import {
+  message,
+  Select,
+  Tag,
+  Button,
+  Dropdown,
+  Tooltip,
+  Popover,
+  Switch,
+} from "antd";
 import classNames from "classnames";
 import IconFont from "../../iconfonts";
 import { type IconNames } from "../../iconfonts";
@@ -8,6 +17,7 @@ import { useDebugStore } from "../../../stores/debugStore";
 import { useMFWStore } from "../../../stores/mfwStore";
 import { useFileStore } from "../../../stores/fileStore";
 import { useToolbarStore } from "../../../stores/toolbarStore";
+import { useConfigStore } from "../../../stores/configStore";
 import {
   debugProtocol,
   configProtocol,
@@ -30,6 +40,10 @@ function DebugPanel() {
   const toggleRecognitionPanel = useToolbarStore(
     (state) => state.toggleRecognitionPanel
   );
+  const saveFilesBeforeDebug = useConfigStore(
+    (state) => state.configs.saveFilesBeforeDebug
+  );
+  const setConfig = useConfigStore((state) => state.setConfig);
   const {
     debugStatus,
     sessionId,
@@ -43,7 +57,7 @@ function DebugPanel() {
     executionHistory,
     startDebug,
     stopDebug,
-    setConfig,
+    setConfig: setDebugConfig,
   } = useDebugStore(
     useShallow((state) => ({
       debugStatus: state.debugStatus,
@@ -96,7 +110,7 @@ function DebugPanel() {
               data.config.file?.root || data.config.maafw?.resource_dir || "";
 
             if (resourcePath) {
-              setConfig("resourcePath", resourcePath);
+              setDebugConfig("resourcePath", resourcePath);
             } else {
               console.warn(
                 "[DebugPanel] Backend config invalid or resource paths not set"
@@ -111,7 +125,7 @@ function DebugPanel() {
         }
       );
     }
-  }, [connectionStatus, resourcePath, setConfig]);
+  }, [connectionStatus, resourcePath, setDebugConfig]);
 
   // 监听打开日志结果
   useEffect(() => {
@@ -171,7 +185,7 @@ function DebugPanel() {
           <input
             type="text"
             value={resourcePath}
-            onChange={(e) => setConfig("resourcePath", e.target.value)}
+            onChange={(e) => setDebugConfig("resourcePath", e.target.value)}
             placeholder="请输入资源路径"
             className={debugStyle["debug-config-input"]}
           />
@@ -182,13 +196,30 @@ function DebugPanel() {
             style={{ width: "100%" }}
             placeholder="选择入口节点"
             value={entryNode || undefined}
-            onChange={(value) => setConfig("entryNode", value)}
+            onChange={(value) => setDebugConfig("entryNode", value)}
             options={nodeOptions}
             showSearch
             filterOption={(input, option) =>
               (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
             }
           />
+        </div>
+      </div>
+      <div className={debugStyle["debug-config-section"]}>
+        <div className={debugStyle["debug-config-section-title"]}>调试设置</div>
+        <div className={debugStyle["debug-config-field"]}>
+          <div className={debugStyle["debug-config-field-row"]}>
+            <div className={debugStyle["debug-config-field-label"]}>
+              调试前保存所有文件
+            </div>
+            <Switch
+              checked={saveFilesBeforeDebug}
+              onChange={(checked) => setConfig("saveFilesBeforeDebug", checked)}
+            />
+          </div>
+          <div className={debugStyle["debug-config-field-tip"]}>
+            自动保存当前 tab 栏中所有文件到本地
+          </div>
         </div>
       </div>
     </div>
@@ -211,7 +242,7 @@ function DebugPanel() {
       iconSize: 24,
       label: "开始调试",
       disabled: debugStatus !== "idle" || connectionStatus !== "connected",
-      onClick: () => {
+      onClick: async () => {
         if (!resourcePath) {
           message.error("请先配置资源路径");
           return;
@@ -225,8 +256,8 @@ function DebugPanel() {
           return;
         }
 
-        // 调用 debugStore 更新状态
-        startDebug();
+        // 调用 debugStore 更新状态并保存文件
+        await startDebug();
 
         // 将节点 ID 转换为 pipeline 中的节点名称
         const entryNodeFullName = nodeIdToFullName(entryNode);

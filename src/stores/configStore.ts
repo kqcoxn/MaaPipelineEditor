@@ -40,6 +40,7 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   fieldPanelMode: "panel",
   inlinePanelScale: "panel",
   showNodeTemplateImages: "panel",
+  saveFilesBeforeDebug: "panel",
   // 本地通信配置
   wsPort: "communication",
   wsAutoConnect: "communication",
@@ -94,6 +95,7 @@ type ConfigState = {
     wsPort: number;
     wsAutoConnect: boolean;
     fileAutoReload: boolean;
+    saveFilesBeforeDebug: boolean;
     // AI 配置
     aiApiUrl: string;
     aiApiKey: string;
@@ -145,6 +147,7 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     wsPort: 9066,
     wsAutoConnect: false,
     fileAutoReload: false,
+    saveFilesBeforeDebug: true,
     // AI 配置
     aiApiUrl: "",
     aiApiKey: "",

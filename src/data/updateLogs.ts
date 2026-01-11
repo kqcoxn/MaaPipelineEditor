@@ -41,23 +41,23 @@ export const pinnedNotice: PinnedNotice = {
   type: "info",
   content: [
     "**正式版 LocalBridge🌉 已上线**！目前已全面支持**本地文档管理**与**字段快捷填充**（OCR、图片裁剪等）功能，**仅需一行指令即可下载安装**，我们十分推荐您尝试，详情可查阅 [本地服务文档](https://mpe.codax.site/docs/guide/server/deploy.html)",
+    "调试功能正在完善中，目前可用进度50%（待完成：agent 连接、跨文件显示）",
   ],
 };
 
 export const updateLogs: UpdateLogItem[] = [
   {
-    version: "0.14.3",
-    date: "2026-1",
+    version: "0.15.0",
+    date: "2026-1-11",
     type: "feature",
     updates: {
       features: [
-        "🐞 调试功能现已完全重构，为您带来全新的流程图调试体验！",
         "🐛 现在可以节点级灵活调整端点位置了，上下左右任意搭配，可持久化",
         "🖼 连接 LB 服务后支持现代风格节点与 template 悬停显示图片（节点显示可配置是否启用，默认关闭）",
         "🎯 Template 字段连接 LB 后支持图片文件快速选择，搭配截图小工具灵活处理新旧图片",
+        "📥 调试启动前自动保存所有打开的文件到本地（默认开启，可在调试配置中关闭）",
       ],
-      perfs: [],
-      fixes: [],
+      perfs: ["🐞 重构调试功能，现在可更清晰的查看节点执行情况"],
     },
   },
   {
