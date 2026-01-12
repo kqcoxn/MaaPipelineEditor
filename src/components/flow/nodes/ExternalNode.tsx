@@ -1,9 +1,5 @@
 import { memo, useMemo, useState } from "react";
-import {
-  type Node,
-  type NodeProps,
-  useReactFlow,
-} from "@xyflow/react";
+import { type Node, type NodeProps, useReactFlow } from "@xyflow/react";
 import classNames from "classnames";
 import { useShallow } from "zustand/shallow";
 
@@ -19,7 +15,9 @@ import { ExternalNodeHandles } from "./components/NodeHandles";
 const ENodeContent = memo(({ data }: { data: ExternalNodeDataType }) => {
   return (
     <>
-      <div className={style.title}>{data.label}</div>
+      <div className={style.title}>
+        <span className={style["title-text"]}>{data.label}</span>
+      </div>
       <ExternalNodeHandles direction={data.handleDirection} />
     </>
   );

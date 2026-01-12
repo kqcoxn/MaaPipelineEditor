@@ -82,3 +82,63 @@
     }
   }
 }
+
+:global {
+  // 下拉选项允许换行
+  .ant-select-dropdown .ant-select-item-option-content {
+    white-space: normal;
+  }
+
+  // 强制限制 AutoComplete 输入框高度
+  .ant-select-auto-complete {
+    .ant-select-selector {
+      min-height: 32px !important;
+      max-height: 32px !important;
+      height: 32px !important;
+
+      .ant-select-selection-search {
+        height: 32px !important;
+        line-height: 32px !important;
+
+        input {
+          height: 30px !important;
+          line-height: 30px !important;
+        }
+      }
+
+      .ant-select-selection-item {
+        line-height: 30px !important;
+        // 选中项超长显示省略号
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+  }
+
+  // 大尺寸 AutoComplete
+  .ant-select-auto-complete.ant-select-lg {
+    .ant-select-selector {
+      min-height: 40px !important;
+      max-height: 40px !important;
+      height: 40px !important;
+
+      .ant-select-selection-search {
+        height: 40px !important;
+        line-height: 40px !important;
+
+        input {
+          height: 38px !important;
+          line-height: 38px !important;
+        }
+      }
+
+      .ant-select-selection-item {
+        line-height: 38px !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+  }
+}

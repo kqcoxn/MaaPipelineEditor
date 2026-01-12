@@ -13,7 +13,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "reset": "git reset --soft HEAD~1",
-    "release": "vite build && git tag -a v0.15.2 -m \"v0.15.2\" && git push origin v0.15.2"
+    "release": "vite build && git tag -a v0.15.3 -m \"v0.15.3\" && git push origin v0.15.3"
   },
   "dependencies": {
     "@ant-design/icons": "6",

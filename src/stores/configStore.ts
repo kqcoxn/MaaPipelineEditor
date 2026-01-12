@@ -4,7 +4,7 @@ import type { HandleDirection } from "../components/flow/nodes/constants";
 /**固有配置 */
 export const globalConfig = {
   dev: true,
-  version: `0.15.2`,
+  version: `0.16.0`,
   betaIteration: 1,
   mfwVersion: "5.3",
   protocolVersion: "0.3",
@@ -45,6 +45,7 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   wsPort: "communication",
   wsAutoConnect: "communication",
   fileAutoReload: "communication",
+  enableCrossFileSearch: "communication",
   // AI 配置
   aiApiUrl: "ai",
   aiApiKey: "ai",
@@ -104,6 +105,8 @@ type ConfigState = {
     focusOpacity: number;
     // 边控制点
     showEdgeControlPoint: boolean;
+    // 启用跨文件搜索
+    enableCrossFileSearch: boolean;
     // 画布背景模式
     canvasBackgroundMode: CanvasBackgroundMode;
     // 字段面板模式
@@ -148,6 +151,7 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     wsAutoConnect: false,
     fileAutoReload: false,
     saveFilesBeforeDebug: true,
+    enableCrossFileSearch: true,
     // AI 配置
     aiApiUrl: "",
     aiApiKey: "",

@@ -1,12 +1,22 @@
 import { create } from "zustand";
 
 /**
+ * 文件节点信息
+ */
+export type FileNodeInfo = {
+  label: string; // 节点标签
+  prefix: string; // 前缀
+};
+
+/**
  * 本地文件信息
  */
 export type LocalFileInfo = {
   file_path: string; // 绝对路径
   file_name: string; // 文件名
   relative_path: string; // 相对路径
+  nodes: FileNodeInfo[]; // 节点列表
+  prefix: string; // 文件前缀
 };
 
 /**

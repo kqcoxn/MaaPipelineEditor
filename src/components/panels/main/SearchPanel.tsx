@@ -6,18 +6,27 @@ import classNames from "classnames";
 import { useDebounceFn } from "ahooks";
 import IconFont from "../../iconfonts";
 import { useFlowStore, type NodeType } from "../../../stores/flow";
+import { useConfigStore } from "../../../stores/configStore";
 import { OpenAIChat } from "../../../utils/openai";
 import { NodeTypeEnum } from "../../flow/nodes";
+import {
+  crossFileService,
+  type CrossFileNodeInfo,
+} from "../../../services/crossFileService";
 
 /**搜索工具 */
 function SearchPanel() {
   // store
   const nodes = useFlowStore((state) => state.nodes);
   const instance = useFlowStore((state) => state.instance);
+  const enableCrossFileSearch = useConfigStore(
+    (state) => state.configs.enableCrossFileSearch
+  );
 
   // 状态
   const [searchValue, setSearchValue] = useState("");
   const [options, setOptions] = useState<AutoCompleteProps["options"]>([]);
+  const [searchResults, setSearchResults] = useState<CrossFileNodeInfo[]>([]);
   const [isFocused, setIsFocused] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [aiSearching, setAiSearching] = useState(false);
@@ -34,21 +43,32 @@ function SearchPanel() {
     (value: string) => {
       if (!value.trim()) {
         setOptions([]);
+        setSearchResults([]);
         return;
       }
 
-      const labels = getAllNodeLabels();
-      const filtered = labels
-        .filter((label) => label.toLowerCase().includes(value.toLowerCase()))
-        .slice(0, 5)
-        .map((label) => ({ value: label, label }));
+      // 使用跨文件搜索服务
+      const results = crossFileService.searchNodes(value, {
+        crossFile: enableCrossFileSearch,
+        limit: 10,
+      });
+
+      setSearchResults(results);
+
+      // 渲染选项，显示文件路径提示
+      const filtered = results.map((node, index) => ({
+        value: `${node.label}__${index}`,
+        label: node.label,
+        nodeName: node.label,
+        filePath: node.isCurrentFile ? "当前文件" : node.relativePath,
+      }));
       setOptions(filtered);
     },
     { wait: 300 }
   );
 
   // 选中节点并聚焦
-  const focusNode = useCallback(
+  const focusNodeInCurrentFile = useCallback(
     (label: string) => {
       const targetNode = nodes.find(
         (node: NodeType) => node.data.label === label
@@ -81,26 +101,72 @@ function SearchPanel() {
       // 关闭下拉提示，但不清空内容
       setIsOpen(false);
       setOptions([]);
+      setSearchResults([]);
     },
     [nodes, instance]
   );
 
+  // 跨文件跳转到节点
+  const navigateToNode = useCallback(async (nodeInfo: CrossFileNodeInfo) => {
+    const success = await crossFileService.navigateToNode(nodeInfo);
+    if (success) {
+      message.success(
+        nodeInfo.isCurrentFile
+          ? `已定位到节点: ${nodeInfo.label}`
+          : `已跳转到 ${nodeInfo.relativePath} 并定位节点: ${nodeInfo.label}`
+      );
+    } else {
+      message.warning("跳转失败");
+    }
+    setIsOpen(false);
+    setOptions([]);
+    setSearchResults([]);
+  }, []);
+
   // 处理选择
   const handleSelect = useCallback(
     (value: string) => {
-      focusNode(value);
+      // 从 value 中解析出索引（格式：label__index）
+      const match = value.match(/^(.+)__([0-9]+)$/);
+      if (match) {
+        const index = parseInt(match[2], 10);
+        const nodeInfo = searchResults[index];
+        if (nodeInfo) {
+          // 清空输入框
+          setSearchValue("");
+          navigateToNode(nodeInfo);
+          return;
+        }
+      }
+      // 兜底：直接在当前文件搜索
+      setSearchValue("");
+      focusNodeInCurrentFile(value);
     },
-    [focusNode]
+    [searchResults, navigateToNode, focusNodeInCurrentFile]
   );
 
   // 普通搜索
   const handleSearchClick = useCallback(() => {
     if (searchValue.trim()) {
-      focusNode(searchValue.trim());
+      // 如果有搜索结果，跳转到第一个
+      if (searchResults.length > 0) {
+        navigateToNode(searchResults[0]);
+      } else {
+        // 没有结果时执行即时搜索
+        const results = crossFileService.searchNodes(searchValue.trim(), {
+          crossFile: enableCrossFileSearch,
+          limit: 1,
+        });
+        if (results.length > 0) {
+          navigateToNode(results[0]);
+        } else {
+          message.warning("未找到该节点");
+        }
+      }
     } else {
       message.info("请输入节点名称");
     }
-  }, [searchValue, focusNode]);
+  }, [searchValue, searchResults, enableCrossFileSearch, navigateToNode]);
 
   // 构建节点上下文信息
   const buildNodesContext = useCallback(() => {
@@ -192,14 +258,14 @@ ${JSON.stringify(nodesContext, null, 2)}`;
       }
 
       // 定位到节点
-      focusNode(response);
+      focusNodeInCurrentFile(response);
     } catch (error: any) {
       message.error(`AI搜索异常: ${error.message || "未知错误"}`);
     } finally {
       setAiSearching(false);
       aiChatRef.current = null;
     }
-  }, [searchValue, buildNodesContext, focusNode]);
+  }, [searchValue, buildNodesContext, focusNodeInCurrentFile]);
 
   // 处理输入变化
   const handleChange = useCallback(
@@ -218,10 +284,15 @@ ${JSON.stringify(nodesContext, null, 2)}`;
     (e: React.KeyboardEvent) => {
       if (e.key === "Enter" && searchValue.trim()) {
         e.preventDefault();
-        focusNode(searchValue.trim());
+        // 如果有搜索结果，跳转到第一个
+        if (searchResults.length > 0) {
+          navigateToNode(searchResults[0]);
+        } else {
+          focusNodeInCurrentFile(searchValue.trim());
+        }
       }
     },
-    [searchValue, focusNode]
+    [searchValue, searchResults, navigateToNode, focusNodeInCurrentFile]
   );
 
   // 焦点不在时关闭下拉
@@ -230,6 +301,7 @@ ${JSON.stringify(nodesContext, null, 2)}`;
       const timer = setTimeout(() => {
         setIsOpen(false);
         setOptions([]);
+        setSearchResults([]);
       }, 200);
       return () => clearTimeout(timer);
     }
@@ -257,6 +329,15 @@ ${JSON.stringify(nodesContext, null, 2)}`;
         placeholder="搜索节点..."
         size="large"
         allowClear
+        // 自定义下拉选项渲染
+        optionRender={(option) => (
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <span style={{ fontWeight: 500 }}>{option.data.nodeName}</span>
+            <span style={{ color: "#888", fontSize: 12 }}>
+              {option.data.filePath}
+            </span>
+          </div>
+        )}
       />
       <div className={style["search-buttons"]}>
         <Tooltip placement="bottom" title="搜索节点">
