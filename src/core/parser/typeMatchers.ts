@@ -61,6 +61,7 @@ function matchSingleType(value: any, type: FieldTypeEnum): any {
 
       // 字符串
       case FieldTypeEnum.String:
+      case FieldTypeEnum.ImagePath:
         return String(value);
 
       // 整型数组
@@ -108,6 +109,7 @@ function matchSingleType(value: any, type: FieldTypeEnum): any {
 
       // 字符串数组
       case FieldTypeEnum.StringList:
+      case FieldTypeEnum.ImagePathList:
         if (Array.isArray(value)) {
           return value.map((item) => String(item));
         }

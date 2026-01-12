@@ -47,6 +47,14 @@ export const pinnedNotice: PinnedNotice = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "0.15.2",
+    date: "2026-1-12",
+    type: "fix",
+    updates: {
+      fixes: ["修复了导出时 template 字段报错的问题"],
+    },
+  },
+  {
     version: "0.15.1",
     date: "2026-1-11",
     type: "feature",
