@@ -110,11 +110,9 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
 
       if (newLabel === oldLabel) return {};
 
-      // 检查是否是 next/jumpback 组
-      const isNextGroup = targetEdge.sourceHandle === SourceHandleTypeEnum.Next;
-
       // 更新其他同源同类型边的顺序
       edges.forEach((edge, index) => {
+        if (index === edgeIndex) return;
         if (
           edge.source === targetEdge.source &&
           edge.sourceHandle === targetEdge.sourceHandle
