@@ -55,6 +55,7 @@ export const updateLogs: UpdateLogItem[] = [
         "🎯 现在可以在连接 LocalBridge 时跨文件搜索与跳转了",
         "👍 外部节点与Anchor节点新增节点名下拉提示，连接 LocalBridge 时可跨文件提示",
       ],
+      perfs: ["优化导出时的顺序处理方案"],
     },
   },
   {
