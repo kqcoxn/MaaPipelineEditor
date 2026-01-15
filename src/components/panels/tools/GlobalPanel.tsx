@@ -1,5 +1,5 @@
 import { memo, useMemo, useState } from "react";
-import { message, Tooltip, Popover } from "antd";
+import { message, Tooltip, Popover, Modal } from "antd";
 import classNames from "classnames";
 import IconFont from "../../iconfonts";
 import { type IconNames } from "../../iconfonts";
@@ -253,10 +253,21 @@ function GlobalPanel() {
                   message.error("请先连接本地服务与设备");
                   return;
                 }
-                toggleDebugMode();
-                message.success(
-                  debugMode ? "已关闭调试模式" : "已开启调试模式"
-                );
+                if (!debugMode) {
+                  Modal.info({
+                    title: "调试模式提示",
+                    content:
+                      "调试功能目前仍在开发阶段，部分功能可能不完整或存在不稳定情况，敬请谅解。",
+                    okText: "我知道了",
+                    onOk: () => {
+                      toggleDebugMode();
+                      message.success("已开启调试模式");
+                    },
+                  });
+                } else {
+                  toggleDebugMode();
+                  message.success("已关闭调试模式");
+                }
               }}
             />
           </Tooltip>

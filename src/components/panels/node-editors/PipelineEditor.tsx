@@ -2,6 +2,7 @@ import style from "../../../styles/FieldPanel.module.less";
 import { memo, useMemo, useCallback, lazy, Suspense } from "react";
 import { Popover, Input, Select, Spin, Modal, InputNumber } from "antd";
 import classNames from "classnames";
+import IconFont from "../../iconfonts";
 import { useFlowStore, type PipelineNodeType } from "../../../stores/flow";
 import {
   recoFields,
@@ -182,6 +183,20 @@ export const PipelineEditor = lazy(() =>
         [currentNode]
       );
 
+      // waitFreezes 可见性判断
+      const hasPreWaitFreezes = useMemo(
+        () => "pre_wait_freezes" in currentNode.data.others,
+        [currentNode.data.others]
+      );
+      const hasPostWaitFreezes = useMemo(
+        () => "post_wait_freezes" in currentNode.data.others,
+        [currentNode.data.others]
+      );
+      const hasRepeatWaitFreezes = useMemo(
+        () => "repeat_wait_freezes" in currentNode.data.others,
+        [currentNode.data.others]
+      );
+
       // waitFreezes 字段状态判断
       const isWaitFreezesObjectMode = useCallback((value: any): boolean => {
         return (
@@ -235,10 +250,7 @@ export const PipelineEditor = lazy(() =>
         (fieldKey: string, param: any) => {
           const currentValue = currentNode.data.others[fieldKey];
           // 有 int 值时提示
-          if (
-            typeof currentValue === "number" &&
-            currentValue !== 0
-          ) {
+          if (typeof currentValue === "number" && currentValue !== 0) {
             Modal.confirm({
               title: "切换到结构化模式",
               content: "切换到结构化模式会丢失当前的数值，是否继续?",
@@ -452,7 +464,12 @@ export const PipelineEditor = lazy(() =>
             </div>
             {currentNode ? (
               <AddFieldElem
-                paramType={otherFieldParamsWithoutFocus}
+                paramType={[
+                  ...otherFieldParamsWithoutFocus,
+                  otherFieldSchema.preWaitFreezes,
+                  otherFieldSchema.postWaitFreezes,
+                  otherFieldSchema.repeatWaitFreezes,
+                ]}
                 paramData={currentNode.data.others}
                 onClick={(param) =>
                   setNodeData(
@@ -489,254 +506,343 @@ export const PipelineEditor = lazy(() =>
               }}
             />
           ) : null}
-          {/* pre_wait_freezes 字段 */}
-          <div className={style.item}>
-            <Popover
-              placement="left"
-              title={"pre_wait_freezes"}
-              content={otherFieldSchema.preWaitFreezes.desc}
-            >
-              <div className={classNames([style.key, style["head-key"]])}>
-                pre_wait_freezes
+          {/* pre_wait_freezes 字段*/}
+          {hasPreWaitFreezes ? (
+            <>
+              <div className={style.item}>
+                <Popover
+                  style={{ maxWidth: 10 }}
+                  placement="left"
+                  title={"pre_wait_freezes"}
+                  content={LeftTipContentElem(
+                    otherFieldSchema.preWaitFreezes.desc
+                  )}
+                >
+                  <div className={classNames([style.key, style["head-key"]])}>
+                    pre_wait_freezes
+                  </div>
+                </Popover>
+                {isPreWaitFreezesObjectMode ? (
+                  <>
+                    <div className={classNames([style.value, style.line])}>
+                      ——————————
+                    </div>
+                    {currentNode && otherFieldSchema.preWaitFreezes.params ? (
+                      <AddFieldElem
+                        paramType={otherFieldSchema.preWaitFreezes.params}
+                        paramData={
+                          typeof currentPreWaitFreezes === "object" &&
+                          currentPreWaitFreezes !== null
+                            ? currentPreWaitFreezes
+                            : {}
+                        }
+                        onClick={(param) =>
+                          handleWaitFreezesFieldAdd("pre_wait_freezes", param)
+                        }
+                      />
+                    ) : null}
+                  </>
+                ) : (
+                  <>
+                    <div className={style.value}>
+                      <InputNumber
+                        style={{ width: "100%" }}
+                        placeholder="等待时间(毫秒)，或点击右侧添加详细参数"
+                        value={
+                          typeof currentPreWaitFreezes === "number"
+                            ? currentPreWaitFreezes
+                            : 0
+                        }
+                        onChange={(value) =>
+                          handleWaitFreezesIntChange("pre_wait_freezes", value)
+                        }
+                      />
+                    </div>
+                    {currentNode && otherFieldSchema.preWaitFreezes.params ? (
+                      <AddFieldElem
+                        paramType={otherFieldSchema.preWaitFreezes.params}
+                        paramData={{}}
+                        onClick={(param) =>
+                          handleWaitFreezesFieldAdd("pre_wait_freezes", param)
+                        }
+                      />
+                    ) : null}
+                  </>
+                )}
+                <div className={style.operation}>
+                  <IconFont
+                    className="icon-interactive"
+                    style={{ width: 20 }}
+                    name="icon-lanzilajitongshanchu"
+                    size={16}
+                    onClick={() =>
+                      setNodeData(
+                        currentNode.id,
+                        "others",
+                        "pre_wait_freezes",
+                        "__mpe_delete"
+                      )
+                    }
+                  />
+                </div>
               </div>
-            </Popover>
-            {isPreWaitFreezesObjectMode ? (
-              <>
-                <div className={classNames([style.value, style.line])}>
-                  ————————————
-                </div>
-                {currentNode && otherFieldSchema.preWaitFreezes.params ? (
-                  <AddFieldElem
-                    paramType={otherFieldSchema.preWaitFreezes.params}
-                    paramData={
-                      typeof currentPreWaitFreezes === "object" &&
-                      currentPreWaitFreezes !== null
-                        ? currentPreWaitFreezes
-                        : {}
-                    }
-                    onClick={(param) =>
-                      handleWaitFreezesFieldAdd("pre_wait_freezes", param)
-                    }
-                  />
-                ) : null}
-              </>
-            ) : (
-              <>
-                <div className={style.value}>
-                  <InputNumber
-                    style={{ width: "100%" }}
-                    placeholder="等待时间(毫秒)，或点击右侧添加详细参数"
-                    value={
-                      typeof currentPreWaitFreezes === "number"
-                        ? currentPreWaitFreezes
-                        : 0
-                    }
-                    onChange={(value) =>
-                      handleWaitFreezesIntChange("pre_wait_freezes", value)
-                    }
-                  />
-                </div>
-                {currentNode && otherFieldSchema.preWaitFreezes.params ? (
-                  <AddFieldElem
-                    paramType={otherFieldSchema.preWaitFreezes.params}
-                    paramData={{}}
-                    onClick={(param) =>
-                      handleWaitFreezesFieldAdd("pre_wait_freezes", param)
-                    }
-                  />
-                ) : null}
-              </>
-            )}
-          </div>
-          {/* pre_wait_freezes 子字段 */}
-          {isPreWaitFreezesObjectMode && currentNode ? (
-            <ParamFieldListElem
-              paramData={
-                typeof currentPreWaitFreezes === "object" &&
-                currentPreWaitFreezes !== null
-                  ? currentPreWaitFreezes
-                  : {}
-              }
-              paramType={otherFieldSchema.preWaitFreezes.params || []}
-              onChange={(key, value) =>
-                handleWaitFreezesFieldChange("pre_wait_freezes", key, value)
-              }
-              onDelete={(key) =>
-                handleWaitFreezesFieldDelete("pre_wait_freezes", key)
-              }
-              onListChange={() => {}}
-              onListAdd={() => {}}
-              onListDelete={() => {}}
-            />
+              {/* pre_wait_freezes 子字段 */}
+              {isPreWaitFreezesObjectMode && currentNode ? (
+                <ParamFieldListElem
+                  paramData={
+                    typeof currentPreWaitFreezes === "object" &&
+                    currentPreWaitFreezes !== null
+                      ? currentPreWaitFreezes
+                      : {}
+                  }
+                  paramType={otherFieldSchema.preWaitFreezes.params || []}
+                  onChange={(key, value) =>
+                    handleWaitFreezesFieldChange("pre_wait_freezes", key, value)
+                  }
+                  onDelete={(key) =>
+                    handleWaitFreezesFieldDelete("pre_wait_freezes", key)
+                  }
+                  onListChange={() => {}}
+                  onListAdd={() => {}}
+                  onListDelete={() => {}}
+                />
+              ) : null}
+            </>
           ) : null}
-          {/* post_wait_freezes 字段 */}
-          <div className={style.item}>
-            <Popover
-              placement="left"
-              title={"post_wait_freezes"}
-              content={otherFieldSchema.postWaitFreezes.desc}
-            >
-              <div className={classNames([style.key, style["head-key"]])}>
-                post_wait_freezes
+          {/* post_wait_freezes 字段*/}
+          {hasPostWaitFreezes ? (
+            <>
+              <div className={style.item}>
+                <Popover
+                  style={{ maxWidth: 10 }}
+                  placement="left"
+                  title={"post_wait_freezes"}
+                  content={LeftTipContentElem(
+                    otherFieldSchema.postWaitFreezes.desc
+                  )}
+                >
+                  <div className={classNames([style.key, style["head-key"]])}>
+                    post_wait_freezes
+                  </div>
+                </Popover>
+                {isPostWaitFreezesObjectMode ? (
+                  <>
+                    <div className={classNames([style.value, style.line])}>
+                      ——————————
+                    </div>
+                    {currentNode && otherFieldSchema.postWaitFreezes.params ? (
+                      <AddFieldElem
+                        paramType={otherFieldSchema.postWaitFreezes.params}
+                        paramData={
+                          typeof currentPostWaitFreezes === "object" &&
+                          currentPostWaitFreezes !== null
+                            ? currentPostWaitFreezes
+                            : {}
+                        }
+                        onClick={(param) =>
+                          handleWaitFreezesFieldAdd("post_wait_freezes", param)
+                        }
+                      />
+                    ) : null}
+                  </>
+                ) : (
+                  <>
+                    <div className={style.value}>
+                      <InputNumber
+                        style={{ width: "100%" }}
+                        placeholder="等待时间(毫秒)，或点击右侧添加详细参数"
+                        value={
+                          typeof currentPostWaitFreezes === "number"
+                            ? currentPostWaitFreezes
+                            : 0
+                        }
+                        onChange={(value) =>
+                          handleWaitFreezesIntChange("post_wait_freezes", value)
+                        }
+                      />
+                    </div>
+                    {currentNode && otherFieldSchema.postWaitFreezes.params ? (
+                      <AddFieldElem
+                        paramType={otherFieldSchema.postWaitFreezes.params}
+                        paramData={{}}
+                        onClick={(param) =>
+                          handleWaitFreezesFieldAdd("post_wait_freezes", param)
+                        }
+                      />
+                    ) : null}
+                  </>
+                )}
+                <div className={style.operation}>
+                  <IconFont
+                    className="icon-interactive"
+                    style={{ width: 20 }}
+                    name="icon-lanzilajitongshanchu"
+                    size={16}
+                    onClick={() =>
+                      setNodeData(
+                        currentNode.id,
+                        "others",
+                        "post_wait_freezes",
+                        "__mpe_delete"
+                      )
+                    }
+                  />
+                </div>
               </div>
-            </Popover>
-            {isPostWaitFreezesObjectMode ? (
-              <>
-                <div className={classNames([style.value, style.line])}>
-                  ————————————
-                </div>
-                {currentNode && otherFieldSchema.postWaitFreezes.params ? (
-                  <AddFieldElem
-                    paramType={otherFieldSchema.postWaitFreezes.params}
-                    paramData={
-                      typeof currentPostWaitFreezes === "object" &&
-                      currentPostWaitFreezes !== null
-                        ? currentPostWaitFreezes
-                        : {}
-                    }
-                    onClick={(param) =>
-                      handleWaitFreezesFieldAdd("post_wait_freezes", param)
-                    }
-                  />
-                ) : null}
-              </>
-            ) : (
-              <>
-                <div className={style.value}>
-                  <InputNumber
-                    style={{ width: "100%" }}
-                    placeholder="等待时间(毫秒)，或点击右侧添加详细参数"
-                    value={
-                      typeof currentPostWaitFreezes === "number"
-                        ? currentPostWaitFreezes
-                        : 0
-                    }
-                    onChange={(value) =>
-                      handleWaitFreezesIntChange("post_wait_freezes", value)
-                    }
-                  />
-                </div>
-                {currentNode && otherFieldSchema.postWaitFreezes.params ? (
-                  <AddFieldElem
-                    paramType={otherFieldSchema.postWaitFreezes.params}
-                    paramData={{}}
-                    onClick={(param) =>
-                      handleWaitFreezesFieldAdd("post_wait_freezes", param)
-                    }
-                  />
-                ) : null}
-              </>
-            )}
-          </div>
-          {/* post_wait_freezes 子字段 */}
-          {isPostWaitFreezesObjectMode && currentNode ? (
-            <ParamFieldListElem
-              paramData={
-                typeof currentPostWaitFreezes === "object" &&
-                currentPostWaitFreezes !== null
-                  ? currentPostWaitFreezes
-                  : {}
-              }
-              paramType={otherFieldSchema.postWaitFreezes.params || []}
-              onChange={(key, value) =>
-                handleWaitFreezesFieldChange("post_wait_freezes", key, value)
-              }
-              onDelete={(key) =>
-                handleWaitFreezesFieldDelete("post_wait_freezes", key)
-              }
-              onListChange={() => {}}
-              onListAdd={() => {}}
-              onListDelete={() => {}}
-            />
+              {/* post_wait_freezes 子字段 */}
+              {isPostWaitFreezesObjectMode && currentNode ? (
+                <ParamFieldListElem
+                  paramData={
+                    typeof currentPostWaitFreezes === "object" &&
+                    currentPostWaitFreezes !== null
+                      ? currentPostWaitFreezes
+                      : {}
+                  }
+                  paramType={otherFieldSchema.postWaitFreezes.params || []}
+                  onChange={(key, value) =>
+                    handleWaitFreezesFieldChange(
+                      "post_wait_freezes",
+                      key,
+                      value
+                    )
+                  }
+                  onDelete={(key) =>
+                    handleWaitFreezesFieldDelete("post_wait_freezes", key)
+                  }
+                  onListChange={() => {}}
+                  onListAdd={() => {}}
+                  onListDelete={() => {}}
+                />
+              ) : null}
+            </>
           ) : null}
-          {/* repeat_wait_freezes 字段 */}
-          <div className={style.item}>
-            <Popover
-              placement="left"
-              title={"repeat_wait_freezes"}
-              content={otherFieldSchema.repeatWaitFreezes.desc}
-            >
-              <div className={classNames([style.key, style["head-key"]])}>
-                repeat_wait_freezes
+          {/* repeat_wait_freezes 字段*/}
+          {hasRepeatWaitFreezes ? (
+            <>
+              <div className={style.item}>
+                <Popover
+                  style={{ maxWidth: 10 }}
+                  placement="left"
+                  title={"repeat_wait_freezes"}
+                  content={LeftTipContentElem(
+                    otherFieldSchema.repeatWaitFreezes.desc
+                  )}
+                >
+                  <div className={classNames([style.key, style["head-key"]])}>
+                    repeat_wait_freezes
+                  </div>
+                </Popover>
+                {isRepeatWaitFreezesObjectMode ? (
+                  <>
+                    <div className={classNames([style.value, style.line])}>
+                      ——————————
+                    </div>
+                    {currentNode &&
+                    otherFieldSchema.repeatWaitFreezes.params ? (
+                      <AddFieldElem
+                        paramType={otherFieldSchema.repeatWaitFreezes.params}
+                        paramData={
+                          typeof currentRepeatWaitFreezes === "object" &&
+                          currentRepeatWaitFreezes !== null
+                            ? currentRepeatWaitFreezes
+                            : {}
+                        }
+                        onClick={(param) =>
+                          handleWaitFreezesFieldAdd(
+                            "repeat_wait_freezes",
+                            param
+                          )
+                        }
+                      />
+                    ) : null}
+                  </>
+                ) : (
+                  <>
+                    <div className={style.value}>
+                      <InputNumber
+                        style={{ width: "100%" }}
+                        placeholder="等待时间(毫秒)，或点击右侧添加详细参数"
+                        value={
+                          typeof currentRepeatWaitFreezes === "number"
+                            ? currentRepeatWaitFreezes
+                            : 0
+                        }
+                        onChange={(value) =>
+                          handleWaitFreezesIntChange(
+                            "repeat_wait_freezes",
+                            value
+                          )
+                        }
+                      />
+                    </div>
+                    {currentNode &&
+                    otherFieldSchema.repeatWaitFreezes.params ? (
+                      <AddFieldElem
+                        paramType={otherFieldSchema.repeatWaitFreezes.params}
+                        paramData={{}}
+                        onClick={(param) =>
+                          handleWaitFreezesFieldAdd(
+                            "repeat_wait_freezes",
+                            param
+                          )
+                        }
+                      />
+                    ) : null}
+                  </>
+                )}
+                <div className={style.operation}>
+                  <IconFont
+                    className="icon-interactive"
+                    style={{ width: 20 }}
+                    name="icon-lanzilajitongshanchu"
+                    size={16}
+                    onClick={() =>
+                      setNodeData(
+                        currentNode.id,
+                        "others",
+                        "repeat_wait_freezes",
+                        "__mpe_delete"
+                      )
+                    }
+                  />
+                </div>
               </div>
-            </Popover>
-            {isRepeatWaitFreezesObjectMode ? (
-              <>
-                <div className={classNames([style.value, style.line])}>
-                  ————————————
-                </div>
-                {currentNode && otherFieldSchema.repeatWaitFreezes.params ? (
-                  <AddFieldElem
-                    paramType={otherFieldSchema.repeatWaitFreezes.params}
-                    paramData={
-                      typeof currentRepeatWaitFreezes === "object" &&
-                      currentRepeatWaitFreezes !== null
-                        ? currentRepeatWaitFreezes
-                        : {}
-                    }
-                    onClick={(param) =>
-                      handleWaitFreezesFieldAdd("repeat_wait_freezes", param)
-                    }
-                  />
-                ) : null}
-              </>
-            ) : (
-              <>
-                <div className={style.value}>
-                  <InputNumber
-                    style={{ width: "100%" }}
-                    placeholder="等待时间(毫秒)，或点击右侧添加详细参数"
-                    value={
-                      typeof currentRepeatWaitFreezes === "number"
-                        ? currentRepeatWaitFreezes
-                        : 0
-                    }
-                    onChange={(value) =>
-                      handleWaitFreezesIntChange("repeat_wait_freezes", value)
-                    }
-                  />
-                </div>
-                {currentNode && otherFieldSchema.repeatWaitFreezes.params ? (
-                  <AddFieldElem
-                    paramType={otherFieldSchema.repeatWaitFreezes.params}
-                    paramData={{}}
-                    onClick={(param) =>
-                      handleWaitFreezesFieldAdd("repeat_wait_freezes", param)
-                    }
-                  />
-                ) : null}
-              </>
-            )}
-          </div>
-          {/* repeat_wait_freezes 子字段 */}
-          {isRepeatWaitFreezesObjectMode && currentNode ? (
-            <ParamFieldListElem
-              paramData={
-                typeof currentRepeatWaitFreezes === "object" &&
-                currentRepeatWaitFreezes !== null
-                  ? currentRepeatWaitFreezes
-                  : {}
-              }
-              paramType={otherFieldSchema.repeatWaitFreezes.params || []}
-              onChange={(key, value) =>
-                handleWaitFreezesFieldChange("repeat_wait_freezes", key, value)
-              }
-              onDelete={(key) =>
-                handleWaitFreezesFieldDelete("repeat_wait_freezes", key)
-              }
-              onListChange={() => {}}
-              onListAdd={() => {}}
-              onListDelete={() => {}}
-            />
+              {/* repeat_wait_freezes 子字段 */}
+              {isRepeatWaitFreezesObjectMode && currentNode ? (
+                <ParamFieldListElem
+                  paramData={
+                    typeof currentRepeatWaitFreezes === "object" &&
+                    currentRepeatWaitFreezes !== null
+                      ? currentRepeatWaitFreezes
+                      : {}
+                  }
+                  paramType={otherFieldSchema.repeatWaitFreezes.params || []}
+                  onChange={(key, value) =>
+                    handleWaitFreezesFieldChange(
+                      "repeat_wait_freezes",
+                      key,
+                      value
+                    )
+                  }
+                  onDelete={(key) =>
+                    handleWaitFreezesFieldDelete("repeat_wait_freezes", key)
+                  }
+                  onListChange={() => {}}
+                  onListAdd={() => {}}
+                  onListDelete={() => {}}
+                />
+              ) : null}
+            </>
           ) : null}
-          {/* focus 字段 */}
+          {/* focus 字段*/}
           <div className={style.item}>
             <Popover
+              style={{ maxWidth: 10 }}
               placement="left"
               title={"focus"}
-              content={
+              content={LeftTipContentElem(
                 "关注节点，会额外产生部分回调消息。可选，默认 null，不产生回调消息。详见 节点通知。"
-              }
+              )}
             >
               <div className={classNames([style.key, style["head-key"]])}>
                 focus
