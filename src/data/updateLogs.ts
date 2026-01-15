@@ -51,6 +51,7 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2026-1",
     type: "feature",
     updates: {
+      perfs: ["添加连接超时检查机制"],
       fixes: ["修复了部分情况下调整边顺序后无实际影响的问题"],
     },
   },

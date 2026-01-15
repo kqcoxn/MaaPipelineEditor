@@ -176,7 +176,20 @@ func (cm *ControllerManager) ConnectController(controllerID string) error {
 	if job == nil {
 		return NewMFWError(ErrCodeControllerConnectFail, "failed to post connect", nil)
 	}
-	job.Wait()
+
+	// 使用超时机制等待连接完成
+	done := make(chan bool, 1)
+	go func() {
+		job.Wait()
+		done <- true
+	}()
+
+	select {
+	case <-done:
+		// 连接完成，继续检查状态
+	case <-time.After(10 * time.Second):
+		logger.Warn("MFW", "控制器连接超时！")
+	}
 
 	// 检查连接状态
 	if !ctrl.Connected() {
