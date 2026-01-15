@@ -15,9 +15,11 @@ type ErrorData struct {
 
 // 文件基本信息
 type FileInfo struct {
-	FilePath     string `json:"file_path"`     // 文件绝对路径
-	FileName     string `json:"file_name"`     // 文件名
-	RelativePath string `json:"relative_path"` // 相对路径
+	FilePath     string     `json:"file_path"`     // 文件绝对路径
+	FileName     string     `json:"file_name"`     // 文件名
+	RelativePath string     `json:"relative_path"` // 相对路径
+	Nodes        []FileNode `json:"nodes"`         // 节点列表
+	Prefix       string     `json:"prefix"`        // 文件前缀
 }
 
 // 文件列表数据

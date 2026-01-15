@@ -47,6 +47,26 @@ export const pinnedNotice: PinnedNotice = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "0.16.0",
+    date: "2026-1",
+    type: "feature",
+    updates: {
+      features: [
+        "🎯 现在可以在连接 LocalBridge 时跨文件搜索与跳转了",
+        "👍 外部节点与Anchor节点新增节点名下拉提示，连接 LocalBridge 时可跨文件提示",
+      ],
+      perfs: ["优化导出时的顺序处理方案"],
+    },
+  },
+  {
+    version: "0.15.2",
+    date: "2026-1-12",
+    type: "fix",
+    updates: {
+      fixes: ["修复了导出时 template 字段报错的问题"],
+    },
+  },
+  {
     version: "0.15.1",
     date: "2026-1-11",
     type: "feature",

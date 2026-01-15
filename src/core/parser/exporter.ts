@@ -102,10 +102,16 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
 
     // 链接
     const sortedEdges = [...edges].sort((a, b) => {
-      if (a.source === b.source) {
-        return (a.label as number) - (b.label as number);
+      // 先按 source 排序
+      if (a.source !== b.source) {
+        return 0;
       }
-      return 0;
+      // 同源节点，再按 sourceHandle 排序
+      if (a.sourceHandle !== b.sourceHandle) {
+        return 0;
+      }
+      // 同源同类型，按 label 排序
+      return (a.label as number) - (b.label as number);
     });
 
     sortedEdges.forEach((edge) => {

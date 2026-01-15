@@ -1,6 +1,7 @@
 package file
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -53,12 +54,17 @@ func (s *Scanner) Scan() ([]models.File, error) {
 			return err
 		}
 
+		// 解析文件节点列表和前缀
+		nodes, prefix := s.parseFileNodes(path)
+
 		// 添加到文件列表
 		files = append(files, models.File{
 			AbsPath:      path,
 			RelPath:      relPath,
 			Name:         info.Name(),
 			LastModified: info.ModTime().Unix(),
+			Nodes:        nodes,
+			Prefix:       prefix,
 		})
 
 		return nil
@@ -117,10 +123,54 @@ func (s *Scanner) ScanSingle(absPath string) (*models.File, error) {
 		return nil, err
 	}
 
+	// 解析文件节点列表和前缀
+	nodes, prefix := s.parseFileNodes(absPath)
+
 	return &models.File{
 		AbsPath:      absPath,
 		RelPath:      relPath,
 		Name:         info.Name(),
 		LastModified: info.ModTime().Unix(),
+		Nodes:        nodes,
+		Prefix:       prefix,
 	}, nil
+}
+
+// 解析文件节点列表和前缀
+func (s *Scanner) parseFileNodes(filePath string) ([]models.FileNode, string) {
+	var nodes []models.FileNode
+	var prefix string
+
+	// 读取文件内容
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nodes, prefix
+	}
+
+	// 尝试解析JSON
+	var content map[string]interface{}
+	if err := json.Unmarshal(data, &content); err != nil {
+		return nodes, prefix
+	}
+
+	// 获取前缀
+	if mpeConfig, ok := content["$mpe"].(map[string]interface{}); ok {
+		if p, ok := mpeConfig["prefix"].(string); ok {
+			prefix = p
+		}
+	}
+
+	// 遍历所有顶层key作为节点名
+	for key := range content {
+		// 跳过以$开头的特殊key
+		if strings.HasPrefix(key, "$") {
+			continue
+		}
+		nodes = append(nodes, models.FileNode{
+			Label:  key,
+			Prefix: prefix,
+		})
+	}
+
+	return nodes, prefix
 }

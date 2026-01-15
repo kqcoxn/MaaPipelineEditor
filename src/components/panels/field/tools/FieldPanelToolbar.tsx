@@ -1,5 +1,5 @@
 import style from "../../../../styles/FieldPanel.module.less";
-import { memo, useState } from "react";
+import { memo, useState, useCallback } from "react";
 import { Tooltip, message } from "antd";
 import IconFont from "../../../iconfonts";
 import type { NodeType } from "../../../../stores/flow/types";
@@ -17,6 +17,7 @@ import {
   saveNodeAsTemplate,
   copyNodeRecoJSON,
 } from "../../../flow/nodes/utils/nodeOperations";
+import { crossFileService } from "../../../../services/crossFileService";
 
 // 左侧工具栏
 export const FieldPanelToolbarLeft = memo(
@@ -77,8 +78,12 @@ export const FieldPanelToolbarRight = memo(
   }) => {
     const [aiPredicting, setAiPredicting] = useState(false);
 
-    const showButtons =
+    const showPipelineButtons =
       currentNode && currentNode.type === NodeTypeEnum.Pipeline;
+
+    // 跳转按钮
+    const showNavigateButton =
+      currentNode && currentNode.type === NodeTypeEnum.External;
 
     const handleSaveTemplate = () => {
       if (!currentNode || currentNode.type !== NodeTypeEnum.Pipeline) {
@@ -86,6 +91,30 @@ export const FieldPanelToolbarRight = memo(
       }
       saveNodeAsTemplate(currentNode.data.label, currentNode.data as any);
     };
+
+    // 跳转到目标节点
+    const handleNavigate = useCallback(async () => {
+      if (!currentNode || currentNode.type !== NodeTypeEnum.External) {
+        return;
+      }
+
+      const label = currentNode.data.label;
+      if (!label) {
+        message.warning("节点名为空");
+        return;
+      }
+
+      const result = await crossFileService.navigateToNodeByName(label, {
+        crossFile: true,
+        excludeTypes: [NodeTypeEnum.External, NodeTypeEnum.Anchor],
+      });
+
+      if (result.success) {
+        message.success(result.message);
+      } else {
+        message.warning(result.message);
+      }
+    }, [currentNode]);
 
     // 处理AI预测
     const handleAIPredict = async () => {
@@ -153,41 +182,55 @@ export const FieldPanelToolbarRight = memo(
       }
     };
 
-    if (!showButtons) {
+    if (!showPipelineButtons && !showNavigateButton) {
       return null;
     }
 
     return (
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <Tooltip placement="top" title="保存为模板">
-          <IconFont
-            className="icon-interactive"
-            name="icon-biaodanmoban"
-            size={24}
-            onClick={handleSaveTemplate}
-          />
-        </Tooltip>
-        <Tooltip placement="top" title="AI智能预测节点配置">
-          <IconFont
-            className={aiPredicting ? "icon-loading" : "icon-interactive"}
-            name="icon-jiqiren"
-            size={24}
-            onClick={aiPredicting ? undefined : handleAIPredict}
-            style={{
-              opacity: aiPredicting ? 0.6 : 1,
-              cursor: aiPredicting ? "not-allowed" : "pointer",
-            }}
-          />
-        </Tooltip>
-        <Tooltip placement="top" title="删除节点">
-          <IconFont
-            className="icon-interactive"
-            name="icon-shanchu"
-            size={19}
-            color="#ff4a4a"
-            onClick={onDelete}
-          />
-        </Tooltip>
+        {showNavigateButton && (
+          <Tooltip placement="top" title="跳转到目标节点">
+            <IconFont
+              className="icon-interactive"
+              name="icon-qianjin"
+              size={20}
+              onClick={handleNavigate}
+            />
+          </Tooltip>
+        )}
+        {showPipelineButtons && (
+          <>
+            <Tooltip placement="top" title="保存为模板">
+              <IconFont
+                className="icon-interactive"
+                name="icon-biaodanmoban"
+                size={24}
+                onClick={handleSaveTemplate}
+              />
+            </Tooltip>
+            <Tooltip placement="top" title="AI智能预测节点配置">
+              <IconFont
+                className={aiPredicting ? "icon-loading" : "icon-interactive"}
+                name="icon-jiqiren"
+                size={24}
+                onClick={aiPredicting ? undefined : handleAIPredict}
+                style={{
+                  opacity: aiPredicting ? 0.6 : 1,
+                  cursor: aiPredicting ? "not-allowed" : "pointer",
+                }}
+              />
+            </Tooltip>
+            <Tooltip placement="top" title="删除节点">
+              <IconFont
+                className="icon-interactive"
+                name="icon-shanchu"
+                size={19}
+                color="#ff4a4a"
+                onClick={onDelete}
+              />
+            </Tooltip>
+          </>
+        )}
       </div>
     );
   }
