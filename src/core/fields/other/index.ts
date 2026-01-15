@@ -3,4 +3,5 @@ export {
   otherFieldParamsWithoutFocus,
   otherFieldSchemaKeyList,
   otherFieldSchema,
+  waitFreezesFields,
 } from "./schema";

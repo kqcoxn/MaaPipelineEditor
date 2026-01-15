@@ -24,6 +24,7 @@ export {
   otherFieldParamsWithoutFocus,
   otherFieldSchemaKeyList,
   otherFieldSchema,
+  waitFreezesFields,
 } from "./other/index.js";
 
 // 工具函数

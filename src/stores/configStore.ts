@@ -4,10 +4,10 @@ import type { HandleDirection } from "../components/flow/nodes/constants";
 /**固有配置 */
 export const globalConfig = {
   dev: true,
-  version: `0.16.0`,
-  betaIteration: 2,
+  version: `0.15.3`,
+  betaIteration: 3,
   mfwVersion: "5.3",
-  protocolVersion: "0.3",
+  protocolVersion: "0.3.1",
 };
 
 if (globalConfig.dev) {
