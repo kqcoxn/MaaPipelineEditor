@@ -47,6 +47,14 @@ export const pinnedNotice: PinnedNotice = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "0.15.4",
+    date: "2026-1",
+    type: "feature",
+    updates: {
+      fixes: ["修复了部分情况下调整边顺序后无实际影响的问题"],
+    },
+  },
+  {
     version: "0.15.3",
     date: "2026-1-15",
     type: "feature",

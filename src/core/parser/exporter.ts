@@ -101,17 +101,22 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
     });
 
     // 链接
-    const sortedEdges = [...edges].sort((a, b) => {
-      // 先按 source 排序
-      if (a.source !== b.source) {
-        return 0;
+    const edgeGroups = new Map<string, EdgeType[]>();
+    edges.forEach((edge) => {
+      const groupKey = `${edge.source}|${edge.sourceHandle}`;
+      if (!edgeGroups.has(groupKey)) {
+        edgeGroups.set(groupKey, []);
       }
-      // 同源节点，再按 sourceHandle 排序
-      if (a.sourceHandle !== b.sourceHandle) {
-        return 0;
-      }
-      // 同源同类型，按 label 排序
-      return (a.label as number) - (b.label as number);
+      edgeGroups.get(groupKey)!.push(edge);
+    });
+
+    // 对每组内的边按label排序
+    const sortedEdges: EdgeType[] = [];
+    edgeGroups.forEach((groupEdges) => {
+      const sorted = groupEdges.sort(
+        (a, b) => (a.label as number) - (b.label as number)
+      );
+      sortedEdges.push(...sorted);
     });
 
     sortedEdges.forEach((edge) => {
