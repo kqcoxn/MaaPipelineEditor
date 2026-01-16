@@ -106,7 +106,8 @@ function handleSetDebugEntry(node: NodeContextMenuNode) {
 
 /**从此节点开始调试处理器 */
 function handleStartDebugFromNode(node: NodeContextMenuNode) {
-  const { setConfig, resourcePath, startDebug } = useDebugStore.getState();
+  const { setConfig, resourcePaths, agentIdentifier, startDebug } =
+    useDebugStore.getState();
   const { connectionStatus, controllerId } = useMFWStore.getState();
   const { nodes } = useFlowStore.getState();
   const prefix = useFileStore.getState().currentFile.config.prefix;
@@ -123,8 +124,9 @@ function handleStartDebugFromNode(node: NodeContextMenuNode) {
     return;
   }
 
-  // 验证资源路径
-  if (!resourcePath) {
+  // 过滤并验证资源路径
+  const validPaths = resourcePaths.filter((p) => p.trim() !== "");
+  if (validPaths.length === 0) {
     message.error("请先配置资源路径");
     return;
   }
@@ -152,10 +154,11 @@ function handleStartDebugFromNode(node: NodeContextMenuNode) {
 
   // 发送 WebSocket 消息启动调试
   const success = debugProtocol.sendStartDebug(
-    resourcePath,
+    validPaths,
     entryNodeFullName,
     controllerId,
-    []
+    [],
+    agentIdentifier || undefined
   );
 
   if (!success) {
