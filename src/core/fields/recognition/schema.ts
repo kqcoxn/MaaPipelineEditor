@@ -157,8 +157,8 @@ export const recoFieldSchema: Record<string, FieldType> = {
   },
   ocrThreshold: {
     key: "threshold",
-    type: [FieldTypeEnum.DoubleList, FieldTypeEnum.Double],
-    default: [0.3],
+    type: FieldTypeEnum.Double,
+    default: 0.3,
     step: 0.01,
     desc: `模型置信度阈值。可选，默认 0.3 。`,
   },
