@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { useMFWStore } from "./mfwStore";
 import { useFlowStore } from "./flow";
+import { debugProtocol } from "../services/server";
 
 /**
  * 调试执行状态
@@ -103,9 +104,10 @@ interface DebugState {
   sessionId: string | null;
 
   // 配置
-  resourcePath: string;
+  resourcePaths: string[];
   entryNode: string;
   controllerId: string | null;
+  agentIdentifier: string;
   logLevel: LogLevel;
 
   // 执行状态
@@ -137,9 +139,12 @@ interface DebugState {
   toggleDebugMode: () => void;
   setDebugMode: (mode: boolean) => void;
   setConfig: (
-    key: "resourcePath" | "entryNode" | "logLevel",
+    key: "resourcePaths" | "entryNode" | "logLevel" | "agentIdentifier",
     value: any
   ) => void;
+  addResourcePath: (path: string) => void;
+  removeResourcePath: (index: number) => void;
+  updateResourcePath: (index: number, path: string) => void;
   startDebug: () => Promise<void>;
   stopDebug: () => void;
   updateExecutionState: (
@@ -170,9 +175,10 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
   debugMode: false,
   debugStatus: "idle",
   sessionId: null,
-  resourcePath: "",
+  resourcePaths: [""],
   entryNode: "",
   controllerId: null,
+  agentIdentifier: "",
   logLevel: "normal",
   executedNodes: new Set(),
   executedEdges: new Set(),
@@ -189,6 +195,25 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
   selectedRecoId: null,
   detailCache: new Map(),
   error: null,
+
+  // 资源路径操作
+  addResourcePath: (path: string) => {
+    const paths = [...get().resourcePaths, path];
+    set({ resourcePaths: paths });
+  },
+
+  removeResourcePath: (index: number) => {
+    const paths = get().resourcePaths.filter((_, i) => i !== index);
+    set({ resourcePaths: paths });
+  },
+
+  updateResourcePath: (index: number, path: string) => {
+    const paths = [...get().resourcePaths];
+    if (index >= 0 && index < paths.length) {
+      paths[index] = path;
+      set({ resourcePaths: paths });
+    }
+  },
 
   // 切换调试模式
   toggleDebugMode: () => {
@@ -214,7 +239,10 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
     const state = get();
     const controllerId = useMFWStore.getState().controllerId;
 
-    if (!state.resourcePath || !state.entryNode || !controllerId) {
+    // 过滤空路径
+    const validPaths = state.resourcePaths.filter((p) => p.trim() !== "");
+
+    if (validPaths.length === 0 || !state.entryNode || !controllerId) {
       set({ error: "请先配置资源路径、入口节点和控制器" });
       return;
     }
@@ -289,6 +317,13 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
   },
 
   stopDebug: () => {
+    const currentSessionId = get().sessionId;
+
+    // 如果存在 sessionId,通知后端销毁会话
+    if (currentSessionId) {
+      debugProtocol.sendStopDebug(currentSessionId);
+    }
+
     set({
       debugStatus: "idle",
       sessionId: null,

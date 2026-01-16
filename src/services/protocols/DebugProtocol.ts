@@ -97,12 +97,12 @@ export class DebugProtocol extends BaseProtocol {
       if (data.success && data.config) {
         const debugStore = useDebugStore.getState();
 
-        if (!debugStore.resourcePath) {
+        if (debugStore.resourcePaths.length === 0) {
           const resourcePath =
             data.config.file?.root || data.config.maafw?.resource_dir || "";
 
           if (resourcePath) {
-            debugStore.setConfig("resourcePath", resourcePath);
+            debugStore.addResourcePath(resourcePath);
           } else {
             console.warn(
               "[DebugProtocol] Backend config invalid or resource paths not set"
@@ -804,24 +804,33 @@ export class DebugProtocol extends BaseProtocol {
 
   /**
    * 发送调试启动请求
+   * 支持多资源路径和 Agent 标识符
    */
   sendStartDebug(
-    resourcePath: string,
+    resourcePaths: string[],
     entry: string,
     controllerId: string,
-    breakpoints: string[]
+    breakpoints: string[],
+    agentIdentifier?: string
   ): boolean {
     if (!this.wsClient) {
       console.error("[DebugProtocol] WebSocket client not initialized");
       return false;
     }
 
-    return this.wsClient.send("/mpe/debug/start", {
-      resource_path: resourcePath,
+    const payload: Record<string, any> = {
+      resource_paths: resourcePaths,
       entry,
       controller_id: controllerId,
       breakpoints,
-    });
+    };
+
+    // 只有在提供了 Agent 标识符时才添加
+    if (agentIdentifier && agentIdentifier.trim() !== "") {
+      payload.agent_identifier = agentIdentifier;
+    }
+
+    return this.wsClient.send("/mpe/debug/start", payload);
   }
 
   /**

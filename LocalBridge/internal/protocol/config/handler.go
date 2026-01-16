@@ -50,7 +50,7 @@ func (h *ConfigHandler) handleGetConfig(conn *server.Connection, msg models.Mess
 		return
 	}
 
-	logger.Info("Config", "返回当前配置")
+	logger.Debug("Config", "返回当前配置")
 
 	// 返回配置
 	conn.Send(models.Message{

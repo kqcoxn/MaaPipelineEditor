@@ -90,13 +90,20 @@ func (h *DebugHandlerV2) handleCreateSession(conn *server.Connection, msg models
 		return
 	}
 
-	resourcePath, _ := dataMap["resource_path"].(string)
+	var resourcePaths []string
+	if paths, ok := dataMap["resource_paths"].([]interface{}); ok && len(paths) > 0 {
+		resourcePaths = h.parseStringArray(paths)
+	} else if path, ok := dataMap["resource_path"].(string); ok && path != "" {
+		resourcePaths = []string{path}
+	}
+
 	controllerID, _ := dataMap["controller_id"].(string)
+	agentIdentifier, _ := dataMap["agent_identifier"].(string)
 
-	logger.Debug("DebugV2", "创建调试会话: 资源=%s, 控制器=%s", resourcePath, controllerID)
+	logger.Debug("DebugV2", "创建调试会话: 资源=%v, 控制器=%s, Agent=%s", resourcePaths, controllerID, agentIdentifier)
 
-	if resourcePath == "" || controllerID == "" {
-		h.sendError(conn, "缺少必需参数: resource_path, controller_id")
+	if len(resourcePaths) == 0 || controllerID == "" {
+		h.sendError(conn, "缺少必需参数: resource_paths/resource_path, controller_id")
 		return
 	}
 
@@ -107,7 +114,12 @@ func (h *DebugHandlerV2) handleCreateSession(conn *server.Connection, msg models
 	eventCallback := h.createEventCallbackWithSessionID(conn, &sessionIDHolder)
 
 	// 创建会话
-	session, err := h.debugService.CreateSession(resourcePath, controllerID, eventCallback)
+	session, err := h.debugService.CreateSessionWithOptions(mfw.CreateSessionOptions{
+		ResourcePaths:   resourcePaths,
+		ControllerID:    controllerID,
+		AgentIdentifier: agentIdentifier,
+		EventCallback:   eventCallback,
+	})
 	if err != nil {
 		logger.Error("DebugV2", "创建会话失败: %v", err)
 		h.sendError(conn, err.Error())
@@ -158,11 +170,12 @@ func (h *DebugHandlerV2) handleListSessions(conn *server.Connection, msg models.
 	sessionList := make([]map[string]interface{}, 0, len(sessions))
 	for _, s := range sessions {
 		sessionList = append(sessionList, map[string]interface{}{
-			"session_id":    s.SessionID,
-			"resource_path": s.ResourcePath,
-			"entry_node":    s.EntryNode,
-			"status":        string(s.Status),
-			"created_at":    s.CreatedAt.Unix(),
+			"session_id":     s.SessionID,
+			"resource_paths": s.ResourcePaths,
+			"entry_node":     s.EntryNode,
+			"status":         string(s.Status),
+			"created_at":     s.CreatedAt.Unix(),
+			"agent_id":       s.AgentID,
 		})
 	}
 
@@ -196,13 +209,14 @@ func (h *DebugHandlerV2) handleGetSession(conn *server.Connection, msg models.Me
 	h.sendResponse(conn, "/lte/debug/session_info", map[string]interface{}{
 		"success":        true,
 		"session_id":     session.SessionID,
-		"resource_path":  session.ResourcePath,
+		"resource_paths": session.ResourcePaths,
 		"entry_node":     session.EntryNode,
 		"status":         string(session.Status),
 		"current_node":   session.GetCurrentNode(),
 		"last_node":      session.GetLastNode(),
 		"pause_reason":   session.GetPauseReason(),
 		"executed_nodes": session.GetExecutedNodes(),
+		"agent_id":       session.AgentID,
 	})
 }
 
@@ -219,14 +233,21 @@ func (h *DebugHandlerV2) handleStart(conn *server.Connection, msg models.Message
 		return
 	}
 
-	resourcePath, _ := dataMap["resource_path"].(string)
+	var resourcePaths []string
+	if paths, ok := dataMap["resource_paths"].([]interface{}); ok && len(paths) > 0 {
+		resourcePaths = h.parseStringArray(paths)
+	} else if path, ok := dataMap["resource_path"].(string); ok && path != "" {
+		resourcePaths = []string{path}
+	}
+
 	entryNode, _ := dataMap["entry"].(string)
 	controllerID, _ := dataMap["controller_id"].(string)
+	agentIdentifier, _ := dataMap["agent_identifier"].(string)
 
-	logger.Info("DebugV2", "启动调试: 入口=%s", entryNode)
+	logger.Info("DebugV2", "启动调试: 入口=%s, 资源=%v, Agent=%s", entryNode, resourcePaths, agentIdentifier)
 
-	if resourcePath == "" || entryNode == "" || controllerID == "" {
-		h.sendError(conn, "缺少必需参数: resource_path, entry, controller_id")
+	if len(resourcePaths) == 0 || entryNode == "" || controllerID == "" {
+		h.sendError(conn, "缺少必需参数: resource_paths/resource_path, entry, controller_id")
 		return
 	}
 
@@ -237,7 +258,12 @@ func (h *DebugHandlerV2) handleStart(conn *server.Connection, msg models.Message
 	eventCallback := h.createEventCallbackWithSessionID(conn, &sessionIDHolder)
 
 	// 创建会话
-	session, err := h.debugService.CreateSession(resourcePath, controllerID, eventCallback)
+	session, err := h.debugService.CreateSessionWithOptions(mfw.CreateSessionOptions{
+		ResourcePaths:   resourcePaths,
+		ControllerID:    controllerID,
+		AgentIdentifier: agentIdentifier,
+		EventCallback:   eventCallback,
+	})
 	if err != nil {
 		logger.Error("DebugV2", "创建会话失败: %v", err)
 		h.sendError(conn, err.Error())
@@ -328,6 +354,12 @@ func (h *DebugHandlerV2) handleStop(conn *server.Connection, msg models.Message)
 	if err != nil {
 		h.sendError(conn, err.Error())
 		return
+	}
+
+	// 停止后销毁会话以释放资源
+	err = h.debugService.DestroySession(sessionID)
+	if err != nil {
+		logger.Warn("DebugV2", "销毁会话失败: %v", err)
 	}
 
 	h.sendResponse(conn, "/lte/debug/stopped", map[string]interface{}{

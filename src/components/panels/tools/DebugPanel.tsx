@@ -1,18 +1,10 @@
 import { memo, useMemo, useState, useEffect } from "react";
-import {
-  message,
-  Select,
-  Tag,
-  Button,
-  Dropdown,
-  Tooltip,
-  Popover,
-  Switch,
-} from "antd";
+import { message, Select, Tag, Button, Tooltip, Popover, Switch } from "antd";
+import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import classNames from "classnames";
 import IconFont from "../../iconfonts";
 import { type IconNames } from "../../iconfonts";
-import { getNextNodes, useFlowStore } from "../../../stores/flow";
+import { useFlowStore } from "../../../stores/flow";
 import { useDebugStore } from "../../../stores/debugStore";
 import { useMFWStore } from "../../../stores/mfwStore";
 import { useFileStore } from "../../../stores/fileStore";
@@ -47,7 +39,7 @@ function DebugPanel() {
   const {
     debugStatus,
     sessionId,
-    resourcePath,
+    resourcePaths,
     entryNode,
     currentNode,
     currentPhase,
@@ -55,14 +47,18 @@ function DebugPanel() {
     lastNode,
     executionStartTime,
     executionHistory,
+    agentIdentifier,
     startDebug,
     stopDebug,
     setConfig: setDebugConfig,
+    addResourcePath,
+    removeResourcePath,
+    updateResourcePath,
   } = useDebugStore(
     useShallow((state) => ({
       debugStatus: state.debugStatus,
       sessionId: state.sessionId,
-      resourcePath: state.resourcePath,
+      resourcePaths: state.resourcePaths,
       entryNode: state.entryNode,
       currentNode: state.currentNode,
       currentPhase: state.currentPhase,
@@ -70,9 +66,13 @@ function DebugPanel() {
       lastNode: state.lastNode,
       executionStartTime: state.executionStartTime,
       executionHistory: state.executionHistory,
+      agentIdentifier: state.agentIdentifier,
       startDebug: state.startDebug,
       stopDebug: state.stopDebug,
       setConfig: state.setConfig,
+      addResourcePath: state.addResourcePath,
+      removeResourcePath: state.removeResourcePath,
+      updateResourcePath: state.updateResourcePath,
     }))
   );
 
@@ -89,12 +89,12 @@ function DebugPanel() {
   };
 
   // 连接成功后自动加载后端配置填充资源路径
-  // 优先级:
-  // 1. 优先使用 --root 参数指定的目录
-  // 2. 其次使用配置文件中的 resource_dir
-  // 3. 最后为空,让用户手动填写
   useEffect(() => {
-    if (connectionStatus === "connected" && !resourcePath) {
+    const needsFill =
+      resourcePaths.length === 0 ||
+      (resourcePaths.length === 1 && resourcePaths[0] === "");
+
+    if (connectionStatus === "connected" && needsFill) {
       // 请求后端配置
       const success = configProtocol.requestGetConfig();
       if (!success) {
@@ -110,7 +110,7 @@ function DebugPanel() {
               data.config.file?.root || data.config.maafw?.resource_dir || "";
 
             if (resourcePath) {
-              setDebugConfig("resourcePath", resourcePath);
+              updateResourcePath(0, resourcePath);
             } else {
               console.warn(
                 "[DebugPanel] Backend config invalid or resource paths not set"
@@ -125,7 +125,7 @@ function DebugPanel() {
         }
       );
     }
-  }, [connectionStatus, resourcePath, setDebugConfig]);
+  }, [connectionStatus, resourcePaths, updateResourcePath]);
 
   // 监听打开日志结果
   useEffect(() => {
@@ -181,12 +181,56 @@ function DebugPanel() {
       <div className={debugStyle["debug-config-section"]}>
         <div className={debugStyle["debug-config-section-title"]}>基础配置</div>
         <div className={debugStyle["debug-config-field"]}>
-          <div className={debugStyle["debug-config-field-label"]}>资源路径</div>
+          <div className={debugStyle["debug-config-field-label"]}>
+            资源路径
+            <span style={{ color: "#999", fontSize: 11, marginLeft: 4 }}>
+              (多路径后面覆盖前面)
+            </span>
+          </div>
+          <div className={debugStyle["debug-config-paths"]}>
+            {resourcePaths.map((path, index) => (
+              <div key={index} className={debugStyle["debug-config-path-item"]}>
+                <input
+                  type="text"
+                  value={path}
+                  onChange={(e) => updateResourcePath(index, e.target.value)}
+                  placeholder={`资源路径 ${index + 1}`}
+                  className={debugStyle["debug-config-input"]}
+                />
+                <Button
+                  type="text"
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={() => removeResourcePath(index)}
+                  disabled={resourcePaths.length <= 1}
+                  style={{ flexShrink: 0 }}
+                />
+              </div>
+            ))}
+            <Button
+              type="dashed"
+              size="small"
+              icon={<PlusOutlined />}
+              onClick={() => addResourcePath("")}
+              style={{ width: "100%" }}
+            >
+              添加资源路径
+            </Button>
+          </div>
+        </div>
+        <div className={debugStyle["debug-config-field"]}>
+          <div className={debugStyle["debug-config-field-label"]}>
+            Agent 标识符
+            <span style={{ color: "#999", fontSize: 11, marginLeft: 4 }}>
+              (可选)
+            </span>
+          </div>
           <input
             type="text"
-            value={resourcePath}
-            onChange={(e) => setDebugConfig("resourcePath", e.target.value)}
-            placeholder="请输入资源路径"
+            value={agentIdentifier}
+            onChange={(e) => setDebugConfig("agentIdentifier", e.target.value)}
+            placeholder="留空则不连接 Agent"
             className={debugStyle["debug-config-input"]}
           />
         </div>
@@ -243,7 +287,9 @@ function DebugPanel() {
       label: "开始调试",
       disabled: debugStatus !== "idle" || connectionStatus !== "connected",
       onClick: async () => {
-        if (!resourcePath) {
+        // 过滤空路径
+        const validPaths = resourcePaths.filter((p) => p.trim() !== "");
+        if (validPaths.length === 0) {
           message.error("请先配置资源路径");
           return;
         }
@@ -269,10 +315,11 @@ function DebugPanel() {
 
         // 发送 WebSocket 消息启动调试
         const success = debugProtocol.sendStartDebug(
-          resourcePath,
+          validPaths,
           entryNodeFullName,
           controllerId,
-          []
+          [],
+          agentIdentifier || undefined
         );
 
         if (!success) {

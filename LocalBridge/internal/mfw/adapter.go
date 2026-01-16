@@ -197,10 +197,19 @@ func (a *MaaFWAdapter) IsControllerConnected() bool {
 
 // LoadResource 加载资源
 func (a *MaaFWAdapter) LoadResource(path string) error {
+	return a.LoadResources([]string{path})
+}
+
+// LoadResources 加载多个资源路径
+func (a *MaaFWAdapter) LoadResources(paths []string) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	logger.Debug("MaaFW", "加载资源: %s", path)
+	if len(paths) == 0 {
+		return fmt.Errorf("资源路径不能为空")
+	}
+
+	logger.Debug("MaaFW", "加载资源: %v", paths)
 
 	// 创建新资源
 	res := maa.NewResource()
@@ -208,17 +217,27 @@ func (a *MaaFWAdapter) LoadResource(path string) error {
 		return fmt.Errorf("创建资源失败")
 	}
 
-	// 加载资源包
-	loadJob := res.PostBundle(path)
-	if loadJob == nil {
-		res.Destroy()
-		return fmt.Errorf("发起资源加载失败")
-	}
+	// 依次加载所有资源包
+	for i, path := range paths {
+		if path == "" {
+			continue
+		}
 
-	loadJob.Wait()
-	if !loadJob.Success() {
-		res.Destroy()
-		return fmt.Errorf("资源加载失败: %v", loadJob.Status())
+		logger.Debug("MaaFW", "加载资源包 [%d/%d]: %s", i+1, len(paths), path)
+
+		loadJob := res.PostBundle(path)
+		if loadJob == nil {
+			res.Destroy()
+			return fmt.Errorf("发起资源加载失败: %s", path)
+		}
+
+		loadJob.Wait()
+		if !loadJob.Success() {
+			res.Destroy()
+			return fmt.Errorf("资源加载失败 [%s]: %v", path, loadJob.Status())
+		}
+
+		logger.Debug("MaaFW", "资源包加载成功: %s", path)
 	}
 
 	// 清理旧资源
@@ -229,7 +248,7 @@ func (a *MaaFWAdapter) LoadResource(path string) error {
 	a.resource = res
 	a.resourceLoaded = true
 
-	logger.Info("MaaFW", "资源已加载")
+	logger.Debug("MaaFW", "资源已加载 (共 %d 个路径)", len(paths))
 	return nil
 }
 
@@ -289,10 +308,12 @@ func (a *MaaFWAdapter) InitTasker() error {
 	}
 
 	// 创建 Tasker
+	logger.Debug("MaaFW", "创建 Tasker...")
 	tasker := maa.NewTasker()
 	if tasker == nil {
 		return fmt.Errorf("创建 Tasker 失败")
 	}
+	logger.Debug("MaaFW", "Tasker 创建成功,指针: %p", tasker)
 
 	// 绑定资源
 	if !tasker.BindResource(a.resource) {
@@ -419,35 +440,75 @@ func (a *MaaFWAdapter) ConnectAgent(identifier string) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	logger.Info("MaaFW", "连接 Agent: %s", identifier)
+	logger.Debug("MaaFW", "开始连接 Agent: identifier=%s, Tasker指针=%p, 资源指针=%p", identifier, a.tasker, a.resource)
+
+	// 清理旧 Agent
+	if a.agentClient != nil {
+		a.agentClient.Disconnect()
+		a.agentClient.Destroy()
+		a.agentClient = nil
+		a.agentConnected = false
+	}
 
 	// 创建 AgentClient
 	client := maa.NewAgentClient(identifier)
 	if client == nil {
 		return fmt.Errorf("创建 AgentClient 失败")
 	}
+	a.agentClient = client
+
+	// 绑定资源
+	if a.resource == nil {
+		client.Destroy()
+		a.agentClient = nil
+		return fmt.Errorf("资源未加载")
+	}
+	if !client.BindResource(a.resource) {
+		client.Destroy()
+		a.agentClient = nil
+		return fmt.Errorf("绑定资源到 Agent 失败")
+	}
+
+	// 注册 Tasker 事件回传
+	if a.tasker != nil {
+		logger.Debug("MaaFW", "正在注册 Tasker Sink 到 Agent")
+		if !client.RegisterTaskerSink(*a.tasker) {
+			logger.Warn("MaaFW", "注册 Tasker Sink 失败")
+		} else {
+			logger.Debug("MaaFW", "Tasker Sink 注册成功")
+		}
+	} else {
+		logger.Warn("MaaFW", "Tasker 为 nil,跳过注册 Tasker Sink")
+	}
 
 	// 连接
+	logger.Debug("MaaFW", "正在连接 Agent...")
 	if !client.Connect() {
 		client.Destroy()
+		a.agentClient = nil
 		return fmt.Errorf("Agent 连接失败")
 	}
 
-	// 检查连接状态
-	if !client.Connected() {
+	// 使用超时检查连接状态
+	logger.Debug("MaaFW", "Agent.Connect() 成功,检查连接状态(超时5秒)...")
+	connected := false
+	for i := 0; i < 50; i++ {
+		if client.Connected() {
+			connected = true
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	if !connected {
+		logger.Warn("MaaFW", "Agent 连接状态检查超时,强制断开")
+		client.Disconnect()
 		client.Destroy()
-		return fmt.Errorf("Agent 连接状态异常")
+		a.agentClient = nil
+		return fmt.Errorf("Agent 连接状态异常(超时)")
 	}
 
-	// 清理旧 Agent
-	if a.agentClient != nil {
-		a.agentClient.Disconnect()
-		a.agentClient.Destroy()
-	}
-
-	a.agentClient = client
 	a.agentConnected = true
-
 	logger.Info("MaaFW", "Agent 已连接")
 	return nil
 }
@@ -477,27 +538,6 @@ func (a *MaaFWAdapter) GetAgentClient() *maa.AgentClient {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	return a.agentClient
-}
-
-// BindAgentResource 绑定资源到 Agent
-func (a *MaaFWAdapter) BindAgentResource() error {
-	a.mu.RLock()
-	client := a.agentClient
-	res := a.resource
-	a.mu.RUnlock()
-
-	if client == nil || !a.agentConnected {
-		return fmt.Errorf("Agent 未连接")
-	}
-	if res == nil {
-		return fmt.Errorf("资源未加载")
-	}
-
-	if !client.BindResource(res) {
-		return fmt.Errorf("绑定资源到 Agent 失败")
-	}
-
-	return nil
 }
 
 // ============================================================================

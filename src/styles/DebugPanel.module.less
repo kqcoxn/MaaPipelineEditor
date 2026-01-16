@@ -47,12 +47,31 @@
 // 调试配置面板样式
 
 .debug-config-form {
-  width: 320px;
-  padding: 4px 0;
+  width: 340px;
+  padding: 8px 0;
+  max-height: 60vh;
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.3);
+    }
+  }
 }
 
 .debug-config-section {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 
   &:last-child {
     margin-bottom: 0;
@@ -60,11 +79,11 @@
 }
 
 .debug-config-section-title {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 14px;
-  padding: 0 0 10px 0;
+  margin-bottom: 12px;
+  padding: 0 0 8px 0;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   display: flex;
   align-items: center;
@@ -72,7 +91,7 @@
   &::before {
     content: "";
     width: 3px;
-    height: 14px;
+    height: 12px;
     background: linear-gradient(180deg, #1890ff 0%, #40a9ff 100%);
     border-radius: 2px;
     margin-right: 8px;
@@ -80,7 +99,7 @@
 }
 
 .debug-config-field {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 
   &:last-child {
     margin-bottom: 0;
@@ -95,16 +114,17 @@
 }
 
 .debug-config-field-label {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-primary);
   font-weight: 500;
   display: flex;
   align-items: center;
+  margin-bottom: 6px;
 
   &::before {
     content: "•";
     color: #1890ff;
-    font-size: 16px;
+    font-size: 14px;
     margin-right: 6px;
     line-height: 1;
   }
@@ -118,12 +138,29 @@
   opacity: 0.8;
 }
 
+.debug-config-paths {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.debug-config-path-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+  width: 100%;
+}
+
 .debug-config-input {
-  width: 92%;
-  padding: 8px 12px;
-  border-radius: 6px;
+  flex: 1;
+  min-width: 0;
+  max-width: 93%;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 4px;
   border: 1px solid rgba(0, 0, 0, 0.12);
-  font-size: 13px;
+  font-size: 12px;
   transition: all 0.2s ease;
   background-color: var(--bg-primary);
   color: var(--text-primary);

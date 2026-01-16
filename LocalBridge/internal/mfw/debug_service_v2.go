@@ -29,11 +29,12 @@ const (
 // DebugSessionV2 调试会话
 type DebugSessionV2 struct {
 	// 基本信息
-	SessionID    string             `json:"session_id"`
-	ResourcePath string             `json:"resource_path"`
-	EntryNode    string             `json:"entry_node"`
-	Status       DebugSessionStatus `json:"status"`
-	CreatedAt    time.Time          `json:"created_at"`
+	SessionID     string             `json:"session_id"`
+	ResourcePaths []string           `json:"resource_paths"` // 支持多资源路径
+	EntryNode     string             `json:"entry_node"`
+	Status        DebugSessionStatus `json:"status"`
+	CreatedAt     time.Time          `json:"created_at"`
+	AgentID       string             `json:"agent_id,omitempty"` // Agent 标识符
 
 	// MaaFW 组件
 	adapter *MaaFWAdapter
@@ -74,22 +75,40 @@ func NewDebugServiceV2(service *Service) *DebugServiceV2 {
 // 会话管理
 // ============================================================================
 
+// CreateSessionOptions 创建会话的选项
+type CreateSessionOptions struct {
+	ResourcePaths   []string           // 资源路径列表（后面的覆盖前面的）
+	ControllerID    string             // 控制器 ID
+	AgentIdentifier string             // Agent 标识符（可选）
+	EventCallback   DebugEventCallback // 事件回调
+}
+
 // CreateSession 创建调试会话
 func (ds *DebugServiceV2) CreateSession(resourcePath, controllerID string, eventCallback DebugEventCallback) (*DebugSessionV2, error) {
+	return ds.CreateSessionWithOptions(CreateSessionOptions{
+		ResourcePaths:   []string{resourcePath},
+		ControllerID:    controllerID,
+		AgentIdentifier: "",
+		EventCallback:   eventCallback,
+	})
+}
+
+// CreateSessionWithOptions 创建调试会话
+func (ds *DebugServiceV2) CreateSessionWithOptions(opts CreateSessionOptions) (*DebugSessionV2, error) {
 	ds.mu.Lock()
 	defer ds.mu.Unlock()
 
-	logger.Debug("DebugV2", "创建调试会话: 资源=%s, 控制器=%s", resourcePath, controllerID)
+	logger.Debug("DebugV2", "创建调试会话: 资源=%v, 控制器=%s, Agent=%s", opts.ResourcePaths, opts.ControllerID, opts.AgentIdentifier)
 
 	// 获取控制器实例
-	controllerInfo, err := ds.service.ControllerManager().GetController(controllerID)
+	controllerInfo, err := ds.service.ControllerManager().GetController(opts.ControllerID)
 	if err != nil {
-		return nil, fmt.Errorf("控制器不存在: %s", controllerID)
+		return nil, fmt.Errorf("控制器不存在: %s", opts.ControllerID)
 	}
 
 	controller, ok := controllerInfo.Controller.(*maa.Controller)
 	if !ok || controller == nil {
-		return nil, fmt.Errorf("控制器实例不可用: %s", controllerID)
+		return nil, fmt.Errorf("控制器实例不可用: %s", opts.ControllerID)
 	}
 
 	// 创建 MaaFW 适配器
@@ -99,7 +118,7 @@ func (ds *DebugServiceV2) CreateSession(resourcePath, controllerID string, event
 	adapter.SetController(controller, controllerInfo.Type, controllerInfo.UUID)
 
 	// 加载资源
-	if err := adapter.LoadResource(resourcePath); err != nil {
+	if err := adapter.LoadResources(opts.ResourcePaths); err != nil {
 		adapter.Destroy()
 		return nil, fmt.Errorf("加载资源失败: %w", err)
 	}
@@ -110,15 +129,23 @@ func (ds *DebugServiceV2) CreateSession(resourcePath, controllerID string, event
 		return nil, fmt.Errorf("初始化 Tasker 失败: %w", err)
 	}
 
+	// 连接 Agent (必须在 Tasker 初始化之后)
+	if opts.AgentIdentifier != "" {
+		if err := adapter.ConnectAgent(opts.AgentIdentifier); err != nil {
+			logger.Warn("DebugV2", "Agent 连接失败: %v", err)
+		}
+	}
+
 	// 创建会话
 	sessionID := fmt.Sprintf("dbg_%d", time.Now().UnixNano())
 	session := &DebugSessionV2{
 		SessionID:     sessionID,
-		ResourcePath:  resourcePath,
+		ResourcePaths: opts.ResourcePaths,
+		AgentID:       opts.AgentIdentifier,
 		Status:        SessionStatusIdle,
 		CreatedAt:     time.Now(),
 		adapter:       adapter,
-		eventCallback: eventCallback,
+		eventCallback: opts.EventCallback,
 		executedNodes: make(map[string]int),
 		nodeStartTime: make(map[string]int64),
 	}
@@ -240,6 +267,9 @@ func (s *DebugSessionV2) Stop() error {
 
 	if s.adapter != nil {
 		s.adapter.StopTask()
+		// 停止时也断开 Agent
+		logger.Debug("DebugV2", "停止时断开 Agent 连接...")
+		s.adapter.DisconnectAgent()
 	}
 
 	s.Status = SessionStatusIdle
@@ -343,6 +373,12 @@ func (s *DebugSessionV2) waitForTask() {
 	// 检查任务状态
 	status := s.taskJob.Status()
 	logger.Info("DebugV2", "任务完成: Status=%v", status)
+
+	// 任务完成后立即断开 Agent 连接以释放资源
+	if s.adapter != nil {
+		logger.Debug("DebugV2", "断开 Agent 连接...")
+		s.adapter.DisconnectAgent()
+	}
 
 	if status.Success() {
 		// 任务成功完成
