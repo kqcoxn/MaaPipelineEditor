@@ -145,7 +145,7 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     useDarkMode: false,
     historyLimit: 100,
     nodeStyle: "modern" as NodeStyleType,
-    nodeAttrExportStyle: "object" as NodeAttrExportStyle,
+    nodeAttrExportStyle: "prefix" as NodeAttrExportStyle,
     defaultHandleDirection: "left-right" as HandleDirection,
     wsPort: 9066,
     wsAutoConnect: false,

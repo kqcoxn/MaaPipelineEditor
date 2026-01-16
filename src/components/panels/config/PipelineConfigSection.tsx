@@ -30,12 +30,17 @@ const PipelineConfigSection = memo(() => {
       data: {
         ...node.data,
         handleDirection:
-          defaultHandleDirection === "left-right" ? undefined : defaultHandleDirection,
+          defaultHandleDirection === "left-right"
+            ? undefined
+            : defaultHandleDirection,
       },
     }));
     setNodes(newNodes);
     message.success(
-      `已将所有节点端点位置更改为「${HANDLE_DIRECTION_OPTIONS.find((o) => o.value === defaultHandleDirection)?.label}」`
+      `已将所有节点端点位置更改为「${
+        HANDLE_DIRECTION_OPTIONS.find((o) => o.value === defaultHandleDirection)
+          ?.label
+      }」`
     );
   }, [nodes, setNodes, defaultHandleDirection]);
 
@@ -65,8 +70,8 @@ const PipelineConfigSection = memo(() => {
           value={nodeAttrExportStyle}
           onChange={(value) => setConfig("nodeAttrExportStyle", value)}
           options={[
-            { value: "object", label: "对象形式" },
             { value: "prefix", label: "前缀形式" },
+            { value: "object", label: "对象形式" },
           ]}
         />
       </div>
