@@ -63,7 +63,7 @@ func (a *MaaFWAdapter) ConnectADB(adbPath, address string, screencapMethods, inp
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	logger.Info("MaaFW", "连接 ADB 控制器: %s, %s", adbPath, address)
+	logger.Debug("MaaFW", "连接 ADB 控制器: %s, %s", adbPath, address)
 
 	// 解析截图方法
 	var scMethod adb.ScreencapMethod
@@ -109,7 +109,7 @@ func (a *MaaFWAdapter) ConnectADB(adbPath, address string, screencapMethods, inp
 	a.deviceInfo = address
 	a.screenshotter.SetController(ctrl)
 
-	logger.Info("MaaFW", "ADB 控制器连接成功")
+	logger.Info("MaaFW", "ADB 控制器已连接")
 	return nil
 }
 
@@ -119,7 +119,7 @@ func (a *MaaFWAdapter) ConnectWin32(hwnd uintptr, screencapMethod, inputMethod s
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	logger.Info("MaaFW", "连接 Win32 控制器: HWND=%x", hwnd)
+	logger.Debug("MaaFW", "连接 Win32 控制器: HWND=%x", hwnd)
 
 	// 解析截图方法
 	scMethod, _ := win32.ParseScreencapMethod(screencapMethod)
@@ -157,7 +157,7 @@ func (a *MaaFWAdapter) ConnectWin32(hwnd uintptr, screencapMethod, inputMethod s
 	a.deviceInfo = fmt.Sprintf("HWND:%x", hwnd)
 	a.screenshotter.SetController(ctrl)
 
-	logger.Info("MaaFW", "Win32 控制器连接成功")
+	logger.Info("MaaFW", "Win32 控制器已连接")
 	return nil
 }
 
@@ -200,7 +200,7 @@ func (a *MaaFWAdapter) LoadResource(path string) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	logger.Info("MaaFW", "加载资源: %s", path)
+	logger.Debug("MaaFW", "加载资源: %s", path)
 
 	// 创建新资源
 	res := maa.NewResource()
@@ -229,7 +229,7 @@ func (a *MaaFWAdapter) LoadResource(path string) error {
 	a.resource = res
 	a.resourceLoaded = true
 
-	logger.Info("MaaFW", "资源加载成功")
+	logger.Info("MaaFW", "资源已加载")
 	return nil
 }
 
@@ -320,7 +320,7 @@ func (a *MaaFWAdapter) InitTasker() error {
 	a.tasker = tasker
 	a.initialized = true
 
-	logger.Info("MaaFW", "Tasker 初始化成功")
+	logger.Debug("MaaFW", "Tasker 已初始化")
 	return nil
 }
 
@@ -364,7 +364,7 @@ func (a *MaaFWAdapter) RunTask(entry string, override ...interface{}) (*maa.Task
 	// 同步等待任务完成
 	taskJob.Wait()
 
-	logger.Info("MaaFW", "任务完成: %s, 状态: %v", entry, taskJob.Status())
+	logger.Info("MaaFW", "任务完成: %s", entry)
 	return taskJob, nil
 }
 
@@ -448,7 +448,7 @@ func (a *MaaFWAdapter) ConnectAgent(identifier string) error {
 	a.agentClient = client
 	a.agentConnected = true
 
-	logger.Info("MaaFW", "Agent 连接成功")
+	logger.Info("MaaFW", "Agent 已连接")
 	return nil
 }
 
@@ -595,7 +595,7 @@ func (a *MaaFWAdapter) Destroy() {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	logger.Info("MaaFW", "销毁 MaaFW 适配器")
+	logger.Debug("MaaFW", "销毁 MaaFW 适配器")
 
 	// 断开 Agent
 	if a.agentClient != nil {
@@ -629,7 +629,7 @@ func (a *MaaFWAdapter) Destroy() {
 	// 清理截图器
 	a.screenshotter.SetController(nil)
 
-	logger.Info("MaaFW", "MaaFW 适配器已销毁")
+	logger.Debug("MaaFW", "MaaFW 适配器已销毁")
 }
 
 // GetStatus 获取当前状态摘要

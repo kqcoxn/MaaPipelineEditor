@@ -194,7 +194,7 @@ func (h *Handler) handleSaveSeparated(msg models.Message, conn *server.Connectio
 		return nil
 	}
 
-	logger.Info("FileService", "分离模式保存成功: %s + %s", req.PipelinePath, req.ConfigPath)
+	logger.Debug("FileService", "分离模式保存成功: %s + %s", req.PipelinePath, req.ConfigPath)
 
 	// 返回确认
 	return &models.Message{
@@ -261,7 +261,7 @@ func (h *Handler) subscribeEvents() {
 				},
 			})
 
-			logger.Info("FileProtocol", "推送文件变化通知: %s - %s", changeType, filePath)
+			logger.Debug("FileProtocol", "推送文件变化通知: %s - %s", changeType, filePath)
 		}
 	})
 }
@@ -278,7 +278,7 @@ func (h *Handler) pushFileList() {
 		},
 	})
 
-	logger.Info("FileProtocol", "推送文件列表，共 %d 个文件", len(fileList))
+	logger.Debug("FileProtocol", "推送文件列表，共 %d 个文件", len(fileList))
 }
 
 // 解析消息数据

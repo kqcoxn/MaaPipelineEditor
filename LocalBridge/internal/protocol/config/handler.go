@@ -24,7 +24,7 @@ func (h *ConfigHandler) GetRoutePrefix() []string {
 // 处理消息
 func (h *ConfigHandler) Handle(msg models.Message, conn *server.Connection) *models.Message {
 	path := msg.Path
-	logger.Info("Config", "处理Config消息: %s", path)
+	logger.Debug("Config", "处理Config消息: %s", path)
 
 	// 根据路由分发到不同的处理器
 	switch path {

@@ -124,7 +124,7 @@ func doInitNativeAPI() error {
 	// 注册函数
 	registerNativeAPI()
 
-	logger.Info("RecoHelper", "✓ 原生 API 初始化成功")
+	logger.Debug("RecoHelper", "✓ 原生 API 初始化成功")
 	return nil
 }
 
@@ -260,7 +260,7 @@ func GetRecognitionDetailByID(tasker *maa.Tasker, recoID int64) *RecognitionDeta
 				}
 			}
 		}
-		logger.Info("RecoHelper", "✓ 通过原生 API 获取到 %d 张绘制图像", len(result.DrawImages))
+		logger.Debug("RecoHelper", "✓ 通过原生 API 获取到 %d 张绘制图像", len(result.DrawImages))
 	}
 
 	return result

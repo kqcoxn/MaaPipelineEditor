@@ -75,7 +75,7 @@ func (w *Watcher) Start() error {
 	// 启动事件处理协程
 	go w.handleEvents()
 
-	logger.Info("FileWatcher", "文件监听器已启动，监听根目录: %s", w.root)
+	logger.Debug("FileWatcher", "文件监听器已启动，监听根目录: %s", w.root)
 	return nil
 }
 
@@ -85,7 +85,7 @@ func (w *Watcher) Stop() {
 		w.watcher.Close()
 	}
 	w.debouncer.stop()
-	logger.Info("FileWatcher", "文件监听器已停止")
+	logger.Debug("FileWatcher", "文件监听器已停止")
 }
 
 // 处理文件系统事件
@@ -123,7 +123,7 @@ func (w *Watcher) processEvent(event fsnotify.Event) {
 	} else if event.Op&fsnotify.Remove == fsnotify.Remove {
 		changeType = ChangeTypeDeleted
 	} else {
-		return 
+		return
 	}
 
 	// 使用防抖处理

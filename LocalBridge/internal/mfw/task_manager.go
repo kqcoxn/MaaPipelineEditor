@@ -23,7 +23,7 @@ func NewTaskManager() *TaskManager {
 
 // 提交任务
 func (tm *TaskManager) SubmitTask(controllerID, resourceID, entry string, override map[string]interface{}) (int64, error) {
-	logger.Info("MFW", "提交任务: entry=%s, controller=%s, resource=%s", entry, controllerID, resourceID)
+	logger.Debug("MFW", "提交任务: entry=%s, controller=%s, resource=%s", entry, controllerID, resourceID)
 
 	// 创建 Tasker
 	tasker := maa.NewTasker()
@@ -48,7 +48,7 @@ func (tm *TaskManager) SubmitTask(controllerID, resourceID, entry string, overri
 	tm.tasks[taskID] = info
 	tm.mu.Unlock()
 
-	logger.Info("MFW", "任务提交成功: %d", taskID)
+	logger.Debug("MFW", "任务提交成功: %d", taskID)
 	return taskID, nil
 }
 

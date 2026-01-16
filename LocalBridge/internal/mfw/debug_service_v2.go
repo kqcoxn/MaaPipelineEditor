@@ -79,7 +79,7 @@ func (ds *DebugServiceV2) CreateSession(resourcePath, controllerID string, event
 	ds.mu.Lock()
 	defer ds.mu.Unlock()
 
-	logger.Info("DebugV2", "创建调试会话: 资源=%s, 控制器=%s", resourcePath, controllerID)
+	logger.Debug("DebugV2", "创建调试会话: 资源=%s, 控制器=%s", resourcePath, controllerID)
 
 	// 获取控制器实例
 	controllerInfo, err := ds.service.ControllerManager().GetController(controllerID)
@@ -138,7 +138,7 @@ func (ds *DebugServiceV2) CreateSession(resourcePath, controllerID string, event
 	// 保存会话
 	ds.sessions[sessionID] = session
 
-	logger.Info("DebugV2", "调试会话创建成功: %s", sessionID)
+	logger.Debug("DebugV2", "调试会话创建成功: %s", sessionID)
 	return session, nil
 }
 
@@ -159,7 +159,7 @@ func (ds *DebugServiceV2) DestroySession(sessionID string) error {
 		return fmt.Errorf("会话不存在: %s", sessionID)
 	}
 
-	logger.Info("DebugV2", "销毁调试会话: %s", sessionID)
+	logger.Debug("DebugV2", "销毁调试会话: %s", sessionID)
 
 	// 停止任务
 	if session.adapter != nil {

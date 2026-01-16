@@ -32,7 +32,7 @@ func NewControllerManager() *ControllerManager {
 
 // 创建ADB控制器
 func (cm *ControllerManager) CreateAdbController(adbPath, address string, screencapMethod, inputMethod []string, config, agentPath string) (string, error) {
-	logger.Info("MFW", "创建 ADB 控制器: %s @ %s", adbPath, address)
+	logger.Debug("MFW", "创建 ADB 控制器: %s @ %s", adbPath, address)
 
 	controllerID := uuid.New().String()
 
@@ -70,13 +70,13 @@ func (cm *ControllerManager) CreateAdbController(adbPath, address string, screen
 	cm.controllers[controllerID] = info
 	cm.mu.Unlock()
 
-	logger.Info("MFW", "控制器创建成功: %s", controllerID)
+	logger.Debug("MFW", "控制器已创建: %s", controllerID)
 	return controllerID, nil
 }
 
-// 创建Win32控制器
+// 创建 Win32 控制器
 func (cm *ControllerManager) CreateWin32Controller(hwnd, screencapMethod, inputMethod string) (string, error) {
-	logger.Info("MFW", "创建 Win32 控制器: %s", hwnd)
+	logger.Debug("MFW", "创建 Win32 控制器: %s", hwnd)
 
 	controllerID := uuid.New().String()
 
@@ -88,7 +88,7 @@ func (cm *ControllerManager) CreateWin32Controller(hwnd, screencapMethod, inputM
 		hexStr = strings.TrimPrefix(hexStr, "0X")
 		if val, err := strconv.ParseUint(hexStr, 16, 64); err == nil {
 			hwndPtr = unsafe.Pointer(uintptr(val))
-			logger.Info("MFW", "解析窗口句柄: %s -> %v", hwnd, hwndPtr)
+			logger.Debug("MFW", "解析窗口句柄: %s -> %v", hwnd, hwndPtr)
 		} else {
 			logger.Error("MFW", "解析窗口句柄失败: %s, %v", hwnd, err)
 		}
@@ -121,13 +121,13 @@ func (cm *ControllerManager) CreateWin32Controller(hwnd, screencapMethod, inputM
 	cm.controllers[controllerID] = info
 	cm.mu.Unlock()
 
-	logger.Info("MFW", "控制器创建成功: %s", controllerID)
+	logger.Debug("MFW", "控制器已创建: %s", controllerID)
 	return controllerID, nil
 }
 
-// 创建PlayCover控制器 (macOS上运行iOS应用)
+// 创建 PlayCover 控制器 (macOS上运行 iOS 应用)
 func (cm *ControllerManager) CreatePlayCoverController(address, deviceUUID string) (string, error) {
-	logger.Info("MFW", "创建 PlayCover 控制器: %s", address)
+	logger.Debug("MFW", "创建 PlayCover 控制器: %s", address)
 
 	controllerID := uuid.New().String()
 
@@ -151,13 +151,13 @@ func (cm *ControllerManager) CreatePlayCoverController(address, deviceUUID strin
 	cm.controllers[controllerID] = info
 	cm.mu.Unlock()
 
-	logger.Info("MFW", "控制器创建成功: %s", controllerID)
+	logger.Debug("MFW", "控制器已创建: %s", controllerID)
 	return controllerID, nil
 }
 
-// 创建Gamepad控制器
+// 创建 Gamepad 控制器
 func (cm *ControllerManager) CreateGamepadController(hwnd, gamepadType, screencapMethod string) (string, error) {
-	logger.Info("MFW", "创建 Gamepad 控制器: type=%s, hwnd=%s", gamepadType, hwnd)
+	logger.Debug("MFW", "创建 Gamepad 控制器: type=%s, hwnd=%s", gamepadType, hwnd)
 
 	controllerID := uuid.New().String()
 
@@ -169,7 +169,7 @@ func (cm *ControllerManager) CreateGamepadController(hwnd, gamepadType, screenca
 		hexStr = strings.TrimPrefix(hexStr, "0X")
 		if val, err := strconv.ParseUint(hexStr, 16, 64); err == nil {
 			hwndPtr = unsafe.Pointer(uintptr(val))
-			logger.Info("MFW", "解析窗口句柄: %s -> %v", hwnd, hwndPtr)
+			logger.Debug("MFW", "解析窗口句柄: %s -> %v", hwnd, hwndPtr)
 		} else {
 			logger.Error("MFW", "解析窗口句柄失败: %s, %v", hwnd, err)
 		}
@@ -206,7 +206,7 @@ func (cm *ControllerManager) CreateGamepadController(hwnd, gamepadType, screenca
 	cm.controllers[controllerID] = info
 	cm.mu.Unlock()
 
-	logger.Info("MFW", "控制器创建成功: %s", controllerID)
+	logger.Debug("MFW", "控制器已创建: %s", controllerID)
 	return controllerID, nil
 }
 
@@ -280,7 +280,7 @@ func (cm *ControllerManager) DisconnectController(controllerID string) error {
 
 	delete(cm.controllers, controllerID)
 
-	logger.Info("MFW", "控制器已断开: %s", controllerID)
+	logger.Debug("MFW", "控制器已断开: %s", controllerID)
 	return nil
 }
 
@@ -587,7 +587,7 @@ func (cm *ControllerManager) CleanupInactive(timeout time.Duration) {
 				ctrl.Destroy()
 			}
 			delete(cm.controllers, id)
-			logger.Info("MFW", "清理非活跃控制器: %s", id)
+			logger.Debug("MFW", "清理非活跃控制器: %s", id)
 		}
 	}
 }
@@ -602,12 +602,12 @@ func (cm *ControllerManager) DisconnectAll() {
 		if ctrl, ok := info.Controller.(*maa.Controller); ok && ctrl != nil {
 			ctrl.Destroy()
 		}
-		logger.Info("MFW", "断开控制器: %s", id)
+		logger.Debug("MFW", "断开控制器: %s", id)
 	}
 
 	// 清空控制器列表
 	cm.controllers = make(map[string]*ControllerInfo)
-	logger.Info("MFW", "所有控制器已断开")
+	logger.Debug("MFW", "所有控制器已断开")
 }
 
 // Gamepad 专用操作方法

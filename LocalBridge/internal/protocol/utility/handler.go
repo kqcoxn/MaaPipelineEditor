@@ -43,7 +43,7 @@ func (h *UtilityHandler) GetRoutePrefix() []string {
 // 处理消息
 func (h *UtilityHandler) Handle(msg models.Message, conn *server.Connection) *models.Message {
 	path := msg.Path
-	logger.Info("Utility", "处理Utility消息: %s", path)
+	logger.Debug("Utility", "处理Utility消息: %s", path)
 
 	// 根据路由分发到不同的处理器
 	switch path {
@@ -88,7 +88,7 @@ func (h *UtilityHandler) handleOCRRecognize(conn *server.Connection, msg models.
 		return
 	}
 
-	logger.Info("Utility", "执行OCR识别 - ControllerID: %s, ResourceID: %s, ROI: %v", controllerID, resourceID, roi)
+	logger.Debug("Utility", "执行OCR识别 - ControllerID: %s, ResourceID: %s, ROI: %v", controllerID, resourceID, roi)
 
 	// 执行OCR识别
 	result, err := h.performOCR(controllerID, resourceID, roi)
@@ -132,7 +132,7 @@ func (h *UtilityHandler) performOCR(controllerID, resourceID string, roi [4]int3
 	}
 
 	// 执行截图获取当前屏幕图像
-	logger.Info("Utility", "使用控制器 %s 进行截图", controllerInfo.ControllerID)
+	logger.Debug("Utility", "使用控制器 %s 进行截图", controllerInfo.ControllerID)
 	job := ctrl.PostScreencap()
 	if job == nil {
 		return nil, mfw.NewMFWError(mfw.ErrCodeOperationFail, "failed to post screencap", nil)
@@ -143,7 +143,7 @@ func (h *UtilityHandler) performOCR(controllerID, resourceID string, roi [4]int3
 	if img == nil {
 		return nil, mfw.NewMFWError(mfw.ErrCodeOperationFail, "failed to get screenshot", nil)
 	}
-	logger.Info("Utility", "截图获取成功")
+	logger.Debug("Utility", "截图获取成功")
 
 	// 获取或创建资源
 	var res *maa.Resource
@@ -155,7 +155,7 @@ func (h *UtilityHandler) performOCR(controllerID, resourceID string, roi [4]int3
 			logger.Warn("Utility", "获取资源失败,将创建临时资源: %v", err)
 		} else if r, ok := resourceInfo.Resource.(*maa.Resource); ok {
 			res = r
-			logger.Info("Utility", "使用已有资源 %s 进行OCR识别", resourceInfo.ResourceID)
+			logger.Debug("Utility", "使用已有资源 %s 进行OCR识别", resourceInfo.ResourceID)
 		}
 	}
 
@@ -181,7 +181,7 @@ func (h *UtilityHandler) performOCR(controllerID, resourceID string, roi [4]int3
 
 		// 从配置加载 OCR 资源
 		resourcePath := cfg.MaaFW.ResourceDir
-		logger.Info("Utility", "从配置加载 OCR 资源: %s", resourcePath)
+		logger.Debug("Utility", "从配置加载 OCR 资源: %s", resourcePath)
 
 		// Windows 下处理中文路径
 		actualPath := resourcePath
@@ -212,7 +212,7 @@ func (h *UtilityHandler) performOCR(controllerID, resourceID string, roi [4]int3
 			logger.Warn("Utility", "加载 OCR 资源失败")
 		} else {
 			status := resJob.Wait()
-			logger.Info("Utility", "OCR 资源加载状态: %v", status)
+			logger.Debug("Utility", "OCR 资源加载状态: %v", status)
 		}
 
 		// 恢复工作目录
@@ -250,7 +250,7 @@ func (h *UtilityHandler) performOCR(controllerID, resourceID string, roi [4]int3
 		logger.Error("Utility", "需要文件: det.onnx, rec.onnx, keys.txt")
 		return nil, mfw.NewMFWError(mfw.ErrCodeTaskSubmitFailed, "tasker not initialized - OCR model path may be incorrect, expected: <resource_dir>/model/ocr/", nil)
 	}
-	logger.Info("Utility", "Tasker 初始化成功")
+	logger.Debug("Utility", "Tasker 初始化成功")
 
 	// 构造 OCR 识别节点
 	ocrNodeName := "_OCR_TEMP_"
@@ -264,7 +264,7 @@ func (h *UtilityHandler) performOCR(controllerID, resourceID string, roi [4]int3
 	}
 
 	// 提交 OCR 任务
-	logger.Info("Utility", "提交 OCR 识别任务,ROI: %v", roi)
+	logger.Debug("Utility", "提交 OCR 识别任务,ROI: %v", roi)
 	taskJob := tasker.PostTask(ocrNodeName, ocrConfig)
 	if taskJob == nil {
 		return nil, mfw.NewMFWError(mfw.ErrCodeTaskSubmitFailed, "failed to post OCR task", nil)
@@ -272,7 +272,7 @@ func (h *UtilityHandler) performOCR(controllerID, resourceID string, roi [4]int3
 
 	// 等待识别完成
 	status := taskJob.Wait()
-	logger.Info("Utility", "OCR 识别任务完成,状态: %v", status)
+	logger.Debug("Utility", "OCR 识别任务完成,状态: %v", status)
 
 	// 获取识别详情
 	taskDetail := taskJob.GetDetail()
@@ -292,7 +292,7 @@ func (h *UtilityHandler) buildEmptyOCRResult(img image.Image, roi [4]int32) (map
 		return nil, err
 	}
 
-	logger.Info("Utility", "OCR 识别完成，未检测到文字内容")
+	logger.Debug("Utility", "OCR 识别完成，未检测到文字内容")
 
 	return map[string]interface{}{
 		"success":    true,
@@ -394,7 +394,7 @@ func (h *UtilityHandler) parseOCRResult(taskDetail *maa.TaskDetail, img image.Im
 	hasContent := allText != "" || len(boxes) > 0
 
 	if !hasContent {
-		logger.Info("Utility", "OCR 识别完成，未检测到文字内容")
+		logger.Debug("Utility", "OCR 识别完成，未检测到文字内容")
 	}
 
 	return map[string]interface{}{
@@ -463,7 +463,7 @@ func (h *UtilityHandler) handleResolveImagePath(conn *server.Connection, msg mod
 		return
 	}
 
-	logger.Info("Utility", "解析图片路径 - 文件名: %s", fileName)
+	logger.Debug("Utility", "解析图片路径 - 文件名: %s", fileName)
 
 	// 在根目录下搜索所有 image 目录中的文件
 	result, imageDir, err := h.searchFileInAllImageDirs(h.root, fileName)
@@ -499,7 +499,7 @@ func (h *UtilityHandler) handleResolveImagePath(conn *server.Connection, msg mod
 	// 统一使用正斜杠
 	relPath = strings.ReplaceAll(relPath, "\\", "/")
 
-	logger.Info("Utility", "找到文件 - image目录: %s, 相对路径: %s, 绝对路径: %s", imageDir, relPath, result.AbsPath)
+	logger.Debug("Utility", "找到文件 - image目录: %s, 相对路径: %s, 绝对路径: %s", imageDir, relPath, result.AbsPath)
 
 	conn.Send(models.Message{
 		Path: "/lte/utility/image_path_resolved",
@@ -532,7 +532,7 @@ func (h *UtilityHandler) searchFileInAllImageDirs(root string, fileName string) 
 
 		// 如果是目录且名为 "image"
 		if info.IsDir() && info.Name() == "image" {
-			logger.Info("Utility", "发现 image 目录: %s", path)
+			logger.Debug("Utility", "发现 image 目录: %s", path)
 
 			// 在该 image 目录中搜索文件
 			result := h.searchFileInSingleDir(path, fileName)
@@ -542,7 +542,7 @@ func (h *UtilityHandler) searchFileInAllImageDirs(root string, fileName string) 
 				if latestFile == nil || result.LastModified > latestFile.LastModified {
 					latestFile = result
 					latestImageDir = path
-					logger.Info("Utility", "在 %s 中找到更新的文件: %s (修改时间: %d)", path, fileName, result.LastModified)
+					logger.Debug("Utility", "在 %s 中找到更新的文件: %s (修改时间: %d)", path, fileName, result.LastModified)
 				}
 			}
 
@@ -608,7 +608,7 @@ func (h *UtilityHandler) handleOpenLog(conn *server.Connection, msg models.Messa
 	// 构建 maa.log 路径
 	logPath := filepath.Join(logDir, "maa.log")
 
-	logger.Info("Utility", "尝试打开日志目录: %s", logDir)
+	logger.Debug("Utility", "尝试打开日志目录: %s", logDir)
 
 	// 检查目录是否存在
 	if _, err := os.Stat(logDir); os.IsNotExist(err) {
@@ -638,25 +638,25 @@ func (h *UtilityHandler) handleOpenLog(conn *server.Connection, msg models.Messa
 		// 如果文件存在，使用 /select 参数选中文件
 		if logFileExists {
 			cmd = exec.Command("explorer", "/select,", logPath)
-			logger.Info("Utility", "执行命令: explorer /select, %s", logPath)
+			logger.Debug("Utility", "执行命令: explorer /select, %s", logPath)
 		} else {
 			cmd = exec.Command("explorer", logDir)
-			logger.Info("Utility", "执行命令: explorer %s", logDir)
+			logger.Debug("Utility", "执行命令: explorer %s", logDir)
 		}
 	case "darwin":
 		// macOS: 使用 open 命令打开目录
 		// 如果文件存在，使用 -R 参数选中文件
 		if logFileExists {
 			cmd = exec.Command("open", "-R", logPath)
-			logger.Info("Utility", "执行命令: open -R %s", logPath)
+			logger.Debug("Utility", "执行命令: open -R %s", logPath)
 		} else {
 			cmd = exec.Command("open", logDir)
-			logger.Info("Utility", "执行命令: open %s", logDir)
+			logger.Debug("Utility", "执行命令: open %s", logDir)
 		}
 	default:
 		// Linux: 使用 xdg-open 打开目录
 		cmd = exec.Command("xdg-open", logDir)
-		logger.Info("Utility", "执行命令: xdg-open %s", logDir)
+		logger.Debug("Utility", "执行命令: xdg-open %s", logDir)
 	}
 
 	// 执行命令
@@ -672,7 +672,7 @@ func (h *UtilityHandler) handleOpenLog(conn *server.Connection, msg models.Messa
 		return
 	}
 
-	logger.Info("Utility", "日志目录已打开")
+	logger.Debug("Utility", "日志目录已打开")
 
 	var successMsg string
 	if logFileExists {

@@ -93,7 +93,7 @@ func (h *DebugHandlerV2) handleCreateSession(conn *server.Connection, msg models
 	resourcePath, _ := dataMap["resource_path"].(string)
 	controllerID, _ := dataMap["controller_id"].(string)
 
-	logger.Info("DebugV2", "创建调试会话: 资源=%s, 控制器=%s", resourcePath, controllerID)
+	logger.Debug("DebugV2", "创建调试会话: 资源=%s, 控制器=%s", resourcePath, controllerID)
 
 	if resourcePath == "" || controllerID == "" {
 		h.sendError(conn, "缺少必需参数: resource_path, controller_id")
@@ -223,7 +223,7 @@ func (h *DebugHandlerV2) handleStart(conn *server.Connection, msg models.Message
 	entryNode, _ := dataMap["entry"].(string)
 	controllerID, _ := dataMap["controller_id"].(string)
 
-	logger.Info("DebugV2", "启动调试: 资源=%s, 入口=%s, 控制器=%s", resourcePath, entryNode, controllerID)
+	logger.Info("DebugV2", "启动调试: 入口=%s", entryNode)
 
 	if resourcePath == "" || entryNode == "" || controllerID == "" {
 		h.sendError(conn, "缺少必需参数: resource_path, entry, controller_id")
@@ -316,7 +316,7 @@ func (h *DebugHandlerV2) handleStop(conn *server.Connection, msg models.Message)
 		return
 	}
 
-	logger.Info("DebugV2", "停止调试: Session=%s", sessionID)
+	logger.Debug("DebugV2", "停止调试: Session=%s", sessionID)
 
 	session := h.debugService.GetSession(sessionID)
 	if session == nil {

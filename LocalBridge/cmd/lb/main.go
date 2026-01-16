@@ -200,8 +200,8 @@ func runServer(cmd *cobra.Command, args []string) {
 	}
 
 	logger.Info("Main", "Local Bridge 启动中... 版本: %s", Version)
-	logger.Info("Main", "运行模式: %s", paths.GetModeName())
-	logger.Info("Main", "数据目录: %s", paths.GetDataDir())
+	logger.Debug("Main", "运行模式: %s", paths.GetModeName())
+	logger.Debug("Main", "数据目录: %s", paths.GetDataDir())
 	logger.Info("Main", "运行目录: %s", cfg.File.Root)
 	logger.Debug("Main", "监听端口: %d", cfg.Server.Port)
 
@@ -240,7 +240,7 @@ func runServer(cmd *cobra.Command, args []string) {
 		}
 		logger.Warn("Main", "MFW 服务初始化失败: %v (当前状态仅可使用文件管理功能)", err)
 	} else {
-		logger.Info("Main", "MFW 服务初始化成功")
+		logger.Debug("Main", "MFW 服务初始化完成")
 		// 检查 OCR 资源路径是否配置
 		if cfg.MaaFW.ResourceDir == "" {
 			logger.Warn("Main", "OCR 资源路径未配置，原生 OCR 功能将不可用（但仍可用前段 OCR，若无需求无需配置）。请运行 'mpelb config set-resource' 进行配置")
@@ -258,7 +258,7 @@ func runServer(cmd *cobra.Command, args []string) {
 	if err := resSvc.Start(); err != nil {
 		logger.Warn("Main", "资源扫描服务启动失败: %v", err)
 	} else {
-		logger.Debug("Main", "资源扫描服务启动成功")
+		logger.Debug("Main", "资源扫描服务已启动")
 	}
 
 	// 检查更新

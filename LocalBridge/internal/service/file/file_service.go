@@ -144,7 +144,7 @@ func (s *Service) SaveFile(filePath string, content interface{}) error {
 		return errors.NewFileWriteError(filePath, err)
 	}
 
-	logger.Info("FileService", "文件保存成功: %s", filePath)
+	logger.Info("FileService", "文件已保存: %s", filePath)
 	return nil
 }
 
@@ -186,7 +186,7 @@ func (s *Service) CreateFile(directory, fileName string, content interface{}) er
 		return errors.NewFileWriteError(filePath, err)
 	}
 
-	logger.Info("FileService", "文件创建成功: %s", filePath)
+	logger.Info("FileService", "文件已创建: %s", filePath)
 
 	// 添加新文件到索引
 	if fileInfo, err := s.scanner.ScanSingle(filePath); err == nil && fileInfo != nil {

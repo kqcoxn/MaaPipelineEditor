@@ -240,7 +240,7 @@ func (h *Handler) pushResourceBundles() {
 		Data: bundleList,
 	})
 
-	logger.Info("ResourceProtocol", "推送资源包列表，共 %d 个资源包，%d 个 image 目录",
+	logger.Debug("ResourceProtocol", "推送资源包列表，共 %d 个资源包，%d 个 image 目录",
 		len(bundleList.Bundles), len(bundleList.ImageDirs))
 }
 

@@ -138,7 +138,7 @@ func (s *SimpleContextSink) OnNodePipelineNode(ctx *maa.Context, status maa.Even
 			latency = time.Since(startTime).Milliseconds()
 		}
 
-		logger.Info("DebugSink", "节点成功: %s (耗时 %dms)", nodeName, latency)
+		logger.Debug("DebugSink", "节点成功: %s (耗时 %dms)", nodeName, latency)
 
 		s.emit(DebugEventData{
 			Type:     EventNodeSucceeded,
@@ -155,7 +155,7 @@ func (s *SimpleContextSink) OnNodePipelineNode(ctx *maa.Context, status maa.Even
 			latency = time.Since(startTime).Milliseconds()
 		}
 
-		logger.Info("DebugSink", "节点失败: %s (耗时 %dms)", nodeName, latency)
+		logger.Debug("DebugSink", "节点失败: %s (耗时 %dms)", nodeName, latency)
 		s.emit(DebugEventData{
 			Type:     EventNodeFailed,
 			NodeName: nodeName,
@@ -222,7 +222,7 @@ func (s *SimpleContextSink) OnNodeRecognition(ctx *maa.Context, status maa.Event
 		s.recoCountMap[nodeName]++
 		runIndex := s.recoCountMap[nodeName]
 
-		logger.Info("DebugSink", "识别成功: %s (第%d次, RecoID=%d)", nodeName, runIndex, recoID)
+		logger.Debug("DebugSink", "识别成功: %s (第%d次, RecoID=%d)", nodeName, runIndex, recoID)
 
 		// 构建 Detail，包含识别详情
 		detail := map[string]interface{}{
@@ -270,7 +270,7 @@ func (s *SimpleContextSink) OnNodeRecognition(ctx *maa.Context, status maa.Event
 		s.recoCountMap[nodeName]++
 		runIndex := s.recoCountMap[nodeName]
 
-		logger.Info("DebugSink", "识别失败: %s (第%d次, RecoID=%d)", nodeName, runIndex, recoID)
+		logger.Debug("DebugSink", "识别失败: %s (第%d次, RecoID=%d)", nodeName, runIndex, recoID)
 
 		// 实际失败的节点名称（默认为容器节点）
 		actualNodeName := nodeName
@@ -289,7 +289,7 @@ func (s *SimpleContextSink) OnNodeRecognition(ctx *maa.Context, status maa.Event
 					// 更新实际节点名（用于正确归属）
 					if recoDetail.Name != "" && recoDetail.Name != nodeName {
 						actualNodeName = recoDetail.Name
-						logger.Info("DebugSink", "✓ 实际失败节点: %s (容器: %s)", actualNodeName, nodeName)
+						logger.Debug("DebugSink", "✓ 实际失败节点: %s (容器: %s)", actualNodeName, nodeName)
 					}
 
 					// 添加识别详情到 detail
@@ -355,7 +355,7 @@ func (s *SimpleContextSink) OnNodeAction(ctx *maa.Context, status maa.EventStatu
 		})
 
 	case maa.EventStatusFailed:
-		logger.Info("DebugSink", "动作失败: %s", nodeName)
+		logger.Debug("DebugSink", "动作失败: %s", nodeName)
 		s.emit(DebugEventData{
 			Type:     EventActionFailed,
 			NodeName: nodeName,
