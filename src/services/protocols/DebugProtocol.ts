@@ -1,4 +1,5 @@
-import { message } from "antd";
+import { message, Modal } from "antd";
+import { createElement } from "react";
 import { BaseProtocol } from "./BaseProtocol";
 import type { LocalWebSocketServer } from "../server";
 import { useDebugStore } from "../../stores/debugStore";
@@ -467,7 +468,12 @@ export class DebugProtocol extends BaseProtocol {
       const { session_id, error } = data;
       const debugStore = useDebugStore.getState();
 
-      if (session_id !== undefined && debugStore.sessionId !== session_id) {
+      // 如果有 session_id 且不匹配,则忽略
+      if (
+        session_id !== undefined &&
+        debugStore.sessionId &&
+        debugStore.sessionId !== session_id
+      ) {
         console.warn(
           "[DebugProtocol] Error session_id mismatch:",
           session_id,
@@ -478,7 +484,77 @@ export class DebugProtocol extends BaseProtocol {
       }
 
       debugStore.handleDebugEvent({ type: "error", error });
-      message.error(`调试错误: ${error}`);
+
+      // 检查是否为资源加载失败错误
+      const errorMsg = error || "调试错误";
+      const isResourceError =
+        errorMsg.includes("资源加载失败") ||
+        errorMsg.includes("加载资源失败") ||
+        errorMsg.includes("resource bundle load failed");
+
+      if (isResourceError) {
+        // 弹出 Modal 提醒用户检查资源路径
+        Modal.error({
+          title: "资源加载失败",
+          content: createElement("div", { style: { lineHeight: "1.6" } }, [
+            createElement("p", { key: "msg" }, errorMsg),
+            createElement(
+              "div",
+              {
+                key: "tips",
+                style: {
+                  marginTop: 12,
+                  padding: 12,
+                  background: "#fff7e6",
+                  borderRadius: 4,
+                },
+              },
+              [
+                createElement(
+                  "p",
+                  {
+                    key: "title",
+                    style: { margin: 0, marginBottom: 8, fontWeight: 500 },
+                  },
+                  "💡 提示："
+                ),
+                createElement(
+                  "ul",
+                  {
+                    key: "list",
+                    style: { margin: 0, paddingLeft: 20 },
+                  },
+                  [
+                    createElement(
+                      "li",
+                      { key: "1" },
+                      "1. 资源路径应指向包含 pipeline 文件的目录（如 assets/resource 或 assets/resource/base）"
+                    ),
+                    createElement(
+                      "li",
+                      { key: "2" },
+                      "2. 请检查各 pipeline 内容是否符合格式要求，有无重名等"
+                    ),
+                  ]
+                ),
+              ]
+            ),
+            createElement(
+              "p",
+              {
+                key: "action",
+                style: { marginTop: 12, marginBottom: 0 },
+              },
+              "请在调试配置中检查并修正资源路径。"
+            ),
+          ]),
+          okText: "知道了",
+          width: 520,
+        });
+      } else {
+        message.error(`调试错误: ${errorMsg}`);
+      }
+
       console.error("[DebugProtocol] Debug error:", error);
     } catch (error) {
       console.error("[DebugProtocol] Failed to handle debug error:", error);
@@ -533,7 +609,77 @@ export class DebugProtocol extends BaseProtocol {
           type: "error",
           error: error || "调试启动失败",
         });
-        message.error(error || "调试启动失败");
+
+        // 检查是否为资源加载失败错误
+        const errorMsg = error || "调试启动失败";
+        const isResourceError =
+          errorMsg.includes("资源加载失败") ||
+          errorMsg.includes("加载资源失败") ||
+          errorMsg.includes("resource bundle load failed");
+
+        if (isResourceError) {
+          // 弹出 Modal 提醒用户检查资源路径
+          Modal.error({
+            title: "资源加载失败",
+            content: createElement("div", { style: { lineHeight: "1.6" } }, [
+              createElement("p", { key: "msg" }, errorMsg),
+              createElement(
+                "div",
+                {
+                  key: "tips",
+                  style: {
+                    marginTop: 12,
+                    padding: 12,
+                    background: "#fff7e6",
+                    borderRadius: 4,
+                  },
+                },
+                [
+                  createElement(
+                    "p",
+                    {
+                      key: "title",
+                      style: { margin: 0, marginBottom: 8, fontWeight: 500 },
+                    },
+                    "💡 提示："
+                  ),
+                  createElement(
+                    "ul",
+                    {
+                      key: "list",
+                      style: { margin: 0, paddingLeft: 20 },
+                    },
+                    [
+                      createElement(
+                        "li",
+                        { key: "1" },
+                        "1. 资源路径应指向包含 pipeline 文件的目录（如 assets/resource 或 assets/resource/base）"
+                      ),
+                      createElement(
+                        "li",
+                        { key: "2" },
+                        "2. 请检查各 pipeline 内容是否符合格式要求，有无重名等"
+                      ),
+                    ]
+                  ),
+                ]
+              ),
+              createElement(
+                "p",
+                {
+                  key: "action",
+                  style: { marginTop: 12, marginBottom: 0 },
+                },
+                "请在调试配置中检查并修正资源路径。"
+              ),
+            ]),
+            okText: "知道了",
+            width: 520,
+          });
+        } else {
+          message.error(errorMsg);
+        }
+
         console.error("[DebugProtocol] Debug start failed:", error);
       }
     } catch (error) {

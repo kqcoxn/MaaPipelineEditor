@@ -8,8 +8,7 @@
 
 ## perf
 
-- jpb 默认前缀格式
-- debug 路径错误提示
+- -
 
 ## MPE Web
 
