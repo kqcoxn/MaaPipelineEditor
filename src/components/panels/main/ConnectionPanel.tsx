@@ -20,6 +20,7 @@ import {
   MobileOutlined,
   SwapOutlined,
   AppleOutlined,
+  RocketOutlined,
 } from "@ant-design/icons";
 import {
   useMFWStore,
@@ -47,9 +48,9 @@ export const ConnectionPanel = memo(
       errorMessage,
     } = useMFWStore();
 
-    const [activeTab, setActiveTab] = useState<"adb" | "win32" | "playcover">(
-      "adb"
-    );
+    const [activeTab, setActiveTab] = useState<
+      "adb" | "win32" | "playcover" | "gamepad"
+    >("adb");
     const [selectedAdbDevice, setSelectedAdbDevice] =
       useState<AdbDevice | null>(null);
     const [selectedWin32Window, setSelectedWin32Window] =
@@ -58,6 +59,12 @@ export const ConnectionPanel = memo(
     const [playCoverAddress, setPlayCoverAddress] = useState<string>("");
     const [playCoverUUID, setPlayCoverUUID] = useState<string>("");
     const [playCoverName, setPlayCoverName] = useState<string>("");
+    // Gamepad 连接参数
+    const [gamepadType, setGamepadType] = useState<"Xbox360" | "DualShock4">(
+      "Xbox360"
+    );
+    const [gamepadHwnd, setGamepadHwnd] = useState<string>("");
+    const [gamepadScreencap, setGamepadScreencap] = useState<string>("");
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [visitedTabs, setVisitedTabs] = useState<Set<string>>(new Set());
     const [hasInitialized, setHasInitialized] = useState(false);
@@ -131,12 +138,24 @@ export const ConnectionPanel = memo(
     useEffect(() => {
       if (selectedAdbDevice) {
         // ADB 设备默认选择所有方法
-        setCustomScreencap(selectedDeviceMethods.screencap);
-        setCustomInput(selectedDeviceMethods.input);
+        const filteredScreencap = selectedDeviceMethods.screencap.filter(
+          (m) => m !== "RawByNetcat"
+        );
+        const filteredInput = selectedDeviceMethods.input.filter(
+          (m) => m !== "RawByNetcat"
+        );
+        setCustomScreencap(filteredScreencap);
+        setCustomInput(filteredInput);
       } else if (selectedWin32Window) {
-        // Win32 窗口默认选择第一个方法
-        setCustomScreencap(selectedDeviceMethods.screencap[0]);
-        setCustomInput(selectedDeviceMethods.input[0]);
+        // Win32 窗口默认选择第一个非 RawByNetcat 的方法
+        const firstScreencap =
+          selectedDeviceMethods.screencap.find((m) => m !== "RawByNetcat") ||
+          selectedDeviceMethods.screencap[0];
+        const firstInput =
+          selectedDeviceMethods.input.find((m) => m !== "RawByNetcat") ||
+          selectedDeviceMethods.input[0];
+        setCustomScreencap(firstScreencap);
+        setCustomInput(firstInput);
       }
     }, [
       selectedAdbDevice?.address,
@@ -280,6 +299,13 @@ export const ConnectionPanel = memo(
           uuid: playCoverUUID.trim(),
           name: playCoverName.trim() || "PlayCover Device",
         });
+      } else if (activeTab === "gamepad") {
+        // Gamepad 连接
+        mfwProtocol.createGamepadController({
+          hwnd: gamepadHwnd.trim() || undefined,
+          gamepad_type: gamepadType,
+          screencap_method: gamepadScreencap || undefined,
+        });
       } else {
         message.warning("请先选择设备");
       }
@@ -292,6 +318,9 @@ export const ConnectionPanel = memo(
       playCoverAddress,
       playCoverUUID,
       playCoverName,
+      gamepadType,
+      gamepadHwnd,
+      gamepadScreencap,
     ]);
 
     // 断开连接
@@ -320,6 +349,8 @@ export const ConnectionPanel = memo(
         ? !!selectedWin32Window
         : activeTab === "playcover"
         ? !!(playCoverAddress.trim() && playCoverUUID.trim())
+        : activeTab === "gamepad"
+        ? true // Gamepad 不需要选择设备
         : false;
 
     // 检查是否有可用的方法
@@ -346,6 +377,8 @@ export const ConnectionPanel = memo(
         return !!screencap && !!input;
       } else if (activeTab === "playcover") {
         return true;
+      } else if (activeTab === "gamepad") {
+        return true; // Gamepad 不需要验证方法
       }
       return false;
     }, [
@@ -618,6 +651,81 @@ export const ConnectionPanel = memo(
       </div>
     );
 
+    // 渲染 Gamepad 表单
+    const renderGamepadForm = () => (
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div>
+          <Text
+            type="secondary"
+            style={{ fontSize: 12, marginBottom: 8, display: "block" }}
+          >
+            手柄类型 *
+          </Text>
+          <Select
+            value={gamepadType}
+            onChange={setGamepadType}
+            style={{ width: "100%" }}
+            options={[
+              { label: "Xbox 360 Controller", value: "Xbox360" },
+              { label: "DualShock 4 Controller", value: "DualShock4" },
+            ]}
+          />
+        </div>
+
+        <div>
+          <Text
+            type="secondary"
+            style={{ fontSize: 12, marginBottom: 8, display: "block" }}
+          >
+            窗口句柄 (可选,用于截图)
+          </Text>
+          <input
+            value={gamepadHwnd}
+            onChange={(e) => setGamepadHwnd(e.target.value)}
+            placeholder="例: 0x123456 (可以为空)"
+            style={{
+              width: "100%",
+              padding: "8px 12px",
+              borderRadius: 6,
+              border: "1px solid #d9d9d9",
+              fontSize: 14,
+              outline: "none",
+            }}
+          />
+        </div>
+
+        <div>
+          <Text
+            type="secondary"
+            style={{ fontSize: 12, marginBottom: 8, display: "block" }}
+          >
+            截图方法 (可选)
+          </Text>
+          <Select
+            placeholder="自动选择"
+            allowClear
+            value={gamepadScreencap || undefined}
+            onChange={(value) => setGamepadScreencap(value || "")}
+            style={{ width: "100%" }}
+            options={[
+              { label: "FramePool", value: "FramePool" },
+              { label: "GDI", value: "GDI" },
+              { label: "DXGI_DesktopDup", value: "DXGIDesktopDup" },
+              { label: "PrintWindow", value: "PrintWindow" },
+              { label: "ScreenDC", value: "ScreenDC" },
+            ]}
+          />
+        </div>
+
+        <Alert
+          message="前置要求"
+          description="需要安装 ViGEm Bus Driver 才能使用手柄功能。下载: https://github.com/ViGEm/ViGEmBus/releases"
+          type="info"
+          showIcon
+        />
+      </div>
+    );
+
     const statusBadge = getStatusBadge();
 
     return (
@@ -636,7 +744,7 @@ export const ConnectionPanel = memo(
           </div>
         }
         placement="right"
-        size={450}
+        size={490}
         open={open}
         onClose={onClose}
         styles={{
@@ -743,8 +851,8 @@ export const ConnectionPanel = memo(
             </div>
           </div>
 
-          {/* 方法配置区 - PlayCover 不显示 */}
-          {activeTab !== "playcover" && (
+          {/* 方法配置区 - PlayCover 和 Gamepad 不显示 */}
+          {activeTab !== "playcover" && activeTab !== "gamepad" && (
             <div
               style={{
                 padding: "16px 24px",
@@ -813,7 +921,7 @@ export const ConnectionPanel = memo(
             <Tabs
               activeKey={activeTab}
               onChange={(key) =>
-                setActiveTab(key as "adb" | "win32" | "playcover")
+                setActiveTab(key as "adb" | "win32" | "playcover" | "gamepad")
               }
               items={[
                 {
@@ -843,6 +951,15 @@ export const ConnectionPanel = memo(
                     </span>
                   ),
                 },
+                {
+                  key: "gamepad",
+                  label: (
+                    <span>
+                      <RocketOutlined style={{ marginRight: 8 }} />
+                      Gamepad
+                    </span>
+                  ),
+                },
               ]}
               style={{ marginBottom: 0 }}
             />
@@ -854,7 +971,9 @@ export const ConnectionPanel = memo(
               ? renderAdbDevices()
               : activeTab === "win32"
               ? renderWin32Windows()
-              : renderPlayCoverForm()}
+              : activeTab === "playcover"
+              ? renderPlayCoverForm()
+              : renderGamepadForm()}
           </div>
         </div>
       </Drawer>

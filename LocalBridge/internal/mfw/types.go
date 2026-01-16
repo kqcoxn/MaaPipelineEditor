@@ -30,6 +30,13 @@ type PlayCoverDeviceInfo struct {
 	Name    string `json:"name"`    // 设备显示名称
 }
 
+// Gamepad设备信息
+type GamepadDeviceInfo struct {
+	Hwnd             string   `json:"hwnd"`              // 窗口句柄(可选,用于截图)
+	GamepadType      string   `json:"gamepad_type"`      // 手柄类型: Xbox360 / DualShock4
+	ScreencapMethods []string `json:"screencap_methods"` // Win32截图方法列表
+}
+
 // 控制器实例信息
 type ControllerInfo struct {
 	ControllerID string    `json:"controller_id"`

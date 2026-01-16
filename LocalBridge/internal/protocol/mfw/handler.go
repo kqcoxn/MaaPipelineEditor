@@ -55,6 +55,8 @@ func (h *MFWHandler) Handle(msg models.Message, conn *server.Connection) *models
 		h.handleCreateWin32Controller(conn, msg)
 	case "/etl/mfw/create_playcover_controller":
 		h.handleCreatePlayCoverController(conn, msg)
+	case "/etl/mfw/create_gamepad_controller":
+		h.handleCreateGamepadController(conn, msg)
 	case "/etl/mfw/disconnect_controller":
 		h.handleDisconnectController(conn, msg)
 	case "/etl/mfw/request_screencap":
@@ -69,6 +71,10 @@ func (h *MFWHandler) Handle(msg models.Message, conn *server.Connection) *models
 		h.handleControllerStartApp(conn, msg)
 	case "/etl/mfw/controller_stop_app":
 		h.handleControllerStopApp(conn, msg)
+	case "/etl/mfw/controller_click_key":
+		h.handleControllerClickKey(conn, msg)
+	case "/etl/mfw/controller_touch_gamepad":
+		h.handleControllerTouchGamepad(conn, msg)
 
 	// 任务相关路由
 	case "/etl/mfw/submit_task":
@@ -257,6 +263,45 @@ func (h *MFWHandler) handleCreatePlayCoverController(conn *server.Connection, ms
 	conn.Send(response)
 }
 
+func (h *MFWHandler) handleCreateGamepadController(conn *server.Connection, msg models.Message) {
+	dataMap, ok := msg.Data.(map[string]interface{})
+	if !ok {
+		h.sendError(conn, errors.NewInvalidRequestError("请求数据格式错误"))
+		return
+	}
+
+	hwnd, _ := dataMap["hwnd"].(string)
+	gamepadType, _ := dataMap["gamepad_type"].(string)
+	screencapMethod, _ := dataMap["screencap_method"].(string)
+
+	controllerID, err := h.service.ControllerManager().CreateGamepadController(
+		hwnd, gamepadType, screencapMethod,
+	)
+	if err != nil {
+		logger.Error("MFW", "创建Gamepad控制器失败: %v", err)
+		h.sendMFWError(conn, mfw.ErrCodeControllerCreateFail, "控制器创建失败", err.Error())
+		return
+	}
+
+	// 自动连接控制器
+	if err := h.service.ControllerManager().ConnectController(controllerID); err != nil {
+		logger.Error("MFW", "连接Gamepad控制器失败: %v", err)
+		h.sendMFWError(conn, mfw.ErrCodeControllerConnectFail, "控制器连接失败", err.Error())
+		return
+	}
+
+	// 发送控制器创建响应
+	response := models.Message{
+		Path: "/lte/mfw/controller_created",
+		Data: map[string]interface{}{
+			"success":       true,
+			"controller_id": controllerID,
+			"type":          "gamepad",
+		},
+	}
+	conn.Send(response)
+}
+
 func (h *MFWHandler) handleDisconnectController(conn *server.Connection, msg models.Message) {
 	dataMap, ok := msg.Data.(map[string]interface{})
 	if !ok {
@@ -418,6 +463,52 @@ func (h *MFWHandler) handleControllerStopApp(conn *server.Connection, msg models
 	if err != nil {
 		logger.Error("MFW", "停止应用失败: %v", err)
 		h.sendMFWError(conn, mfw.ErrCodeOperationFailed, "停止应用失败", err.Error())
+		return
+	}
+
+	h.sendControllerOperationResult(conn, result)
+}
+
+func (h *MFWHandler) handleControllerClickKey(conn *server.Connection, msg models.Message) {
+	dataMap, ok := msg.Data.(map[string]interface{})
+	if !ok {
+		h.sendError(conn, errors.NewInvalidRequestError("请求数据格式错误"))
+		return
+	}
+
+	controllerID, _ := dataMap["controller_id"].(string)
+	keycode, _ := dataMap["keycode"].(float64)
+
+	result, err := h.service.ControllerManager().ClickGamepadKey(controllerID, int32(keycode))
+	if err != nil {
+		logger.Error("MFW", "点击按键失败: %v", err)
+		h.sendMFWError(conn, mfw.ErrCodeOperationFailed, "点击按键失败", err.Error())
+		return
+	}
+
+	h.sendControllerOperationResult(conn, result)
+}
+
+func (h *MFWHandler) handleControllerTouchGamepad(conn *server.Connection, msg models.Message) {
+	dataMap, ok := msg.Data.(map[string]interface{})
+	if !ok {
+		h.sendError(conn, errors.NewInvalidRequestError("请求数据格式错误"))
+		return
+	}
+
+	controllerID, _ := dataMap["controller_id"].(string)
+	contact, _ := dataMap["contact"].(float64)
+	x, _ := dataMap["x"].(float64)
+	y, _ := dataMap["y"].(float64)
+	pressure, _ := dataMap["pressure"].(float64)
+	action, _ := dataMap["action"].(string)
+
+	result, err := h.service.ControllerManager().TouchGamepadControl(
+		controllerID, int32(contact), int32(x), int32(y), int32(pressure), action,
+	)
+	if err != nil {
+		logger.Error("MFW", "手柄触摸操作失败: %v", err)
+		h.sendMFWError(conn, mfw.ErrCodeOperationFailed, "手柄触摸操作失败", err.Error())
 		return
 	}
 

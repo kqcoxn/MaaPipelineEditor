@@ -4,8 +4,8 @@ package models
 
 // CreateAdbControllerRequest 创建ADB控制器请求
 type CreateAdbControllerRequest struct {
-	AdbPath        string   `json:"adb_path"`
-	Address        string   `json:"address"`
+	AdbPath         string   `json:"adb_path"`
+	Address         string   `json:"address"`
 	ScreencapMethod []string `json:"screencap_method"`
 	InputMethod     []string `json:"input_method"`
 	Config          string   `json:"config"`
@@ -17,6 +17,13 @@ type CreateWin32ControllerRequest struct {
 	Hwnd            string `json:"hwnd"`
 	ScreencapMethod string `json:"screencap_method"`
 	InputMethod     string `json:"input_method"`
+}
+
+// CreateGamepadControllerRequest 创建Gamepad控制器请求
+type CreateGamepadControllerRequest struct {
+	Hwnd            string `json:"hwnd"`             // 窗口句柄(可选,用于截图)
+	GamepadType     string `json:"gamepad_type"`     // 手柄类型: Xbox360 / DualShock4
+	ScreencapMethod string `json:"screencap_method"` // Win32截图方法
 }
 
 // ControllerCreatedResponse 控制器创建结果响应
@@ -72,6 +79,22 @@ type ControllerStartAppRequest struct {
 type ControllerStopAppRequest struct {
 	ControllerID string `json:"controller_id"`
 	Intent       string `json:"intent"`
+}
+
+// ControllerClickKeyRequest 点击手柄按键请求
+type ControllerClickKeyRequest struct {
+	ControllerID string `json:"controller_id"`
+	Keycode      int32  `json:"keycode"` // 按键码
+}
+
+// ControllerTouchGamepadRequest 手柄摇杆/扳机操作请求
+type ControllerTouchGamepadRequest struct {
+	ControllerID string `json:"controller_id"`
+	Contact      int32  `json:"contact"`  // 接触点: 0=左摇杆, 1=右摇杆, 2=L2, 3=R2
+	X            int32  `json:"x"`        // x坐标 (摇杆: -32768~32767)
+	Y            int32  `json:"y"`        // y坐标 (摇杆: -32768~32767)
+	Pressure     int32  `json:"pressure"` // 压力 (LT/RT: 0~255)
+	Action       string `json:"action"`   // 动作: down/move/up
 }
 
 // SubmitTaskRequest 提交任务请求

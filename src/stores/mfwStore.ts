@@ -3,7 +3,7 @@ import { create } from "zustand";
 /**
  * 设备类型
  */
-export type DeviceType = "adb" | "win32" | "playcover" | null;
+export type DeviceType = "adb" | "win32" | "playcover" | "gamepad" | null;
 
 /**
  * 连接状态
@@ -47,12 +47,23 @@ export interface PlayCoverDevice {
 }
 
 /**
+ * Gamepad 设备信息
+ */
+export interface GamepadDevice {
+  hwnd: string; // 窗口句柄(可选,用于截图)
+  gamepad_type: "Xbox360" | "DualShock4"; // 手柄类型
+  screencap_methods: string[]; // Win32截图方法列表
+  name: string; // 显示名称
+}
+
+/**
  * 设备信息
  */
 export type DeviceInfo =
   | Partial<AdbDevice>
   | Partial<Win32Window>
   | Partial<PlayCoverDevice>
+  | Partial<GamepadDevice>
   | null;
 
 /**

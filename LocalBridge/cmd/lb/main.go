@@ -232,6 +232,12 @@ func runServer(cmd *cobra.Command, args []string) {
 	mfwSvc := mfw.NewService()
 	// 初始化 MFW 服务
 	if err := mfwSvc.Initialize(); err != nil {
+		// 检查是否是库版本不匹配错误
+		if strings.Contains(err.Error(), "库版本不匹配") || strings.Contains(err.Error(), "panic") {
+			logger.Error("Main", "MFW 服务初始化失败: %v", err)
+			logger.Error("Main", "程序将退出，请更新 MaaFramework 后重启")
+			os.Exit(1)
+		}
 		logger.Warn("Main", "MFW 服务初始化失败: %v (当前状态仅可使用文件管理功能)", err)
 	} else {
 		logger.Info("Main", "MFW 服务初始化成功")

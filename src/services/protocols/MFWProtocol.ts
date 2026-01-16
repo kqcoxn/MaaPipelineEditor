@@ -6,6 +6,7 @@ import {
   type AdbDevice,
   type Win32Window,
   type PlayCoverDevice,
+  type GamepadDevice,
 } from "../../stores/mfwStore";
 
 /**
@@ -23,8 +24,8 @@ export class MFWProtocol extends BaseProtocol {
   private openLogCallbacks: Array<(data: any) => void> = [];
   // 记录最后一次连接请求的设备信息
   private lastConnectionDevice: {
-    type: "adb" | "win32" | "playcover";
-    deviceInfo: AdbDevice | Win32Window | PlayCoverDevice;
+    type: "adb" | "win32" | "playcover" | "gamepad";
+    deviceInfo: AdbDevice | Win32Window | PlayCoverDevice | GamepadDevice;
   } | null = null;
   getName(): string {
     return "MFWProtocol";
@@ -379,6 +380,36 @@ export class MFWProtocol extends BaseProtocol {
     };
 
     return this.wsClient.send("/etl/mfw/create_playcover_controller", params);
+  }
+
+  /**
+   * 创建 Gamepad 控制器
+   */
+  public createGamepadController(params: {
+    hwnd?: string;
+    gamepad_type: "Xbox360" | "DualShock4";
+    screencap_method?: string;
+  }): boolean {
+    if (!this.wsClient) {
+      console.error("[MFWProtocol] WebSocket client not initialized");
+      return false;
+    }
+
+    const mfwStore = useMFWStore.getState();
+    mfwStore.setConnectionStatus("connecting");
+
+    // 记录设备信息
+    this.lastConnectionDevice = {
+      type: "gamepad",
+      deviceInfo: {
+        hwnd: params.hwnd || "",
+        gamepad_type: params.gamepad_type,
+        screencap_methods: [],
+        name: `${params.gamepad_type} Controller`,
+      },
+    };
+
+    return this.wsClient.send("/etl/mfw/create_gamepad_controller", params);
   }
 
   /**

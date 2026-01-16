@@ -34,9 +34,21 @@ func NewService() *Service {
 }
 
 // 初始化MFW框架
-func (s *Service) Initialize() error {
+func (s *Service) Initialize() (err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	// 捕获 panic
+	defer func() {
+		if r := recover(); r != nil {
+			// 将 panic 转换为错误
+			err = fmt.Errorf("MaaFramework 初始化时发生严重错误，可能是库版本不匹配。\n"+
+				"请更新 MaaFramework 到最新版本。\n"+
+				"下载地址: https://github.com/MaaXYZ/MaaFramework/releases\n"+
+				"错误详情: %v", r)
+			logger.Error("MFW", "%v", err)
+		}
+	}()
 
 	if s.initialized {
 		return ErrNotInitialized
@@ -92,7 +104,7 @@ func (s *Service) Initialize() error {
 		}
 	}
 
-	err := maa.Init(
+	err = maa.Init(
 		maa.WithLibDir(libDir),
 		maa.WithLogDir(logDir),
 		maa.WithSaveDraw(true),

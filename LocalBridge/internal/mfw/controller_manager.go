@@ -155,6 +155,61 @@ func (cm *ControllerManager) CreatePlayCoverController(address, deviceUUID strin
 	return controllerID, nil
 }
 
+// 创建Gamepad控制器
+func (cm *ControllerManager) CreateGamepadController(hwnd, gamepadType, screencapMethod string) (string, error) {
+	logger.Info("MFW", "创建 Gamepad 控制器: type=%s, hwnd=%s", gamepadType, hwnd)
+
+	controllerID := uuid.New().String()
+
+	// 解析窗口句柄（可选）
+	var hwndPtr unsafe.Pointer
+	if hwnd != "" {
+		// 去掉 "0x" 或 "0X" 前缀
+		hexStr := strings.TrimPrefix(hwnd, "0x")
+		hexStr = strings.TrimPrefix(hexStr, "0X")
+		if val, err := strconv.ParseUint(hexStr, 16, 64); err == nil {
+			hwndPtr = unsafe.Pointer(uintptr(val))
+			logger.Info("MFW", "解析窗口句柄: %s -> %v", hwnd, hwndPtr)
+		} else {
+			logger.Error("MFW", "解析窗口句柄失败: %s, %v", hwnd, err)
+		}
+	}
+
+	// 解析游戏pad类型
+	var gpType maa.GamepadType
+	switch strings.ToLower(gamepadType) {
+	case "dualshock4", "ds4":
+		gpType = maa.GamepadTypeDualShock4
+	default:
+		gpType = maa.GamepadTypeXbox360
+	}
+
+	// 解析截图方法
+	scMethod, _ := win32.ParseScreencapMethod(screencapMethod)
+
+	// 创建 Gamepad 控制器
+	ctrl := maa.NewGamepadController(hwndPtr, gpType, scMethod)
+	if ctrl == nil {
+		return "", NewMFWError(ErrCodeControllerCreateFail, "failed to create gamepad controller (ViGEm驱动未安装?)", nil)
+	}
+
+	info := &ControllerInfo{
+		ControllerID: controllerID,
+		Type:         "Gamepad",
+		Controller:   ctrl,
+		Connected:    false,
+		CreatedAt:    time.Now(),
+		LastActiveAt: time.Now(),
+	}
+
+	cm.mu.Lock()
+	cm.controllers[controllerID] = info
+	cm.mu.Unlock()
+
+	logger.Info("MFW", "控制器创建成功: %s", controllerID)
+	return controllerID, nil
+}
+
 // 连接控制器
 func (cm *ControllerManager) ConnectController(controllerID string) error {
 	cm.mu.Lock()
@@ -553,4 +608,94 @@ func (cm *ControllerManager) DisconnectAll() {
 	// 清空控制器列表
 	cm.controllers = make(map[string]*ControllerInfo)
 	logger.Info("MFW", "所有控制器已断开")
+}
+
+// Gamepad 专用操作方法
+
+// 点击手柄按键
+func (cm *ControllerManager) ClickGamepadKey(controllerID string, keycode int32) (*ControllerOperationResult, error) {
+	cm.mu.RLock()
+	info, exists := cm.controllers[controllerID]
+	cm.mu.RUnlock()
+
+	if !exists {
+		return nil, ErrControllerNotFound
+	}
+
+	if !info.Connected {
+		return nil, ErrNotConnected
+	}
+
+	ctrl, ok := info.Controller.(*maa.Controller)
+	if !ok || ctrl == nil {
+		return nil, ErrNotConnected
+	}
+
+	// 执行按键点击操作
+	job := ctrl.PostClickKey(keycode)
+	if job == nil {
+		return nil, NewMFWError(ErrCodeOperationFail, "failed to post click key", nil)
+	}
+	job.Wait()
+
+	info.LastActiveAt = time.Now()
+
+	return &ControllerOperationResult{
+		ControllerID: controllerID,
+		Operation:    OpClickKey,
+		Success:      job.Success(),
+		Status:       "Success",
+	}, nil
+}
+
+// 触摸摇杆/扳机
+func (cm *ControllerManager) TouchGamepadControl(controllerID string, contact, x, y, pressure int32, action string) (*ControllerOperationResult, error) {
+	cm.mu.RLock()
+	info, exists := cm.controllers[controllerID]
+	cm.mu.RUnlock()
+
+	if !exists {
+		return nil, ErrControllerNotFound
+	}
+
+	if !info.Connected {
+		return nil, ErrNotConnected
+	}
+
+	ctrl, ok := info.Controller.(*maa.Controller)
+	if !ok || ctrl == nil {
+		return nil, ErrNotConnected
+	}
+
+	var job *maa.Job
+	var op ControllerOperation
+
+	// 根据动作类型执行不同操作
+	switch strings.ToLower(action) {
+	case "down":
+		job = ctrl.PostTouchDown(contact, x, y, pressure)
+		op = OpTouchDown
+	case "move":
+		job = ctrl.PostTouchMove(contact, x, y, pressure)
+		op = OpTouchMove
+	case "up":
+		job = ctrl.PostTouchUp(contact)
+		op = OpTouchUp
+	default:
+		return nil, NewMFWError(ErrCodeOperationFail, "invalid touch action: "+action, nil)
+	}
+
+	if job == nil {
+		return nil, NewMFWError(ErrCodeOperationFail, "failed to post touch action", nil)
+	}
+	job.Wait()
+
+	info.LastActiveAt = time.Now()
+
+	return &ControllerOperationResult{
+		ControllerID: controllerID,
+		Operation:    op,
+		Success:      job.Success(),
+		Status:       "Success",
+	}, nil
 }
