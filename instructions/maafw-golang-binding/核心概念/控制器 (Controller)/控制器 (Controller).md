@@ -6,6 +6,7 @@
 - [custom_controller.go](file://custom_controller.go)
 - [controller\adb\adb.go](file://controller\adb\adb.go)
 - [controller\win32\win32.go](file://controller\win32\win32.go)
+- [controller\gamepad\gamepad.go](file://controller\gamepad\gamepad.go)
 - [internal\native\native.go](file://internal\native\native.go)
 - [internal\native\framework.go](file://internal\native\framework.go)
 - [internal\store\store.go](file://internal\store\store.go)
@@ -28,8 +29,8 @@
 ## 引言
 本章节系统性介绍控制器（Controller）的抽象设计及其在设备控制中的关键角色。控制器作为上层任务编排与底层设备交互之间的桥梁，统一对外暴露一致的操作接口，屏蔽平台差异。本文将重点阐述：
 - 抽象控制器的设计理念与职责边界
-- ADB 控制器与 Win32 控制器的创建方式与参数含义
-- 统一的跨平台操作接口（如 PostClick、PostSwipe、PostScreencap 等）
+- ADB 控制器、Win32 控制器和虚拟游戏pad控制器的创建方式与参数含义
+- 统一的跨平台操作接口（如 PostClick、PostSwipe、PostClickV2、PostSwipeV2、PostScreencap 等）
 - 与底层原生库的交互机制（通过 native 层函数桥接）
 - 设备连接、屏幕捕获、输入模拟的完整流程
 - 连接管理、异常重试、性能延迟等实际问题的解决方案与配置建议
@@ -38,7 +39,7 @@
 控制器相关代码主要分布在以下位置：
 - 核心控制器封装：controller.go
 - 自定义控制器回调桥接：custom_controller.go
-- 平台方法枚举与解析：controller/adb/adb.go、controller/win32/win32.go
+- 平台方法枚举与解析：controller/adb/adb.go、controller/win32/win32.go、controller/gamepad/gamepad.go
 - 原生库绑定与导出函数：internal/native/framework.go；初始化入口：internal/native/native.go
 - 存储与回调映射：internal/store/store.go
 - 使用示例与测试：examples/quick-start/main.go、controller_test.go
@@ -49,6 +50,7 @@ subgraph "Go 层"
 C["Controller<br/>controller.go"]
 ADB["ADB 方法枚举<br/>controller/adb/adb.go"]
 WIN["Win32 方法枚举<br/>controller/win32/win32.go"]
+GAMEPAD["游戏pad按钮映射<br/>controller/gamepad/gamepad.go"]
 CC["自定义控制器回调<br/>custom_controller.go"]
 NATIVE["原生函数绑定<br/>internal/native/framework.go"]
 STORE["句柄存储与回调映射<br/>internal/store/store.go"]
@@ -61,28 +63,31 @@ C --> NATIVE
 C --> STORE
 ADB --> C
 WIN --> C
+GAMEPAD --> C
 CC --> C
 EX --> C
 TEST --> C
 ```
 
-图表来源
-- [controller.go](file://controller.go#L1-L300)
+**图表来源**
+- [controller.go](file://controller.go#L1-L418)
 - [controller\adb\adb.go](file://controller\adb\adb.go#L1-L170)
 - [controller\win32\win32.go](file://controller\win32\win32.go#L1-L164)
+- [controller\gamepad\gamepad.go](file://controller\gamepad\gamepad.go#L1-L64)
 - [custom_controller.go](file://custom_controller.go#L1-L392)
-- [internal\native\framework.go](file://internal\native\framework.go#L1-L465)
+- [internal\native\framework.go](file://internal\native\framework.go#L1-L511)
 - [internal\store\store.go](file://internal\store\store.go#L1-L65)
 - [examples\quick-start\main.go](file://examples\quick-start\main.go#L1-L41)
 - [controller_test.go](file://controller_test.go#L1-L220)
 
-章节来源
-- [controller.go](file://controller.go#L1-L300)
+**章节来源**
+- [controller.go](file://controller.go#L1-L418)
 - [controller\adb\adb.go](file://controller\adb\adb.go#L1-L170)
 - [controller\win32\win32.go](file://controller\win32\win32.go#L1-L164)
+- [controller\gamepad\gamepad.go](file://controller\gamepad\gamepad.go#L1-L64)
 - [custom_controller.go](file://custom_controller.go#L1-L392)
 - [internal\native\native.go](file://internal\native\native.go#L1-L41)
-- [internal\native\framework.go](file://internal\native\framework.go#L1-L465)
+- [internal\native\framework.go](file://internal\native\framework.go#L1-L511)
 - [internal\store\store.go](file://internal\store\store.go#L1-L65)
 - [examples\quick-start\main.go](file://examples\quick-start\main.go#L1-L41)
 - [controller_test.go](file://controller_test.go#L1-L220)
@@ -99,21 +104,26 @@ TEST --> C
 - Win32 控制器
   - 通过 NewWin32Controller 创建，参数包含窗口句柄、截图方法、鼠标与键盘输入方法
   - 输入方法为单选，直接指定一种策略
+- 虚拟游戏pad控制器
+  - 通过 NewGamepadController 创建，支持 Xbox 360 和 DualShock 4 游戏pad类型
+  - 提供按钮映射和模拟摇杆位置定义，支持触发器压力参数
+  - 需要 ViGEm Bus Driver 驱动程序支持
 - 自定义控制器
   - 通过 NewCustomController 注册自定义实现，回调由 purego 桥接到 Go 接口
   - 提供 Feature 标志位用于扩展行为（如使用鼠标/键盘按下代替点击）
 
-章节来源
-- [controller.go](file://controller.go#L1-L300)
+**章节来源**
+- [controller.go](file://controller.go#L1-L418)
 - [custom_controller.go](file://custom_controller.go#L1-L392)
 - [controller\adb\adb.go](file://controller\adb\adb.go#L1-L170)
 - [controller\win32\win32.go](file://controller\win32\win32.go#L1-L164)
+- [controller\gamepad\gamepad.go](file://controller\gamepad\gamepad.go#L1-L64)
 
 ## 架构总览
 控制器的运行时架构如下：
 - Go 层 Controller 封装所有公共 API
 - 通过 native 层注册的导出函数调用底层原生库（MaaFramework）
-- 原生库负责与设备（ADB/模拟器）或 Windows API 交互
+- 原生库负责与设备（ADB/模拟器/游戏pad）或 Windows API 交互
 - 自定义控制器通过 purego 回调桥接至 Go 实现
 - 事件回调通过全局存储映射句柄与回调 ID
 
@@ -123,9 +133,9 @@ participant App as "应用"
 participant Ctrl as "Controller(Go)"
 participant Native as "native 导出函数"
 participant FW as "MaaFramework(原生)"
-participant Dev as "设备/模拟器"
-App->>Ctrl : "创建控制器(NewAdbController/NewWin32Controller)"
-Ctrl->>Native : "MaaXxxControllerCreate(...)"
+participant Dev as "设备/模拟器/游戏pad"
+App->>Ctrl : "创建控制器(NewAdbController/NewWin32Controller/NewGamepadController)"
+Ctrl->>Native : "MaaXxxControllerCreate(...) + MaaGamepadControllerCreate"
 Native->>FW : "加载并初始化对应控制器"
 FW-->>Ctrl : "返回控制器句柄"
 App->>Ctrl : "PostConnect()"
@@ -139,9 +149,9 @@ FW-->>Ctrl : "完成/失败"
 Ctrl-->>App : "结果"
 ```
 
-图表来源
-- [controller.go](file://controller.go#L1-L300)
-- [internal\native\framework.go](file://internal\native\framework.go#L1-L465)
+**图表来源**
+- [controller.go](file://controller.go#L1-L418)
+- [internal\native\framework.go](file://internal\native\framework.go#L1-L511)
 
 ## 组件详解
 
@@ -149,12 +159,13 @@ Ctrl-->>App : "结果"
 - 创建与销毁
   - NewAdbController：传入 ADB 路径、设备地址、截图/输入方法、配置、代理二进制路径
   - NewWin32Controller：传入窗口句柄、截图方法、鼠标/键盘输入方法
+  - NewGamepadController：传入窗口句柄、游戏pad类型、截图方法
   - NewCustomController：传入自定义实现接口，内部注册回调并通过指针传递 ID
   - Destroy：释放控制器资源，注销自定义回调与事件 Sink
 - 选项设置
   - 设置截图目标长边/短边、是否使用原始尺寸等
 - 异步操作
-  - PostConnect、PostClick、PostSwipe、PostClickKey、PostInputText、PostStartApp、PostStopApp、PostTouchDown/Move/Up、PostKeyDown/KeyUp、PostScreencap、PostScroll
+  - PostConnect、PostClick、PostSwipe、PostClickV2、PostSwipeV2、PostClickKey、PostInputText、PostStartApp、PostStopApp、PostTouchDown/Move/Up、PostKeyDown/KeyUp、PostScreencap、PostScroll
   - 每个 PostXxx 返回 Job，支持 Wait/Status 查询
 - 运行时信息
   - Connected：检查连接状态
@@ -163,8 +174,8 @@ Ctrl-->>App : "结果"
 - 事件回调
   - AddSink/RemoveSink/ClearSinks：添加/移除/清空事件回调 Sink
 
-章节来源
-- [controller.go](file://controller.go#L1-L300)
+**章节来源**
+- [controller.go](file://controller.go#L1-L418)
 - [internal\store\store.go](file://internal\store\store.go#L1-L65)
 
 ### ADB 控制器
@@ -180,9 +191,9 @@ Ctrl-->>App : "结果"
   - 新增 PostShell 方法，用于在 ADB 控制器上执行 shell 命令，返回 Job 对象
   - 新增 GetShellOutput 方法，用于获取上一次 shell 命令的输出结果，返回字符串和成功标志
 
-章节来源
+**章节来源**
 - [controller\adb\adb.go](file://controller\adb\adb.go#L1-L170)
-- [controller.go](file://controller.go#L239-L256)
+- [controller.go](file://controller.go#L305-L322)
 - [internal\native\framework.go](file://internal\native\framework.go#L186-L187)
 
 ### Win32 控制器
@@ -193,27 +204,49 @@ Ctrl-->>App : "结果"
 - 字符串解析与回转
   - 同样提供 ParseXxx 与 String 方法，支持大小写不敏感、空白处理、数值字符串解析
 
-章节来源
+**章节来源**
 - [controller\win32\win32.go](file://controller\win32\win32.go#L1-L164)
+
+### 虚拟游戏pad控制器
+- 游戏pad类型
+  - Xbox360：支持 A、B、X、Y、LB、RB、左/右拇指、Start、Back、Guide、方向键等按钮
+  - DualShock4：支持面按钮（Cross、Circle、Square、Triangle）、L1/R1、L3/R3、Options/Share 等按钮
+- 按钮映射
+  - DS4 面按钮映射到 Xbox 等效按钮，确保兼容性
+  - DS4 特殊按钮（PS 按钮、触摸板）使用唯一值
+- 触摸交互（V2）
+  - TouchLeftStick：左模拟摇杆（x、y 范围：-32768~32767，压力忽略）
+  - TouchRightStick：右模拟摇杆（x、y 范围：-32768~32767，压力忽略）
+  - TouchLeftTrigger：左触发器/L2（压力范围：0~255，x/y 忽略）
+  - TouchRightTrigger：右触发器/R2（压力范围：0~255，x/y 忽略）
+- 创建要求
+  - 需要安装 ViGEm Bus Driver 驱动程序
+  - 支持可选的屏幕截图功能（当提供窗口句柄时）
+
+**章节来源**
+- [controller\gamepad\gamepad.go](file://controller\gamepad\gamepad.go#L1-L64)
+- [controller.go](file://controller.go#L120-L153)
+- [internal\native\framework.go](file://internal\native\framework.go#L162-L174)
 
 ### 自定义控制器
 - 接口定义
   - 包含 Connect、RequestUUID、GetFeature、StartApp、StopApp、Screencap、Click、Swipe、TouchDown/Move/Up、ClickKey、InputText、KeyDown/KeyUp 等
 - 回调桥接
-  - 通过 purego 将 Go 函数注册为 C 回调，原生库调用时携带一个 uint64 的“控制器 ID”，Go 侧据此查找实现
+  - 通过 purego 将 Go 函数注册为 C 回调，原生库调用时携带一个 uint64 的"控制器 ID"，Go 侧据此查找实现
 - 特性标志
   - 如使用鼠标/键盘按下代替点击等特性开关
 
-章节来源
+**章节来源**
 - [custom_controller.go](file://custom_controller.go#L1-L392)
 
 ### 与原生库的交互机制
 - 初始化
   - native.Init 加载各模块（Framework/Toolkit/AgentServer/AgentClient），并在 native/framework.go 中注册导出函数
 - 控制器创建
-  - Controller 调用 native.MaaAdbControllerCreate/MaaWin32ControllerCreate/MaaCustomControllerCreate
+  - Controller 调用 native.MaaAdbControllerCreate/MaaWin32ControllerCreate/MaaGamepadControllerCreate/MaaCustomControllerCreate
 - 控制器操作
   - PostXxx 系列最终调用 MaaControllerPostXxx，Wait/Status 调用 MaaControllerWait/MaaControllerStatus
+  - V2 版本方法（PostClickV2、PostSwipeV2）支持接触点识别和压力敏感度控制
 - 缓存与元数据
   - CacheImage 通过 MaaControllerCachedImage 获取图像缓冲
   - GetUUID 通过 MaaControllerGetUuid 获取字符串缓冲
@@ -221,10 +254,10 @@ Ctrl-->>App : "结果"
   - PostShell 调用 MaaControllerPostShell，传递命令和超时时间
   - GetShellOutput 调用 MaaControllerGetShellOutput，通过 StringBuffer 获取输出结果
 
-章节来源
+**章节来源**
 - [internal\native\native.go](file://internal\native\native.go#L1-L41)
-- [internal\native\framework.go](file://internal\native\framework.go#L1-L465)
-- [controller.go](file://controller.go#L1-L300)
+- [internal\native\framework.go](file://internal\native\framework.go#L1-L511)
+- [controller.go](file://controller.go#L1-L418)
 
 ### 完整流程示例（Android ADB）
 - 设备发现与连接
@@ -232,24 +265,25 @@ Ctrl-->>App : "结果"
 - 屏幕捕获
   - PostScreencap 后 Wait 成功，再通过 CacheImage 获取图像
 - 输入模拟
-  - PostClick、PostSwipe、PostInputText、PostClickKey 等
+  - PostClick、PostSwipe、PostClickV2、PostSwipeV2、PostInputText、PostClickKey 等
 - 应用控制
   - PostStartApp/PostStopApp
 - Shell 命令执行
   - 使用 PostShell 执行 shell 命令，通过 Wait 等待执行完成
   - 使用 GetShellOutput 获取命令输出结果
 
-章节来源
+**章节来源**
 - [examples\quick-start\main.go](file://examples\quick-start\main.go#L1-L41)
 - [controller_test.go](file://controller_test.go#L1-L220)
 
 ## 依赖关系分析
 - 组件耦合
-  - Controller 对 native 层强依赖，但对平台细节（ADB/Win32）保持抽象
+  - Controller 对 native 层强依赖，但对平台细节（ADB/Win32/游戏pad）保持抽象
   - 自定义控制器通过回调 ID 与 native 解耦
 - 外部依赖
   - 原生库 MaaFramework，通过 purego 注册导出函数
   - 图像缓冲与字符串缓冲由原生库提供
+  - ViGEm Bus Driver（游戏pad控制器）
 - 存储与映射
   - CtrlStore 记录每个控制器的事件 Sink 映射与自定义回调 ID，确保销毁时清理
 
@@ -259,10 +293,13 @@ class Controller {
 +handle uintptr
 +NewAdbController(...)
 +NewWin32Controller(...)
++NewGamepadController(...)
 +NewCustomController(...)
 +PostConnect() Job
 +PostClick(x,y) Job
++PostClickV2(x,y,contact,pressure) Job
 +PostSwipe(x1,y1,x2,y2,duration) Job
++PostSwipeV2(x1,y1,x2,y2,duration,contact,pressure) Job
 +PostScreencap() Job
 +Connected() bool
 +CacheImage() image.Image
@@ -286,6 +323,15 @@ class Win32Methods {
 +ParseScreencapMethod()
 +ParseInputMethod()
 }
+class GamepadButtons {
++ButtonA/ButtonB/ButtonX/ButtonY
++ButtonLB/ButtonRB
++ButtonLeftThumb/ButtonRightThumb
++ButtonStart/ButtonBack/ButtonGuide
++ButtonDpadUp/Down/Left/Right
++ButtonCross/ButtonCircle/ButtonSquare/ButtonTriangle
++ButtonPS/ButtonTouchpad
+}
 class CustomController {
 +Connect() bool
 +RequestUUID() (string,bool)
@@ -305,39 +351,44 @@ class CustomController {
 }
 Controller --> ADBMethods : "使用"
 Controller --> Win32Methods : "使用"
+Controller --> GamepadButtons : "使用"
 Controller --> CustomController : "委托"
 ```
 
-图表来源
-- [controller.go](file://controller.go#L1-L300)
+**图表来源**
+- [controller.go](file://controller.go#L1-L418)
 - [controller\adb\adb.go](file://controller\adb\adb.go#L1-L170)
 - [controller\win32\win32.go](file://controller\win32\win32.go#L1-L164)
+- [controller\gamepad\gamepad.go](file://controller\gamepad\gamepad.go#L1-L64)
 - [custom_controller.go](file://custom_controller.go#L1-L392)
 
-章节来源
-- [controller.go](file://controller.go#L1-L300)
+**章节来源**
+- [controller.go](file://controller.go#L1-L418)
 - [custom_controller.go](file://custom_controller.go#L1-L392)
 - [controller\adb\adb.go](file://controller\adb\adb.go#L1-L170)
 - [controller\win32\win32.go](file://controller\win32\win32.go#L1-L164)
+- [controller\gamepad\gamepad.go](file://controller\gamepad\gamepad.go#L1-L64)
 - [internal\store\store.go](file://internal\store\store.go#L1-L65)
 
 ## 性能与延迟考量
 - 截图策略选择
   - ADB：默认策略会自动排除较慢或不稳定的方法，优先选择速度与稳定性平衡的方案
   - Win32：根据目标窗口类型选择合适截图方法（如 DXGIDesktopDupWindow 针对前台窗口）
+  - 游戏pad：可选的屏幕截图功能，仅在提供窗口句柄时启用
 - 输入方法优先级
   - ADB：优先使用更稳定且兼容性更好的方法（如 Maatouch 或 Minicap），必要时回退到 ADB Shell
   - Win32：根据目标应用类型选择 SendMessage/PostMessage 或带光标位置的消息，减少误触
+  - 游戏pad：通过 ViGEm 驱动模拟真实硬件输入，延迟较低
 - 异步作业模型
   - 所有操作返回 Job，避免阻塞主线程；通过 Wait/Status 轮询或事件 Sink 获取完成通知
+  - V2 版本的触摸方法支持更精确的压力控制和多点触控
 - 缓存与复用
   - CacheImage 复用最近一次截图，减少重复传输与解码开销
 - 延迟优化建议
   - 在高并发场景下合并连续操作，减少设备端切换成本
   - 对于频繁点击/滑动，适当增加延时以规避系统节流
   - 合理设置截图目标尺寸，避免过大图像带来的内存与传输压力
-
-[本节为通用性能建议，无需列出具体文件来源]
+  - 游戏pad 控制器需要适当的驱动程序支持，确保低延迟响应
 
 ## 故障排查指南
 - 连接失败
@@ -346,26 +397,35 @@ Controller --> CustomController : "委托"
 - 截图为空或异常
   - 切换 ScreencapMethod，尝试默认或禁用压缩的 Raw 方案
   - Win32 下针对非前台窗口使用 Window 模式截图
+  - 游戏pad 控制器需要验证 ViGEm Bus Driver 是否正确安装
 - 输入无效
   - ADB：确认 InputMethod 是否被设备支持；必要时启用 EmulatorExtras
   - Win32：确认窗口句柄有效，必要时使用 SendMessageWithCursorPos
+  - 游戏pad：检查按钮映射是否正确，确认游戏pad类型设置
 - 性能抖动
   - 降低截图频率，合并输入操作，合理设置 Wait 轮询间隔
+  - 游戏pad 控制器可能需要调整驱动程序设置
 - 自定义控制器未生效
   - 检查 NewCustomController 注册流程与回调 ID 映射；确保 Destroy 时正确注销
 - Shell 命令执行失败
   - 确认控制器为 ADB 类型，非 ADB 控制器不支持 Shell 命令
   - 检查命令语法和权限，确保设备已授权 ADB 调试
   - 通过事件 Sink 观察命令执行日志，分析失败原因
+- 游戏pad 控制器问题
+  - 确认 ViGEm Bus Driver 已正确安装
+  - 检查游戏pad 类型设置是否与实际硬件匹配
+  - 验证按钮映射和模拟摇杆配置
 
-章节来源
+**章节来源**
 - [controller_test.go](file://controller_test.go#L1-L220)
-- [controller.go](file://controller.go#L1-L300)
+- [controller.go](file://controller.go#L1-L418)
 
 ## 结论
-控制器通过统一抽象屏蔽了平台差异，使上层逻辑无需关心底层设备细节。借助 native 层导出函数与原生库协作，实现了稳定的设备连接、高效的屏幕捕获与可靠的输入模拟。配合异步作业模型与事件回调机制，能够满足复杂自动化场景的需求。在实际部署中，应根据设备类型与环境特征选择合适的截图与输入策略，并结合缓存与延迟优化提升整体性能与稳定性。新增的 Shell 命令执行功能进一步增强了 ADB 控制器的设备交互能力，为更复杂的自动化任务提供了支持。
+控制器通过统一抽象屏蔽了平台差异，使上层逻辑无需关心底层设备细节。借助 native 层导出函数与原生库协作，实现了稳定的设备连接、高效的屏幕捕获与可靠的输入模拟。配合异步作业模型与事件回调机制，能够满足复杂自动化场景的需求。
 
-[本节为总结性内容，无需列出具体文件来源]
+**更新** 新增了虚拟游戏pad控制器支持，包括 Xbox 360 和 DualShock 4 控制器的完整按钮映射和模拟摇杆支持。同时引入了 V2 版本的触摸交互方法，支持接触点识别和压力敏感度控制，为更精确的输入模拟提供了可能。
+
+在实际部署中，应根据设备类型与环境特征选择合适的截图与输入策略，并结合缓存与延迟优化提升整体性能与稳定性。新增的 Shell 命令执行功能进一步增强了 ADB 控制器的设备交互能力，而游戏pad 控制器则为需要精确模拟硬件输入的场景提供了专业解决方案。ViGEm 驱动程序的正确安装是游戏pad 功能正常工作的关键前提。
 
 ## 附录：平台示例与配置建议
 
@@ -381,7 +441,7 @@ Controller --> CustomController : "委托"
   - 使用 CacheImage 获取截图结果
   - 使用 PostShell 执行 shell 命令，GetShellOutput 获取输出
 
-章节来源
+**章节来源**
 - [examples\quick-start\main.go](file://examples\quick-start\main.go#L1-L41)
 - [controller_test.go](file://controller_test.go#L1-L220)
 
@@ -394,19 +454,35 @@ Controller --> CustomController : "委托"
   - 截图方法建议优先考虑 DXGIDesktopDupWindow（前台窗口）
   - 输入方法可选择 SendMessage/PostMessage 或带光标位置的消息
 
-章节来源
+**章节来源**
 - [controller\win32\win32.go](file://controller\win32\win32.go#L1-L164)
 - [controller_test.go](file://controller_test.go#L1-L220)
 
+### 虚拟游戏pad 控制器示例（新增）
+- 步骤概览
+  - 获取目标窗口句柄（可选，用于屏幕截图）
+  - 创建游戏pad 控制器（选择 Xbox360 或 DualShock4 类型）
+  - 配置按钮映射和模拟摇杆参数
+  - 进行按钮点击、摇杆移动、触发器按压等操作
+- 关键点
+  - 需要安装 ViGEm Bus Driver 驱动程序
+  - Xbox360 类型支持标准游戏pad 按钮布局
+  - DualShock4 类型支持额外的 PS 按钮和触摸板功能
+  - 使用 V2 触摸方法支持精确的压力控制
+
+**章节来源**
+- [controller\gamepad\gamepad.go](file://controller\gamepad\gamepad.go#L1-L64)
+- [controller.go](file://controller.go#L120-L153)
+
 ### 配置建议（按场景）
 - 高帧率/低延迟
-  - 截图：ADB 优先默认策略；Win32 优先 DXGI 桌面复制
-  - 输入：ADB 优先 Maatouch/Minicap；Win32 优先 SendMessage
+  - 截图：ADB 优先默认策略；Win32 优先 DXGI 桌面复制；游戏pad 控制器可选屏幕截图
+  - 输入：ADB 优先 Maatouch/Minicap；Win32 优先 SendMessage；游戏pad 通过 ViGEm 驱动
 - 兼容性优先
   - ADB：启用默认策略，避免强制 Raw/Netcat
   - Win32：使用 SendMessage/PostMessage，避免阻塞输入
+  - 游戏pad：确保 ViGEm 驱动程序版本兼容
 - 资源受限
   - 降低截图目标尺寸，启用 CacheImage 复用
   - 合并连续操作，减少设备切换次数
-
-[本节为通用配置建议，无需列出具体文件来源]
+  - 游戏pad 控制器可能需要额外的系统资源

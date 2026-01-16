@@ -17,8 +17,11 @@ func IsInited() bool
 func LoadPlugin(path string) bool
 func Release() error
 func SetDebugMode(enabled bool) bool
+func SetDrawQuality(quality int32) bool
 func SetLogDir(path string) bool
+func SetRecoImageCacheLimit(limit uint64) bool
 func SetSaveDraw(enabled bool) bool
+func SetSaveOnError(enabled bool) bool
 func SetStdoutLevel(level LoggingLevel) bool
 func Version() string
 type ActionDetail
@@ -45,6 +48,7 @@ type BlankController
 func (c *BlankController) Click(x int32, y int32) bool
 func (c *BlankController) ClickKey(keycode int32) bool
 func (c *BlankController) Connect() bool
+func (c *BlankController) Connected() bool
 func (c *BlankController) GetFeature() ControllerFeature
 func (c *BlankController) InputText(text string) bool
 func (c *BlankController) KeyDown(keycode int32) bool
@@ -61,6 +65,7 @@ type CarouselImageController
 func (c *CarouselImageController) Click(x int32, y int32) bool
 func (c *CarouselImageController) ClickKey(keycode int32) bool
 func (c *CarouselImageController) Connect() bool
+func (c *CarouselImageController) Connected() bool
 func (c *CarouselImageController) GetFeature() ControllerFeature
 func (c *CarouselImageController) InputText(text string) bool
 func (c *CarouselImageController) KeyDown(keycode int32) bool
@@ -117,6 +122,7 @@ func NewAdbController(adbPath, address string, screencapMethod adb.ScreencapMeth
 func NewBlankController() *Controller
 func NewCarouselImageController(path string) *Controller
 func NewCustomController(ctrl CustomController) *Controller
+func NewGamepadController(hWnd unsafe.Pointer, gamepadType GamepadType, ...) *Controller
 func NewPlayCoverController(address, uuid string) *Controller
 func NewWin32Controller(hWnd unsafe.Pointer, screencapMethod win32.ScreencapMethod, ...) *Controller
 func (c *Controller) AddSink(sink ControllerEventSink) int64
@@ -124,11 +130,13 @@ func (c *Controller) CacheImage() image.Image
 func (c *Controller) ClearSinks()
 func (c *Controller) Connected() bool
 func (c *Controller) Destroy()
+func (c *Controller) GetResolution() (width, height int32, ok bool)
 func (c *Controller) GetShellOutput() (string, bool)
 func (c *Controller) GetUUID() (string, bool)
 func (c *Controller) OnControllerAction(fn func(EventStatus, ControllerActionDetail)) int64
 func (c *Controller) PostClick(x, y int32) *Job
 func (c *Controller) PostClickKey(keycode int32) *Job
+func (c *Controller) PostClickV2(x, y, contact, pressure int32) *Job
 func (c *Controller) PostConnect() *Job
 func (c *Controller) PostInputText(text string) *Job
 func (c *Controller) PostKeyDown(keycode int32) *Job
@@ -139,6 +147,7 @@ func (c *Controller) PostShell(cmd string, timeout time.Duration) *Job
 func (c *Controller) PostStartApp(intent string) *Job
 func (c *Controller) PostStopApp(intent string) *Job
 func (c *Controller) PostSwipe(x1, y1, x2, y2 int32, duration time.Duration) *Job
+func (c *Controller) PostSwipeV2(x1, y1, x2, y2 int32, duration time.Duration, contact, pressure int32) *Job
 func (c *Controller) PostTouchDown(contact, x, y, pressure int32) *Job
 func (c *Controller) PostTouchMove(contact, x, y, pressure int32) *Job
 func (c *Controller) PostTouchUp(contact int32) *Job
@@ -179,6 +188,7 @@ func WithFeatureMatchOrderBy(orderBy NodeFeatureMatchOrderBy) FeatureMatchOption
 func WithFeatureMatchROI(roi Target) FeatureMatchOption
 func WithFeatureMatchROIOffset(offset Rect) FeatureMatchOption
 func WithFeatureMatchRatio(ratio float64) FeatureMatchOption
+type GamepadType
 type InitConfig
 type InitOption
 func WithDebugMode(enabled bool) InitOption
@@ -588,13 +598,28 @@ func SetDebugMode
 func SetDebugMode(enabled bool) bool
 SetDebugMode sets whether to enable debug mode.
 
+func SetDrawQuality
+added in v3.5.0
+func SetDrawQuality(quality int32) bool
+SetDrawQuality sets image quality for draw images. Default value is 85, range: [0, 100].
+
 func SetLogDir
 func SetLogDir(path string) bool
 SetLogDir sets the log directory.
 
+func SetRecoImageCacheLimit
+added in v3.5.0
+func SetRecoImageCacheLimit(limit uint64) bool
+SetRecoImageCacheLimit sets recognition image cache limit. Default value is 4096.
+
 func SetSaveDraw
 func SetSaveDraw(enabled bool) bool
 SetSaveDraw sets whether to save draw.
+
+func SetSaveOnError
+added in v3.5.0
+func SetSaveOnError(enabled bool) bool
+SetSaveOnError sets whether to save screenshot on error.
 
 func SetStdoutLevel
 func SetStdoutLevel(level LoggingLevel) bool
@@ -713,6 +738,11 @@ func (*BlankController) Connect
 func (c *BlankController) Connect() bool
 Connect implements CustomController.
 
+func (*BlankController) Connected
+added in v3.5.0
+func (c *BlankController) Connected() bool
+Connected implements CustomController.
+
 func (*BlankController) GetFeature
 func (c *BlankController) GetFeature() ControllerFeature
 GetFeature implements CustomController.
@@ -776,6 +806,11 @@ ClickKey implements CustomController.
 func (*CarouselImageController) Connect
 func (c *CarouselImageController) Connect() bool
 Connect implements CustomController.
+
+func (*CarouselImageController) Connected
+added in v3.5.0
+func (c *CarouselImageController) Connected() bool
+Connected implements CustomController.
 
 func (*CarouselImageController) GetFeature
 func (c *CarouselImageController) GetFeature() ControllerFeature
@@ -1031,6 +1066,19 @@ ctrl CustomController,
 ) \*Controller
 NewCustomController creates a custom controller instance.
 
+func NewGamepadController
+added in v3.5.0
+func NewGamepadController(
+hWnd unsafe.Pointer,
+gamepadType GamepadType,
+screencapMethod win32.ScreencapMethod,
+) \*Controller
+NewGamepadController creates a virtual gamepad controller for Windows.
+
+hWnd: Window handle for screencap (optional, can be nil if screencap not needed). gamepadType: Type of virtual gamepad (Xbox360 or DualShock4). screencapMethod: Win32 screencap method to use. Ignored if hWnd is nil.
+
+Note: Requires ViGEm Bus Driver to be installed on the system. For gamepad button and touch constants, import "github.com/MaaXYZ/maa-framework-go/v3/controller/gamepad".
+
 func NewPlayCoverController
 added in v3.4.0
 func NewPlayCoverController(
@@ -1067,6 +1115,11 @@ func (*Controller) Destroy
 func (c *Controller) Destroy()
 Destroy frees the controller instance.
 
+func (*Controller) GetResolution
+added in v3.5.0
+func (c *Controller) GetResolution() (width, height int32, ok bool)
+GetResolution gets the raw (unscaled) device resolution. Returns the width and height, and whether the resolution is available. Note: This returns the actual device screen resolution before any scaling. The screenshot obtained via CacheImage is scaled according to the screenshot target size settings.
+
 func (*Controller) GetShellOutput
 added in v3.2.0
 func (c *Controller) GetShellOutput() (string, bool)
@@ -1087,6 +1140,11 @@ PostClick posts a click.
 func (*Controller) PostClickKey
 func (c *Controller) PostClickKey(keycode int32) \*Job
 PostPressKey posts a click key.
+
+func (*Controller) PostClickV2
+added in v3.5.0
+func (c *Controller) PostClickV2(x, y, contact, pressure int32) \*Job
+PostClickV2 posts a click with contact and pressure. For adb controller, contact means finger id (0 for first finger, 1 for second finger, etc). For win32 controller, contact means mouse button id (0 for left, 1 for right, 2 for middle).
 
 func (*Controller) PostConnect
 func (c *Controller) PostConnect() \*Job
@@ -1124,6 +1182,11 @@ PostStopApp posts a stop app.
 func (*Controller) PostSwipe
 func (c *Controller) PostSwipe(x1, y1, x2, y2 int32, duration time.Duration) \*Job
 PostSwipe posts a swipe.
+
+func (*Controller) PostSwipeV2
+added in v3.5.0
+func (c *Controller) PostSwipeV2(x1, y1, x2, y2 int32, duration time.Duration, contact, pressure int32) \*Job
+PostSwipeV2 posts a swipe with contact and pressure. For adb controller, contact means finger id (0 for first finger, 1 for second finger, etc). For win32 controller, contact means mouse button id (0 for left, 1 for right, 2 for middle).
 
 func (*Controller) PostTouchDown
 func (c *Controller) PostTouchDown(contact, x, y, pressure int32) \*Job
@@ -1221,6 +1284,7 @@ Run(ctx *Context, arg *CustomActionArg) bool
 type CustomController
 type CustomController interface {
 Connect() bool
+Connected() bool
 RequestUUID() (string, bool)
 GetFeature() ControllerFeature
 StartApp(intent string) bool
@@ -1335,6 +1399,17 @@ WithFeatureMatchROIOffset sets the offset applied to ROI.
 func WithFeatureMatchRatio
 func WithFeatureMatchRatio(ratio float64) FeatureMatchOption
 WithFeatureMatchRatio sets the KNN matching distance ratio threshold.
+
+type GamepadType
+added in v3.5.0
+type GamepadType = native.MaaGamepadType
+GamepadType defines the type of virtual gamepad.
+
+const (
+GamepadTypeXbox360 GamepadType = native.MaaGamepadType_Xbox360
+GamepadTypeDualShock4 GamepadType = native.MaaGamepadType_DualShock4
+)
+Gamepad type constants.
 
 type InitConfig
 type InitConfig struct {
@@ -1476,6 +1551,7 @@ WithLongPressTargetOffset sets additional offset applied to target.
 type MaaCustomControllerCallbacks
 type MaaCustomControllerCallbacks struct {
 Connect uintptr
+Connected uintptr
 RequestUUID uintptr
 GetFeature uintptr
 StartApp uintptr
