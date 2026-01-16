@@ -16,12 +16,14 @@
  */
 export interface UrlParams {
   linkLb: boolean; // 自动连接 LocalBridge
+  port: number | null; // 指定连接端口
 }
 
 // ============ 参数名常量 ============
 
-/** 持久性参数：保留在 URL 中 */
+/** 持久性参数:保留在 URL 中 */
 const LINK_LB_PARAM = "link_lb";
+const PORT_PARAM = "port";
 
 /** 一次性参数：需要立即清除 */
 
@@ -35,6 +37,7 @@ export function parseUrlParams(): UrlParams {
   const urlParams = new URLSearchParams(window.location.search);
   return {
     linkLb: getBooleanParam(urlParams, LINK_LB_PARAM),
+    port: getNumberParam(urlParams, PORT_PARAM),
   };
 }
 
@@ -81,4 +84,19 @@ function getStringParam(
   paramName: string
 ): string | null {
   return urlParams.get(paramName);
+}
+
+/**
+ * 获取数字型参数
+ * @param urlParams URLSearchParams 实例
+ * @param paramName 参数名
+ */
+function getNumberParam(
+  urlParams: URLSearchParams,
+  paramName: string
+): number | null {
+  const value = urlParams.get(paramName);
+  if (value === null) return null;
+  const num = parseInt(value, 10);
+  return isNaN(num) ? null : num;
 }

@@ -198,9 +198,16 @@ function App() {
 
     // WebSocket自动连接
     const wsAutoConnect = useConfigStore.getState().configs.wsAutoConnect;
+    const configuredPort = useConfigStore.getState().configs.wsPort;
 
     // 统一解析 URL 参数
     const urlParams = parseUrlParams();
+
+    // 确定使用的端口：URL参数 > 配置端口 > 默认端口
+    const targetPort = urlParams.port || configuredPort;
+    if (targetPort) {
+      localServer.setPort(targetPort);
+    }
 
     // 自动连接或者 URL 参数连接
     if (wsAutoConnect || urlParams.linkLb) {

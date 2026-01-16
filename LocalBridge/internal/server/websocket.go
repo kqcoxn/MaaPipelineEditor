@@ -80,7 +80,9 @@ func (s *WebSocketServer) Start() error {
 	}
 
 	logger.Info("WebSocket", "服务器已启动，监听地址: %s:%d", s.host, s.port)
-	logger.Info("Main", "在线服务地址: https://mpe.codax.site/stable/?link_lb=true")
+	// 根据端口动态生成在线服务地址
+	onlineURL := fmt.Sprintf("https://mpe.codax.site/stable/?link_lb=true&port=%d", s.port)
+	logger.Info("Main", "在线服务地址: %s", onlineURL)
 
 	// 启动服务器
 	if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
