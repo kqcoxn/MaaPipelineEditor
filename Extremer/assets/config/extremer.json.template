@@ -1,0 +1,40 @@
+{
+  "version": "1.0.0",
+  "components": {
+    "frontend": "1.0.0",
+    "localbridge": "1.0.0",
+    "mfw": "2.0.0",
+    "ocr": "1.0.0"
+  },
+  "localbridge": {
+    "exePath": "./bin/localbridge.exe",
+    "port": 7100,
+    "configPath": "./config/localbridge.json",
+    "autoRestart": true,
+    "healthCheckTimeout": 10000
+  },
+  "frontend": {
+    "mode": "offline",
+    "offlinePath": "./web/index.html"
+  },
+  "mfw": {
+    "basePath": "./resource/mfw"
+  },
+  "ocr": {
+    "basePath": "./resource"
+  },
+  "update": {
+    "enabled": true,
+    "channel": "stable",
+    "manifestUrl": "https://raw.githubusercontent.com/kqcoxn/MaaPipelineEditor/main/release/manifest.json",
+    "checkOnStartup": true,
+    "autoDownload": false
+  },
+  "logs": {
+    "level": "INFO",
+    "extremerLogPath": "./logs/extremer.log",
+    "localbridgeLogPath": "./logs/localbridge.log",
+    "maxSizeMB": 50,
+    "maxBackups": 3
+  }
+}

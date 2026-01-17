@@ -1,0 +1,23 @@
+{
+    "$schema": "https://wails.io/schemas/config.v2.json",
+    "name": "MaaPipelineExtremer",
+    "outputfilename": "MaaPipelineExtremer",
+    "frontend:install": "",
+    "frontend:build": "",
+    "frontend:dev:watcher": "",
+    "frontend:dev:serverUrl": "",
+    "wailsjsdir": "./frontend",
+    "author": {
+        "name": "kqcoxn",
+        "email": ""
+    },
+    "info": {
+        "companyName": "MaaPipelineEditor",
+        "productName": "MaaPipelineExtremer",
+        "productVersion": "1.0.0",
+        "copyright": "Copyright 2026 kqcoxn",
+        "comments": "MaaPipelineEditor Desktop Application"
+    },
+    "assetDirectory": "../public",
+    "appIcon": "logo.png"
+}

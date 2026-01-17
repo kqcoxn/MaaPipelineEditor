@@ -8,11 +8,13 @@ alwaysApply: true
 https://github.com/kqcoxn/MaaPipelineEditor
 
 ## 关于项目
+MaaPipelineEditor 简称 mpe 由以下三部分组成：
 
-- 前端指 mpe 的 editor 部分，代码在`/src`下面
+- 前端指 editor 部分，代码在`/src`下面
 - 后端指 localbridge (lb) 部分，代码在`/LocalBridge`下面
+- 客户端指 extremer 部分，代码在`/Extremer`下面
 
-在完善功能时，若无特殊强调，应该同时完善前后端，以保证功能完整。
+在完善功能时，若无特殊强调，应该同时完善前后端，以保证功能完整。客户端依靠前后端在打包时自动构建，一般不用管。
 
 ## 应该做的事
 

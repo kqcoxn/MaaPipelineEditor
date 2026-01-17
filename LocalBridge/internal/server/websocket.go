@@ -43,6 +43,7 @@ type WebSocketServer struct {
 	eventBus       *eventbus.EventBus
 	mu             sync.RWMutex
 	server         *http.Server
+	quitChan       chan struct{} // 用于接收退出信号
 }
 
 // 创建 WebSocket 服务器
@@ -54,6 +55,7 @@ func NewWebSocketServer(host string, port int, eventBus *eventbus.EventBus) *Web
 		register:    make(chan *Connection),
 		unregister:  make(chan *Connection),
 		eventBus:    eventBus,
+		quitChan:    make(chan struct{}),
 	}
 }
 
@@ -70,6 +72,8 @@ func (s *WebSocketServer) Start() error {
 	// 设置 HTTP 路由
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", s.handleWebSocket)
+	mux.HandleFunc("/health", s.handleHealth)
+	mux.HandleFunc("/quit", s.handleQuit)
 
 	// 创建 HTTP 服务器
 	s.server = &http.Server{
@@ -90,6 +94,36 @@ func (s *WebSocketServer) Start() error {
 	}
 
 	return nil
+}
+
+// handleHealth 健康检查端点（用于 Extremer 集成）
+func (s *WebSocketServer) handleHealth(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, `{"status":"ok","connections":%d,"version":"%s"}`, s.GetActiveConnections(), ProtocolVersion)
+}
+
+// handleQuit 优雅退出端点（用于 Extremer 集成）
+func (s *WebSocketServer) handleQuit(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, `{"status":"shutting_down"}`)
+
+	// 异步触发退出
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		close(s.quitChan)
+	}()
+}
+
+// GetQuitChan 获取退出信号通道
+func (s *WebSocketServer) GetQuitChan() <-chan struct{} {
+	return s.quitChan
 }
 
 // 停止服务器

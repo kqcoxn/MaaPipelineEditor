@@ -1,0 +1,33 @@
+# 构建输出目录
+/build/
+/frontend/
+
+# Wails
+/wailsjs/
+/frontend/wailsjs/
+
+# 图标（从 public 复制）
+logo.png
+
+# Go 相关
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 临时文件
+*.tmp
+*.temp

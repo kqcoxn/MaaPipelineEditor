@@ -1,0 +1,8 @@
+{
+    "scripts": {
+        "dev": "wails dev",
+        "build": "wails build",
+        "build:windows": "wails build -platform windows/amd64",
+        "preview": "node scripts/preview.js"
+    }
+}

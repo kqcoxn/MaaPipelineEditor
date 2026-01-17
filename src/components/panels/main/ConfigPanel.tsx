@@ -13,6 +13,7 @@ import PanelConfigSection from "../config/PanelConfigSection";
 import LocalServiceSection from "../config/LocalServiceSection";
 import AIConfigSection from "../config/AIConfigSection";
 import ConfigManagementSection from "../config/ConfigManagementSection";
+import SystemInfoPanel from "../tools/SystemInfoPanel";
 
 function ConfigPanel() {
   // 后端配置模态框状态
@@ -64,6 +65,7 @@ function ConfigPanel() {
         />
         <AIConfigSection />
         <ConfigManagementSection />
+        <SystemInfoPanel />
       </div>
       {/* 后端配置模态框 */}
       <BackendConfigModal
