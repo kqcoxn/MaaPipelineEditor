@@ -164,10 +164,47 @@ jobs:
       - name: Build frontend
         run: yarn build --mode extremer
 
-      - name: Copy frontend to Extremer
+      - name: Build LocalBridge
+        working-directory: LocalBridge
+        env:
+          GOOS: windows
+          GOARCH: amd64
+          CGO_ENABLED: 0
         run: |
-          Remove-Item -Recurse -Force Extremer/frontend/dist -ErrorAction SilentlyContinue
-          Copy-Item -Recurse dist Extremer/frontend/dist
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+            VERSION="${VERSION#v}"
+          else
+            VERSION=${GITHUB_REF#refs/tags/v}
+          fi
+          go build -ldflags="-s -w -X main.Version=${VERSION}" -o localbridge.exe ./cmd/lb
+        shell: bash
+
+      - name: Prepare Build Structure
+        run: |
+          # Create build directories
+          New-Item -ItemType Directory -Force -Path Extremer/build/package/bin
+          New-Item -ItemType Directory -Force -Path Extremer/build/package/config
+          New-Item -ItemType Directory -Force -Path Extremer/build/package/logs
+          New-Item -ItemType Directory -Force -Path Extremer/build/package/mfw
+          New-Item -ItemType Directory -Force -Path Extremer/build/package/ocr
+          New-Item -ItemType Directory -Force -Path Extremer/build/package/web
+          New-Item -ItemType Directory -Force -Path Extremer/frontend/dist
+          
+          # Copy icon files for Wails build (CRITICAL: must be in build/ directory)
+          Copy-Item public/logo.png Extremer/build/appicon.png -Force
+          New-Item -ItemType Directory -Force -Path Extremer/build/windows
+          Copy-Item public/logo.ico Extremer/build/windows/icon.ico -Force
+          
+          # Copy frontend build
+          Copy-Item -Recurse -Force dist/* Extremer/frontend/dist/
+          
+          # Copy LocalBridge
+          Copy-Item LocalBridge/localbridge.exe Extremer/build/package/bin/
+          
+          # Copy config templates
+          Copy-Item Extremer/assets/config/extremer.json.template Extremer/build/package/config/extremer.json
+          Copy-Item Extremer/assets/config/localbridge.json.template Extremer/build/package/config/localbridge.json
         shell: pwsh
 
       - name: Build Wails App
@@ -192,9 +229,18 @@ jobs:
           } else {
             $VERSION = "${{ github.ref_name }}"
           }
+          $VERSION_NUM = $VERSION -replace "^v", ""
+          
+          # Copy Wails output to package
+          Copy-Item Extremer/build/bin/MaaPipelineExtremer.exe Extremer/build/package/
+          
+          # Copy web assets to package
+          Copy-Item -Recurse -Force Extremer/frontend/dist/* Extremer/build/package/web/
+          
+          # Create full package with directory structure
           $RELEASE_DIR = "MaaPipelineExtremer-${VERSION}-windows-amd64"
           New-Item -ItemType Directory -Force -Path $RELEASE_DIR
-          Copy-Item "Extremer/build/bin/MaaPipelineExtremer.exe" $RELEASE_DIR/
+          Copy-Item -Recurse Extremer/build/package/* $RELEASE_DIR/
           Compress-Archive -Path $RELEASE_DIR -DestinationPath "${RELEASE_DIR}.zip"
 
       - name: Upload Extremer artifact
@@ -274,6 +320,7 @@ jobs:
           tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
           files: |
             MaaPipelineEditor-*.zip
+            MaaPipelineExtremer-*.zip
             localbridge-artifacts/*
           body_path: CHANGELOG.md
           generate_release_notes: false

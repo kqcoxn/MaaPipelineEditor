@@ -18,6 +18,7 @@
         "copyright": "Copyright 2026 kqcoxn",
         "comments": "MaaPipelineEditor Desktop Application"
     },
-    "assetDirectory": "../public",
-    "appIcon": "logo.png"
+    "assetDirectory": "./frontend/dist",
+    "nsisType": "multiple",
+    "obfuscated": false
 }
