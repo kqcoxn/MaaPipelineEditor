@@ -72,10 +72,10 @@ type LogsConfig struct {
 // Default 返回默认配置
 func Default() *Config {
 	return &Config{
-		Version: "1.0.0",
+		Version: "0.0.0", // 在构建时由 CI 设置
 		Components: ComponentsConfig{
-			Frontend:    "1.0.0",
-			LocalBridge: "1.0.0",
+			Frontend:    "0.0.0",
+			LocalBridge: "0.0.0",
 			Mfw:         "2.0.0",
 			Ocr:         "1.0.0",
 		},

@@ -1,7 +1,7 @@
 {
   "name": "maa-pipeline-editor",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.16.0",
   "type": "module",
   "scripts": {
     "icon": "npx iconfont-h5",

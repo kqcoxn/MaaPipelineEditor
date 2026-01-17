@@ -14,6 +14,11 @@ export default defineConfig(({ mode }) => {
   return {
     base,
     plugins: [react()],
+    define: {
+      "import.meta.env.VITE_APP_VERSION": JSON.stringify(
+        process.env.npm_package_version
+      ),
+    },
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),

@@ -15,6 +15,11 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
+// 版本信息，在构建时通过 ldflags 注入
+var (
+	Version = "dev"
+)
+
 func main() {
 	// 初始化日志
 	log := logger.New()
@@ -25,6 +30,12 @@ func main() {
 	if err != nil {
 		log.Warnf("加载配置失败，使用默认配置: %v", err)
 		cfg = config.Default()
+	}
+	// 覆盖版本号（来自构建时注入）
+	if Version != "dev" {
+		cfg.Version = Version
+		cfg.Components.Frontend = Version
+		cfg.Components.LocalBridge = Version
 	}
 	log.Info("读取配置完成: extremer.json")
 

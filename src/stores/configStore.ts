@@ -4,7 +4,7 @@ import type { HandleDirection } from "../components/flow/nodes/constants";
 /**固有配置 */
 export const globalConfig = {
   dev: true,
-  version: `0.16.0`,
+  version: import.meta.env.VITE_APP_VERSION || "0.16.0",
   betaIteration: 4,
   mfwVersion: "5.4",
   protocolVersion: "0.4.0",

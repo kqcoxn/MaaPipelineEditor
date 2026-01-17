@@ -3,7 +3,7 @@ name: Release Extremer
 on:
   push:
     tags:
-      - "extremer-v*"
+      - "v*"
 
 jobs:
   build-windows:
@@ -66,12 +66,18 @@ jobs:
 
       - name: Build Wails App
         working-directory: Extremer
-        run: wails build -clean -platform windows/amd64
+        run: |
+          $VERSION = "${{ github.ref_name }}" -replace "^v", ""
+          # 替换版本号占位符
+          (Get-Content wails.json) -replace '\$\{VERSION\}', $VERSION | Set-Content wails.json
+          # 使用 ldflags 注入版本号
+          wails build -clean -platform windows/amd64 -ldflags "-X main.Version=$VERSION"
+        shell: pwsh
 
       - name: Package Release
         shell: pwsh
         run: |
-          $VERSION = "${{ github.ref_name }}" -replace "extremer-v", ""
+          $VERSION = "${{ github.ref_name }}" -replace "^v", ""
           
           # Copy Wails output to package
           Copy-Item Extremer/build/bin/MaaPipelineExtremer.exe Extremer/build/package/
@@ -113,7 +119,7 @@ jobs:
       - name: Generate Manifest
         run: |
           VERSION="${{ github.ref_name }}"
-          VERSION="${VERSION#extremer-v}"
+          VERSION="${VERSION#v}"
           
           # Calculate SHA256 for each file
           EXTREMER_SHA=$(sha256sum artifacts/MaaPipelineExtremer-${VERSION}-win64.zip | cut -d' ' -f1)

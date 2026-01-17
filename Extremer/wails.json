@@ -14,7 +14,7 @@
     "info": {
         "companyName": "MaaPipelineEditor",
         "productName": "MaaPipelineExtremer",
-        "productVersion": "1.0.0",
+        "productVersion": "${VERSION}",
         "copyright": "Copyright 2026 kqcoxn",
         "comments": "MaaPipelineEditor Desktop Application"
     },
