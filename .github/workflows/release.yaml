@@ -2,6 +2,11 @@ name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v0.16.0)'
+        required: true
+        type: string
   push:
     tags:
       - "v*"
@@ -14,7 +19,7 @@ jobs:
     name: Build LocalBridge for ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     # 跳过测试版本 tag
-    if: ${{ !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || (!contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test')) }}
     strategy:
       matrix:
         include:
@@ -52,7 +57,12 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: 0
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+            VERSION="${VERSION#v}"
+          else
+            VERSION=${GITHUB_REF#refs/tags/v}
+          fi
           go build -ldflags="-s -w -X main.Version=${VERSION}" -o ../build/${{ matrix.name }} ./cmd/lb
         shell: bash
 
@@ -65,7 +75,7 @@ jobs:
   build-web:
     runs-on: ubuntu-latest
     # 跳过测试版本 tag
-    if: ${{ !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || (!contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test')) }}
 
     steps:
       - name: Checkout
@@ -100,14 +110,15 @@ jobs:
 
       - name: Create archives
         run: |
+          VERSION_TAG="${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}"
           # 打包主项目
           cd dist
-          zip -r ../MaaPipelineEditor-${{ github.ref_name }}-stable.zip .
+          zip -r ../MaaPipelineEditor-${VERSION_TAG}-stable.zip .
           cd ..
           
           # 打包文档
           cd docsite/docs/.vitepress/dist
-          zip -r ../../../../MaaPipelineEditor-${{ github.ref_name }}-docs.zip .
+          zip -r ../../../../MaaPipelineEditor-${VERSION_TAG}-docs.zip .
           cd ../../../..
 
       - name: Upload web artifacts
@@ -115,14 +126,88 @@ jobs:
         with:
           name: web-packages
           path: |
-            MaaPipelineEditor-${{ github.ref_name }}-stable.zip
-            MaaPipelineEditor-${{ github.ref_name }}-docs.zip
+            MaaPipelineEditor-*.zip
+
+  build-extremer:
+    runs-on: windows-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || (!contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test')) }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Install Wails CLI
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+        shell: pwsh
+
+      - name: Install frontend dependencies
+        run: yarn install
+
+      - name: Modify config for production build
+        run: |
+          # 将configStore.ts中的globalConfig.dev改为false
+          (Get-Content src/stores/configStore.ts) -replace 'dev: true,', 'dev: false,' | Set-Content src/stores/configStore.ts
+        shell: pwsh
+
+      - name: Build frontend
+        run: yarn build --mode extremer
+
+      - name: Copy frontend to Extremer
+        run: |
+          Remove-Item -Recurse -Force Extremer/frontend/dist -ErrorAction SilentlyContinue
+          Copy-Item -Recurse dist Extremer/frontend/dist
+        shell: pwsh
+
+      - name: Build Wails App
+        working-directory: Extremer
+        run: |
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $VERSION = "${{ inputs.version }}" -replace "^v", ""
+          } else {
+            $VERSION = "${{ github.ref_name }}" -replace "^v", ""
+          }
+          # 替换版本号占位符
+          (Get-Content wails.json) -replace '\$\{VERSION\}', $VERSION | Set-Content wails.json
+          # 使用 ldflags 注入版本号
+          wails build -clean -platform windows/amd64 -ldflags "-X main.Version=$VERSION"
+        shell: pwsh
+
+      - name: Package Release
+        shell: pwsh
+        run: |
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $VERSION = "${{ inputs.version }}"
+          } else {
+            $VERSION = "${{ github.ref_name }}"
+          }
+          $RELEASE_DIR = "MaaPipelineExtremer-${VERSION}-windows-amd64"
+          New-Item -ItemType Directory -Force -Path $RELEASE_DIR
+          Copy-Item "Extremer/build/bin/MaaPipelineExtremer.exe" $RELEASE_DIR/
+          Compress-Archive -Path $RELEASE_DIR -DestinationPath "${RELEASE_DIR}.zip"
+
+      - name: Upload Extremer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: extremer-package
+          path: MaaPipelineExtremer-*.zip
 
   release:
-    needs: [build-web, build-localbridge]
+    needs: [build-web, build-localbridge, build-extremer]
     runs-on: ubuntu-latest
     # 跳过测试版本 tag
-    if: ${{ !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || (!contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test')) }}
 
     steps:
       - name: Checkout
@@ -142,9 +227,15 @@ jobs:
           pattern: mpelb-*
           merge-multiple: true
 
+      - name: Download Extremer artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: extremer-package
+
       - name: Generate Changelog
         id: changelog
         run: |
+          VERSION_TAG="${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}"
           # 获取上一个tag
           PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
 
@@ -152,13 +243,13 @@ jobs:
             echo "这是第一个release，获取所有commits"
             COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges)
           else
-            echo "获取从 $PREVIOUS_TAG 到 ${{ github.ref_name }} 的commits"
+            echo "获取从 $PREVIOUS_TAG 到 ${VERSION_TAG} 的commits"
             COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges $PREVIOUS_TAG..HEAD)
           fi
 
           # 生成changelog
           CHANGELOG="
-          **Full Changelog**: https://github.com/kqcoxn/MaaPipelineEditor/compare/$PREVIOUS_TAG...${{ github.ref_name }}
+          **Full Changelog**: https://github.com/kqcoxn/MaaPipelineEditor/compare/$PREVIOUS_TAG...${VERSION_TAG}
 
           ## 📝 更新内容
 
@@ -180,9 +271,9 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
           files: |
-            MaaPipelineEditor-${{ github.ref_name }}-stable.zip
-            MaaPipelineEditor-${{ github.ref_name }}-docs.zip
+            MaaPipelineEditor-*.zip
             localbridge-artifacts/*
           body_path: CHANGELOG.md
           generate_release_notes: false
