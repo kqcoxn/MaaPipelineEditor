@@ -2,7 +2,6 @@ package logger
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"time"
@@ -10,39 +9,50 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// 全局日志实例
+// 控制台日志实例
+var consoleLogger *logrus.Logger
+
+// 文件日志实例
+var fileLogger *logrus.Logger
+
+// 对外暴露的日志实例
 var Logger *logrus.Logger
 
-// 日志推送函数类型
+// 日志推送函数
 type LogPushFunc func(level, module, message string)
 
 var pushFunc LogPushFunc
 
 // 初始化日志系统
 func Init(logLevel string, logDir string, pushToClient bool) error {
-	Logger = logrus.New()
-
-	// 设置日志级别
-	level, err := logrus.ParseLevel(logLevel)
+	// 解析控制台日志级别
+	consoleLevel, err := logrus.ParseLevel(logLevel)
 	if err != nil {
-		level = logrus.InfoLevel
+		consoleLevel = logrus.InfoLevel
 	}
-	Logger.SetLevel(level)
 
-	// 设置日志格式
-	Logger.SetFormatter(&logrus.TextFormatter{
+	// 创建控制台日志器
+	consoleLogger = logrus.New()
+	consoleLogger.SetLevel(consoleLevel)
+	consoleLogger.SetOutput(os.Stdout)
+	consoleLogger.SetFormatter(&logrus.TextFormatter{
 		FullTimestamp:   true,
 		TimestampFormat: "15:04:05",
 		ForceColors:     true,
 	})
 
-	// 创建日志目录
+	// 添加推送到客户端的钩子
+	if pushToClient {
+		consoleLogger.AddHook(&PushHook{})
+	}
+
+	// 创建文件日志器
 	if logDir != "" {
 		if err := os.MkdirAll(logDir, 0755); err != nil {
 			return fmt.Errorf("创建日志目录失败: %w", err)
 		}
 
-		// 清理旧日志文件
+		// 清理旧日志
 		if err := cleanOldLogs(logDir, 3); err != nil {
 			fmt.Printf("清理旧日志失败: %v\n", err)
 		}
@@ -56,15 +66,19 @@ func Init(logLevel string, logDir string, pushToClient bool) error {
 			return fmt.Errorf("创建日志文件失败: %w", err)
 		}
 
-		// 同时输出到控制台和文件
-		mw := io.MultiWriter(os.Stdout, logFile)
-		Logger.SetOutput(mw)
+		// 文件日志记录全级别
+		fileLogger = logrus.New()
+		fileLogger.SetLevel(logrus.TraceLevel)
+		fileLogger.SetOutput(logFile)
+		fileLogger.SetFormatter(&logrus.TextFormatter{
+			FullTimestamp:   true,
+			TimestampFormat: "2006-01-02 15:04:05",
+			DisableColors:   true,
+		})
 	}
 
-	// 添加钩子用于推送日志到客户端
-	if pushToClient {
-		Logger.AddHook(&PushHook{})
-	}
+	// 设置对外接口使用控制台日志器
+	Logger = consoleLogger
 
 	return nil
 }
@@ -74,10 +88,9 @@ func SetPushFunc(fn LogPushFunc) {
 	pushFunc = fn
 }
 
-// 推送日志到 WebSocket 客户端 Hook
+// 推送日志钩子
 type PushHook struct{}
 
-// 返回 Hook 处理的日志级别
 func (hook *PushHook) Levels() []logrus.Level {
 	return []logrus.Level{
 		logrus.InfoLevel,
@@ -86,48 +99,59 @@ func (hook *PushHook) Levels() []logrus.Level {
 	}
 }
 
-// 在日志记录时触发 Hook
 func (hook *PushHook) Fire(entry *logrus.Entry) error {
 	if pushFunc != nil {
 		module := "System"
 		if m, ok := entry.Data["module"].(string); ok {
 			module = m
 		}
-
-		pushFunc(
-			entry.Level.String(),
-			module,
-			entry.Message,
-		)
+		pushFunc(entry.Level.String(), module, entry.Message)
 	}
 	return nil
 }
 
+// 便捷日志方法
+func Info(module, message string, args ...interface{}) {
+	entry := consoleLogger.WithField("module", module)
+	entry.Infof(message, args...)
+	if fileLogger != nil {
+		fileLogger.WithField("module", module).Infof(message, args...)
+	}
+}
+
+func Warn(module, message string, args ...interface{}) {
+	entry := consoleLogger.WithField("module", module)
+	entry.Warnf(message, args...)
+	if fileLogger != nil {
+		fileLogger.WithField("module", module).Warnf(message, args...)
+	}
+}
+
+func Error(module, message string, args ...interface{}) {
+	entry := consoleLogger.WithField("module", module)
+	entry.Errorf(message, args...)
+	if fileLogger != nil {
+		fileLogger.WithField("module", module).Errorf(message, args...)
+	}
+}
+
+func Debug(module, message string, args ...interface{}) {
+	entry := consoleLogger.WithField("module", module)
+	entry.Debugf(message, args...)
+	if fileLogger != nil {
+		fileLogger.WithField("module", module).Debugf(message, args...)
+	}
+}
+
+func Trace(module, message string, args ...interface{}) {
+	if fileLogger != nil {
+		fileLogger.WithField("module", module).Tracef(message, args...)
+	}
+}
+
 // 返回带模块信息的日志 Entry
 func WithModule(module string) *logrus.Entry {
-	return Logger.WithField("module", module)
-}
-
-// 便捷日志方法 - TODO
-
-// 记录 INFO 级别日志
-func Info(module, message string, args ...interface{}) {
-	WithModule(module).Infof(message, args...)
-}
-
-// 记录 WARN 级别日志
-func Warn(module, message string, args ...interface{}) {
-	WithModule(module).Warnf(message, args...)
-}
-
-// 记录 ERROR 级别日志
-func Error(module, message string, args ...interface{}) {
-	WithModule(module).Errorf(message, args...)
-}
-
-// 记录 DEBUG 级别日志
-func Debug(module, message string, args ...interface{}) {
-	WithModule(module).Debugf(message, args...)
+	return consoleLogger.WithField("module", module)
 }
 
 // 清理旧日志文件
