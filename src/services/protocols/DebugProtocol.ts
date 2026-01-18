@@ -7,6 +7,7 @@ import { useFlowStore } from "../../stores/flow";
 import { useFileStore } from "../../stores/fileStore";
 import { configProtocol } from "../server";
 import type { ConfigResponse } from "./ConfigProtocol";
+import { stripPrefixFromNodeName } from "../../utils/nodeNameHelper";
 
 /**
  * 调试协议处理器
@@ -125,10 +126,7 @@ export class DebugProtocol extends BaseProtocol {
     const nodes = useFlowStore.getState().nodes;
     const prefix = useFileStore.getState().currentFile.config.prefix;
 
-    let label = fullName;
-    if (prefix && fullName.startsWith(prefix + "_")) {
-      label = fullName.substring(prefix.length + 1);
-    }
+    const label = stripPrefixFromNodeName(fullName, prefix);
 
     // 根据 label 查找节点
     const node = nodes.find((n) => n.data.label === label);
@@ -784,14 +782,15 @@ export class DebugProtocol extends BaseProtocol {
 
   /**
    * 发送调试启动请求
-   * 支持多资源路径和 Agent 标识符
+   * 支持多资源路径、Agent 标识符和 pipeline override
    */
   sendStartDebug(
     resourcePaths: string[],
     entry: string,
     controllerId: string,
     breakpoints: string[],
-    agentIdentifier?: string
+    agentIdentifier?: string,
+    pipelineOverride?: Record<string, any>
   ): boolean {
     if (!this.wsClient) {
       console.error("[DebugProtocol] WebSocket client not initialized");
@@ -808,6 +807,11 @@ export class DebugProtocol extends BaseProtocol {
     // 只有在提供了 Agent 标识符时才添加
     if (agentIdentifier && agentIdentifier.trim() !== "") {
       payload.agent_identifier = agentIdentifier;
+    }
+
+    // pipelineOverride
+    if (pipelineOverride && Object.keys(pipelineOverride).length > 0) {
+      payload.pipeline_override = pipelineOverride;
     }
 
     return this.wsClient.send("/mpe/debug/start", payload);

@@ -19,6 +19,7 @@ import { useDebugStore } from "../../../stores/debugStore";
 import { useMFWStore } from "../../../stores/mfwStore";
 import { useFileStore } from "../../../stores/fileStore";
 import { debugProtocol } from "../../../services/server";
+import { getFullNodeName } from "../../../utils/nodeNameHelper";
 
 /**菜单项类型 */
 export interface NodeContextMenuItem {
@@ -144,8 +145,7 @@ async function handleStartDebugFromNode(node: NodeContextMenuNode) {
   const nodeIdToFullName = (nodeId: string): string | null => {
     const targetNode = nodes.find((n) => n.id === nodeId);
     if (!targetNode) return null;
-    const label = targetNode.data.label;
-    return prefix ? `${prefix}_${label}` : label;
+    return getFullNodeName(targetNode.data.label, prefix);
   };
 
   const entryNodeFullName = nodeIdToFullName(node.id);
@@ -173,6 +173,121 @@ async function handleStartDebugFromNode(node: NodeContextMenuNode) {
 /**复制 Reco JSON 处理器 */
 function handleCopyRecoJSON(node: NodeContextMenuNode) {
   copyNodeRecoJSON(node.id);
+}
+
+/**
+ * 调试测试包装函数
+ * 统一处理验证、状态更新和消息发送
+ */
+async function runDebugTest(
+  node: NodeContextMenuNode,
+  testName: string,
+  override: Record<string, any>
+) {
+  const { resourcePaths, agentIdentifier } = useDebugStore.getState();
+  const { connectionStatus, controllerId } = useMFWStore.getState();
+
+  // 验证连接状态
+  if (connectionStatus !== "connected") {
+    message.error("请先连接 LocalBridge");
+    return;
+  }
+
+  // 验证控制器
+  if (!controllerId) {
+    message.error("请先连接控制器");
+    return;
+  }
+
+  // 过滤并验证资源路径
+  const validPaths = resourcePaths.filter((p) => p.trim() !== "");
+  if (validPaths.length === 0) {
+    message.error("请先配置资源路径");
+    return;
+  }
+
+  // 获取完整节点名
+  const fullNodeName = getFullNodeName(node.data.label);
+
+  // 直接设置调试状态，不调用 startDebug
+  useDebugStore.setState({
+    debugStatus: "preparing",
+    controllerId,
+    executedNodes: new Set(),
+    executedEdges: new Set(),
+    currentNode: null,
+    executionHistory: [],
+    recognitionRecords: [],
+    nextRecordId: 1,
+    executionStartTime: Date.now(),
+    detailCache: new Map(),
+    error: null,
+  });
+
+  message.loading(`正在${testName}...`);
+
+  // 发送 WebSocket 消息启动调试
+  const success = debugProtocol.sendStartDebug(
+    validPaths,
+    fullNodeName,
+    controllerId,
+    [],
+    agentIdentifier || undefined,
+    override
+  );
+
+  if (!success) {
+    message.error(`${testName}失败，请检查连接状态`);
+    useDebugStore.getState().stopDebug();
+  }
+}
+
+/**
+ * 测试此节点处理器
+ * 仅运行当前节点，把 next 和 on_error override 为 []
+ */
+async function handleTestNode(node: NodeContextMenuNode) {
+  const fullNodeName = getFullNodeName(node.data.label);
+  const override = {
+    [fullNodeName]: {
+      next: [],
+      on_error: [],
+    },
+  };
+  await runDebugTest(node, "测试此节点", override);
+}
+
+/**
+ * 测试识别处理器
+ * 识别一次且不执行动作，把 action override 为 DoNothing，timeout 为 0
+ */
+async function handleTestRecognition(node: NodeContextMenuNode) {
+  const fullNodeName = getFullNodeName(node.data.label);
+  const override = {
+    [fullNodeName]: {
+      action: "DoNothing",
+      timeout: 0,
+      next: [],
+      on_error: [],
+    },
+  };
+  await runDebugTest(node, "测试识别", override);
+}
+
+/**
+ * 测试动作处理器
+ * 执行一次 action，把 recognition override 为 DirectHit
+ */
+async function handleTestAction(node: NodeContextMenuNode) {
+  const fullNodeName = getFullNodeName(node.data.label);
+  const override = {
+    [fullNodeName]: {
+      recognition: "DirectHit",
+      next: [],
+      on_error: [],
+    },
+  };
+  await runDebugTest(node, "测试动作", override);
 }
 
 /**设置节点端点位置处理器 */
@@ -260,14 +375,16 @@ export function getNodeContextMenuConfig(
     config.push(
       {
         type: "divider",
-        key: "divider-debug",
+        key: "divider-debug-all",
       },
+      // 调试控制功能
       {
         key: "start-debug-from-node",
         label: "从此节点开始调试",
         icon: "icon-kaishi",
         iconSize: 16,
         onClick: handleStartDebugFromNode,
+        visible: (node) => node.type === NodeTypeEnum.Pipeline,
       },
       {
         key: "set-debug-entry",
@@ -275,6 +392,35 @@ export function getNodeContextMenuConfig(
         icon: "icon-tiaoshibeifen",
         iconSize: 16,
         onClick: handleSetDebugEntry,
+        visible: (node) => node.type === NodeTypeEnum.Pipeline,
+      },
+      {
+        type: "divider",
+        key: "divider-debug-self",
+      },
+      {
+        key: "test-node",
+        label: "测试此节点",
+        icon: "icon-tiaoshi",
+        iconSize: 16,
+        onClick: handleTestNode,
+        visible: (node) => node.type === NodeTypeEnum.Pipeline,
+      },
+      {
+        key: "test-recognition",
+        label: "测试识别",
+        icon: "icon-kapianshibie",
+        iconSize: 16,
+        onClick: handleTestRecognition,
+        visible: (node) => node.type === NodeTypeEnum.Pipeline,
+      },
+      {
+        key: "test-action",
+        label: "测试动作",
+        icon: "icon-dianji",
+        iconSize: 16,
+        onClick: handleTestAction,
+        visible: (node) => node.type === NodeTypeEnum.Pipeline,
       }
     );
   }

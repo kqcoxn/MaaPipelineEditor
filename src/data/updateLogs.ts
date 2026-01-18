@@ -47,9 +47,10 @@ export const pinnedNotice: PinnedNotice = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "0.16.1",
-    date: "2026-1",
+    date: "2026-1-19",
     type: "fix",
     updates: {
+      features: ["🐛 调试功能支持单节点与单识别/动作测试"],
       perfs: ["调试执行前检查当前文件是否有本地路径并提示"],
       fixes: [
         "修复了连接失效后前后端状态不同步的问题",

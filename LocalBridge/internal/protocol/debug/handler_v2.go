@@ -243,8 +243,9 @@ func (h *DebugHandlerV2) handleStart(conn *server.Connection, msg models.Message
 	entryNode, _ := dataMap["entry"].(string)
 	controllerID, _ := dataMap["controller_id"].(string)
 	agentIdentifier, _ := dataMap["agent_identifier"].(string)
+	pipelineOverride := dataMap["pipeline_override"]
 
-	logger.Info("DebugV2", "启动调试: 入口=%s, 资源=%v, Agent=%s", entryNode, resourcePaths, agentIdentifier)
+	logger.Info("DebugV2", "启动调试: 入口=%s, 资源=%v, Agent=%s, Override=%v", entryNode, resourcePaths, agentIdentifier, pipelineOverride != nil)
 
 	if len(resourcePaths) == 0 || entryNode == "" || controllerID == "" {
 		h.sendError(conn, "缺少必需参数: resource_paths/resource_path, entry, controller_id")
@@ -274,7 +275,11 @@ func (h *DebugHandlerV2) handleStart(conn *server.Connection, msg models.Message
 	sessionIDHolder = session.SessionID
 
 	// 运行任务
-	err = session.RunTask(entryNode)
+	if pipelineOverride != nil {
+		err = session.RunTask(entryNode, pipelineOverride)
+	} else {
+		err = session.RunTask(entryNode)
+	}
 	if err != nil {
 		logger.Error("DebugV2", "运行任务失败: %v", err)
 		h.sendError(conn, err.Error())

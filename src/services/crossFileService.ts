@@ -12,6 +12,7 @@ import { useFileStore } from "../stores/fileStore";
 import { useFlowStore, type NodeType } from "../stores/flow";
 import { localServer } from "./server";
 import { NodeTypeEnum } from "../components/flow/nodes/constants";
+import { getFullNodeName } from "../utils/nodeNameHelper";
 
 /**
  * 跨文件节点信息
@@ -93,9 +94,7 @@ class CrossFileService {
           for (const node of loadedFile.nodes) {
             result.push({
               label: node.data.label,
-              fullName: prefix
-                ? `${prefix}_${node.data.label}`
-                : node.data.label,
+              fullName: getFullNodeName(node.data.label, prefix),
               nodeType: node.type as NodeTypeEnum,
               filePath: localFile.file_path,
               relativePath: localFile.relative_path,
@@ -163,7 +162,7 @@ class CrossFileService {
         for (const node of file.nodes) {
           result.push({
             label: node.data.label,
-            fullName: prefix ? `${prefix}_${node.data.label}` : node.data.label,
+            fullName: getFullNodeName(node.data.label, prefix),
             nodeType: node.type as NodeTypeEnum,
             filePath: file.config.filePath || file.fileName,
             relativePath: file.config.relativePath || file.fileName,
@@ -184,7 +183,7 @@ class CrossFileService {
         for (const node of file.nodes) {
           result.push({
             label: node.data.label,
-            fullName: prefix ? `${prefix}_${node.data.label}` : node.data.label,
+            fullName: getFullNodeName(node.data.label, prefix),
             nodeType: node.type as NodeTypeEnum,
             filePath: file.config.filePath || file.fileName,
             relativePath: file.config.relativePath || file.fileName,

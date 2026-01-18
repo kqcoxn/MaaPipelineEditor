@@ -218,7 +218,7 @@ func (ds *DebugServiceV2) ListSessions() []*DebugSessionV2 {
 // ============================================================================
 
 // RunTask 运行任务
-func (s *DebugSessionV2) RunTask(entryNode string) error {
+func (s *DebugSessionV2) RunTask(entryNode string, override ...interface{}) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -258,7 +258,12 @@ func (s *DebugSessionV2) RunTask(entryNode string) error {
 
 	// 提交任务
 	var err error
-	s.taskJob, err = s.adapter.PostTask(entryNode)
+	if len(override) > 0 && override[0] != nil {
+		logger.Debug("DebugV2", "使用 override 参数运行任务")
+		s.taskJob, err = s.adapter.PostTask(entryNode, override[0])
+	} else {
+		s.taskJob, err = s.adapter.PostTask(entryNode)
+	}
 	if err != nil {
 		s.Status = SessionStatusError
 		s.lastError = err
