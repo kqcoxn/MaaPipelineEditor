@@ -6,19 +6,12 @@ export default defineConfig(({ mode }) => {
   let base = "/stable/";
   if (mode === "preview") {
     base = "/MaaPipelineEditor/";
-  } else if (mode === "extremer") {
-    base = "/";
   } else if (mode !== "stable") {
     base = `/${mode}/`;
   }
   return {
     base,
     plugins: [react()],
-    define: {
-      "import.meta.env.VITE_APP_VERSION": JSON.stringify(
-        process.env.npm_package_version
-      ),
-    },
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),

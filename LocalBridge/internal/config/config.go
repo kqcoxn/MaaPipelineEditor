@@ -177,41 +177,6 @@ func (c *Config) OverrideFromFlags(root, logDir, logLevel string, port int) {
 	c.normalize()
 }
 
-// OverrideFromEnv 从环境变量覆盖配置（用于 Extremer 集成）
-func (c *Config) OverrideFromEnv() {
-	// MFW_BASE_PATH 环境变量覆盖 lib_dir
-	if mfwPath := os.Getenv("MFW_BASE_PATH"); mfwPath != "" {
-		// MFW_BASE_PATH 指向 mfw 根目录，lib 在 bin 子目录
-		libPath := filepath.Join(mfwPath, "bin")
-		if _, err := os.Stat(libPath); err == nil {
-			c.MaaFW.LibDir = libPath
-			c.MaaFW.Enabled = true
-		} else {
-			// 如果 bin 不存在，尝试直接使用该路径
-			c.MaaFW.LibDir = mfwPath
-			c.MaaFW.Enabled = true
-		}
-	}
-
-	// OCR_BASE_PATH 环境变量覆盖 resource_dir
-	if ocrPath := os.Getenv("OCR_BASE_PATH"); ocrPath != "" {
-		c.MaaFW.ResourceDir = ocrPath
-	}
-
-	// LB_PORT 环境变量覆盖端口
-	if portStr := os.Getenv("LB_PORT"); portStr != "" {
-		var port int
-		if _, err := fmt.Sscanf(portStr, "%d", &port); err == nil && port > 0 {
-			c.Server.Port = port
-		}
-	}
-
-	// LB_LOG_LEVEL 环境变量覆盖日志级别
-	if logLevel := os.Getenv("LB_LOG_LEVEL"); logLevel != "" {
-		c.Log.Level = logLevel
-	}
-}
-
 // 配置文件路径
 var configFilePath string
 

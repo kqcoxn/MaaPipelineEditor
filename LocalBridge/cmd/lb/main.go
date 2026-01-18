@@ -193,9 +193,6 @@ func runServer(cmd *cobra.Command, args []string) {
 	// 从命令行参数覆盖配置
 	cfg.OverrideFromFlags(rootDir, logDir, logLevel, port)
 
-	// 从环境变量覆盖配置（用于 Extremer 集成）
-	cfg.OverrideFromEnv()
-
 	// 初始化日志系统
 	if err := logger.Init(cfg.Log.Level, cfg.Log.Dir, cfg.Log.PushToClient); err != nil {
 		fmt.Fprintf(os.Stderr, "初始化日志系统失败: %v\n", err)
@@ -311,13 +308,7 @@ func runServer(cmd *cobra.Command, args []string) {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, getExitSignals()...)
 
-	// 同时监听系统信号和 WebSocket 服务器的退出通道
-	select {
-	case <-sigChan:
-		logger.Info("Main", "收到系统退出信号")
-	case <-wsServer.GetQuitChan():
-		logger.Info("Main", "收到远程退出请求")
-	}
+	<-sigChan
 
 	// 退出
 	logger.Info("Main", "正在关闭 Local Bridge 服务...")

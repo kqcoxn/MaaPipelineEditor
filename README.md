@@ -6,7 +6,7 @@
 
 # MaaPipelineEditor
 
-_✨ 可视化构建 MaaFramework Pipeline 的下一代工作流编辑器 ✨_</br>🛠️ 告别手调千行 JSON！用拖拽+配置的方式，高效构建、分享你的 Maa 自动化流程 🛠️
+_✨ 可视化构建 MaaFramework Pipeline 的下一代工作流编辑器 ✨_</br>🛠️ 告别手调千行 JSON！用拖拽+配置的方式，高效构建、调试、分享您的 MFW 自动化流程 🛠️
 
 </div>
 
@@ -35,7 +35,7 @@ _✨ 可视化构建 MaaFramework Pipeline 的下一代工作流编辑器 ✨_</
 
 ## 亮点
 
-![](./image/big-pie.png)
+![](/public/readme/big-pie.png)
 
 #### ✨ 极致轻量，开箱即用
 
@@ -46,7 +46,7 @@ _✨ 可视化构建 MaaFramework Pipeline 的下一代工作流编辑器 ✨_</
 #### 🚀 渐进扩展，模块增强
 
 - 通过**一行命令即可增量启用** [本地服务](https://mpe.codax.site/docs.html)，不需要时完全解耦
-- 无缝接入**文件管理**、**截图工具**等本地能力
+- 无缝接入**文件管理**、**截图工具**、**流程调试**等本地能力
 - 支持自定义框架与 OCR 路径，直接**对齐本地环境**
 
 #### 🧠 所见即所思，流程即逻辑
@@ -93,7 +93,7 @@ _✨ 可视化构建 MaaFramework Pipeline 的下一代工作流编辑器 ✨_</
 
 您可以使用 MPE 在文件管理、截图工具、调试工具、AI 补全等各类便捷工具的加持下轻松构造出如下 Pipeline，**即使复杂也能维持清晰的逻辑，兼具易用性与可读性**：
 
-![](./image/展示.png)
+![](/public/readme/展示.png)
 
 （演示 Pipeline：[MNMA-城市探索.json](https://github.com/kqcoxn/MaaNewMoonAccompanying/blob/v3.1.8/assets/resource/base/pipeline/%E6%97%A5%E5%B8%B8%E6%B4%BB%E5%8A%A8/%E5%9F%8E%E5%B8%82%E6%8E%A2%E7%B4%A2.json), 3529 lines）
 
@@ -101,7 +101,7 @@ _✨ 可视化构建 MaaFramework Pipeline 的下一代工作流编辑器 ✨_</
 
 配合粘贴板导入、自动布局、协议兼容、节点聚焦、关键路径、AI 搜索等功能，您可以**快速了解其他项目的某个功能是如何实现的**，打开网页粘贴即用，无需下载或面对成堆 JSON
 
-![](./image/审阅.png)
+![](/public/readme/审阅.png)
 
 （演示 Pipeline：[M9A-combat.json](https://github.com/MAA1999/M9A/blob/v3.17.8/assets/resource/base/pipeline/combat.json), 987 lines）
 
@@ -122,7 +122,7 @@ MPE 项目没有单独的交流群，您可以在 MaaFramework 集成/开发交�
 
 ### 开发者
 
-感谢以下开发者对 MaaPipelineEditor 作出的贡献：
+感谢以下开发者对 MaaPipelineEditor 或 YaMaaPE 作出的贡献：
 
 [![贡献者](https://contrib.rocks/image?repo=kqcoxn/MaaPipelineEditor)](https://github.com/kqcoxn/MaaPipelineEditor/graphs/contributors)
 
@@ -134,10 +134,10 @@ MPE 项目没有单独的交流群，您可以在 MaaFramework 集成/开发交�
 
 ## 历史与统计
 
-- **`2026.1-NOW`：MaaPipelineExtremer**（一体化整合）
-- `2025.10-12`：LocalBridge 协议（本地能力扩展）
+- **`2026.1-NOW`：[MaaPipelineExtremer](https://github.com/kqcoxn/MaaPipelineEditor/issues/50)**（一体化整合）
+- `2025.10-12`：[LocalBridge 协议](https://github.com/kqcoxn/MaaPipelineEditor/issues/23)（本地能力扩展）
 - `2025.8-10`：重构，MaaPipelineEditor！（泛用化）
-- `2025.5-8`：MNMA 实践（思路修补）
+- `2025.5-8`：[MNMA](https://github.com/kqcoxn/MaaNewMoonAccompanying) 实践（思路修补）
 - `2025.5`：[YaMaaPE](https://github.com/kqcoxn/YAMaaPE)（项目原型）
 
 [![Star History Chart](https://api.star-history.com/svg?repos=kqcoxn/MaaPipelineEditor&type=Date)](https://www.star-history.com/#kqcoxn/MaaPipelineEditor&Date)

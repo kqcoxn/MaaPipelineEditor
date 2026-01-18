@@ -1,7 +1,7 @@
 {
   "name": "maa-pipeline-editor",
   "private": true,
-  "version": "0.16.0",
+  "version": "0.0.1",
   "type": "module",
   "scripts": {
     "icon": "npx iconfont-h5",
@@ -13,7 +13,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "reset": "git reset --soft HEAD~1",
-    "release": "vite build && git tag -a v0.16.0 -m \"v0.16.0\" && git push origin v0.16.0"
+    "release": "vite build && git tag -a v0.15.4 -m \"v0.15.4\" && git push origin v0.15.4"
   },
   "dependencies": {
     "@ant-design/icons": "6",
