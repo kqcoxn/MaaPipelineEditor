@@ -50,7 +50,7 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2026-1",
     type: "fix",
     updates: {
-      fixes: [],
+      fixes: ["修复了连接失效后前后端状态不同步的问题"],
     },
   },
   {

@@ -1,6 +1,7 @@
 import { message } from "antd";
 import { BaseProtocol } from "./BaseProtocol";
 import type { LocalWebSocketServer } from "../server";
+import { useMFWStore } from "../../stores/mfwStore";
 
 /**
  * 错误协议处理器
@@ -52,5 +53,15 @@ export class ErrorProtocol extends BaseProtocol {
 
     console.error("[ErrorProtocol]", { code, message: msg, detail });
     message.error(displayMessage);
+
+    // 控制器错误时清除连接状态
+    if (
+      code === "MFW_CONTROLLER_NOT_FOUND" ||
+      code === "MFW_CONTROLLER_NOT_CONNECTED" ||
+      code === "MFW_CONTROLLER_CONNECT_FAIL"
+    ) {
+      const mfwStore = useMFWStore.getState();
+      mfwStore.clearConnection();
+    }
   }
 }

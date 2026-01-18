@@ -280,7 +280,7 @@ func (cm *ControllerManager) DisconnectController(controllerID string) error {
 
 	delete(cm.controllers, controllerID)
 
-	logger.Debug("MFW", "控制器已断开: %s", controllerID)
+	logger.Info("MFW", "控制器已断开: %s", controllerID)
 	return nil
 }
 

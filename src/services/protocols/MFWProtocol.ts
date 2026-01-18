@@ -40,12 +40,19 @@ export class MFWProtocol extends BaseProtocol {
 
     // 监听 WebSocket 连接状态变化
     this.wsClient.onStatus((connected) => {
+      const mfwStore = useMFWStore.getState();
+      // 清除控制器状态
       if (!connected) {
-        // WebSocket 断开时，清除控制器状态
-        const mfwStore = useMFWStore.getState();
         mfwStore.clearConnection();
         // 清除待连接设备信息
         this.lastConnectionDevice = null;
+      } else {
+        if (mfwStore.controllerId) {
+          console.log(
+            "[MFWProtocol] WebSocket reconnected, clearing stale controller state"
+          );
+          mfwStore.clearConnection();
+        }
       }
     });
 
