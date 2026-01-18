@@ -48,9 +48,6 @@ export class MFWProtocol extends BaseProtocol {
         this.lastConnectionDevice = null;
       } else {
         if (mfwStore.controllerId) {
-          console.log(
-            "[MFWProtocol] WebSocket reconnected, clearing stale controller state"
-          );
           mfwStore.clearConnection();
         }
       }

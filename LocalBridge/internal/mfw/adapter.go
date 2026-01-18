@@ -431,6 +431,17 @@ func (a *MaaFWAdapter) StopTask() error {
 	return nil
 }
 
+// PostStop 发送停止信号
+func (a *MaaFWAdapter) PostStop() {
+	a.mu.RLock()
+	tasker := a.tasker
+	a.mu.RUnlock()
+
+	if tasker != nil {
+		tasker.PostStop()
+	}
+}
+
 // ============================================================================
 // Agent 管理
 // ============================================================================

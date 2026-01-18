@@ -61,12 +61,6 @@ export class ResourceProtocol extends BaseProtocol {
         bundles as ResourceBundle[],
         image_dirs || []
       );
-
-      console.log(
-        `[ResourceProtocol] 资源包列表已更新，共 ${bundles.length} 个资源包，${
-          image_dirs?.length || 0
-        } 个 image 目录`
-      );
     } catch (error) {
       console.error(
         "[ResourceProtocol] Failed to handle resource bundles:",
@@ -266,10 +260,6 @@ export class ResourceProtocol extends BaseProtocol {
         })),
         bundle_name || "",
         is_filtered || false
-      );
-
-      console.log(
-        `[ResourceProtocol] 图片列表已更新，共 ${images.length} 张图片，资源包=${bundle_name}, 过滤=${is_filtered}`
       );
     } catch (error) {
       console.error("[ResourceProtocol] Failed to handle image list:", error);

@@ -49,6 +49,7 @@ type DebugSessionV2 struct {
 	lastNode      string           // 上一个执行的节点
 	executedNodes map[string]int   // 已执行节点计数
 	taskJob       *maa.TaskJob     // 当前任务
+	taskRunID     int64            // 任务运行 ID
 	pauseReason   string           // 暂停原因
 	lastError     error            // 最后一个错误
 	nodeStartTime map[string]int64 // 节点开始时间
@@ -233,6 +234,18 @@ func (s *DebugSessionV2) RunTask(entryNode string) error {
 		return fmt.Errorf("入口节点 '%s' 在资源中不存在，请检查资源路径和节点名称", entryNode)
 	}
 
+	// 连接 Agent
+	if s.AgentID != "" {
+		logger.Debug("DebugV2", "连接 Agent: %s", s.AgentID)
+		if err := s.adapter.ConnectAgent(s.AgentID); err != nil {
+			logger.Warn("DebugV2", "连接 Agent 失败: %v", err)
+		}
+	}
+
+	// 生成任务运行 ID
+	s.taskRunID = time.Now().UnixNano()
+	currentRunID := s.taskRunID
+
 	// 更新状态
 	s.Status = SessionStatusRunning
 	s.EntryNode = entryNode
@@ -253,7 +266,7 @@ func (s *DebugSessionV2) RunTask(entryNode string) error {
 	}
 
 	// 异步等待任务完成
-	go s.waitForTask()
+	go s.waitForTask(currentRunID)
 
 	return nil
 }
@@ -264,10 +277,11 @@ func (s *DebugSessionV2) Stop() error {
 	defer s.mu.Unlock()
 
 	logger.Info("DebugV2", "停止调试: %s", s.SessionID)
+	s.taskRunID = 0
 
 	if s.adapter != nil {
-		s.adapter.StopTask()
-		// 停止时也断开 Agent
+		s.adapter.PostStop()
+		// 断开 Agent
 		logger.Debug("DebugV2", "停止时断开 Agent 连接...")
 		s.adapter.DisconnectAgent()
 	}
@@ -359,22 +373,28 @@ func (s *DebugSessionV2) GetNodeJSON(nodeName string) (map[string]interface{}, b
 // ============================================================================
 
 // waitForTask 等待任务完成
-func (s *DebugSessionV2) waitForTask() {
+func (s *DebugSessionV2) waitForTask(runID int64) {
 	if s.taskJob == nil {
 		return
 	}
 
-	logger.Debug("DebugV2", "等待任务完成...")
+	logger.Debug("DebugV2", "等待任务完成... (runID=%d)", runID)
 	s.taskJob.Wait()
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	// 检查运行 ID 是否匹配
+	if s.taskRunID != runID {
+		logger.Debug("DebugV2", "任务运行 ID 不匹配 (当前=%d, 期望=%d)，忽略此回调", s.taskRunID, runID)
+		return
+	}
+
 	// 检查任务状态
 	status := s.taskJob.Status()
 	logger.Info("DebugV2", "任务完成: Status=%v", status)
 
-	// 任务完成后立即断开 Agent 连接以释放资源
+	// 释放资源
 	if s.adapter != nil {
 		logger.Debug("DebugV2", "断开 Agent 连接...")
 		s.adapter.DisconnectAgent()
@@ -394,18 +414,20 @@ func (s *DebugSessionV2) waitForTask() {
 		}
 	} else {
 		// 任务失败或被停止
-		s.Status = SessionStatusError
-		logger.Warn("DebugV2", "任务失败或被停止")
+		if s.Status == SessionStatusRunning {
+			s.Status = SessionStatusError
+			logger.Warn("DebugV2", "任务失败或被停止")
 
-		// 发送错误事件
-		if s.eventCallback != nil {
-			s.eventCallback(DebugEventData{
-				Type:      "debug_error",
-				Timestamp: time.Now().Unix(),
-				Detail: map[string]interface{}{
-					"status": status.String(),
-				},
-			})
+			// 发送错误事件
+			if s.eventCallback != nil {
+				s.eventCallback(DebugEventData{
+					Type:      "debug_error",
+					Timestamp: time.Now().Unix(),
+					Detail: map[string]interface{}{
+						"status": status.String(),
+					},
+				})
+			}
 		}
 	}
 }

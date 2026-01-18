@@ -51,7 +51,10 @@ export const updateLogs: UpdateLogItem[] = [
     type: "fix",
     updates: {
       perfs: ["调试执行前检查当前文件是否有本地路径并提示"],
-      fixes: ["修复了连接失效后前后端状态不同步的问题"],
+      fixes: [
+        "修复了连接失效后前后端状态不同步的问题",
+        "修复了自行停止调试后无法重新调试的问题",
+      ],
     },
   },
   {

@@ -291,8 +291,6 @@ class CrossFileService {
       return { success: false, message: "节点名为空" };
     }
 
-    console.log("[navigateToNodeByName] 搜索节点:", nodeName);
-
     // 搜索匹配的节点
     const matchedNodes = this.searchNodes(nodeName, {
       crossFile: options?.crossFile ?? true,
@@ -300,18 +298,12 @@ class CrossFileService {
       excludeTypes: options?.excludeTypes,
     });
 
-    console.log("[navigateToNodeByName] 搜索结果:", matchedNodes);
-
     if (matchedNodes.length === 0) {
       return { success: false, message: `未找到节点: ${nodeName}` };
     }
 
     const nodeInfo = matchedNodes[0];
-    console.log("[navigateToNodeByName] 将跳转到:", nodeInfo);
-
     const success = await this.navigateToNode(nodeInfo);
-
-    console.log("[navigateToNodeByName] 跳转结果:", success);
 
     return {
       success,
@@ -409,13 +401,6 @@ class CrossFileService {
     nodeLabel: string
   ): Promise<boolean> {
     try {
-      console.log(
-        "[loadAndNavigate] 开始加载文件:",
-        filePath,
-        "节点:",
-        nodeLabel
-      );
-
       // 请求文件内容
       const success = localServer.send("/etl/open_file", {
         file_path: filePath,
@@ -439,14 +424,12 @@ class CrossFileService {
         targetFile = currentFiles.find((f) => f.config.filePath === filePath);
 
         if (targetFile) {
-          console.log(`[loadAndNavigate] 文件已加载，第 ${i + 1} 次轮询`);
           break;
         }
       }
 
       if (targetFile) {
         fileStore.switchFile(targetFile.fileName);
-        console.log("[loadAndNavigate] 已切换文件:", targetFile.fileName);
 
         // 等待切换完成并轮询等待节点加载
         // 等待节点加载到 flowStore 中
@@ -462,14 +445,8 @@ class CrossFileService {
           const nodes = flowStore.nodes;
           const targetNode = nodes.find((n: any) => n.data.label === nodeLabel);
 
-          console.log(
-            `[loadAndNavigate] 第 ${
-              i + 1
-            } 次查找节点 "${nodeLabel}"，当前节点数: ${nodes.length}`
-          );
+          // 找到节点，执行定位
           if (targetNode) {
-            console.log("[loadAndNavigate] 找到节点，执行定位");
-            // 找到节点，执行定位
             return this.focusNodeInCurrentFile(nodeLabel);
           }
         }

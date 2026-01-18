@@ -141,26 +141,6 @@ export class DebugProtocol extends BaseProtocol {
         data;
       const debugStore = useDebugStore.getState();
 
-      // 调试日志：输出收到的事件信息
-      if (
-        event_name?.includes("reco_") ||
-        event_name?.includes("node_failed")
-      ) {
-        console.log(
-          "[DebugProtocol] 收到事件:",
-          "\n  event_name:",
-          event_name,
-          "\n  node_name:",
-          node_name,
-          "\n  detail keys:",
-          detail ? Object.keys(detail) : [],
-          "\n  has raw_image:",
-          !!detail?.raw_image,
-          "\n  has draw_images:",
-          !!detail?.draw_images && detail.draw_images?.length > 0
-        );
-      }
-
       if (
         debugStore.sessionId &&
         session_id &&
