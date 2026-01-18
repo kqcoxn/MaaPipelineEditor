@@ -133,7 +133,7 @@ export class LocalWebSocketServer {
             message: "连接超时",
             description: "请检查本地服务是否已启动或端口是否可用",
             placement: "topRight",
-            duration: 0,
+            duration: 5,
             btn: createElement(
               Button,
               {
@@ -190,7 +190,7 @@ export class LocalWebSocketServer {
           message: "连接失败",
           description: "请检查本地服务是否已启动或端口是否可用",
           placement: "topRight",
-          duration: 0,
+          duration: 5,
           btn: createElement(
             Button,
             {
@@ -229,7 +229,7 @@ export class LocalWebSocketServer {
         message: "本地服务连接失败",
         description: errorMsg,
         placement: "topRight",
-        duration: 0,
+        duration: 5,
         btn: createElement(
           Button,
           {
