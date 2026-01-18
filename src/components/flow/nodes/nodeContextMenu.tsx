@@ -105,7 +105,7 @@ function handleSetDebugEntry(node: NodeContextMenuNode) {
 }
 
 /**从此节点开始调试处理器 */
-function handleStartDebugFromNode(node: NodeContextMenuNode) {
+async function handleStartDebugFromNode(node: NodeContextMenuNode) {
   const { setConfig, resourcePaths, agentIdentifier, startDebug } =
     useDebugStore.getState();
   const { connectionStatus, controllerId } = useMFWStore.getState();
@@ -134,8 +134,11 @@ function handleStartDebugFromNode(node: NodeContextMenuNode) {
   // 设置入口节点
   setConfig("entryNode", node.id);
 
-  // 调用 startDebug 更新状态
-  startDebug();
+  // 检查并更新状态
+  const canContinue = await startDebug();
+  if (!canContinue) {
+    return;
+  }
 
   // 将节点 ID 转换为 pipeline 中的节点名称
   const nodeIdToFullName = (nodeId: string): string | null => {

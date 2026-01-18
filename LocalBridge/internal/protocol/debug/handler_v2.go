@@ -278,8 +278,6 @@ func (h *DebugHandlerV2) handleStart(conn *server.Connection, msg models.Message
 	if err != nil {
 		logger.Error("DebugV2", "运行任务失败: %v", err)
 		h.sendError(conn, err.Error())
-		// 清理会话
-		h.debugService.DestroySession(session.SessionID)
 		return
 	}
 
@@ -354,12 +352,6 @@ func (h *DebugHandlerV2) handleStop(conn *server.Connection, msg models.Message)
 	if err != nil {
 		h.sendError(conn, err.Error())
 		return
-	}
-
-	// 停止后销毁会话以释放资源
-	err = h.debugService.DestroySession(sessionID)
-	if err != nil {
-		logger.Warn("DebugV2", "销毁会话失败: %v", err)
 	}
 
 	h.sendResponse(conn, "/lte/debug/stopped", map[string]interface{}{

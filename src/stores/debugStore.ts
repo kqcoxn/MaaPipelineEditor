@@ -145,7 +145,7 @@ interface DebugState {
   addResourcePath: (path: string) => void;
   removeResourcePath: (index: number) => void;
   updateResourcePath: (index: number, path: string) => void;
-  startDebug: () => Promise<void>;
+  startDebug: () => Promise<boolean>;
   stopDebug: () => void;
   updateExecutionState: (
     nodeId: string,
@@ -235,7 +235,7 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
     set({ [key]: value });
   },
 
-  startDebug: async () => {
+  startDebug: async (): Promise<boolean> => {
     const state = get();
     const controllerId = useMFWStore.getState().controllerId;
 
@@ -244,18 +244,30 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
 
     if (validPaths.length === 0 || !state.entryNode || !controllerId) {
       set({ error: "请先配置资源路径、入口节点和控制器" });
-      return;
+      return false;
     }
 
     // 检查是否需要在调试前保存文件
     const { useConfigStore } = await import("./configStore");
     const { useFileStore } = await import("./fileStore");
     const { localServer } = await import("../services/server");
-    const { message } = await import("antd");
+    const { message, Modal } = await import("antd");
+
+    const fileStore = useFileStore.getState();
+    const currentFilePath = fileStore.currentFile.config.filePath;
+
+    // 检查当前文件是否有路径
+    if (!currentFilePath) {
+      Modal.warning({
+        title: "需要保存到本地",
+        content: "调试功能需要先将文件保存到本地，请先保存文件后再调试。",
+        okText: "知道了",
+      });
+      return false;
+    }
 
     const saveFilesBeforeDebug =
       useConfigStore.getState().configs.saveFilesBeforeDebug;
-    const fileStore = useFileStore.getState();
 
     if (saveFilesBeforeDebug && localServer.isConnected()) {
       // 获取所有带有 filePath 的文件
@@ -314,6 +326,8 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
       detailCache: new Map(),
       error: null,
     });
+
+    return true;
   },
 
   stopDebug: () => {

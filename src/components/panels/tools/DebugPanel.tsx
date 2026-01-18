@@ -302,8 +302,11 @@ function DebugPanel() {
           return;
         }
 
-        // 调用 debugStore 更新状态并保存文件
-        await startDebug();
+        // 检查状态并保存文件
+        const canContinue = await startDebug();
+        if (!canContinue) {
+          return;
+        }
 
         // 将节点 ID 转换为 pipeline 中的节点名称
         const entryNodeFullName = nodeIdToFullName(entryNode);
