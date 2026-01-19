@@ -126,6 +126,9 @@ func (s *Service) Initialize() (err error) {
 		return err
 	}
 
+	// 错误时不保存截图
+	maa.SetSaveOnError(false)
+
 	s.initialized = true
 
 	logger.Info("MFW", "MaaFramework 初始化成功")

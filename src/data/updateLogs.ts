@@ -40,7 +40,7 @@ export const pinnedNotice: PinnedNotice = {
   title: "置顶公告",
   type: "info",
   content: [
-    "**正式版 LocalBridge🌉 已上线**！目前已全面支持**本地文档管理**、**字段快捷填充**（OCR、图片裁剪等）与流程化调试功能，**仅需一行指令即可下载安装**，我们十分推荐您尝试，详情可查阅 [本地服务文档](https://mpe.codax.site/docs/guide/server/deploy.html)",
+    "**正式版 LocalBridge🌉 已上线**！目前已全面支持**本地文档管理**、**字段快捷填充**（OCR、图片裁剪等）与**流程化调试**功能，**仅需一行指令即可下载安装**，我们十分推荐您尝试，详情可查阅 [本地服务文档](https://mpe.codax.site/docs/guide/server/deploy.html)",
   ],
 };
 
@@ -51,7 +51,7 @@ export const updateLogs: UpdateLogItem[] = [
     type: "major",
     updates: {
       features: [],
-      perfs: [],
+      perfs: ["调试 on_error 不再截图（现有截图需自行删除）"],
       fixes: [],
     },
   },
