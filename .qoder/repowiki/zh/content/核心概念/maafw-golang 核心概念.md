@@ -1,7 +1,7 @@
 # maafw-golang 核心概念
 
 <cite>
-**本文引用的文件列表**
+**本文档引用的文件列表**
 - [README.md](file://README.md)
 - [instructions/maafw-golang-binding/核心概念/核心概念.md](file://instructions/maafw-golang-binding/核心概念/核心概念.md)
 - [instructions/maafw-golang-binding/API参考/框架初始化.md](file://instructions/maafw-golang-binding/API参考/框架初始化.md)
@@ -20,24 +20,29 @@
 - [instructions/maafw-golang-binding/核心概念/事件系统 (Event System).md](file://instructions/maafw-golang-binding/核心概念/事件系统 (Event System).md)
 - [instructions/maafw-golang-binding/核心概念/事件系统重构.md](file://instructions/maafw-golang-binding/核心概念/事件系统重构.md)
 - [instructions/maafw-golang-binding/核心概念/控制器 (Controller)/PlayCover控制器.md](file://instructions/maafw-golang-binding/核心概念/控制器 (Controller)/PlayCover控制器.md)
+- [instructions/maafw-golang-binding/核心概念/控制器 (Controller)/游戏pad控制器.md](file://instructions/maafw-golang-binding/核心概念/控制器 (Controller)/游戏pad控制器.md)
 - [instructions/maafw-golang-binding/高级功能/基于节点的流水线系统.md](file://instructions/maafw-golang-binding/高级功能/基于节点的流水线系统.md)
 - [controller.go](file://controller.go)
 - [internal/native/framework.go](file://internal/native/framework.go)
 - [event.go](file://event.go)
 - [LocalBridge/internal/mfw/controller_manager.go](file://LocalBridge/internal/mfw/controller_manager.go)
 - [LocalBridge/internal/mfw/types.go](file://LocalBridge/internal/mfw/types.go)
+- [instructions/maafw-guide/2.4-控制方式说明.md](file://instructions/maafw-guide/2.4-控制方式说明.md)
+- [instructions/maafw-golang-binding/API大全.md](file://instructions/maafw-golang-binding/API大全.md)
 </cite>
 
 ## 更新摘要
 **变更内容**
 - 新增 `PostRecognition` 和 `PostAction` 方法的详细说明
-- 扩展“任务生命周期”章节以涵盖直接提交识别与动作任务的功能
+- 扩展"任务生命周期"章节以涵盖直接提交识别与动作任务的功能
 - 更新架构总览序列图以反映新增方法
-- 增加新的组件详解小节“直接提交识别与动作任务”
+- 增加新的组件详解小节"直接提交识别与动作任务"
 - 更新类图以包含新增方法
-- **新增“事件系统重构”章节，详细说明事件系统从代码生成到手写适配器模式的重构**
-- **新增“PlayCover控制器”章节，介绍针对iOS设备上PlayCover应用的专用控制器**
-- **新增“基于节点的流水线系统”章节，阐述基于节点的声明式任务流架构**
+- **新增"事件系统重构"章节，详细说明事件系统从代码生成到手写适配器模式的重构**
+- **新增"PlayCover控制器"章节，介绍针对iOS设备上PlayCover应用的专用控制器**
+- **新增"游戏pad控制器"章节，详细介绍Windows平台虚拟游戏手柄控制器的完整功能**
+- **新增"基于节点的流水线系统"章节，阐述基于节点的声明式任务流架构**
+- **更新控制器章节，增加Gamepad控制器的详细技术规范和使用指南**
 
 ## 目录
 1. [引言](#引言)
@@ -52,7 +57,7 @@
 10. [附录](#附录)
 
 ## 引言
-本篇文档围绕 maa-framework-go 的核心概念与组件进行系统性阐述，目标是帮助开发者建立坚实的理论基础，理解 Tasker（任务调度中枢）、Resource（识别资源与流水线配置）、Controller（设备控制抽象，支持 ADB/Win32/自定义）、Context（任务执行上下文）、Event（事件回调系统）之间的协作关系与内部工作机制。文档同时结合代码库中的具体实现（如 NewTasker、PostTask、PostBundle 等），并通过图示展示组件间的数据流与依赖关系，并总结常见误用与最佳实践。**本次更新重点反映了事件系统重构、PlayCover控制器和基于节点的流水线系统等新功能。**
+本篇文档围绕 maa-framework-go 的核心概念与组件进行系统性阐述，目标是帮助开发者建立坚实的理论基础，理解 Tasker（任务调度中枢）、Resource（识别资源与流水线配置）、Controller（设备控制抽象，支持 ADB/Win32/PlayCover/Gamepad/自定义）、Context（任务执行上下文）、Event（事件回调系统）之间的协作关系与内部工作机制。文档同时结合代码库中的具体实现（如 NewTasker、PostTask、PostBundle 等），并通过图示展示组件间的数据流与依赖关系，并总结常见误用与最佳实践。**本次更新重点反映了事件系统重构、PlayCover控制器、游戏pad控制器和基于节点的流水线系统等新功能。**
 
 ## 项目结构
 该仓库采用按职责分层的组织方式：
@@ -115,7 +120,7 @@ ASS --> C
 ## 核心组件
 - Tasker：负责任务提交、状态查询、停止信号、事件回调注册、节点详情查询等，是任务执行的中枢。
 - Resource：负责资源加载、流水线覆盖、自定义识别/动作注册、事件回调注册等，承载识别与动作的配置与能力。
-- Controller：负责设备连接、截图、输入、应用启停、滚动等操作，抽象出 ADB/Win32/自定义控制器。
+- Controller：负责设备连接、截图、输入、应用启停、滚动等操作，抽象出 ADB/Win32/PlayCover/Gamepad/自定义控制器。
 - Context：提供在单次任务执行中运行识别/动作的能力，支持覆盖流水线、锚点、命中计数等上下文级操作。
 - Event：统一的事件回调代理与分发器，将底层事件映射到 Tasker/Resource/Controller/Context 的回调接口。
 - Job/TaskJob：封装异步作业的状态查询与等待逻辑，TaskJob 还可获取任务详情。
@@ -260,13 +265,13 @@ class Resource {
 
 ### Controller 组件
 - 职责
-  - 创建 ADB/Win32/自定义控制器实例
+  - 创建 ADB/Win32/PlayCover/Gamepad/自定义控制器实例
   - 设备连接、截图、点击、滑动、按键、输入文本、启动/停止应用、触摸/滚动等
   - 选项设置（如截图目标长边/短边、是否使用原始尺寸）
   - 缓存最近一次截图图像、获取 UUID
   - 注册/移除/清空事件回调（ControllerEventSink）
 - 关键方法与行为
-  - NewAdbController/NewWin32Controller/NewCustomController：三种构造方式
+  - NewAdbController/NewWin32Controller/NewPlayCoverController/NewGamepadController/NewCustomController：五种构造方式
   - PostConnect/PostClick/PostSwipe/PostInputText/PostStartApp/PostStopApp/PostTouchDown/PostTouchMove/PostTouchUp/PostKeyDown/PostKeyUp/PostScreencap/PostScroll：各类设备操作
   - SetScreenshotTargetLongSide/SetScreenshotTargetShortSide/SetScreenshotUseRawSize：截图尺寸相关选项
   - CacheImage/GetUUID：读取缓存图像与设备 UUID
@@ -280,6 +285,8 @@ class Controller {
 +handle uintptr
 +NewAdbController(...) *Controller
 +NewWin32Controller(...) *Controller
++NewPlayCoverController(address, uuid) *Controller
++NewGamepadController(hWnd, gamepadType, screencapMethod) *Controller
 +NewCustomController(ctrl) *Controller
 +Destroy() void
 +PostConnect() *Job
@@ -295,6 +302,7 @@ class Controller {
 +PostKeyUp(keycode) *Job
 +PostScreencap() *Job
 +PostScroll(dx,dy) *Job
++PostClickKey(keycode) *Job
 +SetScreenshotTargetLongSide(target) bool
 +SetScreenshotTargetShortSide(target) bool
 +SetScreenshotUseRawSize(enabled) bool
@@ -441,7 +449,7 @@ N-->>U : 返回TaskJob
 
 ### 工厂模式与门面模式的应用
 - 工厂模式
-  - Tasker/Resource/Controller 的构造函数分别负责创建不同类型的实例（NewTasker、NewResource、NewAdbController、NewWin32Controller、NewCustomController），体现了工厂模式的“创建型”特征
+  - Tasker/Resource/Controller 的构造函数分别负责创建不同类型的实例（NewTasker、NewResource、NewAdbController、NewWin32Controller、NewPlayCoverController、NewGamepadController、NewCustomController），体现了工厂模式的"创建型"特征
 - 门面模式
   - Context 对外提供 RunTask/RunRecognition/RunAction 等高层接口，隐藏了底层 Tasker 的细节，形成简洁易用的门面
   - Tasker/Resource/Controller 的多数方法也起到简化调用的作用，便于上层以统一方式使用
@@ -513,6 +521,209 @@ class Controller {
 
 **图示来源**
 - [instructions/maafw-golang-binding/核心概念/控制器 (Controller)/PlayCover控制器.md](file://instructions/maafw-golang-binding/核心概念/控制器 (Controller)/PlayCover控制器.md#L100-L133)
+
+### 游戏pad控制器
+**章节来源**
+- [instructions/maafw-golang-binding/核心概念/控制器 (Controller)/游戏pad控制器.md](file://instructions/maafw-golang-binding/核心概念/控制器 (Controller)/游戏pad控制器.md)
+- [LocalBridge/internal/mfw/controller_manager.go](file://LocalBridge/internal/mfw/controller_manager.go#L158-L211)
+- [instructions/maafw-guide/2.4-控制方式说明.md](file://instructions/maafw-guide/2.4-控制方式说明.md#L108-L165)
+- [instructions/maafw-golang-binding/API大全.md](file://instructions/maafw-golang-binding/API大全.md#L1069-L1080)
+
+游戏pad控制器是MaaFramework Go绑定中的重要组件，它提供了虚拟游戏pad控制器的功能，允许开发者在Windows平台上创建和控制虚拟的游戏手柄设备。该控制器支持Xbox 360和DualShock 4两种游戏pad类型，并且集成了屏幕截图功能。
+
+**核心特性**
+- 支持Xbox 360和DualShock 4两种游戏pad类型
+- 提供完整的按钮映射和触摸输入支持
+- 集成Win32屏幕截图功能
+- 异步操作支持（通过Job模式）
+- 事件回调机制
+- ViGEm驱动要求
+
+**前置要求**
+- 需要安装 ViGEm Bus Driver 才能使用此控制器
+
+**创建流程**
+```mermaid
+sequenceDiagram
+participant Client as 客户端代码
+participant Controller as Controller类
+participant Native as 原生框架
+participant Store as 控制器存储
+Client->>Controller : NewGamepadController(hWnd, gamepadType, screencapMethod)
+Controller->>Native : MaaGamepadControllerCreate(hWnd, gamepadType, screencapMethod)
+Native-->>Controller : 返回控制器句柄
+Controller->>Store : initControllerStore(handle)
+Store-->>Controller : 初始化存储映射
+Controller-->>Client : 返回Controller实例
+Note over Client,Store : 控制器初始化完成
+```
+
+**图表来源**
+- [instructions/maafw-golang-binding/核心概念/控制器 (Controller)/游戏pad控制器.md](file://instructions/maafw-golang-binding/核心概念/控制器 (Controller)/游戏pad控制器.md#L126-L141)
+
+**章节来源**
+- [instructions/maafw-golang-binding/核心概念/控制器 (Controller)/游戏pad控制器.md](file://instructions/maafw-golang-binding/核心概念/控制器 (Controller)/游戏pad控制器.md#L27-L474)
+
+**架构概览**
+游戏pad控制器采用分层架构设计，结合了Go语言的类型安全性和原生C库的高性能特性：
+
+```mermaid
+graph TB
+subgraph "应用层"
+A[用户应用程序]
+end
+subgraph "Go绑定层"
+B[Controller类]
+C[游戏pad常量定义]
+D[方法封装]
+end
+subgraph "接口层"
+E[事件回调接口]
+F[自定义控制器接口]
+end
+subgraph "原生层"
+G[原生MaaFramework]
+H[ViGEm驱动]
+I[Win32 API]
+end
+subgraph "存储层"
+J[控制器状态存储]
+K[事件回调映射]
+end
+A --> B
+B --> C
+B --> D
+B --> E
+B --> F
+D --> G
+F --> G
+G --> H
+G --> I
+B --> J
+B --> K
+```
+
+**图表来源**
+- [instructions/maafw-golang-binding/核心概念/控制器 (Controller)/游戏pad控制器.md](file://instructions/maafw-golang-binding/核心概念/控制器 (Controller)/游戏pad控制器.md#L152-L190)
+
+**游戏pad类型系统**
+控制器支持两种主要的游戏pad类型：
+
+```mermaid
+classDiagram
+class GamepadType {
+<<typedef>>
++MaaGamepadType_Xbox360 : 0
++MaaGamepadType_DualShock4 : 1
+}
+class Xbox360Controller {
++ButtonA : 0x1000
++ButtonB : 0x2000
++ButtonX : 0x4000
++ButtonY : 0x8000
++ButtonLB : 0x0100
++ButtonRB : 0x0200
++ButtonStart : 0x0010
++ButtonBack : 0x0020
++ButtonDpad : 方向键
++LeftThumb : 摇杆
++RightThumb : 摇杆
+}
+class DualShock4Controller {
++ButtonCross : 0x1000
++ButtonCircle : 0x2000
++ButtonSquare : 0x4000
++ButtonTriangle : 0x8000
++ButtonL1 : 0x0100
++ButtonR1 : 0x0200
++ButtonPS : 0x10000
++ButtonTouchpad : 0x20000
++ButtonOptions : 0x0010
++ButtonShare : 0x0020
+}
+GamepadType --> Xbox360Controller : "Xbox360类型"
+GamepadType --> DualShock4Controller : "DS4类型"
+```
+
+**图表来源**
+- [instructions/maafw-golang-binding/核心概念/控制器 (Controller)/游戏pad控制器.md](file://instructions/maafw-golang-binding/核心概念/控制器 (Controller)/游戏pad控制器.md#L310-L348)
+
+**依赖关系分析**
+游戏pad控制器的依赖关系展示了其在整个系统中的位置和作用：
+
+```mermaid
+graph TB
+subgraph "外部依赖"
+A[purego库]
+B[Vigem驱动]
+C[Win32 API]
+end
+subgraph "内部模块"
+D[controller.go]
+E[gamepad.go]
+F[win32.go]
+G[custom_controller.go]
+end
+subgraph "原生接口"
+H[framework.go]
+I[native.go]
+end
+subgraph "工具模块"
+J[buffer模块]
+K[store模块]
+L[rect模块]
+end
+D --> A
+D --> H
+D --> J
+D --> K
+E --> D
+F --> D
+G --> D
+H --> I
+J --> L
+D --> B
+D --> C
+```
+
+**图表来源**
+- [instructions/maafw-golang-binding/核心概念/控制器 (Controller)/游戏pad控制器.md](file://instructions/maafw-golang-binding/核心概念/控制器 (Controller)/游戏pad控制器.md#L358-L395)
+
+**关键依赖说明**
+1. **purego库**: 用于Go与原生C库的交互
+2. **ViGEm驱动**: 虚拟游戏pad设备驱动程序
+3. **Win32 API**: Windows平台的系统API调用
+4. **缓冲区管理**: 图像和字符串数据的内存管理
+5. **状态存储**: 控制器实例的状态持久化
+
+**性能考虑**
+游戏pad控制器在设计时考虑了多个性能优化方面：
+- 使用原子操作管理自定义控制器回调ID
+- 通过缓冲区池减少内存分配开销
+- 智能的资源清理机制避免内存泄漏
+- 所有控制器操作都支持异步执行
+- Job模式提供非阻塞的操作接口
+- 事件回调机制实现高效的响应式编程
+- 直接调用原生Win32 API减少中间层开销
+- ViGEm驱动的高效虚拟设备实现
+- 最小化的数据转换和格式适配
+
+**故障排除指南**
+常见问题及解决方案：
+- **ViGEm驱动问题**
+  - 问题：创建游戏pad控制器时失败
+  - 原因：ViGEm Bus Driver未正确安装
+  - 解决方案：下载并安装最新版本的ViGEm驱动，重启系统确保驱动正确加载，验证驱动状态：设备管理器中查看ViGEm设备
+
+- **屏幕截图功能异常**
+  - 问题：游戏pad控制器无法进行屏幕截图
+  - 原因：窗口句柄无效或Win32屏幕捕获方法不兼容
+  - 解决方案：确保传入有效的窗口句柄，尝试不同的Win32屏幕捕获方法，检查应用程序权限和UAC设置
+
+- **按钮映射错误**
+  - 问题：DS4按钮映射不符合预期
+  - 原因：按钮映射到Xbox等价物的限制
+  - 解决方案：使用ButtonCross/ButtonCircle等别名访问DS4按钮，对于特殊按钮(PS、Touchpad)，使用专用常量，检查目标应用程序对不同按钮类型的处理
 
 ### 基于节点的流水线系统
 **章节来源**
@@ -594,8 +805,10 @@ Job --> Controller
   - 识别与动作过程中大量使用图像缓冲，注意及时释放缓冲区，避免内存占用过高
 - 事件回调
   - 回调注册/注销需成对出现，避免回调表膨胀导致性能下降
-
-[本节为通用建议，不直接分析具体文件]
+- **游戏pad控制器性能优化**
+  - ViGEm驱动的高效虚拟设备实现
+  - 直接调用原生Win32 API减少中间层开销
+  - 最小化的数据转换和格式适配
 
 ## 故障排查指南
 - 初始化失败
@@ -610,17 +823,26 @@ Job --> Controller
 - 设备连接问题
   - 确认 PostConnect 成功，Connected() 返回真
   - 检查截图尺寸设置与缓存图像是否可用
+- **游戏pad控制器问题**
+  - 确认ViGEm驱动已正确安装
+  - 检查窗口句柄格式（十六进制字符串）是否正确
+  - 验证游戏pad类型参数（"xbox360"或"dualshock4"）
 
 **章节来源**
 - [instructions/maafw-golang-binding/核心概念/核心概念.md](file://instructions/maafw-golang-binding/核心概念/核心概念.md#L470-L490)
 
 ## 结论
-maa-framework-go 通过 Tasker、Resource、Controller、Context、Event 与 Job/TaskJob 的协同，构建了一个清晰、可扩展且高性能的自动化框架。Tasker 作为中枢协调任务执行，Resource 管理识别资源与流水线，Controller 抽象设备控制，Context 提供上下文级的执行能力，Event 以观察者模式实现异步通知，Job/TaskJob 则提供了统一的异步作业模型。工厂模式与门面模式的应用使得 API 更加简洁易用。**本次更新引入的事件系统重构、PlayCover控制器和基于节点的流水线系统，进一步增强了框架的可维护性、平台支持能力和任务编排的灵活性。** 遵循本文的最佳实践与排错建议，可有效提升开发效率与稳定性。
+maa-framework-go 通过 Tasker、Resource、Controller、Context、Event 与 Job/TaskJob 的协同，构建了一个清晰、可扩展且高性能的自动化框架。Tasker 作为中枢协调任务执行，Resource 管理识别资源与流水线，Controller 抽象设备控制，Context 提供上下文级的执行能力，Event 以观察者模式实现异步通知，Job/TaskJob 则提供了统一的异步作业模型。工厂模式与门面模式的应用使得 API 更加简洁易用。
+
+**本次更新引入的事件系统重构、PlayCover控制器、游戏pad控制器和基于节点的流水线系统，进一步增强了框架的可维护性、平台支持能力和任务编排的灵活性。** 特别是游戏pad控制器的加入，为Windows平台的虚拟手柄输入提供了完整而灵活的解决方案，支持ViGEm驱动和多种截图方法，满足了复杂自动化场景的需求。
+
+遵循本文的最佳实践与排错建议，可有效提升开发效率与稳定性。
 
 ## 附录
 - 快速开始示例展示了从初始化、设备连接、资源加载到任务执行的完整流程
 - 自定义动作与识别示例展示了如何扩展识别与动作能力
 - Agent 客户端/服务器示例展示了跨进程协作的工作流
+- **游戏pad控制器示例**展示了虚拟手柄输入和屏幕截图功能的完整使用流程
 
 **章节来源**
 - [instructions/maafw-golang-binding/示例与用例/快速开始示例.md](file://instructions/maafw-golang-binding/示例与用例/快速开始示例.md#L360-L369)
