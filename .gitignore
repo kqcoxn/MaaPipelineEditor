@@ -3,6 +3,7 @@ test.json
 /.qoder/quests
 /config
 /.nicegui
+nul
 
 # Logs
 logs

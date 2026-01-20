@@ -1,3 +1,41 @@
-build/bin
-node_modules
-frontend/dist
+# Wails 构建产物
+build/bin/*
+!build/bin/resources/
+build/bin/resources/*
+!build/bin/resources/.gitkeep
+!build/bin/resources/maafw/
+build/bin/resources/maafw/*
+!build/bin/resources/maafw/.gitkeep
+!build/bin/resources/resource/
+build/bin/resources/resource/*
+!build/bin/resources/resource/.gitkeep
+!build/bin/resources/resource/model/
+build/bin/resources/resource/model/*
+!build/bin/resources/resource/model/.gitkeep
+!build/bin/resources/resource/model/ocr/
+build/bin/resources/resource/model/ocr/*
+!build/bin/resources/resource/model/ocr/.gitkeep
+
+# Node.js
+node_modules/
+
+# 前端构建产物
+frontend/dist/*
+!frontend/dist/.gitkeep
+
+# Go
+*.test
+*.out
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# 日志
+*.log
+logs/

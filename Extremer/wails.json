@@ -1,0 +1,17 @@
+{
+    "version": "2",
+    "name": "MaaPipelineEditor",
+    "outputfilename": "MaaPipelineEditor",
+    "frontend:dir": "./frontend",
+    "frontend:install": "",
+    "frontend:build": "",
+    "assetdir": "./frontend/dist",
+    "build:dir": "./build",
+    "info": {
+        "companyName": "MaaXYZ",
+        "productName": "MaaPipelineEditor",
+        "productVersion": "0.17.0",
+        "copyright": "Copyright 2024 MaaXYZ",
+        "comments": "MAA Pipeline 可视化编辑器"
+    }
+}

@@ -87,8 +87,23 @@ jobs:
           sed -i 's/dev: true,/dev: false,/g' src/stores/configStore.ts
           echo "已修改configStore.ts中的dev配置为false"
 
-      - name: Build project
+      - name: Build project (stable)
         run: yarn build --mode stable
+
+      - name: Create stable archive
+        run: |
+          cd dist
+          zip -r ../MaaPipelineEditor-${{ github.ref_name }}-stable.zip .
+          cd ..
+
+      - name: Build project (extremer)
+        run: yarn build --mode extremer
+
+      - name: Upload extremer dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: extremer-dist
+          path: dist/
 
       - name: Build docs
         run: |
@@ -96,15 +111,6 @@ jobs:
           yarn install
           yarn build
           cd ..
-
-      - name: Create archives
-        run: |
-          # 打包主项目
-          cd dist
-          zip -r ../MaaPipelineEditor-${{ github.ref_name }}-stable.zip .
-          cd ..
-          
-          # 打包文档
           cd docsite/docs/.vitepress/dist
           zip -r ../../../../MaaPipelineEditor-${{ github.ref_name }}-docs.zip .
           cd ../../../..
@@ -117,8 +123,173 @@ jobs:
             MaaPipelineEditor-${{ github.ref_name }}-stable.zip
             MaaPipelineEditor-${{ github.ref_name }}-docs.zip
 
+  download-resources:
+    runs-on: ubuntu-latest
+    if: ${{ !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test') }}
+
+    steps:
+      - name: Download MaaFramework resources
+        run: |
+          # 下载各平台的 MaaFramework 资源
+          # 从 MaaFramework Release 获取最新版本
+          MFW_VERSION="v5.4.0"
+          MFW_BASE_URL="https://github.com/MaaXYZ/MaaFramework/releases/download/${MFW_VERSION}"
+          
+          mkdir -p resources
+          
+          # Windows x64
+          curl -L "${MFW_BASE_URL}/MAA-win-x86_64-${MFW_VERSION}.zip" -o mfw-windows.zip
+          mkdir -p resources/maafw-windows-amd64
+          unzip mfw-windows.zip -d resources/maafw-windows-amd64/ || true
+          rm mfw-windows.zip
+          
+          # Linux x64
+          curl -L "${MFW_BASE_URL}/MAA-linux-x86_64-${MFW_VERSION}.zip" -o mfw-linux.zip
+          mkdir -p resources/maafw-linux-amd64
+          unzip mfw-linux.zip -d resources/maafw-linux-amd64/ || true
+          rm mfw-linux.zip
+          
+          # macOS Intel
+          curl -L "${MFW_BASE_URL}/MAA-macos-x86_64-${MFW_VERSION}.zip" -o mfw-darwin-amd64.zip
+          mkdir -p resources/maafw-darwin-amd64
+          unzip mfw-darwin-amd64.zip -d resources/maafw-darwin-amd64/ || true
+          rm mfw-darwin-amd64.zip
+          
+          # macOS ARM
+          curl -L "${MFW_BASE_URL}/MAA-macos-aarch64-${MFW_VERSION}.zip" -o mfw-darwin-arm64.zip
+          mkdir -p resources/maafw-darwin-arm64
+          unzip mfw-darwin-arm64.zip -d resources/maafw-darwin-arm64/ || true
+          rm mfw-darwin-arm64.zip
+          
+          # 下载 OCR 资源
+          curl -L "https://download.maafw.xyz/MaaCommonAssets/OCR/ppocr_v5/ppocr_v5-zh_cn.zip" -o ocr-assets.zip
+          mkdir -p resources/resource
+          unzip ocr-assets.zip -d resources/resource/ || true
+          rm ocr-assets.zip
+
+      - name: Upload resources artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mfw-resources
+          path: resources/
+
+  build-extremer:
+    name: Build Extremer for ${{ matrix.platform }}
+    needs: [build-web, build-localbridge, download-resources]
+    runs-on: ${{ matrix.os }}
+    if: ${{ !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test') }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows-amd64
+            mpelb: mpelb-windows-amd64.exe
+            mpelb_target: mpelb.exe
+            mfw_dir: maafw-windows-amd64
+          - os: ubuntu-latest
+            platform: linux-amd64
+            mpelb: mpelb-linux-amd64
+            mpelb_target: mpelb
+            mfw_dir: maafw-linux-amd64
+          - os: macos-15-intel
+            platform: darwin-amd64
+            mpelb: mpelb-darwin-amd64
+            mpelb_target: mpelb
+            mfw_dir: maafw-darwin-amd64
+          - os: macos-latest
+            platform: darwin-arm64
+            mpelb: mpelb-darwin-arm64
+            mpelb_target: mpelb
+            mfw_dir: maafw-darwin-arm64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: false
+
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
+
+      - name: Download extremer dist
+        uses: actions/download-artifact@v4
+        with:
+          name: extremer-dist
+          path: Extremer/frontend/dist/
+
+      - name: Download LocalBridge artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.mpelb }}
+          path: Extremer/resources/
+
+      - name: Rename mpelb
+        run: mv Extremer/resources/${{ matrix.mpelb }} Extremer/resources/${{ matrix.mpelb_target }}
+        shell: bash
+
+      - name: Download MFW resources
+        uses: actions/download-artifact@v4
+        with:
+          name: mfw-resources
+          path: mfw-resources/
+
+      - name: Copy MFW resources
+        run: |
+          mkdir -p Extremer/resources/maafw
+          cp -r mfw-resources/${{ matrix.mfw_dir }}/* Extremer/resources/maafw/ || true
+          mkdir -p Extremer/resources/resource
+          cp -r mfw-resources/resource/* Extremer/resources/resource/ || true
+        shell: bash
+
+      - name: Set execute permission
+        if: matrix.os != 'windows-latest'
+        run: chmod +x Extremer/resources/${{ matrix.mpelb_target }}
+
+      - name: Build Extremer
+        working-directory: Extremer
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          wails build -ldflags="-X main.version=${VERSION}"
+        shell: bash
+
+      - name: Package Extremer (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          mkdir -p package/MaaPipelineEditor-${{ matrix.platform }}
+          cp Extremer/build/bin/MaaPipelineEditor.exe package/MaaPipelineEditor-${{ matrix.platform }}/
+          cp -r Extremer/resources package/MaaPipelineEditor-${{ matrix.platform }}/
+          cd package
+          Compress-Archive -Path MaaPipelineEditor-${{ matrix.platform }} -DestinationPath MaaPipelineEditor-${{ github.ref_name }}-extremer-${{ matrix.platform }}.zip
+        shell: pwsh
+
+      - name: Package Extremer (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          mkdir -p package/MaaPipelineEditor-${{ matrix.platform }}
+          cp Extremer/build/bin/MaaPipelineEditor package/MaaPipelineEditor-${{ matrix.platform }}/ || cp -r Extremer/build/bin/MaaPipelineEditor.app package/MaaPipelineEditor-${{ matrix.platform }}/ || true
+          cp -r Extremer/resources package/MaaPipelineEditor-${{ matrix.platform }}/
+          cd package
+          zip -r MaaPipelineEditor-${{ github.ref_name }}-extremer-${{ matrix.platform }}.zip MaaPipelineEditor-${{ matrix.platform }}
+        shell: bash
+
+      - name: Upload Extremer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: extremer-${{ matrix.platform }}
+          path: package/*.zip
+
   release:
-    needs: [build-web, build-localbridge]
+    needs: [build-web, build-localbridge, build-extremer]
     runs-on: ubuntu-latest
     # 跳过测试版本 tag
     if: ${{ !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test') }}
@@ -139,6 +310,13 @@ jobs:
         with:
           path: localbridge-artifacts
           pattern: mpelb-*
+          merge-multiple: true
+
+      - name: Download Extremer artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: extremer-artifacts
+          pattern: extremer-*
           merge-multiple: true
 
       - name: Generate Changelog
@@ -183,6 +361,7 @@ jobs:
             MaaPipelineEditor-${{ github.ref_name }}-stable.zip
             MaaPipelineEditor-${{ github.ref_name }}-docs.zip
             localbridge-artifacts/*
+            extremer-artifacts/*
           body_path: CHANGELOG.md
           generate_release_notes: false
           draft: false

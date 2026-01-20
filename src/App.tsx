@@ -44,6 +44,12 @@ import {
   clearImportParam,
 } from "./utils/shareHelper";
 import { parseUrlParams } from "./utils/urlHelper";
+import {
+  isWailsEnvironment,
+  onWailsEvent,
+  getWailsPort,
+  wailsLog,
+} from "./utils/wailsBridge";
 
 // 轮询提醒
 let isShowStarRemind = false;
@@ -203,15 +209,46 @@ function App() {
     // 统一解析 URL 参数
     const urlParams = parseUrlParams();
 
-    // 确定使用的端口：URL参数 > 配置端口 > 默认端口
-    const targetPort = urlParams.port || configuredPort;
-    if (targetPort) {
-      localServer.setPort(targetPort);
-    }
+    // Wails 环境下的连接逻辑
+    let cleanupWailsListener: (() => void) | null = null;
 
-    // 自动连接或者 URL 参数连接
-    if (wsAutoConnect || urlParams.linkLb) {
-      localServer.connect();
+    if (isWailsEnvironment()) {
+      console.log("[App] Running in Wails environment");
+      wailsLog("[Frontend] Wails environment detected");
+
+      // 监听后端发送的端口事件
+      cleanupWailsListener = onWailsEvent<number>("bridge:port", (port) => {
+        console.log("[App] Received bridge:port event:", port);
+        wailsLog(`[Frontend] Received port: ${port}`);
+        localServer.setPort(port);
+        localServer.connect();
+      });
+
+      // 尝试直接获取端口
+      getWailsPort().then((port) => {
+        if (
+          port &&
+          !localServer.isConnected() &&
+          !localServer.getIsConnecting()
+        ) {
+          console.log("[App] Got port from GetPort():", port);
+          wailsLog(`[Frontend] Got port from GetPort: ${port}`);
+          localServer.setPort(port);
+          localServer.connect();
+        }
+      });
+    } else {
+      // 非 Wails 环境：使用 URL 参数或配置
+      // 确定使用的端口：URL参数 > 配置端口 > 默认端口
+      const targetPort = urlParams.port || configuredPort;
+      if (targetPort) {
+        localServer.setPort(targetPort);
+      }
+
+      // 自动连接或者 URL 参数连接
+      if (wsAutoConnect || urlParams.linkLb) {
+        localServer.connect();
+      }
     }
 
     // Star定时提醒
@@ -231,6 +268,10 @@ function App() {
     return () => {
       document.removeEventListener("drop", handleFileDrop);
       document.removeEventListener("dragover", handleDragOver);
+      // 清理 Wails 事件监听
+      if (cleanupWailsListener) {
+        cleanupWailsListener();
+      }
     };
   }, [handleFileDrop, handleDragOver]);
 
