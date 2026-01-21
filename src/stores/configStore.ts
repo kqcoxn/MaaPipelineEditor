@@ -7,7 +7,7 @@ export const globalConfig = {
   version: `0.17.0`,
   betaIteration: 0,
   mfwVersion: "5.4",
-  protocolVersion: "0.4.1",
+  protocolVersion: "0.5.0",
 };
 
 if (globalConfig.dev) {

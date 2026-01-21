@@ -217,7 +217,8 @@ func (h *Handler) handleCreateFile(msg models.Message, conn *server.Connection) 
 	}
 
 	// 创建文件
-	if err := h.fileService.CreateFile(req.Directory, req.FileName, req.Content); err != nil {
+	filePath, err := h.fileService.CreateFile(req.Directory, req.FileName, req.Content)
+	if err != nil {
 		if lbErr, ok := err.(*errors.LBError); ok {
 			h.sendError(conn, lbErr)
 		} else {
@@ -229,7 +230,14 @@ func (h *Handler) handleCreateFile(msg models.Message, conn *server.Connection) 
 	// 重新推送文件列表
 	h.pushFileList()
 
-	return nil
+	// 返回确认
+	return &models.Message{
+		Path: "/ack/create_file",
+		Data: models.CreateFileAckData{
+			FilePath: filePath,
+			Status:   "ok",
+		},
+	}
 }
 
 // 处理刷新文件列表请求

@@ -492,10 +492,11 @@ export const useFileStore = create<FileState>()((set) => ({
         });
 
         if (success) {
-          // 保存配置文件路径
+          // 更新文件路径和配置文件路径
           set((state) => {
             const config = {
               ...state.currentFile.config,
+              filePath: targetFilePath,
               separatedConfigPath: configPath,
               lastSyncTime: Date.now(),
             };
@@ -513,10 +514,11 @@ export const useFileStore = create<FileState>()((set) => ({
         });
 
         if (success) {
-          // 更新同步时间
+          // 更新文件路径和同步时间
           set((state) => {
             const config = {
               ...state.currentFile.config,
+              filePath: targetFilePath,
               lastSyncTime: Date.now(),
             };
             state.currentFile.config = config;

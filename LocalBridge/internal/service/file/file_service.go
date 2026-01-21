@@ -149,15 +149,15 @@ func (s *Service) SaveFile(filePath string, content interface{}) error {
 }
 
 // 创建新文件
-func (s *Service) CreateFile(directory, fileName string, content interface{}) error {
+func (s *Service) CreateFile(directory, fileName string, content interface{}) (string, error) {
 	// 验证目录路径安全性
 	if err := s.validatePath(directory); err != nil {
-		return err
+		return "", err
 	}
 
 	// 验证文件名
 	if strings.ContainsAny(fileName, `/\:*?"<>|`) {
-		return errors.NewInvalidRequestError("文件名包含非法字符")
+		return "", errors.NewInvalidRequestError("文件名包含非法字符")
 	}
 
 	// 构造完整路径
@@ -165,7 +165,7 @@ func (s *Service) CreateFile(directory, fileName string, content interface{}) er
 
 	// 检查文件是否已存在
 	if _, err := os.Stat(filePath); err == nil {
-		return errors.NewFileNameConflictError(filePath)
+		return "", errors.NewFileNameConflictError(filePath)
 	}
 
 	// 序列化初始内容
@@ -174,7 +174,7 @@ func (s *Service) CreateFile(directory, fileName string, content interface{}) er
 	if content != nil {
 		data, err = json.MarshalIndent(content, "", "  ")
 		if err != nil {
-			return errors.NewInvalidJSONError(err)
+			return "", errors.NewInvalidJSONError(err)
 		}
 	} else {
 		// 默认空对象
@@ -183,7 +183,7 @@ func (s *Service) CreateFile(directory, fileName string, content interface{}) er
 
 	// 创建文件
 	if err := os.WriteFile(filePath, data, 0644); err != nil {
-		return errors.NewFileWriteError(filePath, err)
+		return "", errors.NewFileWriteError(filePath, err)
 	}
 
 	logger.Info("FileService", "文件已创建: %s", filePath)
@@ -195,7 +195,7 @@ func (s *Service) CreateFile(directory, fileName string, content interface{}) er
 		s.mu.Unlock()
 	}
 
-	return nil
+	return filePath, nil
 }
 
 // 处理文件变化事件

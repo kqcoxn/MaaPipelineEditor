@@ -47,6 +47,9 @@ export class FileProtocol extends BaseProtocol {
     this.wsClient.registerRoute("/ack/save_separated", (data) =>
       this.handleSaveSeparatedAck(data)
     );
+    this.wsClient.registerRoute("/ack/create_file", (data) =>
+      this.handleCreateFileAck(data)
+    );
   }
 
   protected handleMessage(path: string, data: any): void {
@@ -191,6 +194,16 @@ export class FileProtocol extends BaseProtocol {
         const fileName = file_path.split(/[\/\\]/).pop() || file_path;
         message.success(`文件已保存: ${fileName}`);
 
+        // 更新文件路径（如果当前文件路径未设置或不匹配）
+        const fileStore = useFileStore.getState();
+        const currentFilePath = fileStore.currentFile.config.filePath;
+        if (!currentFilePath || currentFilePath !== file_path) {
+          fileStore.setFileConfig("filePath", file_path);
+        }
+
+        // 更新同步时间
+        fileStore.setFileConfig("lastSyncTime", Date.now());
+
         // 忽略刚保存文件的变更通知
         this.recentlySavedFiles.add(file_path);
         // 清除记录
@@ -219,6 +232,22 @@ export class FileProtocol extends BaseProtocol {
         const configName = config_path.split(/[\/\\]/).pop() || config_path;
         message.success(`文件已保存: ${pipelineName} + ${configName}`);
 
+        // 更新文件路径（如果当前文件路径未设置或不匹配）
+        const fileStore = useFileStore.getState();
+        const currentFilePath = fileStore.currentFile.config.filePath;
+        const currentConfigPath =
+          fileStore.currentFile.config.separatedConfigPath;
+
+        if (!currentFilePath || currentFilePath !== pipeline_path) {
+          fileStore.setFileConfig("filePath", pipeline_path);
+        }
+        if (!currentConfigPath || currentConfigPath !== config_path) {
+          fileStore.setFileConfig("separatedConfigPath", config_path);
+        }
+
+        // 更新同步时间
+        fileStore.setFileConfig("lastSyncTime", Date.now());
+
         // 忽略刚保存文件的变更通知
         this.recentlySavedFiles.add(pipeline_path);
         this.recentlySavedFiles.add(config_path);
@@ -235,6 +264,49 @@ export class FileProtocol extends BaseProtocol {
         "[FileProtocol] Failed to handle save separated ack:",
         error
       );
+    }
+  }
+
+  /**
+   * 处理创建文件成功确认
+   * 路由: /ack/create_file
+   */
+  private handleCreateFileAck(data: any): void {
+    try {
+      const { file_path, status } = data;
+
+      if (status === "ok") {
+        const fileName = file_path.split(/[\/\\]/).pop() || file_path;
+        message.success(`文件已创建: ${fileName}`);
+
+        // 更新当前文件的路径配置
+        const fileStore = useFileStore.getState();
+        const configStore = useConfigStore.getState();
+
+        // 更新文件路径
+        fileStore.setFileConfig("filePath", file_path);
+
+        // 如果是分离模式，更新配置文件路径
+        if (configStore.configs.configHandlingMode === "separated") {
+          // 生成配置文件路径
+          const lastSep = Math.max(
+            file_path.lastIndexOf("/"),
+            file_path.lastIndexOf("\\")
+          );
+          const directory = file_path.substring(0, lastSep + 1);
+          const fileName = file_path.substring(lastSep + 1);
+          const baseName = fileName.replace(/\.(json|jsonc)$/i, "");
+          const configPath = `${directory}.${baseName}.mpe.json`;
+          fileStore.setFileConfig("separatedConfigPath", configPath);
+        }
+
+        // 更新同步时间
+        fileStore.setFileConfig("lastSyncTime", Date.now());
+      } else {
+        message.error("文件创建失败");
+      }
+    } catch (error) {
+      console.error("[FileProtocol] Failed to handle create file ack:", error);
     }
   }
 

@@ -236,11 +236,6 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
       // 规范化文件名
       const normalizedFileName = normalizeFileName(fileName);
 
-      // 构建完整文件路径
-      const separator =
-        directory.endsWith("/") || directory.endsWith("\\") ? "" : "/";
-      const fullFilePath = `${directory}${separator}${normalizedFileName}`;
-
       // 获取当前编辑器的内容
       const content = flowToPipeline();
 
@@ -252,9 +247,6 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
       );
 
       if (success) {
-        // 更新 filePath
-        setFileConfig("filePath", fullFilePath);
-
         message.success("文件创建请求已发送");
         onCancel();
         form.resetFields();

@@ -52,7 +52,10 @@ export const updateLogs: UpdateLogItem[] = [
     type: "major",
     updates: {
       features: ["🦕 本地一体编辑器 Extremer！"],
-      perfs: ["调试 on_error 不再截图（现有截图需自行删除）"],
+      perfs: [
+        "调试 on_error 不再截图（现有截图需自行删除）",
+        "新建文件后自动同步文件路径",
+      ],
       fixes: [],
     },
   },

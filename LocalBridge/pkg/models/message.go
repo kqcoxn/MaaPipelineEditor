@@ -74,6 +74,12 @@ type SaveFileAckData struct {
 	Status   string `json:"status"`    // 状态: "ok"
 }
 
+// 创建文件确认数据
+type CreateFileAckData struct {
+	FilePath string `json:"file_path"` // 创建的文件绝对路径
+	Status   string `json:"status"`    // 状态: "ok"
+}
+
 // 分离保存文件确认数据
 type SaveSeparatedAckData struct {
 	PipelinePath string `json:"pipeline_path"` // Pipeline 文件路径
