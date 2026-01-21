@@ -282,6 +282,7 @@ jobs:
           mkdir -p package/MaaPipelineExtremer-${{ matrix.platform }}
           cp Extremer/build/bin/MaaPipelineEditor.exe package/MaaPipelineExtremer-${{ matrix.platform }}/
           cp -r Extremer/resources package/MaaPipelineExtremer-${{ matrix.platform }}/
+          cp -r Extremer/build/bin/config package/MaaPipelineExtremer-${{ matrix.platform }}/
           cd package
           Compress-Archive -Path MaaPipelineExtremer-${{ matrix.platform }} -DestinationPath MaaPipelineExtremer-${{ matrix.platform }}-${{ github.ref_name }}.zip
         shell: pwsh
@@ -292,6 +293,7 @@ jobs:
           mkdir -p package/MaaPipelineExtremer-${{ matrix.platform }}
           cp Extremer/build/bin/MaaPipelineEditor package/MaaPipelineExtremer-${{ matrix.platform }}/ || cp -r Extremer/build/bin/MaaPipelineEditor.app package/MaaPipelineExtremer-${{ matrix.platform }}/ || true
           cp -r Extremer/resources package/MaaPipelineExtremer-${{ matrix.platform }}/
+          cp -r Extremer/build/bin/config package/MaaPipelineExtremer-${{ matrix.platform }}/
           cd package
           zip -r MaaPipelineExtremer-${{ matrix.platform }}-${{ github.ref_name }}.zip MaaPipelineExtremer-${{ matrix.platform }}
         shell: bash

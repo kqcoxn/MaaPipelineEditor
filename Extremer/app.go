@@ -86,7 +86,8 @@ func (a *App) loadConfig() error {
 	// 读取配置文件
 	data, err := os.ReadFile(configPath)
 	if err != nil {
-		return fmt.Errorf("读取配置文件失败: %w", err)
+		// 配置文件不存在时，使用内置默认配置
+		return a.useDefaultConfig()
 	}
 
 	// 解析配置
@@ -113,6 +114,62 @@ func (a *App) loadConfig() error {
 	if a.config.MaaFW.ResourceDir == "" && config.Extremer.DefaultResourcePath != "" {
 		a.config.MaaFW.ResourceDir = filepath.Join(a.exeDir, config.Extremer.DefaultResourcePath)
 	}
+
+	return nil
+}
+
+// useDefaultConfig 使用内置默认配置
+func (a *App) useDefaultConfig() error {
+	// 创建默认配置
+	config := ClientConfig{
+		Server: struct {
+			Port int    `json:"port"`
+			Host string `json:"host"`
+		}{
+			Port: 9066,
+			Host: "localhost",
+		},
+		File: struct {
+			Exclude    []string `json:"exclude"`
+			Extensions []string `json:"extensions"`
+		}{
+			Exclude:    []string{"node_modules", ".git", "dist", "build"},
+			Extensions: []string{".json", ".jsonc"},
+		},
+		Log: struct {
+			Level        string `json:"level"`
+			PushToClient bool   `json:"push_to_client"`
+		}{
+			Level:        "INFO",
+			PushToClient: true,
+		},
+		MaaFW: struct {
+			Enabled     bool   `json:"enabled"`
+			LibDir      string `json:"lib_dir"`
+			ResourceDir string `json:"resource_dir"`
+		}{
+			Enabled:     true,
+			LibDir:      "",
+			ResourceDir: "",
+		},
+		Extremer: ExstremerConfig{
+			MPELBPath:           "resources/mpelb.exe",
+			DefaultMFWPath:      "resources/maafw/bin",
+			DefaultResourcePath: "resources/resource",
+		},
+	}
+
+	// 处理默认路径
+	if runtime.GOOS != "windows" {
+		config.Extremer.MPELBPath = "resources/mpelb"
+	}
+
+	a.config = &config
+	a.configPath = "" // 标记为使用默认配置
+
+	// 设置默认路径
+	a.config.MaaFW.LibDir = filepath.Join(a.exeDir, config.Extremer.DefaultMFWPath)
+	a.config.MaaFW.ResourceDir = filepath.Join(a.exeDir, config.Extremer.DefaultResourcePath)
 
 	return nil
 }
@@ -145,10 +202,14 @@ func (a *App) startup(ctx context.Context) {
 
 	// 加载配置文件
 	if err := a.loadConfig(); err != nil {
-		wailsRuntime.LogError(ctx, fmt.Sprintf("加载配置文件失败: %v", err))
-		return
+		wailsRuntime.LogError(ctx, fmt.Sprintf("加载配置文件失败: %v，将使用内置默认配置", err))
 	}
-	wailsRuntime.LogInfo(ctx, fmt.Sprintf("配置文件已加载: %s", a.configPath))
+
+	if a.configPath != "" {
+		wailsRuntime.LogInfo(ctx, fmt.Sprintf("配置文件已加载: %s", a.configPath))
+	} else {
+		wailsRuntime.LogWarning(ctx, "使用内置默认配置")
+	}
 
 	// 设置工作目录（用户文档目录下的 MaaPipeline）
 	homeDir, err := os.UserHomeDir()
