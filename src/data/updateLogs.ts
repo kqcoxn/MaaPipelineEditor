@@ -59,6 +59,7 @@ export const updateLogs: UpdateLogItem[] = [
       perfs: [
         "调试 on_error 不再截图（现有截图需自行删除）",
         "新建文件后自动同步文件路径",
+        "优化搜索模块布局",
       ],
       fixes: [],
     },
