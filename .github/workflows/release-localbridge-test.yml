@@ -124,9 +124,9 @@ jobs:
 
       - name: Create archives
         run: |
-          # 打包主项目
+          # 打包主项目,排除不需要的根目录文件
           cd dist
-          zip -r ../MaaPipelineEditor-${{ steps.version.outputs.tag }}-stable.zip .
+          zip -r ../MaaPipelineEditor-${{ steps.version.outputs.tag }}-stable.zip . -x "index.html" "*.ico" "*.png"
           cd ..
           
           # 打包文档

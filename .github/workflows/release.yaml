@@ -93,7 +93,8 @@ jobs:
       - name: Create stable archive
         run: |
           cd dist
-          zip -r ../MaaPipelineEditor-${{ github.ref_name }}-stable.zip .
+          # 排除不需要的根目录文件
+          zip -r ../MaaPipelineEditor-${{ github.ref_name }}-stable.zip . -x "index.html" "*.ico" "*.png"
           cd ..
 
       - name: Build project (extremer)
@@ -269,21 +270,21 @@ jobs:
       - name: Package Extremer (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          mkdir -p package/MaaPipelineEditor-${{ matrix.platform }}
-          cp Extremer/build/bin/MaaPipelineEditor.exe package/MaaPipelineEditor-${{ matrix.platform }}/
-          cp -r Extremer/resources package/MaaPipelineEditor-${{ matrix.platform }}/
+          mkdir -p package/MaaPipelineExtremer-${{ matrix.platform }}
+          cp Extremer/build/bin/MaaPipelineEditor.exe package/MaaPipelineExtremer-${{ matrix.platform }}/
+          cp -r Extremer/resources package/MaaPipelineExtremer-${{ matrix.platform }}/
           cd package
-          Compress-Archive -Path MaaPipelineEditor-${{ matrix.platform }} -DestinationPath MaaPipelineEditor-${{ github.ref_name }}-extremer-${{ matrix.platform }}.zip
+          Compress-Archive -Path MaaPipelineExtremer-${{ matrix.platform }} -DestinationPath MaaPipelineExtremer-${{ matrix.platform }}-${{ github.ref_name }}.zip
         shell: pwsh
 
       - name: Package Extremer (Unix)
         if: matrix.os != 'windows-latest'
         run: |
-          mkdir -p package/MaaPipelineEditor-${{ matrix.platform }}
-          cp Extremer/build/bin/MaaPipelineEditor package/MaaPipelineEditor-${{ matrix.platform }}/ || cp -r Extremer/build/bin/MaaPipelineEditor.app package/MaaPipelineEditor-${{ matrix.platform }}/ || true
-          cp -r Extremer/resources package/MaaPipelineEditor-${{ matrix.platform }}/
+          mkdir -p package/MaaPipelineExtremer-${{ matrix.platform }}
+          cp Extremer/build/bin/MaaPipelineEditor package/MaaPipelineExtremer-${{ matrix.platform }}/ || cp -r Extremer/build/bin/MaaPipelineEditor.app package/MaaPipelineExtremer-${{ matrix.platform }}/ || true
+          cp -r Extremer/resources package/MaaPipelineExtremer-${{ matrix.platform }}/
           cd package
-          zip -r MaaPipelineEditor-${{ github.ref_name }}-extremer-${{ matrix.platform }}.zip MaaPipelineEditor-${{ matrix.platform }}
+          zip -r MaaPipelineExtremer-${{ matrix.platform }}-${{ github.ref_name }}.zip MaaPipelineExtremer-${{ matrix.platform }}
         shell: bash
 
       - name: Upload Extremer artifact
