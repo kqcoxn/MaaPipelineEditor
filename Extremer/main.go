@@ -18,7 +18,7 @@ var icon []byte
 //go:embed all:frontend/dist
 var assets embed.FS
 
-var version = "0.17.0"
+var version = "1.0.0"
 
 func main() {
 	app := NewApp()

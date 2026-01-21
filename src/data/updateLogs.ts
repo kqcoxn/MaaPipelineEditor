@@ -40,14 +40,15 @@ export const pinnedNotice: PinnedNotice = {
   title: "置顶公告",
   type: "info",
   content: [
+    "**第一次使用？看看** [快速上手](https://mpe.codax.site/docs/guide/start/quick-start.html)",
     "**正式版 LocalBridge🌉 已上线**！目前已全面支持**本地文档管理**、**字段快捷填充**（OCR、图片裁剪等）与**流程化调试**功能，**仅需一行指令即可下载安装**，我们十分推荐您尝试，详情可查阅 [本地服务文档](https://mpe.codax.site/docs/guide/server/deploy.html)",
-    "**本地一体编辑器 MaaPieplineExtremer🦕 现已上线！**自带全套运行库，本地服务自启自连，欢迎选用！",
+    "**本地一体编辑器 MaaPieplineExtremer🦕 现已上线！**自带全套运行库，本地服务自启自连，欢迎选用！详情可查阅 [本地一体包文档](https://mpe.codax.site/docs/guide/extremer/deploy.html)",
   ],
 };
 
 export const updateLogs: UpdateLogItem[] = [
   {
-    version: "0.17.0",
+    version: "1.0.0",
     date: "2026-1-21",
     type: "major",
     updates: {
