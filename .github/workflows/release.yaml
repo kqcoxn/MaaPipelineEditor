@@ -247,7 +247,10 @@ jobs:
       - name: Copy MFW resources
         run: |
           mkdir -p Extremer/resources/maafw
-          cp -r mfw-resources/${{ matrix.mfw_dir }}/* Extremer/resources/maafw/ || true
+          # 只复制 bin 文件夹以节省体积
+          if [ -d "mfw-resources/${{ matrix.mfw_dir }}/bin" ]; then
+            cp -r mfw-resources/${{ matrix.mfw_dir }}/bin Extremer/resources/maafw/ || true
+          fi
           mkdir -p Extremer/resources/resource
           cp -r mfw-resources/resource/* Extremer/resources/resource/ || true
         shell: bash
