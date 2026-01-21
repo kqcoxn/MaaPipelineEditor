@@ -164,8 +164,8 @@ jobs:
           
           # 下载 OCR 资源
           curl -L "https://download.maafw.xyz/MaaCommonAssets/OCR/ppocr_v5/ppocr_v5-zh_cn.zip" -o ocr-assets.zip
-          mkdir -p resources/resource
-          unzip ocr-assets.zip -d resources/resource/ || true
+          mkdir -p resources/resource/base/model/ocr
+          unzip ocr-assets.zip -d resources/resource/model/ocr/ || true
           rm ocr-assets.zip
 
       - name: Upload resources artifact
