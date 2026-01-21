@@ -108,6 +108,17 @@ var setResourceDirCmd = &cobra.Command{
 	Run:  setResourceDir,
 }
 
+var openLogDirCmd = &cobra.Command{
+	Use:   "open-log",
+	Short: "打开后端日志文件夹",
+	Long:  `使用系统文件管理器打开后端日志文件夹`,
+	Run:   openLogDir,
+	PreRun: func(cmd *cobra.Command, args []string) {
+		paths.SetPortableMode(portableMode)
+		paths.Init()
+	},
+}
+
 var infoCmd = &cobra.Command{
 	Use:   "info",
 	Short: "显示路径信息",
@@ -139,6 +150,7 @@ func init() {
 	configCmd.AddCommand(configOpenCmd)
 	configCmd.AddCommand(setLibDirCmd)
 	configCmd.AddCommand(setResourceDirCmd)
+	configCmd.AddCommand(openLogDirCmd)
 
 	configCmd.Flags().StringVar(&configPath, "config", "", "配置文件路径")
 	configCmd.PersistentFlags().BoolVar(&portableMode, "portable", false, "便携模式")
@@ -503,6 +515,62 @@ func promptForPath(title, hint, currentValue string) string {
 		return currentValue
 	}
 	return input
+}
+
+// 打开后端日志文件夹
+func openLogDir(cmd *cobra.Command, args []string) {
+	// 加载配置
+	cfg, err := config.Load(configPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "加载配置失败: %v\n", err)
+		os.Exit(1)
+	}
+
+	// 获取后端日志目录
+	var logDir string
+	if cfg != nil && cfg.Log.Dir != "" {
+		logDir = cfg.Log.Dir
+	} else {
+		// 使用默认日志目录
+		logDir = paths.GetLogDir()
+	}
+
+	// 转换为绝对路径
+	absPath, err := filepath.Abs(logDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "错误: 无法获取日志目录的绝对路径: %v\n", err)
+		os.Exit(1)
+	}
+
+	// 检查目录是否存在
+	if _, err := os.Stat(absPath); os.IsNotExist(err) {
+		fmt.Fprintf(os.Stderr, "错误: 日志目录不存在: %s\n", absPath)
+		os.Exit(1)
+	}
+
+	fmt.Printf("正在打开日志文件夹: %s\n", absPath)
+
+	// 根据不同操作系统使用不同的命令打开目录
+	var command *exec.Cmd
+	switch runtime.GOOS {
+	case "windows":
+		command = exec.Command("explorer", absPath)
+	case "darwin":
+		command = exec.Command("open", absPath)
+	case "linux":
+		command = exec.Command("xdg-open", absPath)
+	default:
+		fmt.Fprintf(os.Stderr, "错误: 不支持的操作系统: %s\n", runtime.GOOS)
+		os.Exit(1)
+	}
+
+	// 执行命令
+	if err := command.Start(); err != nil {
+		fmt.Fprintf(os.Stderr, "错误: 打开日志文件夹失败: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("✅ 日志文件夹已在文件管理器中打开")
 }
 
 // 检查并提示 MaaFramework 配置
