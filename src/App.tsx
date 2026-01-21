@@ -34,6 +34,7 @@ import { LocalFileListPanel } from "./components/panels/main/LocalFileListPanel"
 import ErrorPanel from "./components/panels/main/ErrorPanel";
 import RecognitionHistoryPanel from "./components/panels/main/RecognitionHistoryPanel";
 import ToolbarPanel from "./components/panels/main/ToolbarPanel";
+import { LoggerPanel } from "./components/panels/tools/LoggerPanel";
 import { pipelineToFlow } from "./core/parser";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import {
@@ -301,6 +302,7 @@ function App() {
               {debugMode && <RecognitionHistoryPanel />}
               <ToolPanel.Layout />
               <ErrorPanel />
+              <LoggerPanel />
             </div>
           </Content>
         </Layout>

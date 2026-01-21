@@ -203,7 +203,7 @@ func GetDefaultConfigContent() []byte {
   },
   "log": {
     "level": "INFO",
-    "push_to_client": false
+    "push_to_client": true
   },
   "maafw": {
     "enabled": false,

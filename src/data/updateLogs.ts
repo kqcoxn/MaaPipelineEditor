@@ -54,6 +54,7 @@ export const updateLogs: UpdateLogItem[] = [
       features: [
         "🦕 本地一体编辑器 Extremer！",
         "📇 LB 新增打开日志文件夹命令",
+        "📜 前端新增日志窗口，可以快捷查看后端日志",
       ],
       perfs: [
         "调试 on_error 不再截图（现有截图需自行删除）",

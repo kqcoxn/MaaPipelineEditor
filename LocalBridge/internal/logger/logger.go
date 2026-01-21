@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -22,6 +23,21 @@ var Logger *logrus.Logger
 type LogPushFunc func(level, module, message string)
 
 var pushFunc LogPushFunc
+
+// LogEntry 日志条目
+type LogEntry struct {
+	Level     string
+	Module    string
+	Message   string
+	Timestamp time.Time
+}
+
+// 日志缓存
+var (
+	logBuffer     []LogEntry
+	logBufferMu   sync.RWMutex
+	maxBufferSize = 100
+)
 
 // 初始化日志系统
 func Init(logLevel string, logDir string, pushToClient bool) error {
@@ -88,6 +104,35 @@ func SetPushFunc(fn LogPushFunc) {
 	pushFunc = fn
 }
 
+// GetHistoryLogs 获取历史日志
+func GetHistoryLogs() []LogEntry {
+	logBufferMu.RLock()
+	defer logBufferMu.RUnlock()
+	// 返回副本
+	result := make([]LogEntry, len(logBuffer))
+	copy(result, logBuffer)
+	return result
+}
+
+// addToBuffer 添加日志到缓存
+func addToBuffer(level, module, message string) {
+	logBufferMu.Lock()
+	defer logBufferMu.Unlock()
+
+	entry := LogEntry{
+		Level:     level,
+		Module:    module,
+		Message:   message,
+		Timestamp: time.Now(),
+	}
+
+	logBuffer = append(logBuffer, entry)
+	// 保持缓冲区大小
+	if len(logBuffer) > maxBufferSize {
+		logBuffer = logBuffer[len(logBuffer)-maxBufferSize:]
+	}
+}
+
 // 推送日志钩子
 type PushHook struct{}
 
@@ -100,12 +145,18 @@ func (hook *PushHook) Levels() []logrus.Level {
 }
 
 func (hook *PushHook) Fire(entry *logrus.Entry) error {
+	module := "System"
+	if m, ok := entry.Data["module"].(string); ok {
+		module = m
+	}
+	level := entry.Level.String()
+
+	// 添加到缓存
+	addToBuffer(level, module, entry.Message)
+
+	// 推送到客户端
 	if pushFunc != nil {
-		module := "System"
-		if m, ok := entry.Data["module"].(string); ok {
-			module = m
-		}
-		pushFunc(entry.Level.String(), module, entry.Message)
+		pushFunc(level, module, entry.Message)
 	}
 	return nil
 }

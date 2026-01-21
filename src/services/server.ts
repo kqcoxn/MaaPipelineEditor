@@ -12,6 +12,7 @@ import { ErrorProtocol } from "./protocols/ErrorProtocol";
 import { ConfigProtocol } from "./protocols/ConfigProtocol";
 import { DebugProtocol } from "./protocols/DebugProtocol";
 import { ResourceProtocol } from "./protocols/ResourceProtocol";
+import { LoggerProtocol } from "./protocols/LoggerProtocol";
 import { globalConfig } from "../stores/configStore";
 
 const PROTOCOL_VERSION = globalConfig.protocolVersion;
@@ -339,6 +340,7 @@ export const errorProtocol = new ErrorProtocol();
 export const configProtocol = new ConfigProtocol();
 export const debugProtocol = new DebugProtocol();
 export const resourceProtocol = new ResourceProtocol();
+export const loggerProtocol = new LoggerProtocol();
 
 /**
  * 初始化 WebSocket 连接和所有响应路由
@@ -362,6 +364,9 @@ export function initializeWebSocket() {
 
   // 注册 ResourceProtocol
   resourceProtocol.register(localServer);
+
+  // 注册 LoggerProtocol
+  loggerProtocol.register(localServer);
 
   // 监听连接成功事件，确保协议注册
   localServer.onStatus((connected) => {});

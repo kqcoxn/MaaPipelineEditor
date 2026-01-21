@@ -317,7 +317,7 @@ function MainFlow() {
         elevateNodesOnSelect={true}
       >
         <Background bgColor={backgroundColor} />
-        <Controls orientation={"horizontal"} />
+        <Controls orientation="vertical" />
         <InstanceMonitor />
         <ViewportChangeMonitor />
         <KeyListener targetRef={selfElem} />

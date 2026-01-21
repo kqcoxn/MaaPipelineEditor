@@ -122,8 +122,8 @@ func (s *WebSocketServer) run() {
 
 			logger.Info("WebSocket", "客户端已连接: %s", conn.ID)
 
-			// 发布连接建立事件
-			s.eventBus.Publish(eventbus.EventConnectionEstablished, conn.ID)
+			// 发布连接建立事件，传递 Connection 对象
+			s.eventBus.Publish(eventbus.EventConnectionEstablished, conn)
 
 		case conn := <-s.unregister:
 			s.mu.Lock()

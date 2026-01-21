@@ -30,6 +30,7 @@ import (
 	fileService "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/service/file"
 	resourceService "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/service/resource"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/utils"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/pkg/models"
 	"github.com/spf13/cobra"
 )
 
@@ -278,6 +279,40 @@ func runServer(cmd *cobra.Command, args []string) {
 
 	// 创建 WebSocket 服务器
 	wsServer := server.NewWebSocketServer(cfg.Server.Host, cfg.Server.Port, eventBus)
+
+	// 设置日志推送函数
+	logger.SetPushFunc(func(level, module, message string) {
+		wsServer.Broadcast(models.Message{
+			Path: "/lte/logger",
+			Data: models.LogData{
+				Level:     level,
+				Module:    module,
+				Message:   message,
+				Timestamp: time.Now().Format(time.RFC3339),
+			},
+		})
+	})
+
+	// 订阅连接建立事件，推送历史日志
+	eventBus.Subscribe(eventbus.EventConnectionEstablished, func(event eventbus.Event) {
+		conn, ok := event.Data.(*server.Connection)
+		if !ok {
+			return
+		}
+		// 获取历史日志并推送
+		historyLogs := logger.GetHistoryLogs()
+		for _, log := range historyLogs {
+			conn.Send(models.Message{
+				Path: "/lte/logger",
+				Data: models.LogData{
+					Level:     log.Level,
+					Module:    log.Module,
+					Message:   log.Message,
+					Timestamp: log.Timestamp.Format(time.RFC3339),
+				},
+			})
+		}
+	})
 
 	// 创建路由分发器
 	rt := router.New()

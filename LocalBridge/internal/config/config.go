@@ -110,7 +110,7 @@ func setDefaults(v *viper.Viper) {
 	// 日志配置
 	v.SetDefault("log.level", "INFO")
 	v.SetDefault("log.dir", paths.GetLogDir())
-	v.SetDefault("log.push_to_client", false)
+	v.SetDefault("log.push_to_client", true)
 
 	// MaaFramework 配置
 	v.SetDefault("maafw.enabled", false)
