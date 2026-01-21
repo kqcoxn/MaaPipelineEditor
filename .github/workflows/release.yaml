@@ -219,7 +219,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
 
       - name: Download extremer dist
         uses: actions/download-artifact@v4
@@ -259,7 +259,11 @@ jobs:
         working-directory: Extremer
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
-          wails build -ldflags="-X main.version=${VERSION}"
+          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+            wails build -tags webkit2_41 -ldflags="-X main.version=${VERSION}"
+          else
+            wails build -ldflags="-X main.version=${VERSION}"
+          fi
         shell: bash
 
       - name: Package Extremer (Windows)
