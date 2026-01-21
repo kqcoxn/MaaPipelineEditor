@@ -11,26 +11,24 @@ import (
 
 // SubprocessManager LocalBridge 子进程管理器
 type SubprocessManager struct {
-	cmd         *exec.Cmd
-	exeDir      string
-	port        int
-	rootDir     string
-	mfwDir      string
-	resourceDir string
-	logsDir     string
-	mu          sync.Mutex
-	running     bool
+	cmd        *exec.Cmd
+	exeDir     string
+	port       int
+	rootDir    string
+	configPath string
+	logsDir    string
+	mu         sync.Mutex
+	running    bool
 }
 
 // NewSubprocessManager 创建子进程管理器
-func NewSubprocessManager(exeDir string, port int, rootDir, mfwDir, resourceDir, logsDir string) *SubprocessManager {
+func NewSubprocessManager(exeDir string, port int, rootDir, configPath, logsDir string) *SubprocessManager {
 	return &SubprocessManager{
-		exeDir:      exeDir,
-		port:        port,
-		rootDir:     rootDir,
-		mfwDir:      mfwDir,
-		resourceDir: resourceDir,
-		logsDir:     logsDir,
+		exeDir:     exeDir,
+		port:       port,
+		rootDir:    rootDir,
+		configPath: configPath,
+		logsDir:    logsDir,
 	}
 }
 
@@ -62,6 +60,13 @@ func (m *SubprocessManager) Start() error {
 		"--port", fmt.Sprintf("%d", m.port),
 		"--root", m.rootDir,
 		"--log-dir", m.logsDir,
+	}
+
+	// 如果配置文件存在，则添加 --config 参数
+	if m.configPath != "" {
+		if _, err := os.Stat(m.configPath); err == nil {
+			args = append(args, "--config", m.configPath)
+		}
 	}
 
 	m.cmd = exec.Command(exePath, args...)

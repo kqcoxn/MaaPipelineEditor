@@ -255,6 +255,12 @@ jobs:
           cp -r mfw-resources/resource/* Extremer/resources/resource/ || true
         shell: bash
 
+      - name: Copy config file
+        run: |
+          mkdir -p Extremer/build/bin/config
+          cp Extremer/config/default.json Extremer/build/bin/config/default.json
+        shell: bash
+
       - name: Set execute permission
         if: matrix.os != 'windows-latest'
         run: chmod +x Extremer/resources/${{ matrix.mpelb_target }}

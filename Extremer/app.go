@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -15,15 +16,46 @@ import (
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
+// Extremer 客户端配置
+type ExstremerConfig struct {
+	MPELBPath           string `json:"mpelb_path"`
+	DefaultMFWPath      string `json:"default_mfw_path"`
+	DefaultResourcePath string `json:"default_resource_path"`
+}
+
+// 客户端配置文件结构
+type ClientConfig struct {
+	Server struct {
+		Port int    `json:"port"`
+		Host string `json:"host"`
+	} `json:"server"`
+	File struct {
+		Exclude    []string `json:"exclude"`
+		Extensions []string `json:"extensions"`
+	} `json:"file"`
+	Log struct {
+		Level        string `json:"level"`
+		PushToClient bool   `json:"push_to_client"`
+	} `json:"log"`
+	MaaFW struct {
+		Enabled     bool   `json:"enabled"`
+		LibDir      string `json:"lib_dir"`
+		ResourceDir string `json:"resource_dir"`
+	} `json:"maafw"`
+	Extremer ExstremerConfig `json:"extremer"`
+}
+
 // App 应用主结构
 type App struct {
-	ctx       context.Context
-	port      int
-	bridge    *bridge.SubprocessManager
-	exeDir    string
-	workDir   string
-	logsDir   string
-	configDir string
+	ctx        context.Context
+	port       int
+	bridge     *bridge.SubprocessManager
+	exeDir     string
+	workDir    string
+	logsDir    string
+	configDir  string
+	configPath string
+	config     *ClientConfig
 }
 
 // NewApp 创建应用实例
@@ -39,6 +71,50 @@ func isDevMode(exePath string) bool {
 	return strings.Contains(lower, "temp") ||
 		strings.Contains(lower, "tmp") ||
 		strings.Contains(lower, "wailsbindings")
+}
+
+// loadConfig 加载配置文件
+func (a *App) loadConfig() error {
+	// 尝试加载配置文件
+	configPath := filepath.Join(a.exeDir, "config", "config.json")
+
+	// 如果不存在，使用默认配置
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		configPath = filepath.Join(a.exeDir, "config", "default.json")
+	}
+
+	// 读取配置文件
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return fmt.Errorf("读取配置文件失败: %w", err)
+	}
+
+	// 解析配置
+	var config ClientConfig
+	if err := json.Unmarshal(data, &config); err != nil {
+		return fmt.Errorf("解析配置文件失败: %w", err)
+	}
+
+	a.config = &config
+	a.configPath = configPath
+
+	// 处理相对路径，转为绝对路径
+	if config.MaaFW.LibDir != "" && !filepath.IsAbs(config.MaaFW.LibDir) {
+		a.config.MaaFW.LibDir = filepath.Join(a.exeDir, config.MaaFW.LibDir)
+	}
+	if config.MaaFW.ResourceDir != "" && !filepath.IsAbs(config.MaaFW.ResourceDir) {
+		a.config.MaaFW.ResourceDir = filepath.Join(a.exeDir, config.MaaFW.ResourceDir)
+	}
+
+	// 使用默认路径（如果配置中为空）
+	if a.config.MaaFW.LibDir == "" && config.Extremer.DefaultMFWPath != "" {
+		a.config.MaaFW.LibDir = filepath.Join(a.exeDir, config.Extremer.DefaultMFWPath)
+	}
+	if a.config.MaaFW.ResourceDir == "" && config.Extremer.DefaultResourcePath != "" {
+		a.config.MaaFW.ResourceDir = filepath.Join(a.exeDir, config.Extremer.DefaultResourcePath)
+	}
+
+	return nil
 }
 
 // startup 应用启动时调用
@@ -67,6 +143,13 @@ func (a *App) startup(ctx context.Context) {
 		a.exeDir = filepath.Dir(exePath)
 	}
 
+	// 加载配置文件
+	if err := a.loadConfig(); err != nil {
+		wailsRuntime.LogError(ctx, fmt.Sprintf("加载配置文件失败: %v", err))
+		return
+	}
+	wailsRuntime.LogInfo(ctx, fmt.Sprintf("配置文件已加载: %s", a.configPath))
+
 	// 设置工作目录（用户文档目录下的 MaaPipeline）
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -93,21 +176,36 @@ func (a *App) startup(ctx context.Context) {
 	os.MkdirAll(a.workDir, 0755)
 	os.MkdirAll(a.logsDir, 0755)
 
-	// 分配端口
-	a.port, err = ports.Allocate(9066)
+	// 分配端口（优先使用配置文件中的端口）
+	defaultPort := 9066
+	if a.config.Server.Port > 0 {
+		defaultPort = a.config.Server.Port
+	}
+	a.port, err = ports.Allocate(defaultPort)
 	if err != nil {
 		wailsRuntime.LogError(ctx, fmt.Sprintf("端口分配失败: %v", err))
 		return
 	}
 	wailsRuntime.LogInfo(ctx, fmt.Sprintf("分配端口: %d", a.port))
 
+	// 准备 LocalBridge 配置文件路径
+	lbConfigPath := filepath.Join(a.workDir, "config.json")
+
+	// 如果工作目录下不存在配置文件，则从客户端配置创建一个
+	if _, err := os.Stat(lbConfigPath); os.IsNotExist(err) {
+		if err := a.createLBConfig(lbConfigPath); err != nil {
+			wailsRuntime.LogError(ctx, fmt.Sprintf("创建 LocalBridge 配置失败: %v", err))
+		} else {
+			wailsRuntime.LogInfo(ctx, "已创建 LocalBridge 配置文件")
+		}
+	}
+
 	// 启动 LocalBridge 子进程
 	a.bridge = bridge.NewSubprocessManager(
 		a.exeDir,
 		a.port,
 		a.workDir,
-		filepath.Join(a.exeDir, "resources", "maafw"),
-		filepath.Join(a.exeDir, "resources", "resource"),
+		lbConfigPath,
 		a.logsDir,
 	)
 
@@ -116,6 +214,37 @@ func (a *App) startup(ctx context.Context) {
 	} else {
 		wailsRuntime.LogInfo(ctx, "LocalBridge 启动成功")
 	}
+}
+
+// createLBConfig 创建 LocalBridge 配置文件
+func (a *App) createLBConfig(path string) error {
+	config := map[string]interface{}{
+		"server": map[string]interface{}{
+			"port": a.config.Server.Port,
+			"host": a.config.Server.Host,
+		},
+		"file": map[string]interface{}{
+			"exclude":    a.config.File.Exclude,
+			"extensions": a.config.File.Extensions,
+		},
+		"log": map[string]interface{}{
+			"level":          a.config.Log.Level,
+			"dir":            a.logsDir,
+			"push_to_client": a.config.Log.PushToClient,
+		},
+		"maafw": map[string]interface{}{
+			"enabled":      a.config.MaaFW.Enabled,
+			"lib_dir":      a.config.MaaFW.LibDir,
+			"resource_dir": a.config.MaaFW.ResourceDir,
+		},
+	}
+
+	data, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		return fmt.Errorf("序列化配置失败: %w", err)
+	}
+
+	return os.WriteFile(path, data, 0644)
 }
 
 // domReady DOM 加载完成时调用
@@ -190,12 +319,14 @@ func (a *App) RestartBridge() error {
 		a.bridge.Stop()
 	}
 
+	// 准备 LocalBridge 配置文件路径
+	lbConfigPath := filepath.Join(a.workDir, "config.json")
+
 	a.bridge = bridge.NewSubprocessManager(
 		a.exeDir,
 		a.port,
 		a.workDir,
-		filepath.Join(a.exeDir, "resources", "maafw"),
-		filepath.Join(a.exeDir, "resources", "resource"),
+		lbConfigPath,
 		a.logsDir,
 	)
 

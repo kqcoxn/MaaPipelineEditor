@@ -1,0 +1,32 @@
+{
+    "server": {
+        "port": 9066,
+        "host": "localhost"
+    },
+    "file": {
+        "exclude": [
+            "node_modules",
+            ".git",
+            "dist",
+            "build"
+        ],
+        "extensions": [
+            ".json",
+            ".jsonc"
+        ]
+    },
+    "log": {
+        "level": "INFO",
+        "push_to_client": true
+    },
+    "maafw": {
+        "enabled": true,
+        "lib_dir": "",
+        "resource_dir": ""
+    },
+    "extremer": {
+        "mpelb_path": "resources/mpelb.exe",
+        "default_mfw_path": "resources/maafw/bin",
+        "default_resource_path": "resources/resource"
+    }
+}

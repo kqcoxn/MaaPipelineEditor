@@ -5,6 +5,7 @@
     "build": "wails build",
     "build:all": "cd .. && yarn build --mode extremer && cd Extremer && xcopy /E /I /Y ..\\dist frontend\\dist && cd ../LocalBridge && go build -o ../Extremer/build/bin/resources/mpelb.exe ./cmd/lb && cd ../Extremer && wails build",
     "copy:dist": "xcopy /E /I /Y ..\\dist frontend\\dist",
+    "copy:config": "if not exist build\\bin\\config mkdir build\\bin\\config && xcopy /E /I /Y config\\default.json build\\bin\\config\\default.json",
     "copy:maafw": "if exist ..\\maafw\\bin xcopy /E /I /Y ..\\maafw\\bin build\\bin\\resources\\maafw\\bin",
     "copy:ocr": "if exist ..\\ocr xcopy /E /I /Y ..\\ocr build\\bin\\resources\\resource\\model\\ocr"
   }
