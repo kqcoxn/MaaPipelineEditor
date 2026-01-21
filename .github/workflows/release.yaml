@@ -164,7 +164,7 @@ jobs:
           
           # 下载 OCR 资源
           curl -L "https://download.maafw.xyz/MaaCommonAssets/OCR/ppocr_v5/ppocr_v5-zh_cn.zip" -o ocr-assets.zip
-          mkdir -p resources/resource/base/model/ocr
+          mkdir -p resources/resource/model/ocr
           unzip ocr-assets.zip -d resources/resource/model/ocr/ || true
           rm ocr-assets.zip
 
@@ -255,12 +255,6 @@ jobs:
           cp -r mfw-resources/resource/* Extremer/resources/resource/ || true
         shell: bash
 
-      - name: Copy config file
-        run: |
-          mkdir -p Extremer/build/bin/config
-          cp Extremer/config/default.json Extremer/build/bin/config/default.json
-        shell: bash
-
       - name: Set execute permission
         if: matrix.os != 'windows-latest'
         run: chmod +x Extremer/resources/${{ matrix.mpelb_target }}
@@ -274,6 +268,12 @@ jobs:
           else
             wails build -ldflags="-X main.version=${VERSION}"
           fi
+        shell: bash
+
+      - name: Copy config file after build
+        run: |
+          mkdir -p Extremer/build/bin/config
+          cp Extremer/config/default.json Extremer/build/bin/config/default.json
         shell: bash
 
       - name: Package Extremer (Windows)
@@ -332,6 +332,12 @@ jobs:
           path: extremer-artifacts
           pattern: extremer-*
           merge-multiple: true
+
+      - name: Clean up redundant files
+        run: |
+          # 删除所有 artifacts 目录中的多余文件
+          find . -type f \( -name "index.html" -o -name "*.ico" -o -name "logo.png" -o -name "maafw.png" \) -delete
+          echo "已删除多余文件"
 
       - name: Generate Changelog
         id: changelog
