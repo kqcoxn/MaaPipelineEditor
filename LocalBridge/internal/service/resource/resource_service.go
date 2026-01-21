@@ -334,3 +334,27 @@ func (s *Service) scanImageDir(imageDir, bundleName string) []models.ImageFileIn
 
 	return images
 }
+
+// Reload 重新扫描资源目录
+func (s *Service) Reload(newRoot string) error {
+	logger.Info("ResourceService", "开始重载资源扫描服务...")
+
+	// 如果根目录变化，更新根目录
+	if newRoot != "" && newRoot != s.root {
+		logger.Info("ResourceService", "根目录变化: %s -> %s", s.root, newRoot)
+		s.root = newRoot
+	}
+
+	// 重新扫描
+	if err := s.Scan(); err != nil {
+		logger.Error("ResourceService", "重新扫描失败: %v", err)
+		return err
+	}
+
+	logger.Info("ResourceService", "资源重载完成，发现 %d 个资源包，%d 个 image 目录", len(s.bundles), len(s.imageDirs))
+
+	// 发布扫描完成事件
+	s.eventBus.Publish(eventbus.EventResourceScanCompleted, s.GetBundleList())
+
+	return nil
+}

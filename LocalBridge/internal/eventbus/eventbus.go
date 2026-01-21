@@ -78,4 +78,5 @@ const (
 	EventConnectionEstablished = "connection.established"
 	EventConnectionClosed      = "connection.closed"
 	EventResourceScanCompleted = "resource.scan.completed"
+	EventConfigReload          = "config.reload"
 )

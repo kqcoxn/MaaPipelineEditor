@@ -3,6 +3,7 @@ package config
 import (
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/config"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/errors"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/eventbus"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/server"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/pkg/models"
@@ -33,6 +34,9 @@ func (h *ConfigHandler) Handle(msg models.Message, conn *server.Connection) *mod
 
 	case "/etl/config/set":
 		h.handleSetConfig(conn, msg)
+
+	case "/etl/config/reload":
+		h.handleReload(conn, msg)
 
 	default:
 		logger.Warn("Config", "未知的Config路由: %s", path)
@@ -162,6 +166,39 @@ func (h *ConfigHandler) handleSetConfig(conn *server.Connection, msg models.Mess
 			"config":      cfg,
 			"config_path": config.GetConfigFilePath(),
 			"message":     "配置已保存，部分配置可能需要重启服务才能生效",
+		},
+	})
+}
+
+// 处理内部重载请求
+func (h *ConfigHandler) handleReload(conn *server.Connection, msg models.Message) {
+	logger.Info("Config", "收到内部重载请求")
+
+	// 重载配置
+	cfg := config.GetGlobal()
+	if cfg == nil {
+		logger.Error("Config", "无法获取全局配置")
+		conn.Send(models.Message{
+			Path: "/lte/config/reload",
+			Data: map[string]interface{}{
+				"success": false,
+				"error":   "无法获取全局配置",
+			},
+		})
+		return
+	}
+
+	// 发布重载事件
+	eventBus := eventbus.GetGlobalBus()
+	eventBus.Publish(eventbus.EventConfigReload, cfg)
+
+	logger.Info("Config", "配置重载完成")
+
+	conn.Send(models.Message{
+		Path: "/lte/config/reload",
+		Data: map[string]interface{}{
+			"success": true,
+			"message": "配置重载完成",
 		},
 	})
 }

@@ -44,6 +44,8 @@ export interface ConfigResponse {
 export class ConfigProtocol extends BaseProtocol {
   // 配置数据回调
   private configCallbacks: ((data: ConfigResponse) => void)[] = [];
+  // 重载回调
+  private reloadCallbacks: ((data: any) => void)[] = [];
 
   getName(): string {
     return "ConfigProtocol";
@@ -59,6 +61,9 @@ export class ConfigProtocol extends BaseProtocol {
     // 注册接收路由
     this.wsClient.registerRoute("/lte/config/data", (data) =>
       this.handleConfigData(data)
+    );
+    this.wsClient.registerRoute("/lte/config/reload", (data) =>
+      this.handleReloadResponse(data)
     );
   }
 
@@ -91,6 +96,30 @@ export class ConfigProtocol extends BaseProtocol {
   }
 
   /**
+   * 处理重载响应
+   * 路由: /lte/config/reload
+   */
+  private handleReloadResponse(data: any): void {
+    try {
+      if (!data.success) {
+        message.error(data.error || "重载失败");
+        return;
+      }
+
+      message.success("配置重载完成");
+
+      // 通知所有回调
+      this.reloadCallbacks.forEach((callback) => callback(data));
+    } catch (error) {
+      console.error(
+        "[ConfigProtocol] Failed to handle reload response:",
+        error
+      );
+      message.error("重载响应处理失败");
+    }
+  }
+
+  /**
    * 请求获取配置
    * 发送路由: /etl/config/get
    */
@@ -117,6 +146,19 @@ export class ConfigProtocol extends BaseProtocol {
   }
 
   /**
+   * 请求重载配置
+   * 发送路由: /etl/config/reload
+   */
+  public requestReload(): boolean {
+    if (!this.wsClient) {
+      console.error("[ConfigProtocol] WebSocket client not initialized");
+      return false;
+    }
+
+    return this.wsClient.send("/etl/config/reload", {});
+  }
+
+  /**
    * 注册配置数据回调
    * @param callback 配置数据回调函数
    * @returns 注销函数
@@ -129,6 +171,23 @@ export class ConfigProtocol extends BaseProtocol {
       const index = this.configCallbacks.indexOf(callback);
       if (index > -1) {
         this.configCallbacks.splice(index, 1);
+      }
+    };
+  }
+
+  /**
+   * 注册重载回调
+   * @param callback 重载回调函数
+   * @returns 注销函数
+   */
+  public onReload(callback: (data: any) => void): () => void {
+    this.reloadCallbacks.push(callback);
+
+    // 返回注销函数
+    return () => {
+      const index = this.reloadCallbacks.indexOf(callback);
+      if (index > -1) {
+        this.reloadCallbacks.splice(index, 1);
       }
     };
   }

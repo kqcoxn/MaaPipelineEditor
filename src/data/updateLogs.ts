@@ -41,7 +41,7 @@ export const pinnedNotice: PinnedNotice = {
   type: "info",
   content: [
     "**正式版 LocalBridge🌉 已上线**！目前已全面支持**本地文档管理**、**字段快捷填充**（OCR、图片裁剪等）与**流程化调试**功能，**仅需一行指令即可下载安装**，我们十分推荐您尝试，详情可查阅 [本地服务文档](https://mpe.codax.site/docs/guide/server/deploy.html)",
-    "本地一体编辑器 MaaPieplineExtremer🦕 现已上线！自带全套运行库，本地服务自启自连，欢迎选用！",
+    "**本地一体编辑器 MaaPieplineExtremer🦕 现已上线！**自带全套运行库，本地服务自启自连，欢迎选用！",
   ],
 };
 
@@ -55,6 +55,7 @@ export const updateLogs: UpdateLogItem[] = [
         "🦕 本地一体编辑器 Extremer！",
         "📇 LB 新增打开日志文件夹命令",
         "📜 前端新增日志窗口，可以快捷查看后端日志",
+        "⚡ 支持 LB 热重载，更改配置后无需手动重启",
       ],
       perfs: [
         "调试 on_error 不再截图（现有截图需自行删除）",

@@ -193,3 +193,23 @@ func (s *Service) IsInitialized() bool {
 	defer s.mu.RUnlock()
 	return s.initialized
 }
+
+// Reload 重新初始化MFW框架（重载配置）
+func (s *Service) Reload() error {
+	logger.Info("MFW", "开始重载 MaaFramework 服务...")
+
+	// 先关闭现有服务
+	if err := s.Shutdown(); err != nil {
+		logger.Error("MFW", "关闭现有服务失败: %v", err)
+		return err
+	}
+
+	// 重新初始化
+	if err := s.Initialize(); err != nil {
+		logger.Error("MFW", "重新初始化失败: %v", err)
+		return err
+	}
+
+	logger.Info("MFW", "MaaFramework 服务重载完成")
+	return nil
+}

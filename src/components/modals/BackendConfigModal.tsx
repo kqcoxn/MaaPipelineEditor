@@ -34,6 +34,7 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [reloading, setReloading] = useState(false);
   const [configPath, setConfigPath] = useState("");
 
   // 加载配置
@@ -72,15 +73,15 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
         });
         setConfigPath(data.config_path);
 
-        // 如果是保存后的响应，提醒重启并关闭面板
+        // 如果是保存后的响应，自动触发重载并关闭面板
         if (data.message) {
           Modal.info({
             title: "配置已保存",
             content: (
               <div>
                 <p>{data.message}</p>
-                <p style={{ marginTop: 12, color: "#ff7875" }}>
-                  ⚠️ 请重启后端服务以使配置生效！
+                <p style={{ marginTop: 12, color: "#52c41a" }}>
+                  已重载配置，部分配置（如端口）可能需要重启服务才能生效
                 </p>
               </div>
             ),
@@ -89,6 +90,16 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
               onClose();
             },
           });
+
+          // 延迟500ms后自动触发重载
+          setTimeout(() => {
+            setReloading(true);
+            const success = configProtocol.requestReload();
+            if (!success) {
+              message.error("自动重载失败，请手动点击重启按钮");
+              setReloading(false);
+            }
+          }, 500);
         }
       }
     });
@@ -98,6 +109,15 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
 
     return unsubscribe;
   }, [open, form, loadConfig, onClose]);
+
+  // 监听重载响应
+  useEffect(() => {
+    const unsubscribe = configProtocol.onReload(() => {
+      setReloading(false);
+    });
+
+    return unsubscribe;
+  }, []);
 
   // 保存配置
   const handleSave = async () => {
@@ -139,6 +159,26 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
     }
   };
 
+  // 重启服务
+  const handleReload = () => {
+    if (!localServer.isConnected()) {
+      message.warning("请先连接本地服务");
+      return;
+    }
+
+    setReloading(true);
+    const success = configProtocol.requestReload();
+    if (!success) {
+      message.error("发送重载请求失败");
+      setReloading(false);
+    }
+
+    // 设置超时保护
+    setTimeout(() => {
+      setReloading(false);
+    }, 5000);
+  };
+
   const labelStyle = { style: { minWidth: 120 } };
 
   return (
@@ -154,8 +194,17 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
       open={open}
       onCancel={onClose}
       width={650}
-      footer={
-        <Space>
+      footer={[
+        <Button
+          key="reload"
+          icon={<ReloadOutlined />}
+          onClick={handleReload}
+          loading={reloading}
+          style={{ float: "left" }}
+        >
+          重启服务
+        </Button>,
+        <Space key="actions">
           <Tooltip title="重新加载配置">
             <Button
               icon={<ReloadOutlined />}
@@ -169,8 +218,8 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
           <Button type="primary" onClick={handleSave} loading={saving}>
             保存配置
           </Button>
-        </Space>
-      }
+        </Space>,
+      ]}
       styles={{
         body: {
           maxHeight: "70vh",
