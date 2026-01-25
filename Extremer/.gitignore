@@ -15,6 +15,7 @@ build/bin/resources/resource/model/*
 !build/bin/resources/resource/model/ocr/
 build/bin/resources/resource/model/ocr/*
 !build/bin/resources/resource/model/ocr/.gitkeep
+*.exe
 
 # Node.js
 node_modules/

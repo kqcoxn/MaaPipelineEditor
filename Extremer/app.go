@@ -9,9 +9,11 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/kqcoxn/MaaPipelineEditor/Extremer/internal/bridge"
 	"github.com/kqcoxn/MaaPipelineEditor/Extremer/internal/ports"
+	"github.com/kqcoxn/MaaPipelineEditor/Extremer/internal/splash"
 	"github.com/kqcoxn/MaaPipelineEditor/Extremer/internal/updater"
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -56,6 +58,7 @@ type App struct {
 	configDir  string
 	configPath string
 	config     *ClientConfig
+	splash     splash.Splash
 }
 
 // NewApp 创建应用实例
@@ -312,6 +315,44 @@ func (a *App) createLBConfig(path string) error {
 func (a *App) domReady(ctx context.Context) {
 	// 发送端口信息给前端
 	wailsRuntime.EventsEmit(ctx, "bridge:port", a.port)
+
+	// 等待 LocalBridge 启动完成
+	go func() {
+		// 检测 LocalBridge 是否就绪
+		maxRetries := 30
+		for i := 0; i < maxRetries; i++ {
+			if a.bridge != nil && a.bridge.IsRunning() {
+				// 等待额外 1 秒确保服务完全启动
+				time.Sleep(1000 * time.Millisecond)
+
+				// 关闭启动画面并显示主窗口
+				a.showMainWindow(ctx)
+
+				wailsRuntime.EventsEmit(ctx, "bridge:ready", true)
+				wailsRuntime.LogInfo(ctx, "LocalBridge 就绪，前端可以连接")
+				return
+			}
+			time.Sleep(500 * time.Millisecond)
+		}
+
+		// 超时仍未就绪，也要显示主窗口
+		a.showMainWindow(ctx)
+		wailsRuntime.EventsEmit(ctx, "bridge:ready", false)
+		wailsRuntime.LogWarning(ctx, "LocalBridge 启动超时")
+	}()
+}
+
+// showMainWindow 关闭启动画面并显示主窗口
+func (a *App) showMainWindow(ctx context.Context) {
+	// 关闭启动画面
+	if a.splash != nil {
+		a.splash.Close()
+		a.splash = nil
+	}
+
+	// 显示并最大化主窗口
+	wailsRuntime.WindowShow(ctx)
+	wailsRuntime.WindowMaximise(ctx)
 }
 
 // shutdown 应用关闭时调用

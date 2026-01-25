@@ -3,7 +3,10 @@ package main
 import (
 	"embed"
 	"log"
+	"os"
+	"runtime"
 
+	"github.com/kqcoxn/MaaPipelineEditor/Extremer/internal/splash"
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
@@ -21,15 +24,34 @@ var assets embed.FS
 var version = "1.0.0"
 
 func main() {
-	app := NewApp()
+	// 检测是否为开发模式
+	exePath, err := os.Executable()
+	if err != nil {
+		log.Printf("获取可执行文件路径失败: %v", err)
+	}
+	devMode := err == nil && isDevMode(exePath)
 
-	err := wails.Run(&options.App{
+	// Windows 平台且非开发模式下显示启动画面
+	var sp splash.Splash
+	if runtime.GOOS == "windows" && !devMode {
+		cfg := splash.DefaultConfig()
+		sp = splash.New(cfg)
+		if err := sp.Show(); err != nil {
+			log.Printf("启动画面显示失败: %v", err)
+		}
+	}
+
+	app := NewApp()
+	app.splash = sp
+
+	err = wails.Run(&options.App{
 		Title:            "MaaPipelineEditor",
 		Width:            1280,
 		Height:           800,
 		MinWidth:         1024,
 		MinHeight:        768,
 		WindowStartState: options.Maximised,
+		StartHidden:      runtime.GOOS == "windows" && !devMode,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
