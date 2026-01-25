@@ -1,7 +1,7 @@
 import style from "../../../styles/ConfigPanel.module.less";
 
 import { memo, useMemo, useCallback } from "react";
-import { Popover, Select, Button, message } from "antd";
+import { Popover, Select, Button, Switch, message } from "antd";
 import classNames from "classnames";
 
 import { useConfigStore } from "../../../stores/configStore";
@@ -16,6 +16,9 @@ const PipelineConfigSection = memo(() => {
   );
   const defaultHandleDirection = useConfigStore(
     (state) => state.configs.defaultHandleDirection
+  );
+  const exportDefaultRecoAction = useConfigStore(
+    (state) => state.configs.exportDefaultRecoAction
   );
   const setConfig = useConfigStore((state) => state.setConfig);
   const nodes = useFlowStore((state) => state.nodes);
@@ -110,12 +113,38 @@ const PipelineConfigSection = memo(() => {
             title="一键更改"
             content="将所有节点的端点位置更改为当前选中的默认位置"
           >
-            <span>一键更改</span>
+            <span>一键更改端点位置</span>
           </Popover>
         </div>
         <Button className={style.value} size="small" onClick={handleApplyToAll}>
           应用到所有节点
         </Button>
+      </div>
+      {/* 导出默认识别/动作 */}
+      <div className={globalClass}>
+        <div className={style.key}>
+          <Popover
+            placement="bottomLeft"
+            title="导出默认识别/动作"
+            content={
+              <TipElem
+                content={
+                  "关闭时，导出时若节点的识别类型为 DirectHit 且无参数，则不导出 recognition 字段；\n若动作类型为 DoNothing 且无参数，则不导出 action 字段。\n两者独立检测。"
+                }
+              />
+            }
+          >
+            <span>导出默认识别/动作</span>
+          </Popover>
+        </div>
+        <Switch
+          className={style.value}
+          style={{ maxWidth: 60 }}
+          checked={exportDefaultRecoAction}
+          checkedChildren="导出"
+          unCheckedChildren="省略"
+          onChange={(checked) => setConfig("exportDefaultRecoAction", checked)}
+        />
       </div>
     </>
   );

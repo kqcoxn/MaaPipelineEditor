@@ -25,6 +25,7 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   // Pipeline 配置
   nodeAttrExportStyle: "pipeline",
   defaultHandleDirection: "pipeline",
+  exportDefaultRecoAction: "pipeline",
   // 面板配置
   nodeStyle: "panel",
   historyLimit: "panel",
@@ -93,6 +94,7 @@ type ConfigState = {
     nodeStyle: NodeStyleType;
     nodeAttrExportStyle: NodeAttrExportStyle;
     defaultHandleDirection: HandleDirection;
+    exportDefaultRecoAction: boolean;
     wsPort: number;
     wsAutoConnect: boolean;
     fileAutoReload: boolean;
@@ -147,6 +149,7 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     nodeStyle: "modern" as NodeStyleType,
     nodeAttrExportStyle: "prefix" as NodeAttrExportStyle,
     defaultHandleDirection: "left-right" as HandleDirection,
+    exportDefaultRecoAction: false,
     wsPort: 9066,
     wsAutoConnect: false,
     fileAutoReload: false,

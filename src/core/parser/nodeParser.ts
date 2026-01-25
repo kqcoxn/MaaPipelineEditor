@@ -22,6 +22,7 @@ export function parsePipelineNodeForExport(
   fNode: PipelineNodeType
 ): ParsedPipelineNodeType {
   const fNodeData = fNode.data;
+  const configs = useConfigStore.getState().configs;
 
   // 识别算法
   const recoType = fNodeData.recognition.type;
@@ -68,14 +69,29 @@ export function parsePipelineNodeForExport(
 
   // 赋值
   const pNode: ParsedPipelineNodeType = {
-    recognition,
-    action,
     ...others,
     ...extras,
   };
 
+  // 检查是否导出默认识别/动作
+  const exportDefaultRecoAction = configs.exportDefaultRecoAction;
+
+  // 如果不导出默认且为 DirectHit 且无参数则不导出
+  const isDefaultReco =
+    recoType === "DirectHit" && Object.keys(recognition.param).length === 0;
+  if (exportDefaultRecoAction || !isDefaultReco) {
+    pNode.recognition = recognition;
+  }
+
+  // 处理 action：如果不导出默认且为 DoNothing 且无参数，则不导出
+  const isDefaultAction =
+    actionType === "DoNothing" && Object.keys(action.param).length === 0;
+  if (exportDefaultRecoAction || !isDefaultAction) {
+    pNode.action = action;
+  }
+
   // 保存位置信息和端点位置
-  if (useConfigStore.getState().configs.isExportConfig) {
+  if (configs.isExportConfig) {
     const position = fNode.position;
     const mpeCode: Record<string, any> = {
       position: {
