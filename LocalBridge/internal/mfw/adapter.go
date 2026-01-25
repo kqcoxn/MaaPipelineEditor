@@ -35,6 +35,9 @@ type MaaFWAdapter struct {
 	agentConnected      bool
 	initialized         bool
 
+	// 所有权标记
+	ownsController bool // 是否拥有控制器（true=自己创建的，false=借用的共享控制器）
+
 	// 元信息
 	controllerType string // ADB/Win32
 	deviceInfo     string // 设备名称/窗口名称
@@ -105,6 +108,7 @@ func (a *MaaFWAdapter) ConnectADB(adbPath, address string, screencapMethods, inp
 
 	a.controller = ctrl
 	a.controllerConnected = true
+	a.ownsController = true
 	a.controllerType = "ADB"
 	a.deviceInfo = address
 	a.screenshotter.SetController(ctrl)
@@ -153,6 +157,7 @@ func (a *MaaFWAdapter) ConnectWin32(hwnd uintptr, screencapMethod, inputMethod s
 
 	a.controller = ctrl
 	a.controllerConnected = true
+	a.ownsController = true
 	a.controllerType = "Win32"
 	a.deviceInfo = fmt.Sprintf("HWND:%x", hwnd)
 	a.screenshotter.SetController(ctrl)
@@ -161,17 +166,19 @@ func (a *MaaFWAdapter) ConnectWin32(hwnd uintptr, screencapMethod, inputMethod s
 	return nil
 }
 
-// SetController 直接设置已连接的控制器
+// SetController 直接设置已连接的控制器，由调用者负责管理控制器生命周期
 func (a *MaaFWAdapter) SetController(ctrl *maa.Controller, ctrlType, deviceInfo string) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	if a.controller != nil && a.controller != ctrl {
+	// 如果之前有自己创建的控制器，需要销毁
+	if a.controller != nil && a.controller != ctrl && a.ownsController {
 		a.controller.Destroy()
 	}
 
 	a.controller = ctrl
 	a.controllerConnected = ctrl != nil && ctrl.Connected()
+	a.ownsController = false
 	a.controllerType = ctrlType
 	a.deviceInfo = deviceInfo
 	a.screenshotter.SetController(ctrl)
@@ -670,12 +677,13 @@ func (a *MaaFWAdapter) Destroy() {
 	}
 	a.resourceLoaded = false
 
-	// 销毁 Controller
-	if a.controller != nil {
+	// 只销毁自己拥有的 Controller，借用的不销毁
+	if a.controller != nil && a.ownsController {
 		a.controller.Destroy()
-		a.controller = nil
 	}
+	a.controller = nil
 	a.controllerConnected = false
+	a.ownsController = false
 
 	// 清理截图器
 	a.screenshotter.SetController(nil)
