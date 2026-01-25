@@ -11,11 +11,11 @@
 	<key>CFBundleIdentifier</key>
 	<string>com.maaxyz.maapipelineeditor</string>
 	<key>CFBundleVersion</key>
-	<string>1.0.0</string>
+	<string>1.0.1</string>
 	<key>CFBundleGetInfoString</key>
 	<string>MAA Pipeline 可视化编辑器</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0.0</string>
+	<string>1.0.1</string>
 	<key>CFBundleIconFile</key>
 	<string>iconfile</string>
 	<key>LSMinimumSystemVersion</key>

@@ -3,6 +3,22 @@ import { useMFWStore } from "./mfwStore";
 import { useFlowStore } from "./flow";
 import { debugProtocol } from "../services/server";
 
+// ============================================================================
+// 内存限制常量
+// ============================================================================
+
+/** 识别记录最大条数 */
+const MAX_RECOGNITION_RECORDS = 300;
+
+/** 执行历史最大条数 */
+const MAX_EXECUTION_HISTORY = 300;
+
+/** 详情缓存最大条数（每条包含 base64 图像，约 2-5MB） */
+const MAX_DETAIL_CACHE_SIZE = 50;
+
+/** 当超出限制时，一次性清理的比例 */
+const CLEANUP_RATIO = 0.2;
+
 /**
  * 调试执行状态
  */
@@ -432,11 +448,20 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
         const displayName = node?.data?.label || detail?.name || nodeId;
 
         // 检查是否已有 running 记录
-        const history = get().executionHistory;
+        let history = get().executionHistory;
         const existingRunning = history.find(
           (r) => r.nodeId === nodeId && r.status === "running"
         );
         if (existingRunning) break;
+
+        // 检查是否超出限制，超出则清理最旧的记录
+        if (history.length >= MAX_EXECUTION_HISTORY) {
+          const removeCount = Math.ceil(MAX_EXECUTION_HISTORY * CLEANUP_RATIO);
+          history = history.slice(removeCount);
+          console.log(
+            `[debugStore] executionHistory exceeded limit, removed ${removeCount} oldest records`
+          );
+        }
 
         // 创建新记录
         const existingCount = history.filter((r) => r.nodeId === nodeId).length;
@@ -538,8 +563,32 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
         // 只有当存在 parentNode 时才创建识别记录
         // 没有 parentNode 说明是节点自我识别，不需要记录到卡片中
         if (parentNode) {
-          const records = get().recognitionRecords;
+          let records = get().recognitionRecords;
           const nextId = get().nextRecordId;
+
+          // 检查是否超出限制，超出则清理最旧的记录
+          if (records.length >= MAX_RECOGNITION_RECORDS) {
+            const removeCount = Math.ceil(
+              MAX_RECOGNITION_RECORDS * CLEANUP_RATIO
+            );
+            // 同时清理对应的 detailCache
+            const removedRecords = records.slice(0, removeCount);
+            const cache = get().detailCache;
+            let cacheCleared = 0;
+            removedRecords.forEach((r) => {
+              if (r.recoId && cache.has(r.recoId)) {
+                cache.delete(r.recoId);
+                cacheCleared++;
+              }
+            });
+            records = records.slice(removeCount);
+            if (cacheCleared > 0) {
+              set({ detailCache: new Map(cache) });
+            }
+            console.log(
+              `[debugStore] recognitionRecords exceeded limit, removed ${removeCount} oldest records (${cacheCleared} cached details)`
+            );
+          }
 
           // 计算该节点的识别次数
           const runIndex =
@@ -822,9 +871,20 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
     return get().recognitionRecords.find((r) => r.recoId === recoId);
   },
 
-  // 缓存识别详情（懒加载后缓存）
+  // 缓存识别详情
   cacheRecognitionDetail: (recoId: number, detail: RecognitionDetail) => {
     const cache = new Map(get().detailCache);
+
+    // 检查缓存大小，超出限制时清理最旧的
+    if (cache.size >= MAX_DETAIL_CACHE_SIZE) {
+      const removeCount = Math.ceil(MAX_DETAIL_CACHE_SIZE * CLEANUP_RATIO);
+      const keysToRemove = Array.from(cache.keys()).slice(0, removeCount);
+      keysToRemove.forEach((key) => cache.delete(key));
+      console.log(
+        `[debugStore] detailCache exceeded limit (${MAX_DETAIL_CACHE_SIZE}), removed ${removeCount} oldest entries`
+      );
+    }
+
     cache.set(recoId, detail);
     set({ detailCache: cache });
   },

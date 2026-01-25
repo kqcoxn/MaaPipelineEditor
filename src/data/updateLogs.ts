@@ -53,7 +53,7 @@ export const updateLogs: UpdateLogItem[] = [
     type: "fix",
     updates: {
       features: ["🧩 新增默认识别/动作导出配置项"],
-      perfs: ["Extremer 新增加载提示"],
+      perfs: ["Extremer 新增加载提示", "添加调试记录轮转机制"],
       fixes: [
         "修复了重复识别单个节点时仅有一条记录的问题",
         "修复了单节点系列调试功能不显示记录的问题",
