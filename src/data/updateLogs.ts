@@ -55,6 +55,7 @@ export const updateLogs: UpdateLogItem[] = [
       features: ["🧩 新增默认识别/动作导出配置项"],
       perfs: ["Extremer 新增加载提示"],
       fixes: [
+        "修复了重复识别单个节点时仅有一条记录的问题",
         "修复了单节点系列调试功能不显示记录的问题",
         "修复调试失败时 LB 会直接崩溃的问题",
       ],

@@ -181,13 +181,12 @@ func (s *SimpleContextSink) OnNodeRecognition(ctx *maa.Context, status maa.Event
 		// 判断识别类型：
 		// 1. 入口节点的初次识别：parentNode == nodeName && recoCountMap[nodeName] == 0
 		//    → 这是入口节点自己检查自己的识别条件，应该显示为入口卡片
-		// 2. 非入口节点的自我检查：parentNode == nodeName && recoCountMap[nodeName] > 0
-		//    → 这是 next 列表跳回自己后的自我检查，不需要显示
-		// 3. 正常识别 next 列表中的其他节点：parentNode != nodeName
+		// 2. 其他情况（包括 timeout 内重复识别、识别 next 列表中的其他节点等）
 		//    → 正常显示在 parentNode 的卡片中
+		//
+		// 注意：不再过滤 "非入口节点的自我检查"，因为在 timeout 内重复识别时需要显示每次尝试
 
 		isEntryNodeRecognition := (parentNode == nodeName && s.recoCountMap[nodeName] == 0)
-		isNonEntrySelfCheck := (parentNode == nodeName && s.recoCountMap[nodeName] > 0)
 
 		// 构建 Detail
 		var detail map[string]interface{}
@@ -198,15 +197,12 @@ func (s *SimpleContextSink) OnNodeRecognition(ctx *maa.Context, status maa.Event
 				"is_entry":    true,
 			}
 			logger.Debug("DebugSink", "识别开始: NodeName=%s, RecoID=%d (入口节点)", nodeName, recoID)
-		} else if !isNonEntrySelfCheck {
-			// 正常识别 next 列表中的节点
+		} else {
+			// 正常识别（包括 timeout 内重复识别同一节点）
 			detail = map[string]interface{}{
 				"parent_node": parentNode,
 			}
 			logger.Debug("DebugSink", "识别开始: NodeName=%s, RecoID=%d, ParentNode=%s", nodeName, recoID, parentNode)
-		} else {
-			// 非入口节点的自我检查，不需要记录
-			logger.Debug("DebugSink", "识别开始: NodeName=%s, RecoID=%d (非入口自我检查)", nodeName, recoID)
 		}
 
 		s.emit(DebugEventData{
