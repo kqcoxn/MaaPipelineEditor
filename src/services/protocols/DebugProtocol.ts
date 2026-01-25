@@ -761,11 +761,180 @@ export class DebugProtocol extends BaseProtocol {
    */
   private handleV2DebugCompleted(timestamp: number): void {
     const debugStore = useDebugStore.getState();
+    const {
+      testMode,
+      testNodeName,
+      executionHistory,
+      recognitionRecords,
+      detailCache,
+    } = debugStore;
+
+    // 根据测试模式生成结果消息
+    if (testMode && testNodeName) {
+      const testResult = this.generateTestResult(
+        testMode,
+        testNodeName,
+        executionHistory,
+        recognitionRecords,
+        detailCache
+      );
+
+      // 显示测试结果
+      this.showTestResult(testResult);
+
+      // 清除测试模式
+      debugStore.clearTestResult();
+    } else {
+      message.success("调试执行完成");
+    }
+
     debugStore.handleDebugEvent({
       type: "debug_completed",
       timestamp,
     });
-    message.success("调试执行完成");
+  }
+
+  /**
+   * 生成测试结果
+   */
+  private generateTestResult(
+    testMode: string,
+    nodeName: string,
+    executionHistory: any[],
+    recognitionRecords: any[],
+    detailCache: Map<number, any>
+  ): {
+    success: boolean;
+    type: string;
+    nodeName: string;
+    recognitionHit?: boolean;
+    recognitionAlgorithm?: string;
+    latency?: number;
+    error?: string;
+  } {
+    // 查找节点执行记录
+    const nodeRecord = executionHistory.find((r) => r.nodeName === nodeName);
+    const nodeSuccess = nodeRecord?.status === "completed";
+    const latency = nodeRecord?.latency;
+
+    // 查找识别记录（入口节点的自我识别，parentNode 为 $entry）
+    const recoRecord = recognitionRecords.find(
+      (r) => r.name === nodeName && r.parentNode === "$entry"
+    );
+    const recognitionHit = recoRecord?.hit;
+    const recognitionSuccess = recoRecord?.status === "succeeded";
+
+    // 获取识别算法
+    let recognitionAlgorithm: string | undefined;
+    if (recoRecord?.recoId) {
+      const detail = detailCache.get(recoRecord.recoId);
+      recognitionAlgorithm = detail?.algorithm;
+    }
+
+    switch (testMode) {
+      case "recognition":
+        return {
+          success: recognitionSuccess,
+          type: "recognition",
+          nodeName,
+          recognitionHit,
+          recognitionAlgorithm,
+          latency,
+        };
+
+      case "action":
+        return {
+          success: nodeSuccess,
+          type: "action",
+          nodeName,
+          latency,
+        };
+
+      case "node":
+      default:
+        return {
+          success: nodeSuccess,
+          type: "node",
+          nodeName,
+          recognitionHit,
+          recognitionAlgorithm,
+          latency,
+        };
+    }
+  }
+
+  /**
+   * 显示测试结果
+   */
+  private showTestResult(result: {
+    success: boolean;
+    type: string;
+    nodeName: string;
+    recognitionHit?: boolean;
+    recognitionAlgorithm?: string;
+    latency?: number;
+    error?: string;
+  }): void {
+    const {
+      success,
+      type,
+      nodeName,
+      recognitionHit,
+      recognitionAlgorithm,
+      latency,
+    } = result;
+
+    // 构建结果消息
+    let resultText = "";
+    const latencyText = latency ? ` (耗时 ${latency}ms)` : "";
+
+    switch (type) {
+      case "recognition":
+        if (success && recognitionHit) {
+          const algoText = recognitionAlgorithm
+            ? ` [${recognitionAlgorithm}]`
+            : "";
+          resultText = `识别成功："${nodeName}" 已命中${algoText}${latencyText}`;
+          message.success(resultText);
+        } else if (success && !recognitionHit) {
+          resultText = `识别完成："${nodeName}" 未命中${latencyText}`;
+          message.warning(resultText);
+        } else {
+          resultText = `识别失败："${nodeName}"${latencyText}`;
+          message.error(resultText);
+        }
+        break;
+
+      case "action":
+        if (success) {
+          resultText = `动作执行成功："${nodeName}"${latencyText}`;
+          message.success(resultText);
+        } else {
+          resultText = `动作执行失败："${nodeName}"${latencyText}`;
+          message.error(resultText);
+        }
+        break;
+
+      case "node":
+      default:
+        if (success) {
+          const hitText =
+            recognitionHit !== undefined
+              ? recognitionHit
+                ? "识别命中"
+                : "识别未命中"
+              : "";
+          const algoText = recognitionAlgorithm
+            ? ` [${recognitionAlgorithm}]`
+            : "";
+          resultText = `节点执行成功："${nodeName}" ${hitText}${algoText}${latencyText}`;
+          message.success(resultText);
+        } else {
+          resultText = `节点执行失败："${nodeName}"${latencyText}`;
+          message.error(resultText);
+        }
+        break;
+    }
   }
 
   /**

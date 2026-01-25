@@ -15,7 +15,7 @@ import {
   deleteNode,
   copyNodeRecoJSON,
 } from "./utils/nodeOperations";
-import { useDebugStore } from "../../../stores/debugStore";
+import { useDebugStore, type TestMode } from "../../../stores/debugStore";
 import { useMFWStore } from "../../../stores/mfwStore";
 import { useFileStore } from "../../../stores/fileStore";
 import { debugProtocol } from "../../../services/server";
@@ -182,9 +182,11 @@ function handleCopyRecoJSON(node: NodeContextMenuNode) {
 async function runDebugTest(
   node: NodeContextMenuNode,
   testName: string,
-  override: Record<string, any>
+  override: Record<string, any>,
+  testMode: TestMode
 ) {
-  const { resourcePaths, agentIdentifier } = useDebugStore.getState();
+  const { resourcePaths, agentIdentifier, setTestMode } =
+    useDebugStore.getState();
   const { connectionStatus, controllerId } = useMFWStore.getState();
 
   // 验证连接状态
@@ -208,6 +210,9 @@ async function runDebugTest(
 
   // 获取完整节点名
   const fullNodeName = getFullNodeName(node.data.label);
+
+  // 设置测试模式
+  setTestMode(testMode, node.data.label);
 
   // 直接设置调试状态，不调用 startDebug
   useDebugStore.setState({
@@ -254,7 +259,7 @@ async function handleTestNode(node: NodeContextMenuNode) {
       on_error: [],
     },
   };
-  await runDebugTest(node, "测试此节点", override);
+  await runDebugTest(node, "测试此节点", override, "node");
 }
 
 /**
@@ -271,7 +276,7 @@ async function handleTestRecognition(node: NodeContextMenuNode) {
       on_error: [],
     },
   };
-  await runDebugTest(node, "测试识别", override);
+  await runDebugTest(node, "测试识别", override, "recognition");
 }
 
 /**
@@ -287,7 +292,7 @@ async function handleTestAction(node: NodeContextMenuNode) {
       on_error: [],
     },
   };
-  await runDebugTest(node, "测试动作", override);
+  await runDebugTest(node, "测试动作", override, "action");
 }
 
 /**设置节点端点位置处理器 */

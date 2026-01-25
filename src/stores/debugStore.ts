@@ -28,6 +28,35 @@ export type LogLevel = "verbose" | "normal" | "error";
  */
 export type RecognitionStatus = "pending" | "running" | "succeeded" | "failed";
 
+/**
+ * 单节点测试模式
+ * - null: 普通调试模式
+ * - "node": 测试此节点
+ * - "recognition": 测试识别
+ * - "action": 测试动作
+ */
+export type TestMode = "node" | "recognition" | "action" | null;
+
+/**
+ * 单节点测试结果
+ */
+export interface TestResult {
+  /** 测试类型 */
+  type: TestMode;
+  /** 节点名称 */
+  nodeName: string;
+  /** 是否成功 */
+  success: boolean;
+  /** 识别结果（如果有） */
+  recognitionHit?: boolean;
+  /** 识别算法（如果有） */
+  recognitionAlgorithm?: string;
+  /** 耗时（毫秒） */
+  latency?: number;
+  /** 错误信息（如果有） */
+  error?: string;
+}
+
 // ============================================================================
 // 数据结构定义
 // ============================================================================
@@ -135,6 +164,11 @@ interface DebugState {
   // 错误信息
   error: string | null;
 
+  // 单节点测试
+  testMode: TestMode;
+  testNodeName: string | null;
+  testResult: TestResult | null;
+
   // 操作方法
   toggleDebugMode: () => void;
   setDebugMode: (mode: boolean) => void;
@@ -157,6 +191,10 @@ interface DebugState {
   setCurrentNode: (nodeId: string | null) => void;
   setLastNode: (nodeId: string | null) => void;
   reset: () => void;
+
+  // 单节点测试操作
+  setTestMode: (mode: TestMode, nodeName?: string) => void;
+  clearTestResult: () => void;
 
   // 识别记录操作
   setSelectedRecoId: (recoId: number | null) => void;
@@ -195,6 +233,9 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
   selectedRecoId: null,
   detailCache: new Map(),
   error: null,
+  testMode: null,
+  testNodeName: null,
+  testResult: null,
 
   // 资源路径操作
   addResourcePath: (path: string) => {
@@ -735,6 +776,28 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
       selectedRecoId: null,
       detailCache: new Map(),
       error: null,
+      testMode: null,
+      testNodeName: null,
+      testResult: null,
+    });
+  },
+
+  // ============================================================================
+  // 单节点测试操作
+  // ============================================================================
+  setTestMode: (mode: TestMode, nodeName?: string) => {
+    set({
+      testMode: mode,
+      testNodeName: nodeName || null,
+      testResult: null,
+    });
+  },
+
+  clearTestResult: () => {
+    set({
+      testMode: null,
+      testNodeName: null,
+      testResult: null,
     });
   },
 
