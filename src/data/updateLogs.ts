@@ -54,8 +54,9 @@ export const updateLogs: UpdateLogItem[] = [
     updates: {
       features: [
         "🦕 支持 Shell 动作，更新 Scroll-target/offset、Click/LongPress/Swipe-concat/pressure 字段，同步各字段描述",
+        "🧰 字段小工具全面梳理与适配各字段绑定，您可以更便捷的使用小工具测量与填写字段值了",
       ],
-      perfs: [],
+      perfs: ["连接 LB 服务时自动开启图片渲染（不影响现有配置）"],
       fixes: [],
     },
   },

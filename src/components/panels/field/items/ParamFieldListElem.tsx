@@ -20,19 +20,47 @@ import { TemplatePreview } from "./TemplatePreview";
 import { ImageSelect } from "./ImageSelect";
 import { message } from "antd";
 
+// 快捷工具类型
+type QuickToolType =
+  | "roi"
+  | "roi_offset"
+  | "ocr"
+  | "template"
+  | "color"
+  | "delta";
+
 // 快捷工具配置
-const QUICK_TOOLS: Record<string, IconNames> = {
-  roi: "icon-kuangxuanzhong",
-  roi_offset: "icon-celiang1",
-  expected: "icon-ocr1",
-  template: "icon-jietu",
-  lower: "icon-ic_quseqi",
-  upper: "icon-ic_quseqi",
-  target: "icon-kuangxuanzhong",
-  begin: "icon-kuangxuanzhong",
-  end: "icon-kuangxuanzhong",
-  dx: "icon-celiang2",
-  dy: "icon-celiang2",
+interface QuickToolConfig {
+  icon: IconNames;
+  type: QuickToolType;
+}
+
+const QUICK_TOOLS: Record<string, QuickToolConfig> = {
+  // 区域选择工具 (ROI)
+  roi: { icon: "icon-kuangxuanzhong", type: "roi" },
+  target: { icon: "icon-kuangxuanzhong", type: "roi" },
+  begin: { icon: "icon-kuangxuanzhong", type: "roi" },
+  end: { icon: "icon-kuangxuanzhong", type: "roi" },
+
+  // 偏移测量工具 (ROI Offset)
+  roi_offset: { icon: "icon-celiang1", type: "roi_offset" },
+  target_offset: { icon: "icon-celiang1", type: "roi_offset" },
+  begin_offset: { icon: "icon-celiang1", type: "roi_offset" },
+  end_offset: { icon: "icon-celiang1", type: "roi_offset" },
+
+  // OCR识别工具
+  expected: { icon: "icon-ocr1", type: "ocr" },
+
+  // 模板截图工具
+  template: { icon: "icon-jietu", type: "template" },
+
+  // 颜色取点工具
+  lower: { icon: "icon-ic_quseqi", type: "color" },
+  upper: { icon: "icon-ic_quseqi", type: "color" },
+
+  // 位移差值工具
+  dx: { icon: "icon-celiang2", type: "delta" },
+  dy: { icon: "icon-celiang2", type: "delta" },
 };
 
 const { TextArea } = Input;
@@ -321,9 +349,9 @@ export const ParamFieldListElem = memo(
       [currentROIOffsetKey, currentListIndex, paramData, onChange]
     );
 
-    // 获取字段对应的快捷工具图标
-    const getQuickToolIcon = useCallback(
-      (key: string): IconNames | undefined => {
+    // 获取字段对应的快捷工具配置
+    const getQuickToolConfig = useCallback(
+      (key: string): QuickToolConfig | undefined => {
         return QUICK_TOOLS[key];
       },
       []
@@ -332,23 +360,28 @@ export const ParamFieldListElem = memo(
     // 处理快捷工具点击
     const handleQuickToolClick = useCallback(
       (key: string, listIndex?: number) => {
-        if (
-          key === "roi" ||
-          key === "target" ||
-          key === "begin" ||
-          key === "end"
-        ) {
-          handleOpenROI(key, listIndex);
-        } else if (key === "roi_offset") {
-          handleOpenROIOffset(key, listIndex);
-        } else if (key === "expected") {
-          handleOpenOCR(key, listIndex);
-        } else if (key === "template") {
-          handleOpenTemplate(key, listIndex);
-        } else if (key === "lower" || key === "upper") {
-          handleOpenColor(key, listIndex);
-        } else if (key === "dx" || key === "dy") {
-          handleOpenDelta(key, listIndex);
+        const config = QUICK_TOOLS[key];
+        if (!config) return;
+
+        switch (config.type) {
+          case "roi":
+            handleOpenROI(key, listIndex);
+            break;
+          case "roi_offset":
+            handleOpenROIOffset(key, listIndex);
+            break;
+          case "ocr":
+            handleOpenOCR(key, listIndex);
+            break;
+          case "template":
+            handleOpenTemplate(key, listIndex);
+            break;
+          case "color":
+            handleOpenColor(key, listIndex);
+            break;
+          case "delta":
+            handleOpenDelta(key, listIndex);
+            break;
         }
       },
       [
@@ -364,8 +397,8 @@ export const ParamFieldListElem = memo(
     // 渲染快捷工具按钮
     const renderQuickTool = useCallback(
       (key: string, listIndex?: number) => {
-        const icon = getQuickToolIcon(key);
-        if (!icon) {
+        const config = getQuickToolConfig(key);
+        if (!config) {
           return null;
         }
 
@@ -373,14 +406,14 @@ export const ParamFieldListElem = memo(
           <div className={style.operation}>
             <IconFont
               className="icon-interactive"
-              name={icon}
+              name={config.icon}
               size={18}
               onClick={() => handleQuickToolClick(key, listIndex)}
             />
           </div>
         );
       },
-      [getQuickToolIcon, handleQuickToolClick]
+      [getQuickToolConfig, handleQuickToolClick]
     );
 
     const existingFields = Object.keys(paramData);
