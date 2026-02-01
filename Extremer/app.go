@@ -346,13 +346,20 @@ func (a *App) domReady(ctx context.Context) {
 func (a *App) showMainWindow(ctx context.Context) {
 	// 关闭启动画面
 	if a.splash != nil {
+		wailsRuntime.LogInfo(ctx, "正在关闭启动画面...")
 		a.splash.Close()
 		a.splash = nil
+		wailsRuntime.LogInfo(ctx, "启动画面已关闭")
+		time.Sleep(100 * time.Millisecond)
 	}
 
 	// 显示并最大化主窗口
+	wailsRuntime.LogInfo(ctx, "正在显示主窗口...")
 	wailsRuntime.WindowShow(ctx)
+	// 稍微延迟确保窗口显示后再最大化
+	time.Sleep(50 * time.Millisecond)
 	wailsRuntime.WindowMaximise(ctx)
+	wailsRuntime.LogInfo(ctx, "主窗口已最大化")
 }
 
 // shutdown 应用关闭时调用
@@ -402,17 +409,21 @@ func (a *App) OpenResourcesDir() error {
 }
 
 // CheckUpdate 检查更新
+// [DISABLED] 自动更新功能暂时禁用
 func (a *App) CheckUpdate() (*updater.UpdateInfo, error) {
-	return updater.CheckUpdate(version)
+	// return updater.CheckUpdate(version)
+	return nil, fmt.Errorf("自动更新功能已禁用")
 }
 
 // GetUpdateDownloadURL 获取更新下载链接
+// [DISABLED] 自动更新功能暂时禁用
 func (a *App) GetUpdateDownloadURL() string {
-	info, err := updater.CheckUpdate(version)
-	if err != nil || info == nil || !info.HasUpdate {
-		return ""
-	}
-	return info.DownloadURL
+	// info, err := updater.CheckUpdate(version)
+	// if err != nil || info == nil || !info.HasUpdate {
+	// 	return ""
+	// }
+	// return info.DownloadURL
+	return ""
 }
 
 // RestartBridge 重启 LocalBridge

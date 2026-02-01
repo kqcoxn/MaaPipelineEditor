@@ -4,8 +4,11 @@
 package splash
 
 import (
+	"fmt"
+	"runtime"
 	"sync"
 	"syscall"
+	"time"
 	"unsafe"
 )
 
@@ -140,6 +143,8 @@ type windowsSplash struct {
 	mu        sync.RWMutex
 	closed    bool
 	closeChan chan struct{}
+	readyChan chan struct{} // 窗口就绪信号
+	errorChan chan error    // 错误传递通道
 }
 
 var globalSplash *windowsSplash
@@ -151,74 +156,104 @@ func newPlatformSplash(cfg Config) Splash {
 		message:   cfg.Message,
 		progress:  0,
 		closeChan: make(chan struct{}),
+		readyChan: make(chan struct{}),
+		errorChan: make(chan error, 1),
 	}
 }
 
 // Show 显示启动画面
+// 此方法会阻塞直到窗口创建完成或发生错误
 func (s *windowsSplash) Show() error {
 	globalSplash = s
 
-	// 获取模块句柄
-	hInstance, _, _ := getModuleHandleW.Call(0)
-
-	// 注册窗口类
-	className := syscall.StringToUTF16Ptr("SplashWindowClass")
-	s.className = className
-
-	wc := WNDCLASSEXW{
-		CbSize:        uint32(unsafe.Sizeof(WNDCLASSEXW{})),
-		Style:         CS_HREDRAW | CS_VREDRAW,
-		LpfnWndProc:   syscall.NewCallback(splashWndProc),
-		HInstance:     hInstance,
-		HbrBackground: 0,
-		LpszClassName: className,
-	}
-
-	registerClassExW.Call(uintptr(unsafe.Pointer(&wc)))
-
-	// 获取屏幕尺寸
-	screenWidth, _, _ := getSystemMetrics.Call(SM_CXSCREEN)
-	screenHeight, _, _ := getSystemMetrics.Call(SM_CYSCREEN)
-
-	// 计算窗口位置（居中）
-	x := (int(screenWidth) - s.cfg.Width) / 2
-	y := (int(screenHeight) - s.cfg.Height) / 2
-
-	// 创建窗口
-	title := syscall.StringToUTF16Ptr(s.cfg.Title)
-	hwnd, _, _ := createWindowExW.Call(
-		WS_EX_TOPMOST|WS_EX_TOOLWINDOW,
-		uintptr(unsafe.Pointer(className)),
-		uintptr(unsafe.Pointer(title)),
-		WS_POPUP|WS_VISIBLE,
-		uintptr(x),
-		uintptr(y),
-		uintptr(s.cfg.Width),
-		uintptr(s.cfg.Height),
-		0,
-		0,
-		hInstance,
-		0,
-	)
-	s.hwnd = hwnd
-
-	// 设置圆角区域
-	rgn, _, _ := createRoundRectRgn.Call(0, 0, uintptr(s.cfg.Width), uintptr(s.cfg.Height), 20, 20)
-	setWindowRgn.Call(hwnd, rgn, 1)
-
-	// 显示窗口
-	showWindow.Call(hwnd, SW_SHOW)
-	updateWindow.Call(hwnd)
-
-	// 设置定时器用于动画
-	setTimer.Call(hwnd, TIMER_ID, TIMER_INTERVAL, 0)
-
-	// 消息循环
+	// 在独立的 goroutine 中运行窗口创建和消息循环
 	go func() {
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
+
+		defer func() {
+			if r := recover(); r != nil {
+				select {
+				case s.errorChan <- fmt.Errorf("splash panic: %v", r):
+				default:
+				}
+			}
+		}()
+
+		// 获取模块句柄
+		hInstance, _, _ := getModuleHandleW.Call(0)
+
+		// 注册窗口类
+		className := syscall.StringToUTF16Ptr("SplashWindowClass")
+		s.className = className
+
+		wc := WNDCLASSEXW{
+			CbSize:        uint32(unsafe.Sizeof(WNDCLASSEXW{})),
+			Style:         CS_HREDRAW | CS_VREDRAW,
+			LpfnWndProc:   syscall.NewCallback(splashWndProc),
+			HInstance:     hInstance,
+			HbrBackground: 0,
+			LpszClassName: className,
+		}
+
+		registerClassExW.Call(uintptr(unsafe.Pointer(&wc)))
+
+		// 获取屏幕尺寸
+		screenWidth, _, _ := getSystemMetrics.Call(SM_CXSCREEN)
+		screenHeight, _, _ := getSystemMetrics.Call(SM_CYSCREEN)
+
+		// 计算窗口位置（居中）
+		x := (int(screenWidth) - s.cfg.Width) / 2
+		y := (int(screenHeight) - s.cfg.Height) / 2
+
+		// 创建窗口
+		title := syscall.StringToUTF16Ptr(s.cfg.Title)
+		hwnd, _, err := createWindowExW.Call(
+			WS_EX_TOPMOST|WS_EX_TOOLWINDOW,
+			uintptr(unsafe.Pointer(className)),
+			uintptr(unsafe.Pointer(title)),
+			WS_POPUP|WS_VISIBLE,
+			uintptr(x),
+			uintptr(y),
+			uintptr(s.cfg.Width),
+			uintptr(s.cfg.Height),
+			0,
+			0,
+			hInstance,
+			0,
+		)
+
+		if hwnd == 0 {
+			select {
+			case s.errorChan <- fmt.Errorf("创建窗口失败: %v", err):
+			default:
+			}
+			return
+		}
+
+		s.mu.Lock()
+		s.hwnd = hwnd
+		s.mu.Unlock()
+
+		// 设置圆角区域
+		rgn, _, _ := createRoundRectRgn.Call(0, 0, uintptr(s.cfg.Width), uintptr(s.cfg.Height), 20, 20)
+		setWindowRgn.Call(hwnd, rgn, 1)
+
+		// 显示窗口
+		showWindow.Call(hwnd, SW_SHOW)
+		updateWindow.Call(hwnd)
+
+		// 设置定时器用于动画
+		setTimer.Call(hwnd, TIMER_ID, TIMER_INTERVAL, 0)
+
+		// 通知窗口已就绪
+		close(s.readyChan)
+
+		// 消息循环
 		var msg MSG
 		for {
 			ret, _, _ := getMessage.Call(uintptr(unsafe.Pointer(&msg)), 0, 0, 0)
-			if ret == 0 || s.closed {
+			if ret == 0 {
 				break
 			}
 			translateMessage.Call(uintptr(unsafe.Pointer(&msg)))
@@ -226,7 +261,15 @@ func (s *windowsSplash) Show() error {
 		}
 	}()
 
-	return nil
+	// 等待窗口创建完成或发生错误
+	select {
+	case <-s.readyChan:
+		return nil
+	case err := <-s.errorChan:
+		return err
+	case <-time.After(5 * time.Second):
+		return fmt.Errorf("启动画面创建超时")
+	}
 }
 
 // Close 关闭启动画面
@@ -237,11 +280,15 @@ func (s *windowsSplash) Close() {
 		return
 	}
 	s.closed = true
+	hwnd := s.hwnd
 	s.mu.Unlock()
 
-	if s.hwnd != 0 {
-		killTimer.Call(s.hwnd, TIMER_ID)
-		postMessageW.Call(s.hwnd, WM_CLOSE, 0, 0)
+	if hwnd != 0 {
+		// 停止定时器
+		killTimer.Call(hwnd, TIMER_ID)
+		// 发送 WM_CLOSE 消息，让窗口过程处理关闭流程
+		// WM_CLOSE -> destroyWindow -> WM_DESTROY -> postQuitMessage -> getMessage 返回 0
+		postMessageW.Call(hwnd, WM_CLOSE, 0, 0)
 	}
 }
 

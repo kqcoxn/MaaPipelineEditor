@@ -31,15 +31,17 @@ func main() {
 	}
 	devMode := err == nil && isDevMode(exePath)
 
-	// Windows 平台且非开发模式下显示启动画面
+	// Windows 平台显示启动画面
 	var sp splash.Splash
-	if runtime.GOOS == "windows" && !devMode {
+	if runtime.GOOS == "windows" {
 		cfg := splash.DefaultConfig()
 		sp = splash.New(cfg)
 		if err := sp.Show(); err != nil {
 			log.Printf("启动画面显示失败: %v", err)
+			sp = nil
 		}
 	}
+	_ = devMode // 避免未使用变量警告
 
 	app := NewApp()
 	app.splash = sp
@@ -51,7 +53,7 @@ func main() {
 		MinWidth:         1024,
 		MinHeight:        768,
 		WindowStartState: options.Maximised,
-		StartHidden:      runtime.GOOS == "windows" && !devMode,
+		StartHidden:      sp != nil, // 有启动画面时隐藏主窗口，否则直接显示
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
