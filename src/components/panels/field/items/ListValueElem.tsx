@@ -2,10 +2,54 @@ import style from "../../../../styles/FieldPanel.module.less";
 import { Input, InputNumber } from "antd";
 import IconFont from "../../../iconfonts";
 import { JsonHelper } from "../../../../utils/jsonHelper";
-import type { ReactNode } from "react";
+import { useState, useEffect, memo, type ReactNode } from "react";
 import { FieldTypeEnum } from "../../../../core/fields";
 
 const { TextArea } = Input;
+
+/**
+ * 带本地状态的 TextArea，只在失焦时触发更新
+ */
+const LocalTextArea = memo(
+  ({
+    value,
+    placeholder,
+    onCommit,
+  }: {
+    value: any;
+    placeholder: string;
+    onCommit: (newValue: any) => void;
+  }) => {
+    // 将值转为字符串显示：字符串直接显示，对象/数组转 JSON
+    const displayValue =
+      typeof value === "string"
+        ? value
+        : JsonHelper.objToString(value) ?? String(value ?? "");
+    const [localValue, setLocalValue] = useState(displayValue);
+
+    // 同步外部值变化
+    useEffect(() => {
+      setLocalValue(displayValue);
+    }, [displayValue]);
+
+    return (
+      <TextArea
+        placeholder={placeholder}
+        value={localValue}
+        autoSize={{ minRows: 1, maxRows: 4 }}
+        onChange={(e) => {
+          // 编辑时只更新本地状态，不触发父组件更新
+          setLocalValue(e.target.value);
+        }}
+        onBlur={() => {
+          // 失焦时尝试解析并提交
+          const parsed = JsonHelper.stringObjToJson(localValue);
+          onCommit(parsed ?? localValue);
+        }}
+      />
+    );
+  }
+);
 
 export function ListValueElem(
   key: string,
@@ -23,7 +67,7 @@ export function ListValueElem(
 
   // 内层数组被视为一个整体
   if (placeholder === FieldTypeEnum.IntListList) {
-    if (valueList.length > 0 && !Array.isArray(valueList[0])) {
+    if (valueList.length > 0 && typeof valueList[0] === "number") {
       valueList = [valueList];
     }
   }
@@ -36,28 +80,29 @@ export function ListValueElem(
       (index === valueList.length - 1 ? 1 : 0);
 
     // 输入框元素
-    const inputElement = step > 0 ? (
-      <InputNumber
-        placeholder={placeholder}
-        style={{ flex: 1 }}
-        value={value}
-        step={step}
-        onChange={(e) => {
-          valueList[index] = e;
-          onChange(key, valueList);
-        }}
-      />
-    ) : (
-      <TextArea
-        placeholder={placeholder}
-        value={JsonHelper.objToString(value) ?? value}
-        autoSize={{ minRows: 1, maxRows: 4 }}
-        onChange={(e) => {
-          valueList[index] = e.target.value;
-          onChange(key, valueList);
-        }}
-      />
-    );
+    const inputElement =
+      step > 0 ? (
+        <InputNumber
+          placeholder={placeholder}
+          style={{ flex: 1 }}
+          value={value}
+          step={step}
+          onChange={(e) => {
+            valueList[index] = e;
+            onChange(key, valueList);
+          }}
+        />
+      ) : (
+        <LocalTextArea
+          value={value}
+          placeholder={placeholder}
+          onCommit={(newValue) => {
+            const newList = [...valueList];
+            newList[index] = newValue;
+            onChange(key, newList);
+          }}
+        />
+      );
 
     return (
       <div key={index}>

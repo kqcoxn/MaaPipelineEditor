@@ -4,7 +4,6 @@
 
 ## bug
 
-- target offset 字段工具
 - color 字段
 
 ## perf
