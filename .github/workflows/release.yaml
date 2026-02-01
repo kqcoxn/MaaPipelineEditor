@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -12,8 +13,8 @@ jobs:
   build-localbridge:
     name: Build LocalBridge for ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
-    # 跳过测试版本 tag
-    if: ${{ !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test') }}
+    # 跳过测试版本 tag，允许手动触发
+    if: ${{ github.event_name == 'workflow_dispatch' || (!contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test')) }}
     strategy:
       matrix:
         include:
@@ -51,7 +52,11 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: 0
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="test-$(date +%Y%m%d-%H%M%S)"
+          else
+            VERSION=${GITHUB_REF#refs/tags/v}
+          fi
           go build -ldflags="-s -w -X main.Version=${VERSION}" -o ../build/${{ matrix.name }} ./cmd/lb
         shell: bash
 
@@ -63,8 +68,8 @@ jobs:
 
   build-web:
     runs-on: ubuntu-latest
-    # 跳过测试版本 tag
-    if: ${{ !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test') }}
+    # 跳过测试版本 tag，允许手动触发
+    if: ${{ github.event_name == 'workflow_dispatch' || (!contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test')) }}
 
     steps:
       - name: Checkout
@@ -92,10 +97,15 @@ jobs:
 
       - name: Create stable archive
         run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="test-$(date +%Y%m%d-%H%M%S)"
+          else
+            VERSION="${{ github.ref_name }}"
+          fi
           cd dist
-          # 排除不需要的根目录文件
-          zip -r ../MaaPipelineEditor-${{ github.ref_name }}-stable.zip . -x "index.html" "*.ico" "*.png"
+          zip -r ../MaaPipelineEditor-${VERSION}-stable.zip .
           cd ..
+        shell: bash
 
       - name: Build project (extremer)
         run: yarn build --mode extremer
@@ -108,25 +118,32 @@ jobs:
 
       - name: Build docs
         run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="test-$(date +%Y%m%d-%H%M%S)"
+          else
+            VERSION="${{ github.ref_name }}"
+          fi
           cd docsite
           yarn install
           yarn build
           cd ..
           cd docsite/docs/.vitepress/dist
-          zip -r ../../../../MaaPipelineEditor-${{ github.ref_name }}-docs.zip .
+          zip -r ../../../../MaaPipelineEditor-${VERSION}-docs.zip .
           cd ../../../..
+        shell: bash
 
       - name: Upload web artifacts
         uses: actions/upload-artifact@v4
         with:
           name: web-packages
           path: |
-            MaaPipelineEditor-${{ github.ref_name }}-stable.zip
-            MaaPipelineEditor-${{ github.ref_name }}-docs.zip
+            MaaPipelineEditor-*-stable.zip
+            MaaPipelineEditor-*-docs.zip
 
   download-resources:
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test') }}
+    # 允许手动触发
+    if: ${{ github.event_name == 'workflow_dispatch' || (!contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test')) }}
 
     steps:
       - name: Download MaaFramework resources
@@ -178,7 +195,8 @@ jobs:
     name: Build Extremer for ${{ matrix.platform }}
     needs: [build-web, build-localbridge, download-resources]
     runs-on: ${{ matrix.os }}
-    if: ${{ !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test') }}
+    # 允许手动触发
+    if: ${{ github.event_name == 'workflow_dispatch' || (!contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test')) }}
     strategy:
       matrix:
         include:
@@ -262,7 +280,11 @@ jobs:
       - name: Build Extremer
         working-directory: Extremer
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="test-$(date +%Y%m%d-%H%M%S)"
+          else
+            VERSION=${GITHUB_REF#refs/tags/v}
+          fi
           if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
             wails build -tags webkit2_41 -ldflags="-X main.version=${VERSION}"
           else
@@ -279,23 +301,33 @@ jobs:
       - name: Package Extremer (Windows)
         if: matrix.os == 'windows-latest'
         run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="test-$(date +%Y%m%d-%H%M%S)"
+          else
+            VERSION="${{ github.ref_name }}"
+          fi
           mkdir -p package/MaaPipelineExtremer-${{ matrix.platform }}
           cp Extremer/build/bin/MaaPipelineEditor.exe package/MaaPipelineExtremer-${{ matrix.platform }}/
           cp -r Extremer/resources package/MaaPipelineExtremer-${{ matrix.platform }}/
           cp -r Extremer/build/bin/config package/MaaPipelineExtremer-${{ matrix.platform }}/
           cd package
-          Compress-Archive -Path MaaPipelineExtremer-${{ matrix.platform }} -DestinationPath MaaPipelineExtremer-${{ matrix.platform }}-${{ github.ref_name }}.zip
+          Compress-Archive -Path MaaPipelineExtremer-${{ matrix.platform }} -DestinationPath MaaPipelineExtremer-${{ matrix.platform }}-${VERSION}.zip
         shell: pwsh
 
       - name: Package Extremer (Unix)
         if: matrix.os != 'windows-latest'
         run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="test-$(date +%Y%m%d-%H%M%S)"
+          else
+            VERSION="${{ github.ref_name }}"
+          fi
           mkdir -p package/MaaPipelineExtremer-${{ matrix.platform }}
           cp Extremer/build/bin/MaaPipelineEditor package/MaaPipelineExtremer-${{ matrix.platform }}/ || cp -r Extremer/build/bin/MaaPipelineEditor.app package/MaaPipelineExtremer-${{ matrix.platform }}/ || true
           cp -r Extremer/resources package/MaaPipelineExtremer-${{ matrix.platform }}/
           cp -r Extremer/build/bin/config package/MaaPipelineExtremer-${{ matrix.platform }}/
           cd package
-          zip -r MaaPipelineExtremer-${{ matrix.platform }}-${{ github.ref_name }}.zip MaaPipelineExtremer-${{ matrix.platform }}
+          zip -r MaaPipelineExtremer-${{ matrix.platform }}-${VERSION}.zip MaaPipelineExtremer-${{ matrix.platform }}
         shell: bash
 
       - name: Upload Extremer artifact
@@ -307,8 +339,8 @@ jobs:
   release:
     needs: [build-web, build-localbridge, build-extremer]
     runs-on: ubuntu-latest
-    # 跳过测试版本 tag
-    if: ${{ !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test') }}
+    # 仅在 tag 触发时执行发布，手动触发时跳过
+    if: ${{ github.event_name == 'push' && !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test') }}
 
     steps:
       - name: Checkout
