@@ -101,7 +101,7 @@ export const recoFieldSchema: Record<string, FieldType> = {
   detector: {
     key: "detector",
     type: FieldTypeEnum.String,
-    options: ["SIFT", "KAZE", "AKAZE", "BRISK", "BRISK", "ORB"],
+    options: ["SIFT", "KAZE", "AKAZE", "BRISK", "ORB"],
     default: "SIFT",
     desc: `匹配的特征点的最低数量要求（阈值）。可选，默认 4 。目前支持以下算法：SIFT-计算复杂度高，具有尺度不变性、旋转不变性。效果最好；KAZE-适用于2D和3D图像，具有尺度不变性、旋转不变性；AKAZE-计算速度较快，具有尺度不变性、旋转不变性；BRISK-计算速度非常快，具有尺度不变性、旋转不变性；ORB-计算速度非常快，具有旋转不变性。但不具有尺度不变性。各算法特点详情可自行进一步查询。`,
   },

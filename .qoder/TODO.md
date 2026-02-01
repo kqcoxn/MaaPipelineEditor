@@ -4,8 +4,8 @@
 
 ## bug
 
-- 重复识别一个节点时仅返回一个记录
-- debug oom
+- target offset 字段工具
+- color 字段
 
 ## perf
 

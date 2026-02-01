@@ -48,11 +48,11 @@ export const pinnedNotice: PinnedNotice = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
-    version: "1.0.1",
-    date: "2026-1-25",
-    type: "fix",
+    version: "1.0.2",
+    date: "2026-2-1",
+    type: "feature",
     updates: {
-      features: ["🦕 同步字段描述"],
+      features: ["🦕 支持 Shell 动作，同步部分字段描述"],
       perfs: [],
       fixes: [
       ],
