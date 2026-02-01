@@ -10,7 +10,12 @@ export const actionFields: Record<string, FieldsType> = {
     desc: "什么都不做。",
   },
   Click: {
-    params: [actionFieldSchema.clickTarget, actionFieldSchema.targetOffset, actionFieldSchema.contact, actionFieldSchema.pressure],
+    params: [
+      actionFieldSchema.clickTarget,
+      actionFieldSchema.targetOffset,
+      actionFieldSchema.contact,
+      actionFieldSchema.pressure,
+    ],
     desc: "点击。",
   },
   Custom: {
@@ -31,11 +36,18 @@ export const actionFields: Record<string, FieldsType> = {
       actionFieldSchema.swipeDuration,
       actionFieldSchema.endHold,
       actionFieldSchema.onlyHover,
+      actionFieldSchema.contact,
+      actionFieldSchema.pressure,
     ],
     desc: "线性滑动。",
   },
   Scroll: {
-    params: [actionFieldSchema.scrollTarget, actionFieldSchema.scrollTargetOffset, actionFieldSchema.dx, actionFieldSchema.dy],
+    params: [
+      actionFieldSchema.scrollTarget,
+      actionFieldSchema.scrollTargetOffset,
+      actionFieldSchema.dx,
+      actionFieldSchema.dy,
+    ],
     desc: "鼠标滚轮滚动。Adb 控制器和 PlayCover 控制器不支持滚动操作。仅 Win32 控制器支持。 dx/dy 的值会直接作为滚动增量发送。Windows 标准滚轮每格增量为 120（WHEEL_DELTA），建议使用 120 的整数倍以获得最佳兼容性。",
   },
   ClickKey: {
@@ -47,6 +59,8 @@ export const actionFields: Record<string, FieldsType> = {
       actionFieldSchema.longPressTarget,
       actionFieldSchema.targetOffset,
       actionFieldSchema.longPressDuration,
+      actionFieldSchema.contact,
+      actionFieldSchema.pressure,
     ],
     desc: "长按。",
   },
@@ -116,10 +130,7 @@ export const actionFields: Record<string, FieldsType> = {
     desc: "执行命令。",
   },
   Shell: {
-    params: [
-      actionFieldSchema.cmd,
-      actionFieldSchema.timeout
-    ],
+    params: [actionFieldSchema.cmd, actionFieldSchema.timeout],
     desc: "在 ADB 设备上执行 shell 命令。",
   },
   Key: {
