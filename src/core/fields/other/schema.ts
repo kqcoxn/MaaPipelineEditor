@@ -181,7 +181,7 @@ export const otherFieldSchema: Record<string, FieldType> = {
     key: "focus",
     type: FieldTypeEnum.Any,
     default: "",
-    desc: "关注节点，会额外产生部分回调消息。可选，默认 null，不产生回调消息。详见 节点通知。",
+    desc: "关注节点，会额外产生部分回调消息。可选，默认 null，不产生回调消息。在节点中添加 focus 字段，键为消息类型，值为要展示的模板字符串，模板字符串支持文件路径、URL或直接文本，内容支持Markdown格式，支持国际化（以$开头）。模板中可使用 {字段名} 格式的占位符，UI 会自动替换为实际值。",
     params: [
       {
         key: "Node.Recognition.Starting",
