@@ -150,7 +150,7 @@ jobs:
         run: |
           # 下载各平台的 MaaFramework 资源
           # 从 MaaFramework Release 获取最新版本
-          MFW_VERSION="v5.4.0"
+          MFW_VERSION="v5.5.0"
           MFW_BASE_URL="https://github.com/MaaXYZ/MaaFramework/releases/download/${MFW_VERSION}"
           
           mkdir -p resources
