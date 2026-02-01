@@ -52,6 +52,17 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2026-1-25",
     type: "fix",
     updates: {
+      features: ["🦕 同步字段描述"],
+      perfs: [],
+      fixes: [
+      ],
+    },
+  },
+  {
+    version: "1.0.1",
+    date: "2026-1-25",
+    type: "fix",
+    updates: {
       features: ["🧩 新增默认识别/动作导出配置项"],
       perfs: ["Extremer 新增加载提示", "添加调试记录轮转机制"],
       fixes: [
