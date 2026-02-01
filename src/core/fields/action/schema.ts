@@ -216,8 +216,8 @@ export const actionFieldSchema: Record<string, FieldType> = {
   },
   commandArgs: {
     key: "args",
-    type: [FieldTypeEnum.StringList, FieldTypeEnum.String],
-    default: "",
+    type: [FieldTypeEnum.StringList],
+    default: [""],
     desc: "执行的参数。可选。 支持部分运行期参数替换： {ENTRY}: 任务入口名。 {NODE}: 当前节点名。 {IMAGE}: 截图保存到文件的路径。该文件在进程退出前删除，若要持久保存请自行复制。 {BOX}: 识别命中的目标，格式为 [x, y, w, h]。 {RESOURCE_DIR}: 最后一次加载的资源文件夹路径。 {LIBRARY_DIR}: MaaFW 库所在的文件夹路径。",
   },
   detach: {
