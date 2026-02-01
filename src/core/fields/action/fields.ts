@@ -10,7 +10,7 @@ export const actionFields: Record<string, FieldsType> = {
     desc: "什么都不做。",
   },
   Click: {
-    params: [actionFieldSchema.clickTarget, actionFieldSchema.targetOffset],
+    params: [actionFieldSchema.clickTarget, actionFieldSchema.targetOffset, actionFieldSchema.contact, actionFieldSchema.pressure],
     desc: "点击。",
   },
   Custom: {
