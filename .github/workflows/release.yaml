@@ -110,6 +110,14 @@ jobs:
       - name: Build project (extremer)
         run: yarn build --mode extremer
 
+      - name: List dist contents
+        run: |
+          echo "=== Listing dist/ contents ==="
+          ls -la dist/
+          echo "=== Checking if index.html exists ==="
+          test -f dist/index.html && echo "✓ index.html found" || echo "✗ index.html NOT found"
+        shell: bash
+
       - name: Upload extremer dist artifact
         uses: actions/upload-artifact@v4
         with:
@@ -245,6 +253,14 @@ jobs:
         with:
           name: extremer-dist
           path: Extremer/frontend/dist/
+
+      - name: Verify extremer dist download
+        run: |
+          echo "=== Listing Extremer/frontend/dist/ contents ==="
+          ls -la Extremer/frontend/dist/
+          echo "=== Checking if index.html exists ==="
+          test -f Extremer/frontend/dist/index.html && echo "✓ index.html found" || echo "✗ index.html NOT found"
+        shell: bash
 
       - name: Download LocalBridge artifact
         uses: actions/download-artifact@v4
