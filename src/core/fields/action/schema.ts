@@ -185,7 +185,7 @@ export const actionFieldSchema: Record<string, FieldType> = {
     type: FieldTypeEnum.Int,
     default: 1000,
     step: 100,
-    desc: "要按的键，仅支持对应控制器的虚拟按键码。必选。",
+    desc: "长按持续时间，单位毫秒。可选，默认 1000 。",
   },
 
   // 输入相关
