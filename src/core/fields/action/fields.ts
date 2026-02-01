@@ -35,8 +35,8 @@ export const actionFields: Record<string, FieldsType> = {
     desc: "线性滑动。",
   },
   Scroll: {
-    params: [actionFieldSchema.dx, actionFieldSchema.dy],
-    desc: "鼠标滚轮滚动。注意：Adb 控制器不支持滚动操作。仅 Win32 控制器支持。",
+    params: [actionFieldSchema.scrollTarget, actionFieldSchema.scrollTargetOffset, actionFieldSchema.dx, actionFieldSchema.dy],
+    desc: "鼠标滚轮滚动。Adb 控制器和 PlayCover 控制器不支持滚动操作。仅 Win32 控制器支持。 dx/dy 的值会直接作为滚动增量发送。Windows 标准滚轮每格增量为 120（WHEEL_DELTA），建议使用 120 的整数倍以获得最佳兼容性。",
   },
   ClickKey: {
     params: [actionFieldSchema.clickKey],

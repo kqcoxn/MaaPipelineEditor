@@ -52,7 +52,7 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2026-2-1",
     type: "feature",
     updates: {
-      features: ["🦕 支持 Shell 动作，同步部分字段描述"],
+      features: ["🦕 支持 Shell 动作，更新 Scroll-target/offset 字段，同步各字段描述"],
       perfs: [],
       fixes: [
       ],

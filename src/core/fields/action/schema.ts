@@ -100,6 +100,23 @@ export const actionFieldSchema: Record<string, FieldType> = {
     default: true,
     desc: "仅鼠标悬停移动，无按下/抬起动作。可选，默认 false。",
   },
+  scrollTarget: {
+    key: "target",
+    type: [
+      FieldTypeEnum.XYWH,
+      FieldTypeEnum.IntPair,
+      FieldTypeEnum.True,
+      FieldTypeEnum.String,
+    ],
+    default: [0, 0, 0, 0],
+    desc: "滚动目标的位置，鼠标会先移动到该位置再进行滚动。可选，默认 true 。 true: 目标为本节点中刚刚识别到的位置（即自身）。 string: 填写节点名，目标为之前执行过的某节点识别到的位置。 array<int, 2>: 固定坐标点 [x, y]。 array<int, 4>: 固定坐标区域 [x, y, w, h]，会在矩形内随机选取一点（越靠近中心概率越高，边缘概率相对较低），若希望全屏可设为 [0, 0, 0, 0] 。",
+  },
+  scrollTargetOffset: {
+    key: "target_offset",
+    type: [FieldTypeEnum.XYWH, FieldTypeEnum.IntPair],
+    default: [0, 0, 0, 0],
+    desc: "在 target 的基础上额外移动再作为滚动目标，四个值分别相加。可选，默认 [0, 0, 0, 0] 。",
+  },
   dx: {
     key: "dx",
     type: FieldTypeEnum.Int,
