@@ -301,17 +301,17 @@ jobs:
       - name: Package Extremer (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="test-$(date +%Y%m%d-%H%M%S)"
-          else
-            VERSION="${{ github.ref_name }}"
-          fi
-          mkdir -p package/MaaPipelineExtremer-${{ matrix.platform }}
-          cp Extremer/build/bin/MaaPipelineEditor.exe package/MaaPipelineExtremer-${{ matrix.platform }}/
-          cp -r Extremer/resources package/MaaPipelineExtremer-${{ matrix.platform }}/
-          cp -r Extremer/build/bin/config package/MaaPipelineExtremer-${{ matrix.platform }}/
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $VERSION = "test-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+          } else {
+            $VERSION = "${{ github.ref_name }}"
+          }
+          New-Item -ItemType Directory -Force -Path package/MaaPipelineExtremer-${{ matrix.platform }}
+          Copy-Item Extremer/build/bin/MaaPipelineEditor.exe package/MaaPipelineExtremer-${{ matrix.platform }}/
+          Copy-Item -Recurse Extremer/resources package/MaaPipelineExtremer-${{ matrix.platform }}/
+          Copy-Item -Recurse Extremer/build/bin/config package/MaaPipelineExtremer-${{ matrix.platform }}/
           cd package
-          Compress-Archive -Path MaaPipelineExtremer-${{ matrix.platform }} -DestinationPath MaaPipelineExtremer-${{ matrix.platform }}-${VERSION}.zip
+          Compress-Archive -Path MaaPipelineExtremer-${{ matrix.platform }} -DestinationPath MaaPipelineExtremer-${{ matrix.platform }}-$VERSION.zip
         shell: pwsh
 
       - name: Package Extremer (Unix)
