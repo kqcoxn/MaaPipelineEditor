@@ -18,17 +18,18 @@
 - [instructions/maafw-golang/API参考/框架初始化.md](file://instructions/maafw-golang/API参考/框架初始化.md)
 - [instructions/maafw-golang/核心概念/核心概念.md](file://instructions/maafw-golang/核心概念/核心概念.md)
 - [instructions/maafw-guide/2.1-集成文档.md](file://instructions/maafw-guide/2.1-集成文档.md)
+- [instructions/maafw-guide/2.2-集成接口一览.md](file://instructions/maafw-guide/2.2-集成接口一览.md)
 - [instructions/maafw-guide/2.3-回调协议.md](file://instructions/maafw-guide/2.3-回调协议.md)
 - [instructions/maafw-guide/2.4-控制方式说明.md](file://instructions/maafw-guide/2.4-控制方式说明.md)
 </cite>
 
 ## 更新摘要
 **已更新内容**
-- 在“简介”部分新增了对maafw-guide中集成文档、回调协议和控制方式说明的引用
-- 新增“集成文档概览”章节，整合了各语言绑定的集成情况
-- 新增“回调协议”章节，详细说明了MaaFramework的事件回调机制
-- 新增“控制方式说明”章节，详细说明了Adb、Win32和PlayCover控制器的控制方式
-- 更新了“附录”中的启用MFW步骤指引，增加了对回调协议和控制方式的参考
+- 在"简介"部分新增了对maafw-guide中集成文档、回调协议和控制方式说明的引用
+- 新增"集成文档概览"章节，整合了各语言绑定的集成情况，包括新增的Rust语言支持和更新的Java状态
+- 新增"回调协议"章节，详细说明了MaaFramework的事件回调机制
+- 新增"控制方式说明"章节，详细说明了Adb、Win32和PlayCover控制器的控制方式
+- 更新了"附录"中的启用MFW步骤指引，增加了对回调协议和控制方式的参考
 
 ## 目录
 1. [简介](#简介)
@@ -49,7 +50,7 @@
 本文件面向在 MaaPipelineEditor 中集成 MaaFramework 的开发者，系统性说明 LocalBridge 如何通过 Go 侧的 MFW 子系统对接 MaaFramework 的设备控制、资源加载与任务执行能力，并通过 WebSocket 协议向前端提供统一的 MFW 协议接口。当前仓库实现了 MFW 协议处理器与管理器骨架，MaaFramework 的实际调用仍处于占位实现阶段，需在启用时接入 maa-framework-go 的真实 API。本文档已更新以包含maafw-guide中的新集成指南、回调协议和控制方式说明。
 
 ## 项目结构
-LocalBridge 的 MFW 集成位于 LocalBridge/internal/mfw 与 LocalBridge/internal/protocol/mfw，配合 cmd/lb/main.go 的服务启动流程，形成“配置加载 → 服务初始化 → 协议注册 → WebSocket 分发”的闭环。
+LocalBridge 的 MFW 集成位于 LocalBridge/internal/mfw 与 LocalBridge/internal/protocol/mfw，配合 cmd/lb/main.go 的服务启动流程，形成"配置加载 → 服务初始化 → 协议注册 → WebSocket 分发"的闭环。
 
 ```mermaid
 graph TB
@@ -78,7 +79,7 @@ MFW_SVC --> ERR_MGR
 MFW_TYPES --> PROTO_HDL
 ```
 
-图表来源
+**图表来源**
 - [LocalBridge/cmd/lb/main.go](file://LocalBridge/cmd/lb/main.go#L54-L147)
 - [LocalBridge/config/default.json](file://LocalBridge/config/default.json#L1-L29)
 - [LocalBridge/internal/mfw/service.go](file://LocalBridge/internal/mfw/service.go#L1-L105)
@@ -90,7 +91,7 @@ MFW_TYPES --> PROTO_HDL
 - [LocalBridge/internal/protocol/mfw/handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L1-L536)
 - [LocalBridge/pkg/models/mfw.go](file://LocalBridge/pkg/models/mfw.go#L1-L169)
 
-章节来源
+**章节来源**
 - [LocalBridge/README.md](file://LocalBridge/README.md#L282-L385)
 - [LocalBridge/cmd/lb/main.go](file://LocalBridge/cmd/lb/main.go#L54-L147)
 - [LocalBridge/config/default.json](file://LocalBridge/config/default.json#L1-L29)
@@ -104,7 +105,7 @@ MFW_TYPES --> PROTO_HDL
 - MFW 协议处理器：将前端 WebSocket 消息路由到对应管理器，并返回统一的响应或错误消息。
 - 消息模型：定义 MFW 协议的消息结构，包括控制器、任务、资源、设备等数据结构。
 
-章节来源
+**章节来源**
 - [LocalBridge/internal/mfw/service.go](file://LocalBridge/internal/mfw/service.go#L1-L105)
 - [LocalBridge/internal/mfw/device_manager.go](file://LocalBridge/internal/mfw/device_manager.go#L1-L74)
 - [LocalBridge/internal/mfw/controller_manager.go](file://LocalBridge/internal/mfw/controller_manager.go#L1-L344)
@@ -147,12 +148,12 @@ H-->>WS : "发送 /lte/mfw/* 响应或 /error 错误"
 WS-->>FE : "推送结果"
 ```
 
-图表来源
+**图表来源**
 - [LocalBridge/internal/protocol/mfw/handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L23-L83)
 - [LocalBridge/internal/mfw/service.go](file://LocalBridge/internal/mfw/service.go#L1-L105)
 - [LocalBridge/cmd/lb/main.go](file://LocalBridge/cmd/lb/main.go#L105-L120)
 
-章节来源
+**章节来源**
 - [LocalBridge/cmd/lb/main.go](file://LocalBridge/cmd/lb/main.go#L54-L147)
 - [LocalBridge/internal/protocol/mfw/handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L23-L83)
 
@@ -163,49 +164,49 @@ WS-->>FE : "推送结果"
 - 初始化：记录初始化标志，预留调用 maa.Init() 的位置，便于后续接入真实框架。
 - 关闭：清理资源，重置初始化标志。
 
-章节来源
+**章节来源**
 - [LocalBridge/internal/mfw/service.go](file://LocalBridge/internal/mfw/service.go#L1-L105)
 
 ### 设备管理器（DeviceManager）
 - 职责：维护 ADB 设备与 Win32 窗体列表，提供刷新与查询接口。
 - 当前实现：占位返回空列表，待对接 maa-framework-go 的 FindAdbDevices/FindWin32Windows。
 
-章节来源
+**章节来源**
 - [LocalBridge/internal/mfw/device_manager.go](file://LocalBridge/internal/mfw/device_manager.go#L1-L74)
 
 ### 控制器管理器（ControllerManager）
 - 职责：控制器生命周期管理（创建/连接/断开），设备操作（点击/滑动/输入/启停应用/截图），状态查询与清理。
 - 当前实现：占位创建控制器并维护状态，设备操作与截图均以占位实现替代。
 
-章节来源
+**章节来源**
 - [LocalBridge/internal/mfw/controller_manager.go](file://LocalBridge/internal/mfw/controller_manager.go#L1-L344)
 
 ### 资源管理器（ResourceManager）
 - 职责：资源加载与卸载，返回资源ID与哈希。
 - 当前实现：占位加载并返回资源ID，哈希待实现。
 
-章节来源
+**章节来源**
 - [LocalBridge/internal/mfw/resource_manager.go](file://LocalBridge/internal/mfw/resource_manager.go#L1-L79)
 
 ### 任务管理器（TaskManager）
 - 职责：任务提交、状态查询、停止。
 - 当前实现：占位提交并返回任务ID，状态查询与停止为占位实现。
 
-章节来源
+**章节来源**
 - [LocalBridge/internal/mfw/task_manager.go](file://LocalBridge/internal/mfw/task_manager.go#L1-L86)
 
 ### MFW 协议处理器（MFWHandler）
 - 职责：注册 /etl/mfw/* 路由，解析前端请求，调用对应管理器，组装响应或错误消息。
 - 路由覆盖：设备刷新、控制器创建/断开/操作、截图、任务提交/查询/停止、资源加载、自定义识别/动作注册（占位）。
 
-章节来源
+**章节来源**
 - [LocalBridge/internal/protocol/mfw/handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L23-L83)
 - [LocalBridge/internal/protocol/mfw/handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L85-L536)
 
 ### 消息模型（pkg/models/mfw.go）
 - 职责：定义 MFW 协议的消息结构，包括控制器、任务、资源、设备等请求与响应模型。
 
-章节来源
+**章节来源**
 - [LocalBridge/pkg/models/mfw.go](file://LocalBridge/pkg/models/mfw.go#L1-L169)
 
 ### 类关系图（代码级）
@@ -267,7 +268,7 @@ Service --> ResourceManager
 Service --> TaskManager
 ```
 
-图表来源
+**图表来源**
 - [LocalBridge/internal/mfw/service.go](file://LocalBridge/internal/mfw/service.go#L1-L105)
 - [LocalBridge/internal/mfw/device_manager.go](file://LocalBridge/internal/mfw/device_manager.go#L1-L74)
 - [LocalBridge/internal/mfw/controller_manager.go](file://LocalBridge/internal/mfw/controller_manager.go#L1-L344)
@@ -287,11 +288,11 @@ SVC --> HND["MFWHandler 注册"]
 HND --> WS["WebSocket 服务器"]
 ```
 
-图表来源
+**图表来源**
 - [LocalBridge/go.mod](file://LocalBridge/go.mod#L1-L37)
 - [LocalBridge/cmd/lb/main.go](file://LocalBridge/cmd/lb/main.go#L54-L147)
 
-章节来源
+**章节来源**
 - [LocalBridge/go.mod](file://LocalBridge/go.mod#L1-L37)
 - [LocalBridge/cmd/lb/main.go](file://LocalBridge/cmd/lb/main.go#L54-L147)
 
@@ -301,7 +302,7 @@ HND --> WS["WebSocket 服务器"]
 - 日志级别：通过配置文件控制日志级别与推送策略，避免在生产环境产生过多日志输出。
 - 资源清理：控制器非活跃清理与资源卸载接口预留，建议在接入真实 API 后完善清理逻辑，避免资源泄露。
 
-章节来源
+**章节来源**
 - [LocalBridge/internal/mfw/controller_manager.go](file://LocalBridge/internal/mfw/controller_manager.go#L330-L344)
 - [LocalBridge/config/default.json](file://LocalBridge/config/default.json#L1-L29)
 
@@ -311,7 +312,7 @@ HND --> WS["WebSocket 服务器"]
 - 任务状态异常：确认任务提交成功并返回任务ID，查询状态前确保任务已进入运行状态。
 - 错误码与错误类型：使用统一的 MFW 错误码与错误类型，便于前端统一处理。
 
-章节来源
+**章节来源**
 - [LocalBridge/internal/mfw/error.go](file://LocalBridge/internal/mfw/error.go#L1-L49)
 - [LocalBridge/internal/protocol/mfw/handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L478-L488)
 - [LocalBridge/config/default.json](file://LocalBridge/config/default.json#L24-L29)
@@ -329,7 +330,7 @@ LocalBridge 的 MFW 集成已完成协议层与管理器骨架，为接入 maa-f
 - 回调协议：参考[回调协议](#回调协议)文档，实现事件回调处理。
 - 控制方式：参考[控制方式说明](#控制方式说明)文档，正确配置控制器的输入和截图方式。
 
-章节来源
+**章节来源**
 - [LocalBridge/config/default.json](file://LocalBridge/config/default.json#L24-L29)
 - [LocalBridge/internal/mfw/service.go](file://LocalBridge/internal/mfw/service.go#L30-L54)
 - [instructions/maafw-golang/API参考/框架初始化.md](file://instructions/maafw-golang/API参考/框架初始化.md#L1-L278)
@@ -405,7 +406,7 @@ LocalBridge 的 MFW 集成已完成协议层与管理器骨架，为接入 maa-f
 
 ### Java
 - 接口情况：
-  - 已适配 v3 版本 🙁
+  - 仅适配到 v3 版本，已经过时 🙁
   - 提供 sample ✔️
   - CI 单元测试 ✔️
   - 标准化接口 ✔️
@@ -415,10 +416,23 @@ LocalBridge 的 MFW 集成已完成协议层与管理器骨架，为接入 maa-f
 - [集成示例](https://github.com/hanhuoer/maa-framework-java/blob/main/maa-sample/README.md)
 - [单元测试](https://github.com/hanhuoer/maa-framework-java/blob/main/maa-core/src/test)
 
+### Rust
+- 接口情况：
+  - 官方支持，已适配最新版本 ✔️
+  - 全功能可用 ✔️
+  - 提供 sample ✔️
+  - CI 单元测试 ✔️
+  - 标准化接口 ✔️
+  - 协议解析封装 ✔️
+- [仓库地址](https://github.com/MaaXYZ/maa-framework-rs)
+- [下载地址](https://crates.io/crates/maa-framework)
+- [集成示例](https://github.com/MaaXYZ/maa-framework-rs/tree/main/examples)
+- [单元测试](https://github.com/MaaXYZ/maa-framework-rs/tree/main/tests)
+
 ### 更多语言
 各语言支持离不开协作者的贡献！若您也想为 MaaFramework 新增某一门语言的接口，请参考 [标准化接口设计](4.2-标准化接口设计.md)，并向我们提出 PR！
 
-章节来源
+**章节来源**
 - [instructions/maafw-guide/2.1-集成文档.md](file://instructions/maafw-guide/2.1-集成文档.md)
 
 ## 回调协议
@@ -739,7 +753,7 @@ MaaTaskerAddNodeSink(tasker, MyCallback, nullptr);
 3. **性能考虑**: 回调函数应尽快返回，避免阻塞框架的执行流程
 4. **错误处理**: 建议在回调函数中添加异常处理，防止回调函数异常影响框架运行
 
-章节来源
+**章节来源**
 - [instructions/maafw-guide/2.3-回调协议.md](file://instructions/maafw-guide/2.3-回调协议.md)
 
 ## 控制方式说明
@@ -811,7 +825,7 @@ Win32 下不同程序处理输入的方法不同，不存在一个通用方式�
 > [!NOTE]
 >
 > - 管理员权限主要取决于目标程序的权限级别，若目标程序为管理员权限，则需以管理员权限运行以保证兼容性。
-> - `WithCursorPos` 系列方式会短暂移动光标到目标位置，发送完消息后会将光标移回原位置，因此会“短暂”抢占鼠标，但不会阻止用户操作。
+> - `WithCursorPos` 系列方式会短暂移动光标到目标位置，发送完消息后会将光标移回原位置，因此会"短暂"抢占鼠标，但不会阻止用户操作。
 
 #### Win32 Screencap
 > 参考 [MaaDef.h](https://github.com/MaaXYZ/MaaFramework/blob/main/include/MaaFramework/MaaDef.h#L242-L250)
@@ -845,7 +859,7 @@ auto controller = MaaPlayCoverControllerCreate("127.0.0.1:1717", "com.example.ap
 ```
 
 ```python
-# Python
+// Python
 from maa.controller import PlayCoverController
 controller = PlayCoverController("127.0.0.1:1717", "com.example.app")
 ```
@@ -882,5 +896,5 @@ const controller = new maa.PlayCoverController("127.0.0.1:1717", "com.example.ap
 >
 > PlayCover 控制器的特性标志为 `MaaControllerFeature_UseMouseDownAndUpInsteadOfClick`，表示框架会使用 touch_down + touch_up 代替 click 操作。
 
-章节来源
+**章节来源**
 - [instructions/maafw-guide/2.4-控制方式说明.md](file://instructions/maafw-guide/2.4-控制方式说明.md)

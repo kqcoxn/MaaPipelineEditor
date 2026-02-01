@@ -16,7 +16,17 @@
 - [flow/slices/nodeSlice.ts](file://src/stores/flow/slices/nodeSlice.ts)
 - [flow/slices/edgeSlice.ts](file://src/stores/flow/slices/edgeSlice.ts)
 - [flow/slices/graphSlice.ts](file://src/stores/flow/slices/graphSlice.ts)
+- [PanelConfigSection.tsx](file://src/components/panels/config/PanelConfigSection.tsx)
+- [ModernContent.tsx](file://src/components/flow/nodes/PipelineNode/ModernContent.tsx)
 </cite>
+
+## 更新摘要
+**已进行的更改**
+- 更新了版本信息：应用版本从 1.0.1 升级到 1.0.2
+- 更新了 MaaFramework 版本：从 5.4 升级到 5.5
+- 更新了协议版本：从 0.5.0 升级到 0.5.1
+- 启用了全局配置中的节点模板图像显示功能（showNodeTemplateImages: true）
+- 禁用了开发模式（dev: false）
 
 ## 目录
 1. [简介](#简介)
@@ -26,14 +36,18 @@
 5. [状态存储交互](#状态存储交互)
 6. [持久化机制](#持久化机制)
 7. [错误处理](#错误处理)
-8. [总结](#总结)
+8. [节点模板图像显示功能](#节点模板图像显示功能)
+9. [版本管理](#版本管理)
+10. [总结](#总结)
 
 ## 简介
 MaaFramework 状态存储系统是基于 Zustand 实现的前端状态管理解决方案，用于管理可视化流水线编辑器的各种运行时状态。该系统采用模块化设计，将不同功能领域的状态分离到独立的 store 中，确保状态管理的清晰性和可维护性。状态存储涵盖了从用户界面状态到业务逻辑状态的各个方面，包括流程编辑、设备连接、用户配置和文件管理等。
 
-**Section sources**
+**更新** 应用现已升级到 1.0.2 版本，MaaFramework 版本升级至 5.5，协议版本更新至 0.5.1，并启用了节点模板图像显示功能。
+
+**章节来源**
+- [configStore.ts](file://src/stores/configStore.ts#L5-L11)
 - [mfwStore.ts](file://src/stores/mfwStore.ts#L1-L134)
-- [configStore.ts](file://src/stores/configStore.ts#L1-L107)
 
 ## 核心状态存储
 MaaFramework 的核心状态存储由多个独立的 store 组成，每个 store 负责管理特定领域的状态。这些 store 使用 Zustand 库实现，提供了类型安全的状态管理。主要的核心状态存储包括 MaaFramework 状态、用户配置、错误信息、文件状态、本地文件缓存和 WebSocket 连接状态。
@@ -50,7 +64,7 @@ WS[WebSocket 状态]
 end
 ```
 
-**Diagram sources**
+**图表来源**
 - [mfwStore.ts](file://src/stores/mfwStore.ts#L1-L134)
 - [configStore.ts](file://src/stores/configStore.ts#L1-L107)
 - [errorStore.ts](file://src/stores/errorStore.ts#L1-L39)
@@ -58,7 +72,7 @@ end
 - [localFileStore.ts](file://src/stores/localFileStore.ts#L1-L117)
 - [wsStore.ts](file://src/stores/wsStore.ts#L1-L24)
 
-**Section sources**
+**章节来源**
 - [mfwStore.ts](file://src/stores/mfwStore.ts#L1-L134)
 - [configStore.ts](file://src/stores/configStore.ts#L1-L107)
 - [errorStore.ts](file://src/stores/errorStore.ts#L1-L39)
@@ -145,7 +159,7 @@ FlowStore --> FlowEdgeState : "包含"
 FlowGraphState : "包含"
 ```
 
-**Diagram sources**
+**图表来源**
 - [flow/index.ts](file://src/stores/flow/index.ts#L1-L78)
 - [flow/types.ts](file://src/stores/flow/types.ts#L1-L268)
 - [flow/slices/viewSlice.ts](file://src/stores/flow/slices/viewSlice.ts#L1-L28)
@@ -155,7 +169,7 @@ FlowGraphState : "包含"
 - [flow/slices/edgeSlice.ts](file://src/stores/flow/slices/edgeSlice.ts#L1-L275)
 - [flow/slices/graphSlice.ts](file://src/stores/flow/slices/graphSlice.ts#L1-L160)
 
-**Section sources**
+**章节来源**
 - [flow/index.ts](file://src/stores/flow/index.ts#L1-L78)
 - [flow/types.ts](file://src/stores/flow/types.ts#L1-L268)
 - [flow/slices/viewSlice.ts](file://src/stores/flow/slices/viewSlice.ts#L1-L28)
@@ -193,7 +207,7 @@ D --> D2[本地文件缓存]
 D --> D3[WebSocket 状态]
 ```
 
-**Diagram sources**
+**图表来源**
 - [mfwStore.ts](file://src/stores/mfwStore.ts#L1-L134)
 - [configStore.ts](file://src/stores/configStore.ts#L1-L107)
 - [errorStore.ts](file://src/stores/errorStore.ts#L1-L39)
@@ -202,7 +216,7 @@ D --> D3[WebSocket 状态]
 - [wsStore.ts](file://src/stores/wsStore.ts#L1-L24)
 - [flow/index.ts](file://src/stores/flow/index.ts#L1-L78)
 
-**Section sources**
+**章节来源**
 - [mfwStore.ts](file://src/stores/mfwStore.ts#L1-L134)
 - [configStore.ts](file://src/stores/configStore.ts#L1-L107)
 - [errorStore.ts](file://src/stores/errorStore.ts#L1-L39)
@@ -236,12 +250,12 @@ FlowStore->>FlowStore : 更新视图
 FlowStore-->>UI : 撤销成功
 ```
 
-**Diagram sources**
+**图表来源**
 - [flow/index.ts](file://src/stores/flow/index.ts#L1-L78)
 - [fileStore.ts](file://src/stores/fileStore.ts#L1-L492)
 - [configStore.ts](file://src/stores/configStore.ts#L1-L107)
 
-**Section sources**
+**章节来源**
 - [flow/index.ts](file://src/stores/flow/index.ts#L1-L78)
 - [fileStore.ts](file://src/stores/fileStore.ts#L1-L492)
 - [configStore.ts](file://src/stores/configStore.ts#L1-L107)
@@ -267,11 +281,11 @@ SaveConfigs --> End([结束])
 HandleError --> End
 ```
 
-**Diagram sources**
+**图表来源**
 - [fileStore.ts](file://src/stores/fileStore.ts#L72-L103)
 - [configStore.ts](file://src/stores/configStore.ts#L97-L99)
 
-**Section sources**
+**章节来源**
 - [fileStore.ts](file://src/stores/fileStore.ts#L72-L103)
 - [configStore.ts](file://src/stores/configStore.ts#L97-L99)
 
@@ -294,15 +308,64 @@ NoRepeat --> DisplayError : "显示其他错误"
 DisplayError --> Idle : "完成"
 ```
 
-**Diagram sources**
+**图表来源**
 - [errorStore.ts](file://src/stores/errorStore.ts#L1-L39)
 - [fileStore.ts](file://src/stores/fileStore.ts#L139-L158)
 - [flow/index.ts](file://src/stores/flow/index.ts#L58-L77)
 
-**Section sources**
+**章节来源**
 - [errorStore.ts](file://src/stores/errorStore.ts#L1-L39)
 - [fileStore.ts](file://src/stores/fileStore.ts#L139-L158)
 - [flow/index.ts](file://src/stores/flow/index.ts#L58-L77)
+
+## 节点模板图像显示功能
+MaaFramework 现已支持节点模板图像显示功能，该功能通过全局配置项 `showNodeTemplateImages` 控制。当启用此功能时，节点模板图片将显示在节点内容区域，提供更好的视觉体验。
+
+### 功能实现
+节点模板图像显示功能通过以下组件实现：
+
+```mermaid
+graph LR
+A[配置存储] --> B[面板配置组件]
+B --> C[节点内容组件]
+C --> D[模板图片渲染]
+```
+
+**图表来源**
+- [configStore.ts](file://src/stores/configStore.ts#L172-L173)
+- [PanelConfigSection.tsx](file://src/components/panels/config/PanelConfigSection.tsx#L32-L33)
+- [ModernContent.tsx](file://src/components/flow/nodes/PipelineNode/ModernContent.tsx#L234-L237)
+
+### 配置选项
+节点模板图像显示功能的配置选项位于用户配置面板中，用户可以通过开关控件启用或禁用此功能。
+
+**章节来源**
+- [configStore.ts](file://src/stores/configStore.ts#L172-L173)
+- [PanelConfigSection.tsx](file://src/components/panels/config/PanelConfigSection.tsx#L325-L334)
+- [ModernContent.tsx](file://src/components/flow/nodes/PipelineNode/ModernContent.tsx#L234-L237)
+
+## 版本管理
+MaaFramework 状态存储系统包含了完整的版本管理机制，用于跟踪应用版本、MaaFramework 版本和协议版本。
+
+### 版本信息
+系统使用全局配置对象管理版本信息：
+
+| 组件 | 当前版本 | 描述 |
+|------|----------|------|
+| 应用版本 | 1.0.2 | 主应用程序版本号 |
+| MaaFramework 版本 | 5.5 | MaaFramework 核心版本 |
+| 协议版本 | 0.5.1 | 通信协议版本 |
+| 开发模式 | 关闭 | 生产环境模式 |
+
+### 版本更新机制
+版本信息通过全局配置对象统一管理，确保所有组件使用一致的版本信息。
+
+**章节来源**
+- [configStore.ts](file://src/stores/configStore.ts#L5-L11)
 
 ## 总结
-MaaFramework 状态存储系统是一个精心设计的状态管理解决方案，它通过模块化、切片化的设计模式，有效地管理了复杂的应用状态。系统采用 Zustand 作为核心状态管理库，结合 TypeScript 提供了类型安全的状态操作。流程状态存储的切片模式使得代码结构清晰，易于维护和扩展。持久化机制确保了用户数据的安全，而完善的错误处理机制则提高了系统的健壮性。整体架构体现了现代前端应用状态管理的最佳实践。
+MaaFramework 状态存储系统是一个精心设计的状态管理解决方案，它通过模块化、切片化的设计模式，有效地管理了复杂的应用状态。系统采用 Zustand 作为核心状态管理库，结合 TypeScript 提供了类型安全的状态操作。流程状态存储的切片模式使得代码结构清晰，易于维护和扩展。持久化机制确保了用户数据的安全，而完善的错误处理机制则提高了系统的健壮性。
+
+**更新** 最新版本（1.0.2）引入了节点模板图像显示功能，提升了用户体验。MaaFramework 版本升级至 5.5，协议版本更新至 0.5.1，为系统提供了更好的性能和兼容性。开发模式已禁用，确保系统在生产环境中稳定运行。
+
+整体架构体现了现代前端应用状态管理的最佳实践，为后续功能扩展奠定了坚实的基础。
