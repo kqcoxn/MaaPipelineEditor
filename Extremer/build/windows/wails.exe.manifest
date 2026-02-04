@@ -3,7 +3,7 @@
   <assemblyIdentity
     type="win32"
     name="MaaPipelineEditor"
-    version="1.0.2"
+    version="1.0.3"
     processorArchitecture="*"/>
   <dependency>
     <dependentAssembly>

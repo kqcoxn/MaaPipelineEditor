@@ -50,6 +50,14 @@ export const updateLogs: UpdateLogItem[] = [
   {
     version: "1.0.2",
     date: "2026-2-1",
+    type: "fix",
+    updates: {
+      fixes: ["停用 shell-timeout 字段以临时规避 v1 协议兼容性问题"],
+    },
+  },
+  {
+    version: "1.0.2",
+    date: "2026-2-1",
     type: "feature",
     updates: {
       features: [

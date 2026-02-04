@@ -130,7 +130,7 @@ export const actionFields: Record<string, FieldsType> = {
     desc: "执行命令。",
   },
   Shell: {
-    params: [actionFieldSchema.cmd, actionFieldSchema.timeout],
+    params: [actionFieldSchema.cmd],
     desc: "在 ADB 设备上执行 shell 命令。",
   },
   Key: {
