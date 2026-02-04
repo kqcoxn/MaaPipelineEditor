@@ -233,13 +233,13 @@ export const actionFieldSchema: Record<string, FieldType> = {
     default: "",
     desc: "要执行的 shell 命令。必选。 例如 getprop ro.build.version.sdk 或 settings put global animator_duration_scale 0。",
   },
-  timeout: {
-    key: "timeout",
-    type: FieldTypeEnum.Int,
-    default: 20000,
-    step: 1000,
-    desc: "命令执行超时时间，毫秒。可选，默认 20000（20 秒）。 设置为 -1 表示无限等待，永不超时。 注意：此动作仅对 ADB 控制器有效。命令输出可以通过 MaaTaskerGetActionDetail 在动作详情中获取。",
-  },
+  // timeout: {
+  //   key: "timeout",
+  //   type: FieldTypeEnum.Int,
+  //   default: 20000,
+  //   step: 1000,
+  //   desc: "命令执行超时时间，毫秒。可选，默认 20000（20 秒）。 设置为 -1 表示无限等待，永不超时。 注意：此动作仅对 ADB 控制器有效。命令输出可以通过 MaaTaskerGetActionDetail 在动作详情中获取。",
+  // },
 
   // 自定义动作相关
   customAction: {
