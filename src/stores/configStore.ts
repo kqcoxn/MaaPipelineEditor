@@ -5,7 +5,7 @@ import type { HandleDirection } from "../components/flow/nodes/constants";
 export const globalConfig = {
   dev: false,
   version: `1.1.0`,
-  betaIteration: 1,
+  betaIteration: 2,
   mfwVersion: "5.7.0-alpha.1",
   protocolVersion: "0.5.1",
 };
@@ -43,6 +43,7 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   showNodeTemplateImages: "panel",
   showNodeDetailFields: "panel",
   saveFilesBeforeDebug: "panel",
+  enableNodeSnap: "panel",
   // 本地通信配置
   wsPort: "communication",
   wsAutoConnect: "communication",
@@ -120,6 +121,8 @@ type ConfigState = {
     showNodeTemplateImages: boolean;
     // 渲染节点详细字段
     showNodeDetailFields: boolean;
+    // 节点磁吸对齐
+    enableNodeSnap: boolean;
   };
   setConfig: <K extends keyof ConfigState["configs"]>(
     key: K,
@@ -176,6 +179,8 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     showNodeTemplateImages: true,
     // 渲染节点详细字段
     showNodeDetailFields: true,
+    // 节点磁吸对齐
+    enableNodeSnap: false,
   },
   setConfig(key, value) {
     set((state) => {

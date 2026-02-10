@@ -35,6 +35,11 @@ import NodeAddPanel from "./panels/main/NodeAddPanel";
 import InlineFieldPanel from "./panels/main/InlineFieldPanel";
 import InlineEdgePanel from "./panels/main/InlineEdgePanel";
 import { useConfigStore } from "../stores/configStore";
+import SnapGuidelines from "./flow/SnapGuidelines";
+import {
+  findSnapAlignment,
+  type SnapGuideline,
+} from "../core/snapUtils";
 
 /**工作流 */
 // 按键监听
@@ -205,11 +210,17 @@ function MainFlow() {
   const canvasBackgroundMode = useConfigStore(
     (state) => state.configs.canvasBackgroundMode
   );
+  const enableNodeSnap = useConfigStore(
+    (state) => state.configs.enableNodeSnap
+  );
   const selfElem = useRef<HTMLDivElement>(null);
 
   // 节点添加面板状态
   const [nodeAddPanelVisible, setNodeAddPanelVisible] = useState(false);
   const [nodeAddPanelPos, setNodeAddPanelPos] = useState({ x: 0, y: 0 });
+
+  // 磁吸对齐参考线
+  const [snapGuidelines, setSnapGuidelines] = useState<SnapGuideline[]>([]);
 
   // 回调
   const onNodesChange = useCallback(
@@ -259,6 +270,56 @@ function MainFlow() {
   const closeNodeAddPanel = useCallback(() => {
     setNodeAddPanelVisible(false);
   }, []);
+
+  // 节点拖拽磁吸对齐
+  const onNodeDrag = useCallback(
+    (_event: React.MouseEvent, draggedNode: NodeType) => {
+      if (!enableNodeSnap) return;
+      const otherNodes = nodes.filter((n) => n.id !== draggedNode.id);
+      if (otherNodes.length === 0) {
+        setSnapGuidelines([]);
+        return;
+      }
+      const result = findSnapAlignment(draggedNode, otherNodes);
+      setSnapGuidelines(result.guidelines);
+
+      const dx = result.position.x - draggedNode.position.x;
+      const dy = result.position.y - draggedNode.position.y;
+      if (dx !== 0 || dy !== 0) {
+        updateNodes([
+          {
+            type: "position",
+            id: draggedNode.id,
+            position: result.position,
+            dragging: true,
+          },
+        ]);
+      }
+    },
+    [enableNodeSnap, nodes, updateNodes]
+  );
+
+  const onNodeDragStop = useCallback(
+    (_event: React.MouseEvent, draggedNode: NodeType) => {
+      setSnapGuidelines([]);
+      if (!enableNodeSnap) return;
+      const otherNodes = nodes.filter((n) => n.id !== draggedNode.id);
+      if (otherNodes.length === 0) return;
+      const result = findSnapAlignment(draggedNode, otherNodes);
+      const dx = result.position.x - draggedNode.position.x;
+      const dy = result.position.y - draggedNode.position.y;
+      if (dx !== 0 || dy !== 0) {
+        updateNodes([
+          {
+            type: "position",
+            id: draggedNode.id,
+            position: result.position,
+          },
+        ]);
+      }
+    },
+    [enableNodeSnap, nodes, updateNodes]
+  );
 
   // 记忆
   const defaultViewport = useMemo(() => ({ x: 0, y: 0, zoom: 1.5 }), []);
@@ -311,6 +372,8 @@ function MainFlow() {
         onPaneClick={onPaneClick}
         onDoubleClick={onDoubleClick}
         onPaneContextMenu={onPaneContextMenu}
+        onNodeDrag={onNodeDrag}
+        onNodeDragStop={onNodeDragStop}
         autoPanOnConnect={false}
         autoPanOnNodeDrag={false}
         preventScrolling={true}
@@ -331,6 +394,7 @@ function MainFlow() {
         />
         <InlineFieldPanel />
         <InlineEdgePanel />
+        <SnapGuidelines guidelines={snapGuidelines} />
       </ReactFlow>
     </div>
   );

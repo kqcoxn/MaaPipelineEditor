@@ -16,6 +16,9 @@ const PanelConfigSection = memo(() => {
     (state) => state.configs.showEdgeControlPoint
   );
   const isAutoFocus = useConfigStore((state) => state.configs.isAutoFocus);
+  const enableNodeSnap = useConfigStore(
+    (state) => state.configs.enableNodeSnap
+  );
   const focusOpacity = useConfigStore((state) => state.configs.focusOpacity);
   const configHandlingMode = useConfigStore(
     (state) => state.configs.configHandlingMode
@@ -189,6 +192,32 @@ const PanelConfigSection = memo(() => {
           unCheckedChildren="关闭"
           value={isAutoFocus}
           onChange={(value: boolean) => setConfig("isAutoFocus", value)}
+        />
+      </div>
+      {/* 节点磁吸对齐 */}
+      <div className={globalClass}>
+        <div className={style.key}>
+          <Popover
+            placement="bottomLeft"
+            title={"节点磁吸对齐"}
+            content={
+              <TipElem
+                content={
+                  "开启后拖拽节点时会自动对齐到其他节点的边缘和中心线，并显示对齐参考线"
+                }
+              />
+            }
+          >
+            <span>节点磁吸对齐</span>
+          </Popover>
+        </div>
+        <Switch
+          className={style.value}
+          style={switchStyle}
+          checkedChildren="启用"
+          unCheckedChildren="关闭"
+          value={enableNodeSnap}
+          onChange={(value: boolean) => setConfig("enableNodeSnap", value)}
         />
       </div>
       {/* 非聚焦节点不透明度 */}
