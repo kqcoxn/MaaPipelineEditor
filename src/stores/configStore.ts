@@ -44,6 +44,8 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   showNodeDetailFields: "panel",
   saveFilesBeforeDebug: "panel",
   enableNodeSnap: "panel",
+  enableLiveScreen: "panel",
+  liveScreenRefreshRate: "panel",
   // 本地通信配置
   wsPort: "communication",
   wsAutoConnect: "communication",
@@ -123,6 +125,10 @@ type ConfigState = {
     showNodeDetailFields: boolean;
     // 节点磁吸对齐
     enableNodeSnap: boolean;
+    // 实时画面预览
+    enableLiveScreen: boolean;
+    // 实时画面刷新间隔（毫秒）
+    liveScreenRefreshRate: number;
   };
   setConfig: <K extends keyof ConfigState["configs"]>(
     key: K,
@@ -181,6 +187,10 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     showNodeDetailFields: true,
     // 节点磁吸对齐
     enableNodeSnap: false,
+    // 实时画面预览
+    enableLiveScreen: true,
+    // 实时画面刷新间隔（毫秒）
+    liveScreenRefreshRate: 1000,
   },
   setConfig(key, value) {
     set((state) => {

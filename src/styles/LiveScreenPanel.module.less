@@ -1,0 +1,88 @@
+@import "./global.less";
+
+.liveScreenPanel {
+  position: absolute;
+  right: 10px;
+  top: 130px;
+  width: 380px;
+  min-height: 200px;
+  max-height: calc(100vh - 320px);
+  z-index: 25;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: opacity 250ms ease-in-out, transform 250ms ease-in-out;
+
+  &.hidden {
+    opacity: 0;
+    transform: translateY(-8px);
+    pointer-events: none;
+  }
+
+  &.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .header {
+    flex-shrink: 0;
+    box-sizing: border-box;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #f0f0f0;
+    background-color: #fafafa;
+
+    .title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #262626;
+    }
+
+    .status {
+      font-size: 12px;
+      color: #8c8c8c;
+    }
+  }
+
+  .contentContainer {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #fafafa;
+    padding: 12px;
+    position: relative;
+
+    .screenImage {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .loadingContainer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      color: #8c8c8c;
+    }
+
+    .errorContainer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      color: #ff4d4f;
+      text-align: center;
+      padding: 20px;
+    }
+  }
+}

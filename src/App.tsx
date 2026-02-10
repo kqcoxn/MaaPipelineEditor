@@ -25,6 +25,7 @@ import MainFlow from "./components/Flow";
 import JsonViewer from "./components/JsonViewer";
 import FieldPanel from "./components/panels/main/FieldPanel";
 import EdgePanel from "./components/panels/main/EdgePanel";
+import LiveScreenPanel from "./components/panels/main/LiveScreenPanel";
 import ToolPanel from "./components/panels/tools/ToolPanel";
 import SearchPanel from "./components/panels/main/SearchPanel";
 import FilePanel from "./components/panels/main/FilePanel";
@@ -298,6 +299,7 @@ function App() {
               <ToolbarPanel />
               <MainFlow />
               <JsonViewer />
+              <LiveScreenPanel />
               <FieldPanel />
               <EdgePanel />
               <ConfigPanel />

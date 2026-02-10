@@ -38,6 +38,12 @@ const PanelConfigSection = memo(() => {
   const showNodeDetailFields = useConfigStore(
     (state) => state.configs.showNodeDetailFields
   );
+  const enableLiveScreen = useConfigStore(
+    (state) => state.configs.enableLiveScreen
+  );
+  const liveScreenRefreshRate = useConfigStore(
+    (state) => state.configs.liveScreenRefreshRate
+  );
   const setConfig = useConfigStore((state) => state.setConfig);
 
   const globalClass = useMemo(() => classNames(style.item, style.global), []);
@@ -388,6 +394,61 @@ const PanelConfigSection = memo(() => {
           unCheckedChildren="隐藏"
           value={showNodeTemplateImages}
           onChange={(value: boolean) => setConfig("showNodeTemplateImages", value)}
+        />
+      </div>
+      {/* 实时画面预览 */}
+      <div className={globalClass}>
+        <div className={style.key}>
+          <Popover
+            placement="bottomLeft"
+            title="实时画面预览"
+            content={
+              <TipElem
+                content={
+                  "连接设备后，在右上角自动显示实时设备屏幕。当字段/连接/JSON面板打开时自动隐藏。"
+                }
+              />
+            }
+          >
+            <span>实时画面预览</span>
+          </Popover>
+        </div>
+        <Switch
+          className={style.value}
+          style={switchStyle}
+          checkedChildren="启用"
+          unCheckedChildren="关闭"
+          value={enableLiveScreen}
+          onChange={(value: boolean) => setConfig("enableLiveScreen", value)}
+        />
+      </div>
+      {/* 画面刷新间隔 */}
+      <div className={globalClass}>
+        <div className={style.key}>
+          <Popover
+            placement="bottomLeft"
+            title="画面刷新间隔(ms)"
+            content={
+              <TipElem
+                content={
+                  "设置设备屏幕更新间隔（毫秒）。值越小越流畅但性能消耗越高。推荐 500-2000ms。"
+                }
+              />
+            }
+          >
+            <span>画面刷新间隔(ms)</span>
+          </Popover>
+        </div>
+        <InputNumber
+          className={style.value}
+          style={{ maxWidth: 80 }}
+          min={200}
+          max={5000}
+          step={100}
+          value={liveScreenRefreshRate}
+          onChange={(value: number | null) => {
+            if (value !== null) setConfig("liveScreenRefreshRate", value);
+          }}
         />
       </div>
     </>
