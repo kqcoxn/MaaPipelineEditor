@@ -30,8 +30,17 @@ const LiveScreenPanel = memo(() => {
   const [hasError, setHasError] = useState(false);
   const isRequestingRef = useRef(false);
 
-  // Check actual panel visibility instead of currentRightPanel
-  // (currentRightPanel has a race condition due to JsonViewer's useEffect)
+  // 页面不可见时暂停截图请求
+  const isPageVisibleRef = useRef(document.visibilityState === "visible");
+  useEffect(() => {
+    const handler = () => {
+      isPageVisibleRef.current = document.visibilityState === "visible";
+    };
+    document.addEventListener("visibilitychange", handler);
+    return () => document.removeEventListener("visibilitychange", handler);
+  }, []);
+
+  // 检查面板可见性
   const hasFieldPanel = targetNode !== null;
   const hasEdgePanel = selectedEdges.length === 1 && !targetNode;
   const hasOtherPanel = jsonPanelVisible || hasFieldPanel || hasEdgePanel;
@@ -42,7 +51,7 @@ const LiveScreenPanel = memo(() => {
     !hasOtherPanel &&
     enableLiveScreen;
 
-  // Register screencap result listener
+  // 注册截图结果监听
   useEffect(() => {
     const unregister = mfwProtocol.onScreencapResult(
       (data: { success: boolean; image?: string; error?: string }) => {
@@ -61,9 +70,11 @@ const LiveScreenPanel = memo(() => {
     return unregister;
   }, []);
 
-  // Timer for periodic screenshot requests
+  // 定时截图请求
   const requestScreenshot = useCallback(() => {
     if (!controllerId || isRequestingRef.current) return;
+    // 页面不可见时跳过请求
+    if (!isPageVisibleRef.current) return;
     isRequestingRef.current = true;
     mfwProtocol.requestScreencap({
       controller_id: controllerId,
@@ -76,11 +87,9 @@ const LiveScreenPanel = memo(() => {
       return;
     }
 
-    // Reset state when becoming visible
+    // 重置状态
     setIsLoading(true);
     setHasError(false);
-
-    // Fire immediately
     requestScreenshot();
 
     const timerId = setInterval(requestScreenshot, liveScreenRefreshRate);
@@ -91,7 +100,7 @@ const LiveScreenPanel = memo(() => {
     };
   }, [shouldShow, liveScreenRefreshRate, controllerId, requestScreenshot]);
 
-  // Clear image when device disconnects
+  // 设备断开时清除画面
   useEffect(() => {
     if (connectionStatus === "disconnected") {
       setScreenImage(null);
