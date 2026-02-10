@@ -98,4 +98,10 @@ export const nodeTemplates: NodeTemplateType[] = [
     iconSize: 26,
     nodeType: NodeTypeEnum.Sticker,
   },
+  {
+    label: "分组框",
+    iconName: "icon-kuangxuanzhong",
+    iconSize: 26,
+    nodeType: NodeTypeEnum.Group,
+  },
 ];

@@ -5,7 +5,7 @@ import type { HandleDirection } from "../components/flow/nodes/constants";
 export const globalConfig = {
   dev: true,
   version: `1.1.0`,
-  betaIteration: 3,
+  betaIteration: 4,
   mfwVersion: "5.7.0-alpha.1",
   protocolVersion: "0.6.0",
 };

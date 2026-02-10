@@ -56,6 +56,7 @@ function getTemplateDescription(template: NodeTemplateType): string {
     if (template.nodeType === NodeTypeEnum.External) return "引用外部节点";
     if (template.nodeType === NodeTypeEnum.Anchor) return "重定向到其他节点";
     if (template.nodeType === NodeTypeEnum.Sticker) return "记录注释信息的便签";
+    if (template.nodeType === NodeTypeEnum.Group) return "对节点进行分组管理";
     return "空白节点模板";
   }
 

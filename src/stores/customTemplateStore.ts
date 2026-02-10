@@ -217,8 +217,14 @@ export const useCustomTemplateStore = create<CustomTemplateState>(
       const stickerTemplate = presetTemplates.find(
         (t) => t.nodeType === NodeTypeEnum.Sticker
       );
+      const groupTemplate = presetTemplates.find(
+        (t) => t.nodeType === NodeTypeEnum.Group
+      );
       const otherPresetTemplates = presetTemplates.filter(
-        (t) => t.label !== "空节点" && t.nodeType !== NodeTypeEnum.Sticker
+        (t) =>
+          t.label !== "空节点" &&
+          t.nodeType !== NodeTypeEnum.Sticker &&
+          t.nodeType !== NodeTypeEnum.Group
       );
 
       const result: NodeTemplateType[] = [];
@@ -229,6 +235,10 @@ export const useCustomTemplateStore = create<CustomTemplateState>(
 
       if (stickerTemplate) {
         result.push(stickerTemplate);
+      }
+
+      if (groupTemplate) {
+        result.push(groupTemplate);
       }
 
       result.push(...customTemplates);
