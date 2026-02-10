@@ -54,6 +54,7 @@ export const updateLogs: UpdateLogItem[] = [
     updates: {
       features: [
         "🔍 JSON 预览添加搜索功能，支持高亮显示与上下跳转",
+        "🔤 新增节点字段收起选项",
       ],
       perfs: ["优化 Extremer 前后端自动连接逻辑，提升初次握手稳定性"],
     },

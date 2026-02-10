@@ -32,6 +32,9 @@ const PanelConfigSection = memo(() => {
   const showNodeTemplateImages = useConfigStore(
     (state) => state.configs.showNodeTemplateImages
   );
+  const showNodeDetailFields = useConfigStore(
+    (state) => state.configs.showNodeDetailFields
+  );
   const setConfig = useConfigStore((state) => state.setConfig);
 
   const globalClass = useMemo(() => classNames(style.item, style.global), []);
@@ -61,6 +64,32 @@ const PanelConfigSection = memo(() => {
             { value: "classic", label: "经典风格" },
             { value: "minimal", label: "极简风格" },
           ]}
+        />
+      </div>
+      {/* 渲染节点详细字段 */}
+      <div className={globalClass}>
+        <div className={style.key}>
+          <Popover
+            placement="bottomLeft"
+            title={"渲染节点详细字段"}
+            content={
+              <TipElem
+                content={
+                  "关闭时节点仅显示识别类型和动作类型，隐藏所有参数细节。适合在节点数量较多时减少视觉干扰。"
+                }
+              />
+            }
+          >
+            <span>渲染节点详细字段</span>
+          </Popover>
+        </div>
+        <Switch
+          className={style.value}
+          style={switchStyle}
+          checkedChildren="详细"
+          unCheckedChildren="精简"
+          value={showNodeDetailFields}
+          onChange={(value: boolean) => setConfig("showNodeDetailFields", value)}
         />
       </div>
       {/* 历史记录上限 */}

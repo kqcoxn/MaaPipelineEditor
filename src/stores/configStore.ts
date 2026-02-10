@@ -41,6 +41,7 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   fieldPanelMode: "panel",
   inlinePanelScale: "panel",
   showNodeTemplateImages: "panel",
+  showNodeDetailFields: "panel",
   saveFilesBeforeDebug: "panel",
   // 本地通信配置
   wsPort: "communication",
@@ -117,6 +118,8 @@ type ConfigState = {
     inlinePanelScale: number;
     // 节点显示 template 图片
     showNodeTemplateImages: boolean;
+    // 渲染节点详细字段
+    showNodeDetailFields: boolean;
   };
   setConfig: <K extends keyof ConfigState["configs"]>(
     key: K,
@@ -171,6 +174,8 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     inlinePanelScale: 0.8,
     // 节点显示 template 图片
     showNodeTemplateImages: true,
+    // 渲染节点详细字段
+    showNodeDetailFields: true,
   },
   setConfig(key, value) {
     set((state) => {

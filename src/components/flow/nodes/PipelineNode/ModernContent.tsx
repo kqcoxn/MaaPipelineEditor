@@ -36,6 +36,10 @@ export const ModernContent = memo(
     const showNodeTemplateImages = useConfigStore(
       (state) => state.configs.showNodeTemplateImages
     );
+    // 是否渲染节点详细字段
+    const showNodeDetailFields = useConfigStore(
+      (state) => state.configs.showNodeDetailFields
+    );
 
     useEffect(() => {
       if (headerRef.current) {
@@ -162,7 +166,7 @@ export const ModernContent = memo(
               )}
               <span>识别 - {data.recognition.type}</span>
             </div>
-            {hasRecoParams && (
+            {showNodeDetailFields && hasRecoParams && (
               <ul className={style.sectionList}>
                 {Object.keys(data.recognition.param).map((key) => (
                   <KVElem
@@ -188,7 +192,7 @@ export const ModernContent = memo(
               )}
               <span>动作 - {data.action.type}</span>
             </div>
-            {hasActionParams && (
+            {showNodeDetailFields && hasActionParams && (
               <ul className={style.sectionList}>
                 {Object.keys(data.action.param).map((key) => (
                   <KVElem
@@ -202,7 +206,7 @@ export const ModernContent = memo(
           </div>
 
           {/* 其他区域 */}
-          {hasOtherParams && (
+          {showNodeDetailFields && hasOtherParams && (
             <div className={style.section}>
               <div
                 className={classNames(style.sectionHeader, style.otherHeader)}
