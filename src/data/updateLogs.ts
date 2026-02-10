@@ -48,10 +48,13 @@ export const pinnedNotice: PinnedNotice = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
-    version: "1.0.4",
+    version: "1.1.0",
     date: "2026-2-10",
     type: "feature",
     updates: {
+      features: [
+        "🔍 JSON 预览添加搜索功能，支持高亮显示与上下跳转",
+      ],
       perfs: ["优化 Extremer 前后端自动连接逻辑，提升初次握手稳定性"],
     },
   },

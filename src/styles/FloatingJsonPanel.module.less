@@ -33,10 +33,16 @@
     box-sizing: border-box;
     padding: 12px 16px;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
     border-bottom: 1px solid #f0f0f0;
     background-color: #fafafa;
+
+    .headerRow {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
 
     .title {
       font-size: 16px;
@@ -47,6 +53,25 @@
     .actions {
       display: flex;
       gap: 8px;
+    }
+
+    .searchWrapper {
+      padding-top: 8px;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .matchInfo {
+      font-size: 11px;
+      color: #8c8c8c;
+      white-space: nowrap;
+    }
+
+    .searchNav {
+      display: flex;
+      flex-shrink: 0;
     }
   }
 
@@ -69,5 +94,26 @@
     justify-content: flex-end;
     gap: 8px;
     background-color: #ffffff;
+  }
+
+  .highlightTextView {
+    font-family: "Consolas", "Monaco", "Courier New", monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #262626;
+    white-space: pre;
+    word-break: break-all;
+
+    mark {
+      background-color: #fff566;
+      color: #262626;
+      padding: 0 2px;
+      border-radius: 2px;
+    }
+
+    .currentMatch {
+      background-color: #fa8c16;
+      color: #ffffff;
+    }
   }
 }
