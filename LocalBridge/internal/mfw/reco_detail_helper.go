@@ -13,7 +13,7 @@ import (
 	"sync"
 	"unsafe"
 
-	maa "github.com/MaaXYZ/maa-framework-go/v3"
+	maa "github.com/MaaXYZ/maa-framework-go/v4"
 	"github.com/ebitengine/purego"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/config"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"

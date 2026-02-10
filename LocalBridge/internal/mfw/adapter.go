@@ -10,9 +10,9 @@ import (
 	"time"
 	"unsafe"
 
-	maa "github.com/MaaXYZ/maa-framework-go/v3"
-	"github.com/MaaXYZ/maa-framework-go/v3/controller/adb"
-	"github.com/MaaXYZ/maa-framework-go/v3/controller/win32"
+	maa "github.com/MaaXYZ/maa-framework-go/v4"
+	"github.com/MaaXYZ/maa-framework-go/v4/controller/adb"
+	"github.com/MaaXYZ/maa-framework-go/v4/controller/win32"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 )
 
@@ -83,9 +83,9 @@ func (a *MaaFWAdapter) ConnectADB(adbPath, address string, screencapMethods, inp
 	}
 
 	// 创建 ADB 控制器
-	ctrl := maa.NewAdbController(adbPath, address, scMethod, inMethod, config, agentPath)
-	if ctrl == nil {
-		return fmt.Errorf("创建 ADB 控制器失败")
+	ctrl, err := maa.NewAdbController(adbPath, address, scMethod, inMethod, config, agentPath)
+	if err != nil {
+		return fmt.Errorf("创建 ADB 控制器失败: %w", err)
 	}
 
 	// 连接
@@ -132,9 +132,9 @@ func (a *MaaFWAdapter) ConnectWin32(hwnd uintptr, screencapMethod, inputMethod s
 	mouseMethod, _ := win32.ParseInputMethod(inputMethod)
 
 	// 创建 Win32 控制器
-	ctrl := maa.NewWin32Controller(unsafe.Pointer(hwnd), scMethod, mouseMethod, mouseMethod)
-	if ctrl == nil {
-		return fmt.Errorf("创建 Win32 控制器失败")
+	ctrl, err := maa.NewWin32Controller(unsafe.Pointer(hwnd), scMethod, mouseMethod, mouseMethod)
+	if err != nil {
+		return fmt.Errorf("创建 Win32 控制器失败: %w", err)
 	}
 
 	// 连接
@@ -219,9 +219,9 @@ func (a *MaaFWAdapter) LoadResources(paths []string) error {
 	logger.Debug("MaaFW", "加载资源: %v", paths)
 
 	// 创建新资源
-	res := maa.NewResource()
-	if res == nil {
-		return fmt.Errorf("创建资源失败")
+	res, err := maa.NewResource()
+	if err != nil {
+		return fmt.Errorf("创建资源失败: %w", err)
 	}
 
 	// 依次加载所有资源包
@@ -294,7 +294,11 @@ func (a *MaaFWAdapter) GetNodeJSON(nodeName string) (string, bool) {
 	if a.resource == nil {
 		return "", false
 	}
-	return a.resource.GetNodeJSON(nodeName)
+	jsonStr, err := a.resource.GetNodeJSON(nodeName)
+	if err != nil {
+		return "", false
+	}
+	return jsonStr, true
 }
 
 // ============================================================================
@@ -316,22 +320,22 @@ func (a *MaaFWAdapter) InitTasker() error {
 
 	// 创建 Tasker
 	logger.Debug("MaaFW", "创建 Tasker...")
-	tasker := maa.NewTasker()
-	if tasker == nil {
-		return fmt.Errorf("创建 Tasker 失败")
+	tasker, err := maa.NewTasker()
+	if err != nil {
+		return fmt.Errorf("创建 Tasker 失败: %w", err)
 	}
 	logger.Debug("MaaFW", "Tasker 创建成功,指针: %p", tasker)
 
 	// 绑定资源
-	if !tasker.BindResource(a.resource) {
+	if err := tasker.BindResource(a.resource); err != nil {
 		tasker.Destroy()
-		return fmt.Errorf("绑定资源失败")
+		return fmt.Errorf("绑定资源失败: %w", err)
 	}
 
 	// 绑定控制器
-	if !tasker.BindController(a.controller) {
+	if err := tasker.BindController(a.controller); err != nil {
 		tasker.Destroy()
-		return fmt.Errorf("绑定控制器失败")
+		return fmt.Errorf("绑定控制器失败: %w", err)
 	}
 
 	// 检查初始化状态
@@ -469,9 +473,9 @@ func (a *MaaFWAdapter) ConnectAgent(identifier string) error {
 	}
 
 	// 创建 AgentClient
-	client := maa.NewAgentClient(identifier)
-	if client == nil {
-		return fmt.Errorf("创建 AgentClient 失败")
+	client, err := maa.NewAgentClient(maa.WithIdentifier(identifier))
+	if err != nil {
+		return fmt.Errorf("创建 AgentClient 失败: %w", err)
 	}
 	a.agentClient = client
 
@@ -481,17 +485,17 @@ func (a *MaaFWAdapter) ConnectAgent(identifier string) error {
 		a.agentClient = nil
 		return fmt.Errorf("资源未加载")
 	}
-	if !client.BindResource(a.resource) {
+	if err := client.BindResource(a.resource); err != nil {
 		client.Destroy()
 		a.agentClient = nil
-		return fmt.Errorf("绑定资源到 Agent 失败")
+		return fmt.Errorf("绑定资源到 Agent 失败: %w", err)
 	}
 
 	// 注册 Tasker 事件回传
 	if a.tasker != nil {
 		logger.Debug("MaaFW", "正在注册 Tasker Sink 到 Agent")
-		if !client.RegisterTaskerSink(*a.tasker) {
-			logger.Warn("MaaFW", "注册 Tasker Sink 失败")
+		if err := client.RegisterTaskerSink(*a.tasker); err != nil {
+			logger.Warn("MaaFW", "注册 Tasker Sink 失败: %v", err)
 		} else {
 			logger.Debug("MaaFW", "Tasker Sink 注册成功")
 		}
@@ -501,10 +505,10 @@ func (a *MaaFWAdapter) ConnectAgent(identifier string) error {
 
 	// 连接
 	logger.Debug("MaaFW", "正在连接 Agent...")
-	if !client.Connect() {
+	if err := client.Connect(); err != nil {
 		client.Destroy()
 		a.agentClient = nil
-		return fmt.Errorf("Agent 连接失败")
+		return fmt.Errorf("Agent 连接失败: %w", err)
 	}
 
 	// 使用超时检查连接状态
@@ -520,7 +524,7 @@ func (a *MaaFWAdapter) ConnectAgent(identifier string) error {
 
 	if !connected {
 		logger.Warn("MaaFW", "Agent 连接状态检查超时,强制断开")
-		client.Disconnect()
+		_ = client.Disconnect()
 		client.Destroy()
 		a.agentClient = nil
 		return fmt.Errorf("Agent 连接状态异常(超时)")
@@ -537,7 +541,7 @@ func (a *MaaFWAdapter) DisconnectAgent() {
 	defer a.mu.Unlock()
 
 	if a.agentClient != nil {
-		a.agentClient.Disconnect()
+		_ = a.agentClient.Disconnect()
 		a.agentClient.Destroy()
 		a.agentClient = nil
 	}
@@ -657,7 +661,7 @@ func (a *MaaFWAdapter) Destroy() {
 
 	// 断开 Agent
 	if a.agentClient != nil {
-		a.agentClient.Disconnect()
+		_ = a.agentClient.Disconnect()
 		a.agentClient.Destroy()
 		a.agentClient = nil
 	}
@@ -767,8 +771,8 @@ func (s *Screenshotter) Capture() (image.Image, error) {
 	}
 
 	// 获取缓存的图像
-	img := s.controller.CacheImage()
-	if img == nil {
+	img, err := s.controller.CacheImage()
+	if err != nil || img == nil {
 		return nil, fmt.Errorf("获取截图数据失败")
 	}
 

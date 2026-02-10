@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	maa "github.com/MaaXYZ/maa-framework-go/v3"
+	maa "github.com/MaaXYZ/maa-framework-go/v4"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 )
 
@@ -26,9 +26,9 @@ func (tm *TaskManager) SubmitTask(controllerID, resourceID, entry string, overri
 	logger.Debug("MFW", "提交任务: entry=%s, controller=%s, resource=%s", entry, controllerID, resourceID)
 
 	// 创建 Tasker
-	tasker := maa.NewTasker()
-	if tasker == nil {
-		return 0, NewMFWError(ErrCodeTaskSubmitFailed, "failed to create tasker", nil)
+	tasker, err := maa.NewTasker()
+	if err != nil {
+		return 0, NewMFWError(ErrCodeTaskSubmitFailed, "failed to create tasker: "+err.Error(), nil)
 	}
 
 	taskID := time.Now().UnixNano()

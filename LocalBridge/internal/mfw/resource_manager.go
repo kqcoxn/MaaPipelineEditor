@@ -5,7 +5,7 @@ import (
 	"runtime"
 	"sync"
 
-	maa "github.com/MaaXYZ/maa-framework-go/v3"
+	maa "github.com/MaaXYZ/maa-framework-go/v4"
 	"github.com/google/uuid"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 )
@@ -54,9 +54,9 @@ func (rm *ResourceManager) LoadResource(path string) (string, string, error) {
 	resourceID := uuid.New().String()
 
 	// 创建资源对象
-	res := maa.NewResource()
-	if res == nil {
-		return "", "", NewMFWError(ErrCodeResourceLoadFailed, "failed to create resource", nil)
+	res, err := maa.NewResource()
+	if err != nil {
+		return "", "", NewMFWError(ErrCodeResourceLoadFailed, "failed to create resource: "+err.Error(), nil)
 	}
 
 	// 加载资源包
@@ -84,7 +84,7 @@ func (rm *ResourceManager) LoadResource(path string) (string, string, error) {
 
 	// 获取资源哈希
 	hash := ""
-	if h, ok := res.GetHash(); ok {
+	if h, err := res.GetHash(); err == nil {
 		hash = h
 	}
 

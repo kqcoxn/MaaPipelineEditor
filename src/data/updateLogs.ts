@@ -50,7 +50,7 @@ export const updateLogs: UpdateLogItem[] = [
   {
     version: "1.1.0",
     date: "2026-2-10",
-    type: "feature",
+    type: "major",
     updates: {
       features: [
         "🗒️ 新增便签节点，开启区域注释新姿势！",

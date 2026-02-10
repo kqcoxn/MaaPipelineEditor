@@ -3,7 +3,7 @@ module github.com/kqcoxn/MaaPipelineEditor/LocalBridge
 go 1.24.0
 
 require (
-	github.com/MaaXYZ/maa-framework-go/v3 v3.5.0
+	github.com/MaaXYZ/maa-framework-go/v4 v4.0.0-20260209063311-601b8c286e45
 	github.com/ebitengine/purego v0.9.1
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/google/uuid v1.6.0

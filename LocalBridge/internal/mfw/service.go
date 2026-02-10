@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"sync"
 
-	maa "github.com/MaaXYZ/maa-framework-go/v3"
+	maa "github.com/MaaXYZ/maa-framework-go/v4"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/config"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/paths"
@@ -127,7 +127,9 @@ func (s *Service) Initialize() (err error) {
 	}
 
 	// 错误时不保存截图
-	maa.SetSaveOnError(false)
+	if err := maa.SetSaveOnError(false); err != nil {
+		logger.Warn("MFW", "设置 SaveOnError 失败: %v", err)
+	}
 
 	s.initialized = true
 

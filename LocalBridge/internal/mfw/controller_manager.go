@@ -10,9 +10,9 @@ import (
 	"time"
 	"unsafe"
 
-	maa "github.com/MaaXYZ/maa-framework-go/v3"
-	"github.com/MaaXYZ/maa-framework-go/v3/controller/adb"
-	"github.com/MaaXYZ/maa-framework-go/v3/controller/win32"
+	maa "github.com/MaaXYZ/maa-framework-go/v4"
+	"github.com/MaaXYZ/maa-framework-go/v4/controller/adb"
+	"github.com/MaaXYZ/maa-framework-go/v4/controller/win32"
 	"github.com/google/uuid"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 )
@@ -52,9 +52,9 @@ func (cm *ControllerManager) CreateAdbController(adbPath, address string, screen
 	}
 
 	// 创建 ADB 控制器
-	ctrl := maa.NewAdbController(adbPath, address, scMethod, inMethod, config, agentPath)
-	if ctrl == nil {
-		return "", NewMFWError(ErrCodeControllerCreateFail, "failed to create adb controller", nil)
+	ctrl, err := maa.NewAdbController(adbPath, address, scMethod, inMethod, config, agentPath)
+	if err != nil {
+		return "", NewMFWError(ErrCodeControllerCreateFail, "failed to create adb controller: "+err.Error(), nil)
 	}
 
 	info := &ControllerInfo{
@@ -103,9 +103,9 @@ func (cm *ControllerManager) CreateWin32Controller(hwnd, screencapMethod, inputM
 	// maafw-golang 库会处理默认值
 
 	// 创建 Win32 控制器
-	ctrl := maa.NewWin32Controller(hwndPtr, scMethod, mouseMethod, mouseMethod)
-	if ctrl == nil {
-		return "", NewMFWError(ErrCodeControllerCreateFail, "failed to create win32 controller", nil)
+	ctrl, err := maa.NewWin32Controller(hwndPtr, scMethod, mouseMethod, mouseMethod)
+	if err != nil {
+		return "", NewMFWError(ErrCodeControllerCreateFail, "failed to create win32 controller: "+err.Error(), nil)
 	}
 
 	info := &ControllerInfo{
@@ -132,9 +132,9 @@ func (cm *ControllerManager) CreatePlayCoverController(address, deviceUUID strin
 	controllerID := uuid.New().String()
 
 	// 创建 PlayCover 控制器
-	ctrl := maa.NewPlayCoverController(address, deviceUUID)
-	if ctrl == nil {
-		return "", NewMFWError(ErrCodeControllerCreateFail, "failed to create playcover controller", nil)
+	ctrl, err := maa.NewPlayCoverController(address, deviceUUID)
+	if err != nil {
+		return "", NewMFWError(ErrCodeControllerCreateFail, "failed to create playcover controller: "+err.Error(), nil)
 	}
 
 	info := &ControllerInfo{
@@ -188,9 +188,9 @@ func (cm *ControllerManager) CreateGamepadController(hwnd, gamepadType, screenca
 	scMethod, _ := win32.ParseScreencapMethod(screencapMethod)
 
 	// 创建 Gamepad 控制器
-	ctrl := maa.NewGamepadController(hwndPtr, gpType, scMethod)
-	if ctrl == nil {
-		return "", NewMFWError(ErrCodeControllerCreateFail, "failed to create gamepad controller (ViGEm驱动未安装?)", nil)
+	ctrl, err := maa.NewGamepadController(hwndPtr, gpType, scMethod)
+	if err != nil {
+		return "", NewMFWError(ErrCodeControllerCreateFail, "failed to create gamepad controller (ViGEm驱动未安装?): "+err.Error(), nil)
 	}
 
 	info := &ControllerInfo{
@@ -252,7 +252,7 @@ func (cm *ControllerManager) ConnectController(controllerID string) error {
 	}
 
 	// 获取 UUID
-	if uuidStr, ok := ctrl.GetUUID(); ok {
+	if uuidStr, err := ctrl.GetUUID(); err == nil {
 		info.UUID = uuidStr
 	}
 
@@ -498,13 +498,13 @@ func (cm *ControllerManager) Screencap(req *ScreencapRequest) (*ScreencapResult,
 
 	// 设置截图参数
 	if req.TargetLongSide > 0 {
-		ctrl.SetScreenshotTargetLongSide(req.TargetLongSide)
+		ctrl.SetScreenshot(maa.WithScreenshotTargetLongSide(req.TargetLongSide))
 	}
 	if req.TargetShortSide > 0 {
-		ctrl.SetScreenshotTargetShortSide(req.TargetShortSide)
+		ctrl.SetScreenshot(maa.WithScreenshotTargetShortSide(req.TargetShortSide))
 	}
 	if req.UseRawSize {
-		ctrl.SetScreenshotUseRawSize(true)
+		ctrl.SetScreenshot(maa.WithScreenshotUseRawSize(true))
 	}
 
 	// 执行截图
@@ -517,10 +517,10 @@ func (cm *ControllerManager) Screencap(req *ScreencapRequest) (*ScreencapResult,
 	}
 
 	// 获取缓存图像
-	img := ctrl.CacheImage()
+	img, imgErr := ctrl.CacheImage()
 	info.LastActiveAt = time.Now()
 
-	if img == nil {
+	if imgErr != nil || img == nil {
 		return &ScreencapResult{
 			ControllerID: req.ControllerID,
 			Success:      false,

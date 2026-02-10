@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	maa "github.com/MaaXYZ/maa-framework-go/v3"
+	maa "github.com/MaaXYZ/maa-framework-go/v4"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 )
 
@@ -28,7 +28,10 @@ func (dm *DeviceManager) RefreshAdbDevices() ([]AdbDeviceInfo, error) {
 	logger.Debug("MFW", "开始刷新 ADB 设备列表")
 
 	// FindAdbDevices API
-	devices := maa.FindAdbDevices()
+	devices, err := maa.FindAdbDevices()
+	if err != nil {
+		return nil, fmt.Errorf("查找 ADB 设备失败: %w", err)
+	}
 
 	// ADB 可用的截图和输入方法（完整列表供用户选择）
 	// 截图方法：编码写入后拉取、直接编码、压缩原始流、网络直连、Minicap直连/流式、模拟器扩展等
@@ -61,7 +64,10 @@ func (dm *DeviceManager) RefreshWin32Windows() ([]Win32WindowInfo, error) {
 	logger.Debug("MFW", "开始刷新 Win32 窗体列表")
 
 	// FindDesktopWindows API
-	windows := maa.FindDesktopWindows()
+	windows, err := maa.FindDesktopWindows()
+	if err != nil {
+		return nil, fmt.Errorf("查找 Win32 窗体失败: %w", err)
+	}
 
 	// Win32 可用的截图和输入方法
 	// 截图方法: GDI、FramePool、DXGI桌面复制、DXGI窗口模式、PrintWindow、ScreenDC

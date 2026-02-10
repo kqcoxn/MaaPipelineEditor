@@ -12,7 +12,7 @@ import (
 	"runtime"
 	"strings"
 
-	maa "github.com/MaaXYZ/maa-framework-go/v3"
+	maa "github.com/MaaXYZ/maa-framework-go/v4"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/config"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/errors"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
@@ -139,8 +139,8 @@ func (h *UtilityHandler) performOCR(controllerID, resourceID string, roi [4]int3
 	}
 	job.Wait()
 
-	img := ctrl.CacheImage()
-	if img == nil {
+	img, imgErr := ctrl.CacheImage()
+	if imgErr != nil || img == nil {
 		return nil, mfw.NewMFWError(mfw.ErrCodeOperationFail, "failed to get screenshot", nil)
 	}
 	logger.Debug("Utility", "截图获取成功")
@@ -168,9 +168,10 @@ func (h *UtilityHandler) performOCR(controllerID, resourceID string, roi [4]int3
 			return nil, mfw.NewMFWError(mfw.ErrCodeOCRResourceNotConfigured, "OCR 资源路径未配置，请在后端运行 'mpelb config set-resource' 进行配置", nil)
 		}
 
-		res = maa.NewResource()
-		if res == nil {
-			return nil, mfw.NewMFWError(mfw.ErrCodeResourceLoadFailed, "failed to create resource", nil)
+		var resErr error
+		res, resErr = maa.NewResource()
+		if resErr != nil {
+			return nil, mfw.NewMFWError(mfw.ErrCodeResourceLoadFailed, "failed to create resource: "+resErr.Error(), nil)
 		}
 		shouldDestroyRes = true
 		defer func() {
@@ -226,21 +227,21 @@ func (h *UtilityHandler) performOCR(controllerID, resourceID string, roi [4]int3
 	}
 
 	// 创建临时 Tasker
-	tasker := maa.NewTasker()
-	if tasker == nil {
-		return nil, mfw.NewMFWError(mfw.ErrCodeTaskSubmitFailed, "failed to create tasker", nil)
+	tasker, taskerErr := maa.NewTasker()
+	if taskerErr != nil {
+		return nil, mfw.NewMFWError(mfw.ErrCodeTaskSubmitFailed, "failed to create tasker: "+taskerErr.Error(), nil)
 	}
 	defer tasker.Destroy()
 
 	// 绑定控制器和资源
-	if !tasker.BindController(ctrl) {
-		logger.Error("Utility", "绑定 Controller 失败")
-		return nil, mfw.NewMFWError(mfw.ErrCodeTaskSubmitFailed, "failed to bind controller", nil)
+	if err := tasker.BindController(ctrl); err != nil {
+		logger.Error("Utility", "绑定 Controller 失败: %v", err)
+		return nil, mfw.NewMFWError(mfw.ErrCodeTaskSubmitFailed, "failed to bind controller: "+err.Error(), nil)
 	}
 
-	if !tasker.BindResource(res) {
-		logger.Error("Utility", "绑定 Resource 失败")
-		return nil, mfw.NewMFWError(mfw.ErrCodeTaskSubmitFailed, "failed to bind resource", nil)
+	if err := tasker.BindResource(res); err != nil {
+		logger.Error("Utility", "绑定 Resource 失败: %v", err)
+		return nil, mfw.NewMFWError(mfw.ErrCodeTaskSubmitFailed, "failed to bind resource: "+err.Error(), nil)
 	}
 
 	// 等待 Tasker 初始化完成
@@ -275,8 +276,8 @@ func (h *UtilityHandler) performOCR(controllerID, resourceID string, roi [4]int3
 	logger.Debug("Utility", "OCR 识别任务完成,状态: %v", status)
 
 	// 获取识别详情
-	taskDetail := taskJob.GetDetail()
-	if taskDetail == nil {
+	taskDetail, detailErr := taskJob.GetDetail()
+	if detailErr != nil || taskDetail == nil {
 		logger.Warn("Utility", "OCR识别完成但无法获取详情")
 		return h.buildEmptyOCRResult(img, roi)
 	}
