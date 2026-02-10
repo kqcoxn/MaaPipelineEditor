@@ -32,6 +32,7 @@ export type {
   IdLabelPairsType,
   PipelineConfigType,
   MpeConfigType,
+  NodeConfigType,
   FlowToOptions,
   PipelineToFlowOptions,
   NodeType,

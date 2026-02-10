@@ -58,6 +58,7 @@ export const updateLogs: UpdateLogItem[] = [
         "🔤 新增节点字段收起选项",
       ],
       perfs: ["优化 Extremer 前后端自动连接逻辑，提升初次握手稳定性"],
+      fixes: ["修复分离导出时外部节点位置丢失问题"],
     },
   },
   {

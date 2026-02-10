@@ -54,6 +54,12 @@ export type PipelineConfigType = {
   [key: string]: any;
 };
 
+// 节点配置类型
+export type NodeConfigType = {
+  position: { x: number; y: number };
+  handleDirection?: HandleDirection;
+};
+
 // MPE分离配置文件类型
 export type MpeConfigType = {
   file_config: {
@@ -63,9 +69,9 @@ export type MpeConfigType = {
     savedViewport?: { x: number; y: number; zoom: number };
     [key: string]: any;
   };
-  node_configs: Record<string, { position: { x: number; y: number } }>;
-  external_nodes?: Record<string, any>;
-  anchor_nodes?: Record<string, any>;
+  node_configs: Record<string, NodeConfigType>;
+  external_nodes?: Record<string, NodeConfigType | any>;
+  anchor_nodes?: Record<string, NodeConfigType | any>;
 };
 
 // 导出选项

@@ -3,7 +3,7 @@
  * 用于支持分离存储模式
  */
 
-import type { PipelineObjType, MpeConfigType } from "./types";
+import type { PipelineObjType, MpeConfigType, NodeConfigType } from "./types";
 import {
   configMark,
   configMarkPrefix,
@@ -30,8 +30,8 @@ export function splitPipelineAndConfig(pipelineObj: PipelineObjType): {
     anchor_nodes: {},
   };
 
+  // 获取 filename
   Object.entries(pipelineObj).forEach(([key, value]) => {
-    // 文件配置节点
     if (key.startsWith(configMarkPrefix)) {
       const fileConfig = value[configMark];
       if (fileConfig) {
@@ -41,29 +41,60 @@ export function splitPipelineAndConfig(pipelineObj: PipelineObjType): {
         };
       }
     }
+  });
+
+  const filename = config.file_config.filename;
+
+  // 提取节点名
+  const extractNodeName = (key: string, prefix: string): string => {
+    const withoutPrefix = key.substring(prefix.length);
+    // 优先使用 filename 后缀匹配
+    const suffix = "_" + filename;
+    if (filename && withoutPrefix.endsWith(suffix)) {
+      return withoutPrefix.slice(0, -suffix.length);
+    }
+    // 按 _ 分割并移除最后一段
+    return withoutPrefix.split("_").slice(0, -1).join("_");
+  };
+
+  // 从 $__mpe_code 提取节点配置
+  const extractNodeConfig = (mpeCode: any): NodeConfigType | null => {
+    if (!mpeCode?.position) return null;
+    const nodeConfig: NodeConfigType = {
+      position: mpeCode.position,
+    };
+    if (mpeCode.handleDirection) {
+      nodeConfig.handleDirection = mpeCode.handleDirection;
+    }
+    return nodeConfig;
+  };
+
+  // 处理节点
+  Object.entries(pipelineObj).forEach(([key, value]) => {
+    // 跳过已处理的文件配置节点
+    if (key.startsWith(configMarkPrefix)) {
+      return;
+    }
     // 外部节点
     else if (key.startsWith(externalMarkPrefix)) {
-      const nodeName = key
-        .replace(externalMarkPrefix, "")
-        .split("_")
-        .slice(0, -1)
-        .join("_");
-      config.external_nodes![nodeName] = value;
+      const nodeName = extractNodeName(key, externalMarkPrefix);
+      const mpeCode = value[configMark];
+      const nodeConfig = extractNodeConfig(mpeCode);
+      config.external_nodes![nodeName] = nodeConfig ?? { position: { x: 0, y: 0 } };
     }
     // 锚点节点
     else if (key.startsWith(anchorMarkPrefix)) {
-      const nodeName = key
-        .replace(anchorMarkPrefix, "")
-        .split("_")
-        .slice(0, -1)
-        .join("_");
-      config.anchor_nodes![nodeName] = value;
+      const nodeName = extractNodeName(key, anchorMarkPrefix);
+      const mpeCode = value[configMark];
+      const nodeConfig = extractNodeConfig(mpeCode);
+      config.anchor_nodes![nodeName] = nodeConfig ?? { position: { x: 0, y: 0 } };
     }
     // 普通节点
     else {
-      const nodeConfig = value[configMark];
-      if (nodeConfig?.position) {
-        config.node_configs[key] = { position: nodeConfig.position };
+      const mpeCode = value[configMark];
+      const nodeConfig = extractNodeConfig(mpeCode);
+      if (nodeConfig) {
+        config.node_configs[key] = nodeConfig;
       }
 
       // 移除 $__mpe_code 后的节点数据
@@ -106,17 +137,38 @@ export function mergePipelineAndConfig(
     },
   };
 
+  // 将节点配置转换为 $__mpe_code
+  const buildMpeCode = (nodeData: any): Record<string, any> => {
+    // 新格式：直接包含 position 和 handleDirection
+    if (nodeData?.position) {
+      const mpeCode: Record<string, any> = { position: nodeData.position };
+      if (nodeData.handleDirection) {
+        mpeCode.handleDirection = nodeData.handleDirection;
+      }
+      return mpeCode;
+    }
+    // 旧格式：包含 $__mpe_code 包装层
+    if (nodeData?.[configMark]) {
+      return nodeData[configMark];
+    }
+    return { position: { x: 0, y: 0 } };
+  };
+
   // 添加外部节点
   if (config.external_nodes) {
     Object.entries(config.external_nodes).forEach(([nodeName, nodeData]) => {
-      merged[externalMarkPrefix + nodeName + "_" + actualFileName] = nodeData;
+      merged[externalMarkPrefix + nodeName + "_" + actualFileName] = {
+        [configMark]: buildMpeCode(nodeData),
+      };
     });
   }
 
   // 添加锚点节点
   if (config.anchor_nodes) {
     Object.entries(config.anchor_nodes).forEach(([nodeName, nodeData]) => {
-      merged[anchorMarkPrefix + nodeName + "_" + actualFileName] = nodeData;
+      merged[anchorMarkPrefix + nodeName + "_" + actualFileName] = {
+        [configMark]: buildMpeCode(nodeData),
+      };
     });
   }
 
@@ -124,9 +176,13 @@ export function mergePipelineAndConfig(
   Object.entries(pipeline).forEach(([key, value]) => {
     const nodeConfig = config.node_configs[key];
     if (nodeConfig?.position) {
+      const mpeCode: Record<string, any> = { position: nodeConfig.position };
+      if (nodeConfig.handleDirection) {
+        mpeCode.handleDirection = nodeConfig.handleDirection;
+      }
       merged[key] = {
         ...value,
-        [configMark]: { position: nodeConfig.position },
+        [configMark]: mpeCode,
       };
     } else {
       merged[key] = value;
