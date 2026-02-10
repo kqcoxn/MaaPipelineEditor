@@ -5,6 +5,7 @@ import {
   createPipelineNode,
   createExternalNode,
   createAnchorNode,
+  createStickerNode,
 } from "../../stores/flow";
 import { useFileStore } from "../../stores/fileStore";
 import {
@@ -21,7 +22,7 @@ import type {
   PipelineNodeType,
   MpeConfigType,
 } from "./types";
-import { externalMarkPrefix, anchorMarkPrefix } from "./types";
+import { externalMarkPrefix, anchorMarkPrefix, stickerMarkPrefix } from "./types";
 import { parsePipelineConfig, isMark } from "./configParser";
 import { detectNodeVersion } from "./versionDetector";
 import {
@@ -231,6 +232,41 @@ export async function pipelineToFlow(
         objKey.startsWith("__mpe_config_") ||
         objKey.startsWith("__yamaape_config_")
       ) {
+        return;
+      }
+
+      // 便签节点
+      if (objKey.startsWith(stickerMarkPrefix)) {
+        const id = "sticker_" + getNextId();
+        let label = objKey.substring(stickerMarkPrefix.length);
+        const filename = configs.filename;
+        if (filename) {
+          label = label.substring(0, label.length - filename.length - 1);
+        }
+
+        // 解析便签数据
+        const mpeCode = obj?.["$__mpe_code"] ?? obj;
+        const stickerNode = createStickerNode(id, {
+          label,
+          position: mpeCode?.position ?? { x: 0, y: 0 },
+          datas: {
+            content: mpeCode?.content ?? "",
+            color: mpeCode?.color ?? "yellow",
+          },
+        });
+        // 恢复尺寸
+        if (mpeCode?.width || mpeCode?.height) {
+          stickerNode.style = {
+            ...stickerNode.style,
+            ...(mpeCode.width && { width: mpeCode.width }),
+            ...(mpeCode.height && { height: mpeCode.height }),
+          };
+        }
+        if (mpeCode?.position) isIncludePos = true;
+
+        // 分配顺序号
+        orderMap[id] = nextOrder++;
+        nodes.push(stickerNode as unknown as NodeType);
         return;
       }
 

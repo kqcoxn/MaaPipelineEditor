@@ -9,6 +9,7 @@ import {
   configMarkPrefix,
   externalMarkPrefix,
   anchorMarkPrefix,
+  stickerMarkPrefix,
 } from "./types";
 
 /**
@@ -28,6 +29,7 @@ export function splitPipelineAndConfig(pipelineObj: PipelineObjType): {
     node_configs: {},
     external_nodes: {},
     anchor_nodes: {},
+    sticker_nodes: {},
   };
 
   // 获取 filename
@@ -82,12 +84,18 @@ export function splitPipelineAndConfig(pipelineObj: PipelineObjType): {
       const nodeConfig = extractNodeConfig(mpeCode);
       config.external_nodes![nodeName] = nodeConfig ?? { position: { x: 0, y: 0 } };
     }
-    // 锚点节点
+    // Anchor 节点
     else if (key.startsWith(anchorMarkPrefix)) {
       const nodeName = extractNodeName(key, anchorMarkPrefix);
       const mpeCode = value[configMark];
       const nodeConfig = extractNodeConfig(mpeCode);
       config.anchor_nodes![nodeName] = nodeConfig ?? { position: { x: 0, y: 0 } };
+    }
+    // 便签节点
+    else if (key.startsWith(stickerMarkPrefix)) {
+      const nodeName = extractNodeName(key, stickerMarkPrefix);
+      const mpeCode = value[configMark];
+      config.sticker_nodes![nodeName] = mpeCode ?? { position: { x: 0, y: 0 } };
     }
     // 普通节点
     else {
@@ -109,6 +117,9 @@ export function splitPipelineAndConfig(pipelineObj: PipelineObjType): {
   }
   if (Object.keys(config.anchor_nodes!).length === 0) {
     delete config.anchor_nodes;
+  }
+  if (Object.keys(config.sticker_nodes!).length === 0) {
+    delete config.sticker_nodes;
   }
 
   return { pipeline, config };
@@ -163,11 +174,20 @@ export function mergePipelineAndConfig(
     });
   }
 
-  // 添加锚点节点
+  // 添加 Anchor 节点
   if (config.anchor_nodes) {
     Object.entries(config.anchor_nodes).forEach(([nodeName, nodeData]) => {
       merged[anchorMarkPrefix + nodeName + "_" + actualFileName] = {
         [configMark]: buildMpeCode(nodeData),
+      };
+    });
+  }
+  
+  // 添加便签节点
+  if (config.sticker_nodes) {
+    Object.entries(config.sticker_nodes).forEach(([nodeName, nodeData]) => {
+      merged[stickerMarkPrefix + nodeName + "_" + actualFileName] = {
+        [configMark]: nodeData,
       };
     });
   }

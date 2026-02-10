@@ -92,4 +92,10 @@ export const nodeTemplates: NodeTemplateType[] = [
     iconSize: 24,
     nodeType: NodeTypeEnum.Anchor,
   },
+  {
+    label: "便签贴纸",
+    iconName: "icon-bianqian1",
+    iconSize: 26,
+    nodeType: NodeTypeEnum.Sticker,
+  },
 ];

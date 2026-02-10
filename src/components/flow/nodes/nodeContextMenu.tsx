@@ -7,6 +7,7 @@ import type {
   PipelineNodeDataType,
   ExternalNodeDataType,
   AnchorNodeDataType,
+  StickerNodeDataType,
 } from "../../../stores/flow";
 import { useFlowStore } from "../../../stores/flow";
 import {
@@ -71,7 +72,8 @@ export type NodeContextMenuConfig =
 export type NodeContextMenuNode =
   | Node<PipelineNodeDataType, NodeTypeEnum.Pipeline>
   | Node<ExternalNodeDataType, NodeTypeEnum.External>
-  | Node<AnchorNodeDataType, NodeTypeEnum.Anchor>;
+  | Node<AnchorNodeDataType, NodeTypeEnum.Anchor>
+  | Node<StickerNodeDataType, NodeTypeEnum.Sticker>;
 
 /**复制节点名处理器 */
 function handleCopyNodeName(node: NodeContextMenuNode) {
@@ -366,6 +368,7 @@ export function getNodeContextMenuConfig(
       label: "端点位置",
       icon: "icon-lianjie",
       iconSize: 16,
+      visible: (node) => node.type !== NodeTypeEnum.Sticker,
       children: HANDLE_DIRECTION_OPTIONS.map((option) => ({
         key: `direction-${option.value}`,
         label: option.label,

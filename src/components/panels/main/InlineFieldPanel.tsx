@@ -11,12 +11,14 @@ import {
   type PipelineNodeType,
   type ExternalNodeType,
   type AnchorNodeType,
+  type StickerNodeType,
 } from "../../../stores/flow";
 import { NodeTypeEnum } from "../../flow/nodes";
 import {
   PipelineEditorWithSuspense,
   ExternalEditor,
   AnchorEditor,
+  StickerEditor,
 } from "../node-editors";
 import { FieldPanelToolbarLeft, FieldPanelToolbarRight } from "../field/tools";
 import { useConfigStore } from "../../../stores/configStore";
@@ -94,6 +96,8 @@ function InlineFieldPanel() {
         return <ExternalEditor currentNode={currentNode as ExternalNodeType} />;
       case NodeTypeEnum.Anchor:
         return <AnchorEditor currentNode={currentNode as AnchorNodeType} />;
+      case NodeTypeEnum.Sticker:
+        return <StickerEditor currentNode={currentNode as StickerNodeType} />;
       default:
         return (
           <div style={{ padding: 12, color: "#999" }}>

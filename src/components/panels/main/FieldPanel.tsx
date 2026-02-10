@@ -18,6 +18,7 @@ import {
   type PipelineNodeType,
   type ExternalNodeType,
   type AnchorNodeType,
+  type StickerNodeType,
   type NodeType,
 } from "../../../stores/flow";
 import { NodeTypeEnum } from "../../flow/nodes";
@@ -25,6 +26,7 @@ import {
   PipelineEditorWithSuspense,
   ExternalEditor,
   AnchorEditor,
+  StickerEditor,
 } from "../node-editors";
 import { FieldPanelToolbarLeft, FieldPanelToolbarRight } from "../field/tools";
 import { useDebugStore } from "../../../stores/debugStore";
@@ -296,6 +298,10 @@ function FieldPanel() {
             >
               <AnchorEditor currentNode={nodeToRender as AnchorNodeType} />
             </EditorErrorBoundary>
+          );
+        case NodeTypeEnum.Sticker:
+          return (
+            <StickerEditor currentNode={nodeToRender as StickerNodeType} />
           );
         default:
           return (

@@ -133,6 +133,21 @@ export type AnchorNodeDataType = {
   handleDirection?: HandleDirection;
 };
 
+// Sticker 便签节点颜色主题
+export type StickerColorTheme =
+  | "yellow"
+  | "green"
+  | "blue"
+  | "pink"
+  | "purple";
+
+// Sticker 便签节点数据类型
+export type StickerNodeDataType = {
+  label: string;
+  content: string;
+  color: StickerColorTheme;
+};
+
 // Pipeline 节点类型
 export interface PipelineNodeType {
   id: string;
@@ -175,8 +190,27 @@ export interface AnchorNodeType {
   };
 }
 
+// Sticker 便签节点类型
+export interface StickerNodeType {
+  id: string;
+  type: NodeTypeEnum;
+  data: StickerNodeDataType;
+  position: PositionType;
+  dragging?: boolean;
+  selected?: boolean;
+  measured?: {
+    width: number;
+    height: number;
+  };
+  style?: Record<string, any>;
+}
+
 // 节点联合类型
-export type NodeType = PipelineNodeType | ExternalNodeType | AnchorNodeType;
+export type NodeType =
+  | PipelineNodeType
+  | ExternalNodeType
+  | AnchorNodeType
+  | StickerNodeType;
 
 // ========== Slice 状态类型定义 ==========
 

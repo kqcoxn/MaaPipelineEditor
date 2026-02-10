@@ -214,14 +214,21 @@ export const useCustomTemplateStore = create<CustomTemplateState>(
 
       // 排序
       const emptyTemplate = presetTemplates.find((t) => t.label === "空节点");
+      const stickerTemplate = presetTemplates.find(
+        (t) => t.nodeType === NodeTypeEnum.Sticker
+      );
       const otherPresetTemplates = presetTemplates.filter(
-        (t) => t.label !== "空节点"
+        (t) => t.label !== "空节点" && t.nodeType !== NodeTypeEnum.Sticker
       );
 
       const result: NodeTemplateType[] = [];
 
       if (emptyTemplate) {
         result.push(emptyTemplate);
+      }
+
+      if (stickerTemplate) {
+        result.push(stickerTemplate);
       }
 
       result.push(...customTemplates);

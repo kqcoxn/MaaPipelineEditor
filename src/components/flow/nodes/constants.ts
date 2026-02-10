@@ -15,6 +15,7 @@ export enum NodeTypeEnum {
   Pipeline = "pipeline",
   External = "external",
   Anchor = "anchor",
+  Sticker = "sticker",
 }
 
 /**节点端点位置类型

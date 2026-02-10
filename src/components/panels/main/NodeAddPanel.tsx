@@ -55,6 +55,7 @@ function getTemplateDescription(template: NodeTemplateType): string {
   if (!data) {
     if (template.nodeType === NodeTypeEnum.External) return "引用外部节点";
     if (template.nodeType === NodeTypeEnum.Anchor) return "重定向到其他节点";
+    if (template.nodeType === NodeTypeEnum.Sticker) return "记录注释信息的便签";
     return "空白节点模板";
   }
 
@@ -116,6 +117,42 @@ const NodePreview = memo(
             <div className={style.headerTitle} style={{ color: "#fff" }}>
               {template.label}
             </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (nodeType === NodeTypeEnum.Sticker) {
+      return (
+        <div
+          className={style.previewNode}
+          style={{
+            backgroundColor: "#fff9c4",
+            borderColor: "#f9e066",
+            borderWidth: 1,
+            borderStyle: "solid",
+          }}
+        >
+          <div
+            className={style.previewHeader}
+            style={{
+              backgroundColor: "#f9e066",
+              borderBottom: "none",
+            }}
+          >
+            <div className={style.headerTitle} style={{ color: "#fff" }}>
+              {template.label}
+            </div>
+          </div>
+          <div
+            style={{
+              padding: "8px 10px",
+              color: "#5d4e00",
+              fontSize: 11,
+              opacity: 0.6,
+            }}
+          >
+            双击编辑内容...
           </div>
         </div>
       );

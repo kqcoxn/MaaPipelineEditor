@@ -16,6 +16,7 @@ import {
   createPipelineNode,
   createExternalNode,
   createAnchorNode,
+  createStickerNode,
   findNodeByLabel,
   findNodeById,
   findNodeIndexById,
@@ -125,6 +126,9 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
         case NodeTypeEnum.Anchor:
           labelBase = "重定向节点";
           break;
+        case NodeTypeEnum.Sticker:
+          labelBase = "便签";
+          break;
       }
 
       let label = labelBase + id;
@@ -168,16 +172,25 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
         case NodeTypeEnum.Anchor:
           newNode = createAnchorNode(id, nodeOptions);
           break;
+        case NodeTypeEnum.Sticker:
+          newNode = createStickerNode(id, {
+            label,
+            position: nodeOptions.position,
+            select: nodeOptions.select,
+            datas: data,
+          });
+          break;
         default:
           throw new Error(`Unknown node type: ${type}`);
       }
 
       // 添加连接
-      if (link && selectedNodes.length > 0) {
+      if (link && type !== NodeTypeEnum.Sticker && selectedNodes.length > 0) {
         selectedNodes.forEach((node) => {
           if (
             node.type === NodeTypeEnum.External ||
-            node.type === NodeTypeEnum.Anchor
+            node.type === NodeTypeEnum.Anchor ||
+            node.type === NodeTypeEnum.Sticker
           )
             return;
           get().addEdge({

@@ -3,6 +3,8 @@ import type {
   PipelineNodeType,
   ExternalNodeType,
   AnchorNodeType,
+  StickerNodeType,
+  StickerColorTheme,
   PositionType,
 } from "../types";
 import { NodeTypeEnum } from "../../../components/flow/nodes";
@@ -110,6 +112,41 @@ export function createAnchorNode(
   return node;
 }
 
+// 创建 Sticker 便签节点
+export function createStickerNode(
+  id: string,
+  options?: {
+    label?: string;
+    position?: PositionType;
+    select?: boolean;
+    datas?: {
+      content?: string;
+      color?: StickerColorTheme;
+    };
+  }
+): StickerNodeType {
+  const {
+    label = "便签" + id,
+    position = { x: 0, y: 0 },
+    select = false,
+    datas = {},
+  } = options ?? {};
+
+  const node: StickerNodeType = {
+    id,
+    type: NodeTypeEnum.Sticker,
+    data: {
+      label,
+      content: datas.content ?? "",
+      color: datas.color ?? "yellow",
+    },
+    position,
+    selected: select,
+    style: { width: 200, height: 160 },
+  };
+  return node;
+}
+
 // 查找节点
 export function findNodeById(
   nodes: NodeType[],
@@ -183,6 +220,8 @@ export function checkRepeatNodeLabelList(
   // 查重
   const counter: Record<string, number> = {};
   for (const node of nodes) {
+    // 跳过便签节点
+    if (node.type === NodeTypeEnum.Sticker) continue;
     let label = node.data.label;
     if (isAddPrefix && node.type === NodeTypeEnum.Pipeline) {
       label = prefix + label;

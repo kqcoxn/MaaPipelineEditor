@@ -160,6 +160,32 @@ export function parseAnchorNodeForExport(
 }
 
 /**
+ * 解析便签节点为导出格式
+ * @param fNode Flow节点
+ * @returns 包含位置、内容、颜色、尺寸的节点
+ */
+export function parseStickerNodeForExport(
+  fNode: any
+): ParsedPipelineNodeType {
+  const position = fNode.position;
+  const mpeCode: Record<string, any> = {
+    position: {
+      x: Math.round(position.x),
+      y: Math.round(position.y),
+    },
+    content: fNode.data.content ?? "",
+    color: fNode.data.color ?? "yellow",
+  };
+  // 保存尺寸
+  if (fNode.style?.width) mpeCode.width = fNode.style.width;
+  if (fNode.style?.height) mpeCode.height = fNode.style.height;
+  const pNode: ParsedPipelineNodeType = {
+    [configMark]: mpeCode,
+  };
+  return pNode;
+}
+
+/**
  * 解析识别字段
  * @param node 目标节点
  * @param value 识别字段值

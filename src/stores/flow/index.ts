@@ -27,6 +27,7 @@ export type {
   PipelineNodeType,
   ExternalNodeType,
   AnchorNodeType,
+  StickerNodeType,
   EdgeType,
   EdgeAttributesType,
   PositionType,
@@ -37,11 +38,14 @@ export type {
   PipelineNodeDataType,
   ExternalNodeDataType,
   AnchorNodeDataType,
+  StickerNodeDataType,
+  StickerColorTheme,
 } from "./types";
 export {
   createPipelineNode,
   createExternalNode,
   createAnchorNode,
+  createStickerNode,
   findNodeById,
   findNodeIndexById,
   findNodeLabelById,
