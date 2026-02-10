@@ -148,6 +148,20 @@ export type StickerNodeDataType = {
   color: StickerColorTheme;
 };
 
+// Group 分组节点颜色主题
+export type GroupColorTheme =
+  | "blue"
+  | "green"
+  | "purple"
+  | "orange"
+  | "gray";
+
+// Group 分组节点数据类型
+export type GroupNodeDataType = {
+  label: string;
+  color: GroupColorTheme;
+};
+
 // Pipeline 节点类型
 export interface PipelineNodeType {
   id: string;
@@ -205,12 +219,28 @@ export interface StickerNodeType {
   style?: Record<string, any>;
 }
 
+// Group 分组节点类型
+export interface GroupNodeType {
+  id: string;
+  type: NodeTypeEnum;
+  data: GroupNodeDataType;
+  position: PositionType;
+  dragging?: boolean;
+  selected?: boolean;
+  measured?: {
+    width: number;
+    height: number;
+  };
+  style?: Record<string, any>;
+}
+
 // 节点联合类型
 export type NodeType =
   | PipelineNodeType
   | ExternalNodeType
   | AnchorNodeType
-  | StickerNodeType;
+  | StickerNodeType
+  | GroupNodeType;
 
 // ========== Slice 状态类型定义 ==========
 
@@ -272,6 +302,10 @@ export interface FlowNodeState {
   ) => void;
   setNodes: (nodes: NodeType[]) => void;
   resetNodeCounter: () => void;
+  groupSelectedNodes: () => void;
+  ungroupNodes: (groupId: string) => void;
+  attachNodeToGroup: (nodeId: string, groupId: string) => void;
+  detachNodeFromGroup: (nodeId: string) => void;
 }
 
 // 边 Slice 状态

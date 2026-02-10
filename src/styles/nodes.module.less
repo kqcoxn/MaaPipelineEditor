@@ -628,3 +628,66 @@
       2px 3px 12px rgba(0, 0, 0, 0.15);
   }
 }
+
+// ========== 分组节点样式 ==========
+.group-node {
+  width: 100%;
+  height: 100%;
+  min-width: 200px;
+  min-height: 150px;
+  position: relative;
+  // 覆盖 React Flow 默认节点样式
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+
+  .groupInner {
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+    border: 2px dashed;
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+
+  .groupHeader {
+    padding: 6px 12px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    min-height: 32px;
+    border-radius: 6px 6px 0 0;
+
+    .groupTitle {
+      all: unset;
+      width: 100%;
+      font-size: 13px;
+      font-weight: 600;
+      background: transparent;
+      border: none;
+      outline: none;
+      cursor: text;
+      line-height: 1.4;
+
+      &::placeholder {
+        opacity: 0.5;
+      }
+    }
+  }
+
+  .groupBody {
+    flex: 1;
+    min-height: 0;
+  }
+}
+
+.group-node-selected {
+  .groupInner {
+    box-shadow: 0 0 0 1.5px rgba(24, 144, 255, 0.6),
+      0 0 16px rgba(24, 144, 255, 0.1);
+  }
+}

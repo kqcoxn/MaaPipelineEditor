@@ -28,6 +28,7 @@ export type {
   ExternalNodeType,
   AnchorNodeType,
   StickerNodeType,
+  GroupNodeType,
   EdgeType,
   EdgeAttributesType,
   PositionType,
@@ -40,18 +41,22 @@ export type {
   AnchorNodeDataType,
   StickerNodeDataType,
   StickerColorTheme,
+  GroupNodeDataType,
+  GroupColorTheme,
 } from "./types";
 export {
   createPipelineNode,
   createExternalNode,
   createAnchorNode,
   createStickerNode,
+  createGroupNode,
   findNodeById,
   findNodeIndexById,
   findNodeLabelById,
   findNodeByLabel,
   getSelectedNodes,
   calcuNodePosition,
+  ensureGroupNodeOrder,
 } from "./utils/nodeUtils";
 export {
   findEdgeById,

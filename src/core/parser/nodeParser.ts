@@ -186,6 +186,40 @@ export function parseStickerNodeForExport(
 }
 
 /**
+ * 解析分组节点为导出格式
+ * @param fNode Flow节点
+ * @param allNodes 所有节点（用于查找子节点）
+ * @returns 包含位置、颜色、尺寸、子节点信息的节点
+ */
+export function parseGroupNodeForExport(
+  fNode: any,
+  allNodes: any[]
+): ParsedPipelineNodeType {
+  const position = fNode.position;
+  // 收集子节点 label
+  const childrenLabels = allNodes
+    .filter((n: any) => n.parentId === fNode.id)
+    .map((n: any) => n.data?.label)
+    .filter(Boolean);
+
+  const mpeCode: Record<string, any> = {
+    position: {
+      x: Math.round(position.x),
+      y: Math.round(position.y),
+    },
+    color: fNode.data.color ?? "blue",
+    childrenLabels,
+  };
+  // 保存尺寸
+  if (fNode.style?.width) mpeCode.width = fNode.style.width;
+  if (fNode.style?.height) mpeCode.height = fNode.style.height;
+  const pNode: ParsedPipelineNodeType = {
+    [configMark]: mpeCode,
+  };
+  return pNode;
+}
+
+/**
  * 解析识别字段
  * @param node 目标节点
  * @param value 识别字段值

@@ -10,6 +10,7 @@ import {
   externalMarkPrefix,
   anchorMarkPrefix,
   stickerMarkPrefix,
+  groupMarkPrefix,
 } from "./types";
 
 /**
@@ -30,6 +31,7 @@ export function splitPipelineAndConfig(pipelineObj: PipelineObjType): {
     external_nodes: {},
     anchor_nodes: {},
     sticker_nodes: {},
+    group_nodes: {},
   };
 
   // 获取 filename
@@ -97,6 +99,12 @@ export function splitPipelineAndConfig(pipelineObj: PipelineObjType): {
       const mpeCode = value[configMark];
       config.sticker_nodes![nodeName] = mpeCode ?? { position: { x: 0, y: 0 } };
     }
+    // 分组节点
+    else if (key.startsWith(groupMarkPrefix)) {
+      const nodeName = extractNodeName(key, groupMarkPrefix);
+      const mpeCode = value[configMark];
+      config.group_nodes![nodeName] = mpeCode ?? { position: { x: 0, y: 0 } };
+    }
     // 普通节点
     else {
       const mpeCode = value[configMark];
@@ -120,6 +128,9 @@ export function splitPipelineAndConfig(pipelineObj: PipelineObjType): {
   }
   if (Object.keys(config.sticker_nodes!).length === 0) {
     delete config.sticker_nodes;
+  }
+  if (Object.keys(config.group_nodes!).length === 0) {
+    delete config.group_nodes;
   }
 
   return { pipeline, config };
@@ -187,6 +198,15 @@ export function mergePipelineAndConfig(
   if (config.sticker_nodes) {
     Object.entries(config.sticker_nodes).forEach(([nodeName, nodeData]) => {
       merged[stickerMarkPrefix + nodeName + "_" + actualFileName] = {
+        [configMark]: nodeData,
+      };
+    });
+  }
+
+  // 添加分组节点
+  if (config.group_nodes) {
+    Object.entries(config.group_nodes).forEach(([nodeName, nodeData]) => {
+      merged[groupMarkPrefix + nodeName + "_" + actualFileName] = {
         [configMark]: nodeData,
       };
     });

@@ -8,6 +8,7 @@ import type {
   ExternalNodeDataType,
   AnchorNodeDataType,
   StickerNodeDataType,
+  GroupNodeDataType,
 } from "../../../stores/flow";
 import { useFlowStore } from "../../../stores/flow";
 import {
@@ -73,7 +74,8 @@ export type NodeContextMenuNode =
   | Node<PipelineNodeDataType, NodeTypeEnum.Pipeline>
   | Node<ExternalNodeDataType, NodeTypeEnum.External>
   | Node<AnchorNodeDataType, NodeTypeEnum.Anchor>
-  | Node<StickerNodeDataType, NodeTypeEnum.Sticker>;
+  | Node<StickerNodeDataType, NodeTypeEnum.Sticker>
+  | Node<GroupNodeDataType, NodeTypeEnum.Group>;
 
 /**复制节点名处理器 */
 function handleCopyNodeName(node: NodeContextMenuNode) {
@@ -329,11 +331,76 @@ function getNodeDirection(node: NodeContextMenuNode): HandleDirection {
   return (node.data as any).handleDirection || "left-right";
 }
 
+/**解散分组处理器 */
+function handleUngroupNodes(node: NodeContextMenuNode) {
+  useFlowStore.getState().ungroupNodes(node.id);
+}
+
+/**更改分组颜色处理器 */
+function handleSetGroupColor(
+  node: NodeContextMenuNode,
+  color: string
+) {
+  useFlowStore.getState().setNodeData(node.id, "direct", "color", color);
+  useFlowStore.getState().saveHistory(0);
+}
+
+/**删除分组（先解散子节点再删除）处理器 */
+function handleDeleteGroup(node: NodeContextMenuNode) {
+  // 先解散子节点
+  useFlowStore.getState().ungroupNodes(node.id);
+}
+
 /**获取节点右键菜单配置 */
 export function getNodeContextMenuConfig(
   node: NodeContextMenuNode
 ): NodeContextMenuConfig[] {
   const { debugMode } = useDebugStore.getState();
+
+  // Group 节点使用专用菜单
+  if (node.type === NodeTypeEnum.Group) {
+    const groupColors = [
+      { key: "blue", label: "蓝色" },
+      { key: "green", label: "绿色" },
+      { key: "purple", label: "紫色" },
+      { key: "orange", label: "橙色" },
+      { key: "gray", label: "灰色" },
+    ];
+    return [
+      {
+        key: "group-color",
+        label: "分组颜色",
+        icon: "icon-tiaoseban",
+        iconSize: 16,
+        children: groupColors.map((c) => ({
+          key: `group-color-${c.key}`,
+          label: c.label,
+          onClick: (node) => handleSetGroupColor(node, c.key),
+          checked: (node) =>
+            (node.data as any).color === c.key,
+        })),
+      },
+      {
+        type: "divider",
+        key: "divider-group-1",
+      },
+      {
+        key: "ungroup",
+        label: "解散分组",
+        icon: "icon-quxiaoguanlian",
+        iconSize: 16,
+        onClick: handleUngroupNodes,
+      },
+      {
+        key: "delete-group",
+        label: "删除分组",
+        icon: "icon-shanchu",
+        iconSize: 16,
+        onClick: handleDeleteGroup,
+        danger: true,
+      },
+    ];
+  }
 
   const config: NodeContextMenuConfig[] = [
     // 复制节点名

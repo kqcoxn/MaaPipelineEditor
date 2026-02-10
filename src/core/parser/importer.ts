@@ -6,6 +6,8 @@ import {
   createExternalNode,
   createAnchorNode,
   createStickerNode,
+  createGroupNode,
+  ensureGroupNodeOrder,
 } from "../../stores/flow";
 import { useFileStore } from "../../stores/fileStore";
 import {
@@ -22,7 +24,7 @@ import type {
   PipelineNodeType,
   MpeConfigType,
 } from "./types";
-import { externalMarkPrefix, anchorMarkPrefix, stickerMarkPrefix } from "./types";
+import { externalMarkPrefix, anchorMarkPrefix, stickerMarkPrefix, groupMarkPrefix } from "./types";
 import { parsePipelineConfig, isMark } from "./configParser";
 import { detectNodeVersion } from "./versionDetector";
 import {
@@ -270,6 +272,42 @@ export async function pipelineToFlow(
         return;
       }
 
+      // 分组节点
+      if (objKey.startsWith(groupMarkPrefix)) {
+        const id = "group_" + getNextId();
+        let label = objKey.substring(groupMarkPrefix.length);
+        const filename = configs.filename;
+        if (filename) {
+          label = label.substring(0, label.length - filename.length - 1);
+        }
+
+        // 解析分组数据
+        const mpeCode = obj?.["$__mpe_code"] ?? obj;
+        const groupNode = createGroupNode(id, {
+          label,
+          position: mpeCode?.position ?? { x: 0, y: 0 },
+          datas: {
+            color: mpeCode?.color ?? "blue",
+          },
+          style: {
+            ...(mpeCode?.width && { width: mpeCode.width }),
+            ...(mpeCode?.height && { height: mpeCode.height }),
+          },
+        });
+
+        if (mpeCode?.position) isIncludePos = true;
+
+        // 记录子节点关系
+        if (mpeCode?.childrenLabels && Array.isArray(mpeCode.childrenLabels)) {
+          (groupNode as any)._pendingChildrenLabels = mpeCode.childrenLabels;
+        }
+
+        // 分配顺序号
+        orderMap[id] = nextOrder++;
+        nodes.push(groupNode as unknown as NodeType);
+        return;
+      }
+
       // 检测当前节点的版本
       const { recognitionVersion, actionVersion } = detectNodeVersion(obj);
 
@@ -364,6 +402,34 @@ export async function pipelineToFlow(
       // 保存节点
       nodes.push(node);
     });
+
+    // 恢复分组子节点关系
+    // Group 节点的 _pendingChildrenLabels 存储了子节点的 label
+    // 通过 label 匹配找到对应节点，设置 parentId
+    const labelToNodeIndex = new Map<string, number>();
+    nodes.forEach((node, index) => {
+      labelToNodeIndex.set(node.data.label, index);
+    });
+
+    nodes.forEach((node) => {
+      if ((node as any)._pendingChildrenLabels) {
+        const groupId = node.id;
+        const childrenLabels: string[] = (node as any)._pendingChildrenLabels;
+        delete (node as any)._pendingChildrenLabels;
+
+        childrenLabels.forEach((label) => {
+          const childIndex = labelToNodeIndex.get(label);
+          if (childIndex !== undefined) {
+            const childNode = nodes[childIndex];
+            if (childNode.type !== NodeTypeEnum.Group) {
+              (nodes[childIndex] as any).parentId = groupId;
+            }
+          }
+        });
+      }
+    });
+    
+    nodes = ensureGroupNodeOrder(nodes);
 
     // 解析连接
     let edges: EdgeType[] = [];

@@ -63,6 +63,13 @@ export function AnchorNode(props: NodeProps<AnchorNodeData>) {
     if (selectedNodes.length === 0 && selectedEdges.length === 0) return true;
 
     const nodeId = props.id;
+    const selectedNodeIds = new Set(selectedNodes.map((n) => n.id));
+
+    // 检查分组关系
+    const thisNode = useFlowStore.getState().nodes.find((n) => n.id === nodeId);
+    if (thisNode && (thisNode as any).parentId && selectedNodeIds.has((thisNode as any).parentId)) {
+      return true;
+    }
 
     // 检查是否与选中的边相连
     for (const selectedEdge of selectedEdges) {
@@ -73,8 +80,6 @@ export function AnchorNode(props: NodeProps<AnchorNodeData>) {
 
     // 仅在有选中节点时检查节点连接关系
     if (selectedNodes.length > 0) {
-      const selectedNodeIds = new Set(selectedNodes.map((n) => n.id));
-
       for (const edge of edges) {
         if (edge.target === nodeId && selectedNodeIds.has(edge.source)) {
           return true;

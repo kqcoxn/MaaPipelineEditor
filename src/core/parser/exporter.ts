@@ -20,6 +20,7 @@ import {
   externalMarkPrefix,
   anchorMarkPrefix,
   stickerMarkPrefix,
+  groupMarkPrefix,
   configMark,
 } from "./types";
 import type { NodeAttr } from "./edgeLinker";
@@ -28,6 +29,7 @@ import {
   parseExternalNodeForExport,
   parseAnchorNodeForExport,
   parseStickerNodeForExport,
+  parseGroupNodeForExport,
 } from "./nodeParser";
 import { normalizeViewport } from "../../stores/flow/utils/viewportUtils";
 import { splitPipelineAndConfig } from "./configSplitter";
@@ -103,6 +105,11 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
           if (!shouldExportConfig) break;
           pipelineObj[stickerMarkPrefix + node.data.label + "_" + fileName] =
             parseStickerNodeForExport(node);
+          break;
+        case NodeTypeEnum.Group:
+          if (!shouldExportConfig) break;
+          pipelineObj[groupMarkPrefix + node.data.label + "_" + fileName] =
+            parseGroupNodeForExport(node, sortedNodes);
           break;
       }
     });

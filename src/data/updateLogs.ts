@@ -49,11 +49,12 @@ export const pinnedNotice: PinnedNotice = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "1.1.0",
-    date: "2026-2-10",
+    date: "2026-2-11",
     type: "major",
     updates: {
       features: [
         "🗒️ 新增便签节点，开启区域注释新姿势！",
+        "🗂️ 新增节点分组功能，让节点管理更明晰！",
         "🖥️ 新增实时渲染窗口，连接设备后定时同步设备内容（可在设置中关闭）",
         "〰️ 新增节点拖动时对齐参考线与磁吸功能，拯救所有强迫症！（默认关闭，可自行开启）",
         "🔍 JSON 预览添加搜索功能，支持高亮显示与上下跳转",

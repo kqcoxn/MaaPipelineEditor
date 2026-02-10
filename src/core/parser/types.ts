@@ -18,6 +18,7 @@ export const configMarkPrefix = "$__mpe_config_";
 export const externalMarkPrefix = "$__mpe_external_";
 export const anchorMarkPrefix = "$__mpe_anchor_";
 export const stickerMarkPrefix = "$__mpe_sticker_";
+export const groupMarkPrefix = "$__mpe_group_";
 
 // 解析后的Pipeline节点类型
 export type ParsedPipelineNodeType = {
@@ -74,6 +75,7 @@ export type MpeConfigType = {
   external_nodes?: Record<string, NodeConfigType | any>;
   anchor_nodes?: Record<string, NodeConfigType | any>;
   sticker_nodes?: Record<string, any>;
+  group_nodes?: Record<string, any>;
 };
 
 // 导出选项

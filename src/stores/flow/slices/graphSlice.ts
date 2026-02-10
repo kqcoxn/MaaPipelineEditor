@@ -1,6 +1,8 @@
 import type { StateCreator } from "zustand";
 import { cloneDeep } from "lodash";
 import type { FlowStore, FlowGraphState, NodeType, EdgeType } from "../types";
+import { NodeTypeEnum } from "../../../components/flow/nodes";
+import { ensureGroupNodeOrder } from "../utils/nodeUtils";
 import { fitFlowView } from "../utils/viewportUtils";
 import { assignNodeOrder } from "../../fileStore";
 
@@ -22,8 +24,11 @@ export const createGraphSlice: StateCreator<
     } = options || {};
 
     set((state) => {
-      const processedNodes = nodes.map((node) => ({ ...node }));
+      let processedNodes = nodes.map((node) => ({ ...node }));
       const processedEdges = edges.map((edge) => ({ ...edge }));
+
+      // 确保 Group 节点排在子节点之前
+      processedNodes = ensureGroupNodeOrder(processedNodes);
 
       // 清空选择
       get().clearSelection();
@@ -95,6 +100,15 @@ export const createGraphSlice: StateCreator<
         };
       });
 
+      // 更新粘贴节点的 parentId 映射
+      nodes.forEach((node) => {
+        if ((node as any).parentId && pairs[(node as any).parentId]) {
+          (node as any).parentId = pairs[(node as any).parentId];
+        } else {
+          (node as any).parentId = undefined;
+        }
+      });
+
       // 克隆并更新边数据
       edges = cloneDeep(edges);
       edges.forEach((edge) => {
@@ -110,7 +124,7 @@ export const createGraphSlice: StateCreator<
       fitFlowView(state.instance, state.viewport, { focusNodes: nodes });
 
       return {
-        nodes: [...originNodes, ...nodes],
+        nodes: ensureGroupNodeOrder([...originNodes, ...nodes]),
         edges: [...originEdges, ...edges],
         pasteIdCounter: pasteCounter,
       };

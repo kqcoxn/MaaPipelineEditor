@@ -117,6 +117,11 @@ function InlineFieldPanel() {
     return null;
   }
 
+  // Group 节点不需要内联编辑面板
+  if (currentNode.type === NodeTypeEnum.Group) {
+    return null;
+  }
+
   // 拖动节点时隐藏面板
   if (isDragging) {
     return null;

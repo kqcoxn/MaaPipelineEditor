@@ -24,11 +24,13 @@ import {
   useKeyPress,
 } from "@xyflow/react";
 import { useDebounceEffect, useDebounceFn } from "ahooks";
+import { Dropdown } from "antd";
 
 import { useFlowStore, type EdgeType, type NodeType } from "../stores/flow";
 import { useShallow } from "zustand/shallow";
 import { useClipboardStore } from "../stores/clipboardStore";
 import { nodeTypes } from "./flow/nodes";
+import { NodeTypeEnum } from "./flow/nodes/constants";
 import { edgeTypes } from "./flow/edges";
 import { localSave, useFileStore } from "../stores/fileStore";
 import NodeAddPanel from "./panels/main/NodeAddPanel";
@@ -196,6 +198,9 @@ function MainFlow() {
     addEdge,
     updateSize,
     updateSelection,
+    groupSelectedNodes,
+    attachNodeToGroup,
+    detachNodeFromGroup,
   } = useFlowStore(
     useShallow((state) => ({
       nodes: state.nodes,
@@ -205,6 +210,9 @@ function MainFlow() {
       addEdge: state.addEdge,
       updateSize: state.updateSize,
       updateSelection: state.updateSelection,
+      groupSelectedNodes: state.groupSelectedNodes,
+      attachNodeToGroup: state.attachNodeToGroup,
+      detachNodeFromGroup: state.detachNodeFromGroup,
     }))
   );
   const canvasBackgroundMode = useConfigStore(
@@ -221,6 +229,12 @@ function MainFlow() {
 
   // 磁吸对齐参考线
   const [snapGuidelines, setSnapGuidelines] = useState<SnapGuideline[]>([]);
+
+  // 选区右键菜单
+  const [selectionMenuPos, setSelectionMenuPos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
 
   // 回调
   const onNodesChange = useCallback(
@@ -275,7 +289,9 @@ function MainFlow() {
   const onNodeDrag = useCallback(
     (_event: React.MouseEvent, draggedNode: NodeType) => {
       if (!enableNodeSnap) return;
-      const otherNodes = nodes.filter((n) => n.id !== draggedNode.id);
+      const otherNodes = nodes.filter(
+        (n) => n.id !== draggedNode.id && n.type !== NodeTypeEnum.Group
+      );
       if (otherNodes.length === 0) {
         setSnapGuidelines([]);
         return;
@@ -302,24 +318,80 @@ function MainFlow() {
   const onNodeDragStop = useCallback(
     (_event: React.MouseEvent, draggedNode: NodeType) => {
       setSnapGuidelines([]);
-      if (!enableNodeSnap) return;
-      const otherNodes = nodes.filter((n) => n.id !== draggedNode.id);
-      if (otherNodes.length === 0) return;
-      const result = findSnapAlignment(draggedNode, otherNodes);
-      const dx = result.position.x - draggedNode.position.x;
-      const dy = result.position.y - draggedNode.position.y;
-      if (dx !== 0 || dy !== 0) {
-        updateNodes([
-          {
-            type: "position",
-            id: draggedNode.id,
-            position: result.position,
-          },
-        ]);
+
+      // 磁吸对齐
+      if (enableNodeSnap) {
+        const otherNodes = nodes.filter(
+          (n) => n.id !== draggedNode.id && n.type !== NodeTypeEnum.Group
+        );
+        if (otherNodes.length > 0) {
+          const result = findSnapAlignment(draggedNode, otherNodes);
+          const dx = result.position.x - draggedNode.position.x;
+          const dy = result.position.y - draggedNode.position.y;
+          if (dx !== 0 || dy !== 0) {
+            updateNodes([
+              {
+                type: "position",
+                id: draggedNode.id,
+                position: result.position,
+              },
+            ]);
+          }
+        }
+      }
+
+      // 拖入/拖出分组检测
+      if (draggedNode.type === NodeTypeEnum.Group) return;
+      const currentNodes = useFlowStore.getState().nodes;
+      const hasParent = !!(draggedNode as any).parentId;
+
+      if (hasParent) {
+        // 检测是否拖出了父 Group 的范围
+        const parentId = (draggedNode as any).parentId;
+        const parentNode = currentNodes.find((n) => n.id === parentId);
+        if (parentNode) {
+          const pw = (parentNode as any).style?.width ?? parentNode.measured?.width ?? 400;
+          const ph = (parentNode as any).style?.height ?? parentNode.measured?.height ?? 300;
+          const nx = draggedNode.position.x;
+          const ny = draggedNode.position.y;
+          const nw = draggedNode.measured?.width ?? 200;
+          const nh = draggedNode.measured?.height ?? 100;
+          // 如果节点中心在 parent 外部，则脱离
+          const cx = nx + nw / 2;
+          const cy = ny + nh / 2;
+          if (cx < 0 || cy < 0 || cx > pw || cy > ph) {
+            detachNodeFromGroup(draggedNode.id);
+          }
+        }
+      } else {
+        const rfInstance = useFlowStore.getState().instance;
+        if (rfInstance) {
+          const intersecting = rfInstance.getIntersectingNodes(draggedNode as any);
+          const groupHit = intersecting.find(
+            (n: any) => n.type === NodeTypeEnum.Group
+          );
+          if (groupHit) {
+            attachNodeToGroup(draggedNode.id, groupHit.id);
+          }
+        }
       }
     },
-    [enableNodeSnap, nodes, updateNodes]
+    [enableNodeSnap, nodes, updateNodes, attachNodeToGroup, detachNodeFromGroup]
   );
+
+  // 选区右键菜单
+  const onSelectionContextMenu = useCallback(
+    (event: React.MouseEvent) => {
+      event.preventDefault();
+      setSelectionMenuPos({ x: event.clientX, y: event.clientY });
+    },
+    []
+  );
+
+  const handleCreateGroup = useCallback(() => {
+    groupSelectedNodes();
+    setSelectionMenuPos(null);
+  }, [groupSelectedNodes]);
 
   // 记忆
   const defaultViewport = useMemo(() => ({ x: 0, y: 0, zoom: 1.5 }), []);
@@ -372,6 +444,7 @@ function MainFlow() {
         onPaneClick={onPaneClick}
         onDoubleClick={onDoubleClick}
         onPaneContextMenu={onPaneContextMenu}
+        onSelectionContextMenu={onSelectionContextMenu}
         onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}
         autoPanOnConnect={false}
@@ -396,6 +469,38 @@ function MainFlow() {
         <InlineEdgePanel />
         <SnapGuidelines guidelines={snapGuidelines} />
       </ReactFlow>
+      {/* 选区右键菜单 */}
+      <Dropdown
+        open={!!selectionMenuPos}
+        onOpenChange={(open) => {
+          if (!open) setSelectionMenuPos(null);
+        }}
+        menu={{
+          items: [
+            {
+              key: "create-group",
+              label: "创建分组",
+              onClick: handleCreateGroup,
+            },
+          ],
+        }}
+        trigger={["contextMenu"]}
+      >
+        {selectionMenuPos ? (
+          <div
+            style={{
+              position: "fixed",
+              left: selectionMenuPos.x,
+              top: selectionMenuPos.y,
+              width: 1,
+              height: 1,
+              pointerEvents: "none",
+            }}
+          />
+        ) : (
+          <span />
+        )}
+      </Dropdown>
     </div>
   );
 }

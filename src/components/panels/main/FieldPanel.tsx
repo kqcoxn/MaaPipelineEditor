@@ -19,6 +19,7 @@ import {
   type ExternalNodeType,
   type AnchorNodeType,
   type StickerNodeType,
+  type GroupNodeType,
   type NodeType,
 } from "../../../stores/flow";
 import { NodeTypeEnum } from "../../flow/nodes";
@@ -27,6 +28,7 @@ import {
   ExternalEditor,
   AnchorEditor,
   StickerEditor,
+  GroupEditor,
 } from "../node-editors";
 import { FieldPanelToolbarLeft, FieldPanelToolbarRight } from "../field/tools";
 import { useDebugStore } from "../../../stores/debugStore";
@@ -302,6 +304,10 @@ function FieldPanel() {
         case NodeTypeEnum.Sticker:
           return (
             <StickerEditor currentNode={nodeToRender as StickerNodeType} />
+          );
+        case NodeTypeEnum.Group:
+          return (
+            <GroupEditor currentNode={nodeToRender as GroupNodeType} />
           );
         default:
           return (

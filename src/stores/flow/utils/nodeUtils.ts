@@ -5,6 +5,8 @@ import type {
   AnchorNodeType,
   StickerNodeType,
   StickerColorTheme,
+  GroupNodeType,
+  GroupColorTheme,
   PositionType,
 } from "../types";
 import { NodeTypeEnum } from "../../../components/flow/nodes";
@@ -220,8 +222,9 @@ export function checkRepeatNodeLabelList(
   // 查重
   const counter: Record<string, number> = {};
   for (const node of nodes) {
-    // 跳过便签节点
-    if (node.type === NodeTypeEnum.Sticker) continue;
+    // 跳过便签节点和分组节点
+    if (node.type === NodeTypeEnum.Sticker || node.type === NodeTypeEnum.Group)
+      continue;
     let label = node.data.label;
     if (isAddPrefix && node.type === NodeTypeEnum.Pipeline) {
       label = prefix + label;
@@ -233,4 +236,58 @@ export function checkRepeatNodeLabelList(
   }
 
   return repates;
+}
+
+// 创建 Group 分组节点
+export function createGroupNode(
+  id: string,
+  options?: {
+    label?: string;
+    position?: PositionType;
+    select?: boolean;
+    datas?: {
+      color?: GroupColorTheme;
+    };
+    style?: Record<string, any>;
+  }
+): GroupNodeType {
+  const {
+    label = "分组" + id,
+    position = { x: 0, y: 0 },
+    select = false,
+    datas = {},
+    style,
+  } = options ?? {};
+
+  const node: GroupNodeType = {
+    id,
+    type: NodeTypeEnum.Group,
+    data: {
+      label,
+      color: datas.color ?? "blue",
+    },
+    position,
+    selected: select,
+    style: style ?? { width: 400, height: 300 },
+  };
+  return node;
+}
+
+/**
+ * 确保 Group 节点在其子节点之前出现在数组中
+ * React Flow 要求 parent 节点排在 children 之前
+ */
+export function ensureGroupNodeOrder(nodes: NodeType[]): NodeType[] {
+  const groupNodes: NodeType[] = [];
+  const otherNodes: NodeType[] = [];
+
+  for (const node of nodes) {
+    if (node.type === NodeTypeEnum.Group) {
+      groupNodes.push(node);
+    } else {
+      otherNodes.push(node);
+    }
+  }
+
+  return [...groupNodes, ...otherNodes];
 }
