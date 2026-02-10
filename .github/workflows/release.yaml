@@ -155,48 +155,58 @@ jobs:
 
     steps:
       - name: Download MaaFramework resources
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # 下载各平台的 MaaFramework 资源
+          # 带认证的 curl 下载函数（含超时与重试）
+          gh_curl() {
+            curl -L \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/octet-stream" \
+              --retry 3 --retry-delay 5 \
+              --connect-timeout 30 --max-time 600 \
+              "$@"
+          }
+
           # 从 MaaFramework Release 自动获取最新版本
-          MFW_VERSION=$(curl -s https://api.github.com/repos/MaaXYZ/MaaFramework/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+          MFW_VERSION=$(curl -s -H "Authorization: Bearer ${GH_TOKEN}" \
+            https://api.github.com/repos/MaaXYZ/MaaFramework/releases/latest \
+            | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
           echo "MaaFramework latest version: ${MFW_VERSION}"
           if [ -z "$MFW_VERSION" ]; then
             echo "Failed to fetch latest MaaFramework version"
             exit 1
           fi
           MFW_BASE_URL="https://github.com/MaaXYZ/MaaFramework/releases/download/${MFW_VERSION}"
-          
+
           mkdir -p resources
-          
-          # Windows x64
-          curl -L "${MFW_BASE_URL}/MAA-win-x86_64-${MFW_VERSION}.zip" -o mfw-windows.zip
-          mkdir -p resources/maafw-windows-amd64
-          unzip mfw-windows.zip -d resources/maafw-windows-amd64/ || true
-          rm mfw-windows.zip
-          
-          # Linux x64
-          curl -L "${MFW_BASE_URL}/MAA-linux-x86_64-${MFW_VERSION}.zip" -o mfw-linux.zip
-          mkdir -p resources/maafw-linux-amd64
-          unzip mfw-linux.zip -d resources/maafw-linux-amd64/ || true
-          rm mfw-linux.zip
-          
-          # macOS Intel
-          curl -L "${MFW_BASE_URL}/MAA-macos-x86_64-${MFW_VERSION}.zip" -o mfw-darwin-amd64.zip
-          mkdir -p resources/maafw-darwin-amd64
-          unzip mfw-darwin-amd64.zip -d resources/maafw-darwin-amd64/ || true
-          rm mfw-darwin-amd64.zip
-          
-          # macOS ARM
-          curl -L "${MFW_BASE_URL}/MAA-macos-aarch64-${MFW_VERSION}.zip" -o mfw-darwin-arm64.zip
-          mkdir -p resources/maafw-darwin-arm64
-          unzip mfw-darwin-arm64.zip -d resources/maafw-darwin-arm64/ || true
-          rm mfw-darwin-arm64.zip
-          
-          # 下载 OCR 资源
-          curl -L "https://download.maafw.xyz/MaaCommonAssets/OCR/ppocr_v5/ppocr_v5-zh_cn.zip" -o ocr-assets.zip
-          mkdir -p resources/resource/model/ocr
-          unzip ocr-assets.zip -d resources/resource/model/ocr/ || true
-          rm ocr-assets.zip
+
+          # 并行下载各平台资源
+          download_platform() {
+            local url="$1" zipfile="$2" destdir="$3"
+            gh_curl "${url}" -o "${zipfile}"
+            mkdir -p "${destdir}"
+            unzip "${zipfile}" -d "${destdir}/" || true
+            rm "${zipfile}"
+          }
+
+          download_platform "${MFW_BASE_URL}/MAA-win-x86_64-${MFW_VERSION}.zip"    mfw-windows.zip       resources/maafw-windows-amd64 &
+          download_platform "${MFW_BASE_URL}/MAA-linux-x86_64-${MFW_VERSION}.zip"   mfw-linux.zip         resources/maafw-linux-amd64   &
+          download_platform "${MFW_BASE_URL}/MAA-macos-x86_64-${MFW_VERSION}.zip"   mfw-darwin-amd64.zip  resources/maafw-darwin-amd64  &
+          download_platform "${MFW_BASE_URL}/MAA-macos-aarch64-${MFW_VERSION}.zip"  mfw-darwin-arm64.zip  resources/maafw-darwin-arm64  &
+
+          # OCR 资源（非 GitHub，无需 token）
+          (
+            curl -L --retry 3 --retry-delay 5 --connect-timeout 30 --max-time 600 \
+              "https://download.maafw.xyz/MaaCommonAssets/OCR/ppocr_v5/ppocr_v5-zh_cn.zip" -o ocr-assets.zip
+            mkdir -p resources/resource/model/ocr
+            unzip ocr-assets.zip -d resources/resource/model/ocr/ || true
+            rm ocr-assets.zip
+          ) &
+
+          # 等待所有后台下载完成
+          wait
+          echo "All resources downloaded successfully"
 
       - name: Upload resources artifact
         uses: actions/upload-artifact@v4
