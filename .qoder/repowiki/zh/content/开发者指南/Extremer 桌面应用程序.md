@@ -21,14 +21,18 @@
 - [src/App.tsx](file://src/App.tsx)
 - [package.json](file://package.json)
 - [vite.config.ts](file://vite.config.ts)
+- [LocalBridge/internal/server/websocket.go](file://LocalBridge/internal/server/websocket.go)
+- [LocalBridge/internal/server/connection.go](file://LocalBridge/internal/server/connection.go)
+- [LocalBridge/internal/router/router.go](file://LocalBridge/internal/router/router.go)
+- [LocalBridge/cmd/lb/main.go](file://LocalBridge/cmd/lb/main.go)
 </cite>
 
 ## 更新摘要
 **变更内容**
-- 新增启动画面系统章节，详细介绍跨平台启动画面实现
-- 在应用程序生命周期管理中添加启动画面集成流程
-- 更新架构概览，体现启动画面的跨平台实现架构
-- 添加启动画面配置和消息更新机制说明
+- 新增 LocalBridge 连接重试机制章节，详细介绍稳定性改进
+- 更新应用程序生命周期管理，增加 domReady 函数的重试机制说明
+- 新增 WebSocket 服务完成等待机制，确保连接稳定性
+- 完善启动画面系统，增强跨平台启动体验
 
 ## 目录
 1. [简介](#简介)
@@ -38,10 +42,11 @@
 5. [配置系统](#配置系统)
 6. [架构概览](#架构概览)
 7. [详细组件分析](#详细组件分析)
-8. [依赖关系分析](#依赖关系分析)
-9. [性能考虑](#性能考虑)
-10. [故障排除指南](#故障排除指南)
-11. [结论](#结论)
+8. [稳定性改进](#稳定性改进)
+9. [依赖关系分析](#依赖关系分析)
+10. [性能考虑](#性能考虑)
+11. [故障排除指南](#故障排除指南)
+12. [结论](#结论)
 
 ## 简介
 
@@ -49,7 +54,7 @@ Extremer 是 MaaPipelineEditor (MPE) 项目中的桌面应用程序组件，基�
 
 MPE 是一款专注于 MaaFramework Pipeline 工作流的可视化编辑工具，旨在让用户通过拖拽和配置的方式高效构建、调试和分享自动化流程。应用程序支持多种平台，包括 Windows、macOS 和 Linux，并提供了丰富的本地服务功能。
 
-**更新** 新增跨平台启动画面功能，为 Windows 用户提供专业的启动体验，同时保持非 Windows 平台的简洁实现。
+**更新** 新增 LocalBridge 连接重试机制和 WebSocket 服务完成等待功能，显著提升了应用程序的稳定性和用户体验。
 
 ## 项目结构
 
@@ -86,6 +91,11 @@ subgraph "配置桥接"
 S[Extremer/app.go - createLBConfig]
 T[LocalBridge 内部配置加载]
 end
+subgraph "稳定性改进"
+U[连接重试机制]
+V[完成等待机制]
+W[超时处理]
+end
 A --> H
 B --> C
 I --> H
@@ -96,11 +106,13 @@ S --> T
 O --> P
 O --> Q
 R --> O
+U --> V
+V --> W
 ```
 
 **图表来源**
-- [Extremer/main.go](file://Extremer/main.go#L1-L88)
-- [Extremer/app.go](file://Extremer/app.go#L1-L459)
+- [Extremer/main.go](file://Extremer/main.go#L1-L90)
+- [Extremer/app.go](file://Extremer/app.go#L1-L470)
 - [Extremer/internal/splash/splash.go](file://Extremer/internal/splash/splash.go#L1-L35)
 - [Extremer/config/default.json](file://Extremer/config/default.json#L1-L33)
 
@@ -115,7 +127,7 @@ R --> O
 - **instructions/**: 开发文档和指南
 
 **章节来源**
-- [Extremer/main.go](file://Extremer/main.go#L1-L88)
+- [Extremer/main.go](file://Extremer/main.go#L1-L90)
 - [Extremer/wails.json](file://Extremer/wails.json#L1-L18)
 
 ## 核心组件
@@ -534,7 +546,7 @@ LB --> OS
 
 ### 应用程序生命周期管理
 
-应用程序的生命周期管理是通过 Wails 框架提供的回调机制实现的，现已集成了启动画面系统：
+应用程序的生命周期管理是通过 Wails 框架提供的回调机制实现的，现已集成了启动画面系统和连接重试机制：
 
 ```mermaid
 sequenceDiagram
@@ -567,6 +579,8 @@ end
 LB-->>App : 启动成功
 App-->>Wails : 初始化完成
 Wails->>App : DOM 加载完成
+App->>App : 启动连接重试机制
+App->>App : 等待 LocalBridge 就绪
 App->>Wails : 发送端口信息
 User->>Wails : 关闭应用程序
 Wails->>App : 调用 shutdown(ctx)
@@ -576,7 +590,7 @@ App-->>Wails : 清理完成
 ```
 
 **图表来源**
-- [Extremer/main.go](file://Extremer/main.go#L26-L88)
+- [Extremer/main.go](file://Extremer/main.go#L26-L90)
 - [Extremer/app.go](file://Extremer/app.go#L180-L356)
 
 ### 端口管理系统
@@ -694,6 +708,96 @@ App --> LocalWebSocketServer : "状态同步"
 - [src/utils/wailsBridge.ts](file://src/utils/wailsBridge.ts#L1-L129)
 - [src/services/server.ts](file://src/services/server.ts#L1-L374)
 
+## 稳定性改进
+
+### LocalBridge 连接重试机制
+
+应用程序新增了完善的连接重试机制，确保 LocalBridge 服务的稳定连接：
+
+```mermaid
+sequenceDiagram
+participant Frontend as 前端
+participant App as App 结构体
+participant LB as LocalBridge
+participant Retry as 重试机制
+Frontend->>App : 请求连接 LocalBridge
+App->>LB : 检查进程状态
+alt 进程未就绪
+App->>Retry : 启动重试循环
+loop 最多重试 30 次
+Retry->>LB : 检查 IsRunning()
+LB-->>Retry : 返回 false
+Retry->>Retry : 等待 500ms
+end
+Retry->>App : 超时处理
+else 进程已就绪
+App->>LB : 等待 1秒确保服务完全启动
+LB-->>App : 返回 true
+end
+App->>Frontend : 发送连接信息
+Frontend->>Frontend : 自动连接 LocalBridge
+```
+
+**图表来源**
+- [Extremer/app.go](file://Extremer/app.go#L314-L343)
+
+### WebSocket 服务完成等待机制
+
+WebSocket 服务器实现了完成等待机制，确保服务启动完成后再接受连接：
+
+```mermaid
+sequenceDiagram
+participant LB as LocalBridge
+participant WS as WebSocket 服务器
+participant Router as 路由器
+participant Conn as 客户端连接
+LB->>WS : 启动服务器
+WS->>WS : 监听端口
+WS->>Router : 设置消息处理器
+Router->>WS : 注册协议处理器
+WS->>Conn : 接受连接请求
+Conn->>WS : 发送握手请求
+WS->>Router : 路由到处理器
+Router->>Conn : 发送握手响应
+Conn->>WS : 连接建立完成
+```
+
+**图表来源**
+- [LocalBridge/internal/server/websocket.go](file://LocalBridge/internal/server/websocket.go#L65-L93)
+- [LocalBridge/internal/router/router.go](file://LocalBridge/internal/router/router.go#L107-L133)
+
+### 超时处理和错误恢复
+
+应用程序实现了完善的超时处理和错误恢复机制：
+
+```mermaid
+flowchart TD
+Start([连接尝试开始]) --> CheckProcess["检查 LocalBridge 进程"]
+CheckProcess --> ProcessReady{"进程就绪?"}
+ProcessReady --> |是| WaitService["等待服务完全启动"]
+WaitService --> ServiceReady{"WebSocket 服务就绪?"}
+ServiceReady --> |是| Success["连接成功"]
+ServiceReady --> |否| RetryAttempt["重试检查"]
+RetryAttempt --> CheckProcess
+ProcessReady --> |否| RetryAttempt
+RetryAttempt --> MaxRetries{"超过最大重试次数?"}
+MaxRetries --> |否| WaitTime["等待 500ms"]
+WaitTime --> CheckProcess
+MaxRetries --> |是| Timeout["超时处理"]
+Timeout --> ShowWindow["显示主窗口"]
+ShowWindow --> ManualRetry["允许手动重试"]
+ManualRetry --> End([结束])
+Success --> End
+```
+
+**图表来源**
+- [Extremer/app.go](file://Extremer/app.go#L318-L342)
+
+**章节来源**
+- [Extremer/app.go](file://Extremer/app.go#L314-L343)
+- [LocalBridge/internal/server/websocket.go](file://LocalBridge/internal/server/websocket.go#L65-L93)
+- [LocalBridge/internal/router/router.go](file://LocalBridge/internal/router/router.go#L107-L133)
+
 ## 依赖关系分析
 
 Extremer 应用程序的依赖关系体现了清晰的分层架构和模块化设计原则。
@@ -793,6 +897,12 @@ Extremer 应用程序在设计时充分考虑了性能优化和用户体验：
 - 异步配置加载
 - 路径解析结果缓存
 
+### 连接稳定性优化
+- **重试机制**: 最多重试 30 次，每次间隔 500ms
+- **完成等待**: 等待 1 秒确保 WebSocket 服务完全启动
+- **超时处理**: 超时后仍显示主窗口，允许手动重试
+- **状态监控**: 实时监控 LocalBridge 进程状态
+
 ## 故障排除指南
 
 ### 常见问题及解决方案
@@ -827,6 +937,12 @@ Extremer 应用程序在设计时充分考虑了性能优化和用户体验：
 3. 查看系统资源是否充足
 4. 确认开发模式检测逻辑
 
+**连接重试失败**
+1. 检查 LocalBridge 进程状态
+2. 验证端口是否被占用
+3. 查看 LocalBridge 日志文件
+4. 确认防火墙设置允许连接
+
 **章节来源**
 - [Extremer/internal/bridge/subprocess.go](file://Extremer/internal/bridge/subprocess.go#L55-L58)
 - [src/services/server.ts](file://src/services/server.ts#L127-L160)
@@ -845,7 +961,8 @@ Extremer 桌面应用程序展现了现代桌面应用开发的最佳实践，�
 - **配置桥接**: 有效的配置传递机制，确保组件间配置一致性
 - **启动画面系统**: 专业的跨平台启动体验，提升用户体验
 - **性能优化**: 合理的资源管理和异步处理机制
+- **稳定性改进**: 新增的连接重试机制和完成等待功能，显著提升应用稳定性
 
-**更新** 新增的启动画面系统为 Windows 用户提供了专业的启动体验，通过原生 Win32 API 实现流畅的动画效果和专业的视觉设计，同时保持非 Windows 平台的简洁实现，体现了良好的跨平台设计理念。
+**更新** 新增的 LocalBridge 连接重试机制、domReady 函数的改进和 WebSocket 服务完成等待等稳定性改进，通过最多 30 次重试、500ms 间隔等待和 1 秒完成等待确保连接的可靠性，为用户提供了更加稳定和流畅的应用体验。
 
 该应用程序为 MaaFramework 生态系统提供了重要的桌面端工具，满足了资源开发者对高效、易用的可视化编辑工具的需求。通过持续的功能完善和性能优化，Extremer 有望成为 MPE 生态系统中的重要组成部分。

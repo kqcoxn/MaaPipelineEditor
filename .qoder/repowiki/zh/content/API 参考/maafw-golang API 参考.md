@@ -14,15 +14,23 @@
 - [ErrorProtocol.ts](file://src/services/protocols/ErrorProtocol.ts)
 - [DebugPanel.tsx](file://src/components/panels/tools/DebugPanel.tsx)
 - [debugStore.ts](file://src/stores/debugStore.ts)
+- [执行上下文.md](file://instructions/maafw-golang-binding/API参考/执行上下文.md)
+- [执行上下文 (Context).md](file://instructions/maafw-golang-binding/核心概念/执行上下文 (Context).md)
+- [ActionResult结果系统.md](file://instructions/maafw-golang-binding/高级功能/ActionResult结果系统.md)
+- [action_result.go](file://action_result.go)
+- [tasker.go](file://tasker.go)
+- [context.go](file://context.go)
+- [node_action.go](file://node_action.go)
+- [context_test.go](file://context_test.go)
 </cite>
 
 ## 更新摘要
 **已做更改**
-- 新增游戏pad控制器（Gamepad Controller）API参考，包括CreateGamepadController方法的详细说明
-- 更新控制器类型枚举，新增GamepadType枚举和相关常量定义
-- 增强错误处理机制说明，涵盖ViGEm驱动安装要求和连接超时处理
-- 添加与前端调试系统的集成说明，包括控制器事件处理和错误提示
-- 更新控制器管理器的API文档，反映新的控制器类型支持
+- 新增 ActionResult 结果系统，提供类型安全的动作结果解析
+- 新增 RunRecognitionDirect 和 RunActionDirect 方法，支持直接识别和直接动作执行
+- 新增 WaitFreezes 方法，提供屏幕稳定检测功能
+- 增强执行上下文（Context）API，扩展了直接执行能力和状态监控功能
+- 更新任务管理器（Tasker）的详细解析功能，支持 ActionResult 结果系统
 
 ## 目录
 1. [简介](#简介)
@@ -39,7 +47,7 @@
 ## 简介
 本文件为 maa-framework-go 的 API 参考与使用指南，面向希望在 Go 语言中使用 MaaFramework 的开发者。文档系统性梳理了框架初始化、任务管理、控制器操作、资源管理、自定义扩展、事件回调、上下文操作与状态/作业模型等核心能力，并通过示例与图示帮助读者快速上手与深入理解。
 
-**更新** 本次更新重点扩展了控制器API，特别是新增的游戏pad控制器支持，包括完整的控制器类型枚举、错误处理机制和与前端调试系统的深度集成。
+**更新** 本次更新重点扩展了执行上下文 API，新增 ActionResult 结果系统、RunRecognitionDirect 和 RunActionDirect 方法、WaitFreezes 方法等新功能，显著增强了框架的灵活性和功能性。
 
 ## 项目结构
 仓库采用按职责分层的组织方式：
@@ -49,6 +57,7 @@
 - 数据模型：LocalBridge/pkg/models/mfw.go
 - 文档与示例：instructions/maafw-golang-binding 目录下的各类文档
 - 前端集成：src/services/protocols 下的调试协议和错误处理
+- 结果系统：action_result.go、tasker.go、context.go
 
 ```mermaid
 graph TB
@@ -59,6 +68,7 @@ C["Controller<br/>设备控制抽象"]
 X["Context<br/>执行上下文"]
 E["Event<br/>事件回调系统"]
 J["Job/TaskJob<br/>异步作业模型"]
+AR["ActionResult<br/>结果系统"]
 end
 subgraph "扩展层"
 CA["CustomAction<br/>自定义动作"]
@@ -78,7 +88,9 @@ DS["debugStore<br/>调试状态"]
 end
 T --> R
 T --> C
+T --> AR
 X --> T
+X --> AR
 E --> T
 E --> R
 E --> C
@@ -103,6 +115,9 @@ DB --> DS
 - [controller_manager.go](file://LocalBridge/internal/mfw/controller_manager.go#L1-L702)
 - [handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L1-L694)
 - [mfw.go](file://LocalBridge/pkg/models/mfw.go#L1-L192)
+- [action_result.go](file://action_result.go#L1-L375)
+- [tasker.go](file://tasker.go#L1-L678)
+- [context.go](file://context.go#L1-L472)
 
 **章节来源**
 - [controller.go](file://controller.go#L1-L418)
@@ -114,22 +129,25 @@ DB --> DS
 - Tasker：负责任务提交、状态查询、停止信号、事件回调注册、节点详情查询等，是任务执行的中枢。
 - Resource：负责资源加载、流水线覆盖、自定义识别/动作注册、事件回调注册等，承载识别与动作的配置与能力。
 - Controller：负责设备连接、截图、输入、应用启停、滚动等操作，抽象出 ADB/Win32/Gamepad/PlayCover/自定义控制器。
-- Context：提供在单次任务执行中运行识别/动作的能力，支持覆盖流水线、锚点、命中计数等上下文级操作。
+- Context：提供在单次任务执行中运行识别/动作的能力，支持覆盖流水线、锚点、命中计数等上下文级操作，新增直接执行方法和状态监控功能。
 - Event：统一的事件回调代理与分发器，将底层事件映射到 Tasker/Resource/Controller/Context 的回调接口。
 - Job/TaskJob：封装异步作业的状态查询与等待逻辑，TaskJob 还可获取任务详情。
 - ControllerManager：统一管理各种控制器的创建、连接、断开和操作，提供高级API。
 - MFWHandler：处理前端发送的控制器相关协议消息，协调控制器管理器执行操作。
+- ActionResult：类型安全的动作结果解析系统，支持多种动作类型的结果访问。
 
-**更新** 新增控制器类型枚举和游戏pad控制器支持，增强错误处理和前端集成能力。
+**更新** 新增 ActionResult 结果系统和增强的 Context API，包括直接执行方法和状态监控功能。
 
 **章节来源**
 - [controller.go](file://controller.go#L1-L418)
 - [custom_controller.go](file://custom_controller.go#L1-L392)
 - [controller_manager.go](file://LocalBridge/internal/mfw/controller_manager.go#L1-L702)
 - [handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L1-L694)
+- [action_result.go](file://action_result.go#L1-L375)
+- [context.go](file://context.go#L1-L472)
 
 ## 架构总览
-下图展示了从应用调用到底层原生交互的关键路径，以及事件回调的分发链路。新增的游戏pad控制器通过ControllerManager统一管理，支持ViGEm驱动的虚拟手柄功能。
+下图展示了从应用调用到底层原生交互的关键路径，以及事件回调的分发链路。新增的 ActionResult 结果系统和 Context 直接执行方法提供了更强大的结果处理和状态监控能力。
 
 ```mermaid
 sequenceDiagram
@@ -138,37 +156,38 @@ participant Tasker as "Tasker"
 participant Res as "Resource"
 participant Ctrl as "Controller"
 participant Ctx as "Context"
+participant AR as "ActionResult"
 participant Ev as "Event回调"
 participant Native as "原生MaaFramework"
-participant CM as "ControllerManager"
-participant H as "MFWHandler"
 App->>Tasker : "创建并绑定资源/控制器"
-App->>CM : "CreateGamepadController(...)"
-CM->>Ctrl : "NewGamepadController(...)"
-Ctrl->>Native : "MaaGamepadControllerCreate(...)"
-Native-->>Ctrl : "返回控制器句柄"
-Ctrl->>CM : "初始化控制器存储"
-App->>Tasker : "PostTask(...) / PostConnect()"
-Tasker->>Native : "提交任务/连接"
+App->>Ctx : "RunRecognitionDirect/RunActionDirect"
+Ctx->>Native : "直接执行识别/动作"
+Native-->>Ctx : "返回执行ID"
+Ctx->>Tasker : "查询详细信息"
+Tasker->>Native : "获取原始JSON详情"
+Native-->>Tasker : "返回原始JSON"
+Tasker->>AR : "解析ActionResult"
+AR-->>Tasker : "返回类型安全结果"
+Tasker-->>Ctx : "返回ActionDetail"
+Ctx-->>App : "返回ActionResult"
 Native-->>Ev : "触发事件(任务开始/成功/失败)"
 Ev->>Tasker : "TaskerEventSink回调"
 Ev->>Res : "ResourceEventSink回调"
 Ev->>Ctrl : "ControllerEventSink回调"
 Ev->>Ctx : "ContextEventSink回调"
-Tasker->>Tasker : "查询任务详情/节点详情"
-App->>Tasker : "Wait()/GetDetail()"
-Tasker-->>App : "返回任务结果"
 ```
 
 **图表来源**
 - [controller.go](file://controller.go#L1-L418)
-- [controller_manager.go](file://LocalBridge/internal/mfw/controller_manager.go#L158-L211)
-- [handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L266-L303)
+- [context.go](file://context.go#L209-L279)
+- [action_result.go](file://action_result.go#L332-L374)
+- [tasker.go](file://tasker.go#L320-L359)
 
 **章节来源**
 - [controller.go](file://controller.go#L1-L418)
-- [controller_manager.go](file://LocalBridge/internal/mfw/controller_manager.go#L158-L211)
-- [handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L266-L303)
+- [context.go](file://context.go#L209-L279)
+- [action_result.go](file://action_result.go#L332-L374)
+- [tasker.go](file://tasker.go#L320-L359)
 
 ## 详细组件分析
 
@@ -196,39 +215,14 @@ Tasker-->>App : "返回任务结果"
 - GetLatestNode：获取最新节点的详细信息。
 - 事件回调：AddSink/RemoveSink/ClearSinks、AddContextSink/RemoveContextSink/ClearContextSinks。
 - 任务详情：getTaskDetail/getNodeDetail/getRecognitionDetail/getActionDetail。
+- **新增**：ActionDetail 结构包含动作标识、名称、类型、目标区域、成功标志、原始详情JSON和解析后的 ActionResult。
 
-```mermaid
-classDiagram
-class Tasker {
-+handle uintptr
-+NewTasker() *Tasker
-+Destroy() void
-+BindResource(res) bool
-+BindController(ctrl) bool
-+Initialized() bool
-+PostTask(entry, override...) *TaskJob
-+PostStop() *TaskJob
-+Running() bool
-+Stopping() bool
-+GetResource() *Resource
-+GetController() *Controller
-+ClearCache() bool
-+AddSink(sink) int64
-+RemoveSink(id) void
-+ClearSinks() void
-+AddContextSink(sink) int64
-+RemoveContextSink(id) void
-+ClearContextSinks() void
-+GetLatestNode(taskName) *NodeDetail
-}
-```
-
-**图表来源**
-- [controller.go](file://controller.go#L1-L418)
+**更新** 增强了任务详情解析功能，支持 ActionResult 结果系统。
 
 **章节来源**
 - [controller.go](file://controller.go#L1-L418)
 - [custom_controller.go](file://custom_controller.go#L1-L392)
+- [tasker.go](file://tasker.go#L320-L359)
 
 ### 控制器（Controller）
 - NewAdbController/NewWin32Controller/NewCustomController/NewPlayCoverController/NewGamepadController：创建不同类型的控制器实例。
@@ -440,27 +434,111 @@ class Resource {
 
 ### 执行上下文（Context）
 - RunTask/RunRecognition/RunAction：在上下文中执行任务/识别/动作。
+- **新增**：RunRecognitionDirect/RunActionDirect：直接执行识别和动作，无需流水线入口。
 - OverridePipeline/OverrideNext/OverrideImage：上下文级覆盖。
 - GetNodeJSON/GetNodeData：节点 JSON 与结构化数据。
 - GetTaskJob/GetTasker/Clone：当前任务作业、Tasker 实例、上下文克隆。
 - SetAnchor/GetAnchor/GetHitCount/ClearHitCount：锚点与命中计数管理。
+- **新增**：WaitFreezes：屏幕稳定检测，等待屏幕状态稳定。
 - override 参数支持 JSON 字符串或可序列化对象。
+
+**更新** 新增直接执行方法和状态监控功能，显著增强了 Context 的灵活性。
 
 ```mermaid
 flowchart TD
-Start(["进入 Context 方法"]) --> BuildOverride["构建覆盖参数(JSON)"]
+Start(["进入 Context 方法"]) --> CheckMethod{"检查方法类型"}
+CheckMethod --> |RunTask/Recognition/Action| BuildOverride["构建覆盖参数(JSON)"]
+CheckMethod --> |RunRecognitionDirect/RunActionDirect| DirectExec["直接执行"]
+CheckMethod --> |WaitFreezes| FreezeCheck["屏幕稳定检测"]
 BuildOverride --> CallNative["调用原生执行(任务/识别/动作)"]
+DirectExec --> CallDirect["调用原生直接执行"]
+FreezeCheck --> CallWait["调用原生等待稳定"]
 CallNative --> GetTasker["获取 Tasker 句柄"]
+CallDirect --> GetTasker
+CallWait --> ReturnBool["返回稳定状态"]
 GetTasker --> QueryDetail["查询任务/识别/动作详情"]
 QueryDetail --> Return(["返回结果"])
+ReturnBool --> End(["结束"])
+Return(["返回结果"]) --> End
 ```
 
 **图表来源**
-- [controller.go](file://controller.go#L1-L418)
+- [context.go](file://context.go#L209-L279)
+- [context.go](file://context.go#L418-L428)
 
 **章节来源**
-- [controller.go](file://controller.go#L1-L418)
+- [context.go](file://context.go#L1-L472)
 - [custom_controller.go](file://custom_controller.go#L1-L392)
+- [执行上下文.md](file://instructions/maafw-golang-binding/API参考/执行上下文.md#L273-L428)
+- [执行上下文 (Context).md](file://instructions/maafw-golang-binding/核心概念/执行上下文 (Context).md#L166-L289)
+
+### ActionResult 结果系统
+- **新增**：ActionResult 结构体，封装动作类型和对应的详细结果。
+- **新增**：类型安全的结果访问接口，支持 AsClick、AsLongPress、AsSwipe、AsMultiSwipe、AsClickKey、AsLongPressKey、AsInputText、AsApp、AsScroll、AsTouch、AsShell 等方法。
+- **新增**：九种主要的动作结果类型，支持点击、长按、滑动、按键输入、文本输入、应用控制、滚动、触摸、Shell 命令等。
+- **新增**：Point 类型，支持字符串和数组格式的坐标解析。
+- **新增**：SwipeActionResult 特殊处理，支持多种 end 参数格式。
+- **新增**：延迟解析策略，只在需要时解析特定类型的结果。
+
+**更新** 新增完整的 ActionResult 结果系统，提供类型安全的动作结果解析能力。
+
+```mermaid
+classDiagram
+class ActionResult {
+-NodeActionType tp
+-any val
++Type() NodeActionType
++Value() any
++AsClick() (*ClickActionResult, bool)
++AsLongPress() (*LongPressActionResult, bool)
++AsSwipe() (*SwipeActionResult, bool)
++AsMultiSwipe() (*MultiSwipeActionResult, bool)
++AsClickKey() (*ClickKeyActionResult, bool)
++AsLongPressKey() (*LongPressKeyActionResult, bool)
++AsInputText() (*InputTextActionResult, bool)
++AsApp() (*AppActionResult, bool)
++AsScroll() (*ScrollActionResult, bool)
++AsTouch() (*TouchActionResult, bool)
++AsShell() (*ShellActionResult, bool)
+}
+class Point {
++int X()
++int Y()
++UnmarshalJSON(data []byte) error
+}
+class ClickActionResult {
++Point point
++int contact
++int pressure
+}
+class LongPressActionResult {
++Point point
++int64 duration
++int contact
++int pressure
+}
+class SwipeActionResult {
++Point begin
++[]Point end
++[]int end_hold
++[]int duration
++bool only_hover
++int starting
++int contact
++int pressure
+-rawMessage endRaw
+}
+ActionResult --> Point : "包含"
+```
+
+**图表来源**
+- [action_result.go](file://action_result.go#L48-L330)
+
+**章节来源**
+- [action_result.go](file://action_result.go#L1-L375)
+- [tasker.go](file://tasker.go#L320-L359)
+- [context.go](file://context.go#L247-L279)
+- [ActionResult结果系统.md](file://instructions/maafw-golang-binding/高级功能/ActionResult结果系统.md#L68-L357)
 
 ### 事件系统（Event）
 - 事件状态枚举：Unknown/Starting/Succeeded/Failed。
@@ -523,24 +601,28 @@ Agent->>Sink : "调用对应回调(带事件状态与详情)"
 ## 依赖关系分析
 - 组件耦合
   - Tasker 依赖 Resource 与 Controller（绑定与查询）
-  - Context 依赖 Tasker（获取任务详情、当前任务作业）
+  - Context 依赖 Tasker（获取任务详情、当前任务作业），**新增**：Context 依赖 ActionResult 系统进行结果解析
   - Event 系统为 Tasker/Resource/Controller/Context 提供统一的回调入口
   - Job/TaskJob 为 Tasker/Resource/Controller 的异步操作提供统一的状态查询与等待
   - ControllerManager 统一管理各种控制器的生命周期和操作
   - MFWHandler 处理前端协议消息，协调控制器管理器执行操作
   - 前端调试系统通过协议与后端通信，实现实时调试监控
+  - **新增**：Tasker 依赖 ActionResult 系统进行动作结果解析
 - 外部依赖
   - 通过 internal/native 与原生 MaaFramework 交互
   - 通过 internal/store 维护句柄到回调映射与自定义识别/动作的回调 ID 映射
   - 游戏pad控制器依赖ViGEm驱动进行虚拟手柄模拟
+  - **新增**：ActionResult 系统依赖节点动作类型定义
 
-**更新** 新增控制器管理器和前端调试系统的依赖关系。
+**更新** 新增 ActionResult 结果系统和增强的 Context 依赖关系。
 
 ```mermaid
 graph LR
 Tasker["Tasker"] --> Resource["Resource"]
 Tasker --> Controller["Controller"]
+Tasker --> ActionResult["ActionResult"]
 Context["Context"] --> Tasker
+Context --> ActionResult
 Event["Event回调"] --> Tasker
 Event --> Resource
 Event --> Controller
@@ -559,11 +641,15 @@ DebugPanel["DebugPanel"] --> DebugStore["debugStore"]
 - [controller_manager.go](file://LocalBridge/internal/mfw/controller_manager.go#L1-L702)
 - [handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L1-L694)
 - [DebugProtocol.ts](file://src/services/protocols/DebugProtocol.ts#L428-L476)
+- [action_result.go](file://action_result.go#L1-L375)
+- [tasker.go](file://tasker.go#L320-L359)
 
 **章节来源**
 - [controller.go](file://controller.go#L1-L418)
 - [controller_manager.go](file://LocalBridge/internal/mfw/controller_manager.go#L1-L702)
 - [handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L1-L694)
+- [action_result.go](file://action_result.go#L1-L375)
+- [tasker.go](file://tasker.go#L320-L359)
 
 ## 性能考虑
 - 异步作业模型：使用 Job/TaskJob 避免阻塞主线程，提高吞吐量。
@@ -573,13 +659,19 @@ DebugPanel["DebugPanel"] --> DebugStore["debugStore"]
 - 推理设备选择：UseAutoExecutionProvider 可自动选择最优执行提供者，但具体性能取决于运行环境；GPU 加速通常优于 CPU，但需考虑显存占用与驱动稳定性。
 - 游戏pad控制器：ViGEm驱动的使用可能带来额外的系统开销，建议在不需要时及时断开连接。
 - 前端集成：调试协议的消息处理需要考虑网络延迟和消息队列长度，避免阻塞UI线程。
+- **新增**：ActionResult 解析优化：采用延迟解析策略，只在需要时解析特定类型的结果，避免不必要的计算开销。
+- **新增**：Context 直接执行方法：RunRecognitionDirect 和 RunActionDirect 避免了流水线查找开销，直接参数传递减少了中间步骤，提高执行效率。
+- **新增**：WaitFreezes 采用非阻塞等待机制，支持超时控制，避免长时间阻塞。
 
-**更新** 新增游戏pad控制器和前端集成的性能考虑。
+**更新** 新增 ActionResult 结果系统和 Context 直接执行方法的性能考虑。
 
 **章节来源**
 - [controller.go](file://controller.go#L1-L418)
 - [controller_manager.go](file://LocalBridge/internal/mfw/controller_manager.go#L1-L702)
 - [gamepad控制器.md](file://instructions/maafw-golang-binding/核心概念/控制器 (Controller)/游戏pad控制器.md#L413-L431)
+- [action_result.go](file://action_result.go#L407-L414)
+- [执行上下文.md](file://instructions/maafw-golang-binding/API参考/执行上下文.md#L637-L649)
+- [执行上下文 (Context).md](file://instructions/maafw-golang-binding/核心概念/执行上下文 (Context).md#L327-L332)
 
 ## 故障排查指南
 - 初始化失败
@@ -606,8 +698,20 @@ DebugPanel["DebugPanel"] --> DebugStore["debugStore"]
   - 控制器连接超时：检查网络连接和防火墙设置
   - 调试事件未显示：确认调试协议已正确配置和连接
   - 错误提示不准确：检查后端日志和错误码映射
+- **新增**：ActionResult 解析错误
+  - 检查坐标点格式是否正确，确保包含恰好两个整数元素
+  - 确认动作类型与期望类型相符，使用正确的 AsXxx 方法
+  - 验证滑动结束点JSON格式符合支持的格式之一
+  - 检查未知动作类型，确认动作类型拼写或更新框架版本
+- **新增**：Context 直接执行方法问题
+  - 确认 NodeRecognitionParam/NodeActionParam 类型正确且参数符合约束
+  - 验证图像格式与尺寸满足底层要求
+  - 检查 WaitFreezes 的超时参数和 ROI 参数设置
+- **新增**：WaitFreezes 返回 false
+  - 检查检测区域设置是否合理
+  - 调整等待参数（阈值、方法、超时等）
 
-**更新** 新增游戏pad控制器和前端调试系统的故障排查指南。
+**更新** 新增 ActionResult 结果系统和 Context 直接执行方法的故障排查指南。
 
 **章节来源**
 - [controller.go](file://controller.go#L1-L418)
@@ -615,11 +719,14 @@ DebugPanel["DebugPanel"] --> DebugStore["debugStore"]
 - [gamepad控制器.md](file://instructions/maafw-golang-binding/核心概念/控制器 (Controller)/游戏pad控制器.md#L432-L462)
 - [DebugProtocol.ts](file://src/services/protocols/DebugProtocol.ts#L428-L476)
 - [ErrorProtocol.ts](file://src/services/protocols/ErrorProtocol.ts#L39-L67)
+- [action_result.go](file://action_result.go#L416-L442)
+- [执行上下文.md](file://instructions/maafw-golang-binding/API参考/执行上下文.md#L651-L675)
+- [执行上下文 (Context).md](file://instructions/maafw-golang-binding/核心概念/执行上下文 (Context).md#L339-L355)
 
 ## 结论
 maa-framework-go 通过 Tasker、Resource、Controller、Context、Event 与 Job/TaskJob 的协同，构建了一个清晰、可扩展且高性能的自动化框架。Tasker 作为中枢协调任务执行，Resource 管理识别资源与流水线，Controller 抽象设备控制，Context 提供上下文级的执行能力，Event 以观察者模式实现异步通知，Job/TaskJob 则提供了统一的异步作业模型。
 
-**更新** 本次更新显著增强了控制器API的完整性和实用性，特别是新增的游戏pad控制器支持，为Windows平台的游戏自动化提供了强大的虚拟手柄控制能力。同时，完善的错误处理机制和与前端调试系统的深度集成，使得整个框架更加健壮和易于使用。
+**更新** 本次更新显著增强了框架的功能性和灵活性，特别是新增的 ActionResult 结果系统、RunRecognitionDirect 和 RunActionDirect 方法、WaitFreezes 方法等，为开发者提供了更强大、更精确的自动化控制能力。类型安全的结果解析、直接执行方法和状态监控功能的加入，使得整个框架更加健壮、易于使用且功能完备。
 
 工厂模式与门面模式的应用使得 API 更加简洁易用。遵循本文的最佳实践与排错建议，可有效提升开发效率与稳定性。
 
@@ -629,6 +736,8 @@ maa-framework-go 通过 Tasker、Resource、Controller、Context、Event 与 Job
 - Agent 客户端/服务器示例展示了分布式自动化架构与跨语言扩展
 - 游戏pad控制器示例展示了虚拟手柄的创建和使用方法
 - 前端调试系统示例展示了控制器事件处理和错误提示的实现
+- **新增**：ActionResult 结果系统示例展示了类型安全的结果访问和解析
+- **新增**：Context 直接执行方法示例展示了 RunRecognitionDirect、RunActionDirect 和 WaitFreezes 的使用
 
 **章节来源**
 - [controller.go](file://controller.go#L1-L418)
@@ -636,3 +745,6 @@ maa-framework-go 通过 Tasker、Resource、Controller、Context、Event 与 Job
 - [gamepad控制器.md](file://instructions/maafw-golang-binding/核心概念/控制器 (Controller)/游戏pad控制器.md#L1-L474)
 - [DebugProtocol.ts](file://src/services/protocols/DebugProtocol.ts#L428-L476)
 - [ErrorProtocol.ts](file://src/services/protocols/ErrorProtocol.ts#L39-L67)
+- [action_result.go](file://action_result.go#L1-L375)
+- [context.go](file://context.go#L209-L279)
+- [context_test.go](file://context_test.go#L1385-L1460)
