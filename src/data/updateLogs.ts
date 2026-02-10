@@ -48,6 +48,14 @@ export const pinnedNotice: PinnedNotice = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "1.0.4",
+    date: "2026-2-10",
+    type: "feature",
+    updates: {
+      perfs: ["优化 Extremer 前后端自动连接逻辑，提升初次握手稳定性"],
+    },
+  },
+  {
     version: "1.0.3",
     date: "2026-2-4",
     type: "fix",

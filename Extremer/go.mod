@@ -1,6 +1,6 @@
 module github.com/kqcoxn/MaaPipelineEditor/Extremer
 
-go 1.22.0
+go 1.24
 
 require (
 	github.com/hashicorp/go-version v1.7.0

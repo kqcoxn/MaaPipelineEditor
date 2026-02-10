@@ -313,21 +313,20 @@ func (a *App) createLBConfig(path string) error {
 
 // domReady DOM 加载完成时调用
 func (a *App) domReady(ctx context.Context) {
-	// 发送端口信息给前端
-	wailsRuntime.EventsEmit(ctx, "bridge:port", a.port)
-
-	// 等待 LocalBridge 启动完成
+	// 等待 LocalBridge 启动完成后再通知前端连接
 	go func() {
 		// 检测 LocalBridge 是否就绪
 		maxRetries := 30
 		for i := 0; i < maxRetries; i++ {
 			if a.bridge != nil && a.bridge.IsRunning() {
-				// 等待额外 1 秒确保服务完全启动
+				// 等待额外 1 秒确保 WebSocket 服务完全启动
 				time.Sleep(1000 * time.Millisecond)
 
 				// 关闭启动画面并显示主窗口
 				a.showMainWindow(ctx)
 
+				// Bridge 就绪后才发送端口信息，前端收到后会自动连接
+				wailsRuntime.EventsEmit(ctx, "bridge:port", a.port)
 				wailsRuntime.EventsEmit(ctx, "bridge:ready", true)
 				wailsRuntime.LogInfo(ctx, "LocalBridge 就绪，前端可以连接")
 				return
@@ -335,8 +334,9 @@ func (a *App) domReady(ctx context.Context) {
 			time.Sleep(500 * time.Millisecond)
 		}
 
-		// 超时仍未就绪，也要显示主窗口
+		// 超时仍未就绪，也要显示主窗口，并发送端口让前端可以手动重试
 		a.showMainWindow(ctx)
+		wailsRuntime.EventsEmit(ctx, "bridge:port", a.port)
 		wailsRuntime.EventsEmit(ctx, "bridge:ready", false)
 		wailsRuntime.LogWarning(ctx, "LocalBridge 启动超时")
 	}()

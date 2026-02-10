@@ -49,6 +49,7 @@ import {
   isWailsEnvironment,
   onWailsEvent,
   getWailsPort,
+  isBridgeRunning,
   wailsLog,
 } from "./utils/wailsBridge";
 
@@ -225,17 +226,24 @@ function App() {
         localServer.connect();
       });
 
-      // 尝试直接获取端口
-      getWailsPort().then((port) => {
+      // 尝试直接获取端口（仅在 bridge 已就绪时连接）
+      getWailsPort().then(async (port) => {
         if (
           port &&
           !localServer.isConnected() &&
           !localServer.getIsConnecting()
         ) {
-          console.log("[App] Got port from GetPort():", port);
-          wailsLog(`[Frontend] Got port from GetPort: ${port}`);
-          localServer.setPort(port);
-          localServer.connect();
+          // 检查 bridge 是否已经就绪，避免在 bridge 未启动时连接
+          const running = await isBridgeRunning();
+          if (running) {
+            console.log("[App] Got port from GetPort():", port);
+            wailsLog(`[Frontend] Got port from GetPort: ${port}`);
+            localServer.setPort(port);
+            localServer.connect();
+          } else {
+            console.log("[App] Bridge not ready yet, waiting for bridge:port event");
+            wailsLog("[Frontend] Bridge not ready, waiting for event");
+          }
         }
       });
     } else {
