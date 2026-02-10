@@ -709,6 +709,22 @@ export const ParamFieldListElem = memo(
             onConfirm={handleColorConfirm}
             targetKey={currentColorKey}
             initialMethod={paramData["method"] as number | undefined}
+            initialLower={(() => {
+              const val = paramData["lower"] as unknown;
+              if (!val || !Array.isArray(val)) return undefined;
+              if (val.length > 0 && Array.isArray(val[0])) {
+                return val[currentListIndex ?? 0] as number[];
+              }
+              return val as number[];
+            })()}
+            initialUpper={(() => {
+              const val = paramData["upper"] as unknown;
+              if (!val || !Array.isArray(val)) return undefined;
+              if (val.length > 0 && Array.isArray(val[0])) {
+                return val[currentListIndex ?? 0] as number[];
+              }
+              return val as number[];
+            })()}
           />
         )}
         {currentDeltaKey && (

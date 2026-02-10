@@ -1,5 +1,6 @@
 import { memo, useState, useCallback, useRef, useEffect } from "react";
-import { message, Radio, Space } from "antd";
+import { message, Radio, Space, InputNumber, Button } from "antd";
+import { EyeOutlined, StopOutlined } from "@ant-design/icons";
 import {
   ScreenshotModalBase,
   type CanvasRenderProps,
@@ -15,10 +16,12 @@ interface ColorModalProps {
   onConfirm: (color: ColorValue) => void;
   targetKey?: string; // 添加目标字段名,用于显示标题
   initialMethod?: number; // 初始 method 值（4=RGB, 40=HSV, 6=GRAY）
+  initialLower?: number[]; // 初始 lower 颜色范围
+  initialUpper?: number[]; // 初始 upper 颜色范围
 }
 
 export const ColorModal = memo(
-  ({ open, onClose, onConfirm, targetKey, initialMethod }: ColorModalProps) => {
+  ({ open, onClose, onConfirm, targetKey, initialMethod, initialLower, initialUpper }: ColorModalProps) => {
     const [screenshot, setScreenshot] = useState<string | null>(null);
 
     // 检测初始颜色模式
@@ -31,14 +34,62 @@ export const ColorModal = memo(
     const [colorMode, setColorMode] = useState<ColorMode>(getInitialColorMode);
     const [pickedColor, setPickedColor] = useState<ColorValue | null>(null);
 
+    // 颜色范围预览状态
+    const [lowerBound, setLowerBound] = useState<number[]>([0, 0, 0]);
+    const [upperBound, setUpperBound] = useState<number[]>([255, 255, 255]);
+    const [previewActive, setPreviewActive] = useState(false);
+    const [matchedPixelCount, setMatchedPixelCount] = useState<number | null>(
+      null
+    );
+    const [isComputing, setIsComputing] = useState(false);
+    const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
     // 重置颜色模式
     useEffect(() => {
       if (open) {
         const mode = getInitialColorMode();
         setColorMode(mode);
         setPickedColor(null);
+
+        // 初始化颜色范围预览边界
+        const channelCount = mode === "GRAY" ? 1 : 3;
+        const defaultLower = channelCount === 1 ? [0] : [0, 0, 0];
+        const defaultUpper = channelCount === 1 ? [255] : [255, 255, 255];
+
+        if (initialLower && initialLower.length === channelCount) {
+          setLowerBound([...initialLower]);
+        } else {
+          setLowerBound(defaultLower);
+        }
+        if (initialUpper && initialUpper.length === channelCount) {
+          setUpperBound([...initialUpper]);
+        } else {
+          setUpperBound(defaultUpper);
+        }
+
+        // 重置预览状态
+        setPreviewActive(false);
+        setMatchedPixelCount(null);
+        setIsComputing(false);
       }
-    }, [open, getInitialColorMode]);
+    }, [open, getInitialColorMode, initialLower, initialUpper]);
+
+    // 取色后自动填入对应边界
+    useEffect(() => {
+      if (pickedColor) {
+        if (targetKey === "lower") {
+          setLowerBound([...pickedColor]);
+        } else if (targetKey === "upper") {
+          setUpperBound([...pickedColor]);
+        }
+        // 取色后清除旧预览
+        if (previewActive) {
+          setPreviewActive(false);
+          setMatchedPixelCount(null);
+        }
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pickedColor, targetKey]);
 
     const imageRef = useRef<HTMLImageElement | null>(null);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -139,6 +190,159 @@ export const ColorModal = memo(
       []
     );
 
+    // 获取通道信息
+    const getChannelInfo = useCallback((): {
+      count: number;
+      labels: string[];
+      max: number[];
+    } => {
+      switch (colorMode) {
+        case "RGB":
+          return { count: 3, labels: ["R", "G", "B"], max: [255, 255, 255] };
+        case "HSV":
+          return { count: 3, labels: ["H", "S", "V"], max: [180, 255, 255] };
+        case "GRAY":
+          return { count: 1, labels: ["灰度"], max: [255] };
+      }
+    }, [colorMode]);
+
+    // 更新边界值的某个通道
+    const handleBoundChange = useCallback(
+      (
+        bound: "lower" | "upper",
+        channelIndex: number,
+        value: number | null
+      ) => {
+        if (value === null) return;
+        const setter = bound === "lower" ? setLowerBound : setUpperBound;
+        setter((prev) => {
+          const next = [...prev];
+          next[channelIndex] = Math.round(value);
+          return next;
+        });
+        // 修改边界后清除旧预览
+        if (previewActive) {
+          setPreviewActive(false);
+          setMatchedPixelCount(null);
+        }
+      },
+      [previewActive]
+    );
+
+    // 计算颜色范围预览
+    const computePreview = useCallback(() => {
+      const canvas = canvasRef.current;
+      const img = imageRef.current;
+      if (!canvas || !img) {
+        message.warning("请先等待截图加载");
+        return;
+      }
+
+      const channelInfo = getChannelInfo();
+      if (lowerBound.length !== channelInfo.count || upperBound.length !== channelInfo.count) {
+        message.warning("颜色边界通道数与当前颜色模式不匹配");
+        return;
+      }
+
+      setIsComputing(true);
+
+      requestAnimationFrame(() => {
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          setIsComputing(false);
+          return;
+        }
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const { data, width, height } = imageData;
+
+        // 初始化 overlay canvas
+        const overlay = overlayCanvasRef.current;
+        if (!overlay) {
+          setIsComputing(false);
+          return;
+        }
+        overlay.width = width;
+        overlay.height = height;
+        const overlayCtx = overlay.getContext("2d");
+        if (!overlayCtx) {
+          setIsComputing(false);
+          return;
+        }
+
+        const overlayImageData = overlayCtx.createImageData(width, height);
+        const overlayData = overlayImageData.data;
+
+        let count = 0;
+        const totalPixels = width * height;
+
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+
+          let channels: number[];
+          switch (colorMode) {
+            case "RGB":
+              channels = [r, g, b];
+              break;
+            case "HSV":
+              channels = [...rgbToHsv(r, g, b)];
+              break;
+            case "GRAY":
+              channels = [rgbToGray(r, g, b)];
+              break;
+          }
+
+          let matched = true;
+          for (let c = 0; c < channels.length; c++) {
+            if (channels[c] < lowerBound[c] || channels[c] > upperBound[c]) {
+              matched = false;
+              break;
+            }
+          }
+
+          if (matched) {
+            // 命中像素: 半透明绿色高亮
+            overlayData[i] = 0;
+            overlayData[i + 1] = 255;
+            overlayData[i + 2] = 0;
+            overlayData[i + 3] = 100;
+            count++;
+          } else {
+            // 非命中像素: 半透明黑色遮罩
+            overlayData[i] = 0;
+            overlayData[i + 1] = 0;
+            overlayData[i + 2] = 0;
+            overlayData[i + 3] = 120;
+          }
+        }
+
+        overlayCtx.putImageData(overlayImageData, 0, 0);
+        setMatchedPixelCount(count);
+        setPreviewActive(true);
+        setIsComputing(false);
+
+        const percentage = ((count / totalPixels) * 100).toFixed(2);
+        message.success(
+          `匹配到 ${count.toLocaleString()} 个像素（${percentage}%）`
+        );
+      });
+    }, [lowerBound, upperBound, colorMode, rgbToHsv, rgbToGray, getChannelInfo]);
+
+    // 清除预览
+    const clearPreview = useCallback(() => {
+      setPreviewActive(false);
+      setMatchedPixelCount(null);
+      const overlay = overlayCanvasRef.current;
+      if (overlay) {
+        const ctx = overlay.getContext("2d");
+        if (ctx) {
+          ctx.clearRect(0, 0, overlay.width, overlay.height);
+        }
+      }
+    }, []);
+
     // 点击取色
     const handleCanvasClick = useCallback(
       (
@@ -208,6 +412,15 @@ export const ColorModal = memo(
       imageRef.current = null;
       canvasRef.current = null;
       initializeImageRef.current = null;
+      // 重置范围预览
+      setPreviewActive(false);
+      setMatchedPixelCount(null);
+      setIsComputing(false);
+      const overlay = overlayCanvasRef.current;
+      if (overlay) {
+        const ctx = overlay.getContext("2d");
+        if (ctx) ctx.clearRect(0, 0, overlay.width, overlay.height);
+      }
     }, [getInitialColorMode]);
 
     // 切换颜色模式时转换已选颜色
@@ -251,8 +464,14 @@ export const ColorModal = memo(
 
         setColorMode(mode);
         setPickedColor(newColor);
+
+        // 切换颜色模式时重置边界和预览
+        const channelCount = mode === "GRAY" ? 1 : 3;
+        setLowerBound(channelCount === 1 ? [0] : [0, 0, 0]);
+        setUpperBound(channelCount === 1 ? [255] : [255, 255, 255]);
+        clearPreview();
       },
-      [pickedColor, colorMode, hsvToRgb, rgbToHsv, rgbToGray]
+      [pickedColor, colorMode, hsvToRgb, rgbToHsv, rgbToGray, clearPreview]
     );
 
     // 渲染 Canvas
@@ -323,23 +542,35 @@ export const ColorModal = memo(
         };
 
         return (
-          <canvas
-            ref={canvasRef}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseLeave}
-            onWheel={handleWheel}
-            style={{
-              cursor: cursorStyle,
-              transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${scale})`,
-              transformOrigin: "top left",
-              position: "absolute",
-            }}
-          />
+          <>
+            <canvas
+              ref={canvasRef}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseLeave}
+              onWheel={handleWheel}
+              style={{
+                cursor: cursorStyle,
+                transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${scale})`,
+                transformOrigin: "top left",
+                position: "absolute",
+              }}
+            />
+            <canvas
+              ref={overlayCanvasRef}
+              style={{
+                pointerEvents: "none",
+                transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${scale})`,
+                transformOrigin: "top left",
+                position: "absolute",
+                display: previewActive ? "block" : "none",
+              }}
+            />
+          </>
         );
       },
-      [handleCanvasClick]
+      [handleCanvasClick, previewActive]
     );
 
     // 图片加载完成后初始化
@@ -500,6 +731,238 @@ export const ColorModal = memo(
             <span style={{ fontSize: 12, color: "#8c8c8c" }}>
               请在截图上点击取色
             </span>
+          )}
+        </div>
+
+        {/* 颜色范围预览 */}
+        <div
+          style={{
+            padding: 12,
+            backgroundColor: "#fff",
+            borderRadius: 8,
+            border: `1px solid ${previewActive ? "#91caff" : "#e8e8e8"}`,
+            transition: "border-color 0.3s ease",
+            marginTop: 12,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              marginBottom: 12,
+            }}
+          >
+            <div
+              style={{
+                width: 3,
+                height: 16,
+                backgroundColor: "#1890ff",
+                borderRadius: 2,
+              }}
+            />
+            <span style={{ fontSize: 14, fontWeight: 500, color: "#262626" }}>
+              颜色范围预览
+            </span>
+          </div>
+
+          {/* Lower 边界输入 */}
+          <div style={{ marginBottom: 8 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                marginBottom: 6,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 12,
+                  color: "#595959",
+                  fontWeight: 500,
+                  width: 42,
+                }}
+              >
+                下界
+              </span>
+              <div
+                style={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: 2,
+                  backgroundColor: (() => {
+                    if (colorMode === "GRAY")
+                      return `rgb(${lowerBound[0]},${lowerBound[0]},${lowerBound[0]})`;
+                    if (colorMode === "HSV" && lowerBound.length === 3) {
+                      const [r, g, b] = hsvToRgb(
+                        lowerBound[0],
+                        lowerBound[1],
+                        lowerBound[2]
+                      );
+                      return `rgb(${r},${g},${b})`;
+                    }
+                    return `rgb(${lowerBound[0] ?? 0},${lowerBound[1] ?? 0},${lowerBound[2] ?? 0})`;
+                  })(),
+                  border: "1px solid #d9d9d9",
+                  flexShrink: 0,
+                }}
+              />
+            </div>
+            <Space size={4}>
+              {getChannelInfo().labels.map((label, idx) => (
+                <div key={`lower-${idx}`} style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <span style={{ fontSize: 11, color: "#8c8c8c", width: 12, textAlign: "right" }}>
+                    {label}
+                  </span>
+                  <InputNumber
+                    value={lowerBound[idx] ?? 0}
+                    onChange={(v) => handleBoundChange("lower", idx, v)}
+                    min={0}
+                    max={getChannelInfo().max[idx]}
+                    precision={0}
+                    size="small"
+                    style={{ width: 58 }}
+                  />
+                </div>
+              ))}
+            </Space>
+          </div>
+
+          {/* Upper 边界输入 */}
+          <div style={{ marginBottom: 12 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                marginBottom: 6,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 12,
+                  color: "#595959",
+                  fontWeight: 500,
+                  width: 42,
+                }}
+              >
+                上界
+              </span>
+              <div
+                style={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: 2,
+                  backgroundColor: (() => {
+                    if (colorMode === "GRAY")
+                      return `rgb(${upperBound[0]},${upperBound[0]},${upperBound[0]})`;
+                    if (colorMode === "HSV" && upperBound.length === 3) {
+                      const [r, g, b] = hsvToRgb(
+                        upperBound[0],
+                        upperBound[1],
+                        upperBound[2]
+                      );
+                      return `rgb(${r},${g},${b})`;
+                    }
+                    return `rgb(${upperBound[0] ?? 255},${upperBound[1] ?? 255},${upperBound[2] ?? 255})`;
+                  })(),
+                  border: "1px solid #d9d9d9",
+                  flexShrink: 0,
+                }}
+              />
+            </div>
+            <Space size={4}>
+              {getChannelInfo().labels.map((label, idx) => (
+                <div key={`upper-${idx}`} style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <span style={{ fontSize: 11, color: "#8c8c8c", width: 12, textAlign: "right" }}>
+                    {label}
+                  </span>
+                  <InputNumber
+                    value={upperBound[idx] ?? 255}
+                    onChange={(v) => handleBoundChange("upper", idx, v)}
+                    min={0}
+                    max={getChannelInfo().max[idx]}
+                    precision={0}
+                    size="small"
+                    style={{ width: 58 }}
+                  />
+                </div>
+              ))}
+            </Space>
+          </div>
+
+          {/* 预览操作 */}
+          <Space size={8}>
+            <Button
+              type="primary"
+              size="small"
+              icon={<EyeOutlined />}
+              onClick={computePreview}
+              loading={isComputing}
+              disabled={!screenshot}
+            >
+              预览
+            </Button>
+            {previewActive && (
+              <Button
+                size="small"
+                icon={<StopOutlined />}
+                onClick={clearPreview}
+              >
+                清除
+              </Button>
+            )}
+          </Space>
+
+          {/* 像素计数结果 */}
+          {matchedPixelCount !== null && (
+            <div
+              style={{
+                marginTop: 10,
+                padding: "8px 10px",
+                backgroundColor: "#f6ffed",
+                borderRadius: 6,
+                border: "1px solid #b7eb8f",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <span style={{ fontSize: 12, color: "#52c41a", fontWeight: 500 }}>
+                  匹配像素
+                </span>
+                <span style={{ fontSize: 14, color: "#262626", fontWeight: 600 }}>
+                  {matchedPixelCount.toLocaleString()}
+                </span>
+              </div>
+              {imageRef.current && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginTop: 4,
+                  }}
+                >
+                  <span style={{ fontSize: 11, color: "#8c8c8c" }}>
+                    占比
+                  </span>
+                  <span style={{ fontSize: 12, color: "#595959" }}>
+                    {(
+                      (matchedPixelCount /
+                        (imageRef.current.width * imageRef.current.height)) *
+                      100
+                    ).toFixed(2)}
+                    %
+                  </span>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </ScreenshotModalBase>
