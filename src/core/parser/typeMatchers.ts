@@ -245,6 +245,34 @@ function matchSingleType(value: any, type: FieldTypeEnum): any {
           }
         }
         break;
+
+      // StringOrObjectList
+      case FieldTypeEnum.StringOrObjectList:
+        if (Array.isArray(value)) {
+          const mixedList = [];
+          for (let item of value) {
+            // object
+            if (JsonHelper.isObj(item)) {
+              mixedList.push(item);
+            }
+            // 字符串
+            else {
+              const str = String(item);
+              // 尝试解析为 JSON 对象
+              temp = str.replaceAll(/[""]/g, `"`);
+              if (JsonHelper.isStringObj(temp)) {
+                mixedList.push(JsonHelper.stringObjToJson(temp));
+              } else {
+                // 保留为字符串
+                mixedList.push(str);
+              }
+            }
+          }
+          if (mixedList.length === value.length) {
+            return mixedList;
+          }
+        }
+        break;
     }
   } catch (error) {
     // 静默处理类型转换错误

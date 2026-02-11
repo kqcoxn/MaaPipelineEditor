@@ -49,12 +49,13 @@ export const pinnedNotice: PinnedNotice = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "1.1.1",
-    date: "2026-2-12",
+    date: "2026-2-11",
     type: "fix",
     updates: {
       fixes: [
-        "修复 Anchor 节点端点异常问题",
+        "修复 all_of/any_of 无法使用字符串作为节点名称引用的问题",
         "修复本地服务无法导入 jsonc 格式内容的问题",
+        "修复 Anchor 节点端点异常的问题",
       ],
     },
   },

@@ -4,9 +4,6 @@
 
 ## bug
 
-- and or 字段问题
-- 注释解析问题
-
 ## perf
 
 ## feat

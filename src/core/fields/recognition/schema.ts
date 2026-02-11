@@ -214,10 +214,10 @@ export const recoFieldSchema: Record<string, FieldType> = {
   // 组合识别
   allOf: {
     key: "all_of",
-    type: FieldTypeEnum.ObjectList,
+    type: FieldTypeEnum.StringOrObjectList,
     required: true,
-    default: [{}, {}],
-    desc: "子识别列表。所有子识别都命中才算成功。必选。 列表元素写法与普通节点的 recognition 一致（兼容 v1/v2，允许混用）。",
+    default: ["", ""],
+    desc: "子识别列表。所有子识别都命中才算成功。必选。 列表元素可以是： 字符串：节点名称引用，运行时使用该节点的识别算法和参数 对象：内联识别定义，写法与普通节点的 recognition 一致（兼容 v1/v2，允许混用）。",
   },
   boxIndex: {
     key: "box_index",
@@ -233,10 +233,10 @@ export const recoFieldSchema: Record<string, FieldType> = {
   },
   anyOf: {
     key: "any_of",
-    type: FieldTypeEnum.ObjectList,
+    type: FieldTypeEnum.StringOrObjectList,
     required: true,
-    default: [{}, {}],
-    desc: "子识别列表。命中第一个即成功，后续不再识别。必选。 列表元素写法与普通节点的 recognition 一致（兼容 v1/v2，允许混用）。",
+    default: ["", ""],
+    desc: "子识别列表。命中第一个即成功，后续不再识别。必选。 列表元素可以是： 字符串：节点名称引用，运行时使用该节点的识别算法和参数 对象：内联识别定义，写法与普通节点的 recognition 一致（兼容 v1/v2，允许混用）",
   },
 
   // 自定义识别字段

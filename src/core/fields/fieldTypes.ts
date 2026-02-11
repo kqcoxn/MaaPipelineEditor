@@ -19,6 +19,7 @@ export enum FieldTypeEnum {
   StringPairList = "list<array<string, 2>>",
   Any = "any",
   ObjectList = "list<object,>",
+  StringOrObjectList = "list<string | object>",
   // 图片选择类型
   ImagePath = "image_path",
   ImagePathList = "list<image_path>",

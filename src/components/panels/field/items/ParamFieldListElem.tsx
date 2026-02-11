@@ -516,6 +516,7 @@ export const ParamFieldListElem = memo(
           case FieldTypeEnum.XYWHList:
           case FieldTypeEnum.PositionList:
           case FieldTypeEnum.ObjectList:
+          case FieldTypeEnum.StringOrObjectList:
             isListType = true;
             InputElem = ListValueElem(
               key,
