@@ -154,18 +154,32 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' || (!contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test')) }}
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache MaaFramework resources
+        uses: actions/cache@v3
+        with:
+          path: resources/
+          key: mfw-resources-${{ hashFiles('.github/workflows/release.yaml') }}-${{ github.run_id }}
+          restore-keys: |
+            mfw-resources-${{ hashFiles('.github/workflows/release.yaml') }}-
+            mfw-resources-
+
+      - name: Check cached resources
+        id: check-cache
+        run: |
+          if [ -d "resources/maafw-windows-amd64" ] && [ -d "resources/maafw-darwin-arm64" ]; then
+            echo "cache-hit=true" >> $GITHUB_OUTPUT
+          else
+            echo "cache-hit=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Download MaaFramework resources
+        if: steps.check-cache.outputs.cache-hit != 'true'
         env:
           MAA_GH_TOKEN: ${{ secrets.MAA_GH_TOKEN }}
         run: |
-          # 调试：检查 token 是否正确传递
-          echo "Token length: ${#MAA_GH_TOKEN}"
-          echo "Token starts with: ${MAA_GH_TOKEN:0:4}..."
-                
-          # 测试 token 权限
-          curl -s -H "Authorization: Bearer ${MAA_GH_TOKEN}" \
-            https://api.github.com/user \
-            | jq -r '.login' || echo "Token test failed"
           # 带认证的 curl 下载函数（优化版）
           gh_curl() {
             curl -L \
