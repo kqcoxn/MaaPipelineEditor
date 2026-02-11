@@ -42,7 +42,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: "1.21"
           cache: false
 
       - name: Build LocalBridge
@@ -156,20 +156,30 @@ jobs:
     steps:
       - name: Download MaaFramework resources
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MAA_GH_TOKEN: ${{ secrets.MAA_GH_TOKEN }}
         run: |
-          # 带认证的 curl 下载函数（含超时与重试）
+          # 调试：检查 token 是否正确传递
+          echo "Token length: ${#MAA_GH_TOKEN}"
+          echo "Token starts with: ${MAA_GH_TOKEN:0:4}..."
+                
+          # 测试 token 权限
+          curl -s -H "Authorization: Bearer ${MAA_GH_TOKEN}" \
+            https://api.github.com/user \
+            | jq -r '.login' || echo "Token test failed"
+          # 带认证的 curl 下载函数（优化版）
           gh_curl() {
             curl -L \
-              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Authorization: Bearer ${MAA_GH_TOKEN}" \
               -H "Accept: application/octet-stream" \
-              --retry 3 --retry-delay 5 \
-              --connect-timeout 30 --max-time 600 \
+              -H "User-Agent: MaaPipelineEditor-CI/1.0" \
+              --retry 5 --retry-delay 3 --retry-all-errors \
+              --connect-timeout 60 --max-time 1200 \
+              --speed-time 30 --speed-limit 1000 \
               "$@"
           }
 
           # 从 MaaFramework Release 自动获取最新版本
-          MFW_VERSION=$(curl -s -H "Authorization: Bearer ${GH_TOKEN}" \
+          MFW_VERSION=$(curl -s -H "Authorization: Bearer ${MAA_GH_TOKEN}" \
             https://api.github.com/repos/MaaXYZ/MaaFramework/releases/latest \
             | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
           echo "MaaFramework latest version: ${MFW_VERSION}"
@@ -197,7 +207,11 @@ jobs:
 
           # OCR 资源（非 GitHub，无需 token）
           (
-            curl -L --retry 3 --retry-delay 5 --connect-timeout 30 --max-time 600 \
+            curl -L \
+              -H "User-Agent: MaaPipelineEditor-CI/1.0" \
+              --retry 5 --retry-delay 3 --retry-all-errors \
+              --connect-timeout 60 --max-time 1200 \
+              --speed-time 30 --speed-limit 1000 \
               "https://download.maafw.xyz/MaaCommonAssets/OCR/ppocr_v5/ppocr_v5-zh_cn.zip" -o ocr-assets.zip
             mkdir -p resources/resource/model/ocr
             unzip ocr-assets.zip -d resources/resource/model/ocr/ || true
@@ -251,7 +265,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: "1.21"
           cache: false
 
       - name: Install Wails
