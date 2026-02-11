@@ -220,17 +220,14 @@ jobs:
           download_platform "${MFW_BASE_URL}/MAA-macos-x86_64-${MFW_VERSION}.zip"   mfw-darwin-amd64.zip  resources/maafw-darwin-amd64  &
           download_platform "${MFW_BASE_URL}/MAA-macos-aarch64-${MFW_VERSION}.zip"  mfw-darwin-arm64.zip  resources/maafw-darwin-arm64  &
 
-          # OCR 资源（非 GitHub，无需 token）
+          # OCR 资源（从 GitHub Raw 直接下载，更快更稳定）
           (
-            curl -L \
-              -H "User-Agent: MaaPipelineEditor-CI/1.0" \
-              --retry 5 --retry-delay 3 --retry-all-errors \
-              --connect-timeout 60 --max-time 1200 \
-              --speed-time 30 --speed-limit 1000 \
-              "https://download.maafw.xyz/MaaCommonAssets/OCR/ppocr_v5/ppocr_v5-zh_cn.zip" -o ocr-assets.zip
             mkdir -p resources/resource/model/ocr
-            unzip ocr-assets.zip -d resources/resource/model/ocr/ || true
-            rm ocr-assets.zip
+            # 使用 GitHub Raw CDN 下载，带认证和优化参数
+            gh_curl "https://raw.githubusercontent.com/MaaXYZ/MaaCommonAssets/main/OCR/ppocr_v5/zh_cn/det.onnx" -o resources/resource/model/ocr/det.onnx
+            gh_curl "https://raw.githubusercontent.com/MaaXYZ/MaaCommonAssets/main/OCR/ppocr_v5/zh_cn/rec.onnx" -o resources/resource/model/ocr/rec.onnx
+            gh_curl "https://raw.githubusercontent.com/MaaXYZ/MaaCommonAssets/main/OCR/ppocr_v5/zh_cn/keys.txt" -o resources/resource/model/ocr/keys.txt
+            gh_curl "https://raw.githubusercontent.com/MaaXYZ/MaaCommonAssets/main/OCR/ppocr_v5/zh_cn/README.md" -o resources/resource/model/ocr/README.md
           ) &
 
           # 等待所有后台下载完成
