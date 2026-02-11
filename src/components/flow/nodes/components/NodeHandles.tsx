@@ -201,7 +201,7 @@ export const AnchorNodeHandles = memo<AnchorNodeHandlesProps>(
     const nodeId = useNodeId();
     const updateNodeInternals = useUpdateNodeInternals();
     
-    const { targetPosition, sourcePosition, isVertical } = useMemo(
+    const { targetPosition, isVertical } = useMemo(
       () => getHandlePositions(direction),
       [direction]
     );
@@ -220,6 +220,12 @@ export const AnchorNodeHandles = memo<AnchorNodeHandlesProps>(
     }, [direction, nodeId, updateNodeInternals]);
 
     const handleClass = isVertical ? style.handleVertical : style.handle;
+    const anchorStyle = isVertical
+      ? { left: "30%" }
+      : { top: "30%" };
+    const jumpbackStyle = isVertical
+      ? { left: "70%" }
+      : { top: "70%" };
 
     return (
       <>
@@ -228,12 +234,14 @@ export const AnchorNodeHandles = memo<AnchorNodeHandlesProps>(
           className={classNames(handleClass, style.anchor)}
           type="target"
           position={targetPosition}
+          style={anchorStyle}
         />
         <Handle
-          id={SourceHandleTypeEnum.Next}
-          className={classNames(handleClass, style.anchor)}
-          type="source"
-          position={sourcePosition}
+          id={TargetHandleTypeEnum.JumpBack}
+          className={classNames(handleClass, isVertical ? style.targetJumpbackVertical : style.targetJumpback)}
+          type="target"
+          position={targetPosition}
+          style={jumpbackStyle}
         />
       </>
     );
