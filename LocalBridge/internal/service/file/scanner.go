@@ -1,11 +1,11 @@
 package file
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/utils"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/pkg/models"
 )
 
@@ -147,9 +147,9 @@ func (s *Scanner) parseFileNodes(filePath string) ([]models.FileNode, string) {
 		return nodes, prefix
 	}
 
-	// 尝试解析JSON
+	// 尝试解析JSONC
 	var content map[string]interface{}
-	if err := json.Unmarshal(data, &content); err != nil {
+	if err := utils.ParseJSONC(data, &content); err != nil {
 		return nodes, prefix
 	}
 

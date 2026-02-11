@@ -4,11 +4,14 @@
 
 ## bug
 
+- and or 字段问题
+- 注释解析问题
+
 ## perf
 
 ## feat
 
-- 神经网络检测 (封装 NeuralNetworkDetector 识别，可设 ROI、阈值、标签)	
+- 神经网络检测 (封装 NeuralNetworkDetector 识别，可设 ROI、阈值、标签)
 - 按键工具
 - 导入图片
 - 自定义分辨率

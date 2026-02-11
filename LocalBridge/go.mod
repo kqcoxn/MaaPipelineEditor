@@ -11,6 +11,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
+	github.com/tailscale/hujson v0.0.0-20250605163823-992244df8c5a
 	golang.org/x/sys v0.39.0
 )
 

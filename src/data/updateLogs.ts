@@ -52,7 +52,10 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2026-2-12",
     type: "fix",
     updates: {
-      fixes: ["修复 Anchor 节点端点异常问题"],
+      fixes: [
+        "修复 Anchor 节点端点异常问题",
+        "修复本地服务无法导入 jsonc 格式内容的问题",
+      ],
     },
   },
   {

@@ -17,7 +17,7 @@ func PrintInstallCommand() {
 			fmt.Println("   irm https://raw.githubusercontent.com/kqcoxn/MaaPipelineEditor/main/tools/install.ps1 | iex")
 		} else {
 			// CMD 环境
-			fmt.Println("   curl -fsSL https://raw.githubusercontent.com/kqcoxn/MaaPipelineEditor/main/tools/install.bat -o %TEMP%\\install-mpelb.bat && %TEMP%\\install-mpelb.bat")
+			fmt.Printf("   curl -fsSL https://raw.githubusercontent.com/kqcoxn/MaaPipelineEditor/main/tools/install.bat -o %%TEMP%%\\install-mpelb.bat && %%TEMP%%\\install-mpelb.bat\n")
 		}
 	case "darwin", "linux":
 		// Linux/macOS

@@ -10,6 +10,7 @@ import (
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/errors"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/eventbus"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/utils"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/pkg/models"
 )
 
@@ -117,9 +118,9 @@ func (s *Service) ReadFile(filePath string) (interface{}, error) {
 		return nil, errors.NewFileReadError(filePath, err)
 	}
 
-	// 解析JSON
+	// 解析JSONC
 	var content interface{}
-	if err := json.Unmarshal(data, &content); err != nil {
+	if err := utils.ParseJSONC(data, &content); err != nil {
 		return nil, errors.NewInvalidJSONError(err)
 	}
 
