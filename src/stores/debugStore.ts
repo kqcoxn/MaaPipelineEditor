@@ -195,7 +195,7 @@ interface DebugState {
   addResourcePath: (path: string) => void;
   removeResourcePath: (index: number) => void;
   updateResourcePath: (index: number, path: string) => void;
-  startDebug: () => Promise<boolean>;
+  startDebug: (options?: { skipEntryNodeCheck?: boolean }) => Promise<boolean>;
   stopDebug: () => void;
   updateExecutionState: (
     nodeId: string,
@@ -292,15 +292,23 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
     set({ [key]: value });
   },
 
-  startDebug: async (): Promise<boolean> => {
+  startDebug: async (options?: {
+    skipEntryNodeCheck?: boolean;
+  }): Promise<boolean> => {
     const state = get();
     const controllerId = useMFWStore.getState().controllerId;
 
     // 过滤空路径
     const validPaths = state.resourcePaths.filter((p) => p.trim() !== "");
 
-    if (validPaths.length === 0 || !state.entryNode || !controllerId) {
-      set({ error: "请先配置资源路径、入口节点和控制器" });
+    // 检查基本条件
+    if (validPaths.length === 0 || !controllerId) {
+      set({ error: "请先配置资源路径和控制器" });
+      return false;
+    }
+
+    if (!options?.skipEntryNodeCheck && !state.entryNode) {
+      set({ error: "请先设置入口节点" });
       return false;
     }
 

@@ -218,20 +218,10 @@ async function runDebugTest(
   // 设置测试模式
   setTestMode(testMode, node.data.label);
 
-  // 直接设置调试状态，不调用 startDebug
-  useDebugStore.setState({
-    debugStatus: "preparing",
-    controllerId,
-    executedNodes: new Set(),
-    executedEdges: new Set(),
-    currentNode: null,
-    executionHistory: [],
-    recognitionRecords: [],
-    nextRecordId: 1,
-    executionStartTime: Date.now(),
-    detailCache: new Map(),
-    error: null,
-  });
+  const canContinue = await useDebugStore.getState().startDebug({ skipEntryNodeCheck: true });
+  if (!canContinue) {
+    return;
+  }
 
   message.loading(`正在${testName}...`);
 
