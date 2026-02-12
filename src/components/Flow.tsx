@@ -343,35 +343,42 @@ function MainFlow() {
       // 拖入/拖出分组检测
       if (draggedNode.type === NodeTypeEnum.Group) return;
       const currentNodes = useFlowStore.getState().nodes;
-      const hasParent = !!(draggedNode as any).parentId;
+      // 获取最新的节点数据
+      const currentDraggedNode = currentNodes.find((n) => n.id === draggedNode.id);
+      if (!currentDraggedNode) return;
+      
+      const hasParent = !!(currentDraggedNode as any).parentId;
 
       if (hasParent) {
         // 检测是否拖出了父 Group 的范围
-        const parentId = (draggedNode as any).parentId;
+        const parentId = (currentDraggedNode as any).parentId;
         const parentNode = currentNodes.find((n) => n.id === parentId);
         if (parentNode) {
-          const pw = (parentNode as any).style?.width ?? parentNode.measured?.width ?? 400;
-          const ph = (parentNode as any).style?.height ?? parentNode.measured?.height ?? 300;
-          const nx = draggedNode.position.x;
-          const ny = draggedNode.position.y;
-          const nw = draggedNode.measured?.width ?? 200;
-          const nh = draggedNode.measured?.height ?? 100;
-          // 如果节点中心在 parent 外部，则脱离
+          // 优先使用测量尺寸
+          const pw = parentNode.measured?.width ?? (parentNode as any).style?.width ?? 400;
+          const ph = parentNode.measured?.height ?? (parentNode as any).style?.height ?? 300;
+          const nx = currentDraggedNode.position.x;  
+          const ny = currentDraggedNode.position.y;  
+          const nw = currentDraggedNode.measured?.width ?? 200;
+          const nh = currentDraggedNode.measured?.height ?? 100;
+          
+          // 如果节点中心在 parent 外部则脱离
           const cx = nx + nw / 2;
           const cy = ny + nh / 2;
+          
           if (cx < 0 || cy < 0 || cx > pw || cy > ph) {
-            detachNodeFromGroup(draggedNode.id);
+            detachNodeFromGroup(currentDraggedNode.id);
           }
         }
       } else {
         const rfInstance = useFlowStore.getState().instance;
         if (rfInstance) {
-          const intersecting = rfInstance.getIntersectingNodes(draggedNode as any);
+          const intersecting = rfInstance.getIntersectingNodes(currentDraggedNode as any);
           const groupHit = intersecting.find(
             (n: any) => n.type === NodeTypeEnum.Group
           );
           if (groupHit) {
-            attachNodeToGroup(draggedNode.id, groupHit.id);
+            attachNodeToGroup(currentDraggedNode.id, groupHit.id);
           }
         }
       }

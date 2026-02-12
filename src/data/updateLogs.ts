@@ -48,6 +48,17 @@ export const pinnedNotice: PinnedNotice = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "1.1.2",
+    date: "2026-2-11",
+    type: "feature",
+    updates: {
+      fixes: [
+        "修复组内移动节点时绑定异常的问题",
+        "修复组内复制节点时位置异常的问题",
+      ],
+    },
+  },
+  {
     version: "1.1.1",
     date: "2026-2-11",
     type: "fix",

@@ -14,8 +14,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "reset": "git reset --soft HEAD~1",
-    "release": "git tag -a v1.1.1 -m \"v1.1.1\" && git push origin v1.1.1",
-    "retag": "git tag -d v1.1.1"
+    "release": "git tag -a v1.1.2 -m \"v1.1.2\" && git push origin v1.1.2",
+    "retag": "git tag -d v1.1.2"
   },
   "dependencies": {
     "@ant-design/icons": "6",
