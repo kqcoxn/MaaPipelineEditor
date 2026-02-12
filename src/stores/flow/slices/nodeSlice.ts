@@ -151,6 +151,8 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       // 生成 ID 和 label
       let id = String(state.nodeIdCounter);
       let labelBase;
+      let useNumberSuffix = true;
+
       switch (type) {
         case NodeTypeEnum.Pipeline:
           labelBase = "新建节点";
@@ -163,19 +165,24 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
           break;
         case NodeTypeEnum.Sticker:
           labelBase = "便签";
+          useNumberSuffix = false;
           break;
         case NodeTypeEnum.Group:
           labelBase = "分组";
+          useNumberSuffix = false;
           break;
       }
 
-      let label = labelBase + id;
+      let label = useNumberSuffix ? labelBase + id : labelBase;
       let counter = state.nodeIdCounter;
 
-      while (findNodeByLabel(nodes, label) || findNodeById(nodes, id)) {
-        counter++;
-        id = String(counter);
-        label = labelBase + id;
+      // 对需要唯一标识的节点检查重复
+      if (useNumberSuffix) {
+        while (findNodeByLabel(nodes, label) || findNodeById(nodes, id)) {
+          counter++;
+          id = String(counter);
+          label = labelBase + id;
+        }
       }
 
       // 创建节点
@@ -231,7 +238,12 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       }
 
       // 添加连接
-      if (link && type !== NodeTypeEnum.Sticker && type !== NodeTypeEnum.Group && selectedNodes.length > 0) {
+      if (
+        link &&
+        type !== NodeTypeEnum.Sticker &&
+        type !== NodeTypeEnum.Group &&
+        selectedNodes.length > 0
+      ) {
         selectedNodes.forEach((node) => {
           if (
             node.type === NodeTypeEnum.External ||
@@ -556,7 +568,7 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       }
 
       const groupNode = createGroupNode(groupId, {
-        label: "分组" + counter,
+        label: "分组",
         position: { x: groupX, y: groupY },
         style: { width: groupW, height: groupH },
       });

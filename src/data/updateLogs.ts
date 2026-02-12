@@ -52,6 +52,7 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2026-2-11",
     type: "feature",
     updates: {
+      perfs: ["统一便签与分组的默认名称，允许同名"],
       fixes: [
         "修复组内移动节点时绑定异常的问题",
         "修复组内复制节点时位置异常的问题",

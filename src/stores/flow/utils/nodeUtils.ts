@@ -128,7 +128,7 @@ export function createStickerNode(
   }
 ): StickerNodeType {
   const {
-    label = "便签" + id,
+    label = "便签",
     position = { x: 0, y: 0 },
     select = false,
     datas = {},
@@ -252,7 +252,7 @@ export function createGroupNode(
   }
 ): GroupNodeType {
   const {
-    label = "分组" + id,
+    label = "分组",
     position = { x: 0, y: 0 },
     select = false,
     datas = {},
