@@ -94,6 +94,10 @@ _✨ 可视化构建 MaaFramework Pipeline 的下一代工作流编辑器 ✨_</
 
 您可以使用 MPE 在文件管理、截图工具、调试工具、AI 补全等各类便捷工具的加持下轻松构造出如下 Pipeline，**即使复杂也能维持清晰的逻辑，兼具易用性与可读性**：
 
+![](/public/readme/分组.png)
+
+（演示 Pipeline：[MDDL-每日活动作战.json](https://github.com/kqcoxn/MaaDuDuL/blob/v0.1.7/assets/resource/base/pipeline/%E6%97%A5%E5%B8%B8%E4%BB%BB%E5%8A%A1/%E6%AF%8F%E6%97%A5%E6%B4%BB%E5%8A%A8%E4%BD%9C%E6%88%98.json), 522 lines）
+
 ![](/public/readme/展示.png)
 
 （演示 Pipeline：[MNMA-城市探索.json](https://github.com/kqcoxn/MaaNewMoonAccompanying/blob/v3.1.8/assets/resource/base/pipeline/%E6%97%A5%E5%B8%B8%E6%B4%BB%E5%8A%A8/%E5%9F%8E%E5%B8%82%E6%8E%A2%E7%B4%A2.json), 3529 lines）
