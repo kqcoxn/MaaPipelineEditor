@@ -55,6 +55,7 @@ export const updateLogs: UpdateLogItem[] = [
       perfs: [
         "统一便签与分组的默认名称，允许同名",
         "调试单个节点时支持自动保存",
+        "优化便签右键菜单",
       ],
       fixes: [
         "修复组内移动节点时绑定异常的问题",

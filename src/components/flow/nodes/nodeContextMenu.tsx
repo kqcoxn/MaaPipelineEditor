@@ -9,6 +9,7 @@ import type {
   AnchorNodeDataType,
   StickerNodeDataType,
   GroupNodeDataType,
+  StickerColorTheme,
 } from "../../../stores/flow";
 import { useFlowStore } from "../../../stores/flow";
 import {
@@ -335,6 +336,30 @@ function handleSetGroupColor(
   useFlowStore.getState().saveHistory(0);
 }
 
+/**更改便签颜色处理器 */
+function handleSetStickerColor(
+  node: NodeContextMenuNode,
+  color: StickerColorTheme
+) {
+  if (node.type !== NodeTypeEnum.Sticker) return;
+  
+  useFlowStore.getState().setNodeData(node.id, "sticker", "color", color);
+  useFlowStore.getState().saveHistory(0);
+}
+
+/**复制便签内容处理器 */
+function handleCopyStickerContent(node: NodeContextMenuNode) {
+  if (node.type !== NodeTypeEnum.Sticker) return;
+  
+  const content = (node.data as StickerNodeDataType).content;
+  if (content) {
+    navigator.clipboard.writeText(content);
+    message.success("便签内容已复制到剪贴板");
+  } else {
+    message.info("便签内容为空");
+  }
+}
+
 /**删除分组（先解散子节点再删除）处理器 */
 function handleDeleteGroup(node: NodeContextMenuNode) {
   // 先解散子节点
@@ -401,7 +426,16 @@ export function getNodeContextMenuConfig(
       iconSize: 16,
       onClick: handleCopyNodeName,
     },
-    // 复制 Reco JSON
+    // 复制便签内容 (仅 Sticker 节点)
+    {
+      key: "copy-sticker-content",
+      label: "复制便签内容",
+      icon: "icon-fuzhi",
+      iconSize: 16,
+      onClick: handleCopyStickerContent,
+      visible: (node) => node.type === NodeTypeEnum.Sticker,
+    },
+    // 复制 Reco JSON (仅 Pipeline 节点)
     {
       key: "copy-reco-json",
       label: "复制 Reco JSON",
@@ -410,7 +444,7 @@ export function getNodeContextMenuConfig(
       onClick: handleCopyRecoJSON,
       visible: (node) => node.type === NodeTypeEnum.Pipeline,
     },
-    // 保存为模板
+    // 保存为模板 (仅 Pipeline 节点)
     {
       key: "save-as-template",
       label: "保存为模板",
@@ -419,13 +453,53 @@ export function getNodeContextMenuConfig(
       onClick: handleSaveAsTemplate,
       visible: (node) => node.type === NodeTypeEnum.Pipeline,
     },
-    // 端点位置子菜单
+    // 便签颜色子菜单 (仅 Sticker 节点)
+    {
+      key: "sticker-color",
+      label: "便签颜色",
+      icon: "icon-tiaoseban",
+      iconSize: 16,
+      visible: (node) => node.type === NodeTypeEnum.Sticker,
+      children: [
+        { 
+          key: "color-yellow", 
+          label: "黄色", 
+          onClick: (node) => handleSetStickerColor(node, "yellow"),
+          checked: (node) => (node.data as StickerNodeDataType).color === "yellow"
+        },
+        { 
+          key: "color-green", 
+          label: "绿色", 
+          onClick: (node) => handleSetStickerColor(node, "green"),
+          checked: (node) => (node.data as StickerNodeDataType).color === "green"
+        },
+        { 
+          key: "color-blue", 
+          label: "蓝色", 
+          onClick: (node) => handleSetStickerColor(node, "blue"),
+          checked: (node) => (node.data as StickerNodeDataType).color === "blue"
+        },
+        { 
+          key: "color-pink", 
+          label: "粉色", 
+          onClick: (node) => handleSetStickerColor(node, "pink"),
+          checked: (node) => (node.data as StickerNodeDataType).color === "pink"
+        },
+        { 
+          key: "color-purple", 
+          label: "紫色", 
+          onClick: (node) => handleSetStickerColor(node, "purple"),
+          checked: (node) => (node.data as StickerNodeDataType).color === "purple"
+        },
+      ],
+    },
+    // 端点位置子菜单 (除 Sticker 和 Group 节点外)
     {
       key: "node-direction",
       label: "端点位置",
       icon: "icon-lianjie",
       iconSize: 16,
-      visible: (node) => node.type !== NodeTypeEnum.Sticker,
+      visible: (node) => node.type !== NodeTypeEnum.Sticker && node.type !== NodeTypeEnum.Group,
       children: HANDLE_DIRECTION_OPTIONS.map((option) => ({
         key: `direction-${option.value}`,
         label: option.label,
