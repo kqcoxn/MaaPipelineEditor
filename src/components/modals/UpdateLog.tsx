@@ -68,6 +68,8 @@ const UpdateLog = ({ open, onClose }: UpdateLogProps) => {
         return "blue";
       case "fix":
         return "orange";
+      case "perf":
+        return "green";
       default:
         return "default";
     }
@@ -81,6 +83,8 @@ const UpdateLog = ({ open, onClose }: UpdateLogProps) => {
         return "新功能";
       case "fix":
         return "修复";
+      case "perf":
+        return "优化";
       default:
         return "更新";
     }

@@ -28,7 +28,7 @@ export interface UpdateCategory {
 export interface UpdateLogItem {
   version: string;
   date: string;
-  type: "major" | "feature" | "fix";
+  type: "major" | "feature" | "fix" | "perf";
   updates: UpdateCategory;
 }
 
@@ -50,7 +50,7 @@ export const updateLogs: UpdateLogItem[] = [
   {
     version: "1.1.2",
     date: "2026-2-14",
-    type: "feature",
+    type: "perf",
     updates: {
       perfs: [
         "选区类小工具点选时 w/h 默认为 1",
