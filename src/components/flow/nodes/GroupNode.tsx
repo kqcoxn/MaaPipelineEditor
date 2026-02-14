@@ -112,6 +112,9 @@ const GroupContent = memo(
 export function GroupNode(props: NodeProps<GroupNodeData>) {
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
 
+  // 分组节点始终不受聚焦效果影响
+  const isRelated = true;
+
   const theme =
     GROUP_COLOR_THEMES[props.data.color] || GROUP_COLOR_THEMES.blue;
 

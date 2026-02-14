@@ -65,6 +65,14 @@ export function AnchorNode(props: NodeProps<AnchorNodeData>) {
     const nodeId = props.id;
     const selectedNodeIds = new Set(selectedNodes.map((n) => n.id));
 
+    // 检查是否有便签节点被选中
+    const hasStickerSelected = selectedNodes.some(
+      (node) => node.type === NodeTypeEnum.Sticker
+    );
+
+    // 如果选中的是便签节点，则不产生聚焦效果
+    if (hasStickerSelected) return true;
+
     // 检查分组关系
     const thisNode = useFlowStore.getState().nodes.find((n) => n.id === nodeId);
     if (thisNode && (thisNode as any).parentId && selectedNodeIds.has((thisNode as any).parentId)) {

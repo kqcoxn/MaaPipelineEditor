@@ -14,7 +14,7 @@ import { useShallow } from "zustand/shallow";
 import { useConfigStore } from "../../stores/configStore";
 import { useFlowStore } from "../../stores/flow";
 import { useDebugStore } from "../../stores/debugStore";
-import { SourceHandleTypeEnum, TargetHandleTypeEnum, getHandlePositions, DEFAULT_HANDLE_DIRECTION } from "./nodes";
+import { SourceHandleTypeEnum, TargetHandleTypeEnum, getHandlePositions, DEFAULT_HANDLE_DIRECTION, NodeTypeEnum } from "./nodes";
 import type { HandleDirection } from "./nodes";
 
 // 判断位置是否为水平方向
@@ -198,9 +198,24 @@ function MarkedEdge(props: EdgeProps) {
     useShallow((state) => {
       const sourceNode = state.nodes.find((n) => n.id === props.source);
       const targetNode = state.nodes.find((n) => n.id === props.target);
+      
+      const getSourceDirection = (): HandleDirection => {
+        if (sourceNode && ('handleDirection' in sourceNode.data)) {
+          return (sourceNode.data as { handleDirection?: HandleDirection }).handleDirection || DEFAULT_HANDLE_DIRECTION;
+        }
+        return DEFAULT_HANDLE_DIRECTION;
+      };
+      
+      const getTargetDirection = (): HandleDirection => {
+        if (targetNode && ('handleDirection' in targetNode.data)) {
+          return (targetNode.data as { handleDirection?: HandleDirection }).handleDirection || DEFAULT_HANDLE_DIRECTION;
+        }
+        return DEFAULT_HANDLE_DIRECTION;
+      };
+      
       return {
-        sourceDirection: (sourceNode?.data?.handleDirection as HandleDirection) || DEFAULT_HANDLE_DIRECTION,
-        targetDirection: (targetNode?.data?.handleDirection as HandleDirection) || DEFAULT_HANDLE_DIRECTION,
+        sourceDirection: getSourceDirection(),
+        targetDirection: getTargetDirection(),
       };
     })
   );
@@ -363,6 +378,14 @@ function MarkedEdge(props: EdgeProps) {
 
     if (selectedNodes.length === 0 && selectedEdges.length === 0) return true;
     if (props.selected) return true;
+
+    // 检查是否有便签节点被选中
+    const hasStickerSelected = selectedNodes.some(
+      (node) => node.type === NodeTypeEnum.Sticker
+    );
+
+    // 如果选中的是便签节点，则不产生聚焦效果
+    if (hasStickerSelected) return true;
 
     // 检查边是否连接到选中的节点
     for (const selectedNode of selectedNodes) {

@@ -6,9 +6,6 @@
 
 ## perf
 
-- 选中标签时其他不隐藏
-- 管理员模式提示
-
 ## feat
 
 - 神经网络检测 (封装 NeuralNetworkDetector 识别，可设 ROI、阈值、标签)

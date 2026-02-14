@@ -166,6 +166,9 @@ export function StickerNode(props: NodeProps<StickerNodeData>) {
   const focusOpacity = useConfigStore((state) => state.configs.focusOpacity);
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
 
+  // 便签节点始终不受聚焦效果影响
+  const isRelated = true;
+
   const theme =
     STICKER_COLOR_THEMES[props.data.color] || STICKER_COLOR_THEMES.yellow;
 
