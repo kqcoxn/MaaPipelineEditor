@@ -391,7 +391,7 @@ export const OCRModal = memo(
 
           setIsDrawing(true);
           setStartPoint({ x, y });
-          setRectangle({ x, y, width: 0, height: 0 });
+          setRectangle({ x, y, width: 1, height: 1 });
         };
 
         const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {

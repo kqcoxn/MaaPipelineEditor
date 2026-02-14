@@ -230,7 +230,7 @@ export const TemplateModal = memo(
           setStartPoint({ x, y });
 
           if (currentTool === "select") {
-            setRectangle({ x, y, width: 0, height: 0 });
+            setRectangle({ x, y, width: 1, height: 1 });
           } else if (currentTool === "brush" || currentTool === "eraser") {
             drawMask(x, y, currentTool, canvas);
           }

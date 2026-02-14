@@ -49,10 +49,11 @@ export const pinnedNotice: PinnedNotice = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "1.1.2",
-    date: "2026-2",
+    date: "2026-2-14",
     type: "feature",
     updates: {
       perfs: [
+        "选区类小工具点选时 w/h 默认为 1",
         "统一便签与分组的默认名称，允许同名",
         "调试单个节点时支持自动保存",
         "优化便签右键菜单",

@@ -232,7 +232,7 @@ export const ROIOffsetModal = memo(
           setIsDrawing(true);
           setStartPoint({ x, y });
 
-          const newRect = { x, y, width: 0, height: 0 };
+          const newRect = { x, y, width: 1, height: 1 };
           if (drawingTarget === "source") {
             setSourceRect(newRect);
           } else {
