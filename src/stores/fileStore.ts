@@ -166,7 +166,10 @@ type FileState = {
     mpeConfig?: any,
     configPath?: string
   ) => Promise<boolean>;
-  saveFileToLocal: (filePath?: string) => Promise<boolean>;
+  saveFileToLocal: (
+    filePath?: string,
+    fileToSave?: FileType
+  ) => Promise<boolean>;
   markFileDeleted: (filePath: string) => void;
   markFileModified: (filePath: string) => void;
   reloadFileFromLocal: (filePath: string, content: any) => Promise<boolean>;
@@ -444,14 +447,21 @@ export const useFileStore = create<FileState>()((set) => ({
   },
 
   // 保存文件到本地
-  async saveFileToLocal(filePath?: string): Promise<boolean> {
+  async saveFileToLocal(
+    filePath?: string,
+    fileToSave?: FileType
+  ): Promise<boolean> {
     try {
-      const { flowToPipeline, flowToSeparatedStrings, splitPipelineAndConfig } =
-        await import("../core/parser");
-      const currentFile = useFileStore.getState().currentFile;
+      const { flowToPipeline, flowToSeparatedStrings } = await import(
+        "../core/parser"
+      );
+      const state = useFileStore.getState();
+
+      // 优先使用传入的文件，否则使用当前文件
+      const targetFile = fileToSave || state.currentFile;
       const configHandlingMode =
         useConfigStore.getState().configs.configHandlingMode;
-      const targetFilePath = filePath || currentFile.config.filePath;
+      const targetFilePath = filePath || targetFile.config.filePath;
 
       if (!targetFilePath) {
         console.error("[fileStore] No file path specified");
@@ -465,11 +475,20 @@ export const useFileStore = create<FileState>()((set) => ({
         return false;
       }
 
+      // 构建导出选项
+      const exportOptions = {
+        nodes: targetFile.nodes,
+        edges: targetFile.edges,
+        fileName: targetFile.fileName,
+        config: targetFile.config,
+      };
+
       let success = false;
 
       if (configHandlingMode === "separated") {
         // 分离模式保存
-        const { pipelineString, configString } = flowToSeparatedStrings();
+        const { pipelineString, configString } =
+          flowToSeparatedStrings(exportOptions);
         const pipeline = JSON.parse(pipelineString);
         const config = JSON.parse(configString);
 
@@ -494,19 +513,39 @@ export const useFileStore = create<FileState>()((set) => ({
         if (success) {
           // 更新文件路径和配置文件路径
           set((state) => {
-            const config = {
-              ...state.currentFile.config,
-              filePath: targetFilePath,
-              separatedConfigPath: configPath,
-              lastSyncTime: Date.now(),
-            };
-            state.currentFile.config = config;
+            // 找到目标文件并更新
+            const fileIndex = state.files.findIndex(
+              (f) => f.fileName === targetFile.fileName
+            );
+            if (fileIndex >= 0) {
+              state.files[fileIndex] = {
+                ...state.files[fileIndex],
+                config: {
+                  ...state.files[fileIndex].config,
+                  filePath: targetFilePath,
+                  separatedConfigPath: configPath,
+                  lastSyncTime: Date.now(),
+                },
+              };
+            }
+            // 当前文件同步更新 currentFile
+            if (state.currentFile.fileName === targetFile.fileName) {
+              state.currentFile = {
+                ...state.currentFile,
+                config: {
+                  ...state.currentFile.config,
+                  filePath: targetFilePath,
+                  separatedConfigPath: configPath,
+                  lastSyncTime: Date.now(),
+                },
+              };
+            }
             return {};
           });
         }
       } else {
         // 集成模式或不导出模式
-        const pipeline = flowToPipeline();
+        const pipeline = flowToPipeline(exportOptions);
 
         success = localServer.send("/etl/save_file", {
           file_path: targetFilePath,
@@ -516,12 +555,31 @@ export const useFileStore = create<FileState>()((set) => ({
         if (success) {
           // 更新文件路径和同步时间
           set((state) => {
-            const config = {
-              ...state.currentFile.config,
-              filePath: targetFilePath,
-              lastSyncTime: Date.now(),
-            };
-            state.currentFile.config = config;
+            // 找到目标文件并更新
+            const fileIndex = state.files.findIndex(
+              (f) => f.fileName === targetFile.fileName
+            );
+            if (fileIndex >= 0) {
+              state.files[fileIndex] = {
+                ...state.files[fileIndex],
+                config: {
+                  ...state.files[fileIndex].config,
+                  filePath: targetFilePath,
+                  lastSyncTime: Date.now(),
+                },
+              };
+            }
+            // 当前文件同步更新 currentFile
+            if (state.currentFile.fileName === targetFile.fileName) {
+              state.currentFile = {
+                ...state.currentFile,
+                config: {
+                  ...state.currentFile.config,
+                  filePath: targetFilePath,
+                  lastSyncTime: Date.now(),
+                },
+              };
+            }
             return {};
           });
         }

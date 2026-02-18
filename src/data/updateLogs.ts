@@ -49,10 +49,13 @@ export const pinnedNotice: PinnedNotice = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "1.1.3",
-    date: "2026-2-19",
+    date: "2026-2-18",
     type: "fix",
     updates: {
-      fixes: ["修复 Any 类型字段无法解析列表等数据类型的问题"],
+      fixes: [
+        "修复 Any 类型字段无法解析列表等数据类型的问题",
+        "修复 debug 模式自动保存会把所有的打开文件使用相同配置进行保存的问题",
+      ],
     },
   },
   {

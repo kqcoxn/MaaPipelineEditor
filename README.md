@@ -139,7 +139,8 @@ MPE 项目没有单独的交流群，您可以在 MaaFramework 集成/开发交�
 
 ## 历史与统计
 
-- **`2026.1-NOW`：[MaaPipelineExtremer](https://github.com/kqcoxn/MaaPipelineEditor/issues/50)**（一体化整合）
+- **`2026.1-NOW`：节点扩展与交互功能优化**（特色化）
+- `2026.1`：[MaaPipelineExtremer](https://github.com/kqcoxn/MaaPipelineEditor/issues/50)（一体化整合）
 - `2025.10-12`：[LocalBridge 协议](https://github.com/kqcoxn/MaaPipelineEditor/issues/23)（本地能力扩展）
 - `2025.8-10`：重构，MaaPipelineEditor！（泛用化）
 - `2025.5-8`：[MNMA](https://github.com/kqcoxn/MaaNewMoonAccompanying) 实践（思路修补）

@@ -351,8 +351,10 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
 
         for (const file of filesToSave) {
           try {
+            // 直接保存指定文件内容
             const success = await fileStore.saveFileToLocal(
-              file.config.filePath
+              file.config.filePath,
+              file
             );
             if (success) {
               savedCount++;
