@@ -43,8 +43,14 @@ const LocalTextArea = memo(
         }}
         onBlur={() => {
           // 失焦时尝试解析并提交
-          const parsed = JsonHelper.stringObjToJson(localValue);
-          onCommit(parsed ?? localValue);
+          try {
+            // 尝试解析为 JSON 值
+            const parsed = JSON.parse(localValue);
+            onCommit(parsed);
+          } catch {
+            // 保留原始字符串
+            onCommit(localValue);
+          }
         }}
       />
     );

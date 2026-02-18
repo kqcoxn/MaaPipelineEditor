@@ -581,7 +581,7 @@ export const ParamFieldListElem = memo(
               </div>
             );
             break;
-          // 字符串
+          // Any 类型或字符串
           default:
             InputElem = (
               <TextArea
@@ -589,7 +589,21 @@ export const ParamFieldListElem = memo(
                 value={JsonHelper.objToString(value) ?? value}
                 placeholder={String(paramType)}
                 autoSize={{ minRows: 1, maxRows: 4 }}
-                onChange={(e) => onChange(key, e.target.value)}
+                onChange={(e) => {
+                  const inputValue = e.target.value;
+                  if (paramType === FieldTypeEnum.Any) {
+                    try {
+                      // 尝试解析为 JSON 值
+                      const parsed = JSON.parse(inputValue);
+                      onChange(key, parsed);
+                    } catch {
+                      // 保留原始字符串
+                      onChange(key, inputValue);
+                    }
+                  } else {
+                    onChange(key, inputValue);
+                  }
+                }}
               />
             );
         }
