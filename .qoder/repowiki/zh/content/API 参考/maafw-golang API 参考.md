@@ -2,21 +2,22 @@
 
 <cite>
 **本文档中引用的文件**
+- [API大全.md](file://instructions/maafw-golang-binding/API大全.md)
+- [任务管理器.md](file://instructions/maafw-golang-binding/API参考/任务管理器.md)
+- [控制器.md](file://instructions/maafw-golang-binding/API参考/控制器.md)
+- [执行上下文.md](file://instructions/maafw-golang-binding/API参考/执行上下文.md)
+- [资源管理器.md](file://instructions/maafw-golang-binding/API参考/资源管理器.md)
+- [事件系统.md](file://instructions/maafw-golang-binding/API参考/事件系统.md)
 - [controller.go](file://controller.go)
 - [custom_controller.go](file://custom_controller.go)
 - [controller_manager.go](file://LocalBridge/internal/mfw/controller_manager.go)
 - [handler.go](file://LocalBridge/internal/protocol/mfw/handler.go)
 - [mfw.go](file://LocalBridge/pkg/models/mfw.go)
 - [gamepad控制器.md](file://instructions/maafw-golang-binding/核心概念/控制器 (Controller)/游戏pad控制器.md)
-- [控制器.md](file://instructions/maafw-golang-binding/API参考/控制器.md)
-- [API大全.md](file://instructions/maafw-golang-binding/API大全.md)
 - [DebugProtocol.ts](file://src/services/protocols/DebugProtocol.ts)
 - [ErrorProtocol.ts](file://src/services/protocols/ErrorProtocol.ts)
 - [DebugPanel.tsx](file://src/components/panels/tools/DebugPanel.tsx)
 - [debugStore.ts](file://src/stores/debugStore.ts)
-- [执行上下文.md](file://instructions/maafw-golang-binding/API参考/执行上下文.md)
-- [执行上下文 (Context).md](file://instructions/maafw-golang-binding/核心概念/执行上下文 (Context).md)
-- [ActionResult结果系统.md](file://instructions/maafw-golang-binding/高级功能/ActionResult结果系统.md)
 - [action_result.go](file://action_result.go)
 - [tasker.go](file://tasker.go)
 - [context.go](file://context.go)
@@ -31,6 +32,9 @@
 - 新增 WaitFreezes 方法，提供屏幕稳定检测功能
 - 增强执行上下文（Context）API，扩展了直接执行能力和状态监控功能
 - 更新任务管理器（Tasker）的详细解析功能，支持 ActionResult 结果系统
+- 新增控制器管理器（ControllerManager）和协议处理器（MFWHandler）的完整文档
+- 完善事件系统的重构说明，移除代码生成文件，采用手写适配器
+- 新增游戏pad控制器的完整API参考和调试控制器替代方案
 
 ## 目录
 1. [简介](#简介)
@@ -47,7 +51,7 @@
 ## 简介
 本文件为 maa-framework-go 的 API 参考与使用指南，面向希望在 Go 语言中使用 MaaFramework 的开发者。文档系统性梳理了框架初始化、任务管理、控制器操作、资源管理、自定义扩展、事件回调、上下文操作与状态/作业模型等核心能力，并通过示例与图示帮助读者快速上手与深入理解。
 
-**更新** 本次更新重点扩展了执行上下文 API，新增 ActionResult 结果系统、RunRecognitionDirect 和 RunActionDirect 方法、WaitFreezes 方法等新功能，显著增强了框架的灵活性和功能性。
+**更新** 本次更新重点扩展了执行上下文 API，新增 ActionResult 结果系统、RunRecognitionDirect 和 RunActionDirect 方法、WaitFreezes 方法等新功能，显著增强了框架的灵活性和功能性。同时，文档大幅改进，新增控制器管理器、协议处理器、事件系统重构等详细文档。
 
 ## 项目结构
 仓库采用按职责分层的组织方式：
@@ -547,6 +551,8 @@ ActionResult --> Point : "包含"
 - 注册与管理：registerEventCallback/unregisterEventCallback、AddSink/RemoveSink/ClearSinks、AddContextSink/RemoveContextSink/ClearContextSinks。
 - 消息路由：按消息后缀解析状态，按消息前缀匹配事件类型。
 
+**更新** 事件系统已重构，采用手写适配器而非代码生成，移除了 event_sinks_gen.go 文件。
+
 ```mermaid
 sequenceDiagram
 participant Native as "原生事件"
@@ -726,7 +732,7 @@ DebugPanel["DebugPanel"] --> DebugStore["debugStore"]
 ## 结论
 maa-framework-go 通过 Tasker、Resource、Controller、Context、Event 与 Job/TaskJob 的协同，构建了一个清晰、可扩展且高性能的自动化框架。Tasker 作为中枢协调任务执行，Resource 管理识别资源与流水线，Controller 抽象设备控制，Context 提供上下文级的执行能力，Event 以观察者模式实现异步通知，Job/TaskJob 则提供了统一的异步作业模型。
 
-**更新** 本次更新显著增强了框架的功能性和灵活性，特别是新增的 ActionResult 结果系统、RunRecognitionDirect 和 RunActionDirect 方法、WaitFreezes 方法等，为开发者提供了更强大、更精确的自动化控制能力。类型安全的结果解析、直接执行方法和状态监控功能的加入，使得整个框架更加健壮、易于使用且功能完备。
+**更新** 本次更新显著增强了框架的功能性和灵活性，特别是新增的 ActionResult 结果系统、RunRecognitionDirect 和 RunActionDirect 方法、WaitFreezes 方法等，为开发者提供了更强大、更精确的自动化控制能力。类型安全的结果解析、直接执行方法和状态监控功能的加入，使得整个框架更加健壮、易于使用且功能完备。新增的控制器管理器、协议处理器、事件系统重构等文档，进一步完善了框架的使用指南和技术架构说明。
 
 工厂模式与门面模式的应用使得 API 更加简洁易用。遵循本文的最佳实践与排错建议，可有效提升开发效率与稳定性。
 
@@ -738,6 +744,8 @@ maa-framework-go 通过 Tasker、Resource、Controller、Context、Event 与 Job
 - 前端调试系统示例展示了控制器事件处理和错误提示的实现
 - **新增**：ActionResult 结果系统示例展示了类型安全的结果访问和解析
 - **新增**：Context 直接执行方法示例展示了 RunRecognitionDirect、RunActionDirect 和 WaitFreezes 的使用
+- **新增**：控制器管理器和协议处理器示例展示了高级控制器管理和前端集成
+- **新增**：事件系统重构示例展示了手写适配器的使用和最佳实践
 
 **章节来源**
 - [controller.go](file://controller.go#L1-L418)
