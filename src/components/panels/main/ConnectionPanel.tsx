@@ -719,7 +719,8 @@ export const ConnectionPanel = memo(
             options={[
               { label: "FramePool", value: "FramePool" },
               { label: "GDI", value: "GDI" },
-              { label: "DXGI_DesktopDup", value: "DXGIDesktopDup" },
+              { label: "DXGI_DesktopDup", value: "DXGI_DesktopDup" },
+              { label: "DXGI_DesktopDup_Window", value: "DXGI_DesktopDup_Window" },
               { label: "PrintWindow", value: "PrintWindow" },
               { label: "ScreenDC", value: "ScreenDC" },
             ]}

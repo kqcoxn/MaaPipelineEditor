@@ -71,9 +71,10 @@ func (dm *DeviceManager) RefreshWin32Windows() ([]Win32WindowInfo, error) {
 
 	// Win32 可用的截图和输入方法
 	// 截图方法: GDI、FramePool、DXGI桌面复制、DXGI窗口模式、PrintWindow、ScreenDC
-	screencapMethods := []string{"GDI", "FramePool", "DXGIDesktopDup", "DXGIDesktopDupWindow", "PrintWindow", "ScreenDC"}
-	// 输入方法: Seize、SendMessage、PostMessage、LegacyEvent、PostThreadMessage、带光标位置的消息、阻塞输入
-	inputMethods := []string{"Seize", "SendMessage", "PostMessage", "LegacyEvent", "PostThreadMessage", "SendMessageWithCursorPos", "PostMessageWithCursorPos", "SendMessageWithCursorPosAndBlockInput", "PostMessageWithCursorPosAndBlockInput"}
+	screencapMethods := []string{"GDI", "FramePool", "DXGI_DesktopDup", "DXGI_DesktopDup_Window", "PrintWindow", "ScreenDC"}
+	// 输入方法: Seize、SendMessage、PostMessage、LegacyEvent、PostThreadMessage、带光标位置的消息
+	// TODO: SendMessageWithWindowPos、PostMessageWithWindowPos 等待 maa-framework-go 上游支持
+	inputMethods := []string{"Seize", "SendMessage", "PostMessage", "LegacyEvent", "PostThreadMessage", "SendMessageWithCursorPos", "PostMessageWithCursorPos"}
 
 	dm.mu.Lock()
 	defer dm.mu.Unlock()

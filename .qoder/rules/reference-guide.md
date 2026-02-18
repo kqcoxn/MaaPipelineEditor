@@ -9,4 +9,8 @@ trigger: always_on
 - React Flow：`/instructions/react-flow/`
 - Wails：`/instructions/wails/`
 
+
+
 > 若需其他框架 API 且本地无文档，可联网检索。
+>
+> 文档内的内容不要修改，相当于只读。
