@@ -48,6 +48,14 @@ export const pinnedNotice: PinnedNotice = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "1.1.4",
+    date: "2026-2-19",
+    type: "fix",
+    updates: {
+      fixes: ["临时修复 anchor 字段类型解析错误"],
+    },
+  },
+  {
     version: "1.1.3",
     date: "2026-2-18",
     type: "fix",

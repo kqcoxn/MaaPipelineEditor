@@ -21,9 +21,9 @@ export const otherFieldSchema: Record<string, FieldType> = {
   },
   anchor: {
     key: "anchor",
-    type: [FieldTypeEnum.StringList, FieldTypeEnum.String],
-    default: [""],
-    desc: "锚点名称。可选，默认空。 当节点执行成功后，会将该锚点名设置为当前节点。多个节点可设置同一个锚点名，后执行的会覆盖先执行的。 在 next 或 on_error 中可通过 [Anchor] 属性引用该锚点，运行时会解析为最后设置该锚点的节点。 详见 节点属性。",
+    type: FieldTypeEnum.Any,
+    default: "",
+    desc: `锚点名称。可选，默认空。 当节点执行成功后，会将该锚点名设置为对应的节点。多个节点可设置同一个锚点名，后执行的会覆盖先执行的。 支持三种格式： 字符串："anchor": "MyAnchor" - 将锚点设置为当前节点 字符串数组："anchor": ["A", "B"] - 将多个锚点都设置为当前节点 对象："anchor": {"A": "TargetNode", "B": ""} - 将锚点 A 设置为 TargetNode，锚点 B 清除（空字符串表示清除该锚点） 在 next 或 on_error 中可通过 [Anchor] 属性引用该锚点，运行时会解析为最后设置该锚点的节点。如果引用的锚点未设置或已被清除，该节点将被跳过（不会执行）。 详见 节点属性。`,
   },
   inverse: {
     key: "inverse",
