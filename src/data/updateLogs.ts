@@ -49,9 +49,10 @@ export const pinnedNotice: PinnedNotice = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "1.1.4",
-    date: "2026-2-19",
+    date: "2026-2-20",
     type: "fix",
     updates: {
+      perfs: ["调整 OCR 小工具默认方案"],
       fixes: ["临时修复 anchor 字段类型解析错误"],
     },
   },

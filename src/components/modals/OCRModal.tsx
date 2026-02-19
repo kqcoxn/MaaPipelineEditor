@@ -62,7 +62,7 @@ export const OCRModal = memo(
     } | null>(null);
     const [ocrText, setOcrText] = useState<string>("");
     const [ocrSuccess, setOcrSuccess] = useState<boolean | null>(null);
-    const [ocrMode, setOcrMode] = useState<OCRMode>("frontend");
+    const [ocrMode, setOcrMode] = useState<OCRMode>("native");
     // Tesseract worker 状态管理
     const [tesseractWorker, setTesseractWorker] = useState<Worker | null>(null);
     const [isLoadingModel, setIsLoadingModel] = useState(false);
