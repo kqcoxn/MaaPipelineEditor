@@ -46,14 +46,14 @@ export const otherFieldSchema: Record<string, FieldType> = {
   preDelay: {
     key: "pre_delay",
     type: FieldTypeEnum.Int,
-    default: 400,
+    default: 0,
     step: 100,
     desc: "识别到 到 执行动作前 的延迟，毫秒。可选，默认 200 。 推荐尽可能增加中间过程节点，少用延迟，不然既慢还不稳定。",
   },
   postDelay: {
     key: "post_delay",
     type: FieldTypeEnum.Int,
-    default: 400,
+    default: 0,
     step: 100,
     desc: "执行动作后 到 识别 next 的延迟，毫秒。可选，默认 200 。 推荐尽可能增加中间过程节点，少用延迟，不然既慢还不稳定。",
   },

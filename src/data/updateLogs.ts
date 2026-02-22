@@ -48,6 +48,14 @@ export const pinnedNotice: PinnedNotice = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "1.2.0",
+    date: "2026-2",
+    type: "feature",
+    updates: {
+      perfs: ["优化 delay 系列默认值"],
+    },
+  },
+  {
     version: "1.1.4",
     date: "2026-2-20",
     type: "fix",
