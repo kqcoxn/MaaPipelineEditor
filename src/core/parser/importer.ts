@@ -24,7 +24,12 @@ import type {
   PipelineNodeType,
   MpeConfigType,
 } from "./types";
-import { externalMarkPrefix, anchorMarkPrefix, stickerMarkPrefix, groupMarkPrefix } from "./types";
+import {
+  externalMarkPrefix,
+  anchorMarkPrefix,
+  stickerMarkPrefix,
+  groupMarkPrefix,
+} from "./types";
 import { parsePipelineConfig, isMark } from "./configParser";
 import { detectNodeVersion } from "./versionDetector";
 import {
@@ -161,18 +166,8 @@ export async function pipelineToFlow(
       pString = "{}";
     }
 
-    // 合并外部配置
-    let pipelineObj: Record<string, any> | undefined;
-    if (mpeConfig) {
-      // 解析 Pipeline 对象
-      const purePipeline = parseJsonc(pString);
-      // 合并配置
-      pipelineObj = mergePipelineAndConfig(purePipeline, mpeConfig);
-      pString = JSON.stringify(pipelineObj);
-    }
-
-    // 获取键顺序
-    const keyOrder: string[] = [];
+    // 获取原始键顺序
+    const originalKeyOrder: string[] = [];
     let currentDepth = 0;
     try {
       visit(
@@ -186,7 +181,7 @@ export async function pipelineToFlow(
           },
           onObjectProperty: (property) => {
             if (currentDepth === 1) {
-              keyOrder.push(property);
+              originalKeyOrder.push(property);
             }
           },
         },
@@ -198,6 +193,22 @@ export async function pipelineToFlow(
         visitError
       );
     }
+
+    // 合并外部配置
+    let pipelineObj: Record<string, any> | undefined;
+    if (mpeConfig) {
+      // 解析 Pipeline 对象
+      const purePipeline = parseJsonc(pString);
+      // 合并配置时传入原始键顺序
+      pipelineObj = mergePipelineAndConfig(
+        purePipeline,
+        mpeConfig,
+        undefined,
+        originalKeyOrder
+      );
+      pString = JSON.stringify(pipelineObj);
+    }
+    const keyOrder = originalKeyOrder.length > 0 ? originalKeyOrder : [];
 
     if (!pipelineObj) {
       pipelineObj = parseJsonc(pString);
@@ -428,7 +439,7 @@ export async function pipelineToFlow(
         });
       }
     });
-    
+
     nodes = ensureGroupNodeOrder(nodes);
 
     // 解析连接

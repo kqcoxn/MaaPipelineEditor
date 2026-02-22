@@ -84,14 +84,18 @@ export function splitPipelineAndConfig(pipelineObj: PipelineObjType): {
       const nodeName = extractNodeName(key, externalMarkPrefix);
       const mpeCode = value[configMark];
       const nodeConfig = extractNodeConfig(mpeCode);
-      config.external_nodes![nodeName] = nodeConfig ?? { position: { x: 0, y: 0 } };
+      config.external_nodes![nodeName] = nodeConfig ?? {
+        position: { x: 0, y: 0 },
+      };
     }
     // Anchor 节点
     else if (key.startsWith(anchorMarkPrefix)) {
       const nodeName = extractNodeName(key, anchorMarkPrefix);
       const mpeCode = value[configMark];
       const nodeConfig = extractNodeConfig(mpeCode);
-      config.anchor_nodes![nodeName] = nodeConfig ?? { position: { x: 0, y: 0 } };
+      config.anchor_nodes![nodeName] = nodeConfig ?? {
+        position: { x: 0, y: 0 },
+      };
     }
     // 便签节点
     else if (key.startsWith(stickerMarkPrefix)) {
@@ -141,12 +145,14 @@ export function splitPipelineAndConfig(pipelineObj: PipelineObjType): {
  * @param pipeline 纯 Pipeline 对象
  * @param config MPE 配置对象
  * @param fileName 文件名
+ * @param keyOrder 可选的键顺序，用于保持原始 JSON 顺序
  * @returns 完整的 Pipeline 对象
  */
 export function mergePipelineAndConfig(
   pipeline: PipelineObjType,
   config: MpeConfigType,
-  fileName?: string
+  fileName?: string,
+  keyOrder?: string[]
 ): PipelineObjType {
   const merged: PipelineObjType = {};
 
@@ -176,60 +182,236 @@ export function mergePipelineAndConfig(
     return { position: { x: 0, y: 0 } };
   };
 
-  // 添加外部节点
+  // 构建外部节点映射
+  const externalNodesMap = new Map<string, { key: string; data: any }>();
   if (config.external_nodes) {
     Object.entries(config.external_nodes).forEach(([nodeName, nodeData]) => {
-      merged[externalMarkPrefix + nodeName + "_" + actualFileName] = {
-        [configMark]: buildMpeCode(nodeData),
-      };
+      externalNodesMap.set(nodeName, {
+        key: externalMarkPrefix + nodeName + "_" + actualFileName,
+        data: nodeData,
+      });
     });
   }
 
-  // 添加 Anchor 节点
+  // 构建 Anchor 节点映射
+  const anchorNodesMap = new Map<string, { key: string; data: any }>();
   if (config.anchor_nodes) {
     Object.entries(config.anchor_nodes).forEach(([nodeName, nodeData]) => {
-      merged[anchorMarkPrefix + nodeName + "_" + actualFileName] = {
-        [configMark]: buildMpeCode(nodeData),
-      };
+      anchorNodesMap.set(nodeName, {
+        key: anchorMarkPrefix + nodeName + "_" + actualFileName,
+        data: nodeData,
+      });
     });
   }
-  
-  // 添加便签节点
+
+  // 构建便签节点映射
+  const stickerNodesMap = new Map<string, { key: string; data: any }>();
   if (config.sticker_nodes) {
     Object.entries(config.sticker_nodes).forEach(([nodeName, nodeData]) => {
-      merged[stickerMarkPrefix + nodeName + "_" + actualFileName] = {
-        [configMark]: nodeData,
-      };
+      stickerNodesMap.set(nodeName, {
+        key: stickerMarkPrefix + nodeName + "_" + actualFileName,
+        data: nodeData,
+      });
     });
   }
 
-  // 添加分组节点
+  // 构建分组节点映射
+  const groupNodesMap = new Map<string, { key: string; data: any }>();
   if (config.group_nodes) {
     Object.entries(config.group_nodes).forEach(([nodeName, nodeData]) => {
-      merged[groupMarkPrefix + nodeName + "_" + actualFileName] = {
-        [configMark]: nodeData,
-      };
+      groupNodesMap.set(nodeName, {
+        key: groupMarkPrefix + nodeName + "_" + actualFileName,
+        data: nodeData,
+      });
     });
   }
 
-  // 添加普通节点
-  Object.entries(pipeline).forEach(([key, value]) => {
-    const nodeConfig = config.node_configs[key];
-    if (nodeConfig?.position) {
-      const mpeCode: Record<string, any> = { position: nodeConfig.position };
-      if (nodeConfig.handleDirection) {
-        mpeCode.handleDirection = nodeConfig.handleDirection;
+  // 已添加的键集合
+  const addedKeys = new Set<string>();
+  addedKeys.add(configMarkPrefix + actualFileName);
+
+  // 提供了键顺序时按该顺序输出
+  if (keyOrder && keyOrder.length > 0) {
+    keyOrder.forEach((originalKey) => {
+      // 跳过配置键和已添加的键
+      if (
+        originalKey.startsWith(configMarkPrefix) ||
+        originalKey.startsWith("__mpe_config_") ||
+        originalKey.startsWith("__yamaape_config_")
+      ) {
+        return;
       }
-      merged[key] = {
-        ...value,
-        [configMark]: mpeCode,
-      };
-    } else {
-      merged[key] = value;
+
+      // 检查是否是外部节点
+      if (originalKey.startsWith(externalMarkPrefix)) {
+        const nodeInfo = externalNodesMap.get(
+          extractNodeNameFromKey(
+            originalKey,
+            externalMarkPrefix,
+            actualFileName
+          )
+        );
+        if (nodeInfo && !addedKeys.has(nodeInfo.key)) {
+          merged[nodeInfo.key] = {
+            [configMark]: buildMpeCode(nodeInfo.data),
+          };
+          addedKeys.add(nodeInfo.key);
+        }
+        return;
+      }
+
+      // 检查是否是 Anchor 节点
+      if (originalKey.startsWith(anchorMarkPrefix)) {
+        const nodeInfo = anchorNodesMap.get(
+          extractNodeNameFromKey(originalKey, anchorMarkPrefix, actualFileName)
+        );
+        if (nodeInfo && !addedKeys.has(nodeInfo.key)) {
+          merged[nodeInfo.key] = {
+            [configMark]: buildMpeCode(nodeInfo.data),
+          };
+          addedKeys.add(nodeInfo.key);
+        }
+        return;
+      }
+
+      // 检查是否是便签节点
+      if (originalKey.startsWith(stickerMarkPrefix)) {
+        const nodeInfo = stickerNodesMap.get(
+          extractNodeNameFromKey(originalKey, stickerMarkPrefix, actualFileName)
+        );
+        if (nodeInfo && !addedKeys.has(nodeInfo.key)) {
+          merged[nodeInfo.key] = {
+            [configMark]: nodeInfo.data,
+          };
+          addedKeys.add(nodeInfo.key);
+        }
+        return;
+      }
+
+      // 检查是否是分组节点
+      if (originalKey.startsWith(groupMarkPrefix)) {
+        const nodeInfo = groupNodesMap.get(
+          extractNodeNameFromKey(originalKey, groupMarkPrefix, actualFileName)
+        );
+        if (nodeInfo && !addedKeys.has(nodeInfo.key)) {
+          merged[nodeInfo.key] = {
+            [configMark]: nodeInfo.data,
+          };
+          addedKeys.add(nodeInfo.key);
+        }
+        return;
+      }
+
+      // 普通节点
+      const nodeConfig = config.node_configs?.[originalKey];
+      const pipelineValue = pipeline[originalKey];
+      if (pipelineValue !== undefined) {
+        if (nodeConfig?.position) {
+          const mpeCode: Record<string, any> = {
+            position: nodeConfig.position,
+          };
+          if (nodeConfig.handleDirection) {
+            mpeCode.handleDirection = nodeConfig.handleDirection;
+          }
+          merged[originalKey] = {
+            ...pipelineValue,
+            [configMark]: mpeCode,
+          };
+        } else {
+          merged[originalKey] = pipelineValue;
+        }
+        addedKeys.add(originalKey);
+      }
+    });
+  } else {
+    // 添加外部节点
+    if (config.external_nodes) {
+      Object.entries(config.external_nodes).forEach(([nodeName, nodeData]) => {
+        const key = externalMarkPrefix + nodeName + "_" + actualFileName;
+        if (!addedKeys.has(key)) {
+          merged[key] = {
+            [configMark]: buildMpeCode(nodeData),
+          };
+          addedKeys.add(key);
+        }
+      });
     }
-  });
+
+    // 添加 Anchor 节点
+    if (config.anchor_nodes) {
+      Object.entries(config.anchor_nodes).forEach(([nodeName, nodeData]) => {
+        const key = anchorMarkPrefix + nodeName + "_" + actualFileName;
+        if (!addedKeys.has(key)) {
+          merged[key] = {
+            [configMark]: buildMpeCode(nodeData),
+          };
+          addedKeys.add(key);
+        }
+      });
+    }
+
+    // 添加便签节点
+    if (config.sticker_nodes) {
+      Object.entries(config.sticker_nodes).forEach(([nodeName, nodeData]) => {
+        const key = stickerMarkPrefix + nodeName + "_" + actualFileName;
+        if (!addedKeys.has(key)) {
+          merged[key] = {
+            [configMark]: nodeData,
+          };
+          addedKeys.add(key);
+        }
+      });
+    }
+
+    // 添加分组节点
+    if (config.group_nodes) {
+      Object.entries(config.group_nodes).forEach(([nodeName, nodeData]) => {
+        const key = groupMarkPrefix + nodeName + "_" + actualFileName;
+        if (!addedKeys.has(key)) {
+          merged[key] = {
+            [configMark]: nodeData,
+          };
+          addedKeys.add(key);
+        }
+      });
+    }
+
+    // 添加普通节点
+    Object.entries(pipeline).forEach(([key, value]) => {
+      if (addedKeys.has(key)) return;
+      const nodeConfig = config.node_configs?.[key];
+      if (nodeConfig?.position) {
+        const mpeCode: Record<string, any> = { position: nodeConfig.position };
+        if (nodeConfig.handleDirection) {
+          mpeCode.handleDirection = nodeConfig.handleDirection;
+        }
+        merged[key] = {
+          ...value,
+          [configMark]: mpeCode,
+        };
+      } else {
+        merged[key] = value;
+      }
+    });
+  }
 
   return merged;
+}
+
+/**
+ * 从节点键中提取节点名
+ */
+function extractNodeNameFromKey(
+  key: string,
+  prefix: string,
+  fileName: string
+): string {
+  const withoutPrefix = key.substring(prefix.length);
+  const suffix = "_" + fileName;
+  if (fileName && withoutPrefix.endsWith(suffix)) {
+    return withoutPrefix.slice(0, -suffix.length);
+  }
+  return withoutPrefix;
 }
 
 /**

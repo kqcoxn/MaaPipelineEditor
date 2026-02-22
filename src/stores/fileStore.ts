@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { DragEndEvent } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 import { notification } from "antd";
+import { visit } from "jsonc-parser";
 
 import { useFlowStore, type NodeType, type EdgeType } from "./flow";
 import { useConfigStore } from "./configStore";
@@ -352,12 +353,45 @@ export const useFileStore = create<FileState>()((set) => ({
       const contentString =
         typeof content === "string" ? content : JSON.stringify(content);
 
+      // 获取原始键顺序
+      const keyOrder: string[] = [];
+      let currentDepth = 0;
+      try {
+        visit(
+          contentString,
+          {
+            onObjectBegin: () => {
+              currentDepth++;
+            },
+            onObjectEnd: () => {
+              currentDepth--;
+            },
+            onObjectProperty: (property) => {
+              if (currentDepth === 1) {
+                keyOrder.push(property);
+              }
+            },
+          },
+          { allowTrailingComma: true }
+        );
+      } catch (visitError) {
+        console.warn(
+          "[fileStore] visit parse failed for key order:",
+          visitError
+        );
+      }
+
       // 合并配置文件
       let finalContentString = contentString;
       if (mpeConfig) {
         try {
           const pipelineObj = JSON.parse(contentString);
-          const mergedPipeline = mergePipelineAndConfig(pipelineObj, mpeConfig);
+          const mergedPipeline = mergePipelineAndConfig(
+            pipelineObj,
+            mpeConfig,
+            undefined,
+            keyOrder
+          );
           finalContentString = JSON.stringify(mergedPipeline);
         } catch (error) {
           console.error(

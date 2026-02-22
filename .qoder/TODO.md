@@ -9,7 +9,8 @@
 
 ## perf
 
-anchor 字段解析
+- anchor 字段解析
+- 优化自动布局
 
 ## feat
 
