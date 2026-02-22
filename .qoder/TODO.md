@@ -5,10 +5,11 @@
 ## bug
 
 - 节点导出后顺序
-- anchor 节点无法再次导入
 - extremer 问题
 
 ## perf
+
+anchor 字段解析
 
 ## feat
 

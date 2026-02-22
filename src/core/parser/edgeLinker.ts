@@ -134,7 +134,7 @@ export function linkEdge(
 
     // 确定目标入口类型
     let targetHandle = TargetHandleTypeEnum.Target;
-    if (attributes.jump_back && type === SourceHandleTypeEnum.Next) {
+    if (attributes.jump_back) {
       targetHandle = TargetHandleTypeEnum.JumpBack;
       delete attributes.jump_back;
     }

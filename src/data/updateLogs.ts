@@ -53,6 +53,7 @@ export const updateLogs: UpdateLogItem[] = [
     type: "feature",
     updates: {
       perfs: ["优化 delay 系列默认值"],
+      fixes: ["修复由 on_error 到外部与 anchor jumpback 的渲染问题"],
     },
   },
   {
