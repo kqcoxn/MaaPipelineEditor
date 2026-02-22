@@ -1103,6 +1103,19 @@ func WithStdoutLevel
 func WithStdoutLevel(level LoggingLevel) InitOption
 WithStdoutLevel returns an InitOption that sets the logging level for standard output. The level parameter determines the verbosity of logs written to stdout.
 
+type InlineSubRecognition
+type InlineSubRecognition struct {
+SubName string `json:"sub_name,omitempty"`
+NodeRecognition
+}
+InlineSubRecognition is an inline sub-recognition element (object form in all_of/any_of). It has sub_name plus type and param; used for both And and Or. Name matches C++ InlineSubRecognition.
+
+func AndItem
+func AndItem(subName string, recognition *NodeRecognition) *InlineSubRecognition
+AndItem creates an InlineSubRecognition with the given sub-name and recognition. Used for both And all_of and Or any_of when building inline items. If subName is empty, only the recognition is used.
+
+func (*InlineSubRecognition) UnmarshalJSON
+func (n *InlineSubRecognition) UnmarshalJSON(data []byte) error
 type InputTextActionResult
 type InputTextActionResult struct {
 Text string `json:"text"`
@@ -1344,8 +1357,8 @@ type Node
 type Node struct {
 Name string `json:"-"`
 
-    // Anchor specifies the anchor name that can be referenced in next or on_error lists via [Anchor] attribute.
-    Anchor []string `json:"anchor,omitempty"`
+    // Anchor maps anchor name to target node name. This matches GetNodeData output format.
+    Anchor map[string]string `json:"anchor,omitempty"`
 
     // Recognition defines how this node recognizes targets on screen.
     Recognition *NodeRecognition `json:"recognition,omitempty"`
@@ -1393,7 +1406,7 @@ NewNode creates a new Node with the given name and options.
 
 func (*Node) AddAnchor
 func (n *Node) AddAnchor(anchor string) \*Node
-AddAnchor appends an anchor to the node and returns the node for chaining.
+AddAnchor sets an anchor to the current node and returns the node for chaining.
 
 func (*Node) AddNext
 func (n *Node) AddNext(name string, opts ...NodeAttributeOption) \*Node
@@ -1402,6 +1415,10 @@ AddNext appends a node to the next list and returns the node for chaining.
 func (*Node) AddOnError
 func (n *Node) AddOnError(name string, opts ...NodeAttributeOption) \*Node
 AddOnError appends a node to the on_error list and returns the node for chaining.
+
+func (*Node) ClearAnchor
+func (n *Node) ClearAnchor(anchor string) \*Node
+ClearAnchor marks an anchor as cleared and returns the node for chaining.
 
 func (*Node) RemoveAnchor
 func (n *Node) RemoveAnchor(anchor string) \*Node
@@ -1420,8 +1437,12 @@ func (n *Node) SetAction(act *NodeAction) *Node
 SetAction sets the action for the node and returns the node for chaining.
 
 func (*Node) SetAnchor
-func (n *Node) SetAnchor(anchor []string) \*Node
+func (n *Node) SetAnchor(anchor map[string]string) \*Node
 SetAnchor sets the anchor for the node and returns the node for chaining.
+
+func (*Node) SetAnchorTarget
+func (n *Node) SetAnchorTarget(anchor, nodeName string) \*Node
+SetAnchorTarget sets an anchor to a specific target node and returns the node for chaining.
 
 func (*Node) SetAttach
 func (n *Node) SetAttach(attach map[string]any) \*Node
@@ -1630,23 +1651,12 @@ NodeActionTypeCommand NodeActionType = "Command"
 NodeActionTypeShell NodeActionType = "Shell"
 NodeActionTypeCustom NodeActionType = "Custom"
 )
-type NodeAndRecognitionItem
-type NodeAndRecognitionItem struct {
-SubName string `json:"sub_name,omitempty"`
-NodeRecognition
-}
-func AndItem
-func AndItem(subName string, recognition *NodeRecognition) *NodeAndRecognitionItem
-AndItem creates a NodeAndRecognitionItem with the given sub-name and recognition. If subName is empty, only the recognition will be used.
-
-func (*NodeAndRecognitionItem) UnmarshalJSON
-func (n *NodeAndRecognitionItem) UnmarshalJSON(data []byte) error
 type NodeAndRecognitionParam
 type NodeAndRecognitionParam struct {
-AllOf []\*NodeAndRecognitionItem `json:"all_of,omitempty"`
+AllOf []SubRecognitionItem `json:"all_of,omitempty"`
 BoxIndex int `json:"box_index,omitempty"`
 }
-NodeAndRecognitionParam defines parameters for AND recognition.
+NodeAndRecognitionParam defines parameters for AND recognition. AllOf elements are either node name strings or inline recognitions (GetNodeData output matches C++ JAnd).
 
 type NodeAttributeOption
 type NodeAttributeOption func(\*NodeNextItem)
@@ -2096,9 +2106,9 @@ WithTimeout sets the timeout for the node.
 
 type NodeOrRecognitionParam
 type NodeOrRecognitionParam struct {
-AnyOf []\*NodeRecognition `json:"any_of,omitempty"`
+AnyOf []SubRecognitionItem `json:"any_of,omitempty"`
 }
-NodeOrRecognitionParam defines parameters for OR recognition.
+NodeOrRecognitionParam defines parameters for OR recognition. AnyOf elements are either node name strings or inline recognitions (GetNodeData output matches C++ JOr).
 
 type NodePipelineNodeDetail
 type NodePipelineNodeDetail struct {
@@ -2119,8 +2129,8 @@ Param NodeRecognitionParam `json:"param,omitempty"`
 NodeRecognition defines the recognition configuration for a node.
 
 func RecAnd
-func RecAnd(allOf []*NodeAndRecognitionItem, opts ...AndRecognitionOption) *NodeRecognition
-RecAnd creates an AND recognition that requires all sub-recognitions to succeed.
+func RecAnd(items []SubRecognitionItem, opts ...AndRecognitionOption) \*NodeRecognition
+RecAnd creates an AND recognition that requires all sub-recognitions to succeed. Items are Ref/Inline (use RecAndItems to build from variadic); opts are WithAndRecognitionBoxIndex etc. Example: RecAnd(RecAndItems(Ref("NodeA"), Inline(RecDirectHit(), "sub1")), WithAndRecognitionBoxIndex(2)).
 
 func RecColorMatch
 func RecColorMatch(lower, upper [][]int, opts ...ColorMatchOption) \*NodeRecognition
@@ -2151,8 +2161,8 @@ func RecOCR(opts ...OCROption) \*NodeRecognition
 RecOCR creates an OCR recognition with the given expected text patterns.
 
 func RecOr
-func RecOr(anyOf []*NodeRecognition) *NodeRecognition
-RecOr creates an OR recognition that succeeds if any sub-recognition succeeds.
+func RecOr(anyOf ...SubRecognitionItem) \*NodeRecognition
+RecOr creates an OR recognition that succeeds if any sub-recognition succeeds. Accepts variadic Ref/Inline so you can write RecOr(Inline(RecTemplateMatch(...)), Inline(RecColorMatch(...))) without a slice.
 
 func RecTemplateMatch
 func RecTemplateMatch(template []string, opts ...TemplateMatchOption) \*NodeRecognition
@@ -2735,6 +2745,44 @@ String returns the human-readable representation of the Status.
 func (Status) Success
 func (s Status) Success() bool
 Success reports whether the status is StatusSuccess.
+
+type SubRecognitionItem
+type SubRecognitionItem struct {
+// NodeName is set when the JSON value is a string (reference to another node by name).
+NodeName string
+// Inline is set when the JSON value is an object (inline recognition with type, param, sub_name).
+// Used for both And all_of and Or any_of; name matches C++ InlineSubRecognition.
+Inline \*InlineSubRecognition
+}
+SubRecognitionItem is one element of And all_of / Or any_of. It is either a node name (string reference) or an inline recognition (object with type, param, sub_name). GetNodeData from C++ outputs: all_of/any_of as array of string | object; this type supports both.
+
+func Inline
+func Inline(rec \*NodeRecognition, name ...string) SubRecognitionItem
+Inline builds a SubRecognitionItem from a recognition; optional name is the sub_name (omit for Or when not needed). Example: RecOr(Inline(RecTemplateMatch(...)), Inline(RecColorMatch(...))) or RecAnd(Ref("A"), Inline(RecDirectHit(), "sub1")).
+
+func RecAndItems
+func RecAndItems(items ...SubRecognitionItem) []SubRecognitionItem
+RecAndItems builds the first argument for RecAnd from Ref/Inline, so IDE can suggest SubRecognitionItem. Example: RecAnd(RecAndItems(Ref("NodeA"), Inline(RecDirectHit(), "sub1")), WithAndRecognitionBoxIndex(2)).
+
+func Ref
+func Ref(nodeName string) SubRecognitionItem
+Ref is a short alias for SubRecognitionRef. Use with RecAnd/RecOr: RecAnd(Ref("NodeA"), Inline(...)).
+
+func SubRecognitionInline
+func SubRecognitionInline(inline \*InlineSubRecognition) SubRecognitionItem
+SubRecognitionInline returns a SubRecognitionItem with inline recognition (type, param, sub_name).
+
+func SubRecognitionRef
+func SubRecognitionRef(nodeName string) SubRecognitionItem
+SubRecognitionRef returns a SubRecognitionItem that references another node by name.
+
+func (SubRecognitionItem) MarshalJSON
+func (s SubRecognitionItem) MarshalJSON() ([]byte, error)
+MarshalJSON outputs a string when NodeName is set, otherwise the inline object.
+
+func (*SubRecognitionItem) UnmarshalJSON
+func (s *SubRecognitionItem) UnmarshalJSON(data []byte) error
+UnmarshalJSON supports both string (node name) and object (inline recognition).
 
 type SwipeActionResult
 type SwipeActionResult struct {
