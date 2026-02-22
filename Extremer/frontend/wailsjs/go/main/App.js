@@ -45,3 +45,7 @@ export function OpenWorkDir() {
 export function RestartBridge() {
   return window['go']['main']['App']['RestartBridge']();
 }
+
+export function SetRootDir(arg1) {
+  return window['go']['main']['App']['SetRootDir'](arg1);
+}

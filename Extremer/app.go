@@ -23,6 +23,7 @@ type ExstremerConfig struct {
 	MPELBPath           string `json:"mpelb_path"`
 	DefaultMFWPath      string `json:"default_mfw_path"`
 	DefaultResourcePath string `json:"default_resource_path"`
+	RootDir             string `json:"root_dir"` // 用户自定义根目录
 }
 
 // 客户端配置文件结构
@@ -214,25 +215,33 @@ func (a *App) startup(ctx context.Context) {
 		wailsRuntime.LogWarning(ctx, "使用内置默认配置")
 	}
 
-	// 设置工作目录（用户文档目录下的 MaaPipeline）
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		wailsRuntime.LogError(ctx, fmt.Sprintf("获取用户目录失败: %v", err))
-		homeDir = a.exeDir
-	}
+	// 设置工作目录（优先使用配置中的根目录，否则使用默认目录）
+	if a.config.Extremer.RootDir != "" {
+		// 使用用户配置的根目录
+		a.workDir = a.config.Extremer.RootDir
+		wailsRuntime.LogInfo(ctx, fmt.Sprintf("使用配置的根目录: %s", a.workDir))
+	} else {
+		// 使用默认工作目录（用户文档目录下的 MaaPipeline）
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			wailsRuntime.LogError(ctx, fmt.Sprintf("获取用户目录失败: %v", err))
+			homeDir = a.exeDir
+		}
 
-	// 跨平台文档目录
-	var documentsDir string
-	switch runtime.GOOS {
-	case "windows":
-		documentsDir = filepath.Join(homeDir, "Documents")
-	case "darwin":
-		documentsDir = filepath.Join(homeDir, "Documents")
-	default:
-		documentsDir = homeDir
-	}
+		// 跨平台文档目录
+		var documentsDir string
+		switch runtime.GOOS {
+		case "windows":
+			documentsDir = filepath.Join(homeDir, "Documents")
+		case "darwin":
+			documentsDir = filepath.Join(homeDir, "Documents")
+		default:
+			documentsDir = homeDir
+		}
 
-	a.workDir = filepath.Join(documentsDir, "MaaPipeline")
+		a.workDir = filepath.Join(documentsDir, "MaaPipeline")
+		wailsRuntime.LogInfo(ctx, fmt.Sprintf("使用默认根目录: %s", a.workDir))
+	}
 	a.logsDir = filepath.Join(a.exeDir, "logs")
 	a.configDir = a.exeDir
 
@@ -386,6 +395,55 @@ func (a *App) GetVersion() string {
 // GetWorkDir 获取工作目录
 func (a *App) GetWorkDir() string {
 	return a.workDir
+}
+
+// saveConfig 保存配置到文件
+func (a *App) saveConfig() error {
+	if a.configPath == "" {
+		// 使用默认配置时，创建配置文件
+		a.configPath = filepath.Join(a.exeDir, "config", "config.json")
+	}
+
+	// 确保配置目录存在
+	configDir := filepath.Dir(a.configPath)
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		return fmt.Errorf("创建配置目录失败: %w", err)
+	}
+
+	data, err := json.MarshalIndent(a.config, "", "  ")
+	if err != nil {
+		return fmt.Errorf("序列化配置失败: %w", err)
+	}
+
+	if err := os.WriteFile(a.configPath, data, 0644); err != nil {
+		return fmt.Errorf("写入配置文件失败: %w", err)
+	}
+
+	return nil
+}
+
+// SetRootDir 设置根目录并持久化保存
+func (a *App) SetRootDir(rootDir string) error {
+	if rootDir == "" {
+		return fmt.Errorf("根目录不能为空")
+	}
+
+	// 验证目录是否存在
+	if _, err := os.Stat(rootDir); os.IsNotExist(err) {
+		return fmt.Errorf("目录不存在: %s", rootDir)
+	}
+
+	// 更新配置
+	a.config.Extremer.RootDir = rootDir
+	a.workDir = rootDir
+
+	// 保存配置到文件
+	if err := a.saveConfig(); err != nil {
+		return err
+	}
+
+	wailsRuntime.LogInfo(a.ctx, fmt.Sprintf("根目录已保存: %s", rootDir))
+	return nil
 }
 
 // GetLogsDir 获取日志目录

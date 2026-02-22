@@ -20,6 +20,9 @@ interface WailsGoBindings {
     App?: {
       GetPort: () => Promise<number>;
       IsBridgeRunning: () => Promise<boolean>;
+      GetWorkDir: () => Promise<string>;
+      SetRootDir: (rootDir: string) => Promise<void>;
+      RestartBridge: () => Promise<void>;
     };
   };
 }
@@ -125,4 +128,69 @@ export function wailsLog(
   } else {
     window.runtime!.LogInfo(message);
   }
+}
+
+/**
+ * 获取当前工作目录
+ * @returns 工作目录路径，如果不在 Wails 环境或调用失败则返回 null
+ */
+export async function getWorkDir(): Promise<string | null> {
+  if (!isWailsEnvironment()) {
+    return null;
+  }
+
+  try {
+    if (window.go?.main?.App?.GetWorkDir) {
+      return await window.go.main.App.GetWorkDir();
+    }
+  } catch (error) {
+    console.error("[WailsBridge] Failed to get work dir:", error);
+  }
+
+  return null;
+}
+
+/**
+ * 设置根目录并持久化保存
+ * @param rootDir 根目录路径
+ * @returns 是否成功，如果不在 Wails 环境则返回 null
+ */
+export async function setRootDir(rootDir: string): Promise<boolean | null> {
+  if (!isWailsEnvironment()) {
+    return null;
+  }
+
+  try {
+    if (window.go?.main?.App?.SetRootDir) {
+      await window.go.main.App.SetRootDir(rootDir);
+      return true;
+    }
+  } catch (error) {
+    console.error("[WailsBridge] Failed to set root dir:", error);
+    return false;
+  }
+
+  return null;
+}
+
+/**
+ * 重启 LocalBridge
+ * @returns 是否成功，如果不在 Wails 环境则返回 null
+ */
+export async function restartBridge(): Promise<boolean | null> {
+  if (!isWailsEnvironment()) {
+    return null;
+  }
+
+  try {
+    if (window.go?.main?.App?.RestartBridge) {
+      await window.go.main.App.RestartBridge();
+      return true;
+    }
+  } catch (error) {
+    console.error("[WailsBridge] Failed to restart bridge:", error);
+    return false;
+  }
+
+  return null;
 }

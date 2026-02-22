@@ -4,7 +4,6 @@
 
 ## bug
 
-- 节点导出后顺序
 - extremer 问题
 
 ## perf

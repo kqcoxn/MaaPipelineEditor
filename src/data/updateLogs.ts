@@ -55,6 +55,7 @@ export const updateLogs: UpdateLogItem[] = [
       perfs: ["优化 delay 系列默认值"],
       fixes: [
         "修复由 on_error 到外部与 anchor jumpback 的渲染问题",
+        "修复修改 lb 配置根目录后失效的问题",
         "修复节点导入与导出顺序不一致的问题",
       ],
     },

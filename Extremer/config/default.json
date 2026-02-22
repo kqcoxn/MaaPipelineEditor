@@ -27,6 +27,7 @@
     "extremer": {
         "mpelb_path": "resources/mpelb.exe",
         "default_mfw_path": "resources/maafw/bin",
-        "default_resource_path": "resources/resource"
+        "default_resource_path": "resources/resource",
+        "root_dir": ""
     }
 }

@@ -24,6 +24,11 @@ import type {
   BackendConfig,
   ConfigResponse,
 } from "../../services/protocols/ConfigProtocol";
+import {
+  isWailsEnvironment,
+  setRootDir as wailsSetRootDir,
+  restartBridge as wailsRestartBridge,
+} from "../../utils/wailsBridge";
 
 interface BackendConfigModalProps {
   open: boolean;
@@ -152,6 +157,18 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
           resource_dir: values.maafw_resource_dir,
         },
       };
+
+      // 如果在 Extremer 环境中且根目录有值，同步保存到 Extremer 配置
+      if (isWailsEnvironment() && values.file_root) {
+        try {
+          const success = await wailsSetRootDir(values.file_root);
+          if (success === false) {
+            message.warning("Extremer 配置保存失败，但 LocalBridge 配置将继续保存");
+          }
+        } catch (error) {
+          console.error("保存 Extremer 根目录配置失败:", error);
+        }
+      }
 
       configProtocol.requestSetConfig(config);
     } catch (error) {
