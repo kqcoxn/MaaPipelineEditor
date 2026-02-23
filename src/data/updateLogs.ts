@@ -55,6 +55,7 @@ export const updateLogs: UpdateLogItem[] = [
       features: ["😎 现在可以指定 pipeline 导出的协议版本了！"],
       perfs: [
         "优化 delay 系列默认值",
+        "固定导出时的节点字段排序",
         "优化文件列表排序稳定性",
         "优化保存文件逻辑，显式反馈丢失数据",
       ],

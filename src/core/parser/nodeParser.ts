@@ -47,18 +47,20 @@ export function parsePipelineNodeForExport(
   // 其他参数
   const others = matchParamType(fNodeData.others, otherFieldParams);
 
+  // 分离 focus 字段
+  const focus = others.focus;
+  delete others.focus;
+
   // 过滤空的 focus 字段
-  if (
-    "focus" in others &&
-    (others.focus === "" ||
-      others.focus === null ||
-      others.focus === undefined ||
-      (typeof others.focus === "object" &&
-        others.focus !== null &&
-        Object.keys(others.focus).length === 0))
-  ) {
-    delete others.focus;
-  }
+  const hasValidFocus =
+    focus !== "" &&
+    focus !== null &&
+    focus !== undefined &&
+    !(
+      typeof focus === "object" &&
+      focus !== null &&
+      Object.keys(focus).length === 0
+    );
 
   // 额外字段
   const extras = JsonHelper.isObj(fNodeData.extras)
@@ -67,44 +69,56 @@ export function parsePipelineNodeForExport(
         String(fNodeData.extras).replaceAll(/[""]/g, `"`)
       ) ?? {};
 
-  // 赋值
-  const pNode: ParsedPipelineNodeType = {
-    ...others,
-    ...extras,
-  };
-
   // 检查是否导出默认识别/动作
   const exportDefaultRecoAction = configs.exportDefaultRecoAction;
   // 获取协议版本
   const protocolVersion = configs.pipelineProtocolVersion ?? "v2";
 
-  // 处理 recognition：如果不导出默认且为 DirectHit 且无参数则不导出
+  // reco -> action -> others -> focus -> extras -> 配置
+  const pNode: ParsedPipelineNodeType = {};
+
+  // 1. recognition
   const isDefaultReco =
     recoType === "DirectHit" && Object.keys(recognition.param).length === 0;
   if (exportDefaultRecoAction || !isDefaultReco) {
     if (protocolVersion === "v1") {
-      // v1: 参数平铺
       pNode.recognition = recoType;
-      Object.assign(pNode, recognition.param);
     } else {
-      // v2: 使用对象结构
       pNode.recognition = recognition;
     }
   }
 
-  // 处理 action：如果不导出默认且为 DoNothing 且无参数，则不导出
+  // 2. action
   const isDefaultAction =
     actionType === "DoNothing" && Object.keys(action.param).length === 0;
   if (exportDefaultRecoAction || !isDefaultAction) {
     if (protocolVersion === "v1") {
-      // v1: 参数平铺
       pNode.action = actionType;
-      Object.assign(pNode, action.param);
     } else {
-      // v2: 使用对象结构
       pNode.action = action;
     }
   }
+
+  // 3. v1 平铺 recognition 和 action 的参数
+  if (protocolVersion === "v1") {
+    if (exportDefaultRecoAction || !isDefaultReco) {
+      Object.assign(pNode, recognition.param);
+    }
+    if (exportDefaultRecoAction || !isDefaultAction) {
+      Object.assign(pNode, action.param);
+    }
+  }
+
+  // 4. others
+  Object.assign(pNode, others);
+
+  // 5. focus
+  if (hasValidFocus) {
+    pNode.focus = focus;
+  }
+
+  // 6. extras
+  Object.assign(pNode, extras);
 
   // 保存位置信息和端点位置
   if (configs.isExportConfig) {
