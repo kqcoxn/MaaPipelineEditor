@@ -38,7 +38,8 @@ const ConfigManagementSection = memo(() => {
       customTemplates: customTemplates,
     };
 
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+    const indent = useConfigStore.getState().configs.jsonIndent;
+    const blob = new Blob([JSON.stringify(exportData, null, indent)], {
       type: "application/json",
     });
     const url = URL.createObjectURL(blob);

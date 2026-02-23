@@ -146,7 +146,7 @@ func (h *Handler) handleSaveFile(msg models.Message, conn *server.Connection) *m
 	}
 
 	// 保存文件
-	if err := h.fileService.SaveFile(req.FilePath, req.Content); err != nil {
+	if err := h.fileService.SaveFile(req.FilePath, req.Content, req.Indent); err != nil {
 		if lbErr, ok := err.(*errors.LBError); ok {
 			h.sendError(conn, lbErr)
 		} else {
@@ -175,7 +175,7 @@ func (h *Handler) handleSaveSeparated(msg models.Message, conn *server.Connectio
 	}
 
 	// 保存 Pipeline 文件
-	if err := h.fileService.SaveFile(req.PipelinePath, req.Pipeline); err != nil {
+	if err := h.fileService.SaveFile(req.PipelinePath, req.Pipeline, req.Indent); err != nil {
 		if lbErr, ok := err.(*errors.LBError); ok {
 			h.sendError(conn, lbErr)
 		} else {
@@ -185,7 +185,7 @@ func (h *Handler) handleSaveSeparated(msg models.Message, conn *server.Connectio
 	}
 
 	// 保存配置文件
-	if err := h.fileService.SaveFile(req.ConfigPath, req.Config); err != nil {
+	if err := h.fileService.SaveFile(req.ConfigPath, req.Config, req.Indent); err != nil {
 		if lbErr, ok := err.(*errors.LBError); ok {
 			h.sendError(conn, lbErr)
 		} else {

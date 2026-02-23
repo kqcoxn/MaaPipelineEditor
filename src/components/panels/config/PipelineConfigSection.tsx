@@ -1,7 +1,7 @@
 import style from "../../../styles/ConfigPanel.module.less";
 
 import { memo, useMemo, useCallback } from "react";
-import { Popover, Select, Button, Switch, message } from "antd";
+import { Popover, Select, Button, Switch, message, InputNumber } from "antd";
 import classNames from "classnames";
 
 import { useConfigStore } from "../../../stores/configStore";
@@ -26,6 +26,7 @@ const PipelineConfigSection = memo(() => {
   const skipFieldValidation = useConfigStore(
     (state) => state.configs.skipFieldValidation
   );
+  const jsonIndent = useConfigStore((state) => state.configs.jsonIndent);
   const setConfig = useConfigStore((state) => state.setConfig);
   const nodes = useFlowStore((state) => state.nodes);
   const setNodes = useFlowStore((state) => state.setNodes);
@@ -204,6 +205,33 @@ const PipelineConfigSection = memo(() => {
           checkedChildren="忽略"
           unCheckedChildren="校验"
           onChange={(checked) => setConfig("skipFieldValidation", checked)}
+        />
+      </div>
+      {/* JSON 导出缩进 */}
+      <div className={globalClass}>
+        <div className={style.key}>
+          <Popover
+            placement="bottomLeft"
+            title="JSON 导出缩进"
+            content={
+              <TipElem
+                content={
+                  "导出 JSON 文件时每层缩进的空格数。\n默认为 4 空格，可设置为 2 或其他值。"
+                }
+              />
+            }
+          >
+            <span>JSON 导出缩进</span>
+          </Popover>
+        </div>
+        <InputNumber
+          className={style.value}
+          style={{ width: 70 }}
+          min={0}
+          max={16}
+          value={jsonIndent}
+          onChange={(value) => setConfig("jsonIndent", value ?? 4)}
+          addonAfter="空格"
         />
       </div>
     </>

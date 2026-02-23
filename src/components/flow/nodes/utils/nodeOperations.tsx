@@ -3,6 +3,7 @@ import { ClipboardHelper } from "../../../../utils/clipboard";
 import { useFileStore } from "../../../../stores/fileStore";
 import { useCustomTemplateStore } from "../../../../stores/customTemplateStore";
 import { useFlowStore } from "../../../../stores/flow";
+import { useConfigStore } from "../../../../stores/configStore";
 import type { PipelineNodeDataType } from "../../../../stores/flow";
 import { parsePipelineNodeForExport } from "../../../../core/parser/nodeParser";
 import type { PipelineNodeType } from "../../../../core/parser/types";
@@ -170,7 +171,8 @@ export function copyNodeRecoJSON(nodeId: string): void {
     const recoJSON = parsedNode.recognition || {};
 
     // 复制到剪贴板
-    const jsonString = JSON.stringify(recoJSON, null, 2);
+    const indent = useConfigStore.getState().configs.jsonIndent;
+    const jsonString = JSON.stringify(recoJSON, null, indent);
     ClipboardHelper.write(jsonString, {
       successMsg: "Reco JSON 已复制到剪贴板",
     });

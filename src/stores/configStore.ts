@@ -5,7 +5,7 @@ import type { HandleDirection } from "../components/flow/nodes/constants";
 export const globalConfig = {
   dev: true,
   version: `1.2.0`,
-  betaIteration: 4,
+  betaIteration: 5,
   mfwVersion: "5.7.1",
   protocolVersion: "0.7.1",
 };
@@ -28,6 +28,7 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   exportDefaultRecoAction: "pipeline",
   pipelineProtocolVersion: "pipeline",
   skipFieldValidation: "pipeline",
+  jsonIndent: "pipeline",
   // 面板配置
   nodeStyle: "panel",
   historyLimit: "panel",
@@ -106,6 +107,7 @@ type ConfigState = {
     exportDefaultRecoAction: boolean;
     pipelineProtocolVersion: PipelineProtocolVersion;
     skipFieldValidation: boolean;
+    jsonIndent: number;
     wsPort: number;
     wsAutoConnect: boolean;
     fileAutoReload: boolean;
@@ -171,6 +173,7 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     exportDefaultRecoAction: false,
     pipelineProtocolVersion: "v2" as PipelineProtocolVersion,
     skipFieldValidation: false,
+    jsonIndent: 4,
     wsPort: 9066,
     wsAutoConnect: false,
     fileAutoReload: false,

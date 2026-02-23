@@ -216,7 +216,8 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
  */
 export function flowToPipelineString(datas?: FlowToOptions): string {
   const pipelineObj = flowToPipeline(datas);
-  return JSON.stringify(pipelineObj, null, 2);
+  const indent = useConfigStore.getState().configs.jsonIndent;
+  return JSON.stringify(pipelineObj, null, indent);
 }
 
 /**
@@ -234,8 +235,9 @@ export function flowToSeparatedStrings(datas?: FlowToOptions): {
   // 拆分为 Pipeline 和配置
   const { pipeline, config } = splitPipelineAndConfig(fullPipelineObj);
 
+  const indent = useConfigStore.getState().configs.jsonIndent;
   return {
-    pipelineString: JSON.stringify(pipeline, null, 2),
-    configString: JSON.stringify(config, null, 2),
+    pipelineString: JSON.stringify(pipeline, null, indent),
+    configString: JSON.stringify(config, null, indent),
   };
 }

@@ -694,6 +694,9 @@ export const useFileStore = create<FileState>()((set) => ({
       // 根据保存模式确定要等待 ACK 的文件路径
       let ackFilePath = targetFilePath;
 
+      // 获取 JSON 缩进配置
+      const jsonIndent = useConfigStore.getState().configs.jsonIndent;
+
       if (configHandlingMode === "separated") {
         // 分离模式保存
         const { pipelineString, configString } =
@@ -713,6 +716,7 @@ export const useFileStore = create<FileState>()((set) => ({
             config_path: configPath,
             pipeline,
             config,
+            indent: jsonIndent,
           });
           if (sendSuccess) {
             configUpdates.separatedConfigPath = configPath;
@@ -723,6 +727,7 @@ export const useFileStore = create<FileState>()((set) => ({
           sendSuccess = localServer.send("/etl/save_file", {
             file_path: targetFilePath,
             content: pipeline,
+            indent: jsonIndent,
           });
         } else if (effectiveMode === "config") {
           // 等待 config 路径的 ack
@@ -730,6 +735,7 @@ export const useFileStore = create<FileState>()((set) => ({
           sendSuccess = localServer.send("/etl/save_file", {
             file_path: configPath,
             content: config,
+            indent: jsonIndent,
           });
           if (sendSuccess) {
             configUpdates.separatedConfigPath = configPath;
@@ -742,6 +748,7 @@ export const useFileStore = create<FileState>()((set) => ({
         sendSuccess = localServer.send("/etl/save_file", {
           file_path: targetFilePath,
           content: pipeline,
+          indent: jsonIndent,
         });
       }
 

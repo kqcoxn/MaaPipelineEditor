@@ -198,8 +198,8 @@ func (c *Config) Save() error {
 		return fmt.Errorf("配置文件路径未知，无法保存")
 	}
 
-	// 读取原始文件内容以保留格式
-	data, err := json.MarshalIndent(c, "", "  ")
+	// 序列化配置
+	data, err := json.MarshalIndent(c, "", "    ")
 	if err != nil {
 		return fmt.Errorf("序列化配置失败: %w", err)
 	}

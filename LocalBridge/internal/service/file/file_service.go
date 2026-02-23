@@ -156,14 +156,23 @@ func (s *Service) ReadFile(filePath string) (interface{}, error) {
 }
 
 // 保存文件
-func (s *Service) SaveFile(filePath string, content interface{}) error {
+func (s *Service) SaveFile(filePath string, content interface{}, indent int) error {
 	// 验证路径安全性
 	if err := s.validatePath(filePath); err != nil {
 		return err
 	}
 
+	// 构建缩进字符串
+	var indentStr string
+	for i := 0; i < indent; i++ {
+		indentStr += " "
+	}
+	if indentStr == "" {
+		indentStr = "    "
+	}
+
 	// 序列化 JSON
-	data, err := json.MarshalIndent(content, "", "  ")
+	data, err := json.MarshalIndent(content, "", indentStr)
 	if err != nil {
 		return errors.NewInvalidJSONError(err)
 	}
@@ -215,7 +224,7 @@ func (s *Service) CreateFile(directory, fileName string, content interface{}) (s
 	var data []byte
 	var err error
 	if content != nil {
-		data, err = json.MarshalIndent(content, "", "  ")
+		data, err = json.MarshalIndent(content, "", "    ")
 		if err != nil {
 			return "", errors.NewInvalidJSONError(err)
 		}
