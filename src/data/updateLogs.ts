@@ -57,6 +57,7 @@ export const updateLogs: UpdateLogItem[] = [
         "优化 delay 系列默认值",
         "固定导出时的节点字段排序",
         "优化文件列表排序稳定性",
+        "添加 lb 启动目录安全检查机制",
         "优化保存文件逻辑，显式反馈丢失数据",
       ],
       fixes: [

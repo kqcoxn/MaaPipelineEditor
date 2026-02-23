@@ -1,6 +1,8 @@
 package file
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,11 +11,19 @@ import (
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/pkg/models"
 )
 
+// 扫描限制错误
+var (
+	ErrMaxFilesExceeded = errors.New("扫描文件数量超过限制")
+	ErrMaxDepthExceeded = errors.New("扫描深度超过限制")
+)
+
 // 文件扫描器
 type Scanner struct {
 	root       string   // 根目录
 	exclude    []string // 排除目录列表
 	extensions []string // 包含的文件扩展名
+	maxDepth   int      // 最大扫描深度，0 表示无限制
+	maxFiles   int      // 最大文件数量，0 表示无限制
 }
 
 // 创建文件扫描器
@@ -22,25 +32,76 @@ func NewScanner(root string, exclude []string, extensions []string) *Scanner {
 		root:       root,
 		exclude:    exclude,
 		extensions: extensions,
+		maxDepth:   0, // 默认无限制
+		maxFiles:   0, // 默认无限制
 	}
 }
 
-// 扫描根目录下所有符合条件的文件
-func (s *Scanner) Scan() ([]models.File, error) {
-	var files []models.File
+// SetMaxDepth 设置最大扫描深度
+func (s *Scanner) SetMaxDepth(depth int) {
+	s.maxDepth = depth
+}
 
-	err := filepath.Walk(s.root, func(path string, info os.FileInfo, err error) error {
+// SetMaxFiles 设置最大文件数量
+func (s *Scanner) SetMaxFiles(count int) {
+	s.maxFiles = count
+}
+
+// 扫描结果
+type ScanResult struct {
+	Files       []models.File
+	TotalCount  int
+	Truncated   bool   // 是否因限制而截断
+	LimitReason string // 截断原因
+}
+
+// Scan 扫描根目录下所有符合条件的文件
+func (s *Scanner) Scan() ([]models.File, error) {
+	result, err := s.ScanWithLimit()
+	return result.Files, err
+}
+
+// ScanWithLimit 扫描并返回详细结果（包含限制信息）
+func (s *Scanner) ScanWithLimit() (*ScanResult, error) {
+	result := &ScanResult{
+		Files:     []models.File{},
+		Truncated: false,
+	}
+
+	// 计算根目录深度用于相对深度计算
+	rootDepth := strings.Count(s.root, string(filepath.Separator))
+
+	err := filepath.WalkDir(s.root, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
-			return err
+			// 忽略访问错误的目录/文件，继续扫描
+			return nil
 		}
 
-		// 跳过目录
-		if info.IsDir() {
-			// 检查是否在排除列表中
-			if s.shouldExcludeDir(info.Name()) {
+		// 计算当前深度
+		currentDepth := strings.Count(path, string(filepath.Separator)) - rootDepth
+
+		// 检查深度限制
+		if s.maxDepth > 0 && currentDepth > s.maxDepth {
+			if d.IsDir() {
 				return filepath.SkipDir
 			}
 			return nil
+		}
+
+		// 处理目录
+		if d.IsDir() {
+			// 检查是否在排除列表中
+			if s.shouldExcludeDir(d.Name()) {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		// 检查文件数量限制
+		if s.maxFiles > 0 && len(result.Files) >= s.maxFiles {
+			result.Truncated = true
+			result.LimitReason = fmt.Sprintf("已达到最大文件数量限制 (%d)", s.maxFiles)
+			return errors.New("stop") // 用于停止遍历
 		}
 
 		// 检查文件扩展名
@@ -48,17 +109,23 @@ func (s *Scanner) Scan() ([]models.File, error) {
 			return nil
 		}
 
+		// 获取文件信息
+		info, err := d.Info()
+		if err != nil {
+			return nil
+		}
+
 		// 计算相对路径
 		relPath, err := filepath.Rel(s.root, path)
 		if err != nil {
-			return err
+			return nil
 		}
 
 		// 解析文件节点列表和前缀
 		nodes, prefix := s.parseFileNodes(path)
 
 		// 添加到文件列表
-		files = append(files, models.File{
+		result.Files = append(result.Files, models.File{
 			AbsPath:      path,
 			RelPath:      relPath,
 			Name:         info.Name(),
@@ -70,7 +137,13 @@ func (s *Scanner) Scan() ([]models.File, error) {
 		return nil
 	})
 
-	return files, err
+	// 忽略 stop 错误（用于提前终止遍历）
+	if err != nil && err.Error() == "stop" {
+		err = nil
+	}
+
+	result.TotalCount = len(result.Files)
+	return result, err
 }
 
 // 检查目录是否应该被排除

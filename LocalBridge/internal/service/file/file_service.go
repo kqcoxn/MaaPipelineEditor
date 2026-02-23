@@ -23,16 +23,24 @@ type Service struct {
 	fileIndex map[string]*models.File // key: 文件绝对路径
 	mu        sync.RWMutex
 	eventBus  *eventbus.EventBus
+	maxDepth  int
+	maxFiles  int
 }
 
 // 创建文件服务实例
-func NewService(root string, exclude []string, extensions []string, eb *eventbus.EventBus) (*Service, error) {
+func NewService(root string, exclude []string, extensions []string, maxDepth, maxFiles int, eb *eventbus.EventBus) (*Service, error) {
 	s := &Service{
 		root:      root,
 		scanner:   NewScanner(root, exclude, extensions),
 		fileIndex: make(map[string]*models.File),
 		eventBus:  eb,
+		maxDepth:  maxDepth,
+		maxFiles:  maxFiles,
 	}
+
+	// 设置扫描限制
+	s.scanner.SetMaxDepth(maxDepth)
+	s.scanner.SetMaxFiles(maxFiles)
 
 	// 创建文件监听器
 	watcher, err := NewWatcher(root, extensions, s.handleFileChange)
@@ -47,19 +55,24 @@ func NewService(root string, exclude []string, extensions []string, eb *eventbus
 // 启动文件服务
 func (s *Service) Start() error {
 	// 初始扫描
-	files, err := s.scanner.Scan()
+	result, err := s.scanner.ScanWithLimit()
 	if err != nil {
 		return err
 	}
 
 	// 构建文件索引
 	s.mu.Lock()
-	for i := range files {
-		s.fileIndex[files[i].AbsPath] = &files[i]
+	for i := range result.Files {
+		s.fileIndex[result.Files[i].AbsPath] = &result.Files[i]
 	}
 	s.mu.Unlock()
 
-	logger.Info("FileService", "初始扫描完成，发现 %d 个文件", len(files))
+	// 记录扫描结果
+	if result.Truncated {
+		logger.Warn("FileService", "初始扫描完成，发现 %d 个文件（%s）", len(result.Files), result.LimitReason)
+	} else {
+		logger.Info("FileService", "初始扫描完成，发现 %d 个文件", len(result.Files))
+	}
 
 	// 发布扫描完成事件
 	s.eventBus.Publish(eventbus.EventFileScanCompleted, s.GetFileList())

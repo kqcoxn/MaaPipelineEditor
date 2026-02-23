@@ -69,6 +69,8 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
           file_root: data.config.file.root,
           file_exclude: data.config.file.exclude.join(", "),
           file_extensions: data.config.file.extensions.join(", "),
+          file_max_depth: data.config.file.max_depth,
+          file_max_files: data.config.file.max_files,
           log_level: data.config.log.level,
           log_dir: data.config.log.dir,
           log_push_to_client: data.config.log.push_to_client,
@@ -145,6 +147,8 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
             .split(",")
             .map((s: string) => s.trim())
             .filter(Boolean),
+          max_depth: values.file_max_depth,
+          max_files: values.file_max_files,
         },
         log: {
           level: values.log_level,
@@ -204,7 +208,7 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <SettingOutlined style={{ fontSize: 20 }} />
           <span style={{ fontSize: 18, fontWeight: 600 }}>
-            LocalStorage 配置
+            LocalBridge 配置
           </span>
         </div>
       }
@@ -339,6 +343,38 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
             }
           >
             <Input placeholder=".json, .jsonc" />
+          </Form.Item>
+
+          <Form.Item
+            name="file_max_depth"
+            label={
+              <span>
+                最大扫描深度
+                <Tooltip title="目录扫描的最大深度，0 表示无限制">
+                  <InfoCircleOutlined
+                    style={{ marginLeft: 4, color: "#8c8c8c" }}
+                  />
+                </Tooltip>
+              </span>
+            }
+          >
+            <InputNumber min={0} style={{ width: "100%" }} placeholder="10" />
+          </Form.Item>
+
+          <Form.Item
+            name="file_max_files"
+            label={
+              <span>
+                最大文件数量
+                <Tooltip title="扫描的最大文件数量，0 表示无限制">
+                  <InfoCircleOutlined
+                    style={{ marginLeft: 4, color: "#8c8c8c" }}
+                  />
+                </Tooltip>
+              </span>
+            }
+          >
+            <InputNumber min={0} style={{ width: "100%" }} placeholder="10000" />
           </Form.Item>
 
           {/* 日志配置 */}

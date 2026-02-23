@@ -14,6 +14,8 @@ export interface BackendConfig {
     root: string;
     exclude: string[];
     extensions: string[];
+    max_depth: number;
+    max_files: number;
   };
   log: {
     level: string;

@@ -198,8 +198,10 @@ func GetDefaultConfigContent() []byte {
   },
   "file": {
     "root": "./",
-    "exclude": ["node_modules", ".git", "dist", "build"],
-    "extensions": [".json", ".jsonc"]
+    "exclude": ["node_modules", ".git", "dist", "build", ".cache", ".venv", "__pycache__", ".idea", ".vscode"],
+    "extensions": [".json", ".jsonc"],
+    "max_depth": 10,
+    "max_files": 10000
   },
   "log": {
     "level": "INFO",

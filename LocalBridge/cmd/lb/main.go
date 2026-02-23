@@ -217,6 +217,41 @@ func runServer(cmd *cobra.Command, args []string) {
 	logger.Debug("Main", "数据目录: %s", paths.GetDataDir())
 	logger.Info("Main", "运行目录: %s", cfg.File.Root)
 	logger.Debug("Main", "监听端口: %d", cfg.Server.Port)
+	logger.Debug("Main", "扫描限制: 深度=%d, 文件数=%d", cfg.File.MaxDepth, cfg.File.MaxFiles)
+
+	// 安全检查
+	safetyResult := cfg.CheckRootSafety()
+	if safetyResult.IsRisky {
+		switch safetyResult.RiskLevel {
+		case "high":
+			logger.Error("Main", "⚠️  安全警告：检测到高风险目录！")
+			for _, reason := range safetyResult.RiskReasons {
+				logger.Error("Main", "  - %s", reason)
+			}
+			logger.Error("Main", "建议操作：")
+			for _, suggestion := range safetyResult.Suggestions {
+				logger.Error("Main", "  - %s", suggestion)
+			}
+			logger.Error("Main", "")
+			logger.Error("Main", "启动已中止。请指定更具体的项目目录。")
+			logger.Error("Main", "示例: mpelb --root \"C:\\YourProject\"")
+			os.Exit(1)
+
+		case "medium":
+			logger.Warn("Main", "⚠️  注意：扫描目录范围较大")
+			for _, reason := range safetyResult.RiskReasons {
+				logger.Warn("Main", "  - %s", reason)
+			}
+			logger.Warn("Main", "扫描将继续，但可能需要较长时间...")
+		}
+
+		// 低风险仅记录
+		if safetyResult.RiskLevel == "low" {
+			for _, reason := range safetyResult.RiskReasons {
+				logger.Debug("Main", "提示: %s", reason)
+			}
+		}
+	}
 
 	// 检查 MaaFramework 配置
 	if cfg.MaaFW.Enabled {
@@ -234,6 +269,8 @@ func runServer(cmd *cobra.Command, args []string) {
 		cfg.File.Root,
 		cfg.File.Exclude,
 		cfg.File.Extensions,
+		cfg.File.MaxDepth,
+		cfg.File.MaxFiles,
 		eventBus,
 	)
 	if err != nil {
