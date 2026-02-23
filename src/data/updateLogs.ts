@@ -60,6 +60,7 @@ export const updateLogs: UpdateLogItem[] = [
         "修复同步多个本地文件时的丢失问题",
         "修复节点导入与导出顺序不一致的问题",
         "修复 extremer lb 连接闪断问题",
+        "修复 extremer 默认 fw 环境加载失败问题",
       ],
     },
   },

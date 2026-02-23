@@ -264,8 +264,22 @@ func (a *App) startup(ctx context.Context) {
 	// 准备 LocalBridge 配置文件路径
 	lbConfigPath := filepath.Join(a.workDir, "config.json")
 
-	// 如果工作目录下不存在配置文件，则从客户端配置创建一个
+	// 检查配置文件是否存在，以及路径是否有效
+	needCreate := false
 	if _, err := os.Stat(lbConfigPath); os.IsNotExist(err) {
+		needCreate = true
+	} else {
+		// 配置文件存在，验证路径是否有效
+		if a.validateLBConfig(lbConfigPath) {
+			wailsRuntime.LogInfo(ctx, "LocalBridge 配置文件路径验证通过")
+		} else {
+			// 路径无效，重新创建配置文件
+			wailsRuntime.LogWarning(ctx, "LocalBridge 配置文件路径无效，将重新创建")
+			needCreate = true
+		}
+	}
+
+	if needCreate {
 		if err := a.createLBConfig(lbConfigPath); err != nil {
 			wailsRuntime.LogError(ctx, fmt.Sprintf("创建 LocalBridge 配置失败: %v", err))
 		} else {
@@ -289,8 +303,86 @@ func (a *App) startup(ctx context.Context) {
 	}
 }
 
+// validateLBConfig 验证 LocalBridge 配置文件中的路径是否有效
+func (a *App) validateLBConfig(path string) bool {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return false
+	}
+
+	var config struct {
+		MaaFW struct {
+			LibDir      string `json:"lib_dir"`
+			ResourceDir string `json:"resource_dir"`
+		} `json:"maafw"`
+	}
+
+	if err := json.Unmarshal(data, &config); err != nil {
+		return false
+	}
+
+	// 检查 lib_dir 是否有效
+	if config.MaaFW.LibDir != "" {
+		if _, err := os.Stat(config.MaaFW.LibDir); os.IsNotExist(err) {
+			// 路径不存在，检查默认路径是否可用
+			defaultLibDir := filepath.Join(a.exeDir, a.config.Extremer.DefaultMFWPath)
+			if _, defaultErr := os.Stat(defaultLibDir); defaultErr == nil {
+				// 默认路径可用，说明配置路径无效
+				return false
+			}
+			// 默认路径也不可用，可能是资源未安装，不算配置错误
+		}
+	}
+
+	// 检查 resource_dir 是否有效
+	if config.MaaFW.ResourceDir != "" {
+		if _, err := os.Stat(config.MaaFW.ResourceDir); os.IsNotExist(err) {
+			// 路径不存在，检查默认路径是否可用
+			defaultResourceDir := filepath.Join(a.exeDir, a.config.Extremer.DefaultResourcePath)
+			if _, defaultErr := os.Stat(defaultResourceDir); defaultErr == nil {
+				// 默认路径可用，说明配置路径无效
+				return false
+			}
+			// 默认路径也不可用，可能是资源未安装，不算配置错误
+		}
+	}
+
+	return true
+}
+
 // createLBConfig 创建 LocalBridge 配置文件
 func (a *App) createLBConfig(path string) error {
+	// 确定 MaaFramework 路径：优先使用配置中的路径，但如果路径无效则使用默认路径
+	libDir := a.config.MaaFW.LibDir
+	resourceDir := a.config.MaaFW.ResourceDir
+
+	// 验证路径是否存在，不存在则使用默认路径
+	if libDir != "" {
+		if _, err := os.Stat(libDir); os.IsNotExist(err) {
+			// 配置的路径不存在，使用默认路径
+			defaultLibDir := filepath.Join(a.exeDir, a.config.Extremer.DefaultMFWPath)
+			if _, defaultErr := os.Stat(defaultLibDir); defaultErr == nil {
+				libDir = defaultLibDir
+			}
+		}
+	} else {
+		// 未配置，使用默认路径
+		libDir = filepath.Join(a.exeDir, a.config.Extremer.DefaultMFWPath)
+	}
+
+	if resourceDir != "" {
+		if _, err := os.Stat(resourceDir); os.IsNotExist(err) {
+			// 配置的路径不存在，使用默认路径
+			defaultResourceDir := filepath.Join(a.exeDir, a.config.Extremer.DefaultResourcePath)
+			if _, defaultErr := os.Stat(defaultResourceDir); defaultErr == nil {
+				resourceDir = defaultResourceDir
+			}
+		}
+	} else {
+		// 未配置，使用默认路径
+		resourceDir = filepath.Join(a.exeDir, a.config.Extremer.DefaultResourcePath)
+	}
+
 	config := map[string]interface{}{
 		"server": map[string]interface{}{
 			"port": a.config.Server.Port,
@@ -307,8 +399,8 @@ func (a *App) createLBConfig(path string) error {
 		},
 		"maafw": map[string]interface{}{
 			"enabled":      a.config.MaaFW.Enabled,
-			"lib_dir":      a.config.MaaFW.LibDir,
-			"resource_dir": a.config.MaaFW.ResourceDir,
+			"lib_dir":      libDir,
+			"resource_dir": resourceDir,
 		},
 	}
 
