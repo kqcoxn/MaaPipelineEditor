@@ -49,13 +49,14 @@ export const pinnedNotice: PinnedNotice = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "1.2.0",
-    date: "2026-2",
-    type: "feature",
+    date: "2026-2-23",
+    type: "major",
     updates: {
+      features: ["😎 现在可以指定 pipeline 导出的协议版本了！"],
       perfs: ["优化 delay 系列默认值"],
       fixes: [
         "修复由 on_error 到外部与 anchor jumpback 的渲染问题",
-        "修复修改 lb 配置根目录后失效的问题",
+        "修复修改 lb 配置后失效的问题",
         "修复节点导入与导出顺序不一致的问题",
       ],
     },

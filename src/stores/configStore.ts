@@ -26,6 +26,7 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   nodeAttrExportStyle: "pipeline",
   defaultHandleDirection: "pipeline",
   exportDefaultRecoAction: "pipeline",
+  pipelineProtocolVersion: "pipeline",
   // 面板配置
   nodeStyle: "panel",
   historyLimit: "panel",
@@ -81,6 +82,9 @@ export type NodeAttrExportStyle = "object" | "prefix";
 // 配置处理方案类型
 export type ConfigHandlingMode = "integrated" | "separated" | "none";
 
+// Pipeline 导出版本
+export type PipelineProtocolVersion = "v1" | "v2";
+
 // 画布背景模式
 export type CanvasBackgroundMode = "pure" | "eyecare";
 
@@ -99,6 +103,7 @@ type ConfigState = {
     nodeAttrExportStyle: NodeAttrExportStyle;
     defaultHandleDirection: HandleDirection;
     exportDefaultRecoAction: boolean;
+    pipelineProtocolVersion: PipelineProtocolVersion;
     wsPort: number;
     wsAutoConnect: boolean;
     fileAutoReload: boolean;
@@ -162,6 +167,7 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     nodeAttrExportStyle: "prefix" as NodeAttrExportStyle,
     defaultHandleDirection: "left-right" as HandleDirection,
     exportDefaultRecoAction: false,
+    pipelineProtocolVersion: "v2" as PipelineProtocolVersion,
     wsPort: 9066,
     wsAutoConnect: false,
     fileAutoReload: false,

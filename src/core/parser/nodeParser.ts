@@ -75,19 +75,35 @@ export function parsePipelineNodeForExport(
 
   // 检查是否导出默认识别/动作
   const exportDefaultRecoAction = configs.exportDefaultRecoAction;
+  // 获取协议版本
+  const protocolVersion = configs.pipelineProtocolVersion ?? "v2";
 
-  // 如果不导出默认且为 DirectHit 且无参数则不导出
+  // 处理 recognition：如果不导出默认且为 DirectHit 且无参数则不导出
   const isDefaultReco =
     recoType === "DirectHit" && Object.keys(recognition.param).length === 0;
   if (exportDefaultRecoAction || !isDefaultReco) {
-    pNode.recognition = recognition;
+    if (protocolVersion === "v1") {
+      // v1: 参数平铺
+      pNode.recognition = recoType;
+      Object.assign(pNode, recognition.param);
+    } else {
+      // v2: 使用对象结构
+      pNode.recognition = recognition;
+    }
   }
 
   // 处理 action：如果不导出默认且为 DoNothing 且无参数，则不导出
   const isDefaultAction =
     actionType === "DoNothing" && Object.keys(action.param).length === 0;
   if (exportDefaultRecoAction || !isDefaultAction) {
-    pNode.action = action;
+    if (protocolVersion === "v1") {
+      // v1: 参数平铺
+      pNode.action = actionType;
+      Object.assign(pNode, action.param);
+    } else {
+      // v2: 使用对象结构
+      pNode.action = action;
+    }
   }
 
   // 保存位置信息和端点位置
@@ -164,9 +180,7 @@ export function parseAnchorNodeForExport(
  * @param fNode Flow节点
  * @returns 包含位置、内容、颜色、尺寸的节点
  */
-export function parseStickerNodeForExport(
-  fNode: any
-): ParsedPipelineNodeType {
+export function parseStickerNodeForExport(fNode: any): ParsedPipelineNodeType {
   const position = fNode.position;
   const mpeCode: Record<string, any> = {
     position: {

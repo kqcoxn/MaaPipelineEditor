@@ -20,6 +20,9 @@ const PipelineConfigSection = memo(() => {
   const exportDefaultRecoAction = useConfigStore(
     (state) => state.configs.exportDefaultRecoAction
   );
+  const pipelineProtocolVersion = useConfigStore(
+    (state) => state.configs.pipelineProtocolVersion
+  );
   const setConfig = useConfigStore((state) => state.setConfig);
   const nodes = useFlowStore((state) => state.nodes);
   const setNodes = useFlowStore((state) => state.setNodes);
@@ -144,6 +147,34 @@ const PipelineConfigSection = memo(() => {
           checkedChildren="导出"
           unCheckedChildren="省略"
           onChange={(checked) => setConfig("exportDefaultRecoAction", checked)}
+        />
+      </div>
+      {/* Pipeline 导出版本 */}
+      <div className={globalClass}>
+        <div className={style.key}>
+          <Popover
+            placement="bottomLeft"
+            title="Pipeline 导出版本"
+            content={
+              <TipElem
+                content={
+                  "v2：使用嵌套对象结构\n{ recognition: { type: 'X', param: {...} } }\n\nv1：参数平铺在节点根对象\n{ recognition: 'X', template: '...' }"
+                }
+              />
+            }
+          >
+            <span>Pipeline 导出版本</span>
+          </Popover>
+        </div>
+        <Select
+          className={style.value}
+          style={{ width: 90 }}
+          value={pipelineProtocolVersion}
+          onChange={(value) => setConfig("pipelineProtocolVersion", value)}
+          options={[
+            { value: "v2", label: "v2" },
+            { value: "v1", label: "v1" },
+          ]}
         />
       </div>
     </>
