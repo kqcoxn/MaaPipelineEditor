@@ -125,6 +125,7 @@ export function createStickerNode(
       content?: string;
       color?: StickerColorTheme;
     };
+    style?: Record<string, any>;
   }
 ): StickerNodeType {
   const {
@@ -132,7 +133,14 @@ export function createStickerNode(
     position = { x: 0, y: 0 },
     select = false,
     datas = {},
+    style,
   } = options ?? {};
+
+  // 确保 style 有有效的尺寸，否则使用默认值
+  const nodeStyle = {
+    width: style?.width ?? 200,
+    height: style?.height ?? 160,
+  };
 
   const node: StickerNodeType = {
     id,
@@ -144,7 +152,7 @@ export function createStickerNode(
     },
     position,
     selected: select,
-    style: { width: 200, height: 160 },
+    style: nodeStyle,
   };
   return node;
 }
@@ -287,6 +295,11 @@ export function createGroupNode(
     style,
   } = options ?? {};
 
+  const nodeStyle = {
+    width: style?.width ?? 400,
+    height: style?.height ?? 300,
+  };
+
   const node: GroupNodeType = {
     id,
     type: NodeTypeEnum.Group,
@@ -296,7 +309,7 @@ export function createGroupNode(
     },
     position,
     selected: select,
-    style: style ?? { width: 400, height: 300 },
+    style: nodeStyle,
   };
   return node;
 }

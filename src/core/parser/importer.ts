@@ -266,15 +266,11 @@ export async function pipelineToFlow(
             content: mpeCode?.content ?? "",
             color: mpeCode?.color ?? "yellow",
           },
+          style: {
+            ...(mpeCode?.width && { width: mpeCode.width }),
+            ...(mpeCode?.height && { height: mpeCode.height }),
+          },
         });
-        // 恢复尺寸
-        if (mpeCode?.width || mpeCode?.height) {
-          stickerNode.style = {
-            ...stickerNode.style,
-            ...(mpeCode.width && { width: mpeCode.width }),
-            ...(mpeCode.height && { height: mpeCode.height }),
-          };
-        }
         if (mpeCode?.position) isIncludePos = true;
 
         // 分配顺序号

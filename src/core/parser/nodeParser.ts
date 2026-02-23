@@ -205,8 +205,10 @@ export function parseStickerNodeForExport(fNode: any): ParsedPipelineNodeType {
     color: fNode.data.color ?? "yellow",
   };
   // 保存尺寸
-  if (fNode.style?.width) mpeCode.width = fNode.style.width;
-  if (fNode.style?.height) mpeCode.height = fNode.style.height;
+  const width = fNode.measured?.width ?? fNode.style?.width;
+  const height = fNode.measured?.height ?? fNode.style?.height;
+  if (width) mpeCode.width = Math.round(width);
+  if (height) mpeCode.height = Math.round(height);
   const pNode: ParsedPipelineNodeType = {
     [configMark]: mpeCode,
   };
@@ -239,8 +241,10 @@ export function parseGroupNodeForExport(
     childrenLabels,
   };
   // 保存尺寸
-  if (fNode.style?.width) mpeCode.width = fNode.style.width;
-  if (fNode.style?.height) mpeCode.height = fNode.style.height;
+  const width = fNode.measured?.width ?? fNode.style?.width;
+  const height = fNode.measured?.height ?? fNode.style?.height;
+  if (width) mpeCode.width = Math.round(width);
+  if (height) mpeCode.height = Math.round(height);
   const pNode: ParsedPipelineNodeType = {
     [configMark]: mpeCode,
   };
