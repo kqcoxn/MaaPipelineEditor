@@ -23,6 +23,7 @@ import {
   findNodeById,
   findNodeIndexById,
   calcuNodePosition,
+  getNodeAbsolutePosition,
   checkRepeatNodeLabelList as checkRepeatNodeLabelListUtil,
   ensureGroupNodeOrder,
 } from "../utils/nodeUtils";
@@ -198,7 +199,7 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
         label,
         position:
           position ??
-          calcuNodePosition(selectedNodes, state.viewport, state.size),
+          calcuNodePosition(selectedNodes, state.viewport, state.size, nodes),
         datas: {
           ...data,
           handleDirection,
@@ -537,17 +538,8 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       selected.forEach((node) => {
         const w = node.measured?.width ?? 200;
         const h = node.measured?.height ?? 100;
-        // 如果节点有 parentId，需转换为绝对坐标
-        const absPos = { ...node.position };
-        if ((node as any).parentId) {
-          const parent = state.nodes.find(
-            (n) => n.id === (node as any).parentId
-          );
-          if (parent) {
-            absPos.x += parent.position.x;
-            absPos.y += parent.position.y;
-          }
-        }
+        // 获取绝对坐标
+        const absPos = getNodeAbsolutePosition(node, state.nodes);
         minX = Math.min(minX, absPos.x);
         minY = Math.min(minY, absPos.y);
         maxX = Math.max(maxX, absPos.x + w);
@@ -579,17 +571,8 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       const selectedIds = new Set(selected.map((n) => n.id));
       let nodes = state.nodes.map((node) => {
         if (!selectedIds.has(node.id)) return node;
-        // 计算绝对位置
-        const absPos = { ...node.position };
-        if ((node as any).parentId) {
-          const parent = state.nodes.find(
-            (n) => n.id === (node as any).parentId
-          );
-          if (parent) {
-            absPos.x += parent.position.x;
-            absPos.y += parent.position.y;
-          }
-        }
+        // 获取绝对位置
+        const absPos = getNodeAbsolutePosition(node, state.nodes);
         return {
           ...node,
           parentId: groupId,

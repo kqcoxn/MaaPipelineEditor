@@ -55,6 +55,7 @@ export {
   findNodeLabelById,
   findNodeByLabel,
   getSelectedNodes,
+  getNodeAbsolutePosition,
   calcuNodePosition,
   ensureGroupNodeOrder,
 } from "./utils/nodeUtils";
@@ -94,16 +95,14 @@ export function checkRepeatNodeLabelList(): string[] {
  */
 export function getNextNodes(nodeId: string): string[] {
   const edges = useFlowStore.getState().edges;
-  
+
   // 筛选出 source 为指定 nodeId 且 sourceHandle 包含 "next" 的边
   const nextEdges = edges.filter(
     (edge) => edge.source === nodeId && edge.sourceHandle?.includes("next")
   );
-  
+
   // 提取 target 节点 ID 并去重
-  const nextNodeIds = Array.from(
-    new Set(nextEdges.map((edge) => edge.target))
-  );
-  
+  const nextNodeIds = Array.from(new Set(nextEdges.map((edge) => edge.target)));
+
   return nextNodeIds;
 }
