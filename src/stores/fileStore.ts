@@ -318,7 +318,8 @@ type FileState = {
   ) => Promise<boolean>;
   saveFileToLocal: (
     filePath?: string,
-    fileToSave?: FileType
+    fileToSave?: FileType,
+    saveMode?: "all" | "pipeline" | "config"
   ) => Promise<boolean>;
   markFileDeleted: (filePath: string) => void;
   markFileModified: (filePath: string) => void;
@@ -604,7 +605,8 @@ export const useFileStore = create<FileState>()((set) => ({
   // 保存文件到本地
   async saveFileToLocal(
     filePath?: string,
-    fileToSave?: FileType
+    fileToSave?: FileType,
+    saveMode?: "all" | "pipeline" | "config"
   ): Promise<boolean> {
     try {
       const state = useFileStore.getState();
@@ -638,8 +640,26 @@ export const useFileStore = create<FileState>()((set) => ({
         filePath: targetFilePath,
       };
 
-      // 在发送请求之前先注册等待确认的回调
-      const ackPromise = FileProtocol.waitForSaveAck(targetFilePath);
+      // 生成配置文件路径
+      const generateConfigPath = (pipelinePath: string): string => {
+        const lastSlashIndex = Math.max(
+          pipelinePath.lastIndexOf("/"),
+          pipelinePath.lastIndexOf("\\")
+        );
+        const directory = pipelinePath.substring(0, lastSlashIndex + 1);
+        const fileName = pipelinePath.substring(lastSlashIndex + 1);
+
+        // 如果已经是 .mpe.json 文件，直接返回
+        if (fileName.endsWith(".mpe.json") || fileName.endsWith(".mpe.jsonc")) {
+          return pipelinePath;
+        }
+
+        const baseName = fileName.replace(/\.(json|jsonc)$/i, "");
+        return `${directory}.${baseName}.mpe.json`;
+      };
+
+      // 根据保存模式确定要等待 ACK 的文件路径
+      let ackFilePath = targetFilePath;
 
       if (configHandlingMode === "separated") {
         // 分离模式保存
@@ -647,26 +667,40 @@ export const useFileStore = create<FileState>()((set) => ({
           flowToSeparatedStrings(exportOptions);
         const pipeline = JSON.parse(pipelineString);
         const config = JSON.parse(configString);
+        const configPath = generateConfigPath(targetFilePath);
 
-        // 生成配置文件路径
-        const lastSlashIndex = Math.max(
-          targetFilePath.lastIndexOf("/"),
-          targetFilePath.lastIndexOf("\\")
-        );
-        const directory = targetFilePath.substring(0, lastSlashIndex + 1);
-        const fileName = targetFilePath.substring(lastSlashIndex + 1);
-        const baseName = fileName.replace(/\.(json|jsonc)$/i, "");
-        const configPath = `${directory}.${baseName}.mpe.json`;
+        // 根据保存模式决定保存哪些内容
+        const effectiveMode = saveMode || "all";
 
-        sendSuccess = localServer.send("/etl/save_separated", {
-          pipeline_path: targetFilePath,
-          config_path: configPath,
-          pipeline,
-          config,
-        });
-
-        if (sendSuccess) {
-          configUpdates.separatedConfigPath = configPath;
+        if (effectiveMode === "all") {
+          // 全部保存
+          ackFilePath = targetFilePath;
+          sendSuccess = localServer.send("/etl/save_separated", {
+            pipeline_path: targetFilePath,
+            config_path: configPath,
+            pipeline,
+            config,
+          });
+          if (sendSuccess) {
+            configUpdates.separatedConfigPath = configPath;
+          }
+        } else if (effectiveMode === "pipeline") {
+          // 等待 pipeline 路径的 ack
+          ackFilePath = targetFilePath;
+          sendSuccess = localServer.send("/etl/save_file", {
+            file_path: targetFilePath,
+            content: pipeline,
+          });
+        } else if (effectiveMode === "config") {
+          // 等待 config 路径的 ack
+          ackFilePath = configPath;
+          sendSuccess = localServer.send("/etl/save_file", {
+            file_path: configPath,
+            content: config,
+          });
+          if (sendSuccess) {
+            configUpdates.separatedConfigPath = configPath;
+          }
         }
       } else {
         // 集成模式或不导出模式
@@ -682,6 +716,9 @@ export const useFileStore = create<FileState>()((set) => ({
         console.error("[fileStore] Failed to send save request");
         return false;
       }
+
+      // 等待确认回调
+      const ackPromise = FileProtocol.waitForSaveAck(ackFilePath);
 
       // 等待后端确认
       const ackSuccess = await ackPromise;

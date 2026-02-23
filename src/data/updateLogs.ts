@@ -55,6 +55,7 @@ export const updateLogs: UpdateLogItem[] = [
       features: [
         "😎 现在可以指定 pipeline 导出的协议版本了！",
         "🤐 新增忽略字段校验选项，在字段类型与预设不一致时可跳过校验",
+        "🗂️ 分离模式下“保存到本地”功能拆分为“全部保存”、“仅 Pipeline”与“仅配置”",
       ],
       perfs: [
         "优化自动布局方案",

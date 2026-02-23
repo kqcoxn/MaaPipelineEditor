@@ -16,6 +16,9 @@ export type ExportAction =
   | "clipboard"
   | "file"
   | "save-local"
+  | "save-local-all"
+  | "save-local-pipeline"
+  | "save-local-config"
   | "create-local"
   | "partial"
   | "export-pipeline"
@@ -79,6 +82,9 @@ function isValidExportAction(action: string): boolean {
     "clipboard",
     "file",
     "save-local",
+    "save-local-all",
+    "save-local-pipeline",
+    "save-local-config",
     "create-local",
     "partial",
     "export-pipeline",

@@ -53,8 +53,8 @@ function ExportButton() {
     setExportModalVisible(true);
   };
 
-  const handleSaveToLocal = async () => {
-    const success = await saveFileToLocal();
+  const handleSaveToLocal = async (mode?: "all" | "pipeline" | "config") => {
+    const success = await saveFileToLocal(undefined, undefined, mode);
     if (!success) {
       message.error("文件保存失败");
     }
@@ -100,6 +100,15 @@ function ExportButton() {
       case "save-local":
         handleSaveToLocal();
         break;
+      case "save-local-all":
+        handleSaveToLocal("all");
+        break;
+      case "save-local-pipeline":
+        handleSaveToLocal("pipeline");
+        break;
+      case "save-local-config":
+        handleSaveToLocal("config");
+        break;
       case "partial":
         handlePartialExport();
         break;
@@ -143,14 +152,48 @@ function ExportButton() {
 
     // 仅在已连接本地服务且存在当前文件路径时显示
     if (wsConnected && currentFilePath) {
-      items.push({
-        key: "save-local",
-        label: "保存到本地",
-        onClick: () => {
-          setDefaultExportAction("save-local");
-          executeExportAction("save-local");
-        },
-      });
+      if (configHandlingMode === "separated") {
+        // 分离导出模式下显示子菜单
+        items.push({
+          key: "save-local-group",
+          label: "保存到本地",
+          children: [
+            {
+              key: "save-local-all",
+              label: "全部保存",
+              onClick: () => {
+                setDefaultExportAction("save-local-all");
+                executeExportAction("save-local-all");
+              },
+            },
+            {
+              key: "save-local-pipeline",
+              label: "仅保存 Pipeline",
+              onClick: () => {
+                setDefaultExportAction("save-local-pipeline");
+                executeExportAction("save-local-pipeline");
+              },
+            },
+            {
+              key: "save-local-config",
+              label: "仅保存配置",
+              onClick: () => {
+                setDefaultExportAction("save-local-config");
+                executeExportAction("save-local-config");
+              },
+            },
+          ],
+        });
+      } else {
+        items.push({
+          key: "save-local",
+          label: "保存到本地",
+          onClick: () => {
+            setDefaultExportAction("save-local");
+            executeExportAction("save-local");
+          },
+        });
+      }
     }
 
     // 仅在已连接本地服务时显示
@@ -221,6 +264,12 @@ function ExportButton() {
         return { buttonLabel: "导出", currentActionDesc: "文件" };
       case "save-local":
         return { buttonLabel: "导出", currentActionDesc: "本地" };
+      case "save-local-all":
+        return { buttonLabel: "导出", currentActionDesc: "全部" };
+      case "save-local-pipeline":
+        return { buttonLabel: "导出", currentActionDesc: "Pipeline" };
+      case "save-local-config":
+        return { buttonLabel: "导出", currentActionDesc: "配置" };
       case "partial":
         return { buttonLabel: "导出", currentActionDesc: "部分" };
       case "export-pipeline":
