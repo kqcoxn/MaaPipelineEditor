@@ -575,7 +575,7 @@ export const ParamFieldListElem = memo(
                   style={{ marginLeft: 14 }}
                   checkedChildren="true"
                   unCheckedChildren="false"
-                  defaultChecked={value}
+                  checked={value}
                   onChange={(e) => onChange(key, e)}
                 />
               </div>
