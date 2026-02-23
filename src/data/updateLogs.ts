@@ -61,6 +61,7 @@ export const updateLogs: UpdateLogItem[] = [
       fixes: [
         "修复由 on_error 到外部与 anchor jumpback 的渲染问题",
         "修复 bool 类型字段在面板渲染异常问题",
+        "修复多个节点拖入分组框后只绑定一个节点的问题",
         "修复 lb 无法监测文件修改、删除、重命名与新增目录等问题",
         "修复修改 lb 配置后失效的问题",
         "修复同步多个本地文件时的丢失问题",

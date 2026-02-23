@@ -343,45 +343,53 @@ function MainFlow() {
       // 拖入/拖出分组检测
       if (draggedNode.type === NodeTypeEnum.Group) return;
       const currentNodes = useFlowStore.getState().nodes;
-      // 获取最新的节点数据
-      const currentDraggedNode = currentNodes.find((n) => n.id === draggedNode.id);
-      if (!currentDraggedNode) return;
-      
-      const hasParent = !!(currentDraggedNode as any).parentId;
+      const selectedNodes = useFlowStore.getState().selectedNodes;
+      const rfInstance = useFlowStore.getState().instance;
 
-      if (hasParent) {
-        // 检测是否拖出了父 Group 的范围
-        const parentId = (currentDraggedNode as any).parentId;
-        const parentNode = currentNodes.find((n) => n.id === parentId);
-        if (parentNode) {
-          // 优先使用测量尺寸
-          const pw = parentNode.measured?.width ?? (parentNode as any).style?.width ?? 400;
-          const ph = parentNode.measured?.height ?? (parentNode as any).style?.height ?? 300;
-          const nx = currentDraggedNode.position.x;  
-          const ny = currentDraggedNode.position.y;  
-          const nw = currentDraggedNode.measured?.width ?? 200;
-          const nh = currentDraggedNode.measured?.height ?? 100;
-          
-          // 如果节点中心在 parent 外部则脱离
-          const cx = nx + nw / 2;
-          const cy = ny + nh / 2;
-          
-          if (cx < 0 || cy < 0 || cx > pw || cy > ph) {
-            detachNodeFromGroup(currentDraggedNode.id);
+      // 获取需要处理的节点：所有选中的非分组节点
+      const nodesToProcess = selectedNodes.filter(
+        (n) => n.type !== NodeTypeEnum.Group
+      );
+      if (nodesToProcess.length === 0 || !rfInstance) return;
+
+      nodesToProcess.forEach((node) => {
+        // 获取最新的节点数据
+        const currentNode = currentNodes.find((n) => n.id === node.id);
+        if (!currentNode) return;
+
+        const hasParent = !!(currentNode as any).parentId;
+
+        if (hasParent) {
+          // 检测是否拖出了父 Group 的范围
+          const parentId = (currentNode as any).parentId;
+          const parentNode = currentNodes.find((n) => n.id === parentId);
+          if (parentNode) {
+            // 优先使用测量尺寸
+            const pw = parentNode.measured?.width ?? (parentNode as any).style?.width ?? 400;
+            const ph = parentNode.measured?.height ?? (parentNode as any).style?.height ?? 300;
+            const nx = currentNode.position.x;
+            const ny = currentNode.position.y;
+            const nw = currentNode.measured?.width ?? 200;
+            const nh = currentNode.measured?.height ?? 100;
+
+            // 如果节点中心在 parent 外部则脱离
+            const cx = nx + nw / 2;
+            const cy = ny + nh / 2;
+
+            if (cx < 0 || cy < 0 || cx > pw || cy > ph) {
+              detachNodeFromGroup(currentNode.id);
+            }
           }
-        }
-      } else {
-        const rfInstance = useFlowStore.getState().instance;
-        if (rfInstance) {
-          const intersecting = rfInstance.getIntersectingNodes(currentDraggedNode as any);
+        } else {
+          const intersecting = rfInstance.getIntersectingNodes(currentNode as any);
           const groupHit = intersecting.find(
             (n: any) => n.type === NodeTypeEnum.Group
           );
           if (groupHit) {
-            attachNodeToGroup(currentDraggedNode.id, groupHit.id);
+            attachNodeToGroup(currentNode.id, groupHit.id);
           }
         }
-      }
+      });
     },
     [enableNodeSnap, nodes, updateNodes, attachNodeToGroup, detachNodeFromGroup]
   );
