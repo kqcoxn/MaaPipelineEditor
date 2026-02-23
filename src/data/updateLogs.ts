@@ -57,6 +57,7 @@ export const updateLogs: UpdateLogItem[] = [
       fixes: [
         "修复由 on_error 到外部与 anchor jumpback 的渲染问题",
         "修复修改 lb 配置后失效的问题",
+        "修复同步多个本地文件时的丢失问题",
         "修复节点导入与导出顺序不一致的问题",
       ],
     },

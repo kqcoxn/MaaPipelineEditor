@@ -18,6 +18,8 @@ export class FileProtocol extends BaseProtocol {
   private currentModal: ReturnType<typeof Modal.confirm> | null = null;
   // 最近保存的文件路径
   private recentlySavedFiles: Set<string> = new Set();
+  // 待处理的变更文件
+  private pendingModifiedFiles: Map<string, string> = new Map();
   getName(): string {
     return "FileProtocol";
   }
@@ -397,29 +399,76 @@ export class FileProtocol extends BaseProtocol {
       return;
     }
 
-    // 确保只显示一个
+    // 收集变更文件
+    this.pendingModifiedFiles.set(filePath, fileName);
+
+    // 如果已有 Modal 显示更新内容
     if (this.currentModal) {
-      this.currentModal.destroy();
+      this.updateFileChangedModal();
+      return;
     }
 
-    const handleReload = () => {
-      this.requestFileReload(filePath);
+    this.showFileChangedModal();
+  }
+
+  /**
+   * 显示/更新文件变更 Modal
+   */
+  private showFileChangedModal(): void {
+    const configStore = useConfigStore.getState();
+
+    const handleReloadAll = () => {
+      // 重新加载所有变更文件
+      const filePaths = Array.from(this.pendingModifiedFiles.keys());
+      this.pendingModifiedFiles.clear();
+      this.currentModal?.destroy();
+      this.currentModal = null;
+
+      // 如果有变更重新加载当前文件
+      const currentFilePath =
+        useFileStore.getState().currentFile.config.filePath;
+      if (currentFilePath && filePaths.includes(currentFilePath)) {
+        this.requestOpenFile(currentFilePath);
+      } else if (filePaths.length > 0) {
+        // 加载第一个变更文件
+        this.requestOpenFile(filePaths[0]);
+      }
     };
 
     const handleDismiss = () => {
+      this.pendingModifiedFiles.clear();
       this.currentModal?.destroy();
       this.currentModal = null;
     };
 
     const handleAutoReload = () => {
       configStore.setConfig("fileAutoReload", true);
-      this.requestFileReload(filePath);
+      this.pendingModifiedFiles.clear();
+      this.currentModal?.destroy();
+      this.currentModal = null;
       message.success("已开启自动重载，后续文件变更将自动应用");
+    };
+
+    const buildModalContent = (): string => {
+      const count = this.pendingModifiedFiles.size;
+      if (count === 1) {
+        const fileName = Array.from(this.pendingModifiedFiles.values())[0];
+        return `文件"${fileName}"已被外部修改，请选择处理方式：`;
+      }
+      const fileNames = Array.from(this.pendingModifiedFiles.values());
+      const displayNames =
+        fileNames.length <= 3
+          ? fileNames.map((n) => `"${n}"`).join("、")
+          : `${fileNames
+              .slice(0, 3)
+              .map((n) => `"${n}"`)
+              .join("、")} 等 ${count} 个文件`;
+      return `${displayNames}已被外部修改，请选择处理方式：`;
     };
 
     this.currentModal = Modal.confirm({
       title: "文件已被外部修改",
-      content: `文件"${fileName}"已被外部修改，请选择处理方式：`,
+      content: buildModalContent(),
       icon: null,
       closable: true,
       maskClosable: false,
@@ -432,7 +481,7 @@ export class FileProtocol extends BaseProtocol {
         createElement(Button, { onClick: handleAutoReload }, "自动重载"),
         createElement(
           Button,
-          { type: "primary", onClick: handleReload },
+          { type: "primary", onClick: handleReloadAll },
           "重新加载"
         )
       ),
@@ -440,5 +489,26 @@ export class FileProtocol extends BaseProtocol {
         this.currentModal = null;
       },
     });
+  }
+
+  /**
+   * 更新已显示的文件变更 Modal 内容
+   */
+  private updateFileChangedModal(): void {
+    if (!this.currentModal) return;
+
+    const count = this.pendingModifiedFiles.size;
+    const fileNames = Array.from(this.pendingModifiedFiles.values());
+    const displayNames =
+      fileNames.length <= 3
+        ? fileNames.map((n) => `"${n}"`).join("、")
+        : `${fileNames
+            .slice(0, 3)
+            .map((n) => `"${n}"`)
+            .join("、")} 等 ${count} 个文件`;
+
+    this.currentModal.destroy();
+    this.currentModal = null;
+    this.showFileChangedModal();
   }
 }

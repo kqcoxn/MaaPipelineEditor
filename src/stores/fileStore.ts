@@ -7,6 +7,13 @@ import { visit } from "jsonc-parser";
 import { useFlowStore, type NodeType, type EdgeType } from "./flow";
 import { useConfigStore } from "./configStore";
 import { normalizeViewport } from "./flow/utils/viewportUtils";
+import {
+  pipelineToFlow,
+  flowToPipeline,
+  flowToSeparatedStrings,
+  mergePipelineAndConfig,
+} from "../core/parser";
+import { localServer } from "../services/server";
 
 export type FileConfigType = {
   prefix: string;
@@ -73,6 +80,103 @@ function createFile(options?: { fileName?: string; config?: any }): FileType {
   };
 }
 const defaltFile = createFile();
+
+/** 同步 FlowStore 数据到 FileStore.currentFile 和 files 数组 */
+function syncFlowStoreToFileStore(
+  additionalConfig?: Partial<FileConfigType>
+): void {
+  const flowStore = useFlowStore.getState();
+  useFileStore.setState((state) => {
+    // 更新 currentFile
+    state.currentFile.nodes = flowStore.nodes.map((node: NodeType) => ({
+      ...node,
+      selected: undefined,
+    }));
+    state.currentFile.edges = flowStore.edges.map((edge: EdgeType) => ({
+      ...edge,
+      selected: undefined,
+    }));
+    if (additionalConfig) {
+      state.currentFile.config = {
+        ...state.currentFile.config,
+        ...additionalConfig,
+      };
+    }
+
+    // 同步更新 files 数组中对应的文件
+    const currentFileName = state.currentFile.fileName;
+    const fileIndex = state.files.findIndex(
+      (f) => f.fileName === currentFileName
+    );
+    if (fileIndex >= 0) {
+      state.files[fileIndex] = {
+        ...state.files[fileIndex],
+        nodes: state.currentFile.nodes,
+        edges: state.currentFile.edges,
+        config: state.currentFile.config,
+      };
+    }
+
+    return {};
+  });
+}
+
+/** 从 JSONC 内容中提取顶层键顺序 */
+function extractKeyOrder(contentString: string): string[] {
+  const keyOrder: string[] = [];
+  let currentDepth = 0;
+  try {
+    visit(
+      contentString,
+      {
+        onObjectBegin: () => {
+          currentDepth++;
+        },
+        onObjectEnd: () => {
+          currentDepth--;
+        },
+        onObjectProperty: (property) => {
+          if (currentDepth === 1) {
+            keyOrder.push(property);
+          }
+        },
+      },
+      { allowTrailingComma: true }
+    );
+  } catch (e) {
+    console.warn("[fileStore] Failed to extract key order:", e);
+  }
+  return keyOrder;
+}
+
+/** 保存后更新文件配置 */
+function updateFileConfigAfterSave(
+  fileName: string,
+  updates: Partial<FileConfigType>
+): void {
+  useFileStore.setState((state) => {
+    const fileIndex = state.files.findIndex((f) => f.fileName === fileName);
+    if (fileIndex >= 0) {
+      state.files[fileIndex] = {
+        ...state.files[fileIndex],
+        config: {
+          ...state.files[fileIndex].config,
+          ...updates,
+        },
+      };
+    }
+    if (state.currentFile.fileName === fileName) {
+      state.currentFile = {
+        ...state.currentFile,
+        config: {
+          ...state.currentFile.config,
+          ...updates,
+        },
+      };
+    }
+    return {};
+  });
+}
 
 // 保存Flow
 export function saveFlow(): FileType | null {
@@ -222,6 +326,8 @@ export const useFileStore = create<FileState>()((set) => ({
   // 切换文件
   switchFile: (fileName: string) => {
     let activeKey = null;
+    let needReload = false;
+    let reloadFilePath: string | undefined;
     set((state) => {
       // 查找文件
       let currentFile = state.currentFile;
@@ -229,6 +335,16 @@ export const useFileStore = create<FileState>()((set) => ({
       const targetFile = findFile(fileName);
       if (!targetFile) return {};
       activeKey = targetFile.fileName;
+
+      // 检测目标文件是否被外部修改
+      if (
+        targetFile.config.isModifiedExternally &&
+        targetFile.config.filePath
+      ) {
+        needReload = true;
+        reloadFilePath = targetFile.config.filePath;
+      }
+
       // 保存当前flow和视口位置
       saveFlow();
       const flowStore = useFlowStore.getState();
@@ -260,6 +376,18 @@ export const useFileStore = create<FileState>()((set) => ({
       }
       return { currentFile: targetFile };
     });
+
+    // 如果目标文件被外部修改，触发重载
+    if (needReload && reloadFilePath) {
+      setTimeout(() => {
+        import("../services/server").then(({ localServer }) => {
+          if (localServer.isConnected()) {
+            localServer.send("/etl/open_file", { file_path: reloadFilePath });
+          }
+        });
+      }, 0);
+    }
+
     return activeKey;
   },
 
@@ -347,39 +475,11 @@ export const useFileStore = create<FileState>()((set) => ({
     configPath?: string
   ): Promise<boolean> {
     try {
-      const { pipelineToFlow, mergePipelineAndConfig } = await import(
-        "../core/parser"
-      );
       const contentString =
         typeof content === "string" ? content : JSON.stringify(content);
 
       // 获取原始键顺序
-      const keyOrder: string[] = [];
-      let currentDepth = 0;
-      try {
-        visit(
-          contentString,
-          {
-            onObjectBegin: () => {
-              currentDepth++;
-            },
-            onObjectEnd: () => {
-              currentDepth--;
-            },
-            onObjectProperty: (property) => {
-              if (currentDepth === 1) {
-                keyOrder.push(property);
-              }
-            },
-          },
-          { allowTrailingComma: true }
-        );
-      } catch (visitError) {
-        console.warn(
-          "[fileStore] visit parse failed for key order:",
-          visitError
-        );
-      }
+      const keyOrder = extractKeyOrder(contentString);
 
       // 合并配置文件
       let finalContentString = contentString;
@@ -401,6 +501,15 @@ export const useFileStore = create<FileState>()((set) => ({
         }
       }
 
+      // 构建配置更新
+      const configUpdates: Partial<FileConfigType> = {
+        lastSyncTime: Date.now(),
+        isModifiedExternally: false,
+      };
+      if (configPath) {
+        configUpdates.separatedConfigPath = configPath;
+      }
+
       // 查找是否已有相同路径的文件打开
       const existingFile = useFileStore
         .getState()
@@ -410,18 +519,7 @@ export const useFileStore = create<FileState>()((set) => ({
         // 切换到已有文件并更新内容
         useFileStore.getState().switchFile(existingFile.fileName);
         await pipelineToFlow({ pString: finalContentString });
-        // 更新同步时间和配置路径
-        set((state) => {
-          const config = {
-            ...state.currentFile.config,
-            lastSyncTime: Date.now(),
-          };
-          if (configPath) {
-            config.separatedConfigPath = configPath;
-          }
-          state.currentFile.config = config;
-          return {};
-        });
+        syncFlowStoreToFileStore(configUpdates);
         return true;
       }
 
@@ -434,18 +532,7 @@ export const useFileStore = create<FileState>()((set) => ({
       ) {
         const savedViewport = currentFile.config.savedViewport;
         await pipelineToFlow({ pString: finalContentString });
-        set((state) => {
-          const config = {
-            ...state.currentFile.config,
-            filePath,
-            lastSyncTime: Date.now(),
-          };
-          if (configPath) {
-            config.separatedConfigPath = configPath;
-          }
-          state.currentFile.config = config;
-          return {};
-        });
+        syncFlowStoreToFileStore({ ...configUpdates, filePath });
         // 恢复视口
         if (savedViewport) {
           setTimeout(() => {
@@ -461,18 +548,7 @@ export const useFileStore = create<FileState>()((set) => ({
       // 新建文件
       useFileStore.getState().addFile({ isSwitch: true });
       await pipelineToFlow({ pString: finalContentString });
-      set((state) => {
-        const config = {
-          ...state.currentFile.config,
-          filePath,
-          lastSyncTime: Date.now(),
-        };
-        if (configPath) {
-          config.separatedConfigPath = configPath;
-        }
-        state.currentFile.config = config;
-        return {};
-      });
+      syncFlowStoreToFileStore({ ...configUpdates, filePath });
       return true;
     } catch (error) {
       console.error("[fileStore] Failed to open file from local:", error);
@@ -486,9 +562,6 @@ export const useFileStore = create<FileState>()((set) => ({
     fileToSave?: FileType
   ): Promise<boolean> {
     try {
-      const { flowToPipeline, flowToSeparatedStrings } = await import(
-        "../core/parser"
-      );
       const state = useFileStore.getState();
 
       // 优先使用传入的文件，否则使用当前文件
@@ -501,8 +574,6 @@ export const useFileStore = create<FileState>()((set) => ({
         console.error("[fileStore] No file path specified");
         return false;
       }
-
-      const { localServer } = await import("../services/server");
 
       if (!localServer.isConnected()) {
         console.error("[fileStore] WebSocket not connected");
@@ -518,6 +589,10 @@ export const useFileStore = create<FileState>()((set) => ({
       };
 
       let success = false;
+      const configUpdates: Partial<FileConfigType> = {
+        filePath: targetFilePath,
+        lastSyncTime: Date.now(),
+      };
 
       if (configHandlingMode === "separated") {
         // 分离模式保存
@@ -527,7 +602,6 @@ export const useFileStore = create<FileState>()((set) => ({
         const config = JSON.parse(configString);
 
         // 生成配置文件路径
-        // 从完整路径中提取目录和文件名
         const lastSlashIndex = Math.max(
           targetFilePath.lastIndexOf("/"),
           targetFilePath.lastIndexOf("\\")
@@ -545,37 +619,7 @@ export const useFileStore = create<FileState>()((set) => ({
         });
 
         if (success) {
-          // 更新文件路径和配置文件路径
-          set((state) => {
-            // 找到目标文件并更新
-            const fileIndex = state.files.findIndex(
-              (f) => f.fileName === targetFile.fileName
-            );
-            if (fileIndex >= 0) {
-              state.files[fileIndex] = {
-                ...state.files[fileIndex],
-                config: {
-                  ...state.files[fileIndex].config,
-                  filePath: targetFilePath,
-                  separatedConfigPath: configPath,
-                  lastSyncTime: Date.now(),
-                },
-              };
-            }
-            // 当前文件同步更新 currentFile
-            if (state.currentFile.fileName === targetFile.fileName) {
-              state.currentFile = {
-                ...state.currentFile,
-                config: {
-                  ...state.currentFile.config,
-                  filePath: targetFilePath,
-                  separatedConfigPath: configPath,
-                  lastSyncTime: Date.now(),
-                },
-              };
-            }
-            return {};
-          });
+          configUpdates.separatedConfigPath = configPath;
         }
       } else {
         // 集成模式或不导出模式
@@ -585,38 +629,10 @@ export const useFileStore = create<FileState>()((set) => ({
           file_path: targetFilePath,
           content: pipeline,
         });
+      }
 
-        if (success) {
-          // 更新文件路径和同步时间
-          set((state) => {
-            // 找到目标文件并更新
-            const fileIndex = state.files.findIndex(
-              (f) => f.fileName === targetFile.fileName
-            );
-            if (fileIndex >= 0) {
-              state.files[fileIndex] = {
-                ...state.files[fileIndex],
-                config: {
-                  ...state.files[fileIndex].config,
-                  filePath: targetFilePath,
-                  lastSyncTime: Date.now(),
-                },
-              };
-            }
-            // 当前文件同步更新 currentFile
-            if (state.currentFile.fileName === targetFile.fileName) {
-              state.currentFile = {
-                ...state.currentFile,
-                config: {
-                  ...state.currentFile.config,
-                  filePath: targetFilePath,
-                  lastSyncTime: Date.now(),
-                },
-              };
-            }
-            return {};
-          });
-        }
+      if (success) {
+        updateFileConfigAfterSave(targetFile.fileName, configUpdates);
       }
 
       return success;
@@ -629,39 +645,50 @@ export const useFileStore = create<FileState>()((set) => ({
   // 标记文件为已删除
   markFileDeleted(filePath: string): void {
     set((state) => {
-      const files = state.files.map((file) => {
+      const currentFilePath = state.currentFile.config.filePath;
+      state.files = state.files.map((file) => {
         if (file.config.filePath === filePath) {
-          return {
+          const updated = {
             ...file,
             config: { ...file.config, isDeleted: true },
           };
+          // 如果是当前文件，同步更新 currentFile
+          if (filePath === currentFilePath) {
+            state.currentFile = updated;
+          }
+          return updated;
         }
         return file;
       });
-      return { files };
+      return {};
     });
   },
 
   // 标记文件被外部修改
   markFileModified(filePath: string): void {
     set((state) => {
-      const files = state.files.map((file) => {
+      const currentFilePath = state.currentFile.config.filePath;
+      state.files = state.files.map((file) => {
         if (file.config.filePath === filePath) {
-          return {
+          const updated = {
             ...file,
             config: { ...file.config, isModifiedExternally: true },
           };
+          // 如果是当前文件，同步更新 currentFile
+          if (filePath === currentFilePath) {
+            state.currentFile = updated;
+          }
+          return updated;
         }
         return file;
       });
-      return { files };
+      return {};
     });
   },
 
   // 重新加载文件
   async reloadFileFromLocal(filePath: string, content: any): Promise<boolean> {
     try {
-      const { pipelineToFlow } = await import("../core/parser");
       const contentString =
         typeof content === "string" ? content : JSON.stringify(content);
 
@@ -675,21 +702,14 @@ export const useFileStore = create<FileState>()((set) => ({
         return false;
       }
 
-      // 切换到该文件
+      // 切换到该文件并重新加载
       useFileStore.getState().switchFile(targetFile.fileName);
-
-      // 重新加载Pipeline
       await pipelineToFlow({ pString: contentString });
 
-      // 清除修改标记并更新同步时间
-      set((state) => {
-        const config = {
-          ...state.currentFile.config,
-          isModifiedExternally: false,
-          lastSyncTime: Date.now(),
-        };
-        state.currentFile.config = config;
-        return {};
+      // 同步 FlowStore 数据到 FileStore，清除修改标记
+      syncFlowStoreToFileStore({
+        isModifiedExternally: false,
+        lastSyncTime: Date.now(),
       });
 
       return true;
