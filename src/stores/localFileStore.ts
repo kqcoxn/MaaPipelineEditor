@@ -84,6 +84,12 @@ type LocalFileState = {
   // 增量删除文件
   removeFile: (filePath: string) => void;
 
+  // 根据路径前缀批量删除文件
+  removeFilesByPrefix: (pathPrefix: string) => void;
+
+  // 添加新文件
+  addFileWithInfo: (filePath: string, info: Partial<LocalFileInfo>) => void;
+
   // 更新文件（修改时间戳）
   updateFile: (filePath: string) => void;
 
@@ -171,6 +177,57 @@ export const useLocalFileStore = create<LocalFileState>()((set, get) => ({
       files: state.files.filter((f) => f.file_path !== filePath),
       lastUpdateTime: Date.now(),
     }));
+  },
+
+  // 根据路径前缀批量删除文件（用于目录删除）
+  removeFilesByPrefix(pathPrefix: string) {
+    const separator = pathPrefix.includes("/") ? "/" : "\\";
+    const prefixWithSep = pathPrefix.endsWith(separator)
+      ? pathPrefix
+      : pathPrefix + separator;
+    set((state) => {
+      const before = state.files.length;
+      const newFiles = state.files.filter(
+        (f) => !f.file_path.startsWith(prefixWithSep)
+      );
+      const removed = before - newFiles.length;
+      if (removed > 0) {
+        return {
+          files: newFiles,
+          lastUpdateTime: Date.now(),
+        };
+      }
+      return {};
+    });
+  },
+
+  // 添加新文件（带完整信息）
+  addFileWithInfo(filePath: string, info: Partial<LocalFileInfo>) {
+    set((state) => {
+      // 检查是否已存在
+      const exists = state.files.some((f) => f.file_path === filePath);
+      if (exists) {
+        return {};
+      }
+
+      const fileName = filePath.split(/[\/\\]/).pop() || "";
+      const relPath = filePath
+        .replace(state.rootPath, "")
+        .replace(/^[\/\\]/, "");
+
+      const newFile: LocalFileInfo = {
+        file_path: filePath,
+        file_name: fileName,
+        relative_path: relPath,
+        nodes: info.nodes || [],
+        prefix: info.prefix || "",
+      };
+
+      return {
+        files: [...state.files, newFile],
+        lastUpdateTime: Date.now(),
+      };
+    });
   },
 
   // 更新文件

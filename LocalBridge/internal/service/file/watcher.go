@@ -17,12 +17,15 @@ const (
 	ChangeTypeCreated  ChangeType = "created"
 	ChangeTypeModified ChangeType = "modified"
 	ChangeTypeDeleted  ChangeType = "deleted"
+	ChangeTypeRenamed  ChangeType = "renamed"
 )
 
 // 文件变化事件
 type FileChange struct {
-	Type     ChangeType
-	FilePath string
+	Type        ChangeType
+	FilePath    string
+	IsDirectory bool   // 是否为目录变更
+	OldPath     string // 重命名时的旧路径
 }
 
 // 文件变化处理函数类型
@@ -109,29 +112,74 @@ func (w *Watcher) handleEvents() {
 
 // 处理单个文件系统事件
 func (w *Watcher) processEvent(event fsnotify.Event) {
-	// 检查文件扩展名
-	if !w.hasValidExtension(event.Name) {
-		return
-	}
+	// 检查路径是否存在
+	info, err := os.Stat(event.Name)
+	exists := err == nil
+	isDir := exists && info.IsDir()
 
 	// 确定变化类型
 	var changeType ChangeType
+	var isDirectory bool
+	var oldPath string
+
 	if event.Op&fsnotify.Create == fsnotify.Create {
+		// 创建事件
+		if !exists {
+			return
+		}
 		changeType = ChangeTypeCreated
+		isDirectory = isDir
+
+		// 新建目录添加到监听
+		if isDir {
+			if err := w.watcher.Add(event.Name); err != nil {
+				logger.Error("FileWatcher", "添加目录监听失败: %s, %v", event.Name, err)
+			} else {
+				logger.Debug("FileWatcher", "新增目录监听: %s", event.Name)
+			}
+		}
+
 	} else if event.Op&fsnotify.Write == fsnotify.Write {
+		// 修改事件
+		if isDir {
+			return
+		}
 		changeType = ChangeTypeModified
+		isDirectory = false
+
 	} else if event.Op&fsnotify.Remove == fsnotify.Remove {
+		// 删除事件
 		changeType = ChangeTypeDeleted
+		isDirectory = true
+
+	} else if event.Op&fsnotify.Rename == fsnotify.Rename {
+		// 重命名事件
+		changeType = ChangeTypeRenamed
+		oldPath = event.Name
+		isDirectory = true
+
 	} else {
 		return
 	}
 
-	// 使用防抖处理
-	w.debouncer.debounce(event.Name, func() {
+	// 文件变更
+	if !isDirectory && !w.hasValidExtension(event.Name) {
+		return
+	}
+
+	// 防抖
+	debounceKey := event.Name
+	if changeType == ChangeTypeRenamed {
+		debounceKey = "rename:" + event.Name
+	}
+
+	w.debouncer.debounce(debounceKey, func() {
 		if w.handler != nil {
 			w.handler(FileChange{
-				Type:     changeType,
-				FilePath: event.Name,
+				Type:        changeType,
+				FilePath:    event.Name,
+				IsDirectory: isDirectory,
+				OldPath:     oldPath,
 			})
 		}
 	})

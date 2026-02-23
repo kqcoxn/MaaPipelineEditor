@@ -146,7 +146,7 @@ export class FileProtocol extends BaseProtocol {
    */
   private handleFileChanged(data: any): void {
     try {
-      const { type, file_path } = data;
+      const { type, file_path, is_directory } = data;
 
       if (!type || !file_path) {
         console.error("[FileProtocol] Invalid file changed data:", data);
@@ -164,7 +164,7 @@ export class FileProtocol extends BaseProtocol {
         case "modified":
           localFileStore.updateFile(file_path);
 
-          // 检查是否是最近保存的文件（1秒内的变更视为自身保存）
+          // 检查是否是最近保存的文件
           const lastSaveTime = this.recentlySavedFiles.get(file_path);
           if (lastSaveTime && Date.now() - lastSaveTime < 1000) {
             return;
@@ -179,14 +179,47 @@ export class FileProtocol extends BaseProtocol {
           break;
 
         case "deleted":
-          localFileStore.removeFile(file_path);
-
-          // 标记已打开的文件为已删除
-          const deletedFile = fileStore.findFileByPath(file_path);
-          if (deletedFile) {
-            fileStore.markFileDeleted(file_path);
-            message.warning(`文件"${fileName}"已被删除`);
+          // 目录删除
+          if (is_directory) {
+            // 清理已打开的文件
+            const filesToRemove = fileStore.files.filter(
+              (f) =>
+                f.config.filePath &&
+                f.config.filePath.startsWith(
+                  file_path + (file_path.includes("/") ? "/" : "\\")
+                )
+            );
+            filesToRemove.forEach((f) => {
+              if (f.config.filePath) {
+                fileStore.markFileDeleted(f.config.filePath);
+              }
+            });
+          } else {
+            localFileStore.removeFile(file_path);
+            // 标记已打开的文件为已删除
+            const deletedFile = fileStore.findFileByPath(file_path);
+            if (deletedFile) {
+              fileStore.markFileDeleted(file_path);
+              message.warning(`文件"${fileName}"已被删除`);
+            }
           }
+          break;
+
+        case "renamed":
+          // 重命名
+          const renamedFiles = fileStore.files.filter(
+            (f) =>
+              f.config.filePath &&
+              (f.config.filePath === file_path ||
+                f.config.filePath.startsWith(
+                  file_path + (file_path.includes("/") ? "/" : "\\")
+                ))
+          );
+          renamedFiles.forEach((f) => {
+            if (f.config.filePath) {
+              fileStore.markFileDeleted(f.config.filePath);
+            }
+          });
           break;
 
         default:

@@ -259,17 +259,27 @@ func (h *Handler) subscribeEvents() {
 		if data, ok := event.Data.(map[string]interface{}); ok {
 			changeType, _ := data["type"].(string)
 			filePath, _ := data["file_path"].(string)
+			isDirectory, _ := data["is_directory"].(bool)
 
 			// 推送变化通知
 			h.wsServer.Broadcast(models.Message{
 				Path: "/lte/file_changed",
 				Data: models.FileChangedData{
-					Type:     changeType,
-					FilePath: filePath,
+					Type:        changeType,
+					FilePath:    filePath,
+					IsDirectory: isDirectory,
 				},
 			})
 
-			logger.Debug("FileProtocol", "推送文件变化通知: %s - %s", changeType, filePath)
+			logger.Debug("FileProtocol", "推送文件变化通知: %s - %s (isDir: %v)", changeType, filePath, isDirectory)
+
+			// 对于文件结构变化，推送更新后的文件列表
+			// created: 新文件/目录加入
+			// deleted (目录): 多个文件被移除
+			// renamed: 路径变更
+			if changeType == "created" || (changeType == "deleted" && isDirectory) || changeType == "renamed" {
+				h.pushFileList()
+			}
 		}
 	})
 }

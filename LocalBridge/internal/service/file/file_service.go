@@ -205,31 +205,70 @@ func (s *Service) handleFileChange(change FileChange) {
 
 	switch change.Type {
 	case ChangeTypeCreated:
-		// 添加到索引
-		if fileInfo, err := s.scanner.ScanSingle(filePath); err == nil && fileInfo != nil {
-			s.mu.Lock()
-			s.fileIndex[filePath] = fileInfo
-			s.mu.Unlock()
-
-			logger.Info("FileService", "检测到新文件: %s", filePath)
+		if change.IsDirectory {
+			// 目录创建
+			logger.Info("FileService", "检测到新目录: %s", filePath)
+		} else {
+			// 文件创建
+			if fileInfo, err := s.scanner.ScanSingle(filePath); err == nil && fileInfo != nil {
+				s.mu.Lock()
+				s.fileIndex[filePath] = fileInfo
+				s.mu.Unlock()
+				logger.Info("FileService", "检测到新文件: %s", filePath)
+			}
 		}
 
 	case ChangeTypeModified:
+		if change.IsDirectory {
+			// 目录修改
+			return
+		}
 		logger.Warn("FileService", "文件已被外部修改: %s", filePath)
 
 	case ChangeTypeDeleted:
-		// 从索引移除
-		s.mu.Lock()
-		delete(s.fileIndex, filePath)
-		s.mu.Unlock()
+		if change.IsDirectory {
+			// 目录删除
+			s.mu.Lock()
+			removed := 0
+			for path := range s.fileIndex {
+				if strings.HasPrefix(path, filePath+string(filepath.Separator)) {
+					delete(s.fileIndex, path)
+					removed++
+				}
+			}
+			s.mu.Unlock()
+			logger.Info("FileService", "目录已删除: %s (清理 %d 个文件索引)", filePath, removed)
+		} else {
+			// 文件删除
+			s.mu.Lock()
+			delete(s.fileIndex, filePath)
+			s.mu.Unlock()
+			logger.Info("FileService", "文件已删除: %s", filePath)
+		}
 
-		logger.Info("FileService", "文件已删除: %s", filePath)
+	case ChangeTypeRenamed:
+		// 重命名
+		oldPath := change.OldPath
+		if oldPath == "" {
+			oldPath = filePath
+		}
+		s.mu.Lock()
+		removed := 0
+		for path := range s.fileIndex {
+			if path == oldPath || strings.HasPrefix(path, oldPath+string(filepath.Separator)) {
+				delete(s.fileIndex, path)
+				removed++
+			}
+		}
+		s.mu.Unlock()
+		logger.Info("FileService", "路径已重命名: %s (清理 %d 个索引)", oldPath, removed)
 	}
 
 	// 发布文件变化事件
 	s.eventBus.Publish(eventbus.EventFileChanged, map[string]interface{}{
-		"type":      string(change.Type),
-		"file_path": filePath,
+		"type":         string(change.Type),
+		"file_path":    filePath,
+		"is_directory": change.IsDirectory,
 	})
 }
 

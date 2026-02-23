@@ -38,8 +38,9 @@ type FileContentData struct {
 
 // 文件变化通知
 type FileChangedData struct {
-	Type     string `json:"type"`      // 变化类型: "created", "modified", "deleted"
-	FilePath string `json:"file_path"` // 文件绝对路径
+	Type        string `json:"type"`         // 变化类型: "created", "modified", "deleted", "renamed"
+	FilePath    string `json:"file_path"`    // 文件绝对路径
+	IsDirectory bool   `json:"is_directory"` // 是否为目录变更
 }
 
 // 打开文件请求

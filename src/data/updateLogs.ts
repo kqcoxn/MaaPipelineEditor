@@ -53,9 +53,14 @@ export const updateLogs: UpdateLogItem[] = [
     type: "major",
     updates: {
       features: ["😎 现在可以指定 pipeline 导出的协议版本了！"],
-      perfs: ["优化保存文件逻辑，显式反馈丢失数据", "优化 delay 系列默认值"],
+      perfs: [
+        "优化 delay 系列默认值",
+        "优化文件列表稳定性",
+        "优化保存文件逻辑，显式反馈丢失数据",
+      ],
       fixes: [
         "修复由 on_error 到外部与 anchor jumpback 的渲染问题",
+        "修复 lb 无法监测文件修改、删除、重命名与新增目录等问题",
         "修复修改 lb 配置后失效的问题",
         "修复同步多个本地文件时的丢失问题",
         "修复节点导入与导出顺序不一致的问题",
