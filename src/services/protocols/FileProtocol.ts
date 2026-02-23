@@ -17,9 +17,22 @@ export class FileProtocol extends BaseProtocol {
   // 当前显示的Modal实例
   private currentModal: ReturnType<typeof Modal.confirm> | null = null;
   // 最近保存的文件路径
-  private recentlySavedFiles: Set<string> = new Set();
+  private recentlySavedFiles: Map<string, number> = new Map();
   // 待处理的变更文件
   private pendingModifiedFiles: Map<string, string> = new Map();
+
+  // 等待保存确认的回调
+  private static pendingSaveCallbacks: Map<
+    string,
+    {
+      resolve: (success: boolean) => void;
+      timeout: ReturnType<typeof setTimeout>;
+    }
+  > = new Map();
+
+  // 保存确认超时时间
+  private static readonly SAVE_ACK_TIMEOUT = 10000;
+
   getName(): string {
     return "FileProtocol";
   }
@@ -151,9 +164,9 @@ export class FileProtocol extends BaseProtocol {
         case "modified":
           localFileStore.updateFile(file_path);
 
-          // 忽略刚保存的文件
-          if (this.recentlySavedFiles.has(file_path)) {
-            this.recentlySavedFiles.delete(file_path);
+          // 检查是否是最近保存的文件（1秒内的变更视为自身保存）
+          const lastSaveTime = this.recentlySavedFiles.get(file_path);
+          if (lastSaveTime && Date.now() - lastSaveTime < 1000) {
             return;
           }
 
@@ -191,8 +204,12 @@ export class FileProtocol extends BaseProtocol {
   private handleSaveAck(data: any): void {
     try {
       const { file_path, status } = data;
+      const success = status === "ok";
 
-      if (status === "ok") {
+      // 解析等待中的保存回调
+      FileProtocol.resolveSaveCallback(file_path, success);
+
+      if (success) {
         const fileName = file_path.split(/[\/\\]/).pop() || file_path;
         message.success(`文件已保存: ${fileName}`);
 
@@ -206,12 +223,8 @@ export class FileProtocol extends BaseProtocol {
         // 更新同步时间
         fileStore.setFileConfig("lastSyncTime", Date.now());
 
-        // 忽略刚保存文件的变更通知
-        this.recentlySavedFiles.add(file_path);
-        // 清除记录
-        setTimeout(() => {
-          this.recentlySavedFiles.delete(file_path);
-        }, 3000);
+        // 忽略刚保存文件的变更通知（记录保存时间戳）
+        this.recentlySavedFiles.set(file_path, Date.now());
       } else {
         message.error("文件保存失败");
       }
@@ -227,8 +240,12 @@ export class FileProtocol extends BaseProtocol {
   private handleSaveSeparatedAck(data: any): void {
     try {
       const { pipeline_path, config_path, status } = data;
+      const success = status === "ok";
 
-      if (status === "ok") {
+      // 解析等待中的保存回调
+      FileProtocol.resolveSaveCallback(pipeline_path, success);
+
+      if (success) {
         const pipelineName =
           pipeline_path.split(/[\/\\]/).pop() || pipeline_path;
         const configName = config_path.split(/[\/\\]/).pop() || config_path;
@@ -251,13 +268,8 @@ export class FileProtocol extends BaseProtocol {
         fileStore.setFileConfig("lastSyncTime", Date.now());
 
         // 忽略刚保存文件的变更通知
-        this.recentlySavedFiles.add(pipeline_path);
-        this.recentlySavedFiles.add(config_path);
-        // 清除记录
-        setTimeout(() => {
-          this.recentlySavedFiles.delete(pipeline_path);
-          this.recentlySavedFiles.delete(config_path);
-        }, 3000);
+        this.recentlySavedFiles.set(pipeline_path, Date.now());
+        this.recentlySavedFiles.set(config_path, Date.now());
       } else {
         message.error("文件保存失败");
       }
@@ -510,5 +522,52 @@ export class FileProtocol extends BaseProtocol {
     this.currentModal.destroy();
     this.currentModal = null;
     this.showFileChangedModal();
+  }
+
+  // ========== 静态方法：保存确认机制 ==========
+
+  /**
+   * 注册保存回调，返回 Promise 等待后端确认
+   * @param filePath 文件路径
+   * @returns Promise<boolean> 保存是否成功
+   */
+  static waitForSaveAck(filePath: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      // 设置超时
+      const timeout = setTimeout(() => {
+        // 超时后移除回调并返回失败
+        FileProtocol.pendingSaveCallbacks.delete(filePath);
+        console.warn(`[FileProtocol] 等待保存确认超时: ${filePath}`);
+        resolve(false);
+      }, FileProtocol.SAVE_ACK_TIMEOUT);
+
+      // 存储回调
+      FileProtocol.pendingSaveCallbacks.set(filePath, { resolve, timeout });
+    });
+  }
+
+  /**
+   * 解析等待中的保存回调
+   * @param filePath 文件路径
+   * @param success 是否成功
+   */
+  private static resolveSaveCallback(filePath: string, success: boolean): void {
+    const callback = FileProtocol.pendingSaveCallbacks.get(filePath);
+    if (callback) {
+      clearTimeout(callback.timeout);
+      FileProtocol.pendingSaveCallbacks.delete(filePath);
+      callback.resolve(success);
+    }
+  }
+
+  /**
+   * 清理所有等待中的保存回调，用于断开连接时
+   */
+  static clearAllPendingCallbacks(): void {
+    FileProtocol.pendingSaveCallbacks.forEach((callback) => {
+      clearTimeout(callback.timeout);
+      callback.resolve(false);
+    });
+    FileProtocol.pendingSaveCallbacks.clear();
   }
 }

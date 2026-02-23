@@ -55,9 +55,7 @@ function ExportButton() {
 
   const handleSaveToLocal = async () => {
     const success = await saveFileToLocal();
-    if (success) {
-      message.success("已保存到本地文件");
-    } else {
+    if (!success) {
       message.error("文件保存失败");
     }
   };

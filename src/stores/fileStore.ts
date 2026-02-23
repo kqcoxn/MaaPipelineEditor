@@ -14,6 +14,7 @@ import {
   mergePipelineAndConfig,
 } from "../core/parser";
 import { localServer } from "../services/server";
+import { FileProtocol } from "../services/protocols/FileProtocol";
 
 export type FileConfigType = {
   prefix: string;
@@ -182,24 +183,52 @@ function updateFileConfigAfterSave(
 export function saveFlow(): FileType | null {
   try {
     const flowState = useFlowStore.getState();
-    const currentFile = useFileStore.getState().currentFile;
-    // 清除选中状态
-    currentFile.nodes = flowState.nodes.map((node: NodeType) => ({
+    const fileState = useFileStore.getState();
+    const currentFileName = fileState.currentFile.fileName;
+    const fileIndex = fileState.files.findIndex(
+      (f) => f.fileName === currentFileName
+    );
+
+    if (fileIndex < 0) {
+      console.error("[fileStore] saveFlow: 当前文件不在 files 数组中");
+      return null;
+    }
+
+    // 清除选中状态并更新数据
+    const updatedNodes = flowState.nodes.map((node: NodeType) => ({
       ...node,
       selected: undefined,
     }));
-    currentFile.edges = flowState.edges.map((edge: EdgeType) => ({
+    const updatedEdges = flowState.edges.map((edge: EdgeType) => ({
       ...edge,
       selected: undefined,
     }));
-    return currentFile;
-  } catch {
+
+    // 更新状态
+    useFileStore.setState((state) => {
+      state.currentFile.nodes = updatedNodes;
+      state.currentFile.edges = updatedEdges;
+      // 确保 files 数组中的对应文件也被更新
+      state.files[fileIndex] = {
+        ...state.files[fileIndex],
+        nodes: updatedNodes,
+        edges: updatedEdges,
+      };
+      return {};
+    });
+
+    return useFileStore.getState().currentFile;
+  } catch (err) {
+    console.error("[fileStore] saveFlow 失败:", err);
     return null;
   }
 }
 // 本地存储
-export function localSave(): any {
-  if (!saveFlow()) return Error.call("页面未初始化结束");
+export function localSave(): { success: boolean; error?: string } {
+  if (!saveFlow()) {
+    console.warn("[fileStore] localSave: 页面未初始化结束");
+    return { success: false, error: "页面未初始化结束" };
+  }
   try {
     const fileState = useFileStore.getState();
     const filesToSave = fileState.files.map((file) => ({
@@ -217,8 +246,24 @@ export function localSave(): any {
     // 保存用户配置项
     const configState = useConfigStore.getState();
     localStorage.setItem("_mpe_config", JSON.stringify(configState.configs));
+
+    return { success: true };
   } catch (err) {
-    return err;
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error("[fileStore] localSave 失败:", errorMsg);
+
+    // 检测是否是 localStorage 配额超限
+    if (err instanceof DOMException && err.name === "QuotaExceededError") {
+      notification.error({
+        message: "本地存储空间不足",
+        description:
+          "浏览器本地存储空间已满，无法保存文件缓存。建议清理本域名在浏览器中的数据或减少文件数量。",
+        placement: "topRight",
+        duration: 10,
+      });
+    }
+
+    return { success: false, error: errorMsg };
   }
 }
 
@@ -588,11 +633,13 @@ export const useFileStore = create<FileState>()((set) => ({
         config: targetFile.config,
       };
 
-      let success = false;
+      let sendSuccess = false;
       const configUpdates: Partial<FileConfigType> = {
         filePath: targetFilePath,
-        lastSyncTime: Date.now(),
       };
+
+      // 在发送请求之前先注册等待确认的回调
+      const ackPromise = FileProtocol.waitForSaveAck(targetFilePath);
 
       if (configHandlingMode === "separated") {
         // 分离模式保存
@@ -611,31 +658,42 @@ export const useFileStore = create<FileState>()((set) => ({
         const baseName = fileName.replace(/\.(json|jsonc)$/i, "");
         const configPath = `${directory}.${baseName}.mpe.json`;
 
-        success = localServer.send("/etl/save_separated", {
+        sendSuccess = localServer.send("/etl/save_separated", {
           pipeline_path: targetFilePath,
           config_path: configPath,
           pipeline,
           config,
         });
 
-        if (success) {
+        if (sendSuccess) {
           configUpdates.separatedConfigPath = configPath;
         }
       } else {
         // 集成模式或不导出模式
         const pipeline = flowToPipeline(exportOptions);
 
-        success = localServer.send("/etl/save_file", {
+        sendSuccess = localServer.send("/etl/save_file", {
           file_path: targetFilePath,
           content: pipeline,
         });
       }
 
-      if (success) {
-        updateFileConfigAfterSave(targetFile.fileName, configUpdates);
+      if (!sendSuccess) {
+        console.error("[fileStore] Failed to send save request");
+        return false;
       }
 
-      return success;
+      // 等待后端确认
+      const ackSuccess = await ackPromise;
+
+      if (ackSuccess) {
+        configUpdates.lastSyncTime = Date.now();
+        updateFileConfigAfterSave(targetFile.fileName, configUpdates);
+        return true;
+      } else {
+        console.error("[fileStore] Save ack not received or failed");
+        return false;
+      }
     } catch (error) {
       console.error("[fileStore] Failed to save file to local:", error);
       return false;
