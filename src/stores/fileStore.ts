@@ -627,10 +627,43 @@ export const useFileStore = create<FileState>()((set) => ({
         return false;
       }
 
+      // 同步当前 flowStore 数据到 fileStore
+      let nodesToSave = targetFile.nodes;
+      let edgesToSave = targetFile.edges;
+
+      if (!fileToSave || fileToSave === state.currentFile) {
+        const flowState = useFlowStore.getState();
+        nodesToSave = flowState.nodes.map((node: NodeType) => ({
+          ...node,
+          selected: undefined,
+        }));
+        edgesToSave = flowState.edges.map((edge: EdgeType) => ({
+          ...edge,
+          selected: undefined,
+        }));
+
+        // 更新 fileStore 中的数据
+        useFileStore.setState((s) => {
+          const fileIndex = s.files.findIndex(
+            (f) => f.fileName === targetFile.fileName
+          );
+          if (fileIndex >= 0) {
+            s.files[fileIndex] = {
+              ...s.files[fileIndex],
+              nodes: nodesToSave,
+              edges: edgesToSave,
+            };
+          }
+          s.currentFile.nodes = nodesToSave;
+          s.currentFile.edges = edgesToSave;
+          return {};
+        });
+      }
+
       // 构建导出选项
       const exportOptions = {
-        nodes: targetFile.nodes,
-        edges: targetFile.edges,
+        nodes: nodesToSave,
+        edges: edgesToSave,
         fileName: targetFile.fileName,
         config: targetFile.config,
       };

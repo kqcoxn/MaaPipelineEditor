@@ -66,6 +66,7 @@ export const updateLogs: UpdateLogItem[] = [
         "优化保存文件逻辑，显式反馈丢失数据",
       ],
       fixes: [
+        "修复通过 lb 保存到本地时节点数据可能丢失的问题",
         "修复由 on_error 到外部与 anchor jumpback 的渲染问题",
         "修复 bool 类型字段在面板渲染异常问题",
         "修复多个节点拖入分组框后只绑定一个节点的问题",

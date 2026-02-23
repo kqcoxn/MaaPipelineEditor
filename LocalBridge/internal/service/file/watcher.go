@@ -237,3 +237,19 @@ func (d *debouncer) stop() {
 	}
 	d.timers = make(map[string]*time.Timer)
 }
+
+// 清除指定键的防抖定时器
+func (d *debouncer) clear(key string) {
+	if d.stopped {
+		return
+	}
+	if timer, exists := d.timers[key]; exists {
+		timer.Stop()
+		delete(d.timers, key)
+	}
+}
+
+// 清除指定文件的防抖事件
+func (w *Watcher) ClearDebounce(filePath string) {
+	w.debouncer.clear(filePath)
+}
