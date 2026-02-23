@@ -286,11 +286,13 @@ function matchSingleType(value: any, type: FieldTypeEnum): any {
  * 参数类型匹配 - 将参数对象按照预定义类型进行匹配转换
  * @param params 待匹配的参数对象
  * @param types 预定义的字段类型数组
+ * @param skipValidation 是否跳过校验（跳过时保留原始值）
  * @returns 匹配后的参数对象
  */
 export function matchParamType(
   params: ParamType,
-  types: FieldType[]
+  types: FieldType[],
+  skipValidation?: boolean
 ): ParamType {
   const paramKeys = Object.keys(params);
   const matchedDatas: any = {};
@@ -318,12 +320,18 @@ export function matchParamType(
     if (matchedValue !== null) {
       matchedDatas[key] = matchedValue;
     } else {
-      // 类型匹配失败，显示错误通知
-      notification.error({
-        message: "类型错误",
-        description: `部分参数类型错误，请检查各节点字段是否符合Pipeline协议；可能的参数：${key}`,
-        placement: "top",
-      });
+      // 类型匹配失败
+      if (skipValidation) {
+        // 跳过校验时保留原始值
+        matchedDatas[key] = value;
+      } else {
+        // 显示错误通知
+        notification.error({
+          message: "类型错误",
+          description: `部分参数类型错误，请检查各节点字段是否符合Pipeline协议；可能的参数：${key}`,
+          placement: "top",
+        });
+      }
     }
   });
 

@@ -200,8 +200,8 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
     };
   } catch (err) {
     notification.error({
-      title: "导出失败！",
-      description: "请检查个节点字段是否符合格式，详细程序错误请在控制台查看",
+      message: "导出失败！",
+      description: "请检查各节点字段是否符合格式，详细程序错误请在控制台查看",
       placement: "top",
     });
     console.error(err);

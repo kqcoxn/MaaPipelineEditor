@@ -23,6 +23,9 @@ const PipelineConfigSection = memo(() => {
   const pipelineProtocolVersion = useConfigStore(
     (state) => state.configs.pipelineProtocolVersion
   );
+  const skipFieldValidation = useConfigStore(
+    (state) => state.configs.skipFieldValidation
+  );
   const setConfig = useConfigStore((state) => state.setConfig);
   const nodes = useFlowStore((state) => state.nodes);
   const setNodes = useFlowStore((state) => state.setNodes);
@@ -175,6 +178,32 @@ const PipelineConfigSection = memo(() => {
             { value: "v2", label: "v2" },
             { value: "v1", label: "v1" },
           ]}
+        />
+      </div>
+      {/* 忽略字段校验 */}
+      <div className={globalClass}>
+        <div className={style.key}>
+          <Popover
+            placement="bottomLeft"
+            title="忽略字段校验"
+            content={
+              <TipElem
+                content={
+                  "开启后，导出时将跳过字段格式校验，即使节点内容不符合规范也会强制导出。\n适用于快速导出或调试场景。"
+                }
+              />
+            }
+          >
+            <span>忽略字段校验</span>
+          </Popover>
+        </div>
+        <Switch
+          className={style.value}
+          style={{ maxWidth: 60 }}
+          checked={skipFieldValidation}
+          checkedChildren="忽略"
+          unCheckedChildren="校验"
+          onChange={(checked) => setConfig("skipFieldValidation", checked)}
         />
       </div>
     </>

@@ -23,6 +23,7 @@ export function parsePipelineNodeForExport(
 ): ParsedPipelineNodeType {
   const fNodeData = fNode.data;
   const configs = useConfigStore.getState().configs;
+  const skipValidation = configs.skipFieldValidation;
 
   // 识别算法
   const recoType = fNodeData.recognition.type;
@@ -30,7 +31,8 @@ export function parsePipelineNodeForExport(
     type: recoType,
     param: matchParamType(
       fNodeData.recognition.param,
-      recoFields[recoType].params
+      recoFields[recoType].params,
+      skipValidation
     ),
   };
 
@@ -40,12 +42,17 @@ export function parsePipelineNodeForExport(
     type: actionType,
     param: matchParamType(
       fNodeData.action.param,
-      actionFields[actionType].params
+      actionFields[actionType].params,
+      skipValidation
     ),
   };
 
   // 其他参数
-  const others = matchParamType(fNodeData.others, otherFieldParams);
+  const others = matchParamType(
+    fNodeData.others,
+    otherFieldParams,
+    skipValidation
+  );
 
   // 分离 focus 字段
   const focus = others.focus;

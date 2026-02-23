@@ -27,6 +27,7 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   defaultHandleDirection: "pipeline",
   exportDefaultRecoAction: "pipeline",
   pipelineProtocolVersion: "pipeline",
+  skipFieldValidation: "pipeline",
   // 面板配置
   nodeStyle: "panel",
   historyLimit: "panel",
@@ -104,6 +105,7 @@ type ConfigState = {
     defaultHandleDirection: HandleDirection;
     exportDefaultRecoAction: boolean;
     pipelineProtocolVersion: PipelineProtocolVersion;
+    skipFieldValidation: boolean;
     wsPort: number;
     wsAutoConnect: boolean;
     fileAutoReload: boolean;
@@ -168,6 +170,7 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     defaultHandleDirection: "left-right" as HandleDirection,
     exportDefaultRecoAction: false,
     pipelineProtocolVersion: "v2" as PipelineProtocolVersion,
+    skipFieldValidation: false,
     wsPort: 9066,
     wsAutoConnect: false,
     fileAutoReload: false,
