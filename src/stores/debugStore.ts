@@ -468,9 +468,6 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
         if (history.length >= MAX_EXECUTION_HISTORY) {
           const removeCount = Math.ceil(MAX_EXECUTION_HISTORY * CLEANUP_RATIO);
           history = history.slice(removeCount);
-          console.log(
-            `[debugStore] executionHistory exceeded limit, removed ${removeCount} oldest records`
-          );
         }
 
         // 创建新记录
@@ -595,9 +592,6 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
             if (cacheCleared > 0) {
               set({ detailCache: new Map(cache) });
             }
-            console.log(
-              `[debugStore] recognitionRecords exceeded limit, removed ${removeCount} oldest records (${cacheCleared} cached details)`
-            );
           }
 
           // 计算该节点的识别次数
@@ -890,9 +884,6 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
       const removeCount = Math.ceil(MAX_DETAIL_CACHE_SIZE * CLEANUP_RATIO);
       const keysToRemove = Array.from(cache.keys()).slice(0, removeCount);
       keysToRemove.forEach((key) => cache.delete(key));
-      console.log(
-        `[debugStore] detailCache exceeded limit (${MAX_DETAIL_CACHE_SIZE}), removed ${removeCount} oldest entries`
-      );
     }
 
     cache.set(recoId, detail);

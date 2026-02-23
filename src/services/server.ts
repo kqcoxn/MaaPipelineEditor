@@ -66,9 +66,8 @@ export class LocalWebSocketServer {
 
   // 设置端口
   setPort(port: number) {
-    const needReconnect =
-      this.ws !== null && this.ws.readyState === WebSocket.OPEN;
-    if (needReconnect) {
+    // 如果有正在进行的连接则先断开
+    if (this.ws !== null) {
       this.disconnect();
     }
     this.url = `ws://localhost:${port}`;

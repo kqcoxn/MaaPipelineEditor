@@ -216,34 +216,41 @@ function App() {
     let cleanupWailsListener: (() => void) | null = null;
 
     if (isWailsEnvironment()) {
-      console.log("[App] Running in Wails environment");
       wailsLog("[Frontend] Wails environment detected");
+
+      let connectionInitiated = false;
 
       // 监听后端发送的端口事件
       cleanupWailsListener = onWailsEvent<number>("bridge:port", (port) => {
-        console.log("[App] Received bridge:port event:", port);
+        if (connectionInitiated) {
+          return;
+        }
+        connectionInitiated = true;
         wailsLog(`[Frontend] Received port: ${port}`);
         localServer.setPort(port);
         localServer.connect();
       });
 
-      // 尝试直接获取端口（仅在 bridge 已就绪时连接）
+      // 尝试直接获取端口
       getWailsPort().then(async (port) => {
+        if (connectionInitiated) {
+          return;
+        }
         if (
           port &&
           !localServer.isConnected() &&
           !localServer.getIsConnecting()
         ) {
-          // 检查 bridge 是否已经就绪，避免在 bridge 未启动时连接
+          // 检查 bridge 是否已经就绪
           const running = await isBridgeRunning();
-          if (running) {
-            console.log("[App] Got port from GetPort():", port);
+          // 防止在 await 期间事件已经触发了连接
+          if (running && !connectionInitiated) {
+            connectionInitiated = true;
             wailsLog(`[Frontend] Got port from GetPort: ${port}`);
             localServer.setPort(port);
             localServer.connect();
           } else {
-            console.log("[App] Bridge not ready yet, waiting for bridge:port event");
-            wailsLog("[Frontend] Bridge not ready, waiting for event");
+            wailsLog("[Frontend] Bridge not ready or connection initiated, waiting for event");
           }
         }
       });
