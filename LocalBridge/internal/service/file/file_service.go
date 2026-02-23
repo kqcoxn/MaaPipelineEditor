@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 
@@ -87,6 +88,11 @@ func (s *Service) GetFileList() []models.FileInfo {
 	for _, file := range s.fileIndex {
 		fileList = append(fileList, file.ToFileInfo())
 	}
+
+	// 按相对路径排序，确保列表顺序稳定
+	sort.Slice(fileList, func(i, j int) bool {
+		return fileList[i].RelativePath < fileList[j].RelativePath
+	})
 
 	return fileList
 }
