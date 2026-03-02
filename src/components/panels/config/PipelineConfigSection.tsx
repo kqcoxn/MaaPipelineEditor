@@ -27,6 +27,9 @@ const PipelineConfigSection = memo(() => {
     (state) => state.configs.skipFieldValidation
   );
   const jsonIndent = useConfigStore((state) => state.configs.jsonIndent);
+  const configHandlingMode = useConfigStore(
+    (state) => state.configs.configHandlingMode
+  );
   const setConfig = useConfigStore((state) => state.setConfig);
   const nodes = useFlowStore((state) => state.nodes);
   const setNodes = useFlowStore((state) => state.setNodes);
@@ -232,6 +235,35 @@ const PipelineConfigSection = memo(() => {
           value={jsonIndent}
           onChange={(value) => setConfig("jsonIndent", value ?? 4)}
           addonAfter="空格"
+        />
+      </div>
+      {/* 配置处理方案 */}
+      <div className={globalClass}>
+        <div className={style.key}>
+          <Popover
+            placement="bottomLeft"
+            title="配置处理方案"
+            content={
+              <TipElem
+                content={
+                  "集成导出：配置嵌入 Pipeline 文件，适合单文件分享\n分离导出：配置存储至独立 .mpe.json 文件，便于版本管理\n不导出：不保存任何配置，导入时触发自动布局"
+                }
+              />
+            }
+          >
+            <span>配置处理方案</span>
+          </Popover>
+        </div>
+        <Select
+          className={style.value}
+          style={{ width: 90 }}
+          value={configHandlingMode}
+          onChange={(value) => setConfig("configHandlingMode", value)}
+          options={[
+            { value: "integrated", label: "集成导出" },
+            { value: "separated", label: "分离导出" },
+            { value: "none", label: "不导出" },
+          ]}
         />
       </div>
     </>

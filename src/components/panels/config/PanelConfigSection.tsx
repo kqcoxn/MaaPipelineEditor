@@ -23,9 +23,6 @@ const PanelConfigSection = memo(() => {
     (state) => state.configs.snapOnlyInViewport
   );
   const focusOpacity = useConfigStore((state) => state.configs.focusOpacity);
-  const configHandlingMode = useConfigStore(
-    (state) => state.configs.configHandlingMode
-  );
   const canvasBackgroundMode = useConfigStore(
     (state) => state.configs.canvasBackgroundMode
   );
@@ -282,35 +279,6 @@ const PanelConfigSection = memo(() => {
           onChange={(value: number | null) => {
             if (value !== null) setConfig("focusOpacity", value);
           }}
-        />
-      </div>
-      {/* 配置处理方案 */}
-      <div className={globalClass}>
-        <div className={style.key}>
-          <Popover
-            placement="bottomLeft"
-            title="配置处理方案"
-            content={
-              <TipElem
-                content={
-                  "集成导出：配置嵌入 Pipeline 文件，适合单文件分享\n分离导出：配置存储至独立 .mpe.json 文件，便于版本管理\n不导出：不保存任何配置，导入时触发自动布局"
-                }
-              />
-            }
-          >
-            <span>配置处理方案</span>
-          </Popover>
-        </div>
-        <Select
-          className={style.value}
-          style={{ width: 90 }}
-          value={configHandlingMode}
-          onChange={(value) => setConfig("configHandlingMode", value)}
-          options={[
-            { value: "integrated", label: "集成导出" },
-            { value: "separated", label: "分离导出" },
-            { value: "none", label: "不导出" },
-          ]}
         />
       </div>
       {/* 画布背景 */}

@@ -5,7 +5,7 @@ import type { HandleDirection } from "../components/flow/nodes/constants";
 export const globalConfig = {
   dev: true,
   version: `1.2.1`,
-  betaIteration: 0,
+  betaIteration: 1,
   mfwVersion: "v5.8.0-beta.1",
   protocolVersion: "0.7.2",
 };
@@ -29,6 +29,7 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   pipelineProtocolVersion: "pipeline",
   skipFieldValidation: "pipeline",
   jsonIndent: "pipeline",
+  configHandlingMode: "pipeline",
   // 面板配置
   nodeStyle: "panel",
   historyLimit: "panel",
@@ -37,7 +38,6 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   showEdgeControlPoint: "panel",
   isAutoFocus: "panel",
   focusOpacity: "panel",
-  configHandlingMode: "panel",
   isExportConfig: "panel",
   useDarkMode: "panel",
   canvasBackgroundMode: "panel",
