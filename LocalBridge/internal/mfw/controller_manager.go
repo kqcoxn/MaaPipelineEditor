@@ -699,3 +699,259 @@ func (cm *ControllerManager) TouchGamepadControl(controllerID string, contact, x
 		Status:       "Success",
 	}, nil
 }
+
+// 滚动操作
+func (cm *ControllerManager) Scroll(controllerID string, dx, dy int32) (*ControllerOperationResult, error) {
+	cm.mu.RLock()
+	info, exists := cm.controllers[controllerID]
+	cm.mu.RUnlock()
+
+	if !exists {
+		return nil, ErrControllerNotFound
+	}
+
+	if !info.Connected {
+		return nil, ErrNotConnected
+	}
+
+	ctrl, ok := info.Controller.(*maa.Controller)
+	if !ok || ctrl == nil {
+		return nil, ErrNotConnected
+	}
+
+	// 执行滚动操作
+	job := ctrl.PostScroll(dx, dy)
+	if job == nil {
+		return nil, NewMFWError(ErrCodeOperationFail, "failed to post scroll", nil)
+	}
+	job.Wait()
+
+	info.LastActiveAt = time.Now()
+
+	return &ControllerOperationResult{
+		ControllerID: controllerID,
+		Operation:    OpScroll,
+		Success:      job.Success(),
+		Status:       "Success",
+	}, nil
+}
+
+// 按下按键
+func (cm *ControllerManager) KeyDown(controllerID string, keycode int32) (*ControllerOperationResult, error) {
+	cm.mu.RLock()
+	info, exists := cm.controllers[controllerID]
+	cm.mu.RUnlock()
+
+	if !exists {
+		return nil, ErrControllerNotFound
+	}
+
+	if !info.Connected {
+		return nil, ErrNotConnected
+	}
+
+	ctrl, ok := info.Controller.(*maa.Controller)
+	if !ok || ctrl == nil {
+		return nil, ErrNotConnected
+	}
+
+	// 执行按键按下操作
+	job := ctrl.PostKeyDown(keycode)
+	if job == nil {
+		return nil, NewMFWError(ErrCodeOperationFail, "failed to post key down", nil)
+	}
+	job.Wait()
+
+	info.LastActiveAt = time.Now()
+
+	return &ControllerOperationResult{
+		ControllerID: controllerID,
+		Operation:    OpKeyDown,
+		Success:      job.Success(),
+		Status:       "Success",
+	}, nil
+}
+
+// 释放按键
+func (cm *ControllerManager) KeyUp(controllerID string, keycode int32) (*ControllerOperationResult, error) {
+	cm.mu.RLock()
+	info, exists := cm.controllers[controllerID]
+	cm.mu.RUnlock()
+
+	if !exists {
+		return nil, ErrControllerNotFound
+	}
+
+	if !info.Connected {
+		return nil, ErrNotConnected
+	}
+
+	ctrl, ok := info.Controller.(*maa.Controller)
+	if !ok || ctrl == nil {
+		return nil, ErrNotConnected
+	}
+
+	// 执行按键释放操作
+	job := ctrl.PostKeyUp(keycode)
+	if job == nil {
+		return nil, NewMFWError(ErrCodeOperationFail, "failed to post key up", nil)
+	}
+	job.Wait()
+
+	info.LastActiveAt = time.Now()
+
+	return &ControllerOperationResult{
+		ControllerID: controllerID,
+		Operation:    OpKeyUp,
+		Success:      job.Success(),
+		Status:       "Success",
+	}, nil
+}
+
+// 带接触点和压力的点击 (ClickV2)
+func (cm *ControllerManager) ClickV2(controllerID string, x, y, contact, pressure int32) (*ControllerOperationResult, error) {
+	cm.mu.RLock()
+	info, exists := cm.controllers[controllerID]
+	cm.mu.RUnlock()
+
+	if !exists {
+		return nil, ErrControllerNotFound
+	}
+
+	if !info.Connected {
+		return nil, ErrNotConnected
+	}
+
+	ctrl, ok := info.Controller.(*maa.Controller)
+	if !ok || ctrl == nil {
+		return nil, ErrNotConnected
+	}
+
+	// 执行带接触点和压力的点击操作
+	job := ctrl.PostClickV2(x, y, contact, pressure)
+	if job == nil {
+		return nil, NewMFWError(ErrCodeOperationFail, "failed to post click v2", nil)
+	}
+	job.Wait()
+
+	info.LastActiveAt = time.Now()
+
+	return &ControllerOperationResult{
+		ControllerID: controllerID,
+		Operation:    OpClickV2,
+		Success:      job.Success(),
+		Status:       "Success",
+	}, nil
+}
+
+// 带接触点和压力的滑动 (SwipeV2)
+func (cm *ControllerManager) SwipeV2(controllerID string, x1, y1, x2, y2, duration, contact, pressure int32) (*ControllerOperationResult, error) {
+	cm.mu.RLock()
+	info, exists := cm.controllers[controllerID]
+	cm.mu.RUnlock()
+
+	if !exists {
+		return nil, ErrControllerNotFound
+	}
+
+	if !info.Connected {
+		return nil, ErrNotConnected
+	}
+
+	ctrl, ok := info.Controller.(*maa.Controller)
+	if !ok || ctrl == nil {
+		return nil, ErrNotConnected
+	}
+
+	// 执行带接触点和压力的滑动操作
+	job := ctrl.PostSwipeV2(x1, y1, x2, y2, time.Duration(duration)*time.Millisecond, contact, pressure)
+	if job == nil {
+		return nil, NewMFWError(ErrCodeOperationFail, "failed to post swipe v2", nil)
+	}
+	job.Wait()
+
+	info.LastActiveAt = time.Now()
+
+	return &ControllerOperationResult{
+		ControllerID: controllerID,
+		Operation:    OpSwipeV2,
+		Success:      job.Success(),
+		Status:       "Success",
+	}, nil
+}
+
+// 执行 Shell 命令 (仅 ADB 控制器)
+func (cm *ControllerManager) Shell(controllerID, cmd string, timeoutMs int32) (*ControllerOperationResult, error) {
+	cm.mu.RLock()
+	info, exists := cm.controllers[controllerID]
+	cm.mu.RUnlock()
+
+	if !exists {
+		return nil, ErrControllerNotFound
+	}
+
+	if !info.Connected {
+		return nil, ErrNotConnected
+	}
+
+	ctrl, ok := info.Controller.(*maa.Controller)
+	if !ok || ctrl == nil {
+		return nil, ErrNotConnected
+	}
+
+	// 执行 Shell 命令
+	timeout := time.Duration(timeoutMs) * time.Millisecond
+	if timeout <= 0 {
+		timeout = 10 * time.Second // 默认 10 秒超时
+	}
+	job := ctrl.PostShell(cmd, timeout)
+	if job == nil {
+		return nil, NewMFWError(ErrCodeOperationFail, "failed to post shell (only ADB controller supported)", nil)
+	}
+	job.Wait()
+
+	info.LastActiveAt = time.Now()
+
+	return &ControllerOperationResult{
+		ControllerID: controllerID,
+		Operation:    OpShell,
+		Success:      job.Success(),
+		Status:       "Success",
+	}, nil
+}
+
+// 恢复控制器/窗口状态
+func (cm *ControllerManager) Inactive(controllerID string) (*ControllerOperationResult, error) {
+	cm.mu.RLock()
+	info, exists := cm.controllers[controllerID]
+	cm.mu.RUnlock()
+
+	if !exists {
+		return nil, ErrControllerNotFound
+	}
+
+	if !info.Connected {
+		return nil, ErrNotConnected
+	}
+
+	ctrl, ok := info.Controller.(*maa.Controller)
+	if !ok || ctrl == nil {
+		return nil, ErrNotConnected
+	}
+
+	// 执行恢复操作
+	job := ctrl.PostInactive()
+	if job == nil {
+		return nil, NewMFWError(ErrCodeOperationFail, "failed to post inactive", nil)
+	}
+	job.Wait()
+
+	info.LastActiveAt = time.Now()
+
+	return &ControllerOperationResult{
+		ControllerID: controllerID,
+		Operation:    OpInactive,
+		Success:      job.Success(),
+		Status:       "Success",
+	}, nil
+}

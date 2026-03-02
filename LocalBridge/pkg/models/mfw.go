@@ -97,6 +97,58 @@ type ControllerTouchGamepadRequest struct {
 	Action       string `json:"action"`   // 动作: down/move/up
 }
 
+// ControllerScrollRequest 滚动操作请求
+type ControllerScrollRequest struct {
+	ControllerID string `json:"controller_id"`
+	Dx           int32  `json:"dx"` // 水平滚动量
+	Dy           int32  `json:"dy"` // 垂直滚动量
+}
+
+// ControllerKeyDownRequest 按键按下请求
+type ControllerKeyDownRequest struct {
+	ControllerID string `json:"controller_id"`
+	Keycode      int32  `json:"keycode"` // 按键码
+}
+
+// ControllerKeyUpRequest 按键释放请求
+type ControllerKeyUpRequest struct {
+	ControllerID string `json:"controller_id"`
+	Keycode      int32  `json:"keycode"` // 按键码
+}
+
+// ControllerClickV2Request 带接触点和压力的点击请求
+type ControllerClickV2Request struct {
+	ControllerID string `json:"controller_id"`
+	X            int32  `json:"x"`        // x坐标
+	Y            int32  `json:"y"`        // y坐标
+	Contact      int32  `json:"contact"`  // 接触点 (ADB: 手指索引, Win32: 鼠标按键)
+	Pressure     int32  `json:"pressure"` // 压力
+}
+
+// ControllerSwipeV2Request 带接触点和压力的滑动请求
+type ControllerSwipeV2Request struct {
+	ControllerID string `json:"controller_id"`
+	X1           int32  `json:"x1"`       // 起点x坐标
+	Y1           int32  `json:"y1"`       // 起点y坐标
+	X2           int32  `json:"x2"`       // 终点x坐标
+	Y2           int32  `json:"y2"`       // 终点y坐标
+	Duration     int32  `json:"duration"` // 持续时间(毫秒)
+	Contact      int32  `json:"contact"`  // 接触点 (ADB: 手指索引, Win32: 鼠标按键)
+	Pressure     int32  `json:"pressure"` // 压力
+}
+
+// ControllerShellRequest Shell命令请求
+type ControllerShellRequest struct {
+	ControllerID string `json:"controller_id"`
+	Command      string `json:"command"` // Shell命令
+	Timeout      int32  `json:"timeout"` // 超时时间(毫秒)
+}
+
+// ControllerInactiveRequest 恢复控制器状态请求
+type ControllerInactiveRequest struct {
+	ControllerID string `json:"controller_id"`
+}
+
 // SubmitTaskRequest 提交任务请求
 type SubmitTaskRequest struct {
 	ControllerID string                 `json:"controller_id"`

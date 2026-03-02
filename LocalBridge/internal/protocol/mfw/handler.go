@@ -76,6 +76,22 @@ func (h *MFWHandler) Handle(msg models.Message, conn *server.Connection) *models
 	case "/etl/mfw/controller_touch_gamepad":
 		h.handleControllerTouchGamepad(conn, msg)
 
+	// 新增控制器操作路由
+	case "/etl/mfw/controller_scroll":
+		h.handleControllerScroll(conn, msg)
+	case "/etl/mfw/controller_key_down":
+		h.handleControllerKeyDown(conn, msg)
+	case "/etl/mfw/controller_key_up":
+		h.handleControllerKeyUp(conn, msg)
+	case "/etl/mfw/controller_click_v2":
+		h.handleControllerClickV2(conn, msg)
+	case "/etl/mfw/controller_swipe_v2":
+		h.handleControllerSwipeV2(conn, msg)
+	case "/etl/mfw/controller_shell":
+		h.handleControllerShell(conn, msg)
+	case "/etl/mfw/controller_inactive":
+		h.handleControllerInactive(conn, msg)
+
 	// 任务相关路由
 	case "/etl/mfw/submit_task":
 		h.handleSubmitTask(conn, msg)
@@ -509,6 +525,156 @@ func (h *MFWHandler) handleControllerTouchGamepad(conn *server.Connection, msg m
 	if err != nil {
 		logger.Error("MFW", "手柄触摸操作失败: %v", err)
 		h.sendMFWError(conn, mfw.ErrCodeOperationFailed, "手柄触摸操作失败", err.Error())
+		return
+	}
+
+	h.sendControllerOperationResult(conn, result)
+}
+
+func (h *MFWHandler) handleControllerScroll(conn *server.Connection, msg models.Message) {
+	dataMap, ok := msg.Data.(map[string]interface{})
+	if !ok {
+		h.sendError(conn, errors.NewInvalidRequestError("请求数据格式错误"))
+		return
+	}
+
+	controllerID, _ := dataMap["controller_id"].(string)
+	dx, _ := dataMap["dx"].(float64)
+	dy, _ := dataMap["dy"].(float64)
+
+	result, err := h.service.ControllerManager().Scroll(controllerID, int32(dx), int32(dy))
+	if err != nil {
+		logger.Error("MFW", "滚动操作失败: %v", err)
+		h.sendMFWError(conn, mfw.ErrCodeOperationFailed, "滚动操作失败", err.Error())
+		return
+	}
+
+	h.sendControllerOperationResult(conn, result)
+}
+
+func (h *MFWHandler) handleControllerKeyDown(conn *server.Connection, msg models.Message) {
+	dataMap, ok := msg.Data.(map[string]interface{})
+	if !ok {
+		h.sendError(conn, errors.NewInvalidRequestError("请求数据格式错误"))
+		return
+	}
+
+	controllerID, _ := dataMap["controller_id"].(string)
+	keycode, _ := dataMap["keycode"].(float64)
+
+	result, err := h.service.ControllerManager().KeyDown(controllerID, int32(keycode))
+	if err != nil {
+		logger.Error("MFW", "按键按下失败: %v", err)
+		h.sendMFWError(conn, mfw.ErrCodeOperationFailed, "按键按下失败", err.Error())
+		return
+	}
+
+	h.sendControllerOperationResult(conn, result)
+}
+
+func (h *MFWHandler) handleControllerKeyUp(conn *server.Connection, msg models.Message) {
+	dataMap, ok := msg.Data.(map[string]interface{})
+	if !ok {
+		h.sendError(conn, errors.NewInvalidRequestError("请求数据格式错误"))
+		return
+	}
+
+	controllerID, _ := dataMap["controller_id"].(string)
+	keycode, _ := dataMap["keycode"].(float64)
+
+	result, err := h.service.ControllerManager().KeyUp(controllerID, int32(keycode))
+	if err != nil {
+		logger.Error("MFW", "按键释放失败: %v", err)
+		h.sendMFWError(conn, mfw.ErrCodeOperationFailed, "按键释放失败", err.Error())
+		return
+	}
+
+	h.sendControllerOperationResult(conn, result)
+}
+
+func (h *MFWHandler) handleControllerClickV2(conn *server.Connection, msg models.Message) {
+	dataMap, ok := msg.Data.(map[string]interface{})
+	if !ok {
+		h.sendError(conn, errors.NewInvalidRequestError("请求数据格式错误"))
+		return
+	}
+
+	controllerID, _ := dataMap["controller_id"].(string)
+	x, _ := dataMap["x"].(float64)
+	y, _ := dataMap["y"].(float64)
+	contact, _ := dataMap["contact"].(float64)
+	pressure, _ := dataMap["pressure"].(float64)
+
+	result, err := h.service.ControllerManager().ClickV2(controllerID, int32(x), int32(y), int32(contact), int32(pressure))
+	if err != nil {
+		logger.Error("MFW", "点击V2操作失败: %v", err)
+		h.sendMFWError(conn, mfw.ErrCodeOperationFailed, "点击V2操作失败", err.Error())
+		return
+	}
+
+	h.sendControllerOperationResult(conn, result)
+}
+
+func (h *MFWHandler) handleControllerSwipeV2(conn *server.Connection, msg models.Message) {
+	dataMap, ok := msg.Data.(map[string]interface{})
+	if !ok {
+		h.sendError(conn, errors.NewInvalidRequestError("请求数据格式错误"))
+		return
+	}
+
+	controllerID, _ := dataMap["controller_id"].(string)
+	x1, _ := dataMap["x1"].(float64)
+	y1, _ := dataMap["y1"].(float64)
+	x2, _ := dataMap["x2"].(float64)
+	y2, _ := dataMap["y2"].(float64)
+	duration, _ := dataMap["duration"].(float64)
+	contact, _ := dataMap["contact"].(float64)
+	pressure, _ := dataMap["pressure"].(float64)
+
+	result, err := h.service.ControllerManager().SwipeV2(controllerID, int32(x1), int32(y1), int32(x2), int32(y2), int32(duration), int32(contact), int32(pressure))
+	if err != nil {
+		logger.Error("MFW", "滑动V2操作失败: %v", err)
+		h.sendMFWError(conn, mfw.ErrCodeOperationFailed, "滑动V2操作失败", err.Error())
+		return
+	}
+
+	h.sendControllerOperationResult(conn, result)
+}
+
+func (h *MFWHandler) handleControllerShell(conn *server.Connection, msg models.Message) {
+	dataMap, ok := msg.Data.(map[string]interface{})
+	if !ok {
+		h.sendError(conn, errors.NewInvalidRequestError("请求数据格式错误"))
+		return
+	}
+
+	controllerID, _ := dataMap["controller_id"].(string)
+	command, _ := dataMap["command"].(string)
+	timeout, _ := dataMap["timeout"].(float64)
+
+	result, err := h.service.ControllerManager().Shell(controllerID, command, int32(timeout))
+	if err != nil {
+		logger.Error("MFW", "Shell命令执行失败: %v", err)
+		h.sendMFWError(conn, mfw.ErrCodeOperationFailed, "Shell命令执行失败", err.Error())
+		return
+	}
+
+	h.sendControllerOperationResult(conn, result)
+}
+
+func (h *MFWHandler) handleControllerInactive(conn *server.Connection, msg models.Message) {
+	dataMap, ok := msg.Data.(map[string]interface{})
+	if !ok {
+		h.sendError(conn, errors.NewInvalidRequestError("请求数据格式错误"))
+		return
+	}
+
+	controllerID, _ := dataMap["controller_id"].(string)
+
+	result, err := h.service.ControllerManager().Inactive(controllerID)
+	if err != nil {
+		logger.Error("MFW", "恢复控制器状态失败: %v", err)
+		h.sendMFWError(conn, mfw.ErrCodeOperationFailed, "恢复控制器状态失败", err.Error())
 		return
 	}
 

@@ -94,18 +94,22 @@ type ControllerOperation string
 
 const (
 	OpClick     ControllerOperation = "click"
+	OpClickV2   ControllerOperation = "click_v2"
 	OpSwipe     ControllerOperation = "swipe"
+	OpSwipeV2   ControllerOperation = "swipe_v2"
 	OpInputText ControllerOperation = "input_text"
 	OpClickKey  ControllerOperation = "click_key"
+	OpKeyDown   ControllerOperation = "key_down"
+	OpKeyUp     ControllerOperation = "key_up"
 	OpStartApp  ControllerOperation = "start_app"
 	OpStopApp   ControllerOperation = "stop_app"
 	OpTouchDown ControllerOperation = "touch_down"
 	OpTouchMove ControllerOperation = "touch_move"
 	OpTouchUp   ControllerOperation = "touch_up"
-	OpKeyDown   ControllerOperation = "key_down"
-	OpKeyUp     ControllerOperation = "key_up"
 	OpScreencap ControllerOperation = "screencap"
 	OpScroll    ControllerOperation = "scroll"
+	OpShell     ControllerOperation = "shell"
+	OpInactive  ControllerOperation = "inactive"
 )
 
 // 控制器操作结果

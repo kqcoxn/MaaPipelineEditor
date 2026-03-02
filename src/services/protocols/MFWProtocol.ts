@@ -570,4 +570,204 @@ export class MFWProtocol extends BaseProtocol {
       }
     };
   }
+
+  // === 控制器操作方法 ===
+
+  /**
+   * 点击操作
+   */
+  public click(params: {
+    controller_id: string;
+    x: number;
+    y: number;
+  }): boolean {
+    if (!this.wsClient) {
+      console.error("[MFWProtocol] WebSocket client not initialized");
+      return false;
+    }
+    return this.wsClient.send("/etl/mfw/controller_click", params);
+  }
+
+  /**
+   * 滑动操作
+   */
+  public swipe(params: {
+    controller_id: string;
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+    duration: number;
+  }): boolean {
+    if (!this.wsClient) {
+      console.error("[MFWProtocol] WebSocket client not initialized");
+      return false;
+    }
+    return this.wsClient.send("/etl/mfw/controller_swipe", params);
+  }
+
+  /**
+   * 输入文本
+   */
+  public inputText(params: { controller_id: string; text: string }): boolean {
+    if (!this.wsClient) {
+      console.error("[MFWProtocol] WebSocket client not initialized");
+      return false;
+    }
+    return this.wsClient.send("/etl/mfw/controller_input_text", params);
+  }
+
+  /**
+   * 启动应用
+   */
+  public startApp(params: { controller_id: string; package: string }): boolean {
+    if (!this.wsClient) {
+      console.error("[MFWProtocol] WebSocket client not initialized");
+      return false;
+    }
+    return this.wsClient.send("/etl/mfw/controller_start_app", params);
+  }
+
+  /**
+   * 停止应用
+   */
+  public stopApp(params: { controller_id: string; package: string }): boolean {
+    if (!this.wsClient) {
+      console.error("[MFWProtocol] WebSocket client not initialized");
+      return false;
+    }
+    return this.wsClient.send("/etl/mfw/controller_stop_app", params);
+  }
+
+  /**
+   * 点击按键
+   */
+  public clickKey(params: { controller_id: string; keycode: number }): boolean {
+    if (!this.wsClient) {
+      console.error("[MFWProtocol] WebSocket client not initialized");
+      return false;
+    }
+    return this.wsClient.send("/etl/mfw/controller_click_key", params);
+  }
+
+  /**
+   * 手柄触摸操作
+   */
+  public touchGamepad(params: {
+    controller_id: string;
+    contact: number;
+    x: number;
+    y: number;
+    pressure: number;
+    action: "down" | "move" | "up";
+  }): boolean {
+    if (!this.wsClient) {
+      console.error("[MFWProtocol] WebSocket client not initialized");
+      return false;
+    }
+    return this.wsClient.send("/etl/mfw/controller_touch_gamepad", params);
+  }
+
+  /**
+   * 滚动操作
+   */
+  public scroll(params: {
+    controller_id: string;
+    dx: number;
+    dy: number;
+  }): boolean {
+    if (!this.wsClient) {
+      console.error("[MFWProtocol] WebSocket client not initialized");
+      return false;
+    }
+    return this.wsClient.send("/etl/mfw/controller_scroll", params);
+  }
+
+  /**
+   * 按键按下
+   */
+  public keyDown(params: { controller_id: string; keycode: number }): boolean {
+    if (!this.wsClient) {
+      console.error("[MFWProtocol] WebSocket client not initialized");
+      return false;
+    }
+    return this.wsClient.send("/etl/mfw/controller_key_down", params);
+  }
+
+  /**
+   * 按键释放
+   */
+  public keyUp(params: { controller_id: string; keycode: number }): boolean {
+    if (!this.wsClient) {
+      console.error("[MFWProtocol] WebSocket client not initialized");
+      return false;
+    }
+    return this.wsClient.send("/etl/mfw/controller_key_up", params);
+  }
+
+  /**
+   * 带接触点和压力的点击 (ClickV2)
+   */
+  public clickV2(params: {
+    controller_id: string;
+    x: number;
+    y: number;
+    contact: number;
+    pressure: number;
+  }): boolean {
+    if (!this.wsClient) {
+      console.error("[MFWProtocol] WebSocket client not initialized");
+      return false;
+    }
+    return this.wsClient.send("/etl/mfw/controller_click_v2", params);
+  }
+
+  /**
+   * 带接触点和压力的滑动 (SwipeV2)
+   */
+  public swipeV2(params: {
+    controller_id: string;
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+    duration: number;
+    contact: number;
+    pressure: number;
+  }): boolean {
+    if (!this.wsClient) {
+      console.error("[MFWProtocol] WebSocket client not initialized");
+      return false;
+    }
+    return this.wsClient.send("/etl/mfw/controller_swipe_v2", params);
+  }
+
+  /**
+   * 执行 Shell 命令 (仅 ADB 控制器)
+   */
+  public shell(params: {
+    controller_id: string;
+    command: string;
+    timeout?: number; // 超时时间(毫秒)
+  }): boolean {
+    if (!this.wsClient) {
+      console.error("[MFWProtocol] WebSocket client not initialized");
+      return false;
+    }
+    return this.wsClient.send("/etl/mfw/controller_shell", {
+      ...params,
+      timeout: params.timeout || 10000, // 默认 10 秒
+    });
+  }
+
+  /**
+   * 恢复控制器/窗口状态
+   */
+  public inactive(params: { controller_id: string }): boolean {
+    if (!this.wsClient) {
+      console.error("[MFWProtocol] WebSocket client not initialized");
+      return false;
+    }
+    return this.wsClient.send("/etl/mfw/controller_inactive", params);
+  }
 }
