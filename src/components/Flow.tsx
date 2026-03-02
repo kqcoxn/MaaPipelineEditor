@@ -40,6 +40,7 @@ import { useConfigStore } from "../stores/configStore";
 import SnapGuidelines from "./flow/SnapGuidelines";
 import {
   findSnapAlignment,
+  filterNodesInViewport,
   type SnapGuideline,
 } from "../core/snapUtils";
 
@@ -201,6 +202,8 @@ function MainFlow() {
     groupSelectedNodes,
     attachNodeToGroup,
     detachNodeFromGroup,
+    viewport,
+    size,
   } = useFlowStore(
     useShallow((state) => ({
       nodes: state.nodes,
@@ -213,6 +216,8 @@ function MainFlow() {
       groupSelectedNodes: state.groupSelectedNodes,
       attachNodeToGroup: state.attachNodeToGroup,
       detachNodeFromGroup: state.detachNodeFromGroup,
+      viewport: state.viewport,
+      size: state.size,
     }))
   );
   const canvasBackgroundMode = useConfigStore(
@@ -220,6 +225,9 @@ function MainFlow() {
   );
   const enableNodeSnap = useConfigStore(
     (state) => state.configs.enableNodeSnap
+  );
+  const snapOnlyInViewport = useConfigStore(
+    (state) => state.configs.snapOnlyInViewport
   );
   const selfElem = useRef<HTMLDivElement>(null);
 
@@ -289,9 +297,14 @@ function MainFlow() {
   const onNodeDrag = useCallback(
     (_event: React.MouseEvent, draggedNode: NodeType) => {
       if (!enableNodeSnap) return;
-      const otherNodes = nodes.filter(
+      // 过滤拖拽节点和分组节点
+      let otherNodes = nodes.filter(
         (n) => n.id !== draggedNode.id && n.type !== NodeTypeEnum.Group
       );
+      // 过滤可视范围内的节点
+      if (snapOnlyInViewport) {
+        otherNodes = filterNodesInViewport(otherNodes, { ...viewport, ...size });
+      }
       if (otherNodes.length === 0) {
         setSnapGuidelines([]);
         return;
@@ -312,7 +325,7 @@ function MainFlow() {
         ]);
       }
     },
-    [enableNodeSnap, nodes, updateNodes]
+    [enableNodeSnap, snapOnlyInViewport, nodes, updateNodes, viewport, size]
   );
 
   const onNodeDragStop = useCallback(
@@ -321,9 +334,14 @@ function MainFlow() {
 
       // 磁吸对齐
       if (enableNodeSnap) {
-        const otherNodes = nodes.filter(
+        // 过滤掉拖拽节点和分组节点
+        let otherNodes = nodes.filter(
           (n) => n.id !== draggedNode.id && n.type !== NodeTypeEnum.Group
         );
+        // 过滤可视范围内的节点
+        if (snapOnlyInViewport) {
+          otherNodes = filterNodesInViewport(otherNodes, { ...viewport, ...size });
+        }
         if (otherNodes.length > 0) {
           const result = findSnapAlignment(draggedNode, otherNodes);
           const dx = result.position.x - draggedNode.position.x;
@@ -391,7 +409,7 @@ function MainFlow() {
         }
       });
     },
-    [enableNodeSnap, nodes, updateNodes, attachNodeToGroup, detachNodeFromGroup]
+    [enableNodeSnap, snapOnlyInViewport, nodes, updateNodes, attachNodeToGroup, detachNodeFromGroup, viewport, size]
   );
 
   // 选区右键菜单

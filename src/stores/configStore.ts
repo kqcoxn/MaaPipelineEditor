@@ -47,6 +47,7 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   showNodeDetailFields: "panel",
   saveFilesBeforeDebug: "panel",
   enableNodeSnap: "panel",
+  snapOnlyInViewport: "panel",
   enableLiveScreen: "panel",
   liveScreenRefreshRate: "panel",
   // 本地通信配置
@@ -134,6 +135,8 @@ type ConfigState = {
     showNodeDetailFields: boolean;
     // 节点磁吸对齐
     enableNodeSnap: boolean;
+    // 磁吸对齐仅限可视范围
+    snapOnlyInViewport: boolean;
     // 实时画面预览
     enableLiveScreen: boolean;
     // 实时画面刷新间隔（毫秒）
@@ -199,6 +202,8 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     showNodeDetailFields: true,
     // 节点磁吸对齐
     enableNodeSnap: false,
+    // 磁吸对齐仅限可视范围
+    snapOnlyInViewport: true,
     // 实时画面预览
     enableLiveScreen: true,
     // 实时画面刷新间隔（毫秒）

@@ -19,6 +19,9 @@ const PanelConfigSection = memo(() => {
   const enableNodeSnap = useConfigStore(
     (state) => state.configs.enableNodeSnap
   );
+  const snapOnlyInViewport = useConfigStore(
+    (state) => state.configs.snapOnlyInViewport
+  );
   const focusOpacity = useConfigStore((state) => state.configs.focusOpacity);
   const configHandlingMode = useConfigStore(
     (state) => state.configs.configHandlingMode
@@ -224,6 +227,32 @@ const PanelConfigSection = memo(() => {
           unCheckedChildren="关闭"
           value={enableNodeSnap}
           onChange={(value: boolean) => setConfig("enableNodeSnap", value)}
+        />
+      </div>
+      {/* 磁吸仅可视范围 */}
+      <div className={globalClass}>
+        <div className={style.key}>
+          <Popover
+            placement="bottomLeft"
+            title={"仅磁吸可视节点"}
+            content={
+              <TipElem
+                content={
+                  "开启时仅与可视范围内的节点进行磁吸对齐"
+                }
+              />
+            }
+          >
+            <span>仅磁吸可视节点</span>
+          </Popover>
+        </div>
+        <Switch
+          className={style.value}
+          style={switchStyle}
+          checkedChildren="启用"
+          unCheckedChildren="关闭"
+          value={snapOnlyInViewport}
+          onChange={(value: boolean) => setConfig("snapOnlyInViewport", value)}
         />
       </div>
       {/* 非聚焦节点不透明度 */}

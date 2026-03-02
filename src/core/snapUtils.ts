@@ -20,6 +20,63 @@ type NodeRect = {
   measured?: { width: number; height: number };
 };
 
+/** 视口信息 */
+type ViewportInfo = {
+  x: number;
+  y: number;
+  zoom: number;
+  width: number;
+  height: number;
+};
+
+/**
+ * 判断节点是否在视口范围内
+ * @param node 节点
+ * @param viewport 视口信息
+ * @param margin 额外边距（flow 坐标），默认为 50
+ */
+export function isNodeInViewport(
+  node: NodeRect,
+  viewport: ViewportInfo,
+  margin = 50
+): boolean {
+  const { x, y, zoom, width, height } = viewport;
+  const nodeW = node.measured?.width ?? 0;
+  const nodeH = node.measured?.height ?? 0;
+
+  // 计算视口在 flow 坐标系中的范围
+  const viewportLeft = -x / zoom - margin;
+  const viewportRight = (-x + width) / zoom + margin;
+  const viewportTop = -y / zoom - margin;
+  const viewportBottom = (-y + height) / zoom + margin;
+
+  // 计算节点在 flow 坐标系中的范围
+  const nodeLeft = node.position.x;
+  const nodeRight = node.position.x + nodeW;
+  const nodeTop = node.position.y;
+  const nodeBottom = node.position.y + nodeH;
+
+  // 判断是否有重叠
+  return !(
+    nodeRight < viewportLeft ||
+    nodeLeft > viewportRight ||
+    nodeBottom < viewportTop ||
+    nodeTop > viewportBottom
+  );
+}
+
+/**
+ * 过滤出视口范围内的节点
+ * @param nodes 节点列表
+ * @param viewport 视口信息
+ */
+export function filterNodesInViewport<T extends NodeRect>(
+  nodes: T[],
+  viewport: ViewportInfo
+): T[] {
+  return nodes.filter((node) => isNodeInViewport(node, viewport));
+}
+
 /** 计算节点的对齐坐标 */
 function getSnapPoints(node: NodeRect) {
   const w = node.measured?.width ?? 0;

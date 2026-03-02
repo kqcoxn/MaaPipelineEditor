@@ -48,6 +48,18 @@ export const pinnedNotice: PinnedNotice = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "1.2.1",
+    date: "2026-3-2",
+    type: "feature",
+    updates: {
+      features: [
+        "🦕 适配 color_filter、shell_timeout 字段，适配 Screencap 系列动作",
+        "🧲 磁吸对齐功能支持仅可视范围内的节点（默认开启，可在设置面板关闭）",
+      ],
+      fixes: ["修正 cmd-cmd 字段的解析错误"],
+    },
+  },
+  {
     version: "1.2.0",
     date: "2026-2-23",
     type: "major",
