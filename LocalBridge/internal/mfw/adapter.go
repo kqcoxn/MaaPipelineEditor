@@ -464,8 +464,15 @@ func (a *MaaFWAdapter) ConnectAgent(identifier string) error {
 
 	logger.Debug("MaaFW", "开始连接 Agent: identifier=%s, Tasker指针=%p, 资源指针=%p", identifier, a.tasker, a.resource)
 
-	// 清理旧 Agent
+	// 检查是否已连接且状态正常
+	if a.agentClient != nil && a.agentConnected && a.agentClient.Connected() && a.agentClient.Alive() {
+		logger.Debug("MaaFW", "Agent 已连接且状态正常，跳过重连")
+		return nil
+	}
+
+	// 清理旧的异常连接
 	if a.agentClient != nil {
+		logger.Debug("MaaFW", "清理异常的 Agent 连接")
 		a.agentClient.Disconnect()
 		a.agentClient.Destroy()
 		a.agentClient = nil
@@ -548,11 +555,11 @@ func (a *MaaFWAdapter) DisconnectAgent() {
 	a.agentConnected = false
 }
 
-// IsAgentConnected 检查 Agent 是否已连接
+// IsAgentConnected 检查 Agent 是否已连接及本地连接状态和服务端响应状态
 func (a *MaaFWAdapter) IsAgentConnected() bool {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
-	return a.agentConnected && a.agentClient != nil && a.agentClient.Connected()
+	return a.agentConnected && a.agentClient != nil && a.agentClient.Connected() && a.agentClient.Alive()
 }
 
 // GetAgentClient 获取 AgentClient

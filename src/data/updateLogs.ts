@@ -58,7 +58,10 @@ export const updateLogs: UpdateLogItem[] = [
         "🧲 磁吸对齐功能支持仅可视范围内的节点（默认开启，可在设置面板关闭）",
         "🙃 支持负数 roi/target 渲染与提示",
       ],
-      fixes: ["修正 cmd-cmd 字段的解析错误"],
+      fixes: [
+        "修正 cmd-cmd 字段的解析错误",
+        "修复重复连接 agent 时服务崩溃的问题",
+      ],
     },
   },
   {
