@@ -365,7 +365,12 @@ func (s *SimpleContextSink) OnNodeAction(ctx *maa.Context, status maa.EventStatu
 func (s *SimpleContextSink) OnNodeNextList(ctx *maa.Context, status maa.EventStatus, detail maa.NodeNextListDetail) {
 	// 通常不需要处理这个事件，只在详细调试模式下使用
 	if status == maa.EventStatusStarting {
-		logger.Debug("DebugSink", "NextList: %s -> %v", detail.Name, detail.NextList)
+		// 提取节点名称列表用于日志
+		names := make([]string, len(detail.List))
+		for i, item := range detail.List {
+			names[i] = item.Name
+		}
+		logger.Debug("DebugSink", "NextList: %s -> %v", detail.Name, names)
 	}
 }
 
