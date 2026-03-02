@@ -11,6 +11,55 @@ EventNodeNextList = Event("Node.NextList")
 EventNodeRecognition = Event("Node.Recognition")
 EventNodeAction = Event("Node.Action")
 )
+View Source
+const (
+TemplateMatchOrderByHorizontal = TemplateMatchOrderBy(OrderByHorizontal)
+TemplateMatchOrderByVertical = TemplateMatchOrderBy(OrderByVertical)
+TemplateMatchOrderByScore = TemplateMatchOrderBy(OrderByScore)
+TemplateMatchOrderByRandom = TemplateMatchOrderBy(OrderByRandom)
+)
+View Source
+const (
+FeatureMatchOrderByHorizontal = FeatureMatchOrderBy(OrderByHorizontal)
+FeatureMatchOrderByVertical = FeatureMatchOrderBy(OrderByVertical)
+FeatureMatchOrderByScore = FeatureMatchOrderBy(OrderByScore)
+FeatureMatchOrderByArea = FeatureMatchOrderBy(OrderByArea)
+FeatureMatchOrderByRandom = FeatureMatchOrderBy(OrderByRandom)
+)
+View Source
+const (
+ColorMatchOrderByHorizontal = ColorMatchOrderBy(OrderByHorizontal)
+ColorMatchOrderByVertical = ColorMatchOrderBy(OrderByVertical)
+ColorMatchOrderByScore = ColorMatchOrderBy(OrderByScore)
+ColorMatchOrderByArea = ColorMatchOrderBy(OrderByArea)
+ColorMatchOrderByRandom = ColorMatchOrderBy(OrderByRandom)
+)
+View Source
+const (
+OCROrderByHorizontal = OCROrderBy(OrderByHorizontal)
+OCROrderByVertical = OCROrderBy(OrderByVertical)
+OCROrderByArea = OCROrderBy(OrderByArea)
+OCROrderByLength = OCROrderBy(OrderByLength)
+OCROrderByRandom = OCROrderBy(OrderByRandom)
+OCROrderByExpected = OCROrderBy(OrderByExpected)
+)
+View Source
+const (
+NeuralNetworkClassifyOrderByHorizontal = NeuralNetworkClassifyOrderBy(OrderByHorizontal)
+NeuralNetworkClassifyOrderByVertical = NeuralNetworkClassifyOrderBy(OrderByVertical)
+NeuralNetworkClassifyOrderByScore = NeuralNetworkClassifyOrderBy(OrderByScore)
+NeuralNetworkClassifyOrderByRandom = NeuralNetworkClassifyOrderBy(OrderByRandom)
+NeuralNetworkClassifyOrderByExpected = NeuralNetworkClassifyOrderBy(OrderByExpected)
+)
+View Source
+const (
+NeuralNetworkDetectOrderByHorizontal = NeuralNetworkDetectOrderBy(OrderByHorizontal)
+NeuralNetworkDetectOrderByVertical = NeuralNetworkDetectOrderBy(OrderByVertical)
+NeuralNetworkDetectOrderByScore = NeuralNetworkDetectOrderBy(OrderByScore)
+NeuralNetworkDetectOrderByArea = NeuralNetworkDetectOrderBy(OrderByArea)
+NeuralNetworkDetectOrderByRandom = NeuralNetworkDetectOrderBy(OrderByRandom)
+NeuralNetworkDetectOrderByExpected = NeuralNetworkDetectOrderBy(OrderByExpected)
+)
 Variables
 View Source
 var (
@@ -128,6 +177,97 @@ func Version() string
 Version returns the version of the maa framework.
 
 Types
+type Action
+type Action struct {
+// Type specifies the action type.
+Type ActionType `json:"type,omitempty"`
+// Param specifies the action parameters.
+Param ActionParam `json:"param,omitempty"`
+}
+Action defines the action configuration for a node.
+
+func ActClick
+func ActClick(p ClickParam) \*Action
+ActClick creates a Click action. Pass a zero value for defaults.
+
+func ActClickKey
+func ActClickKey(keys []int) \*Action
+ActClickKey creates a ClickKey action with the given virtual key codes.
+
+func ActCommand
+func ActCommand(p CommandParam) \*Action
+ActCommand creates a Command action with the given parameters.
+
+func ActCustom
+func ActCustom(p CustomActionParam) \*Action
+ActCustom creates a Custom action with the given parameters.
+
+func ActDoNothing
+func ActDoNothing() \*Action
+ActDoNothing creates a DoNothing action that performs no operation.
+
+func ActInputText
+func ActInputText(input string) \*Action
+ActInputText creates an InputText action with the given text.
+
+func ActKeyDown
+func ActKeyDown(key int) \*Action
+ActKeyDown creates a KeyDown action that presses the key without releasing.
+
+func ActKeyUp
+func ActKeyUp(key int) \*Action
+ActKeyUp creates a KeyUp action that releases a previously pressed key.
+
+func ActLongPress
+func ActLongPress(p LongPressParam) \*Action
+ActLongPress creates a LongPress action. Pass a zero value for defaults.
+
+func ActLongPressKey
+func ActLongPressKey(p LongPressKeyParam) \*Action
+ActLongPressKey creates a LongPressKey action with the given parameters.
+
+func ActMultiSwipe
+func ActMultiSwipe(swipes ...MultiSwipeItem) \*Action
+ActMultiSwipe creates a MultiSwipe action for multi-finger swipe gestures.
+
+func ActScroll
+func ActScroll(p ScrollParam) \*Action
+ActScroll creates a Scroll action. Pass a zero value for defaults.
+
+func ActShell
+func ActShell(cmd string) \*Action
+ActShell creates a Shell action with the given command. This is only valid for ADB controllers. If the controller is not an ADB controller, the action will fail. The output of the command can be obtained in the action detail by MaaTaskerGetActionDetail.
+
+func ActStartApp
+func ActStartApp(pkg string) \*Action
+ActStartApp creates a StartApp action with the given package name or activity.
+
+func ActStopApp
+func ActStopApp(pkg string) \*Action
+ActStopApp creates a StopApp action with the given package name.
+
+func ActStopTask
+func ActStopTask() \*Action
+ActStopTask creates a StopTask action that stops the current task chain.
+
+func ActSwipe
+func ActSwipe(p SwipeParam) \*Action
+ActSwipe creates a Swipe action. Pass a zero value for defaults.
+
+func ActTouchDown
+func ActTouchDown(p TouchDownParam) \*Action
+ActTouchDown creates a TouchDown action. Pass a zero value for defaults.
+
+func ActTouchMove
+func ActTouchMove(p TouchMoveParam) \*Action
+ActTouchMove creates a TouchMove action. Pass a zero value for defaults.
+
+func ActTouchUp
+func ActTouchUp(contact int) \*Action
+ActTouchUp creates a TouchUp action. contact is the touch point identifier (0 for default).
+
+func (*Action) UnmarshalJSON
+func (na *Action) UnmarshalJSON(data []byte) error
 type ActionDetail
 type ActionDetail struct {
 ID int64
@@ -139,6 +279,12 @@ DetailJson string
 Result \*ActionResult
 }
 ActionDetail contains action information.
+
+type ActionParam
+type ActionParam interface {
+// contains filtered or unexported methods
+}
+ActionParam is the interface for action parameters.
 
 type ActionResult
 type ActionResult struct {
@@ -169,13 +315,39 @@ func (r *ActionResult) AsSwipe() (*SwipeActionResult, bool)
 func (*ActionResult) AsTouch
 func (r *ActionResult) AsTouch() (*TouchActionResult, bool)
 func (*ActionResult) Type
-func (r \*ActionResult) Type() NodeActionType
+func (r \*ActionResult) Type() ActionType
 Type returns the action type of the result.
 
 func (*ActionResult) Value
 func (r *ActionResult) Value() any
 Value returns the underlying value of the result.
 
+type ActionType
+type ActionType string
+ActionType defines the available action types.
+
+const (
+ActionTypeDoNothing ActionType = "DoNothing"
+ActionTypeClick ActionType = "Click"
+ActionTypeLongPress ActionType = "LongPress"
+ActionTypeSwipe ActionType = "Swipe"
+ActionTypeMultiSwipe ActionType = "MultiSwipe"
+ActionTypeTouchDown ActionType = "TouchDown"
+ActionTypeTouchMove ActionType = "TouchMove"
+ActionTypeTouchUp ActionType = "TouchUp"
+ActionTypeClickKey ActionType = "ClickKey"
+ActionTypeLongPressKey ActionType = "LongPressKey"
+ActionTypeKeyDown ActionType = "KeyDown"
+ActionTypeKeyUp ActionType = "KeyUp"
+ActionTypeInputText ActionType = "InputText"
+ActionTypeStartApp ActionType = "StartApp"
+ActionTypeStopApp ActionType = "StopApp"
+ActionTypeStopTask ActionType = "StopTask"
+ActionTypeScroll ActionType = "Scroll"
+ActionTypeCommand ActionType = "Command"
+ActionTypeShell ActionType = "Shell"
+ActionTypeCustom ActionType = "Custom"
+)
 type AdbDevice
 type AdbDevice struct {
 Name string
@@ -271,13 +443,12 @@ WithTcpPort sets the TCP port for creating a TCP-based agent client. The client 
 
 Priority: This option takes precedence for creation mode if specified after WithIdentifier. If specified before WithIdentifier, WithIdentifier will override it.
 
-type AndRecognitionOption
-type AndRecognitionOption func(\*NodeAndRecognitionParam)
-AndRecognitionOption is a functional option for configuring NodeAndRecognitionParam.
-
-func WithAndRecognitionBoxIndex
-func WithAndRecognitionBoxIndex(boxIndex int) AndRecognitionOption
-WithAndRecognitionBoxIndex sets which recognition result's box to use as the final box.
+type AndRecognitionParam
+type AndRecognitionParam struct {
+AllOf []SubRecognitionItem `json:"all_of,omitempty"`
+BoxIndex int `json:"box_index,omitempty"`
+}
+AndRecognitionParam defines parameters for AND recognition. AllOf elements are either node name strings or inline recognitions.
 
 type AppActionResult
 type AppActionResult struct {
@@ -304,6 +475,10 @@ Connected implements CustomController.
 func (*BlankController) GetFeature
 func (c *BlankController) GetFeature() ControllerFeature
 GetFeature implements CustomController.
+
+func (*BlankController) Inactive
+func (c *BlankController) Inactive() bool
+Inactive implements CustomController.
 
 func (*BlankController) InputText
 func (c *BlankController) InputText(text string) bool
@@ -377,6 +552,10 @@ func (*CarouselImageController) GetFeature
 func (c *CarouselImageController) GetFeature() ControllerFeature
 GetFeature implements CustomController.
 
+func (*CarouselImageController) Inactive
+func (c *CarouselImageController) Inactive() bool
+Inactive implements CustomController.
+
 func (*CarouselImageController) InputText
 func (c *CarouselImageController) InputText(text string) bool
 InputText implements CustomController.
@@ -436,70 +615,78 @@ type ClickKeyActionResult
 type ClickKeyActionResult struct {
 Keycode []int `json:"keycode"`
 }
-type ClickOption
-type ClickOption func(\*NodeClickParam)
-ClickOption is a functional option for configuring NodeClickParam.
+type ClickKeyParam
+type ClickKeyParam struct {
+// Key specifies the virtual key codes to click. Required.
+Key []int `json:"key,omitempty"`
+}
+ClickKeyParam defines parameters for key click action.
 
-func WithClickContact
-func WithClickContact(contact int) ClickOption
-WithClickContact sets the touch point identifier.
+type ClickParam
+type ClickParam struct {
+// Target specifies the click target position.
+Target Target `json:"target,omitzero"`
+// TargetOffset specifies additional offset applied to target.
+TargetOffset Rect `json:"target_offset,omitempty"`
+// Contact specifies the touch point identifier. Adb: finger index (0=first finger). Win32: mouse button (0=left, 1=right, 2=middle).
+Contact int `json:"contact,omitempty"`
+}
+ClickParam defines parameters for click action.
 
-func WithClickTarget
-func WithClickTarget(target Target) ClickOption
-WithClickTarget sets the click target position.
+type ColorMatchMethod
+type ColorMatchMethod int
+ColorMatchMethod defines the color space for color matching (cv::ColorConversionCodes).
 
-func WithClickTargetOffset
-func WithClickTargetOffset(offset Rect) ClickOption
-WithClickTargetOffset sets additional offset applied to target.
+const (
+ColorMatchMethodRGB ColorMatchMethod = 4 // RGB color space, 3 channels (default)
+ColorMatchMethodHSV ColorMatchMethod = 40 // HSV color space, 3 channels
+ColorMatchMethodGRAY ColorMatchMethod = 6 // Grayscale, 1 channel
+)
+type ColorMatchOrderBy
+type ColorMatchOrderBy OrderBy
+ColorMatchOrderBy defines the ordering options for color matching results.
 
-type ColorMatchOption
-type ColorMatchOption func(\*NodeColorMatchParam)
-ColorMatchOption is a functional option for configuring NodeColorMatchParam.
-
-func WithColorMatchConnected
-func WithColorMatchConnected(connected bool) ColorMatchOption
-WithColorMatchConnected enables connected component analysis.
-
-func WithColorMatchCount
-func WithColorMatchCount(count int) ColorMatchOption
-WithColorMatchCount sets the minimum pixel count required (threshold).
-
-func WithColorMatchIndex
-func WithColorMatchIndex(index int) ColorMatchOption
-WithColorMatchIndex sets which match to select from results.
-
-func WithColorMatchMethod
-func WithColorMatchMethod(method NodeColorMatchMethod) ColorMatchOption
-WithColorMatchMethod sets the color space for matching.
-
-func WithColorMatchOrderBy
-func WithColorMatchOrderBy(orderBy NodeColorMatchOrderBy) ColorMatchOption
-WithColorMatchOrderBy sets the result ordering method.
-
-func WithColorMatchROI
-func WithColorMatchROI(roi Target) ColorMatchOption
-WithColorMatchROI sets the region of interest for color matching.
-
-func WithColorMatchROIOffset
-func WithColorMatchROIOffset(offset Rect) ColorMatchOption
-WithColorMatchROIOffset sets the offset applied to ROI.
+type ColorMatchParam
+type ColorMatchParam struct {
+// ROI specifies the region of interest for recognition.
+ROI Target `json:"roi,omitzero"`
+// ROIOffset specifies the offset applied to ROI.
+ROIOffset Rect `json:"roi_offset,omitempty"`
+// Method specifies the color space. 4: RGB (default), 40: HSV, 6: GRAY.
+Method ColorMatchMethod `json:"method,omitempty"`
+// Lower specifies the color lower bounds. Required. Inner array length must match method channels.
+Lower [][]int `json:"lower,omitempty"`
+// Upper specifies the color upper bounds. Required. Inner array length must match method channels.
+Upper [][]int `json:"upper,omitempty"`
+// Count specifies the minimum pixel count required (threshold). Default: 1.
+Count int `json:"count,omitempty"`
+// OrderBy specifies how results are sorted. Default: Horizontal. Options: Horizontal | Vertical | Score | Area | Random.
+OrderBy ColorMatchOrderBy `json:"order_by,omitempty"`
+// Index specifies which match to select from results.
+Index int `json:"index,omitempty"`
+// Connected enables connected component analysis. Default: false.
+Connected bool `json:"connected,omitempty"`
+}
+ColorMatchParam defines parameters for color matching recognition.
 
 type ColorMatchResult
 type ColorMatchResult struct {
 Box Rect `json:"box"`
 Count int `json:"count"`
 }
-type CommandOption
-type CommandOption func(\*NodeCommandParam)
-CommandOption is a functional option for configuring NodeCommandParam.
-
-func WithCommandArgs
-func WithCommandArgs(args []string) CommandOption
-WithCommandArgs sets the command arguments.
-
-func WithCommandDetach
-func WithCommandDetach(detach bool) CommandOption
-WithCommandDetach enables detached mode to run without waiting for completion.
+type CommandParam
+type CommandParam struct {
+// Exec specifies the program path to execute. Required.
+Exec string `json:"exec,omitempty"`
+// Args specifies the command arguments. Supports runtime placeholders:
+// {ENTRY}: task entry name, {NODE}: current node name,
+// {IMAGE}: screenshot file path, {BOX}: recognition target [x,y,w,h],
+// {RESOURCE_DIR}: last loaded resource directory, {LIBRARY_DIR}: MaaFW library directory.
+Args []string `json:"args,omitempty"`
+// Detach enables detached mode to run without waiting for completion. Default: false.
+Detach bool `json:"detach,omitempty"`
+}
+CommandParam defines parameters for command execution action.
 
 type Context
 type Context struct {
@@ -544,7 +731,7 @@ func (ctx *Context) OverrideImage(imageName string, image image.Image) error
 OverrideImage overrides an image by name.
 
 func (*Context) OverrideNext
-func (ctx *Context) OverrideNext(name string, nextList []NodeNextItem) error
+func (ctx *Context) OverrideNext(name string, nextList []NextItem) error
 OverrideNext overrides the next list of a node by name. If the underlying call fails (e.g., node not found or list invalid), it returns an error.
 
 func (*Context) OverridePipeline
@@ -554,7 +741,7 @@ OverridePipeline overrides the current pipeline definition. The override paramet
 Example 1:
 
 pipeline := NewPipeline()
-node := NewNode("Task", WithAction(ActDoNothing()))
+node := NewNode("Task").SetAction(ActDoNothing())
 pipeline.AddNode(node)
 ctx.OverridePipeline(pipeline)
 Example 2:
@@ -580,9 +767,8 @@ RunAction runs an action by entry name and returns its detail. It accepts an ent
 Example 1:
 
 pipeline := NewPipeline()
-node := NewNode("Task",
-WithAction(ActClick(WithClickTarget(NewTargetRect(Rect{100, 200, 100, 100})))),
-)
+node := NewNode("Task").
+SetAction(ActClick(ClickParam{Target: NewTargetRect(Rect{100, 200, 100, 100})}))
 pipeline.AddNode(node)
 ctx.RunAction(node.Name, box, recognitionDetail, pipeline)
 Example 2:
@@ -598,8 +784,8 @@ Example 3:
 ctx.RunAction("Task", box, recognitionDetail, `{"Task":{"action":"Click","target":[100, 200, 100, 100]}}`)
 func (*Context) RunActionDirect
 func (ctx *Context) RunActionDirect(
-actionType NodeActionType,
-actionParam NodeActionParam,
+actionType ActionType,
+actionParam ActionParam,
 box Rect,
 recoDetail *RecognitionDetail,
 ) (*ActionDetail, error)
@@ -607,9 +793,9 @@ RunActionDirect runs action directly by type and parameters, without a pipeline 
 
 Example:
 
-actParam := &NodeClickParam{Target: NewTargetRect(Rect{100, 200, 100, 100})}
+actParam := &ClickParam{Target: NewTargetRect(Rect{100, 200, 100, 100})}
 box := Rect{100, 200, 100, 100}
-ctx.RunActionDirect(NodeActionTypeClick, actParam, box, nil)
+ctx.RunActionDirect(ActionTypeClick, actParam, box, nil)
 func (*Context) RunRecognition
 func (ctx *Context) RunRecognition(
 entry string,
@@ -621,9 +807,8 @@ RunRecognition runs a recognition by entry name and returns its detail. It accep
 Example 1:
 
 pipeline := NewPipeline()
-node := NewNode("Task",
-WithRecognition(RecOCR(WithRecognitionExpected("Hello"))),
-)
+node := NewNode("Task").
+SetRecognition(RecOCR(OCRParam{Expected: []string{"Hello"}}))
 pipeline.AddNode(node)
 ctx.RunRecognition(node.Name, img, pipeline)
 Example 2:
@@ -639,16 +824,16 @@ Example 3:
 ctx.RunRecognition("Task", img, `{"Task":{"recognition":"OCR","expected":"Hello"}}`)
 func (*Context) RunRecognitionDirect
 func (ctx *Context) RunRecognitionDirect(
-recoType NodeRecognitionType,
-recoParam NodeRecognitionParam,
+recoType RecognitionType,
+recoParam RecognitionParam,
 img image.Image,
 ) (\*RecognitionDetail, error)
-RunRecognitionDirect runs recognition directly by type and parameters, without a pipeline entry. It accepts a recognition type string (e.g., "OCR", "TemplateMatch"), a recognition parameter that will be marshaled to JSON, and an image to recognize. If the parameter is nil, it will be marshaled to JSON null.
+RunRecognitionDirect runs recognition directly by type and parameters, without a pipeline entry. It accepts a recognition type (e.g., RecognitionTypeOCR, RecognitionTypeTemplateMatch), a recognition parameter implementing RecognitionParam (marshaled to JSON), and an image. recoParam may be nil; it is then marshaled as JSON null.
 
 Example:
 
-recParam := &NodeOCRParam{Expected: []string{"Hello"}}
-ctx.RunRecognitionDirect(NodeRecognitionTypeOCR, recParam, img)
+recParam := &OCRParam{Expected: []string{"Hello"}}
+detail, err := ctx.RunRecognitionDirect(RecognitionTypeOCR, recParam, img)
 func (*Context) RunTask
 func (ctx *Context) RunTask(entry string, override ...any) (\*TaskDetail, error)
 RunTask runs a pipeline task by entry name and returns its detail. It accepts an entry string and an optional override parameter which can be a JSON string or any data type that can be marshaled to JSON. The override must be a JSON object (map). If the override value is nil, an empty JSON object will be used. If multiple overrides are provided, only the first one will be used.
@@ -656,9 +841,8 @@ RunTask runs a pipeline task by entry name and returns its detail. It accepts an
 Example 1:
 
 pipeline := NewPipeline()
-node := NewNode("Task",
-WithAction(ActClick(WithClickTarget(NewTargetRect(Rect{100, 200, 100, 100})))),
-)
+node := NewNode("Task").
+SetAction(ActClick(ClickParam{Target: NewTargetRect(Rect{100, 200, 100, 100})}))
 pipeline.AddNode(node)
 ctx.RunTask(node.Name, pipeline)
 Example 2:
@@ -677,8 +861,12 @@ func (ctx *Context) SetAnchor(anchorName, nodeName string) error
 SetAnchor sets an anchor by name.
 
 func (*Context) WaitFreezes
-func (ctx *Context) WaitFreezes(duration time.Duration, box \*Rect, waitFreezesParam ...any) bool
-WaitFreezes waits until the screen stabilizes (no significant changes). duration: The duration that the screen must remain stable. box: The recognition hit box, used when target is "Self" to calculate the ROI. If nil, uses entire screen. waitFreezesParam: Additional wait_freezes parameters. Can be a JSON string or any data type that can be marshaled to JSON. duration and waitFreezesParam.time are mutually exclusive, and one of them must be non-zero. Returns true if the screen stabilized within the timeout, false on timeout or failure.
+func (ctx *Context) WaitFreezes(
+duration time.Duration,
+box *Rect,
+waitFreezesParam *WaitFreezesParam,
+) error
+WaitFreezes waits until the screen stabilizes (no significant changes). duration is the duration that the screen must remain stable. box is the recognition hit box, used when target is "Self" to calculate the ROI; if nil, uses entire screen. waitFreezesParam is optional; nil uses default params. duration and waitFreezesParam.Time are mutually exclusive; one of them must be non-zero. Returns nil if the screen stabilized within the timeout; returns an error on timeout or failure.
 
 type ContextEventSink
 type ContextEventSink interface {
@@ -795,6 +983,10 @@ func (*Controller) PostConnect
 func (c *Controller) PostConnect() \*Job
 PostConnect posts a connection.
 
+func (*Controller) PostInactive
+func (c *Controller) PostInactive() \*Job
+PostInactive posts an inactive request to restore controller/window state. For Win32 controllers this restores window position (removes topmost) and unblocks user input. For other controllers this is a no-op that typically succeeds.
+
 func (*Controller) PostInputText
 func (c *Controller) PostInputText(text string) \*Job
 PostInputText posts an input text.
@@ -880,21 +1072,18 @@ CustomActionParam string
 RecognitionDetail *RecognitionDetail
 Box Rect
 }
-type CustomActionOption
-type CustomActionOption func(\*NodeCustomActionParam)
-CustomActionOption is a functional option for configuring NodeCustomActionParam.
-
-func WithCustomActionParam
-func WithCustomActionParam(customParam any) CustomActionOption
-WithCustomActionParam sets custom parameters passed to the action callback.
-
-func WithCustomActionTarget
-func WithCustomActionTarget(target Target) CustomActionOption
-WithCustomActionTarget sets the action target position.
-
-func WithCustomActionTargetOffset
-func WithCustomActionTargetOffset(offset Rect) CustomActionOption
-WithCustomActionTargetOffset sets additional offset applied to target.
+type CustomActionParam
+type CustomActionParam struct {
+// Target specifies the action target position.
+Target Target `json:"target,omitzero"`
+// TargetOffset specifies additional offset applied to target.
+TargetOffset Rect `json:"target_offset,omitempty"`
+// CustomAction specifies the action name registered via MaaResourceRegisterCustomAction. Required.
+CustomAction string `json:"custom_action,omitempty"`
+// CustomActionParam specifies custom parameters passed to the action callback.
+CustomActionParam any `json:"custom_action_param,omitempty"`
+}
+CustomActionParam defines parameters for custom action handlers.
 
 type CustomActionRunner
 type CustomActionRunner interface {
@@ -919,8 +1108,11 @@ InputText(text string) bool
 KeyDown(keycode int32) bool
 KeyUp(keycode int32) bool
 Scroll(dx, dy int32) bool
+// Inactive is called when the framework requests restoring controller/window state (e.g. after tasks finish).
+// Return true for success or when no action is needed.
+Inactive() bool
 }
-CustomController defines an interface for custom controller. Implementers of this interface must embed a CustomControllerHandler struct and provide implementations for the following methods: Connect, RequestUUID, StartApp, StopApp, Screencap, Click, Swipe, TouchDown, TouchMove, TouchUp, ClickKey, InputText, KeyDown, KeyUp and Scroll.
+CustomController defines an interface for custom controller. Implementers of this interface must embed a CustomControllerHandler struct and provide implementations for the following methods: Connect, RequestUUID, StartApp, StopApp, Screencap, Click, Swipe, TouchDown, TouchMove, TouchUp, ClickKey, InputText, KeyDown, KeyUp, Scroll and Inactive.
 
 type CustomRecognitionArg
 type CustomRecognitionArg struct {
@@ -931,21 +1123,18 @@ CustomRecognitionParam string
 Img image.Image
 Roi Rect
 }
-type CustomRecognitionOption
-type CustomRecognitionOption func(\*NodeCustomRecognitionParam)
-CustomRecognitionOption is a functional option for configuring NodeCustomRecognitionParam.
-
-func WithCustomRecognitionParam
-func WithCustomRecognitionParam(customParam any) CustomRecognitionOption
-WithCustomRecognitionParam sets custom parameters passed to the recognition callback.
-
-func WithCustomRecognitionROI
-func WithCustomRecognitionROI(roi Target) CustomRecognitionOption
-WithCustomRecognitionROI sets the region of interest for custom recognition.
-
-func WithCustomRecognitionROIOffset
-func WithCustomRecognitionROIOffset(offset Rect) CustomRecognitionOption
-WithCustomRecognitionROIOffset sets the offset applied to ROI.
+type CustomRecognitionParam
+type CustomRecognitionParam struct {
+// ROI specifies the region of interest for recognition.
+ROI Target `json:"roi,omitzero"`
+// ROIOffset specifies the offset applied to ROI.
+ROIOffset Rect `json:"roi_offset,omitempty"`
+// CustomRecognition specifies the recognizer name registered via MaaResourceRegisterCustomRecognition. Required.
+CustomRecognition string `json:"custom_recognition,omitempty"`
+// CustomRecognitionParam specifies custom parameters passed to the recognition callback.
+CustomRecognitionParam any `json:"custom_recognition_param,omitempty"`
+}
+CustomRecognitionParam defines parameters for custom recognition handlers.
 
 type CustomRecognitionResult
 type CustomRecognitionResult struct {
@@ -967,6 +1156,14 @@ DesktopWindow represents a single desktop window with various properties about i
 func FindDesktopWindows
 func FindDesktopWindows() ([]\*DesktopWindow, error)
 FindDesktopWindows finds desktop windows.
+
+type DirectHitParam
+type DirectHitParam struct{}
+DirectHitParam defines parameters for direct hit recognition. DirectHit performs no actual recognition and always succeeds.
+
+type DoNothingParam
+type DoNothingParam struct{}
+DoNothingParam defines parameters for do-nothing action.
 
 type Event
 type Event string
@@ -990,41 +1187,43 @@ EventStatusFailed
 )
 Event status constants
 
-type FeatureMatchOption
-type FeatureMatchOption func(\*NodeFeatureMatchParam)
-FeatureMatchOption is a functional option for configuring NodeFeatureMatchParam.
+type FeatureMatchDetector
+type FeatureMatchDetector string
+FeatureMatchDetector defines the feature detection algorithms.
 
-func WithFeatureMatchCount
-func WithFeatureMatchCount(count int) FeatureMatchOption
-WithFeatureMatchCount sets the minimum number of feature points required (threshold).
+const (
+FeatureMatchMethodSIFT FeatureMatchDetector = "SIFT" // Scale-Invariant Feature Transform (default, most accurate)
+FeatureMatchMethodKAZE FeatureMatchDetector = "KAZE" // KAZE features for 2D/3D images
+FeatureMatchMethodAKAZE FeatureMatchDetector = "AKAZE" // Accelerated KAZE
+FeatureMatchMethodBRISK FeatureMatchDetector = "BRISK" // Binary Robust Invariant Scalable Keypoints (fast)
+FeatureMatchMethodORB FeatureMatchDetector = "ORB" // Oriented FAST and Rotated BRIEF (fast, no scale invariance)
+)
+type FeatureMatchOrderBy
+type FeatureMatchOrderBy OrderBy
+FeatureMatchOrderBy defines the ordering options for feature matching results.
 
-func WithFeatureMatchDetector
-func WithFeatureMatchDetector(detector NodeFeatureMatchDetector) FeatureMatchOption
-WithFeatureMatchDetector sets the feature detection algorithm.
-
-func WithFeatureMatchGreenMask
-func WithFeatureMatchGreenMask(greenMask bool) FeatureMatchOption
-WithFeatureMatchGreenMask enables green color masking for transparent areas.
-
-func WithFeatureMatchIndex
-func WithFeatureMatchIndex(index int) FeatureMatchOption
-WithFeatureMatchIndex sets which match to select from results.
-
-func WithFeatureMatchOrderBy
-func WithFeatureMatchOrderBy(orderBy NodeFeatureMatchOrderBy) FeatureMatchOption
-WithFeatureMatchOrderBy sets the result ordering method.
-
-func WithFeatureMatchROI
-func WithFeatureMatchROI(roi Target) FeatureMatchOption
-WithFeatureMatchROI sets the region of interest for feature matching.
-
-func WithFeatureMatchROIOffset
-func WithFeatureMatchROIOffset(offset Rect) FeatureMatchOption
-WithFeatureMatchROIOffset sets the offset applied to ROI.
-
-func WithFeatureMatchRatio
-func WithFeatureMatchRatio(ratio float64) FeatureMatchOption
-WithFeatureMatchRatio sets the KNN matching distance ratio threshold.
+type FeatureMatchParam
+type FeatureMatchParam struct {
+// ROI specifies the region of interest for recognition.
+ROI Target `json:"roi,omitzero"`
+// ROIOffset specifies the offset applied to ROI.
+ROIOffset Rect `json:"roi_offset,omitempty"`
+// Template specifies the template image paths. Required.
+Template []string `json:"template,omitempty"`
+// Count specifies the minimum number of feature points required (threshold). Default: 4.
+Count int `json:"count,omitempty"`
+// OrderBy specifies how results are sorted. Default: Horizontal. Options: Horizontal | Vertical | Score | Area | Random.
+OrderBy FeatureMatchOrderBy `json:"order_by,omitempty"`
+// Index specifies which match to select from results.
+Index int `json:"index,omitempty"`
+// GreenMask enables green color masking for transparent areas.
+GreenMask bool `json:"green_mask,omitempty"`
+// Detector specifies the feature detector algorithm. Options: SIFT, KAZE, AKAZE, BRISK, ORB. Default: SIFT.
+Detector FeatureMatchDetector `json:"detector,omitempty"`
+// Ratio specifies the matching ratio threshold [0-1.0]. Default: 0.6.
+Ratio float64 `json:"ratio,omitempty"`
+}
+FeatureMatchParam defines parameters for feature matching recognition.
 
 type FeatureMatchResult
 type FeatureMatchResult struct {
@@ -1048,38 +1247,9 @@ InferenceDeviceAuto InferenceDevice = -1
 InferenceDevice0 InferenceDevice = 0
 InferenceDevice1 InferenceDevice = 1
 )
-type InitConfig
-type InitConfig struct {
-// LibDir specifies the directory path where MAA dynamic libraries are located.
-// If empty, the framework will attempt to locate libraries in default paths.
-LibDir string
-
-    // LogDir specifies the directory where log files will be written.
-    // Defaults to "./debug" if not specified.
-    LogDir string
-
-    // SaveDraw controls whether to save recognition results to LogDir/vision.
-    // When enabled, RecoDetail will be able to retrieve draws for debugging purposes.
-    SaveDraw bool
-
-    // StdoutLevel sets the logging verbosity level for standard output.
-    // Controls which log messages are displayed on the console.
-    StdoutLevel LoggingLevel
-
-    // DebugMode enables or disables comprehensive debug mode.
-    // When enabled, additional debug information is collected and logged.
-    DebugMode bool
-
-    // PluginPaths specifies the paths to the plugins to load.
-    // If empty, the framework will not load any plugins.
-    PluginPaths []string
-
-}
-InitConfig contains configuration options for initializing the MAA framework. It specifies various settings that control the framework's behavior, logging, debugging, and resource locations.
-
 type InitOption
-type InitOption func(\*InitConfig)
-InitOption defines a function type for configuring InitConfig through functional options. Each InitOption function modifies the InitConfig to set specific initialization parameters.
+type InitOption func(\*initConfig)
+InitOption defines a function type for configuring initialization through functional options. Use package-provided WithXxx helpers to construct options.
 
 func WithDebugMode
 func WithDebugMode(enabled bool) InitOption
@@ -1106,13 +1276,9 @@ WithStdoutLevel returns an InitOption that sets the logging level for standard o
 type InlineSubRecognition
 type InlineSubRecognition struct {
 SubName string `json:"sub_name,omitempty"`
-NodeRecognition
+Recognition
 }
-InlineSubRecognition is an inline sub-recognition element (object form in all_of/any_of). It has sub_name plus type and param; used for both And and Or. Name matches C++ InlineSubRecognition.
-
-func AndItem
-func AndItem(subName string, recognition *NodeRecognition) *InlineSubRecognition
-AndItem creates an InlineSubRecognition with the given sub-name and recognition. Used for both And all_of and Or any_of when building inline items. If subName is empty, only the recognition is used.
+InlineSubRecognition is an inline sub-recognition element (object form in all_of/any_of). It has sub_name plus type and param; used for both And and Or.
 
 func (*InlineSubRecognition) UnmarshalJSON
 func (n *InlineSubRecognition) UnmarshalJSON(data []byte) error
@@ -1120,6 +1286,13 @@ type InputTextActionResult
 type InputTextActionResult struct {
 Text string `json:"text"`
 }
+type InputTextParam
+type InputTextParam struct {
+// InputText specifies the text to input. Some controllers only support ASCII. Required.
+InputText string `json:"input_text,omitempty"`
+}
+InputTextParam defines parameters for text input action.
+
 type Job
 type Job struct {
 // contains filtered or unexported fields
@@ -1158,6 +1331,20 @@ func (*Job) Wait
 func (j *Job) Wait() \*Job
 Wait blocks until the job completes and returns the job instance.
 
+type KeyDownParam
+type KeyDownParam struct {
+// Key specifies the virtual key code to press down. Required.
+Key int `json:"key,omitempty"`
+}
+KeyDownParam defines parameters for key down action.
+
+type KeyUpParam
+type KeyUpParam struct {
+// Key specifies the virtual key code to release. Required.
+Key int `json:"key,omitempty"`
+}
+KeyUpParam defines parameters for key up action.
+
 type LibraryLoadError
 type LibraryLoadError = native.LibraryLoadError
 LibraryLoadError represents an error that occurs when loading a MAA dynamic library. This error type provides detailed information about which library failed to load, including the library name, the full path attempted, and the underlying system error.
@@ -1189,34 +1376,38 @@ type LongPressKeyActionResult struct {
 Keycode []int `json:"keycode"`
 Duration int64 `json:"duration"`
 }
-type LongPressKeyOption
-type LongPressKeyOption func(\*NodeLongPressKeyParam)
-LongPressKeyOption is a functional option for configuring NodeLongPressKeyParam.
+type LongPressKeyParam
+type LongPressKeyParam struct {
+// Key specifies the virtual key code to press. Required.
+Key []int `json:"key,omitempty"`
+// Duration specifies the long press duration. Default: 1000ms.
+// JSON: serialized as integer milliseconds.
+Duration time.Duration `json:"-"`
+}
+LongPressKeyParam defines parameters for long press key action.
 
-func WithLongPressKeyDuration
-func WithLongPressKeyDuration(d time.Duration) LongPressKeyOption
-WithLongPressKeyDuration sets the long press duration.
+func (LongPressKeyParam) MarshalJSON
+func (p LongPressKeyParam) MarshalJSON() ([]byte, error)
+func (*LongPressKeyParam) UnmarshalJSON
+func (p *LongPressKeyParam) UnmarshalJSON(data []byte) error
+type LongPressParam
+type LongPressParam struct {
+// Target specifies the long press target position.
+Target Target `json:"target,omitzero"`
+// TargetOffset specifies additional offset applied to target.
+TargetOffset Rect `json:"target_offset,omitempty"`
+// Duration specifies the long press duration. Default: 1000ms.
+// JSON: serialized as integer milliseconds.
+Duration time.Duration `json:"-"`
+// Contact specifies the touch point identifier. Adb: finger index (0=first finger). Win32: mouse button (0=left, 1=right, 2=middle).
+Contact int `json:"contact,omitempty"`
+}
+LongPressParam defines parameters for long press action.
 
-type LongPressOption
-type LongPressOption func(\*NodeLongPressParam)
-LongPressOption is a functional option for configuring NodeLongPressParam.
-
-func WithLongPressContact
-func WithLongPressContact(contact int) LongPressOption
-WithLongPressContact sets the touch point identifier.
-
-func WithLongPressDuration
-func WithLongPressDuration(d time.Duration) LongPressOption
-WithLongPressDuration sets the long press duration.
-
-func WithLongPressTarget
-func WithLongPressTarget(target Target) LongPressOption
-WithLongPressTarget sets the long press target position.
-
-func WithLongPressTargetOffset
-func WithLongPressTargetOffset(offset Rect) LongPressOption
-WithLongPressTargetOffset sets additional offset applied to target.
-
+func (LongPressParam) MarshalJSON
+func (p LongPressParam) MarshalJSON() ([]byte, error)
+func (*LongPressParam) UnmarshalJSON
+func (p *LongPressParam) UnmarshalJSON(data []byte) error
 type MaaCustomControllerCallbacks
 type MaaCustomControllerCallbacks struct {
 Connect uintptr
@@ -1236,116 +1427,102 @@ InputText uintptr
 KeyDown uintptr
 KeyUp uintptr
 Scroll uintptr
+Inactive uintptr
 }
 type MultiSwipeActionResult
 type MultiSwipeActionResult struct {
 Swipes []SwipeActionResult `json:"swipes"`
 }
-type MultiSwipeItemOption
-type MultiSwipeItemOption func(\*NodeMultiSwipeItem)
-MultiSwipeItemOption is a functional option for configuring NodeMultiSwipeItem.
+type MultiSwipeItem
+type MultiSwipeItem struct {
+// Starting specifies when this swipe starts within the action. Default: 0.
+// JSON: serialized as integer milliseconds.
+Starting time.Duration `json:"-"`
+// Begin specifies the swipe start position.
+Begin Target `json:"begin,omitzero"`
+// BeginOffset specifies additional offset applied to begin position.
+BeginOffset Rect `json:"begin_offset,omitempty"`
+// End specifies the swipe end position.
+End []Target `json:"end,omitzero"`
+// EndOffset specifies additional offset applied to end position.
+EndOffset []Rect `json:"end_offset,omitempty"`
+// Duration specifies the swipe duration. Default: 200ms.
+// JSON: serialized as array of integer milliseconds.
+Duration []time.Duration `json:"-"`
+// EndHold specifies extra wait time at end position before releasing. Default: 0.
+// JSON: serialized as array of integer milliseconds.
+EndHold []time.Duration `json:"-"`
+// OnlyHover enables hover-only mode without press/release actions. Default: false.
+OnlyHover bool `json:"only_hover,omitempty"`
+// Contact specifies the touch point identifier. Adb: finger index. Win32: mouse button. Default uses array index if 0.
+Contact int `json:"contact,omitempty"`
+}
+MultiSwipeItem defines a single swipe within a multi-swipe action.
 
-func WithMultiSwipeItemBegin
-func WithMultiSwipeItemBegin(begin Target) MultiSwipeItemOption
-WithMultiSwipeItemBegin sets the swipe start position.
+func (MultiSwipeItem) MarshalJSON
+func (p MultiSwipeItem) MarshalJSON() ([]byte, error)
+func (*MultiSwipeItem) UnmarshalJSON
+func (p *MultiSwipeItem) UnmarshalJSON(data []byte) error
+type MultiSwipeParam
+type MultiSwipeParam struct {
+// Swipes specifies the list of swipe items. Required.
+Swipes []MultiSwipeItem `json:"swipes,omitempty"`
+}
+MultiSwipeParam defines parameters for multi-finger swipe action.
 
-func WithMultiSwipeItemBeginOffset
-func WithMultiSwipeItemBeginOffset(offset Rect) MultiSwipeItemOption
-WithMultiSwipeItemBeginOffset sets additional offset applied to begin position.
+type NeuralNetworkClassifyOrderBy
+type NeuralNetworkClassifyOrderBy OrderBy
+NeuralNetworkClassifyOrderBy defines the ordering options for neural network classification results.
 
-func WithMultiSwipeItemContact
-func WithMultiSwipeItemContact(contact int) MultiSwipeItemOption
-WithMultiSwipeItemContact sets the touch point identifier.
-
-func WithMultiSwipeItemDuration
-func WithMultiSwipeItemDuration(d []time.Duration) MultiSwipeItemOption
-WithMultiSwipeItemDuration sets the swipe duration.
-
-func WithMultiSwipeItemEnd
-func WithMultiSwipeItemEnd(end []Target) MultiSwipeItemOption
-WithMultiSwipeItemEnd sets the swipe end position.
-
-func WithMultiSwipeItemEndHold
-func WithMultiSwipeItemEndHold(d []time.Duration) MultiSwipeItemOption
-WithMultiSwipeItemEndHold sets extra wait time at end position before releasing.
-
-func WithMultiSwipeItemEndOffset
-func WithMultiSwipeItemEndOffset(offset []Rect) MultiSwipeItemOption
-WithMultiSwipeItemEndOffset sets additional offset applied to end position.
-
-func WithMultiSwipeItemOnlyHover
-func WithMultiSwipeItemOnlyHover(only bool) MultiSwipeItemOption
-WithMultiSwipeItemOnlyHover enables hover-only mode without press/release actions.
-
-func WithMultiSwipeItemStarting
-func WithMultiSwipeItemStarting(starting time.Duration) MultiSwipeItemOption
-WithMultiSwipeItemStarting sets when this swipe starts within the action.
-
-type NeuralClassifyOption
-type NeuralClassifyOption func(\*NodeNeuralNetworkClassifyParam)
-NeuralClassifyOption is a functional option for configuring NodeNeuralNetworkClassifyParam.
-
-func WithNeuralClassifyExpected
-func WithNeuralClassifyExpected(expected []int) NeuralClassifyOption
-WithNeuralClassifyExpected sets the expected class indices.
-
-func WithNeuralClassifyIndex
-func WithNeuralClassifyIndex(index int) NeuralClassifyOption
-WithNeuralClassifyIndex sets which match to select from results.
-
-func WithNeuralClassifyLabels
-func WithNeuralClassifyLabels(labels []string) NeuralClassifyOption
-WithNeuralClassifyLabels sets the class names for debugging and logging.
-
-func WithNeuralClassifyOrderBy
-func WithNeuralClassifyOrderBy(orderBy NodeNeuralNetworkClassifyOrderBy) NeuralClassifyOption
-WithNeuralClassifyOrderBy sets the result ordering method.
-
-func WithNeuralClassifyROI
-func WithNeuralClassifyROI(roi Target) NeuralClassifyOption
-WithNeuralClassifyROI sets the region of interest for classification.
-
-func WithNeuralClassifyROIOffset
-func WithNeuralClassifyROIOffset(offset Rect) NeuralClassifyOption
-WithNeuralClassifyROIOffset sets the offset applied to ROI.
-
-type NeuralDetectOption
-type NeuralDetectOption func(\*NodeNeuralNetworkDetectParam)
-NeuralDetectOption is a functional option for configuring NodeNeuralNetworkDetectParam.
-
-func WithNeuralDetectExpected
-func WithNeuralDetectExpected(expected []int) NeuralDetectOption
-WithNeuralDetectExpected sets the expected class indices.
-
-func WithNeuralDetectIndex
-func WithNeuralDetectIndex(index int) NeuralDetectOption
-WithNeuralDetectIndex sets which match to select from results.
-
-func WithNeuralDetectLabels
-func WithNeuralDetectLabels(labels []string) NeuralDetectOption
-WithNeuralDetectLabels sets the class names for debugging and logging.
-
-func WithNeuralDetectOrderBy
-func WithNeuralDetectOrderBy(orderBy NodeNeuralNetworkDetectOrderBy) NeuralDetectOption
-WithNeuralDetectOrderBy sets the result ordering method.
-
-func WithNeuralDetectROI
-func WithNeuralDetectROI(roi Target) NeuralDetectOption
-WithNeuralDetectROI sets the region of interest for detection.
-
-func WithNeuralDetectROIOffset
-func WithNeuralDetectROIOffset(offset Rect) NeuralDetectOption
-WithNeuralDetectROIOffset sets the offset applied to ROI.
+type NeuralNetworkClassifyParam
+type NeuralNetworkClassifyParam struct {
+// ROI specifies the region of interest for recognition.
+ROI Target `json:"roi,omitzero"`
+// ROIOffset specifies the offset applied to ROI.
+ROIOffset Rect `json:"roi_offset,omitempty"`
+// Labels specifies the class names for debugging and logging. Fills "Unknown" if not provided.
+Labels []string `json:"labels,omitempty"`
+// Model specifies the model folder path relative to model/classify directory. Required. Only ONNX models supported.
+Model string `json:"model,omitempty"`
+// Expected specifies the expected class indices. Required.
+Expected []int `json:"expected,omitempty"`
+// OrderBy specifies how results are sorted. Default: Horizontal. Options: Horizontal | Vertical | Score | Random | Expected.
+OrderBy NeuralNetworkClassifyOrderBy `json:"order_by,omitempty"`
+// Index specifies which match to select from results.
+Index int `json:"index,omitempty"`
+}
+NeuralNetworkClassifyParam defines parameters for neural network classification.
 
 type NeuralNetworkClassifyResult
 type NeuralNetworkClassifyResult struct {
 Box Rect `json:"box"`
 ClsIndex uint64 `json:"cls_index"`
 Label string `json:"label"`
-Raw []float64 `json:"raw"`
-Probs []float64 `json:"probs"`
 Score float64 `json:"score"`
 }
+type NeuralNetworkDetectOrderBy
+type NeuralNetworkDetectOrderBy OrderBy
+NeuralNetworkDetectOrderBy defines the ordering options for neural network detection results.
+
+type NeuralNetworkDetectParam
+type NeuralNetworkDetectParam struct {
+// ROI specifies the region of interest for recognition.
+ROI Target `json:"roi,omitzero"`
+// ROIOffset specifies the offset applied to ROI.
+ROIOffset Rect `json:"roi_offset,omitempty"`
+// Labels specifies the class names for debugging and logging. Auto-reads from model metadata if not provided.
+Labels []string `json:"labels,omitempty"`
+// Model specifies the model folder path relative to model/detect directory. Required. Supports YOLOv8/YOLOv11 ONNX models.
+Model string `json:"model,omitempty"`
+// Expected specifies the expected class indices. Required.
+Expected []int `json:"expected,omitempty"`
+// OrderBy specifies how results are sorted. Default: Horizontal. Options: Horizontal | Vertical | Score | Area | Random | Expected
+OrderBy NeuralNetworkDetectOrderBy `json:"order_by,omitempty"`
+// Index specifies which match to select from results.
+Index int `json:"index,omitempty"`
+}
+NeuralNetworkDetectParam defines parameters for neural network object detection.
+
 type NeuralNetworkDetectResult
 type NeuralNetworkDetectResult struct {
 Box Rect `json:"box"`
@@ -1353,6 +1530,21 @@ ClsIndex uint64 `json:"cls_index"`
 Label string `json:"label"`
 Score float64 `json:"score"`
 }
+type NextItem
+type NextItem struct {
+// Name is the name of the target node.
+Name string `json:"name"`
+// JumpBack indicates whether to jump back to the parent node after this node's chain completes.
+JumpBack bool `json:"jump_back"`
+// Anchor indicates whether this node should be set as the anchor.
+Anchor bool `json:"anchor"`
+}
+NextItem is one item in the list of nodes to run next. It is used in Node.Next (on success) and Node.OnError (on failure).
+
+func (NextItem) FormatName
+func (i NextItem) FormatName() string
+FormatName returns the name with attribute prefixes, e.g. [JumpBack]NodeA.
+
 type Node
 type Node struct {
 Name string `json:"-"`
@@ -1361,17 +1553,17 @@ Name string `json:"-"`
     Anchor map[string]string `json:"anchor,omitempty"`
 
     // Recognition defines how this node recognizes targets on screen.
-    Recognition *NodeRecognition `json:"recognition,omitempty"`
+    Recognition *Recognition `json:"recognition,omitempty"`
     // Action defines what action to perform when recognition succeeds.
-    Action *NodeAction `json:"action,omitempty"`
+    Action *Action `json:"action,omitempty"`
     // Next specifies the list of possible next nodes to execute.
-    Next []NodeNextItem `json:"next,omitempty"`
+    Next []NextItem `json:"next,omitempty"`
     // RateLimit sets the minimum interval between recognition attempts in milliseconds. Default: 1000.
     RateLimit *int64 `json:"rate_limit,omitempty"`
     // Timeout sets the maximum time to wait for recognition in milliseconds. Default: 20000.
     Timeout *int64 `json:"timeout,omitempty"`
     // OnError specifies nodes to execute when recognition times out or action execution fails.
-    OnError []NodeNextItem `json:"on_error,omitempty"`
+    OnError []NextItem `json:"on_error,omitempty"`
     // Inverse inverts the recognition result. Default: false.
     Inverse bool `json:"inverse,omitempty"`
     // Enabled determines whether this node is active. Default: true.
@@ -1383,15 +1575,15 @@ Name string `json:"-"`
     // PostDelay sets the delay after action execution in milliseconds. Default: 200.
     PostDelay *int64 `json:"post_delay,omitempty"`
     // PreWaitFreezes waits for screen to stabilize before action execution.
-    PreWaitFreezes *NodeWaitFreezes `json:"pre_wait_freezes,omitempty"`
+    PreWaitFreezes *WaitFreezesParam `json:"pre_wait_freezes,omitempty"`
     // PostWaitFreezes waits for screen to stabilize after action.
-    PostWaitFreezes *NodeWaitFreezes `json:"post_wait_freezes,omitempty"`
+    PostWaitFreezes *WaitFreezesParam `json:"post_wait_freezes,omitempty"`
     // Repeat specifies the number of times to repeat the node. Default: 1.
     Repeat *uint64 `json:"repeat,omitempty"`
     // RepeatDelay sets the delay between repetitions in milliseconds. Default: 0.
     RepeatDelay *int64 `json:"repeat_delay,omitempty"`
     // RepeatWaitFreezes waits for screen to stabilize between repetitions.
-    RepeatWaitFreezes *NodeWaitFreezes `json:"repeat_wait_freezes,omitempty"`
+    RepeatWaitFreezes *WaitFreezesParam `json:"repeat_wait_freezes,omitempty"`
     // Focus specifies custom focus data.
     Focus any `json:"focus,omitempty"`
     // Attach provides additional custom data for the node.
@@ -1401,8 +1593,8 @@ Name string `json:"-"`
 Node represents a single task node in the pipeline.
 
 func NewNode
-func NewNode(name string, opts ...NodeOption) \*Node
-NewNode creates a new Node with the given name and options.
+func NewNode(name string) \*Node
+NewNode creates a new Node with the given name.
 
 func (*Node) AddAnchor
 func (n *Node) AddAnchor(anchor string) \*Node
@@ -1433,7 +1625,7 @@ func (n *Node) RemoveOnError(name string) \*Node
 RemoveOnError removes a node from the on_error list and returns the node for chaining.
 
 func (*Node) SetAction
-func (n *Node) SetAction(act *NodeAction) *Node
+func (n *Node) SetAction(act *Action) *Node
 SetAction sets the action for the node and returns the node for chaining.
 
 func (*Node) SetAnchor
@@ -1446,7 +1638,7 @@ SetAnchorTarget sets an anchor to a specific target node and returns the node fo
 
 func (*Node) SetAttach
 func (n *Node) SetAttach(attach map[string]any) \*Node
-SetAttach sets the attached custom data for the node and returns the node for chaining.
+SetAttach sets the attached custom data for the node and returns the node for chaining. The map is copied so the node does not share state with the caller. A nil attach is stored as an empty map so that Attach is never nil.
 
 func (*Node) SetEnabled
 func (n *Node) SetEnabled(enabled bool) \*Node
@@ -1465,11 +1657,11 @@ func (n *Node) SetMaxHit(maxHit uint64) \*Node
 SetMaxHit sets the maximum hit count of the node and returns the node for chaining.
 
 func (*Node) SetNext
-func (n *Node) SetNext(next []NodeNextItem) \*Node
+func (n *Node) SetNext(next []NextItem) \*Node
 SetNext sets the next nodes list for the node and returns the node for chaining.
 
 func (*Node) SetOnError
-func (n *Node) SetOnError(onError []NodeNextItem) \*Node
+func (n *Node) SetOnError(onError []NextItem) \*Node
 SetOnError sets the error handling nodes for the node and returns the node for chaining.
 
 func (*Node) SetPostDelay
@@ -1477,7 +1669,7 @@ func (n *Node) SetPostDelay(postDelay time.Duration) \*Node
 SetPostDelay sets the delay after action execution and returns the node for chaining.
 
 func (*Node) SetPostWaitFreezes
-func (n *Node) SetPostWaitFreezes(postWaitFreezes *NodeWaitFreezes) *Node
+func (n *Node) SetPostWaitFreezes(postWaitFreezes *WaitFreezesParam) *Node
 SetPostWaitFreezes sets the post-action wait freezes configuration and returns the node for chaining.
 
 func (*Node) SetPreDelay
@@ -1485,7 +1677,7 @@ func (n *Node) SetPreDelay(preDelay time.Duration) \*Node
 SetPreDelay sets the delay before action execution and returns the node for chaining.
 
 func (*Node) SetPreWaitFreezes
-func (n *Node) SetPreWaitFreezes(preWaitFreezes *NodeWaitFreezes) *Node
+func (n *Node) SetPreWaitFreezes(preWaitFreezes *WaitFreezesParam) *Node
 SetPreWaitFreezes sets the pre-action wait freezes configuration and returns the node for chaining.
 
 func (*Node) SetRateLimit
@@ -1493,7 +1685,7 @@ func (n *Node) SetRateLimit(rateLimit time.Duration) \*Node
 SetRateLimit sets the rate limit for the node and returns the node for chaining.
 
 func (*Node) SetRecognition
-func (n *Node) SetRecognition(rec *NodeRecognition) *Node
+func (n *Node) SetRecognition(rec *Recognition) *Node
 SetRecognition sets the recognition for the node and returns the node for chaining.
 
 func (*Node) SetRepeat
@@ -1505,102 +1697,13 @@ func (n *Node) SetRepeatDelay(repeatDelay time.Duration) \*Node
 SetRepeatDelay sets the delay between repetitions and returns the node for chaining.
 
 func (*Node) SetRepeatWaitFreezes
-func (n *Node) SetRepeatWaitFreezes(repeatWaitFreezes *NodeWaitFreezes) *Node
+func (n *Node) SetRepeatWaitFreezes(repeatWaitFreezes *WaitFreezesParam) *Node
 SetRepeatWaitFreezes sets the wait freezes configuration between repetitions and returns the node for chaining.
 
 func (*Node) SetTimeout
 func (n *Node) SetTimeout(timeout time.Duration) \*Node
 SetTimeout sets the timeout for the node and returns the node for chaining.
 
-type NodeAction
-type NodeAction struct {
-// Type specifies the action type.
-Type NodeActionType `json:"type,omitempty"`
-// Param specifies the action parameters.
-Param NodeActionParam `json:"param,omitempty"`
-}
-NodeAction defines the action configuration for a node.
-
-func ActClick
-func ActClick(opts ...ClickOption) \*NodeAction
-ActClick creates a Click action with the given options.
-
-func ActClickKey
-func ActClickKey(keys []int) \*NodeAction
-ActClickKey creates a ClickKey action with the given virtual key codes.
-
-func ActCommand
-func ActCommand(exec string, opts ...CommandOption) \*NodeAction
-ActCommand creates a Command action with the given executable path.
-
-func ActCustom
-func ActCustom(name string, opts ...CustomActionOption) \*NodeAction
-ActCustom creates a Custom action with the given action name.
-
-func ActDoNothing
-func ActDoNothing() \*NodeAction
-ActDoNothing creates a DoNothing action that performs no operation.
-
-func ActInputText
-func ActInputText(input string) \*NodeAction
-ActInputText creates an InputText action with the given text.
-
-func ActKeyDown
-func ActKeyDown(key int) \*NodeAction
-ActKeyDown creates a KeyDown action that presses the key without releasing.
-
-func ActKeyUp
-func ActKeyUp(key int) \*NodeAction
-ActKeyUp creates a KeyUp action that releases a previously pressed key.
-
-func ActLongPress
-func ActLongPress(opts ...LongPressOption) \*NodeAction
-ActLongPress creates a LongPress action with the given options.
-
-func ActLongPressKey
-func ActLongPressKey(key []int, opts ...LongPressKeyOption) \*NodeAction
-ActLongPressKey creates a LongPressKey action with the given virtual key code.
-
-func ActMultiSwipe
-func ActMultiSwipe(swipes ...NodeMultiSwipeItem) \*NodeAction
-ActMultiSwipe creates a MultiSwipe action for multi-finger swipe gestures.
-
-func ActScroll
-func ActScroll(opts ...ScrollOption) *NodeAction
-func ActShell
-func ActShell(cmd string) *NodeAction
-ActShell creates a Shell action with the given command. This is only valid for ADB controllers. If the controller is not an ADB controller, the action will fail. The output of the command can be obtained in the action detail by MaaTaskerGetActionDetail.
-
-func ActStartApp
-func ActStartApp(pkg string) \*NodeAction
-ActStartApp creates a StartApp action with the given package name or activity.
-
-func ActStopApp
-func ActStopApp(pkg string) \*NodeAction
-ActStopApp creates a StopApp action with the given package name.
-
-func ActStopTask
-func ActStopTask() \*NodeAction
-ActStopTask creates a StopTask action that stops the current task chain.
-
-func ActSwipe
-func ActSwipe(opts ...SwipeOption) \*NodeAction
-ActSwipe creates a Swipe action with the given options.
-
-func ActTouchDown
-func ActTouchDown(opts ...TouchDownOption) \*NodeAction
-ActTouchDown creates a TouchDown action with the given options.
-
-func ActTouchMove
-func ActTouchMove(opts ...TouchMoveOption) \*NodeAction
-ActTouchMove creates a TouchMove action with the given options.
-
-func ActTouchUp
-func ActTouchUp(opts ...TouchUpOption) \*NodeAction
-ActTouchUp creates a TouchUp action with the given options.
-
-func (*NodeAction) UnmarshalJSON
-func (na *NodeAction) UnmarshalJSON(data []byte) error
 type NodeActionDetail
 type NodeActionDetail struct {
 TaskID uint64 `json:"task_id"`
@@ -1619,48 +1722,9 @@ Focus any `json:"focus"`
 }
 NodeActionNodeDetail contains information about action node events
 
-type NodeActionParam
-type NodeActionParam interface {
-// contains filtered or unexported methods
-}
-NodeActionParam is the interface for action parameters.
-
-type NodeActionType
-type NodeActionType string
-NodeActionType defines the available action types.
-
-const (
-NodeActionTypeDoNothing NodeActionType = "DoNothing"
-NodeActionTypeClick NodeActionType = "Click"
-NodeActionTypeLongPress NodeActionType = "LongPress"
-NodeActionTypeSwipe NodeActionType = "Swipe"
-NodeActionTypeMultiSwipe NodeActionType = "MultiSwipe"
-NodeActionTypeTouchDown NodeActionType = "TouchDown"
-NodeActionTypeTouchMove NodeActionType = "TouchMove"
-NodeActionTypeTouchUp NodeActionType = "TouchUp"
-NodeActionTypeClickKey NodeActionType = "ClickKey"
-NodeActionTypeLongPressKey NodeActionType = "LongPressKey"
-NodeActionTypeKeyDown NodeActionType = "KeyDown"
-NodeActionTypeKeyUp NodeActionType = "KeyUp"
-NodeActionTypeInputText NodeActionType = "InputText"
-NodeActionTypeStartApp NodeActionType = "StartApp"
-NodeActionTypeStopApp NodeActionType = "StopApp"
-NodeActionTypeStopTask NodeActionType = "StopTask"
-NodeActionTypeScroll NodeActionType = "Scroll"
-NodeActionTypeCommand NodeActionType = "Command"
-NodeActionTypeShell NodeActionType = "Shell"
-NodeActionTypeCustom NodeActionType = "Custom"
-)
-type NodeAndRecognitionParam
-type NodeAndRecognitionParam struct {
-AllOf []SubRecognitionItem `json:"all_of,omitempty"`
-BoxIndex int `json:"box_index,omitempty"`
-}
-NodeAndRecognitionParam defines parameters for AND recognition. AllOf elements are either node name strings or inline recognitions (GetNodeData output matches C++ JAnd).
-
 type NodeAttributeOption
-type NodeAttributeOption func(\*NodeNextItem)
-NodeAttributeOption is a functional option for configuring NodeNextItem attributes.
+type NodeAttributeOption func(\*NextItem)
+NodeAttributeOption is a functional option for configuring NextItem attributes.
 
 func WithAnchor
 func WithAnchor() NodeAttributeOption
@@ -1669,107 +1733,6 @@ WithAnchor enables anchor reference. The name field will be treated as an anchor
 func WithJumpBack
 func WithJumpBack() NodeAttributeOption
 WithJumpBack enables the jump-back mechanism. When this node matches, the system returns to the parent node after completing this node's chain, and continues recognizing from the start of next list.
-
-type NodeClickKeyParam
-type NodeClickKeyParam struct {
-// Key specifies the virtual key codes to click. Required.
-Key []int `json:"key,omitempty"`
-}
-NodeClickKeyParam defines parameters for key click action.
-
-type NodeClickParam
-type NodeClickParam struct {
-// Target specifies the click target position.
-Target Target `json:"target,omitzero"`
-// TargetOffset specifies additional offset applied to target.
-TargetOffset Rect `json:"target_offset,omitempty"`
-// Contact specifies the touch point identifier. Adb: finger index (0=first finger). Win32: mouse button (0=left, 1=right, 2=middle).
-Contact int `json:"contact,omitempty"`
-}
-NodeClickParam defines parameters for click action.
-
-type NodeColorMatchMethod
-type NodeColorMatchMethod int
-NodeColorMatchMethod defines the color space for color matching (cv::ColorConversionCodes).
-
-const (
-NodeColorMatchMethodRGB NodeColorMatchMethod = 4 // RGB color space, 3 channels (default)
-NodeColorMatchMethodHSV NodeColorMatchMethod = 40 // HSV color space, 3 channels
-NodeColorMatchMethodGRAY NodeColorMatchMethod = 6 // Grayscale, 1 channel
-)
-type NodeColorMatchOrderBy
-type NodeColorMatchOrderBy string
-NodeColorMatchOrderBy defines the ordering options for color match results.
-
-const (
-NodeColorMatchOrderByHorizontal NodeColorMatchOrderBy = "Horizontal" // Order by x coordinate (default)
-NodeColorMatchOrderByVertical NodeColorMatchOrderBy = "Vertical" // Order by y coordinate
-NodeColorMatchOrderByScore NodeColorMatchOrderBy = "Score" // Order by matching score
-NodeColorMatchOrderByArea NodeColorMatchOrderBy = "Area" // Order by region area
-NodeColorMatchOrderByRandom NodeColorMatchOrderBy = "Random" // Random order
-)
-type NodeColorMatchParam
-type NodeColorMatchParam struct {
-// ROI specifies the region of interest for recognition.
-ROI Target `json:"roi,omitzero"`
-// ROIOffset specifies the offset applied to ROI.
-ROIOffset Rect `json:"roi_offset,omitempty"`
-// Method specifies the color space. 4: RGB (default), 40: HSV, 6: GRAY.
-Method NodeColorMatchMethod `json:"method,omitempty"`
-// Lower specifies the color lower bounds. Required. Inner array length must match method channels.
-Lower [][]int `json:"lower,omitempty"`
-// Upper specifies the color upper bounds. Required. Inner array length must match method channels.
-Upper [][]int `json:"upper,omitempty"`
-// Count specifies the minimum pixel count required (threshold). Default: 1.
-Count int `json:"count,omitempty"`
-// OrderBy specifies the result ordering. Default: Horizontal.
-OrderBy NodeColorMatchOrderBy `json:"order_by,omitempty"`
-// Index specifies which match to select from results.
-Index int `json:"index,omitempty"`
-// Connected enables connected component analysis. Default: false.
-Connected bool `json:"connected,omitempty"`
-}
-NodeColorMatchParam defines parameters for color matching recognition.
-
-type NodeCommandParam
-type NodeCommandParam struct {
-// Exec specifies the program path to execute. Required.
-Exec string `json:"exec,omitempty"`
-// Args specifies the command arguments. Supports runtime placeholders:
-// {ENTRY}: task entry name, {NODE}: current node name,
-// {IMAGE}: screenshot file path, {BOX}: recognition target [x,y,w,h],
-// {RESOURCE_DIR}: last loaded resource directory, {LIBRARY_DIR}: MaaFW library directory.
-Args []string `json:"args,omitempty"`
-// Detach enables detached mode to run without waiting for completion. Default: false.
-Detach bool `json:"detach,omitempty"`
-}
-NodeCommandParam defines parameters for command execution action.
-
-type NodeCustomActionParam
-type NodeCustomActionParam struct {
-// Target specifies the action target position.
-Target Target `json:"target,omitzero"`
-// TargetOffset specifies additional offset applied to target.
-TargetOffset Rect `json:"target_offset,omitempty"`
-// CustomAction specifies the action name registered via MaaResourceRegisterCustomAction. Required.
-CustomAction string `json:"custom_action,omitempty"`
-// CustomActionParam specifies custom parameters passed to the action callback.
-CustomActionParam any `json:"custom_action_param,omitempty"`
-}
-NodeCustomActionParam defines parameters for custom action handlers.
-
-type NodeCustomRecognitionParam
-type NodeCustomRecognitionParam struct {
-// ROI specifies the region of interest for recognition.
-ROI Target `json:"roi,omitzero"`
-// ROIOffset specifies the offset applied to ROI.
-ROIOffset Rect `json:"roi_offset,omitempty"`
-// CustomRecognition specifies the recognizer name registered via MaaResourceRegisterCustomRecognition. Required.
-CustomRecognition string `json:"custom_recognition,omitempty"`
-// CustomRecognitionParam specifies custom parameters passed to the recognition callback.
-CustomRecognitionParam any `json:"custom_recognition_param,omitempty"`
-}
-NodeCustomRecognitionParam defines parameters for custom recognition handlers.
 
 type NodeDetail
 type NodeDetail struct {
@@ -1781,334 +1744,14 @@ RunCompleted bool
 }
 NodeDetail contains node information.
 
-type NodeDirectHitParam
-type NodeDirectHitParam struct{}
-NodeDirectHitParam defines parameters for direct hit recognition. DirectHit performs no actual recognition and always succeeds.
-
-type NodeDoNothingParam
-type NodeDoNothingParam struct{}
-NodeDoNothingParam defines parameters for do-nothing action.
-
-type NodeFeatureMatchDetector
-type NodeFeatureMatchDetector string
-NodeFeatureMatchDetector defines the feature detection algorithms.
-
-const (
-NodeFeatureMatchMethodSIFT NodeFeatureMatchDetector = "SIFT" // Scale-Invariant Feature Transform (default, most accurate)
-NodeFeatureMatchMethodKAZE NodeFeatureMatchDetector = "KAZE" // KAZE features for 2D/3D images
-NodeFeatureMatchMethodAKAZE NodeFeatureMatchDetector = "AKAZE" // Accelerated KAZE
-NodeFeatureMatchMethodBRISK NodeFeatureMatchDetector = "BRISK" // Binary Robust Invariant Scalable Keypoints (fast)
-NodeFeatureMatchMethodORB NodeFeatureMatchDetector = "ORB" // Oriented FAST and Rotated BRIEF (fast, no scale invariance)
-)
-type NodeFeatureMatchOrderBy
-type NodeFeatureMatchOrderBy string
-NodeFeatureMatchOrderBy defines the ordering options for feature match results.
-
-const (
-NodeFeatureMatchOrderByHorizontal NodeFeatureMatchOrderBy = "Horizontal" // Order by x coordinate (default)
-NodeFeatureMatchOrderByVertical NodeFeatureMatchOrderBy = "Vertical" // Order by y coordinate
-NodeFeatureMatchOrderByScore NodeFeatureMatchOrderBy = "Score" // Order by matching score
-NodeFeatureMatchOrderByArea NodeFeatureMatchOrderBy = "Area" // Order by bounding box area
-NodeFeatureMatchOrderByRandom NodeFeatureMatchOrderBy = "Random" // Random order
-)
-type NodeFeatureMatchParam
-type NodeFeatureMatchParam struct {
-// ROI specifies the region of interest for recognition.
-ROI Target `json:"roi,omitzero"`
-// ROIOffset specifies the offset applied to ROI.
-ROIOffset Rect `json:"roi_offset,omitempty"`
-// Template specifies the template image paths. Required.
-Template []string `json:"template,omitempty"`
-// Count specifies the minimum number of feature points required (threshold). Default: 4.
-Count int `json:"count,omitempty"`
-// OrderBy specifies the result ordering. Default: Horizontal.
-OrderBy NodeFeatureMatchOrderBy `json:"order_by,omitempty"`
-// Index specifies which match to select from results.
-Index int `json:"index,omitempty"`
-// GreenMask enables green color masking for transparent areas.
-GreenMask bool `json:"green_mask,omitempty"`
-// Detector specifies the feature detector algorithm. Options: SIFT, KAZE, AKAZE, BRISK, ORB. Default: SIFT.
-Detector NodeFeatureMatchDetector `json:"detector,omitempty"`
-// Ratio specifies the matching ratio threshold [0-1.0]. Default: 0.6.
-Ratio float64 `json:"ratio,omitempty"`
-}
-NodeFeatureMatchParam defines parameters for feature matching recognition.
-
-type NodeInputTextParam
-type NodeInputTextParam struct {
-// InputText specifies the text to input. Some controllers only support ASCII. Required.
-InputText string `json:"input_text,omitempty"`
-}
-NodeInputTextParam defines parameters for text input action.
-
-type NodeKeyDownParam
-type NodeKeyDownParam struct {
-// Key specifies the virtual key code to press down. Required.
-Key int `json:"key,omitempty"`
-}
-NodeKeyDownParam defines parameters for key down action.
-
-type NodeKeyUpParam
-type NodeKeyUpParam struct {
-// Key specifies the virtual key code to release. Required.
-Key int `json:"key,omitempty"`
-}
-NodeKeyUpParam defines parameters for key up action.
-
-type NodeLongPressKeyParam
-type NodeLongPressKeyParam struct {
-// Key specifies the virtual key code to press. Required.
-Key []int `json:"key,omitempty"`
-// Duration specifies the long press duration in milliseconds. Default: 1000.
-Duration int64 `json:"duration,omitempty"`
-}
-NodeLongPressKeyParam defines parameters for long press key action.
-
-type NodeLongPressParam
-type NodeLongPressParam struct {
-// Target specifies the long press target position.
-Target Target `json:"target,omitzero"`
-// TargetOffset specifies additional offset applied to target.
-TargetOffset Rect `json:"target_offset,omitempty"`
-// Duration specifies the long press duration in milliseconds. Default: 1000.
-Duration int64 `json:"duration,omitempty"`
-// Contact specifies the touch point identifier. Adb: finger index (0=first finger). Win32: mouse button (0=left, 1=right, 2=middle).
-Contact int `json:"contact,omitempty"`
-}
-NodeLongPressParam defines parameters for long press action.
-
-type NodeMultiSwipeItem
-type NodeMultiSwipeItem struct {
-// Starting specifies when this swipe starts within the action in milliseconds. Default: 0.
-Starting int64 `json:"starting,omitempty"`
-// Begin specifies the swipe start position.
-Begin Target `json:"begin,omitzero"`
-// BeginOffset specifies additional offset applied to begin position.
-BeginOffset Rect `json:"begin_offset,omitempty"`
-// End specifies the swipe end position.
-End []Target `json:"end,omitzero"`
-// EndOffset specifies additional offset applied to end position.
-EndOffset []Rect `json:"end_offset,omitempty"`
-// Duration specifies the swipe duration in milliseconds. Default: 200.
-Duration []int64 `json:"duration,omitempty"`
-// EndHold specifies extra wait time at end position before releasing in milliseconds. Default: 0.
-EndHold []int64 `json:"end_hold,omitempty"`
-// OnlyHover enables hover-only mode without press/release actions. Default: false.
-OnlyHover bool `json:"only_hover,omitempty"`
-// Contact specifies the touch point identifier. Adb: finger index. Win32: mouse button. Default uses array index if 0.
-Contact int `json:"contact,omitempty"`
-}
-NodeMultiSwipeItem defines a single swipe within a multi-swipe action.
-
-func NewMultiSwipeItem
-func NewMultiSwipeItem(opts ...MultiSwipeItemOption) NodeMultiSwipeItem
-NewMultiSwipeItem creates a new multi-swipe item with the given options.
-
-type NodeMultiSwipeParam
-type NodeMultiSwipeParam struct {
-// Swipes specifies the list of swipe items. Required.
-Swipes []NodeMultiSwipeItem `json:"swipes,omitempty"`
-}
-NodeMultiSwipeParam defines parameters for multi-finger swipe action.
-
-type NodeNeuralNetworkClassifyOrderBy
-type NodeNeuralNetworkClassifyOrderBy string
-NodeNeuralNetworkClassifyOrderBy defines the ordering options for classification results.
-
-const (
-NodeNeuralNetworkClassifyOrderByHorizontal NodeNeuralNetworkClassifyOrderBy = "Horizontal" // Order by x coordinate (default)
-NodeNeuralNetworkClassifyOrderByVertical NodeNeuralNetworkClassifyOrderBy = "Vertical" // Order by y coordinate
-NodeNeuralNetworkClassifyOrderByScore NodeNeuralNetworkClassifyOrderBy = "Score" // Order by confidence score
-NodeNeuralNetworkClassifyOrderByRandom NodeNeuralNetworkClassifyOrderBy = "Random" // Random order
-)
-type NodeNeuralNetworkClassifyParam
-type NodeNeuralNetworkClassifyParam struct {
-// ROI specifies the region of interest for recognition.
-ROI Target `json:"roi,omitzero"`
-// ROIOffset specifies the offset applied to ROI.
-ROIOffset Rect `json:"roi_offset,omitempty"`
-// Labels specifies the class names for debugging and logging. Fills "Unknown" if not provided.
-Labels []string `json:"labels,omitempty"`
-// Model specifies the model folder path relative to model/classify directory. Required. Only ONNX models supported.
-Model string `json:"model,omitempty"`
-// Expected specifies the expected class indices. Required.
-Expected []int `json:"expected,omitempty"`
-// OrderBy specifies the result ordering. Default: Horizontal.
-OrderBy NodeNeuralNetworkClassifyOrderBy `json:"order_by,omitempty"`
-// Index specifies which match to select from results.
-Index int `json:"index,omitempty"`
-}
-NodeNeuralNetworkClassifyParam defines parameters for neural network classification.
-
-type NodeNeuralNetworkDetectOrderBy
-type NodeNeuralNetworkDetectOrderBy string
-NodeNeuralNetworkDetectOrderBy defines the ordering options for detection results.
-
-const (
-NodeNeuralNetworkDetectOrderByHorizontal NodeNeuralNetworkDetectOrderBy = "Horizontal" // Order by x coordinate (default)
-NodeNeuralNetworkDetectOrderByVertical NodeNeuralNetworkDetectOrderBy = "Vertical" // Order by y coordinate
-NodeNeuralNetworkDetectOrderByScore NodeNeuralNetworkDetectOrderBy = "Score" // Order by confidence score
-NodeNeuralNetworkDetectOrderByArea NodeNeuralNetworkDetectOrderBy = "Area" // Order by bounding box area
-NodeNeuralNetworkDetectOrderByRandom NodeNeuralNetworkDetectOrderBy = "Random" // Random order
-)
-type NodeNeuralNetworkDetectParam
-type NodeNeuralNetworkDetectParam struct {
-// ROI specifies the region of interest for recognition.
-ROI Target `json:"roi,omitzero"`
-// ROIOffset specifies the offset applied to ROI.
-ROIOffset Rect `json:"roi_offset,omitempty"`
-// Labels specifies the class names for debugging and logging. Auto-reads from model metadata if not provided.
-Labels []string `json:"labels,omitempty"`
-// Model specifies the model folder path relative to model/detect directory. Required. Supports YOLOv8/YOLOv11 ONNX models.
-Model string `json:"model,omitempty"`
-// Expected specifies the expected class indices. Required.
-Expected []int `json:"expected,omitempty"`
-// OrderBy specifies the result ordering. Default: Horizontal.
-OrderBy NodeNeuralNetworkDetectOrderBy `json:"order_by,omitempty"`
-// Index specifies which match to select from results.
-Index int `json:"index,omitempty"`
-}
-NodeNeuralNetworkDetectParam defines parameters for neural network object detection.
-
-type NodeNextItem
-type NodeNextItem struct {
-// Name is the name of the target node.
-Name string `json:"name"`
-// JumpBack indicates whether to jump back to the parent node after this node's chain completes.
-JumpBack bool `json:"jump_back"`
-// Anchor indicates whether this node should be set as the anchor.
-Anchor bool `json:"anchor"`
-}
-NodeNextItem represents an item in the next or on_error list.
-
-func (NodeNextItem) FormatName
-func (i NodeNextItem) FormatName() string
-FormatName returns the name with attribute prefixes, e.g. [JumpBack]NodeA.
-
 type NodeNextListDetail
 type NodeNextListDetail struct {
 TaskID uint64 `json:"task_id"`
 Name string `json:"name"`
-NextList []NodeNextItem `json:"next_list"`
+List []NextItem `json:"list"`
 Focus any `json:"focus"`
 }
 NodeNextListDetail contains information about node next list events
-
-type NodeOCROrderBy
-type NodeOCROrderBy string
-NodeOCROrderBy defines the ordering options for OCR results.
-
-const (
-NodeOCROrderByHorizontal NodeOCROrderBy = "Horizontal" // Order by x coordinate (default)
-NodeOCROrderByVertical NodeOCROrderBy = "Vertical" // Order by y coordinate
-NodeOCROrderByArea NodeOCROrderBy = "Area" // Order by text region area
-NodeOCROrderByLength NodeOCROrderBy = "Length" // Order by text length
-NodeOCROrderByRandom NodeOCROrderBy = "Random" // Random order
-)
-type NodeOCRParam
-type NodeOCRParam struct {
-// ROI specifies the region of interest for recognition.
-ROI Target `json:"roi,omitzero"`
-// ROIOffset specifies the offset applied to ROI.
-ROIOffset Rect `json:"roi_offset,omitempty"`
-// Expected specifies the expected text results, supports regex. Required.
-Expected []string `json:"expected,omitempty"`
-// Threshold specifies the model confidence threshold [0-1.0]. Default: 0.3.
-Threshold float64 `json:"threshold,omitempty"`
-// Replace specifies text replacement rules for correcting OCR errors.
-Replace [][2]string `json:"replace,omitempty"`
-// OrderBy specifies the result ordering. Default: Horizontal.
-OrderBy NodeOCROrderBy `json:"order_by,omitempty"`
-// Index specifies which match to select from results.
-Index int `json:"index,omitempty"`
-// OnlyRec enables recognition-only mode without detection (requires precise ROI). Default: false.
-OnlyRec bool `json:"only_rec,omitempty"`
-// Model specifies the model folder path relative to model/ocr directory.
-Model string `json:"model,omitempty"`
-}
-NodeOCRParam defines parameters for OCR text recognition.
-
-type NodeOption
-type NodeOption func(\*Node)
-NodeOption is a functional option for configuring a Node.
-
-func WithAction
-func WithAction(act \*NodeAction) NodeOption
-WithAction sets the action for the node.
-
-func WithAttach
-func WithAttach(attach map[string]any) NodeOption
-WithAttach sets the attached custom data for the node.
-
-func WithEnabled
-func WithEnabled(enabled bool) NodeOption
-WithEnabled sets whether the node is enabled.
-
-func WithFocus
-func WithFocus(focus any) NodeOption
-WithFocus sets the focus data for the node.
-
-func WithInverse
-func WithInverse(inverse bool) NodeOption
-WithInverse sets whether to invert the recognition result.
-
-func WithMaxHit
-func WithMaxHit(maxHit uint64) NodeOption
-WithMaxHit sets the maximum hit count of the node.
-
-func WithNext
-func WithNext(next []NodeNextItem) NodeOption
-WithNext sets the next nodes list for the node.
-
-func WithOnError
-func WithOnError(onError []NodeNextItem) NodeOption
-WithOnError sets the error handling nodes for the node.
-
-func WithPostDelay
-func WithPostDelay(postDelay time.Duration) NodeOption
-WithPostDelay sets the delay after action execution.
-
-func WithPostWaitFreezes
-func WithPostWaitFreezes(waitFreezes \*NodeWaitFreezes) NodeOption
-WithPostWaitFreezes sets the post-action wait freezes configuration.
-
-func WithPreDelay
-func WithPreDelay(preDelay time.Duration) NodeOption
-WithPreDelay sets the delay before action execution.
-
-func WithPreWaitFreezes
-func WithPreWaitFreezes(waitFreezes \*NodeWaitFreezes) NodeOption
-WithPreWaitFreezes sets the pre-action wait freezes configuration.
-
-func WithRateLimit
-func WithRateLimit(rateLimit time.Duration) NodeOption
-WithRateLimit sets the rate limit for the node.
-
-func WithRecognition
-func WithRecognition(rec \*NodeRecognition) NodeOption
-WithRecognition sets the recognition for the node.
-
-func WithRepeat
-func WithRepeat(repeat uint64) NodeOption
-WithRepeat sets the number of times to repeat the node.
-
-func WithRepeatDelay
-func WithRepeatDelay(repeatDelay time.Duration) NodeOption
-WithRepeatDelay sets the delay between repetitions.
-
-func WithRepeatWaitFreezes
-func WithRepeatWaitFreezes(waitFreezes \*NodeWaitFreezes) NodeOption
-WithRepeatWaitFreezes sets the wait freezes configuration between repetitions.
-
-func WithTimeout
-func WithTimeout(timeout time.Duration) NodeOption
-WithTimeout sets the timeout for the node.
-
-type NodeOrRecognitionParam
-type NodeOrRecognitionParam struct {
-AnyOf []SubRecognitionItem `json:"any_of,omitempty"`
-}
-NodeOrRecognitionParam defines parameters for OR recognition. AnyOf elements are either node name strings or inline recognitions (GetNodeData output matches C++ JOr).
 
 type NodePipelineNodeDetail
 type NodePipelineNodeDetail struct {
@@ -2119,57 +1762,6 @@ Focus any `json:"focus"`
 }
 NodePipelineNodeDetail contains information about pipeline node events
 
-type NodeRecognition
-type NodeRecognition struct {
-// Type specifies the recognition algorithm type.
-Type NodeRecognitionType `json:"type,omitempty"`
-// Param specifies the recognition parameters.
-Param NodeRecognitionParam `json:"param,omitempty"`
-}
-NodeRecognition defines the recognition configuration for a node.
-
-func RecAnd
-func RecAnd(items []SubRecognitionItem, opts ...AndRecognitionOption) \*NodeRecognition
-RecAnd creates an AND recognition that requires all sub-recognitions to succeed. Items are Ref/Inline (use RecAndItems to build from variadic); opts are WithAndRecognitionBoxIndex etc. Example: RecAnd(RecAndItems(Ref("NodeA"), Inline(RecDirectHit(), "sub1")), WithAndRecognitionBoxIndex(2)).
-
-func RecColorMatch
-func RecColorMatch(lower, upper [][]int, opts ...ColorMatchOption) \*NodeRecognition
-RecColorMatch creates a ColorMatch recognition with the given color bounds.
-
-func RecCustom
-func RecCustom(name string, opts ...CustomRecognitionOption) \*NodeRecognition
-RecCustom creates a Custom recognition with the given recognizer name.
-
-func RecDirectHit
-func RecDirectHit() \*NodeRecognition
-RecDirectHit creates a DirectHit recognition that always succeeds without actual recognition.
-
-func RecFeatureMatch
-func RecFeatureMatch(template []string, opts ...FeatureMatchOption) \*NodeRecognition
-RecFeatureMatch creates a FeatureMatch recognition with the given template images. Feature matching provides better generalization with perspective and scale invariance.
-
-func RecNeuralNetworkClassify
-func RecNeuralNetworkClassify(model string, opts ...NeuralClassifyOption) \*NodeRecognition
-RecNeuralNetworkClassify creates a NeuralNetworkClassify recognition. This classifies images at fixed positions into predefined categories.
-
-func RecNeuralNetworkDetect
-func RecNeuralNetworkDetect(model string, opts ...NeuralDetectOption) \*NodeRecognition
-RecNeuralNetworkDetect creates a NeuralNetworkDetect recognition. This detects objects at arbitrary positions using deep learning models like YOLO.
-
-func RecOCR
-func RecOCR(opts ...OCROption) \*NodeRecognition
-RecOCR creates an OCR recognition with the given expected text patterns.
-
-func RecOr
-func RecOr(anyOf ...SubRecognitionItem) \*NodeRecognition
-RecOr creates an OR recognition that succeeds if any sub-recognition succeeds. Accepts variadic Ref/Inline so you can write RecOr(Inline(RecTemplateMatch(...)), Inline(RecColorMatch(...))) without a slice.
-
-func RecTemplateMatch
-func RecTemplateMatch(template []string, opts ...TemplateMatchOption) \*NodeRecognition
-RecTemplateMatch creates a TemplateMatch recognition with the given template images.
-
-func (*NodeRecognition) UnmarshalJSON
-func (nr *NodeRecognition) UnmarshalJSON(data []byte) error
 type NodeRecognitionDetail
 type NodeRecognitionDetail struct {
 TaskID uint64 `json:"task_id"`
@@ -2188,215 +1780,35 @@ Focus any `json:"focus"`
 }
 NodeRecognitionNodeDetail contains information about recognition node events
 
-type NodeRecognitionParam
-type NodeRecognitionParam interface {
-// contains filtered or unexported methods
-}
-NodeRecognitionParam is the interface for recognition parameters.
+type OCROrderBy
+type OCROrderBy OrderBy
+OCROrderBy defines the ordering options for OCR results.
 
-type NodeRecognitionType
-type NodeRecognitionType string
-NodeRecognitionType defines the available recognition algorithm types.
-
-const (
-NodeRecognitionTypeDirectHit NodeRecognitionType = "DirectHit"
-NodeRecognitionTypeTemplateMatch NodeRecognitionType = "TemplateMatch"
-NodeRecognitionTypeFeatureMatch NodeRecognitionType = "FeatureMatch"
-NodeRecognitionTypeColorMatch NodeRecognitionType = "ColorMatch"
-NodeRecognitionTypeOCR NodeRecognitionType = "OCR"
-NodeRecognitionTypeNeuralNetworkClassify NodeRecognitionType = "NeuralNetworkClassify"
-NodeRecognitionTypeNeuralNetworkDetect NodeRecognitionType = "NeuralNetworkDetect"
-NodeRecognitionTypeAnd NodeRecognitionType = "And"
-NodeRecognitionTypeOr NodeRecognitionType = "Or"
-NodeRecognitionTypeCustom NodeRecognitionType = "Custom"
-)
-type NodeScrollParam
-type NodeScrollParam struct {
-Target Target `json:"target,omitzero"`
-TargetOffset Rect `json:"target_offset,omitempty"`
-Dx int `json:"dx,omitempty"`
-Dy int `json:"dy,omitempty"`
-}
-type NodeShellParam
-type NodeShellParam struct {
-Cmd string `json:"cmd,omitempty"`
-}
-NodeShellParam defines parameters for shell command execution action.
-
-type NodeStartAppParam
-type NodeStartAppParam struct {
-// Package specifies the package name or activity to start. Required.
-Package string `json:"package,omitempty"`
-}
-NodeStartAppParam defines parameters for start app action.
-
-type NodeStopAppParam
-type NodeStopAppParam struct {
-// Package specifies the package name to stop. Required.
-Package string `json:"package,omitempty"`
-}
-NodeStopAppParam defines parameters for stop app action.
-
-type NodeStopTaskParam
-type NodeStopTaskParam struct{}
-NodeStopTaskParam defines parameters for stop task action. This action stops the current task chain.
-
-type NodeSwipeParam
-type NodeSwipeParam struct {
-// Begin specifies the swipe start position.
-Begin Target `json:"begin,omitzero"`
-// BeginOffset specifies additional offset applied to begin position.
-BeginOffset Rect `json:"begin_offset,omitempty"`
-// End specifies the swipe end position.
-End []Target `json:"end,omitzero"`
-// EndOffset specifies additional offset applied to end position.
-EndOffset []Rect `json:"end_offset,omitempty"`
-// Duration specifies the swipe duration in milliseconds. Default: 200.
-Duration []int64 `json:"duration,omitempty"`
-// EndHold specifies extra wait time at end position before releasing in milliseconds. Default: 0.
-EndHold []int64 `json:"end_hold,omitempty"`
-// OnlyHover enables hover-only mode without press/release actions. Default: false.
-OnlyHover bool `json:"only_hover,omitempty"`
-// Contact specifies the touch point identifier. Adb: finger index (0=first finger). Win32: mouse button (0=left, 1=right, 2=middle).
-Contact int `json:"contact,omitempty"`
-}
-NodeSwipeParam defines parameters for swipe action.
-
-type NodeTemplateMatchMethod
-type NodeTemplateMatchMethod int
-NodeTemplateMatchMethod defines the template matching algorithm (cv::TemplateMatchModes).
-
-const (
-NodeTemplateMatchMethodSQDIFF_NORMED_Inverted NodeTemplateMatchMethod = 10001 // Normalized squared difference (Inverted)
-NodeTemplateMatchMethodCCORR_NORMED NodeTemplateMatchMethod = 3 // Normalized cross correlation
-NodeTemplateMatchMethodCCOEFF_NORMED NodeTemplateMatchMethod = 5 // Normalized correlation coefficient (default, most accurate)
-)
-type NodeTemplateMatchOrderBy
-type NodeTemplateMatchOrderBy string
-NodeTemplateMatchOrderBy defines the ordering options for template match results.
-
-const (
-NodeTemplateMatchOrderByHorizontal NodeTemplateMatchOrderBy = "Horizontal"
-NodeTemplateMatchOrderByVertical NodeTemplateMatchOrderBy = "Vertical"
-NodeTemplateMatchOrderByScore NodeTemplateMatchOrderBy = "Score"
-NodeTemplateMatchOrderByRandom NodeTemplateMatchOrderBy = "Random"
-)
-type NodeTemplateMatchParam
-type NodeTemplateMatchParam struct {
+type OCRParam
+type OCRParam struct {
 // ROI specifies the region of interest for recognition.
 ROI Target `json:"roi,omitzero"`
 // ROIOffset specifies the offset applied to ROI.
 ROIOffset Rect `json:"roi_offset,omitempty"`
-// Template specifies the template image paths. Required.
-Template []string `json:"template,omitempty"`
-// Threshold specifies the matching threshold [0-1.0]. Default: 0.7.
-Threshold []float64 `json:"threshold,omitempty"`
-// OrderBy specifies the result ordering. Default: Horizontal.
-OrderBy NodeTemplateMatchOrderBy `json:"order_by,omitempty"`
+// Expected specifies the expected text results, supports regex.
+Expected []string `json:"expected,omitempty"`
+// Threshold specifies the model confidence threshold [0-1.0]. Default: 0.3.
+Threshold float64 `json:"threshold,omitempty"`
+// Replace specifies text replacement rules for correcting OCR errors.
+Replace [][2]string `json:"replace,omitempty"`
+// OrderBy specifies how results are sorted. Default: Horizontal. Options: Horizontal | Vertical | Area | Length | Random | Expected.
+OrderBy OCROrderBy `json:"order_by,omitempty"`
 // Index specifies which match to select from results.
 Index int `json:"index,omitempty"`
-// Method specifies the matching algorithm. 1: SQDIFF_NORMED, 3: CCORR_NORMED, 5: CCOEFF_NORMED. Default: 5.
-Method NodeTemplateMatchMethod `json:"method,omitempty"`
-// GreenMask enables green color masking for transparent areas.
-GreenMask bool `json:"green_mask,omitempty"`
+// OnlyRec enables recognition-only mode without detection (requires precise ROI). Default: false.
+OnlyRec bool `json:"only_rec,omitempty"`
+// Model specifies the model folder path relative to model/ocr directory.
+Model string `json:"model,omitempty"`
+// ColorFilter specifies a ColorMatch node name whose color parameters (method, lower, upper)
+// are used to binarize the image before OCR. Nodes with this field set will not participate in batch optimization.
+ColorFilter string `json:"color_filter,omitempty"`
 }
-NodeTemplateMatchParam defines parameters for template matching recognition.
-
-type NodeTouchDownParam
-type NodeTouchDownParam struct {
-// Target specifies the touch target position.
-Target Target `json:"target,omitzero"`
-// TargetOffset specifies additional offset applied to target.
-TargetOffset Rect `json:"target_offset,omitempty"`
-// Pressure specifies the touch pressure, range depends on controller implementation. Default: 0.
-Pressure int `json:"pressure,omitempty"`
-// Contact specifies the touch point identifier. Adb: finger index (0=first finger). Win32: mouse button (0=left, 1=right, 2=middle).
-Contact int `json:"contact,omitempty"`
-}
-NodeTouchDownParam defines parameters for touch down action.
-
-type NodeTouchMoveParam
-type NodeTouchMoveParam struct {
-// Target specifies the touch target position.
-Target Target `json:"target,omitzero"`
-// TargetOffset specifies additional offset applied to target.
-TargetOffset Rect `json:"target_offset,omitempty"`
-// Pressure specifies the touch pressure, range depends on controller implementation. Default: 0.
-Pressure int `json:"pressure,omitempty"`
-// Contact specifies the touch point identifier. Adb: finger index (0=first finger). Win32: mouse button (0=left, 1=right, 2=middle).
-Contact int `json:"contact,omitempty"`
-}
-NodeTouchMoveParam defines parameters for touch move action.
-
-type NodeTouchUpParam
-type NodeTouchUpParam struct {
-// Contact specifies the touch point identifier. Adb: finger index (0=first finger). Win32: mouse button (0=left, 1=right, 2=middle).
-Contact int `json:"contact,omitempty"`
-}
-NodeTouchUpParam defines parameters for touch up action.
-
-type NodeWaitFreezes
-type NodeWaitFreezes struct {
-// Time specifies the duration in milliseconds that the screen must remain stable. Default: 1.
-Time int64 `json:"time,omitempty"`
-// Target specifies the region to monitor for changes.
-Target Target `json:"target,omitzero"`
-// TargetOffset specifies additional offset applied to target.
-TargetOffset Rect `json:"target_offset,omitempty"`
-// Threshold specifies the template matching threshold for detecting changes. Default: 0.95.
-Threshold float64 `json:"threshold,omitempty"`
-// Method specifies the template matching algorithm (cv::TemplateMatchModes). Default: 5.
-Method int `json:"method,omitempty"`
-// RateLimit specifies the minimum interval between checks in milliseconds. Default: 1000.
-RateLimit int64 `json:"rate_limit,omitempty"`
-// Timeout specifies the maximum wait time in milliseconds. Default: 20000.
-Timeout int64 `json:"timeout,omitempty"`
-}
-NodeWaitFreezes defines parameters for waiting until screen stabilizes. The screen is considered stable when there are no significant changes for a continuous period.
-
-func WaitFreezes
-func WaitFreezes(opts ...WaitFreezesOption) \*NodeWaitFreezes
-WaitFreezes creates a NodeWaitFreezes configuration with the given options.
-
-type OCROption
-type OCROption func(\*NodeOCRParam)
-OCROption is a functional option for configuring NodeOCRParam.
-
-func WithOCRExpected
-func WithOCRExpected(expected []string) OCROption
-WithOCRExpected sets the expected text results.
-
-func WithOCRIndex
-func WithOCRIndex(index int) OCROption
-WithOCRIndex sets which match to select from results.
-
-func WithOCRModel
-func WithOCRModel(model string) OCROption
-WithOCRModel sets the model folder path.
-
-func WithOCROnlyRec
-func WithOCROnlyRec(only bool) OCROption
-WithOCROnlyRec enables recognition-only mode without text detection.
-
-func WithOCROrderBy
-func WithOCROrderBy(orderBy NodeOCROrderBy) OCROption
-WithOCROrderBy sets the result ordering method.
-
-func WithOCRROI
-func WithOCRROI(roi Target) OCROption
-WithOCRROI sets the region of interest for OCR.
-
-func WithOCRROIOffset
-func WithOCRROIOffset(offset Rect) OCROption
-WithOCRROIOffset sets the offset applied to ROI.
-
-func WithOCRReplace
-func WithOCRReplace(replace [][2]string) OCROption
-WithOCRReplace sets text replacement rules for correcting OCR errors.
-
-func WithOCRThreshold
-func WithOCRThreshold(th float64) OCROption
-WithOCRThreshold sets the model confidence threshold.
+OCRParam defines parameters for OCR text recognition.
 
 type OCRResult
 type OCRResult struct {
@@ -2404,6 +1816,25 @@ Box Rect `json:"box"`
 Text string `json:"text"`
 Score float64 `json:"score"`
 }
+type OrRecognitionParam
+type OrRecognitionParam struct {
+AnyOf []SubRecognitionItem `json:"any_of,omitempty"`
+}
+OrRecognitionParam defines parameters for OR recognition. AnyOf elements are either node name strings or inline recognitions.
+
+type OrderBy
+type OrderBy string
+OrderBy defines the ordering options for recognition results. Different recognition types support different subsets of these values.
+
+const (
+OrderByHorizontal OrderBy = "Horizontal"
+OrderByVertical OrderBy = "Vertical"
+OrderByScore OrderBy = "Score"
+OrderByArea OrderBy = "Area"
+OrderByLength OrderBy = "Length"
+OrderByRandom OrderBy = "Random"
+OrderByExpected OrderBy = "Expected"
+)
 type Pipeline
 type Pipeline struct {
 // contains filtered or unexported fields
@@ -2452,6 +1883,61 @@ func (Point) X
 func (p Point) X() int
 func (Point) Y
 func (p Point) Y() int
+type Recognition
+type Recognition struct {
+// Type specifies the recognition algorithm type.
+Type RecognitionType `json:"type,omitempty"`
+// Param specifies the recognition parameters.
+Param RecognitionParam `json:"param,omitempty"`
+}
+Recognition defines the recognition configuration for a node.
+
+func RecAnd
+func RecAnd(items ...SubRecognitionItem) \*Recognition
+RecAnd creates an AND recognition that requires all sub-recognitions to succeed. Use SetBoxIndex to set which result's box to use. Example: RecAnd(Ref("NodeA"), Inline(RecDirectHit(), "sub1")).SetBoxIndex(2)
+
+func RecColorMatch
+func RecColorMatch(p ColorMatchParam) \*Recognition
+RecColorMatch creates a ColorMatch recognition with the given parameters.
+
+func RecCustom
+func RecCustom(p CustomRecognitionParam) \*Recognition
+RecCustom creates a Custom recognition with the given parameters.
+
+func RecDirectHit
+func RecDirectHit() \*Recognition
+RecDirectHit creates a DirectHit recognition that always succeeds without actual recognition.
+
+func RecFeatureMatch
+func RecFeatureMatch(p FeatureMatchParam) \*Recognition
+RecFeatureMatch creates a FeatureMatch recognition with the given parameters. Feature matching provides better generalization with perspective and scale invariance.
+
+func RecNeuralNetworkClassify
+func RecNeuralNetworkClassify(p NeuralNetworkClassifyParam) \*Recognition
+RecNeuralNetworkClassify creates a NeuralNetworkClassify recognition with the given parameters. This classifies images at fixed positions into predefined categories.
+
+func RecNeuralNetworkDetect
+func RecNeuralNetworkDetect(p NeuralNetworkDetectParam) \*Recognition
+RecNeuralNetworkDetect creates a NeuralNetworkDetect recognition with the given parameters. This detects objects at arbitrary positions using deep learning models like YOLO.
+
+func RecOCR
+func RecOCR(p OCRParam) \*Recognition
+RecOCR creates an OCR recognition with the given parameters. All fields are optional; pass OCRParam{} for defaults.
+
+func RecOr
+func RecOr(anyOf ...SubRecognitionItem) \*Recognition
+RecOr creates an OR recognition that succeeds if any sub-recognition succeeds.
+
+func RecTemplateMatch
+func RecTemplateMatch(p TemplateMatchParam) \*Recognition
+RecTemplateMatch creates a TemplateMatch recognition with the given parameters.
+
+func (*Recognition) SetBoxIndex
+func (nr *Recognition) SetBoxIndex(idx int) \*Recognition
+SetBoxIndex sets which sub-recognition result's box to use as the final box. Only effective when the recognition type is And.
+
+func (*Recognition) UnmarshalJSON
+func (nr *Recognition) UnmarshalJSON(data []byte) error
 type RecognitionDetail
 type RecognitionDetail struct {
 ID int64
@@ -2466,6 +1952,12 @@ Raw image.Image // available when debug mode or save_draw is enabled.
 Draws []image.Image // available when debug mode or save_draw is enabled.
 }
 RecognitionDetail contains recognition information.
+
+type RecognitionParam
+type RecognitionParam interface {
+// contains filtered or unexported methods
+}
+RecognitionParam is the interface for recognition parameters.
 
 type RecognitionResult
 type RecognitionResult struct {
@@ -2498,7 +1990,7 @@ func (r *RecognitionResult) AsTemplateMatch() (\*TemplateMatchResult, bool)
 AsTemplateMatch returns the result as TemplateMatchResult if the type matches.
 
 func (*RecognitionResult) Type
-func (r *RecognitionResult) Type() NodeRecognitionType
+func (r *RecognitionResult) Type() RecognitionType
 Type returns the recognition type of the result.
 
 func (*RecognitionResult) Value
@@ -2508,11 +2000,27 @@ Value returns the underlying value of the result.
 type RecognitionResults
 type RecognitionResults struct {
 All []*RecognitionResult `json:"all"`
-Best []*RecognitionResult `json:"best"`
+Best *RecognitionResult `json:"best"`
 Filtered []\*RecognitionResult `json:"filtered"`
 }
-RecognitionResults contains all, best, and filtered recognition results. Detail JSON format: {"all": [Result...], "best": [Result...], "filtered": [Result...]} if algorithm is direct hit, Results is nil
+RecognitionResults contains all, best, and filtered recognition results. Detail JSON format: {"all": [Result...], "best": Result | null, "filtered": [Result...]} if algorithm is direct hit, Results is nil
 
+type RecognitionType
+type RecognitionType string
+RecognitionType defines the available recognition algorithm types.
+
+const (
+RecognitionTypeDirectHit RecognitionType = "DirectHit"
+RecognitionTypeTemplateMatch RecognitionType = "TemplateMatch"
+RecognitionTypeFeatureMatch RecognitionType = "FeatureMatch"
+RecognitionTypeColorMatch RecognitionType = "ColorMatch"
+RecognitionTypeOCR RecognitionType = "OCR"
+RecognitionTypeNeuralNetworkClassify RecognitionType = "NeuralNetworkClassify"
+RecognitionTypeNeuralNetworkDetect RecognitionType = "NeuralNetworkDetect"
+RecognitionTypeAnd RecognitionType = "And"
+RecognitionTypeOr RecognitionType = "Or"
+RecognitionTypeCustom RecognitionType = "Custom"
+)
 type Rect
 type Rect = rect.Rect
 type Resource
@@ -2560,12 +2068,12 @@ func (r *Resource) GetCustomRecognitionList() ([]string, error)
 GetCustomRecognitionList returns the custom recognition list of the resource.
 
 func (*Resource) GetDefaultActionParam
-func (r *Resource) GetDefaultActionParam(actionType NodeActionType) (NodeActionParam, error)
-GetDefaultActionParam returns the default action parameters for the specified type from DefaultPipelineMgr. actionType is an action type (e.g., NodeActionTypeClick, NodeActionTypeSwipe). Returns the parsed NodeActionParam interface.
+func (r *Resource) GetDefaultActionParam(actionType ActionType) (ActionParam, error)
+GetDefaultActionParam returns the default action parameters for the specified type from DefaultPipelineMgr. actionType is an action type (e.g., ActionTypeClick, ActionTypeSwipe). Returns the parsed ActionParam interface.
 
 func (*Resource) GetDefaultRecognitionParam
-func (r *Resource) GetDefaultRecognitionParam(recoType NodeRecognitionType) (NodeRecognitionParam, error)
-GetDefaultRecognitionParam returns the default recognition parameters for the specified type from DefaultPipelineMgr. recoType is a recognition type (e.g., NodeRecognitionTypeOCR, NodeRecognitionTypeTemplateMatch). Returns the parsed NodeRecognitionParam interface.
+func (r *Resource) GetDefaultRecognitionParam(recoType RecognitionType) (RecognitionParam, error)
+GetDefaultRecognitionParam returns the default recognition parameters for the specified type from DefaultPipelineMgr. recoType is a recognition type (e.g., RecognitionTypeOCR, RecognitionTypeTemplateMatch). Returns the parsed RecognitionParam interface.
 
 func (*Resource) GetHash
 func (r *Resource) GetHash() (string, error)
@@ -2596,7 +2104,7 @@ func (r *Resource) OverrideImage(imageName string, image image.Image) error
 OverrideImage overrides the image data for the specified image name.
 
 func (*Resource) OverrideNext
-func (r *Resource) OverrideNext(name string, nextList []NodeNextItem) error
+func (r *Resource) OverrideNext(name string, nextList []NextItem) error
 OverrideNext overrides the next list of a task by name. It sets the list directly and will create the node if it doesn't exist.
 
 func (*Resource) OverridePipeline
@@ -2694,19 +2202,39 @@ Point Point `json:"point"`
 Dx int `json:"dx"`
 Dy int `json:"dy"`
 }
-type ScrollOption
-type ScrollOption func(\*NodeScrollParam)
-func WithScrollDx
-func WithScrollDx(dx int) ScrollOption
-func WithScrollDy
-func WithScrollDy(dy int) ScrollOption
+type ScrollParam
+type ScrollParam struct {
+// Target specifies the scroll target position.
+Target Target `json:"target,omitzero"`
+// TargetOffset specifies additional offset applied to target.
+TargetOffset Rect `json:"target_offset,omitempty"`
+// Dx specifies the horizontal scroll amount.
+Dx int `json:"dx,omitempty"`
+// Dy specifies the vertical scroll amount.
+Dy int `json:"dy,omitempty"`
+}
+ScrollParam defines parameters for scroll action.
+
 type ShellActionResult
 type ShellActionResult struct {
 Cmd string `json:"cmd"`
-Timeout int `json:"timeout"`
+ShellTimeout int `json:"shell_timeout"`
 Success bool `json:"success"`
 Output string `json:"output"`
 }
+type ShellParam
+type ShellParam struct {
+Cmd string `json:"cmd,omitempty"`
+}
+ShellParam defines parameters for shell command execution action.
+
+type StartAppParam
+type StartAppParam struct {
+// Package specifies the package name or activity to start. Required.
+Package string `json:"package,omitempty"`
+}
+StartAppParam defines parameters for start app action.
+
 type Status
 type Status int32
 Status represents the lifecycle state of a task or item.
@@ -2746,35 +2274,33 @@ func (Status) Success
 func (s Status) Success() bool
 Success reports whether the status is StatusSuccess.
 
+type StopAppParam
+type StopAppParam struct {
+// Package specifies the package name to stop. Required.
+Package string `json:"package,omitempty"`
+}
+StopAppParam defines parameters for stop app action.
+
+type StopTaskParam
+type StopTaskParam struct{}
+StopTaskParam defines parameters for stop task action. This action stops the current task chain.
+
 type SubRecognitionItem
 type SubRecognitionItem struct {
 // NodeName is set when the JSON value is a string (reference to another node by name).
 NodeName string
 // Inline is set when the JSON value is an object (inline recognition with type, param, sub_name).
-// Used for both And all_of and Or any_of; name matches C++ InlineSubRecognition.
 Inline \*InlineSubRecognition
 }
 SubRecognitionItem is one element of And all_of / Or any_of. It is either a node name (string reference) or an inline recognition (object with type, param, sub_name). GetNodeData from C++ outputs: all_of/any_of as array of string | object; this type supports both.
 
 func Inline
-func Inline(rec \*NodeRecognition, name ...string) SubRecognitionItem
-Inline builds a SubRecognitionItem from a recognition; optional name is the sub_name (omit for Or when not needed). Example: RecOr(Inline(RecTemplateMatch(...)), Inline(RecColorMatch(...))) or RecAnd(Ref("A"), Inline(RecDirectHit(), "sub1")).
-
-func RecAndItems
-func RecAndItems(items ...SubRecognitionItem) []SubRecognitionItem
-RecAndItems builds the first argument for RecAnd from Ref/Inline, so IDE can suggest SubRecognitionItem. Example: RecAnd(RecAndItems(Ref("NodeA"), Inline(RecDirectHit(), "sub1")), WithAndRecognitionBoxIndex(2)).
+func Inline(rec \*Recognition, name ...string) SubRecognitionItem
+Inline builds a SubRecognitionItem from a recognition; optional name is the sub_name. Example: RecOr(Inline(RecTemplateMatch(...)), Inline(RecColorMatch(...))) Example: RecAnd(Ref("A"), Inline(RecDirectHit(), "sub1")).SetBoxIndex(2)
 
 func Ref
 func Ref(nodeName string) SubRecognitionItem
-Ref is a short alias for SubRecognitionRef. Use with RecAnd/RecOr: RecAnd(Ref("NodeA"), Inline(...)).
-
-func SubRecognitionInline
-func SubRecognitionInline(inline \*InlineSubRecognition) SubRecognitionItem
-SubRecognitionInline returns a SubRecognitionItem with inline recognition (type, param, sub_name).
-
-func SubRecognitionRef
-func SubRecognitionRef(nodeName string) SubRecognitionItem
-SubRecognitionRef returns a SubRecognitionItem that references another node by name.
+Ref returns a SubRecognitionItem that references another node by name.
 
 func (SubRecognitionItem) MarshalJSON
 func (s SubRecognitionItem) MarshalJSON() ([]byte, error)
@@ -2801,42 +2327,33 @@ func (SwipeActionResult) MarshalJSON
 func (s SwipeActionResult) MarshalJSON() ([]byte, error)
 func (*SwipeActionResult) UnmarshalJSON
 func (s *SwipeActionResult) UnmarshalJSON(data []byte) error
-type SwipeOption
-type SwipeOption func(\*NodeSwipeParam)
-SwipeOption is a functional option for configuring NodeSwipeParam.
+type SwipeParam
+type SwipeParam struct {
+// Begin specifies the swipe start position.
+Begin Target `json:"begin,omitzero"`
+// BeginOffset specifies additional offset applied to begin position.
+BeginOffset Rect `json:"begin_offset,omitempty"`
+// End specifies the swipe end position.
+End []Target `json:"end,omitzero"`
+// EndOffset specifies additional offset applied to end position.
+EndOffset []Rect `json:"end_offset,omitempty"`
+// Duration specifies the swipe duration. Default: 200ms.
+// JSON: serialized as array of integer milliseconds.
+Duration []time.Duration `json:"-"`
+// EndHold specifies extra wait time at end position before releasing. Default: 0.
+// JSON: serialized as array of integer milliseconds.
+EndHold []time.Duration `json:"-"`
+// OnlyHover enables hover-only mode without press/release actions. Default: false.
+OnlyHover bool `json:"only_hover,omitempty"`
+// Contact specifies the touch point identifier. Adb: finger index (0=first finger). Win32: mouse button (0=left, 1=right, 2=middle).
+Contact int `json:"contact,omitempty"`
+}
+SwipeParam defines parameters for swipe action.
 
-func WithSwipeBegin
-func WithSwipeBegin(begin Target) SwipeOption
-WithSwipeBegin sets the swipe start position.
-
-func WithSwipeBeginOffset
-func WithSwipeBeginOffset(offset Rect) SwipeOption
-WithSwipeBeginOffset sets additional offset applied to begin position.
-
-func WithSwipeContact
-func WithSwipeContact(contact int) SwipeOption
-WithSwipeContact sets the touch point identifier.
-
-func WithSwipeDuration
-func WithSwipeDuration(d []time.Duration) SwipeOption
-WithSwipeDuration sets the swipe duration.
-
-func WithSwipeEnd
-func WithSwipeEnd(end []Target) SwipeOption
-WithSwipeEnd sets the swipe end position.
-
-func WithSwipeEndHold
-func WithSwipeEndHold(d []time.Duration) SwipeOption
-WithSwipeEndHold sets extra wait time at end position before releasing.
-
-func WithSwipeEndOffset
-func WithSwipeEndOffset(offset []Rect) SwipeOption
-WithSwipeEndOffset sets additional offset applied to end position.
-
-func WithSwipeOnlyHover
-func WithSwipeOnlyHover(only bool) SwipeOption
-WithSwipeOnlyHover enables hover-only mode without press/release actions.
-
+func (SwipeParam) MarshalJSON
+func (p SwipeParam) MarshalJSON() ([]byte, error)
+func (*SwipeParam) UnmarshalJSON
+func (p *SwipeParam) UnmarshalJSON(data []byte) error
 type Target
 type Target = target.Target
 func NewTargetBool
@@ -2946,13 +2463,19 @@ func (*Tasker) Destroy
 func (t *Tasker) Destroy()
 Destroy frees the tasker and releases all associated resources. After calling this method, the tasker should not be used anymore.
 
+func (*Tasker) GetActionDetail
+func (t *Tasker) GetActionDetail(actionId int64) (*ActionDetail, error)
 func (*Tasker) GetController
-func (t *Tasker) GetController() \*Controller
+func (t *Tasker) GetController() *Controller
 GetController returns the bound controller of the tasker.
 
 func (*Tasker) GetLatestNode
 func (t *Tasker) GetLatestNode(taskName string) (\*NodeDetail, error)
 GetLatestNode returns the latest node detail for a given task name.
+
+func (*Tasker) GetRecognitionDetail
+func (t *Tasker) GetRecognitionDetail(recId int64) (\*RecognitionDetail, error)
+GetRecognitionDetail queries recognition detail.
 
 func (*Tasker) GetResource
 func (t *Tasker) GetResource() \*Resource
@@ -2995,11 +2518,11 @@ func (t *Tasker) OnTaskerTask(fn func(EventStatus, TaskerTaskDetail)) int64
 OnTaskerTask registers a callback for Tasker.Task events and returns the sink ID.
 
 func (*Tasker) PostAction
-func (t *Tasker) PostAction(actionType NodeActionType, actionParam NodeActionParam, box Rect, recoDetail *RecognitionDetail) *TaskJob
+func (t *Tasker) PostAction(actionType ActionType, actionParam ActionParam, box Rect, recoDetail *RecognitionDetail) *TaskJob
 PostAction posts an action to the tasker asynchronously. The box and recoDetail are from the previous recognition.
 
 func (*Tasker) PostRecognition
-func (t *Tasker) PostRecognition(recType NodeRecognitionType, recParam NodeRecognitionParam, img image.Image) \*TaskJob
+func (t *Tasker) PostRecognition(recType RecognitionType, recParam RecognitionParam, img image.Image) \*TaskJob
 PostRecognition posts a recognition to the tasker asynchronously.
 
 func (*Tasker) PostStop
@@ -3041,37 +2564,39 @@ Hash string `json:"hash"`
 }
 TaskerTaskDetail contains information about tasker task events
 
-type TemplateMatchOption
-type TemplateMatchOption func(\*NodeTemplateMatchParam)
-TemplateMatchOption is a functional option for configuring NodeTemplateMatchParam.
+type TemplateMatchMethod
+type TemplateMatchMethod int
+TemplateMatchMethod defines the template matching algorithm (cv::TemplateMatchModes).
 
-func WithTemplateMatchGreenMask
-func WithTemplateMatchGreenMask(greenMask bool) TemplateMatchOption
-WithTemplateMatchGreenMask enables green color masking for transparent areas.
+const (
+TemplateMatchMethodSQDIFF_NORMED_Inverted TemplateMatchMethod = 10001 // Normalized squared difference (Inverted)
+TemplateMatchMethodCCORR_NORMED TemplateMatchMethod = 3 // Normalized cross correlation
+TemplateMatchMethodCCOEFF_NORMED TemplateMatchMethod = 5 // Normalized correlation coefficient (default, most accurate)
+)
+type TemplateMatchOrderBy
+type TemplateMatchOrderBy OrderBy
+TemplateMatchOrderBy defines the ordering options for template matching results.
 
-func WithTemplateMatchIndex
-func WithTemplateMatchIndex(index int) TemplateMatchOption
-WithTemplateMatchIndex sets which match to select from results.
-
-func WithTemplateMatchMethod
-func WithTemplateMatchMethod(method NodeTemplateMatchMethod) TemplateMatchOption
-WithTemplateMatchMethod sets the template matching algorithm.
-
-func WithTemplateMatchOrderBy
-func WithTemplateMatchOrderBy(orderBy NodeTemplateMatchOrderBy) TemplateMatchOption
-WithTemplateMatchOrderBy sets the result ordering method.
-
-func WithTemplateMatchROI
-func WithTemplateMatchROI(roi Target) TemplateMatchOption
-WithTemplateMatchROI sets the region of interest for template matching.
-
-func WithTemplateMatchROIOffset
-func WithTemplateMatchROIOffset(offset Rect) TemplateMatchOption
-WithTemplateMatchROIOffset sets the offset applied to ROI.
-
-func WithTemplateMatchThreshold
-func WithTemplateMatchThreshold(threshold []float64) TemplateMatchOption
-WithTemplateMatchThreshold sets the matching threshold.
+type TemplateMatchParam
+type TemplateMatchParam struct {
+// ROI specifies the region of interest for recognition.
+ROI Target `json:"roi,omitzero"`
+// ROIOffset specifies the offset applied to ROI.
+ROIOffset Rect `json:"roi_offset,omitempty"`
+// Template specifies the template image paths. Required.
+Template []string `json:"template,omitempty"`
+// Threshold specifies the matching threshold [0-1.0]. Default: 0.7.
+Threshold []float64 `json:"threshold,omitempty"`
+// OrderBy specifies how results are sorted. Default: Horizontal. Options: Horizontal | Vertical | Score | Random.
+OrderBy TemplateMatchOrderBy `json:"order_by,omitempty"`
+// Index specifies which match to select from results.
+Index int `json:"index,omitempty"`
+// Method specifies the matching algorithm. 1: SQDIFF_NORMED, 3: CCORR_NORMED, 5: CCOEFF_NORMED. Default: 5.
+Method TemplateMatchMethod `json:"method,omitempty"`
+// GreenMask enables green color masking for transparent areas.
+GreenMask bool `json:"green_mask,omitempty"`
+}
+TemplateMatchParam defines parameters for template matching recognition.
 
 type TemplateMatchResult
 type TemplateMatchResult struct {
@@ -3084,82 +2609,62 @@ Contact int `json:"contact"`
 Point Point `json:"point"`
 Pressure int `json:"pressure"`
 }
-type TouchDownOption
-type TouchDownOption func(\*NodeTouchDownParam)
-TouchDownOption is a functional option for configuring NodeTouchDownParam.
+type TouchDownParam
+type TouchDownParam struct {
+// Target specifies the touch target position.
+Target Target `json:"target,omitzero"`
+// TargetOffset specifies additional offset applied to target.
+TargetOffset Rect `json:"target_offset,omitempty"`
+// Pressure specifies the touch pressure, range depends on controller implementation. Default: 0.
+Pressure int `json:"pressure,omitempty"`
+// Contact specifies the touch point identifier. Adb: finger index (0=first finger). Win32: mouse button (0=left, 1=right, 2=middle).
+Contact int `json:"contact,omitempty"`
+}
+TouchDownParam defines parameters for touch down action.
 
-func WithTouchDownContact
-func WithTouchDownContact(contact int) TouchDownOption
-WithTouchDownContact sets the touch point identifier.
+type TouchMoveParam
+type TouchMoveParam struct {
+// Target specifies the touch target position.
+Target Target `json:"target,omitzero"`
+// TargetOffset specifies additional offset applied to target.
+TargetOffset Rect `json:"target_offset,omitempty"`
+// Pressure specifies the touch pressure, range depends on controller implementation. Default: 0.
+Pressure int `json:"pressure,omitempty"`
+// Contact specifies the touch point identifier. Adb: finger index (0=first finger). Win32: mouse button (0=left, 1=right, 2=middle).
+Contact int `json:"contact,omitempty"`
+}
+TouchMoveParam defines parameters for touch move action.
 
-func WithTouchDownPressure
-func WithTouchDownPressure(pressure int) TouchDownOption
-WithTouchDownPressure sets the touch pressure.
+type TouchUpParam
+type TouchUpParam struct {
+// Contact specifies the touch point identifier. Adb: finger index (0=first finger). Win32: mouse button (0=left, 1=right, 2=middle).
+Contact int `json:"contact,omitempty"`
+}
+TouchUpParam defines parameters for touch up action.
 
-func WithTouchDownTarget
-func WithTouchDownTarget(target Target) TouchDownOption
-WithTouchDownTarget sets the touch target position.
+type WaitFreezesParam
+type WaitFreezesParam struct {
+// Time specifies the duration that the screen must remain stable. Default: 1ms.
+// JSON: serialized as integer milliseconds.
+Time time.Duration `json:"-"`
+// Target specifies the region to monitor for changes.
+Target Target `json:"target,omitzero"`
+// TargetOffset specifies additional offset applied to target.
+TargetOffset Rect `json:"target_offset,omitempty"`
+// Threshold specifies the template matching threshold for detecting changes. Default: 0.95.
+Threshold float64 `json:"threshold,omitempty"`
+// Method specifies the template matching algorithm (cv::TemplateMatchModes). Default: 5.
+Method int `json:"method,omitempty"`
+// RateLimit specifies the minimum interval between checks. Default: 1000ms.
+// JSON: serialized as integer milliseconds.
+RateLimit time.Duration `json:"-"`
+// Timeout specifies the maximum wait time. Default: 20000ms.
+// JSON: serialized as integer milliseconds.
+Timeout time.Duration `json:"-"`
+}
+WaitFreezesParam defines parameters for waiting until screen stabilizes. The screen is considered stable when there are no significant changes for a continuous period.
 
-func WithTouchDownTargetOffset
-func WithTouchDownTargetOffset(offset Rect) TouchDownOption
-WithTouchDownTargetOffset sets additional offset applied to target.
-
-type TouchMoveOption
-type TouchMoveOption func(\*NodeTouchMoveParam)
-TouchMoveOption is a functional option for configuring NodeTouchMoveParam.
-
-func WithTouchMoveContact
-func WithTouchMoveContact(contact int) TouchMoveOption
-WithTouchMoveContact sets the touch point identifier.
-
-func WithTouchMovePressure
-func WithTouchMovePressure(pressure int) TouchMoveOption
-WithTouchMovePressure sets the touch pressure.
-
-func WithTouchMoveTarget
-func WithTouchMoveTarget(target Target) TouchMoveOption
-WithTouchMoveTarget sets the touch target position.
-
-func WithTouchMoveTargetOffset
-func WithTouchMoveTargetOffset(offset Rect) TouchMoveOption
-WithTouchMoveTargetOffset sets additional offset applied to target.
-
-type TouchUpOption
-type TouchUpOption func(\*NodeTouchUpParam)
-TouchUpOption is a functional option for configuring NodeTouchUpParam.
-
-func WithTouchUpContact
-func WithTouchUpContact(contact int) TouchUpOption
-WithTouchUpContact sets the touch point identifier.
-
-type WaitFreezesOption
-type WaitFreezesOption func(\*NodeWaitFreezes)
-WaitFreezesOption is a functional option for configuring NodeWaitFreezes.
-
-func WithWaitFreezesMethod
-func WithWaitFreezesMethod(m int) WaitFreezesOption
-WithWaitFreezesMethod sets the template matching algorithm.
-
-func WithWaitFreezesRateLimit
-func WithWaitFreezesRateLimit(d time.Duration) WaitFreezesOption
-WithWaitFreezesRateLimit sets the minimum interval between checks.
-
-func WithWaitFreezesTarget
-func WithWaitFreezesTarget(target Target) WaitFreezesOption
-WithWaitFreezesTarget sets the region to monitor for changes.
-
-func WithWaitFreezesTargetOffset
-func WithWaitFreezesTargetOffset(offset Rect) WaitFreezesOption
-WithWaitFreezesTargetOffset sets additional offset applied to target.
-
-func WithWaitFreezesThreshold
-func WithWaitFreezesThreshold(th float64) WaitFreezesOption
-WithWaitFreezesThreshold sets the template matching threshold for detecting changes.
-
-func WithWaitFreezesTime
-func WithWaitFreezesTime(d time.Duration) WaitFreezesOption
-WithWaitFreezesTime sets the duration that the screen must remain stable.
-
-func WithWaitFreezesTimeout
-func WithWaitFreezesTimeout(d time.Duration) WaitFreezesOption
-WithWaitFreezesTimeout sets the maximum wait time.
+func (WaitFreezesParam) MarshalJSON
+func (w WaitFreezesParam) MarshalJSON() ([]byte, error)
+func (*WaitFreezesParam) UnmarshalJSON
+func (w *WaitFreezesParam) UnmarshalJSON(data []byte) error
