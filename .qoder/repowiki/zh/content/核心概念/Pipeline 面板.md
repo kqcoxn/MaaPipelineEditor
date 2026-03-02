@@ -7,22 +7,32 @@
 - [server.ts](file://src/services/server.ts)
 - [FloatingJsonPanel.module.less](file://src/styles/FloatingJsonPanel.module.less)
 - [JsonPreviewButton.tsx](file://src/components/panels/toolbar/JsonPreviewButton.tsx)
+- [ExportButton.tsx](file://src/components/panels/toolbar/ExportButton.tsx)
+- [ExportFileModal.tsx](file://src/components/modals/ExportFileModal.tsx)
+- [PipelineConfigSection.tsx](file://src/components/panels/config/PipelineConfigSection.tsx)
+- [ConfigPanel.tsx](file://src/components/panels/main/ConfigPanel.tsx)
+- [configStore.ts](file://src/stores/configStore.ts)
+- [configSplitter.ts](file://src/core/parser/configSplitter.ts)
+- [clipboard.ts](file://src/utils/clipboard.ts)
 </cite>
 
 ## 更新摘要
 **已做更改**  
-- 更新了核心功能详解部分，以反映从固定JSON查看器到浮动JSON预览面板的变更
-- 新增了浮动JSON预览面板的样式与交互特性说明
-- 更新了相关代码文件引用，包括新的样式文件和按钮组件
-- 移除了过时的"实时预览模式"描述，替换为新的浮动面板行为说明
+- 新增了导出按钮功能分离章节，详细介绍多种导出模式的实现
+- 新增了管道配置面板章节，说明 v1/v2 协议版本选择、字段验证跳过、JSON 导出缩进等配置选项
+- 更新了导出机制章节，增加分离导出模式和配置处理方案的说明
+- 新增了配置拆分与合并工具的说明
+- 更新了相关代码文件引用，包括新的导出组件和配置面板
 
 ## 目录
 1. [简介](#简介)
 2. [核心功能详解](#核心功能详解)
-3. [JSON 编译与导出机制](#json-编译与导出机制)
-4. [WebSocket 联动机制](#websocket-联动机制)
-5. [调试与验证实践](#调试与验证实践)
-6. [典型输出示例与字段解析](#典型输出示例与字段解析)
+3. [导出按钮功能分离](#导出按钮功能分离)
+4. [管道配置面板](#管道配置面板)
+5. [JSON 编译与导出机制](#json-编译与导出机制)
+6. [WebSocket 联动机制](#websocket-联动机制)
+7. [调试与验证实践](#调试与验证实践)
+8. [典型输出示例与字段解析](#典型输出示例与字段解析)
 
 ## 简介
 
@@ -69,42 +79,186 @@ F --> K[便捷操作]
 - [FloatingJsonPanel.module.less](file://src/styles/FloatingJsonPanel.module.less#L1-L74)
 - [JsonPreviewButton.tsx](file://src/components/panels/toolbar/JsonPreviewButton.tsx#L1-L33)
 
+## 导出按钮功能分离
+
+### 多模式导出支持
+
+ExportButton.tsx 组件实现了导出按钮的功能分离，支持多种导出模式，满足不同使用场景的需求：
+
+#### 主要导出模式
+
+1. **粘贴板导出**：将编译后的 Pipeline 直接复制到系统剪贴板
+2. **文件导出**：通过 ExportFileModal 弹窗选择文件名和格式进行下载
+3. **本地保存**：保存到本地文件系统，支持三种保存模式
+4. **部分导出**：仅导出选中的节点和连接关系
+5. **分离导出**：在分离模式下分别导出 Pipeline 和配置
+
+#### 本地保存模式
+
+当连接到本地 WebSocket 服务时，导出按钮提供以下本地保存选项：
+
+- **全部保存**：同时保存 Pipeline 和配置文件
+- **仅保存 Pipeline**：仅保存流程定义文件
+- **仅保存配置**：仅保存配置文件
+
+#### 分离导出模式
+
+在分离导出模式下，导出按钮提供专门的分离导出选项：
+
+- **导出 Pipeline**：仅导出流程定义
+- **导出配置**：仅导出配置信息
+
+```mermaid
+flowchart TD
+A[导出按钮] --> B[粘贴板导出]
+A --> C[文件导出]
+A --> D[本地保存]
+A --> E[部分导出]
+A --> F[分离导出]
+B --> G[flowToPipeline]
+C --> H[ExportFileModal]
+D --> I[saveFileToLocal]
+E --> J[flowToPipeline(selected)]
+F --> K[flowToSeparatedStrings]
+G --> L[ClipboardHelper]
+H --> M[File System Access API]
+I --> N[本地文件系统]
+J --> O[选中节点数据]
+K --> P[Pipeline + Config]
+```
+
+**Diagram sources**
+- [ExportButton.tsx](file://src/components/panels/toolbar/ExportButton.tsx#L92-L125)
+- [ExportFileModal.tsx](file://src/components/modals/ExportFileModal.tsx#L102-L139)
+- [clipboard.ts](file://src/utils/clipboard.ts#L3-L23)
+
+**Section sources**
+- [ExportButton.tsx](file://src/components/panels/toolbar/ExportButton.tsx#L1-L316)
+- [ExportFileModal.tsx](file://src/components/modals/ExportFileModal.tsx#L1-L302)
+- [clipboard.ts](file://src/utils/clipboard.ts#L1-L64)
+
+## 管道配置面板
+
+### Pipeline 导出配置选项
+
+PipelineConfigSection.tsx 提供了丰富的 Pipeline 导出配置选项，支持精细化的导出控制：
+
+#### 核心配置选项
+
+1. **节点属性导出形式**
+   - 对象形式：`{ name: 'C', anchor: true, jump_back: true }`
+   - 前缀形式：`'[Anchor][JumpBack]C'`
+
+2. **默认端点位置**
+   - 左右：左侧输入，右侧输出（默认）
+   - 右左：右侧输入，左侧输出
+   - 上下：上方输入，下方输出
+   - 下上：下方输入，上方输出
+
+3. **导出默认识别/动作**
+   - 关闭时，导出时若节点的识别类型为 DirectHit 且无参数，则不导出 recognition 字段
+   - 若动作类型为 DoNothing 且无参数，则不导出 action 字段
+
+4. **Pipeline 导出版本**
+   - v2：使用嵌套对象结构 `{ recognition: { type: 'X', param: {...} } }`
+   - v1：参数平铺在节点根对象 `{ recognition: 'X', template: '...' }`
+
+5. **忽略字段校验**
+   - 开启后，导出时将跳过字段格式校验
+   - 适用于快速导出或调试场景
+
+6. **JSON 导出缩进**
+   - 导出 JSON 文件时每层缩进的空格数
+   - 默认为 4 空格，可设置为 2 或其他值
+
+7. **配置处理方案**
+   - 集成导出：配置嵌入 Pipeline 文件，适合单文件分享
+   - 分离导出：配置存储至独立 .mpe.json 文件，便于版本管理
+   - 不导出：不保存任何配置，导入时触发自动布局
+
+#### 一键配置功能
+
+- **一键更改端点位置**：将所有节点的端点位置更改为当前选中的默认位置
+
+```mermaid
+flowchart TD
+A[Pipeline 配置面板] --> B[节点属性导出形式]
+A --> C[默认端点位置]
+A --> D[导出默认识别/动作]
+A --> E[Pipeline 导出版本]
+A --> F[忽略字段校验]
+A --> G[JSON 导出缩进]
+A --> H[配置处理方案]
+B --> I[对象形式 vs 前缀形式]
+C --> J[HandleDirection 选项]
+D --> K[Default Reco/Action]
+E --> L[v1 vs v2 协议]
+F --> M[Validation Toggle]
+G --> N[Indent Size]
+H --> O[Integrated/Separated/None]
+```
+
+**Diagram sources**
+- [PipelineConfigSection.tsx](file://src/components/panels/config/PipelineConfigSection.tsx#L60-L270)
+- [configStore.ts](file://src/stores/configStore.ts#L88-L90)
+
+**Section sources**
+- [PipelineConfigSection.tsx](file://src/components/panels/config/PipelineConfigSection.tsx#L1-L274)
+- [configStore.ts](file://src/stores/configStore.ts#L25-L62)
+
 ## JSON 编译与导出机制
 
 ### exporter.ts：Zustand 状态到 MaaFramework JSON 的转换
 
 `exporter.ts` 文件中的 `flowToPipeline` 函数是整个编译流程的核心，负责将 Zustand 状态树中的流程数据转换为符合 MaaFramework 协议的 JSON 结构。
 
+#### 主要功能特性
+
 1. **数据提取**：函数首先从 `useFlowStore` 和 `useFileStore` 中获取当前的节点、边、文件名和配置信息。支持传入可选参数以导出特定子集。
 2. **节点生成**：遍历所有节点，根据节点类型（`Pipeline` 或 `External`）调用相应的解析函数（`parsePipelineNodeForExport` 或 `parseExternalNodeForExport`）生成对应的 JSON 对象。
 3. **连接处理**：对边进行排序后，遍历每条边，构建源节点到目标节点的连接关系。支持 `Next` 和 `Error` 两种连接类型，并能处理 `Anchor` 节点和 `jump_back` 属性。
 4. **配置注入**：如果启用了"导出配置"选项，会将当前文件的配置信息（如文件名、版本号）注入到一个以 `__$mpe_config_` 为前缀的特殊节点中。
 
+#### 分离导出模式
+
+新增的 `flowToSeparatedStrings` 函数支持分离导出模式：
+
+- **forceExportConfig**：强制导出配置，即使配置处理模式设置为不导出
+- **splitPipelineAndConfig**：将完整的 Pipeline 对象拆分为纯 Pipeline 和配置两部分
+- **独立字符串输出**：返回包含 pipelineString 和 configString 的对象
+
 ```mermaid
 sequenceDiagram
 participant UI as 用户界面
-participant JsonViewer as 浮动JSON预览面板
+participant ExportButton as 导出按钮
 participant Exporter as exporter.ts
+participant Splitter as configSplitter.ts
 participant Store as Zustand Store
-UI->>JsonViewer : 触发编译预览
-JsonViewer->>Exporter : 调用flowToPipeline()
+UI->>ExportButton : 选择导出模式
+ExportButton->>Exporter : 调用flowToPipeline()
 Exporter->>Store : getState() 获取节点和边
 Store-->>Exporter : 返回节点和边数据
 Exporter->>Exporter : 遍历节点生成JSON
 Exporter->>Exporter : 处理边连接关系
 Exporter->>Exporter : 注入配置信息
-Exporter-->>JsonViewer : 返回编译后的Pipeline JSON
-JsonViewer-->>UI : 在浮动面板中渲染JSON
+alt 分离导出模式
+Exporter->>Splitter : splitPipelineAndConfig()
+Splitter-->>Exporter : 返回分离的Pipeline和配置
+end
+Exporter-->>ExportButton : 返回编译后的Pipeline JSON
+ExportButton-->>UI : 执行对应导出操作
 ```
 
 **Diagram sources**
 - [exporter.ts](file://src/core/parser/exporter.ts#L28-L136)
-- [JsonViewer.tsx](file://src/components/JsonViewer.tsx#L86-L94)
+- [configSplitter.ts](file://src/core/parser/configSplitter.ts#L21-L141)
+- [ExportButton.tsx](file://src/components/panels/toolbar/ExportButton.tsx#L77-L89)
 
 **Section sources**
-- [exporter.ts](file://src/core/parser/exporter.ts#L28-L136)
+- [exporter.ts](file://src/core/parser/exporter.ts#L28-L244)
 - [types.ts](file://src/core/parser/types.ts#L15-L17)
 - [nodeParser.ts](file://src/core/parser/nodeParser.ts#L21-L76)
+- [configSplitter.ts](file://src/core/parser/configSplitter.ts#L1-L437)
 
 ## WebSocket 联动机制
 
@@ -148,6 +302,13 @@ Pipeline 面板是验证配置正确性的强大工具：
 3. **连接逻辑验证**：通过查看 `next` 和 `on_error` 数组，可以直观地验证流程的跳转逻辑是否符合预期。
 4. **外部程序联动测试**：启动本地 WebSocket 服务后，点击"应用到本地"，观察外部程序是否能正确接收并处理更新。
 
+### 导出模式选择建议
+
+- **开发调试**：推荐使用 v2 协议版本和集成导出模式
+- **生产环境**：推荐使用 v1 协议版本和分离导出模式
+- **快速验证**：可以开启忽略字段校验功能
+- **团队协作**：推荐使用分离导出模式便于版本管理
+
 **Section sources**
 - [JsonViewer.tsx](file://src/components/JsonViewer.tsx#L119-L197)
 - [exporter.ts](file://src/core/parser/exporter.ts#L128-L135)
@@ -182,6 +343,45 @@ Pipeline 面板是验证配置正确性的强大工具：
 }
 ```
 
+### 分离导出模式示例
+
+在分离导出模式下，会产生两个文件：
+
+**pipeline.json**：
+```json
+{
+  "ExampleNode": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": "example.png"
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "next": ["NextNode"],
+    "on_error": ["ErrorNode"]
+  }
+}
+```
+
+**example.mpe.json**：
+```json
+{
+  "file_config": {
+    "filename": "example.json",
+    "version": "v0.8.2"
+  },
+  "node_configs": {
+    "ExampleNode": {
+      "position": { "x": 100, "y": 200 }
+    }
+  }
+}
+```
+
 ### 关键字段含义
 
 - **节点名 (如 `ExampleNode`)**：流程中每个节点的唯一标识，由用户在编辑器中定义。
@@ -191,6 +391,7 @@ Pipeline 面板是验证配置正确性的强大工具：
 - **`on_error`**: 执行失败后的跳转节点列表。
 - **`__$mpe_config_`**: 配置节点前缀，用于存储文件元信息。
 - **`__$mpe_code`**: 配置标记，其下的 `filename` 和 `version` 字段记录了文件名和编辑器版本。
+- **`node_configs`**: 分离模式下的节点配置存储，包含位置信息等。
 
 这些字段共同构成了 MaaFramework 可执行的流程定义，Pipeline 面板让用户能够清晰地理解和验证这一底层协议结构。
 
@@ -198,3 +399,4 @@ Pipeline 面板是验证配置正确性的强大工具：
 - [types.ts](file://src/core/parser/types.ts#L20-L35)
 - [exporter.ts](file://src/core/parser/exporter.ts#L118-L126)
 - [nodeParser.ts](file://src/core/parser/nodeParser.ts#L27-L44)
+- [configSplitter.ts](file://src/core/parser/configSplitter.ts#L21-L141)

@@ -26,6 +26,7 @@
 - [LocalBridge/internal/config/config.go](file://LocalBridge/internal/config/config.go)
 - [LocalBridge/pkg/models/file.go](file://LocalBridge/pkg/models/file.go)
 - [LocalBridge/pkg/models/message.go](file://LocalBridge/pkg/models/message.go)
+- [LocalBridge/pkg/models/mfw.go](file://LocalBridge/pkg/models/mfw.go)
 - [src/services/protocols/MFWProtocol.ts](file://src/services/protocols/MFWProtocol.ts)
 - [src/services/protocols/ConfigProtocol.ts](file://src/services/protocols/ConfigProtocol.ts)
 - [docsite/docs/01.指南/100.其他/10.通信协议.md](file://docsite/docs/01.指南/100.其他/10.通信协议.md)
@@ -33,12 +34,11 @@
 
 ## 更新摘要
 **变更内容**
-- 升级到 Maa Framework Go Binding v4，包括导入路径更新、构造函数模式变更、错误处理改进
-- 新增控制器所有权跟踪机制，通过 ownsController 字段区分适配器创建的控制器和外部借用的控制器
-- 改进控制器生命周期管理，支持共享控制器的正确资源管理
-- 增强 SetController 方法的控制器所有权处理逻辑
-- 完善调试服务中控制器借用场景的资源清理机制
-- 优化动态库加载机制，支持 Windows 和 Unix 平台的不同实现
+- 新增 WindowPos 系列输入方法支持，包括 Scroll、KeyDown/KeyUp、ClickV2/SwipeV2 等新操作
+- 新增 ADB 控制器 Shell 命令执行功能，支持远程命令执行和超时控制
+- 更新设备管理器输入方法配置，支持 WindowPos 系列输入方法映射
+- 增强控制器操作类型定义，添加新的操作常量
+- 完善前端协议支持，新增对应的 API 方法
 
 ## 目录
 1. [简介](#简介)
@@ -53,10 +53,10 @@
 10. [附录](#附录)
 
 ## 简介
-本文档系统性梳理 LocalBridge（简称 LB）通信协议，覆盖连接管理、消息规范、文件协议、日志协议、事件总线、配置系统、CLI 应用以及前端 WebSocket 服务端实现。本次更新重点反映了应用变更：LocalBridge 组件升级到 go binding v4，包括 Maa Framework 导入更新、构造函数模式变更、错误处理改进等。同时新增控制器所有权跟踪机制，通过 ownsController 字段区分适配器创建的控制器和外部借用的控制器，改进了控制器生命周期管理，提升了系统的资源管理和安全性。
+本文档系统性梳理 LocalBridge（简称 LB）通信协议，覆盖连接管理、消息规范、文件协议、日志协议、事件总线、配置系统、CLI 应用以及前端 WebSocket 服务端实现。本次更新重点反映了应用变更：LocalBridge 控制器管理器新增 WindowPos 系列输入方法支持，包括 Scroll、KeyDown/KeyUp、ClickV2/SwipeV2 等新操作，以及 ADB 控制器的 Shell 命令执行功能。这些新增功能显著增强了 LocalBridge 的输入控制能力和远程管理能力。
 
 ## 项目结构
-围绕 go binding v4 升级和控制器所有权跟踪的相关文件分布如下：
+围绕新增的 WindowPos 系列输入方法和 Shell 命令执行功能的相关文件分布如下：
 - go.mod 依赖配置：更新到 Maa Framework Go Binding v4
 - MFW 协议处理器：LocalBridge/internal/protocol/mfw/handler.go
 - 适配器层：LocalBridge/internal/mfw/adapter.go
@@ -77,7 +77,7 @@
 - 配置协议处理器：LocalBridge/internal/protocol/config/handler.go
 - 事件总线：LocalBridge/internal/eventbus/eventbus.go
 - 配置管理：LocalBridge/internal/config/config.go
-- 模型定义：LocalBridge/pkg/models/file.go, LocalBridge/pkg/models/message.go
+- 模型定义：LocalBridge/pkg/models/file.go, LocalBridge/pkg/models/message.go, LocalBridge/pkg/models/mfw.go
 - 前端协议：src/services/protocols/MFWProtocol.ts, src/services/protocols/ConfigProtocol.ts
 
 ```mermaid
@@ -161,6 +161,7 @@ FH --> WS
   - 路由前缀：/etl/mfw/
   - 支持设备管理、控制器管理、任务管理、资源管理等功能
   - 新增游戏手柄控制器端点：/etl/mfw/create_gamepad_controller、/etl/mfw/controller_click_key、/etl/mfw/controller_touch_gamepad
+  - **新增** Shell 命令执行端点：/etl/mfw/controller_shell
 - **适配器层（MaaFWAdapter）**
   - **新增** 控制器所有权跟踪：ownsController 字段区分适配器创建和外部借用的控制器
   - 支持控制器创建、设置、连接、断开等完整生命周期管理
@@ -193,7 +194,7 @@ FH --> WS
   - 支持服务初始化、关闭和状态检查
 
 **Section sources**
-- [LocalBridge/internal/protocol/mfw/handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L24-L99)
+- [LocalBridge/internal/protocol/mfw/handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L85-L91)
 - [LocalBridge/internal/mfw/adapter.go](file://LocalBridge/internal/mfw/adapter.go#L25-L50)
 - [LocalBridge/go.mod](file://LocalBridge/go.mod#L6-L6)
 - [LocalBridge/internal/protocol/utility/handler.go](file://LocalBridge/internal/protocol/utility/handler.go#L24-L41)
@@ -204,70 +205,142 @@ FH --> WS
 - [LocalBridge/internal/mfw/service.go](file://LocalBridge/internal/mfw/service.go#L16-L34)
 
 ## 架构总览
-go binding v4 升级和控制器所有权跟踪机制的交互流程如下：
-- 导入路径更新到 maa-framework-go/v4，构造函数统一使用 NewXxxController 形式
-- 适配器创建控制器时 ownsController 设为 true，表示完全拥有该控制器
-- 外部系统通过 SetController 借用控制器时 ownsController 设为 false
-- 适配器销毁时仅销毁 ownsController 为 true 的控制器，避免误删外部控制器
-- 调试服务中使用 SetController 进行控制器借用，确保资源正确管理
+新增的 WindowPos 系列输入方法和 Shell 命令执行功能的交互流程如下：
+- **新增** WindowPos 系列输入方法：支持带光标位置的窗口输入，避免抢占鼠标
+- **新增** Shell 命令执行：仅支持 ADB 控制器，提供远程命令执行能力
+- **更新** 设备管理器输入方法配置，支持 WindowPos 系列方法映射
+- **更新** 控制器操作类型定义，添加新的操作常量
 
 ```mermaid
 sequenceDiagram
 participant FE as "前端"
 participant WS as "WebSocket服务器"
 participant MFWH as "MFW协议处理器"
-participant ADP as "MaaFW适配器"
 participant CM as "控制器管理器"
-FE->>WS : 发送 /etl/mfw/create_gamepad_controller
+FE->>WS : 发送 /etl/mfw/controller_scroll
 WS->>MFWH : 路由分发
-MFWH->>CM : 创建游戏手柄控制器 (NewGamepadController)
-CM-->>MFWH : 返回控制器ID
-MFWH->>CM : 连接控制器
-CM->>ADP : 创建控制器实例
-ADP->>ADP : ownsController = true
-ADP->>ADP : 设置截图器
-MFWH-->>WS : 发送 /lte/mfw/controller_created
-WS-->>FE : 返回控制器创建成功
-FE->>WS : 发送 /etl/mfw/disconnect_controller
+MFWH->>CM : 执行滚动操作 (PostScroll)
+CM->>CM : 检查控制器连接状态
+CM->>CM : 执行 PostScroll(dx, dy)
+CM-->>MFWH : 返回操作结果
+MFWH-->>WS : 发送 /lte/mfw/controller_operation_result
+WS-->>FE : 返回滚动操作结果
+Note over FE,CM : 新增 WindowPos 系列输入方法支持
+FE->>WS : 发送 /etl/mfw/controller_shell
 WS->>MFWH : 路由分发
-MFWH->>CM : 断开控制器
-CM->>ADP : ownsController检查
-ADP->>ADP : 仅销毁own控制器
+MFWH->>CM : 执行 Shell 命令 (PostShell)
+CM->>CM : 检查是否为 ADB 控制器
+CM->>CM : 执行 PostShell(command, timeout)
+CM-->>MFWH : 返回操作结果
+MFWH-->>WS : 发送 /lte/mfw/controller_operation_result
+WS-->>FE : 返回 Shell 命令执行结果
 ```
 
 **Diagram sources**
-- [LocalBridge/internal/protocol/mfw/handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L266-L303)
-- [LocalBridge/internal/mfw/adapter.go](file://LocalBridge/internal/mfw/adapter.go#L109-L111)
-- [LocalBridge/internal/mfw/adapter.go](file://LocalBridge/internal/mfw/adapter.go#L680-L686)
+- [LocalBridge/internal/protocol/mfw/handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L644-L663)
+- [LocalBridge/internal/mfw/controller_manager.go](file://LocalBridge/internal/mfw/controller_manager.go#L724-L758)
+- [LocalBridge/internal/mfw/controller_manager.go](file://LocalBridge/internal/mfw/controller_manager.go#L904-L942)
 
 ## 详细组件分析
 
-### go Binding v4 升级变更
+### WindowPos 系列输入方法支持
 
-#### 导入路径更新
-- **更新** 导入路径从 github.com/MaaXYZ/maa-framework-go 更新到 github.com/MaaXYZ/maa-framework-go/v4
-- **影响范围** 所有使用 Maa Framework 的组件，包括适配器、控制器管理器、设备管理器等
-- **兼容性** v4 版本保持 API 兼容，但内部实现有重大改进
+#### 滚动操作（Scroll）
+- **新增** 滚动操作支持，仅 Win32 控制器支持
+- **路由**：/etl/mfw/controller_scroll
+- **参数**：controller_id, dx, dy
+- **实现**：调用控制器的 PostScroll 方法执行滚动操作
+- **用途**：鼠标滚轮滚动，支持正负值表示滚动方向
 
-#### 构造函数模式变更
-- **统一构造函数** 所有控制器创建统一使用 NewXxxController 形式
-  - NewAdbController(adbPath, address, screencapMethod, inputMethod, config, agentPath)
-  - NewWin32Controller(hwnd, screencapMethod, mouseMethod, keyboardMethod)
-  - NewPlayCoverController(address, deviceUUID)
-  - NewGamepadController(hwnd, gamepadType, screencapMethod)
-- **简化参数** v4 版本支持更简洁的参数传递方式
-- **增强功能** 新版本提供更好的错误处理和状态管理
+#### 按键操作（KeyDown/KeyUp）
+- **新增** 按键按下和释放操作
+- **路由**：/etl/mfw/controller_key_down, /etl/mfw/controller_key_up
+- **参数**：controller_id, keycode
+- **实现**：调用控制器的 PostKeyDown 和 PostKeyUp 方法
+- **用途**：精确控制键盘按键，支持各种虚拟按键码
 
-#### 错误处理改进
-- **详细错误码** 新增更精确的错误码定义，如 ErrCodeControllerCreateFail、ErrCodeScreencapFailed 等
-- **错误信息增强** 错误信息包含更详细的上下文信息
-- **统一错误类型** 所有错误统一使用 MFWError 类型
+#### V2 触摸操作（ClickV2/SwipeV2）
+- **新增** 带接触点和压力参数的触摸操作
+- **路由**：/etl/mfw/controller_click_v2, /etl/mfw/controller_swipe_v2
+- **参数**：controller_id, x, y, contact, pressure（ClickV2）
+- **参数**：controller_id, x1, y1, x2, y2, duration, contact, pressure（SwipeV2）
+- **实现**：调用控制器的 PostClickV2 和 PostSwipeV2 方法
+- **用途**：多点触控、精确压力控制、鼠标按键模拟
+
+#### WindowPos 输入方法映射
+- **新增** WindowPos 系列输入方法映射
+- **映射规则**：
+  - "SendMessageWithWindowPos" → "SendMessageWithCursorPosAndBlockInput"
+  - "PostMessageWithWindowPos" → "PostMessageWithCursorPosAndBlockInput"
+- **实现**：在创建 Win32 控制器时进行方法名称映射
+- **用途**：避免抢占鼠标，通过移动窗口使目标位置与光标重合
 
 **Section sources**
-- [LocalBridge/go.mod](file://LocalBridge/go.mod#L6-L6)
-- [LocalBridge/internal/mfw/adapter.go](file://LocalBridge/internal/mfw/adapter.go#L86-L86)
-- [LocalBridge/internal/mfw/controller_manager.go](file://LocalBridge/internal/mfw/controller_manager.go#L55-L55)
-- [LocalBridge/internal/mfw/error.go](file://LocalBridge/internal/mfw/error.go#L6-L21)
+- [LocalBridge/internal/mfw/controller_manager.go](file://LocalBridge/internal/mfw/controller_manager.go#L724-L758)
+- [LocalBridge/internal/mfw/controller_manager.go](file://LocalBridge/internal/mfw/controller_manager.go#L760-L830)
+- [LocalBridge/internal/mfw/controller_manager.go](file://LocalBridge/internal/mfw/controller_manager.go#L832-L902)
+- [LocalBridge/internal/mfw/controller_manager.go](file://LocalBridge/internal/mfw/controller_manager.go#L77-L89)
+- [LocalBridge/internal/mfw/device_manager.go](file://LocalBridge/internal/mfw/device_manager.go#L75-L76)
+
+### Shell 命令执行功能
+
+#### Shell 命令执行
+- **新增** Shell 命令执行功能，仅支持 ADB 控制器
+- **路由**：/etl/mfw/controller_shell
+- **参数**：controller_id, command, timeout（可选，默认10秒）
+- **实现**：调用控制器的 PostShell 方法执行远程命令
+- **错误处理**：非 ADB 控制器返回操作失败错误
+- **用途**：远程执行系统命令，支持超时控制
+
+#### 前端协议支持
+- **新增** shell 方法支持
+- **参数**：controller_id, command, timeout（可选）
+- **默认值**：timeout 默认 10000 毫秒（10秒）
+- **实现**：通过 WebSocket 发送 /etl/mfw/controller_shell 消息
+
+**Section sources**
+- [LocalBridge/internal/mfw/controller_manager.go](file://LocalBridge/internal/mfw/controller_manager.go#L904-L942)
+- [LocalBridge/internal/protocol/mfw/handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L644-L663)
+- [LocalBridge/pkg/models/mfw.go](file://LocalBridge/pkg/models/mfw.go#L140-L145)
+- [src/services/protocols/MFWProtocol.ts](file://src/services/protocols/MFWProtocol.ts#L745-L761)
+
+### 控制器操作类型更新
+
+#### 新增操作常量
+- **新增** OpScroll：滚动操作
+- **新增** OpKeyDown：按键按下操作  
+- **新增** OpKeyUp：按键释放操作
+- **新增** OpClickV2：带接触点的点击操作
+- **新增** OpSwipeV2：带接触点的滑动操作
+- **新增** OpShell：Shell 命令执行操作
+
+#### 操作结果结构
+- **更新** ControllerOperationResult 结构，包含新的操作类型
+- **字段**：controller_id, operation, job_id, success, status, error
+- **用途**：统一返回各种控制器操作的结果
+
+**Section sources**
+- [LocalBridge/internal/mfw/types.go](file://LocalBridge/internal/mfw/types.go#L95-L113)
+
+### 设备管理器输入方法配置更新
+
+#### Win32 输入方法配置
+- **更新** 输入方法列表，新增 WindowPos 系列方法
+- **方法列表**：
+  - Seize, SendMessage, PostMessage
+  - LegacyEvent, PostThreadMessage
+  - SendMessageWithCursorPos, PostMessageWithCursorPos
+  - SendMessageWithWindowPos, PostMessageWithWindowPos
+- **用途**：支持不同类型的窗口输入方式，避免鼠标抢占
+
+#### ADB 输入方法配置
+- **保持不变** 输入方法列表：
+  - AdbShell, MinitouchAndAdbKey, Maatouch, EmulatorExtras
+- **用途**：支持 ADB 设备的输入控制
+
+**Section sources**
+- [LocalBridge/internal/mfw/device_manager.go](file://LocalBridge/internal/mfw/device_manager.go#L38-L40)
+- [LocalBridge/internal/mfw/device_manager.go](file://LocalBridge/internal/mfw/device_manager.go#L75-L76)
 
 ### 适配器层（adapter.go）
 - **新增控制器所有权跟踪机制**
@@ -296,15 +369,16 @@ ADP->>ADP : 仅销毁own控制器
   - /etl/mfw/create_gamepad_controller：创建游戏手柄控制器
   - /etl/mfw/controller_click_key：点击游戏手柄按键
   - /etl/mfw/controller_touch_gamepad：游戏手柄触摸操作
+- **新增 Shell 命令执行端点**
+  - /etl/mfw/controller_shell：执行 Shell 命令（仅 ADB 控制器）
 - **控制器管理**
   - 自动连接：创建控制器后自动调用 ConnectController
   - 状态更新：发送 /lte/mfw/controller_status 响应
 - **错误处理**：统一的错误响应格式，包含错误代码和详细信息
 
 **Section sources**
-- [LocalBridge/internal/protocol/mfw/handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L51-L77)
-- [LocalBridge/internal/protocol/mfw/handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L266-L303)
-- [LocalBridge/internal/protocol/mfw/handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L472-L516)
+- [LocalBridge/internal/protocol/mfw/handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L85-L91)
+- [LocalBridge/internal/protocol/mfw/handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L644-L663)
 
 ### 控制器管理器（controller_manager.go）
 - **控制器实例管理**
@@ -539,6 +613,14 @@ ADP->>ADP : 仅销毁own控制器
   - createGamepadController：创建游戏手柄控制器
   - disconnectController：断开控制器连接
   - requestScreencap：请求截图功能
+- **新增** WindowPos 系列输入方法
+  - scroll：执行滚动操作
+  - keyDown：按键按下
+  - keyUp：按键释放
+  - clickV2：带接触点的点击
+  - swipeV2：带接触点的滑动
+- **新增** Shell 命令执行方法
+  - shell：执行 Shell 命令（仅 ADB 控制器）
 - **连接状态管理**
   - 自动清除控制器状态（连接断开时）
   - 记录最后一次连接设备信息
@@ -549,9 +631,7 @@ ADP->>ADP : 仅销毁own控制器
   - imagePathCallbacks：图片路径解析回调
 
 **Section sources**
-- [src/services/protocols/MFWProtocol.ts](file://src/services/protocols/MFWProtocol.ts#L392-L417)
-- [src/services/protocols/MFWProtocol.ts](file://src/services/protocols/MFWProtocol.ts#L422-L431)
-- [src/services/protocols/MFWProtocol.ts](file://src/services/protocols/MFWProtocol.ts#L43-L54)
+- [src/services/protocols/MFWProtocol.ts](file://src/services/protocols/MFWProtocol.ts#L671-L774)
 
 ## 依赖关系分析
 - MFW 协议处理器依赖控制器管理器进行控制器操作，负责消息路由和响应构造
@@ -603,6 +683,8 @@ MS --> DS["DebugServiceV2"]
 - **事件处理**：事件总线支持异步发布，避免阻塞主流程
 - **日志访问**：跨平台日志目录访问，减少手动查找时间
 - **动态库加载**：**新增** 平台特定的动态库加载实现，提高库加载效率
+- **新增** **WindowPos 输入方法**：避免抢占鼠标，通过移动窗口实现输入，减少对用户操作的影响
+- **新增** **Shell 命令执行**：提供远程命令执行能力，支持超时控制，避免长时间阻塞
 
 ## 故障排查指南
 - **游戏手柄控制器创建失败**
@@ -632,6 +714,12 @@ MS --> DS["DebugServiceV2"]
 - **动态库加载失败**
   - **新增** 现象：Windows 平台加载库失败
   - 处理：检查库文件完整性，确认权限设置
+- **新增** **WindowPos 输入方法无效**
+  - 现象：滚动或按键操作无响应
+  - 处理：确认使用 Win32 控制器，检查输入方法配置
+- **新增** **Shell 命令执行失败**
+  - 现象：返回"仅支持 ADB 控制器"错误
+  - 处理：确认使用 ADB 控制器，检查设备连接状态
 
 **Section sources**
 - [LocalBridge/internal/mfw/controller_manager.go](file://LocalBridge/internal/mfw/controller_manager.go#L193-L194)
@@ -643,31 +731,107 @@ MS --> DS["DebugServiceV2"]
 - [LocalBridge/internal/mfw/service.go](file://LocalBridge/internal/mfw/service.go#L34-L41)
 
 ## 结论
-本次更新显著增强了 LocalBridge 的资源管理和安全性，特别是新增的控制器所有权跟踪机制和 go binding v4 升级。通过 ownsController 字段，系统能够准确区分适配器创建的控制器和外部借用的控制器，避免了资源误删和泄漏问题。go binding v4 升级带来了更好的错误处理、状态管理和性能优化。这一机制在调试服务中得到了充分验证，支持外部系统对控制器的借用和管理。配合原有的连接超时检查、非活跃控制器清理等机制，形成了完整的控制器生命周期管理体系。通过事件总线发布的配置重载通知和增强的 Utility 协议功能，为用户提供了更加稳定和高效的本地服务体验。
+本次更新显著增强了 LocalBridge 的输入控制能力和远程管理能力，特别是新增的 WindowPos 系列输入方法和 Shell 命令执行功能。WindowPos 系列输入方法支持避免抢占鼠标的操作方式，通过移动窗口使目标位置与光标重合，提供更稳定的输入控制。Shell 命令执行功能为 ADB 控制器提供了远程命令执行能力，支持超时控制和错误处理。这些新增功能与原有的控制器所有权跟踪机制、go binding v4 升级相结合，形成了更加完善和强大的 LocalBridge 通信协议体系。通过事件总线发布的配置重载通知和增强的 Utility 协议功能，为用户提供了更加稳定和高效的本地服务体验。
 
 ## 附录
 
-### go Binding v4 升级要点
+### WindowPos 系列输入方法详细说明
 
-#### 导入路径变更
-- **更新** 从 github.com/MaaXYZ/maa-framework-go 更新到 github.com/MaaXYZ/maa-framework-go/v4
-- **影响** 所有使用 Maa Framework 的组件都需要更新导入路径
-- **兼容性** API 兼容，但内部实现有重大改进
+#### 滚动操作（Scroll）
+- **路由**：/etl/mfw/controller_scroll
+- **请求数据**：
+  - controller_id：控制器 ID
+  - dx：水平滚动增量
+  - dy：垂直滚动增量
+- **响应**：/lte/mfw/controller_operation_result
+  - operation：scroll
+  - success：操作是否成功
+- **使用场景**：鼠标滚轮滚动，支持正负值表示滚动方向
 
-#### 构造函数统一
-- **新模式** 所有控制器创建统一使用 NewXxxController 形式
-- **简化** 参数传递更加简洁
-- **增强** 更好的错误处理和状态管理
+#### 按键操作（KeyDown/KeyUp）
+- **路由**：/etl/mfw/controller_key_down, /etl/mfw/controller_key_up
+- **请求数据**：
+  - controller_id：控制器 ID
+  - keycode：按键代码
+- **响应**：/lte/mfw/controller_operation_result
+  - operation：key_down/key_up
+  - success：操作是否成功
+- **使用场景**：精确控制键盘按键，支持各种虚拟按键码
 
-#### 错误处理改进
-- **详细错误码** 更精确的错误分类
-- **增强信息** 详细的错误上下文
-- **统一类型** 所有错误使用 MFWError 类型
+#### V2 触摸操作（ClickV2/SwipeV2）
+- **路由**：/etl/mfw/controller_click_v2, /etl/mfw/controller_swipe_v2
+- **请求数据**（ClickV2）：
+  - controller_id：控制器 ID
+  - x, y：坐标位置
+  - contact：接触点 ID
+  - pressure：压力值
+- **请求数据**（SwipeV2）：
+  - controller_id：控制器 ID
+  - x1, y1：起始坐标
+  - x2, y2：结束坐标
+  - duration：持续时间（毫秒）
+  - contact：接触点 ID
+  - pressure：压力值
+- **响应**：/lte/mfw/controller_operation_result
+  - operation：click_v2/swipe_v2
+  - success：操作是否成功
+- **使用场景**：多点触控、精确压力控制、鼠标按键模拟
 
 **Section sources**
-- [LocalBridge/go.mod](file://LocalBridge/go.mod#L6-L6)
-- [LocalBridge/internal/mfw/adapter.go](file://LocalBridge/internal/mfw/adapter.go#L86-L86)
-- [LocalBridge/internal/mfw/error.go](file://LocalBridge/internal/mfw/error.go#L6-L21)
+- [LocalBridge/internal/protocol/mfw/handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L671-L743)
+- [LocalBridge/internal/mfw/controller_manager.go](file://LocalBridge/internal/mfw/controller_manager.go#L724-L902)
+
+### Shell 命令执行详细说明
+
+#### Shell 命令执行
+- **路由**：/etl/mfw/controller_shell
+- **请求数据**：
+  - controller_id：控制器 ID
+  - command：要执行的 Shell 命令
+  - timeout：超时时间（毫秒，可选，默认10000）
+- **响应**：/lte/mfw/controller_operation_result
+  - operation：shell
+  - success：操作是否成功
+- **使用场景**：远程执行系统命令，支持超时控制
+- **限制**：仅支持 ADB 控制器
+
+#### 前端调用示例
+- **方法**：shell(params)
+- **参数**：controller_id, command, timeout（可选）
+- **默认值**：timeout 默认 10000 毫秒（10秒）
+- **实现**：通过 WebSocket 发送 /etl/mfw/controller_shell 消息
+
+**Section sources**
+- [LocalBridge/internal/protocol/mfw/handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L644-L663)
+- [LocalBridge/pkg/models/mfw.go](file://LocalBridge/pkg/models/mfw.go#L140-L145)
+- [src/services/protocols/MFWProtocol.ts](file://src/services/protocols/MFWProtocol.ts#L745-L761)
+
+### 设备管理器输入方法配置
+
+#### Win32 输入方法配置
+- **方法列表**：
+  - Seize：高兼容性，可能需要管理员权限
+  - SendMessage：中等兼容性
+  - PostMessage：中等兼容性
+  - LegacyEvent：低兼容性
+  - PostThreadMessage：低兼容性
+  - SendMessageWithCursorPos：短暂移动光标
+  - PostMessageWithCursorPos：短暂移动光标
+  - SendMessageWithWindowPos：避免抢占鼠标
+  - PostMessageWithWindowPos：避免抢占鼠标
+- **用途**：支持不同类型的窗口输入方式，避免鼠标抢占
+
+#### ADB 输入方法配置
+- **方法列表**：
+  - AdbShell：ADB Shell 命令
+  - MinitouchAndAdbKey：Minitouch + ADB 键盘
+  - Maatouch：Maatouch 输入
+  - EmulatorExtras：模拟器扩展
+- **用途**：支持 ADB 设备的输入控制
+
+**Section sources**
+- [LocalBridge/internal/mfw/device_manager.go](file://LocalBridge/internal/mfw/device_manager.go#L38-L40)
+- [LocalBridge/internal/mfw/device_manager.go](file://LocalBridge/internal/mfw/device_manager.go#L75-L76)
 
 ### 控制器所有权跟踪机制
 
@@ -706,13 +870,15 @@ MS --> DS["DebugServiceV2"]
     - 设备管理：refresh_adb_devices, refresh_win32_windows
     - 控制器管理：create_gamepad_controller, disconnect_controller
     - 操作控制：controller_click_key, controller_touch_gamepad
+    - **新增** 输入控制：controller_scroll, controller_key_down, controller_key_up, controller_click_v2, controller_swipe_v2
+    - **新增** 远程执行：controller_shell
   - 响应路由（/lte/mfw/*）
     - 控制器状态：controller_created, controller_status
     - 操作结果：controller_operation_result
 
 **Section sources**
 - [docsite/docs/01.指南/100.其他/10.通信协议.md](file://docsite/docs/01.指南/100.其他/10.通信协议.md#L1-L166)
-- [LocalBridge/internal/protocol/mfw/handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L44-L99)
+- [LocalBridge/internal/protocol/mfw/handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L85-L91)
 
 ### Utility 协议要点摘要
 - **日志目录访问**
@@ -802,7 +968,7 @@ MS --> DS["DebugServiceV2"]
   - success：操作是否成功
 
 **Section sources**
-- [LocalBridge/internal/protocol/mfw/handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L266-L303)
+- [LocalBridge/internal/protocol/mfw/handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L282-L303)
 - [LocalBridge/internal/protocol/mfw/handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L472-L490)
 - [LocalBridge/internal/protocol/mfw/handler.go](file://LocalBridge/internal/protocol/mfw/handler.go#L492-L516)
 
