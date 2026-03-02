@@ -130,8 +130,16 @@ export const actionFields: Record<string, FieldsType> = {
     desc: "执行命令。",
   },
   Shell: {
-    params: [actionFieldSchema.cmd],
+    params: [actionFieldSchema.cmd, actionFieldSchema.shellTimeout],
     desc: "在 ADB 设备上执行 shell 命令。",
+  },
+  Screencap: {
+    params: [
+      actionFieldSchema.screencapFilename,
+      actionFieldSchema.screencapFormat,
+      actionFieldSchema.screencapQuality,
+    ],
+    desc: "保存当前截图到文件。截图保存在 log_dir/screencap/ 目录下。",
   },
   Key: {
     params: [actionFieldSchema.clickKey],

@@ -227,19 +227,41 @@ export const actionFieldSchema: Record<string, FieldType> = {
     desc: "分离子进程，即不等待子进程执行完成，直接继续执行后面的任务。可选，默认 false。",
   },
   cmd: {
-    key: "exec",
+    key: "cmd",
     type: FieldTypeEnum.String,
     required: true,
     default: "",
     desc: "要执行的 shell 命令。必选。 例如 getprop ro.build.version.sdk 或 settings put global animator_duration_scale 0。",
   },
-  // timeout: {
-  //   key: "timeout",
-  //   type: FieldTypeEnum.Int,
-  //   default: 20000,
-  //   step: 1000,
-  //   desc: "命令执行超时时间，毫秒。可选，默认 20000（20 秒）。 设置为 -1 表示无限等待，永不超时。 注意：此动作仅对 ADB 控制器有效。命令输出可以通过 MaaTaskerGetActionDetail 在动作详情中获取。",
-  // },
+  shellTimeout: {
+    key: "shell_timeout",
+    type: FieldTypeEnum.Int,
+    default: 20000,
+    step: 1000,
+    desc: "命令执行超时时间，毫秒。可选，默认 20000（20 秒）。 设置为 -1 表示无限等待，永不超时。（注意：此动作仅对 ADB 控制器有效。命令输出可以通过 MaaTaskerGetActionDetail 在动作详情中获取。）",
+  },
+
+  // Screencap 截图相关
+  screencapFilename: {
+    key: "filename",
+    type: FieldTypeEnum.String,
+    default: "",
+    desc: "保存截图的文件名（不含扩展名）。可选，默认使用 时间戳_节点名 格式。",
+  },
+  screencapFormat: {
+    key: "format",
+    type: FieldTypeEnum.String,
+    options: ["png", "jpg", "jpeg"],
+    default: "jpg",
+    desc: "图片格式。可选，默认 png（无损）。可选值：png | jpg | jpeg",
+  },
+  screencapQuality: {
+    key: "quality",
+    type: FieldTypeEnum.Int,
+    default: 80,
+    step: 10,
+    desc: "图片质量（0-100），仅对 jpg/jpeg 格式有效。可选，默认 100。png 格式始终为无损压缩，此字段无效。",
+  },
 
   // 自定义动作相关
   customAction: {

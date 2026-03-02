@@ -45,7 +45,7 @@ export const recoFieldSchema: Record<string, FieldType> = {
     type: FieldTypeEnum.Int,
     options: [10001, 3, 5],
     default: 5,
-    desc: `模板匹配算法，即 cv::TemplateMatchModes。可选，默认 5 。 详情请参考 OpenCV 官方文档。 10001 为 TM_SQDIFF_NORMED 的反转版本，分数越高越匹配（与原版相反）。`,
+    desc: `模板匹配算法，即 cv::TemplateMatchModes。可选，默认 5 。 详情请参考 OpenCV 官方文档。 10001 为 TM_SQDIFF_NORMED 的反转版本，分数越高越匹配（与原版相反）。 3 为 TM_CCORR_NORMED，模板较亮时效果好。 5 为 TM_CCOEFF_NORMED，推荐，阈值易设定，光照鲁棒性好。`,
   },
   greenMask: {
     key: "green_mask",
@@ -179,6 +179,12 @@ export const recoFieldSchema: Record<string, FieldType> = {
     type: FieldTypeEnum.String,
     default: "",
     desc: `模型 文件夹 路径。使用 model/ocr 文件夹的相对路径。可选，默认为空。 若为空，则为 model/ocr 根目录下的模型文件。 文件夹中需要包含 rec.onnx, det.onnx, keys.txt 三个文件。`,
+  },
+  colorFilter: {
+    key: "color_filter",
+    type: FieldTypeEnum.String,
+    default: "",
+    desc: `颜色过滤。填写某个 ColorMatch 节点名，先使用该节点的颜色参数（method、lower、upper）对图像进行二值化，再送入 OCR 识别。可选，默认为空。 仅使用该节点的颜色二值化逻辑，不依赖其 count、order_by 等结果参数。 设置了该字段的 OCR 节点不参与 batch 优化。`,
   },
 
   // 神经网络字段
