@@ -1,22 +1,20 @@
 import { memo, useState, useCallback, useEffect, useRef } from "react";
-import { Space, InputNumber, message } from "antd";
+import { Space, InputNumber, message, Tooltip } from "antd";
+import { InfoCircleOutlined } from "@ant-design/icons";
 import {
   ScreenshotModalBase,
   type CanvasRenderProps,
 } from "./ScreenshotModalBase";
+import {
+  resolveNegativeROI,
+  type Rectangle,
+} from "../../utils/roiNegativeCoord";
 
 interface ROIModalProps {
   open: boolean;
   onClose: () => void;
   onConfirm: (roi: [number, number, number, number]) => void;
   initialROI?: [number, number, number, number];
-}
-
-interface Rectangle {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
 }
 
 export const ROIModal = memo(
@@ -52,10 +50,34 @@ export const ROIModal = memo(
         const img = imageRef.current;
         if (!canvas || !ctx || !img) return;
 
+        // 检查是否有负数坐标
+        const hasNegativeCoord =
+          rectangle &&
+          (rectangle.x < 0 ||
+            rectangle.y < 0 ||
+            rectangle.width < 0 ||
+            rectangle.height < 0);
+
+        // 解析负数坐标
+        let resolved = null;
+
+        if (rectangle && hasNegativeCoord) {
+          resolved = resolveNegativeROI(
+            [rectangle.x, rectangle.y, rectangle.width, rectangle.height],
+            img.width,
+            img.height
+          );
+        }
+
+        // 清除画布
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 绘制图片
         ctx.drawImage(img, 0, 0);
 
+        // 绘制 ROI 矩形
         if (rectangle) {
+          // 绘制原始矩形（用户输入的坐标）
           ctx.strokeStyle = "#ff4a4a";
           ctx.lineWidth = 2;
           ctx.fillStyle = "rgba(255, 74, 74, 0.1)";
@@ -71,6 +93,28 @@ export const ROIModal = memo(
             rectangle.width,
             rectangle.height
           );
+
+          // 如果有负数坐标且被分割，绘制分割后的两个区域
+          if (resolved && resolved.split.isSplit) {
+            // 绘制左上角区域
+            if (resolved.split.topLeft) {
+              const tl = resolved.split.topLeft;
+              ctx.strokeStyle = "#ff4a4a";
+              ctx.lineWidth = 2;
+              ctx.fillStyle = "rgba(255, 74, 74, 0.1)";
+              ctx.fillRect(tl.x, tl.y, tl.width, tl.height);
+              ctx.strokeRect(tl.x, tl.y, tl.width, tl.height);
+            }
+            // 绘制右下角区域
+            if (resolved.split.bottomRight) {
+              const br = resolved.split.bottomRight;
+              ctx.strokeStyle = "#ff4a4a";
+              ctx.lineWidth = 2;
+              ctx.fillStyle = "rgba(255, 74, 74, 0.1)";
+              ctx.fillRect(br.x, br.y, br.width, br.height);
+              ctx.strokeRect(br.x, br.y, br.width, br.height);
+            }
+          }
         }
       },
       [rectangle]
@@ -299,6 +343,23 @@ export const ROIModal = memo(
               ROI 坐标
             </span>
             <span style={{ fontSize: 12, color: "#8c8c8c" }}>[x, y, w, h]</span>
+            <Tooltip
+              title={
+                <div>
+                  <div style={{ fontWeight: 500, marginBottom: 4 }}>
+                    负数坐标说明 (v5.6+)
+                  </div>
+                  <div>• x 负数：从右边缘计算</div>
+                  <div>• y 负数：从下边缘计算</div>
+                  <div>• w/h 为 0：延伸至边缘</div>
+                  <div>• w/h 负数：取绝对值， 作为右下角</div>
+                </div>
+              }
+            >
+              <InfoCircleOutlined
+                style={{ fontSize: 12, color: "#8c8c8c", cursor: "help" }}
+              />
+            </Tooltip>
           </div>
           <Space orientation="vertical" size={8} style={{ width: "100%" }}>
             <Space wrap size={8} align="center">
@@ -322,6 +383,16 @@ export const ROIModal = memo(
                 style={{ width: 80 }}
                 disabled={!screenshot}
               />
+              <Tooltip title="负数从右边缘计算">
+                <span
+                  style={{
+                    fontSize: 10,
+                    color: rectangle && rectangle.x < 0 ? "#faad14" : "#bfbfbf",
+                  }}
+                >
+                  {rectangle && rectangle.x < 0 ? "←右" : ""}
+                </span>
+              </Tooltip>
               <span
                 style={{
                   fontSize: 12,
@@ -342,6 +413,16 @@ export const ROIModal = memo(
                 style={{ width: 80 }}
                 disabled={!screenshot}
               />
+              <Tooltip title="负数从下边缘计算">
+                <span
+                  style={{
+                    fontSize: 10,
+                    color: rectangle && rectangle.y < 0 ? "#faad14" : "#bfbfbf",
+                  }}
+                >
+                  {rectangle && rectangle.y < 0 ? "↑下" : ""}
+                </span>
+              </Tooltip>
             </Space>
             <Space wrap size={8} align="center">
               <span
@@ -364,6 +445,21 @@ export const ROIModal = memo(
                 style={{ width: 80 }}
                 disabled={!screenshot}
               />
+              <Tooltip title="0 表示延伸至右边缘，负数取绝对值并将 作为右下角">
+                <span
+                  style={{
+                    fontSize: 10,
+                    color:
+                      rectangle && rectangle.width < 0 ? "#faad14" : "#bfbfbf",
+                  }}
+                >
+                  {rectangle && rectangle.width === 0
+                    ? "→边"
+                    : rectangle && rectangle.width < 0
+                    ? "←→"
+                    : ""}
+                </span>
+              </Tooltip>
               <span
                 style={{
                   fontSize: 12,
@@ -384,7 +480,81 @@ export const ROIModal = memo(
                 style={{ width: 80 }}
                 disabled={!screenshot}
               />
+              <Tooltip title="0 表示延伸至下边缘，负数取绝对值并将 作为右下角">
+                <span
+                  style={{
+                    fontSize: 10,
+                    color:
+                      rectangle && rectangle.height < 0 ? "#faad14" : "#bfbfbf",
+                  }}
+                >
+                  {rectangle && rectangle.height === 0
+                    ? "↓边"
+                    : rectangle && rectangle.height < 0
+                    ? "↑↓"
+                    : ""}
+                </span>
+              </Tooltip>
             </Space>
+
+            {/* 显示坐标信息 */}
+            {rectangle &&
+              (rectangle.x < 0 ||
+                rectangle.y < 0 ||
+                rectangle.width < 0 ||
+                rectangle.height < 0) &&
+              imageRef.current && (
+                <div
+                  style={{
+                    marginTop: 8,
+                    padding: "8px 10px",
+                    backgroundColor: "#e6f7ff",
+                    borderRadius: 6,
+                    border: "1px solid #91d5ff",
+                  }}
+                >
+                  {(() => {
+                    const resolved = resolveNegativeROI(
+                      [
+                        rectangle.x,
+                        rectangle.y,
+                        rectangle.width,
+                        rectangle.height,
+                      ],
+                      imageRef.current!.width,
+                      imageRef.current!.height
+                    );
+                    return (
+                      <>
+                        {resolved.split.topLeft && (
+                          <div
+                            style={{
+                              fontSize: 12,
+                              color: "#262626",
+                              marginBottom: 4,
+                            }}
+                          >
+                            <span style={{ color: "#1890ff" }}>左上: </span>[
+                            {resolved.split.topLeft.x},{" "}
+                            {resolved.split.topLeft.y},{" "}
+                            {resolved.split.topLeft.width},{" "}
+                            {resolved.split.topLeft.height}]
+                          </div>
+                        )}
+                        {resolved.split.bottomRight && (
+                          <div style={{ fontSize: 12, color: "#262626" }}>
+                            <span style={{ color: "#1890ff" }}>右下: </span>[
+                            {resolved.split.bottomRight.x},{" "}
+                            {resolved.split.bottomRight.y},{" "}
+                            {resolved.split.bottomRight.width},{" "}
+                            {resolved.split.bottomRight.height}]
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
           </Space>
         </div>
       </ScreenshotModalBase>
