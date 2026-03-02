@@ -74,6 +74,20 @@ func (cm *ControllerManager) CreateAdbController(adbPath, address string, screen
 	return controllerID, nil
 }
 
+// win32InputMethodMapping 文档显示名称到实际 API 名称的映射
+var win32InputMethodMapping = map[string]string{
+	"SendMessageWithWindowPos": "SendMessageWithCursorPosAndBlockInput",
+	"PostMessageWithWindowPos": "PostMessageWithCursorPosAndBlockInput",
+}
+
+// mapWin32InputMethod 将文档显示名称映射为实际 API 名称
+func mapWin32InputMethod(name string) string {
+	if mapped, ok := win32InputMethodMapping[name]; ok {
+		return mapped
+	}
+	return name
+}
+
 // 创建 Win32 控制器
 func (cm *ControllerManager) CreateWin32Controller(hwnd, screencapMethod, inputMethod string) (string, error) {
 	logger.Debug("MFW", "创建 Win32 控制器: %s", hwnd)
@@ -94,13 +108,20 @@ func (cm *ControllerManager) CreateWin32Controller(hwnd, screencapMethod, inputM
 		}
 	}
 
-	// 解析截图方法
-	scMethod, _ := win32.ParseScreencapMethod(screencapMethod)
-	// maafw-golang 库会处理默认值
+	// 解析截图方法，默认使用 FramePool
+	scMethod, err := win32.ParseScreencapMethod(screencapMethod)
+	if err != nil || scMethod == win32.ScreencapNone {
+		scMethod = win32.ScreencapFramePool
+		logger.Debug("MFW", "使用默认截图方法: FramePool")
+	}
 
-	// 解析鼠标输入方法
-	mouseMethod, _ := win32.ParseInputMethod(inputMethod)
-	// maafw-golang 库会处理默认值
+	// 解析鼠标输入方法，默认使用 SendMessageWithCursorPos
+	actualInputMethod := mapWin32InputMethod(inputMethod)
+	mouseMethod, err := win32.ParseInputMethod(actualInputMethod)
+	if err != nil || mouseMethod == win32.InputNone {
+		mouseMethod = win32.InputSendMessageWithCursorPos
+		logger.Debug("MFW", "使用默认输入方法: SendMessageWithCursorPos")
+	}
 
 	// 创建 Win32 控制器
 	ctrl, err := maa.NewWin32Controller(hwndPtr, scMethod, mouseMethod, mouseMethod)

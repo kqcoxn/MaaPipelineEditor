@@ -54,6 +54,7 @@ export const updateLogs: UpdateLogItem[] = [
     updates: {
       features: [
         "🦕 适配 color_filter、shell_timeout 字段，适配 Screencap 系列动作",
+        "🪟 支持 WindowPos 系列输入方案",
         "🧲 磁吸对齐功能支持仅可视范围内的节点（默认开启，可在设置面板关闭）",
       ],
       fixes: ["修正 cmd-cmd 字段的解析错误"],

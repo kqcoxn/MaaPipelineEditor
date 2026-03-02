@@ -147,15 +147,16 @@ export const ConnectionPanel = memo(
         setCustomScreencap(filteredScreencap);
         setCustomInput(filteredInput);
       } else if (selectedWin32Window) {
-        // Win32 窗口默认选择第一个非 RawByNetcat 的方法
-        const firstScreencap =
-          selectedDeviceMethods.screencap.find((m) => m !== "RawByNetcat") ||
+        // Win32 窗口默认选择 FramePool 截图和 SendMessageWithCursorPos 输入
+        const defaultScreencap =
+          selectedDeviceMethods.screencap.find((m) => m === "FramePool") ||
           selectedDeviceMethods.screencap[0];
-        const firstInput =
-          selectedDeviceMethods.input.find((m) => m !== "RawByNetcat") ||
-          selectedDeviceMethods.input[0];
-        setCustomScreencap(firstScreencap);
-        setCustomInput(firstInput);
+        const defaultInput =
+          selectedDeviceMethods.input.find(
+            (m) => m === "SendMessageWithCursorPos"
+          ) || selectedDeviceMethods.input[0];
+        setCustomScreencap(defaultScreencap);
+        setCustomInput(defaultInput);
       }
     }, [
       selectedAdbDevice?.address,
@@ -521,7 +522,9 @@ export const ConnectionPanel = memo(
                   padding: "12px 16px",
                   marginBottom: 8,
                   borderRadius: 8,
-                  border: isSelected ? "2px solid #1890ff" : "1px solid #f0f0f0",
+                  border: isSelected
+                    ? "2px solid #1890ff"
+                    : "1px solid #f0f0f0",
                   backgroundColor: isSelected ? "#e6f7ff" : "#fafafa",
                   transition: "all 0.2s ease",
                 }}
@@ -720,7 +723,10 @@ export const ConnectionPanel = memo(
               { label: "FramePool", value: "FramePool" },
               { label: "GDI", value: "GDI" },
               { label: "DXGI_DesktopDup", value: "DXGI_DesktopDup" },
-              { label: "DXGI_DesktopDup_Window", value: "DXGI_DesktopDup_Window" },
+              {
+                label: "DXGI_DesktopDup_Window",
+                value: "DXGI_DesktopDup_Window",
+              },
               { label: "PrintWindow", value: "PrintWindow" },
               { label: "ScreenDC", value: "ScreenDC" },
             ]}
