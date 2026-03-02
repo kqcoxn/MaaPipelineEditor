@@ -7,7 +7,6 @@
 ## perf
 
 - anchor 字段解析
-- 客户端打包 mfw 依赖时，接受 pre-release 版本
 
 ## feat
 

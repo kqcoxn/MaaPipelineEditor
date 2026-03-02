@@ -201,8 +201,8 @@ jobs:
 
           # 从 MaaFramework Release 自动获取最新版本
           MFW_VERSION=$(curl -s -H "Authorization: Bearer ${MAA_GH_TOKEN}" \
-            https://api.github.com/repos/MaaXYZ/MaaFramework/releases/latest \
-            | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+            https://api.github.com/repos/MaaXYZ/MaaFramework/releases \
+            | grep '"tag_name":' | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
           echo "MaaFramework latest version: ${MFW_VERSION}"
           if [ -z "$MFW_VERSION" ]; then
             echo "Failed to fetch latest MaaFramework version"
