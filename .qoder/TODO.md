@@ -7,6 +7,7 @@
 ## perf
 
 - anchor 字段解析
+- 补全控制器
 
 ## feat
 
