@@ -48,6 +48,14 @@ export const pinnedNotice: PinnedNotice = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "1.2.2",
+    date: "2026-3",
+    type: "fix",
+    updates: {
+      fixes: ["修复分离模式下非 Pipeline 节点的位置信息无法读取的问题"],
+    },
+  },
+  {
     version: "1.2.1",
     date: "2026-3-2",
     type: "feature",

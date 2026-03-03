@@ -323,6 +323,55 @@ export function mergePipelineAndConfig(
         addedKeys.add(originalKey);
       }
     });
+
+    // 特殊节点
+    if (config.external_nodes) {
+      Object.entries(config.external_nodes).forEach(([nodeName, nodeData]) => {
+        const key = externalMarkPrefix + nodeName + "_" + actualFileName;
+        if (!addedKeys.has(key)) {
+          merged[key] = {
+            [configMark]: buildMpeCode(nodeData),
+          };
+          addedKeys.add(key);
+        }
+      });
+    }
+
+    if (config.anchor_nodes) {
+      Object.entries(config.anchor_nodes).forEach(([nodeName, nodeData]) => {
+        const key = anchorMarkPrefix + nodeName + "_" + actualFileName;
+        if (!addedKeys.has(key)) {
+          merged[key] = {
+            [configMark]: buildMpeCode(nodeData),
+          };
+          addedKeys.add(key);
+        }
+      });
+    }
+
+    if (config.sticker_nodes) {
+      Object.entries(config.sticker_nodes).forEach(([nodeName, nodeData]) => {
+        const key = stickerMarkPrefix + nodeName + "_" + actualFileName;
+        if (!addedKeys.has(key)) {
+          merged[key] = {
+            [configMark]: nodeData,
+          };
+          addedKeys.add(key);
+        }
+      });
+    }
+
+    if (config.group_nodes) {
+      Object.entries(config.group_nodes).forEach(([nodeName, nodeData]) => {
+        const key = groupMarkPrefix + nodeName + "_" + actualFileName;
+        if (!addedKeys.has(key)) {
+          merged[key] = {
+            [configMark]: nodeData,
+          };
+          addedKeys.add(key);
+        }
+      });
+    }
   } else {
     // 添加外部节点
     if (config.external_nodes) {
