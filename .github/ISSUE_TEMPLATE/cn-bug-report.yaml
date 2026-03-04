@@ -39,7 +39,15 @@ body:
     attributes:
       label: 环境信息
       description: |
-        使用的浏览器、本地编译环境（若有）等
+        使用的环境（浏览器/Extremer/IDE集成等）、本地编译环境（若有）等
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: 日志文件
+      description: |
+        请上传 [日志文件](mpe.codax.site/docs/guide/server/advance.html#查看日志)，包括 mpelb日志、maa日志、agent日志等，若无法区分可直接上传整个文件夹（若文件过大请检查是否含有 on_error 图片等）
     validations:
       required: true
   - type: textarea
