@@ -47,9 +47,7 @@ body:
     attributes:
       label: 日志文件
       description: |
-        请上传 [日志文件](mpe.codax.site/docs/guide/server/advance.html#查看日志)，包括 mpelb日志、maa日志、agent日志等，若无法区分可直接上传整个文件夹（若文件过大请检查是否含有 on_error 图片等）
-    validations:
-      required: true
+        若使用 mpelb，请上传 [日志文件](https://mpe.codax.site/docs/guide/server/advance.html#%E6%9F%A5%E7%9C%8B%E6%97%A5%E5%BF%97)（可使用`mpelb config open-log`快捷指令打开），包括 mpelb日志、maa日志、agent日志等，若无法区分可直接上传整个文件夹（若文件过大请检查是否含有 on_error 图片等）
   - type: textarea
     id: screenshots
     attributes:
