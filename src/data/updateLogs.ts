@@ -53,7 +53,10 @@ export const updateLogs: UpdateLogItem[] = [
     type: "feature",
     updates: {
       features: ["🐈 新增节点列表与统计面板，支持搜索与跳转"],
-      fixes: ["修复分离模式下非 Pipeline 节点的位置信息无法读取的问题"],
+      fixes: [
+        "修复分离模式下非 Pipeline 节点的位置信息无法读取的问题",
+        "修复无法引用跨资源包的图片的问题",
+      ],
     },
   },
   {

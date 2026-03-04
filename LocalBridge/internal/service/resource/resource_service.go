@@ -254,19 +254,17 @@ func (s *Service) GetImageList(pipelinePath string) ([]models.ImageFileInfo, str
 		targetBundle = s.findBundleByPipelinePath(pipelinePath)
 	}
 
-	if targetBundle != nil && targetBundle.HasImage {
-		// 只返回当前资源包的图片
+	if targetBundle != nil {
+		// 找到目标资源包，记录名称用于前端显示并返回所有资源包的图片
 		isFiltered = true
 		bundleName = targetBundle.Name
-		images = s.scanImageDir(targetBundle.ImageDir, targetBundle.Name)
-	} else {
-		// 返回所有资源包的图片，区分来源
-		isFiltered = false
-		for _, bundle := range s.bundles {
-			if bundle.HasImage && bundle.ImageDir != "" {
-				bundleImages := s.scanImageDir(bundle.ImageDir, bundle.Name)
-				images = append(images, bundleImages...)
-			}
+	}
+
+	// 返回所有资源包的图片，区分来源
+	for _, bundle := range s.bundles {
+		if bundle.HasImage && bundle.ImageDir != "" {
+			bundleImages := s.scanImageDir(bundle.ImageDir, bundle.Name)
+			images = append(images, bundleImages...)
 		}
 	}
 
