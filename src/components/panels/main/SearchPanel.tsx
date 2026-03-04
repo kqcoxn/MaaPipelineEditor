@@ -1,7 +1,9 @@
 import style from "../../../styles/ToolPanel.module.less";
 import { memo, useMemo, useState, useCallback, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { message, Tooltip, AutoComplete, Spin } from "antd";
 import type { AutoCompleteProps } from "antd";
+import { DownOutlined } from "@ant-design/icons";
 import classNames from "classnames";
 import { useDebounceFn } from "ahooks";
 import IconFont from "../../iconfonts";
@@ -13,6 +15,7 @@ import {
   crossFileService,
   type CrossFileNodeInfo,
 } from "../../../services/crossFileService";
+import { NodeListPanel } from "./node-list";
 
 /**搜索工具 */
 function SearchPanel() {
@@ -30,7 +33,9 @@ function SearchPanel() {
   const [isFocused, setIsFocused] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [aiSearching, setAiSearching] = useState(false);
+  const [showNodeList, setShowNodeList] = useState(false);
   const searchRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const aiChatRef = useRef<OpenAIChat | null>(null);
 
   // 获取所有节点标签列表
@@ -314,7 +319,7 @@ ${JSON.stringify(nodesContext, null, 2)}`;
   );
 
   return (
-    <div className={panelClass}>
+    <div ref={containerRef} className={panelClass}>
       <AutoComplete
         ref={searchRef}
         className={style["search-input"]}
@@ -379,7 +384,28 @@ ${JSON.stringify(nodesContext, null, 2)}`;
             )}
           </div>
         </Tooltip>
+        <div className={style.devider}>
+          <div></div>
+        </div>
+        <Tooltip placement="bottom" title="节点列表">
+          <DownOutlined
+            className={classNames(style["search-icon"], style["dropdown-icon"], {
+              [style.active]: showNodeList,
+            })}
+            onClick={() => setShowNodeList((prev) => !prev)}
+            style={{ fontSize: 14, marginRight: 6 }}
+          />
+        </Tooltip>
       </div>
+      {/* 节点列表面板 */}
+      {createPortal(
+        <NodeListPanel
+          visible={showNodeList}
+          onClose={() => setShowNodeList(false)}
+          anchorEl={containerRef.current}
+        />,
+        document.body
+      )}
     </div>
   );
 }
