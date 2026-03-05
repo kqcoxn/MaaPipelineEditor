@@ -721,6 +721,10 @@ export const ConnectionPanel = memo(
             style={{ width: "100%" }}
             options={[
               { label: "FramePool", value: "FramePool" },
+              {
+                label: "FramePool (伪最小化)",
+                value: "FramePoolWithPseudoMinimize",
+              },
               { label: "GDI", value: "GDI" },
               { label: "DXGI_DesktopDup", value: "DXGI_DesktopDup" },
               {
@@ -728,6 +732,10 @@ export const ConnectionPanel = memo(
                 value: "DXGI_DesktopDup_Window",
               },
               { label: "PrintWindow", value: "PrintWindow" },
+              {
+                label: "PrintWindow (伪最小化)",
+                value: "PrintWindowWithPseudoMinimize",
+              },
               { label: "ScreenDC", value: "ScreenDC" },
             ]}
           />

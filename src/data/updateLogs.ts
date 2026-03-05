@@ -48,11 +48,14 @@ export const pinnedNotice: PinnedNotice = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
-    version: "1.3.0",
+    version: "1.2.2",
     date: "2026-3",
     type: "feature",
     updates: {
-      features: ["🐈 新增节点列表与统计面板，支持搜索与跳转"],
+      features: [
+        "♿ 支持 WithPseudoMinimize 系列截图方式",
+        "🐈 新增节点列表与统计面板，支持搜索与跳转",
+      ],
       fixes: [
         "修复分离模式下非 Pipeline 节点的位置信息无法读取的问题",
         "修复无法引用跨资源包的图片的问题",
@@ -66,7 +69,7 @@ export const updateLogs: UpdateLogItem[] = [
     updates: {
       features: [
         "🦕 适配 color_filter、shell_timeout 字段，适配 Screencap 系列动作",
-        "🪟 支持 WindowPos 系列输入方案",
+        "🪟 支持 WithWindowPos 系列输入方案",
         "🧲 磁吸对齐功能支持仅可视范围内的节点（默认开启，可在设置面板关闭）",
         "🙃 支持负数 roi/target 渲染与提示",
       ],

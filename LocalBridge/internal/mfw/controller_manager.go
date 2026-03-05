@@ -88,6 +88,21 @@ func mapWin32InputMethod(name string) string {
 	return name
 }
 
+// win32ScreencapMethodMapping 额外的截图方法映射（WithPseudoMinimize 变体）
+// MaaFramework 中 FramePool=2, PrintWindow=16
+var win32ScreencapMethodMapping = map[string]win32.ScreencapMethod{
+	"FramePoolWithPseudoMinimize":   win32.ScreencapFramePool,
+	"PrintWindowWithPseudoMinimize": win32.ScreencapPrintWindow,
+}
+
+// parseWin32ScreencapMethod 解析 Win32 截图方法，支持额外的映射
+func parseWin32ScreencapMethod(name string) (win32.ScreencapMethod, error) {
+	if method, ok := win32ScreencapMethodMapping[name]; ok {
+		return method, nil
+	}
+	return win32.ParseScreencapMethod(name)
+}
+
 // 创建 Win32 控制器
 func (cm *ControllerManager) CreateWin32Controller(hwnd, screencapMethod, inputMethod string) (string, error) {
 	logger.Debug("MFW", "创建 Win32 控制器: %s", hwnd)
@@ -109,7 +124,7 @@ func (cm *ControllerManager) CreateWin32Controller(hwnd, screencapMethod, inputM
 	}
 
 	// 解析截图方法，默认使用 FramePool
-	scMethod, err := win32.ParseScreencapMethod(screencapMethod)
+	scMethod, err := parseWin32ScreencapMethod(screencapMethod)
 	if err != nil || scMethod == win32.ScreencapNone {
 		scMethod = win32.ScreencapFramePool
 		logger.Debug("MFW", "使用默认截图方法: FramePool")
@@ -206,7 +221,7 @@ func (cm *ControllerManager) CreateGamepadController(hwnd, gamepadType, screenca
 	}
 
 	// 解析截图方法
-	scMethod, _ := win32.ParseScreencapMethod(screencapMethod)
+	scMethod, _ := parseWin32ScreencapMethod(screencapMethod)
 
 	// 创建 Gamepad 控制器
 	ctrl, err := maa.NewGamepadController(hwndPtr, gpType, scMethod)
