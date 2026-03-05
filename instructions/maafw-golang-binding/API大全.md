@@ -230,6 +230,10 @@ func ActMultiSwipe
 func ActMultiSwipe(swipes ...MultiSwipeItem) \*Action
 ActMultiSwipe creates a MultiSwipe action for multi-finger swipe gestures.
 
+func ActScreencap
+func ActScreencap(p ScreencapParam) \*Action
+ActScreencap creates a Screencap action. Pass a zero value for defaults.
+
 func ActScroll
 func ActScroll(p ScrollParam) \*Action
 ActScroll creates a Scroll action. Pass a zero value for defaults.
@@ -306,6 +310,8 @@ func (*ActionResult) AsLongPressKey
 func (r *ActionResult) AsLongPressKey() (*LongPressKeyActionResult, bool)
 func (*ActionResult) AsMultiSwipe
 func (r *ActionResult) AsMultiSwipe() (*MultiSwipeActionResult, bool)
+func (*ActionResult) AsScreencap
+func (r *ActionResult) AsScreencap() (*ScreencapActionResult, bool)
 func (*ActionResult) AsScroll
 func (r *ActionResult) AsScroll() (*ScrollActionResult, bool)
 func (*ActionResult) AsShell
@@ -315,7 +321,7 @@ func (r *ActionResult) AsSwipe() (*SwipeActionResult, bool)
 func (*ActionResult) AsTouch
 func (r *ActionResult) AsTouch() (*TouchActionResult, bool)
 func (*ActionResult) Type
-func (r \*ActionResult) Type() ActionType
+func (r *ActionResult) Type() ActionType
 Type returns the action type of the result.
 
 func (*ActionResult) Value
@@ -346,6 +352,7 @@ ActionTypeStopTask ActionType = "StopTask"
 ActionTypeScroll ActionType = "Scroll"
 ActionTypeCommand ActionType = "Command"
 ActionTypeShell ActionType = "Shell"
+ActionTypeScreencap ActionType = "Screencap"
 ActionTypeCustom ActionType = "Custom"
 )
 type AdbDevice
@@ -476,6 +483,10 @@ func (*BlankController) GetFeature
 func (c *BlankController) GetFeature() ControllerFeature
 GetFeature implements CustomController.
 
+func (*BlankController) GetInfo
+func (c *BlankController) GetInfo() (string, bool)
+GetInfo implements CustomController.
+
 func (*BlankController) Inactive
 func (c *BlankController) Inactive() bool
 Inactive implements CustomController.
@@ -551,6 +562,10 @@ Connected implements CustomController.
 func (*CarouselImageController) GetFeature
 func (c *CarouselImageController) GetFeature() ControllerFeature
 GetFeature implements CustomController.
+
+func (*CarouselImageController) GetInfo
+func (c *CarouselImageController) GetInfo() (string, bool)
+GetInfo implements CustomController.
 
 func (*CarouselImageController) Inactive
 func (c *CarouselImageController) Inactive() bool
@@ -929,6 +944,12 @@ keyboardMethod win32.InputMethod,
 ) (\*Controller, error)
 NewWin32Controller creates a win32 controller instance.
 
+func NewWlRootsController
+func NewWlRootsController(
+wlrSocketPath string,
+) (\*Controller, error)
+NewWlRootsController creates a WlRoots controller instance.
+
 func (*Controller) AddSink
 func (c *Controller) AddSink(sink ControllerEventSink) int64
 AddSink adds a event callback sink and returns the sink ID. The sink ID can be used to remove the sink later.
@@ -936,6 +957,10 @@ AddSink adds a event callback sink and returns the sink ID. The sink ID can be u
 func (*Controller) CacheImage
 func (c *Controller) CacheImage() (image.Image, error)
 CacheImage gets the image buffer of the last screencap request.
+
+func (*Controller) CacheImageInto
+func (c *Controller) CacheImageInto(dst *image.NRGBA) (*image.NRGBA, error)
+CacheImageInto gets the image buffer of the last screencap request and writes into dst when possible. If dst is nil or size mismatched, a new \*image.NRGBA is allocated and returned.
 
 func (*Controller) ClearSinks
 func (c *Controller) ClearSinks()
@@ -948,6 +973,10 @@ Connected checks if the controller is connected.
 func (*Controller) Destroy
 func (c *Controller) Destroy()
 Destroy frees the controller instance.
+
+func (*Controller) GetInfo
+func (c *Controller) GetInfo() (string, error)
+GetInfo gets controller information as a JSON string. Returns controller-specific information including type, constructor parameters and current state.
 
 func (*Controller) GetResolution
 func (c *Controller) GetResolution() (width, height int32, err error)
@@ -1049,6 +1078,7 @@ CtrlID uint64 `json:"ctrl_id"`
 UUID string `json:"uuid"`
 Action string `json:"action"`
 Param map[string]any `json:"param"`
+Info map[string]any `json:"info"`
 }
 ControllerActionDetail contains information about controller action events
 
@@ -1111,6 +1141,9 @@ Scroll(dx, dy int32) bool
 // Inactive is called when the framework requests restoring controller/window state (e.g. after tasks finish).
 // Return true for success or when no action is needed.
 Inactive() bool
+// GetInfo returns custom controller information as a JSON string.
+// Return ("", true) if no extra info is needed.
+GetInfo() (string, bool)
 }
 CustomController defines an interface for custom controller. Implementers of this interface must embed a CustomControllerHandler struct and provide implementations for the following methods: Connect, RequestUUID, StartApp, StopApp, Screencap, Click, Swipe, TouchDown, TouchMove, TouchUp, ClickKey, InputText, KeyDown, KeyUp, Scroll and Inactive.
 
@@ -1428,6 +1461,7 @@ KeyDown uintptr
 KeyUp uintptr
 Scroll uintptr
 Inactive uintptr
+GetInfo uintptr
 }
 type MultiSwipeActionResult
 type MultiSwipeActionResult struct {
@@ -2174,6 +2208,24 @@ Hash string `json:"hash"`
 Path string `json:"path"`
 }
 ResourceLoadingDetail contains information about resource loading events
+
+type ScreencapActionResult
+type ScreencapActionResult struct {
+Filepath string `json:"filepath"`
+Format string `json:"format"`
+Quality int `json:"quality"`
+Success bool `json:"success"`
+}
+type ScreencapParam
+type ScreencapParam struct {
+// Filename specifies screencap filename without extension. Empty means auto-generated by MaaFramework.
+Filename string `json:"filename,omitempty"`
+// Format specifies image format. Optional values: "png", "jpg", "jpeg".
+Format string `json:"format,omitempty"`
+// Quality specifies image quality (0-100), only effective for jpg/jpeg. Omitted means framework default.
+Quality int `json:"quality,omitempty"`
+}
+ScreencapParam defines parameters for screencap action.
 
 type ScreenshotOption
 type ScreenshotOption func(\*screenshotOptionConfig)
