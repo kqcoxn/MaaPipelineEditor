@@ -9,9 +9,8 @@ import {
   type ReactNode,
   useEffect,
 } from "react";
-import { Tooltip, Spin, Alert, Button, Tabs } from "antd";
+import { Spin, Alert, Button, Tabs } from "antd";
 import classNames from "classnames";
-import IconFont from "../../iconfonts";
 
 import {
   useFlowStore,
@@ -34,8 +33,8 @@ import { FieldPanelToolbarLeft, FieldPanelToolbarRight } from "../field/tools";
 import { useDebugStore } from "../../../stores/debugStore";
 import { useToolbarStore } from "../../../stores/toolbarStore";
 import { useConfigStore } from "../../../stores/configStore";
-import RecognitionCardList from "../tools/RecognitionCardList";
 import NodeRecognitionCardList from "../tools/NodeRecognitionCardList";
+import AdjacentInfoPanel from "./AdjacentInfoPanel";
 import { DraggablePanel } from "../common/DraggablePanel";
 
 // 节点数据验证与修复
@@ -427,7 +426,7 @@ function FieldPanel() {
       </div>
       {/* 数据验证警告 */}
       {validationWarning && (
-        <div style={{ padding: "8px 12px" }}>
+        <div style={{ padding: "8px 12px", flexShrink: 0 }}>
           <Alert
             message={validationWarning}
             type="warning"
@@ -442,8 +441,8 @@ function FieldPanel() {
           />
         </div>
       )}
-      {/* 调试模式下显示卡片列表，否则显示编辑器 */}
-      {debugMode && currentNode ? (
+      {/* Tab 面板 */}
+      {currentNode ? (
         <Tabs
           activeKey={activeTab}
           onChange={setActiveTab}
@@ -456,28 +455,42 @@ function FieldPanel() {
               children: renderContent,
             },
             {
-              key: "source",
-              label: "出发节点记录",
+              key: "adjacent",
+              label: "邻接信息",
               children: (
-                <NodeRecognitionCardList
-                  nodeName={currentNode.data?.label || ""}
-                  filterMode="source"
+                <AdjacentInfoPanel
+                  currentNodeId={currentNode.id}
+                  currentNodeLabel={currentNode.data?.label || ""}
                 />
               ),
             },
-            {
-              key: "target",
-              label: "目标节点记录",
-              children: (
-                <NodeRecognitionCardList
-                  nodeName={currentNode.data?.label || ""}
-                  filterMode="target"
-                />
-              ),
-            },
+            ...(debugMode
+              ? [
+                  {
+                    key: "source",
+                    label: "出发节点记录",
+                    children: (
+                      <NodeRecognitionCardList
+                        nodeName={currentNode.data?.label || ""}
+                        filterMode="source"
+                      />
+                    ),
+                  },
+                  {
+                    key: "target",
+                    label: "目标节点记录",
+                    children: (
+                      <NodeRecognitionCardList
+                        nodeName={currentNode.data?.label || ""}
+                        filterMode="target"
+                      />
+                    ),
+                  },
+                ]
+              : []),
           ]}
-          style={{ flex: 1, display: "flex", flexDirection: "column" }}
-          tabBarStyle={{ margin: 0, paddingLeft: 12, paddingRight: 12 }}
+          style={{ flex: "1 1 auto", minHeight: 0 }}
+          tabBarStyle={{ margin: 0, flexShrink: 0, paddingLeft: 12, paddingRight: 12 }}
         />
       ) : (
         renderContent

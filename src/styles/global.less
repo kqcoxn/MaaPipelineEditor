@@ -11,6 +11,13 @@
   text-overflow: ellipsis;
 }
 
+// Flex 布局工具类
+.flex-1-overflow-auto {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
 .panel-base {
   position: absolute;
   background-color: white;
@@ -22,12 +29,15 @@
   opacity: 0;
   pointer-events: none;
   transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
 
   .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 12px;
+    flex-shrink: 0;
 
     .header-left {
       display: flex;

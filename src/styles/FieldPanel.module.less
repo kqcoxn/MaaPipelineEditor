@@ -4,11 +4,35 @@
 .panel {
   width: 380px;
   min-height: 120px;
-  max-height: calc(100vh - 220px);
+  max-height: calc(85vh - 180px);
   border-radius: 6px;
   right: 10px;
   top: 130px;
-  overflow-y: auto;
+  overflow: hidden;
+
+  :global {
+    .ant-tabs {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .ant-tabs-content-holder {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+    }
+
+    .ant-tabs-content {
+      height: 100%;
+    }
+
+    .ant-tabs-tabpane {
+      overflow: auto;
+    }
+  }
 
   .spin {
     width: 100%;
