@@ -150,13 +150,15 @@ func (w *Watcher) processEvent(event fsnotify.Event) {
 	} else if event.Op&fsnotify.Remove == fsnotify.Remove {
 		// 删除事件
 		changeType = ChangeTypeDeleted
-		isDirectory = true
+		// 通过扩展名判断是否为文件
+		isDirectory = !w.hasValidExtension(event.Name)
 
 	} else if event.Op&fsnotify.Rename == fsnotify.Rename {
 		// 重命名事件
 		changeType = ChangeTypeRenamed
 		oldPath = event.Name
-		isDirectory = true
+		// 通过扩展名判断是否为文件
+		isDirectory = !w.hasValidExtension(event.Name)
 
 	} else {
 		return
