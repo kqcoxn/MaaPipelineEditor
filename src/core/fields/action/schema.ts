@@ -109,7 +109,7 @@ export const actionFieldSchema: Record<string, FieldType> = {
       FieldTypeEnum.String,
     ],
     default: [0, 0, 0, 0],
-    desc: "滚动目标的位置，鼠标会先移动到该位置再进行滚动。可选，默认 true 。 true: 目标为本节点中刚刚识别到的位置（即自身）。 string: 填写节点名，目标为之前执行过的某节点识别到的位置。 array<int, 2>: 固定坐标点 [x, y]。 array<int, 4>: 固定坐标区域 [x, y, w, h]，会在矩形内随机选取一点（越靠近中心概率越高，边缘概率相对较低），若希望全屏可设为 [0, 0, 0, 0] 。",
+    desc: "滚动目标的位置，鼠标会先移动到该位置再进行滚动。可选，默认 true 。 true: 目标为本节点中刚刚识别到的位置（即自身）。 string: 填写节点名，目标为之前执行过的某节点识别到的位置。也支持 [Anchor]锚点名 格式引用锚点对应的节点 💡 v5.9。若引用的前置节点或锚点识别结果为空，则视为动作失败。 array<int, 2>: 固定坐标点 [x, y]。 array<int, 4>: 固定坐标区域 [x, y, w, h]，会在矩形内随机选取一点（越靠近中心概率越高，边缘概率相对较低），若希望全屏可设为 [0, 0, 0, 0] 。",
   },
   scrollTargetOffset: {
     key: "target_offset",
@@ -127,7 +127,7 @@ export const actionFieldSchema: Record<string, FieldType> = {
     key: "dy",
     type: FieldTypeEnum.Int,
     default: 0,
-    desc: "垂直滚动距离，正值向下滚动，负值向上滚动。可选，默认 0 。",
+    desc: "垂直滚动距离，正值向上滚动，负值向下滚动。可选，默认 0 。",
   },
   swipes: {
     key: "swipes",

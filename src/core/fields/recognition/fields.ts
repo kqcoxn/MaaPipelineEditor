@@ -6,7 +6,7 @@ import { recoFieldSchema } from "./schema";
  */
 export const recoFields: Record<string, FieldsType> = {
   DirectHit: {
-    params: [],
+    params: [recoFieldSchema.roi, recoFieldSchema.roiOffset],
     desc: "直接命中，即不进行识别，直接执行动作。",
   },
   OCR: {
@@ -105,7 +105,7 @@ export const recoFields: Record<string, FieldsType> = {
       recoFieldSchema.labels,
       recoFieldSchema.neuralNetworkDetectModel,
       recoFieldSchema.neuralNetworkExpected,
-      recoFieldSchema.ocrThreshold,
+      recoFieldSchema.templateMatchThreshold,
       recoFieldSchema.areaExpectedOrderBy,
       recoFieldSchema.index,
     ],

@@ -49,10 +49,14 @@ export const pinnedNotice: PinnedNotice = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "1.2.3",
-    date: "2026-3",
+    date: "2026-3-8",
     type: "feature",
     updates: {
-      features: ["🐍 新增前驱与后继关系面板，支持跳转与顺序查看"],
+      features: [
+        "🐍 新增前驱与后继关系面板，支持跳转与顺序查看",
+        "🦕 适配 DirectHit 系列字段",
+      ],
+      fixes: ["修复部分字段与文档不一致的问题"],
     },
   },
   {

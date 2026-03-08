@@ -10,7 +10,7 @@ export const recoFieldSchema: Record<string, FieldType> = {
     key: "roi",
     type: [FieldTypeEnum.XYWH, FieldTypeEnum.String],
     default: [0, 0, 0, 0],
-    desc: "识别区域坐标。可选，默认 [0, 0, 0, 0] ，即全屏。array<int, 4>: 识别区域坐标，[x, y, w, h]，若希望全屏可设为 [0, 0, 0, 0] 。string: 填写节点名，在之前执行过的某节点识别到的目标范围内识别。",
+    desc: "roi: array<int, 4> | string 感兴趣区域（ROI），定义图像识别边界，仅在该区域内进行相关图像处理。可选，默认 [0, 0, 0, 0] ，即全屏。 array<int, 4>: 识别区域坐标 [x, y, w, h]。支持负数 💡 v5.6：x/y 负数表示从右/下边缘计算；w/h 为 0 表示延伸至边缘，为负数时取绝对值并将 (x, y) 视为右下角。 string: 填写节点名，在之前执行过的某节点识别到的目标范围内识别。也支持 [Anchor]锚点名 格式引用锚点对应的节点 💡 v5.9。若引用的前置节点或锚点识别结果为空，则视为识别失败。",
   },
   roiOffset: {
     key: "roi_offset",
@@ -103,7 +103,7 @@ export const recoFieldSchema: Record<string, FieldType> = {
     type: FieldTypeEnum.String,
     options: ["SIFT", "KAZE", "AKAZE", "BRISK", "ORB"],
     default: "SIFT",
-    desc: `匹配的特征点的最低数量要求（阈值）。可选，默认 4 。目前支持以下算法：SIFT-计算复杂度高，具有尺度不变性、旋转不变性。效果最好；KAZE-适用于2D和3D图像，具有尺度不变性、旋转不变性；AKAZE-计算速度较快，具有尺度不变性、旋转不变性；BRISK-计算速度非常快，具有尺度不变性、旋转不变性；ORB-计算速度非常快，具有旋转不变性。但不具有尺度不变性。各算法特点详情可自行进一步查询。`,
+    desc: `特征检测器。可选，默认 SIFT 。SIFT：速度较慢，但具备尺度不变性和旋转不变性，精度最高。它是推荐的首选方案，特别适用于对精度要求极高的场景。KAZE：速度较慢，同样具备尺度和旋转不变性，精度较高。它适用于2D或3D图像处理，且在边缘保持方面表现优异。AKAZE：速度中等，拥有尺度和旋转不变性，精度较高。它在处理速度和检测精度之间取得了良好的平衡。BRISK：速度快，具备尺度和旋转不变性，精度中等。主要适用于对实时性要求较高的场景。ORB：速度最快，具备旋转不变性但不具备尺度不变性，精度相对较低。仅建议在模板图像与目标图像尺寸一致时使用。`,
   },
   ratio: {
     key: "ratio",
