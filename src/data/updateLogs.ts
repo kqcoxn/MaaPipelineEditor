@@ -56,7 +56,7 @@ export const updateLogs: UpdateLogItem[] = [
         "🐍 新增前驱与后继关系面板，支持跳转与顺序查看",
         "🦕 适配 DirectHit 系列字段",
       ],
-      fixes: ["修复部分字段与文档不一致的问题"],
+      fixes: ["修复部分字段与文档不一致的问题", "修正部分文案问题"],
     },
   },
   {

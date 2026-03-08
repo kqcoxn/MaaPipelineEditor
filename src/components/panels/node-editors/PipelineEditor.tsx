@@ -131,6 +131,8 @@ export const PipelineEditor = lazy(() =>
             Modal.confirm({
               title: "切换到结构化模式",
               content: "切换到结构化模式会丢失当前的字符串值,是否继续?",
+              okText: "确定",
+              cancelText: "取消",
               onOk: () => {
                 const newFocus = { [param.key]: param.default };
                 setNodeData(currentNode.id, "others", "focus", newFocus);
@@ -254,6 +256,8 @@ export const PipelineEditor = lazy(() =>
             Modal.confirm({
               title: "切换到结构化模式",
               content: "切换到结构化模式会丢失当前的数值，是否继续?",
+              okText: "确定",
+              cancelText: "取消",
               onOk: () => {
                 const newValue = { [param.key]: param.default };
                 setNodeData(currentNode.id, "others", fieldKey, newValue);
