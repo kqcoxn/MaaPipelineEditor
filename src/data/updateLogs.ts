@@ -48,6 +48,14 @@ export const pinnedNotice: PinnedNotice = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "1.3.0",
+    date: "2026-3",
+    type: "feature",
+    updates: {
+      fixes: ["修复部分情况下删除边后次序未及时更新的问题"],
+    },
+  },
+  {
     version: "1.2.3",
     date: "2026-3-8",
     type: "feature",

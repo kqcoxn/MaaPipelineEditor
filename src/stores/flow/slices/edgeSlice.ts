@@ -31,14 +31,15 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
         if (change.type === "remove") {
           const removedEdge = findEdgeById(edges, change.id);
           if (removedEdge) {
-            edges.forEach((edge) => {
+            edges = edges.map((edge) => {
               if (
                 edge.source === removedEdge.source &&
                 edge.sourceHandle === removedEdge.sourceHandle &&
                 edge.label > removedEdge.label
               ) {
-                edge.label--;
+                return { ...edge, label: edge.label - 1 };
               }
+              return edge;
             });
           }
         }
