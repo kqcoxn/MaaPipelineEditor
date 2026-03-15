@@ -350,7 +350,7 @@ function handleSetStickerColor(
 /**复制便签内容处理器 */
 function handleCopyStickerContent(node: NodeContextMenuNode) {
   if (node.type !== NodeTypeEnum.Sticker) return;
-  
+
   const content = (node.data as StickerNodeDataType).content;
   if (content) {
     navigator.clipboard.writeText(content);
@@ -358,6 +358,15 @@ function handleCopyStickerContent(node: NodeContextMenuNode) {
   } else {
     message.info("便签内容为空");
   }
+}
+
+/**编辑 JSON 处理器 */
+function handleEditNodeJson(node: NodeContextMenuNode) {
+  // 触发全局事件
+  const event = new CustomEvent("mpe:edit-node-json", {
+    detail: { node },
+  });
+  window.dispatchEvent(event);
 }
 
 /**删除分组（先解散子节点再删除）处理器 */
@@ -425,6 +434,14 @@ export function getNodeContextMenuConfig(
       icon: "icon-a-copyfubenfuzhi",
       iconSize: 16,
       onClick: handleCopyNodeName,
+    },
+    // 编辑 JSON (所有节点)
+    {
+      key: "edit-json",
+      label: "编辑 JSON",
+      icon: "icon-JSON",
+      iconSize: 16,
+      onClick: handleEditNodeJson,
     },
     // 复制便签内容 (仅 Sticker 节点)
     {

@@ -36,6 +36,7 @@ import { useConfigStore } from "../../../stores/configStore";
 import NodeRecognitionCardList from "../tools/NodeRecognitionCardList";
 import AdjacentInfoPanel from "./AdjacentInfoPanel";
 import { DraggablePanel } from "../common/DraggablePanel";
+import { NodeJsonEditorModal } from "../../modals/NodeJsonEditorModal";
 
 // 节点数据验证与修复
 function validateAndRepairNode(node: NodeType): {
@@ -199,6 +200,7 @@ function FieldPanel() {
     null
   );
   const [activeTab, setActiveTab] = useState("fields");
+  const [jsonEditorOpen, setJsonEditorOpen] = useState(false);
 
   // 当面板打开时通知 toolbarStore
   useEffect(() => {
@@ -206,6 +208,32 @@ function FieldPanel() {
       setCurrentRightPanel("field");
     }
   }, [currentNode, setCurrentRightPanel]);
+
+  // 处理 JSON 编辑保存
+  const handleJsonEditorSave = useCallback(
+    (nodeData: any) => {
+      if (!currentNode) return;
+
+      const { setNodes, nodes, saveHistory } = useFlowStore.getState();
+      const newNodes = nodes.map((n) => {
+        if (n.id === currentNode.id) {
+          return {
+            ...n,
+            data: nodeData,
+          };
+        }
+        return n;
+      });
+      setNodes(newNodes);
+      // 从新节点列表中找到更新后的节点，设置为 targetNode
+      const updatedNode = newNodes.find((n) => n.id === currentNode.id);
+      if (updatedNode) {
+        useFlowStore.getState().setTargetNode(updatedNode);
+      }
+      saveHistory(0);
+    },
+    [currentNode]
+  );
 
   // 验证并修复节点数据
   const handleNodeRepair = useCallback(() => {
@@ -410,7 +438,10 @@ function FieldPanel() {
     <>
       <div className="header">
         <div className="header-left">
-          <FieldPanelToolbarLeft currentNode={currentNode} />
+          <FieldPanelToolbarLeft
+            currentNode={currentNode}
+            onEditJson={() => setJsonEditorOpen(true)}
+          />
         </div>
         <div className="header-center">
           <div className="title">节点字段</div>
@@ -505,19 +536,37 @@ function FieldPanel() {
 
   if (fieldPanelMode === "draggable") {
     return (
-      <DraggablePanel
-        panelType="field"
-        isVisible={currentNode !== null}
-        className={panelClass}
-        defaultRight={10}
-        defaultTop={70}
-      >
-        {panelContent}
-      </DraggablePanel>
+      <>
+        <DraggablePanel
+          panelType="field"
+          isVisible={currentNode !== null}
+          className={panelClass}
+          defaultRight={10}
+          defaultTop={70}
+        >
+          {panelContent}
+        </DraggablePanel>
+        <NodeJsonEditorModal
+          open={jsonEditorOpen}
+          onClose={() => setJsonEditorOpen(false)}
+          node={currentNode}
+          onSave={handleJsonEditorSave}
+        />
+      </>
     );
   }
 
-  return <div className={panelClass}>{panelContent}</div>;
+  return (
+    <>
+      <div className={panelClass}>{panelContent}</div>
+      <NodeJsonEditorModal
+        open={jsonEditorOpen}
+        onClose={() => setJsonEditorOpen(false)}
+        node={currentNode}
+        onSave={handleJsonEditorSave}
+      />
+    </>
+  );
 }
 
 export default memo(FieldPanel);

@@ -21,7 +21,13 @@ import { crossFileService } from "../../../../services/crossFileService";
 
 // 左侧工具栏
 export const FieldPanelToolbarLeft = memo(
-  ({ currentNode }: { currentNode: NodeType | null }) => {
+  ({
+    currentNode,
+    onEditJson,
+  }: {
+    currentNode: NodeType | null;
+    onEditJson?: () => void;
+  }) => {
     const showCopyRecoButton =
       currentNode && currentNode.type === NodeTypeEnum.Pipeline;
 
@@ -36,6 +42,11 @@ export const FieldPanelToolbarLeft = memo(
         return;
       }
       copyNodeRecoJSON(currentNode.id);
+    };
+
+    const handleEditJson = () => {
+      if (!currentNode) return;
+      onEditJson?.();
     };
 
     return (
@@ -55,6 +66,16 @@ export const FieldPanelToolbarLeft = memo(
               name="icon-kapianshibie"
               size={23}
               onClick={handleCopyRecoJSON}
+            />
+          </Tooltip>
+        )}
+        {currentNode && (
+          <Tooltip placement="top" title="编辑 JSON">
+            <IconFont
+              className="icon-interactive"
+              name="icon-JSON"
+              size={22}
+              onClick={handleEditJson}
             />
           </Tooltip>
         )}

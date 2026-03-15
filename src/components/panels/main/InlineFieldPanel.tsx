@@ -22,6 +22,7 @@ import {
 } from "../node-editors";
 import { FieldPanelToolbarLeft, FieldPanelToolbarRight } from "../field/tools";
 import { useConfigStore } from "../../../stores/configStore";
+import { NodeJsonEditorModal } from "../../modals/NodeJsonEditorModal";
 
 // 面板与节点的间距
 const PANEL_GAP = 20;
@@ -42,6 +43,7 @@ function InlineFieldPanel() {
   const [isLoading, setIsLoading] = useState(false);
   const [progressStage, setProgressStage] = useState("");
   const [progressDetail, setProgressDetail] = useState("");
+  const [jsonEditorOpen, setJsonEditorOpen] = useState(false);
 
   // 使用 useStore 订阅节点的 dragging 状态和实时位置变化（响应式）
   const nodeState = useStore((state) => {
@@ -80,6 +82,32 @@ function InlineFieldPanel() {
     setProgressStage(stage);
     setProgressDetail(detail || "");
   }, []);
+
+  // 处理 JSON 编辑保存
+  const handleJsonEditorSave = useCallback(
+    (nodeData: any) => {
+      if (!currentNode) return;
+
+      const { setNodes, nodes, saveHistory } = useFlowStore.getState();
+      const newNodes = nodes.map((n) => {
+        if (n.id === currentNode.id) {
+          return {
+            ...n,
+            data: nodeData,
+          };
+        }
+        return n;
+      });
+      setNodes(newNodes);
+      // 从新节点列表中找到更新后的节点，设置为 targetNode
+      const updatedNode = newNodes.find((n) => n.id === currentNode.id);
+      if (updatedNode) {
+        useFlowStore.getState().setTargetNode(updatedNode);
+      }
+      saveHistory(0);
+    },
+    [currentNode]
+  );
 
   // 渲染编辑器内容
   const renderEditor = useMemo(() => {
@@ -163,7 +191,10 @@ function InlineFieldPanel() {
         {/* 面板头部 */}
         <div className="header">
           <div className="header-left">
-            <FieldPanelToolbarLeft currentNode={currentNode} />
+            <FieldPanelToolbarLeft
+              currentNode={currentNode}
+              onEditJson={() => setJsonEditorOpen(true)}
+            />
           </div>
           <div className="header-center">
             <div className="title">节点字段</div>
@@ -184,6 +215,12 @@ function InlineFieldPanel() {
           {renderEditor}
         </div>
       </div>
+      <NodeJsonEditorModal
+        open={jsonEditorOpen}
+        onClose={() => setJsonEditorOpen(false)}
+        node={currentNode}
+        onSave={handleJsonEditorSave}
+      />
     </ViewportPortal>
   );
 }

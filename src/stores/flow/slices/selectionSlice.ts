@@ -40,7 +40,9 @@ export const createSelectionSlice: StateCreator<
         const selectedNode = nodes[0];
         // 只有在非拖拽状态下才更新目标节点
         if (!selectedNode.dragging || state.targetNode === null) {
-          newState.targetNode = selectedNode;
+          // 从最新的 nodes 数组中获取节点数据
+          const latestNode = state.nodes.find((n) => n.id === selectedNode.id);
+          newState.targetNode = latestNode || selectedNode;
         }
       }
 

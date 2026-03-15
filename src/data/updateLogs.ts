@@ -52,7 +52,10 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2026-3",
     type: "major",
     updates: {
-      features: ["📐 新增直角走线与避让走线模式，可在设置面板切换"],
+      features: [
+        "📐 新增直角走线与避让走线模式，可在设置面板切换",
+        "👩‍💻 新增节点 JSON 编辑器，支持格式化、智能提示等 IDE 级交互",
+      ],
       fixes: ["修复部分情况下删除边后次序未及时更新的问题"],
     },
   },
