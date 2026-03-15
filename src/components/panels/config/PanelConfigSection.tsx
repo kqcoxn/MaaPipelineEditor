@@ -160,7 +160,7 @@ const PanelConfigSection = memo(() => {
             content={
               <TipElem
                 content={
-                  "曲线：使用贝塞尔曲线连接节点，线条平滑流畅\n直角：使用阶梯状折线连接节点，路径规整清晰"
+                  "曲线：使用贝塞尔曲线连接节点，线条平滑流畅\n直角：使用阶梯状折线连接节点，路径规整清晰\n避让：自动绕过路径上的节点，智能规划路线"
                 }
               />
             }
@@ -176,6 +176,7 @@ const PanelConfigSection = memo(() => {
           options={[
             { value: "bezier", label: "曲线" },
             { value: "smoothstep", label: "直角" },
+            { value: "avoid", label: "避让" },
           ]}
         />
       </div>

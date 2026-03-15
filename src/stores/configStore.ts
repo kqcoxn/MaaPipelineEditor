@@ -5,7 +5,7 @@ import type { HandleDirection } from "../components/flow/nodes/constants";
 export const globalConfig = {
   dev: true,
   version: `1.3.0`,
-  betaIteration: 1,
+  betaIteration: 2,
   mfwVersion: "5.9.0-alpha.4",
   protocolVersion: "0.7.4",
 };
@@ -93,7 +93,7 @@ export type PipelineProtocolVersion = "v1" | "v2";
 export type CanvasBackgroundMode = "pure" | "eyecare";
 
 // 边走线模式
-export type EdgePathMode = "bezier" | "smoothstep";
+export type EdgePathMode = "bezier" | "smoothstep" | "avoid";
 
 /**配置 */
 type ConfigState = {

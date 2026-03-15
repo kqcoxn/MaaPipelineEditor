@@ -18,6 +18,12 @@ import { useFlowStore } from "../../stores/flow";
 import { useDebugStore } from "../../stores/debugStore";
 import { SourceHandleTypeEnum, TargetHandleTypeEnum, getHandlePositions, DEFAULT_HANDLE_DIRECTION, NodeTypeEnum } from "./nodes";
 import type { HandleDirection } from "./nodes";
+import type { EdgeType, NodeType } from "../../stores/flow/types";
+import {
+  calculateAvoidancePath,
+  buildNodeBoundsList,
+  DEFAULT_AVOIDANCE_CONFIG,
+} from "../../core/avoidanceUtils";
 
 // 判断位置是否为水平方向
 function isHorizontalPosition(position: string): boolean {
@@ -232,6 +238,61 @@ function getSmoothStepEdgePath({
   return [path, labelX, labelY];
 }
 
+// 避让路径
+function getAvoidanceEdgePath({
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  sourceId,
+  targetId,
+  nodes,
+  edges,
+  edgeId,
+}: {
+  sourceX: number;
+  sourceY: number;
+  targetX: number;
+  targetY: number;
+  sourcePosition: string;
+  targetPosition: string;
+  sourceId: string;
+  targetId: string;
+  nodes: NodeType[];
+  edges: EdgeType[];
+  edgeId: string;
+}): [string, number, number] {
+  // 构建节点边界框列表
+  const nodeBoundsList = buildNodeBoundsList(nodes);
+
+  // 排除源节点和目标节点
+  const excludeIds = new Set([sourceId, targetId]);
+
+  // 检测平行边（连接相同源节点和目标节点的边）
+  const parallelEdges = edges.filter(
+    (e) => e.source === sourceId && e.target === targetId
+  );
+  const edgeIndex = parallelEdges.findIndex((e) => e.id === edgeId);
+  const totalParallelEdges = parallelEdges.length;
+
+  // 计算避让路径
+  const result = calculateAvoidancePath(
+    { x: sourceX, y: sourceY },
+    { x: targetX, y: targetY },
+    sourcePosition,
+    targetPosition,
+    nodeBoundsList,
+    excludeIds,
+    DEFAULT_AVOIDANCE_CONFIG,
+    edgeIndex,
+    totalParallelEdges
+  );
+
+  return [result.path, result.labelX, result.labelY];
+}
+
 function MarkedEdge(props: EdgeProps) {
   const { screenToFlowPosition } = useReactFlow();
   const showEdgeLabel = useConfigStore((state) => state.configs.showEdgeLabel);
@@ -241,29 +302,31 @@ function MarkedEdge(props: EdgeProps) {
   );
   const edgePathMode = useConfigStore((state) => state.configs.edgePathMode);
 
-  // 直接从节点数据获取方向信息
-  const { sourceDirection, targetDirection } = useFlowStore(
+  // 直接从节点数据获取方向信息、节点列表和边列表
+  const { sourceDirection, targetDirection, nodes, edges } = useFlowStore(
     useShallow((state) => {
       const sourceNode = state.nodes.find((n) => n.id === props.source);
       const targetNode = state.nodes.find((n) => n.id === props.target);
-      
+
       const getSourceDirection = (): HandleDirection => {
         if (sourceNode && ('handleDirection' in sourceNode.data)) {
           return (sourceNode.data as { handleDirection?: HandleDirection }).handleDirection || DEFAULT_HANDLE_DIRECTION;
         }
         return DEFAULT_HANDLE_DIRECTION;
       };
-      
+
       const getTargetDirection = (): HandleDirection => {
         if (targetNode && ('handleDirection' in targetNode.data)) {
           return (targetNode.data as { handleDirection?: HandleDirection }).handleDirection || DEFAULT_HANDLE_DIRECTION;
         }
         return DEFAULT_HANDLE_DIRECTION;
       };
-      
+
       return {
         sourceDirection: getSourceDirection(),
         targetDirection: getTargetDirection(),
+        nodes: state.nodes,
+        edges: state.edges,
       };
     })
   );
@@ -297,6 +360,23 @@ function MarkedEdge(props: EdgeProps) {
 
   // 计算边的路径
   const [edgePath, labelX, labelY] = useMemo(() => {
+    // 避让模式：使用避让路径算法
+    if (edgePathMode === "avoid") {
+      return getAvoidanceEdgePath({
+        sourceX: props.sourceX,
+        sourceY: props.sourceY,
+        targetX: props.targetX,
+        targetY: props.targetY,
+        sourcePosition: actualSourcePosition,
+        targetPosition: actualTargetPosition,
+        sourceId: props.source,
+        targetId: props.target,
+        nodes,
+        edges,
+        edgeId: props.id,
+      });
+    }
+
     // 直角模式：直接使用直角路径
     if (edgePathMode === "smoothstep") {
       return getSmoothStepEdgePath({
@@ -341,6 +421,9 @@ function MarkedEdge(props: EdgeProps) {
     actualTargetPosition,
     controlOffset,
     edgePathMode,
+    nodes,
+    props.source,
+    props.target,
   ]);
 
   // 处理拖拽开始
