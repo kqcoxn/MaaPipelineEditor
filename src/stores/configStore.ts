@@ -36,6 +36,7 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   isRealTimePreview: "panel",
   showEdgeLabel: "panel",
   showEdgeControlPoint: "panel",
+  edgePathMode: "panel",
   isAutoFocus: "panel",
   focusOpacity: "panel",
   isExportConfig: "panel",
@@ -64,7 +65,7 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
 /**获取可导出的配置 */
 export const getExportableConfigs = (
   configs: ConfigState["configs"],
-  excludeCategories: ConfigCategory[] = []
+  excludeCategories: ConfigCategory[] = [],
 ): Partial<ConfigState["configs"]> => {
   const result: Record<string, any> = {};
   Object.entries(configs).forEach(([key, value]) => {
@@ -90,6 +91,9 @@ export type PipelineProtocolVersion = "v1" | "v2";
 
 // 画布背景模式
 export type CanvasBackgroundMode = "pure" | "eyecare";
+
+// 边走线模式
+export type EdgePathMode = "bezier" | "smoothstep";
 
 /**配置 */
 type ConfigState = {
@@ -121,6 +125,8 @@ type ConfigState = {
     focusOpacity: number;
     // 边控制点
     showEdgeControlPoint: boolean;
+    // 边走线模式
+    edgePathMode: EdgePathMode;
     // 启用跨文件搜索
     enableCrossFileSearch: boolean;
     // 画布背景模式
@@ -144,7 +150,7 @@ type ConfigState = {
   };
   setConfig: <K extends keyof ConfigState["configs"]>(
     key: K,
-    value: ConfigState["configs"][K]
+    value: ConfigState["configs"][K],
   ) => void;
   replaceConfig: (configs: any) => void;
   // 状态
@@ -156,7 +162,7 @@ type ConfigState = {
   };
   setStatus: <K extends keyof ConfigState["status"]>(
     key: K,
-    value: ConfigState["status"][K]
+    value: ConfigState["status"][K],
   ) => void;
 };
 
@@ -190,6 +196,8 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     focusOpacity: 0.3,
     // 边控制点
     showEdgeControlPoint: true,
+    // 边走线模式
+    edgePathMode: "bezier" as EdgePathMode,
     // 画布背景模式
     canvasBackgroundMode: "eyecare" as CanvasBackgroundMode,
     // 字段面板模式

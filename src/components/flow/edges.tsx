@@ -7,6 +7,8 @@ import {
   EdgeLabelRenderer,
   type EdgeProps,
   useReactFlow,
+  getSmoothStepPath,
+  Position,
 } from "@xyflow/react";
 import classNames from "classnames";
 import { useShallow } from "zustand/shallow";
@@ -185,6 +187,51 @@ function getStandardBezierPath({
   return [path, labelX, labelY];
 }
 
+// 将位置字符串转换为 Position 枚举
+function positionToEnum(position: string): Position {
+  switch (position) {
+    case "left":
+      return Position.Left;
+    case "right":
+      return Position.Right;
+    case "top":
+      return Position.Top;
+    case "bottom":
+      return Position.Bottom;
+    default:
+      return Position.Right;
+  }
+}
+
+// 直角阶梯路径
+function getSmoothStepEdgePath({
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+}: {
+  sourceX: number;
+  sourceY: number;
+  targetX: number;
+  targetY: number;
+  sourcePosition: string;
+  targetPosition: string;
+}): [string, number, number] {
+  const [path, labelX, labelY] = getSmoothStepPath({
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+    sourcePosition: positionToEnum(sourcePosition),
+    targetPosition: positionToEnum(targetPosition),
+    borderRadius: 0,
+  });
+
+  return [path, labelX, labelY];
+}
+
 function MarkedEdge(props: EdgeProps) {
   const { screenToFlowPosition } = useReactFlow();
   const showEdgeLabel = useConfigStore((state) => state.configs.showEdgeLabel);
@@ -192,6 +239,7 @@ function MarkedEdge(props: EdgeProps) {
   const showEdgeControlPoint = useConfigStore(
     (state) => state.configs.showEdgeControlPoint
   );
+  const edgePathMode = useConfigStore((state) => state.configs.edgePathMode);
 
   // 直接从节点数据获取方向信息
   const { sourceDirection, targetDirection } = useFlowStore(
@@ -247,8 +295,21 @@ function MarkedEdge(props: EdgeProps) {
     }
   }, [edgeControlResetKey]);
 
-  // 计算贝塞尔曲线路径
+  // 计算边的路径
   const [edgePath, labelX, labelY] = useMemo(() => {
+    // 直角模式：直接使用直角路径
+    if (edgePathMode === "smoothstep") {
+      return getSmoothStepEdgePath({
+        sourceX: props.sourceX,
+        sourceY: props.sourceY,
+        targetX: props.targetX,
+        targetY: props.targetY,
+        sourcePosition: actualSourcePosition,
+        targetPosition: actualTargetPosition,
+      });
+    }
+
+    // 贝塞尔模式：支持控制点拖拽
     const hasOffset = controlOffset.x !== 0 || controlOffset.y !== 0;
 
     if (hasOffset) {
@@ -279,6 +340,7 @@ function MarkedEdge(props: EdgeProps) {
     actualSourcePosition,
     actualTargetPosition,
     controlOffset,
+    edgePathMode,
   ]);
 
   // 处理拖拽开始
@@ -500,7 +562,7 @@ function MarkedEdge(props: EdgeProps) {
       <BaseEdge className={edgeClass} id={props.id} path={edgePath} />
       <EdgeLabelRenderer>
         {/* 可拖拽的控制点 */}
-        {showEdgeControlPoint && (
+        {showEdgeControlPoint && edgePathMode === "bezier" && (
           <div
             className={classNames(style["control-point"], {
               [style["control-point-dragging"]]: isDragging,

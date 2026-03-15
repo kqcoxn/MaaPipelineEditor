@@ -15,6 +15,7 @@ const PanelConfigSection = memo(() => {
   const showEdgeControlPoint = useConfigStore(
     (state) => state.configs.showEdgeControlPoint
   );
+  const edgePathMode = useConfigStore((state) => state.configs.edgePathMode);
   const isAutoFocus = useConfigStore((state) => state.configs.isAutoFocus);
   const enableNodeSnap = useConfigStore(
     (state) => state.configs.enableNodeSnap
@@ -148,6 +149,34 @@ const PanelConfigSection = memo(() => {
           unCheckedChildren="隐藏"
           value={showEdgeLabel}
           onChange={(value: boolean) => setConfig("showEdgeLabel", value)}
+        />
+      </div>
+      {/* 边走线模式 */}
+      <div className={globalClass}>
+        <div className={style.key}>
+          <Popover
+            placement="bottomLeft"
+            title={"边走线模式"}
+            content={
+              <TipElem
+                content={
+                  "曲线：使用贝塞尔曲线连接节点，线条平滑流畅\n直角：使用阶梯状折线连接节点，路径规整清晰"
+                }
+              />
+            }
+          >
+            <span>边走线模式</span>
+          </Popover>
+        </div>
+        <Select
+          className={style.value}
+          style={{ width: 70 }}
+          value={edgePathMode}
+          onChange={(value) => setConfig("edgePathMode", value)}
+          options={[
+            { value: "bezier", label: "曲线" },
+            { value: "smoothstep", label: "直角" },
+          ]}
         />
       </div>
       {/* 边拖拽手柄 */}

@@ -50,8 +50,9 @@ export const updateLogs: UpdateLogItem[] = [
   {
     version: "1.3.0",
     date: "2026-3",
-    type: "feature",
+    type: "major",
     updates: {
+      features: ["📐 新增直角走线模式，可在设置面板切换"],
       fixes: ["修复部分情况下删除边后次序未及时更新的问题"],
     },
   },
