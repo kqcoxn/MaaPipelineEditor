@@ -6,8 +6,6 @@
 
 ## perf
 
-- 提炼转换函数
-- JSON 字段提示
 - anchor 字段解析
 
 ## feat
