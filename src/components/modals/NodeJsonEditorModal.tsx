@@ -11,7 +11,10 @@ import type { NodeType } from "../../stores/flow/types";
 import { NodeTypeEnum } from "../flow/nodes";
 import { formatNodeJson } from "../../utils/nodeJsonValidator";
 import { useConfigStore } from "../../stores/configStore";
-import { parsePipelineNodeForExport } from "../../core/parser/nodeParser";
+import {
+  parsePipelineNodeForExport,
+  convertMfwToStoreFormat,
+} from "../../core/parser/nodeParser";
 import type { PipelineNodeType } from "../../stores/flow";
 
 interface NodeJsonEditorModalProps {
@@ -22,97 +25,6 @@ interface NodeJsonEditorModalProps {
 }
 
 const { Text } = Typography;
-
-/**
- * 将 MFW Pipeline Node 格式转换回 Store 格式
- */
-function convertMfwToStoreFormat(
-  mfwData: any,
-  originalNode: NodeType
-): any {
-  if (!mfwData || typeof mfwData !== "object") {
-    return originalNode.data;
-  }
-
-  // 对于非 Pipeline 节点，直接返回数据
-  if (originalNode.type !== NodeTypeEnum.Pipeline) {
-    return {
-      ...originalNode.data,
-      ...mfwData,
-    };
-  }
-
-  // Pipeline 节点需要特殊处理
-  const storeData: any = {
-    label: mfwData.label || originalNode.data.label,
-    recognition: {
-      type: "DirectHit",
-      param: {},
-    },
-    action: {
-      type: "DoNothing",
-      param: {},
-    },
-    others: {},
-  };
-
-  // 处理 recognition
-  if (mfwData.recognition) {
-    if (typeof mfwData.recognition === "string") {
-      // v1 格式: recognition: "TemplateMatch"
-      storeData.recognition.type = mfwData.recognition;
-    } else if (typeof mfwData.recognition === "object") {
-      // v2 格式: recognition: { type: "TemplateMatch", param: {...} }
-      storeData.recognition.type = mfwData.recognition.type || "DirectHit";
-      storeData.recognition.param = mfwData.recognition.param || {};
-    }
-  }
-
-  // 处理 action
-  if (mfwData.action) {
-    if (typeof mfwData.action === "string") {
-      // v1 格式: action: "Click"
-      storeData.action.type = mfwData.action;
-    } else if (typeof mfwData.action === "object") {
-      // v2 格式: action: { type: "Click", param: {...} }
-      storeData.action.type = mfwData.action.type || "DoNothing";
-      storeData.action.param = mfwData.action.param || {};
-    }
-  }
-
-  // 处理其他字段（排除已处理的字段）
-  const processedKeys = new Set([
-    "label",
-    "recognition",
-    "action",
-    "next",
-    "on_error",
-    "$__mpe_code",
-  ]);
-
-  Object.keys(mfwData).forEach((key) => {
-    if (!processedKeys.has(key)) {
-      // 检查是否是识别参数或动作参数（v1 格式）
-      const isRecoParam = !storeData.recognition.param[key] && key !== "recognition";
-      const isActionParam = !storeData.action.param[key] && key !== "action";
-
-      if (isRecoParam && isActionParam) {
-        // 其他字段放入 others
-        storeData.others[key] = mfwData[key];
-      }
-    }
-  });
-
-  // 保留原始节点的额外字段
-  if ((originalNode.data as any).extras) {
-    storeData.extras = (originalNode.data as any).extras;
-  }
-  if ((originalNode.data as any).handleDirection) {
-    storeData.handleDirection = (originalNode.data as any).handleDirection;
-  }
-
-  return storeData;
-}
 
 /**
  * 验证 JSON/JSONC 格式

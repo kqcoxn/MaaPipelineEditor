@@ -1,5 +1,9 @@
 import { useConfigStore } from "../../stores/configStore";
-import type { PipelineNodeType, ParsedPipelineNodeType } from "./types";
+import type {
+  NodeType,
+  PipelineNodeType,
+  ParsedPipelineNodeType,
+} from "./types";
 import { configMark } from "./types";
 import { matchParamType } from "./typeMatchers";
 import {
@@ -11,7 +15,12 @@ import {
   otherFieldSchemaKeyList,
 } from "../fields";
 import { JsonHelper } from "../../utils/jsonHelper";
-import { normalizeRecoType, normalizeActionType } from "./versionDetector";
+import {
+  normalizeRecoType,
+  normalizeActionType,
+  detectNodeVersion,
+} from "./versionDetector";
+import { NodeTypeEnum } from "../../components/flow/nodes";
 
 /**
  * 解析Pipeline节点为导出格式
@@ -19,7 +28,7 @@ import { normalizeRecoType, normalizeActionType } from "./versionDetector";
  * @returns 解析后的Pipeline节点
  */
 export function parsePipelineNodeForExport(
-  fNode: PipelineNodeType
+  fNode: PipelineNodeType,
 ): ParsedPipelineNodeType {
   const fNodeData = fNode.data;
   const configs = useConfigStore.getState().configs;
@@ -32,7 +41,7 @@ export function parsePipelineNodeForExport(
     param: matchParamType(
       fNodeData.recognition.param,
       recoFields[recoType].params,
-      skipValidation
+      skipValidation,
     ),
   };
 
@@ -43,7 +52,7 @@ export function parsePipelineNodeForExport(
     param: matchParamType(
       fNodeData.action.param,
       actionFields[actionType].params,
-      skipValidation
+      skipValidation,
     ),
   };
 
@@ -51,7 +60,7 @@ export function parsePipelineNodeForExport(
   const others = matchParamType(
     fNodeData.others,
     otherFieldParams,
-    skipValidation
+    skipValidation,
   );
 
   // 分离 focus 字段
@@ -72,9 +81,9 @@ export function parsePipelineNodeForExport(
   // 额外字段
   const extras = JsonHelper.isObj(fNodeData.extras)
     ? fNodeData.extras
-    : JsonHelper.stringObjToJson(
-        String(fNodeData.extras).replaceAll(/[""]/g, `"`)
-      ) ?? {};
+    : (JsonHelper.stringObjToJson(
+        String(fNodeData.extras).replaceAll(/[""]/g, `"`),
+      ) ?? {});
 
   // 检查是否导出默认识别/动作
   const exportDefaultRecoAction = configs.exportDefaultRecoAction;
@@ -152,7 +161,7 @@ export function parsePipelineNodeForExport(
  * @returns 包含位置信息的节点
  */
 export function parseExternalNodeForExport(
-  fNode: PipelineNodeType
+  fNode: PipelineNodeType,
 ): ParsedPipelineNodeType {
   const position = fNode.position;
   const mpeCode: Record<string, any> = {
@@ -177,7 +186,7 @@ export function parseExternalNodeForExport(
  * @returns 包含位置信息的节点
  */
 export function parseAnchorNodeForExport(
-  fNode: PipelineNodeType
+  fNode: PipelineNodeType,
 ): ParsedPipelineNodeType {
   const position = fNode.position;
   const mpeCode: Record<string, any> = {
@@ -230,7 +239,7 @@ export function parseStickerNodeForExport(fNode: any): ParsedPipelineNodeType {
  */
 export function parseGroupNodeForExport(
   fNode: any,
-  allNodes: any[]
+  allNodes: any[],
 ): ParsedPipelineNodeType {
   const position = fNode.position;
   // 收集子节点 label
@@ -267,7 +276,7 @@ export function parseGroupNodeForExport(
 export function parseRecognitionField(
   node: PipelineNodeType,
   value: any,
-  nodeVersion: number
+  nodeVersion: number,
 ): void {
   switch (nodeVersion) {
     case 1:
@@ -295,7 +304,7 @@ export function parseRecognitionField(
 export function parseActionField(
   node: PipelineNodeType,
   value: any,
-  nodeVersion: number
+  nodeVersion: number,
 ): void {
   switch (nodeVersion) {
     case 1:
@@ -324,7 +333,7 @@ export function parseNodeField(
   key: string,
   value: any,
   recognitionVersion: number,
-  actionVersion: number
+  actionVersion: number,
 ): boolean {
   // 跳过连接字段
   if (key === "next" || key === "on_error") {
@@ -368,4 +377,91 @@ export function parseNodeField(
 
   // 未识别的字段作为额外字段
   return false;
+}
+
+/**
+ * 将 MFW Pipeline Node 格式转换回 Store 格式
+ * 用于 JSON 编辑器保存时将编辑的 MFW 格式数据转换回内部 Store 格式
+ * @param mfwData MFW 格式的节点数据
+ * @param originalNode 原始节点
+ * @returns Store 格式的节点数据
+ */
+export function convertMfwToStoreFormat(
+  mfwData: any,
+  originalNode: NodeType,
+): any {
+  if (!mfwData || typeof mfwData !== "object") {
+    return originalNode.data;
+  }
+
+  // 对于非 Pipeline 节点，直接返回合并后的数据
+  if (originalNode.type !== NodeTypeEnum.Pipeline) {
+    return {
+      ...originalNode.data,
+      ...mfwData,
+    };
+  }
+
+  // Pipeline 节点需要特殊处理
+  // 创建临时数据结构用于解析
+  const storeData: any = {
+    label: mfwData.label || originalNode.data.label,
+    recognition: {
+      type: "DirectHit",
+      param: {},
+    },
+    action: {
+      type: "DoNothing",
+      param: {},
+    },
+    others: {},
+    extras: {},
+  };
+
+  // 检测版本
+  const { recognitionVersion, actionVersion } = detectNodeVersion(mfwData);
+
+  // 创建临时节点用于复用解析逻辑
+  const tempNode: PipelineNodeType = {
+    id: "temp",
+    type: NodeTypeEnum.Pipeline,
+    position: { x: 0, y: 0 },
+    data: storeData,
+  };
+
+  // 处理所有字段
+  const processedKeys = new Set(["label", "$__mpe_code"]);
+
+  Object.keys(mfwData).forEach((key) => {
+    if (processedKeys.has(key)) return;
+
+    const value = mfwData[key];
+
+    // 使用统一的字段解析函数
+    const isHandled = parseNodeField(
+      tempNode,
+      key,
+      value,
+      recognitionVersion,
+      actionVersion,
+    );
+
+    // 未识别的字段作为额外字段
+    if (!isHandled && key !== "next" && key !== "on_error") {
+      storeData.extras[key] = value;
+    }
+  });
+
+  // 保留原始节点的额外字段
+  if ((originalNode.data as any).extras) {
+    storeData.extras = {
+      ...(originalNode.data as any).extras,
+      ...storeData.extras,
+    };
+  }
+  if ((originalNode.data as any).handleDirection) {
+    storeData.handleDirection = (originalNode.data as any).handleDirection;
+  }
+
+  return storeData;
 }
