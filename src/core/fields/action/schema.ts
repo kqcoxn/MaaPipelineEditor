@@ -294,5 +294,22 @@ export const actionFieldSchema: Record<string, FieldType> = {
  * 动作字段 Schema 键列表
  */
 export const actionFieldSchemaKeyList = Array.from(
-  new Set(Object.values(actionFieldSchema).map((field) => field.key))
+  new Set(Object.values(actionFieldSchema).map((field) => field.key)),
 );
+
+/**
+ * Swipes 内部字段键列表
+ * 用于 MultiSwipe 动作中 swipes 数组元素的内部字段排序
+ */
+export const swipeFieldSchemaKeyList = [
+  "starting",
+  "begin",
+  "begin_offset",
+  "end",
+  "end_offset",
+  "duration",
+  "end_hold",
+  "only_hover",
+  "contact",
+  "pressure",
+];

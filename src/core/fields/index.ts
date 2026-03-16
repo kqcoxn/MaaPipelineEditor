@@ -16,6 +16,7 @@ export {
   actionFieldSchema,
   actionFieldSchemaKeyList,
   actionFields,
+  swipeFieldSchemaKeyList,
 } from "./action/index.js";
 
 // 其他字段

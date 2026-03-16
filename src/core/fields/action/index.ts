@@ -1,2 +1,6 @@
-export { actionFieldSchema, actionFieldSchemaKeyList } from "./schema";
+export {
+  actionFieldSchema,
+  actionFieldSchemaKeyList,
+  swipeFieldSchemaKeyList,
+} from "./schema";
 export { actionFields } from "./fields";

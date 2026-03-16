@@ -21,6 +21,7 @@ import {
   detectNodeVersion,
 } from "./versionDetector";
 import { NodeTypeEnum } from "../../components/flow/nodes";
+import { applyFieldSort } from "../sorting";
 
 /**
  * 解析Pipeline节点为导出格式
@@ -152,7 +153,9 @@ export function parsePipelineNodeForExport(
     pNode[configMark] = mpeCode;
   }
 
-  return pNode;
+  // 应用自定义字段排序
+  const sortConfig = configs.fieldSortConfig;
+  return applyFieldSort(pNode, sortConfig, protocolVersion);
 }
 
 /**

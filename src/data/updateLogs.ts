@@ -55,6 +55,7 @@ export const updateLogs: UpdateLogItem[] = [
       features: [
         "📐 新增直角走线与避让走线模式，可在设置面板切换",
         "👩‍💻 新增节点 JSON 编辑器，支持格式化、智能提示等 IDE 级交互，内置 mfw 字段补全",
+        "👍 新增自定义字段排序功能，默认使用 MaaEnd 推荐方案",
       ],
       perfs: ["模态框内不再监听撤销等全局快捷键"],
       fixes: [

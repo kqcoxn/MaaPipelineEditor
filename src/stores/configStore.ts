@@ -1,11 +1,12 @@
 import { create } from "zustand";
 import type { HandleDirection } from "../components/flow/nodes/constants";
+import type { FieldSortConfig } from "../core/sorting/types";
 
 /**固有配置 */
 export const globalConfig = {
   dev: true,
   version: `1.3.0`,
-  betaIteration: 4,
+  betaIteration: 5,
   mfwVersion: "5.9.0",
   protocolVersion: "0.7.4",
 };
@@ -147,6 +148,8 @@ type ConfigState = {
     enableLiveScreen: boolean;
     // 实时画面刷新间隔（毫秒）
     liveScreenRefreshRate: number;
+    // 字段排序配置
+    fieldSortConfig?: FieldSortConfig;
   };
   setConfig: <K extends keyof ConfigState["configs"]>(
     key: K,
@@ -158,6 +161,7 @@ type ConfigState = {
     showConfigPanel: boolean;
     showAIHistoryPanel: boolean;
     showLocalFilePanel: boolean;
+    showFieldSortModal: boolean;
     rightPanelWidth: number;
   };
   setStatus: <K extends keyof ConfigState["status"]>(
@@ -265,6 +269,7 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     showConfigPanel: false,
     showAIHistoryPanel: false,
     showLocalFilePanel: false,
+    showFieldSortModal: false,
     rightPanelWidth: 350,
   },
   setStatus(key, value) {

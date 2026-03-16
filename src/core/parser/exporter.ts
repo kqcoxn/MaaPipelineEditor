@@ -33,6 +33,7 @@ import {
 } from "./nodeParser";
 import { normalizeViewport } from "../../stores/flow/utils/viewportUtils";
 import { splitPipelineAndConfig } from "./configSplitter";
+import { isMpeField } from "../sorting";
 
 /**
  * 将Flow转换为Pipeline对象
@@ -88,7 +89,7 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
       switch (node.type) {
         case NodeTypeEnum.Pipeline:
           pipelineObj[prefix + node.data.label] = parsePipelineNodeForExport(
-            node as PipelineNodeType
+            node as PipelineNodeType,
           );
           break;
         case NodeTypeEnum.External:
@@ -128,7 +129,7 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
     const sortedEdges: EdgeType[] = [];
     edgeGroups.forEach((groupEdges) => {
       const sorted = groupEdges.sort(
-        (a, b) => (a.label as number) - (b.label as number)
+        (a, b) => (a.label as number) - (b.label as number),
       );
       sortedEdges.push(...sorted);
     });
@@ -179,6 +180,23 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
       if (!(linkType in pSourceNode)) pSourceNode[linkType] = [];
       pSourceNode[linkType].push(toPNodeRef);
     });
+
+    // 将 MPE 特色字段移到每个节点的末尾
+    for (const nodeKey of Object.keys(pipelineObj)) {
+      const node = pipelineObj[nodeKey];
+      const mpeFields: Record<string, unknown> = {};
+      const normalFields: Record<string, unknown> = {};
+
+      for (const key of Object.keys(node)) {
+        if (isMpeField(key)) {
+          mpeFields[key] = node[key];
+        } else {
+          normalFields[key] = node[key];
+        }
+      }
+
+      pipelineObj[nodeKey] = { ...normalFields, ...mpeFields } as typeof node;
+    }
 
     // 配置
     if (!shouldExportConfig) return pipelineObj;

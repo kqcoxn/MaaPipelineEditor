@@ -9,6 +9,7 @@ import { useFlowStore } from "../../../stores/flow";
 import { HANDLE_DIRECTION_OPTIONS } from "../../flow/nodes/constants";
 import type { HandleDirection } from "../../flow/nodes/constants";
 import TipElem from "./TipElem";
+import FieldSortModal from "../../modals/FieldSortModal";
 
 const PipelineConfigSection = memo(() => {
   const nodeAttrExportStyle = useConfigStore(
@@ -31,6 +32,7 @@ const PipelineConfigSection = memo(() => {
     (state) => state.configs.configHandlingMode
   );
   const setConfig = useConfigStore((state) => state.setConfig);
+  const setStatus = useConfigStore((state) => state.setStatus);
   const nodes = useFlowStore((state) => state.nodes);
   const setNodes = useFlowStore((state) => state.setNodes);
 
@@ -266,6 +268,26 @@ const PipelineConfigSection = memo(() => {
           ]}
         />
       </div>
+      {/* 字段排序配置 */}
+      <div className={globalClass}>
+        <div className={style.key}>
+          <Popover
+            placement="bottomLeft"
+            title="字段排序配置"
+            content="自定义导出时的字段排序顺序"
+          >
+            <span>字段排序配置</span>
+          </Popover>
+        </div>
+        <Button
+          className={style.value}
+          size="small"
+          onClick={() => setStatus("showFieldSortModal", true)}
+        >
+          配置排序
+        </Button>
+      </div>
+      <FieldSortModal />
     </>
   );
 });
