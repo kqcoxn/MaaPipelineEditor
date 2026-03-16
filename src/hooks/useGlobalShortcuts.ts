@@ -14,6 +14,18 @@ function isEditableElement(element: HTMLElement): boolean {
 }
 
 /**
+ * 在模态框打开时禁用全局撤销/重做快捷键
+ */
+function isModalOpen(): boolean {
+  const modalWrap = document.querySelector(".ant-modal-wrap");
+  if (!modalWrap) return false;
+
+  // 检查是否可见
+  const style = window.getComputedStyle(modalWrap);
+  return style.display !== "none" && style.visibility !== "hidden";
+}
+
+/**
  * Delete 键重定向为 Backspace
  * 用于兼容某些环境下的删除行为
  */
@@ -72,6 +84,11 @@ function handleUndo(event: KeyboardEvent): boolean {
     return false;
   }
 
+  // 检查是否有模态框打开
+  if (isModalOpen()) {
+    return false;
+  }
+
   event.preventDefault();
   event.stopPropagation();
   event.stopImmediatePropagation();
@@ -99,6 +116,11 @@ function handleRedo(event: KeyboardEvent): boolean {
   // 检查是否在输入框中，如果是则不处理
   const target = event.target as HTMLElement;
   if (isEditableElement(target)) {
+    return false;
+  }
+
+  // 检查是否有模态框打开
+  if (isModalOpen()) {
     return false;
   }
 
