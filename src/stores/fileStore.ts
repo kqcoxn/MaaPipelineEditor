@@ -15,6 +15,7 @@ import {
 } from "../core/parser";
 import { localServer } from "../services/server";
 import { FileProtocol } from "../services/protocols/FileProtocol";
+import { findErrorsByType, ErrorTypeEnum } from "./errorStore";
 
 export type FileConfigType = {
   prefix: string;
@@ -84,7 +85,7 @@ const defaltFile = createFile();
 
 /** 同步 FlowStore 数据到 FileStore.currentFile 和 files 数组 */
 function syncFlowStoreToFileStore(
-  additionalConfig?: Partial<FileConfigType>
+  additionalConfig?: Partial<FileConfigType>,
 ): void {
   const flowStore = useFlowStore.getState();
   useFileStore.setState((state) => {
@@ -107,7 +108,7 @@ function syncFlowStoreToFileStore(
     // 同步更新 files 数组中对应的文件
     const currentFileName = state.currentFile.fileName;
     const fileIndex = state.files.findIndex(
-      (f) => f.fileName === currentFileName
+      (f) => f.fileName === currentFileName,
     );
     if (fileIndex >= 0) {
       state.files[fileIndex] = {
@@ -142,7 +143,7 @@ function extractKeyOrder(contentString: string): string[] {
           }
         },
       },
-      { allowTrailingComma: true }
+      { allowTrailingComma: true },
     );
   } catch (e) {
     console.warn("[fileStore] Failed to extract key order:", e);
@@ -153,7 +154,7 @@ function extractKeyOrder(contentString: string): string[] {
 /** 保存后更新文件配置 */
 function updateFileConfigAfterSave(
   fileName: string,
-  updates: Partial<FileConfigType>
+  updates: Partial<FileConfigType>,
 ): void {
   useFileStore.setState((state) => {
     const fileIndex = state.files.findIndex((f) => f.fileName === fileName);
@@ -186,7 +187,7 @@ export function saveFlow(): FileType | null {
     const fileState = useFileStore.getState();
     const currentFileName = fileState.currentFile.fileName;
     const fileIndex = fileState.files.findIndex(
-      (f) => f.fileName === currentFileName
+      (f) => f.fileName === currentFileName,
     );
 
     if (fileIndex < 0) {
@@ -302,7 +303,7 @@ type FileState = {
   setFileName: (fileName: string) => boolean;
   setFileConfig: <K extends keyof FileConfigType>(
     key: K,
-    value: FileConfigType[K]
+    value: FileConfigType[K],
   ) => void;
   switchFile: (fileName: string) => string | null;
   addFile: (options?: { isSwitch: boolean }) => string | null;
@@ -314,12 +315,12 @@ type FileState = {
     filePath: string,
     content: any,
     mpeConfig?: any,
-    configPath?: string
+    configPath?: string,
   ) => Promise<boolean>;
   saveFileToLocal: (
     filePath?: string,
     fileToSave?: FileType,
-    saveMode?: "all" | "pipeline" | "config"
+    saveMode?: "all" | "pipeline" | "config",
   ) => Promise<boolean>;
   markFileDeleted: (filePath: string) => void;
   markFileModified: (filePath: string) => void;
@@ -518,7 +519,7 @@ export const useFileStore = create<FileState>()((set) => ({
     filePath: string,
     content: any,
     mpeConfig?: any,
-    configPath?: string
+    configPath?: string,
   ): Promise<boolean> {
     try {
       const contentString =
@@ -536,13 +537,13 @@ export const useFileStore = create<FileState>()((set) => ({
             pipelineObj,
             mpeConfig,
             undefined,
-            keyOrder
+            keyOrder,
           );
           finalContentString = JSON.stringify(mergedPipeline);
         } catch (error) {
           console.error(
             "[fileStore] Failed to merge config, using pipeline only:",
-            error
+            error,
           );
         }
       }
@@ -606,7 +607,7 @@ export const useFileStore = create<FileState>()((set) => ({
   async saveFileToLocal(
     filePath?: string,
     fileToSave?: FileType,
-    saveMode?: "all" | "pipeline" | "config"
+    saveMode?: "all" | "pipeline" | "config",
   ): Promise<boolean> {
     try {
       const state = useFileStore.getState();
@@ -624,6 +625,19 @@ export const useFileStore = create<FileState>()((set) => ({
 
       if (!localServer.isConnected()) {
         console.error("[fileStore] WebSocket not connected");
+        return false;
+      }
+
+      // 检查是否有节点名重复错误
+      const repeatErrors = findErrorsByType(ErrorTypeEnum.NodeNameRepeat);
+      if (repeatErrors.length > 0) {
+        notification.error({
+          message: "保存失败！",
+          description: `存在重复的节点名: ${repeatErrors
+            .map((e) => e.msg)
+            .join(", ")}，请修改后再试。`,
+          placement: "top",
+        });
         return false;
       }
 
@@ -645,7 +659,7 @@ export const useFileStore = create<FileState>()((set) => ({
         // 更新 fileStore 中的数据
         useFileStore.setState((s) => {
           const fileIndex = s.files.findIndex(
-            (f) => f.fileName === targetFile.fileName
+            (f) => f.fileName === targetFile.fileName,
           );
           if (fileIndex >= 0) {
             s.files[fileIndex] = {
@@ -677,7 +691,7 @@ export const useFileStore = create<FileState>()((set) => ({
       const generateConfigPath = (pipelinePath: string): string => {
         const lastSlashIndex = Math.max(
           pipelinePath.lastIndexOf("/"),
-          pipelinePath.lastIndexOf("\\")
+          pipelinePath.lastIndexOf("\\"),
         );
         const directory = pipelinePath.substring(0, lastSlashIndex + 1);
         const fileName = pipelinePath.substring(lastSlashIndex + 1);

@@ -24,18 +24,16 @@ import {
   findNodeIndexById,
   calcuNodePosition,
   getNodeAbsolutePosition,
-  checkRepeatNodeLabelList as checkRepeatNodeLabelListUtil,
   ensureGroupNodeOrder,
 } from "../utils/nodeUtils";
 import { fitFlowView } from "../utils/viewportUtils";
 import { assignNodeOrder, removeNodeOrder } from "../../fileStore";
-import { ErrorTypeEnum, useErrorStore } from "../../errorStore";
 import { useConfigStore } from "../../configStore";
-import { useFileStore } from "../../fileStore";
+import { checkRepeatNodeLabelList } from "../index";
 
 export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
   set,
-  get
+  get,
 ) => ({
   // 初始状态
   nodes: [],
@@ -55,12 +53,12 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       // 如果删除的节点中包含 Group 节点，先将其子节点脱离
       if (removedIds.size > 0) {
         const groupsToRemove = state.nodes.filter(
-          (n) => removedIds.has(n.id) && n.type === NodeTypeEnum.Group
+          (n) => removedIds.has(n.id) && n.type === NodeTypeEnum.Group,
         );
         if (groupsToRemove.length > 0) {
           const groupIds = new Set(groupsToRemove.map((g) => g.id));
           const groupPosMap = new Map(
-            groupsToRemove.map((g) => [g.id, g.position])
+            groupsToRemove.map((g) => [g.id, g.position]),
           );
           // 在 apply 之前先脱离子节点
           state = {
@@ -99,7 +97,7 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
 
         // 清理 selectedNodes 中被删除的节点
         const filteredSelectedNodes = state.selectedNodes.filter(
-          (node) => !removedIds.has(node.id)
+          (node) => !removedIds.has(node.id),
         );
         if (filteredSelectedNodes.length !== state.selectedNodes.length) {
           updates.selectedNodes = filteredSelectedNodes;
@@ -119,11 +117,13 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
     const hasRemove = changes.some((change) => change.type === "remove");
     const hasPosition = changes.some((change) => change.type === "position");
     const isDragging = changes.some(
-      (change) => change.type === "position" && change.dragging
+      (change) => change.type === "position" && change.dragging,
     );
 
     if (hasRemove) {
       get().saveHistory(0);
+      // 检查重名
+      checkRepeatNodeLabelList();
     } else if (hasPosition) {
       get().saveHistory(isDragging ? 1000 : 0);
     }
@@ -375,19 +375,7 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
     });
 
     // 检查节点名重复
-    const configs = useConfigStore.getState().configs;
-    const fileConfig = useFileStore.getState().currentFile.config;
-    const nodes = get().nodes;
-    const repeats = checkRepeatNodeLabelListUtil(nodes, {
-      isExportConfig: configs.isExportConfig,
-      prefix: fileConfig.prefix,
-    });
-    useErrorStore.getState().setError(ErrorTypeEnum.NodeNameRepeat, () => {
-      return repeats.map((label) => ({
-        type: ErrorTypeEnum.NodeNameRepeat,
-        msg: label,
-      }));
-    });
+    checkRepeatNodeLabelList();
 
     // 保存历史记录
     get().saveHistory(1000);
@@ -401,7 +389,7 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
   // 批量更新节点数据
   batchSetNodeData(
     id: string,
-    updates: Array<{ type: string; key: string; value: any }>
+    updates: Array<{ type: string; key: string; value: any }>,
   ) {
     set((state) => {
       const nodeIndex = findNodeIndexById(state.nodes, id);
@@ -497,19 +485,7 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
     });
 
     // 检查节点名重复
-    const configs = useConfigStore.getState().configs;
-    const fileConfig = useFileStore.getState().currentFile.config;
-    const nodes = get().nodes;
-    const repeats = checkRepeatNodeLabelListUtil(nodes, {
-      isExportConfig: configs.isExportConfig,
-      prefix: fileConfig.prefix,
-    });
-    useErrorStore.getState().setError(ErrorTypeEnum.NodeNameRepeat, () => {
-      return repeats.map((label) => ({
-        type: ErrorTypeEnum.NodeNameRepeat,
-        msg: label,
-      }));
-    });
+    checkRepeatNodeLabelList();
 
     // 保存历史记录
     get().saveHistory(1000);
@@ -524,7 +500,7 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
   groupSelectedNodes() {
     set((state) => {
       const selected = state.selectedNodes.filter(
-        (n) => n.type !== NodeTypeEnum.Group
+        (n) => n.type !== NodeTypeEnum.Group,
       );
       if (selected.length === 0) return {};
 
