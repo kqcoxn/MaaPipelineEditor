@@ -1,5 +1,5 @@
 import style from "../../../../styles/FieldPanel.module.less";
-import { memo, useState, useCallback } from "react";
+import { memo, useState, useCallback, useMemo } from "react";
 import { Popover, Input, InputNumber, Select, Switch } from "antd";
 import IconFont, { type IconNames } from "../../../iconfonts";
 import type { ParamType } from "../../../../stores/flow";
@@ -19,6 +19,7 @@ import { ListValueElem } from "./ListValueElem";
 import { TemplatePreview } from "./TemplatePreview";
 import { ImageSelect } from "./ImageSelect";
 import { message } from "antd";
+import { sortKeysByOrder } from "../../../../core/sorting";
 
 // 快捷工具类型
 type QuickToolType =
@@ -78,6 +79,7 @@ export const ParamFieldListElem = memo(
     onListChange,
     onListAdd,
     onListDelete,
+    sortOrder,
   }: {
     paramData: ParamType;
     paramType: FieldType[];
@@ -86,6 +88,7 @@ export const ParamFieldListElem = memo(
     onListChange: (key: string, valueList: any[]) => void;
     onListAdd: (key: string, valueList: any[]) => void;
     onListDelete: (key: string, valueList: any[], index: number) => void;
+    sortOrder?: string[];
   }) => {
     const { connectionStatus } = useMFWStore();
     const [roiModalOpen, setRoiModalOpen] = useState(false);
@@ -417,10 +420,21 @@ export const ParamFieldListElem = memo(
     );
 
     const existingFields = Object.keys(paramData);
-    const paramFields = paramType.flatMap((type) => {
+    const fieldTypeMap = useMemo(
+      () => new Map(paramType.map((field) => [field.key, field])),
+      [paramType]
+    );
+    const orderedFieldTypes = useMemo(() => {
+      const orderedKeys = sortOrder
+        ? sortKeysByOrder(existingFields, sortOrder)
+        : existingFields;
+      return orderedKeys
+        .map((key) => fieldTypeMap.get(key))
+        .filter((field): field is FieldType => Boolean(field));
+    }, [existingFields, fieldTypeMap, sortOrder]);
+    const paramFields = orderedFieldTypes.flatMap((type) => {
       const key = type.key;
       const value = paramData[key];
-      if (!existingFields.includes(key)) return [];
       // 输入方案
       let InputElem = null;
       let paramType = Array.isArray(type.type) ? type.type[0] : type.type;

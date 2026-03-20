@@ -48,6 +48,16 @@ export const pinnedNotice: PinnedNotice = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "1.3.1",
+    date: "2026-3",
+    type: "feature",
+    updates: {
+      features: [
+        "🥢 自定义排序功能同步影响字段面板与节点渲染，字段顺序对应一致",
+      ],
+    },
+  },
+  {
     version: "1.3.0",
     date: "2026-3-17",
     type: "major",

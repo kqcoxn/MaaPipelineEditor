@@ -7,6 +7,10 @@ import { useConfigStore } from "../../../../stores/configStore";
 import { KVElem } from "../components/KVElem";
 import { PipelineNodeHandles } from "../components/NodeHandles";
 import { JsonHelper } from "../../../../utils/jsonHelper";
+import {
+  mergeFieldSortConfig,
+  sortKeysByOrder,
+} from "../../../../core/sorting";
 
 /**经典风格Pipeline节点内容 */
 export const ClassicContent = memo(
@@ -14,20 +18,20 @@ export const ClassicContent = memo(
     const showNodeDetailFields = useConfigStore(
       (state) => state.configs.showNodeDetailFields
     );
+    const fieldSortConfig = useConfigStore(
+      (state) => state.configs.fieldSortConfig
+    );
+    const mergedSortConfig = useMemo(
+      () => mergeFieldSortConfig(fieldSortConfig),
+      [fieldSortConfig]
+    );
 
-    const ExtrasElem = useMemo(() => {
+    const extraEntries = useMemo(() => {
       if (JsonHelper.isObj(data.extras)) {
-        return Object.keys(data.extras).map((key) => (
-          <KVElem key={key} paramKey={key} value={data.extras[key]} />
-        ));
+        return Object.entries(data.extras);
       }
       const extras = JsonHelper.stringObjToJson(data.extras);
-      if (extras) {
-        return Object.keys(extras).map((key) => (
-          <KVElem key={key} paramKey={key} value={extras[key]} />
-        ));
-      }
-      return null;
+      return extras ? Object.entries(extras) : [];
     }, [data.extras]);
 
     // 过滤空的 focus 字段
@@ -46,6 +50,30 @@ export const ClassicContent = memo(
       }
       return others;
     }, [data.others]);
+    const recognitionParamKeys = useMemo(
+      () =>
+        sortKeysByOrder(
+          Object.keys(data.recognition.param),
+          mergedSortConfig.recognitionParamFields
+        ),
+      [data.recognition.param, mergedSortConfig.recognitionParamFields]
+    );
+    const actionParamKeys = useMemo(
+      () =>
+        sortKeysByOrder(
+          Object.keys(data.action.param),
+          mergedSortConfig.actionParamFields
+        ),
+      [data.action.param, mergedSortConfig.actionParamFields]
+    );
+    const otherParamKeys = useMemo(
+      () =>
+        sortKeysByOrder(
+          Object.keys(filteredOthers),
+          mergedSortConfig.mainTaskFields
+        ),
+      [filteredOthers, mergedSortConfig.mainTaskFields]
+    );
 
     return (
       <>
@@ -53,7 +81,7 @@ export const ClassicContent = memo(
         <ul className={style.list}>
           <ul className={style.module}>
             <KVElem paramKey="recognition" value={data.recognition.type} />
-            {showNodeDetailFields && Object.keys(data.recognition.param).map((key) => (
+            {showNodeDetailFields && recognitionParamKeys.map((key) => (
               <KVElem
                 key={key}
                 paramKey={key}
@@ -63,16 +91,18 @@ export const ClassicContent = memo(
           </ul>
           <ul className={style.module}>
             <KVElem paramKey="action" value={data.action.type} />
-            {showNodeDetailFields && Object.keys(data.action.param).map((key) => (
+            {showNodeDetailFields && actionParamKeys.map((key) => (
               <KVElem key={key} paramKey={key} value={data.action.param[key]} />
             ))}
           </ul>
           {showNodeDetailFields && (
             <ul className={style.module}>
-              {Object.keys(filteredOthers).map((key) => (
+              {otherParamKeys.map((key) => (
                 <KVElem key={key} paramKey={key} value={filteredOthers[key]} />
               ))}
-              {ExtrasElem}
+              {extraEntries.map(([key, value]) => (
+                <KVElem key={key} paramKey={key} value={value} />
+              ))}
             </ul>
           )}
         </ul>

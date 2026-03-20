@@ -12,4 +12,10 @@ export {
 } from "./defaults";
 
 // 排序应用
-export { applyFieldSort, createSortContext, isMpeField } from "./applySort";
+export {
+  applyFieldSort,
+  createSortContext,
+  isMpeField,
+  mergeFieldSortConfig,
+  sortKeysByOrder,
+} from "./applySort";

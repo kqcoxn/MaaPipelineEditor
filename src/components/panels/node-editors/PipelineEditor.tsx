@@ -4,12 +4,14 @@ import { Popover, Input, Select, Spin, Modal, InputNumber } from "antd";
 import classNames from "classnames";
 import IconFont from "../../iconfonts";
 import { useFlowStore, type PipelineNodeType } from "../../../stores/flow";
+import { useConfigStore } from "../../../stores/configStore";
 import {
   recoFields,
   actionFields,
   otherFieldParamsWithoutFocus,
   otherFieldSchema,
 } from "../../../core/fields";
+import { mergeFieldSortConfig } from "../../../core/sorting";
 import { JsonHelper } from "../../../utils/jsonHelper";
 import { AddFieldElem, ParamFieldListElem } from "../field/items";
 
@@ -23,6 +25,13 @@ export const PipelineEditor = lazy(() =>
   Promise.resolve({
     default: memo(({ currentNode }: { currentNode: PipelineNodeType }) => {
       const setNodeData = useFlowStore((state) => state.setNodeData);
+      const fieldSortConfig = useConfigStore(
+        (state) => state.configs.fieldSortConfig
+      );
+      const mergedSortConfig = useMemo(
+        () => mergeFieldSortConfig(fieldSortConfig),
+        [fieldSortConfig]
+      );
 
       // 字段
       const recoOptions = useMemo(
@@ -370,6 +379,7 @@ export const PipelineEditor = lazy(() =>
               paramType={
                 recoFields[currentNode.data.recognition.type]?.params || []
               }
+              sortOrder={mergedSortConfig.recognitionParamFields}
               onChange={(key, value) =>
                 setNodeData(currentNode.id, "recognition", key, value)
               }
@@ -433,6 +443,7 @@ export const PipelineEditor = lazy(() =>
               paramType={
                 actionFields[currentNode.data.action.type]?.params || []
               }
+              sortOrder={mergedSortConfig.actionParamFields}
               onChange={(key, value) =>
                 setNodeData(currentNode.id, "action", key, value)
               }
@@ -491,6 +502,7 @@ export const PipelineEditor = lazy(() =>
             <ParamFieldListElem
               paramData={currentNode.data.others}
               paramType={otherFieldParamsWithoutFocus}
+              sortOrder={mergedSortConfig.mainTaskFields}
               onChange={(key, value) =>
                 setNodeData(currentNode.id, "others", key, value)
               }
@@ -600,6 +612,7 @@ export const PipelineEditor = lazy(() =>
                       : {}
                   }
                   paramType={otherFieldSchema.preWaitFreezes.params || []}
+                  sortOrder={mergedSortConfig.freezeParamFields}
                   onChange={(key, value) =>
                     handleWaitFreezesFieldChange("pre_wait_freezes", key, value)
                   }
@@ -703,6 +716,7 @@ export const PipelineEditor = lazy(() =>
                       : {}
                   }
                   paramType={otherFieldSchema.postWaitFreezes.params || []}
+                  sortOrder={mergedSortConfig.freezeParamFields}
                   onChange={(key, value) =>
                     handleWaitFreezesFieldChange(
                       "post_wait_freezes",
@@ -821,6 +835,7 @@ export const PipelineEditor = lazy(() =>
                       : {}
                   }
                   paramType={otherFieldSchema.repeatWaitFreezes.params || []}
+                  sortOrder={mergedSortConfig.freezeParamFields}
                   onChange={(key, value) =>
                     handleWaitFreezesFieldChange(
                       "repeat_wait_freezes",

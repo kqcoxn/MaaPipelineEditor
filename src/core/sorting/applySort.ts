@@ -56,6 +56,45 @@ function sortObjectByOrder<T extends Record<string, unknown>>(
   return result as T;
 }
 
+export function mergeFieldSortConfig(
+  sortConfig?: FieldSortConfig,
+): FieldSortConfig {
+  const defaultConfig = getDefaultSortConfig();
+  return {
+    mainTaskFields: sortConfig?.mainTaskFields ?? defaultConfig.mainTaskFields,
+    recognitionParamFields:
+      sortConfig?.recognitionParamFields ??
+      defaultConfig.recognitionParamFields,
+    actionParamFields:
+      sortConfig?.actionParamFields ?? defaultConfig.actionParamFields,
+    swipeFields: sortConfig?.swipeFields ?? defaultConfig.swipeFields,
+    freezeParamFields:
+      sortConfig?.freezeParamFields ?? defaultConfig.freezeParamFields,
+  };
+}
+
+export function sortKeysByOrder(keys: string[], order: string[]): string[] {
+  const keySet = new Set(keys);
+  const sortedKeys: string[] = [];
+  const addedKeys = new Set<string>();
+
+  for (const key of order) {
+    if (keySet.has(key) && !addedKeys.has(key)) {
+      sortedKeys.push(key);
+      addedKeys.add(key);
+    }
+  }
+
+  for (const key of keys) {
+    if (!addedKeys.has(key)) {
+      sortedKeys.push(key);
+      addedKeys.add(key);
+    }
+  }
+
+  return sortedKeys;
+}
+
 /**
  * 排序 recognition 对象（v2 版本）
  */
@@ -277,19 +316,7 @@ export function applyFieldSort(
   sortConfig: FieldSortConfig | undefined,
   version: PipelineProtocolVersion,
 ): ParsedPipelineNodeType {
-  // 合并默认配置
-  const defaultConfig = getDefaultSortConfig();
-  const config: FieldSortConfig = {
-    mainTaskFields: sortConfig?.mainTaskFields ?? defaultConfig.mainTaskFields,
-    recognitionParamFields:
-      sortConfig?.recognitionParamFields ??
-      defaultConfig.recognitionParamFields,
-    actionParamFields:
-      sortConfig?.actionParamFields ?? defaultConfig.actionParamFields,
-    swipeFields: sortConfig?.swipeFields ?? defaultConfig.swipeFields,
-    freezeParamFields:
-      sortConfig?.freezeParamFields ?? defaultConfig.freezeParamFields,
-  };
+  const config = mergeFieldSortConfig(sortConfig);
 
   // 根据版本选择排序策略
   if (version === "v1") {
@@ -308,6 +335,6 @@ export function createSortContext(
 ): SortContext {
   return {
     version,
-    config: config ?? getDefaultSortConfig(),
+    config: mergeFieldSortConfig(config),
   };
 }

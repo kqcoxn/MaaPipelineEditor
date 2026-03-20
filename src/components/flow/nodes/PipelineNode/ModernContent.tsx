@@ -12,6 +12,10 @@ import { NodeTemplateImages } from "../components/NodeTemplateImages";
 import { getRecognitionIcon, getActionIcon, getNodeTypeIcon } from "../utils";
 import { JsonHelper } from "../../../../utils/jsonHelper";
 import { otherFieldSchema } from "../../../../core/fields/other/schema";
+import {
+  mergeFieldSortConfig,
+  sortKeysByOrder,
+} from "../../../../core/sorting";
 
 // focus 子项 key 到 displayName 的映射
 const focusDisplayNameMap: Record<string, string> = (() => {
@@ -40,6 +44,13 @@ export const ModernContent = memo(
     const showNodeDetailFields = useConfigStore(
       (state) => state.configs.showNodeDetailFields
     );
+    const fieldSortConfig = useConfigStore(
+      (state) => state.configs.fieldSortConfig
+    );
+    const mergedSortConfig = useMemo(
+      () => mergeFieldSortConfig(fieldSortConfig),
+      [fieldSortConfig]
+    );
 
     useEffect(() => {
       if (headerRef.current) {
@@ -48,19 +59,12 @@ export const ModernContent = memo(
       }
     }, [data.label]);
 
-    const ExtrasElem = useMemo(() => {
+    const extraEntries = useMemo(() => {
       if (JsonHelper.isObj(data.extras)) {
-        return Object.keys(data.extras).map((key) => (
-          <KVElem key={key} paramKey={key} value={data.extras[key]} />
-        ));
+        return Object.entries(data.extras);
       }
       const extras = JsonHelper.stringObjToJson(data.extras);
-      if (extras) {
-        return Object.keys(extras).map((key) => (
-          <KVElem key={key} paramKey={key} value={extras[key]} />
-        ));
-      }
-      return null;
+      return extras ? Object.entries(extras) : [];
     }, [data.extras]);
 
     // 过滤空的 focus 字段，并将 focus 对象拆分为子项
@@ -92,6 +96,30 @@ export const ModernContent = memo(
 
       return { filteredOthers: others, focusItems };
     }, [data.others]);
+    const recognitionParamKeys = useMemo(
+      () =>
+        sortKeysByOrder(
+          Object.keys(data.recognition.param),
+          mergedSortConfig.recognitionParamFields
+        ),
+      [data.recognition.param, mergedSortConfig.recognitionParamFields]
+    );
+    const actionParamKeys = useMemo(
+      () =>
+        sortKeysByOrder(
+          Object.keys(data.action.param),
+          mergedSortConfig.actionParamFields
+        ),
+      [data.action.param, mergedSortConfig.actionParamFields]
+    );
+    const otherParamKeys = useMemo(
+      () =>
+        sortKeysByOrder(
+          Object.keys(filteredOthers),
+          mergedSortConfig.mainTaskFields
+        ),
+      [filteredOthers, mergedSortConfig.mainTaskFields]
+    );
 
     const recoIconConfig = useMemo(
       () => getRecognitionIcon(data.recognition.type),
@@ -115,8 +143,8 @@ export const ModernContent = memo(
       () =>
         Object.keys(filteredOthers).length > 0 ||
         focusItems.length > 0 ||
-        (ExtrasElem && ExtrasElem.length > 0),
-      [filteredOthers, focusItems, ExtrasElem]
+        extraEntries.length > 0,
+      [filteredOthers, focusItems, extraEntries]
     );
 
     // 提取 template 路径列表
@@ -168,7 +196,7 @@ export const ModernContent = memo(
             </div>
             {showNodeDetailFields && hasRecoParams && (
               <ul className={style.sectionList}>
-                {Object.keys(data.recognition.param).map((key) => (
+                {recognitionParamKeys.map((key) => (
                   <KVElem
                     key={key}
                     paramKey={key}
@@ -194,7 +222,7 @@ export const ModernContent = memo(
             </div>
             {showNodeDetailFields && hasActionParams && (
               <ul className={style.sectionList}>
-                {Object.keys(data.action.param).map((key) => (
+                {actionParamKeys.map((key) => (
                   <KVElem
                     key={key}
                     paramKey={key}
@@ -215,7 +243,7 @@ export const ModernContent = memo(
                 <span>其他</span>
               </div>
               <ul className={style.sectionList}>
-                {Object.keys(filteredOthers).map((key) => (
+                {otherParamKeys.map((key) => (
                   <KVElem
                     key={key}
                     paramKey={key}
@@ -229,7 +257,9 @@ export const ModernContent = memo(
                     value={item.value}
                   />
                 ))}
-                {ExtrasElem}
+                {extraEntries.map(([key, value]) => (
+                  <KVElem key={key} paramKey={key} value={value} />
+                ))}
               </ul>
             </div>
           )}
