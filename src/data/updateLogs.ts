@@ -54,6 +54,7 @@ export const updateLogs: UpdateLogItem[] = [
     updates: {
       features: [
         "🥢 自定义排序功能同步影响字段面板与节点渲染，字段顺序对应一致",
+        "🍡 拖拽连接到空白处时，可唤醒新增节点面板（默认开启，可在设置面板关闭）",
       ],
     },
   },

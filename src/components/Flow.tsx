@@ -19,6 +19,8 @@ import {
   type NodeChange,
   type EdgeChange,
   type Connection,
+  type FinalConnectionState,
+  type OnConnectStartParams,
   type Viewport,
   type OnSelectionChangeParams,
   useKeyPress,
@@ -229,7 +231,13 @@ function MainFlow() {
   const snapOnlyInViewport = useConfigStore(
     (state) => state.configs.snapOnlyInViewport
   );
+  const quickCreateNodeOnConnectBlank = useConfigStore(
+    (state) => state.configs.quickCreateNodeOnConnectBlank
+  );
   const selfElem = useRef<HTMLDivElement>(null);
+  const pendingConnectionRef = useRef<OnConnectStartParams | null>(null);
+  const connectionCompletedRef = useRef(false);
+  const suppressNextPaneClickRef = useRef(false);
 
   // 节点添加面板状态
   const [nodeAddPanelVisible, setNodeAddPanelVisible] = useState(false);
@@ -253,7 +261,66 @@ function MainFlow() {
     (changes: EdgeChange[]) => updateEdges(changes),
     [updateEdges]
   );
-  const onConnect = useCallback((co: Connection) => addEdge(co), [addEdge]);
+  const onConnect = useCallback(
+    (co: Connection) => {
+      connectionCompletedRef.current = true;
+      addEdge(co);
+    },
+    [addEdge]
+  );
+  const onConnectStart = useCallback(
+    (_event: MouseEvent | TouchEvent, params: OnConnectStartParams) => {
+      pendingConnectionRef.current = params;
+      connectionCompletedRef.current = false;
+    },
+    []
+  );
+  const onConnectEnd = useCallback(
+    (
+      event: MouseEvent | TouchEvent,
+      connectionState?: FinalConnectionState
+    ) => {
+      const connectStart = pendingConnectionRef.current;
+      pendingConnectionRef.current = null;
+
+      if (
+        !quickCreateNodeOnConnectBlank ||
+        !connectStart ||
+        connectionCompletedRef.current
+      ) {
+        connectionCompletedRef.current = false;
+        return;
+      }
+
+      const endedOnBlank =
+        !connectionState ||
+        (!connectionState.isValid &&
+          !connectionState.toNode &&
+          !connectionState.toHandle);
+
+      if (!endedOnBlank) {
+        connectionCompletedRef.current = false;
+        return;
+      }
+
+      const clientX =
+        "changedTouches" in event ? event.changedTouches[0]?.clientX : event.clientX;
+      const clientY =
+        "changedTouches" in event ? event.changedTouches[0]?.clientY : event.clientY;
+
+      if (clientX == null || clientY == null || !connectStart.nodeId) {
+        connectionCompletedRef.current = false;
+        return;
+      }
+
+      suppressNextPaneClickRef.current = true;
+      setNodeAddPanelPos({ x: clientX, y: clientY });
+      setNodeAddPanelVisible(true);
+
+      connectionCompletedRef.current = false;
+    },
+    [quickCreateNodeOnConnectBlank]
+  );
   const onSelectionChange = useCallback(
     (params: OnSelectionChangeParams) => {
       updateSelection(params.nodes as NodeType[], params.edges as EdgeType[]);
@@ -264,6 +331,11 @@ function MainFlow() {
   // 双击空白区域打开节点添加面板
   const onPaneClick = useCallback(
     (event: React.MouseEvent | MouseEvent) => {
+      if (suppressNextPaneClickRef.current) {
+        suppressNextPaneClickRef.current = false;
+        return;
+      }
+
       // 单击关闭面板
       if (nodeAddPanelVisible) {
         setNodeAddPanelVisible(false);
@@ -470,6 +542,8 @@ function MainFlow() {
         edges={edges}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onConnectStart={onConnectStart}
+        onConnectEnd={onConnectEnd}
         onSelectionChange={onSelectionChange}
         defaultViewport={defaultViewport}
         minZoom={0.2}
