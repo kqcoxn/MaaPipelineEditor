@@ -352,11 +352,19 @@ function MarkedEdge(props: EdgeProps) {
   const edgeControlResetKey = useFlowStore(
     (state) => state.edgeControlResetKey
   );
+  const edgeControlResetTargetIds = useFlowStore(
+    (state) => state.edgeControlResetTargetIds
+  );
   useEffect(() => {
-    if (edgeControlResetKey > 0) {
+    const shouldReset =
+      edgeControlResetKey > 0 &&
+      (!edgeControlResetTargetIds ||
+        edgeControlResetTargetIds.includes(props.id));
+
+    if (shouldReset) {
       setControlOffset({ x: 0, y: 0 });
     }
-  }, [edgeControlResetKey]);
+  }, [edgeControlResetKey, edgeControlResetTargetIds, props.id]);
 
   // 计算边的路径
   const [edgePath, labelX, labelY] = useMemo(() => {

@@ -26,7 +26,6 @@ import {
   useKeyPress,
 } from "@xyflow/react";
 import { useDebounceEffect, useDebounceFn } from "ahooks";
-import { Dropdown } from "antd";
 
 import { useFlowStore, type EdgeType, type NodeType } from "../stores/flow";
 import { useShallow } from "zustand/shallow";
@@ -34,6 +33,7 @@ import { useClipboardStore } from "../stores/clipboardStore";
 import { nodeTypes } from "./flow/nodes";
 import { NodeTypeEnum } from "./flow/nodes/constants";
 import { edgeTypes } from "./flow/edges";
+import { SelectionContextMenu } from "./flow/components/SelectionContextMenu";
 import { localSave, useFileStore } from "../stores/fileStore";
 import NodeAddPanel from "./panels/main/NodeAddPanel";
 import InlineFieldPanel from "./panels/main/InlineFieldPanel";
@@ -201,7 +201,6 @@ function MainFlow() {
     addEdge,
     updateSize,
     updateSelection,
-    groupSelectedNodes,
     attachNodeToGroup,
     detachNodeFromGroup,
     viewport,
@@ -215,7 +214,6 @@ function MainFlow() {
       addEdge: state.addEdge,
       updateSize: state.updateSize,
       updateSelection: state.updateSelection,
-      groupSelectedNodes: state.groupSelectedNodes,
       attachNodeToGroup: state.attachNodeToGroup,
       detachNodeFromGroup: state.detachNodeFromGroup,
       viewport: state.viewport,
@@ -493,12 +491,6 @@ function MainFlow() {
     []
   );
 
-  const handleCreateGroup = useCallback(() => {
-    groupSelectedNodes();
-    setSelectionMenuPos(null);
-  }, [groupSelectedNodes]);
-
-  // 记忆
   const defaultViewport = useMemo(() => ({ x: 0, y: 0, zoom: 1.5 }), []);
 
   // 背景颜色
@@ -577,37 +569,13 @@ function MainFlow() {
         <SnapGuidelines guidelines={snapGuidelines} />
       </ReactFlow>
       {/* 选区右键菜单 */}
-      <Dropdown
+      <SelectionContextMenu
+        position={selectionMenuPos}
         open={!!selectionMenuPos}
         onOpenChange={(open) => {
           if (!open) setSelectionMenuPos(null);
         }}
-        menu={{
-          items: [
-            {
-              key: "create-group",
-              label: "创建分组",
-              onClick: handleCreateGroup,
-            },
-          ],
-        }}
-        trigger={["contextMenu"]}
-      >
-        {selectionMenuPos ? (
-          <div
-            style={{
-              position: "fixed",
-              left: selectionMenuPos.x,
-              top: selectionMenuPos.y,
-              width: 1,
-              height: 1,
-              pointerEvents: "none",
-            }}
-          />
-        ) : (
-          <span />
-        )}
-      </Dropdown>
+      />
     </div>
   );
 }

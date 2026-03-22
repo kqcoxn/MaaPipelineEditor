@@ -140,7 +140,7 @@ const PipelineConfigSection = memo(() => {
         <div className={style.key}>
           <Popover
             placement="bottomLeft"
-            title="连到空白处时打开节点面板"
+            title="连接空白处时创建"
             content={
               <TipElem
                 content={
@@ -149,7 +149,7 @@ const PipelineConfigSection = memo(() => {
               />
             }
           >
-            <span>连到空白处时打开节点面板</span>
+            <span>连接空白处时创建</span>
           </Popover>
         </div>
         <Switch

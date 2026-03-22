@@ -134,12 +134,7 @@ export type AnchorNodeDataType = {
 };
 
 // Sticker 便签节点颜色主题
-export type StickerColorTheme =
-  | "yellow"
-  | "green"
-  | "blue"
-  | "pink"
-  | "purple";
+export type StickerColorTheme = "yellow" | "green" | "blue" | "pink" | "purple";
 
 // Sticker 便签节点数据类型
 export type StickerNodeDataType = {
@@ -149,12 +144,7 @@ export type StickerNodeDataType = {
 };
 
 // Group 分组节点颜色主题
-export type GroupColorTheme =
-  | "blue"
-  | "green"
-  | "purple"
-  | "orange"
-  | "gray";
+export type GroupColorTheme = "blue" | "green" | "purple" | "orange" | "gray";
 
 // Group 分组节点数据类型
 export type GroupNodeDataType = {
@@ -298,7 +288,7 @@ export interface FlowNodeState {
   setNodeData: (id: string, type: string, key: string, value: any) => void;
   batchSetNodeData: (
     id: string,
-    updates: Array<{ type: string; key: string; value: any }>
+    updates: Array<{ type: string; key: string; value: any }>,
   ) => void;
   setNodes: (nodes: NodeType[]) => void;
   resetNodeCounter: () => void;
@@ -312,12 +302,13 @@ export interface FlowNodeState {
 export interface FlowEdgeState {
   edges: EdgeType[];
   edgeControlResetKey: number;
+  edgeControlResetTargetIds: string[] | null;
   updateEdges: (changes: EdgeChange[]) => void;
   setEdgeData: (id: string, key: string, value: any) => void;
   setEdgeLabel: (id: string, newLabel: number) => void;
   addEdge: (co: Connection, options?: { isCheck?: boolean }) => void;
   setEdges: (edges: EdgeType[]) => void;
-  resetEdgeControls: () => void;
+  resetEdgeControls: (targetEdgeIds?: string[]) => void;
 }
 
 // 图数据 Slice 状态
@@ -326,14 +317,18 @@ export interface FlowGraphState {
   replace: (
     nodes: NodeType[],
     edges: EdgeType[],
-    options?: { isFitView?: boolean; skipHistory?: boolean; skipSave?: boolean }
+    options?: {
+      isFitView?: boolean;
+      skipHistory?: boolean;
+      skipSave?: boolean;
+    },
   ) => void;
   paste: (nodes: NodeType[], edges: EdgeType[]) => void;
   resetPasteCounter: () => void;
   shiftNodes: (
     direction: "horizontal" | "vertical",
     delta: number,
-    targetNodeIds?: string[]
+    targetNodeIds?: string[],
   ) => void;
 }
 

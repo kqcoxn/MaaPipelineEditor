@@ -15,11 +15,12 @@ import {
 
 export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
   set,
-  get
+  get,
 ) => ({
   // 初始状态
   edges: [],
   edgeControlResetKey: 0,
+  edgeControlResetTargetIds: null,
 
   // 更新边
   updateEdges(changes: EdgeChange[]) {
@@ -164,7 +165,7 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
               (edge) =>
                 edge.source === co.source &&
                 edge.target === co.target &&
-                edge.sourceHandle === SourceHandleTypeEnum.Error
+                edge.sourceHandle === SourceHandleTypeEnum.Error,
             );
             break;
           case SourceHandleTypeEnum.Error:
@@ -180,7 +181,7 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
               (edge) =>
                 edge.source === co.source &&
                 edge.target === co.target &&
-                edge.sourceHandle === SourceHandleTypeEnum.Next
+                edge.sourceHandle === SourceHandleTypeEnum.Next,
             );
             break;
         }
@@ -192,7 +193,7 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
       const order = calcuLinkOrder(
         state.edges,
         co.source,
-        co.sourceHandle as SourceHandleTypeEnum
+        co.sourceHandle as SourceHandleTypeEnum,
       );
 
       const newEdge = {
@@ -215,7 +216,11 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
   },
 
   // 重置所有边的控制点
-  resetEdgeControls() {
-    set((state) => ({ edgeControlResetKey: state.edgeControlResetKey + 1 }));
+  resetEdgeControls(targetEdgeIds?: string[]) {
+    set((state) => ({
+      edgeControlResetKey: state.edgeControlResetKey + 1,
+      edgeControlResetTargetIds:
+        targetEdgeIds && targetEdgeIds.length > 0 ? targetEdgeIds : null,
+    }));
   },
 });
