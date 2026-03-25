@@ -1,0 +1,71 @@
+name: Build Landing Artifact
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Landing/**"
+      - "package.json"
+      - ".github/workflows/landing.yml"
+  pull_request:
+    paths:
+      - "Landing/**"
+      - "package.json"
+      - ".github/workflows/landing.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-landing:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+          cache-dependency-path: Landing/yarn.lock
+
+      - name: Install landing dependencies
+        run: yarn install --frozen-lockfile
+        working-directory: Landing
+
+      - name: Install Playwright browser
+        run: yarn playwright install --with-deps chromium
+        working-directory: Landing
+
+      - name: Type check
+        run: yarn typecheck
+        working-directory: Landing
+
+      - name: Build landing
+        run: yarn build
+        working-directory: Landing
+
+      - name: Run smoke tests
+        run: yarn test
+        working-directory: Landing
+
+      - name: Create landing zip
+        run: |
+          cd Landing/dist
+          zip -r ../../../landing-${GITHUB_SHA}.zip .
+        shell: bash
+
+      - name: Upload landing dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: landing-dist
+          path: Landing/dist
+
+      - name: Upload landing zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: landing-${{ github.sha }}
+          path: landing-${{ github.sha }}.zip

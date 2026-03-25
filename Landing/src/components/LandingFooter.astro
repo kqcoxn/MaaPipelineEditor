@@ -1,0 +1,58 @@
+---
+import type { FooterColumn } from "@/content/landing";
+
+type Props = {
+  columns: FooterColumn[];
+};
+
+const { columns } = Astro.props;
+const year = new Date().getFullYear();
+---
+
+<footer class="border-t border-slate-200/80 px-4 py-10 sm:px-6 lg:px-8">
+  <div class="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1.3fr_2fr]">
+    <div>
+      <div class="flex items-center gap-3">
+        <span class="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[linear-gradient(145deg,#4F86FF_0%,#43C7B8_100%)] text-sm font-bold text-white shadow-[0_10px_24px_rgba(79,134,255,0.24)]">
+          MPE
+        </span>
+        <div>
+          <p class="text-base font-semibold text-slate-950">MaaPipelineEditor</p>
+          <p class="text-sm text-slate-500">Pipeline Visual Workspace</p>
+        </div>
+      </div>
+      <p class="mt-4 max-w-md text-sm leading-7 text-slate-600">
+        独立 Landing 负责品牌入口、能力说明与转化承接，不与编辑器工程和文档站耦合。首版先以结构清晰、部署独立、内容可信为目标。
+      </p>
+    </div>
+
+    <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+      {
+        columns.map((column) => (
+          <section>
+            <h2 class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">{column.title}</h2>
+            <ul class="mt-4 space-y-3">
+              {column.links.map((link) => (
+                <li>
+                  <a
+                    href={link.href}
+                    target={link.external ? "_blank" : undefined}
+                    rel={link.external ? "noreferrer" : undefined}
+                    class="text-sm text-slate-600 transition hover:text-slate-950"
+                  >
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))
+      }
+    </div>
+  </div>
+
+  <div class="mx-auto mt-10 flex max-w-7xl flex-col gap-2 border-t border-slate-200/80 pt-6 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+    <p>© {year} MaaPipelineEditor / codax. All rights reserved.</p>
+    <p>Landing MVP focuses on structure, conversion, and independent delivery.</p>
+  </div>
+</footer>

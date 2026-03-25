@@ -1,0 +1,123 @@
+---
+import FeatureExplorer from "@/components/FeatureExplorer";
+import FinalCtaSection from "@/components/FinalCtaSection.astro";
+import HeroWorkflowScene from "@/components/HeroWorkflowScene.astro";
+import LandingFooter from "@/components/LandingFooter.astro";
+import LandingHeader from "@/components/LandingHeader.astro";
+import ShowcaseGrid from "@/components/ShowcaseGrid.astro";
+import TrustStats from "@/components/TrustStats.astro";
+import LandingShell from "@/layouts/LandingShell.astro";
+import {
+  featureItems,
+  footerColumns,
+  heroContent,
+  navItems,
+  showcaseItems,
+  statsItems,
+} from "@/content/landing";
+---
+
+<LandingShell>
+  <LandingHeader navItems={navItems} />
+
+  <main>
+    <section class="px-4 pb-16 pt-8 sm:px-6 lg:px-8 lg:pb-24">
+      <div class="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[0.95fr_1.05fr]">
+        <div class="order-2 lg:order-1">
+          <span class="section-chip">{heroContent.eyebrow}</span>
+          <h1 class="mt-6 max-w-3xl text-balance text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
+            {heroContent.title}
+          </h1>
+          <p class="mt-6 max-w-2xl text-pretty text-base leading-8 text-slate-600 sm:text-lg">
+            {heroContent.description}
+          </p>
+
+          <ul class="mt-6 grid gap-3 sm:grid-cols-3">
+            {
+              heroContent.highlightItems.map((item) => (
+                <li class="rounded-[22px] border border-white/70 bg-white/80 px-4 py-4 text-sm font-medium text-slate-700 shadow-[0_18px_40px_rgba(20,32,51,0.06)]">
+                  {item}
+                </li>
+              ))
+            }
+          </ul>
+
+          <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+            <a
+              href={heroContent.primaryAction.href}
+              class="inline-flex min-h-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#4F86FF_0%,#3CC7B8_100%)] px-6 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(79,134,255,0.26)] transition hover:brightness-105"
+              data-testid="hero-primary-cta"
+            >
+              {heroContent.primaryAction.label}
+            </a>
+            <a
+              href={heroContent.secondaryAction.href}
+              class="inline-flex min-h-12 items-center justify-center rounded-full border border-slate-200 bg-white/90 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950"
+              data-testid="hero-secondary-cta"
+            >
+              {heroContent.secondaryAction.label}
+            </a>
+            <a
+              href={heroContent.tertiaryAction.href}
+              target="_blank"
+              rel="noreferrer"
+              class="inline-flex min-h-12 items-center justify-center rounded-full border border-transparent px-3 py-3 text-sm font-semibold text-slate-600 transition hover:text-slate-950"
+              data-testid="hero-github-cta"
+            >
+              {heroContent.tertiaryAction.label}
+            </a>
+          </div>
+        </div>
+
+        <div class="order-1 lg:order-2">
+          <HeroWorkflowScene />
+        </div>
+      </div>
+    </section>
+
+    <section id="features" class="section-spacing px-4 sm:px-6 lg:px-8">
+      <div class="mx-auto max-w-7xl">
+        <div class="mx-auto max-w-3xl text-center">
+          <span class="section-chip">能力地图</span>
+          <h2 class="mt-6 text-balance text-3xl font-semibold text-slate-950 sm:text-4xl">
+            用一套固定结构说明能力，而不是堆一屏抽象卖点
+          </h2>
+          <p class="mt-4 text-pretty text-base leading-7 text-slate-600">
+            Features 保留“切换功能、看 Demo、读说明”的节奏。首版以占位可视面板承载信息架构，后续只替换视觉资产即可。
+          </p>
+        </div>
+
+        <div class="mt-10">
+          <FeatureExplorer client:idle items={featureItems} />
+        </div>
+      </div>
+    </section>
+
+    <section id="showcase" class="section-spacing px-4 sm:px-6 lg:px-8">
+      <div class="mx-auto max-w-7xl">
+        <div class="mx-auto max-w-3xl text-center">
+          <span class="section-chip">使用场景</span>
+          <h2 class="mt-6 text-balance text-3xl font-semibold text-slate-950 sm:text-4xl">
+            首版先用写实文案和占位案例卡，把“结果长什么样”讲清楚
+          </h2>
+          <p class="mt-4 text-pretty text-base leading-7 text-slate-600">
+            Showcase 不重复解释功能。它负责告诉访问者，MPE 适合在哪些真实工作流里出场，以及后续真实截图会替换到哪些位置。
+          </p>
+        </div>
+
+        <div class="mt-10">
+          <ShowcaseGrid items={showcaseItems} />
+        </div>
+      </div>
+    </section>
+
+    <TrustStats items={statsItems} />
+
+    <FinalCtaSection
+      primaryAction={heroContent.primaryAction}
+      secondaryAction={heroContent.secondaryAction}
+    />
+  </main>
+
+  <LandingFooter columns={footerColumns} />
+</LandingShell>

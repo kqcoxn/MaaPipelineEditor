@@ -1,0 +1,68 @@
+---
+import type { NavItem } from "@/content/landing";
+import { heroContent } from "@/content/landing";
+import { siteConfig } from "@/lib/site-config";
+import MobileNav from "@/components/MobileNav";
+
+type Props = {
+  navItems: NavItem[];
+};
+
+const { navItems } = Astro.props;
+---
+
+<header class="sticky top-0 z-30 px-4 pt-4 sm:px-6 lg:px-8">
+  <div class="mx-auto flex max-w-7xl items-center justify-between rounded-full border border-white/70 bg-white/80 px-4 py-3 shadow-[0_16px_50px_rgba(20,32,51,0.08)] backdrop-blur">
+    <a
+      href="/"
+      class="flex items-center gap-3 text-slate-950 transition hover:text-blue-700"
+      aria-label="返回 MaaPipelineEditor Landing 首页"
+    >
+      <span class="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[linear-gradient(145deg,#4F86FF_0%,#43C7B8_100%)] text-sm font-bold text-white shadow-[0_10px_24px_rgba(79,134,255,0.24)]">
+        MPE
+      </span>
+      <span>
+        <span class="block text-sm font-semibold">MaaPipelineEditor</span>
+        <span class="block text-xs text-slate-500">Pipeline Visual Workspace</span>
+      </span>
+    </a>
+
+    <nav class="hidden items-center gap-6 md:flex" aria-label="主导航">
+      {
+        navItems.map((item) => (
+          <a
+            href={item.href}
+            class="text-sm font-medium text-slate-600 transition hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+          >
+            {item.label}
+          </a>
+        ))
+      }
+    </nav>
+
+    <div class="hidden items-center gap-3 md:flex">
+      <a
+        href={siteConfig.githubUrl}
+        target="_blank"
+        rel="noreferrer"
+        class="inline-flex min-h-11 items-center justify-center rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950"
+        data-testid="header-github"
+      >
+        GitHub
+      </a>
+      <a
+        href={heroContent.primaryAction.href}
+        class="inline-flex min-h-11 items-center justify-center rounded-full bg-[linear-gradient(135deg,#4F86FF_0%,#3CC7B8_100%)] px-5 py-2 text-sm font-semibold text-white shadow-[0_16px_32px_rgba(79,134,255,0.24)] transition hover:brightness-105"
+      >
+        {heroContent.primaryAction.label}
+      </a>
+    </div>
+
+    <MobileNav
+      client:load
+      navItems={navItems}
+      secondaryAction={heroContent.secondaryAction}
+      primaryAction={heroContent.primaryAction}
+    />
+  </div>
+</header>

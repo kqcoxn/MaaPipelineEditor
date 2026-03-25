@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">MPE Landing Open Graph Placeholder</title>
+  <desc id="desc">Placeholder artwork for MaaPipelineEditor landing page</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#F5F7FB" />
+      <stop offset="100%" stop-color="#EEF4FF" />
+    </linearGradient>
+    <linearGradient id="card" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#4F86FF" stop-opacity="0.18" />
+      <stop offset="100%" stop-color="#43C7B8" stop-opacity="0.14" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)" />
+  <g opacity="0.35" stroke="#5F718C" stroke-width="1">
+    <path d="M0 90H1200" />
+    <path d="M0 180H1200" />
+    <path d="M0 270H1200" />
+    <path d="M0 360H1200" />
+    <path d="M0 450H1200" />
+    <path d="M0 540H1200" />
+    <path d="M120 0V630" />
+    <path d="M240 0V630" />
+    <path d="M360 0V630" />
+    <path d="M480 0V630" />
+    <path d="M600 0V630" />
+    <path d="M720 0V630" />
+    <path d="M840 0V630" />
+    <path d="M960 0V630" />
+    <path d="M1080 0V630" />
+  </g>
+  <rect x="70" y="70" width="1060" height="490" rx="36" fill="#FFFFFF" opacity="0.92" />
+  <rect x="110" y="120" width="480" height="310" rx="28" fill="url(#card)" />
+  <rect x="640" y="120" width="420" height="118" rx="28" fill="#FFFFFF" stroke="#E2E8F0" />
+  <rect x="640" y="262" width="420" height="118" rx="28" fill="#FFFFFF" stroke="#E2E8F0" />
+  <rect x="640" y="404" width="420" height="118" rx="28" fill="#FFFFFF" stroke="#E2E8F0" />
+  <circle cx="186" cy="194" r="10" fill="#4F86FF" />
+  <circle cx="248" cy="294" r="10" fill="#43C7B8" />
+  <circle cx="176" cy="390" r="10" fill="#FF9B62" />
+  <path d="M196 194H342" stroke="#4F86FF" stroke-width="3" stroke-linecap="round" />
+  <path d="M258 294H412" stroke="#43C7B8" stroke-width="3" stroke-linecap="round" />
+  <path d="M186 390H336" stroke="#FF9B62" stroke-width="3" stroke-linecap="round" />
+  <text x="640" y="90" fill="#4F86FF" font-family="IBM Plex Sans, Arial, sans-serif" font-size="22" font-weight="700" letter-spacing="6">
+    MAA PIPELINE WORKSPACE
+  </text>
+  <text x="110" y="510" fill="#142033" font-family="IBM Plex Sans, Arial, sans-serif" font-size="54" font-weight="700">
+    MaaPipelineEditor
+  </text>
+  <text x="110" y="560" fill="#60708A" font-family="IBM Plex Sans, Arial, sans-serif" font-size="26">
+    把 MaaFramework Pipeline 从 JSON 变成可读、可改、可调试的图形工作流
+  </text>
+</svg>

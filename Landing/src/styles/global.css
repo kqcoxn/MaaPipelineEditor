@@ -1,0 +1,175 @@
+@import "tailwindcss";
+@import "@fontsource-variable/ibm-plex-sans";
+@import "@fontsource/noto-sans-sc/400.css";
+@import "@fontsource/noto-sans-sc/500.css";
+@import "@fontsource/noto-sans-sc/700.css";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/600.css";
+
+@theme {
+  --font-sans: "IBM Plex Sans Variable", "Noto Sans SC", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  --color-canvas: #f5f7fb;
+  --color-panel: #ffffff;
+  --color-ink: #142033;
+  --color-subtle: #60708a;
+  --color-primary: #4f86ff;
+  --color-mint: #43c7b8;
+  --color-orange: #ff9b62;
+  --color-rose: #d96b88;
+  --color-grid-line: rgba(95, 113, 140, 0.12);
+  --animate-float-slow: float 9s ease-in-out infinite;
+  --animate-float-slower: float 12s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+:root {
+  color-scheme: light;
+  scroll-behavior: smooth;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  background:
+    radial-gradient(circle at top left, rgba(79, 134, 255, 0.1), transparent 26%),
+    radial-gradient(circle at right center, rgba(67, 199, 184, 0.08), transparent 24%),
+    linear-gradient(180deg, #f9fbff 0%, #f5f7fb 28%, #f8fafc 100%);
+}
+
+a,
+button {
+  transition:
+    color 180ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.page-grid {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(to right, transparent 0, transparent calc(100% - 1px), var(--color-grid-line) calc(100% - 1px)),
+    linear-gradient(to bottom, transparent 0, transparent calc(100% - 1px), var(--color-grid-line) calc(100% - 1px));
+  background-size: 42px 42px;
+  mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 0.9), transparent 88%);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.section-spacing {
+  padding-top: 6rem;
+  padding-bottom: 6rem;
+}
+
+.section-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(79, 134, 255, 0.16);
+  background: rgba(255, 255, 255, 0.8);
+  padding: 0.5rem 0.9rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #4f86ff;
+  box-shadow: 0 12px 30px rgba(20, 32, 51, 0.05);
+}
+
+.surface-card {
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow:
+    0 24px 90px rgba(20, 32, 51, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(14px);
+}
+
+.surface-subcard {
+  border-radius: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.92);
+  padding: 1rem;
+  box-shadow: 0 18px 50px rgba(20, 32, 51, 0.08);
+}
+
+.workflow-node {
+  position: relative;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 18px 40px rgba(20, 32, 51, 0.08);
+}
+
+.workflow-node::after {
+  content: "";
+  position: absolute;
+  left: -0.7rem;
+  top: 50%;
+  height: 0.55rem;
+  width: 0.55rem;
+  transform: translateY(-50%);
+  border-radius: 999px;
+}
+
+.workflow-node-blue::after {
+  background: #4f86ff;
+}
+
+.workflow-node-mint::after {
+  background: #43c7b8;
+}
+
+.workflow-node-orange::after {
+  background: #ff9b62;
+}
+
+.float-slow {
+  animation: var(--animate-float-slow);
+}
+
+.float-slower {
+  animation: var(--animate-float-slower);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .section-spacing {
+    padding-top: 4.5rem;
+    padding-bottom: 4.5rem;
+  }
+}

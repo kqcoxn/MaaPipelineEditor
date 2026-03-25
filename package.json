@@ -6,6 +6,9 @@
   "scripts": {
     "icon": "npx iconfont-h5",
     "dev": "vite",
+    "landing:dev": "yarn --cwd Landing dev",
+    "landing:build": "yarn --cwd Landing build",
+    "landing:test": "yarn --cwd Landing verify",
     "server": "cd LocalBridge && yarn server",
     "doc": "cd docsite && yarn dev",
     "build": "vite build",

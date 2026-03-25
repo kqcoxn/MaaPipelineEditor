@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">MPE favicon</title>
+  <desc id="desc">Gradient circle with the letters MPE</desc>
+  <defs>
+    <linearGradient id="g" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#4F86FF" />
+      <stop offset="100%" stop-color="#43C7B8" />
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="32" fill="#F5F7FB" />
+  <circle cx="64" cy="64" r="40" fill="url(#g)" />
+  <text
+    x="64"
+    y="74"
+    fill="#ffffff"
+    font-family="IBM Plex Sans, Arial, sans-serif"
+    font-size="28"
+    font-weight="700"
+    text-anchor="middle"
+  >
+    MPE
+  </text>
+</svg>

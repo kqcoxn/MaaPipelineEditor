@@ -19,6 +19,9 @@ dist
 dist-ssr
 *.local
 *zip
+playwright-report
+test-results
+.astro
 
 # Editor directories and files
 .vscode/*
