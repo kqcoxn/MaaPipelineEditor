@@ -20,10 +20,11 @@ export type FeatureItem = {
   description: string;
   tags: string[];
   tone: "blue" | "mint" | "orange" | "rose";
-  demoLabel: string;
-  demoTitle: string;
-  demoDescription: string;
-  demoSteps: string[];
+  demoImages?: string[];
+  demoLabel?: string;
+  demoTitle?: string;
+  demoDescription?: string;
+  demoSteps?: string[];
   metrics: string[];
 };
 
@@ -110,80 +111,75 @@ export const heroContent = {
 
 export const featureItems: FeatureItem[] = [
   {
-    id: "review-edit",
-    label: "审阅与编辑",
-    title: "把复杂 Pipeline 拆成能讨论、能修改的画布",
+    id: "review",
+    label: "清晰审阅",
+    title: "所见即所思，流程即逻辑",
     description:
-      "大型流程不再只是一段长 JSON。节点、连接和分组把审阅焦点拉回结构本身，适合排查逻辑、对齐设计和做增量修改。",
-    tags: ["关键路径高亮", "节点分组", "结构审阅"],
+      "配合粘贴板导入、自动布局、协议兼容、节点聚焦、关键路径、AI 搜索等功能，您可以快速了解自己或其他项目的某个功能是如何实现的，打开网页粘贴即用，无需下载或面对成堆 JSON",
+    tags: ["粘贴板导入", "自动布局", "节点聚焦", "关键路径", "AI 搜索"],
     tone: "blue",
-    demoLabel: "Graph Review",
-    demoTitle: "按节点理解流程，而不是手动翻整段协议",
-    demoDescription:
-      "占位 Demo 先强调信息结构和工作节奏，后续替换为真实流程截图。",
-    demoSteps: [
-      "聚焦主任务链路",
-      "高亮关键入口与出口",
-      "在同一画布里审阅节点差异",
+    demoImages: ["/screens/review.png"],
+    metrics: [
+      "梳理任务流程",
+      "快速理解其他项目思路",
+      "提升 AI 生成后 Review 效率",
     ],
-    metrics: ["适合跨项目审阅", "保留分组视角", "先读后改"],
   },
   {
-    id: "local-bridge",
-    label: "本地增强",
-    title: "在线编辑之外，按需补上本地文件、截图与 OCR 能力",
+    id: "edit",
+    label: "高效编辑",
+    title: "拖拽构建，字段即配即得",
     description:
-      "首版 Landing 不直接承载工具本体，但要明确表达 MPE 可以从纯网页体验逐步升级到贴近本地工作流的增强形态。",
-    tags: ["LocalBridge", "文件管理", "截图与 OCR"],
-    tone: "mint",
-    demoLabel: "Local Extension",
-    demoTitle: "一行命令接入本地能力，不把首屏变成安装门槛",
-    demoDescription:
-      "用占位面板表现本地服务入口、文件选择与识别结果，突出渐进增强的产品节奏。",
-    demoSteps: [
-      "按需启动 LocalBridge",
-      "选择本地资源或截图",
-      "把识别结果回填到流程配置",
-    ],
-    metrics: ["渐进增强", "不强绑环境", "对齐资源开发场景"],
-  },
-  {
-    id: "debug-template",
-    label: "调试与模板",
-    title: "把重复搭建成本收敛成模板，把调试反馈放回流程语境",
-    description:
-      "模板、字段补全和流程调试并不是额外噱头，而是让团队更快进入有效编辑状态的基础设施。",
-    tags: ["节点模板", "字段填充", "流程调试"],
+      "将原本需要手写数百行 JSON 的配置工作转化为直观的图形化操作，通过节点拖拽、字段补全与模板填充，快速搭建完整 Pipeline，即使复杂也能维持清晰的逻辑，兼具易用性与可读性",
+    tags: ["节点拖拽", "字段补全", "模板填充", "v1/v2 兼容"],
     tone: "orange",
-    demoLabel: "Debug & Templates",
-    demoTitle: "从占位模版到稳定工作流，减少重复配置",
-    demoDescription:
-      "左侧 Demo 先用字段清单、调试日志与模板卡片表现工作流搭建节奏。",
-    demoSteps: [
-      "插入常用节点模板",
-      "补齐字段与默认值",
-      "在调试面板确认执行反馈",
-    ],
-    metrics: ["减少重复劳动", "更快完成原型", "回到流程上下文"],
+    demoImages: ["/screens/edit.png"],
+    metrics: ["从零搭建新流程", "修改已有节点配置"],
   },
   {
-    id: "ai-mcp",
-    label: "AI 与 MCP",
-    title: "让流程定位、补全与生态联动更智能，但不喧宾夺主",
+    id: "tools",
+    label: "全面辅助",
+    title: "全面辅助，模板自由",
     description:
-      "AI 与 MCP 在这里是增强器，不是首页噱头。首版文案只强调它们如何帮助开发者更快找到节点、更稳地补全配置。",
-    tags: ["智能搜索", "AI 补全", "MCP 联动"],
+      "内置常用节点模板快速填充，支持流程级调试定位问题，自动识别并迁移废弃字段，让配置维护不再是负担",
+    tags: ["节点模板", "流程调试", "废弃字段迁移", "自动保存"],
+    tone: "mint",
+    demoImages: ["/screens/tools-1.png"],
+    metrics: ["快速初始化标准节点", "调试定位执行问题", "平滑升级旧配置"],
+  },
+  {
+    id: "lb",
+    label: "本地增强",
+    title: "一键启用本地截图、文件与 OCR 能力",
+    description:
+      "通过 LocalBridge 按需接入本地能力，无需繁琐配置即可实现截图预览、文件管理、本地资源同步，让在线编辑与本地工作流无缝衔接",
+    tags: ["LocalBridge", "本地截图", "文件管理", "资源同步"],
+    tone: "orange",
+    demoImages: ["/screens/lb.png"],
+    metrics: ["本地文件直接管理", "快速截图、ROI 测绘", "资源变更实时同步"],
+  },
+  {
+    id: "ai",
+    label: "AI 辅助",
+    title: "智能搜索与上下文感知补全",
+    description:
+      "基于当前节点上下文提供精准的字段补全建议，智能搜索快速定位目标节点，MCP 联动实现跨工具流程打开",
+    tags: ["智能搜索", "上下文补全", "MCP 联动", "节点定位"],
     tone: "rose",
-    demoLabel: "AI Assist",
-    demoTitle: "把节点搜索、补全与跨工具联动组织成可信的辅助层",
-    demoDescription:
-      "占位 Demo 以命令面板、联动状态和建议结果表现未来可扩展的智能入口。",
+    demoLabel: "AI 能力预览",
+    demoTitle: "智能补全与搜索",
+    demoDescription: "输入时自动提示可用字段，支持模糊搜索快速定位节点",
     demoSteps: [
-      "通过搜索快速定位节点",
-      "让 AI 生成或补齐配置草稿",
-      "把外部工作流联动到 MPE 中审阅",
+      "在节点编辑器中输入字段名称",
+      "根据上下文获得精准补全建议",
+      "使用搜索框快速定位目标节点",
+      "通过 MCP 联动外部工具",
     ],
-    metrics: ["以辅助为主", "强调可控性", "便于后续扩展"],
+    metrics: [
+      "快速定位复杂流程节点",
+      "减少字段记忆成本",
+      "RLHF-Mode Coming Soon!",
+    ],
   },
 ];
 
