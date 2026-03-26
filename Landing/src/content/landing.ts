@@ -77,7 +77,7 @@ export const siteMeta = {
 
 export const navItems: NavItem[] = [
   { label: "能力", href: "#features" },
-  { label: "场景", href: "#showcase" },
+  // { label: "场景", href: "#showcase" },
   { label: "生态", href: "#ecosystem" },
   { label: "文档", href: siteConfig.docsUrl },
 ];
@@ -187,42 +187,23 @@ export const showcaseItems: ShowcaseItem[] = [
   {
     title: "编辑复杂 Pipeline",
     summary:
-      "面向大体量流程的结构化入口，适合先理清主路径，再逐段细化字段与模板。",
-    tags: ["复杂流程", "结构化阅读", "占位视觉"],
+      "从主路径到字段细节的分层编辑，让大体量流程保持清晰可读，不再淹没在千行 JSON 中。",
+    tags: ["节点拖拽", "字段补全", "自动布局"],
     accent: "blue",
-    detail: "首版以占位场景卡呈现案例密度，第二阶段替换真实大图。",
+    detail:
+      "支持关键路径高亮、节点聚焦与智能搜索，复杂流程也能快速定位与修改。",
     href: siteConfig.editorUrl,
     ctaLabel: "打开编辑器",
   },
   {
     title: "快速审阅其他项目逻辑",
     summary:
-      "适合贡献者和协作者快速看懂已有流程，不必在长 JSON 中人工定位跳转关系。",
-    tags: ["跨项目审阅", "关键路径", "团队协作"],
+      "粘贴即审阅，无需配置环境即可理解任意 MaaFramework 项目的流程结构与跳转关系。",
+    tags: ["粘贴板导入", "跨项目审阅", "零安装"],
     accent: "mint",
-    detail: "突出“先审阅、后修改”的入口价值，降低接手项目的心理成本。",
+    detail: "适合贡献者快速上手新项目，或维护者向他人讲解实现思路。",
     href: siteConfig.docsUrl,
     ctaLabel: "查看文档",
-  },
-  {
-    title: "用辅助工具补全内容",
-    summary:
-      "把模板、OCR、截图与字段填充组织成同一条工作链，让配置工作不再分散在多个窗口之间。",
-    tags: ["模板补全", "截图", "OCR"],
-    accent: "orange",
-    detail: "案例卡保持写实语气，避免把增强能力包装成泛化的 AI 叙事。",
-    href: siteConfig.ecosystemUrl,
-    ctaLabel: "了解生态",
-  },
-  {
-    title: "迁移旧项目与混合协议",
-    summary:
-      "在保留旧资产的前提下逐步进入新工作流，让 v1 / v2 混合导入与结构整理更可控。",
-    tags: ["迁移兼容", "协议混合", "渐进升级"],
-    accent: "rose",
-    detail: "用真实约束表达可信度，而不是堆砌抽象的“企业级”话术。",
-    href: siteConfig.githubUrl,
-    ctaLabel: "查看仓库",
   },
 ];
 
@@ -230,54 +211,54 @@ export const statsItems: StatItem[] = [
   {
     kind: "metric",
     value: "0 安装",
-    label: "打开网页即可开始可视化审阅与编辑",
-    note: "先把理解成本降下来，再决定是否接入增强能力。",
+    label: "打开网页即可使用",
+    note: "零门槛上手，极致轻量跨平台。",
     accent: "blue",
   },
   {
     kind: "metric",
     value: "1 行命令",
-    label: "按需启用本地增强服务",
-    note: "LocalBridge 以渐进增强方式进入工作流，而不是先逼你配环境。",
+    label: "按需启用本地服务",
+    note: "渐进式增强，让在线编辑器无缝衔接本地文件与截图能力。",
     accent: "mint",
   },
   {
     kind: "metric",
-    value: "2 代协议",
-    label: "支持节点级 v1 / v2 混合导入",
-    note: "迁移旧项目时更容易保持上下文与结构稳定。",
+    value: "开源免费",
+    label: "MIT 协议无限制使用",
+    note: "社区驱动，代码透明，可自由二次开发与集成。",
     accent: "orange",
   },
   {
     kind: "metric",
     value: "2025 起",
-    label: "项目持续演进至今",
-    note: "定位明确、节奏稳定，优先服务真实资源开发场景。",
+    label: "持续演进的项目承诺",
+    note: "专注服务 MaaFramework 资源开发场景，稳定迭代。",
     accent: "rose",
+  },
+  {
+    kind: "ecosystem",
+    value: "Editor",
+    label: "在线编辑器",
+    note: "零安装的可视化 Pipeline 审阅与编辑工作台，打开即用。",
+    href: siteConfig.editorUrl,
+    accent: "blue",
   },
   {
     kind: "ecosystem",
     value: "LocalBridge",
     label: "本地能力增强",
-    note: "按需接入文件、截图、OCR 与更多工作流边界能力。",
+    note: "一键启用本地截图、文件管理、OCR 与资源同步能力。",
     href: siteConfig.docsUrl,
     accent: "mint",
   },
   {
     kind: "ecosystem",
     value: "Extremer",
-    label: "集成化本地方案",
-    note: "为长期使用提供更完整的一体化形态，减少手工拼装成本。",
+    label: "集成化客户端",
+    note: "编辑器 + LocalBridge + MFW 依赖 + OCR 模型一体化打包，开箱即用的完整方案。",
     href: siteConfig.docsUrl,
     accent: "orange",
-  },
-  {
-    kind: "ecosystem",
-    value: "MCP",
-    label: "跨工具联动入口",
-    note: "把生成、补全和外部工作流衔接到 MPE 的可视化审阅里。",
-    href: "https://maa-ai.top/",
-    accent: "rose",
   },
 ];
 

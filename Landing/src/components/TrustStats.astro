@@ -7,9 +7,13 @@ type Props = {
 
 const { items } = Astro.props;
 
-const metrics = items.filter((item): item is Extract<StatItem, { kind: "metric" }> => item.kind === "metric");
+const metrics = items.filter(
+  (item): item is Extract<StatItem, { kind: "metric" }> =>
+    item.kind === "metric",
+);
 const ecosystems = items.filter(
-  (item): item is Extract<StatItem, { kind: "ecosystem" }> => item.kind === "ecosystem",
+  (item): item is Extract<StatItem, { kind: "ecosystem" }> =>
+    item.kind === "ecosystem",
 );
 
 const accentMap = {
@@ -24,11 +28,13 @@ const accentMap = {
   <div class="mx-auto max-w-7xl">
     <div class="mx-auto max-w-3xl text-center" data-reveal="up">
       <span class="section-chip">生态与可信度</span>
-      <h2 class="mt-6 text-balance text-3xl font-semibold text-slate-950 sm:text-4xl">
-        用真实边界建立信任，再把生态入口组织清楚
+      <h2
+        class="mt-6 text-balance text-3xl font-semibold text-slate-950 sm:text-4xl"
+      >
+        渐进式接入，按需选择你的使用方式
       </h2>
       <p class="mt-4 text-pretty text-base leading-7 text-slate-600">
-        首版先不用夸张指标。我们用真实的进入成本、协议兼容与生态入口告诉用户，MPE 是一块可持续演进的流程工作台。
+        从在线体验到本地增强，从独立工具到 AI 联动，MPE 提供清晰的演进路径。
       </p>
     </div>
 
@@ -40,10 +46,14 @@ const accentMap = {
             data-reveal="up"
             style={`--reveal-delay: ${index * 90}ms;`}
           >
-            <span class={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${accentMap[item.accent]}`}>
+            <span
+              class={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${accentMap[item.accent]}`}
+            >
               {item.value}
             </span>
-            <h3 class="mt-5 text-lg font-semibold text-slate-950">{item.label}</h3>
+            <h3 class="mt-5 text-lg font-semibold text-slate-950">
+              {item.label}
+            </h3>
             <p class="mt-3 text-sm leading-7 text-slate-600">{item.note}</p>
           </article>
         ))
@@ -55,13 +65,22 @@ const accentMap = {
       data-reveal="up"
       style="--reveal-delay: 180ms;"
     >
-      <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+      <div
+        class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between"
+      >
         <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">生态入口</p>
-          <h3 class="mt-2 text-2xl font-semibold text-slate-950">把 LocalBridge、Extremer 与 MCP 放到同一张入口地图里</h3>
+          <p
+            class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500"
+          >
+            生态入口
+          </p>
+          <h3 class="mt-2 text-2xl font-semibold text-slate-950">
+            从在线编辑器到本地增强，再到 AI 联动
+          </h3>
         </div>
         <p class="max-w-xl text-sm leading-7 text-slate-600">
-          Header 和 Hero 负责说明价值，这里负责告诉用户后续能往哪里延展。首版全部使用文案与占位壳层，不阻塞工程交付。
+          根据使用场景选择合适入口：零安装体验、本地能力增强、一体化客户端或 AI
+          工具联动。
         </p>
       </div>
 
@@ -70,12 +89,16 @@ const accentMap = {
           ecosystems.map((item) => (
             <a
               href={item.href}
-              class="group rounded-[28px] border border-slate-200 bg-slate-50/80 p-5 transition hover:-translate-y-1 hover:border-slate-300 hover:bg-white"
+              class="group rounded-[28px] border border-slate-200 bg-slate-50/80 p-5 transition-all duration-300 ease-out hover:-mt-1 hover:mb-1 hover:border-slate-300 hover:bg-white hover:shadow-lg"
             >
-              <span class={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${accentMap[item.accent]}`}>
+              <span
+                class={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${accentMap[item.accent]}`}
+              >
                 {item.value}
               </span>
-              <h4 class="mt-4 text-lg font-semibold text-slate-950">{item.label}</h4>
+              <h4 class="mt-4 text-lg font-semibold text-slate-950">
+                {item.label}
+              </h4>
               <p class="mt-3 text-sm leading-7 text-slate-600">{item.note}</p>
               <span class="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-slate-900 transition group-hover:text-blue-700">
                 查看入口
