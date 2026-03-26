@@ -1,12 +1,6 @@
 name: Build Landing Artifact
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "Landing/**"
-      - "package.json"
-      - ".github/workflows/landing.yml"
   pull_request:
     paths:
       - "Landing/**"

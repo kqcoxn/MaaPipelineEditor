@@ -147,6 +147,22 @@ jobs:
           cd ../../../..
         shell: bash
 
+      - name: Build landing
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="test-$(date +%Y%m%d-%H%M%S)"
+          else
+            VERSION="${{ github.ref_name }}"
+          fi
+          cd Landing
+          yarn install --frozen-lockfile
+          yarn typecheck
+          yarn build
+          cd dist
+          zip -r ../../MaaPipelineEditor-${VERSION}-landing.zip .
+          cd ../..
+        shell: bash
+
       - name: Upload web artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -154,6 +170,7 @@ jobs:
           path: |
             MaaPipelineEditor-*-stable.zip
             MaaPipelineEditor-*-docs.zip
+            MaaPipelineEditor-*-landing.zip
 
   download-resources:
     runs-on: ubuntu-latest
@@ -477,6 +494,7 @@ jobs:
           files: |
             MaaPipelineEditor-${{ github.ref_name }}-stable.zip
             MaaPipelineEditor-${{ github.ref_name }}-docs.zip
+            MaaPipelineEditor-${{ github.ref_name }}-landing.zip
             localbridge-artifacts/*
             extremer-artifacts/*
           body_path: CHANGELOG.md
