@@ -264,17 +264,17 @@ export const statsItems: StatItem[] = [
 
 export const footerColumns: FooterColumn[] = [
   {
-    title: "品牌",
+    title: "本页导航",
     links: [
-      { label: "MaaPipelineEditor", href: "/", variant: "text" },
-      { label: "在线使用", href: siteConfig.editorUrl, variant: "text" },
-      { label: "预览说明", href: siteConfig.docsUrl, variant: "text" },
+      { label: "回到顶部", href: "#", variant: "text" },
+      { label: "能力", href: "#features", variant: "text" },
+      { label: "生态", href: "#ecosystem", variant: "text" },
     ],
   },
   {
     title: "产品入口",
     links: [
-      { label: "稳定版编辑器", href: siteConfig.editorUrl, variant: "text" },
+      { label: "在线使用", href: siteConfig.editorUrl, variant: "text" },
       { label: "文档站", href: siteConfig.docsUrl, variant: "text" },
       {
         label: "GitHub",
@@ -285,25 +285,24 @@ export const footerColumns: FooterColumn[] = [
     ],
   },
   {
-    title: "资源",
+    title: "协议与反馈",
     links: [
-      { label: "LocalBridge", href: siteConfig.ecosystemUrl, variant: "text" },
-      {
-        label: "Issue",
-        href: `${siteConfig.githubUrl}/issues`,
-        external: true,
-        variant: "text",
-      },
       {
         label: "License",
         href: `${siteConfig.githubUrl}/blob/main/LICENSE.md`,
         external: true,
         variant: "text",
       },
+      {
+        label: "Issue",
+        href: `${siteConfig.githubUrl}/issues`,
+        external: true,
+        variant: "text",
+      },
     ],
   },
   {
-    title: "社区与协议",
+    title: "社区与联动",
     links: [
       {
         label: "QQ群 595990173",

@@ -21,20 +21,28 @@ const year = new Date().getFullYear();
           class="h-12 w-12 shrink-0 rounded-[16px] border border-white/70 bg-white object-cover shadow-[0_12px_28px_rgba(20,32,51,0.12)]"
         />
         <div>
-          <p class="text-base font-semibold text-slate-950">MaaPipelineEditor</p>
+          <p class="text-base font-semibold text-slate-950">
+            MaaPipelineEditor
+          </p>
           <p class="text-sm text-slate-500">Pipeline Visual Workspace</p>
         </div>
       </div>
       <p class="mt-4 max-w-md text-sm leading-7 text-slate-600">
-        独立 Landing 负责品牌入口、能力说明与转化承接，不与编辑器工程和文档站耦合。首版先以结构清晰、部署独立、内容可信为目标。
+        告别手调千行 JSON！用拖拽+配置的方式，高效构建、调试、分享您的 MFW
+        自动化流程
       </p>
     </div>
 
     <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
       {
         columns.map((column, index) => (
-          <section data-reveal="up" style={`--reveal-delay: ${80 + index * 70}ms;`}>
-            <h2 class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">{column.title}</h2>
+          <section
+            data-reveal="up"
+            style={`--reveal-delay: ${80 + index * 70}ms;`}
+          >
+            <h2 class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+              {column.title}
+            </h2>
             <ul class="mt-4 space-y-3">
               {column.links.map((link) => (
                 <li>
@@ -61,6 +69,8 @@ const year = new Date().getFullYear();
     style="--reveal-delay: 180ms;"
   >
     <p>© {year} MaaPipelineEditor / codax. All rights reserved.</p>
-    <p>Landing MVP focuses on structure, conversion, and independent delivery.</p>
+    <p>
+      Landing MVP focuses on structure, conversion, and independent delivery.
+    </p>
   </div>
 </footer>
