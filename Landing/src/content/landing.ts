@@ -82,15 +82,11 @@ export const navItems: NavItem[] = [
 ];
 
 export const heroContent = {
-  eyebrow: "为 MaaFramework 资源开发者而生",
-  title: "把 MaaFramework Pipeline 从 JSON 变成可读、可改、可调试的图形工作流",
+  eyebrow: "可视化构建 MaaFramework Pipeline 的下一代工作流编辑器",
+  title: "MaaPipelineEditor",
   description:
-    "MPE 把复杂的节点关系、关键路径与本地增强能力整理成一块轻量工作台。你可以先在线审阅，再逐步接入调试、模板、OCR、AI 与 MCP 能力。",
-  highlightItems: [
-    "可视化审阅与图形化编辑",
-    "本地能力按需接入",
-    "AI 与 MCP 联动准备就绪",
-  ],
+    "告别手调千行 JSON！用拖拽+配置的方式，高效构建、调试、分享您的 MFW 自动化流程",
+  highlightItems: ["可视化审阅与编辑", "本地能力按需接入", "AI 辅助 MCP 联动"],
   primaryAction: {
     label: "在线使用",
     href: siteConfig.editorUrl,
@@ -303,23 +299,53 @@ export const footerColumns: FooterColumn[] = [
     links: [
       { label: "稳定版编辑器", href: siteConfig.editorUrl, variant: "text" },
       { label: "文档站", href: siteConfig.docsUrl, variant: "text" },
-      { label: "GitHub", href: siteConfig.githubUrl, external: true, variant: "text" },
+      {
+        label: "GitHub",
+        href: siteConfig.githubUrl,
+        external: true,
+        variant: "text",
+      },
     ],
   },
   {
     title: "资源",
     links: [
       { label: "LocalBridge", href: siteConfig.ecosystemUrl, variant: "text" },
-      { label: "Issue", href: `${siteConfig.githubUrl}/issues`, external: true, variant: "text" },
-      { label: "License", href: `${siteConfig.githubUrl}/blob/main/LICENSE.md`, external: true, variant: "text" },
+      {
+        label: "Issue",
+        href: `${siteConfig.githubUrl}/issues`,
+        external: true,
+        variant: "text",
+      },
+      {
+        label: "License",
+        href: `${siteConfig.githubUrl}/blob/main/LICENSE.md`,
+        external: true,
+        variant: "text",
+      },
     ],
   },
   {
     title: "社区与协议",
     links: [
-      { label: "QQ群 595990173", href: "https://qm.qq.com/q/gqSv6ukjV8", external: true, variant: "text" },
-      { label: "MaaFramework", href: "https://github.com/MaaXYZ/MaaFramework", external: true, variant: "text" },
-      { label: "MaaMCP", href: "https://maa-ai.top/", external: true, variant: "text" },
+      {
+        label: "QQ群 595990173",
+        href: "https://qm.qq.com/q/gqSv6ukjV8",
+        external: true,
+        variant: "text",
+      },
+      {
+        label: "MaaFramework",
+        href: "https://github.com/MaaXYZ/MaaFramework",
+        external: true,
+        variant: "text",
+      },
+      {
+        label: "MaaMCP",
+        href: "https://maa-ai.top/",
+        external: true,
+        variant: "text",
+      },
     ],
   },
 ];

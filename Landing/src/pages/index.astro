@@ -21,21 +21,29 @@ import {
   <LandingHeader navItems={navItems} />
 
   <main>
-    <section class="px-4 pb-16 pt-8 sm:px-6 lg:px-8 lg:pb-24">
-      <div class="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[0.95fr_1.05fr]">
+    <section
+      class="px-4 pb-16 pt-20 sm:px-6 sm:pt-24 lg:px-8 lg:pt-28 lg:pb-24"
+    >
+      <div
+        class="mx-auto grid w-full max-w-7xl items-center gap-12 lg:grid-cols-[0.95fr_1.05fr]"
+      >
         <div class="order-2 lg:order-1">
           <span class="section-chip">{heroContent.eyebrow}</span>
-          <h1 class="mt-6 max-w-3xl text-balance text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
+          <h1
+            class="mt-6 max-w-3xl text-balance text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl lg:text-6xl"
+          >
             {heroContent.title}
           </h1>
-          <p class="mt-6 max-w-2xl text-pretty text-base leading-8 text-slate-600 sm:text-lg">
+          <p
+            class="mt-6 max-w-2xl text-pretty text-base leading-8 text-slate-600 sm:text-lg"
+          >
             {heroContent.description}
           </p>
 
           <ul class="mt-6 grid gap-3 sm:grid-cols-3">
             {
               heroContent.highlightItems.map((item) => (
-                <li class="rounded-[22px] border border-white/70 bg-white/80 px-4 py-4 text-sm font-medium text-slate-700 shadow-[0_18px_40px_rgba(20,32,51,0.06)]">
+                <li class="rounded-[22px] border border-white/70 bg-white/80 px-4 py-4 text-center text-sm font-medium text-slate-700 shadow-[0_18px_40px_rgba(20,32,51,0.06)]">
                   {item}
                 </li>
               ))
@@ -79,11 +87,14 @@ import {
       <div class="mx-auto max-w-7xl">
         <div class="mx-auto max-w-3xl text-center">
           <span class="section-chip">能力地图</span>
-          <h2 class="mt-6 text-balance text-3xl font-semibold text-slate-950 sm:text-4xl">
+          <h2
+            class="mt-6 text-balance text-3xl font-semibold text-slate-950 sm:text-4xl"
+          >
             用一套固定结构说明能力，而不是堆一屏抽象卖点
           </h2>
           <p class="mt-4 text-pretty text-base leading-7 text-slate-600">
-            Features 保留“切换功能、看 Demo、读说明”的节奏。首版以占位可视面板承载信息架构，后续只替换视觉资产即可。
+            Features 保留“切换功能、看
+            Demo、读说明”的节奏。首版以占位可视面板承载信息架构，后续只替换视觉资产即可。
           </p>
         </div>
 
@@ -97,11 +108,14 @@ import {
       <div class="mx-auto max-w-7xl">
         <div class="mx-auto max-w-3xl text-center">
           <span class="section-chip">使用场景</span>
-          <h2 class="mt-6 text-balance text-3xl font-semibold text-slate-950 sm:text-4xl">
+          <h2
+            class="mt-6 text-balance text-3xl font-semibold text-slate-950 sm:text-4xl"
+          >
             首版先用写实文案和占位案例卡，把“结果长什么样”讲清楚
           </h2>
           <p class="mt-4 text-pretty text-base leading-7 text-slate-600">
-            Showcase 不重复解释功能。它负责告诉访问者，MPE 适合在哪些真实工作流里出场，以及后续真实截图会替换到哪些位置。
+            Showcase 不重复解释功能。它负责告诉访问者，MPE
+            适合在哪些真实工作流里出场，以及后续真实截图会替换到哪些位置。
           </p>
         </div>
 

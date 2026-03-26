@@ -1,67 +1,277 @@
-<div class="relative mx-auto w-full max-w-[640px]">
-  <div class="surface-card relative isolate overflow-hidden rounded-[36px] px-5 py-6 sm:px-8 sm:py-8">
-    <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(79,134,255,0.16),transparent_35%),radial-gradient(circle_at_bottom_right,rgba(67,199,184,0.18),transparent_36%)]"></div>
-    <div class="absolute inset-0 opacity-70">
-      <div class="absolute left-[12%] top-[20%] h-px w-[30%] bg-[linear-gradient(90deg,transparent,#4F86FF,transparent)]"></div>
-      <div class="absolute left-[35%] top-[54%] h-px w-[36%] bg-[linear-gradient(90deg,transparent,#43C7B8,transparent)]"></div>
-      <div class="absolute left-[18%] top-[78%] h-px w-[42%] bg-[linear-gradient(90deg,transparent,#FF9B62,transparent)]"></div>
-      <div class="absolute left-[24%] top-[18%] h-[58%] w-px bg-[linear-gradient(180deg,transparent,#D96B88,transparent)]"></div>
-      <div class="absolute left-[62%] top-[34%] h-[46%] w-px bg-[linear-gradient(180deg,transparent,#4F86FF,transparent)]"></div>
+<div class="relative mx-auto w-full max-w-[600px]">
+  <div class="surface-card rounded-[32px] p-6 sm:p-8">
+    {/* 顶部工具栏 */}
+    <div class="mb-6 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="flex gap-1.5">
+          <span class="h-3 w-3 rounded-full bg-[#FF5F57]"></span>
+          <span class="h-3 w-3 rounded-full bg-[#FFBD2E]"></span>
+          <span class="h-3 w-3 rounded-full bg-[#28CA41]"></span>
+        </div>
+        <div class="h-4 w-px bg-slate-200"></div>
+        <div class="h-2 w-20 rounded-full bg-slate-100"></div>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="h-6 w-6 rounded-lg bg-blue-50"></div>
+        <div class="h-6 w-6 rounded-lg bg-slate-50"></div>
+      </div>
     </div>
 
-    <div class="relative grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-      <div class="rounded-[28px] border border-white/70 bg-slate-950/[0.03] p-4 shadow-inner shadow-slate-900/5">
+    {/* 主内容区 - 左右布局 */}
+    <div class="grid gap-4 lg:grid-cols-[1fr_0.55fr]">
+      {/* 左侧：横向流程画布 */}
+      <div class="rounded-2xl border border-slate-100 bg-slate-50/50 p-5">
         <div class="mb-4 flex items-center justify-between">
-          <div class="space-y-1">
-            <div class="h-2 w-24 rounded-full bg-slate-200"></div>
-            <div class="h-2 w-16 rounded-full bg-slate-100"></div>
+          <span class="text-xs font-medium text-slate-400">Pipeline Flow</span>
+          <span
+            class="flex h-5 items-center gap-1.5 rounded-full bg-emerald-50 px-2"
+          >
+            <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+            <span class="text-[10px] font-medium text-emerald-600">Ready</span>
+          </span>
+        </div>
+
+        {/* 横向节点流程 - ComfyUI 风格 */}
+        <div class="relative py-4">
+          {/* 水平连接线 */}
+          <div
+            class="absolute left-6 right-6 top-1/2 h-0.5 -translate-y-1/2 bg-slate-200"
+          >
           </div>
-          <div class="flex gap-2">
-            <span class="h-3 w-3 rounded-full bg-[#4F86FF]"></span>
-            <span class="h-3 w-3 rounded-full bg-[#43C7B8]"></span>
-            <span class="h-3 w-3 rounded-full bg-[#FF9B62]"></span>
+
+          {/* 节点行 */}
+          <div class="relative flex items-center justify-between">
+            {/* 开始节点 */}
+            <div class="flex flex-col items-center gap-2">
+              <div
+                class="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-200 bg-white shadow-sm"
+              >
+                <svg
+                  class="h-4 w-4 text-emerald-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                  ></path>
+                </svg>
+              </div>
+              <div class="h-1.5 w-6 rounded-full bg-slate-100"></div>
+            </div>
+
+            {/* 识别节点 */}
+            <div class="flex flex-col items-center gap-2">
+              <div
+                class="flex h-9 w-9 items-center justify-center rounded-xl border border-blue-200 bg-white shadow-sm"
+              >
+                <svg
+                  class="h-4 w-4 text-blue-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                  ></path>
+                </svg>
+              </div>
+              <div class="h-1.5 w-8 rounded-full bg-slate-100"></div>
+            </div>
+
+            {/* 判断节点 */}
+            <div class="flex flex-col items-center gap-2">
+              <div
+                class="flex h-9 w-9 items-center justify-center rounded-xl border border-purple-200 bg-white shadow-sm"
+              >
+                <svg
+                  class="h-4 w-4 text-purple-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  ></path>
+                </svg>
+              </div>
+              <div class="h-1.5 w-8 rounded-full bg-slate-100"></div>
+            </div>
+
+            {/* 动作节点 */}
+            <div class="flex flex-col items-center gap-2">
+              <div
+                class="flex h-9 w-9 items-center justify-center rounded-xl border border-orange-200 bg-white shadow-sm"
+              >
+                <svg
+                  class="h-4 w-4 text-orange-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"
+                  ></path>
+                </svg>
+              </div>
+              <div class="h-1.5 w-6 rounded-full bg-slate-100"></div>
+            </div>
+
+            {/* 结束节点 */}
+            <div class="flex flex-col items-center gap-2">
+              <div
+                class="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-200 bg-white shadow-sm"
+              >
+                <svg
+                  class="h-4 w-4 text-emerald-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+              </div>
+              <div class="h-1.5 w-6 rounded-full bg-slate-100"></div>
+            </div>
           </div>
         </div>
 
-        <div class="grid gap-3">
-          <div class="workflow-node workflow-node-blue float-slow">
-            <p class="text-xs font-medium uppercase tracking-[0.24em] text-slate-500">入口</p>
-            <p class="mt-2 text-sm font-semibold text-slate-900">读取资源与节点上下文</p>
+        {/* 第二行 - AI Power 分支示意 */}
+        <div
+          class="relative mt-4 rounded-xl border border-dashed border-slate-200 bg-white/50 p-3"
+        >
+          <div class="mb-2 flex items-center gap-2">
+            <span class="text-[10px] font-medium text-blue-500">AI Power</span>
+            <div class="flex-1 h-px bg-slate-100"></div>
           </div>
-          <div class="ml-[14%] workflow-node workflow-node-mint float-slower">
-            <p class="text-xs font-medium uppercase tracking-[0.24em] text-slate-500">分组</p>
-            <p class="mt-2 text-sm font-semibold text-slate-900">整理条件分支与关键路径</p>
-          </div>
-          <div class="workflow-node workflow-node-orange">
-            <p class="text-xs font-medium uppercase tracking-[0.24em] text-slate-500">调试</p>
-            <p class="mt-2 text-sm font-semibold text-slate-900">确认模板、字段与执行反馈</p>
+          <div class="flex items-center gap-2">
+            <div
+              class="flex items-center gap-1.5 rounded-lg border border-slate-100 bg-white px-2 py-1.5 shadow-sm"
+            >
+              <span class="h-2 w-2 rounded-full bg-purple-400"></span>
+              <div class="h-1.5 w-10 rounded-full bg-slate-100"></div>
+            </div>
+            <div
+              class="flex items-center gap-1.5 rounded-lg border border-slate-100 bg-white px-2 py-1.5 shadow-sm"
+            >
+              <span class="h-2 w-2 rounded-full bg-amber-400"></span>
+              <div class="h-1.5 w-8 rounded-full bg-slate-100"></div>
+            </div>
+            <div
+              class="flex items-center gap-1.5 rounded-lg border border-blue-100 bg-blue-50/50 px-2 py-1.5 shadow-sm"
+            >
+              <span class="h-2 w-2 rounded-full bg-blue-400"></span>
+              <div class="h-1.5 w-12 rounded-full bg-blue-100"></div>
+              <span class="text-[8px] font-medium text-blue-500">Smart</span>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="grid gap-4">
-        <div class="surface-subcard float-slow">
-          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-blue-600">节点搜索 / AI 补全</p>
-          <p class="mt-2 text-sm font-medium text-slate-900">先找到节点，再让建议结果落回可视化上下文。</p>
-          <div class="mt-4 flex flex-wrap gap-2">
-            <span class="rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">模糊搜索</span>
-            <span class="rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">建议补全</span>
+      {/* 右侧：状态面板 */}
+      <div class="flex flex-col gap-3">
+        {/* 连接状态 - 放最上面 */}
+        <div
+          class="rounded-xl border border-emerald-100 bg-emerald-50/50 p-2.5"
+        >
+          <div class="flex items-center gap-2">
+            <span class="relative flex h-2 w-2">
+              <span
+                class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"
+              ></span>
+              <span
+                class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"
+              ></span>
+            </span>
+            <span class="text-[11px] font-medium text-emerald-700"
+              >LocalBridge</span
+            >
           </div>
         </div>
-        <div class="surface-subcard float-slower">
-          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-600">LocalBridge / 本地能力</p>
-          <p class="mt-2 text-sm font-medium text-slate-900">文件、截图、OCR 等本地入口按需启用，不挤占首屏叙事。</p>
-          <div class="mt-4 flex flex-wrap gap-2">
-            <span class="rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">文件管理</span>
-            <span class="rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">截图识别</span>
+
+        {/* 统计卡片 */}
+        <div class="rounded-2xl border border-slate-100 bg-white p-3 shadow-sm">
+          <div class="flex items-center gap-2">
+            <div
+              class="h-6 w-6 rounded-lg bg-blue-50 flex items-center justify-center"
+            >
+              <svg
+                class="h-3.5 w-3.5 text-blue-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+              </svg>
+            </div>
+            <span class="text-[11px] font-medium text-slate-400">Nodes</span>
+          </div>
+          <div class="mt-2">
+            <span class="text-xl font-semibold text-slate-800">24</span>
+            <span class="ml-1 text-[10px] text-slate-400">active</span>
           </div>
         </div>
-        <div class="surface-subcard">
-          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-orange-600">模板 / 调试 / OCR</p>
-          <p class="mt-2 text-sm font-medium text-slate-900">模板与调试信息聚合在同一工作台里，避免来回切屏。</p>
-          <div class="mt-4 flex flex-wrap gap-2">
-            <span class="rounded-full bg-orange-50 px-2 py-1 text-xs font-semibold text-orange-700">调试面板</span>
-            <span class="rounded-full bg-orange-50 px-2 py-1 text-xs font-semibold text-orange-700">模板复用</span>
+
+        {/* 执行状态 - 填充剩余空间 */}
+        <div
+          class="flex-1 rounded-2xl border border-slate-100 bg-white p-3 shadow-sm"
+        >
+          <div class="flex items-center gap-2">
+            <div
+              class="h-6 w-6 rounded-lg bg-orange-50 flex items-center justify-center"
+            >
+              <svg
+                class="h-3.5 w-3.5 text-orange-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                ></path>
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <span class="text-[11px] font-medium text-slate-400">Last Run</span>
+          </div>
+          <div class="mt-2">
+            <span class="text-[10px] text-slate-500">2m ago</span>
+          </div>
+          {/* 填充内容 */}
+          <div class="mt-4 space-y-2">
+            <div class="h-1.5 w-full rounded-full bg-slate-50"></div>
+            <div class="h-1.5 w-3/4 rounded-full bg-slate-50"></div>
+            <div class="h-1.5 w-5/6 rounded-full bg-slate-50"></div>
           </div>
         </div>
       </div>
