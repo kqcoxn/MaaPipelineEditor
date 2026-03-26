@@ -3,9 +3,7 @@ import { expect, test } from "@playwright/test";
 test("hero CTAs and GitHub link point to the planned destinations", async ({ page }) => {
   await page.goto("/");
 
-  await expect(page.getByRole("heading", { level: 1 })).toContainText(
-    "把 MaaFramework Pipeline 从 JSON 变成可读、可改、可调试的图形工作流",
-  );
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("MaaPipelineEditor");
 
   await expect(page.getByTestId("hero-primary-cta")).toHaveAttribute("href", "/stable/");
   await expect(page.getByTestId("hero-secondary-cta")).toHaveAttribute("href", "/docs/");

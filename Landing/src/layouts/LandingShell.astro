@@ -57,6 +57,11 @@ const structuredData = {
     <link rel="icon" href="/logo.ico" sizes="any" />
     <link rel="icon" type="image/png" href="/logo.png" />
     <link rel="apple-touch-icon" href="/logo.png" />
+    <script is:inline>
+      if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        document.documentElement.classList.add("has-scroll-reveal");
+      }
+    </script>
     <script is:inline type="application/ld+json" set:html={JSON.stringify(structuredData)} />
     {siteConfig.plausibleDomain && (
       <script
@@ -71,5 +76,62 @@ const structuredData = {
   <body class="bg-canvas text-ink antialiased">
     <div class="page-grid"></div>
     <slot />
+    <script is:inline>
+      (() => {
+        if (!document.documentElement.classList.contains("has-scroll-reveal")) {
+          return;
+        }
+
+        const revealElements = Array.from(document.querySelectorAll("[data-reveal]"));
+
+        if (revealElements.length === 0) {
+          return;
+        }
+
+        const revealElement = (element) => {
+          element.classList.add("is-visible");
+        };
+
+        const shouldRevealImmediately = (element) => {
+          const rect = element.getBoundingClientRect();
+
+          return rect.top <= window.innerHeight * 0.9 && rect.bottom >= 0;
+        };
+
+        revealElements.forEach((element) => {
+          if (shouldRevealImmediately(element)) {
+            revealElement(element);
+          }
+        });
+
+        if (!("IntersectionObserver" in window)) {
+          revealElements.forEach(revealElement);
+          return;
+        }
+
+        const observer = new IntersectionObserver(
+          (entries, currentObserver) => {
+            entries.forEach((entry) => {
+              if (!entry.isIntersecting && entry.intersectionRatio <= 0.16) {
+                return;
+              }
+
+              revealElement(entry.target);
+              currentObserver.unobserve(entry.target);
+            });
+          },
+          {
+            threshold: 0.16,
+            rootMargin: "0px 0px -10% 0px",
+          },
+        );
+
+        revealElements.forEach((element) => {
+          if (!element.classList.contains("is-visible")) {
+            observer.observe(element);
+          }
+        });
+      })();
+    </script>
   </body>
 </html>

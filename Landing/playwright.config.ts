@@ -1,5 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const previewCommand =
+  process.platform === "win32"
+    ? "yarn.cmd preview --host 127.0.0.1 --port 4321"
+    : "yarn preview --host 127.0.0.1 --port 4321";
+
 export default defineConfig({
   testDir: "./tests",
   fullyParallel: true,
@@ -17,9 +22,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "yarn preview --host 127.0.0.1 --port 4321",
+    command: previewCommand,
     port: 4321,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: true,
     timeout: 120000,
   },
 });

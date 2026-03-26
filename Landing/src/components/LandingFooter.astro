@@ -11,7 +11,7 @@ const year = new Date().getFullYear();
 
 <footer class="border-t border-slate-200/80 px-4 py-10 sm:px-6 lg:px-8">
   <div class="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1.3fr_2fr]">
-    <div>
+    <div data-reveal="left">
       <div class="flex items-center gap-3">
         <img
           src="/logo.png"
@@ -32,8 +32,8 @@ const year = new Date().getFullYear();
 
     <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
       {
-        columns.map((column) => (
-          <section>
+        columns.map((column, index) => (
+          <section data-reveal="up" style={`--reveal-delay: ${80 + index * 70}ms;`}>
             <h2 class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">{column.title}</h2>
             <ul class="mt-4 space-y-3">
               {column.links.map((link) => (
@@ -55,7 +55,11 @@ const year = new Date().getFullYear();
     </div>
   </div>
 
-  <div class="mx-auto mt-10 flex max-w-7xl flex-col gap-2 border-t border-slate-200/80 pt-6 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+  <div
+    class="mx-auto mt-10 flex max-w-7xl flex-col gap-2 border-t border-slate-200/80 pt-6 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between"
+    data-reveal="up"
+    style="--reveal-delay: 180ms;"
+  >
     <p>© {year} MaaPipelineEditor / codax. All rights reserved.</p>
     <p>Landing MVP focuses on structure, conversion, and independent delivery.</p>
   </div>

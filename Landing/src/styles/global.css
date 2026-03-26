@@ -152,6 +152,41 @@ button {
   animation: var(--animate-float-slower);
 }
 
+.has-scroll-reveal [data-reveal] {
+  --reveal-distance: 28px;
+  --reveal-duration: 720ms;
+  --reveal-scale: 0.985;
+  --reveal-easing: cubic-bezier(0.22, 1, 0.36, 1);
+  opacity: 0;
+  transform: translate3d(0, var(--reveal-distance), 0) scale(var(--reveal-scale));
+  filter: blur(10px);
+  transition:
+    opacity var(--reveal-duration) var(--reveal-easing),
+    transform var(--reveal-duration) var(--reveal-easing),
+    filter var(--reveal-duration) var(--reveal-easing);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform, filter;
+}
+
+.has-scroll-reveal [data-reveal="left"] {
+  transform: translate3d(calc(var(--reveal-distance) * -1), 0, 0)
+    scale(var(--reveal-scale));
+}
+
+.has-scroll-reveal [data-reveal="right"] {
+  transform: translate3d(var(--reveal-distance), 0, 0) scale(var(--reveal-scale));
+}
+
+.has-scroll-reveal [data-reveal="zoom"] {
+  transform: translate3d(0, calc(var(--reveal-distance) * 0.65), 0) scale(0.96);
+}
+
+.has-scroll-reveal [data-reveal].is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+  filter: blur(0);
+}
+
 @media (prefers-reduced-motion: reduce) {
   :root {
     scroll-behavior: auto;
@@ -164,6 +199,12 @@ button {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  .has-scroll-reveal [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
   }
 }
 

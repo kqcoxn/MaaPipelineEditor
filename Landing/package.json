@@ -8,7 +8,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "typecheck": "astro check",
-    "test": "playwright test",
+    "test": "node scripts/run-playwright-with-static-server.cjs",
     "verify": "yarn typecheck && yarn build && yarn test"
   },
   "dependencies": {

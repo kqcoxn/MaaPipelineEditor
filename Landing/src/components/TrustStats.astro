@@ -22,7 +22,7 @@ const accentMap = {
 
 <section id="ecosystem" class="section-spacing px-4 sm:px-6 lg:px-8">
   <div class="mx-auto max-w-7xl">
-    <div class="mx-auto max-w-3xl text-center">
+    <div class="mx-auto max-w-3xl text-center" data-reveal="up">
       <span class="section-chip">生态与可信度</span>
       <h2 class="mt-6 text-balance text-3xl font-semibold text-slate-950 sm:text-4xl">
         用真实边界建立信任，再把生态入口组织清楚
@@ -34,8 +34,12 @@ const accentMap = {
 
     <div class="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
       {
-        metrics.map((item) => (
-          <article class="rounded-[30px] border border-white/70 bg-white/90 p-6 shadow-[0_18px_60px_rgba(20,32,51,0.08)]">
+        metrics.map((item, index) => (
+          <article
+            class="rounded-[30px] border border-white/70 bg-white/90 p-6 shadow-[0_18px_60px_rgba(20,32,51,0.08)]"
+            data-reveal="up"
+            style={`--reveal-delay: ${index * 90}ms;`}
+          >
             <span class={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${accentMap[item.accent]}`}>
               {item.value}
             </span>
@@ -46,7 +50,11 @@ const accentMap = {
       }
     </div>
 
-    <div class="mt-8 rounded-[34px] border border-white/70 bg-white/88 p-6 shadow-[0_24px_80px_rgba(20,32,51,0.08)] backdrop-blur sm:p-8">
+    <div
+      class="mt-8 rounded-[34px] border border-white/70 bg-white/88 p-6 shadow-[0_24px_80px_rgba(20,32,51,0.08)] backdrop-blur sm:p-8"
+      data-reveal="up"
+      style="--reveal-delay: 180ms;"
+    >
       <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
           <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">生态入口</p>

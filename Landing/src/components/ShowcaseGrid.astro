@@ -33,11 +33,15 @@ const accentMap = {
 
 <div class="grid gap-5 md:grid-cols-2">
   {
-    items.map((item) => {
+    items.map((item, index) => {
       const accent = accentMap[item.accent];
 
       return (
-        <article class="group overflow-hidden rounded-[30px] border border-white/70 bg-white/90 shadow-[0_22px_80px_rgba(20,32,51,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_26px_90px_rgba(20,32,51,0.12)]">
+        <article
+          class="group overflow-hidden rounded-[30px] border border-white/70 bg-white/90 shadow-[0_22px_80px_rgba(20,32,51,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_26px_90px_rgba(20,32,51,0.12)]"
+          data-reveal="up"
+          style={`--reveal-delay: ${index * 90}ms;`}
+        >
           <div class={`relative h-60 overflow-hidden bg-linear-to-br ${accent.glow}`}>
             <div class="absolute inset-x-6 top-6 rounded-[24px] border border-white/80 bg-white/80 p-4 shadow-[0_20px_50px_rgba(20,32,51,0.08)] backdrop-blur">
               <div class="flex items-center justify-between">
