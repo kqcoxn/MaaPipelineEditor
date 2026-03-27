@@ -10,6 +10,7 @@ import IconFont from "../../iconfonts";
 import { useFlowStore, type NodeType } from "../../../stores/flow";
 import { useConfigStore } from "../../../stores/configStore";
 import { OpenAIChat } from "../../../utils/openai";
+import { buildAISearchPrompt } from "../../../utils/aiPrompts";
 import { NodeTypeEnum } from "../../flow/nodes";
 import {
   crossFileService,
@@ -23,7 +24,7 @@ function SearchPanel() {
   const nodes = useFlowStore((state) => state.nodes);
   const instance = useFlowStore((state) => state.instance);
   const enableCrossFileSearch = useConfigStore(
-    (state) => state.configs.enableCrossFileSearch
+    (state) => state.configs.enableCrossFileSearch,
   );
 
   // 状态
@@ -69,14 +70,14 @@ function SearchPanel() {
       }));
       setOptions(filtered);
     },
-    { wait: 300 }
+    { wait: 300 },
   );
 
   // 选中节点并聚焦
   const focusNodeInCurrentFile = useCallback(
     (label: string) => {
       const targetNode = nodes.find(
-        (node: NodeType) => node.data.label === label
+        (node: NodeType) => node.data.label === label,
       );
       if (!targetNode) {
         message.warning("未找到该节点");
@@ -89,7 +90,7 @@ function SearchPanel() {
           type: "select" as const,
           id: node.id,
           selected: node.id === targetNode.id,
-        }))
+        })),
       );
 
       // 聚焦视图到该节点
@@ -108,7 +109,7 @@ function SearchPanel() {
       setOptions([]);
       setSearchResults([]);
     },
-    [nodes, instance]
+    [nodes, instance],
   );
 
   // 跨文件跳转到节点
@@ -118,7 +119,7 @@ function SearchPanel() {
       message.success(
         nodeInfo.isCurrentFile
           ? `已定位到节点: ${nodeInfo.label}`
-          : `已跳转到 ${nodeInfo.relativePath} 并定位节点: ${nodeInfo.label}`
+          : `已跳转到 ${nodeInfo.relativePath} 并定位节点: ${nodeInfo.label}`,
       );
     } else {
       message.warning("跳转失败");
@@ -147,7 +148,7 @@ function SearchPanel() {
       setSearchValue("");
       focusNodeInCurrentFile(value);
     },
-    [searchResults, navigateToNode, focusNodeInCurrentFile]
+    [searchResults, navigateToNode, focusNodeInCurrentFile],
   );
 
   // 普通搜索
@@ -221,22 +222,9 @@ function SearchPanel() {
       }
 
       // 构建提示词
-      const systemPrompt = `你是一个节点搜索助手。用户会给你一个节点列表和搜索需求，你需要找到最匹配的节点。
-
-重要规则：
-1. 仅返回最匹配的节点名称（label字段的值），不要有任何其他说明文字
-2. 如果没有任何相关节点，返回：NOT_FOUND
-3. 节点类型说明：pipeline=流程节点，external=外部节点，anchor=锚点节点
-4. 对于pipeline节点：
-   - recognition 是识别方式，包含 type（识别类型）和 param（具体参数）
-   - action 是动作方式，包含 type（动作类型）和 param（具体参数）
-   - others 是其他配置参数
-5. 识别常见字段：template（模板图片）、threshold（阈值）、roi（识别区域）、expected（期望文本）等
-6. 动作常见字段：target（目标位置）、input_text（输入文本）、package（应用包名）等
-7. 根据用户描述，从节点的识别内容、动作内容、配置参数等维度综合判断最匹配的节点
-
-节点列表：
-${JSON.stringify(nodesContext, null, 2)}`;
+      const systemPrompt = buildAISearchPrompt(
+        JSON.stringify(nodesContext, null, 2),
+      );
 
       // 创建AI实例
       const aiChat = new OpenAIChat({
@@ -281,7 +269,7 @@ ${JSON.stringify(nodesContext, null, 2)}`;
       }
       handleSearch(value);
     },
-    [handleSearch]
+    [handleSearch],
   );
 
   // 处理回车
@@ -297,7 +285,7 @@ ${JSON.stringify(nodesContext, null, 2)}`;
         }
       }
     },
-    [searchValue, searchResults, navigateToNode, focusNodeInCurrentFile]
+    [searchValue, searchResults, navigateToNode, focusNodeInCurrentFile],
   );
 
   // 焦点不在时关闭下拉
@@ -315,7 +303,7 @@ ${JSON.stringify(nodesContext, null, 2)}`;
   // 渲染
   const panelClass = useMemo(
     () => classNames(style.panel, style["h-panel"], style["search-panel"]),
-    []
+    [],
   );
 
   return (
@@ -389,9 +377,13 @@ ${JSON.stringify(nodesContext, null, 2)}`;
         </div>
         <Tooltip placement="bottom" title="节点列表">
           <DownOutlined
-            className={classNames(style["search-icon"], style["dropdown-icon"], {
-              [style.active]: showNodeList,
-            })}
+            className={classNames(
+              style["search-icon"],
+              style["dropdown-icon"],
+              {
+                [style.active]: showNodeList,
+              },
+            )}
             onClick={() => setShowNodeList((prev) => !prev)}
             style={{ fontSize: 14, marginRight: 6 }}
           />
@@ -404,7 +396,7 @@ ${JSON.stringify(nodesContext, null, 2)}`;
           onClose={() => setShowNodeList(false)}
           anchorEl={containerRef.current}
         />,
-        document.body
+        document.body,
       )}
     </div>
   );

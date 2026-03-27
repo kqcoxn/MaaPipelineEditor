@@ -48,6 +48,14 @@ export const pinnedNotice: PinnedNotice = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "1.4.0",
+    date: "2026-3",
+    type: "major",
+    updates: {
+      perfs: ["优化节点字段智能填充效果"],
+    },
+  },
+  {
     version: "1.3.1",
     date: "2026-3-25",
     type: "feature",

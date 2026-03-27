@@ -3,10 +3,17 @@ import { useConfigStore } from "../stores/configStore";
 /** 消息角色类型 */
 export type MessageRole = "system" | "user" | "assistant";
 
+/** Vision 内容类型 */
+export interface VisionContent {
+  type: "text" | "image_url";
+  text?: string;
+  image_url?: { url: string };
+}
+
 /** 消息结构 */
 export interface ChatMessage {
   role: MessageRole;
-  content: string;
+  content: string | VisionContent[];
 }
 
 /** 创建对话实例的配置项 */
@@ -114,8 +121,14 @@ export class OpenAIChat {
 
   /** 获取 API 配置 */
   private getApiConfig() {
-    const { aiApiUrl, aiApiKey, aiModel } = useConfigStore.getState().configs;
-    return { apiUrl: aiApiUrl, apiKey: aiApiKey, model: aiModel };
+    const { aiApiUrl, aiApiKey, aiModel, aiTemperature } =
+      useConfigStore.getState().configs;
+    return {
+      apiUrl: aiApiUrl,
+      apiKey: aiApiKey,
+      model: aiModel,
+      temperature: aiTemperature,
+    };
   }
 
   /** 校验配置 */
@@ -129,17 +142,23 @@ export class OpenAIChat {
 
   /** 构建请求体 */
   private buildRequestBody(stream: boolean) {
-    const { model } = this.getApiConfig();
+    const { model, temperature } = this.getApiConfig();
     return {
       model,
       messages: this.messages,
-      temperature: this.temperature,
+      temperature,
       stream,
     };
   }
 
   /** 添加消息并维护历史记录上限 */
   private addMessage(role: MessageRole, content: string) {
+    this.messages.push({ role, content });
+    this.trimHistory();
+  }
+
+  /** 添加 Vision 消息 */
+  private addVisionMessage(role: MessageRole, content: VisionContent[]) {
     this.messages.push({ role, content });
     this.trimHistory();
   }
@@ -251,7 +270,7 @@ export class OpenAIChat {
   async sendStream(
     userMessage: string,
     onChunk: StreamCallback,
-    userPrompt?: string
+    userPrompt?: string,
   ): Promise<ChatResult> {
     const configError = this.validateConfig();
     if (configError) {
@@ -389,5 +408,101 @@ export class OpenAIChat {
     } else if (prompt) {
       this.messages.unshift({ role: "system", content: prompt });
     }
+  }
+
+  /**
+   * 发送带图片的消息（Vision）
+   * @param textContent 文本内容
+   * @param imageBase64 图片 base64（不含前缀）
+   * @param userPrompt 用户原始输入（用于历史记录显示，可选）
+   */
+  async sendVision(
+    textContent: string,
+    imageBase64: string,
+    userPrompt?: string,
+  ): Promise<ChatResult> {
+    const configError = this.validateConfig();
+    if (configError) {
+      aiHistoryManager.addRecord({
+        userPrompt: userPrompt || textContent,
+        actualMessage: "[图片+文本]",
+        response: "",
+        success: false,
+        error: configError,
+      });
+      return { success: false, content: "", error: configError };
+    }
+
+    // 构建 vision 消息内容
+    const visionContent: VisionContent[] = [
+      { type: "text", text: textContent },
+      {
+        type: "image_url",
+        image_url: { url: `data:image/png;base64,${imageBase64}` },
+      },
+    ];
+
+    this.addVisionMessage("user", visionContent);
+    const { apiUrl, apiKey, temperature } = this.getApiConfig();
+
+    let lastError = "";
+    for (let attempt = 0; attempt <= this.retryCount; attempt++) {
+      try {
+        this.abortController = new AbortController();
+
+        const response = await fetch(apiUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: useConfigStore.getState().configs.aiModel,
+            messages: this.messages,
+            temperature,
+            stream: false,
+          }),
+          signal: this.abortController.signal,
+        });
+
+        if (!response.ok) {
+          const errText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errText}`);
+        }
+
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content || "";
+        this.addMessage("assistant", content);
+
+        // 记录成功的历史
+        aiHistoryManager.addRecord({
+          userPrompt: userPrompt || textContent,
+          actualMessage: "[图片+文本]",
+          response: content,
+          success: true,
+        });
+
+        return { success: true, content };
+      } catch (err: any) {
+        if (err.name === "AbortError") {
+          this.messages.pop();
+          return { success: false, content: "", error: "请求已取消" };
+        }
+        lastError = err.message || String(err);
+        if (attempt < this.retryCount) {
+          await this.delay(this.retryDelay);
+        }
+      }
+    }
+
+    this.messages.pop();
+    aiHistoryManager.addRecord({
+      userPrompt: userPrompt || textContent,
+      actualMessage: "[图片+文本]",
+      response: "",
+      success: false,
+      error: lastError,
+    });
+    return { success: false, content: "", error: lastError };
   }
 }

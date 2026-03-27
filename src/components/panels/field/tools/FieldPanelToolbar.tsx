@@ -4,6 +4,7 @@ import { Tooltip, message } from "antd";
 import IconFont from "../../../iconfonts";
 import type { NodeType } from "../../../../stores/flow/types";
 import { useFileStore } from "../../../../stores/fileStore";
+import { useConfigStore } from "../../../../stores/configStore";
 import { NodeTypeEnum } from "../../../flow/nodes";
 import {
   collectNodeContext,
@@ -81,7 +82,7 @@ export const FieldPanelToolbarLeft = memo(
         )}
       </div>
     );
-  }
+  },
 );
 
 // 右侧工具栏
@@ -146,7 +147,14 @@ export const FieldPanelToolbarRight = memo(
       // 检查前置条件
       const { connectionStatus, controllerId } = useMFWStore.getState();
       if (connectionStatus !== "connected" || !controllerId) {
-        message.error("请先连接到本地服务与设备，并确保配置好OCR功能");
+        message.error("请先连接到本地服务与设备");
+        return;
+      }
+
+      // 检查 AI 配置
+      const { aiApiUrl, aiApiKey, aiModel } = useConfigStore.getState().configs;
+      if (!aiApiUrl || !aiApiKey || !aiModel) {
+        message.error("请先在配置面板中设置 AI API");
         return;
       }
 
@@ -157,16 +165,21 @@ export const FieldPanelToolbarRight = memo(
         const nodes = useFlowStore.getState().nodes;
         const edges = useFlowStore.getState().edges;
 
-        // 收集节点上下文
+        // 收集节点上下文（截图 + 前置节点）
         const context = await collectNodeContext(
           currentNode.id,
           nodes,
           edges,
-          true,
-          onProgressChange
+          onProgressChange,
         );
 
-        // 调用AI预测
+        // 检查截图是否成功
+        if (!context.screenshot) {
+          message.error("截图获取失败，请检查设备连接");
+          return;
+        }
+
+        // 调用AI预测（Vision 模式）
         const prediction = await predictNodeConfig(context, onProgressChange);
 
         // 应用预测结果
@@ -175,23 +188,25 @@ export const FieldPanelToolbarRight = memo(
 
         if (filledCount > 0) {
           message.success(
-            `已成功填充 ${filledCount} 个字段，可在AI对话历史中查看详细推理依据`
+            `已成功填充 ${filledCount} 个字段，可在AI对话历史中查看详细推理依据`,
           );
         } else {
           message.info(
-            "AI分析完成，但没有需要填充的字段，可在AI对话历史中查看推理依据"
+            "AI分析完成，但没有需要填充的字段，可在AI对话历史中查看推理依据",
           );
         }
       } catch (err: any) {
         const errorMsg = err.message || "AI预测失败";
 
         // 根据错误类型给出不同提示
-        if (errorMsg.includes("未连接")) {
-          message.error("请先连接到本地服务与设备");
+        if (errorMsg.includes("未连接") || errorMsg.includes("截图")) {
+          message.error("截图失败，请确保设备已连接");
         } else if (errorMsg.includes("API") || errorMsg.includes("配置")) {
           message.error("请先在配置面板中设置AI API");
-        } else if (errorMsg.includes("OCR")) {
-          message.error("OCR识别失败，请确保OCR功能已正确配置");
+        } else if (errorMsg.includes("视觉") || errorMsg.includes("vision")) {
+          message.error(
+            "当前模型不支持视觉功能，请使用支持视觉的模型（如 GPT-4o）",
+          );
         } else {
           message.error(`AI预测失败: ${errorMsg}`);
         }
@@ -254,5 +269,5 @@ export const FieldPanelToolbarRight = memo(
         )}
       </div>
     );
-  }
+  },
 );

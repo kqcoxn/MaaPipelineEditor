@@ -5,8 +5,8 @@ import type { FieldSortConfig } from "../core/sorting/types";
 /**固有配置 */
 export const globalConfig = {
   dev: true,
-  version: `1.3.1`,
-  betaIteration: 2,
+  version: `1.4.0`,
+  betaIteration: 0,
   mfwVersion: "5.9.2",
   protocolVersion: "0.7.4",
 };
@@ -62,6 +62,7 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   aiApiUrl: "ai",
   aiApiKey: "ai",
   aiModel: "ai",
+  aiTemperature: "ai",
 };
 
 /**获取可导出的配置 */
@@ -124,6 +125,7 @@ type ConfigState = {
     aiApiUrl: string;
     aiApiKey: string;
     aiModel: string;
+    aiTemperature: number;
     // 聚焦透明度
     focusOpacity: number;
     // 边控制点
@@ -199,6 +201,7 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     aiApiUrl: "",
     aiApiKey: "",
     aiModel: "",
+    aiTemperature: 0.7,
     // 聚焦透明度
     focusOpacity: 0.3,
     // 边控制点
