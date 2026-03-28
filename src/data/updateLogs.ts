@@ -56,7 +56,7 @@ export const updateLogs: UpdateLogItem[] = [
       perfs: [
         "优化节点字段智能填充效果",
         "优化 OCR 加载失败时的提示",
-        "",
+        "优化节点添加面板排序，精简左侧节点列表",
       ],
     },
   },

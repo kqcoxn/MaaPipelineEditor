@@ -40,6 +40,43 @@
       height: 50%;
     }
   }
+
+  // 底部提示分割线
+  .hintDivider {
+    width: 100%;
+    height: 4px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    > div {
+      background-color: rgba(gray, 0.2);
+      border-radius: 60px;
+      width: 72%;
+      height: 50%;
+    }
+  }
+
+  // 底部提示项
+  .hintItem {
+    width: 52px;
+    height: 52px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: default;
+    position: relative;
+
+    .hintIcon {
+      color: #999;
+      opacity: 0.6;
+    }
+
+    &:hover .hintIcon {
+      opacity: 1;
+      color: #666;
+    }
+  }
 }
 
 .h-panel {
