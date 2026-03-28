@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"image"
 	"image/png"
 	"os"
@@ -99,9 +100,12 @@ func (h *UtilityHandler) handleOCRRecognize(conn *server.Connection, msg models.
 			"success": false,
 			"error":   err.Error(),
 		}
-		// 附加错误码
+		// 附加错误码和详细信息
 		if mfwErr, ok := err.(*mfw.MFWError); ok {
 			errorResult["code"] = mfwErr.Code
+			if mfwErr.Detail != nil {
+				errorResult["detail"] = mfwErr.Detail
+			}
 		}
 		conn.Send(models.Message{
 			Path: "/lte/utility/ocr_result",
@@ -210,11 +214,39 @@ func (h *UtilityHandler) performOCR(controllerID, resourceID string, roi [4]int3
 
 		resJob := res.PostBundle(actualPath)
 		if resJob == nil {
-			logger.Warn("Utility", "加载 OCR 资源失败")
-		} else {
-			status := resJob.Wait()
-			logger.Debug("Utility", "OCR 资源加载状态: %v", status)
+			logger.Error("Utility", "加载 OCR 资源失败: PostBundle 返回 nil (路径: %s)", actualPath)
+			return nil, mfw.NewMFWError(mfw.ErrCodeResourceLoadFailed, "OCR 资源加载失败", map[string]interface{}{
+				"reason":       "PostBundle 返回 nil",
+				"resource_dir": resourcePath,
+				"suggestions": []string{
+					"检查 OCR 资源目录是否存在",
+					"确认目录结构: <resource_dir>/model/ocr/",
+					"确认必需文件: det.onnx, rec.onnx, keys.txt",
+					"检查目录访问权限",
+					"目录下若有 pipeline 文件，检查格式是否正确",
+				},
+			})
 		}
+
+		resJob.Wait()
+		if !resJob.Success() {
+			status := resJob.Status()
+			logger.Error("Utility", "OCR 资源加载失败: Status=%v, 路径=%s", status, actualPath)
+			return nil, mfw.NewMFWError(mfw.ErrCodeResourceLoadFailed, "OCR 资源加载失败", map[string]interface{}{
+				"reason":       "资源加载状态异常",
+				"status":       fmt.Sprintf("%v", status),
+				"resource_dir": resourcePath,
+				"suggestions": []string{
+					"检查 OCR 资源目录是否存在",
+					"确认目录结构: <resource_dir>/model/ocr/",
+					"确认必需文件: det.onnx, rec.onnx, keys.txt",
+					"检查文件完整性",
+					"检查目录访问权限",
+					"目录下若有 pipeline 文件，检查格式是否正确",
+				},
+			})
+		}
+		logger.Debug("Utility", "OCR 资源加载成功: %s", actualPath)
 
 		// 恢复工作目录
 		if useWorkDirSwitch && originalDir != "" {
@@ -246,10 +278,26 @@ func (h *UtilityHandler) performOCR(controllerID, resourceID string, roi [4]int3
 
 	// 等待 Tasker 初始化完成
 	if !tasker.Initialized() {
+		// 获取资源目录信息
+		resourceDir := ""
+		if cfg := config.GetGlobal(); cfg != nil {
+			resourceDir = cfg.MaaFW.ResourceDir
+		}
+
 		logger.Error("Utility", "Tasker 未初始化 - 请检查 OCR 资源目录结构")
 		logger.Error("Utility", "MaaFramework 期望 OCR 模型在: <resource_dir>/model/ocr/ 目录下")
 		logger.Error("Utility", "需要文件: det.onnx, rec.onnx, keys.txt")
-		return nil, mfw.NewMFWError(mfw.ErrCodeTaskSubmitFailed, "tasker not initialized - OCR model path may be incorrect, expected: <resource_dir>/model/ocr/", nil)
+		return nil, mfw.NewMFWError(mfw.ErrCodeTaskSubmitFailed, "OCR 初始化失败", map[string]interface{}{
+			"reason":       "Tasker 未初始化",
+			"resource_dir": resourceDir,
+			"suggestions": []string{
+				"检查 OCR 资源目录结构是否正确",
+				"确认 OCR 模型在: <resource_dir>/model/ocr/ 目录下",
+				"确认必需文件存在: det.onnx, rec.onnx, keys.txt",
+				"检查文件完整性（可能下载不完整）",
+				"目录下若有 pipeline 文件，检查格式是否正确",
+			},
+		})
 	}
 	logger.Debug("Utility", "Tasker 初始化成功")
 

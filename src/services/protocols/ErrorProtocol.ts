@@ -1,4 +1,5 @@
-import { message } from "antd";
+import { Modal } from "antd";
+import React from "react";
 import { BaseProtocol } from "./BaseProtocol";
 import type { LocalWebSocketServer } from "../server";
 import { useMFWStore } from "../../stores/mfwStore";
@@ -19,7 +20,7 @@ export class ErrorProtocol extends BaseProtocol {
   register(wsClient: LocalWebSocketServer): void {
     this.wsClient = wsClient;
     this.wsClient.registerRoute("/error", (data) =>
-      this.handleMessage("/error", data)
+      this.handleMessage("/error", data),
     );
   }
 
@@ -49,10 +50,21 @@ export class ErrorProtocol extends BaseProtocol {
       }`,
     };
 
-    const displayMessage = errorMessages[code] || msg || "未知错误";
-
     console.error("[ErrorProtocol]", { code, message: msg, detail });
-    message.error(displayMessage);
+
+    // OCR 相关错误使用 Modal 弹窗
+    if (
+      code === "MFW_RESOURCE_LOAD_FAILED" ||
+      code === "MFW_TASK_SUBMIT_FAILED"
+    ) {
+      this.showOCRErrorModal(data);
+    } else {
+      const displayMessage = errorMessages[code] || msg || "未知错误";
+      // 动态导入 message 避免循环依赖
+      import("antd").then(({ message }) => {
+        message.error(displayMessage, 5);
+      });
+    }
 
     // 控制器错误时清除连接状态
     if (
@@ -63,5 +75,45 @@ export class ErrorProtocol extends BaseProtocol {
       const mfwStore = useMFWStore.getState();
       mfwStore.clearConnection();
     }
+  }
+
+  /**
+   * 显示 OCR 错误的 Modal 弹窗
+   */
+  private showOCRErrorModal(data: any): void {
+    const { detail, message: msg } = data;
+
+    if (detail && typeof detail === "object") {
+      const reason = detail.reason || "未知原因";
+      const resourceDir = detail.resource_dir || "";
+      const suggestions: string[] = detail.suggestions || [];
+
+      let content = `原因: ${reason}`;
+      if (resourceDir) {
+        content += `\n\n资源目录:\n${resourceDir}`;
+      }
+      if (suggestions.length > 0) {
+        content += "\n\n排查建议:";
+        suggestions.forEach((s) => {
+          content += `\n• ${s}`;
+        });
+      }
+
+      Modal.error({
+        title: "OCR 资源加载失败",
+        content: React.createElement(
+          "pre",
+          { style: { whiteSpace: "pre-wrap", fontFamily: "inherit" } },
+          content,
+        ),
+        width: 520,
+      });
+      return;
+    }
+
+    Modal.error({
+      title: "OCR 错误",
+      content: msg || "未知错误",
+    });
   }
 }

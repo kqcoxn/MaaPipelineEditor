@@ -3,6 +3,7 @@ import {
   Space,
   InputNumber,
   message,
+  Modal,
   Input,
   Button,
   Radio,
@@ -43,6 +44,12 @@ interface OCRResult {
   error?: string;
   code?: string;
   no_content?: boolean;
+  detail?: {
+    reason?: string;
+    resource_dir?: string;
+    suggestions?: string[];
+    [key: string]: any;
+  };
 }
 
 type OCRMode = "native" | "frontend";
@@ -115,7 +122,7 @@ export const OCRModal = memo(
             0,
             0,
             Math.round(roi.width),
-            Math.round(roi.height)
+            Math.round(roi.height),
           );
 
           // 图像预处理
@@ -123,7 +130,7 @@ export const OCRModal = memo(
             0,
             0,
             tempCanvas.width,
-            tempCanvas.height
+            tempCanvas.height,
           );
           const data = imageData.data;
 
@@ -225,7 +232,7 @@ export const OCRModal = memo(
           while (/([一-龥])\s+([一-龥])/.test(processedText)) {
             processedText = processedText.replace(
               /([\u4e00-\u9fa5])\s+([\u4e00-\u9fa5])/g,
-              "$1$2"
+              "$1$2",
             );
           }
 
@@ -241,14 +248,14 @@ export const OCRModal = memo(
           message.error(
             `前端OCR识别失败: ${
               error instanceof Error ? error.message : "未知错误"
-            }`
+            }`,
           );
           setOcrSuccess(false);
         } finally {
           setIsOCRing(false);
         }
       },
-      [screenshot, tesseractWorker]
+      [screenshot, tesseractWorker],
     );
 
     // 请求后端 OCR 识别
@@ -272,7 +279,7 @@ export const OCRModal = memo(
           ],
         });
       },
-      [connectionStatus, controllerId, isOCRing]
+      [connectionStatus, controllerId, isOCRing],
     );
 
     // 根据模式选择 OCR 方法
@@ -284,7 +291,7 @@ export const OCRModal = memo(
           requestNativeOCR(roi);
         }
       },
-      [ocrMode, requestFrontendOCR, requestNativeOCR]
+      [ocrMode, requestFrontendOCR, requestNativeOCR],
     );
 
     // 监听 OCR 结果
@@ -301,14 +308,53 @@ export const OCRModal = memo(
             setOcrSuccess(true);
           }
         } else if (data.error) {
-          // 检测 OCR 资源未配置的特定错误码
+          // 构建详细的错误提示
+          let errorTitle = "OCR 识别失败";
+          let errorContent: React.ReactNode = data.error;
+
+          // 处理特定的错误码
           if (data.code === "MFW_OCR_RESOURCE_NOT_CONFIGURED") {
-            message.error(
-              "OCR 资源路径未配置，请请运行 'mpelb config set-resource' 并按提示输入后重启服务"
+            errorContent =
+              "OCR 资源路径未配置，请运行 'mpelb config set-resource' 并按提示输入后重启服务";
+          } else if (
+            (data.code === "MFW_RESOURCE_LOAD_FAILED" ||
+              data.code === "MFW_TASK_SUBMIT_FAILED") &&
+            data.detail
+          ) {
+            // 资源加载失败或任务提交失败，展示详细信息
+            const reason = data.detail.reason || "未知原因";
+            const resourceDir = data.detail.resource_dir || "";
+            const suggestions: string[] = data.detail.suggestions || [];
+
+            errorTitle = "OCR 资源加载失败";
+            let content = `原因: ${reason}`;
+            if (resourceDir) {
+              content += `\n\n资源目录:\n${resourceDir}`;
+            }
+            if (suggestions.length > 0) {
+              content += "\n\n排查建议:";
+              suggestions.forEach((s) => {
+                content += `\n• ${s}`;
+              });
+            }
+            errorContent = (
+              <pre
+                style={{
+                  whiteSpace: "pre-wrap",
+                  fontFamily: "inherit",
+                  margin: 0,
+                }}
+              >
+                {content}
+              </pre>
             );
-          } else {
-            message.error(data.error);
           }
+
+          Modal.error({
+            title: errorTitle,
+            content: errorContent,
+            width: 520,
+          });
           setOcrSuccess(false);
         }
       };
@@ -342,7 +388,7 @@ export const OCRModal = memo(
         resolved = resolveNegativeROI(
           [rectangle.x, rectangle.y, rectangle.width, rectangle.height],
           img.width,
-          img.height
+          img.height,
         );
       }
 
@@ -361,13 +407,13 @@ export const OCRModal = memo(
           rectangle.x,
           rectangle.y,
           rectangle.width,
-          rectangle.height
+          rectangle.height,
         );
         ctx.strokeRect(
           rectangle.x,
           rectangle.y,
           rectangle.width,
-          rectangle.height
+          rectangle.height,
         );
 
         // 如果有负数坐标且被分割，绘制分割后的两个区域
@@ -501,7 +547,7 @@ export const OCRModal = memo(
           handleMouseLeave,
         };
       },
-      [isDrawing, startPoint, rectangle, requestOCR]
+      [isDrawing, startPoint, rectangle, requestOCR],
     );
 
     // 确定回填
@@ -578,7 +624,7 @@ export const OCRModal = memo(
           />
         );
       },
-      [createMouseHandlers]
+      [createMouseHandlers],
     );
 
     // 初始化 canvas
@@ -595,7 +641,7 @@ export const OCRModal = memo(
         props?.initializeImage?.(img);
         redrawCanvas();
       },
-      [redrawCanvas]
+      [redrawCanvas],
     );
 
     // 手动输入坐标
@@ -619,7 +665,7 @@ export const OCRModal = memo(
           }, 500);
         }
       },
-      [rectangle, requestOCR]
+      [rectangle, requestOCR],
     );
 
     return (
@@ -870,8 +916,8 @@ export const OCRModal = memo(
                     {rectangle && rectangle.width === 0
                       ? "→边"
                       : rectangle && rectangle.width < 0
-                      ? "←→"
-                      : ""}
+                        ? "←→"
+                        : ""}
                   </span>
                 </Tooltip>
                 <span
@@ -907,8 +953,8 @@ export const OCRModal = memo(
                     {rectangle && rectangle.height === 0
                       ? "↓边"
                       : rectangle && rectangle.height < 0
-                      ? "↑↓"
-                      : ""}
+                        ? "↑↓"
+                        : ""}
                   </span>
                 </Tooltip>
               </Space>
@@ -938,7 +984,7 @@ export const OCRModal = memo(
                           rectangle.height,
                         ],
                         imageRef.current!.width,
-                        imageRef.current!.height
+                        imageRef.current!.height,
                       );
                       return (
                         <>
@@ -1054,5 +1100,5 @@ export const OCRModal = memo(
         </div>
       </ScreenshotModalBase>
     );
-  }
+  },
 );

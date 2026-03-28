@@ -52,7 +52,7 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2026-3",
     type: "major",
     updates: {
-      perfs: ["优化节点字段智能填充效果"],
+      perfs: ["优化节点字段智能填充效果", "优化 OCR 加载失败时的提示"],
     },
   },
   {
