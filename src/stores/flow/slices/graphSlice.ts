@@ -50,7 +50,11 @@ export const createGraphSlice: StateCreator<
   },
 
   // 批量粘贴
-  paste(nodes: NodeType[], edges: EdgeType[]) {
+  paste(
+    nodes: NodeType[],
+    edges: EdgeType[],
+    position?: { x: number; y: number },
+  ) {
     if (nodes.length === 0) return;
 
     set((state) => {
@@ -70,8 +74,18 @@ export const createGraphSlice: StateCreator<
       let pasteCounter = state.pasteIdCounter;
 
       const existingLabels = new Set(
-        [...originNodes, ...nodes].map((n) => n.data.label)
+        [...originNodes, ...nodes].map((n) => n.data.label),
       );
+
+      // 计算节点集合的边界框
+      let minLeft = Infinity;
+      let minTop = Infinity;
+      if (position) {
+        nodes.forEach((node) => {
+          minLeft = Math.min(minLeft, node.position.x);
+          minTop = Math.min(minTop, node.position.y);
+        });
+      }
 
       // 先处理基本的节点信息
       const allNodes = [...state.nodes];
@@ -126,7 +140,7 @@ export const createGraphSlice: StateCreator<
       // 处理parentId映射和最终位置
       const pastedNodeIds = new Set(nodes.map((n) => n.id));
       const existingGroups = state.nodes.filter(
-        (n) => n.type === NodeTypeEnum.Group
+        (n) => n.type === NodeTypeEnum.Group,
       );
 
       nodes.forEach((node) => {
@@ -154,19 +168,33 @@ export const createGraphSlice: StateCreator<
           } else {
             // 父节点没有被粘贴
             (node as any).parentId = undefined;
-            finalPosition = {
-              x: processedPosition.x + 100,
-              y: processedPosition.y + 50,
-            };
+            if (position) {
+              finalPosition = {
+                x: processedPosition.x + (position.x - minLeft),
+                y: processedPosition.y + (position.y - minTop),
+              };
+            } else {
+              finalPosition = {
+                x: processedPosition.x + 100,
+                y: processedPosition.y + 50,
+              };
+            }
             node.position = { ...finalPosition };
             shouldCheckGroupMembership = true;
           }
         } else {
           // 普通节点
-          finalPosition = {
-            x: processedPosition.x + 100,
-            y: processedPosition.y + 50,
-          };
+          if (position) {
+            finalPosition = {
+              x: processedPosition.x + (position.x - minLeft),
+              y: processedPosition.y + (position.y - minTop),
+            };
+          } else {
+            finalPosition = {
+              x: processedPosition.x + 100,
+              y: processedPosition.y + 50,
+            };
+          }
           node.position = { ...finalPosition };
         }
 
@@ -256,7 +284,7 @@ export const createGraphSlice: StateCreator<
   shiftNodes(
     direction: "horizontal" | "vertical",
     delta: number,
-    targetNodeIds?: string[]
+    targetNodeIds?: string[],
   ) {
     set((state) => {
       if (state.nodes.length === 0) return {};
@@ -269,7 +297,7 @@ export const createGraphSlice: StateCreator<
 
       // 找到最左上侧的节点位置作为基准点
       const positions = targetNodes.map((node) =>
-        direction === "horizontal" ? node.position.x : node.position.y
+        direction === "horizontal" ? node.position.x : node.position.y,
       );
       const minPosition = Math.min(...positions);
       const targetNodeIdSet = new Set(targetNodes.map((n) => n.id));

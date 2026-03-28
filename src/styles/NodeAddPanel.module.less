@@ -14,7 +14,9 @@
   z-index: 101;
   background-color: #fff;
   border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.15),
+    0 2px 8px rgba(0, 0, 0, 0.08);
   display: flex;
   overflow: hidden;
   min-width: 520px;
@@ -76,6 +78,28 @@
     color: #bbb;
     font-size: 13px;
     text-align: center;
+  }
+
+  .clipboardPreview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #52c41a;
+    text-align: center;
+    gap: 8px;
+
+    .clipboardPreviewTitle {
+      font-size: 14px;
+      font-weight: 500;
+      color: #333;
+    }
+
+    .clipboardPreviewDesc {
+      font-size: 11px;
+      color: #999;
+      max-width: 160px;
+    }
   }
 }
 
@@ -192,6 +216,17 @@
         font-weight: 500;
         color: #fff;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 4px;
+        flex-shrink: 0;
+      }
+
+      .clipboardBadge {
+        display: inline-block;
+        padding: 1px 6px;
+        font-size: 10px;
+        font-weight: 500;
+        color: #fff;
+        background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%);
         border-radius: 4px;
         flex-shrink: 0;
       }

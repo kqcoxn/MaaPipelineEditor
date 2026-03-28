@@ -10,6 +10,7 @@ import {
 } from "../../../data/nodeTemplates";
 import { useFlowStore } from "../../../stores/flow";
 import { useCustomTemplateStore } from "../../../stores/customTemplateStore";
+import { useClipboardStore } from "../../../stores/clipboardStore";
 import { NodeTypeEnum } from "../../flow/nodes";
 import {
   getRecognitionIcon,
@@ -269,7 +270,7 @@ const NodePreview = memo(
         </div>
       </div>
     );
-  }
+  },
 );
 
 // 主组件
@@ -287,20 +288,26 @@ function NodeAddPanel({
   const listRef = useRef<HTMLDivElement>(null);
 
   const addNode = useFlowStore((state) => state.addNode);
+  const paste = useFlowStore((state) => state.paste);
   const customTemplates = useCustomTemplateStore(
-    (state) => state.customTemplates
+    (state) => state.customTemplates,
   );
   const getAllTemplates = useCustomTemplateStore(
-    (state) => state.getAllTemplates
+    (state) => state.getAllTemplates,
   );
   const removeTemplate = useCustomTemplateStore(
-    (state) => state.removeTemplate
+    (state) => state.removeTemplate,
   );
+
+  // 粘贴板相关
+  const clipboardNodes = useClipboardStore((state) => state.clipboardNodes);
+  const clipboardEdges = useClipboardStore((state) => state.clipboardEdges);
+  const hasClipboardContent = clipboardNodes.length > 0;
 
   // 获取所有模板
   const allTemplates = useMemo(
     () => getAllTemplates(nodeTemplates),
-    [getAllTemplates, customTemplates]
+    [getAllTemplates, customTemplates],
   );
 
   // 过滤模板
@@ -310,8 +317,35 @@ function NodeAddPanel({
     return allTemplates.filter((t) => t.label.toLowerCase().includes(keyword));
   }, [searchText, allTemplates]);
 
-  // 当前选中的模板
-  const selectedTemplate = filteredTemplates[selectedIndex] || null;
+  // 创建渲染项列表
+  const renderItems = useMemo(() => {
+    const items: Array<
+      | { type: "template"; template: NodeTemplateType; templateIndex: number }
+      | { type: "clipboard" }
+    > = [];
+
+    let templateIndex = 0;
+    for (const template of filteredTemplates) {
+      items.push({ type: "template", template, templateIndex });
+
+      // 在空节点后插入粘贴项
+      if (
+        template.label === "空节点" &&
+        hasClipboardContent &&
+        !searchText.trim()
+      ) {
+        items.push({ type: "clipboard" });
+      }
+      templateIndex++;
+    }
+
+    return items;
+  }, [filteredTemplates, hasClipboardContent, searchText]);
+
+  // 当前选中的渲染项
+  const selectedItem = renderItems[selectedIndex] || null;
+  const selectedTemplate =
+    selectedItem?.type === "template" ? selectedItem.template : null;
 
   // 添加节点
   const handleAddNode = useCallback(
@@ -326,8 +360,30 @@ function NodeAddPanel({
       });
       onClose();
     },
-    [addNode, flowPosition, onClose]
+    [addNode, flowPosition, onClose],
   );
+
+  // 粘贴板节点
+  const handlePasteFromClipboard = useCallback(() => {
+    if (!hasClipboardContent || !flowPosition) return;
+    paste(clipboardNodes, clipboardEdges, flowPosition);
+    onClose();
+  }, [
+    hasClipboardContent,
+    flowPosition,
+    paste,
+    clipboardNodes,
+    clipboardEdges,
+    onClose,
+  ]);
+
+  // 获取粘贴项标题
+  const getPasteTitle = useCallback(() => {
+    if (clipboardNodes.length === 1) {
+      return clipboardNodes[0].data.label;
+    }
+    return `${clipboardNodes[0]?.data.label ?? ""}等${clipboardNodes.length}个节点`;
+  }, [clipboardNodes]);
 
   // 删除自定义模板
   const handleDeleteTemplate = useCallback(
@@ -346,7 +402,7 @@ function NodeAddPanel({
         },
       });
     },
-    [removeTemplate]
+    [removeTemplate],
   );
 
   // 键盘事件
@@ -356,7 +412,7 @@ function NodeAddPanel({
         case "ArrowDown":
           e.preventDefault();
           setSelectedIndex((prev) =>
-            Math.min(prev + 1, filteredTemplates.length - 1)
+            Math.min(prev + 1, renderItems.length - 1),
           );
           break;
         case "ArrowUp":
@@ -365,8 +421,10 @@ function NodeAddPanel({
           break;
         case "Enter":
           e.preventDefault();
-          if (selectedTemplate) {
+          if (selectedItem?.type === "template" && selectedTemplate) {
             handleAddNode(selectedTemplate);
+          } else if (selectedItem?.type === "clipboard") {
+            handlePasteFromClipboard();
           }
           break;
         case "Escape":
@@ -375,7 +433,14 @@ function NodeAddPanel({
           break;
       }
     },
-    [filteredTemplates.length, selectedTemplate, handleAddNode, onClose]
+    [
+      renderItems.length,
+      selectedItem,
+      selectedTemplate,
+      handleAddNode,
+      handlePasteFromClipboard,
+      onClose,
+    ],
   );
 
   // 滚动到选中项
@@ -430,11 +495,11 @@ function NodeAddPanel({
   const panelStyle: React.CSSProperties = {
     left: Math.min(
       Math.max(shouldPlaceOnLeft ? position.x - panelWidth : position.x, 10),
-      availableWidth - panelWidth - 10
+      availableWidth - panelWidth - 10,
     ),
     top: Math.min(
       Math.max(position.y, 10),
-      window.innerHeight - panelHeight - 10
+      window.innerHeight - panelHeight - 10,
     ),
   };
 
@@ -471,7 +536,19 @@ function NodeAddPanel({
         <div className={style.previewSection}>
           <div className={style.previewTitle}>节点预览</div>
           <div className={style.previewContainer}>
-            <NodePreview template={selectedTemplate} />
+            {selectedItem?.type === "clipboard" ? (
+              <div className={style.clipboardPreview}>
+                <IconFont name="icon-niantie1" size={32} color="#52c41a" />
+                <div className={style.clipboardPreviewTitle}>
+                  粘贴 {clipboardNodes.length} 个节点
+                </div>
+                <div className={style.clipboardPreviewDesc}>
+                  点击将粘贴板中的节点粘贴到鼠标位置
+                </div>
+              </div>
+            ) : (
+              <NodePreview template={selectedTemplate} />
+            )}
           </div>
         </div>
 
@@ -497,57 +574,96 @@ function NodeAddPanel({
 
           {/* 模板列表 */}
           <div className={style.templateList} ref={listRef}>
-            {filteredTemplates.length > 0 ? (
-              filteredTemplates.map((template, index) => (
-                <div
-                  key={`${template.label}-${
-                    template.isCustom ? "custom" : "preset"
-                  }`}
-                  className={classNames(style.templateItem, {
-                    [style.active]: index === selectedIndex,
-                    [style.customTemplate]: template.isCustom,
-                  })}
-                  onClick={() => handleAddNode(template)}
-                  onMouseEnter={() => {
-                    setSelectedIndex(index);
-                    setHoveredIndex(index);
-                  }}
-                  onMouseLeave={() => setHoveredIndex(null)}
-                >
-                  <div className={style.templateIcon}>
-                    <IconFont
-                      name={template.iconName as IconNames}
-                      size={template.iconSize ?? 24}
-                    />
-                  </div>
-                  <div className={style.templateInfo}>
-                    <div className={style.templateName}>
-                      {template.label}
-                      {template.isCustom && (
-                        <span className={style.customBadge}>自定义</span>
+            {renderItems.length > 0 ? (
+              renderItems.map((item, index) => {
+                if (item.type === "clipboard") {
+                  // 粘贴项
+                  return (
+                    <div
+                      key="clipboard-paste"
+                      className={classNames(
+                        style.templateItem,
+                        style.clipboardItem,
+                        {
+                          [style.active]: index === selectedIndex,
+                        },
                       )}
-                    </div>
-                    <div className={style.templateDesc}>
-                      {getTemplateDescription(template)}
-                    </div>
-                  </div>
-                  {template.isCustom ? (
-                    hoveredIndex === index ? (
-                      <div
-                        className={style.deleteBtn}
-                        onClick={(e) => handleDeleteTemplate(e, template)}
-                        title="删除模板"
-                      >
-                        <IconFont
-                          name="icon-shanchu"
-                          size={16}
-                          color="#ff4a4a"
-                        />
+                      onClick={() => handlePasteFromClipboard()}
+                      onMouseEnter={() => {
+                        setSelectedIndex(index);
+                        setHoveredIndex(index);
+                      }}
+                      onMouseLeave={() => setHoveredIndex(null)}
+                    >
+                      <div className={style.templateIcon}>
+                        <IconFont name="icon-niantie1" size={24} />
                       </div>
-                    ) : null
-                  ) : null}
-                </div>
-              ))
+                      <div className={style.templateInfo}>
+                        <div className={style.templateName}>
+                          {getPasteTitle()}
+                          <span className={style.clipboardBadge}>粘贴板</span>
+                        </div>
+                        <div className={style.templateDesc}>
+                          粘贴 {clipboardNodes.length} 个节点
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                // 模板项
+                const template = item.template;
+                return (
+                  <div
+                    key={`${template.label}-${
+                      template.isCustom ? "custom" : "preset"
+                    }`}
+                    className={classNames(style.templateItem, {
+                      [style.active]: index === selectedIndex,
+                      [style.customTemplate]: template.isCustom,
+                    })}
+                    onClick={() => handleAddNode(template)}
+                    onMouseEnter={() => {
+                      setSelectedIndex(index);
+                      setHoveredIndex(index);
+                    }}
+                    onMouseLeave={() => setHoveredIndex(null)}
+                  >
+                    <div className={style.templateIcon}>
+                      <IconFont
+                        name={template.iconName as IconNames}
+                        size={template.iconSize ?? 24}
+                      />
+                    </div>
+                    <div className={style.templateInfo}>
+                      <div className={style.templateName}>
+                        {template.label}
+                        {template.isCustom && (
+                          <span className={style.customBadge}>自定义</span>
+                        )}
+                      </div>
+                      <div className={style.templateDesc}>
+                        {getTemplateDescription(template)}
+                      </div>
+                    </div>
+                    {template.isCustom ? (
+                      hoveredIndex === index ? (
+                        <div
+                          className={style.deleteBtn}
+                          onClick={(e) => handleDeleteTemplate(e, template)}
+                          title="删除模板"
+                        >
+                          <IconFont
+                            name="icon-shanchu"
+                            size={16}
+                            color="#ff4a4a"
+                          />
+                        </div>
+                      ) : null
+                    ) : null}
+                  </div>
+                );
+              })
             ) : (
               <div className={style.emptyList}>
                 <IconFont

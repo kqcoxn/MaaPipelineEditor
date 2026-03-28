@@ -323,7 +323,11 @@ export interface FlowGraphState {
       skipSave?: boolean;
     },
   ) => void;
-  paste: (nodes: NodeType[], edges: EdgeType[]) => void;
+  paste: (
+    nodes: NodeType[],
+    edges: EdgeType[],
+    position?: { x: number; y: number },
+  ) => void;
   resetPasteCounter: () => void;
   shiftNodes: (
     direction: "horizontal" | "vertical",
