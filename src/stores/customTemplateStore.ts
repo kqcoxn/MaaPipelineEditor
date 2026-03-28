@@ -60,7 +60,7 @@ export const useCustomTemplateStore = create<CustomTemplateState>(
         // 版本检查
         if (data.version !== STORAGE_VERSION) {
           console.warn(
-            `模板数据版本不匹配: ${data.version} != ${STORAGE_VERSION}, 尝试迁移或清空`
+            `模板数据版本不匹配: ${data.version} != ${STORAGE_VERSION}, 尝试迁移或清空`,
           );
           // 清空旧版本数据
           localStorage.removeItem(STORAGE_KEY);
@@ -78,7 +78,7 @@ export const useCustomTemplateStore = create<CustomTemplateState>(
             data: () => JSON.parse(JSON.stringify(template.data)),
             isCustom: true,
             createTime: template.createTime,
-          })
+          }),
         );
 
         // 按创建时间倒序排列
@@ -99,7 +99,7 @@ export const useCustomTemplateStore = create<CustomTemplateState>(
       // 数量限制检查
       if (customTemplates.length >= MAX_TEMPLATES) {
         message.error(
-          `自定义模板数量已达上限（${MAX_TEMPLATES}个），请先删除旧模板`
+          `自定义模板数量已达上限（${MAX_TEMPLATES}个），请先删除旧模板`,
         );
         return false;
       }
@@ -121,7 +121,7 @@ export const useCustomTemplateStore = create<CustomTemplateState>(
       const { label: _removed, ...nodeDataWithoutLabel } = nodeData;
       const templateData = {
         recognition: JSON.parse(
-          JSON.stringify(nodeDataWithoutLabel.recognition)
+          JSON.stringify(nodeDataWithoutLabel.recognition),
         ),
         action: JSON.parse(JSON.stringify(nodeDataWithoutLabel.action)),
         others: JSON.parse(JSON.stringify(nodeDataWithoutLabel.others)),
@@ -212,36 +212,53 @@ export const useCustomTemplateStore = create<CustomTemplateState>(
     getAllTemplates: (presetTemplates: NodeTemplateType[]) => {
       const { customTemplates } = get();
 
-      // 排序
+      // 按指定顺序提取预设模板
       const emptyTemplate = presetTemplates.find((t) => t.label === "空节点");
+      const externalTemplate = presetTemplates.find(
+        (t) => t.nodeType === NodeTypeEnum.External,
+      );
+      const anchorTemplate = presetTemplates.find(
+        (t) => t.nodeType === NodeTypeEnum.Anchor,
+      );
       const stickerTemplate = presetTemplates.find(
-        (t) => t.nodeType === NodeTypeEnum.Sticker
+        (t) => t.nodeType === NodeTypeEnum.Sticker,
       );
       const groupTemplate = presetTemplates.find(
-        (t) => t.nodeType === NodeTypeEnum.Group
+        (t) => t.nodeType === NodeTypeEnum.Group,
       );
+      // 其他预设模板
       const otherPresetTemplates = presetTemplates.filter(
         (t) =>
           t.label !== "空节点" &&
+          t.nodeType !== NodeTypeEnum.External &&
+          t.nodeType !== NodeTypeEnum.Anchor &&
           t.nodeType !== NodeTypeEnum.Sticker &&
-          t.nodeType !== NodeTypeEnum.Group
+          t.nodeType !== NodeTypeEnum.Group,
       );
 
       const result: NodeTemplateType[] = [];
 
+      // 按顺序添加：空节点 -> 外部节点 -> 重定向节点 -> 便签贴纸 -> 分组框 -> 自定义模板 -> 其他预设
       if (emptyTemplate) {
         result.push(emptyTemplate);
       }
-
+      if (externalTemplate) {
+        result.push(externalTemplate);
+      }
+      if (anchorTemplate) {
+        result.push(anchorTemplate);
+      }
       if (stickerTemplate) {
         result.push(stickerTemplate);
       }
-
       if (groupTemplate) {
         result.push(groupTemplate);
       }
 
+      // 自定义模板
       result.push(...customTemplates);
+
+      // 其他预设模板
       result.push(...otherPresetTemplates);
 
       return result;
@@ -281,12 +298,12 @@ export const useCustomTemplateStore = create<CustomTemplateState>(
             data: () => JSON.parse(JSON.stringify(template.data)),
             isCustom: true,
             createTime: template.createTime,
-          })
+          }),
         );
 
         // 按创建时间倒序排列
         convertedTemplates.sort(
-          (a, b) => (b.createTime || 0) - (a.createTime || 0)
+          (a, b) => (b.createTime || 0) - (a.createTime || 0),
         );
 
         // 更新状态
@@ -305,5 +322,5 @@ export const useCustomTemplateStore = create<CustomTemplateState>(
         return false;
       }
     },
-  })
+  }),
 );
