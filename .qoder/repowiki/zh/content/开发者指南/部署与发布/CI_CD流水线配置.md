@@ -12,7 +12,16 @@
 - [LocalBridge/package.json](file://LocalBridge/package.json)
 - [Extremer/go.mod](file://Extremer/go.mod)
 - [LocalBridge/go.mod](file://LocalBridge/go.mod)
+- [Landing/package.json](file://Landing/package.json)
+- [Landing/astro.config.mjs](file://Landing/astro.config.mjs)
+- [Landing/tsconfig.json](file://Landing/tsconfig.json)
 </cite>
+
+## 更新摘要
+**变更内容**
+- 新增着陆页(Landing)构建自动化功能，自动打包着陆页分发文件到ZIP归档中
+- 更新发布工作流，确保着陆页更新自动包含在发布制品中
+- 扩展Web包构建流程，包含着陆页构建步骤
 
 ## 目录
 1. [简介](#简介)
@@ -34,9 +43,10 @@
 - 缓存策略与依赖优化
 - 测试覆盖率与质量门禁
 - 工作流程自定义与扩展建议
+- **新增** 着陆页构建自动化与发布集成
 
 ## 项目结构
-本仓库采用多模块结构：前端应用、本地桥接服务（Go）、可选的桌面应用（Wails）以及文档站点。CI/CD主要围绕前端与后端构建进行自动化。
+本仓库采用多模块结构：前端应用、本地桥接服务（Go）、可选的桌面应用（Wails）、文档站点以及着陆页。CI/CD主要围绕前端与后端构建进行自动化，现已集成着陆页构建流程。
 
 ```mermaid
 graph TB
@@ -52,6 +62,9 @@ end
 subgraph "文档站点"
 DOC["docsite/*<br/>package.json"]
 end
+subgraph "着陆页"
+LAND["Landing/*<br/>astro.config.mjs<br/>package.json"]
+end
 subgraph "CI/CD"
 GH[".github/workflows/*<br/>preview.yaml<br/>release.yaml"]
 end
@@ -59,34 +72,36 @@ GH --> FE
 GH --> LB
 GH --> EX
 GH --> DOC
+GH --> LAND
 ```
 
 **图表来源**
 - [.github/workflows/preview.yaml:1-98](file://.github/workflows/preview.yaml#L1-L98)
-- [.github/workflows/release.yaml:1-488](file://.github/workflows/release.yaml#L1-L488)
+- [.github/workflows/release.yaml:1-507](file://.github/workflows/release.yaml#L1-L507)
 - [package.json:1-65](file://package.json#L1-L65)
 - [Extremer/wails.json:1-18](file://Extremer/wails.json#L1-L18)
 - [LocalBridge/package.json:1-8](file://LocalBridge/package.json#L1-L8)
+- [Landing/package.json:1-35](file://Landing/package.json#L1-L35)
 
 **章节来源**
 - [.github/workflows/preview.yaml:1-98](file://.github/workflows/preview.yaml#L1-L98)
-- [.github/workflows/release.yaml:1-488](file://.github/workflows/release.yaml#L1-L488)
+- [.github/workflows/release.yaml:1-507](file://.github/workflows/release.yaml#L1-L507)
 - [package.json:1-65](file://package.json#L1-L65)
 
 ## 核心组件
 - 预览发布工作流（preview.yaml）：基于主分支推送或手动触发，检测特定配置迭代值变化后自动部署到GitHub Pages。
-- 发布工作流（release.yaml）：基于标签触发或手动触发，执行多平台构建、资源缓存、产物打包与发布。
+- 发布工作流（release.yaml）：基于标签触发或手动触发，执行多平台构建、资源缓存、产物打包与发布，现已集成着陆页构建自动化。
 
 关键职责划分：
 - 预览工作流：前端构建与静态页面发布
-- 发布工作流：多平台二进制与桌面应用打包、文档站点打包、GitHub Release发布
+- 发布工作流：多平台二进制与桌面应用打包、文档站点打包、**着陆页构建与打包**、GitHub Release发布
 
 **章节来源**
 - [.github/workflows/preview.yaml:1-98](file://.github/workflows/preview.yaml#L1-L98)
-- [.github/workflows/release.yaml:1-488](file://.github/workflows/release.yaml#L1-L488)
+- [.github/workflows/release.yaml:1-507](file://.github/workflows/release.yaml#L1-L507)
 
 ## 架构总览
-下图展示两个工作流的整体执行路径与关键步骤：
+下图展示两个工作流的整体执行路径与关键步骤，包括新增的着陆页构建流程：
 
 ```mermaid
 graph TB
@@ -99,7 +114,7 @@ P_DEPLOY["部署阶段<br/>上传工件/部署到Pages"]
 end
 subgraph "发布工作流"
 R_LB["构建 LocalBridge<br/>多平台矩阵"]
-R_WEB["构建 Web 包<br/>稳定版/文档"]
+R_WEB["构建 Web 包<br/>稳定版/文档/着陆页"]
 R_EXT["构建 Extremer<br/>桌面应用"]
 R_PKG["打包与发布<br/>GitHub Release"]
 end
@@ -109,7 +124,7 @@ PUSH --> R_LB --> R_WEB --> R_EXT --> R_PKG
 
 **图表来源**
 - [.github/workflows/preview.yaml:25-98](file://.github/workflows/preview.yaml#L25-L98)
-- [.github/workflows/release.yaml:13-488](file://.github/workflows/release.yaml#L13-L488)
+- [.github/workflows/release.yaml:13-507](file://.github/workflows/release.yaml#L13-L507)
 
 ## 详细组件分析
 
@@ -159,10 +174,12 @@ Pages-->>Dev : 提供预览链接
   - 写入内容与Actions权限
 - 核心作业与流程
   - 构建 LocalBridge（多平台矩阵：Windows/Linux/macOS）
-  - 构建Web包（稳定版与文档）
+  - 构建Web包（稳定版、文档、**着陆页**）
   - 构建Extremer（桌面应用）
   - 打包资源与产物
   - 生成变更日志并创建Release
+
+**更新** 新增着陆页构建自动化功能，自动打包着陆页分发文件到ZIP归档中
 
 ```mermaid
 sequenceDiagram
@@ -170,6 +187,7 @@ participant Dev as "开发者"
 participant GH as "GitHub Actions"
 participant LB as "LocalBridge构建"
 participant WEB as "Web包构建"
+participant LANDING as "着陆页构建"
 participant EXT as "Extremer构建"
 participant REL as "GitHub Release"
 Dev->>GH : 推送标签或手动触发
@@ -177,6 +195,8 @@ GH->>LB : 多平台矩阵构建
 LB-->>GH : 产出二进制工件
 GH->>WEB : 构建稳定版与文档
 WEB-->>GH : 产出zip工件
+GH->>LANDING : 构建着陆页并打包
+LANDING-->>GH : 产出着陆页zip工件
 GH->>EXT : 构建桌面应用
 EXT-->>GH : 产出桌面应用包
 GH->>REL : 生成变更日志并发布
@@ -184,11 +204,31 @@ REL-->>Dev : Release下载链接
 ```
 
 **图表来源**
-- [.github/workflows/release.yaml:14-157](file://.github/workflows/release.yaml#L14-L157)
-- [.github/workflows/release.yaml:158-488](file://.github/workflows/release.yaml#L158-L488)
+- [.github/workflows/release.yaml:14-174](file://.github/workflows/release.yaml#L14-L174)
+- [.github/workflows/release.yaml:166-174](file://.github/workflows/release.yaml#L166-L174)
+- [.github/workflows/release.yaml:419-507](file://.github/workflows/release.yaml#L419-L507)
 
 **章节来源**
-- [.github/workflows/release.yaml:1-488](file://.github/workflows/release.yaml#L1-L488)
+- [.github/workflows/release.yaml:1-507](file://.github/workflows/release.yaml#L1-L507)
+
+### 着陆页构建自动化（新增功能）
+- 构建流程
+  - 进入Landing目录，安装依赖（使用yarn --frozen-lockfile确保一致性）
+  - 执行类型检查（yarn typecheck）
+  - 执行构建（yarn build）
+  - 将构建产物打包为ZIP文件
+- 版本处理
+  - 手动触发时使用test-YYYYMMDD-HHMMSS格式
+  - 标签触发时使用GitHub标签版本号
+- 产物管理
+  - 生成MaaPipelineEditor-{VERSION}-landing.zip文件
+  - 自动上传到web-packages工件中
+
+**更新** 新增build job中的着陆页构建步骤，确保着陆页更新自动包含在发布制品中
+
+**章节来源**
+- [.github/workflows/release.yaml:150-164](file://.github/workflows/release.yaml#L150-L164)
+- [.github/workflows/release.yaml:166-174](file://.github/workflows/release.yaml#L166-L174)
 
 ### 构建矩阵配置（多平台并行构建）
 - LocalBridge构建矩阵
@@ -208,11 +248,11 @@ Artifacts --> End(["结束"])
 
 **图表来源**
 - [.github/workflows/release.yaml:19-38](file://.github/workflows/release.yaml#L19-L38)
-- [.github/workflows/release.yaml:167-173](file://.github/workflows/release.yaml#L167-L173)
+- [.github/workflows/release.yaml:175-265](file://.github/workflows/release.yaml#L175-L265)
 
 **章节来源**
 - [.github/workflows/release.yaml:19-38](file://.github/workflows/release.yaml#L19-L38)
-- [.github/workflows/release.yaml:167-173](file://.github/workflows/release.yaml#L167-L173)
+- [.github/workflows/release.yaml:175-265](file://.github/workflows/release.yaml#L175-L265)
 
 ### 缓存策略与依赖优化
 - Yarn缓存（Node依赖）
@@ -234,12 +274,12 @@ E --> F["结束"]
 **图表来源**
 - [.github/workflows/preview.yaml:64-68](file://.github/workflows/preview.yaml#L64-L68)
 - [.github/workflows/release.yaml:43-46](file://.github/workflows/release.yaml#L43-L46)
-- [.github/workflows/release.yaml:167-173](file://.github/workflows/release.yaml#L167-L173)
+- [.github/workflows/release.yaml:184-191](file://.github/workflows/release.yaml#L184-L191)
 
 **章节来源**
 - [.github/workflows/preview.yaml:64-68](file://.github/workflows/preview.yaml#L64-L68)
 - [.github/workflows/release.yaml:43-46](file://.github/workflows/release.yaml#L43-L46)
-- [.github/workflows/release.yaml:167-173](file://.github/workflows/release.yaml#L167-L173)
+- [.github/workflows/release.yaml:184-191](file://.github/workflows/release.yaml#L184-L191)
 
 ### 测试覆盖率与质量门禁
 - 测试框架与覆盖率
@@ -279,6 +319,8 @@ Gate --> |否| Fail["失败并阻断"]
   - 在工作流中加入覆盖率阈值检查与ESLint错误计数限制
 - 文档与Web包扩展
   - 可在文档站点构建后追加额外的静态资源或压缩包
+- **新增** 着陆页集成
+  - 着陆页构建已完全集成到发布流程中，自动打包并包含在发布制品中
 
 **章节来源**
 - [.github/workflows/release.yaml:19-38](file://.github/workflows/release.yaml#L19-L38)
@@ -293,13 +335,19 @@ Gate --> |否| Fail["失败并阻断"]
   - Wails（桌面应用）
 - 文档站点依赖
   - 文档站点构建脚本与打包
+- **新增** 着陆页依赖
+  - Astro框架与React集成
+  - TailwindCSS样式系统
+  - Playwright测试框架
 
 ```mermaid
 graph LR
 Node["Node/Yarn"] --> FE["前端构建(Vite)"]
 Go["Go 1.21+"] --> LB["LocalBridge构建"]
-FE --> WEB["Web包(stable/docs)"]
+Node --> LANDING["着陆页构建(Astro)"]
+FE --> WEB["Web包(stable/docs/landing)"]
 LB --> ART["二进制工件"]
+LANDING --> WEB
 WEB --> REL["Release"]
 ART --> REL
 ```
@@ -308,17 +356,20 @@ ART --> REL
 - [.github/workflows/preview.yaml:64-78](file://.github/workflows/preview.yaml#L64-L78)
 - [.github/workflows/release.yaml:43-46](file://.github/workflows/release.yaml#L43-L46)
 - [Extremer/wails.json:1-18](file://Extremer/wails.json#L1-L18)
+- [Landing/package.json:14-25](file://Landing/package.json#L14-L25)
 
 **章节来源**
 - [.github/workflows/preview.yaml:64-78](file://.github/workflows/preview.yaml#L64-L78)
 - [.github/workflows/release.yaml:43-46](file://.github/workflows/release.yaml#L43-L46)
 - [Extremer/wails.json:1-18](file://Extremer/wails.json#L1-L18)
+- [Landing/package.json:14-25](file://Landing/package.json#L14-L25)
 
 ## 性能考虑
 - 缓存优先：充分利用Yarn、Go与资源缓存，显著降低重复构建时间
 - 并行执行：多平台矩阵并行构建，缩短整体耗时
 - 构建模式优化：通过Vite模式参数减少不必要的构建步骤
 - 依赖最小化：合理排除不需要统计的目录，降低覆盖率计算开销
+- **新增** 着陆页构建优化：使用yarn --frozen-lockfile确保依赖一致性，避免构建差异
 
 ## 故障排除指南
 - 预览部署未触发
@@ -330,17 +381,24 @@ ART --> REL
 - 覆盖率报告缺失
   - 确认测试脚本已执行，排除规则是否过于宽泛
   - 检查报告格式配置与输出目录
+- **新增** 着陆页构建问题
+  - 检查Landing目录的package.json依赖是否完整安装
+  - 确认Astro配置文件路径与别名设置正确
+  - 验证构建产物dist目录是否存在且包含index.html
 
 **章节来源**
 - [.github/workflows/preview.yaml:36-62](file://.github/workflows/preview.yaml#L36-L62)
-- [.github/workflows/release.yaml:167-173](file://.github/workflows/release.yaml#L167-L173)
+- [.github/workflows/release.yaml:175-265](file://.github/workflows/release.yaml#L175-L265)
 - [vite.config.ts:26-37](file://vite.config.ts#L26-L37)
+- [.github/workflows/release.yaml:150-164](file://.github/workflows/release.yaml#L150-L164)
 
 ## 结论
 本仓库的CI/CD流水线以GitHub Actions为核心，实现了：
 - 基于配置迭代值的智能预览发布
 - 多平台并行构建与资源缓存优化
-- 前端、后端与文档的自动化打包与发布
+- 前端、后端、文档与**着陆页**的自动化打包与发布
 - 可扩展的质量门禁与覆盖率报告
+
+**更新** 最新版本已集成着陆页构建自动化功能，确保着陆页更新自动包含在发布制品中，进一步完善了项目的自动化发布流程。
 
 通过合理利用缓存、矩阵构建与质量检查，能够有效提升构建效率与交付稳定性。
