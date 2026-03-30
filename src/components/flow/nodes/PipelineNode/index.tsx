@@ -33,13 +33,20 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
     | undefined;
 
   // 获取选中状态、边信息和路径状态
-  const { selectedNodes, selectedEdges, pathMode, pathNodeIds } = useFlowStore(
+  const {
+    selectedNodes,
+    selectedEdges,
+    pathMode,
+    pathNodeIds,
+    anchorRefHighlightedNodeIds,
+  } = useFlowStore(
     useShallow((state) => ({
       selectedNodes: state.selectedNodes,
       selectedEdges: state.selectedEdges,
       pathMode: state.pathMode,
       pathNodeIds: state.pathNodeIds,
-    }))
+      anchorRefHighlightedNodeIds: state.anchorRefHighlightedNodeIds,
+    })),
   );
   const edges = useFlowStore((state) => state.edges);
 
@@ -48,7 +55,7 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
   const executedNodes = useDebugStore((state) => state.executedNodes);
   const currentNode = useDebugStore((state) => state.currentNode);
   const recognitionTargetNodeId = useDebugStore(
-    (state) => state.recognitionTargetNodeId
+    (state) => state.recognitionTargetNodeId,
   );
   const executionHistory = useDebugStore((state) => state.executionHistory);
 
@@ -62,6 +69,14 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
       return pathNodeIds.has(props.id);
     }
 
+    // Anchor 引用高亮模式高亮的节点也视为相关
+    if (
+      anchorRefHighlightedNodeIds.size > 0 &&
+      anchorRefHighlightedNodeIds.has(props.id)
+    ) {
+      return true;
+    }
+
     // 没有选中任何内容
     if (selectedNodes.length === 0 && selectedEdges.length === 0) return true;
 
@@ -70,7 +85,7 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
 
     // 检查是否有便签节点被选中
     const hasStickerSelected = selectedNodes.some(
-      (node) => node.type === NodeTypeEnum.Sticker
+      (node) => node.type === NodeTypeEnum.Sticker,
     );
 
     // 如果选中的是便签节点，则不产生聚焦效果
@@ -78,7 +93,11 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
 
     // 检查分组关系
     const thisNode = useFlowStore.getState().nodes.find((n) => n.id === nodeId);
-    if (thisNode && (thisNode as any).parentId && selectedNodeIds.has((thisNode as any).parentId)) {
+    if (
+      thisNode &&
+      (thisNode as any).parentId &&
+      selectedNodeIds.has((thisNode as any).parentId)
+    ) {
       return true;
     }
 
@@ -108,11 +127,17 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
     props.selected,
     pathMode,
     pathNodeIds,
+    anchorRefHighlightedNodeIds,
     props.id,
     selectedNodes,
     selectedEdges,
     edges,
   ]);
+
+  // 计算 anchor 引用高亮状态
+  const isAnchorRefHighlighted = useMemo(() => {
+    return anchorRefHighlightedNodeIds.has(props.id);
+  }, [anchorRefHighlightedNodeIds, props.id]);
 
   const nodeClass = useMemo(
     () =>
@@ -122,6 +147,8 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
         [style["node-selected"]]: props.selected,
         [style["modern-node"]]: nodeStyle === "modern",
         [style["minimal-node"]]: nodeStyle === "minimal",
+        // Anchor 引用高亮样式
+        [style["anchor-ref-highlighted"]]: isAnchorRefHighlighted,
         // 调试相关样式
         [debugStyle["debug-node-executed"]]:
           debugMode && executedNodes.has(props.id),
@@ -135,7 +162,7 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
           (() => {
             // 查找此节点最后一次执行记录，判断是否失败
             const records = executionHistory.filter(
-              (r) => r.nodeId === props.id
+              (r) => r.nodeId === props.id,
             );
             if (records.length === 0) return false;
             const lastRecord = records[records.length - 1];
@@ -145,13 +172,14 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
     [
       props.selected,
       nodeStyle,
+      isAnchorRefHighlighted,
       debugMode,
       executedNodes,
       currentNode,
       recognitionTargetNodeId,
       executionHistory,
       props.id,
-    ]
+    ],
   );
 
   // 计算透明度样式

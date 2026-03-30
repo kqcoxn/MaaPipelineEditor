@@ -5,6 +5,7 @@ import type {
   NodeType,
   EdgeType,
 } from "../types";
+import { NodeTypeEnum } from "../../../components/flow/nodes";
 
 // 全局防抖定时器
 let debounceTimeout: NodeJS.Timeout | null = null;
@@ -63,6 +64,15 @@ export const createSelectionSlice: StateCreator<
 
       return newState;
     });
+
+    // 单选 Anchor 节点时，高亮引用该 anchor 的节点
+    if (nodes.length === 1 && nodes[0].type === NodeTypeEnum.Anchor) {
+      const anchorLabel = nodes[0].data.label;
+      get().setSelectedAnchorName(anchorLabel);
+    } else {
+      // 非单选 Anchor 节点时清除高亮
+      get().setSelectedAnchorName(null);
+    }
   },
 
   // 设置目标节点

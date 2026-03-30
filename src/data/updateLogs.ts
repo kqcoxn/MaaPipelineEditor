@@ -52,7 +52,10 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2026-3",
     type: "major",
     updates: {
-      features: ["🥂 右键节点面板可粘贴复制项，直接生成在指针位置"],
+      features: [
+        "🌟 Anchor 节点支持高亮索引与可跨文件快捷跳转",
+        "🥂 右键节点面板可粘贴复制项，直接生成在指针位置",
+      ],
       perfs: [
         "优化节点字段智能填充效果",
         "优化 OCR 加载失败时的提示",

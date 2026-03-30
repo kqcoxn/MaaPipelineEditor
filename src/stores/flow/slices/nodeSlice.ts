@@ -124,6 +124,8 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       get().saveHistory(0);
       // 检查重名
       checkRepeatNodeLabelList();
+      // 删除节点后重建 anchor 引用索引
+      get().rebuildAnchorReferenceIndex();
     } else if (hasPosition) {
       get().saveHistory(isDragging ? 1000 : 0);
     }
@@ -377,6 +379,11 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
     // 检查节点名重复
     checkRepeatNodeLabelList();
 
+    // 如果更新的是 others 字段中的 anchor，重建索引
+    if (type === "others" && key === "anchor") {
+      get().rebuildAnchorReferenceIndex();
+    }
+
     // 保存历史记录
     get().saveHistory(1000);
   },
@@ -384,6 +391,8 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
   // 设置节点列表
   setNodes(nodes: NodeType[]) {
     set({ nodes });
+    // 节点列表变化时重建 anchor 引用索引
+    get().rebuildAnchorReferenceIndex();
   },
 
   // 批量更新节点数据
@@ -486,6 +495,14 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
 
     // 检查节点名重复
     checkRepeatNodeLabelList();
+
+    // 如果更新中包含 anchor 字段，重建索引
+    const hasAnchorUpdate = updates.some(
+      (u) => u.type === "others" && u.key === "anchor",
+    );
+    if (hasAnchorUpdate) {
+      get().rebuildAnchorReferenceIndex();
+    }
 
     // 保存历史记录
     get().saveHistory(1000);

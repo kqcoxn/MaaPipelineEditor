@@ -44,6 +44,9 @@ export const createGraphSlice: StateCreator<
       };
     });
 
+    // 重建 anchor 引用索引
+    get().rebuildAnchorReferenceIndex();
+
     if (!skipHistory) {
       get().saveHistory(0);
     }

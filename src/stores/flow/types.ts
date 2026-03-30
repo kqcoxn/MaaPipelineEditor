@@ -350,6 +350,22 @@ export interface FlowPathState {
   clearPath: () => void; // 清除路径
 }
 
+// Anchor 引用索引 Slice 状态
+export interface FlowAnchorRefState {
+  /** anchor 名称 -> 使用该 anchor 的节点 ID 集合 */
+  anchorReferenceIndex: Map<string, Set<string>>;
+  /** 当前高亮的 anchor 引用节点 ID 集合 */
+  anchorRefHighlightedNodeIds: Set<string>;
+  /** 当前选中的 anchor 节点名称 */
+  selectedAnchorName: string | null;
+  /** 重建 anchor 引用索引 */
+  rebuildAnchorReferenceIndex: () => void;
+  /** 设置选中的 anchor 名称（用于高亮引用节点） */
+  setSelectedAnchorName: (anchorName: string | null) => void;
+  /** 获取使用指定 anchor 的节点 ID 列表 */
+  getNodesUsingAnchor: (anchorName: string) => string[];
+}
+
 // 合并的 Flow Store 类型
 export type FlowStore = FlowViewState &
   FlowSelectionState &
@@ -357,4 +373,5 @@ export type FlowStore = FlowViewState &
   FlowNodeState &
   FlowEdgeState &
   FlowGraphState &
-  FlowPathState;
+  FlowPathState &
+  FlowAnchorRefState;

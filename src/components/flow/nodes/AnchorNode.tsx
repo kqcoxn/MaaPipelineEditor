@@ -1,14 +1,12 @@
-import { memo, useMemo, useState } from "react";
-import {
-  type Node,
-  type NodeProps,
-  useReactFlow,
-} from "@xyflow/react";
+import { memo, useMemo, useState, useCallback } from "react";
+import { type Node, type NodeProps, useReactFlow } from "@xyflow/react";
 import classNames from "classnames";
 import { useShallow } from "zustand/shallow";
+import { Popover, Empty } from "antd";
+import { ExportOutlined } from "@ant-design/icons";
 
 import style from "../../../styles/nodes.module.less";
-import type { AnchorNodeDataType } from "../../../stores/flow";
+import type { AnchorNodeDataType, NodeType } from "../../../stores/flow";
 import { useFlowStore } from "../../../stores/flow";
 import { useConfigStore } from "../../../stores/configStore";
 import { NodeTypeEnum } from "./constants";
@@ -16,14 +14,75 @@ import { NodeContextMenu } from "./components/NodeContextMenu";
 import { AnchorNodeHandles } from "./components/NodeHandles";
 
 /**重定向节点内容 */
-const ANodeContent = memo(({ data }: { data: AnchorNodeDataType }) => {
-  return (
-    <>
-      <div className={style.title}>{data.label}</div>
-      <AnchorNodeHandles direction={data.handleDirection} />
-    </>
-  );
-});
+const ANodeContent = memo(
+  ({
+    data,
+    referenceNodes,
+    onNavigateToNode,
+  }: {
+    data: AnchorNodeDataType;
+    referenceNodes?: { id: string; label: string }[];
+    onNavigateToNode?: (nodeId: string) => void;
+  }) => {
+    const [popoverOpen, setPopoverOpen] = useState(false);
+
+    const handleNavigate = useCallback(
+      (nodeId: string) => {
+        onNavigateToNode?.(nodeId);
+        setPopoverOpen(false);
+      },
+      [onNavigateToNode],
+    );
+
+    return (
+      <>
+        <div className={style.title}>
+          <span className={style["title-text"]}>{data.label}</span>
+          {referenceNodes && referenceNodes.length > 0 && (
+            <Popover
+              open={popoverOpen}
+              onOpenChange={setPopoverOpen}
+              trigger="click"
+              placement="right"
+              title={`引用此锚点的节点 (${referenceNodes.length})`}
+              content={
+                <div className={style["anchor-ref-list"]}>
+                  {referenceNodes.length === 0 ? (
+                    <Empty
+                      description="暂无引用"
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    />
+                  ) : (
+                    referenceNodes.map((node) => (
+                      <div
+                        key={node.id}
+                        className={style["anchor-ref-item"]}
+                        onClick={() => handleNavigate(node.id)}
+                      >
+                        <span className={style["anchor-ref-label"]}>
+                          {node.label}
+                        </span>
+                        <ExportOutlined className={style["anchor-ref-icon"]} />
+                      </div>
+                    ))
+                  )}
+                </div>
+              }
+            >
+              <div
+                className={style["navigate-btn"]}
+                title={`${referenceNodes.length} 个节点引用此锚点`}
+              >
+                <ExportOutlined />
+              </div>
+            </Popover>
+          )}
+        </div>
+        <AnchorNodeHandles direction={data.handleDirection} />
+      </>
+    );
+  },
+);
 
 type AnchorNodeData = Node<AnchorNodeDataType, NodeTypeEnum.Anchor>;
 
@@ -47,9 +106,53 @@ export function AnchorNode(props: NodeProps<AnchorNodeData>) {
       selectedEdges: state.selectedEdges,
       pathMode: state.pathMode,
       pathNodeIds: state.pathNodeIds,
-    }))
+    })),
   );
   const edges = useFlowStore((state) => state.edges);
+  const nodes = useFlowStore((state) => state.nodes);
+  const instance = useFlowStore((state) => state.instance);
+  const getNodesUsingAnchor = useFlowStore(
+    (state) => state.getNodesUsingAnchor,
+  );
+
+  // 获取引用此 anchor 的节点列表
+  const referenceNodes = useMemo(() => {
+    const nodeIds = getNodesUsingAnchor(props.data.label);
+    return nodeIds
+      .map((id) => {
+        const node = nodes.find((n: NodeType) => n.id === id);
+        return node ? { id: node.id, label: node.data.label } : null;
+      })
+      .filter((item): item is { id: string; label: string } => item !== null);
+  }, [props.data.label, nodes, getNodesUsingAnchor]);
+
+  // 跳转到指定节点
+  const handleNavigateToNode = useCallback(
+    (nodeId: string) => {
+      if (!instance) return;
+
+      const targetNode = nodes.find((n: NodeType) => n.id === nodeId);
+      if (!targetNode) return;
+
+      // 取消所有选中，选中目标节点
+      useFlowStore.getState().updateNodes(
+        nodes.map((node: NodeType) => ({
+          type: "select" as const,
+          id: node.id,
+          selected: node.id === nodeId,
+        })),
+      );
+
+      // 聚焦到目标节点
+      const { x, y } = targetNode.position;
+      const { width = 200, height = 100 } = targetNode.measured || {};
+      instance.setCenter(x + width / 2, y + height / 2, {
+        duration: 500,
+        zoom: 1.5,
+      });
+    },
+    [instance, nodes],
+  );
 
   // 计算是否与选中元素相关联
   const isRelated = useMemo(() => {
@@ -67,7 +170,7 @@ export function AnchorNode(props: NodeProps<AnchorNodeData>) {
 
     // 检查是否有便签节点被选中
     const hasStickerSelected = selectedNodes.some(
-      (node) => node.type === NodeTypeEnum.Sticker
+      (node) => node.type === NodeTypeEnum.Sticker,
     );
 
     // 如果选中的是便签节点，则不产生聚焦效果
@@ -75,7 +178,11 @@ export function AnchorNode(props: NodeProps<AnchorNodeData>) {
 
     // 检查分组关系
     const thisNode = useFlowStore.getState().nodes.find((n) => n.id === nodeId);
-    if (thisNode && (thisNode as any).parentId && selectedNodeIds.has((thisNode as any).parentId)) {
+    if (
+      thisNode &&
+      (thisNode as any).parentId &&
+      selectedNodeIds.has((thisNode as any).parentId)
+    ) {
       return true;
     }
 
@@ -117,7 +224,7 @@ export function AnchorNode(props: NodeProps<AnchorNodeData>) {
         [style["anchor-node"]]: true,
         [style["node-selected"]]: props.selected,
       }),
-    [props.selected]
+    [props.selected],
   );
 
   const opacityStyle = useMemo(() => {
@@ -128,7 +235,11 @@ export function AnchorNode(props: NodeProps<AnchorNodeData>) {
   if (!node) {
     return (
       <div className={nodeClass} style={opacityStyle}>
-        <ANodeContent data={props.data} />
+        <ANodeContent
+          data={props.data}
+          referenceNodes={referenceNodes}
+          onNavigateToNode={handleNavigateToNode}
+        />
       </div>
     );
   }
@@ -140,7 +251,11 @@ export function AnchorNode(props: NodeProps<AnchorNodeData>) {
       onOpenChange={setContextMenuOpen}
     >
       <div className={nodeClass} style={opacityStyle}>
-        <ANodeContent data={props.data} />
+        <ANodeContent
+          data={props.data}
+          referenceNodes={referenceNodes}
+          onNavigateToNode={handleNavigateToNode}
+        />
       </div>
     </NodeContextMenu>
   );

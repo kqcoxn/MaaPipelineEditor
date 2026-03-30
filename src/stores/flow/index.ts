@@ -7,6 +7,7 @@ import { createNodeSlice } from "./slices/nodeSlice";
 import { createEdgeSlice } from "./slices/edgeSlice";
 import { createGraphSlice } from "./slices/graphSlice";
 import { createPathSlice } from "./slices/pathSlice";
+import { createAnchorRefSlice } from "./slices/anchorRefSlice";
 import { checkRepeatNodeLabelList as checkRepeatNodeLabelListUtil } from "./utils/nodeUtils";
 import { ErrorTypeEnum, useErrorStore } from "../errorStore";
 import { useConfigStore } from "../configStore";
@@ -21,6 +22,7 @@ export const useFlowStore = create<FlowStore>()((...a) => ({
   ...createEdgeSlice(...a),
   ...createGraphSlice(...a),
   ...createPathSlice(...a),
+  ...createAnchorRefSlice(...a),
 }));
 export type {
   NodeType,
@@ -98,7 +100,7 @@ export function getNextNodes(nodeId: string): string[] {
 
   // 筛选出 source 为指定 nodeId 且 sourceHandle 包含 "next" 的边
   const nextEdges = edges.filter(
-    (edge) => edge.source === nodeId && edge.sourceHandle?.includes("next")
+    (edge) => edge.source === nodeId && edge.sourceHandle?.includes("next"),
   );
 
   // 提取 target 节点 ID 并去重
