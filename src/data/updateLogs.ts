@@ -55,6 +55,7 @@ export const updateLogs: UpdateLogItem[] = [
       features: [
         "🌟 Anchor 节点支持高亮索引与可跨文件快捷跳转",
         "🥂 右键节点面板可粘贴复制项，直接生成在指针位置",
+        "🐍 Extremer 可自动检测新版本并提示",
       ],
       perfs: [
         "优化节点字段智能填充效果",

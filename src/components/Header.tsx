@@ -18,7 +18,7 @@ import {
   LoadingOutlined,
   MobileOutlined,
   DesktopOutlined,
-  ShareAltOutlined,
+  DownloadOutlined,
 } from "@ant-design/icons";
 import IconFont from "./iconfonts";
 import UpdateLog from "./modals/UpdateLog";
@@ -30,7 +30,7 @@ import { globalConfig } from "../stores/configStore";
 import { useTheme } from "../contexts/ThemeContext";
 import classNames from "classnames";
 import { useState, useEffect } from "react";
-import { generateShareLink } from "../utils/shareHelper";
+import { checkUpdateFromFrontend, type UpdateInfo } from "../utils/wailsBridge";
 
 const versionLinks = [
   {
@@ -59,7 +59,7 @@ const otherVersions: MenuProps["items"] = versionLinks.map(
         {text}
       </a>
     ),
-  })
+  }),
 );
 
 type ConnectionStatus = "connected" | "disconnected" | "connecting";
@@ -229,6 +229,7 @@ function Header() {
   const [connectionPanelOpen, setConnectionPanelOpen] = useState(false);
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
   const [wsConnected, setWsConnected] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
 
   // 检测WebSocket连接状态
   useEffect(() => {
@@ -274,6 +275,15 @@ function Header() {
       }, 500);
       localStorage.setItem("mpe_last_version", currentVersion);
     }
+  }, []);
+
+  // 检查新版本
+  useEffect(() => {
+    checkUpdateFromFrontend(globalConfig.version).then((info) => {
+      if (info && info.hasUpdate) {
+        setUpdateInfo(info);
+      }
+    });
   }, []);
 
   return (
@@ -351,6 +361,31 @@ function Header() {
                 </Space>
               </a>
             </Dropdown>
+            {updateInfo && (
+              <Tooltip
+                title={
+                  <span>
+                    发现新版本：{updateInfo.latestVersion}，点击前往下载
+                    <br />
+                    在线使用时可按 Ctrl+R 快捷刷新页面缓存以更新
+                  </span>
+                }
+              >
+                <Tag
+                  color="processing"
+                  style={{ marginLeft: 8, cursor: "pointer" }}
+                  icon={<DownloadOutlined />}
+                  onClick={() => {
+                    window.open(
+                      "https://github.com/kqcoxn/MaaPipelineEditor/releases/latest",
+                      "_blank",
+                    );
+                  }}
+                >
+                  新版本可用
+                </Tag>
+              </Tooltip>
+            )}
           </div>
           <div className={style.theme}>
             <Tooltip
@@ -385,7 +420,7 @@ function Header() {
                 src={`${import.meta.env.BASE_URL}maafw.png`}
                 onClick={() => {
                   window.open(
-                    "https://maafw.xyz/docs/3.1-PipelineProtocol.html?source=mpe"
+                    "https://maafw.xyz/docs/3.1-PipelineProtocol.html?source=mpe",
                   );
                 }}
               />
