@@ -6,6 +6,7 @@ import { create } from "zustand";
 export type FileNodeInfo = {
   label: string; // 节点标签
   prefix: string; // 前缀
+  anchors: string[]; // 该节点引用的 anchor 列表
 };
 
 /**
@@ -112,7 +113,7 @@ type LocalFileState = {
   setImageList: (
     images: ImageFileInfo[],
     bundleName: string,
-    isFiltered: boolean
+    isFiltered: boolean,
   ) => void;
   setImageListLoading: (loading: boolean) => void;
   clearImageList: () => void;
@@ -188,7 +189,7 @@ export const useLocalFileStore = create<LocalFileState>()((set, get) => ({
     set((state) => {
       const before = state.files.length;
       const newFiles = state.files.filter(
-        (f) => !f.file_path.startsWith(prefixWithSep)
+        (f) => !f.file_path.startsWith(prefixWithSep),
       );
       const removed = before - newFiles.length;
       if (removed > 0) {

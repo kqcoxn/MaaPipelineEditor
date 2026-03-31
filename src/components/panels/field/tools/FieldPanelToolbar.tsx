@@ -105,7 +105,9 @@ export const FieldPanelToolbarRight = memo(
 
     // 跳转按钮
     const showNavigateButton =
-      currentNode && currentNode.type === NodeTypeEnum.External;
+      currentNode &&
+      (currentNode.type === NodeTypeEnum.External ||
+        currentNode.type === NodeTypeEnum.Anchor);
 
     const handleSaveTemplate = () => {
       if (!currentNode || currentNode.type !== NodeTypeEnum.Pipeline) {
@@ -116,7 +118,11 @@ export const FieldPanelToolbarRight = memo(
 
     // 跳转到目标节点
     const handleNavigate = useCallback(async () => {
-      if (!currentNode || currentNode.type !== NodeTypeEnum.External) {
+      if (
+        !currentNode ||
+        (currentNode.type !== NodeTypeEnum.External &&
+          currentNode.type !== NodeTypeEnum.Anchor)
+      ) {
         return;
       }
 

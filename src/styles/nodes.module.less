@@ -390,10 +390,28 @@
   margin-left: 8px;
   opacity: 0;
   transition: opacity 0.15s ease;
+  flex-shrink: 0;
 
   .anchor-ref-item:hover & {
     opacity: 1;
   }
+}
+
+.anchor-ref-node-info {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex: 1;
+  min-width: 0;
+}
+
+.anchor-ref-file {
+  font-size: 10px;
+  color: #888;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 2px;
 }
 
 .handle {

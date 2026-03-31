@@ -2,8 +2,9 @@ package models
 
 // 文件节点信息
 type FileNode struct {
-	Label  string `json:"label"`  // 节点标签
-	Prefix string `json:"prefix"` // 前缀
+	Label   string   `json:"label"`   // 节点标签
+	Prefix  string   `json:"prefix"`  // 前缀
+	Anchors []string `json:"anchors"` // 该节点引用的 anchor 列表
 }
 
 // 本地文件内部模型

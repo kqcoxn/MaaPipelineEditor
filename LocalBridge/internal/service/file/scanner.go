@@ -239,11 +239,62 @@ func (s *Scanner) parseFileNodes(filePath string) ([]models.FileNode, string) {
 		if strings.HasPrefix(key, "$") {
 			continue
 		}
+
+		// 提取该节点的 anchor 引用
+		anchors := s.extractAnchors(content[key])
+
 		nodes = append(nodes, models.FileNode{
-			Label:  key,
-			Prefix: prefix,
+			Label:   key,
+			Prefix:  prefix,
+			Anchors: anchors,
 		})
 	}
 
 	return nodes, prefix
+}
+
+// extractAnchors 从节点数据中提取 anchor 引用列表
+// anchor 字段支持三种格式：string、[]string、map[string]interface{}
+// anchor 字段在节点的顶层，不在 others 中
+func (s *Scanner) extractAnchors(nodeData interface{}) []string {
+	var anchors []string
+
+	// 节点数据必须是对象
+	node, ok := nodeData.(map[string]interface{})
+	if !ok {
+		return anchors
+	}
+
+	// 获取 anchor 字段（在节点顶层，不在 others 中）
+	anchorValue, ok := node["anchor"]
+	if !ok {
+		return anchors
+	}
+
+	// 处理不同格式的 anchor 值
+	switch v := anchorValue.(type) {
+	case string:
+		if v != "" {
+			anchors = []string{v}
+		}
+	case []interface{}:
+		for _, item := range v {
+			if str, ok := item.(string); ok && str != "" {
+				anchors = append(anchors, str)
+			}
+		}
+	case map[string]interface{}:
+		for key := range v {
+			if key != "" {
+				anchors = append(anchors, key)
+			}
+		}
+	}
+
+	return anchors
+}
+
+// extractAnchorsFromNode 从节点数据中提取 anchor 引用列表（别名）
+func (s *Scanner) extractAnchorsFromNode(nodeData interface{}) []string {
+	return s.extractAnchors(nodeData)
 }

@@ -83,7 +83,7 @@ class CrossFileService {
         processedFilePaths.add(localFile.file_path);
 
         const loadedFile = loadedFiles.find(
-          (f) => f.config.filePath === localFile.file_path
+          (f) => f.config.filePath === localFile.file_path,
         );
 
         if (loadedFile) {
@@ -213,7 +213,7 @@ class CrossFileService {
       limit?: number;
       /** 排除的节点类型 */
       excludeTypes?: NodeTypeEnum[];
-    }
+    },
   ): CrossFileNodeInfo[] {
     const { crossFile = true, limit = 10, excludeTypes = [] } = options || {};
 
@@ -240,7 +240,7 @@ class CrossFileService {
     const matched = allNodes.filter(
       (n) =>
         n.label.toLowerCase().includes(lowerKeyword) ||
-        n.fullName.toLowerCase().includes(lowerKeyword)
+        n.fullName.toLowerCase().includes(lowerKeyword),
     );
 
     // 排序：当前文件优先，然后按匹配度
@@ -280,7 +280,7 @@ class CrossFileService {
       crossFile?: boolean;
       /** 排除的节点类型 */
       excludeTypes?: NodeTypeEnum[];
-    }
+    },
   ): Promise<{
     success: boolean;
     nodeInfo?: CrossFileNodeInfo;
@@ -334,7 +334,7 @@ class CrossFileService {
       const targetFile = fileStore.files.find(
         (f) =>
           f.config.filePath === nodeInfo.filePath ||
-          f.fileName === nodeInfo.filePath
+          f.fileName === nodeInfo.filePath,
       );
 
       if (targetFile) {
@@ -349,8 +349,57 @@ class CrossFileService {
     if (this.isConnected()) {
       const success = await this.loadAndNavigate(
         nodeInfo.filePath,
-        nodeInfo.label
+        nodeInfo.label,
       );
+      return success;
+    }
+
+    return false;
+  }
+
+  /**
+   * 根据文件路径和节点标签跳转到指定节点（精确跳转）
+   * 支持前端多 tab 场景下的跳转
+   * @param filePath 文件路径或文件名
+   * @param nodeLabel 节点标签
+   * @returns 是否成功
+   */
+  async navigateToNodeByFileAndLabel(
+    filePath: string,
+    nodeLabel: string,
+  ): Promise<boolean> {
+    const fileStore = useFileStore.getState();
+    const currentFile = fileStore.currentFile;
+
+    // 检查是否是当前文件
+    const isCurrentFile =
+      currentFile.config.filePath === filePath ||
+      currentFile.fileName === filePath;
+
+    if (isCurrentFile) {
+      return this.focusNodeInCurrentFile(nodeLabel);
+    }
+
+    // 查找目标文件
+    const targetFile = fileStore.files.find(
+      (f) => f.config.filePath === filePath || f.fileName === filePath,
+    );
+
+    if (targetFile) {
+      // 切换文件
+      fileStore.switchFile(targetFile.fileName);
+      // 等待切换完成后定位节点
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      return this.focusNodeInCurrentFile(nodeLabel);
+    }
+
+    // 文件未加载，尝试通过后端加载
+    if (
+      this.isConnected() &&
+      (filePath.includes("/") || filePath.includes("\\"))
+    ) {
+      // 路径包含路径分隔符，说明是本地文件路径
+      const success = await this.loadAndNavigate(filePath, nodeLabel);
       return success;
     }
 
@@ -376,7 +425,7 @@ class CrossFileService {
         type: "select" as const,
         id: node.id,
         selected: node.id === targetNode.id,
-      }))
+      })),
     );
 
     // 聚焦视图
@@ -397,7 +446,7 @@ class CrossFileService {
    */
   private async loadAndNavigate(
     filePath: string,
-    nodeLabel: string
+    nodeLabel: string,
   ): Promise<boolean> {
     try {
       // 请求文件内容
@@ -437,7 +486,7 @@ class CrossFileService {
 
         for (let i = 0; i < maxNodeAttempts; i++) {
           await new Promise((resolve) =>
-            setTimeout(resolve, nodeAttemptInterval)
+            setTimeout(resolve, nodeAttemptInterval),
           );
 
           const flowStore = useFlowStore.getState();
@@ -453,7 +502,7 @@ class CrossFileService {
         // 超时仍未找到节点
         console.warn(
           `[loadAndNavigate] 节点 "${nodeLabel}" 超时未找到，当前节点列表:`,
-          useFlowStore.getState().nodes.map((n: any) => n.data.label)
+          useFlowStore.getState().nodes.map((n: any) => n.data.label),
         );
         return false;
       }
@@ -487,7 +536,7 @@ class CrossFileService {
 
     // 尝试在当前文件中按 label 查找
     const labelMatch = allNodes.find(
-      (n) => n.label === fullName && n.isCurrentFile
+      (n) => n.label === fullName && n.isCurrentFile,
     );
     if (labelMatch) {
       return {
@@ -511,7 +560,7 @@ class CrossFileService {
 
     if (filePath) {
       targetNode = allNodes.find(
-        (n) => n.label === label && n.filePath === filePath
+        (n) => n.label === label && n.filePath === filePath,
       );
     } else {
       // 优先当前文件
@@ -544,7 +593,7 @@ class CrossFileService {
             n.isCurrentFile &&
             (n.nodeType === NodeTypeEnum.External ||
               n.nodeType === NodeTypeEnum.Anchor)
-          )
+          ),
       );
     }
 
@@ -557,6 +606,121 @@ class CrossFileService {
       description: n.isCurrentFile ? "当前文件" : n.relativePath,
       nodeInfo: n,
     }));
+  }
+
+  /**
+   * 获取跨文件的 anchor 引用信息
+   * @param anchorName anchor 名称
+   * @returns 引用该 anchor 的节点列表
+   */
+  getAnchorReferencesCrossFile(anchorName: string): Array<{
+    id: string;
+    label: string;
+    filePath: string;
+    relativePath: string;
+    isCurrentFile: boolean;
+    isLoaded: boolean;
+  }> {
+    const result: Array<{
+      id: string;
+      label: string;
+      filePath: string;
+      relativePath: string;
+      isCurrentFile: boolean;
+      isLoaded: boolean;
+    }> = [];
+
+    const currentFile = useFileStore.getState().currentFile;
+    const files = useFileStore.getState().files;
+    const localFiles = useLocalFileStore.getState().files;
+    const isConnected = this.isConnected();
+
+    // 处理已加载的文件，排除当前文件
+    for (const file of files) {
+      // 跳过当前文件
+      if (file.fileName === currentFile.fileName) continue;
+
+      const filePath = file.config.filePath || file.fileName;
+      const relativePath = file.config.relativePath || file.fileName;
+
+      for (const node of file.nodes) {
+        // 只处理 Pipeline 节点
+        if (node.type !== NodeTypeEnum.Pipeline) continue;
+
+        const anchorValue = (node.data as any).others?.anchor;
+        if (this.anchorValueContains(anchorValue, anchorName)) {
+          result.push({
+            id: node.id,
+            label: node.data.label,
+            filePath,
+            relativePath,
+            isCurrentFile: false,
+            isLoaded: true,
+          });
+        }
+      }
+    }
+
+    // 处理未加载的本地文件
+    if (isConnected) {
+      for (const localFile of localFiles) {
+        // 跳过已加载的文件
+        const isLoaded = files.some(
+          (f) => f.config.filePath === localFile.file_path,
+        );
+        if (isLoaded) continue;
+
+        // 从 localFile.nodes 中查找引用了目标 anchor 的节点
+        for (const nodeInfo of localFile.nodes || []) {
+          // 检查节点的 anchors 列表是否包含目标 anchor
+          if (nodeInfo.anchors && nodeInfo.anchors.includes(anchorName)) {
+            // 从 label 中提取真正的节点名
+            let label = nodeInfo.label;
+            const nodePrefix = nodeInfo.prefix || localFile.prefix;
+            if (nodePrefix && label.startsWith(nodePrefix + "_")) {
+              label = label.slice(nodePrefix.length + 1);
+            }
+
+            result.push({
+              id: `${localFile.file_path}#${nodeInfo.label}`, // 使用文件路径+节点名作为临时ID
+              label,
+              filePath: localFile.file_path,
+              relativePath: localFile.relative_path,
+              isCurrentFile: false,
+              isLoaded: false,
+            });
+          }
+        }
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * 检查 anchor 字段值是否包含指定的 anchor 名称
+   */
+  private anchorValueContains(
+    anchorValue: unknown,
+    anchorName: string,
+  ): boolean {
+    if (!anchorValue) return false;
+
+    if (typeof anchorValue === "string") {
+      return anchorValue === anchorName;
+    }
+
+    if (Array.isArray(anchorValue)) {
+      return anchorValue.some(
+        (item) => typeof item === "string" && item === anchorName,
+      );
+    }
+
+    if (typeof anchorValue === "object") {
+      return Object.keys(anchorValue).includes(anchorName);
+    }
+
+    return false;
   }
 }
 

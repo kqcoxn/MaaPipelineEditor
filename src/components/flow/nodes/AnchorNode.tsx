@@ -2,7 +2,7 @@ import { memo, useMemo, useState, useCallback } from "react";
 import { type Node, type NodeProps, useReactFlow } from "@xyflow/react";
 import classNames from "classnames";
 import { useShallow } from "zustand/shallow";
-import { Popover, Empty } from "antd";
+import { Popover, Empty, message } from "antd";
 import { ExportOutlined } from "@ant-design/icons";
 
 import style from "../../../styles/nodes.module.less";
@@ -12,6 +12,19 @@ import { useConfigStore } from "../../../stores/configStore";
 import { NodeTypeEnum } from "./constants";
 import { NodeContextMenu } from "./components/NodeContextMenu";
 import { AnchorNodeHandles } from "./components/NodeHandles";
+import { crossFileService } from "../../../services/crossFileService";
+
+/**引用节点信息类型 */
+interface ReferenceNodeInfo {
+  id: string;
+  label: string;
+  /** 文件路径（跨文件时显示） */
+  filePath?: string;
+  /** 相对路径（用于显示） */
+  relativePath?: string;
+  /** 是否是当前文件 */
+  isCurrentFile: boolean;
+}
 
 /**重定向节点内容 */
 const ANodeContent = memo(
@@ -21,14 +34,14 @@ const ANodeContent = memo(
     onNavigateToNode,
   }: {
     data: AnchorNodeDataType;
-    referenceNodes?: { id: string; label: string }[];
-    onNavigateToNode?: (nodeId: string) => void;
+    referenceNodes?: ReferenceNodeInfo[];
+    onNavigateToNode?: (node: ReferenceNodeInfo) => void;
   }) => {
     const [popoverOpen, setPopoverOpen] = useState(false);
 
     const handleNavigate = useCallback(
-      (nodeId: string) => {
-        onNavigateToNode?.(nodeId);
+      (node: ReferenceNodeInfo) => {
+        onNavigateToNode?.(node);
         setPopoverOpen(false);
       },
       [onNavigateToNode],
@@ -57,11 +70,18 @@ const ANodeContent = memo(
                       <div
                         key={node.id}
                         className={style["anchor-ref-item"]}
-                        onClick={() => handleNavigate(node.id)}
+                        onClick={() => handleNavigate(node)}
                       >
-                        <span className={style["anchor-ref-label"]}>
-                          {node.label}
-                        </span>
+                        <div className={style["anchor-ref-node-info"]}>
+                          <span className={style["anchor-ref-label"]}>
+                            {node.label}
+                          </span>
+                          {!node.isCurrentFile && node.relativePath && (
+                            <span className={style["anchor-ref-file"]}>
+                              {node.relativePath}
+                            </span>
+                          )}
+                        </div>
                         <ExportOutlined className={style["anchor-ref-icon"]} />
                       </div>
                     ))
@@ -115,41 +135,81 @@ export function AnchorNode(props: NodeProps<AnchorNodeData>) {
     (state) => state.getNodesUsingAnchor,
   );
 
-  // 获取引用此 anchor 的节点列表
-  const referenceNodes = useMemo(() => {
-    const nodeIds = getNodesUsingAnchor(props.data.label);
-    return nodeIds
-      .map((id) => {
-        const node = nodes.find((n: NodeType) => n.id === id);
-        return node ? { id: node.id, label: node.data.label } : null;
-      })
-      .filter((item): item is { id: string; label: string } => item !== null);
+  // 获取引用此 anchor 的节点列表（支持跨文件）
+  const referenceNodes = useMemo((): ReferenceNodeInfo[] => {
+    const result: ReferenceNodeInfo[] = [];
+
+    // 1. 当前文件中的引用节点（从索引获取）
+    const currentNodeIds = getNodesUsingAnchor(props.data.label);
+    for (const id of currentNodeIds) {
+      const node = nodes.find((n: NodeType) => n.id === id);
+      if (node) {
+        result.push({
+          id: node.id,
+          label: node.data.label,
+          isCurrentFile: true,
+        });
+      }
+    }
+
+    // 2. 跨文件搜索引用该 anchor 的节点
+    const crossFileRefs = crossFileService.getAnchorReferencesCrossFile(
+      props.data.label,
+    );
+    for (const ref of crossFileRefs) {
+      result.push({
+        id: ref.id,
+        label: ref.label,
+        filePath: ref.filePath,
+        relativePath: ref.relativePath,
+        isCurrentFile: false,
+      });
+    }
+
+    return result;
   }, [props.data.label, nodes, getNodesUsingAnchor]);
 
   // 跳转到指定节点
   const handleNavigateToNode = useCallback(
-    (nodeId: string) => {
-      if (!instance) return;
+    async (node: ReferenceNodeInfo) => {
+      if (node.isCurrentFile) {
+        // 当前文件内跳转
+        if (!instance) return;
 
-      const targetNode = nodes.find((n: NodeType) => n.id === nodeId);
-      if (!targetNode) return;
+        const targetNode = nodes.find((n: NodeType) => n.id === node.id);
+        if (!targetNode) return;
 
-      // 取消所有选中，选中目标节点
-      useFlowStore.getState().updateNodes(
-        nodes.map((node: NodeType) => ({
-          type: "select" as const,
-          id: node.id,
-          selected: node.id === nodeId,
-        })),
-      );
+        // 取消所有选中，选中目标节点
+        useFlowStore.getState().updateNodes(
+          nodes.map((n: NodeType) => ({
+            type: "select" as const,
+            id: n.id,
+            selected: n.id === node.id,
+          })),
+        );
 
-      // 聚焦到目标节点
-      const { x, y } = targetNode.position;
-      const { width = 200, height = 100 } = targetNode.measured || {};
-      instance.setCenter(x + width / 2, y + height / 2, {
-        duration: 500,
-        zoom: 1.5,
-      });
+        // 聚焦到目标节点
+        const { x, y } = targetNode.position;
+        const { width = 200, height = 100 } = targetNode.measured || {};
+        instance.setCenter(x + width / 2, y + height / 2, {
+          duration: 500,
+          zoom: 1.5,
+        });
+      } else if (node.filePath) {
+        // 跨文件跳转（支持前端多 tab 场景）
+        const success = await crossFileService.navigateToNodeByFileAndLabel(
+          node.filePath,
+          node.label,
+        );
+
+        if (success) {
+          message.success(
+            `已跳转到 ${node.relativePath || node.filePath} 并定位节点: ${node.label}`,
+          );
+        } else {
+          message.warning(`跳转失败: ${node.label}`);
+        }
+      }
     },
     [instance, nodes],
   );
