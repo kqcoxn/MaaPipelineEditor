@@ -7,7 +7,6 @@
 ## perf
 
 - anchor 字段解析
-- Anchor的出口如果单选时，把有相应anchor字段，用某些方法突出显示一下
 
 ## feat
 
