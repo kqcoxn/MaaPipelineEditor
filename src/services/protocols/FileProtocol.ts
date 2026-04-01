@@ -46,24 +46,24 @@ export class FileProtocol extends BaseProtocol {
 
     // 注册接收路由
     this.wsClient.registerRoute("/lte/file_list", (data) =>
-      this.handleFileList(data)
+      this.handleFileList(data),
     );
     this.wsClient.registerRoute("/lte/file_content", (data) =>
-      this.handleFileContent(data)
+      this.handleFileContent(data),
     );
     this.wsClient.registerRoute("/lte/file_changed", (data) =>
-      this.handleFileChanged(data)
+      this.handleFileChanged(data),
     );
 
     // 注册确认路由
     this.wsClient.registerRoute("/ack/save_file", (data) =>
-      this.handleSaveAck(data)
+      this.handleSaveAck(data),
     );
     this.wsClient.registerRoute("/ack/save_separated", (data) =>
-      this.handleSaveSeparatedAck(data)
+      this.handleSaveSeparatedAck(data),
     );
     this.wsClient.registerRoute("/ack/create_file", (data) =>
-      this.handleCreateFileAck(data)
+      this.handleCreateFileAck(data),
     );
   }
 
@@ -121,7 +121,7 @@ export class FileProtocol extends BaseProtocol {
         file_path,
         content,
         mpe_config,
-        config_path
+        config_path,
       );
 
       if (success) {
@@ -186,8 +186,8 @@ export class FileProtocol extends BaseProtocol {
               (f) =>
                 f.config.filePath &&
                 f.config.filePath.startsWith(
-                  file_path + (file_path.includes("/") ? "/" : "\\")
-                )
+                  file_path + (file_path.includes("/") ? "/" : "\\"),
+                ),
             );
             filesToRemove.forEach((f) => {
               if (f.config.filePath) {
@@ -212,8 +212,8 @@ export class FileProtocol extends BaseProtocol {
               f.config.filePath &&
               (f.config.filePath === file_path ||
                 f.config.filePath.startsWith(
-                  file_path + (file_path.includes("/") ? "/" : "\\")
-                ))
+                  file_path + (file_path.includes("/") ? "/" : "\\"),
+                )),
           );
           renamedFiles.forEach((f) => {
             if (f.config.filePath) {
@@ -246,16 +246,6 @@ export class FileProtocol extends BaseProtocol {
         const fileName = file_path.split(/[\/\\]/).pop() || file_path;
         message.success(`文件已保存: ${fileName}`);
 
-        // 更新文件路径（如果当前文件路径未设置或不匹配）
-        const fileStore = useFileStore.getState();
-        const currentFilePath = fileStore.currentFile.config.filePath;
-        if (!currentFilePath || currentFilePath !== file_path) {
-          fileStore.setFileConfig("filePath", file_path);
-        }
-
-        // 更新同步时间
-        fileStore.setFileConfig("lastSyncTime", Date.now());
-
         // 忽略刚保存文件的变更通知（记录保存时间戳）
         this.recentlySavedFiles.set(file_path, Date.now());
       } else {
@@ -284,22 +274,6 @@ export class FileProtocol extends BaseProtocol {
         const configName = config_path.split(/[\/\\]/).pop() || config_path;
         message.success(`文件已保存: ${pipelineName} + ${configName}`);
 
-        // 更新文件路径（如果当前文件路径未设置或不匹配）
-        const fileStore = useFileStore.getState();
-        const currentFilePath = fileStore.currentFile.config.filePath;
-        const currentConfigPath =
-          fileStore.currentFile.config.separatedConfigPath;
-
-        if (!currentFilePath || currentFilePath !== pipeline_path) {
-          fileStore.setFileConfig("filePath", pipeline_path);
-        }
-        if (!currentConfigPath || currentConfigPath !== config_path) {
-          fileStore.setFileConfig("separatedConfigPath", config_path);
-        }
-
-        // 更新同步时间
-        fileStore.setFileConfig("lastSyncTime", Date.now());
-
         // 忽略刚保存文件的变更通知
         this.recentlySavedFiles.set(pipeline_path, Date.now());
         this.recentlySavedFiles.set(config_path, Date.now());
@@ -309,7 +283,7 @@ export class FileProtocol extends BaseProtocol {
     } catch (error) {
       console.error(
         "[FileProtocol] Failed to handle save separated ack:",
-        error
+        error,
       );
     }
   }
@@ -338,7 +312,7 @@ export class FileProtocol extends BaseProtocol {
           // 生成配置文件路径
           const lastSep = Math.max(
             file_path.lastIndexOf("/"),
-            file_path.lastIndexOf("\\")
+            file_path.lastIndexOf("\\"),
           );
           const directory = file_path.substring(0, lastSep + 1);
           const fileName = file_path.substring(lastSep + 1);
@@ -379,7 +353,7 @@ export class FileProtocol extends BaseProtocol {
   public requestCreateFile(
     fileName: string,
     directory: string,
-    content?: any
+    content?: any,
   ): boolean {
     if (!this.wsClient) {
       console.error("[FileProtocol] WebSocket client not initialized");
@@ -401,7 +375,7 @@ export class FileProtocol extends BaseProtocol {
     pipelinePath: string,
     configPath: string,
     pipeline: any,
-    config: any
+    config: any,
   ): boolean {
     if (!this.wsClient) {
       console.error("[FileProtocol] WebSocket client not initialized");
@@ -433,7 +407,7 @@ export class FileProtocol extends BaseProtocol {
    */
   private showFileChangedNotification(
     filePath: string,
-    fileName: string
+    fileName: string,
   ): void {
     const configStore = useConfigStore.getState();
 
@@ -527,8 +501,8 @@ export class FileProtocol extends BaseProtocol {
         createElement(
           Button,
           { type: "primary", onClick: handleReloadAll },
-          "重新加载"
-        )
+          "重新加载",
+        ),
       ),
       onCancel: () => {
         this.currentModal = null;

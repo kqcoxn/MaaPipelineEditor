@@ -62,6 +62,9 @@ export const updateLogs: UpdateLogItem[] = [
         "优化 OCR 加载失败时的提示",
         "优化节点添加面板排序，精简左侧节点列表",
       ],
+      fixes: [
+        "修复调试模式下自动保存多文件引起的路径污染问题",
+      ],
     },
   },
   {
