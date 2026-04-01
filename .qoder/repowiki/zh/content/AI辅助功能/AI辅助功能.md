@@ -2,9 +2,9 @@
 
 <cite>
 **本文档引用的文件**
-- [aiPrompts.ts](file://src/utils/aiPrompts.ts)
-- [aiPredictor.ts](file://src/utils/aiPredictor.ts)
-- [openai.ts](file://src/utils/openai.ts)
+- [aiPredictor.ts](file://src/utils/ai/aiPredictor.ts)
+- [aiPrompts.ts](file://src/utils/ai/aiPrompts.ts)
+- [openai.ts](file://src/utils/ai/openai.ts)
 - [SearchPanel.tsx](file://src/components/panels/main/SearchPanel.tsx)
 - [AIHistoryPanel.tsx](file://src/components/panels/main/AIHistoryPanel.tsx)
 - [AIConfigSection.tsx](file://src/components/panels/config/AIConfigSection.tsx)
@@ -17,11 +17,9 @@
 
 ## 更新摘要
 **变更内容**
-- 新增AI提示词管理系统，统一管理所有AI功能的提示词
-- 从OCR识别转向截图视觉分析，大幅提升AI预测准确性和实用性
-- 引入SYSTEM_PROMPTS常量和buildVisionPredictionPrompt函数
-- 移除performOCR函数，改为performScreenshot，简化AI预测流程
-- 新增视觉AI预测系统的完整架构和工作流程
+- AI相关工具模块重构：从 src/utils/ 移动到 src/utils/ai/，提升代码组织清晰度
+- AI预测系统得到增强，新增智能节点配置建议功能，支持更精确的配置预测
+- 提升了AI工具的模块化程度，便于维护和扩展
 
 ## 目录
 1. [简介](#简介)
@@ -74,20 +72,20 @@ AIPRED --> ERR
 - [SearchPanel.tsx:1-406](file://src/components/panels/main/SearchPanel.tsx#L1-L406)
 - [NodeListPanel.tsx:1-396](file://src/components/panels/main/node-list/NodeListPanel.tsx#L1-L396)
 - [AIConfigSection.tsx:1-189](file://src/components/panels/config/AIConfigSection.tsx#L1-L189)
-- [aiPrompts.ts:1-218](file://src/utils/aiPrompts.ts#L1-L218)
-- [aiPredictor.ts:1-467](file://src/utils/aiPredictor.ts#L1-L467)
-- [openai.ts:1-509](file://src/utils/openai.ts#L1-L509)
+- [aiPrompts.ts:1-427](file://src/utils/ai/aiPrompts.ts#L1-L427)
+- [aiPredictor.ts:1-583](file://src/utils/ai/aiPredictor.ts#L1-L583)
+- [openai.ts:1-509](file://src/utils/ai/openai.ts#L1-L509)
 - [AIHistoryPanel.tsx:1-166](file://src/components/panels/main/AIHistoryPanel.tsx#L1-L166)
-- [crossFileService.ts:1-565](file://src/services/crossFileService.ts#L1-L565)
+- [crossFileService.ts:1-729](file://src/services/crossFileService.ts#L1-L729)
 - [configStore.ts:1-287](file://src/stores/configStore.ts#L1-L287)
 - [ErrorPanel.tsx:1-38](file://src/components/panels/main/ErrorPanel.tsx#L1-L38)
 
 **章节来源**
 - [SearchPanel.tsx:1-406](file://src/components/panels/main/SearchPanel.tsx#L1-L406)
-- [aiPrompts.ts:1-218](file://src/utils/aiPrompts.ts#L1-L218)
-- [aiPredictor.ts:1-467](file://src/utils/aiPredictor.ts#L1-L467)
-- [openai.ts:1-509](file://src/utils/openai.ts#L1-L509)
-- [crossFileService.ts:1-565](file://src/services/crossFileService.ts#L1-L565)
+- [aiPrompts.ts:1-427](file://src/utils/ai/aiPrompts.ts#L1-L427)
+- [aiPredictor.ts:1-583](file://src/utils/ai/aiPredictor.ts#L1-L583)
+- [openai.ts:1-509](file://src/utils/ai/openai.ts#L1-L509)
+- [crossFileService.ts:1-729](file://src/services/crossFileService.ts#L1-L729)
 - [configStore.ts:1-287](file://src/stores/configStore.ts#L1-L287)
 
 ## 核心组件
@@ -100,9 +98,9 @@ AIPRED --> ERR
 - **配置与个性化**：API 地址、密钥、模型、跨文件搜索开关、历史面板开关等。
 
 **章节来源**
-- [aiPrompts.ts:8-218](file://src/utils/aiPrompts.ts#L8-L218)
-- [aiPredictor.ts:71-150](file://src/utils/aiPredictor.ts#L71-L150)
-- [openai.ts:100-509](file://src/utils/openai.ts#L100-L509)
+- [aiPrompts.ts:8-427](file://src/utils/ai/aiPrompts.ts#L8-L427)
+- [aiPredictor.ts:71-150](file://src/utils/ai/aiPredictor.ts#L71-L150)
+- [openai.ts:100-509](file://src/utils/ai/openai.ts#L100-L509)
 - [SearchPanel.tsx:205-273](file://src/components/panels/main/SearchPanel.tsx#L205-L273)
 - [AIConfigSection.tsx:1-189](file://src/components/panels/config/AIConfigSection.tsx#L1-L189)
 
@@ -131,7 +129,7 @@ OA->>HIS : 记录历史(成功/失败)
 **图表来源**
 - [SearchPanel.tsx:205-273](file://src/components/panels/main/SearchPanel.tsx#L205-L273)
 - [crossFileService.ts:207-268](file://src/services/crossFileService.ts#L207-L268)
-- [openai.ts:188-262](file://src/utils/openai.ts#L188-L262)
+- [openai.ts:188-262](file://src/utils/ai/openai.ts#L188-L262)
 - [AIHistoryPanel.tsx:82-166](file://src/components/panels/main/AIHistoryPanel.tsx#L82-L166)
 
 ## 详细组件分析
@@ -203,17 +201,17 @@ AIP-->>U : 显示推理说明/更新完成
 ```
 
 **图表来源**
-- [aiPredictor.ts:71-150](file://src/utils/aiPredictor.ts#L71-L150)
-- [aiPredictor.ts:155-203](file://src/utils/aiPredictor.ts#L155-L203)
-- [aiPredictor.ts:210-241](file://src/utils/aiPredictor.ts#L210-L241)
-- [aiPrompts.ts:118-183](file://src/utils/aiPrompts.ts#L118-L183)
-- [openai.ts:419-507](file://src/utils/openai.ts#L419-L507)
+- [aiPredictor.ts:71-150](file://src/utils/ai/aiPredictor.ts#L71-L150)
+- [aiPredictor.ts:155-203](file://src/utils/ai/aiPredictor.ts#L155-L203)
+- [aiPredictor.ts:210-241](file://src/utils/ai/aiPredictor.ts#L210-L241)
+- [aiPrompts.ts:118-183](file://src/utils/ai/aiPrompts.ts#L118-L183)
+- [openai.ts:419-507](file://src/utils/ai/openai.ts#L419-L507)
 
 **章节来源**
-- [aiPredictor.ts:71-150](file://src/utils/aiPredictor.ts#L71-L150)
-- [aiPredictor.ts:155-203](file://src/utils/aiPredictor.ts#L155-L203)
-- [aiPredictor.ts:210-241](file://src/utils/aiPredictor.ts#L210-L241)
-- [aiPrompts.ts:118-183](file://src/utils/aiPrompts.ts#L118-L183)
+- [aiPredictor.ts:71-150](file://src/utils/ai/aiPredictor.ts#L71-L150)
+- [aiPredictor.ts:155-203](file://src/utils/ai/aiPredictor.ts#L155-L203)
+- [aiPredictor.ts:210-241](file://src/utils/ai/aiPredictor.ts#L210-L241)
+- [aiPrompts.ts:118-183](file://src/utils/ai/aiPrompts.ts#L118-L183)
 - [crossFileService.ts:531-560](file://src/services/crossFileService.ts#L531-L560)
 
 ### 提示词管理系统（统一提示词工程）
@@ -252,10 +250,10 @@ AIPrompts --> VisionPromptBuilder : creates
 ```
 
 **图表来源**
-- [aiPrompts.ts:11-218](file://src/utils/aiPrompts.ts#L11-L218)
+- [aiPrompts.ts:11-427](file://src/utils/ai/aiPrompts.ts#L11-L427)
 
 **章节来源**
-- [aiPrompts.ts:8-218](file://src/utils/aiPrompts.ts#L8-L218)
+- [aiPrompts.ts:8-427](file://src/utils/ai/aiPrompts.ts#L8-L427)
 
 ### 推理预测系统（流程分析、逻辑验证、错误检测）
 - **流程分析**：基于前置节点连接类型（next/jump_back/on_error）与顺序号，结合截图画面内容，推断节点目的与应采用的识别/动作类型。
@@ -276,11 +274,11 @@ Apply --> End
 ```
 
 **图表来源**
-- [aiPredictor.ts:285-395](file://src/utils/aiPredictor.ts#L285-L395)
+- [aiPredictor.ts:285-395](file://src/utils/ai/aiPredictor.ts#L285-L395)
 - [ErrorPanel.tsx:8-38](file://src/components/panels/main/ErrorPanel.tsx#L8-L38)
 
 **章节来源**
-- [aiPredictor.ts:285-395](file://src/utils/aiPredictor.ts#L285-L395)
+- [aiPredictor.ts:285-395](file://src/utils/ai/aiPredictor.ts#L285-L395)
 - [ErrorPanel.tsx:8-38](file://src/components/panels/main/ErrorPanel.tsx#L8-L38)
 
 ### OpenAI 集成（API 调用、模型选择、成本控制）
@@ -319,13 +317,13 @@ OpenAIChat --> AIHistoryManager : "记录历史"
 ```
 
 **图表来源**
-- [openai.ts:100-509](file://src/utils/openai.ts#L100-L509)
-- [openai.ts:122-141](file://src/utils/openai.ts#L122-L141)
+- [openai.ts:100-509](file://src/utils/ai/openai.ts#L100-L509)
+- [openai.ts:122-141](file://src/utils/ai/openai.ts#L122-L141)
 
 **章节来源**
-- [openai.ts:122-141](file://src/utils/openai.ts#L122-L141)
-- [openai.ts:188-262](file://src/utils/openai.ts#L188-L262)
-- [openai.ts:419-507](file://src/utils/openai.ts#L419-L507)
+- [openai.ts:122-141](file://src/utils/ai/openai.ts#L122-L141)
+- [openai.ts:188-262](file://src/utils/ai/openai.ts#L188-L262)
+- [openai.ts:419-507](file://src/utils/ai/openai.ts#L419-L507)
 - [AIConfigSection.tsx:36-43](file://src/components/panels/config/AIConfigSection.tsx#L36-L43)
 
 ### AI 历史记录管理（使用记录、效果评估、学习机制）
@@ -346,11 +344,11 @@ HM-->>HP : 返回记录列表
 ```
 
 **图表来源**
-- [openai.ts:55-94](file://src/utils/openai.ts#L55-L94)
+- [openai.ts:55-94](file://src/utils/ai/openai.ts#L55-L94)
 - [AIHistoryPanel.tsx:82-166](file://src/components/panels/main/AIHistoryPanel.tsx#L82-L166)
 
 **章节来源**
-- [openai.ts:55-94](file://src/utils/openai.ts#L55-L94)
+- [openai.ts:55-94](file://src/utils/ai/openai.ts#L55-L94)
 - [AIHistoryPanel.tsx:82-166](file://src/components/panels/main/AIHistoryPanel.tsx#L82-L166)
 
 ### 配置选项与个性化设置
@@ -389,18 +387,18 @@ AICFG["AIConfigSection.tsx"] --> CFG["configStore.ts"]
 
 **图表来源**
 - [SearchPanel.tsx:1-406](file://src/components/panels/main/SearchPanel.tsx#L1-L406)
-- [crossFileService.ts:1-565](file://src/services/crossFileService.ts#L1-L565)
-- [openai.ts:1-509](file://src/utils/openai.ts#L1-L509)
-- [aiPredictor.ts:1-467](file://src/utils/aiPredictor.ts#L1-L467)
-- [aiPrompts.ts:1-218](file://src/utils/aiPrompts.ts#L1-L218)
+- [crossFileService.ts:1-729](file://src/services/crossFileService.ts#L1-L729)
+- [openai.ts:1-509](file://src/utils/ai/openai.ts#L1-L509)
+- [aiPredictor.ts:1-583](file://src/utils/ai/aiPredictor.ts#L1-L583)
+- [aiPrompts.ts:1-427](file://src/utils/ai/aiPrompts.ts#L1-L427)
 - [AIHistoryPanel.tsx:1-166](file://src/components/panels/main/AIHistoryPanel.tsx#L1-L166)
 - [AIConfigSection.tsx:1-189](file://src/components/panels/config/AIConfigSection.tsx#L1-L189)
 - [configStore.ts:1-287](file://src/stores/configStore.ts#L1-L287)
 
 **章节来源**
 - [SearchPanel.tsx:1-406](file://src/components/panels/main/SearchPanel.tsx#L1-L406)
-- [aiPredictor.ts:1-467](file://src/utils/aiPredictor.ts#L1-L467)
-- [aiPrompts.ts:1-218](file://src/utils/aiPrompts.ts#L1-L218)
+- [aiPredictor.ts:1-583](file://src/utils/ai/aiPredictor.ts#L1-L583)
+- [aiPrompts.ts:1-427](file://src/utils/ai/aiPrompts.ts#L1-L427)
 
 ## 性能考量
 - **提示词长度控制**：节点上下文 JSON 与系统知识较大，建议在构建提示词时裁剪关键字段（如 template 取前若干项）。
@@ -409,8 +407,6 @@ AICFG["AIConfigSection.tsx"] --> CFG["configStore.ts"]
 - **跨文件搜索**：启用跨文件时节点列表较大，建议配合关键词过滤与类型筛选。
 - **UI 响应**：AI 搜索与预测过程使用防抖与进度提示，避免频繁请求造成卡顿。
 - **视觉分析优化**：截图获取超时控制在10秒内，避免长时间等待影响用户体验。
-
-[本节为通用指导，无需列出章节来源]
 
 ## 故障排查指南
 - **API 配置问题**
@@ -433,15 +429,13 @@ AICFG["AIConfigSection.tsx"] --> CFG["configStore.ts"]
   - 处理：确认使用支持视觉的模型（如GPT-4o、Claude-3.5-Sonnet、Qwen-VL等）；检查模型是否支持多模态输入。
 
 **章节来源**
-- [openai.ts:188-262](file://src/utils/openai.ts#L188-L262)
-- [openai.ts:419-507](file://src/utils/openai.ts#L419-L507)
-- [aiPredictor.ts:155-203](file://src/utils/aiPredictor.ts#L155-L203)
+- [openai.ts:188-262](file://src/utils/ai/openai.ts#L188-L262)
+- [openai.ts:419-507](file://src/utils/ai/openai.ts#L419-L507)
+- [aiPredictor.ts:155-203](file://src/utils/ai/aiPredictor.ts#L155-L203)
 - [ErrorPanel.tsx:8-38](file://src/components/panels/main/ErrorPanel.tsx#L8-L38)
 
 ## 结论
 MaaPipelineEditor 的 AI 辅助功能经过重大升级，通过"智能搜索 + 视觉AI预测 + 推理校验 + 历史管理 + 集成封装"的新体系，显著提升了节点配置效率与准确性。新的视觉AI预测系统替代了传统的OCR识别，基于截图画面进行智能分析，提供更准确的配置建议。它与传统编辑方式互补：前者加速探索与纠错，后者保证细节与一致性。合理配置与使用技巧可进一步降低成本、提升稳定性与可维护性。
-
-[本节为总结性内容，无需列出章节来源]
 
 ## 附录
 
@@ -461,4 +455,51 @@ MaaPipelineEditor 的 AI 辅助功能经过重大升级，通过"智能搜索 + 
   - 定期清理历史记录，减少 token 消耗与隐私风险。
   - 确保使用支持视觉的模型，以获得最佳的AI预测效果。
 
-[本节为通用指导，无需列出章节来源]
+### AI提示系统详细规范
+
+#### 识别类型详解
+- **DirectHit**：不识别，直接命中，仅可用 roi 指定区域
+- **TemplateMatch**：模板匹配/找图，支持 threshold、method、green_mask
+- **OCR**：文字识别，支持 expected、threshold、replace、only_rec
+- **ColorMatch**：颜色匹配，支持 lower、upper、count、method、connected
+- **FeatureMatch**：特征匹配（抗透视/缩放），支持 template、count、detector、ratio
+- **NeuralNetworkClassify**：深度学习分类（固定位置），支持 model、labels、expected
+- **NeuralNetworkDetect**：深度学习检测（任意位置），支持 model、labels、expected、threshold
+- **And/Or**：组合识别（逻辑与/或），支持 all_of、any_of、box_index、sub_name
+- **Custom**：自定义识别器，支持 custom_recognition、custom_recognition_param
+
+#### 动作类型详解
+- **DoNothing**：无动作
+- **Click/LongPress**：点击/长按，支持 target、target_offset、contact、duration
+- **Swipe/MultiSwipe**：线性滑动/多指滑动，支持 begin、end、duration、end_hold、swipes[]
+- **Scroll**：滚轮滚动（仅Win32），支持 target、dx、dy
+- **TouchDown/TouchMove/TouchUp**：触控点操作，支持 contact、target
+- **ClickKey/LongPressKey**：按键操作，支持 key[]、duration
+- **KeyDown/KeyUp**：按键状态，支持 key
+- **InputText**：输入文本，支持 input_text
+- **StartApp/StopApp**：应用启停，支持 package
+- **StopTask/Command/Shell/Screencap**：任务停止/命令执行/ADB命令/截图保存
+- **Custom**：自定义动作，支持 custom_action、custom_action_param、target
+
+#### 协议约束规则
+- **DirectHit 不需要识别参数**：不要设置 expected、template 等
+- **OCR 设置 expected**：匹配期望文字（支持正则），不要设置 template
+- **TemplateMatch 设置 template**：模板图片路径，不要设置 expected
+- **ColorMatch 必填 lower/upper**：颜色范围，method 默认 4(RGB)
+- **And/Or 组合识别**：all_of/any_of 中可内联定义或引用节点名
+
+#### 设计模式
+- **图标按钮识别**：图标无文字时使用 TemplateMatch，有文字优先 OCR
+- **多状态按钮**：同一按钮可能有多种外观，使用 Or 组合
+- **多条件验证**：同时验证多个条件，使用 And + sub_name
+- **固定位置操作**：滑动、点击固定位置使用 DirectHit
+- **文本输入**：先点击输入框，再输入文本（通常需要两个节点）
+
+#### 性能优化提示
+- **roi 精确裁剪**：缩小识别区域既提升速度又减少误识别
+- **green_mask 遮盖干扰**：模板图片中不需要匹配的区域涂绿 (0,255,0)
+- **threshold 调优**：TemplateMatch 建议 0.7，OCR 建议 0.3
+- **method 选择**：TemplateMatch 默认 5(CCOEFF_NORMED)，对光照变化鲁棒
+- **detector 选择**：FeatureMatch 默认 SIFT 精度最高，ORB 最快但无尺度不变性
+- **connected 选项**：ColorMatch 时设置 true 可过滤噪点
+- **only_rec 选项**：OCR 设置 true 跳过检测，仅识别（需精确 roi）
