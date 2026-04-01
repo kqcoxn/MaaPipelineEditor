@@ -22,7 +22,7 @@ import { mfwProtocol } from "../../services/server";
 import {
   resolveNegativeROI,
   type Rectangle,
-} from "../../utils/roiNegativeCoord";
+} from "../../utils/data/roiNegativeCoord";
 
 interface TemplateModalProps {
   open: boolean;
@@ -30,7 +30,7 @@ interface TemplateModalProps {
   onConfirm: (
     templatePath: string,
     greenMask: boolean,
-    roi?: [number, number, number, number]
+    roi?: [number, number, number, number],
   ) => void;
   initialROI?: [number, number, number, number];
 }
@@ -55,7 +55,7 @@ export const TemplateModal = memo(
     const maskCanvasRef = useRef<HTMLCanvasElement>(null);
     const viewportPropsRef = useRef<CanvasRenderProps | null>(null);
     const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(
-      null
+      null,
     );
 
     // 用于存储待确认的 ROI
@@ -124,7 +124,7 @@ export const TemplateModal = memo(
           resolved = resolveNegativeROI(
             [rectangle.x, rectangle.y, rectangle.width, rectangle.height],
             img.width,
-            img.height
+            img.height,
           );
         }
 
@@ -151,13 +151,13 @@ export const TemplateModal = memo(
             rectangle.x,
             rectangle.y,
             rectangle.width,
-            rectangle.height
+            rectangle.height,
           );
           ctx.strokeRect(
             rectangle.x,
             rectangle.y,
             rectangle.width,
-            rectangle.height
+            rectangle.height,
           );
 
           // 如果有负数坐标且被分割，绘制分割后的两个区域
@@ -195,7 +195,7 @@ export const TemplateModal = memo(
           ctx.stroke();
         }
       },
-      [rectangle, currentTool, mousePos, brushSize]
+      [rectangle, currentTool, mousePos, brushSize],
     );
 
     // 绘制遮罩
@@ -204,7 +204,7 @@ export const TemplateModal = memo(
         x: number,
         y: number,
         tool: "brush" | "eraser",
-        canvas: HTMLCanvasElement | null
+        canvas: HTMLCanvasElement | null,
       ) => {
         const maskCanvas = maskCanvasRef.current;
         const maskCtx = maskCanvas?.getContext("2d");
@@ -225,7 +225,7 @@ export const TemplateModal = memo(
 
         redrawCanvas(canvas);
       },
-      [brushSize, redrawCanvas]
+      [brushSize, redrawCanvas],
     );
 
     // 清除遮罩
@@ -239,7 +239,7 @@ export const TemplateModal = memo(
         setHasGreenMask(false);
         redrawCanvas(canvas);
       },
-      [redrawCanvas]
+      [redrawCanvas],
     );
 
     // rectangle/mousePos 变化或图片加载后重绘
@@ -362,7 +362,7 @@ export const TemplateModal = memo(
           handleMouseEnter,
         };
       },
-      [isDrawing, startPoint, currentTool, drawMask]
+      [isDrawing, startPoint, currentTool, drawMask],
     );
 
     // 手动输入坐标
@@ -370,10 +370,10 @@ export const TemplateModal = memo(
       (key: keyof Rectangle, value: number | null) => {
         if (value === null) return;
         setRectangle((prev) =>
-          prev ? { ...prev, [key]: Math.round(value) } : null
+          prev ? { ...prev, [key]: Math.round(value) } : null,
         );
       },
-      []
+      [],
     );
 
     // 保存模板
@@ -400,7 +400,7 @@ export const TemplateModal = memo(
         0,
         0,
         rectangle.width,
-        rectangle.height
+        rectangle.height,
       );
 
       // 叠加绘制遮罩层
@@ -415,13 +415,13 @@ export const TemplateModal = memo(
           0,
           0,
           rectangle.width,
-          rectangle.height
+          rectangle.height,
         );
       }
 
       // 导出为 PNG
       const blob = await new Promise<Blob | null>((resolve) =>
-        tempCanvas.toBlob(resolve, "image/png")
+        tempCanvas.toBlob(resolve, "image/png"),
       );
 
       if (!blob) {
@@ -536,7 +536,7 @@ export const TemplateModal = memo(
           </div>
         </>
       ),
-      [currentTool, clearMask]
+      [currentTool, clearMask],
     );
 
     // 渲染 Canvas
@@ -599,7 +599,7 @@ export const TemplateModal = memo(
           </>
         );
       },
-      [createMouseHandlers, currentTool]
+      [createMouseHandlers, currentTool],
     );
 
     // 初始化 canvas
@@ -621,7 +621,7 @@ export const TemplateModal = memo(
         props?.initializeImage?.(img);
         redrawCanvas(canvas);
       },
-      [redrawCanvas]
+      [redrawCanvas],
     );
 
     return (
@@ -840,8 +840,8 @@ export const TemplateModal = memo(
                     {rectangle && rectangle.width === 0
                       ? "→边"
                       : rectangle && rectangle.width < 0
-                      ? "←→"
-                      : ""}
+                        ? "←→"
+                        : ""}
                   </span>
                 </Tooltip>
                 <span
@@ -877,8 +877,8 @@ export const TemplateModal = memo(
                     {rectangle && rectangle.height === 0
                       ? "↓边"
                       : rectangle && rectangle.height < 0
-                      ? "↑↓"
-                      : ""}
+                        ? "↑↓"
+                        : ""}
                   </span>
                 </Tooltip>
               </Space>
@@ -908,7 +908,7 @@ export const TemplateModal = memo(
                           rectangle.height,
                         ],
                         imageRef.current!.width,
-                        imageRef.current!.height
+                        imageRef.current!.height,
                       );
                       return (
                         <>
@@ -986,5 +986,5 @@ export const TemplateModal = memo(
         </div>
       </ScreenshotModalBase>
     );
-  }
+  },
 );

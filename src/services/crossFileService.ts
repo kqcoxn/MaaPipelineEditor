@@ -4,15 +4,12 @@
  */
 
 import { useWSStore } from "../stores/wsStore";
-import {
-  useLocalFileStore,
-  type LocalFileInfo,
-} from "../stores/localFileStore";
+import { useLocalFileStore } from "../stores/localFileStore";
 import { useFileStore } from "../stores/fileStore";
 import { useFlowStore, type NodeType } from "../stores/flow";
 import { localServer } from "./server";
 import { NodeTypeEnum } from "../components/flow/nodes/constants";
-import { getFullNodeName } from "../utils/nodeNameHelper";
+import { getFullNodeName } from "../utils/node/nodeNameHelper";
 
 /**
  * 跨文件节点信息

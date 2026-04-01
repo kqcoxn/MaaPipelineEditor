@@ -1,7 +1,7 @@
 import style from "../../../../styles/FieldPanel.module.less";
 import { Input, InputNumber } from "antd";
 import IconFont from "../../../iconfonts";
-import { JsonHelper } from "../../../../utils/jsonHelper";
+import { JsonHelper } from "../../../../utils/data/jsonHelper";
 import { useState, useEffect, memo, type ReactNode } from "react";
 import { FieldTypeEnum } from "../../../../core/fields";
 
@@ -24,7 +24,7 @@ const LocalTextArea = memo(
     const displayValue =
       typeof value === "string"
         ? value
-        : JsonHelper.objToString(value) ?? String(value ?? "");
+        : (JsonHelper.objToString(value) ?? String(value ?? ""));
     const [localValue, setLocalValue] = useState(displayValue);
 
     // 同步外部值变化
@@ -54,7 +54,7 @@ const LocalTextArea = memo(
         }}
       />
     );
-  }
+  },
 );
 
 export function ListValueElem(
@@ -65,7 +65,7 @@ export function ListValueElem(
   onDelete: (key: string, valueList: any[], index: number) => void,
   placeholder = "list",
   step = 0,
-  quickToolRender?: (key: string, index: number) => ReactNode
+  quickToolRender?: (key: string, index: number) => ReactNode,
 ) {
   if (!Array.isArray(valueList)) {
     valueList = [valueList];

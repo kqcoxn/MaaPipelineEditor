@@ -5,7 +5,7 @@
  */
 
 import LZString from "lz-string";
-import { flowToPipeline, pipelineToFlow } from "../core/parser";
+import { flowToPipeline, pipelineToFlow } from "../../core/parser";
 import { message } from "antd";
 
 // URL 参数名
@@ -61,7 +61,7 @@ function decodeShareContent(compressed: string): any | null {
     // 版本检查
     if (payload.v !== SHARE_VERSION) {
       console.warn(
-        `[shareHelper] 分享版本不匹配: ${payload.v} !== ${SHARE_VERSION}`
+        `[shareHelper] 分享版本不匹配: ${payload.v} !== ${SHARE_VERSION}`,
       );
     }
 
@@ -97,8 +97,8 @@ export async function generateShareLink(): Promise<boolean> {
     if (shareUrl.length > 6 * 1000 * 1000) {
       message.warning(
         `分享链接过长（${Math.round(
-          shareUrl.length / 1000
-        )}KB），可能在某些浏览器中无法正常使用`
+          shareUrl.length / 1000,
+        )}KB），可能在某些浏览器中无法正常使用`,
       );
     }
 
@@ -222,7 +222,7 @@ export async function loadFromShareUrl(): Promise<boolean> {
     }
 
     // 新建文件
-    const { useFileStore } = await import("../stores/fileStore");
+    const { useFileStore } = await import("../../stores/fileStore");
     const newFileName = useFileStore.getState().addFile({ isSwitch: true });
 
     if (!newFileName) {
@@ -271,7 +271,7 @@ function clearShareParam(): void {
  * @returns 是否成功导入
  */
 export async function importFromLocalFile(
-  startIn?: StartInDirectory
+  startIn?: StartInDirectory,
 ): Promise<boolean> {
   // 检查浏览器是否支持 File System Access API
   if (!("showOpenFilePicker" in window)) {
@@ -308,7 +308,7 @@ export async function importFromLocalFile(
     }
 
     // 新建文件用于加载内容
-    const { useFileStore } = await import("../stores/fileStore");
+    const { useFileStore } = await import("../../stores/fileStore");
     const newFileName = useFileStore.getState().addFile({ isSwitch: true });
 
     if (!newFileName) {

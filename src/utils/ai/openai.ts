@@ -1,4 +1,4 @@
-import { useConfigStore } from "../stores/configStore";
+import { useConfigStore } from "../../stores/configStore";
 
 /** 消息角色类型 */
 export type MessageRole = "system" | "user" | "assistant";

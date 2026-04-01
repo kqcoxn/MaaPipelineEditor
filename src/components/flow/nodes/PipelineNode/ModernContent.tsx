@@ -10,7 +10,7 @@ import { KVElem } from "../components/KVElem";
 import { PipelineNodeHandles } from "../components/NodeHandles";
 import { NodeTemplateImages } from "../components/NodeTemplateImages";
 import { getRecognitionIcon, getActionIcon, getNodeTypeIcon } from "../utils";
-import { JsonHelper } from "../../../../utils/jsonHelper";
+import { JsonHelper } from "../../../../utils/data/jsonHelper";
 import { otherFieldSchema } from "../../../../core/fields/other/schema";
 import {
   mergeFieldSortConfig,
@@ -35,21 +35,21 @@ export const ModernContent = memo(
   ({ data }: { data: PipelineNodeDataType; props: NodeProps }) => {
     const headerRef = useRef<HTMLDivElement>(null);
     const [headerHeight, setHeaderHeight] = useState(0);
-    
+
     // 是否显示节点模板图片
     const showNodeTemplateImages = useConfigStore(
-      (state) => state.configs.showNodeTemplateImages
+      (state) => state.configs.showNodeTemplateImages,
     );
     // 是否渲染节点详细字段
     const showNodeDetailFields = useConfigStore(
-      (state) => state.configs.showNodeDetailFields
+      (state) => state.configs.showNodeDetailFields,
     );
     const fieldSortConfig = useConfigStore(
-      (state) => state.configs.fieldSortConfig
+      (state) => state.configs.fieldSortConfig,
     );
     const mergedSortConfig = useMemo(
       () => mergeFieldSortConfig(fieldSortConfig),
-      [fieldSortConfig]
+      [fieldSortConfig],
     );
 
     useEffect(() => {
@@ -100,51 +100,51 @@ export const ModernContent = memo(
       () =>
         sortKeysByOrder(
           Object.keys(data.recognition.param),
-          mergedSortConfig.recognitionParamFields
+          mergedSortConfig.recognitionParamFields,
         ),
-      [data.recognition.param, mergedSortConfig.recognitionParamFields]
+      [data.recognition.param, mergedSortConfig.recognitionParamFields],
     );
     const actionParamKeys = useMemo(
       () =>
         sortKeysByOrder(
           Object.keys(data.action.param),
-          mergedSortConfig.actionParamFields
+          mergedSortConfig.actionParamFields,
         ),
-      [data.action.param, mergedSortConfig.actionParamFields]
+      [data.action.param, mergedSortConfig.actionParamFields],
     );
     const otherParamKeys = useMemo(
       () =>
         sortKeysByOrder(
           Object.keys(filteredOthers),
-          mergedSortConfig.mainTaskFields
+          mergedSortConfig.mainTaskFields,
         ),
-      [filteredOthers, mergedSortConfig.mainTaskFields]
+      [filteredOthers, mergedSortConfig.mainTaskFields],
     );
 
     const recoIconConfig = useMemo(
       () => getRecognitionIcon(data.recognition.type),
-      [data.recognition.type]
+      [data.recognition.type],
     );
     const actionIconConfig = useMemo(
       () => getActionIcon(data.action.type),
-      [data.action.type]
+      [data.action.type],
     );
     const nodeTypeIconConfig = useMemo(() => getNodeTypeIcon("pipeline"), []);
 
     const hasRecoParams = useMemo(
       () => Object.keys(data.recognition.param).length > 0,
-      [data.recognition.param]
+      [data.recognition.param],
     );
     const hasActionParams = useMemo(
       () => Object.keys(data.action.param).length > 0,
-      [data.action.param]
+      [data.action.param],
     );
     const hasOtherParams = useMemo(
       () =>
         Object.keys(filteredOthers).length > 0 ||
         focusItems.length > 0 ||
         extraEntries.length > 0,
-      [filteredOthers, focusItems, extraEntries]
+      [filteredOthers, focusItems, extraEntries],
     );
 
     // 提取 template 路径列表
@@ -152,7 +152,9 @@ export const ModernContent = memo(
       const template = data.recognition.param?.template as unknown;
       if (!template) return [];
       if (Array.isArray(template)) {
-        return template.filter((p): p is string => typeof p === "string" && p.trim() !== "");
+        return template.filter(
+          (p): p is string => typeof p === "string" && p.trim() !== "",
+        );
       }
       if (typeof template === "string" && template.trim() !== "") {
         return [template];
@@ -273,5 +275,5 @@ export const ModernContent = memo(
         <PipelineNodeHandles direction={data.handleDirection} />
       </>
     );
-  }
+  },
 );

@@ -45,8 +45,8 @@ import {
   checkPendingImport,
   handleImportFromUrl,
   clearImportParam,
-} from "./utils/shareHelper";
-import { parseUrlParams } from "./utils/urlHelper";
+} from "./utils/data/shareHelper";
+import { parseUrlParams } from "./utils/data/urlHelper";
 import {
   isWailsEnvironment,
   onWailsEvent,

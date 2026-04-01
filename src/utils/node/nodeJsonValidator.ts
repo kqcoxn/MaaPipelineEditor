@@ -1,4 +1,4 @@
-import { NodeTypeEnum } from "../components/flow/nodes";
+import { NodeTypeEnum } from "../../components/flow/nodes";
 
 export interface ValidationResult {
   valid: boolean;

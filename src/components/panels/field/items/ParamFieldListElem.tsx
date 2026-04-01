@@ -5,7 +5,7 @@ import IconFont, { type IconNames } from "../../../iconfonts";
 import type { ParamType } from "../../../../stores/flow";
 import type { FieldType } from "../../../../core/fields";
 import { FieldTypeEnum } from "../../../../core/fields";
-import { JsonHelper } from "../../../../utils/jsonHelper";
+import { JsonHelper } from "../../../../utils/data/jsonHelper";
 import { useMFWStore } from "../../../../stores/mfwStore";
 import {
   ROIModal,
@@ -97,10 +97,10 @@ export const ParamFieldListElem = memo(
     const [colorModalOpen, setColorModalOpen] = useState(false);
     const [currentROIKey, setCurrentROIKey] = useState<string | null>(null);
     const [currentExpectedKey, setCurrentExpectedKey] = useState<string | null>(
-      null
+      null,
     );
     const [currentTemplateKey, setCurrentTemplateKey] = useState<string | null>(
-      null
+      null,
     );
     const [currentColorKey, setCurrentColorKey] = useState<string | null>(null);
     const [deltaModalOpen, setDeltaModalOpen] = useState(false);
@@ -111,7 +111,7 @@ export const ParamFieldListElem = memo(
     >(null);
     // 记录当前操作的列表索引
     const [currentListIndex, setCurrentListIndex] = useState<number | null>(
-      null
+      null,
     );
 
     // 打开 ROI 配置面板
@@ -125,7 +125,7 @@ export const ParamFieldListElem = memo(
         setCurrentListIndex(listIndex ?? null);
         setRoiModalOpen(true);
       },
-      [connectionStatus]
+      [connectionStatus],
     );
 
     // 打开 OCR 配置面板
@@ -139,7 +139,7 @@ export const ParamFieldListElem = memo(
         setCurrentListIndex(listIndex ?? null);
         setOcrModalOpen(true);
       },
-      [connectionStatus]
+      [connectionStatus],
     );
 
     // 打开模板配置面板
@@ -153,7 +153,7 @@ export const ParamFieldListElem = memo(
         setCurrentListIndex(listIndex ?? null);
         setTemplateModalOpen(true);
       },
-      [connectionStatus]
+      [connectionStatus],
     );
 
     // 打开颜色配置面板
@@ -167,7 +167,7 @@ export const ParamFieldListElem = memo(
         setCurrentListIndex(listIndex ?? null);
         setColorModalOpen(true);
       },
-      [connectionStatus]
+      [connectionStatus],
     );
 
     // 打开位移差值配置面板
@@ -181,7 +181,7 @@ export const ParamFieldListElem = memo(
         setCurrentListIndex(listIndex ?? null);
         setDeltaModalOpen(true);
       },
-      [connectionStatus]
+      [connectionStatus],
     );
 
     // 打开 ROI 偏移配置面板
@@ -195,7 +195,7 @@ export const ParamFieldListElem = memo(
         setCurrentListIndex(listIndex ?? null);
         setRoiOffsetModalOpen(true);
       },
-      [connectionStatus]
+      [connectionStatus],
     );
 
     // ROI 确认回调
@@ -220,7 +220,7 @@ export const ParamFieldListElem = memo(
         setCurrentROIKey(null);
         setCurrentListIndex(null);
       },
-      [currentROIKey, currentListIndex, paramData, onChange]
+      [currentROIKey, currentListIndex, paramData, onChange],
     );
 
     // OCR 确认回调
@@ -245,7 +245,7 @@ export const ParamFieldListElem = memo(
         setCurrentExpectedKey(null);
         setCurrentListIndex(null);
       },
-      [currentExpectedKey, currentListIndex, paramData, onChange]
+      [currentExpectedKey, currentListIndex, paramData, onChange],
     );
 
     // 模板确认回调
@@ -253,7 +253,7 @@ export const ParamFieldListElem = memo(
       (
         templatePath: string,
         greenMask: boolean,
-        roi?: [number, number, number, number]
+        roi?: [number, number, number, number],
       ) => {
         if (currentTemplateKey) {
           // 列表类型只替换指定索引的值
@@ -278,7 +278,7 @@ export const ParamFieldListElem = memo(
         setCurrentTemplateKey(null);
         setCurrentListIndex(null);
       },
-      [currentTemplateKey, currentListIndex, paramData, onChange]
+      [currentTemplateKey, currentListIndex, paramData, onChange],
     );
 
     // 颜色确认回调
@@ -309,7 +309,7 @@ export const ParamFieldListElem = memo(
         setCurrentColorKey(null);
         setCurrentListIndex(null);
       },
-      [currentColorKey, currentListIndex, paramData, onChange]
+      [currentColorKey, currentListIndex, paramData, onChange],
     );
 
     // 位移差值确认回调
@@ -323,7 +323,7 @@ export const ParamFieldListElem = memo(
         setCurrentDeltaKey(null);
         setCurrentListIndex(null);
       },
-      [currentDeltaKey, onChange]
+      [currentDeltaKey, onChange],
     );
 
     // ROI 偏移确认回调
@@ -349,7 +349,7 @@ export const ParamFieldListElem = memo(
         setCurrentROIOffsetKey(null);
         setCurrentListIndex(null);
       },
-      [currentROIOffsetKey, currentListIndex, paramData, onChange]
+      [currentROIOffsetKey, currentListIndex, paramData, onChange],
     );
 
     // 获取字段对应的快捷工具配置
@@ -357,7 +357,7 @@ export const ParamFieldListElem = memo(
       (key: string): QuickToolConfig | undefined => {
         return QUICK_TOOLS[key];
       },
-      []
+      [],
     );
 
     // 处理快捷工具点击
@@ -394,7 +394,7 @@ export const ParamFieldListElem = memo(
         handleOpenTemplate,
         handleOpenColor,
         handleOpenDelta,
-      ]
+      ],
     );
 
     // 渲染快捷工具按钮
@@ -416,13 +416,13 @@ export const ParamFieldListElem = memo(
           </div>
         );
       },
-      [getQuickToolConfig, handleQuickToolClick]
+      [getQuickToolConfig, handleQuickToolClick],
     );
 
     const existingFields = Object.keys(paramData);
     const fieldTypeMap = useMemo(
       () => new Map(paramType.map((field) => [field.key, field])),
-      [paramType]
+      [paramType],
     );
     const orderedFieldTypes = useMemo(() => {
       const orderedKeys = sortOrder
@@ -540,7 +540,7 @@ export const ParamFieldListElem = memo(
               onListDelete,
               paramType,
               0,
-              renderQuickTool
+              renderQuickTool,
             );
             break;
           // 数字列表
@@ -555,7 +555,7 @@ export const ParamFieldListElem = memo(
               onListDelete,
               paramType,
               type.step,
-              renderQuickTool
+              renderQuickTool,
             );
             break;
           // 整型
@@ -632,7 +632,7 @@ export const ParamFieldListElem = memo(
       if (isTemplateField) {
         if (Array.isArray(value)) {
           templatePaths = value.filter(
-            (v) => typeof v === "string" && v.trim() !== ""
+            (v) => typeof v === "string" && v.trim() !== "",
           );
         } else if (typeof value === "string" && value.trim() !== "") {
           templatePaths = [value];
@@ -784,5 +784,5 @@ export const ParamFieldListElem = memo(
         )}
       </>
     );
-  }
+  },
 );

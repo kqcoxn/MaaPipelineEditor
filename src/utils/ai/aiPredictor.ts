@@ -1,20 +1,20 @@
 import { OpenAIChat } from "./openai";
-import type { NodeType, EdgeType, PipelineNodeType } from "../stores/flow";
+import type { NodeType, EdgeType, PipelineNodeType } from "../../stores/flow";
 import {
   SourceHandleTypeEnum,
   TargetHandleTypeEnum,
-} from "../components/flow/nodes";
-import { NodeTypeEnum } from "../components/flow/nodes";
-import { useMFWStore } from "../stores/mfwStore";
-import { useFlowStore } from "../stores/flow";
-import { mfwProtocol } from "../services/server";
+} from "../../components/flow/nodes";
+import { NodeTypeEnum } from "../../components/flow/nodes";
+import { useMFWStore } from "../../stores/mfwStore";
+import { useFlowStore } from "../../stores/flow";
+import { mfwProtocol } from "../../services/server";
 import {
   recoFields,
   actionFields,
   recoParamKeys,
   actionParamKeys,
-} from "../core/fields";
-import { parsePipelineNodeForExport } from "../core/parser";
+} from "../../core/fields";
+import { parsePipelineNodeForExport } from "../../core/parser";
 import { buildVisionPredictionPrompt, SYSTEM_PROMPTS } from "./aiPrompts";
 
 /**

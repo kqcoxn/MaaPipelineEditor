@@ -8,7 +8,7 @@ import {
   collectNodeContext,
   predictNodeConfig,
   applyPrediction,
-} from "../../../../utils/aiPredictor";
+} from "../../../../utils/ai/aiPredictor";
 import { useFlowStore } from "../../../../stores/flow";
 import { useMFWStore } from "../../../../stores/mfwStore";
 import {

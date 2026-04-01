@@ -3,7 +3,7 @@
  * 统一处理节点标签与前缀的拼接逻辑
  */
 
-import { useFileStore } from "../stores/fileStore";
+import { useFileStore } from "../../stores/fileStore";
 
 /**
  * 获取带前缀的完整节点名
@@ -25,7 +25,7 @@ export function getFullNodeName(nodeLabel: string, prefix?: string): string {
  */
 export function stripPrefixFromNodeName(
   fullName: string,
-  prefix?: string
+  prefix?: string,
 ): string {
   const actualPrefix =
     prefix ?? useFileStore.getState().currentFile.config.prefix;

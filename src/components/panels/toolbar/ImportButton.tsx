@@ -8,7 +8,7 @@ import {
 } from "../../../stores/toolbarStore";
 import { useConfigStore } from "../../../stores/configStore";
 import { pipelineToFlow, mergePipelineAndConfig } from "../../../core/parser";
-import { ClipboardHelper } from "../../../utils/clipboard";
+import { ClipboardHelper } from "../../../utils/ui/clipboard";
 import { flowToPipeline } from "../../../core/parser";
 import style from "../../../styles/ToolbarPanel.module.less";
 
@@ -19,7 +19,7 @@ import style from "../../../styles/ToolbarPanel.module.less";
 function ImportButton() {
   const { defaultImportAction, setDefaultImportAction } = useToolbarStore();
   const configHandlingMode = useConfigStore(
-    (state) => state.configs.configHandlingMode
+    (state) => state.configs.configHandlingMode,
   );
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -94,7 +94,7 @@ function ImportButton() {
         const currentPipeline = flowToPipeline();
         const mergedPipeline = mergePipelineAndConfig(
           currentPipeline,
-          mpeConfig
+          mpeConfig,
         );
         const success = await pipelineToFlow({
           pString: JSON.stringify(mergedPipeline),
@@ -173,7 +173,7 @@ function ImportButton() {
             setDefaultImportAction("file-config");
             executeImportAction("file-config");
           },
-        }
+        },
       );
     }
 

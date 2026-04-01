@@ -9,8 +9,8 @@ import { useDebounceFn } from "ahooks";
 import IconFont from "../../iconfonts";
 import { useFlowStore, type NodeType } from "../../../stores/flow";
 import { useConfigStore } from "../../../stores/configStore";
-import { OpenAIChat } from "../../../utils/openai";
-import { buildAISearchPrompt } from "../../../utils/aiPrompts";
+import { OpenAIChat } from "../../../utils/ai/openai";
+import { buildAISearchPrompt } from "../../../utils/ai/aiPrompts";
 import { NodeTypeEnum } from "../../flow/nodes";
 import {
   crossFileService,

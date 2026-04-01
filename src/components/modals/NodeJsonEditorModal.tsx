@@ -18,7 +18,7 @@ interface Position {
 }
 import type { NodeType } from "../../stores/flow/types";
 import { NodeTypeEnum } from "../flow/nodes";
-import { formatNodeJson } from "../../utils/nodeJsonValidator";
+import { formatNodeJson } from "../../utils/node/nodeJsonValidator";
 import { useConfigStore } from "../../stores/configStore";
 import {
   parsePipelineNodeForExport,
@@ -46,7 +46,11 @@ const { Text } = Typography;
  * 验证 JSON/JSONC 格式
  * 现阶段只验证格式是否正确，不验证业务规则
  */
-function validateMfwNodeJson(jsonString: string): { valid: boolean; error?: string; data?: any } {
+function validateMfwNodeJson(jsonString: string): {
+  valid: boolean;
+  error?: string;
+  data?: any;
+} {
   let data: any;
   try {
     data = JSON.parse(jsonString);
@@ -92,13 +96,8 @@ function getActionFieldKeys(actionType: string): string[] {
  */
 function getTopLevelFields(): string[] {
   // 这些是 MFW 的顶层字段，不在 otherFieldSchemaKeyList 中
-  const specialTopLevelFields = [
-    "recognition",
-    "action",
-    "next",
-    "on_error",
-  ];
-  
+  const specialTopLevelFields = ["recognition", "action", "next", "on_error"];
+
   return [...specialTopLevelFields, ...otherFieldSchemaKeyList].sort();
 }
 
@@ -107,7 +106,7 @@ function getTopLevelFields(): string[] {
  */
 function parseContext(
   model: editor.ITextModel,
-  _position: Position
+  _position: Position,
 ): { recognition?: string; action?: string } {
   const result: { recognition?: string; action?: string } = {};
 
@@ -134,7 +133,7 @@ function parseContext(
  */
 function checkPropertyValueContext(
   model: editor.ITextModel,
-  position: Position
+  position: Position,
 ): { isInRecognitionValue: boolean; isInActionValue: boolean } {
   const lineContent = model.getLineContent(position.lineNumber);
   const textUntilPosition = lineContent.substring(0, position.column - 1);
@@ -165,45 +164,54 @@ function createMfwCompletionProvider(): languages.CompletionItemProvider {
       const currentInput = match ? match[1] : "";
 
       // 检查是否在 recognition 或 action 值的位置
-      const { isInRecognitionValue, isInActionValue } = checkPropertyValueContext(model, position);
+      const { isInRecognitionValue, isInActionValue } =
+        checkPropertyValueContext(model, position);
 
       // 如果在 recognition 值的位置，提示识别类型
       if (isInRecognitionValue) {
         const recognitionTypes = getRecognitionTypes();
-        const suggestions: languages.CompletionItem[] = recognitionTypes.map((type) => ({
-          label: type,
-          kind: 12, // monaco.languages.CompletionItemKind.Value
-          insertText: type,
-          detail: `识别类型: ${recoFields[type]?.desc?.split("。")[0] || ""}`,
-          documentation: recoFields[type]?.desc || "",
-          sortText: type.toLowerCase().startsWith(currentInput.toLowerCase()) ? `0${type}` : `1${type}`,
-          range: {
-            startLineNumber: position.lineNumber,
-            endLineNumber: position.lineNumber,
-            startColumn: position.column - currentInput.length,
-            endColumn: position.column,
-          },
-        }));
+        const suggestions: languages.CompletionItem[] = recognitionTypes.map(
+          (type) => ({
+            label: type,
+            kind: 12, // monaco.languages.CompletionItemKind.Value
+            insertText: type,
+            detail: `识别类型: ${recoFields[type]?.desc?.split("。")[0] || ""}`,
+            documentation: recoFields[type]?.desc || "",
+            sortText: type.toLowerCase().startsWith(currentInput.toLowerCase())
+              ? `0${type}`
+              : `1${type}`,
+            range: {
+              startLineNumber: position.lineNumber,
+              endLineNumber: position.lineNumber,
+              startColumn: position.column - currentInput.length,
+              endColumn: position.column,
+            },
+          }),
+        );
         return { suggestions };
       }
 
       // 如果在 action 值的位置，提示动作类型
       if (isInActionValue) {
         const actionTypes = getActionTypes();
-        const suggestions: languages.CompletionItem[] = actionTypes.map((type) => ({
-          label: type,
-          kind: 12,
-          insertText: type,
-          detail: `动作类型: ${actionFields[type]?.desc?.split("。")[0] || ""}`,
-          documentation: actionFields[type]?.desc || "",
-          sortText: type.toLowerCase().startsWith(currentInput.toLowerCase()) ? `0${type}` : `1${type}`,
-          range: {
-            startLineNumber: position.lineNumber,
-            endLineNumber: position.lineNumber,
-            startColumn: position.column - currentInput.length,
-            endColumn: position.column,
-          },
-        }));
+        const suggestions: languages.CompletionItem[] = actionTypes.map(
+          (type) => ({
+            label: type,
+            kind: 12,
+            insertText: type,
+            detail: `动作类型: ${actionFields[type]?.desc?.split("。")[0] || ""}`,
+            documentation: actionFields[type]?.desc || "",
+            sortText: type.toLowerCase().startsWith(currentInput.toLowerCase())
+              ? `0${type}`
+              : `1${type}`,
+            range: {
+              startLineNumber: position.lineNumber,
+              endLineNumber: position.lineNumber,
+              startColumn: position.column - currentInput.length,
+              endColumn: position.column,
+            },
+          }),
+        );
         return { suggestions };
       }
 
@@ -213,7 +221,8 @@ function createMfwCompletionProvider(): languages.CompletionItemProvider {
 
       // 检查是否在冒号前
       const beforeColonPattern = /["'][^"']*["']?\s*$/;
-      const isBeforeColon = beforeColonPattern.test(textUntilPosition) &&
+      const isBeforeColon =
+        beforeColonPattern.test(textUntilPosition) &&
         !textUntilPosition.includes(":");
 
       if (!isInKeyContext && !isBeforeColon) {
@@ -231,7 +240,9 @@ function createMfwCompletionProvider(): languages.CompletionItemProvider {
 
       // 根据上下文添加识别字段
       if (context.recognition) {
-        getRecognitionFieldKeys(context.recognition).forEach((key) => fieldKeys.add(key));
+        getRecognitionFieldKeys(context.recognition).forEach((key) =>
+          fieldKeys.add(key),
+        );
       } else {
         // 如果没有指定 recognition，添加所有识别字段
         Object.keys(recoFields).forEach((type) => {
@@ -249,19 +260,21 @@ function createMfwCompletionProvider(): languages.CompletionItemProvider {
         });
       }
 
-      const suggestions: languages.CompletionItem[] = Array.from(fieldKeys).sort().map((key) => ({
-        label: key,
-        kind: 17,
-        insertText: key,
-        detail: "MaaFramework 字段",
-        sortText: key.startsWith(currentInput) ? `0${key}` : `1${key}`,
-        range: {
-          startLineNumber: position.lineNumber,
-          endLineNumber: position.lineNumber,
-          startColumn: position.column - currentInput.length,
-          endColumn: position.column,
-        },
-      }));
+      const suggestions: languages.CompletionItem[] = Array.from(fieldKeys)
+        .sort()
+        .map((key) => ({
+          label: key,
+          kind: 17,
+          insertText: key,
+          detail: "MaaFramework 字段",
+          sortText: key.startsWith(currentInput) ? `0${key}` : `1${key}`,
+          range: {
+            startLineNumber: position.lineNumber,
+            endLineNumber: position.lineNumber,
+            startColumn: position.column - currentInput.length,
+            endColumn: position.column,
+          },
+        }));
 
       return { suggestions };
     },
@@ -375,9 +388,7 @@ export const NodeJsonEditorModal = memo(
         title={
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <CodeOutlined style={{ fontSize: 20 }} />
-            <span style={{ fontSize: 18, fontWeight: 600 }}>
-              编辑节点 JSON
-            </span>
+            <span style={{ fontSize: 18, fontWeight: 600 }}>编辑节点 JSON</span>
             <Text type="secondary" style={{ fontSize: 14, marginLeft: 8 }}>
               {getNodeTypeLabel(node.type)} - {node.data.label || "未命名"}
             </Text>
@@ -417,7 +428,12 @@ export const NodeJsonEditorModal = memo(
           },
         }}
       >
-        <Space direction="vertical" style={{ width: "100%" }} size="middle" onDoubleClick={(e: React.MouseEvent) => e.stopPropagation()}>
+        <Space
+          direction="vertical"
+          style={{ width: "100%" }}
+          size="middle"
+          onDoubleClick={(e: React.MouseEvent) => e.stopPropagation()}
+        >
           {/* 编辑器 */}
           <div
             style={{
@@ -436,7 +452,7 @@ export const NodeJsonEditorModal = memo(
                 // 注册自动补全提供者
                 monaco.languages.registerCompletionItemProvider(
                   "json",
-                  createMfwCompletionProvider()
+                  createMfwCompletionProvider(),
                 );
               }}
               options={editorOptions}
@@ -457,7 +473,7 @@ export const NodeJsonEditorModal = memo(
         </Space>
       </Modal>
     );
-  }
+  },
 );
 
 export default NodeJsonEditorModal;

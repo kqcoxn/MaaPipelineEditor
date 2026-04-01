@@ -6,7 +6,7 @@ import type { PipelineNodeDataType } from "../../../../stores/flow";
 import { useConfigStore } from "../../../../stores/configStore";
 import { KVElem } from "../components/KVElem";
 import { PipelineNodeHandles } from "../components/NodeHandles";
-import { JsonHelper } from "../../../../utils/jsonHelper";
+import { JsonHelper } from "../../../../utils/data/jsonHelper";
 import {
   mergeFieldSortConfig,
   sortKeysByOrder,
@@ -16,14 +16,14 @@ import {
 export const ClassicContent = memo(
   ({ data }: { data: PipelineNodeDataType; props: NodeProps }) => {
     const showNodeDetailFields = useConfigStore(
-      (state) => state.configs.showNodeDetailFields
+      (state) => state.configs.showNodeDetailFields,
     );
     const fieldSortConfig = useConfigStore(
-      (state) => state.configs.fieldSortConfig
+      (state) => state.configs.fieldSortConfig,
     );
     const mergedSortConfig = useMemo(
       () => mergeFieldSortConfig(fieldSortConfig),
-      [fieldSortConfig]
+      [fieldSortConfig],
     );
 
     const extraEntries = useMemo(() => {
@@ -54,25 +54,25 @@ export const ClassicContent = memo(
       () =>
         sortKeysByOrder(
           Object.keys(data.recognition.param),
-          mergedSortConfig.recognitionParamFields
+          mergedSortConfig.recognitionParamFields,
         ),
-      [data.recognition.param, mergedSortConfig.recognitionParamFields]
+      [data.recognition.param, mergedSortConfig.recognitionParamFields],
     );
     const actionParamKeys = useMemo(
       () =>
         sortKeysByOrder(
           Object.keys(data.action.param),
-          mergedSortConfig.actionParamFields
+          mergedSortConfig.actionParamFields,
         ),
-      [data.action.param, mergedSortConfig.actionParamFields]
+      [data.action.param, mergedSortConfig.actionParamFields],
     );
     const otherParamKeys = useMemo(
       () =>
         sortKeysByOrder(
           Object.keys(filteredOthers),
-          mergedSortConfig.mainTaskFields
+          mergedSortConfig.mainTaskFields,
         ),
-      [filteredOthers, mergedSortConfig.mainTaskFields]
+      [filteredOthers, mergedSortConfig.mainTaskFields],
     );
 
     return (
@@ -81,19 +81,25 @@ export const ClassicContent = memo(
         <ul className={style.list}>
           <ul className={style.module}>
             <KVElem paramKey="recognition" value={data.recognition.type} />
-            {showNodeDetailFields && recognitionParamKeys.map((key) => (
-              <KVElem
-                key={key}
-                paramKey={key}
-                value={data.recognition.param[key]}
-              />
-            ))}
+            {showNodeDetailFields &&
+              recognitionParamKeys.map((key) => (
+                <KVElem
+                  key={key}
+                  paramKey={key}
+                  value={data.recognition.param[key]}
+                />
+              ))}
           </ul>
           <ul className={style.module}>
             <KVElem paramKey="action" value={data.action.type} />
-            {showNodeDetailFields && actionParamKeys.map((key) => (
-              <KVElem key={key} paramKey={key} value={data.action.param[key]} />
-            ))}
+            {showNodeDetailFields &&
+              actionParamKeys.map((key) => (
+                <KVElem
+                  key={key}
+                  paramKey={key}
+                  value={data.action.param[key]}
+                />
+              ))}
           </ul>
           {showNodeDetailFields && (
             <ul className={style.module}>
@@ -109,5 +115,5 @@ export const ClassicContent = memo(
         <PipelineNodeHandles direction={data.handleDirection} />
       </>
     );
-  }
+  },
 );

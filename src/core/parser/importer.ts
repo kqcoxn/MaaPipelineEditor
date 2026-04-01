@@ -14,7 +14,7 @@ import {
   NodeTypeEnum,
   SourceHandleTypeEnum,
 } from "../../components/flow/nodes";
-import { ClipboardHelper } from "../../utils/clipboard";
+import { ClipboardHelper } from "../../utils/ui/clipboard";
 import { LayoutHelper } from "../layout";
 import type {
   PipelineToFlowOptions,
@@ -46,7 +46,7 @@ import { mergePipelineAndConfig } from "./configSplitter";
  */
 function migratePipelineV5(
   pipelineObj: Record<string, unknown>,
-  objKeys: string[]
+  objKeys: string[],
 ): void {
   const JUMPBACK_PREFIX = "[JumpBack]";
   const subNodes = new Set<string>();
@@ -153,7 +153,7 @@ function migratePipelineV5(
  * @param options 导入选项，可以传入Pipeline字符串和外部配置
  */
 export async function pipelineToFlow(
-  options?: PipelineToFlowOptions
+  options?: PipelineToFlowOptions,
 ): Promise<boolean> {
   try {
     // 获取参数
@@ -185,12 +185,12 @@ export async function pipelineToFlow(
             }
           },
         },
-        { allowTrailingComma: true }
+        { allowTrailingComma: true },
       );
     } catch (visitError) {
       console.warn(
         "[importer] visit parse failed, using empty object",
-        visitError
+        visitError,
       );
     }
 
@@ -204,7 +204,7 @@ export async function pipelineToFlow(
         purePipeline,
         mpeConfig,
         undefined,
-        originalKeyOrder
+        originalKeyOrder,
       );
       pString = JSON.stringify(pipelineObj);
     }
@@ -363,8 +363,8 @@ export async function pipelineToFlow(
         type === NodeTypeEnum.Pipeline
           ? createPipelineNode(id, { label })
           : type === NodeTypeEnum.External
-          ? (createExternalNode(id, { label }) as PipelineNodeType)
-          : (createAnchorNode(id, { label }) as PipelineNodeType);
+            ? (createExternalNode(id, { label }) as PipelineNodeType)
+            : (createAnchorNode(id, { label }) as PipelineNodeType);
 
       // 解析节点字段
       const keys = Object.keys(obj);
@@ -391,7 +391,7 @@ export async function pipelineToFlow(
           key,
           value,
           recognitionVersion,
-          actionVersion
+          actionVersion,
         );
 
         // 如果字段未被处理，作为额外字段
@@ -453,7 +453,7 @@ export async function pipelineToFlow(
           originLabel,
           next,
           SourceHandleTypeEnum.Next,
-          idOLPairs
+          idOLPairs,
         );
         if (newEdges.length > 0) edges = edges.concat(newEdges);
         if (newNodes.length > 0) nodes = nodes.concat(newNodes);
@@ -467,7 +467,7 @@ export async function pipelineToFlow(
           originLabel,
           onError,
           SourceHandleTypeEnum.Error,
-          idOLPairs
+          idOLPairs,
         );
         if (newEdges.length > 0) edges = edges.concat(newEdges);
         if (newNodes.length > 0) nodes = nodes.concat(newNodes);

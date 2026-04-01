@@ -7,7 +7,7 @@ import { useFlowStore } from "../../stores/flow";
 import { useFileStore } from "../../stores/fileStore";
 import { configProtocol } from "../server";
 import type { ConfigResponse } from "./ConfigProtocol";
-import { stripPrefixFromNodeName } from "../../utils/nodeNameHelper";
+import { stripPrefixFromNodeName } from "../../utils/node/nodeNameHelper";
 
 /**
  * 调试协议处理器
@@ -46,31 +46,31 @@ export class DebugProtocol extends BaseProtocol {
 
     // 注册调试事件路由
     this.wsClient.registerRoute("/lte/debug/event", (data) =>
-      this.handleDebugEvent(data)
+      this.handleDebugEvent(data),
     );
 
     // 注册调试错误路由
     this.wsClient.registerRoute("/lte/debug/error", (data) =>
-      this.handleDebugError(data)
+      this.handleDebugError(data),
     );
 
     // 注册调试完成路由
     this.wsClient.registerRoute("/lte/debug/completed", (data) =>
-      this.handleDebugCompleted(data)
+      this.handleDebugCompleted(data),
     );
 
     // 注册调试启动响应路由
     this.wsClient.registerRoute("/lte/debug/started", (data) =>
-      this.handleDebugStarted(data)
+      this.handleDebugStarted(data),
     );
 
     // 注册调试停止响应路由
     this.wsClient.registerRoute("/lte/debug/stopped", (data) =>
-      this.handleDebugStopped(data)
+      this.handleDebugStopped(data),
     );
 
     this.wsClient.registerRoute("/lte/debug/running", (data) =>
-      this.handleDebugRunning(data)
+      this.handleDebugRunning(data),
     );
   }
 
@@ -106,7 +106,7 @@ export class DebugProtocol extends BaseProtocol {
             debugStore.addResourcePath(resourcePath);
           } else {
             console.warn(
-              "[DebugProtocol] Backend config invalid or resource paths not set"
+              "[DebugProtocol] Backend config invalid or resource paths not set",
             );
           }
         }
@@ -148,7 +148,7 @@ export class DebugProtocol extends BaseProtocol {
           "[DebugProtocol] Event session_id mismatch:",
           session_id,
           "expected:",
-          debugStore.sessionId
+          debugStore.sessionId,
         );
         return;
       }
@@ -177,7 +177,7 @@ export class DebugProtocol extends BaseProtocol {
 
       if (needsFlowId && node_name && !nodeIdOrLabel) {
         console.warn(
-          `[DebugProtocol] Cannot find node: "${node_name}" (event: ${event_name})`
+          `[DebugProtocol] Cannot find node: "${node_name}" (event: ${event_name})`,
         );
         return;
       }
@@ -191,7 +191,7 @@ export class DebugProtocol extends BaseProtocol {
             nodeIdOrLabel!,
             timestamp,
             detail,
-            latency
+            latency,
           );
           break;
         case "node_failed":
@@ -234,7 +234,7 @@ export class DebugProtocol extends BaseProtocol {
   private handleNodeRunning(
     nodeId: string,
     timestamp: number,
-    detail: any
+    detail: any,
   ): void {
     const debugStore = useDebugStore.getState();
 
@@ -252,7 +252,7 @@ export class DebugProtocol extends BaseProtocol {
   private handleNodeCompleted(
     nodeId: string,
     timestamp: number,
-    detail: any
+    detail: any,
   ): void {
     const debugStore = useDebugStore.getState();
 
@@ -271,7 +271,7 @@ export class DebugProtocol extends BaseProtocol {
   private handleNodeFailed(
     nodeId: string,
     timestamp: number,
-    detail: any
+    detail: any,
   ): void {
     const debugStore = useDebugStore.getState();
     debugStore.handleDebugEvent({
@@ -288,7 +288,7 @@ export class DebugProtocol extends BaseProtocol {
   private handleRecognition(
     nodeId: string,
     timestamp: number,
-    detail: any
+    detail: any,
   ): void {
     const debugStore = useDebugStore.getState();
 
@@ -306,7 +306,7 @@ export class DebugProtocol extends BaseProtocol {
   private handleRecognitionSuccess(
     nodeId: string,
     timestamp: number,
-    detail: any
+    detail: any,
   ): void {
     const debugStore = useDebugStore.getState();
 
@@ -324,7 +324,7 @@ export class DebugProtocol extends BaseProtocol {
   private handleRecognitionFailed(
     nodeId: string,
     timestamp: number,
-    detail: any
+    detail: any,
   ): void {
     const debugStore = useDebugStore.getState();
 
@@ -356,7 +356,7 @@ export class DebugProtocol extends BaseProtocol {
   private handleActionSuccess(
     nodeId: string,
     timestamp: number,
-    detail: any
+    detail: any,
   ): void {
     const debugStore = useDebugStore.getState();
 
@@ -374,7 +374,7 @@ export class DebugProtocol extends BaseProtocol {
   private handleActionFailed(
     nodeId: string,
     timestamp: number,
-    detail: any
+    detail: any,
   ): void {
     const debugStore = useDebugStore.getState();
 
@@ -392,7 +392,7 @@ export class DebugProtocol extends BaseProtocol {
   private handleNodeExecutionCompleted(
     nodeId: string,
     timestamp: number,
-    detail: any
+    detail: any,
   ): void {
     const debugStore = useDebugStore.getState();
 
@@ -410,7 +410,7 @@ export class DebugProtocol extends BaseProtocol {
   private handleNodeExecutionFailed(
     nodeId: string,
     timestamp: number,
-    detail: any
+    detail: any,
   ): void {
     const debugStore = useDebugStore.getState();
 
@@ -429,7 +429,7 @@ export class DebugProtocol extends BaseProtocol {
   private handleRecognitionStarting(
     nodeId: string,
     timestamp: number,
-    detail: any
+    detail: any,
   ): void {
     const debugStore = useDebugStore.getState();
 
@@ -456,7 +456,7 @@ export class DebugProtocol extends BaseProtocol {
           "[DebugProtocol] Error session_id mismatch:",
           session_id,
           "expected:",
-          debugStore.sessionId
+          debugStore.sessionId,
         );
         return;
       }
@@ -494,7 +494,7 @@ export class DebugProtocol extends BaseProtocol {
                     key: "title",
                     style: { margin: 0, marginBottom: 8, fontWeight: 500 },
                   },
-                  "💡 提示："
+                  "💡 提示：",
                 ),
                 createElement(
                   "ul",
@@ -506,16 +506,16 @@ export class DebugProtocol extends BaseProtocol {
                     createElement(
                       "li",
                       { key: "1" },
-                      "1. 资源路径应指向包含 pipeline 文件的目录（如 assets/resource 或 assets/resource/base）"
+                      "1. 资源路径应指向包含 pipeline 文件的目录（如 assets/resource 或 assets/resource/base）",
                     ),
                     createElement(
                       "li",
                       { key: "2" },
-                      "2. 请检查各 pipeline 内容是否符合格式要求，有无重名等"
+                      "2. 请检查各 pipeline 内容是否符合格式要求，有无重名等",
                     ),
-                  ]
+                  ],
                 ),
-              ]
+              ],
             ),
             createElement(
               "p",
@@ -523,7 +523,7 @@ export class DebugProtocol extends BaseProtocol {
                 key: "action",
                 style: { marginTop: 12, marginBottom: 0 },
               },
-              "请在调试配置中检查并修正资源路径。"
+              "请在调试配置中检查并修正资源路径。",
             ),
           ]),
           okText: "知道了",
@@ -549,7 +549,7 @@ export class DebugProtocol extends BaseProtocol {
           "[DebugProtocol] Completed session_id mismatch:",
           session_id,
           "expected:",
-          debugStore.sessionId
+          debugStore.sessionId,
         );
         return;
       }
@@ -619,7 +619,7 @@ export class DebugProtocol extends BaseProtocol {
                       key: "title",
                       style: { margin: 0, marginBottom: 8, fontWeight: 500 },
                     },
-                    "💡 提示："
+                    "💡 提示：",
                   ),
                   createElement(
                     "ul",
@@ -631,16 +631,16 @@ export class DebugProtocol extends BaseProtocol {
                       createElement(
                         "li",
                         { key: "1" },
-                        "1. 资源路径应指向包含 pipeline 文件的目录（如 assets/resource 或 assets/resource/base）"
+                        "1. 资源路径应指向包含 pipeline 文件的目录（如 assets/resource 或 assets/resource/base）",
                       ),
                       createElement(
                         "li",
                         { key: "2" },
-                        "2. 请检查各 pipeline 内容是否符合格式要求，有无重名等"
+                        "2. 请检查各 pipeline 内容是否符合格式要求，有无重名等",
                       ),
-                    ]
+                    ],
                   ),
-                ]
+                ],
               ),
               createElement(
                 "p",
@@ -648,7 +648,7 @@ export class DebugProtocol extends BaseProtocol {
                   key: "action",
                   style: { marginTop: 12, marginBottom: 0 },
                 },
-                "请在调试配置中检查并修正资源路径。"
+                "请在调试配置中检查并修正资源路径。",
               ),
             ]),
             okText: "知道了",
@@ -675,7 +675,7 @@ export class DebugProtocol extends BaseProtocol {
           "[DebugProtocol] Stopped session_id mismatch:",
           session_id,
           "expected:",
-          debugStore.sessionId
+          debugStore.sessionId,
         );
         return;
       }
@@ -718,7 +718,7 @@ export class DebugProtocol extends BaseProtocol {
     nodeId: string,
     timestamp: number,
     detail: any,
-    latency?: number
+    latency?: number,
   ): void {
     const debugStore = useDebugStore.getState();
     debugStore.handleDebugEvent({
@@ -736,7 +736,7 @@ export class DebugProtocol extends BaseProtocol {
     nodeId: string,
     timestamp: number,
     detail: any,
-    latency?: number
+    latency?: number,
   ): void {
     const debugStore = useDebugStore.getState();
     debugStore.handleDebugEvent({
@@ -753,7 +753,7 @@ export class DebugProtocol extends BaseProtocol {
   private handleV2DebugPaused(
     nodeId: string | null,
     timestamp: number,
-    detail: any
+    detail: any,
   ): void {}
 
   /**
@@ -776,7 +776,7 @@ export class DebugProtocol extends BaseProtocol {
         testNodeName,
         executionHistory,
         recognitionRecords,
-        detailCache
+        detailCache,
       );
 
       // 显示测试结果
@@ -802,7 +802,7 @@ export class DebugProtocol extends BaseProtocol {
     nodeName: string,
     executionHistory: any[],
     recognitionRecords: any[],
-    detailCache: Map<number, any>
+    detailCache: Map<number, any>,
   ): {
     success: boolean;
     type: string;
@@ -819,7 +819,7 @@ export class DebugProtocol extends BaseProtocol {
 
     // 查找识别记录（入口节点的自我识别，parentNode 为 $entry）
     const recoRecord = recognitionRecords.find(
-      (r) => r.name === nodeName && r.parentNode === "$entry"
+      (r) => r.name === nodeName && r.parentNode === "$entry",
     );
     const recognitionHit = recoRecord?.hit;
     const recognitionSuccess = recoRecord?.status === "succeeded";
@@ -959,7 +959,7 @@ export class DebugProtocol extends BaseProtocol {
     controllerId: string,
     breakpoints: string[],
     agentIdentifier?: string,
-    pipelineOverride?: Record<string, any>
+    pipelineOverride?: Record<string, any>,
   ): boolean {
     if (!this.wsClient) {
       console.error("[DebugProtocol] WebSocket client not initialized");

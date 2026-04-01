@@ -22,7 +22,7 @@ import { useDebugStore, type TestMode } from "../../../stores/debugStore";
 import { useMFWStore } from "../../../stores/mfwStore";
 import { useFileStore } from "../../../stores/fileStore";
 import { debugProtocol } from "../../../services/server";
-import { getFullNodeName } from "../../../utils/nodeNameHelper";
+import { getFullNodeName } from "../../../utils/node/nodeNameHelper";
 
 /**菜单项类型 */
 export interface NodeContextMenuItem {
@@ -166,7 +166,7 @@ async function handleStartDebugFromNode(node: NodeContextMenuNode) {
     entryNodeFullName,
     controllerId,
     [],
-    agentIdentifier || undefined
+    agentIdentifier || undefined,
   );
 
   if (!success) {
@@ -188,7 +188,7 @@ async function runDebugTest(
   node: NodeContextMenuNode,
   testName: string,
   override: Record<string, any>,
-  testMode: TestMode
+  testMode: TestMode,
 ) {
   const { resourcePaths, agentIdentifier, setTestMode } =
     useDebugStore.getState();
@@ -219,7 +219,9 @@ async function runDebugTest(
   // 设置测试模式
   setTestMode(testMode, node.data.label);
 
-  const canContinue = await useDebugStore.getState().startDebug({ skipEntryNodeCheck: true });
+  const canContinue = await useDebugStore
+    .getState()
+    .startDebug({ skipEntryNodeCheck: true });
   if (!canContinue) {
     return;
   }
@@ -233,7 +235,7 @@ async function runDebugTest(
     controllerId,
     [],
     agentIdentifier || undefined,
-    override
+    override,
   );
 
   if (!success) {
@@ -293,7 +295,7 @@ async function handleTestAction(node: NodeContextMenuNode) {
 /**设置节点端点位置处理器 */
 function handleSetNodeDirection(
   node: NodeContextMenuNode,
-  direction: HandleDirection
+  direction: HandleDirection,
 ) {
   const { nodes, setNodes, saveHistory } = useFlowStore.getState();
   const newNodes = nodes.map((n) => {
@@ -313,7 +315,7 @@ function handleSetNodeDirection(
   message.success(
     `端点位置已设置为「${
       HANDLE_DIRECTION_OPTIONS.find((o) => o.value === direction)?.label
-    }」`
+    }」`,
   );
 }
 
@@ -328,10 +330,7 @@ function handleUngroupNodes(node: NodeContextMenuNode) {
 }
 
 /**更改分组颜色处理器 */
-function handleSetGroupColor(
-  node: NodeContextMenuNode,
-  color: string
-) {
+function handleSetGroupColor(node: NodeContextMenuNode, color: string) {
   useFlowStore.getState().setNodeData(node.id, "direct", "color", color);
   useFlowStore.getState().saveHistory(0);
 }
@@ -339,10 +338,10 @@ function handleSetGroupColor(
 /**更改便签颜色处理器 */
 function handleSetStickerColor(
   node: NodeContextMenuNode,
-  color: StickerColorTheme
+  color: StickerColorTheme,
 ) {
   if (node.type !== NodeTypeEnum.Sticker) return;
-  
+
   useFlowStore.getState().setNodeData(node.id, "sticker", "color", color);
   useFlowStore.getState().saveHistory(0);
 }
@@ -377,7 +376,7 @@ function handleDeleteGroup(node: NodeContextMenuNode) {
 
 /**获取节点右键菜单配置 */
 export function getNodeContextMenuConfig(
-  node: NodeContextMenuNode
+  node: NodeContextMenuNode,
 ): NodeContextMenuConfig[] {
   const { debugMode } = useDebugStore.getState();
 
@@ -400,8 +399,7 @@ export function getNodeContextMenuConfig(
           key: `group-color-${c.key}`,
           label: c.label,
           onClick: (node) => handleSetGroupColor(node, c.key),
-          checked: (node) =>
-            (node.data as any).color === c.key,
+          checked: (node) => (node.data as any).color === c.key,
         })),
       },
       {
@@ -478,35 +476,40 @@ export function getNodeContextMenuConfig(
       iconSize: 16,
       visible: (node) => node.type === NodeTypeEnum.Sticker,
       children: [
-        { 
-          key: "color-yellow", 
-          label: "黄色", 
+        {
+          key: "color-yellow",
+          label: "黄色",
           onClick: (node) => handleSetStickerColor(node, "yellow"),
-          checked: (node) => (node.data as StickerNodeDataType).color === "yellow"
+          checked: (node) =>
+            (node.data as StickerNodeDataType).color === "yellow",
         },
-        { 
-          key: "color-green", 
-          label: "绿色", 
+        {
+          key: "color-green",
+          label: "绿色",
           onClick: (node) => handleSetStickerColor(node, "green"),
-          checked: (node) => (node.data as StickerNodeDataType).color === "green"
+          checked: (node) =>
+            (node.data as StickerNodeDataType).color === "green",
         },
-        { 
-          key: "color-blue", 
-          label: "蓝色", 
+        {
+          key: "color-blue",
+          label: "蓝色",
           onClick: (node) => handleSetStickerColor(node, "blue"),
-          checked: (node) => (node.data as StickerNodeDataType).color === "blue"
+          checked: (node) =>
+            (node.data as StickerNodeDataType).color === "blue",
         },
-        { 
-          key: "color-pink", 
-          label: "粉色", 
+        {
+          key: "color-pink",
+          label: "粉色",
           onClick: (node) => handleSetStickerColor(node, "pink"),
-          checked: (node) => (node.data as StickerNodeDataType).color === "pink"
+          checked: (node) =>
+            (node.data as StickerNodeDataType).color === "pink",
         },
-        { 
-          key: "color-purple", 
-          label: "紫色", 
+        {
+          key: "color-purple",
+          label: "紫色",
           onClick: (node) => handleSetStickerColor(node, "purple"),
-          checked: (node) => (node.data as StickerNodeDataType).color === "purple"
+          checked: (node) =>
+            (node.data as StickerNodeDataType).color === "purple",
         },
       ],
     },
@@ -516,7 +519,8 @@ export function getNodeContextMenuConfig(
       label: "端点位置",
       icon: "icon-lianjie",
       iconSize: 16,
-      visible: (node) => node.type !== NodeTypeEnum.Sticker && node.type !== NodeTypeEnum.Group,
+      visible: (node) =>
+        node.type !== NodeTypeEnum.Sticker && node.type !== NodeTypeEnum.Group,
       children: HANDLE_DIRECTION_OPTIONS.map((option) => ({
         key: `direction-${option.value}`,
         label: option.label,
@@ -577,7 +581,7 @@ export function getNodeContextMenuConfig(
         iconSize: 16,
         onClick: handleTestAction,
         visible: (node) => node.type === NodeTypeEnum.Pipeline,
-      }
+      },
     );
   }
 
@@ -595,7 +599,7 @@ export function getNodeContextMenuConfig(
       iconSize: 16,
       onClick: handleDeleteNode,
       danger: true,
-    }
+    },
   );
 
   return config;

@@ -21,12 +21,11 @@ import { mfwProtocol } from "../../services/server";
 import {
   ScreenshotModalBase,
   type CanvasRenderProps,
-  type ViewportProps,
 } from "./ScreenshotModalBase";
 import {
   resolveNegativeROI,
   type Rectangle,
-} from "../../utils/roiNegativeCoord";
+} from "../../utils/data/roiNegativeCoord";
 
 const { TextArea } = Input;
 

@@ -1,6 +1,6 @@
 import { memo } from "react";
 import style from "../../../../styles/nodes.module.less";
-import { JsonHelper } from "../../../../utils/jsonHelper";
+import { JsonHelper } from "../../../../utils/data/jsonHelper";
 
 /**键值对元素组件 */
 export const KVElem = memo(
@@ -15,5 +15,5 @@ export const KVElem = memo(
         </div>
       </li>
     );
-  }
+  },
 );

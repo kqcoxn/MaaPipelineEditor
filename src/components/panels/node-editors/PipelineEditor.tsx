@@ -12,7 +12,7 @@ import {
   otherFieldSchema,
 } from "../../../core/fields";
 import { mergeFieldSortConfig } from "../../../core/sorting";
-import { JsonHelper } from "../../../utils/jsonHelper";
+import { JsonHelper } from "../../../utils/data/jsonHelper";
 import { AddFieldElem, ParamFieldListElem } from "../field/items";
 
 const { TextArea } = Input;
@@ -26,11 +26,11 @@ export const PipelineEditor = lazy(() =>
     default: memo(({ currentNode }: { currentNode: PipelineNodeType }) => {
       const setNodeData = useFlowStore((state) => state.setNodeData);
       const fieldSortConfig = useConfigStore(
-        (state) => state.configs.fieldSortConfig
+        (state) => state.configs.fieldSortConfig,
       );
       const mergedSortConfig = useMemo(
         () => mergeFieldSortConfig(fieldSortConfig),
-        [fieldSortConfig]
+        [fieldSortConfig],
       );
 
       // 字段
@@ -40,7 +40,7 @@ export const PipelineEditor = lazy(() =>
             label: key,
             value: key,
           })),
-        []
+        [],
       );
       const actionOptions = useMemo(
         () =>
@@ -48,51 +48,51 @@ export const PipelineEditor = lazy(() =>
             label: key,
             value: key,
           })),
-        []
+        [],
       );
 
       // 标题
       const currentLabel = useMemo(
         () => currentNode.data.label || "",
-        [currentNode.data.label]
+        [currentNode.data.label],
       );
       const onLabelChange = useCallback(
         (e: React.ChangeEvent<HTMLInputElement>) => {
           setNodeData(currentNode.id, "", "label", e.target.value);
         },
-        [currentNode]
+        [currentNode],
       );
 
       // 识别算法
       const currentRecoName = useMemo(
         () => currentNode.data.recognition.type || "DirectHit",
-        [currentNode.data.recognition.type]
+        [currentNode.data.recognition.type],
       );
       const currentReco = useMemo(
         () => recoFields[currentRecoName],
-        [currentRecoName]
+        [currentRecoName],
       );
       const handleRecoChange = useCallback(
         (value: string) => {
           setNodeData(currentNode.id, "type", "recognition", value);
         },
-        [currentNode]
+        [currentNode],
       );
 
       // 动作
       const currentActionName = useMemo(
         () => currentNode.data.action.type || "DoNothing",
-        [currentNode.data.action.type]
+        [currentNode.data.action.type],
       );
       const currentAction = useMemo(
         () => actionFields[currentActionName],
-        [currentActionName]
+        [currentActionName],
       );
       const handleActionChange = useCallback(
         (value: string) => {
           setNodeData(currentNode.id, "type", "action", value);
         },
-        [currentNode]
+        [currentNode],
       );
 
       // 自定义节点
@@ -104,13 +104,13 @@ export const PipelineEditor = lazy(() =>
         (value: string) => {
           setNodeData(currentNode.id, "extras", "extras", value);
         },
-        [currentNode]
+        [currentNode],
       );
 
       // focus 字段状态判断
       const currentFocus = useMemo(
         () => currentNode.data.others.focus,
-        [currentNode.data.others.focus]
+        [currentNode.data.others.focus],
       );
       const isFocusObjectMode = useMemo(() => {
         return (
@@ -126,7 +126,7 @@ export const PipelineEditor = lazy(() =>
         (e: React.ChangeEvent<HTMLInputElement>) => {
           setNodeData(currentNode.id, "others", "focus", e.target.value);
         },
-        [currentNode]
+        [currentNode],
       );
 
       const handleFocusFieldAdd = useCallback(
@@ -157,7 +157,7 @@ export const PipelineEditor = lazy(() =>
             setNodeData(currentNode.id, "others", "focus", newFocus);
           }
         },
-        [currentNode]
+        [currentNode],
       );
 
       const handleFocusFieldChange = useCallback(
@@ -171,7 +171,7 @@ export const PipelineEditor = lazy(() =>
             setNodeData(currentNode.id, "others", "focus", newFocus);
           }
         },
-        [currentNode]
+        [currentNode],
       );
 
       const handleFocusFieldDelete = useCallback(
@@ -191,21 +191,21 @@ export const PipelineEditor = lazy(() =>
             }
           }
         },
-        [currentNode]
+        [currentNode],
       );
 
       // waitFreezes 可见性判断
       const hasPreWaitFreezes = useMemo(
         () => "pre_wait_freezes" in currentNode.data.others,
-        [currentNode.data.others]
+        [currentNode.data.others],
       );
       const hasPostWaitFreezes = useMemo(
         () => "post_wait_freezes" in currentNode.data.others,
-        [currentNode.data.others]
+        [currentNode.data.others],
       );
       const hasRepeatWaitFreezes = useMemo(
         () => "repeat_wait_freezes" in currentNode.data.others,
-        [currentNode.data.others]
+        [currentNode.data.others],
       );
 
       // waitFreezes 字段状态判断
@@ -221,31 +221,31 @@ export const PipelineEditor = lazy(() =>
       // pre_wait_freezes
       const currentPreWaitFreezes = useMemo(
         () => currentNode.data.others.pre_wait_freezes,
-        [currentNode.data.others.pre_wait_freezes]
+        [currentNode.data.others.pre_wait_freezes],
       );
       const isPreWaitFreezesObjectMode = useMemo(
         () => isWaitFreezesObjectMode(currentPreWaitFreezes),
-        [currentPreWaitFreezes, isWaitFreezesObjectMode]
+        [currentPreWaitFreezes, isWaitFreezesObjectMode],
       );
 
       // post_wait_freezes
       const currentPostWaitFreezes = useMemo(
         () => currentNode.data.others.post_wait_freezes,
-        [currentNode.data.others.post_wait_freezes]
+        [currentNode.data.others.post_wait_freezes],
       );
       const isPostWaitFreezesObjectMode = useMemo(
         () => isWaitFreezesObjectMode(currentPostWaitFreezes),
-        [currentPostWaitFreezes, isWaitFreezesObjectMode]
+        [currentPostWaitFreezes, isWaitFreezesObjectMode],
       );
 
       // repeat_wait_freezes
       const currentRepeatWaitFreezes = useMemo(
         () => currentNode.data.others.repeat_wait_freezes,
-        [currentNode.data.others.repeat_wait_freezes]
+        [currentNode.data.others.repeat_wait_freezes],
       );
       const isRepeatWaitFreezesObjectMode = useMemo(
         () => isWaitFreezesObjectMode(currentRepeatWaitFreezes),
-        [currentRepeatWaitFreezes, isWaitFreezesObjectMode]
+        [currentRepeatWaitFreezes, isWaitFreezesObjectMode],
       );
 
       // waitFreezes int 值变更处理
@@ -253,7 +253,7 @@ export const PipelineEditor = lazy(() =>
         (fieldKey: string, value: number | null) => {
           setNodeData(currentNode.id, "others", fieldKey, value ?? 0);
         },
-        [currentNode]
+        [currentNode],
       );
 
       // waitFreezes 添加子字段处理
@@ -281,7 +281,7 @@ export const PipelineEditor = lazy(() =>
             setNodeData(currentNode.id, "others", fieldKey, newValue);
           }
         },
-        [currentNode]
+        [currentNode],
       );
 
       // 通用的 waitFreezes 子字段变更处理
@@ -293,7 +293,7 @@ export const PipelineEditor = lazy(() =>
             setNodeData(currentNode.id, "others", fieldKey, newValue);
           }
         },
-        [currentNode]
+        [currentNode],
       );
 
       // 通用的 waitFreezes 子字段删除处理
@@ -311,7 +311,7 @@ export const PipelineEditor = lazy(() =>
             }
           }
         },
-        [currentNode]
+        [currentNode],
       );
 
       return (
@@ -342,7 +342,7 @@ export const PipelineEditor = lazy(() =>
               placement="left"
               title={"recognition"}
               content={LeftTipContentElem(
-                `识别算法(${currentRecoName})：${currentReco.desc}`
+                `识别算法(${currentRecoName})：${currentReco.desc}`,
               )}
             >
               <div className={classNames([style.key, style["head-key"]])}>
@@ -366,7 +366,7 @@ export const PipelineEditor = lazy(() =>
                     currentNode.id,
                     "recognition",
                     param.key,
-                    param.default
+                    param.default,
                   )
                 }
               />
@@ -406,7 +406,7 @@ export const PipelineEditor = lazy(() =>
               placement="left"
               title={"action"}
               content={LeftTipContentElem(
-                `动作类型(${currentActionName})：${currentAction.desc}`
+                `动作类型(${currentActionName})：${currentAction.desc}`,
               )}
             >
               <div className={classNames([style.key, style["head-key"]])}>
@@ -430,7 +430,7 @@ export const PipelineEditor = lazy(() =>
                     currentNode.id,
                     "action",
                     param.key,
-                    param.default
+                    param.default,
                   )
                 }
               />
@@ -491,7 +491,7 @@ export const PipelineEditor = lazy(() =>
                     currentNode.id,
                     "others",
                     param.key,
-                    param.default
+                    param.default,
                   )
                 }
               />
@@ -531,7 +531,7 @@ export const PipelineEditor = lazy(() =>
                   placement="left"
                   title={"pre_wait_freezes"}
                   content={LeftTipContentElem(
-                    otherFieldSchema.preWaitFreezes.desc
+                    otherFieldSchema.preWaitFreezes.desc,
                   )}
                 >
                   <div className={classNames([style.key, style["head-key"]])}>
@@ -596,7 +596,7 @@ export const PipelineEditor = lazy(() =>
                         currentNode.id,
                         "others",
                         "pre_wait_freezes",
-                        "__mpe_delete"
+                        "__mpe_delete",
                       )
                     }
                   />
@@ -635,7 +635,7 @@ export const PipelineEditor = lazy(() =>
                   placement="left"
                   title={"post_wait_freezes"}
                   content={LeftTipContentElem(
-                    otherFieldSchema.postWaitFreezes.desc
+                    otherFieldSchema.postWaitFreezes.desc,
                   )}
                 >
                   <div className={classNames([style.key, style["head-key"]])}>
@@ -700,7 +700,7 @@ export const PipelineEditor = lazy(() =>
                         currentNode.id,
                         "others",
                         "post_wait_freezes",
-                        "__mpe_delete"
+                        "__mpe_delete",
                       )
                     }
                   />
@@ -721,7 +721,7 @@ export const PipelineEditor = lazy(() =>
                     handleWaitFreezesFieldChange(
                       "post_wait_freezes",
                       key,
-                      value
+                      value,
                     )
                   }
                   onDelete={(key) =>
@@ -743,7 +743,7 @@ export const PipelineEditor = lazy(() =>
                   placement="left"
                   title={"repeat_wait_freezes"}
                   content={LeftTipContentElem(
-                    otherFieldSchema.repeatWaitFreezes.desc
+                    otherFieldSchema.repeatWaitFreezes.desc,
                   )}
                 >
                   <div className={classNames([style.key, style["head-key"]])}>
@@ -768,7 +768,7 @@ export const PipelineEditor = lazy(() =>
                         onClick={(param) =>
                           handleWaitFreezesFieldAdd(
                             "repeat_wait_freezes",
-                            param
+                            param,
                           )
                         }
                       />
@@ -788,7 +788,7 @@ export const PipelineEditor = lazy(() =>
                         onChange={(value) =>
                           handleWaitFreezesIntChange(
                             "repeat_wait_freezes",
-                            value
+                            value,
                           )
                         }
                       />
@@ -801,7 +801,7 @@ export const PipelineEditor = lazy(() =>
                         onClick={(param) =>
                           handleWaitFreezesFieldAdd(
                             "repeat_wait_freezes",
-                            param
+                            param,
                           )
                         }
                       />
@@ -819,7 +819,7 @@ export const PipelineEditor = lazy(() =>
                         currentNode.id,
                         "others",
                         "repeat_wait_freezes",
-                        "__mpe_delete"
+                        "__mpe_delete",
                       )
                     }
                   />
@@ -840,7 +840,7 @@ export const PipelineEditor = lazy(() =>
                     handleWaitFreezesFieldChange(
                       "repeat_wait_freezes",
                       key,
-                      value
+                      value,
                     )
                   }
                   onDelete={(key) =>
@@ -860,7 +860,7 @@ export const PipelineEditor = lazy(() =>
               placement="left"
               title={"focus"}
               content={LeftTipContentElem(
-                "关注节点，会额外产生部分回调消息。可选，默认 null，不产生回调消息。详见 节点通知。"
+                "关注节点，会额外产生部分回调消息。可选，默认 null，不产生回调消息。详见 节点通知。",
               )}
             >
               <div className={classNames([style.key, style["head-key"]])}>
@@ -942,7 +942,7 @@ export const PipelineEditor = lazy(() =>
         </div>
       );
     }),
-  })
+  }),
 );
 
 // 异步初渲染

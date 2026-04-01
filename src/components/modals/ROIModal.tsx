@@ -8,7 +8,7 @@ import {
 import {
   resolveNegativeROI,
   type Rectangle,
-} from "../../utils/roiNegativeCoord";
+} from "../../utils/data/roiNegativeCoord";
 
 interface ROIModalProps {
   open: boolean;
@@ -65,7 +65,7 @@ export const ROIModal = memo(
           resolved = resolveNegativeROI(
             [rectangle.x, rectangle.y, rectangle.width, rectangle.height],
             img.width,
-            img.height
+            img.height,
           );
         }
 
@@ -85,13 +85,13 @@ export const ROIModal = memo(
             rectangle.x,
             rectangle.y,
             rectangle.width,
-            rectangle.height
+            rectangle.height,
           );
           ctx.strokeRect(
             rectangle.x,
             rectangle.y,
             rectangle.width,
-            rectangle.height
+            rectangle.height,
           );
 
           // 如果有负数坐标且被分割，绘制分割后的两个区域
@@ -117,7 +117,7 @@ export const ROIModal = memo(
           }
         }
       },
-      [rectangle]
+      [rectangle],
     );
 
     // rectangle 变化或图片加载后重绘
@@ -200,7 +200,7 @@ export const ROIModal = memo(
 
         return { handleMouseDown, handleMouseMove, handleMouseUp };
       },
-      [isDrawing, startPoint]
+      [isDrawing, startPoint],
     );
 
     // 手动输入坐标
@@ -208,10 +208,10 @@ export const ROIModal = memo(
       (key: keyof Rectangle, value: number | null) => {
         if (value === null) return;
         setRectangle((prev) =>
-          prev ? { ...prev, [key]: Math.round(value) } : null
+          prev ? { ...prev, [key]: Math.round(value) } : null,
         );
       },
-      []
+      [],
     );
 
     // 确定回填
@@ -281,7 +281,7 @@ export const ROIModal = memo(
           />
         );
       },
-      [createMouseHandlers]
+      [createMouseHandlers],
     );
 
     // 初始化 canvas
@@ -297,7 +297,7 @@ export const ROIModal = memo(
         props?.initializeImage?.(img);
         redrawCanvas(canvas);
       },
-      [redrawCanvas]
+      [redrawCanvas],
     );
 
     return (
@@ -456,8 +456,8 @@ export const ROIModal = memo(
                   {rectangle && rectangle.width === 0
                     ? "→边"
                     : rectangle && rectangle.width < 0
-                    ? "←→"
-                    : ""}
+                      ? "←→"
+                      : ""}
                 </span>
               </Tooltip>
               <span
@@ -491,8 +491,8 @@ export const ROIModal = memo(
                   {rectangle && rectangle.height === 0
                     ? "↓边"
                     : rectangle && rectangle.height < 0
-                    ? "↑↓"
-                    : ""}
+                      ? "↑↓"
+                      : ""}
                 </span>
               </Tooltip>
             </Space>
@@ -522,7 +522,7 @@ export const ROIModal = memo(
                         rectangle.height,
                       ],
                       imageRef.current!.width,
-                      imageRef.current!.height
+                      imageRef.current!.height,
                     );
                     return (
                       <>
@@ -559,5 +559,5 @@ export const ROIModal = memo(
         </div>
       </ScreenshotModalBase>
     );
-  }
+  },
 );

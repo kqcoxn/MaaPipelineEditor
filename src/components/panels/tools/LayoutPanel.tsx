@@ -6,7 +6,7 @@ import { type IconNames } from "../../iconfonts";
 import { useFlowStore } from "../../../stores/flow";
 import { useFileStore } from "../../../stores/fileStore";
 import { LayoutHelper, AlignmentEnum } from "../../../core/layout";
-import { saveNodesToImage } from "../../../utils/snapper";
+import { saveNodesToImage } from "../../../utils/ui/snapper";
 import style from "../../../styles/ToolPanel.module.less";
 
 /**布局工具 */
@@ -22,7 +22,7 @@ interface LayoutToolType {
 
 function LayoutPanel() {
   const debouncedSelectedNodes = useFlowStore(
-    (state) => state.debouncedSelectedNodes
+    (state) => state.debouncedSelectedNodes,
   );
   const allNodes = useFlowStore((state) => state.nodes);
   const currentFileName = useFileStore((state) => state.currentFile.fileName);
@@ -34,7 +34,7 @@ function LayoutPanel() {
     label: string,
     iconName: string,
     direction: "horizontal" | "vertical",
-    delta: number
+    delta: number,
   ): LayoutToolType => ({
     label,
     iconName,
@@ -62,7 +62,7 @@ function LayoutPanel() {
         onClick: () =>
           LayoutHelper.align(
             AlignmentEnum.Center,
-            debouncedSelectedNodes as any
+            debouncedSelectedNodes as any,
           ),
         onDisabledClick: () =>
           message.error("请选择两个以上的节点进行对齐操作"),
@@ -85,7 +85,7 @@ function LayoutPanel() {
         onClick: () =>
           LayoutHelper.align(
             AlignmentEnum.Bottom,
-            debouncedSelectedNodes as any
+            debouncedSelectedNodes as any,
           ),
         onDisabledClick: () =>
           message.error("请选择两个以上的节点进行对齐操作"),
@@ -120,7 +120,7 @@ function LayoutPanel() {
           saveNodesToImage(
             debouncedSelectedNodes as any,
             allNodes as any,
-            currentFileName
+            currentFileName,
           );
         },
         onDisabledClick: () => message.error("没有可保存的节点"),
@@ -162,7 +162,7 @@ function LayoutPanel() {
   // 渲染
   const panelClass = useMemo(
     () => classNames(style.panel, style["h-panel"], style["layout-panel"]),
-    []
+    [],
   );
   return <ul className={panelClass}>{tools}</ul>;
 }

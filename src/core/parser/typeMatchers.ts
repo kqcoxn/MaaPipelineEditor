@@ -2,7 +2,7 @@ import { notification } from "antd";
 import { flatten } from "lodash";
 import type { ParamType } from "./types";
 import { FieldTypeEnum, type FieldType } from "../fields";
-import { JsonHelper } from "../../utils/jsonHelper";
+import { JsonHelper } from "../../utils/data/jsonHelper";
 
 /**
  * 纯化字符串列表
@@ -292,7 +292,7 @@ function matchSingleType(value: any, type: FieldTypeEnum): any {
 export function matchParamType(
   params: ParamType,
   types: FieldType[],
-  skipValidation?: boolean
+  skipValidation?: boolean,
 ): ParamType {
   const paramKeys = Object.keys(params);
   const matchedDatas: any = {};

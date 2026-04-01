@@ -6,8 +6,6 @@
 
 ## perf
 
-- anchor 字段解析
-
 ## feat
 
 - 按键工具

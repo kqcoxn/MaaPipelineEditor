@@ -12,7 +12,7 @@ import { useWSStore } from "../../../stores/wsStore";
 import { useFlowStore } from "../../../stores/flow";
 import { useShallow } from "zustand/shallow";
 import { flowToPipeline, flowToSeparatedStrings } from "../../../core/parser";
-import { ClipboardHelper } from "../../../utils/clipboard";
+import { ClipboardHelper } from "../../../utils/ui/clipboard";
 import { ExportFileModal } from "../../modals/ExportFileModal";
 import { CreateFileModal } from "../../modals/CreateFileModal";
 import style from "../../../styles/ToolbarPanel.module.less";
@@ -24,18 +24,18 @@ import style from "../../../styles/ToolbarPanel.module.less";
 function ExportButton() {
   const { defaultExportAction, setDefaultExportAction } = useToolbarStore();
   const configHandlingMode = useConfigStore(
-    (state) => state.configs.configHandlingMode
+    (state) => state.configs.configHandlingMode,
   );
   const wsConnected = useWSStore((state) => state.connected);
   const currentFilePath = useFileStore(
-    (state) => state.currentFile.config.filePath
+    (state) => state.currentFile.config.filePath,
   );
   const saveFileToLocal = useFileStore((state) => state.saveFileToLocal);
   const { selectedNodes, selectedEdges } = useFlowStore(
     useShallow((state) => ({
       selectedNodes: state.debouncedSelectedNodes,
       selectedEdges: state.debouncedSelectedEdges,
-    }))
+    })),
   );
 
   const [exportModalVisible, setExportModalVisible] = useState(false);
@@ -70,7 +70,7 @@ function ExportButton() {
         nodes: selectedNodes,
         edges: selectedEdges,
       }),
-      { successMsg: "已将选中节点 Pipeline 导出到粘贴板" }
+      { successMsg: "已将选中节点 Pipeline 导出到粘贴板" },
     );
   };
 
@@ -219,7 +219,7 @@ function ExportButton() {
             setDefaultExportAction("partial");
             executeExportAction("partial");
           },
-        }
+        },
       );
     }
 
@@ -242,7 +242,7 @@ function ExportButton() {
             setDefaultExportAction("export-config");
             executeExportAction("export-config");
           },
-        }
+        },
       );
     }
 

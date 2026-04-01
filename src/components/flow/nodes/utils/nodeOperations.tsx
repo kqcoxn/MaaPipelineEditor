@@ -1,5 +1,5 @@
 import { Modal, message } from "antd";
-import { ClipboardHelper } from "../../../../utils/clipboard";
+import { ClipboardHelper } from "../../../../utils/ui/clipboard";
 import { useFileStore } from "../../../../stores/fileStore";
 import { useCustomTemplateStore } from "../../../../stores/customTemplateStore";
 import { useFlowStore } from "../../../../stores/flow";
@@ -34,7 +34,7 @@ export function copyNodeName(nodeName: string, nodeType?: NodeTypeEnum): void {
  */
 export function saveNodeAsTemplate(
   nodeName: string,
-  nodeData: PipelineNodeDataType
+  nodeData: PipelineNodeDataType,
 ): void {
   const templateStore = useCustomTemplateStore.getState();
 
@@ -79,7 +79,7 @@ export function saveNodeAsTemplate(
               if (e.key === "Enter") {
                 e.preventDefault();
                 const okButton = document.querySelector(
-                  ".ant-modal-confirm-btns .ant-btn-primary"
+                  ".ant-modal-confirm-btns .ant-btn-primary",
                 ) as HTMLButtonElement;
                 okButton?.click();
               }

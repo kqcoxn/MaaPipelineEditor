@@ -6,14 +6,17 @@ import classNames from "classnames";
 import IconFont from "../../iconfonts";
 
 import { useConfigStore } from "../../../stores/configStore";
-import { aiHistoryManager, type AIHistoryRecord } from "../../../utils/openai";
+import {
+  aiHistoryManager,
+  type AIHistoryRecord,
+} from "../../../utils/ai/openai";
 
 /** 格式化时间 */
 function formatTime(timestamp: number): string {
   const date = new Date(timestamp);
   const pad = (n: number) => n.toString().padStart(2, "0");
   return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(
-    date.getSeconds()
+    date.getSeconds(),
   )}`;
 }
 
@@ -83,7 +86,7 @@ const HistoryItem = memo(({ record }: { record: AIHistoryRecord }) => {
 function AIHistoryPanel() {
   // store
   const showAIHistoryPanel = useConfigStore(
-    (state) => state.status.showAIHistoryPanel
+    (state) => state.status.showAIHistoryPanel,
   );
   const setStatus = useConfigStore((state) => state.setStatus);
 
@@ -118,7 +121,7 @@ function AIHistoryPanel() {
         [style.panel]: true,
         "panel-show": showAIHistoryPanel,
       }),
-    [showAIHistoryPanel]
+    [showAIHistoryPanel],
   );
 
   // 渲染

@@ -5,8 +5,8 @@ import { Popover, Input, Button, message, Slider } from "antd";
 import classNames from "classnames";
 
 import { useConfigStore } from "../../../stores/configStore";
-import { OpenAIChat } from "../../../utils/openai";
-import { SYSTEM_PROMPTS } from "../../../utils/aiPrompts";
+import { OpenAIChat } from "../../../utils/ai/openai";
+import { SYSTEM_PROMPTS } from "../../../utils/ai/aiPrompts";
 import TipElem from "./TipElem";
 
 const AIConfigSection = memo(() => {

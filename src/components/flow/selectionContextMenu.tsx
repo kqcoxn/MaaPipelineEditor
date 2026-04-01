@@ -4,7 +4,7 @@ import { LayoutHelper, AlignmentEnum } from "../../core/layout";
 import { flowToPipeline } from "../../core/parser";
 import { useClipboardStore } from "../../stores/clipboardStore";
 import { useFlowStore, type EdgeType, type NodeType } from "../../stores/flow";
-import { ClipboardHelper } from "../../utils/clipboard";
+import { ClipboardHelper } from "../../utils/ui/clipboard";
 import { NodeTypeEnum } from "./nodes";
 
 export interface SelectionContextMenuSelection {
@@ -17,12 +17,8 @@ export interface SelectionContextMenuItem {
   label: string;
   icon: ReactNode | string;
   iconSize?: number;
-  onClick: (
-    selection: SelectionContextMenuSelection
-  ) => void | Promise<void>;
-  disabled?:
-    | boolean
-    | ((selection: SelectionContextMenuSelection) => boolean);
+  onClick: (selection: SelectionContextMenuSelection) => void | Promise<void>;
+  disabled?: boolean | ((selection: SelectionContextMenuSelection) => boolean);
   visible?: (selection: SelectionContextMenuSelection) => boolean;
   danger?: boolean;
 }
@@ -30,12 +26,8 @@ export interface SelectionContextMenuItem {
 export interface SelectionContextMenuSubItem {
   key: string;
   label: string;
-  onClick: (
-    selection: SelectionContextMenuSelection
-  ) => void | Promise<void>;
-  disabled?:
-    | boolean
-    | ((selection: SelectionContextMenuSelection) => boolean);
+  onClick: (selection: SelectionContextMenuSelection) => void | Promise<void>;
+  disabled?: boolean | ((selection: SelectionContextMenuSelection) => boolean);
 }
 
 export interface SelectionContextMenuWithChildren {
@@ -58,12 +50,14 @@ export type SelectionContextMenuConfig =
   | SelectionContextMenuWithChildren;
 
 function getSelectionRelatedEdges(
-  selection: SelectionContextMenuSelection
+  selection: SelectionContextMenuSelection,
 ): EdgeType[] {
   const { edges } = useFlowStore.getState();
-  const selectedNodeIds = new Set(selection.selectedNodes.map((node) => node.id));
+  const selectedNodeIds = new Set(
+    selection.selectedNodes.map((node) => node.id),
+  );
   const relatedEdges = new Map(
-    selection.selectedEdges.map((edge) => [edge.id, edge])
+    selection.selectedEdges.map((edge) => [edge.id, edge]),
   );
 
   if (selectedNodeIds.size === 0) {
@@ -71,10 +65,7 @@ function getSelectionRelatedEdges(
   }
 
   edges.forEach((edge) => {
-    if (
-      selectedNodeIds.has(edge.source) &&
-      selectedNodeIds.has(edge.target)
-    ) {
+    if (selectedNodeIds.has(edge.source) && selectedNodeIds.has(edge.target)) {
       relatedEdges.set(edge.id, edge);
     }
   });
@@ -83,12 +74,14 @@ function getSelectionRelatedEdges(
 }
 
 function getSelectionConnectedEdges(
-  selection: SelectionContextMenuSelection
+  selection: SelectionContextMenuSelection,
 ): EdgeType[] {
   const { edges } = useFlowStore.getState();
-  const selectedNodeIds = new Set(selection.selectedNodes.map((node) => node.id));
+  const selectedNodeIds = new Set(
+    selection.selectedNodes.map((node) => node.id),
+  );
   const connectedEdges = new Map(
-    selection.selectedEdges.map((edge) => [edge.id, edge])
+    selection.selectedEdges.map((edge) => [edge.id, edge]),
   );
 
   if (selectedNodeIds.size === 0) {
@@ -96,10 +89,7 @@ function getSelectionConnectedEdges(
   }
 
   edges.forEach((edge) => {
-    if (
-      selectedNodeIds.has(edge.source) ||
-      selectedNodeIds.has(edge.target)
-    ) {
+    if (selectedNodeIds.has(edge.source) || selectedNodeIds.has(edge.target)) {
       connectedEdges.set(edge.id, edge);
     }
   });
@@ -111,21 +101,28 @@ function hasSelectedNodes(selection: SelectionContextMenuSelection): boolean {
   return selection.selectedNodes.length > 0;
 }
 
-function hasMultiSelectedNodes(selection: SelectionContextMenuSelection): boolean {
+function hasMultiSelectedNodes(
+  selection: SelectionContextMenuSelection,
+): boolean {
   return selection.selectedNodes.length >= 2;
 }
 
 function hasGroupNodes(selection: SelectionContextMenuSelection): boolean {
-  return selection.selectedNodes.some((node) => node.type === NodeTypeEnum.Group);
+  return selection.selectedNodes.some(
+    (node) => node.type === NodeTypeEnum.Group,
+  );
 }
 
 function hasNonGroupNodes(selection: SelectionContextMenuSelection): boolean {
-  return selection.selectedNodes.some((node) => node.type !== NodeTypeEnum.Group);
+  return selection.selectedNodes.some(
+    (node) => node.type !== NodeTypeEnum.Group,
+  );
 }
 
 function hasGroupedNodes(selection: SelectionContextMenuSelection): boolean {
   return selection.selectedNodes.some(
-    (node) => node.type !== NodeTypeEnum.Group && Boolean((node as any).parentId)
+    (node) =>
+      node.type !== NodeTypeEnum.Group && Boolean((node as any).parentId),
   );
 }
 
@@ -141,7 +138,7 @@ function handleCopySelection(selection: SelectionContextMenuSelection): void {
 }
 
 function handleDuplicateSelection(
-  selection: SelectionContextMenuSelection
+  selection: SelectionContextMenuSelection,
 ): void {
   if (!hasSelectedNodes(selection)) {
     message.error("未选中节点");
@@ -155,7 +152,7 @@ function handleDuplicateSelection(
 }
 
 async function handleDeleteSelection(
-  selection: SelectionContextMenuSelection
+  selection: SelectionContextMenuSelection,
 ): Promise<void> {
   const { selectedNodes, selectedEdges } = selection;
   if (selectedNodes.length === 0 && selectedEdges.length === 0) {
@@ -164,7 +161,10 @@ async function handleDeleteSelection(
 
   const { instance, edges, updateEdges, updateNodes } = useFlowStore.getState();
   if (instance) {
-    await instance.deleteElements({ nodes: selectedNodes, edges: selectedEdges });
+    await instance.deleteElements({
+      nodes: selectedNodes,
+      edges: selectedEdges,
+    });
     return;
   }
 
@@ -172,10 +172,7 @@ async function handleDeleteSelection(
   const selectedNodeIds = new Set(selectedNodes.map((node) => node.id));
 
   edges.forEach((edge) => {
-    if (
-      selectedNodeIds.has(edge.source) ||
-      selectedNodeIds.has(edge.target)
-    ) {
+    if (selectedNodeIds.has(edge.source) || selectedNodeIds.has(edge.target)) {
       edgeIds.add(edge.id);
     }
   });
@@ -185,7 +182,7 @@ async function handleDeleteSelection(
       Array.from(edgeIds, (id) => ({
         id,
         type: "remove" as const,
-      }))
+      })),
     );
   }
 
@@ -194,7 +191,7 @@ async function handleDeleteSelection(
       selectedNodes.map((node) => ({
         id: node.id,
         type: "remove" as const,
-      }))
+      })),
     );
   }
 }
@@ -221,7 +218,7 @@ function handlePartialExport(selection: SelectionContextMenuSelection): void {
 
 function handleAlignSelection(
   direction: AlignmentEnum,
-  selection: SelectionContextMenuSelection
+  selection: SelectionContextMenuSelection,
 ): void {
   if (!hasMultiSelectedNodes(selection)) {
     message.error("请至少选择两个节点");
@@ -234,20 +231,18 @@ function handleAlignSelection(
 function handleShiftSelection(
   direction: "horizontal" | "vertical",
   delta: number,
-  selection: SelectionContextMenuSelection
+  selection: SelectionContextMenuSelection,
 ): void {
   if (!hasMultiSelectedNodes(selection)) {
     message.error("请至少选择两个节点");
     return;
   }
 
-  useFlowStore
-    .getState()
-    .shiftNodes(
-      direction,
-      delta,
-      selection.selectedNodes.map((node) => node.id)
-    );
+  useFlowStore.getState().shiftNodes(
+    direction,
+    delta,
+    selection.selectedNodes.map((node) => node.id),
+  );
 }
 
 function handleCreateGroup(selection: SelectionContextMenuSelection): void {
@@ -261,12 +256,12 @@ function handleCreateGroup(selection: SelectionContextMenuSelection): void {
 }
 
 function handleDetachSelectionFromGroup(
-  selection: SelectionContextMenuSelection
+  selection: SelectionContextMenuSelection,
 ): void {
   const nodeIds = selection.selectedNodes
     .filter(
       (node) =>
-        node.type !== NodeTypeEnum.Group && Boolean((node as any).parentId)
+        node.type !== NodeTypeEnum.Group && Boolean((node as any).parentId),
     )
     .map((node) => node.id);
 
@@ -280,7 +275,9 @@ function handleDetachSelectionFromGroup(
   message.success("已将节点移出分组");
 }
 
-function handleUngroupSelection(selection: SelectionContextMenuSelection): void {
+function handleUngroupSelection(
+  selection: SelectionContextMenuSelection,
+): void {
   const groupIds = selection.selectedNodes
     .filter((node) => node.type === NodeTypeEnum.Group)
     .map((node) => node.id);
@@ -296,10 +293,10 @@ function handleUngroupSelection(selection: SelectionContextMenuSelection): void 
 }
 
 function handleResetEdgeControls(
-  selection: SelectionContextMenuSelection
+  selection: SelectionContextMenuSelection,
 ): void {
   const targetEdgeIds = getSelectionConnectedEdges(selection).map(
-    (edge) => edge.id
+    (edge) => edge.id,
   );
 
   if (targetEdgeIds.length === 0) {
@@ -312,7 +309,7 @@ function handleResetEdgeControls(
 }
 
 export function getSelectionContextMenuConfig(
-  selection: SelectionContextMenuSelection
+  selection: SelectionContextMenuSelection,
 ): SelectionContextMenuConfig[] {
   const hasSelection =
     selection.selectedNodes.length > 0 || selection.selectedEdges.length > 0;
@@ -440,7 +437,8 @@ export function getSelectionContextMenuConfig(
       icon: "icon-connecting_line",
       iconSize: 16,
       onClick: handleResetEdgeControls,
-      disabled: (selection) => getSelectionConnectedEdges(selection).length === 0,
+      disabled: (selection) =>
+        getSelectionConnectedEdges(selection).length === 0,
     },
     {
       key: "group-selection",

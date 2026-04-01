@@ -14,7 +14,7 @@ import {
   actionFieldSchemaKeyList,
   otherFieldSchemaKeyList,
 } from "../fields";
-import { JsonHelper } from "../../utils/jsonHelper";
+import { JsonHelper } from "../../utils/data/jsonHelper";
 import {
   normalizeRecoType,
   normalizeActionType,
