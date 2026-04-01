@@ -62,6 +62,107 @@ export interface AIPrediction {
 }
 
 /**
+ * 验证提示结果
+ */
+export interface ValidationHint {
+  category: string;
+  fields: string[];
+  reason: string;
+}
+
+/**
+ * 从预测结果中提取需要验证的字段
+ * 这些字段AI无法准确预测，需要用户通过字段工具验证
+ */
+export function extractValidationHints(
+  prediction: AIPrediction,
+): ValidationHint[] {
+  const hints: ValidationHint[] = [];
+
+  // 检查 recognition 参数
+  if (prediction.recognition?.param) {
+    const param = prediction.recognition.param;
+    const recoType = prediction.recognition.type;
+
+    // ROI 相关键值
+    if (param.roi || param.roi_offset) {
+      hints.push({
+        category: "识别区域",
+        fields: [
+          ...(param.roi ? ["roi"] : []),
+          ...(param.roi_offset ? ["roi_offset"] : []),
+        ],
+        reason: "坐标区域需要通过ROI工具框选验证",
+      });
+    }
+
+    // 模板图片
+    if (param.template) {
+      hints.push({
+        category: "模板图片",
+        fields: ["template"],
+        reason: "需要截图保存模板图片",
+      });
+    }
+
+    // 颜色范围 (ColorMatch)
+    if (recoType === "ColorMatch" && (param.lower || param.upper)) {
+      hints.push({
+        category: "颜色范围",
+        fields: ["lower", "upper"],
+        reason: "颜色范围需要通过取色器验证",
+      });
+    }
+
+    // 模型文件
+    if (param.model) {
+      hints.push({
+        category: "模型文件",
+        fields: ["model"],
+        reason: "需要提供ONNX模型文件路径",
+      });
+    }
+  }
+
+  // 检查 action 参数
+  if (prediction.action?.param) {
+    const param = prediction.action.param;
+
+    // 目标坐标
+    if (param.target || param.target_offset) {
+      hints.push({
+        category: "目标坐标",
+        fields: [
+          ...(param.target ? ["target"] : []),
+          ...(param.target_offset ? ["target_offset"] : []),
+        ],
+        reason: "目标坐标需要通过工具定位验证",
+      });
+    }
+
+    // 应用包名
+    if (param.package) {
+      hints.push({
+        category: "应用包名",
+        fields: ["package"],
+        reason: "需要确认应用包名是否正确",
+      });
+    }
+
+    // 输入文本
+    if (param.input_text) {
+      hints.push({
+        category: "输入内容",
+        fields: ["input_text"],
+        reason: "需要确认输入内容是否正确",
+      });
+    }
+  }
+
+  return hints;
+}
+
+/**
  * 收集节点上下文信息
  * @param nodeId 当前节点ID
  * @param nodes 所有节点
@@ -395,14 +496,23 @@ export function validatePrediction(prediction: AIPrediction): AIPrediction {
 }
 
 /**
+ * 应用预测结果返回类型
+ */
+export interface ApplyPredictionResult {
+  filledCount: number;
+  validationHints: ValidationHint[];
+}
+
+/**
  * 应用AI预测结果到节点
  * @param nodeId 节点ID
  * @param prediction 预测结果
+ * @returns 应用结果，包含填充字段数和验证提示
  */
 export function applyPrediction(
   nodeId: string,
   prediction: AIPrediction,
-): number {
+): ApplyPredictionResult {
   const { batchSetNodeData } = useFlowStore.getState();
   const nodes = useFlowStore.getState().nodes;
   const currentNode = nodes.find((n) => n.id === nodeId) as
@@ -415,6 +525,9 @@ export function applyPrediction(
 
   // 校验预测结果
   const validatedPrediction = validatePrediction(prediction);
+
+  // 提取需要验证的字段提示
+  const validationHints = extractValidationHints(validatedPrediction);
 
   // 收集所有需要更新的字段
   const updates: Array<{ type: string; key: string; value: any }> = [];
@@ -462,5 +575,8 @@ export function applyPrediction(
     batchSetNodeData(nodeId, updates);
   }
 
-  return updates.length;
+  return {
+    filledCount: updates.length,
+    validationHints,
+  };
 }

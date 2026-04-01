@@ -1,9 +1,7 @@
-import style from "../../../../styles/FieldPanel.module.less";
 import { memo, useState, useCallback } from "react";
-import { Tooltip, message } from "antd";
+import { Tooltip, message, notification } from "antd";
 import IconFont from "../../../iconfonts";
 import type { NodeType } from "../../../../stores/flow/types";
-import { useFileStore } from "../../../../stores/fileStore";
 import { useConfigStore } from "../../../../stores/configStore";
 import { NodeTypeEnum } from "../../../flow/nodes";
 import {
@@ -190,12 +188,36 @@ export const FieldPanelToolbarRight = memo(
 
         // 应用预测结果
         onProgressChange?.("应用配置", "正在填充节点字段...");
-        const filledCount = applyPrediction(currentNode.id, prediction);
+        const result = applyPrediction(currentNode.id, prediction);
 
-        if (filledCount > 0) {
+        if (result.filledCount > 0) {
           message.success(
-            `已成功填充 ${filledCount} 个字段，可在AI对话历史中查看详细推理依据`,
+            `已成功填充 ${result.filledCount} 个字段，可在AI对话历史中查看详细推理依据`,
           );
+
+          // 显示需要验证的字段提示
+          if (result.validationHints.length > 0) {
+            notification.warning({
+              message: "以下字段需要手动验证",
+              description: (
+                <div>
+                  <p style={{ marginBottom: 8 }}>
+                    AI 无法准确预测这些字段的值，请使用字段工具验证：
+                  </p>
+                  {result.validationHints.map((hint, idx) => (
+                    <div key={idx} style={{ marginBottom: 4 }}>
+                      <strong>{hint.category}</strong>: {hint.fields.join(", ")}
+                      <span style={{ color: "#666", marginLeft: 8 }}>
+                        — {hint.reason}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ),
+              duration: 8,
+              placement: "bottomRight",
+            });
+          }
         } else {
           message.info(
             "AI分析完成，但没有需要填充的字段，可在AI对话历史中查看推理依据",
