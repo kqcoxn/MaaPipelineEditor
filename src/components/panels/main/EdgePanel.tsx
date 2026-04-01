@@ -1,4 +1,4 @@
-import style from "../../../styles/EdgePanel.module.less";
+import style from "../../../styles/panels/EdgePanel.module.less";
 
 import { memo, useMemo, useCallback, useEffect } from "react";
 import { Tag, InputNumber, Tooltip, Switch } from "antd";
@@ -123,7 +123,7 @@ const EdgeInfoElem = memo(
         )}
       </>
     );
-  }
+  },
 );
 
 // 边编辑面板
@@ -132,10 +132,10 @@ function EdgePanel() {
   const nodes = useFlowStore((state) => state.nodes);
   const targetNode = useFlowStore((state) => state.targetNode);
   const fieldPanelMode = useConfigStore(
-    (state) => state.configs.fieldPanelMode
+    (state) => state.configs.fieldPanelMode,
   );
   const setCurrentRightPanel = useToolbarStore(
-    (state) => state.setCurrentRightPanel
+    (state) => state.setCurrentRightPanel,
   );
 
   // 判断是否只有一条边被选中且没有选中节点
@@ -185,7 +185,7 @@ function EdgePanel() {
         setEdgeLabel(currentEdge.id, value);
       }
     },
-    [currentEdge, setEdgeLabel]
+    [currentEdge, setEdgeLabel],
   );
 
   // jump_back 开关变更处理
@@ -195,7 +195,7 @@ function EdgePanel() {
         setEdgeData(currentEdge.id, "jump_back", checked);
       }
     },
-    [currentEdge, setEdgeData]
+    [currentEdge, setEdgeData],
   );
 
   // 删除连接
@@ -214,7 +214,7 @@ function EdgePanel() {
         "panel-show": currentEdge !== null,
         "panel-draggable": fieldPanelMode === "draggable",
       }),
-    [currentEdge, fieldPanelMode]
+    [currentEdge, fieldPanelMode],
   );
 
   // 面板内容

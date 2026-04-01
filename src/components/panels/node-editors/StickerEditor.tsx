@@ -1,4 +1,4 @@
-import style from "../../../styles/FieldPanel.module.less";
+import style from "../../../styles/panels/FieldPanel.module.less";
 import { memo, useMemo, useCallback } from "react";
 import { Input, Popover, Select } from "antd";
 import classNames from "classnames";
@@ -26,33 +26,33 @@ export const StickerEditor = memo(
     // 标题
     const currentLabel = useMemo(
       () => currentNode.data.label ?? "",
-      [currentNode.data.label]
+      [currentNode.data.label],
     );
 
     // 内容
     const currentContent = useMemo(
       () => currentNode.data.content ?? "",
-      [currentNode.data.content]
+      [currentNode.data.content],
     );
 
     // 颜色
     const currentColor = useMemo(
       () => currentNode.data.color ?? "yellow",
-      [currentNode.data.color]
+      [currentNode.data.color],
     );
 
     const onLabelChange = useCallback(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         setNodeData(currentNode.id, "direct", "label", e.target.value);
       },
-      [currentNode.id, setNodeData]
+      [currentNode.id, setNodeData],
     );
 
     const onContentChange = useCallback(
       (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setNodeData(currentNode.id, "sticker", "content", e.target.value);
       },
-      [currentNode.id, setNodeData]
+      [currentNode.id, setNodeData],
     );
 
     const onColorChange = useCallback(
@@ -60,7 +60,7 @@ export const StickerEditor = memo(
         setNodeData(currentNode.id, "sticker", "color", value);
         saveHistory(0);
       },
-      [currentNode.id, setNodeData, saveHistory]
+      [currentNode.id, setNodeData, saveHistory],
     );
 
     return (
@@ -127,5 +127,5 @@ export const StickerEditor = memo(
         </div>
       </div>
     );
-  }
+  },
 );

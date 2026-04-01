@@ -17,7 +17,7 @@ import {
 } from "@ant-design/icons";
 import { useDebugStore } from "../../../stores/debugStore";
 import type { RecognitionStatus } from "../../../stores/debugStore";
-import debugStyle from "../../../styles/DebugPanel.module.less";
+import debugStyle from "../../../styles/panels/DebugPanel.module.less";
 import RecognitionDetailModal from "./RecognitionDetailModal";
 
 /**
@@ -255,8 +255,8 @@ function NodeRecognitionCardList({
       // 目标节点记录：items 中包含 nodeName
       return allCards.filter((card) =>
         card.items.some(
-          (item) => item.name === nodeName || item.displayName === nodeName
-        )
+          (item) => item.name === nodeName || item.displayName === nodeName,
+        ),
       );
     }
   }, [recognitionRecords, nodeName, filterMode]);
@@ -281,7 +281,7 @@ function NodeRecognitionCardList({
       setSelectedRecoId(recoId);
       setDetailModalOpen(true);
     },
-    [setSelectedRecoId]
+    [setSelectedRecoId],
   );
 
   // 关闭详情模态框

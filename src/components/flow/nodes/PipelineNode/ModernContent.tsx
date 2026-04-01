@@ -2,7 +2,7 @@ import { memo, useMemo, useRef, useEffect, useState } from "react";
 import { type NodeProps } from "@xyflow/react";
 import classNames from "classnames";
 
-import style from "../../../../styles/nodes.module.less";
+import style from "../../../../styles/flow/nodes.module.less";
 import type { PipelineNodeDataType } from "../../../../stores/flow";
 import { useConfigStore } from "../../../../stores/configStore";
 import IconFont from "../../../iconfonts";

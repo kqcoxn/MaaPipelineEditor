@@ -3,8 +3,8 @@ import type { Node, NodeProps } from "@xyflow/react";
 import { useReactFlow } from "@xyflow/react";
 import classNames from "classnames";
 
-import style from "../../../../styles/nodes.module.less";
-import debugStyle from "../../../../styles/DebugPanel.module.less";
+import style from "../../../../styles/flow/nodes.module.less";
+import debugStyle from "../../../../styles/panels/DebugPanel.module.less";
 import type { PipelineNodeDataType } from "../../../../stores/flow";
 import { useFlowStore } from "../../../../stores/flow";
 import { useConfigStore } from "../../../../stores/configStore";

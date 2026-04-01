@@ -1,8 +1,13 @@
 import { memo, useMemo, useEffect } from "react";
-import { Handle, Position, useUpdateNodeInternals, useNodeId } from "@xyflow/react";
+import {
+  Handle,
+  Position,
+  useUpdateNodeInternals,
+  useNodeId,
+} from "@xyflow/react";
 import classNames from "classnames";
 
-import style from "../../../../styles/nodes.module.less";
+import style from "../../../../styles/flow/nodes.module.less";
 import { SourceHandleTypeEnum, TargetHandleTypeEnum } from "../constants";
 import type { HandleDirection } from "../constants";
 import { DEFAULT_HANDLE_DIRECTION } from "../constants";
@@ -15,15 +20,35 @@ function getHandlePositions(direction: HandleDirection): {
 } {
   switch (direction) {
     case "left-right":
-      return { targetPosition: Position.Left, sourcePosition: Position.Right, isVertical: false };
+      return {
+        targetPosition: Position.Left,
+        sourcePosition: Position.Right,
+        isVertical: false,
+      };
     case "right-left":
-      return { targetPosition: Position.Right, sourcePosition: Position.Left, isVertical: false };
+      return {
+        targetPosition: Position.Right,
+        sourcePosition: Position.Left,
+        isVertical: false,
+      };
     case "top-bottom":
-      return { targetPosition: Position.Top, sourcePosition: Position.Bottom, isVertical: true };
+      return {
+        targetPosition: Position.Top,
+        sourcePosition: Position.Bottom,
+        isVertical: true,
+      };
     case "bottom-top":
-      return { targetPosition: Position.Bottom, sourcePosition: Position.Top, isVertical: true };
+      return {
+        targetPosition: Position.Bottom,
+        sourcePosition: Position.Top,
+        isVertical: true,
+      };
     default:
-      return { targetPosition: Position.Left, sourcePosition: Position.Right, isVertical: false };
+      return {
+        targetPosition: Position.Left,
+        sourcePosition: Position.Right,
+        isVertical: false,
+      };
   }
 }
 
@@ -38,10 +63,10 @@ export const PipelineNodeHandles = memo<PipelineNodeHandlesProps>(
   ({ direction = DEFAULT_HANDLE_DIRECTION, minimal = false }) => {
     const nodeId = useNodeId();
     const updateNodeInternals = useUpdateNodeInternals();
-    
+
     const { targetPosition, sourcePosition, isVertical } = useMemo(
       () => getHandlePositions(direction),
-      [direction]
+      [direction],
     );
 
     // 方向改变
@@ -127,7 +152,7 @@ export const PipelineNodeHandles = memo<PipelineNodeHandlesProps>(
         />
       </>
     );
-  }
+  },
 );
 
 PipelineNodeHandles.displayName = "PipelineNodeHandles";
@@ -141,10 +166,10 @@ export const ExternalNodeHandles = memo<ExternalNodeHandlesProps>(
   ({ direction = DEFAULT_HANDLE_DIRECTION }) => {
     const nodeId = useNodeId();
     const updateNodeInternals = useUpdateNodeInternals();
-    
+
     const { targetPosition, isVertical } = useMemo(
       () => getHandlePositions(direction),
-      [direction]
+      [direction],
     );
 
     // 方向改变
@@ -161,12 +186,8 @@ export const ExternalNodeHandles = memo<ExternalNodeHandlesProps>(
     }, [direction, nodeId, updateNodeInternals]);
 
     const handleClass = isVertical ? style.handleVertical : style.handle;
-    const externalStyle = isVertical
-      ? { left: "30%" }
-      : { top: "30%" };
-    const jumpbackStyle = isVertical
-      ? { left: "70%" }
-      : { top: "70%" };
+    const externalStyle = isVertical ? { left: "30%" } : { top: "30%" };
+    const jumpbackStyle = isVertical ? { left: "70%" } : { top: "70%" };
 
     return (
       <>
@@ -179,14 +200,17 @@ export const ExternalNodeHandles = memo<ExternalNodeHandlesProps>(
         />
         <Handle
           id={TargetHandleTypeEnum.JumpBack}
-          className={classNames(handleClass, isVertical ? style.targetJumpbackVertical : style.targetJumpback)}
+          className={classNames(
+            handleClass,
+            isVertical ? style.targetJumpbackVertical : style.targetJumpback,
+          )}
           type="target"
           position={targetPosition}
           style={jumpbackStyle}
         />
       </>
     );
-  }
+  },
 );
 
 ExternalNodeHandles.displayName = "ExternalNodeHandles";
@@ -200,10 +224,10 @@ export const AnchorNodeHandles = memo<AnchorNodeHandlesProps>(
   ({ direction = DEFAULT_HANDLE_DIRECTION }) => {
     const nodeId = useNodeId();
     const updateNodeInternals = useUpdateNodeInternals();
-    
+
     const { targetPosition, isVertical } = useMemo(
       () => getHandlePositions(direction),
-      [direction]
+      [direction],
     );
 
     // 方向改变
@@ -220,12 +244,8 @@ export const AnchorNodeHandles = memo<AnchorNodeHandlesProps>(
     }, [direction, nodeId, updateNodeInternals]);
 
     const handleClass = isVertical ? style.handleVertical : style.handle;
-    const anchorStyle = isVertical
-      ? { left: "30%" }
-      : { top: "30%" };
-    const jumpbackStyle = isVertical
-      ? { left: "70%" }
-      : { top: "70%" };
+    const anchorStyle = isVertical ? { left: "30%" } : { top: "30%" };
+    const jumpbackStyle = isVertical ? { left: "70%" } : { top: "70%" };
 
     return (
       <>
@@ -238,14 +258,17 @@ export const AnchorNodeHandles = memo<AnchorNodeHandlesProps>(
         />
         <Handle
           id={TargetHandleTypeEnum.JumpBack}
-          className={classNames(handleClass, isVertical ? style.targetJumpbackVertical : style.targetJumpback)}
+          className={classNames(
+            handleClass,
+            isVertical ? style.targetJumpbackVertical : style.targetJumpback,
+          )}
           type="target"
           position={targetPosition}
           style={jumpbackStyle}
         />
       </>
     );
-  }
+  },
 );
 
 AnchorNodeHandles.displayName = "AnchorNodeHandles";

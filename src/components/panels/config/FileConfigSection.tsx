@@ -1,4 +1,4 @@
-import style from "../../../styles/ConfigPanel.module.less";
+import style from "../../../styles/panels/ConfigPanel.module.less";
 
 import { memo } from "react";
 import { Popover, Input } from "antd";

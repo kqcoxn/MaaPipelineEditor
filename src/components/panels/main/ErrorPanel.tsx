@@ -1,4 +1,4 @@
-import style from "../../../styles/ErrorPanel.module.less";
+import style from "../../../styles/panels/ErrorPanel.module.less";
 
 import { memo, useMemo } from "react";
 import classNames from "classnames";

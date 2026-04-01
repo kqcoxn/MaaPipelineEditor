@@ -2,7 +2,7 @@ import { Button } from "antd";
 import { EyeOutlined } from "@ant-design/icons";
 import { memo } from "react";
 import { useToolbarStore } from "../../../stores/toolbarStore";
-import style from "../../../styles/ToolbarPanel.module.less";
+import style from "../../../styles/panels/ToolbarPanel.module.less";
 
 /**
  * JSON预览按钮组件

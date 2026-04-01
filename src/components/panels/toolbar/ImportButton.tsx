@@ -10,7 +10,7 @@ import { useConfigStore } from "../../../stores/configStore";
 import { pipelineToFlow, mergePipelineAndConfig } from "../../../core/parser";
 import { ClipboardHelper } from "../../../utils/ui/clipboard";
 import { flowToPipeline } from "../../../core/parser";
-import style from "../../../styles/ToolbarPanel.module.less";
+import style from "../../../styles/panels/ToolbarPanel.module.less";
 
 /**
  * 导入按钮组件

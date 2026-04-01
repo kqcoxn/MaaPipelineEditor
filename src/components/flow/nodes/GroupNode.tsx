@@ -2,7 +2,7 @@ import { memo, useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { type Node, type NodeProps, NodeResizer } from "@xyflow/react";
 import classNames from "classnames";
 
-import style from "../../../styles/nodes.module.less";
+import style from "../../../styles/flow/nodes.module.less";
 import type { GroupNodeDataType, GroupColorTheme } from "../../../stores/flow";
 import { useFlowStore } from "../../../stores/flow";
 import { NodeTypeEnum } from "./constants";
@@ -50,26 +50,19 @@ type GroupNodeData = Node<GroupNodeDataType, NodeTypeEnum.Group>;
 
 /**分组节点内容 */
 const GroupContent = memo(
-  ({
-    data,
-    nodeId,
-  }: {
-    data: GroupNodeDataType;
-    nodeId: string;
-  }) => {
+  ({ data, nodeId }: { data: GroupNodeDataType; nodeId: string }) => {
     const setNodeData = useFlowStore((state) => state.setNodeData);
     const saveHistory = useFlowStore((state) => state.saveHistory);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    const theme =
-      GROUP_COLOR_THEMES[data.color] || GROUP_COLOR_THEMES.blue;
+    const theme = GROUP_COLOR_THEMES[data.color] || GROUP_COLOR_THEMES.blue;
 
     // 标题变化
     const handleTitleChange = useCallback(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         setNodeData(nodeId, "direct", "label", e.target.value);
       },
-      [nodeId, setNodeData]
+      [nodeId, setNodeData],
     );
 
     const handleTitleBlur = useCallback(() => {
@@ -105,7 +98,7 @@ const GroupContent = memo(
         <div className={style.groupBody} />
       </div>
     );
-  }
+  },
 );
 
 /**分组节点组件 */
@@ -115,8 +108,7 @@ export function GroupNode(props: NodeProps<GroupNodeData>) {
   // 分组节点始终不受聚焦效果影响
   const isRelated = true;
 
-  const theme =
-    GROUP_COLOR_THEMES[props.data.color] || GROUP_COLOR_THEMES.blue;
+  const theme = GROUP_COLOR_THEMES[props.data.color] || GROUP_COLOR_THEMES.blue;
 
   const nodeClass = useMemo(
     () =>
@@ -124,7 +116,7 @@ export function GroupNode(props: NodeProps<GroupNodeData>) {
         [style["group-node"]]: true,
         [style["group-node-selected"]]: props.selected,
       }),
-    [props.selected]
+    [props.selected],
   );
 
   const node = {
@@ -172,10 +164,7 @@ export const GroupNodeMemo = memo(GroupNode, (prev, next) => {
   const prevData = prev.data;
   const nextData = next.data;
 
-  if (
-    prevData.label !== nextData.label ||
-    prevData.color !== nextData.color
-  ) {
+  if (prevData.label !== nextData.label || prevData.color !== nextData.color) {
     return false;
   }
 

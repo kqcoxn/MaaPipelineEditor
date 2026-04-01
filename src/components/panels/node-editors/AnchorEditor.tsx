@@ -1,4 +1,4 @@
-import style from "../../../styles/FieldPanel.module.less";
+import style from "../../../styles/panels/FieldPanel.module.less";
 import { memo, useMemo, useCallback, useState } from "react";
 import { Popover, AutoComplete } from "antd";
 import classNames from "classnames";
@@ -13,7 +13,7 @@ export const AnchorEditor = memo(
     // 标题
     const currentLabel = useMemo(
       () => currentNode.data.label ?? "",
-      [currentNode.data.label]
+      [currentNode.data.label],
     );
 
     // 获取自动完成选项
@@ -26,7 +26,7 @@ export const AnchorEditor = memo(
         .filter(
           (opt) =>
             opt.label.toLowerCase().includes(lowerSearch) ||
-            opt.description.toLowerCase().includes(lowerSearch)
+            opt.description.toLowerCase().includes(lowerSearch),
         )
         .slice(0, 50);
     }, [searchValue]);
@@ -40,7 +40,7 @@ export const AnchorEditor = memo(
           nodeName: opt.label,
           filePath: opt.description,
         })),
-      [autoCompleteOptions]
+      [autoCompleteOptions],
     );
 
     const onLabelChange = useCallback(
@@ -48,7 +48,7 @@ export const AnchorEditor = memo(
         setSearchValue(value);
         setNodeData(currentNode.id, "", "label", value);
       },
-      [currentNode, setNodeData]
+      [currentNode, setNodeData],
     );
 
     const onSelect = useCallback(
@@ -56,7 +56,7 @@ export const AnchorEditor = memo(
         setSearchValue("");
         setNodeData(currentNode.id, "", "label", value);
       },
-      [currentNode, setNodeData]
+      [currentNode, setNodeData],
     );
 
     return (
@@ -101,5 +101,5 @@ export const AnchorEditor = memo(
         </div>
       </div>
     );
-  }
+  },
 );

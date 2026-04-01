@@ -1,4 +1,4 @@
-import style from "../styles/Header.module.less";
+import style from "../styles/layout/Header.module.less";
 
 import {
   Button,

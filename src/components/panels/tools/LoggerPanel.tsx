@@ -8,7 +8,7 @@ import {
 } from "@ant-design/icons";
 import { useLoggerStore, type LogEntry } from "../../../stores/loggerStore";
 import { useWSStore } from "../../../stores/wsStore";
-import styles from "../../../styles/LoggerPanel.module.less";
+import styles from "../../../styles/panels/LoggerPanel.module.less";
 
 const getLevelIcon = (level: LogEntry["level"]) => {
   switch (level) {
@@ -111,7 +111,7 @@ export function LoggerPanel() {
             <>
               <span
                 className={`${styles.barIcon} ${getBarIconClass(
-                  latestLog.level
+                  latestLog.level,
                 )}`}
               >
                 {getLevelIcon(latestLog.level)}

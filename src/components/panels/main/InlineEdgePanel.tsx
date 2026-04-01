@@ -1,5 +1,5 @@
-import inlineStyle from "../../../styles/InlineFieldPanel.module.less";
-import edgeStyle from "../../../styles/EdgePanel.module.less";
+import inlineStyle from "../../../styles/panels/InlineFieldPanel.module.less";
+import edgeStyle from "../../../styles/panels/EdgePanel.module.less";
 
 import { useMemo, memo, useCallback } from "react";
 import { ViewportPortal, useReactFlow, useStore } from "@xyflow/react";
@@ -62,7 +62,7 @@ function InlineEdgePanel() {
   const setEdgeData = useFlowStore((state) => state.setEdgeData);
   const updateEdges = useFlowStore((state) => state.updateEdges);
   const fieldPanelMode = useConfigStore(
-    (state) => state.configs.fieldPanelMode
+    (state) => state.configs.fieldPanelMode,
   );
   const panelScale = useConfigStore((state) => state.configs.inlinePanelScale);
   const { getNode } = useReactFlow();
@@ -150,7 +150,7 @@ function InlineEdgePanel() {
         setEdgeLabel(currentEdge.id, value);
       }
     },
-    [currentEdge, setEdgeLabel]
+    [currentEdge, setEdgeLabel],
   );
 
   // jump_back 开关变更处理
@@ -160,7 +160,7 @@ function InlineEdgePanel() {
         setEdgeData(currentEdge.id, "jump_back", checked);
       }
     },
-    [currentEdge, setEdgeData]
+    [currentEdge, setEdgeData],
   );
 
   // 删除连接
@@ -194,7 +194,7 @@ function InlineEdgePanel() {
           "panel-base",
           "panel-show",
           inlineStyle.inlinePanel,
-          edgeStyle.panel
+          edgeStyle.panel,
         )}
         style={{
           position: "absolute",

@@ -12,7 +12,7 @@ import {
   ColorModal,
   DeltaModal,
 } from "../../modals";
-import style from "../../../styles/ToolboxPanel.module.less";
+import style from "../../../styles/panels/ToolboxPanel.module.less";
 
 // 工具配置类型
 interface ToolConfig {
@@ -133,7 +133,7 @@ function ToolboxPanel() {
           break;
       }
     },
-    [checkConnection]
+    [checkConnection],
   );
 
   // OCR 确认回调
@@ -142,7 +142,7 @@ function ToolboxPanel() {
       setLastResult({ type: "ocr", text, roi });
       message.success("OCR 识别完成");
     },
-    []
+    [],
   );
 
   // 模板确认回调
@@ -150,12 +150,12 @@ function ToolboxPanel() {
     (
       templatePath: string,
       greenMask: boolean,
-      roi?: [number, number, number, number]
+      roi?: [number, number, number, number],
     ) => {
       setLastResult({ type: "template", path: templatePath, greenMask, roi });
       message.success("模板截图已保存");
     },
-    []
+    [],
   );
 
   // 颜色确认回调
@@ -164,7 +164,7 @@ function ToolboxPanel() {
       setLastResult({ type: "color", color });
       message.success("颜色取点完成");
     },
-    []
+    [],
   );
 
   // ROI 确认回调
@@ -173,7 +173,7 @@ function ToolboxPanel() {
       setLastResult({ type: "roi", roi });
       message.success("区域选择完成");
     },
-    []
+    [],
   );
 
   // ROI Offset 确认回调
@@ -182,7 +182,7 @@ function ToolboxPanel() {
       setLastResult({ type: "roi_offset", offset });
       message.success("偏移测量完成");
     },
-    []
+    [],
   );
 
   // Delta 确认回调

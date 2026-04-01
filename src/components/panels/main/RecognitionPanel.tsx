@@ -37,7 +37,7 @@ import type {
   RecognitionStatus,
 } from "../../../stores/debugStore";
 import { useToolbarStore } from "../../../stores/toolbarStore";
-import debugStyle from "../../../styles/DebugPanel.module.less";
+import debugStyle from "../../../styles/panels/DebugPanel.module.less";
 import RecognitionDetailModal from "../tools/RecognitionDetailModal";
 
 /**
@@ -135,7 +135,7 @@ function RecognitionPanel() {
   const debugStatus = useDebugStore((state) => state.debugStatus);
   const recognitionRecords = useDebugStore((state) => state.recognitionRecords);
   const clearRecognitionRecords = useDebugStore(
-    (state) => state.clearRecognitionRecords
+    (state) => state.clearRecognitionRecords,
   );
   const setSelectedRecoId = useDebugStore((state) => state.setSelectedRecoId);
   const currentRightPanel = useToolbarStore((state) => state.currentRightPanel);
@@ -172,7 +172,7 @@ function RecognitionPanel() {
       setSelectedRecoId(recoId);
       setDetailModalOpen(true);
     },
-    [setSelectedRecoId]
+    [setSelectedRecoId],
   );
 
   // 关闭详情模态框
@@ -208,7 +208,7 @@ function RecognitionPanel() {
         [debugStyle["recognition-panel-offset"]]:
           currentRightPanel === "field" || currentRightPanel === "edge",
       }),
-    [isVisible, currentRightPanel]
+    [isVisible, currentRightPanel],
   );
 
   // 计算序号（考虑分页和排序）
@@ -220,7 +220,7 @@ function RecognitionPanel() {
         return (currentPage - 1) * PAGE_SIZE + pageIndex + 1;
       }
     },
-    [reversed, currentPage, totalRecords]
+    [reversed, currentPage, totalRecords],
   );
 
   if (!debugMode) {

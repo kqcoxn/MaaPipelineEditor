@@ -1,4 +1,4 @@
-import style from "../../../styles/ConfigPanel.module.less";
+import style from "../../../styles/panels/ConfigPanel.module.less";
 
 import { memo, useMemo, useCallback } from "react";
 import { Popover, Select, Button, Switch, message, InputNumber } from "antd";
@@ -13,26 +13,26 @@ import FieldSortModal from "../../modals/FieldSortModal";
 
 const PipelineConfigSection = memo(() => {
   const nodeAttrExportStyle = useConfigStore(
-    (state) => state.configs.nodeAttrExportStyle
+    (state) => state.configs.nodeAttrExportStyle,
   );
   const defaultHandleDirection = useConfigStore(
-    (state) => state.configs.defaultHandleDirection
+    (state) => state.configs.defaultHandleDirection,
   );
   const exportDefaultRecoAction = useConfigStore(
-    (state) => state.configs.exportDefaultRecoAction
+    (state) => state.configs.exportDefaultRecoAction,
   );
   const quickCreateNodeOnConnectBlank = useConfigStore(
-    (state) => state.configs.quickCreateNodeOnConnectBlank
+    (state) => state.configs.quickCreateNodeOnConnectBlank,
   );
   const pipelineProtocolVersion = useConfigStore(
-    (state) => state.configs.pipelineProtocolVersion
+    (state) => state.configs.pipelineProtocolVersion,
   );
   const skipFieldValidation = useConfigStore(
-    (state) => state.configs.skipFieldValidation
+    (state) => state.configs.skipFieldValidation,
   );
   const jsonIndent = useConfigStore((state) => state.configs.jsonIndent);
   const configHandlingMode = useConfigStore(
-    (state) => state.configs.configHandlingMode
+    (state) => state.configs.configHandlingMode,
   );
   const setConfig = useConfigStore((state) => state.setConfig);
   const setStatus = useConfigStore((state) => state.setStatus);
@@ -58,7 +58,7 @@ const PipelineConfigSection = memo(() => {
       `已将所有节点端点位置更改为「${
         HANDLE_DIRECTION_OPTIONS.find((o) => o.value === defaultHandleDirection)
           ?.label
-      }」`
+      }」`,
     );
   }, [nodes, setNodes, defaultHandleDirection]);
 
@@ -158,7 +158,9 @@ const PipelineConfigSection = memo(() => {
           checked={quickCreateNodeOnConnectBlank}
           checkedChildren="开启"
           unCheckedChildren="关闭"
-          onChange={(checked) => setConfig("quickCreateNodeOnConnectBlank", checked)}
+          onChange={(checked) =>
+            setConfig("quickCreateNodeOnConnectBlank", checked)
+          }
         />
       </div>
       <div className={globalClass}>

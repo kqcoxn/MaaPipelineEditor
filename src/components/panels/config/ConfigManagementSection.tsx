@@ -1,4 +1,4 @@
-import style from "../../../styles/ConfigPanel.module.less";
+import style from "../../../styles/panels/ConfigPanel.module.less";
 
 import { memo, useMemo } from "react";
 import { Popover, Button, message } from "antd";
@@ -16,10 +16,10 @@ const ConfigManagementSection = memo(() => {
   const configs = useConfigStore((state) => state.configs);
   const replaceConfig = useConfigStore((state) => state.replaceConfig);
   const exportTemplates = useCustomTemplateStore(
-    (state) => state.exportTemplates
+    (state) => state.exportTemplates,
   );
   const importTemplates = useCustomTemplateStore(
-    (state) => state.importTemplates
+    (state) => state.importTemplates,
   );
 
   const globalClass = useMemo(() => classNames(style.item, style.global), []);

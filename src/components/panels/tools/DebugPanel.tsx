@@ -17,8 +17,8 @@ import {
 } from "../../../services/server";
 import type { ConfigResponse } from "../../../services/protocols/ConfigProtocol";
 import { useShallow } from "zustand/shallow";
-import style from "../../../styles/ToolPanel.module.less";
-import debugStyle from "../../../styles/DebugPanel.module.less";
+import style from "../../../styles/panels/ToolPanel.module.less";
+import debugStyle from "../../../styles/panels/DebugPanel.module.less";
 
 /** 调试工具栏 */
 function DebugPanel() {
@@ -27,13 +27,13 @@ function DebugPanel() {
   const connectionStatus = useMFWStore((state) => state.connectionStatus);
   const controllerId = useMFWStore((state) => state.controllerId);
   const recognitionPanelVisible = useToolbarStore(
-    (state) => state.recognitionPanelVisible
+    (state) => state.recognitionPanelVisible,
   );
   const toggleRecognitionPanel = useToolbarStore(
-    (state) => state.toggleRecognitionPanel
+    (state) => state.toggleRecognitionPanel,
   );
   const saveFilesBeforeDebug = useConfigStore(
-    (state) => state.configs.saveFilesBeforeDebug
+    (state) => state.configs.saveFilesBeforeDebug,
   );
   const setConfig = useConfigStore((state) => state.setConfig);
   const {
@@ -73,7 +73,7 @@ function DebugPanel() {
       addResourcePath: state.addResourcePath,
       removeResourcePath: state.removeResourcePath,
       updateResourcePath: state.updateResourcePath,
-    }))
+    })),
   );
 
   const selectedNodes = useFlowStore((state) => state.selectedNodes);
@@ -113,7 +113,7 @@ function DebugPanel() {
               updateResourcePath(0, resourcePath);
             } else {
               console.warn(
-                "[DebugPanel] Backend config invalid or resource paths not set"
+                "[DebugPanel] Backend config invalid or resource paths not set",
               );
             }
           } else {
@@ -122,7 +122,7 @@ function DebugPanel() {
 
           // 仅监听一次后取消订阅
           unsubscribe();
-        }
+        },
       );
     }
   }, [connectionStatus, resourcePaths, updateResourcePath]);
@@ -172,7 +172,7 @@ function DebugPanel() {
         label: node.data.label,
         value: node.id,
       })),
-    [nodes]
+    [nodes],
   );
 
   // 调试配置 Popover 内容
@@ -322,7 +322,7 @@ function DebugPanel() {
           entryNodeFullName,
           controllerId,
           [],
-          agentIdentifier || undefined
+          agentIdentifier || undefined,
         );
 
         if (!success) {
@@ -409,7 +409,7 @@ function DebugPanel() {
       className={classNames(
         style.panel,
         style["h-panel"],
-        style["debug-panel"]
+        style["debug-panel"],
       )}
     >
       {debugButtons.map((btn, index) => (
@@ -442,10 +442,10 @@ function DebugPanel() {
                     opacity: btn.disabled
                       ? 0.2
                       : (btn as any).active !== undefined
-                      ? (btn as any).active
-                        ? 1
-                        : 0.4
-                      : 1,
+                        ? (btn as any).active
+                          ? 1
+                          : 0.4
+                        : 1,
                     cursor: btn.disabled ? "not-allowed" : "pointer",
                   }}
                   className={style.icon}

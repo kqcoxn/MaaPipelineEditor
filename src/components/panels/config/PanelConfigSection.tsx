@@ -1,4 +1,4 @@
-import style from "../../../styles/ConfigPanel.module.less";
+import style from "../../../styles/panels/ConfigPanel.module.less";
 
 import { memo, useMemo } from "react";
 import { Popover, Switch, InputNumber, Select } from "antd";
@@ -13,37 +13,37 @@ const PanelConfigSection = memo(() => {
 
   const showEdgeLabel = useConfigStore((state) => state.configs.showEdgeLabel);
   const showEdgeControlPoint = useConfigStore(
-    (state) => state.configs.showEdgeControlPoint
+    (state) => state.configs.showEdgeControlPoint,
   );
   const edgePathMode = useConfigStore((state) => state.configs.edgePathMode);
   const isAutoFocus = useConfigStore((state) => state.configs.isAutoFocus);
   const enableNodeSnap = useConfigStore(
-    (state) => state.configs.enableNodeSnap
+    (state) => state.configs.enableNodeSnap,
   );
   const snapOnlyInViewport = useConfigStore(
-    (state) => state.configs.snapOnlyInViewport
+    (state) => state.configs.snapOnlyInViewport,
   );
   const focusOpacity = useConfigStore((state) => state.configs.focusOpacity);
   const canvasBackgroundMode = useConfigStore(
-    (state) => state.configs.canvasBackgroundMode
+    (state) => state.configs.canvasBackgroundMode,
   );
   const fieldPanelMode = useConfigStore(
-    (state) => state.configs.fieldPanelMode
+    (state) => state.configs.fieldPanelMode,
   );
   const inlinePanelScale = useConfigStore(
-    (state) => state.configs.inlinePanelScale
+    (state) => state.configs.inlinePanelScale,
   );
   const showNodeTemplateImages = useConfigStore(
-    (state) => state.configs.showNodeTemplateImages
+    (state) => state.configs.showNodeTemplateImages,
   );
   const showNodeDetailFields = useConfigStore(
-    (state) => state.configs.showNodeDetailFields
+    (state) => state.configs.showNodeDetailFields,
   );
   const enableLiveScreen = useConfigStore(
-    (state) => state.configs.enableLiveScreen
+    (state) => state.configs.enableLiveScreen,
   );
   const liveScreenRefreshRate = useConfigStore(
-    (state) => state.configs.liveScreenRefreshRate
+    (state) => state.configs.liveScreenRefreshRate,
   );
   const setConfig = useConfigStore((state) => state.setConfig);
 
@@ -99,7 +99,9 @@ const PanelConfigSection = memo(() => {
           checkedChildren="详细"
           unCheckedChildren="精简"
           value={showNodeDetailFields}
-          onChange={(value: boolean) => setConfig("showNodeDetailFields", value)}
+          onChange={(value: boolean) =>
+            setConfig("showNodeDetailFields", value)
+          }
         />
       </div>
       {/* 历史记录上限 */}
@@ -263,11 +265,7 @@ const PanelConfigSection = memo(() => {
             placement="bottomLeft"
             title={"仅磁吸可视节点"}
             content={
-              <TipElem
-                content={
-                  "开启时仅与可视范围内的节点进行磁吸对齐"
-                }
-              />
+              <TipElem content={"开启时仅与可视范围内的节点进行磁吸对齐"} />
             }
           >
             <span>仅磁吸可视节点</span>
@@ -420,7 +418,9 @@ const PanelConfigSection = memo(() => {
           checkedChildren="显示"
           unCheckedChildren="隐藏"
           value={showNodeTemplateImages}
-          onChange={(value: boolean) => setConfig("showNodeTemplateImages", value)}
+          onChange={(value: boolean) =>
+            setConfig("showNodeTemplateImages", value)
+          }
         />
       </div>
       {/* 实时画面预览 */}

@@ -10,7 +10,7 @@ import {
 } from "@ant-design/icons";
 import { useDebugStore } from "../../../stores/debugStore";
 import type { RecognitionStatus } from "../../../stores/debugStore";
-import debugStyle from "../../../styles/DebugPanel.module.less";
+import debugStyle from "../../../styles/panels/DebugPanel.module.less";
 import RecognitionDetailModal from "./RecognitionDetailModal";
 
 /**
@@ -173,7 +173,7 @@ function RecognitionCardList() {
   const recognitionRecords = useDebugStore((state) => state.recognitionRecords);
   const debugStatus = useDebugStore((state) => state.debugStatus);
   const clearRecognitionRecords = useDebugStore(
-    (state) => state.clearRecognitionRecords
+    (state) => state.clearRecognitionRecords,
   );
   const setSelectedRecoId = useDebugStore((state) => state.setSelectedRecoId);
 
@@ -254,7 +254,7 @@ function RecognitionCardList() {
       setSelectedRecoId(recoId);
       setDetailModalOpen(true);
     },
-    [setSelectedRecoId]
+    [setSelectedRecoId],
   );
 
   // 关闭详情模态框

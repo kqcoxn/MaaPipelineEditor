@@ -1,5 +1,5 @@
-import style from "../../styles/edges.module.less";
-import debugStyle from "../../styles/DebugPanel.module.less";
+import style from "../../styles/flow/edges.module.less";
+import debugStyle from "../../styles/panels/DebugPanel.module.less";
 
 import { memo, useMemo, useState, useCallback, useRef, useEffect } from "react";
 import {
@@ -16,7 +16,13 @@ import { useShallow } from "zustand/shallow";
 import { useConfigStore } from "../../stores/configStore";
 import { useFlowStore } from "../../stores/flow";
 import { useDebugStore } from "../../stores/debugStore";
-import { SourceHandleTypeEnum, TargetHandleTypeEnum, getHandlePositions, DEFAULT_HANDLE_DIRECTION, NodeTypeEnum } from "./nodes";
+import {
+  SourceHandleTypeEnum,
+  TargetHandleTypeEnum,
+  getHandlePositions,
+  DEFAULT_HANDLE_DIRECTION,
+  NodeTypeEnum,
+} from "./nodes";
 import type { HandleDirection } from "./nodes";
 import type { EdgeType, NodeType } from "../../stores/flow/types";
 import {
@@ -114,7 +120,7 @@ function getCustomBezierPath({
 
   // 计算第一段的切线长度
   const dist1 = Math.sqrt(
-    Math.pow(dragX - sourceX, 2) + Math.pow(dragY - sourceY, 2)
+    Math.pow(dragX - sourceX, 2) + Math.pow(dragY - sourceY, 2),
   );
   const tangentLen1 = Math.min(dist1 * 0.3, baseTangentLen) * tangentScale;
   const angle1 = Math.atan2(dragY - sourceY, dragX - sourceX);
@@ -187,8 +193,16 @@ function getStandardBezierPath({
   // 计算贝塞尔曲线的实际中点 (t=0.5)
   const t = 0.5;
   const mt = 1 - t;
-  const labelX = mt * mt * mt * sourceX + 3 * mt * mt * t * cp1x + 3 * mt * t * t * cp2x + t * t * t * targetX;
-  const labelY = mt * mt * mt * sourceY + 3 * mt * mt * t * cp1y + 3 * mt * t * t * cp2y + t * t * t * targetY;
+  const labelX =
+    mt * mt * mt * sourceX +
+    3 * mt * mt * t * cp1x +
+    3 * mt * t * t * cp2x +
+    t * t * t * targetX;
+  const labelY =
+    mt * mt * mt * sourceY +
+    3 * mt * mt * t * cp1y +
+    3 * mt * t * t * cp2y +
+    t * t * t * targetY;
 
   return [path, labelX, labelY];
 }
@@ -272,7 +286,7 @@ function getAvoidanceEdgePath({
 
   // 检测平行边（连接相同源节点和目标节点的边）
   const parallelEdges = edges.filter(
-    (e) => e.source === sourceId && e.target === targetId
+    (e) => e.source === sourceId && e.target === targetId,
   );
   const edgeIndex = parallelEdges.findIndex((e) => e.id === edgeId);
   const totalParallelEdges = parallelEdges.length;
@@ -287,7 +301,7 @@ function getAvoidanceEdgePath({
     excludeIds,
     DEFAULT_AVOIDANCE_CONFIG,
     edgeIndex,
-    totalParallelEdges
+    totalParallelEdges,
   );
 
   return [result.path, result.labelX, result.labelY];
@@ -298,7 +312,7 @@ function MarkedEdge(props: EdgeProps) {
   const showEdgeLabel = useConfigStore((state) => state.configs.showEdgeLabel);
   const focusOpacity = useConfigStore((state) => state.configs.focusOpacity);
   const showEdgeControlPoint = useConfigStore(
-    (state) => state.configs.showEdgeControlPoint
+    (state) => state.configs.showEdgeControlPoint,
   );
   const edgePathMode = useConfigStore((state) => state.configs.edgePathMode);
 
@@ -309,15 +323,21 @@ function MarkedEdge(props: EdgeProps) {
       const targetNode = state.nodes.find((n) => n.id === props.target);
 
       const getSourceDirection = (): HandleDirection => {
-        if (sourceNode && ('handleDirection' in sourceNode.data)) {
-          return (sourceNode.data as { handleDirection?: HandleDirection }).handleDirection || DEFAULT_HANDLE_DIRECTION;
+        if (sourceNode && "handleDirection" in sourceNode.data) {
+          return (
+            (sourceNode.data as { handleDirection?: HandleDirection })
+              .handleDirection || DEFAULT_HANDLE_DIRECTION
+          );
         }
         return DEFAULT_HANDLE_DIRECTION;
       };
 
       const getTargetDirection = (): HandleDirection => {
-        if (targetNode && ('handleDirection' in targetNode.data)) {
-          return (targetNode.data as { handleDirection?: HandleDirection }).handleDirection || DEFAULT_HANDLE_DIRECTION;
+        if (targetNode && "handleDirection" in targetNode.data) {
+          return (
+            (targetNode.data as { handleDirection?: HandleDirection })
+              .handleDirection || DEFAULT_HANDLE_DIRECTION
+          );
         }
         return DEFAULT_HANDLE_DIRECTION;
       };
@@ -328,7 +348,7 @@ function MarkedEdge(props: EdgeProps) {
         nodes: state.nodes,
         edges: state.edges,
       };
-    })
+    }),
   );
 
   // 根据节点方向获取实际的 Handle 位置
@@ -350,10 +370,10 @@ function MarkedEdge(props: EdgeProps) {
 
   // 监听重置键
   const edgeControlResetKey = useFlowStore(
-    (state) => state.edgeControlResetKey
+    (state) => state.edgeControlResetKey,
   );
   const edgeControlResetTargetIds = useFlowStore(
-    (state) => state.edgeControlResetTargetIds
+    (state) => state.edgeControlResetTargetIds,
   );
   useEffect(() => {
     const shouldReset =
@@ -443,7 +463,7 @@ function MarkedEdge(props: EdgeProps) {
       dragStartRef.current = { x: e.clientX, y: e.clientY };
       initialOffsetRef.current = { ...controlOffset };
     },
-    [controlOffset]
+    [controlOffset],
   );
 
   // 处理拖拽移动
@@ -499,7 +519,7 @@ function MarkedEdge(props: EdgeProps) {
   }, []);
 
   const edge = useFlowStore((state) =>
-    state.edges.find((e) => e.id === props.id)
+    state.edges.find((e) => e.id === props.id),
   );
 
   // 获取选中状态和路径状态
@@ -509,7 +529,7 @@ function MarkedEdge(props: EdgeProps) {
       selectedEdges: state.selectedEdges,
       pathMode: state.pathMode,
       pathEdgeIds: state.pathEdgeIds,
-    }))
+    })),
   );
 
   // 获取调试状态
@@ -517,7 +537,7 @@ function MarkedEdge(props: EdgeProps) {
     useShallow((state) => ({
       debugMode: state.debugMode,
       executedNodes: state.executedNodes,
-    }))
+    })),
   );
 
   // 计算是否与选中元素相关联
@@ -534,7 +554,7 @@ function MarkedEdge(props: EdgeProps) {
 
     // 检查是否有便签节点被选中
     const hasStickerSelected = selectedNodes.some(
-      (node) => node.type === NodeTypeEnum.Sticker
+      (node) => node.type === NodeTypeEnum.Sticker,
     );
 
     // 如果选中的是便签节点，则不产生聚焦效果
@@ -591,7 +611,7 @@ function MarkedEdge(props: EdgeProps) {
     return classNames(
       style.edge,
       markClass,
-      isExecuted && debugStyle["debug-edge-executed"]
+      isExecuted && debugStyle["debug-edge-executed"],
     );
   }, [
     props.selected,
@@ -609,7 +629,7 @@ function MarkedEdge(props: EdgeProps) {
         [style.label]: true,
         [style["label-selected"]]: props.selected,
       }),
-    [props.selected]
+    [props.selected],
   );
   const labelStyle = useMemo(() => {
     const baseStyle: React.CSSProperties = {

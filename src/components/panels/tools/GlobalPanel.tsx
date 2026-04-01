@@ -10,8 +10,8 @@ import { useDebugStore } from "../../../stores/debugStore";
 import { useMFWStore } from "../../../stores/mfwStore";
 import PathSelector from "./PathSelector";
 import ToolboxPanel from "./ToolboxPanel";
-import style from "../../../styles/ToolPanel.module.less";
-import debugStyle from "../../../styles/DebugPanel.module.less";
+import style from "../../../styles/panels/ToolPanel.module.less";
+import debugStyle from "../../../styles/panels/DebugPanel.module.less";
 
 /**全局工具 */
 type GlobalToolType = {
@@ -28,7 +28,7 @@ function GlobalPanel() {
   // store
   const clipboardNodes = useClipboardStore((state) => state.clipboardNodes);
   const debouncedSelectedNodes = useFlowStore(
-    (state) => state.debouncedSelectedNodes
+    (state) => state.debouncedSelectedNodes,
   );
   const setStatus = useConfigStore((state) => state.setStatus);
   const focusOpacity = useConfigStore((state) => state.configs.focusOpacity);
@@ -127,7 +127,7 @@ function GlobalPanel() {
         },
       },
     ],
-    [clipboardNodes, debouncedSelectedNodes, historyState, focusOpacity]
+    [clipboardNodes, debouncedSelectedNodes, historyState, focusOpacity],
   );
 
   // 生成
@@ -163,7 +163,7 @@ function GlobalPanel() {
   // 渲染
   const panelClass = useMemo(
     () => classNames(style.panel, style["h-panel"], style["global-panel"]),
-    []
+    [],
   );
   return (
     <ul className={panelClass}>
@@ -235,8 +235,8 @@ function GlobalPanel() {
                         connectionStatus === "connecting"
                           ? "#faad14"
                           : connectionStatus === "failed"
-                          ? "#ff4d4f"
-                          : "#d9d9d9",
+                            ? "#ff4d4f"
+                            : "#d9d9d9",
                     }}
                   />
                 )}

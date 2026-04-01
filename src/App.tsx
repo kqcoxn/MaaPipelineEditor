@@ -1,4 +1,4 @@
-import style from "./styles/App.module.less";
+import style from "./styles/layout/App.module.less";
 
 import { memo, useCallback, useEffect } from "react";
 import {

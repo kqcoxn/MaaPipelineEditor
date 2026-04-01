@@ -1,7 +1,7 @@
 import { memo, useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Input, Modal } from "antd";
 import classNames from "classnames";
-import style from "../../../styles/NodeAddPanel.module.less";
+import style from "../../../styles/panels/NodeAddPanel.module.less";
 import IconFont from "../../iconfonts";
 import type { IconNames } from "../../iconfonts";
 import {

@@ -1,4 +1,4 @@
-import style from "../../../../styles/FieldPanel.module.less";
+import style from "../../../../styles/panels/FieldPanel.module.less";
 import { memo } from "react";
 import { Popover } from "antd";
 import IconFont from "../../../iconfonts";
@@ -57,5 +57,5 @@ export const AddFieldElem = memo(
         </div>
       </Popover>
     ) : null;
-  }
+  },
 );

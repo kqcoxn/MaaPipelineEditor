@@ -1,4 +1,4 @@
-import style from "../../../styles/ToolbarPanel.module.less";
+import style from "../../../styles/panels/ToolbarPanel.module.less";
 import { memo } from "react";
 import ImportButton from "../toolbar/ImportButton.tsx";
 import ExportButton from "../toolbar/ExportButton.tsx";

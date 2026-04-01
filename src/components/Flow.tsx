@@ -1,4 +1,4 @@
-import style from "../styles/Flow.module.less";
+import style from "../styles/layout/Flow.module.less";
 import "@xyflow/react/dist/style.css";
 
 import {
@@ -54,14 +54,14 @@ const KeyListener = memo(
       useShallow((state) => ({
         selectedNodes: state.selectedNodes,
         selectedEdges: state.selectedEdges,
-      }))
+      })),
     );
     const { copy, clipboardNodes, paste } = useClipboardStore(
       useShallow((state) => ({
         copy: state.copy,
         clipboardNodes: state.clipboardNodes,
         paste: state.paste,
-      }))
+      })),
     );
     const flowPaste = useFlowStore((state) => state.paste);
 
@@ -70,7 +70,7 @@ const KeyListener = memo(
         target: targetRef.current,
         actInsideInputWithModifier: false,
       }),
-      [targetRef.current]
+      [targetRef.current],
     );
 
     // 复制节点
@@ -91,7 +91,7 @@ const KeyListener = memo(
     }, [pastePressed, clipboardNodes]);
 
     return null;
-  }
+  },
 );
 // 实例监视器
 const InstanceMonitor = memo(() => {
@@ -126,7 +126,7 @@ const UpdateMonitor = memo(() => {
       debouncedSelectedNodes: state.debouncedSelectedNodes,
       debouncedSelectedEdges: state.debouncedSelectedEdges,
       debouncedTargetNode: state.debouncedTargetNode,
-    }))
+    })),
   );
   const filesLength = useFileStore((state) => state.files.length);
 
@@ -142,7 +142,7 @@ const UpdateMonitor = memo(() => {
     ],
     {
       wait: 500,
-    }
+    },
   );
 
   return null;
@@ -177,7 +177,7 @@ const NodeAddPanelController = memo(
       (newPos: { x: number; y: number }) => {
         setScreenPos(newPos);
       },
-      [setScreenPos]
+      [setScreenPos],
     );
 
     return (
@@ -189,7 +189,7 @@ const NodeAddPanelController = memo(
         onReopen={handleReopen}
       />
     );
-  }
+  },
 );
 
 function MainFlow() {
@@ -218,19 +218,19 @@ function MainFlow() {
       detachNodeFromGroup: state.detachNodeFromGroup,
       viewport: state.viewport,
       size: state.size,
-    }))
+    })),
   );
   const canvasBackgroundMode = useConfigStore(
-    (state) => state.configs.canvasBackgroundMode
+    (state) => state.configs.canvasBackgroundMode,
   );
   const enableNodeSnap = useConfigStore(
-    (state) => state.configs.enableNodeSnap
+    (state) => state.configs.enableNodeSnap,
   );
   const snapOnlyInViewport = useConfigStore(
-    (state) => state.configs.snapOnlyInViewport
+    (state) => state.configs.snapOnlyInViewport,
   );
   const quickCreateNodeOnConnectBlank = useConfigStore(
-    (state) => state.configs.quickCreateNodeOnConnectBlank
+    (state) => state.configs.quickCreateNodeOnConnectBlank,
   );
   const selfElem = useRef<HTMLDivElement>(null);
   const pendingConnectionRef = useRef<OnConnectStartParams | null>(null);
@@ -253,30 +253,30 @@ function MainFlow() {
   // 回调
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => updateNodes(changes),
-    [updateNodes]
+    [updateNodes],
   );
   const onEdgesChange = useCallback(
     (changes: EdgeChange[]) => updateEdges(changes),
-    [updateEdges]
+    [updateEdges],
   );
   const onConnect = useCallback(
     (co: Connection) => {
       connectionCompletedRef.current = true;
       addEdge(co);
     },
-    [addEdge]
+    [addEdge],
   );
   const onConnectStart = useCallback(
     (_event: MouseEvent | TouchEvent, params: OnConnectStartParams) => {
       pendingConnectionRef.current = params;
       connectionCompletedRef.current = false;
     },
-    []
+    [],
   );
   const onConnectEnd = useCallback(
     (
       event: MouseEvent | TouchEvent,
-      connectionState?: FinalConnectionState
+      connectionState?: FinalConnectionState,
     ) => {
       const connectStart = pendingConnectionRef.current;
       pendingConnectionRef.current = null;
@@ -302,9 +302,13 @@ function MainFlow() {
       }
 
       const clientX =
-        "changedTouches" in event ? event.changedTouches[0]?.clientX : event.clientX;
+        "changedTouches" in event
+          ? event.changedTouches[0]?.clientX
+          : event.clientX;
       const clientY =
-        "changedTouches" in event ? event.changedTouches[0]?.clientY : event.clientY;
+        "changedTouches" in event
+          ? event.changedTouches[0]?.clientY
+          : event.clientY;
 
       if (clientX == null || clientY == null || !connectStart.nodeId) {
         connectionCompletedRef.current = false;
@@ -317,13 +321,13 @@ function MainFlow() {
 
       connectionCompletedRef.current = false;
     },
-    [quickCreateNodeOnConnectBlank]
+    [quickCreateNodeOnConnectBlank],
   );
   const onSelectionChange = useCallback(
     (params: OnSelectionChangeParams) => {
       updateSelection(params.nodes as NodeType[], params.edges as EdgeType[]);
     },
-    [updateSelection]
+    [updateSelection],
   );
 
   // 双击空白区域打开节点添加面板
@@ -339,7 +343,7 @@ function MainFlow() {
         setNodeAddPanelVisible(false);
       }
     },
-    [nodeAddPanelVisible]
+    [nodeAddPanelVisible],
   );
 
   // 双击处理
@@ -355,7 +359,7 @@ function MainFlow() {
       setNodeAddPanelPos({ x: event.clientX, y: event.clientY });
       setNodeAddPanelVisible(true);
     },
-    []
+    [],
   );
 
   // 关闭节点添加面板
@@ -369,11 +373,14 @@ function MainFlow() {
       if (!enableNodeSnap) return;
       // 过滤拖拽节点和分组节点
       let otherNodes = nodes.filter(
-        (n) => n.id !== draggedNode.id && n.type !== NodeTypeEnum.Group
+        (n) => n.id !== draggedNode.id && n.type !== NodeTypeEnum.Group,
       );
       // 过滤可视范围内的节点
       if (snapOnlyInViewport) {
-        otherNodes = filterNodesInViewport(otherNodes, { ...viewport, ...size });
+        otherNodes = filterNodesInViewport(otherNodes, {
+          ...viewport,
+          ...size,
+        });
       }
       if (otherNodes.length === 0) {
         setSnapGuidelines([]);
@@ -395,7 +402,7 @@ function MainFlow() {
         ]);
       }
     },
-    [enableNodeSnap, snapOnlyInViewport, nodes, updateNodes, viewport, size]
+    [enableNodeSnap, snapOnlyInViewport, nodes, updateNodes, viewport, size],
   );
 
   const onNodeDragStop = useCallback(
@@ -406,11 +413,14 @@ function MainFlow() {
       if (enableNodeSnap) {
         // 过滤掉拖拽节点和分组节点
         let otherNodes = nodes.filter(
-          (n) => n.id !== draggedNode.id && n.type !== NodeTypeEnum.Group
+          (n) => n.id !== draggedNode.id && n.type !== NodeTypeEnum.Group,
         );
         // 过滤可视范围内的节点
         if (snapOnlyInViewport) {
-          otherNodes = filterNodesInViewport(otherNodes, { ...viewport, ...size });
+          otherNodes = filterNodesInViewport(otherNodes, {
+            ...viewport,
+            ...size,
+          });
         }
         if (otherNodes.length > 0) {
           const result = findSnapAlignment(draggedNode, otherNodes);
@@ -436,7 +446,7 @@ function MainFlow() {
 
       // 获取需要处理的节点：所有选中的非分组节点
       const nodesToProcess = selectedNodes.filter(
-        (n) => n.type !== NodeTypeEnum.Group
+        (n) => n.type !== NodeTypeEnum.Group,
       );
       if (nodesToProcess.length === 0 || !rfInstance) return;
 
@@ -453,8 +463,14 @@ function MainFlow() {
           const parentNode = currentNodes.find((n) => n.id === parentId);
           if (parentNode) {
             // 优先使用测量尺寸
-            const pw = parentNode.measured?.width ?? (parentNode as any).style?.width ?? 400;
-            const ph = parentNode.measured?.height ?? (parentNode as any).style?.height ?? 300;
+            const pw =
+              parentNode.measured?.width ??
+              (parentNode as any).style?.width ??
+              400;
+            const ph =
+              parentNode.measured?.height ??
+              (parentNode as any).style?.height ??
+              300;
             const nx = currentNode.position.x;
             const ny = currentNode.position.y;
             const nw = currentNode.measured?.width ?? 200;
@@ -469,9 +485,11 @@ function MainFlow() {
             }
           }
         } else {
-          const intersecting = rfInstance.getIntersectingNodes(currentNode as any);
+          const intersecting = rfInstance.getIntersectingNodes(
+            currentNode as any,
+          );
           const groupHit = intersecting.find(
-            (n: any) => n.type === NodeTypeEnum.Group
+            (n: any) => n.type === NodeTypeEnum.Group,
           );
           if (groupHit) {
             attachNodeToGroup(currentNode.id, groupHit.id);
@@ -479,17 +497,23 @@ function MainFlow() {
         }
       });
     },
-    [enableNodeSnap, snapOnlyInViewport, nodes, updateNodes, attachNodeToGroup, detachNodeFromGroup, viewport, size]
+    [
+      enableNodeSnap,
+      snapOnlyInViewport,
+      nodes,
+      updateNodes,
+      attachNodeToGroup,
+      detachNodeFromGroup,
+      viewport,
+      size,
+    ],
   );
 
   // 选区右键菜单
-  const onSelectionContextMenu = useCallback(
-    (event: React.MouseEvent) => {
-      event.preventDefault();
-      setSelectionMenuPos({ x: event.clientX, y: event.clientY });
-    },
-    []
-  );
+  const onSelectionContextMenu = useCallback((event: React.MouseEvent) => {
+    event.preventDefault();
+    setSelectionMenuPos({ x: event.clientX, y: event.clientY });
+  }, []);
 
   const defaultViewport = useMemo(() => ({ x: 0, y: 0, zoom: 1.5 }), []);
 
@@ -502,7 +526,7 @@ function MainFlow() {
   const ref = useRef(null);
   const debouncedUpdateSize = useDebounceFn(
     (width: number, height: number) => updateSize(width, height),
-    { wait: 300 }
+    { wait: 300 },
   );
 
   useEffect(() => {

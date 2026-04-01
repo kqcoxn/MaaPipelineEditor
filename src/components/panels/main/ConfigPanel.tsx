@@ -1,4 +1,4 @@
-import style from "../../../styles/ConfigPanel.module.less";
+import style from "../../../styles/panels/ConfigPanel.module.less";
 
 import { memo, useMemo, useEffect, useState } from "react";
 import classNames from "classnames";
@@ -20,7 +20,7 @@ function ConfigPanel() {
 
   // store
   const showConfigPanel = useConfigStore(
-    (state) => state.status.showConfigPanel
+    (state) => state.status.showConfigPanel,
   );
   const setStatus = useConfigStore((state) => state.setStatus);
   const wsPort = useConfigStore((state) => state.configs.wsPort);
@@ -38,7 +38,7 @@ function ConfigPanel() {
         [style.panel]: true,
         "panel-show": showConfigPanel,
       }),
-    [showConfigPanel]
+    [showConfigPanel],
   );
 
   // 渲染

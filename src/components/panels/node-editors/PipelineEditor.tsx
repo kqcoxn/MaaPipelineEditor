@@ -1,4 +1,4 @@
-import style from "../../../styles/FieldPanel.module.less";
+import style from "../../../styles/panels/FieldPanel.module.less";
 import { memo, useMemo, useCallback, lazy, Suspense } from "react";
 import { Popover, Input, Select, Spin, Modal, InputNumber } from "antd";
 import classNames from "classnames";

@@ -1,4 +1,4 @@
-import style from "../../../styles/LiveScreenPanel.module.less";
+import style from "../../../styles/panels/LiveScreenPanel.module.less";
 
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Spin, message } from "antd";

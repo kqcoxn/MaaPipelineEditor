@@ -9,7 +9,7 @@ import {
   nodeTemplates,
   type NodeTemplateType,
 } from "../../../data/nodeTemplates";
-import style from "../../../styles/ToolPanel.module.less";
+import style from "../../../styles/panels/ToolPanel.module.less";
 
 /** 基准画布高度1 */
 const BASE_HEIGHT_1 = 720;

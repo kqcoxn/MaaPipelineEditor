@@ -1,5 +1,5 @@
 import { CSS } from "@dnd-kit/utilities";
-import style from "../../../styles/FilePanel.module.less";
+import style from "../../../styles/panels/FilePanel.module.less";
 
 import React, { useState, memo, useMemo, useCallback } from "react";
 import {
@@ -42,7 +42,7 @@ const DraggableTabNode: React.FC<Readonly<DraggableTabPaneProps>> = memo(
       ...attributes,
       ...listeners,
     });
-  }
+  },
 );
 
 function FilePanel() {
@@ -87,7 +87,7 @@ function FilePanel() {
   const onEdit = useCallback(
     (
       key: React.MouseEvent | React.KeyboardEvent | string,
-      action: "add" | "remove"
+      action: "add" | "remove",
     ) => {
       let newKey;
       switch (action) {
@@ -100,7 +100,7 @@ function FilePanel() {
       }
       if (newKey) setActiveKey(newKey);
     },
-    []
+    [],
   );
 
   // 渲染

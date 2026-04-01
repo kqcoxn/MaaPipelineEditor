@@ -1,5 +1,5 @@
-import inlineStyle from "../../../styles/InlineFieldPanel.module.less";
-import fieldStyle from "../../../styles/FieldPanel.module.less";
+import inlineStyle from "../../../styles/panels/InlineFieldPanel.module.less";
+import fieldStyle from "../../../styles/panels/FieldPanel.module.less";
 
 import { useMemo, memo, useCallback, useState } from "react";
 import { ViewportPortal, useReactFlow, useStore } from "@xyflow/react";
@@ -34,7 +34,7 @@ function InlineFieldPanel() {
   const currentNode = useFlowStore((state) => state.targetNode);
   const updateNodes = useFlowStore((state) => state.updateNodes);
   const fieldPanelMode = useConfigStore(
-    (state) => state.configs.fieldPanelMode
+    (state) => state.configs.fieldPanelMode,
   );
   // 从配置中获取缩放比例
   const panelScale = useConfigStore((state) => state.configs.inlinePanelScale);
@@ -106,7 +106,7 @@ function InlineFieldPanel() {
       }
       saveHistory(0);
     },
-    [currentNode]
+    [currentNode],
   );
 
   // 渲染编辑器内容
@@ -173,7 +173,7 @@ function InlineFieldPanel() {
           "panel-base",
           "panel-show",
           inlineStyle.inlinePanel,
-          fieldStyle.panel
+          fieldStyle.panel,
         )}
         style={{
           position: "absolute",

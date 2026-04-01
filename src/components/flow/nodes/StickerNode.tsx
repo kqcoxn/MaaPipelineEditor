@@ -2,8 +2,11 @@ import { memo, useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { type Node, type NodeProps, NodeResizer } from "@xyflow/react";
 import classNames from "classnames";
 
-import style from "../../../styles/nodes.module.less";
-import type { StickerNodeDataType, StickerColorTheme } from "../../../stores/flow";
+import style from "../../../styles/flow/nodes.module.less";
+import type {
+  StickerNodeDataType,
+  StickerColorTheme,
+} from "../../../stores/flow";
 import { useFlowStore } from "../../../stores/flow";
 import { useConfigStore } from "../../../stores/configStore";
 import { NodeTypeEnum } from "./constants";
@@ -65,16 +68,14 @@ const StickerContent = memo(
     const [editing, setEditing] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-    const theme = STICKER_COLOR_THEMES[data.color] || STICKER_COLOR_THEMES.yellow;
+    const theme =
+      STICKER_COLOR_THEMES[data.color] || STICKER_COLOR_THEMES.yellow;
 
     // 双击进入编辑
-    const handleDoubleClick = useCallback(
-      (e: React.MouseEvent) => {
-        e.stopPropagation();
-        setEditing(true);
-      },
-      []
-    );
+    const handleDoubleClick = useCallback((e: React.MouseEvent) => {
+      e.stopPropagation();
+      setEditing(true);
+    }, []);
 
     // 退出编辑
     const handleBlur = useCallback(() => {
@@ -87,7 +88,7 @@ const StickerContent = memo(
       (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setNodeData(nodeId, "sticker", "content", e.target.value);
       },
-      [nodeId, setNodeData]
+      [nodeId, setNodeData],
     );
 
     // 标题变化
@@ -95,7 +96,7 @@ const StickerContent = memo(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         setNodeData(nodeId, "direct", "label", e.target.value);
       },
-      [nodeId, setNodeData]
+      [nodeId, setNodeData],
     );
 
     // 聚焦到 textarea
@@ -131,10 +132,7 @@ const StickerContent = memo(
         </div>
 
         {/* 内容区 */}
-        <div
-          className={style.stickerBody}
-          onDoubleClick={handleDoubleClick}
-        >
+        <div className={style.stickerBody} onDoubleClick={handleDoubleClick}>
           {editing ? (
             <textarea
               ref={textareaRef}
@@ -158,7 +156,7 @@ const StickerContent = memo(
         </div>
       </div>
     );
-  }
+  },
 );
 
 /**便签节点组件 */
@@ -178,14 +176,17 @@ export function StickerNode(props: NodeProps<StickerNodeData>) {
         [style["sticker-node"]]: true,
         [style["sticker-node-selected"]]: props.selected,
       }),
-    [props.selected]
+    [props.selected],
   );
 
   const node = {
     id: props.id,
     type: NodeTypeEnum.Sticker,
     data: props.data,
-    position: { x: props.positionAbsoluteX ?? 0, y: props.positionAbsoluteY ?? 0 },
+    position: {
+      x: props.positionAbsoluteX ?? 0,
+      y: props.positionAbsoluteY ?? 0,
+    },
   } as unknown as NodeContextMenuNode;
 
   return (

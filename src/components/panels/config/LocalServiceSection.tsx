@@ -1,4 +1,4 @@
-import style from "../../../styles/ConfigPanel.module.less";
+import style from "../../../styles/panels/ConfigPanel.module.less";
 
 import { memo, useMemo } from "react";
 import { Popover, Switch, InputNumber, Button, message } from "antd";
@@ -16,10 +16,10 @@ const LocalServiceSection = memo(
   ({ onOpenBackendConfig }: LocalServiceSectionProps) => {
     const wsPort = useConfigStore((state) => state.configs.wsPort);
     const wsAutoConnect = useConfigStore(
-      (state) => state.configs.wsAutoConnect
+      (state) => state.configs.wsAutoConnect,
     );
     const fileAutoReload = useConfigStore(
-      (state) => state.configs.fileAutoReload
+      (state) => state.configs.fileAutoReload,
     );
     const setConfig = useConfigStore((state) => state.setConfig);
 
@@ -137,7 +137,7 @@ const LocalServiceSection = memo(
         </div>
       </>
     );
-  }
+  },
 );
 
 export default LocalServiceSection;

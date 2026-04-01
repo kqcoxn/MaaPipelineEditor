@@ -1,4 +1,4 @@
-import style from "../../../styles/AIHistoryPanel.module.less";
+import style from "../../../styles/panels/AIHistoryPanel.module.less";
 
 import { memo, useMemo, useState, useEffect } from "react";
 import { Empty, Tag, Tooltip } from "antd";

@@ -3,7 +3,7 @@ import { type Node, type NodeProps, useReactFlow } from "@xyflow/react";
 import classNames from "classnames";
 import { useShallow } from "zustand/shallow";
 
-import style from "../../../styles/nodes.module.less";
+import style from "../../../styles/flow/nodes.module.less";
 import type { ExternalNodeDataType } from "../../../stores/flow";
 import { useFlowStore } from "../../../stores/flow";
 import { useConfigStore } from "../../../stores/configStore";
@@ -45,7 +45,7 @@ export function ExternalNode(props: NodeProps<ExternalNodeData>) {
       selectedEdges: state.selectedEdges,
       pathMode: state.pathMode,
       pathNodeIds: state.pathNodeIds,
-    }))
+    })),
   );
   const edges = useFlowStore((state) => state.edges);
 
@@ -65,7 +65,7 @@ export function ExternalNode(props: NodeProps<ExternalNodeData>) {
 
     // 检查是否有便签节点被选中
     const hasStickerSelected = selectedNodes.some(
-      (node) => node.type === NodeTypeEnum.Sticker
+      (node) => node.type === NodeTypeEnum.Sticker,
     );
 
     // 如果选中的是便签节点，则不产生聚焦效果
@@ -73,7 +73,11 @@ export function ExternalNode(props: NodeProps<ExternalNodeData>) {
 
     // 检查分组关系
     const thisNode = useFlowStore.getState().nodes.find((n) => n.id === nodeId);
-    if (thisNode && (thisNode as any).parentId && selectedNodeIds.has((thisNode as any).parentId)) {
+    if (
+      thisNode &&
+      (thisNode as any).parentId &&
+      selectedNodeIds.has((thisNode as any).parentId)
+    ) {
       return true;
     }
 
@@ -115,7 +119,7 @@ export function ExternalNode(props: NodeProps<ExternalNodeData>) {
         [style["external-node"]]: true,
         [style["node-selected"]]: props.selected,
       }),
-    [props.selected]
+    [props.selected],
   );
 
   const opacityStyle = useMemo(() => {

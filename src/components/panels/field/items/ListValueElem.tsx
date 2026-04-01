@@ -1,4 +1,4 @@
-import style from "../../../../styles/FieldPanel.module.less";
+import style from "../../../../styles/panels/FieldPanel.module.less";
 import { Input, InputNumber } from "antd";
 import IconFont from "../../../iconfonts";
 import { JsonHelper } from "../../../../utils/data/jsonHelper";

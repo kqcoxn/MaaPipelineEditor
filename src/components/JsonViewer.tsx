@@ -1,4 +1,4 @@
-import style from "../styles/FloatingJsonPanel.module.less";
+import style from "../styles/panels/FloatingJsonPanel.module.less";
 
 import React, {
   memo,
@@ -76,7 +76,7 @@ const HighlightTextView = memo(
     useEffect(() => {
       if (currentIndex < 0 || !containerRef.current) return;
       const el = containerRef.current.querySelector(
-        `[data-match-index="${currentIndex}"]`
+        `[data-match-index="${currentIndex}"]`,
       );
       el?.scrollIntoView({ block: "center", behavior: "smooth" });
     }, [currentIndex]);
@@ -86,7 +86,7 @@ const HighlightTextView = memo(
         {highlighted.elements}
       </div>
     );
-  }
+  },
 );
 
 // viewer
@@ -114,7 +114,7 @@ function JsonViewer() {
   const jsonPanelVisible = useToolbarStore((state) => state.jsonPanelVisible);
   const currentRightPanel = useToolbarStore((state) => state.currentRightPanel);
   const setJsonPanelVisible = useToolbarStore(
-    (state) => state.setJsonPanelVisible
+    (state) => state.setJsonPanelVisible,
   );
 
   // 存储编译后的 Pipeline 对象
@@ -145,7 +145,7 @@ function JsonViewer() {
         setCurrentMatchIndex(0);
       }, 300);
     },
-    []
+    [],
   );
 
   const handlePrev = useCallback(() => {

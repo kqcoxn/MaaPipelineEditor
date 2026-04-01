@@ -5,7 +5,7 @@ import { useShallow } from "zustand/shallow";
 import { Popover, Empty, message } from "antd";
 import { ExportOutlined } from "@ant-design/icons";
 
-import style from "../../../styles/nodes.module.less";
+import style from "../../../styles/flow/nodes.module.less";
 import type { AnchorNodeDataType, NodeType } from "../../../stores/flow";
 import { useFlowStore } from "../../../stores/flow";
 import { useConfigStore } from "../../../stores/configStore";

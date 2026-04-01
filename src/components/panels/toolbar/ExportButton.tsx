@@ -15,7 +15,7 @@ import { flowToPipeline, flowToSeparatedStrings } from "../../../core/parser";
 import { ClipboardHelper } from "../../../utils/ui/clipboard";
 import { ExportFileModal } from "../../modals/ExportFileModal";
 import { CreateFileModal } from "../../modals/CreateFileModal";
-import style from "../../../styles/ToolbarPanel.module.less";
+import style from "../../../styles/panels/ToolbarPanel.module.less";
 
 /**
  * 导出按钮组件

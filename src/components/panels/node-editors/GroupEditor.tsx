@@ -6,7 +6,7 @@ import {
   type GroupNodeType,
   type GroupColorTheme,
 } from "../../../stores/flow";
-import style from "../../../styles/FieldPanel.module.less";
+import style from "../../../styles/panels/FieldPanel.module.less";
 
 const COLOR_OPTIONS = [
   { value: "blue", label: "蓝色" },
@@ -25,20 +25,20 @@ export const GroupEditor = memo(
     // 标题
     const currentLabel = useMemo(
       () => currentNode.data.label ?? "",
-      [currentNode.data.label]
+      [currentNode.data.label],
     );
 
     // 颜色
     const currentColor = useMemo(
       () => currentNode.data.color ?? "blue",
-      [currentNode.data.color]
+      [currentNode.data.color],
     );
 
     const onLabelChange = useCallback(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         setNodeData(currentNode.id, "direct", "label", e.target.value);
       },
-      [currentNode.id, setNodeData]
+      [currentNode.id, setNodeData],
     );
 
     const onColorChange = useCallback(
@@ -46,7 +46,7 @@ export const GroupEditor = memo(
         setNodeData(currentNode.id, "direct", "color", value);
         saveHistory(0);
       },
-      [currentNode.id, setNodeData, saveHistory]
+      [currentNode.id, setNodeData, saveHistory],
     );
 
     return (
@@ -92,5 +92,5 @@ export const GroupEditor = memo(
         </div>
       </div>
     );
-  }
+  },
 );

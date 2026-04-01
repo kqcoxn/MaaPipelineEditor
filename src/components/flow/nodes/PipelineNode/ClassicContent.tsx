@@ -1,7 +1,7 @@
 import { memo, useMemo } from "react";
 import { type NodeProps } from "@xyflow/react";
 
-import style from "../../../../styles/nodes.module.less";
+import style from "../../../../styles/flow/nodes.module.less";
 import type { PipelineNodeDataType } from "../../../../stores/flow";
 import { useConfigStore } from "../../../../stores/configStore";
 import { KVElem } from "../components/KVElem";

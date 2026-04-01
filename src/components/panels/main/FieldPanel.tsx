@@ -1,4 +1,4 @@
-import style from "../../../styles/FieldPanel.module.less";
+import style from "../../../styles/panels/FieldPanel.module.less";
 
 import {
   useMemo,
@@ -188,16 +188,16 @@ function FieldPanel() {
   const updateNodes = useFlowStore((state) => state.updateNodes);
   const debugMode = useDebugStore((state) => state.debugMode);
   const fieldPanelMode = useConfigStore(
-    (state) => state.configs.fieldPanelMode
+    (state) => state.configs.fieldPanelMode,
   );
   const setCurrentRightPanel = useToolbarStore(
-    (state) => state.setCurrentRightPanel
+    (state) => state.setCurrentRightPanel,
   );
   const [isLoading, setIsLoading] = useState(false);
   const [progressStage, setProgressStage] = useState("");
   const [progressDetail, setProgressDetail] = useState("");
   const [validationWarning, setValidationWarning] = useState<string | null>(
-    null
+    null,
   );
   const [activeTab, setActiveTab] = useState("fields");
   const [jsonEditorOpen, setJsonEditorOpen] = useState(false);
@@ -232,7 +232,7 @@ function FieldPanel() {
       }
       saveHistory(0);
     },
-    [currentNode]
+    [currentNode],
   );
 
   // 验证并修复节点数据
@@ -333,9 +333,7 @@ function FieldPanel() {
             <StickerEditor currentNode={nodeToRender as StickerNodeType} />
           );
         case NodeTypeEnum.Group:
-          return (
-            <GroupEditor currentNode={nodeToRender as GroupNodeType} />
-          );
+          return <GroupEditor currentNode={nodeToRender as GroupNodeType} />;
         default:
           return (
             <div style={{ padding: 20 }}>
@@ -416,7 +414,7 @@ function FieldPanel() {
         "panel-show": currentNode !== null,
         "panel-draggable": fieldPanelMode === "draggable",
       }),
-    [currentNode, fieldPanelMode]
+    [currentNode, fieldPanelMode],
   );
 
   // 删除节点
@@ -521,7 +519,12 @@ function FieldPanel() {
               : []),
           ]}
           style={{ flex: "1 1 auto", minHeight: 0 }}
-          tabBarStyle={{ margin: 0, flexShrink: 0, paddingLeft: 12, paddingRight: 12 }}
+          tabBarStyle={{
+            margin: 0,
+            flexShrink: 0,
+            paddingLeft: 12,
+            paddingRight: 12,
+          }}
         />
       ) : (
         renderContent

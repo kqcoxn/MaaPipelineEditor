@@ -19,7 +19,7 @@ import classNames from "classnames";
 import { useDebugStore } from "../../../stores/debugStore";
 import { useToolbarStore } from "../../../stores/toolbarStore";
 import type { RecognitionStatus } from "../../../stores/debugStore";
-import debugStyle from "../../../styles/DebugPanel.module.less";
+import debugStyle from "../../../styles/panels/DebugPanel.module.less";
 import RecognitionDetailModal from "../tools/RecognitionDetailModal";
 
 /**
@@ -175,14 +175,14 @@ function RecognitionHistoryPanel() {
   const debugStatus = useDebugStore((state) => state.debugStatus);
   const recognitionRecords = useDebugStore((state) => state.recognitionRecords);
   const clearRecognitionRecords = useDebugStore(
-    (state) => state.clearRecognitionRecords
+    (state) => state.clearRecognitionRecords,
   );
   const setSelectedRecoId = useDebugStore((state) => state.setSelectedRecoId);
   const recognitionPanelVisible = useToolbarStore(
-    (state) => state.recognitionPanelVisible
+    (state) => state.recognitionPanelVisible,
   );
   const setRecognitionPanelVisible = useToolbarStore(
-    (state) => state.setRecognitionPanelVisible
+    (state) => state.setRecognitionPanelVisible,
   );
 
   // 分页状态
@@ -252,7 +252,7 @@ function RecognitionHistoryPanel() {
       setSelectedRecoId(recoId);
       setDetailModalOpen(true);
     },
-    [setSelectedRecoId]
+    [setSelectedRecoId],
   );
 
   // 关闭详情模态框
@@ -280,7 +280,7 @@ function RecognitionHistoryPanel() {
   const panelClass = classNames(
     "panel-base",
     debugStyle["recognition-history-panel"],
-    "panel-show"
+    "panel-show",
   );
 
   return (

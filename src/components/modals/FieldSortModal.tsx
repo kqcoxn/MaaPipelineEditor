@@ -1,5 +1,5 @@
 import { CSS } from "@dnd-kit/utilities";
-import style from "../../styles/FieldSortModal.module.less";
+import style from "../../styles/panels/FieldSortModal.module.less";
 
 import React, { useState, memo, useCallback } from "react";
 import {
@@ -67,39 +67,41 @@ interface SortableListProps {
   onChange: (items: string[]) => void;
 }
 
-const SortableList: React.FC<SortableListProps> = memo(({ items, onChange }) => {
-  const sensor = useSensor(PointerSensor, {
-    activationConstraint: { distance: 5 },
-  });
+const SortableList: React.FC<SortableListProps> = memo(
+  ({ items, onChange }) => {
+    const sensor = useSensor(PointerSensor, {
+      activationConstraint: { distance: 5 },
+    });
 
-  const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event;
-      if (over && active.id !== over.id) {
-        const oldIndex = items.indexOf(active.id as string);
-        const newIndex = items.indexOf(over.id as string);
-        onChange(arrayMove(items, oldIndex, newIndex));
-      }
-    },
-    [items, onChange],
-  );
+    const handleDragEnd = useCallback(
+      (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (over && active.id !== over.id) {
+          const oldIndex = items.indexOf(active.id as string);
+          const newIndex = items.indexOf(over.id as string);
+          onChange(arrayMove(items, oldIndex, newIndex));
+        }
+      },
+      [items, onChange],
+    );
 
-  return (
-    <DndContext
-      sensors={[sensor]}
-      collisionDetection={closestCenter}
-      onDragEnd={handleDragEnd}
-    >
-      <SortableContext items={items} strategy={verticalListSortingStrategy}>
-        <div className={style.sortableList}>
-          {items.map((id) => (
-            <SortableItem key={id} id={id} />
-          ))}
-        </div>
-      </SortableContext>
-    </DndContext>
-  );
-});
+    return (
+      <DndContext
+        sensors={[sensor]}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={items} strategy={verticalListSortingStrategy}>
+          <div className={style.sortableList}>
+            {items.map((id) => (
+              <SortableItem key={id} id={id} />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
+    );
+  },
+);
 
 SortableList.displayName = "SortableList";
 
@@ -118,20 +120,20 @@ const FieldSortModal: React.FC = () => {
     return fieldSortConfig ?? getDefaultSortConfig();
   }, [fieldSortConfig]);
 
-  const [mainTaskFields, setMainTaskFields] = useState<string[]>(() =>
-    getDefaultState().mainTaskFields,
+  const [mainTaskFields, setMainTaskFields] = useState<string[]>(
+    () => getDefaultState().mainTaskFields,
   );
   const [recognitionParamFields, setRecognitionParamFields] = useState<
     string[]
   >(() => getDefaultState().recognitionParamFields);
-  const [actionParamFields, setActionParamFields] = useState<string[]>(() =>
-    getDefaultState().actionParamFields,
+  const [actionParamFields, setActionParamFields] = useState<string[]>(
+    () => getDefaultState().actionParamFields,
   );
-  const [swipeFields, setSwipeFields] = useState<string[]>(() =>
-    getDefaultState().swipeFields,
+  const [swipeFields, setSwipeFields] = useState<string[]>(
+    () => getDefaultState().swipeFields,
   );
-  const [freezeParamFields, setFreezeParamFields] = useState<string[]>(() =>
-    getDefaultState().freezeParamFields,
+  const [freezeParamFields, setFreezeParamFields] = useState<string[]>(
+    () => getDefaultState().freezeParamFields,
   );
 
   // 当前展开的面板
@@ -295,9 +297,7 @@ const FieldSortModal: React.FC = () => {
           />
         </div>
       ),
-      children: (
-        <SortableList items={swipeFields} onChange={setSwipeFields} />
-      ),
+      children: <SortableList items={swipeFields} onChange={setSwipeFields} />,
     },
     {
       key: "freeze",
@@ -345,9 +345,7 @@ const FieldSortModal: React.FC = () => {
         </Button>,
       ]}
     >
-      <p className={style.hint}>
-        拖拽字段调整顺序，导出时将按此顺序排列字段。
-      </p>
+      <p className={style.hint}>拖拽字段调整顺序，导出时将按此顺序排列字段。</p>
       <Collapse
         items={collapseItems}
         activeKey={activePanel}

@@ -22,7 +22,7 @@ import type {
   RecognitionRecord,
   RecognitionStatus,
 } from "../../../stores/debugStore";
-import debugStyle from "../../../styles/DebugPanel.module.less";
+import debugStyle from "../../../styles/panels/DebugPanel.module.less";
 import RecognitionDetailModal from "./RecognitionDetailModal";
 
 /**
@@ -130,11 +130,11 @@ interface RecognitionListTabProps {
 function RecognitionListTab({ nodeName }: RecognitionListTabProps = {}) {
   // 使用新的平铺结构
   const allRecognitionRecords = useDebugStore(
-    (state) => state.recognitionRecords
+    (state) => state.recognitionRecords,
   );
   const debugStatus = useDebugStore((state) => state.debugStatus);
   const clearRecognitionRecords = useDebugStore(
-    (state) => state.clearRecognitionRecords
+    (state) => state.clearRecognitionRecords,
   );
   const setSelectedRecoId = useDebugStore((state) => state.setSelectedRecoId);
 
@@ -177,7 +177,7 @@ function RecognitionListTab({ nodeName }: RecognitionListTabProps = {}) {
         return (currentPage - 1) * PAGE_SIZE + pageIndex + 1;
       }
     },
-    [reversed, currentPage, totalRecords]
+    [reversed, currentPage, totalRecords],
   );
 
   // 查看详情
@@ -186,7 +186,7 @@ function RecognitionListTab({ nodeName }: RecognitionListTabProps = {}) {
       setSelectedRecoId(recoId);
       setDetailModalOpen(true);
     },
-    [setSelectedRecoId]
+    [setSelectedRecoId],
   );
 
   // 关闭详情模态框

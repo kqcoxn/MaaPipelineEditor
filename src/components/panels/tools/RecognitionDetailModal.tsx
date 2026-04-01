@@ -6,7 +6,7 @@ import type {
   RecognitionRecord,
   RecognitionDetail,
 } from "../../../stores/debugStore";
-import debugStyle from "../../../styles/DebugPanel.module.less";
+import debugStyle from "../../../styles/panels/DebugPanel.module.less";
 import ReactJsonView from "@microlink/react-json-view";
 
 interface RecognitionDetailModalProps {
@@ -27,7 +27,7 @@ function RecognitionDetailModal({
   const recognitionRecords = useDebugStore((state) => state.recognitionRecords);
   const detailCache = useDebugStore((state) => state.detailCache);
   const getRecognitionRecord = useDebugStore(
-    (state) => state.getRecognitionRecord
+    (state) => state.getRecognitionRecord,
   );
   const getCachedDetail = useDebugStore((state) => state.getCachedDetail);
 
@@ -98,19 +98,19 @@ function RecognitionDetailModal({
                 record.status === "succeeded"
                   ? "success"
                   : record.status === "failed"
-                  ? "error"
-                  : record.status === "running"
-                  ? "processing"
-                  : "default"
+                    ? "error"
+                    : record.status === "running"
+                      ? "processing"
+                      : "default"
               }
             >
               {record.status === "succeeded"
                 ? "成功"
                 : record.status === "failed"
-                ? "失败"
-                : record.status === "running"
-                ? "运行中"
-                : "等待中"}
+                  ? "失败"
+                  : record.status === "running"
+                    ? "运行中"
+                    : "等待中"}
             </Tag>
           </Descriptions.Item>
           {record.runIndex && record.runIndex > 1 && (

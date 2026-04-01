@@ -8,7 +8,7 @@ import {
 } from "@ant-design/icons";
 import { useDebugStore } from "../../../stores/debugStore";
 import { useFlowStore } from "../../../stores/flow";
-import debugStyle from "../../../styles/DebugPanel.module.less";
+import debugStyle from "../../../styles/panels/DebugPanel.module.less";
 import RecognitionDetailModal from "./RecognitionDetailModal";
 
 /**
@@ -37,7 +37,7 @@ function DebugInfoTab() {
   const nodeExecutionHistory = useMemo(() => {
     if (!selectedNodeId) return [];
     return executionHistory.filter(
-      (record) => record.nodeId === selectedNodeId
+      (record) => record.nodeId === selectedNodeId,
     );
   }, [executionHistory, selectedNodeId]);
 
@@ -48,7 +48,7 @@ function DebugInfoTab() {
     return recognitionRecords.filter(
       (record) =>
         record.name === selectedNodeName ||
-        record.displayName === selectedNodeName
+        record.displayName === selectedNodeName,
     );
   }, [recognitionRecords, selectedNodeName]);
 
@@ -72,8 +72,8 @@ function DebugInfoTab() {
       const durationMs = record.latency
         ? record.latency
         : record.endTime
-        ? record.endTime - record.startTime
-        : null;
+          ? record.endTime - record.startTime
+          : null;
       const duration =
         durationMs !== null ? (durationMs / 1000).toFixed(2) : null;
 
@@ -117,8 +117,8 @@ function DebugInfoTab() {
                       {record.status === "running"
                         ? "执行中"
                         : record.status === "completed"
-                        ? "已完成"
-                        : "失败"}
+                          ? "已完成"
+                          : "失败"}
                     </Tag>
                     {duration && (
                       <span style={{ fontSize: 12, color: "#999" }}>
@@ -220,19 +220,19 @@ function DebugInfoTab() {
               debugStatus === "running"
                 ? "processing"
                 : debugStatus === "paused"
-                ? "warning"
-                : debugStatus === "completed"
-                ? "success"
-                : "default"
+                  ? "warning"
+                  : debugStatus === "completed"
+                    ? "success"
+                    : "default"
             }
           >
             {debugStatus === "preparing"
               ? "准备中"
               : debugStatus === "running"
-              ? "运行中"
-              : debugStatus === "paused"
-              ? "已暂停"
-              : "已完成"}
+                ? "运行中"
+                : debugStatus === "paused"
+                  ? "已暂停"
+                  : "已完成"}
           </Tag>
           {sessionId && (
             <span style={{ fontSize: 12, color: "#999" }}>
@@ -305,14 +305,14 @@ function DebugInfoTab() {
                 record.status === "succeeded"
                   ? "success"
                   : record.status === "failed"
-                  ? "error"
-                  : "processing";
+                    ? "error"
+                    : "processing";
               const statusText =
                 record.status === "succeeded"
                   ? "成功"
                   : record.status === "failed"
-                  ? "失败"
-                  : "识别中";
+                    ? "失败"
+                    : "识别中";
 
               return (
                 <List.Item

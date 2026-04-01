@@ -1,4 +1,4 @@
-import style from "../../../../styles/FieldPanel.module.less";
+import style from "../../../../styles/panels/FieldPanel.module.less";
 import { memo, useState, useCallback, useMemo } from "react";
 import { Popover, Input, InputNumber, Select, Switch } from "antd";
 import IconFont, { type IconNames } from "../../../iconfonts";

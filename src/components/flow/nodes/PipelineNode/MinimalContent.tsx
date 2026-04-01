@@ -1,7 +1,7 @@
 import { memo, useMemo } from "react";
 import { type NodeProps } from "@xyflow/react";
 
-import style from "../../../../styles/nodes.module.less";
+import style from "../../../../styles/flow/nodes.module.less";
 import type { PipelineNodeDataType } from "../../../../stores/flow";
 import IconFont from "../../../iconfonts";
 import { getRecognitionIcon, getMinimalNodeColor } from "../utils";
@@ -14,11 +14,11 @@ export const MinimalContent = memo(
     const recoType = data.recognition.type;
     const recoIconConfig = useMemo(
       () => getRecognitionIcon(recoType),
-      [recoType]
+      [recoType],
     );
     const colorConfig = useMemo(
       () => getMinimalNodeColor(recoType),
-      [recoType]
+      [recoType],
     );
 
     return (
@@ -53,5 +53,5 @@ export const MinimalContent = memo(
         <PipelineNodeHandles direction={data.handleDirection} minimal />
       </>
     );
-  }
+  },
 );

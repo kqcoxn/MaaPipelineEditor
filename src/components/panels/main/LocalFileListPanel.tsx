@@ -15,11 +15,11 @@ import { useConfigStore } from "../../../stores/configStore";
 import { localServer } from "../../../services/server";
 import classNames from "classnames";
 
-import styles from "../../../styles/LocalFileListPanel.module.less";
+import styles from "../../../styles/panels/LocalFileListPanel.module.less";
 
 export const LocalFileListPanel: React.FC = () => {
   const showLocalFilePanel = useConfigStore(
-    (state) => state.status.showLocalFilePanel
+    (state) => state.status.showLocalFilePanel,
   );
   const setStatus = useConfigStore((state) => state.setStatus);
   const rootPath = useLocalFileStore((state) => state.rootPath);
@@ -36,7 +36,7 @@ export const LocalFileListPanel: React.FC = () => {
     return files.filter(
       (file) =>
         file.file_name.toLowerCase().includes(searchLower) ||
-        file.relative_path.toLowerCase().includes(searchLower)
+        file.relative_path.toLowerCase().includes(searchLower),
     );
   }, [files, searchText]);
 
@@ -79,7 +79,7 @@ export const LocalFileListPanel: React.FC = () => {
         [styles.panel]: true,
         "panel-show": showLocalFilePanel,
       }),
-    [showLocalFilePanel]
+    [showLocalFilePanel],
   );
 
   return (

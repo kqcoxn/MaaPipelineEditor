@@ -1,4 +1,4 @@
-import style from "../../../styles/ToolPanel.module.less";
+import style from "../../../styles/panels/ToolPanel.module.less";
 import { memo, useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { message, Tooltip, AutoComplete, Spin } from "antd";

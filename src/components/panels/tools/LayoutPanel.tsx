@@ -7,7 +7,7 @@ import { useFlowStore } from "../../../stores/flow";
 import { useFileStore } from "../../../stores/fileStore";
 import { LayoutHelper, AlignmentEnum } from "../../../core/layout";
 import { saveNodesToImage } from "../../../utils/ui/snapper";
-import style from "../../../styles/ToolPanel.module.less";
+import style from "../../../styles/panels/ToolPanel.module.less";
 
 /**布局工具 */
 interface LayoutToolType {

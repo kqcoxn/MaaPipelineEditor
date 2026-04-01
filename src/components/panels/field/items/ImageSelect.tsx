@@ -7,7 +7,7 @@ import {
 import { resourceProtocol } from "../../../../services/server";
 import { useWSStore } from "../../../../stores/wsStore";
 import { useFileStore } from "../../../../stores/fileStore";
-import style from "../../../../styles/FieldPanel.module.less";
+import style from "../../../../styles/panels/FieldPanel.module.less";
 
 interface ImageSelectProps {
   value: string;
@@ -32,14 +32,14 @@ export const ImageSelect = memo(
     const currentFilePath = currentFile?.config?.filePath;
     const imageList = useLocalFileStore((state) => state.imageList);
     const imageListLoading = useLocalFileStore(
-      (state) => state.imageListLoading
+      (state) => state.imageListLoading,
     );
     const imageListIsFiltered = useLocalFileStore(
-      (state) => state.imageListIsFiltered
+      (state) => state.imageListIsFiltered,
     );
     const imageCache = useLocalFileStore((state) => state.imageCache);
     const pendingImageRequests = useLocalFileStore(
-      (state) => state.pendingImageRequests
+      (state) => state.pendingImageRequests,
     );
 
     const [open, setOpen] = useState(false);
@@ -58,7 +58,7 @@ export const ImageSelect = memo(
           resourceProtocol.requestImageList(currentFilePath || undefined);
         }
       },
-      [connected, currentFilePath]
+      [connected, currentFilePath],
     );
 
     // 过滤图片列表
@@ -68,7 +68,7 @@ export const ImageSelect = memo(
       }
       const lowerSearch = searchValue.toLowerCase();
       return imageList.filter((img) =>
-        img.relativePath.toLowerCase().includes(lowerSearch)
+        img.relativePath.toLowerCase().includes(lowerSearch),
       );
     }, [imageList, searchValue]);
 
@@ -250,7 +250,7 @@ export const ImageSelect = memo(
         setSearchValue(selectedValue);
         onChange(selectedValue);
       },
-      [onChange]
+      [onChange],
     );
 
     // 处理搜索输入变化
@@ -284,7 +284,7 @@ export const ImageSelect = memo(
         notFoundContent={null}
       />
     );
-  }
+  },
 );
 
 ImageSelect.displayName = "ImageSelect";
