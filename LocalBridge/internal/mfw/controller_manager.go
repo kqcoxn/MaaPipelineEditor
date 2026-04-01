@@ -550,6 +550,14 @@ func (cm *ControllerManager) Screencap(req *ScreencapRequest) (*ScreencapResult,
 			return nil, NewMFWError(ErrCodeOperationFail, "failed to post screencap", nil)
 		}
 		job.Wait()
+		if !job.Success() {
+			return &ScreencapResult{
+				ControllerID: req.ControllerID,
+				Success:      false,
+				Error:        "screencap job failed",
+				Timestamp:    time.Now().Format(time.RFC3339),
+			}, nil
+		}
 	}
 
 	// 获取缓存图像

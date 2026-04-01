@@ -371,10 +371,11 @@ func (h *MFWHandler) handleScreencap(conn *server.Connection, msg models.Message
 		Path: "/lte/mfw/screencap_result",
 		Data: map[string]interface{}{
 			"controller_id": controllerID,
-			"success":       true,
+			"success":       result.Success,
 			"image":         result.ImageData,
 			"width":         result.Width,
 			"height":        result.Height,
+			"error":         result.Error,
 		},
 	}
 	conn.Send(response)

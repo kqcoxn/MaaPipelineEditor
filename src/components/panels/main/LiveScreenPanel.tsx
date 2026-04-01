@@ -1,7 +1,7 @@
 import style from "../../../styles/LiveScreenPanel.module.less";
 
 import { memo, useCallback, useEffect, useRef, useState } from "react";
-import { Spin } from "antd";
+import { Spin, message } from "antd";
 import classNames from "classnames";
 
 import { useMFWStore } from "../../../stores/mfwStore";
@@ -10,25 +10,28 @@ import { useConfigStore } from "../../../stores/configStore";
 import { useFlowStore } from "../../../stores/flow";
 import { mfwProtocol } from "../../../services/server";
 
+// 连续截图失败阈值，超过此值自动断开设备连接
+const SCREENCAP_FAILURE_THRESHOLD = 3;
+
 const LiveScreenPanel = memo(() => {
   const connectionStatus = useMFWStore((state) => state.connectionStatus);
   const controllerId = useMFWStore((state) => state.controllerId);
-  const jsonPanelVisible = useToolbarStore(
-    (state) => state.jsonPanelVisible
-  );
+  const clearConnection = useMFWStore((state) => state.clearConnection);
+  const jsonPanelVisible = useToolbarStore((state) => state.jsonPanelVisible);
   const targetNode = useFlowStore((state) => state.targetNode);
   const selectedEdges = useFlowStore((state) => state.selectedEdges);
   const enableLiveScreen = useConfigStore(
-    (state) => state.configs.enableLiveScreen
+    (state) => state.configs.enableLiveScreen,
   );
   const liveScreenRefreshRate = useConfigStore(
-    (state) => state.configs.liveScreenRefreshRate
+    (state) => state.configs.liveScreenRefreshRate,
   );
 
   const [screenImage, setScreenImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const isRequestingRef = useRef(false);
+  const consecutiveFailuresRef = useRef(0);
 
   // 页面不可见时暂停截图请求
   const isPageVisibleRef = useRef(document.visibilityState === "visible");
@@ -60,15 +63,26 @@ const LiveScreenPanel = memo(() => {
           setScreenImage(data.image);
           setIsLoading(false);
           setHasError(false);
+          // 成功时重置连续失败计数
+          consecutiveFailuresRef.current = 0;
         } else {
           setHasError(true);
           setIsLoading(false);
+          // 连续失败计数，超过阈值自动断开设备连接
+          consecutiveFailuresRef.current++;
+          if (consecutiveFailuresRef.current >= SCREENCAP_FAILURE_THRESHOLD) {
+            console.warn(
+              "[LiveScreenPanel] 连续截图失败次数超过阈值，自动断开设备连接",
+            );
+            message.warning("设备连接异常，已自动断开");
+            clearConnection();
+          }
         }
-      }
+      },
     );
 
     return unregister;
-  }, []);
+  }, [clearConnection]);
 
   // 定时截图请求
   const requestScreenshot = useCallback(() => {
@@ -106,12 +120,14 @@ const LiveScreenPanel = memo(() => {
       setScreenImage(null);
       setIsLoading(true);
       setHasError(false);
+      // 重置连续失败计数器
+      consecutiveFailuresRef.current = 0;
     }
   }, [connectionStatus]);
 
   const panelClass = classNames(
     style.liveScreenPanel,
-    shouldShow ? style.visible : style.hidden
+    shouldShow ? style.visible : style.hidden,
   );
 
   return (

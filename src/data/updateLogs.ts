@@ -64,6 +64,7 @@ export const updateLogs: UpdateLogItem[] = [
       ],
       fixes: [
         "修复调试模式下自动保存多文件引起的路径污染问题",
+        "修复实时画面在本地服务断开或设备关闭时仍然留存的问题",
       ],
     },
   },

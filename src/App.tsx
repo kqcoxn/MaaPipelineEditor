@@ -15,6 +15,7 @@ const { Header: HeaderSection, Content } = Layout;
 import { useFileStore } from "./stores/fileStore";
 import { useConfigStore } from "./stores/configStore";
 import { useWSStore } from "./stores/wsStore";
+import { useMFWStore } from "./stores/mfwStore";
 import { useCustomTemplateStore } from "./stores/customTemplateStore";
 import { useDebugStore } from "./stores/debugStore";
 import { localServer } from "./services/server";
@@ -198,8 +199,13 @@ function App() {
     // 注册WebSocket状态同步回调
     const setConnected = useWSStore.getState().setConnected;
     const setConnecting = useWSStore.getState().setConnecting;
+    const clearMFWConnection = useMFWStore.getState().clearConnection;
     localServer.onStatus((connected) => {
       setConnected(connected);
+      // WebSocket 断开时清除设备连接状态，确保实时画面等 UI 正确隐藏
+      if (!connected) {
+        clearMFWConnection();
+      }
     });
     localServer.onConnecting((isConnecting) => {
       setConnecting(isConnecting);
@@ -250,7 +256,9 @@ function App() {
             localServer.setPort(port);
             localServer.connect();
           } else {
-            wailsLog("[Frontend] Bridge not ready or connection initiated, waiting for event");
+            wailsLog(
+              "[Frontend] Bridge not ready or connection initiated, waiting for event",
+            );
           }
         }
       });
@@ -270,11 +278,14 @@ function App() {
 
     // Star定时提醒
     if (localStorage.getItem("_mpe_stared") !== "true") {
-      setInterval(() => {
-        if (!isShowStarRemind) {
-          starRemind();
-        }
-      }, 5 * 60 * 1000);
+      setInterval(
+        () => {
+          if (!isShowStarRemind) {
+            starRemind();
+          }
+        },
+        5 * 60 * 1000,
+      );
     }
 
     // 文件拖拽监听
