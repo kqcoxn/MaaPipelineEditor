@@ -1,6 +1,6 @@
 import style from "./styles/layout/App.module.less";
 
-import { memo, useCallback, useEffect } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import {
   Flex,
   Layout,
@@ -37,6 +37,10 @@ import ErrorPanel from "./components/panels/main/ErrorPanel";
 import RecognitionHistoryPanel from "./components/panels/main/RecognitionHistoryPanel";
 import ToolbarPanel from "./components/panels/main/ToolbarPanel";
 import { LoggerPanel } from "./components/panels/tools/LoggerPanel";
+import {
+  ExplorationFAB,
+  ExplorationPanel,
+} from "./components/panels/exploration";
 import { pipelineToFlow } from "./core/parser";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import {
@@ -112,6 +116,9 @@ const GlobalListener = memo(() => {
 function App() {
   // 获取调试模式状态
   const debugMode = useDebugStore((state) => state.debugMode);
+
+  // 探索面板状态
+  const [explorationPanelVisible, setExplorationPanelVisible] = useState(false);
 
   // 处理文件拖拽
   const handleFileDrop = useCallback(async (e: DragEvent) => {
@@ -331,6 +338,16 @@ function App() {
               <ToolPanel.Layout />
               <ErrorPanel />
               <LoggerPanel />
+              {/* 探索模式组件 */}
+              <ExplorationFAB
+                onClick={() => setExplorationPanelVisible((v) => !v)}
+                visible={true}
+                active={explorationPanelVisible}
+              />
+              <ExplorationPanel
+                visible={explorationPanelVisible}
+                onClose={() => setExplorationPanelVisible(false)}
+              />
             </div>
           </Content>
         </Layout>

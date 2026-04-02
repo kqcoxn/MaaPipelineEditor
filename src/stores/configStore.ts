@@ -6,9 +6,9 @@ import type { FieldSortConfig } from "../core/sorting/types";
 export const globalConfig = {
   dev: true,
   version: `1.4.0`,
-  betaIteration: 2,
+  betaIteration: 3,
   mfwVersion: "5.9.2",
-  protocolVersion: "0.7.5",
+  protocolVersion: "0.8.0",
 };
 
 if (globalConfig.dev) {

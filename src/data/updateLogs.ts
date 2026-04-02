@@ -53,6 +53,7 @@ export const updateLogs: UpdateLogItem[] = [
     type: "major",
     updates: {
       features: [
+        "🤖 新增 AI 流程探索模式，寻路等流程类任务引导式直达",
         "🌟 Anchor 节点支持高亮索引与可跨文件快捷跳转",
         "🥂 右键节点面板可粘贴复制项，直接生成在指针位置",
         "🐍 Extremer 可自动检测新版本并提示",

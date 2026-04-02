@@ -284,7 +284,7 @@ export interface FlowNodeState {
     select?: boolean;
     link?: boolean;
     focus?: boolean;
-  }) => void;
+  }) => string;
   setNodeData: (id: string, type: string, key: string, value: any) => void;
   batchSetNodeData: (
     id: string,
@@ -366,6 +366,58 @@ export interface FlowAnchorRefState {
   getNodesUsingAnchor: (anchorName: string) => string[];
 }
 
+// 探索状态枚举
+export type ExplorationStatus =
+  | "idle" // 未开始
+  | "predicting" // AI 预测中
+  | "reviewing" // 等待用户审核
+  | "executing" // 执行动作中
+  | "completed"; // 已完成
+
+// 探索模式 Slice 状态
+export interface FlowExplorationState {
+  /** 探索状态 */
+  status: ExplorationStatus;
+  /** 用户目标描述 */
+  goal: string | null;
+  /** 起始节点 ID */
+  startNodeId: string | null;
+  /** 当前 Ghost Node 的 ID（实际已创建的节点） */
+  ghostNodeId: string | null;
+  /** 已完成步骤数 */
+  stepCount: number;
+  /** 已确认的节点 ID 列表 */
+  confirmedNodeIds: string[];
+  /** 错误信息 */
+  error: string | null;
+  /** 进度阶段描述 */
+  progressStage: string;
+  /** 进度详情 */
+  progressDetail: string;
+}
+
+// 探索模式 Slice 操作
+export interface FlowExplorationActions {
+  /** 开始探索 */
+  start: (goal: string, startNodeId?: string) => Promise<void>;
+  /** 执行当前方案 */
+  execute: () => Promise<void>;
+  /** 确认当前方案 */
+  confirm: () => Promise<void>;
+  /** 完成探索 */
+  complete: () => void;
+  /** 退出探索 */
+  abort: (saveConfirmed: boolean) => void;
+  /** 内部方法：设置状态 */
+  _setStatus: (status: ExplorationStatus) => void;
+  /** 内部方法：设置错误 */
+  _setError: (error: string | null) => void;
+  /** 内部方法：设置进度 */
+  _setProgress: (stage: string, detail?: string) => void;
+  /** 内部方法：设置 Ghost Node ID */
+  _setGhostNodeId: (nodeId: string | null) => void;
+}
+
 // 合并的 Flow Store 类型
 export type FlowStore = FlowViewState &
   FlowSelectionState &
@@ -374,4 +426,6 @@ export type FlowStore = FlowViewState &
   FlowEdgeState &
   FlowGraphState &
   FlowPathState &
-  FlowAnchorRefState;
+  FlowAnchorRefState &
+  FlowExplorationState &
+  FlowExplorationActions;

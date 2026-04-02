@@ -92,6 +92,10 @@ func (h *MFWHandler) Handle(msg models.Message, conn *server.Connection) *models
 	case "/etl/mfw/controller_inactive":
 		h.handleControllerInactive(conn, msg)
 
+	// 探索模式：执行单节点动作
+	case "/etl/mfw/execute_action":
+		h.handleExecuteAction(conn, msg)
+
 	// 任务相关路由
 	case "/etl/mfw/submit_task":
 		h.handleSubmitTask(conn, msg)
@@ -680,6 +684,38 @@ func (h *MFWHandler) handleControllerInactive(conn *server.Connection, msg model
 	}
 
 	h.sendControllerOperationResult(conn, result)
+}
+
+// handleExecuteAction 执行单节点动作（探索模式）
+// TODO: 此功能需要完整的 Resource 和 Tasker 支持，目前返回未实现错误
+func (h *MFWHandler) handleExecuteAction(conn *server.Connection, msg models.Message) {
+	dataMap, ok := msg.Data.(map[string]interface{})
+	if !ok {
+		h.sendError(conn, errors.NewInvalidRequestError("请求数据格式错误"))
+		return
+	}
+
+	controllerID, _ := dataMap["controller_id"].(string)
+	recognitionType, _ := dataMap["recognition_type"].(string)
+	actionType, _ := dataMap["action_type"].(string)
+
+	logger.Debug("MFW", "探索模式执行动作请求: controller=%s, reco=%s, action=%s",
+		controllerID, recognitionType, actionType)
+
+	// 发送执行结果响应
+	// TODO: 实现完整的识别+执行逻辑
+	// 这需要:
+	// 1. 创建或获取 Resource
+	// 2. 创建 Tasker
+	// 3. 使用 Context.RunActionDirect 执行动作
+	response := models.Message{
+		Path: "/lte/mfw/execute_action_result",
+		Data: map[string]interface{}{
+			"success": false,
+			"error":   "探索模式执行功能需要 Resource 支持，请先加载资源后使用调试模式",
+		},
+	}
+	conn.Send(response)
 }
 
 // 任务相关处理方法

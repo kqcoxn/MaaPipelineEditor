@@ -344,7 +344,7 @@ export async function predictNodeConfig(
 /**
  * 解析AI返回结果
  */
-function parseAIResponse(content: string): AIPrediction {
+export function parseAIResponse(content: string): AIPrediction {
   // 尝试移除Markdown代码块标记
   let jsonStr = content.trim();
   if (jsonStr.startsWith("```json")) {

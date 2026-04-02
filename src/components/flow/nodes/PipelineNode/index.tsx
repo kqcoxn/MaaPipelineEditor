@@ -2,9 +2,12 @@ import { memo, useMemo, useState } from "react";
 import type { Node, NodeProps } from "@xyflow/react";
 import { useReactFlow } from "@xyflow/react";
 import classNames from "classnames";
+import { Button } from "antd";
+import { PlayCircleOutlined, CheckCircleOutlined } from "@ant-design/icons";
 
 import style from "../../../../styles/flow/nodes.module.less";
 import debugStyle from "../../../../styles/panels/DebugPanel.module.less";
+import explorationStyle from "../../../../styles/panels/ExplorationPanel.module.less";
 import type { PipelineNodeDataType } from "../../../../stores/flow";
 import { useFlowStore } from "../../../../stores/flow";
 import { useConfigStore } from "../../../../stores/configStore";
@@ -26,6 +29,17 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
 
   // 右键菜单状态
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
+
+  // 探索模式状态和操作
+  const ghostNodeId = useFlowStore((state) => state.ghostNodeId);
+  const execute = useFlowStore((state) => state.execute);
+  const confirm = useFlowStore((state) => state.confirm);
+
+  // 判断当前节点是否为 Ghost Node
+  const isGhostNode = props.data.extras?.isGhost === true;
+
+  // 判断当前节点是否为活跃的 Ghost Node（正在审核中）
+  const isActiveGhostNode = isGhostNode && ghostNodeId === props.id;
 
   // 获取完整的 Node 对象
   const node = getNode(props.id) as
@@ -149,6 +163,8 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
         [style["minimal-node"]]: nodeStyle === "minimal",
         // Anchor 引用高亮样式
         [style["anchor-ref-highlighted"]]: isAnchorRefHighlighted,
+        // Ghost Node 样式
+        [explorationStyle.ghostNode]: isGhostNode,
         // 调试相关样式
         [debugStyle["debug-node-executed"]]:
           debugMode && executedNodes.has(props.id),
@@ -173,6 +189,7 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
       props.selected,
       nodeStyle,
       isAnchorRefHighlighted,
+      isGhostNode,
       debugMode,
       executedNodes,
       currentNode,
@@ -204,6 +221,31 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
     return (
       <div className={nodeClass} style={opacityStyle}>
         {renderContent()}
+        {isActiveGhostNode && (
+          <div className={explorationStyle.ghostNodeActions}>
+            <Button
+              size="small"
+              icon={<PlayCircleOutlined />}
+              onClick={(e) => {
+                e.stopPropagation();
+                execute();
+              }}
+            >
+              执行
+            </Button>
+            <Button
+              size="small"
+              type="primary"
+              icon={<CheckCircleOutlined />}
+              onClick={(e) => {
+                e.stopPropagation();
+                confirm();
+              }}
+            >
+              确认
+            </Button>
+          </div>
+        )}
       </div>
     );
   }
@@ -216,6 +258,31 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
     >
       <div className={nodeClass} style={opacityStyle}>
         {renderContent()}
+        {isActiveGhostNode && (
+          <div className={explorationStyle.ghostNodeActions}>
+            <Button
+              size="small"
+              icon={<PlayCircleOutlined />}
+              onClick={(e) => {
+                e.stopPropagation();
+                execute();
+              }}
+            >
+              执行
+            </Button>
+            <Button
+              size="small"
+              type="primary"
+              icon={<CheckCircleOutlined />}
+              onClick={(e) => {
+                e.stopPropagation();
+                confirm();
+              }}
+            >
+              确认
+            </Button>
+          </div>
+        )}
       </div>
     </NodeContextMenu>
   );

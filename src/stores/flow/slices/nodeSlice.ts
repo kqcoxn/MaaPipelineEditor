@@ -142,6 +142,50 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       focus = false,
     } = options || {};
 
+    // 获取当前状态以生成 ID
+    const state = get();
+    let id = String(state.nodeIdCounter);
+    let labelBase;
+    let useNumberSuffix = true;
+
+    switch (type) {
+      case NodeTypeEnum.Pipeline:
+        labelBase = "新建节点";
+        break;
+      case NodeTypeEnum.External:
+        labelBase = "外部节点";
+        break;
+      case NodeTypeEnum.Anchor:
+        labelBase = "重定向节点";
+        break;
+      case NodeTypeEnum.Sticker:
+        labelBase = "便签";
+        useNumberSuffix = false;
+        break;
+      case NodeTypeEnum.Group:
+        labelBase = "分组";
+        useNumberSuffix = false;
+        break;
+    }
+
+    let label = useNumberSuffix ? labelBase + id : labelBase;
+    let counter = state.nodeIdCounter;
+
+    // 对需要唯一标识的节点检查重复
+    if (useNumberSuffix) {
+      while (
+        findNodeByLabel(state.nodes, label) ||
+        findNodeById(state.nodes, id)
+      ) {
+        counter++;
+        id = String(counter);
+        label = labelBase + id;
+      }
+    }
+
+    const finalId = id;
+    const finalCounter = counter;
+
     set((state) => {
       const selectedNodes = state.selectedNodes;
       let nodes = [...state.nodes];
@@ -149,43 +193,6 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       // 取消所有选中
       if (select) {
         nodes = nodes.map((node) => ({ ...node, selected: false }));
-      }
-
-      // 生成 ID 和 label
-      let id = String(state.nodeIdCounter);
-      let labelBase;
-      let useNumberSuffix = true;
-
-      switch (type) {
-        case NodeTypeEnum.Pipeline:
-          labelBase = "新建节点";
-          break;
-        case NodeTypeEnum.External:
-          labelBase = "外部节点";
-          break;
-        case NodeTypeEnum.Anchor:
-          labelBase = "重定向节点";
-          break;
-        case NodeTypeEnum.Sticker:
-          labelBase = "便签";
-          useNumberSuffix = false;
-          break;
-        case NodeTypeEnum.Group:
-          labelBase = "分组";
-          useNumberSuffix = false;
-          break;
-      }
-
-      let label = useNumberSuffix ? labelBase + id : labelBase;
-      let counter = state.nodeIdCounter;
-
-      // 对需要唯一标识的节点检查重复
-      if (useNumberSuffix) {
-        while (findNodeByLabel(nodes, label) || findNodeById(nodes, id)) {
-          counter++;
-          id = String(counter);
-          label = labelBase + id;
-        }
       }
 
       // 创建节点
@@ -212,16 +219,16 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       let newNode: NodeType;
       switch (type) {
         case NodeTypeEnum.Pipeline:
-          newNode = createPipelineNode(id, nodeOptions);
+          newNode = createPipelineNode(finalId, nodeOptions);
           break;
         case NodeTypeEnum.External:
-          newNode = createExternalNode(id, nodeOptions);
+          newNode = createExternalNode(finalId, nodeOptions);
           break;
         case NodeTypeEnum.Anchor:
-          newNode = createAnchorNode(id, nodeOptions);
+          newNode = createAnchorNode(finalId, nodeOptions);
           break;
         case NodeTypeEnum.Sticker:
-          newNode = createStickerNode(id, {
+          newNode = createStickerNode(finalId, {
             label,
             position: nodeOptions.position,
             select: nodeOptions.select,
@@ -229,7 +236,7 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
           });
           break;
         case NodeTypeEnum.Group:
-          newNode = createGroupNode(id, {
+          newNode = createGroupNode(finalId, {
             label,
             position: nodeOptions.position,
             select: nodeOptions.select,
@@ -257,7 +264,7 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
           get().addEdge({
             source: node.id,
             sourceHandle: SourceHandleTypeEnum.Next,
-            target: id,
+            target: finalId,
             targetHandle: TargetHandleTypeEnum.Target,
           });
         });
@@ -267,7 +274,7 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       nodes.push(newNode);
 
       // 分配顺序号
-      assignNodeOrder(id);
+      assignNodeOrder(finalId);
 
       // 更新选择状态
       if (select) {
@@ -281,12 +288,14 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
 
       return {
         nodes,
-        nodeIdCounter: counter + 1,
+        nodeIdCounter: finalCounter + 1,
       };
     });
 
     // 保存历史记录
     get().saveHistory(0);
+
+    return finalId;
   },
 
   // 更新节点数据

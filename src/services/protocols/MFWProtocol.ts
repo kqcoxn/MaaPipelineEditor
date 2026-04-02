@@ -22,6 +22,8 @@ export class MFWProtocol extends BaseProtocol {
   private imagePathCallbacks: Array<(data: any) => void> = [];
   // 打开日志结果回调函数
   private openLogCallbacks: Array<(data: any) => void> = [];
+  // 执行动作结果回调函数
+  private executeActionCallbacks: Array<(data: any) => void> = [];
   // 记录最后一次连接请求的设备信息
   private lastConnectionDevice: {
     type: "adb" | "win32" | "playcover" | "gamepad";
@@ -55,44 +57,49 @@ export class MFWProtocol extends BaseProtocol {
 
     // 注册设备列表路由
     this.wsClient.registerRoute("/lte/mfw/adb_devices", (data) =>
-      this.handleAdbDevices(data)
+      this.handleAdbDevices(data),
     );
     this.wsClient.registerRoute("/lte/mfw/win32_windows", (data) =>
-      this.handleWin32Windows(data)
+      this.handleWin32Windows(data),
     );
 
     // 注册控制器路由
     this.wsClient.registerRoute("/lte/mfw/controller_created", (data) =>
-      this.handleControllerCreated(data)
+      this.handleControllerCreated(data),
     );
     this.wsClient.registerRoute("/lte/mfw/controller_status", (data) =>
-      this.handleControllerStatus(data)
+      this.handleControllerStatus(data),
     );
 
     // 注册截图路由
     this.wsClient.registerRoute("/lte/mfw/screencap_result", (data) =>
-      this.handleScreencapResult(data)
+      this.handleScreencapResult(data),
     );
 
     // 注册 OCR 结果路由
     this.wsClient.registerRoute("/lte/utility/ocr_result", (data) =>
-      this.handleOCRResult(data)
+      this.handleOCRResult(data),
     );
 
     // 注图片路径解析结果路由
     this.wsClient.registerRoute("/lte/utility/image_path_resolved", (data) =>
-      this.handleImagePathResolved(data)
+      this.handleImagePathResolved(data),
     );
 
     // 注册打开日志结果路由
     this.wsClient.registerRoute("/lte/utility/log_opened", (data) =>
-      this.handleLogOpened(data)
+      this.handleLogOpened(data),
     );
 
     // 注册操作结果路由
     this.wsClient.registerRoute(
       "/lte/mfw/controller_operation_result",
-      (data) => this.handleOperationResult(data)
+      (data) => this.handleOperationResult(data),
+    );
+
+    // 注册执行动作结果路由
+    this.wsClient.registerRoute("/lte/mfw/execute_action_result", (data) =>
+      this.handleExecuteActionResult(data),
     );
   }
 
@@ -173,7 +180,7 @@ export class MFWProtocol extends BaseProtocol {
     } catch (error) {
       console.error(
         "[MFWProtocol] Failed to handle controller created:",
-        error
+        error,
       );
       const mfwStore = useMFWStore.getState();
       mfwStore.setErrorMessage("控制器连接失败");
@@ -224,6 +231,21 @@ export class MFWProtocol extends BaseProtocol {
    * 路由: /lte/mfw/controller_operation_result
    */
   private handleOperationResult(data: any): void {}
+
+  /**
+   * 处理执行动作结果
+   * 路由: /lte/mfw/execute_action_result
+   */
+  private handleExecuteActionResult(data: any): void {
+    // 触发所有注册的回调
+    this.executeActionCallbacks.forEach((callback) => {
+      try {
+        callback(data);
+      } catch (error) {
+        console.error("[MFWProtocol] Error in execute action callback:", error);
+      }
+    });
+  }
 
   /**
    * 处理 OCR 识别结果
@@ -317,7 +339,7 @@ export class MFWProtocol extends BaseProtocol {
 
     // 记录设备信息
     const device = mfwStore.adbDevices.find(
-      (d) => d.address === params.address
+      (d) => d.address === params.address,
     );
     if (device) {
       this.lastConnectionDevice = {
@@ -523,7 +545,7 @@ export class MFWProtocol extends BaseProtocol {
       relative_path: string;
       absolute_path: string;
       message: string;
-    }) => void
+    }) => void,
   ): () => void {
     this.imagePathCallbacks.push(callback);
 
@@ -558,7 +580,7 @@ export class MFWProtocol extends BaseProtocol {
       success: boolean;
       message: string;
       path?: string;
-    }) => void
+    }) => void,
   ): () => void {
     this.openLogCallbacks.push(callback);
 
@@ -769,5 +791,48 @@ export class MFWProtocol extends BaseProtocol {
       return false;
     }
     return this.wsClient.send("/etl/mfw/controller_inactive", params);
+  }
+
+  // === 探索模式执行动作方法 ===
+
+  /**
+   * 执行单节点动作
+   * 用于探索模式，执行一个完整的 Pipeline 节点动作
+   */
+  public executeAction(params: {
+    controller_id: string;
+    recognition_type: string;
+    recognition_param: Record<string, any>;
+    action_type: string;
+    action_param: Record<string, any>;
+  }): boolean {
+    if (!this.wsClient) {
+      console.error("[MFWProtocol] WebSocket client not initialized");
+      return false;
+    }
+    return this.wsClient.send("/etl/mfw/execute_action", params);
+  }
+
+  /**
+   * 注册执行动作结果回调
+   * @param callback 执行动作结果回调函数
+   * @returns 注销函数
+   */
+  public onExecuteActionResult(
+    callback: (data: {
+      success: boolean;
+      error?: string;
+      result?: any;
+    }) => void,
+  ): () => void {
+    this.executeActionCallbacks.push(callback);
+
+    // 返回注销函数
+    return () => {
+      const index = this.executeActionCallbacks.indexOf(callback);
+      if (index > -1) {
+        this.executeActionCallbacks.splice(index, 1);
+      }
+    };
   }
 }

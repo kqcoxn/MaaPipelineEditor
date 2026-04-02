@@ -1,0 +1,286 @@
+/**
+ * 探索模式面板样式
+ */
+
+// 悬浮球
+.fab {
+  position: absolute;
+  bottom: 90px;
+  right: 25px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 20;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+.fabPulse {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.fabActive {
+  background: linear-gradient(135deg, #722ed1 0%, #531dab 100%);
+}
+
+.fabDisabled {
+  background: linear-gradient(135deg, #bfbfbf 0%, #8c8c8c 100%);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 24px rgba(102, 126, 234, 0.8);
+  }
+  100% {
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  }
+}
+
+// 中控面板
+.panel {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  width: 320px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  z-index: 19;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateX(-50%) translateY(-10px) scale(0.95);
+  transform-origin: top center;
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+  pointer-events: none;
+
+  :global(.dark) & {
+    background-color: #1f1f1f;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  }
+}
+
+.panelVisible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e8e8e8;
+  background: #fafafa;
+
+  :global(.dark) & {
+    border-bottom-color: #333;
+    background: #2a2a2a;
+  }
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+
+  .text {
+    font-size: 18px;
+  }
+}
+
+.closeIcon {
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.content {
+  padding: 16px;
+}
+
+// idle 状态
+.idleContent {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.inputRow {
+  display: flex;
+  gap: 8px;
+}
+
+.goalInput {
+  flex: 1;
+}
+
+.startBtn {
+  height: auto;
+}
+
+.startNodeRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.label {
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.startNodeSelect {
+  flex: 1;
+}
+
+// predicting 状态
+.predictingContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 0;
+}
+
+.progressInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+// reviewing 状态
+.reviewingContent {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.goalDisplay {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--color-bg-layout);
+  border-radius: 8px;
+
+  :global(.dark) & {
+    background: #2a2a2a;
+  }
+}
+
+.stepInfo {
+  text-align: center;
+}
+
+.actionButtons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.errorText {
+  margin: 0;
+  padding: 8px;
+  background: rgba(255, 77, 79, 0.1);
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.footerButtons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border-secondary);
+
+  :global(.dark) & {
+    border-top-color: #333;
+  }
+}
+
+// executing 状态
+.executingContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 0;
+}
+
+// completed 状态
+.completedContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 0;
+}
+
+// Ghost Node 样式
+.ghostNode {
+  border: 2px dashed #1890ff !important;
+  background: rgba(24, 144, 255, 0.05) !important;
+  opacity: 0.9;
+
+  :global(.dark) & {
+    background: rgba(24, 144, 255, 0.1) !important;
+  }
+}
+
+.ghostNodeLabel {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  padding: 0 6px;
+  font-size: 10px;
+  background: #1890ff;
+  color: #fff;
+  border-radius: 4px;
+}
+
+.ghostNodeActions {
+  position: absolute;
+  bottom: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  padding: 4px 8px;
+  background: var(--color-bg-container);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+
+  :global(.dark) & {
+    background: #2a2a2a;
+  }
+}
