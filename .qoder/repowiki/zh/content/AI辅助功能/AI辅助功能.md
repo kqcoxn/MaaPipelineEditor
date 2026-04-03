@@ -5,9 +5,12 @@
 - [aiPredictor.ts](file://src/utils/ai/aiPredictor.ts)
 - [aiPrompts.ts](file://src/utils/ai/aiPrompts.ts)
 - [openai.ts](file://src/utils/ai/openai.ts)
+- [explorationAI.ts](file://src/utils/ai/explorationAI.ts)
 - [SearchPanel.tsx](file://src/components/panels/main/SearchPanel.tsx)
 - [AIHistoryPanel.tsx](file://src/components/panels/main/AIHistoryPanel.tsx)
 - [AIConfigSection.tsx](file://src/components/panels/config/AIConfigSection.tsx)
+- [ExplorationPanel.tsx](file://src/components/panels/exploration/ExplorationPanel.tsx)
+- [explorationSlice.ts](file://src/stores/flow/slices/explorationSlice.ts)
 - [crossFileService.ts](file://src/services/crossFileService.ts)
 - [configStore.ts](file://src/stores/configStore.ts)
 - [AdjacentInfoPanel.tsx](file://src/components/panels/main/AdjacentInfoPanel.tsx)
@@ -17,9 +20,10 @@
 
 ## 更新摘要
 **变更内容**
-- AI相关工具模块重构：从 src/utils/ 移动到 src/utils/ai/，提升代码组织清晰度
-- AI预测系统得到增强，新增智能节点配置建议功能，支持更精确的配置预测
-- 提升了AI工具的模块化程度，便于维护和扩展
+- 新增探索AI功能：引入专门的探索模式AI工具，支持目标导向的智能分析和动作执行
+- 扩展AI预测系统：在原有节点级AI补全基础上，新增探索模式的流程级智能分析能力
+- 新增探索模式UI组件：提供完整的探索模式交互界面，支持状态管理和进度跟踪
+- 增强动作执行协调：实现从AI预测到设备执行的完整闭环，支持实时反馈和错误处理
 
 ## 目录
 1. [简介](#简介)
@@ -34,19 +38,21 @@
 10. [附录](#附录)
 
 ## 简介
-本文件系统性阐述 MaaPipelineEditor 的 AI 辅助能力，覆盖智能搜索、节点级 AI 补全、推理预测、OpenAI 集成、AI 历史记录管理、配置与个性化设置、最佳实践与使用技巧，以及与传统编辑方式的互补关系。本次重大更新引入了全新的视觉AI预测系统，从传统的OCR识别转向基于截图的视觉分析，显著提升了AI辅助功能的实用性和准确性。
+本文件系统性阐述 MaaPipelineEditor 的 AI 辅助能力，覆盖智能搜索、节点级 AI 补全、推理预测、探索模式AI、OpenAI 集成、AI 历史记录管理、配置与个性化设置、最佳实践与使用技巧，以及与传统编辑方式的互补关系。本次重大更新引入了全新的探索AI功能，从传统的节点级AI补全扩展为支持目标导向的流程探索和智能分析，显著提升了AI辅助功能的实用性和智能化水平。
 
 ## 项目结构
-AI功能围绕"提示词工程 + 视觉分析 + 对话管理 + 上下文采集 + 结果校验 + 历史记录 + 配置面板"组织，前端采用 React + Zustand 状态管理，后端通过本地桥接服务与设备交互，形成"前端 AI 调用 + 本地服务协同"的闭环。
+AI功能围绕"提示词工程 + 视觉分析 + 对话管理 + 上下文采集 + 结果校验 + 历史记录 + 配置面板 + 探索模式"组织，前端采用 React + Zustand 状态管理，后端通过本地桥接服务与设备交互，形成"前端 AI 调用 + 本地服务协同 + 探索模式闭环"的完整体系。
 
 ```mermaid
 graph TB
 subgraph "前端"
 SP["搜索面板<br/>SearchPanel.tsx"]
+EP["探索面板<br/>ExplorationPanel.tsx"]
 NLP["节点列表面板<br/>NodeListPanel.tsx"]
 AICFG["AI配置面板<br/>AIConfigSection.tsx"]
 AIPROMPT["AI提示词管理<br/>aiPrompts.ts"]
 AIPRED["AI预测器<br/>aiPredictor.ts"]
+EXPAI["探索AI工具<br/>explorationAI.ts"]
 OPENAI["OpenAI聊天封装<br/>openai.ts"]
 HIS["AI历史面板<br/>AIHistoryPanel.tsx"]
 CFG["配置存储<br/>configStore.ts"]
@@ -54,82 +60,107 @@ end
 subgraph "服务层"
 CFS["跨文件服务<br/>crossFileService.ts"]
 ERR["错误面板<br/>ErrorPanel.tsx"]
-MFW["MFW协议<br/>设备截图"]
+MFW["MFW协议<br/>设备截图/执行"]
+end
+subgraph "状态管理"
+EXPSTORE["探索状态管理<br/>explorationSlice.ts"]
+FLOW["流程状态<br/>flowStore"]
 end
 SP --> AIPRED
 SP --> OPENAI
-SP --> CFS
-NLP --> CFS
+EP --> EXPAI
+EP --> EXPSTORE
+EP --> MFW
+EXPAI --> AIPRED
+EXPAI --> OPENAI
+EXPAI --> MFW
 AIPRED --> AIPROMPT
 AIPRED --> OPENAI
 AIPRED --> MFW
 OPENAI --> HIS
 AICFG --> CFG
 AIPRED --> ERR
+EXPAI --> ERR
 ```
 
 **图表来源**
 - [SearchPanel.tsx:1-406](file://src/components/panels/main/SearchPanel.tsx#L1-L406)
+- [ExplorationPanel.tsx:1-293](file://src/components/panels/exploration/ExplorationPanel.tsx#L1-L293)
 - [NodeListPanel.tsx:1-396](file://src/components/panels/main/node-list/NodeListPanel.tsx#L1-L396)
 - [AIConfigSection.tsx:1-189](file://src/components/panels/config/AIConfigSection.tsx#L1-L189)
 - [aiPrompts.ts:1-427](file://src/utils/ai/aiPrompts.ts#L1-L427)
 - [aiPredictor.ts:1-583](file://src/utils/ai/aiPredictor.ts#L1-L583)
+- [explorationAI.ts:1-389](file://src/utils/ai/explorationAI.ts#L1-L389)
 - [openai.ts:1-509](file://src/utils/ai/openai.ts#L1-L509)
 - [AIHistoryPanel.tsx:1-166](file://src/components/panels/main/AIHistoryPanel.tsx#L1-L166)
 - [crossFileService.ts:1-729](file://src/services/crossFileService.ts#L1-L729)
 - [configStore.ts:1-287](file://src/stores/configStore.ts#L1-L287)
 - [ErrorPanel.tsx:1-38](file://src/components/panels/main/ErrorPanel.tsx#L1-L38)
+- [explorationSlice.ts:1-270](file://src/stores/flow/slices/explorationSlice.ts#L1-L270)
 
 **章节来源**
 - [SearchPanel.tsx:1-406](file://src/components/panels/main/SearchPanel.tsx#L1-L406)
+- [ExplorationPanel.tsx:1-293](file://src/components/panels/exploration/ExplorationPanel.tsx#L1-L293)
 - [aiPrompts.ts:1-427](file://src/utils/ai/aiPrompts.ts#L1-L427)
 - [aiPredictor.ts:1-583](file://src/utils/ai/aiPredictor.ts#L1-L583)
+- [explorationAI.ts:1-389](file://src/utils/ai/explorationAI.ts#L1-L389)
 - [openai.ts:1-509](file://src/utils/ai/openai.ts#L1-L509)
 - [crossFileService.ts:1-729](file://src/services/crossFileService.ts#L1-L729)
 - [configStore.ts:1-287](file://src/stores/configStore.ts#L1-L287)
+- [explorationSlice.ts:1-270](file://src/stores/flow/slices/explorationSlice.ts#L1-L270)
 
 ## 核心组件
 - **智能搜索系统**：基于跨文件节点服务与 AI 提示词，实现节点级模糊搜索与精准定位。
 - **视觉AI预测系统**：基于截图视觉分析的节点级 AI 补全，替代传统OCR识别，提供更准确的配置建议。
+- **探索模式AI系统**：基于目标导向的流程探索，支持智能分析、动作预测和设备执行协调。
 - **提示词管理系统**：统一管理所有AI功能的提示词，包括协议规范、预测示例、系统提示词等。
 - **推理预测系统**：结合流程拓扑与视觉分析，进行逻辑验证与错误检测。
 - **OpenAI 集成**：统一的聊天封装，支持非流式与流式响应、重试、历史裁剪、取消与安全校验。
 - **AI 历史记录管理**：全局记录对话历史，支持查看、清空与订阅变更。
+- **探索模式状态管理**：完整的探索生命周期管理，包括状态转换、进度跟踪和错误处理。
 - **配置与个性化**：API 地址、密钥、模型、跨文件搜索开关、历史面板开关等。
 
 **章节来源**
 - [aiPrompts.ts:8-427](file://src/utils/ai/aiPrompts.ts#L8-L427)
 - [aiPredictor.ts:71-150](file://src/utils/ai/aiPredictor.ts#L71-L150)
+- [explorationAI.ts:20-389](file://src/utils/ai/explorationAI.ts#L20-L389)
 - [openai.ts:100-509](file://src/utils/ai/openai.ts#L100-L509)
 - [SearchPanel.tsx:205-273](file://src/components/panels/main/SearchPanel.tsx#L205-L273)
 - [AIConfigSection.tsx:1-189](file://src/components/panels/config/AIConfigSection.tsx#L1-L189)
+- [explorationSlice.ts:377-419](file://src/stores/flow/slices/explorationSlice.ts#L377-L419)
 
 ## 架构总览
-AI 辅助功能的运行链路经过重大升级，现在基于视觉分析而非OCR识别：
+AI 辅助功能的运行链路经过重大升级，现在支持探索模式的完整流程：
 
 ```mermaid
 sequenceDiagram
 participant U as "用户"
-participant SP as "搜索面板"
-participant CFS as "跨文件服务"
+participant EP as "探索面板"
+participant EXPAI as "探索AI工具"
 participant AIP as "AI预测器"
-participant AIPROMPT as "提示词管理"
 participant OA as "OpenAI封装"
 participant MFW as "MFW协议"
 participant HIS as "历史面板"
-U->>SP : 输入搜索关键词
-SP->>CFS : 查询节点列表(跨文件/排序/过滤)
-SP->>SP : 构建AI提示词(节点上下文)
-SP->>OA : 发送请求(非流式)
-OA-->>SP : 返回AI结果
-SP->>SP : 定位节点/聚焦视图
-OA->>HIS : 记录历史(成功/失败)
+U->>EP : 输入探索目标
+EP->>EXPAI : 预测探索步骤
+EXPAI->>MFW : 获取截图(performExplorationScreenshot)
+EXPAI->>AIP : 收集上下文(collectNodeContext)
+EXPAI->>OA : 发送Vision请求(探索模式提示词)
+OA-->>EXPAI : 返回AI预测结果
+EXPAI->>EP : 显示预测方案
+U->>EP : 确认方案
+EP->>EXPAI : 执行动作(executeNodeAction)
+EXPAI->>MFW : 发送执行请求
+MFW-->>EXPAI : 返回执行结果
+EXPAI->>EP : 显示执行状态
+EP->>HIS : 记录历史(成功/失败)
 ```
 
 **图表来源**
-- [SearchPanel.tsx:205-273](file://src/components/panels/main/SearchPanel.tsx#L205-L273)
-- [crossFileService.ts:207-268](file://src/services/crossFileService.ts#L207-L268)
-- [openai.ts:188-262](file://src/utils/ai/openai.ts#L188-L262)
+- [ExplorationPanel.tsx:69-110](file://src/components/panels/exploration/ExplorationPanel.tsx#L69-L110)
+- [explorationAI.ts:69-116](file://src/utils/ai/explorationAI.ts#L69-L116)
+- [explorationAI.ts:278-340](file://src/utils/ai/explorationAI.ts#L278-L340)
+- [explorationSlice.ts:42-118](file://src/stores/flow/slices/explorationSlice.ts#L42-118)
 - [AIHistoryPanel.tsx:82-166](file://src/components/panels/main/AIHistoryPanel.tsx#L82-L166)
 
 ## 详细组件分析
@@ -214,6 +245,49 @@ AIP-->>U : 显示推理说明/更新完成
 - [aiPrompts.ts:118-183](file://src/utils/ai/aiPrompts.ts#L118-L183)
 - [crossFileService.ts:531-560](file://src/services/crossFileService.ts#L531-L560)
 
+### 探索模式AI系统（目标导向的智能分析与执行）
+- **能力概述**
+  - **目标导向分析**：基于用户输入的探索目标，分析当前界面状态并预测最优操作步骤。
+  - **智能节点生成**：自动生成临时的Ghost节点，包含预测的识别类型、动作类型和推理说明。
+  - **设备执行协调**：将AI预测的动作转换为实际的设备操作，支持点击、滑动、按键等。
+  - **状态管理**：完整的探索生命周期管理，包括预测、审核、执行、完成等状态转换。
+  - **进度跟踪**：实时显示AI分析进度，提供详细的阶段说明和错误信息。
+  - **错误处理**：完善的错误捕获和恢复机制，支持用户中断和保存退出。
+- **与探索面板联动**：通过UI组件提供直观的操作界面，支持目标输入、状态切换和进度显示。
+
+```mermaid
+sequenceDiagram
+participant U as "用户"
+participant EP as "探索面板"
+participant EXPAI as "探索AI工具"
+participant OA as "OpenAI封装"
+participant MFW as "MFW协议"
+U->>EP : 输入探索目标
+EP->>EXPAI : predictExplorationStep
+EXPAI->>EXPAI : collectNodeContext
+EXPAI->>OA : sendVision(探索模式提示词)
+OA-->>EXPAI : 返回预测结果
+EXPAI->>EP : 创建Ghost节点并应用预测
+U->>EP : 确认方案
+EP->>EXPAI : executeNodeAction
+EXPAI->>MFW : 执行设备操作
+MFW-->>EXPAI : 返回执行结果
+EXPAI->>EP : 显示执行状态
+U->>EP : 下一步操作
+EP->>EXPAI : 继续预测下一阶段
+```
+
+**图表来源**
+- [explorationAI.ts:69-116](file://src/utils/ai/explorationAI.ts#L69-L116)
+- [explorationAI.ts:278-340](file://src/utils/ai/explorationAI.ts#L278-L340)
+- [ExplorationPanel.tsx:69-110](file://src/components/panels/exploration/ExplorationPanel.tsx#L69-L110)
+- [explorationSlice.ts:42-118](file://src/stores/flow/slices/explorationSlice.ts#L42-118)
+
+**章节来源**
+- [explorationAI.ts:20-389](file://src/utils/ai/explorationAI.ts#L20-L389)
+- [ExplorationPanel.tsx:1-293](file://src/components/panels/exploration/ExplorationPanel.tsx#L1-L293)
+- [explorationSlice.ts:1-270](file://src/stores/flow/slices/explorationSlice.ts#L1-L270)
+
 ### 提示词管理系统（统一提示词工程）
 - **能力概述**
   - **协议规范**：MaaFramework Pipeline协议精要，包括识别类型、动作类型、关键参数和约束规则。
@@ -221,6 +295,7 @@ AIP-->>U : 显示推理说明/更新完成
   - **系统提示词**：SYSTEM_PROMPTS常量，包含PIPELINE_EXPERT和TEST_CONNECTION等预设提示词。
   - **用户提示词**：buildVisionUserPrompt函数，动态构建针对当前节点的视觉分析提示词。
   - **完整提示词**：buildVisionPredictionPrompt函数，组合协议规范、预测示例和用户提示词。
+  - **探索模式提示词**：buildExplorationPrompt函数，专为探索模式设计的目标导向分析提示词。
 - **关键功能**
   - 统一管理所有AI功能的提示词，确保一致性。
   - 支持动态构建针对不同节点上下文的提示词。
@@ -236,6 +311,9 @@ class AIPrompts {
 +buildVisionPredictionPrompt(context) string
 +buildAISearchPrompt(nodesContext) string
 }
+class ExplorationPromptBuilder {
++buildExplorationPrompt(context, goal) string
+}
 class NodeContext {
 +currentNode : object
 +precedingNodes : array
@@ -247,13 +325,16 @@ class VisionPromptBuilder {
 }
 AIPrompts --> NodeContext : uses
 AIPrompts --> VisionPromptBuilder : creates
+AIPrompts --> ExplorationPromptBuilder : creates
 ```
 
 **图表来源**
 - [aiPrompts.ts:11-427](file://src/utils/ai/aiPrompts.ts#L11-L427)
+- [explorationAI.ts:122-183](file://src/utils/ai/explorationAI.ts#L122-L183)
 
 **章节来源**
 - [aiPrompts.ts:8-427](file://src/utils/ai/aiPrompts.ts#L8-L427)
+- [explorationAI.ts:122-183](file://src/utils/ai/explorationAI.ts#L122-L183)
 
 ### 推理预测系统（流程分析、逻辑验证、错误检测）
 - **流程分析**：基于前置节点连接类型（next/jump_back/on_error）与顺序号，结合截图画面内容，推断节点目的与应采用的识别/动作类型。
@@ -351,8 +432,40 @@ HM-->>HP : 返回记录列表
 - [openai.ts:55-94](file://src/utils/ai/openai.ts#L55-L94)
 - [AIHistoryPanel.tsx:82-166](file://src/components/panels/main/AIHistoryPanel.tsx#L82-L166)
 
+### 探索模式状态管理（生命周期管理与进度跟踪）
+- **状态管理**：完整的探索生命周期，包括 idle、predicting、reviewing、executing、completed 状态。
+- **进度跟踪**：实时显示AI分析进度，提供详细的阶段说明和错误信息。
+- **节点管理**：支持Ghost节点的创建、更新和删除，实现临时节点的生命周期管理。
+- **连接管理**：自动创建节点间的连接关系，支持next、jump_back、on_error等连接类型。
+- **错误处理**：完善的错误捕获和恢复机制，支持用户中断和保存退出。
+- **UI集成**：与探索面板紧密集成，提供直观的状态切换和操作界面。
+
+```mermaid
+stateDiagram-v2
+[*] --> idle
+idle --> predicting : start()
+predicting --> reviewing : 预测完成
+reviewing --> executing : execute()
+executing --> reviewing : 执行完成
+reviewing --> predicting : confirm()继续
+reviewing --> completed : complete()
+predicting --> idle : abort()
+reviewing --> idle : abort()
+executing --> idle : abort()
+completed --> [*]
+```
+
+**图表来源**
+- [explorationSlice.ts:377-419](file://src/stores/flow/slices/explorationSlice.ts#L377-L419)
+- [explorationSlice.ts:42-270](file://src/stores/flow/slices/explorationSlice.ts#L42-270)
+
+**章节来源**
+- [explorationSlice.ts:1-270](file://src/stores/flow/slices/explorationSlice.ts#L1-L270)
+- [ExplorationPanel.tsx:1-293](file://src/components/panels/exploration/ExplorationPanel.tsx#L1-L293)
+
 ### 配置选项与个性化设置
 - **AI 配置**：API URL、API Key、模型名称；测试连接；跨文件搜索开关；AI 历史面板开关。
+- **探索模式配置**：探索目标输入、起始节点选择、设备连接状态检查。
 - **个性化**：节点样式、字段面板模式、实时预览、磁吸对齐、画布背景模式等（与 AI 无关，但影响编辑体验）。
 - **面板联动**：AI 历史面板与配置面板联动，支持在配置面板中开启/关闭并查看历史。
 - **模型要求**：节点预测功能需要支持视觉的模型（如GPT-4o、Claude-3.5-Sonnet、Qwen-VL等）。
@@ -361,25 +474,34 @@ HM-->>HP : 返回记录列表
 - [AIConfigSection.tsx:1-189](file://src/components/panels/config/AIConfigSection.tsx#L1-L189)
 - [configStore.ts:177-287](file://src/stores/configStore.ts#L177-L287)
 - [configStore.ts:256-267](file://src/stores/configStore.ts#L256-L267)
+- [ExplorationPanel.tsx:58-68](file://src/components/panels/exploration/ExplorationPanel.tsx#L58-L68)
 
 ## 依赖关系分析
 - **组件耦合**
   - SearchPanel 依赖 crossFileService 与 openai.ts；NodeListPanel 依赖 crossFileService 与 AdjacentInfoPanel。
   - aiPredictor.ts 依赖 aiPrompts.ts、openai.ts、mfw 协议（截图）、字段定义（识别/动作字段键集合）。
+  - explorationAI.ts 依赖 aiPredictor.ts、aiPrompts.ts、openai.ts、mfw 协议（截图/执行）。
+  - ExplorationPanel 依赖 explorationSlice.ts、mfw 协议、configStore。
+  - explorationSlice.ts 依赖 explorationAI.ts、aiPredictor.ts、mfw 协议。
   - AIHistoryPanel 依赖 aiHistoryManager；AIConfigSection 依赖 configStore。
   - aiPrompts.ts 依赖 NodeContext 类型定义。
 - **外部依赖**
-  - 本地桥接服务（mfw 协议）提供截图能力，用于视觉分析上下文采集。
+  - 本地桥接服务（mfw 协议）提供截图和设备执行能力，用于探索模式的智能分析和动作执行。
   - 浏览器 Fetch API 调用 OpenAI 兼容接口，受 CORS 限制影响。
 
 ```mermaid
 graph LR
 SP["SearchPanel.tsx"] --> CFS["crossFileService.ts"]
 SP --> OA["openai.ts"]
-NLP["NodeListPanel.tsx"] --> CFS
-AIP["aiPredictor.ts"] --> AIPROMPT["aiPrompts.ts"]
+EP["ExplorationPanel.tsx"] --> EXP["explorationSlice.ts"]
+EP --> MFW["mfw协议"]
+EXP --> EXPAI["explorationAI.ts"]
+EXPAI --> AIP["aiPredictor.ts"]
+EXPAI --> OA
+EXPAI --> MFW
+AIP --> AIPROMPT["aiPrompts.ts"]
 AIP --> OA
-AIP --> MFW["mfw协议(截图)"]
+AIP --> MFW
 AIPROMPT --> TYPES["NodeContext类型"]
 HIS["AIHistoryPanel.tsx"] --> HM["aiHistoryManager"]
 AICFG["AIConfigSection.tsx"] --> CFG["configStore.ts"]
@@ -387,6 +509,9 @@ AICFG["AIConfigSection.tsx"] --> CFG["configStore.ts"]
 
 **图表来源**
 - [SearchPanel.tsx:1-406](file://src/components/panels/main/SearchPanel.tsx#L1-L406)
+- [ExplorationPanel.tsx:1-293](file://src/components/panels/exploration/ExplorationPanel.tsx#L1-L293)
+- [explorationSlice.ts:1-270](file://src/stores/flow/slices/explorationSlice.ts#L1-L270)
+- [explorationAI.ts:1-389](file://src/utils/ai/explorationAI.ts#L1-L389)
 - [crossFileService.ts:1-729](file://src/services/crossFileService.ts#L1-L729)
 - [openai.ts:1-509](file://src/utils/ai/openai.ts#L1-L509)
 - [aiPredictor.ts:1-583](file://src/utils/ai/aiPredictor.ts#L1-L583)
@@ -397,6 +522,9 @@ AICFG["AIConfigSection.tsx"] --> CFG["configStore.ts"]
 
 **章节来源**
 - [SearchPanel.tsx:1-406](file://src/components/panels/main/SearchPanel.tsx#L1-L406)
+- [ExplorationPanel.tsx:1-293](file://src/components/panels/exploration/ExplorationPanel.tsx#L1-L293)
+- [explorationSlice.ts:1-270](file://src/stores/flow/slices/explorationSlice.ts#L1-L270)
+- [explorationAI.ts:1-389](file://src/utils/ai/explorationAI.ts#L1-L389)
 - [aiPredictor.ts:1-583](file://src/utils/ai/aiPredictor.ts#L1-L583)
 - [aiPrompts.ts:1-427](file://src/utils/ai/aiPrompts.ts#L1-L427)
 
@@ -407,6 +535,7 @@ AICFG["AIConfigSection.tsx"] --> CFG["configStore.ts"]
 - **跨文件搜索**：启用跨文件时节点列表较大，建议配合关键词过滤与类型筛选。
 - **UI 响应**：AI 搜索与预测过程使用防抖与进度提示，避免频繁请求造成卡顿。
 - **视觉分析优化**：截图获取超时控制在10秒内，避免长时间等待影响用户体验。
+- **探索模式优化**：Ghost节点的创建和删除需要及时清理，避免内存泄漏；设备执行超时控制在30秒内。
 
 ## 故障排查指南
 - **API 配置问题**
@@ -418,6 +547,12 @@ AICFG["AIConfigSection.tsx"] --> CFG["configStore.ts"]
 - **截图获取失败**
   - 症状：AI预测失败，提示截图获取失败。
   - 处理：确认已连接设备且控制器 ID 有效；检查本地桥接服务状态；确保设备屏幕可访问。
+- **探索模式执行失败**
+  - 症状：设备执行失败或无响应。
+  - 处理：检查设备连接状态；确认动作参数的有效性；查看错误面板的具体错误信息。
+- **Ghost节点异常**
+  - 症状：临时节点无法创建或删除。
+  - 处理：检查节点数据结构；确认extras.isGhost标记；验证节点位置计算。
 - **AI 返回格式异常**
   - 症状：解析失败或返回非 JSON。
   - 处理：调整系统提示词，要求返回严格的 JSON；必要时降低温度。
@@ -432,10 +567,12 @@ AICFG["AIConfigSection.tsx"] --> CFG["configStore.ts"]
 - [openai.ts:188-262](file://src/utils/ai/openai.ts#L188-L262)
 - [openai.ts:419-507](file://src/utils/ai/openai.ts#L419-L507)
 - [aiPredictor.ts:155-203](file://src/utils/ai/aiPredictor.ts#L155-L203)
+- [explorationAI.ts:345-388](file://src/utils/ai/explorationAI.ts#L345-L388)
+- [explorationSlice.ts:48-55](file://src/stores/flow/slices/explorationSlice.ts#L48-55)
 - [ErrorPanel.tsx:8-38](file://src/components/panels/main/ErrorPanel.tsx#L8-L38)
 
 ## 结论
-MaaPipelineEditor 的 AI 辅助功能经过重大升级，通过"智能搜索 + 视觉AI预测 + 推理校验 + 历史管理 + 集成封装"的新体系，显著提升了节点配置效率与准确性。新的视觉AI预测系统替代了传统的OCR识别，基于截图画面进行智能分析，提供更准确的配置建议。它与传统编辑方式互补：前者加速探索与纠错，后者保证细节与一致性。合理配置与使用技巧可进一步降低成本、提升稳定性与可维护性。
+MaaPipelineEditor 的 AI 辅助功能经过重大升级，通过"智能搜索 + 视觉AI预测 + 探索模式AI + 推理校验 + 历史管理 + 集成封装"的新体系，显著提升了节点配置效率与准确性。新增的探索AI功能实现了从目标导向的智能分析到设备执行的完整闭环，支持复杂的流程探索和自动化操作。它与传统编辑方式互补：前者加速探索与纠错，后者保证细节与一致性。合理配置与使用技巧可进一步降低成本、提升稳定性与可维护性。
 
 ## 附录
 
@@ -447,6 +584,11 @@ MaaPipelineEditor 的 AI 辅助功能经过重大升级，通过"智能搜索 + 
   - 确保设备连接正常，截图能够成功获取。
   - 优先提供清晰的界面截图，提升AI视觉分析准确性。
   - 使用较低温度（0.3-0.7）获得更稳定的配置建议。
+- **探索模式使用**
+  - 清晰描述探索目标，提供具体的业务场景和预期结果。
+  - 合理选择起始节点，确保探索过程的连贯性和逻辑性。
+  - 仔细审核AI生成的预测方案，必要时进行手动调整。
+  - 利用设备执行功能验证AI预测的准确性，及时发现并修正问题。
 - **校验与应用**
   - 关注推理说明，理解 AI 选择的原因，必要时手动微调。
   - 利用历史面板回顾 AI 输出质量，逐步优化提示词。
@@ -454,6 +596,7 @@ MaaPipelineEditor 的 AI 辅助功能经过重大升级，通过"智能搜索 + 
   - API Key 存储于本地，避免在公共设备使用；建议使用中转服务。
   - 定期清理历史记录，减少 token 消耗与隐私风险。
   - 确保使用支持视觉的模型，以获得最佳的AI预测效果。
+  - 探索模式下注意设备安全，避免执行可能损坏设备的操作。
 
 ### AI提示系统详细规范
 
@@ -488,12 +631,12 @@ MaaPipelineEditor 的 AI 辅助功能经过重大升级，通过"智能搜索 + 
 - **ColorMatch 必填 lower/upper**：颜色范围，method 默认 4(RGB)
 - **And/Or 组合识别**：all_of/any_of 中可内联定义或引用节点名
 
-#### 设计模式
-- **图标按钮识别**：图标无文字时使用 TemplateMatch，有文字优先 OCR
-- **多状态按钮**：同一按钮可能有多种外观，使用 Or 组合
-- **多条件验证**：同时验证多个条件，使用 And + sub_name
-- **固定位置操作**：滑动、点击固定位置使用 DirectHit
-- **文本输入**：先点击输入框，再输入文本（通常需要两个节点）
+#### 探索模式设计模式
+- **目标导向识别**：根据探索目标选择最合适的识别类型，优先考虑OCR和TemplateMatch
+- **动作序列规划**：将复杂的探索目标分解为连续的简单动作步骤
+- **设备安全考虑**：避免执行可能损坏设备或违反用户协议的操作
+- **错误恢复机制**：设计合理的错误处理和重试策略
+- **进度可视化**：提供清晰的进度指示和状态反馈
 
 #### 性能优化提示
 - **roi 精确裁剪**：缩小识别区域既提升速度又减少误识别
