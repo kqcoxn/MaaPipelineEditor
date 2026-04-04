@@ -56,6 +56,7 @@ const PanelConfigSection = memo(() => {
   return (
     <>
       <div className={style.divider}>—————— 面板配置 ——————</div>
+
       {/* 节点风格 */}
       <div className={globalClass}>
         <div className={style.key}>
@@ -79,6 +80,7 @@ const PanelConfigSection = memo(() => {
           ]}
         />
       </div>
+
       {/* 渲染节点详细字段 */}
       <div className={globalClass}>
         <div className={style.key}>
@@ -107,26 +109,208 @@ const PanelConfigSection = memo(() => {
           }
         />
       </div>
-      {/* 历史记录上限 */}
+
+      {/* 边走线模式 */}
       <div className={globalClass}>
         <div className={style.key}>
           <Popover
             placement="bottomLeft"
-            title={"历史记录上限"}
-            content="设置撤销/重做功能的最大历史记录数量，设置过大可能占用较多内存并产生卡顿"
+            title={"边走线模式"}
+            content={
+              <TipElem
+                content={
+                  "曲线：使用贝塞尔曲线连接节点，线条平滑流畅\n直角：使用阶梯状折线连接节点，路径规整清晰\n避让：自动绕过路径上的节点，智能规划路线"
+                }
+              />
+            }
           >
-            <span>历史记录上限</span>
+            <span>边走线模式</span>
+          </Popover>
+        </div>
+        <Select
+          className={style.value}
+          style={{ width: 70 }}
+          value={edgePathMode}
+          onChange={(value) => setConfig("edgePathMode", value)}
+          options={[
+            { value: "bezier", label: "曲线" },
+            { value: "smoothstep", label: "直角" },
+            { value: "avoid", label: "避让" },
+          ]}
+        />
+      </div>
+
+      {/* 显示边标签 */}
+      <div className={globalClass}>
+        <div className={style.key}>
+          <Popover
+            placement="bottomLeft"
+            title={"显示边标签"}
+            content={
+              <TipElem
+                content={
+                  "开启时边中心会显示连接次序，若影响观察可关闭此选项；显示时会稍微增加拖拽节点时性能损耗，若造成明显卡顿请关闭此选项。"
+                }
+              />
+            }
+          >
+            <span>显示边标签</span>
+          </Popover>
+        </div>
+        <Switch
+          className={style.value}
+          style={switchStyle}
+          checkedChildren="显示"
+          unCheckedChildren="隐藏"
+          value={showEdgeLabel}
+          onChange={(value: boolean) => setConfig("showEdgeLabel", value)}
+        />
+      </div>
+
+      {/* 边拖拽手柄 */}
+      <div className={globalClass}>
+        <div className={style.key}>
+          <Popover
+            placement="bottomLeft"
+            title={"边拖拽手柄"}
+            content={
+              <TipElem
+                content={
+                  "开启时可以拖拽连接线中间的手柄来调整路径形状，该效果不会保存。双击手柄可重置单条连接线，排版工具中可一键重置所有连接线。"
+                }
+              />
+            }
+          >
+            <span>边拖拽手柄</span>
+          </Popover>
+        </div>
+        <Switch
+          className={style.value}
+          style={switchStyle}
+          checkedChildren="显示"
+          unCheckedChildren="隐藏"
+          value={showEdgeControlPoint}
+          onChange={(value: boolean) =>
+            setConfig("showEdgeControlPoint", value)
+          }
+        />
+      </div>
+
+      {/* 画布背景 */}
+      <div className={globalClass}>
+        <div className={style.key}>
+          <Popover
+            placement="bottomLeft"
+            title="画布背景"
+            content={
+              <TipElem
+                content={
+                  "纯白：纯白色背景，适合喜欢明亮界面的用户\n护眼：淡蓝灰色背景(#f9fafd)，柔和不刺眼"
+                }
+              />
+            }
+          >
+            <span>画布背景</span>
+          </Popover>
+        </div>
+        <Select
+          className={style.value}
+          style={{ width: 70 }}
+          value={canvasBackgroundMode}
+          onChange={(value) => setConfig("canvasBackgroundMode", value)}
+          options={[
+            { value: "eyecare", label: "护眼" },
+            { value: "pure", label: "纯白" },
+          ]}
+        />
+      </div>
+
+      {/* 字段/连接面板模式 */}
+      <div className={globalClass}>
+        <div className={style.key}>
+          <Popover
+            placement="bottomLeft"
+            title="字段/连接面板模式"
+            content={
+              <TipElem
+                content={
+                  "固定模式：面板固定在右上角\n拖动模式：面板可拖动，切换选中时保持位置\n内嵌模式：字段面板嵌入在节点旁边，直接在画布中编辑"
+                }
+              />
+            }
+          >
+            <span>字段/连接面板模式</span>
+          </Popover>
+        </div>
+        <Select
+          className={style.value}
+          style={{ width: 70 }}
+          value={fieldPanelMode}
+          onChange={(value) => setConfig("fieldPanelMode", value)}
+          options={[
+            { value: "fixed", label: "固定" },
+            { value: "draggable", label: "拖动" },
+            { value: "inline", label: "内嵌" },
+          ]}
+        />
+      </div>
+      
+      {/* 内嵌面板缩放比例 */}
+      <div className={globalClass}>
+        <div className={style.key}>
+          <Popover
+            placement="bottomLeft"
+            title={"内嵌面板缩放比例"}
+            content={
+              <TipElem
+                content={
+                  "设置内嵌模式下字段面板的整体缩放大小，范围 0.5-1.0。可根据个人视图查阅缩放比例偏好调试，其他模式不起作用。"
+                }
+              />
+            }
+          >
+            <span>内嵌面板缩放比例</span>
           </Popover>
         </div>
         <InputNumber
           className={style.value}
           style={{ maxWidth: 80 }}
-          min={10}
-          max={10000}
-          value={historyLimit}
+          min={0.5}
+          max={1.0}
+          step={0.05}
+          value={inlinePanelScale}
           onChange={(value: number | null) => {
-            if (value !== null) setConfig("historyLimit", value);
+            if (value !== null) setConfig("inlinePanelScale", value);
           }}
+        />
+      </div>
+
+      {/* 节点显示模板图片 */}
+      <div className={globalClass}>
+        <div className={style.key}>
+          <Popover
+            placement="bottomLeft"
+            title="节点显示模板图片"
+            content={
+              <TipElem
+                content={
+                  "开启时，现代风格节点底部会显示 template 字段的图片缩略图。需要连接本地服务后生效。"
+                }
+              />
+            }
+          >
+            <span>节点显示模板图片</span>
+          </Popover>
+        </div>
+        <Switch
+          className={style.value}
+          style={switchStyle}
+          checkedChildren="显示"
+          unCheckedChildren="隐藏"
+          value={showNodeTemplateImages}
+          onChange={(value: boolean) =>
+            setConfig("showNodeTemplateImages", value)
+          }
         />
       </div>
 
@@ -159,89 +343,6 @@ const PanelConfigSection = memo(() => {
         />
       </div>
 
-      {/* 显示边标签 */}
-      <div className={globalClass}>
-        <div className={style.key}>
-          <Popover
-            placement="bottomLeft"
-            title={"显示边标签"}
-            content={
-              <TipElem
-                content={
-                  "开启时边中心会显示连接次序，若影响观察可关闭此选项；显示时会稍微增加拖拽节点时性能损耗，若造成明显卡顿请关闭此选项。"
-                }
-              />
-            }
-          >
-            <span>显示边标签</span>
-          </Popover>
-        </div>
-        <Switch
-          className={style.value}
-          style={switchStyle}
-          checkedChildren="显示"
-          unCheckedChildren="隐藏"
-          value={showEdgeLabel}
-          onChange={(value: boolean) => setConfig("showEdgeLabel", value)}
-        />
-      </div>
-      {/* 边走线模式 */}
-      <div className={globalClass}>
-        <div className={style.key}>
-          <Popover
-            placement="bottomLeft"
-            title={"边走线模式"}
-            content={
-              <TipElem
-                content={
-                  "曲线：使用贝塞尔曲线连接节点，线条平滑流畅\n直角：使用阶梯状折线连接节点，路径规整清晰\n避让：自动绕过路径上的节点，智能规划路线"
-                }
-              />
-            }
-          >
-            <span>边走线模式</span>
-          </Popover>
-        </div>
-        <Select
-          className={style.value}
-          style={{ width: 70 }}
-          value={edgePathMode}
-          onChange={(value) => setConfig("edgePathMode", value)}
-          options={[
-            { value: "bezier", label: "曲线" },
-            { value: "smoothstep", label: "直角" },
-            { value: "avoid", label: "避让" },
-          ]}
-        />
-      </div>
-      {/* 边拖拽手柄 */}
-      <div className={globalClass}>
-        <div className={style.key}>
-          <Popover
-            placement="bottomLeft"
-            title={"边拖拽手柄"}
-            content={
-              <TipElem
-                content={
-                  "开启时可以拖拽连接线中间的手柄来调整路径形状，该效果不会保存。双击手柄可重置单条连接线，排版工具中可一键重置所有连接线。"
-                }
-              />
-            }
-          >
-            <span>边拖拽手柄</span>
-          </Popover>
-        </div>
-        <Switch
-          className={style.value}
-          style={switchStyle}
-          checkedChildren="显示"
-          unCheckedChildren="隐藏"
-          value={showEdgeControlPoint}
-          onChange={(value: boolean) =>
-            setConfig("showEdgeControlPoint", value)
-          }
-        />
-      </div>
       {/* 自动聚焦 */}
       <div className={globalClass}>
         <div className={style.key}>
@@ -264,6 +365,7 @@ const PanelConfigSection = memo(() => {
           onChange={(value: boolean) => setConfig("isAutoFocus", value)}
         />
       </div>
+
       {/* 节点磁吸对齐 */}
       <div className={globalClass}>
         <div className={style.key}>
@@ -290,6 +392,7 @@ const PanelConfigSection = memo(() => {
           onChange={(value: boolean) => setConfig("enableNodeSnap", value)}
         />
       </div>
+
       {/* 磁吸仅可视范围 */}
       <div className={globalClass}>
         <div className={style.key}>
@@ -312,6 +415,7 @@ const PanelConfigSection = memo(() => {
           onChange={(value: boolean) => setConfig("snapOnlyInViewport", value)}
         />
       </div>
+
       {/* 非聚焦节点不透明度 */}
       <div className={globalClass}>
         <div className={style.key}>
@@ -341,120 +445,30 @@ const PanelConfigSection = memo(() => {
           }}
         />
       </div>
-      {/* 画布背景 */}
+
+      {/* 历史记录上限 */}
       <div className={globalClass}>
         <div className={style.key}>
           <Popover
             placement="bottomLeft"
-            title="画布背景"
-            content={
-              <TipElem
-                content={
-                  "纯白：纯白色背景，适合喜欢明亮界面的用户\n护眼：淡蓝灰色背景(#f9fafd)，柔和不刺眼"
-                }
-              />
-            }
+            title={"历史记录上限"}
+            content="设置撤销/重做功能的最大历史记录数量，设置过大可能占用较多内存并产生卡顿"
           >
-            <span>画布背景</span>
-          </Popover>
-        </div>
-        <Select
-          className={style.value}
-          style={{ width: 70 }}
-          value={canvasBackgroundMode}
-          onChange={(value) => setConfig("canvasBackgroundMode", value)}
-          options={[
-            { value: "eyecare", label: "护眼" },
-            { value: "pure", label: "纯白" },
-          ]}
-        />
-      </div>
-      {/* 字段/连接面板模式 */}
-      <div className={globalClass}>
-        <div className={style.key}>
-          <Popover
-            placement="bottomLeft"
-            title="字段/连接面板模式"
-            content={
-              <TipElem
-                content={
-                  "固定模式：面板固定在右上角\n拖动模式：面板可拖动，切换选中时保持位置\n内嵌模式：字段面板嵌入在节点旁边，直接在画布中编辑"
-                }
-              />
-            }
-          >
-            <span>字段/连接面板模式</span>
-          </Popover>
-        </div>
-        <Select
-          className={style.value}
-          style={{ width: 70 }}
-          value={fieldPanelMode}
-          onChange={(value) => setConfig("fieldPanelMode", value)}
-          options={[
-            { value: "fixed", label: "固定" },
-            { value: "draggable", label: "拖动" },
-            { value: "inline", label: "内嵌" },
-          ]}
-        />
-      </div>
-      {/* 内嵌面板缩放比例 */}
-      <div className={globalClass}>
-        <div className={style.key}>
-          <Popover
-            placement="bottomLeft"
-            title={"内嵌面板缩放比例"}
-            content={
-              <TipElem
-                content={
-                  "设置内嵌模式下字段面板的整体缩放大小，范围 0.5-1.0。可根据个人视图查阅缩放比例偏好调试，其他模式不起作用。"
-                }
-              />
-            }
-          >
-            <span>内嵌面板缩放比例</span>
+            <span>历史记录上限</span>
           </Popover>
         </div>
         <InputNumber
           className={style.value}
           style={{ maxWidth: 80 }}
-          min={0.5}
-          max={1.0}
-          step={0.05}
-          value={inlinePanelScale}
+          min={10}
+          max={10000}
+          value={historyLimit}
           onChange={(value: number | null) => {
-            if (value !== null) setConfig("inlinePanelScale", value);
+            if (value !== null) setConfig("historyLimit", value);
           }}
         />
       </div>
-      {/* 节点显示模板图片 */}
-      <div className={globalClass}>
-        <div className={style.key}>
-          <Popover
-            placement="bottomLeft"
-            title="节点显示模板图片"
-            content={
-              <TipElem
-                content={
-                  "开启时，现代风格节点底部会显示 template 字段的图片缩略图。需要连接本地服务后生效。"
-                }
-              />
-            }
-          >
-            <span>节点显示模板图片</span>
-          </Popover>
-        </div>
-        <Switch
-          className={style.value}
-          style={switchStyle}
-          checkedChildren="显示"
-          unCheckedChildren="隐藏"
-          value={showNodeTemplateImages}
-          onChange={(value: boolean) =>
-            setConfig("showNodeTemplateImages", value)
-          }
-        />
-      </div>
+
       {/* 实时画面预览 */}
       <div className={globalClass}>
         <div className={style.key}>

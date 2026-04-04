@@ -63,6 +63,66 @@ const PipelineConfigSection = memo(() => {
   return (
     <>
       <div className={style.divider}>————— Pipeline 配置 —————</div>
+
+      {/* 配置处理方案 */}
+      <div className={globalClass}>
+        <div className={style.key}>
+          <Popover
+            placement="bottomLeft"
+            title="配置处理方案"
+            content={
+              <TipElem
+                content={
+                  "集成导出：配置嵌入 Pipeline 文件，适合单文件分享\n分离导出：配置存储至独立 .mpe.json 文件，便于版本管理\n不导出：不保存任何配置，导入时触发自动布局"
+                }
+              />
+            }
+          >
+            <span>配置处理方案</span>
+          </Popover>
+        </div>
+        <Select
+          className={style.value}
+          style={{ width: 90 }}
+          value={configHandlingMode}
+          onChange={(value) => setConfig("configHandlingMode", value)}
+          options={[
+            { value: "integrated", label: "集成导出" },
+            { value: "separated", label: "分离导出" },
+            { value: "none", label: "不导出" },
+          ]}
+        />
+      </div>
+
+      {/* Pipeline 导出版本 */}
+      <div className={globalClass}>
+        <div className={style.key}>
+          <Popover
+            placement="bottomLeft"
+            title="Pipeline 导出版本"
+            content={
+              <TipElem
+                content={
+                  "v2：使用嵌套对象结构\n{ recognition: { type: 'X', param: {...} } }\n\nv1：参数平铺在节点根对象\n{ recognition: 'X', template: '...' }"
+                }
+              />
+            }
+          >
+            <span>Pipeline 导出版本</span>
+          </Popover>
+        </div>
+        <Select
+          className={style.value}
+          style={{ width: 90 }}
+          value={pipelineProtocolVersion}
+          onChange={(value) => setConfig("pipelineProtocolVersion", value)}
+          options={[
+            { value: "v2", label: "v2" },
+            { value: "v1", label: "v1" },
+          ]}
+        />
+      </div>
+
       {/* 节点属性导出形式 */}
       <div className={globalClass}>
         <div className={style.key}>
@@ -91,6 +151,109 @@ const PipelineConfigSection = memo(() => {
           ]}
         />
       </div>
+
+      {/* 导出默认识别/动作 */}
+      <div className={globalClass}>
+        <div className={style.key}>
+          <Popover
+            placement="bottomLeft"
+            title="导出默认识别/动作"
+            content={
+              <TipElem
+                content={
+                  "关闭时，导出时若节点的识别类型为 DirectHit 且无参数，则不导出 recognition 字段；\n若动作类型为 DoNothing 且无参数，则不导出 action 字段。\n两者独立检测。"
+                }
+              />
+            }
+          >
+            <span>导出默认识别/动作</span>
+          </Popover>
+        </div>
+        <Switch
+          className={style.value}
+          style={{ maxWidth: 60 }}
+          checked={exportDefaultRecoAction}
+          checkedChildren="导出"
+          unCheckedChildren="省略"
+          onChange={(checked) => setConfig("exportDefaultRecoAction", checked)}
+        />
+      </div>
+
+      {/* JSON 导出缩进 */}
+      <div className={globalClass}>
+        <div className={style.key}>
+          <Popover
+            placement="bottomLeft"
+            title="JSON 导出缩进"
+            content={
+              <TipElem
+                content={
+                  "导出 JSON 文件时每层缩进的空格数。\n默认为 4 空格，可设置为 2 或其他值。"
+                }
+              />
+            }
+          >
+            <span>JSON 导出缩进</span>
+          </Popover>
+        </div>
+        <InputNumber
+          className={style.value}
+          style={{ width: 70 }}
+          min={0}
+          max={16}
+          value={jsonIndent}
+          onChange={(value) => setConfig("jsonIndent", value ?? 4)}
+          addonAfter="空格"
+        />
+      </div>
+
+      {/* 字段排序配置 */}
+      <div className={globalClass}>
+        <div className={style.key}>
+          <Popover
+            placement="bottomLeft"
+            title="字段排序配置"
+            content="自定义导出时的字段排序顺序"
+          >
+            <span>字段排序配置</span>
+          </Popover>
+        </div>
+        <Button
+          className={style.value}
+          size="small"
+          onClick={() => setStatus("showFieldSortModal", true)}
+        >
+          配置排序
+        </Button>
+      </div>
+
+      {/* 忽略字段校验 */}
+      <div className={globalClass}>
+        <div className={style.key}>
+          <Popover
+            placement="bottomLeft"
+            title="忽略字段校验"
+            content={
+              <TipElem
+                content={
+                  "开启后，导出时将跳过字段格式校验，即使节点内容不符合规范也会强制导出。\n适用于快速导出或调试场景。"
+                }
+              />
+            }
+          >
+            <span>忽略字段校验</span>
+          </Popover>
+        </div>
+        <Switch
+          className={style.value}
+          style={{ maxWidth: 60 }}
+          checked={skipFieldValidation}
+          checkedChildren="忽略"
+          unCheckedChildren="校验"
+          onChange={(checked) => setConfig("skipFieldValidation", checked)}
+        />
+      </div>
+
       {/* 默认端点位置 */}
       <div className={globalClass}>
         <div className={style.key}>
@@ -133,161 +296,7 @@ const PipelineConfigSection = memo(() => {
           应用到所有节点
         </Button>
       </div>
-      {/* 导出默认识别/动作 */}
-      <div className={globalClass}>
-        <div className={style.key}>
-          <Popover
-            placement="bottomLeft"
-            title="导出默认识别/动作"
-            content={
-              <TipElem
-                content={
-                  "关闭时，导出时若节点的识别类型为 DirectHit 且无参数，则不导出 recognition 字段；\n若动作类型为 DoNothing 且无参数，则不导出 action 字段。\n两者独立检测。"
-                }
-              />
-            }
-          >
-            <span>导出默认识别/动作</span>
-          </Popover>
-        </div>
-        <Switch
-          className={style.value}
-          style={{ maxWidth: 60 }}
-          checked={exportDefaultRecoAction}
-          checkedChildren="导出"
-          unCheckedChildren="省略"
-          onChange={(checked) => setConfig("exportDefaultRecoAction", checked)}
-        />
-      </div>
-      {/* Pipeline 导出版本 */}
-      <div className={globalClass}>
-        <div className={style.key}>
-          <Popover
-            placement="bottomLeft"
-            title="Pipeline 导出版本"
-            content={
-              <TipElem
-                content={
-                  "v2：使用嵌套对象结构\n{ recognition: { type: 'X', param: {...} } }\n\nv1：参数平铺在节点根对象\n{ recognition: 'X', template: '...' }"
-                }
-              />
-            }
-          >
-            <span>Pipeline 导出版本</span>
-          </Popover>
-        </div>
-        <Select
-          className={style.value}
-          style={{ width: 90 }}
-          value={pipelineProtocolVersion}
-          onChange={(value) => setConfig("pipelineProtocolVersion", value)}
-          options={[
-            { value: "v2", label: "v2" },
-            { value: "v1", label: "v1" },
-          ]}
-        />
-      </div>
-      {/* 忽略字段校验 */}
-      <div className={globalClass}>
-        <div className={style.key}>
-          <Popover
-            placement="bottomLeft"
-            title="忽略字段校验"
-            content={
-              <TipElem
-                content={
-                  "开启后，导出时将跳过字段格式校验，即使节点内容不符合规范也会强制导出。\n适用于快速导出或调试场景。"
-                }
-              />
-            }
-          >
-            <span>忽略字段校验</span>
-          </Popover>
-        </div>
-        <Switch
-          className={style.value}
-          style={{ maxWidth: 60 }}
-          checked={skipFieldValidation}
-          checkedChildren="忽略"
-          unCheckedChildren="校验"
-          onChange={(checked) => setConfig("skipFieldValidation", checked)}
-        />
-      </div>
-      {/* JSON 导出缩进 */}
-      <div className={globalClass}>
-        <div className={style.key}>
-          <Popover
-            placement="bottomLeft"
-            title="JSON 导出缩进"
-            content={
-              <TipElem
-                content={
-                  "导出 JSON 文件时每层缩进的空格数。\n默认为 4 空格，可设置为 2 或其他值。"
-                }
-              />
-            }
-          >
-            <span>JSON 导出缩进</span>
-          </Popover>
-        </div>
-        <InputNumber
-          className={style.value}
-          style={{ width: 70 }}
-          min={0}
-          max={16}
-          value={jsonIndent}
-          onChange={(value) => setConfig("jsonIndent", value ?? 4)}
-          addonAfter="空格"
-        />
-      </div>
-      {/* 配置处理方案 */}
-      <div className={globalClass}>
-        <div className={style.key}>
-          <Popover
-            placement="bottomLeft"
-            title="配置处理方案"
-            content={
-              <TipElem
-                content={
-                  "集成导出：配置嵌入 Pipeline 文件，适合单文件分享\n分离导出：配置存储至独立 .mpe.json 文件，便于版本管理\n不导出：不保存任何配置，导入时触发自动布局"
-                }
-              />
-            }
-          >
-            <span>配置处理方案</span>
-          </Popover>
-        </div>
-        <Select
-          className={style.value}
-          style={{ width: 90 }}
-          value={configHandlingMode}
-          onChange={(value) => setConfig("configHandlingMode", value)}
-          options={[
-            { value: "integrated", label: "集成导出" },
-            { value: "separated", label: "分离导出" },
-            { value: "none", label: "不导出" },
-          ]}
-        />
-      </div>
-      {/* 字段排序配置 */}
-      <div className={globalClass}>
-        <div className={style.key}>
-          <Popover
-            placement="bottomLeft"
-            title="字段排序配置"
-            content="自定义导出时的字段排序顺序"
-          >
-            <span>字段排序配置</span>
-          </Popover>
-        </div>
-        <Button
-          className={style.value}
-          size="small"
-          onClick={() => setStatus("showFieldSortModal", true)}
-        >
-          配置排序
-        </Button>
-      </div>
+
       <FieldSortModal />
     </>
   );
