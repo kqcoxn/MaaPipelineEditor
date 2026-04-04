@@ -306,7 +306,7 @@ function Header() {
           />
           <div className={style.title}>
             <span className={classNames(style.title, style["full-title"])}>
-              MaaPipelineExtremer - Editor
+              MaaPipelineEditor
             </span>
             <span className={classNames(style.title, style["medium-title"])}>
               MaaPipelineEditor
