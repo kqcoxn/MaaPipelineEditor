@@ -1,6 +1,6 @@
 ---
 name: web-design-guidelines
-description: Review UI code for Web Interface Guidelines compliance. Use when asked to "review my UI", "check accessibility", "audit design", "review UX", or "check my site against best practices".
+description: 当审查 UI 代码、检查可访问性、评估设计质量、优化用户体验、验证是否符合 Web 最佳实践时自动使用。适用于任何需要 UI 审查、设计改进、无障碍优化的任务。
 metadata:
   author: vercel
   version: "1.0.0"
@@ -31,6 +31,7 @@ Use WebFetch to retrieve the latest rules. The fetched content contains all the 
 ## Usage
 
 When a user provides a file or pattern argument:
+
 1. Fetch guidelines from the source URL above
 2. Read the specified files
 3. Apply all rules from the fetched guidelines

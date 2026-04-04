@@ -1,6 +1,6 @@
 ---
 name: golang-patterns
-description: 用于构建健壮、高效且可维护的Go应用程序的惯用Go模式、最佳实践和约定。
+description: 当修改 LocalBridge 后端代码、编写新的 API 接口、处理文件操作、实现并发任务、优化后端性能、修复后端 bug 时自动使用。适用于任何涉及 Go 后端的开发任务(如添加新服务、优化数据处理、实现错误处理等)。
 origin: ECC
 ---
 
