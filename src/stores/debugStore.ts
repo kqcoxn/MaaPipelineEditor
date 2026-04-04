@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { Modal } from "antd";
 import { useMFWStore } from "./mfwStore";
 import { useFlowStore } from "./flow";
 import { debugProtocol } from "../services/server";
@@ -190,7 +191,7 @@ interface DebugState {
   setDebugMode: (mode: boolean) => void;
   setConfig: (
     key: "resourcePaths" | "entryNode" | "logLevel" | "agentIdentifier",
-    value: any
+    value: any,
   ) => void;
   addResourcePath: (path: string) => void;
   removeResourcePath: (index: number) => void;
@@ -199,7 +200,7 @@ interface DebugState {
   stopDebug: () => void;
   updateExecutionState: (
     nodeId: string,
-    status: ExecutionRecord["status"]
+    status: ExecutionRecord["status"],
   ) => void;
   handleDebugEvent: (event: any) => void;
   setSessionId: (sessionId: string | null) => void;
@@ -274,18 +275,23 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
 
   // 切换调试模式
   toggleDebugMode: () => {
-    const newMode = !get().debugMode;
-    set({ debugMode: newMode });
-    if (!newMode && get().debugStatus !== "idle") {
-      get().stopDebug();
-    }
+    // 临时禁用调试功能
+    Modal.warning({
+      title: "调试功能正在重构",
+      content:
+        "当前调试功能正在重构中，暂时不可用。请先使用其他调试软件（如 MaaDebugger、VSCode 插件等）。",
+      okText: "知道了",
+    });
   },
 
   setDebugMode: (mode) => {
-    set({ debugMode: mode });
-    if (!mode && get().debugStatus !== "idle") {
-      get().stopDebug();
-    }
+    // 临时禁用调试功能
+    Modal.warning({
+      title: "调试功能正在重构",
+      content:
+        "当前调试功能正在重构中，暂时不可用。请先使用其他调试软件（如 MaaDebugger、VSCode 插件等）。",
+      okText: "知道了",
+    });
   },
 
   setConfig: (key, value) => {
@@ -295,6 +301,15 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
   startDebug: async (options?: {
     skipEntryNodeCheck?: boolean;
   }): Promise<boolean> => {
+    // 临时禁用调试功能
+    Modal.warning({
+      title: "调试功能正在重构",
+      content:
+        "当前调试功能正在重构中，暂时不可用。请先使用其他调试软件（如 MaaDebugger、VSCode 插件等）。",
+      okText: "知道了",
+    });
+    return false;
+
     const state = get();
     const controllerId = useMFWStore.getState().controllerId;
 
@@ -316,7 +331,7 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
     const { useConfigStore } = await import("./configStore");
     const { useFileStore } = await import("./fileStore");
     const { localServer } = await import("../services/server");
-    const { message, Modal } = await import("antd");
+    const { message } = await import("antd");
 
     const fileStore = useFileStore.getState();
     const currentFilePath = fileStore.currentFile.config.filePath;
@@ -337,7 +352,7 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
     if (saveFilesBeforeDebug && localServer.isConnected()) {
       // 获取所有带有 filePath 的文件
       const filesToSave = fileStore.files.filter(
-        (file) => file.config.filePath && !file.config.isDeleted
+        (file) => file.config.filePath && !file.config.isDeleted,
       );
 
       if (filesToSave.length > 0) {
@@ -354,7 +369,7 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
             // 直接保存指定文件内容
             const success = await fileStore.saveFileToLocal(
               file.config.filePath,
-              file
+              file,
             );
             if (success) {
               savedCount++;
@@ -364,7 +379,7 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
           } catch (error) {
             console.error(
               `[debugStore] Failed to save file: ${file.fileName}`,
-              error
+              error,
             );
             failedCount++;
           }
@@ -460,7 +475,7 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
         // 检查是否已有 running 记录
         let history = get().executionHistory;
         const existingRunning = history.find(
-          (r) => r.nodeId === nodeId && r.status === "running"
+          (r) => r.nodeId === nodeId && r.status === "running",
         );
         if (existingRunning) break;
 
@@ -576,7 +591,7 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
           // 检查是否超出限制，超出则清理最旧的记录
           if (records.length >= MAX_RECOGNITION_RECORDS) {
             const removeCount = Math.ceil(
-              MAX_RECOGNITION_RECORDS * CLEANUP_RATIO
+              MAX_RECOGNITION_RECORDS * CLEANUP_RATIO,
             );
             // 同时清理对应的 detailCache
             const removedRecords = records.slice(0, removeCount);
@@ -699,7 +714,7 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
         if (currentNodeId) {
           const history = get().executionHistory;
           const recordIndex = history.findIndex(
-            (r) => r.nodeId === currentNodeId && r.status === "running"
+            (r) => r.nodeId === currentNodeId && r.status === "running",
           );
 
           if (recordIndex !== -1) {
@@ -714,7 +729,7 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
 
             get().updateExecutionState(
               currentNodeId,
-              isSuccess ? "completed" : "failed"
+              isSuccess ? "completed" : "failed",
             );
           }
         }
@@ -745,7 +760,7 @@ export const useDebugStore = create<DebugState>()((set, get) => ({
                   endTime: timestamp * 1000,
                   status: "completed" as const,
                 }
-              : r
+              : r,
           );
           set({ executionHistory: updated });
         }
