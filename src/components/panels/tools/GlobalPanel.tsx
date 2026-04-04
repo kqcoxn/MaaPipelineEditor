@@ -228,7 +228,69 @@ function GlobalPanel() {
                   title: "调试功能正在重构",
                   content:
                     "当前调试功能正在重构中，暂时不可用。请先使用其他调试软件（如 MaaDebugger、VSCode 插件等）。",
-                  okText: "知道了",
+                  footer: (
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 12,
+                        justifyContent: "flex-end",
+                        marginTop: 12,
+                      }}
+                    >
+                      <a
+                        href="https://github.com/MaaXYZ/MaaDebugger"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <button
+                          style={{
+                            padding: "4px 15px",
+                            background: "transparent",
+                            color: "rgba(0, 0, 0, 0.88)",
+                            border: "1px solid #d9d9d9",
+                            borderRadius: 6,
+                            cursor: "pointer",
+                            fontSize: 14,
+                          }}
+                        >
+                          MaaDebugger
+                        </button>
+                      </a>
+                      <a
+                        href="https://github.com/neko-para/maa-support-extension"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <button
+                          style={{
+                            padding: "4px 15px",
+                            background: "transparent",
+                            color: "rgba(0, 0, 0, 0.88)",
+                            border: "1px solid #d9d9d9",
+                            borderRadius: 6,
+                            cursor: "pointer",
+                            fontSize: 14,
+                          }}
+                        >
+                          VSC 插件
+                        </button>
+                      </a>
+                      <button
+                        style={{
+                          padding: "4px 15px",
+                          background: "#1677ff",
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: 6,
+                          cursor: "pointer",
+                          fontSize: 14,
+                        }}
+                        onClick={() => Modal.destroyAll()}
+                      >
+                        知道了
+                      </button>
+                    </div>
+                  ),
                 });
               }}
             />
