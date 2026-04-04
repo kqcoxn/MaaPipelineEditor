@@ -801,10 +801,9 @@ export class MFWProtocol extends BaseProtocol {
    */
   public executeAction(params: {
     controller_id: string;
-    recognition_type: string;
-    recognition_param: Record<string, any>;
-    action_type: string;
-    action_param: Record<string, any>;
+    resource_path: string;
+    entry: string;
+    pipeline_override?: Record<string, any>;
   }): boolean {
     if (!this.wsClient) {
       console.error("[MFWProtocol] WebSocket client not initialized");

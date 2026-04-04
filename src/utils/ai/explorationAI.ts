@@ -11,6 +11,7 @@ import type {
 } from "./aiPredictor";
 import { collectNodeContext } from "./aiPredictor";
 import { useFlowStore } from "../../stores/flow";
+import { useFileStore } from "../../stores/fileStore";
 import { useMFWStore } from "../../stores/mfwStore";
 import { mfwProtocol } from "../../services/server";
 import { NodeTypeEnum } from "../../components/flow/nodes/constants";
@@ -273,7 +274,7 @@ function parseExplorationAIResponse(content: string): ExplorationPrediction {
 
 /**
  * 执行节点动作
- * 通过 mfwProtocol 发送执行请求
+ * 通过 mfwProtocol 发送执行请求，使用 pipeline_override 方式
  */
 export async function executeNodeAction(
   nodeId: string,
@@ -290,19 +291,132 @@ export async function executeNodeAction(
     return { success: false, error: "节点不存在" };
   }
 
+  // 获取当前文件路径,推导出资源根目录
+  const currentFile = useFileStore.getState().currentFile;
+  const filePath = currentFile.config?.filePath;
+  if (!filePath) {
+    return { success: false, error: "未保存文件,无法获取资源路径" };
+  }
+
+  // 执行前保存文件,确保后端加载的是最新版本
+  const { saveFlow } = await import("../../stores/fileStore");
+  const { useConfigStore } = await import("../../stores/configStore");
+  const { localServer } = await import("../../services/server");
+  const { message } = await import("antd");
+
+  const saveFilesBeforeDebug =
+    useConfigStore.getState().configs.saveFilesBeforeDebug;
+
+  if (saveFilesBeforeDebug && localServer.isConnected()) {
+    const fileStore = useFileStore.getState();
+    // 保存当前文件到 files 数组
+    saveFlow();
+
+    // 获取所有带有 filePath 的文件
+    const filesToSave = fileStore.files.filter(
+      (file) => file.config.filePath && !file.config.isDeleted,
+    );
+
+    if (filesToSave.length > 0) {
+      let savedCount = 0;
+      let failedCount = 0;
+
+      for (const file of filesToSave) {
+        try {
+          const success = await fileStore.saveFileToLocal(
+            file.config.filePath,
+            file,
+          );
+          if (success) {
+            savedCount++;
+          } else {
+            failedCount++;
+          }
+        } catch (error) {
+          console.error(
+            `[explorationAI] Failed to save file: ${file.fileName}`,
+            error,
+          );
+          failedCount++;
+        }
+      }
+
+      if (savedCount > 0) {
+        message.success(`已保存 ${savedCount} 个文件`);
+      }
+
+      if (failedCount > 0) {
+        message.warning(`${failedCount} 个文件保存失败`);
+        return { success: false, error: "文件保存失败，请检查后重试" };
+      }
+    }
+  }
+
+  // 从文件路径推导资源根目录
+  // 文件路径示例: D:\test\base\pipeline\其他\说明.json
+  // 资源根目录: D:\test\base (包含 pipeline 文件夹的父目录)
+  const pathParts = filePath.split(/[\\/]/);
+  const pipelineIndex = pathParts.findIndex(
+    (part) => part.toLowerCase() === "pipeline",
+  );
+
+  let resourcePath: string;
+  if (pipelineIndex > 0) {
+    // 找到 pipeline 文件夹,取其父目录作为资源根目录
+    resourcePath = pathParts
+      .slice(0, pipelineIndex)
+      .join(filePath.includes("\\") ? "\\" : "/");
+  } else {
+    // 如果没有找到 pipeline 文件夹,使用文件所在目录
+    resourcePath = filePath
+      .replace(/[\\/][^\\/]*$/, "")
+      .replace(/[\\/][^\\/]*$/, ""); // 向上两级
+  }
+
+  // 构建 pipeline_override
   const nodeData = node.data as {
-    recognition: { type: string; param: Record<string, any> };
-    action: { type: string; param: Record<string, any> };
+    label?: string;
+    recognition?: { type: string; param: Record<string, any> };
+    action?: { type: string; param: Record<string, any> };
+    next?: string[];
+    [key: string]: any;
   };
-  const recognition = nodeData.recognition;
-  const action = nodeData.action;
+
+  // 使用节点名称（label）作为 entry，而不是节点 ID
+  const entryName = nodeData.label || node.id;
+
+  // 构建 override 配置
+  const pipelineOverride: Record<string, any> = {
+    [entryName]: {
+      recognition: nodeData.recognition
+        ? {
+            type: nodeData.recognition.type,
+            ...nodeData.recognition.param,
+          }
+        : undefined,
+      action: nodeData.action
+        ? {
+            type: nodeData.action.type,
+            ...nodeData.action.param,
+          }
+        : undefined,
+    },
+  };
+
+  // 清除 undefined 字段
+  if (!pipelineOverride[entryName].recognition) {
+    delete pipelineOverride[entryName].recognition;
+  }
+  if (!pipelineOverride[entryName].action) {
+    delete pipelineOverride[entryName].action;
+  }
 
   try {
     // 发送执行请求
     const result = await new Promise<{ success: boolean; error?: string }>(
       (resolve, reject) => {
         const timeout = setTimeout(() => {
-          reject(new Error("执行超时"));
+          reject(new Error("执行超时（30s）"));
         }, 30000);
 
         const unregister = mfwProtocol.onExecuteActionResult((data) => {
@@ -316,10 +430,9 @@ export async function executeNodeAction(
 
         const success = mfwProtocol.executeAction({
           controller_id: controllerId,
-          recognition_type: recognition.type,
-          recognition_param: recognition.param,
-          action_type: action.type,
-          action_param: action.param,
+          resource_path: resourcePath,
+          entry: entryName, // 使用节点名称而不是节点 ID
+          pipeline_override: pipelineOverride,
         });
 
         if (!success) {

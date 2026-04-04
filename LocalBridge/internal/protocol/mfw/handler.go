@@ -1,6 +1,9 @@
 package mfw
 
 import (
+	"fmt"
+
+	maa "github.com/MaaXYZ/maa-framework-go/v4"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/errors"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/mfw"
@@ -687,7 +690,7 @@ func (h *MFWHandler) handleControllerInactive(conn *server.Connection, msg model
 }
 
 // handleExecuteAction 执行单节点动作（探索模式）
-// TODO: 此功能需要完整的 Resource 和 Tasker 支持，目前返回未实现错误
+// 通过创建临时 Resource 和 Tasker 执行单个 Pipeline 节点
 func (h *MFWHandler) handleExecuteAction(conn *server.Connection, msg models.Message) {
 	dataMap, ok := msg.Data.(map[string]interface{})
 	if !ok {
@@ -696,23 +699,95 @@ func (h *MFWHandler) handleExecuteAction(conn *server.Connection, msg models.Mes
 	}
 
 	controllerID, _ := dataMap["controller_id"].(string)
-	recognitionType, _ := dataMap["recognition_type"].(string)
-	actionType, _ := dataMap["action_type"].(string)
+	resourcePath, _ := dataMap["resource_path"].(string)
+	entryNode, _ := dataMap["entry"].(string)
+	pipelineOverride, _ := dataMap["pipeline_override"].(map[string]interface{})
 
-	logger.Debug("MFW", "探索模式执行动作请求: controller=%s, reco=%s, action=%s",
-		controllerID, recognitionType, actionType)
+	logger.Debug("MFW", "探索模式执行动作请求: controller=%s, resource=%s, entry=%s",
+		controllerID, resourcePath, entryNode)
 
-	// 发送执行结果响应
-	// TODO: 实现完整的识别+执行逻辑
-	// 这需要:
-	// 1. 创建或获取 Resource
-	// 2. 创建 Tasker
-	// 3. 使用 Context.RunActionDirect 执行动作
+	// 参数验证
+	if controllerID == "" {
+		h.sendMFWError(conn, mfw.ErrCodeInvalidParameter, "缺少必需参数", "controller_id 不能为空")
+		return
+	}
+	if resourcePath == "" {
+		h.sendMFWError(conn, mfw.ErrCodeInvalidParameter, "缺少必需参数", "resource_path 不能为空")
+		return
+	}
+	if entryNode == "" {
+		h.sendMFWError(conn, mfw.ErrCodeInvalidParameter, "缺少必需参数", "entry 不能为空")
+		return
+	}
+
+	// 获取控制器
+	controllerInfo, err := h.service.ControllerManager().GetController(controllerID)
+	if err != nil {
+		h.sendMFWError(conn, mfw.ErrCodeControllerNotFound, "控制器不存在", err.Error())
+		return
+	}
+
+	controller, ok := controllerInfo.Controller.(*maa.Controller)
+	if !ok || controller == nil {
+		h.sendMFWError(conn, mfw.ErrCodeControllerNotFound, "控制器实例不可用", controllerID)
+		return
+	}
+
+	// 创建临时适配器
+	adapter := mfw.NewMaaFWAdapter()
+	defer adapter.Destroy()
+
+	// 设置控制器
+	adapter.SetController(controller, controllerInfo.Type, controllerInfo.UUID)
+
+	// 加载资源
+	if err := adapter.LoadResources([]string{resourcePath}); err != nil {
+		logger.Error("MFW", "加载资源失败: %v", err)
+		h.sendMFWError(conn, mfw.ErrCodeResourceLoadFailed, "加载资源失败", err.Error())
+		return
+	}
+
+	// 初始化 Tasker
+	if err := adapter.InitTasker(); err != nil {
+		logger.Error("MFW", "初始化 Tasker 失败: %v", err)
+		h.sendMFWError(conn, mfw.ErrCodeTaskSubmitFailed, "初始化 Tasker 失败", err.Error())
+		return
+	}
+
+	// 如果有 pipeline_override，跳过节点验证（允许执行临时节点）
+	// 否则验证入口节点是否存在
+	if pipelineOverride == nil {
+		if _, exists := adapter.GetNodeJSON(entryNode); !exists {
+			h.sendMFWError(conn, mfw.ErrCodeInvalidParameter, "入口节点不存在",
+				fmt.Sprintf("节点 '%s' 在资源中不存在", entryNode))
+			return
+		}
+	}
+
+	// 提交任务
+	var taskJob *maa.TaskJob
+	if pipelineOverride != nil {
+		logger.Debug("MFW", "使用 pipeline_override 执行节点")
+		taskJob, err = adapter.PostTask(entryNode, pipelineOverride)
+	} else {
+		taskJob, err = adapter.PostTask(entryNode)
+	}
+
+	if err != nil || taskJob == nil {
+		logger.Error("MFW", "提交任务失败: %v", err)
+		h.sendMFWError(conn, mfw.ErrCodeTaskSubmitFailed, "提交任务失败", err.Error())
+		return
+	}
+
+	// 等待任务完成
+	taskJob.Wait()
+
+	// 发送成功响应
 	response := models.Message{
 		Path: "/lte/mfw/execute_action_result",
 		Data: map[string]interface{}{
-			"success": false,
-			"error":   "探索模式执行功能需要 Resource 支持，请先加载资源后使用调试模式",
+			"success": true,
+			"message": "节点执行完成",
 		},
 	}
 	conn.Send(response)
