@@ -6,10 +6,9 @@
 import { memo, useState, useCallback } from "react";
 import { Input, Button, Select, Spin, Typography, Modal } from "antd";
 import {
-  PlayCircleOutlined,
-  CheckCircleOutlined,
   StopOutlined,
   RobotOutlined,
+  StepForwardOutlined,
 } from "@ant-design/icons";
 import classNames from "classnames";
 import IconFont from "../../iconfonts";
@@ -40,8 +39,7 @@ function ExplorationPanelBase({ visible, onClose }: ExplorationPanelProps) {
 
   // Store 操作
   const start = useFlowStore((s) => s.start);
-  const execute = useFlowStore((s) => s.execute);
-  const confirm = useFlowStore((s) => s.confirm);
+  const nextStep = useFlowStore((s) => s.nextStep);
   const complete = useFlowStore((s) => s.complete);
   const abort = useFlowStore((s) => s.abort);
 
@@ -50,9 +48,9 @@ function ExplorationPanelBase({ visible, onClose }: ExplorationPanelProps) {
   const [startNodeId, setStartNodeId] = useState<string | undefined>();
   const [abortModalVisible, setAbortModalVisible] = useState(false);
 
-  // Pipeline 节点列表（用于起始节点选择）
+  // Pipeline 节点列表
   const pipelineNodes = nodes.filter(
-    (n) => n.type === NodeTypeEnum.Pipeline && !(n.data as any).extras?.isGhost,
+    (n) => n.type === NodeTypeEnum.Pipeline && n.id !== ghostNodeId,
   );
 
   // 检查前置条件
@@ -72,15 +70,10 @@ function ExplorationPanelBase({ visible, onClose }: ExplorationPanelProps) {
     start(inputGoal.trim(), startNodeId);
   }, [canStart, inputGoal, startNodeId, start]);
 
-  // 执行当前方案
-  const handleExecute = useCallback(() => {
-    execute();
-  }, [execute]);
-
-  // 确认当前方案
-  const handleConfirm = useCallback(() => {
-    confirm();
-  }, [confirm]);
+  // 下一步
+  const handleNextStep = useCallback(() => {
+    nextStep();
+  }, [nextStep]);
 
   // 完成探索
   const handleComplete = useCallback(() => {
@@ -183,21 +176,10 @@ function ExplorationPanelBase({ visible, onClose }: ExplorationPanelProps) {
             <div className={style.stepInfo}>
               <Text type="secondary">已完成 {stepCount} 步</Text>
             </div>
-            <div className={style.actionButtons}>
-              <Button
-                type="default"
-                icon={<PlayCircleOutlined />}
-                onClick={handleExecute}
-              >
-                执行
-              </Button>
-              <Button
-                type="primary"
-                icon={<CheckCircleOutlined />}
-                onClick={handleConfirm}
-              >
-                确认
-              </Button>
+            <div className={style.hintText}>
+              <Text type="secondary">
+                请在节点旁边操作：执行、重新生成或确认
+              </Text>
             </div>
             {error && (
               <Paragraph type="danger" className={style.errorText}>
@@ -220,6 +202,34 @@ function ExplorationPanelBase({ visible, onClose }: ExplorationPanelProps) {
           <div className={style.executingContent}>
             <Spin size="small" />
             <Text>正在执行动作...</Text>
+          </div>
+        );
+
+      case "confirmed":
+        return (
+          <div className={style.confirmedContent}>
+            <div className={style.goalDisplay}>
+              <IconFont name="icon-mubiao" size={16} />
+              <Text strong>{goal}</Text>
+            </div>
+            <div className={style.stepInfo}>
+              <Text type="success">已确认 {stepCount} 步</Text>
+            </div>
+            <div className={style.actionButtons}>
+              <Button
+                type="primary"
+                icon={<StepForwardOutlined />}
+                onClick={handleNextStep}
+              >
+                下一步
+              </Button>
+              <Button onClick={handleComplete}>完成探索</Button>
+            </div>
+            <div className={style.footerButtons}>
+              <Button onClick={() => setAbortModalVisible(true)} danger>
+                退出
+              </Button>
+            </div>
           </div>
         );
 

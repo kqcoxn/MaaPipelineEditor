@@ -1,9 +1,97 @@
 import { NodeTypeEnum } from "../../components/flow/nodes";
+import type { NodeType, PipelineNodeType } from "../../stores/flow";
 
 export interface ValidationResult {
   valid: boolean;
   error?: string;
   data?: any;
+}
+
+export interface NodeValidationResult {
+  valid: boolean;
+  error?: string;
+  repaired?: NodeType;
+}
+
+/**
+ * 验证节点数据对象并尝试修复
+ * @param node 节点对象
+ * @returns 验证结果，包含修复后的节点
+ */
+export function validateAndRepairNode(node: NodeType): NodeValidationResult {
+  if (!node) {
+    return { valid: false, error: "节点数据为空" };
+  }
+
+  if (!node.type) {
+    return { valid: false, error: "节点类型缺失" };
+  }
+
+  if (!node.data) {
+    return { valid: false, error: "节点数据结构损坏" };
+  }
+
+  // 验证 Pipeline 节点
+  if (node.type === NodeTypeEnum.Pipeline) {
+    const pipelineNode = node as PipelineNodeType;
+    let needsRepair = false;
+    const repairedData = { ...pipelineNode.data };
+
+    // 检查并修复 recognition
+    if (
+      !repairedData.recognition ||
+      typeof repairedData.recognition !== "object"
+    ) {
+      needsRepair = true;
+      repairedData.recognition = { type: "DirectHit", param: {} };
+    } else {
+      if (!repairedData.recognition.type) {
+        needsRepair = true;
+        repairedData.recognition.type = "DirectHit";
+      }
+      if (
+        !repairedData.recognition.param ||
+        typeof repairedData.recognition.param !== "object"
+      ) {
+        needsRepair = true;
+        repairedData.recognition.param = {};
+      }
+    }
+
+    // 检查并修复 action
+    if (!repairedData.action || typeof repairedData.action !== "object") {
+      needsRepair = true;
+      repairedData.action = { type: "DoNothing", param: {} };
+    } else {
+      if (!repairedData.action.type) {
+        needsRepair = true;
+        repairedData.action.type = "DoNothing";
+      }
+      if (
+        !repairedData.action.param ||
+        typeof repairedData.action.param !== "object"
+      ) {
+        needsRepair = true;
+        repairedData.action.param = {};
+      }
+    }
+
+    // 检查并修复 others
+    if (!repairedData.others || typeof repairedData.others !== "object") {
+      needsRepair = true;
+      repairedData.others = {};
+    }
+
+    if (needsRepair) {
+      return {
+        valid: true,
+        error: "节点数据结构不完整，已自动修复",
+        repaired: { ...pipelineNode, data: repairedData } as NodeType,
+      };
+    }
+  }
+
+  return { valid: true };
 }
 
 /**

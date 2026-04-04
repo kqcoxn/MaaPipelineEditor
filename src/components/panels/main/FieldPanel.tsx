@@ -1,5 +1,3 @@
-import style from "../../../styles/panels/FieldPanel.module.less";
-
 import {
   useMemo,
   memo,
@@ -12,6 +10,8 @@ import {
 import { Spin, Alert, Button, Tabs } from "antd";
 import classNames from "classnames";
 
+import style from "../../../styles/panels/FieldPanel.module.less";
+
 import {
   useFlowStore,
   type PipelineNodeType,
@@ -19,7 +19,6 @@ import {
   type AnchorNodeType,
   type StickerNodeType,
   type GroupNodeType,
-  type NodeType,
 } from "../../../stores/flow";
 import { NodeTypeEnum } from "../../flow/nodes";
 import {
@@ -37,87 +36,7 @@ import NodeRecognitionCardList from "../tools/NodeRecognitionCardList";
 import AdjacentInfoPanel from "./AdjacentInfoPanel";
 import { DraggablePanel } from "../common/DraggablePanel";
 import { NodeJsonEditorModal } from "../../modals/NodeJsonEditorModal";
-
-// 节点数据验证与修复
-function validateAndRepairNode(node: NodeType): {
-  valid: boolean;
-  error?: string;
-  repaired?: NodeType;
-} {
-  if (!node) {
-    return { valid: false, error: "节点数据为空" };
-  }
-
-  if (!node.type) {
-    return { valid: false, error: "节点类型缺失" };
-  }
-
-  if (!node.data) {
-    return { valid: false, error: "节点数据结构损坏" };
-  }
-
-  // 验证 Pipeline 节点
-  if (node.type === NodeTypeEnum.Pipeline) {
-    const pipelineNode = node as PipelineNodeType;
-    let needsRepair = false;
-    const repairedData = { ...pipelineNode.data };
-
-    // 检查并修复 recognition
-    if (
-      !repairedData.recognition ||
-      typeof repairedData.recognition !== "object"
-    ) {
-      needsRepair = true;
-      repairedData.recognition = { type: "DirectHit", param: {} };
-    } else {
-      if (!repairedData.recognition.type) {
-        needsRepair = true;
-        repairedData.recognition.type = "DirectHit";
-      }
-      if (
-        !repairedData.recognition.param ||
-        typeof repairedData.recognition.param !== "object"
-      ) {
-        needsRepair = true;
-        repairedData.recognition.param = {};
-      }
-    }
-
-    // 检查并修复 action
-    if (!repairedData.action || typeof repairedData.action !== "object") {
-      needsRepair = true;
-      repairedData.action = { type: "DoNothing", param: {} };
-    } else {
-      if (!repairedData.action.type) {
-        needsRepair = true;
-        repairedData.action.type = "DoNothing";
-      }
-      if (
-        !repairedData.action.param ||
-        typeof repairedData.action.param !== "object"
-      ) {
-        needsRepair = true;
-        repairedData.action.param = {};
-      }
-    }
-
-    // 检查并修复 others
-    if (!repairedData.others || typeof repairedData.others !== "object") {
-      needsRepair = true;
-      repairedData.others = {};
-    }
-
-    if (needsRepair) {
-      return {
-        valid: true,
-        error: "节点数据结构不完整，已自动修复",
-        repaired: { ...pipelineNode, data: repairedData } as NodeType,
-      };
-    }
-  }
-
-  return { valid: true };
-}
+import { validateAndRepairNode } from "../../../utils/node/nodeJsonValidator";
 
 // 错误边界组件
 class EditorErrorBoundary extends Component<

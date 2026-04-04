@@ -236,6 +236,25 @@
   padding: 20px 0;
 }
 
+// confirmed 状态
+.confirmedContent {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+// 提示文本
+.hintText {
+  text-align: center;
+  padding: 8px;
+  background: rgba(24, 144, 255, 0.1);
+  border-radius: 4px;
+
+  :global(.dark) & {
+    background: rgba(24, 144, 255, 0.15);
+  }
+}
+
 // completed 状态
 .completedContent {
   display: flex;

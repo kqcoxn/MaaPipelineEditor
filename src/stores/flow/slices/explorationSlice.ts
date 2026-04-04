@@ -17,6 +17,7 @@ import {
   calculateGhostNodePosition,
 } from "../../../utils/ai/explorationAI";
 import { applyPrediction } from "../../../utils/ai/aiPredictor";
+import { validateAndRepairNode } from "../../../utils/node/nodeJsonValidator";
 
 // 初始状态
 const initialState: FlowExplorationState = {
@@ -92,11 +93,10 @@ export const createExplorationSlice: StateCreator<
         type: NodeTypeEnum.Pipeline,
         position,
         select: true,
-        label: result.label,
-        data: {
-          extras: { isGhost: true },
-        },
       });
+
+      // 设置节点 label
+      get().setNodeData(nodeId, "label", "", result.label);
 
       // 应用预测结果
       applyPrediction(nodeId, result.prediction);
@@ -142,13 +142,20 @@ export const createExplorationSlice: StateCreator<
   },
 
   // 确认当前方案
+  // 确认后进入 confirmed 状态，不自动下一步
   confirm: async () => {
-    const { ghostNodeId, goal, startNodeId, confirmedNodeIds, stepCount } =
-      get();
-    if (!ghostNodeId) return;
+    const { ghostNodeId, confirmedNodeIds, stepCount } = get();
+    if (!ghostNodeId) return false;
 
-    // 移除 Ghost 标记
-    get().setNodeData(ghostNodeId, "others", "extras", { isGhost: false });
+    // 获取节点数据进行验证
+    const node = get().nodes.find((n) => n.id === ghostNodeId);
+    if (node) {
+      const validation = validateAndRepairNode(node);
+      if (!validation.valid) {
+        set({ error: validation.error || "节点数据验证失败" });
+        return false;
+      }
+    }
 
     // 添加到已确认列表
     const newConfirmedIds = [...confirmedNodeIds, ghostNodeId];
@@ -157,7 +164,7 @@ export const createExplorationSlice: StateCreator<
     const lastNodeId =
       confirmedNodeIds.length > 0
         ? confirmedNodeIds[confirmedNodeIds.length - 1]
-        : startNodeId;
+        : get().startNodeId;
 
     if (lastNodeId) {
       get().addEdge({
@@ -169,12 +176,22 @@ export const createExplorationSlice: StateCreator<
     }
 
     set({
+      status: "confirmed",
       confirmedNodeIds: newConfirmedIds,
       stepCount: stepCount + 1,
       ghostNodeId: null,
+      error: null,
     });
 
-    // 开始下一轮预测
+    return true;
+  },
+
+  // 下一步
+  // 从 confirmed 状态进入下一轮预测
+  nextStep: async () => {
+    const { status, goal, startNodeId, confirmedNodeIds } = get();
+    if (status !== "confirmed") return;
+
     set({
       status: "predicting",
       progressStage: "准备下一步",
@@ -185,7 +202,7 @@ export const createExplorationSlice: StateCreator<
       const result = await predictExplorationStep(
         goal!,
         startNodeId,
-        newConfirmedIds,
+        confirmedNodeIds,
         (stage, detail) => {
           set({ progressStage: stage, progressDetail: detail || "" });
         },
@@ -194,22 +211,21 @@ export const createExplorationSlice: StateCreator<
       // 计算位置
       const position = calculateGhostNodePosition(
         startNodeId,
-        newConfirmedIds,
+        confirmedNodeIds,
         get().nodes,
         get().viewport,
         get().size,
       );
 
-      // 创建新的 Ghost Node
+      // 创建节点
       const nodeId = get().addNode({
         type: NodeTypeEnum.Pipeline,
         position,
         select: true,
-        label: result.label,
-        data: {
-          extras: { isGhost: true },
-        },
       });
+
+      // 设置节点 label
+      get().setNodeData(nodeId, "label", "", result.label);
 
       // 应用预测结果
       applyPrediction(nodeId, result.prediction);
@@ -222,7 +238,65 @@ export const createExplorationSlice: StateCreator<
       });
     } catch (err) {
       set({
-        status: "idle",
+        status: "confirmed",
+        error: err instanceof Error ? err.message : "AI 预测失败",
+        progressStage: "",
+        progressDetail: "",
+      });
+    }
+  },
+
+  // 重新生成当前 Ghost 节点
+  regenerate: async () => {
+    const { ghostNodeId, goal, startNodeId, confirmedNodeIds, status } = get();
+    if (!ghostNodeId || status !== "reviewing") return;
+
+    // 删除当前 Ghost 节点
+    get().updateNodes([{ type: "remove", id: ghostNodeId }]);
+    set({ ghostNodeId: null, status: "predicting" });
+
+    try {
+      const result = await predictExplorationStep(
+        goal!,
+        startNodeId,
+        confirmedNodeIds,
+        (stage, detail) => {
+          set({ progressStage: stage, progressDetail: detail || "" });
+        },
+      );
+
+      // 计算位置
+      const position = calculateGhostNodePosition(
+        startNodeId,
+        confirmedNodeIds,
+        get().nodes,
+        get().viewport,
+        get().size,
+      );
+
+      // 创建新的节点
+      const nodeId = get().addNode({
+        type: NodeTypeEnum.Pipeline,
+        position,
+        select: true,
+      });
+
+      // 设置节点 label
+      get().setNodeData(nodeId, "label", "", result.label);
+
+      // 应用预测结果
+      applyPrediction(nodeId, result.prediction);
+
+      set({
+        status: "reviewing",
+        ghostNodeId: nodeId,
+        progressStage: "",
+        progressDetail: "",
+        error: null,
+      });
+    } catch (err) {
+      set({
+        status: "reviewing",
         error: err instanceof Error ? err.message : "AI 预测失败",
         progressStage: "",
         progressDetail: "",

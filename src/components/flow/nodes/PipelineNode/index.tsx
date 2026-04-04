@@ -1,9 +1,13 @@
-import { memo, useMemo, useState } from "react";
+import { memo, useMemo, useState, useCallback } from "react";
 import type { Node, NodeProps } from "@xyflow/react";
 import { useReactFlow } from "@xyflow/react";
 import classNames from "classnames";
-import { Button } from "antd";
-import { PlayCircleOutlined, CheckCircleOutlined } from "@ant-design/icons";
+import { Button, message } from "antd";
+import {
+  PlayCircleOutlined,
+  CheckCircleOutlined,
+  ReloadOutlined,
+} from "@ant-design/icons";
 
 import style from "../../../../styles/flow/nodes.module.less";
 import debugStyle from "../../../../styles/panels/DebugPanel.module.less";
@@ -31,15 +35,15 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
 
   // 探索模式状态和操作
+  const status = useFlowStore((state) => state.status);
   const ghostNodeId = useFlowStore((state) => state.ghostNodeId);
   const execute = useFlowStore((state) => state.execute);
   const confirm = useFlowStore((state) => state.confirm);
+  const regenerate = useFlowStore((state) => state.regenerate);
 
-  // 判断当前节点是否为 Ghost Node
-  const isGhostNode = props.data.extras?.isGhost === true;
-
-  // 判断当前节点是否为活跃的 Ghost Node（正在审核中）
-  const isActiveGhostNode = isGhostNode && ghostNodeId === props.id;
+  // 判断当前节点是否为活跃的 Ghost Node
+  // 通过 ghostNodeId 判断
+  const isActiveGhostNode = ghostNodeId === props.id && status === "reviewing";
 
   // 获取完整的 Node 对象
   const node = getNode(props.id) as
@@ -164,7 +168,7 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
         // Anchor 引用高亮样式
         [style["anchor-ref-highlighted"]]: isAnchorRefHighlighted,
         // Ghost Node 样式
-        [explorationStyle.ghostNode]: isGhostNode,
+        [explorationStyle.ghostNode]: isActiveGhostNode,
         // 调试相关样式
         [debugStyle["debug-node-executed"]]:
           debugMode && executedNodes.has(props.id),
@@ -189,7 +193,7 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
       props.selected,
       nodeStyle,
       isAnchorRefHighlighted,
-      isGhostNode,
+      isActiveGhostNode,
       debugMode,
       executedNodes,
       currentNode,
@@ -217,6 +221,22 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
     }
   };
 
+  // 处理确认操作
+  const handleConfirm = useCallback(async () => {
+    const success = await confirm();
+    if (!success) {
+      const error = useFlowStore.getState().error;
+      if (error) {
+        message.error(error);
+      }
+    }
+  }, [confirm]);
+
+  // 处理重新生成操作
+  const handleRegenerate = useCallback(() => {
+    regenerate();
+  }, [regenerate]);
+
   if (!node) {
     return (
       <div className={nodeClass} style={opacityStyle}>
@@ -235,11 +255,21 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
             </Button>
             <Button
               size="small"
+              icon={<ReloadOutlined />}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleRegenerate();
+              }}
+            >
+              重新生成
+            </Button>
+            <Button
+              size="small"
               type="primary"
               icon={<CheckCircleOutlined />}
               onClick={(e) => {
                 e.stopPropagation();
-                confirm();
+                handleConfirm();
               }}
             >
               确认
@@ -272,11 +302,21 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
             </Button>
             <Button
               size="small"
+              icon={<ReloadOutlined />}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleRegenerate();
+              }}
+            >
+              重新生成
+            </Button>
+            <Button
+              size="small"
               type="primary"
               icon={<CheckCircleOutlined />}
               onClick={(e) => {
                 e.stopPropagation();
-                confirm();
+                handleConfirm();
               }}
             >
               确认

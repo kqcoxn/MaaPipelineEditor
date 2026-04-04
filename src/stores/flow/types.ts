@@ -370,8 +370,9 @@ export interface FlowAnchorRefState {
 export type ExplorationStatus =
   | "idle" // 未开始
   | "predicting" // AI 预测中
-  | "reviewing" // 等待用户审核
+  | "reviewing" // 等待用户审核（Ghost节点显示）
   | "executing" // 执行动作中
+  | "confirmed" // 当前步骤已确认，等待下一步
   | "completed"; // 已完成
 
 // 探索模式 Slice 状态
@@ -402,8 +403,12 @@ export interface FlowExplorationActions {
   start: (goal: string, startNodeId?: string) => Promise<void>;
   /** 执行当前方案 */
   execute: () => Promise<void>;
-  /** 确认当前方案 */
-  confirm: () => Promise<void>;
+  /** 确认当前方案（确认后进入 confirmed 状态，不自动下一步） */
+  confirm: () => Promise<boolean>;
+  /** 下一步（从 confirmed 状态进入下一轮预测） */
+  nextStep: () => Promise<void>;
+  /** 重新生成当前 Ghost 节点 */
+  regenerate: () => Promise<void>;
   /** 完成探索 */
   complete: () => void;
   /** 退出探索 */
