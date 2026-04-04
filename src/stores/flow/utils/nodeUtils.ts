@@ -19,17 +19,19 @@ export function createPipelineNode(
     position?: PositionType;
     select?: boolean;
     datas?: any;
-  }
+  },
 ): PipelineNodeType {
   const {
-    label = id,
+    label: optionLabel = id,
     position = { x: 0, y: 0 },
     select = false,
     datas = {},
   } = options ?? {};
 
-  // 自动生成 label
-  const { label: _removedLabel, ...templateData } = datas;
+  // 从 datas 中提取 label
+  const { label: dataLabel, ...templateData } = datas;
+  const label =
+    dataLabel && typeof dataLabel === "string" ? dataLabel : optionLabel;
 
   const node: PipelineNodeType = {
     id,
@@ -62,7 +64,7 @@ export function createExternalNode(
     position?: PositionType;
     select?: boolean;
     datas?: any;
-  }
+  },
 ): ExternalNodeType {
   const {
     label = id,
@@ -92,7 +94,7 @@ export function createAnchorNode(
     position?: PositionType;
     select?: boolean;
     datas?: any;
-  }
+  },
 ): AnchorNodeType {
   const {
     label = id,
@@ -126,7 +128,7 @@ export function createStickerNode(
       color?: StickerColorTheme;
     };
     style?: Record<string, any>;
-  }
+  },
 ): StickerNodeType {
   const {
     label = "便签",
@@ -160,7 +162,7 @@ export function createStickerNode(
 // 查找节点
 export function findNodeById(
   nodes: NodeType[],
-  id: string
+  id: string,
 ): NodeType | undefined {
   return nodes.find((node) => node.id === id);
 }
@@ -171,7 +173,7 @@ export function findNodeIndexById(nodes: NodeType[], id: string): number {
 
 export function findNodeLabelById(
   nodes: NodeType[],
-  id: string
+  id: string,
 ): string | undefined {
   const node = findNodeById(nodes, id);
   return node?.data?.label;
@@ -179,7 +181,7 @@ export function findNodeLabelById(
 
 export function findNodeByLabel(
   nodes: NodeType[],
-  label: string
+  label: string,
 ): NodeType | undefined {
   return nodes.find((node) => node.data.label === label);
 }
@@ -198,7 +200,7 @@ export function getSelectedNodes(nodes: NodeType[]): NodeType[] {
  */
 export function getNodeAbsolutePosition(
   node: NodeType,
-  allNodes: NodeType[]
+  allNodes: NodeType[],
 ): PositionType {
   const absPos = { ...node.position };
   const parentId = (node as any).parentId;
@@ -217,7 +219,7 @@ export function calcuNodePosition(
   selectedNodes: NodeType[],
   viewport: { x: number; y: number; zoom: number },
   size: { width: number; height: number },
-  allNodes?: NodeType[]
+  allNodes?: NodeType[],
 ): PositionType {
   // 有选中节点
   if (selectedNodes.length > 0) {
@@ -248,7 +250,7 @@ export function calcuNodePosition(
 // 节点名查重
 export function checkRepeatNodeLabelList(
   nodes: NodeType[],
-  config: { isExportConfig: boolean; prefix: string }
+  config: { isExportConfig: boolean; prefix: string },
 ): string[] {
   const repates: string[] = [];
   const isAddPrefix = config.isExportConfig && config.prefix;
@@ -285,7 +287,7 @@ export function createGroupNode(
       color?: GroupColorTheme;
     };
     style?: Record<string, any>;
-  }
+  },
 ): GroupNodeType {
   const {
     label = "分组",

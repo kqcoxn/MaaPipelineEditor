@@ -172,7 +172,12 @@ ${goal}
 
 ## 输出注意事项
 
-1. **label 字段**：提供一个简短、清晰的节点名称，描述这个步骤在做什么
+1. **label 字段（必填）**：
+   - 必须提供，不能省略
+   - 长度控制在 4-15 个字符
+   - 清晰描述这个步骤在做什么（动词+对象）
+   - 示例："点击开始按钮"、"输入账号"、"滑动到下一页"、"启动应用"
+   - 不要使用"新节点"、"节点1"等无意义名称
 2. **不要填写默认值**：target: true、timeout: 20000 等默认值无需填写
 3. **param 为空时返回 {}**：不要省略 param 字段
 4. **reasoning 必须说明**：为什么选择该识别类型和动作类型
@@ -251,11 +256,18 @@ function parseExplorationAIResponse(content: string): ExplorationPrediction {
       throw new Error("缺少reasoning字段");
     }
 
-    // 提取 label，如果没有则生成默认名称
+    // 提取 label，如果没有则生成智能默认名称
     let label = parsed.label;
-    if (!label || typeof label !== "string") {
-      // 尝试从 reasoning 中提取
-      label = parsed.reasoning.slice(0, 15);
+    if (!label || typeof label !== "string" || label.trim().length === 0) {
+      // 尝试从 reasoning 或 action type 中生成有意义的名称
+      label = generateSmartLabel(parsed);
+    } else {
+      // 清理 label，去除多余空格
+      label = label.trim();
+      // 如果 label 过长，截断并添加省略号
+      if (label.length > 20) {
+        label = label.slice(0, 20) + "...";
+      }
     }
 
     return {
@@ -270,6 +282,59 @@ function parseExplorationAIResponse(content: string): ExplorationPrediction {
     console.error("AI返回格式解析失败:", err);
     throw new Error("AI返回格式异常,无法解析");
   }
+}
+
+/**
+ * 智能生成节点标签
+ * 当 AI 没有返回 label 时，根据预测结果生成有意义的名称
+ */
+function generateSmartLabel(parsed: any): string {
+  // 优先级 1: 从 reasoning 中提取关键动作
+  if (parsed.reasoning && typeof parsed.reasoning === "string") {
+    const reasoning = parsed.reasoning;
+
+    // 尝试提取中文动词短语（5-15字符）
+    const chineseMatch = reasoning.match(/[\u4e00-\u9fa5]{4,15}/);
+    if (chineseMatch) {
+      return chineseMatch[0];
+    }
+  }
+
+  // 优先级 2: 根据 action type 生成
+  if (parsed.action && parsed.action.type) {
+    const actionType = parsed.action.type;
+    const actionMap: Record<string, string> = {
+      Click: "点击操作",
+      Swipe: "滑动操作",
+      Key: "按键操作",
+      InputText: "输入文本",
+      StartApp: "启动应用",
+      StopApp: "停止应用",
+      Screenshot: "截图操作",
+      DoNothing: "等待识别",
+    };
+    if (actionMap[actionType]) {
+      return actionMap[actionType];
+    }
+  }
+
+  // 优先级 3: 根据 recognition type 生成
+  if (parsed.recognition && parsed.recognition.type) {
+    const recoType = parsed.recognition.type;
+    const recoMap: Record<string, string> = {
+      OCR: "文字识别",
+      TemplateMatch: "模板匹配",
+      ColorMatch: "颜色匹配",
+      FeatureMatch: "特征匹配",
+      DirectHit: "直接命中",
+    };
+    if (recoMap[recoType]) {
+      return recoMap[recoType];
+    }
+  }
+
+  // 默认：返回通用名称
+  return "新节点";
 }
 
 /**

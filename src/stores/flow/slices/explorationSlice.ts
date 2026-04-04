@@ -93,10 +93,10 @@ export const createExplorationSlice: StateCreator<
         type: NodeTypeEnum.Pipeline,
         position,
         select: true,
+        data: {
+          label: result.label,
+        },
       });
-
-      // 设置节点 label
-      get().setNodeData(nodeId, "label", "", result.label);
 
       // 应用预测结果
       applyPrediction(nodeId, result.prediction);
@@ -279,10 +279,10 @@ export const createExplorationSlice: StateCreator<
         type: NodeTypeEnum.Pipeline,
         position,
         select: true,
+        data: {
+          label: result.label,
+        },
       });
-
-      // 设置节点 label
-      get().setNodeData(nodeId, "label", "", result.label);
 
       // 应用预测结果
       applyPrediction(nodeId, result.prediction);

@@ -311,6 +311,24 @@ export const PREDICTION_EXAMPLES = `
 { "recognition": { "type": "NeuralNetworkClassify", "param": { "model": "detect.onnx" } } }
 \`\`\`
 ❌ 错误原因：NeuralNetworkClassify 用于固定位置分类，检测模型应使用 NeuralNetworkDetect
+
+### 错误 8：target 设置成与 expected 相同的值
+\`\`\`json
+{
+  "recognition": { "type": "OCR", "param": { "expected": "开始" } },
+  "action": { "type": "Click", "param": { "target": "开始" } }
+}
+\`\`\`
+❌ 错误原因：target 用于指定动作执行的目标位置，不需要也不应该设置成与 expected 相同的值。target 默认为 true（即使用当前识别结果的位置），除非需要引用其他节点或指定固定坐标，否则不需要设置 target 字段
+
+### 错误 9：不必要的 target 显式设置
+\`\`\`json
+{
+  "recognition": { "type": "TemplateMatch", "param": { "template": "close_btn.png" } },
+  "action": { "type": "Click", "param": { "target": true } }
+}
+\`\`\`
+❌ 错误原因：target: true 是默认行为，不需要显式填写。只有当需要引用其他节点识别结果（填写节点名）、引用锚点（[Anchor]锚点名）、或指定固定坐标/区域时才需要设置 target
 `;
 
 /**
