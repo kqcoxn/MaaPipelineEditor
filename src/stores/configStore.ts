@@ -26,7 +26,6 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   // Pipeline 配置
   nodeAttrExportStyle: "pipeline",
   defaultHandleDirection: "pipeline",
-  quickCreateNodeOnConnectBlank: "pipeline",
   exportDefaultRecoAction: "pipeline",
   pipelineProtocolVersion: "pipeline",
   skipFieldValidation: "pipeline",
@@ -35,6 +34,7 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   // 面板配置
   nodeStyle: "panel",
   historyLimit: "panel",
+  quickCreateNodeOnConnectBlank: "panel",
   isRealTimePreview: "panel",
   showEdgeLabel: "panel",
   showEdgeControlPoint: "panel",

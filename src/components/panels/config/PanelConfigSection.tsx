@@ -45,6 +45,9 @@ const PanelConfigSection = memo(() => {
   const liveScreenRefreshRate = useConfigStore(
     (state) => state.configs.liveScreenRefreshRate,
   );
+  const quickCreateNodeOnConnectBlank = useConfigStore(
+    (state) => state.configs.quickCreateNodeOnConnectBlank,
+  );
   const setConfig = useConfigStore((state) => state.setConfig);
 
   const globalClass = useMemo(() => classNames(style.item, style.global), []);
@@ -124,6 +127,35 @@ const PanelConfigSection = memo(() => {
           onChange={(value: number | null) => {
             if (value !== null) setConfig("historyLimit", value);
           }}
+        />
+      </div>
+
+      {/* 连接空白处时创建 */}
+      <div className={globalClass}>
+        <div className={style.key}>
+          <Popover
+            placement="bottomLeft"
+            title="连接空白处时创建"
+            content={
+              <TipElem
+                content={
+                  "从节点拖出连接线，如果终点落在画布空白处，则在落点直接弹出节点添加面板，方便继续选择要创建的节点类型。关闭后将保持原有行为。"
+                }
+              />
+            }
+          >
+            <span>连接空白处时创建</span>
+          </Popover>
+        </div>
+        <Switch
+          className={style.value}
+          style={switchStyle}
+          checked={quickCreateNodeOnConnectBlank}
+          checkedChildren="开启"
+          unCheckedChildren="关闭"
+          onChange={(checked) =>
+            setConfig("quickCreateNodeOnConnectBlank", checked)
+          }
         />
       </div>
 

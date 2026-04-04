@@ -21,9 +21,7 @@ const PipelineConfigSection = memo(() => {
   const exportDefaultRecoAction = useConfigStore(
     (state) => state.configs.exportDefaultRecoAction,
   );
-  const quickCreateNodeOnConnectBlank = useConfigStore(
-    (state) => state.configs.quickCreateNodeOnConnectBlank,
-  );
+
   const pipelineProtocolVersion = useConfigStore(
     (state) => state.configs.pipelineProtocolVersion,
   );
@@ -136,33 +134,6 @@ const PipelineConfigSection = memo(() => {
         </Button>
       </div>
       {/* 导出默认识别/动作 */}
-      <div className={globalClass}>
-        <div className={style.key}>
-          <Popover
-            placement="bottomLeft"
-            title="连接空白处时创建"
-            content={
-              <TipElem
-                content={
-                  "从节点拖出连接线，如果终点落在画布空白处，则在落点直接弹出节点添加面板，方便继续选择要创建的节点类型。关闭后将保持原有行为。"
-                }
-              />
-            }
-          >
-            <span>连接空白处时创建</span>
-          </Popover>
-        </div>
-        <Switch
-          className={style.value}
-          style={{ maxWidth: 60 }}
-          checked={quickCreateNodeOnConnectBlank}
-          checkedChildren="开启"
-          unCheckedChildren="关闭"
-          onChange={(checked) =>
-            setConfig("quickCreateNodeOnConnectBlank", checked)
-          }
-        />
-      </div>
       <div className={globalClass}>
         <div className={style.key}>
           <Popover
