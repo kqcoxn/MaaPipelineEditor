@@ -49,6 +49,17 @@ export interface AIHistoryRecord {
   response: string;
   success: boolean;
   error?: string;
+  hasImage?: boolean; // 是否包含图片
+  imageBase64?: string; // 图片base64(用于缩略图)
+  imageDescription?: string; // 图片描述(如"设备截图")
+  textContent?: string; // 实际发送的文本内容
+  tokenUsage?: {
+    // Token用量统计
+    promptTokens: number; // 输入token
+    completionTokens: number; // 输出token
+    totalTokens: number; // 总token
+    isEstimated: boolean; // 是否为估算值
+  };
 }
 
 /** 全局历史记录管理 */
@@ -232,6 +243,8 @@ export class OpenAIChat {
           actualMessage: userMessage,
           response: content,
           success: true,
+          textContent: userMessage,
+          tokenUsage: this.extractTokenUsage(data),
         });
 
         return { success: true, content };
@@ -350,6 +363,11 @@ export class OpenAIChat {
           actualMessage: userMessage,
           response: fullContent,
           success: true,
+          textContent: userMessage,
+          tokenUsage: this.extractTokenUsage({
+            usage: null, // 流式响应通常不包含 usage
+            choices: [{ message: { content: fullContent } }],
+          }),
         });
         return { success: true, content: fullContent };
       } catch (err: any) {
@@ -380,6 +398,41 @@ export class OpenAIChat {
   abort() {
     this.abortController?.abort();
     this.abortController = null;
+  }
+
+  /**
+   * 从 API 响应中提取 token 用量
+   * 如果 API 未返回则估算
+   */
+  private extractTokenUsage(data: any): AIHistoryRecord["tokenUsage"] {
+    // 尝试获取真实用量
+    const usage = data.usage;
+    if (usage?.prompt_tokens && usage?.completion_tokens) {
+      return {
+        promptTokens: usage.prompt_tokens,
+        completionTokens: usage.completion_tokens,
+        totalTokens:
+          usage.total_tokens || usage.prompt_tokens + usage.completion_tokens,
+        isEstimated: false,
+      };
+    }
+
+    // 估算: 大约 1 token ≈ 1.3 个中文字符或 0.75 个英文单词
+    const estimateTokens = (text: string) => Math.ceil(text.length / 1.3);
+    const promptText = this.messages
+      .map((m) => (typeof m.content === "string" ? m.content : ""))
+      .join(" ");
+    const completionText = data.choices?.[0]?.message?.content || "";
+
+    const promptTokens = estimateTokens(promptText);
+    const completionTokens = estimateTokens(completionText);
+
+    return {
+      promptTokens,
+      completionTokens,
+      totalTokens: promptTokens + completionTokens,
+      isEstimated: true,
+    };
   }
 
   /** 清空对话历史 */
@@ -425,10 +478,14 @@ export class OpenAIChat {
     if (configError) {
       aiHistoryManager.addRecord({
         userPrompt: userPrompt || textContent,
-        actualMessage: "[图片+文本]",
+        actualMessage: textContent,
         response: "",
         success: false,
         error: configError,
+        hasImage: true,
+        imageBase64: imageBase64,
+        imageDescription: "设备截图",
+        textContent: textContent,
       });
       return { success: false, content: "", error: configError };
     }
@@ -477,9 +534,14 @@ export class OpenAIChat {
         // 记录成功的历史
         aiHistoryManager.addRecord({
           userPrompt: userPrompt || textContent,
-          actualMessage: "[图片+文本]",
+          actualMessage: textContent,
           response: content,
           success: true,
+          hasImage: true,
+          imageBase64: imageBase64,
+          imageDescription: "设备截图",
+          textContent: textContent,
+          tokenUsage: this.extractTokenUsage(data),
         });
 
         return { success: true, content };
@@ -498,10 +560,14 @@ export class OpenAIChat {
     this.messages.pop();
     aiHistoryManager.addRecord({
       userPrompt: userPrompt || textContent,
-      actualMessage: "[图片+文本]",
+      actualMessage: textContent,
       response: "",
       success: false,
       error: lastError,
+      hasImage: true,
+      imageBase64: imageBase64,
+      imageDescription: "设备截图",
+      textContent: textContent,
     });
     return { success: false, content: "", error: lastError };
   }

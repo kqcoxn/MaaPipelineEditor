@@ -49,11 +49,12 @@ export const pinnedNotice: PinnedNotice = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "1.4.0",
-    date: "2026-4",
+    date: "2026-4-5",
     type: "major",
     updates: {
       features: [
         "🤖 新增 AI 流程探索模式，寻路等流程类任务引导式直达",
+        "📔 AI 历史信息面板可具体查看 Token 用量、实际提示词等信息",
         "🌟 Anchor 节点支持高亮索引与可跨文件快捷跳转",
         "🥂 右键节点面板可粘贴复制项，直接生成在指针位置",
         "🐍 Extremer 可自动检测新版本并提示",

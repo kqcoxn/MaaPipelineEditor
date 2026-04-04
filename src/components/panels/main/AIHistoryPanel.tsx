@@ -1,7 +1,7 @@
 import style from "../../../styles/panels/AIHistoryPanel.module.less";
 
 import { memo, useMemo, useState, useEffect } from "react";
-import { Empty, Tag, Tooltip } from "antd";
+import { Empty, Tag, Tooltip, Modal } from "antd";
 import classNames from "classnames";
 import IconFont from "../../iconfonts";
 
@@ -22,7 +22,16 @@ function formatTime(timestamp: number): string {
 
 /** 单条历史记录组件 */
 const HistoryItem = memo(({ record }: { record: AIHistoryRecord }) => {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(false); // 实际消息展开
+  const [responseExpanded, setResponseExpanded] = useState(false); // AI回复展开
+  const [imagePreview, setImagePreview] = useState(false); // 图片预览
+
+  const MAX_RESPONSE_LENGTH = 300; // 默认展示300字符
+  const isResponseTruncated = record.response.length > MAX_RESPONSE_LENGTH;
+  const displayedResponse =
+    isResponseTruncated && !responseExpanded
+      ? record.response.slice(0, MAX_RESPONSE_LENGTH) + "..."
+      : record.response;
 
   return (
     <div className={style.item}>
@@ -31,6 +40,28 @@ const HistoryItem = memo(({ record }: { record: AIHistoryRecord }) => {
         <Tag color={record.success ? "success" : "error"} className={style.tag}>
           {record.success ? "成功" : "失败"}
         </Tag>
+
+        {/* Token统计标签 */}
+        {record.success && record.tokenUsage && (
+          <Tooltip
+            title={
+              <div>
+                <div>输入: {record.tokenUsage.promptTokens} tokens</div>
+                <div>输出: {record.tokenUsage.completionTokens} tokens</div>
+                <div>总计: {record.tokenUsage.totalTokens} tokens</div>
+                {record.tokenUsage.isEstimated && (
+                  <div style={{ color: "#faad14" }}>(估算值)</div>
+                )}
+              </div>
+            }
+          >
+            <Tag color="cyan" className={style.tag}>
+              ↑{record.tokenUsage.promptTokens} ↓
+              {record.tokenUsage.completionTokens}
+            </Tag>
+          </Tooltip>
+        )}
+
         {record.actualMessage !== record.userPrompt && (
           <Tooltip title="实际消息包含预设提示词">
             <Tag color="processing" className={style.tag}>
@@ -61,7 +92,25 @@ const HistoryItem = memo(({ record }: { record: AIHistoryRecord }) => {
             </div>
             {expanded && (
               <div className={classNames(style.text, style.actualMessage)}>
-                {record.actualMessage}
+                {/* 图片缩略图 */}
+                {record.hasImage && record.imageBase64 && (
+                  <div
+                    className={style.imageThumbnail}
+                    onClick={() => setImagePreview(true)}
+                  >
+                    <img
+                      src={`data:image/png;base64,${record.imageBase64}`}
+                      alt={record.imageDescription}
+                    />
+                    <div className={style.imageOverlay}>
+                      <span style={{ color: "#fff", fontSize: 16 }}>🔍</span>
+                    </div>
+                  </div>
+                )}
+                {/* 文本内容 */}
+                {record.textContent && (
+                  <div className={style.textContent}>{record.textContent}</div>
+                )}
               </div>
             )}
           </div>
@@ -71,13 +120,51 @@ const HistoryItem = memo(({ record }: { record: AIHistoryRecord }) => {
           <div className={style.label}>AI 回复:</div>
           <div className={style.text}>
             {record.success ? (
-              record.response || "(空回复)"
+              <>
+                <div
+                  className={classNames(style.responseText, {
+                    [style.responseExpanded]: responseExpanded,
+                  })}
+                >
+                  {displayedResponse}
+                </div>
+                {isResponseTruncated && (
+                  <div
+                    className={style.expandLabel}
+                    onClick={() => setResponseExpanded(!responseExpanded)}
+                  >
+                    <span>{responseExpanded ? "收起" : "展开完整回复"}</span>
+                    <IconFont
+                      name={responseExpanded ? "icon-xiahua" : "icon-qianjin"}
+                      size={12}
+                      style={{ marginLeft: 4 }}
+                    />
+                  </div>
+                )}
+              </>
             ) : (
               <span className={style.error}>{record.error || "未知错误"}</span>
             )}
           </div>
         </div>
       </div>
+
+      {/* 图片预览 */}
+      {record.hasImage && record.imageBase64 && (
+        <Modal
+          open={imagePreview}
+          onCancel={() => setImagePreview(false)}
+          footer={null}
+          width="80%"
+          style={{ top: 20 }}
+        >
+          <img
+            src={`data:image/png;base64,${record.imageBase64}`}
+            alt={record.imageDescription}
+            style={{ width: "100%" }}
+          />
+        </Modal>
+      )}
     </div>
   );
 });
