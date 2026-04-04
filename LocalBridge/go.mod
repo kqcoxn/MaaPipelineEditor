@@ -1,6 +1,6 @@
 module github.com/kqcoxn/MaaPipelineEditor/LocalBridge
 
-go 1.24.0
+go 1.26.1
 
 require (
 	github.com/MaaXYZ/maa-framework-go/v4 v4.0.0-beta.12

@@ -14,7 +14,7 @@ _✨ 可视化构建 MaaFramework Pipeline 的下一代工作流编辑器 ✨_</
   <a href="https://react.dev/" target="_blank"><img alt="react" src="https://img.shields.io/badge/React 19-%2320232a.svg?logo=react&logoColor=%2361DAFB"></a>
   <a href="https://www.typescriptlang.org/" target="_blank"><img alt="ts" src="https://img.shields.io/badge/TypeScript 5.8-3178C6?logo=typescript&logoColor=fff"></a>
   <a href="https://reactflow.dev/" target="_blank"><img alt="react-flow" src="https://img.shields.io/badge/React Flow 12-%23ff0072?logoColor=fff&logo=flathub"></a>
-  <a href="https://github.com/golang/go" target="_blank"><img alt="go" src="https://img.shields.io/badge/Golang 1.24-007d9c?logo=go&logoColor=fff"></a>
+  <a href="https://github.com/golang/go" target="_blank"><img alt="go" src="https://img.shields.io/badge/Golang 1.26-007d9c?logo=go&logoColor=fff"></a>
   <br/>
   <a href="https://github.com/kqcoxn/MaaPipelineEditor/blob/main/LICENSE.md" target="_blank"><img alt="committs" src="https://img.shields.io/github/license/kqcoxn/MaaPipelineEditor"></a>
   <a href="https://github.com/kqcoxn/MaaPipelineEditor/stargazers" target="_blank"><img alt="stars" src="https://img.shields.io/github/stars/kqcoxn/MaaPipelineEditor?style=social"></a>
