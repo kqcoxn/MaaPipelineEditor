@@ -3,7 +3,7 @@ import { create } from "zustand";
 /**
  * 设备类型
  */
-export type DeviceType = "adb" | "win32" | "playcover" | "gamepad" | null;
+export type DeviceType = "adb" | "win32" | "playcover" | "gamepad" | "wlroots" | null;
 
 /**
  * 连接状态
@@ -35,6 +35,13 @@ export interface Win32Window {
   window_name: string;
   screencap_methods: string[];
   input_methods: string[];
+}
+
+/**
+ * WlRoots 信息
+ */
+export interface WlRootsSocket {
+  socket_path: string;
 }
 
 /**
@@ -79,6 +86,7 @@ interface MFWState {
   // 设备列表
   adbDevices: AdbDevice[];
   win32Windows: Win32Window[];
+  wlrootsSockets: WlRootsSocket[];
 
   // 错误信息
   errorMessage: string | null;
@@ -92,6 +100,7 @@ interface MFWState {
   ) => void;
   updateAdbDevices: (devices: AdbDevice[]) => void;
   updateWin32Windows: (windows: Win32Window[]) => void;
+  updateWlRootsSockets: (sockets: WlRootsSocket[]) => void;
   setErrorMessage: (message: string | null) => void;
   clearConnection: () => void;
 }
@@ -107,6 +116,7 @@ export const useMFWStore = create<MFWState>()((set) => ({
   deviceInfo: null,
   adbDevices: [],
   win32Windows: [],
+  wlrootsSockets: [],
   errorMessage: null,
 
   // 设置连接状态
@@ -136,6 +146,12 @@ export const useMFWStore = create<MFWState>()((set) => ({
   updateWin32Windows: (windows) =>
     set({
       win32Windows: windows,
+    }),
+
+  // 更新 WlRoots 套接字列表
+  updateWlRootsSockets: (sockets) =>
+    set({
+      wlrootsSockets: sockets
     }),
 
   // 设置错误信息

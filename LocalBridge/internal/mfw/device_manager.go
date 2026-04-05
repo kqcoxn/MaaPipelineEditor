@@ -10,9 +10,10 @@ import (
 
 // 设备管理器
 type DeviceManager struct {
-	adbDevices   []AdbDeviceInfo
-	win32Windows []Win32WindowInfo
-	mu           sync.RWMutex
+	adbDevices     []AdbDeviceInfo
+	win32Windows   []Win32WindowInfo
+	wlrootsSockets []WlRootsInfo
+	mu             sync.RWMutex
 }
 
 // 创建设备管理器
@@ -92,6 +93,31 @@ func (dm *DeviceManager) RefreshWin32Windows() ([]Win32WindowInfo, error) {
 
 	logger.Info("MFW", "发现 %d 个 Win32 窗体", len(dm.win32Windows))
 	return dm.win32Windows, nil
+}
+
+// 刷新Win32窗体列表
+func (dm *DeviceManager) RefreshWlRootsSockets() ([]WlRootsInfo, error) {
+	logger.Debug("MFW", "开始刷新 WlRoots 套接字列表")
+
+	// FindDesktopWindows API
+	windows, err := maa.FindDesktopWindows()
+	if err != nil {
+		return nil, fmt.Errorf("查找 WlRoots 失败: %w", err)
+	}
+
+	dm.mu.Lock()
+	defer dm.mu.Unlock()
+
+	dm.wlrootsSockets = make([]WlRootsInfo, 0, len(windows))
+	for _, win := range windows {
+		info := WlRootsInfo{
+			SocketPath: win.ClassName,
+		}
+		dm.wlrootsSockets = append(dm.wlrootsSockets, info)
+	}
+
+	logger.Info("MFW", "发现 %d 个 WlRoots 套接字", len(dm.wlrootsSockets))
+	return dm.wlrootsSockets, nil
 }
 
 // 获取ADB设备列表

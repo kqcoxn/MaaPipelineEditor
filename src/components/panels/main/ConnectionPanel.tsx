@@ -26,6 +26,7 @@ import {
   useMFWStore,
   type AdbDevice,
   type Win32Window,
+  type WlRootsSocket,
 } from "../../../stores/mfwStore";
 import { mfwProtocol } from "../../../services/server";
 
@@ -45,16 +46,19 @@ export const ConnectionPanel = memo(
       deviceInfo,
       adbDevices,
       win32Windows,
+      wlrootsSockets,
       errorMessage,
     } = useMFWStore();
 
     const [activeTab, setActiveTab] = useState<
-      "adb" | "win32" | "playcover" | "gamepad"
+      "adb" | "win32" | "playcover" | "gamepad" | "wlroots"
     >("adb");
     const [selectedAdbDevice, setSelectedAdbDevice] =
       useState<AdbDevice | null>(null);
     const [selectedWin32Window, setSelectedWin32Window] =
       useState<Win32Window | null>(null);
+    const [selectedWlRootsSocket, setSelectedWlRootsSocket] =
+      useState<WlRootsSocket | null>(null);
     // PlayCover 连接参数
     const [playCoverAddress, setPlayCoverAddress] = useState<string>("");
     const [playCoverUUID, setPlayCoverUUID] = useState<string>("");
@@ -189,6 +193,14 @@ export const ConnectionPanel = memo(
             if (connectedWindow) {
               setSelectedWin32Window(connectedWindow);
             }
+          } else if (controllerType === "wlroots") {
+            setActiveTab("wlroots");
+            const connectedSocket = wlrootsSockets.find(
+              (w) => w.socket_path === (deviceInfo as any)?.socket_path
+            );
+            if (connectedSocket) {
+              setSelectedWlRootsSocket(connectedSocket);
+            }
           }
           // 已连接状态下不触发刷新
           return;
@@ -204,6 +216,7 @@ export const ConnectionPanel = memo(
       deviceInfo,
       adbDevices,
       win32Windows,
+      wlrootsSockets,
       activeTab,
     ]);
 
@@ -234,6 +247,8 @@ export const ConnectionPanel = memo(
         mfwProtocol.refreshAdbDevices();
       } else if (activeTab === "win32") {
         mfwProtocol.refreshWin32Windows();
+      } else if (activeTab === "wlroots") {
+        mfwProtocol.refreshWlRootsSockets();
       }
       setTimeout(() => setIsRefreshing(false), 1000);
     }, [activeTab]);
@@ -307,6 +322,11 @@ export const ConnectionPanel = memo(
           gamepad_type: gamepadType,
           screencap_method: gamepadScreencap || undefined,
         });
+      } else if (activeTab === "wlroots" && selectedWlRootsSocket) {
+        // Gamepad 连接
+        mfwProtocol.createWlRootsController({
+          socket_path: selectedWlRootsSocket.socket_path
+        });
       } else {
         message.warning("请先选择设备");
       }
@@ -314,6 +334,7 @@ export const ConnectionPanel = memo(
       activeTab,
       selectedAdbDevice,
       selectedWin32Window,
+      selectedWlRootsSocket,
       customScreencap,
       customInput,
       playCoverAddress,
@@ -350,6 +371,8 @@ export const ConnectionPanel = memo(
         ? !!selectedWin32Window
         : activeTab === "playcover"
         ? !!(playCoverAddress.trim() && playCoverUUID.trim())
+        : activeTab === "wlroots"
+        ? !!selectedWlRootsSocket
         : activeTab === "gamepad"
         ? true // Gamepad 不需要选择设备
         : false;
@@ -380,6 +403,8 @@ export const ConnectionPanel = memo(
         return true;
       } else if (activeTab === "gamepad") {
         return true; // Gamepad 不需要验证方法
+      } else if (activeTab === "wlroots") {
+        return true;
       }
       return false;
     }, [
@@ -411,6 +436,8 @@ export const ConnectionPanel = memo(
         return selectedWin32Window.hwnd === (deviceInfo as any)?.hwnd;
       } else if (activeTab === "playcover" && controllerType === "playcover") {
         return playCoverAddress === (deviceInfo as any)?.address;
+      } else if (activeTab === "wlroots" && controllerType === "wlroots") {
+        return selectedWlRootsSocket?.socket_path === (deviceInfo as any)?.socket_path;
       }
       return false;
     }, [
@@ -750,6 +777,64 @@ export const ConnectionPanel = memo(
       </div>
     );
 
+    // 渲染 WlRoots 套接字列表
+    const renderWlRootsSockets = () => (
+      <List
+        loading={isRefreshing}
+        dataSource={wlrootsSockets}
+        locale={{ emptyText: "暂无合成器，请点击刷新" }}
+        split={false}
+        renderItem={(device) => {
+          const isSelected = selectedWlRootsSocket?.socket_path === device.socket_path;
+          return (
+            <div
+              onClick={() => setSelectedWlRootsSocket(device)}
+              style={{
+                cursor: "pointer",
+                padding: "12px 16px",
+                marginBottom: 8,
+                borderRadius: 8,
+                border: isSelected ? "2px solid #1890ff" : "1px solid #f0f0f0",
+                backgroundColor: isSelected ? "#e6f7ff" : "#fafafa",
+                transition: "all 0.2s ease",
+              }}
+              onMouseEnter={(e) => {
+                if (!isSelected)
+                  e.currentTarget.style.backgroundColor = "#f5f5f5";
+              }}
+              onMouseLeave={(e) => {
+                if (!isSelected)
+                  e.currentTarget.style.backgroundColor = "#fafafa";
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <DesktopOutlined
+                  style={{
+                    fontSize: 24,
+                    color: isSelected ? "#1890ff" : "#999",
+                  }}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <Text
+                    strong
+                    ellipsis
+                    style={{ display: "block", marginBottom: 4 }}
+                  >
+                    {device.socket_path}
+                  </Text>
+                </div>
+                {isSelected && (
+                  <CheckCircleOutlined
+                    style={{ color: "#1890ff", fontSize: 18 }}
+                  />
+                )}
+              </div>
+            </div>
+          );
+        }}
+      />
+    );
+
     const statusBadge = getStatusBadge();
 
     return (
@@ -876,7 +961,7 @@ export const ConnectionPanel = memo(
           </div>
 
           {/* 方法配置区 - PlayCover 和 Gamepad 不显示 */}
-          {activeTab !== "playcover" && activeTab !== "gamepad" && (
+          {activeTab !== "playcover" && activeTab !== "gamepad" && activeTab !== "wlroots" && (
             <div
               style={{
                 padding: "16px 24px",
@@ -945,7 +1030,7 @@ export const ConnectionPanel = memo(
             <Tabs
               activeKey={activeTab}
               onChange={(key) =>
-                setActiveTab(key as "adb" | "win32" | "playcover" | "gamepad")
+                setActiveTab(key as "adb" | "win32" | "playcover" | "gamepad" | "wlroots")
               }
               items={[
                 {
@@ -984,6 +1069,15 @@ export const ConnectionPanel = memo(
                     </span>
                   ),
                 },
+                {
+                  key: "wlroots",
+                  label: (
+                    <span>
+                      <DesktopOutlined style={{ marginRight: 8 }} />
+                      WlRoots
+                    </span>
+                  ),
+                },
               ]}
               style={{ marginBottom: 0 }}
             />
@@ -997,6 +1091,8 @@ export const ConnectionPanel = memo(
               ? renderWin32Windows()
               : activeTab === "playcover"
               ? renderPlayCoverForm()
+              : activeTab === "wlroots"
+              ? renderWlRootsSockets()
               : renderGamepadForm()}
           </div>
         </div>

@@ -39,7 +39,7 @@ type MaaFWAdapter struct {
 	ownsController bool // 是否拥有控制器（true=自己创建的，false=借用的共享控制器）
 
 	// 元信息
-	controllerType string // ADB/Win32
+	controllerType string // ADB/Win32/WlRoots
 	deviceInfo     string // 设备名称/窗口名称
 
 	// 事件回调
@@ -163,6 +163,48 @@ func (a *MaaFWAdapter) ConnectWin32(hwnd uintptr, screencapMethod, inputMethod s
 	a.screenshotter.SetController(ctrl)
 
 	logger.Info("MaaFW", "Win32 控制器已连接")
+	return nil
+}
+
+// ConnectWlRoots 连接 WlRoots 控制器
+func (a *MaaFWAdapter) ConnectWlRoots(socketPath string) error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	logger.Debug("MaaFW", "连接 WlRoots 控制器: %s, %s", socketPath)
+
+	// 创建 ADB 控制器
+	ctrl, err := maa.NewWlRootsController(socketPath)
+	if err != nil {
+		return fmt.Errorf("创建 WlRoots 控制器失败: %w", err)
+	}
+
+	// 连接
+	connectJob := ctrl.PostConnect()
+	if connectJob == nil {
+		ctrl.Destroy()
+		return fmt.Errorf("发起连接失败")
+	}
+
+	connectJob.Wait()
+	if !connectJob.Success() {
+		ctrl.Destroy()
+		return fmt.Errorf("连接失败: %v", connectJob.Status())
+	}
+
+	// 清理旧控制器
+	if a.controller != nil {
+		a.controller.Destroy()
+	}
+
+	a.controller = ctrl
+	a.controllerConnected = true
+	a.ownsController = true
+	a.controllerType = "WlRoots"
+	a.deviceInfo = socketPath
+	a.screenshotter.SetController(ctrl)
+
+	logger.Info("MaaFW", "WlRoots 控制器已连接")
 	return nil
 }
 
