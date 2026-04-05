@@ -246,6 +246,35 @@ func (cm *ControllerManager) CreateGamepadController(hwnd, gamepadType, screenca
 	return controllerID, nil
 }
 
+// 创建 WlRoots 控制器
+func (cm *ControllerManager) CreateWlRootsController(socketPath string) (string, error) {
+	logger.Debug("MFW", "创建 WlRoots 控制器: %s", socketPath)
+
+	controllerID := uuid.New().String()
+
+	// 创建 WlRoots 控制器
+	ctrl, err := maa.NewWlRootsController(socketPath)
+	if err != nil {
+		return "", NewMFWError(ErrCodeControllerCreateFail, "failed to create wlroots controller: "+err.Error(), nil)
+	}
+
+	info := &ControllerInfo{
+		ControllerID: controllerID,
+		Type:         "WlRoots",
+		Controller:   ctrl,
+		Connected:    false,
+		CreatedAt:    time.Now(),
+		LastActiveAt: time.Now(),
+	}
+
+	cm.mu.Lock()
+	cm.controllers[controllerID] = info
+	cm.mu.Unlock()
+
+	logger.Debug("MFW", "控制器已创建: %s", controllerID)
+	return controllerID, nil
+}
+
 // 连接控制器
 func (cm *ControllerManager) ConnectController(controllerID string) error {
 	cm.mu.Lock()

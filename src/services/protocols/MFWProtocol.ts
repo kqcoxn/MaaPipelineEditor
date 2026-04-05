@@ -7,6 +7,7 @@ import {
   type Win32Window,
   type PlayCoverDevice,
   type GamepadDevice,
+  type WlRootsCompositor,
 } from "../../stores/mfwStore";
 
 /**
@@ -26,8 +27,8 @@ export class MFWProtocol extends BaseProtocol {
   private executeActionCallbacks: Array<(data: any) => void> = [];
   // 记录最后一次连接请求的设备信息
   private lastConnectionDevice: {
-    type: "adb" | "win32" | "playcover" | "gamepad";
-    deviceInfo: AdbDevice | Win32Window | PlayCoverDevice | GamepadDevice;
+    type: "adb" | "win32" | "playcover" | "gamepad" | "wlroots";
+    deviceInfo: AdbDevice | Win32Window | PlayCoverDevice | GamepadDevice | WlRootsCompositor;
   } | null = null;
   getName(): string {
     return "MFWProtocol";
@@ -61,6 +62,9 @@ export class MFWProtocol extends BaseProtocol {
     );
     this.wsClient.registerRoute("/lte/mfw/win32_windows", (data) =>
       this.handleWin32Windows(data),
+    );
+    this.wsClient.registerRoute("/lte/mfw/wlroots_sockets", (data) =>
+      this.handleWlRootsSockets(data),
     );
 
     // 注册控制器路由
@@ -144,6 +148,27 @@ export class MFWProtocol extends BaseProtocol {
     } catch (error) {
       console.error("[MFWProtocol] Failed to handle Win32 windows:", error);
       message.error("窗口列表更新失败");
+    }
+  }
+
+  /**
+   * 处理 ADB 设备列表
+   * 路由: /lte/mfw/wlroots_sockets
+   */
+  private handleWlRootsSockets(data: any): void {
+    try {
+      const { compositors } = data;
+
+      if (!Array.isArray(compositors)) {
+        console.error("[MFWProtocol] Invalid WlRoots sockets data:", data);
+        return;
+      }
+
+      const mfwStore = useMFWStore.getState();
+      mfwStore.updateWlRootsCompositors(compositors as WlRootsCompositor[]);
+    } catch (error) {
+      console.error("[MFWProtocol] Failed to handle WlRoots sockets:", error);
+      message.error("设备列表更新失败");
     }
   }
 
@@ -319,6 +344,18 @@ export class MFWProtocol extends BaseProtocol {
   }
 
   /**
+   * 刷新 Win32 窗口列表
+   */
+  public refreshWlRootsSockets(): boolean {
+    if (!this.wsClient) {
+      console.error("[MFWProtocol] WebSocket client not initialized");
+      return false;
+    }
+
+    return this.wsClient.send("/etl/mfw/refresh_wlroots_sockets", {});
+  }
+
+  /**
    * 创建 ADB 控制器
    */
   public createAdbController(params: {
@@ -436,6 +473,32 @@ export class MFWProtocol extends BaseProtocol {
     };
 
     return this.wsClient.send("/etl/mfw/create_gamepad_controller", params);
+  }
+
+  /**
+   * 创建 WlRoots 控制器
+   */
+  public createWlRootsController(params: {
+    socket_path: string
+  }): boolean {
+    if (!this.wsClient) {
+      console.error("[MFWProtocol] WebSocket client not initialized");
+      return false;
+    }
+
+    const mfwStore = useMFWStore.getState();
+    mfwStore.setConnectionStatus("connecting");
+
+    // 记录设备信息
+    this.lastConnectionDevice = {
+      type: "wlroots",
+      deviceInfo: {
+        socket_path: params.socket_path,
+        name: `WlRoots Controller`,
+      },
+    };
+
+    return this.wsClient.send("/etl/mfw/create_wlroots_controller", params);
   }
 
   /**
