@@ -26,7 +26,7 @@ import {
   useMFWStore,
   type AdbDevice,
   type Win32Window,
-  type WlRootsSocket,
+  type WlRootsCompositor,
 } from "../../../stores/mfwStore";
 import { mfwProtocol } from "../../../services/server";
 
@@ -46,7 +46,7 @@ export const ConnectionPanel = memo(
       deviceInfo,
       adbDevices,
       win32Windows,
-      wlrootsSockets,
+      wlrootsCompositors: wlrootsSockets,
       errorMessage,
     } = useMFWStore();
 
@@ -58,7 +58,7 @@ export const ConnectionPanel = memo(
     const [selectedWin32Window, setSelectedWin32Window] =
       useState<Win32Window | null>(null);
     const [selectedWlRootsSocket, setSelectedWlRootsSocket] =
-      useState<WlRootsSocket | null>(null);
+      useState<WlRootsCompositor | null>(null);
     // PlayCover 连接参数
     const [playCoverAddress, setPlayCoverAddress] = useState<string>("");
     const [playCoverUUID, setPlayCoverUUID] = useState<string>("");
@@ -777,7 +777,7 @@ export const ConnectionPanel = memo(
       </div>
     );
 
-    // 渲染 WlRoots 套接字列表
+    // 渲染 WlRoots 合成器列表
     const renderWlRootsSockets = () => (
       <List
         loading={isRefreshing}

@@ -40,7 +40,7 @@ export interface Win32Window {
 /**
  * WlRoots 信息
  */
-export interface WlRootsSocket {
+export interface WlRootsCompositor {
   socket_path: string;
 }
 
@@ -86,7 +86,7 @@ interface MFWState {
   // 设备列表
   adbDevices: AdbDevice[];
   win32Windows: Win32Window[];
-  wlrootsSockets: WlRootsSocket[];
+  wlrootsCompositors: WlRootsCompositor[];
 
   // 错误信息
   errorMessage: string | null;
@@ -100,7 +100,7 @@ interface MFWState {
   ) => void;
   updateAdbDevices: (devices: AdbDevice[]) => void;
   updateWin32Windows: (windows: Win32Window[]) => void;
-  updateWlRootsSockets: (sockets: WlRootsSocket[]) => void;
+  updateWlRootsCompositors: (compositors: WlRootsCompositor[]) => void;
   setErrorMessage: (message: string | null) => void;
   clearConnection: () => void;
 }
@@ -116,7 +116,7 @@ export const useMFWStore = create<MFWState>()((set) => ({
   deviceInfo: null,
   adbDevices: [],
   win32Windows: [],
-  wlrootsSockets: [],
+  wlrootsCompositors: [],
   errorMessage: null,
 
   // 设置连接状态
@@ -148,10 +148,10 @@ export const useMFWStore = create<MFWState>()((set) => ({
       win32Windows: windows,
     }),
 
-  // 更新 WlRoots 套接字列表
-  updateWlRootsSockets: (sockets) =>
+  // 更新 WlRoots 合成器列表
+  updateWlRootsCompositors: (compositors) =>
     set({
-      wlrootsSockets: sockets
+      wlrootsCompositors: compositors
     }),
 
   // 设置错误信息

@@ -179,7 +179,7 @@ func (h *MFWHandler) handleRefreshWlRootsSockets(conn *server.Connection, msg mo
 	response := models.Message{
 		Path: "/lte/mfw/wlroots_sockets",
 		Data: map[string]interface{}{
-			"sockets": sockets,
+			"compositors": sockets,
 		},
 	}
 	conn.Send(response)

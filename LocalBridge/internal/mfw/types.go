@@ -38,7 +38,7 @@ type GamepadDeviceInfo struct {
 }
 
 // WlRoots信息
-type WlRootsInfo struct {
+type WlRootsCompositorInfo struct {
 	SocketPath             string   `json:"socket_path"` // 套接字路径
 }
 

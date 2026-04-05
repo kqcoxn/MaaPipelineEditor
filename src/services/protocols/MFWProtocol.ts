@@ -7,7 +7,7 @@ import {
   type Win32Window,
   type PlayCoverDevice,
   type GamepadDevice,
-  type WlRootsSocket,
+  type WlRootsCompositor,
 } from "../../stores/mfwStore";
 
 /**
@@ -28,7 +28,7 @@ export class MFWProtocol extends BaseProtocol {
   // 记录最后一次连接请求的设备信息
   private lastConnectionDevice: {
     type: "adb" | "win32" | "playcover" | "gamepad" | "wlroots";
-    deviceInfo: AdbDevice | Win32Window | PlayCoverDevice | GamepadDevice | WlRootsSocket;
+    deviceInfo: AdbDevice | Win32Window | PlayCoverDevice | GamepadDevice | WlRootsCompositor;
   } | null = null;
   getName(): string {
     return "MFWProtocol";
@@ -157,15 +157,15 @@ export class MFWProtocol extends BaseProtocol {
    */
   private handleWlRootsSockets(data: any): void {
     try {
-      const { sockets } = data;
+      const { compositors } = data;
 
-      if (!Array.isArray(sockets)) {
+      if (!Array.isArray(compositors)) {
         console.error("[MFWProtocol] Invalid WlRoots sockets data:", data);
         return;
       }
 
       const mfwStore = useMFWStore.getState();
-      mfwStore.updateWlRootsSockets(sockets as WlRootsSocket[]);
+      mfwStore.updateWlRootsCompositors(compositors as WlRootsCompositor[]);
     } catch (error) {
       console.error("[MFWProtocol] Failed to handle WlRoots sockets:", error);
       message.error("设备列表更新失败");
