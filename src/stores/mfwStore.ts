@@ -42,6 +42,7 @@ export interface Win32Window {
  */
 export interface WlRootsCompositor {
   socket_path: string;
+  name: string;
 }
 
 /**
@@ -71,6 +72,7 @@ export type DeviceInfo =
   | Partial<Win32Window>
   | Partial<PlayCoverDevice>
   | Partial<GamepadDevice>
+  | Partial<WlRootsCompositor>
   | null;
 
 /**

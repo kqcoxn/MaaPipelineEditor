@@ -95,7 +95,7 @@ func (dm *DeviceManager) RefreshWin32Windows() ([]Win32WindowInfo, error) {
 	return dm.win32Windows, nil
 }
 
-// 刷新Win32窗体列表
+// 刷新WlRoots合成器列表
 func (dm *DeviceManager) RefreshWlRootsSockets() ([]WlRootsCompositorInfo, error) {
 	logger.Debug("MFW", "开始刷新 WlRoots 合成器列表")
 

@@ -488,13 +488,15 @@ export class MFWProtocol extends BaseProtocol {
 
     const mfwStore = useMFWStore.getState();
     mfwStore.setConnectionStatus("connecting");
+    const path = params.socket_path.split('/');
+    const name = path[path.length - 1];
 
     // 记录设备信息
     this.lastConnectionDevice = {
       type: "wlroots",
       deviceInfo: {
         socket_path: params.socket_path,
-        name: `WlRoots Controller`,
+        name: `WlRoots ${name}`,
       },
     };
 

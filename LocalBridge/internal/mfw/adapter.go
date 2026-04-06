@@ -171,9 +171,9 @@ func (a *MaaFWAdapter) ConnectWlRoots(socketPath string) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	logger.Debug("MaaFW", "连接 WlRoots 控制器: %s, %s", socketPath)
+	logger.Debug("MaaFW", "连接 WlRoots 控制器: %s", socketPath)
 
-	// 创建 ADB 控制器
+	// 创建 WlRoots 控制器
 	ctrl, err := maa.NewWlRootsController(socketPath)
 	if err != nil {
 		return fmt.Errorf("创建 WlRoots 控制器失败: %w", err)

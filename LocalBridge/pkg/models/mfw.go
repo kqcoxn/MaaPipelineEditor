@@ -229,12 +229,12 @@ type Win32WindowData struct {
 	InputMethods     []string `json:"input_methods"`
 }
 
-// WlRootsCompositorsResponse Win32窗体列表响应
+// WlRootsCompositorsResponse WlRoots合成器列表响应
 type WlRootsCompositorsResponse struct {
 	Compositors []WlRootsCompositorsData `json:"compositors"`
 }
 
-// WlRootsCompositorsData Win32窗体数据
+// WlRootsCompositorsData WlRoots合成器数据
 type WlRootsCompositorsData struct {
 	SocketPath       string   `json:"socket_path"`
 }

@@ -447,6 +447,7 @@ export const ConnectionPanel = memo(
       activeTab,
       selectedAdbDevice,
       selectedWin32Window,
+      selectedWlRootsSocket,
       playCoverAddress,
     ]);
 
