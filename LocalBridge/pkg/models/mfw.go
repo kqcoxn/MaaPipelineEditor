@@ -26,6 +26,11 @@ type CreateGamepadControllerRequest struct {
 	ScreencapMethod string `json:"screencap_method"` // Win32截图方法
 }
 
+// CreateWlRootsControllerRequest 创建WlRoots控制器请求
+type CreateWlRootsControllerRequest struct {
+	SocketPath      string `json:"socket_path"`             // 套接字路径
+}
+
 // ControllerCreatedResponse 控制器创建结果响应
 type ControllerCreatedResponse struct {
 	Success      bool   `json:"success"`
@@ -222,6 +227,16 @@ type Win32WindowData struct {
 	WindowName       string   `json:"window_name"`
 	ScreencapMethods []string `json:"screencap_methods"`
 	InputMethods     []string `json:"input_methods"`
+}
+
+// WlRootsCompositorsResponse WlRoots合成器列表响应
+type WlRootsCompositorsResponse struct {
+	Compositors []WlRootsCompositorsData `json:"compositors"`
+}
+
+// WlRootsCompositorsData WlRoots合成器数据
+type WlRootsCompositorsData struct {
+	SocketPath       string   `json:"socket_path"`
 }
 
 // ControllerEventData 控制器事件数据

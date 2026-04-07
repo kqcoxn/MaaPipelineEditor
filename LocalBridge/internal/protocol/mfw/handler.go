@@ -50,6 +50,8 @@ func (h *MFWHandler) Handle(msg models.Message, conn *server.Connection) *models
 		h.handleRefreshAdbDevices(conn, msg)
 	case "/etl/mfw/refresh_win32_windows":
 		h.handleRefreshWin32Windows(conn, msg)
+	case "/etl/mfw/refresh_wlroots_sockets":
+		h.handleRefreshWlRootsSockets(conn, msg)
 
 	// 控制器相关路由
 	case "/etl/mfw/create_adb_controller":
@@ -60,6 +62,8 @@ func (h *MFWHandler) Handle(msg models.Message, conn *server.Connection) *models
 		h.handleCreatePlayCoverController(conn, msg)
 	case "/etl/mfw/create_gamepad_controller":
 		h.handleCreateGamepadController(conn, msg)
+	case "/etl/mfw/create_wlroots_controller":
+		h.handleCreateWlRootsController(conn, msg)
 	case "/etl/mfw/disconnect_controller":
 		h.handleDisconnectController(conn, msg)
 	case "/etl/mfw/request_screencap":
@@ -157,6 +161,25 @@ func (h *MFWHandler) handleRefreshWin32Windows(conn *server.Connection, msg mode
 		Path: "/lte/mfw/win32_windows",
 		Data: map[string]interface{}{
 			"windows": windows,
+		},
+	}
+	conn.Send(response)
+}
+
+func (h *MFWHandler) handleRefreshWlRootsSockets(conn *server.Connection, msg models.Message) {
+	logger.Info("MFW", "刷新WlRoots列表")
+	sockets, err := h.service.DeviceManager().RefreshWlRootsSockets()
+	if err != nil {
+		logger.Error("MFW", "刷新WlRoots列表失败: %v", err)
+		h.sendMFWError(conn, mfw.ErrCodeDeviceNotFound, "刷新WlRoots列表", err.Error())
+		return
+	}
+
+	// 发送窗体列表响应
+	response := models.Message{
+		Path: "/lte/mfw/wlroots_sockets",
+		Data: map[string]interface{}{
+			"compositors": sockets,
 		},
 	}
 	conn.Send(response)
@@ -320,6 +343,41 @@ func (h *MFWHandler) handleCreateGamepadController(conn *server.Connection, msg 
 			"success":       true,
 			"controller_id": controllerID,
 			"type":          "gamepad",
+		},
+	}
+	conn.Send(response)
+}
+
+func (h *MFWHandler) handleCreateWlRootsController(conn *server.Connection, msg models.Message) {
+	dataMap, ok := msg.Data.(map[string]interface{})
+	if !ok {
+		h.sendError(conn, errors.NewInvalidRequestError("请求数据格式错误"))
+		return
+	}
+
+	socket, _ := dataMap["socket_path"].(string)
+
+	controllerID, err := h.service.ControllerManager().CreateWlRootsController(socket)
+	if err != nil {
+		logger.Error("MFW", "创建WlRoots控制器失败: %v", err)
+		h.sendMFWError(conn, mfw.ErrCodeControllerCreateFail, "控制器创建失败", err.Error())
+		return
+	}
+
+	// 自动连接控制器
+	if err := h.service.ControllerManager().ConnectController(controllerID); err != nil {
+		logger.Error("MFW", "连接WlRoots控制器失败: %v", err)
+		h.sendMFWError(conn, mfw.ErrCodeControllerConnectFail, "控制器连接失败", err.Error())
+		return
+	}
+
+	// 发送控制器创建响应
+	response := models.Message{
+		Path: "/lte/mfw/controller_created",
+		Data: map[string]interface{}{
+			"success":       true,
+			"controller_id": controllerID,
+			"type":          "wlroots",
 		},
 	}
 	conn.Send(response)
