@@ -52,7 +52,7 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2026-4",
     type: "feature",
     updates: {
-      features: ["🐧 新增 WlRoots 控制方式"],
+      features: ["🐧 新增 WlRoots、MacOS 控制方式"],
       perfs: ["设备连接面板仅显示当前平台方案"],
     },
   },

@@ -3,7 +3,14 @@ import { create } from "zustand";
 /**
  * 设备类型
  */
-export type DeviceType = "adb" | "win32" | "playcover" | "gamepad" | "wlroots" | null;
+export type DeviceType =
+  | "adb"
+  | "win32"
+  | "playcover"
+  | "gamepad"
+  | "wlroots"
+  | "macos"
+  | null;
 
 /**
  * 连接状态
@@ -55,6 +62,17 @@ export interface PlayCoverDevice {
 }
 
 /**
+ * macOS 设备信息
+ */
+export interface MacOSDevice {
+  pid: string; // 进程 ID
+  app_name: string; // 应用名称
+  screencap_methods: string[];
+  input_methods: string[];
+  name: string; // 显示名称
+}
+
+/**
  * Gamepad 设备信息
  */
 export interface GamepadDevice {
@@ -73,6 +91,7 @@ export type DeviceInfo =
   | Partial<PlayCoverDevice>
   | Partial<GamepadDevice>
   | Partial<WlRootsCompositor>
+  | Partial<MacOSDevice>
   | null;
 
 /**
@@ -98,7 +117,7 @@ interface MFWState {
   setControllerInfo: (
     type: DeviceType,
     id: string | null,
-    info: DeviceInfo
+    info: DeviceInfo,
   ) => void;
   updateAdbDevices: (devices: AdbDevice[]) => void;
   updateWin32Windows: (windows: Win32Window[]) => void;
@@ -153,7 +172,7 @@ export const useMFWStore = create<MFWState>()((set) => ({
   // 更新 WlRoots 合成器列表
   updateWlRootsCompositors: (compositors) =>
     set({
-      wlrootsCompositors: compositors
+      wlrootsCompositors: compositors,
     }),
 
   // 设置错误信息

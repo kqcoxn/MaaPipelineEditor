@@ -8,6 +8,7 @@ import {
   type PlayCoverDevice,
   type GamepadDevice,
   type WlRootsCompositor,
+  type MacOSDevice,
 } from "../../stores/mfwStore";
 
 /**
@@ -27,13 +28,14 @@ export class MFWProtocol extends BaseProtocol {
   private executeActionCallbacks: Array<(data: any) => void> = [];
   // 记录最后一次连接请求的设备信息
   private lastConnectionDevice: {
-    type: "adb" | "win32" | "playcover" | "gamepad" | "wlroots";
+    type: "adb" | "win32" | "playcover" | "gamepad" | "wlroots" | "macos";
     deviceInfo:
       | AdbDevice
       | Win32Window
       | PlayCoverDevice
       | GamepadDevice
-      | WlRootsCompositor;
+      | WlRootsCompositor
+      | MacOSDevice;
   } | null = null;
   getName(): string {
     return "MFWProtocol";
@@ -504,6 +506,37 @@ export class MFWProtocol extends BaseProtocol {
     };
 
     return this.wsClient.send("/etl/mfw/create_wlroots_controller", params);
+  }
+
+  /**
+   * 创建 macOS 控制器
+   */
+  public createMacosController(params: {
+    pid: string;
+    screencap_method: string;
+    input_method: string;
+  }): boolean {
+    if (!this.wsClient) {
+      console.error("[MFWProtocol] WebSocket client not initialized");
+      return false;
+    }
+
+    const mfwStore = useMFWStore.getState();
+    mfwStore.setConnectionStatus("connecting");
+
+    // 记录设备信息
+    this.lastConnectionDevice = {
+      type: "macos",
+      deviceInfo: {
+        pid: params.pid,
+        app_name: `PID ${params.pid}`,
+        screencap_methods: [params.screencap_method],
+        input_methods: [params.input_method],
+        name: `macOS App (PID: ${params.pid})`,
+      },
+    };
+
+    return this.wsClient.send("/etl/mfw/create_macos_controller", params);
   }
 
   /**

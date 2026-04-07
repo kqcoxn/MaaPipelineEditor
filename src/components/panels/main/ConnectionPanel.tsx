@@ -32,9 +32,11 @@ import {
   PlayCoverForm,
   GamepadForm,
   WlRootsForm,
+  MacOSForm,
   MethodConfig,
   detectPlatform,
   PLATFORM_TABS,
+  MACOS_DEFAULT_METHODS,
 } from "./connection";
 
 const { Text } = Typography;
@@ -65,7 +67,7 @@ export const ConnectionPanel = memo(
     );
 
     const [activeTab, setActiveTab] = useState<
-      "adb" | "win32" | "playcover" | "gamepad" | "wlroots"
+      "adb" | "win32" | "playcover" | "gamepad" | "wlroots" | "macos"
     >(availableTabs[0]);
     const [selectedAdbDevice, setSelectedAdbDevice] =
       useState<AdbDevice | null>(null);
@@ -87,6 +89,15 @@ export const ConnectionPanel = memo(
     );
     const [gamepadHwnd, setGamepadHwnd] = useState<string>("");
     const [gamepadScreencap, setGamepadScreencap] = useState<string>("");
+
+    // macOS 连接参数
+    const [macosPid, setMacosPid] = useState<string>("");
+    const [macosScreencap, setMacosScreencap] = useState<string>(
+      MACOS_DEFAULT_METHODS.screencap[0],
+    );
+    const [macosInput, setMacosInput] = useState<string>(
+      MACOS_DEFAULT_METHODS.input[0],
+    );
 
     // 自定义截图和输入方法
     const [customScreencap, setCustomScreencap] = useState<
@@ -191,6 +202,9 @@ export const ConnectionPanel = memo(
           } else if (controllerType === "wlroots") {
             setActiveTab("wlroots");
             setWlrootsSocketPath((deviceInfo as any)?.socket_path || "");
+          } else if (controllerType === "macos") {
+            setActiveTab("macos");
+            setMacosPid((deviceInfo as any)?.pid || "");
           }
           // 已连接状态下不触发刷新
           return;
@@ -317,6 +331,26 @@ export const ConnectionPanel = memo(
         mfwProtocol.createWlRootsController({
           socket_path: wlrootsSocketPath.trim(),
         });
+      } else if (activeTab === "macos") {
+        // macOS 连接
+        if (!macosPid.trim()) {
+          message.warning("请输入应用 PID");
+          return;
+        }
+        if (!macosScreencap) {
+          message.warning("请选择截图方法");
+          return;
+        }
+        if (!macosInput) {
+          message.warning("请选择输入方法");
+          return;
+        }
+
+        mfwProtocol.createMacosController({
+          pid: macosPid.trim(),
+          screencap_method: macosScreencap,
+          input_method: macosInput,
+        });
       } else {
         message.warning("请先选择设备");
       }
@@ -333,6 +367,9 @@ export const ConnectionPanel = memo(
       gamepadType,
       gamepadHwnd,
       gamepadScreencap,
+      macosPid,
+      macosScreencap,
+      macosInput,
     ]);
 
     // 断开连接
@@ -365,7 +402,9 @@ export const ConnectionPanel = memo(
               ? !!wlrootsSocketPath.trim()
               : activeTab === "gamepad"
                 ? true // Gamepad 不需要选择设备
-                : false;
+                : activeTab === "macos"
+                  ? !!macosPid.trim()
+                  : false;
 
     // 检查是否有可用的方法
     const hasValidMethods = useMemo(() => {
@@ -395,6 +434,8 @@ export const ConnectionPanel = memo(
         return true; // Gamepad 不需要验证方法
       } else if (activeTab === "wlroots") {
         return true;
+      } else if (activeTab === "macos") {
+        return !!macosScreencap && !!macosInput;
       }
       return false;
     }, [
@@ -403,6 +444,8 @@ export const ConnectionPanel = memo(
       selectedWin32Window,
       customScreencap,
       customInput,
+      macosScreencap,
+      macosInput,
     ]);
 
     const canConnect =
@@ -428,6 +471,8 @@ export const ConnectionPanel = memo(
         return playCoverAddress === (deviceInfo as any)?.address;
       } else if (activeTab === "wlroots" && controllerType === "wlroots") {
         return wlrootsSocketPath === (deviceInfo as any)?.socket_path;
+      } else if (activeTab === "macos" && controllerType === "macos") {
+        return macosPid === (deviceInfo as any)?.pid;
       }
       return false;
     }, [
@@ -439,6 +484,7 @@ export const ConnectionPanel = memo(
       selectedWin32Window,
       wlrootsSocketPath,
       playCoverAddress,
+      macosPid,
     ]);
 
     // 连接新设备
@@ -669,6 +715,19 @@ export const ConnectionPanel = memo(
                       },
                     ]
                   : []),
+                ...(availableTabs.includes("macos")
+                  ? [
+                      {
+                        key: "macos",
+                        label: (
+                          <span>
+                            <AppleOutlined style={{ marginRight: 8 }} />
+                            macOS 原生
+                          </span>
+                        ),
+                      },
+                    ]
+                  : []),
               ]}
               style={{ marginBottom: 0 }}
             />
@@ -703,6 +762,17 @@ export const ConnectionPanel = memo(
               <WlRootsForm
                 socketPath={wlrootsSocketPath}
                 onSocketPathChange={setWlrootsSocketPath}
+              />
+            ) : activeTab === "macos" ? (
+              <MacOSForm
+                pid={macosPid}
+                screencapMethod={macosScreencap}
+                inputMethod={macosInput}
+                screencapMethods={MACOS_DEFAULT_METHODS.screencap}
+                inputMethods={MACOS_DEFAULT_METHODS.input}
+                onPidChange={setMacosPid}
+                onScreencapMethodChange={setMacosScreencap}
+                onInputMethodChange={setMacosInput}
               />
             ) : (
               <GamepadForm
