@@ -157,24 +157,36 @@ func (s *Service) ReadFile(filePath string) (interface{}, error) {
 
 // 保存文件
 func (s *Service) SaveFile(filePath string, content interface{}, indent int) error {
+	return s.SaveFileWithOrder(filePath, content, indent, false)
+}
+
+// 保存文件（支持保持字段顺序）
+func (s *Service) SaveFileWithOrder(filePath string, content interface{}, indent int, keepOrder bool) error {
 	// 验证路径安全性
 	if err := s.validatePath(filePath); err != nil {
 		return err
 	}
 
-	// 构建缩进字符串
-	var indentStr string
-	for i := 0; i < indent; i++ {
-		indentStr += " "
-	}
-	if indentStr == "" {
-		indentStr = "    "
-	}
+	var data []byte
+	var err error
 
-	// 序列化 JSON
-	data, err := json.MarshalIndent(content, "", indentStr)
-	if err != nil {
-		return errors.NewInvalidJSONError(err)
+	if keepOrder {
+		// 如果 content 是字符串，直接使用（保持字段顺序）
+		if jsonStr, ok := content.(string); ok {
+			data = []byte(jsonStr)
+		} else {
+			// 否则序列化为 JSON
+			data, err = s.marshalJSON(content, indent)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		// 旧版行为：总是重新序列化
+		data, err = s.marshalJSON(content, indent)
+		if err != nil {
+			return err
+		}
 	}
 
 	// 记录即将写入的文件（用于忽略自身触发的文件变化事件）
@@ -198,6 +210,26 @@ func (s *Service) SaveFile(filePath string, content interface{}, indent int) err
 
 	logger.Info("FileService", "文件已保存: %s", filePath)
 	return nil
+}
+
+// 序列化 JSON
+func (s *Service) marshalJSON(content interface{}, indent int) ([]byte, error) {
+	// 构建缩进字符串
+	var indentStr string
+	for i := 0; i < indent; i++ {
+		indentStr += " "
+	}
+	if indentStr == "" {
+		indentStr = "    "
+	}
+
+	// 序列化 JSON
+	data, err := json.MarshalIndent(content, "", indentStr)
+	if err != nil {
+		return nil, errors.NewInvalidJSONError(err)
+	}
+
+	return data, nil
 }
 
 // 创建新文件

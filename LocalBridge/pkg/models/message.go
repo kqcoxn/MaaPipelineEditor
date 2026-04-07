@@ -50,18 +50,21 @@ type OpenFileRequest struct {
 
 // 保存文件请求
 type SaveFileRequest struct {
-	FilePath string      `json:"file_path"` // 文件绝对路径
-	Content  interface{} `json:"content"`   // 文件内容（JSON对象）
-	Indent   int         `json:"indent"`    // JSON 缩进空格数，默认为 0（不缩进）
+	FilePath    string `json:"file_path"`    // 文件绝对路径
+	Content     string `json:"content"`      // 文件内容（JSON字符串，保持字段顺序）
+	ContentJSON any    `json:"content_json"` // 文件内容（JSON对象，向后兼容）
+	Indent      int    `json:"indent"`       // JSON 缩进空格数，默认为 0（不缩进）
 }
 
 // 分离保存文件请求
 type SaveSeparatedRequest struct {
-	PipelinePath string      `json:"pipeline_path"` // Pipeline 文件绝对路径
-	ConfigPath   string      `json:"config_path"`   // 配置文件绝对路径
-	Pipeline     interface{} `json:"pipeline"`      // Pipeline 内容
-	Config       interface{} `json:"config"`        // 配置内容
-	Indent       int         `json:"indent"`        // JSON 缩进空格数
+	PipelinePath string `json:"pipeline_path"` // Pipeline 文件绝对路径
+	ConfigPath   string `json:"config_path"`   // 配置文件绝对路径
+	Pipeline     string `json:"pipeline"`      // Pipeline 内容（JSON字符串，保持字段顺序）
+	Config       string `json:"config"`        // 配置内容（JSON字符串，保持字段顺序）
+	PipelineJSON any    `json:"pipeline_json"` // Pipeline 内容（JSON对象，向后兼容）
+	ConfigJSON   any    `json:"config_json"`   // 配置内容（JSON对象，向后兼容）
+	Indent       int    `json:"indent"`        // JSON 缩进空格数
 }
 
 // 创建文件请求

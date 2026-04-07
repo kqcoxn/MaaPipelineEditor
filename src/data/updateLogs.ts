@@ -57,6 +57,7 @@ export const updateLogs: UpdateLogItem[] = [
         "💬 支持 WaitFreezes 系列 Focus 字段",
       ],
       perfs: ["设备连接面板仅显示当前平台方案"],
+      fixes: ["修复使用本地保存时，字段顺序无视配置顺序的问题"],
     },
   },
   {

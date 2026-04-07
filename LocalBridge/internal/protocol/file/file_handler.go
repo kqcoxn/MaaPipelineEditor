@@ -145,8 +145,18 @@ func (h *Handler) handleSaveFile(msg models.Message, conn *server.Connection) *m
 		return nil
 	}
 
+	// 优先使用 JSON 字符串（保持字段顺序），其次使用 JSON 对象
+	var content interface{}
+	keepOrder := false
+	if req.Content != "" {
+		content = req.Content
+		keepOrder = true
+	} else if req.ContentJSON != nil {
+		content = req.ContentJSON
+	}
+
 	// 保存文件
-	if err := h.fileService.SaveFile(req.FilePath, req.Content, req.Indent); err != nil {
+	if err := h.fileService.SaveFileWithOrder(req.FilePath, content, req.Indent, keepOrder); err != nil {
 		if lbErr, ok := err.(*errors.LBError); ok {
 			h.sendError(conn, lbErr)
 		} else {
@@ -174,8 +184,28 @@ func (h *Handler) handleSaveSeparated(msg models.Message, conn *server.Connectio
 		return nil
 	}
 
+	// 优先使用 JSON 字符串（保持字段顺序），其次使用 JSON 对象
+	var pipelineContent interface{}
+	var configContent interface{}
+	keepPipelineOrder := false
+	keepConfigOrder := false
+
+	if req.Pipeline != "" {
+		pipelineContent = req.Pipeline
+		keepPipelineOrder = true
+	} else if req.PipelineJSON != nil {
+		pipelineContent = req.PipelineJSON
+	}
+
+	if req.Config != "" {
+		configContent = req.Config
+		keepConfigOrder = true
+	} else if req.ConfigJSON != nil {
+		configContent = req.ConfigJSON
+	}
+
 	// 保存 Pipeline 文件
-	if err := h.fileService.SaveFile(req.PipelinePath, req.Pipeline, req.Indent); err != nil {
+	if err := h.fileService.SaveFileWithOrder(req.PipelinePath, pipelineContent, req.Indent, keepPipelineOrder); err != nil {
 		if lbErr, ok := err.(*errors.LBError); ok {
 			h.sendError(conn, lbErr)
 		} else {
@@ -185,7 +215,7 @@ func (h *Handler) handleSaveSeparated(msg models.Message, conn *server.Connectio
 	}
 
 	// 保存配置文件
-	if err := h.fileService.SaveFile(req.ConfigPath, req.Config, req.Indent); err != nil {
+	if err := h.fileService.SaveFileWithOrder(req.ConfigPath, configContent, req.Indent, keepConfigOrder); err != nil {
 		if lbErr, ok := err.(*errors.LBError); ok {
 			h.sendError(conn, lbErr)
 		} else {

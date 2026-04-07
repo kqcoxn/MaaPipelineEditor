@@ -9,7 +9,7 @@ import { useConfigStore } from "./configStore";
 import { normalizeViewport } from "./flow/utils/viewportUtils";
 import {
   pipelineToFlow,
-  flowToPipeline,
+  flowToPipelineString,
   flowToSeparatedStrings,
   mergePipelineAndConfig,
 } from "../core/parser";
@@ -715,8 +715,6 @@ export const useFileStore = create<FileState>()((set) => ({
         // 分离模式保存
         const { pipelineString, configString } =
           flowToSeparatedStrings(exportOptions);
-        const pipeline = JSON.parse(pipelineString);
-        const config = JSON.parse(configString);
         const configPath = generateConfigPath(targetFilePath);
 
         // 根据保存模式决定保存哪些内容
@@ -728,8 +726,8 @@ export const useFileStore = create<FileState>()((set) => ({
           sendSuccess = localServer.send("/etl/save_separated", {
             pipeline_path: targetFilePath,
             config_path: configPath,
-            pipeline,
-            config,
+            pipeline: pipelineString,
+            config: configString,
             indent: jsonIndent,
           });
           if (sendSuccess) {
@@ -740,7 +738,7 @@ export const useFileStore = create<FileState>()((set) => ({
           ackFilePath = targetFilePath;
           sendSuccess = localServer.send("/etl/save_file", {
             file_path: targetFilePath,
-            content: pipeline,
+            content: pipelineString,
             indent: jsonIndent,
           });
         } else if (effectiveMode === "config") {
@@ -748,7 +746,7 @@ export const useFileStore = create<FileState>()((set) => ({
           ackFilePath = configPath;
           sendSuccess = localServer.send("/etl/save_file", {
             file_path: configPath,
-            content: config,
+            content: configString,
             indent: jsonIndent,
           });
           if (sendSuccess) {
@@ -757,11 +755,11 @@ export const useFileStore = create<FileState>()((set) => ({
         }
       } else {
         // 集成模式或不导出模式
-        const pipeline = flowToPipeline(exportOptions);
+        const pipelineString = flowToPipelineString(exportOptions);
 
         sendSuccess = localServer.send("/etl/save_file", {
           file_path: targetFilePath,
-          content: pipeline,
+          content: pipelineString,
           indent: jsonIndent,
         });
       }
