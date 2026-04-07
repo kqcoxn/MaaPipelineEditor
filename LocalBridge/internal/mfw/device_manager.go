@@ -60,7 +60,7 @@ func (dm *DeviceManager) RefreshAdbDevices() ([]AdbDeviceInfo, error) {
 	return dm.adbDevices, nil
 }
 
-// 刷新Win32窗体列表
+// 刷新 Win32 窗体列表
 func (dm *DeviceManager) RefreshWin32Windows() ([]Win32WindowInfo, error) {
 	logger.Debug("MFW", "开始刷新 Win32 窗体列表")
 
@@ -95,28 +95,19 @@ func (dm *DeviceManager) RefreshWin32Windows() ([]Win32WindowInfo, error) {
 	return dm.win32Windows, nil
 }
 
-// 刷新WlRoots合成器列表
+// 刷新 WlRoots 合成器列表
 func (dm *DeviceManager) RefreshWlRootsSockets() ([]WlRootsCompositorInfo, error) {
 	logger.Debug("MFW", "开始刷新 WlRoots 合成器列表")
 
-	// FindDesktopWindows API
-	windows, err := maa.FindDesktopWindows()
-	if err != nil {
-		return nil, fmt.Errorf("查找 WlRoots 失败: %w", err)
-	}
-
+	// WlRoots 仅在 Linux 上支持，通过环境变量或常见路径发现 socket
+	// 这里返回空列表，让用户手动输入 socket 路径
+	// 实际使用时应该扫描 /run/user/*/wayland-* 或使用其他方式发现
 	dm.mu.Lock()
 	defer dm.mu.Unlock()
 
-	dm.wlrootsCompositors = make([]WlRootsCompositorInfo, 0, len(windows))
-	for _, win := range windows {
-		info := WlRootsCompositorInfo{
-			SocketPath: win.ClassName,
-		}
-		dm.wlrootsCompositors = append(dm.wlrootsCompositors, info)
-	}
+	dm.wlrootsCompositors = []WlRootsCompositorInfo{}
 
-	logger.Info("MFW", "发现 %d 个 WlRoots 合成器", len(dm.wlrootsCompositors))
+	logger.Info("MFW", "WlRoots 合成器列表已刷新（需手动输入 socket 路径）")
 	return dm.wlrootsCompositors, nil
 }
 

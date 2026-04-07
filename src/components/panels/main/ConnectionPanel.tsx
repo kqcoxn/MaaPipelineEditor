@@ -10,6 +10,7 @@ import {
   Card,
   Typography,
   Badge,
+  Input,
 } from "antd";
 import {
   ReloadOutlined,
@@ -26,7 +27,6 @@ import {
   useMFWStore,
   type AdbDevice,
   type Win32Window,
-  type WlRootsCompositor,
 } from "../../../stores/mfwStore";
 import { mfwProtocol } from "../../../services/server";
 
@@ -57,15 +57,14 @@ export const ConnectionPanel = memo(
       useState<AdbDevice | null>(null);
     const [selectedWin32Window, setSelectedWin32Window] =
       useState<Win32Window | null>(null);
-    const [selectedWlRootsSocket, setSelectedWlRootsSocket] =
-      useState<WlRootsCompositor | null>(null);
+    const [wlrootsSocketPath, setWlrootsSocketPath] = useState<string>("");
     // PlayCover 连接参数
     const [playCoverAddress, setPlayCoverAddress] = useState<string>("");
     const [playCoverUUID, setPlayCoverUUID] = useState<string>("");
     const [playCoverName, setPlayCoverName] = useState<string>("");
     // Gamepad 连接参数
     const [gamepadType, setGamepadType] = useState<"Xbox360" | "DualShock4">(
-      "Xbox360"
+      "Xbox360",
     );
     const [gamepadHwnd, setGamepadHwnd] = useState<string>("");
     const [gamepadScreencap, setGamepadScreencap] = useState<string>("");
@@ -143,10 +142,10 @@ export const ConnectionPanel = memo(
       if (selectedAdbDevice) {
         // ADB 设备默认选择所有方法
         const filteredScreencap = selectedDeviceMethods.screencap.filter(
-          (m) => m !== "RawByNetcat"
+          (m) => m !== "RawByNetcat",
         );
         const filteredInput = selectedDeviceMethods.input.filter(
-          (m) => m !== "RawByNetcat"
+          (m) => m !== "RawByNetcat",
         );
         setCustomScreencap(filteredScreencap);
         setCustomInput(filteredInput);
@@ -157,7 +156,7 @@ export const ConnectionPanel = memo(
           selectedDeviceMethods.screencap[0];
         const defaultInput =
           selectedDeviceMethods.input.find(
-            (m) => m === "SendMessageWithCursorPos"
+            (m) => m === "SendMessageWithCursorPos",
           ) || selectedDeviceMethods.input[0];
         setCustomScreencap(defaultScreencap);
         setCustomInput(defaultInput);
@@ -179,7 +178,7 @@ export const ConnectionPanel = memo(
             setActiveTab("adb");
             // 尝试找到当前连接的设备
             const connectedDevice = adbDevices.find(
-              (d) => d.address === (deviceInfo as any)?.address
+              (d) => d.address === (deviceInfo as any)?.address,
             );
             if (connectedDevice) {
               setSelectedAdbDevice(connectedDevice);
@@ -188,19 +187,14 @@ export const ConnectionPanel = memo(
             setActiveTab("win32");
             // 尝试找到当前连接的窗口
             const connectedWindow = win32Windows.find(
-              (w) => w.hwnd === (deviceInfo as any)?.hwnd
+              (w) => w.hwnd === (deviceInfo as any)?.hwnd,
             );
             if (connectedWindow) {
               setSelectedWin32Window(connectedWindow);
             }
           } else if (controllerType === "wlroots") {
             setActiveTab("wlroots");
-            const connectedSocket = wlrootsSockets.find(
-              (w) => w.socket_path === (deviceInfo as any)?.socket_path
-            );
-            if (connectedSocket) {
-              setSelectedWlRootsSocket(connectedSocket);
-            }
+            setWlrootsSocketPath((deviceInfo as any)?.socket_path || "");
           }
           // 已连接状态下不触发刷新
           return;
@@ -322,10 +316,10 @@ export const ConnectionPanel = memo(
           gamepad_type: gamepadType,
           screencap_method: gamepadScreencap || undefined,
         });
-      } else if (activeTab === "wlroots" && selectedWlRootsSocket) {
-        // Gamepad 连接
+      } else if (activeTab === "wlroots" && wlrootsSocketPath.trim()) {
+        // WlRoots 连接
         mfwProtocol.createWlRootsController({
-          socket_path: selectedWlRootsSocket.socket_path
+          socket_path: wlrootsSocketPath.trim(),
         });
       } else {
         message.warning("请先选择设备");
@@ -334,7 +328,7 @@ export const ConnectionPanel = memo(
       activeTab,
       selectedAdbDevice,
       selectedWin32Window,
-      selectedWlRootsSocket,
+      wlrootsSocketPath,
       customScreencap,
       customInput,
       playCoverAddress,
@@ -368,14 +362,14 @@ export const ConnectionPanel = memo(
       activeTab === "adb"
         ? !!selectedAdbDevice
         : activeTab === "win32"
-        ? !!selectedWin32Window
-        : activeTab === "playcover"
-        ? !!(playCoverAddress.trim() && playCoverUUID.trim())
-        : activeTab === "wlroots"
-        ? !!selectedWlRootsSocket
-        : activeTab === "gamepad"
-        ? true // Gamepad 不需要选择设备
-        : false;
+          ? !!selectedWin32Window
+          : activeTab === "playcover"
+            ? !!(playCoverAddress.trim() && playCoverUUID.trim())
+            : activeTab === "wlroots"
+              ? !!wlrootsSocketPath.trim()
+              : activeTab === "gamepad"
+                ? true // Gamepad 不需要选择设备
+                : false;
 
     // 检查是否有可用的方法
     const hasValidMethods = useMemo(() => {
@@ -437,7 +431,7 @@ export const ConnectionPanel = memo(
       } else if (activeTab === "playcover" && controllerType === "playcover") {
         return playCoverAddress === (deviceInfo as any)?.address;
       } else if (activeTab === "wlroots" && controllerType === "wlroots") {
-        return selectedWlRootsSocket?.socket_path === (deviceInfo as any)?.socket_path;
+        return wlrootsSocketPath === (deviceInfo as any)?.socket_path;
       }
       return false;
     }, [
@@ -447,7 +441,7 @@ export const ConnectionPanel = memo(
       activeTab,
       selectedAdbDevice,
       selectedWin32Window,
-      selectedWlRootsSocket,
+      wlrootsSocketPath,
       playCoverAddress,
     ]);
 
@@ -778,62 +772,40 @@ export const ConnectionPanel = memo(
       </div>
     );
 
-    // 渲染 WlRoots 合成器列表
-    const renderWlRootsSockets = () => (
-      <List
-        loading={isRefreshing}
-        dataSource={wlrootsSockets}
-        locale={{ emptyText: "暂无合成器，请点击刷新" }}
-        split={false}
-        renderItem={(device) => {
-          const isSelected = selectedWlRootsSocket?.socket_path === device.socket_path;
-          return (
-            <div
-              onClick={() => setSelectedWlRootsSocket(device)}
-              style={{
-                cursor: "pointer",
-                padding: "12px 16px",
-                marginBottom: 8,
-                borderRadius: 8,
-                border: isSelected ? "2px solid #1890ff" : "1px solid #f0f0f0",
-                backgroundColor: isSelected ? "#e6f7ff" : "#fafafa",
-                transition: "all 0.2s ease",
-              }}
-              onMouseEnter={(e) => {
-                if (!isSelected)
-                  e.currentTarget.style.backgroundColor = "#f5f5f5";
-              }}
-              onMouseLeave={(e) => {
-                if (!isSelected)
-                  e.currentTarget.style.backgroundColor = "#fafafa";
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <DesktopOutlined
-                  style={{
-                    fontSize: 24,
-                    color: isSelected ? "#1890ff" : "#999",
-                  }}
-                />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <Text
-                    strong
-                    ellipsis
-                    style={{ display: "block", marginBottom: 4 }}
-                  >
-                    {device.socket_path}
-                  </Text>
-                </div>
-                {isSelected && (
-                  <CheckCircleOutlined
-                    style={{ color: "#1890ff", fontSize: 18 }}
-                  />
-                )}
+    // 渲染 WlRoots 输入表单
+    const renderWlRootsForm = () => (
+      <div style={{ padding: "16px 24px" }}>
+        <div style={{ marginBottom: 16 }}>
+          <Text type="secondary" style={{ display: "block", marginBottom: 8 }}>
+            WlRoots Socket 路径
+          </Text>
+          <Input
+            placeholder="例如: /run/user/1000/wayland-0"
+            value={wlrootsSocketPath}
+            onChange={(e) => setWlrootsSocketPath(e.target.value)}
+            prefix={<DesktopOutlined style={{ color: "#999" }} />}
+            allowClear
+          />
+        </div>
+        <Alert
+          message="提示"
+          description={
+            <div>
+              <div>WlRoots 控制器仅在 Linux 上支持。</div>
+              <div style={{ marginTop: 4 }}>
+                请输入 wlroots 合成器的 socket 路径，通常为{" "}
+                <Text code>/run/user/$UID/wayland-0</Text>
+              </div>
+              <div style={{ marginTop: 4 }}>
+                建议使用嵌套合成器会话，避免控制当前桌面。
               </div>
             </div>
-          );
-        }}
-      />
+          }
+          type="info"
+          showIcon
+          style={{ marginTop: 16 }}
+        />
+      </div>
     );
 
     const statusBadge = getStatusBadge();
@@ -962,76 +934,91 @@ export const ConnectionPanel = memo(
           </div>
 
           {/* 方法配置区 - PlayCover 和 Gamepad 不显示 */}
-          {activeTab !== "playcover" && activeTab !== "gamepad" && activeTab !== "wlroots" && (
-            <div
-              style={{
-                padding: "16px 24px",
-                backgroundColor: "#fafafa",
-                borderBottom: "1px solid #f0f0f0",
-              }}
-            >
-              <div style={{ display: "flex", gap: 12 }}>
-                <div style={{ flex: 1 }}>
-                  <Text
-                    type="secondary"
-                    style={{ fontSize: 12, marginBottom: 6, display: "block" }}
-                  >
-                    截图方法 {activeTab === "adb" && "(可多选)"}
-                  </Text>
-                  <Select
-                    mode={activeTab === "adb" ? "multiple" : undefined}
-                    placeholder="自动选择"
-                    allowClear
-                    value={customScreencap}
-                    onChange={setCustomScreencap}
-                    style={{ width: "100%" }}
-                    options={
-                      selectedDeviceMethods.screencap.length > 0
-                        ? selectedDeviceMethods.screencap.map((m) => ({
-                            label: m,
-                            value: m,
-                          }))
-                        : allMethods.screencap.map((m) => ({
-                            label: m,
-                            value: m,
-                          }))
-                    }
-                  />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <Text
-                    type="secondary"
-                    style={{ fontSize: 12, marginBottom: 6, display: "block" }}
-                  >
-                    输入方法 {activeTab === "adb" && "(可多选)"}
-                  </Text>
-                  <Select
-                    mode={activeTab === "adb" ? "multiple" : undefined}
-                    placeholder="自动选择"
-                    allowClear
-                    value={customInput}
-                    onChange={setCustomInput}
-                    style={{ width: "100%" }}
-                    options={
-                      selectedDeviceMethods.input.length > 0
-                        ? selectedDeviceMethods.input.map((m) => ({
-                            label: m,
-                            value: m,
-                          }))
-                        : allMethods.input.map((m) => ({ label: m, value: m }))
-                    }
-                  />
+          {activeTab !== "playcover" &&
+            activeTab !== "gamepad" &&
+            activeTab !== "wlroots" && (
+              <div
+                style={{
+                  padding: "16px 24px",
+                  backgroundColor: "#fafafa",
+                  borderBottom: "1px solid #f0f0f0",
+                }}
+              >
+                <div style={{ display: "flex", gap: 12 }}>
+                  <div style={{ flex: 1 }}>
+                    <Text
+                      type="secondary"
+                      style={{
+                        fontSize: 12,
+                        marginBottom: 6,
+                        display: "block",
+                      }}
+                    >
+                      截图方法 {activeTab === "adb" && "(可多选)"}
+                    </Text>
+                    <Select
+                      mode={activeTab === "adb" ? "multiple" : undefined}
+                      placeholder="自动选择"
+                      allowClear
+                      value={customScreencap}
+                      onChange={setCustomScreencap}
+                      style={{ width: "100%" }}
+                      options={
+                        selectedDeviceMethods.screencap.length > 0
+                          ? selectedDeviceMethods.screencap.map((m) => ({
+                              label: m,
+                              value: m,
+                            }))
+                          : allMethods.screencap.map((m) => ({
+                              label: m,
+                              value: m,
+                            }))
+                      }
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <Text
+                      type="secondary"
+                      style={{
+                        fontSize: 12,
+                        marginBottom: 6,
+                        display: "block",
+                      }}
+                    >
+                      输入方法 {activeTab === "adb" && "(可多选)"}
+                    </Text>
+                    <Select
+                      mode={activeTab === "adb" ? "multiple" : undefined}
+                      placeholder="自动选择"
+                      allowClear
+                      value={customInput}
+                      onChange={setCustomInput}
+                      style={{ width: "100%" }}
+                      options={
+                        selectedDeviceMethods.input.length > 0
+                          ? selectedDeviceMethods.input.map((m) => ({
+                              label: m,
+                              value: m,
+                            }))
+                          : allMethods.input.map((m) => ({
+                              label: m,
+                              value: m,
+                            }))
+                      }
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
           {/* 设备类型选择 */}
           <div style={{ padding: "0 24px" }}>
             <Tabs
               activeKey={activeTab}
               onChange={(key) =>
-                setActiveTab(key as "adb" | "win32" | "playcover" | "gamepad" | "wlroots")
+                setActiveTab(
+                  key as "adb" | "win32" | "playcover" | "gamepad" | "wlroots",
+                )
               }
               items={[
                 {
@@ -1089,15 +1076,15 @@ export const ConnectionPanel = memo(
             {activeTab === "adb"
               ? renderAdbDevices()
               : activeTab === "win32"
-              ? renderWin32Windows()
-              : activeTab === "playcover"
-              ? renderPlayCoverForm()
-              : activeTab === "wlroots"
-              ? renderWlRootsSockets()
-              : renderGamepadForm()}
+                ? renderWin32Windows()
+                : activeTab === "playcover"
+                  ? renderPlayCoverForm()
+                  : activeTab === "wlroots"
+                    ? renderWlRootsForm()
+                    : renderGamepadForm()}
           </div>
         </div>
       </Drawer>
     );
-  }
+  },
 );

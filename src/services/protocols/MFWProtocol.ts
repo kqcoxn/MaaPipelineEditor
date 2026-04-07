@@ -28,7 +28,12 @@ export class MFWProtocol extends BaseProtocol {
   // 记录最后一次连接请求的设备信息
   private lastConnectionDevice: {
     type: "adb" | "win32" | "playcover" | "gamepad" | "wlroots";
-    deviceInfo: AdbDevice | Win32Window | PlayCoverDevice | GamepadDevice | WlRootsCompositor;
+    deviceInfo:
+      | AdbDevice
+      | Win32Window
+      | PlayCoverDevice
+      | GamepadDevice
+      | WlRootsCompositor;
   } | null = null;
   getName(): string {
     return "MFWProtocol";
@@ -152,7 +157,7 @@ export class MFWProtocol extends BaseProtocol {
   }
 
   /**
-   * 处理 ADB 设备列表
+   * 处理 WlRoots 合成器列表
    * 路由: /lte/mfw/wlroots_sockets
    */
   private handleWlRootsSockets(data: any): void {
@@ -344,7 +349,7 @@ export class MFWProtocol extends BaseProtocol {
   }
 
   /**
-   * 刷新 Win32 窗口列表
+   * 刷新 WlRoots 合成器列表
    */
   public refreshWlRootsSockets(): boolean {
     if (!this.wsClient) {
@@ -478,9 +483,7 @@ export class MFWProtocol extends BaseProtocol {
   /**
    * 创建 WlRoots 控制器
    */
-  public createWlRootsController(params: {
-    socket_path: string
-  }): boolean {
+  public createWlRootsController(params: { socket_path: string }): boolean {
     if (!this.wsClient) {
       console.error("[MFWProtocol] WebSocket client not initialized");
       return false;
@@ -488,7 +491,7 @@ export class MFWProtocol extends BaseProtocol {
 
     const mfwStore = useMFWStore.getState();
     mfwStore.setConnectionStatus("connecting");
-    const path = params.socket_path.split('/');
+    const path = params.socket_path.split("/");
     const name = path[path.length - 1];
 
     // 记录设备信息
