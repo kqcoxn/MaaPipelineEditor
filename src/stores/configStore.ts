@@ -5,10 +5,10 @@ import type { FieldSortConfig } from "../core/sorting/types";
 /**固有配置 */
 export const globalConfig = {
   dev: true,
-  version: `1.4.0`,
-  betaIteration: 4,
+  version: `1.4.1`,
+  betaIteration: 1,
   mfwVersion: "5.9.2",
-  protocolVersion: "0.8.0",
+  protocolVersion: "0.8.1",
 };
 
 if (globalConfig.dev) {

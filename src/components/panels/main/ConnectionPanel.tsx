@@ -32,6 +32,26 @@ import { mfwProtocol } from "../../../services/server";
 
 const { Text } = Typography;
 
+// 平台检测工具函数
+function detectPlatform(): "windows" | "macos" | "linux" {
+  const platform =
+    navigator.platform.toLowerCase() || navigator.userAgent.toLowerCase();
+  if (platform.includes("win")) return "windows";
+  if (platform.includes("mac") || platform.includes("darwin")) return "macos";
+  if (platform.includes("linux")) return "linux";
+  return "windows"; // 默认
+}
+
+// 平台对应的可用连接类型
+const PLATFORM_TABS: Record<
+  "windows" | "macos" | "linux",
+  Array<"adb" | "win32" | "playcover" | "gamepad" | "wlroots">
+> = {
+  windows: ["adb", "win32", "gamepad"],
+  macos: ["adb", "playcover"],
+  linux: ["adb", "wlroots"],
+};
+
 interface ConnectionPanelProps {
   open: boolean;
   onClose: () => void;
@@ -50,9 +70,16 @@ export const ConnectionPanel = memo(
       errorMessage,
     } = useMFWStore();
 
+    // 检测当前平台
+    const currentPlatform = useMemo(() => detectPlatform(), []);
+    const availableTabs = useMemo(
+      () => PLATFORM_TABS[currentPlatform],
+      [currentPlatform],
+    );
+
     const [activeTab, setActiveTab] = useState<
       "adb" | "win32" | "playcover" | "gamepad" | "wlroots"
-    >("adb");
+    >(availableTabs[0]);
     const [selectedAdbDevice, setSelectedAdbDevice] =
       useState<AdbDevice | null>(null);
     const [selectedWin32Window, setSelectedWin32Window] =
@@ -524,7 +551,7 @@ export const ConnectionPanel = memo(
       <>
         <Alert
           message="权限提示"
-          description="大多数 Win32 控制需要以管理员模式启动后端(LocalBridge)或客户端(Extremer)才能正常工作，特别是对系统级应用或需要提升权限的应用进行控制时。如果遇到连接失败或控制无响应的情况，请尝试以管理员身份重新启动应用。"
+          description="大多数 Win32 控制需要以管理员模式启动后端(LocalBridge)或客户端(Extremer)才能正常工作，如果遇到连接失败或控制无响应的情况，请尝试以管理员身份重新启动应用。"
           type="info"
           showIcon
           style={{ marginBottom: 16 }}
@@ -718,7 +745,7 @@ export const ConnectionPanel = memo(
             onChange={(e) => setGamepadHwnd(e.target.value)}
             placeholder="例: 0x123456 (可以为空)"
             style={{
-              width: "100%",
+              width: "93%",
               padding: "8px 12px",
               borderRadius: 6,
               border: "1px solid #d9d9d9",
@@ -791,8 +818,7 @@ export const ConnectionPanel = memo(
           message="提示"
           description={
             <div>
-              <div>WlRoots 控制器仅在 Linux 上支持。</div>
-              <div style={{ marginTop: 4 }}>
+              <div>
                 请输入 wlroots 合成器的 socket 路径，通常为{" "}
                 <Text code>/run/user/$UID/wayland-0</Text>
               </div>
@@ -826,7 +852,7 @@ export const ConnectionPanel = memo(
           </div>
         }
         placement="right"
-        size={490}
+        size={420}
         open={open}
         onClose={onClose}
         styles={{
@@ -1021,51 +1047,71 @@ export const ConnectionPanel = memo(
                 )
               }
               items={[
-                {
-                  key: "adb",
-                  label: (
-                    <span>
-                      <MobileOutlined style={{ marginRight: 8 }} />
-                      ADB 设备
-                    </span>
-                  ),
-                },
-                {
-                  key: "win32",
-                  label: (
-                    <span>
-                      <DesktopOutlined style={{ marginRight: 8 }} />
-                      Win32 窗口
-                    </span>
-                  ),
-                },
-                {
-                  key: "playcover",
-                  label: (
-                    <span>
-                      <AppleOutlined style={{ marginRight: 8 }} />
-                      PlayCover
-                    </span>
-                  ),
-                },
-                {
-                  key: "gamepad",
-                  label: (
-                    <span>
-                      <RocketOutlined style={{ marginRight: 8 }} />
-                      Gamepad
-                    </span>
-                  ),
-                },
-                {
-                  key: "wlroots",
-                  label: (
-                    <span>
-                      <DesktopOutlined style={{ marginRight: 8 }} />
-                      WlRoots
-                    </span>
-                  ),
-                },
+                ...(availableTabs.includes("adb")
+                  ? [
+                      {
+                        key: "adb",
+                        label: (
+                          <span>
+                            <MobileOutlined style={{ marginRight: 8 }} />
+                            ADB 设备
+                          </span>
+                        ),
+                      },
+                    ]
+                  : []),
+                ...(availableTabs.includes("win32")
+                  ? [
+                      {
+                        key: "win32",
+                        label: (
+                          <span>
+                            <DesktopOutlined style={{ marginRight: 8 }} />
+                            Win32 窗口
+                          </span>
+                        ),
+                      },
+                    ]
+                  : []),
+                ...(availableTabs.includes("playcover")
+                  ? [
+                      {
+                        key: "playcover",
+                        label: (
+                          <span>
+                            <AppleOutlined style={{ marginRight: 8 }} />
+                            PlayCover
+                          </span>
+                        ),
+                      },
+                    ]
+                  : []),
+                ...(availableTabs.includes("gamepad")
+                  ? [
+                      {
+                        key: "gamepad",
+                        label: (
+                          <span>
+                            <RocketOutlined style={{ marginRight: 8 }} />
+                            Gamepad
+                          </span>
+                        ),
+                      },
+                    ]
+                  : []),
+                ...(availableTabs.includes("wlroots")
+                  ? [
+                      {
+                        key: "wlroots",
+                        label: (
+                          <span>
+                            <DesktopOutlined style={{ marginRight: 8 }} />
+                            WlRoots
+                          </span>
+                        ),
+                      },
+                    ]
+                  : []),
               ]}
               style={{ marginBottom: 0 }}
             />

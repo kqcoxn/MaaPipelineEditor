@@ -48,6 +48,15 @@ export const pinnedNotice: PinnedNotice = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "1.4.1",
+    date: "2026-4",
+    type: "feature",
+    updates: {
+      features: ["🐧 新增 WlRoots 控制方式"],
+      perfs: ["设备连接面板仅显示当前平台方案"],
+    },
+  },
+  {
     version: "1.4.0",
     date: "2026-4-5",
     type: "major",
