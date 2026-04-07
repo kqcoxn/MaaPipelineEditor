@@ -17,6 +17,7 @@
 - [reco_detail_helper.go](file://LocalBridge/internal/mfw/reco_detail_helper.go)
 - [path_windows.go](file://LocalBridge/internal/mfw/path_windows.go)
 - [path_unix.go](file://LocalBridge/internal/mfw/path_unix.go)
+- [handler.go](file://LocalBridge/internal/protocol/mfw/handler.go)
 </cite>
 
 ## 目录
@@ -37,6 +38,7 @@
 - 协议处理器能力：设备控制、OCR识别、任务执行、事件回调与调试
 - 错误处理与异常恢复：库版本不匹配、运行时错误、资源释放
 - 调试技巧与故障排除方法
+- **新增** WlRoots组合器控制器系统：Linux Wayland支持的完整集成方案
 
 ## 项目结构
 MFW集成位于LocalBridge内部，采用分层设计：
@@ -100,6 +102,7 @@ SINK --> RDH
 - 设备/控制器/资源/任务管理器：提供设备枚举、控制器创建/连接/操作、资源加载/卸载、任务提交/停止
 - 调试服务V2：基于适配器的调试会话，事件回传与节点识别详情增强
 - 原生识别详情助手：通过纯Go调用原生库获取识别算法、框选区域、原始图像与绘制图像
+- **新增** WlRoots组合器控制器：Linux Wayland环境下的完整控制器实现，支持套接字连接和设备枚举
 
 **章节来源**
 - [service.go:15-218](file://LocalBridge/internal/mfw/service.go#L15-L218)
@@ -113,7 +116,7 @@ SINK --> RDH
 - [reco_detail_helper.go:85-345](file://LocalBridge/internal/mfw/reco_detail_helper.go#L85-L345)
 
 ## 架构总览
-MFW集成采用“服务-适配器-管理器-调试”的分层架构，服务层统一调度，适配器层封装底层框架，管理器层提供具体能力，调试服务层提供可视化与可观测性。
+MFW集成采用"服务-适配器-管理器-调试"的分层架构，服务层统一调度，适配器层封装底层框架，管理器层提供具体能力，调试服务层提供可视化与可观测性。
 
 ```mermaid
 sequenceDiagram
@@ -127,8 +130,8 @@ App->>SVC : Initialize()
 SVC->>SVC : 解析配置/路径处理
 SVC->>FW : Init(库目录/日志目录/调试开关)
 SVC-->>App : 初始化成功
-App->>CM : CreateAdbController/CreateWin32Controller
-CM->>FW : NewAdbController/NewWin32Controller
+App->>CM : CreateAdbController/CreateWin32Controller/CreateWlRootsController
+CM->>FW : NewAdbController/NewWin32Controller/NewWlRootsController
 CM->>FW : PostConnect()
 CM-->>App : 控制器ID
 App->>RM : LoadResource(路径)
@@ -194,6 +197,10 @@ SetFlags --> Done(["初始化完成"])
   - 图像数据在Go与原生之间传递时进行格式转换（如BGR/BGRA到RGBA）
   - 通过缓冲区与句柄管理原生内存，确保及时释放
   - 截图缓存降低频繁截图带来的性能开销
+- **新增** WlRoots控制器支持：
+  - 通过socketPath参数建立Wayland compositor连接
+  - 支持标准控制器生命周期管理（创建、连接、断开）
+  - 集成到统一的适配器接口中
 
 ```mermaid
 classDiagram
@@ -205,6 +212,7 @@ class MaaFWAdapter {
 -screenshotter : Screenshotter
 +ConnectADB(...)
 +ConnectWin32(...)
++ConnectWlRoots(socketPath)
 +LoadResources(paths)
 +InitTasker()
 +RunTask(entry, override)
@@ -244,8 +252,9 @@ MaaFWAdapter --> RecognitionDetailHelper : "事件回传使用"
 - 设备管理：
   - ADB设备枚举与可用截图/输入方法列表
   - Win32窗口枚举与可用截图/输入方法列表
+  - **新增** WlRoots合成器枚举：通过FindDesktopWindows API发现Wayland compositor套接字路径
 - 控制器管理：
-  - 创建ADB/Win32/PlayCover/Gamepad控制器
+  - 创建ADB/Win32/PlayCover/Gamepad/ **新增** WlRoots控制器
   - 连接控制器并等待完成，超时处理
   - 执行点击、滑动、输入文本、启动/停止应用、滚动、手柄按键与触摸等操作
   - 截图支持目标长边/短边缩放与原始尺寸模式
@@ -257,8 +266,8 @@ participant App as "应用"
 participant CM as "ControllerManager"
 participant FW as "MaaFramework"
 participant Ctrl as "Controller"
-App->>CM : CreateAdbController(adbPath,address,methods,config,agent)
-CM->>FW : NewAdbController(...)
+App->>CM : CreateAdbController/CreateWin32Controller/CreateWlRootsController
+CM->>FW : NewAdbController/NewWin32Controller/NewWlRootsController(...)
 CM-->>App : controllerID
 App->>CM : ConnectController(controllerID)
 CM->>Ctrl : PostConnect()
@@ -274,11 +283,14 @@ CM-->>App : Result
 **图表来源**
 - [controller_manager.go:33-300](file://LocalBridge/internal/mfw/controller_manager.go#L33-L300)
 - [controller_manager.go:516-585](file://LocalBridge/internal/mfw/controller_manager.go#L516-L585)
+- [controller_manager.go:249-276](file://LocalBridge/internal/mfw/controller_manager.go#L249-L276)
 
 **章节来源**
 - [device_manager.go:26-94](file://LocalBridge/internal/mfw/device_manager.go#L26-L94)
 - [controller_manager.go:33-300](file://LocalBridge/internal/mfw/controller_manager.go#L33-L300)
 - [controller_manager.go:516-585](file://LocalBridge/internal/mfw/controller_manager.go#L516-L585)
+- [device_manager.go:98-121](file://LocalBridge/internal/mfw/device_manager.go#L98-L121)
+- [controller_manager.go:249-276](file://LocalBridge/internal/mfw/controller_manager.go#L249-L276)
 
 ### 资源与任务管理
 - 资源管理：
@@ -343,6 +355,33 @@ DS-->>DS : 统计/记录/断开Agent
 **章节来源**
 - [reco_detail_helper.go:85-345](file://LocalBridge/internal/mfw/reco_detail_helper.go#L85-L345)
 
+### WlRoots组合器控制器系统
+- **新增功能概述**：WlRoots组合器控制器系统为Linux Wayland环境提供完整的设备控制支持
+- **设备枚举**：
+  - 通过RefreshWlRootsSockets方法发现可用的Wayland compositor
+  - 使用FindDesktopWindows API获取套接字路径信息
+  - 支持动态刷新和实时监控
+- **控制器创建**：
+  - CreateWlRootsController方法支持socketPath参数
+  - 集成到统一的控制器管理接口
+  - 支持标准连接流程（PostConnect + Wait）
+- **协议支持**：
+  - 新增/etl/mfw/create_wlroots_controller路由
+  - 支持刷新WlRoots套接字列表
+  - 与现有控制器操作保持一致的API设计
+- **应用场景**：
+  - Linux桌面环境下的自动化测试
+  - Wayland compositor的远程控制
+  - 跨平台应用的Linux支持
+
+**章节来源**
+- [device_manager.go:98-121](file://LocalBridge/internal/mfw/device_manager.go#L98-L121)
+- [controller_manager.go:249-276](file://LocalBridge/internal/mfw/controller_manager.go#L249-L276)
+- [adapter.go:169-209](file://LocalBridge/internal/mfw/adapter.go#L169-L209)
+- [types.go:40-43](file://LocalBridge/internal/mfw/types.go#L40-L43)
+- [handler.go:65](file://LocalBridge/internal/protocol/mfw/handler.go#L65)
+- [handler.go:169-186](file://LocalBridge/internal/protocol/mfw/handler.go#L169-L186)
+
 ## 依赖关系分析
 - 平台库加载：
   - Windows：使用syscall.LoadLibrary加载DLL
@@ -353,6 +392,10 @@ DS-->>DS : 统计/记录/断开Agent
 - 错误码与错误类型：
   - 预定义错误码覆盖控制器、连接、截图、操作、任务、资源、参数、设备、未初始化、OCR资源配置等场景
   - 自定义MFWError结构体，便于序列化与前端展示
+- **新增** WlRoots依赖：
+  - 依赖MaaFramework Go绑定的NewWlRootsController函数
+  - 通过套接字路径与Wayland compositor建立连接
+  - 支持标准的控制器生命周期管理
 
 ```mermaid
 graph LR
@@ -369,6 +412,8 @@ ADP["MaaFWAdapter"] --> FW
 DS["DebugServiceV2"] --> ADP
 SINK["SimpleContextSink"] --> DS
 RDH["RecognitionDetailHelper"] --> ADP
+WLROOTS["WlRoots控制器"] --> CM
+WLROOTS --> ADP
 ```
 
 **图表来源**
@@ -391,8 +436,10 @@ RDH["RecognitionDetailHelper"] --> ADP
 - 资源卸载：资源管理器在卸载时销毁句柄，防止内存泄漏
 - 控制器清理：定期清理非活跃控制器，降低系统负担
 - 原生API延迟：识别详情助手按需初始化原生库，避免不必要的开销
-
-[本节为通用指导，无需特定文件引用]
+- **新增** WlRoots性能优化：
+  - 套接字连接复用，避免频繁重新连接
+  - 异步操作支持，提高响应速度
+  - 内存池管理，减少垃圾回收压力
 
 ## 故障排除指南
 - 库版本不匹配：
@@ -403,7 +450,7 @@ RDH["RecognitionDetailHelper"] --> ADP
   - 处理：优先尝试短路径转换；若失败，切换工作目录至库目录后再初始化
 - 控制器连接失败：
   - 现象：PostConnect超时或连接状态异常
-  - 处理：检查ADB/Win32权限、代理/驱动、输入法/截图方法配置
+  - 处理：检查ADB/Win32/WlRoots权限、代理/驱动、输入法/截图方法配置
 - 资源加载失败：
   - 现象：PostBundle失败或返回错误
   - 处理：确认资源路径存在且可访问，必要时切换工作目录
@@ -413,6 +460,9 @@ RDH["RecognitionDetailHelper"] --> ADP
 - Agent连接异常：
   - 现象：Agent连接超时或状态异常
   - 处理：确认Agent标识符正确，服务端可达；必要时手动断开并重连
+- **新增** WlRoots连接问题：
+  - 现象：无法发现Wayland compositor或连接失败
+  - 处理：检查XDG_RUNTIME_DIR环境变量、Wayland compositor状态、套接字权限
 
 **章节来源**
 - [service.go:36-138](file://LocalBridge/internal/mfw/service.go#L36-L138)
@@ -423,3 +473,5 @@ RDH["RecognitionDetailHelper"] --> ADP
 
 ## 结论
 MaaFramework集成通过清晰的服务-适配器-管理器-调试分层，实现了对设备控制、资源管理、任务执行与事件可观测性的完整覆盖。适配器模式有效屏蔽了Go与C/C++之间的差异，配合原生API增强识别详情，显著提升了调试体验。完善的错误处理与资源管理策略保障了系统的稳定性与可维护性。
+
+**新增的WlRoots组合器控制器系统进一步扩展了MaaFramework的跨平台能力，为Linux Wayland环境提供了完整的设备控制解决方案。该系统通过标准化的API设计无缝集成到现有架构中，支持套接字连接、动态设备枚举和完整的控制器生命周期管理，为开发者在Linux环境下进行自动化测试和控制提供了强大支持。**
