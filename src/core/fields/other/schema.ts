@@ -180,50 +180,74 @@ export const otherFieldSchema: Record<string, FieldType> = {
   focus: {
     key: "focus",
     type: FieldTypeEnum.Any,
-    default: "",
-    desc: "关注节点，会额外产生部分回调消息。可选，默认 null，不产生回调消息。在节点中添加 focus 字段，键为消息类型，值为要展示的模板字符串，模板字符串支持文件路径、URL或直接文本，内容支持Markdown格式，支持国际化（以$开头）。模板中可使用 {字段名} 格式的占位符，UI 会自动替换为实际值。",
+    default: {},
+    desc: "关注节点，会额外产生部分回调消息。可选，默认空对象，不产生回调消息。focus 是一个字典，键为消息类型，值为模板字符串或模板对象。模板字符串支持文件路径、URL 或直接文本，内容支持 Markdown 格式，支持国际化（以$开头）。模板中可使用 {字段名} 格式的占位符，UI 会自动替换为实际值。v2.3.0 起支持 display 字段指定展示渠道：log（运行日志，默认）、toast（轻提示）、notification（系统通知）、dialog（非阻塞对话框）、modal（阻塞式弹窗）。",
     params: [
+      // 识别相关消息
       {
         key: "Node.Recognition.Starting",
-        type: FieldTypeEnum.String,
+        type: FieldTypeEnum.Any,
         default: "",
-        desc: "识别开始时触发。可用占位符: task_id, reco_id, name",
+        desc: "识别开始时触发。可用占位符: task_id, reco_id, name, anchor。值可以是字符串（等价于 display: log）或对象 {content: string, display: string|string[]}。",
         displayName: "Reco.Start",
       },
       {
         key: "Node.Recognition.Succeeded",
-        type: FieldTypeEnum.String,
+        type: FieldTypeEnum.Any,
         default: "",
-        desc: "识别成功时触发。可用占位符: task_id, reco_id, name",
+        desc: "识别成功时触发。可用占位符: task_id, reco_id, name, anchor。值可以是字符串或对象 {content, display}。",
         displayName: "Reco.OK",
       },
       {
         key: "Node.Recognition.Failed",
-        type: FieldTypeEnum.String,
+        type: FieldTypeEnum.Any,
         default: "",
-        desc: "识别失败时触发。可用占位符: task_id, reco_id, name",
+        desc: "识别失败时触发。可用占位符: task_id, reco_id, name, anchor。值可以是字符串或对象 {content, display}。",
         displayName: "Reco.Fail",
       },
+      // 动作相关消息
       {
         key: "Node.Action.Starting",
-        type: FieldTypeEnum.String,
+        type: FieldTypeEnum.Any,
         default: "",
-        desc: "动作开始时触发。可用占位符: task_id, action_id, name",
+        desc: "动作开始时触发。可用占位符: task_id, action_id, name。值可以是字符串或对象 {content, display}。",
         displayName: "Action.Start",
       },
       {
         key: "Node.Action.Succeeded",
-        type: FieldTypeEnum.String,
+        type: FieldTypeEnum.Any,
         default: "",
-        desc: "动作成功时触发。可用占位符: task_id, action_id, name",
+        desc: "动作成功时触发。可用占位符: task_id, action_id, name。值可以是字符串或对象 {content, display}。",
         displayName: "Action.OK",
       },
       {
         key: "Node.Action.Failed",
-        type: FieldTypeEnum.String,
+        type: FieldTypeEnum.Any,
         default: "",
-        desc: "动作失败时触发。可用占位符: task_id, action_id, name",
+        desc: "动作失败时触发。可用占位符: task_id, action_id, name。值可以是字符串或对象 {content, display}。",
         displayName: "Action.Fail",
+      },
+      // WaitFreezes 相关消息
+      {
+        key: "Node.WaitFreezes.Starting",
+        type: FieldTypeEnum.Any,
+        default: "",
+        desc: "wait_freezes 开始时触发。可用占位符: task_id, wf_id, name, phase, roi, param。phase 值为: pre/post/repeat/context。值可以是字符串或对象 {content, display}。",
+        displayName: "Freezes.Start",
+      },
+      {
+        key: "Node.WaitFreezes.Succeeded",
+        type: FieldTypeEnum.Any,
+        default: "",
+        desc: "wait_freezes 成功时触发。额外占位符: reco_ids, elapsed。值可以是字符串或对象 {content, display}。",
+        displayName: "Freezes.OK",
+      },
+      {
+        key: "Node.WaitFreezes.Failed",
+        type: FieldTypeEnum.Any,
+        default: "",
+        desc: "wait_freezes 失败时触发（如超时）。额外占位符: reco_ids, elapsed。值可以是字符串或对象 {content, display}。",
+        displayName: "Freezes.Fail",
       },
     ],
   },
@@ -311,7 +335,7 @@ export const otherFieldSchema: Record<string, FieldType> = {
  * 其他字段 Schema 键列表
  */
 export const otherFieldSchemaKeyList = Array.from(
-  new Set(Object.values(otherFieldSchema).map((field) => field.key))
+  new Set(Object.values(otherFieldSchema).map((field) => field.key)),
 );
 
 /**
