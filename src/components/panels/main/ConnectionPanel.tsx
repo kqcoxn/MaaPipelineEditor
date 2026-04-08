@@ -24,6 +24,7 @@ import {
   useMFWStore,
   type AdbDevice,
   type Win32Window,
+  type WlRootsCompositor,
 } from "../../../stores/mfwStore";
 import { mfwProtocol } from "../../../services/server";
 import {
@@ -73,6 +74,8 @@ export const ConnectionPanel = memo(
       useState<AdbDevice | null>(null);
     const [selectedWin32Window, setSelectedWin32Window] =
       useState<Win32Window | null>(null);
+    const [selectedWlRootsSocket, setSelectedWlRootsSocket] =
+      useState<WlRootsCompositor | null>(null);
     const [wlrootsSocketPath, setWlrootsSocketPath] = useState<string>("");
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [visitedTabs, setVisitedTabs] = useState<Set<string>>(new Set());
@@ -201,7 +204,15 @@ export const ConnectionPanel = memo(
             }
           } else if (controllerType === "wlroots") {
             setActiveTab("wlroots");
-            setWlrootsSocketPath((deviceInfo as any)?.socket_path || "");
+            const socketPath = (deviceInfo as any)?.socket_path || "";
+            setWlrootsSocketPath(socketPath);
+            // 尝试在列表中找到对应的 socket
+            const connectedSocket = wlrootsSockets.find(
+              (s) => s.socket_path === socketPath,
+            );
+            if (connectedSocket) {
+              setSelectedWlRootsSocket(connectedSocket);
+            }
           } else if (controllerType === "macos") {
             setActiveTab("macos");
             setMacosPid((deviceInfo as any)?.pid || "");
@@ -326,10 +337,16 @@ export const ConnectionPanel = memo(
           gamepad_type: gamepadType,
           screencap_method: gamepadScreencap || undefined,
         });
-      } else if (activeTab === "wlroots" && wlrootsSocketPath.trim()) {
+      } else if (activeTab === "wlroots") {
         // WlRoots 连接
+        const socketPath =
+          wlrootsSocketPath.trim() || selectedWlRootsSocket?.socket_path;
+        if (!socketPath) {
+          message.warning("请选择或输入 socket 路径");
+          return;
+        }
         mfwProtocol.createWlRootsController({
-          socket_path: wlrootsSocketPath.trim(),
+          socket_path: socketPath,
         });
       } else if (activeTab === "macos") {
         // macOS 连接
@@ -358,6 +375,7 @@ export const ConnectionPanel = memo(
       activeTab,
       selectedAdbDevice,
       selectedWin32Window,
+      selectedWlRootsSocket,
       wlrootsSocketPath,
       customScreencap,
       customInput,
@@ -399,7 +417,7 @@ export const ConnectionPanel = memo(
           : activeTab === "playcover"
             ? !!(playCoverAddress.trim() && playCoverUUID.trim())
             : activeTab === "wlroots"
-              ? !!wlrootsSocketPath.trim()
+              ? !!(wlrootsSocketPath.trim() || selectedWlRootsSocket)
               : activeTab === "gamepad"
                 ? true // Gamepad 不需要选择设备
                 : activeTab === "macos"
@@ -482,6 +500,7 @@ export const ConnectionPanel = memo(
       activeTab,
       selectedAdbDevice,
       selectedWin32Window,
+      selectedWlRootsSocket,
       wlrootsSocketPath,
       playCoverAddress,
       macosPid,
@@ -760,8 +779,12 @@ export const ConnectionPanel = memo(
               />
             ) : activeTab === "wlroots" ? (
               <WlRootsForm
-                socketPath={wlrootsSocketPath}
-                onSocketPathChange={setWlrootsSocketPath}
+                sockets={wlrootsSockets}
+                selectedSocket={selectedWlRootsSocket}
+                onSelect={setSelectedWlRootsSocket}
+                manualPath={wlrootsSocketPath}
+                onManualPathChange={setWlrootsSocketPath}
+                loading={isRefreshing}
               />
             ) : activeTab === "macos" ? (
               <MacOSForm

@@ -49,7 +49,7 @@ export const pinnedNotice: PinnedNotice = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "1.4.1",
-    date: "2026-4",
+    date: "2026-4-8",
     type: "feature",
     updates: {
       features: [
