@@ -21,6 +21,9 @@ const PipelineConfigSection = memo(() => {
   const exportDefaultRecoAction = useConfigStore(
     (state) => state.configs.exportDefaultRecoAction,
   );
+  const exportEmptyParam = useConfigStore(
+    (state) => state.configs.exportEmptyParam,
+  );
 
   const pipelineProtocolVersion = useConfigStore(
     (state) => state.configs.pipelineProtocolVersion,
@@ -176,6 +179,33 @@ const PipelineConfigSection = memo(() => {
           checkedChildren="导出"
           unCheckedChildren="省略"
           onChange={(checked) => setConfig("exportDefaultRecoAction", checked)}
+        />
+      </div>
+
+      {/* 子字段为空时占位 */}
+      <div className={globalClass}>
+        <div className={style.key}>
+          <Popover
+            placement="bottomLeft"
+            title="子字段为空时占位"
+            content={
+              <TipElem
+                content={
+                  "关闭时，若识别/动作的 param 为空对象，则不导出 param 键，仅保留 type。\n开启时，即使 param 为空也保留占位导出。（仅 v2 版本需要考虑）"
+                }
+              />
+            }
+          >
+            <span>子字段为空时占位</span>
+          </Popover>
+        </div>
+        <Switch
+          className={style.value}
+          style={{ maxWidth: 60 }}
+          checked={exportEmptyParam}
+          checkedChildren="占位"
+          unCheckedChildren="省略"
+          onChange={(checked) => setConfig("exportEmptyParam", checked)}
         />
       </div>
 

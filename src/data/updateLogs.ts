@@ -48,6 +48,16 @@ export const pinnedNotice: PinnedNotice = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "1.4.2",
+    date: "2026-4",
+    type: "feature",
+    updates: {
+      features: [
+        "🐧 新增“子字段为空时占位”配置项，可自由切换是否保留空 v2 param 字段",
+      ],
+    },
+  },
+  {
     version: "1.4.1",
     date: "2026-4-8",
     type: "feature",

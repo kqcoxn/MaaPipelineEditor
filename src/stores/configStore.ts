@@ -5,9 +5,9 @@ import type { FieldSortConfig } from "../core/sorting/types";
 /**固有配置 */
 export const globalConfig = {
   dev: true,
-  version: `1.4.1`,
-  betaIteration: 3,
-  mfwVersion: "5.10.0",
+  version: `1.4.2`,
+  betaIteration: 1,
+  mfwVersion: "5.10.2",
   protocolVersion: "0.8.1",
 };
 
@@ -27,6 +27,7 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   nodeAttrExportStyle: "pipeline",
   defaultHandleDirection: "pipeline",
   exportDefaultRecoAction: "pipeline",
+  exportEmptyParam: "pipeline",
   pipelineProtocolVersion: "pipeline",
   skipFieldValidation: "pipeline",
   jsonIndent: "pipeline",
@@ -114,6 +115,7 @@ type ConfigState = {
     defaultHandleDirection: HandleDirection;
     quickCreateNodeOnConnectBlank: boolean;
     exportDefaultRecoAction: boolean;
+    exportEmptyParam: boolean;
     pipelineProtocolVersion: PipelineProtocolVersion;
     skipFieldValidation: boolean;
     jsonIndent: number;
@@ -189,6 +191,7 @@ export const useConfigStore = create<ConfigState>()((set) => ({
     defaultHandleDirection: "left-right" as HandleDirection,
     quickCreateNodeOnConnectBlank: true,
     exportDefaultRecoAction: false,
+    exportEmptyParam: false,
     pipelineProtocolVersion: "v2" as PipelineProtocolVersion,
     skipFieldValidation: false,
     jsonIndent: 4,

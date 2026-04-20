@@ -24,6 +24,13 @@ import { NodeTypeEnum } from "../../components/flow/nodes";
 import { applyFieldSort } from "../sorting";
 
 /**
+ * 判断参数对象是否为空（无任何子字段）
+ */
+function isEmptyParam(param: Record<string, any>): boolean {
+  return Object.keys(param).length === 0;
+}
+
+/**
  * 解析Pipeline节点为导出格式
  * @param fNode Flow节点
  * @returns 解析后的Pipeline节点
@@ -88,6 +95,8 @@ export function parsePipelineNodeForExport(
 
   // 检查是否导出默认识别/动作
   const exportDefaultRecoAction = configs.exportDefaultRecoAction;
+  // 检查是否导出空 param
+  const exportEmptyParam = configs.exportEmptyParam;
   // 获取协议版本
   const protocolVersion = configs.pipelineProtocolVersion ?? "v2";
 
@@ -96,7 +105,7 @@ export function parsePipelineNodeForExport(
 
   // 1. recognition
   const isDefaultReco =
-    recoType === "DirectHit" && Object.keys(recognition.param).length === 0;
+    recoType === "DirectHit" && isEmptyParam(recognition.param);
   if (exportDefaultRecoAction || !isDefaultReco) {
     if (protocolVersion === "v1") {
       pNode.recognition = recoType;
@@ -107,7 +116,7 @@ export function parsePipelineNodeForExport(
 
   // 2. action
   const isDefaultAction =
-    actionType === "DoNothing" && Object.keys(action.param).length === 0;
+    actionType === "DoNothing" && isEmptyParam(action.param);
   if (exportDefaultRecoAction || !isDefaultAction) {
     if (protocolVersion === "v1") {
       pNode.action = actionType;
@@ -155,7 +164,21 @@ export function parsePipelineNodeForExport(
 
   // 应用自定义字段排序
   const sortConfig = configs.fieldSortConfig;
-  return applyFieldSort(pNode, sortConfig, protocolVersion);
+  const sorted = applyFieldSort(pNode, sortConfig, protocolVersion);
+
+  // 若不需要导出空 param，删除空的 param 键
+  if (!exportEmptyParam && protocolVersion !== "v1") {
+    const reco = sorted.recognition as Record<string, any> | undefined;
+    if (reco && typeof reco === "object" && isEmptyParam(reco.param ?? {})) {
+      delete reco.param;
+    }
+    const act = sorted.action as Record<string, any> | undefined;
+    if (act && typeof act === "object" && isEmptyParam(act.param ?? {})) {
+      delete act.param;
+    }
+  }
+
+  return sorted;
 }
 
 /**
@@ -293,6 +316,7 @@ export function parseRecognitionField(
       if (value.param?.method === 1) {
         value.param.method = 10001;
       }
+      value.param ??= {};
       node.data.recognition = value;
       break;
   }
@@ -317,6 +341,7 @@ export function parseActionField(
     case 2:
       // v2版本：动作类型是对象
       value.type = normalizeActionType(value.type);
+      value.param ??= {};
       node.data.action = value;
       break;
   }
