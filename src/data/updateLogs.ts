@@ -53,9 +53,10 @@ export const updateLogs: UpdateLogItem[] = [
     type: "feature",
     updates: {
       features: [
-        "🐧 新增“子字段为空时占位”配置项，可自由切换是否保留空 v2 param 字段",
+        "👾 新增“子字段为空时占位”配置项，可自由切换是否保留空 v2 param 字段",
       ],
       perfs: ["优化同位置面板互斥交互体验"],
+      fixes: ["修复字段面板过长时会出现双滚动条的问题"],
     },
   },
   {
