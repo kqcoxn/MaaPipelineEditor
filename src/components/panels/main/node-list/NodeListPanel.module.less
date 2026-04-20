@@ -11,6 +11,17 @@
   flex-direction: column;
   z-index: 1000;
   overflow: hidden;
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.node-list-panel-hidden {
+  opacity: 0;
+  transform: translateY(-8px);
+  pointer-events: none;
 }
 
 .node-list-header {

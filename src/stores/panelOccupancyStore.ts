@@ -75,6 +75,12 @@ registerPanel({
   reaction: "offset",
   passive: true,
 });
+registerPanel({
+  id: "explorationFAB",
+  area: "right",
+  reaction: "hide",
+  passive: true,
+});
 
 // ========== Store ==========
 

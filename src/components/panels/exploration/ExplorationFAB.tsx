@@ -11,6 +11,7 @@ import IconFont from "../../iconfonts";
 import { useMFWStore } from "../../../stores/mfwStore";
 import { useConfigStore } from "../../../stores/configStore";
 import { useFlowStore } from "../../../stores/flow";
+import { usePanelOccupancy } from "../../../hooks/usePanelOccupancy";
 import style from "../../../styles/panels/ExplorationPanel.module.less";
 
 interface ExplorationFABProps {
@@ -40,12 +41,14 @@ function ExplorationFABBase({
   // 是否有脉冲动画
   const hasPulse = status === "predicting" || status === "executing";
 
-  if (!visible) {
-    return null;
-  }
+  // 互斥系统：被其他面板排挤时隐藏
+  const { isDisplaced } = usePanelOccupancy("explorationFAB");
+
+  const isHidden = !visible || isDisplaced;
 
   // 处理点击 - 检查前置条件
   const handleClick = () => {
+    if (isHidden) return;
     if (!isConnected) {
       message.warning("请先连接设备");
       return;
@@ -72,6 +75,7 @@ function ExplorationFABBase({
           [style.fabPulse]: hasPulse,
           [style.fabActive]: active || isExploring,
           [style.fabDisabled]: !isConnected || !isAIConfigured,
+          [style.fabHidden]: isHidden,
         })}
         onClick={handleClick}
       >

@@ -14,7 +14,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 20;
+  z-index: 1;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
   transition: all 0.3s ease;
@@ -27,6 +27,12 @@
   &:active {
     transform: scale(0.95);
   }
+}
+
+.fabHidden {
+  opacity: 0;
+  transform: scale(0.5);
+  pointer-events: none;
 }
 
 .fabPulse {

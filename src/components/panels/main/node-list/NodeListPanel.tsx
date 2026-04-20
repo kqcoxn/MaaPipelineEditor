@@ -2,19 +2,16 @@
  * 节点列表面板组件
  */
 
-import {
-  memo,
-  useState,
-  useCallback,
-  useMemo,
-  useEffect,
-  useRef,
-} from "react";
+import { memo, useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { Input, Select, Empty } from "antd";
 import { DownOutlined } from "@ant-design/icons";
 import type { SelectProps } from "antd";
 import classNames from "classnames";
-import { useFlowStore, type NodeType, type EdgeType } from "../../../../stores/flow";
+import {
+  useFlowStore,
+  type NodeType,
+  type EdgeType,
+} from "../../../../stores/flow";
 import { NodeTypeEnum } from "../../../flow/nodes/constants";
 import NodeListItem from "./NodeListItem";
 import {
@@ -61,11 +58,28 @@ function NodeListPanel({ visible, onClose, anchorEl }: NodeListPanelProps) {
       NodeTypeEnum.Anchor,
       NodeTypeEnum.Sticker,
       NodeTypeEnum.Group,
-    ])
+    ]),
   );
-  const [highlightedNodeId, setHighlightedNodeId] = useState<string | null>(null);
+  const [highlightedNodeId, setHighlightedNodeId] = useState<string | null>(
+    null,
+  );
   const [position, setPosition] = useState({ top: 0, left: 0, maxHeight: 500 });
   const panelRef = useRef<HTMLDivElement>(null);
+
+  // 过渡动画状态：visible 变 false 时延迟卸载，等动画结束
+  const [shouldRender, setShouldRender] = useState(false);
+
+  useEffect(() => {
+    if (visible) {
+      setShouldRender(true);
+    }
+  }, [visible]);
+
+  const handleTransitionEnd = useCallback(() => {
+    if (!visible) {
+      setShouldRender(false);
+    }
+  }, [visible]);
 
   // 计算面板位置和高度（相对于锚点元素）
   useEffect(() => {
@@ -74,8 +88,8 @@ function NodeListPanel({ visible, onClose, anchorEl }: NodeListPanelProps) {
         const rect = anchorEl.getBoundingClientRect();
         const top = rect.bottom + 4; // 锚点下方 4px
         const left = window.innerWidth - 385; // 右对齐，距离右边 10px 加面板宽度
-        // 计算最大高度：窗口高度 - 顶部位置 - 底部边距(16px)
-        const maxHeight = Math.max(200, window.innerHeight - top - 16);
+        // 计算最大高度：窗口高度 - 顶部位置 - 底部边距(为排版工具栏预留 100px)
+        const maxHeight = Math.max(200, window.innerHeight - top - 100);
         setPosition({ top, left, maxHeight });
       }
     };
@@ -83,8 +97,8 @@ function NodeListPanel({ visible, onClose, anchorEl }: NodeListPanelProps) {
     updatePosition();
 
     // 监听窗口大小变化
-    window.addEventListener('resize', updatePosition);
-    return () => window.removeEventListener('resize', updatePosition);
+    window.addEventListener("resize", updatePosition);
+    return () => window.removeEventListener("resize", updatePosition);
   }, [visible, anchorEl]);
 
   // 计算边的连接数
@@ -124,7 +138,8 @@ function NodeListPanel({ visible, onClose, anchorEl }: NodeListPanelProps) {
       // Pipeline 节点额外信息
       if (node.type === NodeTypeEnum.Pipeline) {
         const pipelineNode = node as any;
-        baseInfo.recognitionType = pipelineNode.data.recognition?.type || "DirectHit";
+        baseInfo.recognitionType =
+          pipelineNode.data.recognition?.type || "DirectHit";
         baseInfo.actionType = pipelineNode.data.action?.type || "DoNothing";
         baseInfo.recognitionParam = pipelineNode.data.recognition?.param || {};
         baseInfo.actionParam = pipelineNode.data.action?.param || {};
@@ -132,7 +147,9 @@ function NodeListPanel({ visible, onClose, anchorEl }: NodeListPanelProps) {
         // 提取模板图片路径
         const template = baseInfo.recognitionParam?.template;
         if (template && Array.isArray(template)) {
-          baseInfo.templatePaths = template.filter((t: any) => typeof t === 'string' && t.trim());
+          baseInfo.templatePaths = template.filter(
+            (t: any) => typeof t === "string" && t.trim(),
+          );
         }
       }
 
@@ -151,7 +168,7 @@ function NodeListPanel({ visible, onClose, anchorEl }: NodeListPanelProps) {
         (node) =>
           node.label.toLowerCase().includes(lowerKeyword) ||
           node.recognitionType?.toLowerCase().includes(lowerKeyword) ||
-          node.actionType?.toLowerCase().includes(lowerKeyword)
+          node.actionType?.toLowerCase().includes(lowerKeyword),
       );
     }
 
@@ -214,7 +231,7 @@ function NodeListPanel({ visible, onClose, anchorEl }: NodeListPanelProps) {
             type: "select" as const,
             id: n.id,
             selected: n.id === targetNode.id,
-          }))
+          })),
         );
 
         // 聚焦视图
@@ -228,32 +245,29 @@ function NodeListPanel({ visible, onClose, anchorEl }: NodeListPanelProps) {
 
       onClose?.();
     },
-    [nodes, instance, onClose]
+    [nodes, instance, onClose],
   );
 
   // 悬停节点项
-  const handleNodeHover = useCallback(
-    (node: NodeListItemInfo | null) => {
-      setHighlightedNodeId(node?.id || null);
-    },
-    []
-  );
+  const handleNodeHover = useCallback((node: NodeListItemInfo | null) => {
+    setHighlightedNodeId(node?.id || null);
+  }, []);
 
   // 点击外部关闭
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as Node;
-      
+
       // 排除所有 antd 弹出层的点击
       const antdPopups = document.querySelectorAll(
-        '.ant-select-dropdown, .ant-dropdown, .ant-picker-dropdown, .ant-cascader-dropdown, .ant-modal-root'
+        ".ant-select-dropdown, .ant-dropdown, .ant-picker-dropdown, .ant-cascader-dropdown, .ant-modal-root",
       );
       for (const popup of antdPopups) {
         if (popup.contains(target)) {
           return;
         }
       }
-      
+
       // 点击面板外部且不是锚点元素时关闭
       if (
         panelRef.current &&
@@ -281,11 +295,21 @@ function NodeListPanel({ visible, onClose, anchorEl }: NodeListPanelProps) {
   const statistics = useMemo(() => {
     const total = nodeListData.length;
     const byType: Record<NodeTypeEnum, number> = {
-      [NodeTypeEnum.Pipeline]: nodeListData.filter((n) => n.nodeType === NodeTypeEnum.Pipeline).length,
-      [NodeTypeEnum.External]: nodeListData.filter((n) => n.nodeType === NodeTypeEnum.External).length,
-      [NodeTypeEnum.Anchor]: nodeListData.filter((n) => n.nodeType === NodeTypeEnum.Anchor).length,
-      [NodeTypeEnum.Sticker]: nodeListData.filter((n) => n.nodeType === NodeTypeEnum.Sticker).length,
-      [NodeTypeEnum.Group]: nodeListData.filter((n) => n.nodeType === NodeTypeEnum.Group).length,
+      [NodeTypeEnum.Pipeline]: nodeListData.filter(
+        (n) => n.nodeType === NodeTypeEnum.Pipeline,
+      ).length,
+      [NodeTypeEnum.External]: nodeListData.filter(
+        (n) => n.nodeType === NodeTypeEnum.External,
+      ).length,
+      [NodeTypeEnum.Anchor]: nodeListData.filter(
+        (n) => n.nodeType === NodeTypeEnum.Anchor,
+      ).length,
+      [NodeTypeEnum.Sticker]: nodeListData.filter(
+        (n) => n.nodeType === NodeTypeEnum.Sticker,
+      ).length,
+      [NodeTypeEnum.Group]: nodeListData.filter(
+        (n) => n.nodeType === NodeTypeEnum.Group,
+      ).length,
     };
     return { total, byType };
   }, [nodeListData]);
@@ -304,17 +328,20 @@ function NodeListPanel({ visible, onClose, anchorEl }: NodeListPanelProps) {
     }
   }, [visible, onClose]);
 
-  if (!visible) return null;
+  if (!shouldRender) return null;
 
   return (
     <div
       ref={panelRef}
-      className={style["node-list-panel"]}
+      className={classNames(style["node-list-panel"], {
+        [style["node-list-panel-hidden"]]: !visible,
+      })}
       style={{
         top: position.top,
         left: position.left,
         height: position.maxHeight,
       }}
+      onTransitionEnd={handleTransitionEnd}
     >
       {/* 头部筛选区域 */}
       <div className={style["node-list-header"]}>
@@ -338,11 +365,13 @@ function NodeListPanel({ visible, onClose, anchorEl }: NodeListPanelProps) {
 
       {/* 统计信息 */}
       <div className={style["node-list-stats"]}>
-        <span className={style["stats-total"]}>共 {statistics.total} 个节点</span>
+        <span className={style["stats-total"]}>
+          共 {statistics.total} 个节点
+        </span>
         <span className={style["stats-divider"]}>|</span>
         <span className={style["stats-detail"]}>
-          P:{statistics.byType[NodeTypeEnum.Pipeline]} 
-          E:{statistics.byType[NodeTypeEnum.External]} 
+          P:{statistics.byType[NodeTypeEnum.Pipeline]}
+          E:{statistics.byType[NodeTypeEnum.External]}
           A:{statistics.byType[NodeTypeEnum.Anchor]}
         </span>
       </div>
