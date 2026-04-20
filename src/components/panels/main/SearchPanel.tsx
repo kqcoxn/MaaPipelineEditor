@@ -9,6 +9,7 @@ import { useDebounceFn } from "ahooks";
 import IconFont from "../../iconfonts";
 import { useFlowStore, type NodeType } from "../../../stores/flow";
 import { useConfigStore } from "../../../stores/configStore";
+import { usePanelOccupancy } from "../../../hooks/usePanelOccupancy";
 import { OpenAIChat } from "../../../utils/ai/openai";
 import { buildAISearchPrompt } from "../../../utils/ai/aiPrompts";
 import { NodeTypeEnum } from "../../flow/nodes";
@@ -34,10 +35,22 @@ function SearchPanel() {
   const [isFocused, setIsFocused] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [aiSearching, setAiSearching] = useState(false);
-  const [showNodeList, setShowNodeList] = useState(false);
+  const {
+    isActive: showNodeList,
+    isDisplaced,
+    activate: activateNodeList,
+    deactivate: deactivateNodeList,
+  } = usePanelOccupancy("nodeList");
   const searchRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const aiChatRef = useRef<OpenAIChat | null>(null);
+
+  // 被其他面板排挤时执行 close 反应
+  useEffect(() => {
+    if (isDisplaced && showNodeList) {
+      deactivateNodeList();
+    }
+  }, [isDisplaced, showNodeList, deactivateNodeList]);
 
   // 获取所有节点标签列表
   const getAllNodeLabels = useCallback(() => {
@@ -384,7 +397,13 @@ function SearchPanel() {
                 [style.active]: showNodeList,
               },
             )}
-            onClick={() => setShowNodeList((prev) => !prev)}
+            onClick={() => {
+              if (showNodeList) {
+                deactivateNodeList();
+              } else {
+                activateNodeList();
+              }
+            }}
             style={{ fontSize: 14, marginRight: 6 }}
           />
         </Tooltip>
@@ -393,7 +412,7 @@ function SearchPanel() {
       {createPortal(
         <NodeListPanel
           visible={showNodeList}
-          onClose={() => setShowNodeList(false)}
+          onClose={deactivateNodeList}
           anchorEl={containerRef.current}
         />,
         document.body,

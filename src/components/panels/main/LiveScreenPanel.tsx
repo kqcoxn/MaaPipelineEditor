@@ -5,9 +5,8 @@ import { Spin, message } from "antd";
 import classNames from "classnames";
 
 import { useMFWStore } from "../../../stores/mfwStore";
-import { useToolbarStore } from "../../../stores/toolbarStore";
 import { useConfigStore } from "../../../stores/configStore";
-import { useFlowStore } from "../../../stores/flow";
+import { usePanelOccupancy } from "../../../hooks/usePanelOccupancy";
 import { mfwProtocol } from "../../../services/server";
 
 // 连续截图失败阈值，超过此值自动断开设备连接
@@ -17,9 +16,7 @@ const LiveScreenPanel = memo(() => {
   const connectionStatus = useMFWStore((state) => state.connectionStatus);
   const controllerId = useMFWStore((state) => state.controllerId);
   const clearConnection = useMFWStore((state) => state.clearConnection);
-  const jsonPanelVisible = useToolbarStore((state) => state.jsonPanelVisible);
-  const targetNode = useFlowStore((state) => state.targetNode);
-  const selectedEdges = useFlowStore((state) => state.selectedEdges);
+  const { isDisplaced } = usePanelOccupancy("liveScreen");
   const enableLiveScreen = useConfigStore(
     (state) => state.configs.enableLiveScreen,
   );
@@ -44,14 +41,10 @@ const LiveScreenPanel = memo(() => {
   }, []);
 
   // 检查面板可见性
-  const hasFieldPanel = targetNode !== null;
-  const hasEdgePanel = selectedEdges.length === 1 && !targetNode;
-  const hasOtherPanel = jsonPanelVisible || hasFieldPanel || hasEdgePanel;
-
   const shouldShow =
     connectionStatus === "connected" &&
     controllerId !== null &&
-    !hasOtherPanel &&
+    !isDisplaced &&
     enableLiveScreen;
 
   // 注册截图结果监听

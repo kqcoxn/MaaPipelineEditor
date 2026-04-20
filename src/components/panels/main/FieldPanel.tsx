@@ -30,8 +30,8 @@ import {
 } from "../node-editors";
 import { FieldPanelToolbarLeft, FieldPanelToolbarRight } from "../field/tools";
 import { useDebugStore } from "../../../stores/debugStore";
-import { useToolbarStore } from "../../../stores/toolbarStore";
 import { useConfigStore } from "../../../stores/configStore";
+import { usePanelOccupancy } from "../../../hooks/usePanelOccupancy";
 import NodeRecognitionCardList from "../tools/NodeRecognitionCardList";
 import AdjacentInfoPanel from "./AdjacentInfoPanel";
 import { DraggablePanel } from "../common/DraggablePanel";
@@ -109,9 +109,8 @@ function FieldPanel() {
   const fieldPanelMode = useConfigStore(
     (state) => state.configs.fieldPanelMode,
   );
-  const setCurrentRightPanel = useToolbarStore(
-    (state) => state.setCurrentRightPanel,
-  );
+  const { isActive, isDisplaced, activate, deactivate } =
+    usePanelOccupancy("field");
   const [isLoading, setIsLoading] = useState(false);
   const [progressStage, setProgressStage] = useState("");
   const [progressDetail, setProgressDetail] = useState("");
@@ -121,12 +120,31 @@ function FieldPanel() {
   const [activeTab, setActiveTab] = useState("fields");
   const [jsonEditorOpen, setJsonEditorOpen] = useState(false);
 
-  // 当面板打开时通知 toolbarStore
+  // 当面板打开/关闭时同步占位系统
   useEffect(() => {
+    if (fieldPanelMode === "inline") return;
     if (currentNode) {
-      setCurrentRightPanel("field");
+      activate();
+    } else {
+      deactivate();
     }
-  }, [currentNode, setCurrentRightPanel]);
+  }, [currentNode, fieldPanelMode, activate, deactivate]);
+
+  useEffect(() => {
+    if (isDisplaced) {
+      const { nodes, updateNodes } = useFlowStore.getState();
+      const selectedNodes = nodes.filter((n) => n.selected);
+      if (selectedNodes.length > 0) {
+        updateNodes(
+          selectedNodes.map((n) => ({
+            type: "select" as const,
+            id: n.id,
+            selected: false,
+          })),
+        );
+      }
+    }
+  }, [isDisplaced]);
 
   // 处理 JSON 编辑保存
   const handleJsonEditorSave = useCallback(

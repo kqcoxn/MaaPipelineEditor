@@ -20,7 +20,7 @@ import {
   DownOutlined,
 } from "@ant-design/icons";
 
-import { useToolbarStore } from "../stores/toolbarStore";
+import { usePanelOccupancy } from "../hooks/usePanelOccupancy";
 import {
   flowToPipeline,
   configMark,
@@ -111,15 +111,12 @@ const ViewerElem = memo(({ obj }: { obj: any }) => {
 });
 
 function JsonViewer() {
-  const jsonPanelVisible = useToolbarStore((state) => state.jsonPanelVisible);
-  const currentRightPanel = useToolbarStore((state) => state.currentRightPanel);
-  const setJsonPanelVisible = useToolbarStore(
-    (state) => state.setJsonPanelVisible,
-  );
+  const { isActive, isDisplaced, activate, deactivate } =
+    usePanelOccupancy("json");
 
   // 存储编译后的 Pipeline 对象
   const [pipelineObj, setPipelineObj] = React.useState<any>({});
-  const prevVisibleRef = useRef(jsonPanelVisible);
+  const prevVisibleRef = useRef(isActive);
 
   // 搜索状态
   const [searchText, setSearchText] = useState("");
@@ -158,42 +155,42 @@ function JsonViewer() {
 
   // 面板关闭时清除搜索状态
   useEffect(() => {
-    if (!jsonPanelVisible) {
+    if (!isActive) {
       setSearchText("");
       setSearchKeyword("");
       setCurrentMatchIndex(0);
       clearTimeout(debounceRef.current);
     }
-  }, [jsonPanelVisible]);
+  }, [isActive]);
 
   // 面板打开时编译
   useEffect(() => {
-    if (jsonPanelVisible && !prevVisibleRef.current) {
+    if (isActive && !prevVisibleRef.current) {
       setPipelineObj(flowToPipeline());
     }
-    prevVisibleRef.current = jsonPanelVisible;
-  }, [jsonPanelVisible]);
+    prevVisibleRef.current = isActive;
+  }, [isActive]);
 
   // 手动刷新
   const handleRefresh = () => {
     setPipelineObj(flowToPipeline());
   };
 
-  // 当其他面板打开时自动关闭 JSON 面板
+  // 当被其他面板排挤时执行 close 反应
   useEffect(() => {
-    if (currentRightPanel !== "json" && currentRightPanel !== null) {
-      setJsonPanelVisible(false);
+    if (isDisplaced) {
+      deactivate();
     }
-  }, [currentRightPanel, setJsonPanelVisible]);
+  }, [isDisplaced, deactivate]);
 
   // 关闭面板
   const handleClose = () => {
-    setJsonPanelVisible(false);
+    deactivate();
   };
 
   // 面板类名
   const panelClassName = `${style.floatingJsonPanel} ${
-    jsonPanelVisible ? style.visible : style.hidden
+    isActive ? style.visible : style.hidden
   }`;
 
   // 渲染

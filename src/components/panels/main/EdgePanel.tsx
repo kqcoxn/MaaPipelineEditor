@@ -16,8 +16,8 @@ import {
   SourceHandleTypeEnum,
   TargetHandleTypeEnum,
 } from "../../flow/nodes";
-import { useToolbarStore } from "../../../stores/toolbarStore";
 import { useConfigStore } from "../../../stores/configStore";
+import { usePanelOccupancy } from "../../../hooks/usePanelOccupancy";
 import { DraggablePanel } from "../common/DraggablePanel";
 
 // 获取连接类型信息
@@ -134,9 +134,8 @@ function EdgePanel() {
   const fieldPanelMode = useConfigStore(
     (state) => state.configs.fieldPanelMode,
   );
-  const setCurrentRightPanel = useToolbarStore(
-    (state) => state.setCurrentRightPanel,
-  );
+  const { isActive, isDisplaced, activate, deactivate } =
+    usePanelOccupancy("edge");
 
   // 判断是否只有一条边被选中且没有选中节点
   const currentEdge = useMemo(() => {
@@ -146,12 +145,31 @@ function EdgePanel() {
     return null;
   }, [selectedEdges, targetNode]);
 
-  // 当面板打开时通知 toolbarStore
+  // 当面板打开/关闭时同步占位系统
   useEffect(() => {
+    if (fieldPanelMode === "inline") return;
     if (currentEdge) {
-      setCurrentRightPanel("edge");
+      activate();
+    } else {
+      deactivate();
     }
-  }, [currentEdge, setCurrentRightPanel]);
+  }, [currentEdge, fieldPanelMode, activate, deactivate]);
+
+  useEffect(() => {
+    if (isDisplaced) {
+      const { edges, updateEdges } = useFlowStore.getState();
+      const selectedEdges = edges.filter((e) => e.selected);
+      if (selectedEdges.length > 0) {
+        updateEdges(
+          selectedEdges.map((e) => ({
+            type: "select" as const,
+            id: e.id,
+            selected: false,
+          })),
+        );
+      }
+    }
+  }, [isDisplaced]);
 
   const edges = useFlowStore((state) => state.edges);
   const setEdgeLabel = useFlowStore((state) => state.setEdgeLabel);

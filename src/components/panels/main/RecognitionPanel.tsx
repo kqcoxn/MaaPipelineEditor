@@ -36,7 +36,7 @@ import type {
   RecognitionRecord,
   RecognitionStatus,
 } from "../../../stores/debugStore";
-import { useToolbarStore } from "../../../stores/toolbarStore";
+import { usePanelOccupancy } from "../../../hooks/usePanelOccupancy";
 import debugStyle from "../../../styles/panels/DebugPanel.module.less";
 import RecognitionDetailModal from "../tools/RecognitionDetailModal";
 
@@ -138,7 +138,7 @@ function RecognitionPanel() {
     (state) => state.clearRecognitionRecords,
   );
   const setSelectedRecoId = useDebugStore((state) => state.setSelectedRecoId);
-  const currentRightPanel = useToolbarStore((state) => state.currentRightPanel);
+  const { isDisplaced } = usePanelOccupancy("recognition");
 
   // 是否显示面板
   const isVisible =
@@ -205,10 +205,9 @@ function RecognitionPanel() {
         [debugStyle["recognition-panel"]]: true,
         "panel-show": isVisible,
         // 当右侧有其他面板打开时，向左偏移
-        [debugStyle["recognition-panel-offset"]]:
-          currentRightPanel === "field" || currentRightPanel === "edge",
+        [debugStyle["recognition-panel-offset"]]: isDisplaced,
       }),
-    [isVisible, currentRightPanel],
+    [isVisible, isDisplaced],
   );
 
   // 计算序号（考虑分页和排序）
