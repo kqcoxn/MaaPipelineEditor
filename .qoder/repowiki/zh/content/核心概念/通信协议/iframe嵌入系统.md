@@ -2,18 +2,27 @@
 
 <cite>
 **本文档引用的文件**
-- [README.md](file://README.md)
-- [Iframe/PRD.md](file://Iframe/PRD.md)
 - [src/App.tsx](file://src/App.tsx)
-- [index.html](file://index.html)
-- [src/utils/wailsBridge.ts](file://src/utils/wailsBridge.ts)
-- [src/hooks/useGlobalShortcuts.ts](file://src/hooks/useGlobalShortcuts.ts)
-- [src/stores/panelOccupancyStore.ts](file://src/stores/panelOccupancyStore.ts)
+- [src/utils/embedBridge.ts](file://src/utils/embedBridge.ts)
+- [src/stores/embedStore.ts](file://src/stores/embedStore.ts)
+- [src/hooks/useEmbedMode.ts](file://src/hooks/useEmbedMode.ts)
+- [src/hooks/useEmbedChangeNotifier.ts](file://src/hooks/useEmbedChangeNotifier.ts)
 - [src/utils/data/urlHelper.ts](file://src/utils/data/urlHelper.ts)
-- [src/services/index.ts](file://src/services/index.ts)
-- [src/stores/flow/index.ts](file://src/stores/flow/index.ts)
-- [Extremer/main.go](file://Extremer/main.go)
+- [src/utils/wailsBridge.ts](file://src/utils/wailsBridge.ts)
+- [src/components/panels/main/ToolbarPanel.tsx](file://src/components/panels/main/ToolbarPanel.tsx)
+- [docsite/docs/01.指南/100.其他/15.嵌入通信协议.md](file://docsite/docs/01.指南/100.其他/15.嵌入通信协议.md)
+- [Iframe/index.html](file://Iframe/index.html)
+- [Iframe/test-host.js](file://Iframe/test-host.js)
+- [Iframe/test-host.css](file://Iframe/test-host.css)
 </cite>
+
+## 更新摘要
+**所做更改**
+- 新增了完整的嵌入通信协议文档章节，包含详细的协议规范、消息格式和握手流程
+- 更新了权限控制系统和UI配置的实现细节
+- 增加了变更通知机制和状态查询功能的详细说明
+- 完善了测试环境和集成示例的文档
+- 更新了架构图和组件关系图以反映新的协议实现
 
 ## 目录
 1. [简介](#简介)
@@ -31,6 +40,8 @@
 MaaPipelineEditor（MPE）是一个基于React和TypeScript的可视化MaaFramework Pipeline工作流编辑器。该项目的核心创新之一是其iframe嵌入系统，允许在第三方应用（特别是VSCode插件）中无缝集成MPE编辑器。
 
 iframe嵌入系统通过纯postMessage通信协议实现，无需依赖LocalBridge服务，为宿主应用提供了灵活的集成方案。该系统支持完整的Pipeline编辑功能，同时保持与MPE核心功能的一致性。
+
+**更新** 新增了完整的嵌入通信协议文档，详细描述了消息格式、握手流程、能力声明和UI控制等规范
 
 ## 项目结构
 
@@ -52,25 +63,29 @@ D --> D1[WebSocket服务]
 D --> D2[Wails桥接]
 end
 subgraph "iframe嵌入系统"
-E[Iframe/PRD.md] --> F[通信协议]
+E[embedBridge.ts] --> F[通信协议]
 F --> G[消息处理]
 G --> H[权限控制]
+E --> I[embedStore.ts]
+E --> J[useEmbedMode.ts]
+E --> K[useEmbedChangeNotifier.ts]
 end
 subgraph "后端服务"
-I[LocalBridge] --> J[WebSocket服务器]
-I --> K[MaaFramework集成]
+L[LocalBridge] --> M[WebSocket服务器]
+L --> N[MaaFramework集成]
 end
 A --> E
-E --> I
+E --> L
 ```
 
 **图表来源**
-- [src/App.tsx:116-361](file://src/App.tsx#L116-L361)
-- [Iframe/PRD.md:1-490](file://Iframe/PRD.md#L1-L490)
+- [src/App.tsx:129-561](file://src/App.tsx#L129-L561)
+- [src/utils/embedBridge.ts:1-282](file://src/utils/embedBridge.ts#L1-L282)
+- [src/stores/embedStore.ts:1-60](file://src/stores/embedStore.ts#L1-L60)
 
 **章节来源**
-- [README.md:31-90](file://README.md#L31-L90)
-- [src/App.tsx:116-361](file://src/App.tsx#L116-L361)
+- [src/App.tsx:129-561](file://src/App.tsx#L129-L561)
+- [src/utils/embedBridge.ts:1-282](file://src/utils/embedBridge.ts#L1-L282)
 
 ## 核心组件
 
@@ -107,7 +122,7 @@ MPE->>Bridge : 清理资源
 ```
 
 **图表来源**
-- [Iframe/PRD.md:85-137](file://Iframe/PRD.md#L85-L137)
+- [docsite/docs/01.指南/100.其他/15.嵌入通信协议.md:63-77](file://docsite/docs/01.指南/100.其他/15.嵌入通信协议.md#L63-L77)
 
 #### 权限控制系统
 嵌入模式实现了细粒度的权限控制机制：
@@ -123,7 +138,7 @@ MPE->>Bridge : 清理资源
 | 模板功能 | allowCustomTemplate | true | 允许自定义模板 |
 
 **章节来源**
-- [Iframe/PRD.md:140-230](file://Iframe/PRD.md#L140-L230)
+- [docsite/docs/01.指南/100.其他/15.嵌入通信协议.md:219-261](file://docsite/docs/01.指南/100.其他/15.嵌入通信协议.md#L219-L261)
 
 ### URL参数处理系统
 
@@ -146,12 +161,12 @@ K --> L
 ```
 
 **图表来源**
-- [src/App.tsx:225-284](file://src/App.tsx#L225-L284)
-- [src/utils/data/urlHelper.ts:36-42](file://src/utils/data/urlHelper.ts#L36-L42)
+- [src/App.tsx:180-501](file://src/App.tsx#L180-L501)
+- [src/utils/data/urlHelper.ts:40-48](file://src/utils/data/urlHelper.ts#L40-L48)
 
 **章节来源**
-- [src/App.tsx:225-284](file://src/App.tsx#L225-L284)
-- [src/utils/data/urlHelper.ts:36-103](file://src/utils/data/urlHelper.ts#L36-L103)
+- [src/App.tsx:180-501](file://src/App.tsx#L180-L501)
+- [src/utils/data/urlHelper.ts:40-109](file://src/utils/data/urlHelper.ts#L40-L109)
 
 ## 架构概览
 
@@ -193,8 +208,8 @@ J --> L
 ```
 
 **图表来源**
-- [Iframe/PRD.md:39-49](file://Iframe/PRD.md#L39-L49)
-- [src/App.tsx:116-361](file://src/App.tsx#L116-L361)
+- [docsite/docs/01.指南/100.其他/15.嵌入通信协议.md:12-24](file://docsite/docs/01.指南/100.其他/15.嵌入通信协议.md#L12-L24)
+- [src/App.tsx:129-561](file://src/App.tsx#L129-L561)
 
 ### 通信安全机制
 
@@ -206,7 +221,7 @@ J --> L
 4. **权限控制**: 基于capabilities的细粒度权限管理
 
 **章节来源**
-- [Iframe/PRD.md:335-365](file://Iframe/PRD.md#L335-L365)
+- [docsite/docs/01.指南/100.其他/15.嵌入通信协议.md:334-351](file://docsite/docs/01.指南/100.其他/15.嵌入通信协议.md#L334-L351)
 
 ## 详细组件分析
 
@@ -232,8 +247,8 @@ Embed->>Browser : mpe : ready消息
 ```
 
 **图表来源**
-- [src/App.tsx:158-284](file://src/App.tsx#L158-L284)
-- [Iframe/PRD.md:85-103](file://Iframe/PRD.md#L85-L103)
+- [src/App.tsx:180-348](file://src/App.tsx#L180-L348)
+- [docsite/docs/01.指南/100.其他/15.嵌入通信协议.md:63-86](file://docsite/docs/01.指南/100.其他/15.嵌入通信协议.md#L63-L86)
 
 #### 权限控制实现
 
@@ -272,12 +287,12 @@ EmbedContext --> PanelOccupancyStore
 ```
 
 **图表来源**
-- [Iframe/PRD.md:148-228](file://Iframe/PRD.md#L148-L228)
-- [src/stores/panelOccupancyStore.ts:87-135](file://src/stores/panelOccupancyStore.ts#L87-L135)
+- [docsite/docs/01.指南/100.其他/15.嵌入通信协议.md:219-303](file://docsite/docs/01.指南/100.其他/15.嵌入通信协议.md#L219-L303)
+- [src/stores/embedStore.ts:31-59](file://src/stores/embedStore.ts#L31-L59)
 
 **章节来源**
-- [Iframe/PRD.md:140-230](file://Iframe/PRD.md#L140-L230)
-- [src/stores/panelOccupancyStore.ts:1-136](file://src/stores/panelOccupancyStore.ts#L1-L136)
+- [docsite/docs/01.指南/100.其他/15.嵌入通信协议.md:219-303](file://docsite/docs/01.指南/100.其他/15.嵌入通信协议.md#L219-L303)
+- [src/stores/embedStore.ts:1-60](file://src/stores/embedStore.ts#L1-L60)
 
 ### 数据流处理机制
 
@@ -306,7 +321,7 @@ end
 ```
 
 **图表来源**
-- [Iframe/PRD.md:236-278](file://Iframe/PRD.md#L236-L278)
+- [docsite/docs/01.指南/100.其他/15.嵌入通信协议.md:88-141](file://docsite/docs/01.指南/100.其他/15.嵌入通信协议.md#L88-L141)
 
 #### 快捷键系统
 
@@ -320,8 +335,33 @@ end
 | Ctrl+S | 保存 | 触发mpe:saveRequest消息 |
 
 **章节来源**
-- [src/hooks/useGlobalShortcuts.ts:72-138](file://src/hooks/useGlobalShortcuts.ts#L72-L138)
-- [Iframe/PRD.md:262-273](file://Iframe/PRD.md#L262-L273)
+- [src/App.tsx:171-174](file://src/App.tsx#L171-L174)
+- [docsite/docs/01.指南/100.其他/15.嵌入通信协议.md:206-218](file://docsite/docs/01.指南/100.其他/15.嵌入通信协议.md#L206-L218)
+
+### 变更通知机制
+
+MPE实现了智能的变更通知系统，能够实时向宿主应用报告流程图的任何变化：
+
+```mermaid
+sequenceDiagram
+participant MPE as MPE编辑器
+participant Store as FlowStore
+participant Notifier as 变更通知器
+participant Host as 宿主应用
+MPE->>Store : 节点/边变更
+Store->>Notifier : 状态变化
+Note over Notifier : 300ms防抖
+Notifier->>Host : mpe : change {type, detail}
+MPE->>Store : 节点选中变化
+Store->>Notifier : 选中状态变化
+Notifier->>Host : mpe : nodeSelect {nodeId, nodeData}
+```
+
+**图表来源**
+- [src/hooks/useEmbedChangeNotifier.ts:18-135](file://src/hooks/useEmbedChangeNotifier.ts#L18-L135)
+
+**章节来源**
+- [src/hooks/useEmbedChangeNotifier.ts:1-136](file://src/hooks/useEmbedChangeNotifier.ts#L1-L136)
 
 ## 依赖关系分析
 
@@ -335,7 +375,7 @@ A --> C[src/utils/data/urlHelper.ts]
 A --> D[src/services/index.ts]
 end
 subgraph "Store依赖"
-E[src/stores/flow/index.ts] --> F[src/stores/panelOccupancyStore.ts]
+E[src/stores/flow/index.ts] --> F[src/stores/embedStore.ts]
 E --> G[src/stores/configStore.ts]
 E --> H[src/stores/fileStore.ts]
 end
@@ -345,13 +385,15 @@ J[面板组件] --> F
 K[工具组件] --> G
 end
 subgraph "iframe系统"
-L[Iframe/PRD.md] --> A
-L --> E
+L[embedBridge.ts] --> A
+L --> F
 L --> I
+M[embedStore.ts] --> F
+N[useEmbedMode.ts] --> F
+O[useEmbedChangeNotifier.ts] --> F
 end
-A --> E
-E --> I
-F --> J
+A --> F
+F --> I
 G --> K
 ```
 
@@ -370,7 +412,7 @@ G --> K
 - **Zustand**: 轻量级状态管理库
 
 **章节来源**
-- [README.md:14-18](file://README.md#L14-L18)
+- [src/App.tsx:1-564](file://src/App.tsx#L1-L564)
 
 ## 性能考虑
 
@@ -417,7 +459,7 @@ iframe嵌入系统在设计时充分考虑了性能优化：
 3. 优化大数据量的处理逻辑
 
 **章节来源**
-- [Iframe/PRD.md:335-365](file://Iframe/PRD.md#L335-L365)
+- [docsite/docs/01.指南/100.其他/15.嵌入通信协议.md:334-351](file://docsite/docs/01.指南/100.其他/15.嵌入通信协议.md#L334-L351)
 
 ## 结论
 
@@ -439,3 +481,5 @@ MaaPipelineEditor的iframe嵌入系统代表了现代Web应用集成的最佳实
 - **错误处理**: 友好的错误提示和恢复机制
 
 该iframe嵌入系统不仅满足了VSCode插件集成的需求，更为其他应用的深度集成提供了可靠的基础设施，展现了MPE项目在技术创新方面的卓越能力。
+
+**新增** 完整的嵌入通信协议文档为开发者提供了详细的集成指南，包括消息格式、握手流程、能力声明和UI控制等规范，大大降低了集成难度并提高了系统的可维护性。

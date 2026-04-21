@@ -22,7 +22,8 @@
     .ant-tabs-content-holder {
       flex: 1;
       min-height: 0;
-      overflow: hidden;
+      overflow-y: auto;
+      overflow-x: hidden;
     }
 
     .ant-tabs-content {
@@ -30,8 +31,7 @@
     }
 
     .ant-tabs-tabpane {
-      overflow-y: auto;
-      overflow-x: hidden;
+      overflow: visible;
     }
   }
 
@@ -55,9 +55,6 @@
   }
 
   .list {
-    max-height: 70vh;
-    overflow-y: auto;
-
     .item {
       display: flex;
       align-items: center;
