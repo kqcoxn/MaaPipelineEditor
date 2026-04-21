@@ -170,7 +170,7 @@ function matchSingleType(value: any, type: FieldTypeEnum): any {
         };
         if (Array.isArray(value)) {
           const allInt = value.every((n) => Number.isInteger(Number(n)));
-          if (value.length === 4 && allInt) {
+          if ((value.length === 4 || value.length === 2) && allInt) {
             return [value.map((n) => Number(n))];
           }
           const list: any[] = [];
