@@ -5,8 +5,8 @@ import type { FieldSortConfig } from "../core/sorting/types";
 /**固有配置 */
 export const globalConfig = {
   dev: true,
-  version: `1.4.2`,
-  betaIteration: 3,
+  version: `1.5.0`,
+  betaIteration: 0,
   mfwVersion: "5.10.2",
   protocolVersion: "0.8.1",
 };
