@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MPE iframe 嵌入测试宿主</title>
+    <link rel="stylesheet" href="test-host.css" />
+  </head>
+  <body>
+    <div class="app">
+      <!-- 左侧控制面板 -->
+      <aside class="control-panel">
+        <h2>控制面板</h2>
+
+        <section class="section">
+          <h3>iframe 控制</h3>
+          <div class="form-row">
+            <label>iframe URL</label>
+            <input
+              type="text"
+              id="iframe-url"
+              value="http://localhost:5173/?embed=true&origin=test-host"
+            />
+          </div>
+          <div class="button-group">
+            <button id="btn-create" class="btn-primary">创建 iframe</button>
+            <button id="btn-destroy" class="btn-danger">销毁 iframe</button>
+          </div>
+        </section>
+
+        <section class="section">
+          <h3>Capabilities</h3>
+          <div class="checkbox-group">
+            <label><input type="checkbox" id="cap-readOnly" /> readOnly</label>
+            <label
+              ><input type="checkbox" id="cap-allowCopy" checked />
+              allowCopy</label
+            >
+            <label
+              ><input type="checkbox" id="cap-allowUndoRedo" checked />
+              allowUndoRedo</label
+            >
+            <label
+              ><input type="checkbox" id="cap-allowAutoLayout" checked />
+              allowAutoLayout</label
+            >
+            <label><input type="checkbox" id="cap-allowAI" /> allowAI</label>
+            <label
+              ><input type="checkbox" id="cap-allowSearch" checked />
+              allowSearch</label
+            >
+            <label
+              ><input type="checkbox" id="cap-allowCustomTemplate" checked />
+              allowCustomTemplate</label
+            >
+          </div>
+        </section>
+
+        <section class="section">
+          <h3>UI 配置</h3>
+          <div class="checkbox-group">
+            <label
+              ><input type="checkbox" id="ui-hideHeader" /> hideHeader</label
+            >
+            <label
+              ><input type="checkbox" id="ui-hideToolbar" /> hideToolbar</label
+            >
+          </div>
+          <div class="form-row">
+            <label>hiddenPanels（逗号分隔）</label>
+            <input
+              type="text"
+              id="ui-hiddenPanels"
+              value="config,local-file,logger,exploration"
+              placeholder="config,local-file,logger"
+            />
+          </div>
+        </section>
+
+        <section class="section">
+          <h3>操作</h3>
+          <div class="button-group vertical">
+            <button id="btn-init" class="btn-primary">发送 mpe:init</button>
+            <button id="btn-load" class="btn-primary">
+              发送 mpe:loadPipeline
+            </button>
+            <button id="btn-save" class="btn-primary">发送 mpe:save</button>
+            <button id="btn-select" class="btn-secondary">
+              发送 mpe:selectNode
+            </button>
+            <button id="btn-focus" class="btn-secondary">
+              发送 mpe:focusNode
+            </button>
+            <button id="btn-resize" class="btn-secondary">
+              发送 mpe:resize
+            </button>
+            <button id="btn-state" class="btn-secondary">发送 mpe:state</button>
+            <button id="btn-destroy-msg" class="btn-danger">
+              发送 mpe:destroy
+            </button>
+          </div>
+        </section>
+
+        <section class="section">
+          <h3>mpe:loadPipeline 数据</h3>
+          <textarea
+            id="pipeline-data"
+            placeholder="输入 pipeline JSON..."
+          ></textarea>
+          <div class="button-group">
+            <button id="btn-load-sample" class="btn-secondary">加载示例</button>
+            <button id="btn-clear" class="btn-secondary">清空</button>
+          </div>
+        </section>
+
+        <section class="section">
+          <h3>mpe:selectNode / mpe:focusNode</h3>
+          <div class="form-row">
+            <label>nodeId</label>
+            <input type="text" id="node-id" placeholder="输入节点 ID" />
+          </div>
+        </section>
+
+        <section class="section">
+          <h3>mpe:resize</h3>
+          <div class="form-row">
+            <label>width</label>
+            <input type="number" id="resize-width" value="800" />
+          </div>
+          <div class="form-row">
+            <label>height</label>
+            <input type="number" id="resize-height" value="600" />
+          </div>
+        </section>
+
+        <section class="section">
+          <h3>mpe:state 字段</h3>
+          <div class="form-row">
+            <label>fields（逗号分隔）</label>
+            <input
+              type="text"
+              id="state-fields"
+              value="nodes,edges,selectedNodes"
+            />
+          </div>
+        </section>
+      </aside>
+
+      <!-- 中间 iframe 视口 -->
+      <main class="viewport">
+        <div class="viewport-header">
+          <span>iframe 视口</span>
+          <span id="iframe-status" class="status-badge status-offline"
+            >未加载</span
+          >
+        </div>
+        <div id="iframe-container" class="iframe-container">
+          <div class="placeholder">请点击「创建 iframe」加载编辑器</div>
+        </div>
+      </main>
+
+      <!-- 右侧消息日志 -->
+      <aside class="log-panel">
+        <div class="log-header">
+          <h2>消息日志</h2>
+          <button id="btn-clear-log" class="btn-text">清空</button>
+        </div>
+        <div id="log-container" class="log-container"></div>
+      </aside>
+    </div>
+
+    <script src="test-host.js"></script>
+  </body>
+</html>

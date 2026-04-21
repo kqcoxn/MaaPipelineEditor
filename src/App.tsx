@@ -41,7 +41,7 @@ import {
   ExplorationFAB,
   ExplorationPanel,
 } from "./components/panels/exploration";
-import { pipelineToFlow } from "./core/parser";
+import { pipelineToFlow, flowToPipelineString } from "./core/parser";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import {
   getShareParam,
@@ -58,6 +58,19 @@ import {
   isBridgeRunning,
   wailsLog,
 } from "./utils/wailsBridge";
+import {
+  isEmbedEnvironment,
+  initEmbedBridge,
+  onParentMessage,
+  sendToParent,
+  completeHandshake,
+  type EmbedCapabilities,
+  type EmbedUIConfig,
+} from "./utils/embedBridge";
+import { useEmbedStore } from "./stores/embedStore";
+import { useEmbedMode } from "./hooks/useEmbedMode";
+import { useEmbedChangeNotifier } from "./hooks/useEmbedChangeNotifier";
+import { useFlowStore } from "./stores/flow";
 
 // 轮询提醒
 let isShowStarRemind = false;
@@ -117,6 +130,9 @@ function App() {
   // 获取调试模式状态
   const debugMode = useDebugStore((state) => state.debugMode);
 
+  // 嵌入模式状态
+  const { isEmbed, isReady, isCapAllowed, isPanelHidden } = useEmbedMode();
+
   // 探索面板状态
   const [explorationPanelVisible, setExplorationPanelVisible] = useState(false);
 
@@ -152,11 +168,185 @@ function App() {
     e.stopPropagation();
   }, []);
 
-  // 启用全局快捷键
-  useGlobalShortcuts();
+  // 启用全局快捷键（嵌入模式下根据 capabilities 控制）
+  const enableShortcuts =
+    !isEmbed || (isCapAllowed("allowUndoRedo") && !isCapAllowed("readOnly"));
+  useGlobalShortcuts(enableShortcuts);
+
+  // 嵌入模式变更通知
+  useEmbedChangeNotifier(isEmbed && isReady);
 
   // onMounted
   useEffect(() => {
+    // 检查是否为嵌入模式（最高优先级）
+    if (isEmbedEnvironment()) {
+      console.log("[App] Embed mode detected");
+
+      // 初始化 EmbedBridge
+      const { cleanup: cleanupEmbedBridge } = initEmbedBridge();
+
+      // 注册业务消息处理器
+      const cleanupInit = onParentMessage("mpe:init", (payload, requestId) => {
+        const config = payload as {
+          capabilities?: Partial<EmbedCapabilities>;
+          ui?: Partial<EmbedUIConfig>;
+        };
+        useEmbedStore
+          .getState()
+          .initConfig(config.capabilities || {}, config.ui || {});
+        useEmbedStore.getState().setReady(true);
+        completeHandshake(
+          useEmbedStore.getState().capabilities,
+          useEmbedStore.getState().ui,
+          requestId,
+        );
+      });
+
+      const cleanupLoad = onParentMessage(
+        "mpe:loadPipeline",
+        async (payload, requestId) => {
+          const { fileName, data } = payload as {
+            fileName?: string;
+            data: any;
+          };
+          try {
+            const success = await pipelineToFlow({
+              pString: JSON.stringify(data),
+            });
+            if (success && fileName) {
+              useFileStore.getState().setFileName(fileName);
+              useEmbedStore.getState().setFileName(fileName);
+            }
+            sendToParent("mpe:loadResult", { success, fileName }, requestId);
+          } catch (err) {
+            sendToParent(
+              "mpe:loadResult",
+              {
+                success: false,
+                error: err instanceof Error ? err.message : String(err),
+              },
+              requestId,
+            );
+          }
+        },
+      );
+
+      const cleanupSave = onParentMessage("mpe:save", (_payload, requestId) => {
+        try {
+          const pipelineObj = flowToPipelineString();
+          const fileName = useFileStore.getState().currentFile.fileName;
+          sendToParent(
+            "mpe:saveData",
+            { fileName, data: pipelineObj },
+            requestId,
+          );
+        } catch (err) {
+          sendToParent(
+            "mpe:error",
+            {
+              code: "save_failed",
+              message: err instanceof Error ? err.message : String(err),
+            },
+            requestId,
+          );
+        }
+      });
+
+      const cleanupSelect = onParentMessage("mpe:selectNode", (payload) => {
+        const { nodeId } = payload as { nodeId: string };
+        const { nodes, updateNodes } = useFlowStore.getState();
+        // 先按 ID 查找，找不到则按标签回退
+        const targetNode =
+          nodes.find((n) => n.id === nodeId) ||
+          nodes.find((n) => n.data?.label === nodeId);
+        if (targetNode) {
+          updateNodes(
+            nodes.map((n) => ({
+              type: "select" as const,
+              id: n.id,
+              selected: n.id === targetNode.id,
+            })),
+          );
+        } else {
+          sendToParent("mpe:error", {
+            code: "node_not_found",
+            message: `Node not found: ${nodeId}`,
+          });
+        }
+      });
+
+      const cleanupFocus = onParentMessage("mpe:focusNode", (payload) => {
+        const { nodeId } = payload as { nodeId: string };
+        const { nodes, instance } = useFlowStore.getState();
+        // 先按 ID 查找，找不到则按标签回退
+        const targetNode =
+          nodes.find((n) => n.id === nodeId) ||
+          nodes.find((n) => n.data?.label === nodeId);
+        if (targetNode && instance) {
+          instance.fitView({
+            nodes: [{ id: targetNode.id }],
+            duration: 300,
+          });
+        } else if (!targetNode) {
+          sendToParent("mpe:error", {
+            code: "node_not_found",
+            message: `Node not found: ${nodeId}`,
+          });
+        }
+      });
+
+      const cleanupState = onParentMessage(
+        "mpe:state",
+        (payload, requestId) => {
+          const { fields } = payload as { fields: string[] };
+          const result: Record<string, any> = {};
+          const state = useFlowStore.getState();
+          fields.forEach((field) => {
+            switch (field) {
+              case "version":
+                result[field] = "1.0.0";
+                break;
+              case "nodesCount":
+                result[field] = state.nodes.length;
+                break;
+              case "edgesCount":
+                result[field] = state.edges.length;
+                break;
+              case "fileName":
+                result[field] = useFileStore.getState().currentFile.fileName;
+                break;
+              case "readOnly":
+                result[field] = useEmbedStore.getState().capabilities.readOnly;
+                break;
+              default:
+                result[field] = undefined;
+            }
+          });
+          sendToParent("mpe:stateResult", result, requestId);
+        },
+      );
+
+      // 嵌入模式下监听 Ctrl+S 发送 saveRequest
+      const handleSaveRequest = (e: KeyboardEvent) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+          e.preventDefault();
+          sendToParent("mpe:saveRequest", { hint: "user-triggered" });
+        }
+      };
+      document.addEventListener("keydown", handleSaveRequest);
+
+      return () => {
+        cleanupEmbedBridge();
+        cleanupInit();
+        cleanupLoad();
+        cleanupSave();
+        cleanupSelect();
+        cleanupFocus();
+        cleanupState();
+        document.removeEventListener("keydown", handleSaveRequest);
+      };
+    }
+
     // 检查是否有分享链接参数
     const hasShareParam = !!getShareParam();
 
@@ -310,44 +500,57 @@ function App() {
     };
   }, [handleFileDrop, handleDragOver]);
 
+  // 条件渲染控制
+  const showHeader = !isEmbed || !isPanelHidden("header");
+  const showToolbar = !isEmbed || !isPanelHidden("toolbar");
+  const showPanel = (id: string) => !isEmbed || !isPanelHidden(id);
+
   // 渲染组件
   return (
     <ThemeProvider>
       <Flex className={style.container} gap="middle" wrap>
         <Layout className={style.layout}>
-          <HeaderSection className={style.header}>
-            <Header />
-          </HeaderSection>
+          {showHeader && (
+            <HeaderSection className={style.header}>
+              <Header />
+            </HeaderSection>
+          )}
           <Content className={style.content}>
-            <FilePanel />
+            {showPanel("file") && <FilePanel />}
             <div className={style.workspace}>
-              <ToolbarPanel />
+              {showToolbar && <ToolbarPanel />}
               <MainFlow />
-              <JsonViewer />
-              <LiveScreenPanel />
-              <FieldPanel />
-              <EdgePanel />
-              <ConfigPanel />
-              <AIHistoryPanel />
-              <LocalFileListPanel />
+              {showPanel("json") && <JsonViewer />}
+              {showPanel("liveScreen") && <LiveScreenPanel />}
+              {showPanel("field") && <FieldPanel />}
+              {showPanel("edge") && <EdgePanel />}
+              {showPanel("config") && <ConfigPanel />}
+              {showPanel("ai-history") && <AIHistoryPanel />}
+              {showPanel("local-file") && <LocalFileListPanel />}
               <ToolPanel.Add />
               <ToolPanel.Global />
-              <SearchPanel />
+              {showPanel("search") && <SearchPanel />}
               {debugMode && <ToolPanel.Debug />}
-              {debugMode && <RecognitionHistoryPanel />}
+              {debugMode && showPanel("recognition-history") && (
+                <RecognitionHistoryPanel />
+              )}
               <ToolPanel.Layout />
-              <ErrorPanel />
-              <LoggerPanel />
+              {showPanel("error") && <ErrorPanel />}
+              {showPanel("logger") && <LoggerPanel />}
               {/* 探索模式组件 */}
-              <ExplorationFAB
-                onClick={() => setExplorationPanelVisible((v) => !v)}
-                visible={true}
-                active={explorationPanelVisible}
-              />
-              <ExplorationPanel
-                visible={explorationPanelVisible}
-                onClose={() => setExplorationPanelVisible(false)}
-              />
+              {showPanel("exploration") && (
+                <>
+                  <ExplorationFAB
+                    onClick={() => setExplorationPanelVisible((v) => !v)}
+                    visible={true}
+                    active={explorationPanelVisible}
+                  />
+                  <ExplorationPanel
+                    visible={explorationPanelVisible}
+                    onClose={() => setExplorationPanelVisible(false)}
+                  />
+                </>
+              )}
             </div>
           </Content>
         </Layout>

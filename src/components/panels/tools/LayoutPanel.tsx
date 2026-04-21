@@ -7,6 +7,8 @@ import { useFlowStore } from "../../../stores/flow";
 import { useFileStore } from "../../../stores/fileStore";
 import { LayoutHelper, AlignmentEnum } from "../../../core/layout";
 import { saveNodesToImage } from "../../../utils/ui/snapper";
+import { useEmbedMode } from "../../../hooks/useEmbedMode";
+import { sendToParent } from "../../../utils/embedBridge";
 import style from "../../../styles/panels/ToolPanel.module.less";
 
 /**布局工具 */
@@ -28,6 +30,10 @@ function LayoutPanel() {
   const currentFileName = useFileStore((state) => state.currentFile.fileName);
   const shiftNodes = useFlowStore((state) => state.shiftNodes);
   const resetEdgeControls = useFlowStore((state) => state.resetEdgeControls);
+
+  // 嵌入模式权限控制
+  const { isEmbed, isCapAllowed } = useEmbedMode();
+  const allowAutoLayout = !isEmbed || isCapAllowed("allowAutoLayout");
 
   // 间距调整
   const createShiftTool = (
@@ -107,9 +113,30 @@ function LayoutPanel() {
         label: "自动布局",
         iconName: "icon-liuchengtu",
         iconSize: 30,
-        disabled: debouncedSelectedNodes.length > 0 || allNodes.length === 0,
-        onClick: () => LayoutHelper.auto(),
-        onDisabledClick: () => message.error("自动布局仅支持全局操作"),
+        disabled:
+          !allowAutoLayout ||
+          debouncedSelectedNodes.length > 0 ||
+          allNodes.length === 0,
+        onClick: () => {
+          if (!allowAutoLayout) {
+            sendToParent("mpe:error", {
+              code: "capability_denied",
+              message: "当前环境禁止自动布局",
+            });
+            return;
+          }
+          LayoutHelper.auto();
+        },
+        onDisabledClick: () => {
+          if (!allowAutoLayout) {
+            sendToParent("mpe:error", {
+              code: "capability_denied",
+              message: "当前环境禁止自动布局",
+            });
+          } else {
+            message.error("自动布局仅支持全局操作");
+          }
+        },
       },
       {
         label: "将布局保存为图片",

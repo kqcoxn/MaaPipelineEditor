@@ -19,6 +19,13 @@
 - [path_windows.go](file://LocalBridge/internal/mfw/path_windows.go)
 </cite>
 
+## 更新摘要
+**变更内容**
+- 移除了 FindDesktopWindows API 集成（该功能已被回退）
+- 改进了 WlRoots 连接功能，优化了设备发现流程
+- 专注于核心设备连接管理，简化了设备管理器的职责
+- 更新了 WlRoots 合成器发现机制，使用更直接的方法获取套接字路径
+
 ## 目录
 1. [简介](#简介)
 2. [项目结构](#项目结构)
@@ -35,6 +42,8 @@
 设备管理器是 MaaPipelineEditor 本地桥接服务的核心组件，负责管理各种类型的设备连接和控制。该系统基于 MaaFramework Go 语言绑定，提供了统一的设备抽象层，支持 ADB 设备、Windows 桌面窗口、WlRoots 合成器等多种设备类型。
 
 系统采用模块化设计，通过服务管理器协调各个子系统的生命周期，提供完整的设备发现、连接、控制和调试功能。支持多平台部署，包括 Windows、Linux 和 macOS 系统。
+
+**更新** 设备管理器现已移除对 FindDesktopWindows API 的依赖，专注于核心设备连接管理功能，同时改进了 WlRoots 合成器的连接稳定性。
 
 ## 项目结构
 
@@ -74,12 +83,12 @@ RD --> ES
 ```
 
 **图表来源**
-- [device_manager.go:1-127](file://LocalBridge/internal/mfw/device_manager.go#L1-L127)
+- [device_manager.go:1-136](file://LocalBridge/internal/mfw/device_manager.go#L1-L136)
 - [controller_manager.go:1-800](file://LocalBridge/internal/mfw/controller_manager.go#L1-L800)
 - [service.go:1-218](file://LocalBridge/internal/mfw/service.go#L1-L218)
 
 **章节来源**
-- [device_manager.go:1-127](file://LocalBridge/internal/mfw/device_manager.go#L1-L127)
+- [device_manager.go:1-136](file://LocalBridge/internal/mfw/device_manager.go#L1-L136)
 - [service.go:15-34](file://LocalBridge/internal/mfw/service.go#L15-L34)
 
 ## 核心组件
@@ -99,11 +108,12 @@ RD --> ES
 - **Win32 窗口**：Windows 桌面应用程序窗口
 - **WlRoots 合成器**：Linux Wayland 显示服务器
 
+**更新** 设备管理器现已移除了对 FindDesktopWindows API 的依赖，简化了设备发现流程，专注于核心的设备连接管理功能。
+
 **章节来源**
 - [device_manager.go:11-25](file://LocalBridge/internal/mfw/device_manager.go#L11-L25)
 - [device_manager.go:27-61](file://LocalBridge/internal/mfw/device_manager.go#L27-L61)
-- [device_manager.go:63-96](file://LocalBridge/internal/mfw/device_manager.go#L63-L96)
-- [device_manager.go:98-112](file://LocalBridge/internal/mfw/device_manager.go#L98-L112)
+- [device_manager.go:98-136](file://LocalBridge/internal/mfw/device_manager.go#L98-L136)
 
 ### 控制器管理器 (ControllerManager)
 
@@ -124,7 +134,6 @@ RD --> ES
 **章节来源**
 - [controller_manager.go:20-31](file://LocalBridge/internal/mfw/controller_manager.go#L20-L31)
 - [controller_manager.go:33-75](file://LocalBridge/internal/mfw/controller_manager.go#L33-L75)
-- [controller_manager.go:106-162](file://LocalBridge/internal/mfw/controller_manager.go#L106-L162)
 - [controller_manager.go:249-276](file://LocalBridge/internal/mfw/controller_manager.go#L249-L276)
 
 ### 服务管理器 (Service)
@@ -222,15 +231,22 @@ class Win32WindowInfo {
 +[]string screencapMethods
 +[]string inputMethods
 }
+class WlRootsCompositorInfo {
++string socketPath
+}
 DeviceManager --> AdbDeviceInfo : manages
 DeviceManager --> Win32WindowInfo : manages
+DeviceManager --> WlRootsCompositorInfo : manages
 ```
 
 **图表来源**
 - [device_manager.go:11-17](file://LocalBridge/internal/mfw/device_manager.go#L11-L17)
 - [types.go:7-24](file://LocalBridge/internal/mfw/types.go#L7-L24)
+- [types.go:40-43](file://LocalBridge/internal/mfw/types.go#L40-L43)
 
 #### 设备发现流程
+
+**更新** 设备发现流程已简化，移除了对 FindDesktopWindows API 的依赖：
 
 ```mermaid
 sequenceDiagram
@@ -247,14 +263,14 @@ MFW-->>DM : 设备信息
 DM->>DM : 构建 AdbDeviceInfo
 DM->>DM : Unlock mutex
 DM-->>Client : 设备列表
-Note over Client,OS : 设备发现过程
+Note over Client,OS : 简化的设备发现过程
 ```
 
 **图表来源**
 - [device_manager.go:27-61](file://LocalBridge/internal/mfw/device_manager.go#L27-L61)
 
 **章节来源**
-- [device_manager.go:27-127](file://LocalBridge/internal/mfw/device_manager.go#L27-L127)
+- [device_manager.go:27-136](file://LocalBridge/internal/mfw/device_manager.go#L27-L136)
 
 ### 控制器管理器详细分析
 
@@ -480,6 +496,8 @@ SERVICE --> DEBUG
 - **动态库加载**：根据平台选择最优的库加载方式
 - **字符编码**：正确处理 Unicode 字符串
 
+**更新** 由于移除了 FindDesktopWindows API 集成，系统在 Linux 平台上的设备发现更加直接和高效。
+
 ## 故障排除指南
 
 ### 常见问题诊断
@@ -498,6 +516,11 @@ SERVICE --> DEBUG
 1. 检查 MaaFramework 库文件
 2. 验证平台兼容性
 3. 确认必要的系统组件已安装
+
+**WlRoots 连接问题**
+1. 验证 Wayland 套接字路径的有效性
+2. 检查用户权限和环境变量
+3. 确认 WlRoots 合成器正在运行
 
 ### 错误处理机制
 
@@ -532,6 +555,11 @@ Recovery --> Success[操作成功]
 - **性能优化**：高效的内存管理和并发控制
 - **错误处理**：完善的错误捕获和恢复机制
 - **调试功能**：丰富的调试和监控能力
+
+**更新后的改进：**
+- **简化架构**：移除了对 FindDesktopWindows API 的依赖，减少了不必要的复杂性
+- **增强稳定性**：专注于核心设备连接管理，提高了系统的可靠性
+- **优化性能**：去除了冗余的设备发现步骤，提升了响应速度
 
 **未来改进方向：**
 - 增加更多的设备类型支持

@@ -45,11 +45,19 @@ import {
   filterNodesInViewport,
   type SnapGuideline,
 } from "../core/snapUtils";
+import { useEmbedMode } from "../hooks/useEmbedMode";
+import { sendToParent } from "../utils/embedBridge";
 
 /**工作流 */
 // 按键监听
 const KeyListener = memo(
-  ({ targetRef }: { targetRef: RefObject<HTMLDivElement | null> }) => {
+  ({
+    targetRef,
+    allowCopy,
+  }: {
+    targetRef: RefObject<HTMLDivElement | null>;
+    allowCopy: boolean;
+  }) => {
     const { selectedNodes, selectedEdges } = useFlowStore(
       useShallow((state) => ({
         selectedNodes: state.selectedNodes,
@@ -76,19 +84,19 @@ const KeyListener = memo(
     // 复制节点
     const copyPressed = useKeyPress("Control+c", keyPressOptions);
     useEffect(() => {
-      if (!copyPressed || selectedNodes.length === 0) return;
+      if (!allowCopy || !copyPressed || selectedNodes.length === 0) return;
       copy(selectedNodes, selectedEdges);
-    }, [copyPressed]);
+    }, [copyPressed, allowCopy]);
 
     // 粘贴节点
     const pastePressed = useKeyPress("Control+v", keyPressOptions);
     useEffect(() => {
-      if (!pastePressed || clipboardNodes.length === 0) return;
+      if (!allowCopy || !pastePressed || clipboardNodes.length === 0) return;
       const content = paste();
       if (content) {
         flowPaste(content.nodes, content.edges);
       }
-    }, [pastePressed, clipboardNodes]);
+    }, [pastePressed, clipboardNodes, allowCopy]);
 
     return null;
   },
@@ -232,6 +240,12 @@ function MainFlow() {
   const quickCreateNodeOnConnectBlank = useConfigStore(
     (state) => state.configs.quickCreateNodeOnConnectBlank,
   );
+
+  // 嵌入模式权限控制
+  const { isEmbed, isCapAllowed } = useEmbedMode();
+  const readOnly = isEmbed && isCapAllowed("readOnly");
+  const allowCopy = !isEmbed || isCapAllowed("allowCopy");
+
   const selfElem = useRef<HTMLDivElement>(null);
   const pendingConnectionRef = useRef<OnConnectStartParams | null>(null);
   const connectionCompletedRef = useRef(false);
@@ -252,19 +266,64 @@ function MainFlow() {
 
   // 回调
   const onNodesChange = useCallback(
-    (changes: NodeChange[]) => updateNodes(changes),
-    [updateNodes],
+    (changes: NodeChange[]) => {
+      if (readOnly) {
+        // 过滤掉添加/删除/位置变更等修改性操作
+        const blocked = changes.filter(
+          (c) =>
+            c.type === "remove" ||
+            c.type === "add" ||
+            c.type === "position" ||
+            c.type === "dimensions",
+        );
+        if (blocked.length > 0) {
+          sendToParent("mpe:error", {
+            code: "capability_denied",
+            message: "当前为只读模式，禁止修改节点",
+          });
+          // 仅允许 select 类型变更通过
+          const allowed = changes.filter((c) => c.type === "select");
+          if (allowed.length > 0) updateNodes(allowed);
+          return;
+        }
+      }
+      updateNodes(changes);
+    },
+    [updateNodes, readOnly],
   );
   const onEdgesChange = useCallback(
-    (changes: EdgeChange[]) => updateEdges(changes),
-    [updateEdges],
+    (changes: EdgeChange[]) => {
+      if (readOnly) {
+        const blocked = changes.filter(
+          (c) => c.type === "remove" || c.type === "add",
+        );
+        if (blocked.length > 0) {
+          sendToParent("mpe:error", {
+            code: "capability_denied",
+            message: "当前为只读模式，禁止修改边",
+          });
+          const allowed = changes.filter((c) => c.type === "select");
+          if (allowed.length > 0) updateEdges(allowed);
+          return;
+        }
+      }
+      updateEdges(changes);
+    },
+    [updateEdges, readOnly],
   );
   const onConnect = useCallback(
     (co: Connection) => {
+      if (readOnly) {
+        sendToParent("mpe:error", {
+          code: "capability_denied",
+          message: "当前为只读模式，禁止添加连接",
+        });
+        return;
+      }
       connectionCompletedRef.current = true;
       addEdge(co);
     },
-    [addEdge],
+    [addEdge, readOnly],
   );
   const onConnectStart = useCallback(
     (_event: MouseEvent | TouchEvent, params: OnConnectStartParams) => {
@@ -278,6 +337,8 @@ function MainFlow() {
       event: MouseEvent | TouchEvent,
       connectionState?: FinalConnectionState,
     ) => {
+      if (readOnly) return;
+
       const connectStart = pendingConnectionRef.current;
       pendingConnectionRef.current = null;
 
@@ -321,7 +382,7 @@ function MainFlow() {
 
       connectionCompletedRef.current = false;
     },
-    [quickCreateNodeOnConnectBlank],
+    [quickCreateNodeOnConnectBlank, readOnly],
   );
   const onSelectionChange = useCallback(
     (params: OnSelectionChangeParams) => {
@@ -347,19 +408,24 @@ function MainFlow() {
   );
 
   // 双击处理
-  const onDoubleClick = useCallback((event: React.MouseEvent | MouseEvent) => {
-    setNodeAddPanelPos({ x: event.clientX, y: event.clientY });
-    setNodeAddPanelVisible(true);
-  }, []);
+  const onDoubleClick = useCallback(
+    (event: React.MouseEvent | MouseEvent) => {
+      if (readOnly) return;
+      setNodeAddPanelPos({ x: event.clientX, y: event.clientY });
+      setNodeAddPanelVisible(true);
+    },
+    [readOnly],
+  );
 
   // 右键空白区域打开节点添加面板
   const onPaneContextMenu = useCallback(
     (event: React.MouseEvent | MouseEvent) => {
+      if (readOnly) return;
       event.preventDefault();
       setNodeAddPanelPos({ x: event.clientX, y: event.clientY });
       setNodeAddPanelVisible(true);
     },
-    [],
+    [readOnly],
   );
 
   // 关闭节点添加面板
@@ -570,6 +636,9 @@ function MainFlow() {
         onSelectionContextMenu={onSelectionContextMenu}
         onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}
+        nodesDraggable={!readOnly}
+        nodesConnectable={!readOnly}
+        elementsSelectable={true}
         autoPanOnConnect={false}
         autoPanOnNodeDrag={false}
         preventScrolling={true}
@@ -579,7 +648,7 @@ function MainFlow() {
         <Controls orientation="vertical" />
         <InstanceMonitor />
         <ViewportChangeMonitor />
-        <KeyListener targetRef={selfElem} />
+        <KeyListener targetRef={selfElem} allowCopy={allowCopy} />
         <UpdateMonitor />
         <NodeAddPanelController
           visible={nodeAddPanelVisible}

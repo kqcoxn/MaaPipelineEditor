@@ -31,6 +31,7 @@ import { useTheme } from "../contexts/ThemeContext";
 import classNames from "classnames";
 import { useState, useEffect } from "react";
 import { checkUpdateFromFrontend, type UpdateInfo } from "../utils/wailsBridge";
+import { useEmbedMode } from "../hooks/useEmbedMode";
 
 const versionLinks = [
   {
@@ -65,6 +66,29 @@ const otherVersions: MenuProps["items"] = versionLinks.map(
 type ConnectionStatus = "connected" | "disconnected" | "connecting";
 
 const ConnectionButton: React.FC = () => {
+  const { isEmbed } = useEmbedMode();
+
+  // 嵌入模式下显示 EmbedBridge，不可点击断开
+  if (isEmbed) {
+    return (
+      <Tooltip title="EmbedBridge 嵌入模式">
+        <Button
+          type="primary"
+          icon={<LinkOutlined />}
+          size="small"
+          style={{
+            borderRadius: "999px",
+            paddingLeft: "12px",
+            paddingRight: "12px",
+            cursor: "default",
+          }}
+        >
+          EmbedBridge
+        </Button>
+      </Tooltip>
+    );
+  }
+
   const [status, setStatus] = useState<ConnectionStatus>("disconnected");
 
   useEffect(() => {

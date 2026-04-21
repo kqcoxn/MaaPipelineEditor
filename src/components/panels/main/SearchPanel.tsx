@@ -18,6 +18,7 @@ import {
   type CrossFileNodeInfo,
 } from "../../../services/crossFileService";
 import { NodeListPanel } from "./node-list";
+import { useEmbedMode } from "../../../hooks/useEmbedMode";
 
 /**搜索工具 */
 function SearchPanel() {
@@ -27,6 +28,14 @@ function SearchPanel() {
   const enableCrossFileSearch = useConfigStore(
     (state) => state.configs.enableCrossFileSearch,
   );
+
+  // 嵌入模式权限控制
+  const { isEmbed, isCapAllowed } = useEmbedMode();
+  const allowSearch = !isEmbed || isCapAllowed("allowSearch");
+  const allowAI = !isEmbed || isCapAllowed("allowAI");
+
+  // 若搜索被禁用，整个面板不渲染
+  if (!allowSearch) return null;
 
   // 状态
   const [searchValue, setSearchValue] = useState("");
@@ -355,36 +364,40 @@ function SearchPanel() {
             onClick={handleSearchClick}
           />
         </Tooltip>
-        <div className={style.devider}>
-          <div></div>
-        </div>
-        <Tooltip
-          placement="bottom"
-          title={aiSearching ? "AI搜索中..." : "AI智能搜索"}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: 28,
-              height: 28,
-              marginRight: 6,
-            }}
-          >
-            {aiSearching ? (
-              <Spin size="small" />
-            ) : (
-              <IconFont
-                className={style["search-icon"]}
-                name="icon-AIsousuo"
-                size={28}
-                color={"#5f50ff"}
-                onClick={handleAISearchClick}
-              />
-            )}
-          </div>
-        </Tooltip>
+        {allowAI && (
+          <>
+            <div className={style.devider}>
+              <div></div>
+            </div>
+            <Tooltip
+              placement="bottom"
+              title={aiSearching ? "AI搜索中..." : "AI智能搜索"}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 28,
+                  height: 28,
+                  marginRight: 6,
+                }}
+              >
+                {aiSearching ? (
+                  <Spin size="small" />
+                ) : (
+                  <IconFont
+                    className={style["search-icon"]}
+                    name="icon-AIsousuo"
+                    size={28}
+                    color={"#5f50ff"}
+                    onClick={handleAISearchClick}
+                  />
+                )}
+              </div>
+            </Tooltip>
+          </>
+        )}
         <div className={style.devider}>
           <div></div>
         </div>

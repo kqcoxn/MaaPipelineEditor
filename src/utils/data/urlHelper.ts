@@ -17,6 +17,8 @@
 export interface UrlParams {
   linkLb: boolean; // 自动连接 LocalBridge
   port: number | null; // 指定连接端口
+  embed: boolean; // 激活 iframe 嵌入模式
+  origin: string | null; // 宿主来源标识，用于 postMessage origin 校验
 }
 
 // ============ 参数名常量 ============
@@ -24,6 +26,8 @@ export interface UrlParams {
 /** 持久性参数:保留在 URL 中 */
 const LINK_LB_PARAM = "link_lb";
 const PORT_PARAM = "port";
+const EMBED_PARAM = "embed";
+const ORIGIN_PARAM = "origin";
 
 /** 一次性参数：需要立即清除 */
 
@@ -38,6 +42,8 @@ export function parseUrlParams(): UrlParams {
   return {
     linkLb: getBooleanParam(urlParams, LINK_LB_PARAM),
     port: getNumberParam(urlParams, PORT_PARAM),
+    embed: getBooleanParam(urlParams, EMBED_PARAM),
+    origin: getStringParam(urlParams, ORIGIN_PARAM),
   };
 }
 
@@ -68,7 +74,7 @@ export function clearOneTimeParams(): void {
  */
 function getBooleanParam(
   urlParams: URLSearchParams,
-  paramName: string
+  paramName: string,
 ): boolean {
   const value = urlParams.get(paramName);
   return value === "true" || value === "1";
@@ -81,7 +87,7 @@ function getBooleanParam(
  */
 function getStringParam(
   urlParams: URLSearchParams,
-  paramName: string
+  paramName: string,
 ): string | null {
   return urlParams.get(paramName);
 }
@@ -93,7 +99,7 @@ function getStringParam(
  */
 function getNumberParam(
   urlParams: URLSearchParams,
-  paramName: string
+  paramName: string,
 ): number | null {
   const value = urlParams.get(paramName);
   if (value === null) return null;
