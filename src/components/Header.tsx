@@ -303,6 +303,7 @@ function Header() {
 
   // 检查新版本
   useEffect(() => {
+    if (globalConfig.dev) return;
     checkUpdateFromFrontend(globalConfig.version).then((info) => {
       if (info && info.hasUpdate) {
         setUpdateInfo(info);
