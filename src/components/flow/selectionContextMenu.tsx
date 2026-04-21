@@ -292,6 +292,17 @@ function handleUngroupSelection(
   message.success("已解散所选分组");
 }
 
+function handleAutoLayoutSelection(
+  selection: SelectionContextMenuSelection,
+): void {
+  if (!hasMultiSelectedNodes(selection)) {
+    message.error("请至少选择两个节点");
+    return;
+  }
+
+  LayoutHelper.autoPartial(selection.selectedNodes);
+}
+
 function handleResetEdgeControls(
   selection: SelectionContextMenuSelection,
 ): void {
@@ -429,6 +440,15 @@ export function getSelectionContextMenuConfig(
           disabled: (selection) => !hasMultiSelectedNodes(selection),
         },
       ],
+      visible: (selection) => selection.selectedNodes.length > 0,
+    },
+    {
+      key: "auto-layout-selection",
+      label: "局部自动布局",
+      icon: "icon-liuchengtu",
+      iconSize: 16,
+      onClick: handleAutoLayoutSelection,
+      disabled: (selection) => !hasMultiSelectedNodes(selection),
       visible: (selection) => selection.selectedNodes.length > 0,
     },
     {

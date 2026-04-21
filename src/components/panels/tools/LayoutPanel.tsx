@@ -110,12 +110,12 @@ function LayoutPanel() {
         },
       },
       {
-        label: "自动布局",
+        label: debouncedSelectedNodes.length >= 2 ? "局部自动布局" : "自动布局",
         iconName: "icon-liuchengtu",
         iconSize: 30,
         disabled:
           !allowAutoLayout ||
-          debouncedSelectedNodes.length > 0 ||
+          debouncedSelectedNodes.length === 1 ||
           allNodes.length === 0,
         onClick: () => {
           if (!allowAutoLayout) {
@@ -125,7 +125,11 @@ function LayoutPanel() {
             });
             return;
           }
-          LayoutHelper.auto();
+          if (debouncedSelectedNodes.length >= 2) {
+            LayoutHelper.autoPartial(debouncedSelectedNodes as any);
+          } else {
+            LayoutHelper.auto();
+          }
         },
         onDisabledClick: () => {
           if (!allowAutoLayout) {
@@ -134,7 +138,7 @@ function LayoutPanel() {
               message: "当前环境禁止自动布局",
             });
           } else {
-            message.error("自动布局仅支持全局操作");
+            message.error("请选择两个以上节点进行局部排版");
           }
         },
       },

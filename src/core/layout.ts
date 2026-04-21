@@ -33,10 +33,18 @@ export class LayoutHelper {
     requestAnimationFrame(() => LayoutHelper.performLayout());
   }
 
-  private static async performLayout() {
+  static autoPartial(selectedNodes: NodeType[]) {
+    if (selectedNodes.length < 2) return;
+    requestAnimationFrame(() => LayoutHelper.performLayout(selectedNodes));
+  }
+
+  private static async performLayout(targetNodes?: NodeType[]) {
     const flowState = useFlowStore.getState();
-    const nodes = flowState.nodes as NodeType[];
-    const edges = flowState.edges as EdgeType[];
+    const allNodes = flowState.nodes as NodeType[];
+    const allEdges = flowState.edges as EdgeType[];
+
+    const isPartial = !!targetNodes;
+    const nodes = isPartial ? targetNodes! : allNodes;
 
     if (nodes.length === 0) return;
 
@@ -45,9 +53,27 @@ export class LayoutHelper {
     );
     if (!allMeasured) {
       setTimeout(() => {
-        LayoutHelper.performLayout();
+        LayoutHelper.performLayout(targetNodes);
       }, 10);
       return;
+    }
+
+    // 局部排版时，仅保留选中节点之间的边
+    const selectedNodeIds = isPartial ? new Set(nodes.map((n) => n.id)) : null;
+    const edges = isPartial
+      ? allEdges.filter(
+          (edge) =>
+            selectedNodeIds!.has(edge.source) &&
+            selectedNodeIds!.has(edge.target),
+        )
+      : allEdges;
+
+    // 局部排版时，记录原始包围盒
+    let originMinX = 0;
+    let originMinY = 0;
+    if (isPartial) {
+      originMinX = Math.min(...nodes.map((n) => n.position.x));
+      originMinY = Math.min(...nodes.map((n) => n.position.y));
     }
 
     const graph = {
@@ -70,21 +96,52 @@ export class LayoutHelper {
 
       if (!layoutedGraph?.children) return;
 
-      const layoutedNodes = nodes.map((node) => {
-        const layoutedNode = layoutedGraph.children!.find(
-          (layoutNode) => layoutNode.id === node.id,
+      if (isPartial) {
+        // 局部排版：将布局结果偏移到原始包围盒位置
+        const layoutedMinX = Math.min(
+          ...layoutedGraph.children.map((n) => n.x ?? 0),
         );
-        if (!layoutedNode) return node;
-        return {
-          ...node,
-          position: {
-            x: layoutedNode.x ?? 0,
-            y: layoutedNode.y ?? 0,
-          },
-        };
-      });
+        const layoutedMinY = Math.min(
+          ...layoutedGraph.children.map((n) => n.y ?? 0),
+        );
+        const offsetX = originMinX - layoutedMinX;
+        const offsetY = originMinY - layoutedMinY;
 
-      flowState.replace(layoutedNodes, edges);
+        const selectedNodeMap = new Map(nodes.map((n) => [n.id, n]));
+        const updatedNodes = allNodes.map((node) => {
+          if (!selectedNodeMap.has(node.id)) return node;
+          const layoutedNode = layoutedGraph.children!.find(
+            (layoutNode) => layoutNode.id === node.id,
+          );
+          if (!layoutedNode) return node;
+          return {
+            ...node,
+            position: {
+              x: (layoutedNode.x ?? 0) + offsetX,
+              y: (layoutedNode.y ?? 0) + offsetY,
+            },
+          };
+        });
+
+        flowState.replace(updatedNodes, allEdges, { isFitView: false });
+      } else {
+        // 全局排版
+        const layoutedNodes = allNodes.map((node) => {
+          const layoutedNode = layoutedGraph.children!.find(
+            (layoutNode) => layoutNode.id === node.id,
+          );
+          if (!layoutedNode) return node;
+          return {
+            ...node,
+            position: {
+              x: layoutedNode.x ?? 0,
+              y: layoutedNode.y ?? 0,
+            },
+          };
+        });
+
+        flowState.replace(layoutedNodes, allEdges);
+      }
     } catch (error) {
       console.error("Elkjs layout error:", error);
     }
