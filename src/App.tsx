@@ -30,7 +30,8 @@ import LiveScreenPanel from "./components/panels/main/LiveScreenPanel";
 import ToolPanel from "./components/panels/tools/ToolPanel";
 import SearchPanel from "./components/panels/main/SearchPanel";
 import FilePanel from "./components/panels/main/FilePanel";
-import ConfigPanel from "./components/panels/main/ConfigPanel";
+import SettingsPanel from "./components/panels/settings/SettingsPanel";
+import FileConfigPanel from "./components/panels/main/FileConfigPanel";
 import AIHistoryPanel from "./components/panels/main/AIHistoryPanel";
 import { LocalFileListPanel } from "./components/panels/main/LocalFileListPanel";
 import ErrorPanel from "./components/panels/main/ErrorPanel";
@@ -524,7 +525,8 @@ function App() {
               {showPanel("liveScreen") && <LiveScreenPanel />}
               {showPanel("field") && <FieldPanel />}
               {showPanel("edge") && <EdgePanel />}
-              {showPanel("config") && <ConfigPanel />}
+              {showPanel("config") && <SettingsPanel />}
+              {showPanel("config") && <FileConfigPanel />}
               {showPanel("ai-history") && <AIHistoryPanel />}
               {showPanel("local-file") && <LocalFileListPanel />}
               <ToolPanel.Add />

@@ -16,49 +16,59 @@ if (globalConfig.dev) {
 }
 
 /**配置分类 */
-export type ConfigCategory = "panel" | "pipeline" | "communication" | "ai";
+export type ConfigCategory =
+  | "export"
+  | "node"
+  | "connection"
+  | "canvas"
+  | "component"
+  | "local-service"
+  | "ai"
+  | "management";
 
 /**字段面板模式 */
 export type FieldPanelMode = "fixed" | "draggable" | "inline";
 
 /**配置分类映射 - 用于确定哪些配置属于哪个类别 */
 export const configCategoryMap: Record<string, ConfigCategory> = {
-  // Pipeline 配置
-  nodeAttrExportStyle: "pipeline",
-  defaultHandleDirection: "pipeline",
-  exportDefaultRecoAction: "pipeline",
-  exportEmptyParam: "pipeline",
-  pipelineProtocolVersion: "pipeline",
-  skipFieldValidation: "pipeline",
-  jsonIndent: "pipeline",
-  configHandlingMode: "pipeline",
-  // 面板配置
-  nodeStyle: "panel",
-  historyLimit: "panel",
-  quickCreateNodeOnConnectBlank: "panel",
-  isRealTimePreview: "panel",
-  showEdgeLabel: "panel",
-  showEdgeControlPoint: "panel",
-  edgePathMode: "panel",
-  isAutoFocus: "panel",
-  focusOpacity: "panel",
-  isExportConfig: "panel",
-  useDarkMode: "panel",
-  canvasBackgroundMode: "panel",
-  fieldPanelMode: "panel",
-  inlinePanelScale: "panel",
-  showNodeTemplateImages: "panel",
-  showNodeDetailFields: "panel",
-  saveFilesBeforeDebug: "panel",
-  enableNodeSnap: "panel",
-  snapOnlyInViewport: "panel",
-  enableLiveScreen: "panel",
-  liveScreenRefreshRate: "panel",
-  // 本地通信配置
-  wsPort: "communication",
-  wsAutoConnect: "communication",
-  fileAutoReload: "communication",
-  enableCrossFileSearch: "communication",
+  // 导出配置
+  nodeAttrExportStyle: "export",
+  exportDefaultRecoAction: "export",
+  exportEmptyParam: "export",
+  pipelineProtocolVersion: "export",
+  skipFieldValidation: "export",
+  jsonIndent: "export",
+  configHandlingMode: "export",
+  // 节点配置
+  nodeStyle: "node",
+  showNodeDetailFields: "node",
+  showNodeTemplateImages: "node",
+  enableNodeSnap: "node",
+  snapOnlyInViewport: "node",
+  defaultHandleDirection: "node",
+  // 连接配置
+  edgePathMode: "connection",
+  showEdgeLabel: "connection",
+  showEdgeControlPoint: "connection",
+  quickCreateNodeOnConnectBlank: "connection",
+  // 画布配置
+  canvasBackgroundMode: "canvas",
+  isAutoFocus: "canvas",
+  focusOpacity: "canvas",
+  useDarkMode: "canvas",
+  // 组件配置
+  isExportConfig: "component",
+  saveFilesBeforeDebug: "component",
+  fieldPanelMode: "component",
+  inlinePanelScale: "component",
+  enableLiveScreen: "component",
+  liveScreenRefreshRate: "component",
+  historyLimit: "component",
+  // 本地服务配置
+  wsPort: "local-service",
+  wsAutoConnect: "local-service",
+  fileAutoReload: "local-service",
+  enableCrossFileSearch: "local-service",
   // AI 配置
   aiApiUrl: "ai",
   aiApiKey: "ai",
@@ -99,11 +109,66 @@ export type CanvasBackgroundMode = "pure" | "eyecare";
 // 边走线模式
 export type EdgePathMode = "bezier" | "smoothstep" | "avoid";
 
+/**配置默认值 */
+const defaultConfigs = {
+  isExportConfig: true,
+  configHandlingMode: "integrated" as ConfigHandlingMode,
+  showEdgeLabel: true,
+  isAutoFocus: true,
+  useDarkMode: false,
+  historyLimit: 100,
+  nodeStyle: "modern" as NodeStyleType,
+  nodeAttrExportStyle: "prefix" as NodeAttrExportStyle,
+  defaultHandleDirection: "left-right" as HandleDirection,
+  quickCreateNodeOnConnectBlank: true,
+  exportDefaultRecoAction: false,
+  exportEmptyParam: false,
+  pipelineProtocolVersion: "v2" as PipelineProtocolVersion,
+  skipFieldValidation: false,
+  jsonIndent: 4,
+  wsPort: 9066,
+  wsAutoConnect: false,
+  fileAutoReload: false,
+  saveFilesBeforeDebug: true,
+  enableCrossFileSearch: true,
+  // AI 配置
+  aiApiUrl: "",
+  aiApiKey: "",
+  aiModel: "",
+  aiTemperature: 0.7,
+  // 聚焦透明度
+  focusOpacity: 0.3,
+  // 边控制点
+  showEdgeControlPoint: true,
+  // 边走线模式
+  edgePathMode: "bezier" as EdgePathMode,
+  // 画布背景模式
+  canvasBackgroundMode: "eyecare" as CanvasBackgroundMode,
+  // 字段面板模式
+  fieldPanelMode: "fixed" as FieldPanelMode,
+  // 内嵌面板缩放比例
+  inlinePanelScale: 0.8,
+  // 节点显示 template 图片
+  showNodeTemplateImages: true,
+  // 渲染节点详细字段
+  showNodeDetailFields: true,
+  // 节点磁吸对齐
+  enableNodeSnap: false,
+  // 磁吸对齐仅限可视范围
+  snapOnlyInViewport: true,
+  // 实时画面预览
+  enableLiveScreen: true,
+  // 实时画面刷新间隔（毫秒）
+  liveScreenRefreshRate: 1000,
+};
+
+/**配置默认值（只读），用于重置和对比 */
+export const configDefaults: Readonly<ConfigState["configs"]> = defaultConfigs;
+
 /**配置 */
-type ConfigState = {
+export type ConfigState = {
   // 设置
   configs: {
-    isRealTimePreview: boolean;
     isExportConfig: boolean;
     configHandlingMode: ConfigHandlingMode;
     showEdgeLabel: boolean;
@@ -162,9 +227,17 @@ type ConfigState = {
     value: ConfigState["configs"][K],
   ) => void;
   replaceConfig: (configs: any) => void;
+  // 已配置追踪
+  configuredKeys: Set<string>;
+  markAsConfigured: (key: string) => void;
+  isConfigured: (key: string) => boolean;
+  // 恢复默认
+  resetConfig: <K extends keyof ConfigState["configs"]>(key: K) => void;
+  resetAllConfigs: () => void;
   // 状态
   status: {
     showConfigPanel: boolean;
+    showFileConfigPanel: boolean;
     showAIHistoryPanel: boolean;
     showLocalFilePanel: boolean;
     showFieldSortModal: boolean;
@@ -176,60 +249,9 @@ type ConfigState = {
   ) => void;
 };
 
-export const useConfigStore = create<ConfigState>()((set) => ({
+export const useConfigStore = create<ConfigState>()((set, get) => ({
   // 设置
-  configs: {
-    isRealTimePreview: false,
-    isExportConfig: true,
-    configHandlingMode: "integrated" as ConfigHandlingMode,
-    showEdgeLabel: true,
-    isAutoFocus: true,
-    useDarkMode: false,
-    historyLimit: 100,
-    nodeStyle: "modern" as NodeStyleType,
-    nodeAttrExportStyle: "prefix" as NodeAttrExportStyle,
-    defaultHandleDirection: "left-right" as HandleDirection,
-    quickCreateNodeOnConnectBlank: true,
-    exportDefaultRecoAction: false,
-    exportEmptyParam: false,
-    pipelineProtocolVersion: "v2" as PipelineProtocolVersion,
-    skipFieldValidation: false,
-    jsonIndent: 4,
-    wsPort: 9066,
-    wsAutoConnect: false,
-    fileAutoReload: false,
-    saveFilesBeforeDebug: true,
-    enableCrossFileSearch: true,
-    // AI 配置
-    aiApiUrl: "",
-    aiApiKey: "",
-    aiModel: "",
-    aiTemperature: 0.7,
-    // 聚焦透明度
-    focusOpacity: 0.3,
-    // 边控制点
-    showEdgeControlPoint: true,
-    // 边走线模式
-    edgePathMode: "bezier" as EdgePathMode,
-    // 画布背景模式
-    canvasBackgroundMode: "eyecare" as CanvasBackgroundMode,
-    // 字段面板模式
-    fieldPanelMode: "fixed" as FieldPanelMode,
-    // 内嵌面板缩放比例
-    inlinePanelScale: 0.8,
-    // 节点显示 template 图片
-    showNodeTemplateImages: true,
-    // 渲染节点详细字段
-    showNodeDetailFields: true,
-    // 节点磁吸对齐
-    enableNodeSnap: false,
-    // 磁吸对齐仅限可视范围
-    snapOnlyInViewport: true,
-    // 实时画面预览
-    enableLiveScreen: true,
-    // 实时画面刷新间隔（毫秒）
-    liveScreenRefreshRate: 1000,
-  },
+  configs: { ...defaultConfigs },
   setConfig(key, value) {
     set((state) => {
       const newConfigs = { ...state.configs, [key]: value };
@@ -241,7 +263,13 @@ export const useConfigStore = create<ConfigState>()((set) => ({
         newConfigs.configHandlingMode = value ? "integrated" : "none";
       }
 
-      return { configs: newConfigs };
+      // 标记为已配置
+      state.configuredKeys.add(key as string);
+
+      return {
+        configs: newConfigs,
+        configuredKeys: new Set(state.configuredKeys),
+      };
     });
   },
   replaceConfig(configs) {
@@ -270,12 +298,49 @@ export const useConfigStore = create<ConfigState>()((set) => ({
           mergedConfigs.configHandlingMode !== "none";
       }
 
-      return { configs: mergedConfigs };
+      // 批量标记导入的 key 为已配置
+      const newConfiguredKeys = new Set(state.configuredKeys);
+      Object.keys(newConfigs).forEach((key) => newConfiguredKeys.add(key));
+
+      return { configs: mergedConfigs, configuredKeys: newConfiguredKeys };
     });
+  },
+  // 已配置追踪
+  configuredKeys: new Set<string>(),
+  markAsConfigured(key) {
+    set((state) => {
+      if (state.configuredKeys.has(key)) return state;
+      const newKeys = new Set(state.configuredKeys);
+      newKeys.add(key);
+      return { configuredKeys: newKeys };
+    });
+  },
+  isConfigured(key) {
+    return get().configuredKeys.has(key);
+  },
+  // 恢复默认
+  resetConfig(key) {
+    const defaultValue = configDefaults[key];
+    set((state) => {
+      const newConfigs = { ...state.configs, [key]: defaultValue };
+
+      // 同步 isExportConfig 与 configHandlingMode
+      if (key === "configHandlingMode") {
+        newConfigs.isExportConfig = defaultValue !== "none";
+      } else if (key === "isExportConfig") {
+        newConfigs.configHandlingMode = defaultValue ? "integrated" : "none";
+      }
+
+      return { configs: newConfigs };
+    });
+  },
+  resetAllConfigs() {
+    set({ configs: { ...defaultConfigs }, configuredKeys: new Set() });
   },
   // 状态
   status: {
     showConfigPanel: false,
+    showFileConfigPanel: false,
     showAIHistoryPanel: false,
     showLocalFilePanel: false,
     showFieldSortModal: false,

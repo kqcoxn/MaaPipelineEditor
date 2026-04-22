@@ -22,6 +22,7 @@
 - 新增着陆页(Landing)构建自动化功能，自动打包着陆页分发文件到ZIP归档中
 - 更新发布工作流，确保着陆页更新自动包含在发布制品中
 - 扩展Web包构建流程，包含着陆页构建步骤
+- **重大更新** 发布自动化系统现在支持生成综合的发布说明，包括文档包、着陆页资源、稳定前端包、桌面客户端分发、后端服务二进制文件和源代码归档等多种工件类型
 
 ## 目录
 1. [简介](#简介)
@@ -44,6 +45,7 @@
 - 测试覆盖率与质量门禁
 - 工作流程自定义与扩展建议
 - **新增** 着陆页构建自动化与发布集成
+- **重大更新** 综合发布说明生成与多工件类型支持
 
 ## 项目结构
 本仓库采用多模块结构：前端应用、本地桥接服务（Go）、可选的桌面应用（Wails）、文档站点以及着陆页。CI/CD主要围绕前端与后端构建进行自动化，现已集成着陆页构建流程。
@@ -77,16 +79,16 @@ GH --> LAND
 
 **图表来源**
 - [.github/workflows/preview.yaml:1-98](file://.github/workflows/preview.yaml#L1-L98)
-- [.github/workflows/release.yaml:1-507](file://.github/workflows/release.yaml#L1-L507)
-- [package.json:1-65](file://package.json#L1-L65)
+- [.github/workflows/release.yaml:1-516](file://.github/workflows/release.yaml#L1-L516)
+- [package.json:1-71](file://package.json#L1-L71)
 - [Extremer/wails.json:1-18](file://Extremer/wails.json#L1-L18)
 - [LocalBridge/package.json:1-8](file://LocalBridge/package.json#L1-L8)
 - [Landing/package.json:1-35](file://Landing/package.json#L1-L35)
 
 **章节来源**
 - [.github/workflows/preview.yaml:1-98](file://.github/workflows/preview.yaml#L1-L98)
-- [.github/workflows/release.yaml:1-507](file://.github/workflows/release.yaml#L1-L507)
-- [package.json:1-65](file://package.json#L1-L65)
+- [.github/workflows/release.yaml:1-516](file://.github/workflows/release.yaml#L1-L516)
+- [package.json:1-71](file://package.json#L1-L71)
 
 ## 核心组件
 - 预览发布工作流（preview.yaml）：基于主分支推送或手动触发，检测特定配置迭代值变化后自动部署到GitHub Pages。
@@ -98,7 +100,7 @@ GH --> LAND
 
 **章节来源**
 - [.github/workflows/preview.yaml:1-98](file://.github/workflows/preview.yaml#L1-L98)
-- [.github/workflows/release.yaml:1-507](file://.github/workflows/release.yaml#L1-L507)
+- [.github/workflows/release.yaml:1-516](file://.github/workflows/release.yaml#L1-L516)
 
 ## 架构总览
 下图展示两个工作流的整体执行路径与关键步骤，包括新增的着陆页构建流程：
@@ -124,7 +126,7 @@ PUSH --> R_LB --> R_WEB --> R_EXT --> R_PKG
 
 **图表来源**
 - [.github/workflows/preview.yaml:25-98](file://.github/workflows/preview.yaml#L25-L98)
-- [.github/workflows/release.yaml:13-507](file://.github/workflows/release.yaml#L13-L507)
+- [.github/workflows/release.yaml:13-516](file://.github/workflows/release.yaml#L13-L516)
 
 ## 详细组件分析
 
@@ -206,10 +208,10 @@ REL-->>Dev : Release下载链接
 **图表来源**
 - [.github/workflows/release.yaml:14-174](file://.github/workflows/release.yaml#L14-L174)
 - [.github/workflows/release.yaml:166-174](file://.github/workflows/release.yaml#L166-L174)
-- [.github/workflows/release.yaml:419-507](file://.github/workflows/release.yaml#L419-L507)
+- [.github/workflows/release.yaml:419-516](file://.github/workflows/release.yaml#L419-L516)
 
 **章节来源**
-- [.github/workflows/release.yaml:1-507](file://.github/workflows/release.yaml#L1-L507)
+- [.github/workflows/release.yaml:1-516](file://.github/workflows/release.yaml#L1-L516)
 
 ### 着陆页构建自动化（新增功能）
 - 构建流程
@@ -326,6 +328,28 @@ Gate --> |否| Fail["失败并阻断"]
 - [.github/workflows/release.yaml:19-38](file://.github/workflows/release.yaml#L19-L38)
 - [vite.config.ts:5-14](file://vite.config.ts#L5-L14)
 
+### 综合发布说明生成（重大更新）
+- 发布说明内容
+  - 自动生成完整的变更日志，包含从上一个标签到当前版本的所有提交记录
+  - 详细描述每个提交的简要信息和提交哈希
+- 工件类型说明
+  - **Docs**（`MaaPipelineEditor-*-docs.zip`）：文档站静态资源包
+  - **Landing**（`MaaPipelineEditor-*-landing.zip`）：展示页（主页）静态资源包
+  - **Stable**（`MaaPipelineEditor-*-stable.zip`）：前端静态资源包，用于自部署在线编辑器
+  - **Extremer**（`MaaPipelineExtremer-*.zip`）：桌面客户端
+  - **LocalBridge**（`mpelb-*`）：后端服务二进制（推荐使用命令行工具安装）
+  - **Source code**：版本源代码
+- 平台支持
+  - 支持平台：macOS Intel (darwin-amd64) · macOS Apple Silicon (darwin-arm64) · Linux x64 (linux-amd64) · Windows x64 (windows-amd64)
+- 使用建议
+  - 推荐优先使用在线方案，无需下载即可体验，按需使用本地服务启用完整功能
+  - Release包适用于自部署或离线使用场景
+
+**更新** 发布工作流现在包含完整的发布说明生成逻辑，涵盖所有工件类型的详细描述
+
+**章节来源**
+- [.github/workflows/release.yaml:456-516](file://.github/workflows/release.yaml#L456-L516)
+
 ## 依赖关系分析
 - 前端构建依赖
   - Node版本与Yarn缓存
@@ -370,6 +394,7 @@ ART --> REL
 - 构建模式优化：通过Vite模式参数减少不必要的构建步骤
 - 依赖最小化：合理排除不需要统计的目录，降低覆盖率计算开销
 - **新增** 着陆页构建优化：使用yarn --frozen-lockfile确保依赖一致性，避免构建差异
+- **重大更新** 发布说明生成优化：使用Git历史记录直接生成变更日志，避免手动维护
 
 ## 故障排除指南
 - 预览部署未触发
@@ -385,12 +410,17 @@ ART --> REL
   - 检查Landing目录的package.json依赖是否完整安装
   - 确认Astro配置文件路径与别名设置正确
   - 验证构建产物dist目录是否存在且包含index.html
+- **重大更新** 发布说明生成问题
+  - 检查Git标签历史记录是否完整
+  - 确认GitHub token权限配置正确
+  - 验证工件文件命名格式是否符合预期
 
 **章节来源**
 - [.github/workflows/preview.yaml:36-62](file://.github/workflows/preview.yaml#L36-L62)
 - [.github/workflows/release.yaml:175-265](file://.github/workflows/release.yaml#L175-L265)
 - [vite.config.ts:26-37](file://vite.config.ts#L26-L37)
 - [.github/workflows/release.yaml:150-164](file://.github/workflows/release.yaml#L150-L164)
+- [.github/workflows/release.yaml:456-516](file://.github/workflows/release.yaml#L456-L516)
 
 ## 结论
 本仓库的CI/CD流水线以GitHub Actions为核心，实现了：
@@ -400,5 +430,7 @@ ART --> REL
 - 可扩展的质量门禁与覆盖率报告
 
 **更新** 最新版本已集成着陆页构建自动化功能，确保着陆页更新自动包含在发布制品中，进一步完善了项目的自动化发布流程。
+
+**重大更新** 发布工作流现在具备完整的发布说明生成功能，能够自动生成包含所有工件类型详细描述的综合发布说明，极大提升了发布的透明度和用户体验。
 
 通过合理利用缓存、矩阵构建与质量检查，能够有效提升构建效率与交付稳定性。

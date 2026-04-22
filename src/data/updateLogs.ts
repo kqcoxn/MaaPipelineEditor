@@ -52,7 +52,7 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2026-4",
     type: "major",
     updates: {
-      features: [""],
+      perfs: ["优化配置面板使用体验，独立文件配置面板"],
     },
   },
   {

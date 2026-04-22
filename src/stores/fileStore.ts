@@ -244,9 +244,15 @@ export function localSave(): { success: boolean; error?: string } {
     }));
     localStorage.setItem("_mpe_files", JSON.stringify(filesToSave));
 
-    // 保存用户配置项
+    // 保存用户配置项 + 已配置追踪
     const configState = useConfigStore.getState();
-    localStorage.setItem("_mpe_config", JSON.stringify(configState.configs));
+    localStorage.setItem(
+      "_mpe_config",
+      JSON.stringify({
+        ...configState.configs,
+        __configuredKeys: [...configState.configuredKeys],
+      }),
+    );
 
     return { success: true };
   } catch (err) {
@@ -496,7 +502,20 @@ export const useFileStore = create<FileState>()((set) => ({
     try {
       if (!files) {
         const config = localStorage.getItem("_mpe_config");
-        if (config) useConfigStore.getState().replaceConfig(JSON.parse(config));
+        if (config) {
+          const parsed = JSON.parse(config);
+          // 恢复 configuredKeys
+          if (
+            parsed.__configuredKeys &&
+            Array.isArray(parsed.__configuredKeys)
+          ) {
+            useConfigStore.getState().configuredKeys = new Set(
+              parsed.__configuredKeys,
+            );
+            delete parsed.__configuredKeys;
+          }
+          useConfigStore.getState().replaceConfig(parsed);
+        }
         const ls = localStorage.getItem("_mpe_files");
         if (!ls) return Error.call("未找到本地files缓存");
         files = JSON.parse(ls) as FileType[];

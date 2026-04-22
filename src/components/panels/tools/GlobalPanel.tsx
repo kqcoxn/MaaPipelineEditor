@@ -46,10 +46,16 @@ function GlobalPanel() {
   const globalTools = useMemo<GlobalToolType[]>(
     () => [
       {
-        label: "设置",
+        label: "系统配置",
         iconName: "icon-a-080_shezhi",
         iconSize: 39,
         onClick: () => setStatus("showConfigPanel", true),
+      },
+      {
+        label: "文件配置",
+        iconName: "icon-wenjianpeizhi",
+        iconSize: 24,
+        onClick: () => setStatus("showFileConfigPanel", true),
       },
       {
         label: "AI 对话历史",

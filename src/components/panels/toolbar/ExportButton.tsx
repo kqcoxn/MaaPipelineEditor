@@ -1,7 +1,7 @@
 import { Button, Dropdown, message } from "antd";
 import type { MenuProps } from "antd";
 import { ExportOutlined } from "@ant-design/icons";
-import { memo, useMemo, useState } from "react";
+import { memo, useMemo, useState, useCallback } from "react";
 import {
   useToolbarStore,
   type ExportAction,
@@ -15,6 +15,9 @@ import { flowToPipeline, flowToSeparatedStrings } from "../../../core/parser";
 import { ClipboardHelper } from "../../../utils/ui/clipboard";
 import { ExportFileModal } from "../../modals/ExportFileModal";
 import { CreateFileModal } from "../../modals/CreateFileModal";
+import { checkGuard } from "../../panels/settings/guardSystem";
+import GuardPromptModal from "../../modals/GuardPromptModal";
+import type { ConfigItemDef } from "../../panels/settings/settingsDefinitions";
 import style from "../../../styles/panels/ToolbarPanel.module.less";
 
 /**
@@ -40,7 +43,27 @@ function ExportButton() {
 
   const [exportModalVisible, setExportModalVisible] = useState(false);
   const [createFileModalVisible, setCreateFileModalVisible] = useState(false);
+  const [guardState, setGuardState] = useState<{
+    items: ConfigItemDef[];
+    onContinue: () => void;
+  } | null>(null);
   const isPartable = selectedNodes.length > 0;
+
+  // 守卫检查：导出前确认关键配置已设置
+  const withGuardCheck = useCallback((action: () => void) => {
+    const result = checkGuard("export");
+    if (result.passed) {
+      action();
+      return;
+    }
+    setGuardState({
+      items: result.unconfiguredItems,
+      onContinue: () => {
+        setGuardState(null);
+        action();
+      },
+    });
+  }, []);
 
   // 导出操作处理
   const handleExportToClipboard = () => {
@@ -126,7 +149,7 @@ function ExportButton() {
 
   // 点击按钮执行默认操作
   const handleButtonClick = () => {
-    executeExportAction(defaultExportAction);
+    withGuardCheck(() => executeExportAction(defaultExportAction));
   };
 
   // 菜单项定义
@@ -308,6 +331,14 @@ function ExportButton() {
         visible={createFileModalVisible}
         onCancel={() => setCreateFileModalVisible(false)}
       />
+      {guardState && (
+        <GuardPromptModal
+          action="export"
+          unconfiguredItems={guardState.items}
+          onContinue={guardState.onContinue}
+          onCancel={() => setGuardState(null)}
+        />
+      )}
     </>
   );
 }

@@ -1,0 +1,54 @@
+.panel {
+  left: 6px;
+  top: 6px;
+  width: 360px;
+  border-radius: 16px;
+
+  .header {
+    .right {
+      position: absolute;
+      right: 15px;
+      top: 15px;
+      display: flex;
+      gap: 10px;
+    }
+  }
+
+  .list {
+    width: 100%;
+    max-height: calc(80vh - 80px);
+    overflow-y: auto;
+
+    .item {
+      display: flex;
+      align-items: center;
+      justify-content: start;
+      border-radius: 4px;
+      box-sizing: border-box;
+      padding: 4px;
+
+      .key {
+        width: 90px;
+        position: relative;
+        display: flex;
+        justify-content: right;
+
+        span {
+          font-size: 16px;
+        }
+      }
+
+      .value {
+        margin-left: 16px;
+        flex: 1;
+      }
+    }
+
+    .divider {
+      width: 100%;
+      text-align: center;
+      margin: 12px 0;
+      font-size: 15px;
+    }
+  }
+}
