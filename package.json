@@ -18,8 +18,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "reset": "git reset --soft HEAD~1",
-    "release": "git tag -a v1.5.0 -m \"v1.5.0\" && git push origin v1.5.0",
-    "retag": "git tag -d v1.5.0"
+    "release": "git tag -a v1.4.3 -m \"v1.4.3\" && git push origin v1.4.3",
+    "retag": "git tag -d v1.4.3"
   },
   "dependencies": {
     "@ant-design/icons": "6",
@@ -50,7 +50,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@types/lodash": "^4.17.21",
-    "@types/lz-string": "^1.5.0",
+    "@types/lz-string": "^1.4.3",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react-swc": "^3.10.2",

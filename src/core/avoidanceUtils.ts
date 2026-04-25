@@ -671,12 +671,24 @@ export function buildNodeBoundsList(nodes: NodeType[]): NodeBounds[] {
     const width = node.measured?.width ?? DEFAULT_NODE_WIDTH;
     const height = node.measured?.height ?? DEFAULT_NODE_HEIGHT;
 
+    // 处理分组内子节点的相对坐标，转换为绝对坐标
+    let absX = node.position.x;
+    let absY = node.position.y;
+    const parentId = (node as any).parentId;
+    if (parentId) {
+      const parent = nodes.find((n) => n.id === parentId);
+      if (parent) {
+        absX += parent.position.x;
+        absY += parent.position.y;
+      }
+    }
+
     return {
       id: node.id,
-      minX: node.position.x,
-      minY: node.position.y,
-      maxX: node.position.x + width,
-      maxY: node.position.y + height,
+      minX: absX,
+      minY: absY,
+      maxX: absX + width,
+      maxY: absY + height,
     };
   });
 }

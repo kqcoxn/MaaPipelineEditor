@@ -48,11 +48,12 @@ export const pinnedNotice: PinnedNotice = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
-    version: "1.5.0",
+    version: "1.4.3",
     date: "2026-4",
-    type: "major",
+    type: "fix",
     updates: {
       perfs: ["优化配置面板使用体验，独立文件配置面板"],
+      fixes: ["修复分组内边避让模式行为异常的问题"],
     },
   },
   {

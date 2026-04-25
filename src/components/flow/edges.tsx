@@ -279,7 +279,10 @@ function getAvoidanceEdgePath({
   edgeId: string;
 }): [string, number, number] {
   // 构建节点边界框列表
-  const nodeBoundsList = buildNodeBoundsList(nodes);
+  const nodeBoundsList = buildNodeBoundsList(nodes).filter((bounds) => {
+    const node = nodes.find((n) => n.id === bounds.id);
+    return node?.type !== NodeTypeEnum.Group;
+  });
 
   // 排除源节点和目标节点
   const excludeIds = new Set([sourceId, targetId]);
