@@ -457,24 +457,33 @@ jobs:
         id: changelog
         run: |
           # 获取上一个tag
+          CURRENT_TAG="${{ github.ref_name }}"
           PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
 
           if [ -z "$PREVIOUS_TAG" ]; then
             echo "这是第一个release，获取所有commits"
             COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges)
           else
-            echo "获取从 $PREVIOUS_TAG 到 ${{ github.ref_name }} 的commits"
-            COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges $PREVIOUS_TAG..HEAD)
+            echo "获取从 $PREVIOUS_TAG 到 $CURRENT_TAG 的commits"
+            COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges "$PREVIOUS_TAG"..HEAD)
           fi
 
           # 生成changelog
-          CHANGELOG="
-          **Full Changelog**: https://github.com/kqcoxn/MaaPipelineEditor/compare/$PREVIOUS_TAG...${{ github.ref_name }}
+          {
+            if [ -n "$PREVIOUS_TAG" ]; then
+              printf '**Full Changelog**: https://github.com/kqcoxn/MaaPipelineEditor/compare/%s...%s\n\n' "$PREVIOUS_TAG" "$CURRENT_TAG"
+            else
+              printf '**Full Changelog**: https://github.com/kqcoxn/MaaPipelineEditor/commits/%s\n\n' "$CURRENT_TAG"
+            fi
 
+            cat <<'CHANGELOG_HEADER'
           ## 📝 更新内容
 
-          $COMMITS
+          CHANGELOG_HEADER
 
+            printf '%s\n\n' "$COMMITS"
+
+            cat <<'CHANGELOG_BODY'
           ## 📦 发布说明
 
           - **Docs**（`MaaPipelineEditor-*-docs.zip`）：文档站静态资源包
@@ -487,15 +496,15 @@ jobs:
           支持平台：macOS Intel (darwin-amd64) · macOS Apple Silicon (darwin-arm64) · Linux x64 (linux-amd64) · Windows x64 (windows-amd64)
 
           > 💡 推荐优先使用 [在线方案](https://github.com/kqcoxn/MaaPipelineEditor?tab=readme-ov-file#%E5%BC%80%E7%AE%B1%E5%8D%B3%E7%94%A8)，无需下载即可体验，按需使用本地服务启用完整功能。Release 包适用于自部署或离线使用场景。
-          "
-
-          # 将changelog保存到文件
-          echo "$CHANGELOG" > CHANGELOG.md
+          CHANGELOG_BODY
+          } > CHANGELOG.md
 
           # 输出到GitHub Actions
-          echo "changelog<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGELOG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          {
+            echo "changelog<<EOF"
+            cat CHANGELOG.md
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
