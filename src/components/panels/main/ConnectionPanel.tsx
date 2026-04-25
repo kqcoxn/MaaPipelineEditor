@@ -1,4 +1,5 @@
 import { memo, useEffect, useState, useCallback, useMemo } from "react";
+import { usePersistedState } from "../../../hooks/usePersistedState";
 import {
   Drawer,
   Tabs,
@@ -76,35 +77,67 @@ export const ConnectionPanel = memo(
       useState<Win32Window | null>(null);
     const [selectedWlRootsSocket, setSelectedWlRootsSocket] =
       useState<WlRootsCompositor | null>(null);
-    const [wlrootsSocketPath, setWlrootsSocketPath] = useState<string>("");
+    const [wlrootsSocketPath, setWlrootsSocketPath] = usePersistedState<string>(
+      "wl_socket",
+      "",
+    );
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [visitedTabs, setVisitedTabs] = useState<Set<string>>(new Set());
     const [hasInitialized, setHasInitialized] = useState(false);
 
     // ADB 手动连接参数
-    const [manualAdbPath, setManualAdbPath] = useState<string>("");
-    const [manualAddress, setManualAddress] = useState<string>("");
-    const [manualConfig, setManualConfig] = useState<string>("");
-    const [manualName, setManualName] = useState<string>("");
+    const [manualAdbPath, setManualAdbPath] = usePersistedState<string>(
+      "adb_path",
+      "",
+    );
+    const [manualAddress, setManualAddress] = usePersistedState<string>(
+      "adb_address",
+      "",
+    );
+    const [manualConfig, setManualConfig] = usePersistedState<string>(
+      "adb_config",
+      "",
+    );
+    const [manualName, setManualName] = usePersistedState<string>(
+      "adb_name",
+      "",
+    );
 
     // PlayCover 连接参数
-    const [playCoverAddress, setPlayCoverAddress] = useState<string>("");
-    const [playCoverUUID, setPlayCoverUUID] = useState<string>("");
-    const [playCoverName, setPlayCoverName] = useState<string>("");
+    const [playCoverAddress, setPlayCoverAddress] = usePersistedState<string>(
+      "pc_address",
+      "",
+    );
+    const [playCoverUUID, setPlayCoverUUID] = usePersistedState<string>(
+      "pc_uuid",
+      "",
+    );
+    const [playCoverName, setPlayCoverName] = usePersistedState<string>(
+      "pc_name",
+      "",
+    );
 
     // Gamepad 连接参数
-    const [gamepadType, setGamepadType] = useState<"Xbox360" | "DualShock4">(
-      "Xbox360",
+    const [gamepadType, setGamepadType] = usePersistedState<
+      "Xbox360" | "DualShock4"
+    >("gp_type", "Xbox360");
+    const [gamepadHwnd, setGamepadHwnd] = usePersistedState<string>(
+      "gp_hwnd",
+      "",
     );
-    const [gamepadHwnd, setGamepadHwnd] = useState<string>("");
-    const [gamepadScreencap, setGamepadScreencap] = useState<string>("");
+    const [gamepadScreencap, setGamepadScreencap] = usePersistedState<string>(
+      "gp_screencap",
+      "",
+    );
 
     // macOS 连接参数
-    const [macosPid, setMacosPid] = useState<string>("");
-    const [macosScreencap, setMacosScreencap] = useState<string>(
+    const [macosPid, setMacosPid] = usePersistedState<string>("mac_pid", "");
+    const [macosScreencap, setMacosScreencap] = usePersistedState<string>(
+      "mac_screencap",
       MACOS_DEFAULT_METHODS.screencap[0],
     );
-    const [macosInput, setMacosInput] = useState<string>(
+    const [macosInput, setMacosInput] = usePersistedState<string>(
+      "mac_input",
       MACOS_DEFAULT_METHODS.input[0],
     );
 
