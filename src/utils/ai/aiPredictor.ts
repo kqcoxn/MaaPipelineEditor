@@ -1,4 +1,4 @@
-import { OpenAIChat } from "./openai";
+import { AIClient } from "./aiClient";
 import type { NodeType, EdgeType, PipelineNodeType } from "../../stores/flow";
 import {
   SourceHandleTypeEnum,
@@ -319,7 +319,7 @@ export async function predictNodeConfig(
   onProgress?.("构建提示词", "正在构建 AI 提示词...");
   const prompt = buildVisionPredictionPrompt(context);
 
-  const aiChat = new OpenAIChat({
+  const aiChat = new AIClient({
     systemPrompt: SYSTEM_PROMPTS.PIPELINE_EXPERT,
     historyLimit: 5,
   });

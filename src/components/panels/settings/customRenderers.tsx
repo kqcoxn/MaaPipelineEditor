@@ -8,7 +8,7 @@ import {
 import { useCustomTemplateStore } from "../../../stores/customTemplateStore";
 import { useFlowStore } from "../../../stores/flow";
 import { localServer } from "../../../services";
-import { OpenAIChat } from "../../../utils/ai/openai";
+import { AIClient } from "../../../utils/ai/aiClient";
 import { SYSTEM_PROMPTS } from "../../../utils/ai/aiPrompts";
 import { BackendConfigModal } from "../../modals";
 import FieldSortModal from "../../modals/FieldSortModal";
@@ -117,13 +117,12 @@ const AIWarningRenderer = memo(() => (
       width: "100%",
     }}
   >
-    ⚠️ API Key 将以明文存储在浏览器本地（LocalStorage），请勿在公共设备上使用！
+    🌐 开启 LocalBridge 代理可解决 CORS 跨域限制，关闭则需要 API 服务支持 CORS
     <br />
-    ⚠️ 浏览器直接调用 API 可能遇到 CORS 跨域限制，建议使用支持 CORS 的 API
-    中转服务
-    <br />
-    💡 节点预测功能需要支持视觉的模型（如 GPT-4o、Claude-3.5-Sonnet、Qwen-VL
+    💡 节点预测功能需要支持视觉的模型（如 GPT-4o、Claude Sonnet、Gemini Flash
     等）
+    <br />
+    🔐 API Key 粘贴后会自动加密存储，显示为 ENC: 开头的密文属于正常现象
   </div>
 ));
 
@@ -134,7 +133,7 @@ const TestConnectionRenderer = memo(() => {
   const handleTest = async () => {
     setLoading(true);
     try {
-      const chat = new OpenAIChat({
+      const chat = new AIClient({
         systemPrompt: SYSTEM_PROMPTS.TEST_CONNECTION,
       });
       const result = await chat.send("直接回复：AI 服务连接成功");

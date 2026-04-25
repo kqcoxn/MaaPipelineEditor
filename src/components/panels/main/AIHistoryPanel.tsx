@@ -9,7 +9,7 @@ import { useConfigStore } from "../../../stores/configStore";
 import {
   aiHistoryManager,
   type AIHistoryRecord,
-} from "../../../utils/ai/openai";
+} from "../../../utils/ai/history";
 
 /** 格式化时间 */
 function formatTime(timestamp: number): string {

@@ -24,15 +24,26 @@ const ConfigItemRenderer = memo(
   ({ item, isConditional }: ConfigItemRendererProps) => {
     const value = useConfigStore((state) => {
       // 自定义项可能用虚拟 key，从 configs 中取不到值
-      if ((item.key).startsWith("__")) return undefined;
+      if (item.key.startsWith("__")) return undefined;
       return state.configs[item.key as keyof typeof state.configs];
     });
+    const configs = useConfigStore((state) => state.configs);
     const setConfig = useConfigStore((state) => state.setConfig);
     const resetConfig = useConfigStore((state) => state.resetConfig);
 
+    // 计算动态属性
+    const resolvedPlaceholder = useMemo(
+      () => item.dynamicPlaceholder?.(configs) ?? item.placeholder,
+      [item, configs],
+    );
+    const resolvedTipContent = useMemo(
+      () => item.dynamicTipContent?.(configs) ?? item.tipContent,
+      [item, configs],
+    );
+
     // 判断是否已修改（值 ≠ 默认值）
     const isModified = useMemo(() => {
-      if ((item.key).startsWith("__")) return false;
+      if (item.key.startsWith("__")) return false;
       const defaultValue =
         configDefaults[item.key as keyof typeof configDefaults];
       return JSON.stringify(value) !== JSON.stringify(defaultValue);
@@ -101,7 +112,7 @@ const ConfigItemRenderer = memo(
           return (
             <Input
               value={value as string}
-              placeholder={item.placeholder}
+              placeholder={resolvedPlaceholder}
               onChange={(e) =>
                 setConfig(
                   item.key as keyof typeof configDefaults,
@@ -115,7 +126,7 @@ const ConfigItemRenderer = memo(
           return (
             <Input.Password
               value={value as string}
-              placeholder={item.placeholder}
+              placeholder={resolvedPlaceholder}
               onChange={(e) =>
                 setConfig(
                   item.key as keyof typeof configDefaults,
@@ -210,9 +221,9 @@ const ConfigItemRenderer = memo(
             placement="bottomLeft"
             title={item.tipTitle}
             content={
-              item.tipContent ? (
+              resolvedTipContent ? (
                 <div style={{ maxWidth: 260, whiteSpace: "pre-wrap" }}>
-                  {item.tipContent}
+                  {resolvedTipContent}
                 </div>
               ) : undefined
             }

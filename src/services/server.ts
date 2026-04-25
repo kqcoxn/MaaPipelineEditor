@@ -13,6 +13,7 @@ import { ConfigProtocol } from "./protocols/ConfigProtocol";
 import { DebugProtocol } from "./protocols/DebugProtocol";
 import { ResourceProtocol } from "./protocols/ResourceProtocol";
 import { LoggerProtocol } from "./protocols/LoggerProtocol";
+import { AIProtocol } from "./protocols/AIProtocol";
 import { globalConfig } from "../stores/configStore";
 
 const PROTOCOL_VERSION = globalConfig.protocolVersion;
@@ -52,15 +53,15 @@ export class LocalWebSocketServer {
             "[WebSocket] 协议版本不匹配，前端需求:",
             PROTOCOL_VERSION,
             "，当前本地服务协议:",
-            data.required_version
+            data.required_version,
           );
           message.error(
-            `协议版本不匹配，前端需求: ${PROTOCOL_VERSION}，当前本地服务协议: ${data.required_version}，请按后端提示更新`
+            `协议版本不匹配，前端需求: ${PROTOCOL_VERSION}，当前本地服务协议: ${data.required_version}，请按后端提示更新`,
           );
           // 主动断开连接
           this.disconnect();
         }
-      }
+      },
     );
   }
 
@@ -142,12 +143,12 @@ export class LocalWebSocketServer {
                 onClick: () => {
                   window.open(
                     "https://mpe.codax.site/docs/guide/server/deploy.html",
-                    "_blank"
+                    "_blank",
                   );
                   notification.destroy(key);
                 },
               },
-              "查看文档"
+              "查看文档",
             ),
           });
           this.ws.close();
@@ -199,12 +200,12 @@ export class LocalWebSocketServer {
               onClick: () => {
                 window.open(
                   "https://mpe.codax.site/docs/guide/server/deploy.html",
-                  "_blank"
+                  "_blank",
                 );
                 notification.destroy(key);
               },
             },
-            "查看文档"
+            "查看文档",
           ),
         });
       };
@@ -238,12 +239,12 @@ export class LocalWebSocketServer {
             onClick: () => {
               window.open(
                 "https://mpe.codax.site/docs/guide/server/deploy.html",
-                "_blank"
+                "_blank",
               );
               notification.destroy(key);
             },
           },
-          "查看文档"
+          "查看文档",
         ),
       });
       this.onStatusChange?.(false);
@@ -340,6 +341,7 @@ export const configProtocol = new ConfigProtocol();
 export const debugProtocol = new DebugProtocol();
 export const resourceProtocol = new ResourceProtocol();
 export const loggerProtocol = new LoggerProtocol();
+export const aiProtocol = new AIProtocol();
 
 /**
  * 初始化 WebSocket 连接和所有响应路由
@@ -366,6 +368,9 @@ export function initializeWebSocket() {
 
   // 注册 LoggerProtocol
   loggerProtocol.register(localServer);
+
+  // 注册 AIProtocol
+  aiProtocol.register(localServer);
 
   // 监听连接成功事件，确保协议注册
   localServer.onStatus((connected) => {});

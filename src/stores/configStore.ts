@@ -1,14 +1,15 @@
 import { create } from "zustand";
 import type { HandleDirection } from "../components/flow/nodes/constants";
 import type { FieldSortConfig } from "../core/sorting/types";
+import { encryptApiKey } from "../utils/ai/crypto";
 
 /**固有配置 */
 export const globalConfig = {
   dev: true,
   version: `1.4.3`,
-  betaIteration: 0,
+  betaIteration: 1,
   mfwVersion: "5.10.2",
-  protocolVersion: "0.8.1",
+  protocolVersion: "0.8.2",
 };
 
 if (globalConfig.dev) {
@@ -74,6 +75,8 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   aiApiKey: "ai",
   aiModel: "ai",
   aiTemperature: "ai",
+  aiProviderType: "ai",
+  aiUseProxy: "ai",
 };
 
 /**获取可导出的配置 */
@@ -136,6 +139,8 @@ const defaultConfigs = {
   aiApiKey: "",
   aiModel: "",
   aiTemperature: 0.7,
+  aiProviderType: "custom" as const,
+  aiUseProxy: true,
   // 聚焦透明度
   focusOpacity: 0.3,
   // 边控制点
@@ -193,6 +198,8 @@ export type ConfigState = {
     aiApiKey: string;
     aiModel: string;
     aiTemperature: number;
+    aiProviderType: string;
+    aiUseProxy: boolean;
     // 聚焦透明度
     focusOpacity: number;
     // 边控制点
@@ -253,6 +260,25 @@ export const useConfigStore = create<ConfigState>()((set, get) => ({
   // 设置
   configs: { ...defaultConfigs },
   setConfig(key, value) {
+    // 加密 API Key
+    if (
+      key === "aiApiKey" &&
+      typeof value === "string" &&
+      value &&
+      !value.startsWith("ENC:")
+    ) {
+      encryptApiKey(value).then((encrypted) => {
+        set((state) => {
+          state.configuredKeys.add(key as string);
+          return {
+            configs: { ...state.configs, [key]: encrypted },
+            configuredKeys: new Set(state.configuredKeys),
+          };
+        });
+      });
+      return;
+    }
+
     set((state) => {
       const newConfigs = { ...state.configs, [key]: value };
 
@@ -301,6 +327,19 @@ export const useConfigStore = create<ConfigState>()((set, get) => ({
       // 批量标记导入的 key 为已配置
       const newConfiguredKeys = new Set(state.configuredKeys);
       Object.keys(newConfigs).forEach((key) => newConfiguredKeys.add(key));
+
+      // 迁移明文 API Key 为加密格式
+      if (
+        mergedConfigs.aiApiKey &&
+        !mergedConfigs.aiApiKey.startsWith("ENC:")
+      ) {
+        const plainKey = mergedConfigs.aiApiKey;
+        encryptApiKey(plainKey).then((encrypted) => {
+          set((s) => ({
+            configs: { ...s.configs, aiApiKey: encrypted },
+          }));
+        });
+      }
 
       return { configs: mergedConfigs, configuredKeys: newConfiguredKeys };
     });

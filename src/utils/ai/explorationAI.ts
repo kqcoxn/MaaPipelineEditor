@@ -15,7 +15,7 @@ import { useFileStore } from "../../stores/fileStore";
 import { useMFWStore } from "../../stores/mfwStore";
 import { mfwProtocol } from "../../services/server";
 import { NodeTypeEnum } from "../../components/flow/nodes/constants";
-import { OpenAIChat } from "./openai";
+import { AIClient } from "./aiClient";
 import { SYSTEM_PROMPTS } from "./aiPrompts";
 
 /**
@@ -206,7 +206,7 @@ async function predictExplorationNodeConfig(
   onProgress?.("构建提示词", "正在构建 AI 提示词...");
   const prompt = buildExplorationPrompt(context, goal);
 
-  const aiChat = new OpenAIChat({
+  const aiChat = new AIClient({
     systemPrompt: SYSTEM_PROMPTS.PIPELINE_EXPERT,
     historyLimit: 5,
   });

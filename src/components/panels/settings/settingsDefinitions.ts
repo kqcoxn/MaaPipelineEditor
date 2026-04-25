@@ -42,6 +42,10 @@ export interface ConfigItemDef {
   addonAfter?: string;
   /**input/inputPassword 占位文本 */
   placeholder?: string;
+  /**动态占位文本（优先级高于 placeholder，可根据其他配置项值动态变化） */
+  dynamicPlaceholder?: (configs: ConfigState["configs"]) => string;
+  /**动态提示内容（优先级高于 tipContent，可根据其他配置项值动态变化） */
+  dynamicTipContent?: (configs: ConfigState["configs"]) => string;
   /**自定义渲染标识 */
   customRender?: string;
   /**条件显隐 */
@@ -57,6 +61,36 @@ export interface ConfigItemDef {
   /**控件样式宽度 */
   controlWidth?: number;
 }
+
+/** 各 Provider 类型对应的范例信息 */
+const AI_PROVIDER_EXAMPLES: Record<
+  string,
+  { url: string; key: string; models: string }
+> = {
+  custom: {
+    url: "https://qianfan.baidubce.com/v2",
+    key: "sk-xxxx",
+    models: "deepseek-v4-pro / qwen3.6-plus",
+  },
+  openai: {
+    url: "https://api.openai.com",
+    key: "sk-proj-xxxx",
+    models: "gpt-5.5 / gpt-4o",
+  },
+  anthropic: {
+    url: "https://api.anthropic.com",
+    key: "sk-ant-xxxx",
+    models: "claude-sonnet-4-6 / claude-haiku-4-20250414",
+  },
+  gemini: {
+    url: "https://generativelanguage.googleapis.com",
+    key: "AIzaSyXXXX",
+    models: "gemini-2.5-flash / gemini-2.5-pro",
+  },
+};
+
+const getAIExample = (configs: ConfigState["configs"]) =>
+  AI_PROVIDER_EXAMPLES[configs.aiProviderType] || AI_PROVIDER_EXAMPLES.custom;
 
 /**所有配置项定义 */
 export const settingsDefinitions: ConfigItemDef[] = [
@@ -511,25 +545,44 @@ export const settingsDefinitions: ConfigItemDef[] = [
     order: 0,
   },
   {
+    key: "aiProviderType",
+    category: "ai",
+    label: "API 类型",
+    tipTitle: "API 服务类型",
+    tipContent:
+      "选择 AI 服务提供商类型。不同类型使用不同的协议和端点格式。如果你使用的是 OpenAI 兼容的第三方服务（如 DeepSeek、通义千问等），请选择'自定义'",
+    type: "select",
+    options: [
+      { value: "custom", label: "自定义 (OpenAI 兼容)" },
+      { value: "openai", label: "OpenAI" },
+      { value: "anthropic", label: "Claude (Anthropic)" },
+      { value: "gemini", label: "Gemini (Google)" },
+    ],
+    controlWidth: 200,
+    order: 1,
+  },
+  {
     key: "aiApiUrl",
     category: "ai",
     label: "API URL",
     tipTitle: "API URL",
     tipContent:
-      "OpenAI 兼容的 API 端点地址，例如: https://api.openai.com/v1/chat/completions",
+      "API 基础地址。OpenAI: https://api.openai.com，Anthropic: https://api.anthropic.com，Gemini: https://generativelanguage.googleapis.com。自定义类型请填写完整的 API 地址",
     type: "input",
-    placeholder: "输入 API 地址",
-    order: 1,
+    placeholder: "例如: https://api.openai.com",
+    dynamicPlaceholder: (configs) => `例如: ${getAIExample(configs).url}`,
+    order: 2,
   },
   {
     key: "aiApiKey",
     category: "ai",
     label: "API Key",
     tipTitle: "API Key",
-    tipContent: "你的 API 密钥，将存储在浏览器本地，请注意安全",
+    tipContent: "你的 API 密钥，将加密存储在浏览器本地（AES-GCM）",
     type: "inputPassword",
-    placeholder: "输入 API Key",
-    order: 2,
+    placeholder: "例如: sk-xxxx",
+    dynamicPlaceholder: (configs) => `例如: ${getAIExample(configs).key}`,
+    order: 3,
   },
   {
     key: "aiModel",
@@ -537,10 +590,11 @@ export const settingsDefinitions: ConfigItemDef[] = [
     label: "模型",
     tipTitle: "模型名称",
     tipContent:
-      "使用的模型名称，例如: gpt-4o, gpt-4o-mini, claude-3-5-sonnet-latest, qwen-vl-plus 等",
+      "使用的模型名称。例如: gpt-4o, gpt-4o-mini, claude-sonnet-4-20250514, gemini-2.5-flash 等",
     type: "input",
-    placeholder: "输入模型名称",
-    order: 3,
+    placeholder: "例如: gpt-4o / claude-sonnet-4-20250514 / gemini-2.5-flash",
+    dynamicPlaceholder: (configs) => `例如: ${getAIExample(configs).models}`,
+    order: 4,
   },
   {
     key: "aiTemperature",
@@ -553,7 +607,19 @@ export const settingsDefinitions: ConfigItemDef[] = [
     min: 0,
     max: 1,
     step: 0.1,
-    order: 4,
+    order: 5,
+  },
+  {
+    key: "aiUseProxy",
+    category: "ai",
+    label: "LocalBridge 代理",
+    tipTitle: "LocalBridge 代理",
+    tipContent:
+      "开启后通过 LocalBridge 本地服务代理 AI 请求，可解决浏览器 CORS 跨域限制。关闭则直接从浏览器调用 API（需要 API 服务支持 CORS）",
+    type: "switch",
+    checkedChildren: "开启",
+    unCheckedChildren: "关闭",
+    order: 6,
   },
   {
     key: "__testConnection",
@@ -563,7 +629,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
     tipContent: "测试当前 AI 配置是否可用",
     type: "custom",
     customRender: "testConnection",
-    order: 5,
+    order: 7,
   },
 
   // ==================== 管理 (management) ====================

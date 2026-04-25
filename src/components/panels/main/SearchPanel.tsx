@@ -10,7 +10,7 @@ import IconFont from "../../iconfonts";
 import { useFlowStore, type NodeType } from "../../../stores/flow";
 import { useConfigStore } from "../../../stores/configStore";
 import { usePanelOccupancy } from "../../../hooks/usePanelOccupancy";
-import { OpenAIChat } from "../../../utils/ai/openai";
+import { AIClient } from "../../../utils/ai/aiClient";
 import { buildAISearchPrompt } from "../../../utils/ai/aiPrompts";
 import { NodeTypeEnum } from "../../flow/nodes";
 import {
@@ -52,7 +52,7 @@ function SearchPanel() {
   } = usePanelOccupancy("nodeList");
   const searchRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const aiChatRef = useRef<OpenAIChat | null>(null);
+  const aiChatRef = useRef<AIClient | null>(null);
 
   // 被其他面板排挤时执行 close 反应
   useEffect(() => {
@@ -249,7 +249,7 @@ function SearchPanel() {
       );
 
       // 创建AI实例
-      const aiChat = new OpenAIChat({
+      const aiChat = new AIClient({
         systemPrompt,
         historyLimit: 0,
       });
