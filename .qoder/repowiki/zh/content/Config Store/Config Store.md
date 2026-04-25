@@ -28,6 +28,9 @@
 - [error.json](file://LocalBridge/test-json/base/error.json)
 - [package.json](file://package.json)
 - [go.mod](file://LocalBridge/go.mod)
+- [guardSystem.ts](file://src/components/panels/settings/guardSystem.ts)
+- [settingsDefinitions.ts](file://src/components/panels/settings/settingsDefinitions.ts)
+- [customRenderers.tsx](file://src/components/panels/settings/customRenderers.tsx)
 </cite>
 
 ## 更新摘要
@@ -36,7 +39,10 @@
 - 新增FieldSortConfig配置项，允许用户拖拽调整字段排序
 - 新增FieldSortModal组件，提供可视化排序界面
 - 新增字段排序系统，支持5个不同类别的字段排序
-- 版本号更新到1.4.0，beta迭代号从1更新到2，反映开发迭代进度的更新
+- 新增配置已配置追踪机制，支持守卫系统
+- 新增自动持久化机制，支持localStorage配置保存
+- 新增配置验证系统，支持字段格式验证
+- 版本号更新到1.5.0，beta迭代号从0更新到1，反映开发迭代进度的更新
 - 扩展排序应用逻辑，支持v1/v2协议版本的字段排序
 - 增强导出器，支持按用户配置的字段顺序导出
 
@@ -60,7 +66,7 @@
 - **后端配置系统**：基于 Viper 的配置文件管理和验证
 - **通信协议层**：通过 WebSocket 实现前后端配置同步
 
-**更新** 新增字段排序配置功能，允许用户自定义字段显示顺序，提升配置文件的可读性和一致性。**版本更新** 当前版本为1.4.0_beta_2，beta迭代号已从1更新到2，体现了持续的开发进度跟踪。
+**更新** 新增字段排序配置功能，允许用户自定义字段显示顺序，提升配置文件的可读性和一致性。新增配置已配置追踪机制，支持守卫系统实现智能配置引导。新增自动持久化机制，支持localStorage配置保存，确保用户配置的持久化存储。**版本更新** 当前版本为1.5.0_beta_1，beta迭代号已从0更新到1，体现了持续的开发进度跟踪。
 
 ## 项目结构
 
@@ -73,78 +79,91 @@ C[PipelineConfigSection.tsx<br/>管道配置界面]
 D[ConfigManagementSection.tsx<br/>配置管理界面]
 E[BackendConfigModal.tsx<br/>后端配置对话框]
 F[FieldSortModal.tsx<br/>字段排序模态框]
+G[guardSystem.ts<br/>配置守卫系统]
+H[settingsDefinitions.ts<br/>配置定义]
+I[customRenderers.tsx<br/>自定义渲染器]
 end
 subgraph "通信协议层"
-G[ConfigProtocol.ts<br/>WebSocket 协议]
-H[wsStore.ts<br/>WebSocket 状态]
+J[ConfigProtocol.ts<br/>WebSocket 协议]
+K[wsStore.ts<br/>WebSocket 状态]
 end
 subgraph "后端配置系统"
-I[config.go<br/>Go 配置结构]
-J[paths.go<br/>路径管理]
-K[default.json<br/>默认配置]
+L[config.go<br/>Go 配置结构]
+M[paths.go<br/>路径管理]
+N[default.json<br/>默认配置]
 end
 subgraph "应用集成"
-L[App.tsx<br/>应用入口]
-M[各组件<br/>配置使用]
+O[App.tsx<br/>应用入口]
+P[各组件<br/>配置使用]
 end
 subgraph "排序系统"
-N[index.ts<br/>排序导出入口]
-O[types.ts<br/>排序类型定义]
-P[defaults.ts<br/>默认排序配置]
-Q[applySort.ts<br/>排序应用逻辑]
-R[nodeParser.ts<br/>节点解析器]
+Q[index.ts<br/>排序导出入口]
+R[types.ts<br/>排序类型定义]
+S[defaults.ts<br/>默认排序配置]
+T[applySort.ts<br/>排序应用逻辑]
+U[nodeParser.ts<br/>节点解析器]
 end
 subgraph "JSON格式化"
-S[exporter.ts<br/>导出器]
-T[fileStore.ts<br/>文件存储]
-U[file_service.go<br/>文件服务]
-V[nodeJsonValidator.ts<br/>JSON验证器]
+V[exporter.ts<br/>导出器]
+W[fileStore.ts<br/>文件存储]
+X[file_service.go<br/>文件服务]
+Y[nodeJsonValidator.ts<br/>JSON验证器]
 end
 A --> B
 A --> C
 A --> D
 A --> E
 A --> F
-G --> H
-I --> J
-K --> I
-L --> A
-L --> E
-L --> F
-M --> A
-N --> O
-N --> P
-N --> Q
-R --> Q
-S --> A
-T --> A
+A --> G
+A --> H
+A --> I
+J --> K
+L --> M
+N --> L
+O --> A
+O --> E
+O --> F
+P --> A
+Q --> R
+Q --> S
+Q --> T
 U --> T
 V --> A
+W --> A
+X --> W
+Y --> A
 ```
 
 **图表来源**
-- [configStore.ts:1-287](file://src/stores/configStore.ts#L1-L287)
+- [configStore.ts:1-355](file://src/stores/configStore.ts#L1-L355)
 - [ConfigProtocol.ts:1-197](file://src/services/protocols/ConfigProtocol.ts#L1-L197)
 - [config.go:1-339](file://LocalBridge/internal/config/config.go#L1-L339)
 - [exporter.ts:217-243](file://src/core/parser/exporter.ts#L217-L243)
 - [fileStore.ts:697-753](file://src/stores/fileStore.ts#L697-L753)
 - [FieldSortModal.tsx:1-362](file://src/components/modals/FieldSortModal.tsx#L1-L362)
 - [applySort.ts:1-341](file://src/core/sorting/applySort.ts#L1-L341)
+- [guardSystem.ts:1-38](file://src/components/panels/settings/guardSystem.ts#L1-L38)
+- [settingsDefinitions.ts:1-200](file://src/components/panels/settings/settingsDefinitions.ts#L1-L200)
+- [customRenderers.tsx:1-200](file://src/components/panels/settings/customRenderers.tsx#L1-L200)
 
 ## 核心组件
 
 ### 配置分类系统
 
-系统将配置分为四大类别，每种类别都有特定的功能领域：
+系统将配置分为九个类别，每种类别都有特定的功能领域：
 
 ```mermaid
 classDiagram
 class ConfigCategory {
 <<enumeration>>
-+panel
-+pipeline
-+communication
++export
++node
++connection
++canvas
++component
++local-service
 +ai
++management
 }
 class ConfigState {
 +configs : ConfigMap
@@ -152,14 +171,18 @@ class ConfigState {
 +setConfig(key, value)
 +replaceConfig(configs)
 +setStatus(key, value)
++markAsConfigured(key)
++isConfigured(key)
 }
 class ConfigMap {
-+isRealTimePreview : boolean
++isExportConfig : boolean
++configHandlingMode : ConfigHandlingMode
 +nodeStyle : NodeStyleType
 +wsPort : number
 +aiApiUrl : string
 +jsonIndent : number
 +fieldSortConfig : FieldSortConfig
++configuredKeys : Set<string>
 +其他配置项...
 }
 ConfigState --> ConfigCategory : "分类管理"
@@ -167,8 +190,8 @@ ConfigState --> ConfigMap : "配置存储"
 ```
 
 **图表来源**
-- [configStore.ts:17-63](file://src/stores/configStore.ts#L17-L63)
-- [configStore.ts:98-167](file://src/stores/configStore.ts#L98-L167)
+- [configStore.ts:18-27](file://src/stores/configStore.ts#L18-L27)
+- [configStore.ts:169-250](file://src/stores/configStore.ts#L169-L250)
 
 ### 配置映射机制
 
@@ -176,16 +199,19 @@ ConfigState --> ConfigMap : "配置存储"
 
 | 配置类别 | 配置项列表 |
 |---------|-----------|
-| **面板配置** | nodeStyle, historyLimit, isRealTimePreview, showEdgeLabel, edgePathMode, isAutoFocus, focusOpacity, useDarkMode, canvasBackgroundMode, fieldPanelMode, inlinePanelScale, showNodeTemplateImages, showNodeDetailFields, saveFilesBeforeDebug, enableNodeSnap, snapOnlyInViewport, enableLiveScreen, liveScreenRefreshRate |
-| **管道配置** | nodeAttrExportStyle, defaultHandleDirection, exportDefaultRecoAction, pipelineProtocolVersion, skipFieldValidation, jsonIndent, configHandlingMode |
-| **通信配置** | wsPort, wsAutoConnect, fileAutoReload, enableCrossFileSearch |
+| **导出配置** | nodeAttrExportStyle, exportDefaultRecoAction, exportEmptyParam, pipelineProtocolVersion, skipFieldValidation, jsonIndent, configHandlingMode |
+| **节点配置** | nodeStyle, showNodeDetailFields, showNodeTemplateImages, enableNodeSnap, snapOnlyInViewport, defaultHandleDirection |
+| **连接配置** | edgePathMode, showEdgeLabel, showEdgeControlPoint, quickCreateNodeOnConnectBlank |
+| **画布配置** | canvasBackgroundMode, isAutoFocus, focusOpacity, useDarkMode |
+| **组件配置** | isExportConfig, saveFilesBeforeDebug, fieldPanelMode, inlinePanelScale, enableLiveScreen, liveScreenRefreshRate, historyLimit |
+| **本地服务配置** | wsPort, wsAutoConnect, fileAutoReload, enableCrossFileSearch |
 | **AI 配置** | aiApiUrl, aiApiKey, aiModel, aiTemperature |
-| **字段排序配置** | **fieldSortConfig** |
+| **管理配置** | **fieldSortConfig** |
 
-**更新** 新增字段排序配置类别，包含fieldSortConfig配置项，用于管理字段显示顺序。
+**更新** 新增管理配置类别，包含fieldSortConfig配置项，用于管理字段显示顺序。
 
 **章节来源**
-- [configStore.ts:24-65](file://src/stores/configStore.ts#L24-L65)
+- [configStore.ts:33-77](file://src/stores/configStore.ts#L33-L77)
 
 ## 架构概览
 
@@ -200,6 +226,7 @@ participant SortSystem as 排序系统
 participant Exporter as 导出器
 UI->>Store : 修改配置
 Store->>Store : setConfig()
+Store->>Store : markAsConfigured()
 Store->>UI : 更新界面
 UI->>Protocol : 请求获取配置
 Protocol->>Backend : /etl/config/get
@@ -221,8 +248,8 @@ Exporter->>UI : 使用指定缩进格式化
 
 **图表来源**
 - [ConfigProtocol.ts:128-161](file://src/services/protocols/ConfigProtocol.ts#L128-L161)
-- [configStore.ts:220-232](file://src/stores/configStore.ts#L220-L232)
-- [exporter.ts:217-243](file://src/core/parser/exporter.ts#L217-L243)
+- [configStore.ts:255-273](file://src/stores/configStore.ts#L255-L273)
+- [exporter.ts:235-261](file://src/core/parser/exporter.ts#L235-L261)
 - [applySort.ts:314-327](file://src/core/sorting/applySort.ts#L314-L327)
 
 ## 详细组件分析
@@ -239,23 +266,29 @@ class useConfigStore {
 +setConfig(key, value)
 +replaceConfig(configs)
 +setStatus(key, value)
++markAsConfigured(key)
++isConfigured(key)
++resetConfig(key)
++resetAllConfigs()
 }
 class ConfigState {
 +configs : ConfigMap
 +status : StatusMap
++configuredKeys : Set<string>
 }
 class ConfigMap {
-+isRealTimePreview : boolean
++isExportConfig : boolean
++configHandlingMode : ConfigHandlingMode
 +nodeStyle : NodeStyleType
 +wsPort : number
 +aiApiUrl : string
 +jsonIndent : number
 +fieldSortConfig : FieldSortConfig
-+configHandlingMode : ConfigHandlingMode
 +其他配置项...
 }
 class StatusMap {
 +showConfigPanel : boolean
++showFileConfigPanel : boolean
 +showAIHistoryPanel : boolean
 +showLocalFilePanel : boolean
 +showFieldSortModal : boolean
@@ -267,7 +300,7 @@ ConfigState --> StatusMap : "包含"
 ```
 
 **图表来源**
-- [configStore.ts:98-167](file://src/stores/configStore.ts#L98-L167)
+- [configStore.ts:252-354](file://src/stores/configStore.ts#L252-L354)
 
 #### 配置同步机制
 
@@ -281,7 +314,7 @@ B --> |isExportConfig| D[同步 configHandlingMode]
 B --> |jsonIndent| E[直接更新]
 B --> |fieldSortConfig| F[直接更新]
 B --> |其他配置| G[直接更新]
-C --> H[返回新配置]
+C --> H[标记为已配置]
 D --> H
 E --> H
 F --> H
@@ -290,13 +323,13 @@ H --> I[更新状态]
 I --> J[触发界面更新]
 ```
 
-**更新** 新增fieldSortConfig配置项的处理逻辑，允许用户直接设置字段排序配置。
+**更新** 新增配置已配置追踪机制，通过configuredKeys Set集合跟踪用户已配置的配置项，支持守卫系统实现智能配置引导。
 
 **图表来源**
-- [configStore.ts:220-232](file://src/stores/configStore.ts#L220-L232)
+- [configStore.ts:255-273](file://src/stores/configStore.ts#L255-L273)
 
 **章节来源**
-- [configStore.ts:169-287](file://src/stores/configStore.ts#L169-L287)
+- [configStore.ts:308-339](file://src/stores/configStore.ts#L308-L339)
 
 ### 字段排序配置系统
 
@@ -369,7 +402,7 @@ H --> I[重置为默认]
 **更新** 新增字段排序模态框组件，提供拖拽排序功能，支持5个不同类别的字段排序。
 
 **图表来源**
-- [FieldSortModal.tsx:106-362](file://src/components/modals/FieldSortModal.tsx#L106-L362)
+- [FieldSortModal.tsx:108-360](file://src/components/modals/FieldSortModal.tsx#L108-L360)
 
 #### 排序界面特性
 
@@ -382,7 +415,7 @@ H --> I[重置为默认]
 - **实时预览**：排序变更实时反映在界面中
 
 **章节来源**
-- [FieldSortModal.tsx:106-362](file://src/components/modals/FieldSortModal.tsx#L106-L362)
+- [FieldSortModal.tsx:108-360](file://src/components/modals/FieldSortModal.tsx#L108-L360)
 
 ### 排序应用逻辑
 
@@ -448,7 +481,7 @@ Exporter-->>Exporter : 导出完成
 **更新** 导出器现在从配置存储中获取fieldSortConfig配置，支持按用户定义的字段顺序导出。
 
 **图表来源**
-- [exporter.ts:217-243](file://src/core/parser/exporter.ts#L217-L243)
+- [exporter.ts:235-261](file://src/core/parser/exporter.ts#L235-L261)
 
 #### 导出逻辑增强
 
@@ -460,7 +493,7 @@ Exporter-->>Exporter : 导出完成
 - **默认回退**：当配置不可用时使用默认4空格缩进
 
 **章节来源**
-- [exporter.ts:217-243](file://src/core/parser/exporter.ts#L217-L243)
+- [exporter.ts:235-261](file://src/core/parser/exporter.ts#L235-L261)
 
 ### 文件存储集成
 
@@ -482,7 +515,7 @@ H --> I[写入文件]
 **更新** 文件存储系统现在支持传递jsonIndent参数给后端服务，确保文件保存时使用正确的缩进格式。
 
 **图表来源**
-- [fileStore.ts:697-753](file://src/stores/fileStore.ts#L697-L753)
+- [fileStore.ts:636-699](file://src/stores/fileStore.ts#L636-L699)
 
 #### 后端服务处理
 
@@ -493,8 +526,115 @@ H --> I[写入文件]
 - **序列化处理**：使用json.MarshalIndent函数进行格式化输出
 
 **章节来源**
-- [fileStore.ts:697-753](file://src/stores/fileStore.ts#L697-L753)
+- [fileStore.ts:636-699](file://src/stores/fileStore.ts#L636-L699)
 - [file_service.go:158-201](file://LocalBridge/internal/service/file/file_service.go#L158-L201)
+
+### 自动持久化机制
+
+**新增** 自动持久化机制确保用户配置的持久化存储：
+
+```mermaid
+sequenceDiagram
+participant Store as 配置存储
+participant LocalStorage as 浏览器存储
+participant FileStore as 文件存储
+Store->>LocalStorage : 保存配置
+LocalStorage-->>Store : 确认保存
+Store->>FileStore : 同步配置
+FileStore->>LocalStorage : 保存文件缓存
+LocalStorage-->>FileStore : 确认保存
+```
+
+**更新** 新增自动持久化机制，通过localStorage实现配置的持久化存储，支持configuredKeys的保存和恢复。
+
+**图表来源**
+- [fileStore.ts:247-255](file://src/stores/fileStore.ts#L247-L255)
+- [fileStore.ts:506-517](file://src/stores/fileStore.ts#L506-L517)
+
+#### 持久化特性
+
+自动持久化机制具有以下特性：
+
+- **配置保存**：自动保存所有配置项到localStorage
+- **已配置追踪**：保存configuredKeys集合，跟踪用户配置状态
+- **文件缓存**：同步保存文件缓存，支持多文件管理
+- **恢复机制**：应用启动时自动恢复配置和文件状态
+- **错误处理**：处理localStorage配额超限等异常情况
+
+**章节来源**
+- [fileStore.ts:247-275](file://src/stores/fileStore.ts#L247-L275)
+- [fileStore.ts:506-517](file://src/stores/fileStore.ts#L506-L517)
+
+### 配置守卫系统
+
+**新增** 配置守卫系统提供智能的配置引导功能：
+
+```mermaid
+graph LR
+A[配置定义] --> B[守卫动作]
+B --> C[检查配置]
+C --> D{是否已配置}
+D --> |是| E[通过检查]
+D --> |否| F[阻止操作]
+F --> G[显示引导弹窗]
+G --> H[用户配置]
+H --> I[重新检查]
+I --> D
+```
+
+**更新** 新增配置守卫系统，通过configuredKeys集合实现智能配置引导，确保关键配置的完整性。
+
+**图表来源**
+- [guardSystem.ts:17-32](file://src/components/panels/settings/guardSystem.ts#L17-L32)
+- [settingsDefinitions.ts:164-172](file://src/components/panels/settings/settingsDefinitions.ts#L164-L172)
+
+#### 守卫系统特性
+
+配置守卫系统具有以下特性：
+
+- **配置追踪**：通过configuredKeys集合追踪用户已配置的配置项
+- **操作保护**：防止未配置的关键操作被执行
+- **智能引导**：自动检测未配置的配置项并引导用户完成配置
+- **批量检查**：支持批量检查多个配置项的配置状态
+- **自定义提示**：支持为不同操作配置自定义的引导提示
+
+**章节来源**
+- [guardSystem.ts:17-38](file://src/components/panels/settings/guardSystem.ts#L17-L38)
+- [settingsDefinitions.ts:164-172](file://src/components/panels/settings/settingsDefinitions.ts#L164-L172)
+
+### 配置验证系统
+
+**新增** 配置验证系统提供字段格式验证功能：
+
+```mermaid
+sequenceDiagram
+participant Validator as 验证器
+participant ConfigStore as 配置存储
+participant Node as 节点数据
+Validator->>ConfigStore : 获取配置
+ConfigStore-->>Validator : 返回配置
+Validator->>Node : 验证字段格式
+Node-->>Validator : 返回验证结果
+Validator-->>ConfigStore : 更新验证状态
+```
+
+**更新** 新增配置验证系统，通过nodeJsonValidator实现字段格式验证，确保配置数据的正确性。
+
+**图表来源**
+- [nodeJsonValidator.ts:21-95](file://src/utils/nodeJsonValidator.ts#L21-L95)
+
+#### 验证系统特性
+
+配置验证系统具有以下特性：
+
+- **节点验证**：验证节点数据对象的完整性和正确性
+- **自动修复**：尝试修复不完整的节点数据结构
+- **格式检查**：验证字段类型和必需字段的存在性
+- **错误报告**：提供详细的错误信息和修复建议
+- **类型支持**：支持多种节点类型的验证
+
+**章节来源**
+- [nodeJsonValidator.ts:21-95](file://src/utils/nodeJsonValidator.ts#L21-L95)
 
 ### 后端配置系统 (Go)
 
@@ -650,40 +790,47 @@ I[exporter.ts] --> A
 J[fileStore.ts] --> A
 K[nodeJsonValidator.ts] --> A
 L[FieldSortConfig类型] --> A
+M[guardSystem.ts] --> A
+N[settingsDefinitions.ts] --> A
+O[customRenderers.tsx] --> A
 end
 subgraph "排序系统依赖"
-M[index.ts] --> N[types.ts]
-M --> O[defaults.ts]
-M --> P[applySort.ts]
-N --> Q[nodeParser.ts]
-O --> R[fields.ts]
-P --> S[parser/types.ts]
+P[index.ts] --> Q[types.ts]
+P --> R[defaults.ts]
+P --> S[applySort.ts]
+Q --> T[nodeParser.ts]
+R --> U[fields.ts]
+S --> V[parser/types.ts]
 end
 subgraph "后端依赖"
-T[config.go] --> U[viper]
-T --> V[spf13/viper]
-W[paths.go] --> X[os/path/filepath]
-T --> W
-Y[file_service.go] --> Z[encoding/json]
-Y --> AA[tailscale/hujson]
+W[config.go] --> X[viper]
+W --> Y[spf13/viper]
+Z[paths.go] --> AA[os/path/filepath]
+W --> Z
+BB[file_service.go] --> CC[encoding/json]
+BB --> DD[tailscale/hujson]
 end
 subgraph "通信依赖"
-AB[ConfigProtocol.ts] --> AC[WebSocket]
-AD[wsStore.ts] --> AC
-AB --> AD
+EE[ConfigProtocol.ts] --> FF[WebSocket]
+GG[wsStore.ts] --> FF
+EE --> GG
 end
 subgraph "应用集成"
-AE[App.tsx] --> A
-AE --> AB
-AF[各组件] --> A
-AG[JSON格式化] --> Y
-AH[排序应用] --> P
+HH[App.tsx] --> A
+HH --> EE
+II[各组件] --> A
+JJ[JSON格式化] --> BB
+KK[排序应用] --> S
+LL[守卫系统] --> MM
+MM --> NN
+NN --> OO
+OO --> PP
 end
-A -.-> AB
-T -.-> AB
+A -.-> EE
+W -.-> EE
 ```
 
-**更新** 新增排序系统相关依赖，包括FieldSortConfig类型、排序应用逻辑等。
+**更新** 新增排序系统相关依赖，包括FieldSortConfig类型、排序应用逻辑等。新增守卫系统依赖，包括guardSystem、settingsDefinitions、customRenderers等组件。
 
 **图表来源**
 - [configStore.ts:1](file://src/stores/configStore.ts#L1)
@@ -691,6 +838,9 @@ T -.-> AB
 - [nodeJsonValidator.ts:272-279](file://src/utils/nodeJsonValidator.ts#L272-L279)
 - [file_service.go:158-201](file://LocalBridge/internal/service/file/file_service.go#L158-L201)
 - [applySort.ts:1-341](file://src/core/sorting/applySort.ts#L1-L341)
+- [guardSystem.ts:1-38](file://src/components/panels/settings/guardSystem.ts#L1-L38)
+- [settingsDefinitions.ts:1-200](file://src/components/panels/settings/settingsDefinitions.ts#L1-L200)
+- [customRenderers.tsx:1-200](file://src/components/panels/settings/customRenderers.tsx#L1-L200)
 
 **章节来源**
 - [App.tsx:15-55](file://src/App.tsx#L15-L55)
@@ -703,12 +853,14 @@ T -.-> AB
 2. **批量更新**：通过 `replaceConfig` 方法实现批量配置更新
 3. **配置分类**：按功能类别分离配置，减少无关配置的更新频率
 4. **字段排序缓存**：排序配置在导出过程中会被缓存，避免重复查询
+5. **已配置追踪优化**：configuredKeys使用Set数据结构，提供O(1)的查找性能
 
 ### 配置文件访问优化
 
 1. **路径缓存**：路径管理系统缓存计算结果，避免重复的文件系统查询
 2. **延迟初始化**：配置文件在首次访问时才进行加载和解析
 3. **增量更新**：支持增量配置更新，减少完整配置文件的写入次数
+4. **持久化优化**：localStorage存储采用批量保存策略，减少存储操作次数
 
 ### 网络通信优化
 
@@ -724,6 +876,7 @@ T -.-> AB
 2. **批量处理**：在分离模式下，Pipeline和配置文件会同时进行格式化处理
 3. **内存优化**：使用流式JSON处理，避免大文件格式化时的内存峰值
 4. **排序优化**：字段排序配置只在需要时应用，避免不必要的排序操作
+5. **持久化优化**：localStorage批量保存配置，减少存储操作次数
 
 ### 排序系统性能
 
@@ -733,6 +886,16 @@ T -.-> AB
 2. **增量合并**：用户自定义配置与默认配置的合并只在需要时进行
 3. **对象字段排序**：使用Set数据结构优化字段处理效率
 4. **协议版本优化**：根据协议版本选择最优的排序策略
+5. **守卫系统优化**：configuredKeys使用Set数据结构，提供O(1)的查找性能
+
+### 守卫系统性能
+
+**新增** 配置守卫系统的性能优化：
+
+1. **配置追踪优化**：configuredKeys使用Set数据结构，提供O(1)的查找性能
+2. **批量检查**：支持批量检查多个配置项的配置状态
+3. **智能引导**：仅在必要时显示引导弹窗，避免频繁的用户交互
+4. **配置定义缓存**：settingsDefinitions配置定义会被缓存，避免重复解析
 
 ## 故障排除指南
 
@@ -812,6 +975,38 @@ T -.-> AB
 4. 检查排序应用逻辑是否正确处理协议版本
 5. 验证拖拽排序功能是否正常工作
 
+#### 配置持久化问题
+
+**新增** 配置持久化相关故障排除：
+
+**问题症状**：
+- 应用重启后配置丢失
+- localStorage存储空间不足
+- 配置恢复失败
+
+**解决步骤**：
+1. 检查浏览器localStorage功能是否正常
+2. 验证localStorage配额是否足够
+3. 检查浏览器隐私设置是否阻止localStorage
+4. 清理浏览器缓存和localStorage数据
+5. 检查文件存储是否正确保存配置
+
+#### 守卫系统异常
+
+**新增** 配置守卫相关故障排除：
+
+**问题症状**：
+- 守卫系统无法正常工作
+- 配置引导弹窗频繁出现
+- 关键操作无法执行
+
+**解决步骤**：
+1. 检查configuredKeys集合是否正确更新
+2. 验证配置定义是否正确设置guardAction
+3. 确认守卫检查逻辑是否正常执行
+4. 检查配置项是否正确标记为已配置
+5. 验证settingsDefinitions配置是否正确
+
 ## 版本管理与发布流程
 
 ### 版本标识系统
@@ -826,22 +1021,25 @@ A --> D[beta迭代号]
 A --> E[MaaFW版本]
 A --> F[协议版本]
 A --> G[字段排序配置]
-B --> H[1.4.0]
-C --> I[语义化版本控制]
-D --> J[1.4.0_beta_2]
-E --> K[5.9.2]
-F --> L[0.7.4]
-J --> M[GitHub Actions自动检测]
-G --> N[新增FieldSortConfig]
+A --> H[配置守卫系统]
+B --> I[1.5.0]
+C --> J[语义化版本控制]
+D --> K[1.5.0_beta_1]
+E --> L[5.10.2]
+F --> M[0.8.1]
+K --> N[GitHub Actions自动检测]
+G --> O[新增FieldSortConfig]
+H --> P[新增守卫系统]
 ```
 
 **更新** 版本信息更新详情：
-- **主版本号**：1.4.0
+- **主版本号**：1.5.0
 - **次版本号**：语义化版本控制
-- **Beta迭代号**：从1更新到2，体现持续开发进度
-- **MaaFW版本**：5.9.2
-- **协议版本**：0.7.4
+- **Beta迭代号**：从0更新到1，体现持续开发进度
+- **MaaFW版本**：5.10.2
+- **协议版本**：0.8.1
 - **字段排序配置**：新增FieldSortConfig配置项
+- **配置守卫系统**：新增守卫系统功能
 
 **图表来源**
 - [configStore.ts:5-16](file://src/stores/configStore.ts#L5-L16)
@@ -859,14 +1057,14 @@ participant Preview as 预览页面
 Dev->>Repo : 推送代码
 Repo->>Actions : 触发工作流
 Actions->>Actions : 检测betaIteration变更
-Actions->>Actions : CURRENT=2, PREVIOUS=1
+Actions->>Actions : CURRENT=1, PREVIOUS=0
 Actions->>Actions : 比较版本差异
 Actions->>Actions : 检测到beta迭代号变化
 Actions->>Preview : 部署新版本
 Preview-->>Dev : 预览页面更新
 ```
 
-**更新** GitHub Actions工作流现在监控beta迭代号从1到2的变更，确保每次beta迭代都触发部署流程。
+**更新** GitHub Actions工作流现在监控beta迭代号从0到1的变更，确保每次beta迭代都触发部署流程。
 
 **图表来源**
 - [.github/workflows/preview.yaml:36-62](file://.github/workflows/preview.yaml#L36-L62)
@@ -877,7 +1075,7 @@ Preview-->>Dev : 预览页面更新
 
 **更新** 错误测试文件中的版本标识：
 - **测试文件版本**：v1.3.0_beta_3
-- **实际系统版本**：v1.4.0_beta_2
+- **实际系统版本**：v1.5.0_beta_1
 
 这表明测试文件可能需要更新以匹配当前的系统版本。
 
@@ -895,8 +1093,11 @@ Preview-->>Dev : 预览页面更新
 5. **JSON格式化增强**：新增的JSON导出缩进配置提升了配置文件的可读性和一致性
 6. **字段排序功能**：新增的字段排序配置功能允许用户自定义字段显示顺序
 7. **版本管理完善**：多层版本标识和自动化部署流程确保了开发进度的有效跟踪
+8. **配置持久化**：新增的localStorage持久化机制确保用户配置的持久保存
+9. **配置守卫系统**：新增的守卫系统提供智能的配置引导功能
+10. **配置验证系统**：新增的验证系统确保配置数据的正确性和完整性
 
-**更新** 最新的字段排序配置功能和版本更新进一步增强了系统的灵活性和用户体验。当前版本1.4.0_beta_2体现了持续的开发进度，beta迭代号从1更新到2，配合GitHub Actions的自动化部署流程，确保了每次迭代都能及时反映到预览环境中。
+**更新** 最新的字段排序配置功能、配置守卫系统和自动持久化机制进一步增强了系统的灵活性和用户体验。当前版本1.5.0_beta_1体现了持续的开发进度，beta迭代号从0更新到1，配合GitHub Actions的自动化部署流程，确保了每次迭代都能及时反映到预览环境中。
 
 未来可以考虑的改进方向：
 - 添加配置版本控制机制
@@ -908,3 +1109,6 @@ Preview-->>Dev : 预览页面更新
 - 完善测试文件的版本同步机制
 - 增加字段排序配置的备份和恢复功能
 - 提供字段排序配置的批量导入导出功能
+- 扩展守卫系统的配置范围
+- 增强配置验证的规则定制功能
+- 优化持久化存储的性能表现
