@@ -14,6 +14,7 @@ interface MethodConfigProps {
   customInput: string | string[] | undefined;
   onScreencapChange: (value: string | string[]) => void;
   onInputChange: (value: string | string[]) => void;
+  isAdbManualMode?: boolean;
 }
 
 export const MethodConfig = memo(
@@ -27,6 +28,7 @@ export const MethodConfig = memo(
     customInput,
     onScreencapChange,
     onInputChange,
+    isAdbManualMode = false,
   }: MethodConfigProps) => {
     // 收集所有可用的截图和输入方法
     const allMethods = useMemo(() => {
@@ -50,11 +52,39 @@ export const MethodConfig = memo(
 
     // 获取当前选中设备的方法列表
     const selectedDeviceMethods = useMemo(() => {
-      if (activeTab === "adb" && selectedAdbDevice) {
-        return {
-          screencap: selectedAdbDevice.screencap_methods,
-          input: selectedAdbDevice.input_methods,
-        };
+      if (activeTab === "adb") {
+        if (isAdbManualMode) {
+          // 手动模式下使用全量方法
+          return {
+            screencap:
+              allMethods.screencap.length > 0
+                ? allMethods.screencap
+                : [
+                    "EncodeToFileAndPull",
+                    "Encode",
+                    "RawWithGzip",
+                    "RawByNetcat",
+                    "MinicapDirect",
+                    "MinicapStream",
+                    "EmulatorExtras",
+                  ],
+            input:
+              allMethods.input.length > 0
+                ? allMethods.input
+                : [
+                    "AdbShell",
+                    "MinitouchAndAdbKey",
+                    "Maatouch",
+                    "EmulatorExtras",
+                  ],
+          };
+        }
+        if (selectedAdbDevice) {
+          return {
+            screencap: selectedAdbDevice.screencap_methods,
+            input: selectedAdbDevice.input_methods,
+          };
+        }
       } else if (activeTab === "win32" && selectedWin32Window) {
         return {
           screencap: selectedWin32Window.screencap_methods,
@@ -62,7 +92,13 @@ export const MethodConfig = memo(
         };
       }
       return { screencap: [], input: [] };
-    }, [activeTab, selectedAdbDevice, selectedWin32Window]);
+    }, [
+      activeTab,
+      selectedAdbDevice,
+      selectedWin32Window,
+      isAdbManualMode,
+      allMethods,
+    ]);
 
     // PlayCover、Gamepad、WlRoots 和 macOS 不显示方法配置
     if (

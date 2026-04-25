@@ -372,6 +372,7 @@ export class MFWProtocol extends BaseProtocol {
     input_methods: string[];
     config?: string;
     agent_path?: string;
+    name?: string;
   }): boolean {
     if (!this.wsClient) {
       console.error("[MFWProtocol] WebSocket client not initialized");
@@ -385,12 +386,17 @@ export class MFWProtocol extends BaseProtocol {
     const device = mfwStore.adbDevices.find(
       (d) => d.address === params.address,
     );
-    if (device) {
-      this.lastConnectionDevice = {
-        type: "adb",
-        deviceInfo: device,
-      };
-    }
+    this.lastConnectionDevice = {
+      type: "adb",
+      deviceInfo: device || {
+        adb_path: params.adb_path,
+        address: params.address,
+        name: params.name || params.address,
+        screencap_methods: params.screencap_methods,
+        input_methods: params.input_methods,
+        config: params.config || "",
+      },
+    };
 
     return this.wsClient.send("/etl/mfw/create_adb_controller", params);
   }

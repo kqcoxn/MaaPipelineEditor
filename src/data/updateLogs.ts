@@ -49,11 +49,12 @@ export const pinnedNotice: PinnedNotice = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "1.4.3",
-    date: "2026-4",
-    type: "fix",
+    date: "2026-4-26",
+    type: "feature",
     updates: {
       features: [
         "🤖 AI 服务兼容 OpenAI、Claude、Gemini、第三方四种模式，提供 APIKEY 加密与 LB 本地跨 CORS 服务",
+        "👾 模拟器支持手动指定路径与连接",
       ],
       perfs: ["优化配置面板使用体验，独立文件配置面板"],
       fixes: ["修复分组内边避让模式行为异常的问题"],

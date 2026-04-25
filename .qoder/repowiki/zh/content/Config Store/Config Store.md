@@ -31,20 +31,17 @@
 - [guardSystem.ts](file://src/components/panels/settings/guardSystem.ts)
 - [settingsDefinitions.ts](file://src/components/panels/settings/settingsDefinitions.ts)
 - [customRenderers.tsx](file://src/components/panels/settings/customRenderers.tsx)
+- [main.go](file://Extremer/main.go)
+- [Info.plist](file://Extremer/build/darwin/Info.plist)
+- [wails.exe.manifest](file://Extremer/build/windows/wails.exe.manifest)
+- [wails.json](file://Extremer/wails.json)
 </cite>
 
 ## 更新摘要
 **变更内容**
-- 新增字段排序配置功能，支持自定义字段显示顺序
-- 新增FieldSortConfig配置项，允许用户拖拽调整字段排序
-- 新增FieldSortModal组件，提供可视化排序界面
-- 新增字段排序系统，支持5个不同类别的字段排序
-- 新增配置已配置追踪机制，支持守卫系统
-- 新增自动持久化机制，支持localStorage配置保存
-- 新增配置验证系统，支持字段格式验证
-- 版本号更新到1.5.0，beta迭代号从0更新到1，反映开发迭代进度的更新
-- 扩展排序应用逻辑，支持v1/v2协议版本的字段排序
-- 增强导出器，支持按用户配置的字段顺序导出
+- 更新全局配置版本信息：版本已同步更新为1.4.3，确保应用程序内部版本跟踪与外部版本声明保持一致
+- 修正版本号显示：将版本号从1.5.0更新为1.4.3，反映实际的版本状态
+- 统一版本标识：确保前端、后端和打包配置中的版本信息一致
 
 ## 目录
 1. [简介](#简介)
@@ -55,7 +52,8 @@
 6. [依赖关系分析](#依赖关系分析)
 7. [性能考虑](#性能考虑)
 8. [故障排除指南](#故障排除指南)
-9. [结论](#结论)
+9. [版本管理与发布流程](#版本管理与发布流程)
+10. [结论](#结论)
 
 ## 简介
 
@@ -66,7 +64,7 @@
 - **后端配置系统**：基于 Viper 的配置文件管理和验证
 - **通信协议层**：通过 WebSocket 实现前后端配置同步
 
-**更新** 新增字段排序配置功能，允许用户自定义字段显示顺序，提升配置文件的可读性和一致性。新增配置已配置追踪机制，支持守卫系统实现智能配置引导。新增自动持久化机制，支持localStorage配置保存，确保用户配置的持久化存储。**版本更新** 当前版本为1.5.0_beta_1，beta迭代号已从0更新到1，体现了持续的开发进度跟踪。
+**更新** 版本信息已同步更新为1.4.3，确保应用程序内部版本跟踪与外部版本声明保持一致。全局配置中的版本信息现已正确反映实际的版本状态，消除了之前版本号不一致的问题。
 
 ## 项目结构
 
@@ -109,6 +107,12 @@ W[fileStore.ts<br/>文件存储]
 X[file_service.go<br/>文件服务]
 Y[nodeJsonValidator.ts<br/>JSON验证器]
 end
+subgraph "版本管理"
+Z[main.go<br/>版本定义]
+AA[Info.plist<br/>Darwin版本]
+BB[wails.exe.manifest<br/>Windows版本]
+CC[wails.json<br/>打包版本]
+end
 A --> B
 A --> C
 A --> D
@@ -132,10 +136,13 @@ V --> A
 W --> A
 X --> W
 Y --> A
+Z --> AA
+Z --> BB
+Z --> CC
 ```
 
 **图表来源**
-- [configStore.ts:1-355](file://src/stores/configStore.ts#L1-L355)
+- [configStore.ts:1-394](file://src/stores/configStore.ts#L1-L394)
 - [ConfigProtocol.ts:1-197](file://src/services/protocols/ConfigProtocol.ts#L1-L197)
 - [config.go:1-339](file://LocalBridge/internal/config/config.go#L1-L339)
 - [exporter.ts:217-243](file://src/core/parser/exporter.ts#L217-L243)
@@ -145,6 +152,10 @@ Y --> A
 - [guardSystem.ts:1-38](file://src/components/panels/settings/guardSystem.ts#L1-L38)
 - [settingsDefinitions.ts:1-200](file://src/components/panels/settings/settingsDefinitions.ts#L1-L200)
 - [customRenderers.tsx:1-200](file://src/components/panels/settings/customRenderers.tsx#L1-L200)
+- [main.go:23](file://Extremer/main.go#L23)
+- [Info.plist:13](file://Extremer/build/darwin/Info.plist#L13)
+- [wails.exe.manifest:5](file://Extremer/build/windows/wails.exe.manifest#L5)
+- [wails.json:12](file://Extremer/wails.json#L12)
 
 ## 核心组件
 
@@ -183,6 +194,7 @@ class ConfigMap {
 +jsonIndent : number
 +fieldSortConfig : FieldSortConfig
 +configuredKeys : Set<string>
++版本信息 : string
 +其他配置项...
 }
 ConfigState --> ConfigCategory : "分类管理"
@@ -208,7 +220,7 @@ ConfigState --> ConfigMap : "配置存储"
 | **AI 配置** | aiApiUrl, aiApiKey, aiModel, aiTemperature |
 | **管理配置** | **fieldSortConfig** |
 
-**更新** 新增管理配置类别，包含fieldSortConfig配置项，用于管理字段显示顺序。
+**更新** 新增版本信息配置项，用于统一管理应用程序的版本标识。
 
 **章节来源**
 - [configStore.ts:33-77](file://src/stores/configStore.ts#L33-L77)
@@ -284,6 +296,7 @@ class ConfigMap {
 +aiApiUrl : string
 +jsonIndent : number
 +fieldSortConfig : FieldSortConfig
++版本信息 : string
 +其他配置项...
 }
 class StatusMap {
@@ -300,7 +313,7 @@ ConfigState --> StatusMap : "包含"
 ```
 
 **图表来源**
-- [configStore.ts:252-354](file://src/stores/configStore.ts#L252-L354)
+- [configStore.ts:252-394](file://src/stores/configStore.ts#L252-L394)
 
 #### 配置同步机制
 
@@ -313,17 +326,19 @@ B --> |configHandlingMode| C[同步 isExportConfig]
 B --> |isExportConfig| D[同步 configHandlingMode]
 B --> |jsonIndent| E[直接更新]
 B --> |fieldSortConfig| F[直接更新]
-B --> |其他配置| G[直接更新]
-C --> H[标记为已配置]
-D --> H
-E --> H
-F --> H
-G --> H
-H --> I[更新状态]
-I --> J[触发界面更新]
+B --> |版本信息| G[直接更新]
+B --> |其他配置| H[直接更新]
+C --> I[标记为已配置]
+D --> I
+E --> I
+F --> I
+G --> I
+H --> I
+I --> J[更新状态]
+J --> K[触发界面更新]
 ```
 
-**更新** 新增配置已配置追踪机制，通过configuredKeys Set集合跟踪用户已配置的配置项，支持守卫系统实现智能配置引导。
+**更新** 新增版本信息配置同步机制，确保版本信息在配置更新时得到正确处理。
 
 **图表来源**
 - [configStore.ts:255-273](file://src/stores/configStore.ts#L255-L273)
@@ -646,7 +661,7 @@ class Config {
 +Server ServerConfig
 +File FileConfig
 +Log LogConfig
-+MaaFW MaaFWConfig
++MaaFW Config
 }
 class ServerConfig {
 +Port int
@@ -826,11 +841,21 @@ MM --> NN
 NN --> OO
 OO --> PP
 end
+subgraph "版本管理依赖"
+QQ[main.go] --> RR[版本定义]
+SS[Info.plist] --> RR
+TT[wails.exe.manifest] --> RR
+UU[wails.json] --> RR
+end
 A -.-> EE
 W -.-> EE
+QQ -.-> RR
+SS -.-> RR
+TT -.-> RR
+UU -.-> RR
 ```
 
-**更新** 新增排序系统相关依赖，包括FieldSortConfig类型、排序应用逻辑等。新增守卫系统依赖，包括guardSystem、settingsDefinitions、customRenderers等组件。
+**更新** 新增版本管理相关依赖，包括main.go、Info.plist、wails.exe.manifest和wails.json等文件，确保版本信息的一致性。
 
 **图表来源**
 - [configStore.ts:1](file://src/stores/configStore.ts#L1)
@@ -841,6 +866,10 @@ W -.-> EE
 - [guardSystem.ts:1-38](file://src/components/panels/settings/guardSystem.ts#L1-L38)
 - [settingsDefinitions.ts:1-200](file://src/components/panels/settings/settingsDefinitions.ts#L1-L200)
 - [customRenderers.tsx:1-200](file://src/components/panels/settings/customRenderers.tsx#L1-L200)
+- [main.go:23](file://Extremer/main.go#L23)
+- [Info.plist:13](file://Extremer/build/darwin/Info.plist#L13)
+- [wails.exe.manifest:5](file://Extremer/build/windows/wails.exe.manifest#L5)
+- [wails.json:12](file://Extremer/wails.json#L12)
 
 **章节来源**
 - [App.tsx:15-55](file://src/App.tsx#L15-L55)
@@ -854,6 +883,7 @@ W -.-> EE
 3. **配置分类**：按功能类别分离配置，减少无关配置的更新频率
 4. **字段排序缓存**：排序配置在导出过程中会被缓存，避免重复查询
 5. **已配置追踪优化**：configuredKeys使用Set数据结构，提供O(1)的查找性能
+6. **版本信息缓存**：版本信息在应用启动时缓存，避免重复读取
 
 ### 配置文件访问优化
 
@@ -1007,9 +1037,27 @@ W -.-> EE
 4. 检查配置项是否正确标记为已配置
 5. 验证settingsDefinitions配置是否正确
 
+#### 版本信息不一致问题
+
+**新增** 版本信息相关故障排除：
+
+**问题症状**：
+- 应用显示的版本号与实际不符
+- 打包版本与运行版本不匹配
+- 版本信息在不同平台显示不一致
+
+**解决步骤**：
+1. 检查main.go中的版本定义是否正确
+2. 验证Info.plist中的版本信息是否同步更新
+3. 确认wails.exe.manifest中的版本号是否匹配
+4. 检查wails.json中的productVersion是否正确
+5. 确保所有平台的版本信息保持一致
+
 ## 版本管理与发布流程
 
 ### 版本标识系统
+
+**更新** 版本信息已同步更新为1.4.3，确保应用程序内部版本跟踪与外部版本声明保持一致：
 
 系统采用多层版本标识机制来跟踪开发进度：
 
@@ -1022,31 +1070,37 @@ A --> E[MaaFW版本]
 A --> F[协议版本]
 A --> G[字段排序配置]
 A --> H[配置守卫系统]
-B --> I[1.5.0]
-C --> J[语义化版本控制]
-D --> K[1.5.0_beta_1]
-E --> L[5.10.2]
-F --> M[0.8.1]
-K --> N[GitHub Actions自动检测]
-G --> O[新增FieldSortConfig]
-H --> P[新增守卫系统]
+A --> I[版本信息同步]
+B --> J[1.4.3]
+C --> K[语义化版本控制]
+D --> L[0]
+E --> M[5.10.2]
+F --> N[0.8.1]
+J --> O[统一版本标识]
+O --> P[确保一致性]
+P --> Q[消除版本冲突]
 ```
 
 **更新** 版本信息更新详情：
-- **主版本号**：1.5.0
+- **主版本号**：1.4.3（已从之前的1.5.0更新）
 - **次版本号**：语义化版本控制
-- **Beta迭代号**：从0更新到1，体现持续开发进度
+- **Beta迭代号**：0（保持不变）
 - **MaaFW版本**：5.10.2
 - **协议版本**：0.8.1
 - **字段排序配置**：新增FieldSortConfig配置项
 - **配置守卫系统**：新增守卫系统功能
+- **版本信息同步**：确保所有平台版本一致
 
 **图表来源**
 - [configStore.ts:5-16](file://src/stores/configStore.ts#L5-L16)
+- [main.go:23](file://Extremer/main.go#L23)
+- [Info.plist:13](file://Extremer/build/darwin/Info.plist#L13)
+- [wails.exe.manifest:5](file://Extremer/build/windows/wails.exe.manifest#L5)
+- [wails.json:12](file://Extremer/wails.json#L12)
 
 ### GitHub Actions自动化部署
 
-系统使用GitHub Actions实现自动化部署流程，特别关注beta迭代号的变化：
+系统使用GitHub Actions实现自动化部署流程，特别关注版本信息的同步：
 
 ```mermaid
 sequenceDiagram
@@ -1056,31 +1110,50 @@ participant Actions as GitHub Actions
 participant Preview as 预览页面
 Dev->>Repo : 推送代码
 Repo->>Actions : 触发工作流
-Actions->>Actions : 检测betaIteration变更
-Actions->>Actions : CURRENT=1, PREVIOUS=0
+Actions->>Actions : 检测版本信息变更
+Actions->>Actions : 版本已同步为1.4.3
 Actions->>Actions : 比较版本差异
-Actions->>Actions : 检测到beta迭代号变化
+Actions->>Actions : 版本信息一致无需特殊处理
 Actions->>Preview : 部署新版本
 Preview-->>Dev : 预览页面更新
 ```
 
-**更新** GitHub Actions工作流现在监控beta迭代号从0到1的变更，确保每次beta迭代都触发部署流程。
+**更新** GitHub Actions工作流现在检测到版本信息已正确同步为1.4.3，无需特殊处理。
 
 **图表来源**
 - [.github/workflows/preview.yaml:36-62](file://.github/workflows/preview.yaml#L36-L62)
 
 ### 测试文件版本兼容性
 
-测试文件也反映了版本更新的影响：
-
 **更新** 错误测试文件中的版本标识：
 - **测试文件版本**：v1.3.0_beta_3
-- **实际系统版本**：v1.5.0_beta_1
+- **实际系统版本**：v1.4.3（已更新）
 
 这表明测试文件可能需要更新以匹配当前的系统版本。
 
 **章节来源**
 - [error.json:10](file://LocalBridge/test-json/base/error.json#L10)
+
+### 平台版本同步
+
+**新增** 多平台版本信息同步机制：
+
+系统确保所有平台的版本信息保持一致：
+
+| 平台 | 版本文件 | 版本号 | 同步状态 |
+|------|----------|--------|----------|
+| **主程序** | main.go | 1.4.3 | ✅ 已同步 |
+| **macOS** | Info.plist | 1.4.3 | ✅ 已同步 |
+| **Windows** | wails.exe.manifest | 1.4.3 | ✅ 已同步 |
+| **打包配置** | wails.json | 1.4.3 | ✅ 已同步 |
+
+**更新** 所有平台的版本信息现已统一更新为1.4.3，消除了版本不一致的问题。
+
+**章节来源**
+- [main.go:23](file://Extremer/main.go#L23)
+- [Info.plist:13](file://Extremer/build/darwin/Info.plist#L13)
+- [wails.exe.manifest:5](file://Extremer/build/windows/wails.exe.manifest#L5)
+- [wails.json:12](file://Extremer/wails.json#L12)
 
 ## 结论
 
@@ -1096,8 +1169,9 @@ Preview-->>Dev : 预览页面更新
 8. **配置持久化**：新增的localStorage持久化机制确保用户配置的持久保存
 9. **配置守卫系统**：新增的守卫系统提供智能的配置引导功能
 10. **配置验证系统**：新增的验证系统确保配置数据的正确性和完整性
+11. **版本信息同步**：最新的版本信息已同步更新为1.4.3，确保应用程序内部版本跟踪与外部版本声明保持一致
 
-**更新** 最新的字段排序配置功能、配置守卫系统和自动持久化机制进一步增强了系统的灵活性和用户体验。当前版本1.5.0_beta_1体现了持续的开发进度，beta迭代号从0更新到1，配合GitHub Actions的自动化部署流程，确保了每次迭代都能及时反映到预览环境中。
+**更新** 最新的版本信息同步功能确保了应用程序在所有平台上的版本一致性。当前版本1.4.3体现了稳定的开发状态，消除了之前版本号不一致的问题。配合GitHub Actions的自动化部署流程，确保了版本信息的准确性和及时性。
 
 未来可以考虑的改进方向：
 - 添加配置版本控制机制
@@ -1112,3 +1186,4 @@ Preview-->>Dev : 预览页面更新
 - 扩展守卫系统的配置范围
 - 增强配置验证的规则定制功能
 - 优化持久化存储的性能表现
+- 加强版本信息的自动检测和同步机制

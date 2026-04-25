@@ -1,4 +1,5 @@
 export { AdbDeviceList } from "./AdbDeviceList";
+export { AdbManualForm } from "./AdbManualForm";
 export { Win32WindowList } from "./Win32WindowList";
 export { PlayCoverForm } from "./PlayCoverForm";
 export { GamepadForm } from "./GamepadForm";

@@ -81,6 +81,12 @@ export const ConnectionPanel = memo(
     const [visitedTabs, setVisitedTabs] = useState<Set<string>>(new Set());
     const [hasInitialized, setHasInitialized] = useState(false);
 
+    // ADB 手动连接参数
+    const [manualAdbPath, setManualAdbPath] = useState<string>("");
+    const [manualAddress, setManualAddress] = useState<string>("");
+    const [manualConfig, setManualConfig] = useState<string>("");
+    const [manualName, setManualName] = useState<string>("");
+
     // PlayCover 连接参数
     const [playCoverAddress, setPlayCoverAddress] = useState<string>("");
     const [playCoverUUID, setPlayCoverUUID] = useState<string>("");
@@ -110,13 +116,42 @@ export const ConnectionPanel = memo(
       string | string[] | undefined
     >(undefined);
 
+    // 是否处于 ADB 手动连接模式
+    const isAdbManualMode =
+      manualAdbPath.trim().length > 0 || manualAddress.trim().length > 0;
+
+    // ADB 手动连接时的默认可选方法
+    const ADB_DEFAULT_SCREENCAP_METHODS = [
+      "EncodeToFileAndPull",
+      "Encode",
+      "RawWithGzip",
+      "RawByNetcat",
+      "MinicapDirect",
+      "MinicapStream",
+      "EmulatorExtras",
+    ];
+    const ADB_DEFAULT_INPUT_METHODS = [
+      "AdbShell",
+      "MinitouchAndAdbKey",
+      "Maatouch",
+      "EmulatorExtras",
+    ];
+
     // 获取当前选中设备的方法列表(用于初始化)
     const selectedDeviceMethods = useMemo(() => {
-      if (activeTab === "adb" && selectedAdbDevice) {
-        return {
-          screencap: selectedAdbDevice.screencap_methods,
-          input: selectedAdbDevice.input_methods,
-        };
+      if (activeTab === "adb") {
+        if (isAdbManualMode) {
+          return {
+            screencap: ADB_DEFAULT_SCREENCAP_METHODS,
+            input: ADB_DEFAULT_INPUT_METHODS,
+          };
+        }
+        if (selectedAdbDevice) {
+          return {
+            screencap: selectedAdbDevice.screencap_methods,
+            input: selectedAdbDevice.input_methods,
+          };
+        }
       } else if (activeTab === "win32" && selectedWin32Window) {
         return {
           screencap: selectedWin32Window.screencap_methods,
@@ -124,7 +159,7 @@ export const ConnectionPanel = memo(
         };
       }
       return { screencap: [], input: [] };
-    }, [activeTab, selectedAdbDevice, selectedWin32Window]);
+    }, [activeTab, selectedAdbDevice, selectedWin32Window, isAdbManualMode]);
 
     // 初始化时设置默认值
     useEffect(() => {
@@ -149,7 +184,17 @@ export const ConnectionPanel = memo(
 
     // 切换设备时重置方法选择
     useEffect(() => {
-      if (selectedAdbDevice) {
+      if (activeTab === "adb" && isAdbManualMode) {
+        // 手动模式下设置默认方法
+        const filteredScreencap = ADB_DEFAULT_SCREENCAP_METHODS.filter(
+          (m) => m !== "RawByNetcat",
+        );
+        const filteredInput = ADB_DEFAULT_INPUT_METHODS.filter(
+          (m) => m !== "RawByNetcat",
+        );
+        setCustomScreencap(filteredScreencap);
+        setCustomInput(filteredInput);
+      } else if (selectedAdbDevice) {
         // ADB 设备默认选择所有方法
         const filteredScreencap = selectedDeviceMethods.screencap.filter(
           (m) => m !== "RawByNetcat",
@@ -175,6 +220,8 @@ export const ConnectionPanel = memo(
       selectedAdbDevice?.address,
       selectedWin32Window?.hwnd,
       selectedDeviceMethods,
+      isAdbManualMode,
+      activeTab,
     ]);
 
     // 打开面板时的初始化逻辑
@@ -270,31 +317,59 @@ export const ConnectionPanel = memo(
 
     // 连接设备
     const handleConnect = useCallback(() => {
-      if (activeTab === "adb" && selectedAdbDevice) {
-        // ADB 设备的方法支持多选
-        const screencapMethods = customScreencap
-          ? Array.isArray(customScreencap)
-            ? customScreencap
-            : [customScreencap]
-          : selectedAdbDevice.screencap_methods;
-        const inputMethods = customInput
-          ? Array.isArray(customInput)
-            ? customInput
-            : [customInput]
-          : selectedAdbDevice.input_methods;
+      if (activeTab === "adb" && (selectedAdbDevice || isAdbManualMode)) {
+        if (isAdbManualMode) {
+          // 手动连接模式
+          if (!manualAdbPath.trim() || !manualAddress.trim()) {
+            message.warning("请填写 ADB 路径和设备地址");
+            return;
+          }
 
-        if (screencapMethods.length === 0 || inputMethods.length === 0) {
-          message.warning("设备没有可用的截图或输入方法");
-          return;
+          const screencapMethods = customScreencap
+            ? Array.isArray(customScreencap)
+              ? customScreencap
+              : [customScreencap]
+            : ADB_DEFAULT_SCREENCAP_METHODS.filter((m) => m !== "RawByNetcat");
+          const inputMethods = customInput
+            ? Array.isArray(customInput)
+              ? customInput
+              : [customInput]
+            : ADB_DEFAULT_INPUT_METHODS;
+
+          mfwProtocol.createAdbController({
+            adb_path: manualAdbPath.trim(),
+            address: manualAddress.trim(),
+            screencap_methods: screencapMethods,
+            input_methods: inputMethods,
+            config: manualConfig.trim() || undefined,
+            name: manualName.trim() || undefined,
+          });
+        } else if (selectedAdbDevice) {
+          // 列表选择模式
+          const screencapMethods = customScreencap
+            ? Array.isArray(customScreencap)
+              ? customScreencap
+              : [customScreencap]
+            : selectedAdbDevice.screencap_methods;
+          const inputMethods = customInput
+            ? Array.isArray(customInput)
+              ? customInput
+              : [customInput]
+            : selectedAdbDevice.input_methods;
+
+          if (screencapMethods.length === 0 || inputMethods.length === 0) {
+            message.warning("设备没有可用的截图或输入方法");
+            return;
+          }
+
+          mfwProtocol.createAdbController({
+            adb_path: selectedAdbDevice.adb_path,
+            address: selectedAdbDevice.address,
+            screencap_methods: screencapMethods,
+            input_methods: inputMethods,
+            config: selectedAdbDevice.config,
+          });
         }
-
-        mfwProtocol.createAdbController({
-          adb_path: selectedAdbDevice.adb_path,
-          address: selectedAdbDevice.address,
-          screencap_methods: screencapMethods,
-          input_methods: inputMethods,
-          config: selectedAdbDevice.config,
-        });
       } else if (activeTab === "win32" && selectedWin32Window) {
         // Win32 窗口的方法只支持单选
         const screencapMethod = Array.isArray(customScreencap)
@@ -388,6 +463,10 @@ export const ConnectionPanel = memo(
       macosPid,
       macosScreencap,
       macosInput,
+      isAdbManualMode,
+      manualAdbPath,
+      manualAddress,
+      manualConfig,
     ]);
 
     // 断开连接
@@ -411,7 +490,7 @@ export const ConnectionPanel = memo(
     // 获取当前选中设备
     const hasSelectedDevice =
       activeTab === "adb"
-        ? !!selectedAdbDevice
+        ? !!selectedAdbDevice || isAdbManualMode
         : activeTab === "win32"
           ? !!selectedWin32Window
           : activeTab === "playcover"
@@ -426,7 +505,9 @@ export const ConnectionPanel = memo(
 
     // 检查是否有可用的方法
     const hasValidMethods = useMemo(() => {
-      if (activeTab === "adb" && selectedAdbDevice) {
+      if (activeTab === "adb" && isAdbManualMode) {
+        return !!(manualAdbPath.trim() && manualAddress.trim());
+      } else if (activeTab === "adb" && selectedAdbDevice) {
         const screencapMethods = customScreencap
           ? Array.isArray(customScreencap)
             ? customScreencap
@@ -464,6 +545,9 @@ export const ConnectionPanel = memo(
       customInput,
       macosScreencap,
       macosInput,
+      isAdbManualMode,
+      manualAdbPath,
+      manualAddress,
     ]);
 
     const canConnect =
@@ -657,6 +741,7 @@ export const ConnectionPanel = memo(
             customInput={customInput}
             onScreencapChange={setCustomScreencap}
             onInputChange={setCustomInput}
+            isAdbManualMode={isAdbManualMode}
           />
 
           {/* 设备类型选择 */}
@@ -760,6 +845,14 @@ export const ConnectionPanel = memo(
                 selectedDevice={selectedAdbDevice}
                 onSelect={setSelectedAdbDevice}
                 loading={isRefreshing}
+                manualAdbPath={manualAdbPath}
+                manualAddress={manualAddress}
+                manualConfig={manualConfig}
+                manualName={manualName}
+                onManualAdbPathChange={setManualAdbPath}
+                onManualAddressChange={setManualAddress}
+                onManualConfigChange={setManualConfig}
+                onManualNameChange={setManualName}
               />
             ) : activeTab === "win32" ? (
               <Win32WindowList

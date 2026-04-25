@@ -70,7 +70,8 @@ export class ErrorProtocol extends BaseProtocol {
     if (
       code === "MFW_CONTROLLER_NOT_FOUND" ||
       code === "MFW_CONTROLLER_NOT_CONNECTED" ||
-      code === "MFW_CONTROLLER_CONNECT_FAIL"
+      code === "MFW_CONTROLLER_CONNECT_FAIL" ||
+      code === "MFW_CONTROLLER_CREATE_FAIL"
     ) {
       const mfwStore = useMFWStore.getState();
       mfwStore.clearConnection();
