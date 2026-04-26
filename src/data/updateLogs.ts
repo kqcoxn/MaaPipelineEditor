@@ -48,6 +48,14 @@ export const pinnedNotice: PinnedNotice = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "1.5.0",
+    date: "2026-4",
+    type: "major",
+    updates: {
+      fixes: ["修复 MPE 保存到本地后 LB 提示外部文件更改警告的问题"],
+    },
+  },
+  {
     version: "1.4.3",
     date: "2026-4-26",
     type: "feature",

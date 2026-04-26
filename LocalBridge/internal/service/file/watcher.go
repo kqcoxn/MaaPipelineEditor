@@ -156,30 +156,33 @@ func (w *Watcher) processEvent(event fsnotify.Event) {
 	} else if event.Op&fsnotify.Rename == fsnotify.Rename {
 		// 重命名事件
 		changeType = ChangeTypeRenamed
-		oldPath = event.Name
+		oldPath = filepath.Clean(event.Name)
 		// 通过扩展名判断是否为文件
-		isDirectory = !w.hasValidExtension(event.Name)
+		isDirectory = !w.hasValidExtension(filepath.Clean(event.Name))
 
 	} else {
 		return
 	}
 
+	// 规范化路径，确保与 FileService 中的路径格式一致
+	normalizedPath := filepath.Clean(event.Name)
+
 	// 文件变更
-	if !isDirectory && !w.hasValidExtension(event.Name) {
+	if !isDirectory && !w.hasValidExtension(normalizedPath) {
 		return
 	}
 
 	// 防抖
-	debounceKey := event.Name
+	debounceKey := normalizedPath
 	if changeType == ChangeTypeRenamed {
-		debounceKey = "rename:" + event.Name
+		debounceKey = "rename:" + normalizedPath
 	}
 
 	w.debouncer.debounce(debounceKey, func() {
 		if w.handler != nil {
 			w.handler(FileChange{
 				Type:        changeType,
-				FilePath:    event.Name,
+				FilePath:    normalizedPath,
 				IsDirectory: isDirectory,
 				OldPath:     oldPath,
 			})

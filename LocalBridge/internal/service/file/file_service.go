@@ -189,23 +189,25 @@ func (s *Service) SaveFileWithOrder(filePath string, content interface{}, indent
 		}
 	}
 
+	normalizedPath := filepath.Clean(filePath)
+
 	// 记录即将写入的文件（用于忽略自身触发的文件变化事件）
 	s.writtenMu.Lock()
-	s.recentlyWrittenFiles[filePath] = time.Now().UnixMilli()
+	s.recentlyWrittenFiles[normalizedPath] = time.Now().UnixMilli()
 	s.writtenMu.Unlock()
 
 	// 写入文件
 	if err := os.WriteFile(filePath, data, 0644); err != nil {
 		// 写入失败时移除记录
 		s.writtenMu.Lock()
-		delete(s.recentlyWrittenFiles, filePath)
+		delete(s.recentlyWrittenFiles, normalizedPath)
 		s.writtenMu.Unlock()
 		return errors.NewFileWriteError(filePath, err)
 	}
 
 	// 清除该文件的防抖事件（防止延迟触发）
 	if s.watcher != nil {
-		s.watcher.ClearDebounce(filePath)
+		s.watcher.ClearDebounce(normalizedPath)
 	}
 
 	logger.Info("FileService", "文件已保存: %s", filePath)
@@ -270,6 +272,17 @@ func (s *Service) CreateFile(directory, fileName string, content interface{}) (s
 		return "", errors.NewFileWriteError(filePath, err)
 	}
 
+	// 记录写入（用于忽略自身触发的文件变化事件）
+	normalizedPath := filepath.Clean(filePath)
+	s.writtenMu.Lock()
+	s.recentlyWrittenFiles[normalizedPath] = time.Now().UnixMilli()
+	s.writtenMu.Unlock()
+
+	// 清除防抖
+	if s.watcher != nil {
+		s.watcher.ClearDebounce(normalizedPath)
+	}
+
 	logger.Info("FileService", "文件已创建: %s", filePath)
 
 	// 添加新文件到索引
@@ -284,7 +297,25 @@ func (s *Service) CreateFile(directory, fileName string, content interface{}) (s
 
 // 处理文件变化事件
 func (s *Service) handleFileChange(change FileChange) {
-	filePath := change.FilePath
+	filePath := filepath.Clean(change.FilePath)
+
+	// 检查是否是自身写入的文件（在忽略窗口期内）
+	s.writtenMu.RLock()
+	writeTime, wasWritten := s.recentlyWrittenFiles[filePath]
+	s.writtenMu.RUnlock()
+
+	if wasWritten {
+		now := time.Now().UnixMilli()
+		elapsed := time.Duration(now-writeTime) * time.Millisecond
+		if elapsed < s.selfWriteIgnoreWindow {
+			logger.Debug("FileService", "忽略自身写入的文件变化: %s (经过 %v)", filePath, elapsed)
+			return
+		}
+		// 已过窗口期，清理记录
+		s.writtenMu.Lock()
+		delete(s.recentlyWrittenFiles, filePath)
+		s.writtenMu.Unlock()
+	}
 
 	switch change.Type {
 	case ChangeTypeCreated:
@@ -305,24 +336,6 @@ func (s *Service) handleFileChange(change FileChange) {
 		if change.IsDirectory {
 			// 目录修改
 			return
-		}
-
-		// 检查是否是自身写入的文件（在忽略窗口期内）
-		s.writtenMu.RLock()
-		writeTime, wasWritten := s.recentlyWrittenFiles[filePath]
-		s.writtenMu.RUnlock()
-
-		if wasWritten {
-			now := time.Now().UnixMilli()
-			elapsed := time.Duration(now-writeTime) * time.Millisecond
-			if elapsed < s.selfWriteIgnoreWindow {
-				logger.Debug("FileService", "忽略自身写入的文件变化: %s (经过 %v)", filePath, elapsed)
-				return
-			}
-			// 已过窗口期，清理记录
-			s.writtenMu.Lock()
-			delete(s.recentlyWrittenFiles, filePath)
-			s.writtenMu.Unlock()
 		}
 
 		logger.Warn("FileService", "文件已被外部修改: %s", filePath)
