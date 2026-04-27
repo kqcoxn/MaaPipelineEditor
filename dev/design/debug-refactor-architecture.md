@@ -938,3 +938,29 @@ type DebugCapabilityManifest = {
 - 节点解析、MPE nodeId/fileId 映射、画布 overlay 和节点级 action contribution。
 - run profile、interface 导入、多 resource、多 agent、fixed-image recognition 与 replay controller。
 - 仓库级 lint 基线治理；当前 P0 只保证新增 debug-vNext 骨架局部 lint 通过。
+
+### 2026-04-27 P1：协议和数据契约
+
+已完成：
+
+- 前端 `src/features/debug/types.ts` 补齐 debug-vNext 共享契约：`DebugRunProfile`、`DebugRunRequest`、`DebugGraphSnapshot`、`DebugNodeResolverSnapshot`、`DebugEvent`、`DebugArtifactRef`、`DebugDiagnostic`、`DebugRunStopRequest`、`DebugArtifactGetRequest` 等类型。
+- LocalBridge 新增 `internal/debug/protocol` 镜像契约包，Go struct 的 JSON 字段统一使用 camelCase，并集中维护 `debug-vNext` generation、协议版本和 run mode 常量。
+- 前后端 debug-vNext 协议版本同步升级到 `0.10.0`；后端 capability manifest 改为使用 protocol 常量，当前仍只暴露首批可见 run modes：`full-run`、`run-from-node`、`single-node-run`、`recognition-only`。
+- `DebugProtocolClient` 新增 `startRun`、`stopRun`、`requestArtifact`，并新增 `onDebugEvent`、`onArtifact` 监听器；客户端只负责传输和分发，不写 store、不弹 UI。
+- 后端 vNext handler 新增 `/mpe/debug/artifact/get`，并对 `/mpe/debug/run/start`、`/mpe/debug/run/stop`、artifact 请求执行 P1 最小解码和字段校验；校验通过后仍返回 `debug_not_implemented`，不接入真实 MaaFW runtime。
+- `session` 状态枚举补齐为 `idle/preparing/running/stopping/completed/failed/disposed`；P1 仍只实际创建 `idle` session，并在销毁时释放为 `disposed`。
+- 修正本轮触碰到的 debug-vNext Modal 和 run mode 文案乱码；未扩大为全仓编码清理。
+
+验证记录：
+
+- `yarn eslint src/features/debug/types.ts src/features/debug/contributions/registry.ts src/features/debug/contributions/runModes.ts src/stores/debugSessionStore.ts src/stores/debugModalMemoryStore.ts src/components/debug/DebugModal.tsx src/services/protocols/DebugProtocolClient.ts`：通过。
+- `yarn build`：通过；仅保留既有 Vite chunk/dynamic import 警告。
+- `go test ./...`（工作目录 `LocalBridge`）：通过。
+- `git diff -- src LocalBridge | rg '^\\+.*(ToolPanel\\.Debug|debugProtocol\\.register|NewDebugHandlerV2|sendStartDebug\\(|/mpe/debug/start|useDebugStore|debugStore)'`：无输出，确认本次未新增旧调试入口依赖。旧 `DebugPanel` 源码中残留的历史调用仍待 Phase 6 物理清理。
+
+遗留到 Phase 2+：
+
+- 真实 `run/start`、`run/stop` 闭环、TaskRunner、ResourceRuntime 和 MaaFW 生命周期管理。
+- EventNormalizer、TraceStore、ArtifactStore、artifact 读取响应、截图服务和图像查看链路。
+- 前端 trace reducer、debugTraceStore、debugArtifactStore、debugDiagnosticsStore、debugRunProfileStore 和画布 overlay。
+- 节点 resolver snapshot 的真实生成、pipeline sandbox 导出一致性、节点级 action contribution。

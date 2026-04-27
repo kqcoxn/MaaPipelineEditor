@@ -1,39 +1,16 @@
 package registry
 
-const (
-	Generation      = "debug-vNext"
-	ProtocolVersion = "0.9.0"
-)
+import "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/protocol"
 
-// CapabilityManifest describes the debug-vNext surface exposed by LocalBridge.
-type CapabilityManifest struct {
-	Generation        string   `json:"generation"`
-	Protocol          string   `json:"protocol"`
-	RunModes          []string `json:"runModes"`
-	Diagnostics       []string `json:"diagnostics"`
-	Artifacts         []string `json:"artifacts"`
-	ScreenshotSources []string `json:"screenshotSources"`
-	ProfileFeatures   []string `json:"profileFeatures"`
-	Maa               MaaInfo  `json:"maa"`
-}
-
-type MaaInfo struct {
-	MFWVersion               string   `json:"mfwVersion"`
-	SupportedControllers     []string `json:"supportedControllers"`
-	SupportedTaskerAPIs      []string `json:"supportedTaskerApis"`
-	SupportedResourceAPIs    []string `json:"supportedResourceApis"`
-	SupportedAgentTransports []string `json:"supportedAgentTransports"`
-}
-
-func DefaultCapabilityManifest() CapabilityManifest {
-	return CapabilityManifest{
-		Generation: Generation,
-		Protocol:   ProtocolVersion,
+func DefaultCapabilityManifest() protocol.CapabilityManifest {
+	return protocol.CapabilityManifest{
+		Generation: protocol.Generation,
+		Protocol:   protocol.ProtocolVersion,
 		RunModes: []string{
-			"full-run",
-			"run-from-node",
-			"single-node-run",
-			"recognition-only",
+			string(protocol.RunModeFullRun),
+			string(protocol.RunModeRunFromNode),
+			string(protocol.RunModeSingleNodeRun),
+			string(protocol.RunModeRecognitionOnly),
 		},
 		Diagnostics:       []string{},
 		Artifacts:         []string{},
@@ -43,7 +20,7 @@ func DefaultCapabilityManifest() CapabilityManifest {
 			"multi-resource",
 			"multi-agent",
 		},
-		Maa: MaaInfo{
+		Maa: protocol.MaaInfo{
 			MFWVersion: "unknown",
 			SupportedControllers: []string{
 				"adb",

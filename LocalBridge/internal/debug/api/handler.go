@@ -1,8 +1,11 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
+	"strings"
 
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/protocol"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/registry"
 	debugsession "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/session"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
@@ -14,7 +17,7 @@ import (
 type Handler struct {
 	service      *mfw.Service
 	sessions     *debugsession.Manager
-	capabilities registry.CapabilityManifest
+	capabilities protocol.CapabilityManifest
 }
 
 func NewHandler(service *mfw.Service) *Handler {
@@ -41,14 +44,12 @@ func (h *Handler) Handle(msg models.Message, conn *server.Connection) *models.Me
 		h.handleDestroySession(conn, msg)
 	case "/mpe/debug/session/snapshot":
 		h.handleSessionSnapshot(conn, msg)
-	case "/mpe/debug/run/start", "/mpe/debug/run/stop":
-		if !h.service.IsInitialized() {
-			h.sendError(conn, "debug_not_initialized", "MaaFramework 未初始化，请先初始化服务", nil)
-			return nil
-		}
-		h.sendError(conn, "debug_not_implemented", "debug-vNext P0 尚未实现运行控制", map[string]string{
-			"path": msg.Path,
-		})
+	case "/mpe/debug/run/start":
+		h.handleRunStart(conn, msg)
+	case "/mpe/debug/run/stop":
+		h.handleRunStop(conn, msg)
+	case "/mpe/debug/artifact/get":
+		h.handleArtifactGet(conn, msg)
 	case "/mpe/debug/start", "/mpe/debug/stop":
 		h.sendError(conn, "debug_legacy_route_removed", "旧调试路由已移除，请使用 debug-vNext 契约", map[string]string{
 			"path": msg.Path,
@@ -90,7 +91,7 @@ func (h *Handler) handleDestroySession(conn *server.Connection, msg models.Messa
 	}
 
 	h.send(conn, "/lte/debug/session_destroyed", map[string]string{
-		"session_id": sessionID,
+		"sessionId": sessionID,
 	})
 }
 
@@ -115,18 +116,199 @@ func (h *Handler) handleSessionSnapshot(conn *server.Connection, msg models.Mess
 	h.send(conn, "/lte/debug/session_snapshot", snapshot)
 }
 
+func (h *Handler) handleRunStart(conn *server.Connection, msg models.Message) {
+	req, err := decodeData[protocol.RunRequest](msg)
+	if err != nil {
+		h.sendError(conn, "debug_invalid_request", err.Error(), nil)
+		return
+	}
+
+	if err := validateRunRequest(req); err != nil {
+		h.sendError(conn, "debug_invalid_request", err.Error(), nil)
+		return
+	}
+
+	if req.SessionID != "" {
+		if _, err := h.sessions.Snapshot(req.SessionID); err != nil {
+			h.sendError(conn, "debug_session_not_found", err.Error(), nil)
+			return
+		}
+	}
+
+	h.sendError(conn, "debug_not_implemented", "debug-vNext P1 仅完成协议契约，运行控制将在 P2 接入", map[string]interface{}{
+		"mode":      req.Mode,
+		"sessionId": req.SessionID,
+	})
+}
+
+func (h *Handler) handleRunStop(conn *server.Connection, msg models.Message) {
+	req, err := decodeData[protocol.RunStopRequest](msg)
+	if err != nil {
+		h.sendError(conn, "debug_invalid_request", err.Error(), nil)
+		return
+	}
+
+	if strings.TrimSpace(req.SessionID) == "" {
+		h.sendError(conn, "debug_invalid_request", "缺少必需参数: sessionId", nil)
+		return
+	}
+
+	if _, err := h.sessions.Snapshot(req.SessionID); err != nil {
+		h.sendError(conn, "debug_session_not_found", err.Error(), nil)
+		return
+	}
+
+	h.sendError(conn, "debug_not_implemented", "debug-vNext P1 仅完成协议契约，停止运行将在 P2 接入", map[string]string{
+		"sessionId": req.SessionID,
+		"runId":     req.RunID,
+	})
+}
+
+func (h *Handler) handleArtifactGet(conn *server.Connection, msg models.Message) {
+	req, err := decodeData[protocol.ArtifactGetRequest](msg)
+	if err != nil {
+		h.sendError(conn, "debug_invalid_request", err.Error(), nil)
+		return
+	}
+
+	if strings.TrimSpace(req.SessionID) == "" {
+		h.sendError(conn, "debug_invalid_request", "缺少必需参数: sessionId", nil)
+		return
+	}
+	if strings.TrimSpace(req.ArtifactID) == "" {
+		h.sendError(conn, "debug_invalid_request", "缺少必需参数: artifactId", nil)
+		return
+	}
+
+	if _, err := h.sessions.Snapshot(req.SessionID); err != nil {
+		h.sendError(conn, "debug_session_not_found", err.Error(), nil)
+		return
+	}
+
+	h.sendError(conn, "debug_not_implemented", "debug-vNext P1 仅完成协议契约，artifact 读取将在 P2 接入", map[string]string{
+		"sessionId":  req.SessionID,
+		"artifactId": req.ArtifactID,
+	})
+}
+
+func validateRunRequest(req protocol.RunRequest) error {
+	if !protocol.IsValidRunMode(req.Mode) {
+		return fmt.Errorf("无效的 run mode: %s", req.Mode)
+	}
+	if strings.TrimSpace(req.Profile.ID) == "" {
+		return fmt.Errorf("缺少必需字段: profile.id")
+	}
+	if strings.TrimSpace(req.Profile.Name) == "" {
+		return fmt.Errorf("缺少必需字段: profile.name")
+	}
+	if !isSupportedController(req.Profile.Controller.Type) {
+		return fmt.Errorf("无效的 controller.type: %s", req.Profile.Controller.Type)
+	}
+	if !isSupportedSavePolicy(req.Profile.SavePolicy) {
+		return fmt.Errorf("无效的 savePolicy: %s", req.Profile.SavePolicy)
+	}
+	if req.Mode == protocol.RunModeFullRun && !isCompleteTarget(req.Profile.Entry) {
+		return fmt.Errorf("full-run 需要完整的 profile.entry")
+	}
+	if strings.TrimSpace(req.GraphSnapshot.GeneratedAt) == "" {
+		return fmt.Errorf("缺少必需字段: graphSnapshot.generatedAt")
+	}
+	if strings.TrimSpace(req.GraphSnapshot.RootFileID) == "" {
+		return fmt.Errorf("缺少必需字段: graphSnapshot.rootFileId")
+	}
+	if len(req.GraphSnapshot.Files) == 0 {
+		return fmt.Errorf("graphSnapshot.files 不能为空")
+	}
+	for i, file := range req.GraphSnapshot.Files {
+		if strings.TrimSpace(file.FileID) == "" {
+			return fmt.Errorf("缺少必需字段: graphSnapshot.files[%d].fileId", i)
+		}
+		if file.Pipeline == nil {
+			return fmt.Errorf("缺少必需字段: graphSnapshot.files[%d].pipeline", i)
+		}
+	}
+	if strings.TrimSpace(req.ResolverSnapshot.GeneratedAt) == "" {
+		return fmt.Errorf("缺少必需字段: resolverSnapshot.generatedAt")
+	}
+	if strings.TrimSpace(req.ResolverSnapshot.RootFileID) == "" {
+		return fmt.Errorf("缺少必需字段: resolverSnapshot.rootFileId")
+	}
+	if len(req.ResolverSnapshot.Nodes) == 0 {
+		return fmt.Errorf("resolverSnapshot.nodes 不能为空")
+	}
+	for i, node := range req.ResolverSnapshot.Nodes {
+		if strings.TrimSpace(node.FileID) == "" {
+			return fmt.Errorf("缺少必需字段: resolverSnapshot.nodes[%d].fileId", i)
+		}
+		if strings.TrimSpace(node.NodeID) == "" {
+			return fmt.Errorf("缺少必需字段: resolverSnapshot.nodes[%d].nodeId", i)
+		}
+		if strings.TrimSpace(node.RuntimeName) == "" {
+			return fmt.Errorf("缺少必需字段: resolverSnapshot.nodes[%d].runtimeName", i)
+		}
+	}
+	if protocol.RunModeRequiresTarget(req.Mode) {
+		if req.Target == nil {
+			return fmt.Errorf("%s 需要 target", req.Mode)
+		}
+		if !isCompleteTarget(*req.Target) {
+			return fmt.Errorf("%s 需要完整的 target.fileId、target.nodeId 和 target.runtimeName", req.Mode)
+		}
+	}
+	return nil
+}
+
+func isCompleteTarget(target protocol.NodeTarget) bool {
+	return strings.TrimSpace(target.FileID) != "" &&
+		strings.TrimSpace(target.NodeID) != "" &&
+		strings.TrimSpace(target.RuntimeName) != ""
+}
+
+func isSupportedController(controllerType string) bool {
+	switch controllerType {
+	case "adb", "win32", "dbg", "replay", "record":
+		return true
+	default:
+		return false
+	}
+}
+
+func isSupportedSavePolicy(savePolicy string) bool {
+	switch savePolicy {
+	case "sandbox", "save-open-files", "use-disk":
+		return true
+	default:
+		return false
+	}
+}
+
 func getSessionID(msg models.Message) (string, error) {
 	dataMap, ok := msg.Data.(map[string]interface{})
 	if !ok {
 		return "", fmt.Errorf("请求数据格式错误")
 	}
-	if sessionID, ok := dataMap["session_id"].(string); ok && sessionID != "" {
-		return sessionID, nil
-	}
 	if sessionID, ok := dataMap["sessionId"].(string); ok && sessionID != "" {
 		return sessionID, nil
 	}
-	return "", fmt.Errorf("缺少必需参数: session_id")
+	if sessionID, ok := dataMap["session_id"].(string); ok && sessionID != "" {
+		return sessionID, nil
+	}
+	return "", fmt.Errorf("缺少必需参数: sessionId")
+}
+
+func decodeData[T any](msg models.Message) (T, error) {
+	var decoded T
+	data, err := json.Marshal(msg.Data)
+	if err != nil {
+		return decoded, fmt.Errorf("请求数据序列化失败: %w", err)
+	}
+	if string(data) == "null" {
+		return decoded, fmt.Errorf("请求数据不能为空")
+	}
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return decoded, fmt.Errorf("请求数据格式错误: %w", err)
+	}
+	return decoded, nil
 }
 
 func (h *Handler) send(conn *server.Connection, path string, data interface{}) {

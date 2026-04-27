@@ -6,14 +6,19 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/registry"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/protocol"
 )
 
 type Status string
 
 const (
-	StatusIdle     Status = "idle"
-	StatusDisposed Status = "disposed"
+	StatusIdle      Status = "idle"
+	StatusPreparing Status = "preparing"
+	StatusRunning   Status = "running"
+	StatusStopping  Status = "stopping"
+	StatusCompleted Status = "completed"
+	StatusFailed    Status = "failed"
+	StatusDisposed  Status = "disposed"
 )
 
 type Session struct {
@@ -21,7 +26,7 @@ type Session struct {
 	Status       Status
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
-	Capabilities registry.CapabilityManifest
+	Capabilities protocol.CapabilityManifest
 }
 
 type Snapshot struct {
@@ -29,7 +34,7 @@ type Snapshot struct {
 	Status       Status                      `json:"status"`
 	CreatedAt    string                      `json:"createdAt"`
 	UpdatedAt    string                      `json:"updatedAt"`
-	Capabilities registry.CapabilityManifest `json:"capabilities"`
+	Capabilities protocol.CapabilityManifest `json:"capabilities"`
 }
 
 type Manager struct {
@@ -43,7 +48,7 @@ func NewManager() *Manager {
 	}
 }
 
-func (m *Manager) Create(capabilities registry.CapabilityManifest) Snapshot {
+func (m *Manager) Create(capabilities protocol.CapabilityManifest) Snapshot {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 

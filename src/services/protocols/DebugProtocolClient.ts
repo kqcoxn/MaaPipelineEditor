@@ -1,8 +1,13 @@
 import { BaseProtocol } from "./BaseProtocol";
 import type { LocalWebSocketServer } from "../server";
 import type {
+  DebugArtifactGetRequest,
+  DebugArtifactPayload,
   DebugCapabilityManifest,
+  DebugEvent,
   DebugProtocolError,
+  DebugRunRequest,
+  DebugRunStopRequest,
   DebugSessionSnapshot,
 } from "../../features/debug/types";
 
@@ -19,6 +24,8 @@ export class DebugProtocolClient extends BaseProtocol {
   private readonly sessionSnapshotListeners = new Set<
     Listener<DebugSessionSnapshot>
   >();
+  private readonly debugEventListeners = new Set<Listener<DebugEvent>>();
+  private readonly artifactListeners = new Set<Listener<DebugArtifactPayload>>();
   private readonly errorListeners = new Set<Listener<DebugProtocolError>>();
 
   getName(): string {
@@ -26,7 +33,7 @@ export class DebugProtocolClient extends BaseProtocol {
   }
 
   getVersion(): string {
-    return "0.9.0";
+    return "0.10.0";
   }
 
   register(wsClient: LocalWebSocketServer): void {
@@ -42,6 +49,12 @@ export class DebugProtocolClient extends BaseProtocol {
     );
     this.wsClient.registerRoute("/lte/debug/session_snapshot", (data) =>
       this.handleSessionSnapshot(data),
+    );
+    this.wsClient.registerRoute("/lte/debug/event", (data) =>
+      this.handleDebugEvent(data),
+    );
+    this.wsClient.registerRoute("/lte/debug/artifact", (data) =>
+      this.handleArtifact(data),
     );
     this.wsClient.registerRoute("/lte/debug/error", (data) =>
       this.handleError(data),
@@ -62,13 +75,25 @@ export class DebugProtocolClient extends BaseProtocol {
   }
 
   destroySession(sessionId: string): boolean {
-    return this.send("/mpe/debug/session/destroy", { session_id: sessionId });
+    return this.send("/mpe/debug/session/destroy", { sessionId });
   }
 
   requestSessionSnapshot(sessionId: string): boolean {
     return this.send("/mpe/debug/session/snapshot", {
-      session_id: sessionId,
+      sessionId,
     });
+  }
+
+  startRun(request: DebugRunRequest): boolean {
+    return this.send("/mpe/debug/run/start", request);
+  }
+
+  stopRun(request: DebugRunStopRequest): boolean {
+    return this.send("/mpe/debug/run/stop", request);
+  }
+
+  requestArtifact(request: DebugArtifactGetRequest): boolean {
+    return this.send("/mpe/debug/artifact/get", request);
   }
 
   onCapabilities(listener: Listener<DebugCapabilityManifest>): () => void {
@@ -89,6 +114,16 @@ export class DebugProtocolClient extends BaseProtocol {
   onSessionSnapshot(listener: Listener<DebugSessionSnapshot>): () => void {
     this.sessionSnapshotListeners.add(listener);
     return () => this.sessionSnapshotListeners.delete(listener);
+  }
+
+  onDebugEvent(listener: Listener<DebugEvent>): () => void {
+    this.debugEventListeners.add(listener);
+    return () => this.debugEventListeners.delete(listener);
+  }
+
+  onArtifact(listener: Listener<DebugArtifactPayload>): () => void {
+    this.artifactListeners.add(listener);
+    return () => this.artifactListeners.delete(listener);
   }
 
   onError(listener: Listener<DebugProtocolError>): () => void {
@@ -115,14 +150,30 @@ export class DebugProtocolClient extends BaseProtocol {
   }
 
   private handleSessionDestroyed(data: unknown): void {
-    const { session_id: sessionId } = data as { session_id?: string };
-    if (!sessionId) return;
-    this.sessionDestroyedListeners.forEach((listener) => listener(sessionId));
+    const { sessionId, session_id: legacySessionId } = data as {
+      sessionId?: string;
+      session_id?: string;
+    };
+    const resolvedSessionId = sessionId ?? legacySessionId;
+    if (!resolvedSessionId) return;
+    this.sessionDestroyedListeners.forEach((listener) =>
+      listener(resolvedSessionId),
+    );
   }
 
   private handleSessionSnapshot(data: unknown): void {
     const snapshot = data as DebugSessionSnapshot;
     this.sessionSnapshotListeners.forEach((listener) => listener(snapshot));
+  }
+
+  private handleDebugEvent(data: unknown): void {
+    const event = data as DebugEvent;
+    this.debugEventListeners.forEach((listener) => listener(event));
+  }
+
+  private handleArtifact(data: unknown): void {
+    const artifact = data as DebugArtifactPayload;
+    this.artifactListeners.forEach((listener) => listener(artifact));
   }
 
   private handleError(data: unknown): void {

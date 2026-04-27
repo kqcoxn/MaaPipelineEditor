@@ -85,10 +85,7 @@ export function DebugModal() {
     setCapabilitiesError,
   ]);
 
-  const runModes = useMemo(
-    () => debugContributionRegistry.getRunModes(),
-    [],
-  );
+  const runModes = useMemo(() => debugContributionRegistry.getRunModes(), []);
 
   const handlePanelClick = (panel: DebugModalPanel) => {
     setActivePanel(panel);
@@ -133,11 +130,11 @@ export function DebugModal() {
           <Space direction="vertical" size={16} style={{ width: "100%" }}>
             <div>
               <Title level={4} style={{ margin: 0 }}>
-                调试系统 P0
+                调试系统 P1
               </Title>
               <Text type="secondary">
-                旧调试工作栏已从主链路移除。当前 Modal 负责承接后续 vNext
-                调试能力入口。
+                当前阶段已补齐 debug-vNext 协议和数据契约。真实运行、trace、artifact
+                和截图链路会在后续阶段接入。
               </Text>
             </div>
 
@@ -146,7 +143,7 @@ export function DebugModal() {
                 type="warning"
                 showIcon
                 message="LocalBridge 未连接"
-                description="可以先打开调试面板，连接后将读取 vNext capability manifest。"
+                description="可以先打开调试面板；连接后会读取 vNext capability manifest。"
               />
             )}
 
@@ -189,8 +186,8 @@ export function DebugModal() {
             <Alert
               type="info"
               showIcon
-              message="P0 边界"
-              description="真实运行、trace、artifact、截图和节点级调试闭环将在后续阶段接入。"
+              message="P1 边界"
+              description="运行控制、事件归一化、artifact 读取、截图和节点级调试闭环尚未实现；当前 handler 会在完成契约校验后返回 debug_not_implemented。"
             />
           </Space>
         </main>

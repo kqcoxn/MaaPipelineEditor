@@ -1,7 +1,7 @@
 import { debugContributionRegistry } from "./registry";
 import type { DebugRunMode } from "../types";
 
-const p0RunModes: Array<{
+const initialRunModes: Array<{
   id: DebugRunMode;
   label: string;
   description: string;
@@ -14,7 +14,7 @@ const p0RunModes: Array<{
   {
     id: "run-from-node",
     label: "从节点运行",
-    description: "从选中节点作为入口运行后续 pipeline。",
+    description: "以选中节点作为入口运行后续 pipeline。",
   },
   {
     id: "single-node-run",
@@ -23,13 +23,13 @@ const p0RunModes: Array<{
   },
   {
     id: "recognition-only",
-    label: "仅识别",
+    label: "仅测试识别",
     description: "只验证选中节点的识别逻辑。",
   },
 ];
 
 export function registerDebugRunModes(): void {
-  p0RunModes.forEach((runMode) => {
+  initialRunModes.forEach((runMode) => {
     debugContributionRegistry.registerRunMode({
       ...runMode,
       p0Available: false,
