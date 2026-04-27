@@ -5,8 +5,10 @@ import type {
   DebugArtifactPayload,
   DebugCapabilityManifest,
   DebugEvent,
+  DebugRunStarted,
   DebugProtocolError,
   DebugRunRequest,
+  DebugRunStopRequested,
   DebugRunStopRequest,
   DebugSessionSnapshot,
 } from "../../features/debug/types";
@@ -25,6 +27,10 @@ export class DebugProtocolClient extends BaseProtocol {
     Listener<DebugSessionSnapshot>
   >();
   private readonly debugEventListeners = new Set<Listener<DebugEvent>>();
+  private readonly runStartedListeners = new Set<Listener<DebugRunStarted>>();
+  private readonly runStopRequestedListeners = new Set<
+    Listener<DebugRunStopRequested>
+  >();
   private readonly artifactListeners = new Set<Listener<DebugArtifactPayload>>();
   private readonly errorListeners = new Set<Listener<DebugProtocolError>>();
 
@@ -33,7 +39,7 @@ export class DebugProtocolClient extends BaseProtocol {
   }
 
   getVersion(): string {
-    return "0.10.0";
+    return "0.11.0";
   }
 
   register(wsClient: LocalWebSocketServer): void {
@@ -52,6 +58,12 @@ export class DebugProtocolClient extends BaseProtocol {
     );
     this.wsClient.registerRoute("/lte/debug/event", (data) =>
       this.handleDebugEvent(data),
+    );
+    this.wsClient.registerRoute("/lte/debug/run_started", (data) =>
+      this.handleRunStarted(data),
+    );
+    this.wsClient.registerRoute("/lte/debug/run_stop_requested", (data) =>
+      this.handleRunStopRequested(data),
     );
     this.wsClient.registerRoute("/lte/debug/artifact", (data) =>
       this.handleArtifact(data),
@@ -121,6 +133,16 @@ export class DebugProtocolClient extends BaseProtocol {
     return () => this.debugEventListeners.delete(listener);
   }
 
+  onRunStarted(listener: Listener<DebugRunStarted>): () => void {
+    this.runStartedListeners.add(listener);
+    return () => this.runStartedListeners.delete(listener);
+  }
+
+  onRunStopRequested(listener: Listener<DebugRunStopRequested>): () => void {
+    this.runStopRequestedListeners.add(listener);
+    return () => this.runStopRequestedListeners.delete(listener);
+  }
+
   onArtifact(listener: Listener<DebugArtifactPayload>): () => void {
     this.artifactListeners.add(listener);
     return () => this.artifactListeners.delete(listener);
@@ -169,6 +191,16 @@ export class DebugProtocolClient extends BaseProtocol {
   private handleDebugEvent(data: unknown): void {
     const event = data as DebugEvent;
     this.debugEventListeners.forEach((listener) => listener(event));
+  }
+
+  private handleRunStarted(data: unknown): void {
+    const event = data as DebugRunStarted;
+    this.runStartedListeners.forEach((listener) => listener(event));
+  }
+
+  private handleRunStopRequested(data: unknown): void {
+    const event = data as DebugRunStopRequested;
+    this.runStopRequestedListeners.forEach((listener) => listener(event));
   }
 
   private handleArtifact(data: unknown): void {

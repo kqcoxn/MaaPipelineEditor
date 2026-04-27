@@ -1,5 +1,5 @@
 export const DEBUG_GENERATION = "debug-vNext" as const;
-export const DEBUG_PROTOCOL_VERSION = "0.10.0" as const;
+export const DEBUG_PROTOCOL_VERSION = "0.11.0" as const;
 
 export type DebugGeneration = typeof DEBUG_GENERATION;
 
@@ -91,6 +91,21 @@ export interface DebugSessionSnapshot {
   createdAt: string;
   updatedAt: string;
   capabilities: DebugCapabilityManifest;
+}
+
+export interface DebugRunStarted {
+  sessionId: string;
+  runId: string;
+  mode: DebugRunMode;
+  entry: string;
+  startedAt: string;
+  session: DebugSessionSnapshot;
+}
+
+export interface DebugRunStopRequested {
+  sessionId: string;
+  runId?: string;
+  reason?: string;
 }
 
 export interface DebugNodeTarget {

@@ -2,7 +2,7 @@ package protocol
 
 const (
 	Generation      = "debug-vNext"
-	ProtocolVersion = "0.10.0"
+	ProtocolVersion = "0.11.0"
 )
 
 type RunMode string

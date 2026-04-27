@@ -964,3 +964,31 @@ type DebugCapabilityManifest = {
 - EventNormalizer、TraceStore、ArtifactStore、artifact 读取响应、截图服务和图像查看链路。
 - 前端 trace reducer、debugTraceStore、debugArtifactStore、debugDiagnosticsStore、debugRunProfileStore 和画布 overlay。
 - 节点 resolver snapshot 的真实生成、pipeline sandbox 导出一致性、节点级 action contribution。
+
+### 2026-04-27 P2：后端核心闭环
+
+已完成：
+
+- LocalBridge 新增 debug-vNext 后端核心包：`trace`、`artifact`、`events`、`runtime`、`runner`，形成 session 内 append-only trace、内存 artifact、MaaFW event 归一化、ResourceRuntime 和 TaskRunner 最小闭环。
+- `session.Manager` 增加受锁保护的状态迁移方法，支持 `preparing/running/stopping/completed/failed`，并在内部记录当前 `runId`。
+- `/mpe/debug/run/start` 已接入真实运行：支持 `full-run` 和 `run-from-node`，复用 `profile.controller.options.controllerId` 指向的已连接 MFW controller，加载 `profile.resourcePaths`，用 `graphSnapshot.files[*].pipeline` 与 `overrides` 生成本次运行 override 后提交 `PostTask`。
+- `/mpe/debug/run/stop` 已接入 `PostStop`，受理后进入 `stopping`，最终由 wait goroutine 更新 session 状态并释放 runtime。
+- `/mpe/debug/artifact/get` 已接入 ArtifactStore，成功返回 `/lte/debug/artifact`；session destroy 会先停止 active run，再释放 trace 和 artifact。
+- MaaFW task/node/recognition/action/next-list 事件会先写入 trace，再推送 `/lte/debug/event`；事件保留官方 `maafwMessage`，并按 resolver snapshot 补齐 MPE `fileId/nodeId/label`。
+- recognition/action/task detail 改为 JSON artifact；recognition raw/draw 图像仅在 artifact policy 允许时以 PNG artifact ref 写入，不再内联进事件。
+- 前后端 debug-vNext 协议版本同步升级到 `0.11.0`；capability manifest 当前仅暴露 P2 可运行模式 `full-run` 和 `run-from-node`，前端 DebugModal 文案更新为 P2 边界。
+
+验证记录：
+
+- `go test ./...`（工作目录 `LocalBridge`）：通过。
+- `yarn eslint src/features/debug/types.ts src/services/protocols/DebugProtocolClient.ts src/components/debug/DebugModal.tsx`：通过。
+- `yarn build`：通过；仍保留既有 Vite dynamic import/chunk size 警告。
+- `git diff -- src LocalBridge | rg '^\\+.*(ToolPanel\\.Debug|debugProtocol\\.register|NewDebugHandlerV2|sendStartDebug\\(|/mpe/debug/start|useDebugStore|debugStore)'`：无输出，确认本次未新增旧调试入口依赖。
+- `rg 'debug_not_implemented|debug-vNext P1|ProtocolVersion = "0\\.10\\.0"|DEBUG_PROTOCOL_VERSION = "0\\.10\\.0"|return "0\\.10\\.0"' src LocalBridge -n`：无输出，确认 P1 未实现提示和旧 debug-vNext 协议版本已从代码主链路移除。
+
+遗留到 Phase 3+：
+
+- 前端 trace reducer、debugTraceStore、debugArtifactStore、debugDiagnosticsStore、debugRunProfileStore、图像查看和画布 overlay。
+- DebugModal 内的 profile/resource/controller/run 启动表单与真实 `DebugRunRequest` 生成链路。
+- 节点 resolver snapshot 的前端真实生成、pipeline sandbox 导出一致性和节点级 action contribution。
+- `recognition-only`、`single-node-run`、`action-only`、fixed-image recognition、截图服务、diagnostics、multi-agent、replay/record 和长期旧代码物理清理。

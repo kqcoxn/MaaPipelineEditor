@@ -9,8 +9,6 @@ func DefaultCapabilityManifest() protocol.CapabilityManifest {
 		RunModes: []string{
 			string(protocol.RunModeFullRun),
 			string(protocol.RunModeRunFromNode),
-			string(protocol.RunModeSingleNodeRun),
-			string(protocol.RunModeRecognitionOnly),
 		},
 		Diagnostics:       []string{},
 		Artifacts:         []string{},

@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/artifact"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/protocol"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/registry"
+	debugrunner "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/runner"
 	debugsession "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/session"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/trace"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/mfw"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/server"
@@ -17,13 +20,22 @@ import (
 type Handler struct {
 	service      *mfw.Service
 	sessions     *debugsession.Manager
+	traces       *trace.Store
+	artifacts    *artifact.Store
+	runner       *debugrunner.Runner
 	capabilities protocol.CapabilityManifest
 }
 
 func NewHandler(service *mfw.Service) *Handler {
+	sessions := debugsession.NewManager()
+	traces := trace.NewStore()
+	artifacts := artifact.NewStore()
 	return &Handler{
 		service:      service,
-		sessions:     debugsession.NewManager(),
+		sessions:     sessions,
+		traces:       traces,
+		artifacts:    artifacts,
+		runner:       debugrunner.New(service, sessions, traces, artifacts),
 		capabilities: registry.DefaultCapabilityManifest(),
 	}
 }
@@ -85,6 +97,7 @@ func (h *Handler) handleDestroySession(conn *server.Connection, msg models.Messa
 		return
 	}
 
+	h.runner.DisposeSession(sessionID)
 	if err := h.sessions.Destroy(sessionID); err != nil {
 		h.sendError(conn, "debug_session_not_found", err.Error(), nil)
 		return
@@ -117,6 +130,11 @@ func (h *Handler) handleSessionSnapshot(conn *server.Connection, msg models.Mess
 }
 
 func (h *Handler) handleRunStart(conn *server.Connection, msg models.Message) {
+	if !h.service.IsInitialized() {
+		h.sendError(conn, "debug_not_initialized", "MaaFramework 未初始化，请先初始化服务", nil)
+		return
+	}
+
 	req, err := decodeData[protocol.RunRequest](msg)
 	if err != nil {
 		h.sendError(conn, "debug_invalid_request", err.Error(), nil)
@@ -128,16 +146,33 @@ func (h *Handler) handleRunStart(conn *server.Connection, msg models.Message) {
 		return
 	}
 
-	if req.SessionID != "" {
+	if req.SessionID == "" {
+		snapshot := h.sessions.Create(h.capabilities)
+		req.SessionID = snapshot.SessionID
+		h.send(conn, "/lte/debug/session_created", snapshot)
+	} else {
 		if _, err := h.sessions.Snapshot(req.SessionID); err != nil {
 			h.sendError(conn, "debug_session_not_found", err.Error(), nil)
 			return
 		}
 	}
 
-	h.sendError(conn, "debug_not_implemented", "debug-vNext P1 仅完成协议契约，运行控制将在 P2 接入", map[string]interface{}{
-		"mode":      req.Mode,
-		"sessionId": req.SessionID,
+	result, err := h.runner.Start(req, h.eventSender(conn), h.snapshotSender(conn))
+	if err != nil {
+		h.sendError(conn, "debug_run_start_failed", err.Error(), map[string]interface{}{
+			"mode":      req.Mode,
+			"sessionId": req.SessionID,
+		})
+		return
+	}
+
+	h.send(conn, "/lte/debug/run_started", map[string]interface{}{
+		"sessionId": result.SessionID,
+		"runId":     result.RunID,
+		"mode":      result.Mode,
+		"entry":     result.Entry,
+		"startedAt": result.StartedAt,
+		"session":   result.Session,
 	})
 }
 
@@ -158,9 +193,18 @@ func (h *Handler) handleRunStop(conn *server.Connection, msg models.Message) {
 		return
 	}
 
-	h.sendError(conn, "debug_not_implemented", "debug-vNext P1 仅完成协议契约，停止运行将在 P2 接入", map[string]string{
+	if err := h.runner.Stop(req.SessionID, req.RunID, req.Reason, h.eventSender(conn), h.snapshotSender(conn)); err != nil {
+		h.sendError(conn, "debug_run_stop_failed", err.Error(), map[string]string{
+			"sessionId": req.SessionID,
+			"runId":     req.RunID,
+		})
+		return
+	}
+
+	h.send(conn, "/lte/debug/run_stop_requested", map[string]string{
 		"sessionId": req.SessionID,
 		"runId":     req.RunID,
+		"reason":    req.Reason,
 	})
 }
 
@@ -185,15 +229,23 @@ func (h *Handler) handleArtifactGet(conn *server.Connection, msg models.Message)
 		return
 	}
 
-	h.sendError(conn, "debug_not_implemented", "debug-vNext P1 仅完成协议契约，artifact 读取将在 P2 接入", map[string]string{
-		"sessionId":  req.SessionID,
-		"artifactId": req.ArtifactID,
-	})
+	payload, err := h.artifacts.Get(req.SessionID, req.ArtifactID)
+	if err != nil {
+		h.sendError(conn, "debug_artifact_not_found", err.Error(), map[string]string{
+			"sessionId":  req.SessionID,
+			"artifactId": req.ArtifactID,
+		})
+		return
+	}
+	h.send(conn, "/lte/debug/artifact", payload)
 }
 
 func validateRunRequest(req protocol.RunRequest) error {
 	if !protocol.IsValidRunMode(req.Mode) {
 		return fmt.Errorf("无效的 run mode: %s", req.Mode)
+	}
+	if req.Mode != protocol.RunModeFullRun && req.Mode != protocol.RunModeRunFromNode {
+		return fmt.Errorf("P2 暂不支持 run mode: %s", req.Mode)
 	}
 	if strings.TrimSpace(req.Profile.ID) == "" {
 		return fmt.Errorf("缺少必需字段: profile.id")
@@ -206,6 +258,12 @@ func validateRunRequest(req protocol.RunRequest) error {
 	}
 	if !isSupportedSavePolicy(req.Profile.SavePolicy) {
 		return fmt.Errorf("无效的 savePolicy: %s", req.Profile.SavePolicy)
+	}
+	if strings.TrimSpace(controllerIDFromOptions(req.Profile.Controller.Options)) == "" {
+		return fmt.Errorf("缺少必需字段: profile.controller.options.controllerId")
+	}
+	if len(nonEmptyStrings(req.Profile.ResourcePaths)) == 0 {
+		return fmt.Errorf("profile.resourcePaths 不能为空")
 	}
 	if req.Mode == protocol.RunModeFullRun && !isCompleteTarget(req.Profile.Entry) {
 		return fmt.Errorf("full-run 需要完整的 profile.entry")
@@ -256,6 +314,25 @@ func validateRunRequest(req protocol.RunRequest) error {
 		}
 	}
 	return nil
+}
+
+func controllerIDFromOptions(options map[string]interface{}) string {
+	for _, key := range []string{"controllerId", "controller_id"} {
+		if value, ok := options[key].(string); ok && strings.TrimSpace(value) != "" {
+			return strings.TrimSpace(value)
+		}
+	}
+	return ""
+}
+
+func nonEmptyStrings(values []string) []string {
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			result = append(result, strings.TrimSpace(value))
+		}
+	}
+	return result
 }
 
 func isCompleteTarget(target protocol.NodeTarget) bool {
@@ -323,4 +400,16 @@ func (h *Handler) sendError(conn *server.Connection, code string, message string
 		"message": message,
 		"detail":  detail,
 	})
+}
+
+func (h *Handler) eventSender(conn *server.Connection) debugrunner.EventSender {
+	return func(event protocol.Event) {
+		h.send(conn, "/lte/debug/event", event)
+	}
+}
+
+func (h *Handler) snapshotSender(conn *server.Connection) debugrunner.SnapshotSender {
+	return func(snapshot debugsession.Snapshot) {
+		h.send(conn, "/lte/debug/session_snapshot", snapshot)
+	}
 }

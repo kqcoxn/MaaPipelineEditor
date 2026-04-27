@@ -85,7 +85,13 @@ export function DebugModal() {
     setCapabilitiesError,
   ]);
 
-  const runModes = useMemo(() => debugContributionRegistry.getRunModes(), []);
+  const runModes = useMemo(() => {
+    const registeredModes = debugContributionRegistry.getRunModes();
+    if (!capabilities) return registeredModes;
+    return registeredModes.filter((runMode) =>
+      capabilities.runModes.includes(runMode.id),
+    );
+  }, [capabilities]);
 
   const handlePanelClick = (panel: DebugModalPanel) => {
     setActivePanel(panel);
@@ -130,11 +136,11 @@ export function DebugModal() {
           <Space direction="vertical" size={16} style={{ width: "100%" }}>
             <div>
               <Title level={4} style={{ margin: 0 }}>
-                调试系统 P1
+                调试系统 P2
               </Title>
               <Text type="secondary">
-                当前阶段已补齐 debug-vNext 协议和数据契约。真实运行、trace、artifact
-                和截图链路会在后续阶段接入。
+                当前阶段已接入后端 run/start、run/stop、trace 和 artifact
+                最小闭环。前端时间线、图像面板和节点级调试会在后续阶段接入。
               </Text>
             </div>
 
@@ -186,8 +192,8 @@ export function DebugModal() {
             <Alert
               type="info"
               showIcon
-              message="P1 边界"
-              description="运行控制、事件归一化、artifact 读取、截图和节点级调试闭环尚未实现；当前 handler 会在完成契约校验后返回 debug_not_implemented。"
+              message="P2 边界"
+              description="当前仅开放完整运行和从节点运行；recognition-only、截图服务、前端 trace UI、replay/record 和节点级调试仍在后续阶段实现。"
             />
           </Space>
         </main>

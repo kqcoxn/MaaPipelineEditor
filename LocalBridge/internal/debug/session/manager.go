@@ -27,6 +27,7 @@ type Session struct {
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 	Capabilities protocol.CapabilityManifest
+	CurrentRunID string
 }
 
 type Snapshot struct {
@@ -78,6 +79,30 @@ func (m *Manager) Destroy(sessionID string) error {
 	return nil
 }
 
+func (m *Manager) SetPreparing(sessionID string, runID string) (Snapshot, error) {
+	return m.setStatus(sessionID, StatusPreparing, runID)
+}
+
+func (m *Manager) SetRunning(sessionID string, runID string) (Snapshot, error) {
+	return m.setStatus(sessionID, StatusRunning, runID)
+}
+
+func (m *Manager) SetStopping(sessionID string) (Snapshot, error) {
+	return m.setStatus(sessionID, StatusStopping, "")
+}
+
+func (m *Manager) SetCompleted(sessionID string) (Snapshot, error) {
+	return m.setStatus(sessionID, StatusCompleted, "")
+}
+
+func (m *Manager) SetFailed(sessionID string) (Snapshot, error) {
+	return m.setStatus(sessionID, StatusFailed, "")
+}
+
+func (m *Manager) SetIdle(sessionID string) (Snapshot, error) {
+	return m.setStatus(sessionID, StatusIdle, "")
+}
+
 func (m *Manager) Snapshot(sessionID string) (Snapshot, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -97,4 +122,24 @@ func (s *Session) Snapshot() Snapshot {
 		UpdatedAt:    s.UpdatedAt.Format(time.RFC3339Nano),
 		Capabilities: s.Capabilities,
 	}
+}
+
+func (m *Manager) setStatus(sessionID string, status Status, runID string) (Snapshot, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	session, ok := m.sessions[sessionID]
+	if !ok {
+		return Snapshot{}, fmt.Errorf("debug session not found: %s", sessionID)
+	}
+
+	session.Status = status
+	if runID != "" {
+		session.CurrentRunID = runID
+	}
+	if status == StatusIdle || status == StatusCompleted || status == StatusFailed || status == StatusDisposed {
+		session.CurrentRunID = ""
+	}
+	session.UpdatedAt = time.Now().UTC()
+	return session.Snapshot(), nil
 }
