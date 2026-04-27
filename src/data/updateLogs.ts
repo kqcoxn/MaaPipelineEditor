@@ -52,7 +52,10 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2026-4",
     type: "major",
     updates: {
-      fixes: ["修复 MPE 保存到本地后 LB 提示外部文件更改警告的问题"],
+      fixes: [
+        "修复 OpenAI 兼容 URL 解析逻辑，支持基础地址和完整端点",
+        "修复 MPE 保存到本地后 LB 提示外部文件更改警告的问题",
+      ],
     },
   },
   {

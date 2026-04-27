@@ -26,6 +26,31 @@ interface OpenAIMessage {
   content: string | OpenAIVisionContent[];
 }
 
+const CHAT_COMPLETIONS_PATH = "/chat/completions";
+const DEFAULT_CHAT_COMPLETIONS_PATH = "/v1/chat/completions";
+
+/**
+ * 兼容三类常见配置：
+ * - https://api.openai.com -> /v1/chat/completions
+ * - https://api.openai.com/v1 或第三方 /api/paas/v4 -> /chat/completions
+ * - 已填写完整 /chat/completions 端点时保持不重复拼接
+ */
+export function resolveOpenAICompatibleChatUrl(apiUrl: string): string {
+  const url = new URL(apiUrl.trim());
+  const pathname = url.pathname.replace(/\/+$/, "");
+
+  if (pathname.endsWith(CHAT_COMPLETIONS_PATH)) {
+    url.pathname = pathname;
+    return url.toString();
+  }
+
+  url.pathname =
+    pathname === ""
+      ? DEFAULT_CHAT_COMPLETIONS_PATH
+      : `${pathname}${CHAT_COMPLETIONS_PATH}`;
+  return url.toString();
+}
+
 /**
  * 将统一消息格式转换为 OpenAI 消息格式
  */
@@ -85,8 +110,7 @@ export const openaiProvider: AIProvider = {
     config: AIProviderConfig,
     options?: RequestOptions,
   ): ProviderRequest {
-    const baseUrl = config.apiUrl.replace(/\/+$/, "");
-    const url = `${baseUrl}/v1/chat/completions`;
+    const url = resolveOpenAICompatibleChatUrl(config.apiUrl);
 
     const openaiMessages = toOpenAIMessages(messages, options?.images);
 

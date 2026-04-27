@@ -9,7 +9,7 @@ export type AIProviderType = "openai" | "anthropic" | "gemini" | "custom";
 /** AI 厂商配置 */
 export interface AIProviderConfig {
   type: AIProviderType;
-  /** 基础 URL（如 https://api.openai.com，不含路径） */
+  /** 基础 URL 或完整的 OpenAI 兼容 chat/completions 端点 */
   apiUrl: string;
   apiKey: string;
   model: string;

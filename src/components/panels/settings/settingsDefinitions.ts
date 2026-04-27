@@ -567,7 +567,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
     label: "API URL",
     tipTitle: "API URL",
     tipContent:
-      "API 基础地址。OpenAI: https://api.openai.com，Anthropic: https://api.anthropic.com，Gemini: https://generativelanguage.googleapis.com。自定义类型请填写完整的 API 地址",
+      "API 基础地址或完整端点。OpenAI: https://api.openai.com，Anthropic: https://api.anthropic.com，Gemini: https://generativelanguage.googleapis.com。自定义 OpenAI 兼容服务可填写基础地址（如 https://open.bigmodel.cn/api/paas/v4）或完整 /chat/completions 地址",
     type: "input",
     placeholder: "例如: https://api.openai.com",
     dynamicPlaceholder: (configs) => `例如: ${getAIExample(configs).url}`,
