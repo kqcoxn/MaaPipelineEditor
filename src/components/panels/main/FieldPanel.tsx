@@ -29,10 +29,8 @@ import {
   GroupEditor,
 } from "../node-editors";
 import { FieldPanelToolbarLeft, FieldPanelToolbarRight } from "../field/tools";
-import { useDebugStore } from "../../../stores/debugStore";
 import { useConfigStore } from "../../../stores/configStore";
 import { usePanelOccupancy } from "../../../hooks/usePanelOccupancy";
-import NodeRecognitionCardList from "../tools/NodeRecognitionCardList";
 import AdjacentInfoPanel from "./AdjacentInfoPanel";
 import { DraggablePanel } from "../common/DraggablePanel";
 import { NodeJsonEditorModal } from "../../modals/NodeJsonEditorModal";
@@ -105,7 +103,6 @@ class EditorErrorBoundary extends Component<
 function FieldPanel() {
   const currentNode = useFlowStore((state) => state.targetNode);
   const updateNodes = useFlowStore((state) => state.updateNodes);
-  const debugMode = useDebugStore((state) => state.debugMode);
   const fieldPanelMode = useConfigStore(
     (state) => state.configs.fieldPanelMode,
   );
@@ -430,30 +427,6 @@ function FieldPanel() {
                 />
               ),
             },
-            ...(debugMode
-              ? [
-                  {
-                    key: "source",
-                    label: "出发节点记录",
-                    children: (
-                      <NodeRecognitionCardList
-                        nodeName={currentNode.data?.label || ""}
-                        filterMode="source"
-                      />
-                    ),
-                  },
-                  {
-                    key: "target",
-                    label: "目标节点记录",
-                    children: (
-                      <NodeRecognitionCardList
-                        nodeName={currentNode.data?.label || ""}
-                        filterMode="target"
-                      />
-                    ),
-                  },
-                ]
-              : []),
           ]}
           style={{ flex: "1 1 auto", minHeight: 0 }}
           tabBarStyle={{

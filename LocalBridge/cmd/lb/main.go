@@ -15,13 +15,13 @@ import (
 	"time"
 
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/config"
+	debugapi "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/api"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/eventbus"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/mfw"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/paths"
 	aiProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/ai"
 	configProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/config"
-	debugProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/debug"
 	fileProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/file"
 	mfwProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/mfw"
 	resourceProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/resource"
@@ -406,8 +406,8 @@ func runServer(cmd *cobra.Command, args []string) {
 	configHandler := configProtocol.NewConfigHandler()
 	rt.RegisterHandler(configHandler)
 
-	// 注册 Debug 协议处理器
-	debugHandler := debugProtocol.NewDebugHandlerV2(mfwSvc)
+	// 注册 debug-vNext 协议处理器
+	debugHandler := debugapi.NewHandler(mfwSvc)
 	rt.RegisterHandler(debugHandler)
 
 	// 注册 Resource 协议处理器

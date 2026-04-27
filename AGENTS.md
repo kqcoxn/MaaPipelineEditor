@@ -37,7 +37,7 @@
 ## 本地文档路径
 
 - MaaFramework（可用 `mfw` 或 `maafw` 指代） 应用指南：`/dev/instructions/maafw-guide/`
-- MaaFramework Go 绑定：`/dev/instructions/maafw-golang-binding/`（localbridge 所需，API 列表可参考`/dev/instructions/maafw-golang-binding/API大全.md`）
+- MaaFramework Go 绑定：`/dev/instructions/maafw-golang-binding/`（localbridge 所需）
 - Ant Design（可缩写为 `antd`）：`/dev/instructions/ant-design`
 - React Flow：`/dev/instructions/react-flow/`
 - Wails：`/dev/instructions/wails/`

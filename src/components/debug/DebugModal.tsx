@@ -1,0 +1,200 @@
+import { useEffect, useMemo, type ReactNode } from "react";
+import { Alert, Button, Modal, Space, Tag, Typography } from "antd";
+import {
+  ApiOutlined,
+  BranchesOutlined,
+  DatabaseOutlined,
+  FileSearchOutlined,
+  MonitorOutlined,
+  NodeIndexOutlined,
+  PictureOutlined,
+  ProfileOutlined,
+  RobotOutlined,
+  UnorderedListOutlined,
+} from "@ant-design/icons";
+import { debugProtocolClient } from "../../services/server";
+import { useDebugSessionStore } from "../../stores/debugSessionStore";
+import { useDebugModalMemoryStore } from "../../stores/debugModalMemoryStore";
+import { useWSStore } from "../../stores/wsStore";
+import type { DebugModalPanel } from "../../features/debug/types";
+import { debugContributionRegistry } from "../../features/debug/contributions/registry";
+import "../../features/debug/contributions/runModes";
+
+const { Text, Title } = Typography;
+
+interface PanelItem {
+  id: DebugModalPanel;
+  label: string;
+  icon: ReactNode;
+}
+
+const panels: PanelItem[] = [
+  { id: "overview", label: "总览", icon: <ProfileOutlined /> },
+  { id: "profile", label: "Profile", icon: <FileSearchOutlined /> },
+  { id: "resources", label: "资源", icon: <DatabaseOutlined /> },
+  { id: "controller", label: "控制器", icon: <MonitorOutlined /> },
+  { id: "agent", label: "Agent", icon: <RobotOutlined /> },
+  { id: "nodes", label: "节点", icon: <NodeIndexOutlined /> },
+  { id: "timeline", label: "时间线", icon: <BranchesOutlined /> },
+  { id: "images", label: "图像", icon: <PictureOutlined /> },
+  { id: "diagnostics", label: "诊断", icon: <ApiOutlined /> },
+  { id: "logs", label: "日志", icon: <UnorderedListOutlined /> },
+];
+
+export function DebugModal() {
+  const {
+    modalOpen,
+    activePanel,
+    capabilities,
+    capabilityStatus,
+    capabilityError,
+    closeModal,
+    setActivePanel,
+    setCapabilities,
+    setCapabilitiesLoading,
+    setCapabilitiesError,
+  } = useDebugSessionStore();
+  const connected = useWSStore((state) => state.connected);
+  const { lastRunMode, setLastPanel } = useDebugModalMemoryStore();
+
+  useEffect(() => {
+    const removeCapabilitiesListener = debugProtocolClient.onCapabilities(
+      (manifest) => setCapabilities(manifest),
+    );
+    const removeErrorListener = debugProtocolClient.onError((error) => {
+      setCapabilitiesError(error.message);
+    });
+    return () => {
+      removeCapabilitiesListener();
+      removeErrorListener();
+    };
+  }, [setCapabilities, setCapabilitiesError]);
+
+  useEffect(() => {
+    if (!modalOpen || !connected || capabilities) return;
+    setCapabilitiesLoading();
+    const sent = debugProtocolClient.requestCapabilities();
+    if (!sent) {
+      setCapabilitiesError("LocalBridge 未连接，暂时无法读取调试能力。");
+    }
+  }, [
+    modalOpen,
+    connected,
+    capabilities,
+    setCapabilitiesLoading,
+    setCapabilitiesError,
+  ]);
+
+  const runModes = useMemo(
+    () => debugContributionRegistry.getRunModes(),
+    [],
+  );
+
+  const handlePanelClick = (panel: DebugModalPanel) => {
+    setActivePanel(panel);
+    setLastPanel(panel);
+  };
+
+  return (
+    <Modal
+      title="调试"
+      open={modalOpen}
+      onCancel={closeModal}
+      width="min(1120px, calc(100vw - 48px))"
+      footer={null}
+      destroyOnHidden
+    >
+      <div style={{ display: "flex", gap: 16, minHeight: 520 }}>
+        <nav
+          style={{
+            width: 168,
+            flexShrink: 0,
+            borderRight: "1px solid rgba(5, 5, 5, 0.08)",
+            paddingRight: 12,
+          }}
+        >
+          <Space direction="vertical" size={4} style={{ width: "100%" }}>
+            {panels.map((panel) => (
+              <Button
+                key={panel.id}
+                type={activePanel === panel.id ? "primary" : "text"}
+                icon={panel.icon}
+                block
+                style={{ justifyContent: "flex-start" }}
+                onClick={() => handlePanelClick(panel.id)}
+              >
+                {panel.label}
+              </Button>
+            ))}
+          </Space>
+        </nav>
+
+        <main style={{ flex: 1, minWidth: 0 }}>
+          <Space direction="vertical" size={16} style={{ width: "100%" }}>
+            <div>
+              <Title level={4} style={{ margin: 0 }}>
+                调试系统 P0
+              </Title>
+              <Text type="secondary">
+                旧调试工作栏已从主链路移除。当前 Modal 负责承接后续 vNext
+                调试能力入口。
+              </Text>
+            </div>
+
+            {!connected && (
+              <Alert
+                type="warning"
+                showIcon
+                message="LocalBridge 未连接"
+                description="可以先打开调试面板，连接后将读取 vNext capability manifest。"
+              />
+            )}
+
+            {capabilityStatus === "error" && (
+              <Alert
+                type="error"
+                showIcon
+                message="调试能力读取失败"
+                description={capabilityError}
+              />
+            )}
+
+            <section>
+              <Title level={5}>Capability</Title>
+              <Space wrap>
+                <Tag color={capabilities ? "green" : "default"}>
+                  {capabilities?.generation ?? "pending"}
+                </Tag>
+                <Tag color="blue">
+                  protocol {capabilities?.protocol ?? "unknown"}
+                </Tag>
+                <Tag>{capabilityStatus}</Tag>
+              </Space>
+            </section>
+
+            <section>
+              <Title level={5}>Run Modes</Title>
+              <Space wrap>
+                {runModes.map((runMode) => (
+                  <Tag
+                    key={runMode.id}
+                    color={runMode.id === lastRunMode ? "blue" : "default"}
+                  >
+                    {runMode.label}
+                  </Tag>
+                ))}
+              </Space>
+            </section>
+
+            <Alert
+              type="info"
+              showIcon
+              message="P0 边界"
+              description="真实运行、trace、artifact、截图和节点级调试闭环将在后续阶段接入。"
+            />
+          </Space>
+        </main>
+      </div>
+    </Modal>
+  );
+}

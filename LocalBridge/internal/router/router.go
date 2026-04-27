@@ -120,7 +120,7 @@ func (r *Router) handleHandshake(msg models.Message, conn *server.Connection) {
 	// 版本验证
 	if clientVersion != server.ProtocolVersion {
 		message := "协议版本不匹配，前端需求: " + clientVersion + "，当前本地服务协议: " + server.ProtocolVersion + "，请按后端提示更新"
-		logger.Warn("Router", message)
+		logger.Warn("Router", "%s", message)
 		logger.Info("Router", "建议更新方式:")
 		utils.PrintInstallCommand()
 		r.sendHandshakeResponse(conn, false, message)

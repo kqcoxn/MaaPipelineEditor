@@ -10,13 +10,34 @@ import { FileProtocol } from "./protocols/FileProtocol";
 import { MFWProtocol } from "./protocols/MFWProtocol";
 import { ErrorProtocol } from "./protocols/ErrorProtocol";
 import { ConfigProtocol } from "./protocols/ConfigProtocol";
-import { DebugProtocol } from "./protocols/DebugProtocol";
+import { DebugProtocolClient } from "./protocols/DebugProtocolClient";
 import { ResourceProtocol } from "./protocols/ResourceProtocol";
 import { LoggerProtocol } from "./protocols/LoggerProtocol";
 import { AIProtocol } from "./protocols/AIProtocol";
 import { globalConfig } from "../stores/configStore";
 
 const PROTOCOL_VERSION = globalConfig.protocolVersion;
+
+interface LegacyDebugProtocolShim {
+  getName: () => string;
+  getVersion: () => string;
+  register: (wsClient: LocalWebSocketServer) => void;
+  sendStartDebug: (
+    resourcePaths: string[],
+    entry: string,
+    controllerId: string,
+    breakpoints: string[],
+    agentIdentifier?: string,
+    pipelineOverride?: Record<string, unknown>,
+  ) => boolean;
+  sendStopDebug: (sessionId: string) => boolean;
+}
+
+const warnLegacyDebugRemoved = (method: string) => {
+  console.warn(
+    `[DebugProtocol] ${method} is disabled. Use debug-vNext routes instead.`,
+  );
+};
 
 export class LocalWebSocketServer {
   private ws: WebSocket | null = null;
@@ -338,7 +359,20 @@ export const fileProtocol = new FileProtocol();
 export const mfwProtocol = new MFWProtocol();
 export const errorProtocol = new ErrorProtocol();
 export const configProtocol = new ConfigProtocol();
-export const debugProtocol = new DebugProtocol();
+export const debugProtocol: LegacyDebugProtocolShim = {
+  getName: () => "LegacyDebugProtocolShim",
+  getVersion: () => "0.0.0",
+  register: () => warnLegacyDebugRemoved("register"),
+  sendStartDebug: () => {
+    warnLegacyDebugRemoved("sendStartDebug");
+    return false;
+  },
+  sendStopDebug: () => {
+    warnLegacyDebugRemoved("sendStopDebug");
+    return false;
+  },
+};
+export const debugProtocolClient = new DebugProtocolClient();
 export const resourceProtocol = new ResourceProtocol();
 export const loggerProtocol = new LoggerProtocol();
 export const aiProtocol = new AIProtocol();
@@ -360,8 +394,8 @@ export function initializeWebSocket() {
   // 注册 ConfigProtocol
   configProtocol.register(localServer);
 
-  // 注册 DebugProtocol
-  debugProtocol.register(localServer);
+  // 注册 vNext DebugProtocolClient；旧 debugProtocol 仅保留轻量占位导出以便旧文件编译
+  debugProtocolClient.register(localServer);
 
   // 注册 ResourceProtocol
   resourceProtocol.register(localServer);
@@ -372,6 +406,4 @@ export function initializeWebSocket() {
   // 注册 AIProtocol
   aiProtocol.register(localServer);
 
-  // 监听连接成功事件，确保协议注册
-  localServer.onStatus((connected) => {});
 }

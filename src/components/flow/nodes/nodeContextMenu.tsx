@@ -18,11 +18,6 @@ import {
   deleteNode,
   copyNodeRecoJSON,
 } from "./utils/nodeOperations";
-import { useDebugStore, type TestMode } from "../../../stores/debugStore";
-import { useMFWStore } from "../../../stores/mfwStore";
-import { useFileStore } from "../../../stores/fileStore";
-import { debugProtocol } from "../../../services/server";
-import { getFullNodeName } from "../../../utils/node/nodeNameHelper";
 
 /**菜单项类型 */
 export interface NodeContextMenuItem {
@@ -102,194 +97,9 @@ function handleDeleteNode(node: NodeContextMenuNode) {
   deleteNode(node.id);
 }
 
-/**设为调试开始节点处理器 */
-function handleSetDebugEntry(node: NodeContextMenuNode) {
-  const { setConfig } = useDebugStore.getState();
-  // 使用 node.id 而非 label，这样才能与 DebugPanel 中的选择器匹配
-  setConfig("entryNode", node.id);
-  message.success(`已将 "${node.data.label}" 设为调试开始节点`);
-}
-
-/**从此节点开始调试处理器 */
-async function handleStartDebugFromNode(node: NodeContextMenuNode) {
-  const { setConfig, resourcePaths, agentIdentifier, startDebug } =
-    useDebugStore.getState();
-  const { connectionStatus, controllerId } = useMFWStore.getState();
-  const { nodes } = useFlowStore.getState();
-  const prefix = useFileStore.getState().currentFile.config.prefix;
-
-  // 验证连接状态
-  if (connectionStatus !== "connected") {
-    message.error("请先连接 LocalBridge");
-    return;
-  }
-
-  // 验证控制器
-  if (!controllerId) {
-    message.error("请先连接控制器");
-    return;
-  }
-
-  // 过滤并验证资源路径
-  const validPaths = resourcePaths.filter((p) => p.trim() !== "");
-  if (validPaths.length === 0) {
-    message.error("请先配置资源路径");
-    return;
-  }
-
-  // 设置入口节点
-  setConfig("entryNode", node.id);
-
-  // 检查并更新状态
-  const canContinue = await startDebug();
-  if (!canContinue) {
-    return;
-  }
-
-  // 将节点 ID 转换为 pipeline 中的节点名称
-  const nodeIdToFullName = (nodeId: string): string | null => {
-    const targetNode = nodes.find((n) => n.id === nodeId);
-    if (!targetNode) return null;
-    return getFullNodeName(targetNode.data.label, prefix);
-  };
-
-  const entryNodeFullName = nodeIdToFullName(node.id);
-  if (!entryNodeFullName) {
-    message.error("入口节点不存在");
-    useDebugStore.getState().stopDebug();
-    return;
-  }
-
-  // 发送 WebSocket 消息启动调试
-  const success = debugProtocol.sendStartDebug(
-    validPaths,
-    entryNodeFullName,
-    controllerId,
-    [],
-    agentIdentifier || undefined,
-  );
-
-  if (!success) {
-    message.error("启动调试失败，请检查连接状态");
-    useDebugStore.getState().stopDebug();
-  }
-}
-
 /**复制 Reco JSON 处理器 */
 function handleCopyRecoJSON(node: NodeContextMenuNode) {
   copyNodeRecoJSON(node.id);
-}
-
-/**
- * 调试测试包装函数
- * 统一处理验证、状态更新和消息发送
- */
-async function runDebugTest(
-  node: NodeContextMenuNode,
-  testName: string,
-  override: Record<string, any>,
-  testMode: TestMode,
-) {
-  const { resourcePaths, agentIdentifier, setTestMode } =
-    useDebugStore.getState();
-  const { connectionStatus, controllerId } = useMFWStore.getState();
-
-  // 验证连接状态
-  if (connectionStatus !== "connected") {
-    message.error("请先连接 LocalBridge");
-    return;
-  }
-
-  // 验证控制器
-  if (!controllerId) {
-    message.error("请先连接控制器");
-    return;
-  }
-
-  // 过滤并验证资源路径
-  const validPaths = resourcePaths.filter((p) => p.trim() !== "");
-  if (validPaths.length === 0) {
-    message.error("请先配置资源路径");
-    return;
-  }
-
-  // 获取完整节点名
-  const fullNodeName = getFullNodeName(node.data.label);
-
-  // 设置测试模式
-  setTestMode(testMode, node.data.label);
-
-  const canContinue = await useDebugStore
-    .getState()
-    .startDebug({ skipEntryNodeCheck: true });
-  if (!canContinue) {
-    return;
-  }
-
-  message.loading(`正在${testName}...`);
-
-  // 发送 WebSocket 消息启动调试
-  const success = debugProtocol.sendStartDebug(
-    validPaths,
-    fullNodeName,
-    controllerId,
-    [],
-    agentIdentifier || undefined,
-    override,
-  );
-
-  if (!success) {
-    message.error(`${testName}失败，请检查连接状态`);
-    useDebugStore.getState().stopDebug();
-  }
-}
-
-/**
- * 测试此节点处理器
- * 仅运行当前节点，把 next 和 on_error override 为 []
- */
-async function handleTestNode(node: NodeContextMenuNode) {
-  const fullNodeName = getFullNodeName(node.data.label);
-  const override = {
-    [fullNodeName]: {
-      next: [],
-      on_error: [],
-    },
-  };
-  await runDebugTest(node, "测试此节点", override, "node");
-}
-
-/**
- * 测试识别处理器
- * 识别一次且不执行动作，把 action override 为 DoNothing，timeout 为 0
- */
-async function handleTestRecognition(node: NodeContextMenuNode) {
-  const fullNodeName = getFullNodeName(node.data.label);
-  const override = {
-    [fullNodeName]: {
-      action: "DoNothing",
-      timeout: 0,
-      next: [],
-      on_error: [],
-    },
-  };
-  await runDebugTest(node, "测试识别", override, "recognition");
-}
-
-/**
- * 测试动作处理器
- * 执行一次 action，把 recognition override 为 DirectHit
- */
-async function handleTestAction(node: NodeContextMenuNode) {
-  const fullNodeName = getFullNodeName(node.data.label);
-  const override = {
-    [fullNodeName]: {
-      recognition: "DirectHit",
-      next: [],
-      on_error: [],
-    },
-  };
-  await runDebugTest(node, "测试动作", override, "action");
 }
 
 /**设置节点端点位置处理器 */
@@ -378,8 +188,6 @@ function handleDeleteGroup(node: NodeContextMenuNode) {
 export function getNodeContextMenuConfig(
   node: NodeContextMenuNode,
 ): NodeContextMenuConfig[] {
-  const { debugMode } = useDebugStore.getState();
-
   // Group 节点使用专用菜单
   if (node.type === NodeTypeEnum.Group) {
     const groupColors = [
@@ -529,61 +337,6 @@ export function getNodeContextMenuConfig(
       })),
     },
   ];
-
-  // 调试模式下添加调试选项
-  if (debugMode) {
-    config.push(
-      {
-        type: "divider",
-        key: "divider-debug-all",
-      },
-      // 调试控制功能
-      {
-        key: "start-debug-from-node",
-        label: "从此节点开始调试",
-        icon: "icon-kaishi",
-        iconSize: 16,
-        onClick: handleStartDebugFromNode,
-        visible: (node) => node.type === NodeTypeEnum.Pipeline,
-      },
-      {
-        key: "set-debug-entry",
-        label: "设为调试开始节点",
-        icon: "icon-tiaoshibeifen",
-        iconSize: 16,
-        onClick: handleSetDebugEntry,
-        visible: (node) => node.type === NodeTypeEnum.Pipeline,
-      },
-      {
-        type: "divider",
-        key: "divider-debug-self",
-      },
-      {
-        key: "test-node",
-        label: "测试此节点",
-        icon: "icon-tiaoshi",
-        iconSize: 16,
-        onClick: handleTestNode,
-        visible: (node) => node.type === NodeTypeEnum.Pipeline,
-      },
-      {
-        key: "test-recognition",
-        label: "测试识别",
-        icon: "icon-kapianshibie",
-        iconSize: 16,
-        onClick: handleTestRecognition,
-        visible: (node) => node.type === NodeTypeEnum.Pipeline,
-      },
-      {
-        key: "test-action",
-        label: "测试动作",
-        icon: "icon-dianji",
-        iconSize: 16,
-        onClick: handleTestAction,
-        visible: (node) => node.type === NodeTypeEnum.Pipeline,
-      },
-    );
-  }
 
   config.push(
     // 分隔线

@@ -17,7 +17,6 @@ import { useConfigStore } from "./stores/configStore";
 import { useWSStore } from "./stores/wsStore";
 import { useMFWStore } from "./stores/mfwStore";
 import { useCustomTemplateStore } from "./stores/customTemplateStore";
-import { useDebugStore } from "./stores/debugStore";
 import { localServer } from "./services/server";
 
 import Header from "./components/Header";
@@ -35,9 +34,9 @@ import FileConfigPanel from "./components/panels/main/FileConfigPanel";
 import AIHistoryPanel from "./components/panels/main/AIHistoryPanel";
 import { LocalFileListPanel } from "./components/panels/main/LocalFileListPanel";
 import ErrorPanel from "./components/panels/main/ErrorPanel";
-import RecognitionHistoryPanel from "./components/panels/main/RecognitionHistoryPanel";
 import ToolbarPanel from "./components/panels/main/ToolbarPanel";
 import { LoggerPanel } from "./components/panels/tools/LoggerPanel";
+import { DebugModal } from "./components/debug/DebugModal";
 import {
   ExplorationFAB,
   ExplorationPanel,
@@ -128,9 +127,6 @@ const GlobalListener = memo(() => {
 
 /**主程序 */
 function App() {
-  // 获取调试模式状态
-  const debugMode = useDebugStore((state) => state.debugMode);
-
   // 嵌入模式状态
   const { isEmbed, isReady, isCapAllowed, isPanelHidden } = useEmbedMode();
 
@@ -532,10 +528,6 @@ function App() {
               <ToolPanel.Add />
               <ToolPanel.Global />
               {showPanel("search") && <SearchPanel />}
-              {debugMode && <ToolPanel.Debug />}
-              {debugMode && showPanel("recognition-history") && (
-                <RecognitionHistoryPanel />
-              )}
               <ToolPanel.Layout />
               {showPanel("error") && <ErrorPanel />}
               {showPanel("logger") && <LoggerPanel />}
@@ -557,6 +549,7 @@ function App() {
           </Content>
         </Layout>
       </Flex>
+      <DebugModal />
       <GlobalListener />
     </ThemeProvider>
   );

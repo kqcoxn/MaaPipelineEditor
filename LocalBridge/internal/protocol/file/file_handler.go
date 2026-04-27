@@ -346,7 +346,7 @@ func (h *Handler) parseData(data interface{}, target interface{}) *errors.LBErro
 
 // 发送错误消息
 func (h *Handler) sendError(conn *server.Connection, err *errors.LBError) {
-	logger.Error("FileProtocol", err.Error())
+	logger.Error("FileProtocol", "%s", err.Error())
 
 	errorMsg := models.Message{
 		Path: "/error",
