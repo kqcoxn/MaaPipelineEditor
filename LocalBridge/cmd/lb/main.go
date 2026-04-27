@@ -407,7 +407,7 @@ func runServer(cmd *cobra.Command, args []string) {
 	rt.RegisterHandler(configHandler)
 
 	// 注册 debug-vNext 协议处理器
-	debugHandler := debugapi.NewHandler(mfwSvc)
+	debugHandler := debugapi.NewHandler(mfwSvc, cfg.File.Root)
 	rt.RegisterHandler(debugHandler)
 
 	// 注册 Resource 协议处理器

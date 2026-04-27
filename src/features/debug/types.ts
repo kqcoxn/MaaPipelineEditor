@@ -1,5 +1,5 @@
 export const DEBUG_GENERATION = "debug-vNext" as const;
-export const DEBUG_PROTOCOL_VERSION = "0.12.0" as const;
+export const DEBUG_PROTOCOL_VERSION = "0.13.0" as const;
 
 export type DebugGeneration = typeof DEBUG_GENERATION;
 
@@ -134,6 +134,8 @@ export interface DebugRunProfile {
     identifier?: string;
     tcpPort?: number;
     bindResources?: string[];
+    timeoutMs?: number;
+    required?: boolean;
   }>;
   entry: DebugNodeTarget;
   savePolicy: DebugSavePolicy;
@@ -190,6 +192,12 @@ export interface DebugArtifactPolicy {
   includeActionDetail: boolean;
 }
 
+export interface DebugRunInput {
+  imagePath?: string;
+  imageRelativePath?: string;
+  confirmAction?: boolean;
+}
+
 export interface DebugRunRequest {
   sessionId?: string;
   profileId?: string;
@@ -200,6 +208,7 @@ export interface DebugRunRequest {
   target?: DebugNodeTarget;
   overrides?: DebugPipelineOverride[];
   artifactPolicy?: DebugArtifactPolicy;
+  input?: DebugRunInput;
 }
 
 export interface DebugRunStopRequest {
@@ -211,6 +220,22 @@ export interface DebugRunStopRequest {
 export interface DebugArtifactGetRequest {
   sessionId: string;
   artifactId: string;
+}
+
+export interface DebugScreenshotCaptureRequest {
+  sessionId?: string;
+  controllerId?: string;
+  force?: boolean;
+}
+
+export interface DebugInterfaceImportRequest {
+  path: string;
+}
+
+export interface DebugInterfaceImportResult {
+  profile: DebugRunProfile;
+  entryName?: string;
+  diagnostics?: DebugDiagnostic[];
 }
 
 export interface DebugArtifactRef {

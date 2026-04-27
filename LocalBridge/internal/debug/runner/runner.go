@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/artifact"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/diagnostics"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/protocol"
 	debugruntime "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/runtime"
 	debugsession "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/session"
@@ -19,10 +20,12 @@ type EventSender func(protocol.Event)
 type SnapshotSender func(debugsession.Snapshot)
 
 type Runner struct {
-	service   *mfw.Service
-	sessions  *debugsession.Manager
-	traces    *trace.Store
-	artifacts *artifact.Store
+	service     *mfw.Service
+	root        string
+	sessions    *debugsession.Manager
+	traces      *trace.Store
+	artifacts   *artifact.Store
+	diagnostics *diagnostics.Service
 
 	mu     sync.Mutex
 	active map[string]*Run
@@ -57,13 +60,16 @@ func New(
 	sessions *debugsession.Manager,
 	traces *trace.Store,
 	artifacts *artifact.Store,
+	root string,
 ) *Runner {
 	return &Runner{
-		service:   service,
-		sessions:  sessions,
-		traces:    traces,
-		artifacts: artifacts,
-		active:    make(map[string]*Run),
+		service:     service,
+		root:        root,
+		sessions:    sessions,
+		traces:      traces,
+		artifacts:   artifacts,
+		diagnostics: diagnostics.NewService(service, root),
+		active:      make(map[string]*Run),
 	}
 }
 
@@ -107,7 +113,15 @@ func (r *Runner) Start(
 		},
 	})
 
-	runtime, err := debugruntime.New(r.service, req.SessionID, runID, req, r.artifacts, r.emitFunc(eventSender))
+	preflightDiagnostics := r.diagnostics.CheckRun(req)
+	r.emitDiagnostics(req.SessionID, runID, preflightDiagnostics, eventSender)
+	if diagnostics.HasBlockingDiagnostic(preflightDiagnostics) {
+		err := diagnostics.FirstError(preflightDiagnostics)
+		r.failStart(req.SessionID, runID, err, eventSender, snapshotSender)
+		return StartResult{}, err
+	}
+
+	runtime, err := debugruntime.New(r.service, r.root, req.SessionID, runID, req, r.artifacts, r.emitFunc(eventSender))
 	if err != nil {
 		r.failStart(req.SessionID, runID, err, eventSender, snapshotSender)
 		return StartResult{}, err
@@ -344,6 +358,37 @@ func (r *Runner) emit(sender EventSender, event protocol.Event) {
 	}
 	if sender != nil {
 		sender(appended)
+	}
+}
+
+func (r *Runner) emitDiagnostics(sessionID string, runID string, values []protocol.Diagnostic, sender EventSender) {
+	for _, diagnostic := range values {
+		data := map[string]interface{}{
+			"severity":   diagnostic.Severity,
+			"code":       diagnostic.Code,
+			"message":    diagnostic.Message,
+			"fileId":     diagnostic.FileID,
+			"nodeId":     diagnostic.NodeID,
+			"fieldPath":  diagnostic.FieldPath,
+			"sourcePath": diagnostic.SourcePath,
+		}
+		for key, value := range diagnostic.Data {
+			data[key] = value
+		}
+
+		phase := "completed"
+		if diagnostic.Severity == "error" {
+			phase = "failed"
+		}
+		r.emit(sender, protocol.Event{
+			SessionID: sessionID,
+			RunID:     runID,
+			Source:    "localbridge",
+			Kind:      "diagnostic",
+			Phase:     phase,
+			Status:    diagnostic.Severity,
+			Data:      data,
+		})
 	}
 }
 

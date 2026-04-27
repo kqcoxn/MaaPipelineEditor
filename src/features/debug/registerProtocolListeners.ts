@@ -2,6 +2,7 @@ import type { DebugProtocolClient } from "../../services/protocols/DebugProtocol
 import { useDebugArtifactStore } from "../../stores/debugArtifactStore";
 import { useDebugDiagnosticsStore } from "../../stores/debugDiagnosticsStore";
 import { useDebugOverlayStore } from "../../stores/debugOverlayStore";
+import { useDebugRunProfileStore } from "../../stores/debugRunProfileStore";
 import { useDebugSessionStore } from "../../stores/debugSessionStore";
 import { useDebugTraceStore } from "../../stores/debugTraceStore";
 
@@ -72,6 +73,13 @@ export function registerDebugProtocolListeners(
 
   debugProtocolClient.onArtifact((payload) => {
     useDebugArtifactStore.getState().setPayload(payload);
+  });
+
+  debugProtocolClient.onInterfaceImported((result) => {
+    useDebugRunProfileStore.getState().applyInterfaceImport(result);
+    useDebugDiagnosticsStore
+      .getState()
+      .setPreflightDiagnostics(result.diagnostics ?? []);
   });
 
   debugProtocolClient.onError((error) => {

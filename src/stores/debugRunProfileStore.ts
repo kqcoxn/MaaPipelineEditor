@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import type {
   DebugArtifactPolicy,
+  DebugInterfaceImportResult,
+  DebugRunInput,
   DebugNodeTarget,
   DebugRunMode,
   DebugRunProfile,
@@ -19,6 +21,8 @@ const STORAGE_KEY = "mpe_debug_run_profile_v1";
 interface DebugRunProfileSnapshot {
   profile: DebugRunProfile;
   artifactPolicy: DebugArtifactPolicy;
+  fixedImageInput: Pick<DebugRunInput, "imagePath" | "imageRelativePath">;
+  interfaceImport?: DebugInterfaceImportResult;
 }
 
 interface DebugRunProfileState extends DebugRunProfileSnapshot {
@@ -26,11 +30,17 @@ interface DebugRunProfileState extends DebugRunProfileSnapshot {
   updateProfile: (updates: Partial<DebugRunProfile>) => void;
   setEntry: (entry: DebugNodeTarget) => void;
   setResourcePaths: (resourcePaths: string[]) => void;
+  setAgents: (agents: DebugRunProfile["agents"]) => void;
+  setFixedImageInput: (
+    input: Pick<DebugRunInput, "imagePath" | "imageRelativePath">,
+  ) => void;
+  applyInterfaceImport: (result: DebugInterfaceImportResult) => void;
   setArtifactPolicy: (policy: DebugArtifactPolicy) => void;
   buildRunRequest: (
     mode: DebugRunMode,
     targetNodeId?: string,
     sessionId?: string,
+    input?: DebugRunInput,
   ) => DebugRunRequest;
 }
 
@@ -74,6 +84,7 @@ function readSnapshot(): DebugRunProfileSnapshot {
   const fallback = {
     profile: createDefaultProfile(),
     artifactPolicy: defaultArtifactPolicy,
+    fixedImageInput: {},
   };
 
   try {
@@ -102,6 +113,11 @@ function readSnapshot(): DebugRunProfileSnapshot {
         ...defaultArtifactPolicy,
         ...parsed.artifactPolicy,
       },
+      fixedImageInput: {
+        ...fallback.fixedImageInput,
+        ...parsed.fixedImageInput,
+      },
+      interfaceImport: parsed.interfaceImport,
     };
   } catch (error) {
     console.warn("[debugRunProfileStore] Failed to read profile:", error);
@@ -147,9 +163,19 @@ export const useDebugRunProfileStore = create<DebugRunProfileState>(
   (set, get) => {
     const initial = readSnapshot();
 
-    const commit = (snapshot: DebugRunProfileSnapshot) => {
-      writeSnapshot(snapshot);
-      set(snapshot);
+    const commit = (snapshot: Partial<DebugRunProfileSnapshot>) => {
+      const current = get();
+      const next: DebugRunProfileSnapshot = {
+        profile: snapshot.profile ?? current.profile,
+        artifactPolicy: snapshot.artifactPolicy ?? current.artifactPolicy,
+        fixedImageInput: snapshot.fixedImageInput ?? current.fixedImageInput,
+        interfaceImport:
+          snapshot.interfaceImport === undefined
+            ? current.interfaceImport
+            : snapshot.interfaceImport,
+      };
+      writeSnapshot(next);
+      set(next);
     };
 
     return {
@@ -194,13 +220,55 @@ export const useDebugRunProfileStore = create<DebugRunProfileState>(
         });
       },
 
+      setAgents: (agents) => {
+        commit({
+          profile: {
+            ...get().profile,
+            agents,
+          },
+        });
+      },
+
+      setFixedImageInput: (fixedImageInput) => {
+        commit({ fixedImageInput });
+      },
+
+      applyInterfaceImport: (result) => {
+        const current = get();
+        const currentControllerId =
+          current.profile.controller.options.controllerId ??
+          current.profile.controller.options.controller_id;
+        const preservedControllerOptions =
+          typeof currentControllerId === "string" &&
+          currentControllerId.trim() !== ""
+            ? { controllerId: currentControllerId }
+            : {};
+        const controllerOptions = {
+          ...result.profile.controller.options,
+          ...preservedControllerOptions,
+        };
+
+        commit({
+          profile: {
+            ...result.profile,
+            controller: {
+              ...result.profile.controller,
+              options: controllerOptions,
+            },
+            savePolicy: current.profile.savePolicy,
+            maaOptions: current.profile.maaOptions,
+          },
+          interfaceImport: result,
+        });
+      },
+
       setArtifactPolicy: (artifactPolicy) =>
         commit({
           profile: get().profile,
           artifactPolicy,
         }),
 
-      buildRunRequest: (mode, targetNodeId, sessionId) => {
+      buildRunRequest: (mode, targetNodeId, sessionId, input) => {
         const bundle = buildDebugSnapshotBundle();
         const storeProfile = get().profile;
         const mfwState = useMFWStore.getState();
@@ -220,12 +288,27 @@ export const useDebugRunProfileStore = create<DebugRunProfileState>(
             }
           : storeProfile.entry;
         const hasStoredEntry = Boolean(storeProfile.entry.runtimeName);
-        const entry = target ?? (hasStoredEntry ? storeProfile.entry : fallbackEntry);
+        const entry =
+          target ?? (hasStoredEntry ? storeProfile.entry : fallbackEntry);
         const controllerType = resolveControllerType();
         const controllerOptions = {
           ...storeProfile.controller.options,
           ...(mfwState.controllerId && { controllerId: mfwState.controllerId }),
         };
+        const requestInput: DebugRunInput = {
+          ...input,
+          ...(mode === "fixed-image-recognition"
+            ? {
+                imagePath: get().fixedImageInput.imagePath,
+                imageRelativePath: get().fixedImageInput.imageRelativePath,
+              }
+            : {}),
+        };
+        const normalizedInput = Object.fromEntries(
+          Object.entries(requestInput).filter(([, value]) =>
+            typeof value === "string" ? value.trim() !== "" : value !== undefined,
+          ),
+        ) as DebugRunInput;
 
         return {
           sessionId,
@@ -252,6 +335,8 @@ export const useDebugRunProfileStore = create<DebugRunProfileState>(
               : undefined,
           overrides: bundle.overrides,
           artifactPolicy: get().artifactPolicy,
+          input:
+            Object.keys(normalizedInput).length > 0 ? normalizedInput : undefined,
         };
       },
     };

@@ -5,9 +5,12 @@ import type {
   DebugArtifactPayload,
   DebugCapabilityManifest,
   DebugEvent,
+  DebugInterfaceImportRequest,
+  DebugInterfaceImportResult,
   DebugRunStarted,
   DebugProtocolError,
   DebugRunRequest,
+  DebugScreenshotCaptureRequest,
   DebugRunStopRequested,
   DebugRunStopRequest,
   DebugSessionSnapshot,
@@ -33,6 +36,9 @@ export class DebugProtocolClient extends BaseProtocol {
     Listener<DebugRunStopRequested>
   >();
   private readonly artifactListeners = new Set<Listener<DebugArtifactPayload>>();
+  private readonly interfaceImportListeners = new Set<
+    Listener<DebugInterfaceImportResult>
+  >();
   private readonly errorListeners = new Set<Listener<DebugProtocolError>>();
 
   getName(): string {
@@ -68,6 +74,9 @@ export class DebugProtocolClient extends BaseProtocol {
     );
     this.wsClient.registerRoute("/lte/debug/artifact", (data) =>
       this.handleArtifact(data),
+    );
+    this.wsClient.registerRoute("/lte/debug/interface_imported", (data) =>
+      this.handleInterfaceImported(data),
     );
     this.wsClient.registerRoute("/lte/debug/error", (data) =>
       this.handleError(data),
@@ -109,6 +118,14 @@ export class DebugProtocolClient extends BaseProtocol {
     return this.send("/mpe/debug/artifact/get", request);
   }
 
+  captureScreenshot(request: DebugScreenshotCaptureRequest): boolean {
+    return this.send("/mpe/debug/screenshot/capture", request);
+  }
+
+  importInterface(request: DebugInterfaceImportRequest): boolean {
+    return this.send("/mpe/debug/interface/import", request);
+  }
+
   onCapabilities(listener: Listener<DebugCapabilityManifest>): () => void {
     this.capabilityListeners.add(listener);
     return () => this.capabilityListeners.delete(listener);
@@ -147,6 +164,13 @@ export class DebugProtocolClient extends BaseProtocol {
   onArtifact(listener: Listener<DebugArtifactPayload>): () => void {
     this.artifactListeners.add(listener);
     return () => this.artifactListeners.delete(listener);
+  }
+
+  onInterfaceImported(
+    listener: Listener<DebugInterfaceImportResult>,
+  ): () => void {
+    this.interfaceImportListeners.add(listener);
+    return () => this.interfaceImportListeners.delete(listener);
   }
 
   onError(listener: Listener<DebugProtocolError>): () => void {
@@ -207,6 +231,11 @@ export class DebugProtocolClient extends BaseProtocol {
   private handleArtifact(data: unknown): void {
     const artifact = data as DebugArtifactPayload;
     this.artifactListeners.forEach((listener) => listener(artifact));
+  }
+
+  private handleInterfaceImported(data: unknown): void {
+    const result = data as DebugInterfaceImportResult;
+    this.interfaceImportListeners.forEach((listener) => listener(result));
   }
 
   private handleError(data: unknown): void {

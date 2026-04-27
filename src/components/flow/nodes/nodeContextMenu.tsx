@@ -1,4 +1,4 @@
-import { message } from "antd";
+import { message, Modal } from "antd";
 import type { ReactNode } from "react";
 import { PlayCircleOutlined } from "@ant-design/icons";
 import type { Node } from "@xyflow/react";
@@ -25,6 +25,7 @@ import { useDebugRunProfileStore } from "../../../stores/debugRunProfileStore";
 import { useDebugSessionStore } from "../../../stores/debugSessionStore";
 import { useMFWStore } from "../../../stores/mfwStore";
 import { useWSStore } from "../../../stores/wsStore";
+import type { DebugRunMode } from "../../../features/debug/types";
 
 /**菜单项类型 */
 export interface NodeContextMenuItem {
@@ -195,37 +196,75 @@ function handleEditNodeJson(node: NodeContextMenuNode) {
   window.dispatchEvent(event);
 }
 
-function handleRunFromNode(node: NodeContextMenuNode) {
+function modeUsesLiveController(mode: DebugRunMode): boolean {
+  return mode !== "fixed-image-recognition";
+}
+
+function handleDebugRunMode(node: NodeContextMenuNode, mode: DebugRunMode) {
   if (node.type !== NodeTypeEnum.Pipeline) return;
 
   const sessionState = useDebugSessionStore.getState();
   const profileState = useDebugRunProfileStore.getState();
   const mfwState = useMFWStore.getState();
 
-  sessionState.openModal("nodes");
+  sessionState.openModal(mode === "fixed-image-recognition" ? "images" : "nodes");
   sessionState.selectNode(node.id);
-  useDebugModalMemoryStore.getState().setLastRunMode("run-from-node");
+  useDebugModalMemoryStore.getState().setLastRunMode(mode);
   useDebugModalMemoryStore.getState().setLastEntryNodeId(node.id);
 
   const capabilities = sessionState.capabilities;
-  if (!capabilities?.runModes.includes("run-from-node")) {
-    message.warning("当前 LocalBridge 暂不支持从节点运行");
+  if (!capabilities?.runModes.includes(mode)) {
+    message.warning(`当前 LocalBridge 暂不支持调试模式: ${mode}`);
     return;
   }
   if (!useWSStore.getState().connected) {
     message.error("LocalBridge 未连接");
     return;
   }
-  if (!mfwState.controllerId) {
+  if (modeUsesLiveController(mode) && !mfwState.controllerId) {
     message.error("请先连接 MaaFramework controller");
     return;
   }
+  if (
+    mode === "fixed-image-recognition" &&
+    !profileState.fixedImageInput.imageRelativePath &&
+    !profileState.fixedImageInput.imagePath
+  ) {
+    message.warning("请先在调试面板的图像页选择固定图输入");
+    return;
+  }
+  if (mode === "action-only") {
+    Modal.confirm({
+      title: "确认执行动作",
+      content: "仅动作模式会跳过识别，直接执行目标节点 action。",
+      okText: "确认执行",
+      okButtonProps: { danger: true },
+      cancelText: "取消",
+      onOk: () =>
+        handleDebugRunModeWithInput(node, mode, { confirmAction: true }),
+    });
+    return;
+  }
+
+  handleDebugRunModeWithInput(node, mode);
+}
+
+function handleDebugRunModeWithInput(
+  node: NodeContextMenuNode,
+  mode: DebugRunMode,
+  input?: { confirmAction?: boolean },
+) {
+  if (node.type !== NodeTypeEnum.Pipeline) return;
+
+  const sessionState = useDebugSessionStore.getState();
+  const profileState = useDebugRunProfileStore.getState();
 
   try {
     const request = profileState.buildRunRequest(
-      "run-from-node",
+      mode,
       node.id,
       sessionState.session?.sessionId,
+      input,
     );
     if (!request.target) {
       message.error("无法解析节点运行名");
@@ -237,6 +276,11 @@ function handleRunFromNode(node: NodeContextMenuNode) {
   } catch (error) {
     message.error(error instanceof Error ? error.message : "生成调试请求失败");
   }
+}
+
+function isDebugRunModeUnavailable(mode: DebugRunMode): boolean {
+  const capabilities = useDebugSessionStore.getState().capabilities;
+  return !capabilities?.runModes.includes(mode);
 }
 
 /**删除分组（先解散子节点再删除）处理器 */
@@ -298,13 +342,47 @@ export function getNodeContextMenuConfig(
       key: "debug-run-from-node",
       label: "从此节点运行",
       icon: <PlayCircleOutlined />,
-      onClick: handleRunFromNode,
+      onClick: (node) => handleDebugRunMode(node, "run-from-node"),
       visible: (node) => node.type === NodeTypeEnum.Pipeline,
-      disabled: () => {
-        const capabilities = useDebugSessionStore.getState().capabilities;
-        return !capabilities?.runModes.includes("run-from-node");
-      },
+      disabled: () => isDebugRunModeUnavailable("run-from-node"),
       disabledTip: "当前 LocalBridge 未暴露 run-from-node 能力",
+    },
+    {
+      key: "debug-single-node-run",
+      label: "单节点运行",
+      icon: <PlayCircleOutlined />,
+      onClick: (node) => handleDebugRunMode(node, "single-node-run"),
+      visible: (node) => node.type === NodeTypeEnum.Pipeline,
+      disabled: () => isDebugRunModeUnavailable("single-node-run"),
+      disabledTip: "当前 LocalBridge 未暴露 single-node-run 能力",
+    },
+    {
+      key: "debug-recognition-only",
+      label: "仅识别",
+      icon: <PlayCircleOutlined />,
+      onClick: (node) => handleDebugRunMode(node, "recognition-only"),
+      visible: (node) => node.type === NodeTypeEnum.Pipeline,
+      disabled: () => isDebugRunModeUnavailable("recognition-only"),
+      disabledTip: "当前 LocalBridge 未暴露 recognition-only 能力",
+    },
+    {
+      key: "debug-action-only",
+      label: "仅动作",
+      icon: <PlayCircleOutlined />,
+      onClick: (node) => handleDebugRunMode(node, "action-only"),
+      visible: (node) => node.type === NodeTypeEnum.Pipeline,
+      disabled: () => isDebugRunModeUnavailable("action-only"),
+      disabledTip: "当前 LocalBridge 未暴露 action-only 能力",
+      danger: true,
+    },
+    {
+      key: "debug-fixed-image-recognition",
+      label: "固定图识别",
+      icon: <PlayCircleOutlined />,
+      onClick: (node) => handleDebugRunMode(node, "fixed-image-recognition"),
+      visible: (node) => node.type === NodeTypeEnum.Pipeline,
+      disabled: () => isDebugRunModeUnavailable("fixed-image-recognition"),
+      disabledTip: "当前 LocalBridge 未暴露 fixed-image-recognition 能力",
     },
     {
       type: "divider",

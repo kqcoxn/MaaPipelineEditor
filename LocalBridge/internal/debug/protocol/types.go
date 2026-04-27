@@ -2,7 +2,7 @@ package protocol
 
 const (
 	Generation      = "debug-vNext"
-	ProtocolVersion = "0.12.0"
+	ProtocolVersion = "0.13.0"
 )
 
 type RunMode string
@@ -72,6 +72,8 @@ type AgentProfile struct {
 	Identifier    string   `json:"identifier,omitempty"`
 	TCPPort       int      `json:"tcpPort,omitempty"`
 	BindResources []string `json:"bindResources,omitempty"`
+	TimeoutMS     int      `json:"timeoutMs,omitempty"`
+	Required      *bool    `json:"required,omitempty"`
 }
 
 type GraphSnapshot struct {
@@ -124,6 +126,12 @@ type ArtifactPolicy struct {
 	IncludeActionDetail bool `json:"includeActionDetail"`
 }
 
+type RunInput struct {
+	ImagePath         string `json:"imagePath,omitempty"`
+	ImageRelativePath string `json:"imageRelativePath,omitempty"`
+	ConfirmAction     bool   `json:"confirmAction,omitempty"`
+}
+
 type RunRequest struct {
 	SessionID        string               `json:"sessionId,omitempty"`
 	ProfileID        string               `json:"profileId,omitempty"`
@@ -134,6 +142,7 @@ type RunRequest struct {
 	Target           *NodeTarget          `json:"target,omitempty"`
 	Overrides        []PipelineOverride   `json:"overrides,omitempty"`
 	ArtifactPolicy   *ArtifactPolicy      `json:"artifactPolicy,omitempty"`
+	Input            *RunInput            `json:"input,omitempty"`
 }
 
 type RunStopRequest struct {
@@ -145,6 +154,22 @@ type RunStopRequest struct {
 type ArtifactGetRequest struct {
 	SessionID  string `json:"sessionId"`
 	ArtifactID string `json:"artifactId"`
+}
+
+type ScreenshotCaptureRequest struct {
+	SessionID    string `json:"sessionId,omitempty"`
+	ControllerID string `json:"controllerId,omitempty"`
+	Force        bool   `json:"force,omitempty"`
+}
+
+type InterfaceImportRequest struct {
+	Path string `json:"path"`
+}
+
+type InterfaceImportResult struct {
+	Profile     RunProfile   `json:"profile"`
+	EntryName   string       `json:"entryName,omitempty"`
+	Diagnostics []Diagnostic `json:"diagnostics,omitempty"`
 }
 
 type ArtifactRef struct {

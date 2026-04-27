@@ -26,6 +26,16 @@ const initialRunModes: Array<{
     label: "仅测试识别",
     description: "只验证选中节点的识别逻辑。",
   },
+  {
+    id: "action-only",
+    label: "仅执行动作",
+    description: "跳过识别，直接执行选中节点的动作。",
+  },
+  {
+    id: "fixed-image-recognition",
+    label: "固定图识别",
+    description: "使用已选择的静态图片测试节点识别。",
+  },
 ];
 
 export function registerDebugRunModes(): void {

@@ -227,6 +227,36 @@ func (a *MaaFWAdapter) SetController(ctrl *maa.Controller, ctrlType, deviceInfo 
 }
 
 // GetController 获取控制器
+func (a *MaaFWAdapter) UseCarouselImageController(path string) error {
+	ctrl, err := maa.NewCarouselImageController(path)
+	if err != nil {
+		return fmt.Errorf("创建固定图 controller 失败: %w", err)
+	}
+	job := ctrl.PostConnect()
+	if job == nil {
+		ctrl.Destroy()
+		return fmt.Errorf("发起固定图 controller 连接失败")
+	}
+	job.Wait()
+	if !job.Success() {
+		ctrl.Destroy()
+		return fmt.Errorf("固定图 controller 连接失败: %v", job.Status())
+	}
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.controller != nil && a.controller != ctrl && a.ownsController {
+		a.controller.Destroy()
+	}
+	a.controller = ctrl
+	a.controllerConnected = true
+	a.ownsController = true
+	a.controllerType = "Dbg"
+	a.deviceInfo = path
+	a.screenshotter.SetController(ctrl)
+	return nil
+}
+
 func (a *MaaFWAdapter) GetController() *maa.Controller {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
@@ -250,6 +280,64 @@ func (a *MaaFWAdapter) LoadResource(path string) error {
 }
 
 // LoadResources 加载多个资源路径
+type ResourceLoadProgressFunc func(index int, total int, path string, status string, err error)
+
+func (a *MaaFWAdapter) LoadResourcesWithProgress(paths []string, progress ResourceLoadProgressFunc) error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	if len(paths) == 0 {
+		return fmt.Errorf("资源路径不能为空")
+	}
+
+	logger.Debug("MaaFW", "加载资源: %v", paths)
+
+	res, err := maa.NewResource()
+	if err != nil {
+		return fmt.Errorf("创建资源失败: %w", err)
+	}
+
+	for i, path := range paths {
+		if path == "" {
+			continue
+		}
+		if progress != nil {
+			progress(i, len(paths), path, "starting", nil)
+		}
+		loadJob := res.PostBundle(path)
+		if loadJob == nil {
+			res.Destroy()
+			err := fmt.Errorf("发起资源加载失败: %s", path)
+			if progress != nil {
+				progress(i, len(paths), path, "failed", err)
+			}
+			return err
+		}
+		loadJob.Wait()
+		if !loadJob.Success() {
+			res.Destroy()
+			err := fmt.Errorf("资源加载失败 [%s]: %v", path, loadJob.Status())
+			if progress != nil {
+				progress(i, len(paths), path, "failed", err)
+			}
+			return err
+		}
+		if progress != nil {
+			progress(i, len(paths), path, "succeeded", nil)
+		}
+	}
+
+	if a.resource != nil {
+		a.resource.Destroy()
+	}
+
+	a.resource = res
+	a.resourceLoaded = true
+
+	logger.Debug("MaaFW", "资源已加载(共 %d 个路径)", len(paths))
+	return nil
+}
+
 func (a *MaaFWAdapter) LoadResources(paths []string) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -349,6 +437,31 @@ func (a *MaaFWAdapter) GetNodeJSON(nodeName string) (string, bool) {
 
 // InitTasker 初始化 Tasker
 // 必须在 Controller 和 Resource 都准备好之后调用
+func (a *MaaFWAdapter) GetNode(nodeName string) (*maa.Node, bool) {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+
+	if a.resource == nil {
+		return nil, false
+	}
+	node, err := a.resource.GetNode(nodeName)
+	if err != nil || node == nil {
+		return nil, false
+	}
+	return node, true
+}
+
+func (a *MaaFWAdapter) OverridePipeline(override interface{}) error {
+	a.mu.RLock()
+	resource := a.resource
+	a.mu.RUnlock()
+
+	if resource == nil {
+		return fmt.Errorf("资源未加载")
+	}
+	return resource.OverridePipeline(override)
+}
+
 func (a *MaaFWAdapter) InitTasker() error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -467,6 +580,39 @@ func (a *MaaFWAdapter) PostTask(entry string, override ...interface{}) (*maa.Tas
 }
 
 // StopTask 停止当前任务
+func (a *MaaFWAdapter) PostRecognition(recType maa.RecognitionType, recParam maa.RecognitionParam, img image.Image) (*maa.TaskJob, error) {
+	a.mu.RLock()
+	tasker := a.tasker
+	a.mu.RUnlock()
+
+	if tasker == nil {
+		return nil, fmt.Errorf("Tasker 未初始化")
+	}
+	if img == nil {
+		return nil, fmt.Errorf("识别输入图像为空")
+	}
+	taskJob := tasker.PostRecognition(recType, recParam, img)
+	if taskJob == nil {
+		return nil, fmt.Errorf("提交识别任务失败")
+	}
+	return taskJob, nil
+}
+
+func (a *MaaFWAdapter) PostAction(actionType maa.ActionType, actionParam maa.ActionParam, box maa.Rect, recoDetail *maa.RecognitionDetail) (*maa.TaskJob, error) {
+	a.mu.RLock()
+	tasker := a.tasker
+	a.mu.RUnlock()
+
+	if tasker == nil {
+		return nil, fmt.Errorf("Tasker 未初始化")
+	}
+	taskJob := tasker.PostAction(actionType, actionParam, box, recoDetail)
+	if taskJob == nil {
+		return nil, fmt.Errorf("提交动作任务失败")
+	}
+	return taskJob, nil
+}
+
 func (a *MaaFWAdapter) StopTask() error {
 	a.mu.RLock()
 	tasker := a.tasker

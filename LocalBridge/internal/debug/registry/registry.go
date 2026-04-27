@@ -9,10 +9,29 @@ func DefaultCapabilityManifest() protocol.CapabilityManifest {
 		RunModes: []string{
 			string(protocol.RunModeFullRun),
 			string(protocol.RunModeRunFromNode),
+			string(protocol.RunModeSingleNodeRun),
+			string(protocol.RunModeRecognitionOnly),
+			string(protocol.RunModeActionOnly),
+			string(protocol.RunModeFixedImageRecognition),
 		},
-		Diagnostics:       []string{},
-		Artifacts:         []string{},
-		ScreenshotSources: []string{},
+		Diagnostics: []string{
+			"preflight",
+			"resource-load",
+			"target-node",
+			"fixed-image",
+			"agent",
+		},
+		Artifacts: []string{
+			"task-detail",
+			"recognition-detail",
+			"action-detail",
+			"screenshot",
+		},
+		ScreenshotSources: []string{
+			"manual",
+			"recognition-input",
+			"fixed-image",
+		},
 		ProfileFeatures: []string{
 			"interface-import",
 			"multi-resource",

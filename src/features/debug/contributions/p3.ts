@@ -14,7 +14,7 @@ const modalPanels: Array<{ id: DebugModalPanel; label: string }> = [
   { id: "logs", label: "日志" },
 ];
 
-export function registerDebugP3Contributions(): void {
+export function registerDebugP4Contributions(): void {
   modalPanels.forEach((panel, index) => {
     debugContributionRegistry.registerModalPanel({
       ...panel,
@@ -47,6 +47,26 @@ export function registerDebugP3Contributions(): void {
     label: "从此节点运行",
     runMode: "run-from-node",
   });
+  debugContributionRegistry.registerNodeDebugAction({
+    id: "single-node-run",
+    label: "单节点运行",
+    runMode: "single-node-run",
+  });
+  debugContributionRegistry.registerNodeDebugAction({
+    id: "recognition-only",
+    label: "仅识别",
+    runMode: "recognition-only",
+  });
+  debugContributionRegistry.registerNodeDebugAction({
+    id: "action-only",
+    label: "仅动作",
+    runMode: "action-only",
+  });
+  debugContributionRegistry.registerNodeDebugAction({
+    id: "fixed-image-recognition",
+    label: "固定图识别",
+    runMode: "fixed-image-recognition",
+  });
 }
 
-registerDebugP3Contributions();
+registerDebugP4Contributions();

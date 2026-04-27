@@ -717,14 +717,21 @@ type DebugNodeResolverSnapshot = {
 - 支持 recognition-only 和 fixed-image recognition。
 - 节点详情面板展示识别、动作、next-list 和 wait-freezes。
 
-### Phase 5：高级调试能力
+### Phase 5：补齐 P4 顺延项
+
+- 把 ScreenshotService 从手动 `capture` 补齐到 live screenshot streaming，包含限频、停止和会话结束清理。
+- 把 interface import 从“默认 task/resource/controller 导入”补齐到 PI option/preset 的完整映射、override 合并和更细粒度导入策略。
+- 补齐节点详情回放，能够基于当前 session 的 trace/artifact 回看 recognition、action、next-list 和 wait-freezes，而不只是查看静态节点配置。
+- 补齐 interface import 下的 agent 子进程托管策略或明确降级模型，避免当前只有 identifier 场景真正可用。
+
+### Phase 6：高级调试能力
 
 - Replay/Record controller。
 - Agent run profile。
 - 性能分析和批量识别验证。
 - 运行后在当前 session 内临时 replay trace，不做持久化调试记录。
 
-### Phase 6：清理旧代码
+### Phase 7：清理旧代码
 
 完成新闭环后删除：
 
@@ -1020,3 +1027,55 @@ type DebugCapabilityManifest = {
 - interface 导入生成 profile、多 resource 加载诊断、多 agent 连接和 custom recognition/action 能力展示。
 - DiagnosticsService、ScreenshotService、live screenshot、固定图识别和更完整的节点详情回放。
 - replay/record、性能分析、长期旧调试源码物理清理和仓库级 lint 基线治理。
+
+### 2026-04-27 P4：实用调试能力落地
+
+已完成：
+
+- 前后端 debug-vNext 协议版本同步升级到 `0.13.0`；`DebugRunRequest`/`RunRequest` 增加 `input.imagePath`、`input.imageRelativePath`、`input.confirmAction`，profile agent 增加 `timeoutMs`、`required`。
+- capability manifest 开放 P4 run modes：`full-run`、`run-from-node`、`single-node-run`、`recognition-only`、`action-only`、`fixed-image-recognition`；同时补齐 diagnostics、artifacts 和 screenshotSources 能力声明。
+- LocalBridge 新增 `diagnostics`、`screenshot`、`interfaceimport`、`runutil` debug 包，并注册 `/mpe/debug/interface/import` 与 `/mpe/debug/screenshot/capture`。
+- `Runner` 在 runtime 创建前执行 preflight diagnostics；error 级诊断会写入 trace、阻止启动并将 session 置为 failed。
+- Runtime 支持 `single-node-run`、`recognition-only`、`fixed-image-recognition`、`action-only`：单节点运行会清空目标节点 `next/on_error`；直接识别/动作使用 MaaFW `PostRecognition`/`PostAction` 并补发 synthetic node/recognition/action events 与 JSON artifacts。
+- 固定图识别通过 `NewCarouselImageController(resolvedImagePath)` 创建静态图 controller，不依赖 live controller；`imageRelativePath` 按 `profile.resourcePaths[*]/image` 顺序解析，`imagePath` 限制在项目根或 resource 路径内。
+- 多 resource 按用户配置顺序加载，并为每个路径发出 starting/succeeded/failed 诊断事件。
+- 多 agent 在 preparing/runtime 阶段连接，支持 identifier 与 TCP transport、timeout、required 降级策略、resource/tasker/controller sink 绑定和 custom recognition/action introspection 诊断。
+- interface import 支持 PI v2 `interface.json`，默认选择第一个 `default_check` task、首个 resource、首个 controller；导入 resource path 与 attach_resource_path，并将无 identifier 的 agent 作为 disabled draft 导入。
+- 前端 `DebugModal` 开放 P4 run buttons、固定图输入、截图、interface 导入、agent 编辑和节点详情；Pipeline 节点右键菜单新增单节点运行、仅识别、仅动作、固定图识别。
+- `debugRunProfileStore` 持久化固定图输入、agents 和 interface import 结果，并在构造请求时写入 `input`；应用 interface 导入结果时保留当前 controllerId、savePolicy、maaOptions 和 artifact policy。
+
+验证记录：
+
+- `yarn eslint src/components/debug/DebugModal.tsx src/components/flow/nodes/nodeContextMenu.tsx src/features/debug/types.ts src/features/debug/contributions/runModes.ts src/features/debug/contributions/p3.ts src/features/debug/registerProtocolListeners.ts src/stores/debugRunProfileStore.ts src/services/protocols/DebugProtocolClient.ts`：通过。
+- `yarn build`：通过；仅保留既有 Vite dynamic import/chunk size 警告。
+- `go test ./...`（工作目录 `LocalBridge`）：通过。
+- `rg '0\\.12\\.0|P3|P2 暂不支持|debug_not_implemented' src LocalBridge`：主链路残留已清理；历史更新日志不在本次检查范围。
+- `git diff -- src LocalBridge | rg '^\\+.*(ToolPanel\\.Debug|debugProtocol\\.register|NewDebugHandlerV2|sendStartDebug\\(|/mpe/debug/start|useDebugStore|debugStore)'`：无新增旧调试入口。
+
+顺延到 2026-04-28 P5 的 P4 补完项：
+
+- ScreenshotService 当前只落地按需 `/mpe/debug/screenshot/capture`；live screenshot streaming、限频、主动停止和会话销毁清理顺延到 P5。
+- interface import 当前按 `default_check` / 首个 resource / 首个 controller 生成 profile；PI option/preset 的完整映射、override 合并和更细粒度导入策略顺延到 P5。
+- 节点详情当前以静态节点配置和最近 artifact 为主；基于当前 session 的 recognition/action/next-list/wait-freezes 回放顺延到 P5。
+- interface import 对无 identifier 的 agent 仍只导入为 disabled draft；agent 子进程托管与自动拉起顺延到 P5。
+
+独立后续计划：
+
+- replay/record controller、trace replay 和性能分析不并入 P5，继续保留到 P6。
+- 长期旧调试源码物理清理和仓库级 lint 基线治理继续保留到 P7。
+
+### 2026-04-28 P5：补齐 P4 顺延项（计划）
+
+计划目标：
+
+- 补齐 live screenshot streaming 链路，包括启动/停止入口、节流策略、artifact/trace 接线和 session 销毁清理。
+- 完善 interface import，对 PI option/preset 做更完整的 profile 映射，并补齐导入结果与运行时 override 的合并规则。
+- 把节点详情从“静态配置查看”补齐到“session 内运行细节回放”，覆盖 recognition、action、next-list 和 wait-freezes。
+- 明确 agent 子进程托管方案；若仍不托管，也要在 capability/diagnostic/UI 中把降级边界表达清楚。
+
+验收重点：
+
+- `DebugModal` 可以稳定查看 live screenshot，停止 run 或关闭 session 后不残留截图推流状态。
+- interface import 生成的 profile 不再只依赖默认 task/resource/controller，PI 导入结果和用户已有 profile 字段的合并规则可预测。
+- 节点详情面板能够基于当前 session 回看最近一次运行细节，而不是只展示编辑态节点字段。
+- 无 identifier 的 agent 不再是静默降级；要么可托管启动，要么在导入和运行前给出明确诊断。

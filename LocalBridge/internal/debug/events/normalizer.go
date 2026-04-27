@@ -192,7 +192,7 @@ func (n *Normalizer) storeTaskDetail(tasker *maa.Tasker, taskID int64) *detailRe
 	if detail == nil {
 		return nil
 	}
-	data := summarizeTaskDetail(detail)
+	data := SummarizeTaskDetail(detail)
 	ref, err := n.artifacts.AddJSON(n.sessionID, "task-detail", data)
 	if err != nil {
 		logger.Warn("DebugVNext", "写入任务详情 artifact 失败: %v", err)
@@ -215,7 +215,7 @@ func (n *Normalizer) storeRecognitionDetail(ctx *maa.Context, recognitionID int6
 		return nil
 	}
 
-	data := summarizeRecognitionDetail(detail)
+	data := SummarizeRecognitionDetail(detail)
 	if n.policy.IncludeRawImage && detail.Raw != nil {
 		if ref, err := n.artifacts.AddPNG(n.sessionID, "recognition-raw-image", detail.Raw); err == nil {
 			data["rawImageRef"] = ref.ID
@@ -267,7 +267,7 @@ func (n *Normalizer) storeActionDetail(ctx *maa.Context, actionID int64) *detail
 		return nil
 	}
 
-	data := summarizeActionDetail(detail)
+	data := SummarizeActionDetail(detail)
 	ref, err := n.artifacts.AddJSON(n.sessionID, "action-detail", data)
 	if err != nil {
 		logger.Warn("DebugVNext", "写入动作详情 artifact 失败: %v", err)
@@ -336,7 +336,10 @@ func normalizeNextList(items []maa.NextItem) []map[string]interface{} {
 	return result
 }
 
-func summarizeTaskDetail(detail *maa.TaskDetail) map[string]interface{} {
+func SummarizeTaskDetail(detail *maa.TaskDetail) map[string]interface{} {
+	if detail == nil {
+		return map[string]interface{}{}
+	}
 	nodes := make([]map[string]interface{}, 0, len(detail.NodeDetails))
 	for _, node := range detail.NodeDetails {
 		if node == nil {
@@ -348,10 +351,10 @@ func summarizeTaskDetail(detail *maa.TaskDetail) map[string]interface{} {
 			"runCompleted": node.RunCompleted,
 		}
 		if node.Recognition != nil {
-			nodeData["recognition"] = summarizeRecognitionDetail(node.Recognition)
+			nodeData["recognition"] = SummarizeRecognitionDetail(node.Recognition)
 		}
 		if node.Action != nil {
-			nodeData["action"] = summarizeActionDetail(node.Action)
+			nodeData["action"] = SummarizeActionDetail(node.Action)
 		}
 		nodes = append(nodes, nodeData)
 	}
@@ -363,7 +366,10 @@ func summarizeTaskDetail(detail *maa.TaskDetail) map[string]interface{} {
 	}
 }
 
-func summarizeRecognitionDetail(detail *maa.RecognitionDetail) map[string]interface{} {
+func SummarizeRecognitionDetail(detail *maa.RecognitionDetail) map[string]interface{} {
+	if detail == nil {
+		return map[string]interface{}{}
+	}
 	data := map[string]interface{}{
 		"id":        detail.ID,
 		"name":      detail.Name,
@@ -379,7 +385,7 @@ func summarizeRecognitionDetail(detail *maa.RecognitionDetail) map[string]interf
 		combined := make([]map[string]interface{}, 0, len(detail.CombinedResult))
 		for _, item := range detail.CombinedResult {
 			if item != nil {
-				combined = append(combined, summarizeRecognitionDetail(item))
+				combined = append(combined, SummarizeRecognitionDetail(item))
 			}
 		}
 		data["combinedResult"] = combined
@@ -387,7 +393,10 @@ func summarizeRecognitionDetail(detail *maa.RecognitionDetail) map[string]interf
 	return data
 }
 
-func summarizeActionDetail(detail *maa.ActionDetail) map[string]interface{} {
+func SummarizeActionDetail(detail *maa.ActionDetail) map[string]interface{} {
+	if detail == nil {
+		return map[string]interface{}{}
+	}
 	data := map[string]interface{}{
 		"id":      detail.ID,
 		"name":    detail.Name,

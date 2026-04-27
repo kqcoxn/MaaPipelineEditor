@@ -6,9 +6,12 @@ import (
 	"strings"
 
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/artifact"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/interfaceimport"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/protocol"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/registry"
 	debugrunner "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/runner"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/runutil"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/screenshot"
 	debugsession "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/session"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/trace"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
@@ -19,23 +22,29 @@ import (
 
 type Handler struct {
 	service      *mfw.Service
+	root         string
 	sessions     *debugsession.Manager
 	traces       *trace.Store
 	artifacts    *artifact.Store
 	runner       *debugrunner.Runner
+	screenshots  *screenshot.Service
+	importer     *interfaceimport.Service
 	capabilities protocol.CapabilityManifest
 }
 
-func NewHandler(service *mfw.Service) *Handler {
+func NewHandler(service *mfw.Service, root string) *Handler {
 	sessions := debugsession.NewManager()
 	traces := trace.NewStore()
 	artifacts := artifact.NewStore()
 	return &Handler{
 		service:      service,
+		root:         root,
 		sessions:     sessions,
 		traces:       traces,
 		artifacts:    artifacts,
-		runner:       debugrunner.New(service, sessions, traces, artifacts),
+		runner:       debugrunner.New(service, sessions, traces, artifacts, root),
+		screenshots:  screenshot.NewService(service, artifacts),
+		importer:     interfaceimport.NewService(root),
 		capabilities: registry.DefaultCapabilityManifest(),
 	}
 }
@@ -62,6 +71,10 @@ func (h *Handler) Handle(msg models.Message, conn *server.Connection) *models.Me
 		h.handleRunStop(conn, msg)
 	case "/mpe/debug/artifact/get":
 		h.handleArtifactGet(conn, msg)
+	case "/mpe/debug/screenshot/capture":
+		h.handleScreenshotCapture(conn, msg)
+	case "/mpe/debug/interface/import":
+		h.handleInterfaceImport(conn, msg)
 	case "/mpe/debug/start", "/mpe/debug/stop":
 		h.sendError(conn, "debug_legacy_route_removed", "旧调试路由已移除，请使用 debug-vNext 契约", map[string]string{
 			"path": msg.Path,
@@ -240,12 +253,85 @@ func (h *Handler) handleArtifactGet(conn *server.Connection, msg models.Message)
 	h.send(conn, "/lte/debug/artifact", payload)
 }
 
+func (h *Handler) handleScreenshotCapture(conn *server.Connection, msg models.Message) {
+	if !h.service.IsInitialized() {
+		h.sendError(conn, "debug_not_initialized", "MaaFramework 鏈垵濮嬪寲锛岃鍏堝垵濮嬪寲鏈嶅姟", nil)
+		return
+	}
+
+	req, err := decodeData[protocol.ScreenshotCaptureRequest](msg)
+	if err != nil {
+		h.sendError(conn, "debug_invalid_request", err.Error(), nil)
+		return
+	}
+
+	sessionID := strings.TrimSpace(req.SessionID)
+	if sessionID == "" {
+		snapshot := h.sessions.Create(h.capabilities)
+		sessionID = snapshot.SessionID
+		h.send(conn, "/lte/debug/session_created", snapshot)
+	} else if _, err := h.sessions.Snapshot(sessionID); err != nil {
+		h.sendError(conn, "debug_session_not_found", err.Error(), nil)
+		return
+	}
+
+	ref, bounds, err := h.screenshots.Capture(sessionID, strings.TrimSpace(req.ControllerID), req.Force)
+	if err != nil {
+		h.sendError(conn, "debug_screenshot_failed", err.Error(), map[string]interface{}{
+			"sessionId":    sessionID,
+			"controllerId": req.ControllerID,
+		})
+		return
+	}
+
+	h.emitEvent(conn, protocol.Event{
+		SessionID:     sessionID,
+		Source:        "localbridge",
+		Kind:          "screenshot",
+		Phase:         "completed",
+		Status:        "captured",
+		ScreenshotRef: ref.ID,
+		Data: map[string]interface{}{
+			"controllerId": req.ControllerID,
+			"force":        req.Force,
+			"width":        bounds.Dx(),
+			"height":       bounds.Dy(),
+		},
+	})
+}
+
+func (h *Handler) handleInterfaceImport(conn *server.Connection, msg models.Message) {
+	req, err := decodeData[protocol.InterfaceImportRequest](msg)
+	if err != nil {
+		h.sendError(conn, "debug_invalid_request", err.Error(), nil)
+		return
+	}
+
+	result, err := h.importer.Import(req.Path)
+	if err != nil {
+		h.sendError(conn, "debug_interface_import_failed", err.Error(), map[string]string{
+			"path": req.Path,
+		})
+		return
+	}
+	h.send(conn, "/lte/debug/interface_imported", result)
+}
+
 func validateRunRequest(req protocol.RunRequest) error {
 	if !protocol.IsValidRunMode(req.Mode) {
 		return fmt.Errorf("无效的 run mode: %s", req.Mode)
 	}
-	if req.Mode != protocol.RunModeFullRun && req.Mode != protocol.RunModeRunFromNode {
-		return fmt.Errorf("P2 暂不支持 run mode: %s", req.Mode)
+	if req.Mode == protocol.RunModeReplay {
+		return fmt.Errorf("unsupported run mode: %s", req.Mode)
+	}
+	if req.Mode == protocol.RunModeActionOnly && (req.Input == nil || !req.Input.ConfirmAction) {
+		return fmt.Errorf("action-only requires input.confirmAction=true")
+	}
+	if req.Mode == protocol.RunModeFixedImageRecognition {
+		if req.Input == nil ||
+			(strings.TrimSpace(req.Input.ImagePath) == "" && strings.TrimSpace(req.Input.ImageRelativePath) == "") {
+			return fmt.Errorf("fixed-image-recognition requires input.imageRelativePath or input.imagePath")
+		}
 	}
 	if strings.TrimSpace(req.Profile.ID) == "" {
 		return fmt.Errorf("缺少必需字段: profile.id")
@@ -259,7 +345,7 @@ func validateRunRequest(req protocol.RunRequest) error {
 	if !isSupportedSavePolicy(req.Profile.SavePolicy) {
 		return fmt.Errorf("无效的 savePolicy: %s", req.Profile.SavePolicy)
 	}
-	if strings.TrimSpace(controllerIDFromOptions(req.Profile.Controller.Options)) == "" {
+	if runutil.UsesLiveController(req.Mode) && strings.TrimSpace(controllerIDFromOptions(req.Profile.Controller.Options)) == "" {
 		return fmt.Errorf("缺少必需字段: profile.controller.options.controllerId")
 	}
 	if len(nonEmptyStrings(req.Profile.ResourcePaths)) == 0 {
@@ -392,6 +478,21 @@ func (h *Handler) send(conn *server.Connection, path string, data interface{}) {
 	if err := conn.Send(models.Message{Path: path, Data: data}); err != nil {
 		logger.Error("DebugVNext", "发送响应失败: %v", err)
 	}
+}
+
+func (h *Handler) emitEvent(conn *server.Connection, event protocol.Event) {
+	appended, err := h.traces.Append(event)
+	if err != nil {
+		logger.Warn("DebugVNext", "鍐欏叆 trace 澶辫触: %v", err)
+		return
+	}
+	if appended.DetailRef != "" {
+		h.artifacts.SetEventSeq(appended.SessionID, appended.DetailRef, appended.Seq)
+	}
+	if appended.ScreenshotRef != "" {
+		h.artifacts.SetEventSeq(appended.SessionID, appended.ScreenshotRef, appended.Seq)
+	}
+	h.send(conn, "/lte/debug/event", appended)
 }
 
 func (h *Handler) sendError(conn *server.Connection, code string, message string, detail interface{}) {

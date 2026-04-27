@@ -1,14 +1,16 @@
-import { useEffect, useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Alert,
   Button,
   Checkbox,
   Empty,
   Input,
+  InputNumber,
   List,
   Modal,
   Select,
   Space,
+  Switch,
   Tag,
   Typography,
   message,
@@ -18,17 +20,20 @@ import {
   BranchesOutlined,
   CaretRightOutlined,
   DatabaseOutlined,
+  DeleteOutlined,
   FileSearchOutlined,
   MonitorOutlined,
   NodeIndexOutlined,
+  PlusOutlined,
   PictureOutlined,
   ProfileOutlined,
+  ReloadOutlined,
   RobotOutlined,
   StopOutlined,
   UnorderedListOutlined,
 } from "@ant-design/icons";
 import { useShallow } from "zustand/shallow";
-import { debugProtocolClient } from "../../services/server";
+import { debugProtocolClient, resourceProtocol } from "../../services/server";
 import { useDebugSessionStore } from "../../stores/debugSessionStore";
 import { useDebugModalMemoryStore } from "../../stores/debugModalMemoryStore";
 import { useDebugTraceStore } from "../../stores/debugTraceStore";
@@ -74,7 +79,26 @@ const panels: PanelItem[] = [
   { id: "logs", label: "日志", icon: <UnorderedListOutlined /> },
 ];
 
-const runnableModes = new Set<DebugRunMode>(["full-run", "run-from-node"]);
+const runnableModes = new Set<DebugRunMode>([
+  "full-run",
+  "run-from-node",
+  "single-node-run",
+  "recognition-only",
+  "action-only",
+  "fixed-image-recognition",
+]);
+
+const targetRunModes = new Set<DebugRunMode>([
+  "run-from-node",
+  "single-node-run",
+  "recognition-only",
+  "action-only",
+  "fixed-image-recognition",
+]);
+
+function modeUsesLiveController(mode: DebugRunMode): boolean {
+  return mode !== "fixed-image-recognition";
+}
 
 function formatTime(value?: string): string {
   if (!value) return "-";
@@ -108,7 +132,10 @@ function renderEventMeta(event: DebugEvent): ReactNode {
 
 function validateRunRequest(request: DebugRunRequest): DebugDiagnostic[] {
   const diagnostics: DebugDiagnostic[] = [];
-  if (!request.profile.controller.options.controllerId) {
+  if (
+    modeUsesLiveController(request.mode) &&
+    !request.profile.controller.options.controllerId
+  ) {
     diagnostics.push({
       severity: "error",
       code: "debug.controller.missing",
@@ -143,11 +170,29 @@ function validateRunRequest(request: DebugRunRequest): DebugDiagnostic[] {
       message: "完整运行缺少 profile entry。",
     });
   }
-  if (request.mode === "run-from-node" && !request.target?.runtimeName) {
+  if (targetRunModes.has(request.mode) && !request.target?.runtimeName) {
     diagnostics.push({
       severity: "error",
       code: "debug.target.missing",
-      message: "从节点运行缺少 target。",
+      message: "节点级调试缺少 target。",
+    });
+  }
+  if (
+    request.mode === "fixed-image-recognition" &&
+    !request.input?.imageRelativePath &&
+    !request.input?.imagePath
+  ) {
+    diagnostics.push({
+      severity: "error",
+      code: "debug.fixed_image.missing",
+      message: "固定图识别需要先选择 resource 相对图片或输入图片路径。",
+    });
+  }
+  if (request.mode === "action-only" && !request.input?.confirmAction) {
+    diagnostics.push({
+      severity: "error",
+      code: "debug.action.confirm_missing",
+      message: "仅动作模式需要危险操作确认。",
     });
   }
   return diagnostics;
@@ -178,6 +223,7 @@ function DebugSection({
 }
 
 export function DebugModal() {
+  const [interfaceImportPath, setInterfaceImportPath] = useState("");
   const {
     modalOpen,
     activePanel,
@@ -239,7 +285,19 @@ export function DebugModal() {
     })),
   );
   const profileState = useDebugRunProfileStore();
-  const resourceBundles = useLocalFileStore((state) => state.resourceBundles);
+  const {
+    resourceBundles,
+    imageList,
+    imageListBundleName,
+    imageListLoading,
+  } = useLocalFileStore(
+    useShallow((state) => ({
+      resourceBundles: state.resourceBundles,
+      imageList: state.imageList,
+      imageListBundleName: state.imageListBundleName,
+      imageListLoading: state.imageListLoading,
+    })),
+  );
   const mfwState = useMFWStore(
     useShallow((state) => ({
       connectionStatus: state.connectionStatus,
@@ -264,6 +322,12 @@ export function DebugModal() {
     setCapabilitiesError,
   ]);
 
+  useEffect(() => {
+    if (!modalOpen || !connected || activePanel !== "images") return;
+    if (imageList.length > 0 || imageListLoading) return;
+    resourceProtocol.requestImageList();
+  }, [activePanel, connected, imageList.length, imageListLoading, modalOpen]);
+
   const runModes = useMemo(() => debugContributionRegistry.getRunModes(), []);
 
   const availableModeIds = useMemo(
@@ -282,8 +346,25 @@ export function DebugModal() {
   const selectedArtifact = selectedArtifactId
     ? artifacts[selectedArtifactId]
     : undefined;
+  const selectedFlowNode = flowNodes.find((node) => node.id === selectedNodeId);
+  const selectedNodeDetail = selectedFlowNode?.data as
+    | {
+        label?: string;
+        recognition?: unknown;
+        action?: unknown;
+        others?: Record<string, unknown>;
+      }
+    | undefined;
 
-  const startRun = (mode: DebugRunMode, nodeId?: string) => {
+  const startRun = (
+    mode: DebugRunMode,
+    nodeId?: string,
+    input?: DebugRunRequest["input"],
+  ) => {
+    if (mode === "action-only" && !input?.confirmAction) {
+      confirmActionRun(nodeId);
+      return;
+    }
     clearProtocolError();
     if (!connected) {
       diagnosticsState.setPreflightDiagnostics([
@@ -307,7 +388,7 @@ export function DebugModal() {
       message.warning("当前 LocalBridge 暂不支持该调试模式");
       return;
     }
-    if (!mfwState.controllerId) {
+    if (modeUsesLiveController(mode) && !mfwState.controllerId) {
       diagnosticsState.setPreflightDiagnostics([
         {
           severity: "error",
@@ -320,7 +401,12 @@ export function DebugModal() {
     }
 
     try {
-      const request = profileState.buildRunRequest(mode, nodeId, session?.sessionId);
+      const request = profileState.buildRunRequest(
+        mode,
+        nodeId,
+        session?.sessionId,
+        input,
+      );
       const preflightDiagnostics = validateRunRequest(request);
       diagnosticsState.setPreflightDiagnostics(preflightDiagnostics);
       const blockingDiagnostic = preflightDiagnostics.find(
@@ -330,7 +416,7 @@ export function DebugModal() {
         message.error(blockingDiagnostic.message);
         return;
       }
-      if (request.mode === "run-from-node" && !request.target) {
+      if (targetRunModes.has(request.mode) && !request.target) {
         message.error("请选择可调试的 Pipeline 节点");
         return;
       }
@@ -350,6 +436,17 @@ export function DebugModal() {
     }
   };
 
+  function confirmActionRun(nodeId?: string) {
+    Modal.confirm({
+      title: "确认执行动作",
+      content: "仅动作模式会跳过识别，直接执行目标节点 action。",
+      okText: "确认执行",
+      okButtonProps: { danger: true },
+      cancelText: "取消",
+      onOk: () => startRun("action-only", nodeId, { confirmAction: true }),
+    });
+  }
+
   const stopRun = () => {
     if (!session?.sessionId) {
       message.warning("当前没有调试 session");
@@ -361,6 +458,33 @@ export function DebugModal() {
       reason: "user_stop",
     });
     if (!sent) message.error("发送停止请求失败");
+  };
+
+  const captureScreenshot = () => {
+    if (!connected) {
+      message.error("LocalBridge 未连接");
+      return;
+    }
+    if (!mfwState.controllerId) {
+      message.error("请先连接 MaaFramework controller");
+      return;
+    }
+    const sent = debugProtocolClient.captureScreenshot({
+      sessionId: session?.sessionId,
+      controllerId: mfwState.controllerId,
+      force: true,
+    });
+    if (!sent) message.error("发送截图请求失败");
+  };
+
+  const importInterface = () => {
+    const path = interfaceImportPath.trim();
+    if (!path) {
+      message.warning("请输入 interface.json 路径");
+      return;
+    }
+    const sent = debugProtocolClient.importInterface({ path });
+    if (!sent) message.error("发送 interface 导入请求失败");
   };
 
   const requestArtifact = (artifactId: string) => {
@@ -428,6 +552,42 @@ export function DebugModal() {
           >
             从选中节点运行
           </Button>
+          <Button
+            icon={<CaretRightOutlined />}
+            onClick={() => startRun("single-node-run", selectedNodeId)}
+            disabled={
+              !selectedNodeId || !availableModeIds.has("single-node-run")
+            }
+          >
+            单节点运行
+          </Button>
+          <Button
+            icon={<FileSearchOutlined />}
+            onClick={() => startRun("recognition-only", selectedNodeId)}
+            disabled={
+              !selectedNodeId || !availableModeIds.has("recognition-only")
+            }
+          >
+            仅识别
+          </Button>
+          <Button
+            danger
+            icon={<CaretRightOutlined />}
+            onClick={() => confirmActionRun(selectedNodeId)}
+            disabled={!selectedNodeId || !availableModeIds.has("action-only")}
+          >
+            仅动作
+          </Button>
+          <Button
+            icon={<PictureOutlined />}
+            onClick={() => startRun("fixed-image-recognition", selectedNodeId)}
+            disabled={
+              !selectedNodeId ||
+              !availableModeIds.has("fixed-image-recognition")
+            }
+          >
+            固定图识别
+          </Button>
           <Button danger icon={<StopOutlined />} onClick={stopRun}>
             停止
           </Button>
@@ -474,6 +634,27 @@ export function DebugModal() {
             }
             addonBefore="名称"
           />
+          <Space.Compact style={{ width: "100%" }}>
+            <Input
+              value={interfaceImportPath}
+              onChange={(event) => setInterfaceImportPath(event.target.value)}
+              placeholder="interface.json 路径或目录"
+            />
+            <Button icon={<ApiOutlined />} onClick={importInterface}>
+              导入 interface
+            </Button>
+          </Space.Compact>
+          {profileState.interfaceImport && (
+            <Alert
+              type="success"
+              showIcon
+              message="interface 已导入"
+              description={
+                profileState.interfaceImport.entryName ||
+                profileState.interfaceImport.profile.name
+              }
+            />
+          )}
           <Select
             value={profileState.profile.savePolicy}
             style={{ width: 240 }}
@@ -575,19 +756,206 @@ export function DebugModal() {
           </Tag>
           <Tag>{mfwState.controllerType ?? "none"}</Tag>
           <Tag>{mfwState.controllerId ?? "no controllerId"}</Tag>
+          <Button
+            size="small"
+            icon={<PictureOutlined />}
+            onClick={captureScreenshot}
+            disabled={!mfwState.controllerId}
+          >
+            截图
+          </Button>
         </Space>
       </DebugSection>
       <Alert
         type="info"
         showIcon
-        message="P3 使用已连接 controller"
-        description="启动请求会自动把 mfwStore.controllerId 写入 profile.controller.options.controllerId。"
+        message="P4 使用已连接 controller"
+        description="启动请求会自动把 mfwStore.controllerId 写入 profile.controller.options.controllerId；固定图识别不依赖 live controller。"
       />
     </Space>
   );
 
+  const renderAgent = () => {
+    const agents = profileState.profile.agents;
+    const updateAgent = (
+      index: number,
+      updates: Partial<(typeof agents)[number]>,
+    ) => {
+      profileState.setAgents(
+        agents.map((agent, agentIndex) =>
+          agentIndex === index ? { ...agent, ...updates } : agent,
+        ),
+      );
+    };
+    const addAgent = () => {
+      profileState.setAgents([
+        ...agents,
+        {
+          id: `agent-${agents.length + 1}`,
+          enabled: false,
+          transport: "identifier",
+          identifier: "",
+          required: true,
+        },
+      ]);
+    };
+
+    return (
+      <Space direction="vertical" size={14} style={{ width: "100%" }}>
+        <Button icon={<PlusOutlined />} onClick={addAgent}>
+          添加 Agent
+        </Button>
+        <List
+          bordered
+          dataSource={agents}
+          locale={{ emptyText: "未配置 agent" }}
+          renderItem={(agent, index) => (
+            <List.Item
+              actions={[
+                <Button
+                  key="delete"
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={() =>
+                    profileState.setAgents(
+                      agents.filter((_, agentIndex) => agentIndex !== index),
+                    )
+                  }
+                />,
+              ]}
+            >
+              <Space direction="vertical" style={{ width: "100%" }}>
+                <Space wrap>
+                  <Switch
+                    checked={agent.enabled}
+                    onChange={(enabled) => updateAgent(index, { enabled })}
+                  />
+                  <Input
+                    value={agent.id}
+                    onChange={(event) =>
+                      updateAgent(index, { id: event.target.value })
+                    }
+                    addonBefore="ID"
+                    style={{ width: 220 }}
+                  />
+                  <Select
+                    value={agent.transport}
+                    style={{ width: 140 }}
+                    onChange={(transport) => updateAgent(index, { transport })}
+                    options={[
+                      { value: "identifier", label: "identifier" },
+                      { value: "tcp", label: "tcp" },
+                    ]}
+                  />
+                  {agent.transport === "tcp" ? (
+                    <InputNumber
+                      value={agent.tcpPort}
+                      min={1}
+                      max={65535}
+                      placeholder="tcp port"
+                      onChange={(tcpPort) =>
+                        updateAgent(index, { tcpPort: tcpPort ?? undefined })
+                      }
+                    />
+                  ) : (
+                    <Input
+                      value={agent.identifier}
+                      onChange={(event) =>
+                        updateAgent(index, { identifier: event.target.value })
+                      }
+                      placeholder="identifier"
+                      style={{ width: 240 }}
+                    />
+                  )}
+                  <InputNumber
+                    value={agent.timeoutMs}
+                    min={0}
+                    step={100}
+                    placeholder="timeout ms"
+                    onChange={(timeoutMs) =>
+                      updateAgent(index, { timeoutMs: timeoutMs ?? undefined })
+                    }
+                  />
+                  <Checkbox
+                    checked={agent.required ?? true}
+                    onChange={(event) =>
+                      updateAgent(index, { required: event.target.checked })
+                    }
+                  >
+                    required
+                  </Checkbox>
+                </Space>
+              </Space>
+            </List.Item>
+          )}
+        />
+        <DebugSection title="最近 Agent 诊断">
+          <List
+            size="small"
+            dataSource={diagnosticsState.diagnostics.filter((diagnostic) =>
+              diagnostic.code.startsWith("debug.agent."),
+            )}
+            locale={{ emptyText: "暂无 agent 诊断" }}
+            renderItem={(diagnostic) => (
+              <List.Item>
+                <Space>
+                  <Tag>{diagnostic.severity}</Tag>
+                  <Text>{diagnostic.message}</Text>
+                </Space>
+              </List.Item>
+            )}
+          />
+        </DebugSection>
+      </Space>
+    );
+  };
+
   const renderNodes = () => (
-    <List
+    <Space direction="vertical" size={14} style={{ width: "100%" }}>
+      {selectedNodeDetail && (
+        <DebugSection title="目标节点详情">
+          <Space direction="vertical" size={8} style={{ width: "100%" }}>
+            <Space wrap>
+              <Tag>{selectedNodeDetail.label ?? selectedNodeId}</Tag>
+              <Tag>
+                trace{" "}
+                {
+                  events.filter(
+                    (event) => event.node?.nodeId === selectedNodeId,
+                  ).length
+                }
+              </Tag>
+            </Space>
+            <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>
+              {JSON.stringify(
+                {
+                  recognition: selectedNodeDetail.recognition,
+                  action: selectedNodeDetail.action,
+                  next: selectedNodeDetail.others?.next,
+                  on_error: selectedNodeDetail.others?.on_error,
+                  waitFreezes: {
+                    pre: selectedNodeDetail.others?.pre_wait_freezes,
+                    post: selectedNodeDetail.others?.post_wait_freezes,
+                  },
+                  recentArtifacts: events
+                    .filter((event) => event.node?.nodeId === selectedNodeId)
+                    .slice(-5)
+                    .map((event) => ({
+                      seq: event.seq,
+                      kind: event.kind,
+                      detailRef: event.detailRef,
+                      screenshotRef: event.screenshotRef,
+                    })),
+                },
+                null,
+                2,
+              )}
+            </pre>
+          </Space>
+        </DebugSection>
+      )}
+      <List
       bordered
       dataSource={pipelineNodes}
       locale={{ emptyText: "当前图没有可调试 Pipeline 节点" }}
@@ -620,6 +988,39 @@ export function DebugModal() {
               >
                 从此运行
               </Button>,
+              <Button
+                key="single"
+                size="small"
+                onClick={() => startRun("single-node-run", node.nodeId)}
+                disabled={!availableModeIds.has("single-node-run")}
+              >
+                单节点
+              </Button>,
+              <Button
+                key="recognition"
+                size="small"
+                onClick={() => startRun("recognition-only", node.nodeId)}
+                disabled={!availableModeIds.has("recognition-only")}
+              >
+                识别
+              </Button>,
+              <Button
+                key="action"
+                size="small"
+                danger
+                onClick={() => confirmActionRun(node.nodeId)}
+                disabled={!availableModeIds.has("action-only")}
+              >
+                动作
+              </Button>,
+              <Button
+                key="fixed-image"
+                size="small"
+                onClick={() => startRun("fixed-image-recognition", node.nodeId)}
+                disabled={!availableModeIds.has("fixed-image-recognition")}
+              >
+                固定图
+              </Button>,
             ]}
           >
             <List.Item.Meta
@@ -634,7 +1035,8 @@ export function DebugModal() {
           </List.Item>
         );
       }}
-    />
+      />
+    </Space>
   );
 
   const renderTimeline = () => {
@@ -659,6 +1061,51 @@ export function DebugModal() {
     const entries = Object.values(artifacts);
     return (
       <Space direction="vertical" size={14} style={{ width: "100%" }}>
+        <DebugSection title="固定图输入">
+          <Space direction="vertical" size={10} style={{ width: "100%" }}>
+            <Space wrap>
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={() => resourceProtocol.requestImageList()}
+                loading={imageListLoading}
+              >
+                刷新 resource 图片
+              </Button>
+              <Tag>{imageListBundleName || "all resources"}</Tag>
+            </Space>
+            <Select
+              allowClear
+              showSearch
+              loading={imageListLoading}
+              style={{ width: "100%" }}
+              value={profileState.fixedImageInput.imageRelativePath}
+              placeholder="选择 resource/image 下的相对路径"
+              onChange={(imageRelativePath) =>
+                profileState.setFixedImageInput({
+                  ...profileState.fixedImageInput,
+                  imageRelativePath,
+                })
+              }
+              options={imageList.map((image) => ({
+                value: image.relativePath,
+                label: image.bundleName
+                  ? `${image.relativePath} · ${image.bundleName}`
+                  : image.relativePath,
+              }))}
+            />
+            <Input
+              value={profileState.fixedImageInput.imagePath}
+              onChange={(event) =>
+                profileState.setFixedImageInput({
+                  ...profileState.fixedImageInput,
+                  imagePath: event.target.value,
+                })
+              }
+              addonBefore="imagePath"
+              placeholder="项目根或 resource 路径内的图片文件"
+            />
+          </Space>
+        </DebugSection>
         <List
           bordered
           size="small"
@@ -785,14 +1232,7 @@ export function DebugModal() {
       case "controller":
         return renderController();
       case "agent":
-        return (
-          <Alert
-            type="info"
-            showIcon
-            message="Agent 将在 P4 接入"
-            description="P3 保留面板位置，不生成 agent 连接请求。"
-          />
-        );
+        return renderAgent();
       case "nodes":
         return renderNodes();
       case "timeline":
@@ -846,11 +1286,10 @@ export function DebugModal() {
           <Space direction="vertical" size={16} style={{ width: "100%" }}>
             <div>
               <Title level={4} style={{ margin: 0 }}>
-                调试系统 P3
+                调试系统 P4
               </Title>
               <Text type="secondary">
-                前端 trace、artifact、profile、节点入口和画布 overlay
-                已接入；当前仅实际启动 full-run 与 run-from-node。
+                节点级运行、固定图识别、截图、interface 导入、resource 诊断与 agent 连接诊断已接入。
               </Text>
             </div>
             {renderPanel()}
