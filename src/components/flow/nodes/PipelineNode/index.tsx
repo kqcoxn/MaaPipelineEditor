@@ -20,8 +20,10 @@ import { ClassicContent } from "./ClassicContent";
 import { MinimalContent } from "./MinimalContent";
 import { useShallow } from "zustand/shallow";
 import { NodeContextMenu } from "../components/NodeContextMenu";
+import { useDebugOverlayStore } from "../../../../stores/debugOverlayStore";
 
 type PNodeData = Node<PipelineNodeDataType, NodeTypeEnum.Pipeline>;
+type ParentNodeRef = { parentId?: string };
 
 /**Pipeline节点组件 */
 export function PipelineNode(props: NodeProps<PNodeData>) {
@@ -65,6 +67,14 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
     })),
   );
   const edges = useFlowStore((state) => state.edges);
+  const debugOverlay = useDebugOverlayStore(
+    useShallow((state) => ({
+      currentNodeId: state.currentNodeId,
+      visitedNodeIds: state.visitedNodeIds,
+      succeededNodeIds: state.succeededNodeIds,
+      failedNodeIds: state.failedNodeIds,
+    })),
+  );
 
   // 计算是否与选中元素相关联
   const isRelated = useMemo(() => {
@@ -100,10 +110,10 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
 
     // 检查分组关系
     const thisNode = useFlowStore.getState().nodes.find((n) => n.id === nodeId);
+    const parentId = (thisNode as ParentNodeRef | undefined)?.parentId;
     if (
-      thisNode &&
-      (thisNode as any).parentId &&
-      selectedNodeIds.has((thisNode as any).parentId)
+      parentId &&
+      selectedNodeIds.has(parentId)
     ) {
       return true;
     }
@@ -158,12 +168,22 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
         [style["anchor-ref-highlighted"]]: isAnchorRefHighlighted,
         // Ghost Node 样式
         [explorationStyle.ghostNode]: isActiveGhostNode,
+        [style["debug-node-current"]]: debugOverlay.currentNodeId === props.id,
+        [style["debug-node-visited"]]: debugOverlay.visitedNodeIds.has(props.id),
+        [style["debug-node-succeeded"]]:
+          debugOverlay.succeededNodeIds.has(props.id),
+        [style["debug-node-failed"]]: debugOverlay.failedNodeIds.has(props.id),
       }),
     [
       props.selected,
       nodeStyle,
       isAnchorRefHighlighted,
       isActiveGhostNode,
+      debugOverlay.currentNodeId,
+      debugOverlay.visitedNodeIds,
+      debugOverlay.succeededNodeIds,
+      debugOverlay.failedNodeIds,
+      props.id,
     ],
   );
 

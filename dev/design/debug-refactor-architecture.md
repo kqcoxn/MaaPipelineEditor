@@ -992,3 +992,31 @@ type DebugCapabilityManifest = {
 - DebugModal 内的 profile/resource/controller/run 启动表单与真实 `DebugRunRequest` 生成链路。
 - 节点 resolver snapshot 的前端真实生成、pipeline sandbox 导出一致性和节点级 action contribution。
 - `recognition-only`、`single-node-run`、`action-only`、fixed-image recognition、截图服务、diagnostics、multi-agent、replay/record 和长期旧代码物理清理。
+
+### 2026-04-27 P3：前端最小闭环
+
+已完成：
+
+- 前端新增 P3 调试状态闭环：`debugTraceStore`、`debugArtifactStore`、`debugDiagnosticsStore`、`debugRunProfileStore`、`debugOverlayStore`，并由 `DebugProtocolClient` 事件监听统一写入 session、trace、artifact、diagnostic 和 overlay 状态。
+- 新增 `traceReducer`，基于 append-only `DebugEvent` 推导当前节点、访问节点、成功/失败节点、执行边、recognition/action 历史、artifact ref、diagnostic 和 run summary。
+- 新增 `DebugGraphSnapshot` 与 `DebugNodeResolverSnapshot` 前端生成链路，基于当前 `fileStore.files`、当前 flow 状态和现有 `flowToPipeline` 导出规则生成运行请求；runtimeName 与导出 prefix 规则保持一致。
+- `DebugModal` 从 P2 占位界面改造为 P3 主界面，提供总览、Profile、资源、控制器、Agent 占位、节点、时间线、图像、诊断和日志面板；当前实际启动能力仍限定为 `full-run` 和 `run-from-node`。
+- Modal 内已接入真实 `DebugRunRequest` 生成与 `/mpe/debug/run/start`、`/mpe/debug/run/stop`、`/mpe/debug/artifact/get` 调用；profile、resourcePaths、artifactPolicy 和入口节点具备本地持久化。
+- React Flow Pipeline 节点接入当前节点、已访问、成功、失败 overlay；边接入已执行路径和 candidate overlay。
+- Pipeline 节点右键菜单新增“从此节点运行”，会打开 `DebugModal`、选中节点并在 capability 支持、LocalBridge 已连接且 controller 可用时发起 `run-from-node`。
+- 前端 contribution registry 补齐 P3 内部扩展点：modal panels、artifact viewers、canvas overlays、node debug action；未开放的 run mode 在 UI 中保留但不发送请求。
+- 前后端 debug-vNext 协议版本同步升级到 `0.12.0`；后端 run mode 能力边界不扩展，仍只暴露并执行 `full-run` 与 `run-from-node`。
+
+验证记录：
+
+- `yarn eslint src/features/debug/types.ts src/features/debug/traceReducer.ts src/features/debug/snapshot.ts src/features/debug/registerProtocolListeners.ts src/features/debug/contributions/registry.ts src/features/debug/contributions/runModes.ts src/features/debug/contributions/p3.ts src/stores/debugSessionStore.ts src/stores/debugModalMemoryStore.ts src/stores/debugTraceStore.ts src/stores/debugArtifactStore.ts src/stores/debugDiagnosticsStore.ts src/stores/debugOverlayStore.ts src/stores/debugRunProfileStore.ts src/components/debug/DebugModal.tsx src/components/flow/nodes/PipelineNode/index.tsx src/components/flow/nodes/nodeContextMenu.tsx src/components/flow/edges.tsx src/services/protocols/DebugProtocolClient.ts src/services/server.ts`：通过。
+- `yarn build`：通过；仍保留既有 Vite dynamic import/chunk size 警告。
+- `go test ./...`（工作目录 `LocalBridge`）：通过。
+- `git diff -- src LocalBridge | rg '^\\+.*(ToolPanel\\.Debug|debugProtocol\\.register|NewDebugHandlerV2|sendStartDebug\\(|/mpe/debug/start|useDebugStore|debugStore)'`：无输出，确认本次未新增旧调试入口依赖。
+
+遗留到 Phase 4+：
+
+- `single-node-run`、`recognition-only`、`action-only`、fixed-image recognition 的真实后端执行链路与 UI 危险操作确认。
+- interface 导入生成 profile、多 resource 加载诊断、多 agent 连接和 custom recognition/action 能力展示。
+- DiagnosticsService、ScreenshotService、live screenshot、固定图识别和更完整的节点详情回放。
+- replay/record、性能分析、长期旧调试源码物理清理和仓库级 lint 基线治理。

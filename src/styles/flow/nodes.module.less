@@ -263,6 +263,25 @@
   border-color: rgba(#1890ff, 0.8);
 }
 
+.debug-node-visited {
+  box-shadow: 0 0 0 1px rgba(22, 119, 255, 0.45), 0 6px 14px rgba(22, 119, 255, 0.12);
+}
+
+.debug-node-current {
+  box-shadow: 0 0 0 2px #1677ff, 0 0 0 6px rgba(22, 119, 255, 0.14);
+  border-color: #1677ff;
+}
+
+.debug-node-succeeded {
+  box-shadow: 0 0 0 1px rgba(82, 196, 26, 0.55), 0 6px 14px rgba(82, 196, 26, 0.16);
+  border-color: #52c41a;
+}
+
+.debug-node-failed {
+  box-shadow: 0 0 0 2px #ff4d4f, 0 0 0 6px rgba(255, 77, 79, 0.14);
+  border-color: #ff4d4f;
+}
+
 // Anchor 引用高亮样式
 .anchor-ref-highlighted {
   box-shadow: 0 0 0 2px #4a9d8e, 0 0 12px rgba(74, 157, 142, 0.3);

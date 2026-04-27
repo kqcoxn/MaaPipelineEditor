@@ -1,5 +1,5 @@
 export const DEBUG_GENERATION = "debug-vNext" as const;
-export const DEBUG_PROTOCOL_VERSION = "0.11.0" as const;
+export const DEBUG_PROTOCOL_VERSION = "0.12.0" as const;
 
 export type DebugGeneration = typeof DEBUG_GENERATION;
 

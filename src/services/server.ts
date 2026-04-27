@@ -15,6 +15,7 @@ import { ResourceProtocol } from "./protocols/ResourceProtocol";
 import { LoggerProtocol } from "./protocols/LoggerProtocol";
 import { AIProtocol } from "./protocols/AIProtocol";
 import { globalConfig } from "../stores/configStore";
+import { registerDebugProtocolListeners } from "../features/debug/registerProtocolListeners";
 
 const PROTOCOL_VERSION = globalConfig.protocolVersion;
 
@@ -305,7 +306,7 @@ export class LocalWebSocketServer {
   }
 
   // 发送消息
-  send(path: string, data: any) {
+  send(path: string, data: unknown) {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       console.warn("[WebSocket] Not connected, cannot send message");
       return false;
@@ -396,6 +397,7 @@ export function initializeWebSocket() {
 
   // 注册 vNext DebugProtocolClient；旧 debugProtocol 仅保留轻量占位导出以便旧文件编译
   debugProtocolClient.register(localServer);
+  registerDebugProtocolListeners(debugProtocolClient);
 
   // 注册 ResourceProtocol
   resourceProtocol.register(localServer);

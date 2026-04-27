@@ -12,6 +12,7 @@ import type {
   DebugRunStopRequest,
   DebugSessionSnapshot,
 } from "../../features/debug/types";
+import { DEBUG_PROTOCOL_VERSION } from "../../features/debug/types";
 
 type Listener<T> = (payload: T) => void;
 
@@ -39,7 +40,7 @@ export class DebugProtocolClient extends BaseProtocol {
   }
 
   getVersion(): string {
-    return "0.11.0";
+    return DEBUG_PROTOCOL_VERSION;
   }
 
   register(wsClient: LocalWebSocketServer): void {

@@ -1,4 +1,5 @@
 import style from "../../styles/flow/edges.module.less";
+/* eslint-disable react-refresh/only-export-components */
 
 import { memo, useMemo, useState, useCallback, useRef, useEffect } from "react";
 import {
@@ -28,6 +29,7 @@ import {
   buildNodeBoundsList,
   DEFAULT_AVOIDANCE_CONFIG,
 } from "../../core/avoidanceUtils";
+import { useDebugOverlayStore } from "../../stores/debugOverlayStore";
 
 // 判断位置是否为水平方向
 function isHorizontalPosition(position: string): boolean {
@@ -56,7 +58,6 @@ function getCustomBezierPath({
   const deltaX = targetX - sourceX;
   const deltaY = targetY - sourceY;
   const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-  const angle = Math.atan2(deltaY, deltaX);
 
   // 计算真实中点
   const trueMidX = sourceX + deltaX / 2;
@@ -453,6 +454,8 @@ function MarkedEdge(props: EdgeProps) {
     nodes,
     props.source,
     props.target,
+    props.id,
+    edges,
   ]);
 
   // 处理拖拽开始
@@ -473,10 +476,6 @@ function MarkedEdge(props: EdgeProps) {
 
     const handleMouseMove = (e: MouseEvent) => {
       if (!dragStartRef.current) return;
-
-      // 计算屏幕坐标的差值
-      const deltaScreenX = e.clientX - dragStartRef.current.x;
-      const deltaScreenY = e.clientY - dragStartRef.current.y;
 
       // 将屏幕坐标转换为 flow 坐标差值
       // 获取起始点和当前点的 flow 坐标
@@ -518,10 +517,6 @@ function MarkedEdge(props: EdgeProps) {
     e.preventDefault();
     setControlOffset({ x: 0, y: 0 });
   }, []);
-
-  const edge = useFlowStore((state) =>
-    state.edges.find((e) => e.id === props.id),
-  );
 
   // 获取选中状态和路径状态
   const { selectedNodes, selectedEdges, pathMode, pathEdgeIds } = useFlowStore(
@@ -602,6 +597,22 @@ function MarkedEdge(props: EdgeProps) {
     props.targetHandleId,
   ]);
 
+  const debugEdgeState = useDebugOverlayStore(
+    useShallow((state) => ({
+      executed: state.executedEdgeIds.has(props.id),
+      candidate: state.candidateEdgeIds.has(props.id),
+    })),
+  );
+
+  const debugEdgeClass = useMemo(
+    () =>
+      classNames(edgeClass, {
+        [style["debug-edge-executed"]]: debugEdgeState.executed,
+        [style["debug-edge-candidate"]]: debugEdgeState.candidate,
+      }),
+    [edgeClass, debugEdgeState.executed, debugEdgeState.candidate],
+  );
+
   const labelClass = useMemo(
     () =>
       classNames({
@@ -649,7 +660,7 @@ function MarkedEdge(props: EdgeProps) {
 
   return (
     <g style={opacityStyle}>
-      <BaseEdge className={edgeClass} id={props.id} path={edgePath} />
+      <BaseEdge className={debugEdgeClass} id={props.id} path={edgePath} />
       <EdgeLabelRenderer>
         {/* 可拖拽的控制点 */}
         {showEdgeControlPoint && edgePathMode === "bezier" && (

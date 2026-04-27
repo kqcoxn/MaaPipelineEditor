@@ -1,5 +1,6 @@
 import { message } from "antd";
 import type { ReactNode } from "react";
+import { PlayCircleOutlined } from "@ant-design/icons";
 import type { Node } from "@xyflow/react";
 import { NodeTypeEnum, HANDLE_DIRECTION_OPTIONS } from "./constants";
 import type { HandleDirection } from "./constants";
@@ -18,6 +19,12 @@ import {
   deleteNode,
   copyNodeRecoJSON,
 } from "./utils/nodeOperations";
+import { debugProtocolClient } from "../../../services/server";
+import { useDebugModalMemoryStore } from "../../../stores/debugModalMemoryStore";
+import { useDebugRunProfileStore } from "../../../stores/debugRunProfileStore";
+import { useDebugSessionStore } from "../../../stores/debugSessionStore";
+import { useMFWStore } from "../../../stores/mfwStore";
+import { useWSStore } from "../../../stores/wsStore";
 
 /**菜单项类型 */
 export interface NodeContextMenuItem {
@@ -72,6 +79,14 @@ export type NodeContextMenuNode =
   | Node<AnchorNodeDataType, NodeTypeEnum.Anchor>
   | Node<StickerNodeDataType, NodeTypeEnum.Sticker>
   | Node<GroupNodeDataType, NodeTypeEnum.Group>;
+
+type NodeDataWithHandleDirection = {
+  handleDirection?: HandleDirection;
+};
+
+type NodeDataWithColor = {
+  color?: string;
+};
 
 /**复制节点名处理器 */
 function handleCopyNodeName(node: NodeContextMenuNode) {
@@ -131,7 +146,9 @@ function handleSetNodeDirection(
 
 /**获取当前节点的端点位置 */
 function getNodeDirection(node: NodeContextMenuNode): HandleDirection {
-  return (node.data as any).handleDirection || "left-right";
+  return (
+    (node.data as NodeDataWithHandleDirection).handleDirection || "left-right"
+  );
 }
 
 /**解散分组处理器 */
@@ -178,6 +195,50 @@ function handleEditNodeJson(node: NodeContextMenuNode) {
   window.dispatchEvent(event);
 }
 
+function handleRunFromNode(node: NodeContextMenuNode) {
+  if (node.type !== NodeTypeEnum.Pipeline) return;
+
+  const sessionState = useDebugSessionStore.getState();
+  const profileState = useDebugRunProfileStore.getState();
+  const mfwState = useMFWStore.getState();
+
+  sessionState.openModal("nodes");
+  sessionState.selectNode(node.id);
+  useDebugModalMemoryStore.getState().setLastRunMode("run-from-node");
+  useDebugModalMemoryStore.getState().setLastEntryNodeId(node.id);
+
+  const capabilities = sessionState.capabilities;
+  if (!capabilities?.runModes.includes("run-from-node")) {
+    message.warning("当前 LocalBridge 暂不支持从节点运行");
+    return;
+  }
+  if (!useWSStore.getState().connected) {
+    message.error("LocalBridge 未连接");
+    return;
+  }
+  if (!mfwState.controllerId) {
+    message.error("请先连接 MaaFramework controller");
+    return;
+  }
+
+  try {
+    const request = profileState.buildRunRequest(
+      "run-from-node",
+      node.id,
+      sessionState.session?.sessionId,
+    );
+    if (!request.target) {
+      message.error("无法解析节点运行名");
+      return;
+    }
+    profileState.setEntry(request.target);
+    const sent = debugProtocolClient.startRun(request);
+    if (!sent) message.error("发送调试启动请求失败");
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : "生成调试请求失败");
+  }
+}
+
 /**删除分组（先解散子节点再删除）处理器 */
 function handleDeleteGroup(node: NodeContextMenuNode) {
   // 先解散子节点
@@ -207,7 +268,7 @@ export function getNodeContextMenuConfig(
           key: `group-color-${c.key}`,
           label: c.label,
           onClick: (node) => handleSetGroupColor(node, c.key),
-          checked: (node) => (node.data as any).color === c.key,
+          checked: (node) => (node.data as NodeDataWithColor).color === c.key,
         })),
       },
       {
@@ -233,6 +294,22 @@ export function getNodeContextMenuConfig(
   }
 
   const config: NodeContextMenuConfig[] = [
+    {
+      key: "debug-run-from-node",
+      label: "从此节点运行",
+      icon: <PlayCircleOutlined />,
+      onClick: handleRunFromNode,
+      visible: (node) => node.type === NodeTypeEnum.Pipeline,
+      disabled: () => {
+        const capabilities = useDebugSessionStore.getState().capabilities;
+        return !capabilities?.runModes.includes("run-from-node");
+      },
+      disabledTip: "当前 LocalBridge 未暴露 run-from-node 能力",
+    },
+    {
+      type: "divider",
+      key: "divider-debug",
+    },
     // 复制节点名
     {
       key: "copy-node-name",
