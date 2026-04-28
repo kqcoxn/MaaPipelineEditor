@@ -19,27 +19,6 @@ import { registerDebugProtocolListeners } from "../features/debug/registerProtoc
 
 const PROTOCOL_VERSION = globalConfig.protocolVersion;
 
-interface LegacyDebugProtocolShim {
-  getName: () => string;
-  getVersion: () => string;
-  register: (wsClient: LocalWebSocketServer) => void;
-  sendStartDebug: (
-    resourcePaths: string[],
-    entry: string,
-    controllerId: string,
-    breakpoints: string[],
-    agentIdentifier?: string,
-    pipelineOverride?: Record<string, unknown>,
-  ) => boolean;
-  sendStopDebug: (sessionId: string) => boolean;
-}
-
-const warnLegacyDebugRemoved = (method: string) => {
-  console.warn(
-    `[DebugProtocol] ${method} is disabled. Use debug-vNext routes instead.`,
-  );
-};
-
 export class LocalWebSocketServer {
   private ws: WebSocket | null = null;
   private url: string;
@@ -360,19 +339,6 @@ export const fileProtocol = new FileProtocol();
 export const mfwProtocol = new MFWProtocol();
 export const errorProtocol = new ErrorProtocol();
 export const configProtocol = new ConfigProtocol();
-export const debugProtocol: LegacyDebugProtocolShim = {
-  getName: () => "LegacyDebugProtocolShim",
-  getVersion: () => "0.0.0",
-  register: () => warnLegacyDebugRemoved("register"),
-  sendStartDebug: () => {
-    warnLegacyDebugRemoved("sendStartDebug");
-    return false;
-  },
-  sendStopDebug: () => {
-    warnLegacyDebugRemoved("sendStopDebug");
-    return false;
-  },
-};
 export const debugProtocolClient = new DebugProtocolClient();
 export const resourceProtocol = new ResourceProtocol();
 export const loggerProtocol = new LoggerProtocol();
@@ -395,7 +361,7 @@ export function initializeWebSocket() {
   // 注册 ConfigProtocol
   configProtocol.register(localServer);
 
-  // 注册 vNext DebugProtocolClient；旧 debugProtocol 仅保留轻量占位导出以便旧文件编译
+  // 注册 debug-vNext 协议客户端
   debugProtocolClient.register(localServer);
   registerDebugProtocolListeners(debugProtocolClient);
 

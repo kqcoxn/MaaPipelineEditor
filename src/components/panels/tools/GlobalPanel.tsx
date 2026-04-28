@@ -40,7 +40,9 @@ function GlobalPanel() {
   const getHistoryState = useFlowStore((state) => state.getHistoryState);
   const pathMode = useFlowStore((state) => state.pathMode);
   const openDebugModal = useDebugSessionStore((state) => state.openModal);
-  const lastDebugPanel = useDebugModalMemoryStore((state) => state.lastPanel);
+  const lastDebugModalPanel = useDebugModalMemoryStore(
+    (state) => state.lastPanel,
+  );
 
   // 历史状态
   const [, forceUpdate] = useState({});
@@ -88,7 +90,7 @@ function GlobalPanel() {
         iconName: "icon-a-copyfubenfuzhi",
         iconSize: 25,
         disabled: debouncedSelectedNodes.length === 0,
-        onClick: () => copy(debouncedSelectedNodes as any, []),
+        onClick: () => copy(debouncedSelectedNodes, []),
         onDisabledClick: () => message.error("未选中节点"),
       },
       {
@@ -243,7 +245,7 @@ function GlobalPanel() {
               className={style.icon}
               name="icon-tiaoshi"
               size={24}
-              onClick={() => openDebugModal(lastDebugPanel)}
+              onClick={() => openDebugModal(lastDebugModalPanel)}
             />
           </Tooltip>
         </li>

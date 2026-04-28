@@ -25,16 +25,12 @@ export type ExportAction =
   | "export-config";
 
 interface ToolbarState {
-  // 识别记录面板显示状态
-  recognitionPanelVisible: boolean;
   // 默认导入操作
   defaultImportAction: ImportAction;
   // 默认导出操作
   defaultExportAction: ExportAction;
 
   // Actions
-  setRecognitionPanelVisible: (visible: boolean) => void;
-  toggleRecognitionPanel: () => void;
   setDefaultImportAction: (action: ImportAction) => void;
   setDefaultExportAction: (action: ExportAction) => void;
 }
@@ -83,18 +79,8 @@ function isValidExportAction(action: string): boolean {
 }
 
 export const useToolbarStore = create<ToolbarState>((set) => ({
-  recognitionPanelVisible: false,
   defaultImportAction: getDefaultImportAction(),
   defaultExportAction: getDefaultExportAction(),
-
-  setRecognitionPanelVisible: (visible: boolean) => {
-    set({ recognitionPanelVisible: visible });
-  },
-
-  toggleRecognitionPanel: () =>
-    set((state) => ({
-      recognitionPanelVisible: !state.recognitionPanelVisible,
-    })),
 
   setDefaultImportAction: (action: ImportAction) => {
     localStorage.setItem("mpe_default_import_action", action);

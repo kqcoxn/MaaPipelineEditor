@@ -1124,3 +1124,28 @@ type DebugCapabilityManifest = {
 - 长期旧调试源码物理清理和仓库级 lint 基线治理。
 - replay/record controller 真实运行能力等待 MaaFW Go binding 或项目依赖提供可维护的官方 API；当前能力保持不可用门控。
 - PI i18n label/display resolver 未在 P6 扩展，当前保留 raw label/key。
+
+### 2026-04-28 P7：旧调试代码清理与闭环总结
+
+已完成：
+
+- 物理删除旧前端调试孤岛：`debugStore.tsx`、旧 `DebugProtocol.ts`、旧 `DebugPanel`、`DebugInfoTab`、旧识别记录/详情组件族和旧 `DebugPanel.module.less`。
+- `src/services/server.ts` 移除 `LegacyDebugProtocolShim` 和旧 `debugProtocol` 导出；前端主链路只保留 `DebugProtocolClient`、`DebugModal`、debug-vNext stores、trace/artifact/diagnostic/profile/replay/batch 能力。
+- `toolbarStore` 移除仅供旧识别记录面板使用的 `recognitionPanelVisible`、`setRecognitionPanelVisible`、`toggleRecognitionPanel`。
+- 物理删除旧 LocalBridge 调试业务：`LocalBridge/internal/protocol/debug/handler_v2.go`、`LocalBridge/internal/mfw/debug_service_v2.go` 和仅服务旧 `DebugServiceV2` 的 `event_sink.go`。
+- 保留 `LocalBridge/internal/debug/**` 作为唯一调试后端主包；`cmd/lb/main.go` 继续注册 debug-vNext handler，旧 `/mpe/debug/start`、`/mpe/debug/stop` 仅由 vNext handler 明确拒绝为 `debug_legacy_route_removed`。
+- P7 未升级 debug-vNext 协议版本，当前仍为 `0.15.0`；本轮没有改变公共 wire 契约。
+
+验证记录：
+
+- `git grep` 静态检查：主源码中不再存在 `useDebugStore`、旧 `DebugProtocol.ts`、旧 `DebugPanel`/`RecognitionPanel`/`RecognitionHistoryPanel` 组件引用、`NewDebugHandlerV2` 或 `DebugServiceV2` 引用；允许设计文档历史记录和 vNext handler 的旧路由拒绝分支。
+- `yarn eslint src/services/server.ts src/components/panels/tools/GlobalPanel.tsx src/stores/toolbarStore.ts src/components/debug/DebugModal.tsx src/features/debug/types.ts src/features/debug/traceReducer.ts src/features/debug/registerProtocolListeners.ts src/features/debug/contributions/p3.ts src/stores/debugSessionStore.ts src/stores/debugTraceStore.ts src/stores/debugArtifactStore.ts src/stores/debugDiagnosticsStore.ts src/stores/debugOverlayStore.ts src/stores/debugRunProfileStore.ts src/stores/debugModalMemoryStore.ts src/services/protocols/DebugProtocolClient.ts`：通过。
+- `yarn build`：通过；仅保留既有 Vite dynamic import/chunk size 警告。
+- `go test ./...`（工作目录 `LocalBridge`）：通过。
+
+闭环结论：
+
+- 调试主链路已经从旧 `debugStore + DebugProtocol + DebugPanel + DebugServiceV2` 切换为 debug-vNext 的 `DebugModal + DebugProtocolClient + trace/artifact/session/runtime` 架构。
+- P7 的 lint 口径按“调试闭环优先”执行；全仓 `yarn lint` 历史基线治理未并入本轮。
+- replay/record controller 真实运行能力仍等待 MaaFW Go binding 或项目依赖提供官方可维护 API；当前 `unavailableControllers` 门控是预期闭环状态，不属于 P7 未完成项。
+- PI i18n label/display resolver 仍保留 raw label/key，作为后续体验增强项，不阻塞本轮调试架构闭环。
