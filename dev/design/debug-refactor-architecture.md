@@ -1064,18 +1064,35 @@ type DebugCapabilityManifest = {
 - replay/record controller、trace replay 和性能分析不并入 P5，继续保留到 P6。
 - 长期旧调试源码物理清理和仓库级 lint 基线治理继续保留到 P7。
 
-### 2026-04-28 P5：补齐 P4 顺延项（计划）
+### 2026-04-28 P5：补齐 P4 顺延项
 
-计划目标：
+已完成：
 
-- 补齐 live screenshot streaming 链路，包括启动/停止入口、节流策略、artifact/trace 接线和 session 销毁清理。
-- 完善 interface import，对 PI option/preset 做更完整的 profile 映射，并补齐导入结果与运行时 override 的合并规则。
-- 把节点详情从“静态配置查看”补齐到“session 内运行细节回放”，覆盖 recognition、action、next-list 和 wait-freezes。
-- 明确 agent 子进程托管方案；若仍不托管，也要在 capability/diagnostic/UI 中把降级边界表达清楚。
+- 前后端 debug-vNext 协议版本同步升级到 `0.14.0`；新增 `/mpe/debug/screenshot/start`、`/mpe/debug/screenshot/stop` 合约和客户端方法。
+- `ScreenshotService` 从一次性截图扩展为 session-scoped streaming coordinator，支持 `intervalMs`、`force`、`maxFrames`、重复 start 幂等返回、主动 stop、run stop 清理和 session destroy 清理；默认间隔 `1000ms`，最低接受 `250ms`。
+- live screenshot 每帧写入 artifact store，并以 `screenshot` trace event 的 `screenshotRef` 暴露；事件主链路不内联图片 base64。
+- interface import 扩展到 PI v2 `import`、`global_option`、`option`、`preset`、task/resource/controller option 引用、controller/resource/task 约束和 task `pipeline_override`。
+- PI 导入结果现在返回 controller/resource/task/preset/option 元数据、默认 selections 和生成的 overrides；override 合并顺序按 `global_option` -> `resource.option` -> `controller.option` -> `task.pipeline_override` -> `task.option` 落地，并在写入 `DebugRunRequest.overrides` 时位于 graph snapshot overrides 之后、用户显式 debug overrides 之前。
+- option 类型覆盖 `select`、`switch`、`checkbox`、`input`；checkbox 按 PI case 定义顺序合并，受 controller/resource 约束的 inactive options 会在合并前过滤。
+- 节点详情改为当前 session replay view，按 node/run 汇总 recognition、action、next-list、wait-freezes、detail artifact、screenshot artifact、latest status 和 seq range，同时保留静态节点配置。
+- 节点详情、图像面板和 artifact 视图补齐 artifact load 入口，recognition/action/detail/image refs 可直接打开。
+- `DebugRunProfile.agents` 支持 `launchMode: "manual" | "managed"`、`childExec`、`childArgs`、`workingDirectory` 和 `env`；导入和新建 agent 默认 manual。
+- manual agent 保持现有连接语义，并在缺少 identifier/TCP 时发出明确 diagnostic；managed agent 会启动 PI `child_exec` / `child_args`、注入 PI v2.5 `PI_*` 环境变量、在 identifier 缺失时生成稳定 identifier、等待 `AgentClient.Connect`，并在 runtime/session 清理时终止子进程。
+- capability manifest 新增 `managed-agent`、`agent-managed`、`screenshot/live`、`live` 等 P5 能力/诊断/截图源声明。
+- 前端 `DebugModal` 更新到 P5 操作面：live screenshot 启停、间隔/force 设置、PI 导入选择与 option/preset 摘要、agent manual/managed 编辑和节点 replay 详情。
 
-验收重点：
+验证记录：
 
-- `DebugModal` 可以稳定查看 live screenshot，停止 run 或关闭 session 后不残留截图推流状态。
-- interface import 生成的 profile 不再只依赖默认 task/resource/controller，PI 导入结果和用户已有 profile 字段的合并规则可预测。
-- 节点详情面板能够基于当前 session 回看最近一次运行细节，而不是只展示编辑态节点字段。
-- 无 identifier 的 agent 不再是静默降级；要么可托管启动，要么在导入和运行前给出明确诊断。
+- `go test ./...`（工作目录 `LocalBridge`）：通过。
+- `yarn eslint src/features/debug/types.ts src/features/debug/traceReducer.ts src/features/debug/registerProtocolListeners.ts src/stores/debugSessionStore.ts src/stores/debugRunProfileStore.ts src/services/protocols/DebugProtocolClient.ts src/components/debug/DebugModal.tsx src/features/debug/contributions/p3.ts`：通过。
+- `yarn build`：通过；仅保留既有 Vite dynamic import/chunk size 警告。
+- `git diff -- src LocalBridge | Select-String -Pattern '^\\+.*(ToolPanel\\.Debug|debugProtocol\\.register|NewDebugHandlerV2|sendStartDebug\\(|/mpe/debug/start|useDebugStore|debugStore)'`：无新增旧调试入口。
+- `Select-String` 限定当前 debug 源码检查 `base64` / `screenshotRef`：base64 仅存在于 artifact store 编码和前端 artifact 预览；P5 live screenshot event 仅写入 `ScreenshotRef`。
+- `Select-String` 限定 `.go` / `.ts` / `.tsx` / `.md` / `.json` 源文件检查 `0.13.0|P4|debug_not_implemented`：当前调试主链路未保留旧协议/未实现占位；命中项为历史设计记录、更新日志、Bezier 控制点变量名和历史 P4 说明。
+
+遗留到 P6/P7：
+
+- replay/record controller、trace replay 和性能分析继续保留到 P6。
+- PI i18n label/display resolver 未在 P5 扩展，当前保留 raw label/key。
+- 更完整的长历史调试记录持久化不进入 P5；当前 replay 仍限定在内存 session 内。
+- 长期旧调试源码物理清理和仓库级 lint 基线治理继续保留到 P7。

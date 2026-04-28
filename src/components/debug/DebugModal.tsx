@@ -232,6 +232,7 @@ export function DebugModal() {
     capabilityError,
     session,
     activeRun,
+    screenshotStream,
     lastError,
     selectedNodeId,
     closeModal,
@@ -249,6 +250,7 @@ export function DebugModal() {
       capabilityError: state.capabilityError,
       session: state.session,
       activeRun: state.activeRun,
+      screenshotStream: state.screenshotStream,
       lastError: state.lastError,
       selectedNodeId: state.selectedNodeId,
       closeModal: state.closeModal,
@@ -355,6 +357,9 @@ export function DebugModal() {
         others?: Record<string, unknown>;
       }
     | undefined;
+  const selectedNodeReplays = selectedNodeId
+    ? summary.nodeReplays[selectedNodeId] ?? []
+    : [];
 
   const startRun = (
     mode: DebugRunMode,
@@ -475,6 +480,41 @@ export function DebugModal() {
       force: true,
     });
     if (!sent) message.error("发送截图请求失败");
+  };
+
+  const startScreenshotStream = () => {
+    if (!connected) {
+      message.error("LocalBridge 未连接");
+      return;
+    }
+    if (!mfwState.controllerId) {
+      message.error("请先连接 MaaFramework controller");
+      return;
+    }
+    const sent = debugProtocolClient.startScreenshotStream({
+      sessionId: session?.sessionId,
+      runId: activeRun?.runId,
+      controllerId: mfwState.controllerId,
+      ...profileState.screenshotStreamConfig,
+      intervalMs: Math.max(
+        250,
+        profileState.screenshotStreamConfig.intervalMs || 1000,
+      ),
+    });
+    if (!sent) message.error("发送截图推流启动请求失败");
+  };
+
+  const stopScreenshotStream = () => {
+    if (!session?.sessionId) {
+      message.warning("当前没有调试 session");
+      return;
+    }
+    const sent = debugProtocolClient.stopScreenshotStream({
+      sessionId: session.sessionId,
+      runId: activeRun?.runId,
+      reason: "user_stop",
+    });
+    if (!sent) message.error("发送截图推流停止请求失败");
   };
 
   const importInterface = () => {
@@ -645,15 +685,38 @@ export function DebugModal() {
             </Button>
           </Space.Compact>
           {profileState.interfaceImport && (
-            <Alert
-              type="success"
-              showIcon
-              message="interface 已导入"
-              description={
-                profileState.interfaceImport.entryName ||
-                profileState.interfaceImport.profile.name
-              }
-            />
+            <Space direction="vertical" style={{ width: "100%" }}>
+              <Alert
+                type="success"
+                showIcon
+                message="interface 已导入"
+                description={
+                  profileState.interfaceImport.entryName ||
+                  profileState.interfaceImport.profile.name
+                }
+              />
+              <Space wrap>
+                <Tag>
+                  controller{" "}
+                  {profileState.interfaceSelections?.controllerName ?? "-"}
+                </Tag>
+                <Tag>
+                  resource {profileState.interfaceSelections?.resourceName ?? "-"}
+                </Tag>
+                <Tag>task {profileState.interfaceSelections?.taskName ?? "-"}</Tag>
+                <Tag>overrides {profileState.interfaceImport.overrides?.length ?? 0}</Tag>
+              </Space>
+              <Space wrap>
+                {(profileState.interfaceImport.options ?? []).slice(0, 8).map(
+                  (option) => (
+                    <Tag key={option.name}>
+                      {option.label || option.name}:{" "}
+                      {JSON.stringify(option.defaultValue)}
+                    </Tag>
+                  ),
+                )}
+              </Space>
+            </Space>
           )}
           <Select
             value={profileState.profile.savePolicy}
@@ -764,13 +827,61 @@ export function DebugModal() {
           >
             截图
           </Button>
+          <Button
+            size="small"
+            icon={<CaretRightOutlined />}
+            onClick={startScreenshotStream}
+            disabled={!mfwState.controllerId || screenshotStream?.active}
+          >
+            开始推流
+          </Button>
+          <Button
+            size="small"
+            danger
+            icon={<StopOutlined />}
+            onClick={stopScreenshotStream}
+            disabled={!screenshotStream?.active}
+          >
+            停止推流
+          </Button>
+        </Space>
+      </DebugSection>
+      <DebugSection title="Live Screenshot">
+        <Space wrap>
+          <InputNumber
+            min={250}
+            step={250}
+            value={profileState.screenshotStreamConfig.intervalMs}
+            addonBefore="interval ms"
+            onChange={(intervalMs) =>
+              profileState.setScreenshotStreamConfig({
+                ...profileState.screenshotStreamConfig,
+                intervalMs: Math.max(250, intervalMs ?? 1000),
+              })
+            }
+          />
+          <Checkbox
+            checked={profileState.screenshotStreamConfig.force}
+            onChange={(event) =>
+              profileState.setScreenshotStreamConfig({
+                ...profileState.screenshotStreamConfig,
+                force: event.target.checked,
+              })
+            }
+          >
+            force screencap
+          </Checkbox>
+          <Tag color={screenshotStream?.active ? "green" : "default"}>
+            {screenshotStream?.active ? "streaming" : "stopped"}
+          </Tag>
+          <Tag>frames {screenshotStream?.frameCount ?? 0}</Tag>
         </Space>
       </DebugSection>
       <Alert
         type="info"
         showIcon
-        message="P4 使用已连接 controller"
-        description="启动请求会自动把 mfwStore.controllerId 写入 profile.controller.options.controllerId；固定图识别不依赖 live controller。"
+        message="P5 使用已连接 controller"
+        description="启动请求会自动把 mfwStore.controllerId 写入 profile.controller.options.controllerId；live screenshot 以 artifact ref 写入 trace。"
       />
     </Space>
   );
@@ -794,6 +905,7 @@ export function DebugModal() {
           id: `agent-${agents.length + 1}`,
           enabled: false,
           transport: "identifier",
+          launchMode: "manual",
           identifier: "",
           required: true,
         },
@@ -838,6 +950,15 @@ export function DebugModal() {
                     }
                     addonBefore="ID"
                     style={{ width: 220 }}
+                  />
+                  <Select
+                    value={agent.launchMode ?? "manual"}
+                    style={{ width: 140 }}
+                    onChange={(launchMode) => updateAgent(index, { launchMode })}
+                    options={[
+                      { value: "manual", label: "manual" },
+                      { value: "managed", label: "managed" },
+                    ]}
                   />
                   <Select
                     value={agent.transport}
@@ -886,6 +1007,45 @@ export function DebugModal() {
                     required
                   </Checkbox>
                 </Space>
+                {agent.launchMode === "managed" && (
+                  <Space direction="vertical" style={{ width: "100%" }}>
+                    <Space wrap>
+                      <Input
+                        value={agent.childExec}
+                        onChange={(event) =>
+                          updateAgent(index, { childExec: event.target.value })
+                        }
+                        addonBefore="child_exec"
+                        style={{ width: 360 }}
+                      />
+                      <Input
+                        value={(agent.childArgs ?? []).join(" ")}
+                        onChange={(event) =>
+                          updateAgent(index, {
+                            childArgs: event.target.value
+                              .split(" ")
+                              .map((item) => item.trim())
+                              .filter(Boolean),
+                          })
+                        }
+                        addonBefore="child_args"
+                        style={{ width: 420 }}
+                      />
+                    </Space>
+                    <Input
+                      value={agent.workingDirectory}
+                      onChange={(event) =>
+                        updateAgent(index, {
+                          workingDirectory: event.target.value,
+                        })
+                      }
+                      addonBefore="cwd"
+                    />
+                    <Text type="secondary">
+                      managed 模式会由 LocalBridge 启动子进程并注入 PI_* / MAA_AGENT_* 环境变量；manual 模式只连接外部已启动 agent。
+                    </Text>
+                  </Space>
+                )}
               </Space>
             </List.Item>
           )}
@@ -914,7 +1074,10 @@ export function DebugModal() {
   const renderNodes = () => (
     <Space direction="vertical" size={14} style={{ width: "100%" }}>
       {selectedNodeDetail && (
-        <DebugSection title="目标节点详情">
+        <section>
+          <Title level={5} style={{ marginTop: 0 }}>
+            目标节点详情
+          </Title>
           <Space direction="vertical" size={8} style={{ width: "100%" }}>
             <Space wrap>
               <Tag>{selectedNodeDetail.label ?? selectedNodeId}</Tag>
@@ -926,34 +1089,78 @@ export function DebugModal() {
                   ).length
                 }
               </Tag>
+              <Tag>runs {selectedNodeReplays.length}</Tag>
             </Space>
-            <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>
-              {JSON.stringify(
-                {
-                  recognition: selectedNodeDetail.recognition,
-                  action: selectedNodeDetail.action,
-                  next: selectedNodeDetail.others?.next,
-                  on_error: selectedNodeDetail.others?.on_error,
-                  waitFreezes: {
-                    pre: selectedNodeDetail.others?.pre_wait_freezes,
-                    post: selectedNodeDetail.others?.post_wait_freezes,
-                  },
-                  recentArtifacts: events
-                    .filter((event) => event.node?.nodeId === selectedNodeId)
-                    .slice(-5)
-                    .map((event) => ({
-                      seq: event.seq,
-                      kind: event.kind,
-                      detailRef: event.detailRef,
-                      screenshotRef: event.screenshotRef,
-                    })),
-                },
-                null,
-                2,
+            <DebugSection title="Session 回放">
+              {selectedNodeReplays.length === 0 ? (
+                <Empty description="当前 session 中暂无该节点运行事件" />
+              ) : (
+                <List
+                  size="small"
+                  dataSource={selectedNodeReplays}
+                  renderItem={(replay) => (
+                    <List.Item>
+                      <Space direction="vertical" style={{ width: "100%" }}>
+                        <Space wrap>
+                          <Tag color={replay.status === "failed" ? "red" : "blue"}>
+                            {replay.status}
+                          </Tag>
+                          <Tag>run {replay.runId || "-"}</Tag>
+                          <Tag>
+                            seq {replay.firstSeq}-{replay.lastSeq}
+                          </Tag>
+                          <Tag>recognition {replay.recognitionEvents.length}</Tag>
+                          <Tag>action {replay.actionEvents.length}</Tag>
+                          <Tag>next-list {replay.nextListEvents.length}</Tag>
+                          <Tag>wait-freezes {replay.waitFreezesEvents.length}</Tag>
+                        </Space>
+                        <Space wrap>
+                          {replay.detailRefs.map((ref) => (
+                            <Button
+                              key={ref}
+                              size="small"
+                              onClick={() => requestArtifact(ref)}
+                            >
+                              detail #{ref.slice(0, 8)}
+                            </Button>
+                          ))}
+                          {replay.screenshotRefs.map((ref) => (
+                            <Button
+                              key={ref}
+                              size="small"
+                              icon={<PictureOutlined />}
+                              onClick={() => requestArtifact(ref)}
+                            >
+                              image #{ref.slice(0, 8)}
+                            </Button>
+                          ))}
+                        </Space>
+                      </Space>
+                    </List.Item>
+                  )}
+                />
               )}
-            </pre>
+            </DebugSection>
+            <DebugSection title="静态节点配置">
+              <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>
+                {JSON.stringify(
+                  {
+                    recognition: selectedNodeDetail.recognition,
+                    action: selectedNodeDetail.action,
+                    next: selectedNodeDetail.others?.next,
+                    on_error: selectedNodeDetail.others?.on_error,
+                    waitFreezes: {
+                      pre: selectedNodeDetail.others?.pre_wait_freezes,
+                      post: selectedNodeDetail.others?.post_wait_freezes,
+                    },
+                  },
+                  null,
+                  2,
+                )}
+              </pre>
+            </DebugSection>
           </Space>
-        </DebugSection>
+        </section>
       )}
       <List
       bordered
@@ -1061,6 +1268,30 @@ export function DebugModal() {
     const entries = Object.values(artifacts);
     return (
       <Space direction="vertical" size={14} style={{ width: "100%" }}>
+        <DebugSection title="Live Screenshot">
+          <Space wrap>
+            <Button
+              icon={<CaretRightOutlined />}
+              onClick={startScreenshotStream}
+              disabled={!mfwState.controllerId || screenshotStream?.active}
+            >
+              开始推流
+            </Button>
+            <Button
+              danger
+              icon={<StopOutlined />}
+              onClick={stopScreenshotStream}
+              disabled={!screenshotStream?.active}
+            >
+              停止推流
+            </Button>
+            <Tag color={screenshotStream?.active ? "green" : "default"}>
+              {screenshotStream?.active ? "streaming" : "stopped"}
+            </Tag>
+            <Tag>interval {profileState.screenshotStreamConfig.intervalMs}ms</Tag>
+            <Tag>frames {screenshotStream?.frameCount ?? 0}</Tag>
+          </Space>
+        </DebugSection>
         <DebugSection title="固定图输入">
           <Space direction="vertical" size={10} style={{ width: "100%" }}>
             <Space wrap>
@@ -1286,10 +1517,10 @@ export function DebugModal() {
           <Space direction="vertical" size={16} style={{ width: "100%" }}>
             <div>
               <Title level={4} style={{ margin: 0 }}>
-                调试系统 P4
+                调试系统 P5
               </Title>
               <Text type="secondary">
-                节点级运行、固定图识别、截图、interface 导入、resource 诊断与 agent 连接诊断已接入。
+                Live screenshot、PI option/preset 导入、节点回放与 agent 手动/托管模式已接入。
               </Text>
             </div>
             {renderPanel()}

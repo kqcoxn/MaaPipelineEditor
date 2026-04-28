@@ -73,6 +73,10 @@ func (h *Handler) Handle(msg models.Message, conn *server.Connection) *models.Me
 		h.handleArtifactGet(conn, msg)
 	case "/mpe/debug/screenshot/capture":
 		h.handleScreenshotCapture(conn, msg)
+	case "/mpe/debug/screenshot/start":
+		h.handleScreenshotStreamStart(conn, msg)
+	case "/mpe/debug/screenshot/stop":
+		h.handleScreenshotStreamStop(conn, msg)
 	case "/mpe/debug/interface/import":
 		h.handleInterfaceImport(conn, msg)
 	case "/mpe/debug/start", "/mpe/debug/stop":
@@ -110,6 +114,7 @@ func (h *Handler) handleDestroySession(conn *server.Connection, msg models.Messa
 		return
 	}
 
+	h.screenshots.StopSession(sessionID)
 	h.runner.DisposeSession(sessionID)
 	if err := h.sessions.Destroy(sessionID); err != nil {
 		h.sendError(conn, "debug_session_not_found", err.Error(), nil)
@@ -206,6 +211,7 @@ func (h *Handler) handleRunStop(conn *server.Connection, msg models.Message) {
 		return
 	}
 
+	h.screenshots.StopRunBound(req.SessionID, req.RunID, "run_stop")
 	if err := h.runner.Stop(req.SessionID, req.RunID, req.Reason, h.eventSender(conn), h.snapshotSender(conn)); err != nil {
 		h.sendError(conn, "debug_run_stop_failed", err.Error(), map[string]string{
 			"sessionId": req.SessionID,
@@ -255,7 +261,7 @@ func (h *Handler) handleArtifactGet(conn *server.Connection, msg models.Message)
 
 func (h *Handler) handleScreenshotCapture(conn *server.Connection, msg models.Message) {
 	if !h.service.IsInitialized() {
-		h.sendError(conn, "debug_not_initialized", "MaaFramework 鏈垵濮嬪寲锛岃鍏堝垵濮嬪寲鏈嶅姟", nil)
+		h.sendError(conn, "debug_not_initialized", "MaaFramework 未初始化，请先初始化服务", nil)
 		return
 	}
 
@@ -298,6 +304,68 @@ func (h *Handler) handleScreenshotCapture(conn *server.Connection, msg models.Me
 			"height":       bounds.Dy(),
 		},
 	})
+}
+
+func (h *Handler) handleScreenshotStreamStart(conn *server.Connection, msg models.Message) {
+	if !h.service.IsInitialized() {
+		h.sendError(conn, "debug_not_initialized", "MaaFramework 未初始化，请先初始化服务", nil)
+		return
+	}
+
+	req, err := decodeData[protocol.ScreenshotStreamStartRequest](msg)
+	if err != nil {
+		h.sendError(conn, "debug_invalid_request", err.Error(), nil)
+		return
+	}
+
+	sessionID := strings.TrimSpace(req.SessionID)
+	if sessionID == "" {
+		snapshot := h.sessions.Create(h.capabilities)
+		sessionID = snapshot.SessionID
+		req.SessionID = sessionID
+		h.send(conn, "/lte/debug/session_created", snapshot)
+	} else if _, err := h.sessions.Snapshot(sessionID); err != nil {
+		h.sendError(conn, "debug_session_not_found", err.Error(), nil)
+		return
+	}
+	req.ControllerID = strings.TrimSpace(req.ControllerID)
+	req.RunID = strings.TrimSpace(req.RunID)
+
+	status, err := h.screenshots.Start(req, func(event protocol.Event) {
+		h.emitEvent(conn, event)
+	})
+	if err != nil {
+		h.sendError(conn, "debug_screenshot_stream_failed", err.Error(), map[string]interface{}{
+			"sessionId":    sessionID,
+			"controllerId": req.ControllerID,
+		})
+		return
+	}
+	h.send(conn, "/lte/debug/screenshot_stream_started", status)
+}
+
+func (h *Handler) handleScreenshotStreamStop(conn *server.Connection, msg models.Message) {
+	req, err := decodeData[protocol.ScreenshotStreamStopRequest](msg)
+	if err != nil {
+		h.sendError(conn, "debug_invalid_request", err.Error(), nil)
+		return
+	}
+	req.SessionID = strings.TrimSpace(req.SessionID)
+	if req.SessionID == "" {
+		h.sendError(conn, "debug_invalid_request", "缺少必需参数: sessionId", nil)
+		return
+	}
+	if _, err := h.sessions.Snapshot(req.SessionID); err != nil {
+		h.sendError(conn, "debug_session_not_found", err.Error(), nil)
+		return
+	}
+
+	reason := strings.TrimSpace(req.Reason)
+	if reason == "" {
+		reason = "user_stop"
+	}
+	status, _ := h.screenshots.Stop(req.SessionID, reason)
+	h.send(conn, "/lte/debug/screenshot_stream_stopped", status)
 }
 
 func (h *Handler) handleInterfaceImport(conn *server.Connection, msg models.Message) {

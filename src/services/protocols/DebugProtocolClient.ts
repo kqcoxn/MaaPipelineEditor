@@ -11,6 +11,9 @@ import type {
   DebugProtocolError,
   DebugRunRequest,
   DebugScreenshotCaptureRequest,
+  DebugScreenshotStreamStartRequest,
+  DebugScreenshotStreamStatus,
+  DebugScreenshotStreamStopRequest,
   DebugRunStopRequested,
   DebugRunStopRequest,
   DebugSessionSnapshot,
@@ -38,6 +41,12 @@ export class DebugProtocolClient extends BaseProtocol {
   private readonly artifactListeners = new Set<Listener<DebugArtifactPayload>>();
   private readonly interfaceImportListeners = new Set<
     Listener<DebugInterfaceImportResult>
+  >();
+  private readonly screenshotStreamStartedListeners = new Set<
+    Listener<DebugScreenshotStreamStatus>
+  >();
+  private readonly screenshotStreamStoppedListeners = new Set<
+    Listener<DebugScreenshotStreamStatus>
   >();
   private readonly errorListeners = new Set<Listener<DebugProtocolError>>();
 
@@ -77,6 +86,12 @@ export class DebugProtocolClient extends BaseProtocol {
     );
     this.wsClient.registerRoute("/lte/debug/interface_imported", (data) =>
       this.handleInterfaceImported(data),
+    );
+    this.wsClient.registerRoute("/lte/debug/screenshot_stream_started", (data) =>
+      this.handleScreenshotStreamStarted(data),
+    );
+    this.wsClient.registerRoute("/lte/debug/screenshot_stream_stopped", (data) =>
+      this.handleScreenshotStreamStopped(data),
     );
     this.wsClient.registerRoute("/lte/debug/error", (data) =>
       this.handleError(data),
@@ -120,6 +135,14 @@ export class DebugProtocolClient extends BaseProtocol {
 
   captureScreenshot(request: DebugScreenshotCaptureRequest): boolean {
     return this.send("/mpe/debug/screenshot/capture", request);
+  }
+
+  startScreenshotStream(request: DebugScreenshotStreamStartRequest): boolean {
+    return this.send("/mpe/debug/screenshot/start", request);
+  }
+
+  stopScreenshotStream(request: DebugScreenshotStreamStopRequest): boolean {
+    return this.send("/mpe/debug/screenshot/stop", request);
   }
 
   importInterface(request: DebugInterfaceImportRequest): boolean {
@@ -171,6 +194,20 @@ export class DebugProtocolClient extends BaseProtocol {
   ): () => void {
     this.interfaceImportListeners.add(listener);
     return () => this.interfaceImportListeners.delete(listener);
+  }
+
+  onScreenshotStreamStarted(
+    listener: Listener<DebugScreenshotStreamStatus>,
+  ): () => void {
+    this.screenshotStreamStartedListeners.add(listener);
+    return () => this.screenshotStreamStartedListeners.delete(listener);
+  }
+
+  onScreenshotStreamStopped(
+    listener: Listener<DebugScreenshotStreamStatus>,
+  ): () => void {
+    this.screenshotStreamStoppedListeners.add(listener);
+    return () => this.screenshotStreamStoppedListeners.delete(listener);
   }
 
   onError(listener: Listener<DebugProtocolError>): () => void {
@@ -236,6 +273,20 @@ export class DebugProtocolClient extends BaseProtocol {
   private handleInterfaceImported(data: unknown): void {
     const result = data as DebugInterfaceImportResult;
     this.interfaceImportListeners.forEach((listener) => listener(result));
+  }
+
+  private handleScreenshotStreamStarted(data: unknown): void {
+    const status = data as DebugScreenshotStreamStatus;
+    this.screenshotStreamStartedListeners.forEach((listener) =>
+      listener(status),
+    );
+  }
+
+  private handleScreenshotStreamStopped(data: unknown): void {
+    const status = data as DebugScreenshotStreamStatus;
+    this.screenshotStreamStoppedListeners.forEach((listener) =>
+      listener(status),
+    );
   }
 
   private handleError(data: unknown): void {

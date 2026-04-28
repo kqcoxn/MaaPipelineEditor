@@ -34,6 +34,26 @@ export interface DebugTraceSummary {
   artifacts: DebugArtifactRef[];
   lastEvent?: DebugEvent;
   nodeStates: Record<string, DebugNodeRunState>;
+  nodeReplays: Record<string, DebugNodeReplay[]>;
+}
+
+export interface DebugNodeReplay {
+  nodeId: string;
+  runtimeName: string;
+  fileId?: string;
+  label?: string;
+  runId: string;
+  runMode?: DebugRunMode;
+  status: DebugNodeRunState["status"];
+  firstSeq: number;
+  lastSeq: number;
+  events: DebugEvent[];
+  recognitionEvents: DebugEvent[];
+  actionEvents: DebugEvent[];
+  nextListEvents: DebugEvent[];
+  waitFreezesEvents: DebugEvent[];
+  detailRefs: string[];
+  screenshotRefs: string[];
 }
 
 export interface DebugTraceStateSnapshot {
@@ -53,6 +73,7 @@ function defaultSummary(): DebugTraceSummary {
     diagnostics: [],
     artifacts: [],
     nodeStates: {},
+    nodeReplays: {},
   };
 }
 
@@ -144,6 +165,7 @@ export function reduceDebugTrace(
   const diagnostics: DebugDiagnostic[] = [];
   const artifactsById = new Map<string, DebugArtifactRef>();
   const nodeStates: Record<string, DebugNodeRunState> = {};
+  const nodeReplayIndex = new Map<string, DebugNodeReplay>();
 
   let sessionId: string | undefined;
   let runId: string | undefined;
@@ -183,6 +205,30 @@ export function reduceDebugTrace(
 
       if (nodeStatus === "succeeded") addUnique(succeededNodeIds, nodeId);
       if (nodeStatus === "failed") addUnique(failedNodeIds, nodeId);
+
+      const replay = ensureNodeReplay(
+        nodeReplayIndex,
+        event,
+        nodeId,
+        runMode,
+        nodeStatus,
+      );
+      replay.events.push(event);
+      replay.lastSeq = event.seq;
+      replay.status = nodeStatus;
+      if (event.kind === "recognition") replay.recognitionEvents.push(event);
+      if (event.kind === "action") replay.actionEvents.push(event);
+      if (event.kind === "next-list") replay.nextListEvents.push(event);
+      if (event.kind === "wait-freezes") replay.waitFreezesEvents.push(event);
+      if (event.detailRef && !replay.detailRefs.includes(event.detailRef)) {
+        replay.detailRefs.push(event.detailRef);
+      }
+      if (
+        event.screenshotRef &&
+        !replay.screenshotRefs.includes(event.screenshotRef)
+      ) {
+        replay.screenshotRefs.push(event.screenshotRef);
+      }
     }
 
     if (event.edge?.edgeId) {
@@ -238,5 +284,52 @@ export function reduceDebugTrace(
     artifacts: [...artifactsById.values()],
     lastEvent,
     nodeStates,
+    nodeReplays: groupNodeReplays(nodeReplayIndex),
   };
+}
+
+function ensureNodeReplay(
+  index: Map<string, DebugNodeReplay>,
+  event: DebugEvent,
+  nodeId: string,
+  runMode: DebugRunMode | undefined,
+  status: DebugNodeRunState["status"],
+): DebugNodeReplay {
+  const key = `${nodeId}:${event.runId}`;
+  const current = index.get(key);
+  if (current) return current;
+
+  const replay: DebugNodeReplay = {
+    nodeId,
+    runtimeName: event.node?.runtimeName ?? nodeId,
+    fileId: event.node?.fileId,
+    label: event.node?.label,
+    runId: event.runId,
+    runMode,
+    status,
+    firstSeq: event.seq,
+    lastSeq: event.seq,
+    events: [],
+    recognitionEvents: [],
+    actionEvents: [],
+    nextListEvents: [],
+    waitFreezesEvents: [],
+    detailRefs: [],
+    screenshotRefs: [],
+  };
+  index.set(key, replay);
+  return replay;
+}
+
+function groupNodeReplays(
+  index: Map<string, DebugNodeReplay>,
+): Record<string, DebugNodeReplay[]> {
+  const result: Record<string, DebugNodeReplay[]> = {};
+  for (const replay of index.values()) {
+    result[replay.nodeId] = [...(result[replay.nodeId] ?? []), replay];
+  }
+  Object.values(result).forEach((items) =>
+    items.sort((a, b) => b.lastSeq - a.lastSeq),
+  );
+  return result;
 }

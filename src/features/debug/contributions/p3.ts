@@ -14,7 +14,7 @@ const modalPanels: Array<{ id: DebugModalPanel; label: string }> = [
   { id: "logs", label: "日志" },
 ];
 
-export function registerDebugP4Contributions(): void {
+export function registerDebugP5Contributions(): void {
   modalPanels.forEach((panel, index) => {
     debugContributionRegistry.registerModalPanel({
       ...panel,
@@ -69,4 +69,4 @@ export function registerDebugP4Contributions(): void {
   });
 }
 
-registerDebugP4Contributions();
+registerDebugP5Contributions();

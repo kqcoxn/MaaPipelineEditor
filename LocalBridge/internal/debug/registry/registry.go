@@ -20,15 +20,19 @@ func DefaultCapabilityManifest() protocol.CapabilityManifest {
 			"target-node",
 			"fixed-image",
 			"agent",
+			"agent-managed",
+			"interface-option",
 		},
 		Artifacts: []string{
 			"task-detail",
 			"recognition-detail",
 			"action-detail",
 			"screenshot",
+			"screenshot/live",
 		},
 		ScreenshotSources: []string{
 			"manual",
+			"live",
 			"recognition-input",
 			"fixed-image",
 		},
@@ -36,6 +40,7 @@ func DefaultCapabilityManifest() protocol.CapabilityManifest {
 			"interface-import",
 			"multi-resource",
 			"multi-agent",
+			"managed-agent",
 		},
 		Maa: protocol.MaaInfo{
 			MFWVersion: "unknown",

@@ -6,6 +6,7 @@ import type {
   DebugRunStarted,
   DebugRunStopRequested,
   DebugSessionSnapshot,
+  DebugScreenshotStreamStatus,
 } from "../features/debug/types";
 
 type CapabilityStatus = "idle" | "loading" | "ready" | "error";
@@ -17,6 +18,7 @@ interface DebugSessionState {
   session?: DebugSessionSnapshot;
   activeRun?: DebugRunStarted;
   lastStopRequest?: DebugRunStopRequested;
+  screenshotStream?: DebugScreenshotStreamStatus;
   lastError?: DebugProtocolError;
   capabilities?: DebugCapabilityManifest;
   capabilityStatus: CapabilityStatus;
@@ -29,6 +31,7 @@ interface DebugSessionState {
   clearSession: (sessionId?: string) => void;
   setRunStarted: (run: DebugRunStarted) => void;
   setRunStopRequested: (request: DebugRunStopRequested) => void;
+  setScreenshotStreamStatus: (status: DebugScreenshotStreamStatus) => void;
   setProtocolError: (error: DebugProtocolError) => void;
   clearProtocolError: () => void;
   setCapabilitiesLoading: () => void;
@@ -62,6 +65,7 @@ export const useDebugSessionStore = create<DebugSessionState>((set) => ({
         session: undefined,
         activeRun: undefined,
         lastStopRequest: undefined,
+        screenshotStream: undefined,
       };
     }),
 
@@ -73,6 +77,8 @@ export const useDebugSessionStore = create<DebugSessionState>((set) => ({
     }),
 
   setRunStopRequested: (request) => set({ lastStopRequest: request }),
+
+  setScreenshotStreamStatus: (screenshotStream) => set({ screenshotStream }),
 
   setProtocolError: (error) => set({ lastError: error }),
 

@@ -1,12 +1,14 @@
 import { create } from "zustand";
 import type {
   DebugArtifactPolicy,
+  DebugInterfaceImportSelections,
   DebugInterfaceImportResult,
   DebugRunInput,
   DebugNodeTarget,
   DebugRunMode,
   DebugRunProfile,
   DebugRunRequest,
+  DebugScreenshotStreamConfig,
 } from "../features/debug/types";
 import {
   buildDebugSnapshotBundle,
@@ -22,7 +24,9 @@ interface DebugRunProfileSnapshot {
   profile: DebugRunProfile;
   artifactPolicy: DebugArtifactPolicy;
   fixedImageInput: Pick<DebugRunInput, "imagePath" | "imageRelativePath">;
+  screenshotStreamConfig: DebugScreenshotStreamConfig;
   interfaceImport?: DebugInterfaceImportResult;
+  interfaceSelections?: DebugInterfaceImportSelections;
 }
 
 interface DebugRunProfileState extends DebugRunProfileSnapshot {
@@ -31,10 +35,12 @@ interface DebugRunProfileState extends DebugRunProfileSnapshot {
   setEntry: (entry: DebugNodeTarget) => void;
   setResourcePaths: (resourcePaths: string[]) => void;
   setAgents: (agents: DebugRunProfile["agents"]) => void;
+  setScreenshotStreamConfig: (config: DebugScreenshotStreamConfig) => void;
   setFixedImageInput: (
     input: Pick<DebugRunInput, "imagePath" | "imageRelativePath">,
   ) => void;
   applyInterfaceImport: (result: DebugInterfaceImportResult) => void;
+  setInterfaceSelections: (selections: DebugInterfaceImportSelections) => void;
   setArtifactPolicy: (policy: DebugArtifactPolicy) => void;
   buildRunRequest: (
     mode: DebugRunMode,
@@ -48,6 +54,11 @@ const defaultArtifactPolicy: DebugArtifactPolicy = {
   includeRawImage: false,
   includeDrawImage: true,
   includeActionDetail: true,
+};
+
+const defaultScreenshotStreamConfig: DebugScreenshotStreamConfig = {
+  intervalMs: 1000,
+  force: false,
 };
 
 function createDefaultProfile(): DebugRunProfile {
@@ -85,6 +96,7 @@ function readSnapshot(): DebugRunProfileSnapshot {
     profile: createDefaultProfile(),
     artifactPolicy: defaultArtifactPolicy,
     fixedImageInput: {},
+    screenshotStreamConfig: defaultScreenshotStreamConfig,
   };
 
   try {
@@ -117,7 +129,12 @@ function readSnapshot(): DebugRunProfileSnapshot {
         ...fallback.fixedImageInput,
         ...parsed.fixedImageInput,
       },
+      screenshotStreamConfig: {
+        ...defaultScreenshotStreamConfig,
+        ...parsed.screenshotStreamConfig,
+      },
       interfaceImport: parsed.interfaceImport,
+      interfaceSelections: parsed.interfaceSelections,
     };
   } catch (error) {
     console.warn("[debugRunProfileStore] Failed to read profile:", error);
@@ -169,10 +186,16 @@ export const useDebugRunProfileStore = create<DebugRunProfileState>(
         profile: snapshot.profile ?? current.profile,
         artifactPolicy: snapshot.artifactPolicy ?? current.artifactPolicy,
         fixedImageInput: snapshot.fixedImageInput ?? current.fixedImageInput,
+        screenshotStreamConfig:
+          snapshot.screenshotStreamConfig ?? current.screenshotStreamConfig,
         interfaceImport:
           snapshot.interfaceImport === undefined
             ? current.interfaceImport
             : snapshot.interfaceImport,
+        interfaceSelections:
+          snapshot.interfaceSelections === undefined
+            ? current.interfaceSelections
+            : snapshot.interfaceSelections,
       };
       writeSnapshot(next);
       set(next);
@@ -229,6 +252,10 @@ export const useDebugRunProfileStore = create<DebugRunProfileState>(
         });
       },
 
+      setScreenshotStreamConfig: (screenshotStreamConfig) => {
+        commit({ screenshotStreamConfig });
+      },
+
       setFixedImageInput: (fixedImageInput) => {
         commit({ fixedImageInput });
       },
@@ -251,6 +278,10 @@ export const useDebugRunProfileStore = create<DebugRunProfileState>(
         commit({
           profile: {
             ...result.profile,
+            agents: result.profile.agents.map((agent) => ({
+              ...agent,
+              launchMode: agent.launchMode ?? "manual",
+            })),
             controller: {
               ...result.profile.controller,
               options: controllerOptions,
@@ -259,7 +290,12 @@ export const useDebugRunProfileStore = create<DebugRunProfileState>(
             maaOptions: current.profile.maaOptions,
           },
           interfaceImport: result,
+          interfaceSelections: result.selections,
         });
+      },
+
+      setInterfaceSelections: (interfaceSelections) => {
+        commit({ interfaceSelections });
       },
 
       setArtifactPolicy: (artifactPolicy) =>
@@ -333,7 +369,10 @@ export const useDebugRunProfileStore = create<DebugRunProfileState>(
             mode === "fixed-image-recognition"
               ? entry
               : undefined,
-          overrides: bundle.overrides,
+          overrides: [
+            ...bundle.overrides,
+            ...(get().interfaceImport?.overrides ?? []),
+          ],
           artifactPolicy: get().artifactPolicy,
           input:
             Object.keys(normalizedInput).length > 0 ? normalizedInput : undefined,

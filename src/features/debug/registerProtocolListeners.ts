@@ -82,6 +82,14 @@ export function registerDebugProtocolListeners(
       .setPreflightDiagnostics(result.diagnostics ?? []);
   });
 
+  debugProtocolClient.onScreenshotStreamStarted((status) => {
+    useDebugSessionStore.getState().setScreenshotStreamStatus(status);
+  });
+
+  debugProtocolClient.onScreenshotStreamStopped((status) => {
+    useDebugSessionStore.getState().setScreenshotStreamStatus(status);
+  });
+
   debugProtocolClient.onError((error) => {
     useDebugSessionStore.getState().setProtocolError(error);
     const selectedArtifactId =
