@@ -4,6 +4,8 @@
 
 ## bug
 
+- mac系统无法自动更新json
+
 ## perf
 
 ## feat

@@ -62,6 +62,10 @@ import type {
 } from "../../features/debug/types";
 import { debugContributionRegistry } from "../../features/debug/contributions/registry";
 import { buildDebugSnapshotBundle } from "../../features/debug/snapshot";
+import {
+  formatDebugReadinessMessage,
+  getDebugReadiness,
+} from "../../features/debug/readiness";
 import "../../features/debug/contributions/runModes";
 import "../../features/debug/contributions/modalContributions";
 
@@ -71,17 +75,61 @@ interface PanelItem {
   id: DebugModalPanel;
   label: string;
   icon: ReactNode;
+  description: string;
 }
 
 const panels: PanelItem[] = [
-  { id: "overview", label: "总览", icon: <ProfileOutlined /> },
-  { id: "setup", label: "运行配置", icon: <SettingOutlined /> },
-  { id: "nodes", label: "节点", icon: <NodeIndexOutlined /> },
-  { id: "timeline", label: "时间线", icon: <BranchesOutlined /> },
-  { id: "performance", label: "性能", icon: <StepForwardOutlined /> },
-  { id: "images", label: "图像", icon: <PictureOutlined /> },
-  { id: "diagnostics", label: "诊断", icon: <ApiOutlined /> },
-  { id: "logs", label: "日志", icon: <UnorderedListOutlined /> },
+  {
+    id: "overview",
+    label: "中控台",
+    icon: <ProfileOutlined />,
+    description: "查看依赖状态、会话状态、能力清单和当前运行摘要。",
+  },
+  {
+    id: "setup",
+    label: "运行配置",
+    icon: <SettingOutlined />,
+    description:
+      "配置接口导入、资源路径、控制器、截图和 Agent，并写入本地调试配置。",
+  },
+  {
+    id: "nodes",
+    label: "节点",
+    icon: <NodeIndexOutlined />,
+    description:
+      "选择入口或目标节点，发起节点级调试，并查看当前会话内的节点回放。",
+  },
+  {
+    id: "timeline",
+    label: "时间线",
+    icon: <BranchesOutlined />,
+    description:
+      "按后端 seq 查看 append-only trace，并在当前会话内定位或回放事件。",
+  },
+  {
+    id: "performance",
+    label: "性能",
+    icon: <StepForwardOutlined />,
+    description: "查看运行结束后的性能摘要、慢节点统计和相关产物。",
+  },
+  {
+    id: "images",
+    label: "图像",
+    icon: <PictureOutlined />,
+    description: "管理实时截图、固定图输入、批量识别图片和图像产物预览。",
+  },
+  {
+    id: "diagnostics",
+    label: "诊断",
+    icon: <ApiOutlined />,
+    description: "查看启动前检查、运行时诊断和资源/控制器/Agent 问题。",
+  },
+  {
+    id: "logs",
+    label: "日志",
+    icon: <UnorderedListOutlined />,
+    description: "查看 session、task 和 MaaFW 原始消息相关的结构化日志事件。",
+  },
 ];
 
 const runnableModes = new Set<DebugRunMode>([
@@ -109,10 +157,6 @@ function stringArray(value: unknown): string[] {
   return dataArray(value).filter(
     (item): item is string => typeof item === "string",
   );
-}
-
-function modeUsesLiveController(mode: DebugRunMode): boolean {
-  return mode !== "fixed-image-recognition";
 }
 
 function formatTime(value?: string): string {
@@ -168,14 +212,12 @@ function renderEventMeta(event: DebugEvent): ReactNode {
 
 function validateRunRequest(request: DebugRunRequest): DebugDiagnostic[] {
   const diagnostics: DebugDiagnostic[] = [];
-  if (
-    modeUsesLiveController(request.mode) &&
-    !request.profile.controller.options.controllerId
-  ) {
+  if (!request.profile.controller.options.controllerId) {
     diagnostics.push({
       severity: "error",
       code: "debug.controller.missing",
-      message: "缺少已连接控制器（Controller），无法启动调试。",
+      message:
+        "设备未连接：缺少已连接控制器（Controller），无法启动调试。",
     });
   }
   if (request.profile.resourcePaths.length === 0) {
@@ -204,7 +246,7 @@ function validateRunRequest(request: DebugRunRequest): DebugDiagnostic[] {
     diagnostics.push({
       severity: "error",
       code: "debug.entry.missing",
-      message: "完整运行缺少配置档入口（Profile Entry）。",
+      message: "完整运行缺少调试配置入口。",
     });
   }
   if (targetRunModes.has(request.mode) && !request.target?.runtimeName) {
@@ -341,6 +383,21 @@ export function DebugModal() {
     })),
   );
   const flowNodes = useFlowStore((state) => state.nodes);
+  const debugReadiness = useMemo(
+    () =>
+      getDebugReadiness({
+        localBridgeConnected: connected,
+        deviceConnectionStatus: mfwState.connectionStatus,
+        controllerId: mfwState.controllerId,
+      }),
+    [connected, mfwState.connectionStatus, mfwState.controllerId],
+  );
+  const debugReadinessDescription = useMemo(
+    () => formatDebugReadinessMessage(debugReadiness),
+    [debugReadiness],
+  );
+  const activePanelMeta =
+    panels.find((panel) => panel.id === activePanel) ?? panels[0];
 
   useEffect(() => {
     if (!modalOpen || !connected || capabilities) return;
@@ -428,15 +485,16 @@ export function DebugModal() {
       return;
     }
     clearProtocolError();
-    if (!connected) {
+    if (!debugReadiness.ready) {
+      const diagnostics = debugReadiness.issues.map((issue) => ({
+        severity: "error" as const,
+        code: issue.code,
+        message: issue.message,
+      }));
       diagnosticsState.setPreflightDiagnostics([
-        {
-          severity: "error",
-          code: "debug.localbridge.disconnected",
-          message: "LocalBridge 未连接，无法启动调试。",
-        },
+        ...diagnostics,
       ]);
-      message.error("LocalBridge 未连接");
+      message.error(debugReadiness.issues[0]?.message ?? "调试前置条件未满足");
       return;
     }
     if (!runnableModes.has(mode) || !availableModeIds.has(mode)) {
@@ -448,17 +506,6 @@ export function DebugModal() {
         },
       ]);
       message.warning("当前 LocalBridge 暂不支持该调试模式");
-      return;
-    }
-    if (modeUsesLiveController(mode) && !mfwState.controllerId) {
-      diagnosticsState.setPreflightDiagnostics([
-        {
-          severity: "error",
-          code: "debug.controller.missing",
-          message: "请先连接 MaaFramework 控制器（Controller）。",
-        },
-      ]);
-      message.error("请先连接 MaaFramework 控制器（Controller）");
       return;
     }
 
@@ -632,6 +679,10 @@ export function DebugModal() {
   };
 
   const startBatchRecognition = () => {
+    if (!debugReadiness.ready) {
+      message.error(debugReadiness.issues[0]?.message ?? "调试前置条件未满足");
+      return;
+    }
     if (!selectedNodeId) {
       message.warning("请选择节点");
       return;
@@ -739,14 +790,6 @@ export function DebugModal() {
 
   const renderOverview = () => (
     <Space direction="vertical" size={14} style={{ width: "100%" }}>
-      {!connected && (
-        <Alert
-          type="warning"
-          showIcon
-          message="LocalBridge 未连接"
-          description="可以先打开调试工作台；连接后会读取调试能力清单（Capability Manifest）。"
-        />
-      )}
       {capabilityStatus === "error" && (
         <Alert
           type="error"
@@ -769,14 +812,18 @@ export function DebugModal() {
             type="primary"
             icon={<CaretRightOutlined />}
             onClick={() => startRun("full-run")}
-            disabled={!availableModeIds.has("full-run")}
+            disabled={!debugReadiness.ready || !availableModeIds.has("full-run")}
           >
             完整运行
           </Button>
           <Button
             icon={<CaretRightOutlined />}
             onClick={() => startRun("run-from-node", selectedNodeId)}
-            disabled={!selectedNodeId || !availableModeIds.has("run-from-node")}
+            disabled={
+              !debugReadiness.ready ||
+              !selectedNodeId ||
+              !availableModeIds.has("run-from-node")
+            }
           >
             从选中节点运行
           </Button>
@@ -784,7 +831,9 @@ export function DebugModal() {
             icon={<CaretRightOutlined />}
             onClick={() => startRun("single-node-run", selectedNodeId)}
             disabled={
-              !selectedNodeId || !availableModeIds.has("single-node-run")
+              !debugReadiness.ready ||
+              !selectedNodeId ||
+              !availableModeIds.has("single-node-run")
             }
           >
             单节点运行
@@ -793,7 +842,9 @@ export function DebugModal() {
             icon={<FileSearchOutlined />}
             onClick={() => startRun("recognition-only", selectedNodeId)}
             disabled={
-              !selectedNodeId || !availableModeIds.has("recognition-only")
+              !debugReadiness.ready ||
+              !selectedNodeId ||
+              !availableModeIds.has("recognition-only")
             }
           >
             仅识别
@@ -802,7 +853,11 @@ export function DebugModal() {
             danger
             icon={<CaretRightOutlined />}
             onClick={() => confirmActionRun(selectedNodeId)}
-            disabled={!selectedNodeId || !availableModeIds.has("action-only")}
+            disabled={
+              !debugReadiness.ready ||
+              !selectedNodeId ||
+              !availableModeIds.has("action-only")
+            }
           >
             仅动作
           </Button>
@@ -810,6 +865,7 @@ export function DebugModal() {
             icon={<PictureOutlined />}
             onClick={() => startRun("fixed-image-recognition", selectedNodeId)}
             disabled={
+              !debugReadiness.ready ||
               !selectedNodeId ||
               !availableModeIds.has("fixed-image-recognition")
             }
@@ -1300,7 +1356,7 @@ export function DebugModal() {
             )}
           />
         </DebugSection>
-        <DebugSection title="代理运行配置（Agent Run Profile）">
+        <DebugSection title="代理运行配置">
           <Space direction="vertical" style={{ width: "100%" }}>
             <Space wrap>
               <Tag>已配置 {agents.length}</Tag>
@@ -1317,7 +1373,7 @@ export function DebugModal() {
               </Tag>
             </Space>
             <Text type="secondary">
-              当前代理（Agent）配置随调试配置档（DebugRunProfile）本地持久化；运行时自定义识别/动作（Custom Recognition/Action）会写入追踪诊断（Trace Diagnostic）并进入性能摘要。
+              当前代理（Agent）配置会随调试配置本地持久化；运行时自定义识别/动作（Custom Recognition/Action）会写入追踪诊断（Trace Diagnostic）并进入性能摘要。
             </Text>
           </Space>
         </DebugSection>
@@ -1332,7 +1388,7 @@ export function DebugModal() {
         items={[
           {
             key: "profile",
-            label: "配置档与接口（Profile / Interface）",
+            label: "调试配置与接口",
             children: renderProfile(),
           },
           {
@@ -1475,7 +1531,9 @@ export function DebugModal() {
                 size="small"
                 type="primary"
                 onClick={() => startRun("run-from-node", node.nodeId)}
-                disabled={!availableModeIds.has("run-from-node")}
+                disabled={
+                  !debugReadiness.ready || !availableModeIds.has("run-from-node")
+                }
               >
                 从此运行
               </Button>,
@@ -1483,7 +1541,10 @@ export function DebugModal() {
                 key="single"
                 size="small"
                 onClick={() => startRun("single-node-run", node.nodeId)}
-                disabled={!availableModeIds.has("single-node-run")}
+                disabled={
+                  !debugReadiness.ready ||
+                  !availableModeIds.has("single-node-run")
+                }
               >
                 单节点
               </Button>,
@@ -1491,7 +1552,10 @@ export function DebugModal() {
                 key="recognition"
                 size="small"
                 onClick={() => startRun("recognition-only", node.nodeId)}
-                disabled={!availableModeIds.has("recognition-only")}
+                disabled={
+                  !debugReadiness.ready ||
+                  !availableModeIds.has("recognition-only")
+                }
               >
                 识别
               </Button>,
@@ -1500,7 +1564,9 @@ export function DebugModal() {
                 size="small"
                 danger
                 onClick={() => confirmActionRun(node.nodeId)}
-                disabled={!availableModeIds.has("action-only")}
+                disabled={
+                  !debugReadiness.ready || !availableModeIds.has("action-only")
+                }
               >
                 动作
               </Button>,
@@ -1508,7 +1574,10 @@ export function DebugModal() {
                 key="fixed-image"
                 size="small"
                 onClick={() => startRun("fixed-image-recognition", node.nodeId)}
-                disabled={!availableModeIds.has("fixed-image-recognition")}
+                disabled={
+                  !debugReadiness.ready ||
+                  !availableModeIds.has("fixed-image-recognition")
+                }
               >
                 固定图
               </Button>,
@@ -1783,7 +1852,9 @@ export function DebugModal() {
               type="primary"
               icon={<FileSearchOutlined />}
               onClick={startBatchRecognition}
-              disabled={!selectedNodeId || imageList.length === 0}
+              disabled={
+                !debugReadiness.ready || !selectedNodeId || imageList.length === 0
+              }
             >
               批量识别前 50 张
             </Button>
@@ -1908,7 +1979,7 @@ export function DebugModal() {
 
   return (
     <Modal
-      title="调试工作台"
+      title="MPE FlowScope (调试模块)"
       open={modalOpen}
       onCancel={closeModal}
       width="min(1180px, calc(100vw - 48px))"
@@ -1937,12 +2008,18 @@ export function DebugModal() {
           <Space direction="vertical" size={16} style={{ width: "100%" }}>
             <div>
               <Title level={4} style={{ margin: 0 }}>
-                调试工作台
+                {activePanelMeta.label}
               </Title>
-              <Text type="secondary">
-                运行配置、追踪回放（Trace Replay）、性能摘要（Performance Summary）、批量固定图识别和代理运行配置（Agent Run Profile）集中在此处；回放/录制控制器（Replay/Record Controller）按 Go binding 能力门控。
-              </Text>
+              <Text type="secondary">{activePanelMeta.description}</Text>
             </div>
+            {!debugReadiness.ready && (
+              <Alert
+                type="warning"
+                showIcon
+                message="调试前置条件未满足"
+                description={debugReadinessDescription}
+              />
+            )}
             {renderPanel()}
           </Space>
         </main>

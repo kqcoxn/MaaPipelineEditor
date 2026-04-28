@@ -26,6 +26,7 @@ import { useDebugSessionStore } from "../../../stores/debugSessionStore";
 import { useMFWStore } from "../../../stores/mfwStore";
 import { useWSStore } from "../../../stores/wsStore";
 import type { DebugRunMode } from "../../../features/debug/types";
+import { getDebugReadiness } from "../../../features/debug/readiness";
 
 /**菜单项类型 */
 export interface NodeContextMenuItem {
@@ -196,10 +197,6 @@ function handleEditNodeJson(node: NodeContextMenuNode) {
   window.dispatchEvent(event);
 }
 
-function modeUsesLiveController(mode: DebugRunMode): boolean {
-  return mode !== "fixed-image-recognition";
-}
-
 function handleDebugRunMode(node: NodeContextMenuNode, mode: DebugRunMode) {
   if (node.type !== NodeTypeEnum.Pipeline) return;
 
@@ -213,16 +210,17 @@ function handleDebugRunMode(node: NodeContextMenuNode, mode: DebugRunMode) {
   useDebugModalMemoryStore.getState().setLastEntryNodeId(node.id);
 
   const capabilities = sessionState.capabilities;
+  const readiness = getDebugReadiness({
+    localBridgeConnected: useWSStore.getState().connected,
+    deviceConnectionStatus: mfwState.connectionStatus,
+    controllerId: mfwState.controllerId,
+  });
+  if (!readiness.ready) {
+    message.error(readiness.issues[0]?.message ?? "调试前置条件未满足");
+    return;
+  }
   if (!capabilities?.runModes.includes(mode)) {
     message.warning(`当前 LocalBridge 暂不支持调试模式: ${mode}`);
-    return;
-  }
-  if (!useWSStore.getState().connected) {
-    message.error("LocalBridge 未连接");
-    return;
-  }
-  if (modeUsesLiveController(mode) && !mfwState.controllerId) {
-    message.error("请先连接 MaaFramework controller");
     return;
   }
   if (

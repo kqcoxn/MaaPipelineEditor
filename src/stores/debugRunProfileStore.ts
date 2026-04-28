@@ -73,7 +73,7 @@ function createDefaultProfile(): DebugRunProfile {
 
   return {
     id: "default",
-    name: "默认调试 Profile",
+    name: "默认调试配置",
     interfaces: [],
     resourcePaths: [],
     controller: {
@@ -180,6 +180,15 @@ function resolveControllerType(): DebugRunProfile["controller"]["type"] {
     return controllerType;
   }
   return "adb";
+}
+
+function omitStoredControllerId(
+  options: DebugRunProfile["controller"]["options"],
+): DebugRunProfile["controller"]["options"] {
+  const next = { ...options };
+  delete next.controllerId;
+  delete next.controller_id;
+  return next;
 }
 
 export const useDebugRunProfileStore = create<DebugRunProfileState>(
@@ -339,9 +348,13 @@ export const useDebugRunProfileStore = create<DebugRunProfileState>(
         const entry =
           target ?? (hasStoredEntry ? storeProfile.entry : fallbackEntry);
         const controllerType = resolveControllerType();
+        const liveControllerId =
+          mfwState.connectionStatus === "connected"
+            ? mfwState.controllerId
+            : undefined;
         const controllerOptions = {
-          ...storeProfile.controller.options,
-          ...(mfwState.controllerId && { controllerId: mfwState.controllerId }),
+          ...omitStoredControllerId(storeProfile.controller.options),
+          ...(liveControllerId && { controllerId: liveControllerId }),
         };
         const requestInput: DebugRunInput = {
           ...input,
