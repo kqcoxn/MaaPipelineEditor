@@ -2,7 +2,7 @@ package protocol
 
 const (
 	Generation      = "debug-vNext"
-	ProtocolVersion = "0.16.0"
+	ProtocolVersion = "0.17.0"
 )
 
 type RunMode string
@@ -52,7 +52,6 @@ type NodeTarget struct {
 type RunProfile struct {
 	ID            string                 `json:"id"`
 	Name          string                 `json:"name"`
-	Interfaces    []ProfileInterface     `json:"interfaces"`
 	ResourcePaths []string               `json:"resourcePaths"`
 	Controller    ControllerProfile      `json:"controller"`
 	Agents        []AgentProfile         `json:"agents"`
@@ -61,31 +60,20 @@ type RunProfile struct {
 	MaaOptions    map[string]interface{} `json:"maaOptions"`
 }
 
-type ProfileInterface struct {
-	ID      string `json:"id"`
-	Path    string `json:"path"`
-	Enabled bool   `json:"enabled"`
-}
-
 type ControllerProfile struct {
 	Type    string                 `json:"type"`
 	Options map[string]interface{} `json:"options"`
 }
 
 type AgentProfile struct {
-	ID            string            `json:"id"`
-	Enabled       bool              `json:"enabled"`
-	Transport     string            `json:"transport"`
-	LaunchMode    string            `json:"launchMode,omitempty"`
-	Identifier    string            `json:"identifier,omitempty"`
-	TCPPort       int               `json:"tcpPort,omitempty"`
-	BindResources []string          `json:"bindResources,omitempty"`
-	TimeoutMS     int               `json:"timeoutMs,omitempty"`
-	Required      *bool             `json:"required,omitempty"`
-	ChildExec     string            `json:"childExec,omitempty"`
-	ChildArgs     []string          `json:"childArgs,omitempty"`
-	WorkingDir    string            `json:"workingDirectory,omitempty"`
-	Env           map[string]string `json:"env,omitempty"`
+	ID            string   `json:"id"`
+	Enabled       bool     `json:"enabled"`
+	Transport     string   `json:"transport"`
+	Identifier    string   `json:"identifier,omitempty"`
+	TCPPort       int      `json:"tcpPort,omitempty"`
+	BindResources []string `json:"bindResources,omitempty"`
+	TimeoutMS     int      `json:"timeoutMs,omitempty"`
+	Required      *bool    `json:"required,omitempty"`
 }
 
 type GraphSnapshot struct {
@@ -321,7 +309,6 @@ type AgentRunProfileMetadata struct {
 	ID                 string   `json:"id"`
 	Enabled            bool     `json:"enabled"`
 	Transport          string   `json:"transport,omitempty"`
-	LaunchMode         string   `json:"launchMode,omitempty"`
 	Required           bool     `json:"required"`
 	TimeoutMS          int      `json:"timeoutMs,omitempty"`
 	Identifier         string   `json:"identifier,omitempty"`
@@ -366,98 +353,17 @@ type ScreenshotStreamStatus struct {
 	Reason       string `json:"reason,omitempty"`
 }
 
-type InterfaceImportRequest struct {
-	Path string `json:"path"`
+type AgentTestRequest struct {
+	Agent AgentProfile `json:"agent"`
 }
 
-type InterfaceImportResult struct {
-	Profile     RunProfile                  `json:"profile"`
-	EntryName   string                      `json:"entryName,omitempty"`
-	Diagnostics []Diagnostic                `json:"diagnostics,omitempty"`
-	Selections  InterfaceImportSelections   `json:"selections,omitempty"`
-	Controllers []InterfaceImportController `json:"controllers,omitempty"`
-	Resources   []InterfaceImportResource   `json:"resources,omitempty"`
-	Tasks       []InterfaceImportTask       `json:"tasks,omitempty"`
-	Presets     []InterfaceImportPreset     `json:"presets,omitempty"`
-	Options     []InterfaceImportOption     `json:"options,omitempty"`
-	Overrides   []PipelineOverride          `json:"overrides,omitempty"`
-}
-
-type InterfaceImportSelections struct {
-	ControllerName string                 `json:"controllerName,omitempty"`
-	ResourceName   string                 `json:"resourceName,omitempty"`
-	TaskName       string                 `json:"taskName,omitempty"`
-	PresetName     string                 `json:"presetName,omitempty"`
-	OptionValues   map[string]interface{} `json:"optionValues,omitempty"`
-}
-
-type InterfaceImportController struct {
-	Name                string                 `json:"name"`
-	Label               string                 `json:"label,omitempty"`
-	Type                string                 `json:"type"`
-	AttachResourcePaths []string               `json:"attachResourcePaths,omitempty"`
-	Options             []string               `json:"options,omitempty"`
-	Raw                 map[string]interface{} `json:"raw,omitempty"`
-}
-
-type InterfaceImportResource struct {
-	Name        string                 `json:"name"`
-	Label       string                 `json:"label,omitempty"`
-	Paths       []string               `json:"paths,omitempty"`
-	Controllers []string               `json:"controllers,omitempty"`
-	Options     []string               `json:"options,omitempty"`
-	Raw         map[string]interface{} `json:"raw,omitempty"`
-}
-
-type InterfaceImportTask struct {
-	Name             string                 `json:"name"`
-	Label            string                 `json:"label,omitempty"`
-	Entry            string                 `json:"entry,omitempty"`
-	DefaultCheck     bool                   `json:"defaultCheck,omitempty"`
-	Resources        []string               `json:"resources,omitempty"`
-	Controllers      []string               `json:"controllers,omitempty"`
-	Options          []string               `json:"options,omitempty"`
-	PipelineOverride map[string]interface{} `json:"pipelineOverride,omitempty"`
-}
-
-type InterfaceImportPreset struct {
-	Name  string                      `json:"name"`
-	Label string                      `json:"label,omitempty"`
-	Tasks []InterfaceImportPresetTask `json:"tasks,omitempty"`
-}
-
-type InterfaceImportPresetTask struct {
-	Name    string                 `json:"name"`
-	Enabled *bool                  `json:"enabled,omitempty"`
-	Option  map[string]interface{} `json:"option,omitempty"`
-}
-
-type InterfaceImportOption struct {
-	Name             string                       `json:"name"`
-	Label            string                       `json:"label,omitempty"`
-	Type             string                       `json:"type,omitempty"`
-	Controllers      []string                     `json:"controllers,omitempty"`
-	Resources        []string                     `json:"resources,omitempty"`
-	DefaultValue     interface{}                  `json:"defaultValue,omitempty"`
-	Cases            []InterfaceImportOptionCase  `json:"cases,omitempty"`
-	Inputs           []InterfaceImportOptionInput `json:"inputs,omitempty"`
-	PipelineOverride map[string]interface{}       `json:"pipelineOverride,omitempty"`
-}
-
-type InterfaceImportOptionCase struct {
-	Name             string                 `json:"name"`
-	Label            string                 `json:"label,omitempty"`
-	Options          []string               `json:"options,omitempty"`
-	PipelineOverride map[string]interface{} `json:"pipelineOverride,omitempty"`
-}
-
-type InterfaceImportOptionInput struct {
-	Name         string `json:"name"`
-	Label        string `json:"label,omitempty"`
-	Default      string `json:"default,omitempty"`
-	PipelineType string `json:"pipelineType,omitempty"`
-	Verify       string `json:"verify,omitempty"`
-	PatternMsg   string `json:"patternMsg,omitempty"`
+type AgentTestResult struct {
+	AgentID            string   `json:"agentId"`
+	Success            bool     `json:"success"`
+	CheckedAt          string   `json:"checkedAt"`
+	Message            string   `json:"message"`
+	CustomRecognitions []string `json:"customRecognitions,omitempty"`
+	CustomActions      []string `json:"customActions,omitempty"`
 }
 
 type ArtifactRef struct {

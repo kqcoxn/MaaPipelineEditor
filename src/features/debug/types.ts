@@ -1,5 +1,5 @@
 export const DEBUG_GENERATION = "debug-vNext" as const;
-export const DEBUG_PROTOCOL_VERSION = "0.16.0" as const;
+export const DEBUG_PROTOCOL_VERSION = "0.17.0" as const;
 
 export type DebugGeneration = typeof DEBUG_GENERATION;
 
@@ -32,13 +32,11 @@ export type DebugModalPanel =
   | "logs";
 
 export type DebugProfileFeature =
-  | "interface-import"
   | "multi-resource"
   | "multi-agent"
-  | "managed-agent";
+  | "agent-run-profile";
 
 export type DebugAgentTransport = "identifier" | "tcp";
-export type DebugAgentLaunchMode = "manual" | "managed";
 export type DebugControllerType = "adb" | "win32" | "dbg" | "replay" | "record";
 export type DebugSavePolicy = "sandbox" | "save-open-files" | "use-disk";
 export type DebugEventSource = "maafw" | "mpe" | "localbridge";
@@ -124,34 +122,26 @@ export interface DebugNodeTarget {
   runtimeName: string;
 }
 
+export interface DebugAgentProfile {
+  id: string;
+  enabled: boolean;
+  transport: DebugAgentTransport;
+  identifier?: string;
+  tcpPort?: number;
+  bindResources?: string[];
+  timeoutMs?: number;
+  required?: boolean;
+}
+
 export interface DebugRunProfile {
   id: string;
   name: string;
-  interfaces: Array<{
-    id: string;
-    path: string;
-    enabled: boolean;
-  }>;
   resourcePaths: string[];
   controller: {
     type: DebugControllerType;
     options: Record<string, unknown>;
   };
-  agents: Array<{
-    id: string;
-    enabled: boolean;
-    transport: DebugAgentTransport;
-    launchMode?: DebugAgentLaunchMode;
-    identifier?: string;
-    tcpPort?: number;
-    bindResources?: string[];
-    timeoutMs?: number;
-    required?: boolean;
-    childExec?: string;
-    childArgs?: string[];
-    workingDirectory?: string;
-    env?: Record<string, string>;
-  }>;
+  agents: DebugAgentProfile[];
   entry: DebugNodeTarget;
   savePolicy: DebugSavePolicy;
   maaOptions: {
@@ -341,7 +331,6 @@ export interface DebugAgentRunProfileMetadata {
   id: string;
   enabled: boolean;
   transport?: DebugAgentTransport;
-  launchMode?: DebugAgentLaunchMode;
   required: boolean;
   timeoutMs?: number;
   identifier?: string;
@@ -439,92 +428,17 @@ export interface DebugScreenshotStreamStatus {
   reason?: string;
 }
 
-export interface DebugInterfaceImportRequest {
-  path: string;
+export interface DebugAgentTestRequest {
+  agent: DebugAgentProfile;
 }
 
-export interface DebugInterfaceImportResult {
-  profile: DebugRunProfile;
-  entryName?: string;
-  diagnostics?: DebugDiagnostic[];
-  selections?: DebugInterfaceImportSelections;
-  controllers?: DebugInterfaceImportController[];
-  resources?: DebugInterfaceImportResource[];
-  tasks?: DebugInterfaceImportTask[];
-  presets?: DebugInterfaceImportPreset[];
-  options?: DebugInterfaceImportOption[];
-  overrides?: DebugPipelineOverride[];
-}
-
-export interface DebugInterfaceImportSelections {
-  controllerName?: string;
-  resourceName?: string;
-  taskName?: string;
-  presetName?: string;
-  optionValues?: Record<string, unknown>;
-}
-
-export interface DebugInterfaceImportController {
-  name: string;
-  label?: string;
-  type: DebugControllerType;
-  attachResourcePaths?: string[];
-  options?: string[];
-  raw?: Record<string, unknown>;
-}
-
-export interface DebugInterfaceImportResource {
-  name: string;
-  label?: string;
-  paths?: string[];
-  controllers?: string[];
-  options?: string[];
-  raw?: Record<string, unknown>;
-}
-
-export interface DebugInterfaceImportTask {
-  name: string;
-  label?: string;
-  entry?: string;
-  defaultCheck?: boolean;
-  resources?: string[];
-  controllers?: string[];
-  options?: string[];
-  pipelineOverride?: Record<string, unknown>;
-}
-
-export interface DebugInterfaceImportPreset {
-  name: string;
-  label?: string;
-  tasks?: Array<{
-    name: string;
-    enabled?: boolean;
-    option?: Record<string, unknown>;
-  }>;
-}
-
-export interface DebugInterfaceImportOption {
-  name: string;
-  label?: string;
-  type?: "select" | "switch" | "checkbox" | "input";
-  controllers?: string[];
-  resources?: string[];
-  defaultValue?: unknown;
-  cases?: Array<{
-    name: string;
-    label?: string;
-    options?: string[];
-    pipelineOverride?: Record<string, unknown>;
-  }>;
-  inputs?: Array<{
-    name: string;
-    label?: string;
-    default?: string;
-    pipelineType?: string;
-    verify?: string;
-    patternMsg?: string;
-  }>;
-  pipelineOverride?: Record<string, unknown>;
+export interface DebugAgentTestResult {
+  agentId: string;
+  success: boolean;
+  checkedAt: string;
+  message: string;
+  customRecognitions?: string[];
+  customActions?: string[];
 }
 
 export interface DebugArtifactRef {

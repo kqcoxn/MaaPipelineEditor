@@ -3,13 +3,13 @@ import type { LocalWebSocketServer } from "../server";
 import type {
   DebugArtifactGetRequest,
   DebugArtifactPayload,
+  DebugAgentTestRequest,
+  DebugAgentTestResult,
   DebugBatchRecognitionRequest,
   DebugBatchRecognitionResult,
   DebugBatchRecognitionStopRequest,
   DebugCapabilityManifest,
   DebugEvent,
-  DebugInterfaceImportRequest,
-  DebugInterfaceImportResult,
   DebugRunStarted,
   DebugProtocolError,
   DebugResourcePreflightRequest,
@@ -52,8 +52,8 @@ export class DebugProtocolClient extends BaseProtocol {
     Listener<DebugRunStopRequested>
   >();
   private readonly artifactListeners = new Set<Listener<DebugArtifactPayload>>();
-  private readonly interfaceImportListeners = new Set<
-    Listener<DebugInterfaceImportResult>
+  private readonly agentTestListeners = new Set<
+    Listener<DebugAgentTestResult>
   >();
   private readonly screenshotStreamStartedListeners = new Set<
     Listener<DebugScreenshotStreamStatus>
@@ -112,8 +112,8 @@ export class DebugProtocolClient extends BaseProtocol {
     this.wsClient.registerRoute("/lte/debug/artifact", (data) =>
       this.handleArtifact(data),
     );
-    this.wsClient.registerRoute("/lte/debug/interface_imported", (data) =>
-      this.handleInterfaceImported(data),
+    this.wsClient.registerRoute("/lte/debug/agent_tested", (data) =>
+      this.handleAgentTested(data),
     );
     this.wsClient.registerRoute("/lte/debug/screenshot_stream_started", (data) =>
       this.handleScreenshotStreamStarted(data),
@@ -189,8 +189,8 @@ export class DebugProtocolClient extends BaseProtocol {
     return this.send("/mpe/debug/screenshot/stop", request);
   }
 
-  importInterface(request: DebugInterfaceImportRequest): boolean {
-    return this.send("/mpe/debug/interface/import", request);
+  testAgent(request: DebugAgentTestRequest): boolean {
+    return this.send("/mpe/debug/agent/test", request);
   }
 
   requestTraceSnapshot(request: DebugTraceSnapshotRequest): boolean {
@@ -264,11 +264,11 @@ export class DebugProtocolClient extends BaseProtocol {
     return () => this.artifactListeners.delete(listener);
   }
 
-  onInterfaceImported(
-    listener: Listener<DebugInterfaceImportResult>,
+  onAgentTested(
+    listener: Listener<DebugAgentTestResult>,
   ): () => void {
-    this.interfaceImportListeners.add(listener);
-    return () => this.interfaceImportListeners.delete(listener);
+    this.agentTestListeners.add(listener);
+    return () => this.agentTestListeners.delete(listener);
   }
 
   onScreenshotStreamStarted(
@@ -376,9 +376,9 @@ export class DebugProtocolClient extends BaseProtocol {
     this.artifactListeners.forEach((listener) => listener(artifact));
   }
 
-  private handleInterfaceImported(data: unknown): void {
-    const result = data as DebugInterfaceImportResult;
-    this.interfaceImportListeners.forEach((listener) => listener(result));
+  private handleAgentTested(data: unknown): void {
+    const result = data as DebugAgentTestResult;
+    this.agentTestListeners.forEach((listener) => listener(result));
   }
 
   private handleScreenshotStreamStarted(data: unknown): void {

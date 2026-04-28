@@ -2,7 +2,6 @@ import type { DebugProtocolClient } from "../../services/protocols/DebugProtocol
 import { useDebugArtifactStore } from "../../stores/debugArtifactStore";
 import { useDebugDiagnosticsStore } from "../../stores/debugDiagnosticsStore";
 import { useDebugOverlayStore } from "../../stores/debugOverlayStore";
-import { useDebugRunProfileStore } from "../../stores/debugRunProfileStore";
 import { useDebugSessionStore } from "../../stores/debugSessionStore";
 import { useDebugTraceStore } from "../../stores/debugTraceStore";
 import type {
@@ -55,6 +54,7 @@ export function registerDebugProtocolListeners(
   debugProtocolClient.onDebugEvent((event) => {
     const traceStore = useDebugTraceStore.getState();
     traceStore.appendEvent(event);
+    useDebugSessionStore.getState().updateScreenshotStreamFrame(event);
     useDebugDiagnosticsStore.getState().appendFromEvent(event);
     useDebugOverlayStore.getState().applyTraceSummary(
       useDebugTraceStore.getState().summary,
@@ -89,6 +89,9 @@ export function registerDebugProtocolListeners(
         createdAt: event.timestamp,
         eventSeq: event.seq,
       });
+      if (event.data?.source !== "live") {
+        useDebugArtifactStore.getState().selectArtifact(event.screenshotRef);
+      }
     }
   });
 
@@ -110,11 +113,8 @@ export function registerDebugProtocolListeners(
     }
   });
 
-  debugProtocolClient.onInterfaceImported((result) => {
-    useDebugRunProfileStore.getState().applyInterfaceImport(result);
-    useDebugDiagnosticsStore
-      .getState()
-      .setPreflightDiagnostics(result.diagnostics ?? []);
+  debugProtocolClient.onAgentTested((result) => {
+    useDebugSessionStore.getState().setAgentTestResult(result);
   });
 
   debugProtocolClient.onScreenshotStreamStarted((status) => {

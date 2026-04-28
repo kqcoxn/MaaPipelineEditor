@@ -36,14 +36,13 @@ const panels: PanelItem[] = [
     id: "overview",
     label: "中控台",
     icon: <ProfileOutlined />,
-    description: "查看依赖状态、会话状态、能力清单和当前运行摘要。",
+    description: "查看依赖状态、会话/追踪状态和当前运行摘要。",
   },
   {
     id: "setup",
     label: "运行配置",
     icon: <SettingOutlined />,
-    description:
-      "配置接口导入、资源路径、控制器、截图和 Agent，并写入本地调试配置。",
+    description: "配置资源路径、控制器、截图和 Agent，并写入本地调试配置。",
   },
   {
     id: "nodes",

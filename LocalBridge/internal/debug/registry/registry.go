@@ -20,9 +20,7 @@ func DefaultCapabilityManifest() protocol.CapabilityManifest {
 			"target-node",
 			"fixed-image",
 			"agent",
-			"agent-managed",
 			"agent-run-profile",
-			"interface-option",
 			"batch-recognition",
 			"performance-summary",
 			"trace-replay",
@@ -43,10 +41,8 @@ func DefaultCapabilityManifest() protocol.CapabilityManifest {
 			"fixed-image",
 		},
 		ProfileFeatures: []string{
-			"interface-import",
 			"multi-resource",
 			"multi-agent",
-			"managed-agent",
 			"agent-run-profile",
 		},
 		DebugFeatures: []string{

@@ -6,6 +6,7 @@ import {
   Input,
   InputNumber,
   List,
+  Modal,
   Select,
   Space,
   Switch,
@@ -13,7 +14,6 @@ import {
   Typography,
 } from "antd";
 import {
-  ApiOutlined,
   CaretRightOutlined,
   DeleteOutlined,
   PictureOutlined,
@@ -23,7 +23,7 @@ import {
 } from "@ant-design/icons";
 import { DebugSection } from "../DebugSection";
 import type { DebugModalController } from "../../hooks/useDebugModalController";
-import type { DebugArtifactPolicy } from "../../types";
+import type { DebugAgentProfile, DebugArtifactPolicy } from "../../types";
 import { getDebugStatusLabel } from "../../capabilityLabels";
 import { stringArray } from "../../modalUtils";
 
@@ -41,7 +41,7 @@ export function SetupPanel({
         items={[
           {
             key: "profile",
-            label: "调试配置与接口",
+            label: "调试配置",
             children: <ProfileSection controller={controller} />,
           },
           {
@@ -72,18 +72,56 @@ function ProfileSection({
 }) {
   const {
     profileState,
-    interfaceImportPath,
-    setInterfaceImportPath,
-    importInterface,
-    runModes,
-    availableModeIds,
-    lastRunMode,
+    invalidateResourcePreflight,
   } = controller;
+
+  const handleCreateProfile = () => {
+    profileState.createProfile();
+    invalidateResourcePreflight();
+  };
+  const handleDeleteProfile = () => {
+    Modal.confirm({
+      title: "删除调试配置",
+      content: `确定删除“${profileState.profile.name}”吗？`,
+      okText: "删除",
+      okButtonProps: { danger: true },
+      cancelText: "取消",
+      onOk: () => {
+        profileState.deleteProfile(profileState.activeProfileId);
+        invalidateResourcePreflight();
+      },
+    });
+  };
 
   return (
     <Space direction="vertical" size={14} style={{ width: "100%" }}>
       <DebugSection title="基础配置">
         <Space direction="vertical" style={{ width: "100%" }}>
+          <Space.Compact style={{ width: "100%" }}>
+            <Select
+              value={profileState.activeProfileId}
+              style={{ flex: 1 }}
+              onChange={(profileId) => {
+                profileState.setActiveProfile(profileId);
+                invalidateResourcePreflight();
+              }}
+              options={profileState.profiles.map((profile) => ({
+                value: profile.id,
+                label: profile.profile.name,
+              }))}
+            />
+            <Button icon={<PlusOutlined />} onClick={handleCreateProfile}>
+              新建配置
+            </Button>
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+              onClick={handleDeleteProfile}
+              disabled={profileState.profiles.length <= 1}
+            >
+              删除配置
+            </Button>
+          </Space.Compact>
           <Input
             value={profileState.profile.name}
             onChange={(event) =>
@@ -91,56 +129,6 @@ function ProfileSection({
             }
             addonBefore="名称"
           />
-          <Space.Compact style={{ width: "100%" }}>
-            <Input
-              value={interfaceImportPath}
-              onChange={(event) => setInterfaceImportPath(event.target.value)}
-              placeholder="interface.json 路径或目录"
-            />
-            <Button icon={<ApiOutlined />} onClick={importInterface}>
-              导入接口（Interface）
-            </Button>
-          </Space.Compact>
-          {profileState.interfaceImport && (
-            <Space direction="vertical" style={{ width: "100%" }}>
-              <Alert
-                type="success"
-                showIcon
-                message="接口（Interface）已导入"
-                description={
-                  profileState.interfaceImport.entryName ||
-                  profileState.interfaceImport.profile.name
-                }
-              />
-              <Space wrap>
-                <Tag>
-                  控制器（Controller）{" "}
-                  {profileState.interfaceSelections?.controllerName ?? "-"}
-                </Tag>
-                <Tag>
-                  资源（Resource）{" "}
-                  {profileState.interfaceSelections?.resourceName ?? "-"}
-                </Tag>
-                <Tag>
-                  任务（Task） {profileState.interfaceSelections?.taskName ?? "-"}
-                </Tag>
-                <Tag>
-                  覆盖（Overrides）{" "}
-                  {profileState.interfaceImport.overrides?.length ?? 0}
-                </Tag>
-              </Space>
-              <Space wrap>
-                {(profileState.interfaceImport.options ?? [])
-                  .slice(0, 8)
-                  .map((option) => (
-                    <Tag key={option.name}>
-                      {option.label || option.name}:{" "}
-                      {JSON.stringify(option.defaultValue)}
-                    </Tag>
-                  ))}
-              </Space>
-            </Space>
-          )}
           <Select
             value={profileState.profile.savePolicy}
             style={{ width: 240 }}
@@ -151,23 +139,6 @@ function ProfileSection({
               { value: "use-disk", label: "使用磁盘文件" },
             ]}
           />
-          <Space wrap>
-            {runModes.map((runMode) => (
-              <Tag
-                key={runMode.id}
-                color={
-                  !availableModeIds.has(runMode.id)
-                    ? "default"
-                    : runMode.id === lastRunMode
-                      ? "blue"
-                      : "green"
-                }
-              >
-                {runMode.label}
-                {!availableModeIds.has(runMode.id) ? "（未开放）" : ""}
-              </Tag>
-            ))}
-          </Space>
         </Space>
       </DebugSection>
       <DebugSection title="产物策略（Artifact Policy）">
@@ -303,6 +274,7 @@ function ControllerSection({
     stopScreenshotStream,
     screenshotStream,
     profileState,
+    controllerDisplayName,
   } = controller;
 
   return (
@@ -313,6 +285,7 @@ function ControllerSection({
             {mfwState.connectionStatus}
           </Tag>
           <Tag>{mfwState.controllerType ?? "无类型"}</Tag>
+          <Tag>名称 {controllerDisplayName}</Tag>
           <Tag>{mfwState.controllerId ?? "无控制器 ID"}</Tag>
           <Button
             size="small"
@@ -387,11 +360,17 @@ function AgentSection({
 }: {
   controller: DebugModalController;
 }) {
-  const { profileState, agentDiagnostics } = controller;
+  const {
+    profileState,
+    agentDiagnostics,
+    agentTestResults,
+    testingAgentIds,
+    testAgent,
+  } = controller;
   const agents = profileState.profile.agents;
   const updateAgent = (
     index: number,
-    updates: Partial<(typeof agents)[number]>,
+    updates: Partial<DebugAgentProfile>,
   ) => {
     profileState.setAgents(
       agents.map((agent, agentIndex) =>
@@ -406,7 +385,6 @@ function AgentSection({
         id: `agent-${agents.length + 1}`,
         enabled: false,
         transport: "identifier",
-        launchMode: "manual",
         identifier: "",
         required: true,
       },
@@ -451,15 +429,6 @@ function AgentSection({
                   }
                   addonBefore="标识"
                   style={{ width: 220 }}
-                />
-                <Select
-                  value={agent.launchMode ?? "manual"}
-                  style={{ width: 140 }}
-                  onChange={(launchMode) => updateAgent(index, { launchMode })}
-                  options={[
-                    { value: "manual", label: "手动（Manual）" },
-                    { value: "managed", label: "托管（Managed）" },
-                  ]}
                 />
                 <Select
                   value={agent.transport}
@@ -507,45 +476,42 @@ function AgentSection({
                 >
                   必需
                 </Checkbox>
+                <Button
+                  size="small"
+                  icon={<ReloadOutlined />}
+                  loading={testingAgentIds.has(agent.id.trim() || "agent")}
+                  onClick={() => testAgent(agent)}
+                >
+                  测试连接
+                </Button>
               </Space>
-              {agent.launchMode === "managed" && (
-                <Space direction="vertical" style={{ width: "100%" }}>
-                  <Space wrap>
-                    <Input
-                      value={agent.childExec}
-                      onChange={(event) =>
-                        updateAgent(index, { childExec: event.target.value })
-                      }
-                      addonBefore="子进程"
-                      style={{ width: 360 }}
-                    />
-                    <Input
-                      value={(agent.childArgs ?? []).join(" ")}
-                      onChange={(event) =>
-                        updateAgent(index, {
-                          childArgs: event.target.value
-                            .split(" ")
-                            .map((item) => item.trim())
-                            .filter(Boolean),
-                        })
-                      }
-                      addonBefore="参数"
-                      style={{ width: 420 }}
-                    />
-                  </Space>
-                  <Input
-                    value={agent.workingDirectory}
-                    onChange={(event) =>
-                      updateAgent(index, {
-                        workingDirectory: event.target.value,
-                      })
-                    }
-                    addonBefore="工作目录"
-                  />
-                  <Text type="secondary">
-                    托管模式（Managed）会由 LocalBridge 启动子进程并注入 PI_* / MAA_AGENT_* 环境变量；手动模式（Manual）只连接外部已启动代理（Agent）。
-                  </Text>
-                </Space>
+              {agentTestResults[agent.id] && (
+                <Alert
+                  type={agentTestResults[agent.id].success ? "success" : "error"}
+                  showIcon
+                  message={agentTestResults[agent.id].message}
+                  description={
+                    <Space wrap>
+                      <Text type="secondary">
+                        测试连接已断开；正式运行时会按当前配置重新连接。
+                      </Text>
+                      {stringArray(
+                        agentTestResults[agent.id].customRecognitions,
+                      ).map((name) => (
+                        <Tag key={`test-reco-${name}`} color="blue">
+                          reco {name}
+                        </Tag>
+                      ))}
+                      {stringArray(agentTestResults[agent.id].customActions).map(
+                        (name) => (
+                          <Tag key={`test-act-${name}`} color="purple">
+                            act {name}
+                          </Tag>
+                        ),
+                      )}
+                    </Space>
+                  }
+                />
               )}
             </Space>
           </List.Item>
@@ -599,7 +565,7 @@ function AgentSection({
             </Tag>
           </Space>
           <Text type="secondary">
-            当前代理（Agent）配置会随调试配置本地持久化；运行时自定义识别/动作（Custom Recognition/Action）会写入追踪诊断（Trace Diagnostic）并进入性能摘要。
+            当前代理（Agent）配置会随调试配置本地持久化；测试连接只验证外部已启动代理，测试结束后会立即断开，正式运行时会重新连接。
           </Text>
         </Space>
       </DebugSection>

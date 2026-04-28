@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import type {
+  DebugAgentTestResult,
   DebugCapabilityManifest,
+  DebugEvent,
   DebugModalPanel,
   DebugProtocolError,
   DebugResourcePreflightResult,
@@ -29,6 +31,7 @@ interface DebugSessionState {
   activeRun?: DebugRunStarted;
   lastStopRequest?: DebugRunStopRequested;
   screenshotStream?: DebugScreenshotStreamStatus;
+  agentTestResults: Record<string, DebugAgentTestResult>;
   lastError?: DebugProtocolError;
   capabilities?: DebugCapabilityManifest;
   capabilityStatus: CapabilityStatus;
@@ -43,6 +46,8 @@ interface DebugSessionState {
   setRunStarted: (run: DebugRunStarted) => void;
   setRunStopRequested: (request: DebugRunStopRequested) => void;
   setScreenshotStreamStatus: (status: DebugScreenshotStreamStatus) => void;
+  updateScreenshotStreamFrame: (event: DebugEvent) => void;
+  setAgentTestResult: (result: DebugAgentTestResult) => void;
   setProtocolError: (error: DebugProtocolError) => void;
   clearProtocolError: () => void;
   setCapabilitiesLoading: () => void;
@@ -62,6 +67,7 @@ export const useDebugSessionStore = create<DebugSessionState>((set) => ({
   modalOpen: false,
   activePanel: "overview",
   capabilityStatus: "idle",
+  agentTestResults: {},
   resourcePreflight: {
     status: "idle",
   },
@@ -88,6 +94,7 @@ export const useDebugSessionStore = create<DebugSessionState>((set) => ({
         activeRun: undefined,
         lastStopRequest: undefined,
         screenshotStream: undefined,
+        agentTestResults: {},
       };
     }),
 
@@ -101,6 +108,40 @@ export const useDebugSessionStore = create<DebugSessionState>((set) => ({
   setRunStopRequested: (request) => set({ lastStopRequest: request }),
 
   setScreenshotStreamStatus: (screenshotStream) => set({ screenshotStream }),
+
+  updateScreenshotStreamFrame: (event) =>
+    set((state) => {
+      if (event.kind !== "screenshot" || event.data?.source !== "live") {
+        return {};
+      }
+      const frame = numberFromValue(event.data.frame);
+      if (frame === undefined) return {};
+      const current = state.screenshotStream;
+      return {
+        screenshotStream: {
+          sessionId: event.sessionId,
+          runId: event.runId || current?.runId,
+          controllerId: stringFromValue(event.data.controllerId) ?? current?.controllerId,
+          intervalMs:
+            numberFromValue(event.data.intervalMs) ?? current?.intervalMs,
+          force:
+            typeof event.data.force === "boolean"
+              ? event.data.force
+              : current?.force,
+          active: true,
+          frameCount: frame,
+          startedAt: current?.startedAt,
+        },
+      };
+    }),
+
+  setAgentTestResult: (result) =>
+    set((state) => ({
+      agentTestResults: {
+        ...state.agentTestResults,
+        [result.agentId]: result,
+      },
+    })),
 
   setProtocolError: (error) => set({ lastError: error }),
 
@@ -175,4 +216,19 @@ export const useDebugSessionStore = create<DebugSessionState>((set) => ({
 
 function makeResourceKey(resourcePaths: string[]): string {
   return resourcePaths.map((path) => path.trim()).filter(Boolean).join("\n");
+}
+
+function numberFromValue(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return undefined;
+}
+
+function stringFromValue(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() !== ""
+    ? value.trim()
+    : undefined;
 }

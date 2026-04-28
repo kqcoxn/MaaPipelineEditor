@@ -13,7 +13,11 @@ import {
   useDebugRunProfileStore,
 } from "../../../stores/debugRunProfileStore";
 import { useLocalFileStore } from "../../../stores/localFileStore";
-import { useMFWStore } from "../../../stores/mfwStore";
+import {
+  useMFWStore,
+  type DeviceInfo,
+  type DeviceType,
+} from "../../../stores/mfwStore";
 import { useWSStore } from "../../../stores/wsStore";
 import { useFlowStore } from "../../../stores/flow";
 import { debugContributionRegistry } from "../contributions/registry";
@@ -29,6 +33,7 @@ import {
 } from "../modalUtils";
 import type {
   DebugBatchRecognitionInput,
+  DebugAgentProfile,
   DebugModalPanel,
   DebugRunMode,
   DebugRunRequest,
@@ -37,7 +42,9 @@ import "../contributions/runModes";
 import "../contributions/modalContributions";
 
 export function useDebugModalController() {
-  const [interfaceImportPath, setInterfaceImportPath] = useState("");
+  const [testingAgentIds, setTestingAgentIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const {
     modalOpen,
     activePanel,
@@ -47,6 +54,7 @@ export function useDebugModalController() {
     session,
     activeRun,
     screenshotStream,
+    agentTestResults,
     lastError,
     selectedNodeId,
     closeModal,
@@ -69,6 +77,7 @@ export function useDebugModalController() {
       session: state.session,
       activeRun: state.activeRun,
       screenshotStream: state.screenshotStream,
+      agentTestResults: state.agentTestResults,
       lastError: state.lastError,
       selectedNodeId: state.selectedNodeId,
       closeModal: state.closeModal,
@@ -127,9 +136,19 @@ export function useDebugModalController() {
       connectionStatus: state.connectionStatus,
       controllerType: state.controllerType,
       controllerId: state.controllerId,
+      deviceInfo: state.deviceInfo,
     })),
   );
   const flowNodes = useFlowStore((state) => state.nodes);
+  const controllerDisplayName = useMemo(
+    () =>
+      getControllerDisplayName(
+        mfwState.deviceInfo,
+        mfwState.controllerId,
+        mfwState.controllerType,
+      ),
+    [mfwState.controllerId, mfwState.controllerType, mfwState.deviceInfo],
+  );
 
   const resolvedResourcePaths = useMemo(
     () =>
@@ -188,6 +207,24 @@ export function useDebugModalController() {
     setCapabilitiesLoading,
     setCapabilitiesError,
   ]);
+
+  useEffect(
+    () =>
+      debugProtocolClient.onAgentTested((result) => {
+        setTestingAgentIds((current) => {
+          if (!current.has(result.agentId)) return current;
+          const next = new Set(current);
+          next.delete(result.agentId);
+          return next;
+        });
+        if (result.success) {
+          message.success(result.message);
+        } else {
+          message.error(result.message);
+        }
+      }),
+    [],
+  );
 
   useEffect(() => {
     if (!modalOpen) return;
@@ -398,7 +435,12 @@ export function useDebugModalController() {
       controllerId: mfwState.controllerId,
       force: true,
     });
-    if (!sent) message.error("发送截图请求失败");
+    if (!sent) {
+      message.error("发送截图请求失败");
+      return;
+    }
+    setActivePanel("images");
+    setLastPanel("images");
   };
 
   const startScreenshotStream = () => {
@@ -420,7 +462,12 @@ export function useDebugModalController() {
         profileState.screenshotStreamConfig.intervalMs || 1000,
       ),
     });
-    if (!sent) message.error("发送截图推流启动请求失败");
+    if (!sent) {
+      message.error("发送截图推流启动请求失败");
+      return;
+    }
+    setActivePanel("images");
+    setLastPanel("images");
   };
 
   const stopScreenshotStream = () => {
@@ -536,7 +583,6 @@ export function useDebugModalController() {
           id: agent.id,
           enabled: agent.enabled,
           transport: agent.transport,
-          launchMode: agent.launchMode,
           required: agent.required ?? true,
           timeoutMs: agent.timeoutMs,
           identifier: agent.identifier,
@@ -571,14 +617,37 @@ export function useDebugModalController() {
     if (!sent) message.error("发送批量识别停止请求失败");
   };
 
-  const importInterface = () => {
-    const path = interfaceImportPath.trim();
-    if (!path) {
-      message.warning("请输入 interface.json 路径");
+  const testAgent = (agent: DebugAgentProfile) => {
+    if (!connected) {
+      message.error("LocalBridge 未连接");
       return;
     }
-    const sent = debugProtocolClient.importInterface({ path });
-    if (!sent) message.error("发送 interface 导入请求失败");
+    if (agent.transport === "tcp") {
+      if (!agent.tcpPort || agent.tcpPort <= 0 || agent.tcpPort > 65535) {
+        message.warning("请输入 1-65535 范围内的 TCP 端口");
+        return;
+      }
+    } else if (!agent.identifier?.trim()) {
+      message.warning("请输入代理标识符（Identifier）");
+      return;
+    }
+    const agentId = agent.id.trim() || "agent";
+    setTestingAgentIds((current) => new Set(current).add(agentId));
+    const sent = debugProtocolClient.testAgent({
+      agent: {
+        ...agent,
+        id: agentId,
+        enabled: true,
+      },
+    });
+    if (!sent) {
+      setTestingAgentIds((current) => {
+        const next = new Set(current);
+        next.delete(agentId);
+        return next;
+      });
+      message.error("发送代理连接测试请求失败");
+    }
   };
 
   const requestResourcePreflight = () => {
@@ -647,6 +716,7 @@ export function useDebugModalController() {
     session,
     activeRun,
     screenshotStream,
+    agentTestResults,
     lastError,
     selectedNodeId,
     closeModal,
@@ -669,6 +739,7 @@ export function useDebugModalController() {
     imageListBundleName,
     imageListLoading,
     mfwState,
+    controllerDisplayName,
     flowNodes,
     resolvedResourcePaths,
     resourceKey,
@@ -685,8 +756,7 @@ export function useDebugModalController() {
     performanceRefs,
     batchSummaryRefs,
     agentDiagnostics,
-    interfaceImportPath,
-    setInterfaceImportPath,
+    testingAgentIds,
     startRun,
     confirmActionRun,
     stopRun,
@@ -699,8 +769,9 @@ export function useDebugModalController() {
     stopTraceReplay,
     startBatchRecognition,
     stopBatchRecognition,
-    importInterface,
+    testAgent,
     requestResourcePreflight,
+    invalidateResourcePreflight,
     updateResourcePaths,
     requestArtifact,
     handlePanelClick,
@@ -709,3 +780,27 @@ export function useDebugModalController() {
 }
 
 export type DebugModalController = ReturnType<typeof useDebugModalController>;
+
+function getControllerDisplayName(
+  deviceInfo: DeviceInfo,
+  controllerId: string | null,
+  controllerType: DeviceType,
+): string {
+  if (!deviceInfo || typeof deviceInfo !== "object") {
+    return controllerId ?? "未连接";
+  }
+  const info = deviceInfo as Record<string, unknown>;
+  const keys =
+    controllerType === "win32"
+      ? ["window_name", "class_name", "hwnd"]
+      : controllerType === "macos"
+        ? ["app_name", "name", "pid"]
+        : ["name", "address", "socket_path", "uuid"];
+  for (const key of keys) {
+    const value = info[key];
+    if (typeof value === "string" && value.trim() !== "") {
+      return value.trim();
+    }
+  }
+  return controllerId ?? "未连接";
+}

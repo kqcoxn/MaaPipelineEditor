@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
+	maa "github.com/MaaXYZ/maa-framework-go/v4"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/artifact"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/batch"
-	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/interfaceimport"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/protocol"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/registry"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/replay"
@@ -33,7 +33,6 @@ type Handler struct {
 	screenshots  *screenshot.Service
 	traceReplay  *replay.Service
 	batches      *batch.Service
-	importer     *interfaceimport.Service
 	capabilities protocol.CapabilityManifest
 }
 
@@ -51,7 +50,6 @@ func NewHandler(service *mfw.Service, root string) *Handler {
 		screenshots:  screenshot.NewService(service, artifacts),
 		traceReplay:  replay.NewService(traces),
 		batches:      batch.New(service, root, traces, artifacts),
-		importer:     interfaceimport.NewService(root),
 		capabilities: registry.DefaultCapabilityManifest(),
 	}
 }
@@ -86,8 +84,8 @@ func (h *Handler) Handle(msg models.Message, conn *server.Connection) *models.Me
 		h.handleScreenshotStreamStart(conn, msg)
 	case "/mpe/debug/screenshot/stop":
 		h.handleScreenshotStreamStop(conn, msg)
-	case "/mpe/debug/interface/import":
-		h.handleInterfaceImport(conn, msg)
+	case "/mpe/debug/agent/test":
+		h.handleAgentTest(conn, msg)
 	case "/mpe/debug/trace/snapshot":
 		h.handleTraceSnapshot(conn, msg)
 	case "/mpe/debug/trace/replay/start":
@@ -454,21 +452,45 @@ func (h *Handler) handleScreenshotStreamStop(conn *server.Connection, msg models
 	h.send(conn, "/lte/debug/screenshot_stream_stopped", status)
 }
 
-func (h *Handler) handleInterfaceImport(conn *server.Connection, msg models.Message) {
-	req, err := decodeData[protocol.InterfaceImportRequest](msg)
+func (h *Handler) handleAgentTest(conn *server.Connection, msg models.Message) {
+	req, err := decodeData[protocol.AgentTestRequest](msg)
 	if err != nil {
 		h.sendError(conn, "debug_invalid_request", err.Error(), nil)
 		return
 	}
 
-	result, err := h.importer.Import(req.Path)
-	if err != nil {
-		h.sendError(conn, "debug_interface_import_failed", err.Error(), map[string]string{
-			"path": req.Path,
-		})
-		return
+	result := testAgentConnection(req.Agent)
+	h.send(conn, "/lte/debug/agent_tested", result)
+}
+
+func testAgentConnection(agent protocol.AgentProfile) protocol.AgentTestResult {
+	result := protocol.AgentTestResult{
+		AgentID:   strings.TrimSpace(agent.ID),
+		CheckedAt: time.Now().UTC().Format(time.RFC3339Nano),
 	}
-	h.send(conn, "/lte/debug/interface_imported", result)
+	client, err := createAgentClient(agent)
+	if err != nil {
+		result.Message = err.Error()
+		return result
+	}
+	defer client.Destroy()
+	defer func() { _ = client.Disconnect() }()
+
+	if agent.TimeoutMS > 0 {
+		if err := client.SetTimeout(time.Duration(agent.TimeoutMS) * time.Millisecond); err != nil {
+			result.Message = err.Error()
+			return result
+		}
+	}
+	if err := client.Connect(); err != nil {
+		result.Message = err.Error()
+		return result
+	}
+	result.Success = true
+	result.Message = "agent 连接测试通过，已断开测试连接"
+	result.CustomRecognitions, _ = client.GetCustomRecognitionList()
+	result.CustomActions, _ = client.GetCustomActionList()
+	return result
 }
 
 func (h *Handler) handleTraceSnapshot(conn *server.Connection, msg models.Message) {
@@ -683,6 +705,24 @@ func controllerIDFromOptions(options map[string]interface{}) string {
 		}
 	}
 	return ""
+}
+
+func createAgentClient(agent protocol.AgentProfile) (*maa.AgentClient, error) {
+	switch agent.Transport {
+	case "tcp":
+		if agent.TCPPort <= 0 || agent.TCPPort > 65535 {
+			return nil, fmt.Errorf("tcp agent 端口必须在 1-65535 范围内")
+		}
+		return maa.NewAgentClient(maa.WithTcpPort(uint16(agent.TCPPort)))
+	case "identifier", "":
+		identifier := strings.TrimSpace(agent.Identifier)
+		if identifier == "" {
+			return nil, fmt.Errorf("identifier agent 缺少 identifier")
+		}
+		return maa.NewAgentClient(maa.WithIdentifier(identifier))
+	default:
+		return nil, fmt.Errorf("不支持的 agent transport: %s", agent.Transport)
+	}
 }
 
 func nonEmptyStrings(values []string) []string {

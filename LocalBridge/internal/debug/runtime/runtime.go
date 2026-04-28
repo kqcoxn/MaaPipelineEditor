@@ -4,11 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -33,24 +28,17 @@ type Runtime struct {
 	override  map[string]interface{}
 	policy    protocol.ArtifactPolicy
 
-	adapter        *mfw.MaaFWAdapter
-	taskJob        *maa.TaskJob
-	contextSinkID  int64
-	taskerSinkID   int64
-	agentClients   []*maa.AgentClient
-	agentProcesses []*managedAgentProcess
+	adapter       *mfw.MaaFWAdapter
+	taskJob       *maa.TaskJob
+	contextSinkID int64
+	taskerSinkID  int64
+	agentClients  []*maa.AgentClient
 
 	artifacts     *artifact.Store
 	emit          events.EmitFunc
 	screenshotRef string
 
 	mu sync.Mutex
-}
-
-type managedAgentProcess struct {
-	agentID string
-	cmd     *exec.Cmd
-	done    chan error
 }
 
 type Result struct {
@@ -292,12 +280,6 @@ func (r *Runtime) Destroy() {
 		}
 	}
 	r.agentClients = nil
-	for _, process := range r.agentProcesses {
-		if err := process.stop(); err != nil {
-			r.emitAgentDiagnostic(protocol.AgentProfile{ID: process.agentID}, "warning", "debug.agent.managed_cleanup_failed", err.Error(), nil, nil)
-		}
-	}
-	r.agentProcesses = nil
 
 	if r.adapter == nil {
 		return
@@ -546,7 +528,7 @@ func (r *Runtime) connectAgents(agents []protocol.AgentProfile) error {
 		if !agent.Enabled {
 			continue
 		}
-		prepared, managedProcess, err := r.prepareAgent(agent)
+		prepared, err := r.prepareAgent(agent)
 		if err != nil {
 			if requiredAgent(agent) {
 				return err
@@ -554,16 +536,9 @@ func (r *Runtime) connectAgents(agents []protocol.AgentProfile) error {
 			r.emitAgentDiagnostic(agent, "warning", "debug.agent.prepare_failed", err.Error(), nil, nil)
 			continue
 		}
-		if managedProcess != nil {
-			r.agentProcesses = append(r.agentProcesses, managedProcess)
-			r.emitAgentDiagnostic(prepared, "info", "debug.agent.managed_started", "managed agent 子进程已启动", nil, nil)
-		}
 
 		client, err := createAgentClient(prepared)
 		if err != nil {
-			if managedProcess != nil {
-				_ = managedProcess.stop()
-			}
 			if requiredAgent(prepared) {
 				return err
 			}
@@ -573,9 +548,6 @@ func (r *Runtime) connectAgents(agents []protocol.AgentProfile) error {
 		if prepared.TimeoutMS > 0 {
 			if err := client.SetTimeout(time.Duration(prepared.TimeoutMS) * time.Millisecond); err != nil {
 				client.Destroy()
-				if managedProcess != nil {
-					_ = managedProcess.stop()
-				}
 				if requiredAgent(prepared) {
 					return err
 				}
@@ -586,9 +558,6 @@ func (r *Runtime) connectAgents(agents []protocol.AgentProfile) error {
 		if resource := r.adapter.GetResource(); resource != nil {
 			if err := client.BindResource(resource); err != nil {
 				client.Destroy()
-				if managedProcess != nil {
-					_ = managedProcess.stop()
-				}
 				if requiredAgent(prepared) {
 					return err
 				}
@@ -608,9 +577,6 @@ func (r *Runtime) connectAgents(agents []protocol.AgentProfile) error {
 		}
 		if err := connectAgent(prepared, client); err != nil {
 			client.Destroy()
-			if managedProcess != nil {
-				_ = managedProcess.stop()
-			}
 			if requiredAgent(prepared) {
 				return err
 			}
@@ -625,43 +591,19 @@ func (r *Runtime) connectAgents(agents []protocol.AgentProfile) error {
 	return nil
 }
 
-func (r *Runtime) prepareAgent(agent protocol.AgentProfile) (protocol.AgentProfile, *managedAgentProcess, error) {
+func (r *Runtime) prepareAgent(agent protocol.AgentProfile) (protocol.AgentProfile, error) {
 	prepared := agent
-	if strings.TrimSpace(prepared.LaunchMode) == "" {
-		prepared.LaunchMode = "manual"
-	}
-	if prepared.LaunchMode != "managed" {
-		if prepared.Transport == "tcp" {
-			if prepared.TCPPort <= 0 {
-				return prepared, nil, fmt.Errorf("manual tcp agent 缺少 tcpPort: %s", prepared.ID)
-			}
-			return prepared, nil, nil
-		}
-		if strings.TrimSpace(prepared.Identifier) == "" {
-			return prepared, nil, fmt.Errorf("manual identifier agent 缺少 identifier: %s", prepared.ID)
-		}
-		return prepared, nil, nil
-	}
-
-	if strings.TrimSpace(prepared.ChildExec) == "" {
-		return prepared, nil, fmt.Errorf("managed agent 缺少 childExec: %s", prepared.ID)
-	}
 	if prepared.Transport == "tcp" {
 		if prepared.TCPPort <= 0 {
-			return prepared, nil, fmt.Errorf("managed tcp agent 缺少 tcpPort: %s", prepared.ID)
+			return prepared, fmt.Errorf("tcp agent 缺少 tcpPort: %s", prepared.ID)
 		}
-	} else {
-		prepared.Transport = "identifier"
-		if strings.TrimSpace(prepared.Identifier) == "" {
-			prepared.Identifier = "mpe-debug-agent-" + sanitizeAgentIdentifier(r.runID+"-"+prepared.ID)
-		}
+		return prepared, nil
 	}
-
-	process, err := startManagedAgent(prepared)
-	if err != nil {
-		return prepared, nil, err
+	if strings.TrimSpace(prepared.Identifier) == "" {
+		return prepared, fmt.Errorf("identifier agent 缺少 identifier: %s", prepared.ID)
 	}
-	return prepared, process, nil
+	prepared.Transport = "identifier"
+	return prepared, nil
 }
 
 func (r *Runtime) emitAgentDiagnostic(agent protocol.AgentProfile, severity string, code string, message string, recognitions []string, actions []string) {
@@ -774,102 +716,11 @@ func createAgentClient(agent protocol.AgentProfile) (*maa.AgentClient, error) {
 }
 
 func connectAgent(agent protocol.AgentProfile, client *maa.AgentClient) error {
-	if agent.LaunchMode != "managed" {
-		return client.Connect()
-	}
-	timeout := time.Duration(agent.TimeoutMS) * time.Millisecond
-	if timeout <= 0 {
-		timeout = 5 * time.Second
-	}
-	deadline := time.Now().Add(timeout)
-	var lastErr error
-	for {
-		lastErr = client.Connect()
-		if lastErr == nil {
-			return nil
-		}
-		if time.Now().After(deadline) {
-			return lastErr
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
+	return client.Connect()
 }
 
 func requiredAgent(agent protocol.AgentProfile) bool {
 	return agent.Required == nil || *agent.Required
-}
-
-func startManagedAgent(agent protocol.AgentProfile) (*managedAgentProcess, error) {
-	execPath := strings.TrimSpace(agent.ChildExec)
-	args := append([]string{}, agent.ChildArgs...)
-	cmd := exec.Command(execPath, args...)
-	if strings.TrimSpace(agent.WorkingDir) != "" {
-		cmd.Dir = filepath.Clean(agent.WorkingDir)
-	}
-	cmd.Env = managedAgentEnv(agent)
-	if err := cmd.Start(); err != nil {
-		return nil, fmt.Errorf("启动 managed agent 失败: %w", err)
-	}
-	process := &managedAgentProcess{
-		agentID: agent.ID,
-		cmd:     cmd,
-		done:    make(chan error, 1),
-	}
-	go func() {
-		process.done <- cmd.Wait()
-	}()
-	return process, nil
-}
-
-func managedAgentEnv(agent protocol.AgentProfile) []string {
-	env := os.Environ()
-	add := map[string]string{}
-	for key, value := range agent.Env {
-		add[key] = value
-	}
-	if agent.Identifier != "" {
-		add["PI_AGENT_IDENTIFIER"] = agent.Identifier
-		add["MAA_AGENT_IDENTIFIER"] = agent.Identifier
-	}
-	if agent.Transport == "tcp" && agent.TCPPort > 0 {
-		port := strconv.Itoa(agent.TCPPort)
-		add["PI_AGENT_TCP_PORT"] = port
-		add["MAA_AGENT_TCP_PORT"] = port
-	}
-	keys := make([]string, 0, len(add))
-	for key := range add {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-	for _, key := range keys {
-		env = append(env, key+"="+add[key])
-	}
-	return env
-}
-
-func (p *managedAgentProcess) stop() error {
-	if p == nil || p.cmd == nil || p.cmd.Process == nil {
-		return nil
-	}
-	select {
-	case err := <-p.done:
-		return err
-	default:
-	}
-	if err := p.cmd.Process.Kill(); err != nil {
-		return err
-	}
-	select {
-	case <-p.done:
-		return nil
-	case <-time.After(2 * time.Second):
-		return fmt.Errorf("等待 managed agent 退出超时: %s", p.agentID)
-	}
-}
-
-func sanitizeAgentIdentifier(value string) string {
-	replacer := strings.NewReplacer(" ", "-", "\\", "-", "/", "-", ":", "-", "{", "-", "}", "-")
-	return replacer.Replace(value)
 }
 
 func emitResourceLoadDiagnostics(sessionID string, runID string, emit events.EmitFunc, status string, paths []string, err error) {

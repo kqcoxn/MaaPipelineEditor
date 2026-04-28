@@ -23,9 +23,7 @@ const diagnosticLabels: Record<string, string> = {
   "target-node": "目标节点检查",
   "fixed-image": "固定图输入检查",
   agent: "代理连接诊断",
-  "agent-managed": "托管代理诊断",
   "agent-run-profile": "代理配置诊断",
-  "interface-option": "接口选项诊断",
   "batch-recognition": "批量识别诊断",
   "performance-summary": "性能摘要诊断",
   "trace-replay": "时间线回放诊断",
@@ -49,10 +47,8 @@ const screenshotSourceLabels: Record<string, string> = {
 };
 
 const profileFeatureLabels: Record<string, string> = {
-  "interface-import": "导入 interface.json",
   "multi-resource": "多资源路径",
   "multi-agent": "多代理配置",
-  "managed-agent": "托管代理进程",
   "agent-run-profile": "代理运行配置",
 };
 
