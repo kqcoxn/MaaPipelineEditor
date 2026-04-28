@@ -37,6 +37,13 @@ export interface DebugTraceSummary {
   nodeReplays: Record<string, DebugNodeReplay[]>;
 }
 
+export interface DebugTraceReplayCursor {
+  active: boolean;
+  cursorSeq: number;
+  runId?: string;
+  nodeId?: string;
+}
+
 export interface DebugNodeReplay {
   nodeId: string;
   runtimeName: string;
@@ -286,6 +293,20 @@ export function reduceDebugTrace(
     nodeStates,
     nodeReplays: groupNodeReplays(nodeReplayIndex),
   };
+}
+
+export function reduceDebugTraceForReplay(
+  snapshot: DebugTraceStateSnapshot,
+  cursor: DebugTraceReplayCursor,
+): DebugTraceSummary {
+  if (!cursor.active) return reduceDebugTrace(snapshot);
+  const events = snapshot.events.filter((event) => {
+    if (event.seq > cursor.cursorSeq) return false;
+    if (cursor.runId && event.runId !== cursor.runId) return false;
+    if (cursor.nodeId && event.node?.nodeId !== cursor.nodeId) return false;
+    return true;
+  });
+  return reduceDebugTrace({ events });
 }
 
 function ensureNodeReplay(

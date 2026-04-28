@@ -9,6 +9,7 @@ interface DebugOverlayState {
   executedEdgeIds: Set<string>;
   candidateEdgeIds: Set<string>;
   applyTraceSummary: (summary: DebugTraceSummary) => void;
+  applyReplaySummary: (summary: DebugTraceSummary) => void;
   clearOverlay: () => void;
 }
 
@@ -20,6 +21,16 @@ export const useDebugOverlayStore = create<DebugOverlayState>((set) => ({
   candidateEdgeIds: new Set(),
 
   applyTraceSummary: (summary) =>
+    set({
+      currentNodeId: summary.currentNodeId,
+      visitedNodeIds: new Set(summary.visitedNodeIds),
+      succeededNodeIds: new Set(summary.succeededNodeIds),
+      failedNodeIds: new Set(summary.failedNodeIds),
+      executedEdgeIds: new Set(summary.executedEdgeIds),
+      candidateEdgeIds: new Set(summary.candidateEdgeIds),
+    }),
+
+  applyReplaySummary: (summary) =>
     set({
       currentNodeId: summary.currentNodeId,
       visitedNodeIds: new Set(summary.visitedNodeIds),

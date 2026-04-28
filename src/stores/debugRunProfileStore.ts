@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type {
   DebugArtifactPolicy,
+  DebugBatchRecognitionInput,
   DebugInterfaceImportSelections,
   DebugInterfaceImportResult,
   DebugRunInput,
@@ -24,6 +25,7 @@ interface DebugRunProfileSnapshot {
   profile: DebugRunProfile;
   artifactPolicy: DebugArtifactPolicy;
   fixedImageInput: Pick<DebugRunInput, "imagePath" | "imageRelativePath">;
+  batchRecognitionImages: DebugBatchRecognitionInput[];
   screenshotStreamConfig: DebugScreenshotStreamConfig;
   interfaceImport?: DebugInterfaceImportResult;
   interfaceSelections?: DebugInterfaceImportSelections;
@@ -39,6 +41,7 @@ interface DebugRunProfileState extends DebugRunProfileSnapshot {
   setFixedImageInput: (
     input: Pick<DebugRunInput, "imagePath" | "imageRelativePath">,
   ) => void;
+  setBatchRecognitionImages: (images: DebugBatchRecognitionInput[]) => void;
   applyInterfaceImport: (result: DebugInterfaceImportResult) => void;
   setInterfaceSelections: (selections: DebugInterfaceImportSelections) => void;
   setArtifactPolicy: (policy: DebugArtifactPolicy) => void;
@@ -96,6 +99,7 @@ function readSnapshot(): DebugRunProfileSnapshot {
     profile: createDefaultProfile(),
     artifactPolicy: defaultArtifactPolicy,
     fixedImageInput: {},
+    batchRecognitionImages: [],
     screenshotStreamConfig: defaultScreenshotStreamConfig,
   };
 
@@ -129,6 +133,8 @@ function readSnapshot(): DebugRunProfileSnapshot {
         ...fallback.fixedImageInput,
         ...parsed.fixedImageInput,
       },
+      batchRecognitionImages:
+        parsed.batchRecognitionImages ?? fallback.batchRecognitionImages,
       screenshotStreamConfig: {
         ...defaultScreenshotStreamConfig,
         ...parsed.screenshotStreamConfig,
@@ -186,6 +192,8 @@ export const useDebugRunProfileStore = create<DebugRunProfileState>(
         profile: snapshot.profile ?? current.profile,
         artifactPolicy: snapshot.artifactPolicy ?? current.artifactPolicy,
         fixedImageInput: snapshot.fixedImageInput ?? current.fixedImageInput,
+        batchRecognitionImages:
+          snapshot.batchRecognitionImages ?? current.batchRecognitionImages,
         screenshotStreamConfig:
           snapshot.screenshotStreamConfig ?? current.screenshotStreamConfig,
         interfaceImport:
@@ -258,6 +266,10 @@ export const useDebugRunProfileStore = create<DebugRunProfileState>(
 
       setFixedImageInput: (fixedImageInput) => {
         commit({ fixedImageInput });
+      },
+
+      setBatchRecognitionImages: (batchRecognitionImages) => {
+        commit({ batchRecognitionImages });
       },
 
       applyInterfaceImport: (result) => {

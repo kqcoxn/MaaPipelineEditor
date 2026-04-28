@@ -2,7 +2,7 @@ package protocol
 
 const (
 	Generation      = "debug-vNext"
-	ProtocolVersion = "0.14.0"
+	ProtocolVersion = "0.15.0"
 )
 
 type RunMode string
@@ -25,15 +25,22 @@ type CapabilityManifest struct {
 	Artifacts         []string `json:"artifacts"`
 	ScreenshotSources []string `json:"screenshotSources"`
 	ProfileFeatures   []string `json:"profileFeatures"`
+	DebugFeatures     []string `json:"debugFeatures,omitempty"`
 	Maa               MaaInfo  `json:"maa"`
 }
 
 type MaaInfo struct {
-	MFWVersion               string   `json:"mfwVersion"`
-	SupportedControllers     []string `json:"supportedControllers"`
-	SupportedTaskerAPIs      []string `json:"supportedTaskerApis"`
-	SupportedResourceAPIs    []string `json:"supportedResourceApis"`
-	SupportedAgentTransports []string `json:"supportedAgentTransports"`
+	MFWVersion               string                  `json:"mfwVersion"`
+	SupportedControllers     []string                `json:"supportedControllers"`
+	UnavailableControllers   []UnavailableController `json:"unavailableControllers,omitempty"`
+	SupportedTaskerAPIs      []string                `json:"supportedTaskerApis"`
+	SupportedResourceAPIs    []string                `json:"supportedResourceApis"`
+	SupportedAgentTransports []string                `json:"supportedAgentTransports"`
+}
+
+type UnavailableController struct {
+	Type   string `json:"type"`
+	Reason string `json:"reason"`
 }
 
 type NodeTarget struct {
@@ -159,6 +166,155 @@ type RunStopRequest struct {
 type ArtifactGetRequest struct {
 	SessionID  string `json:"sessionId"`
 	ArtifactID string `json:"artifactId"`
+}
+
+type TraceSnapshotRequest struct {
+	SessionID string `json:"sessionId"`
+	RunID     string `json:"runId,omitempty"`
+}
+
+type TraceSnapshot struct {
+	SessionID string  `json:"sessionId"`
+	RunID     string  `json:"runId,omitempty"`
+	Events    []Event `json:"events"`
+}
+
+type TraceReplayRequest struct {
+	SessionID string `json:"sessionId"`
+	RunID     string `json:"runId,omitempty"`
+	CursorSeq int64  `json:"cursorSeq,omitempty"`
+	NodeID    string `json:"nodeId,omitempty"`
+	Speed     int    `json:"speed,omitempty"`
+}
+
+type TraceReplayStopRequest struct {
+	SessionID string `json:"sessionId"`
+	Reason    string `json:"reason,omitempty"`
+}
+
+type TraceReplayStatus struct {
+	SessionID string `json:"sessionId"`
+	RunID     string `json:"runId,omitempty"`
+	Active    bool   `json:"active"`
+	Playing   bool   `json:"playing"`
+	CursorSeq int64  `json:"cursorSeq"`
+	MinSeq    int64  `json:"minSeq,omitempty"`
+	MaxSeq    int64  `json:"maxSeq,omitempty"`
+	NodeID    string `json:"nodeId,omitempty"`
+	Speed     int    `json:"speed,omitempty"`
+	StartedAt string `json:"startedAt,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
+	StoppedAt string `json:"stoppedAt,omitempty"`
+	Reason    string `json:"reason,omitempty"`
+}
+
+type PerformanceNodeSummary struct {
+	FileID             string `json:"fileId,omitempty"`
+	NodeID             string `json:"nodeId,omitempty"`
+	RuntimeName        string `json:"runtimeName"`
+	Label              string `json:"label,omitempty"`
+	Status             string `json:"status,omitempty"`
+	FirstSeq           int64  `json:"firstSeq"`
+	LastSeq            int64  `json:"lastSeq"`
+	FirstTimestamp     string `json:"firstTimestamp,omitempty"`
+	LastTimestamp      string `json:"lastTimestamp,omitempty"`
+	DurationMs         int64  `json:"durationMs,omitempty"`
+	RecognitionCount   int    `json:"recognitionCount"`
+	ActionCount        int    `json:"actionCount"`
+	NextListCount      int    `json:"nextListCount"`
+	WaitFreezesCount   int    `json:"waitFreezesCount"`
+	DetailRefCount     int    `json:"detailRefCount"`
+	ScreenshotRefCount int    `json:"screenshotRefCount"`
+}
+
+type PerformanceSummary struct {
+	SessionID          string                   `json:"sessionId"`
+	RunID              string                   `json:"runId"`
+	Mode               string                   `json:"mode,omitempty"`
+	Entry              string                   `json:"entry,omitempty"`
+	Status             string                   `json:"status,omitempty"`
+	EventCount         int                      `json:"eventCount"`
+	NodeCount          int                      `json:"nodeCount"`
+	RecognitionCount   int                      `json:"recognitionCount"`
+	ActionCount        int                      `json:"actionCount"`
+	DiagnosticCount    int                      `json:"diagnosticCount"`
+	ArtifactRefCount   int                      `json:"artifactRefCount"`
+	ScreenshotRefCount int                      `json:"screenshotRefCount"`
+	StartedAt          string                   `json:"startedAt,omitempty"`
+	CompletedAt        string                   `json:"completedAt,omitempty"`
+	DurationMs         int64                    `json:"durationMs,omitempty"`
+	Nodes              []PerformanceNodeSummary `json:"nodes"`
+	SlowNodes          []PerformanceNodeSummary `json:"slowNodes"`
+	GeneratedAt        string                   `json:"generatedAt"`
+}
+
+type BatchRecognitionInput struct {
+	ImagePath         string `json:"imagePath,omitempty"`
+	ImageRelativePath string `json:"imageRelativePath,omitempty"`
+}
+
+type BatchRecognitionRequest struct {
+	SessionID        string                    `json:"sessionId,omitempty"`
+	ProfileID        string                    `json:"profileId,omitempty"`
+	Profile          RunProfile                `json:"profile"`
+	GraphSnapshot    GraphSnapshot             `json:"graphSnapshot"`
+	ResolverSnapshot NodeResolverSnapshot      `json:"resolverSnapshot"`
+	Target           NodeTarget                `json:"target"`
+	Overrides        []PipelineOverride        `json:"overrides,omitempty"`
+	ArtifactPolicy   *ArtifactPolicy           `json:"artifactPolicy,omitempty"`
+	Images           []BatchRecognitionInput   `json:"images"`
+	AgentMetadata    []AgentRunProfileMetadata `json:"agentMetadata,omitempty"`
+}
+
+type BatchRecognitionStopRequest struct {
+	SessionID string `json:"sessionId"`
+	BatchID   string `json:"batchId,omitempty"`
+	Reason    string `json:"reason,omitempty"`
+}
+
+type BatchRecognitionImageResult struct {
+	Index             int      `json:"index"`
+	ImagePath         string   `json:"imagePath,omitempty"`
+	ImageRelativePath string   `json:"imageRelativePath,omitempty"`
+	RunID             string   `json:"runId,omitempty"`
+	Status            string   `json:"status"`
+	Hit               *bool    `json:"hit,omitempty"`
+	DurationMs        int64    `json:"durationMs,omitempty"`
+	DetailRefs        []string `json:"detailRefs,omitempty"`
+	ScreenshotRefs    []string `json:"screenshotRefs,omitempty"`
+	Error             string   `json:"error,omitempty"`
+}
+
+type BatchRecognitionResult struct {
+	SessionID          string                        `json:"sessionId"`
+	BatchID            string                        `json:"batchId"`
+	Target             NodeTarget                    `json:"target"`
+	Status             string                        `json:"status"`
+	StartedAt          string                        `json:"startedAt"`
+	CompletedAt        string                        `json:"completedAt,omitempty"`
+	Total              int                           `json:"total"`
+	Completed          int                           `json:"completed"`
+	Succeeded          int                           `json:"succeeded"`
+	Failed             int                           `json:"failed"`
+	Stopped            bool                          `json:"stopped,omitempty"`
+	AverageDurationMs  int64                         `json:"averageDurationMs,omitempty"`
+	Results            []BatchRecognitionImageResult `json:"results"`
+	SummaryArtifactRef string                        `json:"summaryArtifactRef,omitempty"`
+}
+
+type AgentRunProfileMetadata struct {
+	ID                 string   `json:"id"`
+	Enabled            bool     `json:"enabled"`
+	Transport          string   `json:"transport,omitempty"`
+	LaunchMode         string   `json:"launchMode,omitempty"`
+	Required           bool     `json:"required"`
+	TimeoutMS          int      `json:"timeoutMs,omitempty"`
+	Identifier         string   `json:"identifier,omitempty"`
+	TCPPort            int      `json:"tcpPort,omitempty"`
+	CustomRecognitions []string `json:"customRecognitions,omitempty"`
+	CustomActions      []string `json:"customActions,omitempty"`
+	Status             string   `json:"status,omitempty"`
+	Message            string   `json:"message,omitempty"`
 }
 
 type ScreenshotCaptureRequest struct {
@@ -356,8 +512,7 @@ func IsValidRunMode(mode RunMode) bool {
 		RunModeSingleNodeRun,
 		RunModeRecognitionOnly,
 		RunModeActionOnly,
-		RunModeFixedImageRecognition,
-		RunModeReplay:
+		RunModeFixedImageRecognition:
 		return true
 	default:
 		return false

@@ -1096,3 +1096,31 @@ type DebugCapabilityManifest = {
 - PI i18n label/display resolver 未在 P5 扩展，当前保留 raw label/key。
 - 更完整的长历史调试记录持久化不进入 P5；当前 replay 仍限定在内存 session 内。
 - 长期旧调试源码物理清理和仓库级 lint 基线治理继续保留到 P7。
+
+### 2026-04-28 P6：高级调试能力
+
+已完成：
+
+- 前后端 debug-vNext 协议版本同步升级到 `0.15.0`；新增 trace snapshot/replay、performance summary、batch recognition 和 agent run profile 元数据类型。
+- capability manifest 新增 `trace-replay`、`performance-summary`、`batch-recognition`、`agent-run-profile`；`replay`/`record` 不作为可运行 run mode 暴露。
+- 明确记录 MaaFW Go binding 约束：当前 `maa-framework-go/v4` beta.12 和 beta.14 均在源码中声明 `MaaDbgController` / `MaaDbgControllerCreate` intentionally not implemented，因此 P6 不伪造 replay/record controller，仅在 manifest 中通过 `unavailableControllers` 标记 `go-binding-dbg-controller-missing`。
+- LocalBridge 新增 session 内 trace snapshot/replay API：`/mpe/debug/trace/snapshot`、`/mpe/debug/trace/replay/start`、`/mpe/debug/trace/replay/seek`、`/mpe/debug/trace/replay/stop`；replay 只读取当前 session 内存 trace，不落盘。
+- 前端 `debugTraceStore` 增加 live summary 与 replay summary 双视图，画布 overlay 会随 replay cursor 投影节点/边状态；`DebugModal` 时间线面板新增 snapshot、回放、seek 和回到 live 操作。
+- LocalBridge 在 run 完成、失败或用户停止后生成 `performance-summary` JSON artifact，并在完成事件中通过 `performanceSummaryRef` 暴露；summary 基于 trace/detail artifact/timestamp 推导，不引入 native profiler。
+- 前端 `DebugModal` 增加性能面板，展示 run duration、event/node/recognition/action/artifact 计数、慢节点列表，并可打开 performance 和 batch summary artifact。
+- LocalBridge 新增 `/mpe/debug/batch-recognition/start`、`/mpe/debug/batch-recognition/stop`；批量固定图识别按图片串行复用 fixed-image recognition 路径，逐图写入 trace、detail/image refs 和 batch summary artifact，支持停止后返回 partial summary。
+- 前端图像面板新增批量固定图识别入口，默认使用当前 resource 图片列表前 50 张，结果通过当前 session trace/artifact 展示，不持久化报告。
+- Agent run profile 提升为 P6 展示面：profile 内 agent 配置继续本地持久化，运行期 `debug.agent.*` diagnostic 中的 custom recognition/action 会在 Agent 面板展示，并纳入性能/运行摘要语义。
+
+验证记录：
+
+- `go test ./...`（工作目录 `LocalBridge`）：通过。
+- `yarn eslint src/features/debug/types.ts src/features/debug/traceReducer.ts src/features/debug/registerProtocolListeners.ts src/features/debug/contributions/p3.ts src/stores/debugTraceStore.ts src/stores/debugOverlayStore.ts src/services/protocols/DebugProtocolClient.ts src/components/debug/DebugModal.tsx`：通过。
+- `yarn build`：通过；仅保留既有 Vite dynamic import/chunk size 警告。
+- `git diff -- src LocalBridge | Select-String -Pattern '^\\+.*(ToolPanel\\.Debug|debugProtocol\\.register|NewDebugHandlerV2|sendStartDebug\\(|/mpe/debug/start|useDebugStore|debugStore)'`：无新增旧调试入口。
+
+遗留到 P7：
+
+- 长期旧调试源码物理清理和仓库级 lint 基线治理。
+- replay/record controller 真实运行能力等待 MaaFW Go binding 或项目依赖提供可维护的官方 API；当前能力保持不可用门控。
+- PI i18n label/display resolver 未在 P6 扩展，当前保留 raw label/key。

@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/artifact"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/diagnostics"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/performance"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/protocol"
 	debugruntime "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/runtime"
 	debugsession "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/session"
@@ -26,6 +27,7 @@ type Runner struct {
 	traces      *trace.Store
 	artifacts   *artifact.Store
 	diagnostics *diagnostics.Service
+	performance *performance.Service
 
 	mu     sync.Mutex
 	active map[string]*Run
@@ -69,6 +71,7 @@ func New(
 		traces:      traces,
 		artifacts:   artifacts,
 		diagnostics: diagnostics.NewService(service, root),
+		performance: performance.NewService(traces, artifacts),
 		active:      make(map[string]*Run),
 	}
 }
@@ -279,6 +282,7 @@ func (r *Runner) wait(run *Run, eventSender EventSender, snapshotSender Snapshot
 	}
 
 	if run.wasStopRequested() {
+		performanceRef := r.storePerformanceSummary(run)
 		snapshot, err := r.sessions.SetCompleted(run.SessionID)
 		if err == nil {
 			sendSnapshot(snapshotSender, snapshot)
@@ -290,15 +294,18 @@ func (r *Runner) wait(run *Run, eventSender EventSender, snapshotSender Snapshot
 			Kind:      "session",
 			Phase:     "completed",
 			Status:    "stopped",
+			DetailRef: performanceRef,
 			Data: map[string]interface{}{
-				"status": result.Status,
-				"reason": run.stopReasonOrDefault(),
+				"status":                result.Status,
+				"reason":                run.stopReasonOrDefault(),
+				"performanceSummaryRef": performanceRef,
 			},
 		})
 		return
 	}
 
 	if result.OK {
+		performanceRef := r.storePerformanceSummary(run)
 		snapshot, err := r.sessions.SetCompleted(run.SessionID)
 		if err == nil {
 			sendSnapshot(snapshotSender, snapshot)
@@ -310,19 +317,23 @@ func (r *Runner) wait(run *Run, eventSender EventSender, snapshotSender Snapshot
 			Kind:      "session",
 			Phase:     "completed",
 			Status:    "completed",
+			DetailRef: performanceRef,
 			Data: map[string]interface{}{
-				"status": result.Status,
+				"status":                result.Status,
+				"performanceSummaryRef": performanceRef,
 			},
 		})
 		return
 	}
 
+	performanceRef := r.storePerformanceSummary(run)
 	snapshot, err := r.sessions.SetFailed(run.SessionID)
 	if err == nil {
 		sendSnapshot(snapshotSender, snapshot)
 	}
 	data := map[string]interface{}{
-		"status": result.Status,
+		"status":                result.Status,
+		"performanceSummaryRef": performanceRef,
 	}
 	if result.Err != nil {
 		data["error"] = result.Err.Error()
@@ -334,8 +345,18 @@ func (r *Runner) wait(run *Run, eventSender EventSender, snapshotSender Snapshot
 		Kind:      "session",
 		Phase:     "failed",
 		Status:    "failed",
+		DetailRef: performanceRef,
 		Data:      data,
 	})
+}
+
+func (r *Runner) storePerformanceSummary(run *Run) string {
+	ref, _, err := r.performance.Store(run.SessionID, run.ID)
+	if err != nil {
+		logger.Warn("DebugVNext", "写入 performance summary artifact 失败: %v", err)
+		return ""
+	}
+	return ref.ID
 }
 
 func (r *Runner) emitFunc(sender EventSender) func(protocol.Event) {

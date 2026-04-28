@@ -21,7 +21,11 @@ func DefaultCapabilityManifest() protocol.CapabilityManifest {
 			"fixed-image",
 			"agent",
 			"agent-managed",
+			"agent-run-profile",
 			"interface-option",
+			"batch-recognition",
+			"performance-summary",
+			"trace-replay",
 		},
 		Artifacts: []string{
 			"task-detail",
@@ -29,6 +33,8 @@ func DefaultCapabilityManifest() protocol.CapabilityManifest {
 			"action-detail",
 			"screenshot",
 			"screenshot/live",
+			"performance-summary",
+			"batch-recognition-summary",
 		},
 		ScreenshotSources: []string{
 			"manual",
@@ -41,6 +47,13 @@ func DefaultCapabilityManifest() protocol.CapabilityManifest {
 			"multi-resource",
 			"multi-agent",
 			"managed-agent",
+			"agent-run-profile",
+		},
+		DebugFeatures: []string{
+			"trace-replay",
+			"performance-summary",
+			"batch-recognition",
+			"agent-run-profile",
 		},
 		Maa: protocol.MaaInfo{
 			MFWVersion: "unknown",
@@ -48,8 +61,16 @@ func DefaultCapabilityManifest() protocol.CapabilityManifest {
 				"adb",
 				"win32",
 				"dbg",
-				"replay",
-				"record",
+			},
+			UnavailableControllers: []protocol.UnavailableController{
+				{
+					Type:   "replay",
+					Reason: "go-binding-dbg-controller-missing",
+				},
+				{
+					Type:   "record",
+					Reason: "go-binding-dbg-controller-missing",
+				},
 			},
 			SupportedTaskerAPIs: []string{
 				"PostTask",

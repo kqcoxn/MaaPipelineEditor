@@ -29,6 +29,7 @@ import {
   ProfileOutlined,
   ReloadOutlined,
   RobotOutlined,
+  StepForwardOutlined,
   StopOutlined,
   UnorderedListOutlined,
 } from "@ant-design/icons";
@@ -46,6 +47,7 @@ import { useWSStore } from "../../stores/wsStore";
 import { useFlowStore } from "../../stores/flow";
 import type {
   DebugArtifactPolicy,
+  DebugBatchRecognitionInput,
   DebugDiagnostic,
   DebugEvent,
   DebugEventKind,
@@ -74,6 +76,7 @@ const panels: PanelItem[] = [
   { id: "agent", label: "Agent", icon: <RobotOutlined /> },
   { id: "nodes", label: "节点", icon: <NodeIndexOutlined /> },
   { id: "timeline", label: "时间线", icon: <BranchesOutlined /> },
+  { id: "performance", label: "性能", icon: <StepForwardOutlined /> },
   { id: "images", label: "图像", icon: <PictureOutlined /> },
   { id: "diagnostics", label: "诊断", icon: <ApiOutlined /> },
   { id: "logs", label: "日志", icon: <UnorderedListOutlined /> },
@@ -95,6 +98,16 @@ const targetRunModes = new Set<DebugRunMode>([
   "action-only",
   "fixed-image-recognition",
 ]);
+
+function dataArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function stringArray(value: unknown): string[] {
+  return dataArray(value).filter(
+    (item): item is string => typeof item === "string",
+  );
+}
 
 function modeUsesLiveController(mode: DebugRunMode): boolean {
   return mode !== "fixed-image-recognition";
@@ -264,10 +277,13 @@ export function DebugModal() {
   const connected = useWSStore((state) => state.connected);
   const { lastRunMode, setLastPanel, setLastRunMode, setLastEntryNodeId } =
     useDebugModalMemoryStore();
-  const { events, summary } = useDebugTraceStore(
+  const { events, summary, liveSummary, replayStatus, performanceSummary } = useDebugTraceStore(
     useShallow((state) => ({
       events: state.events,
       summary: state.summary,
+      liveSummary: state.liveSummary,
+      replayStatus: state.replayStatus,
+      performanceSummary: state.performanceSummary,
     })),
   );
   const artifacts = useDebugArtifactStore((state) => state.artifacts);
@@ -360,6 +376,30 @@ export function DebugModal() {
   const selectedNodeReplays = selectedNodeId
     ? summary.nodeReplays[selectedNodeId] ?? []
     : [];
+  const performanceRefs = useMemo(
+    () =>
+      events
+        .filter(
+          (event) =>
+            event.detailRef &&
+            typeof event.data?.performanceSummaryRef === "string",
+        )
+        .map((event) => event.detailRef as string),
+    [events],
+  );
+  const batchSummaryRefs = useMemo(
+    () =>
+      events
+        .filter(
+          (event) =>
+            event.detailRef && event.data?.mode === "batch-recognition",
+        )
+        .map((event) => event.detailRef as string),
+    [events],
+  );
+  const agentDiagnostics = diagnosticsState.diagnostics.filter((diagnostic) =>
+    diagnostic.code.startsWith("debug.agent."),
+  );
 
   const startRun = (
     mode: DebugRunMode,
@@ -517,6 +557,137 @@ export function DebugModal() {
     if (!sent) message.error("发送截图推流停止请求失败");
   };
 
+  const requestTraceSnapshot = () => {
+    if (!session?.sessionId) {
+      message.warning("当前没有调试 session");
+      return;
+    }
+    const sent = debugProtocolClient.requestTraceSnapshot({
+      sessionId: session.sessionId,
+      runId: activeRun?.runId,
+    });
+    if (!sent) message.error("发送 trace snapshot 请求失败");
+  };
+
+  const startTraceReplay = () => {
+    if (!session?.sessionId) {
+      message.warning("当前没有调试 session");
+      return;
+    }
+    const sent = debugProtocolClient.startTraceReplay({
+      sessionId: session.sessionId,
+      runId: summary.runId,
+      cursorSeq: replayStatus?.cursorSeq || events[0]?.seq,
+      nodeId: selectedNodeId,
+      speed: replayStatus?.speed ?? 1,
+    });
+    if (!sent) message.error("发送 trace replay 启动请求失败");
+  };
+
+  const seekTraceReplay = (cursorSeq?: number) => {
+    if (!session?.sessionId) {
+      message.warning("当前没有调试 session");
+      return;
+    }
+    const sent = debugProtocolClient.seekTraceReplay({
+      sessionId: session.sessionId,
+      runId: summary.runId,
+      cursorSeq,
+      nodeId: replayStatus?.nodeId,
+      speed: replayStatus?.speed ?? 1,
+    });
+    if (!sent) message.error("发送 trace replay seek 请求失败");
+  };
+
+  const stopTraceReplay = () => {
+    if (!session?.sessionId) {
+      useDebugTraceStore.getState().stopTraceReplay();
+      return;
+    }
+    const sent = debugProtocolClient.stopTraceReplay({
+      sessionId: session.sessionId,
+      reason: "user_stop",
+    });
+    if (!sent) {
+      useDebugTraceStore.getState().stopTraceReplay();
+      message.error("发送 trace replay 停止请求失败");
+    }
+  };
+
+  const startBatchRecognition = () => {
+    if (!selectedNodeId) {
+      message.warning("请选择节点");
+      return;
+    }
+    const selectedImages: DebugBatchRecognitionInput[] =
+      profileState.batchRecognitionImages.length > 0
+        ? profileState.batchRecognitionImages
+        : imageList
+            .slice(0, 50)
+            .map((image) => ({ imageRelativePath: image.relativePath }));
+    if (selectedImages.length === 0) {
+      message.warning("请先刷新并选择 resource 图片");
+      return;
+    }
+    try {
+      const baseRequest = profileState.buildRunRequest(
+        "fixed-image-recognition",
+        selectedNodeId,
+        session?.sessionId,
+      );
+      if (!baseRequest.target) {
+        message.error("批量识别缺少 target");
+        return;
+      }
+      const sent = debugProtocolClient.startBatchRecognition({
+        sessionId: baseRequest.sessionId,
+        profileId: baseRequest.profileId,
+        profile: baseRequest.profile,
+        graphSnapshot: baseRequest.graphSnapshot,
+        resolverSnapshot: baseRequest.resolverSnapshot,
+        target: baseRequest.target,
+        overrides: baseRequest.overrides,
+        artifactPolicy: baseRequest.artifactPolicy,
+        images: selectedImages,
+        agentMetadata: profileState.profile.agents.map((agent) => ({
+          id: agent.id,
+          enabled: agent.enabled,
+          transport: agent.transport,
+          launchMode: agent.launchMode,
+          required: agent.required ?? true,
+          timeoutMs: agent.timeoutMs,
+          identifier: agent.identifier,
+          tcpPort: agent.tcpPort,
+          status: agent.enabled ? "configured" : "disabled",
+        })),
+      });
+      if (!sent) message.error("发送批量识别请求失败");
+    } catch (error) {
+      message.error(
+        error instanceof Error ? error.message : "生成批量识别请求失败",
+      );
+    }
+  };
+
+  const stopBatchRecognition = () => {
+    if (!session?.sessionId) {
+      message.warning("当前没有调试 session");
+      return;
+    }
+    const latestBatch = [...events]
+      .reverse()
+      .find((event) => event.data?.mode === "batch-recognition");
+    const sent = debugProtocolClient.stopBatchRecognition({
+      sessionId: session.sessionId,
+      batchId:
+        typeof latestBatch?.data?.batchId === "string"
+          ? latestBatch.data.batchId
+          : undefined,
+      reason: "user_stop",
+    });
+    if (!sent) message.error("发送批量识别停止请求失败");
+  };
+
   const importInterface = () => {
     const path = interfaceImportPath.trim();
     if (!path) {
@@ -650,16 +821,43 @@ export function DebugModal() {
           </Tag>
           <Tag color="blue">protocol {capabilities?.protocol ?? "unknown"}</Tag>
           <Tag>{capabilityStatus}</Tag>
+          {(capabilities?.debugFeatures ?? []).map((feature) => (
+            <Tag key={feature} color="purple">
+              {feature}
+            </Tag>
+          ))}
+          {(capabilities?.maa.unavailableControllers ?? []).map((item) => (
+            <Tag key={item.type} color="orange">
+              {item.type}: {item.reason}
+            </Tag>
+          ))}
         </Space>
       </DebugSection>
       <DebugSection title="当前 Trace">
         <Space wrap>
           <Tag>events {events.length}</Tag>
+          <Tag>live events {liveSummary.lastEvent?.seq ?? 0}</Tag>
           <Tag>current {summary.currentRuntimeName ?? "-"}</Tag>
+          <Tag color={replayStatus?.active ? "purple" : "default"}>
+            {replayStatus?.active
+              ? `replay #${replayStatus.cursorSeq}`
+              : "live"}
+          </Tag>
           <Tag color="green">visited {summary.visitedNodeIds.length}</Tag>
           <Tag color="red">failed {summary.failedNodeIds.length}</Tag>
         </Space>
       </DebugSection>
+      {performanceSummary && (
+        <DebugSection title="Performance">
+          <Space wrap>
+            <Tag>duration {performanceSummary.durationMs ?? 0}ms</Tag>
+            <Tag>nodes {performanceSummary.nodeCount}</Tag>
+            <Tag>recognition {performanceSummary.recognitionCount}</Tag>
+            <Tag>action {performanceSummary.actionCount}</Tag>
+            <Tag>artifacts {performanceSummary.artifactRefCount}</Tag>
+          </Space>
+        </DebugSection>
+      )}
     </Space>
   );
 
@@ -880,8 +1078,8 @@ export function DebugModal() {
       <Alert
         type="info"
         showIcon
-        message="P5 使用已连接 controller"
-        description="启动请求会自动把 mfwStore.controllerId 写入 profile.controller.options.controllerId；live screenshot 以 artifact ref 写入 trace。"
+        message="P6 controller capability"
+        description="启动请求会自动使用已连接 controller；replay/record 因当前 maa-framework-go 未暴露 MaaDbgController，暂按 capability 标记为不可用。"
       />
     </Space>
   );
@@ -1053,19 +1251,54 @@ export function DebugModal() {
         <DebugSection title="最近 Agent 诊断">
           <List
             size="small"
-            dataSource={diagnosticsState.diagnostics.filter((diagnostic) =>
-              diagnostic.code.startsWith("debug.agent."),
-            )}
+            dataSource={agentDiagnostics}
             locale={{ emptyText: "暂无 agent 诊断" }}
             renderItem={(diagnostic) => (
               <List.Item>
-                <Space>
+                <Space direction="vertical" style={{ width: "100%" }}>
+                  <Space>
                   <Tag>{diagnostic.severity}</Tag>
                   <Text>{diagnostic.message}</Text>
+                  </Space>
+                  <Space wrap>
+                    {stringArray(diagnostic.data?.customRecognitions).map(
+                      (name) => (
+                        <Tag key={`reco-${name}`} color="blue">
+                          reco {name}
+                        </Tag>
+                      ),
+                    )}
+                    {stringArray(diagnostic.data?.customActions).map((name) => (
+                      <Tag key={`act-${name}`} color="purple">
+                        act {name}
+                      </Tag>
+                    ))}
+                  </Space>
                 </Space>
               </List.Item>
             )}
           />
+        </DebugSection>
+        <DebugSection title="Agent Run Profile">
+          <Space direction="vertical" style={{ width: "100%" }}>
+            <Space wrap>
+              <Tag>configured {agents.length}</Tag>
+              <Tag color="green">
+                enabled {agents.filter((agent) => agent.enabled).length}
+              </Tag>
+              <Tag color="purple">
+                connected{" "}
+                {
+                  agentDiagnostics.filter(
+                    (diagnostic) => diagnostic.code === "debug.agent.connected",
+                  ).length
+                }
+              </Tag>
+            </Space>
+            <Text type="secondary">
+              当前 agent 配置随 DebugRunProfile 本地持久化；运行时 custom recognition/action 会写入 trace diagnostic 并进入性能摘要。
+            </Text>
+          </Space>
         </DebugSection>
       </Space>
     );
@@ -1249,20 +1482,125 @@ export function DebugModal() {
   const renderTimeline = () => {
     if (events.length === 0) return <Empty description="暂无 trace event" />;
     return (
-      <List
-        size="small"
-        dataSource={[...events].reverse()}
-        renderItem={(event) => (
-          <List.Item>
-            <List.Item.Meta
-              title={eventTitle(event)}
-              description={renderEventMeta(event)}
+      <Space direction="vertical" size={14} style={{ width: "100%" }}>
+        <DebugSection title="Session Trace Replay">
+          <Space wrap>
+            <Button size="small" onClick={requestTraceSnapshot}>
+              刷新 snapshot
+            </Button>
+            <Button
+              size="small"
+              type="primary"
+              icon={<CaretRightOutlined />}
+              onClick={startTraceReplay}
+            >
+              回放
+            </Button>
+            <InputNumber
+              size="small"
+              min={replayStatus?.minSeq ?? events[0]?.seq ?? 1}
+              max={replayStatus?.maxSeq ?? events[events.length - 1]?.seq ?? 1}
+              value={replayStatus?.cursorSeq ?? summary.lastEvent?.seq}
+              addonBefore="seq"
+              onChange={(value) => seekTraceReplay(value ?? undefined)}
             />
-          </List.Item>
-        )}
-      />
+            <Button size="small" onClick={() => seekTraceReplay(events[0]?.seq)}>
+              到开头
+            </Button>
+            <Button
+              size="small"
+              onClick={() => seekTraceReplay(summary.lastEvent?.seq)}
+            >
+              到当前
+            </Button>
+            <Button size="small" danger onClick={stopTraceReplay}>
+              回到 live
+            </Button>
+            <Tag color={replayStatus?.active ? "purple" : "default"}>
+              {replayStatus?.active ? "replay" : "live"}
+            </Tag>
+            <Tag>
+              range {replayStatus?.minSeq ?? "-"}-{replayStatus?.maxSeq ?? "-"}
+            </Tag>
+            {selectedNodeId && <Tag>node {selectedNodeId}</Tag>}
+          </Space>
+        </DebugSection>
+        <List
+          size="small"
+          dataSource={[...events].reverse()}
+          renderItem={(event) => (
+            <List.Item>
+              <List.Item.Meta
+                title={eventTitle(event)}
+                description={renderEventMeta(event)}
+              />
+            </List.Item>
+          )}
+        />
+      </Space>
     );
   };
+
+  const renderPerformance = () => (
+    <Space direction="vertical" size={14} style={{ width: "100%" }}>
+      <DebugSection title="Performance Summary">
+        {performanceSummary ? (
+          <Space direction="vertical" style={{ width: "100%" }}>
+            <Space wrap>
+              <Tag>run {performanceSummary.runId}</Tag>
+              <Tag>{performanceSummary.status ?? "-"}</Tag>
+              <Tag>duration {performanceSummary.durationMs ?? 0}ms</Tag>
+              <Tag>events {performanceSummary.eventCount}</Tag>
+              <Tag>nodes {performanceSummary.nodeCount}</Tag>
+              <Tag>recognition {performanceSummary.recognitionCount}</Tag>
+              <Tag>action {performanceSummary.actionCount}</Tag>
+              <Tag>screenshots {performanceSummary.screenshotRefCount}</Tag>
+            </Space>
+            <List
+              size="small"
+              dataSource={performanceSummary.slowNodes}
+              locale={{ emptyText: "暂无慢节点" }}
+              renderItem={(node) => (
+                <List.Item>
+                  <Space wrap>
+                    <Text>{node.label || node.runtimeName}</Text>
+                    <Tag>{node.durationMs ?? 0}ms</Tag>
+                    <Tag>{node.status}</Tag>
+                    <Tag>
+                      seq {node.firstSeq}-{node.lastSeq}
+                    </Tag>
+                  </Space>
+                </List.Item>
+              )}
+            />
+          </Space>
+        ) : (
+          <Empty description="运行结束后会生成 performance-summary artifact" />
+        )}
+      </DebugSection>
+      <DebugSection title="Performance Artifacts">
+        <Space wrap>
+          {performanceRefs.map((ref) => (
+            <Button key={ref} size="small" onClick={() => requestArtifact(ref)}>
+              performance #{ref.slice(0, 8)}
+            </Button>
+          ))}
+          {batchSummaryRefs.map((ref) => (
+            <Button key={ref} size="small" onClick={() => requestArtifact(ref)}>
+              batch #{ref.slice(0, 8)}
+            </Button>
+          ))}
+        </Space>
+      </DebugSection>
+      {selectedArtifact?.payload?.data && (
+        <DebugSection title="Selected Artifact JSON">
+          <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>
+            {JSON.stringify(selectedArtifact.payload.data, null, 2)}
+          </pre>
+        </DebugSection>
+      )}
+    </Space>
+  );
 
   const renderImages = () => {
     const entries = Object.values(artifacts);
@@ -1324,6 +1662,28 @@ export function DebugModal() {
                   : image.relativePath,
               }))}
             />
+            <Select
+              mode="multiple"
+              allowClear
+              showSearch
+              loading={imageListLoading}
+              style={{ width: "100%" }}
+              value={profileState.batchRecognitionImages
+                .map((image) => image.imageRelativePath)
+                .filter((path): path is string => Boolean(path))}
+              placeholder="选择批量识别图片；留空时使用前 50 张"
+              onChange={(values) =>
+                profileState.setBatchRecognitionImages(
+                  values.map((imageRelativePath) => ({ imageRelativePath })),
+                )
+              }
+              options={imageList.map((image) => ({
+                value: image.relativePath,
+                label: image.bundleName
+                  ? `${image.relativePath} · ${image.bundleName}`
+                  : image.relativePath,
+              }))}
+            />
             <Input
               value={profileState.fixedImageInput.imagePath}
               onChange={(event) =>
@@ -1366,6 +1726,26 @@ export function DebugModal() {
             </List.Item>
           )}
         />
+        <DebugSection title="批量固定图识别">
+          <Space wrap>
+            <Button
+              type="primary"
+              icon={<FileSearchOutlined />}
+              onClick={startBatchRecognition}
+              disabled={!selectedNodeId || imageList.length === 0}
+            >
+              批量识别前 50 张
+            </Button>
+            <Button danger icon={<StopOutlined />} onClick={stopBatchRecognition}>
+              停止批量
+            </Button>
+            <Tag>images {imageList.length}</Tag>
+            <Tag>
+              selected {profileState.batchRecognitionImages.length || "first 50"}
+            </Tag>
+            <Tag>target {selectedNodeId ?? "-"}</Tag>
+          </Space>
+        </DebugSection>
         {selectedArtifact && (
           <DebugSection title="Artifact Preview">
             {selectedArtifact.error && (
@@ -1468,6 +1848,8 @@ export function DebugModal() {
         return renderNodes();
       case "timeline":
         return renderTimeline();
+      case "performance":
+        return renderPerformance();
       case "images":
         return renderImages();
       case "diagnostics":
@@ -1517,10 +1899,10 @@ export function DebugModal() {
           <Space direction="vertical" size={16} style={{ width: "100%" }}>
             <div>
               <Title level={4} style={{ margin: 0 }}>
-                调试系统 P5
+                调试系统 P6
               </Title>
               <Text type="secondary">
-                Live screenshot、PI option/preset 导入、节点回放与 agent 手动/托管模式已接入。
+                Trace replay、performance summary、批量固定图识别与 agent run profile 已接入；replay/record controller 按 Go binding 能力门控。
               </Text>
             </div>
             {renderPanel()}

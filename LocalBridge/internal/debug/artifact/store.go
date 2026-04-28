@@ -113,6 +113,18 @@ func (s *Store) Get(sessionID string, artifactID string) (protocol.ArtifactPaylo
 	return payload, nil
 }
 
+func (s *Store) ListRefs(sessionID string) []protocol.ArtifactRef {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	sessionArtifacts := s.artifacts[sessionID]
+	refs := make([]protocol.ArtifactRef, 0, len(sessionArtifacts))
+	for _, payload := range sessionArtifacts {
+		refs = append(refs, payload.Ref)
+	}
+	return refs
+}
+
 func (s *Store) DeleteSession(sessionID string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

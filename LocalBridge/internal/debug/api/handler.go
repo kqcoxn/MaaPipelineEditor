@@ -6,9 +6,11 @@ import (
 	"strings"
 
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/artifact"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/batch"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/interfaceimport"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/protocol"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/registry"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/replay"
 	debugrunner "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/runner"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/runutil"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/screenshot"
@@ -28,6 +30,8 @@ type Handler struct {
 	artifacts    *artifact.Store
 	runner       *debugrunner.Runner
 	screenshots  *screenshot.Service
+	traceReplay  *replay.Service
+	batches      *batch.Service
 	importer     *interfaceimport.Service
 	capabilities protocol.CapabilityManifest
 }
@@ -44,6 +48,8 @@ func NewHandler(service *mfw.Service, root string) *Handler {
 		artifacts:    artifacts,
 		runner:       debugrunner.New(service, sessions, traces, artifacts, root),
 		screenshots:  screenshot.NewService(service, artifacts),
+		traceReplay:  replay.NewService(traces),
+		batches:      batch.New(service, root, traces, artifacts),
 		importer:     interfaceimport.NewService(root),
 		capabilities: registry.DefaultCapabilityManifest(),
 	}
@@ -79,6 +85,18 @@ func (h *Handler) Handle(msg models.Message, conn *server.Connection) *models.Me
 		h.handleScreenshotStreamStop(conn, msg)
 	case "/mpe/debug/interface/import":
 		h.handleInterfaceImport(conn, msg)
+	case "/mpe/debug/trace/snapshot":
+		h.handleTraceSnapshot(conn, msg)
+	case "/mpe/debug/trace/replay/start":
+		h.handleTraceReplayStart(conn, msg)
+	case "/mpe/debug/trace/replay/seek":
+		h.handleTraceReplaySeek(conn, msg)
+	case "/mpe/debug/trace/replay/stop":
+		h.handleTraceReplayStop(conn, msg)
+	case "/mpe/debug/batch-recognition/start":
+		h.handleBatchRecognitionStart(conn, msg)
+	case "/mpe/debug/batch-recognition/stop":
+		h.handleBatchRecognitionStop(conn, msg)
 	case "/mpe/debug/start", "/mpe/debug/stop":
 		h.sendError(conn, "debug_legacy_route_removed", "旧调试路由已移除，请使用 debug-vNext 契约", map[string]string{
 			"path": msg.Path,
@@ -115,6 +133,8 @@ func (h *Handler) handleDestroySession(conn *server.Connection, msg models.Messa
 	}
 
 	h.screenshots.StopSession(sessionID)
+	h.traceReplay.StopSession(sessionID)
+	h.batches.StopSession(sessionID)
 	h.runner.DisposeSession(sessionID)
 	if err := h.sessions.Destroy(sessionID); err != nil {
 		h.sendError(conn, "debug_session_not_found", err.Error(), nil)
@@ -385,12 +405,129 @@ func (h *Handler) handleInterfaceImport(conn *server.Connection, msg models.Mess
 	h.send(conn, "/lte/debug/interface_imported", result)
 }
 
+func (h *Handler) handleTraceSnapshot(conn *server.Connection, msg models.Message) {
+	req, err := decodeData[protocol.TraceSnapshotRequest](msg)
+	if err != nil {
+		h.sendError(conn, "debug_invalid_request", err.Error(), nil)
+		return
+	}
+	if _, err := h.sessions.Snapshot(strings.TrimSpace(req.SessionID)); err != nil {
+		h.sendError(conn, "debug_session_not_found", err.Error(), nil)
+		return
+	}
+	snapshot, err := h.traceReplay.Snapshot(req)
+	if err != nil {
+		h.sendError(conn, "debug_trace_snapshot_failed", err.Error(), nil)
+		return
+	}
+	h.send(conn, "/lte/debug/trace_snapshot", snapshot)
+}
+
+func (h *Handler) handleTraceReplayStart(conn *server.Connection, msg models.Message) {
+	req, err := decodeData[protocol.TraceReplayRequest](msg)
+	if err != nil {
+		h.sendError(conn, "debug_invalid_request", err.Error(), nil)
+		return
+	}
+	if _, err := h.sessions.Snapshot(strings.TrimSpace(req.SessionID)); err != nil {
+		h.sendError(conn, "debug_session_not_found", err.Error(), nil)
+		return
+	}
+	status, err := h.traceReplay.Start(req)
+	if err != nil {
+		h.sendError(conn, "debug_trace_replay_failed", err.Error(), nil)
+		return
+	}
+	h.send(conn, "/lte/debug/trace_replay_status", status)
+}
+
+func (h *Handler) handleTraceReplaySeek(conn *server.Connection, msg models.Message) {
+	req, err := decodeData[protocol.TraceReplayRequest](msg)
+	if err != nil {
+		h.sendError(conn, "debug_invalid_request", err.Error(), nil)
+		return
+	}
+	if _, err := h.sessions.Snapshot(strings.TrimSpace(req.SessionID)); err != nil {
+		h.sendError(conn, "debug_session_not_found", err.Error(), nil)
+		return
+	}
+	status, err := h.traceReplay.Seek(req)
+	if err != nil {
+		h.sendError(conn, "debug_trace_replay_failed", err.Error(), nil)
+		return
+	}
+	h.send(conn, "/lte/debug/trace_replay_status", status)
+}
+
+func (h *Handler) handleTraceReplayStop(conn *server.Connection, msg models.Message) {
+	req, err := decodeData[protocol.TraceReplayStopRequest](msg)
+	if err != nil {
+		h.sendError(conn, "debug_invalid_request", err.Error(), nil)
+		return
+	}
+	if _, err := h.sessions.Snapshot(strings.TrimSpace(req.SessionID)); err != nil {
+		h.sendError(conn, "debug_session_not_found", err.Error(), nil)
+		return
+	}
+	status, err := h.traceReplay.Stop(req)
+	if err != nil {
+		h.sendError(conn, "debug_trace_replay_failed", err.Error(), nil)
+		return
+	}
+	h.send(conn, "/lte/debug/trace_replay_status", status)
+}
+
+func (h *Handler) handleBatchRecognitionStart(conn *server.Connection, msg models.Message) {
+	if !h.service.IsInitialized() {
+		h.sendError(conn, "debug_not_initialized", "MaaFramework 未初始化，请先初始化服务", nil)
+		return
+	}
+	req, err := decodeData[protocol.BatchRecognitionRequest](msg)
+	if err != nil {
+		h.sendError(conn, "debug_invalid_request", err.Error(), nil)
+		return
+	}
+	if strings.TrimSpace(req.SessionID) == "" {
+		snapshot := h.sessions.Create(h.capabilities)
+		req.SessionID = snapshot.SessionID
+		h.send(conn, "/lte/debug/session_created", snapshot)
+	} else if _, err := h.sessions.Snapshot(req.SessionID); err != nil {
+		h.sendError(conn, "debug_session_not_found", err.Error(), nil)
+		return
+	}
+	result, err := h.batches.Start(req, func(event protocol.Event) {
+		h.send(conn, "/lte/debug/event", event)
+	})
+	if err != nil {
+		h.sendError(conn, "debug_batch_recognition_failed", err.Error(), map[string]interface{}{
+			"sessionId": req.SessionID,
+		})
+		return
+	}
+	h.send(conn, "/lte/debug/batch_recognition_started", result)
+}
+
+func (h *Handler) handleBatchRecognitionStop(conn *server.Connection, msg models.Message) {
+	req, err := decodeData[protocol.BatchRecognitionStopRequest](msg)
+	if err != nil {
+		h.sendError(conn, "debug_invalid_request", err.Error(), nil)
+		return
+	}
+	if _, err := h.sessions.Snapshot(strings.TrimSpace(req.SessionID)); err != nil {
+		h.sendError(conn, "debug_session_not_found", err.Error(), nil)
+		return
+	}
+	result, err := h.batches.Stop(req)
+	if err != nil {
+		h.sendError(conn, "debug_batch_recognition_stop_failed", err.Error(), nil)
+		return
+	}
+	h.send(conn, "/lte/debug/batch_recognition_stopped", result)
+}
+
 func validateRunRequest(req protocol.RunRequest) error {
 	if !protocol.IsValidRunMode(req.Mode) {
 		return fmt.Errorf("无效的 run mode: %s", req.Mode)
-	}
-	if req.Mode == protocol.RunModeReplay {
-		return fmt.Errorf("unsupported run mode: %s", req.Mode)
 	}
 	if req.Mode == protocol.RunModeActionOnly && (req.Input == nil || !req.Input.ConfirmAction) {
 		return fmt.Errorf("action-only requires input.confirmAction=true")
@@ -408,6 +545,9 @@ func validateRunRequest(req protocol.RunRequest) error {
 		return fmt.Errorf("缺少必需字段: profile.name")
 	}
 	if !isSupportedController(req.Profile.Controller.Type) {
+		if req.Profile.Controller.Type == "replay" || req.Profile.Controller.Type == "record" {
+			return fmt.Errorf("controller.type %s 暂不可用: go-binding-dbg-controller-missing", req.Profile.Controller.Type)
+		}
 		return fmt.Errorf("无效的 controller.type: %s", req.Profile.Controller.Type)
 	}
 	if !isSupportedSavePolicy(req.Profile.SavePolicy) {
@@ -497,7 +637,7 @@ func isCompleteTarget(target protocol.NodeTarget) bool {
 
 func isSupportedController(controllerType string) bool {
 	switch controllerType {
-	case "adb", "win32", "dbg", "replay", "record":
+	case "adb", "win32", "dbg":
 		return true
 	default:
 		return false

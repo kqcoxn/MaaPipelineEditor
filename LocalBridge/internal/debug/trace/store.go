@@ -50,6 +50,21 @@ func (s *Store) List(sessionID string) []protocol.Event {
 	return result
 }
 
+func (s *Store) ListRun(sessionID string, runID string) []protocol.Event {
+	events := s.List(sessionID)
+	if runID == "" {
+		return events
+	}
+
+	result := make([]protocol.Event, 0, len(events))
+	for _, event := range events {
+		if event.RunID == runID {
+			result = append(result, event)
+		}
+	}
+	return result
+}
+
 func (s *Store) DeleteSession(sessionID string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

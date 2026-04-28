@@ -3,6 +3,9 @@ import type { LocalWebSocketServer } from "../server";
 import type {
   DebugArtifactGetRequest,
   DebugArtifactPayload,
+  DebugBatchRecognitionRequest,
+  DebugBatchRecognitionResult,
+  DebugBatchRecognitionStopRequest,
   DebugCapabilityManifest,
   DebugEvent,
   DebugInterfaceImportRequest,
@@ -14,6 +17,11 @@ import type {
   DebugScreenshotStreamStartRequest,
   DebugScreenshotStreamStatus,
   DebugScreenshotStreamStopRequest,
+  DebugTraceReplayRequest,
+  DebugTraceReplayStatus,
+  DebugTraceReplayStopRequest,
+  DebugTraceSnapshot,
+  DebugTraceSnapshotRequest,
   DebugRunStopRequested,
   DebugRunStopRequest,
   DebugSessionSnapshot,
@@ -47,6 +55,18 @@ export class DebugProtocolClient extends BaseProtocol {
   >();
   private readonly screenshotStreamStoppedListeners = new Set<
     Listener<DebugScreenshotStreamStatus>
+  >();
+  private readonly traceSnapshotListeners = new Set<
+    Listener<DebugTraceSnapshot>
+  >();
+  private readonly traceReplayStatusListeners = new Set<
+    Listener<DebugTraceReplayStatus>
+  >();
+  private readonly batchRecognitionStartedListeners = new Set<
+    Listener<DebugBatchRecognitionResult>
+  >();
+  private readonly batchRecognitionStoppedListeners = new Set<
+    Listener<DebugBatchRecognitionResult>
   >();
   private readonly errorListeners = new Set<Listener<DebugProtocolError>>();
 
@@ -92,6 +112,18 @@ export class DebugProtocolClient extends BaseProtocol {
     );
     this.wsClient.registerRoute("/lte/debug/screenshot_stream_stopped", (data) =>
       this.handleScreenshotStreamStopped(data),
+    );
+    this.wsClient.registerRoute("/lte/debug/trace_snapshot", (data) =>
+      this.handleTraceSnapshot(data),
+    );
+    this.wsClient.registerRoute("/lte/debug/trace_replay_status", (data) =>
+      this.handleTraceReplayStatus(data),
+    );
+    this.wsClient.registerRoute("/lte/debug/batch_recognition_started", (data) =>
+      this.handleBatchRecognitionStarted(data),
+    );
+    this.wsClient.registerRoute("/lte/debug/batch_recognition_stopped", (data) =>
+      this.handleBatchRecognitionStopped(data),
     );
     this.wsClient.registerRoute("/lte/debug/error", (data) =>
       this.handleError(data),
@@ -147,6 +179,30 @@ export class DebugProtocolClient extends BaseProtocol {
 
   importInterface(request: DebugInterfaceImportRequest): boolean {
     return this.send("/mpe/debug/interface/import", request);
+  }
+
+  requestTraceSnapshot(request: DebugTraceSnapshotRequest): boolean {
+    return this.send("/mpe/debug/trace/snapshot", request);
+  }
+
+  startTraceReplay(request: DebugTraceReplayRequest): boolean {
+    return this.send("/mpe/debug/trace/replay/start", request);
+  }
+
+  seekTraceReplay(request: DebugTraceReplayRequest): boolean {
+    return this.send("/mpe/debug/trace/replay/seek", request);
+  }
+
+  stopTraceReplay(request: DebugTraceReplayStopRequest): boolean {
+    return this.send("/mpe/debug/trace/replay/stop", request);
+  }
+
+  startBatchRecognition(request: DebugBatchRecognitionRequest): boolean {
+    return this.send("/mpe/debug/batch-recognition/start", request);
+  }
+
+  stopBatchRecognition(request: DebugBatchRecognitionStopRequest): boolean {
+    return this.send("/mpe/debug/batch-recognition/stop", request);
   }
 
   onCapabilities(listener: Listener<DebugCapabilityManifest>): () => void {
@@ -208,6 +264,32 @@ export class DebugProtocolClient extends BaseProtocol {
   ): () => void {
     this.screenshotStreamStoppedListeners.add(listener);
     return () => this.screenshotStreamStoppedListeners.delete(listener);
+  }
+
+  onTraceSnapshot(listener: Listener<DebugTraceSnapshot>): () => void {
+    this.traceSnapshotListeners.add(listener);
+    return () => this.traceSnapshotListeners.delete(listener);
+  }
+
+  onTraceReplayStatus(
+    listener: Listener<DebugTraceReplayStatus>,
+  ): () => void {
+    this.traceReplayStatusListeners.add(listener);
+    return () => this.traceReplayStatusListeners.delete(listener);
+  }
+
+  onBatchRecognitionStarted(
+    listener: Listener<DebugBatchRecognitionResult>,
+  ): () => void {
+    this.batchRecognitionStartedListeners.add(listener);
+    return () => this.batchRecognitionStartedListeners.delete(listener);
+  }
+
+  onBatchRecognitionStopped(
+    listener: Listener<DebugBatchRecognitionResult>,
+  ): () => void {
+    this.batchRecognitionStoppedListeners.add(listener);
+    return () => this.batchRecognitionStoppedListeners.delete(listener);
   }
 
   onError(listener: Listener<DebugProtocolError>): () => void {
@@ -286,6 +368,30 @@ export class DebugProtocolClient extends BaseProtocol {
     const status = data as DebugScreenshotStreamStatus;
     this.screenshotStreamStoppedListeners.forEach((listener) =>
       listener(status),
+    );
+  }
+
+  private handleTraceSnapshot(data: unknown): void {
+    const snapshot = data as DebugTraceSnapshot;
+    this.traceSnapshotListeners.forEach((listener) => listener(snapshot));
+  }
+
+  private handleTraceReplayStatus(data: unknown): void {
+    const status = data as DebugTraceReplayStatus;
+    this.traceReplayStatusListeners.forEach((listener) => listener(status));
+  }
+
+  private handleBatchRecognitionStarted(data: unknown): void {
+    const result = data as DebugBatchRecognitionResult;
+    this.batchRecognitionStartedListeners.forEach((listener) =>
+      listener(result),
+    );
+  }
+
+  private handleBatchRecognitionStopped(data: unknown): void {
+    const result = data as DebugBatchRecognitionResult;
+    this.batchRecognitionStoppedListeners.forEach((listener) =>
+      listener(result),
     );
   }
 

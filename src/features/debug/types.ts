@@ -1,5 +1,5 @@
 export const DEBUG_GENERATION = "debug-vNext" as const;
-export const DEBUG_PROTOCOL_VERSION = "0.14.0" as const;
+export const DEBUG_PROTOCOL_VERSION = "0.15.0" as const;
 
 export type DebugGeneration = typeof DEBUG_GENERATION;
 
@@ -29,6 +29,7 @@ export type DebugModalPanel =
   | "agent"
   | "nodes"
   | "timeline"
+  | "performance"
   | "images"
   | "diagnostics"
   | "logs";
@@ -78,9 +79,19 @@ export interface DebugCapabilityManifest {
   artifacts: string[];
   screenshotSources: string[];
   profileFeatures: DebugProfileFeature[];
+  debugFeatures?: Array<
+    | "trace-replay"
+    | "performance-summary"
+    | "batch-recognition"
+    | "agent-run-profile"
+  >;
   maa: {
     mfwVersion: string;
     supportedControllers: string[];
+    unavailableControllers?: Array<{
+      type: DebugControllerType;
+      reason: string;
+    }>;
     supportedTaskerApis: string[];
     supportedResourceApis: string[];
     supportedAgentTransports: DebugAgentTransport[];
@@ -227,6 +238,155 @@ export interface DebugRunStopRequest {
 export interface DebugArtifactGetRequest {
   sessionId: string;
   artifactId: string;
+}
+
+export interface DebugTraceSnapshotRequest {
+  sessionId: string;
+  runId?: string;
+}
+
+export interface DebugTraceSnapshot {
+  sessionId: string;
+  runId?: string;
+  events: DebugEvent[];
+}
+
+export interface DebugTraceReplayRequest {
+  sessionId: string;
+  runId?: string;
+  cursorSeq?: number;
+  nodeId?: string;
+  speed?: number;
+}
+
+export interface DebugTraceReplayStopRequest {
+  sessionId: string;
+  reason?: string;
+}
+
+export interface DebugTraceReplayStatus {
+  sessionId: string;
+  runId?: string;
+  active: boolean;
+  playing: boolean;
+  cursorSeq: number;
+  minSeq?: number;
+  maxSeq?: number;
+  nodeId?: string;
+  speed?: number;
+  startedAt?: string;
+  updatedAt?: string;
+  stoppedAt?: string;
+  reason?: string;
+}
+
+export interface DebugPerformanceNodeSummary {
+  fileId?: string;
+  nodeId?: string;
+  runtimeName: string;
+  label?: string;
+  status?: string;
+  firstSeq: number;
+  lastSeq: number;
+  firstTimestamp?: string;
+  lastTimestamp?: string;
+  durationMs?: number;
+  recognitionCount: number;
+  actionCount: number;
+  nextListCount: number;
+  waitFreezesCount: number;
+  detailRefCount: number;
+  screenshotRefCount: number;
+}
+
+export interface DebugPerformanceSummary {
+  sessionId: string;
+  runId: string;
+  mode?: string;
+  entry?: string;
+  status?: string;
+  eventCount: number;
+  nodeCount: number;
+  recognitionCount: number;
+  actionCount: number;
+  diagnosticCount: number;
+  artifactRefCount: number;
+  screenshotRefCount: number;
+  startedAt?: string;
+  completedAt?: string;
+  durationMs?: number;
+  nodes: DebugPerformanceNodeSummary[];
+  slowNodes: DebugPerformanceNodeSummary[];
+  generatedAt: string;
+}
+
+export interface DebugBatchRecognitionInput {
+  imagePath?: string;
+  imageRelativePath?: string;
+}
+
+export interface DebugAgentRunProfileMetadata {
+  id: string;
+  enabled: boolean;
+  transport?: DebugAgentTransport;
+  launchMode?: DebugAgentLaunchMode;
+  required: boolean;
+  timeoutMs?: number;
+  identifier?: string;
+  tcpPort?: number;
+  customRecognitions?: string[];
+  customActions?: string[];
+  status?: string;
+  message?: string;
+}
+
+export interface DebugBatchRecognitionRequest {
+  sessionId?: string;
+  profileId?: string;
+  profile: DebugRunProfile;
+  graphSnapshot: DebugGraphSnapshot;
+  resolverSnapshot: DebugNodeResolverSnapshot;
+  target: DebugNodeTarget;
+  overrides?: DebugPipelineOverride[];
+  artifactPolicy?: DebugArtifactPolicy;
+  images: DebugBatchRecognitionInput[];
+  agentMetadata?: DebugAgentRunProfileMetadata[];
+}
+
+export interface DebugBatchRecognitionStopRequest {
+  sessionId: string;
+  batchId?: string;
+  reason?: string;
+}
+
+export interface DebugBatchRecognitionImageResult {
+  index: number;
+  imagePath?: string;
+  imageRelativePath?: string;
+  runId?: string;
+  status: string;
+  hit?: boolean;
+  durationMs?: number;
+  detailRefs?: string[];
+  screenshotRefs?: string[];
+  error?: string;
+}
+
+export interface DebugBatchRecognitionResult {
+  sessionId: string;
+  batchId: string;
+  target: DebugNodeTarget;
+  status: string;
+  startedAt: string;
+  completedAt?: string;
+  total: number;
+  completed: number;
+  succeeded: number;
+  failed: number;
+  stopped?: boolean;
+  averageDurationMs?: number;
+  results: DebugBatchRecognitionImageResult[];
+  summaryArtifactRef?: string;
 }
 
 export interface DebugScreenshotCaptureRequest {
