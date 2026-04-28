@@ -23,10 +23,7 @@ export type DebugSessionStatus =
 
 export type DebugModalPanel =
   | "overview"
-  | "profile"
-  | "resources"
-  | "controller"
-  | "agent"
+  | "setup"
   | "nodes"
   | "timeline"
   | "performance"

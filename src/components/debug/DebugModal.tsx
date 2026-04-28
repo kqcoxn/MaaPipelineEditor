@@ -1,8 +1,15 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import {
   Alert,
   Button,
   Checkbox,
+  Collapse,
   Empty,
   Input,
   InputNumber,
@@ -19,16 +26,14 @@ import {
   ApiOutlined,
   BranchesOutlined,
   CaretRightOutlined,
-  DatabaseOutlined,
   DeleteOutlined,
   FileSearchOutlined,
-  MonitorOutlined,
   NodeIndexOutlined,
   PlusOutlined,
   PictureOutlined,
   ProfileOutlined,
   ReloadOutlined,
-  RobotOutlined,
+  SettingOutlined,
   StepForwardOutlined,
   StopOutlined,
   UnorderedListOutlined,
@@ -58,7 +63,7 @@ import type {
 import { debugContributionRegistry } from "../../features/debug/contributions/registry";
 import { buildDebugSnapshotBundle } from "../../features/debug/snapshot";
 import "../../features/debug/contributions/runModes";
-import "../../features/debug/contributions/p3";
+import "../../features/debug/contributions/modalContributions";
 
 const { Text, Title } = Typography;
 
@@ -70,10 +75,7 @@ interface PanelItem {
 
 const panels: PanelItem[] = [
   { id: "overview", label: "总览", icon: <ProfileOutlined /> },
-  { id: "profile", label: "Profile", icon: <FileSearchOutlined /> },
-  { id: "resources", label: "资源", icon: <DatabaseOutlined /> },
-  { id: "controller", label: "控制器", icon: <MonitorOutlined /> },
-  { id: "agent", label: "Agent", icon: <RobotOutlined /> },
+  { id: "setup", label: "运行配置", icon: <SettingOutlined /> },
   { id: "nodes", label: "节点", icon: <NodeIndexOutlined /> },
   { id: "timeline", label: "时间线", icon: <BranchesOutlined /> },
   { id: "performance", label: "性能", icon: <StepForwardOutlined /> },
@@ -118,6 +120,27 @@ function formatTime(value?: string): string {
   return new Date(value).toLocaleTimeString();
 }
 
+const debugSectionStyle: CSSProperties = {
+  border: "1px solid rgba(5, 5, 5, 0.08)",
+  borderRadius: 6,
+  padding: 14,
+  background: "#fff",
+};
+
+const navStyle: CSSProperties = {
+  width: 168,
+  flexShrink: 0,
+  borderRight: "1px solid rgba(5, 5, 5, 0.08)",
+  paddingRight: 12,
+};
+
+const scrollMainStyle: CSSProperties = {
+  flex: 1,
+  minWidth: 0,
+  maxHeight: 620,
+  overflow: "auto",
+};
+
 function eventTitle(event: DebugEvent): string {
   return [
     `#${event.seq}`,
@@ -137,8 +160,8 @@ function renderEventMeta(event: DebugEvent): ReactNode {
         {event.source}
       </Tag>
       {event.maafwMessage && <Tag>{event.maafwMessage}</Tag>}
-      {event.detailRef && <Tag color="purple">detail</Tag>}
-      {event.screenshotRef && <Tag color="cyan">image</Tag>}
+      {event.detailRef && <Tag color="purple">详情</Tag>}
+      {event.screenshotRef && <Tag color="cyan">图像</Tag>}
     </Space>
   );
 }
@@ -152,14 +175,15 @@ function validateRunRequest(request: DebugRunRequest): DebugDiagnostic[] {
     diagnostics.push({
       severity: "error",
       code: "debug.controller.missing",
-      message: "缺少已连接 controller，无法启动调试。",
+      message: "缺少已连接控制器（Controller），无法启动调试。",
     });
   }
   if (request.profile.resourcePaths.length === 0) {
     diagnostics.push({
       severity: "error",
       code: "debug.resource.empty",
-      message: "resourcePaths 为空，请配置资源路径或刷新 LocalBridge resource bundle。",
+      message:
+        "资源路径（Resource Paths）为空，请配置资源路径或刷新 LocalBridge 资源包（Resource Bundle）。",
     });
   }
   if (!request.graphSnapshot.files.length) {
@@ -180,14 +204,14 @@ function validateRunRequest(request: DebugRunRequest): DebugDiagnostic[] {
     diagnostics.push({
       severity: "error",
       code: "debug.entry.missing",
-      message: "完整运行缺少 profile entry。",
+      message: "完整运行缺少配置档入口（Profile Entry）。",
     });
   }
   if (targetRunModes.has(request.mode) && !request.target?.runtimeName) {
     diagnostics.push({
       severity: "error",
       code: "debug.target.missing",
-      message: "节点级调试缺少 target。",
+      message: "节点级调试缺少目标节点（Target）。",
     });
   }
   if (
@@ -198,7 +222,7 @@ function validateRunRequest(request: DebugRunRequest): DebugDiagnostic[] {
     diagnostics.push({
       severity: "error",
       code: "debug.fixed_image.missing",
-      message: "固定图识别需要先选择 resource 相对图片或输入图片路径。",
+      message: "固定图识别需要先选择资源（Resource）相对图片或输入图片路径。",
     });
   }
   if (request.mode === "action-only" && !request.input?.confirmAction) {
@@ -219,14 +243,7 @@ function DebugSection({
   children: ReactNode;
 }) {
   return (
-    <section
-      style={{
-        border: "1px solid rgba(5, 5, 5, 0.08)",
-        borderRadius: 6,
-        padding: 14,
-        background: "#fff",
-      }}
-    >
+    <section style={debugSectionStyle}>
       <Title level={5} style={{ marginTop: 0 }}>
         {title}
       </Title>
@@ -438,10 +455,10 @@ export function DebugModal() {
         {
           severity: "error",
           code: "debug.controller.missing",
-          message: "请先连接 MaaFramework controller。",
+          message: "请先连接 MaaFramework 控制器（Controller）。",
         },
       ]);
-      message.error("请先连接 MaaFramework controller");
+      message.error("请先连接 MaaFramework 控制器（Controller）");
       return;
     }
 
@@ -484,7 +501,7 @@ export function DebugModal() {
   function confirmActionRun(nodeId?: string) {
     Modal.confirm({
       title: "确认执行动作",
-      content: "仅动作模式会跳过识别，直接执行目标节点 action。",
+      content: "仅动作模式会跳过识别，直接执行目标节点动作（Action）。",
       okText: "确认执行",
       okButtonProps: { danger: true },
       cancelText: "取消",
@@ -494,7 +511,7 @@ export function DebugModal() {
 
   const stopRun = () => {
     if (!session?.sessionId) {
-      message.warning("当前没有调试 session");
+      message.warning("当前没有调试会话（Session）");
       return;
     }
     const sent = debugProtocolClient.stopRun({
@@ -511,7 +528,7 @@ export function DebugModal() {
       return;
     }
     if (!mfwState.controllerId) {
-      message.error("请先连接 MaaFramework controller");
+      message.error("请先连接 MaaFramework 控制器（Controller）");
       return;
     }
     const sent = debugProtocolClient.captureScreenshot({
@@ -528,7 +545,7 @@ export function DebugModal() {
       return;
     }
     if (!mfwState.controllerId) {
-      message.error("请先连接 MaaFramework controller");
+      message.error("请先连接 MaaFramework 控制器（Controller）");
       return;
     }
     const sent = debugProtocolClient.startScreenshotStream({
@@ -546,7 +563,7 @@ export function DebugModal() {
 
   const stopScreenshotStream = () => {
     if (!session?.sessionId) {
-      message.warning("当前没有调试 session");
+      message.warning("当前没有调试会话（Session）");
       return;
     }
     const sent = debugProtocolClient.stopScreenshotStream({
@@ -559,19 +576,19 @@ export function DebugModal() {
 
   const requestTraceSnapshot = () => {
     if (!session?.sessionId) {
-      message.warning("当前没有调试 session");
+      message.warning("当前没有调试会话（Session）");
       return;
     }
     const sent = debugProtocolClient.requestTraceSnapshot({
       sessionId: session.sessionId,
       runId: activeRun?.runId,
     });
-    if (!sent) message.error("发送 trace snapshot 请求失败");
+    if (!sent) message.error("发送追踪快照（Trace Snapshot）请求失败");
   };
 
   const startTraceReplay = () => {
     if (!session?.sessionId) {
-      message.warning("当前没有调试 session");
+      message.warning("当前没有调试会话（Session）");
       return;
     }
     const sent = debugProtocolClient.startTraceReplay({
@@ -581,12 +598,12 @@ export function DebugModal() {
       nodeId: selectedNodeId,
       speed: replayStatus?.speed ?? 1,
     });
-    if (!sent) message.error("发送 trace replay 启动请求失败");
+    if (!sent) message.error("发送追踪回放（Trace Replay）启动请求失败");
   };
 
   const seekTraceReplay = (cursorSeq?: number) => {
     if (!session?.sessionId) {
-      message.warning("当前没有调试 session");
+      message.warning("当前没有调试会话（Session）");
       return;
     }
     const sent = debugProtocolClient.seekTraceReplay({
@@ -596,7 +613,7 @@ export function DebugModal() {
       nodeId: replayStatus?.nodeId,
       speed: replayStatus?.speed ?? 1,
     });
-    if (!sent) message.error("发送 trace replay seek 请求失败");
+    if (!sent) message.error("发送追踪回放定位（Trace Replay Seek）请求失败");
   };
 
   const stopTraceReplay = () => {
@@ -610,7 +627,7 @@ export function DebugModal() {
     });
     if (!sent) {
       useDebugTraceStore.getState().stopTraceReplay();
-      message.error("发送 trace replay 停止请求失败");
+      message.error("发送追踪回放（Trace Replay）停止请求失败");
     }
   };
 
@@ -626,7 +643,7 @@ export function DebugModal() {
             .slice(0, 50)
             .map((image) => ({ imageRelativePath: image.relativePath }));
     if (selectedImages.length === 0) {
-      message.warning("请先刷新并选择 resource 图片");
+      message.warning("请先刷新并选择资源（Resource）图片");
       return;
     }
     try {
@@ -636,7 +653,7 @@ export function DebugModal() {
         session?.sessionId,
       );
       if (!baseRequest.target) {
-        message.error("批量识别缺少 target");
+        message.error("批量识别缺少目标节点（Target）");
         return;
       }
       const sent = debugProtocolClient.startBatchRecognition({
@@ -671,7 +688,7 @@ export function DebugModal() {
 
   const stopBatchRecognition = () => {
     if (!session?.sessionId) {
-      message.warning("当前没有调试 session");
+      message.warning("当前没有调试会话（Session）");
       return;
     }
     const latestBatch = [...events]
@@ -711,7 +728,7 @@ export function DebugModal() {
     if (!sent) {
       useDebugArtifactStore
         .getState()
-        .setError(artifactId, "发送 artifact 请求失败");
+        .setError(artifactId, "发送产物（Artifact）请求失败");
     }
   };
 
@@ -727,7 +744,7 @@ export function DebugModal() {
           type="warning"
           showIcon
           message="LocalBridge 未连接"
-          description="可以先打开调试面板；连接后会读取 vNext capability manifest。"
+          description="可以先打开调试工作台；连接后会读取调试能力清单（Capability Manifest）。"
         />
       )}
       {capabilityStatus === "error" && (
@@ -804,22 +821,22 @@ export function DebugModal() {
           </Button>
         </Space>
       </DebugSection>
-      <DebugSection title="Session">
+      <DebugSection title="会话（Session）">
         <Space wrap>
           <Tag color={session ? "green" : "default"}>
-            {session?.sessionId ?? "no session"}
+            {session?.sessionId ?? "未创建会话"}
           </Tag>
           <Tag>{session?.status ?? summary.status}</Tag>
-          <Tag>run {activeRun?.runId ?? summary.runId ?? "-"}</Tag>
-          <Tag>mode {summary.runMode ?? lastRunMode}</Tag>
+          <Tag>运行 {activeRun?.runId ?? summary.runId ?? "-"}</Tag>
+          <Tag>模式 {summary.runMode ?? lastRunMode}</Tag>
         </Space>
       </DebugSection>
-      <DebugSection title="Capability">
+      <DebugSection title="能力清单（Capability）">
         <Space wrap>
           <Tag color={capabilities ? "green" : "default"}>
-            {capabilities?.generation ?? "pending"}
+            {capabilities?.generation ?? "等待读取"}
           </Tag>
-          <Tag color="blue">protocol {capabilities?.protocol ?? "unknown"}</Tag>
+          <Tag color="blue">协议 {capabilities?.protocol ?? "未知"}</Tag>
           <Tag>{capabilityStatus}</Tag>
           {(capabilities?.debugFeatures ?? []).map((feature) => (
             <Tag key={feature} color="purple">
@@ -833,28 +850,28 @@ export function DebugModal() {
           ))}
         </Space>
       </DebugSection>
-      <DebugSection title="当前 Trace">
+      <DebugSection title="当前追踪（Trace）">
         <Space wrap>
-          <Tag>events {events.length}</Tag>
-          <Tag>live events {liveSummary.lastEvent?.seq ?? 0}</Tag>
-          <Tag>current {summary.currentRuntimeName ?? "-"}</Tag>
+          <Tag>事件 {events.length}</Tag>
+          <Tag>实时事件 {liveSummary.lastEvent?.seq ?? 0}</Tag>
+          <Tag>当前节点 {summary.currentRuntimeName ?? "-"}</Tag>
           <Tag color={replayStatus?.active ? "purple" : "default"}>
             {replayStatus?.active
-              ? `replay #${replayStatus.cursorSeq}`
-              : "live"}
+              ? `回放 #${replayStatus.cursorSeq}`
+              : "实时"}
           </Tag>
-          <Tag color="green">visited {summary.visitedNodeIds.length}</Tag>
-          <Tag color="red">failed {summary.failedNodeIds.length}</Tag>
+          <Tag color="green">已访问 {summary.visitedNodeIds.length}</Tag>
+          <Tag color="red">失败 {summary.failedNodeIds.length}</Tag>
         </Space>
       </DebugSection>
       {performanceSummary && (
-        <DebugSection title="Performance">
+        <DebugSection title="性能摘要（Performance）">
           <Space wrap>
-            <Tag>duration {performanceSummary.durationMs ?? 0}ms</Tag>
-            <Tag>nodes {performanceSummary.nodeCount}</Tag>
-            <Tag>recognition {performanceSummary.recognitionCount}</Tag>
-            <Tag>action {performanceSummary.actionCount}</Tag>
-            <Tag>artifacts {performanceSummary.artifactRefCount}</Tag>
+            <Tag>耗时 {performanceSummary.durationMs ?? 0}ms</Tag>
+            <Tag>节点 {performanceSummary.nodeCount}</Tag>
+            <Tag>识别 {performanceSummary.recognitionCount}</Tag>
+            <Tag>动作 {performanceSummary.actionCount}</Tag>
+            <Tag>产物 {performanceSummary.artifactRefCount}</Tag>
           </Space>
         </DebugSection>
       )}
@@ -863,7 +880,7 @@ export function DebugModal() {
 
   const renderProfile = () => (
     <Space direction="vertical" size={14} style={{ width: "100%" }}>
-      <DebugSection title="Profile">
+      <DebugSection title="基础配置">
         <Space direction="vertical" style={{ width: "100%" }}>
           <Input
             value={profileState.profile.name}
@@ -879,7 +896,7 @@ export function DebugModal() {
               placeholder="interface.json 路径或目录"
             />
             <Button icon={<ApiOutlined />} onClick={importInterface}>
-              导入 interface
+              导入接口（Interface）
             </Button>
           </Space.Compact>
           {profileState.interfaceImport && (
@@ -887,7 +904,7 @@ export function DebugModal() {
               <Alert
                 type="success"
                 showIcon
-                message="interface 已导入"
+                message="接口（Interface）已导入"
                 description={
                   profileState.interfaceImport.entryName ||
                   profileState.interfaceImport.profile.name
@@ -895,14 +912,18 @@ export function DebugModal() {
               />
               <Space wrap>
                 <Tag>
-                  controller{" "}
+                  控制器（Controller）{" "}
                   {profileState.interfaceSelections?.controllerName ?? "-"}
                 </Tag>
                 <Tag>
-                  resource {profileState.interfaceSelections?.resourceName ?? "-"}
+                  资源（Resource）{" "}
+                  {profileState.interfaceSelections?.resourceName ?? "-"}
                 </Tag>
-                <Tag>task {profileState.interfaceSelections?.taskName ?? "-"}</Tag>
-                <Tag>overrides {profileState.interfaceImport.overrides?.length ?? 0}</Tag>
+                <Tag>任务（Task） {profileState.interfaceSelections?.taskName ?? "-"}</Tag>
+                <Tag>
+                  覆盖（Overrides）{" "}
+                  {profileState.interfaceImport.overrides?.length ?? 0}
+                </Tag>
               </Space>
               <Space wrap>
                 {(profileState.interfaceImport.options ?? []).slice(0, 8).map(
@@ -921,7 +942,7 @@ export function DebugModal() {
             style={{ width: 240 }}
             onChange={(savePolicy) => profileState.updateProfile({ savePolicy })}
             options={[
-              { value: "sandbox", label: "Sandbox" },
+              { value: "sandbox", label: "沙盒快照（Sandbox）" },
               { value: "save-open-files", label: "保存打开文件" },
               { value: "use-disk", label: "使用磁盘文件" },
             ]}
@@ -945,7 +966,7 @@ export function DebugModal() {
           </Space>
         </Space>
       </DebugSection>
-      <DebugSection title="Artifact Policy">
+      <DebugSection title="产物策略（Artifact Policy）">
         <Checkbox.Group
           value={Object.entries(profileState.artifactPolicy)
             .filter(([, enabled]) => enabled)
@@ -959,9 +980,9 @@ export function DebugModal() {
             } satisfies DebugArtifactPolicy);
           }}
           options={[
-            { value: "includeRawImage", label: "Raw image" },
-            { value: "includeDrawImage", label: "Draw image" },
-            { value: "includeActionDetail", label: "Action detail" },
+            { value: "includeRawImage", label: "原始图（Raw Image）" },
+            { value: "includeDrawImage", label: "绘制图（Draw Image）" },
+            { value: "includeActionDetail", label: "动作详情（Action Detail）" },
           ]}
         />
       </DebugSection>
@@ -974,14 +995,14 @@ export function DebugModal() {
         type="info"
         showIcon
         message="资源路径"
-        description="留空时会使用 LocalBridge 当前扫描到的 resource bundle 绝对路径。"
+        description="留空时会使用 LocalBridge 当前扫描到的资源包（Resource Bundle）绝对路径。"
       />
       <Select
         mode="tags"
         style={{ width: "100%" }}
         value={profileState.profile.resourcePaths}
         onChange={profileState.setResourcePaths}
-        placeholder="选择或输入 resource 路径"
+        placeholder="选择或输入资源（Resource）路径"
         options={resourceBundles.map((bundle) => ({
           value: bundle.abs_path,
           label: `${bundle.name} · ${bundle.abs_path}`,
@@ -991,7 +1012,7 @@ export function DebugModal() {
         size="small"
         bordered
         dataSource={resourceBundles}
-        locale={{ emptyText: "尚未加载 resource bundle" }}
+        locale={{ emptyText: "尚未加载资源包（Resource Bundle）" }}
         renderItem={(bundle) => (
           <List.Item>
             <Space wrap>
@@ -999,7 +1020,7 @@ export function DebugModal() {
               <Tag color={bundle.has_pipeline ? "green" : "default"}>
                 pipeline
               </Tag>
-              <Tag color={bundle.has_image ? "green" : "default"}>image</Tag>
+              <Tag color={bundle.has_image ? "green" : "default"}>图片</Tag>
               <Text type="secondary">{bundle.abs_path}</Text>
             </Space>
           </List.Item>
@@ -1010,13 +1031,13 @@ export function DebugModal() {
 
   const renderController = () => (
     <Space direction="vertical" size={14} style={{ width: "100%" }}>
-      <DebugSection title="当前 Controller">
+      <DebugSection title="当前控制器（Controller）">
         <Space wrap>
           <Tag color={mfwState.connectionStatus === "connected" ? "green" : "red"}>
             {mfwState.connectionStatus}
           </Tag>
-          <Tag>{mfwState.controllerType ?? "none"}</Tag>
-          <Tag>{mfwState.controllerId ?? "no controllerId"}</Tag>
+          <Tag>{mfwState.controllerType ?? "无类型"}</Tag>
+          <Tag>{mfwState.controllerId ?? "无控制器 ID"}</Tag>
           <Button
             size="small"
             icon={<PictureOutlined />}
@@ -1044,13 +1065,13 @@ export function DebugModal() {
           </Button>
         </Space>
       </DebugSection>
-      <DebugSection title="Live Screenshot">
+      <DebugSection title="实时截图（Live Screenshot）">
         <Space wrap>
           <InputNumber
             min={250}
             step={250}
             value={profileState.screenshotStreamConfig.intervalMs}
-            addonBefore="interval ms"
+            addonBefore="间隔 ms"
             onChange={(intervalMs) =>
               profileState.setScreenshotStreamConfig({
                 ...profileState.screenshotStreamConfig,
@@ -1067,19 +1088,19 @@ export function DebugModal() {
               })
             }
           >
-            force screencap
+            强制截图
           </Checkbox>
           <Tag color={screenshotStream?.active ? "green" : "default"}>
-            {screenshotStream?.active ? "streaming" : "stopped"}
+            {screenshotStream?.active ? "推流中" : "已停止"}
           </Tag>
-          <Tag>frames {screenshotStream?.frameCount ?? 0}</Tag>
+          <Tag>帧数 {screenshotStream?.frameCount ?? 0}</Tag>
         </Space>
       </DebugSection>
       <Alert
         type="info"
         showIcon
-        message="P6 controller capability"
-        description="启动请求会自动使用已连接 controller；replay/record 因当前 maa-framework-go 未暴露 MaaDbgController，暂按 capability 标记为不可用。"
+        message="控制器能力"
+        description="启动请求会自动使用已连接控制器（Controller）；回放（Replay）/录制（Record）因当前 maa-framework-go 未暴露 MaaDbgController，按能力清单标记为不可用。"
       />
     </Space>
   );
@@ -1113,12 +1134,12 @@ export function DebugModal() {
     return (
       <Space direction="vertical" size={14} style={{ width: "100%" }}>
         <Button icon={<PlusOutlined />} onClick={addAgent}>
-          添加 Agent
+          添加代理（Agent）
         </Button>
         <List
           bordered
           dataSource={agents}
-          locale={{ emptyText: "未配置 agent" }}
+          locale={{ emptyText: "未配置代理（Agent）" }}
           renderItem={(agent, index) => (
             <List.Item
               actions={[
@@ -1146,7 +1167,7 @@ export function DebugModal() {
                     onChange={(event) =>
                       updateAgent(index, { id: event.target.value })
                     }
-                    addonBefore="ID"
+                    addonBefore="标识"
                     style={{ width: 220 }}
                   />
                   <Select
@@ -1154,8 +1175,8 @@ export function DebugModal() {
                     style={{ width: 140 }}
                     onChange={(launchMode) => updateAgent(index, { launchMode })}
                     options={[
-                      { value: "manual", label: "manual" },
-                      { value: "managed", label: "managed" },
+                      { value: "manual", label: "手动（Manual）" },
+                      { value: "managed", label: "托管（Managed）" },
                     ]}
                   />
                   <Select
@@ -1163,8 +1184,8 @@ export function DebugModal() {
                     style={{ width: 140 }}
                     onChange={(transport) => updateAgent(index, { transport })}
                     options={[
-                      { value: "identifier", label: "identifier" },
-                      { value: "tcp", label: "tcp" },
+                      { value: "identifier", label: "标识符（Identifier）" },
+                      { value: "tcp", label: "TCP" },
                     ]}
                   />
                   {agent.transport === "tcp" ? (
@@ -1172,7 +1193,7 @@ export function DebugModal() {
                       value={agent.tcpPort}
                       min={1}
                       max={65535}
-                      placeholder="tcp port"
+                      placeholder="TCP 端口"
                       onChange={(tcpPort) =>
                         updateAgent(index, { tcpPort: tcpPort ?? undefined })
                       }
@@ -1183,7 +1204,7 @@ export function DebugModal() {
                       onChange={(event) =>
                         updateAgent(index, { identifier: event.target.value })
                       }
-                      placeholder="identifier"
+                      placeholder="代理标识符（Identifier）"
                       style={{ width: 240 }}
                     />
                   )}
@@ -1191,7 +1212,7 @@ export function DebugModal() {
                     value={agent.timeoutMs}
                     min={0}
                     step={100}
-                    placeholder="timeout ms"
+                    placeholder="超时 ms"
                     onChange={(timeoutMs) =>
                       updateAgent(index, { timeoutMs: timeoutMs ?? undefined })
                     }
@@ -1202,7 +1223,7 @@ export function DebugModal() {
                       updateAgent(index, { required: event.target.checked })
                     }
                   >
-                    required
+                    必需
                   </Checkbox>
                 </Space>
                 {agent.launchMode === "managed" && (
@@ -1213,7 +1234,7 @@ export function DebugModal() {
                         onChange={(event) =>
                           updateAgent(index, { childExec: event.target.value })
                         }
-                        addonBefore="child_exec"
+                        addonBefore="子进程"
                         style={{ width: 360 }}
                       />
                       <Input
@@ -1226,7 +1247,7 @@ export function DebugModal() {
                               .filter(Boolean),
                           })
                         }
-                        addonBefore="child_args"
+                        addonBefore="参数"
                         style={{ width: 420 }}
                       />
                     </Space>
@@ -1237,10 +1258,10 @@ export function DebugModal() {
                           workingDirectory: event.target.value,
                         })
                       }
-                      addonBefore="cwd"
+                      addonBefore="工作目录"
                     />
                     <Text type="secondary">
-                      managed 模式会由 LocalBridge 启动子进程并注入 PI_* / MAA_AGENT_* 环境变量；manual 模式只连接外部已启动 agent。
+                      托管模式（Managed）会由 LocalBridge 启动子进程并注入 PI_* / MAA_AGENT_* 环境变量；手动模式（Manual）只连接外部已启动代理（Agent）。
                     </Text>
                   </Space>
                 )}
@@ -1248,11 +1269,11 @@ export function DebugModal() {
             </List.Item>
           )}
         />
-        <DebugSection title="最近 Agent 诊断">
+        <DebugSection title="最近代理（Agent）诊断">
           <List
             size="small"
             dataSource={agentDiagnostics}
-            locale={{ emptyText: "暂无 agent 诊断" }}
+            locale={{ emptyText: "暂无代理（Agent）诊断" }}
             renderItem={(diagnostic) => (
               <List.Item>
                 <Space direction="vertical" style={{ width: "100%" }}>
@@ -1279,15 +1300,15 @@ export function DebugModal() {
             )}
           />
         </DebugSection>
-        <DebugSection title="Agent Run Profile">
+        <DebugSection title="代理运行配置（Agent Run Profile）">
           <Space direction="vertical" style={{ width: "100%" }}>
             <Space wrap>
-              <Tag>configured {agents.length}</Tag>
+              <Tag>已配置 {agents.length}</Tag>
               <Tag color="green">
-                enabled {agents.filter((agent) => agent.enabled).length}
+                已启用 {agents.filter((agent) => agent.enabled).length}
               </Tag>
               <Tag color="purple">
-                connected{" "}
+                已连接{" "}
                 {
                   agentDiagnostics.filter(
                     (diagnostic) => diagnostic.code === "debug.agent.connected",
@@ -1296,13 +1317,43 @@ export function DebugModal() {
               </Tag>
             </Space>
             <Text type="secondary">
-              当前 agent 配置随 DebugRunProfile 本地持久化；运行时 custom recognition/action 会写入 trace diagnostic 并进入性能摘要。
+              当前代理（Agent）配置随调试配置档（DebugRunProfile）本地持久化；运行时自定义识别/动作（Custom Recognition/Action）会写入追踪诊断（Trace Diagnostic）并进入性能摘要。
             </Text>
           </Space>
         </DebugSection>
       </Space>
     );
   };
+
+  const renderSetup = () => (
+    <Space direction="vertical" size={14} style={{ width: "100%" }}>
+      <Collapse
+        defaultActiveKey={["profile", "resources"]}
+        items={[
+          {
+            key: "profile",
+            label: "配置档与接口（Profile / Interface）",
+            children: renderProfile(),
+          },
+          {
+            key: "resources",
+            label: "资源路径（Resource）",
+            children: renderResources(),
+          },
+          {
+            key: "controller",
+            label: "控制器与截图（Controller / Screenshot）",
+            children: renderController(),
+          },
+          {
+            key: "agent",
+            label: "代理（Agent）",
+            children: renderAgent(),
+          },
+        ]}
+      />
+    </Space>
+  );
 
   const renderNodes = () => (
     <Space direction="vertical" size={14} style={{ width: "100%" }}>
@@ -1315,18 +1366,18 @@ export function DebugModal() {
             <Space wrap>
               <Tag>{selectedNodeDetail.label ?? selectedNodeId}</Tag>
               <Tag>
-                trace{" "}
+                追踪{" "}
                 {
                   events.filter(
                     (event) => event.node?.nodeId === selectedNodeId,
                   ).length
                 }
               </Tag>
-              <Tag>runs {selectedNodeReplays.length}</Tag>
+              <Tag>运行 {selectedNodeReplays.length}</Tag>
             </Space>
-            <DebugSection title="Session 回放">
+            <DebugSection title="会话回放（Session Replay）">
               {selectedNodeReplays.length === 0 ? (
-                <Empty description="当前 session 中暂无该节点运行事件" />
+                <Empty description="当前会话（Session）中暂无该节点运行事件" />
               ) : (
                 <List
                   size="small"
@@ -1338,14 +1389,14 @@ export function DebugModal() {
                           <Tag color={replay.status === "failed" ? "red" : "blue"}>
                             {replay.status}
                           </Tag>
-                          <Tag>run {replay.runId || "-"}</Tag>
+                          <Tag>运行 {replay.runId || "-"}</Tag>
                           <Tag>
                             seq {replay.firstSeq}-{replay.lastSeq}
                           </Tag>
-                          <Tag>recognition {replay.recognitionEvents.length}</Tag>
-                          <Tag>action {replay.actionEvents.length}</Tag>
-                          <Tag>next-list {replay.nextListEvents.length}</Tag>
-                          <Tag>wait-freezes {replay.waitFreezesEvents.length}</Tag>
+                          <Tag>识别 {replay.recognitionEvents.length}</Tag>
+                          <Tag>动作 {replay.actionEvents.length}</Tag>
+                          <Tag>候选列表 {replay.nextListEvents.length}</Tag>
+                          <Tag>等待静止 {replay.waitFreezesEvents.length}</Tag>
                         </Space>
                         <Space wrap>
                           {replay.detailRefs.map((ref) => (
@@ -1354,7 +1405,7 @@ export function DebugModal() {
                               size="small"
                               onClick={() => requestArtifact(ref)}
                             >
-                              detail #{ref.slice(0, 8)}
+                              详情 #{ref.slice(0, 8)}
                             </Button>
                           ))}
                           {replay.screenshotRefs.map((ref) => (
@@ -1364,7 +1415,7 @@ export function DebugModal() {
                               icon={<PictureOutlined />}
                               onClick={() => requestArtifact(ref)}
                             >
-                              image #{ref.slice(0, 8)}
+                              图像 #{ref.slice(0, 8)}
                             </Button>
                           ))}
                         </Space>
@@ -1467,7 +1518,7 @@ export function DebugModal() {
               title={
                 <Space>
                   <Text strong={active}>{node.displayName}</Text>
-                  {active && <Tag color="blue">selected</Tag>}
+                  {active && <Tag color="blue">已选中</Tag>}
                 </Space>
               }
               description={`${node.fileId} · ${node.runtimeName}`}
@@ -1480,13 +1531,13 @@ export function DebugModal() {
   );
 
   const renderTimeline = () => {
-    if (events.length === 0) return <Empty description="暂无 trace event" />;
+    if (events.length === 0) return <Empty description="暂无追踪事件（Trace Event）" />;
     return (
       <Space direction="vertical" size={14} style={{ width: "100%" }}>
-        <DebugSection title="Session Trace Replay">
+        <DebugSection title="会话追踪回放（Session Trace Replay）">
           <Space wrap>
             <Button size="small" onClick={requestTraceSnapshot}>
-              刷新 snapshot
+              刷新快照（Snapshot）
             </Button>
             <Button
               size="small"
@@ -1514,15 +1565,15 @@ export function DebugModal() {
               到当前
             </Button>
             <Button size="small" danger onClick={stopTraceReplay}>
-              回到 live
+              回到实时（Live）
             </Button>
             <Tag color={replayStatus?.active ? "purple" : "default"}>
-              {replayStatus?.active ? "replay" : "live"}
+              {replayStatus?.active ? "回放" : "实时"}
             </Tag>
             <Tag>
-              range {replayStatus?.minSeq ?? "-"}-{replayStatus?.maxSeq ?? "-"}
+              范围 {replayStatus?.minSeq ?? "-"}-{replayStatus?.maxSeq ?? "-"}
             </Tag>
-            {selectedNodeId && <Tag>node {selectedNodeId}</Tag>}
+            {selectedNodeId && <Tag>节点 {selectedNodeId}</Tag>}
           </Space>
         </DebugSection>
         <List
@@ -1543,18 +1594,18 @@ export function DebugModal() {
 
   const renderPerformance = () => (
     <Space direction="vertical" size={14} style={{ width: "100%" }}>
-      <DebugSection title="Performance Summary">
+      <DebugSection title="性能摘要（Performance Summary）">
         {performanceSummary ? (
           <Space direction="vertical" style={{ width: "100%" }}>
             <Space wrap>
-              <Tag>run {performanceSummary.runId}</Tag>
+              <Tag>运行 {performanceSummary.runId}</Tag>
               <Tag>{performanceSummary.status ?? "-"}</Tag>
-              <Tag>duration {performanceSummary.durationMs ?? 0}ms</Tag>
-              <Tag>events {performanceSummary.eventCount}</Tag>
-              <Tag>nodes {performanceSummary.nodeCount}</Tag>
-              <Tag>recognition {performanceSummary.recognitionCount}</Tag>
-              <Tag>action {performanceSummary.actionCount}</Tag>
-              <Tag>screenshots {performanceSummary.screenshotRefCount}</Tag>
+              <Tag>耗时 {performanceSummary.durationMs ?? 0}ms</Tag>
+              <Tag>事件 {performanceSummary.eventCount}</Tag>
+              <Tag>节点 {performanceSummary.nodeCount}</Tag>
+              <Tag>识别 {performanceSummary.recognitionCount}</Tag>
+              <Tag>动作 {performanceSummary.actionCount}</Tag>
+              <Tag>截图 {performanceSummary.screenshotRefCount}</Tag>
             </Space>
             <List
               size="small"
@@ -1575,25 +1626,25 @@ export function DebugModal() {
             />
           </Space>
         ) : (
-          <Empty description="运行结束后会生成 performance-summary artifact" />
+          <Empty description="运行结束后会生成性能摘要产物（Performance Summary Artifact）" />
         )}
       </DebugSection>
-      <DebugSection title="Performance Artifacts">
+      <DebugSection title="性能产物（Performance Artifacts）">
         <Space wrap>
           {performanceRefs.map((ref) => (
             <Button key={ref} size="small" onClick={() => requestArtifact(ref)}>
-              performance #{ref.slice(0, 8)}
+              性能 #{ref.slice(0, 8)}
             </Button>
           ))}
           {batchSummaryRefs.map((ref) => (
             <Button key={ref} size="small" onClick={() => requestArtifact(ref)}>
-              batch #{ref.slice(0, 8)}
+              批量 #{ref.slice(0, 8)}
             </Button>
           ))}
         </Space>
       </DebugSection>
       {selectedArtifact?.payload?.data && (
-        <DebugSection title="Selected Artifact JSON">
+        <DebugSection title="已选产物 JSON（Artifact JSON）">
           <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>
             {JSON.stringify(selectedArtifact.payload.data, null, 2)}
           </pre>
@@ -1606,7 +1657,7 @@ export function DebugModal() {
     const entries = Object.values(artifacts);
     return (
       <Space direction="vertical" size={14} style={{ width: "100%" }}>
-        <DebugSection title="Live Screenshot">
+        <DebugSection title="实时截图（Live Screenshot）">
           <Space wrap>
             <Button
               icon={<CaretRightOutlined />}
@@ -1624,10 +1675,10 @@ export function DebugModal() {
               停止推流
             </Button>
             <Tag color={screenshotStream?.active ? "green" : "default"}>
-              {screenshotStream?.active ? "streaming" : "stopped"}
+              {screenshotStream?.active ? "推流中" : "已停止"}
             </Tag>
-            <Tag>interval {profileState.screenshotStreamConfig.intervalMs}ms</Tag>
-            <Tag>frames {screenshotStream?.frameCount ?? 0}</Tag>
+            <Tag>间隔 {profileState.screenshotStreamConfig.intervalMs}ms</Tag>
+            <Tag>帧数 {screenshotStream?.frameCount ?? 0}</Tag>
           </Space>
         </DebugSection>
         <DebugSection title="固定图输入">
@@ -1638,9 +1689,9 @@ export function DebugModal() {
                 onClick={() => resourceProtocol.requestImageList()}
                 loading={imageListLoading}
               >
-                刷新 resource 图片
+                刷新资源（Resource）图片
               </Button>
-              <Tag>{imageListBundleName || "all resources"}</Tag>
+              <Tag>{imageListBundleName || "全部资源"}</Tag>
             </Space>
             <Select
               allowClear
@@ -1648,7 +1699,7 @@ export function DebugModal() {
               loading={imageListLoading}
               style={{ width: "100%" }}
               value={profileState.fixedImageInput.imageRelativePath}
-              placeholder="选择 resource/image 下的相对路径"
+              placeholder="选择资源 image 目录下的相对路径（resource/image）"
               onChange={(imageRelativePath) =>
                 profileState.setFixedImageInput({
                   ...profileState.fixedImageInput,
@@ -1692,8 +1743,8 @@ export function DebugModal() {
                   imagePath: event.target.value,
                 })
               }
-              addonBefore="imagePath"
-              placeholder="项目根或 resource 路径内的图片文件"
+              addonBefore="图片路径"
+              placeholder="项目根或资源（Resource）路径内的图片文件"
             />
           </Space>
         </DebugSection>
@@ -1701,7 +1752,7 @@ export function DebugModal() {
           bordered
           size="small"
           dataSource={entries}
-          locale={{ emptyText: "暂无 artifact" }}
+          locale={{ emptyText: "暂无产物（Artifact）" }}
           renderItem={(entry) => (
             <List.Item
               actions={[
@@ -1739,15 +1790,15 @@ export function DebugModal() {
             <Button danger icon={<StopOutlined />} onClick={stopBatchRecognition}>
               停止批量
             </Button>
-            <Tag>images {imageList.length}</Tag>
+            <Tag>图片 {imageList.length}</Tag>
             <Tag>
-              selected {profileState.batchRecognitionImages.length || "first 50"}
+              已选 {profileState.batchRecognitionImages.length || "前 50 张"}
             </Tag>
-            <Tag>target {selectedNodeId ?? "-"}</Tag>
+            <Tag>目标 {selectedNodeId ?? "-"}</Tag>
           </Space>
         </DebugSection>
         {selectedArtifact && (
-          <DebugSection title="Artifact Preview">
+          <DebugSection title="产物预览（Artifact Preview）">
             {selectedArtifact.error && (
               <Alert type="error" showIcon message={selectedArtifact.error} />
             )}
@@ -1836,14 +1887,8 @@ export function DebugModal() {
     switch (activePanel) {
       case "overview":
         return renderOverview();
-      case "profile":
-        return renderProfile();
-      case "resources":
-        return renderResources();
-      case "controller":
-        return renderController();
-      case "agent":
-        return renderAgent();
+      case "setup":
+        return renderSetup();
       case "nodes":
         return renderNodes();
       case "timeline":
@@ -1863,7 +1908,7 @@ export function DebugModal() {
 
   return (
     <Modal
-      title="调试"
+      title="调试工作台"
       open={modalOpen}
       onCancel={closeModal}
       width="min(1180px, calc(100vw - 48px))"
@@ -1871,14 +1916,7 @@ export function DebugModal() {
       destroyOnHidden
     >
       <div style={{ display: "flex", gap: 16, minHeight: 560 }}>
-        <nav
-          style={{
-            width: 168,
-            flexShrink: 0,
-            borderRight: "1px solid rgba(5, 5, 5, 0.08)",
-            paddingRight: 12,
-          }}
-        >
+        <nav style={navStyle}>
           <Space direction="vertical" size={4} style={{ width: "100%" }}>
             {panels.map((panel) => (
               <Button
@@ -1895,14 +1933,14 @@ export function DebugModal() {
           </Space>
         </nav>
 
-        <main style={{ flex: 1, minWidth: 0, maxHeight: 620, overflow: "auto" }}>
+        <main style={scrollMainStyle}>
           <Space direction="vertical" size={16} style={{ width: "100%" }}>
             <div>
               <Title level={4} style={{ margin: 0 }}>
-                调试系统 P6
+                调试工作台
               </Title>
               <Text type="secondary">
-                Trace replay、performance summary、批量固定图识别与 agent run profile 已接入；replay/record controller 按 Go binding 能力门控。
+                运行配置、追踪回放（Trace Replay）、性能摘要（Performance Summary）、批量固定图识别和代理运行配置（Agent Run Profile）集中在此处；回放/录制控制器（Replay/Record Controller）按 Go binding 能力门控。
               </Text>
             </div>
             {renderPanel()}

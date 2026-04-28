@@ -20,13 +20,38 @@ const defaultMemory: DebugModalMemorySnapshot = {
   lastRunMode: "full-run",
 };
 
+const validPanels = new Set<DebugModalPanel>([
+  "overview",
+  "setup",
+  "nodes",
+  "timeline",
+  "performance",
+  "images",
+  "diagnostics",
+  "logs",
+]);
+
+function normalizePanel(panel: unknown): DebugModalPanel {
+  if (
+    panel === "profile" ||
+    panel === "resources" ||
+    panel === "controller" ||
+    panel === "agent"
+  ) {
+    return "setup";
+  }
+  return typeof panel === "string" && validPanels.has(panel as DebugModalPanel)
+    ? (panel as DebugModalPanel)
+    : defaultMemory.lastPanel;
+}
+
 function readMemory(): DebugModalMemorySnapshot {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultMemory;
     const parsed = JSON.parse(raw) as Partial<DebugModalMemorySnapshot>;
     return {
-      lastPanel: parsed.lastPanel ?? defaultMemory.lastPanel,
+      lastPanel: normalizePanel(parsed.lastPanel),
       lastRunMode: parsed.lastRunMode ?? defaultMemory.lastRunMode,
       lastEntryNodeId: parsed.lastEntryNodeId,
     };
