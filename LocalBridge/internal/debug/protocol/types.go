@@ -2,7 +2,7 @@ package protocol
 
 const (
 	Generation      = "debug-vNext"
-	ProtocolVersion = "0.15.0"
+	ProtocolVersion = "0.16.0"
 )
 
 type RunMode string
@@ -155,6 +155,21 @@ type RunRequest struct {
 	Overrides        []PipelineOverride   `json:"overrides,omitempty"`
 	ArtifactPolicy   *ArtifactPolicy      `json:"artifactPolicy,omitempty"`
 	Input            *RunInput            `json:"input,omitempty"`
+}
+
+type ResourcePreflightRequest struct {
+	RequestID     string   `json:"requestId,omitempty"`
+	ResourcePaths []string `json:"resourcePaths"`
+}
+
+type ResourcePreflightResult struct {
+	RequestID     string       `json:"requestId,omitempty"`
+	ResourcePaths []string     `json:"resourcePaths"`
+	Status        string       `json:"status"`
+	Hash          string       `json:"hash,omitempty"`
+	CheckedAt     string       `json:"checkedAt"`
+	DurationMS    int64        `json:"durationMs,omitempty"`
+	Diagnostics   []Diagnostic `json:"diagnostics,omitempty"`
 }
 
 type RunStopRequest struct {

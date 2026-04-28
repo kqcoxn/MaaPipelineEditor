@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"image"
 	"image/png"
+	"os"
+	"runtime"
 	"sync"
 	"time"
 	"unsafe"
@@ -304,8 +306,19 @@ func (a *MaaFWAdapter) LoadResourcesWithProgress(paths []string, progress Resour
 		if progress != nil {
 			progress(i, len(paths), path, "starting", nil)
 		}
-		loadJob := res.PostBundle(path)
+		actualPath, restore, err := prepareResourceLoadPath(path)
+		if err != nil {
+			res.Destroy()
+			if progress != nil {
+				progress(i, len(paths), path, "failed", err)
+			}
+			return err
+		}
+		loadJob := res.PostBundle(actualPath)
 		if loadJob == nil {
+			if restore != nil {
+				restore()
+			}
 			res.Destroy()
 			err := fmt.Errorf("发起资源加载失败: %s", path)
 			if progress != nil {
@@ -314,6 +327,9 @@ func (a *MaaFWAdapter) LoadResourcesWithProgress(paths []string, progress Resour
 			return err
 		}
 		loadJob.Wait()
+		if restore != nil {
+			restore()
+		}
 		if !loadJob.Success() {
 			res.Destroy()
 			err := fmt.Errorf("资源加载失败 [%s]: %v", path, loadJob.Status())
@@ -362,13 +378,24 @@ func (a *MaaFWAdapter) LoadResources(paths []string) error {
 
 		logger.Debug("MaaFW", "加载资源包 [%d/%d]: %s", i+1, len(paths), path)
 
-		loadJob := res.PostBundle(path)
+		actualPath, restore, err := prepareResourceLoadPath(path)
+		if err != nil {
+			res.Destroy()
+			return err
+		}
+		loadJob := res.PostBundle(actualPath)
 		if loadJob == nil {
+			if restore != nil {
+				restore()
+			}
 			res.Destroy()
 			return fmt.Errorf("发起资源加载失败: %s", path)
 		}
 
 		loadJob.Wait()
+		if restore != nil {
+			restore()
+		}
 		if !loadJob.Success() {
 			res.Destroy()
 			return fmt.Errorf("资源加载失败 [%s]: %v", path, loadJob.Status())
@@ -387,6 +414,77 @@ func (a *MaaFWAdapter) LoadResources(paths []string) error {
 
 	logger.Debug("MaaFW", "资源已加载 (共 %d 个路径)", len(paths))
 	return nil
+}
+
+// CheckResourceBundles 按 MaaFramework 实际加载路径预检资源包，并在检查后立即释放资源。
+func CheckResourceBundles(paths []string) (string, error) {
+	if len(paths) == 0 {
+		return "", fmt.Errorf("资源路径不能为空")
+	}
+
+	res, err := maa.NewResource()
+	if err != nil {
+		return "", fmt.Errorf("创建资源失败: %w", err)
+	}
+	defer res.Destroy()
+
+	for i, path := range paths {
+		if path == "" {
+			continue
+		}
+		actualPath, restore, err := prepareResourceLoadPath(path)
+		if err != nil {
+			return "", err
+		}
+		loadJob := res.PostBundle(actualPath)
+		if loadJob == nil {
+			if restore != nil {
+				restore()
+			}
+			return "", fmt.Errorf("发起资源加载失败: %s", path)
+		}
+		loadJob.Wait()
+		if restore != nil {
+			restore()
+		}
+		if !loadJob.Success() {
+			return "", fmt.Errorf("资源加载失败 [%s]: %v", path, loadJob.Status())
+		}
+		logger.Debug("MaaFW", "资源预检加载成功 [%d/%d]: %s", i+1, len(paths), path)
+	}
+
+	if !res.Loaded() {
+		return "", fmt.Errorf("资源加载后未处于 Loaded 状态")
+	}
+	hash, err := res.GetHash()
+	if err != nil {
+		return "", fmt.Errorf("读取资源 hash 失败: %w", err)
+	}
+	return hash, nil
+}
+
+func prepareResourceLoadPath(path string) (string, func(), error) {
+	if runtime.GOOS != "windows" || !ContainsNonASCII(path) {
+		return path, nil, nil
+	}
+
+	shortPath, err := GetShortPathName(path)
+	if err == nil && shortPath != path && !ContainsNonASCII(shortPath) {
+		return shortPath, nil, nil
+	}
+
+	originalDir, err := os.Getwd()
+	if err != nil {
+		return path, nil, nil
+	}
+	if err := os.Chdir(path); err != nil {
+		return path, nil, nil
+	}
+	return ".", func() {
+		if err := os.Chdir(originalDir); err != nil {
+			logger.Warn("MaaFW", "恢复工作目录失败: %v", err)
+		}
+	}, nil
 }
 
 // SetResource 直接设置已加载的资源

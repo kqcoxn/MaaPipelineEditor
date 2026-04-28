@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/artifact"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/batch"
@@ -73,6 +74,8 @@ func (h *Handler) Handle(msg models.Message, conn *server.Connection) *models.Me
 		h.handleSessionSnapshot(conn, msg)
 	case "/mpe/debug/run/start":
 		h.handleRunStart(conn, msg)
+	case "/mpe/debug/resource/preflight":
+		h.handleResourcePreflight(conn, msg)
 	case "/mpe/debug/run/stop":
 		h.handleRunStop(conn, msg)
 	case "/mpe/debug/artifact/get":
@@ -212,6 +215,69 @@ func (h *Handler) handleRunStart(conn *server.Connection, msg models.Message) {
 		"startedAt": result.StartedAt,
 		"session":   result.Session,
 	})
+}
+
+func (h *Handler) handleResourcePreflight(conn *server.Connection, msg models.Message) {
+	req, err := decodeData[protocol.ResourcePreflightRequest](msg)
+	if err != nil {
+		h.sendError(conn, "debug_invalid_request", err.Error(), nil)
+		return
+	}
+
+	startedAt := time.Now()
+	checkedAt := startedAt.UTC().Format(time.RFC3339Nano)
+	paths := nonEmptyStrings(req.ResourcePaths)
+	result := protocol.ResourcePreflightResult{
+		RequestID:     strings.TrimSpace(req.RequestID),
+		ResourcePaths: paths,
+		Status:        "failed",
+		CheckedAt:     checkedAt,
+	}
+
+	if len(paths) == 0 {
+		result.Diagnostics = []protocol.Diagnostic{{
+			Severity: "error",
+			Code:     "debug.resource.empty",
+			Message:  "资源路径为空，请先配置至少一个资源路径。",
+		}}
+		h.send(conn, "/lte/debug/resource_preflight", result)
+		return
+	}
+	if !h.service.IsInitialized() {
+		result.Diagnostics = []protocol.Diagnostic{{
+			Severity: "error",
+			Code:     "debug_not_initialized",
+			Message:  "MaaFramework 未初始化，无法加载资源。",
+		}}
+		result.DurationMS = time.Since(startedAt).Milliseconds()
+		h.send(conn, "/lte/debug/resource_preflight", result)
+		return
+	}
+
+	hash, loadErr := mfw.CheckResourceBundles(paths)
+	result.DurationMS = time.Since(startedAt).Milliseconds()
+	if loadErr != nil {
+		result.Diagnostics = []protocol.Diagnostic{{
+			Severity: "error",
+			Code:     "debug.resource.load_failed",
+			Message:  loadErr.Error(),
+		}}
+		h.send(conn, "/lte/debug/resource_preflight", result)
+		return
+	}
+
+	result.Status = "ready"
+	result.Hash = hash
+	result.Diagnostics = []protocol.Diagnostic{{
+		Severity: "info",
+		Code:     "debug.resource.ready",
+		Message:  "资源加载检测通过。",
+		Data: map[string]interface{}{
+			"hash":       hash,
+			"durationMs": result.DurationMS,
+		},
+	}}
+	h.send(conn, "/lte/debug/resource_preflight", result)
 }
 
 func (h *Handler) handleRunStop(conn *server.Connection, msg models.Message) {

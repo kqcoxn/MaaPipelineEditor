@@ -1,5 +1,5 @@
 export const DEBUG_GENERATION = "debug-vNext" as const;
-export const DEBUG_PROTOCOL_VERSION = "0.15.0" as const;
+export const DEBUG_PROTOCOL_VERSION = "0.16.0" as const;
 
 export type DebugGeneration = typeof DEBUG_GENERATION;
 
@@ -224,6 +224,21 @@ export interface DebugRunRequest {
   overrides?: DebugPipelineOverride[];
   artifactPolicy?: DebugArtifactPolicy;
   input?: DebugRunInput;
+}
+
+export interface DebugResourcePreflightRequest {
+  requestId?: string;
+  resourcePaths: string[];
+}
+
+export interface DebugResourcePreflightResult {
+  requestId?: string;
+  resourcePaths: string[];
+  status: "ready" | "failed";
+  hash?: string;
+  checkedAt: string;
+  durationMs?: number;
+  diagnostics?: DebugDiagnostic[];
 }
 
 export interface DebugRunStopRequest {

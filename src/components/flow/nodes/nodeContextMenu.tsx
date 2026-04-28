@@ -21,7 +21,11 @@ import {
 } from "./utils/nodeOperations";
 import { debugProtocolClient } from "../../../services/server";
 import { useDebugModalMemoryStore } from "../../../stores/debugModalMemoryStore";
-import { useDebugRunProfileStore } from "../../../stores/debugRunProfileStore";
+import {
+  makeDebugResourceKey,
+  normalizeDebugResourcePaths,
+  useDebugRunProfileStore,
+} from "../../../stores/debugRunProfileStore";
 import { useDebugSessionStore } from "../../../stores/debugSessionStore";
 import { useMFWStore } from "../../../stores/mfwStore";
 import { useWSStore } from "../../../stores/wsStore";
@@ -210,13 +214,28 @@ function handleDebugRunMode(node: NodeContextMenuNode, mode: DebugRunMode) {
   useDebugModalMemoryStore.getState().setLastEntryNodeId(node.id);
 
   const capabilities = sessionState.capabilities;
+  const resourceKey = makeDebugResourceKey(profileState.profile.resourcePaths);
+  const resourcePreflight = sessionState.resourcePreflight;
+  const resourcePreflightMatches =
+    resourcePreflight.resourceKey === resourceKey;
   const readiness = getDebugReadiness({
     localBridgeConnected: useWSStore.getState().connected,
     deviceConnectionStatus: mfwState.connectionStatus,
     controllerId: mfwState.controllerId,
+    resourceStatus: resourcePreflightMatches
+      ? resourcePreflight.status
+      : "idle",
+    resourceError: resourcePreflightMatches
+      ? resourcePreflight.error
+      : undefined,
   });
   if (!readiness.ready) {
     message.error(readiness.issues[0]?.message ?? "调试前置条件未满足");
+    if (
+      readiness.issues.some((issue) => issue.code === "debug.resource.not_ready")
+    ) {
+      requestDebugResourcePreflight(resourceKey);
+    }
     return;
   }
   if (!capabilities?.runModes.includes(mode)) {
@@ -245,6 +264,27 @@ function handleDebugRunMode(node: NodeContextMenuNode, mode: DebugRunMode) {
   }
 
   handleDebugRunModeWithInput(node, mode);
+}
+
+function requestDebugResourcePreflight(resourceKey: string) {
+  const resourcePaths = normalizeDebugResourcePaths(
+    useDebugRunProfileStore.getState().profile.resourcePaths,
+  );
+  if (resourcePaths.length === 0) return;
+  const requestId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const sessionState = useDebugSessionStore.getState();
+  sessionState.setResourcePreflightChecking(requestId, resourceKey);
+  const sent = debugProtocolClient.preflightResources({
+    requestId,
+    resourcePaths,
+  });
+  if (!sent) {
+    sessionState.setResourcePreflightError(
+      requestId,
+      resourceKey,
+      "发送资源加载检测请求失败。",
+    );
+  }
 }
 
 function handleDebugRunModeWithInput(

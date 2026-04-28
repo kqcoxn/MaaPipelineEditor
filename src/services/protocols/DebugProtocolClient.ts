@@ -12,6 +12,8 @@ import type {
   DebugInterfaceImportResult,
   DebugRunStarted,
   DebugProtocolError,
+  DebugResourcePreflightRequest,
+  DebugResourcePreflightResult,
   DebugRunRequest,
   DebugScreenshotCaptureRequest,
   DebugScreenshotStreamStartRequest,
@@ -43,6 +45,9 @@ export class DebugProtocolClient extends BaseProtocol {
   >();
   private readonly debugEventListeners = new Set<Listener<DebugEvent>>();
   private readonly runStartedListeners = new Set<Listener<DebugRunStarted>>();
+  private readonly resourcePreflightListeners = new Set<
+    Listener<DebugResourcePreflightResult>
+  >();
   private readonly runStopRequestedListeners = new Set<
     Listener<DebugRunStopRequested>
   >();
@@ -97,6 +102,9 @@ export class DebugProtocolClient extends BaseProtocol {
     );
     this.wsClient.registerRoute("/lte/debug/run_started", (data) =>
       this.handleRunStarted(data),
+    );
+    this.wsClient.registerRoute("/lte/debug/resource_preflight", (data) =>
+      this.handleResourcePreflight(data),
     );
     this.wsClient.registerRoute("/lte/debug/run_stop_requested", (data) =>
       this.handleRunStopRequested(data),
@@ -155,6 +163,10 @@ export class DebugProtocolClient extends BaseProtocol {
 
   startRun(request: DebugRunRequest): boolean {
     return this.send("/mpe/debug/run/start", request);
+  }
+
+  preflightResources(request: DebugResourcePreflightRequest): boolean {
+    return this.send("/mpe/debug/resource/preflight", request);
   }
 
   stopRun(request: DebugRunStopRequest): boolean {
@@ -233,6 +245,13 @@ export class DebugProtocolClient extends BaseProtocol {
   onRunStarted(listener: Listener<DebugRunStarted>): () => void {
     this.runStartedListeners.add(listener);
     return () => this.runStartedListeners.delete(listener);
+  }
+
+  onResourcePreflight(
+    listener: Listener<DebugResourcePreflightResult>,
+  ): () => void {
+    this.resourcePreflightListeners.add(listener);
+    return () => this.resourcePreflightListeners.delete(listener);
   }
 
   onRunStopRequested(listener: Listener<DebugRunStopRequested>): () => void {
@@ -340,6 +359,11 @@ export class DebugProtocolClient extends BaseProtocol {
   private handleRunStarted(data: unknown): void {
     const event = data as DebugRunStarted;
     this.runStartedListeners.forEach((listener) => listener(event));
+  }
+
+  private handleResourcePreflight(data: unknown): void {
+    const result = data as DebugResourcePreflightResult;
+    this.resourcePreflightListeners.forEach((listener) => listener(result));
   }
 
   private handleRunStopRequested(data: unknown): void {

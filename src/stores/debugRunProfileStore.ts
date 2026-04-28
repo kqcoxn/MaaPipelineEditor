@@ -16,7 +16,7 @@ import {
   resolveDebugNodeTarget,
 } from "../features/debug/snapshot";
 import { useConfigStore } from "./configStore";
-import { useLocalFileStore } from "./localFileStore";
+import { useLocalFileStore, type ResourceBundle } from "./localFileStore";
 import { useMFWStore } from "./mfwStore";
 
 const STORAGE_KEY = "mpe_debug_run_profile_v1";
@@ -156,16 +156,24 @@ function writeSnapshot(snapshot: DebugRunProfileSnapshot): void {
   }
 }
 
-function normalizeResourcePaths(resourcePaths: string[]): string[] {
+export function normalizeDebugResourcePaths(
+  resourcePaths: string[],
+  resourceBundles: ResourceBundle[] = useLocalFileStore.getState()
+    .resourceBundles,
+): string[] {
   const explicitPaths = resourcePaths
     .map((path) => path.trim())
     .filter(Boolean);
   if (explicitPaths.length > 0) return explicitPaths;
 
-  return useLocalFileStore
-    .getState()
-    .resourceBundles.map((bundle) => bundle.abs_path)
-    .filter(Boolean);
+  return resourceBundles.map((bundle) => bundle.abs_path).filter(Boolean);
+}
+
+export function makeDebugResourceKey(
+  resourcePaths: string[],
+  resourceBundles?: ResourceBundle[],
+): string {
+  return normalizeDebugResourcePaths(resourcePaths, resourceBundles).join("\n");
 }
 
 function resolveControllerType(): DebugRunProfile["controller"]["type"] {
@@ -377,7 +385,9 @@ export const useDebugRunProfileStore = create<DebugRunProfileState>(
           profile: {
             ...storeProfile,
             entry,
-            resourcePaths: normalizeResourcePaths(storeProfile.resourcePaths),
+            resourcePaths: normalizeDebugResourcePaths(
+              storeProfile.resourcePaths,
+            ),
             controller: {
               type: controllerType,
               options: controllerOptions,

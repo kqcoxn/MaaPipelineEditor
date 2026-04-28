@@ -1,4 +1,4 @@
-import {
+﻿import {
   useEffect,
   useMemo,
   useState,
@@ -45,7 +45,11 @@ import { useDebugModalMemoryStore } from "../../stores/debugModalMemoryStore";
 import { useDebugTraceStore } from "../../stores/debugTraceStore";
 import { useDebugArtifactStore } from "../../stores/debugArtifactStore";
 import { useDebugDiagnosticsStore } from "../../stores/debugDiagnosticsStore";
-import { useDebugRunProfileStore } from "../../stores/debugRunProfileStore";
+import {
+  makeDebugResourceKey,
+  normalizeDebugResourcePaths,
+  useDebugRunProfileStore,
+} from "../../stores/debugRunProfileStore";
 import { useLocalFileStore } from "../../stores/localFileStore";
 import { useMFWStore } from "../../stores/mfwStore";
 import { useWSStore } from "../../stores/wsStore";
@@ -62,6 +66,20 @@ import type {
 } from "../../features/debug/types";
 import { debugContributionRegistry } from "../../features/debug/contributions/registry";
 import { buildDebugSnapshotBundle } from "../../features/debug/snapshot";
+import {
+  getAgentTransportLabel,
+  getArtifactCapabilityLabel,
+  getControllerLabel,
+  getDebugFeatureLabel,
+  getDebugStatusLabel,
+  getDiagnosticCapabilityLabel,
+  getProfileFeatureLabel,
+  getResourceApiLabel,
+  getRunModeLabel,
+  getScreenshotSourceLabel,
+  getTaskerApiLabel,
+  getUnavailableReasonLabel,
+} from "../../features/debug/capabilityLabels";
 import {
   formatDebugReadinessMessage,
   getDebugReadiness,
@@ -158,7 +176,6 @@ function stringArray(value: unknown): string[] {
     (item): item is string => typeof item === "string",
   );
 }
-
 function formatTime(value?: string): string {
   if (!value) return "-";
   return new Date(value).toLocaleTimeString();
@@ -181,8 +198,19 @@ const navStyle: CSSProperties = {
 const scrollMainStyle: CSSProperties = {
   flex: 1,
   minWidth: 0,
-  maxHeight: 620,
-  overflow: "auto",
+  height: "clamp(520px, calc(100vh - 220px), 680px)",
+  overflowY: "scroll",
+  overflowX: "hidden",
+  scrollbarGutter: "stable",
+  paddingRight: 4,
+};
+
+const modalBodyStyle: CSSProperties = {
+  display: "flex",
+  gap: 16,
+  height: "clamp(520px, calc(100vh - 220px), 680px)",
+  minHeight: 520,
+  overflow: "hidden",
 };
 
 function eventTitle(event: DebugEvent): string {
@@ -312,6 +340,10 @@ export function DebugModal() {
     selectNode,
     setCapabilitiesLoading,
     setCapabilitiesError,
+    resourcePreflight,
+    setResourcePreflightChecking,
+    setResourcePreflightError,
+    invalidateResourcePreflight,
     clearProtocolError,
   } = useDebugSessionStore(
     useShallow((state) => ({
@@ -330,6 +362,10 @@ export function DebugModal() {
       selectNode: state.selectNode,
       setCapabilitiesLoading: state.setCapabilitiesLoading,
       setCapabilitiesError: state.setCapabilitiesError,
+      resourcePreflight: state.resourcePreflight,
+      setResourcePreflightChecking: state.setResourcePreflightChecking,
+      setResourcePreflightError: state.setResourcePreflightError,
+      invalidateResourcePreflight: state.invalidateResourcePreflight,
       clearProtocolError: state.clearProtocolError,
     })),
   );
@@ -383,14 +419,42 @@ export function DebugModal() {
     })),
   );
   const flowNodes = useFlowStore((state) => state.nodes);
+  const resolvedResourcePaths = useMemo(
+    () =>
+      normalizeDebugResourcePaths(
+        profileState.profile.resourcePaths,
+        resourceBundles,
+      ),
+    [profileState.profile.resourcePaths, resourceBundles],
+  );
+  const resourceKey = useMemo(
+    () => makeDebugResourceKey(profileState.profile.resourcePaths, resourceBundles),
+    [profileState.profile.resourcePaths, resourceBundles],
+  );
+  const resourcePreflightMatches =
+    resourcePreflight.resourceKey === resourceKey;
+  const resourcePreflightStatus = resourcePreflightMatches
+    ? resourcePreflight.status
+    : "idle";
   const debugReadiness = useMemo(
     () =>
       getDebugReadiness({
         localBridgeConnected: connected,
         deviceConnectionStatus: mfwState.connectionStatus,
         controllerId: mfwState.controllerId,
+        resourceStatus: resourcePreflightStatus,
+        resourceError: resourcePreflightMatches
+          ? resourcePreflight.error
+          : undefined,
       }),
-    [connected, mfwState.connectionStatus, mfwState.controllerId],
+    [
+      connected,
+      mfwState.connectionStatus,
+      mfwState.controllerId,
+      resourcePreflight.error,
+      resourcePreflightMatches,
+      resourcePreflightStatus,
+    ],
   );
   const debugReadinessDescription = useMemo(
     () => formatDebugReadinessMessage(debugReadiness),
@@ -412,6 +476,48 @@ export function DebugModal() {
     capabilities,
     setCapabilitiesLoading,
     setCapabilitiesError,
+  ]);
+
+  useEffect(() => {
+    if (!modalOpen) return;
+    if (!connected) {
+      invalidateResourcePreflight();
+      return;
+    }
+    if (resolvedResourcePaths.length === 0) {
+      invalidateResourcePreflight();
+      return;
+    }
+    if (
+      resourcePreflight.resourceKey === resourceKey &&
+      resourcePreflight.status !== "idle"
+    ) {
+      return;
+    }
+
+    const requestId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    setResourcePreflightChecking(requestId, resourceKey);
+    const sent = debugProtocolClient.preflightResources({
+      requestId,
+      resourcePaths: resolvedResourcePaths,
+    });
+    if (!sent) {
+      setResourcePreflightError(
+        requestId,
+        resourceKey,
+        "发送资源加载检测请求失败。",
+      );
+    }
+  }, [
+    connected,
+    invalidateResourcePreflight,
+    modalOpen,
+    resolvedResourcePaths,
+    resourceKey,
+    resourcePreflight.resourceKey,
+    resourcePreflight.status,
+    setResourcePreflightError,
+    setResourcePreflightChecking,
   ]);
 
   useEffect(() => {
@@ -766,6 +872,37 @@ export function DebugModal() {
     if (!sent) message.error("发送 interface 导入请求失败");
   };
 
+  const requestResourcePreflight = () => {
+    if (!connected) {
+      message.error("LocalBridge 未连接");
+      return;
+    }
+    if (resolvedResourcePaths.length === 0) {
+      invalidateResourcePreflight();
+      message.warning("请先配置资源路径或等待 LocalBridge 扫描资源包");
+      return;
+    }
+    const requestId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    setResourcePreflightChecking(requestId, resourceKey);
+    const sent = debugProtocolClient.preflightResources({
+      requestId,
+      resourcePaths: resolvedResourcePaths,
+    });
+    if (!sent) {
+      setResourcePreflightError(
+        requestId,
+        resourceKey,
+        "发送资源加载检测请求失败。",
+      );
+      message.error("发送资源加载检测请求失败");
+    }
+  };
+
+  const updateResourcePaths = (resourcePaths: string[]) => {
+    profileState.setResourcePaths(resourcePaths);
+    invalidateResourcePreflight();
+  };
+
   const requestArtifact = (artifactId: string) => {
     const entry = artifacts[artifactId];
     if (!entry) return;
@@ -887,24 +1024,97 @@ export function DebugModal() {
           <Tag>模式 {summary.runMode ?? lastRunMode}</Tag>
         </Space>
       </DebugSection>
-      <DebugSection title="能力清单（Capability）">
-        <Space wrap>
-          <Tag color={capabilities ? "green" : "default"}>
-            {capabilities?.generation ?? "等待读取"}
-          </Tag>
-          <Tag color="blue">协议 {capabilities?.protocol ?? "未知"}</Tag>
-          <Tag>{capabilityStatus}</Tag>
-          {(capabilities?.debugFeatures ?? []).map((feature) => (
-            <Tag key={feature} color="purple">
-              {feature}
-            </Tag>
-          ))}
-          {(capabilities?.maa.unavailableControllers ?? []).map((item) => (
-            <Tag key={item.type} color="orange">
-              {item.type}: {item.reason}
-            </Tag>
-          ))}
-        </Space>
+      <DebugSection title="当前可用能力">
+        {capabilities ? (
+          <Space direction="vertical" size={8} style={{ width: "100%" }}>
+            <Space wrap>
+              <Tag color="green">调试协议 {capabilities.protocol}</Tag>
+              <Tag>{getDebugStatusLabel(capabilityStatus)}</Tag>
+              <Tag>MaaFramework {capabilities.maa.mfwVersion}</Tag>
+            </Space>
+            <Space wrap>
+              <Text type="secondary">运行方式</Text>
+              {capabilities.runModes.map((mode) => (
+                <Tag key={mode} color="blue">
+                  {getRunModeLabel(mode)}
+                </Tag>
+              ))}
+            </Space>
+            {(capabilities.debugFeatures ?? []).length > 0 && (
+              <Space wrap>
+                <Text type="secondary">调试工具</Text>
+                {(capabilities.debugFeatures ?? []).map((feature) => (
+                  <Tag key={feature} color="purple">
+                    {getDebugFeatureLabel(feature)}
+                  </Tag>
+                ))}
+              </Space>
+            )}
+            <Space wrap>
+              <Text type="secondary">启动检查</Text>
+              {capabilities.diagnostics.map((diagnostic) => (
+                <Tag key={diagnostic}>
+                  {getDiagnosticCapabilityLabel(diagnostic)}
+                </Tag>
+              ))}
+            </Space>
+            <Space wrap>
+              <Text type="secondary">可查看产物</Text>
+              {capabilities.artifacts.map((artifact) => (
+                <Tag key={artifact}>{getArtifactCapabilityLabel(artifact)}</Tag>
+              ))}
+            </Space>
+            <Space wrap>
+              <Text type="secondary">截图来源</Text>
+              {capabilities.screenshotSources.map((source) => (
+                <Tag key={source}>
+                  {getScreenshotSourceLabel(source)}
+                </Tag>
+              ))}
+            </Space>
+            <Space wrap>
+              <Text type="secondary">配置能力</Text>
+              {capabilities.profileFeatures.map((feature) => (
+                <Tag key={feature}>
+                  {getProfileFeatureLabel(feature)}
+                </Tag>
+              ))}
+            </Space>
+            <Space wrap>
+              <Text type="secondary">控制器</Text>
+              {capabilities.maa.supportedControllers.map((controller) => (
+                <Tag key={controller} color="green">
+                  {getControllerLabel(controller)}
+                </Tag>
+              ))}
+              {(capabilities.maa.unavailableControllers ?? []).map((item) => (
+                <Tag key={item.type} color="orange">
+                  {getControllerLabel(item.type)}不可用：{" "}
+                  {getUnavailableReasonLabel(item.reason)}
+                </Tag>
+              ))}
+            </Space>
+            <Space wrap>
+              <Text type="secondary">后端调用</Text>
+              {capabilities.maa.supportedTaskerApis.map((api) => (
+                <Tag key={api}>{getTaskerApiLabel(api)}</Tag>
+              ))}
+              {capabilities.maa.supportedResourceApis.map((api) => (
+                <Tag key={api}>{getResourceApiLabel(api)}</Tag>
+              ))}
+              {capabilities.maa.supportedAgentTransports.map((transport) => (
+                <Tag key={transport}>
+                  {getAgentTransportLabel(transport)}
+                </Tag>
+              ))}
+            </Space>
+          </Space>
+        ) : (
+          <Space wrap>
+            <Tag>{getDebugStatusLabel(capabilityStatus)}</Tag>
+            <Text type="secondary">连接 LocalBridge 后读取可用调试能力。</Text>
+          </Space>
+        )}
       </DebugSection>
       <DebugSection title="当前追踪（Trace）">
         <Space wrap>
@@ -1048,16 +1258,56 @@ export function DebugModal() {
   const renderResources = () => (
     <Space direction="vertical" size={14} style={{ width: "100%" }}>
       <Alert
-        type="info"
+        type={
+          resourcePreflightStatus === "ready"
+            ? "success"
+            : resourcePreflightStatus === "error"
+              ? "error"
+              : "info"
+        }
         showIcon
-        message="资源路径"
-        description="留空时会使用 LocalBridge 当前扫描到的资源包（Resource Bundle）绝对路径。"
+        message={
+          resourcePreflightStatus === "ready"
+            ? "资源加载检测通过"
+            : resourcePreflightStatus === "checking"
+              ? "正在检测资源加载"
+              : resourcePreflightStatus === "error"
+                ? "资源加载检测失败"
+                : "资源路径"
+        }
+        description={
+          resourcePreflightStatus === "ready"
+            ? `已由后端完成一次真实资源加载检测${
+                resourcePreflight.result?.hash
+                  ? `，hash：${resourcePreflight.result.hash}`
+                  : ""
+              }。`
+            : resourcePreflightStatus === "checking"
+              ? "后端正在使用 MaaFramework 加载资源，请稍候。"
+              : resourcePreflight.error ??
+                "留空时会使用 LocalBridge 当前扫描到的资源包绝对路径；打开调试模块或修改资源路径后会检测一次。"
+        }
       />
+      <Space wrap>
+        <Button
+          icon={<ReloadOutlined />}
+          onClick={requestResourcePreflight}
+          loading={resourcePreflightStatus === "checking"}
+          disabled={!connected || resolvedResourcePaths.length === 0}
+        >
+          重新检测资源加载
+        </Button>
+        <Tag>{getDebugStatusLabel(resourcePreflightStatus)}</Tag>
+        <Tag>资源路径 {resolvedResourcePaths.length}</Tag>
+        {resourcePreflight.result?.durationMs !== undefined && (
+          <Tag>耗时 {resourcePreflight.result.durationMs}ms</Tag>
+        )}
+      </Space>
       <Select
         mode="tags"
         style={{ width: "100%" }}
         value={profileState.profile.resourcePaths}
-        onChange={profileState.setResourcePaths}
+        onChange={updateResourcePaths}
         placeholder="选择或输入资源（Resource）路径"
         options={resourceBundles.map((bundle) => ({
           value: bundle.abs_path,
@@ -1986,7 +2236,7 @@ export function DebugModal() {
       footer={null}
       destroyOnHidden
     >
-      <div style={{ display: "flex", gap: 16, minHeight: 560 }}>
+      <div style={modalBodyStyle}>
         <nav style={navStyle}>
           <Space direction="vertical" size={4} style={{ width: "100%" }}>
             {panels.map((panel) => (

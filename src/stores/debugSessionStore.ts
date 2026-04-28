@@ -3,6 +3,7 @@ import type {
   DebugCapabilityManifest,
   DebugModalPanel,
   DebugProtocolError,
+  DebugResourcePreflightResult,
   DebugRunStarted,
   DebugRunStopRequested,
   DebugSessionSnapshot,
@@ -10,6 +11,15 @@ import type {
 } from "../features/debug/types";
 
 type CapabilityStatus = "idle" | "loading" | "ready" | "error";
+type ResourcePreflightStatus = "idle" | "checking" | "ready" | "error";
+
+export interface DebugResourcePreflightState {
+  status: ResourcePreflightStatus;
+  requestId?: string;
+  resourceKey?: string;
+  result?: DebugResourcePreflightResult;
+  error?: string;
+}
 
 interface DebugSessionState {
   modalOpen: boolean;
@@ -23,6 +33,7 @@ interface DebugSessionState {
   capabilities?: DebugCapabilityManifest;
   capabilityStatus: CapabilityStatus;
   capabilityError?: string;
+  resourcePreflight: DebugResourcePreflightState;
   openModal: (panel?: DebugModalPanel) => void;
   closeModal: () => void;
   setActivePanel: (panel: DebugModalPanel) => void;
@@ -37,12 +48,23 @@ interface DebugSessionState {
   setCapabilitiesLoading: () => void;
   setCapabilities: (capabilities: DebugCapabilityManifest) => void;
   setCapabilitiesError: (message: string) => void;
+  setResourcePreflightChecking: (requestId: string, resourceKey: string) => void;
+  setResourcePreflightResult: (result: DebugResourcePreflightResult) => void;
+  setResourcePreflightError: (
+    requestId: string,
+    resourceKey: string,
+    message: string,
+  ) => void;
+  invalidateResourcePreflight: () => void;
 }
 
 export const useDebugSessionStore = create<DebugSessionState>((set) => ({
   modalOpen: false,
   activePanel: "overview",
   capabilityStatus: "idle",
+  resourcePreflight: {
+    status: "idle",
+  },
 
   openModal: (panel) =>
     set((state) => ({
@@ -102,4 +124,55 @@ export const useDebugSessionStore = create<DebugSessionState>((set) => ({
       capabilityStatus: "error",
       capabilityError: message,
     }),
+
+  setResourcePreflightChecking: (requestId, resourceKey) =>
+    set({
+      resourcePreflight: {
+        status: "checking",
+        requestId,
+        resourceKey,
+      },
+    }),
+
+  setResourcePreflightResult: (result) =>
+    set((state) => {
+      const current = state.resourcePreflight;
+      if (current.requestId && result.requestId !== current.requestId) return {};
+      const firstError = result.diagnostics?.find(
+        (diagnostic) => diagnostic.severity === "error",
+      );
+      return {
+        resourcePreflight: {
+          status: result.status === "ready" ? "ready" : "error",
+          requestId: result.requestId,
+          resourceKey:
+            current.requestId === result.requestId
+              ? current.resourceKey
+              : makeResourceKey(result.resourcePaths),
+          result,
+          error: firstError?.message,
+        },
+      };
+    }),
+
+  setResourcePreflightError: (requestId, resourceKey, message) =>
+    set({
+      resourcePreflight: {
+        status: "error",
+        requestId,
+        resourceKey,
+        error: message,
+      },
+    }),
+
+  invalidateResourcePreflight: () =>
+    set({
+      resourcePreflight: {
+        status: "idle",
+      },
+    }),
 }));
+
+function makeResourceKey(resourcePaths: string[]): string {
+  return resourcePaths.map((path) => path.trim()).filter(Boolean).join("\n");
+}
