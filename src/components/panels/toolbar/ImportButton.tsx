@@ -7,23 +7,48 @@ import {
   type ImportAction,
 } from "../../../stores/toolbarStore";
 import { useConfigStore } from "../../../stores/configStore";
+import { useWSStore } from "../../../stores/wsStore";
 import { pipelineToFlow, mergePipelineAndConfig } from "../../../core/parser";
 import { ClipboardHelper } from "../../../utils/ui/clipboard";
 import { flowToPipeline } from "../../../core/parser";
 import style from "../../../styles/panels/ToolbarPanel.module.less";
 
+const resolveAvailableImportAction = (
+  action: ImportAction,
+  configHandlingMode: string,
+): ImportAction => {
+  if (
+    configHandlingMode !== "separated" &&
+    (action === "clipboard-config" || action === "file-config")
+  ) {
+    return "clipboard-pipeline";
+  }
+
+  return action;
+};
+
 /**
  * 导入按钮组件
- * 支持从粘贴板或文件导入 Pipeline/配置,点击执行默认操作,悬停显示菜单
+ * 支持从粘贴板或文件导入 Pipeline/配置，连接 LocalBridge 时文件导入唤起本地文件面板
  */
 function ImportButton() {
   const { defaultImportAction, setDefaultImportAction } = useToolbarStore();
   const configHandlingMode = useConfigStore(
     (state) => state.configs.configHandlingMode,
   );
+  const setStatus = useConfigStore((state) => state.setStatus);
+  const wsConnected = useWSStore((state) => state.connected);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const configFileInputRef = useRef<HTMLInputElement>(null);
+  const effectiveDefaultImportAction = useMemo(
+    () =>
+      resolveAvailableImportAction(
+        defaultImportAction,
+        configHandlingMode,
+      ),
+    [configHandlingMode, defaultImportAction],
+  );
 
   // 导入操作处理
   const handleImportFromClipboard = async () => {
@@ -39,6 +64,11 @@ function ImportButton() {
   };
 
   const handleImportFromFile = () => {
+    if (wsConnected) {
+      setStatus("showLocalFilePanel", true);
+      return;
+    }
+
     fileInputRef.current?.click();
   };
 
@@ -112,7 +142,12 @@ function ImportButton() {
 
   // 执行对应的导入操作
   const executeImportAction = (action: ImportAction) => {
-    switch (action) {
+    const availableAction = resolveAvailableImportAction(
+      action,
+      configHandlingMode,
+    );
+
+    switch (availableAction) {
       case "clipboard-pipeline":
         handleImportFromClipboard();
         break;
@@ -130,59 +165,57 @@ function ImportButton() {
 
   // 点击按钮执行默认操作
   const handleButtonClick = () => {
-    executeImportAction(defaultImportAction);
+    executeImportAction(effectiveDefaultImportAction);
   };
 
   // 菜单项定义
-  const menuItems = useMemo<MenuProps["items"]>(() => {
-    const items: MenuProps["items"] = [
+  const menuItems: MenuProps["items"] = [
+    {
+      key: "clipboard-pipeline",
+      label: "从粘贴板导入 Pipeline",
+      onClick: () => {
+        setDefaultImportAction("clipboard-pipeline");
+        executeImportAction("clipboard-pipeline");
+      },
+    },
+  ];
+
+  menuItems.push({
+    key: "file-pipeline",
+    label: "从文件导入 Pipeline",
+    onClick: () => {
+      setDefaultImportAction("file-pipeline");
+      executeImportAction("file-pipeline");
+    },
+  });
+
+  // 仅在分离导出模式下显示配置导入选项
+  if (configHandlingMode === "separated") {
+    menuItems.push(
+      { type: "divider" },
       {
-        key: "clipboard-pipeline",
-        label: "从粘贴板导入 Pipeline",
+        key: "clipboard-config",
+        label: "从粘贴板导入配置",
         onClick: () => {
-          setDefaultImportAction("clipboard-pipeline");
-          executeImportAction("clipboard-pipeline");
+          setDefaultImportAction("clipboard-config");
+          executeImportAction("clipboard-config");
         },
       },
-      {
-        key: "file-pipeline",
-        label: "从文件导入 Pipeline",
-        onClick: () => {
-          setDefaultImportAction("file-pipeline");
-          executeImportAction("file-pipeline");
-        },
+    );
+
+    menuItems.push({
+      key: "file-config",
+      label: "从文件导入配置",
+      onClick: () => {
+        setDefaultImportAction("file-config");
+        executeImportAction("file-config");
       },
-    ];
-
-    // 仅在分离导出模式下显示配置导入选项
-    if (configHandlingMode === "separated") {
-      items.push(
-        { type: "divider" },
-        {
-          key: "clipboard-config",
-          label: "从粘贴板导入配置",
-          onClick: () => {
-            setDefaultImportAction("clipboard-config");
-            executeImportAction("clipboard-config");
-          },
-        },
-        {
-          key: "file-config",
-          label: "从文件导入配置",
-          onClick: () => {
-            setDefaultImportAction("file-config");
-            executeImportAction("file-config");
-          },
-        },
-      );
-    }
-
-    return items;
-  }, [configHandlingMode, setDefaultImportAction]);
+    });
+  }
 
   // 获取按钮文本和当前操作描述
   const { buttonLabel, currentActionDesc } = useMemo(() => {
-    switch (defaultImportAction) {
+    switch (effectiveDefaultImportAction) {
       case "clipboard-pipeline":
         return { buttonLabel: "导入", currentActionDesc: "粘贴板" };
       case "file-pipeline":
@@ -194,7 +227,7 @@ function ImportButton() {
       default:
         return { buttonLabel: "导入", currentActionDesc: "粘贴板" };
     }
-  }, [defaultImportAction]);
+  }, [effectiveDefaultImportAction]);
 
   return (
     <>
