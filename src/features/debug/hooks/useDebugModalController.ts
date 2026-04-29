@@ -22,6 +22,13 @@ import { showActionRunConfirm } from "../confirmActionRun";
 import { debugContributionRegistry } from "../contributions/registry";
 import { getControllerDisplayName } from "../controllerDisplay";
 import {
+  captureScreenshotAction,
+  requestResourcePreflightAction,
+  startScreenshotStreamAction,
+  stopScreenshotStreamAction,
+  testAgentAction,
+} from "../debugModalActions";
+import {
   selectBatchSummaryRefs,
   selectPerformanceRefs,
 } from "../debugEventSelectors";
@@ -35,10 +42,18 @@ import {
   targetRunModes,
   validateRunRequest,
 } from "../modalUtils";
+import {
+  requestTraceSnapshotAction,
+  seekNodeTraceReplayAction,
+  seekTraceReplayAction,
+  startNodeTraceReplayAction,
+  startTraceReplayAction,
+  stopTraceReplayAction,
+} from "../traceReplayActions";
 import { useDebugNodeExecutionController } from "./useDebugNodeExecutionController";
 import type {
-  DebugBatchRecognitionInput,
   DebugAgentProfile,
+  DebugBatchRecognitionInput,
   DebugModalPanel,
   DebugRunMode,
   DebugRunRequest,
@@ -296,9 +311,12 @@ export function useDebugModalController() {
   );
 
   const nodeExecutionController = useDebugNodeExecutionController({
+    artifacts,
     flowNodes,
+    liveSummary,
     nodeExecutionFilters,
     performanceSummary,
+    replayStatus,
     selectedNodeId,
     selectNode,
     setNodeExecutionFilters,
@@ -431,122 +449,103 @@ export function useDebugModalController() {
   };
 
   const captureScreenshot = () => {
-    if (!connected) {
-      message.error("LocalBridge 未连接");
-      return;
-    }
-    if (!mfwState.controllerId) {
-      message.error("请先连接 MaaFramework 控制器（Controller）");
-      return;
-    }
-    const sent = debugProtocolClient.captureScreenshot({
-      sessionId: session?.sessionId,
-      controllerId: mfwState.controllerId,
-      force: true,
-    });
-    if (!sent) {
-      message.error("发送截图请求失败");
-      return;
-    }
-    setActivePanel("images");
-    setLastPanel("images");
+    captureScreenshotAction(
+      {
+        client: debugProtocolClient,
+        connected,
+        controllerId: mfwState.controllerId ?? undefined,
+        sessionId: session?.sessionId,
+      },
+      () => {
+        setActivePanel("images");
+        setLastPanel("images");
+      },
+    );
   };
 
   const startScreenshotStream = () => {
-    if (!connected) {
-      message.error("LocalBridge 未连接");
-      return;
-    }
-    if (!mfwState.controllerId) {
-      message.error("请先连接 MaaFramework 控制器（Controller）");
-      return;
-    }
-    const sent = debugProtocolClient.startScreenshotStream({
-      sessionId: session?.sessionId,
-      runId: activeRun?.runId,
-      controllerId: mfwState.controllerId,
-      ...profileState.screenshotStreamConfig,
-      intervalMs: Math.max(
-        250,
-        profileState.screenshotStreamConfig.intervalMs || 1000,
-      ),
-    });
-    if (!sent) {
-      message.error("发送截图推流启动请求失败");
-      return;
-    }
-    setActivePanel("images");
-    setLastPanel("images");
+    startScreenshotStreamAction(
+      {
+        client: debugProtocolClient,
+        config: profileState.screenshotStreamConfig,
+        connected,
+        controllerId: mfwState.controllerId ?? undefined,
+        runId: activeRun?.runId,
+        sessionId: session?.sessionId,
+      },
+      () => {
+        setActivePanel("images");
+        setLastPanel("images");
+      },
+    );
   };
 
   const stopScreenshotStream = () => {
-    if (!session?.sessionId) {
-      message.warning("当前没有调试会话（Session）");
-      return;
-    }
-    const sent = debugProtocolClient.stopScreenshotStream({
-      sessionId: session.sessionId,
+    stopScreenshotStreamAction({
+      client: debugProtocolClient,
       runId: activeRun?.runId,
-      reason: "user_stop",
+      sessionId: session?.sessionId,
     });
-    if (!sent) message.error("发送截图推流停止请求失败");
   };
 
   const requestTraceSnapshot = () => {
-    if (!session?.sessionId) {
-      message.warning("当前没有调试会话（Session）");
-      return;
-    }
-    const sent = debugProtocolClient.requestTraceSnapshot({
-      sessionId: session.sessionId,
-      runId: activeRun?.runId,
+    requestTraceSnapshotAction({
+      activeRunId: activeRun?.runId,
+      client: debugProtocolClient,
+      sessionId: session?.sessionId,
     });
-    if (!sent) message.error("发送追踪快照（Trace Snapshot）请求失败");
   };
 
   const startTraceReplay = () => {
-    if (!session?.sessionId) {
-      message.warning("当前没有调试会话（Session）");
-      return;
-    }
-    const sent = debugProtocolClient.startTraceReplay({
-      sessionId: session.sessionId,
-      runId: summary.runId,
-      cursorSeq: replayStatus?.cursorSeq || events[0]?.seq,
-      nodeId: selectedNodeId,
-      speed: replayStatus?.speed ?? 1,
+    startTraceReplayAction({
+      client: debugProtocolClient,
+      events,
+      replayStatus,
+      selectedNodeId,
+      sessionId: session?.sessionId,
+      summaryRunId: summary.runId,
     });
-    if (!sent) message.error("发送追踪回放（Trace Replay）启动请求失败");
+  };
+
+  const startNodeTraceReplay = (
+    record = nodeExecutionController.selectedNodeExecutionRecord,
+  ) => {
+    startNodeTraceReplayAction({
+      client: debugProtocolClient,
+      record,
+      replayStatus,
+      sessionId: session?.sessionId,
+    });
   };
 
   const seekTraceReplay = (cursorSeq?: number) => {
-    if (!session?.sessionId) {
-      message.warning("当前没有调试会话（Session）");
-      return;
-    }
-    const sent = debugProtocolClient.seekTraceReplay({
-      sessionId: session.sessionId,
-      runId: summary.runId,
+    seekTraceReplayAction({
+      client: debugProtocolClient,
       cursorSeq,
-      nodeId: replayStatus?.nodeId,
-      speed: replayStatus?.speed ?? 1,
+      replayStatus,
+      sessionId: session?.sessionId,
+      summaryRunId: summary.runId,
     });
-    if (!sent) message.error("发送追踪回放定位（Trace Replay Seek）请求失败");
+  };
+
+  const seekNodeTraceReplay = (
+    record = nodeExecutionController.selectedNodeExecutionRecord,
+    cursorSeq?: number,
+  ) => {
+    seekNodeTraceReplayAction({
+      client: debugProtocolClient,
+      cursorSeq: cursorSeq ?? record?.firstSeq,
+      record,
+      replayStatus,
+      sessionId: session?.sessionId,
+    });
   };
 
   const stopTraceReplay = () => {
-    if (!session?.sessionId) {
-      useDebugTraceStore.getState().stopTraceReplay();
-      return;
-    }
-    const sent = debugProtocolClient.stopTraceReplay({
-      sessionId: session.sessionId,
-      reason: "user_stop",
+    stopTraceReplayAction({
+      client: debugProtocolClient,
+      sessionId: session?.sessionId,
     });
-    if (!sent) {
-      useDebugTraceStore.getState().stopTraceReplay();
-      message.error("发送追踪回放（Trace Replay）停止请求失败");
-    }
   };
 
   const startBatchRecognition = () => {
@@ -627,62 +626,24 @@ export function useDebugModalController() {
   };
 
   const testAgent = (agent: DebugAgentProfile) => {
-    if (!connected) {
-      message.error("LocalBridge 未连接");
-      return;
-    }
-    if (agent.transport === "tcp") {
-      if (!agent.tcpPort || agent.tcpPort <= 0 || agent.tcpPort > 65535) {
-        message.warning("请输入 1-65535 范围内的 TCP 端口");
-        return;
-      }
-    } else if (!agent.identifier?.trim()) {
-      message.warning("请输入代理标识符（Identifier）");
-      return;
-    }
-    const agentId = agent.id.trim() || "agent";
-    setTestingAgentIds((current) => new Set(current).add(agentId));
-    const sent = debugProtocolClient.testAgent({
-      agent: {
-        ...agent,
-        id: agentId,
-        enabled: true,
-      },
+    testAgentAction({
+      agent,
+      client: debugProtocolClient,
+      connected,
+      setTestingAgentIds,
     });
-    if (!sent) {
-      setTestingAgentIds((current) => {
-        const next = new Set(current);
-        next.delete(agentId);
-        return next;
-      });
-      message.error("发送代理连接测试请求失败");
-    }
   };
 
   const requestResourcePreflight = () => {
-    if (!connected) {
-      message.error("LocalBridge 未连接");
-      return;
-    }
-    if (resolvedResourcePaths.length === 0) {
-      invalidateResourcePreflight();
-      message.warning("请先配置资源路径或等待 LocalBridge 扫描资源包");
-      return;
-    }
-    const requestId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    setResourcePreflightChecking(requestId, resourceKey);
-    const sent = debugProtocolClient.preflightResources({
-      requestId,
+    requestResourcePreflightAction({
+      client: debugProtocolClient,
+      connected,
+      invalidateResourcePreflight,
+      resourceKey,
       resourcePaths: resolvedResourcePaths,
+      setResourcePreflightChecking,
+      setResourcePreflightError,
     });
-    if (!sent) {
-      setResourcePreflightError(
-        requestId,
-        resourceKey,
-        "发送资源加载检测请求失败。",
-      );
-      message.error("发送资源加载检测请求失败");
-    }
   };
 
   const updateResourcePaths = (resourcePaths: string[]) => {
@@ -718,6 +679,9 @@ export function useDebugModalController() {
     >[0],
   ) => {
     nodeExecutionController.openNodeExecutionRecord(record);
+    if (replayStatus?.active) {
+      seekNodeTraceReplay(record, record.firstSeq);
+    }
     setActivePanel("node-execution");
     setLastPanel("node-execution");
   };
@@ -774,8 +738,13 @@ export function useDebugModalController() {
     selectedPipelineNodeId,
     entryNode,
     allNodeExecutionRecords: nodeExecutionController.allNodeExecutionRecords,
+    batchRecognitionNodeSummaries:
+      nodeExecutionController.batchRecognitionNodeSummaries,
     nodeExecutionRecords: nodeExecutionController.nodeExecutionRecords,
     nodeExecutionFilters: nodeExecutionController.nodeExecutionFilters,
+    nodeExecutionRunComparisons:
+      nodeExecutionController.nodeExecutionRunComparisons,
+    nodeReplayControl: nodeExecutionController.nodeReplayControl,
     selectedNodeExecutionRecord:
       nodeExecutionController.selectedNodeExecutionRecord,
     selectedNodeExecutionRecordId:
@@ -792,7 +761,9 @@ export function useDebugModalController() {
     stopScreenshotStream,
     requestTraceSnapshot,
     startTraceReplay,
+    startNodeTraceReplay,
     seekTraceReplay,
+    seekNodeTraceReplay,
     stopTraceReplay,
     startBatchRecognition,
     stopBatchRecognition,

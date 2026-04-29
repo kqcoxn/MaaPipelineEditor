@@ -1,6 +1,14 @@
 import { useCallback, useMemo, useState } from "react";
+import type { DebugArtifactEntry } from "../../../stores/debugArtifactStore";
+import { useDebugOverlayStore } from "../../../stores/debugOverlayStore";
 import type { NodeType } from "../../../stores/flow";
 import { applyDebugNodeTarget } from "../nodeTargetActions";
+import {
+  compareDebugNodeExecutionRuns,
+  getDebugNodeReplayControl,
+  selectDebugBatchRecognitionNodeSummaries,
+  selectDebugNodeExecutionOverlayFromEdges,
+} from "../nodeExecutionAnalysis";
 import {
   createDebugResolverEdgeIndex,
   selectDebugNodeExecutionRecords,
@@ -12,12 +20,16 @@ import {
   DEFAULT_DEBUG_NODE_EXECUTION_FILTERS,
   type DebugNodeExecutionFilters,
   type DebugPerformanceSummary,
+  type DebugTraceReplayStatus,
 } from "../types";
 
 interface UseDebugNodeExecutionControllerInput {
+  artifacts: Record<string, DebugArtifactEntry>;
   flowNodes: NodeType[];
+  liveSummary: DebugTraceSummary;
   nodeExecutionFilters: DebugNodeExecutionFilters;
   performanceSummary?: DebugPerformanceSummary;
+  replayStatus?: DebugTraceReplayStatus;
   selectedNodeId?: string;
   selectNode: (nodeId?: string) => void;
   setNodeExecutionFilters: (filters: DebugNodeExecutionFilters) => void;
@@ -25,9 +37,12 @@ interface UseDebugNodeExecutionControllerInput {
 }
 
 export function useDebugNodeExecutionController({
+  artifacts,
   flowNodes,
+  liveSummary,
   nodeExecutionFilters,
   performanceSummary,
+  replayStatus,
   selectedNodeId,
   selectNode,
   setNodeExecutionFilters,
@@ -59,12 +74,12 @@ export function useDebugNodeExecutionController({
   const allNodeExecutionRecords = useMemo(
     () =>
       selectDebugNodeExecutionRecords(
-        summary,
+        liveSummary,
         pipelineNodes,
         DEFAULT_DEBUG_NODE_EXECUTION_FILTERS,
         { performanceSummary },
       ),
-    [performanceSummary, pipelineNodes, summary],
+    [liveSummary, performanceSummary, pipelineNodes],
   );
   const nodeExecutionRecords = useMemo(
     () =>
@@ -85,6 +100,19 @@ export function useDebugNodeExecutionController({
         : undefined,
     [allNodeExecutionRecords, selectedNodeExecutionRecordId],
   );
+  const nodeReplayControl = useMemo(
+    () => getDebugNodeReplayControl(selectedNodeExecutionRecord, replayStatus),
+    [replayStatus, selectedNodeExecutionRecord],
+  );
+  const batchRecognitionNodeSummaries = useMemo(
+    () => selectDebugBatchRecognitionNodeSummaries(artifacts),
+    [artifacts],
+  );
+  const nodeExecutionRunComparisons = useMemo(() => {
+    const runIds = nodeExecutionFilters.comparisonRunIds;
+    if (!runIds) return [];
+    return compareDebugNodeExecutionRuns(allNodeExecutionRecords, runIds);
+  }, [allNodeExecutionRecords, nodeExecutionFilters.comparisonRunIds]);
 
   const selectPipelineNode = useCallback(
     (nodeId?: string) => {
@@ -107,28 +135,49 @@ export function useDebugNodeExecutionController({
   const selectNodeExecutionRecord = useCallback(
     (record: DebugNodeExecutionRecord) => {
       setSelectedNodeExecutionRecordId(record.id);
+      useDebugOverlayStore
+        .getState()
+        .applyNodeExecutionOverlay(
+          selectDebugNodeExecutionOverlayFromEdges(
+            allNodeExecutionRecords,
+            record,
+            resolverEdges,
+          ),
+        );
       if (!record.nodeId) {
         selectNode(undefined);
         return;
       }
       applyDebugNodeTarget(record.nodeId, { focusCanvas: true });
     },
-    [selectNode],
+    [allNodeExecutionRecords, resolverEdges, selectNode],
   );
   const openNodeExecutionRecord = useCallback(
     (record: DebugNodeExecutionRecord) => {
       setSelectedNodeExecutionRecordId(record.id);
+      useDebugOverlayStore
+        .getState()
+        .applyNodeExecutionOverlay(
+          selectDebugNodeExecutionOverlayFromEdges(
+            allNodeExecutionRecords,
+            record,
+            resolverEdges,
+          ),
+        );
       if (record.nodeId) {
         applyDebugNodeTarget(record.nodeId, { focusCanvas: true });
       }
     },
-    [],
+    [allNodeExecutionRecords, resolverEdges],
   );
 
   return {
     allNodeExecutionRecords,
+    batchRecognitionNodeSummaries,
     nodeExecutionFilters,
     nodeExecutionRecords,
+    nodeExecutionRunComparisons,
+    nodeReplayControl,
     pipelineNodes,
     resolverEdges,
     resolverEdgeIndex,

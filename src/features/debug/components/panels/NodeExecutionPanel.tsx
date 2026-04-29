@@ -4,16 +4,28 @@ import {
   Checkbox,
   Empty,
   Input,
+  Segmented,
   Select,
   Space,
   Tag,
 } from "antd";
-import { AimOutlined, ClearOutlined, SearchOutlined } from "@ant-design/icons";
+import {
+  AimOutlined,
+  ClearOutlined,
+  SearchOutlined,
+  StepBackwardOutlined,
+  StepForwardOutlined,
+} from "@ant-design/icons";
 import { DebugSection } from "../DebugSection";
 import type { DebugModalController } from "../../hooks/useDebugModalController";
+import {
+  getDebugReplayRecordState,
+  type DebugNodeReplayRecordState,
+} from "../../nodeExecutionAnalysis";
 import type { DebugNodeExecutionRecord } from "../../nodeExecutionSelector";
 import { groupDebugNodeExecutionRecords } from "../../nodeExecutionSelector";
 import {
+  ComparisonList,
   GroupedRecordList,
   RecordList,
 } from "./NodeExecutionRecordList";
@@ -123,7 +135,19 @@ export function NodeExecutionPanel({
     setNodeExecutionFilters,
     summary,
   } = controller;
+  const {
+    batchRecognitionNodeSummaries,
+    nodeExecutionRunComparisons,
+    nodeReplayControl,
+    seekNodeTraceReplay,
+    startNodeTraceReplay,
+    stopTraceReplay,
+  } = controller;
   const [searchText, setSearchText] = useState("");
+  const [viewMode, setViewMode] = useState<"sequence" | "compare">("sequence");
+  const [comparisonRunIdsDraft, setComparisonRunIdsDraft] = useState<
+    [string, string]
+  >(() => nodeExecutionFilters.comparisonRunIds ?? ["", ""]);
   const rawNodeExecutionCount = useMemo(
     () => Object.values(summary.nodeReplays).flat().length,
     [summary.nodeReplays],
@@ -139,10 +163,12 @@ export function NodeExecutionPanel({
   const selectedFlowNode = pipelineNodes.find(
     (node) => node.nodeId === selectedFlowNodeId,
   );
+  const selectedRecordSource =
+    viewMode === "compare" ? allNodeExecutionRecords : visibleRecords;
   const selectedRecord =
-    visibleRecords.find(
+    selectedRecordSource.find(
       (record) => record.id === selectedNodeExecutionRecordId,
-    ) ?? visibleRecords[0];
+    ) ?? (viewMode === "compare" ? undefined : visibleRecords[0]);
 
   useEffect(() => {
     if (!selectedRecord) {
@@ -188,10 +214,21 @@ export function NodeExecutionPanel({
     ],
     [allNodeExecutionRecords],
   );
+  const comparisonRunIds = comparisonRunIdsDraft;
+  const comparisonReady =
+    viewMode === "compare" &&
+    comparisonRunIds[0] !== "" &&
+    comparisonRunIds[1] !== "" &&
+    comparisonRunIds[0] !== comparisonRunIds[1];
 
   const handleSelectRecord = (record: DebugNodeExecutionRecord) => {
     selectNodeExecutionRecord(record);
+    if (replayStatus?.active) {
+      seekNodeTraceReplay(record, record.firstSeq);
+    }
   };
+  const replayRecordState = (record: DebugNodeExecutionRecord) =>
+    getDebugReplayRecordState(record, replayStatus);
 
   const setSelectedFlowFilter = () => {
     if (!selectedFlowNode) return;
@@ -203,7 +240,19 @@ export function NodeExecutionPanel({
 
   const clearFilters = () => {
     setSearchText("");
+    setComparisonRunIdsDraft(["", ""]);
     setNodeExecutionFilters(DEFAULT_DEBUG_NODE_EXECUTION_FILTERS);
+  };
+  const updateComparisonRun = (index: 0 | 1, runId?: string) => {
+    const current = comparisonRunIdsDraft;
+    const next: [string, string] = [...current] as [string, string];
+    next[index] = runId ?? "";
+    setComparisonRunIdsDraft(next);
+    setNodeExecutionFilters({
+      ...nodeExecutionFilters,
+      comparisonRunIds:
+        next[0] && next[1] && next[0] !== next[1] ? next : undefined,
+    });
   };
 
   if (events.length === 0) {
@@ -223,6 +272,15 @@ export function NodeExecutionPanel({
           </Tag>
           <Tag>运行 {summary.runId ?? "-"}</Tag>
           <Tag>记录 {visibleRecords.length}</Tag>
+          <Segmented
+            size="small"
+            value={viewMode}
+            options={[
+              { label: "执行序列", value: "sequence" },
+              { label: "Run 对比", value: "compare" },
+            ]}
+            onChange={(value) => setViewMode(value as "sequence" | "compare")}
+          />
           <Select
             size="small"
             style={{ minWidth: 160 }}
@@ -344,17 +402,102 @@ export function NodeExecutionPanel({
         </Space>
       </DebugSection>
 
-      {nodeExecutionRecords.length === 0 ? (
+      <DebugSection title="节点级回放">
+        <Space wrap>
+          <Tag color={nodeReplayControl.active ? "purple" : "default"}>
+            {nodeReplayControl.active
+              ? `Replay #${nodeReplayControl.cursorSeq}`
+              : "Live"}
+          </Tag>
+          <Tag>{replayStateLabel(nodeReplayControl.recordState)}</Tag>
+          <Button
+            size="small"
+            type="primary"
+            onClick={() => selectedRecord && startNodeTraceReplay(selectedRecord)}
+            disabled={!selectedRecord}
+          >
+            回放当前记录
+          </Button>
+          <Button
+            size="small"
+            icon={<StepBackwardOutlined />}
+            onClick={() =>
+              selectedRecord &&
+              seekNodeTraceReplay(selectedRecord, selectedRecord.firstSeq)
+            }
+            disabled={!selectedRecord}
+          >
+            到记录开始
+          </Button>
+          <Button
+            size="small"
+            icon={<StepForwardOutlined />}
+            onClick={() =>
+              selectedRecord &&
+              seekNodeTraceReplay(selectedRecord, selectedRecord.lastSeq)
+            }
+            disabled={!selectedRecord}
+          >
+            到记录结束
+          </Button>
+          <Button size="small" danger onClick={stopTraceReplay}>
+            回到实时
+          </Button>
+          {selectedRecord && (
+            <Tag>
+              当前记录 seq {selectedRecord.firstSeq}-{selectedRecord.lastSeq}
+            </Tag>
+          )}
+        </Space>
+      </DebugSection>
+
+      {viewMode === "compare" && (
+        <DebugSection title="Run 对比">
+          <Space wrap>
+            <Select
+              size="small"
+              style={{ minWidth: 180 }}
+              placeholder="选择左侧 run"
+              value={comparisonRunIds[0] || undefined}
+              options={runOptions.filter((option) => option.value)}
+              onChange={(runId) => updateComparisonRun(0, runId)}
+            />
+            <Select
+              size="small"
+              style={{ minWidth: 180 }}
+              placeholder="选择右侧 run"
+              value={comparisonRunIds[1] || undefined}
+              options={runOptions.filter((option) => option.value)}
+              onChange={(runId) => updateComparisonRun(1, runId)}
+            />
+            <Tag>
+              差异{" "}
+              {nodeExecutionRunComparisons.filter((item) => item.hasDifference).length}
+            </Tag>
+          </Space>
+        </DebugSection>
+      )}
+
+      {viewMode !== "compare" && nodeExecutionRecords.length === 0 ? (
         <Empty description="没有符合筛选条件的节点执行记录" />
-      ) : visibleRecords.length === 0 ? (
+      ) : viewMode === "compare" && !comparisonReady ? (
+        <Empty description="请选择两个不同的 run 进行对比" />
+      ) : viewMode !== "compare" && visibleRecords.length === 0 ? (
         <Empty description="没有符合搜索条件的节点执行记录" />
       ) : (
         <div style={layoutStyle}>
           <div style={listPaneStyle}>
-            {nodeExecutionFilters.groupRepeated ? (
+            {viewMode === "compare" ? (
+              <ComparisonList
+                comparisons={nodeExecutionRunComparisons}
+                onSelectRecord={handleSelectRecord}
+                replayRecordState={replayRecordState}
+              />
+            ) : nodeExecutionFilters.groupRepeated ? (
               <GroupedRecordList
                 groups={groupedRecords}
                 onSelectRecord={handleSelectRecord}
+                replayRecordState={replayRecordState}
                 selectedRecordId={selectedRecord?.id}
                 totalRecordCount={visibleRecords.length}
               />
@@ -362,6 +505,7 @@ export function NodeExecutionPanel({
               <RecordList
                 records={visibleRecords}
                 onSelectRecord={handleSelectRecord}
+                replayRecordState={replayRecordState}
                 selectedRecordId={selectedRecord?.id}
               />
             )}
@@ -370,7 +514,9 @@ export function NodeExecutionPanel({
             {selectedRecord && (
               <NodeExecutionRecordDetails
                 artifacts={artifacts}
+                batchSummaries={batchRecognitionNodeSummaries}
                 record={selectedRecord}
+                replayControl={nodeReplayControl}
                 requestArtifact={requestArtifact}
                 resolverEdgeIndex={resolverEdgeIndex}
                 selectedArtifact={selectedArtifact}
@@ -419,4 +565,18 @@ function uniqueRuntimeOnlyOptions(records: DebugNodeExecutionRecord[]) {
 
 function uniqueStrings(values: string[]): string[] {
   return [...new Set(values.filter((value) => value.trim() !== ""))];
+}
+
+function replayStateLabel(state: DebugNodeReplayRecordState): string {
+  switch (state) {
+    case "current":
+      return "光标位于当前记录";
+    case "passed":
+      return "当前记录已回放";
+    case "not-reached":
+      return "当前记录未到达";
+    case "live":
+    default:
+      return "实时追踪";
+  }
 }

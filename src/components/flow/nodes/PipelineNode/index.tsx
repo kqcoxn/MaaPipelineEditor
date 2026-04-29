@@ -73,6 +73,10 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
       visitedNodeIds: state.visitedNodeIds,
       succeededNodeIds: state.succeededNodeIds,
       failedNodeIds: state.failedNodeIds,
+      executionPathNodeIds: state.executionPathNodeIds,
+      highlightedFailureNodeIds: state.highlightedFailureNodeIds,
+      highlightedSlowNodeIds: state.highlightedSlowNodeIds,
+      selectedExecutionNodeId: state.selectedExecutionNodeId,
     })),
   );
 
@@ -173,6 +177,14 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
         [style["debug-node-succeeded"]]:
           debugOverlay.succeededNodeIds.has(props.id),
         [style["debug-node-failed"]]: debugOverlay.failedNodeIds.has(props.id),
+        [style["debug-node-execution-path"]]:
+          debugOverlay.executionPathNodeIds.has(props.id),
+        [style["debug-node-execution-selected"]]:
+          debugOverlay.selectedExecutionNodeId === props.id,
+        [style["debug-node-execution-failed"]]:
+          debugOverlay.highlightedFailureNodeIds.has(props.id),
+        [style["debug-node-execution-slow"]]:
+          debugOverlay.highlightedSlowNodeIds.has(props.id),
       }),
     [
       props.selected,
@@ -183,6 +195,10 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
       debugOverlay.visitedNodeIds,
       debugOverlay.succeededNodeIds,
       debugOverlay.failedNodeIds,
+      debugOverlay.executionPathNodeIds,
+      debugOverlay.highlightedFailureNodeIds,
+      debugOverlay.highlightedSlowNodeIds,
+      debugOverlay.selectedExecutionNodeId,
       props.id,
     ],
   );
@@ -312,62 +328,4 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
   );
 }
 
-export const PipelineNodeMemo = memo(PipelineNode, (prev, next) => {
-  // 基础属性比较
-  if (
-    prev.id !== next.id ||
-    prev.selected !== next.selected ||
-    prev.dragging !== next.dragging
-  ) {
-    return false;
-  }
-
-  // 比较 data
-  const prevData = prev.data;
-  const nextData = next.data;
-  if (prevData.label !== nextData.label) {
-    return false;
-  }
-
-  if (prevData.recognition.type !== nextData.recognition.type) {
-    return false;
-  }
-  try {
-    if (
-      JSON.stringify(prevData.recognition.param) !==
-      JSON.stringify(nextData.recognition.param)
-    ) {
-      return false;
-    }
-  } catch {
-    if (prevData.recognition.param !== nextData.recognition.param) {
-      return false;
-    }
-  }
-
-  if (prevData.action.type !== nextData.action.type) {
-    return false;
-  }
-  try {
-    if (
-      JSON.stringify(prevData.action.param) !==
-      JSON.stringify(nextData.action.param)
-    ) {
-      return false;
-    }
-  } catch {
-    if (prevData.action.param !== nextData.action.param) {
-      return false;
-    }
-  }
-
-  if (
-    prevData.others !== nextData.others ||
-    prevData.extras !== nextData.extras ||
-    prevData.handleDirection !== nextData.handleDirection
-  ) {
-    return false;
-  }
-
-  return true;
-});
+export const PipelineNodeMemo = memo(PipelineNode);

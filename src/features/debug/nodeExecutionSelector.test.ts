@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  compareDebugNodeExecutionRuns,
+  getDebugReplayRecordState,
+  getDebugNodeReplayControl,
+  selectDebugBatchRecognitionNodeSummaries,
+  selectDebugNodeExecutionOverlay,
+  selectDebugNodeExecutionOverlayFromEdges,
+} from "./nodeExecutionAnalysis";
+import {
   createDebugResolverEdgeIndex,
   findDebugResolverEdge,
   groupDebugNodeExecutionRecords,
@@ -7,7 +15,10 @@ import {
 } from "./nodeExecutionSelector";
 import { reduceDebugTrace } from "./traceReducer";
 import type {
+  DebugArtifactPayload,
+  DebugBatchRecognitionResult,
   DebugEvent,
+  DebugEdgeReason,
   DebugEventKind,
   DebugEventPhase,
   DebugPerformanceSummary,
@@ -246,6 +257,222 @@ describe("selectDebugNodeExecutionRecords", () => {
   });
 });
 
+describe("node execution v2 analysis", () => {
+  it("marks replay cursor position against the selected record", () => {
+    const summary = reduceDebugTrace({
+      events: [
+        event(10, "node", "starting", node("node-a", "A")),
+        event(12, "node", "succeeded", node("node-a", "A")),
+      ],
+    });
+    const [record] = selectDebugNodeExecutionRecords(summary, resolverNodes, {
+      status: "all",
+    });
+
+    expect(
+      getDebugNodeReplayControl(record, replayStatus(9)).recordState,
+    ).toBe("not-reached");
+    expect(
+      getDebugNodeReplayControl(record, replayStatus(11)).recordState,
+    ).toBe("current");
+    expect(
+      getDebugNodeReplayControl(record, replayStatus(13)).recordState,
+    ).toBe("passed");
+  });
+
+  it("builds node execution overlay without dropping repeated or unmapped records", () => {
+    const summary = reduceDebugTrace({
+      events: [
+        event(1, "node", "starting", node("node-a", "A")),
+        edgeEvent(2, "edge-a-b", "A", "B", "next"),
+        event(3, "node", "succeeded", node("node-a", "A")),
+        event(4, "node", "starting", node("node-b", "B")),
+        edgeEvent(5, "edge-b-c", "B", "C", "candidate"),
+        event(6, "node", "failed", node("node-b", "B")),
+        withRun("run-2", event(7, "node", "starting", node("node-a", "A"))),
+        event(8, "node", "starting", { runtimeName: "RuntimeOnly" }),
+      ],
+    });
+    const records = selectDebugNodeExecutionRecords(summary, resolverNodes, {
+      status: "all",
+    });
+    const selected = records.find((record) => record.nodeId === "node-b");
+
+    const overlay = selectDebugNodeExecutionOverlay(records, selected);
+
+    expect(overlay.executionPathNodeIds).toEqual(["node-a", "node-b"]);
+    expect(overlay.executionPathEdgeIds).toEqual(["edge-a-b"]);
+    expect(overlay.executionCandidateEdgeIds).toEqual(["edge-b-c"]);
+    expect(overlay.highlightedFailureNodeIds).toEqual(["node-b"]);
+  });
+
+  it("marks replay state for other runs and node-scoped cursors as not reached", () => {
+    const summary = reduceDebugTrace({
+      events: [
+        event(10, "node", "starting", node("node-a", "A")),
+        event(12, "node", "succeeded", node("node-a", "A")),
+        withRun("run-2", event(13, "node", "starting", node("node-b", "B"))),
+      ],
+    });
+    const records = selectDebugNodeExecutionRecords(summary, resolverNodes, {
+      status: "all",
+    });
+    const recordA = records.find((record) => record.nodeId === "node-a");
+    const recordB = records.find((record) => record.nodeId === "node-b");
+
+    expect(
+      recordA && getDebugReplayRecordState(recordA, replayStatus(11)),
+    ).toBe("current");
+    expect(
+      recordB && getDebugReplayRecordState(recordB, replayStatus(20)),
+    ).toBe("not-reached");
+    expect(
+      recordA &&
+        getDebugReplayRecordState(recordA, {
+          ...replayStatus(11),
+          nodeId: "node-b",
+        }),
+    ).toBe("not-reached");
+  });
+
+  it("derives candidate edge highlights from next-list resolver mapping", () => {
+    const summary = reduceDebugTrace({
+      events: [
+        event(1, "node", "starting", node("node-a", "A")),
+        event(2, "next-list", "succeeded", node("node-a", "A"), {
+          next: [{ name: "B", jumpBack: false, anchor: true }],
+        }),
+        event(3, "node", "succeeded", node("node-a", "A")),
+        event(4, "node", "starting", node("node-b", "B")),
+        event(5, "node", "succeeded", node("node-b", "B")),
+      ],
+    });
+    const records = selectDebugNodeExecutionRecords(summary, resolverNodes, {
+      status: "all",
+    });
+    const overlay = selectDebugNodeExecutionOverlayFromEdges(
+      records,
+      records[1],
+      [
+        {
+          edgeId: "edge-a-b",
+          fromRuntimeName: "A",
+          toRuntimeName: "B",
+          reason: "anchor",
+        },
+      ],
+    );
+
+    expect(overlay.executionPathEdgeIds).toEqual([]);
+    expect(overlay.executionCandidateEdgeIds).toEqual(["edge-a-b"]);
+  });
+
+  it("does not infer executed edges from static resolver adjacency alone", () => {
+    const summary = reduceDebugTrace({
+      events: [
+        event(1, "node", "starting", node("node-a", "A")),
+        event(2, "node", "succeeded", node("node-a", "A")),
+        event(3, "node", "starting", node("node-b", "B")),
+        event(4, "node", "succeeded", node("node-b", "B")),
+      ],
+    });
+    const records = selectDebugNodeExecutionRecords(summary, resolverNodes, {
+      status: "all",
+    });
+    const overlay = selectDebugNodeExecutionOverlayFromEdges(
+      records,
+      records[1],
+      [
+        {
+          edgeId: "edge-a-b",
+          fromRuntimeName: "A",
+          toRuntimeName: "B",
+          reason: "next",
+        },
+      ],
+    );
+
+    expect(overlay.executionPathEdgeIds).toEqual([]);
+    expect(overlay.executionCandidateEdgeIds).toEqual([]);
+  });
+
+  it("aggregates batch recognition summary artifacts by target node", () => {
+    const summaries = selectDebugBatchRecognitionNodeSummaries({
+      "batch-summary": {
+        ref: {
+          id: "batch-summary",
+          sessionId: "session-1",
+          type: "batch-recognition-summary",
+          mime: "application/json",
+          createdAt: "2026-04-29T00:00:00.000Z",
+        },
+        status: "ready",
+        payload: {
+          ref: {
+            id: "batch-summary",
+            sessionId: "session-1",
+            type: "batch-recognition-summary",
+            mime: "application/json",
+            createdAt: "2026-04-29T00:00:00.000Z",
+          },
+          data: batchResult(),
+        } satisfies DebugArtifactPayload,
+      },
+    });
+
+    expect(summaries).toHaveLength(1);
+    expect(summaries[0]).toMatchObject({
+      batchId: "batch-1",
+      nodeId: "node-a",
+      total: 3,
+      succeeded: 1,
+      failed: 1,
+      detailRefs: ["detail-1", "detail-2"],
+      screenshotRefs: ["shot-1"],
+    });
+  });
+
+  it("compares two runs by occurrence, status, failure, duration and runtime-only fallback", () => {
+    const summary = reduceDebugTrace({
+      events: [
+        event(1, "node", "starting", node("node-a", "A")),
+        event(2, "node", "succeeded", node("node-a", "A")),
+        withRun("run-2", event(3, "node", "starting", node("node-a", "A"))),
+        withRun("run-2", event(4, "node", "failed", node("node-a", "A"))),
+        event(5, "node", "starting", { runtimeName: "RuntimeOnly" }),
+        withRun(
+          "run-2",
+          event(6, "node", "starting", { runtimeName: "RuntimeOnly" }),
+        ),
+        withRun(
+          "run-2",
+          event(7, "node", "starting", { runtimeName: "RuntimeOnly" }),
+        ),
+      ],
+    });
+    const records = selectDebugNodeExecutionRecords(summary, resolverNodes, {
+      status: "all",
+    });
+
+    const comparisons = compareDebugNodeExecutionRuns(records, [
+      "run-1",
+      "run-2",
+    ]);
+    const nodeComparison = comparisons.find(
+      (comparison) => comparison.nodeId === "node-a",
+    );
+    const runtimeComparison = comparisons.find(
+      (comparison) => comparison.runtimeName === "RuntimeOnly",
+    );
+
+    expect(nodeComparison?.hasDifference).toBe(true);
+    expect(nodeComparison?.differenceReasons).toContain("状态不同");
+    expect(nodeComparison?.differenceReasons).toContain("失败不同");
+    expect(runtimeComparison?.hasDifference).toBe(true);
+    expect(runtimeComparison?.differenceReasons).toContain("执行次数不同");
+  });
+});
+
 const resolverNodes = [
   {
     fileId: "main.json",
@@ -304,6 +531,78 @@ function node(nodeId: string, runtimeName: string): DebugEvent["node"] {
 
 function withRun(runId: string, value: DebugEvent): DebugEvent {
   return { ...value, runId };
+}
+
+function edgeEvent(
+  seq: number,
+  edgeId: string,
+  fromRuntimeName: string,
+  toRuntimeName: string,
+  reason: DebugEdgeReason,
+): DebugEvent {
+  return {
+    ...event(seq, "next-list", "succeeded", node("node-a", fromRuntimeName)),
+    edge: {
+      edgeId,
+      fromRuntimeName,
+      toRuntimeName,
+      reason,
+    },
+  };
+}
+
+function replayStatus(cursorSeq: number) {
+  return {
+    sessionId: "session-1",
+    runId: "run-1",
+    active: true,
+    playing: false,
+    cursorSeq,
+  };
+}
+
+function batchResult(): DebugBatchRecognitionResult {
+  return {
+    sessionId: "session-1",
+    batchId: "batch-1",
+    target: {
+      fileId: "main.json",
+      nodeId: "node-a",
+      runtimeName: "A",
+    },
+    status: "failed",
+    startedAt: "2026-04-29T00:00:00.000Z",
+    completedAt: "2026-04-29T00:00:03.000Z",
+    total: 3,
+    completed: 2,
+    succeeded: 1,
+    failed: 1,
+    averageDurationMs: 1500,
+    results: [
+      {
+        index: 0,
+        imageRelativePath: "a.png",
+        status: "succeeded",
+        hit: true,
+        durationMs: 1000,
+        detailRefs: ["detail-1"],
+        screenshotRefs: ["shot-1"],
+      },
+      {
+        index: 1,
+        imageRelativePath: "b.png",
+        status: "failed",
+        durationMs: 2000,
+        detailRefs: ["detail-2"],
+        error: "failed",
+      },
+      {
+        index: 2,
+        imageRelativePath: "c.png",
+        status: "running",
+      },
+    ],
+  };
 }
 
 function performance(input: {

@@ -601,16 +601,29 @@ function MarkedEdge(props: EdgeProps) {
     useShallow((state) => ({
       executed: state.executedEdgeIds.has(props.id),
       candidate: state.candidateEdgeIds.has(props.id),
+      executionPath: state.executionPathEdgeIds.has(props.id),
+      executionCandidate: state.executionCandidateEdgeIds.has(props.id),
     })),
   );
 
   const debugEdgeClass = useMemo(
     () =>
       classNames(edgeClass, {
-        [style["debug-edge-executed"]]: debugEdgeState.executed,
-        [style["debug-edge-candidate"]]: debugEdgeState.candidate,
+        [style["debug-edge-executed"]]:
+          debugEdgeState.executed || debugEdgeState.executionPath,
+        [style["debug-edge-candidate"]]:
+          debugEdgeState.candidate || debugEdgeState.executionCandidate,
+        [style["debug-edge-execution-path"]]: debugEdgeState.executionPath,
+        [style["debug-edge-execution-candidate"]]:
+          debugEdgeState.executionCandidate,
       }),
-    [edgeClass, debugEdgeState.executed, debugEdgeState.candidate],
+    [
+      edgeClass,
+      debugEdgeState.candidate,
+      debugEdgeState.executed,
+      debugEdgeState.executionCandidate,
+      debugEdgeState.executionPath,
+    ],
   );
 
   const labelClass = useMemo(

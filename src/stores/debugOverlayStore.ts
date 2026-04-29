@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { DebugNodeExecutionOverlay } from "../features/debug/nodeExecutionAnalysis";
 import type { DebugTraceSummary } from "../features/debug/traceReducer";
 
 interface DebugOverlayState {
@@ -8,8 +9,17 @@ interface DebugOverlayState {
   failedNodeIds: Set<string>;
   executedEdgeIds: Set<string>;
   candidateEdgeIds: Set<string>;
+  selectedExecutionRecordId?: string;
+  selectedExecutionNodeId?: string;
+  executionPathNodeIds: Set<string>;
+  executionPathEdgeIds: Set<string>;
+  executionCandidateEdgeIds: Set<string>;
+  highlightedFailureNodeIds: Set<string>;
+  highlightedSlowNodeIds: Set<string>;
   applyTraceSummary: (summary: DebugTraceSummary) => void;
   applyReplaySummary: (summary: DebugTraceSummary) => void;
+  applyNodeExecutionOverlay: (overlay: DebugNodeExecutionOverlay) => void;
+  clearNodeExecutionOverlay: () => void;
   clearOverlay: () => void;
 }
 
@@ -19,6 +29,11 @@ export const useDebugOverlayStore = create<DebugOverlayState>((set) => ({
   failedNodeIds: new Set(),
   executedEdgeIds: new Set(),
   candidateEdgeIds: new Set(),
+  executionPathNodeIds: new Set(),
+  executionPathEdgeIds: new Set(),
+  executionCandidateEdgeIds: new Set(),
+  highlightedFailureNodeIds: new Set(),
+  highlightedSlowNodeIds: new Set(),
 
   applyTraceSummary: (summary) =>
     set({
@@ -40,6 +55,28 @@ export const useDebugOverlayStore = create<DebugOverlayState>((set) => ({
       candidateEdgeIds: new Set(summary.candidateEdgeIds),
     }),
 
+  applyNodeExecutionOverlay: (overlay) =>
+    set({
+      selectedExecutionRecordId: overlay.selectedExecutionRecordId,
+      selectedExecutionNodeId: overlay.selectedExecutionNodeId,
+      executionPathNodeIds: new Set(overlay.executionPathNodeIds),
+      executionPathEdgeIds: new Set(overlay.executionPathEdgeIds),
+      executionCandidateEdgeIds: new Set(overlay.executionCandidateEdgeIds),
+      highlightedFailureNodeIds: new Set(overlay.highlightedFailureNodeIds),
+      highlightedSlowNodeIds: new Set(overlay.highlightedSlowNodeIds),
+    }),
+
+  clearNodeExecutionOverlay: () =>
+    set({
+      selectedExecutionRecordId: undefined,
+      selectedExecutionNodeId: undefined,
+      executionPathNodeIds: new Set(),
+      executionPathEdgeIds: new Set(),
+      executionCandidateEdgeIds: new Set(),
+      highlightedFailureNodeIds: new Set(),
+      highlightedSlowNodeIds: new Set(),
+    }),
+
   clearOverlay: () =>
     set({
       currentNodeId: undefined,
@@ -48,5 +85,12 @@ export const useDebugOverlayStore = create<DebugOverlayState>((set) => ({
       failedNodeIds: new Set(),
       executedEdgeIds: new Set(),
       candidateEdgeIds: new Set(),
+      selectedExecutionRecordId: undefined,
+      selectedExecutionNodeId: undefined,
+      executionPathNodeIds: new Set(),
+      executionPathEdgeIds: new Set(),
+      executionCandidateEdgeIds: new Set(),
+      highlightedFailureNodeIds: new Set(),
+      highlightedSlowNodeIds: new Set(),
     }),
 }));

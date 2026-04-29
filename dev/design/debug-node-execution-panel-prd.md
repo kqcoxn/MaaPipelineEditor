@@ -182,10 +182,11 @@ type DebugNodeExecutionRecord = {
 
 **Phased Rollout**：
 
-- MVP：新增 `节点执行` 面板，基于 `summary.nodeReplays` 渲染节点执行序列、状态、seq 范围、事件计数、详情事件列表和 artifact 按需入口；支持点击定位画布节点。
-- v1.1：补充筛选、只看失败、只看选中节点、同节点多次执行折叠、next-list 到 edge 的可视映射、运行后 duration/slow node 标记。
-- v1.2：补充 artifact JSON 轻量摘要解析，展示 recognition hit/algorithm/box、action success/action/box、draw/raw 缩略图入口。
-- v2.0：支持节点级 trace replay 详情、与画布 overlay 的执行路径热力联动、批量识别结果按节点聚合、多 run 对比。
+- MVP（已完成）：新增 `节点执行` 面板，基于 `summary.nodeReplays` 渲染节点执行序列、状态、seq 范围、事件计数、详情事件列表和 artifact 按需入口；支持点击定位画布节点。
+- v1.1（已完成）：补充筛选、只看失败、只看选中节点、同节点多次执行折叠、next-list 到 edge 的可视映射、运行后 duration/slow node 标记。
+- v1.2（已完成）：补充 artifact JSON 轻量摘要解析，展示 recognition hit/algorithm/box、action success/action/box、draw/raw 缩略图入口。
+- v2.0（已完成）：支持节点级 trace replay 详情、与画布 overlay 的执行路径热力联动、批量识别结果按节点聚合、多 run 对比。
+- 后续维护项：更复杂的图表/火焰图、算法私有 detail 深层解析和批量图像缩略图网格不属于本模块闭环范围，后续仅在出现明确性能或排障需求时单独设计。
 
 **Technical Risks**：
 
@@ -198,10 +199,10 @@ type DebugNodeExecutionRecord = {
 
 **Open Questions**：
 
-- 面板名称最终采用 `节点执行`、`节点视图` 还是 `执行树`；建议首版使用 `节点执行`，强调不是完整调用栈调试器。
-- `nodeReplays` 是否需要从“每节点每 run 一组”调整为“连续执行段”；若要调整，应同步影响 PerformancePanel 和画布 overlay。
-- 是否需要把失败摘要提升到 OverviewPanel 顶部，点击后直接跳转到 `节点执行` 面板的失败记录。
-- 是否要在 P0 引入列表虚拟化；如果当前 trace 规模较小，可先保留普通 List，记录性能阈值后再优化。
+- 已闭环：面板名称采用 `节点执行`，强调不是完整调用栈调试器。
+- 已闭环：`nodeReplays` 已调整为连续执行段数组，同一节点同一 run 多次命中不会互相覆盖。
+- 已闭环：失败摘要已提升到 OverviewPanel，支持跳转到 `节点执行` 面板的失败记录。
+- 已闭环：P0 保留普通 List，v1.1 在记录超过 300 条时启用 Ant Design List 分页；暂不引入新的虚拟列表依赖。
 
 ## 6. Reference Notes
 
@@ -337,3 +338,48 @@ type DebugNodeExecutionRecord = {
 - 本轮只做 artifact JSON 浅层摘要和图像入口，不解析算法私有 detail schema，也不做 raw/draw 缩略图网格或批量预加载。
 - 详情派生图像入口依赖用户先点击加载对应 detail artifact；列表首屏和节点详情展开时仍不会主动请求整批 artifact。
 - v2.0 的节点级 trace replay、画布执行路径热力和多 run 对比仍未进入本轮范围。
+
+### 2026-04-29 v2.0：节点回放、画布联动、批量聚合与 run 对比闭环
+
+已完成：
+
+- 新增 `nodeExecutionAnalysis` 纯 helper，集中处理节点级 replay cursor 状态、执行路径 overlay、batch recognition summary 聚合和多 run 对比；UI 组件不直接归约 trace。
+- `节点执行` 面板新增节点级回放区，支持按当前执行记录启动 replay、seek 到记录 `firstSeq` / `lastSeq`、停止回到 live；replay active 时选择执行记录会自动 seek 到该记录开头。
+- `debugOverlayStore` 新增节点执行专用 overlay 状态，记录选中执行记录、执行路径节点、执行路径边、candidate edge、失败节点和慢节点；不复用普通路径模式的 `pathMode/pathNodeIds/pathEdgeIds`。
+- React Flow Pipeline 节点和边接入节点执行 overlay 样式：选中执行记录会继续定位画布，并高亮当前 run 中截至该记录的执行路径、candidate edge、失败节点和慢节点。
+- 节点执行详情区新增“批量识别”聚合区，读取已加载的 `batch-recognition-summary` artifact payload，按目标节点展示总数、成功/失败、平均耗时和失败/含 artifact 的图片结果入口；detail/image 仍通过现有 `requestArtifact(ref)` 按需拉取。
+- `节点执行` 面板新增 Run 对比模式，可选择两个 runId，按 `nodeId/runtimeName` 对比状态、执行次数、耗时、失败和 artifact 数；点击某个 run 的 occurrence 会打开对应原始执行记录详情。
+- `DebugNodeExecutionFilters` 增加 `comparisonRunIds` 偏好字段，`debugModalMemoryStore` 只持久化结构化筛选偏好，不持久化 trace 或 batch 结果。
+- 本轮未修改 LocalBridge wire protocol，未新增 MaaFW callback，未修改 `DEBUG_PROTOCOL_VERSION` / `ProtocolVersion`。
+
+主要文件：
+
+- `src/features/debug/nodeExecutionAnalysis.ts`
+- `src/features/debug/debugModalActions.ts`
+- `src/features/debug/traceReplayActions.ts`
+- `src/features/debug/components/panels/NodeExecutionPanel.tsx`
+- `src/features/debug/components/panels/NodeExecutionRecordDetails.tsx`
+- `src/features/debug/components/panels/NodeExecutionRecordList.tsx`
+- `src/features/debug/hooks/useDebugNodeExecutionController.ts`
+- `src/features/debug/hooks/useDebugModalController.ts`
+- `src/stores/debugOverlayStore.ts`
+- `src/stores/debugModalMemoryStore.ts`
+- `src/components/flow/nodes/PipelineNode/index.tsx`
+- `src/components/flow/edges.tsx`
+- `src/styles/flow/nodes.module.less`
+- `src/styles/flow/edges.module.less`
+- `src/features/debug/nodeExecutionSelector.test.ts`
+
+验证记录：
+
+- `yarn eslint src/features/debug/types.ts src/features/debug/debugModalActions.ts src/features/debug/traceReplayActions.ts src/features/debug/nodeExecutionAnalysis.ts src/features/debug/nodeExecutionSelector.ts src/features/debug/nodeExecutionSelector.test.ts src/features/debug/hooks/useDebugNodeExecutionController.ts src/features/debug/hooks/useDebugModalController.ts src/features/debug/components/panels/NodeExecutionPanel.tsx src/features/debug/components/panels/NodeExecutionRecordDetails.tsx src/features/debug/components/panels/NodeExecutionRecordList.tsx src/stores/debugOverlayStore.ts src/stores/debugModalMemoryStore.ts src/components/flow/nodes/PipelineNode/index.tsx src/components/flow/edges.tsx`：通过。
+- `yarn vitest run src/features/debug/traceReducer.test.ts src/features/debug/nodeExecutionSelector.test.ts`：仓库当前 `vite.config.ts` 引用的 `tests/setup.ts` 不存在，命令仍在 setup 阶段失败，未进入测试逻辑。
+- 使用临时无 setup 的 Vitest config 执行同一组测试：通过，`2 passed / 19 tests passed`。
+- `git diff --check -- src dev/design/debug-node-execution-panel-prd.md`：通过。
+- `yarn tsc -p tsconfig.app.json --noEmit --pretty false`：仍失败于仓库既有 TypeScript 基线问题，例如 `src/components/iconfonts/*` 生成文件、`src/components/Flow.tsx` 既有未使用变量、`LogsPanel.tsx` / `PerformancePanel.tsx` 既有类型问题、`debugRunProfileStore.ts` 既有 controller type 比较问题；本轮触碰文件未出现在错误列表中。
+- 本轮没有触碰 `LocalBridge`，也未修改 debug wire protocol，因此未运行 `go test ./...`。
+
+闭环状态：
+
+- 本 PRD 路线图中的 MVP、v1.1、v1.2、v2.0 均已落地；节点执行面板进入维护态。
+- 更复杂的图表/火焰图、算法私有 detail 深层解析和批量缩略图网格不纳入本模块闭环，后续如有真实使用需求再单独设计。

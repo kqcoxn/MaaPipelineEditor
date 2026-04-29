@@ -13,6 +13,11 @@ import {
   type DebugNodeExecutionRecord,
   type ResolverEdge,
 } from "../../nodeExecutionSelector";
+import {
+  batchSummariesForRecord,
+  type DebugBatchRecognitionNodeSummary,
+  type DebugNodeReplayControl,
+} from "../../nodeExecutionAnalysis";
 import { formatDebugNodeExecutionDuration } from "../../nodeExecutionDisplay";
 import { eventTitle, formatTime } from "../../modalUtils";
 import type { DebugEvent } from "../../types";
@@ -25,13 +30,17 @@ type ArtifactEntries = Record<string, DebugArtifactEntry>;
 
 export function NodeExecutionRecordDetails({
   artifacts,
+  batchSummaries,
   record,
+  replayControl,
   requestArtifact,
   resolverEdgeIndex,
   selectedArtifact,
 }: {
   artifacts: ArtifactEntries;
+  batchSummaries: DebugBatchRecognitionNodeSummary[];
   record: DebugNodeExecutionRecord;
+  replayControl: DebugNodeReplayControl;
   requestArtifact: (artifactId: string) => void;
   resolverEdgeIndex: Map<string, ResolverEdge>;
   selectedArtifact?: DebugArtifactEntry;
@@ -47,12 +56,18 @@ export function NodeExecutionRecordDetails({
   ]);
   const selectedArtifactIsRelated =
     selectedArtifact && relatedArtifactRefs.has(selectedArtifact.ref.id);
+  const relatedBatchSummaries = batchSummariesForRecord(batchSummaries, record);
 
   return (
     <Space direction="vertical" size={12} style={{ width: "100%" }}>
       <DebugSection title="执行概览">
         <Space wrap>
           <StatusTag status={record.status} />
+          <Tag color={replayControl.active ? "purple" : "default"}>
+            {replayControl.active
+              ? replayRecordStateLabel(replayControl.recordState)
+              : "Live"}
+          </Tag>
           <Tag>run {record.runId}</Tag>
           <Tag>occurrence {record.occurrence}</Tag>
           <Tag>
@@ -104,6 +119,11 @@ export function NodeExecutionRecordDetails({
         title="诊断事件"
       />
 
+      <BatchRecognitionGroup
+        requestArtifact={requestArtifact}
+        summaries={relatedBatchSummaries}
+      />
+
       <ArtifactActions
         detailRefs={record.detailRefs}
         derivedImageRefs={derivedImageRefs}
@@ -121,6 +141,103 @@ export function NodeExecutionRecordDetails({
         events={record.events.filter((event) => event.maafwMessage)}
         title="MaaFW 原始消息"
       />
+    </Space>
+  );
+}
+
+function BatchRecognitionGroup({
+  requestArtifact,
+  summaries,
+}: {
+  requestArtifact: (artifactId: string) => void;
+  summaries: DebugBatchRecognitionNodeSummary[];
+}) {
+  if (summaries.length === 0) return null;
+
+  return (
+    <DebugSection title="批量识别">
+      <List
+        size="small"
+        dataSource={summaries}
+        renderItem={(summary) => (
+          <List.Item>
+            <Space direction="vertical" size={6} style={{ width: "100%" }}>
+              <Space wrap size={4}>
+                <Tag>batch {summary.batchId}</Tag>
+                <Tag>{summary.status}</Tag>
+                <Tag>总数 {summary.total}</Tag>
+                <Tag color="green">成功 {summary.succeeded}</Tag>
+                <Tag color={summary.failed > 0 ? "red" : "default"}>
+                  失败 {summary.failed}
+                </Tag>
+                <Tag>完成 {summary.completed}</Tag>
+                {summary.averageDurationMs !== undefined && (
+                  <Tag>
+                    平均{" "}
+                    {formatDebugNodeExecutionDuration(
+                      summary.averageDurationMs,
+                    )}
+                  </Tag>
+                )}
+                {summary.stopped && <Tag color="orange">已停止</Tag>}
+              </Space>
+              <BatchResultList
+                requestArtifact={requestArtifact}
+                summary={summary}
+              />
+            </Space>
+          </List.Item>
+        )}
+      />
+    </DebugSection>
+  );
+}
+
+function BatchResultList({
+  requestArtifact,
+  summary,
+}: {
+  requestArtifact: (artifactId: string) => void;
+  summary: DebugBatchRecognitionNodeSummary;
+}) {
+  const visibleResults = summary.results.filter(
+    (result) =>
+      result.status === "failed" ||
+      (result.detailRefs?.length ?? 0) > 0 ||
+      (result.screenshotRefs?.length ?? 0) > 0,
+  );
+  if (visibleResults.length === 0) {
+    return <Text type="secondary">暂无可查看的图片结果 artifact。</Text>;
+  }
+
+  return (
+    <Space direction="vertical" size={4}>
+      {visibleResults.slice(0, 20).map((result) => (
+        <Space key={`${summary.batchId}-${result.index}`} wrap size={4}>
+          <Tag>#{result.index + 1}</Tag>
+          <Tag color={result.status === "failed" ? "red" : "green"}>
+            {result.status}
+          </Tag>
+          {result.imageRelativePath && <Tag>{result.imageRelativePath}</Tag>}
+          {result.durationMs !== undefined && (
+            <Tag>{formatDebugNodeExecutionDuration(result.durationMs)}</Tag>
+          )}
+          {result.error && <Tag color="red">{truncate(result.error)}</Tag>}
+          {(result.detailRefs ?? []).map((ref) => (
+            <Button key={ref} size="small" onClick={() => requestArtifact(ref)}>
+              详情 #{shortRef(ref)}
+            </Button>
+          ))}
+          {(result.screenshotRefs ?? []).map((ref) => (
+            <Button key={ref} size="small" onClick={() => requestArtifact(ref)}>
+              图像 #{shortRef(ref)}
+            </Button>
+          ))}
+        </Space>
+      ))}
+      {visibleResults.length > 20 && (
+        <Text type="secondary">仅显示前 20 条含 artifact 或失败的图片结果。</Text>
+      )}
     </Space>
   );
 }
@@ -432,4 +549,20 @@ function truncate(value: string): string {
 
 function shortRef(ref: string): string {
   return ref.slice(0, 8);
+}
+
+function replayRecordStateLabel(
+  state: DebugNodeReplayControl["recordState"],
+): string {
+  switch (state) {
+    case "current":
+      return "Replay 当前";
+    case "passed":
+      return "Replay 已过";
+    case "not-reached":
+      return "Replay 未到达";
+    case "live":
+    default:
+      return "Live";
+  }
 }

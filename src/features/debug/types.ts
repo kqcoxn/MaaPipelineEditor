@@ -55,6 +55,7 @@ export type DebugNodeExecutionSortMode =
 export interface DebugNodeExecutionFilters {
   nodeId?: string;
   runId?: string;
+  comparisonRunIds?: [string, string];
   status: DebugNodeExecutionStatusFilter;
   eventKind?: DebugNodeExecutionEventKindFilter;
   artifact?: DebugNodeExecutionArtifactFilter;
