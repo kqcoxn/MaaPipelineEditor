@@ -4,16 +4,16 @@ import type {
   DebugNodeExecutionRecord,
   DebugNodeExecutionRecordGroup,
 } from "../../nodeExecutionSelector";
-import type {
-  DebugNodeExecutionRunComparison,
-  DebugNodeReplayRecordState,
-  DebugRunComparisonSide,
-} from "../../nodeExecutionAnalysis";
+import type { DebugNodeReplayRecordState } from "../../nodeExecutionAnalysis";
 import {
   debugNodeExecutionEventKindLabels,
   formatDebugNodeExecutionDuration,
 } from "../../nodeExecutionDisplay";
-import type { DebugNodeExecutionStatus } from "../../types";
+import type { DebugEvent, DebugNodeExecutionStatus } from "../../types";
+import {
+  findDebugRunFirstTimestamp,
+  formatDebugRunDisplayName,
+} from "../../runDisplayName";
 
 const { Text } = Typography;
 
@@ -50,11 +50,13 @@ const listPagination = {
 };
 
 export function RecordList({
+  events,
   records,
   onSelectRecord,
   replayRecordState,
   selectedRecordId,
 }: {
+  events: DebugEvent[];
   records: DebugNodeExecutionRecord[];
   onSelectRecord: (record: DebugNodeExecutionRecord) => void;
   replayRecordState?: (record: DebugNodeExecutionRecord) => DebugNodeReplayRecordState;
@@ -70,6 +72,10 @@ export function RecordList({
         <RecordListItem
           key={record.id}
           record={record}
+          runLabel={formatDebugRunDisplayName(
+            record.runId,
+            findDebugRunFirstTimestamp(record.runId, events),
+          )}
           replayState={replayRecordState?.(record) ?? "live"}
           selected={record.id === selectedRecordId}
           onSelectRecord={onSelectRecord}
@@ -80,12 +86,14 @@ export function RecordList({
 }
 
 export function GroupedRecordList({
+  events,
   groups,
   onSelectRecord,
   replayRecordState,
   selectedRecordId,
   totalRecordCount,
 }: {
+  events: DebugEvent[];
   groups: DebugNodeExecutionRecordGroup[];
   onSelectRecord: (record: DebugNodeExecutionRecord) => void;
   replayRecordState?: (record: DebugNodeExecutionRecord) => DebugNodeReplayRecordState;
@@ -111,7 +119,7 @@ export function GroupedRecordList({
               items={[
                 {
                   key: group.id,
-                  label: <GroupTitle group={group} />,
+                  label: <GroupTitle events={events} group={group} />,
                   children: (
                     <List
                       size="small"
@@ -120,6 +128,10 @@ export function GroupedRecordList({
                         <RecordListItem
                           key={record.id}
                           record={record}
+                          runLabel={formatDebugRunDisplayName(
+                            record.runId,
+                            findDebugRunFirstTimestamp(record.runId, events),
+                          )}
                           replayState={replayRecordState?.(record) ?? "live"}
                           selected={record.id === selectedRecordId}
                           onSelectRecord={onSelectRecord}
@@ -141,66 +153,15 @@ export function StatusTag({ status }: { status: DebugNodeExecutionStatus }) {
   return <Tag color={statusColors[status]}>{statusLabels[status]}</Tag>;
 }
 
-export function ComparisonList({
-  comparisons,
-  onSelectRecord,
-  replayRecordState,
-}: {
-  comparisons: DebugNodeExecutionRunComparison[];
-  onSelectRecord: (record: DebugNodeExecutionRecord) => void;
-  replayRecordState?: (record: DebugNodeExecutionRecord) => DebugNodeReplayRecordState;
-}) {
-  return (
-    <List
-      bordered
-      size="small"
-      dataSource={comparisons}
-      pagination={comparisons.length > 300 ? listPagination : false}
-      renderItem={(comparison) => (
-        <List.Item>
-          <Space direction="vertical" size={8} style={{ width: "100%" }}>
-            <Space wrap size={4}>
-              <Text strong>{comparison.label ?? comparison.runtimeName}</Text>
-              {comparison.nodeId ? (
-                <Tag>{comparison.nodeId}</Tag>
-              ) : (
-                <Tag color="orange">runtimeName-only</Tag>
-              )}
-              {comparison.hasDifference ? (
-                <Tag color="gold">存在差异</Tag>
-              ) : (
-                <Tag color="green">一致</Tag>
-              )}
-              {comparison.differenceReasons.map((reason) => (
-                <Tag key={reason}>{reason}</Tag>
-              ))}
-            </Space>
-            <Space wrap align="start">
-              <ComparisonSide
-                side={comparison.left}
-                onSelectRecord={onSelectRecord}
-                replayRecordState={replayRecordState}
-              />
-              <ComparisonSide
-                side={comparison.right}
-                onSelectRecord={onSelectRecord}
-                replayRecordState={replayRecordState}
-              />
-            </Space>
-          </Space>
-        </List.Item>
-      )}
-    />
-  );
-}
-
 function RecordListItem({
   record,
+  runLabel,
   replayState,
   selected,
   onSelectRecord,
 }: {
   record: DebugNodeExecutionRecord;
+  runLabel: string;
   replayState: DebugNodeReplayRecordState;
   selected: boolean;
   onSelectRecord: (record: DebugNodeExecutionRecord) => void;
@@ -222,71 +183,29 @@ function RecordListItem({
         }}
       >
         <RecordTitle record={record} />
-        <RecordMeta record={record} />
+        <RecordMeta record={record} runLabel={runLabel} />
       </div>
     </List.Item>
   );
 }
 
-function ComparisonSide({
-  side,
-  onSelectRecord,
-  replayRecordState,
+function GroupTitle({
+  events,
+  group,
 }: {
-  side: DebugRunComparisonSide;
-  onSelectRecord: (record: DebugNodeExecutionRecord) => void;
-  replayRecordState?: (record: DebugNodeExecutionRecord) => DebugNodeReplayRecordState;
+  events: DebugEvent[];
+  group: DebugNodeExecutionRecordGroup;
 }) {
-  const latestRecord = side.records[side.records.length - 1];
-
-  return (
-    <Space
-      direction="vertical"
-      size={4}
-      style={{
-        minWidth: 220,
-        border: "1px solid #f0f0f0",
-        borderRadius: 6,
-        padding: 8,
-      }}
-    >
-      <Space wrap size={4}>
-        <Tag>run {side.runId}</Tag>
-        {side.status ? <StatusTag status={side.status} /> : <Tag>未执行</Tag>}
-        <Tag>{side.occurrenceCount} 次</Tag>
-        <Tag>Artifact {side.artifactCount}</Tag>
-        {side.hasFailure && <Tag color="red">含失败</Tag>}
-        {side.durationMs !== undefined && (
-          <Tag>耗时 {formatDebugNodeExecutionDuration(side.durationMs)}</Tag>
-        )}
-      </Space>
-      {latestRecord && (
-        <Space wrap size={4}>
-          {side.records.map((record) => (
-            <Tag
-              key={record.id}
-              color={record.hasFailure ? "red" : "blue"}
-              style={{
-                cursor: "pointer",
-                opacity:
-                  replayRecordState?.(record) === "not-reached" ? 0.48 : 1,
-              }}
-              onClick={() => onSelectRecord(record)}
-            >
-              第 {record.occurrence} 次 · seq {record.firstSeq}-{record.lastSeq}
-            </Tag>
-          ))}
-        </Space>
-      )}
-    </Space>
-  );
-}
-
-function GroupTitle({ group }: { group: DebugNodeExecutionRecordGroup }) {
   return (
     <Space wrap size={4}>
       <Text strong>{group.label ?? group.runtimeName}</Text>
-      <Tag>run {group.runId}</Tag>
+      <Tag>
+        运行{" "}
+        {formatDebugRunDisplayName(
+          group.runId,
+          findDebugRunFirstTimestamp(group.runId, events),
+        )}
+      </Tag>
       <Tag>{group.occurrenceCount} 次</Tag>
       <Tag>
         seq {group.firstSeq}-{group.lastSeq}
@@ -312,9 +231,16 @@ function RecordTitle({ record }: { record: DebugNodeExecutionRecord }) {
   );
 }
 
-function RecordMeta({ record }: { record: DebugNodeExecutionRecord }) {
+function RecordMeta({
+  record,
+  runLabel,
+}: {
+  record: DebugNodeExecutionRecord;
+  runLabel: string;
+}) {
   return (
     <Space wrap size={4} style={{ marginTop: 6 }}>
+      <Tag>运行 {runLabel}</Tag>
       <Tag>{record.runtimeName}</Tag>
       {record.fileId && <Tag>{record.fileId}</Tag>}
       {record.nodeId && <Tag>{record.nodeId}</Tag>}

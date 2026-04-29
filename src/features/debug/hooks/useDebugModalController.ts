@@ -742,8 +742,6 @@ export function useDebugModalController() {
       nodeExecutionController.batchRecognitionNodeSummaries,
     nodeExecutionRecords: nodeExecutionController.nodeExecutionRecords,
     nodeExecutionFilters: nodeExecutionController.nodeExecutionFilters,
-    nodeExecutionRunComparisons:
-      nodeExecutionController.nodeExecutionRunComparisons,
     nodeReplayControl: nodeExecutionController.nodeReplayControl,
     selectedNodeExecutionRecord:
       nodeExecutionController.selectedNodeExecutionRecord,

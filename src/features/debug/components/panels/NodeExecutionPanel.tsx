@@ -1,14 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import {
-  Button,
-  Checkbox,
-  Empty,
-  Input,
-  Segmented,
-  Select,
-  Space,
-  Tag,
-} from "antd";
+import { Button, Checkbox, Empty, Input, Select, Space, Tag } from "antd";
 import {
   AimOutlined,
   ClearOutlined,
@@ -25,7 +16,6 @@ import {
 import type { DebugNodeExecutionRecord } from "../../nodeExecutionSelector";
 import { groupDebugNodeExecutionRecords } from "../../nodeExecutionSelector";
 import {
-  ComparisonList,
   GroupedRecordList,
   RecordList,
 } from "./NodeExecutionRecordList";
@@ -39,6 +29,10 @@ import type {
 } from "../../types";
 import { DEFAULT_DEBUG_NODE_EXECUTION_FILTERS } from "../../types";
 import { NodeExecutionRecordDetails } from "./NodeExecutionRecordDetails";
+import {
+  findDebugRunFirstTimestamp,
+  formatDebugRunDisplayName,
+} from "../../runDisplayName";
 
 const layoutStyle: CSSProperties = {
   display: "flex",
@@ -137,17 +131,12 @@ export function NodeExecutionPanel({
   } = controller;
   const {
     batchRecognitionNodeSummaries,
-    nodeExecutionRunComparisons,
     nodeReplayControl,
     seekNodeTraceReplay,
     startNodeTraceReplay,
     stopTraceReplay,
   } = controller;
   const [searchText, setSearchText] = useState("");
-  const [viewMode, setViewMode] = useState<"sequence" | "compare">("sequence");
-  const [comparisonRunIdsDraft, setComparisonRunIdsDraft] = useState<
-    [string, string]
-  >(() => nodeExecutionFilters.comparisonRunIds ?? ["", ""]);
   const rawNodeExecutionCount = useMemo(
     () => Object.values(summary.nodeReplays).flat().length,
     [summary.nodeReplays],
@@ -163,12 +152,10 @@ export function NodeExecutionPanel({
   const selectedFlowNode = pipelineNodes.find(
     (node) => node.nodeId === selectedFlowNodeId,
   );
-  const selectedRecordSource =
-    viewMode === "compare" ? allNodeExecutionRecords : visibleRecords;
   const selectedRecord =
-    selectedRecordSource.find(
+    visibleRecords.find(
       (record) => record.id === selectedNodeExecutionRecordId,
-    ) ?? (viewMode === "compare" ? undefined : visibleRecords[0]);
+    ) ?? visibleRecords[0];
 
   useEffect(() => {
     if (!selectedRecord) {
@@ -208,18 +195,15 @@ export function NodeExecutionPanel({
       ...uniqueStrings(allNodeExecutionRecords.map((record) => record.runId)).map(
         (runId) => ({
           value: runId,
-          label: runId,
+          label: formatDebugRunDisplayName(
+            runId,
+            findDebugRunFirstTimestamp(runId, events),
+          ),
         }),
       ),
     ],
-    [allNodeExecutionRecords],
+    [allNodeExecutionRecords, events],
   );
-  const comparisonRunIds = comparisonRunIdsDraft;
-  const comparisonReady =
-    viewMode === "compare" &&
-    comparisonRunIds[0] !== "" &&
-    comparisonRunIds[1] !== "" &&
-    comparisonRunIds[0] !== comparisonRunIds[1];
 
   const handleSelectRecord = (record: DebugNodeExecutionRecord) => {
     selectNodeExecutionRecord(record);
@@ -240,19 +224,7 @@ export function NodeExecutionPanel({
 
   const clearFilters = () => {
     setSearchText("");
-    setComparisonRunIdsDraft(["", ""]);
     setNodeExecutionFilters(DEFAULT_DEBUG_NODE_EXECUTION_FILTERS);
-  };
-  const updateComparisonRun = (index: 0 | 1, runId?: string) => {
-    const current = comparisonRunIdsDraft;
-    const next: [string, string] = [...current] as [string, string];
-    next[index] = runId ?? "";
-    setComparisonRunIdsDraft(next);
-    setNodeExecutionFilters({
-      ...nodeExecutionFilters,
-      comparisonRunIds:
-        next[0] && next[1] && next[0] !== next[1] ? next : undefined,
-    });
   };
 
   if (events.length === 0) {
@@ -270,17 +242,14 @@ export function NodeExecutionPanel({
           <Tag color={replayStatus?.active ? "purple" : "default"}>
             {replayStatus?.active ? `Replay #${replayStatus.cursorSeq}` : "Live"}
           </Tag>
-          <Tag>运行 {summary.runId ?? "-"}</Tag>
+          <Tag>
+            运行{" "}
+            {formatDebugRunDisplayName(
+              summary.runId,
+              findDebugRunFirstTimestamp(summary.runId, events),
+            )}
+          </Tag>
           <Tag>记录 {visibleRecords.length}</Tag>
-          <Segmented
-            size="small"
-            value={viewMode}
-            options={[
-              { label: "执行序列", value: "sequence" },
-              { label: "Run 对比", value: "compare" },
-            ]}
-            onChange={(value) => setViewMode(value as "sequence" | "compare")}
-          />
           <Select
             size="small"
             style={{ minWidth: 160 }}
@@ -367,17 +336,6 @@ export function NodeExecutionPanel({
             }
           />
           <Checkbox
-            checked={nodeExecutionFilters.failedOnly === true}
-            onChange={(event) =>
-              setNodeExecutionFilters({
-                ...nodeExecutionFilters,
-                failedOnly: event.target.checked,
-              })
-            }
-          >
-            只看失败
-          </Checkbox>
-          <Checkbox
             checked={nodeExecutionFilters.groupRepeated === true}
             onChange={(event) =>
               setNodeExecutionFilters({
@@ -451,50 +409,16 @@ export function NodeExecutionPanel({
         </Space>
       </DebugSection>
 
-      {viewMode === "compare" && (
-        <DebugSection title="Run 对比">
-          <Space wrap>
-            <Select
-              size="small"
-              style={{ minWidth: 180 }}
-              placeholder="选择左侧 run"
-              value={comparisonRunIds[0] || undefined}
-              options={runOptions.filter((option) => option.value)}
-              onChange={(runId) => updateComparisonRun(0, runId)}
-            />
-            <Select
-              size="small"
-              style={{ minWidth: 180 }}
-              placeholder="选择右侧 run"
-              value={comparisonRunIds[1] || undefined}
-              options={runOptions.filter((option) => option.value)}
-              onChange={(runId) => updateComparisonRun(1, runId)}
-            />
-            <Tag>
-              差异{" "}
-              {nodeExecutionRunComparisons.filter((item) => item.hasDifference).length}
-            </Tag>
-          </Space>
-        </DebugSection>
-      )}
-
-      {viewMode !== "compare" && nodeExecutionRecords.length === 0 ? (
+      {nodeExecutionRecords.length === 0 ? (
         <Empty description="没有符合筛选条件的节点执行记录" />
-      ) : viewMode === "compare" && !comparisonReady ? (
-        <Empty description="请选择两个不同的 run 进行对比" />
-      ) : viewMode !== "compare" && visibleRecords.length === 0 ? (
+      ) : visibleRecords.length === 0 ? (
         <Empty description="没有符合搜索条件的节点执行记录" />
       ) : (
         <div style={layoutStyle}>
           <div style={listPaneStyle}>
-            {viewMode === "compare" ? (
-              <ComparisonList
-                comparisons={nodeExecutionRunComparisons}
-                onSelectRecord={handleSelectRecord}
-                replayRecordState={replayRecordState}
-              />
-            ) : nodeExecutionFilters.groupRepeated ? (
+            {nodeExecutionFilters.groupRepeated ? (
               <GroupedRecordList
+                events={events}
                 groups={groupedRecords}
                 onSelectRecord={handleSelectRecord}
                 replayRecordState={replayRecordState}
@@ -503,6 +427,7 @@ export function NodeExecutionPanel({
               />
             ) : (
               <RecordList
+                events={events}
                 records={visibleRecords}
                 onSelectRecord={handleSelectRecord}
                 replayRecordState={replayRecordState}
@@ -515,6 +440,7 @@ export function NodeExecutionPanel({
               <NodeExecutionRecordDetails
                 artifacts={artifacts}
                 batchSummaries={batchRecognitionNodeSummaries}
+                events={events}
                 record={selectedRecord}
                 replayControl={nodeReplayControl}
                 requestArtifact={requestArtifact}

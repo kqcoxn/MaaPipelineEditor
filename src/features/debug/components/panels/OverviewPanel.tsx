@@ -1,5 +1,5 @@
-import { useMemo, type CSSProperties } from "react";
-import { Alert, Button, Select, Space, Tag, Typography } from "antd";
+import { useMemo, type CSSProperties, type ReactNode } from "react";
+import { Alert, Button, Select, Space, Typography } from "antd";
 import {
   CaretRightOutlined,
   FileSearchOutlined,
@@ -11,6 +11,10 @@ import {
 import { DebugSection } from "../DebugSection";
 import type { DebugModalController } from "../../hooks/useDebugModalController";
 import { DEFAULT_DEBUG_NODE_EXECUTION_FILTERS } from "../../types";
+import {
+  findDebugRunFirstTimestamp,
+  formatDebugRunDisplayName,
+} from "../../runDisplayName";
 
 const { Text } = Typography;
 
@@ -28,6 +32,33 @@ const nodePickerStyle: CSSProperties = {
 
 const runActionsStyle: CSSProperties = {
   flex: "0 1 520px",
+};
+
+const metaListStyle: CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  columnGap: 16,
+  rowGap: 6,
+  width: "100%",
+};
+
+const metaItemStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "baseline",
+  gap: 4,
+  minWidth: 0,
+  overflowWrap: "anywhere",
+};
+
+const metaItemWideStyle: CSSProperties = {
+  ...metaItemStyle,
+  flex: "1 1 240px",
+};
+
+const metaValueStyle: CSSProperties = {
+  minWidth: 0,
+  overflowWrap: "anywhere",
+  wordBreak: "break-word",
 };
 
 interface NodeSelectOption {
@@ -107,11 +138,15 @@ export function OverviewPanel({
     setNodeExecutionFilters({
       ...DEFAULT_DEBUG_NODE_EXECUTION_FILTERS,
       status: "failed",
-      failedOnly: true,
       sortMode: "failure-first",
     });
     openNodeExecutionRecord(latestFailedNodeExecutionRecord);
   };
+  const currentRunId = activeRun?.runId ?? summary.runId;
+  const currentRunLabel = formatDebugRunDisplayName(
+    currentRunId,
+    activeRun?.startedAt ?? findDebugRunFirstTimestamp(currentRunId, events),
+  );
 
   return (
     <Space direction="vertical" size={14} style={{ width: "100%" }}>
@@ -134,15 +169,11 @@ export function OverviewPanel({
       <DebugSection title="运行控制">
         <div style={runControlStyle}>
           <Space direction="vertical" size={8} style={nodePickerStyle}>
-            <Space wrap>
-              <Tag color={entryNode ? "blue" : "default"}>
-                入口 {entryLabel}
-              </Tag>
-              <Tag color={selectedPipelineNode ? "green" : "default"}>
-                目标 {targetLabel}
-              </Tag>
-              <Tag>节点 {pipelineNodes.length}</Tag>
-            </Space>
+            <div style={metaListStyle}>
+              <MetaItem label="入口" value={entryLabel} wide />
+              <MetaItem label="目标" value={targetLabel} wide />
+              <MetaItem label="节点" value={pipelineNodes.length} />
+            </div>
             <Select
               showSearch
               value={selectedPipelineNodeId}
@@ -255,34 +286,40 @@ export function OverviewPanel({
         </div>
       </DebugSection>
       <DebugSection title="会话与追踪（Session / Trace）">
-        <Space wrap>
-          <Tag color={session ? "green" : "default"}>
-            {session?.sessionId ?? "未创建会话"}
-          </Tag>
-          <Tag>{session?.status ?? summary.status}</Tag>
-          <Tag>运行 {activeRun?.runId ?? summary.runId ?? "-"}</Tag>
-          <Tag>模式 {summary.runMode ?? lastRunMode}</Tag>
-          <Tag>事件 {events.length}</Tag>
-          <Tag>实时事件 {liveSummary.lastEvent?.seq ?? 0}</Tag>
-          <Tag>当前节点 {summary.currentRuntimeName ?? "-"}</Tag>
-          <Tag color={replayStatus?.active ? "purple" : "default"}>
-            {replayStatus?.active
-              ? `回放 #${replayStatus.cursorSeq}`
-              : "实时"}
-          </Tag>
-          <Tag color="green">已访问 {summary.visitedNodeIds.length}</Tag>
-          <Tag color="red">失败 {summary.failedNodeIds.length}</Tag>
-        </Space>
+        <div style={metaListStyle}>
+          <MetaItem label="会话" value={session?.sessionId ?? "未创建会话"} wide />
+          <MetaItem label="状态" value={session?.status ?? summary.status} />
+          <MetaItem label="运行" value={currentRunLabel} />
+          <MetaItem label="模式" value={summary.runMode ?? lastRunMode} />
+          <MetaItem label="事件" value={events.length} />
+          <MetaItem label="实时事件" value={liveSummary.lastEvent?.seq ?? 0} />
+          <MetaItem label="当前节点" value={summary.currentRuntimeName ?? "-"} wide />
+          <MetaItem
+            label="追踪"
+            value={replayStatus?.active ? `回放 #${replayStatus.cursorSeq}` : "实时"}
+          />
+          <MetaItem label="已访问" value={summary.visitedNodeIds.length} />
+          <MetaItem label="失败" value={summary.failedNodeIds.length} />
+        </div>
       </DebugSection>
       {failedNodeExecutionRecords.length > 0 && latestFailedNodeExecutionRecord && (
         <DebugSection title="失败节点">
-          <Space wrap>
-            <Tag color="red">失败记录 {failedNodeExecutionRecords.length}</Tag>
-            <Tag>{latestFailedNodeExecutionRecord.label ?? latestFailedNodeExecutionRecord.runtimeName}</Tag>
-            <Tag>
-              seq {latestFailedNodeExecutionRecord.firstSeq}-
-              {latestFailedNodeExecutionRecord.lastSeq}
-            </Tag>
+          <Space direction="vertical" size={8} style={{ width: "100%" }}>
+            <div style={metaListStyle}>
+              <MetaItem label="失败记录" value={failedNodeExecutionRecords.length} />
+              <MetaItem
+                label="节点"
+                value={
+                  latestFailedNodeExecutionRecord.label ??
+                  latestFailedNodeExecutionRecord.runtimeName
+                }
+                wide
+              />
+              <MetaItem
+                label="seq"
+                value={`${latestFailedNodeExecutionRecord.firstSeq}-${latestFailedNodeExecutionRecord.lastSeq}`}
+              />
+            </div>
             <Button
               danger
               size="small"
@@ -296,15 +333,32 @@ export function OverviewPanel({
       )}
       {performanceSummary && (
         <DebugSection title="性能摘要（Performance）">
-          <Space wrap>
-            <Tag>耗时 {performanceSummary.durationMs ?? 0}ms</Tag>
-            <Tag>节点 {performanceSummary.nodeCount}</Tag>
-            <Tag>识别 {performanceSummary.recognitionCount}</Tag>
-            <Tag>动作 {performanceSummary.actionCount}</Tag>
-            <Tag>产物 {performanceSummary.artifactRefCount}</Tag>
-          </Space>
+          <div style={metaListStyle}>
+            <MetaItem label="耗时" value={`${performanceSummary.durationMs ?? 0}ms`} />
+            <MetaItem label="节点" value={performanceSummary.nodeCount} />
+            <MetaItem label="识别" value={performanceSummary.recognitionCount} />
+            <MetaItem label="动作" value={performanceSummary.actionCount} />
+            <MetaItem label="产物" value={performanceSummary.artifactRefCount} />
+          </div>
         </DebugSection>
       )}
     </Space>
+  );
+}
+
+function MetaItem({
+  label,
+  value,
+  wide,
+}: {
+  label: string;
+  value: ReactNode;
+  wide?: boolean;
+}) {
+  return (
+    <span style={wide ? metaItemWideStyle : metaItemStyle}>
+      <Text type="secondary">{label}</Text>
+      <Text style={metaValueStyle}>{value}</Text>
+    </span>
   );
 }

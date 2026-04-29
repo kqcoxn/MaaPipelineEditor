@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  compareDebugNodeExecutionRuns,
   getDebugReplayRecordState,
   getDebugNodeReplayControl,
   selectDebugBatchRecognitionNodeSummaries,
@@ -139,7 +138,6 @@ describe("selectDebugNodeExecutionRecords", () => {
       runId: "run-2",
       eventKind: "action",
       artifact: "with-artifact",
-      failedOnly: true,
     });
 
     expect(records).toHaveLength(1);
@@ -432,45 +430,6 @@ describe("node execution v2 analysis", () => {
     });
   });
 
-  it("compares two runs by occurrence, status, failure, duration and runtime-only fallback", () => {
-    const summary = reduceDebugTrace({
-      events: [
-        event(1, "node", "starting", node("node-a", "A")),
-        event(2, "node", "succeeded", node("node-a", "A")),
-        withRun("run-2", event(3, "node", "starting", node("node-a", "A"))),
-        withRun("run-2", event(4, "node", "failed", node("node-a", "A"))),
-        event(5, "node", "starting", { runtimeName: "RuntimeOnly" }),
-        withRun(
-          "run-2",
-          event(6, "node", "starting", { runtimeName: "RuntimeOnly" }),
-        ),
-        withRun(
-          "run-2",
-          event(7, "node", "starting", { runtimeName: "RuntimeOnly" }),
-        ),
-      ],
-    });
-    const records = selectDebugNodeExecutionRecords(summary, resolverNodes, {
-      status: "all",
-    });
-
-    const comparisons = compareDebugNodeExecutionRuns(records, [
-      "run-1",
-      "run-2",
-    ]);
-    const nodeComparison = comparisons.find(
-      (comparison) => comparison.nodeId === "node-a",
-    );
-    const runtimeComparison = comparisons.find(
-      (comparison) => comparison.runtimeName === "RuntimeOnly",
-    );
-
-    expect(nodeComparison?.hasDifference).toBe(true);
-    expect(nodeComparison?.differenceReasons).toContain("状态不同");
-    expect(nodeComparison?.differenceReasons).toContain("失败不同");
-    expect(runtimeComparison?.hasDifference).toBe(true);
-    expect(runtimeComparison?.differenceReasons).toContain("执行次数不同");
-  });
 });
 
 const resolverNodes = [

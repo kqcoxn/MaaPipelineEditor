@@ -1,3 +1,4 @@
+import type { CSSProperties, ReactNode } from "react";
 import { Alert, Button, List, Space, Tag, Typography } from "antd";
 import { DebugArtifactPreview } from "../DebugArtifactPreview";
 import { DebugSection } from "../DebugSection";
@@ -23,14 +24,46 @@ import { eventTitle, formatTime } from "../../modalUtils";
 import type { DebugEvent } from "../../types";
 import type { DebugArtifactEntry } from "../../../../stores/debugArtifactStore";
 import { StatusTag } from "./NodeExecutionRecordList";
+import {
+  findDebugRunFirstTimestamp,
+  formatDebugRunDisplayName,
+} from "../../runDisplayName";
 
 const { Text } = Typography;
 
 type ArtifactEntries = Record<string, DebugArtifactEntry>;
 
+const overviewMetaStyle: CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  columnGap: 16,
+  rowGap: 6,
+  width: "100%",
+};
+
+const overviewMetaItemStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "baseline",
+  gap: 4,
+  minWidth: 0,
+  overflowWrap: "anywhere",
+};
+
+const overviewMetaItemWideStyle: CSSProperties = {
+  ...overviewMetaItemStyle,
+  flex: "1 1 260px",
+};
+
+const overviewMetaValueStyle: CSSProperties = {
+  minWidth: 0,
+  overflowWrap: "anywhere",
+  wordBreak: "break-word",
+};
+
 export function NodeExecutionRecordDetails({
   artifacts,
   batchSummaries,
+  events,
   record,
   replayControl,
   requestArtifact,
@@ -39,6 +72,7 @@ export function NodeExecutionRecordDetails({
 }: {
   artifacts: ArtifactEntries;
   batchSummaries: DebugBatchRecognitionNodeSummary[];
+  events: DebugEvent[];
   record: DebugNodeExecutionRecord;
   replayControl: DebugNodeReplayControl;
   requestArtifact: (artifactId: string) => void;
@@ -61,29 +95,44 @@ export function NodeExecutionRecordDetails({
   return (
     <Space direction="vertical" size={12} style={{ width: "100%" }}>
       <DebugSection title="执行概览">
-        <Space wrap>
+        <Space direction="vertical" size={8} style={{ width: "100%" }}>
           <StatusTag status={record.status} />
           <Tag color={replayControl.active ? "purple" : "default"}>
             {replayControl.active
               ? replayRecordStateLabel(replayControl.recordState)
               : "Live"}
           </Tag>
-          <Tag>run {record.runId}</Tag>
-          <Tag>occurrence {record.occurrence}</Tag>
-          <Tag>
-            seq {record.firstSeq}-{record.lastSeq}
-          </Tag>
-          {record.durationMs !== undefined && (
-            <Tag>
-              耗时 {formatDebugNodeExecutionDuration(record.durationMs)}
-              {record.durationSource === "performance" ? " · performance" : ""}
-            </Tag>
-          )}
-          <Tag>runtime {record.runtimeName}</Tag>
-          {record.hasFailure && <Tag color="red">含失败</Tag>}
-          {record.slow && <Tag color="volcano">慢节点</Tag>}
-          {record.hasArtifact && <Tag color="purple">含产物</Tag>}
-          {record.sourcePath && <Tag>{record.sourcePath}</Tag>}
+          <div style={overviewMetaStyle}>
+            <OverviewMetaItem
+              label="运行"
+              value={formatDebugRunDisplayName(
+                record.runId,
+                findDebugRunFirstTimestamp(record.runId, events),
+              )}
+            />
+            <OverviewMetaItem label="命中" value={`第 ${record.occurrence} 次`} />
+            <OverviewMetaItem
+              label="seq"
+              value={`${record.firstSeq}-${record.lastSeq}`}
+            />
+            {record.durationMs !== undefined && (
+              <OverviewMetaItem
+                label="耗时"
+                value={`${formatDebugNodeExecutionDuration(record.durationMs)}${
+                  record.durationSource === "performance"
+                    ? " · performance"
+                    : ""
+                }`}
+              />
+            )}
+            <OverviewMetaItem label="runtime" value={record.runtimeName} wide />
+            {record.sourcePath && (
+              <OverviewMetaItem label="路径" value={record.sourcePath} wide />
+            )}
+            {record.hasFailure && <OverviewMetaItem label="结果" value="含失败" />}
+            {record.slow && <OverviewMetaItem label="性能" value="慢节点" />}
+            {record.hasArtifact && <OverviewMetaItem label="产物" value="含产物" />}
+          </div>
         </Space>
       </DebugSection>
 
@@ -190,6 +239,23 @@ function BatchRecognitionGroup({
         )}
       />
     </DebugSection>
+  );
+}
+
+function OverviewMetaItem({
+  label,
+  value,
+  wide,
+}: {
+  label: string;
+  value: ReactNode;
+  wide?: boolean;
+}) {
+  return (
+    <span style={wide ? overviewMetaItemWideStyle : overviewMetaItemStyle}>
+      <Text type="secondary">{label}</Text>
+      <Text style={overviewMetaValueStyle}>{value}</Text>
+    </span>
   );
 }
 

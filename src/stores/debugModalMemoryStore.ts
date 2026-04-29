@@ -98,7 +98,6 @@ function normalizeNodeExecutionFilters(
     return defaultMemory.nodeExecutionFilters;
   }
   const raw = value as Partial<DebugNodeExecutionFilters>;
-  const comparisonRunIds = normalizeComparisonRunIds(raw.comparisonRunIds);
   return {
     nodeId:
       typeof raw.nodeId === "string" && raw.nodeId.trim() !== ""
@@ -108,7 +107,6 @@ function normalizeNodeExecutionFilters(
       typeof raw.runId === "string" && raw.runId.trim() !== ""
         ? raw.runId
         : undefined,
-    comparisonRunIds,
     status: validNodeExecutionStatusFilters.has(
       raw.status as DebugNodeExecutionStatusFilter,
     )
@@ -124,7 +122,6 @@ function normalizeNodeExecutionFilters(
     )
       ? (raw.artifact as DebugNodeExecutionArtifactFilter)
       : defaultMemory.nodeExecutionFilters.artifact,
-    failedOnly: raw.failedOnly === true,
     sortMode: validNodeExecutionSortModes.has(
       raw.sortMode as DebugNodeExecutionSortMode,
     )
@@ -132,23 +129,6 @@ function normalizeNodeExecutionFilters(
       : defaultMemory.nodeExecutionFilters.sortMode,
     groupRepeated: raw.groupRepeated === true,
   };
-}
-
-function normalizeComparisonRunIds(
-  value: DebugNodeExecutionFilters["comparisonRunIds"] | undefined,
-): [string, string] | undefined {
-  if (!Array.isArray(value) || value.length !== 2) return undefined;
-  const [left, right] = value;
-  if (
-    typeof left !== "string" ||
-    typeof right !== "string" ||
-    left.trim() === "" ||
-    right.trim() === "" ||
-    left === right
-  ) {
-    return undefined;
-  }
-  return [left, right];
 }
 
 function readMemory(): DebugModalMemorySnapshot {

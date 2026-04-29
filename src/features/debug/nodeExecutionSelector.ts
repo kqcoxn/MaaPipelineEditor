@@ -267,9 +267,6 @@ function matchesFilters(
   if (filters.artifact === "without-artifact" && record.hasArtifact) {
     return false;
   }
-  if (filters.failedOnly && !record.hasFailure) {
-    return false;
-  }
   if (!filters.nodeId) return true;
   return record.nodeId === filters.nodeId || record.runtimeName === filters.nodeId;
 }

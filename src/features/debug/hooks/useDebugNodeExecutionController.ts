@@ -4,7 +4,6 @@ import { useDebugOverlayStore } from "../../../stores/debugOverlayStore";
 import type { NodeType } from "../../../stores/flow";
 import { applyDebugNodeTarget } from "../nodeTargetActions";
 import {
-  compareDebugNodeExecutionRuns,
   getDebugNodeReplayControl,
   selectDebugBatchRecognitionNodeSummaries,
   selectDebugNodeExecutionOverlayFromEdges,
@@ -108,11 +107,6 @@ export function useDebugNodeExecutionController({
     () => selectDebugBatchRecognitionNodeSummaries(artifacts),
     [artifacts],
   );
-  const nodeExecutionRunComparisons = useMemo(() => {
-    const runIds = nodeExecutionFilters.comparisonRunIds;
-    if (!runIds) return [];
-    return compareDebugNodeExecutionRuns(allNodeExecutionRecords, runIds);
-  }, [allNodeExecutionRecords, nodeExecutionFilters.comparisonRunIds]);
 
   const selectPipelineNode = useCallback(
     (nodeId?: string) => {
@@ -176,7 +170,6 @@ export function useDebugNodeExecutionController({
     batchRecognitionNodeSummaries,
     nodeExecutionFilters,
     nodeExecutionRecords,
-    nodeExecutionRunComparisons,
     nodeReplayControl,
     pipelineNodes,
     resolverEdges,

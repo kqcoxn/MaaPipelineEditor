@@ -1,6 +1,10 @@
 import { Button, Empty, List, Space, Tag, Typography } from "antd";
 import { DebugSection } from "../DebugSection";
 import type { DebugModalController } from "../../hooks/useDebugModalController";
+import {
+  findDebugRunFirstTimestamp,
+  formatDebugRunDisplayName,
+} from "../../runDisplayName";
 
 const { Text } = Typography;
 
@@ -15,6 +19,7 @@ export function PerformancePanel({
     batchSummaryRefs,
     requestArtifact,
     selectedArtifact,
+    events,
   } = controller;
 
   return (
@@ -23,7 +28,14 @@ export function PerformancePanel({
         {performanceSummary ? (
           <Space direction="vertical" style={{ width: "100%" }}>
             <Space wrap>
-              <Tag>运行 {performanceSummary.runId}</Tag>
+              <Tag>
+                运行{" "}
+                {formatDebugRunDisplayName(
+                  performanceSummary.runId,
+                  performanceSummary.startedAt ??
+                    findDebugRunFirstTimestamp(performanceSummary.runId, events),
+                )}
+              </Tag>
               <Tag>{performanceSummary.status ?? "-"}</Tag>
               <Tag>耗时 {performanceSummary.durationMs ?? 0}ms</Tag>
               <Tag>事件 {performanceSummary.eventCount}</Tag>

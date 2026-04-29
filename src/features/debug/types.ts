@@ -55,11 +55,9 @@ export type DebugNodeExecutionSortMode =
 export interface DebugNodeExecutionFilters {
   nodeId?: string;
   runId?: string;
-  comparisonRunIds?: [string, string];
   status: DebugNodeExecutionStatusFilter;
   eventKind?: DebugNodeExecutionEventKindFilter;
   artifact?: DebugNodeExecutionArtifactFilter;
-  failedOnly?: boolean;
   sortMode?: DebugNodeExecutionSortMode;
   groupRepeated?: boolean;
 }
@@ -69,7 +67,6 @@ export const DEFAULT_DEBUG_NODE_EXECUTION_FILTERS: DebugNodeExecutionFilters = {
   eventKind: "all",
   artifact: "all",
   sortMode: "execution",
-  failedOnly: false,
   groupRepeated: false,
 };
 
