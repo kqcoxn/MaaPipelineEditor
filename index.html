@@ -17,6 +17,12 @@
     <script>
       var _hmt = _hmt || [];
       (function () {
+        var isLocalDev =
+          "%MODE%" === "development" ||
+          ["localhost", "127.0.0.1", "::1", "[::1]"].includes(location.hostname);
+        if (isLocalDev) {
+          return;
+        }
         var hm = document.createElement("script");
         hm.src = "https://hm.baidu.com/hm.js?edb9d1ea97e860d4232315aceee4c66f";
         var s = document.getElementsByTagName("script")[0];
