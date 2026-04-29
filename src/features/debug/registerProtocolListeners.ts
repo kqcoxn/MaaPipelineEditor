@@ -8,6 +8,10 @@ import type {
   DebugBatchRecognitionResult,
   DebugPerformanceSummary,
 } from "./types";
+import {
+  recognitionDetailImageRefs,
+  summarizeRecognitionArtifactPayload,
+} from "./artifactDetailSummary";
 
 let registered = false;
 
@@ -97,6 +101,19 @@ export function registerDebugProtocolListeners(
 
   debugProtocolClient.onArtifact((payload) => {
     useDebugArtifactStore.getState().setPayload(payload);
+    if (payload.ref.type === "recognition-detail") {
+      const summary = summarizeRecognitionArtifactPayload(payload);
+      for (const imageRef of recognitionDetailImageRefs(summary)) {
+        useDebugArtifactStore.getState().upsertRef({
+          id: imageRef.ref,
+          sessionId: payload.ref.sessionId,
+          type: recognitionImageArtifactType(imageRef.kind),
+          mime: "image/png",
+          createdAt: payload.ref.createdAt,
+          eventSeq: payload.ref.eventSeq,
+        });
+      }
+    }
     if (
       payload.ref.type === "performance-summary" &&
       isPerformanceSummary(payload.data)
@@ -161,6 +178,19 @@ export function registerDebugProtocolListeners(
         .setError(selectedArtifactId, error.message);
     }
   });
+}
+
+function recognitionImageArtifactType(
+  kind: ReturnType<typeof recognitionDetailImageRefs>[number]["kind"],
+): string {
+  switch (kind) {
+    case "raw":
+      return "recognition-raw-image";
+    case "draw":
+      return "recognition-draw-image";
+    case "screenshot":
+      return "recognition-screenshot-image";
+  }
 }
 
 function isPerformanceSummary(value: unknown): value is DebugPerformanceSummary {

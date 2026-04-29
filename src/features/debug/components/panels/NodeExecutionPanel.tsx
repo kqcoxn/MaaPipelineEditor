@@ -1,35 +1,24 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
-  Alert,
   Button,
   Checkbox,
   Empty,
   Input,
-  List,
   Select,
   Space,
   Tag,
-  Typography,
 } from "antd";
 import { AimOutlined, ClearOutlined, SearchOutlined } from "@ant-design/icons";
 import { DebugSection } from "../DebugSection";
 import type { DebugModalController } from "../../hooks/useDebugModalController";
 import type { DebugNodeExecutionRecord } from "../../nodeExecutionSelector";
-import {
-  findDebugResolverEdge,
-  groupDebugNodeExecutionRecords,
-} from "../../nodeExecutionSelector";
+import { groupDebugNodeExecutionRecords } from "../../nodeExecutionSelector";
 import {
   GroupedRecordList,
   RecordList,
-  StatusTag,
 } from "./NodeExecutionRecordList";
-import {
-  debugNodeExecutionEventKindLabels,
-  formatDebugNodeExecutionDuration,
-} from "../../nodeExecutionDisplay";
+import { debugNodeExecutionEventKindLabels } from "../../nodeExecutionDisplay";
 import type {
-  DebugEvent,
   DebugEventKind,
   DebugNodeExecutionArtifactFilter,
   DebugNodeExecutionEventKindFilter,
@@ -37,11 +26,7 @@ import type {
   DebugNodeExecutionSortMode,
 } from "../../types";
 import { DEFAULT_DEBUG_NODE_EXECUTION_FILTERS } from "../../types";
-import { eventTitle, formatTime } from "../../modalUtils";
-
-const { Text } = Typography;
-
-type ArtifactEntries = DebugModalController["artifacts"];
+import { NodeExecutionRecordDetails } from "./NodeExecutionRecordDetails";
 
 const layoutStyle: CSSProperties = {
   display: "flex",
@@ -58,13 +43,6 @@ const listPaneStyle: CSSProperties = {
 const detailPaneStyle: CSSProperties = {
   flex: "1.4 1 440px",
   minWidth: 360,
-};
-
-const preStyle: CSSProperties = {
-  whiteSpace: "pre-wrap",
-  margin: 0,
-  maxHeight: 280,
-  overflow: "auto",
 };
 
 const statusOptions: Array<{
@@ -390,7 +368,7 @@ export function NodeExecutionPanel({
           </div>
           <div style={detailPaneStyle}>
             {selectedRecord && (
-              <RecordDetails
+              <NodeExecutionRecordDetails
                 artifacts={artifacts}
                 record={selectedRecord}
                 requestArtifact={requestArtifact}
@@ -403,314 +381,6 @@ export function NodeExecutionPanel({
       )}
     </Space>
   );
-}
-
-function RecordDetails({
-  artifacts,
-  record,
-  requestArtifact,
-  resolverEdgeIndex,
-  selectedArtifact,
-}: {
-  artifacts: ArtifactEntries;
-  record: DebugNodeExecutionRecord;
-  requestArtifact: DebugModalController["requestArtifact"];
-  resolverEdgeIndex: DebugModalController["resolverEdgeIndex"];
-  selectedArtifact: DebugModalController["selectedArtifact"];
-}) {
-  const selectedArtifactIsRelated =
-    selectedArtifact &&
-    (record.detailRefs.includes(selectedArtifact.ref.id) ||
-      record.screenshotRefs.includes(selectedArtifact.ref.id));
-
-  return (
-    <Space direction="vertical" size={12} style={{ width: "100%" }}>
-      <DebugSection title="执行概览">
-        <Space wrap>
-          <StatusTag status={record.status} />
-          <Tag>run {record.runId}</Tag>
-          <Tag>occurrence {record.occurrence}</Tag>
-          <Tag>
-            seq {record.firstSeq}-{record.lastSeq}
-          </Tag>
-          {record.durationMs !== undefined && (
-            <Tag>
-              耗时 {formatDebugNodeExecutionDuration(record.durationMs)}
-              {record.durationSource === "performance" ? " · performance" : ""}
-            </Tag>
-          )}
-          <Tag>runtime {record.runtimeName}</Tag>
-          {record.hasFailure && <Tag color="red">含失败</Tag>}
-          {record.slow && <Tag color="volcano">慢节点</Tag>}
-          {record.hasArtifact && <Tag color="purple">含产物</Tag>}
-          {record.sourcePath && <Tag>{record.sourcePath}</Tag>}
-        </Space>
-      </DebugSection>
-
-      {record.unmapped && (
-        <Alert
-          type="warning"
-          showIcon
-          message="该记录未映射到 MPE 图节点"
-          description="面板保留 runtimeName 事件；画布定位需要 fileId/nodeId 映射。"
-        />
-      )}
-
-      <EventGroup
-        artifacts={artifacts}
-        events={record.recognitionEvents}
-        kind="recognition"
-        title="识别事件"
-      />
-      <EventGroup
-        artifacts={artifacts}
-        events={record.actionEvents}
-        kind="action"
-        title="动作事件"
-      />
-      <NextListGroup
-        events={record.nextListEvents}
-        fromRuntimeName={record.runtimeName}
-        resolverEdgeIndex={resolverEdgeIndex}
-      />
-      <SimpleEventGroup events={record.waitFreezesEvents} title="WaitFreezes" />
-      <SimpleEventGroup
-        events={record.events.filter((event) => event.kind === "diagnostic")}
-        title="诊断事件"
-      />
-
-      <DebugSection title="Artifact">
-        {record.detailRefs.length === 0 && record.screenshotRefs.length === 0 ? (
-          <Text type="secondary">该执行记录没有 artifact 引用。</Text>
-        ) : (
-          <Space wrap>
-            {record.detailRefs.map((ref) => (
-              <Button key={ref} size="small" onClick={() => requestArtifact(ref)}>
-                查看详情 #{shortRef(ref)}
-              </Button>
-            ))}
-            {record.screenshotRefs.map((ref) => (
-              <Button key={ref} size="small" onClick={() => requestArtifact(ref)}>
-                查看图像 #{shortRef(ref)}
-              </Button>
-            ))}
-          </Space>
-        )}
-      </DebugSection>
-
-      {selectedArtifactIsRelated && (
-        <DebugSection title="已选 Artifact 预览">
-          {selectedArtifact.error && (
-            <Alert type="error" showIcon message={selectedArtifact.error} />
-          )}
-          {selectedArtifact.payload?.content &&
-            selectedArtifact.payload.ref.mime.startsWith("image/") && (
-              <img
-                alt={selectedArtifact.payload.ref.type}
-                src={`data:${selectedArtifact.payload.ref.mime};base64,${selectedArtifact.payload.content}`}
-                style={{ maxWidth: "100%", maxHeight: 360 }}
-              />
-            )}
-          {selectedArtifact.payload?.data !== undefined && (
-            <pre style={preStyle}>
-              {JSON.stringify(selectedArtifact.payload.data, null, 2)}
-            </pre>
-          )}
-          {selectedArtifact.payload?.content &&
-            !selectedArtifact.payload.ref.mime.startsWith("image/") && (
-              <pre style={preStyle}>{selectedArtifact.payload.content}</pre>
-            )}
-        </DebugSection>
-      )}
-
-      <SimpleEventGroup
-        events={record.events.filter((event) => event.maafwMessage)}
-        title="MaaFW 原始消息"
-      />
-    </Space>
-  );
-}
-
-function EventGroup({
-  artifacts,
-  events,
-  kind,
-  title,
-}: {
-  artifacts: ArtifactEntries;
-  events: DebugEvent[];
-  kind: "recognition" | "action";
-  title: string;
-}) {
-  if (events.length === 0) return null;
-
-  return (
-    <DebugSection title={title}>
-      <List
-        size="small"
-        dataSource={events}
-        renderItem={(event) => (
-          <List.Item>
-            <Space direction="vertical" size={4} style={{ width: "100%" }}>
-              <Space wrap size={4}>
-                <Tag>#{event.seq}</Tag>
-                <Tag>{event.phase ?? "-"}</Tag>
-                {event.maafwMessage && <Tag>{event.maafwMessage}</Tag>}
-                {event.detailRef && <Tag color="purple">详情</Tag>}
-                {event.screenshotRef && <Tag color="cyan">图像</Tag>}
-              </Space>
-              <SummaryLine
-                data={readEventDetail(artifacts, event)}
-                event={event}
-                kind={kind}
-              />
-            </Space>
-          </List.Item>
-        )}
-      />
-    </DebugSection>
-  );
-}
-
-function SummaryLine({
-  data,
-  event,
-  kind,
-}: {
-  data?: Record<string, unknown>;
-  event: DebugEvent;
-  kind: "recognition" | "action";
-}) {
-  const fields: Array<[string, unknown]> =
-    kind === "recognition"
-      ? [
-          ["hit", data?.hit ?? event.data?.hit],
-          ["algorithm", data?.algorithm ?? event.data?.algorithm],
-          ["box", data?.box ?? event.data?.box],
-        ]
-      : [
-          ["action", data?.action ?? event.data?.action],
-          ["success", data?.success ?? event.data?.success],
-          ["box", data?.box ?? event.data?.box],
-        ];
-
-  return (
-    <Space wrap size={4}>
-      {fields.map(([label, value]) => (
-        <Tag key={label}>{`${label}: ${formatValue(value)}`}</Tag>
-      ))}
-    </Space>
-  );
-}
-
-function NextListGroup({
-  events,
-  fromRuntimeName,
-  resolverEdgeIndex,
-}: {
-  events: DebugEvent[];
-  fromRuntimeName: string;
-  resolverEdgeIndex: DebugModalController["resolverEdgeIndex"];
-}) {
-  if (events.length === 0) return null;
-
-  return (
-    <DebugSection title="Next-list 事件">
-      <List
-        size="small"
-        dataSource={events}
-        renderItem={(event) => (
-          <List.Item>
-            <Space direction="vertical" size={6} style={{ width: "100%" }}>
-              <Space wrap size={4}>
-                <Tag>#{event.seq}</Tag>
-                <Tag>{event.phase ?? "-"}</Tag>
-                {event.maafwMessage && <Tag>{event.maafwMessage}</Tag>}
-              </Space>
-              <Space wrap size={4}>
-                {readNextItems(event).map((item, index) => {
-                  const edge = findDebugResolverEdge(
-                    resolverEdgeIndex,
-                    fromRuntimeName,
-                    item.name,
-                  );
-                  return (
-                    <Tag key={`${event.seq}-${item.name}-${index}`}>
-                      {item.name}
-                      {item.jumpBack ? " · jump_back" : ""}
-                      {item.anchor ? " · anchor" : ""}
-                      {edge ? ` · edge ${edge.edgeId}` : ""}
-                    </Tag>
-                  );
-                })}
-              </Space>
-            </Space>
-          </List.Item>
-        )}
-      />
-    </DebugSection>
-  );
-}
-
-function SimpleEventGroup({
-  events,
-  title,
-}: {
-  events: DebugEvent[];
-  title: string;
-}) {
-  if (events.length === 0) return null;
-
-  return (
-    <DebugSection title={title}>
-      <List
-        size="small"
-        dataSource={events}
-        renderItem={(event) => (
-          <List.Item>
-            <Space wrap size={4}>
-              <Tag>#{event.seq}</Tag>
-              <Tag>{formatTime(event.timestamp)}</Tag>
-              <Tag>{event.kind}</Tag>
-              {event.phase && <Tag>{event.phase}</Tag>}
-              {event.maafwMessage && <Tag>{event.maafwMessage}</Tag>}
-              <Text type="secondary">{eventTitle(event)}</Text>
-            </Space>
-          </List.Item>
-        )}
-      />
-    </DebugSection>
-  );
-}
-
-function readEventDetail(
-  artifacts: ArtifactEntries,
-  event: DebugEvent,
-): Record<string, unknown> | undefined {
-  if (!event.detailRef) return undefined;
-  const data = artifacts[event.detailRef]?.payload?.data;
-  return isRecord(data) ? data : undefined;
-}
-
-function readNextItems(event: DebugEvent): Array<{
-  name: string;
-  jumpBack?: boolean;
-  anchor?: boolean;
-}> {
-  const next = event.data?.next;
-  if (!Array.isArray(next)) return [];
-  return next
-    .filter(isRecord)
-    .map((item) => ({
-      name: typeof item.name === "string" ? item.name : String(item.name ?? ""),
-      jumpBack: item.jumpBack === true,
-      anchor: item.anchor === true,
-    }))
-    .filter((item) => item.name.trim() !== "");
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
 function filterRecordsBySearch(
@@ -749,17 +419,4 @@ function uniqueRuntimeOnlyOptions(records: DebugNodeExecutionRecord[]) {
 
 function uniqueStrings(values: string[]): string[] {
   return [...new Set(values.filter((value) => value.trim() !== ""))];
-}
-
-function formatValue(value: unknown): string {
-  if (value === undefined || value === null || value === "") return "-";
-  if (typeof value === "string") return value;
-  if (typeof value === "number" || typeof value === "boolean") {
-    return String(value);
-  }
-  return JSON.stringify(value);
-}
-
-function shortRef(ref: string): string {
-  return ref.slice(0, 8);
 }

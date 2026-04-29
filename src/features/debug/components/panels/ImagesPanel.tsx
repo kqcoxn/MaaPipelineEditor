@@ -1,4 +1,4 @@
-import { Alert, Button, Input, List, Select, Space, Tag, Typography } from "antd";
+import { Button, Input, List, Select, Space, Tag, Typography } from "antd";
 import {
   CaretRightOutlined,
   FileSearchOutlined,
@@ -6,6 +6,7 @@ import {
   StopOutlined,
 } from "@ant-design/icons";
 import { DebugSection } from "../DebugSection";
+import { DebugArtifactPreview } from "../DebugArtifactPreview";
 import type { DebugModalController } from "../../hooks/useDebugModalController";
 
 const { Text } = Typography;
@@ -181,28 +182,7 @@ export function ImagesPanel({
       </DebugSection>
       {selectedArtifact && (
         <DebugSection title="产物预览（Artifact Preview）">
-          {selectedArtifact.error && (
-            <Alert type="error" showIcon message={selectedArtifact.error} />
-          )}
-          {selectedArtifact.payload?.content &&
-            selectedArtifact.payload.ref.mime.startsWith("image/") && (
-              <img
-                alt={selectedArtifact.payload.ref.type}
-                src={`data:${selectedArtifact.payload.ref.mime};base64,${selectedArtifact.payload.content}`}
-                style={{ maxWidth: "100%", maxHeight: 360 }}
-              />
-            )}
-          {selectedArtifact.payload?.data !== undefined && (
-            <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>
-              {JSON.stringify(selectedArtifact.payload.data, null, 2)}
-            </pre>
-          )}
-          {selectedArtifact.payload?.content &&
-            !selectedArtifact.payload.ref.mime.startsWith("image/") && (
-              <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>
-                {selectedArtifact.payload.content}
-              </pre>
-            )}
+          <DebugArtifactPreview artifact={selectedArtifact} />
         </DebugSection>
       )}
     </Space>

@@ -304,3 +304,36 @@ type DebugNodeExecutionRecord = {
 - 本轮推进范围限定为 v1.1，未进入 v1.2 的 artifact JSON 深层 schema 摘要解析或 raw/draw 缩略图能力。
 - 慢节点标记只来自 `performanceSummary.slowNodes` 精确匹配，不在前端自行发明耗时阈值。
 - performance 耗时只在 `nodeId/runtimeName + firstSeq/lastSeq` 可明确匹配时覆盖 trace 估算；无法明确匹配的重复节点仍展示 trace timestamp 估算值。
+
+### 2026-04-29 v1.2：Artifact 摘要与派生图像入口
+
+已完成：
+
+- 新增 `artifactDetailSummary` 纯 helper，基于现有 `recognition-detail` / `action-detail` artifact JSON 解析浅层摘要字段；识别摘要覆盖 `id/name/algorithm/hit/box/detail/detailJson/rawImageRef/drawImageRefs/screenshotRef/combinedResult`，动作摘要覆盖 `id/name/action/success/box/detail/detailJson`。
+- 新增 `DebugArtifactPreview` 共享预览组件，统一处理 artifact 的 loading、error、image、JSON 和文本展示；`ImagesPanel` 与 `节点执行` 详情区复用同一预览逻辑。
+- `NodeExecutionPanel` 的详情区拆分为 `NodeExecutionRecordDetails`，主面板只保留筛选、列表布局和选中记录状态；拆分后 `NodeExecutionPanel` 约 402 行，避免继续逼近单文件 800 行上限。
+- 节点执行详情中的 recognition/action 摘要改为事件字段优先、已加载 artifact JSON 补齐；未知或 malformed payload 会安全降级，不绑定 MaaFW 算法私有深层结构。
+- Artifact 区按 `详情 JSON`、`事件图像`、`详情派生图像` 分组；识别 detail 加载后会从 `rawImageRef`、`drawImageRefs`、`screenshotRef` 生成 `查看原图`、`查看绘制图`、`查看截图` 按钮。
+- `registerProtocolListeners` 在收到 `recognition-detail` payload 后会把派生 raw/draw/screenshot 图像 ref 注册进 artifact store，确保派生图像仍通过现有 `requestArtifact(ref)` 按需拉取。
+- 本轮未修改 LocalBridge wire protocol，未新增 MaaFW callback，未修改 `DEBUG_PROTOCOL_VERSION` / `ProtocolVersion`。
+
+主要文件：
+
+- `src/features/debug/artifactDetailSummary.ts`
+- `src/features/debug/components/DebugArtifactPreview.tsx`
+- `src/features/debug/components/panels/NodeExecutionRecordDetails.tsx`
+- `src/features/debug/components/panels/NodeExecutionPanel.tsx`
+- `src/features/debug/components/panels/ImagesPanel.tsx`
+- `src/features/debug/registerProtocolListeners.ts`
+- `src/features/debug/artifactDetailSummary.test.ts`
+
+验证记录：
+
+- `yarn eslint src/features/debug/artifactDetailSummary.ts src/features/debug/artifactDetailSummary.test.ts src/features/debug/components/DebugArtifactPreview.tsx src/features/debug/components/panels/NodeExecutionPanel.tsx src/features/debug/components/panels/NodeExecutionRecordDetails.tsx src/features/debug/components/panels/ImagesPanel.tsx src/features/debug/registerProtocolListeners.ts`：通过。
+- `yarn vitest run src/features/debug/artifactDetailSummary.test.ts src/features/debug/traceReducer.test.ts src/features/debug/nodeExecutionSelector.test.ts`：仓库当前 `vite.config.ts` 引用的 `tests/setup.ts` 不存在，命令在 setup 阶段失败，未进入测试逻辑。
+
+已知限制与后续项：
+
+- 本轮只做 artifact JSON 浅层摘要和图像入口，不解析算法私有 detail schema，也不做 raw/draw 缩略图网格或批量预加载。
+- 详情派生图像入口依赖用户先点击加载对应 detail artifact；列表首屏和节点详情展开时仍不会主动请求整批 artifact。
+- v2.0 的节点级 trace replay、画布执行路径热力和多 run 对比仍未进入本轮范围。
