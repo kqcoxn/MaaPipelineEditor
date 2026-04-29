@@ -21,6 +21,8 @@ const BASE_HEIGHT_2 = 840;
 const BASE_COUNT_2 = 10;
 /** 最少显示模板数量 */
 const MIN_COUNT = 5;
+/** 基准占位高度 */
+const TOP_TOOLBAR_RESERVED_HEIGHT = 70;
 
 /** 每个模板对应的高度增量（基于两个基准点计算） */
 const HEIGHT_PER_ITEM =
@@ -47,7 +49,10 @@ function AddPanel() {
 
   // 根据画布高度动态计算显示的模板数量
   const addTools = useMemo<NodeTemplateType[]>(
-    () => nodeTemplates.slice(0, calcTemplateCount(canvasHeight)),
+    () => {
+      const availableCanvasHeight = canvasHeight - TOP_TOOLBAR_RESERVED_HEIGHT;
+      return nodeTemplates.slice(0, calcTemplateCount(availableCanvasHeight));
+    },
     [canvasHeight],
   );
 

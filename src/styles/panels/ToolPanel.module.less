@@ -8,9 +8,11 @@
   box-shadow: 0 0 5px #ccc;
   display: flex;
 
+  @tool-item-size: 52px;
+
   .item {
-    width: 52px;
-    height: 52px;
+    width: @tool-item-size;
+    height: @tool-item-size;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -101,12 +103,17 @@
   left: 10px;
   // top: calc(50% - 52px);
   // transform: translateY(-50%);
-  top: 80px;
+  top: 136px;
   flex-direction: column;
 }
 
 .global-panel {
   top: 10px;
+  left: 10px;
+}
+
+.edit-panel {
+  top: 70px;
   left: 10px;
 }
 

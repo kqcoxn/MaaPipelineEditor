@@ -53,7 +53,10 @@ export const updateLogs: UpdateLogItem[] = [
     type: "major",
     updates: {
       features: ["🎚️ 全新 MPE FlowScope 调试模块，支持"],
-      perfs: ["连接 LB 后，从本地导入行为改为唤起本地文件面板"],
+      perfs: [
+        "连接 LB 后，从本地导入行为改为唤起本地文件面板",
+        "拆分顶部工具栏，优化页面视觉占用",
+      ],
       fixes: [
         "修复 OpenAI 兼容 URL 解析逻辑，支持基础地址和完整端点",
         "修复 MPE 保存到本地后 LB 提示外部文件更改警告的问题",

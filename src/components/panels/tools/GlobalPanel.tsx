@@ -12,7 +12,7 @@ import PathSelector from "./PathSelector";
 import ToolboxPanel from "./ToolboxPanel";
 import style from "../../../styles/panels/ToolPanel.module.less";
 
-/**全局工具 */
+/** 全局工具 */
 type GlobalToolType = {
   label: string;
   iconName: string;
@@ -69,6 +69,13 @@ function GlobalPanel() {
         iconSize: 27,
         onClick: () => setStatus("showAIHistoryPanel", true),
       },
+    ],
+    [setStatus],
+  );
+
+  // 编辑工具
+  const editingTools = useMemo<GlobalToolType[]>(
+    () => [
       {
         label:
           focusOpacity === 1 ? "聚焦透明度（已关闭）" : "聚焦透明度（已开启）",
@@ -138,7 +145,6 @@ function GlobalPanel() {
       debouncedSelectedNodes,
       historyState,
       focusOpacity,
-      setStatus,
       setConfig,
       copy,
       clipboardPaste,
@@ -149,108 +155,117 @@ function GlobalPanel() {
   );
 
   // 生成
-  const tools = globalTools.map((item, index) => {
-    return (
-      <div key={item.label} className={style.group}>
-        <li className={style.item}>
-          <Tooltip placement="bottom" title={item.label}>
-            <IconFont
-              style={{ opacity: item.disabled ? 0.2 : item.dimmed ? 0.4 : 1 }}
-              className={style.icon}
-              name={item.iconName as IconNames}
-              size={item.iconSize ?? 24}
-              onClick={() => {
-                if (item.disabled) {
-                  item.onDisabledClick?.();
-                  return;
-                }
-                item.onClick?.();
-              }}
-            />
-          </Tooltip>
-        </li>
-        {index < globalTools.length - 1 && (
-          <div className={style.devider}>
-            <div></div>
-          </div>
-        )}
-      </div>
-    );
-  });
+  const renderTools = (toolItems: GlobalToolType[]) =>
+    toolItems.map((item, index) => {
+      return (
+        <div key={item.label} className={style.group}>
+          <li className={style.item}>
+            <Tooltip placement="bottom" title={item.label}>
+              <IconFont
+                style={{ opacity: item.disabled ? 0.2 : item.dimmed ? 0.4 : 1 }}
+                className={style.icon}
+                name={item.iconName as IconNames}
+                size={item.iconSize ?? 24}
+                onClick={() => {
+                  if (item.disabled) {
+                    item.onDisabledClick?.();
+                    return;
+                  }
+                  item.onClick?.();
+                }}
+              />
+            </Tooltip>
+          </li>
+          {index < toolItems.length - 1 && (
+            <div className={style.devider}>
+              <div></div>
+            </div>
+          )}
+        </div>
+      );
+    });
 
   // 渲染
-  const panelClass = useMemo(
+  const globalPanelClass = useMemo(
     () => classNames(style.panel, style["h-panel"], style["global-panel"]),
     [],
   );
+  const editPanelClass = useMemo(
+    () => classNames(style.panel, style["h-panel"], style["edit-panel"]),
+    [],
+  );
+
   return (
-    <ul className={panelClass}>
-      {tools}
-      {/* 路径模式按钮 */}
-      <div className={style.group}>
-        <div className={style.devider}>
-          <div></div>
-        </div>
-        <li className={style.item}>
-          <Popover
-            placement="bottom"
-            title="节点路径"
-            content={<PathSelector />}
-            trigger="click"
-          >
-            <Tooltip
+    <>
+      <ul className={globalPanelClass}>
+        {renderTools(globalTools)}
+        {/* 路径模式按钮 */}
+        <div className={style.group}>
+          <div className={style.devider}>
+            <div></div>
+          </div>
+          <li className={style.item}>
+            <Popover
               placement="bottom"
-              title={pathMode ? "节点路径（已开启）" : "节点路径"}
+              title="节点路径"
+              content={<PathSelector />}
+              trigger="click"
             >
+              <Tooltip
+                placement="bottom"
+                title={pathMode ? "节点路径（已开启）" : "节点路径"}
+              >
+                <IconFont
+                  style={{ opacity: pathMode ? 1 : 0.4 }}
+                  className={style.icon}
+                  name="icon-lianjie"
+                  size={24}
+                />
+              </Tooltip>
+            </Popover>
+          </li>
+        </div>
+        {/* 工具箱按钮 */}
+        <div className={style.group}>
+          <div className={style.devider}>
+            <div></div>
+          </div>
+          <li className={style.item}>
+            <Popover
+              placement="bottom"
+              title="工具箱"
+              content={<ToolboxPanel />}
+              trigger="click"
+            >
+              <Tooltip placement="bottom" title="工具箱">
+                <IconFont
+                  className={style.icon}
+                  name="icon-gongjuxiang"
+                  size={24}
+                />
+              </Tooltip>
+            </Popover>
+          </li>
+        </div>
+        {/* 调试按钮 */}
+        <div className={style.group}>
+          <div className={style.devider}>
+            <div></div>
+          </div>
+          <li className={style.item}>
+            <Tooltip placement="bottom" title="调试">
               <IconFont
-                style={{ opacity: pathMode ? 1 : 0.4 }}
                 className={style.icon}
-                name="icon-lianjie"
+                name="icon-tiaoshi"
                 size={24}
+                onClick={() => openDebugModal(lastDebugModalPanel)}
               />
             </Tooltip>
-          </Popover>
-        </li>
-      </div>
-      {/* 工具箱按钮 */}
-      <div className={style.group}>
-        <div className={style.devider}>
-          <div></div>
+          </li>
         </div>
-        <li className={style.item}>
-          <Popover
-            placement="bottom"
-            title="工具箱"
-            content={<ToolboxPanel />}
-            trigger="click"
-          >
-            <Tooltip placement="bottom" title="工具箱">
-              <IconFont
-                className={style.icon}
-                name="icon-gongjuxiang"
-                size={24}
-              />
-            </Tooltip>
-          </Popover>
-        </li>
-      </div>
-      {/* 调试按钮 */}
-      <div className={style.group}>
-        <div className={style.devider}>
-          <div></div>
-        </div>
-        <li className={style.item}>
-          <Tooltip placement="bottom" title="调试">
-            <IconFont
-              className={style.icon}
-              name="icon-tiaoshi"
-              size={24}
-              onClick={() => openDebugModal(lastDebugModalPanel)}
-            />
-          </Tooltip>
-        </li>
-      </div>
-    </ul>
+      </ul>
+      <ul className={editPanelClass}>{renderTools(editingTools)}</ul>
+    </>
   );
 }
 
