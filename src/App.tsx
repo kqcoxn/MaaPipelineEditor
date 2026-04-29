@@ -13,7 +13,7 @@ import {
 const { Header: HeaderSection, Content } = Layout;
 
 import { useFileStore } from "./stores/fileStore";
-import { useConfigStore } from "./stores/configStore";
+import { saveConfigCache, useConfigStore } from "./stores/configStore";
 import { useWSStore } from "./stores/wsStore";
 import { useMFWStore } from "./stores/mfwStore";
 import { useCustomTemplateStore } from "./stores/customTemplateStore";
@@ -356,6 +356,21 @@ function App() {
       if (!err) message.success("已读取本地缓存");
     }
 
+    const unsubscribeConfigCache = useConfigStore.subscribe(
+      (state, prevState) => {
+        if (
+          state.configs !== prevState.configs ||
+          state.configuredKeys !== prevState.configuredKeys
+        ) {
+          try {
+            saveConfigCache();
+          } catch (error) {
+            console.error("[App] 保存配置缓存失败:", error);
+          }
+        }
+      },
+    );
+
     // 从分享链接加载
     if (hasShareParam) {
       loadFromShareUrl();
@@ -488,6 +503,7 @@ function App() {
 
     // 清理监听器
     return () => {
+      unsubscribeConfigCache();
       document.removeEventListener("drop", handleFileDrop);
       document.removeEventListener("dragover", handleDragOver);
       // 清理 Wails 事件监听

@@ -57,6 +57,7 @@ export const updateLogs: UpdateLogItem[] = [
       fixes: [
         "修复 OpenAI 兼容 URL 解析逻辑，支持基础地址和完整端点",
         "修复 MPE 保存到本地后 LB 提示外部文件更改警告的问题",
+        "修复再次打开页面时配置不检测已更改项的问题",
       ],
     },
   },

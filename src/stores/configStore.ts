@@ -84,11 +84,11 @@ export const getExportableConfigs = (
   configs: ConfigState["configs"],
   excludeCategories: ConfigCategory[] = [],
 ): Partial<ConfigState["configs"]> => {
-  const result: Record<string, any> = {};
+  const result: Partial<ConfigState["configs"]> = {};
   Object.entries(configs).forEach(([key, value]) => {
     const category = configCategoryMap[key];
     if (category && !excludeCategories.includes(category)) {
-      result[key] = value;
+      (result as Record<string, unknown>)[key] = value;
     }
   });
   return result;
@@ -233,7 +233,10 @@ export type ConfigState = {
     key: K,
     value: ConfigState["configs"][K],
   ) => void;
-  replaceConfig: (configs: any) => void;
+  replaceConfig: (
+    configs: Partial<ConfigState["configs"]>,
+    configuredKeys?: Iterable<string>,
+  ) => void;
   // 已配置追踪
   configuredKeys: Set<string>;
   markAsConfigured: (key: string) => void;
@@ -298,12 +301,16 @@ export const useConfigStore = create<ConfigState>()((set, get) => ({
       };
     });
   },
-  replaceConfig(configs) {
+  replaceConfig(configs, configuredKeys) {
     set((state) => {
       const keys = Object.keys(state.configs);
-      const newConfigs: Record<string, any> = {};
+      const newConfigs: Partial<ConfigState["configs"]> = {};
       Object.keys(configs).forEach((key) => {
-        if (keys.includes(key)) newConfigs[key] = configs[key];
+        if (keys.includes(key)) {
+          const configKey = key as keyof ConfigState["configs"];
+          (newConfigs as Record<string, unknown>)[configKey] =
+            configs[configKey];
+        }
       });
 
       const mergedConfigs = { ...state.configs, ...newConfigs };
@@ -326,6 +333,11 @@ export const useConfigStore = create<ConfigState>()((set, get) => ({
 
       // 批量标记导入的 key 为已配置
       const newConfiguredKeys = new Set(state.configuredKeys);
+      if (configuredKeys) {
+        for (const key of configuredKeys) {
+          newConfiguredKeys.add(key);
+        }
+      }
       Object.keys(newConfigs).forEach((key) => newConfiguredKeys.add(key));
 
       // 迁移明文 API Key 为加密格式
@@ -391,3 +403,29 @@ export const useConfigStore = create<ConfigState>()((set, get) => ({
     }));
   },
 }));
+
+const CONFIG_STORAGE_KEY = "_mpe_config";
+
+export function saveConfigCache(): void {
+  const configState = useConfigStore.getState();
+  localStorage.setItem(
+    CONFIG_STORAGE_KEY,
+    JSON.stringify({
+      ...configState.configs,
+      __configuredKeys: [...configState.configuredKeys],
+    }),
+  );
+}
+
+export function restoreConfigCache(): void {
+  const config = localStorage.getItem(CONFIG_STORAGE_KEY);
+  if (!config) return;
+
+  const parsed = JSON.parse(config);
+  const configuredKeys = Array.isArray(parsed.__configuredKeys)
+    ? parsed.__configuredKeys.filter((key: unknown) => typeof key === "string")
+    : undefined;
+
+  delete parsed.__configuredKeys;
+  useConfigStore.getState().replaceConfig(parsed, configuredKeys);
+}
