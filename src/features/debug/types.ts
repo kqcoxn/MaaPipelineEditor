@@ -25,10 +25,26 @@ export type DebugModalPanel =
   | "overview"
   | "setup"
   | "timeline"
+  | "node-execution"
   | "performance"
   | "images"
   | "diagnostics"
   | "logs";
+
+export type DebugNodeExecutionStatus =
+  | "running"
+  | "succeeded"
+  | "failed"
+  | "visited";
+
+export type DebugNodeExecutionStatusFilter =
+  | "all"
+  | DebugNodeExecutionStatus;
+
+export interface DebugNodeExecutionFilters {
+  nodeId?: string;
+  status: DebugNodeExecutionStatusFilter;
+}
 
 export type DebugProfileFeature =
   | "multi-resource"

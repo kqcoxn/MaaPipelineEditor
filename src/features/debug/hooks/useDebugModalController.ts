@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Modal, message } from "antd";
+import { message } from "antd";
 import { useShallow } from "zustand/shallow";
 import { debugProtocolClient, resourceProtocol } from "../../../services/server";
 import { useDebugSessionStore } from "../../../stores/debugSessionStore";
@@ -15,13 +15,16 @@ import {
 import { useLocalFileStore } from "../../../stores/localFileStore";
 import {
   useMFWStore,
-  type DeviceInfo,
-  type DeviceType,
 } from "../../../stores/mfwStore";
 import { useWSStore } from "../../../stores/wsStore";
 import { useFlowStore } from "../../../stores/flow";
+import { showActionRunConfirm } from "../confirmActionRun";
 import { debugContributionRegistry } from "../contributions/registry";
-import { buildDebugSnapshotBundle } from "../snapshot";
+import { getControllerDisplayName } from "../controllerDisplay";
+import {
+  selectBatchSummaryRefs,
+  selectPerformanceRefs,
+} from "../debugEventSelectors";
 import { applyDebugNodeTarget } from "../nodeTargetActions";
 import {
   formatDebugReadinessMessage,
@@ -32,6 +35,7 @@ import {
   targetRunModes,
   validateRunRequest,
 } from "../modalUtils";
+import { useDebugNodeExecutionController } from "./useDebugNodeExecutionController";
 import type {
   DebugBatchRecognitionInput,
   DebugAgentProfile,
@@ -94,8 +98,14 @@ export function useDebugModalController() {
     })),
   );
   const connected = useWSStore((state) => state.connected);
-  const { lastRunMode, setLastPanel, setLastRunMode, setLastEntryNodeId } =
-    useDebugModalMemoryStore();
+  const {
+    lastRunMode,
+    nodeExecutionFilters,
+    setLastPanel,
+    setLastRunMode,
+    setLastEntryNodeId,
+    setNodeExecutionFilters,
+  } = useDebugModalMemoryStore();
   const { events, summary, liveSummary, replayStatus, performanceSummary } =
     useDebugTraceStore(
       useShallow((state) => ({
@@ -141,6 +151,9 @@ export function useDebugModalController() {
     })),
   );
   const flowNodes = useFlowStore((state) => state.nodes);
+  const selectedFlowNodeId = useFlowStore((state) =>
+    state.selectedNodes.length === 1 ? state.selectedNodes[0]?.id : undefined,
+  );
   const controllerDisplayName = useMemo(
     () =>
       getControllerDisplayName(
@@ -282,18 +295,20 @@ export function useDebugModalController() {
     [capabilities, runModes],
   );
 
-  const pipelineNodes = useMemo(
-    () =>
-      buildDebugSnapshotBundle().resolverSnapshot.nodes.filter((node) =>
-        flowNodes.some((flowNode) => flowNode.id === node.nodeId),
-      ),
-    [flowNodes],
-  );
-  const selectedPipelineNode = useMemo(
-    () => pipelineNodes.find((node) => node.nodeId === selectedNodeId),
-    [pipelineNodes, selectedNodeId],
-  );
-  const selectedPipelineNodeId = selectedPipelineNode?.nodeId;
+  const nodeExecutionController = useDebugNodeExecutionController({
+    flowNodes,
+    nodeExecutionFilters,
+    selectedNodeId,
+    selectNode,
+    setNodeExecutionFilters,
+    summary,
+  });
+  const {
+    pipelineNodes,
+    selectedPipelineNode,
+    selectedPipelineNodeId,
+    selectPipelineNode,
+  } = nodeExecutionController;
   const entryNode = useMemo(() => {
     const entry = profileState.profile.entry;
     return pipelineNodes.find((node) => {
@@ -313,40 +328,10 @@ export function useDebugModalController() {
   const selectedArtifact = selectedArtifactId
     ? artifacts[selectedArtifactId]
     : undefined;
-  const performanceRefs = useMemo(
-    () =>
-      events
-        .filter(
-          (event) =>
-            event.detailRef &&
-            typeof event.data?.performanceSummaryRef === "string",
-        )
-        .map((event) => event.detailRef as string),
-    [events],
-  );
-  const batchSummaryRefs = useMemo(
-    () =>
-      events
-        .filter(
-          (event) =>
-            event.detailRef && event.data?.mode === "batch-recognition",
-        )
-        .map((event) => event.detailRef as string),
-    [events],
-  );
+  const performanceRefs = useMemo(() => selectPerformanceRefs(events), [events]);
+  const batchSummaryRefs = useMemo(() => selectBatchSummaryRefs(events), [events]);
   const agentDiagnostics = diagnosticsState.diagnostics.filter((diagnostic) =>
     diagnostic.code.startsWith("debug.agent."),
-  );
-
-  const selectPipelineNode = useCallback(
-    (nodeId?: string) => {
-      if (!nodeId) {
-        selectNode(undefined);
-        return;
-      }
-      applyDebugNodeTarget(nodeId, { focusCanvas: true });
-    },
-    [selectNode],
   );
 
   const setEntryFromSelectedNode = useCallback(() => {
@@ -426,14 +411,9 @@ export function useDebugModalController() {
   };
 
   function confirmActionRun(nodeId?: string) {
-    Modal.confirm({
-      title: "确认执行动作",
-      content: "仅动作模式会跳过识别，直接执行目标节点动作（Action）。",
-      okText: "确认执行",
-      okButtonProps: { danger: true },
-      cancelText: "取消",
-      onOk: () => startRun("action-only", nodeId, { confirmAction: true }),
-    });
+    showActionRunConfirm(() =>
+      startRun("action-only", nodeId, { confirmAction: true }),
+    );
   }
 
   const stopRun = () => {
@@ -767,6 +747,7 @@ export function useDebugModalController() {
     mfwState,
     controllerDisplayName,
     flowNodes,
+    selectedFlowNodeId,
     resolvedResourcePaths,
     resourceKey,
     resourcePreflight,
@@ -776,9 +757,13 @@ export function useDebugModalController() {
     runModes,
     availableModeIds,
     pipelineNodes,
+    resolverEdges: nodeExecutionController.resolverEdges,
+    resolverEdgeIndex: nodeExecutionController.resolverEdgeIndex,
     selectedPipelineNode,
     selectedPipelineNodeId,
     entryNode,
+    nodeExecutionRecords: nodeExecutionController.nodeExecutionRecords,
+    nodeExecutionFilters: nodeExecutionController.nodeExecutionFilters,
     performanceRefs,
     batchSummaryRefs,
     agentDiagnostics,
@@ -797,6 +782,9 @@ export function useDebugModalController() {
     stopBatchRecognition,
     testAgent,
     selectPipelineNode,
+    selectNodeExecutionRecord:
+      nodeExecutionController.selectNodeExecutionRecord,
+    setNodeExecutionFilters: nodeExecutionController.setNodeExecutionFilters,
     setEntryFromSelectedNode,
     requestResourcePreflight,
     invalidateResourcePreflight,
@@ -808,27 +796,3 @@ export function useDebugModalController() {
 }
 
 export type DebugModalController = ReturnType<typeof useDebugModalController>;
-
-function getControllerDisplayName(
-  deviceInfo: DeviceInfo,
-  controllerId: string | null,
-  controllerType: DeviceType,
-): string {
-  if (!deviceInfo || typeof deviceInfo !== "object") {
-    return controllerId ?? "未连接";
-  }
-  const info = deviceInfo as Record<string, unknown>;
-  const keys =
-    controllerType === "win32"
-      ? ["window_name", "class_name", "hwnd"]
-      : controllerType === "macos"
-        ? ["app_name", "name", "pid"]
-        : ["name", "address", "socket_path", "uuid"];
-  for (const key of keys) {
-    const value = info[key];
-    if (typeof value === "string" && value.trim() !== "") {
-      return value.trim();
-    }
-  }
-  return controllerId ?? "未连接";
-}

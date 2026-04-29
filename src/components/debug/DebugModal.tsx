@@ -3,6 +3,7 @@ import { Alert, Button, Modal, Space, Typography } from "antd";
 import {
   ApiOutlined,
   BranchesOutlined,
+  NodeIndexOutlined,
   PictureOutlined,
   ProfileOutlined,
   SettingOutlined,
@@ -15,6 +16,7 @@ import type { DebugModalController } from "../../features/debug/hooks/useDebugMo
 import { OverviewPanel } from "../../features/debug/components/panels/OverviewPanel";
 import { SetupPanel } from "../../features/debug/components/panels/SetupPanel";
 import { TimelinePanel } from "../../features/debug/components/panels/TimelinePanel";
+import { NodeExecutionPanel } from "../../features/debug/components/panels/NodeExecutionPanel";
 import { PerformancePanel } from "../../features/debug/components/panels/PerformancePanel";
 import { ImagesPanel } from "../../features/debug/components/panels/ImagesPanel";
 import { DiagnosticsPanel } from "../../features/debug/components/panels/DiagnosticsPanel";
@@ -48,6 +50,12 @@ const panels: PanelItem[] = [
     icon: <BranchesOutlined />,
     description:
       "按后端 seq 查看 append-only trace，并在当前会话内定位或回放事件。",
+  },
+  {
+    id: "node-execution",
+    label: "节点执行",
+    icon: <NodeIndexOutlined />,
+    description: "按 MPE 节点聚合当前 session trace，查看执行路径和节点详情。",
   },
   {
     id: "performance",
@@ -168,6 +176,8 @@ function ActivePanel({
       return <SetupPanel controller={controller} />;
     case "timeline":
       return <TimelinePanel controller={controller} />;
+    case "node-execution":
+      return <NodeExecutionPanel controller={controller} />;
     case "performance":
       return <PerformancePanel controller={controller} />;
     case "images":

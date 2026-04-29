@@ -3,6 +3,7 @@ import type {
   DebugDiagnostic,
   DebugEvent,
   DebugEventKind,
+  DebugNodeExecutionStatus,
   DebugRunMode,
   DebugSessionStatus,
 } from "./types";
@@ -12,7 +13,7 @@ export interface DebugNodeRunState {
   runtimeName: string;
   label?: string;
   fileId?: string;
-  status: "running" | "succeeded" | "failed" | "visited";
+  status: DebugNodeExecutionStatus;
   lastSeq: number;
 }
 
@@ -45,13 +46,14 @@ export interface DebugTraceReplayCursor {
 }
 
 export interface DebugNodeReplay {
-  nodeId: string;
+  nodeId?: string;
   runtimeName: string;
   fileId?: string;
   label?: string;
   runId: string;
   runMode?: DebugRunMode;
   status: DebugNodeRunState["status"];
+  occurrence: number;
   firstSeq: number;
   lastSeq: number;
   events: DebugEvent[];
@@ -61,6 +63,7 @@ export interface DebugNodeReplay {
   waitFreezesEvents: DebugEvent[];
   detailRefs: string[];
   screenshotRefs: string[];
+  unmapped?: boolean;
 }
 
 export interface DebugTraceStateSnapshot {
@@ -157,6 +160,17 @@ function artifactFromEvent(
   };
 }
 
+interface NodeReplayIdentity {
+  identityKey: string;
+  bucketKey: string;
+  runtimeKey: string;
+  nodeId?: string;
+  runtimeName: string;
+  fileId?: string;
+  label?: string;
+  unmapped?: boolean;
+}
+
 export function reduceDebugTrace(
   snapshot: DebugTraceStateSnapshot,
 ): DebugTraceSummary {
@@ -172,7 +186,10 @@ export function reduceDebugTrace(
   const diagnostics: DebugDiagnostic[] = [];
   const artifactsById = new Map<string, DebugArtifactRef>();
   const nodeStates: Record<string, DebugNodeRunState> = {};
-  const nodeReplayIndex = new Map<string, DebugNodeReplay>();
+  const nodeReplayBuckets = new Map<string, DebugNodeReplay[]>();
+  const activeNodeReplays = new Map<string, DebugNodeReplay>();
+  const activeRuntimeReplays = new Map<string, DebugNodeReplay>();
+  const occurrenceByIdentity = new Map<string, number>();
 
   let sessionId: string | undefined;
   let runId: string | undefined;
@@ -194,47 +211,38 @@ export function reduceDebugTrace(
       }
     }
 
-    const nodeId = event.node?.nodeId;
-    if (nodeId) {
-      addUnique(visitedNodeIds, nodeId);
-      currentNodeId = nodeId;
-      currentRuntimeName = event.node?.runtimeName;
+    const nodeStatus = resolveNodeStatus(event.kind, event.phase);
+    const replay = ensureNodeReplayForEvent({
+      activeNodeReplays,
+      activeRuntimeReplays,
+      event,
+      nodeReplayBuckets,
+      occurrenceByIdentity,
+      runMode,
+      status: nodeStatus,
+    });
+    if (replay) {
+      applyEventToNodeReplay(replay, event, nodeStatus);
+      currentRuntimeName = replay.runtimeName;
 
-      const nodeStatus = resolveNodeStatus(event.kind, event.phase);
-      nodeStates[nodeId] = {
-        nodeId,
-        runtimeName: event.node?.runtimeName ?? nodeId,
-        label: event.node?.label,
-        fileId: event.node?.fileId,
-        status: nodeStatus,
-        lastSeq: event.seq,
-      };
+      if (replay.nodeId) {
+        addUnique(visitedNodeIds, replay.nodeId);
+        currentNodeId = replay.nodeId;
+        nodeStates[replay.nodeId] = {
+          nodeId: replay.nodeId,
+          runtimeName: replay.runtimeName,
+          label: replay.label,
+          fileId: replay.fileId,
+          status: replay.status,
+          lastSeq: event.seq,
+        };
 
-      if (nodeStatus === "succeeded") addUnique(succeededNodeIds, nodeId);
-      if (nodeStatus === "failed") addUnique(failedNodeIds, nodeId);
-
-      const replay = ensureNodeReplay(
-        nodeReplayIndex,
-        event,
-        nodeId,
-        runMode,
-        nodeStatus,
-      );
-      replay.events.push(event);
-      replay.lastSeq = event.seq;
-      replay.status = nodeStatus;
-      if (event.kind === "recognition") replay.recognitionEvents.push(event);
-      if (event.kind === "action") replay.actionEvents.push(event);
-      if (event.kind === "next-list") replay.nextListEvents.push(event);
-      if (event.kind === "wait-freezes") replay.waitFreezesEvents.push(event);
-      if (event.detailRef && !replay.detailRefs.includes(event.detailRef)) {
-        replay.detailRefs.push(event.detailRef);
-      }
-      if (
-        event.screenshotRef &&
-        !replay.screenshotRefs.includes(event.screenshotRef)
-      ) {
-        replay.screenshotRefs.push(event.screenshotRef);
+        if (replay.status === "succeeded") {
+          addUnique(succeededNodeIds, replay.nodeId);
+        }
+        if (replay.status === "failed") {
+          addUnique(failedNodeIds, replay.nodeId);
+        }
       }
     }
 
@@ -291,7 +299,7 @@ export function reduceDebugTrace(
     artifacts: [...artifactsById.values()],
     lastEvent,
     nodeStates,
-    nodeReplays: groupNodeReplays(nodeReplayIndex),
+    nodeReplays: groupNodeReplays(nodeReplayBuckets),
   };
 }
 
@@ -309,25 +317,47 @@ export function reduceDebugTraceForReplay(
   return reduceDebugTrace({ events });
 }
 
-function ensureNodeReplay(
-  index: Map<string, DebugNodeReplay>,
-  event: DebugEvent,
-  nodeId: string,
-  runMode: DebugRunMode | undefined,
-  status: DebugNodeRunState["status"],
-): DebugNodeReplay {
-  const key = `${nodeId}:${event.runId}`;
-  const current = index.get(key);
-  if (current) return current;
+function ensureNodeReplayForEvent({
+  activeNodeReplays,
+  activeRuntimeReplays,
+  event,
+  nodeReplayBuckets,
+  occurrenceByIdentity,
+  runMode,
+  status,
+}: {
+  activeNodeReplays: Map<string, DebugNodeReplay>;
+  activeRuntimeReplays: Map<string, DebugNodeReplay>;
+  event: DebugEvent;
+  nodeReplayBuckets: Map<string, DebugNodeReplay[]>;
+  occurrenceByIdentity: Map<string, number>;
+  runMode: DebugRunMode | undefined;
+  status: DebugNodeRunState["status"];
+}): DebugNodeReplay | undefined {
+  if (!isNodeScopedEvent(event)) return undefined;
+
+  const startsNewOccurrence =
+    event.kind === "node" && event.phase === "starting";
+  const active = startsNewOccurrence
+    ? undefined
+    : findActiveNodeReplay(event, activeNodeReplays, activeRuntimeReplays);
+  if (active) return active;
+
+  const identity = resolveNodeReplayIdentity(event);
+  if (!identity) return undefined;
+
+  const occurrence = (occurrenceByIdentity.get(identity.identityKey) ?? 0) + 1;
+  occurrenceByIdentity.set(identity.identityKey, occurrence);
 
   const replay: DebugNodeReplay = {
-    nodeId,
-    runtimeName: event.node?.runtimeName ?? nodeId,
-    fileId: event.node?.fileId,
-    label: event.node?.label,
+    nodeId: identity.nodeId,
+    runtimeName: identity.runtimeName,
+    fileId: identity.fileId,
+    label: identity.label,
     runId: event.runId,
     runMode,
     status,
+    occurrence,
     firstSeq: event.seq,
     lastSeq: event.seq,
     events: [],
@@ -337,20 +367,143 @@ function ensureNodeReplay(
     waitFreezesEvents: [],
     detailRefs: [],
     screenshotRefs: [],
+    unmapped: identity.unmapped,
   };
-  index.set(key, replay);
+  nodeReplayBuckets.set(identity.bucketKey, [
+    ...(nodeReplayBuckets.get(identity.bucketKey) ?? []),
+    replay,
+  ]);
+  activeNodeReplays.set(identity.identityKey, replay);
+  activeRuntimeReplays.set(identity.runtimeKey, replay);
   return replay;
 }
 
+function findActiveNodeReplay(
+  event: DebugEvent,
+  activeNodeReplays: Map<string, DebugNodeReplay>,
+  activeRuntimeReplays: Map<string, DebugNodeReplay>,
+): DebugNodeReplay | undefined {
+  const nodeId = event.node?.nodeId ?? dataString(event.data, "nodeId");
+  if (nodeId) {
+    const current = activeNodeReplays.get(nodeIdentityKey(event.runId, nodeId));
+    if (current) return current;
+  }
+
+  const parentRuntimeName = dataString(event.data, "parentNode");
+  if (parentRuntimeName) {
+    const current = activeRuntimeReplays.get(
+      runtimeIdentityKey(event.runId, parentRuntimeName),
+    );
+    if (current) return current;
+  }
+
+  if (event.node?.runtimeName) {
+    return activeRuntimeReplays.get(
+      runtimeIdentityKey(event.runId, event.node.runtimeName),
+    );
+  }
+
+  return undefined;
+}
+
+function resolveNodeReplayIdentity(
+  event: DebugEvent,
+): NodeReplayIdentity | undefined {
+  const parentRuntimeName = dataString(event.data, "parentNode");
+  const runtimeName = event.node?.nodeId
+    ? event.node.runtimeName
+    : parentRuntimeName ?? event.node?.runtimeName;
+  const nodeId = event.node?.nodeId;
+  if (!runtimeName && !nodeId) return undefined;
+
+  const resolvedRuntimeName = runtimeName ?? nodeId;
+  if (!resolvedRuntimeName) return undefined;
+
+  return {
+    identityKey: nodeId
+      ? nodeIdentityKey(event.runId, nodeId)
+      : runtimeIdentityKey(event.runId, resolvedRuntimeName),
+    bucketKey: nodeId ?? `runtime:${resolvedRuntimeName}`,
+    runtimeKey: runtimeIdentityKey(event.runId, resolvedRuntimeName),
+    nodeId,
+    runtimeName: resolvedRuntimeName,
+    fileId: event.node?.fileId,
+    label: event.node?.label,
+    unmapped: !nodeId,
+  };
+}
+
+function isNodeScopedEvent(event: DebugEvent): boolean {
+  return Boolean(
+    event.node?.runtimeName ||
+      dataString(event.data, "parentNode") ||
+      (event.kind === "diagnostic" && dataString(event.data, "nodeId")),
+  );
+}
+
+function applyEventToNodeReplay(
+  replay: DebugNodeReplay,
+  event: DebugEvent,
+  status: DebugNodeRunState["status"],
+): void {
+  replay.events.push(event);
+  replay.lastSeq = event.seq;
+  replay.status = mergeNodeReplayStatus(replay.status, status);
+
+  if (!replay.fileId && event.node?.fileId) replay.fileId = event.node.fileId;
+  if (!replay.label && event.node?.label) replay.label = event.node.label;
+  if (event.kind === "recognition") replay.recognitionEvents.push(event);
+  if (event.kind === "action") replay.actionEvents.push(event);
+  if (event.kind === "next-list") replay.nextListEvents.push(event);
+  if (event.kind === "wait-freezes") replay.waitFreezesEvents.push(event);
+  if (event.detailRef && !replay.detailRefs.includes(event.detailRef)) {
+    replay.detailRefs.push(event.detailRef);
+  }
+  if (
+    event.screenshotRef &&
+    !replay.screenshotRefs.includes(event.screenshotRef)
+  ) {
+    replay.screenshotRefs.push(event.screenshotRef);
+  }
+}
+
+function mergeNodeReplayStatus(
+  current: DebugNodeRunState["status"],
+  next: DebugNodeRunState["status"],
+): DebugNodeRunState["status"] {
+  if (current === "failed" || next === "failed") return "failed";
+  if (next === "running") return "running";
+  if (next === "succeeded") return "succeeded";
+  return current === "visited" ? next : current;
+}
+
+function dataString(
+  data: Record<string, unknown> | undefined,
+  key: string,
+): string | undefined {
+  const value = data?.[key];
+  return typeof value === "string" && value.trim() !== ""
+    ? value.trim()
+    : undefined;
+}
+
+function nodeIdentityKey(runId: string, nodeId: string): string {
+  return `${runId}:node:${nodeId}`;
+}
+
+function runtimeIdentityKey(runId: string, runtimeName: string): string {
+  return `${runId}:runtime:${runtimeName}`;
+}
+
 function groupNodeReplays(
-  index: Map<string, DebugNodeReplay>,
+  buckets: Map<string, DebugNodeReplay[]>,
 ): Record<string, DebugNodeReplay[]> {
   const result: Record<string, DebugNodeReplay[]> = {};
-  for (const replay of index.values()) {
-    result[replay.nodeId] = [...(result[replay.nodeId] ?? []), replay];
+  for (const [key, replays] of buckets.entries()) {
+    result[key] = [...replays];
   }
   Object.values(result).forEach((items) =>
-    items.sort((a, b) => b.lastSeq - a.lastSeq),
+    items.sort((a, b) => a.firstSeq - b.firstSeq),
   );
   return result;
 }

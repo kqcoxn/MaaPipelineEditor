@@ -1,5 +1,10 @@
 import { create } from "zustand";
-import type { DebugModalPanel, DebugRunMode } from "../features/debug/types";
+import type {
+  DebugModalPanel,
+  DebugNodeExecutionFilters,
+  DebugNodeExecutionStatusFilter,
+  DebugRunMode,
+} from "../features/debug/types";
 
 const STORAGE_KEY = "mpe_debug_modal_memory_v1";
 
@@ -7,28 +12,38 @@ interface DebugModalMemorySnapshot {
   lastPanel: DebugModalPanel;
   lastRunMode: DebugRunMode;
   lastEntryNodeId?: string;
+  nodeExecutionFilters: DebugNodeExecutionFilters;
 }
 
 interface DebugModalMemoryState extends DebugModalMemorySnapshot {
   setLastPanel: (panel: DebugModalPanel) => void;
   setLastRunMode: (runMode: DebugRunMode) => void;
   setLastEntryNodeId: (nodeId?: string) => void;
+  setNodeExecutionFilters: (filters: DebugNodeExecutionFilters) => void;
 }
 
 const defaultMemory: DebugModalMemorySnapshot = {
   lastPanel: "overview",
   lastRunMode: "full-run",
+  nodeExecutionFilters: {
+    status: "all",
+  },
 };
 
 const validPanels = new Set<DebugModalPanel>([
   "overview",
   "setup",
   "timeline",
+  "node-execution",
   "performance",
   "images",
   "diagnostics",
   "logs",
 ]);
+
+const validNodeExecutionStatusFilters = new Set<DebugNodeExecutionStatusFilter>(
+  ["all", "running", "succeeded", "failed", "visited"],
+);
 
 function normalizePanel(panel: unknown): DebugModalPanel {
   if (
@@ -40,11 +55,31 @@ function normalizePanel(panel: unknown): DebugModalPanel {
     return "setup";
   }
   if (panel === "nodes") {
-    return "overview";
+    return "node-execution";
   }
   return typeof panel === "string" && validPanels.has(panel as DebugModalPanel)
     ? (panel as DebugModalPanel)
     : defaultMemory.lastPanel;
+}
+
+function normalizeNodeExecutionFilters(
+  value: unknown,
+): DebugNodeExecutionFilters {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return defaultMemory.nodeExecutionFilters;
+  }
+  const raw = value as Partial<DebugNodeExecutionFilters>;
+  return {
+    nodeId:
+      typeof raw.nodeId === "string" && raw.nodeId.trim() !== ""
+        ? raw.nodeId
+        : undefined,
+    status: validNodeExecutionStatusFilters.has(
+      raw.status as DebugNodeExecutionStatusFilter,
+    )
+      ? (raw.status as DebugNodeExecutionStatusFilter)
+      : defaultMemory.nodeExecutionFilters.status,
+  };
 }
 
 function readMemory(): DebugModalMemorySnapshot {
@@ -56,6 +91,9 @@ function readMemory(): DebugModalMemorySnapshot {
       lastPanel: normalizePanel(parsed.lastPanel),
       lastRunMode: parsed.lastRunMode ?? defaultMemory.lastRunMode,
       lastEntryNodeId: parsed.lastEntryNodeId,
+      nodeExecutionFilters: normalizeNodeExecutionFilters(
+        parsed.nodeExecutionFilters,
+      ),
     };
   } catch (error) {
     console.warn("[debugModalMemoryStore] Failed to read memory:", error);
@@ -91,6 +129,12 @@ export const useDebugModalMemoryStore = create<DebugModalMemoryState>(
       const next = { ...get(), lastEntryNodeId: nodeId };
       writeMemory(next);
       set({ lastEntryNodeId: nodeId });
+    },
+
+    setNodeExecutionFilters: (nodeExecutionFilters) => {
+      const next = { ...get(), nodeExecutionFilters };
+      writeMemory(next);
+      set({ nodeExecutionFilters });
     },
   }),
 );

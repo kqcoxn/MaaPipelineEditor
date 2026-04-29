@@ -5,6 +5,7 @@ const modalPanels: Array<{ id: DebugModalPanel; label: string }> = [
   { id: "overview", label: "总览" },
   { id: "setup", label: "运行配置" },
   { id: "timeline", label: "时间线" },
+  { id: "node-execution", label: "节点执行" },
   { id: "performance", label: "性能" },
   { id: "images", label: "图像" },
   { id: "diagnostics", label: "诊断" },
