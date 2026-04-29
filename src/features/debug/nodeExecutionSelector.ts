@@ -8,7 +8,12 @@ import type {
   DebugPerformanceNodeSummary,
   DebugPerformanceSummary,
   DebugRunMode,
+  DebugSyntheticNodeKind,
 } from "./types";
+import {
+  formatDebugNodeDisplayName,
+  isDebugTaskerBootstrapNode,
+} from "./syntheticNode";
 
 type ResolverNode = DebugNodeResolverSnapshot["nodes"][number];
 export type ResolverEdge = DebugNodeResolverSnapshot["edges"][number];
@@ -28,6 +33,7 @@ export interface DebugNodeExecutionRecord {
   runtimeName: string;
   label?: string;
   sourcePath?: string;
+  syntheticKind?: DebugSyntheticNodeKind;
   status: DebugNodeExecutionStatus;
   occurrence: number;
   firstSeq: number;
@@ -64,6 +70,7 @@ export interface DebugNodeExecutionRecordGroup {
   label?: string;
   fileId?: string;
   sourcePath?: string;
+  syntheticKind?: DebugSyntheticNodeKind;
   records: DebugNodeExecutionRecord[];
   firstSeq: number;
   lastSeq: number;
@@ -119,6 +126,7 @@ export function groupDebugNodeExecutionRecords(
         label: record.label,
         fileId: record.fileId,
         sourcePath: record.sourcePath,
+        syntheticKind: record.syntheticKind,
         records: [record],
         firstSeq: record.firstSeq,
         lastSeq: record.lastSeq,
@@ -178,6 +186,11 @@ function toRecord(
   const resolverNode =
     (replay.nodeId ? nodeById.get(replay.nodeId) : undefined) ??
     nodeByRuntime.get(replay.runtimeName);
+  const syntheticKind = replay.syntheticKind;
+  const syntheticNode = isDebugTaskerBootstrapNode({
+    runtimeName: replay.runtimeName,
+    syntheticKind,
+  });
   const events = [...replay.events].sort((a, b) => a.seq - b.seq);
   const detailRefs = uniqueRefs([
     ...replay.detailRefs,
@@ -210,10 +223,18 @@ function toRecord(
     runId: replay.runId,
     runMode: replay.runMode ?? summary.runMode,
     nodeId: replay.nodeId,
-    fileId: replay.fileId ?? resolverNode?.fileId,
+    fileId: syntheticNode ? undefined : replay.fileId ?? resolverNode?.fileId,
     runtimeName: replay.runtimeName,
-    label: resolverNode?.displayName ?? replay.label,
-    sourcePath: resolverNode?.sourcePath,
+    label: formatDebugNodeDisplayName(
+      {
+        runtimeName: replay.runtimeName,
+        label: resolverNode?.displayName ?? replay.label,
+        syntheticKind,
+      },
+      replay.runtimeName,
+    ),
+    sourcePath: syntheticNode ? undefined : resolverNode?.sourcePath,
+    syntheticKind,
     status: replay.status,
     occurrence: replay.occurrence,
     firstSeq: replay.firstSeq,
@@ -240,7 +261,7 @@ function toRecord(
     actionEvents: replay.actionEvents,
     nextListEvents: replay.nextListEvents,
     waitFreezesEvents: replay.waitFreezesEvents,
-    unmapped: replay.unmapped || !replay.nodeId,
+    unmapped: syntheticNode ? false : replay.unmapped || !replay.nodeId,
   };
 }
 

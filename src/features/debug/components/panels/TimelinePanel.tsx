@@ -4,6 +4,11 @@ import { DebugSection } from "../DebugSection";
 import type { DebugModalController } from "../../hooks/useDebugModalController";
 import type { DebugEvent } from "../../types";
 import { eventTitle, formatTime } from "../../modalUtils";
+import {
+  isDebugTaskerBootstrapNode,
+  isDebugTaskerBootstrapParent,
+  readDebugNextCandidateNames,
+} from "../../syntheticNode";
 
 export function TimelinePanel({
   controller,
@@ -86,6 +91,14 @@ export function TimelinePanel({
 }
 
 function EventMeta({ event }: { event: DebugEvent }) {
+  const nextCandidateNames = readDebugNextCandidateNames(event);
+  const showBootstrapNext =
+    event.kind === "next-list" &&
+    isDebugTaskerBootstrapNode(event.node) &&
+    nextCandidateNames.length > 0;
+  const showBootstrapParent =
+    event.kind === "recognition" && isDebugTaskerBootstrapParent(event);
+
   return (
     <Space wrap size={4}>
       <Tag>{formatTime(event.timestamp)}</Tag>
@@ -93,6 +106,13 @@ function EventMeta({ event }: { event: DebugEvent }) {
         {event.source}
       </Tag>
       {event.maafwMessage && <Tag>{event.maafwMessage}</Tag>}
+      {showBootstrapNext && (
+        <Tag color="purple">
+          入口候选 {nextCandidateNames.slice(0, 3).join(", ")}
+          {nextCandidateNames.length > 3 ? "..." : ""}
+        </Tag>
+      )}
+      {showBootstrapParent && <Tag color="purple">来源 (Tasker) NextList</Tag>}
       {event.detailRef && <Tag color="purple">详情</Tag>}
       {event.screenshotRef && <Tag color="cyan">图像</Tag>}
     </Space>

@@ -13,14 +13,16 @@ import {
   selectDebugNodeExecutionRecords,
 } from "./nodeExecutionSelector";
 import { reduceDebugTrace } from "./traceReducer";
-import type {
-  DebugArtifactPayload,
-  DebugBatchRecognitionResult,
-  DebugEvent,
-  DebugEdgeReason,
-  DebugEventKind,
-  DebugEventPhase,
-  DebugPerformanceSummary,
+import {
+  DEBUG_TASKER_BOOTSTRAP_LABEL,
+  DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
+  type DebugArtifactPayload,
+  type DebugBatchRecognitionResult,
+  type DebugEvent,
+  type DebugEdgeReason,
+  type DebugEventKind,
+  type DebugEventPhase,
+  type DebugPerformanceSummary,
 } from "./types";
 
 describe("selectDebugNodeExecutionRecords", () => {
@@ -100,6 +102,66 @@ describe("selectDebugNodeExecutionRecords", () => {
       nodeId: undefined,
       unmapped: true,
     });
+  });
+
+  it("shows the initial bootstrap as a synthetic Tasker record", () => {
+    const summary = reduceDebugTrace({
+      events: [
+        event(1, "task", "starting", undefined, { entry: "A" }),
+        event(2, "node", "starting", taskerBootstrapNode()),
+        event(3, "next-list", "succeeded", taskerBootstrapNode(), {
+          next: [{ name: "A", jumpBack: false, anchor: true }],
+        }),
+        event(4, "recognition", "succeeded", node("node-a", "A"), {
+          parentNode: DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
+        }),
+        event(5, "node", "starting", node("node-a", "A")),
+        event(6, "node", "succeeded", node("node-a", "A")),
+      ],
+    });
+
+    const records = selectDebugNodeExecutionRecords(
+      summary,
+      resolverNodes,
+      { status: "all" },
+    );
+
+    expect(records.map((record) => record.label)).toEqual([
+      DEBUG_TASKER_BOOTSTRAP_LABEL,
+      "Alpha",
+    ]);
+    expect(records[0]).toMatchObject({
+      runtimeName: DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
+      label: DEBUG_TASKER_BOOTSTRAP_LABEL,
+      syntheticKind: "tasker-bootstrap",
+      nodeId: undefined,
+      fileId: undefined,
+      unmapped: false,
+      nextListCount: 1,
+      recognitionCount: 1,
+    });
+    expect(records[0].recognitionEvents[0].node?.runtimeName).toBe("A");
+    expect(records[1]).toMatchObject({
+      runtimeName: "A",
+      nodeId: "node-a",
+      firstSeq: 5,
+    });
+
+    const overlay = selectDebugNodeExecutionOverlayFromEdges(
+      records,
+      records[0],
+      [
+        {
+          edgeId: "edge-a-b",
+          fromRuntimeName: "A",
+          toRuntimeName: "B",
+          reason: "next",
+        },
+      ],
+    );
+    expect(overlay.selectedExecutionNodeId).toBeUndefined();
+    expect(overlay.executionPathNodeIds).toEqual([]);
+    expect(overlay.executionCandidateEdgeIds).toEqual([]);
   });
 
   it("indexes resolver edges for next-list mapping", () => {
@@ -485,6 +547,14 @@ function node(nodeId: string, runtimeName: string): DebugEvent["node"] {
     nodeId,
     runtimeName,
     label: runtimeName,
+  };
+}
+
+function taskerBootstrapNode(): DebugEvent["node"] {
+  return {
+    runtimeName: DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
+    label: DEBUG_TASKER_BOOTSTRAP_LABEL,
+    syntheticKind: "tasker-bootstrap",
   };
 }
 

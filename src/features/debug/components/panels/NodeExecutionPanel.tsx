@@ -33,6 +33,7 @@ import {
   findDebugRunFirstTimestamp,
   formatDebugRunDisplayName,
 } from "../../runDisplayName";
+import { formatDebugNodeDisplayName } from "../../syntheticNode";
 
 const layoutStyle: CSSProperties = {
   display: "flex",
@@ -178,8 +179,12 @@ export function NodeExecutionPanel({
       const runtimeOnlyOptions = uniqueRuntimeOnlyOptions(
         allNodeExecutionRecords,
       );
+      const systemRecordOptions = uniqueSystemRecordOptions(
+        allNodeExecutionRecords,
+      );
       return [
         { value: "", label: "全部节点" },
+        ...systemRecordOptions,
         ...pipelineNodes.map((node) => ({
           value: node.nodeId,
           label: `${node.displayName} · ${node.runtimeName}`,
@@ -487,6 +492,18 @@ function uniqueRuntimeOnlyOptions(records: DebugNodeExecutionRecord[]) {
     value: runtimeName,
     label: `${runtimeName} · runtimeName-only`,
   }));
+}
+
+function uniqueSystemRecordOptions(records: DebugNodeExecutionRecord[]) {
+  const options = new Map<string, string>();
+  for (const record of records) {
+    if (!record.syntheticKind) continue;
+    options.set(
+      record.runtimeName,
+      `${formatDebugNodeDisplayName(record, record.runtimeName)} · 系统记录`,
+    );
+  }
+  return [...options.entries()].map(([value, label]) => ({ value, label }));
 }
 
 function uniqueStrings(values: string[]): string[] {

@@ -2,7 +2,11 @@ package protocol
 
 const (
 	Generation      = "debug-vNext"
-	ProtocolVersion = "0.17.0"
+	ProtocolVersion = "0.18.0"
+
+	SyntheticNodeKindTaskerBootstrap = "tasker-bootstrap"
+	TaskerBootstrapRuntimeName       = "__mpe_tasker_bootstrap__"
+	TaskerBootstrapLabel             = "(Tasker)"
 )
 
 type RunMode string
@@ -413,10 +417,19 @@ type Event struct {
 }
 
 type EventNode struct {
-	RuntimeName string `json:"runtimeName"`
-	FileID      string `json:"fileId,omitempty"`
-	NodeID      string `json:"nodeId,omitempty"`
-	Label       string `json:"label,omitempty"`
+	RuntimeName   string `json:"runtimeName"`
+	FileID        string `json:"fileId,omitempty"`
+	NodeID        string `json:"nodeId,omitempty"`
+	Label         string `json:"label,omitempty"`
+	SyntheticKind string `json:"syntheticKind,omitempty"`
+}
+
+func NewTaskerBootstrapEventNode() *EventNode {
+	return &EventNode{
+		RuntimeName:   TaskerBootstrapRuntimeName,
+		Label:         TaskerBootstrapLabel,
+		SyntheticKind: SyntheticNodeKindTaskerBootstrap,
+	}
 }
 
 type EventEdge struct {

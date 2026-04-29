@@ -22,6 +22,7 @@ import {
 import { formatDebugNodeExecutionDuration } from "../../nodeExecutionDisplay";
 import { eventTitle, formatTime } from "../../modalUtils";
 import type { DebugEvent } from "../../types";
+import { formatDebugNodeDisplayName } from "../../syntheticNode";
 import type { DebugArtifactEntry } from "../../../../stores/debugArtifactStore";
 import { StatusTag } from "./NodeExecutionRecordList";
 import {
@@ -125,7 +126,14 @@ export function NodeExecutionRecordDetails({
                 }`}
               />
             )}
-            <OverviewMetaItem label="runtime" value={record.runtimeName} wide />
+            <OverviewMetaItem
+              label="runtime"
+              value={formatDebugNodeDisplayName(record, record.runtimeName)}
+              wide
+            />
+            {record.syntheticKind && (
+              <OverviewMetaItem label="类型" value="系统记录" />
+            )}
             {record.sourcePath && (
               <OverviewMetaItem label="路径" value={record.sourcePath} wide />
             )}

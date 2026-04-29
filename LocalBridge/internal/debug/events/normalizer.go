@@ -24,6 +24,9 @@ type Normalizer struct {
 
 	mu          sync.Mutex
 	currentNode string
+
+	bootstrapPending bool
+	bootstrapActive  bool
 }
 
 func NewNormalizer(
@@ -45,6 +48,14 @@ func NewNormalizer(
 }
 
 func (n *Normalizer) OnTaskerTask(tasker *maa.Tasker, status maa.EventStatus, detail maa.TaskerTaskDetail) {
+	if status == maa.EventStatusStarting {
+		n.mu.Lock()
+		n.bootstrapPending = true
+		n.bootstrapActive = false
+		n.currentNode = ""
+		n.mu.Unlock()
+	}
+
 	event := n.baseEvent("task", "Tasker.Task", status)
 	event.TaskID = int64(detail.TaskID)
 	event.Data = map[string]interface{}{
@@ -57,21 +68,16 @@ func (n *Normalizer) OnTaskerTask(tasker *maa.Tasker, status maa.EventStatus, de
 		if ref := n.storeTaskDetail(tasker, int64(detail.TaskID)); ref != nil {
 			event.DetailRef = ref.ID
 		}
+		n.finishBootstrap()
 	}
 
 	n.publish(event)
 }
 
 func (n *Normalizer) OnNodePipelineNode(_ *maa.Context, status maa.EventStatus, detail maa.NodePipelineNodeDetail) {
-	if status == maa.EventStatusStarting {
-		n.mu.Lock()
-		n.currentNode = detail.Name
-		n.mu.Unlock()
-	}
-
 	event := n.baseEvent("node", "Node.PipelineNode", status)
 	event.TaskID = int64(detail.TaskID)
-	event.Node = n.resolver.node(detail.Name)
+	event.Node = n.nodeForPipelineEvent(status, detail.Name)
 	event.Data = map[string]interface{}{
 		"nodeId": detail.NodeID,
 		"focus":  detail.Focus,
@@ -104,7 +110,7 @@ func (n *Normalizer) OnNodeActionNode(_ *maa.Context, status maa.EventStatus, de
 func (n *Normalizer) OnNodeNextList(_ *maa.Context, status maa.EventStatus, detail maa.NodeNextListDetail) {
 	event := n.baseEvent("next-list", "Node.NextList", status)
 	event.TaskID = int64(detail.TaskID)
-	event.Node = n.resolver.node(detail.Name)
+	event.Node = n.nodeForNextListEvent(detail.Name)
 	event.Data = map[string]interface{}{
 		"next":  normalizeNextList(detail.List),
 		"focus": detail.Focus,
@@ -173,6 +179,55 @@ func (n *Normalizer) publish(event protocol.Event) {
 	if n.emit != nil {
 		n.emit(event)
 	}
+}
+
+func (n *Normalizer) finishBootstrap() {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	n.bootstrapPending = false
+	n.bootstrapActive = false
+	if n.currentNode == protocol.TaskerBootstrapRuntimeName {
+		n.currentNode = ""
+	}
+}
+
+func (n *Normalizer) nodeForPipelineEvent(status maa.EventStatus, runtimeName string) *protocol.EventNode {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	if status == maa.EventStatusStarting {
+		if n.bootstrapPending && n.resolver.hasNode(runtimeName) {
+			n.bootstrapPending = false
+			n.bootstrapActive = false
+			n.currentNode = runtimeName
+			return n.resolver.node(runtimeName)
+		}
+		if n.bootstrapPending && !n.resolver.hasNode(runtimeName) {
+			n.bootstrapActive = true
+			n.currentNode = protocol.TaskerBootstrapRuntimeName
+			return protocol.NewTaskerBootstrapEventNode()
+		}
+
+		n.currentNode = runtimeName
+		return n.resolver.node(runtimeName)
+	}
+
+	if n.bootstrapActive {
+		return protocol.NewTaskerBootstrapEventNode()
+	}
+	return n.resolver.node(runtimeName)
+}
+
+func (n *Normalizer) nodeForNextListEvent(runtimeName string) *protocol.EventNode {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	if n.bootstrapPending || n.bootstrapActive {
+		n.bootstrapActive = true
+		n.currentNode = protocol.TaskerBootstrapRuntimeName
+		return protocol.NewTaskerBootstrapEventNode()
+	}
+	return n.resolver.node(runtimeName)
 }
 
 type detailRef struct {
@@ -318,6 +373,14 @@ func (r resolverIndex) node(runtimeName string) *protocol.EventNode {
 		return &node
 	}
 	return &protocol.EventNode{RuntimeName: runtimeName}
+}
+
+func (r resolverIndex) hasNode(runtimeName string) bool {
+	if strings.TrimSpace(runtimeName) == "" {
+		return false
+	}
+	_, ok := r.nodes[runtimeName]
+	return ok
 }
 
 func edgeKey(from string, to string) string {

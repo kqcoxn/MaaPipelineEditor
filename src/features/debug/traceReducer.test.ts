@@ -3,7 +3,13 @@ import {
   reduceDebugTrace,
   reduceDebugTraceForReplay,
 } from "./traceReducer";
-import type { DebugEvent, DebugEventKind, DebugEventPhase } from "./types";
+import {
+  DEBUG_TASKER_BOOTSTRAP_LABEL,
+  DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
+  type DebugEvent,
+  type DebugEventKind,
+  type DebugEventPhase,
+} from "./types";
 
 describe("reduceDebugTrace node execution replays", () => {
   it("splits repeated node starts into separate occurrences", () => {
@@ -64,6 +70,38 @@ describe("reduceDebugTrace node execution replays", () => {
       "reco-image",
     ]);
     expect(summary.nodeReplays["runtime:A.Reco"]).toBeUndefined();
+  });
+
+  it("keeps bootstrap recognition under the synthetic Tasker replay", () => {
+    const summary = reduceDebugTrace({
+      events: [
+        event(1, "task", "starting", undefined, { entry: "A" }),
+        event(2, "node", "starting", taskerBootstrapNode()),
+        event(3, "next-list", "succeeded", taskerBootstrapNode(), {
+          next: [{ name: "A", jumpBack: false, anchor: true }],
+        }),
+        event(4, "recognition", "succeeded", node("node-a", "A"), {
+          parentNode: DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
+        }),
+        event(5, "node", "starting", node("node-a", "A")),
+        event(6, "node", "succeeded", node("node-a", "A")),
+      ],
+    });
+
+    const bootstrapReplay =
+      summary.nodeReplays[`runtime:${DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME}`][0];
+    expect(bootstrapReplay).toMatchObject({
+      runtimeName: DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
+      label: DEBUG_TASKER_BOOTSTRAP_LABEL,
+      syntheticKind: "tasker-bootstrap",
+      nodeId: undefined,
+      fileId: undefined,
+      unmapped: false,
+    });
+    expect(bootstrapReplay.nextListEvents).toHaveLength(1);
+    expect(bootstrapReplay.recognitionEvents).toHaveLength(1);
+    expect(bootstrapReplay.recognitionEvents[0].node?.runtimeName).toBe("A");
+    expect(summary.nodeReplays["node-a"][0].firstSeq).toBe(5);
   });
 
   it("keeps runtimeName-only records when resolver mapping is missing", () => {
@@ -128,5 +166,13 @@ function node(nodeId: string, runtimeName: string): DebugEvent["node"] {
     nodeId,
     runtimeName,
     label: runtimeName,
+  };
+}
+
+function taskerBootstrapNode(): DebugEvent["node"] {
+  return {
+    runtimeName: DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
+    label: DEBUG_TASKER_BOOTSTRAP_LABEL,
+    syntheticKind: "tasker-bootstrap",
   };
 }

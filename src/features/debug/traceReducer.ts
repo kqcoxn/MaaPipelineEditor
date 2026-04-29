@@ -6,13 +6,19 @@ import type {
   DebugNodeExecutionStatus,
   DebugRunMode,
   DebugSessionStatus,
+  DebugSyntheticNodeKind,
 } from "./types";
+import {
+  isDebugTaskerBootstrapNode,
+  taskerBootstrapSyntheticKindForRuntime,
+} from "./syntheticNode";
 
 export interface DebugNodeRunState {
   nodeId: string;
   runtimeName: string;
   label?: string;
   fileId?: string;
+  syntheticKind?: DebugSyntheticNodeKind;
   status: DebugNodeExecutionStatus;
   lastSeq: number;
 }
@@ -50,6 +56,7 @@ export interface DebugNodeReplay {
   runtimeName: string;
   fileId?: string;
   label?: string;
+  syntheticKind?: DebugSyntheticNodeKind;
   runId: string;
   runMode?: DebugRunMode;
   status: DebugNodeRunState["status"];
@@ -168,6 +175,7 @@ interface NodeReplayIdentity {
   runtimeName: string;
   fileId?: string;
   label?: string;
+  syntheticKind?: DebugSyntheticNodeKind;
   unmapped?: boolean;
 }
 
@@ -354,6 +362,7 @@ function ensureNodeReplayForEvent({
     runtimeName: identity.runtimeName,
     fileId: identity.fileId,
     label: identity.label,
+    syntheticKind: identity.syntheticKind,
     runId: event.runId,
     runMode,
     status,
@@ -410,10 +419,15 @@ function resolveNodeReplayIdentity(
   event: DebugEvent,
 ): NodeReplayIdentity | undefined {
   const parentRuntimeName = dataString(event.data, "parentNode");
-  const runtimeName = event.node?.nodeId
-    ? event.node.runtimeName
-    : parentRuntimeName ?? event.node?.runtimeName;
-  const nodeId = event.node?.nodeId;
+  const parentSyntheticKind =
+    taskerBootstrapSyntheticKindForRuntime(parentRuntimeName);
+  const syntheticKind = event.node?.syntheticKind ?? parentSyntheticKind;
+  const runtimeName = resolveIdentityRuntimeName(
+    event,
+    parentRuntimeName,
+    syntheticKind,
+  );
+  const nodeId = syntheticKind ? undefined : event.node?.nodeId;
   if (!runtimeName && !nodeId) return undefined;
 
   const resolvedRuntimeName = runtimeName ?? nodeId;
@@ -427,10 +441,28 @@ function resolveNodeReplayIdentity(
     runtimeKey: runtimeIdentityKey(event.runId, resolvedRuntimeName),
     nodeId,
     runtimeName: resolvedRuntimeName,
-    fileId: event.node?.fileId,
-    label: event.node?.label,
-    unmapped: !nodeId,
+    fileId: syntheticKind ? undefined : event.node?.fileId,
+    label:
+      syntheticKind && !event.node?.syntheticKind
+        ? undefined
+        : event.node?.label,
+    syntheticKind,
+    unmapped: syntheticKind ? false : !nodeId,
   };
+}
+
+function resolveIdentityRuntimeName(
+  event: DebugEvent,
+  parentRuntimeName: string | undefined,
+  syntheticKind: DebugSyntheticNodeKind | undefined,
+): string | undefined {
+  if (syntheticKind) {
+    return event.node?.syntheticKind
+      ? event.node.runtimeName
+      : parentRuntimeName;
+  }
+  if (event.node?.nodeId) return event.node.runtimeName;
+  return parentRuntimeName ?? event.node?.runtimeName;
 }
 
 function isNodeScopedEvent(event: DebugEvent): boolean {
@@ -450,8 +482,10 @@ function applyEventToNodeReplay(
   replay.lastSeq = event.seq;
   replay.status = mergeNodeReplayStatus(replay.status, status);
 
-  if (!replay.fileId && event.node?.fileId) replay.fileId = event.node.fileId;
-  if (!replay.label && event.node?.label) replay.label = event.node.label;
+  if (!isDebugTaskerBootstrapNode(replay)) {
+    if (!replay.fileId && event.node?.fileId) replay.fileId = event.node.fileId;
+    if (!replay.label && event.node?.label) replay.label = event.node.label;
+  }
   if (event.kind === "recognition") replay.recognitionEvents.push(event);
   if (event.kind === "action") replay.actionEvents.push(event);
   if (event.kind === "next-list") replay.nextListEvents.push(event);

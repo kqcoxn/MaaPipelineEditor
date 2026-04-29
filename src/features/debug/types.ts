@@ -1,5 +1,8 @@
 export const DEBUG_GENERATION = "debug-vNext" as const;
-export const DEBUG_PROTOCOL_VERSION = "0.17.0" as const;
+export const DEBUG_PROTOCOL_VERSION = "0.18.0" as const;
+export const DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME =
+  "__mpe_tasker_bootstrap__" as const;
+export const DEBUG_TASKER_BOOTSTRAP_LABEL = "(Tasker)" as const;
 
 export type DebugGeneration = typeof DEBUG_GENERATION;
 
@@ -36,6 +39,8 @@ export type DebugNodeExecutionStatus =
   | "succeeded"
   | "failed"
   | "visited";
+
+export type DebugSyntheticNodeKind = "tasker-bootstrap";
 
 export type DebugNodeExecutionStatusFilter =
   | "all"
@@ -524,6 +529,7 @@ export interface DebugEvent {
     fileId?: string;
     nodeId?: string;
     label?: string;
+    syntheticKind?: DebugSyntheticNodeKind;
   };
   edge?: {
     fromRuntimeName?: string;

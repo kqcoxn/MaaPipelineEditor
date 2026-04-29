@@ -10,6 +10,7 @@ import {
   formatDebugNodeExecutionDuration,
 } from "../../nodeExecutionDisplay";
 import type { DebugEvent, DebugNodeExecutionStatus } from "../../types";
+import { formatDebugNodeDisplayName } from "../../syntheticNode";
 import {
   findDebugRunFirstTimestamp,
   formatDebugRunDisplayName,
@@ -199,6 +200,7 @@ function GroupTitle({
   return (
     <Space wrap size={4}>
       <Text strong>{group.label ?? group.runtimeName}</Text>
+      {group.syntheticKind && <Tag color="purple">系统记录</Tag>}
       <Tag>
         运行{" "}
         {formatDebugRunDisplayName(
@@ -224,6 +226,7 @@ function RecordTitle({ record }: { record: DebugNodeExecutionRecord }) {
       <Text strong>{record.label ?? record.runtimeName}</Text>
       <StatusTag status={record.status} />
       <Tag>第 {record.occurrence} 次</Tag>
+      {record.syntheticKind && <Tag color="purple">系统记录</Tag>}
       {record.unmapped && <Tag color="orange">runtimeName-only</Tag>}
       {record.hasFailure && <Tag color="red">含失败</Tag>}
       {record.slow && <Tag color="volcano">慢节点</Tag>}
@@ -241,7 +244,7 @@ function RecordMeta({
   return (
     <Space wrap size={4} style={{ marginTop: 6 }}>
       <Tag>运行 {runLabel}</Tag>
-      <Tag>{record.runtimeName}</Tag>
+      <Tag>{formatDebugNodeDisplayName(record, record.runtimeName)}</Tag>
       {record.fileId && <Tag>{record.fileId}</Tag>}
       {record.nodeId && <Tag>{record.nodeId}</Tag>}
       <Tag>

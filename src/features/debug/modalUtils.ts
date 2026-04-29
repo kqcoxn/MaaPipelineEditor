@@ -4,6 +4,7 @@ import type {
   DebugRunMode,
   DebugRunRequest,
 } from "./types";
+import { formatDebugNodeDisplayName } from "./syntheticNode";
 
 export const runnableModes = new Set<DebugRunMode>([
   "full-run",
@@ -42,7 +43,7 @@ export function eventTitle(event: DebugEvent): string {
     `#${event.seq}`,
     event.kind,
     event.phase,
-    event.node?.label ?? event.node?.runtimeName,
+    formatDebugNodeDisplayName(event.node),
   ]
     .filter(Boolean)
     .join(" · ");
