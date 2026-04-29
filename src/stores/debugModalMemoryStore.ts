@@ -23,7 +23,6 @@ const defaultMemory: DebugModalMemorySnapshot = {
 const validPanels = new Set<DebugModalPanel>([
   "overview",
   "setup",
-  "nodes",
   "timeline",
   "performance",
   "images",
@@ -39,6 +38,9 @@ function normalizePanel(panel: unknown): DebugModalPanel {
     panel === "agent"
   ) {
     return "setup";
+  }
+  if (panel === "nodes") {
+    return "overview";
   }
   return typeof panel === "string" && validPanels.has(panel as DebugModalPanel)
     ? (panel as DebugModalPanel)

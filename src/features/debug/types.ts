@@ -24,7 +24,6 @@ export type DebugSessionStatus =
 export type DebugModalPanel =
   | "overview"
   | "setup"
-  | "nodes"
   | "timeline"
   | "performance"
   | "images"

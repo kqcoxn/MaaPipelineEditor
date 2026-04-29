@@ -1,6 +1,6 @@
 import { message, Modal } from "antd";
 import type { ReactNode } from "react";
-import { PlayCircleOutlined } from "@ant-design/icons";
+import { FlagOutlined, PlayCircleOutlined } from "@ant-design/icons";
 import type { Node } from "@xyflow/react";
 import { NodeTypeEnum, HANDLE_DIRECTION_OPTIONS } from "./constants";
 import type { HandleDirection } from "./constants";
@@ -31,6 +31,7 @@ import { useMFWStore } from "../../../stores/mfwStore";
 import { useWSStore } from "../../../stores/wsStore";
 import type { DebugRunMode } from "../../../features/debug/types";
 import { getDebugReadiness } from "../../../features/debug/readiness";
+import { applyDebugNodeTarget } from "../../../features/debug/nodeTargetActions";
 
 /**菜单项类型 */
 export interface NodeContextMenuItem {
@@ -207,11 +208,16 @@ function handleDebugRunMode(node: NodeContextMenuNode, mode: DebugRunMode) {
   const sessionState = useDebugSessionStore.getState();
   const profileState = useDebugRunProfileStore.getState();
   const mfwState = useMFWStore.getState();
+  const panel = mode === "fixed-image-recognition" ? "images" : "overview";
 
-  sessionState.openModal(mode === "fixed-image-recognition" ? "images" : "nodes");
-  sessionState.selectNode(node.id);
+  const target = applyDebugNodeTarget(node.id, {
+    focusCanvas: true,
+    openPanel: panel,
+    rememberPanel: true,
+    rememberEntryNodeId: true,
+  });
+  if (!target) return;
   useDebugModalMemoryStore.getState().setLastRunMode(mode);
-  useDebugModalMemoryStore.getState().setLastEntryNodeId(node.id);
 
   const capabilities = sessionState.capabilities;
   const resourceKey = makeDebugResourceKey(profileState.profile.resourcePaths);
@@ -264,6 +270,18 @@ function handleDebugRunMode(node: NodeContextMenuNode, mode: DebugRunMode) {
   }
 
   handleDebugRunModeWithInput(node, mode);
+}
+
+function handleSetDebugEntry(node: NodeContextMenuNode) {
+  if (node.type !== NodeTypeEnum.Pipeline) return;
+
+  applyDebugNodeTarget(node.id, {
+    focusCanvas: true,
+    openPanel: "overview",
+    rememberPanel: true,
+    setEntry: true,
+    successMessage: "已设为调试入口节点",
+  });
 }
 
 function requestDebugResourcePreflight(resourceKey: string) {
@@ -376,6 +394,13 @@ export function getNodeContextMenuConfig(
   }
 
   const config: NodeContextMenuConfig[] = [
+    {
+      key: "debug-set-entry",
+      label: "设为入口节点",
+      icon: <FlagOutlined />,
+      onClick: handleSetDebugEntry,
+      visible: (node) => node.type === NodeTypeEnum.Pipeline,
+    },
     {
       key: "debug-run-from-node",
       label: "从此节点运行",

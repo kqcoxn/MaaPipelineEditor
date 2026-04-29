@@ -3,7 +3,6 @@ import { Alert, Button, Modal, Space, Typography } from "antd";
 import {
   ApiOutlined,
   BranchesOutlined,
-  NodeIndexOutlined,
   PictureOutlined,
   ProfileOutlined,
   SettingOutlined,
@@ -15,7 +14,6 @@ import { useDebugModalController } from "../../features/debug/hooks/useDebugModa
 import type { DebugModalController } from "../../features/debug/hooks/useDebugModalController";
 import { OverviewPanel } from "../../features/debug/components/panels/OverviewPanel";
 import { SetupPanel } from "../../features/debug/components/panels/SetupPanel";
-import { NodesPanel } from "../../features/debug/components/panels/NodesPanel";
 import { TimelinePanel } from "../../features/debug/components/panels/TimelinePanel";
 import { PerformancePanel } from "../../features/debug/components/panels/PerformancePanel";
 import { ImagesPanel } from "../../features/debug/components/panels/ImagesPanel";
@@ -43,13 +41,6 @@ const panels: PanelItem[] = [
     label: "运行配置",
     icon: <SettingOutlined />,
     description: "配置资源路径、控制器、截图和 Agent，并写入本地调试配置。",
-  },
-  {
-    id: "nodes",
-    label: "节点",
-    icon: <NodeIndexOutlined />,
-    description:
-      "选择入口或目标节点，发起节点级调试，并查看当前会话内的节点回放。",
   },
   {
     id: "timeline",
@@ -175,8 +166,6 @@ function ActivePanel({
       return <OverviewPanel controller={controller} />;
     case "setup":
       return <SetupPanel controller={controller} />;
-    case "nodes":
-      return <NodesPanel controller={controller} />;
     case "timeline":
       return <TimelinePanel controller={controller} />;
     case "performance":

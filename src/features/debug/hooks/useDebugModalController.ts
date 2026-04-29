@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Modal, message } from "antd";
 import { useShallow } from "zustand/shallow";
 import { debugProtocolClient, resourceProtocol } from "../../../services/server";
@@ -22,6 +22,7 @@ import { useWSStore } from "../../../stores/wsStore";
 import { useFlowStore } from "../../../stores/flow";
 import { debugContributionRegistry } from "../contributions/registry";
 import { buildDebugSnapshotBundle } from "../snapshot";
+import { applyDebugNodeTarget } from "../nodeTargetActions";
 import {
   formatDebugReadinessMessage,
   getDebugReadiness,
@@ -288,22 +289,30 @@ export function useDebugModalController() {
       ),
     [flowNodes],
   );
+  const selectedPipelineNode = useMemo(
+    () => pipelineNodes.find((node) => node.nodeId === selectedNodeId),
+    [pipelineNodes, selectedNodeId],
+  );
+  const selectedPipelineNodeId = selectedPipelineNode?.nodeId;
+  const entryNode = useMemo(() => {
+    const entry = profileState.profile.entry;
+    return pipelineNodes.find((node) => {
+      if (entry.nodeId && node.nodeId === entry.nodeId) return true;
+      if (
+        entry.fileId &&
+        entry.runtimeName &&
+        node.fileId === entry.fileId &&
+        node.runtimeName === entry.runtimeName
+      ) {
+        return true;
+      }
+      return Boolean(entry.runtimeName && node.runtimeName === entry.runtimeName);
+    });
+  }, [pipelineNodes, profileState.profile.entry]);
 
   const selectedArtifact = selectedArtifactId
     ? artifacts[selectedArtifactId]
     : undefined;
-  const selectedFlowNode = flowNodes.find((node) => node.id === selectedNodeId);
-  const selectedNodeDetail = selectedFlowNode?.data as
-    | {
-        label?: string;
-        recognition?: unknown;
-        action?: unknown;
-        others?: Record<string, unknown>;
-      }
-    | undefined;
-  const selectedNodeReplays = selectedNodeId
-    ? summary.nodeReplays[selectedNodeId] ?? []
-    : [];
   const performanceRefs = useMemo(
     () =>
       events
@@ -328,6 +337,25 @@ export function useDebugModalController() {
   const agentDiagnostics = diagnosticsState.diagnostics.filter((diagnostic) =>
     diagnostic.code.startsWith("debug.agent."),
   );
+
+  const selectPipelineNode = useCallback(
+    (nodeId?: string) => {
+      if (!nodeId) {
+        selectNode(undefined);
+        return;
+      }
+      applyDebugNodeTarget(nodeId, { focusCanvas: true });
+    },
+    [selectNode],
+  );
+
+  const setEntryFromSelectedNode = useCallback(() => {
+    applyDebugNodeTarget(selectedPipelineNodeId, {
+      setEntry: true,
+      rememberEntryNodeId: true,
+      successMessage: "已设为调试入口节点",
+    });
+  }, [selectedPipelineNodeId]);
 
   const startRun = (
     mode: DebugRunMode,
@@ -720,10 +748,8 @@ export function useDebugModalController() {
     lastError,
     selectedNodeId,
     closeModal,
-    selectNode,
     connected,
     lastRunMode,
-    setLastEntryNodeId,
     events,
     summary,
     liveSummary,
@@ -750,9 +776,9 @@ export function useDebugModalController() {
     runModes,
     availableModeIds,
     pipelineNodes,
-    selectedFlowNode,
-    selectedNodeDetail,
-    selectedNodeReplays,
+    selectedPipelineNode,
+    selectedPipelineNodeId,
+    entryNode,
     performanceRefs,
     batchSummaryRefs,
     agentDiagnostics,
@@ -770,6 +796,8 @@ export function useDebugModalController() {
     startBatchRecognition,
     stopBatchRecognition,
     testAgent,
+    selectPipelineNode,
+    setEntryFromSelectedNode,
     requestResourcePreflight,
     invalidateResourcePreflight,
     updateResourcePaths,
