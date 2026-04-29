@@ -4,11 +4,13 @@ import {
   CaretRightOutlined,
   FileSearchOutlined,
   FlagOutlined,
+  NodeIndexOutlined,
   PictureOutlined,
   StopOutlined,
 } from "@ant-design/icons";
 import { DebugSection } from "../DebugSection";
 import type { DebugModalController } from "../../hooks/useDebugModalController";
+import { DEFAULT_DEBUG_NODE_EXECUTION_FILTERS } from "../../types";
 
 const { Text } = Typography;
 
@@ -58,10 +60,13 @@ export function OverviewPanel({
     liveSummary,
     replayStatus,
     performanceSummary,
+    allNodeExecutionRecords,
     startRun,
     confirmActionRun,
     stopRun,
     selectPipelineNode,
+    setNodeExecutionFilters,
+    openNodeExecutionRecord,
     setEntryFromSelectedNode,
   } = controller;
   const nodeOptions = useMemo(
@@ -86,6 +91,27 @@ export function OverviewPanel({
     "未设置";
   const targetLabel = selectedPipelineNode?.displayName || "未选择";
   const hasSelectedNode = Boolean(selectedPipelineNodeId);
+  const failedNodeExecutionRecords = useMemo(
+    () => allNodeExecutionRecords.filter((record) => record.hasFailure),
+    [allNodeExecutionRecords],
+  );
+  const latestFailedNodeExecutionRecord = useMemo(
+    () =>
+      [...failedNodeExecutionRecords].sort(
+        (a, b) => b.lastSeq - a.lastSeq || b.firstSeq - a.firstSeq,
+      )[0],
+    [failedNodeExecutionRecords],
+  );
+  const openLatestFailedNode = () => {
+    if (!latestFailedNodeExecutionRecord) return;
+    setNodeExecutionFilters({
+      ...DEFAULT_DEBUG_NODE_EXECUTION_FILTERS,
+      status: "failed",
+      failedOnly: true,
+      sortMode: "failure-first",
+    });
+    openNodeExecutionRecord(latestFailedNodeExecutionRecord);
+  };
 
   return (
     <Space direction="vertical" size={14} style={{ width: "100%" }}>
@@ -248,6 +274,26 @@ export function OverviewPanel({
           <Tag color="red">失败 {summary.failedNodeIds.length}</Tag>
         </Space>
       </DebugSection>
+      {failedNodeExecutionRecords.length > 0 && latestFailedNodeExecutionRecord && (
+        <DebugSection title="失败节点">
+          <Space wrap>
+            <Tag color="red">失败记录 {failedNodeExecutionRecords.length}</Tag>
+            <Tag>{latestFailedNodeExecutionRecord.label ?? latestFailedNodeExecutionRecord.runtimeName}</Tag>
+            <Tag>
+              seq {latestFailedNodeExecutionRecord.firstSeq}-
+              {latestFailedNodeExecutionRecord.lastSeq}
+            </Tag>
+            <Button
+              danger
+              size="small"
+              icon={<NodeIndexOutlined />}
+              onClick={openLatestFailedNode}
+            >
+              查看失败节点
+            </Button>
+          </Space>
+        </DebugSection>
+      )}
       {performanceSummary && (
         <DebugSection title="性能摘要（Performance）">
           <Space wrap>

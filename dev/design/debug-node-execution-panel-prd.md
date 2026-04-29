@@ -267,3 +267,40 @@ type DebugNodeExecutionRecord = {
 - 识别/动作详情只读取事件字段和已加载 artifact JSON 的浅层字段，不做完整 detail schema 解析。
 - 失败摘要未提升到 OverviewPanel；后续可在总览中增加失败节点快捷入口并跳转到 `节点执行` 面板。
 - `wait-freezes` 仍受当前 MaaFW Go binding 暴露能力限制；面板兼容事件 kind，但不承诺不存在的 detail API。
+
+### 2026-04-29 v1.1：筛选、失败快捷入口与性能标记
+
+已完成：
+
+- `DebugNodeExecutionRecord` 补充 `durationMs`、`durationSource`、`slow`、`hasFailure`、`hasArtifact` 和 `eventKinds`；耗时优先使用能按 `nodeId/runtimeName + seq` 精确匹配的 `performanceSummary`，否则由 trace timestamp 估算。
+- `DebugNodeExecutionFilters` 扩展 `runId`、`eventKind`、`artifact`、`failedOnly`、`sortMode`、`groupRepeated`，并通过 `debugModalMemoryStore` 只持久化结构化筛选偏好；搜索框保持为 `NodeExecutionPanel` 本地状态。
+- `节点执行` 面板补齐 runId、节点搜索、状态、事件类型、artifact、有失败、排序、只看选中节点和按节点折叠筛选；默认仍按执行顺序平铺，折叠模式按 `runId + nodeId/runtimeName` 分组且组内保留 occurrence 顺序。
+- 节点记录列表补充耗时、慢节点、失败、artifact 和 event kind 标签；当过滤结果超过 300 条时使用 Ant Design List 分页，默认 page size 为 100，未引入新的虚拟列表依赖。
+- 选中节点执行记录上移到 `useDebugNodeExecutionController`，`OverviewPanel` 新增失败节点快捷区，点击 `查看失败节点` 会设置失败筛选、切到 `节点执行` 面板并选中最近失败记录。
+- 列表渲染拆分到 `NodeExecutionRecordList`，事件类型标签与耗时格式化拆分到 `nodeExecutionDisplay`，避免继续扩大 `NodeExecutionPanel` 单文件体积。
+
+主要文件：
+
+- `src/features/debug/types.ts`
+- `src/features/debug/nodeExecutionSelector.ts`
+- `src/features/debug/nodeExecutionDisplay.ts`
+- `src/features/debug/hooks/useDebugNodeExecutionController.ts`
+- `src/features/debug/hooks/useDebugModalController.ts`
+- `src/features/debug/components/panels/NodeExecutionPanel.tsx`
+- `src/features/debug/components/panels/NodeExecutionRecordList.tsx`
+- `src/features/debug/components/panels/OverviewPanel.tsx`
+- `src/stores/debugModalMemoryStore.ts`
+- `src/features/debug/nodeExecutionSelector.test.ts`
+
+验证记录：
+
+- `yarn eslint src/features/debug/types.ts src/features/debug/nodeExecutionSelector.ts src/features/debug/nodeExecutionSelector.test.ts src/features/debug/nodeExecutionDisplay.ts src/features/debug/hooks/useDebugNodeExecutionController.ts src/features/debug/hooks/useDebugModalController.ts src/features/debug/components/panels/NodeExecutionPanel.tsx src/features/debug/components/panels/NodeExecutionRecordList.tsx src/features/debug/components/panels/OverviewPanel.tsx src/stores/debugModalMemoryStore.ts`：通过。
+- `yarn vitest run src/features/debug/traceReducer.test.ts src/features/debug/nodeExecutionSelector.test.ts`：仓库当前 `vite.config.ts` 引用的 `tests/setup.ts` 不存在，命令仍在 setup 阶段失败，未进入测试逻辑。
+- `git diff --check -- src dev/design/debug-node-execution-panel-prd.md`：通过。
+- 本轮没有触碰 `LocalBridge`，也未修改 debug wire protocol，因此未运行 `go test ./...`。
+
+已知限制与后续项：
+
+- 本轮推进范围限定为 v1.1，未进入 v1.2 的 artifact JSON 深层 schema 摘要解析或 raw/draw 缩略图能力。
+- 慢节点标记只来自 `performanceSummary.slowNodes` 精确匹配，不在前端自行发明耗时阈值。
+- performance 耗时只在 `nodeId/runtimeName + firstSeq/lastSeq` 可明确匹配时覆盖 trace 估算；无法明确匹配的重复节点仍展示 trace timestamp 估算值。

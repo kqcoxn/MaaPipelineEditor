@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { NodeType } from "../../../stores/flow";
 import { applyDebugNodeTarget } from "../nodeTargetActions";
 import {
@@ -8,11 +8,16 @@ import {
 } from "../nodeExecutionSelector";
 import { buildDebugSnapshotBundle } from "../snapshot";
 import type { DebugTraceSummary } from "../traceReducer";
-import type { DebugNodeExecutionFilters } from "../types";
+import {
+  DEFAULT_DEBUG_NODE_EXECUTION_FILTERS,
+  type DebugNodeExecutionFilters,
+  type DebugPerformanceSummary,
+} from "../types";
 
 interface UseDebugNodeExecutionControllerInput {
   flowNodes: NodeType[];
   nodeExecutionFilters: DebugNodeExecutionFilters;
+  performanceSummary?: DebugPerformanceSummary;
   selectedNodeId?: string;
   selectNode: (nodeId?: string) => void;
   setNodeExecutionFilters: (filters: DebugNodeExecutionFilters) => void;
@@ -22,11 +27,14 @@ interface UseDebugNodeExecutionControllerInput {
 export function useDebugNodeExecutionController({
   flowNodes,
   nodeExecutionFilters,
+  performanceSummary,
   selectedNodeId,
   selectNode,
   setNodeExecutionFilters,
   summary,
 }: UseDebugNodeExecutionControllerInput) {
+  const [selectedNodeExecutionRecordId, setSelectedNodeExecutionRecordId] =
+    useState<string>();
   const debugResolver = useMemo(() => {
     const bundle = buildDebugSnapshotBundle();
     const flowNodeIds = new Set(flowNodes.map((node) => node.id));
@@ -48,14 +56,34 @@ export function useDebugNodeExecutionController({
     [pipelineNodes, selectedNodeId],
   );
   const selectedPipelineNodeId = selectedPipelineNode?.nodeId;
+  const allNodeExecutionRecords = useMemo(
+    () =>
+      selectDebugNodeExecutionRecords(
+        summary,
+        pipelineNodes,
+        DEFAULT_DEBUG_NODE_EXECUTION_FILTERS,
+        { performanceSummary },
+      ),
+    [performanceSummary, pipelineNodes, summary],
+  );
   const nodeExecutionRecords = useMemo(
     () =>
       selectDebugNodeExecutionRecords(
         summary,
         pipelineNodes,
         nodeExecutionFilters,
+        { performanceSummary },
       ),
-    [nodeExecutionFilters, pipelineNodes, summary],
+    [nodeExecutionFilters, performanceSummary, pipelineNodes, summary],
+  );
+  const selectedNodeExecutionRecord = useMemo(
+    () =>
+      selectedNodeExecutionRecordId
+        ? allNodeExecutionRecords.find(
+            (record) => record.id === selectedNodeExecutionRecordId,
+          )
+        : undefined,
+    [allNodeExecutionRecords, selectedNodeExecutionRecordId],
   );
 
   const selectPipelineNode = useCallback(
@@ -78,6 +106,7 @@ export function useDebugNodeExecutionController({
 
   const selectNodeExecutionRecord = useCallback(
     (record: DebugNodeExecutionRecord) => {
+      setSelectedNodeExecutionRecordId(record.id);
       if (!record.nodeId) {
         selectNode(undefined);
         return;
@@ -86,8 +115,18 @@ export function useDebugNodeExecutionController({
     },
     [selectNode],
   );
+  const openNodeExecutionRecord = useCallback(
+    (record: DebugNodeExecutionRecord) => {
+      setSelectedNodeExecutionRecordId(record.id);
+      if (record.nodeId) {
+        applyDebugNodeTarget(record.nodeId, { focusCanvas: true });
+      }
+    },
+    [],
+  );
 
   return {
+    allNodeExecutionRecords,
     nodeExecutionFilters,
     nodeExecutionRecords,
     pipelineNodes,
@@ -95,6 +134,10 @@ export function useDebugNodeExecutionController({
     resolverEdgeIndex,
     selectedPipelineNode,
     selectedPipelineNodeId,
+    selectedNodeExecutionRecord,
+    selectedNodeExecutionRecordId,
+    setSelectedNodeExecutionRecordId,
+    openNodeExecutionRecord,
     selectNodeExecutionRecord,
     selectPipelineNode,
     setNodeExecutionFilters: updateNodeExecutionFilters,

@@ -1,10 +1,14 @@
 import { create } from "zustand";
 import type {
+  DebugNodeExecutionArtifactFilter,
+  DebugNodeExecutionEventKindFilter,
   DebugModalPanel,
   DebugNodeExecutionFilters,
   DebugNodeExecutionStatusFilter,
+  DebugNodeExecutionSortMode,
   DebugRunMode,
 } from "../features/debug/types";
+import { DEFAULT_DEBUG_NODE_EXECUTION_FILTERS } from "../features/debug/types";
 
 const STORAGE_KEY = "mpe_debug_modal_memory_v1";
 
@@ -25,9 +29,7 @@ interface DebugModalMemoryState extends DebugModalMemorySnapshot {
 const defaultMemory: DebugModalMemorySnapshot = {
   lastPanel: "overview",
   lastRunMode: "full-run",
-  nodeExecutionFilters: {
-    status: "all",
-  },
+  nodeExecutionFilters: DEFAULT_DEBUG_NODE_EXECUTION_FILTERS,
 };
 
 const validPanels = new Set<DebugModalPanel>([
@@ -44,6 +46,33 @@ const validPanels = new Set<DebugModalPanel>([
 const validNodeExecutionStatusFilters = new Set<DebugNodeExecutionStatusFilter>(
   ["all", "running", "succeeded", "failed", "visited"],
 );
+const validNodeExecutionEventKindFilters =
+  new Set<DebugNodeExecutionEventKindFilter>([
+    "all",
+    "session",
+    "task",
+    "node",
+    "next-list",
+    "recognition",
+    "action",
+    "wait-freezes",
+    "screenshot",
+    "diagnostic",
+    "artifact",
+    "log",
+  ]);
+const validNodeExecutionArtifactFilters =
+  new Set<DebugNodeExecutionArtifactFilter>([
+    "all",
+    "with-artifact",
+    "without-artifact",
+  ]);
+const validNodeExecutionSortModes = new Set<DebugNodeExecutionSortMode>([
+  "execution",
+  "failure-first",
+  "slow-first",
+  "latest",
+]);
 
 function normalizePanel(panel: unknown): DebugModalPanel {
   if (
@@ -74,11 +103,32 @@ function normalizeNodeExecutionFilters(
       typeof raw.nodeId === "string" && raw.nodeId.trim() !== ""
         ? raw.nodeId
         : undefined,
+    runId:
+      typeof raw.runId === "string" && raw.runId.trim() !== ""
+        ? raw.runId
+        : undefined,
     status: validNodeExecutionStatusFilters.has(
       raw.status as DebugNodeExecutionStatusFilter,
     )
       ? (raw.status as DebugNodeExecutionStatusFilter)
       : defaultMemory.nodeExecutionFilters.status,
+    eventKind: validNodeExecutionEventKindFilters.has(
+      raw.eventKind as DebugNodeExecutionEventKindFilter,
+    )
+      ? (raw.eventKind as DebugNodeExecutionEventKindFilter)
+      : defaultMemory.nodeExecutionFilters.eventKind,
+    artifact: validNodeExecutionArtifactFilters.has(
+      raw.artifact as DebugNodeExecutionArtifactFilter,
+    )
+      ? (raw.artifact as DebugNodeExecutionArtifactFilter)
+      : defaultMemory.nodeExecutionFilters.artifact,
+    failedOnly: raw.failedOnly === true,
+    sortMode: validNodeExecutionSortModes.has(
+      raw.sortMode as DebugNodeExecutionSortMode,
+    )
+      ? (raw.sortMode as DebugNodeExecutionSortMode)
+      : defaultMemory.nodeExecutionFilters.sortMode,
+    groupRepeated: raw.groupRepeated === true,
   };
 }
 

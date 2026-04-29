@@ -2,10 +2,16 @@ import { describe, expect, it } from "vitest";
 import {
   createDebugResolverEdgeIndex,
   findDebugResolverEdge,
+  groupDebugNodeExecutionRecords,
   selectDebugNodeExecutionRecords,
 } from "./nodeExecutionSelector";
 import { reduceDebugTrace } from "./traceReducer";
-import type { DebugEvent, DebugEventKind, DebugEventPhase } from "./types";
+import type {
+  DebugEvent,
+  DebugEventKind,
+  DebugEventPhase,
+  DebugPerformanceSummary,
+} from "./types";
 
 describe("selectDebugNodeExecutionRecords", () => {
   it("returns execution records in firstSeq order with resolver metadata", () => {
@@ -99,6 +105,145 @@ describe("selectDebugNodeExecutionRecords", () => {
     expect(findDebugResolverEdge(edgeIndex, "A", "B")?.edgeId).toBe("edge-a-b");
     expect(findDebugResolverEdge(edgeIndex, "B", "A")).toBeUndefined();
   });
+
+  it("filters by run, event kind, artifact and failure marker", () => {
+    const summary = reduceDebugTrace({
+      events: [
+        event(1, "node", "starting", node("node-a", "A")),
+        event(2, "recognition", "succeeded", node("node-a", "A")),
+        event(3, "node", "succeeded", node("node-a", "A")),
+        withRun("run-2", event(4, "node", "starting", node("node-b", "B"))),
+        withRun(
+          "run-2",
+          event(5, "action", "failed", node("node-b", "B"), undefined, {
+            detailRef: "action-detail",
+          }),
+        ),
+        withRun("run-2", event(6, "node", "failed", node("node-b", "B"))),
+      ],
+    });
+
+    const records = selectDebugNodeExecutionRecords(summary, resolverNodes, {
+      status: "all",
+      runId: "run-2",
+      eventKind: "action",
+      artifact: "with-artifact",
+      failedOnly: true,
+    });
+
+    expect(records).toHaveLength(1);
+    expect(records[0]).toMatchObject({
+      runtimeName: "B",
+      hasArtifact: true,
+      hasFailure: true,
+    });
+  });
+
+  it("sorts by failure, slow node and latest without changing execution default", () => {
+    const summary = reduceDebugTrace({
+      events: [
+        event(1, "node", "starting", node("node-a", "A")),
+        event(2, "node", "failed", node("node-a", "A")),
+        event(3, "node", "starting", node("node-b", "B")),
+        event(4, "node", "succeeded", node("node-b", "B")),
+        event(5, "node", "starting", node("node-c", "C")),
+        event(6, "node", "succeeded", node("node-c", "C")),
+      ],
+    });
+    const performanceSummary = performance({
+      nodes: [
+        performanceNode("node-a", "A", 1, 2, 10),
+        performanceNode("node-b", "B", 3, 4, 2000),
+        performanceNode("node-c", "C", 5, 6, 30),
+      ],
+      slowNodes: [performanceNode("node-b", "B", 3, 4, 2000)],
+    });
+
+    const execution = selectDebugNodeExecutionRecords(
+      summary,
+      resolverNodes,
+      { status: "all" },
+      { performanceSummary },
+    );
+    const failureFirst = selectDebugNodeExecutionRecords(
+      summary,
+      resolverNodes,
+      { status: "all", sortMode: "failure-first" },
+      { performanceSummary },
+    );
+    const slowFirst = selectDebugNodeExecutionRecords(
+      summary,
+      resolverNodes,
+      { status: "all", sortMode: "slow-first" },
+      { performanceSummary },
+    );
+    const latest = selectDebugNodeExecutionRecords(
+      summary,
+      resolverNodes,
+      { status: "all", sortMode: "latest" },
+      { performanceSummary },
+    );
+
+    expect(execution.map((record) => record.runtimeName)).toEqual([
+      "A",
+      "B",
+      "C",
+    ]);
+    expect(failureFirst[0].runtimeName).toBe("A");
+    expect(slowFirst[0]).toMatchObject({
+      runtimeName: "B",
+      slow: true,
+      durationMs: 2000,
+      durationSource: "performance",
+    });
+    expect(latest[0].runtimeName).toBe("C");
+  });
+
+  it("groups repeated nodes without dropping occurrences", () => {
+    const summary = reduceDebugTrace({
+      events: [
+        event(1, "node", "starting", node("node-a", "A")),
+        event(2, "node", "succeeded", node("node-a", "A")),
+        event(3, "node", "starting", node("node-b", "B")),
+        event(4, "node", "succeeded", node("node-b", "B")),
+        event(5, "node", "starting", node("node-a", "A")),
+        event(6, "node", "succeeded", node("node-a", "A")),
+      ],
+    });
+
+    const groups = groupDebugNodeExecutionRecords(
+      selectDebugNodeExecutionRecords(summary, resolverNodes, {
+        status: "all",
+      }),
+    );
+    const repeatedGroup = groups.find((group) => group.nodeId === "node-a");
+
+    expect(repeatedGroup?.occurrenceCount).toBe(2);
+    expect(repeatedGroup?.records.map((record) => record.occurrence)).toEqual([
+      1,
+      2,
+    ]);
+  });
+
+  it("estimates duration from trace timestamps when performance is absent", () => {
+    const summary = reduceDebugTrace({
+      events: [
+        event(1, "node", "starting", node("node-a", "A")),
+        event(4, "node", "succeeded", node("node-a", "A")),
+      ],
+    });
+
+    const records = selectDebugNodeExecutionRecords(
+      summary,
+      resolverNodes,
+      { status: "all" },
+    );
+
+    expect(records[0]).toMatchObject({
+      durationMs: 3000,
+      durationSource: "trace",
+    });
+  });
 });
 
 const resolverNodes = [
@@ -114,6 +259,13 @@ const resolverNodes = [
     nodeId: "node-b",
     runtimeName: "B",
     displayName: "Beta",
+    sourcePath: "project/main.json",
+  },
+  {
+    fileId: "main.json",
+    nodeId: "node-c",
+    runtimeName: "C",
+    displayName: "Gamma",
     sourcePath: "project/main.json",
   },
 ];
@@ -147,5 +299,52 @@ function node(nodeId: string, runtimeName: string): DebugEvent["node"] {
     nodeId,
     runtimeName,
     label: runtimeName,
+  };
+}
+
+function withRun(runId: string, value: DebugEvent): DebugEvent {
+  return { ...value, runId };
+}
+
+function performance(input: {
+  nodes: DebugPerformanceSummary["nodes"];
+  slowNodes: DebugPerformanceSummary["slowNodes"];
+}): DebugPerformanceSummary {
+  return {
+    sessionId: "session-1",
+    runId: "run-1",
+    eventCount: 0,
+    nodeCount: input.nodes.length,
+    recognitionCount: 0,
+    actionCount: 0,
+    diagnosticCount: 0,
+    artifactRefCount: 0,
+    screenshotRefCount: 0,
+    nodes: input.nodes,
+    slowNodes: input.slowNodes,
+    generatedAt: "2026-04-29T00:00:00.000Z",
+  };
+}
+
+function performanceNode(
+  nodeId: string,
+  runtimeName: string,
+  firstSeq: number,
+  lastSeq: number,
+  durationMs: number,
+): DebugPerformanceSummary["nodes"][number] {
+  return {
+    fileId: "main.json",
+    nodeId,
+    runtimeName,
+    firstSeq,
+    lastSeq,
+    durationMs,
+    recognitionCount: 0,
+    actionCount: 0,
+    nextListCount: 0,
+    waitFreezesCount: 0,
+    detailRefCount: 0,
+    screenshotRefCount: 0,
   };
 }

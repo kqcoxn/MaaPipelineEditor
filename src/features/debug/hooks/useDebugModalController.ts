@@ -298,6 +298,7 @@ export function useDebugModalController() {
   const nodeExecutionController = useDebugNodeExecutionController({
     flowNodes,
     nodeExecutionFilters,
+    performanceSummary,
     selectedNodeId,
     selectNode,
     setNodeExecutionFilters,
@@ -711,6 +712,16 @@ export function useDebugModalController() {
     setLastPanel(panel);
   };
 
+  const openNodeExecutionRecord = (
+    record: Parameters<
+      typeof nodeExecutionController.openNodeExecutionRecord
+    >[0],
+  ) => {
+    nodeExecutionController.openNodeExecutionRecord(record);
+    setActivePanel("node-execution");
+    setLastPanel("node-execution");
+  };
+
   const requestImageList = () => {
     resourceProtocol.requestImageList();
   };
@@ -762,8 +773,13 @@ export function useDebugModalController() {
     selectedPipelineNode,
     selectedPipelineNodeId,
     entryNode,
+    allNodeExecutionRecords: nodeExecutionController.allNodeExecutionRecords,
     nodeExecutionRecords: nodeExecutionController.nodeExecutionRecords,
     nodeExecutionFilters: nodeExecutionController.nodeExecutionFilters,
+    selectedNodeExecutionRecord:
+      nodeExecutionController.selectedNodeExecutionRecord,
+    selectedNodeExecutionRecordId:
+      nodeExecutionController.selectedNodeExecutionRecordId,
     performanceRefs,
     batchSummaryRefs,
     agentDiagnostics,
@@ -784,6 +800,9 @@ export function useDebugModalController() {
     selectPipelineNode,
     selectNodeExecutionRecord:
       nodeExecutionController.selectNodeExecutionRecord,
+    setSelectedNodeExecutionRecordId:
+      nodeExecutionController.setSelectedNodeExecutionRecordId,
+    openNodeExecutionRecord,
     setNodeExecutionFilters: nodeExecutionController.setNodeExecutionFilters,
     setEntryFromSelectedNode,
     requestResourcePreflight,

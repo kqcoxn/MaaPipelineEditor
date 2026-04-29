@@ -1,15 +1,42 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { Alert, Button, Empty, List, Select, Space, Tag, Typography } from "antd";
-import { AimOutlined, ClearOutlined } from "@ant-design/icons";
+import {
+  Alert,
+  Button,
+  Checkbox,
+  Empty,
+  Input,
+  List,
+  Select,
+  Space,
+  Tag,
+  Typography,
+} from "antd";
+import { AimOutlined, ClearOutlined, SearchOutlined } from "@ant-design/icons";
 import { DebugSection } from "../DebugSection";
 import type { DebugModalController } from "../../hooks/useDebugModalController";
 import type { DebugNodeExecutionRecord } from "../../nodeExecutionSelector";
-import { findDebugResolverEdge } from "../../nodeExecutionSelector";
+import {
+  findDebugResolverEdge,
+  groupDebugNodeExecutionRecords,
+} from "../../nodeExecutionSelector";
+import {
+  GroupedRecordList,
+  RecordList,
+  StatusTag,
+} from "./NodeExecutionRecordList";
+import {
+  debugNodeExecutionEventKindLabels,
+  formatDebugNodeExecutionDuration,
+} from "../../nodeExecutionDisplay";
 import type {
   DebugEvent,
-  DebugNodeExecutionStatus,
+  DebugEventKind,
+  DebugNodeExecutionArtifactFilter,
+  DebugNodeExecutionEventKindFilter,
   DebugNodeExecutionStatusFilter,
+  DebugNodeExecutionSortMode,
 } from "../../types";
+import { DEFAULT_DEBUG_NODE_EXECUTION_FILTERS } from "../../types";
 import { eventTitle, formatTime } from "../../modalUtils";
 
 const { Text } = Typography;
@@ -33,37 +60,11 @@ const detailPaneStyle: CSSProperties = {
   minWidth: 360,
 };
 
-const selectableItemStyle: CSSProperties = {
-  width: "100%",
-  cursor: "pointer",
-  borderRadius: 6,
-  padding: "4px 6px",
-};
-
-const selectedItemStyle: CSSProperties = {
-  ...selectableItemStyle,
-  background: "rgba(22, 119, 255, 0.08)",
-};
-
 const preStyle: CSSProperties = {
   whiteSpace: "pre-wrap",
   margin: 0,
   maxHeight: 280,
   overflow: "auto",
-};
-
-const statusLabels: Record<DebugNodeExecutionStatus, string> = {
-  running: "运行中",
-  succeeded: "成功",
-  failed: "失败",
-  visited: "已访问",
-};
-
-const statusColors: Record<DebugNodeExecutionStatus, string> = {
-  running: "blue",
-  succeeded: "green",
-  failed: "red",
-  visited: "default",
 };
 
 const statusOptions: Array<{
@@ -77,12 +78,57 @@ const statusOptions: Array<{
   { value: "visited", label: "已访问" },
 ];
 
+const eventKindOptions: Array<{
+  value: DebugNodeExecutionEventKindFilter;
+  label: string;
+}> = [
+  { value: "all", label: "全部事件" },
+  ...(
+    [
+      "node",
+      "recognition",
+      "action",
+      "next-list",
+      "wait-freezes",
+      "diagnostic",
+      "screenshot",
+      "artifact",
+      "task",
+      "session",
+      "log",
+    ] satisfies DebugEventKind[]
+  ).map((kind) => ({
+    value: kind,
+    label: debugNodeExecutionEventKindLabels[kind],
+  })),
+];
+
+const artifactOptions: Array<{
+  value: DebugNodeExecutionArtifactFilter;
+  label: string;
+}> = [
+  { value: "all", label: "全部产物" },
+  { value: "with-artifact", label: "含产物" },
+  { value: "without-artifact", label: "无产物" },
+];
+
+const sortOptions: Array<{
+  value: DebugNodeExecutionSortMode;
+  label: string;
+}> = [
+  { value: "execution", label: "执行顺序" },
+  { value: "failure-first", label: "失败优先" },
+  { value: "slow-first", label: "慢节点优先" },
+  { value: "latest", label: "最新优先" },
+];
+
 export function NodeExecutionPanel({
   controller,
 }: {
   controller: DebugModalController;
 }) {
   const {
+    allNodeExecutionRecords,
     artifacts,
     events,
     nodeExecutionFilters,
@@ -93,45 +139,79 @@ export function NodeExecutionPanel({
     resolverEdgeIndex,
     selectedArtifact,
     selectedFlowNodeId,
+    selectedNodeExecutionRecordId,
     selectNodeExecutionRecord,
+    setSelectedNodeExecutionRecordId,
     setNodeExecutionFilters,
     summary,
   } = controller;
-  const [selectedRecordId, setSelectedRecordId] = useState<string>();
+  const [searchText, setSearchText] = useState("");
   const rawNodeExecutionCount = useMemo(
     () => Object.values(summary.nodeReplays).flat().length,
     [summary.nodeReplays],
+  );
+  const visibleRecords = useMemo(
+    () => filterRecordsBySearch(nodeExecutionRecords, searchText),
+    [nodeExecutionRecords, searchText],
+  );
+  const groupedRecords = useMemo(
+    () => groupDebugNodeExecutionRecords(visibleRecords),
+    [visibleRecords],
   );
   const selectedFlowNode = pipelineNodes.find(
     (node) => node.nodeId === selectedFlowNodeId,
   );
   const selectedRecord =
-    nodeExecutionRecords.find((record) => record.id === selectedRecordId) ??
-    nodeExecutionRecords[0];
+    visibleRecords.find(
+      (record) => record.id === selectedNodeExecutionRecordId,
+    ) ?? visibleRecords[0];
 
   useEffect(() => {
     if (!selectedRecord) {
-      setSelectedRecordId(undefined);
+      if (selectedNodeExecutionRecordId) {
+        setSelectedNodeExecutionRecordId(undefined);
+      }
       return;
     }
-    if (selectedRecord.id !== selectedRecordId) {
-      setSelectedRecordId(selectedRecord.id);
+    if (selectedRecord.id !== selectedNodeExecutionRecordId) {
+      setSelectedNodeExecutionRecordId(selectedRecord.id);
     }
-  }, [selectedRecord, selectedRecordId]);
+  }, [
+    selectedNodeExecutionRecordId,
+    selectedRecord,
+    setSelectedNodeExecutionRecordId,
+  ]);
 
   const nodeOptions = useMemo(
+    () => {
+      const runtimeOnlyOptions = uniqueRuntimeOnlyOptions(
+        allNodeExecutionRecords,
+      );
+      return [
+        { value: "", label: "全部节点" },
+        ...pipelineNodes.map((node) => ({
+          value: node.nodeId,
+          label: `${node.displayName} · ${node.runtimeName}`,
+        })),
+        ...runtimeOnlyOptions,
+      ];
+    },
+    [allNodeExecutionRecords, pipelineNodes],
+  );
+  const runOptions = useMemo(
     () => [
-      { value: "", label: "全部节点" },
-      ...pipelineNodes.map((node) => ({
-        value: node.nodeId,
-        label: `${node.displayName} · ${node.runtimeName}`,
-      })),
+      { value: "", label: "全部运行" },
+      ...uniqueStrings(allNodeExecutionRecords.map((record) => record.runId)).map(
+        (runId) => ({
+          value: runId,
+          label: runId,
+        }),
+      ),
     ],
-    [pipelineNodes],
+    [allNodeExecutionRecords],
   );
 
   const handleSelectRecord = (record: DebugNodeExecutionRecord) => {
-    setSelectedRecordId(record.id);
     selectNodeExecutionRecord(record);
   };
 
@@ -144,7 +224,8 @@ export function NodeExecutionPanel({
   };
 
   const clearFilters = () => {
-    setNodeExecutionFilters({ status: "all" });
+    setSearchText("");
+    setNodeExecutionFilters(DEFAULT_DEBUG_NODE_EXECUTION_FILTERS);
   };
 
   if (events.length === 0) {
@@ -163,7 +244,30 @@ export function NodeExecutionPanel({
             {replayStatus?.active ? `Replay #${replayStatus.cursorSeq}` : "Live"}
           </Tag>
           <Tag>运行 {summary.runId ?? "-"}</Tag>
-          <Tag>记录 {nodeExecutionRecords.length}</Tag>
+          <Tag>记录 {visibleRecords.length}</Tag>
+          <Select
+            size="small"
+            style={{ minWidth: 160 }}
+            value={nodeExecutionFilters.runId ?? ""}
+            options={runOptions}
+            showSearch
+            optionFilterProp="label"
+            onChange={(runId) =>
+              setNodeExecutionFilters({
+                ...nodeExecutionFilters,
+                runId: runId || undefined,
+              })
+            }
+          />
+          <Input
+            size="small"
+            allowClear
+            prefix={<SearchOutlined />}
+            placeholder="搜索节点 / runtime / seq"
+            style={{ width: 220 }}
+            value={searchText}
+            onChange={(event) => setSearchText(event.target.value)}
+          />
           <Select
             size="small"
             style={{ minWidth: 220 }}
@@ -190,6 +294,64 @@ export function NodeExecutionPanel({
               })
             }
           />
+          <Select
+            size="small"
+            style={{ width: 132 }}
+            value={nodeExecutionFilters.eventKind ?? "all"}
+            options={eventKindOptions}
+            onChange={(eventKind) =>
+              setNodeExecutionFilters({
+                ...nodeExecutionFilters,
+                eventKind,
+              })
+            }
+          />
+          <Select
+            size="small"
+            style={{ width: 120 }}
+            value={nodeExecutionFilters.artifact ?? "all"}
+            options={artifactOptions}
+            onChange={(artifact) =>
+              setNodeExecutionFilters({
+                ...nodeExecutionFilters,
+                artifact,
+              })
+            }
+          />
+          <Select
+            size="small"
+            style={{ width: 132 }}
+            value={nodeExecutionFilters.sortMode ?? "execution"}
+            options={sortOptions}
+            onChange={(sortMode) =>
+              setNodeExecutionFilters({
+                ...nodeExecutionFilters,
+                sortMode,
+              })
+            }
+          />
+          <Checkbox
+            checked={nodeExecutionFilters.failedOnly === true}
+            onChange={(event) =>
+              setNodeExecutionFilters({
+                ...nodeExecutionFilters,
+                failedOnly: event.target.checked,
+              })
+            }
+          >
+            只看失败
+          </Checkbox>
+          <Checkbox
+            checked={nodeExecutionFilters.groupRepeated === true}
+            onChange={(event) =>
+              setNodeExecutionFilters({
+                ...nodeExecutionFilters,
+                groupRepeated: event.target.checked,
+              })
+            }
+          >
+            按节点折叠
+          </Checkbox>
           <Button
             size="small"
             icon={<AimOutlined />}
@@ -206,34 +368,25 @@ export function NodeExecutionPanel({
 
       {nodeExecutionRecords.length === 0 ? (
         <Empty description="没有符合筛选条件的节点执行记录" />
+      ) : visibleRecords.length === 0 ? (
+        <Empty description="没有符合搜索条件的节点执行记录" />
       ) : (
         <div style={layoutStyle}>
           <div style={listPaneStyle}>
-            <List
-              bordered
-              size="small"
-              dataSource={nodeExecutionRecords}
-              renderItem={(record) => (
-                <List.Item>
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    style={
-                      record.id === selectedRecord?.id
-                        ? selectedItemStyle
-                        : selectableItemStyle
-                    }
-                    onClick={() => handleSelectRecord(record)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") handleSelectRecord(record);
-                    }}
-                  >
-                    <RecordTitle record={record} />
-                    <RecordMeta record={record} />
-                  </div>
-                </List.Item>
-              )}
-            />
+            {nodeExecutionFilters.groupRepeated ? (
+              <GroupedRecordList
+                groups={groupedRecords}
+                onSelectRecord={handleSelectRecord}
+                selectedRecordId={selectedRecord?.id}
+                totalRecordCount={visibleRecords.length}
+              />
+            ) : (
+              <RecordList
+                records={visibleRecords}
+                onSelectRecord={handleSelectRecord}
+                selectedRecordId={selectedRecord?.id}
+              />
+            )}
           </div>
           <div style={detailPaneStyle}>
             {selectedRecord && (
@@ -248,35 +401,6 @@ export function NodeExecutionPanel({
           </div>
         </div>
       )}
-    </Space>
-  );
-}
-
-function RecordTitle({ record }: { record: DebugNodeExecutionRecord }) {
-  return (
-    <Space wrap size={4}>
-      <Text strong>{record.label ?? record.runtimeName}</Text>
-      <StatusTag status={record.status} />
-      <Tag>第 {record.occurrence} 次</Tag>
-      {record.unmapped && <Tag color="orange">runtimeName-only</Tag>}
-    </Space>
-  );
-}
-
-function RecordMeta({ record }: { record: DebugNodeExecutionRecord }) {
-  return (
-    <Space wrap size={4} style={{ marginTop: 6 }}>
-      <Tag>{record.runtimeName}</Tag>
-      {record.fileId && <Tag>{record.fileId}</Tag>}
-      {record.nodeId && <Tag>{record.nodeId}</Tag>}
-      <Tag>
-        seq {record.firstSeq}-{record.lastSeq}
-      </Tag>
-      <Tag>事件 {record.eventCount}</Tag>
-      <Tag>识别 {record.recognitionCount}</Tag>
-      <Tag>动作 {record.actionCount}</Tag>
-      <Tag>Next {record.nextListCount}</Tag>
-      <Tag>Artifact {record.detailRefs.length + record.screenshotRefs.length}</Tag>
     </Space>
   );
 }
@@ -309,7 +433,16 @@ function RecordDetails({
           <Tag>
             seq {record.firstSeq}-{record.lastSeq}
           </Tag>
+          {record.durationMs !== undefined && (
+            <Tag>
+              耗时 {formatDebugNodeExecutionDuration(record.durationMs)}
+              {record.durationSource === "performance" ? " · performance" : ""}
+            </Tag>
+          )}
           <Tag>runtime {record.runtimeName}</Tag>
+          {record.hasFailure && <Tag color="red">含失败</Tag>}
+          {record.slow && <Tag color="volcano">慢节点</Tag>}
+          {record.hasArtifact && <Tag color="purple">含产物</Tag>}
           {record.sourcePath && <Tag>{record.sourcePath}</Tag>}
         </Space>
       </DebugSection>
@@ -550,10 +683,6 @@ function SimpleEventGroup({
   );
 }
 
-function StatusTag({ status }: { status: DebugNodeExecutionStatus }) {
-  return <Tag color={statusColors[status]}>{statusLabels[status]}</Tag>;
-}
-
 function readEventDetail(
   artifacts: ArtifactEntries,
   event: DebugEvent,
@@ -582,6 +711,44 @@ function readNextItems(event: DebugEvent): Array<{
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function filterRecordsBySearch(
+  records: DebugNodeExecutionRecord[],
+  searchText: string,
+): DebugNodeExecutionRecord[] {
+  const keyword = searchText.trim().toLowerCase();
+  if (!keyword) return records;
+  return records.filter((record) =>
+    [
+      record.label,
+      record.runtimeName,
+      record.fileId,
+      record.nodeId,
+      record.sourcePath,
+      record.runId,
+      record.status,
+      `seq ${record.firstSeq}-${record.lastSeq}`,
+      ...record.eventKinds,
+    ]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(keyword)),
+  );
+}
+
+function uniqueRuntimeOnlyOptions(records: DebugNodeExecutionRecord[]) {
+  return uniqueStrings(
+    records
+      .filter((record) => record.unmapped)
+      .map((record) => record.runtimeName),
+  ).map((runtimeName) => ({
+    value: runtimeName,
+    label: `${runtimeName} · runtimeName-only`,
+  }));
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return [...new Set(values.filter((value) => value.trim() !== ""))];
 }
 
 function formatValue(value: unknown): string {

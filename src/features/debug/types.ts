@@ -41,10 +41,36 @@ export type DebugNodeExecutionStatusFilter =
   | "all"
   | DebugNodeExecutionStatus;
 
+export type DebugNodeExecutionEventKindFilter = "all" | DebugEventKind;
+export type DebugNodeExecutionArtifactFilter =
+  | "all"
+  | "with-artifact"
+  | "without-artifact";
+export type DebugNodeExecutionSortMode =
+  | "execution"
+  | "failure-first"
+  | "slow-first"
+  | "latest";
+
 export interface DebugNodeExecutionFilters {
   nodeId?: string;
+  runId?: string;
   status: DebugNodeExecutionStatusFilter;
+  eventKind?: DebugNodeExecutionEventKindFilter;
+  artifact?: DebugNodeExecutionArtifactFilter;
+  failedOnly?: boolean;
+  sortMode?: DebugNodeExecutionSortMode;
+  groupRepeated?: boolean;
 }
+
+export const DEFAULT_DEBUG_NODE_EXECUTION_FILTERS: DebugNodeExecutionFilters = {
+  status: "all",
+  eventKind: "all",
+  artifact: "all",
+  sortMode: "execution",
+  failedOnly: false,
+  groupRepeated: false,
+};
 
 export type DebugProfileFeature =
   | "multi-resource"
