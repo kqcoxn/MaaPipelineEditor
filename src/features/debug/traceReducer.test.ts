@@ -15,7 +15,7 @@ describe("reduceDebugTrace node execution replays", () => {
   it("splits repeated node starts into separate occurrences", () => {
     const summary = reduceDebugTrace({
       events: [
-        event(1, "session", "starting", undefined, { mode: "full-run" }),
+        event(1, "session", "starting", undefined, { mode: "run-from-node" }),
         event(2, "node", "starting", node("node-a", "A")),
         event(3, "recognition", "succeeded", node("node-a", "A"), {
           algorithm: "TemplateMatch",

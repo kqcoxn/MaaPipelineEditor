@@ -1,7 +1,6 @@
 import type { DebugRunMode } from "./types";
 
 const runModeLabels: Partial<Record<DebugRunMode, string>> = {
-  "full-run": "完整运行",
   "run-from-node": "从指定节点运行",
   "single-node-run": "只运行一个节点",
   "recognition-only": "只执行识别",

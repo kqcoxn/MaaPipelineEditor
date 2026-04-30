@@ -647,9 +647,6 @@ func validateRunRequest(req protocol.RunRequest) error {
 	if len(nonEmptyStrings(req.Profile.ResourcePaths)) == 0 {
 		return fmt.Errorf("profile.resourcePaths 不能为空")
 	}
-	if req.Mode == protocol.RunModeFullRun && !isCompleteTarget(req.Profile.Entry) {
-		return fmt.Errorf("full-run 需要完整的 profile.entry")
-	}
 	if strings.TrimSpace(req.GraphSnapshot.GeneratedAt) == "" {
 		return fmt.Errorf("缺少必需字段: graphSnapshot.generatedAt")
 	}

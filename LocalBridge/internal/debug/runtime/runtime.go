@@ -156,12 +156,6 @@ func New(
 
 func EntryForRequest(req protocol.RunRequest) (string, error) {
 	switch req.Mode {
-	case protocol.RunModeFullRun:
-		entry := strings.TrimSpace(req.Profile.Entry.RuntimeName)
-		if entry == "" {
-			return "", fmt.Errorf("full-run 缺少 profile.entry.runtimeName")
-		}
-		return entry, nil
 	case protocol.RunModeRunFromNode,
 		protocol.RunModeSingleNodeRun,
 		protocol.RunModeRecognitionOnly,
@@ -220,7 +214,7 @@ func (r *Runtime) Start() error {
 	logger.Info("DebugVNext", "启动调试运行: session=%s run=%s mode=%s entry=%s", r.sessionID, r.runID, r.mode, r.entry)
 
 	switch r.mode {
-	case protocol.RunModeFullRun, protocol.RunModeRunFromNode:
+	case protocol.RunModeRunFromNode:
 		return r.startTask(r.override)
 	case protocol.RunModeSingleNodeRun:
 		override, err := r.singleNodeOverride()
@@ -244,8 +238,7 @@ func (r *Runtime) Stop() error {
 	if r.adapter == nil {
 		return nil
 	}
-	r.adapter.PostStop()
-	return nil
+	return r.adapter.PostStop()
 }
 
 func (r *Runtime) Wait() Result {

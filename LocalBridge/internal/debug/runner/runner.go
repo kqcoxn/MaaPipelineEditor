@@ -204,7 +204,9 @@ func (r *Runner) Stop(
 		return fmt.Errorf("runId 不匹配: active=%s request=%s", run.ID, runID)
 	}
 
-	run.markStopRequested(reason)
+	if !run.markStopRequested(reason) {
+		return nil
+	}
 	snapshot, err := r.sessions.SetStopping(sessionID)
 	if err != nil {
 		return err
@@ -430,12 +432,16 @@ func (r *Runner) unregister(run *Run) bool {
 	return true
 }
 
-func (r *Run) markStopRequested(reason string) {
+func (r *Run) markStopRequested(reason string) bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	if r.stopRequested {
+		return false
+	}
 	r.stopRequested = true
 	r.stopReason = reason
+	return true
 }
 
 func (r *Run) markDisposed() {

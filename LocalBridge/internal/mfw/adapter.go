@@ -712,31 +712,31 @@ func (a *MaaFWAdapter) PostAction(actionType maa.ActionType, actionParam maa.Act
 }
 
 func (a *MaaFWAdapter) StopTask() error {
+	return a.PostStop()
+}
+
+// PostStop 发送停止信号
+func (a *MaaFWAdapter) PostStop() error {
 	a.mu.RLock()
 	tasker := a.tasker
 	a.mu.RUnlock()
 
 	if tasker == nil {
-		return fmt.Errorf("Tasker 未初始化")
+		return nil
 	}
 
 	stopJob := tasker.PostStop()
-	if stopJob != nil {
-		stopJob.Wait()
+	if stopJob == nil {
+		return fmt.Errorf("发送停止信号失败")
 	}
-
+	stopJob.Wait()
+	if err := stopJob.Error(); err != nil {
+		return err
+	}
+	if !stopJob.Success() {
+		return fmt.Errorf("停止任务失败: %s", stopJob.Status())
+	}
 	return nil
-}
-
-// PostStop 发送停止信号
-func (a *MaaFWAdapter) PostStop() {
-	a.mu.RLock()
-	tasker := a.tasker
-	a.mu.RUnlock()
-
-	if tasker != nil {
-		tasker.PostStop()
-	}
 }
 
 // ============================================================================

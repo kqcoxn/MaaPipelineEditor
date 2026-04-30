@@ -7,11 +7,6 @@ const initialRunModes: Array<{
   description: string;
 }> = [
   {
-    id: "full-run",
-    label: "完整运行",
-    description: "从 profile 入口运行完整 pipeline。",
-  },
-  {
     id: "run-from-node",
     label: "从节点运行",
     description: "以选中节点作为入口运行后续 pipeline。",

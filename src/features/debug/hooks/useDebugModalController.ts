@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { message } from "antd";
 import { useShallow } from "zustand/shallow";
 import { debugProtocolClient, resourceProtocol } from "../../../services/server";
@@ -32,7 +32,6 @@ import {
   selectBatchSummaryRefs,
   selectPerformanceRefs,
 } from "../debugEventSelectors";
-import { applyDebugNodeTarget } from "../nodeTargetActions";
 import {
   formatDebugReadinessMessage,
   getDebugReadiness,
@@ -329,25 +328,8 @@ export function useDebugModalController() {
   });
   const {
     pipelineNodes,
-    selectedPipelineNode,
-    selectedPipelineNodeId,
     selectPipelineNode,
   } = nodeExecutionController;
-  const entryNode = useMemo(() => {
-    const entry = profileState.profile.entry;
-    return pipelineNodes.find((node) => {
-      if (entry.nodeId && node.nodeId === entry.nodeId) return true;
-      if (
-        entry.fileId &&
-        entry.runtimeName &&
-        node.fileId === entry.fileId &&
-        node.runtimeName === entry.runtimeName
-      ) {
-        return true;
-      }
-      return Boolean(entry.runtimeName && node.runtimeName === entry.runtimeName);
-    });
-  }, [pipelineNodes, profileState.profile.entry]);
 
   const selectedArtifact = selectedArtifactId
     ? artifacts[selectedArtifactId]
@@ -357,14 +339,6 @@ export function useDebugModalController() {
   const agentDiagnostics = diagnosticsState.diagnostics.filter((diagnostic) =>
     diagnostic.code.startsWith("debug.agent."),
   );
-
-  const setEntryFromSelectedNode = useCallback(() => {
-    applyDebugNodeTarget(selectedPipelineNodeId, {
-      setEntry: true,
-      rememberEntryNodeId: true,
-      successMessage: "已设为调试入口节点",
-    });
-  }, [selectedPipelineNodeId]);
 
   const startRun = (
     mode: DebugRunMode,
@@ -427,7 +401,11 @@ export function useDebugModalController() {
       if (request.target) {
         profileState.setEntry(request.target);
         setLastEntryNodeId(request.target.nodeId);
-        selectNode(request.target.nodeId);
+        selectNode(
+          flowNodes.some((node) => node.id === request.target?.nodeId)
+            ? request.target.nodeId
+            : undefined,
+        );
       }
     } catch (error) {
       message.error(error instanceof Error ? error.message : "生成调试请求失败");
@@ -445,9 +423,13 @@ export function useDebugModalController() {
       message.warning("当前没有调试会话（Session）");
       return;
     }
+    if (session.status !== "running" || !activeRun?.runId) {
+      message.warning("当前没有运行中的调试任务");
+      return;
+    }
     const sent = debugProtocolClient.stopRun({
       sessionId: session.sessionId,
-      runId: activeRun?.runId,
+      runId: activeRun.runId,
       reason: "user_stop",
     });
     if (!sent) message.error("发送停止请求失败");
@@ -737,11 +719,12 @@ export function useDebugModalController() {
     runModes,
     availableModeIds,
     pipelineNodes,
+    runTargetNodes: nodeExecutionController.runTargetNodes,
     resolverEdges: nodeExecutionController.resolverEdges,
     resolverEdgeIndex: nodeExecutionController.resolverEdgeIndex,
-    selectedPipelineNode,
-    selectedPipelineNodeId,
-    entryNode,
+    includeAllJsonRunTargets: nodeExecutionController.includeAllJsonRunTargets,
+    selectedRunTargetNode: nodeExecutionController.selectedRunTargetNode,
+    selectedRunTargetNodeId: nodeExecutionController.selectedRunTargetNodeId,
     allNodeExecutionRecords: nodeExecutionController.allNodeExecutionRecords,
     batchRecognitionNodeSummaries:
       nodeExecutionController.batchRecognitionNodeSummaries,
@@ -774,6 +757,8 @@ export function useDebugModalController() {
     stopBatchRecognition,
     testAgent,
     selectPipelineNode,
+    setIncludeAllJsonRunTargets:
+      nodeExecutionController.setIncludeAllJsonRunTargets,
     selectNodeExecutionRecord:
       nodeExecutionController.selectNodeExecutionRecord,
     setSelectedNodeExecutionRecordId: nodeExecutionController.setSelectedNodeExecutionRecordId,
@@ -782,7 +767,6 @@ export function useDebugModalController() {
     setNodeExecutionFilters: nodeExecutionController.setNodeExecutionFilters,
     setNodeExecutionAttributionMode,
     setNodeExecutionDetailMode,
-    setEntryFromSelectedNode,
     requestResourcePreflight,
     invalidateResourcePreflight,
     updateResourcePaths,

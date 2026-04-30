@@ -250,7 +250,7 @@ describe("selectDebugNodeExecutionRecords", () => {
   it("defensively labels the first task bootstrap record as Tasker", () => {
     const summary = reduceDebugTrace({
       events: [
-        event(0, "session", "starting", undefined, { mode: "full-run" }),
+        event(0, "session", "starting", undefined, { mode: "run-from-node" }),
         event(1, "node", "starting", { runtimeName: "Task" }),
         event(2, "next-list", "succeeded", { runtimeName: "Task" }, {
           next: [{ name: "A", jumpBack: false, anchor: false }],
@@ -291,7 +291,7 @@ describe("selectDebugNodeExecutionRecords", () => {
   it("labels the first task record as Tasker even when it was mapped to a real node", () => {
     const summary = reduceDebugTrace({
       events: [
-        event(0, "session", "starting", undefined, { mode: "full-run" }),
+        event(0, "session", "starting", undefined, { mode: "run-from-node" }),
         event(1, "node", "starting", node("node-a", "A")),
         event(2, "next-list", "succeeded", node("node-a", "A"), {
           next: [{ name: "B", jumpBack: false, anchor: false }],

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { DebugArtifactEntry } from "../../../stores/debugArtifactStore";
 import { useDebugOverlayStore } from "../../../stores/debugOverlayStore";
 import type { NodeType } from "../../../stores/flow";
+import { useLocalFileStore } from "../../../stores/localFileStore";
 import { applyDebugNodeTarget } from "../nodeTargetActions";
 import { allDebugNodeExecutionAttempts } from "../nodeExecutionAttempts";
 import {
@@ -56,27 +57,61 @@ export function useDebugNodeExecutionController({
     useState<string>();
   const [selectedNodeExecutionAttemptId, setSelectedNodeExecutionAttemptId] =
     useState<string>();
+  const [includeAllJsonRunTargets, setIncludeAllJsonRunTargets] =
+    useState(false);
+  const [selectedRunTargetNodeIdState, setSelectedRunTargetNodeId] =
+    useState<string>();
+  const localFiles = useLocalFileStore((state) => state.files);
+  const flowNodeIds = useMemo(
+    () => new Set(flowNodes.map((node) => node.id)),
+    [flowNodes],
+  );
   const debugResolver = useMemo(() => {
-    const bundle = buildDebugSnapshotBundle();
-    const flowNodeIds = new Set(flowNodes.map((node) => node.id));
+    const bundle = buildDebugSnapshotBundle(localFiles);
     return {
       edges: bundle.resolverSnapshot.edges,
       nodes: bundle.resolverSnapshot.nodes.filter((node) =>
         flowNodeIds.has(node.nodeId),
       ),
+      allNodes: bundle.resolverSnapshot.nodes,
     };
-  }, [flowNodes]);
+  }, [flowNodeIds, localFiles]);
   const resolverEdges = debugResolver.edges;
   const resolverEdgeIndex = useMemo(
     () => createDebugResolverEdgeIndex(resolverEdges),
     [resolverEdges],
   );
   const pipelineNodes = debugResolver.nodes;
+  const runTargetNodes = includeAllJsonRunTargets
+    ? debugResolver.allNodes
+    : pipelineNodes;
   const selectedPipelineNode = useMemo(
     () => pipelineNodes.find((node) => node.nodeId === selectedNodeId),
     [pipelineNodes, selectedNodeId],
   );
   const selectedPipelineNodeId = selectedPipelineNode?.nodeId;
+  const selectedRunTargetNodeId = useMemo(() => {
+    if (
+      selectedRunTargetNodeIdState &&
+      runTargetNodes.some((node) => node.nodeId === selectedRunTargetNodeIdState)
+    ) {
+      return selectedRunTargetNodeIdState;
+    }
+    if (
+      selectedNodeId &&
+      runTargetNodes.some((node) => node.nodeId === selectedNodeId)
+    ) {
+      return selectedNodeId;
+    }
+    return undefined;
+  }, [runTargetNodes, selectedNodeId, selectedRunTargetNodeIdState]);
+  const selectedRunTargetNode = useMemo(
+    () =>
+      selectedRunTargetNodeId
+        ? runTargetNodes.find((node) => node.nodeId === selectedRunTargetNodeId)
+        : undefined,
+    [runTargetNodes, selectedRunTargetNodeId],
+  );
   const allNodeExecutionRecords = useMemo(
     () =>
       selectDebugNodeExecutionRecords(
@@ -182,6 +217,21 @@ export function useDebugNodeExecutionController({
   ]);
 
   useEffect(() => {
+    if (selectedNodeId && flowNodeIds.has(selectedNodeId)) {
+      setSelectedRunTargetNodeId(selectedNodeId);
+    }
+  }, [flowNodeIds, selectedNodeId]);
+
+  useEffect(() => {
+    if (
+      selectedRunTargetNodeIdState &&
+      !runTargetNodes.some((node) => node.nodeId === selectedRunTargetNodeIdState)
+    ) {
+      setSelectedRunTargetNodeId(undefined);
+    }
+  }, [runTargetNodes, selectedRunTargetNodeIdState]);
+
+  useEffect(() => {
     const overlayStore = useDebugOverlayStore.getState();
     if (!selectedNodeExecutionRecord) {
       overlayStore.clearNodeExecutionOverlay();
@@ -207,12 +257,18 @@ export function useDebugNodeExecutionController({
   const selectPipelineNode = useCallback(
     (nodeId?: string) => {
       if (!nodeId) {
+        setSelectedRunTargetNodeId(undefined);
         selectNode(undefined);
         return;
       }
-      applyDebugNodeTarget(nodeId, { focusCanvas: true });
+      setSelectedRunTargetNodeId(nodeId);
+      if (flowNodeIds.has(nodeId)) {
+        applyDebugNodeTarget(nodeId, { focusCanvas: true });
+        return;
+      }
+      selectNode(undefined);
     },
-    [selectNode],
+    [flowNodeIds, selectNode],
   );
 
   const updateNodeExecutionFilters = useCallback(
@@ -268,10 +324,14 @@ export function useDebugNodeExecutionController({
     nodeExecutionRecords,
     nodeReplayControl,
     pipelineNodes,
+    runTargetNodes,
     resolverEdges,
     resolverEdgeIndex,
+    includeAllJsonRunTargets,
     selectedPipelineNode,
     selectedPipelineNodeId,
+    selectedRunTargetNode,
+    selectedRunTargetNodeId,
     selectedNodeExecutionRecord,
     selectedNodeExecutionRecordId: migratedSelectedNodeExecutionRecordId,
     selectedNodeExecutionAttempt,
@@ -281,6 +341,7 @@ export function useDebugNodeExecutionController({
     openNodeExecutionRecord,
     selectNodeExecutionRecord,
     selectPipelineNode,
+    setIncludeAllJsonRunTargets,
     setNodeExecutionFilters: updateNodeExecutionFilters,
   };
 }

@@ -12,7 +12,6 @@ const (
 type RunMode string
 
 const (
-	RunModeFullRun               RunMode = "full-run"
 	RunModeRunFromNode           RunMode = "run-from-node"
 	RunModeSingleNodeRun         RunMode = "single-node-run"
 	RunModeRecognitionOnly       RunMode = "recognition-only"
@@ -441,8 +440,7 @@ type EventEdge struct {
 
 func IsValidRunMode(mode RunMode) bool {
 	switch mode {
-	case RunModeFullRun,
-		RunModeRunFromNode,
+	case RunModeRunFromNode,
 		RunModeSingleNodeRun,
 		RunModeRecognitionOnly,
 		RunModeActionOnly,

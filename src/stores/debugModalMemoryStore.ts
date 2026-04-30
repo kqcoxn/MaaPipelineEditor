@@ -36,7 +36,7 @@ interface DebugModalMemoryState extends DebugModalMemorySnapshot {
 
 const defaultMemory: DebugModalMemorySnapshot = {
   lastPanel: "overview",
-  lastRunMode: "full-run",
+  lastRunMode: "run-from-node",
   nodeExecutionFilters: DEFAULT_DEBUG_NODE_EXECUTION_FILTERS,
   nodeExecutionAttributionMode: "next",
   nodeExecutionDetailMode: "compact",
@@ -88,6 +88,14 @@ const validNodeExecutionAttributionModes =
 const validNodeExecutionDetailModes = new Set<DebugExecutionDetailMode>([
   "compact",
   "detailed",
+]);
+const validRunModes = new Set<DebugRunMode>([
+  "run-from-node",
+  "single-node-run",
+  "recognition-only",
+  "action-only",
+  "fixed-image-recognition",
+  "replay",
 ]);
 
 function normalizePanel(panel: unknown): DebugModalPanel {
@@ -165,6 +173,12 @@ function normalizeNodeExecutionDetailMode(
     : defaultMemory.nodeExecutionDetailMode;
 }
 
+function normalizeRunMode(value: unknown): DebugRunMode {
+  return validRunModes.has(value as DebugRunMode)
+    ? (value as DebugRunMode)
+    : defaultMemory.lastRunMode;
+}
+
 function readMemory(): DebugModalMemorySnapshot {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -172,7 +186,7 @@ function readMemory(): DebugModalMemorySnapshot {
     const parsed = JSON.parse(raw) as Partial<DebugModalMemorySnapshot>;
     return {
       lastPanel: normalizePanel(parsed.lastPanel),
-      lastRunMode: parsed.lastRunMode ?? defaultMemory.lastRunMode,
+      lastRunMode: normalizeRunMode(parsed.lastRunMode),
       lastEntryNodeId: parsed.lastEntryNodeId,
       nodeExecutionFilters: normalizeNodeExecutionFilters(
         parsed.nodeExecutionFilters,

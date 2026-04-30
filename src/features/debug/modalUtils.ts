@@ -7,7 +7,6 @@ import type {
 import { formatDebugNodeDisplayName } from "./syntheticNode";
 
 export const runnableModes = new Set<DebugRunMode>([
-  "full-run",
   "run-from-node",
   "single-node-run",
   "recognition-only",
@@ -80,13 +79,6 @@ export function validateRunRequest(
       severity: "error",
       code: "debug.resolver.empty",
       message: "当前没有可映射到运行时的 Pipeline 节点。",
-    });
-  }
-  if (request.mode === "full-run" && !request.profile.entry.runtimeName) {
-    diagnostics.push({
-      severity: "error",
-      code: "debug.entry.missing",
-      message: "完整运行缺少调试配置入口。",
     });
   }
   if (targetRunModes.has(request.mode) && !request.target?.runtimeName) {

@@ -85,5 +85,5 @@ function isTaskerBootstrapCandidate(
 }
 
 function isTaskBasedRunMode(runMode: DebugRunMode | undefined): boolean {
-  return runMode === "full-run" || runMode === "run-from-node";
+  return runMode === "run-from-node";
 }

@@ -3,6 +3,10 @@ import type { EdgeType, NodeType, PipelineNodeType } from "../../stores/flow";
 import { useFileStore } from "../../stores/fileStore";
 import { useFlowStore } from "../../stores/flow";
 import {
+  useLocalFileStore,
+  type LocalFileInfo,
+} from "../../stores/localFileStore";
+import {
   NodeTypeEnum,
   SourceHandleTypeEnum,
   TargetHandleTypeEnum,
@@ -90,7 +94,21 @@ function buildFileSources(): DebugFileSource[] {
   });
 }
 
-export function buildDebugSnapshotBundle(): DebugSnapshotBundle {
+function localResolverNodeId(filePath: string, runtimeName: string): string {
+  return `local-json:${filePath}#${runtimeName}`;
+}
+
+function displayNameFromRuntimeName(runtimeName: string, prefix?: string): string {
+  const normalizedPrefix = prefix?.trim();
+  if (normalizedPrefix && runtimeName.startsWith(`${normalizedPrefix}_`)) {
+    return runtimeName.slice(normalizedPrefix.length + 1);
+  }
+  return runtimeName;
+}
+
+export function buildDebugSnapshotBundle(
+  localFiles: LocalFileInfo[] = useLocalFileStore.getState().files,
+): DebugSnapshotBundle {
   const generatedAt = new Date().toISOString();
   const fileState = useFileStore.getState();
   const fileSources = buildFileSources();
@@ -108,6 +126,30 @@ export function buildDebugSnapshotBundle(): DebugSnapshotBundle {
         sourcePath: file.path,
       })),
   );
+  const loadedSourcePaths = new Set(
+    fileSources
+      .map((file) => file.path)
+      .filter((path): path is string => Boolean(path)),
+  );
+  const localResolverNodes = localFiles
+    .filter((file) => !loadedSourcePaths.has(file.file_path))
+    .flatMap((file) =>
+      (file.nodes ?? [])
+        .map((node) => {
+          const runtimeName = node.label?.trim();
+          if (!runtimeName) return undefined;
+          const prefix = node.prefix || file.prefix || undefined;
+          return {
+            fileId: file.file_path,
+            nodeId: localResolverNodeId(file.file_path, runtimeName),
+            runtimeName,
+            displayName: displayNameFromRuntimeName(runtimeName, prefix),
+            prefix,
+            sourcePath: file.file_path,
+          };
+        })
+        .filter((node): node is NonNullable<typeof node> => Boolean(node)),
+    );
 
   const resolverEdges = fileSources.flatMap((file) =>
     file.edges
@@ -147,7 +189,7 @@ export function buildDebugSnapshotBundle(): DebugSnapshotBundle {
   const resolverSnapshot: DebugNodeResolverSnapshot = {
     generatedAt,
     rootFileId,
-    nodes: resolverNodes,
+    nodes: [...resolverNodes, ...localResolverNodes],
     edges: resolverEdges,
   };
 

@@ -1,9 +1,8 @@
 import { useMemo, type CSSProperties, type ReactNode } from "react";
-import { Alert, Button, Select, Space, Typography } from "antd";
+import { Alert, Button, Checkbox, Select, Space, Typography } from "antd";
 import {
   CaretRightOutlined,
   FileSearchOutlined,
-  FlagOutlined,
   NodeIndexOutlined,
   PictureOutlined,
   StopOutlined,
@@ -20,18 +19,18 @@ const { Text } = Typography;
 
 const runControlStyle: CSSProperties = {
   display: "flex",
-  alignItems: "flex-start",
+  alignItems: "center",
   gap: 12,
   flexWrap: "wrap",
 };
 
 const nodePickerStyle: CSSProperties = {
-  flex: "1 1 360px",
+  flex: "1 1 420px",
   minWidth: 320,
 };
 
 const runActionsStyle: CSSProperties = {
-  flex: "0 1 520px",
+  flex: "0 1 auto",
 };
 
 const metaListStyle: CSSProperties = {
@@ -78,11 +77,9 @@ export function OverviewPanel({
     lastError,
     debugReadiness,
     availableModeIds,
-    selectedPipelineNode,
-    selectedPipelineNodeId,
-    entryNode,
-    pipelineNodes,
-    profileState,
+    runTargetNodes,
+    includeAllJsonRunTargets,
+    selectedRunTargetNodeId,
     session,
     activeRun,
     summary,
@@ -96,13 +93,13 @@ export function OverviewPanel({
     confirmActionRun,
     stopRun,
     selectPipelineNode,
+    setIncludeAllJsonRunTargets,
     setNodeExecutionFilters,
     openNodeExecutionRecord,
-    setEntryFromSelectedNode,
   } = controller;
   const nodeOptions = useMemo(
     () =>
-      pipelineNodes.map((node) => ({
+      runTargetNodes.map((node) => ({
         value: node.nodeId,
         label: node.displayName,
         searchText: [
@@ -114,14 +111,14 @@ export function OverviewPanel({
           .filter(Boolean)
           .join(" "),
       })),
-    [pipelineNodes],
+    [runTargetNodes],
   );
-  const entryLabel =
-    entryNode?.displayName ||
-    profileState.profile.entry.runtimeName ||
-    "未设置";
-  const targetLabel = selectedPipelineNode?.displayName || "未选择";
-  const hasSelectedNode = Boolean(selectedPipelineNodeId);
+  const hasSelectedNode = Boolean(selectedRunTargetNodeId);
+  const runLocked = ["preparing", "running", "stopping"].includes(
+    session?.status ?? "idle",
+  );
+  const canStartRun = debugReadiness.ready && !runLocked;
+  const canStopRun = session?.status === "running" && Boolean(activeRun?.runId);
   const failedNodeExecutionRecords = useMemo(
     () => allNodeExecutionRecords.filter((record) => record.hasFailure),
     [allNodeExecutionRecords],
@@ -169,14 +166,9 @@ export function OverviewPanel({
       <DebugSection title="运行控制">
         <div style={runControlStyle}>
           <Space direction="vertical" size={8} style={nodePickerStyle}>
-            <div style={metaListStyle}>
-              <MetaItem label="入口" value={entryLabel} wide />
-              <MetaItem label="目标" value={targetLabel} wide />
-              <MetaItem label="节点" value={pipelineNodes.length} />
-            </div>
             <Select
               showSearch
-              value={selectedPipelineNodeId}
+              value={selectedRunTargetNodeId}
               style={{ width: "100%" }}
               placeholder="搜索并选择 Pipeline 节点"
               filterOption={(input, option) =>
@@ -190,7 +182,7 @@ export function OverviewPanel({
               options={nodeOptions}
               notFoundContent="当前图没有可调试 Pipeline 节点"
               optionRender={(option) => {
-                const node = pipelineNodes.find(
+                const node = runTargetNodes.find(
                   (item) => item.nodeId === option.value,
                 );
                 if (!node) return option.label;
@@ -204,28 +196,22 @@ export function OverviewPanel({
                 );
               }}
             />
+            <Checkbox
+              checked={includeAllJsonRunTargets}
+              onChange={(event) =>
+                setIncludeAllJsonRunTargets(event.target.checked)
+              }
+            >
+              检索所有 JSON 节点
+            </Checkbox>
           </Space>
           <Space wrap style={runActionsStyle}>
             <Button
-              icon={<FlagOutlined />}
-              onClick={setEntryFromSelectedNode}
-              disabled={!hasSelectedNode}
-            >
-              设为入口节点
-            </Button>
-            <Button
               type="primary"
               icon={<CaretRightOutlined />}
-              onClick={() => startRun("full-run")}
-              disabled={!debugReadiness.ready || !availableModeIds.has("full-run")}
-            >
-              完整运行
-            </Button>
-            <Button
-              icon={<CaretRightOutlined />}
-              onClick={() => startRun("run-from-node", selectedPipelineNodeId)}
+              onClick={() => startRun("run-from-node", selectedRunTargetNodeId)}
               disabled={
-                !debugReadiness.ready ||
+                !canStartRun ||
                 !hasSelectedNode ||
                 !availableModeIds.has("run-from-node")
               }
@@ -234,9 +220,9 @@ export function OverviewPanel({
             </Button>
             <Button
               icon={<CaretRightOutlined />}
-              onClick={() => startRun("single-node-run", selectedPipelineNodeId)}
+              onClick={() => startRun("single-node-run", selectedRunTargetNodeId)}
               disabled={
-                !debugReadiness.ready ||
+                !canStartRun ||
                 !hasSelectedNode ||
                 !availableModeIds.has("single-node-run")
               }
@@ -245,9 +231,9 @@ export function OverviewPanel({
             </Button>
             <Button
               icon={<FileSearchOutlined />}
-              onClick={() => startRun("recognition-only", selectedPipelineNodeId)}
+              onClick={() => startRun("recognition-only", selectedRunTargetNodeId)}
               disabled={
-                !debugReadiness.ready ||
+                !canStartRun ||
                 !hasSelectedNode ||
                 !availableModeIds.has("recognition-only")
               }
@@ -257,9 +243,9 @@ export function OverviewPanel({
             <Button
               danger
               icon={<CaretRightOutlined />}
-              onClick={() => confirmActionRun(selectedPipelineNodeId)}
+              onClick={() => confirmActionRun(selectedRunTargetNodeId)}
               disabled={
-                !debugReadiness.ready ||
+                !canStartRun ||
                 !hasSelectedNode ||
                 !availableModeIds.has("action-only")
               }
@@ -269,17 +255,22 @@ export function OverviewPanel({
             <Button
               icon={<PictureOutlined />}
               onClick={() =>
-                startRun("fixed-image-recognition", selectedPipelineNodeId)
+                startRun("fixed-image-recognition", selectedRunTargetNodeId)
               }
               disabled={
-                !debugReadiness.ready ||
+                !canStartRun ||
                 !hasSelectedNode ||
                 !availableModeIds.has("fixed-image-recognition")
               }
             >
               固定图识别
             </Button>
-            <Button danger icon={<StopOutlined />} onClick={stopRun}>
+            <Button
+              danger
+              icon={<StopOutlined />}
+              onClick={stopRun}
+              disabled={!canStopRun}
+            >
               停止
             </Button>
           </Space>

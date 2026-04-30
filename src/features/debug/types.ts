@@ -7,7 +7,6 @@ export const DEBUG_TASKER_BOOTSTRAP_LABEL = "(Tasker)" as const;
 export type DebugGeneration = typeof DEBUG_GENERATION;
 
 export type DebugRunMode =
-  | "full-run"
   | "run-from-node"
   | "single-node-run"
   | "recognition-only"

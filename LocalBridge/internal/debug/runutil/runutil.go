@@ -11,8 +11,7 @@ import (
 
 func UsesLiveController(mode protocol.RunMode) bool {
 	switch mode {
-	case protocol.RunModeFullRun,
-		protocol.RunModeRunFromNode,
+	case protocol.RunModeRunFromNode,
 		protocol.RunModeSingleNodeRun,
 		protocol.RunModeRecognitionOnly,
 		protocol.RunModeActionOnly:

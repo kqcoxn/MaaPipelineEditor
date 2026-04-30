@@ -7,7 +7,6 @@ func DefaultCapabilityManifest() protocol.CapabilityManifest {
 		Generation: protocol.Generation,
 		Protocol:   protocol.ProtocolVersion,
 		RunModes: []string{
-			string(protocol.RunModeFullRun),
 			string(protocol.RunModeRunFromNode),
 			string(protocol.RunModeSingleNodeRun),
 			string(protocol.RunModeRecognitionOnly),
