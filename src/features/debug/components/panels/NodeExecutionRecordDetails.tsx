@@ -15,13 +15,17 @@ import {
   type ResolverEdge,
 } from "../../nodeExecutionSelector";
 import {
+  allDebugNodeExecutionAttempts,
+  isArtifactRelatedToAttempt,
+} from "../../nodeExecutionAttempts";
+import {
   batchSummariesForRecord,
   type DebugBatchRecognitionNodeSummary,
   type DebugNodeReplayControl,
 } from "../../nodeExecutionAnalysis";
 import { formatDebugNodeExecutionDuration } from "../../nodeExecutionDisplay";
 import { eventTitle, formatTime } from "../../modalUtils";
-import type { DebugEvent } from "../../types";
+import type { DebugEvent, DebugExecutionDetailMode } from "../../types";
 import { formatDebugNodeDisplayName } from "../../syntheticNode";
 import type { DebugArtifactEntry } from "../../../../stores/debugArtifactStore";
 import { StatusTag } from "./NodeExecutionRecordList";
@@ -29,6 +33,7 @@ import {
   findDebugRunFirstTimestamp,
   formatDebugRunDisplayName,
 } from "../../runDisplayName";
+import { NodeExecutionAttemptFocus } from "./NodeExecutionAttemptFocus";
 
 const { Text } = Typography;
 
@@ -64,21 +69,27 @@ const overviewMetaValueStyle: CSSProperties = {
 export function NodeExecutionRecordDetails({
   artifacts,
   batchSummaries,
+  detailMode,
   events,
+  onSelectAttempt,
   record,
   replayControl,
   requestArtifact,
   resolverEdgeIndex,
   selectedArtifact,
+  selectedAttemptId,
 }: {
   artifacts: ArtifactEntries;
   batchSummaries: DebugBatchRecognitionNodeSummary[];
+  detailMode: DebugExecutionDetailMode;
   events: DebugEvent[];
+  onSelectAttempt: (attemptId?: string) => void;
   record: DebugNodeExecutionRecord;
   replayControl: DebugNodeReplayControl;
   requestArtifact: (artifactId: string) => void;
   resolverEdgeIndex: Map<string, ResolverEdge>;
   selectedArtifact?: DebugArtifactEntry;
+  selectedAttemptId?: string;
 }) {
   const derivedImageRefs = collectDerivedImageRefs(
     artifacts,
@@ -91,6 +102,13 @@ export function NodeExecutionRecordDetails({
   ]);
   const selectedArtifactIsRelated =
     selectedArtifact && relatedArtifactRefs.has(selectedArtifact.ref.id);
+  const selectedAttempt = allDebugNodeExecutionAttempts(record).find(
+    (attempt) => attempt.id === selectedAttemptId,
+  );
+  const selectedArtifactIsAttemptRelated = isArtifactRelatedToAttempt(
+    selectedArtifact?.ref.id,
+    selectedAttempt,
+  );
   const relatedBatchSummaries = batchSummariesForRecord(batchSummaries, record);
 
   return (
@@ -153,55 +171,131 @@ export function NodeExecutionRecordDetails({
         />
       )}
 
-      <EventGroup
+      <NodeExecutionAttemptFocus
         artifacts={artifacts}
-        events={record.recognitionEvents}
-        kind="recognition"
+        onSelectAttempt={onSelectAttempt}
         record={record}
-        title="识别事件"
-      />
-      <EventGroup
-        artifacts={artifacts}
-        events={record.actionEvents}
-        kind="action"
-        record={record}
-        title="动作事件"
-      />
-      <NextListGroup
-        events={record.nextListEvents}
-        fromRuntimeName={record.runtimeName}
-        record={record}
-        resolverEdgeIndex={resolverEdgeIndex}
-      />
-      <SimpleEventGroup events={record.waitFreezesEvents} title="WaitFreezes" />
-      <SimpleEventGroup
-        events={record.events.filter((event) => event.kind === "diagnostic")}
-        title="诊断事件"
-      />
-
-      <BatchRecognitionGroup
         requestArtifact={requestArtifact}
-        summaries={relatedBatchSummaries}
+        selectedArtifact={selectedArtifact}
+        selectedAttemptId={selectedAttemptId}
       />
 
-      <ArtifactActions
-        detailRefs={record.detailRefs}
-        derivedImageRefs={derivedImageRefs}
-        requestArtifact={requestArtifact}
-        screenshotRefs={record.screenshotRefs}
-      />
+      {detailMode === "compact" ? (
+        <>
+          <CompactNextSummary record={record} />
+          <SimpleEventGroup
+            events={record.events.filter((event) => event.kind === "diagnostic")}
+            title="诊断事件"
+          />
+          <BatchRecognitionGroup
+            requestArtifact={requestArtifact}
+            summaries={relatedBatchSummaries}
+          />
+        </>
+      ) : (
+        <>
+          <EventGroup
+            artifacts={artifacts}
+            events={record.recognitionEvents}
+            kind="recognition"
+            record={record}
+            title="识别事件"
+          />
+          <EventGroup
+            artifacts={artifacts}
+            events={record.actionEvents}
+            kind="action"
+            record={record}
+            title="动作事件"
+          />
+          <NextListGroup
+            events={record.nextListEvents}
+            fromRuntimeName={record.runtimeName}
+            record={record}
+            resolverEdgeIndex={resolverEdgeIndex}
+          />
+          <SimpleEventGroup
+            events={record.waitFreezesEvents}
+            title="WaitFreezes"
+          />
+          <SimpleEventGroup
+            events={record.events.filter((event) => event.kind === "diagnostic")}
+            title="诊断事件"
+          />
 
-      {selectedArtifactIsRelated && (
-        <DebugSection title="已选 Artifact 预览">
-          <DebugArtifactPreview artifact={selectedArtifact} />
-        </DebugSection>
+          <BatchRecognitionGroup
+            requestArtifact={requestArtifact}
+            summaries={relatedBatchSummaries}
+          />
+
+          <ArtifactActions
+            detailRefs={record.detailRefs}
+            derivedImageRefs={derivedImageRefs}
+            requestArtifact={requestArtifact}
+            screenshotRefs={record.screenshotRefs}
+          />
+
+          {selectedArtifactIsRelated && !selectedArtifactIsAttemptRelated && (
+            <DebugSection title="已选 Artifact 预览">
+              <DebugArtifactPreview artifact={selectedArtifact} />
+            </DebugSection>
+          )}
+
+          <SimpleEventGroup
+            events={record.events.filter((event) => event.maafwMessage)}
+            title="MaaFW 原始消息"
+          />
+        </>
       )}
-
-      <SimpleEventGroup
-        events={record.events.filter((event) => event.maafwMessage)}
-        title="MaaFW 原始消息"
-      />
     </Space>
+  );
+}
+
+function CompactNextSummary({
+  record,
+}: {
+  record: DebugNodeExecutionRecord;
+}) {
+  const candidates = record.nextCandidateSummary.candidates;
+  if (record.nextListCount === 0 && candidates.length === 0) return null;
+
+  return (
+    <DebugSection title="Next 摘要">
+      {candidates.length === 0 ? (
+        <Text type="secondary">该记录没有可展示的 next 候选。</Text>
+      ) : (
+        <Space direction="vertical" size={6} style={{ width: "100%" }}>
+          <Space wrap size={4}>
+            <Tag>候选 {record.nextCandidateSummary.candidateCount}</Tag>
+            <Tag color="green">命中 {record.nextCandidateSummary.hitCount}</Tag>
+            <Tag color="red">失败 {record.nextCandidateSummary.missCount}</Tag>
+            <Tag>edge {record.nextCandidateSummary.edgeCount}</Tag>
+            {record.nextCandidateSummary.jumpBackCount > 0 && (
+              <Tag>jump_back {record.nextCandidateSummary.jumpBackCount}</Tag>
+            )}
+            {record.nextCandidateSummary.anchorCount > 0 && (
+              <Tag>anchor {record.nextCandidateSummary.anchorCount}</Tag>
+            )}
+          </Space>
+          <Space wrap size={4}>
+            {candidates.map((candidate) => (
+              <Tag key={candidate.runtimeName}>
+                {candidate.label ?? candidate.runtimeName}
+                {candidate.hit === true ? " · hit" : ""}
+                {candidate.hit === false ? " · miss" : ""}
+                {candidate.edgeId ? ` · edge ${candidate.edgeId}` : ""}
+                {candidate.unmappedEdge ? " · 未映射 edge" : ""}
+                {candidate.jumpBack ? " · jump_back" : ""}
+                {candidate.anchor ? " · anchor" : ""}
+                {candidate.recognitionSeqs.length > 0
+                  ? ` · reco #${candidate.recognitionSeqs.join(",")}`
+                  : ""}
+              </Tag>
+            ))}
+          </Space>
+        </Space>
+      )}
+    </DebugSection>
   );
 }
 

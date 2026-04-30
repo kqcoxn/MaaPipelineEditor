@@ -391,6 +391,25 @@ type DebugRecognitionAttempt = {
   - 本阶段未实现 P4 的画布 edge/图像 overlay 交互增强；Next 模式仅沿用现有候选 edge 高亮能力。
   - 未运行 `yarn dev`，未使用浏览器测试，未跑完整前后端 build。
 
+### P3 完成记录（2026-04-30）
+
+- 状态：完成。
+- 本阶段产物：
+  - 前端新增 `DebugExecutionDetailMode = "compact" | "detailed"`；`debugModalMemoryStore` 持久化 `nodeExecutionDetailMode`，缺失或非法旧值回退为默认 `compact`。
+  - 节点执行 record view model 新增 `recognitionAttempts` / `actionAttempts`；attempt 按 `data.id` 聚合，缺失 `data.id` 时按单事件 `seq` 分组，并保留 seq 范围、phase/status、target runtime、来源 NextList、detail/screenshot refs、hit/action 等摘要字段。
+  - `NodeExecutionPanel` 顶部新增 `精简 / 详细` 信息密度切换；列表精简模式只保留运行、耗时、识别 hit/miss、动作、Next、Artifact 和来源等关键排障标签，详细模式保留原有高密度字段。
+  - `NodeExecutionRecordDetails` 新增单次 recognition/action attempt 选择区，支持上一条/下一条、点击条目聚焦、当前 attempt 摘要和 attempt 级 artifact 按钮；切换精简/详细不丢当前 record 或 attempt。
+  - 精简详情默认展示执行概览、attempt 聚焦、Next 摘要、诊断事件和批量识别摘要；详细详情保留原始事件组、WaitFreezes、MaaFW 原始消息、record-wide Artifact 入口和完整 Next-list。
+  - Artifact 仍按需加载；切换信息密度、选择 attempt 或展开详情不会自动请求 raw/draw/screenshot/detail，只有点击对应按钮才调用 `requestArtifact(ref)`。
+- 测试与验证：
+  - `yarn eslint src/features/debug/types.ts src/features/debug/nodeExecutionAttempts.ts src/features/debug/nodeExecutionSelector.ts src/features/debug/hooks/useDebugNodeExecutionController.ts src/features/debug/hooks/useDebugModalController.ts src/stores/debugModalMemoryStore.ts src/features/debug/components/panels/NodeExecutionPanel.tsx src/features/debug/components/panels/NodeExecutionRecordList.tsx src/features/debug/components/panels/NodeExecutionRecordDetails.tsx src/features/debug/components/panels/NodeExecutionAttemptFocus.tsx src/features/debug/nodeExecutionSelector.test.ts`：通过。
+  - `yarn vitest run src/features/debug/traceReducer.test.ts src/features/debug/nodeExecutionSelector.test.ts`：仍受当前 repo 既有 `vite.config.ts` 引用缺失的 `tests/setup.ts` 影响，未进入测试本体。
+  - 使用临时 no-setup Vitest config 与 `node` environment 执行同一组测试：`traceReducer.test.ts` 5 条与 `nodeExecutionSelector.test.ts` 19 条，共 24 条通过。
+- 已知边界：
+  - 本阶段未修改 LocalBridge，未升级 debug wire protocol，未运行 Go 测试。
+  - 本阶段未实现 P4 的画布 edge/图像 overlay 交互增强、attempt 选中后的 canvas 联动或大 trace 虚拟化。
+  - 未运行 `yarn dev`，未使用浏览器测试，未跑完整前后端 build。
+
 **Technical Risks**：
 
 - MaaFW 初始虚空节点的 `detail.Name` / `node_id` 具体表现可能随 binding 版本变化；实现应以“Tasker start 后第一个真实节点前的 unmapped next-list”作为行为特征，而不是只判断空字符串。

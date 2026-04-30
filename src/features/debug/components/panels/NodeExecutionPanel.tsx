@@ -22,6 +22,7 @@ import {
 import { debugNodeExecutionEventKindLabels } from "../../nodeExecutionDisplay";
 import type {
   DebugExecutionAttributionMode,
+  DebugExecutionDetailMode,
   DebugEventKind,
   DebugNodeExecutionArtifactFilter,
   DebugNodeExecutionEventKindFilter,
@@ -116,6 +117,14 @@ const attributionModeOptions: Array<{
   { value: "node", label: "节点模式" },
 ];
 
+const detailModeOptions: Array<{
+  value: DebugExecutionDetailMode;
+  label: string;
+}> = [
+  { value: "compact", label: "精简" },
+  { value: "detailed", label: "详细" },
+];
+
 export function NodeExecutionPanel({
   controller,
 }: {
@@ -126,6 +135,7 @@ export function NodeExecutionPanel({
     artifacts,
     events,
     nodeExecutionAttributionMode,
+    nodeExecutionDetailMode,
     nodeExecutionFilters,
     nodeExecutionRecords,
     pipelineNodes,
@@ -133,11 +143,14 @@ export function NodeExecutionPanel({
     requestArtifact,
     resolverEdgeIndex,
     selectedArtifact,
+    selectedNodeExecutionAttemptId,
     selectedFlowNodeId,
     selectedNodeExecutionRecordId,
     selectNodeExecutionRecord,
+    setSelectedNodeExecutionAttemptId,
     setSelectedNodeExecutionRecordId,
     setNodeExecutionAttributionMode,
+    setNodeExecutionDetailMode,
     setNodeExecutionFilters,
     summary,
   } = controller;
@@ -281,6 +294,14 @@ export function NodeExecutionPanel({
               ? "Next 看跳转判断"
               : "节点看识别 / 动作"}
           </Typography.Text>
+          <Segmented
+            size="small"
+            value={nodeExecutionDetailMode}
+            options={detailModeOptions}
+            onChange={(mode) =>
+              setNodeExecutionDetailMode(mode as DebugExecutionDetailMode)
+            }
+          />
           <Select
             size="small"
             style={{ minWidth: 160 }}
@@ -451,6 +472,7 @@ export function NodeExecutionPanel({
               <GroupedRecordList
                 events={events}
                 groups={groupedRecords}
+                detailMode={nodeExecutionDetailMode}
                 onSelectRecord={handleSelectRecord}
                 replayRecordState={replayRecordState}
                 selectedRecordId={selectedRecord?.id}
@@ -460,6 +482,7 @@ export function NodeExecutionPanel({
               <RecordList
                 events={events}
                 records={visibleRecords}
+                detailMode={nodeExecutionDetailMode}
                 onSelectRecord={handleSelectRecord}
                 replayRecordState={replayRecordState}
                 selectedRecordId={selectedRecord?.id}
@@ -471,12 +494,15 @@ export function NodeExecutionPanel({
               <NodeExecutionRecordDetails
                 artifacts={artifacts}
                 batchSummaries={batchRecognitionNodeSummaries}
+                detailMode={nodeExecutionDetailMode}
                 events={events}
+                onSelectAttempt={setSelectedNodeExecutionAttemptId}
                 record={selectedRecord}
                 replayControl={nodeReplayControl}
                 requestArtifact={requestArtifact}
                 resolverEdgeIndex={resolverEdgeIndex}
                 selectedArtifact={selectedArtifact}
+                selectedAttemptId={selectedNodeExecutionAttemptId}
               />
             )}
           </div>

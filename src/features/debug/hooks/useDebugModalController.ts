@@ -116,12 +116,14 @@ export function useDebugModalController() {
   const {
     lastRunMode,
     nodeExecutionAttributionMode,
+    nodeExecutionDetailMode,
     nodeExecutionFilters,
     setLastPanel,
     setLastRunMode,
     setLastEntryNodeId,
     setNodeExecutionFilters,
     setNodeExecutionAttributionMode,
+    setNodeExecutionDetailMode,
   } = useDebugModalMemoryStore();
   const { events, summary, liveSummary, replayStatus, performanceSummary } =
     useDebugTraceStore(
@@ -745,6 +747,7 @@ export function useDebugModalController() {
       nodeExecutionController.batchRecognitionNodeSummaries,
     nodeExecutionRecords: nodeExecutionController.nodeExecutionRecords,
     nodeExecutionAttributionMode,
+    nodeExecutionDetailMode,
     nodeExecutionFilters: nodeExecutionController.nodeExecutionFilters,
     nodeReplayControl: nodeExecutionController.nodeReplayControl,
     selectedNodeExecutionRecord:
@@ -778,6 +781,7 @@ export function useDebugModalController() {
     openNodeExecutionRecord,
     setNodeExecutionFilters: nodeExecutionController.setNodeExecutionFilters,
     setNodeExecutionAttributionMode,
+    setNodeExecutionDetailMode,
     setEntryFromSelectedNode,
     requestResourcePreflight,
     invalidateResourcePreflight,

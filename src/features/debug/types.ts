@@ -57,6 +57,7 @@ export type DebugNodeExecutionSortMode =
   | "slow-first"
   | "latest";
 export type DebugExecutionAttributionMode = "next" | "node";
+export type DebugExecutionDetailMode = "compact" | "detailed";
 
 export interface DebugNodeExecutionFilters {
   nodeId?: string;

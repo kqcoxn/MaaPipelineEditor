@@ -84,6 +84,88 @@ describe("selectDebugNodeExecutionRecords", () => {
     expect(failedRecords[0].detailRefs).toEqual(["a-second-detail"]);
   });
 
+  it("builds stable recognition and action attempts without mixing refs", () => {
+    const summary = reduceDebugTrace({
+      events: [
+        event(0, "node", "starting", node("node-a", "A")),
+        event(1, "recognition", "starting", node("node-a", "A"), {
+          id: "reco-1",
+        }),
+        event(
+          2,
+          "recognition",
+          "succeeded",
+          node("node-a", "A"),
+          {
+            id: "reco-1",
+            hit: true,
+            algorithm: "TemplateMatch",
+            box: [1, 2, 3, 4],
+          },
+          { detailRef: "reco-1-detail", screenshotRef: "reco-1-shot" },
+        ),
+        event(
+          3,
+          "recognition",
+          "failed",
+          node("node-a", "A"),
+          { hit: false },
+          { detailRef: "reco-seq-detail" },
+        ),
+        event(4, "action", "starting", node("node-a", "A"), {
+          id: "act-1",
+          action: "Click",
+        }),
+        event(
+          5,
+          "action",
+          "succeeded",
+          node("node-a", "A"),
+          { id: "act-1", action: "Click", success: true },
+          { detailRef: "act-1-detail" },
+        ),
+        event(6, "node", "succeeded", node("node-a", "A")),
+      ],
+    });
+
+    const [record] = selectDebugNodeExecutionRecords(
+      summary,
+      resolverNodes,
+      { status: "all" },
+    );
+
+    expect(record.recognitionAttempts).toHaveLength(2);
+    expect(record.actionAttempts).toHaveLength(1);
+    expect(record.recognitionAttempts[0]).toMatchObject({
+      dataId: "reco-1",
+      firstSeq: 1,
+      lastSeq: 2,
+      detailRefs: ["reco-1-detail"],
+      screenshotRefs: ["reco-1-shot"],
+      hit: true,
+      algorithm: "TemplateMatch",
+    });
+    expect(record.recognitionAttempts[1]).toMatchObject({
+      firstSeq: 3,
+      lastSeq: 3,
+      detailRefs: ["reco-seq-detail"],
+      screenshotRefs: [],
+      hit: false,
+    });
+    expect(record.recognitionAttempts[1].id).toContain(
+      ":recognition:3-3:seq:3",
+    );
+    expect(record.actionAttempts[0]).toMatchObject({
+      dataId: "act-1",
+      firstSeq: 4,
+      lastSeq: 5,
+      detailRefs: ["act-1-detail"],
+      screenshotRefs: [],
+      action: "Click",
+      success: true,
+    });
+  });
+
   it("keeps unmapped records visible and marks them as runtime-only", () => {
     const summary = reduceDebugTrace({
       events: [
@@ -236,6 +318,12 @@ describe("selectDebugNodeExecutionRecords", () => {
       firstSeq: 4,
       lastSeq: 7,
     });
+    expect(nodeModeRecords[1].recognitionAttempts[0]).toMatchObject({
+      firstSeq: 4,
+      sourceNextOwnerRuntimeName: DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
+      sourceNextOwnerLabel: DEBUG_TASKER_BOOTSTRAP_LABEL,
+      hit: true,
+    });
   });
 
   it("summarizes next candidates in next mode and assigns candidate recognitions to target nodes in node mode", () => {
@@ -340,6 +428,13 @@ describe("selectDebugNodeExecutionRecords", () => {
       actionCount: 0,
       status: "failed",
     });
+    expect(nodeModeD?.recognitionAttempts[0]).toMatchObject({
+      firstSeq: 4,
+      sourceNextOwnerRuntimeName: "B",
+      sourceNextOwnerLabel: "Beta",
+      hit: false,
+    });
+    expect(nodeModeD?.actionAttempts).toEqual([]);
   });
 
   it("keeps runtime-only records visible in node attribution mode", () => {

@@ -10,6 +10,7 @@ import {
   formatDebugNodeExecutionDuration,
 } from "../../nodeExecutionDisplay";
 import type { DebugEvent, DebugNodeExecutionStatus } from "../../types";
+import type { DebugExecutionDetailMode } from "../../types";
 import { formatDebugNodeDisplayName } from "../../syntheticNode";
 import {
   findDebugRunFirstTimestamp,
@@ -51,12 +52,14 @@ const listPagination = {
 };
 
 export function RecordList({
+  detailMode,
   events,
   records,
   onSelectRecord,
   replayRecordState,
   selectedRecordId,
 }: {
+  detailMode: DebugExecutionDetailMode;
   events: DebugEvent[];
   records: DebugNodeExecutionRecord[];
   onSelectRecord: (record: DebugNodeExecutionRecord) => void;
@@ -79,6 +82,7 @@ export function RecordList({
           )}
           replayState={replayRecordState?.(record) ?? "live"}
           selected={record.id === selectedRecordId}
+          detailMode={detailMode}
           onSelectRecord={onSelectRecord}
         />
       )}
@@ -87,6 +91,7 @@ export function RecordList({
 }
 
 export function GroupedRecordList({
+  detailMode,
   events,
   groups,
   onSelectRecord,
@@ -94,6 +99,7 @@ export function GroupedRecordList({
   selectedRecordId,
   totalRecordCount,
 }: {
+  detailMode: DebugExecutionDetailMode;
   events: DebugEvent[];
   groups: DebugNodeExecutionRecordGroup[];
   onSelectRecord: (record: DebugNodeExecutionRecord) => void;
@@ -135,6 +141,7 @@ export function GroupedRecordList({
                           )}
                           replayState={replayRecordState?.(record) ?? "live"}
                           selected={record.id === selectedRecordId}
+                          detailMode={detailMode}
                           onSelectRecord={onSelectRecord}
                         />
                       )}
@@ -155,12 +162,14 @@ export function StatusTag({ status }: { status: DebugNodeExecutionStatus }) {
 }
 
 function RecordListItem({
+  detailMode,
   record,
   runLabel,
   replayState,
   selected,
   onSelectRecord,
 }: {
+  detailMode: DebugExecutionDetailMode;
   record: DebugNodeExecutionRecord;
   runLabel: string;
   replayState: DebugNodeReplayRecordState;
@@ -184,7 +193,11 @@ function RecordListItem({
         }}
       >
         <RecordTitle record={record} />
-        <RecordMeta record={record} runLabel={runLabel} />
+        <RecordMeta
+          detailMode={detailMode}
+          record={record}
+          runLabel={runLabel}
+        />
       </div>
     </List.Item>
   );
@@ -235,12 +248,18 @@ function RecordTitle({ record }: { record: DebugNodeExecutionRecord }) {
 }
 
 function RecordMeta({
+  detailMode,
   record,
   runLabel,
 }: {
+  detailMode: DebugExecutionDetailMode;
   record: DebugNodeExecutionRecord;
   runLabel: string;
 }) {
+  if (detailMode === "compact") {
+    return <CompactRecordMeta record={record} runLabel={runLabel} />;
+  }
+
   return (
     <Space wrap size={4} style={{ marginTop: 6 }}>
       <Tag>运行 {runLabel}</Tag>
@@ -284,6 +303,52 @@ function RecordMeta({
       {record.eventKinds.slice(0, 4).map((kind) => (
         <Tag key={kind}>{debugNodeExecutionEventKindLabels[kind]}</Tag>
       ))}
+    </Space>
+  );
+}
+
+function CompactRecordMeta({
+  record,
+  runLabel,
+}: {
+  record: DebugNodeExecutionRecord;
+  runLabel: string;
+}) {
+  const hitCount = record.recognitionAttempts.filter(
+    (attempt) => attempt.hit === true,
+  ).length;
+  const missCount = record.recognitionAttempts.filter(
+    (attempt) => attempt.hit === false,
+  ).length;
+  const artifactCount = record.detailRefs.length + record.screenshotRefs.length;
+
+  return (
+    <Space wrap size={4} style={{ marginTop: 6 }}>
+      <Tag>运行 {runLabel}</Tag>
+      {record.durationMs !== undefined && (
+        <Tag>耗时 {formatDebugNodeExecutionDuration(record.durationMs)}</Tag>
+      )}
+      {record.recognitionAttempts.length > 0 && (
+        <Tag>
+          识别 {record.recognitionAttempts.length} · hit {hitCount} · miss{" "}
+          {missCount}
+        </Tag>
+      )}
+      {record.actionAttempts.length > 0 && (
+        <Tag>动作 {record.actionAttempts.length}</Tag>
+      )}
+      {record.nextCandidateSummary.candidateCount > 0 && (
+        <Tag color="blue">
+          Next {record.nextCandidateSummary.candidateCount} · 命中{" "}
+          {record.nextCandidateSummary.hitCount}
+        </Tag>
+      )}
+      {record.sourceNextOwnerLabel && (
+        <Tag color="geekblue">
+          来源 {record.sourceNextOwnerLabel} NextList
+        </Tag>
+      )}
+      {artifactCount > 0 && <Tag color="purple">Artifact {artifactCount}</Tag>}
     </Space>
   );
 }

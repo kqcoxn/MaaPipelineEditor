@@ -3,6 +3,10 @@ import {
   selectNodeAttributionRecordSeeds,
   type DebugNodeExecutionRecordSeed,
 } from "./nodeExecutionAttribution";
+import {
+  buildDebugNodeExecutionAttempts,
+  type DebugNodeExecutionAttempt,
+} from "./nodeExecutionAttempts";
 import type {
   DebugExecutionAttributionMode,
   DebugEventKind,
@@ -80,6 +84,8 @@ export interface DebugNodeExecutionRecord {
   eventCount: number;
   recognitionCount: number;
   actionCount: number;
+  recognitionAttempts: DebugNodeExecutionAttempt[];
+  actionAttempts: DebugNodeExecutionAttempt[];
   nextListCount: number;
   waitFreezesCount: number;
   diagnosticCount: number;
@@ -318,6 +324,11 @@ function toRecordFromSeed(
     sourceNextOwnerRuntimeNames.length === 1
       ? sourceNextOwnerRuntimeNames[0]
       : undefined;
+  const sourceNextOwnerLabel = sourceNextOwnerRuntimeName
+    ? formatOwnerRuntimeName(sourceNextOwnerRuntimeName, nodeByRuntime)
+    : sourceNextOwnerRuntimeNames.length > 1
+      ? "多个 NextList"
+      : undefined;
   const recognitionEvents = events.filter(
     (event) => event.kind === "recognition",
   );
@@ -326,9 +337,30 @@ function toRecordFromSeed(
   const waitFreezesEvents = events.filter(
     (event) => event.kind === "wait-freezes",
   );
+  const recordId = `${context.attributionMode}:${seed.runId}:${seed.nodeId ?? seed.runtimeName}:${firstSeq}:${lastSeq}`;
+  const recognitionAttempts = buildDebugNodeExecutionAttempts({
+    attributionMode: context.attributionMode,
+    events: recognitionEvents,
+    kind: "recognition",
+    recordId,
+    recordRuntimeName: seed.runtimeName,
+    resolveSourceNextOwnerLabel: (runtimeName) =>
+      formatOwnerRuntimeName(runtimeName, nodeByRuntime),
+    sourceNextOwnerLabel,
+  });
+  const actionAttempts = buildDebugNodeExecutionAttempts({
+    attributionMode: context.attributionMode,
+    events: actionEvents,
+    kind: "action",
+    recordId,
+    recordRuntimeName: seed.runtimeName,
+    resolveSourceNextOwnerLabel: (runtimeName) =>
+      formatOwnerRuntimeName(runtimeName, nodeByRuntime),
+    sourceNextOwnerLabel,
+  });
 
   return {
-    id: `${context.attributionMode}:${seed.runId}:${seed.nodeId ?? seed.runtimeName}:${firstSeq}:${lastSeq}`,
+    id: recordId,
     attributionMode: context.attributionMode,
     sessionId: summary.sessionId,
     runId: seed.runId,
@@ -369,6 +401,8 @@ function toRecordFromSeed(
     eventCount: events.length,
     recognitionCount: recognitionEvents.length,
     actionCount: actionEvents.length,
+    recognitionAttempts,
+    actionAttempts,
     nextListCount: nextListEvents.length,
     waitFreezesCount: waitFreezesEvents.length,
     diagnosticCount: events.filter((event) => event.kind === "diagnostic")
@@ -387,11 +421,7 @@ function toRecordFromSeed(
         .filter((runtimeName): runtimeName is string => Boolean(runtimeName)),
     ),
     sourceNextOwnerRuntimeName,
-    sourceNextOwnerLabel: sourceNextOwnerRuntimeName
-      ? formatOwnerRuntimeName(sourceNextOwnerRuntimeName, nodeByRuntime)
-      : sourceNextOwnerRuntimeNames.length > 1
-        ? "多个 NextList"
-        : undefined,
+    sourceNextOwnerLabel,
     sourceNextOwnerRuntimeNames,
     nextCandidateSummary: summarizeNextCandidates({
       edgeIndex: context.edgeIndex,

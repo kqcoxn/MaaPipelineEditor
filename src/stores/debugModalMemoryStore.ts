@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type {
   DebugExecutionAttributionMode,
+  DebugExecutionDetailMode,
   DebugNodeExecutionArtifactFilter,
   DebugNodeExecutionEventKindFilter,
   DebugModalPanel,
@@ -19,6 +20,7 @@ interface DebugModalMemorySnapshot {
   lastEntryNodeId?: string;
   nodeExecutionFilters: DebugNodeExecutionFilters;
   nodeExecutionAttributionMode: DebugExecutionAttributionMode;
+  nodeExecutionDetailMode: DebugExecutionDetailMode;
 }
 
 interface DebugModalMemoryState extends DebugModalMemorySnapshot {
@@ -29,6 +31,7 @@ interface DebugModalMemoryState extends DebugModalMemorySnapshot {
   setNodeExecutionAttributionMode: (
     mode: DebugExecutionAttributionMode,
   ) => void;
+  setNodeExecutionDetailMode: (mode: DebugExecutionDetailMode) => void;
 }
 
 const defaultMemory: DebugModalMemorySnapshot = {
@@ -36,6 +39,7 @@ const defaultMemory: DebugModalMemorySnapshot = {
   lastRunMode: "full-run",
   nodeExecutionFilters: DEFAULT_DEBUG_NODE_EXECUTION_FILTERS,
   nodeExecutionAttributionMode: "next",
+  nodeExecutionDetailMode: "compact",
 };
 
 const validPanels = new Set<DebugModalPanel>([
@@ -81,6 +85,10 @@ const validNodeExecutionSortModes = new Set<DebugNodeExecutionSortMode>([
 ]);
 const validNodeExecutionAttributionModes =
   new Set<DebugExecutionAttributionMode>(["next", "node"]);
+const validNodeExecutionDetailModes = new Set<DebugExecutionDetailMode>([
+  "compact",
+  "detailed",
+]);
 
 function normalizePanel(panel: unknown): DebugModalPanel {
   if (
@@ -149,6 +157,14 @@ function normalizeNodeExecutionAttributionMode(
     : defaultMemory.nodeExecutionAttributionMode;
 }
 
+function normalizeNodeExecutionDetailMode(
+  value: unknown,
+): DebugExecutionDetailMode {
+  return validNodeExecutionDetailModes.has(value as DebugExecutionDetailMode)
+    ? (value as DebugExecutionDetailMode)
+    : defaultMemory.nodeExecutionDetailMode;
+}
+
 function readMemory(): DebugModalMemorySnapshot {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -163,6 +179,9 @@ function readMemory(): DebugModalMemorySnapshot {
       ),
       nodeExecutionAttributionMode: normalizeNodeExecutionAttributionMode(
         parsed.nodeExecutionAttributionMode,
+      ),
+      nodeExecutionDetailMode: normalizeNodeExecutionDetailMode(
+        parsed.nodeExecutionDetailMode,
       ),
     };
   } catch (error) {
@@ -211,6 +230,12 @@ export const useDebugModalMemoryStore = create<DebugModalMemoryState>(
       const next = { ...get(), nodeExecutionAttributionMode };
       writeMemory(next);
       set({ nodeExecutionAttributionMode });
+    },
+
+    setNodeExecutionDetailMode: (nodeExecutionDetailMode) => {
+      const next = { ...get(), nodeExecutionDetailMode };
+      writeMemory(next);
+      set({ nodeExecutionDetailMode });
     },
   }),
 );

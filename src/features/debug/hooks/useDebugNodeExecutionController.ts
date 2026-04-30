@@ -1,8 +1,9 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { DebugArtifactEntry } from "../../../stores/debugArtifactStore";
 import { useDebugOverlayStore } from "../../../stores/debugOverlayStore";
 import type { NodeType } from "../../../stores/flow";
 import { applyDebugNodeTarget } from "../nodeTargetActions";
+import { allDebugNodeExecutionAttempts } from "../nodeExecutionAttempts";
 import {
   getDebugNodeReplayControl,
   selectDebugBatchRecognitionNodeSummaries,
@@ -51,6 +52,8 @@ export function useDebugNodeExecutionController({
   summary,
 }: UseDebugNodeExecutionControllerInput) {
   const [selectedNodeExecutionRecordId, setSelectedNodeExecutionRecordId] =
+    useState<string>();
+  const [selectedNodeExecutionAttemptId, setSelectedNodeExecutionAttemptId] =
     useState<string>();
   const debugResolver = useMemo(() => {
     const bundle = buildDebugSnapshotBundle();
@@ -137,6 +140,21 @@ export function useDebugNodeExecutionController({
         : undefined,
     [allNodeExecutionRecords, migratedSelectedNodeExecutionRecordId],
   );
+  const selectedNodeExecutionAttempts = useMemo(
+    () =>
+      selectedNodeExecutionRecord
+        ? allDebugNodeExecutionAttempts(selectedNodeExecutionRecord)
+        : [],
+    [selectedNodeExecutionRecord],
+  );
+  const migratedSelectedNodeExecutionAttemptId = useMemo(
+    () =>
+      migrateSelectedAttemptId(
+        selectedNodeExecutionAttemptId,
+        selectedNodeExecutionAttempts,
+      ),
+    [selectedNodeExecutionAttemptId, selectedNodeExecutionAttempts],
+  );
   const nodeReplayControl = useMemo(
     () => getDebugNodeReplayControl(selectedNodeExecutionRecord, replayStatus),
     [replayStatus, selectedNodeExecutionRecord],
@@ -145,6 +163,15 @@ export function useDebugNodeExecutionController({
     () => selectDebugBatchRecognitionNodeSummaries(artifacts),
     [artifacts],
   );
+
+  useEffect(() => {
+    if (migratedSelectedNodeExecutionAttemptId !== selectedNodeExecutionAttemptId) {
+      setSelectedNodeExecutionAttemptId(migratedSelectedNodeExecutionAttemptId);
+    }
+  }, [
+    migratedSelectedNodeExecutionAttemptId,
+    selectedNodeExecutionAttemptId,
+  ]);
 
   const selectPipelineNode = useCallback(
     (nodeId?: string) => {
@@ -216,12 +243,25 @@ export function useDebugNodeExecutionController({
     selectedPipelineNodeId,
     selectedNodeExecutionRecord,
     selectedNodeExecutionRecordId: migratedSelectedNodeExecutionRecordId,
+    selectedNodeExecutionAttemptId: migratedSelectedNodeExecutionAttemptId,
     setSelectedNodeExecutionRecordId,
+    setSelectedNodeExecutionAttemptId,
     openNodeExecutionRecord,
     selectNodeExecutionRecord,
     selectPipelineNode,
     setNodeExecutionFilters: updateNodeExecutionFilters,
   };
+}
+
+function migrateSelectedAttemptId(
+  attemptId: string | undefined,
+  attempts: ReturnType<typeof allDebugNodeExecutionAttempts>,
+): string | undefined {
+  if (attempts.length === 0) return undefined;
+  if (attemptId && attempts.some((attempt) => attempt.id === attemptId)) {
+    return attemptId;
+  }
+  return attempts[0].id;
 }
 
 function migrateSelectedRecordId(
