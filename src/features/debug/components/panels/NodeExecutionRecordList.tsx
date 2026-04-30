@@ -12,6 +12,7 @@ import {
 import type { DebugEvent, DebugNodeExecutionStatus } from "../../types";
 import type { DebugExecutionDetailMode } from "../../types";
 import { formatDebugNodeDisplayName } from "../../syntheticNode";
+import { terminalDebugNodeExecutionAttempts } from "../../nodeExecutionAttempts";
 import {
   findDebugRunFirstTimestamp,
   formatDebugRunDisplayName,
@@ -241,7 +242,9 @@ function RecordTitle({ record }: { record: DebugNodeExecutionRecord }) {
       <Tag>第 {record.occurrence} 次</Tag>
       {record.syntheticKind && <Tag color="purple">系统记录</Tag>}
       {record.unmapped && <Tag color="orange">runtimeName-only</Tag>}
-      {record.hasFailure && <Tag color="red">含失败</Tag>}
+      {record.hasFailure && record.status !== "failed" && (
+        <Tag color="red">含失败</Tag>
+      )}
       {record.slow && <Tag color="volcano">慢节点</Tag>}
     </Space>
   );
@@ -283,7 +286,7 @@ function RecordMeta({
         record.nextCandidateSummary.candidateCount > 0 && (
           <Tag color="blue">
             候选 {record.nextCandidateSummary.candidateCount} · 命中{" "}
-            {record.nextCandidateSummary.hitCount} · edge{" "}
+            {record.nextCandidateSummary.hitCount} · 映射边{" "}
             {record.nextCandidateSummary.edgeCount}
           </Tag>
         )}
@@ -314,12 +317,20 @@ function CompactRecordMeta({
   record: DebugNodeExecutionRecord;
   runLabel: string;
 }) {
-  const hitCount = record.recognitionAttempts.filter(
+  const terminalAttempts = terminalDebugNodeExecutionAttempts(record);
+  const terminalRecognitionAttempts = terminalAttempts.filter(
+    (item) => item.kind === "recognition",
+  );
+  const terminalActionCount = terminalAttempts.filter(
+    (item) => item.kind === "action",
+  ).length;
+  const hitCount = terminalRecognitionAttempts.filter(
     (attempt) => attempt.hit === true,
   ).length;
-  const missCount = record.recognitionAttempts.filter(
+  const missCount = terminalRecognitionAttempts.filter(
     (attempt) => attempt.hit === false,
   ).length;
+  const terminalRecognitionCount = terminalRecognitionAttempts.length;
   const artifactCount = record.detailRefs.length + record.screenshotRefs.length;
 
   return (
@@ -328,14 +339,13 @@ function CompactRecordMeta({
       {record.durationMs !== undefined && (
         <Tag>耗时 {formatDebugNodeExecutionDuration(record.durationMs)}</Tag>
       )}
-      {record.recognitionAttempts.length > 0 && (
+      {terminalRecognitionCount > 0 && (
         <Tag>
-          识别 {record.recognitionAttempts.length} · hit {hitCount} · miss{" "}
-          {missCount}
+          识别 {terminalRecognitionCount} · hit {hitCount} · miss {missCount}
         </Tag>
       )}
-      {record.actionAttempts.length > 0 && (
-        <Tag>动作 {record.actionAttempts.length}</Tag>
+      {terminalActionCount > 0 && (
+        <Tag>动作 {terminalActionCount}</Tag>
       )}
       {record.nextCandidateSummary.candidateCount > 0 && (
         <Tag color="blue">

@@ -95,6 +95,46 @@ export function allDebugNodeExecutionAttempts(input: {
   );
 }
 
+export function terminalDebugNodeExecutionAttempts(input: {
+  recognitionAttempts: DebugNodeExecutionAttempt[];
+  actionAttempts: DebugNodeExecutionAttempt[];
+}): DebugNodeExecutionAttempt[] {
+  return allDebugNodeExecutionAttempts(input).filter(
+    isTerminalDebugNodeExecutionAttempt,
+  );
+}
+
+export function isTerminalDebugNodeExecutionAttempt(
+  attempt: DebugNodeExecutionAttempt,
+): boolean {
+  return (
+    isSuccessfulDebugNodeExecutionAttempt(attempt) ||
+    isFailedDebugNodeExecutionAttempt(attempt)
+  );
+}
+
+export function isSuccessfulDebugNodeExecutionAttempt(
+  attempt: DebugNodeExecutionAttempt,
+): boolean {
+  if (attempt.kind === "recognition") {
+    if (attempt.hit !== undefined) return attempt.hit;
+    return attempt.phase === "succeeded" || attempt.phase === "completed";
+  }
+  if (attempt.success !== undefined) return attempt.success;
+  return attempt.phase === "succeeded" || attempt.phase === "completed";
+}
+
+export function isFailedDebugNodeExecutionAttempt(
+  attempt: DebugNodeExecutionAttempt,
+): boolean {
+  if (attempt.kind === "recognition") {
+    if (attempt.hit !== undefined) return !attempt.hit;
+    return attempt.phase === "failed" || attempt.status === "failed";
+  }
+  if (attempt.success !== undefined) return !attempt.success;
+  return attempt.phase === "failed" || attempt.status === "failed";
+}
+
 export function isArtifactRelatedToAttempt(
   artifactId: string | undefined,
   attempt: DebugNodeExecutionAttempt | undefined,

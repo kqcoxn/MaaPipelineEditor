@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { Alert, Button, List, Space, Tag, Typography } from "antd";
-import { DebugArtifactPreview } from "../DebugArtifactPreview";
+import { DebugArtifactSelector } from "../DebugArtifactSelector";
 import { DebugSection } from "../DebugSection";
 import {
   formatDebugDetailValue,
@@ -95,13 +95,6 @@ export function NodeExecutionRecordDetails({
     artifacts,
     record.recognitionEvents,
   );
-  const relatedArtifactRefs = new Set([
-    ...record.detailRefs,
-    ...record.screenshotRefs,
-    ...derivedImageRefs.map((ref) => ref.ref),
-  ]);
-  const selectedArtifactIsRelated =
-    selectedArtifact && relatedArtifactRefs.has(selectedArtifact.ref.id);
   const selectedAttempt = allDebugNodeExecutionAttempts(record).find(
     (attempt) => attempt.id === selectedAttemptId,
   );
@@ -117,7 +110,7 @@ export function NodeExecutionRecordDetails({
 
   return (
     <Space direction="vertical" size={12} style={{ width: "100%" }}>
-      <DebugSection title="执行概览">
+      <DebugSection title="执行概览" collapsible defaultCollapsed>
         <Space direction="vertical" size={8} style={{ width: "100%" }}>
           <StatusTag status={record.status} />
           <Tag color={replayControl.active ? "purple" : "default"}>
@@ -159,7 +152,9 @@ export function NodeExecutionRecordDetails({
             {record.sourcePath && (
               <OverviewMetaItem label="路径" value={record.sourcePath} wide />
             )}
-            {record.hasFailure && <OverviewMetaItem label="结果" value="含失败" />}
+            {record.hasFailure && record.status !== "failed" && (
+              <OverviewMetaItem label="结果" value="含失败" />
+            )}
             {record.slow && <OverviewMetaItem label="性能" value="慢节点" />}
             {record.hasArtifact && <OverviewMetaItem label="产物" value="含产物" />}
           </div>
@@ -177,6 +172,7 @@ export function NodeExecutionRecordDetails({
 
       <NodeExecutionAttemptFocus
         artifacts={artifacts}
+        detailMode={detailMode}
         onSelectAttempt={onSelectAttempt}
         record={record}
         requestArtifact={requestArtifact}
@@ -236,14 +232,11 @@ export function NodeExecutionRecordDetails({
             detailRefs={record.detailRefs}
             derivedImageRefs={derivedImageRefs}
             requestArtifact={requestArtifact}
+            selectedArtifact={
+              selectedArtifactIsAttemptRelated ? undefined : selectedArtifact
+            }
             screenshotRefs={record.screenshotRefs}
           />
-
-          {selectedArtifactIsRelated && !selectedArtifactIsAttemptRelated && (
-            <DebugSection title="已选 Artifact 预览">
-              <DebugArtifactPreview artifact={selectedArtifact} />
-            </DebugSection>
-          )}
 
           <SimpleEventGroup
             events={record.events.filter((event) => event.maafwMessage)}
@@ -273,7 +266,7 @@ function CompactNextSummary({
             <Tag>候选 {record.nextCandidateSummary.candidateCount}</Tag>
             <Tag color="green">命中 {record.nextCandidateSummary.hitCount}</Tag>
             <Tag color="red">失败 {record.nextCandidateSummary.missCount}</Tag>
-            <Tag>edge {record.nextCandidateSummary.edgeCount}</Tag>
+            <Tag>已映射边 {record.nextCandidateSummary.edgeCount}</Tag>
             {record.nextCandidateSummary.jumpBackCount > 0 && (
               <Tag>jump_back {record.nextCandidateSummary.jumpBackCount}</Tag>
             )}
@@ -287,8 +280,8 @@ function CompactNextSummary({
                 {candidate.label ?? candidate.runtimeName}
                 {candidate.hit === true ? " · hit" : ""}
                 {candidate.hit === false ? " · miss" : ""}
-                {candidate.edgeId ? ` · edge ${candidate.edgeId}` : ""}
-                {candidate.unmappedEdge ? " · 未映射 edge" : ""}
+                {candidate.edgeId ? " · 已映射边" : ""}
+                {candidate.unmappedEdge ? " · 未映射边" : ""}
                 {candidate.jumpBack ? " · jump_back" : ""}
                 {candidate.anchor ? " · anchor" : ""}
                 {candidate.recognitionSeqs.length > 0
@@ -503,10 +496,6 @@ function SummaryLine({
           ["success", event.data?.success ?? actionSummary?.success],
           ["box", event.data?.box ?? actionSummary?.box],
         ];
-  const detail = recognitionSummary?.detail ?? actionSummary?.detail;
-  const detailJson =
-    recognitionSummary?.detailJson ?? actionSummary?.detailJson;
-
   return (
     <Space direction="vertical" size={4} style={{ width: "100%" }}>
       <Space wrap size={4}>
@@ -514,14 +503,6 @@ function SummaryLine({
           <Tag key={label}>{`${label}: ${formatDebugDetailValue(value)}`}</Tag>
         ))}
       </Space>
-      {detail !== undefined && (
-        <Text type="secondary">detail: {truncate(formatDebugDetailValue(detail))}</Text>
-      )}
-      {detail === undefined && detailJson !== undefined && (
-        <Text type="secondary">
-          detailJson: {truncate(formatDebugDetailValue(detailJson))}
-        </Text>
-      )}
     </Space>
   );
 }
@@ -570,8 +551,8 @@ function NextListGroup({
                       {item.anchor ? " · anchor" : ""}
                       {candidate?.hit === true ? " · hit" : ""}
                       {candidate?.hit === false ? " · miss" : ""}
-                      {edge ? ` · edge ${edge.edgeId}` : ""}
-                      {!edge && !record.syntheticKind ? " · 未映射 edge" : ""}
+                      {edge ? " · 已映射边" : ""}
+                      {!edge && !record.syntheticKind ? " · 未映射边" : ""}
                     </Tag>
                   );
                 })}
@@ -581,7 +562,7 @@ function NextListGroup({
                   <Tag>候选 {record.nextCandidateSummary.candidateCount}</Tag>
                   <Tag color="green">命中 {record.nextCandidateSummary.hitCount}</Tag>
                   <Tag color="red">失败 {record.nextCandidateSummary.missCount}</Tag>
-                  <Tag>edge {record.nextCandidateSummary.edgeCount}</Tag>
+                  <Tag>已映射边 {record.nextCandidateSummary.edgeCount}</Tag>
                 </Space>
               )}
             </Space>
@@ -596,11 +577,13 @@ function ArtifactActions({
   detailRefs,
   derivedImageRefs,
   requestArtifact,
+  selectedArtifact,
   screenshotRefs,
 }: {
   detailRefs: string[];
   derivedImageRefs: DebugDetailImageRef[];
   requestArtifact: (artifactId: string) => void;
+  selectedArtifact?: DebugArtifactEntry;
   screenshotRefs: string[];
 }) {
   const hasRefs =
@@ -613,63 +596,35 @@ function ArtifactActions({
       {!hasRefs ? (
         <Text type="secondary">该执行记录没有 artifact 引用。</Text>
       ) : (
-        <Space direction="vertical" size={8}>
-          <ArtifactButtonGroup
-            refs={detailRefs.map((ref) => ({
-              ref,
-              label: `查看详情 #${shortRef(ref)}`,
-            }))}
-            requestArtifact={requestArtifact}
-            title="详情 JSON"
-          />
-          <ArtifactButtonGroup
-            refs={screenshotRefs.map((ref) => ({
-              ref,
-              label: `查看事件图像 #${shortRef(ref)}`,
-            }))}
-            requestArtifact={requestArtifact}
-            title="事件图像"
-          />
-          <ArtifactButtonGroup
-            refs={derivedImageRefs.map((item) => ({
-              ref: item.ref,
-              label: `查看${item.label} #${shortRef(item.ref)}`,
-            }))}
-            requestArtifact={requestArtifact}
-            title="详情派生图像"
-          />
-        </Space>
+        <DebugArtifactSelector
+          groups={[
+            {
+              title: "详情 JSON",
+              refs: detailRefs.map((ref) => ({
+                ref,
+                label: `详情 #${shortRef(ref)}`,
+              })),
+            },
+            {
+              title: "事件图像",
+              refs: screenshotRefs.map((ref) => ({
+                ref,
+                label: `图像 #${shortRef(ref)}`,
+              })),
+            },
+            {
+              title: "详情派生图像",
+              refs: derivedImageRefs.map((item) => ({
+                ref: item.ref,
+                label: `${item.label} #${shortRef(item.ref)}`,
+              })),
+            },
+          ]}
+          requestArtifact={requestArtifact}
+          selectedArtifact={selectedArtifact}
+        />
       )}
     </DebugSection>
-  );
-}
-
-function ArtifactButtonGroup({
-  refs,
-  requestArtifact,
-  title,
-}: {
-  refs: Array<{ ref: string; label: string }>;
-  requestArtifact: (artifactId: string) => void;
-  title: string;
-}) {
-  if (refs.length === 0) return null;
-
-  return (
-    <Space direction="vertical" size={4}>
-      <Text type="secondary">{title}</Text>
-      <Space wrap>
-        {refs.map((item) => (
-          <Button
-            key={`${title}-${item.ref}-${item.label}`}
-            size="small"
-            onClick={() => requestArtifact(item.ref)}
-          >
-            {item.label}
-          </Button>
-        ))}
-      </Space>
-    </Space>
   );
 }
 

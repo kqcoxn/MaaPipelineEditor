@@ -100,6 +100,33 @@ const scrollMainStyle: CSSProperties = {
   paddingRight: 4,
 };
 
+const nodeExecutionMainStyle: CSSProperties = {
+  ...scrollMainStyle,
+  overflowY: "hidden",
+  paddingRight: 0,
+  scrollbarGutter: "auto",
+};
+
+const mainContentStyle: CSSProperties = {
+  width: "100%",
+  display: "flex",
+  flexDirection: "column",
+  gap: 16,
+};
+
+const nodeExecutionContentStyle: CSSProperties = {
+  ...mainContentStyle,
+  display: "flex",
+  flexDirection: "column",
+  height: "100%",
+  minHeight: 0,
+};
+
+const nodeExecutionPanelSlotStyle: CSSProperties = {
+  flex: 1,
+  minHeight: 0,
+};
+
 const modalBodyStyle: CSSProperties = {
   display: "flex",
   gap: 16,
@@ -112,6 +139,7 @@ export function DebugModal() {
   const controller = useDebugModalController();
   const activePanelMeta =
     panels.find((panel) => panel.id === controller.activePanel) ?? panels[0];
+  const nodeExecutionActive = controller.activePanel === "node-execution";
 
   return (
     <Modal
@@ -140,8 +168,14 @@ export function DebugModal() {
           </Space>
         </nav>
 
-        <main style={scrollMainStyle}>
-          <Space direction="vertical" size={16} style={{ width: "100%" }}>
+        <main
+          style={nodeExecutionActive ? nodeExecutionMainStyle : scrollMainStyle}
+        >
+          <div
+            style={
+              nodeExecutionActive ? nodeExecutionContentStyle : mainContentStyle
+            }
+          >
             <div>
               <Title level={4} style={{ margin: 0 }}>
                 {activePanelMeta.label}
@@ -156,8 +190,10 @@ export function DebugModal() {
                 description={controller.debugReadinessDescription}
               />
             )}
-            <ActivePanel controller={controller} />
-          </Space>
+            <div style={nodeExecutionActive ? nodeExecutionPanelSlotStyle : undefined}>
+              <ActivePanel controller={controller} />
+            </div>
+          </div>
         </main>
       </div>
     </Modal>

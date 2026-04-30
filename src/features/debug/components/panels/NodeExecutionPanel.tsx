@@ -40,21 +40,33 @@ import {
 } from "../../runDisplayName";
 import { formatDebugNodeDisplayName } from "../../syntheticNode";
 
-const layoutStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "flex-start",
+const workspaceStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 380px), 1fr))",
+  alignItems: "stretch",
   gap: 12,
-  flexWrap: "wrap",
+  flex: "1 1 0",
+  minHeight: 0,
+  overflow: "hidden",
 };
 
-const listPaneStyle: CSSProperties = {
-  flex: "1 1 360px",
-  minWidth: 320,
+const panelStyle: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 14,
+  height: "100%",
+  minHeight: 0,
+  width: "100%",
 };
 
-const detailPaneStyle: CSSProperties = {
-  flex: "1.4 1 440px",
-  minWidth: 360,
+const scrollPaneStyle: CSSProperties = {
+  minWidth: 0,
+  minHeight: 0,
+  height: "100%",
+  overflowY: "auto",
+  overflowX: "hidden",
+  paddingRight: 4,
+  scrollbarGutter: "stable",
 };
 
 const statusOptions: Array<{
@@ -283,8 +295,8 @@ export function NodeExecutionPanel({
   }
 
   return (
-    <Space direction="vertical" size={14} style={{ width: "100%" }}>
-      <DebugSection title="节点执行筛选">
+    <div style={panelStyle}>
+      <DebugSection title="节点执行筛选" collapsible defaultCollapsed>
         <Space wrap>
           <Tag color={replayStatus?.active ? "purple" : "default"}>
             {replayStatus?.active ? `Replay #${replayStatus.cursorSeq}` : "Live"}
@@ -430,7 +442,7 @@ export function NodeExecutionPanel({
         </Space>
       </DebugSection>
 
-      <DebugSection title="节点级回放">
+      <DebugSection title="节点级回放" collapsible defaultCollapsed>
         <Space wrap>
           <Tag color={nodeReplayControl.active ? "purple" : "default"}>
             {nodeReplayControl.active
@@ -484,8 +496,8 @@ export function NodeExecutionPanel({
       ) : visibleRecords.length === 0 ? (
         <Empty description="没有符合搜索条件的节点执行记录" />
       ) : (
-        <div style={layoutStyle}>
-          <div style={listPaneStyle}>
+        <div style={workspaceStyle}>
+          <div style={scrollPaneStyle}>
             {nodeExecutionFilters.groupRepeated ? (
               <GroupedRecordList
                 events={events}
@@ -507,7 +519,7 @@ export function NodeExecutionPanel({
               />
             )}
           </div>
-          <div style={detailPaneStyle}>
+          <div style={scrollPaneStyle}>
             {selectedRecord && (
               <NodeExecutionRecordDetails
                 artifacts={artifacts}
@@ -526,7 +538,7 @@ export function NodeExecutionPanel({
           </div>
         </div>
       )}
-    </Space>
+    </div>
   );
 }
 

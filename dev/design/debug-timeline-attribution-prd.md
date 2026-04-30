@@ -435,6 +435,25 @@ type DebugRecognitionAttempt = {
   - 未运行 `yarn dev`，未使用浏览器测试，未跑完整前后端 build。
 - 最终闭环：P0-P4 已覆盖 `(Tasker)` bootstrap 归属、Next/节点双归属、精简/详细与单次 attempt、画布/图像联动。后续需求应进入新的 PRD 或独立增强任务，不再作为本规划阶段延伸。
 
+### 闭环后体验修正记录（2026-04-30）
+
+- 状态：完成。
+- 修正内容：
+  - 节点执行 selector 增加 task bootstrap 防御归一化：task-based run 的首个未映射节点段会显示为 `(Tasker)`，并同步修正该段内部 node/parent 展示。
+  - 精简模式下单次识别 / 动作只展示成功或失败 attempt，移除上一条 / 下一条按钮，计数移动到底部；详细模式继续保留原始 starting 等事件。
+  - 记录状态改为结果优先：只要识别 / 动作存在成功结果则记录为成功；混合失败时额外显示“含失败”，全部失败时只显示失败。
+  - Artifact 预览改为统一 selector，当前 artifact 按钮置为选中且不可重复点击；JSON 使用项目已有 `@microlink/react-json-view` 树形预览，不再在详情上方展示截断纯文本。
+  - Next 摘要显示候选节点 label / displayName，不再显示内部 edge id；长任务节点列表与详情改为固定高度双栏并各自滚动。
+  - 节点执行页关闭 modal 主滚动条，仅保留节点列表与详情两栏滚动；节点执行筛选、节点级回放和执行概览改为默认收起。
+  - 补充修正：即使 MaaFW/normalizer 将 task bootstrap 的首个虚拟段映射到了真实节点，Next 模式首个节点记录也一律归一显示为 `(Tasker)`。
+- 验证：
+  - `yarn eslint src/components/debug/DebugModal.tsx src/features/debug/components/DebugSection.tsx src/features/debug/nodeExecutionAttempts.ts src/features/debug/nodeExecutionSelector.ts src/features/debug/nodeExecutionTaskerBootstrap.ts src/features/debug/nodeExecutionAnalysis.ts src/features/debug/components/DebugJsonPreview.tsx src/features/debug/components/DebugArtifactSelector.tsx src/features/debug/components/DebugArtifactPreview.tsx src/features/debug/components/panels/NodeExecutionPanel.tsx src/features/debug/components/panels/NodeExecutionRecordList.tsx src/features/debug/components/panels/NodeExecutionRecordDetails.tsx src/features/debug/components/panels/NodeExecutionAttemptFocus.tsx src/features/debug/nodeExecutionSelector.test.ts`：通过。
+  - 使用临时 no-setup Vitest config 与 `node` environment 执行 `traceReducer.test.ts` 与 `nodeExecutionSelector.test.ts`：共 28 条通过。
+  - `git diff --check -- src dev/design/debug-timeline-attribution-prd.md`：通过。
+- 已知边界：
+  - 本次未修改 LocalBridge，未升级 debug wire protocol，未运行 Go 测试。
+  - 未运行 `yarn dev`，未使用浏览器测试，未跑完整前后端 build。
+
 **Technical Risks**：
 
 - MaaFW 初始虚空节点的 `detail.Name` / `node_id` 具体表现可能随 binding 版本变化；实现应以“Tasker start 后第一个真实节点前的 unmapped next-list”作为行为特征，而不是只判断空字符串。

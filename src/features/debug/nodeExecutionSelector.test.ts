@@ -247,6 +247,101 @@ describe("selectDebugNodeExecutionRecords", () => {
     expect(overlay.executionCandidateEdgeIds).toEqual([]);
   });
 
+  it("defensively labels the first task bootstrap record as Tasker", () => {
+    const summary = reduceDebugTrace({
+      events: [
+        event(0, "session", "starting", undefined, { mode: "full-run" }),
+        event(1, "node", "starting", { runtimeName: "Task" }),
+        event(2, "next-list", "succeeded", { runtimeName: "Task" }, {
+          next: [{ name: "A", jumpBack: false, anchor: false }],
+        }),
+        event(3, "recognition", "succeeded", node("node-a", "A"), {
+          parentNode: "Task",
+          hit: true,
+        }),
+        event(4, "node", "starting", node("node-a", "A")),
+        event(5, "node", "succeeded", node("node-a", "A")),
+      ],
+    });
+
+    const records = selectDebugNodeExecutionRecords(
+      summary,
+      resolverNodes,
+      { status: "all" },
+    );
+
+    expect(records[0]).toMatchObject({
+      runtimeName: DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
+      label: DEBUG_TASKER_BOOTSTRAP_LABEL,
+      syntheticKind: "tasker-bootstrap",
+      nodeId: undefined,
+      fileId: undefined,
+      unmapped: false,
+    });
+    expect(records[0].events[0].node).toMatchObject({
+      runtimeName: DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
+      label: DEBUG_TASKER_BOOTSTRAP_LABEL,
+      syntheticKind: "tasker-bootstrap",
+    });
+    expect(records[0].recognitionEvents[0].data?.parentNode).toBe(
+      DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
+    );
+  });
+
+  it("labels the first task record as Tasker even when it was mapped to a real node", () => {
+    const summary = reduceDebugTrace({
+      events: [
+        event(0, "session", "starting", undefined, { mode: "full-run" }),
+        event(1, "node", "starting", node("node-a", "A")),
+        event(2, "next-list", "succeeded", node("node-a", "A"), {
+          next: [{ name: "B", jumpBack: false, anchor: false }],
+        }),
+        event(3, "recognition", "succeeded", node("node-b", "B"), {
+          parentNode: "A",
+          hit: true,
+        }),
+        event(4, "node", "starting", node("node-a", "A")),
+        event(5, "node", "succeeded", node("node-a", "A")),
+        event(6, "node", "starting", node("node-b", "B")),
+        event(7, "node", "succeeded", node("node-b", "B")),
+      ],
+    });
+
+    const records = selectDebugNodeExecutionRecords(
+      summary,
+      resolverNodes,
+      { status: "all" },
+    );
+
+    expect(records.map((record) => record.label)).toEqual([
+      DEBUG_TASKER_BOOTSTRAP_LABEL,
+      "Alpha",
+      "Beta",
+    ]);
+    expect(records[0]).toMatchObject({
+      runtimeName: DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
+      label: DEBUG_TASKER_BOOTSTRAP_LABEL,
+      syntheticKind: "tasker-bootstrap",
+      nodeId: undefined,
+      fileId: undefined,
+      unmapped: false,
+      nextListCount: 1,
+    });
+    expect(records[0].events[0].node).toMatchObject({
+      runtimeName: DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
+      label: DEBUG_TASKER_BOOTSTRAP_LABEL,
+      syntheticKind: "tasker-bootstrap",
+    });
+    expect(records[0].recognitionEvents[0].data?.parentNode).toBe(
+      DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
+    );
+    expect(records[1]).toMatchObject({
+      runtimeName: "A",
+      nodeId: "node-a",
+      firstSeq: 4,
+    });
+  });
+
   it("keeps bootstrap recognition on Tasker in next mode and attaches it to the target in node mode", () => {
     const summary = reduceDebugTrace({
       events: [
@@ -326,6 +421,64 @@ describe("selectDebugNodeExecutionRecords", () => {
     });
   });
 
+  it("treats mixed successful and failed attempts as succeeded with a failure hint", () => {
+    const summary = reduceDebugTrace({
+      events: [
+        event(1, "node", "starting", node("node-a", "A")),
+        event(2, "recognition", "succeeded", node("node-a", "A"), {
+          id: "hit",
+          hit: true,
+        }),
+        event(3, "recognition", "failed", node("node-a", "A"), {
+          id: "miss",
+          hit: false,
+        }),
+        event(4, "node", "failed", node("node-a", "A")),
+      ],
+    });
+
+    const [record] = selectDebugNodeExecutionRecords(
+      summary,
+      resolverNodes,
+      { status: "all" },
+    );
+    const failedRecords = selectDebugNodeExecutionRecords(
+      summary,
+      resolverNodes,
+      { status: "failed" },
+    );
+
+    expect(record).toMatchObject({
+      status: "succeeded",
+      hasFailure: true,
+    });
+    expect(failedRecords).toHaveLength(0);
+  });
+
+  it("treats all-miss attempts as failed without the mixed failure hint", () => {
+    const summary = reduceDebugTrace({
+      events: [
+        event(1, "node", "starting", node("node-a", "A")),
+        event(2, "recognition", "failed", node("node-a", "A"), {
+          id: "miss",
+          hit: false,
+        }),
+        event(3, "node", "failed", node("node-a", "A")),
+      ],
+    });
+
+    const [record] = selectDebugNodeExecutionRecords(
+      summary,
+      resolverNodes,
+      { status: "all" },
+    );
+
+    expect(record).toMatchObject({
+      status: "failed",
+      hasFailure: false,
+    });
+  });
+
   it("summarizes next candidates in next mode and assigns candidate recognitions to target nodes in node mode", () => {
     const summary = reduceDebugTrace({
       events: [
@@ -395,12 +548,14 @@ describe("selectDebugNodeExecutionRecords", () => {
       expect.arrayContaining([
         expect.objectContaining({
           runtimeName: "C",
+          label: "Gamma",
           hit: true,
           edgeId: "edge-b-c",
           recognitionSeqs: [3],
         }),
         expect.objectContaining({
           runtimeName: "D",
+          label: "D",
           hit: false,
           unmappedEdge: true,
           recognitionSeqs: [4],
@@ -502,8 +657,9 @@ describe("selectDebugNodeExecutionRecords", () => {
     expect(records).toHaveLength(1);
     expect(records[0]).toMatchObject({
       runtimeName: "B",
+      status: "failed",
       hasArtifact: true,
-      hasFailure: true,
+      hasFailure: false,
     });
   });
 

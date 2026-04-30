@@ -5,8 +5,11 @@ import {
 } from "./nodeExecutionAttribution";
 import {
   buildDebugNodeExecutionAttempts,
+  isFailedDebugNodeExecutionAttempt,
+  isSuccessfulDebugNodeExecutionAttempt,
   type DebugNodeExecutionAttempt,
 } from "./nodeExecutionAttempts";
+import { normalizeTaskerBootstrapSeeds } from "./nodeExecutionTaskerBootstrap";
 import type {
   DebugExecutionAttributionMode,
   DebugEventKind,
@@ -147,14 +150,16 @@ export function selectDebugNodeExecutionRecords(
     slowIndex,
   };
 
-  const records =
+  const seeds =
     attributionMode === "node"
-      ? selectNodeAttributionRecords(summary, nodeById, nodeByRuntime, context)
+      ? selectNodeAttributionRecordSeeds(summary, nodeById, nodeByRuntime)
       : Object.values(summary.nodeReplays)
           .flat()
-          .map((replay) =>
-            toRecord(summary, replay, nodeById, nodeByRuntime, context),
-          );
+          .map((replay) => seedFromReplay(summary, replay));
+
+  const records = normalizeTaskerBootstrapSeeds(seeds).map((seed) =>
+    toRecordFromSeed(summary, seed, nodeById, nodeByRuntime, context),
+  );
 
   return records
     .filter((record) => matchesFilters(record, filters))
@@ -224,38 +229,23 @@ export function findDebugResolverEdge(
   return edgeIndex.get(debugResolverEdgeKey(fromRuntimeName, toRuntimeName));
 }
 
-function toRecord(
+function seedFromReplay(
   summary: DebugTraceSummary,
   replay: DebugNodeReplay,
-  nodeById: Map<string, ResolverNode>,
-  nodeByRuntime: Map<string, ResolverNode>,
-  context: {
-    attributionMode: DebugExecutionAttributionMode;
-    edgeIndex: Map<string, ResolverEdge>;
-    performanceSummary?: DebugPerformanceSummary;
-    performanceIndex: Map<string, DebugPerformanceNodeSummary[]>;
-    slowIndex: Map<string, DebugPerformanceNodeSummary[]>;
-  },
-): DebugNodeExecutionRecord {
-  return toRecordFromSeed(
-    summary,
-    {
-      nodeId: replay.nodeId,
-      runtimeName: replay.runtimeName,
-      fileId: replay.fileId,
-      label: replay.label,
-      syntheticKind: replay.syntheticKind,
-      runId: replay.runId,
-      runMode: replay.runMode,
-      status: replay.status,
-      occurrence: replay.occurrence,
-      events: replay.events,
-      unmapped: replay.unmapped,
-    },
-    nodeById,
-    nodeByRuntime,
-    context,
-  );
+): DebugNodeExecutionRecordSeed {
+  return {
+    nodeId: replay.nodeId,
+    runtimeName: replay.runtimeName,
+    fileId: replay.fileId,
+    label: replay.label,
+    syntheticKind: replay.syntheticKind,
+    runId: replay.runId,
+    runMode: replay.runMode ?? summary.runMode,
+    status: replay.status,
+    occurrence: replay.occurrence,
+    events: replay.events,
+    unmapped: replay.unmapped,
+  };
 }
 
 function toRecordFromSeed(
@@ -304,12 +294,6 @@ function toRecordFromSeed(
       ? performanceNode.durationMs
       : traceDurationMs;
   const eventKinds = uniqueEventKinds(events);
-  const status = seed.status ?? "visited";
-  const hasFailure =
-    status === "failed" ||
-    events.some(
-      (event) => event.phase === "failed" || event.status === "failed",
-    );
   const hasArtifact = detailRefs.length > 0 || screenshotRefs.length > 0;
   const sourceNextOwnerRuntimeNames = uniqueStrings(
     events
@@ -358,6 +342,12 @@ function toRecordFromSeed(
       formatOwnerRuntimeName(runtimeName, nodeByRuntime),
     sourceNextOwnerLabel,
   });
+  const outcome = resolveRecordOutcome(
+    seed.status,
+    events,
+    recognitionAttempts,
+    actionAttempts,
+  );
 
   return {
     id: recordId,
@@ -378,7 +368,7 @@ function toRecordFromSeed(
     ),
     sourcePath: syntheticNode ? undefined : resolverNode?.sourcePath,
     syntheticKind,
-    status,
+    status: outcome.status,
     occurrence: seed.occurrence,
     firstSeq,
     lastSeq,
@@ -395,7 +385,7 @@ function toRecordFromSeed(
         lastSeq,
       }),
     ),
-    hasFailure,
+    hasFailure: outcome.hasFailure,
     hasArtifact,
     eventKinds,
     eventCount: events.length,
@@ -434,28 +424,43 @@ function toRecordFromSeed(
   };
 }
 
-function selectNodeAttributionRecords(
-  summary: DebugTraceSummary,
-  nodeById: Map<string, ResolverNode>,
-  nodeByRuntime: Map<string, ResolverNode>,
-  context: {
-    attributionMode: DebugExecutionAttributionMode;
-    edgeIndex: Map<string, ResolverEdge>;
-    performanceSummary?: DebugPerformanceSummary;
-    performanceIndex: Map<string, DebugPerformanceNodeSummary[]>;
-    slowIndex: Map<string, DebugPerformanceNodeSummary[]>;
-  },
-): DebugNodeExecutionRecord[] {
-  return selectNodeAttributionRecordSeeds(summary, nodeById, nodeByRuntime).map(
-    (seed) =>
-      toRecordFromSeed(
-      summary,
-      seed,
-      nodeById,
-      nodeByRuntime,
-      context,
-    ),
-  );
+function resolveRecordOutcome(
+  seedStatus: DebugNodeExecutionStatus | undefined,
+  events: DebugEvent[],
+  recognitionAttempts: DebugNodeExecutionAttempt[],
+  actionAttempts: DebugNodeExecutionAttempt[],
+): { status: DebugNodeExecutionStatus; hasFailure: boolean } {
+  const attempts = [...recognitionAttempts, ...actionAttempts];
+  const hasSuccess = attempts.some(isSuccessfulDebugNodeExecutionAttempt);
+  const hasAttemptFailure = attempts.some(isFailedDebugNodeExecutionAttempt);
+
+  if (hasSuccess) {
+    return {
+      status: "succeeded",
+      hasFailure: hasAttemptFailure,
+    };
+  }
+  if (hasAttemptFailure) {
+    return {
+      status: "failed",
+      hasFailure: false,
+    };
+  }
+  if (
+    seedStatus === "failed" ||
+    events.some(
+      (event) => event.phase === "failed" || event.status === "failed",
+    )
+  ) {
+    return {
+      status: "failed",
+      hasFailure: false,
+    };
+  }
+  return {
+    status: seedStatus ?? "visited",
+    hasFailure: false,
+  };
 }
 
 function summarizeNextCandidates({
@@ -478,7 +483,7 @@ function summarizeNextCandidates({
     for (const item of readNextItems(event)) {
       const current = candidates.get(item.name) ?? {
         runtimeName: item.name,
-        label: nodeByRuntime.get(item.name)?.displayName,
+        label: formatOwnerRuntimeName(item.name, nodeByRuntime),
         jumpBack: false,
         anchor: false,
         unmappedEdge: false,

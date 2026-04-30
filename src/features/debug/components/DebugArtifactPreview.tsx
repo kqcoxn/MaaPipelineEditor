@@ -5,6 +5,7 @@ import {
   normalizeDebugArtifactBox,
   type DebugArtifactBox,
 } from "../artifactDetailSummary";
+import { DebugJsonPreview } from "./DebugJsonPreview";
 
 const { Text } = Typography;
 
@@ -13,6 +14,7 @@ const preStyle: CSSProperties = {
   margin: 0,
   maxHeight: 280,
   overflow: "auto",
+  wordBreak: "break-word",
 };
 
 export interface DebugArtifactPreviewProps {
@@ -53,10 +55,17 @@ export function DebugArtifactPreview({
   }
 
   if (payload.data !== undefined) {
-    return <pre style={preStyle}>{safeStringify(payload.data)}</pre>;
+    return <DebugJsonPreview value={payload.data} />;
   }
 
   if (payload.content) {
+    if (
+      payload.ref.mime.includes("json") ||
+      payload.encoding === "json" ||
+      payload.encoding === "utf8"
+    ) {
+      return <DebugJsonPreview value={payload.content} />;
+    }
     return <pre style={preStyle}>{payload.content}</pre>;
   }
 
@@ -146,12 +155,4 @@ function normalizeBoxStyle(
 
 function clampPercent(value: number): number {
   return Math.max(0, Math.min(100, value));
-}
-
-function safeStringify(value: unknown): string {
-  try {
-    return JSON.stringify(value, null, 2);
-  } catch {
-    return String(value);
-  }
 }

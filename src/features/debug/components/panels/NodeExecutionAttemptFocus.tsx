@@ -1,10 +1,6 @@
-import type { CSSProperties } from "react";
-import { Button, List, Space, Tag, Typography } from "antd";
-import {
-  StepBackwardOutlined,
-  StepForwardOutlined,
-} from "@ant-design/icons";
-import { DebugArtifactPreview } from "../DebugArtifactPreview";
+import { useEffect, type CSSProperties } from "react";
+import { List, Space, Tag, Typography } from "antd";
+import { DebugArtifactSelector } from "../DebugArtifactSelector";
 import { DebugSection } from "../DebugSection";
 import {
   formatDebugDetailValue,
@@ -15,9 +11,11 @@ import {
 } from "../../artifactDetailSummary";
 import {
   allDebugNodeExecutionAttempts,
+  terminalDebugNodeExecutionAttempts,
   type DebugNodeExecutionAttempt,
 } from "../../nodeExecutionAttempts";
 import type { DebugNodeExecutionRecord } from "../../nodeExecutionSelector";
+import type { DebugExecutionDetailMode } from "../../types";
 import type { DebugArtifactEntry } from "../../../../stores/debugArtifactStore";
 
 const { Text } = Typography;
@@ -38,6 +36,7 @@ const selectedAttemptStyle: CSSProperties = {
 
 export function NodeExecutionAttemptFocus({
   artifacts,
+  detailMode,
   onSelectAttempt,
   record,
   requestArtifact,
@@ -45,28 +44,44 @@ export function NodeExecutionAttemptFocus({
   selectedAttemptId,
 }: {
   artifacts: ArtifactEntries;
+  detailMode: DebugExecutionDetailMode;
   onSelectAttempt: (attemptId?: string) => void;
   record: DebugNodeExecutionRecord;
   requestArtifact: (artifactId: string) => void;
   selectedArtifact?: DebugArtifactEntry;
   selectedAttemptId?: string;
 }) {
-  const attempts = allDebugNodeExecutionAttempts(record);
+  const allAttempts = allDebugNodeExecutionAttempts(record);
+  const attempts =
+    detailMode === "compact"
+      ? terminalDebugNodeExecutionAttempts(record)
+      : allAttempts;
   const selectedAttempt =
     attempts.find((attempt) => attempt.id === selectedAttemptId) ?? attempts[0];
+  const selectedAttemptIdValue = selectedAttempt?.id;
+  const hasSelectedAttempt = Boolean(selectedAttempt);
   const selectedIndex = selectedAttempt
     ? attempts.findIndex((attempt) => attempt.id === selectedAttempt.id)
     : -1;
+  useEffect(() => {
+    if (selectedAttemptIdValue && selectedAttemptIdValue !== selectedAttemptId) {
+      onSelectAttempt(selectedAttemptIdValue);
+      return;
+    }
+    if (!hasSelectedAttempt && selectedAttemptId && attempts.length === 0) {
+      onSelectAttempt(undefined);
+    }
+  }, [
+    attempts.length,
+    hasSelectedAttempt,
+    onSelectAttempt,
+    selectedAttemptId,
+    selectedAttemptIdValue,
+  ]);
+
   const derivedImageRefs = selectedAttempt
     ? collectAttemptDerivedImageRefs(artifacts, selectedAttempt)
     : [];
-  const relatedArtifactRefs = new Set([
-    ...(selectedAttempt?.detailRefs ?? []),
-    ...(selectedAttempt?.screenshotRefs ?? []),
-    ...derivedImageRefs.map((ref) => ref.ref),
-  ]);
-  const selectedArtifactIsRelated =
-    selectedArtifact && relatedArtifactRefs.has(selectedArtifact.ref.id);
   const selectedAttemptBox = selectedAttempt
     ? resolveAttemptPreviewBox(artifacts, selectedAttempt)
     : undefined;
@@ -75,32 +90,13 @@ export function NodeExecutionAttemptFocus({
     <Space direction="vertical" size={12} style={{ width: "100%" }}>
       <DebugSection title="单次识别 / 动作">
         {attempts.length === 0 || !selectedAttempt ? (
-          <Text type="secondary">当前记录没有可选择的识别或动作 attempt。</Text>
+          <Text type="secondary">
+            {detailMode === "compact"
+              ? "当前记录暂无成功 / 失败 attempt。"
+              : "当前记录没有可选择的识别或动作 attempt。"}
+          </Text>
         ) : (
           <Space direction="vertical" size={10} style={{ width: "100%" }}>
-            <Space wrap size={6}>
-              <Button
-                size="small"
-                icon={<StepBackwardOutlined />}
-                disabled={selectedIndex <= 0}
-                onClick={() => onSelectAttempt(attempts[selectedIndex - 1]?.id)}
-              >
-                上一条
-              </Button>
-              <Button
-                size="small"
-                icon={<StepForwardOutlined />}
-                disabled={
-                  selectedIndex < 0 || selectedIndex >= attempts.length - 1
-                }
-                onClick={() => onSelectAttempt(attempts[selectedIndex + 1]?.id)}
-              >
-                下一条
-              </Button>
-              <Tag>
-                {selectedIndex + 1} / {attempts.length}
-              </Tag>
-            </Space>
             <List
               size="small"
               dataSource={attempts}
@@ -112,24 +108,20 @@ export function NodeExecutionAttemptFocus({
                 />
               )}
             />
+            <Text type="secondary">
+              {selectedIndex + 1} / {attempts.length}
+            </Text>
             <AttemptSummary
               artifacts={artifacts}
               attempt={selectedAttempt}
               derivedImageRefs={derivedImageRefs}
               requestArtifact={requestArtifact}
+              selectedArtifact={selectedArtifact}
+              selectedAttemptBox={selectedAttemptBox}
             />
           </Space>
         )}
       </DebugSection>
-
-      {selectedArtifactIsRelated && (
-        <DebugSection title="已选 Artifact 预览">
-          <DebugArtifactPreview
-            artifact={selectedArtifact}
-            box={selectedAttemptBox}
-          />
-        </DebugSection>
-      )}
     </Space>
   );
 }
@@ -169,6 +161,11 @@ function AttemptListItem({
           {attempt.kind === "action" && attempt.action !== undefined && (
             <Tag>{`action: ${formatDebugDetailValue(attempt.action)}`}</Tag>
           )}
+          {attempt.kind === "action" && attempt.success !== undefined && (
+            <Tag color={attempt.success ? "green" : "red"}>
+              {attempt.success ? "success" : "failed"}
+            </Tag>
+          )}
           {attempt.detailRefs.length > 0 && <Tag color="purple">详情</Tag>}
           {attempt.screenshotRefs.length > 0 && <Tag color="cyan">图像</Tag>}
           {attempt.sourceNextOwnerLabel && (
@@ -187,11 +184,15 @@ function AttemptSummary({
   attempt,
   derivedImageRefs,
   requestArtifact,
+  selectedArtifact,
+  selectedAttemptBox,
 }: {
   artifacts: ArtifactEntries;
   attempt: DebugNodeExecutionAttempt;
   derivedImageRefs: DebugDetailImageRef[];
   requestArtifact: (artifactId: string) => void;
+  selectedArtifact?: DebugArtifactEntry;
+  selectedAttemptBox?: unknown;
 }) {
   const payload = attempt.detailRef
     ? artifacts[attempt.detailRef]?.payload
@@ -219,10 +220,6 @@ function AttemptSummary({
           ["success", attempt.success ?? actionSummary?.success],
           ["box", attempt.box ?? actionSummary?.box],
         ];
-  const detail = recognitionSummary?.detail ?? actionSummary?.detail;
-  const detailJson =
-    recognitionSummary?.detailJson ?? actionSummary?.detailJson;
-
   return (
     <Space direction="vertical" size={8} style={{ width: "100%" }}>
       <Space wrap size={4}>
@@ -247,18 +244,12 @@ function AttemptSummary({
             <Tag key={label}>{`${label}: ${formatDebugDetailValue(value)}`}</Tag>
           ))}
       </Space>
-      {detail !== undefined && (
-        <Text type="secondary">detail: {truncate(formatDebugDetailValue(detail))}</Text>
-      )}
-      {detail === undefined && detailJson !== undefined && (
-        <Text type="secondary">
-          detailJson: {truncate(formatDebugDetailValue(detailJson))}
-        </Text>
-      )}
       <AttemptArtifactActions
         attempt={attempt}
         derivedImageRefs={derivedImageRefs}
         requestArtifact={requestArtifact}
+        selectedArtifact={selectedArtifact}
+        selectedAttemptBox={selectedAttemptBox}
       />
     </Space>
   );
@@ -268,75 +259,45 @@ function AttemptArtifactActions({
   attempt,
   derivedImageRefs,
   requestArtifact,
+  selectedArtifact,
+  selectedAttemptBox,
 }: {
   attempt: DebugNodeExecutionAttempt;
   derivedImageRefs: DebugDetailImageRef[];
   requestArtifact: (artifactId: string) => void;
+  selectedArtifact?: DebugArtifactEntry;
+  selectedAttemptBox?: unknown;
 }) {
-  const hasRefs =
-    attempt.detailRefs.length > 0 ||
-    attempt.screenshotRefs.length > 0 ||
-    derivedImageRefs.length > 0;
-  if (!hasRefs) {
-    return <Text type="secondary">该 attempt 没有 artifact 引用。</Text>;
-  }
-
   return (
-    <Space direction="vertical" size={6}>
-      <ArtifactButtonGroup
-        refs={attempt.detailRefs.map((ref) => ({
-          ref,
-          label: `查看详情 #${shortRef(ref)}`,
-        }))}
-        requestArtifact={requestArtifact}
-        title="详情 JSON"
-      />
-      <ArtifactButtonGroup
-        refs={attempt.screenshotRefs.map((ref) => ({
-          ref,
-          label: `查看事件图像 #${shortRef(ref)}`,
-        }))}
-        requestArtifact={requestArtifact}
-        title="事件图像"
-      />
-      <ArtifactButtonGroup
-        refs={derivedImageRefs.map((item) => ({
-          ref: item.ref,
-          label: `查看${item.label} #${shortRef(item.ref)}`,
-        }))}
-        requestArtifact={requestArtifact}
-        title="详情派生图像"
-      />
-    </Space>
-  );
-}
-
-function ArtifactButtonGroup({
-  refs,
-  requestArtifact,
-  title,
-}: {
-  refs: Array<{ ref: string; label: string }>;
-  requestArtifact: (artifactId: string) => void;
-  title: string;
-}) {
-  if (refs.length === 0) return null;
-
-  return (
-    <Space direction="vertical" size={4}>
-      <Text type="secondary">{title}</Text>
-      <Space wrap>
-        {refs.map((item) => (
-          <Button
-            key={`${title}-${item.ref}-${item.label}`}
-            size="small"
-            onClick={() => requestArtifact(item.ref)}
-          >
-            {item.label}
-          </Button>
-        ))}
-      </Space>
-    </Space>
+    <DebugArtifactSelector
+      box={selectedAttemptBox}
+      emptyText="该 attempt 没有 artifact 引用。"
+      groups={[
+        {
+          title: "详情 JSON",
+          refs: attempt.detailRefs.map((ref) => ({
+            ref,
+            label: `详情 #${shortRef(ref)}`,
+          })),
+        },
+        {
+          title: "事件图像",
+          refs: attempt.screenshotRefs.map((ref) => ({
+            ref,
+            label: `图像 #${shortRef(ref)}`,
+          })),
+        },
+        {
+          title: "详情派生图像",
+          refs: derivedImageRefs.map((item) => ({
+            ref: item.ref,
+            label: `${item.label} #${shortRef(item.ref)}`,
+          })),
+        },
+      ]}
+      requestArtifact={requestArtifact}
+      selectedArtifact={selectedArtifact}
+    />
   );
 }
 
@@ -372,10 +333,6 @@ function resolveAttemptPreviewBox(
     return summarizeRecognitionArtifactPayload(payload)?.box;
   }
   return summarizeActionArtifactPayload(payload)?.box;
-}
-
-function truncate(value: string): string {
-  return value.length > 240 ? `${value.slice(0, 240)}...` : value;
 }
 
 function shortRef(ref: string): string {

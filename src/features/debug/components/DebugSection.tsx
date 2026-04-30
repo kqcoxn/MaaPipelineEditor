@@ -1,5 +1,6 @@
-import type { CSSProperties, ReactNode } from "react";
-import { Typography } from "antd";
+import { useState, type CSSProperties, type ReactNode } from "react";
+import { Button, Typography } from "antd";
+import { DownOutlined, RightOutlined } from "@ant-design/icons";
 
 const { Title } = Typography;
 
@@ -13,16 +14,37 @@ const debugSectionStyle: CSSProperties = {
 export function DebugSection({
   title,
   children,
+  collapsible = false,
+  defaultCollapsed = false,
 }: {
   title: string;
   children: ReactNode;
+  collapsible?: boolean;
+  defaultCollapsed?: boolean;
 }) {
+  const [collapsed, setCollapsed] = useState(defaultCollapsed);
+
   return (
     <section style={debugSectionStyle}>
-      <Title level={5} style={{ marginTop: 0 }}>
-        {title}
-      </Title>
-      {children}
+      {collapsible ? (
+        <Button
+          block
+          icon={collapsed ? <RightOutlined /> : <DownOutlined />}
+          size="small"
+          type="text"
+          style={{ justifyContent: "flex-start", padding: 0 }}
+          onClick={() => setCollapsed((value) => !value)}
+        >
+          {title}
+        </Button>
+      ) : (
+        <Title level={5} style={{ marginTop: 0 }}>
+          {title}
+        </Title>
+      )}
+      {!collapsed && (
+        <div style={collapsible ? { marginTop: 8 } : undefined}>{children}</div>
+      )}
     </section>
   );
 }

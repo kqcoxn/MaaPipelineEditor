@@ -129,7 +129,9 @@ export function selectDebugNodeExecutionOverlay(
 
     if (record.nodeId) {
       executionPathNodeIds.add(record.nodeId);
-      if (record.hasFailure) highlightedFailureNodeIds.add(record.nodeId);
+      if (record.status === "failed" || record.hasFailure) {
+        highlightedFailureNodeIds.add(record.nodeId);
+      }
       if (record.slow) highlightedSlowNodeIds.add(record.nodeId);
     }
 
