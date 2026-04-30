@@ -1,5 +1,6 @@
 import { Button, Empty, List, Space, Tag, Typography } from "antd";
 import { DebugSection } from "../DebugSection";
+import { DebugArtifactPreview } from "../DebugArtifactPreview";
 import type { DebugModalController } from "../../hooks/useDebugModalController";
 import {
   findDebugRunFirstTimestamp,
@@ -21,10 +22,14 @@ export function PerformancePanel({
     selectedArtifact,
     events,
   } = controller;
+  const selectedArtifactIsPerformance =
+    selectedArtifact &&
+    (performanceRefs.includes(selectedArtifact.ref.id) ||
+      batchSummaryRefs.includes(selectedArtifact.ref.id));
 
   return (
     <Space direction="vertical" size={14} style={{ width: "100%" }}>
-      <DebugSection title="性能摘要（Performance Summary）">
+      <DebugSection title="性能摘要">
         {performanceSummary ? (
           <Space direction="vertical" style={{ width: "100%" }}>
             <Space wrap>
@@ -63,10 +68,10 @@ export function PerformancePanel({
             />
           </Space>
         ) : (
-          <Empty description="运行结束后会生成性能摘要产物（Performance Summary Artifact）" />
+          <Empty description="运行结束后会生成性能摘要产物" />
         )}
       </DebugSection>
-      <DebugSection title="性能产物（Performance Artifacts）">
+      <DebugSection title="性能产物">
         <Space wrap>
           {performanceRefs.map((ref) => (
             <Button key={ref} size="small" onClick={() => requestArtifact(ref)}>
@@ -80,11 +85,9 @@ export function PerformancePanel({
           ))}
         </Space>
       </DebugSection>
-      {selectedArtifact?.payload?.data && (
+      {selectedArtifactIsPerformance && (
         <DebugSection title="已选产物 JSON（Artifact JSON）">
-          <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>
-            {JSON.stringify(selectedArtifact.payload.data, null, 2)}
-          </pre>
+          <DebugArtifactPreview artifact={selectedArtifact} />
         </DebugSection>
       )}
     </Space>

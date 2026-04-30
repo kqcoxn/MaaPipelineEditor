@@ -323,7 +323,7 @@ export function OverviewPanel({
         </DebugSection>
       )}
       {performanceSummary && (
-        <DebugSection title="性能摘要（Performance）">
+        <DebugSection title="性能摘要">
           <div style={metaListStyle}>
             <MetaItem label="耗时" value={`${performanceSummary.durationMs ?? 0}ms`} />
             <MetaItem label="节点" value={performanceSummary.nodeCount} />

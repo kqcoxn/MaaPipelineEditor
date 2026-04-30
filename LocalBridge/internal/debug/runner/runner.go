@@ -284,72 +284,72 @@ func (r *Runner) wait(run *Run, eventSender EventSender, snapshotSender Snapshot
 	}
 
 	if run.wasStopRequested() {
-		performanceRef := r.storePerformanceSummary(run)
-		snapshot, err := r.sessions.SetCompleted(run.SessionID)
-		if err == nil {
-			sendSnapshot(snapshotSender, snapshot)
-		}
-		r.emit(eventSender, protocol.Event{
+		terminalEvent, ok := r.appendTerminalEventWithPerformanceSummary(run, protocol.Event{
 			SessionID: run.SessionID,
 			RunID:     run.ID,
 			Source:    "localbridge",
 			Kind:      "session",
 			Phase:     "completed",
 			Status:    "stopped",
-			DetailRef: performanceRef,
 			Data: map[string]interface{}{
-				"status":                result.Status,
-				"reason":                run.stopReasonOrDefault(),
-				"performanceSummaryRef": performanceRef,
+				"status": result.Status,
+				"reason": run.stopReasonOrDefault(),
 			},
 		})
-		return
-	}
-
-	if result.OK {
-		performanceRef := r.storePerformanceSummary(run)
 		snapshot, err := r.sessions.SetCompleted(run.SessionID)
 		if err == nil {
 			sendSnapshot(snapshotSender, snapshot)
 		}
-		r.emit(eventSender, protocol.Event{
+		if ok {
+			sendAppendedEvent(eventSender, terminalEvent)
+		}
+		return
+	}
+
+	if result.OK {
+		terminalEvent, ok := r.appendTerminalEventWithPerformanceSummary(run, protocol.Event{
 			SessionID: run.SessionID,
 			RunID:     run.ID,
 			Source:    "localbridge",
 			Kind:      "session",
 			Phase:     "completed",
 			Status:    "completed",
-			DetailRef: performanceRef,
 			Data: map[string]interface{}{
-				"status":                result.Status,
-				"performanceSummaryRef": performanceRef,
+				"status": result.Status,
 			},
 		})
+		snapshot, err := r.sessions.SetCompleted(run.SessionID)
+		if err == nil {
+			sendSnapshot(snapshotSender, snapshot)
+		}
+		if ok {
+			sendAppendedEvent(eventSender, terminalEvent)
+		}
 		return
 	}
 
-	performanceRef := r.storePerformanceSummary(run)
-	snapshot, err := r.sessions.SetFailed(run.SessionID)
-	if err == nil {
-		sendSnapshot(snapshotSender, snapshot)
-	}
 	data := map[string]interface{}{
-		"status":                result.Status,
-		"performanceSummaryRef": performanceRef,
+		"status": result.Status,
 	}
 	if result.Err != nil {
 		data["error"] = result.Err.Error()
 	}
-	r.emit(eventSender, protocol.Event{
+	terminalEvent, ok := r.appendTerminalEventWithPerformanceSummary(run, protocol.Event{
 		SessionID: run.SessionID,
 		RunID:     run.ID,
 		Source:    "localbridge",
 		Kind:      "session",
 		Phase:     "failed",
 		Status:    "failed",
-		DetailRef: performanceRef,
 		Data:      data,
 	})
+	snapshot, err := r.sessions.SetFailed(run.SessionID)
+	if err == nil {
+		sendSnapshot(snapshotSender, snapshot)
+	}
+	if ok {
+		sendAppendedEvent(eventSender, terminalEvent)
+	}
 }
 
 func (r *Runner) storePerformanceSummary(run *Run) string {
@@ -359,6 +359,30 @@ func (r *Runner) storePerformanceSummary(run *Run) string {
 		return ""
 	}
 	return ref.ID
+}
+
+func (r *Runner) appendTerminalEventWithPerformanceSummary(run *Run, event protocol.Event) (protocol.Event, bool) {
+	appended, err := r.traces.Append(event)
+	if err != nil {
+		logger.Warn("DebugVNext", "写入 trace 失败: %v", err)
+		return protocol.Event{}, false
+	}
+
+	performanceRef := r.storePerformanceSummary(run)
+	if performanceRef == "" {
+		return appended, true
+	}
+
+	updated, err := r.traces.AttachDetailRef(appended.SessionID, appended.Seq, performanceRef, map[string]interface{}{
+		"performanceSummaryRef": performanceRef,
+	})
+	if err != nil {
+		logger.Warn("DebugVNext", "回填 performance summary trace 引用失败: %v", err)
+	} else {
+		appended = updated
+	}
+	r.artifacts.SetEventSeq(appended.SessionID, performanceRef, appended.Seq)
+	return appended, true
 }
 
 func (r *Runner) emitFunc(sender EventSender) func(protocol.Event) {
@@ -381,6 +405,12 @@ func (r *Runner) emit(sender EventSender, event protocol.Event) {
 	}
 	if sender != nil {
 		sender(appended)
+	}
+}
+
+func sendAppendedEvent(sender EventSender, event protocol.Event) {
+	if sender != nil {
+		sender(event)
 	}
 }
 
