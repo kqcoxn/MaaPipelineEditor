@@ -115,11 +115,13 @@ export function useDebugModalController() {
   const connected = useWSStore((state) => state.connected);
   const {
     lastRunMode,
+    nodeExecutionAttributionMode,
     nodeExecutionFilters,
     setLastPanel,
     setLastRunMode,
     setLastEntryNodeId,
     setNodeExecutionFilters,
+    setNodeExecutionAttributionMode,
   } = useDebugModalMemoryStore();
   const { events, summary, liveSummary, replayStatus, performanceSummary } =
     useDebugTraceStore(
@@ -314,6 +316,7 @@ export function useDebugModalController() {
     artifacts,
     flowNodes,
     liveSummary,
+    nodeExecutionAttributionMode,
     nodeExecutionFilters,
     performanceSummary,
     replayStatus,
@@ -741,6 +744,7 @@ export function useDebugModalController() {
     batchRecognitionNodeSummaries:
       nodeExecutionController.batchRecognitionNodeSummaries,
     nodeExecutionRecords: nodeExecutionController.nodeExecutionRecords,
+    nodeExecutionAttributionMode,
     nodeExecutionFilters: nodeExecutionController.nodeExecutionFilters,
     nodeReplayControl: nodeExecutionController.nodeReplayControl,
     selectedNodeExecutionRecord:
@@ -773,6 +777,7 @@ export function useDebugModalController() {
       nodeExecutionController.setSelectedNodeExecutionRecordId,
     openNodeExecutionRecord,
     setNodeExecutionFilters: nodeExecutionController.setNodeExecutionFilters,
+    setNodeExecutionAttributionMode,
     setEntryFromSelectedNode,
     requestResourcePreflight,
     invalidateResourcePreflight,

@@ -11,6 +11,7 @@ import {
   findDebugResolverEdge,
   groupDebugNodeExecutionRecords,
   selectDebugNodeExecutionRecords,
+  type ResolverEdge,
 } from "./nodeExecutionSelector";
 import { reduceDebugTrace } from "./traceReducer";
 import {
@@ -162,6 +163,207 @@ describe("selectDebugNodeExecutionRecords", () => {
     expect(overlay.selectedExecutionNodeId).toBeUndefined();
     expect(overlay.executionPathNodeIds).toEqual([]);
     expect(overlay.executionCandidateEdgeIds).toEqual([]);
+  });
+
+  it("keeps bootstrap recognition on Tasker in next mode and attaches it to the target in node mode", () => {
+    const summary = reduceDebugTrace({
+      events: [
+        event(1, "task", "starting", undefined, { entry: "A" }),
+        event(2, "node", "starting", taskerBootstrapNode()),
+        event(3, "next-list", "succeeded", taskerBootstrapNode(), {
+          next: [{ name: "A", jumpBack: false, anchor: true }],
+        }),
+        event(4, "recognition", "succeeded", node("node-a", "A"), {
+          parentNode: DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
+          hit: true,
+        }),
+        event(5, "node", "starting", node("node-a", "A")),
+        event(6, "action", "succeeded", node("node-a", "A")),
+        event(7, "node", "succeeded", node("node-a", "A")),
+      ],
+    });
+
+    const nextModeRecords = selectDebugNodeExecutionRecords(
+      summary,
+      resolverNodes,
+      { status: "all" },
+      {
+        attributionMode: "next",
+        resolverEdges,
+      },
+    );
+    const nodeModeRecords = selectDebugNodeExecutionRecords(
+      summary,
+      resolverNodes,
+      { status: "all" },
+      {
+        attributionMode: "node",
+        resolverEdges,
+      },
+    );
+
+    expect(nextModeRecords.map((record) => record.runtimeName)).toEqual([
+      DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
+      "A",
+    ]);
+    expect(nextModeRecords[0]).toMatchObject({
+      attributionMode: "next",
+      recognitionCount: 1,
+      nextCandidateSummary: {
+        candidateCount: 1,
+        hitCount: 1,
+        edgeCount: 0,
+      },
+    });
+
+    expect(nodeModeRecords.map((record) => record.runtimeName)).toEqual([
+      DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
+      "A",
+    ]);
+    expect(nodeModeRecords[0]).toMatchObject({
+      attributionMode: "node",
+      syntheticKind: "tasker-bootstrap",
+      recognitionCount: 0,
+      nextListCount: 1,
+    });
+    expect(nodeModeRecords[1]).toMatchObject({
+      attributionMode: "node",
+      runtimeName: "A",
+      sourceNextOwnerRuntimeName: DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
+      sourceNextOwnerLabel: DEBUG_TASKER_BOOTSTRAP_LABEL,
+      recognitionCount: 1,
+      actionCount: 1,
+      firstSeq: 4,
+      lastSeq: 7,
+    });
+  });
+
+  it("summarizes next candidates in next mode and assigns candidate recognitions to target nodes in node mode", () => {
+    const summary = reduceDebugTrace({
+      events: [
+        event(1, "node", "starting", node("node-b", "B")),
+        event(2, "next-list", "succeeded", node("node-b", "B"), {
+          next: [
+            { name: "C", jumpBack: false, anchor: true },
+            { name: "D", jumpBack: true, anchor: false },
+          ],
+        }),
+        event(3, "recognition", "succeeded", node("node-c", "C"), {
+          parentNode: "B",
+          hit: true,
+        }),
+        event(4, "recognition", "failed", { runtimeName: "D" }, {
+          parentNode: "B",
+          hit: false,
+        }),
+        event(5, "node", "succeeded", node("node-b", "B")),
+        event(6, "node", "starting", node("node-c", "C")),
+        event(7, "action", "succeeded", node("node-c", "C")),
+        event(8, "node", "succeeded", node("node-c", "C")),
+      ],
+    });
+
+    const nextModeRecords = selectDebugNodeExecutionRecords(
+      summary,
+      resolverNodes,
+      { status: "all" },
+      {
+        attributionMode: "next",
+        resolverEdges,
+      },
+    );
+    const nodeModeRecords = selectDebugNodeExecutionRecords(
+      summary,
+      resolverNodes,
+      { status: "all" },
+      {
+        attributionMode: "node",
+        resolverEdges,
+      },
+    );
+    const nextModeB = nextModeRecords.find(
+      (record) => record.runtimeName === "B",
+    );
+    const nodeModeC = nodeModeRecords.find(
+      (record) => record.runtimeName === "C",
+    );
+    const nodeModeD = nodeModeRecords.find(
+      (record) => record.runtimeName === "D",
+    );
+
+    expect(nextModeB).toMatchObject({
+      attributionMode: "next",
+      recognitionCount: 2,
+      nextCandidateSummary: {
+        candidateCount: 2,
+        hitCount: 1,
+        missCount: 1,
+        edgeCount: 1,
+        jumpBackCount: 1,
+        anchorCount: 1,
+      },
+    });
+    expect(nextModeB?.nextCandidateSummary.candidates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          runtimeName: "C",
+          hit: true,
+          edgeId: "edge-b-c",
+          recognitionSeqs: [3],
+        }),
+        expect.objectContaining({
+          runtimeName: "D",
+          hit: false,
+          unmappedEdge: true,
+          recognitionSeqs: [4],
+        }),
+      ]),
+    );
+
+    expect(nodeModeC).toMatchObject({
+      attributionMode: "node",
+      runtimeName: "C",
+      sourceNextOwnerRuntimeName: "B",
+      sourceNextOwnerLabel: "Beta",
+      recognitionCount: 1,
+      actionCount: 1,
+      firstSeq: 3,
+      lastSeq: 8,
+    });
+    expect(nodeModeD).toMatchObject({
+      attributionMode: "node",
+      runtimeName: "D",
+      nodeId: undefined,
+      unmapped: true,
+      sourceNextOwnerRuntimeName: "B",
+      recognitionCount: 1,
+      actionCount: 0,
+      status: "failed",
+    });
+  });
+
+  it("keeps runtime-only records visible in node attribution mode", () => {
+    const summary = reduceDebugTrace({
+      events: [
+        event(1, "node", "starting", { runtimeName: "RuntimeOnly" }),
+        event(2, "node", "succeeded", { runtimeName: "RuntimeOnly" }),
+      ],
+    });
+
+    const records = selectDebugNodeExecutionRecords(
+      summary,
+      resolverNodes,
+      { status: "all" },
+      { attributionMode: "node" },
+    );
+
+    expect(records).toHaveLength(1);
+    expect(records[0]).toMatchObject({
+      attributionMode: "node",
+      runtimeName: "RuntimeOnly",
+      nodeId: undefined,
+      unmapped: true,
+    });
   });
 
   it("indexes resolver edges for next-list mapping", () => {
@@ -515,6 +717,15 @@ const resolverNodes = [
     runtimeName: "C",
     displayName: "Gamma",
     sourcePath: "project/main.json",
+  },
+];
+
+const resolverEdges: ResolverEdge[] = [
+  {
+    edgeId: "edge-b-c",
+    fromRuntimeName: "B",
+    toRuntimeName: "C",
+    reason: "anchor",
   },
 ];
 

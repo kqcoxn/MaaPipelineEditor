@@ -17,6 +17,7 @@ import { buildDebugSnapshotBundle } from "../snapshot";
 import type { DebugTraceSummary } from "../traceReducer";
 import {
   DEFAULT_DEBUG_NODE_EXECUTION_FILTERS,
+  type DebugExecutionAttributionMode,
   type DebugNodeExecutionFilters,
   type DebugPerformanceSummary,
   type DebugTraceReplayStatus,
@@ -26,6 +27,7 @@ interface UseDebugNodeExecutionControllerInput {
   artifacts: Record<string, DebugArtifactEntry>;
   flowNodes: NodeType[];
   liveSummary: DebugTraceSummary;
+  nodeExecutionAttributionMode: DebugExecutionAttributionMode;
   nodeExecutionFilters: DebugNodeExecutionFilters;
   performanceSummary?: DebugPerformanceSummary;
   replayStatus?: DebugTraceReplayStatus;
@@ -39,6 +41,7 @@ export function useDebugNodeExecutionController({
   artifacts,
   flowNodes,
   liveSummary,
+  nodeExecutionAttributionMode,
   nodeExecutionFilters,
   performanceSummary,
   replayStatus,
@@ -76,9 +79,19 @@ export function useDebugNodeExecutionController({
         liveSummary,
         pipelineNodes,
         DEFAULT_DEBUG_NODE_EXECUTION_FILTERS,
-        { performanceSummary },
+        {
+          attributionMode: nodeExecutionAttributionMode,
+          resolverEdges,
+          performanceSummary,
+        },
       ),
-    [liveSummary, performanceSummary, pipelineNodes],
+    [
+      liveSummary,
+      nodeExecutionAttributionMode,
+      performanceSummary,
+      pipelineNodes,
+      resolverEdges,
+    ],
   );
   const nodeExecutionRecords = useMemo(
     () =>
@@ -86,18 +99,43 @@ export function useDebugNodeExecutionController({
         summary,
         pipelineNodes,
         nodeExecutionFilters,
-        { performanceSummary },
+        {
+          attributionMode: nodeExecutionAttributionMode,
+          resolverEdges,
+          performanceSummary,
+        },
       ),
-    [nodeExecutionFilters, performanceSummary, pipelineNodes, summary],
+    [
+      nodeExecutionAttributionMode,
+      nodeExecutionFilters,
+      performanceSummary,
+      pipelineNodes,
+      resolverEdges,
+      summary,
+    ],
   );
+  const migratedSelectedNodeExecutionRecordId = useMemo(() => {
+    if (
+      !selectedNodeExecutionRecordId ||
+      allNodeExecutionRecords.some(
+        (record) => record.id === selectedNodeExecutionRecordId,
+      )
+    ) {
+      return selectedNodeExecutionRecordId;
+    }
+    return migrateSelectedRecordId(
+      selectedNodeExecutionRecordId,
+      allNodeExecutionRecords,
+    );
+  }, [allNodeExecutionRecords, selectedNodeExecutionRecordId]);
   const selectedNodeExecutionRecord = useMemo(
     () =>
-      selectedNodeExecutionRecordId
+      migratedSelectedNodeExecutionRecordId
         ? allNodeExecutionRecords.find(
-            (record) => record.id === selectedNodeExecutionRecordId,
+            (record) => record.id === migratedSelectedNodeExecutionRecordId,
           )
         : undefined,
-    [allNodeExecutionRecords, selectedNodeExecutionRecordId],
+    [allNodeExecutionRecords, migratedSelectedNodeExecutionRecordId],
   );
   const nodeReplayControl = useMemo(
     () => getDebugNodeReplayControl(selectedNodeExecutionRecord, replayStatus),
@@ -177,11 +215,41 @@ export function useDebugNodeExecutionController({
     selectedPipelineNode,
     selectedPipelineNodeId,
     selectedNodeExecutionRecord,
-    selectedNodeExecutionRecordId,
+    selectedNodeExecutionRecordId: migratedSelectedNodeExecutionRecordId,
     setSelectedNodeExecutionRecordId,
     openNodeExecutionRecord,
     selectNodeExecutionRecord,
     selectPipelineNode,
     setNodeExecutionFilters: updateNodeExecutionFilters,
   };
+}
+
+function migrateSelectedRecordId(
+  recordId: string,
+  records: DebugNodeExecutionRecord[],
+): string | undefined {
+  const parts = recordId.split(":");
+  if (parts.length < 5) return records[0]?.id;
+  const runId = parts[1];
+  const identity = parts[2];
+  const firstSeq = Number(parts[3]);
+  const lastSeq = Number(parts[4]);
+  const sameIdentity = records.filter(
+    (record) =>
+      record.runId === runId &&
+      (record.nodeId === identity || record.runtimeName === identity),
+  );
+  const candidates = sameIdentity.length > 0 ? sameIdentity : records;
+  const nearest = candidates
+    .map((record) => ({
+      record,
+      distance: Math.min(
+        Math.abs(record.firstSeq - firstSeq),
+        Math.abs(record.lastSeq - lastSeq),
+      ),
+    }))
+    .sort(
+      (a, b) => a.distance - b.distance || a.record.firstSeq - b.record.firstSeq,
+    )[0];
+  return nearest?.record.id;
 }

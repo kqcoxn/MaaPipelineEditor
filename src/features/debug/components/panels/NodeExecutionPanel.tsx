@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { Button, Checkbox, Empty, Input, Select, Space, Tag } from "antd";
+import { Button, Checkbox, Empty, Input, Segmented, Select, Space, Tag, Typography } from "antd";
 import {
   AimOutlined,
   ClearOutlined,
@@ -21,6 +21,7 @@ import {
 } from "./NodeExecutionRecordList";
 import { debugNodeExecutionEventKindLabels } from "../../nodeExecutionDisplay";
 import type {
+  DebugExecutionAttributionMode,
   DebugEventKind,
   DebugNodeExecutionArtifactFilter,
   DebugNodeExecutionEventKindFilter,
@@ -107,6 +108,14 @@ const sortOptions: Array<{
   { value: "latest", label: "最新优先" },
 ];
 
+const attributionModeOptions: Array<{
+  value: DebugExecutionAttributionMode;
+  label: string;
+}> = [
+  { value: "next", label: "Next 模式" },
+  { value: "node", label: "节点模式" },
+];
+
 export function NodeExecutionPanel({
   controller,
 }: {
@@ -116,6 +125,7 @@ export function NodeExecutionPanel({
     allNodeExecutionRecords,
     artifacts,
     events,
+    nodeExecutionAttributionMode,
     nodeExecutionFilters,
     nodeExecutionRecords,
     pipelineNodes,
@@ -127,6 +137,7 @@ export function NodeExecutionPanel({
     selectedNodeExecutionRecordId,
     selectNodeExecutionRecord,
     setSelectedNodeExecutionRecordId,
+    setNodeExecutionAttributionMode,
     setNodeExecutionFilters,
     summary,
   } = controller;
@@ -255,6 +266,21 @@ export function NodeExecutionPanel({
             )}
           </Tag>
           <Tag>记录 {visibleRecords.length}</Tag>
+          <Segmented
+            size="small"
+            value={nodeExecutionAttributionMode}
+            options={attributionModeOptions}
+            onChange={(mode) =>
+              setNodeExecutionAttributionMode(
+                mode as DebugExecutionAttributionMode,
+              )
+            }
+          />
+          <Typography.Text type="secondary">
+            {nodeExecutionAttributionMode === "next"
+              ? "Next 看跳转判断"
+              : "节点看识别 / 动作"}
+          </Typography.Text>
           <Select
             size="small"
             style={{ minWidth: 160 }}

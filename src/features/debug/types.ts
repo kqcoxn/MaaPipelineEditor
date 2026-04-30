@@ -56,6 +56,7 @@ export type DebugNodeExecutionSortMode =
   | "failure-first"
   | "slow-first"
   | "latest";
+export type DebugExecutionAttributionMode = "next" | "node";
 
 export interface DebugNodeExecutionFilters {
   nodeId?: string;

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type {
+  DebugExecutionAttributionMode,
   DebugNodeExecutionArtifactFilter,
   DebugNodeExecutionEventKindFilter,
   DebugModalPanel,
@@ -17,6 +18,7 @@ interface DebugModalMemorySnapshot {
   lastRunMode: DebugRunMode;
   lastEntryNodeId?: string;
   nodeExecutionFilters: DebugNodeExecutionFilters;
+  nodeExecutionAttributionMode: DebugExecutionAttributionMode;
 }
 
 interface DebugModalMemoryState extends DebugModalMemorySnapshot {
@@ -24,12 +26,16 @@ interface DebugModalMemoryState extends DebugModalMemorySnapshot {
   setLastRunMode: (runMode: DebugRunMode) => void;
   setLastEntryNodeId: (nodeId?: string) => void;
   setNodeExecutionFilters: (filters: DebugNodeExecutionFilters) => void;
+  setNodeExecutionAttributionMode: (
+    mode: DebugExecutionAttributionMode,
+  ) => void;
 }
 
 const defaultMemory: DebugModalMemorySnapshot = {
   lastPanel: "overview",
   lastRunMode: "full-run",
   nodeExecutionFilters: DEFAULT_DEBUG_NODE_EXECUTION_FILTERS,
+  nodeExecutionAttributionMode: "next",
 };
 
 const validPanels = new Set<DebugModalPanel>([
@@ -73,6 +79,8 @@ const validNodeExecutionSortModes = new Set<DebugNodeExecutionSortMode>([
   "slow-first",
   "latest",
 ]);
+const validNodeExecutionAttributionModes =
+  new Set<DebugExecutionAttributionMode>(["next", "node"]);
 
 function normalizePanel(panel: unknown): DebugModalPanel {
   if (
@@ -131,6 +139,16 @@ function normalizeNodeExecutionFilters(
   };
 }
 
+function normalizeNodeExecutionAttributionMode(
+  value: unknown,
+): DebugExecutionAttributionMode {
+  return validNodeExecutionAttributionModes.has(
+    value as DebugExecutionAttributionMode,
+  )
+    ? (value as DebugExecutionAttributionMode)
+    : defaultMemory.nodeExecutionAttributionMode;
+}
+
 function readMemory(): DebugModalMemorySnapshot {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -142,6 +160,9 @@ function readMemory(): DebugModalMemorySnapshot {
       lastEntryNodeId: parsed.lastEntryNodeId,
       nodeExecutionFilters: normalizeNodeExecutionFilters(
         parsed.nodeExecutionFilters,
+      ),
+      nodeExecutionAttributionMode: normalizeNodeExecutionAttributionMode(
+        parsed.nodeExecutionAttributionMode,
       ),
     };
   } catch (error) {
@@ -184,6 +205,12 @@ export const useDebugModalMemoryStore = create<DebugModalMemoryState>(
       const next = { ...get(), nodeExecutionFilters };
       writeMemory(next);
       set({ nodeExecutionFilters });
+    },
+
+    setNodeExecutionAttributionMode: (nodeExecutionAttributionMode) => {
+      const next = { ...get(), nodeExecutionAttributionMode };
+      writeMemory(next);
+      set({ nodeExecutionAttributionMode });
     },
   }),
 );

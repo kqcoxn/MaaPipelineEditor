@@ -260,6 +260,26 @@ function RecordMeta({
       <Tag>识别 {record.recognitionCount}</Tag>
       <Tag>动作 {record.actionCount}</Tag>
       <Tag>Next {record.nextListCount}</Tag>
+      {record.attributionMode === "next" &&
+        record.nextCandidateSummary.candidateCount > 0 && (
+          <Tag color="blue">
+            候选 {record.nextCandidateSummary.candidateCount} · 命中{" "}
+            {record.nextCandidateSummary.hitCount} · edge{" "}
+            {record.nextCandidateSummary.edgeCount}
+          </Tag>
+        )}
+      {record.attributionMode === "node" &&
+        record.sourceNextOwnerLabel && (
+          <Tag color="geekblue">
+            来源 {record.sourceNextOwnerLabel} NextList
+          </Tag>
+        )}
+      {record.attributionMode === "node" &&
+        record.recognitionTargetRuntimeNames.length > 0 && (
+          <Tag>
+            目标 {record.recognitionTargetRuntimeNames.slice(0, 3).join(", ")}
+          </Tag>
+        )}
       <Tag>Artifact {record.detailRefs.length + record.screenshotRefs.length}</Tag>
       {record.eventKinds.slice(0, 4).map((kind) => (
         <Tag key={kind}>{debugNodeExecutionEventKindLabels[kind]}</Tag>

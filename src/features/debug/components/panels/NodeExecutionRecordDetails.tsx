@@ -157,17 +157,20 @@ export function NodeExecutionRecordDetails({
         artifacts={artifacts}
         events={record.recognitionEvents}
         kind="recognition"
+        record={record}
         title="识别事件"
       />
       <EventGroup
         artifacts={artifacts}
         events={record.actionEvents}
         kind="action"
+        record={record}
         title="动作事件"
       />
       <NextListGroup
         events={record.nextListEvents}
         fromRuntimeName={record.runtimeName}
+        record={record}
         resolverEdgeIndex={resolverEdgeIndex}
       />
       <SimpleEventGroup events={record.waitFreezesEvents} title="WaitFreezes" />
@@ -320,11 +323,13 @@ function EventGroup({
   artifacts,
   events,
   kind,
+  record,
   title,
 }: {
   artifacts: ArtifactEntries;
   events: DebugEvent[];
   kind: "recognition" | "action";
+  record: DebugNodeExecutionRecord;
   title: string;
 }) {
   if (events.length === 0) return null;
@@ -343,6 +348,14 @@ function EventGroup({
                 {event.maafwMessage && <Tag>{event.maafwMessage}</Tag>}
                 {event.detailRef && <Tag color="purple">详情</Tag>}
                 {event.screenshotRef && <Tag color="cyan">图像</Tag>}
+                {kind === "recognition" &&
+                  record.attributionMode === "node" &&
+                  event.data?.parentNode &&
+                  event.data.parentNode !== record.runtimeName && (
+                    <Tag color="geekblue">
+                      来源 {record.sourceNextOwnerLabel ?? event.data.parentNode} NextList
+                    </Tag>
+                  )}
               </Space>
               <SummaryLine
                 artifacts={artifacts}
@@ -418,10 +431,12 @@ function SummaryLine({
 function NextListGroup({
   events,
   fromRuntimeName,
+  record,
   resolverEdgeIndex,
 }: {
   events: DebugEvent[];
   fromRuntimeName: string;
+  record: DebugNodeExecutionRecord;
   resolverEdgeIndex: Map<string, ResolverEdge>;
 }) {
   if (events.length === 0) return null;
@@ -441,6 +456,10 @@ function NextListGroup({
               </Space>
               <Space wrap size={4}>
                 {readNextItems(event).map((item, index) => {
+                  const candidate =
+                    record.nextCandidateSummary.candidates.find(
+                      (value) => value.runtimeName === item.name,
+                    );
                   const edge = findDebugResolverEdge(
                     resolverEdgeIndex,
                     fromRuntimeName,
@@ -451,11 +470,22 @@ function NextListGroup({
                       {item.name}
                       {item.jumpBack ? " · jump_back" : ""}
                       {item.anchor ? " · anchor" : ""}
+                      {candidate?.hit === true ? " · hit" : ""}
+                      {candidate?.hit === false ? " · miss" : ""}
                       {edge ? ` · edge ${edge.edgeId}` : ""}
+                      {!edge && !record.syntheticKind ? " · 未映射 edge" : ""}
                     </Tag>
                   );
                 })}
               </Space>
+              {record.nextCandidateSummary.candidates.length > 0 && (
+                <Space wrap size={4}>
+                  <Tag>候选 {record.nextCandidateSummary.candidateCount}</Tag>
+                  <Tag color="green">命中 {record.nextCandidateSummary.hitCount}</Tag>
+                  <Tag color="red">失败 {record.nextCandidateSummary.missCount}</Tag>
+                  <Tag>edge {record.nextCandidateSummary.edgeCount}</Tag>
+                </Space>
+              )}
             </Space>
           </List.Item>
         )}

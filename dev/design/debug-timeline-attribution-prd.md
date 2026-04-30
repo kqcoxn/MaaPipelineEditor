@@ -370,6 +370,27 @@ type DebugRecognitionAttempt = {
   - 本阶段未实现 P3 的精简 / 详细信息密度切换与单次 recognition/action attempt 选择。
   - 未运行 `yarn dev`，未使用浏览器测试，未跑完整前后端 build。
 
+### P2 完成记录（2026-04-30）
+
+- 状态：完成。
+- 本阶段产物：
+  - 前端新增 `DebugExecutionAttributionMode = "next" | "node"`；`debugModalMemoryStore` 持久化 `nodeExecutionAttributionMode`，缺失或非法旧值回退为默认 `next`。
+  - `selectDebugNodeExecutionRecords` 支持显式 `attributionMode` 与 resolver edge 输入；默认 `Next 模式` 继续消费 `summary.nodeReplays`，并输出 next candidate summary（候选数、hit/miss、jump_back/anchor、edge 映射和 recognition seq）。
+  - 新增 `nodeExecutionAttribution.ts` 作为节点模式分段 helper；节点模式从 trace 事件重组记录，recognition 归属到 `event.node.runtimeName` 的目标节点，来自前置 NextList 的候选识别标记 `sourceNextOwnerRuntimeName/sourceNextOwnerLabel`。
+  - 节点模式默认显示 `(Tasker)` 系统记录；`(Tasker)` 不携带 `fileId/nodeId`，不参与画布定位或初始 edge 映射。
+  - `NodeExecutionPanel` 顶部增加 `Next 模式 / 节点模式` 切换；列表展示 Next 候选摘要或节点模式来源标签；详情区的 Next-list 展示候选 hit/miss、edge/未映射 edge，节点模式 recognition 展示来源 NextList。
+  - 选择记录时继续沿用现有 overlay 与 canvas 定位行为；切换归属模式时按 `runId + nodeId/runtimeName + seq` 尽量迁移当前选中记录。
+- 测试与验证：
+  - `yarn eslint src/features/debug/types.ts src/features/debug/nodeExecutionAttribution.ts src/features/debug/nodeExecutionSelector.ts src/features/debug/hooks/useDebugNodeExecutionController.ts src/features/debug/hooks/useDebugModalController.ts src/stores/debugModalMemoryStore.ts src/features/debug/components/panels/NodeExecutionPanel.tsx src/features/debug/components/panels/NodeExecutionRecordList.tsx src/features/debug/components/panels/NodeExecutionRecordDetails.tsx src/features/debug/nodeExecutionSelector.test.ts src/features/debug/traceReducer.test.ts`：通过。
+  - `yarn vitest run src/features/debug/traceReducer.test.ts src/features/debug/nodeExecutionSelector.test.ts`：仍受当前 repo 既有 `vite.config.ts` 引用缺失的 `tests/setup.ts` 影响，未进入测试本体。
+  - 使用临时 no-setup Vitest config 执行同一组测试：`traceReducer.test.ts` 5 条与 `nodeExecutionSelector.test.ts` 18 条，共 23 条通过。
+  - `git diff --check -- src dev/design/debug-timeline-attribution-prd.md`：通过。
+- 已知边界：
+  - 本阶段未修改 LocalBridge，未升级 debug wire protocol，未运行 Go 测试。
+  - 本阶段未实现 P3 的精简 / 详细信息密度切换、单次 recognition/action attempt 选择和 artifact 预加载策略变更。
+  - 本阶段未实现 P4 的画布 edge/图像 overlay 交互增强；Next 模式仅沿用现有候选 edge 高亮能力。
+  - 未运行 `yarn dev`，未使用浏览器测试，未跑完整前后端 build。
+
 **Technical Risks**：
 
 - MaaFW 初始虚空节点的 `detail.Name` / `node_id` 具体表现可能随 binding 版本变化；实现应以“Tasker start 后第一个真实节点前的 unmapped next-list”作为行为特征，而不是只判断空字符串。
