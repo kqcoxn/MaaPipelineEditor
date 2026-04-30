@@ -16,6 +16,9 @@ import {
 import type { DebugNodeExecutionRecord } from "../../nodeExecutionSelector";
 import { groupDebugNodeExecutionRecords } from "../../nodeExecutionSelector";
 import {
+  resolveAutoLoadAttemptArtifact,
+} from "../../nodeExecutionAttempts";
+import {
   GroupedRecordList,
   RecordList,
 } from "./NodeExecutionRecordList";
@@ -143,6 +146,7 @@ export function NodeExecutionPanel({
     requestArtifact,
     resolverEdgeIndex,
     selectedArtifact,
+    selectedNodeExecutionAttempt,
     selectedNodeExecutionAttemptId,
     selectedFlowNodeId,
     selectedNodeExecutionRecordId,
@@ -196,6 +200,20 @@ export function NodeExecutionPanel({
     selectedNodeExecutionRecordId,
     selectedRecord,
     setSelectedNodeExecutionRecordId,
+  ]);
+
+  useEffect(() => {
+    const artifactId = resolveAutoLoadAttemptArtifact(
+      artifacts,
+      selectedNodeExecutionAttempt,
+      selectedArtifact?.ref.id,
+    );
+    if (artifactId) requestArtifact(artifactId);
+  }, [
+    artifacts,
+    requestArtifact,
+    selectedArtifact?.ref.id,
+    selectedNodeExecutionAttempt,
   ]);
 
   const nodeOptions = useMemo(

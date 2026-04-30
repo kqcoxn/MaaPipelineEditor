@@ -750,10 +750,10 @@ export function useDebugModalController() {
     nodeExecutionDetailMode,
     nodeExecutionFilters: nodeExecutionController.nodeExecutionFilters,
     nodeReplayControl: nodeExecutionController.nodeReplayControl,
-    selectedNodeExecutionRecord:
-      nodeExecutionController.selectedNodeExecutionRecord,
-    selectedNodeExecutionRecordId:
-      nodeExecutionController.selectedNodeExecutionRecordId,
+    selectedNodeExecutionRecord: nodeExecutionController.selectedNodeExecutionRecord,
+    selectedNodeExecutionRecordId: nodeExecutionController.selectedNodeExecutionRecordId,
+    selectedNodeExecutionAttempt: nodeExecutionController.selectedNodeExecutionAttempt,
+    selectedNodeExecutionAttemptId: nodeExecutionController.selectedNodeExecutionAttemptId,
     performanceRefs,
     batchSummaryRefs,
     agentDiagnostics,
@@ -776,8 +776,8 @@ export function useDebugModalController() {
     selectPipelineNode,
     selectNodeExecutionRecord:
       nodeExecutionController.selectNodeExecutionRecord,
-    setSelectedNodeExecutionRecordId:
-      nodeExecutionController.setSelectedNodeExecutionRecordId,
+    setSelectedNodeExecutionRecordId: nodeExecutionController.setSelectedNodeExecutionRecordId,
+    setSelectedNodeExecutionAttemptId: nodeExecutionController.setSelectedNodeExecutionAttemptId,
     openNodeExecutionRecord,
     setNodeExecutionFilters: nodeExecutionController.setNodeExecutionFilters,
     setNodeExecutionAttributionMode,

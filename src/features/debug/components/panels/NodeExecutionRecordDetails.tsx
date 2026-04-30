@@ -108,6 +108,10 @@ export function NodeExecutionRecordDetails({
   const selectedArtifactIsAttemptRelated = isArtifactRelatedToAttempt(
     selectedArtifact?.ref.id,
     selectedAttempt,
+  ) || isArtifactRelatedToAttemptDerivedImage(
+    artifacts,
+    selectedArtifact?.ref.id,
+    selectedAttempt,
   );
   const relatedBatchSummaries = batchSummariesForRecord(batchSummaries, record);
 
@@ -718,6 +722,19 @@ function collectDerivedImageRefs(
     }
   }
   return refs;
+}
+
+function isArtifactRelatedToAttemptDerivedImage(
+  artifacts: ArtifactEntries,
+  artifactId: string | undefined,
+  attempt: ReturnType<typeof allDebugNodeExecutionAttempts>[number] | undefined,
+): boolean {
+  if (!artifactId || attempt?.kind !== "recognition") return false;
+  return attempt.detailRefs.some((detailRef) =>
+    recognitionDetailImageRefs(
+      summarizeRecognitionArtifactPayload(artifacts[detailRef]?.payload),
+    ).some((ref) => ref.ref === artifactId),
+  );
 }
 
 function readNextItems(event: DebugEvent): Array<{

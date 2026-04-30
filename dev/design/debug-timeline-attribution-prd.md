@@ -410,6 +410,31 @@ type DebugRecognitionAttempt = {
   - 本阶段未实现 P4 的画布 edge/图像 overlay 交互增强、attempt 选中后的 canvas 联动或大 trace 虚拟化。
   - 未运行 `yarn dev`，未使用浏览器测试，未跑完整前后端 build。
 
+### P4 完成记录（2026-04-30）
+
+- 状态：完成；本 PRD 的 P0-P4 规划已闭环。
+- 本阶段产物：
+  - 前端 node execution overlay 增加 attempt focus：记录级选择继续高亮执行路径与候选 edge；单次 recognition/action attempt 选择会额外高亮目标节点与可解析的来源 edge。
+  - `Next 模式` 下，选中候选 recognition attempt 会用 record owner runtimeName 推导 owner -> target 候选 edge；`节点模式` 下，来自 NextList 的 recognition attempt 会用 `sourceNextOwnerRuntimeName -> targetRuntimeName` 推导候选 edge。
+  - `(Tasker)` 与 runtimeName-only 记录不参与 canvas edge 推导，不触发画布定位；实际目标节点若可解析，仅作为 attempt focus 高亮，不伪造系统 edge。
+  - attempt 选择接入当前图像 artifact 自动加载：优先加载已可发现的 raw/draw/screenshot 图像；没有直接图像时先加载当前 recognition detail，待 detail 暴露派生图像 ref 后再加载第一张图；action attempt 只自动加载直接 screenshot，不为图像预览加载 action detail。
+  - 图像 artifact 预览支持通用 box overlay，兼容 `{ x, y, w, h }`、`{ x, y, width, height }` 和 `[x, y, w, h]`；无法识别的算法私有 box 不绘制框，不影响 JSON/text artifact 预览。
+  - 画布节点和边新增 attempt 专属样式；该样式叠加在现有 visited/current/succeeded/failed/path/candidate 状态之上，不改变原有 trace overlay 语义。
+- 闭环决策：
+  - 保持 P2 当前行为：`(Tasker)` 可作为系统记录出现在节点模式中，不在 P4 新增“显示系统记录”开关。
+  - 节点模式中来自 next-list 的 recognition 继续显示为“来源 X NextList”，不混成节点自身普通 pipeline 阶段。
+  - 只自动加载当前选中 attempt 的当前图像，不加载所有缩略图、所有 record artifact 或所有 attempt 图像。
+  - 保留 `Next 模式 / 节点模式` 命名，并沿用现有“Next 看跳转判断 / 节点看识别动作”的辅助说明。
+- 测试与验证：
+  - `yarn eslint src/features/debug/nodeExecutionAnalysis.ts src/features/debug/nodeExecutionAttempts.ts src/features/debug/artifactDetailSummary.ts src/features/debug/components/DebugArtifactPreview.tsx src/features/debug/components/panels/NodeExecutionAttemptFocus.tsx src/features/debug/components/panels/NodeExecutionRecordDetails.tsx src/features/debug/components/panels/NodeExecutionPanel.tsx src/features/debug/hooks/useDebugNodeExecutionController.ts src/features/debug/hooks/useDebugModalController.ts src/stores/debugOverlayStore.ts src/components/flow/edges.tsx src/components/flow/nodes/PipelineNode/index.tsx src/features/debug/nodeExecutionSelector.test.ts src/features/debug/nodeExecutionOverlay.test.ts src/features/debug/artifactDetailSummary.test.ts`：通过。
+  - `yarn vitest run src/features/debug/artifactDetailSummary.test.ts src/features/debug/nodeExecutionOverlay.test.ts src/features/debug/traceReducer.test.ts src/features/debug/nodeExecutionSelector.test.ts`：仍受当前 repo 既有 `vite.config.ts` 引用缺失的 `tests/setup.ts` 影响，未进入测试本体。
+  - 使用临时 no-setup Vitest config 与 `node` environment 执行同一组测试：`artifactDetailSummary.test.ts` 5 条、`nodeExecutionOverlay.test.ts` 5 条、`traceReducer.test.ts` 5 条、`nodeExecutionSelector.test.ts` 19 条，共 34 条通过。
+- 已知边界：
+  - 本阶段未修改 LocalBridge，未升级 debug wire protocol，未运行 Go 测试。
+  - 大 trace 继续使用既有列表分页策略，未引入虚拟列表；后续若出现实际性能瓶颈，应作为独立增强处理。
+  - 未运行 `yarn dev`，未使用浏览器测试，未跑完整前后端 build。
+- 最终闭环：P0-P4 已覆盖 `(Tasker)` bootstrap 归属、Next/节点双归属、精简/详细与单次 attempt、画布/图像联动。后续需求应进入新的 PRD 或独立增强任务，不再作为本规划阶段延伸。
+
 **Technical Risks**：
 
 - MaaFW 初始虚空节点的 `detail.Name` / `node_id` 具体表现可能随 binding 版本变化；实现应以“Tasker start 后第一个真实节点前的 unmapped next-list”作为行为特征，而不是只判断空字符串。
@@ -419,11 +444,11 @@ type DebugRecognitionAttempt = {
 - `(Tasker)` synthetic record 没有 fileId/nodeId，任何画布定位、edge 映射和筛选逻辑都必须显式跳过。
 - 双模式可能让用户困惑；UI 必须用短标签说明“Next 模式看跳转判断，节点模式看节点自身识别/动作”。
 
-**Open Questions**：
+**Closure Decisions（P4 已闭环）**：
 
-- `(Tasker)` 是否始终显示在 `节点模式` 中：建议默认隐藏系统记录，但提供“显示系统记录”开关；`TimelinePanel` 永远显示。
-- 节点模式中，来自 next-list 的 recognition 是否算作该节点“第 0 阶段”还是普通 recognition：建议显示为“来源：X 的 NextList”，不直接与节点自身 pipeline start 混成同一段。
-- 精简模式是否需要默认显示 screenshot 缩略图：建议不默认加载缩略图，只显示最近图像按钮；用户点击后再预览。
-- 是否将 `Next 模式 / 节点模式` 命名为更用户化的 `跳转模式 / 节点模式`：当前沿用用户提出的 `Next 模式`，后续可在 UI 文案中加说明。
+- `(Tasker)` 维持 P2 当前系统记录行为，不新增显示开关；`TimelinePanel` 永远显示 `(Tasker)`。
+- 节点模式中来自 next-list 的 recognition 继续作为“来源 X NextList”展示，不直接并入节点自身 pipeline start 阶段。
+- P4 只自动加载当前选中 attempt 的当前图像；不默认加载 record 缩略图或全部图像。
+- 保留 `Next 模式 / 节点模式` 命名，并继续使用 UI 辅助说明降低理解成本。
 
-> 以上内容需要在执行到对应阶段时提示回答这些问题，以确定方案。
+> 本 PRD 阶段规划已闭环；新增需求另行开新增强项。

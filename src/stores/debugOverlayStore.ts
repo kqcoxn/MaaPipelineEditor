@@ -11,6 +11,9 @@ interface DebugOverlayState {
   candidateEdgeIds: Set<string>;
   selectedExecutionRecordId?: string;
   selectedExecutionNodeId?: string;
+  selectedExecutionAttemptId?: string;
+  selectedExecutionAttemptNodeId?: string;
+  selectedExecutionAttemptEdgeIds: Set<string>;
   executionPathNodeIds: Set<string>;
   executionPathEdgeIds: Set<string>;
   executionCandidateEdgeIds: Set<string>;
@@ -29,6 +32,7 @@ export const useDebugOverlayStore = create<DebugOverlayState>((set) => ({
   failedNodeIds: new Set(),
   executedEdgeIds: new Set(),
   candidateEdgeIds: new Set(),
+  selectedExecutionAttemptEdgeIds: new Set(),
   executionPathNodeIds: new Set(),
   executionPathEdgeIds: new Set(),
   executionCandidateEdgeIds: new Set(),
@@ -59,6 +63,11 @@ export const useDebugOverlayStore = create<DebugOverlayState>((set) => ({
     set({
       selectedExecutionRecordId: overlay.selectedExecutionRecordId,
       selectedExecutionNodeId: overlay.selectedExecutionNodeId,
+      selectedExecutionAttemptId: overlay.selectedExecutionAttemptId,
+      selectedExecutionAttemptNodeId: overlay.selectedExecutionAttemptNodeId,
+      selectedExecutionAttemptEdgeIds: new Set(
+        overlay.selectedExecutionAttemptEdgeIds,
+      ),
       executionPathNodeIds: new Set(overlay.executionPathNodeIds),
       executionPathEdgeIds: new Set(overlay.executionPathEdgeIds),
       executionCandidateEdgeIds: new Set(overlay.executionCandidateEdgeIds),
@@ -70,6 +79,9 @@ export const useDebugOverlayStore = create<DebugOverlayState>((set) => ({
     set({
       selectedExecutionRecordId: undefined,
       selectedExecutionNodeId: undefined,
+      selectedExecutionAttemptId: undefined,
+      selectedExecutionAttemptNodeId: undefined,
+      selectedExecutionAttemptEdgeIds: new Set(),
       executionPathNodeIds: new Set(),
       executionPathEdgeIds: new Set(),
       executionCandidateEdgeIds: new Set(),
@@ -87,6 +99,9 @@ export const useDebugOverlayStore = create<DebugOverlayState>((set) => ({
       candidateEdgeIds: new Set(),
       selectedExecutionRecordId: undefined,
       selectedExecutionNodeId: undefined,
+      selectedExecutionAttemptId: undefined,
+      selectedExecutionAttemptNodeId: undefined,
+      selectedExecutionAttemptEdgeIds: new Set(),
       executionPathNodeIds: new Set(),
       executionPathEdgeIds: new Set(),
       executionCandidateEdgeIds: new Set(),

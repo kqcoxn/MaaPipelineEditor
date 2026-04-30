@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   formatDebugDetailValue,
+  normalizeDebugArtifactBox,
   recognitionDetailImageRefs,
   summarizeActionArtifactPayload,
   summarizeRecognitionArtifactPayload,
@@ -84,6 +85,32 @@ describe("artifactDetailSummary", () => {
     expect(formatDebugDetailValue(true)).toBe("true");
     expect(formatDebugDetailValue({ hit: true })).toBe("{\"hit\":true}");
     expect(formatDebugDetailValue(circular)).toBe("[object Object]");
+  });
+
+  it("normalizes generic artifact box shapes", () => {
+    expect(normalizeDebugArtifactBox({ x: 1, y: 2, w: 3, h: 4 })).toEqual({
+      x: 1,
+      y: 2,
+      width: 3,
+      height: 4,
+    });
+    expect(
+      normalizeDebugArtifactBox({ x: 5, y: 6, width: 7, height: 8 }),
+    ).toEqual({
+      x: 5,
+      y: 6,
+      width: 7,
+      height: 8,
+    });
+    expect(normalizeDebugArtifactBox([9, 10, 11, 12])).toEqual({
+      x: 9,
+      y: 10,
+      width: 11,
+      height: 12,
+    });
+    expect(normalizeDebugArtifactBox({ x: 1, y: 2 })).toBeUndefined();
+    expect(normalizeDebugArtifactBox([1, 2, 0, 4])).toBeUndefined();
+    expect(normalizeDebugArtifactBox("bad")).toBeUndefined();
   });
 });
 

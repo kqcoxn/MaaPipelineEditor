@@ -67,6 +67,9 @@ export function NodeExecutionAttemptFocus({
   ]);
   const selectedArtifactIsRelated =
     selectedArtifact && relatedArtifactRefs.has(selectedArtifact.ref.id);
+  const selectedAttemptBox = selectedAttempt
+    ? resolveAttemptPreviewBox(artifacts, selectedAttempt)
+    : undefined;
 
   return (
     <Space direction="vertical" size={12} style={{ width: "100%" }}>
@@ -121,7 +124,10 @@ export function NodeExecutionAttemptFocus({
 
       {selectedArtifactIsRelated && (
         <DebugSection title="已选 Artifact 预览">
-          <DebugArtifactPreview artifact={selectedArtifact} />
+          <DebugArtifactPreview
+            artifact={selectedArtifact}
+            box={selectedAttemptBox}
+          />
         </DebugSection>
       )}
     </Space>
@@ -352,6 +358,20 @@ function collectAttemptDerivedImageRefs(
     }
   }
   return refs;
+}
+
+function resolveAttemptPreviewBox(
+  artifacts: ArtifactEntries,
+  attempt: DebugNodeExecutionAttempt,
+): unknown {
+  if (attempt.box !== undefined) return attempt.box;
+  const payload = attempt.detailRef
+    ? artifacts[attempt.detailRef]?.payload
+    : undefined;
+  if (attempt.kind === "recognition") {
+    return summarizeRecognitionArtifactPayload(payload)?.box;
+  }
+  return summarizeActionArtifactPayload(payload)?.box;
 }
 
 function truncate(value: string): string {

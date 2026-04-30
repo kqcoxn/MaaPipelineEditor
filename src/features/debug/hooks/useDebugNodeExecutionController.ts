@@ -8,6 +8,7 @@ import {
   getDebugNodeReplayControl,
   selectDebugBatchRecognitionNodeSummaries,
   selectDebugNodeExecutionOverlayFromEdges,
+  selectDebugNodeExecutionOverlayForSelection,
 } from "../nodeExecutionAnalysis";
 import {
   createDebugResolverEdgeIndex,
@@ -155,6 +156,13 @@ export function useDebugNodeExecutionController({
       ),
     [selectedNodeExecutionAttemptId, selectedNodeExecutionAttempts],
   );
+  const selectedNodeExecutionAttempt = useMemo(
+    () =>
+      selectedNodeExecutionAttempts.find(
+        (attempt) => attempt.id === migratedSelectedNodeExecutionAttemptId,
+      ),
+    [migratedSelectedNodeExecutionAttemptId, selectedNodeExecutionAttempts],
+  );
   const nodeReplayControl = useMemo(
     () => getDebugNodeReplayControl(selectedNodeExecutionRecord, replayStatus),
     [replayStatus, selectedNodeExecutionRecord],
@@ -171,6 +179,29 @@ export function useDebugNodeExecutionController({
   }, [
     migratedSelectedNodeExecutionAttemptId,
     selectedNodeExecutionAttemptId,
+  ]);
+
+  useEffect(() => {
+    const overlayStore = useDebugOverlayStore.getState();
+    if (!selectedNodeExecutionRecord) {
+      overlayStore.clearNodeExecutionOverlay();
+      return;
+    }
+    overlayStore.applyNodeExecutionOverlay(
+      selectDebugNodeExecutionOverlayForSelection({
+        records: allNodeExecutionRecords,
+        selectedRecord: selectedNodeExecutionRecord,
+        selectedAttempt: selectedNodeExecutionAttempt,
+        resolverEdges,
+        resolverNodes: pipelineNodes,
+      }),
+    );
+  }, [
+    allNodeExecutionRecords,
+    pipelineNodes,
+    resolverEdges,
+    selectedNodeExecutionAttempt,
+    selectedNodeExecutionRecord,
   ]);
 
   const selectPipelineNode = useCallback(
@@ -243,6 +274,7 @@ export function useDebugNodeExecutionController({
     selectedPipelineNodeId,
     selectedNodeExecutionRecord,
     selectedNodeExecutionRecordId: migratedSelectedNodeExecutionRecordId,
+    selectedNodeExecutionAttempt,
     selectedNodeExecutionAttemptId: migratedSelectedNodeExecutionAttemptId,
     setSelectedNodeExecutionRecordId,
     setSelectedNodeExecutionAttemptId,

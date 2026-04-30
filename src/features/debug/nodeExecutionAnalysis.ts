@@ -5,7 +5,11 @@ import type {
   DebugTraceReplayStatus,
 } from "./types";
 import type {
+  DebugNodeExecutionAttempt,
+} from "./nodeExecutionAttempts";
+import type {
   DebugNodeExecutionRecord,
+  ResolverNode,
   ResolverEdge,
 } from "./nodeExecutionSelector";
 
@@ -27,11 +31,22 @@ export interface DebugNodeReplayControl {
 export interface DebugNodeExecutionOverlay {
   selectedExecutionRecordId?: string;
   selectedExecutionNodeId?: string;
+  selectedExecutionAttemptId?: string;
+  selectedExecutionAttemptNodeId?: string;
+  selectedExecutionAttemptEdgeIds: string[];
   executionPathNodeIds: string[];
   executionPathEdgeIds: string[];
   executionCandidateEdgeIds: string[];
   highlightedFailureNodeIds: string[];
   highlightedSlowNodeIds: string[];
+}
+
+export interface SelectDebugNodeExecutionOverlayOptions {
+  records: DebugNodeExecutionRecord[];
+  selectedRecord?: DebugNodeExecutionRecord;
+  selectedAttempt?: DebugNodeExecutionAttempt;
+  resolverEdges?: ResolverEdge[];
+  resolverNodes?: ResolverNode[];
 }
 
 export interface DebugBatchRecognitionNodeSummary {
@@ -131,6 +146,7 @@ export function selectDebugNodeExecutionOverlay(
   return {
     selectedExecutionRecordId: selectedRecord.id,
     selectedExecutionNodeId: selectedRecord.nodeId,
+    selectedExecutionAttemptEdgeIds: [],
     executionPathNodeIds: [...executionPathNodeIds],
     executionPathEdgeIds: [...executionPathEdgeIds],
     executionCandidateEdgeIds: [...executionCandidateEdgeIds],
@@ -143,13 +159,36 @@ export function selectDebugNodeExecutionOverlayFromEdges(
   records: DebugNodeExecutionRecord[],
   selectedRecord: DebugNodeExecutionRecord | undefined,
   edges: ResolverEdge[],
+  selectedAttempt?: DebugNodeExecutionAttempt,
+  resolverNodes: ResolverNode[] = [],
 ): DebugNodeExecutionOverlay {
+  return selectDebugNodeExecutionOverlayForSelection({
+    records,
+    selectedRecord,
+    selectedAttempt,
+    resolverEdges: edges,
+    resolverNodes,
+  });
+}
+
+export function selectDebugNodeExecutionOverlayForSelection({
+  records,
+  selectedRecord,
+  selectedAttempt,
+  resolverEdges = [],
+  resolverNodes = [],
+}: SelectDebugNodeExecutionOverlayOptions): DebugNodeExecutionOverlay {
   const overlay = selectDebugNodeExecutionOverlay(records, selectedRecord);
   if (!selectedRecord) return overlay;
 
   const pathEdges = new Set(overlay.executionPathEdgeIds);
   const candidateEdges = new Set(overlay.executionCandidateEdgeIds);
-  const edgeIndex = createRuntimeEdgeIndex(edges);
+  const attemptEdges = new Set<string>();
+  const edgeIndex = createRuntimeEdgeIndex(resolverEdges);
+  const nodeByRuntime = createRuntimeNodeIndex(resolverNodes);
+  const selectedAttemptNodeId = selectedAttempt
+    ? resolveAttemptTargetNodeId(selectedAttempt, nodeByRuntime)
+    : undefined;
 
   for (const record of records) {
     if (record.runId !== selectedRecord.runId) continue;
@@ -157,8 +196,27 @@ export function selectDebugNodeExecutionOverlayFromEdges(
     collectNextListCandidateEdges(record, edgeIndex, candidateEdges);
   }
 
+  if (
+    selectedAttempt?.kind === "recognition" &&
+    !selectedRecord.syntheticKind &&
+    selectedRecord.nodeId
+  ) {
+    const edge = resolveAttemptCandidateEdge(
+      selectedRecord,
+      selectedAttempt,
+      edgeIndex,
+    );
+    if (edge?.edgeId) {
+      attemptEdges.add(edge.edgeId);
+      candidateEdges.add(edge.edgeId);
+    }
+  }
+
   return {
     ...overlay,
+    selectedExecutionAttemptId: selectedAttempt?.id,
+    selectedExecutionAttemptNodeId: selectedAttemptNodeId,
+    selectedExecutionAttemptEdgeIds: [...attemptEdges],
     executionPathEdgeIds: [...pathEdges],
     executionCandidateEdgeIds: [...candidateEdges],
   };
@@ -173,11 +231,39 @@ function createRuntimeEdgeIndex(edges: ResolverEdge[]): EdgeIndex {
   );
 }
 
+function createRuntimeNodeIndex(nodes: ResolverNode[]): Map<string, ResolverNode> {
+  return new Map(nodes.map((node) => [node.runtimeName, node]));
+}
+
+function resolveAttemptTargetNodeId(
+  attempt: DebugNodeExecutionAttempt,
+  nodeByRuntime: Map<string, ResolverNode>,
+): string | undefined {
+  if (!attempt.targetRuntimeName) return undefined;
+  return nodeByRuntime.get(attempt.targetRuntimeName)?.nodeId;
+}
+
+function resolveAttemptCandidateEdge(
+  record: DebugNodeExecutionRecord,
+  attempt: DebugNodeExecutionAttempt,
+  edgeIndex: EdgeIndex,
+): ResolverEdge | undefined {
+  const sourceRuntimeName =
+    record.attributionMode === "node"
+      ? attempt.sourceNextOwnerRuntimeName
+      : attempt.sourceNextOwnerRuntimeName ?? record.runtimeName;
+  const targetRuntimeName = attempt.targetRuntimeName;
+  if (!sourceRuntimeName || !targetRuntimeName) return undefined;
+  if (sourceRuntimeName === targetRuntimeName) return undefined;
+  return edgeIndex.get(runtimeEdgeKey(sourceRuntimeName, targetRuntimeName));
+}
+
 function collectNextListCandidateEdges(
   record: DebugNodeExecutionRecord,
   edgeIndex: EdgeIndex,
   candidateEdges: Set<string>,
 ): void {
+  if (record.syntheticKind || !record.nodeId) return;
   for (const event of record.nextListEvents) {
     for (const item of readNextItems(event)) {
       const edge = edgeIndex.get(runtimeEdgeKey(record.runtimeName, item.name));
@@ -273,6 +359,7 @@ function runtimeEdgeKey(fromRuntimeName: string, toRuntimeName: string): string 
 
 function emptyExecutionOverlay(): DebugNodeExecutionOverlay {
   return {
+    selectedExecutionAttemptEdgeIds: [],
     executionPathNodeIds: [],
     executionPathEdgeIds: [],
     executionCandidateEdgeIds: [],

@@ -1,5 +1,12 @@
 import type { DebugArtifactPayload } from "./types";
 
+export interface DebugArtifactBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface DebugDetailImageRef {
   ref: string;
   kind: "raw" | "draw" | "screenshot";
@@ -122,6 +129,43 @@ export function formatDebugDetailValue(value: unknown): string {
   }
 }
 
+export function normalizeDebugArtifactBox(
+  value: unknown,
+): DebugArtifactBox | undefined {
+  const box = Array.isArray(value)
+    ? {
+        x: value[0],
+        y: value[1],
+        width: value[2],
+        height: value[3],
+      }
+    : isRecord(value)
+      ? {
+          x: value.x,
+          y: value.y,
+          width: value.w ?? value.width,
+          height: value.h ?? value.height,
+        }
+      : undefined;
+  if (!box) return undefined;
+
+  const x = readFiniteNumber(box.x);
+  const y = readFiniteNumber(box.y);
+  const width = readFiniteNumber(box.width);
+  const height = readFiniteNumber(box.height);
+  if (
+    x === undefined ||
+    y === undefined ||
+    width === undefined ||
+    height === undefined ||
+    width <= 0 ||
+    height <= 0
+  ) {
+    return undefined;
+  }
+  return { x, y, width, height };
+}
+
 function dedupeImageRefs(refs: DebugDetailImageRef[]): DebugDetailImageRef[] {
   const seen = new Set<string>();
   const result: DebugDetailImageRef[] = [];
@@ -147,6 +191,11 @@ function readStringArray(value: unknown): string[] {
   return value.filter(
     (item): item is string => typeof item === "string" && item.trim() !== "",
   );
+}
+
+function readFiniteNumber(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value)) return undefined;
+  return value;
 }
 
 function uniqueStrings(values: string[]): string[] {

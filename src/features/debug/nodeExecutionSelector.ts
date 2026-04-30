@@ -24,7 +24,7 @@ import {
   isDebugTaskerBootstrapNode,
 } from "./syntheticNode";
 
-type ResolverNode = DebugNodeResolverSnapshot["nodes"][number];
+export type ResolverNode = DebugNodeResolverSnapshot["nodes"][number];
 export type ResolverEdge = DebugNodeResolverSnapshot["edges"][number];
 export type DebugNodeExecutionDurationSource = "trace" | "performance";
 

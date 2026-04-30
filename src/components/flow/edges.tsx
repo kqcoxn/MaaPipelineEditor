@@ -603,6 +603,7 @@ function MarkedEdge(props: EdgeProps) {
       candidate: state.candidateEdgeIds.has(props.id),
       executionPath: state.executionPathEdgeIds.has(props.id),
       executionCandidate: state.executionCandidateEdgeIds.has(props.id),
+      executionAttempt: state.selectedExecutionAttemptEdgeIds.has(props.id),
     })),
   );
 
@@ -616,11 +617,14 @@ function MarkedEdge(props: EdgeProps) {
         [style["debug-edge-execution-path"]]: debugEdgeState.executionPath,
         [style["debug-edge-execution-candidate"]]:
           debugEdgeState.executionCandidate,
+        [style["debug-edge-execution-attempt"]]:
+          debugEdgeState.executionAttempt,
       }),
     [
       edgeClass,
       debugEdgeState.candidate,
       debugEdgeState.executed,
+      debugEdgeState.executionAttempt,
       debugEdgeState.executionCandidate,
       debugEdgeState.executionPath,
     ],

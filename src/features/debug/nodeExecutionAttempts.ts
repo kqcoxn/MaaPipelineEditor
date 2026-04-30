@@ -3,6 +3,11 @@ import type {
   DebugEventPhase,
   DebugExecutionAttributionMode,
 } from "./types";
+import type { DebugArtifactEntry } from "../../stores/debugArtifactStore";
+import {
+  recognitionDetailImageRefs,
+  summarizeRecognitionArtifactPayload,
+} from "./artifactDetailSummary";
 
 export type DebugNodeExecutionAttemptKind = "recognition" | "action";
 
@@ -99,6 +104,48 @@ export function isArtifactRelatedToAttempt(
     attempt.detailRefs.includes(artifactId) ||
     attempt.screenshotRefs.includes(artifactId)
   );
+}
+
+export function resolveAutoLoadAttemptArtifact(
+  artifacts: Record<string, DebugArtifactEntry>,
+  attempt: DebugNodeExecutionAttempt | undefined,
+  selectedArtifactId?: string,
+): string | undefined {
+  if (!attempt) return undefined;
+
+  const imageRefs = collectAutoLoadImageRefs(artifacts, attempt);
+  if (imageRefs.length > 0) {
+    return imageRefs.includes(selectedArtifactId ?? "")
+      ? undefined
+      : imageRefs[0];
+  }
+
+  if (attempt.kind !== "recognition") return undefined;
+  const detailRef = attempt.detailRefs[0];
+  if (!detailRef || selectedArtifactId === detailRef) return undefined;
+  const entry = artifacts[detailRef];
+  return entry?.status === "ready" ? undefined : detailRef;
+}
+
+function collectAutoLoadImageRefs(
+  artifacts: Record<string, DebugArtifactEntry>,
+  attempt: DebugNodeExecutionAttempt,
+): string[] {
+  const refs = new Set<string>();
+  if (attempt.kind === "recognition") {
+    for (const detailRef of attempt.detailRefs) {
+      const summary = summarizeRecognitionArtifactPayload(
+        artifacts[detailRef]?.payload,
+      );
+      for (const imageRef of recognitionDetailImageRefs(summary)) {
+        refs.add(imageRef.ref);
+      }
+    }
+  }
+  for (const screenshotRef of attempt.screenshotRefs) {
+    refs.add(screenshotRef);
+  }
+  return [...refs];
 }
 
 function toAttempt({
