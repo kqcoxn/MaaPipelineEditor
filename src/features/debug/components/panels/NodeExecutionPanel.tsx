@@ -4,15 +4,9 @@ import {
   AimOutlined,
   ClearOutlined,
   SearchOutlined,
-  StepBackwardOutlined,
-  StepForwardOutlined,
 } from "@ant-design/icons";
 import { DebugSection } from "../DebugSection";
 import type { DebugModalController } from "../../hooks/useDebugModalController";
-import {
-  getDebugReplayRecordState,
-  type DebugNodeReplayRecordState,
-} from "../../nodeExecutionAnalysis";
 import type { DebugNodeExecutionRecord } from "../../nodeExecutionSelector";
 import { groupDebugNodeExecutionRecords } from "../../nodeExecutionSelector";
 import {
@@ -154,7 +148,6 @@ export function NodeExecutionPanel({
     nodeExecutionFilters,
     nodeExecutionRecords,
     pipelineNodes,
-    replayStatus,
     requestArtifact,
     resolverEdgeIndex,
     selectedArtifact,
@@ -172,10 +165,6 @@ export function NodeExecutionPanel({
   } = controller;
   const {
     batchRecognitionNodeSummaries,
-    nodeReplayControl,
-    seekNodeTraceReplay,
-    startNodeTraceReplay,
-    stopTraceReplay,
   } = controller;
   const [searchText, setSearchText] = useState("");
   const rawNodeExecutionCount = useMemo(
@@ -266,12 +255,7 @@ export function NodeExecutionPanel({
 
   const handleSelectRecord = (record: DebugNodeExecutionRecord) => {
     selectNodeExecutionRecord(record);
-    if (replayStatus?.active) {
-      seekNodeTraceReplay(record, record.firstSeq);
-    }
   };
-  const replayRecordState = (record: DebugNodeExecutionRecord) =>
-    getDebugReplayRecordState(record, replayStatus);
 
   const setSelectedFlowFilter = () => {
     if (!selectedFlowNode) return;
@@ -298,9 +282,6 @@ export function NodeExecutionPanel({
     <div style={panelStyle}>
       <DebugSection title="节点执行筛选" collapsible defaultCollapsed>
         <Space wrap>
-          <Tag color={replayStatus?.active ? "purple" : "default"}>
-            {replayStatus?.active ? `Replay #${replayStatus.cursorSeq}` : "Live"}
-          </Tag>
           <Tag>
             运行{" "}
             {formatDebugRunDisplayName(
@@ -442,55 +423,6 @@ export function NodeExecutionPanel({
         </Space>
       </DebugSection>
 
-      <DebugSection title="节点级回放" collapsible defaultCollapsed>
-        <Space wrap>
-          <Tag color={nodeReplayControl.active ? "purple" : "default"}>
-            {nodeReplayControl.active
-              ? `Replay #${nodeReplayControl.cursorSeq}`
-              : "Live"}
-          </Tag>
-          <Tag>{replayStateLabel(nodeReplayControl.recordState)}</Tag>
-          <Button
-            size="small"
-            type="primary"
-            onClick={() => selectedRecord && startNodeTraceReplay(selectedRecord)}
-            disabled={!selectedRecord}
-          >
-            回放当前记录
-          </Button>
-          <Button
-            size="small"
-            icon={<StepBackwardOutlined />}
-            onClick={() =>
-              selectedRecord &&
-              seekNodeTraceReplay(selectedRecord, selectedRecord.firstSeq)
-            }
-            disabled={!selectedRecord}
-          >
-            到记录开始
-          </Button>
-          <Button
-            size="small"
-            icon={<StepForwardOutlined />}
-            onClick={() =>
-              selectedRecord &&
-              seekNodeTraceReplay(selectedRecord, selectedRecord.lastSeq)
-            }
-            disabled={!selectedRecord}
-          >
-            到记录结束
-          </Button>
-          <Button size="small" danger onClick={stopTraceReplay}>
-            回到实时
-          </Button>
-          {selectedRecord && (
-            <Tag>
-              当前记录 seq {selectedRecord.firstSeq}-{selectedRecord.lastSeq}
-            </Tag>
-          )}
-        </Space>
-      </DebugSection>
-
       {nodeExecutionRecords.length === 0 ? (
         <Empty description="没有符合筛选条件的节点执行记录" />
       ) : visibleRecords.length === 0 ? (
@@ -504,7 +436,6 @@ export function NodeExecutionPanel({
                 groups={groupedRecords}
                 detailMode={nodeExecutionDetailMode}
                 onSelectRecord={handleSelectRecord}
-                replayRecordState={replayRecordState}
                 selectedRecordId={selectedRecord?.id}
                 totalRecordCount={visibleRecords.length}
               />
@@ -514,7 +445,6 @@ export function NodeExecutionPanel({
                 records={visibleRecords}
                 detailMode={nodeExecutionDetailMode}
                 onSelectRecord={handleSelectRecord}
-                replayRecordState={replayRecordState}
                 selectedRecordId={selectedRecord?.id}
               />
             )}
@@ -528,7 +458,6 @@ export function NodeExecutionPanel({
                 events={events}
                 onSelectAttempt={setSelectedNodeExecutionAttemptId}
                 record={selectedRecord}
-                replayControl={nodeReplayControl}
                 requestArtifact={requestArtifact}
                 resolverEdgeIndex={resolverEdgeIndex}
                 selectedArtifact={selectedArtifact}
@@ -590,18 +519,4 @@ function uniqueSystemRecordOptions(records: DebugNodeExecutionRecord[]) {
 
 function uniqueStrings(values: string[]): string[] {
   return [...new Set(values.filter((value) => value.trim() !== ""))];
-}
-
-function replayStateLabel(state: DebugNodeReplayRecordState): string {
-  switch (state) {
-    case "current":
-      return "光标位于当前记录";
-    case "passed":
-      return "当前记录已回放";
-    case "not-reached":
-      return "当前记录未到达";
-    case "live":
-    default:
-      return "实时追踪";
-  }
 }

@@ -21,7 +21,6 @@ import {
 import {
   batchSummariesForRecord,
   type DebugBatchRecognitionNodeSummary,
-  type DebugNodeReplayControl,
 } from "../../nodeExecutionAnalysis";
 import { formatDebugNodeExecutionDuration } from "../../nodeExecutionDisplay";
 import { eventTitle, formatTime } from "../../modalUtils";
@@ -73,7 +72,6 @@ export function NodeExecutionRecordDetails({
   events,
   onSelectAttempt,
   record,
-  replayControl,
   requestArtifact,
   resolverEdgeIndex,
   selectedArtifact,
@@ -85,7 +83,6 @@ export function NodeExecutionRecordDetails({
   events: DebugEvent[];
   onSelectAttempt: (attemptId?: string) => void;
   record: DebugNodeExecutionRecord;
-  replayControl: DebugNodeReplayControl;
   requestArtifact: (artifactId: string) => void;
   resolverEdgeIndex: Map<string, ResolverEdge>;
   selectedArtifact?: DebugArtifactEntry;
@@ -113,11 +110,6 @@ export function NodeExecutionRecordDetails({
       <DebugSection title="执行概览" collapsible defaultCollapsed>
         <Space direction="vertical" size={8} style={{ width: "100%" }}>
           <StatusTag status={record.status} />
-          <Tag color={replayControl.active ? "purple" : "default"}>
-            {replayControl.active
-              ? replayRecordStateLabel(replayControl.recordState)
-              : "Live"}
-          </Tag>
           <div style={overviewMetaStyle}>
             <OverviewMetaItem
               label="运行"
@@ -733,20 +725,4 @@ function truncate(value: string): string {
 
 function shortRef(ref: string): string {
   return ref.slice(0, 8);
-}
-
-function replayRecordStateLabel(
-  state: DebugNodeReplayControl["recordState"],
-): string {
-  switch (state) {
-    case "current":
-      return "Replay 当前";
-    case "passed":
-      return "Replay 已过";
-    case "not-reached":
-      return "Replay 未到达";
-    case "live":
-    default:
-      return "Live";
-  }
 }

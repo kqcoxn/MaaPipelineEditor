@@ -368,7 +368,7 @@ function ControllerSection({
         type="info"
         showIcon
         message="控制器能力"
-        description="启动请求会自动使用已连接控制器（Controller）；回放（Replay）/录制（Record）因当前 maa-framework-go 未暴露 MaaDbgController，按能力清单标记为不可用。"
+        description="启动请求会自动使用已连接控制器（Controller）；当前 maa-framework-go 未暴露 MaaDbgController 的能力按清单标记为不可用。"
       />
     </Space>
   );

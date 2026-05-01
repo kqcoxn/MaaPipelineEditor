@@ -6,7 +6,6 @@ import { useLocalFileStore } from "../../../stores/localFileStore";
 import { applyDebugNodeTarget } from "../nodeTargetActions";
 import { allDebugNodeExecutionAttempts } from "../nodeExecutionAttempts";
 import {
-  getDebugNodeReplayControl,
   selectDebugBatchRecognitionNodeSummaries,
   selectDebugNodeExecutionOverlayFromEdges,
   selectDebugNodeExecutionOverlayForSelection,
@@ -23,7 +22,6 @@ import {
   type DebugExecutionAttributionMode,
   type DebugNodeExecutionFilters,
   type DebugPerformanceSummary,
-  type DebugTraceReplayStatus,
 } from "../types";
 
 interface UseDebugNodeExecutionControllerInput {
@@ -33,7 +31,6 @@ interface UseDebugNodeExecutionControllerInput {
   nodeExecutionAttributionMode: DebugExecutionAttributionMode;
   nodeExecutionFilters: DebugNodeExecutionFilters;
   performanceSummary?: DebugPerformanceSummary;
-  replayStatus?: DebugTraceReplayStatus;
   selectedNodeId?: string;
   selectNode: (nodeId?: string) => void;
   setNodeExecutionFilters: (filters: DebugNodeExecutionFilters) => void;
@@ -47,7 +44,6 @@ export function useDebugNodeExecutionController({
   nodeExecutionAttributionMode,
   nodeExecutionFilters,
   performanceSummary,
-  replayStatus,
   selectedNodeId,
   selectNode,
   setNodeExecutionFilters,
@@ -198,10 +194,6 @@ export function useDebugNodeExecutionController({
       ),
     [migratedSelectedNodeExecutionAttemptId, selectedNodeExecutionAttempts],
   );
-  const nodeReplayControl = useMemo(
-    () => getDebugNodeReplayControl(selectedNodeExecutionRecord, replayStatus),
-    [replayStatus, selectedNodeExecutionRecord],
-  );
   const batchRecognitionNodeSummaries = useMemo(
     () => selectDebugBatchRecognitionNodeSummaries(artifacts),
     [artifacts],
@@ -322,7 +314,6 @@ export function useDebugNodeExecutionController({
     batchRecognitionNodeSummaries,
     nodeExecutionFilters,
     nodeExecutionRecords,
-    nodeReplayControl,
     pipelineNodes,
     runTargetNodes,
     resolverEdges,

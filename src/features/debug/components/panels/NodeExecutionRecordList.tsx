@@ -4,7 +4,6 @@ import type {
   DebugNodeExecutionRecord,
   DebugNodeExecutionRecordGroup,
 } from "../../nodeExecutionSelector";
-import type { DebugNodeReplayRecordState } from "../../nodeExecutionAnalysis";
 import {
   debugNodeExecutionEventKindLabels,
   formatDebugNodeExecutionDuration,
@@ -57,14 +56,12 @@ export function RecordList({
   events,
   records,
   onSelectRecord,
-  replayRecordState,
   selectedRecordId,
 }: {
   detailMode: DebugExecutionDetailMode;
   events: DebugEvent[];
   records: DebugNodeExecutionRecord[];
   onSelectRecord: (record: DebugNodeExecutionRecord) => void;
-  replayRecordState?: (record: DebugNodeExecutionRecord) => DebugNodeReplayRecordState;
   selectedRecordId?: string;
 }) {
   return (
@@ -81,7 +78,6 @@ export function RecordList({
             record.runId,
             findDebugRunFirstTimestamp(record.runId, events),
           )}
-          replayState={replayRecordState?.(record) ?? "live"}
           selected={record.id === selectedRecordId}
           detailMode={detailMode}
           onSelectRecord={onSelectRecord}
@@ -96,7 +92,6 @@ export function GroupedRecordList({
   events,
   groups,
   onSelectRecord,
-  replayRecordState,
   selectedRecordId,
   totalRecordCount,
 }: {
@@ -104,7 +99,6 @@ export function GroupedRecordList({
   events: DebugEvent[];
   groups: DebugNodeExecutionRecordGroup[];
   onSelectRecord: (record: DebugNodeExecutionRecord) => void;
-  replayRecordState?: (record: DebugNodeExecutionRecord) => DebugNodeReplayRecordState;
   selectedRecordId?: string;
   totalRecordCount: number;
 }) {
@@ -140,7 +134,6 @@ export function GroupedRecordList({
                             record.runId,
                             findDebugRunFirstTimestamp(record.runId, events),
                           )}
-                          replayState={replayRecordState?.(record) ?? "live"}
                           selected={record.id === selectedRecordId}
                           detailMode={detailMode}
                           onSelectRecord={onSelectRecord}
@@ -166,28 +159,21 @@ function RecordListItem({
   detailMode,
   record,
   runLabel,
-  replayState,
   selected,
   onSelectRecord,
 }: {
   detailMode: DebugExecutionDetailMode;
   record: DebugNodeExecutionRecord;
   runLabel: string;
-  replayState: DebugNodeReplayRecordState;
   selected: boolean;
   onSelectRecord: (record: DebugNodeExecutionRecord) => void;
 }) {
-  const disabled = replayState === "not-reached";
   return (
     <List.Item>
       <div
         role="button"
         tabIndex={0}
-        aria-disabled={disabled}
-        style={{
-          ...(selected ? selectedItemStyle : selectableItemStyle),
-          opacity: disabled ? 0.48 : 1,
-        }}
+        style={selected ? selectedItemStyle : selectableItemStyle}
         onClick={() => onSelectRecord(record)}
         onKeyDown={(event) => {
           if (event.key === "Enter") onSelectRecord(record);

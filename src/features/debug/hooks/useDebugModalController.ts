@@ -54,11 +54,6 @@ import {
 } from "../modalUtils";
 import {
   requestTraceSnapshotAction,
-  seekNodeTraceReplayAction,
-  seekTraceReplayAction,
-  startNodeTraceReplayAction,
-  startTraceReplayAction,
-  stopTraceReplayAction,
 } from "../traceReplayActions";
 import type { DebugNodeExecutionRecord } from "../nodeExecutionSelector";
 import { useDebugNodeExecutionController } from "./useDebugNodeExecutionController";
@@ -152,7 +147,6 @@ export function useDebugModalController() {
     events,
     latestDisplaySessionId,
     performanceSummary,
-    replayStatus,
     selectAllDisplaySessions,
     selectDisplaySessions,
     selectLatestDisplaySession,
@@ -167,7 +161,6 @@ export function useDebugModalController() {
       events: state.displayEvents,
       latestDisplaySessionId: state.latestDisplaySessionId,
       performanceSummary: state.performanceSummary,
-      replayStatus: state.replayStatus,
       selectAllDisplaySessions: state.selectAllDisplaySessions,
       selectDisplaySessions: state.selectDisplaySessions,
       selectLatestDisplaySession: state.selectLatestDisplaySession,
@@ -353,7 +346,6 @@ export function useDebugModalController() {
     nodeExecutionAttributionMode,
     nodeExecutionFilters,
     performanceSummary,
-    replayStatus,
     selectedNodeId,
     selectNode,
     setNodeExecutionFilters,
@@ -520,60 +512,6 @@ export function useDebugModalController() {
       activeRunId: summary.runId ?? activeRun?.runId,
       client: debugProtocolClient,
       sessionId: summary.sessionId ?? session?.sessionId,
-    });
-  };
-
-  const startTraceReplay = () => {
-    startTraceReplayAction({
-      client: debugProtocolClient,
-      events,
-      replayStatus,
-      selectedNodeId,
-      sessionId: summary.sessionId ?? session?.sessionId,
-      summaryRunId: summary.runId,
-    });
-  };
-
-  const startNodeTraceReplay = (
-    record = nodeExecutionController.selectedNodeExecutionRecord,
-  ) => {
-    startNodeTraceReplayAction({
-      client: debugProtocolClient,
-      record,
-      replayStatus,
-      sessionId: record?.sessionId ?? summary.sessionId ?? session?.sessionId,
-    });
-  };
-
-  const seekTraceReplay = (cursorSeq?: number) => {
-    seekTraceReplayAction({
-      client: debugProtocolClient,
-      cursorSeq,
-      replayStatus,
-      sessionId:
-        replayStatus?.sessionId ?? summary.sessionId ?? session?.sessionId,
-      summaryRunId: summary.runId,
-    });
-  };
-
-  const seekNodeTraceReplay = (
-    record = nodeExecutionController.selectedNodeExecutionRecord,
-    cursorSeq?: number,
-  ) => {
-    seekNodeTraceReplayAction({
-      client: debugProtocolClient,
-      cursorSeq: cursorSeq ?? record?.firstSeq,
-      record,
-      replayStatus,
-      sessionId: record?.sessionId ?? summary.sessionId ?? session?.sessionId,
-    });
-  };
-
-  const stopTraceReplay = () => {
-    stopTraceReplayAction({
-      client: debugProtocolClient,
-      sessionId:
-        replayStatus?.sessionId ?? summary.sessionId ?? session?.sessionId,
     });
   };
 
@@ -841,9 +779,6 @@ export function useDebugModalController() {
     >[0],
   ) => {
     nodeExecutionController.openNodeExecutionRecord(record);
-    if (replayStatus?.active) {
-      seekNodeTraceReplay(record, record.firstSeq);
-    }
     setActivePanel("node-execution");
     setLastPanel("node-execution");
   };
@@ -876,7 +811,6 @@ export function useDebugModalController() {
     latestDisplaySessionId,
     summary,
     liveSummary,
-    replayStatus,
     performanceSummary,
     selectedPerformanceSummaries,
     artifacts,
@@ -914,7 +848,6 @@ export function useDebugModalController() {
     nodeExecutionAttributionMode,
     nodeExecutionDetailMode,
     nodeExecutionFilters: nodeExecutionController.nodeExecutionFilters,
-    nodeReplayControl: nodeExecutionController.nodeReplayControl,
     selectedNodeExecutionRecord: nodeExecutionController.selectedNodeExecutionRecord,
     selectedNodeExecutionRecordId: nodeExecutionController.selectedNodeExecutionRecordId,
     selectedNodeExecutionAttempt: nodeExecutionController.selectedNodeExecutionAttempt,
@@ -930,11 +863,6 @@ export function useDebugModalController() {
     startScreenshotStream,
     stopScreenshotStream,
     requestTraceSnapshot,
-    startTraceReplay,
-    startNodeTraceReplay,
-    seekTraceReplay,
-    seekNodeTraceReplay,
-    stopTraceReplay,
     selectDisplaySessions,
     selectLatestDisplaySession,
     selectAllDisplaySessions,
