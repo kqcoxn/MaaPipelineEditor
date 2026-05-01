@@ -121,16 +121,37 @@ export function useDebugModalController() {
     setNodeExecutionAttributionMode,
     setNodeExecutionDetailMode,
   } = useDebugModalMemoryStore();
-  const { events, summary, liveSummary, replayStatus, performanceSummary } =
-    useDebugTraceStore(
-      useShallow((state) => ({
-        events: state.events,
-        summary: state.summary,
-        liveSummary: state.liveSummary,
-        replayStatus: state.replayStatus,
-        performanceSummary: state.performanceSummary,
-      })),
-    );
+  const {
+    allEvents,
+    displaySessions,
+    events,
+    latestDisplaySessionId,
+    performanceSummary,
+    replayStatus,
+    selectAllDisplaySessions,
+    selectDisplaySessions,
+    selectLatestDisplaySession,
+    selectedDisplaySessionIds,
+    selectedPerformanceSummaries,
+    summary,
+    liveSummary,
+  } = useDebugTraceStore(
+    useShallow((state) => ({
+      allEvents: state.events,
+      displaySessions: state.displaySessions,
+      events: state.displayEvents,
+      latestDisplaySessionId: state.latestDisplaySessionId,
+      performanceSummary: state.performanceSummary,
+      replayStatus: state.replayStatus,
+      selectAllDisplaySessions: state.selectAllDisplaySessions,
+      selectDisplaySessions: state.selectDisplaySessions,
+      selectLatestDisplaySession: state.selectLatestDisplaySession,
+      selectedDisplaySessionIds: state.selectedDisplaySessionIds,
+      selectedPerformanceSummaries: state.selectedPerformanceSummaries,
+      summary: state.summary,
+      liveSummary: state.liveSummary,
+    })),
+  );
   const artifacts = useDebugArtifactStore((state) => state.artifacts);
   const selectedArtifactId = useDebugArtifactStore(
     (state) => state.selectedArtifactId,
@@ -464,9 +485,9 @@ export function useDebugModalController() {
 
   const requestTraceSnapshot = () => {
     requestTraceSnapshotAction({
-      activeRunId: activeRun?.runId,
+      activeRunId: summary.runId ?? activeRun?.runId,
       client: debugProtocolClient,
-      sessionId: session?.sessionId,
+      sessionId: summary.sessionId ?? session?.sessionId,
     });
   };
 
@@ -476,7 +497,7 @@ export function useDebugModalController() {
       events,
       replayStatus,
       selectedNodeId,
-      sessionId: session?.sessionId,
+      sessionId: summary.sessionId ?? session?.sessionId,
       summaryRunId: summary.runId,
     });
   };
@@ -488,7 +509,7 @@ export function useDebugModalController() {
       client: debugProtocolClient,
       record,
       replayStatus,
-      sessionId: session?.sessionId,
+      sessionId: record?.sessionId ?? summary.sessionId ?? session?.sessionId,
     });
   };
 
@@ -497,7 +518,8 @@ export function useDebugModalController() {
       client: debugProtocolClient,
       cursorSeq,
       replayStatus,
-      sessionId: session?.sessionId,
+      sessionId:
+        replayStatus?.sessionId ?? summary.sessionId ?? session?.sessionId,
       summaryRunId: summary.runId,
     });
   };
@@ -511,14 +533,15 @@ export function useDebugModalController() {
       cursorSeq: cursorSeq ?? record?.firstSeq,
       record,
       replayStatus,
-      sessionId: session?.sessionId,
+      sessionId: record?.sessionId ?? summary.sessionId ?? session?.sessionId,
     });
   };
 
   const stopTraceReplay = () => {
     stopTraceReplayAction({
       client: debugProtocolClient,
-      sessionId: session?.sessionId,
+      sessionId:
+        replayStatus?.sessionId ?? summary.sessionId ?? session?.sessionId,
     });
   };
 
@@ -679,11 +702,16 @@ export function useDebugModalController() {
     closeModal,
     connected,
     lastRunMode,
+    allEvents,
     events,
+    displaySessions,
+    selectedDisplaySessionIds,
+    latestDisplaySessionId,
     summary,
     liveSummary,
     replayStatus,
     performanceSummary,
+    selectedPerformanceSummaries,
     artifacts,
     selectedArtifactId,
     selectedArtifact,
@@ -740,6 +768,9 @@ export function useDebugModalController() {
     seekTraceReplay,
     seekNodeTraceReplay,
     stopTraceReplay,
+    selectDisplaySessions,
+    selectLatestDisplaySession,
+    selectAllDisplaySessions,
     startBatchRecognition,
     stopBatchRecognition,
     testAgent,

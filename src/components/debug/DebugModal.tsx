@@ -34,26 +34,25 @@ const panels: PanelItem[] = [
     id: "overview",
     label: "中控台",
     icon: <ProfileOutlined />,
-    description: "查看依赖状态、会话/追踪状态和当前运行摘要。",
+    description: "运行控制、展示会话选择和当前/最新运行摘要。",
   },
   {
     id: "node-execution",
     label: "节点线",
     icon: <NodeIndexOutlined />,
-    description: "按 MPE 节点聚合当前 session trace，查看执行路径和节点详情。",
+    description: "按 MPE 节点聚合已选展示会话，查看执行路径和节点详情。",
   },
   {
     id: "timeline",
     label: "事件线",
     icon: <BranchesOutlined />,
-    description:
-      "按后端 seq 查看 append-only trace，并在当前会话内定位或回放事件。",
+    description: "按后端 seq 查看已选展示会话，并在当前会话内定位或回放事件。",
   },
   {
     id: "performance",
     label: "性能",
     icon: <StepForwardOutlined />,
-    description: "查看运行结束后的性能摘要、慢节点统计和相关产物。",
+    description: "查看已选展示会话的性能摘要、慢节点统计和相关产物。",
   },
   {
     id: "images",

@@ -16,12 +16,15 @@ export function PerformancePanel({
 }) {
   const {
     performanceSummary,
+    selectedPerformanceSummaries,
     performanceRefs,
     batchSummaryRefs,
     requestArtifact,
     selectedArtifact,
     events,
   } = controller;
+  const activePerformanceSummary =
+    selectedPerformanceSummaries[0] ?? performanceSummary;
   const selectedArtifactIsPerformance =
     selectedArtifact &&
     (performanceRefs.includes(selectedArtifact.ref.id) ||
@@ -30,28 +33,34 @@ export function PerformancePanel({
   return (
     <Space direction="vertical" size={14} style={{ width: "100%" }}>
       <DebugSection title="性能摘要">
-        {performanceSummary ? (
+        {activePerformanceSummary ? (
           <Space direction="vertical" style={{ width: "100%" }}>
             <Space wrap>
               <Tag>
                 运行{" "}
                 {formatDebugRunDisplayName(
-                  performanceSummary.runId,
-                  performanceSummary.startedAt ??
-                    findDebugRunFirstTimestamp(performanceSummary.runId, events),
+                  activePerformanceSummary.runId,
+                  activePerformanceSummary.startedAt ??
+                    findDebugRunFirstTimestamp(
+                      activePerformanceSummary.runId,
+                      events,
+                    ),
                 )}
               </Tag>
-              <Tag>{performanceSummary.status ?? "-"}</Tag>
-              <Tag>耗时 {performanceSummary.durationMs ?? 0}ms</Tag>
-              <Tag>事件 {performanceSummary.eventCount}</Tag>
-              <Tag>节点 {performanceSummary.nodeCount}</Tag>
-              <Tag>识别 {performanceSummary.recognitionCount}</Tag>
-              <Tag>动作 {performanceSummary.actionCount}</Tag>
-              <Tag>截图 {performanceSummary.screenshotRefCount}</Tag>
+              <Tag>{activePerformanceSummary.status ?? "-"}</Tag>
+              <Tag>耗时 {activePerformanceSummary.durationMs ?? 0}ms</Tag>
+              <Tag>事件 {activePerformanceSummary.eventCount}</Tag>
+              <Tag>节点 {activePerformanceSummary.nodeCount}</Tag>
+              <Tag>识别 {activePerformanceSummary.recognitionCount}</Tag>
+              <Tag>动作 {activePerformanceSummary.actionCount}</Tag>
+              <Tag>截图 {activePerformanceSummary.screenshotRefCount}</Tag>
+              {selectedPerformanceSummaries.length > 1 && (
+                <Tag>已选摘要 {selectedPerformanceSummaries.length}</Tag>
+              )}
             </Space>
             <List
               size="small"
-              dataSource={performanceSummary.slowNodes}
+              dataSource={activePerformanceSummary.slowNodes}
               locale={{ emptyText: "暂无慢节点" }}
               renderItem={(node) => (
                 <List.Item>

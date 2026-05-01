@@ -46,10 +46,13 @@ export function startTraceReplayAction({
     message.warning("当前没有调试会话（Session）");
     return;
   }
+  const replayEvents = summaryRunId
+    ? events.filter((event) => event.runId === summaryRunId)
+    : events;
   const sent = client.startTraceReplay({
     sessionId,
     runId: summaryRunId,
-    cursorSeq: replayStatus?.cursorSeq || events[0]?.seq,
+    cursorSeq: replayStatus?.cursorSeq || replayEvents[0]?.seq,
     nodeId: selectedNodeId,
     speed: replayStatus?.speed ?? 1,
   });
@@ -110,12 +113,13 @@ export function startNodeTraceReplayAction({
     message.warning("请选择节点执行记录");
     return;
   }
-  if (!sessionId) {
+  const targetSessionId = record.sessionId ?? sessionId;
+  if (!targetSessionId) {
     message.warning("当前没有调试会话（Session）");
     return;
   }
   const sent = client.startTraceReplay({
-    sessionId,
+    sessionId: targetSessionId,
     runId: record.runId,
     cursorSeq: record.firstSeq,
     nodeId: record.nodeId,
@@ -141,12 +145,13 @@ export function seekNodeTraceReplayAction({
     message.warning("请选择节点执行记录");
     return;
   }
-  if (!sessionId) {
+  const targetSessionId = record.sessionId ?? sessionId;
+  if (!targetSessionId) {
     message.warning("当前没有调试会话（Session）");
     return;
   }
   const sent = client.seekTraceReplay({
-    sessionId,
+    sessionId: targetSessionId,
     runId: record.runId,
     cursorSeq: cursorSeq ?? record.firstSeq,
     nodeId: record.nodeId,

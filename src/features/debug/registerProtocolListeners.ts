@@ -143,7 +143,9 @@ export function registerDebugProtocolListeners(
   });
 
   debugProtocolClient.onTraceSnapshot((snapshot) => {
-    useDebugTraceStore.getState().applyTraceSnapshot(snapshot.events);
+    useDebugTraceStore
+      .getState()
+      .applyTraceSnapshot(snapshot.events, snapshot.sessionId, snapshot.runId);
     useDebugOverlayStore.getState().applyTraceSummary(
       useDebugTraceStore.getState().summary,
     );
