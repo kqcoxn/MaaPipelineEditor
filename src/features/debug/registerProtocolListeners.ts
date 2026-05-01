@@ -4,7 +4,7 @@ import { useDebugDiagnosticsStore } from "../../stores/debugDiagnosticsStore";
 import { useDebugOverlayStore } from "../../stores/debugOverlayStore";
 import { useDebugSessionStore } from "../../stores/debugSessionStore";
 import { useDebugTraceStore } from "../../stores/debugTraceStore";
-import type { DebugPerformanceSummary } from "./types";
+import type { DebugEvent, DebugPerformanceSummary } from "./types";
 import {
   recognitionDetailImageRefs,
   summarizeRecognitionArtifactPayload,
@@ -56,9 +56,13 @@ export function registerDebugProtocolListeners(
     const traceStore = useDebugTraceStore.getState();
     traceStore.appendEvent(event);
     useDebugDiagnosticsStore.getState().appendFromEvent(event);
-    useDebugOverlayStore.getState().applyTraceSummary(
-      useDebugTraceStore.getState().summary,
-    );
+    if (isTerminalSessionEvent(event)) {
+      useDebugOverlayStore.getState().clearOverlay();
+    } else {
+      useDebugOverlayStore.getState().applyTraceSummary(
+        useDebugTraceStore.getState().summary,
+      );
+    }
 
     if (event.detailRef) {
       useDebugArtifactStore.getState().upsertRef({
@@ -143,6 +147,17 @@ export function registerDebugProtocolListeners(
         .setError(selectedArtifactId, error.message);
     }
   });
+}
+
+function isTerminalSessionEvent(event: DebugEvent): boolean {
+  if (event.kind !== "session") return false;
+  return (
+    event.phase === "completed" ||
+    event.phase === "failed" ||
+    event.status === "completed" ||
+    event.status === "failed" ||
+    event.status === "stopped"
+  );
 }
 
 function recognitionImageArtifactType(
