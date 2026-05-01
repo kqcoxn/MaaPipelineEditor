@@ -6,18 +6,21 @@ import {
   ReloadOutlined,
 } from "@ant-design/icons";
 import type { CSSProperties } from "react";
+import ReactMarkdown from "react-markdown";
 import { DebugSection } from "../DebugSection";
 import type { DebugModalController } from "../../hooks/useDebugModalController";
 import type { DebugNodeExecutionRecord } from "../../nodeExecutionSelector";
 
 const { Paragraph, Text } = Typography;
 
-const reportStyle: CSSProperties = {
-  margin: 0,
-  whiteSpace: "pre-wrap",
+const markdownReportStyle: CSSProperties = {
   wordBreak: "break-word",
-  fontFamily:
-    'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+  overflowWrap: "anywhere",
+};
+
+const nodeRecordSelectStyle: CSSProperties = {
+  width: 260,
+  maxWidth: "min(260px, 58vw)",
 };
 
 interface NodeRecordOption {
@@ -72,45 +75,45 @@ export function AiSummaryPanel({
             >
               只看失败
             </Button>
+            <Space.Compact>
+              <Select
+                showSearch
+                value={selectedNodeRecord?.id}
+                style={nodeRecordSelectStyle}
+                placeholder="选择节点执行记录"
+                options={allNodeExecutionRecords.map((record) => ({
+                  value: record.id,
+                  label: nodeRecordLabel(record),
+                  searchText: [
+                    record.label,
+                    record.runtimeName,
+                    record.nodeId,
+                    record.fileId,
+                    record.sourcePath,
+                  ]
+                    .filter(Boolean)
+                    .join(" "),
+                }))}
+                filterOption={(input, option) =>
+                  String((option as NodeRecordOption | undefined)?.searchText ?? "")
+                    .toLowerCase()
+                    .includes(input.trim().toLowerCase())
+                }
+                onChange={setSelectedNodeExecutionRecordId}
+              />
+              <Button
+                icon={<NodeIndexOutlined />}
+                loading={aiSummaryState.status === "generating"}
+                disabled={!selectedNodeRecord}
+                onClick={() => generateDebugAiSummary("node", selectedNodeRecord)}
+              >
+                解释节点
+              </Button>
+            </Space.Compact>
             <Tag color={controller.autoGenerateAiSummary ? "green" : "default"}>
               自动生成 {controller.autoGenerateAiSummary ? "已开启" : "已关闭"}
             </Tag>
           </Space>
-          <Space.Compact style={{ width: "100%" }}>
-            <Select
-              showSearch
-              value={selectedNodeRecord?.id}
-              style={{ flex: 1 }}
-              placeholder="选择节点执行记录"
-              options={allNodeExecutionRecords.map((record) => ({
-                value: record.id,
-                label: nodeRecordLabel(record),
-                searchText: [
-                  record.label,
-                  record.runtimeName,
-                  record.nodeId,
-                  record.fileId,
-                  record.sourcePath,
-                ]
-                  .filter(Boolean)
-                  .join(" "),
-              }))}
-              filterOption={(input, option) =>
-                String((option as NodeRecordOption | undefined)?.searchText ?? "")
-                  .toLowerCase()
-                  .includes(input.trim().toLowerCase())
-              }
-              onChange={setSelectedNodeExecutionRecordId}
-            />
-            <Button
-              icon={<NodeIndexOutlined />}
-              loading={aiSummaryState.status === "generating"}
-              disabled={!selectedNodeRecord}
-              onClick={() => generateDebugAiSummary("node", selectedNodeRecord)}
-            >
-              解释节点
-            </Button>
-          </Space.Compact>
         </Space>
       </DebugSection>
       <DebugSection title="简单摘要">
@@ -149,7 +152,9 @@ export function AiSummaryPanel({
                 复制上下文
               </Button>
             </Space>
-            <pre style={reportStyle}>{report.detailedReport}</pre>
+            <div style={markdownReportStyle}>
+              <ReactMarkdown>{report.detailedReport}</ReactMarkdown>
+            </div>
           </Space>
         ) : (
           <Empty description="生成后会在这里显示详细报告" />

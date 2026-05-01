@@ -4,8 +4,8 @@ import type { DebugModalPanel } from "../types";
 const modalPanels: Array<{ id: DebugModalPanel; label: string }> = [
   { id: "overview", label: "总览" },
   { id: "node-execution", label: "节点线" },
-  { id: "ai-summary", label: "AI 总结" },
   { id: "timeline", label: "事件线" },
+  { id: "ai-summary", label: "AI 总结" },
   { id: "performance", label: "性能" },
   { id: "images", label: "图像" },
   { id: "diagnostics", label: "诊断" },

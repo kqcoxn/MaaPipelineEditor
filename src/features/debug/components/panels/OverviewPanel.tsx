@@ -206,6 +206,7 @@ export function OverviewPanel({
     displaySessions.length === 0
       ? "暂无"
       : `${selectedDisplaySessionIds.length}/${displaySessions.length}`;
+  const shouldShowAiSummarySection = displaySessions.length > 0;
 
   return (
     <Space direction="vertical" size={14} style={{ width: "100%" }}>
@@ -450,50 +451,52 @@ export function OverviewPanel({
           )}
         </div>
       </DebugSection>
-      <DebugSection title="AI 简要摘要">
-        {aiSummaryState.activeReport?.simpleSummary ? (
-          <Space direction="vertical" size={8} style={{ width: "100%" }}>
-            <Text>{aiSummaryState.activeReport.simpleSummary}</Text>
-            <Space wrap>
-              <Button
-                size="small"
-                icon={<FileTextOutlined />}
-                onClick={openAiSummaryPanel}
-              >
-                查看详细报告
-              </Button>
-              <Button
-                size="small"
-                icon={<ReloadOutlined />}
-                loading={aiSummaryState.status === "generating"}
-                onClick={() => generateDebugAiSummary("full")}
-              >
-                重新生成
-              </Button>
+      {shouldShowAiSummarySection && (
+        <DebugSection title="AI 简要摘要">
+          {aiSummaryState.activeReport?.simpleSummary ? (
+            <Space direction="vertical" size={8} style={{ width: "100%" }}>
+              <Text>{aiSummaryState.activeReport.simpleSummary}</Text>
+              <Space wrap>
+                <Button
+                  size="small"
+                  icon={<FileTextOutlined />}
+                  onClick={openAiSummaryPanel}
+                >
+                  查看详细报告
+                </Button>
+                <Button
+                  size="small"
+                  icon={<ReloadOutlined />}
+                  loading={aiSummaryState.status === "generating"}
+                  onClick={() => generateDebugAiSummary("full")}
+                >
+                  重新生成
+                </Button>
+              </Space>
             </Space>
-          </Space>
-        ) : (
-          <Space direction="vertical" size={8} style={{ width: "100%" }}>
-            <Text type="secondary">
-              尚未生成 AI 简要摘要；生成后会在这里显示结论并可跳转到详细报告。
-            </Text>
-            <Space wrap>
-              <Button
-                size="small"
-                icon={<FileTextOutlined />}
-                loading={aiSummaryState.status === "generating"}
-                disabled={events.length === 0}
-                onClick={() => generateDebugAiSummary("full")}
-              >
-                生成 AI 总结
-              </Button>
-              <Button size="small" onClick={openAiSummaryPanel}>
-                打开 AI 总结
-              </Button>
+          ) : (
+            <Space direction="vertical" size={8} style={{ width: "100%" }}>
+              <Text type="secondary">
+                尚未生成 AI 简要摘要；生成后会在这里显示结论并可跳转到详细报告。
+              </Text>
+              <Space wrap>
+                <Button
+                  size="small"
+                  icon={<FileTextOutlined />}
+                  loading={aiSummaryState.status === "generating"}
+                  disabled={events.length === 0}
+                  onClick={() => generateDebugAiSummary("full")}
+                >
+                  生成 AI 总结
+                </Button>
+                <Button size="small" onClick={openAiSummaryPanel}>
+                  打开 AI 总结
+                </Button>
+              </Space>
             </Space>
-          </Space>
-        )}
-      </DebugSection>
+          )}
+        </DebugSection>
+      )}
       {failedNodeExecutionRecords.length > 0 && latestFailedNodeExecutionRecord && (
         <DebugSection title="失败节点">
           <Space direction="vertical" size={8} style={{ width: "100%" }}>
