@@ -5,7 +5,6 @@ import {
   FileSearchOutlined,
   FileTextOutlined,
   NodeIndexOutlined,
-  PictureOutlined,
   ReloadOutlined,
   StopOutlined,
 } from "@ant-design/icons";
@@ -332,19 +331,6 @@ export function OverviewPanel({
                 }
               >
                 仅动作
-              </Button>
-              <Button
-                icon={<PictureOutlined />}
-                onClick={() =>
-                  startRun("fixed-image-recognition", selectedRunTargetNodeId)
-                }
-                disabled={
-                  !canStartRun ||
-                  !hasSelectedNode ||
-                  !availableModeIds.has("fixed-image-recognition")
-                }
-              >
-                固定图识别
               </Button>
               <Button
                 danger

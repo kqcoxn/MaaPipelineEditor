@@ -1,6 +1,4 @@
-import type { DebugArtifactEntry } from "../../stores/debugArtifactStore";
 import type {
-  DebugBatchRecognitionResult,
   DebugEvent,
   DebugTraceReplayStatus,
 } from "./types";
@@ -46,25 +44,6 @@ export interface SelectDebugNodeExecutionOverlayOptions {
   selectedAttempt?: DebugNodeExecutionAttempt;
   resolverEdges?: ResolverEdge[];
   resolverNodes?: ResolverNode[];
-}
-
-export interface DebugBatchRecognitionNodeSummary {
-  id: string;
-  sessionId: string;
-  batchId: string;
-  nodeId: string;
-  fileId: string;
-  runtimeName: string;
-  status: string;
-  total: number;
-  completed: number;
-  succeeded: number;
-  failed: number;
-  stopped?: boolean;
-  averageDurationMs?: number;
-  detailRefs: string[];
-  screenshotRefs: string[];
-  results: DebugBatchRecognitionResult["results"];
 }
 
 type EdgeIndex = Map<string, ResolverEdge>;
@@ -270,52 +249,6 @@ function collectNextListCandidateEdges(
   }
 }
 
-export function selectDebugBatchRecognitionNodeSummaries(
-  artifacts: Record<string, DebugArtifactEntry>,
-): DebugBatchRecognitionNodeSummary[] {
-  return Object.values(artifacts)
-    .map((entry) => entry.payload?.data)
-    .filter(isBatchRecognitionResult)
-    .map((result) => {
-      const detailRefs = uniqueStrings(
-        result.results.flatMap((item) => item.detailRefs ?? []),
-      );
-      const screenshotRefs = uniqueStrings(
-        result.results.flatMap((item) => item.screenshotRefs ?? []),
-      );
-      return {
-        id: result.batchId,
-        sessionId: result.sessionId,
-        batchId: result.batchId,
-        nodeId: result.target.nodeId,
-        fileId: result.target.fileId,
-        runtimeName: result.target.runtimeName,
-        status: result.status,
-        total: result.total,
-        completed: result.completed,
-        succeeded: result.succeeded,
-        failed: result.failed,
-        stopped: result.stopped,
-        averageDurationMs: result.averageDurationMs,
-        detailRefs,
-        screenshotRefs,
-        results: result.results,
-      };
-    })
-    .sort((a, b) => a.batchId.localeCompare(b.batchId));
-}
-
-export function batchSummariesForRecord(
-  summaries: DebugBatchRecognitionNodeSummary[],
-  record: DebugNodeExecutionRecord,
-): DebugBatchRecognitionNodeSummary[] {
-  return summaries.filter((summary) => {
-    if (summary.batchId === record.runId) return true;
-    if (record.nodeId && summary.nodeId === record.nodeId) return true;
-    return summary.runtimeName === record.runtimeName;
-  });
-}
-
 export function resolveEdgeIdsFromEvents(events: DebugEvent[]): {
   executedEdgeIds: string[];
   candidateEdgeIds: string[];
@@ -363,18 +296,6 @@ function emptyExecutionOverlay(): DebugNodeExecutionOverlay {
     executionCandidateEdgeIds: [],
     highlightedFailureNodeIds: [],
   };
-}
-
-function isBatchRecognitionResult(
-  value: unknown,
-): value is DebugBatchRecognitionResult {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "batchId" in value &&
-    "target" in value &&
-    "results" in value
-  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

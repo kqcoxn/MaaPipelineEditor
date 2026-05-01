@@ -5,9 +5,6 @@ import type {
   DebugArtifactPayload,
   DebugAgentTestRequest,
   DebugAgentTestResult,
-  DebugBatchRecognitionRequest,
-  DebugBatchRecognitionResult,
-  DebugBatchRecognitionStopRequest,
   DebugCapabilityManifest,
   DebugEvent,
   DebugRunStarted,
@@ -16,9 +13,6 @@ import type {
   DebugResourcePreflightResult,
   DebugRunRequest,
   DebugScreenshotCaptureRequest,
-  DebugScreenshotStreamStartRequest,
-  DebugScreenshotStreamStatus,
-  DebugScreenshotStreamStopRequest,
   DebugTraceReplayRequest,
   DebugTraceReplayStatus,
   DebugTraceReplayStopRequest,
@@ -55,23 +49,11 @@ export class DebugProtocolClient extends BaseProtocol {
   private readonly agentTestListeners = new Set<
     Listener<DebugAgentTestResult>
   >();
-  private readonly screenshotStreamStartedListeners = new Set<
-    Listener<DebugScreenshotStreamStatus>
-  >();
-  private readonly screenshotStreamStoppedListeners = new Set<
-    Listener<DebugScreenshotStreamStatus>
-  >();
   private readonly traceSnapshotListeners = new Set<
     Listener<DebugTraceSnapshot>
   >();
   private readonly traceReplayStatusListeners = new Set<
     Listener<DebugTraceReplayStatus>
-  >();
-  private readonly batchRecognitionStartedListeners = new Set<
-    Listener<DebugBatchRecognitionResult>
-  >();
-  private readonly batchRecognitionStoppedListeners = new Set<
-    Listener<DebugBatchRecognitionResult>
   >();
   private readonly errorListeners = new Set<Listener<DebugProtocolError>>();
 
@@ -115,23 +97,11 @@ export class DebugProtocolClient extends BaseProtocol {
     this.wsClient.registerRoute("/lte/debug/agent_tested", (data) =>
       this.handleAgentTested(data),
     );
-    this.wsClient.registerRoute("/lte/debug/screenshot_stream_started", (data) =>
-      this.handleScreenshotStreamStarted(data),
-    );
-    this.wsClient.registerRoute("/lte/debug/screenshot_stream_stopped", (data) =>
-      this.handleScreenshotStreamStopped(data),
-    );
     this.wsClient.registerRoute("/lte/debug/trace_snapshot", (data) =>
       this.handleTraceSnapshot(data),
     );
     this.wsClient.registerRoute("/lte/debug/trace_replay_status", (data) =>
       this.handleTraceReplayStatus(data),
-    );
-    this.wsClient.registerRoute("/lte/debug/batch_recognition_started", (data) =>
-      this.handleBatchRecognitionStarted(data),
-    );
-    this.wsClient.registerRoute("/lte/debug/batch_recognition_stopped", (data) =>
-      this.handleBatchRecognitionStopped(data),
     );
     this.wsClient.registerRoute("/lte/debug/error", (data) =>
       this.handleError(data),
@@ -181,14 +151,6 @@ export class DebugProtocolClient extends BaseProtocol {
     return this.send("/mpe/debug/screenshot/capture", request);
   }
 
-  startScreenshotStream(request: DebugScreenshotStreamStartRequest): boolean {
-    return this.send("/mpe/debug/screenshot/start", request);
-  }
-
-  stopScreenshotStream(request: DebugScreenshotStreamStopRequest): boolean {
-    return this.send("/mpe/debug/screenshot/stop", request);
-  }
-
   testAgent(request: DebugAgentTestRequest): boolean {
     return this.send("/mpe/debug/agent/test", request);
   }
@@ -207,14 +169,6 @@ export class DebugProtocolClient extends BaseProtocol {
 
   stopTraceReplay(request: DebugTraceReplayStopRequest): boolean {
     return this.send("/mpe/debug/trace/replay/stop", request);
-  }
-
-  startBatchRecognition(request: DebugBatchRecognitionRequest): boolean {
-    return this.send("/mpe/debug/batch-recognition/start", request);
-  }
-
-  stopBatchRecognition(request: DebugBatchRecognitionStopRequest): boolean {
-    return this.send("/mpe/debug/batch-recognition/stop", request);
   }
 
   onCapabilities(listener: Listener<DebugCapabilityManifest>): () => void {
@@ -271,20 +225,6 @@ export class DebugProtocolClient extends BaseProtocol {
     return () => this.agentTestListeners.delete(listener);
   }
 
-  onScreenshotStreamStarted(
-    listener: Listener<DebugScreenshotStreamStatus>,
-  ): () => void {
-    this.screenshotStreamStartedListeners.add(listener);
-    return () => this.screenshotStreamStartedListeners.delete(listener);
-  }
-
-  onScreenshotStreamStopped(
-    listener: Listener<DebugScreenshotStreamStatus>,
-  ): () => void {
-    this.screenshotStreamStoppedListeners.add(listener);
-    return () => this.screenshotStreamStoppedListeners.delete(listener);
-  }
-
   onTraceSnapshot(listener: Listener<DebugTraceSnapshot>): () => void {
     this.traceSnapshotListeners.add(listener);
     return () => this.traceSnapshotListeners.delete(listener);
@@ -295,20 +235,6 @@ export class DebugProtocolClient extends BaseProtocol {
   ): () => void {
     this.traceReplayStatusListeners.add(listener);
     return () => this.traceReplayStatusListeners.delete(listener);
-  }
-
-  onBatchRecognitionStarted(
-    listener: Listener<DebugBatchRecognitionResult>,
-  ): () => void {
-    this.batchRecognitionStartedListeners.add(listener);
-    return () => this.batchRecognitionStartedListeners.delete(listener);
-  }
-
-  onBatchRecognitionStopped(
-    listener: Listener<DebugBatchRecognitionResult>,
-  ): () => void {
-    this.batchRecognitionStoppedListeners.add(listener);
-    return () => this.batchRecognitionStoppedListeners.delete(listener);
   }
 
   onError(listener: Listener<DebugProtocolError>): () => void {
@@ -381,20 +307,6 @@ export class DebugProtocolClient extends BaseProtocol {
     this.agentTestListeners.forEach((listener) => listener(result));
   }
 
-  private handleScreenshotStreamStarted(data: unknown): void {
-    const status = data as DebugScreenshotStreamStatus;
-    this.screenshotStreamStartedListeners.forEach((listener) =>
-      listener(status),
-    );
-  }
-
-  private handleScreenshotStreamStopped(data: unknown): void {
-    const status = data as DebugScreenshotStreamStatus;
-    this.screenshotStreamStoppedListeners.forEach((listener) =>
-      listener(status),
-    );
-  }
-
   private handleTraceSnapshot(data: unknown): void {
     const snapshot = data as DebugTraceSnapshot;
     this.traceSnapshotListeners.forEach((listener) => listener(snapshot));
@@ -403,20 +315,6 @@ export class DebugProtocolClient extends BaseProtocol {
   private handleTraceReplayStatus(data: unknown): void {
     const status = data as DebugTraceReplayStatus;
     this.traceReplayStatusListeners.forEach((listener) => listener(status));
-  }
-
-  private handleBatchRecognitionStarted(data: unknown): void {
-    const result = data as DebugBatchRecognitionResult;
-    this.batchRecognitionStartedListeners.forEach((listener) =>
-      listener(result),
-    );
-  }
-
-  private handleBatchRecognitionStopped(data: unknown): void {
-    const result = data as DebugBatchRecognitionResult;
-    this.batchRecognitionStoppedListeners.forEach((listener) =>
-      listener(result),
-    );
   }
 
   private handleError(data: unknown): void {

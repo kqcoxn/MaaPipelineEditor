@@ -11,7 +11,6 @@ export const runnableModes = new Set<DebugRunMode>([
   "single-node-run",
   "recognition-only",
   "action-only",
-  "fixed-image-recognition",
 ]);
 
 export const targetRunModes = new Set<DebugRunMode>([
@@ -19,7 +18,6 @@ export const targetRunModes = new Set<DebugRunMode>([
   "single-node-run",
   "recognition-only",
   "action-only",
-  "fixed-image-recognition",
 ]);
 
 export function dataArray(value: unknown): unknown[] {
@@ -86,17 +84,6 @@ export function validateRunRequest(
       severity: "error",
       code: "debug.target.missing",
       message: "节点级调试缺少目标节点（Target）。",
-    });
-  }
-  if (
-    request.mode === "fixed-image-recognition" &&
-    !request.input?.imageRelativePath &&
-    !request.input?.imagePath
-  ) {
-    diagnostics.push({
-      severity: "error",
-      code: "debug.fixed_image.missing",
-      message: "固定图识别需要先选择资源（Resource）相对图片或输入图片路径。",
     });
   }
   if (request.mode === "action-only" && !request.input?.confirmAction) {

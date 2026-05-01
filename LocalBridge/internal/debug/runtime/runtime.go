@@ -67,38 +67,26 @@ func New(
 	}
 
 	adapter := mfw.NewMaaFWAdapter()
-	if req.Mode == protocol.RunModeFixedImageRecognition {
-		imagePath, err := runutil.ResolveFixedImagePath(req, root)
-		if err != nil {
-			adapter.Destroy()
-			return nil, err
-		}
-		if err := adapter.UseCarouselImageController(imagePath); err != nil {
-			adapter.Destroy()
-			return nil, err
-		}
-	} else {
-		controllerID, err := ControllerID(req)
-		if err != nil {
-			adapter.Destroy()
-			return nil, err
-		}
-		controllerInfo, err := service.ControllerManager().GetController(controllerID)
-		if err != nil {
-			adapter.Destroy()
-			return nil, fmt.Errorf("获取控制器失败: %w", err)
-		}
-		controller, ok := controllerInfo.Controller.(*maa.Controller)
-		if !ok || controller == nil {
-			adapter.Destroy()
-			return nil, fmt.Errorf("控制器实例不可用: %s", controllerID)
-		}
-		if !controller.Connected() {
-			adapter.Destroy()
-			return nil, fmt.Errorf("控制器未连接: %s", controllerID)
-		}
-		adapter.SetController(controller, controllerInfo.Type, controllerInfo.UUID)
+	controllerID, err := ControllerID(req)
+	if err != nil {
+		adapter.Destroy()
+		return nil, err
 	}
+	controllerInfo, err := service.ControllerManager().GetController(controllerID)
+	if err != nil {
+		adapter.Destroy()
+		return nil, fmt.Errorf("获取控制器失败: %w", err)
+	}
+	controller, ok := controllerInfo.Controller.(*maa.Controller)
+	if !ok || controller == nil {
+		adapter.Destroy()
+		return nil, fmt.Errorf("控制器实例不可用: %s", controllerID)
+	}
+	if !controller.Connected() {
+		adapter.Destroy()
+		return nil, fmt.Errorf("控制器未连接: %s", controllerID)
+	}
+	adapter.SetController(controller, controllerInfo.Type, controllerInfo.UUID)
 
 	emitResourceLoadDiagnostics(sessionID, runID, emit, "starting", resourcePaths, nil)
 	if err := adapter.LoadResourcesWithProgress(resourcePaths, func(index int, total int, path string, status string, err error) {
@@ -159,8 +147,7 @@ func EntryForRequest(req protocol.RunRequest) (string, error) {
 	case protocol.RunModeRunFromNode,
 		protocol.RunModeSingleNodeRun,
 		protocol.RunModeRecognitionOnly,
-		protocol.RunModeActionOnly,
-		protocol.RunModeFixedImageRecognition:
+		protocol.RunModeActionOnly:
 		if req.Target == nil {
 			return "", fmt.Errorf("%s 缺少 target", req.Mode)
 		}
@@ -222,7 +209,7 @@ func (r *Runtime) Start() error {
 			return err
 		}
 		return r.startTask(override)
-	case protocol.RunModeRecognitionOnly, protocol.RunModeFixedImageRecognition:
+	case protocol.RunModeRecognitionOnly:
 		return r.startDirectRecognition()
 	case protocol.RunModeActionOnly:
 		return r.startDirectAction()
@@ -393,7 +380,7 @@ func (r *Runtime) emitDirectCompletion(job *maa.TaskJob, status maa.Status) {
 	}
 	detailRef := r.storeDirectDetail(job)
 	switch r.mode {
-	case protocol.RunModeRecognitionOnly, protocol.RunModeFixedImageRecognition:
+	case protocol.RunModeRecognitionOnly:
 		r.emitDirectEvent("recognition", phase, status.String(), detailRef, r.screenshotRef)
 	case protocol.RunModeActionOnly:
 		r.emitDirectEvent("action", phase, status.String(), detailRef, "")
@@ -444,7 +431,7 @@ func (r *Runtime) storeDirectDetail(job *maa.TaskJob) string {
 		if node == nil {
 			continue
 		}
-		if (r.mode == protocol.RunModeRecognitionOnly || r.mode == protocol.RunModeFixedImageRecognition) && node.Recognition != nil {
+		if r.mode == protocol.RunModeRecognitionOnly && node.Recognition != nil {
 			if ref := r.storeRecognitionDetail(node.Recognition); ref != "" {
 				return ref
 			}
@@ -504,11 +491,7 @@ func (r *Runtime) storeRecognitionInput(img image.Image) {
 	if r.artifacts == nil || img == nil {
 		return
 	}
-	artifactType := "recognition-input"
-	if r.mode == protocol.RunModeFixedImageRecognition {
-		artifactType = "fixed-image"
-	}
-	ref, err := r.artifacts.AddPNG(r.sessionID, artifactType, img)
+	ref, err := r.artifacts.AddPNG(r.sessionID, "recognition-input", img)
 	if err != nil {
 		logger.Warn("DebugVNext", "写入识别输入图 artifact 失败: %v", err)
 		return
@@ -665,8 +648,7 @@ func normalizeResourcePaths(paths []string) []string {
 
 func isDirectMode(mode protocol.RunMode) bool {
 	return mode == protocol.RunModeRecognitionOnly ||
-		mode == protocol.RunModeActionOnly ||
-		mode == protocol.RunModeFixedImageRecognition
+		mode == protocol.RunModeActionOnly
 }
 
 func cloneOverride(override map[string]interface{}) (map[string]interface{}, error) {

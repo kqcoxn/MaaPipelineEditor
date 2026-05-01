@@ -14,12 +14,10 @@ import {
   Typography,
 } from "antd";
 import {
-  CaretRightOutlined,
   DeleteOutlined,
   PictureOutlined,
   PlusOutlined,
   ReloadOutlined,
-  StopOutlined,
 } from "@ant-design/icons";
 import { DebugSection } from "../DebugSection";
 import type { DebugModalController } from "../../hooks/useDebugModalController";
@@ -289,10 +287,6 @@ function ControllerSection({
   const {
     mfwState,
     captureScreenshot,
-    startScreenshotStream,
-    stopScreenshotStream,
-    screenshotStream,
-    profileState,
     controllerDisplayName,
   } = controller;
 
@@ -314,54 +308,6 @@ function ControllerSection({
           >
             截图
           </Button>
-          <Button
-            size="small"
-            icon={<CaretRightOutlined />}
-            onClick={startScreenshotStream}
-            disabled={!mfwState.controllerId || screenshotStream?.active}
-          >
-            开始推流
-          </Button>
-          <Button
-            size="small"
-            danger
-            icon={<StopOutlined />}
-            onClick={stopScreenshotStream}
-            disabled={!screenshotStream?.active}
-          >
-            停止推流
-          </Button>
-        </Space>
-      </DebugSection>
-      <DebugSection title="实时截图（Live Screenshot）">
-        <Space wrap>
-          <InputNumber
-            min={250}
-            step={250}
-            value={profileState.screenshotStreamConfig.intervalMs}
-            addonBefore="间隔 ms"
-            onChange={(intervalMs) =>
-              profileState.setScreenshotStreamConfig({
-                ...profileState.screenshotStreamConfig,
-                intervalMs: Math.max(250, intervalMs ?? 1000),
-              })
-            }
-          />
-          <Checkbox
-            checked={profileState.screenshotStreamConfig.force}
-            onChange={(event) =>
-              profileState.setScreenshotStreamConfig({
-                ...profileState.screenshotStreamConfig,
-                force: event.target.checked,
-              })
-            }
-          >
-            强制截图
-          </Checkbox>
-          <Tag color={screenshotStream?.active ? "green" : "default"}>
-            {screenshotStream?.active ? "推流中" : "已停止"}
-          </Tag>
-          <Tag>帧数 {screenshotStream?.frameCount ?? 0}</Tag>
         </Space>
       </DebugSection>
       <Alert

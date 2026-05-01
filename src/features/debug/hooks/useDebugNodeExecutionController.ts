@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { DebugArtifactEntry } from "../../../stores/debugArtifactStore";
 import { useDebugOverlayStore } from "../../../stores/debugOverlayStore";
 import type { NodeType } from "../../../stores/flow";
 import { useLocalFileStore } from "../../../stores/localFileStore";
 import { applyDebugNodeTarget } from "../nodeTargetActions";
 import { allDebugNodeExecutionAttempts } from "../nodeExecutionAttempts";
 import {
-  selectDebugBatchRecognitionNodeSummaries,
   selectDebugNodeExecutionOverlayFromEdges,
   selectDebugNodeExecutionOverlayForSelection,
 } from "../nodeExecutionAnalysis";
@@ -25,7 +23,6 @@ import {
 } from "../types";
 
 interface UseDebugNodeExecutionControllerInput {
-  artifacts: Record<string, DebugArtifactEntry>;
   flowNodes: NodeType[];
   liveSummary: DebugTraceSummary;
   nodeExecutionAttributionMode: DebugExecutionAttributionMode;
@@ -38,7 +35,6 @@ interface UseDebugNodeExecutionControllerInput {
 }
 
 export function useDebugNodeExecutionController({
-  artifacts,
   flowNodes,
   liveSummary,
   nodeExecutionAttributionMode,
@@ -194,11 +190,6 @@ export function useDebugNodeExecutionController({
       ),
     [migratedSelectedNodeExecutionAttemptId, selectedNodeExecutionAttempts],
   );
-  const batchRecognitionNodeSummaries = useMemo(
-    () => selectDebugBatchRecognitionNodeSummaries(artifacts),
-    [artifacts],
-  );
-
   useEffect(() => {
     if (migratedSelectedNodeExecutionAttemptId !== selectedNodeExecutionAttemptId) {
       setSelectedNodeExecutionAttemptId(migratedSelectedNodeExecutionAttemptId);
@@ -311,7 +302,6 @@ export function useDebugNodeExecutionController({
 
   return {
     allNodeExecutionRecords,
-    batchRecognitionNodeSummaries,
     nodeExecutionFilters,
     nodeExecutionRecords,
     pipelineNodes,

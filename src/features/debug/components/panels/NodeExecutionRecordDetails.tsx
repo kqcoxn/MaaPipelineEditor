@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import { Alert, Button, List, Space, Tag, Typography } from "antd";
+import { Alert, List, Space, Tag, Typography } from "antd";
 import { DebugArtifactSelector } from "../DebugArtifactSelector";
 import { DebugSection } from "../DebugSection";
 import {
@@ -18,10 +18,6 @@ import {
   allDebugNodeExecutionAttempts,
   isArtifactRelatedToAttempt,
 } from "../../nodeExecutionAttempts";
-import {
-  batchSummariesForRecord,
-  type DebugBatchRecognitionNodeSummary,
-} from "../../nodeExecutionAnalysis";
 import { formatDebugNodeExecutionDuration } from "../../nodeExecutionDisplay";
 import { eventTitle, formatTime } from "../../modalUtils";
 import type { DebugEvent, DebugExecutionDetailMode } from "../../types";
@@ -67,7 +63,6 @@ const overviewMetaValueStyle: CSSProperties = {
 
 export function NodeExecutionRecordDetails({
   artifacts,
-  batchSummaries,
   detailMode,
   events,
   onSelectAttempt,
@@ -78,7 +73,6 @@ export function NodeExecutionRecordDetails({
   selectedAttemptId,
 }: {
   artifacts: ArtifactEntries;
-  batchSummaries: DebugBatchRecognitionNodeSummary[];
   detailMode: DebugExecutionDetailMode;
   events: DebugEvent[];
   onSelectAttempt: (attemptId?: string) => void;
@@ -103,8 +97,6 @@ export function NodeExecutionRecordDetails({
     selectedArtifact?.ref.id,
     selectedAttempt,
   );
-  const relatedBatchSummaries = batchSummariesForRecord(batchSummaries, record);
-
   return (
     <Space direction="vertical" size={12} style={{ width: "100%" }}>
       <DebugSection title="执行概览" collapsible defaultCollapsed>
@@ -178,10 +170,6 @@ export function NodeExecutionRecordDetails({
             events={record.events.filter((event) => event.kind === "diagnostic")}
             title="诊断事件"
           />
-          <BatchRecognitionGroup
-            requestArtifact={requestArtifact}
-            summaries={relatedBatchSummaries}
-          />
         </>
       ) : (
         <>
@@ -212,11 +200,6 @@ export function NodeExecutionRecordDetails({
           <SimpleEventGroup
             events={record.events.filter((event) => event.kind === "diagnostic")}
             title="诊断事件"
-          />
-
-          <BatchRecognitionGroup
-            requestArtifact={requestArtifact}
-            summaries={relatedBatchSummaries}
           />
 
           <ArtifactActions
@@ -287,54 +270,6 @@ function CompactNextSummary({
   );
 }
 
-function BatchRecognitionGroup({
-  requestArtifact,
-  summaries,
-}: {
-  requestArtifact: (artifactId: string) => void;
-  summaries: DebugBatchRecognitionNodeSummary[];
-}) {
-  if (summaries.length === 0) return null;
-
-  return (
-    <DebugSection title="批量识别">
-      <List
-        size="small"
-        dataSource={summaries}
-        renderItem={(summary) => (
-          <List.Item>
-            <Space direction="vertical" size={6} style={{ width: "100%" }}>
-              <Space wrap size={4}>
-                <Tag>batch {summary.batchId}</Tag>
-                <Tag>{summary.status}</Tag>
-                <Tag>总数 {summary.total}</Tag>
-                <Tag color="green">成功 {summary.succeeded}</Tag>
-                <Tag color={summary.failed > 0 ? "red" : "default"}>
-                  失败 {summary.failed}
-                </Tag>
-                <Tag>完成 {summary.completed}</Tag>
-                {summary.averageDurationMs !== undefined && (
-                  <Tag>
-                    平均{" "}
-                    {formatDebugNodeExecutionDuration(
-                      summary.averageDurationMs,
-                    )}
-                  </Tag>
-                )}
-                {summary.stopped && <Tag color="orange">已停止</Tag>}
-              </Space>
-              <BatchResultList
-                requestArtifact={requestArtifact}
-                summary={summary}
-              />
-            </Space>
-          </List.Item>
-        )}
-      />
-    </DebugSection>
-  );
-}
-
 function OverviewMetaItem({
   label,
   value,
@@ -349,55 +284,6 @@ function OverviewMetaItem({
       <Text type="secondary">{label}</Text>
       <Text style={overviewMetaValueStyle}>{value}</Text>
     </span>
-  );
-}
-
-function BatchResultList({
-  requestArtifact,
-  summary,
-}: {
-  requestArtifact: (artifactId: string) => void;
-  summary: DebugBatchRecognitionNodeSummary;
-}) {
-  const visibleResults = summary.results.filter(
-    (result) =>
-      result.status === "failed" ||
-      (result.detailRefs?.length ?? 0) > 0 ||
-      (result.screenshotRefs?.length ?? 0) > 0,
-  );
-  if (visibleResults.length === 0) {
-    return <Text type="secondary">暂无可查看的图片结果 artifact。</Text>;
-  }
-
-  return (
-    <Space direction="vertical" size={4}>
-      {visibleResults.slice(0, 20).map((result) => (
-        <Space key={`${summary.batchId}-${result.index}`} wrap size={4}>
-          <Tag>#{result.index + 1}</Tag>
-          <Tag color={result.status === "failed" ? "red" : "green"}>
-            {result.status}
-          </Tag>
-          {result.imageRelativePath && <Tag>{result.imageRelativePath}</Tag>}
-          {result.durationMs !== undefined && (
-            <Tag>{formatDebugNodeExecutionDuration(result.durationMs)}</Tag>
-          )}
-          {result.error && <Tag color="red">{truncate(result.error)}</Tag>}
-          {(result.detailRefs ?? []).map((ref) => (
-            <Button key={ref} size="small" onClick={() => requestArtifact(ref)}>
-              详情 #{shortRef(ref)}
-            </Button>
-          ))}
-          {(result.screenshotRefs ?? []).map((ref) => (
-            <Button key={ref} size="small" onClick={() => requestArtifact(ref)}>
-              图像 #{shortRef(ref)}
-            </Button>
-          ))}
-        </Space>
-      ))}
-      {visibleResults.length > 20 && (
-        <Text type="secondary">仅显示前 20 条含 artifact 或失败的图片结果。</Text>
-      )}
-    </Space>
   );
 }
 
@@ -716,10 +602,6 @@ function readNextItems(event: DebugEvent): Array<{
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
-}
-
-function truncate(value: string): string {
-  return value.length > 240 ? `${value.slice(0, 240)}...` : value;
 }
 
 function shortRef(ref: string): string {

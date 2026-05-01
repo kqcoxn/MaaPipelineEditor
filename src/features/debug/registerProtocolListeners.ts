@@ -4,10 +4,7 @@ import { useDebugDiagnosticsStore } from "../../stores/debugDiagnosticsStore";
 import { useDebugOverlayStore } from "../../stores/debugOverlayStore";
 import { useDebugSessionStore } from "../../stores/debugSessionStore";
 import { useDebugTraceStore } from "../../stores/debugTraceStore";
-import type {
-  DebugBatchRecognitionResult,
-  DebugPerformanceSummary,
-} from "./types";
+import type { DebugPerformanceSummary } from "./types";
 import {
   recognitionDetailImageRefs,
   summarizeRecognitionArtifactPayload,
@@ -58,7 +55,6 @@ export function registerDebugProtocolListeners(
   debugProtocolClient.onDebugEvent((event) => {
     const traceStore = useDebugTraceStore.getState();
     traceStore.appendEvent(event);
-    useDebugSessionStore.getState().updateScreenshotStreamFrame(event);
     useDebugDiagnosticsStore.getState().appendFromEvent(event);
     useDebugOverlayStore.getState().applyTraceSummary(
       useDebugTraceStore.getState().summary,
@@ -73,10 +69,7 @@ export function registerDebugProtocolListeners(
         createdAt: event.timestamp,
         eventSeq: event.seq,
       });
-      if (
-        event.data?.performanceSummaryRef === event.detailRef ||
-        event.data?.mode === "batch-recognition"
-      ) {
+      if (event.data?.performanceSummaryRef === event.detailRef) {
         useDebugArtifactStore.getState().setLoading(event.detailRef);
         debugProtocolClient.requestArtifact({
           sessionId: event.sessionId,
@@ -93,9 +86,7 @@ export function registerDebugProtocolListeners(
         createdAt: event.timestamp,
         eventSeq: event.seq,
       });
-      if (event.data?.source !== "live") {
-        useDebugArtifactStore.getState().selectArtifact(event.screenshotRef);
-      }
+      useDebugArtifactStore.getState().selectArtifact(event.screenshotRef);
     }
   });
 
@@ -120,26 +111,10 @@ export function registerDebugProtocolListeners(
     ) {
       useDebugTraceStore.getState().setPerformanceSummary(payload.data);
     }
-    if (
-      payload.ref.type === "batch-recognition-summary" &&
-      isBatchRecognitionResult(payload.data)
-    ) {
-      useDebugTraceStore
-        .getState()
-        .setPerformanceSummary(batchResultToPerformanceSummary(payload.data));
-    }
   });
 
   debugProtocolClient.onAgentTested((result) => {
     useDebugSessionStore.getState().setAgentTestResult(result);
-  });
-
-  debugProtocolClient.onScreenshotStreamStarted((status) => {
-    useDebugSessionStore.getState().setScreenshotStreamStatus(status);
-  });
-
-  debugProtocolClient.onScreenshotStreamStopped((status) => {
-    useDebugSessionStore.getState().setScreenshotStreamStatus(status);
   });
 
   debugProtocolClient.onTraceSnapshot((snapshot) => {
@@ -156,18 +131,6 @@ export function registerDebugProtocolListeners(
     useDebugOverlayStore.getState().applyReplaySummary(
       useDebugTraceStore.getState().summary,
     );
-  });
-
-  debugProtocolClient.onBatchRecognitionStarted((result) => {
-    useDebugTraceStore
-      .getState()
-      .setPerformanceSummary(batchResultToPerformanceSummary(result));
-  });
-
-  debugProtocolClient.onBatchRecognitionStopped((result) => {
-    useDebugTraceStore
-      .getState()
-      .setPerformanceSummary(batchResultToPerformanceSummary(result));
   });
 
   debugProtocolClient.onError((error) => {
@@ -203,74 +166,4 @@ function isPerformanceSummary(value: unknown): value is DebugPerformanceSummary 
     "eventCount" in value &&
     "nodes" in value
   );
-}
-
-function isBatchRecognitionResult(
-  value: unknown,
-): value is DebugBatchRecognitionResult {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "batchId" in value &&
-    "results" in value &&
-    "target" in value
-  );
-}
-
-function batchResultToPerformanceSummary(
-  result: DebugBatchRecognitionResult,
-): DebugPerformanceSummary {
-  return {
-    sessionId: result.sessionId,
-    runId: result.batchId,
-    mode: "batch-recognition",
-    entry: result.target.runtimeName,
-    status: result.status,
-    eventCount: result.completed,
-    nodeCount: 1,
-    recognitionCount: result.completed,
-    actionCount: 0,
-    diagnosticCount: result.failed,
-    artifactRefCount: result.results.reduce(
-      (total, item) =>
-        total +
-        (item.detailRefs?.length ?? 0) +
-        (item.screenshotRefs?.length ?? 0),
-      0,
-    ),
-    screenshotRefCount: result.results.reduce(
-      (total, item) => total + (item.screenshotRefs?.length ?? 0),
-      0,
-    ),
-    startedAt: result.startedAt,
-    completedAt: result.completedAt,
-    durationMs: result.results.reduce(
-      (total, item) => total + (item.durationMs ?? 0),
-      0,
-    ),
-    nodes: [
-      {
-        fileId: result.target.fileId,
-        nodeId: result.target.nodeId,
-        runtimeName: result.target.runtimeName,
-        status: result.status,
-        firstSeq: 0,
-        lastSeq: 0,
-        durationMs: result.averageDurationMs,
-        recognitionCount: result.completed,
-        actionCount: 0,
-        nextListCount: 0,
-        waitFreezesCount: 0,
-        detailRefCount: result.results.reduce(
-          (total, item) => total + (item.detailRefs?.length ?? 0),
-          0,
-        ),
-        screenshotRefCount: result.results.reduce(
-          (total, item) => total + (item.screenshotRefs?.length ?? 0),
-          0,
-        ),
-      },
-    ],
-    generatedAt: result.completedAt ?? result.startedAt,
-  };
 }

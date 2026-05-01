@@ -16,7 +16,6 @@ export function PerformancePanel({
     performanceSummary,
     selectedPerformanceSummaries,
     performanceRefs,
-    batchSummaryRefs,
     requestArtifact,
     selectedArtifact,
     events,
@@ -24,9 +23,7 @@ export function PerformancePanel({
   const activePerformanceSummary =
     selectedPerformanceSummaries[0] ?? performanceSummary;
   const selectedArtifactIsPerformance =
-    selectedArtifact &&
-    (performanceRefs.includes(selectedArtifact.ref.id) ||
-      batchSummaryRefs.includes(selectedArtifact.ref.id));
+    selectedArtifact && performanceRefs.includes(selectedArtifact.ref.id);
 
   return (
     <Space direction="vertical" size={14} style={{ width: "100%" }}>
@@ -66,11 +63,6 @@ export function PerformancePanel({
           {performanceRefs.map((ref) => (
             <Button key={ref} size="small" onClick={() => requestArtifact(ref)}>
               性能 #{ref.slice(0, 8)}
-            </Button>
-          ))}
-          {batchSummaryRefs.map((ref) => (
-            <Button key={ref} size="small" onClick={() => requestArtifact(ref)}>
-              批量 #{ref.slice(0, 8)}
             </Button>
           ))}
         </Space>

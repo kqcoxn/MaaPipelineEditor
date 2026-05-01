@@ -13,13 +13,12 @@ import (
 
 type Service struct {
 	mfwService *mfw.Service
-	root       string
 }
 
 func NewService(mfwService *mfw.Service, root string) *Service {
+	_ = root
 	return &Service{
 		mfwService: mfwService,
-		root:       root,
 	}
 }
 
@@ -28,7 +27,6 @@ func (s *Service) CheckRun(req protocol.RunRequest) []protocol.Diagnostic {
 	diagnostics = append(diagnostics, s.checkResources(req.Profile.ResourcePaths)...)
 	diagnostics = append(diagnostics, s.checkTarget(req)...)
 	diagnostics = append(diagnostics, s.checkController(req)...)
-	diagnostics = append(diagnostics, s.checkFixedImage(req)...)
 	diagnostics = append(diagnostics, checkAgents(req.Profile.Agents)...)
 	return diagnostics
 }
@@ -187,26 +185,6 @@ func (s *Service) checkController(req protocol.RunRequest) []protocol.Diagnostic
 		}}
 	}
 	return nil
-}
-
-func (s *Service) checkFixedImage(req protocol.RunRequest) []protocol.Diagnostic {
-	if req.Mode != protocol.RunModeFixedImageRecognition {
-		return nil
-	}
-	path, err := runutil.ResolveFixedImagePath(req, s.root)
-	if err != nil {
-		return []protocol.Diagnostic{{
-			Severity: "error",
-			Code:     "debug.fixed_image.invalid",
-			Message:  err.Error(),
-		}}
-	}
-	return []protocol.Diagnostic{{
-		Severity:   "info",
-		Code:       "debug.fixed_image.resolved",
-		Message:    "固定图路径已解析",
-		SourcePath: path,
-	}}
 }
 
 func checkAgents(agents []protocol.AgentProfile) []protocol.Diagnostic {

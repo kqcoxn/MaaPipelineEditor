@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { message } from "antd";
 import { useShallow } from "zustand/shallow";
 import { AIClient } from "../../../utils/ai/aiClient";
-import { debugProtocolClient, resourceProtocol } from "../../../services/server";
+import { debugProtocolClient } from "../../../services/server";
 import { useDebugSessionStore } from "../../../stores/debugSessionStore";
 import { useDebugModalMemoryStore } from "../../../stores/debugModalMemoryStore";
 import { useDebugTraceStore } from "../../../stores/debugTraceStore";
@@ -35,14 +35,9 @@ import { getControllerDisplayName } from "../controllerDisplay";
 import {
   captureScreenshotAction,
   requestResourcePreflightAction,
-  startScreenshotStreamAction,
-  stopScreenshotStreamAction,
   testAgentAction,
 } from "../debugModalActions";
-import {
-  selectBatchSummaryRefs,
-  selectPerformanceRefs,
-} from "../debugEventSelectors";
+import { selectPerformanceRefs } from "../debugEventSelectors";
 import {
   formatDebugReadinessMessage,
   getDebugReadiness,
@@ -59,7 +54,6 @@ import type { DebugNodeExecutionRecord } from "../nodeExecutionSelector";
 import { useDebugNodeExecutionController } from "./useDebugNodeExecutionController";
 import type {
   DebugAgentProfile,
-  DebugBatchRecognitionInput,
   DebugModalPanel,
   DebugRunMode,
   DebugRunRequest,
@@ -79,7 +73,6 @@ export function useDebugModalController() {
     capabilityError,
     session,
     activeRun,
-    screenshotStream,
     agentTestResults,
     lastError,
     selectedNodeId,
@@ -100,7 +93,6 @@ export function useDebugModalController() {
       capabilityError: state.capabilityError,
       session: state.session,
       activeRun: state.activeRun,
-      screenshotStream: state.screenshotStream,
       agentTestResults: state.agentTestResults,
       lastError: state.lastError,
       selectedNodeId: state.selectedNodeId,
@@ -187,13 +179,10 @@ export function useDebugModalController() {
     })),
   );
   const profileState = useDebugRunProfileStore();
-  const { resourceBundles, imageList, imageListBundleName, imageListLoading } =
+  const { resourceBundles } =
     useLocalFileStore(
       useShallow((state) => ({
         resourceBundles: state.resourceBundles,
-        imageList: state.imageList,
-        imageListBundleName: state.imageListBundleName,
-        imageListLoading: state.imageListLoading,
       })),
     );
   const mfwState = useMFWStore(
@@ -326,12 +315,6 @@ export function useDebugModalController() {
     setResourcePreflightChecking,
   ]);
 
-  useEffect(() => {
-    if (!modalOpen || !connected || activePanel !== "images") return;
-    if (imageList.length > 0 || imageListLoading) return;
-    resourceProtocol.requestImageList();
-  }, [activePanel, connected, imageList.length, imageListLoading, modalOpen]);
-
   const runModes = useMemo(() => debugContributionRegistry.getRunModes(), []);
 
   const availableModeIds = useMemo(
@@ -340,7 +323,6 @@ export function useDebugModalController() {
   );
 
   const nodeExecutionController = useDebugNodeExecutionController({
-    artifacts,
     flowNodes,
     liveSummary,
     nodeExecutionAttributionMode,
@@ -360,7 +342,6 @@ export function useDebugModalController() {
     ? artifacts[selectedArtifactId]
     : undefined;
   const performanceRefs = useMemo(() => selectPerformanceRefs(events), [events]);
-  const batchSummaryRefs = useMemo(() => selectBatchSummaryRefs(events), [events]);
   const selectedDisplaySession = useMemo(
     () =>
       displaySessions.find((item) => item.id === selectedDisplaySessionIds[0]) ??
@@ -482,114 +463,12 @@ export function useDebugModalController() {
     );
   };
 
-  const startScreenshotStream = () => {
-    startScreenshotStreamAction(
-      {
-        client: debugProtocolClient,
-        config: profileState.screenshotStreamConfig,
-        connected,
-        controllerId: mfwState.controllerId ?? undefined,
-        runId: activeRun?.runId,
-        sessionId: session?.sessionId,
-      },
-      () => {
-        setActivePanel("images");
-        setLastPanel("images");
-      },
-    );
-  };
-
-  const stopScreenshotStream = () => {
-    stopScreenshotStreamAction({
-      client: debugProtocolClient,
-      runId: activeRun?.runId,
-      sessionId: session?.sessionId,
-    });
-  };
-
   const requestTraceSnapshot = () => {
     requestTraceSnapshotAction({
       activeRunId: summary.runId ?? activeRun?.runId,
       client: debugProtocolClient,
       sessionId: summary.sessionId ?? session?.sessionId,
     });
-  };
-
-  const startBatchRecognition = () => {
-    if (!debugReadiness.ready) {
-      message.error(debugReadiness.issues[0]?.message ?? "调试前置条件未满足");
-      return;
-    }
-    if (!selectedNodeId) {
-      message.warning("请选择节点");
-      return;
-    }
-    const selectedImages: DebugBatchRecognitionInput[] =
-      profileState.batchRecognitionImages.length > 0
-        ? profileState.batchRecognitionImages
-        : imageList
-            .slice(0, 50)
-            .map((image) => ({ imageRelativePath: image.relativePath }));
-    if (selectedImages.length === 0) {
-      message.warning("请先刷新并选择资源（Resource）图片");
-      return;
-    }
-    try {
-      const baseRequest = profileState.buildRunRequest(
-        "fixed-image-recognition",
-        selectedNodeId,
-        session?.sessionId,
-      );
-      if (!baseRequest.target) {
-        message.error("批量识别缺少目标节点（Target）");
-        return;
-      }
-      const sent = debugProtocolClient.startBatchRecognition({
-        sessionId: baseRequest.sessionId,
-        profileId: baseRequest.profileId,
-        profile: baseRequest.profile,
-        graphSnapshot: baseRequest.graphSnapshot,
-        resolverSnapshot: baseRequest.resolverSnapshot,
-        target: baseRequest.target,
-        overrides: baseRequest.overrides,
-        artifactPolicy: baseRequest.artifactPolicy,
-        images: selectedImages,
-        agentMetadata: profileState.profile.agents.map((agent) => ({
-          id: agent.id,
-          enabled: agent.enabled,
-          transport: agent.transport,
-          required: agent.required ?? true,
-          timeoutMs: agent.timeoutMs,
-          identifier: agent.identifier,
-          tcpPort: agent.tcpPort,
-          status: agent.enabled ? "configured" : "disabled",
-        })),
-      });
-      if (!sent) message.error("发送批量识别请求失败");
-    } catch (error) {
-      message.error(
-        error instanceof Error ? error.message : "生成批量识别请求失败",
-      );
-    }
-  };
-
-  const stopBatchRecognition = () => {
-    if (!session?.sessionId) {
-      message.warning("当前没有调试会话（Session）");
-      return;
-    }
-    const latestBatch = [...events]
-      .reverse()
-      .find((event) => event.data?.mode === "batch-recognition");
-    const sent = debugProtocolClient.stopBatchRecognition({
-      sessionId: session.sessionId,
-      batchId:
-        typeof latestBatch?.data?.batchId === "string"
-          ? latestBatch.data.batchId
-          : undefined,
-      reason: "user_stop",
-    });
-    if (!sent) message.error("发送批量识别停止请求失败");
   };
 
   const testAgent = (agent: DebugAgentProfile) => {
@@ -783,10 +662,6 @@ export function useDebugModalController() {
     setLastPanel("node-execution");
   };
 
-  const requestImageList = () => {
-    resourceProtocol.requestImageList();
-  };
-
   return {
     modalOpen,
     activePanel,
@@ -795,7 +670,6 @@ export function useDebugModalController() {
     capabilityError,
     session,
     activeRun,
-    screenshotStream,
     agentTestResults,
     lastError,
     selectedNodeId,
@@ -819,9 +693,6 @@ export function useDebugModalController() {
     diagnosticsState,
     profileState,
     resourceBundles,
-    imageList,
-    imageListBundleName,
-    imageListLoading,
     mfwState,
     controllerDisplayName,
     flowNodes,
@@ -842,8 +713,6 @@ export function useDebugModalController() {
     selectedRunTargetNode: nodeExecutionController.selectedRunTargetNode,
     selectedRunTargetNodeId: nodeExecutionController.selectedRunTargetNodeId,
     allNodeExecutionRecords: nodeExecutionController.allNodeExecutionRecords,
-    batchRecognitionNodeSummaries:
-      nodeExecutionController.batchRecognitionNodeSummaries,
     nodeExecutionRecords: nodeExecutionController.nodeExecutionRecords,
     nodeExecutionAttributionMode,
     nodeExecutionDetailMode,
@@ -853,21 +722,16 @@ export function useDebugModalController() {
     selectedNodeExecutionAttempt: nodeExecutionController.selectedNodeExecutionAttempt,
     selectedNodeExecutionAttemptId: nodeExecutionController.selectedNodeExecutionAttemptId,
     performanceRefs,
-    batchSummaryRefs,
     agentDiagnostics,
     testingAgentIds,
     startRun,
     confirmActionRun,
     stopRun,
     captureScreenshot,
-    startScreenshotStream,
-    stopScreenshotStream,
     requestTraceSnapshot,
     selectDisplaySessions,
     selectLatestDisplaySession,
     selectAllDisplaySessions,
-    startBatchRecognition,
-    stopBatchRecognition,
     testAgent,
     selectPipelineNode,
     setIncludeAllJsonRunTargets:
@@ -888,7 +752,6 @@ export function useDebugModalController() {
     openAiSummaryPanel,
     generateDebugAiSummary,
     setAutoGenerateAiSummary,
-    requestImageList,
   };
 }
 

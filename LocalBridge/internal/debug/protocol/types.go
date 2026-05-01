@@ -12,12 +12,11 @@ const (
 type RunMode string
 
 const (
-	RunModeRunFromNode           RunMode = "run-from-node"
-	RunModeSingleNodeRun         RunMode = "single-node-run"
-	RunModeRecognitionOnly       RunMode = "recognition-only"
-	RunModeActionOnly            RunMode = "action-only"
-	RunModeFixedImageRecognition RunMode = "fixed-image-recognition"
-	RunModeReplay                RunMode = "replay"
+	RunModeRunFromNode     RunMode = "run-from-node"
+	RunModeSingleNodeRun   RunMode = "single-node-run"
+	RunModeRecognitionOnly RunMode = "recognition-only"
+	RunModeActionOnly      RunMode = "action-only"
+	RunModeReplay          RunMode = "replay"
 )
 
 type CapabilityManifest struct {
@@ -253,106 +252,10 @@ type PerformanceSummary struct {
 	GeneratedAt        string                   `json:"generatedAt"`
 }
 
-type BatchRecognitionInput struct {
-	ImagePath         string `json:"imagePath,omitempty"`
-	ImageRelativePath string `json:"imageRelativePath,omitempty"`
-}
-
-type BatchRecognitionRequest struct {
-	SessionID        string                    `json:"sessionId,omitempty"`
-	ProfileID        string                    `json:"profileId,omitempty"`
-	Profile          RunProfile                `json:"profile"`
-	GraphSnapshot    GraphSnapshot             `json:"graphSnapshot"`
-	ResolverSnapshot NodeResolverSnapshot      `json:"resolverSnapshot"`
-	Target           NodeTarget                `json:"target"`
-	Overrides        []PipelineOverride        `json:"overrides,omitempty"`
-	ArtifactPolicy   *ArtifactPolicy           `json:"artifactPolicy,omitempty"`
-	Images           []BatchRecognitionInput   `json:"images"`
-	AgentMetadata    []AgentRunProfileMetadata `json:"agentMetadata,omitempty"`
-}
-
-type BatchRecognitionStopRequest struct {
-	SessionID string `json:"sessionId"`
-	BatchID   string `json:"batchId,omitempty"`
-	Reason    string `json:"reason,omitempty"`
-}
-
-type BatchRecognitionImageResult struct {
-	Index             int      `json:"index"`
-	ImagePath         string   `json:"imagePath,omitempty"`
-	ImageRelativePath string   `json:"imageRelativePath,omitempty"`
-	RunID             string   `json:"runId,omitempty"`
-	Status            string   `json:"status"`
-	Hit               *bool    `json:"hit,omitempty"`
-	DurationMs        int64    `json:"durationMs,omitempty"`
-	DetailRefs        []string `json:"detailRefs,omitempty"`
-	ScreenshotRefs    []string `json:"screenshotRefs,omitempty"`
-	Error             string   `json:"error,omitempty"`
-}
-
-type BatchRecognitionResult struct {
-	SessionID          string                        `json:"sessionId"`
-	BatchID            string                        `json:"batchId"`
-	Target             NodeTarget                    `json:"target"`
-	Status             string                        `json:"status"`
-	StartedAt          string                        `json:"startedAt"`
-	CompletedAt        string                        `json:"completedAt,omitempty"`
-	Total              int                           `json:"total"`
-	Completed          int                           `json:"completed"`
-	Succeeded          int                           `json:"succeeded"`
-	Failed             int                           `json:"failed"`
-	Stopped            bool                          `json:"stopped,omitempty"`
-	AverageDurationMs  int64                         `json:"averageDurationMs,omitempty"`
-	Results            []BatchRecognitionImageResult `json:"results"`
-	SummaryArtifactRef string                        `json:"summaryArtifactRef,omitempty"`
-}
-
-type AgentRunProfileMetadata struct {
-	ID                 string   `json:"id"`
-	Enabled            bool     `json:"enabled"`
-	Transport          string   `json:"transport,omitempty"`
-	Required           bool     `json:"required"`
-	TimeoutMS          int      `json:"timeoutMs,omitempty"`
-	Identifier         string   `json:"identifier,omitempty"`
-	TCPPort            int      `json:"tcpPort,omitempty"`
-	CustomRecognitions []string `json:"customRecognitions,omitempty"`
-	CustomActions      []string `json:"customActions,omitempty"`
-	Status             string   `json:"status,omitempty"`
-	Message            string   `json:"message,omitempty"`
-}
-
 type ScreenshotCaptureRequest struct {
 	SessionID    string `json:"sessionId,omitempty"`
 	ControllerID string `json:"controllerId,omitempty"`
 	Force        bool   `json:"force,omitempty"`
-}
-
-type ScreenshotStreamStartRequest struct {
-	SessionID    string `json:"sessionId,omitempty"`
-	RunID        string `json:"runId,omitempty"`
-	ControllerID string `json:"controllerId,omitempty"`
-	IntervalMS   int    `json:"intervalMs,omitempty"`
-	Force        bool   `json:"force,omitempty"`
-	MaxFrames    int    `json:"maxFrames,omitempty"`
-}
-
-type ScreenshotStreamStopRequest struct {
-	SessionID string `json:"sessionId"`
-	RunID     string `json:"runId,omitempty"`
-	Reason    string `json:"reason,omitempty"`
-}
-
-type ScreenshotStreamStatus struct {
-	SessionID    string `json:"sessionId"`
-	RunID        string `json:"runId,omitempty"`
-	ControllerID string `json:"controllerId,omitempty"`
-	IntervalMS   int    `json:"intervalMs,omitempty"`
-	Force        bool   `json:"force,omitempty"`
-	Active       bool   `json:"active"`
-	FrameCount   int64  `json:"frameCount,omitempty"`
-	StartedAt    string `json:"startedAt,omitempty"`
-	StoppedAt    string `json:"stoppedAt,omitempty"`
-	Reason       string `json:"reason,omitempty"`
 }
 
 type AgentTestRequest struct {
@@ -442,8 +345,7 @@ func IsValidRunMode(mode RunMode) bool {
 	case RunModeRunFromNode,
 		RunModeSingleNodeRun,
 		RunModeRecognitionOnly,
-		RunModeActionOnly,
-		RunModeFixedImageRecognition:
+		RunModeActionOnly:
 		return true
 	default:
 		return false
@@ -455,8 +357,7 @@ func RunModeRequiresTarget(mode RunMode) bool {
 	case RunModeRunFromNode,
 		RunModeSingleNodeRun,
 		RunModeRecognitionOnly,
-		RunModeActionOnly,
-		RunModeFixedImageRecognition:
+		RunModeActionOnly:
 		return true
 	default:
 		return false

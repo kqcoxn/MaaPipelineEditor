@@ -11,16 +11,13 @@ func DefaultCapabilityManifest() protocol.CapabilityManifest {
 			string(protocol.RunModeSingleNodeRun),
 			string(protocol.RunModeRecognitionOnly),
 			string(protocol.RunModeActionOnly),
-			string(protocol.RunModeFixedImageRecognition),
 		},
 		Diagnostics: []string{
 			"preflight",
 			"resource-load",
 			"target-node",
-			"fixed-image",
 			"agent",
 			"agent-run-profile",
-			"batch-recognition",
 			"performance-summary",
 			"trace-replay",
 		},
@@ -29,15 +26,11 @@ func DefaultCapabilityManifest() protocol.CapabilityManifest {
 			"recognition-detail",
 			"action-detail",
 			"screenshot",
-			"screenshot/live",
 			"performance-summary",
-			"batch-recognition-summary",
 		},
 		ScreenshotSources: []string{
 			"manual",
-			"live",
 			"recognition-input",
-			"fixed-image",
 		},
 		ProfileFeatures: []string{
 			"multi-resource",
@@ -47,7 +40,6 @@ func DefaultCapabilityManifest() protocol.CapabilityManifest {
 		DebugFeatures: []string{
 			"trace-replay",
 			"performance-summary",
-			"batch-recognition",
 			"agent-run-profile",
 		},
 		Maa: protocol.MaaInfo{
