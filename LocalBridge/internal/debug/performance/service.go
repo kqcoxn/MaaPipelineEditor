@@ -148,17 +148,6 @@ func BuildSummary(sessionID string, runID string, events []protocol.Event, artif
 	summary.Nodes = nodes
 	summary.NodeCount = len(nodes)
 
-	slowNodes := append([]protocol.PerformanceNodeSummary{}, nodes...)
-	sort.Slice(slowNodes, func(i, j int) bool {
-		if slowNodes[i].DurationMs == slowNodes[j].DurationMs {
-			return slowNodes[i].LastSeq > slowNodes[j].LastSeq
-		}
-		return slowNodes[i].DurationMs > slowNodes[j].DurationMs
-	})
-	if len(slowNodes) > 10 {
-		slowNodes = slowNodes[:10]
-	}
-	summary.SlowNodes = slowNodes
 	summary.DurationMs = durationMillis(summary.StartedAt, summary.CompletedAt)
 	summary.ArtifactRefCount = len(artifactRefs)
 	return summary

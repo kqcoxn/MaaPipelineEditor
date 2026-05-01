@@ -214,7 +214,6 @@ function GroupTitle({
       </Tag>
       <Tag>事件 {group.eventCount}</Tag>
       {group.hasFailure && <Tag color="red">含失败</Tag>}
-      {group.slow && <Tag color="volcano">慢节点</Tag>}
       {group.hasArtifact && <Tag color="purple">含产物</Tag>}
     </Space>
   );
@@ -231,7 +230,6 @@ function RecordTitle({ record }: { record: DebugNodeExecutionRecord }) {
       {record.hasFailure && record.status !== "failed" && (
         <Tag color="red">含失败</Tag>
       )}
-      {record.slow && <Tag color="volcano">慢节点</Tag>}
     </Space>
   );
 }

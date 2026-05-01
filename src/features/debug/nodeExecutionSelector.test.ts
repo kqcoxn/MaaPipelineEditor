@@ -791,7 +791,7 @@ describe("selectDebugNodeExecutionRecords", () => {
     });
   });
 
-  it("sorts by failure, slow node and latest without changing execution default", () => {
+  it("sorts by failure and latest without changing execution default", () => {
     const summary = reduceDebugTrace({
       events: [
         event(1, "node", "starting", node("node-a", "A")),
@@ -808,7 +808,6 @@ describe("selectDebugNodeExecutionRecords", () => {
         performanceNode("node-b", "B", 3, 4, 2000),
         performanceNode("node-c", "C", 5, 6, 30),
       ],
-      slowNodes: [performanceNode("node-b", "B", 3, 4, 2000)],
     });
 
     const execution = selectDebugNodeExecutionRecords(
@@ -821,12 +820,6 @@ describe("selectDebugNodeExecutionRecords", () => {
       summary,
       resolverNodes,
       { status: "all", sortMode: "failure-first" },
-      { performanceSummary },
-    );
-    const slowFirst = selectDebugNodeExecutionRecords(
-      summary,
-      resolverNodes,
-      { status: "all", sortMode: "slow-first" },
       { performanceSummary },
     );
     const latest = selectDebugNodeExecutionRecords(
@@ -842,9 +835,8 @@ describe("selectDebugNodeExecutionRecords", () => {
       "C",
     ]);
     expect(failureFirst[0].runtimeName).toBe("A");
-    expect(slowFirst[0]).toMatchObject({
+    expect(execution[1]).toMatchObject({
       runtimeName: "B",
-      slow: true,
       durationMs: 2000,
       durationSource: "performance",
     });
@@ -1226,7 +1218,6 @@ function batchResult(): DebugBatchRecognitionResult {
 
 function performance(input: {
   nodes: DebugPerformanceSummary["nodes"];
-  slowNodes: DebugPerformanceSummary["slowNodes"];
 }): DebugPerformanceSummary {
   return {
     sessionId: "session-1",
@@ -1239,7 +1230,6 @@ function performance(input: {
     artifactRefCount: 0,
     screenshotRefCount: 0,
     nodes: input.nodes,
-    slowNodes: input.slowNodes,
     generatedAt: "2026-04-29T00:00:00.000Z",
   };
 }

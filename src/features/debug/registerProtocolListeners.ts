@@ -271,7 +271,6 @@ function batchResultToPerformanceSummary(
         ),
       },
     ],
-    slowNodes: [],
     generatedAt: result.completedAt ?? result.startedAt,
   };
 }

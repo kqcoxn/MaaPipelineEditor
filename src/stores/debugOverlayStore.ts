@@ -18,7 +18,6 @@ interface DebugOverlayState {
   executionPathEdgeIds: Set<string>;
   executionCandidateEdgeIds: Set<string>;
   highlightedFailureNodeIds: Set<string>;
-  highlightedSlowNodeIds: Set<string>;
   applyTraceSummary: (summary: DebugTraceSummary) => void;
   applyReplaySummary: (summary: DebugTraceSummary) => void;
   applyNodeExecutionOverlay: (overlay: DebugNodeExecutionOverlay) => void;
@@ -37,7 +36,6 @@ export const useDebugOverlayStore = create<DebugOverlayState>((set) => ({
   executionPathEdgeIds: new Set(),
   executionCandidateEdgeIds: new Set(),
   highlightedFailureNodeIds: new Set(),
-  highlightedSlowNodeIds: new Set(),
 
   applyTraceSummary: (summary) =>
     set({
@@ -72,7 +70,6 @@ export const useDebugOverlayStore = create<DebugOverlayState>((set) => ({
       executionPathEdgeIds: new Set(overlay.executionPathEdgeIds),
       executionCandidateEdgeIds: new Set(overlay.executionCandidateEdgeIds),
       highlightedFailureNodeIds: new Set(overlay.highlightedFailureNodeIds),
-      highlightedSlowNodeIds: new Set(overlay.highlightedSlowNodeIds),
     }),
 
   clearNodeExecutionOverlay: () =>
@@ -86,7 +83,6 @@ export const useDebugOverlayStore = create<DebugOverlayState>((set) => ({
       executionPathEdgeIds: new Set(),
       executionCandidateEdgeIds: new Set(),
       highlightedFailureNodeIds: new Set(),
-      highlightedSlowNodeIds: new Set(),
     }),
 
   clearOverlay: () =>
@@ -106,6 +102,5 @@ export const useDebugOverlayStore = create<DebugOverlayState>((set) => ({
       executionPathEdgeIds: new Set(),
       executionCandidateEdgeIds: new Set(),
       highlightedFailureNodeIds: new Set(),
-      highlightedSlowNodeIds: new Set(),
     }),
 }));

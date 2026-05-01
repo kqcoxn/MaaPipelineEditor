@@ -63,7 +63,7 @@ const panels: PanelItem[] = [
     id: "performance",
     label: "性能",
     icon: <StepForwardOutlined />,
-    description: "查看已选展示会话的性能摘要、慢节点统计和相关产物。",
+    description: "查看已选展示会话的性能摘要和相关产物。",
   },
   {
     id: "images",

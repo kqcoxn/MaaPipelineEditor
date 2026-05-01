@@ -53,7 +53,6 @@ export type DebugNodeExecutionArtifactFilter =
 export type DebugNodeExecutionSortMode =
   | "execution"
   | "failure-first"
-  | "slow-first"
   | "latest";
 export type DebugExecutionAttributionMode = "next" | "node";
 export type DebugExecutionDetailMode = "compact" | "detailed";
@@ -363,7 +362,6 @@ export interface DebugPerformanceSummary {
   completedAt?: string;
   durationMs?: number;
   nodes: DebugPerformanceNodeSummary[];
-  slowNodes: DebugPerformanceNodeSummary[];
   generatedAt: string;
 }
 

@@ -114,7 +114,6 @@ const sortOptions: Array<{
 }> = [
   { value: "execution", label: "执行顺序" },
   { value: "failure-first", label: "失败优先" },
-  { value: "slow-first", label: "慢节点优先" },
   { value: "latest", label: "最新优先" },
 ];
 

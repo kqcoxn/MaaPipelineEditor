@@ -75,7 +75,6 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
       failedNodeIds: state.failedNodeIds,
       executionPathNodeIds: state.executionPathNodeIds,
       highlightedFailureNodeIds: state.highlightedFailureNodeIds,
-      highlightedSlowNodeIds: state.highlightedSlowNodeIds,
       selectedExecutionNodeId: state.selectedExecutionNodeId,
       selectedExecutionAttemptNodeId: state.selectedExecutionAttemptNodeId,
     })),
@@ -186,8 +185,6 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
           debugOverlay.selectedExecutionAttemptNodeId === props.id,
         [style["debug-node-execution-failed"]]:
           debugOverlay.highlightedFailureNodeIds.has(props.id),
-        [style["debug-node-execution-slow"]]:
-          debugOverlay.highlightedSlowNodeIds.has(props.id),
       }),
     [
       props.selected,
@@ -200,7 +197,6 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
       debugOverlay.failedNodeIds,
       debugOverlay.executionPathNodeIds,
       debugOverlay.highlightedFailureNodeIds,
-      debugOverlay.highlightedSlowNodeIds,
       debugOverlay.selectedExecutionAttemptNodeId,
       debugOverlay.selectedExecutionNodeId,
       props.id,
