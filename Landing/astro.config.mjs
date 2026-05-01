@@ -5,7 +5,8 @@ import tailwindcss from "@tailwindcss/vite";
 import { fileURLToPath } from "node:url";
 
 export default defineConfig({
-  site: "https://mpe.codax.site",
+  site: "https://mpe.codax.site/landing",
+  base: "/landing",
   integrations: [react(), sitemap()],
   vite: {
     plugins: [tailwindcss()],

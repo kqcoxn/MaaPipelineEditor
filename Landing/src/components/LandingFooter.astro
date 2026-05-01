@@ -1,6 +1,8 @@
 ---
 import type { FooterColumn } from "@/content/landing";
 
+import { siteConfig } from "@/lib/site-config";
+
 type Props = {
   columns: FooterColumn[];
 };
@@ -14,7 +16,7 @@ const year = new Date().getFullYear();
     <div data-reveal="left">
       <div class="flex items-center gap-3">
         <img
-          src="/logo.png"
+          src={siteConfig.resolveLandingPath("/logo.png")}
           alt=""
           width="48"
           height="48"

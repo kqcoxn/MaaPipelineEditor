@@ -54,9 +54,13 @@ const structuredData = {
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImageUrl} />
     <link rel="canonical" href={canonicalUrl} />
-    <link rel="icon" href="/logo.ico" sizes="any" />
-    <link rel="icon" type="image/png" href="/logo.png" />
-    <link rel="apple-touch-icon" href="/logo.png" />
+    <link rel="icon" href={siteConfig.resolveLandingPath("/logo.ico")} sizes="any" />
+    <link
+      rel="icon"
+      type="image/png"
+      href={siteConfig.resolveLandingPath("/logo.png")}
+    />
+    <link rel="apple-touch-icon" href={siteConfig.resolveLandingPath("/logo.png")} />
     <script is:inline>
       if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         document.documentElement.classList.add("has-scroll-reveal");

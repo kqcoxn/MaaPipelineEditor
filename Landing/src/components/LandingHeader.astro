@@ -14,12 +14,12 @@ const { navItems } = Astro.props;
 <header class="sticky top-0 z-30 px-4 pt-4 sm:px-6 lg:px-8">
   <div class="mx-auto flex max-w-7xl items-center justify-between rounded-full border border-white/70 bg-white/80 px-4 py-3 shadow-[0_16px_50px_rgba(20,32,51,0.08)] backdrop-blur">
     <a
-      href="/"
+      href={siteConfig.resolveLandingPath("/")}
       class="flex items-center gap-3 text-slate-950 transition hover:text-blue-700"
       aria-label="返回 MaaPipelineEditor Landing 首页"
     >
       <img
-        src="/logo.png"
+        src={siteConfig.resolveLandingPath("/logo.png")}
         alt=""
         width="44"
         height="44"

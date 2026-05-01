@@ -71,7 +71,7 @@ export const siteMeta = {
     "流程工作台",
     "Pipeline 审阅",
   ],
-  ogImage: "/og/landing-og.svg",
+  ogImage: siteConfig.resolveLandingPath("/og/landing-og.svg"),
   ogAlt: "MaaPipelineEditor Landing placeholder artwork",
 };
 
@@ -118,7 +118,7 @@ export const featureItems: FeatureItem[] = [
       "配合粘贴板导入、自动布局、协议兼容、节点聚焦、关键路径、AI 搜索等功能，您可以快速了解自己或其他项目的某个功能是如何实现的，打开网页粘贴即用，无需下载或面对成堆 JSON",
     tags: ["粘贴板导入", "自动布局", "节点聚焦", "关键路径", "AI 搜索"],
     tone: "blue",
-    demoImages: ["/screens/review.png"],
+    demoImages: [siteConfig.resolveLandingPath("/screens/review.png")],
     metrics: [
       "梳理任务流程",
       "快速理解其他项目思路",
@@ -133,7 +133,7 @@ export const featureItems: FeatureItem[] = [
       "将原本需要手写数百行 JSON 的配置工作转化为直观的图形化操作，通过节点拖拽、字段补全与模板填充，快速搭建完整 Pipeline，即使复杂也能维持清晰的逻辑，兼具易用性与可读性",
     tags: ["节点拖拽", "字段补全", "模板填充", "v1/v2 兼容"],
     tone: "orange",
-    demoImages: ["/screens/edit.png"],
+    demoImages: [siteConfig.resolveLandingPath("/screens/edit.png")],
     metrics: ["从零搭建新流程", "修改已有节点配置"],
   },
   {
@@ -144,7 +144,7 @@ export const featureItems: FeatureItem[] = [
       "内置常用节点模板快速填充，支持流程级调试定位问题，自动识别并迁移废弃字段，让配置维护不再是负担",
     tags: ["节点模板", "流程调试", "废弃字段迁移", "自动保存"],
     tone: "mint",
-    demoImages: ["/screens/tools-1.png"],
+    demoImages: [siteConfig.resolveLandingPath("/screens/tools-1.png")],
     metrics: ["快速初始化标准节点", "调试定位执行问题", "平滑升级旧配置"],
   },
   {
@@ -155,7 +155,7 @@ export const featureItems: FeatureItem[] = [
       "通过 LocalBridge 按需接入本地能力，无需繁琐配置即可实现截图预览、文件管理、本地资源同步，让在线编辑与本地工作流无缝衔接",
     tags: ["LocalBridge", "本地截图", "文件管理", "资源同步"],
     tone: "orange",
-    demoImages: ["/screens/lb.png"],
+    demoImages: [siteConfig.resolveLandingPath("/screens/lb.png")],
     metrics: ["本地文件直接管理", "快速截图、ROI 测绘", "资源变更实时同步"],
   },
   {
