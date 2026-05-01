@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/config"
@@ -385,6 +386,20 @@ func runServer(cmd *cobra.Command, args []string) {
 
 	// 创建路由分发器
 	rt := router.New()
+	shutdownOnce := &sync.Once{}
+	shutdownCh := make(chan struct{}, 1)
+	var protocolMismatchClientVersion string
+	rt.SetProtocolMismatchHandler(func(clientVersion string) {
+		protocolMismatchClientVersion = clientVersion
+		logger.Error("Main", "检测到前后端协议版本不一致，当前前端需求: %s，后端协议: %s", clientVersion, server.ProtocolVersion)
+		logger.Error("Main", "请更新 MaaPipelineEditor 或 Local Bridge 后重试，后端即将主动退出")
+		go func() {
+			time.Sleep(200 * time.Millisecond)
+			shutdownOnce.Do(func() {
+				shutdownCh <- struct{}{}
+			})
+		}()
+	})
 
 	// 注册协议处理器
 	fileHandler := fileProtocol.NewHandler(fileSvc, eventBus, wsServer, cfg.File.Root)
@@ -428,7 +443,10 @@ func runServer(cmd *cobra.Command, args []string) {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, getExitSignals()...)
 
-	<-sigChan
+	select {
+	case <-sigChan:
+	case <-shutdownCh:
+	}
 
 	// 退出
 	logger.Info("Main", "正在关闭 Local Bridge 服务...")
@@ -439,6 +457,11 @@ func runServer(cmd *cobra.Command, args []string) {
 	// 关闭 MFW 服务
 	if err := mfwSvc.Shutdown(); err != nil {
 		logger.Error("Main", "MFW 服务关闭失败: %v", err)
+	}
+
+	if protocolMismatchClientVersion != "" {
+		printProtocolMismatchUpdateNotice(protocolMismatchClientVersion)
+		return
 	}
 
 	logger.Info("Main", "Local Bridge 已退出")
@@ -768,6 +791,20 @@ func checkAndPrintUpdateNotice() {
 	} else {
 		logger.Debug("Update", "当前版本 v%s 已是最新版本 (最新: v%s)", currentVersion, latestVersion)
 	}
+}
+
+func printProtocolMismatchUpdateNotice(clientVersion string) {
+	fmt.Println()
+	fmt.Println("══════════════════════════════════════════════════")
+	fmt.Println("⚠️  检测到前后端通信协议版本不一致")
+	fmt.Println("══════════════════════════════════════════════════")
+	fmt.Printf("   前端需求版本: %s\n", clientVersion)
+	fmt.Printf("   后端当前版本: %s\n", server.ProtocolVersion)
+	fmt.Println()
+	fmt.Println("   请更新 MaaPipelineEditor 或 Local Bridge 后重试")
+	fmt.Println("   快速更新指令:")
+	utils.PrintInstallCommand()
+	fmt.Println("══════════════════════════════════════════════════")
 }
 
 // 获取最新版本信息
