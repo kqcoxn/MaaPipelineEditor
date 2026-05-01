@@ -14,8 +14,6 @@ export interface UpdateCategory {
   features?: string[]; // 新功能
   fixes?: string[]; // Bug修复
   perfs?: string[]; // 性能优化/体验优化
-  docs?: string[]; // 文档更新
-  others?: string[]; // 其他更新
 }
 
 /**
