@@ -77,6 +77,11 @@ export const longTermPreview: LongTermPreviewItem[] = [
     title: "VSCode 插件（MSE）接入",
     description: "以 Iframe 形式嵌入 MSE，提供文件至节点级联动相关功能",
   },
+  {
+    theme: "维护",
+    title: "功能优化与问题修复",
+    description: "长期细节优化与即时修复 bug，随最新版本发布",
+  },
 ];
 
 export const nextPreview: NextPreviewItem[] = [
