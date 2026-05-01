@@ -129,7 +129,7 @@ const attributionModeOptions: Array<{
   label: string;
 }> = [
   { value: "next", label: "Next 模式" },
-  { value: "node", label: "节点模式" },
+  { value: "node", label: "Pair 模式" },
 ];
 
 const detailModeOptions: Array<{
@@ -322,7 +322,7 @@ export function NodeExecutionPanel({
           <Typography.Text type="secondary">
             {nodeExecutionAttributionMode === "next"
               ? "Next 看跳转判断"
-              : "节点看识别 / 动作"}
+              : "Pair 看识别 / 动作"}
           </Typography.Text>
           <Segmented
             size="small"

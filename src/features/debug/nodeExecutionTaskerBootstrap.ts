@@ -14,25 +14,52 @@ export function normalizeTaskerBootstrapSeeds(
     if (!firstByRun.has(seed.runId)) firstByRun.set(seed.runId, seed);
   }
 
-  return seeds.map((seed) => {
+  return seeds.flatMap((seed) => {
     const alreadySynthetic = isDebugTaskerBootstrapNode(seed);
     const firstForRun = firstByRun.get(seed.runId) === seed;
     if (!alreadySynthetic && !isTaskerBootstrapCandidate(seed, firstForRun)) {
-      return seed;
+      return [seed];
     }
-    return {
-      ...seed,
-      nodeId: undefined,
-      fileId: undefined,
-      runtimeName: DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
-      label: DEBUG_TASKER_BOOTSTRAP_LABEL,
-      syntheticKind: "tasker-bootstrap",
-      unmapped: false,
-      events: seed.events.map((event) =>
-        normalizeTaskerBootstrapEvent(event, seed.runtimeName),
-      ),
-    };
+    if (alreadySynthetic) return [normalizeTaskerBootstrapSeed(seed, seed.events)];
+
+    const bootstrapEvents = seed.events.filter((event) =>
+      isBootstrapEvent(event, seed.runtimeName),
+    );
+    if (bootstrapEvents.length === 0) return [seed];
+
+    const actualNodeEvents = seed.events.filter(
+      (event) => !isBootstrapEvent(event, seed.runtimeName),
+    );
+    return [
+      normalizeTaskerBootstrapSeed(seed, bootstrapEvents),
+      ...(actualNodeEvents.length > 0
+        ? [
+            {
+              ...seed,
+              events: actualNodeEvents,
+            },
+          ]
+        : []),
+    ];
   });
+}
+
+function normalizeTaskerBootstrapSeed(
+  seed: DebugNodeExecutionRecordSeed,
+  events: DebugEvent[],
+): DebugNodeExecutionRecordSeed {
+  return {
+    ...seed,
+    nodeId: undefined,
+    fileId: undefined,
+    runtimeName: DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
+    label: DEBUG_TASKER_BOOTSTRAP_LABEL,
+    syntheticKind: "tasker-bootstrap",
+    unmapped: false,
+    events: events.map((event) =>
+      normalizeTaskerBootstrapEvent(event, seed.runtimeName),
+    ),
+  };
 }
 
 function compareSeedOrder(
@@ -82,6 +109,22 @@ function isTaskerBootstrapCandidate(
       event.kind === "next-list" ||
       event.data?.parentNode === DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
   );
+}
+
+function isBootstrapEvent(
+  event: DebugEvent,
+  seedRuntimeName: string,
+): boolean {
+  if (event.kind === "action" || event.kind === "wait-freezes") return false;
+  if (event.kind === "node") return event.phase === "starting";
+  if (event.kind === "next-list") return true;
+  if (event.kind === "recognition") {
+    return (
+      event.data?.parentNode === seedRuntimeName ||
+      event.data?.parentNode === DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME
+    );
+  }
+  return false;
 }
 
 function isTaskBasedRunMode(runMode: DebugRunMode | undefined): boolean {

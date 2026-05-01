@@ -153,11 +153,16 @@ export function selectDebugNodeExecutionRecords(
   const seeds =
     attributionMode === "node"
       ? selectNodeAttributionRecordSeeds(summary, nodeById, nodeByRuntime)
+          .filter((seed) => !isDebugTaskerBootstrapNode(seed))
       : Object.values(summary.nodeReplays)
           .flat()
           .map((replay) => seedFromReplay(summary, replay));
 
-  const records = normalizeTaskerBootstrapSeeds(seeds).map((seed) =>
+  const normalizedSeeds = mergeContinuationSeeds(
+    attributionMode === "next" ? normalizeTaskerBootstrapSeeds(seeds) : seeds,
+  );
+
+  const records = normalizedSeeds.map((seed) =>
     toRecordFromSeed(summary, seed, nodeById, nodeByRuntime, context),
   );
 
@@ -246,6 +251,80 @@ function seedFromReplay(
     events: replay.events,
     unmapped: replay.unmapped,
   };
+}
+
+function mergeContinuationSeeds(
+  seeds: DebugNodeExecutionRecordSeed[],
+): DebugNodeExecutionRecordSeed[] {
+  const merged: DebugNodeExecutionRecordSeed[] = [];
+  const latestByIdentity = new Map<string, DebugNodeExecutionRecordSeed>();
+
+  for (const seed of [...seeds].sort(compareSeedOrder)) {
+    const identityKey = seedIdentityKey(seed);
+    const target = latestByIdentity.get(identityKey);
+    if (target && isNextListContinuationSeed(seed)) {
+      mergeSeedInto(target, seed);
+      continue;
+    }
+
+    const next = {
+      ...seed,
+      events: [...seed.events],
+    };
+    merged.push(next);
+    latestByIdentity.set(identityKey, next);
+  }
+
+  return merged;
+}
+
+function isNextListContinuationSeed(
+  seed: DebugNodeExecutionRecordSeed,
+): boolean {
+  if (isDebugTaskerBootstrapNode(seed)) return false;
+  const hasNextList = seed.events.some((event) => event.kind === "next-list");
+  const hasAction = seed.events.some((event) => event.kind === "action");
+  return hasNextList && !hasAction;
+}
+
+function mergeSeedInto(
+  target: DebugNodeExecutionRecordSeed,
+  source: DebugNodeExecutionRecordSeed,
+): void {
+  target.events = [...target.events, ...source.events].sort(
+    (a, b) => a.seq - b.seq,
+  );
+  target.status = mergeSeedStatus(target.status, source.status);
+  target.nodeId = target.nodeId ?? source.nodeId;
+  target.fileId = target.fileId ?? source.fileId;
+  target.label = target.label ?? source.label;
+  target.unmapped = target.unmapped && source.unmapped;
+}
+
+function mergeSeedStatus(
+  current: DebugNodeExecutionStatus | undefined,
+  next: DebugNodeExecutionStatus | undefined,
+): DebugNodeExecutionStatus | undefined {
+  if (current === "failed" || next === "failed") return "failed";
+  if (next === "running") return "running";
+  if (next === "succeeded") return "succeeded";
+  return current ?? next;
+}
+
+function seedIdentityKey(seed: DebugNodeExecutionRecordSeed): string {
+  return seed.nodeId
+    ? `${seed.runId}:node:${seed.nodeId}`
+    : `${seed.runId}:runtime:${seed.runtimeName}`;
+}
+
+function compareSeedOrder(
+  a: DebugNodeExecutionRecordSeed,
+  b: DebugNodeExecutionRecordSeed,
+): number {
+  const aSeq = a.events[0]?.seq ?? Number.MAX_SAFE_INTEGER;
+  const bSeq = b.events[0]?.seq ?? Number.MAX_SAFE_INTEGER;
+  if (aSeq === bSeq) return a.runtimeName.localeCompare(b.runtimeName);
+  return aSeq - bSeq;
 }
 
 function toRecordFromSeed(

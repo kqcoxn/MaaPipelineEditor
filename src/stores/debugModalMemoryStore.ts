@@ -43,7 +43,7 @@ const defaultMemory: DebugModalMemorySnapshot = {
   lastPanel: "overview",
   lastRunMode: "run-from-node",
   nodeExecutionFilters: DEFAULT_DEBUG_NODE_EXECUTION_FILTERS,
-  nodeExecutionAttributionMode: "next",
+  nodeExecutionAttributionMode: "node",
   nodeExecutionDetailMode: "compact",
 };
 

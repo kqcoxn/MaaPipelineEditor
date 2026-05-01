@@ -342,7 +342,63 @@ describe("selectDebugNodeExecutionRecords", () => {
     });
   });
 
-  it("keeps bootstrap recognition on Tasker in next mode and attaches it to the target in node mode", () => {
+  it("does not move the entry node action into Tasker when splitting a mapped bootstrap segment", () => {
+    const summary = reduceDebugTrace({
+      events: [
+        event(0, "session", "starting", undefined, { mode: "run-from-node" }),
+        event(1, "node", "starting", node("node-a", "A")),
+        event(2, "next-list", "succeeded", node("node-a", "A"), {
+          next: [{ name: "A", jumpBack: false, anchor: true }],
+        }),
+        event(3, "recognition", "succeeded", node("node-a", "A"), {
+          parentNode: "A",
+          hit: true,
+        }),
+        event(4, "action", "succeeded", node("node-a", "A")),
+        event(5, "node", "succeeded", node("node-a", "A")),
+      ],
+    });
+
+    const nextModeRecords = selectDebugNodeExecutionRecords(
+      summary,
+      resolverNodes,
+      { status: "all" },
+      { attributionMode: "next" },
+    );
+    const nodeModeRecords = selectDebugNodeExecutionRecords(
+      summary,
+      resolverNodes,
+      { status: "all" },
+      { attributionMode: "node" },
+    );
+
+    expect(nextModeRecords.map((record) => record.runtimeName)).toEqual([
+      DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
+      "A",
+    ]);
+    expect(nextModeRecords[0]).toMatchObject({
+      syntheticKind: "tasker-bootstrap",
+      recognitionCount: 1,
+      actionCount: 0,
+    });
+    expect(nextModeRecords[1]).toMatchObject({
+      runtimeName: "A",
+      recognitionCount: 0,
+      actionCount: 1,
+      firstSeq: 4,
+      lastSeq: 5,
+    });
+
+    expect(nodeModeRecords.map((record) => record.runtimeName)).toEqual(["A"]);
+    expect(nodeModeRecords[0]).toMatchObject({
+      recognitionCount: 1,
+      actionCount: 1,
+      firstSeq: 1,
+      lastSeq: 5,
+    });
+  });
+
+  it("keeps bootstrap recognition on Tasker in next mode and attaches recognition-action pairs to the target in node mode", () => {
     const summary = reduceDebugTrace({
       events: [
         event(1, "task", "starting", undefined, { entry: "A" }),
@@ -393,17 +449,8 @@ describe("selectDebugNodeExecutionRecords", () => {
       },
     });
 
-    expect(nodeModeRecords.map((record) => record.runtimeName)).toEqual([
-      DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
-      "A",
-    ]);
+    expect(nodeModeRecords.map((record) => record.runtimeName)).toEqual(["A"]);
     expect(nodeModeRecords[0]).toMatchObject({
-      attributionMode: "node",
-      syntheticKind: "tasker-bootstrap",
-      recognitionCount: 0,
-      nextListCount: 1,
-    });
-    expect(nodeModeRecords[1]).toMatchObject({
       attributionMode: "node",
       runtimeName: "A",
       sourceNextOwnerRuntimeName: DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
@@ -413,10 +460,90 @@ describe("selectDebugNodeExecutionRecords", () => {
       firstSeq: 4,
       lastSeq: 7,
     });
-    expect(nodeModeRecords[1].recognitionAttempts[0]).toMatchObject({
+    expect(nodeModeRecords[0].recognitionAttempts[0]).toMatchObject({
       firstSeq: 4,
       sourceNextOwnerRuntimeName: DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
       sourceNextOwnerLabel: DEBUG_TASKER_BOOTSTRAP_LABEL,
+      hit: true,
+    });
+  });
+
+  it("merges a non-terminal node action segment with its following next-list continuation", () => {
+    const summary = reduceDebugTrace({
+      events: [
+        event(1, "node", "starting", node("node-b", "B")),
+        event(2, "next-list", "succeeded", node("node-b", "B"), {
+          next: [{ name: "A", jumpBack: false, anchor: true }],
+        }),
+        event(3, "recognition", "succeeded", node("node-a", "A"), {
+          parentNode: "B",
+          hit: true,
+        }),
+        event(4, "node", "succeeded", node("node-b", "B")),
+        event(5, "node", "starting", node("node-a", "A")),
+        event(6, "action", "succeeded", node("node-a", "A")),
+        event(7, "node", "succeeded", node("node-a", "A")),
+        event(8, "node", "starting", node("node-a", "A")),
+        event(9, "next-list", "succeeded", node("node-a", "A"), {
+          next: [{ name: "C", jumpBack: false, anchor: true }],
+        }),
+        event(10, "recognition", "succeeded", node("node-c", "C"), {
+          parentNode: "A",
+          hit: true,
+        }),
+        event(11, "node", "succeeded", node("node-a", "A")),
+      ],
+    });
+
+    const nextModeRecords = selectDebugNodeExecutionRecords(
+      summary,
+      resolverNodes,
+      { status: "all" },
+      { attributionMode: "next", resolverEdges },
+    );
+    const nodeModeRecords = selectDebugNodeExecutionRecords(
+      summary,
+      resolverNodes,
+      { status: "all" },
+      { attributionMode: "node", resolverEdges },
+    );
+    const nextModeARecords = nextModeRecords.filter(
+      (record) => record.runtimeName === "A",
+    );
+    const nodeModeARecords = nodeModeRecords.filter(
+      (record) => record.runtimeName === "A",
+    );
+
+    expect(nextModeARecords).toHaveLength(1);
+    expect(nextModeARecords[0]).toMatchObject({
+      attributionMode: "next",
+      actionCount: 1,
+      recognitionCount: 1,
+      nextListCount: 1,
+      firstSeq: 5,
+      lastSeq: 11,
+      nextCandidateSummary: {
+        candidateCount: 1,
+        hitCount: 1,
+      },
+    });
+    expect(nextModeARecords[0].nextCandidateSummary.candidates[0]).toMatchObject({
+      runtimeName: "C",
+      recognitionSeqs: [10],
+    });
+
+    expect(nodeModeARecords).toHaveLength(1);
+    expect(nodeModeARecords[0]).toMatchObject({
+      attributionMode: "node",
+      actionCount: 1,
+      recognitionCount: 1,
+      nextListCount: 1,
+      sourceNextOwnerRuntimeName: "B",
+      firstSeq: 3,
+      lastSeq: 11,
+    });
+    expect(nodeModeARecords[0].recognitionAttempts[0]).toMatchObject({
+      sourceNextOwnerRuntimeName: "B",
       hit: true,
     });
   });
@@ -563,6 +690,7 @@ describe("selectDebugNodeExecutionRecords", () => {
       ]),
     );
 
+    expect(nodeModeRecords.some((record) => record.syntheticKind)).toBe(false);
     expect(nodeModeC).toMatchObject({
       attributionMode: "node",
       runtimeName: "C",

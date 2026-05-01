@@ -9,7 +9,10 @@ import {
   SettingOutlined,
   StepForwardOutlined,
 } from "@ant-design/icons";
-import type { DebugModalPanel } from "../../features/debug/types";
+import type {
+  DebugExecutionAttributionMode,
+  DebugModalPanel,
+} from "../../features/debug/types";
 import { useDebugModalController } from "../../features/debug/hooks/useDebugModalController";
 import type { DebugModalController } from "../../features/debug/hooks/useDebugModalController";
 import { OverviewPanel } from "../../features/debug/components/panels/OverviewPanel";
@@ -74,6 +77,22 @@ const panels: PanelItem[] = [
   },
 ];
 
+const nodeExecutionHeadings: Record<
+  DebugExecutionAttributionMode,
+  Pick<PanelItem, "label" | "description">
+> = {
+  next: {
+    label: "节点线（Next 模式）",
+    description:
+      "以节点为单位查看调试结果。\nNext 模式：以 MFW 内部执行逻辑为单位组织，将当前节点的 action 与 next-list 中的所有 reco 放在一起",
+  },
+  node: {
+    label: "节点线（Pair 模式）",
+    description:
+      "以节点为单位查看调试结果。\nPair 模式：以物理节点（即定义的JSON）为单位组织，将某个节点的一次 reco-action 对放在一起",
+  },
+};
+
 const navStyle: CSSProperties = {
   width: 168,
   flexShrink: 0,
@@ -118,6 +137,10 @@ const nodeExecutionPanelSlotStyle: CSSProperties = {
   minHeight: 0,
 };
 
+const panelDescriptionStyle: CSSProperties = {
+  whiteSpace: "pre-line",
+};
+
 const modalBodyStyle: CSSProperties = {
   display: "flex",
   gap: 16,
@@ -128,9 +151,15 @@ const modalBodyStyle: CSSProperties = {
 
 export function DebugModal() {
   const controller = useDebugModalController();
-  const activePanelMeta =
+  const baseActivePanelMeta =
     panels.find((panel) => panel.id === controller.activePanel) ?? panels[0];
   const nodeExecutionActive = controller.activePanel === "node-execution";
+  const activePanelMeta = nodeExecutionActive
+    ? {
+        ...baseActivePanelMeta,
+        ...nodeExecutionHeadings[controller.nodeExecutionAttributionMode],
+      }
+    : baseActivePanelMeta;
 
   return (
     <Modal
@@ -171,7 +200,9 @@ export function DebugModal() {
               <Title level={4} style={{ margin: 0 }}>
                 {activePanelMeta.label}
               </Title>
-              <Text type="secondary">{activePanelMeta.description}</Text>
+              <Text type="secondary" style={panelDescriptionStyle}>
+                {activePanelMeta.description}
+              </Text>
             </div>
             {!controller.debugReadiness.ready && (
               <Alert
