@@ -18,6 +18,7 @@ interface DebugModalMemorySnapshot {
   lastPanel: DebugModalPanel;
   lastRunMode: DebugRunMode;
   lastEntryNodeId?: string;
+  autoGenerateAiSummary: boolean;
   nodeExecutionFilters: DebugNodeExecutionFilters;
   nodeExecutionAttributionMode: DebugExecutionAttributionMode;
   nodeExecutionDetailMode: DebugExecutionDetailMode;
@@ -27,6 +28,7 @@ interface DebugModalMemoryState extends DebugModalMemorySnapshot {
   setLastPanel: (panel: DebugModalPanel) => void;
   setLastRunMode: (runMode: DebugRunMode) => void;
   setLastEntryNodeId: (nodeId?: string) => void;
+  setAutoGenerateAiSummary: (enabled: boolean) => void;
   setNodeExecutionFilters: (filters: DebugNodeExecutionFilters) => void;
   setNodeExecutionAttributionMode: (
     mode: DebugExecutionAttributionMode,
@@ -42,6 +44,7 @@ type PersistedDebugModalMemorySnapshot = Omit<
 const defaultMemory: DebugModalMemorySnapshot = {
   lastPanel: "overview",
   lastRunMode: "run-from-node",
+  autoGenerateAiSummary: false,
   nodeExecutionFilters: DEFAULT_DEBUG_NODE_EXECUTION_FILTERS,
   nodeExecutionAttributionMode: "node",
   nodeExecutionDetailMode: "compact",
@@ -165,6 +168,7 @@ function readMemory(): DebugModalMemorySnapshot {
       lastPanel: defaultMemory.lastPanel,
       lastRunMode: normalizeRunMode(parsed.lastRunMode),
       lastEntryNodeId: parsed.lastEntryNodeId,
+      autoGenerateAiSummary: parsed.autoGenerateAiSummary === true,
       nodeExecutionFilters: normalizeNodeExecutionFilters(
         parsed.nodeExecutionFilters,
       ),
@@ -186,6 +190,7 @@ function writeMemory(snapshot: DebugModalMemorySnapshot): void {
     const persisted: PersistedDebugModalMemorySnapshot = {
       lastRunMode: snapshot.lastRunMode,
       lastEntryNodeId: snapshot.lastEntryNodeId,
+      autoGenerateAiSummary: snapshot.autoGenerateAiSummary,
       nodeExecutionFilters: snapshot.nodeExecutionFilters,
       nodeExecutionAttributionMode: snapshot.nodeExecutionAttributionMode,
       nodeExecutionDetailMode: snapshot.nodeExecutionDetailMode,
@@ -214,6 +219,12 @@ export const useDebugModalMemoryStore = create<DebugModalMemoryState>(
       const next = { ...get(), lastEntryNodeId: nodeId };
       writeMemory(next);
       set({ lastEntryNodeId: nodeId });
+    },
+
+    setAutoGenerateAiSummary: (autoGenerateAiSummary) => {
+      const next = { ...get(), autoGenerateAiSummary };
+      writeMemory(next);
+      set({ autoGenerateAiSummary });
     },
 
     setNodeExecutionFilters: (nodeExecutionFilters) => {

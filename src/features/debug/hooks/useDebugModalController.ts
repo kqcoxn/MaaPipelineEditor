@@ -1,11 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { message } from "antd";
 import { useShallow } from "zustand/shallow";
+import { AIClient } from "../../../utils/ai/aiClient";
 import { debugProtocolClient, resourceProtocol } from "../../../services/server";
 import { useDebugSessionStore } from "../../../stores/debugSessionStore";
 import { useDebugModalMemoryStore } from "../../../stores/debugModalMemoryStore";
 import { useDebugTraceStore } from "../../../stores/debugTraceStore";
 import { useDebugArtifactStore } from "../../../stores/debugArtifactStore";
+import {
+  debugAiSummaryTargetKey,
+  useDebugAiSummaryStore,
+  type DebugAiSummaryFocus,
+} from "../../../stores/debugAiSummaryStore";
 import { useDebugDiagnosticsStore } from "../../../stores/debugDiagnosticsStore";
 import {
   makeDebugResourceKey,
@@ -19,6 +25,10 @@ import {
 import { useWSStore } from "../../../stores/wsStore";
 import { useFlowStore } from "../../../stores/flow";
 import { showActionRunConfirm } from "../confirmActionRun";
+import {
+  buildDebugAiSummaryPrompt,
+  parseDebugAiSummaryResponse,
+} from "../aiSummary";
 import { ensureDebugCapabilitiesRequested } from "../capabilityActions";
 import { debugContributionRegistry } from "../contributions/registry";
 import { getControllerDisplayName } from "../controllerDisplay";
@@ -50,6 +60,7 @@ import {
   startTraceReplayAction,
   stopTraceReplayAction,
 } from "../traceReplayActions";
+import type { DebugNodeExecutionRecord } from "../nodeExecutionSelector";
 import { useDebugNodeExecutionController } from "./useDebugNodeExecutionController";
 import type {
   DebugAgentProfile,
@@ -111,16 +122,30 @@ export function useDebugModalController() {
   const connected = useWSStore((state) => state.connected);
   const {
     lastRunMode,
+    autoGenerateAiSummary,
     nodeExecutionAttributionMode,
     nodeExecutionDetailMode,
     nodeExecutionFilters,
     setLastPanel,
     setLastRunMode,
     setLastEntryNodeId,
+    setAutoGenerateAiSummary,
     setNodeExecutionFilters,
     setNodeExecutionAttributionMode,
     setNodeExecutionDetailMode,
   } = useDebugModalMemoryStore();
+  const aiSummaryState = useDebugAiSummaryStore(
+    useShallow((state) => ({
+      status: state.status,
+      activeReport: state.activeReport,
+      error: state.error,
+      autoRequestedTargetIds: state.autoRequestedTargetIds,
+      setGenerating: state.setGenerating,
+      setReport: state.setReport,
+      setError: state.setError,
+      markAutoRequested: state.markAutoRequested,
+    })),
+  );
   const {
     allEvents,
     displaySessions,
@@ -344,6 +369,12 @@ export function useDebugModalController() {
     : undefined;
   const performanceRefs = useMemo(() => selectPerformanceRefs(events), [events]);
   const batchSummaryRefs = useMemo(() => selectBatchSummaryRefs(events), [events]);
+  const selectedDisplaySession = useMemo(
+    () =>
+      displaySessions.find((item) => item.id === selectedDisplaySessionIds[0]) ??
+      displaySessions[0],
+    [displaySessions, selectedDisplaySessionIds],
+  );
   const agentDiagnostics = diagnosticsState.diagnostics.filter((diagnostic) =>
     diagnostic.code.startsWith("debug.agent."),
   );
@@ -405,6 +436,7 @@ export function useDebugModalController() {
         message.error("发送调试启动请求失败");
         return;
       }
+      useDebugAiSummaryStore.getState().reset();
       setLastRunMode(mode);
       if (request.target) {
         profileState.setEntry(request.target);
@@ -665,10 +697,143 @@ export function useDebugModalController() {
     }
   };
 
+  const generateDebugAiSummary = useCallback(
+    async (
+      focus: DebugAiSummaryFocus = "full",
+      record?: DebugNodeExecutionRecord,
+      options: { automatic?: boolean } = {},
+    ) => {
+      const targetRecord =
+        focus === "node"
+          ? record ?? nodeExecutionController.selectedNodeExecutionRecord
+          : undefined;
+      const target = {
+        kind: focus === "node" ? "node" as const : "run" as const,
+        sessionId:
+          targetRecord?.sessionId ??
+          summary.sessionId ??
+          selectedDisplaySession?.sessionId,
+        runId:
+          targetRecord?.runId ?? summary.runId ?? selectedDisplaySession?.runId,
+        displaySessionId: selectedDisplaySession?.id,
+        nodeRecordId: focus === "node" ? targetRecord?.id : undefined,
+        nodeLabel:
+          focus === "node"
+            ? (targetRecord?.label ?? targetRecord?.runtimeName)
+            : undefined,
+      };
+      const targetId = debugAiSummaryTargetKey(target);
+      if (options.automatic) {
+        aiSummaryState.markAutoRequested(targetId);
+      }
+      if (events.length === 0) {
+        const error = "当前没有可总结的调试事件。";
+        aiSummaryState.setError(error);
+        if (!options.automatic) message.warning(error);
+        return;
+      }
+      if (focus === "node" && !targetRecord) {
+        const error = "请先选择要解释的节点执行记录。";
+        aiSummaryState.setError(error);
+        if (!options.automatic) message.warning(error);
+        return;
+      }
+      aiSummaryState.setGenerating(target);
+      try {
+        const { prompt, contextText } = buildDebugAiSummaryPrompt({
+          focus,
+          sessionId: target.sessionId,
+          runId: target.runId,
+          displaySessionId: target.displaySessionId,
+          status: selectedDisplaySession?.status ?? summary.status,
+          mode: selectedDisplaySession?.mode ?? summary.runMode,
+          events,
+          diagnostics: diagnosticsState.diagnostics,
+          artifacts,
+          performanceSummary,
+          nodeRecords: nodeExecutionController.allNodeExecutionRecords,
+          selectedNodeRecord: targetRecord,
+        });
+        const client = new AIClient({
+          historyLimit: 0,
+          systemPrompt: "你是 MaaPipelineEditor 的调试报告助手，只根据给定上下文输出 JSON。",
+        });
+        const result = await client.send(prompt, "生成调试 AI 总结");
+        if (!result.success) {
+          throw new Error(result.error || "AI 总结生成失败");
+        }
+        const parsed = parseDebugAiSummaryResponse(result.content);
+        aiSummaryState.setReport({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          target: {
+            ...target,
+            generatedAt: new Date().toISOString(),
+          },
+          focus,
+          simpleSummary: parsed.simpleSummary,
+          detailedReport: parsed.detailedReport,
+          prompt,
+          contextText,
+          rawResponse: result.content,
+          generatedAt: new Date().toISOString(),
+        });
+        if (!options.automatic) {
+          message.success("AI 总结已生成");
+        }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "AI 总结生成失败";
+        aiSummaryState.setError(errorMessage);
+        if (!options.automatic) message.error(errorMessage);
+      }
+    },
+    [
+      aiSummaryState,
+      artifacts,
+      diagnosticsState.diagnostics,
+      events,
+      nodeExecutionController.allNodeExecutionRecords,
+      nodeExecutionController.selectedNodeExecutionRecord,
+      performanceSummary,
+      selectedDisplaySession,
+      summary.runMode,
+      summary.runId,
+      summary.sessionId,
+      summary.status,
+    ],
+  );
+
   const handlePanelClick = (panel: DebugModalPanel) => {
     setActivePanel(panel);
     setLastPanel(panel);
   };
+
+  const openAiSummaryPanel = () => {
+    setActivePanel("ai-summary");
+    setLastPanel("ai-summary");
+  };
+
+  useEffect(() => {
+    if (!autoGenerateAiSummary) return;
+    if (aiSummaryState.status === "generating") return;
+    const latestSession = displaySessions[0];
+    if (!latestSession || !isTerminalDebugSessionStatus(latestSession.status)) {
+      return;
+    }
+    const targetId = debugAiSummaryTargetKey({
+      kind: "run",
+      sessionId: latestSession.sessionId,
+      runId: latestSession.runId,
+    });
+    if (aiSummaryState.autoRequestedTargetIds.includes(targetId)) return;
+    void generateDebugAiSummary("full", undefined, { automatic: true });
+  }, [
+    aiSummaryState.autoRequestedTargetIds,
+    aiSummaryState.status,
+    autoGenerateAiSummary,
+    displaySessions,
+    generateDebugAiSummary,
+  ]);
 
   const openNodeExecutionRecord = (
     record: Parameters<
@@ -702,6 +867,8 @@ export function useDebugModalController() {
     closeModal,
     connected,
     lastRunMode,
+    autoGenerateAiSummary,
+    aiSummaryState,
     allEvents,
     events,
     displaySessions,
@@ -790,8 +957,15 @@ export function useDebugModalController() {
     updateResourcePaths,
     requestArtifact,
     handlePanelClick,
+    openAiSummaryPanel,
+    generateDebugAiSummary,
+    setAutoGenerateAiSummary,
     requestImageList,
   };
 }
 
 export type DebugModalController = ReturnType<typeof useDebugModalController>;
+
+function isTerminalDebugSessionStatus(status?: string): boolean {
+  return status === "completed" || status === "failed" || status === "stopped";
+}

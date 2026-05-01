@@ -1,0 +1,4 @@
+{"file":".trellis/spec/frontend/index.md","reason":"Frontend quality context for checking panel and controller changes."}
+{"file":".trellis/spec/frontend/state-management.md","reason":"Check debug state/event/artifact interactions after adding AI summary state."}
+{"file":".trellis/spec/guides/index.md","reason":"Shared verification thinking guide."}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"Check that provider and debug summary code reuse existing foundations."}

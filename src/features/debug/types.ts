@@ -25,6 +25,7 @@ export type DebugSessionStatus =
 
 export type DebugModalPanel =
   | "overview"
+  | "ai-summary"
   | "setup"
   | "timeline"
   | "node-execution"

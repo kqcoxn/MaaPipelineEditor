@@ -3,6 +3,7 @@ import { Alert, Button, Modal, Space, Typography } from "antd";
 import {
   ApiOutlined,
   BranchesOutlined,
+  FileTextOutlined,
   NodeIndexOutlined,
   PictureOutlined,
   ProfileOutlined,
@@ -16,6 +17,7 @@ import type {
 import { useDebugModalController } from "../../features/debug/hooks/useDebugModalController";
 import type { DebugModalController } from "../../features/debug/hooks/useDebugModalController";
 import { OverviewPanel } from "../../features/debug/components/panels/OverviewPanel";
+import { AiSummaryPanel } from "../../features/debug/components/panels/AiSummaryPanel";
 import { SetupPanel } from "../../features/debug/components/panels/SetupPanel";
 import { TimelinePanel } from "../../features/debug/components/panels/TimelinePanel";
 import { NodeExecutionPanel } from "../../features/debug/components/panels/NodeExecutionPanel";
@@ -44,6 +46,12 @@ const panels: PanelItem[] = [
     label: "节点线",
     icon: <NodeIndexOutlined />,
     description: "按 MPE 节点聚合已选展示会话，查看执行路径和节点详情。",
+  },
+  {
+    id: "ai-summary",
+    label: "AI 总结",
+    icon: <FileTextOutlined />,
+    description: "查看 AI 生成的调试摘要、详细报告和可复制上下文。",
   },
   {
     id: "timeline",
@@ -230,6 +238,8 @@ function ActivePanel({
   switch (controller.activePanel) {
     case "overview":
       return <OverviewPanel controller={controller} />;
+    case "ai-summary":
+      return <AiSummaryPanel controller={controller} />;
     case "setup":
       return <SetupPanel controller={controller} />;
     case "timeline":
