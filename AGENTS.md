@@ -1,50 +1,3 @@
-```md
-# Trellis Instructions
-
-These instructions are for AI assistants working in this project.
-
-This project is managed by Trellis. The working knowledge you need lives under `.trellis/`:
-
-- `.trellis/workflow.md` — development phases, when to create tasks, skill routing
-- `.trellis/spec/` — package- and layer-scoped coding guidelines (read before writing code in a given layer)
-- `.trellis/workspace/` — per-developer journals and session traces
-- `.trellis/tasks/` — active and archived tasks (PRDs, research, jsonl context)
-
-If a Trellis command is available on your platform (e.g. `/trellis:finish-work`, `/trellis:continue`), prefer it over manual steps. Not every platform exposes every command.
-
-If you're using Codex or another agent-capable tool, additional project-scoped helpers may live in:
-
-- `.agents/skills/` — reusable Trellis skills
-- `.codex/agents/` — optional custom subagents
-
-## Subagents
-
-- ALWAYS wait for all subagents to complete before yielding.
-- Spawn subagents automatically when:
-  - Parallelizable work (e.g., install + verify, npm test + typecheck, multiple tasks from plan)
-  - Long-running or blocking tasks where a worker can run independently.
-  - Isolation for risky changes or checks
-
-Managed by Trellis. Edits outside this block are preserved; edits inside may be overwritten by a future `trellis update`.
-
-# Project Context
-
-## 项目基本信息
-
-- 名称：MaaPipelineEditor (mpe)
-- 地址：https://github.com/kqcoxn/MaaPipelineEditor
-
-## 项目结构
-
-- **前端（editor）**：`/src`
-- **后端（localbridge / lb）**：`/LocalBridge`
-- **客户端（extremer）**：`/Extremer`
-- **页面嵌入测试（iframe）**：`/Iframe`
-- **文档站（docsite）**：`/docsite`
-- **展示页/主页（landing）**：`/Landing`
-
-> 默认开发需同时完善前后端；客户端由构建流程自动生成。
-
 # Development Rules
 
 ## 必须遵守
@@ -75,7 +28,8 @@ Managed by Trellis. Edits outside this block are preserved; edits inside may be 
 - Ant Design（可缩写为 `antd`）：`/dev/instructions/ant-design`
 - React Flow：`/dev/instructions/react-flow/`
 - Wails：`/dev/instructions/wails/`
+- 临时文档（如当前开发模块所参考的各项目 wiki）：`/dev/instructions/.tmp/`
 
 > 若需其他框架 API 且本地无文档，可联网检索。
+> 当文档细粒度不够时，可以自行检索 github 源码进行参考
 > 文档内的内容不要修改，相当于只读。
-```
