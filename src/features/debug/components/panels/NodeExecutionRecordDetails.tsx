@@ -147,7 +147,6 @@ export function NodeExecutionRecordDetails({
             {record.hasFailure && record.status !== "failed" && (
               <OverviewMetaItem label="结果" value="含失败" />
             )}
-            {record.slow && <OverviewMetaItem label="性能" value="慢节点" />}
             {record.hasArtifact && <OverviewMetaItem label="产物" value="含产物" />}
           </div>
         </Space>

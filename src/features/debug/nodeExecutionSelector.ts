@@ -80,7 +80,6 @@ export interface DebugNodeExecutionRecord {
   lastTimestamp?: string;
   durationMs?: number;
   durationSource?: DebugNodeExecutionDurationSource;
-  slow: boolean;
   hasFailure: boolean;
   hasArtifact: boolean;
   eventKinds: DebugEventKind[];
@@ -121,7 +120,6 @@ export interface DebugNodeExecutionRecordGroup {
   lastSeq: number;
   occurrenceCount: number;
   eventCount: number;
-  slow: boolean;
   hasFailure: boolean;
   hasArtifact: boolean;
 }
@@ -139,7 +137,6 @@ export function selectDebugNodeExecutionRecords(
   const performanceIndex = createPerformanceIndex(
     options.performanceSummary?.nodes,
   );
-  const slowIndex = createPerformanceIndex(options.performanceSummary?.slowNodes);
   const attributionMode = options.attributionMode ?? "next";
   const edgeIndex = createDebugResolverEdgeIndex(options.resolverEdges ?? []);
   const context = {
@@ -147,7 +144,6 @@ export function selectDebugNodeExecutionRecords(
     edgeIndex,
     performanceSummary: options.performanceSummary,
     performanceIndex,
-    slowIndex,
   };
 
   const seeds =
@@ -194,7 +190,6 @@ export function groupDebugNodeExecutionRecords(
         lastSeq: record.lastSeq,
         occurrenceCount: 1,
         eventCount: record.eventCount,
-        slow: record.slow,
         hasFailure: record.hasFailure,
         hasArtifact: record.hasArtifact,
       });
@@ -207,7 +202,6 @@ export function groupDebugNodeExecutionRecords(
     current.lastSeq = Math.max(current.lastSeq, record.lastSeq);
     current.occurrenceCount = current.records.length;
     current.eventCount += record.eventCount;
-    current.slow = current.slow || record.slow;
     current.hasFailure = current.hasFailure || record.hasFailure;
     current.hasArtifact = current.hasArtifact || record.hasArtifact;
   }
@@ -337,7 +331,6 @@ function toRecordFromSeed(
     edgeIndex: Map<string, ResolverEdge>;
     performanceSummary?: DebugPerformanceSummary;
     performanceIndex: Map<string, DebugPerformanceNodeSummary[]>;
-    slowIndex: Map<string, DebugPerformanceNodeSummary[]>;
   },
 ): DebugNodeExecutionRecord {
   const resolverNode =
@@ -455,15 +448,6 @@ function toRecordFromSeed(
     lastTimestamp: events[events.length - 1]?.timestamp,
     durationMs,
     durationSource: performanceNode ? "performance" : "trace",
-    slow: Boolean(
-      findSlowNode(context, {
-        nodeId: seed.nodeId,
-        runtimeName: seed.runtimeName,
-        runId: seed.runId,
-        firstSeq,
-        lastSeq,
-      }),
-    ),
     hasFailure: outcome.hasFailure,
     hasArtifact,
     eventKinds,
@@ -681,11 +665,6 @@ function compareRecords(
       const failureDelta = Number(b.hasFailure) - Number(a.hasFailure);
       return failureDelta || compareExecutionOrder(a, b);
     }
-    case "slow-first": {
-      const slowDelta = Number(b.slow) - Number(a.slow);
-      const durationDelta = (b.durationMs ?? -1) - (a.durationMs ?? -1);
-      return slowDelta || durationDelta || compareExecutionOrder(a, b);
-    }
     case "latest":
       if (a.lastSeq === b.lastSeq) return b.firstSeq - a.firstSeq;
       return b.lastSeq - a.lastSeq;
@@ -728,20 +707,6 @@ function findPerformanceNode(
 ): DebugPerformanceNodeSummary | undefined {
   if (context.performanceSummary?.runId !== replay.runId) return undefined;
   return findMatchingPerformanceNode(context.performanceIndex, replay);
-}
-
-function findSlowNode(
-  context: {
-    performanceSummary?: DebugPerformanceSummary;
-    slowIndex: Map<string, DebugPerformanceNodeSummary[]>;
-  },
-  replay: Pick<
-    DebugNodeReplay,
-    "nodeId" | "runtimeName" | "runId" | "firstSeq" | "lastSeq"
-  >,
-): DebugPerformanceNodeSummary | undefined {
-  if (context.performanceSummary?.runId !== replay.runId) return undefined;
-  return findMatchingPerformanceNode(context.slowIndex, replay);
 }
 
 function findMatchingPerformanceNode(

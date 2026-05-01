@@ -250,7 +250,6 @@ type PerformanceSummary struct {
 	CompletedAt        string                   `json:"completedAt,omitempty"`
 	DurationMs         int64                    `json:"durationMs,omitempty"`
 	Nodes              []PerformanceNodeSummary `json:"nodes"`
-	SlowNodes          []PerformanceNodeSummary `json:"slowNodes"`
 	GeneratedAt        string                   `json:"generatedAt"`
 }
 

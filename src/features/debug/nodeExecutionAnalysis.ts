@@ -38,7 +38,6 @@ export interface DebugNodeExecutionOverlay {
   executionPathEdgeIds: string[];
   executionCandidateEdgeIds: string[];
   highlightedFailureNodeIds: string[];
-  highlightedSlowNodeIds: string[];
 }
 
 export interface SelectDebugNodeExecutionOverlayOptions {
@@ -121,7 +120,6 @@ export function selectDebugNodeExecutionOverlay(
   const executionPathEdgeIds = new Set<string>();
   const executionCandidateEdgeIds = new Set<string>();
   const highlightedFailureNodeIds = new Set<string>();
-  const highlightedSlowNodeIds = new Set<string>();
 
   for (const record of records) {
     if (record.runId !== selectedRecord.runId) continue;
@@ -132,7 +130,6 @@ export function selectDebugNodeExecutionOverlay(
       if (record.status === "failed" || record.hasFailure) {
         highlightedFailureNodeIds.add(record.nodeId);
       }
-      if (record.slow) highlightedSlowNodeIds.add(record.nodeId);
     }
 
     for (const event of record.events) {
@@ -153,7 +150,6 @@ export function selectDebugNodeExecutionOverlay(
     executionPathEdgeIds: [...executionPathEdgeIds],
     executionCandidateEdgeIds: [...executionCandidateEdgeIds],
     highlightedFailureNodeIds: [...highlightedFailureNodeIds],
-    highlightedSlowNodeIds: [...highlightedSlowNodeIds],
   };
 }
 
@@ -366,7 +362,6 @@ function emptyExecutionOverlay(): DebugNodeExecutionOverlay {
     executionPathEdgeIds: [],
     executionCandidateEdgeIds: [],
     highlightedFailureNodeIds: [],
-    highlightedSlowNodeIds: [],
   };
 }
 

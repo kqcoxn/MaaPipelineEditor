@@ -88,7 +88,7 @@ export function buildDebugAiSummaryPrompt(input: DebugAiSummaryInput): {
     "- 所有结论尽量引用证据，例如节点名、nodeId、runtimeName、seq、diagnostic code、artifact id。",
     "- 当 focus 为 failure 时，优先输出失败原因和异常证据，弱化正常节点描述。",
     "- 当 focus 为 node 时，只解释 selectedNode，不要扩展成全局运行报告。",
-    "- 不做慢节点/性能瓶颈专项分析；性能字段只能作为辅助背景。",
+    "- 不做性能瓶颈专项分析；性能字段只能作为辅助背景。",
     "- 如果证据不足，请明确说证据不足，并给出下一步应该查看的调试视图。",
     "- 输出必须是 JSON，不要包裹 Markdown 代码块。",
     "",

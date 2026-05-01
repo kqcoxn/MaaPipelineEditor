@@ -1,4 +1,4 @@
-import { Button, Empty, List, Space, Tag, Typography } from "antd";
+import { Button, Empty, Space, Tag } from "antd";
 import { DebugSection } from "../DebugSection";
 import { DebugArtifactPreview } from "../DebugArtifactPreview";
 import type { DebugModalController } from "../../hooks/useDebugModalController";
@@ -6,8 +6,6 @@ import {
   findDebugRunFirstTimestamp,
   formatDebugRunDisplayName,
 } from "../../runDisplayName";
-
-const { Text } = Typography;
 
 export function PerformancePanel({
   controller,
@@ -58,23 +56,6 @@ export function PerformancePanel({
                 <Tag>已选摘要 {selectedPerformanceSummaries.length}</Tag>
               )}
             </Space>
-            <List
-              size="small"
-              dataSource={activePerformanceSummary.slowNodes}
-              locale={{ emptyText: "暂无慢节点" }}
-              renderItem={(node) => (
-                <List.Item>
-                  <Space wrap>
-                    <Text>{node.label || node.runtimeName}</Text>
-                    <Tag>{node.durationMs ?? 0}ms</Tag>
-                    <Tag>{node.status}</Tag>
-                    <Tag>
-                      seq {node.firstSeq}-{node.lastSeq}
-                    </Tag>
-                  </Space>
-                </List.Item>
-              )}
-            />
           </Space>
         ) : (
           <Empty description="运行结束后会生成性能摘要产物" />

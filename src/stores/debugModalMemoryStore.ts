@@ -77,7 +77,6 @@ const validNodeExecutionArtifactFilters =
 const validNodeExecutionSortModes = new Set<DebugNodeExecutionSortMode>([
   "execution",
   "failure-first",
-  "slow-first",
   "latest",
 ]);
 const validNodeExecutionAttributionModes =
