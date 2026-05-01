@@ -37,23 +37,17 @@ const panels: PanelItem[] = [
     description: "查看依赖状态、会话/追踪状态和当前运行摘要。",
   },
   {
-    id: "setup",
-    label: "运行配置",
-    icon: <SettingOutlined />,
-    description: "配置资源路径、控制器、截图和 Agent，并写入本地调试配置。",
+    id: "node-execution",
+    label: "节点线",
+    icon: <NodeIndexOutlined />,
+    description: "按 MPE 节点聚合当前 session trace，查看执行路径和节点详情。",
   },
   {
     id: "timeline",
-    label: "时间线",
+    label: "事件线",
     icon: <BranchesOutlined />,
     description:
       "按后端 seq 查看 append-only trace，并在当前会话内定位或回放事件。",
-  },
-  {
-    id: "node-execution",
-    label: "节点执行",
-    icon: <NodeIndexOutlined />,
-    description: "按 MPE 节点聚合当前 session trace，查看执行路径和节点详情。",
   },
   {
     id: "performance",
@@ -72,6 +66,12 @@ const panels: PanelItem[] = [
     label: "诊断",
     icon: <ApiOutlined />,
     description: "查看启动前检查、运行时诊断和资源/控制器/Agent 问题。",
+  },
+  {
+    id: "setup",
+    label: "运行配置",
+    icon: <SettingOutlined />,
+    description: "配置资源路径、控制器、截图和 Agent，并写入本地调试配置。",
   },
 ];
 
