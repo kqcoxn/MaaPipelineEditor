@@ -465,6 +465,110 @@ describe("selectDebugNodeExecutionRecords", () => {
     });
   });
 
+  it("merges continuous recognition attempts for the same next target in node mode", () => {
+    const summary = reduceDebugTrace({
+      events: [
+        event(1, "node", "starting", node("node-b", "B")),
+        event(2, "next-list", "succeeded", node("node-b", "B"), {
+          next: [{ name: "A", jumpBack: false, anchor: true }],
+        }),
+        event(3, "recognition", "failed", node("node-a", "A"), {
+          parentNode: "B",
+          hit: false,
+        }),
+        event(4, "recognition", "failed", node("node-a", "A"), {
+          parentNode: "B",
+          hit: false,
+        }),
+        event(5, "recognition", "succeeded", node("node-a", "A"), {
+          parentNode: "B",
+          hit: true,
+        }),
+        event(6, "node", "succeeded", node("node-b", "B")),
+        event(7, "node", "starting", node("node-a", "A")),
+        event(8, "action", "succeeded", node("node-a", "A")),
+        event(9, "node", "succeeded", node("node-a", "A")),
+      ],
+    });
+
+    const nodeModeRecords = selectDebugNodeExecutionRecords(
+      summary,
+      resolverNodes,
+      { status: "all" },
+      { attributionMode: "node", resolverEdges },
+    );
+    const nodeModeARecords = nodeModeRecords.filter(
+      (record) => record.runtimeName === "A",
+    );
+
+    expect(nodeModeARecords).toHaveLength(1);
+    expect(nodeModeARecords[0]).toMatchObject({
+      attributionMode: "node",
+      runtimeName: "A",
+      sourceNextOwnerRuntimeName: "B",
+      recognitionCount: 3,
+      actionCount: 1,
+      firstSeq: 3,
+      lastSeq: 9,
+      status: "succeeded",
+      hasFailure: true,
+    });
+    expect(nodeModeARecords[0].recognitionAttempts.map((attempt) => attempt.hit))
+      .toEqual([false, false, true]);
+    expect(nodeModeARecords[0].actionAttempts).toHaveLength(1);
+  });
+
+  it("keeps a single successful next recognition paired with its later action in node mode", () => {
+    const summary = reduceDebugTrace({
+      events: [
+        event(1, "node", "starting", node("node-b", "B")),
+        event(2, "next-list", "succeeded", node("node-b", "B"), {
+          next: [{ name: "A", jumpBack: false, anchor: true }],
+        }),
+        event(3, "recognition", "succeeded", node("node-a", "A"), {
+          parentNode: "B",
+          hit: true,
+        }),
+        event(4, "next-list", "succeeded", node("node-b", "B"), {
+          next: [{ name: "A", jumpBack: false, anchor: true }],
+        }),
+        event(5, "node", "succeeded", node("node-b", "B")),
+        event(6, "node", "starting", node("node-a", "A")),
+        event(7, "action", "succeeded", node("node-a", "A")),
+        event(8, "node", "succeeded", node("node-a", "A")),
+      ],
+    });
+
+    const nodeModeRecords = selectDebugNodeExecutionRecords(
+      summary,
+      resolverNodes,
+      { status: "all" },
+      { attributionMode: "node", resolverEdges },
+    );
+    const nodeModeARecords = nodeModeRecords.filter(
+      (record) => record.runtimeName === "A",
+    );
+
+    expect(nodeModeARecords).toHaveLength(1);
+    expect(nodeModeARecords[0]).toMatchObject({
+      attributionMode: "node",
+      runtimeName: "A",
+      recognitionCount: 1,
+      actionCount: 1,
+      firstSeq: 3,
+      lastSeq: 8,
+      status: "succeeded",
+      hasFailure: false,
+    });
+    expect(nodeModeARecords[0].recognitionAttempts[0]).toMatchObject({
+      firstSeq: 3,
+      hit: true,
+    });
+    expect(nodeModeARecords[0].actionAttempts[0]).toMatchObject({
+      firstSeq: 7,
+    });
+  });
+
   it("merges a non-terminal node action segment with its following next-list continuation", () => {
     const summary = reduceDebugTrace({
       events: [
