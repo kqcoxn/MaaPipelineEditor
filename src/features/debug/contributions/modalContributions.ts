@@ -9,7 +9,6 @@ const modalPanels: Array<{ id: DebugModalPanel; label: string }> = [
   { id: "performance", label: "性能" },
   { id: "images", label: "图像" },
   { id: "diagnostics", label: "诊断" },
-  { id: "logs", label: "日志" },
 ];
 
 export function registerDebugModalContributions(): void {

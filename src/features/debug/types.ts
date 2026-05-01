@@ -30,8 +30,7 @@ export type DebugModalPanel =
   | "node-execution"
   | "performance"
   | "images"
-  | "diagnostics"
-  | "logs";
+  | "diagnostics";
 
 export type DebugNodeExecutionStatus =
   | "running"

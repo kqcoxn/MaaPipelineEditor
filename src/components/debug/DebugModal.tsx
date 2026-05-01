@@ -8,7 +8,6 @@ import {
   ProfileOutlined,
   SettingOutlined,
   StepForwardOutlined,
-  UnorderedListOutlined,
 } from "@ant-design/icons";
 import type { DebugModalPanel } from "../../features/debug/types";
 import { useDebugModalController } from "../../features/debug/hooks/useDebugModalController";
@@ -20,7 +19,6 @@ import { NodeExecutionPanel } from "../../features/debug/components/panels/NodeE
 import { PerformancePanel } from "../../features/debug/components/panels/PerformancePanel";
 import { ImagesPanel } from "../../features/debug/components/panels/ImagesPanel";
 import { DiagnosticsPanel } from "../../features/debug/components/panels/DiagnosticsPanel";
-import { LogsPanel } from "../../features/debug/components/panels/LogsPanel";
 
 const { Text, Title } = Typography;
 
@@ -74,12 +72,6 @@ const panels: PanelItem[] = [
     label: "诊断",
     icon: <ApiOutlined />,
     description: "查看启动前检查、运行时诊断和资源/控制器/Agent 问题。",
-  },
-  {
-    id: "logs",
-    label: "日志",
-    icon: <UnorderedListOutlined />,
-    description: "查看 session、task 和 MaaFW 原始消息相关的结构化日志事件。",
   },
 ];
 
@@ -220,8 +212,6 @@ function ActivePanel({
       return <ImagesPanel controller={controller} />;
     case "diagnostics":
       return <DiagnosticsPanel controller={controller} />;
-    case "logs":
-      return <LogsPanel controller={controller} />;
     default:
       return null;
   }

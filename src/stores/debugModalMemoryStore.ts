@@ -50,7 +50,6 @@ const validPanels = new Set<DebugModalPanel>([
   "performance",
   "images",
   "diagnostics",
-  "logs",
 ]);
 
 const validNodeExecutionStatusFilters = new Set<DebugNodeExecutionStatusFilter>(
