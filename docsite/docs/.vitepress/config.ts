@@ -163,7 +163,7 @@ export default defineConfig({
         items: [
           {
             text: "MaaMCP",
-            link: "https://maa-ai.top/",
+            link: "https://maa-ai.com/",
           },
           {
             text: "MaaLogAnalyzer",

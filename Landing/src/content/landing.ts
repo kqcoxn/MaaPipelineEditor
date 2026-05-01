@@ -318,7 +318,7 @@ export const footerColumns: FooterColumn[] = [
       },
       {
         label: "MaaMCP",
-        href: "https://maa-ai.top/",
+        href: "https://maa-ai.com/",
         external: true,
         variant: "text",
       },
