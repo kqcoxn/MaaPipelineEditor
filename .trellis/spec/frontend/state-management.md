@@ -111,3 +111,10 @@ send(updatedEvent)
 <!-- State management mistakes your team has made -->
 
 (To be filled by the team)
+
+### Debug Resource Preflight Entry Points
+
+- Applies when adding or changing any UI path that can start a debug run, including DebugModal buttons and node context-menu actions.
+- Use `debugSessionStore.resourcePreflight` as a tri-state gate for the current `resourceKey`: `idle` means request preflight first, `checking` means wait, `ready` may proceed, and `error` must block with the stored error message.
+- Do not treat `idle` or a mismatched `resourceKey` as a hard resource failure. Those states only mean the current page lifecycle has not validated the current resource paths yet.
+- Context-menu debug entries should open/focus the modal and trigger resource preflight when needed, but they must not send `/mpe/debug/run` until resource status is `ready`.

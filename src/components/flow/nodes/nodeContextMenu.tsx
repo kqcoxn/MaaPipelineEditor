@@ -98,6 +98,8 @@ type NodeDataWithColor = {
   color?: string;
 };
 
+type ResourcePreflightRequestResult = "sent" | "empty" | "send-failed";
+
 /**复制节点名处理器 */
 function handleCopyNodeName(node: NodeContextMenuNode) {
   copyNodeName(node.data.label, node.type);
@@ -239,11 +241,31 @@ function handleDebugRunMode(node: NodeContextMenuNode, mode: DebugRunMode) {
       : undefined,
   });
   if (!readiness.ready) {
-    message.error(readiness.issues[0]?.message ?? "调试前置条件未满足");
-    if (
-      readiness.issues.some((issue) => issue.code === "debug.resource.not_ready")
-    ) {
-      requestDebugResourcePreflight(resourceKey);
+    const blockingIssue = readiness.issues.find(
+      (issue) => issue.code !== "debug.resource.not_ready",
+    );
+    if (blockingIssue) {
+      message.error(blockingIssue.message);
+      return;
+    }
+
+    if (resourcePreflightMatches && resourcePreflight.status === "error") {
+      message.error(
+        readiness.issues[0]?.message ?? "资源加载检测失败，无法启动调试。",
+      );
+      return;
+    }
+
+    if (resourcePreflightMatches && resourcePreflight.status === "checking") {
+      message.info("资源正在加载检测中，请等待检测完成后再启动调试。");
+      return;
+    }
+
+    const requestResult = requestDebugResourcePreflight(resourceKey);
+    if (requestResult === "sent") {
+      message.info("正在检测资源路径，请等待检测完成后再启动调试。");
+    } else if (requestResult === "empty") {
+      message.warning("请先配置资源路径或等待 LocalBridge 扫描资源包");
     }
     return;
   }
@@ -287,11 +309,13 @@ function handleSetDebugEntry(node: NodeContextMenuNode) {
   });
 }
 
-function requestDebugResourcePreflight(resourceKey: string) {
+function requestDebugResourcePreflight(
+  resourceKey: string,
+): ResourcePreflightRequestResult {
   const resourcePaths = normalizeDebugResourcePaths(
     useDebugRunProfileStore.getState().profile.resourcePaths,
   );
-  if (resourcePaths.length === 0) return;
+  if (resourcePaths.length === 0) return "empty";
   const requestId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const sessionState = useDebugSessionStore.getState();
   sessionState.setResourcePreflightChecking(requestId, resourceKey);
@@ -305,7 +329,10 @@ function requestDebugResourcePreflight(resourceKey: string) {
       resourceKey,
       "发送资源加载检测请求失败。",
     );
+    message.error("发送资源加载检测请求失败");
+    return "send-failed";
   }
+  return "sent";
 }
 
 function handleDebugRunModeWithInput(

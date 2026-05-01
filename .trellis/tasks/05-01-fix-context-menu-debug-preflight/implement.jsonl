@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend entrypoint and DebugModal context-menu change"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Debug Zustand resource preflight/readiness state contract"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend quality baseline"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Type safety baseline"}
