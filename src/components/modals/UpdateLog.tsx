@@ -1,243 +1,423 @@
-import { Modal, Timeline, Typography, Tag, Divider, Alert } from "antd";
+import {
+  Alert,
+  Card,
+  Empty,
+  Modal,
+  Segmented,
+  Tag,
+  Timeline,
+  Typography,
+} from "antd";
 import { ClockCircleOutlined } from "@ant-design/icons";
-import { updateLogs, pinnedNotice } from "../../data/updateLogs";
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  longTermPreview,
+  nextPreview,
+  pinnedNotice,
+  updateLogs,
+  type LongTermPreviewItem,
+  type NextPreviewItem,
+  type PreviewStatus,
+  type UpdateCategory,
+  type UpdateLogItem,
+} from "../../data/updateLogs";
+import style from "../../styles/modals/UpdateLog.module.less";
 
-const { Title, Paragraph, Text } = Typography;
+const { Title, Text } = Typography;
 
 interface UpdateLogProps {
   open: boolean;
   onClose: () => void;
 }
 
-const UpdateLog = ({ open, onClose }: UpdateLogProps) => {
-  // Markdown 格式转换
-  const parseMarkdown = (text: string): (string | React.ReactElement)[] => {
-    // 合并正则
-    const combinedRegex = /(\[([^\]]+)\]\(([^)]+)\))|(\*\*([^*]+)\*\*)/g;
-    const parts: (string | React.ReactElement)[] = [];
-    let lastIndex = 0;
-    let match;
+type CategoryFilter = "all" | keyof UpdateCategory;
+type SelectedPanel =
+  | { kind: "forecast" }
+  | { kind: "version"; version: string };
 
-    while ((match = combinedRegex.exec(text)) !== null) {
-      // 添加匹配前的文本
-      if (match.index > lastIndex) {
-        parts.push(text.substring(lastIndex, match.index));
-      }
+const typeConfig: Record<
+  UpdateLogItem["type"],
+  { color: string; label: string }
+> = {
+  major: { color: "red", label: "重大更新" },
+  feature: { color: "blue", label: "新功能" },
+  fix: { color: "orange", label: "问题修复" },
+  perf: { color: "green", label: "体验优化" },
+};
 
-      if (match[1]) {
-        // 链接匹配: [text](url)
-        const linkText = match[2];
-        const linkUrl = match[3];
-        parts.push(
-          <a
-            key={`link-${match.index}`}
-            href={linkUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              color: "#1890ff",
-              textDecoration: "underline",
-            }}
-          >
-            {linkText}
-          </a>
-        );
-      } else if (match[4]) {
-        // 加粗匹配: **text**
-        const boldText = match[5];
-        parts.push(<strong key={`bold-${match.index}`}>{boldText}</strong>);
-      }
+const categoryConfig: Array<{
+  key: keyof UpdateCategory;
+  label: string;
+}> = [
+  { key: "features", label: "新功能" },
+  { key: "perfs", label: "体验优化" },
+  { key: "fixes", label: "问题修复" },
+  { key: "docs", label: "文档更新" },
+  { key: "others", label: "其他更新" },
+];
 
-      lastIndex = match.index + match[0].length;
+const categoryFilterOptions: Array<{
+  label: string;
+  value: CategoryFilter;
+}> = [
+  { label: "全部", value: "all" },
+  ...categoryConfig.map(({ key, label }) => ({ label, value: key })),
+];
+
+const statusConfig: Record<PreviewStatus, { color: string; label: string }> = {
+  designing: { color: "blue", label: "设计中" },
+  developing: { color: "green", label: "开发中" },
+  validating: { color: "orange", label: "待验证" },
+  planned: { color: "default", label: "计划中" },
+};
+
+const parseMarkdown = (text: string): (string | React.ReactElement)[] => {
+  const combinedRegex = /(\[([^\]]+)\]\(([^)]+)\))|(\*\*([^*]+)\*\*)/g;
+  const parts: (string | React.ReactElement)[] = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = combinedRegex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.substring(lastIndex, match.index));
     }
 
-    // 添加剩余文本
-    if (lastIndex < text.length) {
-      parts.push(text.substring(lastIndex));
+    if (match[1]) {
+      const linkText = match[2];
+      const linkUrl = match[3];
+      parts.push(
+        <a
+          key={`link-${match.index}`}
+          href={linkUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={style.markdownLink}
+        >
+          {linkText}
+        </a>
+      );
+    } else if (match[4]) {
+      const boldText = match[5];
+      parts.push(<strong key={`bold-${match.index}`}>{boldText}</strong>);
     }
 
-    return parts.length > 0 ? parts : [text];
-  };
+    lastIndex = match.index + match[0].length;
+  }
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case "major":
-        return "red";
-      case "feature":
-        return "blue";
-      case "fix":
-        return "orange";
-      case "perf":
-        return "green";
-      default:
-        return "default";
-    }
-  };
+  if (lastIndex < text.length) {
+    parts.push(text.substring(lastIndex));
+  }
 
-  const getTypeText = (type: string) => {
-    switch (type) {
-      case "major":
-        return "重大更新";
-      case "feature":
-        return "新功能";
-      case "fix":
-        return "修复";
-      case "perf":
-        return "优化";
-      default:
-        return "更新";
-    }
-  };
+  return parts.length > 0 ? parts : [text];
+};
 
-  // 分类标题配置
-  const categoryConfig = [
-    { key: "features", label: "新功能", icon: "✨" },
-    { key: "perfs", label: "体验优化", icon: "🚀" },
-    { key: "fixes", label: "问题修复", icon: "🐞" },
-    { key: "others", label: "其他更新", icon: "📦" },
-  ];
+const VersionTypeTag = ({ type }: { type: UpdateLogItem["type"] }) => (
+  <Tag color={typeConfig[type].color}>{typeConfig[type].label}</Tag>
+);
 
-  // 渲染分类内容
-  const renderCategoryItems = (updates: (typeof updateLogs)[0]["updates"]) => {
-    return categoryConfig.map(({ key, label, icon }) => {
-      const items = updates[key as keyof typeof updates];
-      if (!items || items.length === 0) return null;
+interface VersionTimelineProps {
+  logs: UpdateLogItem[];
+  selectedPanel: SelectedPanel;
+  onSelectForecast: () => void;
+  onSelectVersion: (version: string) => void;
+}
 
-      return (
-        <div key={key} style={{ marginBottom: 16 }}>
-          <div
-            style={{
-              fontSize: 14,
-              fontWeight: 600,
-              marginBottom: 8,
-              color: "#1890ff",
-            }}
-          >
-            {icon} {label}
-          </div>
-          {items.map((item, idx) => (
-            <Paragraph
-              key={idx}
-              style={{
-                margin: "6px 0",
-                paddingLeft: 20,
-                position: "relative",
-                fontSize: 14,
-              }}
-            >
-              <span
-                style={{
-                  position: "absolute",
-                  left: 4,
-                  color: "#8c8c8c",
-                }}
+const VersionTimeline = ({
+  logs,
+  selectedPanel,
+  onSelectForecast,
+  onSelectVersion,
+}: VersionTimelineProps) => (
+  <Card
+    size="small"
+    title="版本"
+    className={style.timelineCard}
+    styles={{ body: { padding: 0 } }}
+  >
+    <div className={style.timelineScroll} aria-label="版本时间线">
+      <button
+        type="button"
+        className={`${style.forecastButton} ${
+          selectedPanel.kind === "forecast" ? style.versionButtonSelected : ""
+        }`}
+        aria-current={selectedPanel.kind === "forecast" ? "step" : undefined}
+        onClick={onSelectForecast}
+      >
+        <span className={style.versionButtonTop}>
+          <span className={style.versionNumber}>下期预告 / 长期预告</span>
+          <Tag color="purple">预告</Tag>
+        </span>
+        <span className={style.versionDate}>近期计划与方向规划</span>
+      </button>
+      <Timeline
+        className={style.timeline}
+        items={logs.map((log) => {
+          const isSelected =
+            selectedPanel.kind === "version" &&
+            log.version === selectedPanel.version;
+
+          return {
+            color: typeConfig[log.type].color,
+            dot: isSelected ? (
+              <ClockCircleOutlined className={style.timelineDot} />
+            ) : undefined,
+            children: (
+              <button
+                type="button"
+                className={`${style.versionButton} ${
+                  isSelected ? style.versionButtonSelected : ""
+                }`}
+                aria-current={isSelected ? "step" : undefined}
+                onClick={() => onSelectVersion(log.version)}
               >
-                •
+                <span className={style.versionButtonTop}>
+                  <span className={style.versionNumber}>v{log.version}</span>
+                  <VersionTypeTag type={log.type} />
+                </span>
+                <span className={style.versionDate}>{log.date}</span>
+              </button>
+            ),
+          };
+        })}
+      />
+    </div>
+  </Card>
+);
+
+interface UpdateLogDetailsProps {
+  log: UpdateLogItem;
+  categoryFilter: CategoryFilter;
+  onCategoryFilterChange: (filter: CategoryFilter) => void;
+}
+
+const UpdateLogDetails = ({
+  log,
+  categoryFilter,
+  onCategoryFilterChange,
+}: UpdateLogDetailsProps) => {
+  const visibleCategories = categoryConfig.filter(({ key }) => {
+    if (categoryFilter !== "all" && categoryFilter !== key) {
+      return false;
+    }
+
+    const items = log.updates[key];
+    return Boolean(items && items.length > 0);
+  });
+
+  return (
+    <Card className={style.detailsCard}>
+      <div className={style.detailsHeader}>
+        <div>
+          <div className={style.detailsVersionRow}>
+            <Title level={3} className={style.detailsTitle}>
+              v{log.version}
+            </Title>
+            <VersionTypeTag type={log.type} />
+          </div>
+          <Text type="secondary">{log.date}</Text>
+        </div>
+      </div>
+
+      <Segmented
+        className={style.categoryFilter}
+        aria-label="筛选更新分类"
+        options={categoryFilterOptions}
+        value={categoryFilter}
+        onChange={(value) => onCategoryFilterChange(value as CategoryFilter)}
+        block
+      />
+
+      <div className={style.categoryList}>
+        {visibleCategories.length > 0 ? (
+          visibleCategories.map(({ key, label }) => {
+            const items = log.updates[key];
+            if (!items || items.length === 0) {
+              return null;
+            }
+
+            return (
+              <section key={key} className={style.categorySection}>
+                <Title level={5} className={style.categoryTitle}>
+                  {label}
+                </Title>
+                <div className={style.updateItemList}>
+                  {items.map((item, index) => (
+                    <p key={index} className={style.updateItem}>
+                      <span className={style.updateBullet}>•</span>
+                      <span>{parseMarkdown(item)}</span>
+                    </p>
+                  ))}
+                </div>
+              </section>
+            );
+          })
+        ) : (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={
+              <span>
+                该版本没有此分类更新
+                <br />
+                可切换到“全部”查看完整更新内容。
               </span>
-              {parseMarkdown(item)}
-            </Paragraph>
+            }
+            className={style.emptyState}
+          />
+        )}
+      </div>
+    </Card>
+  );
+};
+
+interface ForecastPanelProps {
+  nextItems: NextPreviewItem[];
+  longTermItems: LongTermPreviewItem[];
+}
+
+const ForecastPanel = ({ nextItems, longTermItems }: ForecastPanelProps) => (
+  <Card className={style.detailsCard}>
+    <div className={style.forecastGrid}>
+      <Card title="下期预告" className={style.forecastCard}>
+        <Text type="secondary" className={style.forecastNotice}>
+          预告内容会随开发进度调整，不代表最终发布时间承诺。
+        </Text>
+        <div className={style.previewList}>
+          {nextItems.map((item) => (
+            <div key={item.title} className={style.previewItem}>
+              <div className={style.previewItemHeader}>
+                <Tag color={statusConfig[item.status].color}>
+                  {statusConfig[item.status].label}
+                </Tag>
+                <Text strong>{item.title}</Text>
+              </div>
+              {item.description && (
+                <Text type="secondary" className={style.previewDescription}>
+                  {item.description}
+                </Text>
+              )}
+            </div>
           ))}
         </div>
-      );
-    });
-  };
+      </Card>
+
+      <Card title="长期预告" className={style.forecastCard}>
+        <Text type="secondary" className={style.forecastNotice}>
+          不绑定具体版本，仅表达方向性规划。
+        </Text>
+        <div className={style.previewList}>
+          {longTermItems.map((item) => (
+            <div key={item.title} className={style.previewItem}>
+              <div className={style.previewItemHeader}>
+                {item.theme && <Tag>{item.theme}</Tag>}
+                <Text strong>{item.title}</Text>
+              </div>
+              <Text type="secondary" className={style.previewDescription}>
+                {item.description}
+              </Text>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  </Card>
+);
+
+const UpdateLog = ({ open, onClose }: UpdateLogProps) => {
+  const latestVersion = updateLogs[0]?.version ?? "";
+  const [selectedPanel, setSelectedPanel] = useState<SelectedPanel>({
+    kind: "version",
+    version: latestVersion,
+  });
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
+
+  useEffect(() => {
+    if (open) {
+      setSelectedPanel({ kind: "version", version: latestVersion });
+      setCategoryFilter("all");
+    }
+  }, [latestVersion, open]);
+
+  const selectedLog = useMemo(
+    () =>
+      selectedPanel.kind === "version"
+        ? updateLogs.find((log) => log.version === selectedPanel.version) ??
+          updateLogs[0]
+        : undefined,
+    [selectedPanel]
+  );
 
   return (
     <Modal
       title={
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <ClockCircleOutlined style={{ fontSize: 20 }} />
-          <span style={{ fontSize: 18, fontWeight: 600 }}>更新日志</span>
+        <div className={style.modalTitle}>
+          <ClockCircleOutlined className={style.modalTitleIcon} />
+          <span>更新日志</span>
         </div>
       }
       open={open}
       onCancel={onClose}
       footer={null}
-      width={700}
+      width={1120}
+      className={style.updateLogModal}
       styles={{
         body: {
-          maxHeight: "70vh",
-          overflowY: "auto",
-          padding: "24px",
+          height: "min(74vh, 680px)",
+          overflow: "hidden",
+          padding: 24,
         },
       }}
     >
-      {/* 置顶公告部分 */}
       {pinnedNotice.content && pinnedNotice.content.length > 0 && (
-        <>
-          <Alert
-            message={pinnedNotice.title || "置顶公告"}
-            description={
-              <div>
-                {pinnedNotice.content.map((item, idx) => (
-                  <Paragraph
-                    key={idx}
-                    style={{
-                      margin: "6px 0",
-                      paddingLeft: 16,
-                      position: "relative",
-                      fontSize: 14,
-                    }}
-                  >
-                    <span
-                      style={{
-                        position: "absolute",
-                        left: 0,
-                        color: "#8c8c8c",
-                      }}
-                    >
-                      •
-                    </span>
-                    {parseMarkdown(item)}
-                  </Paragraph>
-                ))}
-              </div>
-            }
-            type={pinnedNotice.type || "info"}
-            showIcon
-            style={{ marginBottom: 24 }}
-          />
-        </>
+        <Alert
+          message={pinnedNotice.title || "置顶公告"}
+          description={
+            <div className={style.noticeList}>
+              {pinnedNotice.content.map((item, index) => (
+                <p key={index} className={style.noticeItem}>
+                  <span className={style.noticeBullet}>•</span>
+                  <span>{parseMarkdown(item)}</span>
+                </p>
+              ))}
+            </div>
+          }
+          type={pinnedNotice.type || "info"}
+          showIcon
+          className={style.pinnedNotice}
+        />
       )}
 
-      <Timeline
-        items={updateLogs.map((log, index) => ({
-          color: getTypeColor(log.type),
-          dot:
-            index === 0 ? (
-              <ClockCircleOutlined style={{ fontSize: 16 }} />
-            ) : undefined,
-          children: (
-            <div key={log.version}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  marginBottom: 12,
-                }}
-              >
-                <Title level={4} style={{ margin: 0 }}>
-                  v{log.version}
-                </Title>
-                <Tag color={getTypeColor(log.type)}>
-                  {getTypeText(log.type)}
-                </Tag>
-                <Text type="secondary" style={{ fontSize: 13 }}>
-                  {log.date}
-                </Text>
-              </div>
-              <div style={{ marginBottom: 16 }}>
-                {renderCategoryItems(log.updates)}
-              </div>
-              {index < updateLogs.length - 1 && (
-                <Divider style={{ margin: "16px 0" }} />
-              )}
-            </div>
-          ),
-        }))}
-      />
+      {updateLogs.length > 0 && (
+        <div className={style.mainGrid}>
+          <VersionTimeline
+            logs={updateLogs}
+            selectedPanel={selectedPanel}
+            onSelectForecast={() => setSelectedPanel({ kind: "forecast" })}
+            onSelectVersion={(version) =>
+              setSelectedPanel({ kind: "version", version })
+            }
+          />
+          {selectedPanel.kind === "forecast" ? (
+            <ForecastPanel
+              nextItems={nextPreview}
+              longTermItems={longTermPreview}
+            />
+          ) : selectedLog ? (
+            <UpdateLogDetails
+              log={selectedLog}
+              categoryFilter={categoryFilter}
+              onCategoryFilterChange={setCategoryFilter}
+            />
+          ) : (
+            <Card className={style.detailsCard}>
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="暂无更新日志"
+                className={style.emptyState}
+              />
+            </Card>
+          )}
+        </div>
+      )}
     </Modal>
   );
 };

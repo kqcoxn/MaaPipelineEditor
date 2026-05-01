@@ -33,6 +33,33 @@ export interface UpdateLogItem {
 }
 
 /**
+ * 下期预告状态
+ */
+export type PreviewStatus =
+  | "designing"
+  | "developing"
+  | "validating"
+  | "planned";
+
+/**
+ * 下期预告内容
+ */
+export interface NextPreviewItem {
+  title: string;
+  description?: string;
+  status: PreviewStatus;
+}
+
+/**
+ * 长期预告内容
+ */
+export interface LongTermPreviewItem {
+  title: string;
+  description: string;
+  theme?: string;
+}
+
+/**
  * 置顶公告内容配置
  * 此部分内容将始终显示在更新日志顶部
  */
@@ -45,6 +72,22 @@ export const pinnedNotice: PinnedNotice = {
     "**本地一体编辑器 MaaPieplineExtremer🦕 现已上线！**自带全套运行库，本地服务自启自连，欢迎选用！详情可查阅 [本地一体包文档](https://mpe.codax.site/docs/guide/extremer/deploy.html)",
   ],
 };
+
+export const nextPreview: NextPreviewItem[] = [
+  {
+    title: "完善 FlowScope 调试入口与反馈",
+    description: "继续收敛调试入口、运行状态和异常提示，让常见排障路径更直观。",
+    status: "validating",
+  },
+];
+
+export const longTermPreview: LongTermPreviewItem[] = [
+  {
+    theme: "生态",
+    title: "VSCode 插件（MSE）接入",
+    description: "已 Iframe 形式嵌入 MSE，提供文件至节点级联动相关功能",
+  },
+];
 
 export const updateLogs: UpdateLogItem[] = [
   {
