@@ -40,9 +40,12 @@ export function selectNodeAttributionRecordSeeds(
 
   for (const event of traceEventsFromSummary(summary)) {
     const identity = resolveNodeAttributionIdentity(event, nodeById, nodeByRuntime);
-    if (!identity) continue;
+    const key = identity ? recordIdentityKey(event.runId, identity) : undefined;
+    if (shouldClosePendingRecognitionBefore(event)) {
+      closeStalePendingRecognitionRecords(activeRecords, key);
+    }
+    if (!identity || !key) continue;
 
-    const key = recordIdentityKey(event.runId, identity);
     const startsNewOccurrence =
       event.kind === "node" &&
       event.phase === "starting" &&
@@ -162,6 +165,25 @@ function canReusePendingRecognition(
   return record.events.every((event) => event.kind === "recognition");
 }
 
+function closeStalePendingRecognitionRecords(
+  activeRecords: Map<string, MutableNodeAttributionRecord>,
+  currentKey: string | undefined,
+): void {
+  for (const [key, record] of activeRecords) {
+    if (key === currentKey || !canReusePendingRecognition(record)) continue;
+    record.closed = true;
+    activeRecords.delete(key);
+  }
+}
+
+function shouldClosePendingRecognitionBefore(event: DebugEvent): boolean {
+  return (
+    event.kind === "recognition" ||
+    event.kind === "task" ||
+    event.kind === "session"
+  );
+}
+
 function mergeRecordIdentity(
   record: MutableNodeAttributionRecord,
   identity: Omit<
@@ -177,9 +199,6 @@ function mergeRecordIdentity(
 }
 
 function isRecordClosedByEvent(event: DebugEvent): boolean {
-  if (event.kind === "recognition") {
-    return event.phase === "failed" || readRecognitionHit(event) === false;
-  }
   if (event.kind !== "node") return false;
   return (
     event.phase === "succeeded" ||
@@ -207,13 +226,6 @@ function resolveRecordStatus(events: DebugEvent[]): DebugNodeExecutionStatus {
   if (hasTerminal || hasAction || hasHitRecognition) return "succeeded";
   if (hasRunning) return "running";
   return "visited";
-}
-
-function readRecognitionHit(event: DebugEvent): boolean | undefined {
-  const hit = dataBoolean(event.data, "hit");
-  if (hit !== undefined) return hit;
-  if (event.phase === "failed" || event.status === "failed") return false;
-  return undefined;
 }
 
 function recordIdentityKey(
