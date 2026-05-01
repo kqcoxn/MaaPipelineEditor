@@ -27,8 +27,21 @@ const runControlStyle: CSSProperties = {
 };
 
 const nodePickerStyle: CSSProperties = {
-  flex: "1 1 420px",
-  minWidth: 320,
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+  flex: "0 1 500px",
+  minWidth: 0,
+  flexWrap: "wrap",
+};
+
+const nodeSelectStyle: CSSProperties = {
+  width: 300,
+  maxWidth: "100%",
+};
+
+const includeAllNodesCheckboxStyle: CSSProperties = {
+  whiteSpace: "nowrap",
 };
 
 const runActionsStyle: CSSProperties = {
@@ -229,11 +242,11 @@ export function OverviewPanel({
       <DebugSection title="当前 / 最新运行">
         <div style={runSummaryStyle}>
           <div style={runControlStyle}>
-            <Space direction="vertical" size={8} style={nodePickerStyle}>
+            <div style={nodePickerStyle}>
               <Select
                 showSearch
                 value={selectedRunTargetNodeId}
-                style={{ width: "100%" }}
+                style={nodeSelectStyle}
                 placeholder="搜索并选择 Pipeline 节点"
                 filterOption={(input, option) =>
                   String(
@@ -262,13 +275,14 @@ export function OverviewPanel({
               />
               <Checkbox
                 checked={includeAllJsonRunTargets}
+                style={includeAllNodesCheckboxStyle}
                 onChange={(event) =>
                   setIncludeAllJsonRunTargets(event.target.checked)
                 }
               >
                 检索所有 JSON 节点
               </Checkbox>
-            </Space>
+            </div>
             <Space wrap style={runActionsStyle}>
               <Button
                 type="primary"
