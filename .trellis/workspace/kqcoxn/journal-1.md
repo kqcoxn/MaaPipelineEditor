@@ -38,3 +38,37 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 2: Debug AI summary reports
+
+**Date**: 2026-05-01
+**Task**: Debug AI summary reports
+**Branch**: `codex/debug-ai-summary`
+
+### Summary
+
+Implemented debug AI summary reporting, added overview summary and dedicated markdown report tab, auto-generation setting, and refined tab/order visibility.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f91eea2` | (see git log) |
+| `f27eb91` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
