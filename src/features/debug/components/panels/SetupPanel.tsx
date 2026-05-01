@@ -39,7 +39,7 @@ export function SetupPanel({
   return (
     <Space direction="vertical" size={14} style={{ width: "100%" }}>
       <Collapse
-        defaultActiveKey={["profile", "resources"]}
+        defaultActiveKey={[]}
         items={[
           {
             key: "profile",
@@ -183,9 +183,6 @@ function ProfileSection({
               onChange={setAutoGenerateAiSummary}
             />
             <Text>运行结束后自动生成 AI 总结</Text>
-            <Tag color={autoGenerateAiSummary ? "green" : "default"}>
-              默认关闭
-            </Tag>
           </Space>
           <Text type="secondary">
             关闭时只会在中控台或 AI 总结面板手动生成；开启后不会阻塞调试运行完成。
@@ -200,9 +197,6 @@ function ProfileSection({
               onChange={setAutoCloseOnRunStart}
             />
             <Text>调试开始时自动关闭面板</Text>
-            <Tag color={autoCloseOnRunStart ? "green" : "default"}>
-              默认开启
-            </Tag>
           </Space>
           <Space wrap>
             <Switch
@@ -210,9 +204,6 @@ function ProfileSection({
               onChange={setAutoOpenOnRunFinish}
             />
             <Text>调试结束后自动打开面板</Text>
-            <Tag color={autoOpenOnRunFinish ? "green" : "default"}>
-              默认开启
-            </Tag>
           </Space>
           <Space align="center" wrap>
             <Text>结束后打开到</Text>
@@ -222,7 +213,7 @@ function ProfileSection({
               onChange={setAutoOpenPanelOnRunFinish}
               options={[
                 { value: "last-closed", label: "上次关闭时所在页" },
-                { value: "overview", label: "概览页" },
+                { value: "overview", label: "中控台" },
                 { value: "node-execution", label: "节点页" },
               ]}
             />

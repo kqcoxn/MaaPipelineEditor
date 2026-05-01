@@ -92,6 +92,11 @@ function statusFromEvent(event: DebugEvent): string | undefined {
   return event.status ?? event.phase;
 }
 
+function sessionStatusFromEvent(event: DebugEvent): string | undefined {
+  if (event.kind !== "session") return undefined;
+  return statusFromEvent(event);
+}
+
 function modeFromEvent(event: DebugEvent): DebugRunMode | undefined {
   return typeof event.data?.mode === "string"
     ? (event.data.mode as DebugRunMode)
@@ -122,7 +127,7 @@ function buildDisplaySessions(events: DebugEvent[]): DebugTraceDisplaySession[] 
     const id = displaySessionIdForEvent(event);
     const current = sessions.get(id);
     const mode = modeFromEvent(event);
-    const status = statusFromEvent(event);
+    const sessionStatus = sessionStatusFromEvent(event);
 
     if (!current) {
       sessions.set(id, {
@@ -130,7 +135,7 @@ function buildDisplaySessions(events: DebugEvent[]): DebugTraceDisplaySession[] 
         sessionId: event.sessionId,
         runId: event.runId,
         mode,
-        status,
+        status: sessionStatus,
         startedAt: event.timestamp,
         completedAt: isTerminalSessionEvent(event) ? event.timestamp : undefined,
         firstSeq: event.seq,
@@ -143,7 +148,7 @@ function buildDisplaySessions(events: DebugEvent[]): DebugTraceDisplaySession[] 
     current.eventCount += 1;
     current.lastSeq = event.seq;
     if (!current.mode && mode) current.mode = mode;
-    if (status) current.status = status;
+    if (sessionStatus) current.status = sessionStatus;
     if (isTerminalSessionEvent(event)) current.completedAt = event.timestamp;
   }
 
