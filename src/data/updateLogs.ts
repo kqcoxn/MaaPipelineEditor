@@ -112,7 +112,7 @@ export const updateLogs: UpdateLogItem[] = [
     type: "major",
     updates: {
       features: [
-        "🎚️ 全新 MPE FlowScope 调试模块，支持可视入口/单节点调试/单识别运行调试/双模式节点时间线/日志级事件线/性能分析/图像汇总/交互式target/过滤检索/AI总结等功能",
+        "🎚️ 全新 MPE FlowScope 调试模块，支持可视入口、单节点调试、单识别运行调试、双模式节点时间线、日志级事件线、性能分析、图像汇总、交互式target、过滤检索、AI总结等功能",
       ],
       perfs: [
         "连接 LB 后，从本地导入行为改为唤起本地文件面板",

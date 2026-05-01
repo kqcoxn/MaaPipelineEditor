@@ -2,11 +2,11 @@ package router
 
 import (
 	"strings"
+	"sync"
 
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/errors"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/server"
-	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/utils"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/pkg/models"
 )
 
@@ -27,7 +27,9 @@ type Handler interface {
 
 // 路由分发器
 type Router struct {
-	handlers map[string]Handler // key: 路由前缀
+	handlers                    map[string]Handler // key: 路由前缀
+	protocolMismatchHandler     func(clientVersion string)
+	protocolMismatchHandlerOnce sync.Once
 }
 
 // 创建路由分发器
@@ -44,6 +46,11 @@ func (r *Router) RegisterHandler(handler Handler) {
 		r.handlers[prefix] = handler
 		logger.Debug("Router", "注册路由处理器: %s", prefix)
 	}
+}
+
+// 设置协议版本不匹配时的回调
+func (r *Router) SetProtocolMismatchHandler(handler func(clientVersion string)) {
+	r.protocolMismatchHandler = handler
 }
 
 // 路由分发
@@ -121,9 +128,12 @@ func (r *Router) handleHandshake(msg models.Message, conn *server.Connection) {
 	if clientVersion != server.ProtocolVersion {
 		message := "协议版本不匹配，前端需求: " + clientVersion + "，当前本地服务协议: " + server.ProtocolVersion + "，请按后端提示更新"
 		logger.Warn("Router", "%s", message)
-		logger.Info("Router", "建议更新方式:")
-		utils.PrintInstallCommand()
 		r.sendHandshakeResponse(conn, false, message)
+		if r.protocolMismatchHandler != nil {
+			r.protocolMismatchHandlerOnce.Do(func() {
+				r.protocolMismatchHandler(clientVersion)
+			})
+		}
 		return
 	}
 
