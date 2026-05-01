@@ -71,31 +71,40 @@ export const pinnedNotice: PinnedNotice = {
   ],
 };
 
-export const nextPreview: NextPreviewItem[] = [
-  {
-    title: "完善 FlowScope 调试入口与反馈",
-    description: "继续收敛调试入口、运行状态和异常提示，让常见排障路径更直观。",
-    status: "validating",
-  },
-];
-
 export const longTermPreview: LongTermPreviewItem[] = [
   {
     theme: "生态",
     title: "VSCode 插件（MSE）接入",
-    description: "已 Iframe 形式嵌入 MSE，提供文件至节点级联动相关功能",
+    description: "以 Iframe 形式嵌入 MSE，提供文件至节点级联动相关功能",
+  },
+];
+
+export const nextPreview: NextPreviewItem[] = [
+  {
+    status: "developing",
+    title: "调试模块完善与问题修复",
+    description:
+      "推进调试模块的功能完善与稳定性提升，修复已知问题，优化用户体验。",
+  },
+  {
+    status: "validating",
+    title: "集成日志分析模块，支持",
+    description: "继续收敛调试入口、运行状态和异常提示，让常见排障路径更直观。",
   },
 ];
 
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "1.5.0",
-    date: "2026-5-1",
+    date: "2026-5-2",
     type: "major",
     updates: {
-      features: ["🎚️ 全新 MPE FlowScope 调试模块，支持"],
+      features: [
+        "🎚️ 全新 MPE FlowScope 调试模块，支持可视入口/单节点调试/单识别运行调试/双模式节点时间线/日志级事件线/性能分析/图像汇总/交互式target/过滤检索/AI总结等功能",
+      ],
       perfs: [
         "连接 LB 后，从本地导入行为改为唤起本地文件面板",
+        "优化日志模块 UI/UX 体验",
         "拆分顶部工具栏，优化页面视觉占用",
       ],
       fixes: [

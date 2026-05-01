@@ -1,5 +1,6 @@
 import { message } from "antd";
 import type { DebugProtocolClient } from "../../services/protocols/DebugProtocolClient";
+import { getDebugAgentProfileKey } from "./agentProfile";
 import type { DebugAgentProfile } from "./types";
 
 interface ScreenshotActionContext {
@@ -65,7 +66,7 @@ export function requestResourcePreflightAction({
   setResourcePreflightChecking,
   setResourcePreflightError,
 }: ResourcePreflightActionContext): void {
-  if (!connected) {
+  if (!connected || !client.isConnected()) {
     message.error("LocalBridge 未连接");
     return;
   }
@@ -94,14 +95,16 @@ export function testAgentAction({
   agent,
   client,
   connected,
+  resourcePaths,
   setTestingAgentIds,
 }: {
   agent: DebugAgentProfile;
   client: DebugProtocolClient;
   connected: boolean;
+  resourcePaths: string[];
   setTestingAgentIds: TestingAgentIdsSetter;
 }): void {
-  if (!connected) {
+  if (!connected || !client.isConnected()) {
     message.error("LocalBridge 未连接");
     return;
   }
@@ -114,7 +117,11 @@ export function testAgentAction({
     message.warning("请输入代理标识符（Identifier）");
     return;
   }
-  const agentId = agent.id.trim() || "agent";
+  if (resourcePaths.length === 0) {
+    message.warning("请先配置资源路径或等待 LocalBridge 扫描资源包");
+    return;
+  }
+  const agentId = getDebugAgentProfileKey(agent) ?? "agent";
   setTestingAgentIds((current) => new Set(current).add(agentId));
   const sent = client.testAgent({
     agent: {
@@ -122,6 +129,7 @@ export function testAgentAction({
       id: agentId,
       enabled: true,
     },
+    resourcePaths,
   });
   if (!sent) {
     setTestingAgentIds((current) => {
