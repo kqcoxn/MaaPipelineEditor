@@ -493,17 +493,39 @@ function resolveRecordOutcome(
   recognitionAttempts: DebugNodeExecutionAttempt[],
   actionAttempts: DebugNodeExecutionAttempt[],
 ): { status: DebugNodeExecutionStatus; hasFailure: boolean } {
-  const attempts = [...recognitionAttempts, ...actionAttempts];
-  const hasSuccess = attempts.some(isSuccessfulDebugNodeExecutionAttempt);
-  const hasAttemptFailure = attempts.some(isFailedDebugNodeExecutionAttempt);
+  const hasRecognitionSuccess = recognitionAttempts.some(
+    isSuccessfulDebugNodeExecutionAttempt,
+  );
+  const hasRecognitionFailure = recognitionAttempts.some(
+    isFailedDebugNodeExecutionAttempt,
+  );
+  const hasActionSuccess = actionAttempts.some(
+    isSuccessfulDebugNodeExecutionAttempt,
+  );
+  const hasActionFailure = actionAttempts.some(
+    isFailedDebugNodeExecutionAttempt,
+  );
 
-  if (hasSuccess) {
+  if (hasActionFailure) {
     return {
-      status: "succeeded",
-      hasFailure: hasAttemptFailure,
+      status: "failed",
+      hasFailure: false,
     };
   }
-  if (hasAttemptFailure) {
+
+  if (hasActionSuccess) {
+    return {
+      status: "succeeded",
+      hasFailure: hasRecognitionFailure,
+    };
+  }
+  if (hasRecognitionSuccess) {
+    return {
+      status: "succeeded",
+      hasFailure: hasRecognitionFailure,
+    };
+  }
+  if (hasRecognitionFailure) {
     return {
       status: "failed",
       hasFailure: false,
