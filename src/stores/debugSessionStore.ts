@@ -9,6 +9,7 @@ import type {
   DebugRunStopRequested,
   DebugSessionSnapshot,
 } from "../features/debug/types";
+import { useDebugModalMemoryStore } from "./debugModalMemoryStore";
 
 type CapabilityStatus = "idle" | "loading" | "ready" | "error";
 type ResourcePreflightStatus = "idle" | "checking" | "ready" | "error";
@@ -70,10 +71,17 @@ export const useDebugSessionStore = create<DebugSessionState>((set) => ({
   openModal: (panel) =>
     set((state) => ({
       modalOpen: true,
-      activePanel: panel ?? state.activePanel,
+      activePanel:
+        panel ??
+        useDebugModalMemoryStore.getState().lastPanel ??
+        state.activePanel,
     })),
 
-  closeModal: () => set({ modalOpen: false }),
+  closeModal: () =>
+    set((state) => {
+      useDebugModalMemoryStore.getState().setLastPanel(state.activePanel);
+      return { modalOpen: false };
+    }),
 
   setActivePanel: (panel) => set({ activePanel: panel }),
 

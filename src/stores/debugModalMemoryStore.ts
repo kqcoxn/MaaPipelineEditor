@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type {
+  DebugAutoOpenPanelOnRunFinish,
   DebugExecutionAttributionMode,
   DebugExecutionDetailMode,
   DebugNodeExecutionArtifactFilter,
@@ -19,6 +20,9 @@ interface DebugModalMemorySnapshot {
   lastRunMode: DebugRunMode;
   lastEntryNodeId?: string;
   autoGenerateAiSummary: boolean;
+  autoCloseOnRunStart: boolean;
+  autoOpenOnRunFinish: boolean;
+  autoOpenPanelOnRunFinish: DebugAutoOpenPanelOnRunFinish;
   nodeExecutionFilters: DebugNodeExecutionFilters;
   nodeExecutionAttributionMode: DebugExecutionAttributionMode;
   nodeExecutionDetailMode: DebugExecutionDetailMode;
@@ -29,6 +33,11 @@ interface DebugModalMemoryState extends DebugModalMemorySnapshot {
   setLastRunMode: (runMode: DebugRunMode) => void;
   setLastEntryNodeId: (nodeId?: string) => void;
   setAutoGenerateAiSummary: (enabled: boolean) => void;
+  setAutoCloseOnRunStart: (enabled: boolean) => void;
+  setAutoOpenOnRunFinish: (enabled: boolean) => void;
+  setAutoOpenPanelOnRunFinish: (
+    mode: DebugAutoOpenPanelOnRunFinish,
+  ) => void;
   setNodeExecutionFilters: (filters: DebugNodeExecutionFilters) => void;
   setNodeExecutionAttributionMode: (
     mode: DebugExecutionAttributionMode,
@@ -36,18 +45,36 @@ interface DebugModalMemoryState extends DebugModalMemorySnapshot {
   setNodeExecutionDetailMode: (mode: DebugExecutionDetailMode) => void;
 }
 
-type PersistedDebugModalMemorySnapshot = Omit<
-  DebugModalMemorySnapshot,
-  "lastPanel"
->;
+type PersistedDebugModalMemorySnapshot = DebugModalMemorySnapshot;
 
 const defaultMemory: DebugModalMemorySnapshot = {
   lastPanel: "overview",
   lastRunMode: "run-from-node",
   autoGenerateAiSummary: false,
+  autoCloseOnRunStart: true,
+  autoOpenOnRunFinish: true,
+  autoOpenPanelOnRunFinish: "last-closed",
   nodeExecutionFilters: DEFAULT_DEBUG_NODE_EXECUTION_FILTERS,
   nodeExecutionAttributionMode: "node",
   nodeExecutionDetailMode: "compact",
+};
+
+const validPanels = new Set<DebugModalPanel>([
+  "overview",
+  "ai-summary",
+  "setup",
+  "timeline",
+  "node-execution",
+  "performance",
+  "images",
+  "diagnostics",
+]);
+const panelAliases: Partial<Record<string, DebugModalPanel>> = {
+  profile: "setup",
+  resources: "setup",
+  controller: "setup",
+  agent: "setup",
+  logs: "diagnostics",
 };
 
 const validNodeExecutionStatusFilters = new Set<DebugNodeExecutionStatusFilter>(
@@ -85,6 +112,11 @@ const validNodeExecutionDetailModes = new Set<DebugExecutionDetailMode>([
   "compact",
   "detailed",
 ]);
+const validAutoOpenPanels = new Set<DebugAutoOpenPanelOnRunFinish>([
+  "last-closed",
+  "overview",
+  "node-execution",
+]);
 const validRunModes = new Set<DebugRunMode>([
   "run-from-node",
   "single-node-run",
@@ -92,6 +124,16 @@ const validRunModes = new Set<DebugRunMode>([
   "action-only",
   "replay",
 ]);
+
+function normalizePanel(value: unknown): DebugModalPanel {
+  if (validPanels.has(value as DebugModalPanel)) {
+    return value as DebugModalPanel;
+  }
+  if (typeof value === "string" && panelAliases[value]) {
+    return panelAliases[value]!;
+  }
+  return defaultMemory.lastPanel;
+}
 
 function normalizeNodeExecutionFilters(
   value: unknown,
@@ -157,16 +199,35 @@ function normalizeRunMode(value: unknown): DebugRunMode {
     : defaultMemory.lastRunMode;
 }
 
+function normalizeAutoOpenPanelOnRunFinish(
+  value: unknown,
+): DebugAutoOpenPanelOnRunFinish {
+  return validAutoOpenPanels.has(value as DebugAutoOpenPanelOnRunFinish)
+    ? (value as DebugAutoOpenPanelOnRunFinish)
+    : defaultMemory.autoOpenPanelOnRunFinish;
+}
+
 function readMemory(): DebugModalMemorySnapshot {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultMemory;
     const parsed = JSON.parse(raw) as Partial<PersistedDebugModalMemorySnapshot>;
     return {
-      lastPanel: defaultMemory.lastPanel,
+      lastPanel: normalizePanel(parsed.lastPanel),
       lastRunMode: normalizeRunMode(parsed.lastRunMode),
       lastEntryNodeId: parsed.lastEntryNodeId,
       autoGenerateAiSummary: parsed.autoGenerateAiSummary === true,
+      autoCloseOnRunStart:
+        parsed.autoCloseOnRunStart !== undefined
+          ? parsed.autoCloseOnRunStart === true
+          : defaultMemory.autoCloseOnRunStart,
+      autoOpenOnRunFinish:
+        parsed.autoOpenOnRunFinish !== undefined
+          ? parsed.autoOpenOnRunFinish === true
+          : defaultMemory.autoOpenOnRunFinish,
+      autoOpenPanelOnRunFinish: normalizeAutoOpenPanelOnRunFinish(
+        parsed.autoOpenPanelOnRunFinish,
+      ),
       nodeExecutionFilters: normalizeNodeExecutionFilters(
         parsed.nodeExecutionFilters,
       ),
@@ -185,15 +246,7 @@ function readMemory(): DebugModalMemorySnapshot {
 
 function writeMemory(snapshot: DebugModalMemorySnapshot): void {
   try {
-    const persisted: PersistedDebugModalMemorySnapshot = {
-      lastRunMode: snapshot.lastRunMode,
-      lastEntryNodeId: snapshot.lastEntryNodeId,
-      autoGenerateAiSummary: snapshot.autoGenerateAiSummary,
-      nodeExecutionFilters: snapshot.nodeExecutionFilters,
-      nodeExecutionAttributionMode: snapshot.nodeExecutionAttributionMode,
-      nodeExecutionDetailMode: snapshot.nodeExecutionDetailMode,
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
   } catch (error) {
     console.warn("[debugModalMemoryStore] Failed to write memory:", error);
   }
@@ -204,6 +257,8 @@ export const useDebugModalMemoryStore = create<DebugModalMemoryState>(
     ...readMemory(),
 
     setLastPanel: (panel) => {
+      const next = { ...get(), lastPanel: panel };
+      writeMemory(next);
       set({ lastPanel: panel });
     },
 
@@ -223,6 +278,24 @@ export const useDebugModalMemoryStore = create<DebugModalMemoryState>(
       const next = { ...get(), autoGenerateAiSummary };
       writeMemory(next);
       set({ autoGenerateAiSummary });
+    },
+
+    setAutoCloseOnRunStart: (autoCloseOnRunStart) => {
+      const next = { ...get(), autoCloseOnRunStart };
+      writeMemory(next);
+      set({ autoCloseOnRunStart });
+    },
+
+    setAutoOpenOnRunFinish: (autoOpenOnRunFinish) => {
+      const next = { ...get(), autoOpenOnRunFinish };
+      writeMemory(next);
+      set({ autoOpenOnRunFinish });
+    },
+
+    setAutoOpenPanelOnRunFinish: (autoOpenPanelOnRunFinish) => {
+      const next = { ...get(), autoOpenPanelOnRunFinish };
+      writeMemory(next);
+      set({ autoOpenPanelOnRunFinish });
     },
 
     setNodeExecutionFilters: (nodeExecutionFilters) => {

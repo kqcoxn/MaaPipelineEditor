@@ -45,19 +45,19 @@ const panels: PanelItem[] = [
     id: "node-execution",
     label: "节点线",
     icon: <NodeIndexOutlined />,
-    description: "按 MPE 节点聚合已选展示会话，查看执行路径和节点详情。",
+    description: "按 Pipeline 节点聚合已选展示会话，查看执行路径和节点详情。",
   },
   {
     id: "timeline",
     label: "事件线",
     icon: <BranchesOutlined />,
-    description: "按后端 seq 查看已选展示会话的事件顺序和详情。",
+    description: "按 mfw seq 查看已选展示会话的事件顺序和详情。",
   },
   {
     id: "ai-summary",
     label: "AI 总结",
     icon: <FileTextOutlined />,
-    description: "查看 AI 生成的调试摘要、详细报告和可复制上下文。",
+    description: "查看 AI 生成的调试摘要、详细报告和整理后的上下文。",
   },
   {
     id: "performance",
@@ -69,7 +69,7 @@ const panels: PanelItem[] = [
     id: "images",
     label: "图像",
     icon: <PictureOutlined />,
-    description: "查看图像产物和产物预览。",
+    description: "查看图像列表和产物预览。",
   },
   {
     id: "diagnostics",
@@ -79,7 +79,7 @@ const panels: PanelItem[] = [
   },
   {
     id: "setup",
-    label: "运行配置",
+    label: "调试配置",
     icon: <SettingOutlined />,
     description: "配置资源路径、控制器、截图和 Agent，并写入本地调试配置。",
   },

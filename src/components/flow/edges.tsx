@@ -29,7 +29,6 @@ import {
   buildNodeBoundsList,
   DEFAULT_AVOIDANCE_CONFIG,
 } from "../../core/avoidanceUtils";
-import { useDebugOverlayStore } from "../../stores/debugOverlayStore";
 
 // 判断位置是否为水平方向
 function isHorizontalPosition(position: string): boolean {
@@ -597,39 +596,6 @@ function MarkedEdge(props: EdgeProps) {
     props.targetHandleId,
   ]);
 
-  const debugEdgeState = useDebugOverlayStore(
-    useShallow((state) => ({
-      executed: state.executedEdgeIds.has(props.id),
-      candidate: state.candidateEdgeIds.has(props.id),
-      executionPath: state.executionPathEdgeIds.has(props.id),
-      executionCandidate: state.executionCandidateEdgeIds.has(props.id),
-      executionAttempt: state.selectedExecutionAttemptEdgeIds.has(props.id),
-    })),
-  );
-
-  const debugEdgeClass = useMemo(
-    () =>
-      classNames(edgeClass, {
-        [style["debug-edge-executed"]]:
-          debugEdgeState.executed || debugEdgeState.executionPath,
-        [style["debug-edge-candidate"]]:
-          debugEdgeState.candidate || debugEdgeState.executionCandidate,
-        [style["debug-edge-execution-path"]]: debugEdgeState.executionPath,
-        [style["debug-edge-execution-candidate"]]:
-          debugEdgeState.executionCandidate,
-        [style["debug-edge-execution-attempt"]]:
-          debugEdgeState.executionAttempt,
-      }),
-    [
-      edgeClass,
-      debugEdgeState.candidate,
-      debugEdgeState.executed,
-      debugEdgeState.executionAttempt,
-      debugEdgeState.executionCandidate,
-      debugEdgeState.executionPath,
-    ],
-  );
-
   const labelClass = useMemo(
     () =>
       classNames({
@@ -677,7 +643,7 @@ function MarkedEdge(props: EdgeProps) {
 
   return (
     <g style={opacityStyle}>
-      <BaseEdge className={debugEdgeClass} id={props.id} path={edgePath} />
+      <BaseEdge className={edgeClass} id={props.id} path={edgePath} />
       <EdgeLabelRenderer>
         {/* 可拖拽的控制点 */}
         {showEdgeControlPoint && edgePathMode === "bezier" && (
