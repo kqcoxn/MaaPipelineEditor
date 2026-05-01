@@ -125,7 +125,6 @@ export function OverviewPanel({
     lastRunMode,
     events,
     liveSummary,
-    replayStatus,
     performanceSummary,
     selectedPerformanceSummaries,
     displaySessions,
@@ -374,12 +373,7 @@ export function OverviewPanel({
               value={summary.currentRuntimeName ?? "-"}
               wide
             />
-            <MetaItem
-              label="追踪"
-              value={
-                replayStatus?.active ? `回放 #${replayStatus.cursorSeq}` : "实时"
-              }
-            />
+            <MetaItem label="追踪" value="实时" />
             <MetaItem label="已访问" value={summary.visitedNodeIds.length} />
             <MetaItem label="失败" value={summary.failedNodeIds.length} />
           </div>

@@ -51,7 +51,7 @@ const panels: PanelItem[] = [
     id: "timeline",
     label: "事件线",
     icon: <BranchesOutlined />,
-    description: "按后端 seq 查看已选展示会话，并在当前会话内定位或回放事件。",
+    description: "按后端 seq 查看已选展示会话的事件顺序和详情。",
   },
   {
     id: "ai-summary",
