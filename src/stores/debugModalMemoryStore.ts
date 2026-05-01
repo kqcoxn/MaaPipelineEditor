@@ -28,6 +28,11 @@ interface DebugModalMemorySnapshot {
   nodeExecutionDetailMode: DebugExecutionDetailMode;
 }
 
+type PersistedDebugModalMemorySnapshot = Omit<
+  DebugModalMemorySnapshot,
+  "lastPanel"
+>;
+
 interface DebugModalMemoryState extends DebugModalMemorySnapshot {
   setLastPanel: (panel: DebugModalPanel) => void;
   setLastRunMode: (runMode: DebugRunMode) => void;
@@ -45,8 +50,6 @@ interface DebugModalMemoryState extends DebugModalMemorySnapshot {
   setNodeExecutionDetailMode: (mode: DebugExecutionDetailMode) => void;
 }
 
-type PersistedDebugModalMemorySnapshot = DebugModalMemorySnapshot;
-
 const defaultMemory: DebugModalMemorySnapshot = {
   lastPanel: "overview",
   lastRunMode: "run-from-node",
@@ -57,24 +60,6 @@ const defaultMemory: DebugModalMemorySnapshot = {
   nodeExecutionFilters: DEFAULT_DEBUG_NODE_EXECUTION_FILTERS,
   nodeExecutionAttributionMode: "node",
   nodeExecutionDetailMode: "compact",
-};
-
-const validPanels = new Set<DebugModalPanel>([
-  "overview",
-  "ai-summary",
-  "setup",
-  "timeline",
-  "node-execution",
-  "performance",
-  "images",
-  "diagnostics",
-]);
-const panelAliases: Partial<Record<string, DebugModalPanel>> = {
-  profile: "setup",
-  resources: "setup",
-  controller: "setup",
-  agent: "setup",
-  logs: "diagnostics",
 };
 
 const validNodeExecutionStatusFilters = new Set<DebugNodeExecutionStatusFilter>(
@@ -124,16 +109,6 @@ const validRunModes = new Set<DebugRunMode>([
   "action-only",
   "replay",
 ]);
-
-function normalizePanel(value: unknown): DebugModalPanel {
-  if (validPanels.has(value as DebugModalPanel)) {
-    return value as DebugModalPanel;
-  }
-  if (typeof value === "string" && panelAliases[value]) {
-    return panelAliases[value]!;
-  }
-  return defaultMemory.lastPanel;
-}
 
 function normalizeNodeExecutionFilters(
   value: unknown,
@@ -213,7 +188,9 @@ function readMemory(): DebugModalMemorySnapshot {
     if (!raw) return defaultMemory;
     const parsed = JSON.parse(raw) as Partial<PersistedDebugModalMemorySnapshot>;
     return {
-      lastPanel: normalizePanel(parsed.lastPanel),
+      // `lastPanel` only lives for the current page lifecycle. After refresh,
+      // the modal should always start from overview again.
+      lastPanel: defaultMemory.lastPanel,
       lastRunMode: normalizeRunMode(parsed.lastRunMode),
       lastEntryNodeId: parsed.lastEntryNodeId,
       autoGenerateAiSummary: parsed.autoGenerateAiSummary === true,
@@ -246,7 +223,18 @@ function readMemory(): DebugModalMemorySnapshot {
 
 function writeMemory(snapshot: DebugModalMemorySnapshot): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+    const persisted: PersistedDebugModalMemorySnapshot = {
+      lastRunMode: snapshot.lastRunMode,
+      lastEntryNodeId: snapshot.lastEntryNodeId,
+      autoGenerateAiSummary: snapshot.autoGenerateAiSummary,
+      autoCloseOnRunStart: snapshot.autoCloseOnRunStart,
+      autoOpenOnRunFinish: snapshot.autoOpenOnRunFinish,
+      autoOpenPanelOnRunFinish: snapshot.autoOpenPanelOnRunFinish,
+      nodeExecutionFilters: snapshot.nodeExecutionFilters,
+      nodeExecutionAttributionMode: snapshot.nodeExecutionAttributionMode,
+      nodeExecutionDetailMode: snapshot.nodeExecutionDetailMode,
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
   } catch (error) {
     console.warn("[debugModalMemoryStore] Failed to write memory:", error);
   }

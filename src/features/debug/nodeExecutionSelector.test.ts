@@ -683,6 +683,44 @@ describe("selectDebugNodeExecutionRecords", () => {
     expect(failedRecords).toHaveLength(0);
   });
 
+  it("treats action failure as node failure even after successful recognition", () => {
+    const summary = reduceDebugTrace({
+      events: [
+        event(1, "node", "starting", node("node-a", "A")),
+        event(2, "recognition", "failed", node("node-a", "A"), {
+          id: "miss",
+          hit: false,
+        }),
+        event(3, "recognition", "succeeded", node("node-a", "A"), {
+          id: "hit",
+          hit: true,
+        }),
+        event(4, "action", "failed", node("node-a", "A"), {
+          id: "act-fail",
+          success: false,
+        }),
+        event(5, "node", "failed", node("node-a", "A")),
+      ],
+    });
+
+    const [record] = selectDebugNodeExecutionRecords(
+      summary,
+      resolverNodes,
+      { status: "all" },
+    );
+    const failedRecords = selectDebugNodeExecutionRecords(
+      summary,
+      resolverNodes,
+      { status: "failed" },
+    );
+
+    expect(record).toMatchObject({
+      status: "failed",
+      hasFailure: false,
+    });
+    expect(failedRecords).toHaveLength(1);
+  });
+
   it("treats all-miss attempts as failed without the mixed failure hint", () => {
     const summary = reduceDebugTrace({
       events: [
