@@ -1,0 +1,24 @@
+{
+	"files": [
+		{
+			"path": "src/data/updateLogs.ts",
+			"bookmarks": [
+				{
+					"line": 48,
+					"column": 16,
+					"label": ""
+				}
+			]
+		},
+		{
+			"path": "src/stores/configStore.ts",
+			"bookmarks": [
+				{
+					"line": 5,
+					"column": 15,
+					"label": ""
+				}
+			]
+		}
+	]
+}

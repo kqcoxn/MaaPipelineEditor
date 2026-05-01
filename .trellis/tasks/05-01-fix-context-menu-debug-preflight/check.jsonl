@@ -1,4 +1,0 @@
-{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend verification context"}
-{"file": ".trellis/spec/frontend/state-management.md", "reason": "Debug resource preflight/readiness verification"}
-{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend quality verification"}
-{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Type safety verification"}
