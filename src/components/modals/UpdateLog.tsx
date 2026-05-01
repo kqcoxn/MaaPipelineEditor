@@ -15,9 +15,8 @@ import {
   nextPreview,
   pinnedNotice,
   updateLogs,
-  type LongTermPreviewItem,
-  type NextPreviewItem,
-  type PreviewStatus,
+  type ForecastItem,
+  type ForecastSection,
   type UpdateCategory,
   type UpdateLogItem,
 } from "../../data/updateLogs";
@@ -68,11 +67,17 @@ const getUpdateItemCount = (updates: UpdateCategory) =>
     0
   );
 
-const statusConfig: Record<PreviewStatus, { color: string; label: string }> = {
-  designing: { color: "blue", label: "设计中" },
-  developing: { color: "green", label: "开发中" },
-  validating: { color: "orange", label: "待验证" },
-  planned: { color: "default", label: "计划中" },
+const previewTagColors = ["gold", "cyan", "green", "purple"] as const;
+
+const getStablePreviewTagColor = (item: ForecastItem, index: number) => {
+  const seed = `${item.theme ?? ""}|${item.title}|${item.description ?? ""}|${index}`;
+  let hash = 0;
+
+  for (let i = 0; i < seed.length; i += 1) {
+    hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+  }
+
+  return previewTagColors[hash % previewTagColors.length];
 };
 
 const parseMarkdown = (text: string): (string | React.ReactElement)[] => {
@@ -285,24 +290,29 @@ const UpdateLogDetails = ({
 };
 
 interface ForecastPanelProps {
-  nextItems: NextPreviewItem[];
-  longTermItems: LongTermPreviewItem[];
+  nextSection: ForecastSection;
+  longTermSection: ForecastSection;
 }
 
-const ForecastPanel = ({ nextItems, longTermItems }: ForecastPanelProps) => (
+const ForecastPanel = ({
+  nextSection,
+  longTermSection,
+}: ForecastPanelProps) => (
   <Card className={style.detailsCard}>
     <div className={style.forecastGrid}>
-      <Card title="下期预告" className={style.forecastCard}>
+      <Card title={nextSection.title} className={style.forecastCard}>
         <Text type="secondary" className={style.forecastNotice}>
-          预告内容会随开发进度调整，不代表最终发布时间承诺。
+          {nextSection.notice}
         </Text>
         <div className={style.previewList}>
-          {nextItems.map((item) => (
-            <div key={item.title} className={style.previewItem}>
+          {nextSection.items.map((item, index) => (
+            <div key={`${item.theme ?? "next"}-${item.title}`} className={style.previewItem}>
               <div className={style.previewItemHeader}>
-                <Tag color={statusConfig[item.status].color}>
-                  {statusConfig[item.status].label}
-                </Tag>
+                {item.theme && (
+                  <Tag color={getStablePreviewTagColor(item, index)}>
+                    {item.theme}
+                  </Tag>
+                )}
                 <Text strong>{item.title}</Text>
               </div>
               {item.description && (
@@ -315,15 +325,19 @@ const ForecastPanel = ({ nextItems, longTermItems }: ForecastPanelProps) => (
         </div>
       </Card>
 
-      <Card title="长期预告" className={style.forecastCard}>
+      <Card title={longTermSection.title} className={style.forecastCard}>
         <Text type="secondary" className={style.forecastNotice}>
-          不绑定具体版本，仅表达方向性规划。
+          {longTermSection.notice}
         </Text>
         <div className={style.previewList}>
-          {longTermItems.map((item) => (
-            <div key={item.title} className={style.previewItem}>
+          {longTermSection.items.map((item, index) => (
+            <div key={`${item.theme ?? "long"}-${item.title}`} className={style.previewItem}>
               <div className={style.previewItemHeader}>
-                {item.theme && <Tag>{item.theme}</Tag>}
+                {item.theme && (
+                  <Tag color={getStablePreviewTagColor(item, index)}>
+                    {item.theme}
+                  </Tag>
+                )}
                 <Text strong>{item.title}</Text>
               </div>
               <Text type="secondary" className={style.previewDescription}>
@@ -413,8 +427,8 @@ const UpdateLog = ({ open, onClose }: UpdateLogProps) => {
           />
           {selectedPanel.kind === "forecast" ? (
             <ForecastPanel
-              nextItems={nextPreview}
-              longTermItems={longTermPreview}
+              nextSection={nextPreview}
+              longTermSection={longTermPreview}
             />
           ) : selectedLog ? (
             <UpdateLogDetails

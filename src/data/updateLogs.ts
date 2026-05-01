@@ -31,30 +31,18 @@ export interface UpdateLogItem {
 }
 
 /**
- * 下期预告状态
+ * 预告内容
  */
-export type PreviewStatus =
-  | "designing"
-  | "developing"
-  | "validating"
-  | "planned";
-
-/**
- * 下期预告内容
- */
-export interface NextPreviewItem {
+export interface ForecastItem {
+  theme?: string;
   title: string;
   description?: string;
-  status: PreviewStatus;
 }
 
-/**
- * 长期预告内容
- */
-export interface LongTermPreviewItem {
+export interface ForecastSection {
+  notice: string;
   title: string;
-  description: string;
-  theme?: string;
+  items: ForecastItem[];
 }
 
 /**
@@ -71,32 +59,40 @@ export const pinnedNotice: PinnedNotice = {
   ],
 };
 
-export const longTermPreview: LongTermPreviewItem[] = [
-  {
-    theme: "生态",
-    title: "VSCode 插件（MSE）接入",
-    description: "以 Iframe 形式嵌入 MSE，提供文件至节点级联动相关功能",
-  },
-  {
-    theme: "维护",
-    title: "功能优化与问题修复",
-    description: "长期细节优化与即时修复 bug，随最新版本发布",
-  },
-];
+export const nextPreview: ForecastSection = {
+  title: "下期预告",
+  notice: "预告内容会随开发进度调整，不代表最终发布时间承诺。",
+  items: [
+    {
+      theme: "FlowScope",
+      title: "调试模块完善与问题修复",
+      description:
+        "推进调试模块的功能完善与稳定性提升，修复已知问题，优化用户体验。",
+    },
+    {
+      title: "集成日志分析模块",
+      description:
+        "继续收敛调试入口、运行状态和异常提示，让常见排障路径更直观。",
+    },
+  ],
+};
 
-export const nextPreview: NextPreviewItem[] = [
-  {
-    status: "developing",
-    title: "调试模块完善与问题修复",
-    description:
-      "推进调试模块的功能完善与稳定性提升，修复已知问题，优化用户体验。",
-  },
-  {
-    status: "validating",
-    title: "集成日志分析模块，支持",
-    description: "继续收敛调试入口、运行状态和异常提示，让常见排障路径更直观。",
-  },
-];
+export const longTermPreview: ForecastSection = {
+  title: "长期预告",
+  notice: "不绑定具体版本，仅表达方向性规划。",
+  items: [
+    {
+      theme: "生态",
+      title: "VSCode 插件（MSE）接入",
+      description: "以 Iframe 形式嵌入 MSE，提供文件至节点级联动相关功能",
+    },
+    {
+      theme: "维护",
+      title: "功能优化与问题修复",
+      description: "长期细节优化与即时修复 bug，随最新版本发布",
+    },
+  ],
+};
 
 export const updateLogs: UpdateLogItem[] = [
   {
