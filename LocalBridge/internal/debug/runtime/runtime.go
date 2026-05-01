@@ -3,7 +3,6 @@ package runtime
 import (
 	"encoding/json"
 	"fmt"
-	"image"
 	"strings"
 	"sync"
 	"time"
@@ -34,9 +33,7 @@ type Runtime struct {
 	taskerSinkID  int64
 	agentClients  []*maa.AgentClient
 
-	artifacts     *artifact.Store
-	emit          events.EmitFunc
-	screenshotRef string
+	emit events.EmitFunc
 
 	mu sync.Mutex
 }
@@ -130,7 +127,6 @@ func New(
 		adapter:       adapter,
 		contextSinkID: contextSinkID,
 		taskerSinkID:  taskerSinkID,
-		artifacts:     artifacts,
 		emit:          emit,
 	}
 
@@ -239,9 +235,6 @@ func (r *Runtime) Wait() Result {
 
 	job.Wait()
 	status := job.Status()
-	if isDirectMode(r.mode) {
-		r.emitDirectCompletion(job, status)
-	}
 	return Result{
 		Status: status.String(),
 		OK:     status.Success() && job.Error() == nil,
@@ -297,57 +290,19 @@ func (r *Runtime) startTask(override map[string]interface{}) error {
 }
 
 func (r *Runtime) startDirectRecognition() error {
-	node, ok := r.adapter.GetNode(r.entry)
-	if !ok || node == nil {
-		return fmt.Errorf("目标节点不存在: %s", r.entry)
-	}
-	if node.Recognition == nil {
-		return fmt.Errorf("目标节点没有 recognition: %s", r.entry)
-	}
-	ensureRecognitionDefaults(node.Recognition)
-
-	img, err := r.adapter.ScreencapImage()
-	if err != nil {
-		return fmt.Errorf("获取识别输入截图失败: %w", err)
-	}
-	r.storeRecognitionInput(img)
-
-	r.emitDirectEvent("node", "starting", "running", "", r.screenshotRef)
-	r.emitDirectEvent("recognition", "starting", "running", "", r.screenshotRef)
-
-	job, err := r.adapter.PostRecognition(node.Recognition.Type, node.Recognition.Param, img)
+	override, err := r.directModeOverride(protocol.RunModeRecognitionOnly)
 	if err != nil {
 		return err
 	}
-	if err := job.Error(); err != nil {
-		return err
-	}
-	r.taskJob = job
-	return nil
+	return r.startTask(override)
 }
 
 func (r *Runtime) startDirectAction() error {
-	node, ok := r.adapter.GetNode(r.entry)
-	if !ok || node == nil {
-		return fmt.Errorf("目标节点不存在: %s", r.entry)
-	}
-	if node.Action == nil {
-		return fmt.Errorf("目标节点没有 action: %s", r.entry)
-	}
-	ensureActionDefaults(node.Action)
-
-	r.emitDirectEvent("node", "starting", "running", "", "")
-	r.emitDirectEvent("action", "starting", "running", "", "")
-
-	job, err := r.adapter.PostAction(node.Action.Type, node.Action.Param, maa.Rect{}, nil)
+	override, err := r.directModeOverride(protocol.RunModeActionOnly)
 	if err != nil {
 		return err
 	}
-	if err := job.Error(); err != nil {
-		return err
-	}
-	r.taskJob = job
-	return nil
+	return r.startTask(override)
 }
 
 func (r *Runtime) singleNodeOverride() (map[string]interface{}, error) {
@@ -373,130 +328,31 @@ func (r *Runtime) singleNodeOverride() (map[string]interface{}, error) {
 	return override, nil
 }
 
-func (r *Runtime) emitDirectCompletion(job *maa.TaskJob, status maa.Status) {
-	phase := "failed"
-	if status.Success() && job.Error() == nil {
-		phase = "succeeded"
+func (r *Runtime) directModeOverride(mode protocol.RunMode) (map[string]interface{}, error) {
+	override, err := r.singleNodeOverride()
+	if err != nil {
+		return nil, err
 	}
-	detailRef := r.storeDirectDetail(job)
-	switch r.mode {
+	node, ok := override[r.entry].(map[string]interface{})
+	if !ok || node == nil {
+		return nil, fmt.Errorf("failed to build direct-mode override: %s", r.entry)
+	}
+	switch mode {
 	case protocol.RunModeRecognitionOnly:
-		r.emitDirectEvent("recognition", phase, status.String(), detailRef, r.screenshotRef)
+		node["action"] = map[string]interface{}{
+			"type":  string(maa.ActionTypeDoNothing),
+			"param": map[string]interface{}{},
+		}
 	case protocol.RunModeActionOnly:
-		r.emitDirectEvent("action", phase, status.String(), detailRef, "")
-	}
-	r.emitDirectEvent("node", phase, status.String(), detailRef, r.screenshotRef)
-}
-
-func (r *Runtime) emitDirectEvent(kind string, phase string, status string, detailRef string, screenshotRef string) {
-	if r.emit == nil {
-		return
-	}
-	r.emit(protocol.Event{
-		SessionID:     r.sessionID,
-		RunID:         r.runID,
-		Source:        "localbridge",
-		Kind:          kind,
-		Phase:         phase,
-		Status:        status,
-		Node:          r.eventNode(),
-		DetailRef:     detailRef,
-		ScreenshotRef: screenshotRef,
-		Data: map[string]interface{}{
-			"mode":  r.mode,
-			"entry": r.entry,
-		},
-	})
-}
-
-func (r *Runtime) storeDirectDetail(job *maa.TaskJob) string {
-	if job == nil || r.artifacts == nil {
-		return ""
-	}
-	detail, err := job.GetDetail()
-	if err != nil || detail == nil {
-		if err != nil {
-			logger.Warn("DebugVNext", "读取 direct task detail 失败: %v", err)
+		node["recognition"] = map[string]interface{}{
+			"type":  string(maa.RecognitionTypeDirectHit),
+			"param": map[string]interface{}{},
 		}
-		return ""
+	default:
+		return nil, fmt.Errorf("unsupported direct mode override: %s", mode)
 	}
-
-	taskData := events.SummarizeTaskDetail(detail)
-	taskRef, err := r.artifacts.AddJSON(r.sessionID, "task-detail", taskData)
-	if err != nil {
-		logger.Warn("DebugVNext", "写入 direct task detail artifact 失败: %v", err)
-	}
-
-	for _, node := range detail.NodeDetails {
-		if node == nil {
-			continue
-		}
-		if r.mode == protocol.RunModeRecognitionOnly && node.Recognition != nil {
-			if ref := r.storeRecognitionDetail(node.Recognition); ref != "" {
-				return ref
-			}
-		}
-		if r.mode == protocol.RunModeActionOnly && node.Action != nil {
-			if ref := r.storeActionDetail(node.Action); ref != "" {
-				return ref
-			}
-		}
-	}
-
-	return taskRef.ID
-}
-
-func (r *Runtime) storeRecognitionDetail(detail *maa.RecognitionDetail) string {
-	data := events.SummarizeRecognitionDetail(detail)
-	if r.policy.IncludeRawImage && detail != nil && detail.Raw != nil {
-		if ref, err := r.artifacts.AddPNG(r.sessionID, "recognition-raw-image", detail.Raw); err == nil {
-			data["rawImageRef"] = ref.ID
-		}
-	}
-	if r.policy.IncludeDrawImage && detail != nil && len(detail.Draws) > 0 {
-		drawRefs := make([]string, 0, len(detail.Draws))
-		for _, img := range detail.Draws {
-			if img == nil {
-				continue
-			}
-			if ref, err := r.artifacts.AddPNG(r.sessionID, "recognition-draw-image", img); err == nil {
-				drawRefs = append(drawRefs, ref.ID)
-			}
-		}
-		if len(drawRefs) > 0 {
-			data["drawImageRefs"] = drawRefs
-		}
-	}
-	if r.screenshotRef != "" {
-		data["screenshotRef"] = r.screenshotRef
-	}
-	ref, err := r.artifacts.AddJSON(r.sessionID, "recognition-detail", data)
-	if err != nil {
-		logger.Warn("DebugVNext", "写入 direct recognition detail artifact 失败: %v", err)
-		return ""
-	}
-	return ref.ID
-}
-
-func (r *Runtime) storeActionDetail(detail *maa.ActionDetail) string {
-	ref, err := r.artifacts.AddJSON(r.sessionID, "action-detail", events.SummarizeActionDetail(detail))
-	if err != nil {
-		logger.Warn("DebugVNext", "写入 direct action detail artifact 失败: %v", err)
-		return ""
-	}
-	return ref.ID
-}
-
-func (r *Runtime) storeRecognitionInput(img image.Image) {
-	if r.artifacts == nil || img == nil {
-		return
-	}
-	ref, err := r.artifacts.AddPNG(r.sessionID, "recognition-input", img)
-	if err != nil {
-		logger.Warn("DebugVNext", "写入识别输入图 artifact 失败: %v", err)
-		return
-	}
-	r.screenshotRef = ref.ID
+	override[r.entry] = node
+	return override, nil
 }
 
 func (r *Runtime) connectAgents(agents []protocol.AgentProfile) error {
@@ -610,18 +466,6 @@ func (r *Runtime) emitAgentDiagnostic(agent protocol.AgentProfile, severity stri
 	})
 }
 
-func (r *Runtime) eventNode() *protocol.EventNode {
-	if r.target != nil {
-		return &protocol.EventNode{
-			RuntimeName: r.target.RuntimeName,
-			FileID:      r.target.FileID,
-			NodeID:      r.target.NodeID,
-			Label:       r.labelForRuntimeName(r.target.RuntimeName),
-		}
-	}
-	return &protocol.EventNode{RuntimeName: r.entry, Label: r.labelForRuntimeName(r.entry)}
-}
-
 func (r *Runtime) labelForRuntimeName(runtimeName string) string {
 	for _, node := range r.resolver.Nodes {
 		if node.RuntimeName == runtimeName {
@@ -661,24 +505,6 @@ func cloneOverride(override map[string]interface{}) (map[string]interface{}, err
 		return nil, fmt.Errorf("复制 pipeline override 失败: %w", err)
 	}
 	return cloned, nil
-}
-
-func ensureRecognitionDefaults(recognition *maa.Recognition) {
-	if recognition.Type == "" {
-		recognition.Type = maa.RecognitionTypeDirectHit
-	}
-	if recognition.Param == nil {
-		recognition.Param = &maa.DirectHitParam{}
-	}
-}
-
-func ensureActionDefaults(action *maa.Action) {
-	if action.Type == "" {
-		action.Type = maa.ActionTypeDoNothing
-	}
-	if action.Param == nil {
-		action.Param = &maa.DoNothingParam{}
-	}
 }
 
 func createAgentClient(agent protocol.AgentProfile) (*maa.AgentClient, error) {
