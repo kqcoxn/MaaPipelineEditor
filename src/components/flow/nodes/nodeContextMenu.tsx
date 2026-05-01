@@ -29,7 +29,10 @@ import {
 import { useDebugSessionStore } from "../../../stores/debugSessionStore";
 import { useMFWStore } from "../../../stores/mfwStore";
 import { useWSStore } from "../../../stores/wsStore";
-import type { DebugRunMode } from "../../../features/debug/types";
+import type {
+  DebugCapabilityManifest,
+  DebugRunMode,
+} from "../../../features/debug/types";
 import { getDebugReadiness } from "../../../features/debug/readiness";
 import { applyDebugNodeTarget } from "../../../features/debug/nodeTargetActions";
 
@@ -334,8 +337,10 @@ function handleDebugRunModeWithInput(
   }
 }
 
-function isDebugRunModeUnavailable(mode: DebugRunMode): boolean {
-  const capabilities = useDebugSessionStore.getState().capabilities;
+function isDebugRunModeUnavailable(
+  mode: DebugRunMode,
+  capabilities?: DebugCapabilityManifest,
+): boolean {
   return !capabilities?.runModes.includes(mode);
 }
 
@@ -348,6 +353,7 @@ function handleDeleteGroup(node: NodeContextMenuNode) {
 /**获取节点右键菜单配置 */
 export function getNodeContextMenuConfig(
   node: NodeContextMenuNode,
+  options: { debugCapabilities?: DebugCapabilityManifest } = {},
 ): NodeContextMenuConfig[] {
   // Group 节点使用专用菜单
   if (node.type === NodeTypeEnum.Group) {
@@ -407,7 +413,11 @@ export function getNodeContextMenuConfig(
       icon: <PlayCircleOutlined />,
       onClick: (node) => handleDebugRunMode(node, "run-from-node"),
       visible: (node) => node.type === NodeTypeEnum.Pipeline,
-      disabled: () => isDebugRunModeUnavailable("run-from-node"),
+      disabled: () =>
+        isDebugRunModeUnavailable(
+          "run-from-node",
+          options.debugCapabilities,
+        ),
       disabledTip: "当前 LocalBridge 未暴露 run-from-node 能力",
     },
     {
@@ -416,7 +426,11 @@ export function getNodeContextMenuConfig(
       icon: <PlayCircleOutlined />,
       onClick: (node) => handleDebugRunMode(node, "single-node-run"),
       visible: (node) => node.type === NodeTypeEnum.Pipeline,
-      disabled: () => isDebugRunModeUnavailable("single-node-run"),
+      disabled: () =>
+        isDebugRunModeUnavailable(
+          "single-node-run",
+          options.debugCapabilities,
+        ),
       disabledTip: "当前 LocalBridge 未暴露 single-node-run 能力",
     },
     {
@@ -425,7 +439,11 @@ export function getNodeContextMenuConfig(
       icon: <PlayCircleOutlined />,
       onClick: (node) => handleDebugRunMode(node, "recognition-only"),
       visible: (node) => node.type === NodeTypeEnum.Pipeline,
-      disabled: () => isDebugRunModeUnavailable("recognition-only"),
+      disabled: () =>
+        isDebugRunModeUnavailable(
+          "recognition-only",
+          options.debugCapabilities,
+        ),
       disabledTip: "当前 LocalBridge 未暴露 recognition-only 能力",
     },
     {
@@ -434,7 +452,8 @@ export function getNodeContextMenuConfig(
       icon: <PlayCircleOutlined />,
       onClick: (node) => handleDebugRunMode(node, "action-only"),
       visible: (node) => node.type === NodeTypeEnum.Pipeline,
-      disabled: () => isDebugRunModeUnavailable("action-only"),
+      disabled: () =>
+        isDebugRunModeUnavailable("action-only", options.debugCapabilities),
       disabledTip: "当前 LocalBridge 未暴露 action-only 能力",
       danger: true,
     },
@@ -444,7 +463,11 @@ export function getNodeContextMenuConfig(
       icon: <PlayCircleOutlined />,
       onClick: (node) => handleDebugRunMode(node, "fixed-image-recognition"),
       visible: (node) => node.type === NodeTypeEnum.Pipeline,
-      disabled: () => isDebugRunModeUnavailable("fixed-image-recognition"),
+      disabled: () =>
+        isDebugRunModeUnavailable(
+          "fixed-image-recognition",
+          options.debugCapabilities,
+        ),
       disabledTip: "当前 LocalBridge 未暴露 fixed-image-recognition 能力",
     },
     {

@@ -19,6 +19,7 @@ import {
 import { useWSStore } from "../../../stores/wsStore";
 import { useFlowStore } from "../../../stores/flow";
 import { showActionRunConfirm } from "../confirmActionRun";
+import { ensureDebugCapabilitiesRequested } from "../capabilityActions";
 import { debugContributionRegistry } from "../contributions/registry";
 import { getControllerDisplayName } from "../controllerDisplay";
 import {
@@ -79,8 +80,6 @@ export function useDebugModalController() {
     closeModal,
     setActivePanel,
     selectNode,
-    setCapabilitiesLoading,
-    setCapabilitiesError,
     resourcePreflight,
     setResourcePreflightChecking,
     setResourcePreflightError,
@@ -102,8 +101,6 @@ export function useDebugModalController() {
       closeModal: state.closeModal,
       setActivePanel: state.setActivePanel,
       selectNode: state.selectNode,
-      setCapabilitiesLoading: state.setCapabilitiesLoading,
-      setCapabilitiesError: state.setCapabilitiesError,
       resourcePreflight: state.resourcePreflight,
       setResourcePreflightChecking: state.setResourcePreflightChecking,
       setResourcePreflightError: state.setResourcePreflightError,
@@ -226,19 +223,9 @@ export function useDebugModalController() {
   );
 
   useEffect(() => {
-    if (!modalOpen || !connected || capabilities) return;
-    setCapabilitiesLoading();
-    const sent = debugProtocolClient.requestCapabilities();
-    if (!sent) {
-      setCapabilitiesError("LocalBridge 未连接，暂时无法读取调试能力。");
-    }
-  }, [
-    modalOpen,
-    connected,
-    capabilities,
-    setCapabilitiesLoading,
-    setCapabilitiesError,
-  ]);
+    if (!connected || capabilities || capabilityStatus === "loading") return;
+    ensureDebugCapabilitiesRequested();
+  }, [connected, capabilities, capabilityStatus]);
 
   useEffect(
     () =>

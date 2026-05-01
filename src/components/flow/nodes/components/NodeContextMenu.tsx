@@ -13,6 +13,9 @@ import {
 } from "../nodeContextMenu";
 import { NodeJsonEditorModal } from "../../../modals/NodeJsonEditorModal";
 import { useFlowStore, type NodeType } from "../../../../stores/flow";
+import { useDebugSessionStore } from "../../../../stores/debugSessionStore";
+import { useWSStore } from "../../../../stores/wsStore";
+import { ensureDebugCapabilitiesRequested } from "../../../../features/debug/capabilityActions";
 
 interface NodeContextMenuProps {
   node: NodeContextMenuNode;
@@ -26,10 +29,17 @@ export const NodeContextMenu = memo<NodeContextMenuProps>(
   ({ node, children, open, onOpenChange }) => {
     // JSON 编辑器状态
     const [jsonEditorOpen, setJsonEditorOpen] = useState(false);
+    const debugCapabilities = useDebugSessionStore(
+      (state) => state.capabilities,
+    );
+    const debugCapabilityStatus = useDebugSessionStore(
+      (state) => state.capabilityStatus,
+    );
+    const localBridgeConnected = useWSStore((state) => state.connected);
 
     // 处理 JSON 编辑保存
     const handleJsonEditorSave = useCallback(
-      (nodeData: any) => {
+      (nodeData: NodeType["data"]) => {
         const { setNodes, nodes, saveHistory } = useFlowStore.getState();
         const newNodes = nodes.map((n) => {
           if (n.id === node.id) {
@@ -70,9 +80,31 @@ export const NodeContextMenu = memo<NodeContextMenuProps>(
       };
     }, [node]);
 
+    const handleDropdownOpenChange = useCallback(
+      (nextOpen: boolean) => {
+        if (
+          nextOpen &&
+          localBridgeConnected &&
+          !debugCapabilities &&
+          debugCapabilityStatus !== "loading"
+        ) {
+          ensureDebugCapabilitiesRequested();
+        }
+        onOpenChange(nextOpen);
+      },
+      [
+        debugCapabilities,
+        debugCapabilityStatus,
+        localBridgeConnected,
+        onOpenChange,
+      ],
+    );
+
     // 生成菜单项
     const menuItems = useMemo<MenuProps["items"]>(() => {
-      const config = getNodeContextMenuConfig(node);
+      const config = getNodeContextMenuConfig(node, {
+        debugCapabilities,
+      });
 
       return config
         .filter((item) => {
@@ -196,7 +228,7 @@ export const NodeContextMenu = memo<NodeContextMenuProps>(
             danger: menuItem.danger,
           };
         });
-    }, [node, onOpenChange]);
+    }, [debugCapabilities, node, onOpenChange]);
 
     return (
       <>
@@ -204,7 +236,7 @@ export const NodeContextMenu = memo<NodeContextMenuProps>(
           menu={{ items: menuItems }}
           trigger={["contextMenu"]}
           open={open}
-          onOpenChange={onOpenChange}
+          onOpenChange={handleDropdownOpenChange}
         >
           {children}
         </Dropdown>
