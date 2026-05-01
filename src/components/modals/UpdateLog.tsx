@@ -52,8 +52,6 @@ const categoryConfig: Array<{
   { key: "features", label: "新功能" },
   { key: "perfs", label: "体验优化" },
   { key: "fixes", label: "问题修复" },
-  { key: "docs", label: "文档更新" },
-  { key: "others", label: "其他更新" },
 ];
 
 const categoryFilterOptions: Array<{
@@ -63,6 +61,12 @@ const categoryFilterOptions: Array<{
   { label: "全部", value: "all" },
   ...categoryConfig.map(({ key, label }) => ({ label, value: key })),
 ];
+
+const getUpdateItemCount = (updates: UpdateCategory) =>
+  categoryConfig.reduce(
+    (total, { key }) => total + (updates[key]?.length ?? 0),
+    0
+  );
 
 const statusConfig: Record<PreviewStatus, { color: string; label: string }> = {
   designing: { color: "blue", label: "设计中" },
@@ -130,7 +134,14 @@ const VersionTimeline = ({
 }: VersionTimelineProps) => (
   <Card
     size="small"
-    title="版本"
+    title={
+      <div className={style.timelineTitle}>
+        <span>版本</span>
+        <Text type="secondary" className={style.statText}>
+          共{logs.length}个版本
+        </Text>
+      </div>
+    }
     className={style.timelineCard}
     styles={{ body: { padding: 0 } }}
   >
@@ -195,6 +206,7 @@ const UpdateLogDetails = ({
   categoryFilter,
   onCategoryFilterChange,
 }: UpdateLogDetailsProps) => {
+  const updateCount = getUpdateItemCount(log.updates);
   const visibleCategories = categoryConfig.filter(({ key }) => {
     if (categoryFilter !== "all" && categoryFilter !== key) {
       return false;
@@ -216,6 +228,9 @@ const UpdateLogDetails = ({
           </div>
           <Text type="secondary">{log.date}</Text>
         </div>
+        <Text type="secondary" className={style.statText}>
+          共{updateCount}项更新
+        </Text>
       </div>
 
       <Segmented
