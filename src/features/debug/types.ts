@@ -371,6 +371,7 @@ export interface DebugScreenshotCaptureRequest {
 
 export interface DebugAgentTestRequest {
   agent: DebugAgentProfile;
+  resourcePaths?: string[];
 }
 
 export interface DebugAgentTestResult {

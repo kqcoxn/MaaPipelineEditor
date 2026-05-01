@@ -65,6 +65,10 @@ export class DebugProtocolClient extends BaseProtocol {
     return DEBUG_PROTOCOL_VERSION;
   }
 
+  isConnected(): boolean {
+    return this.wsClient?.isConnected() ?? false;
+  }
+
   register(wsClient: LocalWebSocketServer): void {
     this.wsClient = wsClient;
     this.wsClient.registerRoute("/lte/debug/capabilities", (data) =>

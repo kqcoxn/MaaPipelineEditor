@@ -23,8 +23,8 @@ export class LocalWebSocketServer {
   private ws: WebSocket | null = null;
   private url: string;
   private routes: Map<string, MessageHandler> = new Map();
-  private onStatusChange?: (connected: boolean) => void;
-  private onConnectingChange?: (isConnecting: boolean) => void;
+  private statusListeners = new Set<(connected: boolean) => void>();
+  private connectingListeners = new Set<(isConnecting: boolean) => void>();
   private connectTimeout: number | null = null;
   private isConnecting: boolean = false;
   private handshakeCompleted: boolean = false;
@@ -46,9 +46,9 @@ export class LocalWebSocketServer {
           this.handshakeCompleted = true;
           this.clearConnectTimeout();
           this.isConnecting = false;
-          this.onConnectingChange?.(false);
+          this.emitConnecting(false);
           message.success(`已连接到本地服务`);
-          this.onStatusChange?.(true);
+          this.emitStatus(true);
         } else {
           console.error(
             "[WebSocket] 协议版本不匹配，前端需求:",
@@ -77,12 +77,14 @@ export class LocalWebSocketServer {
 
   // 注册连接状态变化回调
   onStatus(callback: (connected: boolean) => void) {
-    this.onStatusChange = callback;
+    this.statusListeners.add(callback);
+    return () => this.statusListeners.delete(callback);
   }
 
   // 注册连接中状态变化回调
   onConnecting(callback: (isConnecting: boolean) => void) {
-    this.onConnectingChange = callback;
+    this.connectingListeners.add(callback);
+    return () => this.connectingListeners.delete(callback);
   }
 
   /**
@@ -120,7 +122,7 @@ export class LocalWebSocketServer {
     // 清除之前的超时定时器
     this.clearConnectTimeout();
     this.isConnecting = true;
-    this.onConnectingChange?.(true);
+    this.emitConnecting(true);
 
     try {
       this.ws = new WebSocket(this.url);
@@ -155,8 +157,8 @@ export class LocalWebSocketServer {
           this.ws.close();
           this.ws = null;
           this.isConnecting = false;
-          this.onConnectingChange?.(false);
-          this.onStatusChange?.(false);
+          this.emitConnecting(false);
+          this.emitStatus(false);
         }
       }, this.CONNECTION_TIMEOUT);
 
@@ -185,7 +187,7 @@ export class LocalWebSocketServer {
         console.error("[WebSocket] Error:", error);
         this.clearConnectTimeout();
         this.isConnecting = false;
-        this.onConnectingChange?.(false);
+        this.emitConnecting(false);
         const key = `connection-error-${Date.now()}`;
         notification.error({
           key,
@@ -214,16 +216,16 @@ export class LocalWebSocketServer {
       this.ws.onclose = () => {
         this.clearConnectTimeout();
         this.isConnecting = false;
-        this.onConnectingChange?.(false);
+        this.emitConnecting(false);
         message.info("本地服务已断开连接");
-        this.onStatusChange?.(false);
+        this.emitStatus(false);
         this.ws = null;
       };
     } catch (error) {
       console.error("[WebSocket] Connection failed:", error);
       this.clearConnectTimeout();
       this.isConnecting = false;
-      this.onConnectingChange?.(false);
+      this.emitConnecting(false);
       const key = `connection-error-${Date.now()}`;
       const errorMsg = error instanceof Error ? error.message : "未知错误";
       notification.error({
@@ -248,7 +250,7 @@ export class LocalWebSocketServer {
           "查看文档",
         ),
       });
-      this.onStatusChange?.(false);
+      this.emitStatus(false);
     }
   }
 
@@ -257,14 +259,14 @@ export class LocalWebSocketServer {
     this.clearConnectTimeout();
     this.isConnecting = false;
     this.handshakeCompleted = false;
-    this.onConnectingChange?.(false);
+    this.emitConnecting(false);
 
     if (this.ws) {
       this.ws.close();
       this.ws = null;
     }
 
-    this.onStatusChange?.(false);
+    this.emitStatus(false);
   }
 
   // 发送版本握手请求
@@ -327,8 +329,16 @@ export class LocalWebSocketServer {
   destroy() {
     this.disconnect();
     this.routes.clear();
-    this.onStatusChange = undefined;
-    this.onConnectingChange = undefined;
+    this.statusListeners.clear();
+    this.connectingListeners.clear();
+  }
+
+  private emitStatus(connected: boolean) {
+    this.statusListeners.forEach((listener) => listener(connected));
+  }
+
+  private emitConnecting(isConnecting: boolean) {
+    this.connectingListeners.forEach((listener) => listener(isConnecting));
   }
 }
 

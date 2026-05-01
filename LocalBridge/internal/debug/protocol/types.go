@@ -259,7 +259,8 @@ type ScreenshotCaptureRequest struct {
 }
 
 type AgentTestRequest struct {
-	Agent AgentProfile `json:"agent"`
+	Agent         AgentProfile `json:"agent"`
+	ResourcePaths []string     `json:"resourcePaths,omitempty"`
 }
 
 type AgentTestResult struct {

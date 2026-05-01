@@ -521,16 +521,6 @@ func (r *Runtime) connectAgents(agents []protocol.AgentProfile) error {
 			r.emitAgentDiagnostic(prepared, "warning", "debug.agent.create_failed", err.Error(), nil, nil)
 			continue
 		}
-		if prepared.TimeoutMS > 0 {
-			if err := client.SetTimeout(time.Duration(prepared.TimeoutMS) * time.Millisecond); err != nil {
-				client.Destroy()
-				if requiredAgent(prepared) {
-					return err
-				}
-				r.emitAgentDiagnostic(prepared, "warning", "debug.agent.timeout_failed", err.Error(), nil, nil)
-				continue
-			}
-		}
 		if resource := r.adapter.GetResource(); resource != nil {
 			if err := client.BindResource(resource); err != nil {
 				client.Destroy()
@@ -549,6 +539,16 @@ func (r *Runtime) connectAgents(agents []protocol.AgentProfile) error {
 		if controller := r.adapter.GetController(); controller != nil {
 			if err := client.RegisterControllerSink(*controller); err != nil {
 				r.emitAgentDiagnostic(prepared, "warning", "debug.agent.register_controller_sink_failed", err.Error(), nil, nil)
+			}
+		}
+		if prepared.TimeoutMS > 0 {
+			if err := client.SetTimeout(time.Duration(prepared.TimeoutMS) * time.Millisecond); err != nil {
+				client.Destroy()
+				if requiredAgent(prepared) {
+					return err
+				}
+				r.emitAgentDiagnostic(prepared, "warning", "debug.agent.timeout_failed", err.Error(), nil, nil)
+				continue
 			}
 		}
 		if err := connectAgent(prepared, client); err != nil {

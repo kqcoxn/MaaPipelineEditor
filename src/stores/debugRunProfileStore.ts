@@ -12,6 +12,10 @@ import {
   buildDebugSnapshotBundle,
   resolveDebugNodeTarget,
 } from "../features/debug/snapshot";
+import {
+  DEFAULT_DEBUG_AGENT_TIMEOUT_MS,
+  getDebugAgentProfileKey,
+} from "../features/debug/agentProfile";
 import { useConfigStore } from "./configStore";
 import { useLocalFileStore, type ResourceBundle } from "./localFileStore";
 import { useMFWStore } from "./mfwStore";
@@ -476,20 +480,29 @@ function sanitizeProfile(
 
 function sanitizeAgent(agent: Partial<DebugAgentProfile>): DebugAgentProfile {
   const transport = agent.transport === "tcp" ? "tcp" : "identifier";
-  return {
-    id: stringFromValue(agent.id) ?? `agent-${Date.now()}`,
-    enabled: Boolean(agent.enabled),
+  const sanitizedAgent = {
     transport,
     identifier: stringFromValue(agent.identifier),
     tcpPort:
       typeof agent.tcpPort === "number" && Number.isFinite(agent.tcpPort)
         ? agent.tcpPort
         : undefined,
+  };
+
+  return {
+    id:
+      getDebugAgentProfileKey(sanitizedAgent) ??
+      stringFromValue(agent.id) ??
+      `agent-${Date.now()}`,
+    enabled: Boolean(agent.enabled),
+    transport,
+    identifier: sanitizedAgent.identifier,
+    tcpPort: sanitizedAgent.tcpPort,
     bindResources: sanitizeStringArray(agent.bindResources),
     timeoutMs:
       typeof agent.timeoutMs === "number" && Number.isFinite(agent.timeoutMs)
         ? agent.timeoutMs
-        : undefined,
+        : DEFAULT_DEBUG_AGENT_TIMEOUT_MS,
     required: typeof agent.required === "boolean" ? agent.required : undefined,
   };
 }

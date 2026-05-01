@@ -476,6 +476,7 @@ export function useDebugModalController() {
       agent,
       client: debugProtocolClient,
       connected,
+      resourcePaths: resolvedResourcePaths,
       setTestingAgentIds,
     });
   };

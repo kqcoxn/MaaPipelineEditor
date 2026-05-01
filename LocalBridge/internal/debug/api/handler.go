@@ -383,31 +383,73 @@ func (h *Handler) handleAgentTest(conn *server.Connection, msg models.Message) {
 		return
 	}
 
-	result := testAgentConnection(req.Agent)
+	result := h.testAgentConnection(req.Agent, req.ResourcePaths)
 	h.send(conn, "/lte/debug/agent_tested", result)
 }
 
-func testAgentConnection(agent protocol.AgentProfile) protocol.AgentTestResult {
+func (h *Handler) testAgentConnection(agent protocol.AgentProfile, resourcePaths []string) protocol.AgentTestResult {
 	result := protocol.AgentTestResult{
 		AgentID:   strings.TrimSpace(agent.ID),
 		CheckedAt: time.Now().UTC().Format(time.RFC3339Nano),
 	}
+	logger.Debug("DebugVNext", "开始测试 agent 连接: %s", agentProfileLogLabel(agent))
+	paths := nonEmptyStrings(resourcePaths)
+	if len(paths) == 0 {
+		result.Message = "Agent 连接测试需要先配置资源路径"
+		return result
+	}
+	if !h.service.IsInitialized() {
+		result.Message = "MaaFramework 未初始化，无法加载资源"
+		return result
+	}
+	resourceAdapter := mfw.NewMaaFWAdapter()
+	defer resourceAdapter.Destroy()
+	if err := resourceAdapter.LoadResources(paths); err != nil {
+		result.Message = fmt.Sprintf("加载资源失败: %v", err)
+		logger.Warn("DebugVNext", "agent 测试加载资源失败: %s, err=%v", agentProfileLogLabel(agent), err)
+		return result
+	}
+	resource := resourceAdapter.GetResource()
+	if resource == nil {
+		result.Message = "加载资源后资源实例为空"
+		return result
+	}
+
 	client, err := createAgentClient(agent)
 	if err != nil {
 		result.Message = err.Error()
+		logger.Warn("DebugVNext", "创建 agent client 失败: %s, err=%v", agentProfileLogLabel(agent), err)
 		return result
 	}
 	defer client.Destroy()
 	defer func() { _ = client.Disconnect() }()
 
+	if err := client.BindResource(resource); err != nil {
+		result.Message = err.Error()
+		logger.Warn("DebugVNext", "agent client bind resource 失败: %s, err=%v", agentProfileLogLabel(agent), err)
+		return result
+	}
 	if agent.TimeoutMS > 0 {
 		if err := client.SetTimeout(time.Duration(agent.TimeoutMS) * time.Millisecond); err != nil {
 			result.Message = err.Error()
+			logger.Warn("DebugVNext", "设置 agent timeout 失败: %s, err=%v", agentProfileLogLabel(agent), err)
 			return result
 		}
 	}
 	if err := client.Connect(); err != nil {
 		result.Message = err.Error()
+		logger.Warn("DebugVNext", "agent client connect 失败: %s, err=%v", agentProfileLogLabel(agent), err)
+		return result
+	}
+	effectiveIdentifier, err := client.Identifier()
+	if err != nil {
+		logger.Warn("DebugVNext", "读取 agent identifier 失败: %s, err=%v", agentProfileLogLabel(agent), err)
+	} else {
+		logger.Debug("DebugVNext", "agent client 已连接: %s, effectiveIdentifier=%s", agentProfileLogLabel(agent), effectiveIdentifier)
+	}
+	if !client.Connected() || !client.Alive() {
+		result.Message = "agent 已连接但状态检查失败"
+		logger.Warn("DebugVNext", "agent 连接状态检查失败: %s, connected=%v, alive=%v", agentProfileLogLabel(agent), client.Connected(), client.Alive())
 		return result
 	}
 	result.Success = true
@@ -590,6 +632,17 @@ func createAgentClient(agent protocol.AgentProfile) (*maa.AgentClient, error) {
 	default:
 		return nil, fmt.Errorf("不支持的 agent transport: %s", agent.Transport)
 	}
+}
+
+func agentProfileLogLabel(agent protocol.AgentProfile) string {
+	transport := agent.Transport
+	if transport == "" {
+		transport = "identifier"
+	}
+	if transport == "tcp" {
+		return fmt.Sprintf("agentId=%s transport=tcp tcpPort=%d timeoutMs=%d", strings.TrimSpace(agent.ID), agent.TCPPort, agent.TimeoutMS)
+	}
+	return fmt.Sprintf("agentId=%s transport=%s identifier=%s timeoutMs=%d", strings.TrimSpace(agent.ID), transport, strings.TrimSpace(agent.Identifier), agent.TimeoutMS)
 }
 
 func nonEmptyStrings(values []string) []string {

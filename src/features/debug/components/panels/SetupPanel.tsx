@@ -22,6 +22,10 @@ import {
 import { DebugSection } from "../DebugSection";
 import type { DebugModalController } from "../../hooks/useDebugModalController";
 import type { DebugAgentProfile, DebugArtifactPolicy } from "../../types";
+import {
+  DEFAULT_DEBUG_AGENT_TIMEOUT_MS,
+  getDebugAgentProfileKey,
+} from "../../agentProfile";
 import { getDebugStatusLabel } from "../../capabilityLabels";
 import { stringArray } from "../../modalUtils";
 
@@ -61,6 +65,10 @@ export function SetupPanel({
       />
     </Space>
   );
+}
+
+function agentResultKey(agent: DebugAgentProfile, index: number): string {
+  return getDebugAgentProfileKey(agent) ?? `agent-${index + 1}`;
 }
 
 function ProfileSection({
@@ -351,6 +359,7 @@ function AgentSection({
         enabled: false,
         transport: "identifier",
         identifier: "",
+        timeoutMs: DEFAULT_DEBUG_AGENT_TIMEOUT_MS,
         required: true,
       },
     ]);
@@ -365,122 +374,111 @@ function AgentSection({
         bordered
         dataSource={agents}
         locale={{ emptyText: "未配置代理（Agent）" }}
-        renderItem={(agent, index) => (
-          <List.Item
-            actions={[
-              <Button
-                key="delete"
-                size="small"
-                danger
-                icon={<DeleteOutlined />}
-                onClick={() =>
-                  profileState.setAgents(
-                    agents.filter((_, agentIndex) => agentIndex !== index),
-                  )
-                }
-              />,
-            ]}
-          >
-            <Space direction="vertical" style={{ width: "100%" }}>
-              <Space wrap>
-                <Switch
-                  checked={agent.enabled}
-                  onChange={(enabled) => updateAgent(index, { enabled })}
-                />
-                <Input
-                  value={agent.id}
-                  onChange={(event) =>
-                    updateAgent(index, { id: event.target.value })
+        renderItem={(agent, index) => {
+          const resultKey = agentResultKey(agent, index);
+          const testResult = agentTestResults[resultKey];
+
+          return (
+            <List.Item
+              actions={[
+                <Button
+                  key="delete"
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={() =>
+                    profileState.setAgents(
+                      agents.filter((_, agentIndex) => agentIndex !== index),
+                    )
                   }
-                  addonBefore="标识"
-                  style={{ width: 220 }}
-                />
-                <Select
-                  value={agent.transport}
-                  style={{ width: 140 }}
-                  onChange={(transport) => updateAgent(index, { transport })}
-                  options={[
-                    { value: "identifier", label: "标识符（Identifier）" },
-                    { value: "tcp", label: "TCP" },
-                  ]}
-                />
-                {agent.transport === "tcp" ? (
+                />,
+              ]}
+            >
+              <Space direction="vertical" style={{ width: "100%" }}>
+                <Space wrap>
+                  <Switch
+                    checked={agent.enabled}
+                    onChange={(enabled) => updateAgent(index, { enabled })}
+                  />
+                  <Select
+                    value={agent.transport}
+                    style={{ width: 140 }}
+                    onChange={(transport) => updateAgent(index, { transport })}
+                    options={[
+                      { value: "identifier", label: "标识符（Identifier）" },
+                      { value: "tcp", label: "TCP" },
+                    ]}
+                  />
+                  {agent.transport === "tcp" ? (
+                    <InputNumber
+                      value={agent.tcpPort}
+                      min={1}
+                      max={65535}
+                      placeholder="TCP 端口"
+                      onChange={(tcpPort) =>
+                        updateAgent(index, { tcpPort: tcpPort ?? undefined })
+                      }
+                    />
+                  ) : (
+                    <Input
+                      value={agent.identifier}
+                      onChange={(event) =>
+                        updateAgent(index, { identifier: event.target.value })
+                      }
+                      placeholder="代理标识符（Identifier）"
+                      style={{ width: 240 }}
+                    />
+                  )}
                   <InputNumber
-                    value={agent.tcpPort}
-                    min={1}
-                    max={65535}
-                    placeholder="TCP 端口"
-                    onChange={(tcpPort) =>
-                      updateAgent(index, { tcpPort: tcpPort ?? undefined })
+                    value={agent.timeoutMs}
+                    min={0}
+                    step={100}
+                    placeholder="超时 ms"
+                    onChange={(timeoutMs) =>
+                      updateAgent(index, { timeoutMs: timeoutMs ?? undefined })
                     }
                   />
-                ) : (
-                  <Input
-                    value={agent.identifier}
+                  <Checkbox
+                    checked={agent.required ?? true}
                     onChange={(event) =>
-                      updateAgent(index, { identifier: event.target.value })
+                      updateAgent(index, { required: event.target.checked })
                     }
-                    placeholder="代理标识符（Identifier）"
-                    style={{ width: 240 }}
+                  >
+                    必需
+                  </Checkbox>
+                  <Button
+                    size="small"
+                    icon={<ReloadOutlined />}
+                    loading={testingAgentIds.has(resultKey)}
+                    onClick={() => testAgent(agent)}
+                  >
+                    测试连接
+                  </Button>
+                </Space>
+                {testResult && (
+                  <Alert
+                    type={testResult.success ? "success" : "error"}
+                    showIcon
+                    message={testResult.message}
+                    description={
+                      testResult.success ? (
+                        <Text type="secondary">
+                          测试连接已断开；正式运行时会按当前配置重新连接。
+                        </Text>
+                      ) : (
+                        <Text type="secondary">
+                          常见的原因包括：未启动项目 Agent、项目 Agent 版本（一般为
+                          python/go 的 maafw 库版本）与 MPE 的依赖版本（可自行替换，即填写的
+                          Lib 目录）不一致、连接前未成功加载资源等。
+                        </Text>
+                      )
+                    }
                   />
                 )}
-                <InputNumber
-                  value={agent.timeoutMs}
-                  min={0}
-                  step={100}
-                  placeholder="超时 ms"
-                  onChange={(timeoutMs) =>
-                    updateAgent(index, { timeoutMs: timeoutMs ?? undefined })
-                  }
-                />
-                <Checkbox
-                  checked={agent.required ?? true}
-                  onChange={(event) =>
-                    updateAgent(index, { required: event.target.checked })
-                  }
-                >
-                  必需
-                </Checkbox>
-                <Button
-                  size="small"
-                  icon={<ReloadOutlined />}
-                  loading={testingAgentIds.has(agent.id.trim() || "agent")}
-                  onClick={() => testAgent(agent)}
-                >
-                  测试连接
-                </Button>
               </Space>
-              {agentTestResults[agent.id] && (
-                <Alert
-                  type={agentTestResults[agent.id].success ? "success" : "error"}
-                  showIcon
-                  message={agentTestResults[agent.id].message}
-                  description={
-                    <Space wrap>
-                      <Text type="secondary">
-                        测试连接已断开；正式运行时会按当前配置重新连接。
-                      </Text>
-                      {stringArray(
-                        agentTestResults[agent.id].customRecognitions,
-                      ).map((name) => (
-                        <Tag key={`test-reco-${name}`} color="blue">
-                          reco {name}
-                        </Tag>
-                      ))}
-                      {stringArray(agentTestResults[agent.id].customActions).map(
-                        (name) => (
-                          <Tag key={`test-act-${name}`} color="purple">
-                            act {name}
-                          </Tag>
-                        ),
-                      )}
-                    </Space>
-                  }
-                />
-              )}
-            </Space>
-          </List.Item>
-        )}
+            </List.Item>
+          );
+        }}
       />
       <DebugSection title="最近代理（Agent）诊断">
         <List
