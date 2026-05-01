@@ -72,3 +72,36 @@ Renamed debug Timeline to Event Line, renamed Node Execution to Node Line, reord
 ### Next Steps
 
 - None - task complete
+
+
+## Session 3: Debug image inspection UX
+
+**Date**: 2026-05-01
+**Task**: Debug image inspection UX
+**Branch**: `main`
+
+### Summary
+
+Implemented debug image modal, ROI controls, raw/draw image handling, artifact button fixes, and non-persistent debug tab behavior.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ec3af17` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
