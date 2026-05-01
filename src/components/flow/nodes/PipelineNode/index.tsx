@@ -70,13 +70,7 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
   const debugOverlay = useDebugOverlayStore(
     useShallow((state) => ({
       currentNodeId: state.currentNodeId,
-      visitedNodeIds: state.visitedNodeIds,
-      succeededNodeIds: state.succeededNodeIds,
-      failedNodeIds: state.failedNodeIds,
-      executionPathNodeIds: state.executionPathNodeIds,
-      highlightedFailureNodeIds: state.highlightedFailureNodeIds,
-      selectedExecutionNodeId: state.selectedExecutionNodeId,
-      selectedExecutionAttemptNodeId: state.selectedExecutionAttemptNodeId,
+      activeRecognitionNodeIds: state.activeRecognitionNodeIds,
     })),
   );
 
@@ -173,18 +167,8 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
         // Ghost Node 样式
         [explorationStyle.ghostNode]: isActiveGhostNode,
         [style["debug-node-current"]]: debugOverlay.currentNodeId === props.id,
-        [style["debug-node-visited"]]: debugOverlay.visitedNodeIds.has(props.id),
-        [style["debug-node-succeeded"]]:
-          debugOverlay.succeededNodeIds.has(props.id),
-        [style["debug-node-failed"]]: debugOverlay.failedNodeIds.has(props.id),
-        [style["debug-node-execution-path"]]:
-          debugOverlay.executionPathNodeIds.has(props.id),
-        [style["debug-node-execution-selected"]]:
-          debugOverlay.selectedExecutionNodeId === props.id,
-        [style["debug-node-execution-attempt"]]:
-          debugOverlay.selectedExecutionAttemptNodeId === props.id,
-        [style["debug-node-execution-failed"]]:
-          debugOverlay.highlightedFailureNodeIds.has(props.id),
+        [style["debug-node-recognizing"]]:
+          debugOverlay.activeRecognitionNodeIds.has(props.id),
       }),
     [
       props.selected,
@@ -192,13 +176,7 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
       isAnchorRefHighlighted,
       isActiveGhostNode,
       debugOverlay.currentNodeId,
-      debugOverlay.visitedNodeIds,
-      debugOverlay.succeededNodeIds,
-      debugOverlay.failedNodeIds,
-      debugOverlay.executionPathNodeIds,
-      debugOverlay.highlightedFailureNodeIds,
-      debugOverlay.selectedExecutionAttemptNodeId,
-      debugOverlay.selectedExecutionNodeId,
+      debugOverlay.activeRecognitionNodeIds,
       props.id,
     ],
   );

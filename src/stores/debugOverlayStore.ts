@@ -4,6 +4,7 @@ import type { DebugTraceSummary } from "../features/debug/traceReducer";
 
 interface DebugOverlayState {
   currentNodeId?: string;
+  activeRecognitionNodeIds: Set<string>;
   visitedNodeIds: Set<string>;
   succeededNodeIds: Set<string>;
   failedNodeIds: Set<string>;
@@ -26,6 +27,7 @@ interface DebugOverlayState {
 }
 
 export const useDebugOverlayStore = create<DebugOverlayState>((set) => ({
+  activeRecognitionNodeIds: new Set(),
   visitedNodeIds: new Set(),
   succeededNodeIds: new Set(),
   failedNodeIds: new Set(),
@@ -40,6 +42,7 @@ export const useDebugOverlayStore = create<DebugOverlayState>((set) => ({
   applyTraceSummary: (summary) =>
     set({
       currentNodeId: summary.currentNodeId,
+      activeRecognitionNodeIds: new Set(summary.activeRecognitionNodeIds),
       visitedNodeIds: new Set(summary.visitedNodeIds),
       succeededNodeIds: new Set(summary.succeededNodeIds),
       failedNodeIds: new Set(summary.failedNodeIds),
@@ -50,6 +53,7 @@ export const useDebugOverlayStore = create<DebugOverlayState>((set) => ({
   applyReplaySummary: (summary) =>
     set({
       currentNodeId: summary.currentNodeId,
+      activeRecognitionNodeIds: new Set(summary.activeRecognitionNodeIds),
       visitedNodeIds: new Set(summary.visitedNodeIds),
       succeededNodeIds: new Set(summary.succeededNodeIds),
       failedNodeIds: new Set(summary.failedNodeIds),
@@ -88,6 +92,7 @@ export const useDebugOverlayStore = create<DebugOverlayState>((set) => ({
   clearOverlay: () =>
     set({
       currentNodeId: undefined,
+      activeRecognitionNodeIds: new Set(),
       visitedNodeIds: new Set(),
       succeededNodeIds: new Set(),
       failedNodeIds: new Set(),

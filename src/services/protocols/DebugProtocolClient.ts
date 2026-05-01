@@ -1,5 +1,6 @@
 import { BaseProtocol } from "./BaseProtocol";
 import type { LocalWebSocketServer } from "../server";
+import { globalConfig } from "../../stores/configStore";
 import type {
   DebugArtifactGetRequest,
   DebugArtifactPayload,
@@ -22,7 +23,6 @@ import type {
   DebugRunStopRequest,
   DebugSessionSnapshot,
 } from "../../features/debug/types";
-import { DEBUG_PROTOCOL_VERSION } from "../../features/debug/types";
 
 type Listener<T> = (payload: T) => void;
 
@@ -62,7 +62,7 @@ export class DebugProtocolClient extends BaseProtocol {
   }
 
   getVersion(): string {
-    return DEBUG_PROTOCOL_VERSION;
+    return globalConfig.protocolVersion;
   }
 
   isConnected(): boolean {

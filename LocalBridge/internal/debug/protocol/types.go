@@ -1,8 +1,7 @@
 package protocol
 
 const (
-	Generation      = "debug-vNext"
-	ProtocolVersion = "0.18.0"
+	Generation = "debug-vNext"
 
 	SyntheticNodeKindTaskerBootstrap = "tasker-bootstrap"
 	TaskerBootstrapRuntimeName       = "__mpe_tasker_bootstrap__"
@@ -21,7 +20,6 @@ const (
 
 type CapabilityManifest struct {
 	Generation        string   `json:"generation"`
-	Protocol          string   `json:"protocol"`
 	RunModes          []string `json:"runModes"`
 	Diagnostics       []string `json:"diagnostics"`
 	Artifacts         []string `json:"artifacts"`

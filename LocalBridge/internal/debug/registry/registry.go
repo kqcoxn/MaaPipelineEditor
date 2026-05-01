@@ -5,7 +5,6 @@ import "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/protocol"
 func DefaultCapabilityManifest() protocol.CapabilityManifest {
 	return protocol.CapabilityManifest{
 		Generation: protocol.Generation,
-		Protocol:   protocol.ProtocolVersion,
 		RunModes: []string{
 			string(protocol.RunModeRunFromNode),
 			string(protocol.RunModeSingleNodeRun),

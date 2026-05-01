@@ -110,6 +110,9 @@ export function useDebugModalController() {
   const {
     lastRunMode,
     autoGenerateAiSummary,
+    autoCloseOnRunStart,
+    autoOpenOnRunFinish,
+    autoOpenPanelOnRunFinish,
     nodeExecutionAttributionMode,
     nodeExecutionDetailMode,
     nodeExecutionFilters,
@@ -117,6 +120,9 @@ export function useDebugModalController() {
     setLastRunMode,
     setLastEntryNodeId,
     setAutoGenerateAiSummary,
+    setAutoCloseOnRunStart,
+    setAutoOpenOnRunFinish,
+    setAutoOpenPanelOnRunFinish,
     setNodeExecutionFilters,
     setNodeExecutionAttributionMode,
     setNodeExecutionDetailMode,
@@ -411,6 +417,9 @@ export function useDebugModalController() {
       }
       useDebugAiSummaryStore.getState().reset();
       setLastRunMode(mode);
+      if (autoCloseOnRunStart) {
+        closeModal();
+      }
       if (request.target) {
         profileState.setEntry(request.target);
         setLastEntryNodeId(request.target.nodeId);
@@ -653,6 +662,37 @@ export function useDebugModalController() {
     generateDebugAiSummary,
   ]);
 
+  useEffect(() => {
+    const latestSession = displaySessions[0];
+    if (!latestSession || !isTerminalDebugSessionStatus(latestSession.status)) {
+      return;
+    }
+    if (!autoOpenOnRunFinish) return;
+
+    const autoOpenTargetId = `modal:${debugAiSummaryTargetKey({
+      kind: "run",
+      sessionId: latestSession.sessionId,
+      runId: latestSession.runId,
+    })}`;
+    if (aiSummaryState.autoRequestedTargetIds.includes(autoOpenTargetId)) {
+      return;
+    }
+
+    const targetPanel =
+      autoOpenPanelOnRunFinish === "last-closed"
+        ? useDebugModalMemoryStore.getState().lastPanel || "overview"
+        : autoOpenPanelOnRunFinish;
+    useDebugSessionStore.getState().openModal(targetPanel);
+    aiSummaryState.markAutoRequested(autoOpenTargetId);
+  }, [
+    aiSummaryState,
+    aiSummaryState.autoRequestedTargetIds,
+    aiSummaryState.markAutoRequested,
+    autoOpenOnRunFinish,
+    autoOpenPanelOnRunFinish,
+    displaySessions,
+  ]);
+
   const openNodeExecutionRecord = (
     record: Parameters<
       typeof nodeExecutionController.openNodeExecutionRecord
@@ -678,6 +718,9 @@ export function useDebugModalController() {
     connected,
     lastRunMode,
     autoGenerateAiSummary,
+    autoCloseOnRunStart,
+    autoOpenOnRunFinish,
+    autoOpenPanelOnRunFinish,
     aiSummaryState,
     allEvents,
     events,
@@ -753,6 +796,9 @@ export function useDebugModalController() {
     openAiSummaryPanel,
     generateDebugAiSummary,
     setAutoGenerateAiSummary,
+    setAutoCloseOnRunStart,
+    setAutoOpenOnRunFinish,
+    setAutoOpenPanelOnRunFinish,
   };
 }
 

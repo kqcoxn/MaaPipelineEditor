@@ -30,6 +30,7 @@ export interface DebugTraceSummary {
   status: DebugSessionStatus;
   currentNodeId?: string;
   currentRuntimeName?: string;
+  activeRecognitionNodeIds: string[];
   visitedNodeIds: string[];
   succeededNodeIds: string[];
   failedNodeIds: string[];
@@ -80,6 +81,7 @@ export interface DebugTraceStateSnapshot {
 function defaultSummary(): DebugTraceSummary {
   return {
     status: "idle",
+    activeRecognitionNodeIds: [],
     visitedNodeIds: [],
     succeededNodeIds: [],
     failedNodeIds: [],
@@ -187,6 +189,7 @@ export function reduceDebugTrace(
   const visitedNodeIds = new Set<string>();
   const succeededNodeIds = new Set<string>();
   const failedNodeIds = new Set<string>();
+  const activeRecognitionNodeIds = new Map<string, number>();
   const executedEdgeIds = new Set<string>();
   const candidateEdgeIds = new Set<string>();
   const recognitionEvents: DebugEvent[] = [];
@@ -264,6 +267,7 @@ export function reduceDebugTrace(
 
     if (event.kind === "recognition") recognitionEvents.push(event);
     if (event.kind === "action") actionEvents.push(event);
+    updateActiveRecognitionNodes(activeRecognitionNodeIds, event);
 
     const diagnostic = diagnosticFromEvent(event);
     if (diagnostic) diagnostics.push(diagnostic);
@@ -296,6 +300,7 @@ export function reduceDebugTrace(
     status,
     currentNodeId,
     currentRuntimeName,
+    activeRecognitionNodeIds: [...activeRecognitionNodeIds.keys()],
     visitedNodeIds: [...visitedNodeIds],
     succeededNodeIds: [...succeededNodeIds],
     failedNodeIds: [...failedNodeIds],
@@ -309,6 +314,27 @@ export function reduceDebugTrace(
     nodeStates,
     nodeReplays: groupNodeReplays(nodeReplayBuckets),
   };
+}
+
+function updateActiveRecognitionNodes(
+  activeRecognitionNodeIds: Map<string, number>,
+  event: DebugEvent,
+): void {
+  if (event.kind !== "recognition" || !event.node?.nodeId) return;
+  const nodeId = event.node.nodeId;
+  const current = activeRecognitionNodeIds.get(nodeId) ?? 0;
+  if (event.phase === "starting") {
+    activeRecognitionNodeIds.set(nodeId, current + 1);
+    return;
+  }
+  if (
+    event.phase === "succeeded" ||
+    event.phase === "failed" ||
+    event.phase === "completed"
+  ) {
+    if (current <= 1) activeRecognitionNodeIds.delete(nodeId);
+    else activeRecognitionNodeIds.set(nodeId, current - 1);
+  }
 }
 
 export function reduceDebugTraceForReplay(

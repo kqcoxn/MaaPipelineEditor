@@ -60,31 +60,42 @@ export const pinnedNotice: PinnedNotice = {
 };
 
 export const nextPreview: ForecastSection = {
-  title: "下期预告",
-  notice: "预告内容会随开发进度调整，不代表最终发布时间承诺。",
+  title: "Next Version 至 v1.6.0",
+  notice: "预告内容会随开发进度与实际需求调整，不代表最终承诺。",
   items: [
+    {
+      theme: "Wiki",
+      title: "俺寻思",
+      description:
+        "集成式 Wiki 模块，可在 MPE 内直接查看动态教程，支持任意界面直接跳转至对应模块内容。",
+    },
     {
       theme: "FlowScope",
       title: "调试模块完善与问题修复",
       description:
         "推进调试模块的功能完善与稳定性提升，修复已知问题，优化用户体验。",
     },
-    {
-      title: "集成日志分析模块",
-      description:
-        "继续收敛调试入口、运行状态和异常提示，让常见排障路径更直观。",
-    },
   ],
 };
 
 export const longTermPreview: ForecastSection = {
   title: "长期预告",
-  notice: "不绑定具体版本，仅表达方向性规划。",
+  notice: "不绑定具体版本，仅方向性规划，可能随时增删或调整。",
   items: [
     {
       theme: "生态",
       title: "VSCode 插件（MSE）接入",
       description: "以 Iframe 形式嵌入 MSE，提供文件至节点级联动相关功能",
+    },
+    {
+      theme: "日志",
+      title: "集成式分析",
+      description: "支持调试与导入本地 maa.log 可视化分析",
+    },
+    {
+      theme: "工具",
+      title: "客制化业务增强",
+      description: "支持按键工具、导入图片、自定义分辨率等",
     },
     {
       theme: "维护",
