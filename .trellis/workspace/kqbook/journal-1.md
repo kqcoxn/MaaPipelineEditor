@@ -105,3 +105,36 @@ Implemented debug image modal, ROI controls, raw/draw image handling, artifact b
 ### Next Steps
 
 - None - task complete
+
+
+## Session 4: Debug node execution attribution fixes
+
+**Date**: 2026-05-01
+**Task**: Debug node execution attribution fixes
+**Branch**: `main`
+
+### Summary
+
+Fixed node execution attribution for Tasker bootstrap, Next and Pair modes, merged next-list continuations, renamed node attribution to Pair mode, and updated mode headings.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c080ded` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
