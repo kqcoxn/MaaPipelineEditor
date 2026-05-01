@@ -60,11 +60,6 @@ export function registerDebugModalContributions(): void {
     label: "仅动作",
     runMode: "action-only",
   });
-  debugContributionRegistry.registerNodeDebugAction({
-    id: "fixed-image-recognition",
-    label: "固定图识别",
-    runMode: "fixed-image-recognition",
-  });
 }
 
 registerDebugModalContributions();

@@ -2,13 +2,11 @@ import { create } from "zustand";
 import type {
   DebugAgentProfile,
   DebugArtifactPolicy,
-  DebugBatchRecognitionInput,
   DebugRunInput,
   DebugNodeTarget,
   DebugRunMode,
   DebugRunProfile,
   DebugRunRequest,
-  DebugScreenshotStreamConfig,
 } from "../features/debug/types";
 import {
   buildDebugSnapshotBundle,
@@ -25,9 +23,6 @@ export interface DebugRunProfilePreset {
   id: string;
   profile: DebugRunProfile;
   artifactPolicy: DebugArtifactPolicy;
-  fixedImageInput: Pick<DebugRunInput, "imagePath" | "imageRelativePath">;
-  batchRecognitionImages: DebugBatchRecognitionInput[];
-  screenshotStreamConfig: DebugScreenshotStreamConfig;
 }
 
 interface DebugRunProfilesSnapshot {
@@ -38,9 +33,6 @@ interface DebugRunProfilesSnapshot {
 interface LegacyDebugRunProfileSnapshot {
   profile?: Partial<DebugRunProfile> & Record<string, unknown>;
   artifactPolicy?: Partial<DebugArtifactPolicy>;
-  fixedImageInput?: Pick<DebugRunInput, "imagePath" | "imageRelativePath">;
-  batchRecognitionImages?: DebugBatchRecognitionInput[];
-  screenshotStreamConfig?: Partial<DebugScreenshotStreamConfig>;
 }
 
 interface DebugRunProfileState extends DebugRunProfilePreset {
@@ -54,11 +46,6 @@ interface DebugRunProfileState extends DebugRunProfilePreset {
   setEntry: (entry: DebugNodeTarget) => void;
   setResourcePaths: (resourcePaths: string[]) => void;
   setAgents: (agents: DebugAgentProfile[]) => void;
-  setScreenshotStreamConfig: (config: DebugScreenshotStreamConfig) => void;
-  setFixedImageInput: (
-    input: Pick<DebugRunInput, "imagePath" | "imageRelativePath">,
-  ) => void;
-  setBatchRecognitionImages: (images: DebugBatchRecognitionInput[]) => void;
   setArtifactPolicy: (policy: DebugArtifactPolicy) => void;
   buildRunRequest: (
     mode: DebugRunMode,
@@ -72,11 +59,6 @@ const defaultArtifactPolicy: DebugArtifactPolicy = {
   includeRawImage: true,
   includeDrawImage: true,
   includeActionDetail: true,
-};
-
-const defaultScreenshotStreamConfig: DebugScreenshotStreamConfig = {
-  intervalMs: 1000,
-  force: false,
 };
 
 function createDefaultProfile(id = "default", name = "默认调试配置"): DebugRunProfile {
@@ -111,9 +93,6 @@ function createDefaultPreset(id = "default", name = "默认调试配置"): Debug
     id,
     profile: createDefaultProfile(id, name),
     artifactPolicy: defaultArtifactPolicy,
-    fixedImageInput: {},
-    batchRecognitionImages: [],
-    screenshotStreamConfig: defaultScreenshotStreamConfig,
   };
 }
 
@@ -135,16 +114,6 @@ function readSnapshot(): DebugRunProfilesSnapshot {
             artifactPolicy: {
               ...defaultArtifactPolicy,
               ...legacy.artifactPolicy,
-            },
-            fixedImageInput: {
-              ...legacy.fixedImageInput,
-            },
-            batchRecognitionImages: sanitizeBatchImages(
-              legacy.batchRecognitionImages,
-            ),
-            screenshotStreamConfig: {
-              ...defaultScreenshotStreamConfig,
-              ...legacy.screenshotStreamConfig,
             },
           },
         ],
@@ -347,27 +316,6 @@ export const useDebugRunProfileStore = create<DebugRunProfileState>(
           },
         })),
 
-      setScreenshotStreamConfig: (screenshotStreamConfig) =>
-        updateActivePreset((preset) => ({
-          ...preset,
-          screenshotStreamConfig: {
-            ...defaultScreenshotStreamConfig,
-            ...screenshotStreamConfig,
-          },
-        })),
-
-      setFixedImageInput: (fixedImageInput) =>
-        updateActivePreset((preset) => ({
-          ...preset,
-          fixedImageInput,
-        })),
-
-      setBatchRecognitionImages: (batchRecognitionImages) =>
-        updateActivePreset((preset) => ({
-          ...preset,
-          batchRecognitionImages: sanitizeBatchImages(batchRecognitionImages),
-        })),
-
       setArtifactPolicy: (artifactPolicy) =>
         updateActivePreset((preset) => ({
           ...preset,
@@ -408,15 +356,7 @@ export const useDebugRunProfileStore = create<DebugRunProfileState>(
           ...omitStoredControllerId(storeProfile.controller.options),
           ...(liveControllerId && { controllerId: liveControllerId }),
         };
-        const requestInput: DebugRunInput = {
-          ...input,
-          ...(mode === "fixed-image-recognition"
-            ? {
-                imagePath: get().fixedImageInput.imagePath,
-                imageRelativePath: get().fixedImageInput.imageRelativePath,
-              }
-            : {}),
-        };
+        const requestInput: DebugRunInput = { ...input };
         const normalizedInput = Object.fromEntries(
           Object.entries(requestInput).filter(([, value]) =>
             typeof value === "string" ? value.trim() !== "" : value !== undefined,
@@ -444,8 +384,7 @@ export const useDebugRunProfileStore = create<DebugRunProfileState>(
             mode === "run-from-node" ||
             mode === "single-node-run" ||
             mode === "recognition-only" ||
-            mode === "action-only" ||
-            mode === "fixed-image-recognition"
+            mode === "action-only"
               ? entry
               : undefined,
           overrides: [...bundle.overrides],
@@ -501,16 +440,6 @@ function normalizePreset(
       ...defaultArtifactPolicy,
       ...preset?.artifactPolicy,
     },
-    fixedImageInput: {
-      ...preset?.fixedImageInput,
-    },
-    batchRecognitionImages: sanitizeBatchImages(
-      preset?.batchRecognitionImages,
-    ),
-    screenshotStreamConfig: {
-      ...defaultScreenshotStreamConfig,
-      ...preset?.screenshotStreamConfig,
-    },
   };
 }
 
@@ -565,18 +494,6 @@ function sanitizeAgent(agent: Partial<DebugAgentProfile>): DebugAgentProfile {
   };
 }
 
-function sanitizeBatchImages(
-  images?: DebugBatchRecognitionInput[],
-): DebugBatchRecognitionInput[] {
-  if (!Array.isArray(images)) return [];
-  return images
-    .map((image) => ({
-      imagePath: stringFromValue(image.imagePath),
-      imageRelativePath: stringFromValue(image.imageRelativePath),
-    }))
-    .filter((image) => image.imagePath || image.imageRelativePath);
-}
-
 function activePreset(snapshot: DebugRunProfilesSnapshot): DebugRunProfilePreset {
   return (
     snapshot.profiles.find(
@@ -600,11 +517,6 @@ function clonePreset(preset: DebugRunProfilePreset): DebugRunProfilePreset {
       resourcePaths: [...preset.profile.resourcePaths],
     },
     artifactPolicy: { ...preset.artifactPolicy },
-    fixedImageInput: { ...preset.fixedImageInput },
-    batchRecognitionImages: preset.batchRecognitionImages.map((image) => ({
-      ...image,
-    })),
-    screenshotStreamConfig: { ...preset.screenshotStreamConfig },
   };
 }
 

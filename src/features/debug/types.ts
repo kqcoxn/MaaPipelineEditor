@@ -11,7 +11,6 @@ export type DebugRunMode =
   | "single-node-run"
   | "recognition-only"
   | "action-only"
-  | "fixed-image-recognition"
   | "replay";
 
 export type DebugSessionStatus =
@@ -121,7 +120,6 @@ export interface DebugCapabilityManifest {
   debugFeatures?: Array<
     | "trace-replay"
     | "performance-summary"
-    | "batch-recognition"
     | "agent-run-profile"
   >;
   maa: {
@@ -365,110 +363,10 @@ export interface DebugPerformanceSummary {
   generatedAt: string;
 }
 
-export interface DebugBatchRecognitionInput {
-  imagePath?: string;
-  imageRelativePath?: string;
-}
-
-export interface DebugAgentRunProfileMetadata {
-  id: string;
-  enabled: boolean;
-  transport?: DebugAgentTransport;
-  required: boolean;
-  timeoutMs?: number;
-  identifier?: string;
-  tcpPort?: number;
-  customRecognitions?: string[];
-  customActions?: string[];
-  status?: string;
-  message?: string;
-}
-
-export interface DebugBatchRecognitionRequest {
-  sessionId?: string;
-  profileId?: string;
-  profile: DebugRunProfile;
-  graphSnapshot: DebugGraphSnapshot;
-  resolverSnapshot: DebugNodeResolverSnapshot;
-  target: DebugNodeTarget;
-  overrides?: DebugPipelineOverride[];
-  artifactPolicy?: DebugArtifactPolicy;
-  images: DebugBatchRecognitionInput[];
-  agentMetadata?: DebugAgentRunProfileMetadata[];
-}
-
-export interface DebugBatchRecognitionStopRequest {
-  sessionId: string;
-  batchId?: string;
-  reason?: string;
-}
-
-export interface DebugBatchRecognitionImageResult {
-  index: number;
-  imagePath?: string;
-  imageRelativePath?: string;
-  runId?: string;
-  status: string;
-  hit?: boolean;
-  durationMs?: number;
-  detailRefs?: string[];
-  screenshotRefs?: string[];
-  error?: string;
-}
-
-export interface DebugBatchRecognitionResult {
-  sessionId: string;
-  batchId: string;
-  target: DebugNodeTarget;
-  status: string;
-  startedAt: string;
-  completedAt?: string;
-  total: number;
-  completed: number;
-  succeeded: number;
-  failed: number;
-  stopped?: boolean;
-  averageDurationMs?: number;
-  results: DebugBatchRecognitionImageResult[];
-  summaryArtifactRef?: string;
-}
-
 export interface DebugScreenshotCaptureRequest {
   sessionId?: string;
   controllerId?: string;
   force?: boolean;
-}
-
-export interface DebugScreenshotStreamConfig {
-  intervalMs: number;
-  force: boolean;
-  maxFrames?: number;
-}
-
-export interface DebugScreenshotStreamStartRequest
-  extends DebugScreenshotStreamConfig {
-  sessionId?: string;
-  runId?: string;
-  controllerId?: string;
-}
-
-export interface DebugScreenshotStreamStopRequest {
-  sessionId: string;
-  runId?: string;
-  reason?: string;
-}
-
-export interface DebugScreenshotStreamStatus {
-  sessionId: string;
-  runId?: string;
-  controllerId?: string;
-  intervalMs?: number;
-  force?: boolean;
-  active: boolean;
-  frameCount?: number;
-  startedAt?: string;
-  stoppedAt?: string;
-  reason?: string;
 }
 
 export interface DebugAgentTestRequest {

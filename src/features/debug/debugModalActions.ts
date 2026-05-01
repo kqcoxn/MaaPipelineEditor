@@ -1,20 +1,12 @@
 import { message } from "antd";
 import type { DebugProtocolClient } from "../../services/protocols/DebugProtocolClient";
-import type {
-  DebugAgentProfile,
-  DebugScreenshotStreamConfig,
-} from "./types";
+import type { DebugAgentProfile } from "./types";
 
 interface ScreenshotActionContext {
   client: DebugProtocolClient;
   connected: boolean;
   controllerId?: string;
   sessionId?: string;
-  runId?: string;
-}
-
-interface ScreenshotStreamActionContext extends ScreenshotActionContext {
-  config: DebugScreenshotStreamConfig;
 }
 
 interface ResourcePreflightActionContext {
@@ -62,42 +54,6 @@ export function captureScreenshotAction(
     return;
   }
   onSuccess();
-}
-
-export function startScreenshotStreamAction(
-  context: ScreenshotStreamActionContext,
-  onSuccess: () => void,
-): void {
-  if (!ensureControllerReady(context.connected, context.controllerId)) return;
-  const sent = context.client.startScreenshotStream({
-    sessionId: context.sessionId,
-    runId: context.runId,
-    controllerId: context.controllerId,
-    ...context.config,
-    intervalMs: Math.max(250, context.config.intervalMs || 1000),
-  });
-  if (!sent) {
-    message.error("发送截图推流启动请求失败");
-    return;
-  }
-  onSuccess();
-}
-
-export function stopScreenshotStreamAction({
-  client,
-  runId,
-  sessionId,
-}: Pick<ScreenshotActionContext, "client" | "runId" | "sessionId">): void {
-  if (!sessionId) {
-    message.warning("当前没有调试会话（Session）");
-    return;
-  }
-  const sent = client.stopScreenshotStream({
-    sessionId,
-    runId,
-    reason: "user_stop",
-  });
-  if (!sent) message.error("发送截图推流停止请求失败");
 }
 
 export function requestResourcePreflightAction({

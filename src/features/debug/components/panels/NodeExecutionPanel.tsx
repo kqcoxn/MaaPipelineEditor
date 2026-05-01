@@ -162,9 +162,6 @@ export function NodeExecutionPanel({
     setNodeExecutionFilters,
     summary,
   } = controller;
-  const {
-    batchRecognitionNodeSummaries,
-  } = controller;
   const [searchText, setSearchText] = useState("");
   const rawNodeExecutionCount = useMemo(
     () => Object.values(summary.nodeReplays).flat().length,
@@ -452,7 +449,6 @@ export function NodeExecutionPanel({
             {selectedRecord && (
               <NodeExecutionRecordDetails
                 artifacts={artifacts}
-                batchSummaries={batchRecognitionNodeSummaries}
                 detailMode={nodeExecutionDetailMode}
                 events={events}
                 onSelectAttempt={setSelectedNodeExecutionAttemptId}

@@ -69,7 +69,7 @@ const panels: PanelItem[] = [
     id: "images",
     label: "图像",
     icon: <PictureOutlined />,
-    description: "管理实时截图、固定图输入、批量识别图片和图像产物预览。",
+    description: "查看图像产物和产物预览。",
   },
   {
     id: "diagnostics",

@@ -213,11 +213,10 @@ function handleDebugRunMode(node: NodeContextMenuNode, mode: DebugRunMode) {
   const sessionState = useDebugSessionStore.getState();
   const profileState = useDebugRunProfileStore.getState();
   const mfwState = useMFWStore.getState();
-  const panel = mode === "fixed-image-recognition" ? "images" : "overview";
 
   const target = applyDebugNodeTarget(node.id, {
     focusCanvas: true,
-    openPanel: panel,
+    openPanel: "overview",
     rememberPanel: true,
     rememberEntryNodeId: true,
   });
@@ -271,14 +270,6 @@ function handleDebugRunMode(node: NodeContextMenuNode, mode: DebugRunMode) {
   }
   if (!capabilities?.runModes.includes(mode)) {
     message.warning(`当前 LocalBridge 暂不支持调试模式: ${mode}`);
-    return;
-  }
-  if (
-    mode === "fixed-image-recognition" &&
-    !profileState.fixedImageInput.imageRelativePath &&
-    !profileState.fixedImageInput.imagePath
-  ) {
-    message.warning("请先在调试面板的图像页选择固定图输入");
     return;
   }
   if (mode === "action-only") {
@@ -483,19 +474,6 @@ export function getNodeContextMenuConfig(
         isDebugRunModeUnavailable("action-only", options.debugCapabilities),
       disabledTip: "当前 LocalBridge 未暴露 action-only 能力",
       danger: true,
-    },
-    {
-      key: "debug-fixed-image-recognition",
-      label: "固定图识别",
-      icon: <PlayCircleOutlined />,
-      onClick: (node) => handleDebugRunMode(node, "fixed-image-recognition"),
-      visible: (node) => node.type === NodeTypeEnum.Pipeline,
-      disabled: () =>
-        isDebugRunModeUnavailable(
-          "fixed-image-recognition",
-          options.debugCapabilities,
-        ),
-      disabledTip: "当前 LocalBridge 未暴露 fixed-image-recognition 能力",
     },
     {
       type: "divider",

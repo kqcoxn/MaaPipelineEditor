@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   getDebugReplayRecordState,
   getDebugNodeReplayControl,
-  selectDebugBatchRecognitionNodeSummaries,
   selectDebugNodeExecutionOverlay,
   selectDebugNodeExecutionOverlayFromEdges,
 } from "./nodeExecutionAnalysis";
@@ -17,8 +16,6 @@ import { reduceDebugTrace } from "./traceReducer";
 import {
   DEBUG_TASKER_BOOTSTRAP_LABEL,
   DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
-  type DebugArtifactPayload,
-  type DebugBatchRecognitionResult,
   type DebugEvent,
   type DebugEdgeReason,
   type DebugEventKind,
@@ -1029,42 +1026,6 @@ describe("node execution v2 analysis", () => {
     expect(overlay.executionCandidateEdgeIds).toEqual([]);
   });
 
-  it("aggregates batch recognition summary artifacts by target node", () => {
-    const summaries = selectDebugBatchRecognitionNodeSummaries({
-      "batch-summary": {
-        ref: {
-          id: "batch-summary",
-          sessionId: "session-1",
-          type: "batch-recognition-summary",
-          mime: "application/json",
-          createdAt: "2026-04-29T00:00:00.000Z",
-        },
-        status: "ready",
-        payload: {
-          ref: {
-            id: "batch-summary",
-            sessionId: "session-1",
-            type: "batch-recognition-summary",
-            mime: "application/json",
-            createdAt: "2026-04-29T00:00:00.000Z",
-          },
-          data: batchResult(),
-        } satisfies DebugArtifactPayload,
-      },
-    });
-
-    expect(summaries).toHaveLength(1);
-    expect(summaries[0]).toMatchObject({
-      batchId: "batch-1",
-      nodeId: "node-a",
-      total: 3,
-      succeeded: 1,
-      failed: 1,
-      detailRefs: ["detail-1", "detail-2"],
-      screenshotRefs: ["shot-1"],
-    });
-  });
-
 });
 
 const resolverNodes = [
@@ -1169,50 +1130,6 @@ function replayStatus(cursorSeq: number) {
     active: true,
     playing: false,
     cursorSeq,
-  };
-}
-
-function batchResult(): DebugBatchRecognitionResult {
-  return {
-    sessionId: "session-1",
-    batchId: "batch-1",
-    target: {
-      fileId: "main.json",
-      nodeId: "node-a",
-      runtimeName: "A",
-    },
-    status: "failed",
-    startedAt: "2026-04-29T00:00:00.000Z",
-    completedAt: "2026-04-29T00:00:03.000Z",
-    total: 3,
-    completed: 2,
-    succeeded: 1,
-    failed: 1,
-    averageDurationMs: 1500,
-    results: [
-      {
-        index: 0,
-        imageRelativePath: "a.png",
-        status: "succeeded",
-        hit: true,
-        durationMs: 1000,
-        detailRefs: ["detail-1"],
-        screenshotRefs: ["shot-1"],
-      },
-      {
-        index: 1,
-        imageRelativePath: "b.png",
-        status: "failed",
-        durationMs: 2000,
-        detailRefs: ["detail-2"],
-        error: "failed",
-      },
-      {
-        index: 2,
-        imageRelativePath: "c.png",
-        status: "running",
-      },
-    ],
   };
 }
 

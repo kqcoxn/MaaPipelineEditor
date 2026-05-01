@@ -8,7 +8,6 @@ import (
 
 	maa "github.com/MaaXYZ/maa-framework-go/v4"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/artifact"
-	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/batch"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/protocol"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/registry"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/replay"
@@ -32,7 +31,6 @@ type Handler struct {
 	runner       *debugrunner.Runner
 	screenshots  *screenshot.Service
 	traceReplay  *replay.Service
-	batches      *batch.Service
 	capabilities protocol.CapabilityManifest
 }
 
@@ -49,7 +47,6 @@ func NewHandler(service *mfw.Service, root string) *Handler {
 		runner:       debugrunner.New(service, sessions, traces, artifacts, root),
 		screenshots:  screenshot.NewService(service, artifacts),
 		traceReplay:  replay.NewService(traces),
-		batches:      batch.New(service, root, traces, artifacts),
 		capabilities: registry.DefaultCapabilityManifest(),
 	}
 }
@@ -80,10 +77,6 @@ func (h *Handler) Handle(msg models.Message, conn *server.Connection) *models.Me
 		h.handleArtifactGet(conn, msg)
 	case "/mpe/debug/screenshot/capture":
 		h.handleScreenshotCapture(conn, msg)
-	case "/mpe/debug/screenshot/start":
-		h.handleScreenshotStreamStart(conn, msg)
-	case "/mpe/debug/screenshot/stop":
-		h.handleScreenshotStreamStop(conn, msg)
 	case "/mpe/debug/agent/test":
 		h.handleAgentTest(conn, msg)
 	case "/mpe/debug/trace/snapshot":
@@ -94,10 +87,6 @@ func (h *Handler) Handle(msg models.Message, conn *server.Connection) *models.Me
 		h.handleTraceReplaySeek(conn, msg)
 	case "/mpe/debug/trace/replay/stop":
 		h.handleTraceReplayStop(conn, msg)
-	case "/mpe/debug/batch-recognition/start":
-		h.handleBatchRecognitionStart(conn, msg)
-	case "/mpe/debug/batch-recognition/stop":
-		h.handleBatchRecognitionStop(conn, msg)
 	case "/mpe/debug/start", "/mpe/debug/stop":
 		h.sendError(conn, "debug_legacy_route_removed", "旧调试路由已移除，请使用 debug-vNext 契约", map[string]string{
 			"path": msg.Path,
@@ -133,9 +122,7 @@ func (h *Handler) handleDestroySession(conn *server.Connection, msg models.Messa
 		return
 	}
 
-	h.screenshots.StopSession(sessionID)
 	h.traceReplay.StopSession(sessionID)
-	h.batches.StopSession(sessionID)
 	h.runner.DisposeSession(sessionID)
 	if err := h.sessions.Destroy(sessionID); err != nil {
 		h.sendError(conn, "debug_session_not_found", err.Error(), nil)
@@ -295,7 +282,6 @@ func (h *Handler) handleRunStop(conn *server.Connection, msg models.Message) {
 		return
 	}
 
-	h.screenshots.StopRunBound(req.SessionID, req.RunID, "run_stop")
 	if err := h.runner.Stop(req.SessionID, req.RunID, req.Reason, h.eventSender(conn), h.snapshotSender(conn)); err != nil {
 		h.sendError(conn, "debug_run_stop_failed", err.Error(), map[string]string{
 			"sessionId": req.SessionID,
@@ -388,68 +374,6 @@ func (h *Handler) handleScreenshotCapture(conn *server.Connection, msg models.Me
 			"height":       bounds.Dy(),
 		},
 	})
-}
-
-func (h *Handler) handleScreenshotStreamStart(conn *server.Connection, msg models.Message) {
-	if !h.service.IsInitialized() {
-		h.sendError(conn, "debug_not_initialized", "MaaFramework 未初始化，请先初始化服务", nil)
-		return
-	}
-
-	req, err := decodeData[protocol.ScreenshotStreamStartRequest](msg)
-	if err != nil {
-		h.sendError(conn, "debug_invalid_request", err.Error(), nil)
-		return
-	}
-
-	sessionID := strings.TrimSpace(req.SessionID)
-	if sessionID == "" {
-		snapshot := h.sessions.Create(h.capabilities)
-		sessionID = snapshot.SessionID
-		req.SessionID = sessionID
-		h.send(conn, "/lte/debug/session_created", snapshot)
-	} else if _, err := h.sessions.Snapshot(sessionID); err != nil {
-		h.sendError(conn, "debug_session_not_found", err.Error(), nil)
-		return
-	}
-	req.ControllerID = strings.TrimSpace(req.ControllerID)
-	req.RunID = strings.TrimSpace(req.RunID)
-
-	status, err := h.screenshots.Start(req, func(event protocol.Event) {
-		h.emitEvent(conn, event)
-	})
-	if err != nil {
-		h.sendError(conn, "debug_screenshot_stream_failed", err.Error(), map[string]interface{}{
-			"sessionId":    sessionID,
-			"controllerId": req.ControllerID,
-		})
-		return
-	}
-	h.send(conn, "/lte/debug/screenshot_stream_started", status)
-}
-
-func (h *Handler) handleScreenshotStreamStop(conn *server.Connection, msg models.Message) {
-	req, err := decodeData[protocol.ScreenshotStreamStopRequest](msg)
-	if err != nil {
-		h.sendError(conn, "debug_invalid_request", err.Error(), nil)
-		return
-	}
-	req.SessionID = strings.TrimSpace(req.SessionID)
-	if req.SessionID == "" {
-		h.sendError(conn, "debug_invalid_request", "缺少必需参数: sessionId", nil)
-		return
-	}
-	if _, err := h.sessions.Snapshot(req.SessionID); err != nil {
-		h.sendError(conn, "debug_session_not_found", err.Error(), nil)
-		return
-	}
-
-	reason := strings.TrimSpace(req.Reason)
-	if reason == "" {
-		reason = "user_stop"
-	}
-	status, _ := h.screenshots.Stop(req.SessionID, reason)
-	h.send(conn, "/lte/debug/screenshot_stream_stopped", status)
 }
 
 func (h *Handler) handleAgentTest(conn *server.Connection, msg models.Message) {
@@ -565,66 +489,12 @@ func (h *Handler) handleTraceReplayStop(conn *server.Connection, msg models.Mess
 	h.send(conn, "/lte/debug/trace_replay_status", status)
 }
 
-func (h *Handler) handleBatchRecognitionStart(conn *server.Connection, msg models.Message) {
-	if !h.service.IsInitialized() {
-		h.sendError(conn, "debug_not_initialized", "MaaFramework 未初始化，请先初始化服务", nil)
-		return
-	}
-	req, err := decodeData[protocol.BatchRecognitionRequest](msg)
-	if err != nil {
-		h.sendError(conn, "debug_invalid_request", err.Error(), nil)
-		return
-	}
-	if strings.TrimSpace(req.SessionID) == "" {
-		snapshot := h.sessions.Create(h.capabilities)
-		req.SessionID = snapshot.SessionID
-		h.send(conn, "/lte/debug/session_created", snapshot)
-	} else if _, err := h.sessions.Snapshot(req.SessionID); err != nil {
-		h.sendError(conn, "debug_session_not_found", err.Error(), nil)
-		return
-	}
-	result, err := h.batches.Start(req, func(event protocol.Event) {
-		h.send(conn, "/lte/debug/event", event)
-	})
-	if err != nil {
-		h.sendError(conn, "debug_batch_recognition_failed", err.Error(), map[string]interface{}{
-			"sessionId": req.SessionID,
-		})
-		return
-	}
-	h.send(conn, "/lte/debug/batch_recognition_started", result)
-}
-
-func (h *Handler) handleBatchRecognitionStop(conn *server.Connection, msg models.Message) {
-	req, err := decodeData[protocol.BatchRecognitionStopRequest](msg)
-	if err != nil {
-		h.sendError(conn, "debug_invalid_request", err.Error(), nil)
-		return
-	}
-	if _, err := h.sessions.Snapshot(strings.TrimSpace(req.SessionID)); err != nil {
-		h.sendError(conn, "debug_session_not_found", err.Error(), nil)
-		return
-	}
-	result, err := h.batches.Stop(req)
-	if err != nil {
-		h.sendError(conn, "debug_batch_recognition_stop_failed", err.Error(), nil)
-		return
-	}
-	h.send(conn, "/lte/debug/batch_recognition_stopped", result)
-}
-
 func validateRunRequest(req protocol.RunRequest) error {
 	if !protocol.IsValidRunMode(req.Mode) {
 		return fmt.Errorf("无效的 run mode: %s", req.Mode)
 	}
 	if req.Mode == protocol.RunModeActionOnly && (req.Input == nil || !req.Input.ConfirmAction) {
 		return fmt.Errorf("action-only requires input.confirmAction=true")
-	}
-	if req.Mode == protocol.RunModeFixedImageRecognition {
-		if req.Input == nil ||
-			(strings.TrimSpace(req.Input.ImagePath) == "" && strings.TrimSpace(req.Input.ImageRelativePath) == "") {
-			return fmt.Errorf("fixed-image-recognition requires input.imageRelativePath or input.imagePath")
-		}
 	}
 	if strings.TrimSpace(req.Profile.ID) == "" {
 		return fmt.Errorf("缺少必需字段: profile.id")

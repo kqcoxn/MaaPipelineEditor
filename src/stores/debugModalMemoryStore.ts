@@ -90,7 +90,6 @@ const validRunModes = new Set<DebugRunMode>([
   "single-node-run",
   "recognition-only",
   "action-only",
-  "fixed-image-recognition",
   "replay",
 ]);
 
