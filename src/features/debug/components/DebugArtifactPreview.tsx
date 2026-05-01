@@ -1,10 +1,12 @@
-import { useState, type CSSProperties } from "react";
+import type { CSSProperties } from "react";
 import { Alert, Spin, Typography } from "antd";
 import type { DebugArtifactEntry } from "../../../stores/debugArtifactStore";
+import { normalizeDebugArtifactBox } from "../artifactDetailSummary";
 import {
-  normalizeDebugArtifactBox,
-  type DebugArtifactBox,
-} from "../artifactDetailSummary";
+  DebugImageViewer,
+  type DebugImageOverlay,
+  type DebugImageOverlayGroup,
+} from "./DebugImageViewer";
 import { DebugJsonPreview } from "./DebugJsonPreview";
 
 const { Text } = Typography;
@@ -21,12 +23,16 @@ export interface DebugArtifactPreviewProps {
   artifact?: DebugArtifactEntry;
   box?: unknown;
   maxImageHeight?: number;
+  overlayGroups?: DebugImageOverlayGroup[];
+  overlays?: DebugImageOverlay[];
 }
 
 export function DebugArtifactPreview({
   artifact,
   box,
   maxImageHeight = 360,
+  overlayGroups,
+  overlays: inputOverlays,
 }: DebugArtifactPreviewProps) {
   if (!artifact) return null;
 
@@ -44,11 +50,29 @@ export function DebugArtifactPreview({
 
   const { payload } = artifact;
   if (payload.content && payload.ref.mime.startsWith("image/")) {
+    const normalizedBox = normalizeDebugArtifactBox(box);
+    const overlays: DebugImageOverlay[] = inputOverlays ?? (normalizedBox
+      ? [
+          {
+            id: `${payload.ref.id}:box`,
+            kind: "box",
+            box: normalizedBox,
+            status: "selected",
+          },
+        ]
+      : []);
     return (
-      <DebugImagePreview
+      <DebugImageViewer
         alt={payload.ref.type}
-        box={normalizeDebugArtifactBox(box)}
         maxImageHeight={maxImageHeight}
+        metadata={{
+          artifactId: payload.ref.id,
+          artifactType: payload.ref.type,
+          eventSeq: payload.ref.eventSeq,
+          mime: payload.ref.mime,
+        }}
+        overlayGroups={overlayGroups}
+        overlays={overlays}
         src={`data:${payload.ref.mime};base64,${payload.content}`}
       />
     );
@@ -70,89 +94,4 @@ export function DebugArtifactPreview({
   }
 
   return <Text type="secondary">产物（Artifact）没有可预览内容。</Text>;
-}
-
-function DebugImagePreview({
-  alt,
-  box,
-  maxImageHeight,
-  src,
-}: {
-  alt: string;
-  box?: DebugArtifactBox;
-  maxImageHeight: number;
-  src: string;
-}) {
-  const [naturalSize, setNaturalSize] = useState<{
-    width: number;
-    height: number;
-  }>();
-  const boxStyle =
-    box && naturalSize
-      ? normalizeBoxStyle(box, naturalSize.width, naturalSize.height)
-      : undefined;
-
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        maxWidth: "100%",
-        position: "relative",
-      }}
-    >
-      <img
-        alt={alt}
-        src={src}
-        style={{
-          display: "block",
-          maxWidth: "100%",
-          maxHeight: maxImageHeight,
-        }}
-        onLoad={(event) => {
-          setNaturalSize({
-            width: event.currentTarget.naturalWidth,
-            height: event.currentTarget.naturalHeight,
-          });
-        }}
-      />
-      {boxStyle && (
-        <span
-          aria-hidden
-          style={{
-            ...boxStyle,
-            border: "2px solid #13c2c2",
-            boxShadow: "0 0 0 1px rgba(0, 0, 0, 0.32)",
-            boxSizing: "border-box",
-            pointerEvents: "none",
-            position: "absolute",
-          }}
-        />
-      )}
-    </span>
-  );
-}
-
-function normalizeBoxStyle(
-  box: DebugArtifactBox,
-  naturalWidth: number,
-  naturalHeight: number,
-): CSSProperties | undefined {
-  if (naturalWidth <= 0 || naturalHeight <= 0) return undefined;
-  const left = clampPercent((box.x / naturalWidth) * 100);
-  const top = clampPercent((box.y / naturalHeight) * 100);
-  const right = clampPercent(((box.x + box.width) / naturalWidth) * 100);
-  const bottom = clampPercent(((box.y + box.height) / naturalHeight) * 100);
-  const width = Math.max(0, right - left);
-  const height = Math.max(0, bottom - top);
-  if (width <= 0 || height <= 0) return undefined;
-  return {
-    left: `${left}%`,
-    top: `${top}%`,
-    width: `${width}%`,
-    height: `${height}%`,
-  };
-}
-
-function clampPercent(value: number): number {
-  return Math.max(0, Math.min(100, value));
 }

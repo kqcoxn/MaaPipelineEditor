@@ -586,10 +586,8 @@ function ArtifactActions({
   selectedArtifact?: DebugArtifactEntry;
   screenshotRefs: string[];
 }) {
-  const hasRefs =
-    detailRefs.length > 0 ||
-    screenshotRefs.length > 0 ||
-    derivedImageRefs.length > 0;
+  const imageRefs = mergeRecordImageRefs(derivedImageRefs, screenshotRefs);
+  const hasRefs = detailRefs.length > 0 || imageRefs.length > 0;
 
   return (
     <DebugSection title="Artifact">
@@ -606,15 +604,8 @@ function ArtifactActions({
               })),
             },
             {
-              title: "事件图像",
-              refs: screenshotRefs.map((ref) => ({
-                ref,
-                label: `图像 #${shortRef(ref)}`,
-              })),
-            },
-            {
-              title: "详情派生图像",
-              refs: derivedImageRefs.map((item) => ({
+              title: "图像",
+              refs: imageRefs.map((item) => ({
                 ref: item.ref,
                 label: `${item.label} #${shortRef(item.ref)}`,
               })),
@@ -626,6 +617,29 @@ function ArtifactActions({
       )}
     </DebugSection>
   );
+}
+
+function mergeRecordImageRefs(
+  derivedImageRefs: DebugDetailImageRef[],
+  screenshotRefs: string[],
+): DebugDetailImageRef[] {
+  const seen = new Set<string>();
+  const result: DebugDetailImageRef[] = [];
+  for (const ref of derivedImageRefs) {
+    if (seen.has(ref.ref)) continue;
+    seen.add(ref.ref);
+    result.push(ref);
+  }
+  for (const ref of screenshotRefs) {
+    if (seen.has(ref)) continue;
+    seen.add(ref);
+    result.push({
+      ref,
+      kind: "screenshot",
+      label: "图像",
+    });
+  }
+  return result;
 }
 
 function SimpleEventGroup({

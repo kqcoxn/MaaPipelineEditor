@@ -7,6 +7,11 @@ export interface DebugArtifactBox {
   height: number;
 }
 
+export interface DebugArtifactPoint {
+  x: number;
+  y: number;
+}
+
 export interface DebugDetailImageRef {
   ref: string;
   kind: "raw" | "draw" | "screenshot";
@@ -25,6 +30,21 @@ export interface DebugRecognitionDetailSummary {
   drawImageRefs: string[];
   screenshotRef?: string;
   combinedResultCount?: number;
+  combinedResult?: unknown[];
+  resultGroups: DebugRecognitionResultGroup[];
+}
+
+export interface DebugRecognitionResultGroup {
+  key: "best" | "filtered" | "all";
+  label: string;
+  results: DebugRecognitionResultItem[];
+}
+
+export interface DebugRecognitionResultItem {
+  index: number;
+  box?: DebugArtifactBox;
+  extra?: Record<string, unknown>;
+  raw: unknown;
 }
 
 export interface DebugActionDetailSummary {
@@ -68,6 +88,8 @@ export function summarizeRecognitionDetail(
     drawImageRefs: uniqueStrings(readStringArray(value.drawImageRefs)),
     screenshotRef: readString(value.screenshotRef),
     combinedResultCount: combinedResult?.length,
+    combinedResult,
+    resultGroups: readRecognitionResultGroups(value.detail),
   };
 }
 
@@ -166,6 +188,33 @@ export function normalizeDebugArtifactBox(
   return { x, y, width, height };
 }
 
+export function normalizeDebugArtifactPoint(
+  value: unknown,
+): DebugArtifactPoint | undefined {
+  const point = Array.isArray(value)
+    ? { x: value[0], y: value[1] }
+    : isRecord(value)
+      ? {
+          x: value.x ?? value.left ?? value.cx,
+          y: value.y ?? value.top ?? value.cy,
+        }
+      : undefined;
+  if (!point) return undefined;
+  const x = readFiniteNumber(point.x);
+  const y = readFiniteNumber(point.y);
+  if (x === undefined || y === undefined) return undefined;
+  return { x, y };
+}
+
+export function normalizeDebugArtifactPointList(
+  value: unknown,
+): DebugArtifactPoint[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => normalizeDebugArtifactPoint(item))
+    .filter((point): point is DebugArtifactPoint => Boolean(point));
+}
+
 function dedupeImageRefs(refs: DebugDetailImageRef[]): DebugDetailImageRef[] {
   const seen = new Set<string>();
   const result: DebugDetailImageRef[] = [];
@@ -191,6 +240,42 @@ function readStringArray(value: unknown): string[] {
   return value.filter(
     (item): item is string => typeof item === "string" && item.trim() !== "",
   );
+}
+
+function readRecognitionResultGroups(
+  detail: unknown,
+): DebugRecognitionResultGroup[] {
+  if (!isRecord(detail)) return [];
+  const groups: DebugRecognitionResultGroup[] = [];
+  for (const [key, label] of [
+    ["best", "Best"],
+    ["filtered", "Filtered"],
+    ["all", "All"],
+  ] as const) {
+    const results = readRecognitionResultItems(detail[key]);
+    if (results.length === 0) continue;
+    groups.push({ key, label, results });
+  }
+  return groups;
+}
+
+function readRecognitionResultItems(value: unknown): DebugRecognitionResultItem[] {
+  const rawItems = Array.isArray(value) ? value : value !== undefined ? [value] : [];
+  return rawItems
+    .map((item, index) => {
+      if (!isRecord(item)) return undefined;
+      const box = normalizeDebugArtifactBox(item.box);
+      const extra = Object.fromEntries(
+        Object.entries(item).filter(([key]) => key !== "box"),
+      );
+      return {
+        index,
+        box,
+        extra: Object.keys(extra).length > 0 ? extra : undefined,
+        raw: item,
+      };
+    })
+    .filter((item): item is DebugRecognitionResultItem => Boolean(item));
 }
 
 function readFiniteNumber(value: unknown): number | undefined {

@@ -7,7 +7,6 @@ import { useFlowStore } from "../../../stores/flow";
 import { useConfigStore } from "../../../stores/configStore";
 import { useClipboardStore } from "../../../stores/clipboardStore";
 import { useDebugSessionStore } from "../../../stores/debugSessionStore";
-import { useDebugModalMemoryStore } from "../../../stores/debugModalMemoryStore";
 import PathSelector from "./PathSelector";
 import ToolboxPanel from "./ToolboxPanel";
 import style from "../../../styles/panels/ToolPanel.module.less";
@@ -40,9 +39,6 @@ function GlobalPanel() {
   const getHistoryState = useFlowStore((state) => state.getHistoryState);
   const pathMode = useFlowStore((state) => state.pathMode);
   const openDebugModal = useDebugSessionStore((state) => state.openModal);
-  const lastDebugModalPanel = useDebugModalMemoryStore(
-    (state) => state.lastPanel,
-  );
 
   // 历史状态
   const [, forceUpdate] = useState({});
@@ -258,7 +254,7 @@ function GlobalPanel() {
                 className={style.icon}
                 name="icon-tiaoshi"
                 size={24}
-                onClick={() => openDebugModal(lastDebugModalPanel)}
+                onClick={() => openDebugModal()}
               />
             </Tooltip>
           </li>

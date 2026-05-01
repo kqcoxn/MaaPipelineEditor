@@ -164,15 +164,37 @@ describe("nodeExecutionOverlay", () => {
   });
 
   it("resolves attempt artifact auto-load targets without bulk preloading", () => {
-    const directImageAttempt = attempt({
+    const recognitionWithEventImageAttempt = attempt({
       detailRefs: ["detail-1"],
       screenshotRefs: ["shot-1"],
     });
-    expect(resolveAutoLoadAttemptArtifact({}, directImageAttempt)).toBe(
+    expect(
+      resolveAutoLoadAttemptArtifact({}, recognitionWithEventImageAttempt),
+    ).toBe("detail-1");
+    expect(
+      resolveAutoLoadAttemptArtifact(
+        {},
+        recognitionWithEventImageAttempt,
+        "shot-1",
+      ),
+    ).toBe("detail-1");
+    expect(
+      resolveAutoLoadAttemptArtifact(
+        {},
+        recognitionWithEventImageAttempt,
+        "detail-1",
+      ),
+    ).toBeUndefined();
+
+    const directActionImageAttempt = attempt({
+      kind: "action",
+      screenshotRefs: ["shot-1"],
+    });
+    expect(resolveAutoLoadAttemptArtifact({}, directActionImageAttempt)).toBe(
       "shot-1",
     );
     expect(
-      resolveAutoLoadAttemptArtifact({}, directImageAttempt, "shot-1"),
+      resolveAutoLoadAttemptArtifact({}, directActionImageAttempt, "shot-1"),
     ).toBeUndefined();
 
     const detailOnlyAttempt = attempt({ detailRefs: ["detail-2"] });
@@ -199,6 +221,22 @@ describe("nodeExecutionOverlay", () => {
         "detail-2",
       ),
     ).toBe("raw-1");
+
+    const secondDetailAttempt = attempt({
+      detailRefs: ["detail-ready-without-image", "detail-needs-load"],
+    });
+    expect(
+      resolveAutoLoadAttemptArtifact(
+        {
+          "detail-ready-without-image": artifactEntry(
+            "detail-ready-without-image",
+            "ready",
+            { combinedResult: [] },
+          ),
+        },
+        secondDetailAttempt,
+      ),
+    ).toBe("detail-needs-load");
 
     const actionAttempt = attempt({
       kind: "action",

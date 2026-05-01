@@ -34,6 +34,11 @@ interface DebugModalMemoryState extends DebugModalMemorySnapshot {
   setNodeExecutionDetailMode: (mode: DebugExecutionDetailMode) => void;
 }
 
+type PersistedDebugModalMemorySnapshot = Omit<
+  DebugModalMemorySnapshot,
+  "lastPanel"
+>;
+
 const defaultMemory: DebugModalMemorySnapshot = {
   lastPanel: "overview",
   lastRunMode: "run-from-node",
@@ -41,16 +46,6 @@ const defaultMemory: DebugModalMemorySnapshot = {
   nodeExecutionAttributionMode: "next",
   nodeExecutionDetailMode: "compact",
 };
-
-const validPanels = new Set<DebugModalPanel>([
-  "overview",
-  "setup",
-  "timeline",
-  "node-execution",
-  "performance",
-  "images",
-  "diagnostics",
-]);
 
 const validNodeExecutionStatusFilters = new Set<DebugNodeExecutionStatusFilter>(
   ["all", "running", "succeeded", "failed", "visited"],
@@ -96,23 +91,6 @@ const validRunModes = new Set<DebugRunMode>([
   "fixed-image-recognition",
   "replay",
 ]);
-
-function normalizePanel(panel: unknown): DebugModalPanel {
-  if (
-    panel === "profile" ||
-    panel === "resources" ||
-    panel === "controller" ||
-    panel === "agent"
-  ) {
-    return "setup";
-  }
-  if (panel === "nodes") {
-    return "node-execution";
-  }
-  return typeof panel === "string" && validPanels.has(panel as DebugModalPanel)
-    ? (panel as DebugModalPanel)
-    : defaultMemory.lastPanel;
-}
 
 function normalizeNodeExecutionFilters(
   value: unknown,
@@ -182,9 +160,9 @@ function readMemory(): DebugModalMemorySnapshot {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultMemory;
-    const parsed = JSON.parse(raw) as Partial<DebugModalMemorySnapshot>;
+    const parsed = JSON.parse(raw) as Partial<PersistedDebugModalMemorySnapshot>;
     return {
-      lastPanel: normalizePanel(parsed.lastPanel),
+      lastPanel: defaultMemory.lastPanel,
       lastRunMode: normalizeRunMode(parsed.lastRunMode),
       lastEntryNodeId: parsed.lastEntryNodeId,
       nodeExecutionFilters: normalizeNodeExecutionFilters(
@@ -205,7 +183,14 @@ function readMemory(): DebugModalMemorySnapshot {
 
 function writeMemory(snapshot: DebugModalMemorySnapshot): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+    const persisted: PersistedDebugModalMemorySnapshot = {
+      lastRunMode: snapshot.lastRunMode,
+      lastEntryNodeId: snapshot.lastEntryNodeId,
+      nodeExecutionFilters: snapshot.nodeExecutionFilters,
+      nodeExecutionAttributionMode: snapshot.nodeExecutionAttributionMode,
+      nodeExecutionDetailMode: snapshot.nodeExecutionDetailMode,
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
   } catch (error) {
     console.warn("[debugModalMemoryStore] Failed to write memory:", error);
   }
@@ -216,8 +201,6 @@ export const useDebugModalMemoryStore = create<DebugModalMemoryState>(
     ...readMemory(),
 
     setLastPanel: (panel) => {
-      const next = { ...get(), lastPanel: panel };
-      writeMemory(next);
       set({ lastPanel: panel });
     },
 

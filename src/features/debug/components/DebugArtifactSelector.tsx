@@ -1,6 +1,10 @@
 import { Button, Space, Typography } from "antd";
 import { DebugArtifactPreview } from "./DebugArtifactPreview";
 import type { DebugArtifactEntry } from "../../../stores/debugArtifactStore";
+import type {
+  DebugImageOverlay,
+  DebugImageOverlayGroup,
+} from "./DebugImageViewer";
 
 const { Text } = Typography;
 
@@ -13,12 +17,16 @@ export function DebugArtifactSelector({
   box,
   emptyText = "没有可查看的 artifact 引用。",
   groups,
+  overlayGroups,
+  overlays,
   requestArtifact,
   selectedArtifact,
 }: {
   box?: unknown;
   emptyText?: string;
   groups: DebugArtifactSelectorGroup[];
+  overlayGroups?: DebugImageOverlayGroup[];
+  overlays?: DebugImageOverlay[];
   requestArtifact: (artifactId: string) => void;
   selectedArtifact?: DebugArtifactEntry;
 }) {
@@ -44,7 +52,12 @@ export function DebugArtifactSelector({
         />
       ))}
       {selectedArtifactIsRelated && (
-        <DebugArtifactPreview artifact={selectedArtifact} box={box} />
+        <DebugArtifactPreview
+          artifact={selectedArtifact}
+          box={box}
+          overlayGroups={overlayGroups}
+          overlays={overlays}
+        />
       )}
     </Space>
   );
@@ -62,7 +75,7 @@ function ArtifactButtonGroup({
   if (group.refs.length === 0) return null;
 
   return (
-    <Space direction="vertical" size={4}>
+    <Space wrap size={6}>
       <Text type="secondary">{group.title}</Text>
       <Space wrap>
         {group.refs.map((item) => {

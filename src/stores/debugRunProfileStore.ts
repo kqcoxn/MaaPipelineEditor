@@ -69,7 +69,7 @@ interface DebugRunProfileState extends DebugRunProfilePreset {
 }
 
 const defaultArtifactPolicy: DebugArtifactPolicy = {
-  includeRawImage: false,
+  includeRawImage: true,
   includeDrawImage: true,
   includeActionDetail: true,
 };

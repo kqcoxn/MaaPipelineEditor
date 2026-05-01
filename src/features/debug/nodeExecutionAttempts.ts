@@ -161,10 +161,12 @@ export function resolveAutoLoadAttemptArtifact(
   }
 
   if (attempt.kind !== "recognition") return undefined;
-  const detailRef = attempt.detailRefs[0];
+  const detailRef = attempt.detailRefs.find((ref) => {
+    const entry = artifacts[ref];
+    return entry?.status !== "ready" && ref !== selectedArtifactId;
+  });
   if (!detailRef || selectedArtifactId === detailRef) return undefined;
-  const entry = artifacts[detailRef];
-  return entry?.status === "ready" ? undefined : detailRef;
+  return detailRef;
 }
 
 function collectAutoLoadImageRefs(
@@ -181,9 +183,13 @@ function collectAutoLoadImageRefs(
         refs.add(imageRef.ref);
       }
     }
+    return [...refs];
   }
-  for (const screenshotRef of attempt.screenshotRefs) {
-    refs.add(screenshotRef);
+
+  if (attempt.kind === "action") {
+    for (const screenshotRef of attempt.screenshotRefs) {
+      refs.add(screenshotRef);
+    }
   }
   return [...refs];
 }
