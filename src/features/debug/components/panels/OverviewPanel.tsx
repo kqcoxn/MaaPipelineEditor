@@ -3,8 +3,10 @@ import { Alert, Button, Checkbox, Select, Space, Typography } from "antd";
 import {
   CaretRightOutlined,
   FileSearchOutlined,
+  FileTextOutlined,
   NodeIndexOutlined,
   PictureOutlined,
+  ReloadOutlined,
   StopOutlined,
 } from "@ant-design/icons";
 import { DebugSection } from "../DebugSection";
@@ -127,6 +129,9 @@ export function OverviewPanel({
     selectLatestDisplaySession,
     selectAllDisplaySessions,
     openNodeExecutionRecord,
+    aiSummaryState,
+    openAiSummaryPanel,
+    generateDebugAiSummary,
   } = controller;
   const nodeOptions = useMemo(
     () =>
@@ -444,6 +449,50 @@ export function OverviewPanel({
             </div>
           )}
         </div>
+      </DebugSection>
+      <DebugSection title="AI 简要摘要">
+        {aiSummaryState.activeReport?.simpleSummary ? (
+          <Space direction="vertical" size={8} style={{ width: "100%" }}>
+            <Text>{aiSummaryState.activeReport.simpleSummary}</Text>
+            <Space wrap>
+              <Button
+                size="small"
+                icon={<FileTextOutlined />}
+                onClick={openAiSummaryPanel}
+              >
+                查看详细报告
+              </Button>
+              <Button
+                size="small"
+                icon={<ReloadOutlined />}
+                loading={aiSummaryState.status === "generating"}
+                onClick={() => generateDebugAiSummary("full")}
+              >
+                重新生成
+              </Button>
+            </Space>
+          </Space>
+        ) : (
+          <Space direction="vertical" size={8} style={{ width: "100%" }}>
+            <Text type="secondary">
+              尚未生成 AI 简要摘要；生成后会在这里显示结论并可跳转到详细报告。
+            </Text>
+            <Space wrap>
+              <Button
+                size="small"
+                icon={<FileTextOutlined />}
+                loading={aiSummaryState.status === "generating"}
+                disabled={events.length === 0}
+                onClick={() => generateDebugAiSummary("full")}
+              >
+                生成 AI 总结
+              </Button>
+              <Button size="small" onClick={openAiSummaryPanel}>
+                打开 AI 总结
+              </Button>
+            </Space>
+          </Space>
+        )}
       </DebugSection>
       {failedNodeExecutionRecords.length > 0 && latestFailedNodeExecutionRecord && (
         <DebugSection title="失败节点">

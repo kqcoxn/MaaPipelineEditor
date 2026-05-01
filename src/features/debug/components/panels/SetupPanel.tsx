@@ -73,6 +73,8 @@ function ProfileSection({
   const {
     profileState,
     invalidateResourcePreflight,
+    autoGenerateAiSummary,
+    setAutoGenerateAiSummary,
   } = controller;
 
   const handleCreateProfile = () => {
@@ -160,6 +162,23 @@ function ProfileSection({
             { value: "includeActionDetail", label: "动作详情（Action Detail）" },
           ]}
         />
+      </DebugSection>
+      <DebugSection title="AI 总结">
+        <Space direction="vertical" size={8} style={{ width: "100%" }}>
+          <Space wrap>
+            <Switch
+              checked={autoGenerateAiSummary}
+              onChange={setAutoGenerateAiSummary}
+            />
+            <Text>运行结束后自动生成 AI 总结</Text>
+            <Tag color={autoGenerateAiSummary ? "green" : "default"}>
+              默认关闭
+            </Tag>
+          </Space>
+          <Text type="secondary">
+            关闭时只会在中控台或 AI 总结面板手动生成；开启后不会阻塞调试运行完成。
+          </Text>
+        </Space>
       </DebugSection>
     </Space>
   );

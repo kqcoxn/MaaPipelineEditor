@@ -1,0 +1,4 @@
+{"file":".trellis/spec/frontend/index.md","reason":"Frontend task entrypoint and quality context for DebugModal UI changes."}
+{"file":".trellis/spec/frontend/state-management.md","reason":"Debug feature touches frontend state derived from run events, artifacts, and summaries."}
+{"file":".trellis/spec/guides/index.md","reason":"Shared pre-development thinking guide for cross-file feature work."}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"AI summary should reuse existing debug and AI foundation utilities instead of duplicating provider/state patterns."}
