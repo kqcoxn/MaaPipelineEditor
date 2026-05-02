@@ -1,15 +1,18 @@
-import type { WikiModule } from "../../types";
+import type { WikiModule, WikiModuleSearchIndex } from "../../types";
 
 const module: WikiModule = {
   id: "tutorial",
   title: "调试方法",
   summary: "从选择入口节点到阅读结果的基础调试路径。",
+  searchText: "调试方法 入口节点 单节点运行 仅识别 仅动作 节点线 事件线",
   steps: [
     {
       id: "choose-entry",
       title: "选择入口节点",
       summary: "从你想验证的节点开始一次独立调试。",
       keywords: ["入口节点", "单节点", "识别", "动作"],
+      searchText:
+        "选择入口节点 独立调试 单节点运行 仅识别 仅动作 新的调试记录 断点 继续 单步",
       blocks: [
         {
           type: "paragraph",
@@ -27,6 +30,8 @@ const module: WikiModule = {
       id: "inspect-node-line",
       title: "阅读节点线",
       summary: "优先从节点线判断哪个节点或步骤出现异常。",
+      searchText:
+        "阅读节点线 Pipeline 节点 聚合执行结果 失败节点 截图产物 reco action 事件线",
       blocks: [
         {
           type: "paragraph",
@@ -35,6 +40,18 @@ const module: WikiModule = {
       ],
     },
   ],
+};
+
+export const searchIndex: WikiModuleSearchIndex = {
+  moduleId: "tutorial",
+  searchText: module.searchText,
+  steps: module.steps.map((step) => ({
+    stepId: step.id,
+    title: step.title,
+    summary: step.summary,
+    keywords: step.keywords,
+    searchText: step.searchText,
+  })),
 };
 
 export default module;

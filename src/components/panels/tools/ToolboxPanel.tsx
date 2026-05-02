@@ -12,6 +12,8 @@ import {
   ColorModal,
   DeltaModal,
 } from "../../modals";
+import { WikiPonderTrigger } from "../../../features/wiki/components/WikiPonderTrigger";
+import type { WikiTarget } from "../../../wiki/types";
 import style from "../../../styles/panels/ToolboxPanel.module.less";
 
 // 工具配置类型
@@ -21,6 +23,11 @@ interface ToolConfig {
   icon: IconNames;
   iconSize?: number;
   modalType: "ocr" | "template" | "color" | "roi" | "roi_offset" | "delta";
+  wiki?: {
+    target: WikiTarget;
+    title: string;
+    description: string;
+  };
 }
 
 // 工具列表配置
@@ -38,6 +45,11 @@ const TOOLBOX_TOOLS: ToolConfig[] = [
     icon: "icon-jietu",
     iconSize: 22,
     modalType: "template",
+    wiki: {
+      target: { entryId: "toolbox", moduleId: "screenshot" },
+      title: "截图工具",
+      description: "了解截图素材如何服务 ROI、OCR 和模板裁剪。",
+    },
   },
   {
     key: "color",
@@ -52,6 +64,11 @@ const TOOLBOX_TOOLS: ToolConfig[] = [
     icon: "icon-kuangxuanzhong",
     iconSize: 22,
     modalType: "roi",
+    wiki: {
+      target: { entryId: "toolbox", moduleId: "roi" },
+      title: "ROI 工具",
+      description: "查看区域选择、坐标和负坐标的基础说明。",
+    },
   },
   {
     key: "roi_offset",
@@ -417,18 +434,29 @@ function ToolboxPanel() {
     <div className={style.toolboxPanel}>
       <div className={style.toolsRow}>
         {TOOLBOX_TOOLS.map((tool) => (
-          <Tooltip key={tool.key} title={tool.label} placement="bottom">
-            <div
-              className={style.toolItem}
-              onClick={() => openTool(tool.modalType)}
-            >
-              <IconFont
-                name={tool.icon}
-                size={tool.iconSize || 22}
-                className={style.toolIcon}
+          <div key={tool.key} className={style.toolItemWrapper}>
+            <Tooltip title={tool.label} placement="bottom">
+              <div
+                className={style.toolItem}
+                onClick={() => openTool(tool.modalType)}
+              >
+                <IconFont
+                  name={tool.icon}
+                  size={tool.iconSize || 22}
+                  className={style.toolIcon}
+                />
+              </div>
+            </Tooltip>
+            {tool.wiki && (
+              <WikiPonderTrigger
+                className={style.toolWikiTrigger}
+                target={tool.wiki.target}
+                title={tool.wiki.title}
+                description={tool.wiki.description}
+                placement="bottom"
               />
-            </div>
-          </Tooltip>
+            )}
+          </div>
         ))}
       </div>
 

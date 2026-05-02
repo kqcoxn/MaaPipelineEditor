@@ -1,4 +1,4 @@
-import type { WikiEntryMeta } from "./types";
+import type { WikiEntryMeta, WikiTarget } from "./types";
 
 export const wikiEntries: WikiEntryMeta[] = [
   {
@@ -69,4 +69,12 @@ export function findWikiModuleMeta(entryId?: string, moduleId?: string) {
   return moduleId
     ? entry.modules.find((module) => module.id === moduleId)
     : entry.modules[0];
+}
+
+export function isWikiTargetAvailable(target?: WikiTarget) {
+  if (!target) return false;
+  const entry = findWikiEntry(target.entryId);
+  if (!entry) return false;
+  if (!target.moduleId) return true;
+  return entry.modules.some((module) => module.id === target.moduleId);
 }

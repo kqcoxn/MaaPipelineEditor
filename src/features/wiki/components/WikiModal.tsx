@@ -1,6 +1,5 @@
 import type { CSSProperties } from "react";
-import { useEffect, useMemo } from "react";
-import ReactMarkdown from "react-markdown";
+import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Button,
@@ -22,14 +21,15 @@ import {
   findWikiEntry,
   findWikiModuleMeta,
 } from "../../../wiki/registry";
+import { searchWiki } from "../../../wiki/searchIndex";
 import type {
-  WikiCalloutType,
-  WikiContentBlock,
   WikiEntryMeta,
   WikiModule,
   WikiTarget,
 } from "../../../wiki/types";
 import { useWikiStore } from "../../../stores/wikiStore";
+import { WikiBlock } from "./WikiBlock";
+import { WikiSearchBox } from "./WikiSearchBox";
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -79,6 +79,25 @@ const stepBodyStyle: CSSProperties = {
   scrollbarGutter: "stable",
 };
 
+const searchAreaStyle: CSSProperties = {
+  marginBottom: 14,
+};
+
+const activeSearchAreaStyle: CSSProperties = {
+  ...searchAreaStyle,
+  flex: 1,
+  minHeight: 0,
+  display: "flex",
+  flexDirection: "column",
+};
+
+const searchResultsSlotStyle: CSSProperties = {
+  flex: 1,
+  minHeight: 0,
+  display: "flex",
+  flexDirection: "column",
+};
+
 const homeGridStyle: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
@@ -103,11 +122,6 @@ const activeCatalogButtonStyle: CSSProperties = {
   color: "var(--ant-color-primary)",
 };
 
-const markdownStyle: CSSProperties = {
-  wordBreak: "break-word",
-  overflowWrap: "anywhere",
-};
-
 const moduleTabListStyle: CSSProperties = {
   width: "fit-content",
   maxWidth: "100%",
@@ -123,6 +137,7 @@ export function WikiModal() {
     setTarget,
     loadModule,
   } = useWikiStore();
+  const [searchText, setSearchText] = useState("");
   const activeEntry = findWikiEntry(activeTarget?.entryId);
   const activeModuleMeta = findWikiModuleMeta(
     activeTarget?.entryId,
@@ -143,6 +158,8 @@ export function WikiModal() {
   const activeStepIndex = activeModule?.steps.findIndex(
     (step) => step.id === activeStep?.id,
   );
+  const searchResults = useMemo(() => searchWiki(searchText), [searchText]);
+  const searching = searchText.trim().length > 0;
 
   useEffect(() => {
     if (!modalOpen || !activeEntry || !activeModuleMeta) return;
@@ -176,7 +193,20 @@ export function WikiModal() {
           }}
         />
         <main style={mainStyle}>
-          {!activeEntry ? (
+          <div style={searching ? activeSearchAreaStyle : searchAreaStyle}>
+            <WikiSearchBox
+              value={searchText}
+              results={searchResults}
+              onChange={setSearchText}
+              onSelectTarget={(target) => {
+                setTarget(target);
+                setSearchText("");
+              }}
+            />
+          </div>
+          {searching ? (
+            <div style={searchResultsSlotStyle} />
+          ) : !activeEntry ? (
             <WikiHome onSelectEntry={(entry) => {
               setTarget({
                 entryId: entry.id,
@@ -407,73 +437,6 @@ function WikiEntryReader({
   );
 }
 
-function WikiBlock({ block }: { block: WikiContentBlock }) {
-  switch (block.type) {
-    case "paragraph":
-      return <Paragraph style={{ margin: 0 }}>{block.text}</Paragraph>;
-    case "markdown":
-      return (
-        <div style={markdownStyle}>
-          <ReactMarkdown>{block.text}</ReactMarkdown>
-        </div>
-      );
-    case "callout":
-      return (
-        <Alert
-          type={toAlertType(block.calloutType)}
-          showIcon
-          message={block.title}
-          description={block.text}
-        />
-      );
-    case "code":
-      return (
-        <pre style={codeBlockStyle}>
-          <code>{block.text}</code>
-        </pre>
-      );
-    case "image":
-      return (
-        <figure style={mediaFigureStyle}>
-          <img
-            src={block.src}
-            alt={block.alt}
-            loading="lazy"
-            decoding="async"
-            style={{
-              ...mediaStyle,
-              aspectRatio: block.aspectRatio ?? "16 / 9",
-            }}
-          />
-          {block.caption && <figcaption>{block.caption}</figcaption>}
-        </figure>
-      );
-    case "video":
-      return (
-        <figure style={mediaFigureStyle}>
-          <video
-            src={block.src}
-            title={block.title}
-            poster={block.poster}
-            controls
-            preload="metadata"
-            style={{
-              ...mediaStyle,
-              aspectRatio: block.aspectRatio ?? "16 / 9",
-            }}
-          />
-          {block.caption && <figcaption>{block.caption}</figcaption>}
-        </figure>
-      );
-    case "component": {
-      const Component = block.render;
-      return <Component />;
-    }
-    default:
-      return null;
-  }
-}
-
 function StepPager({
   entryId,
   moduleId,
@@ -545,10 +508,6 @@ function getActiveStep(module?: WikiModule, stepId?: string) {
   );
 }
 
-function toAlertType(type: WikiCalloutType | undefined) {
-  return type ?? "info";
-}
-
 const homeCardStyle: CSSProperties = {
   display: "flex",
   flexDirection: "column",
@@ -577,28 +536,6 @@ const homeCardMetaStyle: CSSProperties = {
   marginTop: "auto",
   color: "#8c8c8c",
   fontSize: 13,
-};
-
-const codeBlockStyle: CSSProperties = {
-  margin: 0,
-  padding: 12,
-  overflowX: "auto",
-  background: "#f6f8fa",
-  border: "1px solid #f0f0f0",
-  borderRadius: 8,
-};
-
-const mediaFigureStyle: CSSProperties = {
-  margin: 0,
-};
-
-const mediaStyle: CSSProperties = {
-  width: "100%",
-  maxHeight: 420,
-  objectFit: "contain",
-  background: "#f5f5f5",
-  border: "1px solid #f0f0f0",
-  borderRadius: 8,
 };
 
 const pagerStyle: CSSProperties = {

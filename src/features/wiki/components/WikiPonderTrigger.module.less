@@ -1,0 +1,89 @@
+.trigger {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  padding: 0;
+  color: #8c8c8c;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    color 0.16s ease,
+    background-color 0.16s ease;
+
+  &:hover,
+  &:focus-visible {
+    color: #1677ff;
+    background: rgba(5, 145, 255, 0.1);
+    outline: none;
+  }
+}
+
+.unavailable {
+  color: #bfbfbf;
+  background: transparent;
+  cursor: not-allowed;
+
+  &:hover,
+  &:focus-visible {
+    color: #bfbfbf;
+    background: transparent;
+  }
+}
+
+.tooltipContent {
+  width: 220px;
+}
+
+.tooltipTitle {
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.tooltipDescription {
+  margin-bottom: 8px;
+  color: rgba(255, 255, 255, 0.78);
+  line-height: 1.5;
+}
+
+.tooltipHint {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 12px;
+}
+
+.progressTrack {
+  height: 3px;
+  margin-top: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.progressBar {
+  height: 100%;
+  border-radius: inherit;
+  background: #69b1ff;
+  transition: width 0.08s linear;
+}
+
+:global(.dark) {
+  .trigger {
+    color: #8c8c8c;
+
+    &:hover,
+    &:focus-visible {
+      color: #69b1ff;
+      background: rgba(105, 177, 255, 0.14);
+    }
+
+    &.unavailable,
+    &.unavailable:hover,
+    &.unavailable:focus-visible {
+      color: #595959;
+      background: transparent;
+    }
+  }
+}

@@ -1,14 +1,17 @@
-import type { WikiModule } from "../../types";
+import type { WikiModule, WikiModuleSearchIndex } from "../../types";
 
 const module: WikiModule = {
   id: "showcase",
   title: "功能展示",
   summary: "快速认识 FlowScope 调试工作台里的核心视图。",
+  searchText: "FlowScope 调试工作台 中控台 节点线 事件线 图像面板 调试入口",
   steps: [
     {
       id: "open-workbench",
       title: "打开调试工作台",
       summary: "主视图左上角的调试按钮会打开 FlowScope，而不是切换全局调试模式。",
+      searchText:
+        "打开调试工作台 FlowScope 调试入口 左上角 调试按钮 画布覆盖层 节点字段面板",
       blocks: [
         {
           type: "paragraph",
@@ -17,8 +20,8 @@ const module: WikiModule = {
         {
           type: "callout",
           calloutType: "info",
-          title: "P1 示例内容",
-          text: "这里先用短说明验证 Wiki 的条目、模块和步骤结构；后续阶段会替换为动图或视频教程。",
+          title: "截图素材预留",
+          text: "后续可把调试工作台总览截图放到 src/wiki/entries/debug/assets/debug-workbench-overview.webp，并把本步骤替换为图片或视频教程。",
         },
       ],
     },
@@ -26,6 +29,8 @@ const module: WikiModule = {
       id: "read-results",
       title: "查看运行结果",
       summary: "用中控台、节点线、事件线和图像面板拆解一次调试运行。",
+      searchText:
+        "查看运行结果 中控台 节点线 事件线 图像面板 截图 识别 产物",
       blocks: [
         {
           type: "paragraph",
@@ -39,6 +44,18 @@ const module: WikiModule = {
       ],
     },
   ],
+};
+
+export const searchIndex: WikiModuleSearchIndex = {
+  moduleId: "showcase",
+  searchText: module.searchText,
+  steps: module.steps.map((step) => ({
+    stepId: step.id,
+    title: step.title,
+    summary: step.summary,
+    keywords: step.keywords,
+    searchText: step.searchText,
+  })),
 };
 
 export default module;

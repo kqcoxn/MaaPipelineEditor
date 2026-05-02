@@ -1,14 +1,17 @@
-import type { WikiModule } from "../../types";
+import type { WikiModule, WikiModuleSearchIndex } from "../../types";
 
 const module: WikiModule = {
   id: "screenshot",
   title: "截图工具",
   summary: "截图工具为 ROI、OCR、模板选择等流程提供图像输入。",
+  searchText: "截图工具 模板截图 ROI OCR 模板裁剪 LocalBridge 设备连接",
   steps: [
     {
       id: "capture-source",
       title: "获取截图",
       summary: "从已连接设备或现有图片中获取操作素材。",
+      searchText:
+        "获取截图 LocalBridge 设备连接 截图素材 ROI OCR 模板裁剪 screenshot-capture-source.webp",
       blocks: [
         {
           type: "paragraph",
@@ -18,7 +21,7 @@ const module: WikiModule = {
           type: "callout",
           calloutType: "warning",
           title: "连接状态",
-          text: "如果截图失败，请先检查 LocalBridge 和设备连接状态。",
+          text: "如果截图失败，请先检查 LocalBridge 和设备连接状态。后续可把截图流程素材放到 src/wiki/entries/toolbox/assets/screenshot-capture-source.webp。",
         },
       ],
     },
@@ -26,6 +29,8 @@ const module: WikiModule = {
       id: "reuse-image",
       title: "复用截图结果",
       summary: "同一张截图可以在多个工具中继续使用。",
+      searchText:
+        "复用截图结果 同一张图片 ROI 框选 OCR 模板工具 字段",
       blocks: [
         {
           type: "paragraph",
@@ -34,6 +39,18 @@ const module: WikiModule = {
       ],
     },
   ],
+};
+
+export const searchIndex: WikiModuleSearchIndex = {
+  moduleId: "screenshot",
+  searchText: module.searchText,
+  steps: module.steps.map((step) => ({
+    stepId: step.id,
+    title: step.title,
+    summary: step.summary,
+    keywords: step.keywords,
+    searchText: step.searchText,
+  })),
 };
 
 export default module;

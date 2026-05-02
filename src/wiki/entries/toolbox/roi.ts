@@ -1,14 +1,17 @@
-import type { WikiModule } from "../../types";
+import type { WikiModule, WikiModuleSearchIndex } from "../../types";
 
 const module: WikiModule = {
   id: "roi",
   title: "ROI 工具",
   summary: "ROI 工具用于从截图中快速生成识别范围。",
+  searchText: "ROI 工具 区域选择 框选识别范围 坐标 负坐标 偏移 截图",
   steps: [
     {
       id: "select-region",
       title: "框选识别范围",
       summary: "在截图上框选目标区域，并把范围填回字段。",
+      searchText:
+        "ROI 区域选择 框选识别范围 截图 坐标 字段 工具输出 识别范围 roi-select-region.webp",
       blocks: [
         {
           type: "paragraph",
@@ -17,8 +20,8 @@ const module: WikiModule = {
         {
           type: "callout",
           calloutType: "info",
-          title: "后续内容",
-          text: "P3 会补充包含截图演示的完整 ROI 教程。",
+          title: "截图素材预留",
+          text: "后续可把 ROI 框选截图放到 src/wiki/entries/toolbox/assets/roi-select-region.webp，并把本步骤替换为图片或视频教程。",
         },
       ],
     },
@@ -26,6 +29,8 @@ const module: WikiModule = {
       id: "negative-coordinates",
       title: "理解负坐标",
       summary: "负坐标可用于表达相对右下角的范围。",
+      searchText:
+        "负坐标 相对右下角 截图右侧 底部 ROI 范围 预览 落点",
       blocks: [
         {
           type: "paragraph",
@@ -34,6 +39,18 @@ const module: WikiModule = {
       ],
     },
   ],
+};
+
+export const searchIndex: WikiModuleSearchIndex = {
+  moduleId: "roi",
+  searchText: module.searchText,
+  steps: module.steps.map((step) => ({
+    stepId: step.id,
+    title: step.title,
+    summary: step.summary,
+    keywords: step.keywords,
+    searchText: step.searchText,
+  })),
 };
 
 export default module;

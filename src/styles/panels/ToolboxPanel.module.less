@@ -9,6 +9,18 @@
     margin-bottom: 12px;
   }
 
+  .toolItemWrapper {
+    position: relative;
+    width: 40px;
+    height: 40px;
+
+    &:hover .toolWikiTrigger,
+    &:focus-within .toolWikiTrigger {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+
   .toolItem {
     width: 40px;
     height: 40px;
@@ -36,6 +48,32 @@
 
     &:hover .toolIcon {
       color: #1890ff;
+    }
+  }
+
+  .toolWikiTrigger {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 20px;
+    height: 20px;
+    border: 1px solid #d9d9d9;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      opacity 0.16s ease,
+      color 0.16s ease,
+      background-color 0.16s ease,
+      border-color 0.16s ease;
+    z-index: 1;
+
+    &:hover,
+    &:focus-visible {
+      border-color: #91caff;
+      background: #f0f7ff;
     }
   }
 
@@ -113,6 +151,18 @@
 
       &:hover .toolIcon {
         color: #40a9ff;
+      }
+    }
+
+    .toolWikiTrigger {
+      border-color: #434343;
+      background: #1f1f1f;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.36);
+
+      &:hover,
+      &:focus-visible {
+        border-color: #1668dc;
+        background: #111a2c;
       }
     }
 

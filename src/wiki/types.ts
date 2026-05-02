@@ -26,6 +26,7 @@ export interface WikiModule {
   id: string;
   title: string;
   summary?: string;
+  searchText?: string;
   steps: WikiStep[];
 }
 
@@ -33,8 +34,33 @@ export interface WikiStep {
   id: string;
   title: string;
   summary?: string;
+  searchText?: string;
   keywords?: string[];
   blocks: WikiContentBlock[];
+}
+
+export interface WikiModuleSearchIndex {
+  moduleId: string;
+  searchText?: string;
+  steps: WikiStepSearchIndex[];
+}
+
+export interface WikiStepSearchIndex {
+  stepId: string;
+  title: string;
+  summary?: string;
+  keywords?: string[];
+  searchText?: string;
+}
+
+export interface WikiSearchResult {
+  target: WikiTarget;
+  entryTitle: string;
+  moduleTitle: string;
+  stepTitle?: string;
+  summary: string;
+  score: number;
+  matchedText: string;
 }
 
 export type WikiCalloutType = "info" | "success" | "warning" | "error";

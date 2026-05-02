@@ -24,6 +24,7 @@ import { NodeExecutionPanel } from "../../features/debug/components/panels/NodeE
 import { PerformancePanel } from "../../features/debug/components/panels/PerformancePanel";
 import { ImagesPanel } from "../../features/debug/components/panels/ImagesPanel";
 import { DiagnosticsPanel } from "../../features/debug/components/panels/DiagnosticsPanel";
+import { WikiPonderTrigger } from "../../features/wiki/components/WikiPonderTrigger";
 
 const { Text, Title } = Typography;
 
@@ -157,6 +158,11 @@ const modalBodyStyle: CSSProperties = {
   overflow: "hidden",
 };
 
+const debugWikiTarget = {
+  entryId: "debug",
+  moduleId: "showcase",
+};
+
 export function DebugModal() {
   const controller = useDebugModalController();
   const baseActivePanelMeta =
@@ -171,7 +177,17 @@ export function DebugModal() {
 
   return (
     <Modal
-      title="MPE FlowScope (调试模块)"
+      title={
+        <Space size={8}>
+          <span>MPE FlowScope (调试模块)</span>
+          <WikiPonderTrigger
+            target={debugWikiTarget}
+            title="调试工作台"
+            description="了解 FlowScope 调试工作台、节点线和事件线的基础使用方式。"
+            placement="bottom"
+          />
+        </Space>
+      }
       open={controller.modalOpen}
       onCancel={controller.closeModal}
       width="min(1180px, calc(100vw - 48px))"
