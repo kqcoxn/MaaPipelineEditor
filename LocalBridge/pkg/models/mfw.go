@@ -28,7 +28,8 @@ type CreateGamepadControllerRequest struct {
 
 // CreateWlRootsControllerRequest 创建WlRoots控制器请求
 type CreateWlRootsControllerRequest struct {
-	SocketPath      string `json:"socket_path"`             // 套接字路径
+	SocketPath     string `json:"socket_path"`       // 套接字路径
+	UseWin32VkCode bool   `json:"use_win32_vk_code"` // 是否使用 Win32 Virtual-Key 码
 }
 
 // ControllerCreatedResponse 控制器创建结果响应
@@ -236,7 +237,7 @@ type WlRootsCompositorsResponse struct {
 
 // WlRootsCompositorsData WlRoots合成器数据
 type WlRootsCompositorsData struct {
-	SocketPath       string   `json:"socket_path"`
+	SocketPath string `json:"socket_path"`
 }
 
 // ControllerEventData 控制器事件数据
