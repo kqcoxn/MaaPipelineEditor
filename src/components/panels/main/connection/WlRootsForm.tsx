@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { List, Typography, Input, Alert } from "antd";
+import { List, Typography, Input, Alert, Checkbox } from "antd";
 import { DesktopOutlined, CheckCircleOutlined } from "@ant-design/icons";
 import type { WlRootsCompositor } from "../../../../stores/mfwStore";
 
@@ -11,6 +11,8 @@ interface WlRootsFormProps {
   onSelect: (socket: WlRootsCompositor) => void;
   manualPath: string;
   onManualPathChange: (value: string) => void;
+  useWin32VkCode: boolean;
+  onUseWin32VkCodeChange: (value: boolean) => void;
   loading: boolean;
 }
 
@@ -21,6 +23,8 @@ export const WlRootsForm = memo(
     onSelect,
     manualPath,
     onManualPathChange,
+    useWin32VkCode,
+    onUseWin32VkCodeChange,
     loading,
   }: WlRootsFormProps) => {
     const handleSelectPreset = (socket: WlRootsCompositor) => {
@@ -147,6 +151,16 @@ export const WlRootsForm = memo(
               将使用手动输入的路径，列表选择将被忽略
             </Text>
           )}
+        </div>
+
+        {/* 键盘输入 Win32 Virtual Keycode 转换 */}
+        <div style={{ marginBottom: 16 }}>
+          <Checkbox
+            checked={useWin32VkCode}
+            onChange={(e) => onUseWin32VkCodeChange(e.target.checked)}
+          >
+            键盘输入使用 Win32 Virtual Keycode
+          </Checkbox>
         </div>
 
         {/* 提示信息 */}

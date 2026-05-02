@@ -364,7 +364,8 @@ func (h *UtilityHandler) parseOCRResult(taskDetail *maa.TaskDetail, img image.Im
 	allText := ""
 
 	// 遍历节点详情获取识别结果
-	for _, nodeDetail := range taskDetail.NodeDetails {
+	for _, node := range taskDetail.Nodes {
+		nodeDetail, _ := node.GetDetail()
 		if nodeDetail == nil || nodeDetail.Recognition == nil {
 			continue
 		}

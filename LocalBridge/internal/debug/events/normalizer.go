@@ -403,8 +403,9 @@ func SummarizeTaskDetail(detail *maa.TaskDetail) map[string]interface{} {
 	if detail == nil {
 		return map[string]interface{}{}
 	}
-	nodes := make([]map[string]interface{}, 0, len(detail.NodeDetails))
-	for _, node := range detail.NodeDetails {
+	nodes := make([]map[string]interface{}, 0, len(detail.Nodes))
+	for _, node := range detail.Nodes {
+		node, _ := node.GetDetail()
 		if node == nil {
 			continue
 		}

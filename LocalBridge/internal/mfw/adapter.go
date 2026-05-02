@@ -169,14 +169,14 @@ func (a *MaaFWAdapter) ConnectWin32(hwnd uintptr, screencapMethod, inputMethod s
 }
 
 // ConnectWlRoots 连接 WlRoots 控制器
-func (a *MaaFWAdapter) ConnectWlRoots(socketPath string) error {
+func (a *MaaFWAdapter) ConnectWlRoots(socketPath string, useWin32VkCode bool) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
 	logger.Debug("MaaFW", "连接 WlRoots 控制器: %s", socketPath)
 
 	// 创建 WlRoots 控制器
-	ctrl, err := maa.NewWlRootsController(socketPath)
+	ctrl, err := maa.NewWlRootsController(socketPath, useWin32VkCode)
 	if err != nil {
 		return fmt.Errorf("创建 WlRoots 控制器失败: %w", err)
 	}
@@ -226,37 +226,6 @@ func (a *MaaFWAdapter) SetController(ctrl *maa.Controller, ctrlType, deviceInfo 
 	a.controllerType = ctrlType
 	a.deviceInfo = deviceInfo
 	a.screenshotter.SetController(ctrl)
-}
-
-// GetController 获取控制器
-func (a *MaaFWAdapter) UseCarouselImageController(path string) error {
-	ctrl, err := maa.NewCarouselImageController(path)
-	if err != nil {
-		return fmt.Errorf("创建固定图 controller 失败: %w", err)
-	}
-	job := ctrl.PostConnect()
-	if job == nil {
-		ctrl.Destroy()
-		return fmt.Errorf("发起固定图 controller 连接失败")
-	}
-	job.Wait()
-	if !job.Success() {
-		ctrl.Destroy()
-		return fmt.Errorf("固定图 controller 连接失败: %v", job.Status())
-	}
-
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	if a.controller != nil && a.controller != ctrl && a.ownsController {
-		a.controller.Destroy()
-	}
-	a.controller = ctrl
-	a.controllerConnected = true
-	a.ownsController = true
-	a.controllerType = "Dbg"
-	a.deviceInfo = path
-	a.screenshotter.SetController(ctrl)
-	return nil
 }
 
 func (a *MaaFWAdapter) GetController() *maa.Controller {
