@@ -1,8 +1,8 @@
 import { create } from "zustand";
 import {
-  findWikiEntry,
   findWikiModuleMeta,
   getFirstWikiTarget,
+  normalizeWikiTarget,
 } from "../wiki/registry";
 import type { WikiModule, WikiTarget } from "../wiki/types";
 import { useWikiMemoryStore } from "./wikiMemoryStore";
@@ -23,6 +23,7 @@ interface WikiState {
   closeWiki: () => void;
   showHome: () => void;
   setTarget: (target: WikiTarget) => void;
+  normalizeTarget: (target?: WikiTarget) => WikiTarget | undefined;
   loadModule: (
     entryId: string,
     moduleId: string,
@@ -34,22 +35,14 @@ function getModuleKey(entryId: string, moduleId: string): string {
 }
 
 function normalizeTarget(target?: WikiTarget): WikiTarget | undefined {
-  if (!target) return undefined;
-  const entry = findWikiEntry(target.entryId);
-  if (!entry) {
+  const normalized = normalizeWikiTarget(target);
+  if (!normalized && target?.entryId) {
     console.warn("[wikiStore] Unknown wiki entry:", target.entryId);
-    return undefined;
   }
-  const moduleMeta = findWikiModuleMeta(target.entryId, target.moduleId);
-  if (target.moduleId && !moduleMeta) {
+  if (!normalized && target?.moduleId) {
     console.warn("[wikiStore] Unknown wiki module:", target);
-    return undefined;
   }
-  return {
-    entryId: entry.id,
-    moduleId: moduleMeta?.id,
-    stepId: target.stepId,
-  };
+  return normalized;
 }
 
 export const useWikiStore = create<WikiState>((set, get) => ({
@@ -74,6 +67,8 @@ export const useWikiStore = create<WikiState>((set, get) => ({
     const normalized = normalizeTarget(target) ?? getFirstWikiTarget();
     set({ activeTarget: normalized });
   },
+
+  normalizeTarget,
 
   loadModule: async (entryId, moduleId) => {
     const key = getModuleKey(entryId, moduleId);

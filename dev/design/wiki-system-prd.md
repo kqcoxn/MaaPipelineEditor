@@ -354,6 +354,16 @@ openWiki({ entryId: "debug", moduleId: "tutorial", stepId: "start-run" });
 - 所有按钮/图标需要有可读 tooltip 或 aria label。
 - 长标题、路径、说明文字必须可换行，不使用容易挤爆的 Tag 承载长文本。
 
+### Content Maintenance Requirements
+
+- 新增条目只改 `src/wiki` 内容层和必要素材，不改阅读器核心组件。
+- 媒体素材放在对应条目的 `assets` 目录，例如 `src/wiki/entries/debug/assets/`。
+- 图片优先使用 `webp/png`，视频优先使用 `webm/mp4`；文件名使用小写短横线，表达条目和步骤语义。
+- 每个图片/视频 block 必须提供 `alt` 或 `title`，推荐补充 `caption` 和稳定 `aspectRatio`。
+- 每个步骤只表达一个操作目标；长教程拆成多个步骤，不把多段流程压进一页。
+- 新增或修改步骤正文时同步维护 `searchText` 和模块导出的 `searchIndex`，保证搜索不需要加载媒体本体。
+- 大型媒体不要在 registry 或搜索索引中 import；只允许在对应模块内容文件中按步骤引用。
+
 ### Accessibility & Keyboard
 
 - `WikiPonderTrigger` 支持 focus 后长按 `W` 打开，点击不打开。
@@ -451,3 +461,4 @@ openWiki({ entryId: "debug", moduleId: "tutorial", stepId: "start-run" });
 - 2026-05-02: P1 完成记录，建立 `src/wiki` TS 内容模型、调试/工具箱示例条目、Wiki store、基础阅读器 Modal，并在主视图左上角调试入口右侧接入 “MPE Wiki / 俺寻思” 总入口；P1 未实现上下文 `WikiPonderTrigger`、长按 W 跳转、搜索和正式媒体教程。
 - 2026-05-02: P2 完成记录，新增可复用 `WikiPonderTrigger`，支持 hover/focus 简介、局部长按 `W` 进度反馈与跳转，点击不打开，并接入 DebugModal 标题区、工具箱 ROI、工具箱模板截图入口；P2 未实现搜索、字段面板大范围接入和正式媒体教程扩写。
 - 2026-05-02: P3 完成记录，新增轻量 Wiki 搜索索引和右侧顶部内嵌搜索 UI，搜索覆盖条目、模块、步骤和纯文本 `searchText`，并将内容块与媒体加载组件化，图片/视频支持固定比例占位、状态进度和错误态；P3 仅预留真实素材目录与文件名，不提交真实截图，不实现完整教程扩写、拼音搜索、AI 搜索或 URL 深链。
+- 2026-05-02: P4/P5 完成记录，未新增 Wiki 条目，补齐阅读器键盘翻页、窄屏布局、分享链接按钮和内容维护规范；P5 仅实现 `#wiki=entry/module/step` URL 入口与分享链接，入口自动打开后立即清理 hash，不实现拼音搜索、AI 搜索、推荐排序或阅读进度。

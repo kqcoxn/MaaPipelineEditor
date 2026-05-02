@@ -52,6 +52,8 @@ import {
   clearImportParam,
 } from "./utils/data/shareHelper";
 import { parseUrlParams } from "./utils/data/urlHelper";
+import { useWikiStore } from "./stores/wikiStore";
+import { clearWikiHashParam, readWikiTargetFromHash } from "./wiki/wikiUrl";
 import {
   isWailsEnvironment,
   onWailsEvent,
@@ -427,6 +429,11 @@ function App() {
 
     // 统一解析 URL 参数
     const urlParams = parseUrlParams();
+    const wikiTarget = readWikiTargetFromHash();
+    if (wikiTarget) {
+      useWikiStore.getState().openWiki(wikiTarget);
+      clearWikiHashParam();
+    }
 
     // Wails 环境下的连接逻辑
     let cleanupWailsListener: (() => void) | null = null;

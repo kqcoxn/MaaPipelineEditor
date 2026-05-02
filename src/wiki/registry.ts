@@ -78,3 +78,16 @@ export function isWikiTargetAvailable(target?: WikiTarget) {
   if (!target.moduleId) return true;
   return entry.modules.some((module) => module.id === target.moduleId);
 }
+
+export function normalizeWikiTarget(target?: WikiTarget): WikiTarget | undefined {
+  if (!target) return undefined;
+  const entry = findWikiEntry(target.entryId);
+  if (!entry) return undefined;
+  const moduleMeta = findWikiModuleMeta(target.entryId, target.moduleId);
+  if (target.moduleId && !moduleMeta) return undefined;
+  return {
+    entryId: entry.id,
+    moduleId: moduleMeta?.id,
+    stepId: target.stepId,
+  };
+}

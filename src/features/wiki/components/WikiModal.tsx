@@ -1,9 +1,10 @@
 import type { CSSProperties } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Button,
   Empty,
+  message,
   Modal,
   Segmented,
   Skeleton,
@@ -14,6 +15,7 @@ import {
   BookOutlined,
   HomeOutlined,
   LeftOutlined,
+  LinkOutlined,
   RightOutlined,
 } from "@ant-design/icons";
 import {
@@ -28,75 +30,12 @@ import type {
   WikiTarget,
 } from "../../../wiki/types";
 import { useWikiStore } from "../../../stores/wikiStore";
+import { createWikiShareUrl } from "../../../wiki/wikiUrl";
 import { WikiBlock } from "./WikiBlock";
 import { WikiSearchBox } from "./WikiSearchBox";
+import style from "./WikiModal.module.less";
 
 const { Paragraph, Text, Title } = Typography;
-
-const modalBodyStyle: CSSProperties = {
-  height: "clamp(560px, calc(100vh - 200px), 720px)",
-  minHeight: 560,
-  display: "flex",
-  overflow: "hidden",
-  background: "var(--ant-color-bg-container)",
-};
-
-const catalogStyle: CSSProperties = {
-  width: 248,
-  flexShrink: 0,
-  padding: "18px 14px 18px 18px",
-  borderRight: "1px solid rgba(5, 5, 5, 0.08)",
-  overflowY: "auto",
-};
-
-const mainStyle: CSSProperties = {
-  flex: 1,
-  minWidth: 0,
-  display: "flex",
-  flexDirection: "column",
-  padding: "18px 22px 20px",
-  overflow: "hidden",
-};
-
-const readerStyle: CSSProperties = {
-  flex: 1,
-  minHeight: 0,
-  display: "flex",
-  flexDirection: "column",
-  padding: 18,
-  border: "1px solid rgba(5, 5, 5, 0.08)",
-  borderRadius: 8,
-  background: "var(--ant-color-bg-container)",
-  overflow: "hidden",
-  position: "relative",
-};
-
-const stepBodyStyle: CSSProperties = {
-  flex: 1,
-  minHeight: 0,
-  overflowY: "auto",
-  paddingRight: 4,
-  scrollbarGutter: "stable",
-};
-
-const searchAreaStyle: CSSProperties = {
-  marginBottom: 14,
-};
-
-const activeSearchAreaStyle: CSSProperties = {
-  ...searchAreaStyle,
-  flex: 1,
-  minHeight: 0,
-  display: "flex",
-  flexDirection: "column",
-};
-
-const searchResultsSlotStyle: CSSProperties = {
-  flex: 1,
-  minHeight: 0,
-  display: "flex",
-  flexDirection: "column",
-};
 
 const homeGridStyle: CSSProperties = {
   display: "grid",
@@ -111,7 +50,9 @@ const catalogButtonStyle: CSSProperties = {
   textAlign: "left",
   padding: "10px 12px",
   whiteSpace: "normal",
-  borderLeft: "3px solid transparent",
+  borderLeftWidth: 3,
+  borderLeftStyle: "solid",
+  borderLeftColor: "transparent",
   color: "var(--ant-color-text-secondary)",
 };
 
@@ -160,11 +101,42 @@ export function WikiModal() {
   );
   const searchResults = useMemo(() => searchWiki(searchText), [searchText]);
   const searching = searchText.trim().length > 0;
+  const shareTarget = useMemo(
+    () =>
+      activeEntry
+        ? {
+            entryId: activeEntry.id,
+            moduleId: activeModuleMeta?.id,
+            stepId: activeStep?.id ?? activeTarget?.stepId,
+          }
+        : undefined,
+    [
+      activeEntry,
+      activeModuleMeta?.id,
+      activeStep?.id,
+      activeTarget?.stepId,
+    ],
+  );
 
   useEffect(() => {
     if (!modalOpen || !activeEntry || !activeModuleMeta) return;
     void loadModule(activeEntry.id, activeModuleMeta.id);
   }, [activeEntry, activeModuleMeta, loadModule, modalOpen]);
+
+  const handleCopyShareUrl = useCallback(() => {
+    if (!shareTarget) return;
+    const url = createWikiShareUrl(shareTarget);
+    if (!navigator.clipboard?.writeText) {
+      window.prompt("请手动复制 Wiki 链接", url);
+      return;
+    }
+    void navigator.clipboard
+      .writeText(url)
+      .then(() => message.success("已复制 Wiki 链接"))
+      .catch(() => {
+        window.prompt("请手动复制 Wiki 链接", url);
+      });
+  }, [shareTarget]);
 
   return (
     <Modal
@@ -181,7 +153,7 @@ export function WikiModal() {
       destroyOnHidden
       styles={{ body: { padding: 0 } }}
     >
-      <div style={modalBodyStyle}>
+      <div className={style.modalBody}>
         <WikiCatalog
           activeTarget={activeTarget}
           onHome={showHome}
@@ -192,8 +164,12 @@ export function WikiModal() {
             });
           }}
         />
-        <main style={mainStyle}>
-          <div style={searching ? activeSearchAreaStyle : searchAreaStyle}>
+        <main className={style.main}>
+          <div
+            className={`${style.searchArea} ${
+              searching ? style.activeSearchArea : ""
+            }`}
+          >
             <WikiSearchBox
               value={searchText}
               results={searchResults}
@@ -204,9 +180,7 @@ export function WikiModal() {
               }}
             />
           </div>
-          {searching ? (
-            <div style={searchResultsSlotStyle} />
-          ) : !activeEntry ? (
+          {searching ? null : !activeEntry ? (
             <WikiHome onSelectEntry={(entry) => {
               setTarget({
                 entryId: entry.id,
@@ -222,7 +196,10 @@ export function WikiModal() {
               activeModuleId={activeModuleMeta?.id}
               activeStepId={activeStep?.id}
               activeStepIndex={activeStepIndex ?? -1}
+              modalOpen={modalOpen}
               onSelectTarget={setTarget}
+              onShare={handleCopyShareUrl}
+              shareDisabled={!shareTarget}
             />
           )}
         </main>
@@ -241,7 +218,7 @@ function WikiCatalog({
   onSelectEntry: (entry: WikiEntryMeta) => void;
 }) {
   return (
-    <aside style={catalogStyle}>
+    <aside className={style.catalog}>
       <Space direction="vertical" size={12} style={{ width: "100%" }}>
         <div>
           <Text type="secondary">按住 W 思索</Text>
@@ -324,7 +301,10 @@ function WikiEntryReader({
   activeModuleId,
   activeStepId,
   activeStepIndex,
+  modalOpen,
   onSelectTarget,
+  onShare,
+  shareDisabled,
 }: {
   entry: WikiEntryMeta;
   module?: WikiModule;
@@ -333,11 +313,59 @@ function WikiEntryReader({
   activeModuleId?: string;
   activeStepId?: string;
   activeStepIndex: number;
+  modalOpen: boolean;
   onSelectTarget: (target: WikiTarget) => void;
+  onShare: () => void;
+  shareDisabled: boolean;
 }) {
   const step = getActiveStep(module, activeStepId);
   const stepCount = module?.steps.length ?? 0;
   const currentIndex = activeStepIndex >= 0 ? activeStepIndex : 0;
+  const goToPreviousStep = useCallback(() => {
+    const previousStep = module?.steps[currentIndex - 1];
+    if (!previousStep || !module) return;
+    onSelectTarget({
+      entryId: entry.id,
+      moduleId: module.id,
+      stepId: previousStep.id,
+    });
+  }, [currentIndex, entry.id, module, onSelectTarget]);
+  const goToNextStep = useCallback(() => {
+    const nextStep = module?.steps[currentIndex + 1];
+    if (!nextStep || !module) return;
+    onSelectTarget({
+      entryId: entry.id,
+      moduleId: module.id,
+      stepId: nextStep.id,
+    });
+  }, [currentIndex, entry.id, module, onSelectTarget]);
+
+  useEffect(() => {
+    if (!modalOpen || !module || stepCount <= 1) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      if (isReaderHotkeyIgnoredTarget(event.target)) return;
+      if (event.key === "ArrowLeft" && currentIndex > 0) {
+        event.preventDefault();
+        goToPreviousStep();
+      }
+      if (event.key === "ArrowRight" && currentIndex < stepCount - 1) {
+        event.preventDefault();
+        goToNextStep();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [
+    currentIndex,
+    goToNextStep,
+    goToPreviousStep,
+    modalOpen,
+    module,
+    stepCount,
+  ]);
 
   return (
     <Space
@@ -345,13 +373,23 @@ function WikiEntryReader({
       size={14}
       style={{ width: "100%", minHeight: 0, flex: 1 }}
     >
-      <div>
-        <Title level={3} style={{ margin: "0 0 6px" }}>
-          {entry.title}
-        </Title>
-        <Paragraph type="secondary" style={{ margin: 0 }}>
-          {entry.summary}
-        </Paragraph>
+      <div className={style.titleBar}>
+        <div className={style.titleText}>
+          <Title level={3} style={{ margin: "0 0 6px" }}>
+            {entry.title}
+          </Title>
+          <Paragraph type="secondary" style={{ margin: 0 }}>
+            {entry.summary}
+          </Paragraph>
+        </div>
+        <Button
+          type="text"
+          icon={<LinkOutlined />}
+          disabled={shareDisabled}
+          onClick={onShare}
+        >
+          分享
+        </Button>
       </div>
       <Segmented
         aria-label="Wiki 模块"
@@ -368,7 +406,7 @@ function WikiEntryReader({
           });
         }}
       />
-      <section style={readerStyle}>
+      <section className={style.reader}>
         {moduleStatus === "loading" || moduleStatus === "idle" ? (
           <Skeleton active paragraph={{ rows: 7 }} />
         ) : moduleStatus === "error" ? (
@@ -385,28 +423,12 @@ function WikiEntryReader({
             <SidePager
               direction="previous"
               disabled={currentIndex <= 0}
-              onClick={() => {
-                const previousStep = module.steps[currentIndex - 1];
-                if (!previousStep) return;
-                onSelectTarget({
-                  entryId: entry.id,
-                  moduleId: module.id,
-                  stepId: previousStep.id,
-                });
-              }}
+              onClick={goToPreviousStep}
             />
             <SidePager
               direction="next"
               disabled={currentIndex >= stepCount - 1}
-              onClick={() => {
-                const nextStep = module.steps[currentIndex + 1];
-                if (!nextStep) return;
-                onSelectTarget({
-                  entryId: entry.id,
-                  moduleId: module.id,
-                  stepId: nextStep.id,
-                });
-              }}
+              onClick={goToNextStep}
             />
             <div style={{ marginBottom: 12 }}>
               <Title level={4} style={{ margin: "0 0 4px" }}>
@@ -416,7 +438,7 @@ function WikiEntryReader({
                 <Text type="secondary">{step.summary}</Text>
               )}
             </div>
-            <div style={stepBodyStyle}>
+            <div className={style.stepBody}>
               <Space direction="vertical" size={12} style={{ width: "100%" }}>
                 {step.blocks.map((block, index) => (
                   <WikiBlock key={`${block.type}-${index}`} block={block} />
@@ -435,6 +457,25 @@ function WikiEntryReader({
       </section>
     </Space>
   );
+}
+
+function isReaderHotkeyIgnoredTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+  const tagName = target.tagName.toLowerCase();
+  if (
+    tagName === "input" ||
+    tagName === "textarea" ||
+    tagName === "select" ||
+    tagName === "video" ||
+    tagName === "audio" ||
+    tagName === "button"
+  ) {
+    return true;
+  }
+  if (target.isContentEditable) return true;
+  if (target.closest('[contenteditable="true"]')) return true;
+  if (target.closest(".monaco-editor")) return true;
+  return false;
 }
 
 function StepPager({
