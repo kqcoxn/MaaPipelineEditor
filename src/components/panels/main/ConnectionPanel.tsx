@@ -144,8 +144,8 @@ export const ConnectionPanel = memo(
     // WlRoots 连接参数
     const [wlrootsUseWin32VkCode, setWlrootsUseWin32VkCode] = usePersistedState<boolean>(
       "wlroots_use_win32_vkcode",
-      true
-    )
+      true,
+    );
 
     // 自定义截图和输入方法
     const [customScreencap, setCustomScreencap] = useState<
