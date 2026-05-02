@@ -37,6 +37,7 @@ import ErrorPanel from "./components/panels/main/ErrorPanel";
 import ToolbarPanel from "./components/panels/main/ToolbarPanel";
 import { LoggerPanel } from "./components/panels/tools/LoggerPanel";
 import { DebugModal } from "./components/debug/DebugModal";
+import { WikiModal } from "./features/wiki/components/WikiModal";
 import {
   ExplorationFAB,
   ExplorationPanel,
@@ -204,7 +205,7 @@ function App() {
         async (payload, requestId) => {
           const { fileName, data } = payload as {
             fileName?: string;
-            data: any;
+            data: unknown;
           };
           try {
             const success = await pipelineToFlow({
@@ -296,7 +297,7 @@ function App() {
         "mpe:state",
         (payload, requestId) => {
           const { fields } = payload as { fields: string[] };
-          const result: Record<string, any> = {};
+          const result: Record<string, unknown> = {};
           const state = useFlowStore.getState();
           fields.forEach((field) => {
             switch (field) {
@@ -566,6 +567,7 @@ function App() {
         </Layout>
       </Flex>
       <DebugModal />
+      <WikiModal />
       <GlobalListener />
     </ThemeProvider>
   );

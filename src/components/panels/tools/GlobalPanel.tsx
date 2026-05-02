@@ -7,6 +7,7 @@ import { useFlowStore } from "../../../stores/flow";
 import { useConfigStore } from "../../../stores/configStore";
 import { useClipboardStore } from "../../../stores/clipboardStore";
 import { useDebugSessionStore } from "../../../stores/debugSessionStore";
+import { useWikiStore } from "../../../stores/wikiStore";
 import PathSelector from "./PathSelector";
 import ToolboxPanel from "./ToolboxPanel";
 import style from "../../../styles/panels/ToolPanel.module.less";
@@ -39,6 +40,7 @@ function GlobalPanel() {
   const getHistoryState = useFlowStore((state) => state.getHistoryState);
   const pathMode = useFlowStore((state) => state.pathMode);
   const openDebugModal = useDebugSessionStore((state) => state.openModal);
+  const openWiki = useWikiStore((state) => state.openWiki);
 
   // 历史状态
   const [, forceUpdate] = useState({});
@@ -255,6 +257,22 @@ function GlobalPanel() {
                 name="icon-tiaoshi"
                 size={24}
                 onClick={() => openDebugModal()}
+              />
+            </Tooltip>
+          </li>
+        </div>
+        {/* Wiki 按钮 */}
+        <div className={style.group}>
+          <div className={style.devider}>
+            <div></div>
+          </div>
+          <li className={style.item}>
+            <Tooltip placement="bottom" title="MPE Wiki / 俺寻思">
+              <IconFont
+                className={style.icon}
+                name="icon-icon_wendangziliaopeizhi"
+                size={24}
+                onClick={() => openWiki()}
               />
             </Tooltip>
           </li>
