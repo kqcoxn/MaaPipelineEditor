@@ -141,6 +141,12 @@ export const ConnectionPanel = memo(
       MACOS_DEFAULT_METHODS.input[0],
     );
 
+    // WlRoots 连接参数
+    const [wlrootsUseWin32VkCode, setWlrootsUseWin32VkCode] = usePersistedState<boolean>(
+      "wlroots_use_win32_vkcode",
+      true,
+    );
+
     // 自定义截图和输入方法
     const [customScreencap, setCustomScreencap] = useState<
       string | string[] | undefined
@@ -455,6 +461,7 @@ export const ConnectionPanel = memo(
         }
         mfwProtocol.createWlRootsController({
           socket_path: socketPath,
+          use_win32_vk_code: wlrootsUseWin32VkCode
         });
       } else if (activeTab === "macos") {
         // macOS 连接
@@ -496,6 +503,7 @@ export const ConnectionPanel = memo(
       macosPid,
       macosScreencap,
       macosInput,
+      wlrootsUseWin32VkCode,
       isAdbManualMode,
       manualAdbPath,
       manualAddress,
@@ -910,6 +918,8 @@ export const ConnectionPanel = memo(
                 onSelect={setSelectedWlRootsSocket}
                 manualPath={wlrootsSocketPath}
                 onManualPathChange={setWlrootsSocketPath}
+                useWin32VkCode={wlrootsUseWin32VkCode}
+                onUseWin32VkCodeChange={setWlrootsUseWin32VkCode}
                 loading={isRefreshing}
               />
             ) : activeTab === "macos" ? (

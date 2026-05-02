@@ -247,13 +247,13 @@ func (cm *ControllerManager) CreateGamepadController(hwnd, gamepadType, screenca
 }
 
 // 创建 WlRoots 控制器
-func (cm *ControllerManager) CreateWlRootsController(socketPath string) (string, error) {
-	logger.Debug("MFW", "创建 WlRoots 控制器: %s", socketPath)
+func (cm *ControllerManager) CreateWlRootsController(socketPath string, useWin32VkCode bool) (string, error) {
+	logger.Debug("MFW", "创建 WlRoots 控制器: socketPath=%s, useWin32VkCode=%t", socketPath, useWin32VkCode)
 
 	controllerID := uuid.New().String()
 
 	// 创建 WlRoots 控制器
-	ctrl, err := maa.NewWlRootsController(socketPath)
+	ctrl, err := maa.NewWlRootsController(socketPath, useWin32VkCode)
 	if err != nil {
 		return "", NewMFWError(ErrCodeControllerCreateFail, "failed to create wlroots controller: "+err.Error(), nil)
 	}

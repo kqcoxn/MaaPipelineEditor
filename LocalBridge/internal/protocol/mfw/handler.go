@@ -356,8 +356,9 @@ func (h *MFWHandler) handleCreateWlRootsController(conn *server.Connection, msg 
 	}
 
 	socket, _ := dataMap["socket_path"].(string)
+	useWin32VkCode, _ := dataMap["use_win32_vk_code"].(bool)
 
-	controllerID, err := h.service.ControllerManager().CreateWlRootsController(socket)
+	controllerID, err := h.service.ControllerManager().CreateWlRootsController(socket, useWin32VkCode)
 	if err != nil {
 		logger.Error("MFW", "创建WlRoots控制器失败: %v", err)
 		h.sendMFWError(conn, mfw.ErrCodeControllerCreateFail, "控制器创建失败", err.Error())

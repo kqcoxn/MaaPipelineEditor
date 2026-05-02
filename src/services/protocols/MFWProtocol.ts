@@ -491,7 +491,7 @@ export class MFWProtocol extends BaseProtocol {
   /**
    * 创建 WlRoots 控制器
    */
-  public createWlRootsController(params: { socket_path: string }): boolean {
+  public createWlRootsController(params: { socket_path: string, use_win32_vk_code: boolean }): boolean {
     if (!this.wsClient) {
       console.error("[MFWProtocol] WebSocket client not initialized");
       return false;
