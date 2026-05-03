@@ -92,11 +92,19 @@ const BackendConfigRenderer = memo(() => {
           setOpen(true);
         }}
       >
-        <div style={{ fontWeight: 500, marginBottom: 4 }}>打开后端配置</div>
+        <div
+          style={{
+            fontWeight: 500,
+            marginBottom: 4,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <div>编辑后端配置</div>
+        </div>
         <div style={{ fontSize: 12, color: "var(--ant-color-text-secondary)" }}>
-          {isConnected
-            ? "查看和修改后端服务的配置，包括服务器、文件、日志、MaaFramework 等设置"
-            : "需要先连接本地服务才能打开"}
+          {isConnected ? "" : "需要先连接本地服务才能打开"}
         </div>
       </div>
       <BackendConfigModal open={open} onClose={() => setOpen(false)} />

@@ -73,7 +73,7 @@ const ConfigItemRenderer = memo(
               onChange={(checked) =>
                 setConfig(
                   item.key as keyof typeof configDefaults,
-                  checked as any,
+                  checked,
                 )
               }
             />
@@ -113,6 +113,22 @@ const ConfigItemRenderer = memo(
             <Input
               value={value as string}
               placeholder={resolvedPlaceholder}
+              onChange={(e) =>
+                setConfig(
+                  item.key as keyof typeof configDefaults,
+                  e.target.value,
+                )
+              }
+            />
+          );
+
+        case "textarea":
+          return (
+            <Input.TextArea
+              value={value as string}
+              placeholder={resolvedPlaceholder}
+              autoSize={{ minRows: 2, maxRows: 4 }}
+              style={{ maxWidth: item.controlWidth || 360 }}
               onChange={(e) =>
                 setConfig(
                   item.key as keyof typeof configDefaults,

@@ -13,6 +13,7 @@ import {
 } from "../../../stores/localFileStore";
 import { useConfigStore } from "../../../stores/configStore";
 import { localServer } from "../../../services/server";
+import { filterLocalFilesByFolderFilter } from "../../../utils/file/folderFilter";
 import classNames from "classnames";
 
 import styles from "../../../styles/panels/LocalFileListPanel.module.less";
@@ -24,21 +25,29 @@ export const LocalFileListPanel: React.FC = () => {
   const setStatus = useConfigStore((state) => state.setStatus);
   const rootPath = useLocalFileStore((state) => state.rootPath);
   const files = useLocalFileStore((state) => state.files);
+  const folderFilter = useConfigStore(
+    (state) => state.configs.crossFileSearchFolderFilter,
+  );
   const setRefreshing = useLocalFileStore((state) => state.setRefreshing);
   const [searchText, setSearchText] = useState("");
 
   // 过滤文件列表
   const filteredFiles = useMemo(() => {
+    const folderFilteredFiles = filterLocalFilesByFolderFilter(
+      files,
+      folderFilter,
+    );
+
     if (!searchText.trim()) {
-      return files;
+      return folderFilteredFiles;
     }
     const searchLower = searchText.toLowerCase();
-    return files.filter(
+    return folderFilteredFiles.filter(
       (file) =>
         file.file_name.toLowerCase().includes(searchLower) ||
         file.relative_path.toLowerCase().includes(searchLower),
     );
-  }, [files, searchText]);
+  }, [files, folderFilter, searchText]);
 
   // 请求重新加载文件列表
   const handleRefresh = () => {

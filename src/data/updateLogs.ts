@@ -111,6 +111,7 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2026-5",
     type: "feature",
     updates: {
+      features: ["🚷 文件检索可配置过滤文件夹，减少无关文件干扰"],
       perfs: [
         "执行调试时若需加载初次加载资源等待，等待后自动执行",
         "切换调试记录后会自动加载可预览截图",

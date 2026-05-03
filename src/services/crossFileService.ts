@@ -6,10 +6,15 @@
 import { useWSStore } from "../stores/wsStore";
 import { useLocalFileStore } from "../stores/localFileStore";
 import { useFileStore } from "../stores/fileStore";
+import { useConfigStore } from "../stores/configStore";
 import { useFlowStore, type NodeType } from "../stores/flow";
 import { localServer } from "./server";
 import { NodeTypeEnum } from "../components/flow/nodes/constants";
 import { getFullNodeName } from "../utils/node/nodeNameHelper";
+import {
+  filterLocalFilesByFolderFilter,
+  matchesFolderFilter,
+} from "../utils/file/folderFilter";
 
 /**
  * 跨文件节点信息
@@ -34,19 +39,6 @@ export interface CrossFileNodeInfo {
 }
 
 /**
- * 文件节点数据
- */
-interface FileNodesData {
-  filePath: string;
-  relativePath: string;
-  prefix: string;
-  nodes: Array<{
-    label: string;
-    nodeType: NodeTypeEnum;
-  }>;
-}
-
-/**
  * 跨文件服务类
  */
 class CrossFileService {
@@ -65,15 +57,23 @@ class CrossFileService {
   getAllNodes(): CrossFileNodeInfo[] {
     const isConnected = this.isConnected();
     const currentFile = useFileStore.getState().currentFile;
-    const currentFilePath = currentFile.config.filePath;
     const result: CrossFileNodeInfo[] = [];
 
     if (isConnected) {
       // 连接 localbridge 时
       // 从 localFileStore 获取所有本地文件的节点
-      const localFiles = useLocalFileStore.getState().files;
+      const allLocalFiles = useLocalFileStore.getState().files;
+      const folderFilter =
+        useConfigStore.getState().configs.crossFileSearchFolderFilter;
+      const localFiles = filterLocalFilesByFolderFilter(
+        allLocalFiles,
+        folderFilter,
+      );
       const loadedFiles = useFileStore.getState().files;
       const processedFilePaths = new Set<string>(); // 记录已处理的文件路径
+      const localFilePaths = new Set(
+        allLocalFiles.map((file) => file.file_path),
+      );
 
       // 处理本地文件
       for (const localFile of localFiles) {
@@ -148,7 +148,13 @@ class CrossFileService {
         // 跳过已处理的文件
         if (
           file.config.filePath &&
-          processedFilePaths.has(file.config.filePath)
+          (processedFilePaths.has(file.config.filePath) ||
+            (localFilePaths.has(file.config.filePath) &&
+              file.fileName !== currentFile.fileName &&
+              !matchesFolderFilter(
+                file.config.relativePath || file.fileName,
+                folderFilter,
+              )))
         ) {
           continue;
         }
@@ -319,7 +325,6 @@ class CrossFileService {
    */
   async navigateToNode(nodeInfo: CrossFileNodeInfo): Promise<boolean> {
     const fileStore = useFileStore.getState();
-    const flowStore = useFlowStore.getState();
 
     // 如果是当前文件，直接定位
     if (nodeInfo.isCurrentFile) {
@@ -461,7 +466,9 @@ class CrossFileService {
       const maxAttempts = 20; // 最多尝试20次
       const attemptInterval = 100; // 每次间隔100ms
 
-      let targetFile = null;
+      let targetFile:
+        | ReturnType<typeof useFileStore.getState>["files"][number]
+        | undefined;
       for (let i = 0; i < maxAttempts; i++) {
         await new Promise((resolve) => setTimeout(resolve, attemptInterval));
 
@@ -488,7 +495,9 @@ class CrossFileService {
 
           const flowStore = useFlowStore.getState();
           const nodes = flowStore.nodes;
-          const targetNode = nodes.find((n: any) => n.data.label === nodeLabel);
+          const targetNode = nodes.find(
+            (n: NodeType) => n.data.label === nodeLabel,
+          );
 
           // 找到节点，执行定位
           if (targetNode) {
@@ -499,7 +508,7 @@ class CrossFileService {
         // 超时仍未找到节点
         console.warn(
           `[loadAndNavigate] 节点 "${nodeLabel}" 超时未找到，当前节点列表:`,
-          useFlowStore.getState().nodes.map((n: any) => n.data.label),
+          useFlowStore.getState().nodes.map((n: NodeType) => n.data.label),
         );
         return false;
       }
@@ -644,7 +653,8 @@ class CrossFileService {
         // 只处理 Pipeline 节点
         if (node.type !== NodeTypeEnum.Pipeline) continue;
 
-        const anchorValue = (node.data as any).others?.anchor;
+        const anchorValue =
+          "others" in node.data ? node.data.others?.anchor : undefined;
         if (this.anchorValueContains(anchorValue, anchorName)) {
           result.push({
             id: node.id,

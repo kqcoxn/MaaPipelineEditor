@@ -167,7 +167,9 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
         try {
           const success = await wailsSetRootDir(values.file_root);
           if (success === false) {
-            message.warning("Extremer 配置保存失败，但 LocalBridge 配置将继续保存");
+            message.warning(
+              "Extremer 配置保存失败，但 LocalBridge 配置将继续保存",
+            );
           }
         } catch (error) {
           console.error("保存 Extremer 根目录配置失败:", error);
@@ -302,13 +304,14 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
             label={
               <span>
                 根目录
-                <Tooltip title="文件扫描的根目录路径，修改后需重启服务">
+                <Tooltip title="文件扫描的根目录路径，修改后需重启服务。仅在 LocalBridge 指定了配置文件或 Extremer 环境中生效。">
                   <InfoCircleOutlined
                     style={{ marginLeft: 4, color: "#8c8c8c" }}
                   />
                 </Tooltip>
               </span>
             }
+            extra="仅在 LB 指定了配置文件（--config）或在 Extremer 环境中生效。"
           >
             <Input placeholder="文件扫描根目录" />
           </Form.Item>
@@ -374,7 +377,11 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
               </span>
             }
           >
-            <InputNumber min={0} style={{ width: "100%" }} placeholder="10000" />
+            <InputNumber
+              min={0}
+              style={{ width: "100%" }}
+              placeholder="10000"
+            />
           </Form.Item>
 
           {/* 日志配置 */}
@@ -438,8 +445,8 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
             name="maafw_resource_dir"
             label={
               <span>
-                资源目录
-                <Tooltip title="OCR 资源所在目录（包含 model 文件夹的目录）">
+                OCR 资源目录
+                <Tooltip title="仅用于获取 OCR 辅助，需指定包含 OCR 的资源目录（包含 pipeline、model 等文件夹的目录，一般在 /resource 或 /base 文件夹）。可不含具体 pipeline，也不会检索；指定 pipeline 检索目录请配置根目录。">
                   <InfoCircleOutlined
                     style={{ marginLeft: 4, color: "#8c8c8c" }}
                   />

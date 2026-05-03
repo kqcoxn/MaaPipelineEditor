@@ -70,6 +70,7 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   wsAutoConnect: "local-service",
   fileAutoReload: "local-service",
   enableCrossFileSearch: "local-service",
+  crossFileSearchFolderFilter: "local-service",
   // AI 配置
   aiApiUrl: "ai",
   aiApiKey: "ai",
@@ -134,6 +135,7 @@ const defaultConfigs = {
   fileAutoReload: false,
   saveFilesBeforeDebug: true,
   enableCrossFileSearch: true,
+  crossFileSearchFolderFilter: "",
   // AI 配置
   aiApiUrl: "",
   aiApiKey: "",
@@ -193,6 +195,7 @@ export type ConfigState = {
     wsAutoConnect: boolean;
     fileAutoReload: boolean;
     saveFilesBeforeDebug: boolean;
+    crossFileSearchFolderFilter: string;
     // AI 配置
     aiApiUrl: string;
     aiApiKey: string;

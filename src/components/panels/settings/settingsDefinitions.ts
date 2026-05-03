@@ -7,6 +7,7 @@ export type ConfigItemType =
   | "select"
   | "inputNumber"
   | "input"
+  | "textarea"
   | "inputPassword"
   | "slider"
   | "button"
@@ -27,7 +28,7 @@ export interface ConfigItemDef {
   /**控件类型 */
   type: ConfigItemType;
   /**select 选项 */
-  options?: { value: any; label: string }[];
+  options?: { value: unknown; label: string }[];
   /**switch 开启文本 */
   checkedChildren?: string;
   /**switch 关闭文本 */
@@ -531,6 +532,17 @@ export const settingsDefinitions: ConfigItemDef[] = [
     checkedChildren: "开启",
     unCheckedChildren: "关闭",
     order: 5,
+  },
+  {
+    key: "crossFileSearchFolderFilter",
+    category: "local-service",
+    label: "文件夹过滤",
+    tipTitle: "文件夹过滤",
+    tipContent:
+      "前端过滤本地文件列表与跨文件搜索候选。填写相对于本地服务根目录的文件夹路径，多个目录可用逗号、分号或换行分隔；留空表示不过滤。",
+    type: "textarea",
+    placeholder: "例如：pipeline\npipeline/sub",
+    order: 6,
   },
 
   // ==================== AI (ai) ====================
