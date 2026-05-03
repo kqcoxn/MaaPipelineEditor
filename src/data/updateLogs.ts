@@ -107,6 +107,16 @@ export const longTermPreview: ForecastSection = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "1.5.1",
+    date: "2026-5",
+    type: "feature",
+    updates: {
+      perfs: [
+        "执行调试时若需加载初次加载资源等待，等待后自动执行",
+      ],
+    },
+  },
+  {
     version: "1.5.0",
     date: "2026-5-2",
     type: "major",

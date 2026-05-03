@@ -100,6 +100,8 @@ type NodeDataWithColor = {
 
 type ResourcePreflightRequestResult = "sent" | "empty" | "send-failed";
 
+const pendingResourcePreflightRuns = new Set<string>();
+
 /**复制节点名处理器 */
 function handleCopyNodeName(node: NodeContextMenuNode) {
   copyNodeName(node.data.label, node.type);
@@ -254,13 +256,15 @@ function handleDebugRunMode(node: NodeContextMenuNode, mode: DebugRunMode) {
     }
 
     if (resourcePreflightMatches && resourcePreflight.status === "checking") {
-      message.info("资源正在加载检测中，请等待检测完成后再启动调试。");
+      scheduleDebugRunAfterResourcePreflight(node, mode, resourceKey);
+      message.info("资源检测完成后将自动启动调试。");
       return;
     }
 
     const requestResult = requestDebugResourcePreflight(resourceKey);
     if (requestResult === "sent") {
-      message.info("正在检测资源路径，请等待检测完成后再启动调试。");
+      scheduleDebugRunAfterResourcePreflight(node, mode, resourceKey);
+      message.info("正在检测资源路径，检测完成后将自动启动调试。");
     } else if (requestResult === "empty") {
       message.warning("请先配置资源路径或等待 LocalBridge 扫描资源包");
     }
@@ -284,6 +288,53 @@ function handleDebugRunMode(node: NodeContextMenuNode, mode: DebugRunMode) {
   }
 
   handleDebugRunModeWithInput(node, mode);
+}
+
+function scheduleDebugRunAfterResourcePreflight(
+  node: NodeContextMenuNode,
+  mode: DebugRunMode,
+  resourceKey: string,
+) {
+  const pendingKey = `${resourceKey}\u0000${node.id}\u0000${mode}`;
+  if (pendingResourcePreflightRuns.has(pendingKey)) return;
+  pendingResourcePreflightRuns.add(pendingKey);
+
+  let timeoutId: number | undefined;
+  const unsubscribe = debugProtocolClient.onResourcePreflight((result) => {
+    const resultResourceKey = normalizeDebugResourcePaths(
+      result.resourcePaths,
+      [],
+    ).join("\n");
+    if (resultResourceKey !== resourceKey) return;
+
+    cleanup();
+    if (result.status !== "ready") {
+      const firstError = result.diagnostics?.find(
+        (diagnostic) => diagnostic.severity === "error",
+      );
+      message.error(
+        firstError?.message ??
+          "资源加载检测失败，无法自动启动调试。",
+      );
+      return;
+    }
+
+    handleDebugRunMode(node, mode);
+  });
+
+  timeoutId = window.setTimeout(() => {
+    cleanup();
+    message.error("资源路径检测超时，无法自动启动调试。");
+  }, 60_000);
+
+  function cleanup() {
+    pendingResourcePreflightRuns.delete(pendingKey);
+    if (timeoutId !== undefined) {
+      window.clearTimeout(timeoutId);
+      timeoutId = undefined;
+    }
+    unsubscribe();
+  }
 }
 
 function handleSetDebugEntry(node: NodeContextMenuNode) {
