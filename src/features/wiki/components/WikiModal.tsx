@@ -270,9 +270,15 @@ function WikiHome({
           知识总览
         </Title>
         <Paragraph type="secondary" style={{ margin: 0 }}>
-          内置在 MPE 里的交互式操作百科。P1 已覆盖基础编辑、工具箱、调试、导入迁移与 LocalBridge 基础说明；后续会继续扩到 AI、迁移补全和更完整的图文内容。
+          内置在 MPE 里的交互式操作百科。先从“认识 MPE”或“认识工作流编辑器”建立整体认知，再按编辑、工具箱、调试、迁移和本地能力逐层下钻。
         </Paragraph>
       </div>
+      <Space wrap size={8}>
+        <Button onClick={() => onSelectEntry(wikiEntries[0])}>认识 MPE</Button>
+        <Button onClick={() => onSelectEntry(wikiEntries[1])}>
+          认识工作流编辑器
+        </Button>
+      </Space>
       <div style={homeGridStyle}>
         {wikiEntries.map((entry) => (
           <button

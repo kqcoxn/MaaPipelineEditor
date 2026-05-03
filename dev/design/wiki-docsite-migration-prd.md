@@ -356,3 +356,42 @@ P1 最小边界冻结如下：
   - 继续补 `localbridge`、`migrate` 的 P1-B 内容与 P2 入口。
   - 为 `Hybrid` 页面补更完整的摘要模块与外部长文跳转关系。
   - 在内容覆盖率与入口表现稳定后，再评估更深的文档治理与生成流程。
+
+### P1-B 完成记录
+
+- 完成时间：2026-05-03
+- 本阶段产物：
+  - 在 `src/wiki/registry.ts`、`src/wiki/searchIndex.ts` 中补齐 `debug / localbridge / migrate` 的 P1-B 模块：`时间线与产物`、`调试排障`、`连接状态与前置条件`、`本地文件管理`、`设备与截图前置`、`常见连接问题`、`从 YAMaaPE 迁移`。
+  - 在 `ConnectionPanel`、`LocalFileListPanel`、`ToolboxPanel`、`ImportButton` 补充与 P1-B 模块直接对应的正式 Wiki 入口。
+  - 维持 `migrate/从 YAMaaPE 迁移` 的 `Hybrid` 角色，只保留摘要、注意事项和 docsite 跳转，不复制完整长文。
+- 静态校验：
+  - 校对所有新增 P1-B 模块均已注册并纳入搜索索引。
+  - 校对 `时间线`、`调试失败`、`LocalBridge 未连接`、`截图失败`、`本地文件`、`YAMaaPE` 等搜索词有目标模块承接。
+  - 校对 `ConnectionPanel`、本地文件区域、导入入口、截图/字段工具附近均存在正式 Wiki 挂点。
+- 本阶段未做：
+  - 未修改 `docsite/docs/` 页面内容。
+  - 未新增 AI 区域入口。
+  - 未实现旧文件首次打开提示或空画布首次使用提示。
+  - 未做 LocalBridge 错误码联动或自动弹出帮助。
+- 后续接棒边界：
+  - 若继续推进 P1 剩余内容，应补 `start / workflow / toolbox` 的其余 P1-B 模块。
+  - 若进入 P2，则优先做 AI 相关模块与更强的上下文化入口，而不是重新改写已落地的 P1 闭环。
+
+### P1 收尾完成记录
+
+- 完成时间：2026-05-03
+- 本阶段产物：
+  - 在 `src/wiki/registry.ts`、`src/wiki/searchIndex.ts` 中补齐 `start / workflow / toolbox` 的剩余 P1 模块：`认识 MPE`、`认识工作流编辑器`、`节点模板`、`文件与视口`、`工具与搜索`、`颜色取点`、`位移测量`。
+  - 在 `NodeAddPanel`、`SearchPanel`、`FilePanel`、`ToolboxPanel` 补齐与剩余模块直接对应的正式 Wiki 入口。
+  - 调整 `WikiModal` 首页分发，让 `start/认识 MPE` 与 `workflow/认识工作流编辑器` 作为正式总览入口可直接发现。
+- 静态校验：
+  - 校对新增 7 个模块均已注册并纳入搜索索引。
+  - 校对 `节点模板`、`文件视口`、`搜索节点`、`颜色取点`、`位移测量`、`MPE` 等搜索词有目标模块承接。
+  - 校对 `NodeAddPanel`、`SearchPanel`、`FilePanel`、`ToolboxPanel` 均存在正式 Wiki 挂点。
+- 本阶段未做：
+  - 未修改 `docsite/docs/` 页面内容。
+  - 未实现空画布首次使用提示、旧文件首次打开提示或 AI 区域入口。
+  - 未新增自动弹出、错误码联动或更深的动态上下文化能力。
+- P2 接棒边界：
+  - 后续只剩首次使用提示、旧文件首次打开提示、AI 区域入口和更深的上下文化联动属于 P2 范围。
+  - P1 的内容矩阵与现有静态入口已视为闭环完成，后续不再继续追加新的 P1 模块。

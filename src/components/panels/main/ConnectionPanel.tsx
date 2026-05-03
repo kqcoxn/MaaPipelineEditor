@@ -40,6 +40,7 @@ import {
   PLATFORM_TABS,
   MACOS_DEFAULT_METHODS,
 } from "./connection";
+import { WikiPonderTrigger } from "../../../features/wiki/components/WikiPonderTrigger";
 
 const { Text } = Typography;
 
@@ -661,6 +662,24 @@ export const ConnectionPanel = memo(
           >
             <span>连接配置</span>
             <Badge status={statusBadge.status} text={statusBadge.text} />
+            <WikiPonderTrigger
+              target={{
+                entryId: "localbridge",
+                moduleId: "connection-prerequisites",
+              }}
+              title="连接状态与前置条件"
+              description="先看连接状态，再判断截图方法、输入方法和参数是否真正就绪。"
+              placement="bottom"
+            />
+            <WikiPonderTrigger
+              target={{
+                entryId: "localbridge",
+                moduleId: "common-connection-issues",
+              }}
+              title="常见连接问题"
+              description="连接失败或切换设备异常时，先从错误提示、方法配置和目标设备选择排查。"
+              placement="bottom"
+            />
           </div>
         }
         placement="right"

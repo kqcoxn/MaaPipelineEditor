@@ -47,25 +47,25 @@
 
 | Wiki Entry | 模块名 | 主要来源页 | 计划入口挂点 | 优先级 | 属于 P1 |
 | --- | --- | --- | --- | --- | --- |
-| `start` | 认识 MPE | `介绍` | Wiki 首页 / 空画布状态 | P1-B | 否 |
+| `start` | 认识 MPE | `介绍` | Wiki 首页 / 空画布状态 | P1-B | 是 |
 | `start` | 5 分钟上手 | `快速上手` | Wiki 首页 / 首次使用提示 | P1-A | 是 |
 | `start` | 版本选择 | `产品矩阵` | Wiki 首页 | P1-B | 是 |
 | `start` | 第一次导入与导出 | `快速上手` + `导入与导出` | Wiki 首页 / 导入导出区 | P1-A | 是 |
-| `workflow` | 认识工作流编辑器 | `概述` | Wiki 首页 / 空画布状态 | P1-B | 否 |
+| `workflow` | 认识工作流编辑器 | `概述` | Wiki 首页 / 空画布状态 | P1-B | 是 |
 | `workflow` | 节点 | `节点` | 节点相关区域 / 节点右键后续挂点 | P1-A | 是 |
 | `workflow` | 字段面板 | `字段面板` | 字段面板 | P1-A | 是 |
-| `workflow` | 节点模板 | `节点模板面板` | 节点模板面板 / 字段模板入口 | P1-B | 否 |
+| `workflow` | 节点模板 | `节点模板面板` | 节点模板面板 / 字段模板入口 | P1-B | 是 |
 | `workflow` | 连接面板与连接操作 | `连接` | 连接面板 | P1-A | 是 |
-| `workflow` | 文件与视口 | `文件与视口` | 文件区域 / 视口相关区域 | P1-B | 否 |
-| `workflow` | 工具与搜索 | `工具` | 全局工具栏 / 搜索相关区域 | P1-B | 否 |
+| `workflow` | 文件与视口 | `文件与视口` | 文件区域 / 视口相关区域 | P1-B | 是 |
+| `workflow` | 工具与搜索 | `工具` | 全局工具栏 / 搜索相关区域 | P1-B | 是 |
 | `workflow` | Pipeline 面板 | `Pipeline 面板` | Pipeline 面板 | P1-A | 是 |
 | `workflow` | 导入与导出 | `导入与导出` | 导入导出区域 | P1-A | 是 |
 | `toolbox` | OCR | `字段快捷工具` | 工具箱 / 字段快捷入口 | P1-A | 是 |
 | `toolbox` | 模板截图 | `字段快捷工具` | 工具箱 / 字段快捷入口 | P1-A | 是 |
 | `toolbox` | ROI | `字段快捷工具` | 工具箱 / 字段快捷入口 | P1-A | 是 |
 | `toolbox` | 偏移测量 | `字段快捷工具` | 工具箱 / 字段快捷入口 | P1-A | 是 |
-| `toolbox` | 颜色取点 | `字段快捷工具` | 工具箱 / 字段快捷入口 | P1-B | 否 |
-| `toolbox` | 位移测量 | `字段快捷工具` | 工具箱 / 字段快捷入口 | P1-B | 否 |
+| `toolbox` | 颜色取点 | `字段快捷工具` | 工具箱 / 字段快捷入口 | P1-B | 是 |
+| `toolbox` | 位移测量 | `字段快捷工具` | 工具箱 / 字段快捷入口 | P1-B | 是 |
 | `debug` | 调试工作台 | `流程级调试` | `DebugModal` / 调试入口按钮 | P1-A | 是 |
 | `debug` | 调试前置条件 | `流程级调试` + `概览与部署` | `DebugModal` | P1-A | 是 |
 | `debug` | 运行方式 | `流程级调试` + `节点` | `DebugModal` / 节点调试入口 | P1-A | 是 |
@@ -94,9 +94,9 @@
 
 | 入口 | 当前状态 | 已关联内容 | P0 处理 |
 | --- | --- | --- | --- |
-| `GlobalPanel` | 已存在，但 Wiki 总入口受 `isWikiModuleVisible = false` 隐藏 | 全局 Wiki 打开能力 | 记录为现有入口，不在 P0 恢复可见性。 |
-| `DebugModal` | 已存在 `WikiPonderTrigger` | `debug/showcase` | 作为 P1 调试模块主挂点。 |
-| `ToolboxPanel` | 已存在 `WikiPonderTrigger` | `toolbox/screenshot`、`toolbox/roi` | 作为 P1 工具箱模块主挂点。 |
+| `GlobalPanel` | 已恢复可见 | 全局 Wiki 打开能力 | 已在 P1 恢复。 |
+| `DebugModal` | 已存在 `WikiPonderTrigger` | `debug/workbench` | P1 已作为调试主挂点恢复。 |
+| `ToolboxPanel` | 已存在 `WikiPonderTrigger` | `toolbox/ocr`、`toolbox/template-screenshot`、`toolbox/color-pick`、`toolbox/roi`、`toolbox/roi-offset`、`toolbox/delta-measure` | P1 / P1-B / P1 收尾 已承接工具箱主挂点。 |
 
 ### P1 首批必须接入
 
@@ -112,9 +112,9 @@
 | 入口 | 目标模块方向 | 备注 |
 | --- | --- | --- |
 | AI 相关区域 | `ai/*` | 等 AI 模块成型后补齐。 |
-| 空画布 / 首次使用提示 | `start/*`、`workflow/认识工作流编辑器` | 更适合作为首次体验增强，不阻塞 P1。 |
-| 旧文件首次打开 / 迁移提示 | `migrate/*` | 适合和导入链路一起补齐。 |
-| LocalBridge 失败场景 | `localbridge/常见连接问题` | 与错误提示/诊断联动，放在 P2。 |
+| 空画布 / 首次使用提示 | `start/*`、`workflow/认识工作流编辑器` | P1 收尾后仍后移，不作为本轮闭环条件。 |
+| 旧文件首次打开 / 迁移提示 | `migrate/*` | 仍后移，适合和导入链路一起补齐。 |
+| LocalBridge 失败场景 | `localbridge/常见连接问题` | P1-B 已补静态帮助入口；更深的错误联动仍后移。 |
 
 ## 5. P1 最小实施边界
 
@@ -129,7 +129,7 @@
 - 双维护风险：`src/wiki/registry.ts` 与 `src/wiki/searchIndex.ts` 目前均为手工维护；P1 实施时容易漏注册、漏索引。
 - 内容漂移风险：`Hybrid` 页面如果摘要与长文边界不清，后续容易双端都改或双端都不改。
 - 入口漂移风险：若后续直接在代码里新增入口但不回写本文档，会导致 PRD 与实现脱节。
-- 可见性风险：当前 `isWikiModuleVisible` 仍为 `false`；P0 不恢复入口，P1 必须在内容覆盖率满足后再讨论恢复。
+- 可见性风险：入口已在 P1 恢复；后续风险转为“新增内容是否能维持可发现性和维护一致性”。
 
 ## 7. P0 验收结果
 
@@ -139,3 +139,19 @@
 - P1 首批模块数量为 18，满足“12+ 高频模块”的阶段门槛。
 - 所有 `Docsite First` 页面都保留了应用内摘要入口或外链角色说明。
 - 本阶段未改运行代码、未迁图片、未恢复 Wiki 可见性。
+
+## 8. 后续执行记录
+
+### P1-B 完成事实
+
+- 已补齐 `debug / localbridge / migrate` 的 P1-B 内容模块。
+- 已在 `ConnectionPanel`、`LocalFileListPanel`、`ToolboxPanel`、`ImportButton` 接入与 P1-B 模块对应的正式 Wiki 入口。
+- `从 YAMaaPE 迁移` 仍保持 `Hybrid` 角色，只做摘要和跳转，不复制 docsite 长文。
+- AI 相关区域、旧文件首次打开提示、空画布首次使用提示仍未进入本轮范围。
+
+### P1 收尾完成事实
+
+- 已补齐 `start / workflow / toolbox` 的剩余 P1 模块，P1 内容矩阵闭环完成。
+- 已在 `NodeAddPanel`、`SearchPanel`、`FilePanel`、`ToolboxPanel` 接入与剩余模块直接对应的正式 Wiki 入口。
+- `WikiModal` 首页已可直接分发到 `认识 MPE` 与 `认识工作流编辑器`。
+- 空画布首次使用提示、旧文件首次打开提示、AI 相关区域入口仍明确后移到 P2。

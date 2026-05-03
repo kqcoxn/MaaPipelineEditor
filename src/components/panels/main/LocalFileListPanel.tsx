@@ -15,6 +15,7 @@ import { useConfigStore } from "../../../stores/configStore";
 import { localServer } from "../../../services/server";
 import { filterLocalFilesByFolderFilter } from "../../../utils/file/folderFilter";
 import classNames from "classnames";
+import { WikiPonderTrigger } from "../../../features/wiki/components/WikiPonderTrigger";
 
 import styles from "../../../styles/panels/LocalFileListPanel.module.less";
 
@@ -102,6 +103,12 @@ export const LocalFileListPanel: React.FC = () => {
           )}
         </div>
         <div className={styles.actions}>
+          <WikiPonderTrigger
+            target={{ entryId: "localbridge", moduleId: "local-files" }}
+            title="本地文件管理"
+            description="本地文件列表面向真实工作目录，不只是当前标签页切换。"
+            placement="bottom"
+          />
           <Tooltip title="刷新文件列表">
             <Button
               type="text"

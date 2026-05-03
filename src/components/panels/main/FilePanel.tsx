@@ -132,6 +132,12 @@ function FilePanel() {
           placement="bottom"
         />
         <WikiPonderTrigger
+          target={{ entryId: "workflow", moduleId: "file-viewport" }}
+          title="文件与视口"
+          description="区分标签页切换、本地文件管理和画布定位这三类不同操作。"
+          placement="bottom"
+        />
+        <WikiPonderTrigger
           target={{ entryId: "localbridge", moduleId: "why-localbridge" }}
           title="何时需要 LocalBridge"
           description="本地文件入口属于 LocalBridge 能力，而不是普通标签页操作。"

@@ -62,6 +62,11 @@ const TOOLBOX_TOOLS: ToolConfig[] = [
     icon: "icon-ic_quseqi",
     iconSize: 22,
     modalType: "color",
+    wiki: {
+      target: { entryId: "toolbox", moduleId: "color-pick" },
+      title: "颜色取点",
+      description: "从正确截图中取色，并把 lower/upper 一类颜色值直接回填字段。",
+    },
   },
   {
     key: "roi",
@@ -93,6 +98,11 @@ const TOOLBOX_TOOLS: ToolConfig[] = [
     icon: "icon-celiang2",
     iconSize: 22,
     modalType: "delta",
+    wiki: {
+      target: { entryId: "toolbox", moduleId: "delta-measure" },
+      title: "位移测量",
+      description: "当你要的是单轴 dx/dy，而不是 roi_offset 四元组时，用这个工具。",
+    },
   },
 ];
 
@@ -468,6 +478,12 @@ function ToolboxPanel() {
             )}
           </div>
         ))}
+        <WikiPonderTrigger
+          target={{ entryId: "localbridge", moduleId: "device-screenshot" }}
+          title="设备与截图前置"
+          description="工具箱里看到“请先连接本地服务与设备”时，先回到控制器与截图来源前置条件。"
+          placement="bottom"
+        />
       </div>
 
       {/* 结果预览区 */}

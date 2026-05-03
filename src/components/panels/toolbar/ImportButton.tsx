@@ -274,6 +274,12 @@ function ImportButton() {
           description="旧 Pipeline 更接近迁移场景，先看兼容边界和导入后整理预期。"
           placement="bottom"
         />
+        <WikiPonderTrigger
+          target={{ entryId: "migrate", moduleId: "from-yamaape" }}
+          title="从 YAMaaPE 迁移"
+          description="迁入 YAMaaPE 项目时，先确认字段兼容边界，再决定哪些内容需要重整。"
+          placement="bottom"
+        />
       </div>
     </>
   );
