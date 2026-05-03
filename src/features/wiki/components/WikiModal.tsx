@@ -270,7 +270,7 @@ function WikiHome({
           知识总览
         </Title>
         <Paragraph type="secondary" style={{ margin: 0 }}>
-          内置在 MPE 里的交互式百科。P1 先提供基础阅读器和示例条目，后续会接入上下文帮助、搜索和动态图文教程。
+          内置在 MPE 里的交互式操作百科。P1 已覆盖基础编辑、工具箱、调试、导入迁移与 LocalBridge 基础说明；后续会继续扩到 AI、迁移补全和更完整的图文内容。
         </Paragraph>
       </div>
       <div style={homeGridStyle}>

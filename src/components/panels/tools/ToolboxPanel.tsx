@@ -38,6 +38,11 @@ const TOOLBOX_TOOLS: ToolConfig[] = [
     icon: "icon-ocr1",
     iconSize: 22,
     modalType: "ocr",
+    wiki: {
+      target: { entryId: "toolbox", moduleId: "ocr" },
+      title: "OCR",
+      description: "先拿到正确截图，再把识别文本作为字段初值回填。",
+    },
   },
   {
     key: "template",
@@ -46,9 +51,9 @@ const TOOLBOX_TOOLS: ToolConfig[] = [
     iconSize: 22,
     modalType: "template",
     wiki: {
-      target: { entryId: "toolbox", moduleId: "screenshot" },
-      title: "截图工具",
-      description: "了解截图素材如何服务 ROI、OCR 和模板裁剪。",
+      target: { entryId: "toolbox", moduleId: "template-screenshot" },
+      title: "模板截图",
+      description: "理解模板截图如何与 ROI、OCR 共用同一张图像上下文。",
     },
   },
   {
@@ -66,8 +71,8 @@ const TOOLBOX_TOOLS: ToolConfig[] = [
     modalType: "roi",
     wiki: {
       target: { entryId: "toolbox", moduleId: "roi" },
-      title: "ROI 工具",
-      description: "查看区域选择、坐标和负坐标的基础说明。",
+      title: "ROI",
+      description: "查看区域选择、识别范围和负坐标的基础说明。",
     },
   },
   {
@@ -76,6 +81,11 @@ const TOOLBOX_TOOLS: ToolConfig[] = [
     icon: "icon-celiang1",
     iconSize: 22,
     modalType: "roi_offset",
+    wiki: {
+      target: { entryId: "toolbox", moduleId: "roi-offset" },
+      title: "偏移测量",
+      description: "理解 roi_offset、dx/dy 一类相对位移字段如何测量。",
+    },
   },
   {
     key: "delta",

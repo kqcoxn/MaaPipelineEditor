@@ -18,7 +18,14 @@ import { CreateFileModal } from "../../modals/CreateFileModal";
 import { checkGuard } from "../../panels/settings/guardSystem";
 import GuardPromptModal from "../../modals/GuardPromptModal";
 import type { ConfigItemDef } from "../../panels/settings/settingsDefinitions";
+import { WikiPonderTrigger } from "../../../features/wiki/components/WikiPonderTrigger";
 import style from "../../../styles/panels/ToolbarPanel.module.less";
+
+const actionGroupStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 6,
+};
 
 /**
  * 导出按钮组件
@@ -76,18 +83,21 @@ function ExportButton() {
     setExportModalVisible(true);
   };
 
-  const handleSaveToLocal = async (mode?: "all" | "pipeline" | "config") => {
-    const success = await saveFileToLocal(undefined, undefined, mode);
-    if (!success) {
-      message.error("文件保存失败");
-    }
-  };
+  const handleSaveToLocal = useCallback(
+    async (mode?: "all" | "pipeline" | "config") => {
+      const success = await saveFileToLocal(undefined, undefined, mode);
+      if (!success) {
+        message.error("文件保存失败");
+      }
+    },
+    [saveFileToLocal],
+  );
 
   const handleCreateFileWithLocal = () => {
     setCreateFileModalVisible(true);
   };
 
-  const handlePartialExport = () => {
+  const handlePartialExport = useCallback(() => {
     ClipboardHelper.write(
       flowToPipeline({
         nodes: selectedNodes,
@@ -95,7 +105,7 @@ function ExportButton() {
       }),
       { successMsg: "已将选中节点 Pipeline 导出到粘贴板" },
     );
-  };
+  }, [selectedEdges, selectedNodes]);
 
   const handleExportPipeline = () => {
     const { pipelineString } = flowToSeparatedStrings();
@@ -112,7 +122,7 @@ function ExportButton() {
   };
 
   // 执行对应的导出操作
-  const executeExportAction = (action: ExportAction) => {
+  const executeExportAction = useCallback((action: ExportAction) => {
     switch (action) {
       case "clipboard":
         handleExportToClipboard();
@@ -145,7 +155,10 @@ function ExportButton() {
         handleCreateFileWithLocal();
         break;
     }
-  };
+  }, [
+    handlePartialExport,
+    handleSaveToLocal,
+  ]);
 
   // 点击按钮执行默认操作
   const handleButtonClick = () => {
@@ -275,6 +288,7 @@ function ExportButton() {
     wsConnected,
     currentFilePath,
     isPartable,
+    executeExportAction,
     setDefaultExportAction,
   ]);
 
@@ -308,21 +322,29 @@ function ExportButton() {
 
   return (
     <>
-      <Dropdown
-        menu={{ items: menuItems }}
-        trigger={["hover"]}
-        placement="bottomLeft"
-        overlayClassName="toolbar-dropdown"
-        mouseEnterDelay={0}
-      >
-        <Button
-          icon={<ExportOutlined />}
-          onClick={handleButtonClick}
-          className={style.toolbarButton}
+      <div style={actionGroupStyle}>
+        <Dropdown
+          menu={{ items: menuItems }}
+          trigger={["hover"]}
+          placement="bottomLeft"
+          overlayClassName="toolbar-dropdown"
+          mouseEnterDelay={0}
         >
-          {buttonLabel}（{currentActionDesc}）
-        </Button>
-      </Dropdown>
+          <Button
+            icon={<ExportOutlined />}
+            onClick={handleButtonClick}
+            className={style.toolbarButton}
+          >
+            {buttonLabel}（{currentActionDesc}）
+          </Button>
+        </Dropdown>
+        <WikiPonderTrigger
+          target={{ entryId: "workflow", moduleId: "import-export" }}
+          title="导入与导出"
+          description="先确认导出模式和去向，再决定是粘贴板、文件还是本地保存。"
+          placement="bottom"
+        />
+      </div>
       <ExportFileModal
         visible={exportModalVisible}
         onCancel={() => setExportModalVisible(false)}

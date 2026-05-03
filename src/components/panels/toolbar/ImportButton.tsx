@@ -11,7 +11,14 @@ import { useWSStore } from "../../../stores/wsStore";
 import { pipelineToFlow, mergePipelineAndConfig } from "../../../core/parser";
 import { ClipboardHelper } from "../../../utils/ui/clipboard";
 import { flowToPipeline } from "../../../core/parser";
+import { WikiPonderTrigger } from "../../../features/wiki/components/WikiPonderTrigger";
 import style from "../../../styles/panels/ToolbarPanel.module.less";
+
+const actionGroupStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 6,
+};
 
 const resolveAvailableImportAction = (
   action: ImportAction,
@@ -245,21 +252,29 @@ function ImportButton() {
         style={{ display: "none" }}
         onChange={onConfigFileSelect}
       />
-      <Dropdown
-        menu={{ items: menuItems }}
-        trigger={["hover"]}
-        placement="bottomLeft"
-        overlayClassName="toolbar-dropdown"
-        mouseEnterDelay={0}
-      >
-        <Button
-          icon={<ImportOutlined />}
-          onClick={handleButtonClick}
-          className={style.toolbarButton}
+      <div style={actionGroupStyle}>
+        <Dropdown
+          menu={{ items: menuItems }}
+          trigger={["hover"]}
+          placement="bottomLeft"
+          overlayClassName="toolbar-dropdown"
+          mouseEnterDelay={0}
         >
-          {buttonLabel}（{currentActionDesc}）
-        </Button>
-      </Dropdown>
+          <Button
+            icon={<ImportOutlined />}
+            onClick={handleButtonClick}
+            className={style.toolbarButton}
+          >
+            {buttonLabel}（{currentActionDesc}）
+          </Button>
+        </Dropdown>
+        <WikiPonderTrigger
+          target={{ entryId: "migrate", moduleId: "import-existing" }}
+          title="导入已有文件"
+          description="旧 Pipeline 更接近迁移场景，先看兼容边界和导入后整理预期。"
+          placement="bottom"
+        />
+      </div>
     </>
   );
 }

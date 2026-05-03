@@ -17,13 +17,14 @@ import { Tabs, Input, Button, Tooltip } from "antd";
 import { FileAddOutlined } from "@ant-design/icons";
 import { useFileStore } from "../../../stores/fileStore";
 import { useConfigStore } from "../../../stores/configStore";
+import { WikiPonderTrigger } from "../../../features/wiki/components/WikiPonderTrigger";
 
 interface DraggableTabPaneProps extends React.HTMLAttributes<HTMLDivElement> {
   "data-node-key": string;
 }
 
 const DraggableTabNode: React.FC<Readonly<DraggableTabPaneProps>> = memo(
-  ({ className, ...props }) => {
+  ({ ...props }) => {
     const { attributes, listeners, setNodeRef, transform, transition } =
       useSortable({
         id: props["data-node-key"],
@@ -36,7 +37,7 @@ const DraggableTabNode: React.FC<Readonly<DraggableTabPaneProps>> = memo(
       cursor: "move",
     };
 
-    return React.cloneElement(props.children as React.ReactElement<any>, {
+    return React.cloneElement(props.children as React.ReactElement, {
       ref: setNodeRef,
       style,
       ...attributes,
@@ -71,16 +72,16 @@ function FilePanel() {
   const sensor = useSensor(PointerSensor, {
     activationConstraint: { distance: 10 },
   });
-  const onLabelChange = useCallback((e: any) => {
+  const onLabelChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const key = e.target.value;
     const isValid = setFileName(key);
     setFileNameState(isValid ? "" : "error");
     if (isValid) setActiveKey(key);
-  }, []);
+  }, [setFileName]);
   const onTabChange = useCallback((key: string) => {
     const newKey = switchFile(key);
     if (newKey) setActiveKey(newKey);
-  }, []);
+  }, [switchFile]);
   const onDragEnd = useFileStore((state) => state.onDragEnd);
   const addFile = useFileStore((state) => state.addFile);
   const removeFile = useFileStore((state) => state.removeFile);
@@ -100,7 +101,7 @@ function FilePanel() {
       }
       if (newKey) setActiveKey(newKey);
     },
-    [],
+    [addFile, removeFile],
   );
 
   // 渲染
@@ -124,6 +125,18 @@ function FilePanel() {
             }}
           />
         </Tooltip>
+        <WikiPonderTrigger
+          target={{ entryId: "workflow", moduleId: "pipeline-panel" }}
+          title="Pipeline 面板"
+          description="查看当前文件、标签页与 Pipeline 面板在编辑流程中的分工。"
+          placement="bottom"
+        />
+        <WikiPonderTrigger
+          target={{ entryId: "localbridge", moduleId: "why-localbridge" }}
+          title="何时需要 LocalBridge"
+          description="本地文件入口属于 LocalBridge 能力，而不是普通标签页操作。"
+          placement="bottom"
+        />
       </div>
       <Tabs
         className={style.tabs}

@@ -160,7 +160,7 @@ const modalBodyStyle: CSSProperties = {
 
 const debugWikiTarget = {
   entryId: "debug",
-  moduleId: "showcase",
+  moduleId: "workbench",
 };
 
 export function DebugModal() {
@@ -183,7 +183,7 @@ export function DebugModal() {
           <WikiPonderTrigger
             target={debugWikiTarget}
             title="调试工作台"
-            description="了解 FlowScope 调试工作台、节点线和事件线的基础使用方式。"
+            description="先理解调试工作台、中控台、节点线与事件线的阅读顺序。"
             placement="bottom"
           />
         </Space>

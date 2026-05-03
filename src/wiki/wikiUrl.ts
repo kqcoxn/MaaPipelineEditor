@@ -47,7 +47,7 @@ function parseWikiPath(value: string): WikiTarget | undefined {
 
 function formatWikiPath(target: WikiTarget): string {
   return [target.entryId, target.moduleId, target.stepId]
-    .filter(Boolean)
+    .filter((part): part is string => Boolean(part))
     .map((part) => encodeURIComponent(part))
     .join("/");
 }

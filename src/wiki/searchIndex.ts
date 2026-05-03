@@ -1,8 +1,22 @@
 import { wikiEntries } from "./registry";
-import { searchIndex as debugShowcaseSearchIndex } from "./entries/debug/showcase";
-import { searchIndex as debugTutorialSearchIndex } from "./entries/debug/tutorial";
+import { searchIndex as debugPrerequisitesSearchIndex } from "./entries/debug/prerequisites";
+import { searchIndex as debugRunModesSearchIndex } from "./entries/debug/runModes";
+import { searchIndex as debugWorkbenchSearchIndex } from "./entries/debug/workbench";
+import { searchIndex as localbridgeWhyLocalBridgeSearchIndex } from "./entries/localbridge/whyLocalBridge";
+import { searchIndex as migrateImportExistingSearchIndex } from "./entries/migrate/importExisting";
+import { searchIndex as migratePrefixLayoutSearchIndex } from "./entries/migrate/prefixLayout";
+import { searchIndex as startFirstImportExportSearchIndex } from "./entries/start/firstImportExport";
+import { searchIndex as startQuickStartSearchIndex } from "./entries/start/quickStart";
+import { searchIndex as startVersionChoiceSearchIndex } from "./entries/start/versionChoice";
+import { searchIndex as toolboxOcrSearchIndex } from "./entries/toolbox/ocr";
 import { searchIndex as toolboxRoiSearchIndex } from "./entries/toolbox/roi";
-import { searchIndex as toolboxScreenshotSearchIndex } from "./entries/toolbox/screenshot";
+import { searchIndex as toolboxRoiOffsetSearchIndex } from "./entries/toolbox/roiOffset";
+import { searchIndex as toolboxTemplateScreenshotSearchIndex } from "./entries/toolbox/templateScreenshot";
+import { searchIndex as workflowConnectionPanelSearchIndex } from "./entries/workflow/connectionPanel";
+import { searchIndex as workflowFieldPanelSearchIndex } from "./entries/workflow/fieldPanel";
+import { searchIndex as workflowImportExportSearchIndex } from "./entries/workflow/importExport";
+import { searchIndex as workflowNodesSearchIndex } from "./entries/workflow/nodes";
+import { searchIndex as workflowPipelinePanelSearchIndex } from "./entries/workflow/pipelinePanel";
 import type {
   WikiModuleMeta,
   WikiModuleSearchIndex,
@@ -21,10 +35,24 @@ interface WikiSearchDocument {
 }
 
 const moduleSearchIndexMap: Record<string, WikiModuleSearchIndex> = {
-  "debug/showcase": debugShowcaseSearchIndex,
-  "debug/tutorial": debugTutorialSearchIndex,
+  "start/quick-start": startQuickStartSearchIndex,
+  "start/version-choice": startVersionChoiceSearchIndex,
+  "start/first-import-export": startFirstImportExportSearchIndex,
+  "workflow/nodes": workflowNodesSearchIndex,
+  "workflow/field-panel": workflowFieldPanelSearchIndex,
+  "workflow/connection-panel": workflowConnectionPanelSearchIndex,
+  "workflow/pipeline-panel": workflowPipelinePanelSearchIndex,
+  "workflow/import-export": workflowImportExportSearchIndex,
+  "toolbox/ocr": toolboxOcrSearchIndex,
   "toolbox/roi": toolboxRoiSearchIndex,
-  "toolbox/screenshot": toolboxScreenshotSearchIndex,
+  "toolbox/template-screenshot": toolboxTemplateScreenshotSearchIndex,
+  "toolbox/roi-offset": toolboxRoiOffsetSearchIndex,
+  "debug/workbench": debugWorkbenchSearchIndex,
+  "debug/prerequisites": debugPrerequisitesSearchIndex,
+  "debug/run-modes": debugRunModesSearchIndex,
+  "localbridge/why-localbridge": localbridgeWhyLocalBridgeSearchIndex,
+  "migrate/import-existing": migrateImportExistingSearchIndex,
+  "migrate/prefix-layout": migratePrefixLayoutSearchIndex,
 };
 
 const searchDocuments = buildSearchDocuments();
@@ -33,11 +61,12 @@ export function searchWiki(query: string): WikiSearchResult[] {
   const keyword = normalizeSearchText(query);
   if (!keyword) return [];
 
-  return searchDocuments
-    .map((document) => {
-      const score = scoreDocument(document, keyword);
-      if (score <= 0) return undefined;
-      return {
+  const results: WikiSearchResult[] = [];
+
+  for (const document of searchDocuments) {
+    const score = scoreDocument(document, keyword);
+    if (score <= 0) continue;
+    results.push({
         target: document.target,
         entryTitle: document.entryTitle,
         moduleTitle: document.moduleTitle,
@@ -45,10 +74,10 @@ export function searchWiki(query: string): WikiSearchResult[] {
         summary: document.summary,
         score,
         matchedText: pickMatchedText(document.corpus, keyword),
-      } satisfies WikiSearchResult;
-    })
-    .filter((result): result is WikiSearchResult => Boolean(result))
-    .sort((left, right) => right.score - left.score);
+      });
+  }
+
+  return results.sort((left, right) => right.score - left.score);
 }
 
 function buildSearchDocuments(): WikiSearchDocument[] {

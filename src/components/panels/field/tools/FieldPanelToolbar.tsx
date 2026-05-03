@@ -1,7 +1,10 @@
 import { memo, useState, useCallback } from "react";
 import { Tooltip, message, notification } from "antd";
 import IconFont from "../../../iconfonts";
-import type { NodeType } from "../../../../stores/flow/types";
+import type {
+  NodeType,
+  PipelineNodeDataType,
+} from "../../../../stores/flow/types";
 import { useConfigStore } from "../../../../stores/configStore";
 import { NodeTypeEnum } from "../../../flow/nodes";
 import {
@@ -17,6 +20,7 @@ import {
   copyNodeRecoJSON,
 } from "../../../flow/nodes/utils/nodeOperations";
 import { crossFileService } from "../../../../services/crossFileService";
+import { WikiPonderTrigger } from "../../../../features/wiki/components/WikiPonderTrigger";
 
 // 左侧工具栏
 export const FieldPanelToolbarLeft = memo(
@@ -78,6 +82,12 @@ export const FieldPanelToolbarLeft = memo(
             />
           </Tooltip>
         )}
+        <WikiPonderTrigger
+          target={{ entryId: "workflow", moduleId: "field-panel" }}
+          title="字段面板"
+          description="查看字段面板的关键字段、邻接信息和图像类字段配置思路。"
+          placement="top"
+        />
       </div>
     );
   },
@@ -111,7 +121,10 @@ export const FieldPanelToolbarRight = memo(
       if (!currentNode || currentNode.type !== NodeTypeEnum.Pipeline) {
         return;
       }
-      saveNodeAsTemplate(currentNode.data.label, currentNode.data as any);
+      saveNodeAsTemplate(
+        currentNode.data.label,
+        currentNode.data as PipelineNodeDataType,
+      );
     };
 
     // 跳转到目标节点
@@ -223,8 +236,8 @@ export const FieldPanelToolbarRight = memo(
             "AI分析完成，但没有需要填充的字段，可在AI对话历史中查看推理依据",
           );
         }
-      } catch (err: any) {
-        const errorMsg = err.message || "AI预测失败";
+      } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : "AI预测失败";
 
         // 根据错误类型给出不同提示
         if (errorMsg.includes("未连接") || errorMsg.includes("截图")) {
@@ -272,6 +285,12 @@ export const FieldPanelToolbarRight = memo(
                 onClick={handleSaveTemplate}
               />
             </Tooltip>
+            <WikiPonderTrigger
+              target={{ entryId: "toolbox", moduleId: "template-screenshot" }}
+              title="模板截图"
+              description="模板、ROI、OCR 与偏移字段建议围绕同一张截图来配置。"
+              placement="top"
+            />
             <Tooltip placement="top" title="AI智能预测节点配置">
               <IconFont
                 className={aiPredicting ? "icon-loading" : "icon-interactive"}
