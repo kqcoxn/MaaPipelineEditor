@@ -2,6 +2,7 @@ import type {
   DebugEvent,
   DebugEventPhase,
   DebugExecutionAttributionMode,
+  DebugExecutionDetailMode,
 } from "./types";
 import type { DebugArtifactEntry } from "../../stores/debugArtifactStore";
 import {
@@ -104,6 +105,21 @@ export function terminalDebugNodeExecutionAttempts(input: {
   );
 }
 
+export function selectDebugNodeExecutionAttemptForDetailMode(
+  input: {
+    recognitionAttempts: DebugNodeExecutionAttempt[];
+    actionAttempts: DebugNodeExecutionAttempt[];
+  },
+  detailMode: DebugExecutionDetailMode,
+  attemptId?: string,
+): DebugNodeExecutionAttempt | undefined {
+  const attempts =
+    detailMode === "compact"
+      ? terminalDebugNodeExecutionAttempts(input)
+      : allDebugNodeExecutionAttempts(input);
+  return attempts.find((attempt) => attempt.id === attemptId) ?? attempts[0];
+}
+
 export function isTerminalDebugNodeExecutionAttempt(
   attempt: DebugNodeExecutionAttempt,
 ): boolean {
@@ -154,10 +170,12 @@ export function resolveAutoLoadAttemptArtifact(
   if (!attempt) return undefined;
 
   const imageRefs = collectAutoLoadImageRefs(artifacts, attempt);
-  if (imageRefs.length > 0) {
-    return imageRefs.includes(selectedArtifactId ?? "")
-      ? undefined
-      : imageRefs[0];
+  if (imageRefs.includes(selectedArtifactId ?? "")) {
+    return undefined;
+  }
+  const imageRef = imageRefs.find((ref) => artifacts[ref]);
+  if (imageRef) {
+    return imageRef;
   }
 
   if (attempt.kind !== "recognition") return undefined;
@@ -182,6 +200,9 @@ function collectAutoLoadImageRefs(
       for (const imageRef of recognitionDetailImageRefs(summary)) {
         refs.add(imageRef.ref);
       }
+    }
+    for (const screenshotRef of attempt.screenshotRefs) {
+      refs.add(screenshotRef);
     }
     return [...refs];
   }

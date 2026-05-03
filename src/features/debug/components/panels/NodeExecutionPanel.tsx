@@ -11,6 +11,7 @@ import type { DebugNodeExecutionRecord } from "../../nodeExecutionSelector";
 import { groupDebugNodeExecutionRecords } from "../../nodeExecutionSelector";
 import {
   resolveAutoLoadAttemptArtifact,
+  selectDebugNodeExecutionAttemptForDetailMode,
 } from "../../nodeExecutionAttempts";
 import {
   GroupedRecordList,
@@ -150,7 +151,6 @@ export function NodeExecutionPanel({
     requestArtifact,
     resolverEdgeIndex,
     selectedArtifact,
-    selectedNodeExecutionAttempt,
     selectedNodeExecutionAttemptId,
     selectedFlowNodeId,
     selectedNodeExecutionRecordId,
@@ -192,25 +192,36 @@ export function NodeExecutionPanel({
     }
     if (selectedRecord.id !== selectedNodeExecutionRecordId) {
       setSelectedNodeExecutionRecordId(selectedRecord.id);
+      setSelectedNodeExecutionAttemptId(undefined);
     }
   }, [
     selectedNodeExecutionRecordId,
     selectedRecord,
+    setSelectedNodeExecutionAttemptId,
     setSelectedNodeExecutionRecordId,
   ]);
 
   useEffect(() => {
+    const selectedAttempt = selectedRecord
+      ? selectDebugNodeExecutionAttemptForDetailMode(
+          selectedRecord,
+          nodeExecutionDetailMode,
+          selectedNodeExecutionAttemptId,
+        )
+      : undefined;
     const artifactId = resolveAutoLoadAttemptArtifact(
       artifacts,
-      selectedNodeExecutionAttempt,
+      selectedAttempt,
       selectedArtifact?.ref.id,
     );
     if (artifactId) requestArtifact(artifactId);
   }, [
     artifacts,
+    nodeExecutionDetailMode,
     requestArtifact,
     selectedArtifact?.ref.id,
-    selectedNodeExecutionAttempt,
+    selectedNodeExecutionAttemptId,
+    selectedRecord,
   ]);
 
   const nodeOptions = useMemo(

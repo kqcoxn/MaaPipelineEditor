@@ -4,6 +4,7 @@ import {
 } from "./nodeExecutionAnalysis";
 import {
   resolveAutoLoadAttemptArtifact,
+  selectDebugNodeExecutionAttemptForDetailMode,
   type DebugNodeExecutionAttempt,
 } from "./nodeExecutionAttempts";
 import {
@@ -173,11 +174,17 @@ describe("nodeExecutionOverlay", () => {
     ).toBe("detail-1");
     expect(
       resolveAutoLoadAttemptArtifact(
-        {},
+        { "shot-1": artifactEntry("shot-1", "pending", undefined, "image/png") },
+        recognitionWithEventImageAttempt,
+      ),
+    ).toBe("shot-1");
+    expect(
+      resolveAutoLoadAttemptArtifact(
+        { "shot-1": artifactEntry("shot-1", "pending", undefined, "image/png") },
         recognitionWithEventImageAttempt,
         "shot-1",
       ),
-    ).toBe("detail-1");
+    ).toBeUndefined();
     expect(
       resolveAutoLoadAttemptArtifact(
         {},
@@ -190,9 +197,12 @@ describe("nodeExecutionOverlay", () => {
       kind: "action",
       screenshotRefs: ["shot-1"],
     });
-    expect(resolveAutoLoadAttemptArtifact({}, directActionImageAttempt)).toBe(
-      "shot-1",
-    );
+    expect(
+      resolveAutoLoadAttemptArtifact(
+        { "shot-1": artifactEntry("shot-1", "pending", undefined, "image/png") },
+        directActionImageAttempt,
+      ),
+    ).toBe("shot-1");
     expect(
       resolveAutoLoadAttemptArtifact({}, directActionImageAttempt, "shot-1"),
     ).toBeUndefined();
@@ -216,6 +226,7 @@ describe("nodeExecutionOverlay", () => {
             rawImageRef: "raw-1",
             drawImageRefs: ["draw-1"],
           }),
+          "raw-1": artifactEntry("raw-1", "pending", undefined, "image/png"),
         },
         detailOnlyAttempt,
         "detail-2",
@@ -244,6 +255,38 @@ describe("nodeExecutionOverlay", () => {
       screenshotRefs: [],
     });
     expect(resolveAutoLoadAttemptArtifact({}, actionAttempt)).toBeUndefined();
+  });
+
+  it("selects the compact-mode visible attempt for node auto-load", () => {
+    const startingAttempt: DebugNodeExecutionAttempt = {
+      ...attempt({ detailRefs: ["starting-detail"] }),
+      id: "starting-attempt",
+      phase: "starting",
+    };
+    const terminalAttempt: DebugNodeExecutionAttempt = {
+      ...attempt({ detailRefs: ["terminal-detail"], screenshotRefs: ["terminal-shot"] }),
+      id: "terminal-attempt",
+      hit: true,
+      phase: "succeeded",
+    };
+    const record = {
+      recognitionAttempts: [startingAttempt, terminalAttempt],
+      actionAttempts: [],
+    };
+
+    expect(
+      selectDebugNodeExecutionAttemptForDetailMode(record, "compact"),
+    ).toBe(terminalAttempt);
+    expect(
+      selectDebugNodeExecutionAttemptForDetailMode(record, "detailed"),
+    ).toBe(startingAttempt);
+    expect(
+      selectDebugNodeExecutionAttemptForDetailMode(
+        record,
+        "compact",
+        "starting-attempt",
+      ),
+    ).toBe(terminalAttempt);
   });
 });
 
@@ -344,13 +387,14 @@ function artifactEntry(
   id: string,
   status: DebugArtifactEntry["status"],
   data?: unknown,
+  mime = "application/json",
 ): DebugArtifactEntry {
   return {
     ref: {
       id,
       sessionId: "session-1",
       type: "recognition-detail",
-      mime: "application/json",
+      mime,
       createdAt: "2026-04-29T00:00:00.000Z",
     },
     status,

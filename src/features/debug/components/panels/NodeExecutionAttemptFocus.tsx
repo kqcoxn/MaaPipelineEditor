@@ -18,6 +18,7 @@ import type {
 } from "../DebugImageViewer";
 import {
   allDebugNodeExecutionAttempts,
+  selectDebugNodeExecutionAttemptForDetailMode,
   terminalDebugNodeExecutionAttempts,
   type DebugNodeExecutionAttempt,
 } from "../../nodeExecutionAttempts";
@@ -63,8 +64,11 @@ export function NodeExecutionAttemptFocus({
     detailMode === "compact"
       ? terminalDebugNodeExecutionAttempts(record)
       : allAttempts;
-  const selectedAttempt =
-    attempts.find((attempt) => attempt.id === selectedAttemptId) ?? attempts[0];
+  const selectedAttempt = selectDebugNodeExecutionAttemptForDetailMode(
+    record,
+    detailMode,
+    selectedAttemptId,
+  );
   const selectedAttemptIdValue = selectedAttempt?.id;
   const hasSelectedAttempt = Boolean(selectedAttempt);
   const selectedIndex = selectedAttempt
