@@ -111,7 +111,10 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2026-5",
     type: "feature",
     updates: {
-      perfs: ["执行调试时若需加载初次加载资源等待，等待后自动执行"],
+      perfs: [
+        "执行调试时若需加载初次加载资源等待，等待后自动执行",
+        "切换调试记录后会自动加载可预览截图",
+      ],
       fixes: ["修复调试模块不统计识别命中的问题"],
     },
   },
