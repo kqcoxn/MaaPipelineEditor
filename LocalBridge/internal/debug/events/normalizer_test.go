@@ -124,6 +124,37 @@ func TestNormalizerDoesNotMarkLaterUnmappedNodeAsBootstrap(t *testing.T) {
 	}
 }
 
+func TestMergeRecognitionDetailEventData(t *testing.T) {
+	eventData := map[string]interface{}{
+		"recognitionId": int64(10),
+		"focus":         false,
+		"parentNode":    "A",
+	}
+
+	mergeRecognitionDetailEventData(eventData, map[string]interface{}{
+		"id":             int64(10),
+		"name":           "B",
+		"algorithm":      "TemplateMatch",
+		"hit":            true,
+		"box":            []int{1, 2, 3, 4},
+		"screenshotRef":  "shot-1",
+		"combinedResult": []interface{}{},
+	})
+
+	if eventData["recognitionId"] != int64(10) || eventData["parentNode"] != "A" {
+		t.Fatalf("existing recognition event fields should be preserved, got %#v", eventData)
+	}
+	if eventData["hit"] != true {
+		t.Fatalf("hit should be copied from recognition detail, got %#v", eventData["hit"])
+	}
+	if eventData["algorithm"] != "TemplateMatch" {
+		t.Fatalf("algorithm should be copied from recognition detail, got %#v", eventData["algorithm"])
+	}
+	if _, ok := eventData["screenshotRef"]; ok {
+		t.Fatalf("artifact-only fields should not be copied into event data: %#v", eventData)
+	}
+}
+
 func newTestNormalizer() (*Normalizer, *[]protocol.Event) {
 	emitted := make([]protocol.Event, 0)
 	normalizer := NewNormalizer(

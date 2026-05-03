@@ -745,6 +745,42 @@ describe("selectDebugNodeExecutionRecords", () => {
     });
   });
 
+  it("counts successful recognition callbacks with hit false as misses", () => {
+    const summary = reduceDebugTrace({
+      events: [
+        event(1, "node", "starting", node("node-a", "A")),
+        event(2, "recognition", "succeeded", node("node-a", "A"), {
+          id: 10,
+          hit: false,
+          algorithm: "TemplateMatch",
+        }),
+        event(3, "recognition", "succeeded", node("node-a", "A"), {
+          id: 11,
+          hit: true,
+          algorithm: "TemplateMatch",
+        }),
+        event(4, "node", "succeeded", node("node-a", "A")),
+      ],
+    });
+
+    const [record] = selectDebugNodeExecutionRecords(
+      summary,
+      resolverNodes,
+      { status: "all" },
+    );
+
+    expect(record.recognitionAttempts.map((attempt) => attempt.hit)).toEqual([
+      false,
+      true,
+    ]);
+    expect(
+      record.recognitionAttempts.filter((attempt) => attempt.hit === true),
+    ).toHaveLength(1);
+    expect(
+      record.recognitionAttempts.filter((attempt) => attempt.hit === false),
+    ).toHaveLength(1);
+  });
+
   it("summarizes next candidates in next mode and assigns candidate recognitions to target nodes in node mode", () => {
     const summary = reduceDebugTrace({
       events: [

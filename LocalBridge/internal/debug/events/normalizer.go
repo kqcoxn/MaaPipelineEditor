@@ -137,6 +137,7 @@ func (n *Normalizer) OnNodeRecognition(ctx *maa.Context, status maa.EventStatus,
 	if status == maa.EventStatusSucceeded || status == maa.EventStatusFailed {
 		if ref := n.storeRecognitionDetail(ctx, int64(detail.RecognitionID)); ref != nil {
 			event.DetailRef = ref.ID
+			mergeRecognitionDetailEventData(event.Data, ref.Data)
 			if screenshotRef, ok := ref.Data["screenshotRef"].(string); ok {
 				event.ScreenshotRef = screenshotRef
 			}
@@ -233,6 +234,17 @@ func (n *Normalizer) nodeForNextListEvent(runtimeName string) *protocol.EventNod
 type detailRef struct {
 	ID   string
 	Data map[string]interface{}
+}
+
+func mergeRecognitionDetailEventData(eventData map[string]interface{}, detailData map[string]interface{}) {
+	if eventData == nil || detailData == nil {
+		return
+	}
+	for _, key := range []string{"id", "name", "algorithm", "hit", "box"} {
+		if value, ok := detailData[key]; ok {
+			eventData[key] = value
+		}
+	}
 }
 
 func (n *Normalizer) storeTaskDetail(tasker *maa.Tasker, taskID int64) *detailRef {
