@@ -6,6 +6,7 @@
 - 新功能需参考 `/dev/instructions/` 下的官方文档，禁止凭空生成无根据的函数
 - 新功能若与现有功能有关，应尽可能复用现有函数，在合适时可以进行方法封装或提升
 - 在合适的时候自主调用相关 skill
+- 如果要撰写 prd、ttd、临时文档等需要放在 `\dev\design` 下
 
 ## 建议执行
 
@@ -28,7 +29,7 @@
 - Ant Design（可缩写为 `antd`）：`/dev/instructions/ant-design`
 - React Flow：`/dev/instructions/react-flow/`
 - Wails：`/dev/instructions/wails/`
-- 临时文档（如当前开发模块所参考的各项目 wiki）：`/dev/instructions/.tmp/`
+- 临时文档（如当前开发模块所参考的各项目 wiki）：`/dev/instructions/.tmp/`（我说参考非上面的文档时，那一般就在这里面）
 
 > 若需其他框架 API 且本地无文档，可联网检索。
 > 当文档细粒度不够时，可以自行检索 github 源码进行参考

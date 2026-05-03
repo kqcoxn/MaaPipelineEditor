@@ -147,6 +147,7 @@ export function NodeExecutionPanel({
     nodeExecutionDetailMode,
     nodeExecutionFilters,
     nodeExecutionRecords,
+    nodeExecutionResolverNodes,
     pipelineNodes,
     requestArtifact,
     resolverEdgeIndex,
@@ -235,14 +236,16 @@ export function NodeExecutionPanel({
       return [
         { value: "", label: "全部节点" },
         ...systemRecordOptions,
-        ...pipelineNodes.map((node) => ({
+        ...nodeExecutionResolverNodes.map((node) => ({
           value: node.nodeId,
-          label: `${node.displayName} · ${node.runtimeName}`,
+          label: node.sourcePath
+            ? `${node.displayName} · ${node.runtimeName} · ${node.sourcePath}`
+            : `${node.displayName} · ${node.runtimeName}`,
         })),
         ...runtimeOnlyOptions,
       ];
     },
-    [allNodeExecutionRecords, pipelineNodes],
+    [allNodeExecutionRecords, nodeExecutionResolverNodes],
   );
   const runOptions = useMemo(
     () => [

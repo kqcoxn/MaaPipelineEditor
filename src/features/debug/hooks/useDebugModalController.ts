@@ -758,6 +758,7 @@ export function useDebugModalController() {
     selectedRunTargetNodeId: nodeExecutionController.selectedRunTargetNodeId,
     allNodeExecutionRecords: nodeExecutionController.allNodeExecutionRecords,
     nodeExecutionRecords: nodeExecutionController.nodeExecutionRecords,
+    nodeExecutionResolverNodes: nodeExecutionController.nodeExecutionResolverNodes,
     nodeExecutionAttributionMode,
     nodeExecutionDetailMode,
     nodeExecutionFilters: nodeExecutionController.nodeExecutionFilters,

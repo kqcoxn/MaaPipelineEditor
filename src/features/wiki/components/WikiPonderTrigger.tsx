@@ -5,6 +5,7 @@ import { Tooltip } from "antd";
 import type { TooltipProps } from "antd";
 import { useWikiStore } from "../../../stores/wikiStore";
 import { isWikiTargetAvailable } from "../../../wiki/registry";
+import { isWikiModuleVisible } from "../../../wiki/visibility";
 import type { WikiTarget } from "../../../wiki/types";
 import style from "./WikiPonderTrigger.module.less";
 
@@ -45,8 +46,8 @@ function useWikiHoldHotkey({
   onComplete,
   onProgressChange,
 }: UseWikiHoldHotkeyOptions) {
-  const timerRef = useRef<number | undefined>();
-  const frameRef = useRef<number | undefined>();
+  const timerRef = useRef<number | undefined>(undefined);
+  const frameRef = useRef<number | undefined>(undefined);
   const startedAtRef = useRef(0);
   const holdingRef = useRef(false);
 
@@ -111,6 +112,16 @@ function useWikiHoldHotkey({
 }
 
 export function WikiPonderTrigger({
+  ...props
+}: WikiPonderTriggerProps) {
+  if (!isWikiModuleVisible) {
+    return null;
+  }
+
+  return <VisibleWikiPonderTrigger {...props} />;
+}
+
+function VisibleWikiPonderTrigger({
   target,
   title,
   description,

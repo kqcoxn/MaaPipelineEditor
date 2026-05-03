@@ -184,6 +184,39 @@ describe("selectDebugNodeExecutionRecords", () => {
     });
   });
 
+  it("maps runtime-only events through resolver nodes from unopened json files", () => {
+    const summary = reduceDebugTrace({
+      events: [
+        event(1, "node", "starting", { runtimeName: "Remote_A" }),
+        event(2, "node", "succeeded", { runtimeName: "Remote_A" }),
+      ],
+    });
+
+    const records = selectDebugNodeExecutionRecords(
+      summary,
+      [
+        ...resolverNodes,
+        {
+          fileId: "project/pipeline/remote.json",
+          nodeId: "local-json:project/pipeline/remote.json#Remote_A",
+          runtimeName: "Remote_A",
+          displayName: "Remote A",
+          sourcePath: "project/pipeline/remote.json",
+        },
+      ],
+      { status: "all" },
+    );
+
+    expect(records[0]).toMatchObject({
+      runtimeName: "Remote_A",
+      nodeId: "local-json:project/pipeline/remote.json#Remote_A",
+      fileId: "project/pipeline/remote.json",
+      label: "Remote A",
+      sourcePath: "project/pipeline/remote.json",
+      unmapped: false,
+    });
+  });
+
   it("shows the initial bootstrap as a synthetic Tasker record", () => {
     const summary = reduceDebugTrace({
       events: [

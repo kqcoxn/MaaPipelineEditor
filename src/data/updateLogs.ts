@@ -108,15 +108,18 @@ export const longTermPreview: ForecastSection = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "1.5.1",
-    date: "2026-5",
-    type: "feature",
+    date: "2026-5-3",
+    type: "fix",
     updates: {
       features: ["🚷 文件检索可配置过滤文件夹，减少无关文件干扰"],
       perfs: [
         "执行调试时若需加载初次加载资源等待，等待后自动执行",
         "切换调试记录后会自动加载可预览截图",
       ],
-      fixes: ["修复调试模块不统计识别命中的问题"],
+      fixes: [
+        "修复调试模块不统计识别命中的问题",
+        "修复调试日志不显示其他文件节点的问题",
+      ],
     },
   },
   {

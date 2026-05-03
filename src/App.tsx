@@ -54,6 +54,7 @@ import {
 import { parseUrlParams } from "./utils/data/urlHelper";
 import { useWikiStore } from "./stores/wikiStore";
 import { clearWikiHashParam, readWikiTargetFromHash } from "./wiki/wikiUrl";
+import { isWikiModuleVisible } from "./wiki/visibility";
 import {
   isWailsEnvironment,
   onWailsEvent,
@@ -429,10 +430,12 @@ function App() {
 
     // 统一解析 URL 参数
     const urlParams = parseUrlParams();
-    const wikiTarget = readWikiTargetFromHash();
-    if (wikiTarget) {
-      useWikiStore.getState().openWiki(wikiTarget);
-      clearWikiHashParam();
+    if (isWikiModuleVisible) {
+      const wikiTarget = readWikiTargetFromHash();
+      if (wikiTarget) {
+        useWikiStore.getState().openWiki(wikiTarget);
+        clearWikiHashParam();
+      }
     }
 
     // Wails 环境下的连接逻辑
@@ -574,7 +577,7 @@ function App() {
         </Layout>
       </Flex>
       <DebugModal />
-      <WikiModal />
+      {isWikiModuleVisible && <WikiModal />}
       <GlobalListener />
     </ThemeProvider>
   );

@@ -74,8 +74,9 @@ export function useDebugNodeExecutionController({
     [resolverEdges],
   );
   const pipelineNodes = debugResolver.nodes;
+  const nodeExecutionResolverNodes = debugResolver.allNodes;
   const runTargetNodes = includeAllJsonRunTargets
-    ? debugResolver.allNodes
+    ? nodeExecutionResolverNodes
     : pipelineNodes;
   const selectedPipelineNode = useMemo(
     () => pipelineNodes.find((node) => node.nodeId === selectedNodeId),
@@ -108,7 +109,7 @@ export function useDebugNodeExecutionController({
     () =>
       selectDebugNodeExecutionRecords(
         liveSummary,
-        pipelineNodes,
+        nodeExecutionResolverNodes,
         DEFAULT_DEBUG_NODE_EXECUTION_FILTERS,
         {
           attributionMode: nodeExecutionAttributionMode,
@@ -119,8 +120,8 @@ export function useDebugNodeExecutionController({
     [
       liveSummary,
       nodeExecutionAttributionMode,
+      nodeExecutionResolverNodes,
       performanceSummary,
-      pipelineNodes,
       resolverEdges,
     ],
   );
@@ -128,7 +129,7 @@ export function useDebugNodeExecutionController({
     () =>
       selectDebugNodeExecutionRecords(
         summary,
-        pipelineNodes,
+        nodeExecutionResolverNodes,
         nodeExecutionFilters,
         {
           attributionMode: nodeExecutionAttributionMode,
@@ -138,9 +139,9 @@ export function useDebugNodeExecutionController({
       ),
     [
       nodeExecutionAttributionMode,
+      nodeExecutionResolverNodes,
       nodeExecutionFilters,
       performanceSummary,
-      pipelineNodes,
       resolverEdges,
       summary,
     ],
@@ -226,12 +227,12 @@ export function useDebugNodeExecutionController({
         selectedRecord: selectedNodeExecutionRecord,
         selectedAttempt: selectedNodeExecutionAttempt,
         resolverEdges,
-        resolverNodes: pipelineNodes,
+        resolverNodes: nodeExecutionResolverNodes,
       }),
     );
   }, [
     allNodeExecutionRecords,
-    pipelineNodes,
+    nodeExecutionResolverNodes,
     resolverEdges,
     selectedNodeExecutionAttempt,
     selectedNodeExecutionRecord,
@@ -304,6 +305,7 @@ export function useDebugNodeExecutionController({
     allNodeExecutionRecords,
     nodeExecutionFilters,
     nodeExecutionRecords,
+    nodeExecutionResolverNodes,
     pipelineNodes,
     runTargetNodes,
     resolverEdges,

@@ -8,6 +8,7 @@ import { useConfigStore } from "../../../stores/configStore";
 import { useClipboardStore } from "../../../stores/clipboardStore";
 import { useDebugSessionStore } from "../../../stores/debugSessionStore";
 import { useWikiStore } from "../../../stores/wikiStore";
+import { isWikiModuleVisible } from "../../../wiki/visibility";
 import PathSelector from "./PathSelector";
 import ToolboxPanel from "./ToolboxPanel";
 import style from "../../../styles/panels/ToolPanel.module.less";
@@ -261,22 +262,23 @@ function GlobalPanel() {
             </Tooltip>
           </li>
         </div>
-        {/* Wiki 按钮 */}
-        <div className={style.group}>
-          <div className={style.devider}>
-            <div></div>
+        {isWikiModuleVisible && (
+          <div className={style.group}>
+            <div className={style.devider}>
+              <div></div>
+            </div>
+            <li className={style.item}>
+              <Tooltip placement="bottom" title="MPE Wiki / 俺寻思">
+                <IconFont
+                  className={style.icon}
+                  name="icon-icon_wendangziliaopeizhi"
+                  size={24}
+                  onClick={() => openWiki()}
+                />
+              </Tooltip>
+            </li>
           </div>
-          <li className={style.item}>
-            <Tooltip placement="bottom" title="MPE Wiki / 俺寻思">
-              <IconFont
-                className={style.icon}
-                name="icon-icon_wendangziliaopeizhi"
-                size={24}
-                onClick={() => openWiki()}
-              />
-            </Tooltip>
-          </li>
-        </div>
+        )}
       </ul>
       <ul className={editPanelClass}>{renderTools(editingTools)}</ul>
     </>

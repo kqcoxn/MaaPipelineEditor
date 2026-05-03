@@ -336,6 +336,7 @@ function toRecordFromSeed(
   const resolverNode =
     (seed.nodeId ? nodeById.get(seed.nodeId) : undefined) ??
     nodeByRuntime.get(seed.runtimeName);
+  const resolvedNodeId = seed.nodeId ?? resolverNode?.nodeId;
   const syntheticKind = seed.syntheticKind;
   const syntheticNode = isDebugTaskerBootstrapNode({
     runtimeName: seed.runtimeName,
@@ -393,7 +394,7 @@ function toRecordFromSeed(
   const waitFreezesEvents = events.filter(
     (event) => event.kind === "wait-freezes",
   );
-  const recordId = `${context.attributionMode}:${seed.runId}:${seed.nodeId ?? seed.runtimeName}:${firstSeq}:${lastSeq}`;
+  const recordId = `${context.attributionMode}:${seed.runId}:${resolvedNodeId ?? seed.runtimeName}:${firstSeq}:${lastSeq}`;
   const recognitionAttempts = buildDebugNodeExecutionAttempts({
     attributionMode: context.attributionMode,
     events: recognitionEvents,
@@ -427,7 +428,7 @@ function toRecordFromSeed(
     sessionId: summary.sessionId,
     runId: seed.runId,
     runMode: seed.runMode ?? summary.runMode,
-    nodeId: seed.nodeId,
+    nodeId: syntheticNode ? undefined : resolvedNodeId,
     fileId: syntheticNode ? undefined : seed.fileId ?? resolverNode?.fileId,
     runtimeName: seed.runtimeName,
     label: formatDebugNodeDisplayName(
@@ -467,7 +468,7 @@ function toRecordFromSeed(
     actionEvents,
     nextListEvents,
     waitFreezesEvents,
-    unmapped: syntheticNode ? false : seed.unmapped || !seed.nodeId,
+    unmapped: syntheticNode ? false : !resolvedNodeId,
     recognitionTargetRuntimeNames: uniqueStrings(
       recognitionEvents
         .map((event) => event.node?.runtimeName)
