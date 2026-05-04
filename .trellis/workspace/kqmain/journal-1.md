@@ -38,3 +38,36 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 2: Resource bundle intelligent resolver
+
+**Date**: 2026-05-04
+**Task**: Resource bundle intelligent resolver
+**Branch**: `main`
+
+### Summary
+
+Implemented a shared LocalBridge resource bundle resolver, wired it into debug preflight/runtime/agent bind and generic MFW load-resource, aligned diagnostics with actual resolution semantics, and added resolver/diagnostics tests.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6002b7f` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
