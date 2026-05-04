@@ -12,7 +12,6 @@ import {
   type EdgeType,
   type NodeType,
 } from "../../../stores/flow";
-import { WikiPonderTrigger } from "../../../features/wiki/components/WikiPonderTrigger";
 import {
   NodeTypeEnum,
   SourceHandleTypeEnum,
@@ -216,12 +215,6 @@ function InlineEdgePanel() {
             <div className="title">连接设置</div>
           </div>
           <div className="header-right">
-            <WikiPonderTrigger
-              target={{ entryId: "workflow", moduleId: "connection-panel" }}
-              title="连接面板与连接操作"
-              description="先区分连接类型，再看顺序和 JumpBack 等关键关系。"
-              placement="top"
-            />
             <Tooltip placement="top" title="删除连接">
               <IconFont
                 className="icon-interactive"

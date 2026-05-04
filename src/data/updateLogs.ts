@@ -59,25 +59,6 @@ export const pinnedNotice: PinnedNotice = {
   ],
 };
 
-export const nextPreview: ForecastSection = {
-  title: "Next Version 至 v1.6.0",
-  notice: "预告内容会随开发进度与实际需求调整，不代表最终承诺。",
-  items: [
-    {
-      theme: "Wiki",
-      title: "俺寻思",
-      description:
-        "集成式 Wiki 模块，可在 MPE 内直接查看动态教程，支持任意界面直接跳转至对应模块内容。",
-    },
-    {
-      theme: "FlowScope",
-      title: "调试模块完善与问题修复",
-      description:
-        "推进调试模块的功能完善与稳定性提升，修复已知问题，优化用户体验。",
-    },
-  ],
-};
-
 export const longTermPreview: ForecastSection = {
   title: "长期预告",
   notice: "不绑定具体版本，仅方向性规划，可能随时增删或调整。",
@@ -105,13 +86,46 @@ export const longTermPreview: ForecastSection = {
   ],
 };
 
+export const nextPreview: ForecastSection = {
+  title: "Next Version 至 v1.6.0",
+  notice: "预告内容会随开发进度与实际需求调整，不代表最终承诺。",
+  items: [
+    {
+      theme: "Wiki",
+      title: "俺寻思",
+      description:
+        "集成式 Wiki 模块，可在 MPE 内直接查看动态教程，支持任意界面直接跳转至对应模块内容。",
+    },
+    {
+      theme: "FlowScope",
+      title: "调试模块完善与问题修复",
+      description:
+        "推进调试模块的功能完善与稳定性提升，修复已知问题，优化用户体验。",
+    },
+  ],
+};
+
 export const updateLogs: UpdateLogItem[] = [
+  {
+    version: "1.6.0",
+    date: "2026-5-4",
+    type: "feature",
+    updates: {
+      features: [
+        "🤔 俺寻思集成 wiki 模块上线！可在任意相关位置长按 W 查看内置教程",
+      ],
+      fixes: [""],
+    },
+  },
   {
     version: "1.5.1",
     date: "2026-5-3",
     type: "fix",
     updates: {
-      features: ["🚷 文件检索可配置过滤文件夹，减少无关文件干扰"],
+      features: [
+        "🚷 文件检索可配置过滤文件夹，减少无关文件干扰",
+        "⌨️ WlRoots 支持 Win32 虚拟键入（by heipiao233）",
+      ],
       perfs: [
         "执行调试时若需加载初次加载资源等待，等待后自动执行",
         "切换调试记录后会自动加载可预览截图",

@@ -16,7 +16,6 @@ import { useFlowStore } from "../../../stores/flow";
 import { useMFWStore } from "../../../stores/mfwStore";
 import { useConfigStore } from "../../../stores/configStore";
 import { NodeTypeEnum } from "../../flow/nodes/constants";
-import { WikiPonderTrigger } from "../../../features/wiki/components/WikiPonderTrigger";
 import { WikiContextHint } from "../../../features/wiki/components/WikiContextHint";
 import style from "../../../styles/panels/ExplorationPanel.module.less";
 
@@ -267,24 +266,6 @@ function ExplorationPanelBase({ visible, onClose }: ExplorationPanelProps) {
             <Text strong className={style.text}>
               流程探索模式
             </Text>
-            <WikiPonderTrigger
-              target={
-                connectionStatus === "connected" && aiApiUrl && aiApiKey && aiModel
-                  ? { entryId: "ai", moduleId: "assist" }
-                  : { entryId: "ai", moduleId: "prerequisites" }
-              }
-              title={
-                connectionStatus === "connected" && aiApiUrl && aiApiKey && aiModel
-                  ? "AI 辅助"
-                  : "AI 前置条件"
-              }
-              description={
-                connectionStatus === "connected" && aiApiUrl && aiApiKey && aiModel
-                  ? "流程探索适合围绕一个目标逐步推进，完成后再回到节点或字段核对结果。"
-                  : "流程探索依赖设备连接、截图来源和 AI API 配置，缺任意一项都不能真正开始。"
-              }
-              placement="bottom"
-            />
           </div>
           <IconFont
             name="icon-dituweizhixinxi_chahao"

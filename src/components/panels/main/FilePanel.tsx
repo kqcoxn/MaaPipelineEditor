@@ -17,9 +17,6 @@ import { Tabs, Input, Button, Tooltip } from "antd";
 import { FileAddOutlined } from "@ant-design/icons";
 import { useFileStore } from "../../../stores/fileStore";
 import { useConfigStore } from "../../../stores/configStore";
-import { WikiPonderTrigger } from "../../../features/wiki/components/WikiPonderTrigger";
-import { WikiContextHint } from "../../../features/wiki/components/WikiContextHint";
-import { useWikiUiMemoryStore } from "../../../stores/wikiUiMemoryStore";
 
 interface DraggableTabPaneProps extends React.HTMLAttributes<HTMLDivElement> {
   "data-node-key": string;
@@ -52,18 +49,9 @@ function FilePanel() {
   // 当前文件名
   const files = useFileStore((state) => state.files);
   const fileName = useFileStore((state) => state.currentFile.fileName);
-  const currentFilePath = useFileStore(
-    (state) => state.currentFile.config.filePath,
-  );
   const setFileName = useFileStore((state) => state.setFileName);
   const switchFile = useFileStore((state) => state.switchFile);
   const setStatus = useConfigStore((state) => state.setStatus);
-  const activeMigrationHintFilePath = useWikiUiMemoryStore(
-    (state) => state.activeMigrationHintFilePath,
-  );
-  const clearActiveMigrationHint = useWikiUiMemoryStore(
-    (state) => state.clearActiveMigrationHint,
-  );
 
   // 文件名状态
   const [fileNameState, setFileNameState] = useState<
@@ -136,50 +124,7 @@ function FilePanel() {
             }}
           />
         </Tooltip>
-        <WikiPonderTrigger
-          target={{ entryId: "workflow", moduleId: "pipeline-panel" }}
-          title="Pipeline 面板"
-          description="查看当前文件、标签页与 Pipeline 面板在编辑流程中的分工。"
-          placement="bottom"
-        />
-        <WikiPonderTrigger
-          target={{ entryId: "workflow", moduleId: "file-viewport" }}
-          title="文件与视口"
-          description="区分标签页切换、本地文件管理和画布定位这三类不同操作。"
-          placement="bottom"
-        />
-        <WikiPonderTrigger
-          target={{ entryId: "localbridge", moduleId: "why-localbridge" }}
-          title="何时需要 LocalBridge"
-          description="本地文件入口属于 LocalBridge 能力，而不是普通标签页操作。"
-          placement="bottom"
-        />
       </div>
-      {currentFilePath && activeMigrationHintFilePath === currentFilePath && (
-        <div className={style.migrationHint}>
-          <WikiContextHint
-            title="这是一次旧文件迁移，不只是普通打开"
-            summary="首次打开本地旧文件后，建议先确认导入边界、统一前缀和自动布局预期，再决定哪些内容需要继续整理。"
-            actions={[
-              {
-                label: "导入已有文件",
-                target: { entryId: "migrate", moduleId: "import-existing" },
-              },
-              {
-                label: "统一前缀与自动布局",
-                target: { entryId: "migrate", moduleId: "prefix-layout" },
-              },
-              {
-                label: "从 YAMaaPE 迁移",
-                target: { entryId: "migrate", moduleId: "from-yamaape" },
-              },
-            ]}
-            type="info"
-            closable
-            onClose={clearActiveMigrationHint}
-          />
-        </div>
-      )}
       <Tabs
         className={style.tabs}
         type="editable-card"

@@ -20,8 +20,6 @@ import {
   copyNodeRecoJSON,
 } from "../../../flow/nodes/utils/nodeOperations";
 import { crossFileService } from "../../../../services/crossFileService";
-import { WikiPonderTrigger } from "../../../../features/wiki/components/WikiPonderTrigger";
-import type { WikiTarget } from "../../../../wiki/types";
 
 // 左侧工具栏
 export const FieldPanelToolbarLeft = memo(
@@ -83,12 +81,6 @@ export const FieldPanelToolbarLeft = memo(
             />
           </Tooltip>
         )}
-        <WikiPonderTrigger
-          target={{ entryId: "workflow", moduleId: "field-panel" }}
-          title="字段面板"
-          description="查看字段面板的关键字段、邻接信息和图像类字段配置思路。"
-          placement="top"
-        />
       </div>
     );
   },
@@ -122,19 +114,6 @@ export const FieldPanelToolbarRight = memo(
     const { aiApiUrl, aiApiKey, aiModel } = useConfigStore(
       (state) => state.configs,
     );
-    const aiReady =
-      connectionStatus === "connected" &&
-      !!controllerId &&
-      !!aiApiUrl &&
-      !!aiApiKey &&
-      !!aiModel;
-    const aiWikiTarget: WikiTarget = aiReady
-      ? { entryId: "ai", moduleId: "assist" }
-      : { entryId: "ai", moduleId: "prerequisites" };
-    const aiWikiTitle = aiReady ? "AI 辅助" : "AI 前置条件";
-    const aiWikiDescription = aiReady
-      ? "节点预测适合补当前节点配置，最终字段仍应回到面板和工具箱里核对。"
-      : "节点预测依赖设备连接、截图来源和 AI API 配置，这三类前置条件缺一不可。";
 
     const handleSaveTemplate = () => {
       if (!currentNode || currentNode.type !== NodeTypeEnum.Pipeline) {
@@ -302,12 +281,6 @@ export const FieldPanelToolbarRight = memo(
                 onClick={handleSaveTemplate}
               />
             </Tooltip>
-            <WikiPonderTrigger
-              target={{ entryId: "toolbox", moduleId: "template-screenshot" }}
-              title="模板截图"
-              description="模板、ROI、OCR 与偏移字段建议围绕同一张截图来配置。"
-              placement="top"
-            />
             <Tooltip placement="top" title="AI智能预测节点配置">
               <IconFont
                 className={aiPredicting ? "icon-loading" : "icon-interactive"}
@@ -320,12 +293,6 @@ export const FieldPanelToolbarRight = memo(
                 }}
               />
             </Tooltip>
-            <WikiPonderTrigger
-              target={aiWikiTarget}
-              title={aiWikiTitle}
-              description={aiWikiDescription}
-              placement="top"
-            />
             <Tooltip placement="top" title="删除节点">
               <IconFont
                 className="icon-interactive"

@@ -12,9 +12,7 @@ import {
   ColorModal,
   DeltaModal,
 } from "../../modals";
-import { WikiPonderTrigger } from "../../../features/wiki/components/WikiPonderTrigger";
 import { WikiContextHint } from "../../../features/wiki/components/WikiContextHint";
-import type { WikiTarget } from "../../../wiki/types";
 import style from "../../../styles/panels/ToolboxPanel.module.less";
 
 // 工具配置类型
@@ -24,11 +22,6 @@ interface ToolConfig {
   icon: IconNames;
   iconSize?: number;
   modalType: "ocr" | "template" | "color" | "roi" | "roi_offset" | "delta";
-  wiki?: {
-    target: WikiTarget;
-    title: string;
-    description: string;
-  };
 }
 
 // 工具列表配置
@@ -39,11 +32,6 @@ const TOOLBOX_TOOLS: ToolConfig[] = [
     icon: "icon-ocr1",
     iconSize: 22,
     modalType: "ocr",
-    wiki: {
-      target: { entryId: "toolbox", moduleId: "ocr" },
-      title: "OCR",
-      description: "先拿到正确截图，再把识别文本作为字段初值回填。",
-    },
   },
   {
     key: "template",
@@ -51,11 +39,6 @@ const TOOLBOX_TOOLS: ToolConfig[] = [
     icon: "icon-jietu",
     iconSize: 22,
     modalType: "template",
-    wiki: {
-      target: { entryId: "toolbox", moduleId: "template-screenshot" },
-      title: "模板截图",
-      description: "理解模板截图如何与 ROI、OCR 共用同一张图像上下文。",
-    },
   },
   {
     key: "color",
@@ -63,11 +46,6 @@ const TOOLBOX_TOOLS: ToolConfig[] = [
     icon: "icon-ic_quseqi",
     iconSize: 22,
     modalType: "color",
-    wiki: {
-      target: { entryId: "toolbox", moduleId: "color-pick" },
-      title: "颜色取点",
-      description: "从正确截图中取色，并把 lower/upper 一类颜色值直接回填字段。",
-    },
   },
   {
     key: "roi",
@@ -75,11 +53,6 @@ const TOOLBOX_TOOLS: ToolConfig[] = [
     icon: "icon-kuangxuanzhong",
     iconSize: 22,
     modalType: "roi",
-    wiki: {
-      target: { entryId: "toolbox", moduleId: "roi" },
-      title: "ROI",
-      description: "查看区域选择、识别范围和负坐标的基础说明。",
-    },
   },
   {
     key: "roi_offset",
@@ -87,11 +60,6 @@ const TOOLBOX_TOOLS: ToolConfig[] = [
     icon: "icon-celiang1",
     iconSize: 22,
     modalType: "roi_offset",
-    wiki: {
-      target: { entryId: "toolbox", moduleId: "roi-offset" },
-      title: "偏移测量",
-      description: "理解 roi_offset、dx/dy 一类相对位移字段如何测量。",
-    },
   },
   {
     key: "delta",
@@ -99,11 +67,6 @@ const TOOLBOX_TOOLS: ToolConfig[] = [
     icon: "icon-celiang2",
     iconSize: 22,
     modalType: "delta",
-    wiki: {
-      target: { entryId: "toolbox", moduleId: "delta-measure" },
-      title: "位移测量",
-      description: "当你要的是单轴 dx/dy，而不是 roi_offset 四元组时，用这个工具。",
-    },
   },
 ];
 
@@ -468,23 +431,8 @@ function ToolboxPanel() {
                 />
               </div>
             </Tooltip>
-            {tool.wiki && (
-              <WikiPonderTrigger
-                className={style.toolWikiTrigger}
-                target={tool.wiki.target}
-                title={tool.wiki.title}
-                description={tool.wiki.description}
-                placement="bottom"
-              />
-            )}
           </div>
         ))}
-        <WikiPonderTrigger
-          target={{ entryId: "localbridge", moduleId: "device-screenshot" }}
-          title="设备与截图前置"
-          description="工具箱里看到“请先连接本地服务与设备”时，先回到控制器与截图来源前置条件。"
-          placement="bottom"
-        />
       </div>
 
       {connectionStatus !== "connected" && (

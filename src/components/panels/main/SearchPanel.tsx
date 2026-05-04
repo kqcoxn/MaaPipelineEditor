@@ -19,7 +19,6 @@ import {
 } from "../../../services/crossFileService";
 import { NodeListPanel } from "./node-list";
 import { useEmbedMode } from "../../../hooks/useEmbedMode";
-import { WikiPonderTrigger } from "../../../features/wiki/components/WikiPonderTrigger";
 
 /**搜索工具 */
 function SearchPanel() {
@@ -356,12 +355,6 @@ function SearchPanel() {
         )}
       />
       <div className={style["search-buttons"]}>
-        <WikiPonderTrigger
-          target={{ entryId: "workflow", moduleId: "tools-search" }}
-          title="工具与搜索"
-          description="查看搜索节点、节点列表和常用工具如何缩短大图定位路径。"
-          placement="bottom"
-        />
         <Tooltip placement="bottom" title="搜索节点">
           <IconFont
             className={style["search-icon"]}

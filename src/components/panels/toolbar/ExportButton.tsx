@@ -18,7 +18,6 @@ import { CreateFileModal } from "../../modals/CreateFileModal";
 import { checkGuard } from "../../panels/settings/guardSystem";
 import GuardPromptModal from "../../modals/GuardPromptModal";
 import type { ConfigItemDef } from "../../panels/settings/settingsDefinitions";
-import { WikiPonderTrigger } from "../../../features/wiki/components/WikiPonderTrigger";
 import style from "../../../styles/panels/ToolbarPanel.module.less";
 
 const actionGroupStyle = {
@@ -338,12 +337,6 @@ function ExportButton() {
             {buttonLabel}（{currentActionDesc}）
           </Button>
         </Dropdown>
-        <WikiPonderTrigger
-          target={{ entryId: "workflow", moduleId: "import-export" }}
-          title="导入与导出"
-          description="先确认导出模式和去向，再决定是粘贴板、文件还是本地保存。"
-          placement="bottom"
-        />
       </div>
       <ExportFileModal
         visible={exportModalVisible}

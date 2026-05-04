@@ -17,7 +17,6 @@ import {
   getActionIcon,
   getNodeTypeIcon,
 } from "../../flow/nodes/utils";
-import { WikiPonderTrigger } from "../../../features/wiki/components/WikiPonderTrigger";
 
 interface NodeAddPanelProps {
   visible: boolean;
@@ -580,18 +579,6 @@ function NodeAddPanel({
               marginBottom: 10,
             }}
           >
-            <WikiPonderTrigger
-              target={{ entryId: "workflow", moduleId: "node-templates" }}
-              title="节点模板"
-              description="查看模板搜索、预览和粘贴板如何帮助你更快创建节点。"
-              placement="bottom"
-            />
-            <WikiPonderTrigger
-              target={{ entryId: "workflow", moduleId: "tools-search" }}
-              title="工具与搜索"
-              description="当模板越来越多时，先用搜索定位，而不是在列表里硬翻。"
-              placement="bottom"
-            />
           </div>
 
           {/* 模板列表 */}
