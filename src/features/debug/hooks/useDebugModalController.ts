@@ -2,7 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { message } from "antd";
 import { useShallow } from "zustand/shallow";
 import { AIClient } from "../../../utils/ai/aiClient";
-import { debugProtocolClient } from "../../../services/server";
+import {
+  debugProtocolClient,
+  fileProtocol,
+} from "../../../services/server";
 import { useDebugSessionStore } from "../../../stores/debugSessionStore";
 import { useDebugModalMemoryStore } from "../../../stores/debugModalMemoryStore";
 import { useDebugTraceStore } from "../../../stores/debugTraceStore";
@@ -13,18 +16,16 @@ import {
   type DebugAiSummaryFocus,
 } from "../../../stores/debugAiSummaryStore";
 import { useDebugDiagnosticsStore } from "../../../stores/debugDiagnosticsStore";
-import {
-  makeDebugResourceKey,
-  normalizeDebugResourcePaths,
-  useDebugRunProfileStore,
-} from "../../../stores/debugRunProfileStore";
-import { useLocalFileStore } from "../../../stores/localFileStore";
+import { useDebugRunProfileStore } from "../../../stores/debugRunProfileStore";
 import {
   useMFWStore,
 } from "../../../stores/mfwStore";
 import { useWSStore } from "../../../stores/wsStore";
 import { useFlowStore } from "../../../stores/flow";
-import { saveOpenedLocalFilesForDebug } from "../../../stores/fileStore";
+import {
+  saveOpenedLocalFilesForDebug,
+  useFileStore,
+} from "../../../stores/fileStore";
 import { showActionRunConfirm } from "../confirmActionRun";
 import {
   buildDebugAiSummaryPrompt,
@@ -35,10 +36,10 @@ import { debugContributionRegistry } from "../contributions/registry";
 import { getControllerDisplayName } from "../controllerDisplay";
 import {
   captureScreenshotAction,
-  requestResourcePreflightAction,
   testAgentAction,
 } from "../debugModalActions";
 import { selectPerformanceRefs } from "../debugEventSelectors";
+import { focusDebugCanvasNode } from "../nodeTargetActions";
 import {
   formatDebugReadinessMessage,
   getDebugReadiness,
@@ -52,6 +53,7 @@ import {
   requestTraceSnapshotAction,
 } from "../traceReplayActions";
 import type { DebugNodeExecutionRecord } from "../nodeExecutionSelector";
+import { useDebugResourceChecks } from "./useDebugResourceChecks";
 import { useDebugNodeExecutionController } from "./useDebugNodeExecutionController";
 import type {
   DebugAgentProfile,
@@ -80,10 +82,6 @@ export function useDebugModalController() {
     closeModal,
     setActivePanel,
     selectNode,
-    resourcePreflight,
-    setResourcePreflightChecking,
-    setResourcePreflightError,
-    invalidateResourcePreflight,
     clearProtocolError,
   } = useDebugSessionStore(
     useShallow((state) => ({
@@ -100,10 +98,6 @@ export function useDebugModalController() {
       closeModal: state.closeModal,
       setActivePanel: state.setActivePanel,
       selectNode: state.selectNode,
-      resourcePreflight: state.resourcePreflight,
-      setResourcePreflightChecking: state.setResourcePreflightChecking,
-      setResourcePreflightError: state.setResourcePreflightError,
-      invalidateResourcePreflight: state.invalidateResourcePreflight,
       clearProtocolError: state.clearProtocolError,
     })),
   );
@@ -186,12 +180,6 @@ export function useDebugModalController() {
     })),
   );
   const profileState = useDebugRunProfileStore();
-  const { resourceBundles } =
-    useLocalFileStore(
-      useShallow((state) => ({
-        resourceBundles: state.resourceBundles,
-      })),
-    );
   const mfwState = useMFWStore(
     useShallow((state) => ({
       connectionStatus: state.connectionStatus,
@@ -204,6 +192,13 @@ export function useDebugModalController() {
   const selectedFlowNodeId = useFlowStore((state) =>
     state.selectedNodes.length === 1 ? state.selectedNodes[0]?.id : undefined,
   );
+  const resourceChecks = useDebugResourceChecks({
+    modalOpen,
+    activePanel,
+    connected,
+    profileState,
+    selectedFlowNodeId,
+  });
   const controllerDisplayName = useMemo(
     () =>
       getControllerDisplayName(
@@ -214,24 +209,22 @@ export function useDebugModalController() {
     [mfwState.controllerId, mfwState.controllerType, mfwState.deviceInfo],
   );
 
-  const resolvedResourcePaths = useMemo(
-    () =>
-      normalizeDebugResourcePaths(
-        profileState.profile.resourcePaths,
-        resourceBundles,
-      ),
-    [profileState.profile.resourcePaths, resourceBundles],
-  );
-  const resourceKey = useMemo(
-    () =>
-      makeDebugResourceKey(profileState.profile.resourcePaths, resourceBundles),
-    [profileState.profile.resourcePaths, resourceBundles],
-  );
-  const resourcePreflightMatches =
-    resourcePreflight.resourceKey === resourceKey;
-  const resourcePreflightStatus = resourcePreflightMatches
-    ? resourcePreflight.status
-    : "idle";
+  const {
+    resourceBundles,
+    resolvedResourcePaths,
+    resourceKey,
+    resourcePreflight,
+    resourcePreflightStatus,
+    resourceHealthRequest,
+    resourceHealthDraftError,
+    resourceHealthResult,
+    resourceHealthError,
+    resourceHealthStatus,
+    requestResourcePreflight,
+    invalidateResourcePreflight,
+    requestResourceHealth,
+    updateResourcePaths,
+  } = resourceChecks;
   const debugReadiness = useMemo(
     () =>
       getDebugReadiness({
@@ -239,16 +232,13 @@ export function useDebugModalController() {
         deviceConnectionStatus: mfwState.connectionStatus,
         controllerId: mfwState.controllerId,
         resourceStatus: resourcePreflightStatus,
-        resourceError: resourcePreflightMatches
-          ? resourcePreflight.error
-          : undefined,
+        resourceError: resourcePreflight.error,
       }),
     [
       connected,
       mfwState.connectionStatus,
       mfwState.controllerId,
       resourcePreflight.error,
-      resourcePreflightMatches,
       resourcePreflightStatus,
     ],
   );
@@ -279,48 +269,6 @@ export function useDebugModalController() {
       }),
     [],
   );
-
-  useEffect(() => {
-    if (!modalOpen) return;
-    if (!connected) {
-      invalidateResourcePreflight();
-      return;
-    }
-    if (resolvedResourcePaths.length === 0) {
-      invalidateResourcePreflight();
-      return;
-    }
-    if (
-      resourcePreflight.resourceKey === resourceKey &&
-      resourcePreflight.status !== "idle"
-    ) {
-      return;
-    }
-
-    const requestId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    setResourcePreflightChecking(requestId, resourceKey);
-    const sent = debugProtocolClient.preflightResources({
-      requestId,
-      resourcePaths: resolvedResourcePaths,
-    });
-    if (!sent) {
-      setResourcePreflightError(
-        requestId,
-        resourceKey,
-        "发送资源加载检测请求失败。",
-      );
-    }
-  }, [
-    connected,
-    invalidateResourcePreflight,
-    modalOpen,
-    resolvedResourcePaths,
-    resourceKey,
-    resourcePreflight.resourceKey,
-    resourcePreflight.status,
-    setResourcePreflightError,
-    setResourcePreflightChecking,
-  ]);
 
   const runModes = useMemo(() => debugContributionRegistry.getRunModes(), []);
 
@@ -500,23 +448,6 @@ export function useDebugModalController() {
     });
   };
 
-  const requestResourcePreflight = () => {
-    requestResourcePreflightAction({
-      client: debugProtocolClient,
-      connected,
-      invalidateResourcePreflight,
-      resourceKey,
-      resourcePaths: resolvedResourcePaths,
-      setResourcePreflightChecking,
-      setResourcePreflightError,
-    });
-  };
-
-  const updateResourcePaths = (resourcePaths: string[]) => {
-    profileState.setResourcePaths(resourcePaths);
-    invalidateResourcePreflight();
-  };
-
   const requestArtifact = (artifactId: string) => {
     const entry = artifacts[artifactId];
     if (!entry) return;
@@ -532,6 +463,31 @@ export function useDebugModalController() {
         .getState()
         .setError(artifactId, "发送产物（Artifact）请求失败");
     }
+  };
+
+  const focusNode = (nodeId: string) => {
+    selectNode(nodeId);
+    focusDebugCanvasNode(nodeId);
+  };
+
+  const focusFile = (fileId?: string, sourcePath?: string) => {
+    const fileStore = useFileStore.getState();
+    const openedFile =
+      (fileId
+        ? fileStore.files.find((file) => file.fileName === fileId)
+        : undefined) ??
+      (sourcePath ? fileStore.findFileByPath(sourcePath) : undefined);
+    if (openedFile) {
+      fileStore.switchFile(openedFile.fileName);
+      return;
+    }
+    if (sourcePath) {
+      const sent = fileProtocol.requestOpenFile(sourcePath);
+      if (sent) return;
+      message.error("发送打开文件请求失败");
+      return;
+    }
+    message.warning("当前诊断没有可定位的文件");
   };
 
   const generateDebugAiSummary = useCallback(
@@ -755,6 +711,11 @@ export function useDebugModalController() {
     resourceKey,
     resourcePreflight,
     resourcePreflightStatus,
+    resourceHealthRequest,
+    resourceHealthDraftError,
+    resourceHealthResult,
+    resourceHealthError,
+    resourceHealthStatus,
     debugReadiness,
     debugReadinessDescription,
     runModes,
@@ -800,9 +761,12 @@ export function useDebugModalController() {
     setNodeExecutionAttributionMode,
     setNodeExecutionDetailMode,
     requestResourcePreflight,
+    requestResourceHealth,
     invalidateResourcePreflight,
     updateResourcePaths,
     requestArtifact,
+    focusNode,
+    focusFile,
     handlePanelClick,
     openAiSummaryPanel,
     generateDebugAiSummary,

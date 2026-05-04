@@ -30,6 +30,7 @@ type Handler struct {
 	sessions     *debugsession.Manager
 	traces       *trace.Store
 	artifacts    *artifact.Store
+	diagnostics  *debugdiagnostics.Service
 	runner       *debugrunner.Runner
 	screenshots  *screenshot.Service
 	traceReplay  *replay.Service
@@ -46,6 +47,7 @@ func NewHandler(service *mfw.Service, root string) *Handler {
 		sessions:     sessions,
 		traces:       traces,
 		artifacts:    artifacts,
+		diagnostics:  debugdiagnostics.NewService(service, root),
 		runner:       debugrunner.New(service, sessions, traces, artifacts, root),
 		screenshots:  screenshot.NewService(service, artifacts),
 		traceReplay:  replay.NewService(traces),
@@ -73,6 +75,8 @@ func (h *Handler) Handle(msg models.Message, conn *server.Connection) *models.Me
 		h.handleRunStart(conn, msg)
 	case "/mpe/debug/resource/preflight":
 		h.handleResourcePreflight(conn, msg)
+	case "/mpe/debug/resource/health":
+		h.handleResourceHealth(conn, msg)
 	case "/mpe/debug/run/stop":
 		h.handleRunStop(conn, msg)
 	case "/mpe/debug/artifact/get":
@@ -272,6 +276,17 @@ func (h *Handler) handleResourcePreflight(conn *server.Connection, msg models.Me
 		},
 	})
 	h.send(conn, "/lte/debug/resource_preflight", result)
+}
+
+func (h *Handler) handleResourceHealth(conn *server.Connection, msg models.Message) {
+	req, err := decodeData[protocol.ResourceHealthRequest](msg)
+	if err != nil {
+		h.sendError(conn, "debug_invalid_request", err.Error(), nil)
+		return
+	}
+
+	result := h.diagnostics.CheckResourceHealth(req)
+	h.send(conn, "/lte/debug/resource_health", result)
 }
 
 func (h *Handler) handleRunStop(conn *server.Connection, msg models.Message) {

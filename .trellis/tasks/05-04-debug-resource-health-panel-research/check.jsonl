@@ -1,0 +1,7 @@
+{"file":".trellis/spec/frontend/index.md","reason":"Frontend quality check should use the repo-specific spec index and checklist as the top-level review baseline."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Check agent needs repo-specific forbidden patterns and validation expectations."}
+{"file":".trellis/spec/frontend/component-guidelines.md","reason":"Review new panel structure and UI composition against frontend component conventions."}
+{"file":".trellis/spec/frontend/state-management.md","reason":"Review Zustand changes for consistency and data ownership."}
+{"file":".trellis/spec/frontend/type-safety.md","reason":"Review protocol and diagnostic contract typing, narrowing, and payload handling."}
+{"file":".trellis/tasks/05-04-debug-resource-health-panel-research/research/mse-resource-health-panel.md","reason":"Check that the implementation adapts MSE ideas without copying its product model or terminology."}
+{"file":".trellis/tasks/05-04-debug-resource-health-panel-research/research/mpe-resource-health-baseline.md","reason":"Check that the implementation reuses existing MPE debug foundations rather than rebuilding parallel mechanisms."}

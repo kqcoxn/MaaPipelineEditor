@@ -16,6 +16,7 @@ const debugFeatureLabels: Record<string, string> = {
 
 const diagnosticLabels: Record<string, string> = {
   preflight: "启动前检查",
+  "resource-health": "资源体检",
   "resource-load": "资源加载诊断",
   "target-node": "目标节点检查",
   agent: "代理连接诊断",

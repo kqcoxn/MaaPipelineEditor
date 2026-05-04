@@ -161,6 +161,24 @@ type ResourcePreflightResult struct {
 	Diagnostics   []Diagnostic `json:"diagnostics,omitempty"`
 }
 
+type ResourceHealthRequest struct {
+	RequestID        string               `json:"requestId,omitempty"`
+	ResourcePaths    []string             `json:"resourcePaths"`
+	GraphSnapshot    GraphSnapshot        `json:"graphSnapshot"`
+	ResolverSnapshot NodeResolverSnapshot `json:"resolverSnapshot"`
+	Target           *NodeTarget          `json:"target,omitempty"`
+}
+
+type ResourceHealthResult struct {
+	RequestID     string       `json:"requestId,omitempty"`
+	ResourcePaths []string     `json:"resourcePaths"`
+	Status        string       `json:"status"`
+	Hash          string       `json:"hash,omitempty"`
+	CheckedAt     string       `json:"checkedAt"`
+	DurationMS    int64        `json:"durationMs,omitempty"`
+	Diagnostics   []Diagnostic `json:"diagnostics,omitempty"`
+}
+
 type RunStopRequest struct {
 	SessionID string `json:"sessionId"`
 	RunID     string `json:"runId,omitempty"`

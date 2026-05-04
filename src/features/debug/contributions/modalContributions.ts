@@ -9,6 +9,7 @@ const modalPanels: Array<{ id: DebugModalPanel; label: string }> = [
   { id: "performance", label: "性能" },
   { id: "images", label: "图像" },
   { id: "diagnostics", label: "诊断" },
+  { id: "resource-health", label: "资源体检" },
   { id: "setup", label: "运行配置" },
 ];
 

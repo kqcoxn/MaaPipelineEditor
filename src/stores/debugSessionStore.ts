@@ -3,6 +3,7 @@ import type {
   DebugAgentTestResult,
   DebugCapabilityManifest,
   DebugModalPanel,
+  DebugResourceHealthResult,
   DebugProtocolError,
   DebugResourcePreflightResult,
   DebugRunStarted,
@@ -13,12 +14,21 @@ import { useDebugModalMemoryStore } from "./debugModalMemoryStore";
 
 type CapabilityStatus = "idle" | "loading" | "ready" | "error";
 type ResourcePreflightStatus = "idle" | "checking" | "ready" | "error";
+type ResourceHealthStatus = "idle" | "checking" | "ready" | "error";
 
 export interface DebugResourcePreflightState {
   status: ResourcePreflightStatus;
   requestId?: string;
   resourceKey?: string;
   result?: DebugResourcePreflightResult;
+  error?: string;
+}
+
+export interface DebugResourceHealthState {
+  status: ResourceHealthStatus;
+  requestId?: string;
+  requestKey?: string;
+  result?: DebugResourceHealthResult;
   error?: string;
 }
 
@@ -35,6 +45,7 @@ interface DebugSessionState {
   capabilityStatus: CapabilityStatus;
   capabilityError?: string;
   resourcePreflight: DebugResourcePreflightState;
+  resourceHealth: DebugResourceHealthState;
   openModal: (panel?: DebugModalPanel) => void;
   closeModal: () => void;
   setActivePanel: (panel: DebugModalPanel) => void;
@@ -57,6 +68,14 @@ interface DebugSessionState {
     message: string,
   ) => void;
   invalidateResourcePreflight: () => void;
+  setResourceHealthChecking: (requestId: string, requestKey: string) => void;
+  setResourceHealthResult: (result: DebugResourceHealthResult) => void;
+  setResourceHealthError: (
+    requestId: string,
+    requestKey: string,
+    message: string,
+  ) => void;
+  invalidateResourceHealth: () => void;
 }
 
 export const useDebugSessionStore = create<DebugSessionState>((set) => ({
@@ -65,6 +84,9 @@ export const useDebugSessionStore = create<DebugSessionState>((set) => ({
   capabilityStatus: "idle",
   agentTestResults: {},
   resourcePreflight: {
+    status: "idle",
+  },
+  resourceHealth: {
     status: "idle",
   },
 
@@ -183,6 +205,52 @@ export const useDebugSessionStore = create<DebugSessionState>((set) => ({
   invalidateResourcePreflight: () =>
     set({
       resourcePreflight: {
+        status: "idle",
+      },
+    }),
+
+  setResourceHealthChecking: (requestId, requestKey) =>
+    set({
+      resourceHealth: {
+        status: "checking",
+        requestId,
+        requestKey,
+      },
+    }),
+
+  setResourceHealthResult: (result) =>
+    set((state) => {
+      const current = state.resourceHealth;
+      if (!current.requestId || result.requestId !== current.requestId) {
+        return {};
+      }
+      const firstError = result.diagnostics?.find(
+        (diagnostic) => diagnostic.severity === "error",
+      );
+      return {
+        resourceHealth: {
+          status: result.status === "ready" ? "ready" : "error",
+          requestId: result.requestId,
+          requestKey: current.requestKey,
+          result,
+          error: firstError?.message,
+        },
+      };
+    }),
+
+  setResourceHealthError: (requestId, requestKey, message) =>
+    set({
+      resourceHealth: {
+        status: "error",
+        requestId,
+        requestKey,
+        error: message,
+      },
+    }),
+
+  invalidateResourceHealth: () =>
+    set({
+      resourceHealth: {
         status: "idle",
       },
     }),

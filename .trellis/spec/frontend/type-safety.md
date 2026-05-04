@@ -87,3 +87,113 @@ Avoid these patterns in new code:
 Legacy `any` in files such as `src/stores/flow/types.ts` reflects existing
 dynamic pipeline data. Do not spread that style into new feature code unless
 you are working at the same dynamic boundary.
+
+---
+
+## Scenario: Debug Resource Health Contract
+
+### 1. Scope / Trigger
+- Trigger: debug-vNext adds a dedicated `/mpe/debug/resource/health` route plus frontend request/result state for the Resource Health panel.
+- Why this needs code-spec depth: this is a cross-layer protocol and async state contract between `LocalBridge/internal/debug/protocol/types.go`, `src/features/debug/types.ts`, `DebugProtocolClient`, `debugSessionStore`, and the DebugModal hooks/panels.
+
+### 2. Signatures
+- Backend route:
+  - request: `"/mpe/debug/resource/health"`
+  - response: `"/lte/debug/resource_health"`
+- Backend payloads:
+  - `type ResourceHealthRequest struct { requestId, resourcePaths, graphSnapshot, resolverSnapshot, target }`
+  - `type ResourceHealthResult struct { requestId, resourcePaths, status, hash, checkedAt, durationMs, diagnostics }`
+- Frontend payloads:
+  - `interface DebugResourceHealthRequest`
+  - `interface DebugResourceHealthResult`
+- Frontend state:
+  - `DebugResourceHealthState { status, requestId, requestKey, result, error }`
+
+### 3. Contracts
+- Request fields:
+  - `requestId?: string`
+    - generated per outbound check request
+    - used only for matching async responses, not for deriving cache identity
+  - `resourcePaths: string[]`
+    - the current normalized debug resource paths
+  - `graphSnapshot: DebugGraphSnapshot`
+    - current exported graph snapshot for static health checks
+  - `resolverSnapshot: DebugNodeResolverSnapshot`
+    - current runtime mapping snapshot for static health checks
+  - `target?: DebugNodeTarget`
+    - optional current entry/target node to verify target mapping integrity
+- Response fields:
+  - `status: "ready" | "failed"`
+    - `ready` means resource-health scope passed
+    - it does **not** mean full debug readiness
+  - `hash?: string`
+    - only present when MaaFW loading succeeds
+  - `diagnostics?: DebugDiagnostic[]`
+    - each diagnostic may carry category metadata in `data`
+    - repair suggestions are diagnostic metadata, not auto-fix commands
+- Store contract:
+  - `requestKey` is the snapshot identity for the current draft request
+  - `requestId` is the in-flight identity for one dispatched request
+  - UI may render draft errors before a request is sent
+
+### 4. Validation & Error Matrix
+- missing `resourcePaths` -> health request may still be drafted, but backend returns failed diagnostics for empty resource input
+- invalid or stale `graphSnapshot` / `resolverSnapshot` -> backend returns graph-category diagnostics
+- response `requestId` does not match current store `requestId` -> frontend must drop the result
+- same `requestKey`, new outbound request -> frontend must overwrite `requestId` and treat older responses as stale
+- `status === "ready"` with controller/device/agent still broken -> Overview/readiness remains the source of truth; Resource Health panel must not claim overall run readiness
+
+### 5. Good/Base/Bad Cases
+- Good:
+  - hook drafts a request from current normalized resources + snapshots
+  - action generates a fresh `requestId`
+  - store enters `checking`
+  - matching response arrives and is committed
+- Base:
+  - request draft exists but contains a draft error
+  - panel shows the draft error and does not pretend there is a valid result yet
+- Bad:
+  - frontend matches responses by `resourcePaths` or `requestKey` alone
+  - late response from an older request overwrites the latest panel state
+
+### 6. Tests Required
+- Frontend state tests or targeted assertions:
+  - stale `requestId` result does not mutate `resourceHealth`
+  - matching `requestId` result stores `requestKey`, `status`, `result`, and first error text correctly
+- Backend tests:
+  - empty graph / duplicate resolver / invalid target produce graph-category diagnostics
+  - successful MaaFW load includes `hash`, `checkedAt`, and categorized diagnostics
+- Integration-level assertions for future refactors:
+  - panel auto-check must only reuse an existing result when `requestKey` matches and the store is not idle
+
+### 7. Wrong vs Correct
+#### Wrong
+```ts
+setResourceHealthResult: (result) =>
+  set((state) => ({
+    resourceHealth: {
+      status: result.status === "ready" ? "ready" : "error",
+      requestKey: makeDebugResourceHealthRequestKeyFromResult(result),
+      result,
+    },
+  }));
+```
+
+#### Correct
+```ts
+setResourceHealthResult: (result) =>
+  set((state) => {
+    const current = state.resourceHealth;
+    if (!current.requestId || result.requestId !== current.requestId) {
+      return {};
+    }
+    return {
+      resourceHealth: {
+        status: result.status === "ready" ? "ready" : "error",
+        requestId: result.requestId,
+        requestKey: current.requestKey,
+        result,
+      },
+    };
+  });
+```

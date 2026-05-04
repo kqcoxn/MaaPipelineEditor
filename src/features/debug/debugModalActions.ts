@@ -1,7 +1,10 @@
 import { message } from "antd";
 import type { DebugProtocolClient } from "../../services/protocols/DebugProtocolClient";
 import { getDebugAgentProfileKey } from "./agentProfile";
-import type { DebugAgentProfile } from "./types";
+import type {
+  DebugAgentProfile,
+  DebugResourceHealthRequest,
+} from "./types";
 
 interface ScreenshotActionContext {
   client: DebugProtocolClient;
@@ -20,6 +23,19 @@ interface ResourcePreflightActionContext {
   setResourcePreflightError: (
     requestId: string,
     resourceKey: string,
+    error: string,
+  ) => void;
+}
+
+interface ResourceHealthActionContext {
+  client: DebugProtocolClient;
+  connected: boolean;
+  request: DebugResourceHealthRequest;
+  requestKey: string;
+  setResourceHealthChecking: (requestId: string, requestKey: string) => void;
+  setResourceHealthError: (
+    requestId: string,
+    requestKey: string,
     error: string,
   ) => void;
 }
@@ -138,5 +154,33 @@ export function testAgentAction({
       return next;
     });
     message.error("发送代理连接测试请求失败");
+  }
+}
+
+export function requestResourceHealthAction({
+  client,
+  connected,
+  request,
+  requestKey,
+  setResourceHealthChecking,
+  setResourceHealthError,
+}: ResourceHealthActionContext): void {
+  if (!connected || !client.isConnected()) {
+    message.error("LocalBridge 未连接");
+    return;
+  }
+  const requestId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  setResourceHealthChecking(requestId, requestKey);
+  const sent = client.checkResourceHealth({
+    ...request,
+    requestId,
+  });
+  if (!sent) {
+    setResourceHealthError(
+      requestId,
+      requestKey,
+      "发送资源体检请求失败。",
+    );
+    message.error("发送资源体检请求失败");
   }
 }

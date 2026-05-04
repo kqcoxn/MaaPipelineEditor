@@ -4,6 +4,7 @@ import {
   ApiOutlined,
   BranchesOutlined,
   FileTextOutlined,
+  MedicineBoxOutlined,
   NodeIndexOutlined,
   PictureOutlined,
   ProfileOutlined,
@@ -19,6 +20,7 @@ import type { DebugModalController } from "../../features/debug/hooks/useDebugMo
 import { OverviewPanel } from "../../features/debug/components/panels/OverviewPanel";
 import { AiSummaryPanel } from "../../features/debug/components/panels/AiSummaryPanel";
 import { SetupPanel } from "../../features/debug/components/panels/SetupPanel";
+import { ResourceHealthPanel } from "../../features/debug/components/panels/ResourceHealthPanel";
 import { TimelinePanel } from "../../features/debug/components/panels/TimelinePanel";
 import { NodeExecutionPanel } from "../../features/debug/components/panels/NodeExecutionPanel";
 import { PerformancePanel } from "../../features/debug/components/panels/PerformancePanel";
@@ -77,6 +79,12 @@ const panels: PanelItem[] = [
     label: "诊断",
     icon: <ApiOutlined />,
     description: "查看启动前检查、运行时诊断和资源/控制器/Agent 问题。",
+  },
+  {
+    id: "resource-health",
+    label: "资源体检",
+    icon: <MedicineBoxOutlined />,
+    description: "检查资源路径解析、MaaFW 真实加载和当前图静态调试合法性。",
   },
   {
     id: "setup",
@@ -258,6 +266,8 @@ function ActivePanel({
       return <AiSummaryPanel controller={controller} />;
     case "setup":
       return <SetupPanel controller={controller} />;
+    case "resource-health":
+      return <ResourceHealthPanel controller={controller} />;
     case "timeline":
       return <TimelinePanel controller={controller} />;
     case "node-execution":

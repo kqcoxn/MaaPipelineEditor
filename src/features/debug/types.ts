@@ -25,6 +25,7 @@ export type DebugModalPanel =
   | "overview"
   | "ai-summary"
   | "setup"
+  | "resource-health"
   | "timeline"
   | "node-execution"
   | "performance"
@@ -104,6 +105,10 @@ export type DebugEventPhase =
   | "failed"
   | "completed";
 export type DebugDiagnosticSeverity = "error" | "warning" | "info";
+export type DebugResourceHealthCategory =
+  | "resolution"
+  | "loading"
+  | "graph";
 export type DebugArtifactEncoding = "base64" | "utf8" | "json";
 export type DebugEdgeReason =
   | "next"
@@ -267,6 +272,24 @@ export interface DebugResourcePreflightRequest {
 }
 
 export interface DebugResourcePreflightResult {
+  requestId?: string;
+  resourcePaths: string[];
+  status: "ready" | "failed";
+  hash?: string;
+  checkedAt: string;
+  durationMs?: number;
+  diagnostics?: DebugDiagnostic[];
+}
+
+export interface DebugResourceHealthRequest {
+  requestId?: string;
+  resourcePaths: string[];
+  graphSnapshot: DebugGraphSnapshot;
+  resolverSnapshot: DebugNodeResolverSnapshot;
+  target?: DebugNodeTarget;
+}
+
+export interface DebugResourceHealthResult {
   requestId?: string;
   resourcePaths: string[];
   status: "ready" | "failed";

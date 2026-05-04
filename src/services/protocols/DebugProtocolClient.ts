@@ -10,6 +10,8 @@ import type {
   DebugEvent,
   DebugRunStarted,
   DebugProtocolError,
+  DebugResourceHealthRequest,
+  DebugResourceHealthResult,
   DebugResourcePreflightRequest,
   DebugResourcePreflightResult,
   DebugRunRequest,
@@ -41,6 +43,9 @@ export class DebugProtocolClient extends BaseProtocol {
   private readonly runStartedListeners = new Set<Listener<DebugRunStarted>>();
   private readonly resourcePreflightListeners = new Set<
     Listener<DebugResourcePreflightResult>
+  >();
+  private readonly resourceHealthListeners = new Set<
+    Listener<DebugResourceHealthResult>
   >();
   private readonly runStopRequestedListeners = new Set<
     Listener<DebugRunStopRequested>
@@ -92,6 +97,9 @@ export class DebugProtocolClient extends BaseProtocol {
     this.wsClient.registerRoute("/lte/debug/resource_preflight", (data) =>
       this.handleResourcePreflight(data),
     );
+    this.wsClient.registerRoute("/lte/debug/resource_health", (data) =>
+      this.handleResourceHealth(data),
+    );
     this.wsClient.registerRoute("/lte/debug/run_stop_requested", (data) =>
       this.handleRunStopRequested(data),
     );
@@ -141,6 +149,10 @@ export class DebugProtocolClient extends BaseProtocol {
 
   preflightResources(request: DebugResourcePreflightRequest): boolean {
     return this.send("/mpe/debug/resource/preflight", request);
+  }
+
+  checkResourceHealth(request: DebugResourceHealthRequest): boolean {
+    return this.send("/mpe/debug/resource/health", request);
   }
 
   stopRun(request: DebugRunStopRequest): boolean {
@@ -210,6 +222,13 @@ export class DebugProtocolClient extends BaseProtocol {
   ): () => void {
     this.resourcePreflightListeners.add(listener);
     return () => this.resourcePreflightListeners.delete(listener);
+  }
+
+  onResourceHealth(
+    listener: Listener<DebugResourceHealthResult>,
+  ): () => void {
+    this.resourceHealthListeners.add(listener);
+    return () => this.resourceHealthListeners.delete(listener);
   }
 
   onRunStopRequested(listener: Listener<DebugRunStopRequested>): () => void {
@@ -294,6 +313,11 @@ export class DebugProtocolClient extends BaseProtocol {
   private handleResourcePreflight(data: unknown): void {
     const result = data as DebugResourcePreflightResult;
     this.resourcePreflightListeners.forEach((listener) => listener(result));
+  }
+
+  private handleResourceHealth(data: unknown): void {
+    const result = data as DebugResourceHealthResult;
+    this.resourceHealthListeners.forEach((listener) => listener(result));
   }
 
   private handleRunStopRequested(data: unknown): void {

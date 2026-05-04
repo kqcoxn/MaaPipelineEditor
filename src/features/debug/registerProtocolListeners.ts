@@ -48,6 +48,10 @@ export function registerDebugProtocolListeners(
       .setPreflightDiagnostics(result.diagnostics ?? []);
   });
 
+  debugProtocolClient.onResourceHealth((result) => {
+    useDebugSessionStore.getState().setResourceHealthResult(result);
+  });
+
   debugProtocolClient.onRunStopRequested((request) => {
     useDebugSessionStore.getState().setRunStopRequested(request);
   });

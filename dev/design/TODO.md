@@ -6,7 +6,6 @@
 
 ## perf
 
-- 资源体检
 - override
 
 ## feat

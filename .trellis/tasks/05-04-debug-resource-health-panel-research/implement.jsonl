@@ -1,0 +1,7 @@
+{"file":".trellis/spec/frontend/index.md","reason":"Frontend spec index and pre-development checklist for choosing the right UI, hook, store, and validation guides."}
+{"file":".trellis/spec/frontend/component-guidelines.md","reason":"New DebugModal panel and diagnostics UI must follow existing component composition and prop patterns."}
+{"file":".trellis/spec/frontend/hook-guidelines.md","reason":"The feature will extend debug orchestration hooks and should match repo hook patterns."}
+{"file":".trellis/spec/frontend/state-management.md","reason":"The feature will extend Zustand-backed debug session/diagnostics state and should follow existing store conventions."}
+{"file":".trellis/spec/frontend/type-safety.md","reason":"The feature adds diagnostic contracts and protocol payload handling that need runtime-safe typing."}
+{"file":".trellis/tasks/05-04-debug-resource-health-panel-research/research/mse-resource-health-panel.md","reason":"MSE comparison boundaries and which validation layers to adapt versus reject."}
+{"file":".trellis/tasks/05-04-debug-resource-health-panel-research/research/mpe-resource-health-baseline.md","reason":"Current MPE resource preflight and diagnostics baseline to reuse during implementation."}

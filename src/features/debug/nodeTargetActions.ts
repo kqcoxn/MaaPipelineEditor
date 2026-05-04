@@ -55,7 +55,7 @@ export function applyDebugNodeTarget(
     memoryState.setLastPanel(options.openPanel);
   }
   if (options.focusCanvas) {
-    focusCanvasNode(target.nodeId);
+    focusDebugCanvasNode(target.nodeId);
   }
   if (options.successMessage) {
     message.success(options.successMessage);
@@ -64,7 +64,7 @@ export function applyDebugNodeTarget(
   return target;
 }
 
-function focusCanvasNode(nodeId: string): void {
+export function focusDebugCanvasNode(nodeId: string): void {
   const flowState = useFlowStore.getState();
   const targetNode = flowState.nodes.find((node) => node.id === nodeId);
   if (!targetNode) return;

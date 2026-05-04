@@ -13,6 +13,7 @@ func DefaultCapabilityManifest() protocol.CapabilityManifest {
 		},
 		Diagnostics: []string{
 			"preflight",
+			"resource-health",
 			"resource-load",
 			"target-node",
 			"agent",
