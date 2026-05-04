@@ -225,5 +225,6 @@ export function resolveDebugNodeTarget(
     fileId: node.fileId,
     nodeId: node.nodeId,
     runtimeName: node.runtimeName,
+    sourcePath: node.sourcePath,
   };
 }

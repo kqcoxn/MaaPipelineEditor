@@ -16,12 +16,12 @@ import {
   DEFAULT_DEBUG_AGENT_TIMEOUT_MS,
   getDebugAgentProfileKey,
 } from "../features/debug/agentProfile";
-import { useConfigStore } from "./configStore";
 import { useLocalFileStore, type ResourceBundle } from "./localFileStore";
 import { useMFWStore } from "./mfwStore";
 
-const STORAGE_KEY = "mpe_debug_run_profiles_v2";
-const LEGACY_STORAGE_KEY = "mpe_debug_run_profile_v1";
+const STORAGE_KEY = "mpe_debug_run_profiles_v3";
+const LEGACY_STORAGE_KEY = "mpe_debug_run_profiles_v2";
+const OLDER_LEGACY_STORAGE_KEY = "mpe_debug_run_profile_v1";
 
 export interface DebugRunProfilePreset {
   id: string;
@@ -80,9 +80,7 @@ function createDefaultProfile(id = "default", name = "默认调试配置"): Debu
       nodeId: "",
       runtimeName: "",
     },
-    savePolicy: useConfigStore.getState().configs.saveFilesBeforeDebug
-      ? "save-open-files"
-      : "sandbox",
+    savePolicy: "sandbox",
     maaOptions: {
       debugMode: true,
       saveDraw: true,
@@ -109,12 +107,20 @@ function readSnapshot(): DebugRunProfilesSnapshot {
 
     const legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY);
     if (legacyRaw) {
-      const legacy = JSON.parse(legacyRaw) as LegacyDebugRunProfileSnapshot;
+      const legacy = JSON.parse(legacyRaw) as Partial<DebugRunProfilesSnapshot>;
+      return normalizeSnapshot(migrateLegacySnapshot(legacy));
+    }
+
+    const olderLegacyRaw = localStorage.getItem(OLDER_LEGACY_STORAGE_KEY);
+    if (olderLegacyRaw) {
+      const legacy = JSON.parse(olderLegacyRaw) as LegacyDebugRunProfileSnapshot;
       return normalizeSnapshot({
         profiles: [
           {
             id: stringFromValue(legacy.profile?.id) ?? "default",
-            profile: sanitizeProfile(legacy.profile),
+            profile: sanitizeProfile(
+              migrateLegacyProfile(legacy.profile),
+            ),
             artifactPolicy: {
               ...defaultArtifactPolicy,
               ...legacy.artifactPolicy,
@@ -346,6 +352,7 @@ export const useDebugRunProfileStore = create<DebugRunProfileState>(
               fileId: snapshotEntry.fileId,
               nodeId: snapshotEntry.nodeId,
               runtimeName: snapshotEntry.runtimeName,
+              sourcePath: snapshotEntry.sourcePath,
             }
           : storeProfile.entry;
         const hasStoredEntry = Boolean(storeProfile.entry.runtimeName);
@@ -452,6 +459,14 @@ function sanitizeProfile(
   fallback = createDefaultProfile(),
 ): DebugRunProfile {
   const controller = profile?.controller;
+  const entry = isCompleteEntry(profile?.entry)
+    ? {
+        fileId: profile.entry.fileId,
+        nodeId: profile.entry.nodeId,
+        runtimeName: profile.entry.runtimeName,
+        sourcePath: sanitizeOptionalString(profile.entry.sourcePath),
+      }
+    : fallback.entry;
   return {
     id: stringFromValue(profile?.id) ?? fallback.id,
     name: stringFromValue(profile?.name) ?? fallback.name,
@@ -467,7 +482,7 @@ function sanitizeProfile(
     agents: Array.isArray(profile?.agents)
       ? profile.agents.map((agent) => sanitizeAgent(agent))
       : fallback.agents,
-    entry: isCompleteEntry(profile?.entry) ? profile.entry : fallback.entry,
+    entry,
     savePolicy: isSavePolicy(profile?.savePolicy)
       ? profile.savePolicy
       : fallback.savePolicy,
@@ -555,6 +570,36 @@ function stringFromValue(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() !== ""
     ? value.trim()
     : undefined;
+}
+
+function sanitizeOptionalString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() !== ""
+    ? value.trim()
+    : undefined;
+}
+
+function migrateLegacySnapshot(
+  snapshot: Partial<DebugRunProfilesSnapshot>,
+): Partial<DebugRunProfilesSnapshot> {
+  if (!Array.isArray(snapshot.profiles)) return snapshot;
+  return {
+    ...snapshot,
+    profiles: snapshot.profiles.map((preset) => ({
+      ...preset,
+      profile: migrateLegacyProfile(preset.profile),
+    })),
+  };
+}
+
+function migrateLegacyProfile(
+  profile?: Partial<DebugRunProfile>,
+): Partial<DebugRunProfile> | undefined {
+  if (!profile) return profile;
+  if (profile.savePolicy !== "save-open-files") return profile;
+  return {
+    ...profile,
+    savePolicy: "sandbox",
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

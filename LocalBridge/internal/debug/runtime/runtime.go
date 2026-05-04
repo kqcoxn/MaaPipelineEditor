@@ -3,6 +3,8 @@ package runtime
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -14,6 +16,7 @@ import (
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/runutil"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/mfw"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/utils"
 )
 
 type Runtime struct {
@@ -96,7 +99,11 @@ func New(
 		return nil, fmt.Errorf("加载资源失败: %w", err)
 	}
 
-	override := PipelineOverride(req)
+	override, err := PipelineOverride(root, req)
+	if err != nil {
+		adapter.Destroy()
+		return nil, err
+	}
 	if isDirectMode(req.Mode) {
 		if err := adapter.OverridePipeline(override); err != nil {
 			adapter.Destroy()
@@ -172,20 +179,147 @@ func ControllerID(req protocol.RunRequest) (string, error) {
 	return "", fmt.Errorf("缺少必需字段: profile.controller.options.controllerId")
 }
 
-func PipelineOverride(req protocol.RunRequest) map[string]interface{} {
-	override := make(map[string]interface{})
-	for _, file := range req.GraphSnapshot.Files {
-		for runtimeName, node := range file.Pipeline {
-			override[runtimeName] = node
+func PipelineOverride(root string, req protocol.RunRequest) (map[string]interface{}, error) {
+	selectedFileID, selectedSourcePath := resolveRunSource(req)
+
+	switch req.Profile.SavePolicy {
+	case "sandbox":
+		if file := findGraphFileSnapshot(req, selectedFileID, selectedSourcePath); file != nil {
+			return file.Pipeline, nil
+		}
+		if selectedSourcePath == "" {
+			return nil, fmt.Errorf("sandbox 模式未找到目标文件快照: %s", selectedFileID)
+		}
+		return loadPipelineOverrideFromDisk(root, selectedSourcePath)
+	case "save-open-files", "use-disk":
+		sourcePath, err := resolveRunSourcePath(root, req, selectedFileID, selectedSourcePath)
+		if err != nil {
+			return nil, err
+		}
+		return loadPipelineOverrideFromDisk(root, sourcePath)
+	default:
+		return nil, fmt.Errorf("不支持的 savePolicy: %s", req.Profile.SavePolicy)
+	}
+}
+
+func resolveRunSource(req protocol.RunRequest) (string, string) {
+	fileID := strings.TrimSpace(req.GraphSnapshot.RootFileID)
+	sourcePath := ""
+
+	if strings.TrimSpace(req.Profile.Entry.FileID) != "" {
+		fileID = strings.TrimSpace(req.Profile.Entry.FileID)
+	}
+	if strings.TrimSpace(req.Profile.Entry.SourcePath) != "" {
+		sourcePath = strings.TrimSpace(req.Profile.Entry.SourcePath)
+	}
+	if req.Target != nil {
+		if strings.TrimSpace(req.Target.FileID) != "" {
+			fileID = strings.TrimSpace(req.Target.FileID)
+		}
+		if strings.TrimSpace(req.Target.SourcePath) != "" {
+			sourcePath = strings.TrimSpace(req.Target.SourcePath)
 		}
 	}
-	for _, item := range req.Overrides {
-		if strings.TrimSpace(item.RuntimeName) == "" {
-			continue
+
+	if sourcePath == "" {
+		if file := findGraphFileSnapshot(req, fileID, ""); file != nil && strings.TrimSpace(file.Path) != "" {
+			sourcePath = strings.TrimSpace(file.Path)
 		}
-		override[item.RuntimeName] = item.Pipeline
 	}
-	return override
+
+	return fileID, sourcePath
+}
+
+func findGraphFileSnapshot(
+	req protocol.RunRequest,
+	fileID string,
+	sourcePath string,
+) *protocol.GraphFileSnapshot {
+	trimmedFileID := strings.TrimSpace(fileID)
+	trimmedSourcePath := strings.TrimSpace(sourcePath)
+	for i := range req.GraphSnapshot.Files {
+		file := &req.GraphSnapshot.Files[i]
+		if trimmedFileID != "" && strings.TrimSpace(file.FileID) == trimmedFileID {
+			return file
+		}
+		if trimmedSourcePath != "" && strings.TrimSpace(file.Path) == trimmedSourcePath {
+			return file
+		}
+	}
+	return nil
+}
+
+func resolveRunSourcePath(
+	root string,
+	req protocol.RunRequest,
+	fileID string,
+	sourcePath string,
+) (string, error) {
+	if strings.TrimSpace(sourcePath) != "" {
+		return normalizeRunSourcePath(root, sourcePath)
+	}
+	if file := findGraphFileSnapshot(req, fileID, ""); file != nil && strings.TrimSpace(file.Path) != "" {
+		return normalizeRunSourcePath(root, file.Path)
+	}
+	if looksLikeJSONPath(fileID) {
+		return normalizeRunSourcePath(root, fileID)
+	}
+	return "", fmt.Errorf("%s 模式要求目标文件已保存到磁盘", req.Profile.SavePolicy)
+}
+
+func normalizeRunSourcePath(root string, candidate string) (string, error) {
+	trimmed := strings.TrimSpace(candidate)
+	if trimmed == "" {
+		return "", fmt.Errorf("目标文件路径为空")
+	}
+
+	resolved := filepath.Clean(trimmed)
+	if root != "" && !filepath.IsAbs(resolved) {
+		resolved = filepath.Join(root, resolved)
+	}
+	if root != "" {
+		cleanRoot := filepath.Clean(root)
+		rel, err := filepath.Rel(cleanRoot, resolved)
+		if err != nil {
+			return "", fmt.Errorf("无法校验目标文件路径: %w", err)
+		}
+		if rel == ".." || strings.HasPrefix(rel, fmt.Sprintf("..%c", filepath.Separator)) {
+			return "", fmt.Errorf("目标文件不在工作区内: %s", resolved)
+		}
+	}
+	return resolved, nil
+}
+
+func loadPipelineOverrideFromDisk(root string, candidate string) (map[string]interface{}, error) {
+	resolved, err := normalizeRunSourcePath(root, candidate)
+	if err != nil {
+		return nil, err
+	}
+	data, err := os.ReadFile(resolved)
+	if err != nil {
+		return nil, fmt.Errorf("读取调试目标文件失败: %w", err)
+	}
+
+	var parsed map[string]interface{}
+	if err := utils.ParseJSONC(data, &parsed); err != nil {
+		return nil, fmt.Errorf("解析调试目标文件失败: %w", err)
+	}
+	if len(parsed) == 0 {
+		return nil, fmt.Errorf("调试目标文件内容为空: %s", resolved)
+	}
+	return parsed, nil
+}
+
+func looksLikeJSONPath(value string) bool {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return false
+	}
+	lower := strings.ToLower(trimmed)
+	if strings.HasSuffix(lower, ".json") || strings.HasSuffix(lower, ".jsonc") {
+		return true
+	}
+	return strings.Contains(trimmed, "/") || strings.Contains(trimmed, `\`)
 }
 
 func (r *Runtime) Start() error {

@@ -123,7 +123,10 @@ export const updateLogs: UpdateLogItem[] = [
     type: "fix",
     updates: {
       features: [""],
-      fixes: ["修复调试结束时会触发 agent 中断的问题"],
+      fixes: [
+        "修复调试结束时会触发 agent 中断的问题",
+        "修复部分情况下调试并非引用指定文件的问题",
+      ],
     },
   },
   {

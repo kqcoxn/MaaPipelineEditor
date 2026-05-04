@@ -164,6 +164,7 @@ export interface DebugNodeTarget {
   fileId: string;
   nodeId: string;
   runtimeName: string;
+  sourcePath?: string;
 }
 
 export interface DebugAgentProfile {

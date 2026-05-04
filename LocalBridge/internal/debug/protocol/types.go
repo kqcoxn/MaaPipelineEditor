@@ -47,6 +47,7 @@ type NodeTarget struct {
 	FileID      string `json:"fileId"`
 	NodeID      string `json:"nodeId"`
 	RuntimeName string `json:"runtimeName"`
+	SourcePath  string `json:"sourcePath,omitempty"`
 }
 
 type RunProfile struct {

@@ -271,6 +271,48 @@ export function localSave(): { success: boolean; error?: string } {
   }
 }
 
+export interface SaveOpenedLocalFilesResult {
+  savedCount: number;
+  failedFiles: string[];
+}
+
+export async function saveOpenedLocalFilesForDebug(): Promise<SaveOpenedLocalFilesResult> {
+  saveFlow();
+
+  const filesToSave = useFileStore
+    .getState()
+    .files.filter((file) => file.config.filePath && !file.config.isDeleted);
+  const failedFiles: string[] = [];
+  let savedCount = 0;
+
+  for (const file of filesToSave) {
+    const targetPath = file.config.filePath;
+    if (!targetPath) continue;
+
+    try {
+      const success = await useFileStore
+        .getState()
+        .saveFileToLocal(targetPath, file);
+      if (success) {
+        savedCount += 1;
+      } else {
+        failedFiles.push(file.fileName);
+      }
+    } catch (error) {
+      console.error(
+        `[fileStore] Failed to save file before debug: ${file.fileName}`,
+        error,
+      );
+      failedFiles.push(file.fileName);
+    }
+  }
+
+  return {
+    savedCount,
+    failedFiles,
+  };
+}
+
 // 分配新的顺序号
 export function assignNodeOrder(nodeId: string): number {
   const state = useFileStore.getState();

@@ -24,6 +24,7 @@ import {
 } from "../../../stores/mfwStore";
 import { useWSStore } from "../../../stores/wsStore";
 import { useFlowStore } from "../../../stores/flow";
+import { saveOpenedLocalFilesForDebug } from "../../../stores/fileStore";
 import { showActionRunConfirm } from "../confirmActionRun";
 import {
   buildDebugAiSummaryPrompt,
@@ -358,11 +359,11 @@ export function useDebugModalController() {
     diagnostic.code.startsWith("debug.agent."),
   );
 
-  const startRun = (
+  const startRun = async (
     mode: DebugRunMode,
     nodeId?: string,
     input?: DebugRunRequest["input"],
-  ) => {
+  ): Promise<void> => {
     if (mode === "action-only" && !input?.confirmAction) {
       confirmActionRun(nodeId);
       return;
@@ -391,6 +392,15 @@ export function useDebugModalController() {
     }
 
     try {
+      if (profileState.profile.savePolicy === "save-open-files") {
+        const saveResult = await saveOpenedLocalFilesForDebug();
+        if (saveResult.failedFiles.length > 0) {
+          message.error(
+            `调试前保存打开文件失败：${saveResult.failedFiles.join("、")}`,
+          );
+          return;
+        }
+      }
       const request = profileState.buildRunRequest(
         mode,
         nodeId,
@@ -435,9 +445,9 @@ export function useDebugModalController() {
   };
 
   function confirmActionRun(nodeId?: string) {
-    showActionRunConfirm(() =>
-      startRun("action-only", nodeId, { confirmAction: true }),
-    );
+    showActionRunConfirm(() => {
+      void startRun("action-only", nodeId, { confirmAction: true });
+    });
   }
 
   const stopRun = () => {
