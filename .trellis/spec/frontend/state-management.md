@@ -6,46 +6,85 @@
 
 ## Overview
 
-<!--
-Document your project's state management conventions here.
-
-Questions to answer:
-- What state management solution do you use?
-- How is local vs global state decided?
-- How do you handle server state?
-- What are the patterns for derived state?
--->
-
-(To be filled by the team)
+Zustand is the default global state tool across the frontend. React local state
+is still used for narrow, view-local concerns. The repo does not use a generic
+server-state cache library; websocket, bridge, and wiki loading state is owned
+by dedicated stores plus a few coordinating hooks.
 
 ---
 
 ## State Categories
 
-<!-- Local state, global state, server state, URL state -->
+Use the following buckets:
 
-(To be filled by the team)
+- Local component state:
+  short-lived UI toggles, search text, and screen-only visibility.
+  Examples: `explorationPanelVisible` in `src/App.tsx`,
+  `searchText` in `src/features/wiki/components/WikiModal.tsx`.
+- Persisted UI memory:
+  state that should survive reloads or reopen but still belongs to one product
+  surface.
+  Examples: `src/stores/debugModalMemoryStore.ts`,
+  `src/hooks/usePersistedState.ts`.
+- App/domain state:
+  editor graph, files, config, wiki, debug traces, artifacts, diagnostics,
+  controller readiness.
+  Examples: `src/stores/fileStore.ts`, `src/stores/configStore.ts`,
+  `src/stores/debugSessionStore.ts`.
+- Service-driven state:
+  websocket/debug protocol/Wails/embed events are translated into store state,
+  not kept as raw component state.
+- URL/share state:
+  handled through focused helpers such as `src/utils/data/shareHelper.ts` and
+  `src/wiki/wikiUrl.ts`.
 
 ---
 
 ## When to Use Global State
 
-<!-- Criteria for promoting state to global -->
+Promote state to a store when one or more of these are true:
 
-(To be filled by the team)
+- multiple distant components need the same state
+- commands must run outside React render trees via `getState()`
+- the state is updated by protocol listeners, bridge callbacks, or stores
+  talking to other stores
+- the state should survive modal close/reopen or page reload
+
+Patterns already in use:
+
+- one store per domain (`configStore`, `wikiStore`, `debugTraceStore`)
+- slice-based decomposition for large domains
+  (`src/stores/flow/slices/*`)
+- selector hooks for render-time reads, `getState()` for event handlers,
+  protocol listeners, persistence helpers, and store-to-store coordination
+
+When reading multiple store fields together in React, prefer one selector with
+`useShallow(...)` instead of many independent subscriptions.
 
 ---
 
 ## Server State
 
-<!-- How server data is cached and synchronized -->
+Server/bridge state is handled manually.
 
-(To be filled by the team)
+- `src/services/server` and bridge utilities are the transport boundary.
+- Hooks and listener registration modules translate events into stores.
+- Stores may keep cached snapshots and derived summaries.
+  Examples: `debugTraceStore`, `debugArtifactStore`, `wikiStore`.
+
+Do not introduce a generic fetch/cache framework for one narrow flow unless the
+repo has clearly moved in that direction.
 
 ---
 
 ## Common Mistakes
 
-<!-- State management mistakes your team has made -->
+Common mistakes:
 
-(To be filled by the team)
+- Promoting temporary input/search/toggle state to a global store too early.
+- Storing derived state twice when it can be recomputed in a hook or selector.
+  Examples of preferred derived-state usage:
+  `controllerDisplayName`, `resourcePreflightStatus`, `displaySessionOptions`.
+- Expanding giant stores without carving out slices or a feature-specific store.
+- Reading store data in render with `getState()` when a selector hook is the
+  safer and more reactive choice.

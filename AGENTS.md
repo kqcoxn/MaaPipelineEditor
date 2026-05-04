@@ -45,7 +45,7 @@ Managed by Trellis. Edits outside this block are preserved; edits inside may be 
 - 不考虑旧版本兼容性，废弃内容直接移除（除非特别说明）
 - 不要执行 `yarn dev` 开启服务器或打开内嵌页面
 - 不要自动生成测试脚本、总结或说明文档（但可更新PRD文档）
-- 前后端不用跑构建检测，需要时仅语法检测即可
+- 前后端不用跑构建检测，需要时仅语法检测即可，并在需要测试时最后告诉我应该测哪些地方
 - 不要使用浏览器测试，我自己测即可
 
 # Reference Guide
