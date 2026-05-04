@@ -1,0 +1,2 @@
+{"file":".trellis/spec/frontend/debug-save-policy.md","reason":"Debug resource handling must keep preflight, runtime, and protocol-boundary behavior aligned instead of creating parallel logic."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Validation and repo workflow constraints apply to this task, especially targeted checks, reuse, and honest reporting of validation scope."}

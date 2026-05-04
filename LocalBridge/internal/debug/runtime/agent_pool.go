@@ -54,7 +54,7 @@ func (p *AgentPool) EnsureBound(agent protocol.AgentProfile, resourcePaths []str
 	if err != nil {
 		return nil, err
 	}
-	resourceKey, err := resourceBindingKey(resourcePaths)
+	resourceKey, resolutions, err := resolveResourceBinding(resourcePaths)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ func (p *AgentPool) EnsureBound(agent protocol.AgentProfile, resourcePaths []str
 	}
 
 	adapter := mfw.NewMaaFWAdapter()
-	if err := adapter.LoadResources(resourcePaths); err != nil {
+	if err := adapter.LoadResolvedResources(resolutions); err != nil {
 		adapter.Destroy()
 		return nil, fmt.Errorf("加载资源失败: %w", err)
 	}
@@ -137,10 +137,21 @@ func agentPoolKey(agent protocol.AgentProfile) (string, error) {
 	return "identifier:" + prepared.Identifier, nil
 }
 
-func resourceBindingKey(resourcePaths []string) (string, error) {
-	normalized := normalizeResourcePaths(resourcePaths)
-	if len(normalized) == 0 {
-		return "", fmt.Errorf("profile.resourcePaths 不能为空")
+func resolveResourceBinding(resourcePaths []string) (string, []mfw.ResourceBundleResolution, error) {
+	resolutions, err := mfw.ResolveResourceBundlePaths(resourcePaths)
+	if err != nil {
+		return "", nil, err
 	}
-	return strings.Join(normalized, "\n"), nil
+	if len(resolutions) == 0 {
+		return "", nil, fmt.Errorf("profile.resourcePaths 不能为空")
+	}
+	return resourceBindingKeyFromResolutions(resolutions), resolutions, nil
+}
+
+func resourceBindingKeyFromResolutions(resolutions []mfw.ResourceBundleResolution) string {
+	normalized := make([]string, 0, len(resolutions))
+	for _, resolution := range resolutions {
+		normalized = append(normalized, resolution.ResolvedPath)
+	}
+	return strings.Join(normalized, "\n")
 }

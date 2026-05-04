@@ -2,12 +2,14 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	maa "github.com/MaaXYZ/maa-framework-go/v4"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/artifact"
+	debugdiagnostics "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/diagnostics"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/protocol"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/registry"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/replay"
@@ -239,29 +241,36 @@ func (h *Handler) handleResourcePreflight(conn *server.Connection, msg models.Me
 		return
 	}
 
-	hash, loadErr := mfw.CheckResourceBundles(paths)
+	hash, resolutions, loadErr := mfw.CheckResourceBundlesDetailed(paths)
 	result.DurationMS = time.Since(startedAt).Milliseconds()
+	resolutionDiagnostics := debugdiagnostics.BuildResourceResolutionDiagnostics(resolutions)
 	if loadErr != nil {
-		result.Diagnostics = []protocol.Diagnostic{{
+		diagnostic := protocol.Diagnostic{
 			Severity: "error",
 			Code:     "debug.resource.load_failed",
 			Message:  loadErr.Error(),
-		}}
+		}
+		var resolveErr *mfw.ResourceBundleResolveError
+		if errors.As(loadErr, &resolveErr) {
+			diagnostic = debugdiagnostics.BuildResourceResolveErrorDiagnostic(-1, loadErr)
+		}
+		result.Diagnostics = append(resolutionDiagnostics, diagnostic)
 		h.send(conn, "/lte/debug/resource_preflight", result)
 		return
 	}
 
 	result.Status = "ready"
 	result.Hash = hash
-	result.Diagnostics = []protocol.Diagnostic{{
+	result.Diagnostics = append(resolutionDiagnostics, protocol.Diagnostic{
 		Severity: "info",
 		Code:     "debug.resource.ready",
 		Message:  "资源加载检测通过。",
 		Data: map[string]interface{}{
-			"hash":       hash,
-			"durationMs": result.DurationMS,
+			"hash":        hash,
+			"durationMs":  result.DurationMS,
+			"resolutions": resourceResolutionData(resolutions),
 		},
-	}}
+	})
 	h.send(conn, "/lte/debug/resource_preflight", result)
 }
 
@@ -646,6 +655,17 @@ func nonEmptyStrings(values []string) []string {
 		}
 	}
 	return result
+}
+
+func resourceResolutionData(resolutions []mfw.ResourceBundleResolution) []map[string]interface{} {
+	if len(resolutions) == 0 {
+		return nil
+	}
+	items := make([]map[string]interface{}, 0, len(resolutions))
+	for _, resolution := range resolutions {
+		items = append(items, resolution.DiagnosticData())
+	}
+	return items
 }
 
 func isCompleteTarget(target protocol.NodeTarget) bool {

@@ -1,8 +1,6 @@
 package mfw
 
 import (
-	"os"
-	"runtime"
 	"sync"
 
 	maa "github.com/MaaXYZ/maa-framework-go/v4"
@@ -24,62 +22,24 @@ func NewResourceManager() *ResourceManager {
 }
 
 // 加载资源
-func (rm *ResourceManager) LoadResource(path string) (string, string, error) {
-	logger.Info("MFW", "加载资源: %s", path)
-
-	// Windows 下处理中文路径
-	actualPath := path
-	useWorkDirSwitch := false
-	var originalDir string
-	if runtime.GOOS == "windows" && ContainsNonASCII(path) {
-		logger.Debug("MFW", "资源路径包含非 ASCII 字符，尝试转换为短路径...")
-		shortPath, err := GetShortPathName(path)
-		if err == nil && shortPath != path && !ContainsNonASCII(shortPath) {
-			logger.Debug("MFW", "资源路径已转换为短路径: %s", shortPath)
-			actualPath = shortPath
-		} else {
-			// 工作目录切换方案
-			logger.Debug("MFW", "短路径无效，使用工作目录切换方案...")
-			originalDir, err = os.Getwd()
-			if err == nil {
-				if err := os.Chdir(path); err == nil {
-					logger.Debug("MFW", "已切换工作目录到: %s", path)
-					actualPath = "."
-					useWorkDirSwitch = true
-				}
-			}
-		}
+func (rm *ResourceManager) LoadResource(path string) (string, string, ResourceBundleResolution, error) {
+	resolution, err := ResolveResourceBundlePath(path)
+	if err != nil {
+		return "", "", ResourceBundleResolution{}, NewMFWError(ErrCodeResourceLoadFailed, err.Error(), nil)
 	}
+	logger.Info("MFW", "加载资源: %s", resolution.DisplayLabel())
 
 	resourceID := uuid.New().String()
 
 	// 创建资源对象
 	res, err := maa.NewResource()
 	if err != nil {
-		return "", "", NewMFWError(ErrCodeResourceLoadFailed, "failed to create resource: "+err.Error(), nil)
+		return "", "", ResourceBundleResolution{}, NewMFWError(ErrCodeResourceLoadFailed, "failed to create resource: "+err.Error(), nil)
 	}
 
-	// 加载资源包
-	job := res.PostBundle(actualPath)
-	if job == nil {
-		if useWorkDirSwitch && originalDir != "" {
-			os.Chdir(originalDir)
-		}
+	if err := loadResolvedResourceBundle(res, resolution); err != nil {
 		res.Destroy()
-		return "", "", NewMFWError(ErrCodeResourceLoadFailed, "failed to post bundle", nil)
-	}
-	job.Wait()
-
-	// 恢复工作目录
-	if useWorkDirSwitch && originalDir != "" {
-		if err := os.Chdir(originalDir); err != nil {
-			logger.Warn("MFW", "恢复工作目录失败: %v", err)
-		}
-	}
-
-	if !job.Success() {
-		res.Destroy()
-		return "", "", NewMFWError(ErrCodeResourceLoadFailed, "resource bundle load failed", nil)
+		return "", "", ResourceBundleResolution{}, NewMFWError(ErrCodeResourceLoadFailed, err.Error(), nil)
 	}
 
 	// 获取资源哈希
@@ -91,7 +51,7 @@ func (rm *ResourceManager) LoadResource(path string) (string, string, error) {
 	info := &ResourceInfo{
 		ResourceID: resourceID,
 		Resource:   res,
-		Path:       path,
+		Path:       resolution.ResolvedPath,
 		Loaded:     res.Loaded(),
 		Hash:       hash,
 	}
@@ -100,8 +60,8 @@ func (rm *ResourceManager) LoadResource(path string) (string, string, error) {
 	rm.resources[resourceID] = info
 	rm.mu.Unlock()
 
-	logger.Info("MFW", "资源加载成功: %s, hash: %s", resourceID, hash)
-	return resourceID, hash, nil
+	logger.Info("MFW", "资源加载成功: %s, path: %s, hash: %s", resourceID, resolution.DisplayLabel(), hash)
+	return resourceID, hash, resolution, nil
 }
 
 // 获取资源

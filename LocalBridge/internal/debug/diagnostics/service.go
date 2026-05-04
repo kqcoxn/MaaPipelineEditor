@@ -2,7 +2,6 @@ package diagnostics
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -60,60 +59,31 @@ func (s *Service) checkResources(paths []string) []protocol.Diagnostic {
 		}}
 	}
 
-	seen := make(map[string]struct{}, len(resourcePaths))
+	seen := make(map[string]int, len(resourcePaths))
 	for index, resourcePath := range resourcePaths {
-		abs, err := filepath.Abs(resourcePath)
+		resolution, err := mfw.ResolveResourceBundlePath(resourcePath)
 		if err != nil {
-			result = append(result, protocol.Diagnostic{
-				Severity:   "error",
-				Code:       "debug.resource.invalid_path",
-				Message:    fmt.Sprintf("资源路径无法解析: %s", resourcePath),
-				SourcePath: resourcePath,
-				Data:       map[string]interface{}{"index": index, "error": err.Error()},
-			})
+			result = append(result, BuildResourceResolveErrorDiagnostic(index, err))
 			continue
 		}
-		if _, ok := seen[abs]; ok {
+
+		result = append(result, BuildResourceResolutionDiagnostic(index, resolution))
+
+		key := resolvedPathKey(resolution.ResolvedPath)
+		if previousIndex, ok := seen[key]; ok {
 			result = append(result, protocol.Diagnostic{
 				Severity:   "warning",
 				Code:       "debug.resource.duplicate",
-				Message:    "资源路径重复，将按配置顺序重复加载",
-				SourcePath: abs,
-				Data:       map[string]interface{}{"index": index},
+				Message:    "资源路径解析后重复，将按配置顺序重复加载同一 bundle",
+				SourcePath: resolution.ResolvedPath,
+				Data: map[string]interface{}{
+					"index":         index,
+					"previousIndex": previousIndex,
+					"resolvedPath":  resolution.ResolvedPath,
+				},
 			})
 		}
-		seen[abs] = struct{}{}
-
-		info, err := os.Stat(abs)
-		if err != nil {
-			result = append(result, protocol.Diagnostic{
-				Severity:   "error",
-				Code:       "debug.resource.not_found",
-				Message:    "资源路径不存在",
-				SourcePath: abs,
-				Data:       map[string]interface{}{"index": index, "error": err.Error()},
-			})
-			continue
-		}
-		if !info.IsDir() {
-			result = append(result, protocol.Diagnostic{
-				Severity:   "error",
-				Code:       "debug.resource.not_directory",
-				Message:    "资源路径不是目录",
-				SourcePath: abs,
-				Data:       map[string]interface{}{"index": index},
-			})
-			continue
-		}
-		if !hasResourceMarker(abs) {
-			result = append(result, protocol.Diagnostic{
-				Severity:   "warning",
-				Code:       "debug.resource.marker_missing",
-				Message:    "资源路径未发现 pipeline/image/model/default_pipeline.json 标记",
-				SourcePath: abs,
-				Data:       map[string]interface{}{"index": index},
-			})
-		}
+		seen[key] = index
 	}
 	return result
 }
@@ -224,15 +194,6 @@ func checkAgents(agents []protocol.AgentProfile) []protocol.Diagnostic {
 	return result
 }
 
-func hasResourceMarker(path string) bool {
-	for _, marker := range []string{"pipeline", "image", "model", "default_pipeline.json"} {
-		if _, err := os.Stat(filepath.Join(path, marker)); err == nil {
-			return true
-		}
-	}
-	return false
-}
-
 func controllerIDFromOptions(options map[string]interface{}) string {
 	for _, key := range []string{"controllerId", "controller_id"} {
 		if value, ok := options[key].(string); ok && strings.TrimSpace(value) != "" {
@@ -240,4 +201,8 @@ func controllerIDFromOptions(options map[string]interface{}) string {
 		}
 	}
 	return ""
+}
+
+func resolvedPathKey(path string) string {
+	return strings.ToLower(filepath.Clean(path))
 }

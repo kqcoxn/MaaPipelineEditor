@@ -92,8 +92,8 @@ func New(
 	adapter.SetController(controller, controllerInfo.Type, controllerInfo.UUID)
 
 	emitResourceLoadDiagnostics(sessionID, runID, emit, "starting", resourcePaths, nil)
-	if err := adapter.LoadResourcesWithProgress(resourcePaths, func(index int, total int, path string, status string, err error) {
-		emitResourceLoadDiagnostic(sessionID, runID, emit, index, total, path, status, err)
+	if err := adapter.LoadResourcesWithProgress(resourcePaths, func(index int, total int, resolution mfw.ResourceBundleResolution, status string, err error) {
+		emitResourceLoadDiagnostic(sessionID, runID, emit, index, total, resolution, status, err)
 	}); err != nil {
 		adapter.Destroy()
 		return nil, fmt.Errorf("加载资源失败: %w", err)
@@ -662,7 +662,7 @@ func emitResourceLoadDiagnostics(sessionID string, runID string, emit events.Emi
 	})
 }
 
-func emitResourceLoadDiagnostic(sessionID string, runID string, emit events.EmitFunc, index int, total int, path string, status string, err error) {
+func emitResourceLoadDiagnostic(sessionID string, runID string, emit events.EmitFunc, index int, total int, resolution mfw.ResourceBundleResolution, status string, err error) {
 	if emit == nil {
 		return
 	}
@@ -676,6 +676,14 @@ func emitResourceLoadDiagnostic(sessionID string, runID string, emit events.Emit
 		severity = "error"
 		phase = "failed"
 	}
+	data := resolution.DiagnosticData()
+	data["severity"] = severity
+	data["code"] = code
+	data["message"] = "resource 加载" + status
+	data["sourcePath"] = resolution.InputPath
+	data["index"] = index
+	data["total"] = total
+	data["error"] = errorString(err)
 	emit(protocol.Event{
 		SessionID: sessionID,
 		RunID:     runID,
@@ -683,15 +691,7 @@ func emitResourceLoadDiagnostic(sessionID string, runID string, emit events.Emit
 		Kind:      "diagnostic",
 		Phase:     phase,
 		Status:    status,
-		Data: map[string]interface{}{
-			"severity":   severity,
-			"code":       code,
-			"message":    "resource 加载" + status,
-			"sourcePath": path,
-			"index":      index,
-			"total":      total,
-			"error":      errorString(err),
-		},
+		Data:      data,
 	})
 }
 

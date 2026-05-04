@@ -1,0 +1,2 @@
+{"file":".trellis/spec/frontend/debug-save-policy.md","reason":"Check agent must verify resource-path resolution does not reintroduce cross-layer divergence in debug request handling."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Check agent must use repo validation expectations and review for duplicate logic or overstated verification."}

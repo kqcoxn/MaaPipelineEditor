@@ -951,7 +951,7 @@ func (h *MFWHandler) handleLoadResource(conn *server.Connection, msg models.Mess
 
 	resourcePath, _ := dataMap["resource_path"].(string)
 
-	resourceID, resourceHash, err := h.service.ResourceManager().LoadResource(resourcePath)
+	resourceID, resourceHash, resolution, err := h.service.ResourceManager().LoadResource(resourcePath)
 	if err != nil {
 		logger.Error("MFW", "加载资源失败: %v", err)
 		h.sendMFWError(conn, mfw.ErrCodeResourceLoadFailed, "资源加载失败", err.Error())
@@ -962,9 +962,12 @@ func (h *MFWHandler) handleLoadResource(conn *server.Connection, msg models.Mess
 	response := models.Message{
 		Path: "/lte/mfw/resource_loaded",
 		Data: map[string]interface{}{
-			"resource_id":   resourceID,
-			"resource_hash": resourceHash,
-			"resource_path": resourcePath,
+			"resource_id":            resourceID,
+			"resource_hash":          resourceHash,
+			"resource_path":          resolution.ResolvedPath,
+			"input_resource_path":    resourcePath,
+			"resource_resolution":    resolution.DiagnosticData(),
+			"resolved_resource_path": resolution.ResolvedPath,
 		},
 	}
 	conn.Send(response)

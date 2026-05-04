@@ -74,3 +74,79 @@
 - Resolve the active target file first.
 - Apply `savePolicy` before choosing the pipeline source.
 - Load only the selected file's pipeline into the runtime override map.
+
+## Scenario: Debug Resource Bundle Resolution
+
+### 1. Scope / Trigger
+- Trigger: resource-path handling changed from "caller must already provide bundle roots" to "LocalBridge resolves user-supplied paths before load".
+- Applies when touching:
+  - `LocalBridge/internal/debug/api/handler.go`
+  - `LocalBridge/internal/debug/diagnostics/service.go`
+  - `LocalBridge/internal/debug/runtime/runtime.go`
+  - `LocalBridge/internal/debug/runtime/agent_pool.go`
+  - `LocalBridge/internal/mfw/adapter.go`
+  - `LocalBridge/internal/mfw/resource_manager.go`
+  - `LocalBridge/internal/protocol/mfw/handler.go`
+
+### 2. Signatures
+- Debug preflight request:
+  - `protocol.ResourcePreflightRequest { requestId?: string; resourcePaths: string[] }`
+- Debug preflight result:
+  - `protocol.ResourcePreflightResult { requestId?, resourcePaths, status, hash?, checkedAt, durationMs?, diagnostics? }`
+- Generic MFW load-resource request:
+  - `models.LoadResourceRequest { resource_path: string }`
+- Generic MFW load-resource response:
+  - `/lte/mfw/resource_loaded` with `resource_id`, `resource_hash`, `resource_path`, `input_resource_path`, `resource_resolution`
+
+### 3. Contracts
+- Input tolerance:
+  - Callers may pass a bundle root, `pipeline/`, `pipeline/*.json`, `image/**`, `model/**`, or `model/ocr/**`.
+  - Callers may also pass an ancestor directory when downward search finds exactly one bundle candidate within the resolver search boundary.
+- Shared resolver:
+  - Debug preflight, debug runtime load, debug agent bind, and generic MFW load-resource must all reuse the same resolver semantics.
+  - Do not keep a separate "marker-only" validation path beside the real resolver.
+- Resolution metadata:
+  - Preflight diagnostics should expose resolved root and strategy so frontend/debug logs can explain what happened.
+  - Runtime resource-load events should expose resolution metadata for each path.
+  - Generic `/lte/mfw/resource_loaded` should expose both the original input path and the resolved bundle root.
+
+### 4. Validation & Error Matrix
+- Empty `resourcePaths` -> reject as `debug.resource.empty`.
+- Path cannot be stat'ed / normalized -> resolver error with path details.
+- Input path does not map to a bundle root -> resolver error, not a generic marker warning.
+- Downward search finds multiple bundle candidates -> resolver must fail with ambiguity details; do not guess.
+- Resolved root exists but MaaFW `PostBundle` fails -> load failure after resolution succeeds.
+
+### 5. Good / Base / Bad Cases
+- Good:
+  - User passes `D:/Proj/assets/resource/base/pipeline/main.json`; resolver loads `D:/Proj/assets/resource/base`.
+- Base:
+  - User passes `D:/Proj`; downward search finds one bundle under the allowed depth and loads that bundle root.
+- Bad:
+  - Debug diagnostics still warn "missing marker" for `pipeline/main.json` even though runtime/preflight load succeeds through resolver.
+
+### 6. Tests Required
+- Resolver unit tests:
+  - upward resolution from `pipeline/*.json`
+  - upward resolution from `image/**` / `model/ocr/**`
+  - unique downward candidate
+  - ambiguous downward candidates
+  - not-found path
+- Debug diagnostics tests:
+  - startup diagnostics accept resolver-supported inputs
+  - ambiguity/not-found surfaces resolver-backed diagnostics instead of legacy marker warnings
+- Runtime / protocol verification:
+  - resource-load event payload includes resolved-path metadata
+  - generic load-resource response includes `input_resource_path` plus resolved `resource_path`
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+- Validate resource paths with ad hoc "is directory + has marker" checks in one place, then resolve/load differently elsewhere.
+
+#### Correct
+
+- Resolve resource paths once per entrypoint using the shared resolver.
+- Reuse resolved results for both diagnostics/keying and actual load when possible.
+- Surface resolved root plus strategy in diagnostics and protocol payloads when resolution changes the effective path.

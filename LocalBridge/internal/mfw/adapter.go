@@ -251,7 +251,7 @@ func (a *MaaFWAdapter) LoadResource(path string) error {
 }
 
 // LoadResources 加载多个资源路径
-type ResourceLoadProgressFunc func(index int, total int, path string, status string, err error)
+type ResourceLoadProgressFunc func(index int, total int, resolution ResourceBundleResolution, status string, err error)
 
 func (a *MaaFWAdapter) LoadResourcesWithProgress(paths []string, progress ResourceLoadProgressFunc) error {
 	a.mu.Lock()
@@ -260,7 +260,22 @@ func (a *MaaFWAdapter) LoadResourcesWithProgress(paths []string, progress Resour
 	if len(paths) == 0 {
 		return fmt.Errorf("资源路径不能为空")
 	}
+	resolutions, err := ResolveResourceBundlePaths(paths)
+	if err != nil {
+		return err
+	}
+	return a.loadResolvedResourcesLocked(resolutions, progress)
+}
 
+func (a *MaaFWAdapter) loadResolvedResourcesLocked(resolutions []ResourceBundleResolution, progress ResourceLoadProgressFunc) error {
+	if len(resolutions) == 0 {
+		return fmt.Errorf("资源路径不能为空")
+	}
+
+	paths := make([]string, 0, len(resolutions))
+	for _, resolution := range resolutions {
+		paths = append(paths, resolution.InputPath)
+	}
 	logger.Debug("MaaFW", "加载资源: %v", paths)
 
 	res, err := maa.NewResource()
@@ -268,47 +283,20 @@ func (a *MaaFWAdapter) LoadResourcesWithProgress(paths []string, progress Resour
 		return fmt.Errorf("创建资源失败: %w", err)
 	}
 
-	for i, path := range paths {
-		if path == "" {
-			continue
-		}
+	for i, resolution := range resolutions {
 		if progress != nil {
-			progress(i, len(paths), path, "starting", nil)
+			progress(i, len(resolutions), resolution, "starting", nil)
 		}
-		actualPath, restore, err := prepareResourceLoadPath(path)
-		if err != nil {
+		logger.Debug("MaaFW", "加载资源包 [%d/%d]: %s (%s)", i+1, len(resolutions), resolution.DisplayLabel(), resolution.Strategy.Description())
+		if err := loadResolvedResourceBundle(res, resolution); err != nil {
 			res.Destroy()
 			if progress != nil {
-				progress(i, len(paths), path, "failed", err)
-			}
-			return err
-		}
-		loadJob := res.PostBundle(actualPath)
-		if loadJob == nil {
-			if restore != nil {
-				restore()
-			}
-			res.Destroy()
-			err := fmt.Errorf("发起资源加载失败: %s", path)
-			if progress != nil {
-				progress(i, len(paths), path, "failed", err)
-			}
-			return err
-		}
-		loadJob.Wait()
-		if restore != nil {
-			restore()
-		}
-		if !loadJob.Success() {
-			res.Destroy()
-			err := fmt.Errorf("资源加载失败 [%s]: %v", path, loadJob.Status())
-			if progress != nil {
-				progress(i, len(paths), path, "failed", err)
+				progress(i, len(resolutions), resolution, "failed", err)
 			}
 			return err
 		}
 		if progress != nil {
-			progress(i, len(paths), path, "succeeded", nil)
+			progress(i, len(resolutions), resolution, "succeeded", nil)
 		}
 	}
 
@@ -319,7 +307,7 @@ func (a *MaaFWAdapter) LoadResourcesWithProgress(paths []string, progress Resour
 	a.resource = res
 	a.resourceLoaded = true
 
-	logger.Debug("MaaFW", "资源已加载(共 %d 个路径)", len(paths))
+	logger.Debug("MaaFW", "资源已加载(共 %d 个路径)", len(resolutions))
 	return nil
 }
 
@@ -330,106 +318,24 @@ func (a *MaaFWAdapter) LoadResources(paths []string) error {
 	if len(paths) == 0 {
 		return fmt.Errorf("资源路径不能为空")
 	}
-
-	logger.Debug("MaaFW", "加载资源: %v", paths)
-
-	// 创建新资源
-	res, err := maa.NewResource()
+	resolutions, err := ResolveResourceBundlePaths(paths)
 	if err != nil {
-		return fmt.Errorf("创建资源失败: %w", err)
+		return err
 	}
+	return a.loadResolvedResourcesLocked(resolutions, nil)
+}
 
-	// 依次加载所有资源包
-	for i, path := range paths {
-		if path == "" {
-			continue
-		}
+func (a *MaaFWAdapter) LoadResolvedResources(resolutions []ResourceBundleResolution) error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 
-		logger.Debug("MaaFW", "加载资源包 [%d/%d]: %s", i+1, len(paths), path)
-
-		actualPath, restore, err := prepareResourceLoadPath(path)
-		if err != nil {
-			res.Destroy()
-			return err
-		}
-		loadJob := res.PostBundle(actualPath)
-		if loadJob == nil {
-			if restore != nil {
-				restore()
-			}
-			res.Destroy()
-			return fmt.Errorf("发起资源加载失败: %s", path)
-		}
-
-		loadJob.Wait()
-		if restore != nil {
-			restore()
-		}
-		if !loadJob.Success() {
-			res.Destroy()
-			return fmt.Errorf("资源加载失败 [%s]: %v", path, loadJob.Status())
-		}
-
-		logger.Debug("MaaFW", "资源包加载成功: %s", path)
-	}
-
-	// 清理旧资源
-	if a.resource != nil {
-		a.resource.Destroy()
-	}
-
-	a.resource = res
-	a.resourceLoaded = true
-
-	logger.Debug("MaaFW", "资源已加载 (共 %d 个路径)", len(paths))
-	return nil
+	return a.loadResolvedResourcesLocked(resolutions, nil)
 }
 
 // CheckResourceBundles 按 MaaFramework 实际加载路径预检资源包，并在检查后立即释放资源。
 func CheckResourceBundles(paths []string) (string, error) {
-	if len(paths) == 0 {
-		return "", fmt.Errorf("资源路径不能为空")
-	}
-
-	res, err := maa.NewResource()
-	if err != nil {
-		return "", fmt.Errorf("创建资源失败: %w", err)
-	}
-	defer res.Destroy()
-
-	for i, path := range paths {
-		if path == "" {
-			continue
-		}
-		actualPath, restore, err := prepareResourceLoadPath(path)
-		if err != nil {
-			return "", err
-		}
-		loadJob := res.PostBundle(actualPath)
-		if loadJob == nil {
-			if restore != nil {
-				restore()
-			}
-			return "", fmt.Errorf("发起资源加载失败: %s", path)
-		}
-		loadJob.Wait()
-		if restore != nil {
-			restore()
-		}
-		if !loadJob.Success() {
-			return "", fmt.Errorf("资源加载失败 [%s]: %v", path, loadJob.Status())
-		}
-		logger.Debug("MaaFW", "资源预检加载成功 [%d/%d]: %s", i+1, len(paths), path)
-	}
-
-	if !res.Loaded() {
-		return "", fmt.Errorf("资源加载后未处于 Loaded 状态")
-	}
-	hash, err := res.GetHash()
-	if err != nil {
-		return "", fmt.Errorf("读取资源 hash 失败: %w", err)
-	}
-	return hash, nil
+	hash, _, err := CheckResourceBundlesDetailed(paths)
+	return hash, err
 }
 
 func prepareResourceLoadPath(path string) (string, func(), error) {
