@@ -60,6 +60,24 @@ const KeyListener = memo(
     targetRef: RefObject<HTMLDivElement | null>;
     allowCopy: boolean;
   }) => {
+    const isTextEditorFocused = useCallback(() => {
+      const target = document.activeElement;
+      if (!(target instanceof HTMLElement)) {
+        return false;
+      }
+      const tagName = target.tagName.toLowerCase();
+      if (
+        tagName === "input" ||
+        tagName === "textarea" ||
+        target.isContentEditable
+      ) {
+        return true;
+      }
+      return Boolean(
+        target.closest('[contenteditable="true"]') ||
+          target.closest(".monaco-editor"),
+      );
+    }, []);
     const { selectedNodes, selectedEdges } = useFlowStore(
       useShallow((state) => ({
         selectedNodes: state.selectedNodes,
@@ -86,19 +104,33 @@ const KeyListener = memo(
     // 复制节点
     const copyPressed = useKeyPress("Control+c", keyPressOptions);
     useEffect(() => {
-      if (!allowCopy || !copyPressed || selectedNodes.length === 0) return;
+      if (
+        !allowCopy ||
+        !copyPressed ||
+        selectedNodes.length === 0 ||
+        isTextEditorFocused()
+      ) {
+        return;
+      }
       copy(selectedNodes, selectedEdges);
-    }, [copyPressed, allowCopy]);
+    }, [allowCopy, copy, copyPressed, isTextEditorFocused, selectedEdges, selectedNodes]);
 
     // 粘贴节点
     const pastePressed = useKeyPress("Control+v", keyPressOptions);
     useEffect(() => {
-      if (!allowCopy || !pastePressed || clipboardNodes.length === 0) return;
+      if (
+        !allowCopy ||
+        !pastePressed ||
+        clipboardNodes.length === 0 ||
+        isTextEditorFocused()
+      ) {
+        return;
+      }
       const content = paste();
       if (content) {
         flowPaste(content.nodes, content.edges);
       }
-    }, [pastePressed, clipboardNodes, allowCopy]);
+    }, [allowCopy, clipboardNodes, flowPaste, isTextEditorFocused, paste, pastePressed]);
 
     return null;
   },

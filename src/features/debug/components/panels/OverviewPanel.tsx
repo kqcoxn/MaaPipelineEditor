@@ -1,13 +1,22 @@
-import { useMemo, type CSSProperties, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { Alert, Button, Checkbox, Select, Space, Typography } from "antd";
 import {
   CaretRightOutlined,
   FileSearchOutlined,
   FileTextOutlined,
+  FormatPainterOutlined,
   NodeIndexOutlined,
   ReloadOutlined,
   StopOutlined,
 } from "@ant-design/icons";
+import Editor from "@monaco-editor/react";
+import type { editor as MonacoEditor } from "monaco-editor";
 import { DebugSection } from "../DebugSection";
 import type { DebugModalController } from "../../hooks/useDebugModalController";
 import { DEFAULT_DEBUG_NODE_EXECUTION_FILTERS } from "../../types";
@@ -15,6 +24,17 @@ import {
   findDebugRunFirstTimestamp,
   formatDebugRunDisplayName,
 } from "../../runDisplayName";
+import { useConfigStore } from "../../../../stores/configStore";
+import {
+  formatDebugPipelineOverrideDraft,
+  hasDebugPipelineOverrideDraftContent,
+} from "../../pipelineOverride";
+import {
+  clearMfwJsonCompletionContext,
+  createMfwJsonEditorOptions,
+  ensureMfwJsonCompletionProvider,
+  setMfwJsonCompletionContext,
+} from "../../../../components/json/mfwJsonCompletion";
 
 const { Text } = Typography;
 
@@ -51,6 +71,26 @@ const runSummaryStyle: CSSProperties = {
   display: "flex",
   flexDirection: "column",
   gap: 12,
+};
+
+const overrideSectionStyle: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 12,
+};
+
+const overrideToolbarStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 12,
+  flexWrap: "wrap",
+};
+
+const overrideEditorContainerStyle: CSSProperties = {
+  border: "1px solid rgba(5, 5, 5, 0.12)",
+  borderRadius: 6,
+  overflow: "hidden",
 };
 
 const sessionManagerStyle: CSSProperties = {
@@ -130,6 +170,7 @@ export function OverviewPanel({
     selectedDisplaySessionIds,
     latestDisplaySessionId,
     allNodeExecutionRecords,
+    nodeExecutionResolverNodes,
     startRun,
     confirmActionRun,
     stopRun,
@@ -143,7 +184,15 @@ export function OverviewPanel({
     aiSummaryState,
     openAiSummaryPanel,
     generateDebugAiSummary,
+    overrideDraft,
+    overrideEntries,
+    overrideValidationError,
+    setOverrideDraft,
+    resetOverrideDraft,
   } = controller;
+  const jsonIndent = useConfigStore((state) => state.configs.jsonIndent);
+  const [overrideEditorModel, setOverrideEditorModel] =
+    useState<MonacoEditor.ITextModel>();
   const nodeOptions = useMemo(
     () =>
       runTargetNodes.map((node) => ({
@@ -218,6 +267,49 @@ export function OverviewPanel({
       ? "暂无"
       : `${selectedDisplaySessionIds.length}/${displaySessions.length}`;
   const shouldShowAiSummarySection = displaySessions.length > 0;
+  const overrideSummaryText = overrideValidationError
+    ? "当前 JSON 无效，启动调试会被阻止。"
+    : overrideEntries.length > 0
+      ? `当前会覆盖 ${overrideEntries.length} 个运行时节点。`
+      : "当前没有额外 override，将直接使用基础 pipeline。";
+  const overrideEditorOptions = useMemo(
+    () => createMfwJsonEditorOptions(jsonIndent, { fontSize: 13 }),
+    [jsonIndent],
+  );
+  const overrideNodeNameSuggestions = useMemo(() => {
+    const seen = new Set<string>();
+    return nodeExecutionResolverNodes
+      .filter((node) => {
+        const runtimeName = node.runtimeName.trim();
+        if (!runtimeName || runtimeName.startsWith("__mpe")) {
+          return false;
+        }
+        if (seen.has(runtimeName)) {
+          return false;
+        }
+        seen.add(runtimeName);
+        return true;
+      })
+      .map((node) => ({
+        label: node.runtimeName,
+        detail: node.sourcePath ? `${node.displayName} · ${node.sourcePath}` : node.displayName,
+      }));
+  }, [nodeExecutionResolverNodes]);
+  const overrideDefaultCollapsed = !hasDebugPipelineOverrideDraftContent(
+    overrideDraft,
+  );
+
+  useEffect(() => {
+    if (!overrideEditorModel) {
+      return;
+    }
+    setMfwJsonCompletionContext(overrideEditorModel, {
+      nodeNameSuggestions: overrideNodeNameSuggestions,
+    });
+    return () => {
+      clearMfwJsonCompletionContext(overrideEditorModel);
+    };
+  }, [overrideEditorModel, overrideNodeNameSuggestions]);
 
   return (
     <Space direction="vertical" size={14} style={{ width: "100%" }}>
@@ -442,6 +534,59 @@ export function OverviewPanel({
                 </Button>
               </Space>
             </div>
+          )}
+        </div>
+      </DebugSection>
+      <DebugSection
+        title="运行时 Override"
+        collapsible
+        defaultCollapsed={overrideDefaultCollapsed}
+      >
+        <div style={overrideSectionStyle}>
+          <div style={overrideToolbarStyle}>
+            <Text type="secondary">
+              使用 MaaFW `pipeline_override` 兼容结构：
+              {` { "RuntimeName": { ...partial pipeline... } } `}
+            </Text>
+            <Space wrap>
+              <Button
+                size="small"
+                icon={<FormatPainterOutlined />}
+                onClick={() =>
+                  setOverrideDraft(
+                    formatDebugPipelineOverrideDraft(overrideDraft, jsonIndent),
+                  )
+                }
+              >
+                格式化
+              </Button>
+              <Button size="small" onClick={resetOverrideDraft}>
+                清空
+              </Button>
+            </Space>
+          </div>
+          <div style={overrideEditorContainerStyle}>
+            <Editor
+              height={260}
+              language="json"
+              value={overrideDraft}
+              onChange={(value) => setOverrideDraft(value ?? "")}
+              onMount={(editorInstance, monaco) => {
+                ensureMfwJsonCompletionProvider(monaco);
+                setOverrideEditorModel(editorInstance.getModel() ?? undefined);
+              }}
+              options={overrideEditorOptions}
+              theme="vs"
+            />
+          </div>
+          <Text type="secondary">{overrideSummaryText}</Text>
+          {overrideValidationError && (
+            <Alert
+              type="error"
+              showIcon
+              message="Override JSON 无效"
+              description={overrideValidationError}
+            />
           )}
         </div>
       </DebugSection>

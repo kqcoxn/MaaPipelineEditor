@@ -75,6 +75,85 @@
 - Apply `savePolicy` before choosing the pipeline source.
 - Load only the selected file's pipeline into the runtime override map.
 
+## Scenario: Debug Runtime Override Draft
+
+### 1. Scope / Trigger
+- Trigger: debug overview now accepts a temporary JSON override draft that participates in the cross-layer run request contract.
+- Applies when touching:
+  - `src/features/debug/components/panels/OverviewPanel.tsx`
+  - `src/features/debug/pipelineOverride.ts`
+  - `src/stores/debugOverrideStore.ts`
+  - `src/stores/debugRunProfileStore.ts`
+  - `src/features/debug/hooks/useDebugModalController.ts`
+  - `src/components/flow/nodes/nodeContextMenu.tsx`
+  - `LocalBridge/internal/debug/protocol/types.go`
+  - `LocalBridge/internal/debug/runtime/runtime.go`
+
+### 2. Signatures
+- Frontend draft parser:
+  - `parseDebugPipelineOverrideDraft(draft: string) -> { error?: string; overrides?: DebugPipelineOverride[] }`
+- Frontend request field:
+  - `DebugRunRequest { overrides?: DebugPipelineOverride[] }`
+- Backend request field:
+  - `protocol.RunRequest { Overrides []PipelineOverride }`
+- Backend merge entrypoint:
+  - `runtime.PipelineOverride(root string, req protocol.RunRequest) (map[string]interface{}, error)`
+
+### 3. Contracts
+- Draft shape:
+  - The UI draft must use MaaFW-compatible partial pipeline JSON: `{ "<RuntimeName>": { ...partial pipeline... } }`.
+  - Root value must be a JSON object.
+  - Each key becomes one `DebugPipelineOverride.runtimeName`.
+  - Each value must be an object; arrays and primitives are invalid.
+- Lifetime:
+  - Override draft is page-lifecycle state only.
+  - Do not persist it to localStorage / memory store.
+  - Do not write it back into graph nodes, source JSON, or exported pipeline files.
+- Merge order:
+  - Backend must resolve the base pipeline first using `savePolicy`.
+  - Request overrides then deep-merge onto that base.
+  - For conflicting fields, request override wins.
+  - Nested objects merge recursively; arrays and scalar values replace the base value directly.
+- Entry paths:
+  - Overview run buttons and node context-menu debug start must both consult the same parsed draft result before starting a run.
+
+### 4. Validation & Error Matrix
+- Draft is invalid JSON -> frontend blocks run start with `debug.override.invalid_json`.
+- Draft root is not an object -> frontend blocks run start with a clear format error.
+- Any runtimeName is empty after trim -> frontend blocks run start with a clear runtime-name error.
+- Any runtime override value is not an object -> frontend blocks run start with a clear node-value error.
+- Base pipeline is nil / empty but request override exists -> backend must initialize a safe map and merge without panic.
+
+### 5. Good / Base / Bad Cases
+- Good:
+  - Draft is `{ "ShopEntry": { "next": ["NodeB"], "timeout": 5000 } }`; runtime starts and `ShopEntry` fields override the base pipeline.
+- Base:
+  - Draft is `{}`; request may omit `overrides` or send an empty override list, and runtime behavior matches the unmodified base pipeline.
+- Bad:
+  - Frontend accepts `"[]"` or `{ "ShopEntry": 1 }` and lets the run start, leaving LocalBridge to fail later.
+
+### 6. Tests Required
+- Frontend verification:
+  - Targeted eslint on touched debug files.
+  - Static check that override draft store does not use `localStorage` / persisted memory.
+  - Static or test verification that overview and node context-menu paths share the same invalid-draft guard.
+- Go unit tests for `runtime.PipelineOverride(...)`:
+  - Assert request override deep-merges onto an existing base node.
+  - Assert request override can add a new runtime node.
+  - Assert nil/empty base pipeline plus request override does not panic.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+- Treat the draft as a persisted profile setting or silently allow invalid JSON until runtime.
+
+#### Correct
+
+- Keep the draft in ephemeral page state only.
+- Parse and validate before any run start.
+- Merge request overrides onto the resolved base pipeline in LocalBridge, with request values winning on conflict.
+
 ## Scenario: Debug Resource Bundle Resolution
 
 ### 1. Scope / Trigger

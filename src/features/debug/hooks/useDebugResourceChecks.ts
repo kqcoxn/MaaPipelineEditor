@@ -29,6 +29,7 @@ interface DebugResourceProfileState {
     targetNodeId?: string,
     sessionId?: string,
     input?: DebugRunRequest["input"],
+    overrides?: DebugRunRequest["overrides"],
   ) => DebugRunRequest;
   setResourcePaths: (resourcePaths: string[]) => void;
 }

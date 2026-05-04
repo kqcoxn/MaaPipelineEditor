@@ -120,9 +120,12 @@ export const updateLogs: UpdateLogItem[] = [
   {
     version: "1.5.2",
     date: "2026-5-4",
-    type: "fix",
+    type: "perf",
     updates: {
-      features: ["调试模块新增资源体检功能，可检查资源目录是否存在问题"],
+      features: [
+        "👾 调试模块新增 override 模块",
+        "🛂 调试模块新增资源体检功能，可检查资源目录是否存在问题",
+      ],
       perfs: ["在合适的情况下，资源路径会根据根目录被自动检索与加载"],
       fixes: [
         "修复调试结束时会引发 agent 中断的问题",

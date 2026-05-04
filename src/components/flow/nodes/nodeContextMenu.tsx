@@ -21,11 +21,13 @@ import {
 } from "./utils/nodeOperations";
 import { debugProtocolClient } from "../../../services/server";
 import { useDebugModalMemoryStore } from "../../../stores/debugModalMemoryStore";
+import { saveOpenedLocalFilesForDebug } from "../../../stores/fileStore";
 import {
   makeDebugResourceKey,
   normalizeDebugResourcePaths,
   useDebugRunProfileStore,
 } from "../../../stores/debugRunProfileStore";
+import { useDebugOverrideStore } from "../../../stores/debugOverrideStore";
 import { useDebugSessionStore } from "../../../stores/debugSessionStore";
 import { useMFWStore } from "../../../stores/mfwStore";
 import { useWSStore } from "../../../stores/wsStore";
@@ -35,6 +37,10 @@ import type {
 } from "../../../features/debug/types";
 import { getDebugReadiness } from "../../../features/debug/readiness";
 import { applyDebugNodeTarget } from "../../../features/debug/nodeTargetActions";
+import {
+  DEBUG_PIPELINE_OVERRIDE_ERROR_CODE,
+  parseDebugPipelineOverrideDraft,
+} from "../../../features/debug/pipelineOverride";
 
 /**菜单项类型 */
 export interface NodeContextMenuItem {
@@ -282,12 +288,12 @@ function handleDebugRunMode(node: NodeContextMenuNode, mode: DebugRunMode) {
       okButtonProps: { danger: true },
       cancelText: "取消",
       onOk: () =>
-        handleDebugRunModeWithInput(node, mode, { confirmAction: true }),
+        void handleDebugRunModeWithInput(node, mode, { confirmAction: true }),
     });
     return;
   }
 
-  handleDebugRunModeWithInput(node, mode);
+  void handleDebugRunModeWithInput(node, mode);
 }
 
 function scheduleDebugRunAfterResourcePreflight(
@@ -375,22 +381,44 @@ function requestDebugResourcePreflight(
   return "sent";
 }
 
-function handleDebugRunModeWithInput(
+async function handleDebugRunModeWithInput(
   node: NodeContextMenuNode,
   mode: DebugRunMode,
   input?: { confirmAction?: boolean },
-) {
+): Promise<void> {
   if (node.type !== NodeTypeEnum.Pipeline) return;
 
   const sessionState = useDebugSessionStore.getState();
   const profileState = useDebugRunProfileStore.getState();
+  const overrideParseResult = parseDebugPipelineOverrideDraft(
+    useDebugOverrideStore.getState().draft,
+  );
 
   try {
+    sessionState.clearProtocolError();
+    if (overrideParseResult.error) {
+      sessionState.setProtocolError({
+        code: DEBUG_PIPELINE_OVERRIDE_ERROR_CODE,
+        message: overrideParseResult.error,
+      });
+      message.error(overrideParseResult.error);
+      return;
+    }
+    if (profileState.profile.savePolicy === "save-open-files") {
+      const saveResult = await saveOpenedLocalFilesForDebug();
+      if (saveResult.failedFiles.length > 0) {
+        message.error(
+          `调试前保存打开文件失败：${saveResult.failedFiles.join("、")}`,
+        );
+        return;
+      }
+    }
     const request = profileState.buildRunRequest(
       mode,
       node.id,
       sessionState.session?.sessionId,
       input,
+      overrideParseResult.overrides,
     );
     if (!request.target) {
       message.error("无法解析节点运行名");

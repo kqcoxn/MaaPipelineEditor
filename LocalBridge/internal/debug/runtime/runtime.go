@@ -99,11 +99,13 @@ func New(
 		return nil, fmt.Errorf("加载资源失败: %w", err)
 	}
 
-	override, err := PipelineOverride(root, req)
+	overrideBundle, err := buildPipelineOverrideBundle(root, req)
 	if err != nil {
 		adapter.Destroy()
 		return nil, err
 	}
+	override := overrideBundle.Merged
+	emitPipelineOverrideDiagnostics(sessionID, runID, emit, entry, overrideBundle)
 	if isDirectMode(req.Mode) {
 		if err := adapter.OverridePipeline(override); err != nil {
 			adapter.Destroy()
@@ -180,26 +182,74 @@ func ControllerID(req protocol.RunRequest) (string, error) {
 }
 
 func PipelineOverride(root string, req protocol.RunRequest) (map[string]interface{}, error) {
-	selectedFileID, selectedSourcePath := resolveRunSource(req)
+	overrideBundle, err := buildPipelineOverrideBundle(root, req)
+	if err != nil {
+		return nil, err
+	}
+	return overrideBundle.Merged, nil
+}
 
+type pipelineOverrideBundle struct {
+	Entry           string
+	Base            map[string]interface{}
+	RequestOverride map[string]interface{}
+	Merged          map[string]interface{}
+}
+
+func buildPipelineOverrideBundle(root string, req protocol.RunRequest) (pipelineOverrideBundle, error) {
+	selectedFileID, selectedSourcePath := resolveRunSource(req)
+	entry, err := EntryForRequest(req)
+	if err != nil {
+		return pipelineOverrideBundle{}, err
+	}
+
+	var baseOverride map[string]interface{}
 	switch req.Profile.SavePolicy {
 	case "sandbox":
 		if file := findGraphFileSnapshot(req, selectedFileID, selectedSourcePath); file != nil {
-			return file.Pipeline, nil
+			baseOverride = file.Pipeline
+			break
 		}
 		if selectedSourcePath == "" {
-			return nil, fmt.Errorf("sandbox 模式未找到目标文件快照: %s", selectedFileID)
+			return pipelineOverrideBundle{}, fmt.Errorf("sandbox 模式未找到目标文件快照: %s", selectedFileID)
 		}
-		return loadPipelineOverrideFromDisk(root, selectedSourcePath)
+		override, err := loadPipelineOverrideFromDisk(root, selectedSourcePath)
+		if err != nil {
+			return pipelineOverrideBundle{}, err
+		}
+		baseOverride = override
 	case "save-open-files", "use-disk":
 		sourcePath, err := resolveRunSourcePath(root, req, selectedFileID, selectedSourcePath)
 		if err != nil {
-			return nil, err
+			return pipelineOverrideBundle{}, err
 		}
-		return loadPipelineOverrideFromDisk(root, sourcePath)
+		override, err := loadPipelineOverrideFromDisk(root, sourcePath)
+		if err != nil {
+			return pipelineOverrideBundle{}, err
+		}
+		baseOverride = override
 	default:
-		return nil, fmt.Errorf("不支持的 savePolicy: %s", req.Profile.SavePolicy)
+		return pipelineOverrideBundle{}, fmt.Errorf("不支持的 savePolicy: %s", req.Profile.SavePolicy)
 	}
+
+	clonedBaseOverride, err := cloneOverride(baseOverride)
+	if err != nil {
+		return pipelineOverrideBundle{}, err
+	}
+	requestOverride, err := collectEntryRequestOverride(entry, req.Overrides)
+	if err != nil {
+		return pipelineOverrideBundle{}, err
+	}
+	mergedOverride, err := mergeRequestOverrides(clonedBaseOverride, req.Overrides)
+	if err != nil {
+		return pipelineOverrideBundle{}, err
+	}
+	return pipelineOverrideBundle{
+		Entry:           entry,
+		Base:            baseOverride,
+		RequestOverride: requestOverride,
+		Merged:          mergedOverride,
+	}, nil
 }
 
 func resolveRunSource(req protocol.RunRequest) (string, string) {
@@ -622,6 +672,166 @@ func cloneOverride(override map[string]interface{}) (map[string]interface{}, err
 		return nil, fmt.Errorf("复制 pipeline override 失败: %w", err)
 	}
 	return cloned, nil
+}
+
+func mergeRequestOverrides(
+	base map[string]interface{},
+	overrides []protocol.PipelineOverride,
+) (map[string]interface{}, error) {
+	if len(overrides) == 0 {
+		return base, nil
+	}
+
+	if base == nil {
+		base = make(map[string]interface{}, len(overrides))
+	}
+	merged := base
+	for _, override := range overrides {
+		runtimeName := strings.TrimSpace(override.RuntimeName)
+		if runtimeName == "" {
+			return nil, fmt.Errorf("override 缺少 runtimeName")
+		}
+		if override.Pipeline == nil {
+			return nil, fmt.Errorf("override[%s] 缺少 pipeline", runtimeName)
+		}
+
+		if existing, ok := merged[runtimeName].(map[string]interface{}); ok && existing != nil {
+			merged[runtimeName] = deepMergeOverrideMap(existing, override.Pipeline)
+			continue
+		}
+		merged[runtimeName] = deepMergeOverrideMap(map[string]interface{}{}, override.Pipeline)
+	}
+	return merged, nil
+}
+
+func deepMergeOverrideMap(
+	base map[string]interface{},
+	override map[string]interface{},
+) map[string]interface{} {
+	merged := make(map[string]interface{}, len(base)+len(override))
+	for key, value := range base {
+		merged[key] = value
+	}
+	for key, value := range override {
+		overrideMap, overrideIsMap := value.(map[string]interface{})
+		baseMap, baseIsMap := merged[key].(map[string]interface{})
+		if overrideIsMap && baseIsMap {
+			merged[key] = deepMergeOverrideMap(baseMap, overrideMap)
+			continue
+		}
+		merged[key] = value
+	}
+	return merged
+}
+
+func collectEntryRequestOverride(
+	entry string,
+	overrides []protocol.PipelineOverride,
+) (map[string]interface{}, error) {
+	for _, override := range overrides {
+		if strings.TrimSpace(override.RuntimeName) != entry {
+			continue
+		}
+		return cloneOverride(override.Pipeline)
+	}
+	return nil, nil
+}
+
+func emitPipelineOverrideDiagnostics(
+	sessionID string,
+	runID string,
+	emit events.EmitFunc,
+	entry string,
+	bundle pipelineOverrideBundle,
+) {
+	if emit == nil {
+		return
+	}
+	emitPipelineOverrideDiagnostic(
+		sessionID,
+		runID,
+		emit,
+		"debug.override.base_pipeline",
+		fmt.Sprintf(
+			"Override 调试 [%s] 基础节点配置:\n%s",
+			entry,
+			formatOverrideNodeForDiagnostic(entry, bundle.Base),
+		),
+		entry,
+	)
+	emitPipelineOverrideDiagnostic(
+		sessionID,
+		runID,
+		emit,
+		"debug.override.request_override",
+		fmt.Sprintf(
+			"Override 调试 [%s] 请求覆盖配置:\n%s",
+			entry,
+			formatOverrideNodeMapForDiagnostic(bundle.RequestOverride),
+		),
+		entry,
+	)
+	emitPipelineOverrideDiagnostic(
+		sessionID,
+		runID,
+		emit,
+		"debug.override.merged_pipeline",
+		fmt.Sprintf(
+			"Override 调试 [%s] 合并后节点配置:\n%s",
+			entry,
+			formatOverrideNodeForDiagnostic(entry, bundle.Merged),
+		),
+		entry,
+	)
+}
+
+func emitPipelineOverrideDiagnostic(
+	sessionID string,
+	runID string,
+	emit events.EmitFunc,
+	code string,
+	message string,
+	entry string,
+) {
+	emit(protocol.Event{
+		SessionID: sessionID,
+		RunID:     runID,
+		Source:    "localbridge",
+		Kind:      "diagnostic",
+		Phase:     "completed",
+		Status:    "info",
+		Data: map[string]interface{}{
+			"severity":    "info",
+			"code":        code,
+			"message":     message,
+			"runtimeName": entry,
+		},
+	})
+}
+
+func formatOverrideNodeForDiagnostic(
+	entry string,
+	override map[string]interface{},
+) string {
+	if override == nil {
+		return "(nil)"
+	}
+	node, ok := override[entry]
+	if !ok {
+		return "(missing)"
+	}
+	return formatOverrideNodeMapForDiagnostic(node)
+}
+
+func formatOverrideNodeMapForDiagnostic(value interface{}) string {
+	if value == nil {
+		return "(nil)"
+	}
+	data, err := json.MarshalIndent(value, "", "  ")
+	if err != nil {
+		return fmt.Sprintf("(marshal error: %v)", err)
+	}
+	return string(data)
 }
 
 func createAgentClient(agent protocol.AgentProfile) (*maa.AgentClient, error) {

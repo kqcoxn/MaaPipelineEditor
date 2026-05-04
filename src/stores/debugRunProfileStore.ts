@@ -1,9 +1,11 @@
 import { create } from "zustand";
 import type {
+  DebugAgentTransport,
   DebugAgentProfile,
   DebugArtifactPolicy,
   DebugRunInput,
   DebugNodeTarget,
+  DebugPipelineOverride,
   DebugRunMode,
   DebugRunProfile,
   DebugRunRequest,
@@ -34,6 +36,21 @@ interface DebugRunProfilesSnapshot {
   activeProfileId: string;
 }
 
+type PartialDebugRunProfilePreset = Omit<
+  Partial<DebugRunProfilePreset>,
+  "profile" | "artifactPolicy"
+> & {
+  profile?: Partial<DebugRunProfile>;
+  artifactPolicy?: Partial<DebugArtifactPolicy>;
+};
+
+type PartialDebugRunProfilesSnapshot = Omit<
+  Partial<DebugRunProfilesSnapshot>,
+  "profiles"
+> & {
+  profiles?: PartialDebugRunProfilePreset[];
+};
+
 interface LegacyDebugRunProfileSnapshot {
   profile?: Partial<DebugRunProfile> & Record<string, unknown>;
   artifactPolicy?: Partial<DebugArtifactPolicy>;
@@ -56,6 +73,7 @@ interface DebugRunProfileState extends DebugRunProfilePreset {
     targetNodeId?: string,
     sessionId?: string,
     input?: DebugRunInput,
+    overrides?: DebugPipelineOverride[],
   ) => DebugRunRequest;
 }
 
@@ -169,13 +187,7 @@ export function makeDebugResourceKey(
 
 function resolveControllerType(): DebugRunProfile["controller"]["type"] {
   const controllerType = useMFWStore.getState().controllerType;
-  if (
-    controllerType === "adb" ||
-    controllerType === "win32" ||
-    controllerType === "dbg" ||
-    controllerType === "replay" ||
-    controllerType === "record"
-  ) {
+  if (controllerType === "adb" || controllerType === "win32") {
     return controllerType;
   }
   return "adb";
@@ -335,7 +347,7 @@ export const useDebugRunProfileStore = create<DebugRunProfileState>(
           },
         })),
 
-      buildRunRequest: (mode, targetNodeId, sessionId, input) => {
+      buildRunRequest: (mode, targetNodeId, sessionId, input, overrides) => {
         const bundle = buildDebugSnapshotBundle();
         const storeProfile = get().profile;
         const mfwState = useMFWStore.getState();
@@ -398,7 +410,8 @@ export const useDebugRunProfileStore = create<DebugRunProfileState>(
             mode === "action-only"
               ? entry
               : undefined,
-          overrides: [...bundle.overrides],
+          overrides:
+            overrides && overrides.length > 0 ? [...overrides] : undefined,
           artifactPolicy: get().artifactPolicy,
           input:
             Object.keys(normalizedInput).length > 0 ? normalizedInput : undefined,
@@ -409,7 +422,7 @@ export const useDebugRunProfileStore = create<DebugRunProfileState>(
 );
 
 function normalizeSnapshot(
-  snapshot: Partial<DebugRunProfilesSnapshot>,
+  snapshot: PartialDebugRunProfilesSnapshot,
 ): DebugRunProfilesSnapshot {
   const profiles = Array.isArray(snapshot.profiles)
     ? snapshot.profiles.map((profile, index) =>
@@ -431,7 +444,7 @@ function normalizeSnapshot(
 }
 
 function normalizePreset(
-  preset: Partial<DebugRunProfilePreset> | undefined,
+  preset: PartialDebugRunProfilePreset | undefined,
   index = 0,
 ): DebugRunProfilePreset {
   const fallback = createDefaultPreset(
@@ -494,7 +507,8 @@ function sanitizeProfile(
 }
 
 function sanitizeAgent(agent: Partial<DebugAgentProfile>): DebugAgentProfile {
-  const transport = agent.transport === "tcp" ? "tcp" : "identifier";
+  const transport: DebugAgentTransport =
+    agent.transport === "tcp" ? "tcp" : "identifier";
   const sanitizedAgent = {
     transport,
     identifier: stringFromValue(agent.identifier),
@@ -579,8 +593,8 @@ function sanitizeOptionalString(value: unknown): string | undefined {
 }
 
 function migrateLegacySnapshot(
-  snapshot: Partial<DebugRunProfilesSnapshot>,
-): Partial<DebugRunProfilesSnapshot> {
+  snapshot: PartialDebugRunProfilesSnapshot,
+): PartialDebugRunProfilesSnapshot {
   if (!Array.isArray(snapshot.profiles)) return snapshot;
   return {
     ...snapshot,

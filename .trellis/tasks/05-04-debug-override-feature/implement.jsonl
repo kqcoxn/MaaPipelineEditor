@@ -1,0 +1,8 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend spec entrypoint for debug override work"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "Feature-first placement for DebugModal panel, hooks, and stores"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Panel/component composition and Monaco editor integration conventions"}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "DebugModal controller/hook orchestration expectations"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Zustand state rules for debug modal/profile persistence"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Run request and override payload type changes"}
+{"file": ".trellis/spec/frontend/debug-save-policy.md", "reason": "Relevant debug runtime request contract around pipeline source selection"}

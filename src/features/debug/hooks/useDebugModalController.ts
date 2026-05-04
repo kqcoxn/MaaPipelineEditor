@@ -17,6 +17,7 @@ import {
 } from "../../../stores/debugAiSummaryStore";
 import { useDebugDiagnosticsStore } from "../../../stores/debugDiagnosticsStore";
 import { useDebugRunProfileStore } from "../../../stores/debugRunProfileStore";
+import { useDebugOverrideStore } from "../../../stores/debugOverrideStore";
 import {
   useMFWStore,
 } from "../../../stores/mfwStore";
@@ -49,6 +50,10 @@ import {
   targetRunModes,
   validateRunRequest,
 } from "../modalUtils";
+import {
+  DEBUG_PIPELINE_OVERRIDE_ERROR_CODE,
+  parseDebugPipelineOverrideDraft,
+} from "../pipelineOverride";
 import {
   requestTraceSnapshotAction,
 } from "../traceReplayActions";
@@ -83,6 +88,7 @@ export function useDebugModalController() {
     setActivePanel,
     selectNode,
     clearProtocolError,
+    setProtocolError,
   } = useDebugSessionStore(
     useShallow((state) => ({
       modalOpen: state.modalOpen,
@@ -99,7 +105,13 @@ export function useDebugModalController() {
       setActivePanel: state.setActivePanel,
       selectNode: state.selectNode,
       clearProtocolError: state.clearProtocolError,
+      setProtocolError: state.setProtocolError,
     })),
+  );
+  const overrideDraft = useDebugOverrideStore((state) => state.draft);
+  const setOverrideDraftState = useDebugOverrideStore((state) => state.setDraft);
+  const resetOverrideDraftState = useDebugOverrideStore(
+    (state) => state.resetDraft,
   );
   const connected = useWSStore((state) => state.connected);
   const {
@@ -246,6 +258,12 @@ export function useDebugModalController() {
     () => formatDebugReadinessMessage(debugReadiness),
     [debugReadiness],
   );
+  const overrideParseResult = useMemo(
+    () => parseDebugPipelineOverrideDraft(overrideDraft),
+    [overrideDraft],
+  );
+  const overrideEntries = overrideParseResult.overrides ?? [];
+  const overrideValidationError = overrideParseResult.error;
 
   useEffect(() => {
     if (!connected || capabilities || capabilityStatus === "loading") return;
@@ -307,6 +325,23 @@ export function useDebugModalController() {
     diagnostic.code.startsWith("debug.agent."),
   );
 
+  const setOverrideDraft = useCallback(
+    (draft: string) => {
+      setOverrideDraftState(draft);
+      if (lastError?.code === DEBUG_PIPELINE_OVERRIDE_ERROR_CODE) {
+        clearProtocolError();
+      }
+    },
+    [clearProtocolError, lastError?.code, setOverrideDraftState],
+  );
+
+  const resetOverrideDraft = useCallback(() => {
+    resetOverrideDraftState();
+    if (lastError?.code === DEBUG_PIPELINE_OVERRIDE_ERROR_CODE) {
+      clearProtocolError();
+    }
+  }, [clearProtocolError, lastError?.code, resetOverrideDraftState]);
+
   const startRun = async (
     mode: DebugRunMode,
     nodeId?: string,
@@ -317,6 +352,21 @@ export function useDebugModalController() {
       return;
     }
     clearProtocolError();
+    if (overrideValidationError) {
+      diagnosticsState.setPreflightDiagnostics([
+        {
+          severity: "error",
+          code: DEBUG_PIPELINE_OVERRIDE_ERROR_CODE,
+          message: overrideValidationError,
+        },
+      ]);
+      setProtocolError({
+        code: DEBUG_PIPELINE_OVERRIDE_ERROR_CODE,
+        message: overrideValidationError,
+      });
+      message.error(overrideValidationError);
+      return;
+    }
     if (!debugReadiness.ready) {
       const diagnostics = debugReadiness.issues.map((issue) => ({
         severity: "error" as const,
@@ -354,6 +404,7 @@ export function useDebugModalController() {
         nodeId,
         session?.sessionId,
         input,
+        overrideEntries,
       );
       const preflightDiagnostics = validateRunRequest(request);
       diagnosticsState.setPreflightDiagnostics(preflightDiagnostics);
@@ -702,6 +753,11 @@ export function useDebugModalController() {
     selectedArtifact,
     diagnosticsState,
     profileState,
+    overrideDraft,
+    overrideEntries,
+    overrideValidationError,
+    setOverrideDraft,
+    resetOverrideDraft,
     resourceBundles,
     mfwState,
     controllerDisplayName,

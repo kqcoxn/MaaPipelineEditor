@@ -16,7 +16,6 @@ import type {
   DebugGraphSnapshot,
   DebugNodeResolverSnapshot,
   DebugNodeTarget,
-  DebugPipelineOverride,
 } from "./types";
 
 interface DebugFileSource {
@@ -34,7 +33,6 @@ interface DebugFileSource {
 export interface DebugSnapshotBundle {
   graphSnapshot: DebugGraphSnapshot;
   resolverSnapshot: DebugNodeResolverSnapshot;
-  overrides: DebugPipelineOverride[];
 }
 
 export function getRuntimeName(label: string, prefix?: string): string {
@@ -196,22 +194,6 @@ export function buildDebugSnapshotBundle(
   return {
     graphSnapshot,
     resolverSnapshot,
-    overrides: resolverNodes
-      .map((node) => {
-        const file = fileSources.find((source) => source.fileId === node.fileId);
-        if (!file) return undefined;
-        const pipeline = file.pipeline[node.runtimeName];
-        if (!pipeline || typeof pipeline !== "object" || Array.isArray(pipeline)) {
-          return undefined;
-        }
-        return {
-          runtimeName: node.runtimeName,
-          pipeline: pipeline as Record<string, unknown>,
-        };
-      })
-      .filter((override): override is DebugPipelineOverride =>
-        Boolean(override),
-      ),
   };
 }
 
