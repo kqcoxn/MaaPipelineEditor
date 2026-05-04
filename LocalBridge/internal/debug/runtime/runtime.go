@@ -17,21 +17,23 @@ import (
 )
 
 type Runtime struct {
-	sessionID string
-	runID     string
-	mode      protocol.RunMode
-	entry     string
-	target    *protocol.NodeTarget
-	input     *protocol.RunInput
-	resolver  protocol.NodeResolverSnapshot
-	override  map[string]interface{}
-	policy    protocol.ArtifactPolicy
+	sessionID     string
+	runID         string
+	mode          protocol.RunMode
+	entry         string
+	target        *protocol.NodeTarget
+	input         *protocol.RunInput
+	resolver      protocol.NodeResolverSnapshot
+	override      map[string]interface{}
+	policy        protocol.ArtifactPolicy
+	resourcePaths []string
 
 	adapter       *mfw.MaaFWAdapter
 	taskJob       *maa.TaskJob
 	contextSinkID int64
 	taskerSinkID  int64
 	agentClients  []*maa.AgentClient
+	agentPool     *AgentPool
 
 	emit events.EmitFunc
 
@@ -51,6 +53,7 @@ func New(
 	runID string,
 	req protocol.RunRequest,
 	artifacts *artifact.Store,
+	agentPool *AgentPool,
 	emit events.EmitFunc,
 ) (*Runtime, error) {
 	entry, err := EntryForRequest(req)
@@ -124,9 +127,11 @@ func New(
 		resolver:      req.ResolverSnapshot,
 		override:      override,
 		policy:        policy,
+		resourcePaths: resourcePaths,
 		adapter:       adapter,
 		contextSinkID: contextSinkID,
 		taskerSinkID:  taskerSinkID,
+		agentPool:     agentPool,
 		emit:          emit,
 	}
 
@@ -246,12 +251,6 @@ func (r *Runtime) Destroy() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	for _, client := range r.agentClients {
-		if client != nil {
-			_ = client.Disconnect()
-			client.Destroy()
-		}
-	}
 	r.agentClients = nil
 
 	if r.adapter == nil {
@@ -360,7 +359,7 @@ func (r *Runtime) connectAgents(agents []protocol.AgentProfile) error {
 		if !agent.Enabled {
 			continue
 		}
-		prepared, err := r.prepareAgent(agent)
+		prepared, err := normalizeAgentProfile(agent)
 		if err != nil {
 			if requiredAgent(agent) {
 				return err
@@ -369,7 +368,7 @@ func (r *Runtime) connectAgents(agents []protocol.AgentProfile) error {
 			continue
 		}
 
-		client, err := createAgentClient(prepared)
+		client, err := r.acquireAgentClient(prepared)
 		if err != nil {
 			if requiredAgent(prepared) {
 				return err
@@ -377,29 +376,9 @@ func (r *Runtime) connectAgents(agents []protocol.AgentProfile) error {
 			r.emitAgentDiagnostic(prepared, "warning", "debug.agent.create_failed", err.Error(), nil, nil)
 			continue
 		}
-		if resource := r.adapter.GetResource(); resource != nil {
-			if err := client.BindResource(resource); err != nil {
-				client.Destroy()
-				if requiredAgent(prepared) {
-					return err
-				}
-				r.emitAgentDiagnostic(prepared, "warning", "debug.agent.bind_resource_failed", err.Error(), nil, nil)
-				continue
-			}
-		}
-		if tasker := r.adapter.GetTasker(); tasker != nil {
-			if err := client.RegisterTaskerSink(*tasker); err != nil {
-				r.emitAgentDiagnostic(prepared, "warning", "debug.agent.register_tasker_sink_failed", err.Error(), nil, nil)
-			}
-		}
-		if controller := r.adapter.GetController(); controller != nil {
-			if err := client.RegisterControllerSink(*controller); err != nil {
-				r.emitAgentDiagnostic(prepared, "warning", "debug.agent.register_controller_sink_failed", err.Error(), nil, nil)
-			}
-		}
-		if prepared.TimeoutMS > 0 {
+		alreadyConnected := client.Connected()
+		if !alreadyConnected && prepared.TimeoutMS > 0 {
 			if err := client.SetTimeout(time.Duration(prepared.TimeoutMS) * time.Millisecond); err != nil {
-				client.Destroy()
 				if requiredAgent(prepared) {
 					return err
 				}
@@ -407,35 +386,23 @@ func (r *Runtime) connectAgents(agents []protocol.AgentProfile) error {
 				continue
 			}
 		}
-		if err := connectAgent(prepared, client); err != nil {
-			client.Destroy()
-			if requiredAgent(prepared) {
-				return err
+		if !alreadyConnected {
+			if err := connectAgent(prepared, client); err != nil {
+				if requiredAgent(prepared) {
+					return err
+				}
+				r.emitAgentDiagnostic(prepared, "warning", "debug.agent.connect_failed", err.Error(), nil, nil)
+				continue
 			}
-			r.emitAgentDiagnostic(prepared, "warning", "debug.agent.connect_failed", err.Error(), nil, nil)
-			continue
 		}
 		r.agentClients = append(r.agentClients, client)
-		recognitions, _ := client.GetCustomRecognitionList()
-		actions, _ := client.GetCustomActionList()
-		r.emitAgentDiagnostic(prepared, "info", "debug.agent.connected", "agent 已连接", recognitions, actions)
+		message := "agent 已连接"
+		if alreadyConnected {
+			message = "agent 复用已有连接"
+		}
+		r.emitAgentDiagnostic(prepared, "info", "debug.agent.connected", message, nil, nil)
 	}
 	return nil
-}
-
-func (r *Runtime) prepareAgent(agent protocol.AgentProfile) (protocol.AgentProfile, error) {
-	prepared := agent
-	if prepared.Transport == "tcp" {
-		if prepared.TCPPort <= 0 {
-			return prepared, fmt.Errorf("tcp agent 缺少 tcpPort: %s", prepared.ID)
-		}
-		return prepared, nil
-	}
-	if strings.TrimSpace(prepared.Identifier) == "" {
-		return prepared, fmt.Errorf("identifier agent 缺少 identifier: %s", prepared.ID)
-	}
-	prepared.Transport = "identifier"
-	return prepared, nil
 }
 
 func (r *Runtime) emitAgentDiagnostic(agent protocol.AgentProfile, severity string, code string, message string, recognitions []string, actions []string) {
@@ -464,6 +431,22 @@ func (r *Runtime) emitAgentDiagnostic(agent protocol.AgentProfile, severity stri
 		Status:    severity,
 		Data:      data,
 	})
+}
+
+func (r *Runtime) acquireAgentClient(agent protocol.AgentProfile) (*maa.AgentClient, error) {
+	if r.agentPool != nil {
+		return r.agentPool.EnsureBound(agent, r.resourcePaths)
+	}
+	client, err := createAgentClient(agent)
+	if err != nil {
+		return nil, err
+	}
+	if resource := r.adapter.GetResource(); resource != nil {
+		if err := client.BindResource(resource); err != nil {
+			return nil, err
+		}
+	}
+	return client, nil
 }
 
 func (r *Runtime) labelForRuntimeName(runtimeName string) string {

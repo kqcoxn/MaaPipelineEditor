@@ -106,15 +106,24 @@ export const nextPreview: ForecastSection = {
 };
 
 export const updateLogs: UpdateLogItem[] = [
+  // {
+  //   version: "1.6.0",
+  //   date: "2026-5-5",
+  //   type: "fix",
+  //   updates: {
+  //     features: [
+  //       "🤔 俺寻思集成 wiki 模块上线！可在任意相关位置长按 W 查看内置教程",
+  //     ],
+  //     fixes: [""],
+  //   },
+  // },
   {
-    version: "1.6.0",
+    version: "1.5.2",
     date: "2026-5-4",
-    type: "feature",
+    type: "fix",
     updates: {
-      features: [
-        "🤔 俺寻思集成 wiki 模块上线！可在任意相关位置长按 W 查看内置教程",
-      ],
-      fixes: [""],
+      features: [""],
+      fixes: ["修复调试结束时会触发 agent 中断的问题"],
     },
   },
   {

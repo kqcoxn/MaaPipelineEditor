@@ -28,6 +28,7 @@ type Runner struct {
 	artifacts   *artifact.Store
 	diagnostics *diagnostics.Service
 	performance *performance.Service
+	agentPool   *debugruntime.AgentPool
 
 	mu     sync.Mutex
 	active map[string]*Run
@@ -72,6 +73,7 @@ func New(
 		artifacts:   artifacts,
 		diagnostics: diagnostics.NewService(service, root),
 		performance: performance.NewService(traces, artifacts),
+		agentPool:   debugruntime.NewAgentPool(),
 		active:      make(map[string]*Run),
 	}
 }
@@ -124,7 +126,7 @@ func (r *Runner) Start(
 		return StartResult{}, err
 	}
 
-	runtime, err := debugruntime.New(r.service, r.root, req.SessionID, runID, req, r.artifacts, r.emitFunc(eventSender))
+	runtime, err := debugruntime.New(r.service, r.root, req.SessionID, runID, req, r.artifacts, r.agentPool, r.emitFunc(eventSender))
 	if err != nil {
 		r.failStart(req.SessionID, runID, err, eventSender, snapshotSender)
 		return StartResult{}, err
@@ -248,6 +250,10 @@ func (r *Runner) DisposeSession(sessionID string) {
 
 func (r *Runner) ArtifactStore() *artifact.Store {
 	return r.artifacts
+}
+
+func (r *Runner) AgentPool() *debugruntime.AgentPool {
+	return r.agentPool
 }
 
 func (r *Runner) failStart(

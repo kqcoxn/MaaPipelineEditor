@@ -402,31 +402,18 @@ func (h *Handler) testAgentConnection(agent protocol.AgentProfile, resourcePaths
 		result.Message = "MaaFramework 未初始化，无法加载资源"
 		return result
 	}
-	resourceAdapter := mfw.NewMaaFWAdapter()
-	defer resourceAdapter.Destroy()
-	if err := resourceAdapter.LoadResources(paths); err != nil {
-		result.Message = fmt.Sprintf("加载资源失败: %v", err)
-		logger.Warn("DebugVNext", "agent 测试加载资源失败: %s, err=%v", agentProfileLogLabel(agent), err)
-		return result
-	}
-	resource := resourceAdapter.GetResource()
-	if resource == nil {
-		result.Message = "加载资源后资源实例为空"
-		return result
-	}
 
-	client, err := createAgentClient(agent)
+	agentPool := h.runner.AgentPool()
+	var client *maa.AgentClient
+	var err error
+	if agentPool != nil {
+		client, err = agentPool.EnsureBound(agent, paths)
+	} else {
+		client, err = createAgentClient(agent)
+	}
 	if err != nil {
 		result.Message = err.Error()
 		logger.Warn("DebugVNext", "创建 agent client 失败: %s, err=%v", agentProfileLogLabel(agent), err)
-		return result
-	}
-	defer client.Destroy()
-	defer func() { _ = client.Disconnect() }()
-
-	if err := client.BindResource(resource); err != nil {
-		result.Message = err.Error()
-		logger.Warn("DebugVNext", "agent client bind resource 失败: %s, err=%v", agentProfileLogLabel(agent), err)
 		return result
 	}
 	if agent.TimeoutMS > 0 {
@@ -436,9 +423,15 @@ func (h *Handler) testAgentConnection(agent protocol.AgentProfile, resourcePaths
 			return result
 		}
 	}
-	if err := client.Connect(); err != nil {
-		result.Message = err.Error()
-		logger.Warn("DebugVNext", "agent client connect 失败: %s, err=%v", agentProfileLogLabel(agent), err)
+	if !client.Connected() {
+		if err := client.Connect(); err != nil {
+			result.Message = err.Error()
+			logger.Warn("DebugVNext", "agent client connect 失败: %s, err=%v", agentProfileLogLabel(agent), err)
+			return result
+		}
+	} else if !client.Alive() {
+		result.Message = "agent 已连接但未响应"
+		logger.Warn("DebugVNext", "agent 已连接但未响应: %s", agentProfileLogLabel(agent))
 		return result
 	}
 	effectiveIdentifier, err := client.Identifier()
@@ -453,7 +446,7 @@ func (h *Handler) testAgentConnection(agent protocol.AgentProfile, resourcePaths
 		return result
 	}
 	result.Success = true
-	result.Message = "agent 连接测试通过，已断开测试连接"
+	result.Message = "agent 连接测试通过"
 	result.CustomRecognitions, _ = client.GetCustomRecognitionList()
 	result.CustomActions, _ = client.GetCustomActionList()
 	return result
