@@ -1,0 +1,3 @@
+{"file":".trellis/spec/frontend/index.md","reason":"Frontend spec index for final review context."}
+{"file":".trellis/spec/frontend/component-guidelines.md","reason":"Check component-level visibility guard changes against repo conventions."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Run validation and review against frontend quality expectations."}

@@ -2,6 +2,7 @@ import { Alert, Button } from "antd";
 import type { AlertProps } from "antd";
 import { useWikiStore } from "../../../stores/wikiStore";
 import type { WikiTarget } from "../../../wiki/types";
+import { isWikiModuleVisible } from "../../../wiki/visibility";
 import style from "./WikiContextHint.module.less";
 
 interface WikiContextHintAction {
@@ -29,6 +30,10 @@ export function WikiContextHint({
   onClose,
 }: WikiContextHintProps) {
   const openWiki = useWikiStore((state) => state.openWiki);
+
+  if (!isWikiModuleVisible) {
+    return null;
+  }
 
   const description = (
     <div className={style.description}>

@@ -1,0 +1,4 @@
+{"file":".trellis/spec/frontend/index.md","reason":"Frontend spec index and checklist for this UI-only visibility change."}
+{"file":".trellis/spec/frontend/directory-structure.md","reason":"Confirms component and feature placement for the touched UI files."}
+{"file":".trellis/spec/frontend/component-guidelines.md","reason":"Guides small component-level UI behavior changes without adding orchestration."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Defines required validation and reporting expectations for frontend changes."}
