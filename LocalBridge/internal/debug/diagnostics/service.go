@@ -12,12 +12,13 @@ import (
 
 type Service struct {
 	mfwService *mfw.Service
+	root       string
 }
 
 func NewService(mfwService *mfw.Service, root string) *Service {
-	_ = root
 	return &Service{
 		mfwService: mfwService,
+		root:       root,
 	}
 }
 

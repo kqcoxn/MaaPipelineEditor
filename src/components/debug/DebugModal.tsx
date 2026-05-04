@@ -84,7 +84,8 @@ const panels: PanelItem[] = [
     id: "resource-health",
     label: "资源体检",
     icon: <MedicineBoxOutlined />,
-    description: "检查资源路径解析、MaaFW 真实加载和当前图静态调试合法性。",
+    description:
+      "集中查看资源路径、资源加载结果和当前图静态检查，加载失败时会直接列出具体线索。",
   },
   {
     id: "setup",

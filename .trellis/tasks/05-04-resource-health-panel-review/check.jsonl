@@ -1,0 +1,4 @@
+{"file":".trellis/spec/frontend/index.md","reason":"Frontend spec index and checklist for panel-only review/fix"}
+{"file":".trellis/spec/frontend/component-guidelines.md","reason":"Component render behavior expectations during review"}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Quality gates and review criteria for frontend fixes"}
+{"file":".trellis/spec/frontend/type-safety.md","reason":"Type-safe diagnostics ordering and rendering helpers"}

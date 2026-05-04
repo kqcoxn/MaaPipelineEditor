@@ -1,0 +1,4 @@
+{"file":".trellis/spec/frontend/index.md","reason":"Frontend spec index and checklist for panel-only rendering review"}
+{"file":".trellis/spec/frontend/component-guidelines.md","reason":"Component rendering conventions for UI panel changes"}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Frontend validation and forbidden-pattern guardrails"}
+{"file":".trellis/spec/frontend/type-safety.md","reason":"Type-safe handling of diagnostics and render helpers"}

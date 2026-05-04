@@ -2,12 +2,16 @@ package diagnostics
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/protocol"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/runutil"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/mfw"
+	"github.com/tailscale/hujson"
 )
 
 const (
@@ -15,6 +19,30 @@ const (
 	resourceHealthCategoryLoading    = "loading"
 	resourceHealthCategoryGraph      = "graph"
 )
+
+type resourceHealthChecklistContext struct {
+	bundleFiles []resourceHealthBundlePipelineFile
+}
+
+type resourceHealthBundlePipelineFile struct {
+	bundlePath   string
+	relativePath string
+	sourcePath   string
+	parsed       *hujson.Value
+	parseErr     error
+}
+
+type resourceHealthLoadCheckResult struct {
+	diagnostics               []protocol.Diagnostic
+	hash                      string
+	resolutions               []mfw.ResourceBundleResolution
+	shouldRunFailureChecklist bool
+}
+
+var resourceHealthLoadFailureChecklist = []func(*Service, resourceHealthChecklistContext) []protocol.Diagnostic{
+	(*Service).checkBundlePipelineJSONSyntax,
+	(*Service).checkBundlePipelineDuplicateNodeNames,
+}
 
 func (s *Service) CheckResourceHealth(
 	req protocol.ResourceHealthRequest,
@@ -33,19 +61,25 @@ func (s *Service) CheckResourceHealth(
 		resourceHealthCategoryResolution,
 		resourceResolutionSuggestion,
 	)
-	loadDiagnostics, hash := s.checkResourceLoadDiagnostics(
+	loadResult := s.checkResourceLoadDiagnostics(
 		paths,
 		resolutionDiagnostics,
 	)
 	graphDiagnostics := s.checkGraphHealth(req)
 
 	result.Diagnostics = append(result.Diagnostics, resolutionDiagnostics...)
-	result.Diagnostics = append(result.Diagnostics, loadDiagnostics...)
+	result.Diagnostics = append(result.Diagnostics, loadResult.diagnostics...)
+	if loadResult.shouldRunFailureChecklist {
+		result.Diagnostics = append(
+			result.Diagnostics,
+			s.runLoadFailureChecklist(loadResult.resolutions)...,
+		)
+	}
 	result.Diagnostics = append(result.Diagnostics, graphDiagnostics...)
 	result.DurationMS = time.Since(startedAt).Milliseconds()
 	if !HasBlockingDiagnostic(result.Diagnostics) {
 		result.Status = "ready"
-		result.Hash = hash
+		result.Hash = loadResult.hash
 	}
 	return result
 }
@@ -53,55 +87,69 @@ func (s *Service) CheckResourceHealth(
 func (s *Service) checkResourceLoadDiagnostics(
 	paths []string,
 	resolutionDiagnostics []protocol.Diagnostic,
-) ([]protocol.Diagnostic, string) {
+) resourceHealthLoadCheckResult {
 	switch {
 	case len(paths) == 0:
-		return []protocol.Diagnostic{newResourceHealthDiagnostic(
-			resourceHealthCategoryLoading,
-			"warning",
-			"debug.resource.load_skipped",
-			"资源路径为空，已跳过 MaaFW 真实加载。",
-			"先在调试配置里补充资源路径，或等待 LocalBridge 扫描出资源包后重新体检。",
-		)}, ""
+		return resourceHealthLoadCheckResult{
+			diagnostics: []protocol.Diagnostic{newResourceHealthDiagnostic(
+				resourceHealthCategoryLoading,
+				"warning",
+				"debug.resource.load_skipped",
+				"资源路径为空，已跳过 MaaFW 真实加载。",
+				"先在调试配置里补充资源路径，或等待 LocalBridge 扫描出资源包后重新体检。",
+			)},
+		}
 	case HasBlockingDiagnostic(resolutionDiagnostics):
-		return []protocol.Diagnostic{newResourceHealthDiagnostic(
-			resourceHealthCategoryLoading,
-			"warning",
-			"debug.resource.load_skipped",
-			"资源路径解析未通过，已跳过 MaaFW 真实加载。",
-			"先修复资源路径解析错误，再重新体检。",
-		)}, ""
+		return resourceHealthLoadCheckResult{
+			diagnostics: []protocol.Diagnostic{newResourceHealthDiagnostic(
+				resourceHealthCategoryLoading,
+				"warning",
+				"debug.resource.load_skipped",
+				"资源路径解析未通过，已跳过 MaaFW 真实加载。",
+				"先修复资源路径解析错误，再重新体检。",
+			)},
+		}
 	case s.mfwService == nil || !s.mfwService.IsInitialized():
-		return []protocol.Diagnostic{newResourceHealthDiagnostic(
-			resourceHealthCategoryLoading,
-			"error",
-			"debug.resource.load_unavailable",
-			"MaaFramework 未初始化，无法执行资源真实加载。",
-			"先连接 LocalBridge 并完成 MaaFramework 初始化，再重新体检。",
-		)}, ""
+		return resourceHealthLoadCheckResult{
+			diagnostics: []protocol.Diagnostic{newResourceHealthDiagnostic(
+				resourceHealthCategoryLoading,
+				"error",
+				"debug.resource.load_unavailable",
+				"MaaFramework 未初始化，无法执行资源真实加载。",
+				"先连接 LocalBridge 并完成 MaaFramework 初始化，再重新体检。",
+			)},
+		}
 	}
 
 	hash, resolutions, err := mfw.CheckResourceBundlesDetailed(paths)
 	if err != nil {
-		return []protocol.Diagnostic{withResourceHealthMeta(protocol.Diagnostic{
-			Severity: "error",
-			Code:     "debug.resource.load_failed",
-			Message:  err.Error(),
-			Data: map[string]interface{}{
-				"resolutions": resourceHealthResolutionData(resolutions),
-			},
-		}, resourceHealthCategoryLoading, "检查 bundle 目录结构、Lib 目录与资源版本是否匹配后重新体检。")}, ""
+		return resourceHealthLoadCheckResult{
+			diagnostics: []protocol.Diagnostic{withResourceHealthMeta(protocol.Diagnostic{
+				Severity: "error",
+				Code:     "debug.resource.load_failed",
+				Message:  err.Error(),
+				Data: map[string]interface{}{
+					"resolutions": resourceHealthResolutionData(resolutions),
+				},
+			}, resourceHealthCategoryLoading, "检查 bundle 目录结构、Lib 目录与资源版本是否匹配后重新体检。")},
+			resolutions:               resolutions,
+			shouldRunFailureChecklist: true,
+		}
 	}
 
-	return []protocol.Diagnostic{withResourceHealthMeta(protocol.Diagnostic{
-		Severity: "info",
-		Code:     "debug.resource.ready",
-		Message:  "MaaFW 已成功加载当前资源。",
-		Data: map[string]interface{}{
-			"hash":        hash,
-			"resolutions": resourceHealthResolutionData(resolutions),
-		},
-	}, resourceHealthCategoryLoading, "")}, hash
+	return resourceHealthLoadCheckResult{
+		diagnostics: []protocol.Diagnostic{withResourceHealthMeta(protocol.Diagnostic{
+			Severity: "info",
+			Code:     "debug.resource.ready",
+			Message:  "MaaFW 已成功加载当前资源。",
+			Data: map[string]interface{}{
+				"hash":        hash,
+				"resolutions": resourceHealthResolutionData(resolutions),
+			},
+		}, resourceHealthCategoryLoading, "")},
+		hash:        hash,
+		resolutions: resolutions,
+	}
 }
 
 func (s *Service) checkGraphHealth(
@@ -395,6 +443,193 @@ func (s *Service) checkGraphTarget(
 		}, resourceHealthCategoryGraph, "重新选择入口节点，或修复节点 JSON / prefix / runtimeName 映射后重新体检。")}
 	}
 	return nil
+}
+
+func (s *Service) runLoadFailureChecklist(
+	resolutions []mfw.ResourceBundleResolution,
+) []protocol.Diagnostic {
+	bundleFiles, inspectionDiagnostics := s.inspectBundlePipelineFiles(resolutions)
+	ctx := resourceHealthChecklistContext{
+		bundleFiles: bundleFiles,
+	}
+	diagnostics := make([]protocol.Diagnostic, 0, len(inspectionDiagnostics))
+	diagnostics = append(diagnostics, inspectionDiagnostics...)
+	for _, check := range resourceHealthLoadFailureChecklist {
+		diagnostics = append(diagnostics, check(s, ctx)...)
+	}
+	return diagnostics
+}
+
+func (s *Service) inspectBundlePipelineFiles(
+	resolutions []mfw.ResourceBundleResolution,
+) ([]resourceHealthBundlePipelineFile, []protocol.Diagnostic) {
+	bundleFiles := make([]resourceHealthBundlePipelineFile, 0)
+	diagnostics := make([]protocol.Diagnostic, 0)
+	seenBundles := make(map[string]struct{}, len(resolutions))
+	for _, resolution := range resolutions {
+		bundlePath := strings.TrimSpace(resolution.ResolvedPath)
+		if bundlePath == "" {
+			continue
+		}
+		key := resolvedPathKey(bundlePath)
+		if _, exists := seenBundles[key]; exists {
+			continue
+		}
+		seenBundles[key] = struct{}{}
+		pipelineDir := filepath.Join(bundlePath, "pipeline")
+		walkErr := filepath.WalkDir(pipelineDir, func(path string, d os.DirEntry, err error) error {
+			if err != nil {
+				diagnostics = append(diagnostics, withResourceHealthMeta(protocol.Diagnostic{
+					Severity:   "warning",
+					Code:       "debug.resource.pipeline_file_unreadable",
+					Message:    fmt.Sprintf("为定位 MaaFW 加载失败，无法读取资源目录中的 Pipeline 条目：%v", err),
+					SourcePath: path,
+					Data: map[string]interface{}{
+						"bundlePath": bundlePath,
+						"error":      err.Error(),
+					},
+				}, resourceHealthCategoryLoading, "确认资源目录中的 pipeline 文件仍可访问后重新体检，以继续缩小 MaaFW 加载失败原因。"))
+				return nil
+			}
+			if d.IsDir() {
+				return nil
+			}
+			lower := strings.ToLower(d.Name())
+			if !strings.HasSuffix(lower, ".json") && !strings.HasSuffix(lower, ".jsonc") {
+				return nil
+			}
+			data, readErr := os.ReadFile(path)
+			relativePath, relErr := filepath.Rel(bundlePath, path)
+			if relErr != nil {
+				relativePath = d.Name()
+			}
+			relativePath = filepath.ToSlash(relativePath)
+			if readErr != nil {
+				diagnostics = append(diagnostics, withResourceHealthMeta(protocol.Diagnostic{
+					Severity:   "warning",
+					Code:       "debug.resource.pipeline_file_unreadable",
+					Message:    fmt.Sprintf("为定位 MaaFW 加载失败，无法读取资源目录中的 Pipeline 文件：%v", readErr),
+					SourcePath: path,
+					Data: map[string]interface{}{
+						"bundlePath":   bundlePath,
+						"relativePath": relativePath,
+						"error":        readErr.Error(),
+					},
+				}, resourceHealthCategoryLoading, "确认该 Pipeline 文件仍存在且可访问后重新体检，以继续缩小 MaaFW 加载失败原因。"))
+				return nil
+			}
+			parsed, parseErr := hujson.Parse(data)
+			if parseErr != nil {
+				bundleFiles = append(bundleFiles, resourceHealthBundlePipelineFile{
+					bundlePath:   bundlePath,
+					relativePath: relativePath,
+					sourcePath:   path,
+					parseErr:     parseErr,
+				})
+				return nil
+			}
+			parsedCopy := parsed
+			bundleFiles = append(bundleFiles, resourceHealthBundlePipelineFile{
+				bundlePath:   bundlePath,
+				relativePath: relativePath,
+				sourcePath:   path,
+				parsed:       &parsedCopy,
+			})
+			return nil
+		})
+		if walkErr != nil {
+			diagnostics = append(diagnostics, withResourceHealthMeta(protocol.Diagnostic{
+				Severity:   "warning",
+				Code:       "debug.resource.pipeline_file_unreadable",
+				Message:    fmt.Sprintf("为定位 MaaFW 加载失败，扫描资源目录中的 pipeline 文件时发生异常：%v", walkErr),
+				SourcePath: pipelineDir,
+				Data: map[string]interface{}{
+					"bundlePath": bundlePath,
+					"error":      walkErr.Error(),
+				},
+			}, resourceHealthCategoryLoading, "确认 bundle 目录中的 pipeline 子目录可访问后重新体检，以继续缩小 MaaFW 加载失败原因。"))
+		}
+	}
+	return bundleFiles, diagnostics
+}
+
+func (s *Service) checkBundlePipelineJSONSyntax(
+	ctx resourceHealthChecklistContext,
+) []protocol.Diagnostic {
+	diagnostics := make([]protocol.Diagnostic, 0)
+	for _, bundleFile := range ctx.bundleFiles {
+		if bundleFile.parseErr == nil {
+			continue
+		}
+		diagnostics = append(diagnostics, withResourceHealthMeta(protocol.Diagnostic{
+			Severity:   "error",
+			Code:       "debug.resource.pipeline_json_invalid",
+			Message:    fmt.Sprintf("为定位 MaaFW 加载失败，检查到资源目录中的 Pipeline 文件存在 JSON/JSONC 格式错误：%v", bundleFile.parseErr),
+			FieldPath:  bundleFile.relativePath,
+			SourcePath: bundleFile.sourcePath,
+			Data: map[string]interface{}{
+				"bundlePath":   bundleFile.bundlePath,
+				"relativePath": bundleFile.relativePath,
+				"error":        bundleFile.parseErr.Error(),
+			},
+		}, resourceHealthCategoryLoading, "修复该 Pipeline 文件的 JSON/JSONC 语法错误后重新体检，确认 MaaFW 是否恢复可加载。"))
+	}
+	return diagnostics
+}
+
+func (s *Service) checkBundlePipelineDuplicateNodeNames(
+	ctx resourceHealthChecklistContext,
+) []protocol.Diagnostic {
+	diagnostics := make([]protocol.Diagnostic, 0)
+	for _, bundleFile := range ctx.bundleFiles {
+		if bundleFile.parsed == nil {
+			continue
+		}
+		for _, name := range resourceHealthDuplicateNodeNames(*bundleFile.parsed) {
+			diagnostics = append(diagnostics, withResourceHealthMeta(protocol.Diagnostic{
+				Severity:   "error",
+				Code:       "debug.resource.pipeline_node_name_duplicate",
+				Message:    fmt.Sprintf("为定位 MaaFW 加载失败，检查到资源目录中的 Pipeline 文件存在重复节点名：%s。", name),
+				FieldPath:  bundleFile.relativePath,
+				SourcePath: bundleFile.sourcePath,
+				Data: map[string]interface{}{
+					"bundlePath":   bundleFile.bundlePath,
+					"relativePath": bundleFile.relativePath,
+					"nodeName":     name,
+				},
+			}, resourceHealthCategoryLoading, "修改该 Pipeline 文件中的重复节点名，确保同一文件内每个节点名唯一后重新体检，确认 MaaFW 是否恢复可加载。"))
+		}
+	}
+	return diagnostics
+}
+
+func resourceHealthDuplicateNodeNames(value hujson.Value) []string {
+	object, ok := value.Value.(*hujson.Object)
+	if !ok {
+		return nil
+	}
+	counts := make(map[string]int, len(object.Members))
+	duplicates := make([]string, 0)
+	for _, member := range object.Members {
+		name := resourceHealthObjectMemberName(member)
+		if name == "" || strings.HasPrefix(name, "$") {
+			continue
+		}
+		counts[name]++
+		if counts[name] == 2 {
+			duplicates = append(duplicates, name)
+		}
+	}
+	sort.Strings(duplicates)
+	return duplicates
+}
+
+func resourceHealthObjectMemberName(member hujson.ObjectMember) string {
+	literal, ok := member.Name.Value.(hujson.Literal)
+	if !ok {
+		return ""
+	}
+	return literal.String()
 }
 
 func annotateResourceHealthDiagnostics(

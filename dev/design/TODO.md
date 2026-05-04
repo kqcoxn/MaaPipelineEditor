@@ -4,6 +4,8 @@
 
 ## bug
 
+- 组内节点定位
+
 ## perf
 
 - override

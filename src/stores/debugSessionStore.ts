@@ -10,6 +10,7 @@ import type {
   DebugRunStopRequested,
   DebugSessionSnapshot,
 } from "../features/debug/types";
+import { getPrimaryResourceHealthError } from "../features/debug/resourceHealth";
 import { useDebugModalMemoryStore } from "./debugModalMemoryStore";
 
 type CapabilityStatus = "idle" | "loading" | "ready" | "error";
@@ -224,16 +225,13 @@ export const useDebugSessionStore = create<DebugSessionState>((set) => ({
       if (!current.requestId || result.requestId !== current.requestId) {
         return {};
       }
-      const firstError = result.diagnostics?.find(
-        (diagnostic) => diagnostic.severity === "error",
-      );
       return {
         resourceHealth: {
           status: result.status === "ready" ? "ready" : "error",
           requestId: result.requestId,
           requestKey: current.requestKey,
           result,
-          error: firstError?.message,
+          error: getPrimaryResourceHealthError(result.diagnostics),
         },
       };
     }),

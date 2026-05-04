@@ -130,6 +130,10 @@ you are working at the same dynamic boundary.
     - only present when MaaFW loading succeeds
   - `diagnostics?: DebugDiagnostic[]`
     - each diagnostic may carry category metadata in `data`
+    - MaaFW real load is the authoritative pass/fail signal for resource validity
+    - the current first-batch load-failure checklist (`debug.resource.pipeline_json_invalid`, `debug.resource.pipeline_node_name_duplicate`, with optional scan warnings such as `debug.resource.pipeline_file_unreadable`) is emitted only when `debug.resource.load_failed` occurs
+    - that checklist scans the resolved resource bundle directories, especially `pipeline/**/*.json` and `pipeline/**/*.jsonc`, and should be categorized under `loading` as failure-narrowing evidence rather than post-success graph checks
+    - graph-category diagnostics are reserved for snapshot / resolver / target legality checks
     - repair suggestions are diagnostic metadata, not auto-fix commands
 - Store contract:
   - `requestKey` is the snapshot identity for the current draft request
@@ -162,7 +166,8 @@ you are working at the same dynamic boundary.
   - matching `requestId` result stores `requestKey`, `status`, `result`, and first error text correctly
 - Backend tests:
   - empty graph / duplicate resolver / invalid target produce graph-category diagnostics
-  - successful MaaFW load includes `hash`, `checkedAt`, and categorized diagnostics
+  - successful MaaFW load includes `hash`, `checkedAt`, and categorized diagnostics without running the file anomaly checklist
+  - MaaFW load failure expands loading-category diagnostics with resource-directory checklist results from resolved bundle roots, especially pipeline JSON/JSONC parse errors and duplicate node names
 - Integration-level assertions for future refactors:
   - panel auto-check must only reuse an existing result when `requestKey` matches and the store is not idle
 

@@ -2,6 +2,8 @@ name = "trellis-research"
 description = "Trellis researcher for specs, code patterns, and affected files. Writes findings into {TASK_DIR}/research/ — read-only elsewhere."
 sandbox_mode = "workspace-write"
 
+model_reasoning_effort = "medium"
+
 developer_instructions = """
 You are the Trellis researcher agent.
 

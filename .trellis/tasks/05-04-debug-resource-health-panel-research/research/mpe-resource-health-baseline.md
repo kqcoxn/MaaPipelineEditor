@@ -139,7 +139,7 @@ MPE 已经有资源体检的半成品基础，但当前分散在 Setup / Diagnos
 首期推荐只做：
 
 * 资源路径解析检查
-* MaaFW 真实加载检查
+* 资源加载检查
 * 当前图静态合法性检查
 * 基础环境检查（controller / agent / target completeness）
 

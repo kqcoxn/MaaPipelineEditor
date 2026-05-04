@@ -1,13 +1,5 @@
-import { useMemo, type CSSProperties } from "react";
-import {
-  Alert,
-  Button,
-  Empty,
-  List,
-  Space,
-  Tag,
-  Typography,
-} from "antd";
+import { useMemo, type CSSProperties, type ReactNode } from "react";
+import { Alert, Button, Empty, List, Space, Tag, Typography } from "antd";
 import {
   FileTextOutlined,
   NodeIndexOutlined,
@@ -19,15 +11,14 @@ import { DebugSection } from "../DebugSection";
 import type { DebugModalController } from "../../hooks/useDebugModalController";
 import {
   countDebugDiagnosticsBySeverity,
+  collectSpecificLoadingReasons,
   debugResourceHealthCategories,
   getDebugDiagnosticSuggestion,
   getDebugResourceHealthCategory,
   getDebugResourceHealthCategoryLabel,
+  sortDebugResourceHealthDiagnostics,
 } from "../../resourceHealth";
-import type {
-  DebugDiagnostic,
-  DebugResourceHealthCategory,
-} from "../../types";
+import type { DebugDiagnostic, DebugResourceHealthCategory } from "../../types";
 
 const { Text } = Typography;
 const emptyDiagnostics: DebugDiagnostic[] = [];
@@ -48,14 +39,21 @@ export function ResourceHealthPanel({
 }: {
   controller: DebugModalController;
 }) {
+  const graphFileCount =
+    controller.resourceHealthRequest?.graphSnapshot.files.length ?? 0;
   const diagnostics =
     controller.resourceHealthResult?.diagnostics ?? emptyDiagnostics;
+  const loadingReasonCount = collectSpecificLoadingReasons(diagnostics).length;
   const groupedDiagnostics = useMemo(
     () =>
       debugResourceHealthCategories.map((category) => ({
         category,
-        diagnostics: diagnostics.filter(
-          (diagnostic) => getDebugResourceHealthCategory(diagnostic) === category,
+        diagnostics: sortDebugResourceHealthDiagnostics(
+          category,
+          diagnostics.filter(
+            (diagnostic) =>
+              getDebugResourceHealthCategory(diagnostic) === category,
+          ),
         ),
       })),
     [diagnostics],
@@ -102,26 +100,23 @@ export function ResourceHealthPanel({
         </Button>
       </Space>
       <div style={metaListStyle}>
-        <Tag>资源路径 {controller.resourceHealthRequest?.resourcePaths.length ?? 0}</Tag>
-        <Tag>图文件 {controller.resourceHealthRequest?.graphSnapshot.files.length ?? 0}</Tag>
         <Tag>
-          resolver 节点{" "}
+          资源路径 {controller.resourceHealthRequest?.resourcePaths.length ?? 0}
+        </Tag>
+        <Tag>MPE已加载文件 {graphFileCount}</Tag>
+        <Tag>
+          节点映射{" "}
           {controller.resourceHealthRequest?.resolverSnapshot.nodes.length ?? 0}
         </Tag>
         <Tag>
-          resolver 边{" "}
+          连线映射{" "}
           {controller.resourceHealthRequest?.resolverSnapshot.edges.length ?? 0}
         </Tag>
-        <Tag>
-          当前目标 {controller.resourceHealthRequest?.target?.runtimeName ?? "未解析"}
-        </Tag>
+        {loadingReasonCount > 0 && <Tag>加载失败线索 {loadingReasonCount}</Tag>}
         {controller.resourceHealthResult?.durationMs !== undefined && (
           <Tag>耗时 {controller.resourceHealthResult.durationMs}ms</Tag>
         )}
       </div>
-      <Text type="secondary">
-        体检会检查资源路径解析、MaaFW 真实加载和当前图静态调试合法性。修改资源路径、图结构或入口节点后，请重新体检。
-      </Text>
       {controller.resourceHealthDraftError && (
         <Alert
           type="error"
@@ -167,7 +162,10 @@ function ResourceHealthSection({
       }`}
     >
       {diagnostics.length === 0 ? (
-        <Empty description="当前分组暂无结果" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+        <Empty
+          description="当前分组暂无结果"
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+        />
       ) : (
         <List
           bordered
@@ -185,7 +183,8 @@ function ResourceHealthSection({
                     controller.focusFile(
                       diagnostic.fileId,
                       diagnostic.sourcePath,
-                    )}
+                    )
+                  }
                 >
                   打开文件
                 </Button>,
@@ -204,9 +203,7 @@ function ResourceHealthSection({
               );
             }
             return (
-              <List.Item
-                actions={actions.length > 0 ? actions : undefined}
-              >
+              <List.Item actions={actions.length > 0 ? actions : undefined}>
                 <List.Item.Meta
                   title={
                     <Space wrap>
@@ -288,15 +285,46 @@ function resolveAlertMessage(
 function resolveAlertDescription(
   controller: DebugModalController,
   counts: Record<DebugDiagnostic["severity"], number>,
-): string {
+): ReactNode {
+  const diagnostics =
+    controller.resourceHealthResult?.diagnostics ?? emptyDiagnostics;
+  const loadFailed = diagnostics.some(
+    (diagnostic) => diagnostic.code === "debug.resource.load_failed",
+  );
+  const loadBlockedBeforeExecution = diagnostics.some(
+    (diagnostic) =>
+      diagnostic.code === "debug.resource.load_skipped" ||
+      diagnostic.code === "debug.resource.load_unavailable",
+  );
   if (!controller.connected) {
-    return "资源体检依赖 LocalBridge 执行 MaaFW 真实加载；连接后可重新体检。";
+    return "资源体检需要 LocalBridge 连接后才能执行。";
   }
   if (controller.resourceHealthStatus === "checking") {
-    return "后端正在校验资源路径、尝试真实加载资源，并检查当前图的静态调试合法性。";
+    return "正在检查资源路径和资源加载情况。";
   }
-  if (controller.resourceHealthError) {
+  if (controller.resourceHealthError && diagnostics.length === 0) {
     return controller.resourceHealthError;
+  }
+  if (controller.resourceHealthStatus === "error") {
+    if (loadFailed) {
+      const failureReasons = collectSpecificLoadingReasons(diagnostics);
+      if (failureReasons.length > 0) {
+        return (
+          <ul style={{ margin: 0, paddingLeft: 18 }}>
+            {failureReasons.map((reason, index) => (
+              <li key={`${reason.code}-${index}`}>
+                <Text>{reason.message}</Text>
+              </li>
+            ))}
+          </ul>
+        );
+      }
+      return "请优先查看下方“资源加载”分组中的错误项。";
+    }
+    if (loadBlockedBeforeExecution) {
+      return "请先修复资源路径解析或运行环境问题，再重新体检。";
+    }
+    return `本次体检共返回 ${counts.error} 个错误、${counts.warning} 个警告、${counts.info} 个提示。`;
   }
   if (controller.resourceHealthStatus === "ready") {
     return `本次体检共返回 ${counts.error} 个错误、${counts.warning} 个警告、${counts.info} 个提示。`;
