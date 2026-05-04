@@ -71,3 +71,37 @@ Implemented a shared LocalBridge resource bundle resolver, wired it into debug p
 ### Next Steps
 
 - None - task complete
+
+
+## Session 3: 资源体检面板与加载失败排查收尾
+
+**Date**: 2026-05-04
+**Task**: 资源体检面板与加载失败排查收尾
+**Branch**: `main`
+
+### Summary
+
+完成调试模块资源体检面板迭代，补齐资源目录级异常清单、失败原因前端展示、术语与信息层级收口，并归档相关任务。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f287a57` | (see git log) |
+| `2a9a71e` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 2
+- **Total Sessions**: 3
 - **Last Active**: 2026-05-04
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~73 | Active |
+| `journal-1.md` | ~107 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 3 | 2026-05-04 | 资源体检面板与加载失败排查收尾 | `f287a57`, `2a9a71e` | `main` |
 | 2 | 2026-05-04 | Resource bundle intelligent resolver | `6002b7f` | `main` |
 | 1 | 2026-05-04 | 修复调试保存模式串用问题 | `0a3fa32` | `main` |
 <!-- @@@/auto:session-history -->
