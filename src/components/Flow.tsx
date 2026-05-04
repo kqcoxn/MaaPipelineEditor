@@ -47,6 +47,8 @@ import {
 } from "../core/snapUtils";
 import { useEmbedMode } from "../hooks/useEmbedMode";
 import { sendToParent } from "../utils/embedBridge";
+import { WikiContextHint } from "../features/wiki/components/WikiContextHint";
+import { useWikiUiMemoryStore } from "../stores/wikiUiMemoryStore";
 
 /**工作流 */
 // 按键监听
@@ -230,6 +232,15 @@ function MainFlow() {
   );
   const canvasBackgroundMode = useConfigStore(
     (state) => state.configs.canvasBackgroundMode,
+  );
+  const currentFilePath = useFileStore(
+    (state) => state.currentFile.config.filePath,
+  );
+  const dismissedEmptyCanvasHint = useWikiUiMemoryStore(
+    (state) => state.dismissedEmptyCanvasHint,
+  );
+  const dismissEmptyCanvasHint = useWikiUiMemoryStore(
+    (state) => state.dismissEmptyCanvasHint,
   );
   const enableNodeSnap = useConfigStore(
     (state) => state.configs.enableNodeSnap,
@@ -582,6 +593,11 @@ function MainFlow() {
   }, []);
 
   const defaultViewport = useMemo(() => ({ x: 0, y: 0, zoom: 1.5 }), []);
+  const showEmptyCanvasHint =
+    !dismissedEmptyCanvasHint &&
+    !currentFilePath &&
+    nodes.length === 0 &&
+    edges.length === 0;
 
   // 背景颜色
   const backgroundColor = useMemo(() => {
@@ -615,6 +631,31 @@ function MainFlow() {
   // 渲染
   return (
     <div className={style.editor} ref={ref}>
+      {showEmptyCanvasHint && (
+        <div className={style.emptyCanvasHint}>
+          <WikiContextHint
+            title="从这里开始认识编辑器"
+            summary="当前还是空画布。先看 5 分钟上手、认识工作流编辑器和第一次导入与导出，再决定是新建流程还是先导入旧文件。"
+            actions={[
+              {
+                label: "5 分钟上手",
+                target: { entryId: "start", moduleId: "quick-start" },
+              },
+              {
+                label: "认识工作流编辑器",
+                target: { entryId: "workflow", moduleId: "about-editor" },
+              },
+              {
+                label: "第一次导入与导出",
+                target: { entryId: "start", moduleId: "first-import-export" },
+              },
+            ]}
+            type="info"
+            closable
+            onClose={dismissEmptyCanvasHint}
+          />
+        </div>
+      )}
       <ReactFlow
         ref={selfElem}
         nodeTypes={nodeTypes}

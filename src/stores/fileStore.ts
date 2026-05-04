@@ -17,6 +17,7 @@ import {
   flowToSeparatedStrings,
   mergePipelineAndConfig,
 } from "../core/parser";
+import { useWikiUiMemoryStore } from "./wikiUiMemoryStore";
 import { localServer } from "../services/server";
 import { FileProtocol } from "../services/protocols/FileProtocol";
 import { findErrorsByType, ErrorTypeEnum } from "./errorStore";
@@ -568,6 +569,7 @@ export const useFileStore = create<FileState>()((set) => ({
         useFileStore.getState().switchFile(existingFile.fileName);
         await pipelineToFlow({ pString: finalContentString });
         syncFlowStoreToFileStore(configUpdates);
+        useWikiUiMemoryStore.getState().requestMigrationHint(filePath);
         return true;
       }
 
@@ -590,6 +592,7 @@ export const useFileStore = create<FileState>()((set) => ({
             }
           }, 50);
         }
+        useWikiUiMemoryStore.getState().requestMigrationHint(filePath);
         return true;
       }
 
@@ -597,6 +600,7 @@ export const useFileStore = create<FileState>()((set) => ({
       useFileStore.getState().addFile({ isSwitch: true });
       await pipelineToFlow({ pString: finalContentString });
       syncFlowStoreToFileStore({ ...configUpdates, filePath });
+      useWikiUiMemoryStore.getState().requestMigrationHint(filePath);
       return true;
     } catch (error) {
       console.error("[fileStore] Failed to open file from local:", error);

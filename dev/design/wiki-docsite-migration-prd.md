@@ -1,7 +1,7 @@
 # 文档站迁移至 Wiki 系统 PRD
 
-状态：P0 Frozen  
-日期：2026-05-03  
+状态：P2 Completed
+日期：2026-05-04
 范围：基于当前 `docsite/docs` 与现有内置 Wiki 能力，规划 MPE 文档从外部文档站向应用内 Wiki 的内容迁移方案。本 PRD 仅定义产品与内容规划，不包含本轮实现代码。
 
 ## 1. Executive Summary
@@ -395,3 +395,26 @@ P1 最小边界冻结如下：
 - P2 接棒边界：
   - 后续只剩首次使用提示、旧文件首次打开提示、AI 区域入口和更深的上下文化联动属于 P2 范围。
   - P1 的内容矩阵与现有静态入口已视为闭环完成，后续不再继续追加新的 P1 模块。
+
+### P2 完成记录
+
+- 完成时间：2026-05-04
+- 本阶段产物：
+  - 在 `src/wiki/registry.ts`、`src/wiki/searchIndex.ts` 中新增 `ai` Entry，补齐 `AI 辅助`、`AI 前置条件`、`AI 常见问题` 三个正式模块。
+  - 在 `GlobalPanel`、`AIHistoryPanel`、`FieldPanelToolbar`、`ExplorationFAB`、`ExplorationPanel` 接入 AI 相关正式 Wiki 入口，并根据前置条件状态区分 `assist / prerequisites`。
+  - 新增独立的 `wikiUiMemoryStore` 与轻量 `WikiContextHint`，为空画布首次使用提示、旧文件首次打开迁移提示提供可关闭、可记忆的上下文化提示。
+  - 在 `FilePanel` 落地旧文件首次打开迁移提示；在 `openFileFromLocal()` 成功链路登记“已展示过的本地文件路径”。
+  - 在 `ConnectionPanel`、`ToolboxPanel`、`ExplorationPanel` 补齐更深的 LocalBridge / AI 前置条件帮助入口，形成“报错 + 就地帮助”闭环。
+- 静态校验：
+  - 校对 `ai/*` 三个模块均已注册并纳入搜索索引。
+  - 校对 `AI 对话历史`、`流程探索`、`节点预测`、`AI API`、`AI 配置`、`AI 失败` 等搜索词有目标模块承接。
+  - 校对空画布提示仅在空白新页且非本地真实文件场景出现；关闭后本地记忆生效。
+  - 校对本地文件迁移提示仅在首次打开真实本地文件后出现，同一路径后续不重复展示。
+- 本阶段未做：
+  - 未修改 `docsite/docs/` 页面内容。
+  - 未迁移图片、视频或其他静态媒体资源。
+  - 未实现自动弹出 Wiki、错误码级联动或复杂旧文件格式识别。
+  - 未引入 manifest / codegen 内容流程。
+- P3 接棒边界：
+  - 后续进入 P3 时，再清理 docsite 与 Wiki 的职责边界和重复内容。
+  - 若继续增强上下文化能力，应优先做维护流程与入口治理，而不是继续堆叠新的提示层。

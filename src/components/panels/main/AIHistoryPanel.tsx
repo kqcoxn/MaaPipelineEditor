@@ -10,6 +10,7 @@ import {
   aiHistoryManager,
   type AIHistoryRecord,
 } from "../../../utils/ai/history";
+import { WikiPonderTrigger } from "../../../features/wiki/components/WikiPonderTrigger";
 
 /** 格式化时间 */
 function formatTime(timestamp: number): string {
@@ -217,6 +218,12 @@ function AIHistoryPanel() {
       <div className={classNames("header", style.header)}>
         <div className="title">AI 对话历史</div>
         <div className={style.right}>
+          <WikiPonderTrigger
+            target={{ entryId: "ai", moduleId: "common-issues" }}
+            title="AI 常见问题"
+            description="查看 AI 对话历史时，优先用记录判断是上下文不足、配置缺失还是模型能力问题。"
+            placement="bottom"
+          />
           {records.length > 0 && (
             <Tooltip title="清空历史">
               <IconFont

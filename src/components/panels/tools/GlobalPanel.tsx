@@ -9,6 +9,8 @@ import { useClipboardStore } from "../../../stores/clipboardStore";
 import { useDebugSessionStore } from "../../../stores/debugSessionStore";
 import { useWikiStore } from "../../../stores/wikiStore";
 import { isWikiModuleVisible } from "../../../wiki/visibility";
+import { WikiPonderTrigger } from "../../../features/wiki/components/WikiPonderTrigger";
+import type { WikiTarget } from "../../../wiki/types";
 import PathSelector from "./PathSelector";
 import ToolboxPanel from "./ToolboxPanel";
 import style from "../../../styles/panels/ToolPanel.module.less";
@@ -22,6 +24,11 @@ type GlobalToolType = {
   dimmed?: boolean;
   onClick: () => void;
   onDisabledClick?: () => void;
+  wiki?: {
+    target: WikiTarget;
+    title: string;
+    description: string;
+  };
 };
 
 function GlobalPanel() {
@@ -67,6 +74,11 @@ function GlobalPanel() {
         iconName: "icon-jiqiren",
         iconSize: 27,
         onClick: () => setStatus("showAIHistoryPanel", true),
+        wiki: {
+          target: { entryId: "ai", moduleId: "assist" },
+          title: "AI 辅助",
+          description: "先区分节点预测、流程探索和 AI 对话历史分别解决什么问题。",
+        },
       },
     ],
     [setStatus],
@@ -175,6 +187,14 @@ function GlobalPanel() {
               />
             </Tooltip>
           </li>
+          {item.wiki && (
+            <WikiPonderTrigger
+              target={item.wiki.target}
+              title={item.wiki.title}
+              description={item.wiki.description}
+              placement="bottom"
+            />
+          )}
           {index < toolItems.length - 1 && (
             <div className={style.devider}>
               <div></div>

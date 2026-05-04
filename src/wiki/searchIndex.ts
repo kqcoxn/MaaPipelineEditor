@@ -1,4 +1,7 @@
 import { wikiEntries } from "./registry";
+import { searchIndex as aiAssistSearchIndex } from "./entries/ai/assist";
+import { searchIndex as aiCommonIssuesSearchIndex } from "./entries/ai/commonIssues";
+import { searchIndex as aiPrerequisitesSearchIndex } from "./entries/ai/prerequisites";
 import { searchIndex as debugPrerequisitesSearchIndex } from "./entries/debug/prerequisites";
 import { searchIndex as debugRunModesSearchIndex } from "./entries/debug/runModes";
 import { searchIndex as debugTimelineArtifactsSearchIndex } from "./entries/debug/timelineArtifacts";
@@ -49,6 +52,9 @@ interface WikiSearchDocument {
 }
 
 const moduleSearchIndexMap: Record<string, WikiModuleSearchIndex> = {
+  "ai/assist": aiAssistSearchIndex,
+  "ai/prerequisites": aiPrerequisitesSearchIndex,
+  "ai/common-issues": aiCommonIssuesSearchIndex,
   "start/about-mpe": startAboutMpeSearchIndex,
   "start/quick-start": startQuickStartSearchIndex,
   "start/version-choice": startVersionChoiceSearchIndex,

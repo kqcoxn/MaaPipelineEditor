@@ -41,6 +41,7 @@ import {
   MACOS_DEFAULT_METHODS,
 } from "./connection";
 import { WikiPonderTrigger } from "../../../features/wiki/components/WikiPonderTrigger";
+import { WikiContextHint } from "../../../features/wiki/components/WikiContextHint";
 
 const { Text } = Typography;
 
@@ -726,12 +727,35 @@ export const ConnectionPanel = memo(
             )}
 
             {errorMessage && (
-              <Alert
-                title={errorMessage}
-                type="error"
-                showIcon
-                style={{ marginBottom: 20 }}
-              />
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <Alert
+                  title={errorMessage}
+                  type="error"
+                  showIcon
+                  style={{ marginBottom: 0 }}
+                />
+                <WikiContextHint
+                  title="先按连接问题排查顺序处理"
+                  summary="连接失败时，先确认目标设备、截图/输入方法和手动连接参数是不是同一类问题，再决定刷新、重连还是切换设备。"
+                  actions={[
+                    {
+                      label: "连接状态与前置条件",
+                      target: {
+                        entryId: "localbridge",
+                        moduleId: "connection-prerequisites",
+                      },
+                    },
+                    {
+                      label: "常见连接问题",
+                      target: {
+                        entryId: "localbridge",
+                        moduleId: "common-connection-issues",
+                      },
+                    },
+                  ]}
+                  type="warning"
+                />
+              </div>
             )}
 
             {/* 操作按钮组 */}

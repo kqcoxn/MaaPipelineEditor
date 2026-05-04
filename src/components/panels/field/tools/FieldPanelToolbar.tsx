@@ -21,6 +21,7 @@ import {
 } from "../../../flow/nodes/utils/nodeOperations";
 import { crossFileService } from "../../../../services/crossFileService";
 import { WikiPonderTrigger } from "../../../../features/wiki/components/WikiPonderTrigger";
+import type { WikiTarget } from "../../../../wiki/types";
 
 // 左侧工具栏
 export const FieldPanelToolbarLeft = memo(
@@ -117,6 +118,24 @@ export const FieldPanelToolbarRight = memo(
       (currentNode.type === NodeTypeEnum.External ||
         currentNode.type === NodeTypeEnum.Anchor);
 
+    const { connectionStatus, controllerId } = useMFWStore();
+    const { aiApiUrl, aiApiKey, aiModel } = useConfigStore(
+      (state) => state.configs,
+    );
+    const aiReady =
+      connectionStatus === "connected" &&
+      !!controllerId &&
+      !!aiApiUrl &&
+      !!aiApiKey &&
+      !!aiModel;
+    const aiWikiTarget: WikiTarget = aiReady
+      ? { entryId: "ai", moduleId: "assist" }
+      : { entryId: "ai", moduleId: "prerequisites" };
+    const aiWikiTitle = aiReady ? "AI 辅助" : "AI 前置条件";
+    const aiWikiDescription = aiReady
+      ? "节点预测适合补当前节点配置，最终字段仍应回到面板和工具箱里核对。"
+      : "节点预测依赖设备连接、截图来源和 AI API 配置，这三类前置条件缺一不可。";
+
     const handleSaveTemplate = () => {
       if (!currentNode || currentNode.type !== NodeTypeEnum.Pipeline) {
         return;
@@ -162,14 +181,12 @@ export const FieldPanelToolbarRight = memo(
       }
 
       // 检查前置条件
-      const { connectionStatus, controllerId } = useMFWStore.getState();
       if (connectionStatus !== "connected" || !controllerId) {
         message.error("请先连接到本地服务与设备");
         return;
       }
 
       // 检查 AI 配置
-      const { aiApiUrl, aiApiKey, aiModel } = useConfigStore.getState().configs;
       if (!aiApiUrl || !aiApiKey || !aiModel) {
         message.error("请先在配置面板中设置 AI API");
         return;
@@ -303,6 +320,12 @@ export const FieldPanelToolbarRight = memo(
                 }}
               />
             </Tooltip>
+            <WikiPonderTrigger
+              target={aiWikiTarget}
+              title={aiWikiTitle}
+              description={aiWikiDescription}
+              placement="top"
+            />
             <Tooltip placement="top" title="删除节点">
               <IconFont
                 className="icon-interactive"

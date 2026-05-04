@@ -12,6 +12,7 @@ import { useMFWStore } from "../../../stores/mfwStore";
 import { useConfigStore } from "../../../stores/configStore";
 import { useFlowStore } from "../../../stores/flow";
 import { usePanelOccupancy } from "../../../hooks/usePanelOccupancy";
+import { WikiPonderTrigger } from "../../../features/wiki/components/WikiPonderTrigger";
 import style from "../../../styles/panels/ExplorationPanel.module.less";
 
 interface ExplorationFABProps {
@@ -28,12 +29,13 @@ function ExplorationFABBase({
   const connectionStatus = useMFWStore((s) => s.connectionStatus);
   const aiApiUrl = useConfigStore((s) => s.configs.aiApiUrl);
   const aiApiKey = useConfigStore((s) => s.configs.aiApiKey);
+  const aiModel = useConfigStore((s) => s.configs.aiModel);
   const status = useFlowStore((s) => s.status);
   const stepCount = useFlowStore((s) => s.stepCount);
 
   // 检查前置条件
   const isConnected = connectionStatus === "connected";
-  const isAIConfigured = aiApiUrl && aiApiKey;
+  const isAIConfigured = aiApiUrl && aiApiKey && aiModel;
 
   // 是否在探索中
   const isExploring = status !== "idle" && status !== "completed";
@@ -69,31 +71,50 @@ function ExplorationFABBase({
   };
 
   return (
-    <Tooltip title={getTooltipTitle()} placement="left">
-      <div
-        className={classNames(style.fab, {
-          [style.fabPulse]: hasPulse,
-          [style.fabActive]: active || isExploring,
-          [style.fabDisabled]: !isConnected || !isAIConfigured,
-          [style.fabHidden]: isHidden,
+    <>
+      <Tooltip title={getTooltipTitle()} placement="left">
+        <div
+          className={classNames(style.fab, {
+            [style.fabPulse]: hasPulse,
+            [style.fabActive]: active || isExploring,
+            [style.fabDisabled]: !isConnected || !isAIConfigured,
+            [style.fabHidden]: isHidden,
+          })}
+          onClick={handleClick}
+        >
+          <IconFont name="icon-jiqiren" size={24} color="#fff" />
+          {isExploring && stepCount > 0 && (
+            <Badge
+              count={stepCount}
+              size="small"
+              style={{
+                position: "absolute",
+                top: -4,
+                right: -4,
+                backgroundColor: "#722ed1",
+              }}
+            />
+          )}
+        </div>
+      </Tooltip>
+      <WikiPonderTrigger
+        className={classNames(style.fabWikiTrigger, {
+          [style.fabWikiTriggerHidden]: isHidden,
         })}
-        onClick={handleClick}
-      >
-        <IconFont name="icon-jiqiren" size={24} color="#fff" />
-        {isExploring && stepCount > 0 && (
-          <Badge
-            count={stepCount}
-            size="small"
-            style={{
-              position: "absolute",
-              top: -4,
-              right: -4,
-              backgroundColor: "#722ed1",
-            }}
-          />
-        )}
-      </div>
-    </Tooltip>
+        target={
+          isConnected && isAIConfigured
+            ? { entryId: "ai", moduleId: "assist" }
+            : { entryId: "ai", moduleId: "prerequisites" }
+        }
+        title={isConnected && isAIConfigured ? "AI 辅助" : "AI 前置条件"}
+        description={
+          isConnected && isAIConfigured
+            ? "流程探索适合围绕目标逐步推进，不等同于字段面板里的节点预测。"
+            : "流程探索依赖设备连接、截图来源和 AI API 配置，缺任意一项都无法真正开始。"
+        }
+        placement="left"
+      />
+    </>
   );
 }
 

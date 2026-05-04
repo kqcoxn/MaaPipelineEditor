@@ -245,6 +245,35 @@ export const wikiEntries: WikiEntryMeta[] = [
     ],
   },
   {
+    id: "ai",
+    title: "AI 辅助",
+    summary: "围绕节点预测、流程探索与 AI 对话历史理解 AI 在编辑器里的职责边界。",
+    keywords: ["AI 辅助", "节点预测", "流程探索", "AI 对话历史"],
+    modules: [
+      {
+        id: "assist",
+        title: "AI 辅助",
+        summary: "先分清节点预测、流程探索和 AI 对话历史分别解决什么问题。",
+        keywords: ["AI 辅助", "节点预测", "流程探索"],
+        loader: () => import("./entries/ai/assist"),
+      },
+      {
+        id: "prerequisites",
+        title: "AI 前置条件",
+        summary: "确认设备连接、截图来源和 AI 配置是否同时就绪。",
+        keywords: ["AI 前置条件", "AI API", "视觉模型"],
+        loader: () => import("./entries/ai/prerequisites"),
+      },
+      {
+        id: "common-issues",
+        title: "AI 常见问题",
+        summary: "AI 失败时，先定位是上下文、配置还是模型能力的问题。",
+        keywords: ["AI 常见问题", "AI 失败", "视觉模型"],
+        loader: () => import("./entries/ai/commonIssues"),
+      },
+    ],
+  },
+  {
     id: "migrate",
     title: "迁移",
     summary: "理解旧项目导入、统一前缀和自动布局的迁移边界。",
