@@ -105,3 +105,36 @@ Implemented a shared LocalBridge resource bundle resolver, wired it into debug p
 ### Next Steps
 
 - None - task complete
+
+
+## Session 4: Temporarily hide wiki entries for release
+
+**Date**: 2026-05-05
+**Task**: Temporarily hide wiki entries for release
+**Branch**: `main`
+
+### Summary
+
+Temporarily disabled all user-facing wiki entry points for a release by turning off the shared visibility switch and guarding contextual wiki hints with the same switch; frontend lint and type-check passed.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `dd3f7b6` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
