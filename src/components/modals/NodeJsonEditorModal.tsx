@@ -8,6 +8,7 @@ import {
 import { memo, useState, useCallback, useEffect } from "react";
 import Editor from "@monaco-editor/react";
 import type { NodeType } from "../../stores/flow/types";
+import { useFlowStore } from "../../stores/flow";
 import { NodeTypeEnum } from "../flow/nodes";
 import { formatNodeJson } from "../../utils/node/nodeJsonValidator";
 import { useConfigStore } from "../../stores/configStore";
@@ -59,15 +60,19 @@ export const NodeJsonEditorModal = memo(
     const [validationError, setValidationError] = useState<string | null>(null);
 
     const jsonIndent = useConfigStore((state) => state.configs.jsonIndent);
+    const allNodes = useFlowStore((state) => state.nodes);
 
     // 将节点数据转换为 MFW 格式
     const convertNodeToMfwFormat = useCallback((node: NodeType): unknown => {
       if (node.type === NodeTypeEnum.Pipeline) {
-        return parsePipelineNodeForExport(node as unknown as PipelineNodeType);
+        return parsePipelineNodeForExport(
+          node as unknown as PipelineNodeType,
+          allNodes,
+        );
       }
       // 其他节点类型直接返回 data
       return node.data;
-    }, []);
+    }, [allNodes]);
 
     // 当模态框打开时，初始化 JSON 值
     useEffect(() => {

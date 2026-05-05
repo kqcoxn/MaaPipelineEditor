@@ -1,0 +1,6 @@
+{"file":".trellis/spec/frontend/index.md","reason":"Frontend spec index and checklist for this task's shared editor/store/parser changes."}
+{"file":".trellis/spec/frontend/directory-structure.md","reason":"Guides placement of shared flow editor utilities and store-layer changes."}
+{"file":".trellis/spec/frontend/state-management.md","reason":"Flow graph coordinates live in Zustand slices and shared store utilities."}
+{"file":".trellis/spec/frontend/type-safety.md","reason":"Importer/exporter coordinateMode contract and helper signatures need explicit type discipline."}
+{"file":".trellis/spec/frontend/group-coordinate-model.md","reason":"Primary executable contract for absolute-vs-relative group coordinate semantics and migration."}
+{"file":".trellis/tasks/05-05-group-coordinate-unification-spec/prd.md","reason":"Task requirements, affected entrypoints, scope, and acceptance criteria."}

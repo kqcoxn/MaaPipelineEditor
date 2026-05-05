@@ -21,9 +21,11 @@ import { useWikiUiMemoryStore } from "./wikiUiMemoryStore";
 import { localServer } from "../services/server";
 import { FileProtocol } from "../services/protocols/FileProtocol";
 import { findErrorsByType, ErrorTypeEnum } from "./errorStore";
+import type { CoordinateMode } from "./flow/utils/coordinateUtils";
 
 export type FileConfigType = {
   prefix: string;
+  coordinateMode?: CoordinateMode;
   filePath?: string;
   relativePath?: string;
   separatedConfigPath?: string;

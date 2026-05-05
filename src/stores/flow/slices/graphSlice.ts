@@ -3,6 +3,12 @@ import { cloneDeep } from "lodash";
 import type { FlowStore, FlowGraphState, NodeType, EdgeType } from "../types";
 import { NodeTypeEnum } from "../../../components/flow/nodes";
 import { ensureGroupNodeOrder } from "../utils/nodeUtils";
+import {
+  getNodeAbsolutePosition,
+  getNodeAbsoluteRect,
+  toRelativePosition,
+  toRelativePositionFromParentAbsolute,
+} from "../utils/coordinateUtils";
 import { fitFlowView } from "../utils/viewportUtils";
 import { assignNodeOrder } from "../../fileStore";
 
@@ -20,7 +26,6 @@ export const createGraphSlice: StateCreator<
     const {
       isFitView = true,
       skipHistory = false,
-      skipSave = false,
     } = options || {};
 
     set((state) => {
@@ -73,6 +78,7 @@ export const createGraphSlice: StateCreator<
 
       // 克隆并更新节点数据
       nodes = cloneDeep(nodes);
+      const sourceNodes = ensureGroupNodeOrder([...cloneDeep(nodes), ...state.nodes]);
       const pairs: Record<string, string> = {};
       let pasteCounter = state.pasteIdCounter;
 
@@ -80,22 +86,19 @@ export const createGraphSlice: StateCreator<
         [...originNodes, ...nodes].map((n) => n.data.label),
       );
 
-      // 计算节点集合的边界框
       let minLeft = Infinity;
       let minTop = Infinity;
-      if (position) {
-        nodes.forEach((node) => {
-          minLeft = Math.min(minLeft, node.position.x);
-          minTop = Math.min(minTop, node.position.y);
-        });
-      }
-
-      // 先处理基本的节点信息
-      const allNodes = [...state.nodes];
+      const sourceAbsolutePositions = new Map<string, { x: number; y: number }>();
 
       nodes.forEach((node) => {
+        const originalId = node.id;
+        const absolutePosition = getNodeAbsolutePosition(node, sourceNodes);
+        sourceAbsolutePositions.set(originalId, absolutePosition);
+        minLeft = Math.min(minLeft, absolutePosition.x);
+        minTop = Math.min(minTop, absolutePosition.y);
+
         const newId = "paste_" + pasteCounter;
-        pairs[node.id] = newId;
+        pairs[originalId] = newId;
         node.id = newId;
 
         // 生成不重复的节点名
@@ -112,32 +115,20 @@ export const createGraphSlice: StateCreator<
 
         // 分配顺序号
         assignNodeOrder(newId);
-
-        // 处理坐标系统转换
-        let finalPosition = { ...node.position };
-        let finalParentId = (node as any).parentId;
-
-        // 组内节点
-        if (finalParentId) {
-          // 查找原来的父节点以获取其绝对位置
-          const originalParent = allNodes.find((n) => n.id === finalParentId);
-          if (originalParent) {
-            // 将相对坐标转换为绝对坐标用于粘贴
-            finalPosition = {
-              x: node.position.x + originalParent.position.x,
-              y: node.position.y + originalParent.position.y,
-            };
-            // 在粘贴时决定是否保持组关系
-          } else {
-            // 父节点不存在，清除parentId
-            finalParentId = undefined;
-          }
-        }
-
-        // 保存处理后的信息
-        (node as any)._processedPosition = finalPosition;
-        (node as any)._processedParentId = finalParentId;
+        (node as any)._originalId = originalId;
         (node as any)._originalParentId = (node as any).parentId;
+      });
+
+      const offset = position
+        ? { x: position.x - minLeft, y: position.y - minTop }
+        : { x: 100, y: 50 };
+      const finalAbsolutePositions = new Map<string, { x: number; y: number }>();
+
+      sourceAbsolutePositions.forEach((absolutePosition, originalId) => {
+        finalAbsolutePositions.set(originalId, {
+          x: absolutePosition.x + offset.x,
+          y: absolutePosition.y + offset.y,
+        });
       });
 
       // 处理parentId映射和最终位置
@@ -147,109 +138,73 @@ export const createGraphSlice: StateCreator<
       );
 
       nodes.forEach((node) => {
+        const originalId = (node as any)._originalId as string;
         const originalParentId = (node as any)._originalParentId;
-        const processedPosition = (node as any)._processedPosition;
-
+        const finalAbsolutePosition =
+          finalAbsolutePositions.get(originalId) ?? node.position;
         let shouldCheckGroupMembership = false;
-        let finalPosition = { ...processedPosition };
 
         if (originalParentId) {
           const newParentId = pairs[originalParentId];
 
           if (newParentId && pastedNodeIds.has(newParentId)) {
-            (node as any).parentId = newParentId;
-            // 转换回相对坐标
-            const newParentNode = nodes.find((n) => n.id === newParentId);
-            if (newParentNode) {
-              node.position = {
-                x: processedPosition.x - newParentNode.position.x,
-                y: processedPosition.y - newParentNode.position.y,
-              };
+            const parentAbsolutePosition =
+              finalAbsolutePositions.get(originalParentId);
+            if (parentAbsolutePosition) {
+              (node as any).parentId = newParentId;
+              node.position = toRelativePositionFromParentAbsolute(
+                finalAbsolutePosition,
+                parentAbsolutePosition,
+              );
             } else {
-              node.position = { ...processedPosition };
+              (node as any).parentId = undefined;
+              node.position = { ...finalAbsolutePosition };
             }
           } else {
-            // 父节点没有被粘贴
             (node as any).parentId = undefined;
-            if (position) {
-              finalPosition = {
-                x: processedPosition.x + (position.x - minLeft),
-                y: processedPosition.y + (position.y - minTop),
-              };
-            } else {
-              finalPosition = {
-                x: processedPosition.x + 100,
-                y: processedPosition.y + 50,
-              };
-            }
-            node.position = { ...finalPosition };
+            node.position = { ...finalAbsolutePosition };
             shouldCheckGroupMembership = true;
           }
         } else {
-          // 普通节点
-          if (position) {
-            finalPosition = {
-              x: processedPosition.x + (position.x - minLeft),
-              y: processedPosition.y + (position.y - minTop),
-            };
-          } else {
-            finalPosition = {
-              x: processedPosition.x + 100,
-              y: processedPosition.y + 50,
-            };
-          }
-          node.position = { ...finalPosition };
+          (node as any).parentId = undefined;
+          node.position = { ...finalAbsolutePosition };
         }
 
         // 检测是否应该加入现有组
         if (shouldCheckGroupMembership && existingGroups.length > 0) {
-          // 模拟节点对象用于组检测
-          const simulatedNode = {
-            ...node,
-            position: finalPosition,
-            measured: node.measured || { width: 200, height: 100 },
-          };
-
           // 检查与现有组的交集
           for (const groupNode of existingGroups) {
-            const pw =
-              (groupNode as any).style?.width ??
-              groupNode.measured?.width ??
-              400;
-            const ph =
-              (groupNode as any).style?.height ??
-              groupNode.measured?.height ??
-              300;
-            const nx = finalPosition.x;
-            const ny = finalPosition.y;
-            const nw = simulatedNode.measured?.width ?? 200;
-            const nh = simulatedNode.measured?.height ?? 100;
+            const groupRect = getNodeAbsoluteRect(groupNode, state.nodes);
+            const nodeRect = {
+              ...finalAbsolutePosition,
+              width: node.measured?.width ?? 200,
+              height: node.measured?.height ?? 100,
+            };
 
             // 检查节点中心是否在组内
-            const cx = nx + nw / 2;
-            const cy = ny + nh / 2;
+            const cx = nodeRect.x + nodeRect.width / 2;
+            const cy = nodeRect.y + nodeRect.height / 2;
 
             if (
-              cx >= groupNode.position.x &&
-              cy >= groupNode.position.y &&
-              cx <= groupNode.position.x + pw &&
-              cy <= groupNode.position.y + ph
+              cx >= groupRect.x &&
+              cy >= groupRect.y &&
+              cx <= groupRect.x + groupRect.width &&
+              cy <= groupRect.y + groupRect.height
             ) {
               // 节点中心在组内，自动加入该组
               (node as any).parentId = groupNode.id;
-              // 转换为相对坐标
-              node.position = {
-                x: finalPosition.x - groupNode.position.x,
-                y: finalPosition.y - groupNode.position.y,
-              };
+              node.position = toRelativePosition(
+                finalAbsolutePosition,
+                groupNode,
+                state.nodes,
+              );
               break;
             }
           }
         }
 
         // 清理临时属性
-        delete (node as any)._processedPosition;
-        delete (node as any)._processedParentId;
+        delete (node as any)._originalId;
         delete (node as any)._originalParentId;
       });
 

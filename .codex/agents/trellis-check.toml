@@ -2,7 +2,7 @@ name = "trellis-check"
 description = "Workspace-write Trellis reviewer that self-fixes spec drift, lint/type-check failures, and missing tests."
 sandbox_mode = "workspace-write"
 
-model_reasoning_effort = "medium"
+model_reasoning_effort = "high"
 
 developer_instructions = """
 ## Required: Load Trellis Context First

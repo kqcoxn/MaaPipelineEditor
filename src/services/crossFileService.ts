@@ -7,7 +7,11 @@ import { useWSStore } from "../stores/wsStore";
 import { useLocalFileStore } from "../stores/localFileStore";
 import { useFileStore } from "../stores/fileStore";
 import { useConfigStore } from "../stores/configStore";
-import { useFlowStore, type NodeType } from "../stores/flow";
+import {
+  useFlowStore,
+  getNodeAbsolutePosition,
+  type NodeType,
+} from "../stores/flow";
 import { localServer } from "./server";
 import { NodeTypeEnum } from "../components/flow/nodes/constants";
 import { getFullNodeName } from "../utils/node/nodeNameHelper";
@@ -432,7 +436,7 @@ class CrossFileService {
 
     // 聚焦视图
     if (instance) {
-      const { x, y } = targetNode.position;
+      const { x, y } = getNodeAbsolutePosition(targetNode, nodes);
       const { width = 200, height = 100 } = targetNode.measured || {};
       instance.setCenter(x + width / 2, y + height / 2, {
         duration: 500,

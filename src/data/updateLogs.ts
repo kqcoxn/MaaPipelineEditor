@@ -106,21 +106,21 @@ export const nextPreview: ForecastSection = {
 };
 
 export const updateLogs: UpdateLogItem[] = [
-  // {
-  //   version: "1.6.0",
-  //   date: "2026-5-5",
-  //   type: "fix",
-  //   updates: {
-  //     features: [
-  //       "🤔 俺寻思集成 wiki 模块上线！可在任意相关位置长按 W 查看内置教程",
-  //     ],
-  //     fixes: [""],
-  //   },
-  // },
+  {
+    version: "1.6.0",
+    date: "2026-5",
+    type: "major",
+    updates: {
+      // features: [
+      //   "🤔 俺寻思集成 wiki 模块上线！可在任意相关位置长按 W 查看内置教程",
+      // ],
+      fixes: ["修复定位组内节点时会偏移的问题"],
+    },
+  },
   {
     version: "1.5.2",
-    date: "2026-5-4",
-    type: "perf",
+    date: "2026-5-5",
+    type: "feature",
     updates: {
       features: [
         "👾 调试模块新增 override 模块",

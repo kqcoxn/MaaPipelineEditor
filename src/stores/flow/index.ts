@@ -62,10 +62,18 @@ export {
   findNodeLabelById,
   findNodeByLabel,
   getSelectedNodes,
-  getNodeAbsolutePosition,
   calcuNodePosition,
   ensureGroupNodeOrder,
 } from "./utils/nodeUtils";
+export {
+  getNodeAbsolutePosition,
+  getNodeAbsoluteRect,
+  getRuntimeNodeAbsoluteRect,
+  normalizeImportedNodePosition,
+  resolveParentChain,
+  serializeNodePosition,
+  toRelativePosition,
+} from "./utils/coordinateUtils";
 export {
   findEdgeById,
   getSelectedEdges,

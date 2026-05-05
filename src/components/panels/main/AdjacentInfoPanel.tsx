@@ -4,7 +4,7 @@ import {
   ArrowLeftOutlined,
   ArrowRightOutlined,
 } from "@ant-design/icons";
-import { useFlowStore } from "../../../stores/flow";
+import { useFlowStore, getNodeAbsolutePosition } from "../../../stores/flow";
 import {
   SourceHandleTypeEnum,
   TargetHandleTypeEnum,
@@ -134,7 +134,7 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
 
     // 聚焦视图到该节点
     if (instance) {
-      const { x, y } = targetNode.position;
+      const { x, y } = getNodeAbsolutePosition(targetNode, nodes);
       const { width = 200, height = 100 } = targetNode.measured || {};
       instance.setCenter(x + width / 2, y + height / 2, {
         duration: 500,

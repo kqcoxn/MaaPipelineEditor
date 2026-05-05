@@ -11,6 +11,7 @@ import type {
 import type { FileConfigType } from "../../stores/fileStore";
 import { SourceHandleTypeEnum } from "../../components/flow/nodes";
 import type { HandleDirection } from "../../components/flow/nodes/constants";
+import type { CoordinateMode } from "../../stores/flow/utils/coordinateUtils";
 
 // 配置标记常量
 export const configMark = "$__mpe_code";
@@ -53,6 +54,7 @@ export type PipelineConfigType = {
   filename?: string;
   version?: string;
   prefix?: string;
+  coordinateMode?: CoordinateMode;
   [key: string]: any;
 };
 
@@ -68,6 +70,7 @@ export type MpeConfigType = {
     filename: string;
     prefix?: string;
     version?: string;
+    coordinateMode?: CoordinateMode;
     savedViewport?: { x: number; y: number; zoom: number };
     [key: string]: any;
   };

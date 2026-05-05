@@ -90,22 +90,23 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
         case NodeTypeEnum.Pipeline:
           pipelineObj[prefix + node.data.label] = parsePipelineNodeForExport(
             node as PipelineNodeType,
+            sortedNodes,
           );
           break;
         case NodeTypeEnum.External:
           if (!shouldExportConfig) break;
           pipelineObj[externalMarkPrefix + node.data.label + "_" + fileName] =
-            parseExternalNodeForExport(node as PipelineNodeType);
+            parseExternalNodeForExport(node as PipelineNodeType, sortedNodes);
           break;
         case NodeTypeEnum.Anchor:
           if (!shouldExportConfig) break;
           pipelineObj[anchorMarkPrefix + node.data.label + "_" + fileName] =
-            parseAnchorNodeForExport(node as PipelineNodeType);
+            parseAnchorNodeForExport(node as PipelineNodeType, sortedNodes);
           break;
         case NodeTypeEnum.Sticker:
           if (!shouldExportConfig) break;
           pipelineObj[stickerMarkPrefix + node.data.label + "_" + fileName] =
-            parseStickerNodeForExport(node);
+            parseStickerNodeForExport(node, sortedNodes);
           break;
         case NodeTypeEnum.Group:
           if (!shouldExportConfig) break;
@@ -201,14 +202,16 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
     // 配置
     if (!shouldExportConfig) return pipelineObj;
     // 过滤掉运行时字段
-    const { nodeOrderMap, nextOrderNumber, savedViewport, ...exportConfig } =
-      config;
-    // 对 savedViewport 的值取整
-    const normalizedViewport = normalizeViewport(savedViewport);
+    const exportConfig = { ...config };
+    const normalizedViewport = normalizeViewport(exportConfig.savedViewport);
+    delete exportConfig.nodeOrderMap;
+    delete exportConfig.nextOrderNumber;
+    delete exportConfig.savedViewport;
     return {
       [configMarkPrefix + fileName]: {
         [configMark]: {
           ...exportConfig,
+          coordinateMode: "absolute-v1",
           ...(normalizedViewport && { savedViewport: normalizedViewport }),
           filename: fileState.currentFile.fileName,
           version: `v${globalConfig.version}`,

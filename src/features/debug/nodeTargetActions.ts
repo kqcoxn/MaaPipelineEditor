@@ -7,7 +7,11 @@ import {
 import { useDebugModalMemoryStore } from "../../stores/debugModalMemoryStore";
 import { useDebugRunProfileStore } from "../../stores/debugRunProfileStore";
 import { useDebugSessionStore } from "../../stores/debugSessionStore";
-import { useFlowStore, type NodeType } from "../../stores/flow";
+import {
+  useFlowStore,
+  getRuntimeNodeAbsoluteRect,
+  type NodeType,
+} from "../../stores/flow";
 
 interface ApplyDebugNodeTargetOptions {
   focusCanvas?: boolean;
@@ -64,10 +68,10 @@ export function applyDebugNodeTarget(
   return target;
 }
 
-export function focusDebugCanvasNode(nodeId: string): void {
+export function focusDebugCanvasNode(nodeId: string): boolean {
   const flowState = useFlowStore.getState();
   const targetNode = flowState.nodes.find((node) => node.id === nodeId);
-  if (!targetNode) return;
+  if (!targetNode) return false;
 
   flowState.updateNodes(
     flowState.nodes.map((node: NodeType) => ({
@@ -78,11 +82,20 @@ export function focusDebugCanvasNode(nodeId: string): void {
   );
   flowState.updateSelection([targetNode], []);
 
-  if (!flowState.instance) return;
-  const { x, y } = targetNode.position;
-  const { width = 200, height = 100 } = targetNode.measured || {};
-  flowState.instance.setCenter(x + width / 2, y + height / 2, {
+  if (!flowState.instance) return false;
+
+  const rect = getRuntimeNodeAbsoluteRect(
+    flowState.instance,
+    targetNode.id,
+    targetNode,
+    flowState.nodes,
+  );
+  if (!rect) return false;
+
+  flowState.instance.setCenter(rect.x + rect.width / 2, rect.y + rect.height / 2, {
     duration: 500,
     zoom: 1.5,
   });
+
+  return true;
 }

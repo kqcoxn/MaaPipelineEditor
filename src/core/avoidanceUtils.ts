@@ -3,6 +3,7 @@
  */
 
 import type { NodeType } from "../stores/flow/types";
+import { getNodeAbsolutePosition } from "../stores/flow/utils/coordinateUtils";
 
 /** 点坐标 */
 export type Point = { x: number; y: number };
@@ -670,25 +671,14 @@ export function buildNodeBoundsList(nodes: NodeType[]): NodeBounds[] {
   return nodes.map((node) => {
     const width = node.measured?.width ?? DEFAULT_NODE_WIDTH;
     const height = node.measured?.height ?? DEFAULT_NODE_HEIGHT;
-
-    // 处理分组内子节点的相对坐标，转换为绝对坐标
-    let absX = node.position.x;
-    let absY = node.position.y;
-    const parentId = (node as any).parentId;
-    if (parentId) {
-      const parent = nodes.find((n) => n.id === parentId);
-      if (parent) {
-        absX += parent.position.x;
-        absY += parent.position.y;
-      }
-    }
+    const absolutePosition = getNodeAbsolutePosition(node, nodes);
 
     return {
       id: node.id,
-      minX: absX,
-      minY: absY,
-      maxX: absX + width,
-      maxY: absY + height,
+      minX: absolutePosition.x,
+      minY: absolutePosition.y,
+      maxX: absolutePosition.x + width,
+      maxY: absolutePosition.y + height,
     };
   });
 }

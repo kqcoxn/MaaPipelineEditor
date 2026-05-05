@@ -22,6 +22,7 @@ change you are making.
 | [Directory Structure](./directory-structure.md) | Module organization and file layout | Active |
 | [Component Guidelines](./component-guidelines.md) | Component patterns, props, composition | Active |
 | [Debug Save Policy Contract](./debug-save-policy.md) | Cross-layer contract for debug savePolicy and target source resolution | Active |
+| [Group Coordinate Model](./group-coordinate-model.md) | Absolute-vs-relative coordinate contract for group nodes, parser IO, and locate flows | Active |
 | [Hook Guidelines](./hook-guidelines.md) | Custom hooks, data fetching patterns | Active |
 | [State Management](./state-management.md) | Local state, global state, server state | Active |
 | [Quality Guidelines](./quality-guidelines.md) | Code standards, forbidden patterns | Active |

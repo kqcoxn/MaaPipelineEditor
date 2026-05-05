@@ -22,6 +22,7 @@ import {
 } from "./versionDetector";
 import { NodeTypeEnum } from "../../components/flow/nodes";
 import { applyFieldSort } from "../sorting";
+import { serializeNodePosition } from "../../stores/flow/utils/coordinateUtils";
 
 /**
  * 判断参数对象是否为空（无任何子字段）
@@ -37,6 +38,7 @@ function isEmptyParam(param: Record<string, any>): boolean {
  */
 export function parsePipelineNodeForExport(
   fNode: PipelineNodeType,
+  allNodes: NodeType[],
 ): ParsedPipelineNodeType {
   const fNodeData = fNode.data;
   const configs = useConfigStore.getState().configs;
@@ -148,7 +150,7 @@ export function parsePipelineNodeForExport(
 
   // 保存位置信息和端点位置
   if (configs.isExportConfig) {
-    const position = fNode.position;
+    const position = serializeNodePosition(fNode, allNodes);
     const mpeCode: Record<string, any> = {
       position: {
         x: Math.round(position.x),
@@ -188,8 +190,9 @@ export function parsePipelineNodeForExport(
  */
 export function parseExternalNodeForExport(
   fNode: PipelineNodeType,
+  allNodes: NodeType[],
 ): ParsedPipelineNodeType {
-  const position = fNode.position;
+  const position = serializeNodePosition(fNode, allNodes);
   const mpeCode: Record<string, any> = {
     position: {
       x: Math.round(position.x),
@@ -213,8 +216,9 @@ export function parseExternalNodeForExport(
  */
 export function parseAnchorNodeForExport(
   fNode: PipelineNodeType,
+  allNodes: NodeType[],
 ): ParsedPipelineNodeType {
-  const position = fNode.position;
+  const position = serializeNodePosition(fNode, allNodes);
   const mpeCode: Record<string, any> = {
     position: {
       x: Math.round(position.x),
@@ -236,8 +240,11 @@ export function parseAnchorNodeForExport(
  * @param fNode Flow节点
  * @returns 包含位置、内容、颜色、尺寸的节点
  */
-export function parseStickerNodeForExport(fNode: any): ParsedPipelineNodeType {
-  const position = fNode.position;
+export function parseStickerNodeForExport(
+  fNode: any,
+  allNodes: NodeType[],
+): ParsedPipelineNodeType {
+  const position = serializeNodePosition(fNode, allNodes);
   const mpeCode: Record<string, any> = {
     position: {
       x: Math.round(position.x),
@@ -265,9 +272,9 @@ export function parseStickerNodeForExport(fNode: any): ParsedPipelineNodeType {
  */
 export function parseGroupNodeForExport(
   fNode: any,
-  allNodes: any[],
+  allNodes: NodeType[],
 ): ParsedPipelineNodeType {
-  const position = fNode.position;
+  const position = serializeNodePosition(fNode, allNodes);
   // 收集子节点 label
   const childrenLabels = allNodes
     .filter((n: any) => n.parentId === fNode.id)

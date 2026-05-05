@@ -10,6 +10,7 @@ import type {
   PositionType,
 } from "../types";
 import { NodeTypeEnum } from "../../../components/flow/nodes";
+import { getNodeAbsolutePosition } from "./coordinateUtils";
 
 // 创建 Pipeline 节点
 export function createPipelineNode(
@@ -189,29 +190,6 @@ export function findNodeByLabel(
 // 筛选选中的节点
 export function getSelectedNodes(nodes: NodeType[]): NodeType[] {
   return nodes.filter((node) => node.selected);
-}
-
-/**
- * 获取节点的绝对位置
- * 如果节点在分组内，将其相对坐标转换为绝对坐标
- * @param node 目标节点
- * @param allNodes 所有节点列表（用于查找父节点）
- * @returns 节点的绝对位置
- */
-export function getNodeAbsolutePosition(
-  node: NodeType,
-  allNodes: NodeType[],
-): PositionType {
-  const absPos = { ...node.position };
-  const parentId = (node as any).parentId;
-  if (parentId) {
-    const parent = allNodes.find((n) => n.id === parentId);
-    if (parent) {
-      absPos.x += parent.position.x;
-      absPos.y += parent.position.y;
-    }
-  }
-  return absPos;
 }
 
 // 计算新节点位置

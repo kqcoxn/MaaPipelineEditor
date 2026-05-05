@@ -8,6 +8,7 @@ import {
   createStickerNode,
   createGroupNode,
   ensureGroupNodeOrder,
+  normalizeImportedNodePosition,
 } from "../../stores/flow";
 import { useFileStore } from "../../stores/fileStore";
 import {
@@ -22,7 +23,7 @@ import type {
   EdgeType,
   IdLabelPairsType,
   PipelineNodeType,
-  MpeConfigType,
+  PipelineConfigType,
 } from "./types";
 import {
   externalMarkPrefix,
@@ -220,6 +221,9 @@ export async function pipelineToFlow(
 
     // 解析配置
     const configs = parsePipelineConfig(pipelineObj);
+    const coordinateMode =
+      (configs.coordinateMode as PipelineConfigType["coordinateMode"]) ??
+      "relative-legacy";
 
     // 迁移废弃字段
     const objKeys = keyOrder.length > 0 ? keyOrder : Object.keys(pipelineObj);
@@ -436,6 +440,9 @@ export async function pipelineToFlow(
       }
     });
 
+    nodes = nodes.map((node) =>
+      normalizeImportedNodePosition(node, nodes, coordinateMode),
+    );
     nodes = ensureGroupNodeOrder(nodes);
 
     // 解析连接
@@ -486,6 +493,7 @@ export async function pipelineToFlow(
     if (configs.filename) fileState.setFileName(configs.filename);
     const setFileConfig = fileState.setFileConfig;
     if (configs.prefix) setFileConfig("prefix", configs.prefix);
+    setFileConfig("coordinateMode", "absolute-v1");
 
     // 保存顺序映射
     setFileConfig("nodeOrderMap", orderMap);

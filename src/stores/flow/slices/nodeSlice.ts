@@ -5,7 +5,6 @@ import type {
   FlowNodeState,
   NodeType,
   PipelineNodeType,
-  GroupNodeType,
 } from "../types";
 import {
   NodeTypeEnum,
@@ -23,9 +22,12 @@ import {
   findNodeById,
   findNodeIndexById,
   calcuNodePosition,
-  getNodeAbsolutePosition,
   ensureGroupNodeOrder,
 } from "../utils/nodeUtils";
+import {
+  getNodeAbsolutePosition,
+  toRelativePosition,
+} from "../utils/coordinateUtils";
 import { fitFlowView } from "../utils/viewportUtils";
 import { assignNodeOrder, removeNodeOrder } from "../../fileStore";
 import { useConfigStore } from "../../configStore";
@@ -57,23 +59,16 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
         );
         if (groupsToRemove.length > 0) {
           const groupIds = new Set(groupsToRemove.map((g) => g.id));
-          const groupPosMap = new Map(
-            groupsToRemove.map((g) => [g.id, g.position]),
-          );
           // 在 apply 之前先脱离子节点
           state = {
             ...state,
             nodes: state.nodes.map((node) => {
               const parentId = (node as any).parentId;
               if (parentId && groupIds.has(parentId)) {
-                const groupPos = groupPosMap.get(parentId)!;
                 return {
                   ...node,
                   parentId: undefined,
-                  position: {
-                    x: node.position.x + groupPos.x,
-                    y: node.position.y + groupPos.y,
-                  },
+                  position: getNodeAbsolutePosition(node, state.nodes),
                 };
               }
               return node;
@@ -578,10 +573,7 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
         return {
           ...node,
           parentId: groupId,
-          position: {
-            x: absPos.x - groupX,
-            y: absPos.y - groupY,
-          },
+          position: toRelativePosition(absPos, groupNode),
         };
       });
 
@@ -605,8 +597,6 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       const groupNode = findNodeById(state.nodes, groupId);
       if (!groupNode || groupNode.type !== NodeTypeEnum.Group) return {};
 
-      const groupPos = groupNode.position;
-
       // 将子节点的位置转为绝对坐标，清除 parentId
       const nodes = state.nodes
         .filter((n) => n.id !== groupId)
@@ -615,10 +605,7 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
           return {
             ...node,
             parentId: undefined,
-            position: {
-              x: node.position.x + groupPos.x,
-              y: node.position.y + groupPos.y,
-            },
+            position: getNodeAbsolutePosition(node, state.nodes),
           };
         });
 
@@ -644,14 +631,12 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
 
       let nodes = state.nodes.map((node) => {
         if (node.id !== nodeId) return node;
+        const absolutePosition = getNodeAbsolutePosition(node, state.nodes);
         // 转为相对坐标
         return {
           ...node,
           parentId: groupId,
-          position: {
-            x: node.position.x - groupNode.position.x,
-            y: node.position.y - groupNode.position.y,
-          },
+          position: toRelativePosition(absolutePosition, groupNode, state.nodes),
         };
       });
 
@@ -668,19 +653,12 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       const node = findNodeById(state.nodes, nodeId);
       if (!node || !(node as any).parentId) return {};
 
-      const parentId = (node as any).parentId;
-      const parentNode = findNodeById(state.nodes, parentId);
-      if (!parentNode) return {};
-
       const nodes = state.nodes.map((n) => {
         if (n.id !== nodeId) return n;
         return {
           ...n,
           parentId: undefined,
-          position: {
-            x: n.position.x + parentNode.position.x,
-            y: n.position.y + parentNode.position.y,
-          },
+          position: getNodeAbsolutePosition(n, state.nodes),
         };
       });
 

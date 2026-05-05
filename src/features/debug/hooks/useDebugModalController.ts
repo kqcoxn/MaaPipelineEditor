@@ -40,7 +40,10 @@ import {
   testAgentAction,
 } from "../debugModalActions";
 import { selectPerformanceRefs } from "../debugEventSelectors";
-import { focusDebugCanvasNode } from "../nodeTargetActions";
+import {
+  applyDebugNodeTarget,
+  focusDebugCanvasNode,
+} from "../nodeTargetActions";
 import {
   formatDebugReadinessMessage,
   getDebugReadiness,
@@ -125,7 +128,6 @@ export function useDebugModalController() {
     nodeExecutionFilters,
     setLastPanel,
     setLastRunMode,
-    setLastEntryNodeId,
     setAutoGenerateAiSummary,
     setAutoCloseOnRunStart,
     setAutoOpenOnRunFinish,
@@ -431,12 +433,10 @@ export function useDebugModalController() {
       }
       if (request.target) {
         profileState.setEntry(request.target);
-        setLastEntryNodeId(request.target.nodeId);
-        selectNode(
-          flowNodes.some((node) => node.id === request.target?.nodeId)
-            ? request.target.nodeId
-            : undefined,
-        );
+        applyDebugNodeTarget(request.target.nodeId, {
+          focusCanvas: true,
+          rememberEntryNodeId: true,
+        });
       }
     } catch (error) {
       message.error(error instanceof Error ? error.message : "生成调试请求失败");

@@ -42,9 +42,6 @@ export function saveNodeAsTemplate(
   const defaultTemplateName = nodeName || "";
   let templateName = defaultTemplateName;
 
-  // 创建输入框引用
-  let inputElement: HTMLInputElement | null = null;
-
   Modal.confirm({
     title: "保存为模板",
     content: (
@@ -54,7 +51,6 @@ export function saveNodeAsTemplate(
           <label style={{ flexShrink: 0, fontSize: 14 }}>模板名</label>
           <input
             ref={(el) => {
-              inputElement = el;
               if (el) {
                 el.value = defaultTemplateName;
                 // 自动选中文本
@@ -165,7 +161,7 @@ export function copyNodeRecoJSON(nodeId: string): void {
 
   try {
     // 使用编译器解析节点
-    const parsedNode = parsePipelineNodeForExport(node);
+    const parsedNode = parsePipelineNodeForExport(node, flowStore.nodes);
 
     // 提取 recognition 和 param
     const recoJSON = parsedNode.recognition || {};

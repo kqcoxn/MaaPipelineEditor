@@ -7,7 +7,7 @@ import { ExportOutlined } from "@ant-design/icons";
 
 import style from "../../../styles/flow/nodes.module.less";
 import type { AnchorNodeDataType, NodeType } from "../../../stores/flow";
-import { useFlowStore } from "../../../stores/flow";
+import { useFlowStore, getNodeAbsolutePosition } from "../../../stores/flow";
 import { useConfigStore } from "../../../stores/configStore";
 import { NodeTypeEnum } from "./constants";
 import { NodeContextMenu } from "./components/NodeContextMenu";
@@ -189,7 +189,7 @@ export function AnchorNode(props: NodeProps<AnchorNodeData>) {
         );
 
         // 聚焦到目标节点
-        const { x, y } = targetNode.position;
+        const { x, y } = getNodeAbsolutePosition(targetNode, nodes);
         const { width = 200, height = 100 } = targetNode.measured || {};
         instance.setCenter(x + width / 2, y + height / 2, {
           duration: 500,

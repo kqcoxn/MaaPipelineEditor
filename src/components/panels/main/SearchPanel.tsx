@@ -7,7 +7,11 @@ import { DownOutlined } from "@ant-design/icons";
 import classNames from "classnames";
 import { useDebounceFn } from "ahooks";
 import IconFont from "../../iconfonts";
-import { useFlowStore, type NodeType } from "../../../stores/flow";
+import {
+  useFlowStore,
+  getNodeAbsolutePosition,
+  type NodeType,
+} from "../../../stores/flow";
 import { useConfigStore } from "../../../stores/configStore";
 import { usePanelOccupancy } from "../../../hooks/usePanelOccupancy";
 import { AIClient } from "../../../utils/ai/aiClient";
@@ -61,11 +65,6 @@ function SearchPanel() {
     }
   }, [isDisplaced, showNodeList, deactivateNodeList]);
 
-  // 获取所有节点标签列表
-  const getAllNodeLabels = useCallback(() => {
-    return nodes.map((node: NodeType) => node.data.label);
-  }, [nodes]);
-
   // 防抖搜索
   const { run: handleSearch } = useDebounceFn(
     (value: string) => {
@@ -117,7 +116,7 @@ function SearchPanel() {
 
       // 聚焦视图到该节点
       if (instance) {
-        const { x, y } = targetNode.position;
+        const { x, y } = getNodeAbsolutePosition(targetNode, nodes);
         const { width = 200, height = 100 } = targetNode.measured || {};
         instance.setCenter(x + width / 2, y + height / 2, {
           duration: 500,

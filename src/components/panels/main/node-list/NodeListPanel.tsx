@@ -9,6 +9,7 @@ import type { SelectProps } from "antd";
 import classNames from "classnames";
 import {
   useFlowStore,
+  getNodeAbsolutePosition,
   type NodeType,
   type EdgeType,
 } from "../../../../stores/flow";
@@ -235,7 +236,7 @@ function NodeListPanel({ visible, onClose, anchorEl }: NodeListPanelProps) {
         );
 
         // 聚焦视图
-        const { x, y } = targetNode.position;
+        const { x, y } = getNodeAbsolutePosition(targetNode, nodes);
         const { width = 200, height = 100 } = targetNode.measured || {};
         instance.setCenter(x + width / 2, y + height / 2, {
           duration: 500,

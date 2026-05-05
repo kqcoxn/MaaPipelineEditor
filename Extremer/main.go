@@ -21,7 +21,7 @@ var icon []byte
 //go:embed all:frontend/dist
 var assets embed.FS
 
-var version = "1.5.2"
+var version = "1.6.0"
 
 func main() {
 	// 检测是否为开发模式

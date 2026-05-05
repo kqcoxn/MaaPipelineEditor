@@ -225,7 +225,7 @@ export async function collectNodeContext(
     // 获取完整节点 JSON
     let nodeJson: Record<string, any> = {};
     try {
-      const parsedNode = parsePipelineNodeForExport(precedingNode);
+      const parsedNode = parsePipelineNodeForExport(precedingNode, nodes);
       nodeJson = parsedNode || {};
     } catch (err) {
       console.warn("解析前置节点 JSON 失败:", err);
