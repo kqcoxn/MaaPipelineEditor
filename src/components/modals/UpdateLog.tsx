@@ -3,7 +3,6 @@ import {
   Card,
   Empty,
   Modal,
-  Segmented,
   Tag,
   Timeline,
   Typography,
@@ -29,7 +28,6 @@ interface UpdateLogProps {
   onClose: () => void;
 }
 
-type CategoryFilter = "all" | keyof UpdateCategory;
 type SelectedPanel =
   | { kind: "forecast" }
   | { kind: "version"; version: string };
@@ -51,14 +49,6 @@ const categoryConfig: Array<{
   { key: "features", label: "新功能" },
   { key: "perfs", label: "体验优化" },
   { key: "fixes", label: "问题修复" },
-];
-
-const categoryFilterOptions: Array<{
-  label: string;
-  value: CategoryFilter;
-}> = [
-  { label: "全部", value: "all" },
-  ...categoryConfig.map(({ key, label }) => ({ label, value: key })),
 ];
 
 const getUpdateItemCount = (updates: UpdateCategory) =>
@@ -202,21 +192,11 @@ const VersionTimeline = ({
 
 interface UpdateLogDetailsProps {
   log: UpdateLogItem;
-  categoryFilter: CategoryFilter;
-  onCategoryFilterChange: (filter: CategoryFilter) => void;
 }
 
-const UpdateLogDetails = ({
-  log,
-  categoryFilter,
-  onCategoryFilterChange,
-}: UpdateLogDetailsProps) => {
+const UpdateLogDetails = ({ log }: UpdateLogDetailsProps) => {
   const updateCount = getUpdateItemCount(log.updates);
   const visibleCategories = categoryConfig.filter(({ key }) => {
-    if (categoryFilter !== "all" && categoryFilter !== key) {
-      return false;
-    }
-
     const items = log.updates[key];
     return Boolean(items && items.length > 0);
   });
@@ -224,28 +204,16 @@ const UpdateLogDetails = ({
   return (
     <Card className={style.detailsCard}>
       <div className={style.detailsHeader}>
-        <div>
-          <div className={style.detailsVersionRow}>
-            <Title level={3} className={style.detailsTitle}>
-              v{log.version}
-            </Title>
-            <VersionTypeTag type={log.type} />
-          </div>
-          <Text type="secondary">{log.date}</Text>
+        <div className={style.detailsVersionRow}>
+          <Title level={3} className={style.detailsTitle}>
+            v{log.version}
+          </Title>
+          <VersionTypeTag type={log.type} />
         </div>
         <Text type="secondary" className={style.statText}>
-          共{updateCount}项更新
+          {log.date} / 共 {updateCount} 项更新
         </Text>
       </div>
-
-      <Segmented
-        className={style.categoryFilter}
-        aria-label="筛选更新分类"
-        options={categoryFilterOptions}
-        value={categoryFilter}
-        onChange={(value) => onCategoryFilterChange(value as CategoryFilter)}
-        block
-      />
 
       <div className={style.categoryList}>
         {visibleCategories.length > 0 ? (
@@ -274,13 +242,7 @@ const UpdateLogDetails = ({
         ) : (
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={
-              <span>
-                该版本没有此分类更新
-                <br />
-                可切换到“全部”查看完整更新内容。
-              </span>
-            }
+            description="该版本暂无更新内容"
             className={style.emptyState}
           />
         )}
@@ -357,12 +319,10 @@ const UpdateLog = ({ open, onClose }: UpdateLogProps) => {
     kind: "version",
     version: latestVersion,
   });
-  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
 
   useEffect(() => {
     if (open) {
       setSelectedPanel({ kind: "version", version: latestVersion });
-      setCategoryFilter("all");
     }
   }, [latestVersion, open]);
 
@@ -431,11 +391,7 @@ const UpdateLog = ({ open, onClose }: UpdateLogProps) => {
               longTermSection={longTermPreview}
             />
           ) : selectedLog ? (
-            <UpdateLogDetails
-              log={selectedLog}
-              categoryFilter={categoryFilter}
-              onCategoryFilterChange={setCategoryFilter}
-            />
+            <UpdateLogDetails log={selectedLog} />
           ) : (
             <Card className={style.detailsCard}>
               <Empty
