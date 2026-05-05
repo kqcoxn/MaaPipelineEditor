@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 5
+- **Total Sessions**: 6
 - **Last Active**: 2026-05-05
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~173 | Active |
+| `journal-1.md` | ~207 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 6 | 2026-05-05 | 完成更新日志详情区微调 | `fc178ce`, `4b7ea08` | `main` |
 | 5 | 2026-05-05 | Group coordinate runtime absolute focus contract | `4d4dc66` | `main` |
 | 4 | 2026-05-05 | Temporarily hide wiki entries for release | `dd3f7b6` | `main` |
 | 3 | 2026-05-04 | 资源体检面板与加载失败排查收尾 | `f287a57`, `2a9a71e` | `main` |
