@@ -138,3 +138,36 @@ Temporarily disabled all user-facing wiki entry points for a release by turning 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 5: Group coordinate runtime absolute focus contract
+
+**Date**: 2026-05-05
+**Task**: Group coordinate runtime absolute focus contract
+**Branch**: `main`
+
+### Summary
+
+Unified group coordinate handling around absolute business coordinates and React Flow runtime absolute position for grouped-child focus. Future grouped-node locate/focus/save-load changes should prefer shared coordinate helpers and runtime internal absolute position rather than raw child relative position.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4d4dc66` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
