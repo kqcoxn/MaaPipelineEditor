@@ -24,7 +24,7 @@ import IconFont from "./iconfonts";
 import UpdateLog from "./modals/UpdateLog";
 import { ConnectionPanel } from "./panels/main/ConnectionPanel";
 import { localServer } from "../services/server";
-import { useMFWStore } from "../stores/mfwStore";
+import { useMFWStore, type DeviceInfo } from "../stores/mfwStore";
 
 import { globalConfig } from "../stores/configStore";
 import { useTheme } from "../contexts/ThemeContext";
@@ -62,31 +62,11 @@ type ConnectionStatus = "connected" | "disconnected" | "connecting";
 
 const ConnectionButton: React.FC = () => {
   const { isEmbed } = useEmbedMode();
-
-  // 嵌入模式下显示 EmbedBridge，不可点击断开
-  if (isEmbed) {
-    return (
-      <Tooltip title="EmbedBridge 嵌入模式">
-        <Button
-          type="primary"
-          icon={<LinkOutlined />}
-          size="small"
-          style={{
-            borderRadius: "999px",
-            paddingLeft: "12px",
-            paddingRight: "12px",
-            cursor: "default",
-          }}
-        >
-          EmbedBridge
-        </Button>
-      </Tooltip>
-    );
-  }
-
   const [status, setStatus] = useState<ConnectionStatus>("disconnected");
 
   useEffect(() => {
+    if (isEmbed) return;
+
     // 初始化状态
     const updateStatus = () => {
       if (localServer.isConnected()) {
@@ -119,7 +99,28 @@ const ConnectionButton: React.FC = () => {
     return () => {
       clearInterval(interval);
     };
-  }, []);
+  }, [isEmbed]);
+
+  // 嵌入模式下显示 EmbedBridge，不可点击断开
+  if (isEmbed) {
+    return (
+      <Tooltip title="EmbedBridge 嵌入模式">
+        <Button
+          type="primary"
+          icon={<LinkOutlined />}
+          size="small"
+          style={{
+            borderRadius: "999px",
+            paddingLeft: "12px",
+            paddingRight: "12px",
+            cursor: "default",
+          }}
+        >
+          EmbedBridge
+        </Button>
+      </Tooltip>
+    );
+  }
 
   const handleClick = () => {
     if (status === "connected") {
@@ -177,6 +178,22 @@ const ConnectionButton: React.FC = () => {
   );
 };
 
+function getDeviceDisplayName(deviceInfo: NonNullable<DeviceInfo>) {
+  if ("name" in deviceInfo && deviceInfo.name) {
+    return deviceInfo.name;
+  }
+  if ("window_name" in deviceInfo && deviceInfo.window_name) {
+    return deviceInfo.window_name;
+  }
+  if ("address" in deviceInfo && deviceInfo.address) {
+    return deviceInfo.address;
+  }
+  if ("class_name" in deviceInfo && deviceInfo.class_name) {
+    return deviceInfo.class_name;
+  }
+  return "未知设备";
+}
+
 // 设备连接按钮
 const DeviceConnectionButton: React.FC<{ onOpenPanel: () => void }> = ({
   onOpenPanel,
@@ -186,12 +203,7 @@ const DeviceConnectionButton: React.FC<{ onOpenPanel: () => void }> = ({
   // 获取设备名称
   const getDeviceName = () => {
     if (!deviceInfo) return "未知设备";
-    const name =
-      (deviceInfo as any)?.name ||
-      (deviceInfo as any)?.window_name ||
-      (deviceInfo as any)?.address ||
-      (deviceInfo as any)?.class_name ||
-      "未知设备";
+    const name = getDeviceDisplayName(deviceInfo);
     return name.length > 15 ? name.substring(0, 15) + "..." : name;
   };
 
@@ -244,6 +256,7 @@ const DeviceConnectionButton: React.FC<{ onOpenPanel: () => void }> = ({
 
 function Header() {
   const { isDark, toggleTheme } = useTheme();
+  const { isEmbed } = useEmbedMode();
   const [updateLogOpen, setUpdateLogOpen] = useState(false);
   const [connectionPanelOpen, setConnectionPanelOpen] = useState(false);
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
@@ -288,13 +301,22 @@ function Header() {
   useEffect(() => {
     const lastVersion = localStorage.getItem("mpe_last_version");
     const currentVersion = globalConfig.version;
-    if (lastVersion !== currentVersion) {
-      setTimeout(() => {
+    if (lastVersion === currentVersion) return;
+
+    let openTimer: number | null = null;
+    if (!isEmbed) {
+      openTimer = window.setTimeout(() => {
         setUpdateLogOpen(true);
       }, 500);
-      localStorage.setItem("mpe_last_version", currentVersion);
     }
-  }, []);
+    localStorage.setItem("mpe_last_version", currentVersion);
+
+    return () => {
+      if (openTimer !== null) {
+        window.clearTimeout(openTimer);
+      }
+    };
+  }, [isEmbed]);
 
   // 检查新版本
   useEffect(() => {
