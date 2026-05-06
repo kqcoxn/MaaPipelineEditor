@@ -205,3 +205,36 @@ Unified group coordinate handling around absolute business coordinates and React
 ### Next Steps
 
 - None - task complete
+
+
+## Session 7: Suppress update log auto-open in embed mode
+
+**Date**: 2026-05-07
+**Task**: Suppress update log auto-open in embed mode
+**Branch**: `main`
+
+### Summary
+
+Disabled startup update-log auto-open in iframe/embed mode while keeping manual entry and normal mode behavior intact; cleaned Header.tsx hook order and local type safety; verified Header eslint and diff check, with repo-wide tsc still blocked by pre-existing errors.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `1f01e03` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
