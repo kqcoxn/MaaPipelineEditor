@@ -34,38 +34,6 @@ export default defineConfig(({ mode }) => {
             if (id.includes("@microlink/react-json-view")) {
               return "react-json-view";
             }
-            if (id.includes("node_modules")) {
-              if (
-                id.includes("/react/") ||
-                id.includes("/react-dom/") ||
-                id.includes("/scheduler/")
-              ) {
-                return "react-vendor";
-              }
-              if (
-                id.includes("antd") ||
-                id.includes("@ant-design") ||
-                id.includes("/rc-") ||
-                id.includes("@rc-component")
-              ) {
-                return "antd-vendor";
-              }
-              if (id.includes("@xyflow/react")) {
-                return "xyflow-vendor";
-              }
-              if (
-                id.includes("lodash") ||
-                id.includes("ahooks") ||
-                id.includes("classnames") ||
-                id.includes("elkjs") ||
-                id.includes("html-to-image") ||
-                id.includes("jsonc-parser") ||
-                id.includes("lz-string") ||
-                id.includes("zustand")
-              ) {
-                return "misc-vendor";
-              }
-            }
             return undefined;
           },
         },
