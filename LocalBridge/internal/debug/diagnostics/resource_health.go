@@ -1,6 +1,8 @@
 package diagnostics
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -33,10 +35,9 @@ type resourceHealthBundlePipelineFile struct {
 }
 
 type resourceHealthLoadCheckResult struct {
-	diagnostics               []protocol.Diagnostic
-	hash                      string
-	resolutions               []mfw.ResourceBundleResolution
-	shouldRunFailureChecklist bool
+	diagnostics []protocol.Diagnostic
+	hash        string
+	resolutions []mfw.ResourceBundleResolution
 }
 
 var resourceHealthLoadFailureChecklist = []func(*Service, resourceHealthChecklistContext) []protocol.Diagnostic{
@@ -56,25 +57,20 @@ func (s *Service) CheckResourceHealth(
 		CheckedAt:     startedAt.UTC().Format(time.RFC3339Nano),
 	}
 
+	resolutions, resourceDiagnostics := s.resolveResources(paths)
 	resolutionDiagnostics := annotateResourceHealthDiagnostics(
-		s.checkResources(paths),
+		resourceDiagnostics,
 		resourceHealthCategoryResolution,
 		resourceResolutionSuggestion,
 	)
 	loadResult := s.checkResourceLoadDiagnostics(
-		paths,
+		resolutions,
 		resolutionDiagnostics,
 	)
 	graphDiagnostics := s.checkGraphHealth(req)
 
 	result.Diagnostics = append(result.Diagnostics, resolutionDiagnostics...)
 	result.Diagnostics = append(result.Diagnostics, loadResult.diagnostics...)
-	if loadResult.shouldRunFailureChecklist {
-		result.Diagnostics = append(
-			result.Diagnostics,
-			s.runLoadFailureChecklist(loadResult.resolutions)...,
-		)
-	}
 	result.Diagnostics = append(result.Diagnostics, graphDiagnostics...)
 	result.DurationMS = time.Since(startedAt).Milliseconds()
 	if !HasBlockingDiagnostic(result.Diagnostics) {
@@ -85,11 +81,11 @@ func (s *Service) CheckResourceHealth(
 }
 
 func (s *Service) checkResourceLoadDiagnostics(
-	paths []string,
+	resolutions []mfw.ResourceBundleResolution,
 	resolutionDiagnostics []protocol.Diagnostic,
 ) resourceHealthLoadCheckResult {
 	switch {
-	case len(paths) == 0:
+	case len(resolutions) == 0:
 		return resourceHealthLoadCheckResult{
 			diagnostics: []protocol.Diagnostic{newResourceHealthDiagnostic(
 				resourceHealthCategoryLoading,
@@ -109,7 +105,7 @@ func (s *Service) checkResourceLoadDiagnostics(
 				"先修复资源路径解析错误，再重新体检。",
 			)},
 		}
-	case s.mfwService == nil || !s.mfwService.IsInitialized():
+	case s.resourceLoadAvailableFn == nil || !s.resourceLoadAvailableFn():
 		return resourceHealthLoadCheckResult{
 			diagnostics: []protocol.Diagnostic{newResourceHealthDiagnostic(
 				resourceHealthCategoryLoading,
@@ -121,34 +117,71 @@ func (s *Service) checkResourceLoadDiagnostics(
 		}
 	}
 
-	hash, resolutions, err := mfw.CheckResourceBundlesDetailed(paths)
+	loadDiagnostics := make([]protocol.Diagnostic, 0)
+	checkedResolutions := uniqueResourceHealthResolutions(resolutions)
+	hashes := make([]string, 0, len(checkedResolutions))
+	for _, resolution := range checkedResolutions {
+		single := s.checkSingleResourceLoadDiagnostics(resolution)
+		loadDiagnostics = append(loadDiagnostics, single.diagnostics...)
+		hashes = append(hashes, single.hash)
+	}
+	return resourceHealthLoadCheckResult{
+		diagnostics: loadDiagnostics,
+		hash:        aggregateResourceHealthHash(checkedResolutions, hashes),
+		resolutions: checkedResolutions,
+	}
+}
+
+func (s *Service) checkSingleResourceLoadDiagnostics(
+	resolution mfw.ResourceBundleResolution,
+) resourceHealthLoadCheckResult {
+	checker := s.resourceBundleChecker
+	if checker == nil {
+		checker = mfw.CheckResourceBundlesDetailed
+	}
+
+	hash, checkedResolutions, err := checker([]string{resolution.ResolvedPath})
 	if err != nil {
+		diagnostics := []protocol.Diagnostic{withResourceHealthMeta(protocol.Diagnostic{
+			Severity:   "error",
+			Code:       "debug.resource.load_failed",
+			Message:    err.Error(),
+			SourcePath: resolution.ResolvedPath,
+			Data: map[string]interface{}{
+				"bundlePath":   resolution.ResolvedPath,
+				"inputPath":    resolution.InputPath,
+				"inputAbsPath": resolution.InputAbsPath,
+				"resolvedPath": resolution.ResolvedPath,
+				"resolutions":  resourceHealthResolutionData(checkedResolutions),
+			},
+		}, resourceHealthCategoryLoading, "检查该 bundle 目录结构、Lib 目录与资源版本是否匹配后重新体检。")}
+		diagnostics = append(
+			diagnostics,
+			s.runLoadFailureChecklist([]mfw.ResourceBundleResolution{resolution})...,
+		)
 		return resourceHealthLoadCheckResult{
-			diagnostics: []protocol.Diagnostic{withResourceHealthMeta(protocol.Diagnostic{
-				Severity: "error",
-				Code:     "debug.resource.load_failed",
-				Message:  err.Error(),
-				Data: map[string]interface{}{
-					"resolutions": resourceHealthResolutionData(resolutions),
-				},
-			}, resourceHealthCategoryLoading, "检查 bundle 目录结构、Lib 目录与资源版本是否匹配后重新体检。")},
-			resolutions:               resolutions,
-			shouldRunFailureChecklist: true,
+			diagnostics: diagnostics,
+			resolutions: []mfw.ResourceBundleResolution{resolution},
 		}
 	}
 
 	return resourceHealthLoadCheckResult{
 		diagnostics: []protocol.Diagnostic{withResourceHealthMeta(protocol.Diagnostic{
-			Severity: "info",
-			Code:     "debug.resource.ready",
-			Message:  "MaaFW 已成功加载当前资源。",
+			Severity:   "info",
+			Code:       "debug.resource.ready",
+			Message:    "MaaFW 已成功加载该资源目录。",
+			SourcePath: resolution.ResolvedPath,
 			Data: map[string]interface{}{
-				"hash":        hash,
-				"resolutions": resourceHealthResolutionData(resolutions),
+				"bundlePath":   resolution.ResolvedPath,
+				"inputPath":    resolution.InputPath,
+				"inputAbsPath": resolution.InputAbsPath,
+				"resolvedPath": resolution.ResolvedPath,
+				"hash":         hash,
+				"resolutions":  resourceHealthResolutionData(checkedResolutions),
 			},
 		}, resourceHealthCategoryLoading, "")},
 		hash:        hash,
-		resolutions: resolutions,
+		resolutions: checkedResolutions,
 	}
 }
 
@@ -726,4 +759,43 @@ func resourceHealthResolutionData(
 		items = append(items, resolution.DiagnosticData())
 	}
 	return items
+}
+
+func uniqueResourceHealthResolutions(
+	resolutions []mfw.ResourceBundleResolution,
+) []mfw.ResourceBundleResolution {
+	if len(resolutions) == 0 {
+		return nil
+	}
+	unique := make([]mfw.ResourceBundleResolution, 0, len(resolutions))
+	seen := make(map[string]struct{}, len(resolutions))
+	for _, resolution := range resolutions {
+		key := resolvedPathKey(resolution.ResolvedPath)
+		if _, exists := seen[key]; exists {
+			continue
+		}
+		seen[key] = struct{}{}
+		unique = append(unique, resolution)
+	}
+	return unique
+}
+
+func aggregateResourceHealthHash(
+	resolutions []mfw.ResourceBundleResolution,
+	hashes []string,
+) string {
+	if len(resolutions) == 0 || len(hashes) == 0 || len(resolutions) != len(hashes) {
+		return ""
+	}
+	if len(hashes) == 1 {
+		return hashes[0]
+	}
+	hasher := sha256.New()
+	for index, resolution := range resolutions {
+		_, _ = hasher.Write([]byte(resolution.ResolvedPath))
+		_, _ = hasher.Write([]byte{0})
+		_, _ = hasher.Write([]byte(hashes[index]))
+		_, _ = hasher.Write([]byte{'\n'})
+	}
+	return hex.EncodeToString(hasher.Sum(nil))
 }

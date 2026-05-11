@@ -348,8 +348,11 @@ export const useDebugRunProfileStore = create<DebugRunProfileState>(
         })),
 
       buildRunRequest: (mode, targetNodeId, sessionId, input, overrides) => {
-        const bundle = buildDebugSnapshotBundle();
         const storeProfile = get().profile;
+        const bundle = buildDebugSnapshotBundle(
+          undefined,
+          storeProfile.resourcePaths,
+        );
         const mfwState = useMFWStore.getState();
         const target =
           targetNodeId !== undefined

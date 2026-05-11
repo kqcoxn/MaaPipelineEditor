@@ -128,20 +128,83 @@ func TestCheckResourceLoadDiagnostics_SkipsChecklistWhenLoadIsSkipped(t *testing
 	service := NewService(nil, "")
 	result := service.checkResourceLoadDiagnostics(nil, nil)
 
-	if result.shouldRunFailureChecklist {
-		t.Fatalf("shouldRunFailureChecklist = true, want false")
-	}
 	assertDiagnosticCode(t, result.diagnostics, "debug.resource.load_skipped")
 }
 
 func TestCheckResourceLoadDiagnostics_SkipsChecklistWhenMaaFWUnavailable(t *testing.T) {
 	service := NewService(nil, "")
-	result := service.checkResourceLoadDiagnostics([]string{"C:/bundle"}, nil)
+	result := service.checkResourceLoadDiagnostics([]mfw.ResourceBundleResolution{
+		{
+			InputPath:    "C:/bundle",
+			ResolvedPath: "C:/bundle",
+		},
+	}, nil)
 
-	if result.shouldRunFailureChecklist {
-		t.Fatalf("shouldRunFailureChecklist = true, want false")
-	}
 	assertDiagnosticCode(t, result.diagnostics, "debug.resource.load_unavailable")
+}
+
+func TestCheckResourceLoadDiagnostics_ChecksEachBundleIndependently(t *testing.T) {
+	service := NewService(nil, "")
+	service.resourceLoadAvailableFn = func() bool { return true }
+
+	var calledPaths []string
+	service.resourceBundleChecker = func(paths []string) (string, []mfw.ResourceBundleResolution, error) {
+		if len(paths) != 1 {
+			t.Fatalf("checker received %d paths, want 1", len(paths))
+		}
+		calledPaths = append(calledPaths, paths[0])
+		switch paths[0] {
+		case "bundle-a":
+			return "hash-a", []mfw.ResourceBundleResolution{{ResolvedPath: "bundle-a"}}, nil
+		case "bundle-b":
+			return "hash-b", []mfw.ResourceBundleResolution{{ResolvedPath: "bundle-b"}}, nil
+		default:
+			t.Fatalf("unexpected path %s", paths[0])
+		}
+		return "", nil, nil
+	}
+
+	result := service.checkResourceLoadDiagnostics([]mfw.ResourceBundleResolution{
+		{ResolvedPath: "bundle-a"},
+		{ResolvedPath: "bundle-b"},
+	}, nil)
+
+	if len(calledPaths) != 2 {
+		t.Fatalf("checker call count = %d, want 2", len(calledPaths))
+	}
+	if calledPaths[0] != "bundle-a" || calledPaths[1] != "bundle-b" {
+		t.Fatalf("checker calls = %v, want [bundle-a bundle-b]", calledPaths)
+	}
+	assertDiagnosticCode(t, result.diagnostics, "debug.resource.ready")
+	if result.hash == "" {
+		t.Fatal("hash is empty, want aggregate hash")
+	}
+}
+
+func TestCheckResourceLoadDiagnostics_DeduplicatesResolvedBundles(t *testing.T) {
+	service := NewService(nil, "")
+	service.resourceLoadAvailableFn = func() bool { return true }
+
+	callCount := 0
+	service.resourceBundleChecker = func(paths []string) (string, []mfw.ResourceBundleResolution, error) {
+		callCount++
+		if len(paths) != 1 {
+			t.Fatalf("checker received %d paths, want 1", len(paths))
+		}
+		return "hash-a", []mfw.ResourceBundleResolution{{ResolvedPath: "bundle-a"}}, nil
+	}
+
+	result := service.checkResourceLoadDiagnostics([]mfw.ResourceBundleResolution{
+		{ResolvedPath: "bundle-a"},
+		{ResolvedPath: "bundle-a"},
+	}, nil)
+
+	if callCount != 1 {
+		t.Fatalf("checker call count = %d, want 1", callCount)
+	}
+	if len(result.resolutions) != 1 {
+		t.Fatalf("resolution count = %d, want 1", len(result.resolutions))
+	}
 }
 
 func TestRunLoadFailureChecklist_DetectsPipelineJSONErrorsFromResolvedBundle(t *testing.T) {

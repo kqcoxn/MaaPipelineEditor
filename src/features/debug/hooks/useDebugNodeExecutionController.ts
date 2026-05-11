@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDebugOverlayStore } from "../../../stores/debugOverlayStore";
 import type { NodeType } from "../../../stores/flow";
 import { useLocalFileStore } from "../../../stores/localFileStore";
+import { useDebugRunProfileStore } from "../../../stores/debugRunProfileStore";
 import { applyDebugNodeTarget } from "../nodeTargetActions";
 import { allDebugNodeExecutionAttempts } from "../nodeExecutionAttempts";
 import {
@@ -54,12 +55,15 @@ export function useDebugNodeExecutionController({
   const [selectedRunTargetNodeIdState, setSelectedRunTargetNodeId] =
     useState<string>();
   const localFiles = useLocalFileStore((state) => state.files);
+  const resourcePaths = useDebugRunProfileStore(
+    (state) => state.profile.resourcePaths,
+  );
   const flowNodeIds = useMemo(
     () => new Set(flowNodes.map((node) => node.id)),
     [flowNodes],
   );
   const debugResolver = useMemo(() => {
-    const bundle = buildDebugSnapshotBundle(localFiles);
+    const bundle = buildDebugSnapshotBundle(localFiles, resourcePaths);
     return {
       edges: bundle.resolverSnapshot.edges,
       nodes: bundle.resolverSnapshot.nodes.filter((node) =>
@@ -67,7 +71,7 @@ export function useDebugNodeExecutionController({
       ),
       allNodes: bundle.resolverSnapshot.nodes,
     };
-  }, [flowNodeIds, localFiles]);
+  }, [flowNodeIds, localFiles, resourcePaths]);
   const resolverEdges = debugResolver.edges;
   const resolverEdgeIndex = useMemo(
     () => createDebugResolverEdgeIndex(resolverEdges),

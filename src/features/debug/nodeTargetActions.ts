@@ -27,7 +27,10 @@ export function getDebugNodeTarget(
 ): DebugNodeTarget | undefined {
   if (!nodeId) return undefined;
 
-  const bundle = buildDebugSnapshotBundle();
+  const bundle = buildDebugSnapshotBundle(
+    undefined,
+    useDebugRunProfileStore.getState().profile.resourcePaths,
+  );
   return resolveDebugNodeTarget(nodeId, bundle.resolverSnapshot);
 }
 

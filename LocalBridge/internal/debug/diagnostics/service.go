@@ -11,15 +11,22 @@ import (
 )
 
 type Service struct {
-	mfwService *mfw.Service
-	root       string
+	mfwService              *mfw.Service
+	root                    string
+	resourceBundleChecker   func(paths []string) (string, []mfw.ResourceBundleResolution, error)
+	resourceLoadAvailableFn func() bool
 }
 
 func NewService(mfwService *mfw.Service, root string) *Service {
-	return &Service{
+	service := &Service{
 		mfwService: mfwService,
 		root:       root,
 	}
+	service.resourceBundleChecker = mfw.CheckResourceBundlesDetailed
+	service.resourceLoadAvailableFn = func() bool {
+		return mfwService != nil && mfwService.IsInitialized()
+	}
+	return service
 }
 
 func (s *Service) CheckRun(req protocol.RunRequest) []protocol.Diagnostic {
@@ -50,16 +57,22 @@ func FirstError(diagnostics []protocol.Diagnostic) error {
 }
 
 func (s *Service) checkResources(paths []string) []protocol.Diagnostic {
+	_, diagnostics := s.resolveResources(paths)
+	return diagnostics
+}
+
+func (s *Service) resolveResources(paths []string) ([]mfw.ResourceBundleResolution, []protocol.Diagnostic) {
 	result := make([]protocol.Diagnostic, 0)
 	resourcePaths := runutil.NonEmptyResourcePaths(paths)
 	if len(resourcePaths) == 0 {
-		return []protocol.Diagnostic{{
+		return nil, []protocol.Diagnostic{{
 			Severity: "error",
 			Code:     "debug.resource.empty",
 			Message:  "profile.resourcePaths 不能为空",
 		}}
 	}
 
+	resolutions := make([]mfw.ResourceBundleResolution, 0, len(resourcePaths))
 	seen := make(map[string]int, len(resourcePaths))
 	for index, resourcePath := range resourcePaths {
 		resolution, err := mfw.ResolveResourceBundlePath(resourcePath)
@@ -68,6 +81,7 @@ func (s *Service) checkResources(paths []string) []protocol.Diagnostic {
 			continue
 		}
 
+		resolutions = append(resolutions, resolution)
 		result = append(result, BuildResourceResolutionDiagnostic(index, resolution))
 
 		key := resolvedPathKey(resolution.ResolvedPath)
@@ -86,7 +100,7 @@ func (s *Service) checkResources(paths []string) []protocol.Diagnostic {
 		}
 		seen[key] = index
 	}
-	return result
+	return resolutions, result
 }
 
 func (s *Service) checkTarget(req protocol.RunRequest) []protocol.Diagnostic {

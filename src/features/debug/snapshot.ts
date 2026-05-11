@@ -35,6 +35,9 @@ export interface DebugSnapshotBundle {
   resolverSnapshot: DebugNodeResolverSnapshot;
 }
 
+type ResolverNode = DebugNodeResolverSnapshot["nodes"][number];
+type ResolverEdge = DebugNodeResolverSnapshot["edges"][number];
+
 export function getRuntimeName(label: string, prefix?: string): string {
   const normalizedPrefix = prefix?.trim();
   return normalizedPrefix ? `${normalizedPrefix}_${label}` : label;
@@ -105,7 +108,8 @@ function displayNameFromRuntimeName(runtimeName: string, prefix?: string): strin
 }
 
 export function buildDebugSnapshotBundle(
-  localFiles: LocalFileInfo[] = useLocalFileStore.getState().files,
+  localFiles: LocalFileInfo[] | undefined = useLocalFileStore.getState().files,
+  resourcePaths: string[] = [],
 ): DebugSnapshotBundle {
   const generatedAt = new Date().toISOString();
   const fileState = useFileStore.getState();
@@ -166,6 +170,7 @@ export function buildDebugSnapshotBundle(
           fromRuntimeName: getNodeRuntimeName(sourceNode, file.prefix),
           toRuntimeName: getNodeRuntimeName(targetNode, file.prefix),
           reason: getEdgeReason(edge),
+          sourcePath: file.path,
         };
       })
       .filter((edge): edge is NonNullable<typeof edge> => Boolean(edge)),
@@ -187,14 +192,132 @@ export function buildDebugSnapshotBundle(
   const resolverSnapshot: DebugNodeResolverSnapshot = {
     generatedAt,
     rootFileId,
-    nodes: [...resolverNodes, ...localResolverNodes],
-    edges: resolverEdges,
+    nodes: selectEffectiveResolverNodes(
+      [...resolverNodes, ...localResolverNodes],
+      resourcePaths,
+    ),
+    edges: selectEffectiveResolverEdges(resolverEdges, resourcePaths),
   };
 
   return {
     graphSnapshot,
     resolverSnapshot,
   };
+}
+
+export function selectEffectiveResolverNodes(
+  nodes: ResolverNode[],
+  resourcePaths: string[] = [],
+): ResolverNode[] {
+  const effective = new Map<string, { node: ResolverNode; order: number }>();
+
+  nodes.forEach((node, order) => {
+    const runtimeName = node.runtimeName.trim();
+    if (!runtimeName) return;
+    const key = runtimeName.toLowerCase();
+    const current = effective.get(key);
+    if (
+      !current ||
+      shouldPreferResolverSource(
+        current.node.sourcePath,
+        node.sourcePath,
+        resourcePaths,
+        current.order,
+        order,
+      )
+    ) {
+      effective.set(key, { node, order });
+    }
+  });
+
+  return [...effective.values()]
+    .sort((left, right) => left.order - right.order)
+    .map((entry) => entry.node);
+}
+
+export function selectEffectiveResolverEdges(
+  edges: ResolverEdge[],
+  resourcePaths: string[] = [],
+): ResolverEdge[] {
+  const effective = new Map<string, { edge: ResolverEdge; order: number }>();
+
+  edges.forEach((edge, order) => {
+    const key = [
+      edge.fromRuntimeName.trim().toLowerCase(),
+      edge.toRuntimeName.trim().toLowerCase(),
+      edge.reason,
+    ].join("\x00");
+    const current = effective.get(key);
+    if (
+      !current ||
+      shouldPreferResolverSource(
+        current.edge.sourcePath,
+        edge.sourcePath,
+        resourcePaths,
+        current.order,
+        order,
+      )
+    ) {
+      effective.set(key, { edge, order });
+    }
+  });
+
+  return [...effective.values()]
+    .sort((left, right) => left.order - right.order)
+    .map((entry) => entry.edge);
+}
+
+function shouldPreferResolverSource(
+  currentSourcePath: string | undefined,
+  nextSourcePath: string | undefined,
+  resourcePaths: string[],
+  currentOrder: number,
+  nextOrder: number,
+): boolean {
+  const currentPriority = resolveResolverSourcePriority(
+    currentSourcePath,
+    resourcePaths,
+  );
+  const nextPriority = resolveResolverSourcePriority(nextSourcePath, resourcePaths);
+  if (currentPriority !== nextPriority) {
+    return nextPriority > currentPriority;
+  }
+  return nextOrder > currentOrder;
+}
+
+function resolveResolverSourcePriority(
+  sourcePath: string | undefined,
+  resourcePaths: string[],
+): number {
+  const normalizedSourcePath = normalizeResolverPath(sourcePath);
+  if (!normalizedSourcePath) {
+    return -1;
+  }
+
+  let matchedIndex = -1;
+  let matchedLength = -1;
+  resourcePaths.forEach((resourcePath, index) => {
+    const normalizedResourcePath = normalizeResolverPath(resourcePath);
+    if (!normalizedResourcePath) {
+      return;
+    }
+    const isExactMatch = normalizedSourcePath === normalizedResourcePath;
+    const isChildMatch = normalizedSourcePath.startsWith(
+      `${normalizedResourcePath}/`,
+    );
+    if (!isExactMatch && !isChildMatch) {
+      return;
+    }
+    if (normalizedResourcePath.length > matchedLength) {
+      matchedIndex = index;
+      matchedLength = normalizedResourcePath.length;
+    }
+  });
+  return matchedIndex;
+}
+
+function normalizeResolverPath(path?: string): string {
+  return path?.trim().replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase() ?? "";
 }
 
 export function resolveDebugNodeTarget(

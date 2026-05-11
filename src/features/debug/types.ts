@@ -233,6 +233,7 @@ export interface DebugNodeResolverSnapshot {
     fromRuntimeName: string;
     toRuntimeName: string;
     reason: Exclude<DebugEdgeReason, "candidate">;
+    sourcePath?: string;
   }>;
 }
 
