@@ -18,6 +18,59 @@ export default defineConfig(({ mode }) => {
       port: 3000,
     },
     plugins: [react()],
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (
+              id.includes("monaco-editor") ||
+              id.includes("@monaco-editor/react")
+            ) {
+              return "monaco-editor";
+            }
+            if (id.includes("tesseract.js")) {
+              return "tesseract";
+            }
+            if (id.includes("@microlink/react-json-view")) {
+              return "react-json-view";
+            }
+            if (id.includes("node_modules")) {
+              if (
+                id.includes("/react/") ||
+                id.includes("/react-dom/") ||
+                id.includes("/scheduler/")
+              ) {
+                return "react-vendor";
+              }
+              if (
+                id.includes("antd") ||
+                id.includes("@ant-design") ||
+                id.includes("/rc-") ||
+                id.includes("@rc-component")
+              ) {
+                return "antd-vendor";
+              }
+              if (id.includes("@xyflow/react")) {
+                return "xyflow-vendor";
+              }
+              if (
+                id.includes("lodash") ||
+                id.includes("ahooks") ||
+                id.includes("classnames") ||
+                id.includes("elkjs") ||
+                id.includes("html-to-image") ||
+                id.includes("jsonc-parser") ||
+                id.includes("lz-string") ||
+                id.includes("zustand")
+              ) {
+                return "misc-vendor";
+              }
+            }
+            return undefined;
+          },
+        },
+      },
+    },
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),

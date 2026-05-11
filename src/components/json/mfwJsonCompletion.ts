@@ -1,5 +1,5 @@
 import { findNodeAtOffset, parseTree, type Node } from "jsonc-parser";
-import { languages, type editor } from "monaco-editor";
+import type { editor } from "monaco-editor";
 import {
   recoFields,
   actionFields,
@@ -7,6 +7,9 @@ import {
   recoParamKeys,
   actionParamKeys,
 } from "../../core/fields";
+
+type MonacoModule = typeof import("monaco-editor");
+type MonacoLanguages = MonacoModule["languages"];
 
 interface Position {
   lineNumber: number;
@@ -178,11 +181,11 @@ function createNodeNameFieldSuggestions(
   nodeNames: MfwJsonNodeNameSuggestion[],
   currentInput: string,
   position: Position,
-): languages.CompletionItem[] {
+): MonacoLanguages.CompletionItem[] {
   const range = createCompletionRange(position, currentInput);
   return nodeNames.map((item) => ({
     label: item.label,
-    kind: languages.CompletionItemKind.Field,
+    kind: MonacoLanguages.CompletionItemKind.Field,
     insertText: item.insertText ?? item.label,
     detail: item.detail ?? "运行时节点名",
     documentation: item.documentation,
@@ -195,11 +198,11 @@ function createNodeNameValueSuggestions(
   nodeNames: MfwJsonNodeNameSuggestion[],
   currentInput: string,
   position: Position,
-): languages.CompletionItem[] {
+): MonacoLanguages.CompletionItem[] {
   const range = createCompletionRange(position, currentInput);
   return nodeNames.map((item) => ({
     label: item.label,
-    kind: languages.CompletionItemKind.Value,
+    kind: MonacoLanguages.CompletionItemKind.Value,
     insertText: item.insertText ?? item.label,
     detail: item.detail ?? "运行时节点名",
     documentation: item.documentation,
@@ -209,9 +212,9 @@ function createNodeNameValueSuggestions(
 }
 
 function mergeSuggestions(
-  ...groups: languages.CompletionItem[][]
-): languages.CompletionItem[] {
-  const merged = new Map<string, languages.CompletionItem>();
+  ...groups: MonacoLanguages.CompletionItem[][]
+): MonacoLanguages.CompletionItem[] {
+  const merged = new Map<string, MonacoLanguages.CompletionItem>();
   for (const group of groups) {
     for (const item of group) {
       const key = `${item.kind}:${String(item.label)}`;
@@ -249,10 +252,13 @@ function isNodeReferenceValueContext(
   return propertyKey === "next" || propertyKey === "on_error";
 }
 
-export function createMfwCompletionProvider(): languages.CompletionItemProvider {
+export function createMfwCompletionProvider(): MonacoLanguages.CompletionItemProvider {
   return {
     triggerCharacters: ['"', "'"],
-    provideCompletionItems: (model, position): languages.CompletionList => {
+    provideCompletionItems: (
+      model,
+      position,
+    ): MonacoLanguages.CompletionList => {
       const lineContent = model.getLineContent(position.lineNumber);
       const textUntilPosition = lineContent.substring(0, position.column - 1);
       const match = textUntilPosition.match(/["']([^"']*)$/);
@@ -264,10 +270,11 @@ export function createMfwCompletionProvider(): languages.CompletionItemProvider 
         checkPropertyValueContext(model, position);
 
       if (isInRecognitionValue) {
-        const suggestions: languages.CompletionItem[] = getRecognitionTypes().map(
+        const suggestions: MonacoLanguages.CompletionItem[] =
+          getRecognitionTypes().map(
           (type) => ({
             label: type,
-            kind: languages.CompletionItemKind.Value,
+            kind: MonacoLanguages.CompletionItemKind.Value,
             insertText: type,
             detail: `识别类型: ${recoFields[type]?.desc?.split("。")[0] || ""}`,
             documentation: recoFields[type]?.desc || "",
@@ -281,10 +288,11 @@ export function createMfwCompletionProvider(): languages.CompletionItemProvider 
       }
 
       if (isInActionValue) {
-        const suggestions: languages.CompletionItem[] = getActionTypes().map(
+        const suggestions: MonacoLanguages.CompletionItem[] =
+          getActionTypes().map(
           (type) => ({
             label: type,
-            kind: languages.CompletionItemKind.Value,
+            kind: MonacoLanguages.CompletionItemKind.Value,
             insertText: type,
             detail: `动作类型: ${actionFields[type]?.desc?.split("。")[0] || ""}`,
             documentation: actionFields[type]?.desc || "",
@@ -342,11 +350,12 @@ export function createMfwCompletionProvider(): languages.CompletionItemProvider 
         });
       }
 
-      const suggestions: languages.CompletionItem[] = Array.from(fieldKeys)
+      const suggestions: MonacoLanguages.CompletionItem[] =
+        Array.from(fieldKeys)
         .sort()
         .map((key) => ({
           label: key,
-          kind: languages.CompletionItemKind.Field,
+          kind: MonacoLanguages.CompletionItemKind.Field,
           insertText: key,
           detail: "MaaFramework 字段",
           sortText: key.startsWith(currentInput) ? `0${key}` : `1${key}`,

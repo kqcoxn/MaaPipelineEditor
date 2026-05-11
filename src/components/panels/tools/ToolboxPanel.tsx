@@ -1,19 +1,42 @@
-import { memo, useState, useCallback } from "react";
+import { memo, lazy, Suspense, useState, useCallback } from "react";
 import { message, Tooltip, Button } from "antd";
 import { CopyOutlined } from "@ant-design/icons";
 import IconFont from "../../iconfonts";
 import { type IconNames } from "../../iconfonts";
 import { useMFWStore } from "../../../stores/mfwStore";
-import {
-  ROIModal,
-  ROIOffsetModal,
-  OCRModal,
-  TemplateModal,
-  ColorModal,
-  DeltaModal,
-} from "../../modals";
 import { WikiContextHint } from "../../../features/wiki/components/WikiContextHint";
 import style from "../../../styles/panels/ToolboxPanel.module.less";
+
+const ROIModal = lazy(() =>
+  import("../../modals/ROIModal").then((module) => ({
+    default: module.ROIModal,
+  })),
+);
+const ROIOffsetModal = lazy(() =>
+  import("../../modals/ROIOffsetModal").then((module) => ({
+    default: module.ROIOffsetModal,
+  })),
+);
+const OCRModal = lazy(() =>
+  import("../../modals/OCRModal").then((module) => ({
+    default: module.OCRModal,
+  })),
+);
+const TemplateModal = lazy(() =>
+  import("../../modals/TemplateModal").then((module) => ({
+    default: module.TemplateModal,
+  })),
+);
+const ColorModal = lazy(() =>
+  import("../../modals/ColorModal").then((module) => ({
+    default: module.ColorModal,
+  })),
+);
+const DeltaModal = lazy(() =>
+  import("../../modals/DeltaModal").then((module) => ({
+    default: module.DeltaModal,
+  })),
+);
 
 // 工具配置类型
 interface ToolConfig {
@@ -461,37 +484,61 @@ function ToolboxPanel() {
       {renderResultPreview()}
 
       {/* Modals */}
-      <OCRModal
-        open={ocrModalOpen}
-        onClose={() => setOcrModalOpen(false)}
-        onConfirm={handleOCRConfirm}
-      />
-      <TemplateModal
-        open={templateModalOpen}
-        onClose={() => setTemplateModalOpen(false)}
-        onConfirm={handleTemplateConfirm}
-      />
-      <ColorModal
-        open={colorModalOpen}
-        onClose={() => setColorModalOpen(false)}
-        onConfirm={handleColorConfirm}
-      />
-      <ROIModal
-        open={roiModalOpen}
-        onClose={() => setRoiModalOpen(false)}
-        onConfirm={handleROIConfirm}
-      />
-      <ROIOffsetModal
-        open={roiOffsetModalOpen}
-        onClose={() => setRoiOffsetModalOpen(false)}
-        onConfirm={handleROIOffsetConfirm}
-      />
-      <DeltaModal
-        open={deltaModalOpen}
-        onClose={() => setDeltaModalOpen(false)}
-        onConfirm={handleDeltaConfirm}
-        initialMode="dx"
-      />
+      {ocrModalOpen && (
+        <Suspense fallback={null}>
+          <OCRModal
+            open={ocrModalOpen}
+            onClose={() => setOcrModalOpen(false)}
+            onConfirm={handleOCRConfirm}
+          />
+        </Suspense>
+      )}
+      {templateModalOpen && (
+        <Suspense fallback={null}>
+          <TemplateModal
+            open={templateModalOpen}
+            onClose={() => setTemplateModalOpen(false)}
+            onConfirm={handleTemplateConfirm}
+          />
+        </Suspense>
+      )}
+      {colorModalOpen && (
+        <Suspense fallback={null}>
+          <ColorModal
+            open={colorModalOpen}
+            onClose={() => setColorModalOpen(false)}
+            onConfirm={handleColorConfirm}
+          />
+        </Suspense>
+      )}
+      {roiModalOpen && (
+        <Suspense fallback={null}>
+          <ROIModal
+            open={roiModalOpen}
+            onClose={() => setRoiModalOpen(false)}
+            onConfirm={handleROIConfirm}
+          />
+        </Suspense>
+      )}
+      {roiOffsetModalOpen && (
+        <Suspense fallback={null}>
+          <ROIOffsetModal
+            open={roiOffsetModalOpen}
+            onClose={() => setRoiOffsetModalOpen(false)}
+            onConfirm={handleROIOffsetConfirm}
+          />
+        </Suspense>
+      )}
+      {deltaModalOpen && (
+        <Suspense fallback={null}>
+          <DeltaModal
+            open={deltaModalOpen}
+            onClose={() => setDeltaModalOpen(false)}
+            onConfirm={handleDeltaConfirm}
+            initialMode="dx"
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

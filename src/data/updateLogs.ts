@@ -106,17 +106,14 @@ export const nextPreview: ForecastSection = {
 };
 
 export const updateLogs: UpdateLogItem[] = [
-  // {
-  //   version: "1.6.0",
-  //   date: "2026-5",
-  //   type: "major",
-  //   updates: {
-  //     // features: [
-  //     //   "🤔 俺寻思集成 wiki 模块上线！可在任意相关位置长按 W 查看内置教程",
-  //     // ],
-  //     fixes: ["修复定位组内节点时会偏移的问题"],
-  //   },
-  // },
+  {
+    version: "1.5.4",
+    date: "2026-5",
+    type: "perf",
+    updates: {
+      perfs: ["优化前端加载速度"],
+    },
+  },
   {
     version: "1.5.3",
     date: "2026-5-11",

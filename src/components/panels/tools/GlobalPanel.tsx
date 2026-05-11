@@ -1,4 +1,4 @@
-import { memo, useMemo, useState } from "react";
+import { memo, lazy, Suspense, useMemo, useState } from "react";
 import { message, Tooltip, Popover } from "antd";
 import classNames from "classnames";
 import IconFont from "../../iconfonts";
@@ -10,8 +10,9 @@ import { useDebugSessionStore } from "../../../stores/debugSessionStore";
 import { useWikiStore } from "../../../stores/wikiStore";
 import { isWikiModuleVisible } from "../../../wiki/visibility";
 import PathSelector from "./PathSelector";
-import ToolboxPanel from "./ToolboxPanel";
 import style from "../../../styles/panels/ToolPanel.module.less";
+
+const ToolboxPanel = lazy(() => import("./ToolboxPanel"));
 
 /** 全局工具 */
 type GlobalToolType = {
@@ -233,7 +234,11 @@ function GlobalPanel() {
             <Popover
               placement="bottom"
               title="工具箱"
-              content={<ToolboxPanel />}
+              content={
+                <Suspense fallback={null}>
+                  <ToolboxPanel />
+                </Suspense>
+              }
               trigger="click"
             >
               <Tooltip placement="bottom" title="工具箱">

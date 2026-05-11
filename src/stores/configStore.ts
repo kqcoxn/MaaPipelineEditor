@@ -6,8 +6,8 @@ import { encryptApiKey } from "../utils/ai/crypto";
 /**固有配置 */
 export const globalConfig = {
   dev: true,
-  version: `1.5.3`,
-  betaIteration: 2,
+  version: `1.5.4`,
+  betaIteration: 1,
   mfwVersion: "5.10.4",
   protocolVersion: "1.0.3",
 };

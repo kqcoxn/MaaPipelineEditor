@@ -1,6 +1,6 @@
 import style from "./styles/layout/App.module.less";
 
-import { memo, useCallback, useEffect, useState } from "react";
+import { memo, Suspense, lazy, useCallback, useEffect, useState } from "react";
 import {
   Flex,
   Layout,
@@ -22,7 +22,6 @@ import { localServer } from "./services/server";
 import Header from "./components/Header";
 import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
 import MainFlow from "./components/Flow";
-import JsonViewer from "./components/JsonViewer";
 import FieldPanel from "./components/panels/main/FieldPanel";
 import EdgePanel from "./components/panels/main/EdgePanel";
 import LiveScreenPanel from "./components/panels/main/LiveScreenPanel";
@@ -36,7 +35,6 @@ import { LocalFileListPanel } from "./components/panels/main/LocalFileListPanel"
 import ErrorPanel from "./components/panels/main/ErrorPanel";
 import ToolbarPanel from "./components/panels/main/ToolbarPanel";
 import { LoggerPanel } from "./components/panels/tools/LoggerPanel";
-import { DebugModal } from "./components/debug/DebugModal";
 import { WikiModal } from "./features/wiki/components/WikiModal";
 import {
   ExplorationFAB,
@@ -75,6 +73,13 @@ import { useEmbedStore } from "./stores/embedStore";
 import { useEmbedMode } from "./hooks/useEmbedMode";
 import { useEmbedChangeNotifier } from "./hooks/useEmbedChangeNotifier";
 import { useFlowStore } from "./stores/flow";
+
+const JsonViewer = lazy(() => import("./components/JsonViewer"));
+const DebugModal = lazy(() =>
+  import("./components/debug/DebugModal").then((module) => ({
+    default: module.DebugModal,
+  })),
+);
 
 // 轮询提醒
 let isShowStarRemind = false;
@@ -544,7 +549,11 @@ function App() {
             <div className={style.workspace}>
               {showToolbar && <ToolbarPanel />}
               <MainFlow />
-              {showPanel("json") && <JsonViewer />}
+              {showPanel("json") && (
+                <Suspense fallback={null}>
+                  <JsonViewer />
+                </Suspense>
+              )}
               {showPanel("liveScreen") && <LiveScreenPanel />}
               {showPanel("field") && <FieldPanel />}
               {showPanel("edge") && <EdgePanel />}
@@ -576,7 +585,9 @@ function App() {
           </Content>
         </Layout>
       </Flex>
-      <DebugModal />
+      <Suspense fallback={null}>
+        <DebugModal />
+      </Suspense>
       {isWikiModuleVisible && <WikiModal />}
       <GlobalListener />
     </ThemeProvider>

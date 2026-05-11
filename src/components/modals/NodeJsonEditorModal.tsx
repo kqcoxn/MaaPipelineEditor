@@ -6,7 +6,6 @@ import {
   CloseOutlined,
 } from "@ant-design/icons";
 import { memo, useState, useCallback, useEffect } from "react";
-import Editor from "@monaco-editor/react";
 import type { NodeType } from "../../stores/flow/types";
 import { useFlowStore } from "../../stores/flow";
 import { NodeTypeEnum } from "../flow/nodes";
@@ -21,6 +20,7 @@ import {
   createMfwJsonEditorOptions,
   ensureMfwJsonCompletionProvider,
 } from "../json/mfwJsonCompletion";
+import { MfwJsonEditor } from "../json/MfwJsonEditor";
 
 interface NodeJsonEditorModalProps {
   open: boolean;
@@ -211,7 +211,7 @@ export const NodeJsonEditorModal = memo(
             }}
             onContextMenu={(e) => e.preventDefault()}
           >
-            <Editor
+            <MfwJsonEditor
               height={600}
               language="json"
               value={jsonValue}

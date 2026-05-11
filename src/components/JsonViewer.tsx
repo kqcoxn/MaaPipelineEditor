@@ -21,12 +21,12 @@ import {
 } from "@ant-design/icons";
 
 import { usePanelOccupancy } from "../hooks/usePanelOccupancy";
+import { flowToPipeline } from "../core/parser/exporter";
 import {
-  flowToPipeline,
   configMark,
   configMarkPrefix,
   externalMarkPrefix,
-} from "../core/parser";
+} from "../core/parser/types";
 
 function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

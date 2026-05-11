@@ -15,7 +15,6 @@ import {
   ReloadOutlined,
   StopOutlined,
 } from "@ant-design/icons";
-import Editor from "@monaco-editor/react";
 import type { editor as MonacoEditor } from "monaco-editor";
 import { DebugSection } from "../DebugSection";
 import type { DebugModalController } from "../../hooks/useDebugModalController";
@@ -35,6 +34,7 @@ import {
   ensureMfwJsonCompletionProvider,
   setMfwJsonCompletionContext,
 } from "../../../../components/json/mfwJsonCompletion";
+import { MfwJsonEditor } from "../../../../components/json/MfwJsonEditor";
 
 const { Text } = Typography;
 
@@ -566,7 +566,7 @@ export function OverviewPanel({
             </Space>
           </div>
           <div style={overrideEditorContainerStyle}>
-            <Editor
+            <MfwJsonEditor
               height={260}
               language="json"
               value={overrideDraft}
