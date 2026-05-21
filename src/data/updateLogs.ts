@@ -111,7 +111,11 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2026-5",
     type: "perf",
     updates: {
-      perfs: ["优化前端加载速度"],
+      perfs: [
+        "优化前端加载速度",
+        "路径读取支持任意平台正反斜杠混用",
+        "调试事件线 trace 支持毫秒级时间戳",
+      ],
       fixes: [
         "修复调试模块点击 JSON 查看时错误出现图片的问题",
         "修复多资源加载会导致预期外的重名节点提示问题",
