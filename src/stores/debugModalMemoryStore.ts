@@ -58,7 +58,7 @@ const defaultMemory: DebugModalMemorySnapshot = {
   autoOpenOnRunFinish: true,
   autoOpenPanelOnRunFinish: "last-closed",
   nodeExecutionFilters: DEFAULT_DEBUG_NODE_EXECUTION_FILTERS,
-  nodeExecutionAttributionMode: "node",
+  nodeExecutionAttributionMode: "next",
   nodeExecutionDetailMode: "compact",
 };
 

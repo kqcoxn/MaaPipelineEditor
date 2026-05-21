@@ -112,6 +112,10 @@ export const updateLogs: UpdateLogItem[] = [
     type: "perf",
     updates: {
       perfs: ["优化前端加载速度"],
+      fixes: [
+        "修复调试模块点击 JSON 查看时错误出现图片的问题",
+        "修复多资源加载会导致预期外的重名节点提示问题",
+      ],
     },
   },
   {

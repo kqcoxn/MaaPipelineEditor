@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Button, Checkbox, Empty, Input, Segmented, Select, Space, Tag, Typography } from "antd";
 import {
   AimOutlined,
@@ -184,6 +184,20 @@ export function NodeExecutionPanel({
       (record) => record.id === selectedNodeExecutionRecordId,
     ) ?? visibleRecords[0];
 
+  const userSelectedArtifactRef = useRef(false);
+
+  const userRequestArtifact = useCallback(
+    (artifactId: string) => {
+      userSelectedArtifactRef.current = true;
+      requestArtifact(artifactId);
+    },
+    [requestArtifact],
+  );
+
+  useEffect(() => {
+    userSelectedArtifactRef.current = false;
+  }, [selectedNodeExecutionAttemptId, selectedRecord]);
+
   useEffect(() => {
     if (!selectedRecord) {
       if (selectedNodeExecutionRecordId) {
@@ -203,6 +217,7 @@ export function NodeExecutionPanel({
   ]);
 
   useEffect(() => {
+    if (userSelectedArtifactRef.current) return;
     const selectedAttempt = selectedRecord
       ? selectDebugNodeExecutionAttemptForDetailMode(
           selectedRecord,
@@ -467,7 +482,7 @@ export function NodeExecutionPanel({
                 events={events}
                 onSelectAttempt={setSelectedNodeExecutionAttemptId}
                 record={selectedRecord}
-                requestArtifact={requestArtifact}
+                requestArtifact={userRequestArtifact}
                 resolverEdgeIndex={resolverEdgeIndex}
                 selectedArtifact={selectedArtifact}
                 selectedAttemptId={selectedNodeExecutionAttemptId}
