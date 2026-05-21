@@ -32,7 +32,10 @@ export function stringArray(value: unknown): string[] {
 
 export function formatTime(value?: string): string {
   if (!value) return "-";
-  return new Date(value).toLocaleTimeString();
+  const d = new Date(value);
+  const hms = d.toLocaleTimeString();
+  const ms = String(d.getMilliseconds()).padStart(3, "0");
+  return `${hms}.${ms}`;
 }
 
 export function eventTitle(event: DebugEvent): string {

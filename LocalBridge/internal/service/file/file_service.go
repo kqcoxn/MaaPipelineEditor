@@ -389,14 +389,15 @@ func (s *Service) handleFileChange(change FileChange) {
 
 // 验证路径安全性
 func (s *Service) validatePath(path string) error {
-	// 转换为绝对路径
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return errors.NewPermissionDeniedError("无效的路径")
 	}
 
-	// 检查路径是否在根目录范围内
-	if !strings.HasPrefix(absPath, s.root) {
+	normAbs := filepath.Clean(strings.ToLower(absPath))
+	normRoot := filepath.Clean(strings.ToLower(s.root))
+
+	if !strings.HasPrefix(normAbs, normRoot) {
 		return errors.NewPermissionDeniedError("路径不在根目录范围内")
 	}
 
