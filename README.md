@@ -46,7 +46,7 @@ _✨ 可视化构建 MaaFramework Pipeline 的下一代工作流编辑器 ✨_</
 
 #### 🚀 渐进扩展，模块增强
 
-- 通过**一行命令即可增量启用** [本地服务](https://mpe.codax.site/docs.html)，不需要时完全解耦
+- 通过**一行命令即可增量启用** [本地服务](https://mpe.codax.site/docs/guide/server/deploy.html)，不需要时完全解耦
 - 无缝接入**文件管理**、**截图工具**、**流程调试**等本地能力
 - 支持自定义框架与 OCR 路径，直接**对齐本地环境**
 - 提供完整环境的[本地一体集成包](https://mpe.codax.site/docs/guide/extremer/deploy.html)，长期使用更便捷
@@ -71,6 +71,7 @@ _✨ 可视化构建 MaaFramework Pipeline 的下一代工作流编辑器 ✨_</
 - **智能节点搜索** 🔍，模糊搜索、精准推荐、快速定位
 - **节点级 AI 补全**，让大模型替您完成节点配置 👍
 - **MCP 联动**，在 [MaaMCP](https://github.com/MAA-AI/MaaMCP) 中生成的流程可自动或一句话打开并渲染至 MPE！
+- 使用 **探索模式** 为长线性流程助力
 - 更多 AI 辅助功能正在路上 🚧——让 Pipeline 编辑更聪明、更自然 ✨
 
 #### ⌨️ 类原生交互，高效编辑
@@ -81,7 +82,7 @@ _✨ 可视化构建 MaaFramework Pipeline 的下一代工作流编辑器 ✨_</
 #### 🔄 全面兼容，平滑迁移
 
 - **旧项目一键导入** ✅，自动**识别废弃字段并智能迁移**，提供**自动排版**功能
-- 支持节点级 v1 与 v2 **协议混合导入**
+- 支持节点级 v1 与 v2 **协议混合导入**与任一导出
 - 涵盖复合类型等高级结构，提供 [常用命名结构兼容](https://mpe.codax.site/docs/guide/migrate/old.html#%E5%8F%AF%E9%80%89-%E7%89%B9%E6%80%A7%E5%85%BC%E5%AE%B9)
 - 支持**配置持久化**，提供集成与分离两种方案
 
