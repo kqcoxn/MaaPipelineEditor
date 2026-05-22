@@ -110,12 +110,7 @@ export function WikiModal() {
             stepId: activeStep?.id ?? activeTarget?.stepId,
           }
         : undefined,
-    [
-      activeEntry,
-      activeModuleMeta?.id,
-      activeStep?.id,
-      activeTarget?.stepId,
-    ],
+    [activeEntry, activeModuleMeta?.id, activeStep?.id, activeTarget?.stepId],
   );
 
   useEffect(() => {
@@ -181,12 +176,14 @@ export function WikiModal() {
             />
           </div>
           {searching ? null : !activeEntry ? (
-            <WikiHome onSelectEntry={(entry) => {
-              setTarget({
-                entryId: entry.id,
-                moduleId: entry.modules[0]?.id,
-              });
-            }} />
+            <WikiHome
+              onSelectEntry={(entry) => {
+                setTarget({
+                  entryId: entry.id,
+                  moduleId: entry.modules[0]?.id,
+                });
+              }}
+            />
           ) : (
             <WikiEntryReader
               entry={activeEntry}
@@ -270,7 +267,7 @@ function WikiHome({
           知识总览
         </Title>
         <Paragraph type="secondary" style={{ margin: 0 }}>
-          内置在 MPE 里的交互式操作百科。先从“认识 MPE”或“认识工作流编辑器”建立整体认知，再按编辑、工具箱、调试、迁移和本地能力逐层下钻。
+          快速跳转
         </Paragraph>
       </div>
       <Space wrap size={8}>
@@ -289,9 +286,7 @@ function WikiHome({
           >
             <span style={homeCardTitleStyle}>{entry.title}</span>
             <span style={homeCardSummaryStyle}>{entry.summary}</span>
-            <span style={homeCardMetaStyle}>
-              {entry.modules.length} 个模块
-            </span>
+            <span style={homeCardMetaStyle}>{entry.modules.length} 个模块</span>
           </button>
         ))}
       </div>
@@ -440,9 +435,7 @@ function WikiEntryReader({
               <Title level={4} style={{ margin: "0 0 4px" }}>
                 {step.title}
               </Title>
-              {step.summary && (
-                <Text type="secondary">{step.summary}</Text>
-              )}
+              {step.summary && <Text type="secondary">{step.summary}</Text>}
             </div>
             <div className={style.stepBody}>
               <Space direction="vertical" size={12} style={{ width: "100%" }}>
