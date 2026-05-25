@@ -107,10 +107,13 @@ export const nextPreview: ForecastSection = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
-    version: "1.5.4",
-    date: "2026-5",
-    type: "perf",
+    version: "1.6.0",
+    date: "2026-5-25",
+    type: "major",
     updates: {
+      features: [
+        "📚 新增内嵌 wiki “俺寻思” 模块，可在主要功能处 hover 图标长按 w 跳转",
+      ],
       perfs: [
         "优化前端加载速度",
         "路径读取支持任意平台正反斜杠混用",

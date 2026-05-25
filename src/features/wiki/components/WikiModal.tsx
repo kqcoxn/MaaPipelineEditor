@@ -531,10 +531,8 @@ function SidePager({
       shape="circle"
       icon={direction === "previous" ? <LeftOutlined /> : <RightOutlined />}
       disabled={disabled}
-      style={{
-        ...sidePagerButtonStyle,
-        [direction === "previous" ? "left" : "right"]: 12,
-      }}
+      className={style.sidePager}
+      style={{ [direction === "previous" ? "left" : "right"]: 12 }}
       onClick={onClick}
     />
   );
@@ -585,13 +583,6 @@ const pagerStyle: CSSProperties = {
   paddingTop: 10,
   marginTop: 10,
   borderTop: "1px solid rgba(5, 5, 5, 0.08)",
-};
-
-const sidePagerButtonStyle: CSSProperties = {
-  position: "absolute",
-  top: "50%",
-  transform: "translateY(-50%)",
-  zIndex: 1,
 };
 
 const stepNumberButtonStyle: CSSProperties = {
