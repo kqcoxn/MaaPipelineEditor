@@ -113,6 +113,7 @@ export const updateLogs: UpdateLogItem[] = [
     updates: {
       features: [
         "📚 新增内嵌 wiki “俺寻思” 模块，可在主要功能处 hover 图标长按 w 跳转",
+        "🔃 外部节点与锚点节点可同时存在多个，支持持久化",
       ],
       perfs: [
         "优化前端加载速度",

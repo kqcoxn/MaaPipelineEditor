@@ -34,6 +34,7 @@ import {
 import { normalizeViewport } from "../../stores/flow/utils/viewportUtils";
 import { splitPipelineAndConfig } from "./configSplitter";
 import { isMpeField } from "../sorting";
+import { serializeNodePosition } from "../../stores/flow/utils/coordinateUtils";
 
 /**
  * 将Flow转换为Pipeline对象
@@ -85,6 +86,17 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
     const prefix = config.prefix ? config.prefix + "_" : "";
     const pipelineObj: PipelineObjType = {};
 
+    // 视觉副本：同 label 的 External / Anchor 主副本写入 entry（保持向后兼容），
+    // 第二个起的副本位置追加到该 entry 的 $__mpe_code.extra_positions 数组中。
+    const externalEntryByKey = new Map<
+      string,
+      { mpeCode: Record<string, any> }
+    >();
+    const anchorEntryByKey = new Map<
+      string,
+      { mpeCode: Record<string, any> }
+    >();
+
     sortedNodes.forEach((node) => {
       switch (node.type) {
         case NodeTypeEnum.Pipeline:
@@ -93,16 +105,53 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
             sortedNodes,
           );
           break;
-        case NodeTypeEnum.External:
+        case NodeTypeEnum.External: {
           if (!shouldExportConfig) break;
-          pipelineObj[externalMarkPrefix + node.data.label + "_" + fileName] =
-            parseExternalNodeForExport(node as PipelineNodeType, sortedNodes);
+          const key = externalMarkPrefix + node.data.label + "_" + fileName;
+          const existing = externalEntryByKey.get(key);
+          if (existing) {
+            // 追加到 extra_positions
+            const pos = serializeNodePosition(node, sortedNodes);
+            existing.mpeCode.extra_positions ??= [];
+            existing.mpeCode.extra_positions.push({
+              x: Math.round(pos.x),
+              y: Math.round(pos.y),
+            });
+            break;
+          }
+          const entry = parseExternalNodeForExport(
+            node as PipelineNodeType,
+            sortedNodes,
+          );
+          pipelineObj[key] = entry;
+          externalEntryByKey.set(key, {
+            mpeCode: entry[configMark] as Record<string, any>,
+          });
           break;
-        case NodeTypeEnum.Anchor:
+        }
+        case NodeTypeEnum.Anchor: {
           if (!shouldExportConfig) break;
-          pipelineObj[anchorMarkPrefix + node.data.label + "_" + fileName] =
-            parseAnchorNodeForExport(node as PipelineNodeType, sortedNodes);
+          const key = anchorMarkPrefix + node.data.label + "_" + fileName;
+          const existing = anchorEntryByKey.get(key);
+          if (existing) {
+            const pos = serializeNodePosition(node, sortedNodes);
+            existing.mpeCode.extra_positions ??= [];
+            existing.mpeCode.extra_positions.push({
+              x: Math.round(pos.x),
+              y: Math.round(pos.y),
+            });
+            break;
+          }
+          const entry = parseAnchorNodeForExport(
+            node as PipelineNodeType,
+            sortedNodes,
+          );
+          pipelineObj[key] = entry;
+          anchorEntryByKey.set(key, {
+            mpeCode: entry[configMark] as Record<string, any>,
+          });
           break;
+        }
         case NodeTypeEnum.Sticker:
           if (!shouldExportConfig) break;
           pipelineObj[stickerMarkPrefix + node.data.label + "_" + fileName] =
@@ -134,6 +183,9 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
       );
       sortedEdges.push(...sorted);
     });
+
+    // 多个副本指向同一 source 时会产生重复 ref，按 (source, linkType, targetLabel+attrs) 去重
+    const linkSeen = new Set<string>();
 
     sortedEdges.forEach((edge) => {
       // 获取节点数据
@@ -178,6 +230,9 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
 
       // 添加链接
       const linkType = edge.sourceHandle as SourceHandleTypeEnum;
+      const dedupKey = `${edge.source}|${linkType}|${nodeName}|${isAnchor ? "a" : ""}${hasJumpBack ? "j" : ""}`;
+      if (linkSeen.has(dedupKey)) return;
+      linkSeen.add(dedupKey);
       if (!(linkType in pSourceNode)) pSourceNode[linkType] = [];
       pSourceNode[linkType].push(toPNodeRef);
     });

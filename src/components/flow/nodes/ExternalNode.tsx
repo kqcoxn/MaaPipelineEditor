@@ -12,16 +12,32 @@ import { NodeContextMenu } from "./components/NodeContextMenu";
 import { ExternalNodeHandles } from "./components/NodeHandles";
 
 /**外部节点内容 */
-const ENodeContent = memo(({ data }: { data: ExternalNodeDataType }) => {
-  return (
-    <>
-      <div className={style.title}>
-        <span className={style["title-text"]}>{data.label}</span>
-      </div>
-      <ExternalNodeHandles direction={data.handleDirection} />
-    </>
-  );
-});
+const ENodeContent = memo(
+  ({
+    data,
+    replicaCount,
+  }: {
+    data: ExternalNodeDataType;
+    replicaCount: number;
+  }) => {
+    return (
+      <>
+        <div className={style.title}>
+          <span className={style["title-text"]}>{data.label}</span>
+          {replicaCount > 0 && (
+            <span
+              className={style["replica-badge"]}
+              title={`此外部引用共有 ${replicaCount + 1} 个视觉副本`}
+            >
+              +{replicaCount}
+            </span>
+          )}
+        </div>
+        <ExternalNodeHandles direction={data.handleDirection} />
+      </>
+    );
+  },
+);
 
 type ExternalNodeData = Node<ExternalNodeDataType, NodeTypeEnum.External>;
 
@@ -48,6 +64,22 @@ export function ExternalNode(props: NodeProps<ExternalNodeData>) {
     })),
   );
   const edges = useFlowStore((state) => state.edges);
+  const nodes = useFlowStore((state) => state.nodes);
+
+  // 视觉副本数量（同 label 的其他 External 节点）
+  const replicaCount = useMemo(() => {
+    let count = 0;
+    for (const n of nodes) {
+      if (
+        n.type === NodeTypeEnum.External &&
+        n.id !== props.id &&
+        n.data.label === props.data.label
+      ) {
+        count++;
+      }
+    }
+    return count;
+  }, [nodes, props.id, props.data.label]);
 
   // 计算是否与选中元素相关联
   const isRelated = useMemo(() => {
@@ -130,7 +162,7 @@ export function ExternalNode(props: NodeProps<ExternalNodeData>) {
   if (!node) {
     return (
       <div className={nodeClass} style={opacityStyle}>
-        <ENodeContent data={props.data} />
+        <ENodeContent data={props.data} replicaCount={replicaCount} />
       </div>
     );
   }
@@ -142,7 +174,7 @@ export function ExternalNode(props: NodeProps<ExternalNodeData>) {
       onOpenChange={setContextMenuOpen}
     >
       <div className={nodeClass} style={opacityStyle}>
-        <ENodeContent data={props.data} />
+        <ENodeContent data={props.data} replicaCount={replicaCount} />
       </div>
     </NodeContextMenu>
   );

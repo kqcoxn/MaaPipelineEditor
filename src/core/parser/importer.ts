@@ -41,6 +41,7 @@ import {
 } from "./edgeLinker";
 import { parseNodeField } from "./nodeParser";
 import { mergePipelineAndConfig } from "./configSplitter";
+import { rerouteEdgesToNearestReplica } from "./edgeRerouter";
 
 /**
  * 迁移 Pipeline v5.1 废弃字段
@@ -370,6 +371,9 @@ export async function pipelineToFlow(
             ? (createExternalNode(id, { label }) as PipelineNodeType)
             : (createAnchorNode(id, { label }) as PipelineNodeType);
 
+      // 收集副本位置（仅 External / Anchor 适用）
+      let extraPositions: { x: number; y: number }[] | undefined;
+
       // 解析节点字段
       const keys = Object.keys(obj);
       keys.forEach((key) => {
@@ -384,6 +388,13 @@ export async function pipelineToFlow(
           // 处理端点位置
           if (value.handleDirection) {
             node.data.handleDirection = value.handleDirection;
+          }
+          // 视觉副本位置
+          if (
+            (type === NodeTypeEnum.External || type === NodeTypeEnum.Anchor) &&
+            Array.isArray(value.extra_positions)
+          ) {
+            extraPositions = value.extra_positions;
           }
           isIncludePos = true;
           return;
@@ -412,6 +423,23 @@ export async function pipelineToFlow(
 
       // 保存节点
       nodes.push(node);
+
+      // 创建额外副本（不进 idOLPairs，避免被 linkEdge 当做新目标）
+      if (extraPositions && extraPositions.length > 0) {
+        for (const pos of extraPositions) {
+          const replicaId =
+            (type === NodeTypeEnum.External ? "e_" : "a_") + getNextId();
+          const replica =
+            type === NodeTypeEnum.External
+              ? (createExternalNode(replicaId, { label }) as PipelineNodeType)
+              : (createAnchorNode(replicaId, { label }) as PipelineNodeType);
+          replica.position = pos;
+          if ((node.data as any).handleDirection) {
+            (replica.data as any).handleDirection = (node.data as any).handleDirection;
+          }
+          nodes.push(replica);
+        }
+      }
     });
 
     // 恢复分组子节点关系
@@ -481,6 +509,9 @@ export async function pipelineToFlow(
         if (newIdOLPairs.length > 0) idOLPairs = idOLPairs.concat(newIdOLPairs);
       }
     }
+
+    // 视觉副本就近匹配：把指向 External / Anchor 的边重定向到最近的副本
+    edges = rerouteEdgesToNearestReplica(nodes, edges);
 
     // 更新flow
     useFlowStore.getState().replace(nodes, edges, { isFitView: isIncludePos });

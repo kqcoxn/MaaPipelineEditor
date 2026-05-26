@@ -62,6 +62,9 @@ export type PipelineConfigType = {
 export type NodeConfigType = {
   position: { x: number; y: number };
   handleDirection?: HandleDirection;
+  // 视觉副本的额外位置（仅 External / Anchor 适用）
+  // 主副本位置写入 position，从第二个起按节点顺序追加到此数组
+  extra_positions?: { x: number; y: number }[];
 };
 
 // MPE分离配置文件类型

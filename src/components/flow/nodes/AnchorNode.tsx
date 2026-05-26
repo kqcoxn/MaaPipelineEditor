@@ -32,10 +32,12 @@ const ANodeContent = memo(
     data,
     referenceNodes,
     onNavigateToNode,
+    replicaCount,
   }: {
     data: AnchorNodeDataType;
     referenceNodes?: ReferenceNodeInfo[];
     onNavigateToNode?: (node: ReferenceNodeInfo) => void;
+    replicaCount: number;
   }) => {
     const [popoverOpen, setPopoverOpen] = useState(false);
 
@@ -51,6 +53,14 @@ const ANodeContent = memo(
       <>
         <div className={style.title}>
           <span className={style["title-text"]}>{data.label}</span>
+          {replicaCount > 0 && (
+            <span
+              className={style["replica-badge"]}
+              title={`此重定向节点共有 ${replicaCount + 1} 个视觉副本`}
+            >
+              +{replicaCount}
+            </span>
+          )}
           {referenceNodes && referenceNodes.length > 0 && (
             <Popover
               open={popoverOpen}
@@ -134,6 +144,21 @@ export function AnchorNode(props: NodeProps<AnchorNodeData>) {
   const getNodesUsingAnchor = useFlowStore(
     (state) => state.getNodesUsingAnchor,
   );
+
+  // 视觉副本数量（同 label 的其他 Anchor 节点）
+  const replicaCount = useMemo(() => {
+    let count = 0;
+    for (const n of nodes) {
+      if (
+        n.type === NodeTypeEnum.Anchor &&
+        n.id !== props.id &&
+        n.data.label === props.data.label
+      ) {
+        count++;
+      }
+    }
+    return count;
+  }, [nodes, props.id, props.data.label]);
 
   // 获取引用此 anchor 的节点列表（支持跨文件）
   const referenceNodes = useMemo((): ReferenceNodeInfo[] => {
@@ -299,6 +324,7 @@ export function AnchorNode(props: NodeProps<AnchorNodeData>) {
           data={props.data}
           referenceNodes={referenceNodes}
           onNavigateToNode={handleNavigateToNode}
+          replicaCount={replicaCount}
         />
       </div>
     );
@@ -315,6 +341,7 @@ export function AnchorNode(props: NodeProps<AnchorNodeData>) {
           data={props.data}
           referenceNodes={referenceNodes}
           onNavigateToNode={handleNavigateToNode}
+          replicaCount={replicaCount}
         />
       </div>
     </NodeContextMenu>

@@ -70,6 +70,9 @@ export function splitPipelineAndConfig(pipelineObj: PipelineObjType): {
     if (mpeCode.handleDirection) {
       nodeConfig.handleDirection = mpeCode.handleDirection;
     }
+    if (Array.isArray(mpeCode.extra_positions)) {
+      nodeConfig.extra_positions = mpeCode.extra_positions;
+    }
     return nodeConfig;
   };
 
@@ -172,6 +175,9 @@ export function mergePipelineAndConfig(
       const mpeCode: Record<string, any> = { position: nodeData.position };
       if (nodeData.handleDirection) {
         mpeCode.handleDirection = nodeData.handleDirection;
+      }
+      if (Array.isArray(nodeData.extra_positions) && nodeData.extra_positions.length > 0) {
+        mpeCode.extra_positions = nodeData.extra_positions;
       }
       return mpeCode;
     }

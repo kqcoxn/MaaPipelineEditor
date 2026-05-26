@@ -101,16 +101,23 @@ export const createGraphSlice: StateCreator<
         pairs[originalId] = newId;
         node.id = newId;
 
-        // 生成不重复的节点名
-        let newLabel = node.data.label + "_副本" + pasteCounter;
-        let labelCounter = pasteCounter;
-        while (existingLabels.has(newLabel)) {
-          labelCounter++;
-          newLabel = node.data.label + "_副本" + labelCounter;
-        }
+        // External / Anchor 节点保留原 label，作为视觉副本
+        const isReplica =
+          node.type === NodeTypeEnum.External ||
+          node.type === NodeTypeEnum.Anchor;
 
-        node.data.label = newLabel;
-        existingLabels.add(newLabel);
+        if (!isReplica) {
+          // 生成不重复的节点名
+          let newLabel = node.data.label + "_副本" + pasteCounter;
+          let labelCounter = pasteCounter;
+          while (existingLabels.has(newLabel)) {
+            labelCounter++;
+            newLabel = node.data.label + "_副本" + labelCounter;
+          }
+
+          node.data.label = newLabel;
+          existingLabels.add(newLabel);
+        }
         pasteCounter++;
 
         // 分配顺序号

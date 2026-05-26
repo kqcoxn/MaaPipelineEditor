@@ -226,29 +226,53 @@ export function calcuNodePosition(
 }
 
 // 节点名查重
+// External↔External、Anchor↔Anchor 同 label 视为视觉副本，不算冲突。
+// 其余组合（Pipeline 之间、Pipeline 与 External/Anchor、External 与 Anchor）一旦同 label 即报错。
 export function checkRepeatNodeLabelList(
   nodes: NodeType[],
   config: { isExportConfig: boolean; prefix: string },
 ): string[] {
   const repates: string[] = [];
+  const reported = new Set<string>();
   const isAddPrefix = config.isExportConfig && config.prefix;
   let prefix = config.prefix;
   if (isAddPrefix) prefix += "_";
 
-  // 查重
-  const counter: Record<string, number> = {};
+  // 按 label 分桶，记录每个 label 出现过的类型
+  const buckets: Record<string, Set<NodeTypeEnum>> = {};
+  // 外部 / 锚点同 label 副本计数（同类型重复 = 视觉副本，不报错）
+  const replicaCounter: Record<string, number> = {};
+
   for (const node of nodes) {
-    // 跳过便签节点和分组节点
     if (node.type === NodeTypeEnum.Sticker || node.type === NodeTypeEnum.Group)
       continue;
+
     let label = node.data.label;
     if (isAddPrefix && node.type === NodeTypeEnum.Pipeline) {
       label = prefix + label;
     }
-    counter[label] = (counter[label] ?? 0) + 1;
-    if (counter[label] === 2) {
+
+    const types = buckets[label] ?? (buckets[label] = new Set());
+    const replicaKey = `${node.type}::${label}`;
+    replicaCounter[replicaKey] = (replicaCounter[replicaKey] ?? 0) + 1;
+
+    // Pipeline 与自身重复 → 真冲突（JSON key 会碰撞）
+    if (
+      node.type === NodeTypeEnum.Pipeline &&
+      replicaCounter[replicaKey] === 2 &&
+      !reported.has(label)
+    ) {
       repates.push(label);
+      reported.add(label);
     }
+
+    // 跨类型同 label → 真冲突（语义不一致）
+    if (types.size > 0 && !types.has(node.type) && !reported.has(label)) {
+      repates.push(label);
+      reported.add(label);
+    }
+
+    types.add(node.type);
   }
 
   return repates;
