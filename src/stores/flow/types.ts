@@ -12,6 +12,8 @@ import {
 } from "../../components/flow/nodes";
 import type { HandleDirection } from "../../components/flow/nodes/constants";
 
+import type { OperationDescriptor } from "../operationLogStore";
+
 // 位置类型
 export type PositionType = {
   x: number;
@@ -264,7 +266,7 @@ export interface FlowHistoryState {
   historyIndex: number;
   saveTimeout: number | null;
   lastSnapshot: string | null;
-  saveHistory: (delay?: number) => void;
+  saveHistory: (delay?: number, opDescriptor?: OperationDescriptor) => void;
   undo: () => boolean;
   redo: () => boolean;
   initHistory: (nodes: NodeType[], edges: EdgeType[]) => void;

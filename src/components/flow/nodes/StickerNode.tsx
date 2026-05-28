@@ -80,8 +80,13 @@ const StickerContent = memo(
     // 退出编辑
     const handleBlur = useCallback(() => {
       setEditing(false);
-      saveHistory(0);
-    }, [saveHistory]);
+      saveHistory(0, {
+        category: "node",
+        action: "update",
+        description: "编辑便签内容",
+        targetIds: [nodeId],
+      });
+    }, [saveHistory, nodeId]);
 
     // 内容变化
     const handleContentChange = useCallback(

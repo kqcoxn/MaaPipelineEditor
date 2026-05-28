@@ -164,7 +164,12 @@ function FieldPanel() {
       if (updatedNode) {
         useFlowStore.getState().setTargetNode(updatedNode);
       }
-      saveHistory(0);
+      saveHistory(0, {
+        category: "node",
+        action: "update",
+        description: "JSON 编辑节点数据",
+        targetIds: [currentNode.id],
+      });
     },
     [currentNode],
   );

@@ -1,14 +1,28 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   InfoCircleOutlined,
   WarningOutlined,
   CloseCircleOutlined,
   DeleteOutlined,
   DownOutlined,
+  NodeIndexOutlined,
+  BranchesOutlined,
+  AppstoreOutlined,
+  GroupOutlined,
 } from "@ant-design/icons";
 import { useLoggerStore, type LogEntry } from "../../../stores/loggerStore";
+import {
+  useOperationLogStore,
+  type OperationLog,
+  type OperationCategory,
+} from "../../../stores/operationLogStore";
 import { useWSStore } from "../../../stores/wsStore";
+import { useFlowStore, findNodeById, fitFlowView } from "../../../stores/flow";
 import styles from "../../../styles/panels/LoggerPanel.module.less";
+
+type TabType = "operation" | "backend";
+
+// ========== 后端日志工具函数 ==========
 
 const getLevelIcon = (level: LogEntry["level"]) => {
   switch (level) {
@@ -32,18 +46,40 @@ const getLevelClass = (level: LogEntry["level"]) => {
   }
 };
 
-const getBarIconClass = (level: LogEntry["level"]) => {
-  switch (level) {
-    case "INFO":
-      return styles.barIconInfo;
-    case "WARN":
-      return styles.barIconWarn;
-    case "ERROR":
-      return styles.barIconError;
+// ========== 操作日志工具函数 ==========
+
+const getCategoryIcon = (category: OperationCategory) => {
+  switch (category) {
+    case "node":
+      return <NodeIndexOutlined />;
+    case "edge":
+      return <BranchesOutlined />;
+    case "graph":
+      return <AppstoreOutlined />;
+    case "group":
+      return <GroupOutlined />;
   }
 };
 
-const formatTime = (isoString: string) => {
+const getCategoryClass = (category: OperationCategory) => {
+  switch (category) {
+    case "node":
+      return styles.categoryNode;
+    case "edge":
+      return styles.categoryEdge;
+    case "graph":
+      return styles.categoryGraph;
+    case "group":
+      return styles.categoryGroup;
+  }
+};
+
+const formatTimestamp = (ts: number) => {
+  const date = new Date(ts);
+  return date.toLocaleTimeString("zh-CN", { hour12: false });
+};
+
+const formatISOTime = (isoString: string) => {
   try {
     const date = new Date(isoString);
     return date.toLocaleTimeString("zh-CN", { hour12: false });
@@ -52,30 +88,58 @@ const formatTime = (isoString: string) => {
   }
 };
 
+// ========== 操作日志跳转 ==========
+
+function handleOperationLogClick(log: OperationLog) {
+  if (!log.targetIds || log.targetIds.length === 0) return;
+
+  const state = useFlowStore.getState();
+  const targetNodes = log.targetIds
+    .map((id) => findNodeById(state.nodes, id))
+    .filter(Boolean);
+
+  if (targetNodes.length === 0) return;
+
+  // 选中目标节点
+  state.updateSelection(targetNodes as any[], []);
+  // 聚焦视图
+  fitFlowView(state.instance, state.viewport, {
+    focusNodes: targetNodes as any[],
+  });
+}
+
+// ========== 主组件 ==========
+
 export function LoggerPanel() {
-  const { logs, expanded, toggleExpanded, clearLogs } = useLoggerStore();
+  const { logs: backendLogs, expanded, toggleExpanded, clearLogs: clearBackendLogs } =
+    useLoggerStore();
+  const { logs: opLogs, clearLogs: clearOpLogs } = useOperationLogStore();
   const connected = useWSStore((state) => state.connected);
   const listRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
   const [pulse, setPulse] = useState(false);
-  const prevLogsLengthRef = useRef(logs.length);
+  const [activeTab, setActiveTab] = useState<TabType>("operation");
+  const prevLogsLengthRef = useRef(opLogs.length);
+
+  const currentLogs = activeTab === "operation" ? opLogs : backendLogs;
 
   // 自动滚动到底部
   useEffect(() => {
     if (expanded && autoScroll && listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight;
     }
-  }, [logs, expanded, autoScroll]);
+  }, [currentLogs, expanded, autoScroll]);
 
   // 新日志到达时触发脉冲动画（收起态）
   useEffect(() => {
-    if (!expanded && logs.length > prevLogsLengthRef.current) {
+    const len = activeTab === "operation" ? opLogs.length : backendLogs.length;
+    if (!expanded && len > prevLogsLengthRef.current) {
       setPulse(true);
       const timer = setTimeout(() => setPulse(false), 1600);
       return () => clearTimeout(timer);
     }
-    prevLogsLengthRef.current = logs.length;
-  }, [logs.length, expanded]);
+    prevLogsLengthRef.current = len;
+  }, [opLogs.length, backendLogs.length, expanded, activeTab]);
 
   // 监听滚动事件
   const handleScroll = () => {
@@ -92,12 +156,27 @@ export function LoggerPanel() {
     }
   }, [expanded]);
 
-  // 未连接时不显示
-  if (!connected) {
-    return null;
-  }
+  // 切换 tab
+  const handleTabChange = useCallback(
+    (tab: TabType) => {
+      if (tab === "backend" && !connected) return;
+      setActiveTab(tab);
+      setAutoScroll(true);
+    },
+    [connected],
+  );
 
-  const latestLog = logs.length > 0 ? logs[logs.length - 1] : null;
+  // 清空当前 tab 日志
+  const handleClear = useCallback(() => {
+    if (activeTab === "operation") {
+      clearOpLogs();
+    } else {
+      clearBackendLogs();
+    }
+  }, [activeTab, clearOpLogs, clearBackendLogs]);
+
+  // 收起态最新条目
+  const latestOpLog = opLogs.length > 0 ? opLogs[opLogs.length - 1] : null;
 
   // 收起态
   if (!expanded) {
@@ -107,20 +186,19 @@ export function LoggerPanel() {
         onClick={toggleExpanded}
       >
         <div className={`${styles.bar} ${pulse ? styles.barPulse : ""}`}>
-          {latestLog ? (
+          {latestOpLog ? (
             <>
               <span
-                className={`${styles.barIcon} ${getBarIconClass(
-                  latestLog.level,
-                )}`}
+                className={`${styles.barIcon} ${getCategoryClass(latestOpLog.category)}`}
               >
-                {getLevelIcon(latestLog.level)}
+                {getCategoryIcon(latestOpLog.category)}
               </span>
-              <span className={styles.barModule}>{latestLog.module}</span>
-              <span className={styles.barMessage}>{latestLog.message}</span>
+              <span className={styles.barMessage}>
+                {latestOpLog.description}
+              </span>
             </>
           ) : (
-            <span className={styles.barMessage}>暂无日志</span>
+            <span className={styles.barMessage}>暂无操作记录</span>
           )}
         </div>
       </div>
@@ -132,12 +210,26 @@ export function LoggerPanel() {
     <div className={`${styles.container} ${styles.expanded}`}>
       <div className={styles.panel}>
         <div className={styles.header}>
-          <span className={styles.title}>后端日志</span>
+          <div className={styles.tabs}>
+            <button
+              className={`${styles.tab} ${activeTab === "operation" ? styles.tabActive : ""}`}
+              onClick={() => handleTabChange("operation")}
+            >
+              操作记录
+            </button>
+            <button
+              className={`${styles.tab} ${activeTab === "backend" ? styles.tabActive : ""} ${!connected ? styles.tabDisabled : ""}`}
+              onClick={() => handleTabChange("backend")}
+              title={!connected ? "未连接 LocalBridge" : "后端日志"}
+            >
+              后端日志
+            </button>
+          </div>
           <div className={styles.headerActions}>
             <button
               className={styles.headerBtn}
-              onClick={clearLogs}
-              title="清空日志"
+              onClick={handleClear}
+              title="清空"
             >
               <DeleteOutlined />
             </button>
@@ -151,31 +243,73 @@ export function LoggerPanel() {
           </div>
         </div>
         <div ref={listRef} className={styles.logList} onScroll={handleScroll}>
-          {logs.length === 0 ? (
-            <div className={styles.empty}>暂无日志</div>
+          {activeTab === "operation" ? (
+            <OperationLogList logs={opLogs} />
           ) : (
-            logs.map((log) => (
-              <div
-                key={log.id}
-                className={`${styles.logItem} ${getLevelClass(log.level)}`}
-              >
-                <span className={styles.logIcon}>
-                  {getLevelIcon(log.level)}
-                </span>
-                <div className={styles.logContent}>
-                  <div className={styles.logMeta}>
-                    <span className={styles.logTime}>
-                      {formatTime(log.timestamp)}
-                    </span>
-                    <span className={styles.logModule}>{log.module}</span>
-                  </div>
-                  <div className={styles.logMessage}>{log.message}</div>
-                </div>
-              </div>
-            ))
+            <BackendLogList logs={backendLogs} />
           )}
         </div>
       </div>
     </div>
+  );
+}
+
+// ========== 子组件 ==========
+
+function OperationLogList({ logs }: { logs: OperationLog[] }) {
+  if (logs.length === 0) {
+    return <div className={styles.empty}>暂无操作记录</div>;
+  }
+
+  return (
+    <>
+      {logs.map((log) => (
+        <div
+          key={log.id}
+          className={`${styles.logItem} ${getCategoryClass(log.category)} ${log.targetIds?.length ? styles.clickable : ""}`}
+          onClick={() => handleOperationLogClick(log)}
+        >
+          <span className={styles.logIcon}>
+            {getCategoryIcon(log.category)}
+          </span>
+          <div className={styles.logContent}>
+            <div className={styles.logMeta}>
+              <span className={styles.logTime}>
+                {formatTimestamp(log.timestamp)}
+              </span>
+            </div>
+            <div className={styles.logMessage}>{log.description}</div>
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
+function BackendLogList({ logs }: { logs: LogEntry[] }) {
+  if (logs.length === 0) {
+    return <div className={styles.empty}>暂无日志</div>;
+  }
+
+  return (
+    <>
+      {logs.map((log) => (
+        <div
+          key={log.id}
+          className={`${styles.logItem} ${getLevelClass(log.level)}`}
+        >
+          <span className={styles.logIcon}>{getLevelIcon(log.level)}</span>
+          <div className={styles.logContent}>
+            <div className={styles.logMeta}>
+              <span className={styles.logTime}>
+                {formatISOTime(log.timestamp)}
+              </span>
+              <span className={styles.logModule}>{log.module}</span>
+            </div>
+            <div className={styles.logMessage}>{log.message}</div>
+          </div>
+        </div>
+      ))}
+    </>
   );
 }

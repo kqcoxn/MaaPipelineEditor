@@ -44,7 +44,12 @@ export const GroupEditor = memo(
     const onColorChange = useCallback(
       (value: GroupColorTheme) => {
         setNodeData(currentNode.id, "direct", "color", value);
-        saveHistory(0);
+        saveHistory(0, {
+          category: "group",
+          action: "update",
+          description: "更改分组颜色",
+          targetIds: [currentNode.id],
+        });
       },
       [currentNode.id, setNodeData, saveHistory],
     );

@@ -156,7 +156,12 @@ function handleSetNodeDirection(
     return n;
   });
   setNodes(newNodes);
-  saveHistory(0);
+  saveHistory(0, {
+    category: "node",
+    action: "update",
+    description: "设置端点位置",
+    targetIds: [node.id],
+  });
   message.success(
     `端点位置已设置为「${
       HANDLE_DIRECTION_OPTIONS.find((o) => o.value === direction)?.label
@@ -179,7 +184,12 @@ function handleUngroupNodes(node: NodeContextMenuNode) {
 /**更改分组颜色处理器 */
 function handleSetGroupColor(node: NodeContextMenuNode, color: string) {
   useFlowStore.getState().setNodeData(node.id, "direct", "color", color);
-  useFlowStore.getState().saveHistory(0);
+  useFlowStore.getState().saveHistory(0, {
+    category: "group",
+    action: "update",
+    description: "更改分组颜色",
+    targetIds: [node.id],
+  });
 }
 
 /**更改便签颜色处理器 */
@@ -190,7 +200,12 @@ function handleSetStickerColor(
   if (node.type !== NodeTypeEnum.Sticker) return;
 
   useFlowStore.getState().setNodeData(node.id, "sticker", "color", color);
-  useFlowStore.getState().saveHistory(0);
+  useFlowStore.getState().saveHistory(0, {
+    category: "node",
+    action: "update",
+    description: "更改便签颜色",
+    targetIds: [node.id],
+  });
 }
 
 /**复制便签内容处理器 */

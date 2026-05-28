@@ -57,7 +57,11 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
     // 保存历史记录
     const hasRemove = changes.some((change) => change.type === "remove");
     if (hasRemove) {
-      get().saveHistory(0);
+      get().saveHistory(0, {
+        category: "edge",
+        action: "delete",
+        description: "删除连接",
+      });
     }
   },
 
@@ -97,7 +101,12 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
     });
 
     // 保存历史记录
-    get().saveHistory(500);
+    get().saveHistory(500, {
+      category: "edge",
+      action: "update",
+      description: "修改连接属性",
+      targetIds: [id],
+    });
   },
 
   // 更新边顺序
@@ -145,7 +154,12 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
     });
 
     // 保存历史记录
-    get().saveHistory(500);
+    get().saveHistory(500, {
+      category: "edge",
+      action: "update",
+      description: "调整连接顺序",
+      targetIds: [id],
+    });
   },
 
   // 添加边
@@ -207,7 +221,11 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
     });
 
     // 保存历史记录
-    get().saveHistory(0);
+    get().saveHistory(0, {
+      category: "edge",
+      action: "add",
+      description: "添加连接",
+    });
   },
 
   // 设置边列表

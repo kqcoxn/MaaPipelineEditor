@@ -116,13 +116,22 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
     );
 
     if (hasRemove) {
-      get().saveHistory(0);
+      get().saveHistory(0, {
+        category: "node",
+        action: "delete",
+        description: "删除节点",
+        targetIds: Array.from(removedIds),
+      });
       // 检查重名
       checkRepeatNodeLabelList();
       // 删除节点后重建 anchor 引用索引
       get().rebuildAnchorReferenceIndex();
     } else if (hasPosition) {
-      get().saveHistory(isDragging ? 1000 : 0);
+      get().saveHistory(isDragging ? 1000 : 0, {
+        category: "node",
+        action: "move",
+        description: "移动节点",
+      });
     }
   },
 
@@ -288,7 +297,12 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
     });
 
     // 保存历史记录
-    get().saveHistory(0);
+    get().saveHistory(0, {
+      category: "node",
+      action: "add",
+      description: `创建节点 ${label}`,
+      targetIds: [finalId],
+    });
 
     return finalId;
   },
@@ -389,7 +403,14 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
     }
 
     // 保存历史记录
-    get().saveHistory(1000);
+    const nodeLabel =
+      (get().nodes.find((n) => n.id === id)?.data as any)?.label ?? id;
+    get().saveHistory(1000, {
+      category: "node",
+      action: "update",
+      description: `修改 ${nodeLabel} 的 ${key}`,
+      targetIds: [id],
+    });
   },
 
   // 设置节点列表
@@ -509,7 +530,14 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
     }
 
     // 保存历史记录
-    get().saveHistory(1000);
+    const batchNodeLabel =
+      (get().nodes.find((n) => n.id === id)?.data as any)?.label ?? id;
+    get().saveHistory(1000, {
+      category: "node",
+      action: "update",
+      description: `批量修改 ${batchNodeLabel}`,
+      targetIds: [id],
+    });
   },
 
   // 重置节点计数器
@@ -588,7 +616,11 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       };
     });
 
-    get().saveHistory(0);
+    get().saveHistory(0, {
+      category: "group",
+      action: "add",
+      description: "创建分组",
+    });
   },
 
   // 解散分组
@@ -620,7 +652,12 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
     });
 
     removeNodeOrder(groupId);
-    get().saveHistory(0);
+    get().saveHistory(0, {
+      category: "group",
+      action: "delete",
+      description: "解散分组",
+      targetIds: [groupId],
+    });
   },
 
   // 将节点加入分组
@@ -644,7 +681,12 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       return { nodes };
     });
 
-    get().saveHistory(0);
+    get().saveHistory(0, {
+      category: "group",
+      action: "update",
+      description: "加入分组",
+      targetIds: [nodeId],
+    });
   },
 
   // 将节点从分组中移出
@@ -665,6 +707,11 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       return { nodes };
     });
 
-    get().saveHistory(0);
+    get().saveHistory(0, {
+      category: "group",
+      action: "update",
+      description: "移出分组",
+      targetIds: [nodeId],
+    });
   },
 });

@@ -8,6 +8,12 @@
 @warn-text: #d48806;
 @error-text: #cf1322;
 
+// 操作日志分类颜色
+@node-color: #722ed1;
+@edge-color: #13c2c2;
+@graph-color: #1890ff;
+@group-color: #52c41a;
+
 // 动画
 @keyframes logSlideIn {
   from {
@@ -118,10 +124,43 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
+  padding: 8px 12px;
   background: #fafafa;
   border-bottom: 1px solid #e0e0e0;
   border-radius: 12px 12px 0 0;
+}
+
+// Tab 栏
+.tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.tab {
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #8c8c8c;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover:not(.tabDisabled) {
+    color: #262626;
+    background: #e8e8e8;
+  }
+}
+
+.tabActive {
+  color: #262626;
+  background: #e8e8e8;
+}
+
+.tabDisabled {
+  color: #bfbfbf;
+  cursor: not-allowed;
 }
 
 .title {
@@ -268,4 +307,38 @@
 
 .barIconError {
   color: @error-color;
+}
+
+// 操作日志分类颜色
+.categoryNode {
+  .logIcon {
+    color: @node-color;
+  }
+}
+
+.categoryEdge {
+  .logIcon {
+    color: @edge-color;
+  }
+}
+
+.categoryGraph {
+  .logIcon {
+    color: @graph-color;
+  }
+}
+
+.categoryGroup {
+  .logIcon {
+    color: @group-color;
+  }
+}
+
+// 可点击条目
+.clickable {
+  cursor: pointer;
+
+  &:hover {
+    background: #e6f7ff;
+  }
 }

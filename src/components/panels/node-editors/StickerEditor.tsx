@@ -58,7 +58,12 @@ export const StickerEditor = memo(
     const onColorChange = useCallback(
       (value: StickerColorTheme) => {
         setNodeData(currentNode.id, "sticker", "color", value);
-        saveHistory(0);
+        saveHistory(0, {
+          category: "node",
+          action: "update",
+          description: "更改便签颜色",
+          targetIds: [currentNode.id],
+        });
       },
       [currentNode.id, setNodeData, saveHistory],
     );

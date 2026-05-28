@@ -53,7 +53,11 @@ export const createGraphSlice: StateCreator<
     get().rebuildAnchorReferenceIndex();
 
     if (!skipHistory) {
-      get().saveHistory(0);
+      get().saveHistory(0, {
+        category: "graph",
+        action: "replace",
+        description: "替换画布",
+      });
     }
   },
 
@@ -237,7 +241,11 @@ export const createGraphSlice: StateCreator<
     });
 
     // 保存历史记录
-    get().saveHistory(0);
+    get().saveHistory(0, {
+      category: "graph",
+      action: "paste",
+      description: `粘贴 ${nodes.length} 个节点`,
+    });
   },
 
   // 重置粘贴计数器
@@ -292,6 +300,10 @@ export const createGraphSlice: StateCreator<
     });
 
     // 保存历史记录
-    get().saveHistory(0);
+    get().saveHistory(0, {
+      category: "graph",
+      action: "shift",
+      description: "调整节点间距",
+    });
   },
 });

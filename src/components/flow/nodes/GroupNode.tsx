@@ -66,8 +66,13 @@ const GroupContent = memo(
     );
 
     const handleTitleBlur = useCallback(() => {
-      saveHistory(0);
-    }, [saveHistory]);
+      saveHistory(0, {
+        category: "group",
+        action: "update",
+        description: "编辑分组标题",
+        targetIds: [nodeId],
+      });
+    }, [saveHistory, nodeId]);
 
     return (
       <div

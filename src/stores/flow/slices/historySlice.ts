@@ -1,5 +1,9 @@
 import type { StateCreator } from "zustand";
 import type { FlowStore, FlowHistoryState, NodeType, EdgeType } from "../types";
+import {
+  useOperationLogStore,
+  type OperationDescriptor,
+} from "../../operationLogStore";
 
 // 快速序列化状态（排除 UI 状态）
 function serializeState(nodes: NodeType[], edges: EdgeType[]): string {
@@ -47,7 +51,7 @@ export const createHistorySlice: StateCreator<
   lastSnapshot: null,
 
   // 保存历史记录
-  saveHistory(delay: number = 500) {
+  saveHistory(delay: number = 500, opDescriptor?: OperationDescriptor) {
     const state = get();
 
     // 清除旧的超时
@@ -69,6 +73,16 @@ export const createHistorySlice: StateCreator<
       if (currentState.lastSnapshot === currentStateStr) {
         set({ saveTimeout: null });
         return;
+      }
+
+      // 写入操作日志（仅在有实际变化时）
+      if (opDescriptor) {
+        useOperationLogStore.getState().addLog({
+          category: opDescriptor.category,
+          action: opDescriptor.action,
+          description: opDescriptor.description,
+          targetIds: opDescriptor.targetIds,
+        });
       }
 
       const snapshot = {
