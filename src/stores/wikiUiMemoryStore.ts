@@ -3,13 +3,11 @@ import { create } from "zustand";
 const STORAGE_KEY = "mpe_wiki_ui_memory_v1";
 
 interface WikiUiMemorySnapshot {
-  dismissedEmptyCanvasHint: boolean;
   shownMigrationHintFilePaths: string[];
 }
 
 interface WikiUiMemoryState extends WikiUiMemorySnapshot {
   activeMigrationHintFilePath?: string;
-  dismissEmptyCanvasHint: () => void;
   requestMigrationHint: (filePath: string) => void;
   clearActiveMigrationHint: () => void;
 }
@@ -24,14 +22,12 @@ function readMemory(): WikiUiMemorySnapshot {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
       return {
-        dismissedEmptyCanvasHint: false,
         shownMigrationHintFilePaths: [],
       };
     }
 
     const parsed = JSON.parse(raw) as Partial<WikiUiMemorySnapshot>;
     return {
-      dismissedEmptyCanvasHint: parsed.dismissedEmptyCanvasHint === true,
       shownMigrationHintFilePaths: normalizeFilePaths(
         parsed.shownMigrationHintFilePaths,
       ),
@@ -39,7 +35,6 @@ function readMemory(): WikiUiMemorySnapshot {
   } catch (error) {
     console.warn("[wikiUiMemoryStore] Failed to read memory:", error);
     return {
-      dismissedEmptyCanvasHint: false,
       shownMigrationHintFilePaths: [],
     };
   }
@@ -57,15 +52,6 @@ export const useWikiUiMemoryStore = create<WikiUiMemoryState>((set, get) => ({
   ...readMemory(),
   activeMigrationHintFilePath: undefined,
 
-  dismissEmptyCanvasHint: () => {
-    const next = {
-      dismissedEmptyCanvasHint: true,
-      shownMigrationHintFilePaths: get().shownMigrationHintFilePaths,
-    };
-    writeMemory(next);
-    set(next);
-  },
-
   requestMigrationHint: (filePath) => {
     const normalizedPath = filePath.trim();
     if (!normalizedPath) return;
@@ -81,7 +67,6 @@ export const useWikiUiMemoryStore = create<WikiUiMemoryState>((set, get) => ({
       normalizedPath,
     ];
     writeMemory({
-      dismissedEmptyCanvasHint: state.dismissedEmptyCanvasHint,
       shownMigrationHintFilePaths,
     });
     set({
