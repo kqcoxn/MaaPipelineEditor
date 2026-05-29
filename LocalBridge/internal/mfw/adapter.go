@@ -39,6 +39,7 @@ type MaaFWAdapter struct {
 
 	// 所有权标记
 	ownsController bool // 是否拥有控制器（true=自己创建的，false=借用的共享控制器）
+	ownsResource   bool // 是否拥有资源（true=自己创建的，false=借用的共享资源）
 
 	// 元信息
 	controllerType string // ADB/Win32/WlRoots
@@ -305,6 +306,7 @@ func (a *MaaFWAdapter) loadResolvedResourcesLocked(resolutions []ResourceBundleR
 	}
 
 	a.resource = res
+	a.ownsResource = true
 	a.resourceLoaded = true
 
 	logger.Debug("MaaFW", "资源已加载(共 %d 个路径)", len(resolutions))
@@ -380,6 +382,18 @@ func (a *MaaFWAdapter) GetResource() *maa.Resource {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	return a.resource
+}
+
+// SetBorrowedResource 设置借用的外部 Resource（不拥有所有权，Destroy 时不释放）
+func (a *MaaFWAdapter) SetBorrowedResource(res *maa.Resource) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.resource != nil && a.ownsResource {
+		a.resource.Destroy()
+	}
+	a.resource = res
+	a.ownsResource = false
+	a.resourceLoaded = res != nil
 }
 
 // IsResourceLoaded 检查资源是否已加载
@@ -842,11 +856,11 @@ func (a *MaaFWAdapter) Destroy() {
 	}
 	a.initialized = false
 
-	// 销毁 Resource
-	if a.resource != nil {
+	// 销毁 Resource（只销毁自己拥有的）
+	if a.resource != nil && a.ownsResource {
 		a.resource.Destroy()
-		a.resource = nil
 	}
+	a.resource = nil
 	a.resourceLoaded = false
 
 	// 只销毁自己拥有的 Controller，借用的不销毁

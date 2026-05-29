@@ -91,12 +91,74 @@ func New(
 	}
 	adapter.SetController(controller, controllerInfo.Type, controllerInfo.UUID)
 
-	emitResourceLoadDiagnostics(sessionID, runID, emit, "starting", resourcePaths, nil)
-	if err := adapter.LoadResourcesWithProgress(resourcePaths, func(index int, total int, resolution mfw.ResourceBundleResolution, status string, err error) {
-		emitResourceLoadDiagnostic(sessionID, runID, emit, index, total, resolution, status, err)
-	}); err != nil {
-		adapter.Destroy()
-		return nil, fmt.Errorf("加载资源失败: %w", err)
+	// 判断是否有启用的 agent，决定 Resource 的来源
+	enabledAgents := filterEnabledAgents(req.Profile.Agents)
+	usePoolResource := len(enabledAgents) > 0 && agentPool != nil
+
+	if usePoolResource {
+		// 通过 Pool 确保 agent 已绑定 Resource。
+		// Pool 拥有 Resource 生命周期，agent 连接不会因 Runtime 销毁而断开。
+		for _, agent := range enabledAgents {
+			prepared, prepErr := normalizeAgentProfile(agent)
+			if prepErr != nil {
+				continue
+			}
+			if _, ensureErr := agentPool.EnsureBound(prepared, resourcePaths); ensureErr != nil {
+				if requiredAgent(prepared) {
+					adapter.Destroy()
+					return nil, fmt.Errorf("agent EnsureBound 失败: %w", ensureErr)
+				}
+			}
+		}
+		// 获取 Pool 的 Resource 供 Tasker 使用（与 agent 共享同一个 Resource）
+		var poolResource *maa.Resource
+		for _, agent := range enabledAgents {
+			prepared, prepErr := normalizeAgentProfile(agent)
+			if prepErr != nil {
+				continue
+			}
+			if r := agentPool.GetResource(prepared); r != nil {
+				poolResource = r
+				break
+			}
+		}
+		if poolResource == nil {
+			adapter.Destroy()
+			return nil, fmt.Errorf("agent pool resource 为空")
+		}
+		adapter.SetBorrowedResource(poolResource)
+
+		// Connect agent（必须在 InitTasker 之前，确保 handlers 已注册到 Resource）
+		for _, agent := range enabledAgents {
+			prepared, prepErr := normalizeAgentProfile(agent)
+			if prepErr != nil {
+				continue
+			}
+			client, _ := agentPool.Acquire(prepared)
+			if client == nil {
+				continue
+			}
+			if !client.Connected() {
+				if prepared.TimeoutMS > 0 {
+					_ = client.SetTimeout(time.Duration(prepared.TimeoutMS) * time.Millisecond)
+				}
+				if err := connectAgent(prepared, client); err != nil {
+					if requiredAgent(prepared) {
+						adapter.Destroy()
+						return nil, fmt.Errorf("agent 连接失败: %w", err)
+					}
+				}
+			}
+		}
+	} else {
+		// 无 agent 时，adapter 自己创建并拥有 Resource
+		emitResourceLoadDiagnostics(sessionID, runID, emit, "starting", resourcePaths, nil)
+		if err := adapter.LoadResourcesWithProgress(resourcePaths, func(index int, total int, resolution mfw.ResourceBundleResolution, status string, err error) {
+			emitResourceLoadDiagnostic(sessionID, runID, emit, index, total, resolution, status, err)
+		}); err != nil {
+			adapter.Destroy()
+			return nil, fmt.Errorf("加载资源失败: %w", err)
+		}
 	}
 
 	overrideBundle, err := buildPipelineOverrideBundle(root, req)
@@ -144,9 +206,24 @@ func New(
 		emit:          emit,
 	}
 
-	if err := r.connectAgents(req.Profile.Agents); err != nil {
-		r.Destroy()
-		return nil, err
+	if usePoolResource {
+		// agent 已在 InitTasker 之前连接，记录到 Runtime
+		for _, agent := range enabledAgents {
+			prepared, prepErr := normalizeAgentProfile(agent)
+			if prepErr != nil {
+				continue
+			}
+			client, _ := agentPool.Acquire(prepared)
+			if client != nil && client.Connected() && client.Alive() {
+				r.agentClients = append(r.agentClients, client)
+				r.emitAgentDiagnostic(prepared, "info", "debug.agent.connected", "agent 复用已有连接", nil, nil)
+			}
+		}
+	} else if len(req.Profile.Agents) > 0 {
+		if err := r.connectAgents(req.Profile.Agents); err != nil {
+			r.Destroy()
+			return nil, err
+		}
 	}
 
 	return r, nil
@@ -435,6 +512,8 @@ func (r *Runtime) Destroy() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	// 不 Disconnect agent —— Pool 拥有连接生命周期，agent server 进程需要保持运行。
+	// adapter 使用的是 Pool 的 Resource（borrowed），Destroy 时不会释放它。
 	r.agentClients = nil
 
 	if r.adapter == nil {
@@ -539,6 +618,8 @@ func (r *Runtime) directModeOverride(mode protocol.RunMode) (map[string]interfac
 }
 
 func (r *Runtime) connectAgents(agents []protocol.AgentProfile) error {
+	resource := r.adapter.GetResource()
+
 	for _, agent := range agents {
 		if !agent.Enabled {
 			continue
@@ -560,8 +641,25 @@ func (r *Runtime) connectAgents(agents []protocol.AgentProfile) error {
 			r.emitAgentDiagnostic(prepared, "warning", "debug.agent.create_failed", err.Error(), nil, nil)
 			continue
 		}
-		alreadyConnected := client.Connected()
-		if !alreadyConnected && prepared.TimeoutMS > 0 {
+
+		// 如果 agent 已连接（来自 Pool 复用），需要先断开再重连，
+		// 因为 handlers 只在 Connect() 时注册到当时绑定的 Resource 上。
+		if client.Connected() {
+			_ = client.Disconnect()
+		}
+
+		// 绑定到 Runtime 的 Resource（Tasker 使用的同一个）
+		if resource != nil {
+			if err := client.BindResource(resource); err != nil {
+				if requiredAgent(prepared) {
+					return err
+				}
+				r.emitAgentDiagnostic(prepared, "warning", "debug.agent.bind_failed", err.Error(), nil, nil)
+				continue
+			}
+		}
+
+		if prepared.TimeoutMS > 0 {
 			if err := client.SetTimeout(time.Duration(prepared.TimeoutMS) * time.Millisecond); err != nil {
 				if requiredAgent(prepared) {
 					return err
@@ -570,21 +668,18 @@ func (r *Runtime) connectAgents(agents []protocol.AgentProfile) error {
 				continue
 			}
 		}
-		if !alreadyConnected {
-			if err := connectAgent(prepared, client); err != nil {
-				if requiredAgent(prepared) {
-					return err
-				}
-				r.emitAgentDiagnostic(prepared, "warning", "debug.agent.connect_failed", err.Error(), nil, nil)
-				continue
+
+		// Connect 会将 agent server 的 custom handlers 注册到当前绑定的 Resource 上
+		if err := connectAgent(prepared, client); err != nil {
+			if requiredAgent(prepared) {
+				return err
 			}
+			r.emitAgentDiagnostic(prepared, "warning", "debug.agent.connect_failed", err.Error(), nil, nil)
+			continue
 		}
+
 		r.agentClients = append(r.agentClients, client)
-		message := "agent 已连接"
-		if alreadyConnected {
-			message = "agent 复用已有连接"
-		}
-		r.emitAgentDiagnostic(prepared, "info", "debug.agent.connected", message, nil, nil)
+		r.emitAgentDiagnostic(prepared, "info", "debug.agent.connected", "agent 已连接", nil, nil)
 	}
 	return nil
 }
@@ -619,18 +714,9 @@ func (r *Runtime) emitAgentDiagnostic(agent protocol.AgentProfile, severity stri
 
 func (r *Runtime) acquireAgentClient(agent protocol.AgentProfile) (*maa.AgentClient, error) {
 	if r.agentPool != nil {
-		return r.agentPool.EnsureBound(agent, r.resourcePaths)
+		return r.agentPool.Acquire(agent)
 	}
-	client, err := createAgentClient(agent)
-	if err != nil {
-		return nil, err
-	}
-	if resource := r.adapter.GetResource(); resource != nil {
-		if err := client.BindResource(resource); err != nil {
-			return nil, err
-		}
-	}
-	return client, nil
+	return createAgentClient(agent)
 }
 
 func (r *Runtime) labelForRuntimeName(runtimeName string) string {
@@ -849,6 +935,16 @@ func connectAgent(agent protocol.AgentProfile, client *maa.AgentClient) error {
 
 func requiredAgent(agent protocol.AgentProfile) bool {
 	return agent.Required == nil || *agent.Required
+}
+
+func filterEnabledAgents(agents []protocol.AgentProfile) []protocol.AgentProfile {
+	var enabled []protocol.AgentProfile
+	for _, agent := range agents {
+		if agent.Enabled {
+			enabled = append(enabled, agent)
+		}
+	}
+	return enabled
 }
 
 func emitResourceLoadDiagnostics(sessionID string, runID string, emit events.EmitFunc, status string, paths []string, err error) {

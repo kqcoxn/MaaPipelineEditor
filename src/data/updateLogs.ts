@@ -122,6 +122,7 @@ export const updateLogs: UpdateLogItem[] = [
         "调试事件线 trace 支持毫秒级时间戳",
       ],
       fixes: [
+        "修复调试模块无法识别 agent custom 的问题",
         "修复调试模块点击 JSON 查看时错误出现图片的问题",
         "修复多资源加载会导致预期外的重名节点提示问题",
       ],

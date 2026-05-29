@@ -10,6 +10,8 @@ import (
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/mfw"
 )
 
+// AgentPool 缓存 AgentClient 实例及其绑定的 Resource。
+// Pool 拥有 Resource 的生命周期，确保 agent 连接不会因 Runtime 销毁而断开。
 type AgentPool struct {
 	mu      sync.Mutex
 	clients map[string]*agentEntry
@@ -27,6 +29,7 @@ func NewAgentPool() *AgentPool {
 	}
 }
 
+// Acquire 获取或创建一个 AgentClient 实例（不做 Resource 绑定）。
 func (p *AgentPool) Acquire(agent protocol.AgentProfile) (*maa.AgentClient, error) {
 	key, err := agentPoolKey(agent)
 	if err != nil {
@@ -49,6 +52,8 @@ func (p *AgentPool) Acquire(agent protocol.AgentProfile) (*maa.AgentClient, erro
 	return client, nil
 }
 
+// EnsureBound 确保 agent 已绑定到指定 resourcePaths 对应的 Resource 上。
+// Pool 拥有该 Resource 的生命周期，不会随 Runtime 销毁。
 func (p *AgentPool) EnsureBound(agent protocol.AgentProfile, resourcePaths []string) (*maa.AgentClient, error) {
 	key, err := agentPoolKey(agent)
 	if err != nil {
@@ -102,6 +107,24 @@ func (p *AgentPool) EnsureBound(agent protocol.AgentProfile, resourcePaths []str
 	entry.resourceAdapter = adapter
 	entry.resourceKey = resourceKey
 	return entry.client, nil
+}
+
+// GetResource 获取指定 agent 在 Pool 中绑定的 Resource。
+// 如果 agent 未绑定 Resource，返回 nil。
+func (p *AgentPool) GetResource(agent protocol.AgentProfile) *maa.Resource {
+	key, err := agentPoolKey(agent)
+	if err != nil {
+		return nil
+	}
+
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	entry := p.clients[key]
+	if entry == nil || entry.resourceAdapter == nil {
+		return nil
+	}
+	return entry.resourceAdapter.GetResource()
 }
 
 func normalizeAgentProfile(agent protocol.AgentProfile) (protocol.AgentProfile, error) {
