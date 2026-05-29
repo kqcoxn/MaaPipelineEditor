@@ -7,9 +7,9 @@ import { encryptApiKey } from "../utils/ai/crypto";
 export const globalConfig = {
   dev: true,
   version: `1.6.0`,
-  betaIteration: 3,
-  mfwVersion: "5.10.4",
-  protocolVersion: "1.0.3",
+  betaIteration: 4,
+  mfwVersion: "5.10.5",
+  protocolVersion: "1.0.4",
 };
 
 if (globalConfig.dev) {

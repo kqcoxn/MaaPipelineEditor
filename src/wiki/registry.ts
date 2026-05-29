@@ -161,42 +161,47 @@ export const wikiEntries: WikiEntryMeta[] = [
   {
     id: "debug",
     title: "调试",
-    summary: "围绕调试工作台、前置条件和运行方式完成基础调试闭环。",
-    keywords: ["调试", "FlowScope", "调试前置条件", "从节点运行"],
+    summary:
+      "FlowScope 调试工作台：九面板覆盖运行控制、执行追踪、产物查看和诊断排障。",
+    keywords: ["调试", "FlowScope", "中控台", "节点线", "事件线", "诊断"],
     modules: [
       {
         id: "workbench",
         title: "调试工作台",
-        summary: "发起运行、查看摘要，并在节点线和事件线中定位问题。",
-        keywords: ["调试工作台", "中控台", "节点线", "事件线"],
+        summary:
+          "FlowScope 九面板总览：中控台、节点线、事件线、AI总结、性能、图像、诊断、资源体检、调试配置。",
+        keywords: ["FlowScope", "调试工作台", "中控台", "面板"],
         loader: () => import("./entries/debug/workbench"),
       },
       {
         id: "prerequisites",
         title: "调试前置条件",
-        summary: "确认 LocalBridge、控制器、资源和截图来源是否就绪。",
-        keywords: ["调试前置条件", "LocalBridge", "控制器", "资源路径"],
+        summary: "确认 LocalBridge、控制器、资源路径和截图来源是否就绪。",
+        keywords: ["调试前置条件", "LocalBridge", "控制器", "资源体检"],
         loader: () => import("./entries/debug/prerequisites"),
       },
       {
         id: "run-modes",
         title: "运行方式",
-        summary: "根据问题粒度选择整图运行、从节点运行、单节点运行、仅识别或仅动作。",
-        keywords: ["运行方式", "从节点运行", "仅识别", "仅动作"],
+        summary:
+          "从节点运行、单节点运行、仅识别、仅动作四种方式加回放模式。",
+        keywords: ["运行方式", "从节点运行", "仅识别", "仅动作", "回放"],
         loader: () => import("./entries/debug/runModes"),
       },
       {
         id: "timeline-artifacts",
-        title: "时间线与产物",
-        summary: "当节点线只能告诉你大概位置时，用事件线和图像产物继续向下追证据。",
-        keywords: ["时间线", "事件线", "产物", "截图"],
+        title: "事件线与产物",
+        summary:
+          "用事件线按 seq 追踪顺序，用图像面板和产物核对证据。",
+        keywords: ["事件线", "产物", "图像", "截图", "回放"],
         loader: () => import("./entries/debug/timelineArtifacts"),
       },
       {
         id: "troubleshooting",
         title: "调试排障",
-        summary: "调试失败时，先按前置条件、证据和运行范围的顺序排查。",
-        keywords: ["调试排障", "调试失败", "运行失败"],
+        summary:
+          "按前置条件、诊断面板、资源体检和运行范围的顺序排查问题。",
+        keywords: ["调试排障", "诊断", "资源体检", "AI总结"],
         loader: () => import("./entries/debug/troubleshooting"),
       },
     ],
