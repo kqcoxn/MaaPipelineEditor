@@ -271,9 +271,9 @@ function WikiHome({
         </Paragraph>
       </div>
       <Space wrap size={8}>
-        <Button onClick={() => onSelectEntry(wikiEntries[0])}>认识 MPE</Button>
+        <Button onClick={() => onSelectEntry(wikiEntries[0])}>介绍</Button>
         <Button onClick={() => onSelectEntry(wikiEntries[1])}>
-          认识工作流编辑器
+          工作流编辑
         </Button>
       </Space>
       <div style={homeGridStyle}>

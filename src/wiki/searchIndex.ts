@@ -16,7 +16,6 @@ import { searchIndex as migrateFromYamaapeSearchIndex } from "./entries/migrate/
 import { searchIndex as migrateImportExistingSearchIndex } from "./entries/migrate/importExisting";
 import { searchIndex as migratePrefixLayoutSearchIndex } from "./entries/migrate/prefixLayout";
 import { searchIndex as startAboutMpeSearchIndex } from "./entries/start/aboutMpe";
-import { searchIndex as startFirstImportExportSearchIndex } from "./entries/start/firstImportExport";
 import { searchIndex as startQuickStartSearchIndex } from "./entries/start/quickStart";
 import { searchIndex as startVersionChoiceSearchIndex } from "./entries/start/versionChoice";
 import { searchIndex as toolboxColorPickSearchIndex } from "./entries/toolbox/colorPick";
@@ -58,7 +57,6 @@ const moduleSearchIndexMap: Record<string, WikiModuleSearchIndex> = {
   "start/about-mpe": startAboutMpeSearchIndex,
   "start/quick-start": startQuickStartSearchIndex,
   "start/version-choice": startVersionChoiceSearchIndex,
-  "start/first-import-export": startFirstImportExportSearchIndex,
   "workflow/about-editor": workflowAboutEditorSearchIndex,
   "workflow/nodes": workflowNodesSearchIndex,
   "workflow/field-panel": workflowFieldPanelSearchIndex,

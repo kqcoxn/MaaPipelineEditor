@@ -7,7 +7,7 @@
 - 新功能若与现有功能有关，应尽可能复用现有函数，在合适时可以进行方法封装或提升
 - 在合适的时候自主调用相关 skill
 - 如果要撰写 prd、ttd、临时文档等需要放在 `\dev\design` 下
-- 使用中文与我交流
+- 始终使用中文与我交流
 
 ## 建议执行
 
@@ -35,3 +35,19 @@
 > 若需其他框架 API 且本地无文档，可联网检索。
 > 当文档细粒度不够时，可以自行检索 github 源码进行参考
 > 文档内的内容不要修改，相当于只读。
+
+# Project Context
+
+- 名称：MaaPipelineEditor (mpe)
+- 地址：https://github.com/kqcoxn/MaaPipelineEditor
+
+## 项目结构
+
+- **前端（editor）**：`/src`
+- **后端（localbridge / lb）**：`/LocalBridge`
+- **客户端（extremer）**：`/Extremer`
+- **页面嵌入测试（iframe）**：`/Iframe`
+- **文档站（docsite）**：`/docsite`
+- **展示页/主页（landing）**：`/Landing`
+
+> 默认开发需同时完善前后端；客户端由构建流程自动生成。

@@ -3,13 +3,9 @@ import ReactMarkdown from "react-markdown";
 import { Alert, Typography } from "antd";
 import type { WikiCalloutType, WikiContentBlock } from "../../../wiki/types";
 import { WikiMediaBlock } from "./WikiMediaBlock";
+import style from "./WikiBlock.module.less";
 
 const { Paragraph } = Typography;
-
-const markdownStyle: CSSProperties = {
-  wordBreak: "break-word",
-  overflowWrap: "anywhere",
-};
 
 const codeBlockStyle: CSSProperties = {
   margin: 0,
@@ -23,10 +19,20 @@ const codeBlockStyle: CSSProperties = {
 export function WikiBlock({ block }: { block: WikiContentBlock }) {
   switch (block.type) {
     case "paragraph":
-      return <Paragraph style={{ margin: 0 }}>{block.text}</Paragraph>;
+      return (
+        <Paragraph
+          style={{
+            margin: 0,
+            fontSize: 16,
+            lineHeight: 1.5,
+          }}
+        >
+          {block.text}
+        </Paragraph>
+      );
     case "markdown":
       return (
-        <div style={markdownStyle}>
+        <div className={style.markdown}>
           <ReactMarkdown>{block.text}</ReactMarkdown>
         </div>
       );

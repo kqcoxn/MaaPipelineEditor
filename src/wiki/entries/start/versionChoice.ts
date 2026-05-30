@@ -3,57 +3,82 @@ import { createModuleSearchIndex } from "../../searchHelpers";
 
 const module: WikiModule = {
   id: "version-choice",
-  title: "版本选择",
-  summary: "快速判断在线版、LocalBridge 增强版和本地一体包分别适合什么场景。",
+  title: "产品矩阵",
+  summary: "对比纯 Web、Web + LocalBridge 和本地一体包三种部署模式的功能与适用场景。",
   searchText:
-    "版本选择 产品矩阵 在线版 LocalBridge 本地一体包 Extremer stable preview 设备连接 调试 功能对比 迁移",
+    "产品矩阵 部署模式 纯 Web LocalBridge Extremer 本地一体包 功能对比 适用场景 渐进增强",
   steps: [
     {
-      id: "editor-only",
-      title: "只做编辑时选在线版",
-      summary: "不依赖本地能力时，在线版是启动成本最低的入口。",
-      keywords: ["在线版", "纯前端", "无需安装"],
-      searchText: "在线版 纯前端 浏览器 编辑 Pipeline 无需安装 临时编辑",
+      id: "overview",
+      title: "渐进增强的产品设计",
+      summary: "三种部署模式满足不同使用场景。",
+      keywords: ["渐进增强", "部署模式", "概述"],
+      searchText:
+        "渐进增强 部署模式 纯 Web 端 Web LocalBridge Extremer 本地一体包 上手难度 功能完整度 便捷性 灵活性",
       blocks: [
         {
           type: "paragraph",
-          text: "如果你只需要编辑 Pipeline、验证结构和导入导出，在线版启动成本最低——打开浏览器即可使用，无需安装任何东西。它不提供本地文件、截图工具和流程调试等需要本地能力的功能。",
+          text: "MPE 采用渐进增强的产品设计理念，提供三种部署模式：纯 Web 端（无需安装，开箱即用）、Web + LocalBridge（本地能力扩展）、本地一体包 Extremer（开箱即用的桌面应用）。",
         },
         {
-          type: "paragraph",
-          text: "适合场景：临时编辑、快速分享、团队协作审阅、不方便安装软件的环境。",
+          type: "markdown",
+          text: "| 维度 | 纯 Web 端 | Web + LB | Extremer |\n|------|-----------|----------|----------|\n| 上手难度 | 最低 | 中等 | 低 |\n| 功能完整度 | 基础 | 完整 | 完整 |\n| 使用便捷性 | 高 | 中等 | 高 |\n| 配置灵活性 | 低 | 最高 | 中等 |\n| 适用场景 | 临时/查看 | 多实例开发 | 日常使用 |",
         },
       ],
     },
     {
-      id: "need-local-runtime",
-      title: "需要本地能力时加 LocalBridge 或一体包",
-      summary: "字段工具、文件管理和调试都属于本地能力。",
-      keywords: ["LocalBridge", "本地能力", "调试", "文件管理", "Extremer"],
+      id: "feature-matrix",
+      title: "功能支持矩阵",
+      summary: "各模式在编辑、文件、工具、调试和 AI 方面的支持情况。",
+      keywords: ["功能对比", "支持矩阵"],
       searchText:
-        "LocalBridge 本地能力 调试 文件管理 字段快捷工具 一体包 Extremer 桌面应用",
+        "功能支持 编辑 文件管理 截图 OCR 调试 AI 设备连接 配置持久化 自动更新",
       blocks: [
         {
-          type: "paragraph",
-          text: "当你需要截图、OCR、模板截图、本地文件管理或流程调试时，就不再是纯前端场景。此时有两种选择：",
-        },
-        {
           type: "markdown",
-          text: "- **Web + LocalBridge**：在线版 + 一条命令启动本地服务，灵活度最高，适合日常开发\n- **Extremer（本地一体包）**：桌面应用，开箱即用，无需手动配置，适合不想折腾的用户",
+          text: "| 功能 | 纯 Web | Web + LB | Extremer |\n|------|--------|----------|----------|\n| 可视化节点编辑与布局 | ✅ | ✅ | ✅ |\n| 协议兼容 (v1/v2) | ✅ | ✅ | ✅ |\n| 自定义节点模板 | ✅ | ✅ | ✅ |\n| 粘贴板导入/导出 | ✅ | ✅ | ✅ |\n| 本地文件扫描与监听 | ❌ | ✅ | ✅ |\n| 设备连接 (ADB/Win32) | ❌ | ✅ | ✅ |\n| 截图/OCR/取色/区域选择 | ❌ | ✅ | ✅ |\n| 流程调试与节点级运行 | ❌ | ✅ | ✅ |\n| AI 节点补全 | ❌ | ✅ | ✅ |\n| 配置持久化 | 浏览器 | 浏览器 | 本地文件 |",
         },
       ],
     },
     {
-      id: "feature-comparison",
-      title: "功能对比速查",
-      summary: "三种模式在功能完整度、上手难度和灵活性上各有取舍。",
-      keywords: ["功能对比", "完整度", "难度"],
+      id: "web-only",
+      title: "纯 Web 端",
+      summary: "无需安装，适合临时编辑、快速分享和协作审阅。",
+      keywords: ["纯 Web", "在线版", "无需安装"],
       searchText:
-        "功能对比 完整度 难度 灵活性 文件管理 字段工具 调试 AI 设备连接",
+        "纯 Web 端 在线版 无需安装 浏览器 跨平台 零配置 临时编辑 分享 协作 审阅",
       blocks: [
         {
           type: "markdown",
-          text: "| 能力 | 纯 Web | Web + LB | 一体包 |\n|------|--------|----------|--------|\n| Pipeline 编辑 | ✅ | ✅ | ✅ |\n| 本地文件管理 | ❌ | ✅ | ✅ |\n| 字段快捷工具 | ❌ | ✅ | ✅ |\n| 流程调试 | ❌ | ✅ | ✅ |\n| AI 辅助 | ❌ | ✅ | ✅ |\n| 上手难度 | 最低 | 中等 | 低 |\n| 灵活性 | 高 | 最高 | 中等 |",
+          text: "**适用场景：**\n- 快速查看和审阅他人的 Pipeline 项目\n- 临时编辑或创建简单的 Pipeline 配置\n- 在任意设备上进行轻量级编辑\n- 无需本地环境的协作场景\n\n**特点：** 无需安装，打开浏览器即可使用，真正跨平台。\n\n**限制：** 无法访问本地文件系统，无法使用截图、OCR、调试等本地能力。",
+        },
+      ],
+    },
+    {
+      id: "web-plus-lb",
+      title: "Web + LocalBridge",
+      summary: "在 Web 端基础上增量启用本地能力，灵活度最高。",
+      keywords: ["LocalBridge", "本地服务", "渐进增强"],
+      searchText:
+        "Web LocalBridge 本地服务 渐进增强 文件管理 截图 OCR 调试 设备连接 一行命令 灵活配置",
+      blocks: [
+        {
+          type: "markdown",
+          text: "**适用场景：**\n- 日常 Pipeline 资源开发工作\n- 需要频繁调试和测试流程\n- 多项目/多文件同时维护\n- 对配置灵活性有要求的开发场景\n\n**核心能力：**\n- 文件管理：递归扫描项目文件，实时监听变化，自动同步\n- MaaFramework 集成：原生 OCR、自动截图、完整运行与调试\n- 资源管理：图片预览、快速选择、跨文件跳转\n\n**启动方式：** 一行命令即可开启本地服务，前后端完全解耦。",
+        },
+      ],
+    },
+    {
+      id: "extremer",
+      title: "本地一体包 (Extremer)",
+      summary: "开箱即用的桌面应用，内置 LocalBridge，无需手动配置。",
+      keywords: ["Extremer", "本地一体包", "桌面应用"],
+      searchText:
+        "Extremer 本地一体包 桌面应用 开箱即用 一键启动 Wails 自动管理 可视化 日志",
+      blocks: [
+        {
+          type: "markdown",
+          text: "**适用场景：**\n- 希望开箱即用的用户\n- 不熟悉命令行操作的用户\n- 追求极致便捷的开发体验\n\n**核心优势：**\n- 一键启动，无需任何配置\n- 内嵌 LocalBridge 服务自动启动和管理\n- 前端日志窗口，实时查看服务状态\n- 基于 Wails v2 框架构建，前端与 Web 版完全一致",
         },
       ],
     },
@@ -61,13 +86,13 @@ const module: WikiModule = {
       id: "how-to-choose",
       title: "如何选择",
       summary: "根据使用场景快速决策。",
-      keywords: ["选择", "场景", "建议"],
+      keywords: ["选择", "建议", "迁移"],
       searchText:
-        "如何选择 初次使用 日常开发 团队协作 多项目 迁移 切换",
+        "如何选择 初次使用 日常开发 团队协作 迁移 切换 兼容 Pipeline 文件通用",
       blocks: [
         {
           type: "markdown",
-          text: "- **初次使用**：先用在线版体验编辑流程，有需要再加 LocalBridge\n- **日常开发**：Web + LocalBridge，灵活且功能完整\n- **不想配置**：直接用一体包\n- **团队协作**：在线版分享链接 + 各自本地 LocalBridge 调试",
+          text: "- **初次使用 / 学习阶段**：先用纯 Web 端体验编辑流程\n- **日常资源开发**：推荐 Extremer（开箱即用）或 Web + LB（灵活配置）\n- **团队协作 / 代码审阅**：纯 Web 端通过分享链接快速展示\n- **多项目维护**：Web + LB 可灵活切换工作目录",
         },
         {
           type: "callout",
