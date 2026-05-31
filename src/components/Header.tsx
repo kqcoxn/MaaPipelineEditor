@@ -320,6 +320,13 @@ function Header() {
     };
   }, [isEmbed]);
 
+  // 答题通过后弹出更新日志
+  useEffect(() => {
+    const handler = () => setUpdateLogOpen(true);
+    window.addEventListener("mpe:newcomer-passed", handler);
+    return () => window.removeEventListener("mpe:newcomer-passed", handler);
+  }, []);
+
   // 检查新版本
   useEffect(() => {
     if (globalConfig.dev) return;

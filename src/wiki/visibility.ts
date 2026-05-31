@@ -1,1 +1,1 @@
-export const isWikiModuleVisible = true;
+export const isWikiModuleVisible = false;

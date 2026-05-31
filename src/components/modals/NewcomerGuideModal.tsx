@@ -97,6 +97,7 @@ export function NewcomerGuideModal() {
   const handleFinish = () => {
     markPassed();
     closeModal();
+    window.dispatchEvent(new CustomEvent("mpe:newcomer-passed"));
   };
 
   return (

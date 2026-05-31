@@ -87,7 +87,7 @@ export const longTermPreview: ForecastSection = {
 };
 
 export const nextPreview: ForecastSection = {
-  title: "Next Version 至 v1.6.0",
+  title: "Next Version 至 v1.7.0",
   notice: "预告内容会随开发进度与实际需求调整，不代表最终承诺。",
   items: [
     {
@@ -96,23 +96,26 @@ export const nextPreview: ForecastSection = {
       description:
         "集成式 Wiki 模块，可在 MPE 内直接查看动态教程，支持任意界面直接跳转至对应模块内容。",
     },
-    {
-      theme: "FlowScope",
-      title: "调试模块完善与问题修复",
-      description:
-        "推进调试模块的功能完善与稳定性提升，修复已知问题，优化用户体验。",
-    },
   ],
 };
 
 export const updateLogs: UpdateLogItem[] = [
+  // {
+  //   version: "1.7.0",
+  //   date: "2026-6-",
+  //   type: "major",
+  //   updates: {
+  //     features: [
+  //       "📚 新增内嵌 wiki “俺寻思” 模块，可在主要功能处 hover 图标长按 w 跳转",
+  //     ],
+  //   },
+  // },
   {
     version: "1.6.0",
-    date: "2026-5-25",
-    type: "major",
+    date: "2026-5-31",
+    type: "perf",
     updates: {
       features: [
-        "📚 新增内嵌 wiki “俺寻思” 模块，可在主要功能处 hover 图标长按 w 跳转",
         "🔃 外部节点与锚点节点可同时存在多个，支持持久化",
         "📑 新增节点操作日志，支持快速跳转",
         "👾 新增新手引导，速来领取你的通关证书！",
