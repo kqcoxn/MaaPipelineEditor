@@ -73,6 +73,8 @@ import { useEmbedStore } from "./stores/embedStore";
 import { useEmbedMode } from "./hooks/useEmbedMode";
 import { useEmbedChangeNotifier } from "./hooks/useEmbedChangeNotifier";
 import { useFlowStore } from "./stores/flow";
+import { useNewcomerStore, isNewcomerPassed } from "./stores/newcomerStore";
+import { NewcomerGuideModal } from "./components/modals/NewcomerGuideModal";
 
 const JsonViewer = lazy(() => import("./components/JsonViewer"));
 const DebugModal = lazy(() =>
@@ -501,8 +503,16 @@ function App() {
       }
     }
 
-    // Star定时提醒
-    if (localStorage.getItem("_mpe_stared") !== "true") {
+    // 新手引导检测
+    if (!isNewcomerPassed()) {
+      useNewcomerStore.getState().openModal();
+    }
+
+    // Star定时提醒（需通过新手测试后才启动）
+    if (
+      localStorage.getItem("_mpe_stared") !== "true" &&
+      isNewcomerPassed()
+    ) {
       setInterval(
         () => {
           if (!isShowStarRemind) {
@@ -589,6 +599,7 @@ function App() {
         <DebugModal />
       </Suspense>
       {isWikiModuleVisible && <WikiModal />}
+      <NewcomerGuideModal />
       <GlobalListener />
     </ThemeProvider>
   );

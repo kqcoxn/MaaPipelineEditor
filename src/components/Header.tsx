@@ -299,6 +299,8 @@ function Header() {
 
   // 检测版本更新
   useEffect(() => {
+    if (localStorage.getItem("mpe_newcomer_passed") !== "true") return;
+
     const lastVersion = localStorage.getItem("mpe_last_version");
     const currentVersion = globalConfig.version;
     if (lastVersion === currentVersion) return;
