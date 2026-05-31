@@ -77,7 +77,7 @@ export const fixedQuestions: QuizQuestion[] = [
     options: [
       "任务直接终止",
       "立即返回父节点，不执行该节点的后续链",
-      "执行该节点及其后续节点链，全部完成或错误终止后再返回父节点继续识别",
+      "执行该节点及其后续节点链，全部完成后再返回父节点继续识别",
       "跳转到 on_error 列表",
     ],
     answer: 2,
@@ -102,7 +102,7 @@ export const fixedQuestions: QuizQuestion[] = [
       "入口节点的 action 执行失败",
       "入口节点进入的 next 节点 action 失败",
     ],
-    answer: [0, 2],
+    answer: [0, 1, 2],
   },
   {
     type: "multi",
