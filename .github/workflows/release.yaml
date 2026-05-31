@@ -27,10 +27,6 @@ jobs:
             goos: linux
             goarch: amd64
             name: mpelb-linux-amd64
-          - os: macos-15-intel
-            goos: darwin
-            goarch: amd64
-            name: mpelb-darwin-amd64
           - os: macos-latest
             goos: darwin
             goarch: arm64
@@ -193,7 +189,7 @@ jobs:
       - name: Check cached resources
         id: check-cache
         run: |
-          if [ -d "resources/maafw-windows-amd64" ] && [ -d "resources/maafw-darwin-arm64" ]; then
+          if [ -d "resources/maafw-windows-amd64" ] && [ -d "resources/maafw-linux-amd64" ] && [ -d "resources/maafw-darwin-arm64" ]; then
             echo "cache-hit=true" >> $GITHUB_OUTPUT
           else
             echo "cache-hit=false" >> $GITHUB_OUTPUT
@@ -240,7 +236,6 @@ jobs:
 
           download_platform "${MFW_BASE_URL}/MAA-win-x86_64-${MFW_VERSION}.zip"    mfw-windows.zip       resources/maafw-windows-amd64 &
           download_platform "${MFW_BASE_URL}/MAA-linux-x86_64-${MFW_VERSION}.zip"   mfw-linux.zip         resources/maafw-linux-amd64   &
-          download_platform "${MFW_BASE_URL}/MAA-macos-x86_64-${MFW_VERSION}.zip"   mfw-darwin-amd64.zip  resources/maafw-darwin-amd64  &
           download_platform "${MFW_BASE_URL}/MAA-macos-aarch64-${MFW_VERSION}.zip"  mfw-darwin-arm64.zip  resources/maafw-darwin-arm64  &
 
           # OCR 资源（从 GitHub Raw 直接下载，更快更稳定）
@@ -282,11 +277,6 @@ jobs:
             mpelb: mpelb-linux-amd64
             mpelb_target: mpelb
             mfw_dir: maafw-linux-amd64
-          - os: macos-15-intel
-            platform: darwin-amd64
-            mpelb: mpelb-darwin-amd64
-            mpelb_target: mpelb
-            mfw_dir: maafw-darwin-amd64
           - os: macos-latest
             platform: darwin-arm64
             mpelb: mpelb-darwin-arm64

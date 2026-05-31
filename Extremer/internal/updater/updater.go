@@ -112,7 +112,7 @@ func findDownloadURL(assets []struct {
 		if runtime.GOARCH == "arm64" {
 			platformPattern = "darwin-arm64"
 		} else {
-			platformPattern = "darwin-amd64"
+			return ""
 		}
 	case "linux":
 		platformPattern = "linux-amd64"
@@ -141,7 +141,7 @@ func GetPlatformName() string {
 		if runtime.GOARCH == "arm64" {
 			return "macOS (Apple Silicon)"
 		}
-		return "macOS (Intel)"
+		return "macOS"
 	case "linux":
 		return "Linux"
 	default:

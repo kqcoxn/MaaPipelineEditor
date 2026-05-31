@@ -362,11 +362,11 @@ function findDownloadURL(
   if (platform.includes("win")) {
     platformPattern = "windows-amd64";
   } else if (platform.includes("mac") || platform.includes("darwin")) {
-    // 检测是否为 Apple Silicon
+    // 仅支持 Apple Silicon
     if (navigator.userAgent.includes("Arm")) {
       platformPattern = "darwin-arm64";
     } else {
-      platformPattern = "darwin-amd64";
+      return "https://github.com/kqcoxn/MaaPipelineEditor/releases/latest";
     }
   } else if (platform.includes("linux")) {
     platformPattern = "linux-amd64";

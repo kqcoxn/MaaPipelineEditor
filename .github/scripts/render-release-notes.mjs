@@ -126,7 +126,7 @@ function renderReleaseNotes({ currentTag, previousTag, log }) {
     "- **LocalBridge**（`mpelb-*`）：后端服务二进制（推荐使用[命令行工具](https://mpe.codax.site/docs/guide/server/deploy.html#%E6%96%B9%E5%BC%8F%E4%B8%80-%E4%B8%80%E9%94%AE%E5%AE%89%E8%A3%85-%E6%8E%A8%E8%8D%90)安装）",
     "- **Source code**：版本源代码",
     "",
-    "支持平台：macOS Intel (darwin-amd64) · macOS Apple Silicon (darwin-arm64) · Linux x64 (linux-amd64) · Windows x64 (windows-amd64)",
+    "支持平台：macOS Apple Silicon (darwin-arm64) · Linux x64 (linux-amd64) · Windows x64 (windows-amd64)",
     "",
     "> 💡 推荐优先使用 [在线方案](https://github.com/kqcoxn/MaaPipelineEditor?tab=readme-ov-file#%E5%BC%80%E7%AE%B1%E5%8D%B3%E7%94%A8)，无需下载即可体验，按需使用本地服务启用完整功能。Release 包适用于自部署或离线使用场景。",
     "",
