@@ -34,7 +34,7 @@ export const fixedQuestions: QuizQuestion[] = [
   {
     type: "judge",
     question:
-      "MPE Extremer 自带的 OCR 模型可以直接用于你自己的 MaaFW 项目，无需另外下载。",
+      "开发自己的 MaaFW 项目时不需要再单独下载 OCR 模型，项目模板或 MPE 会自行处理。",
     options: ["正确", "错误"],
     answer: 1,
   },
@@ -66,16 +66,10 @@ export const fixedQuestions: QuizQuestion[] = [
     options: [
       "同时并行识别所有子节点",
       "随机选择一个子节点执行",
-      "按顺序逐个识别，命中第一个后立即执行",
+      "循环按顺序逐个识别，命中某一个后立即进入并向后执行子链",
       "等待所有子节点都识别成功后再执行",
     ],
     answer: 2,
-  },
-  {
-    type: "judge",
-    question: "当一个节点的 next 列表为空时，该任务流程会终止。",
-    options: ["正确", "错误"],
-    answer: 0,
   },
   {
     type: "choice",
@@ -92,39 +86,39 @@ export const fixedQuestions: QuizQuestion[] = [
     type: "multi",
     question: "对于非入口节点，哪些情况下会进入当前节点的 on_error 列表？",
     options: [
-      "当前节点的 next 列表中所有子节点识别超时",
-      "当前节点的 recognition 未命中",
-      "当前节点的 next 列表中命中的子节点 action 失败",
-      "当前节点的 pre_delay 超时",
+      "当前节点自身 recognition 未命中并超时",
+      "当前节点所有 next 指向的节点识别超时",
+      "当前节点的 action 失败",
+      "当前节点进入的 next 节点 action 失败",
     ],
-    answer: [0, 2],
+    answer: [1, 2],
   },
   {
     type: "multi",
     question: "对于入口节点（Entry），哪些情况下会进入其 on_error 列表？",
     options: [
-      "入口节点自身识别（recognition）超时",
+      "入口节点自身 recognition 未命中并超时",
+      "入口节点所有 next 指向的节点识别超时",
       "入口节点的 action 执行失败",
-      "入口节点的 pre_wait_freezes 超时",
-      "入口节点的 rate_limit 耗尽",
+      "入口节点进入的 next 节点 action 失败",
     ],
-    answer: [0, 1],
+    answer: [0, 2],
   },
   {
     type: "multi",
-    question: "以下哪些情况一定会导致 MaaFW 任务流程终止？",
+    question: "以下哪些情况会导致 MaaFW 任务流程终止？",
     options: [
-      "当前节点的 next 列表为空",
-      "当前节点的 next 列表识别超时",
-      "节点的 action 执行失败",
-      "外部调用 post_stop 或执行 StopTask",
+      "执行 action 后，当前节点的 next 列表为空",
+      "执行 action 后，当前节点的 next 列表识别超时，且未配置 on_error",
+      "当前节点的 action 执行失败，且未配置 on_error",
+      "当前节点执行 StopTask action 或直接调用 post_stop() 函数",
     ],
-    answer: [0, 3],
+    answer: [0, 1, 2, 3],
   },
   {
     type: "choice",
     question:
-      "MaaFW 项目中，interface.json 的作用是什么？（MPE 只负责处理 Pipeline，不负责处理 interface）",
+      "MaaFW 项目中，interface.json（PI 协议）的作用是什么？（MPE 只负责处理 Pipeline，不负责处理 interface）",
     options: [
       "定义 Pipeline 节点的识别算法",
       "声明项目结构，使通用 UI 能正确加载和运行项目",

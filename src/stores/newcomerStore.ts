@@ -5,6 +5,7 @@ import { fixedQuestions } from "../data/newcomerQuizFixed";
 import { questionPool } from "../data/newcomerQuizPool";
 
 const STORAGE_KEY = "mpe_newcomer_passed";
+const STAGE_KEY = "mpe_newcomer_stage";
 const RANDOM_PICK_COUNT = 10;
 const RANDOM_PASS_RATE = 0.6;
 
@@ -35,17 +36,26 @@ export const useNewcomerStore = create<NewcomerStore>((set) => ({
   randomAnswers: {},
   passed: localStorage.getItem(STORAGE_KEY) === "true",
 
-  openModal: () =>
+  openModal: () => {
+    const savedStage = parseInt(localStorage.getItem(STAGE_KEY) || "0", 10);
+    const startStep = savedStage >= 3 ? 0 : savedStage;
     set({
       modalOpen: true,
-      step: 0,
+      step: startStep,
       fixedAnswers: {},
       randomAnswers: {},
       fixedQuiz: fixedQuestions,
       randomQuiz: pickRandom(questionPool, RANDOM_PICK_COUNT),
-    }),
+    });
+  },
   closeModal: () => set({ modalOpen: false }),
-  setStep: (step) => set({ step }),
+  setStep: (step) => {
+    const saved = parseInt(localStorage.getItem(STAGE_KEY) || "0", 10);
+    if (step > saved) {
+      localStorage.setItem(STAGE_KEY, String(step));
+    }
+    set({ step });
+  },
   setFixedAnswer: (qi, val) =>
     set((state) => ({
       fixedAnswers: { ...state.fixedAnswers, [qi]: val },
@@ -57,6 +67,7 @@ export const useNewcomerStore = create<NewcomerStore>((set) => ({
   markPassed: () => {
     localStorage.setItem(STORAGE_KEY, "true");
     localStorage.setItem("mpe_last_version", globalConfig.version);
+    localStorage.removeItem(STAGE_KEY);
     set({ passed: true });
   },
 }));

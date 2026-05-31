@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Modal,
   Button,
@@ -22,7 +22,7 @@ import {
   checkFixedPass,
   checkRandomPass,
 } from "../../stores/newcomerStore";
-import type { QuizQuestion } from "../../data/newcomerQuiz";
+import { isAnswerCorrect, type QuizQuestion } from "../../data/newcomerQuiz";
 
 const { Title, Paragraph, Text, Link } = Typography;
 
@@ -42,15 +42,32 @@ export function NewcomerGuideModal() {
   } = useNewcomerStore();
 
   const [fixedError, setFixedError] = useState(false);
+  const [fixedWrongIndices, setFixedWrongIndices] = useState<Set<number>>(new Set());
+  const [fixedScore, setFixedScore] = useState<{ correct: number; total: number } | null>(null);
   const [randomError, setRandomError] = useState(false);
+  const [randomWrongIndices, setRandomWrongIndices] = useState<Set<number>>(new Set());
+  const [randomScore, setRandomScore] = useState<{ correct: number; total: number } | null>(null);
 
   if (!modalOpen) return null;
 
   const handleSubmitFixed = () => {
     if (checkFixedPass(fixedQuiz, fixedAnswers)) {
       setFixedError(false);
-      setStep(2);
+      setFixedWrongIndices(new Set());
+      setFixedScore(null);
+      setStep(3);
     } else {
+      const wrong = new Set<number>();
+      let correctCount = 0;
+      fixedQuiz.forEach((q, i) => {
+        if (isAnswerCorrect(q, fixedAnswers[i])) {
+          correctCount++;
+        } else {
+          wrong.add(i);
+        }
+      });
+      setFixedWrongIndices(wrong);
+      setFixedScore({ correct: correctCount, total: fixedQuiz.length });
       setFixedError(true);
     }
   };
@@ -58,8 +75,21 @@ export function NewcomerGuideModal() {
   const handleSubmitRandom = () => {
     if (checkRandomPass(randomQuiz, randomAnswers)) {
       setRandomError(false);
+      setRandomWrongIndices(new Set());
+      setRandomScore(null);
       setStep(3);
     } else {
+      const wrong = new Set<number>();
+      let correctCount = 0;
+      randomQuiz.forEach((q, i) => {
+        if (isAnswerCorrect(q, randomAnswers[i])) {
+          correctCount++;
+        } else {
+          wrong.add(i);
+        }
+      });
+      setRandomWrongIndices(wrong);
+      setRandomScore({ correct: correctCount, total: randomQuiz.length });
       setRandomError(true);
     }
   };
@@ -81,13 +111,12 @@ export function NewcomerGuideModal() {
       destroyOnHidden
     >
       <Steps
-        current={step}
+        current={step >= 3 ? 2 : step}
         size="small"
         style={{ marginBottom: 24 }}
         items={[
           { title: "了解", icon: <BookOutlined /> },
           { title: "基础", icon: <FormOutlined /> },
-          { title: "技巧", icon: <ExperimentOutlined /> },
           { title: "通关", icon: <TrophyOutlined /> },
         ]}
       />
@@ -101,7 +130,12 @@ export function NewcomerGuideModal() {
           answers={fixedAnswers}
           setAnswer={setFixedAnswer}
           error={fixedError}
-          errorMessage="存在错误答案，请全部答对后再提交。"
+          errorMessage={
+            fixedScore
+              ? `得分 ${fixedScore.correct}/${fixedScore.total}，请修正标红题目后重新提交。`
+              : "存在错误答案，请全部答对后再提交。"
+          }
+          wrongIndices={fixedWrongIndices}
           onSubmit={handleSubmitFixed}
           onBack={() => setStep(0)}
         />
@@ -114,7 +148,12 @@ export function NewcomerGuideModal() {
           answers={randomAnswers}
           setAnswer={setRandomAnswer}
           error={randomError}
-          errorMessage="正确率不足 60%，请重新检查后再提交。"
+          errorMessage={
+            randomScore
+              ? `得分 ${randomScore.correct}/${randomScore.total}，正确率不足 60%，请修正标红题目后重新提交。`
+              : "正确率不足 60%，请重新检查后再提交。"
+          }
+          wrongIndices={randomWrongIndices}
           onSubmit={handleSubmitRandom}
           onBack={() => setStep(1)}
         />
@@ -169,6 +208,7 @@ function QuizPage({
   setAnswer,
   error,
   errorMessage,
+  wrongIndices,
   onSubmit,
   onBack,
 }: {
@@ -179,6 +219,7 @@ function QuizPage({
   setAnswer: (qi: number, val: number | number[]) => void;
   error: boolean;
   errorMessage: string;
+  wrongIndices?: Set<number>;
   onSubmit: () => void;
   onBack: () => void;
 }) {
@@ -212,6 +253,7 @@ function QuizPage({
               question={q}
               value={answers[qi]}
               onChange={(val) => setAnswer(qi, val)}
+              isWrong={wrongIndices?.has(qi)}
             />
           ))}
         </Space>
@@ -234,19 +276,25 @@ function QuizItem({
   question,
   value,
   onChange,
+  isWrong,
 }: {
   index: number;
   question: QuizQuestion;
   value: number | number[] | undefined;
   onChange: (val: number | number[]) => void;
+  isWrong?: boolean;
 }) {
   const prefixMap = { choice: "单选题", judge: "判断题", multi: "多选题" };
   const prefix = prefixMap[question.type];
 
+  const wrapStyle: React.CSSProperties | undefined = isWrong
+    ? { border: "1px solid #ff4d4f", borderRadius: 6, padding: "8px 12px", background: "#fff2f0" }
+    : undefined;
+
   if (question.type === "multi") {
     return (
-      <div>
-        <Text strong>
+      <div style={wrapStyle}>
+        <Text strong type={isWrong ? "danger" : undefined}>
           {index + 1}. [{prefix}] {question.question}
         </Text>
         <Checkbox.Group
@@ -265,8 +313,8 @@ function QuizItem({
   }
 
   return (
-    <div>
-      <Text strong>
+    <div style={wrapStyle}>
+      <Text strong type={isWrong ? "danger" : undefined}>
         {index + 1}. [{prefix}] {question.question}
       </Text>
       <Radio.Group
@@ -287,6 +335,42 @@ function QuizItem({
 }
 
 function CertificatePage({ onFinish }: { onFinish: () => void }) {
+  useEffect(() => {
+    import("canvas-confetti").then(({ default: confetti }) => {
+      const canvas = document.createElement("canvas");
+      canvas.style.position = "fixed";
+      canvas.style.inset = "0";
+      canvas.style.width = "100%";
+      canvas.style.height = "100%";
+      canvas.style.pointerEvents = "none";
+      canvas.style.zIndex = "9999";
+      document.body.appendChild(canvas);
+
+      const myConfetti = confetti.create(canvas, { resize: true });
+      const end = Date.now() + 1500;
+      const frame = () => {
+        myConfetti({
+          particleCount: 3,
+          angle: 60,
+          spread: 55,
+          origin: { x: 0, y: 0.6 },
+        });
+        myConfetti({
+          particleCount: 3,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1, y: 0.6 },
+        });
+        if (Date.now() < end) {
+          requestAnimationFrame(frame);
+        } else {
+          setTimeout(() => canvas.remove(), 2000);
+        }
+      };
+      frame();
+    });
+  }, []);
+
   return (
     <Result
       status="success"
