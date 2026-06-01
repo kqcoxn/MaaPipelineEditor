@@ -111,6 +111,15 @@ export const updateLogs: UpdateLogItem[] = [
   //   },
   // },
   {
+    version: "1.6.1",
+    date: "2026-6-",
+    type: "feature",
+    updates: {
+      features: [""],
+      perfs: ["还原连接线路径时会自动进行 external 节点的就近连接重计算"],
+    },
+  },
+  {
     version: "1.6.0",
     date: "2026-5-31",
     type: "perf",
