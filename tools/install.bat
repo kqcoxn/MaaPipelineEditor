@@ -20,7 +20,11 @@ if not exist "%INSTALL_DIR%" (
 
 REM Get latest release info
 echo Fetching latest version...
-curl -sL "%API_URL%" > "%TEMP%\mpelb-release.json"
+set "AUTH_HEADER="
+if defined GITHUB_TOKEN (
+    set "AUTH_HEADER=-H "Authorization: token %GITHUB_TOKEN%""
+)
+curl -sL %AUTH_HEADER% "%API_URL%" > "%TEMP%\mpelb-release.json"
 
 if errorlevel 1 (
     echo ERROR: Failed to fetch release info. Please check your network connection.
@@ -57,6 +61,12 @@ if "!VERSION!"=="" (
     echo 1. No release has been published yet
     echo 2. Network connectivity issues
     echo 3. GitHub API rate limit reached
+    echo.
+    echo If rate limited, set GITHUB_TOKEN environment variable and retry:
+    echo   set GITHUB_TOKEN=your_github_token
+    echo   curl -fsSL https://raw.githubusercontent.com/%REPO%/main/tools/install.bat -o %%TEMP%%\install-mpelb.bat ^&^& %%TEMP%%\install-mpelb.bat
+    echo.
+    echo Get a token at: https://github.com/settings/tokens (no scopes needed)
     echo.
     echo Please check: https://github.com/%REPO%/releases
     del "%TEMP%\mpelb-release.json" >nul 2>&1

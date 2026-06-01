@@ -17,12 +17,24 @@ if (!(Test-Path $INSTALL_DIR)) {
 # 获取最新版本
 Write-Host "📡 正在获取最新版本..." -ForegroundColor Yellow
 try {
-    $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$REPO/releases/latest"
+    $headers = @{}
+    if ($env:GITHUB_TOKEN) {
+        $headers["Authorization"] = "token $env:GITHUB_TOKEN"
+    }
+    $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$REPO/releases/latest" -Headers $headers
     $version = $release.tag_name
     Write-Host "✅ 最新版本: $version" -ForegroundColor Green
 } catch {
-    Write-Host "❌ 获取版本信息失败，请检查网络连接" -ForegroundColor Red
-    Write-Host "错误详情: $_" -ForegroundColor Red
+    Write-Host "❌ 获取版本信息失败" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "可能原因: GitHub API 请求频率超限 (未认证每小时仅 60 次)" -ForegroundColor Yellow
+    Write-Host "解决方法: 设置 GITHUB_TOKEN 环境变量后重试" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host '  $env:GITHUB_TOKEN="your_github_token"' -ForegroundColor White
+    Write-Host "  irm https://raw.githubusercontent.com/$REPO/main/tools/install.ps1 | iex" -ForegroundColor White
+    Write-Host ""
+    Write-Host "获取 Token: https://github.com/settings/tokens (无需勾选任何权限)" -ForegroundColor Yellow
+    Write-Host "错误详情: $_" -ForegroundColor DarkGray
     exit 1
 }
 

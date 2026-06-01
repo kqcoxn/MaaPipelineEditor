@@ -35,7 +35,6 @@ import { LocalFileListPanel } from "./components/panels/main/LocalFileListPanel"
 import ErrorPanel from "./components/panels/main/ErrorPanel";
 import ToolbarPanel from "./components/panels/main/ToolbarPanel";
 import { LoggerPanel } from "./components/panels/tools/LoggerPanel";
-import { WikiModal } from "./features/wiki/components/WikiModal";
 import {
   ExplorationFAB,
   ExplorationPanel,
@@ -50,9 +49,6 @@ import {
   clearImportParam,
 } from "./utils/data/shareHelper";
 import { parseUrlParams } from "./utils/data/urlHelper";
-import { useWikiStore } from "./stores/wikiStore";
-import { clearWikiHashParam, readWikiTargetFromHash } from "./wiki/wikiUrl";
-import { isWikiModuleVisible } from "./wiki/visibility";
 import {
   isWailsEnvironment,
   onWailsEvent,
@@ -437,13 +433,6 @@ function App() {
 
     // 统一解析 URL 参数
     const urlParams = parseUrlParams();
-    if (isWikiModuleVisible) {
-      const wikiTarget = readWikiTargetFromHash();
-      if (wikiTarget) {
-        useWikiStore.getState().openWiki(wikiTarget);
-        clearWikiHashParam();
-      }
-    }
 
     // Wails 环境下的连接逻辑
     let cleanupWailsListener: (() => void) | null = null;
@@ -598,7 +587,6 @@ function App() {
       <Suspense fallback={null}>
         <DebugModal />
       </Suspense>
-      {isWikiModuleVisible && <WikiModal />}
       <NewcomerGuideModal />
       <GlobalListener />
     </ThemeProvider>

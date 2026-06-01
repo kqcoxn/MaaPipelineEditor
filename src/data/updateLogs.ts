@@ -87,29 +87,21 @@ export const longTermPreview: ForecastSection = {
 };
 
 export const nextPreview: ForecastSection = {
-  title: "Next Version 至 v1.7.0",
-  notice: "预告内容会随开发进度与实际需求调整，不代表最终承诺。",
-  items: [
-    {
-      theme: "Wiki",
-      title: "俺寻思",
-      description:
-        "集成式 Wiki 模块，可在 MPE 内直接查看动态教程，支持任意界面直接跳转至对应模块内容。",
-    },
-  ],
+  title: "Next Version",
+  notice: "",
+  items: [],
 };
 
 export const updateLogs: UpdateLogItem[] = [
-  // {
-  //   version: "1.7.0",
-  //   date: "2026-6-",
-  //   type: "major",
-  //   updates: {
-  //     features: [
-  //       "📚 新增内嵌 wiki “俺寻思” 模块，可在主要功能处 hover 图标长按 w 跳转",
-  //     ],
-  //   },
-  // },
+  {
+    version: "1.6.1",
+    date: "2026-6-",
+    type: "feature",
+    updates: {
+      features: [""],
+      perfs: ["还原连接线路径时会自动进行 external 节点的就近连接重计算"],
+    },
+  },
   {
     version: "1.6.0",
     date: "2026-5-31",

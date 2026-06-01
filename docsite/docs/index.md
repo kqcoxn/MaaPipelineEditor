@@ -16,11 +16,11 @@ hero:
       text: 即刻使用
       link: https://mpe.codax.site/stable
     - theme: alt
-      text: 迁移指南
-      link: /guide/migrate/old
-    - theme: alt
       text: 本地服务
       link: /guide/server/deploy
+    - theme: alt
+      text: 迁移指南
+      link: /guide/migrate/old
   image:
     src: /logo.png
     alt: logo

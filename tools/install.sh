@@ -42,11 +42,28 @@ esac
 
 # 获取最新版本
 echo "📡 正在获取最新版本..."
-LATEST_RELEASE=$(curl -s "https://api.github.com/repos/$REPO/releases/latest")
+AUTH_HEADER=""
+if [ -n "$GITHUB_TOKEN" ]; then
+    AUTH_HEADER="Authorization: token $GITHUB_TOKEN"
+fi
+
+if [ -n "$AUTH_HEADER" ]; then
+    LATEST_RELEASE=$(curl -s -H "$AUTH_HEADER" "https://api.github.com/repos/$REPO/releases/latest")
+else
+    LATEST_RELEASE=$(curl -s "https://api.github.com/repos/$REPO/releases/latest")
+fi
 VERSION=$(echo "$LATEST_RELEASE" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
 
 if [ -z "$VERSION" ]; then
     echo "❌ 获取版本信息失败"
+    echo ""
+    echo "可能原因: GitHub API 请求频率超限 (未认证每小时仅 60 次)"
+    echo "解决方法: 设置 GITHUB_TOKEN 环境变量后重试"
+    echo ""
+    echo "  export GITHUB_TOKEN=\"your_github_token\""
+    echo "  curl -fsSL https://raw.githubusercontent.com/$REPO/main/tools/install.sh | bash"
+    echo ""
+    echo "获取 Token: https://github.com/settings/tokens (无需勾选任何权限)"
     exit 1
 fi
 

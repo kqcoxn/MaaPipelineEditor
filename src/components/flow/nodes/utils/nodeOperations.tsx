@@ -139,8 +139,28 @@ export function saveNodeAsTemplate(
  * 删除节点（通用工具函数）
  * @param nodeId 节点ID
  */
-export function deleteNode(nodeId: string): void {
+export async function deleteNode(nodeId: string): Promise<void> {
   const flowStore = useFlowStore.getState();
+  const { instance, edges } = flowStore;
+
+  if (instance) {
+    const nodeToDelete = flowStore.nodes.find((n) => n.id === nodeId);
+    if (nodeToDelete) {
+      await instance.deleteElements({ nodes: [nodeToDelete] });
+      return;
+    }
+  }
+
+  const connectedEdgeIds = edges
+    .filter((edge) => edge.source === nodeId || edge.target === nodeId)
+    .map((edge) => edge.id);
+
+  if (connectedEdgeIds.length > 0) {
+    flowStore.updateEdges(
+      connectedEdgeIds.map((id) => ({ id, type: "remove" as const })),
+    );
+  }
+
   flowStore.updateNodes([{ type: "remove", id: nodeId }]);
 }
 

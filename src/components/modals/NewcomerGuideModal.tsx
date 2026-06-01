@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useSyncExternalStore } from "react";
 import {
   Modal,
   Button,
@@ -23,6 +23,17 @@ import {
   checkRandomPass,
 } from "../../stores/newcomerStore";
 import { isAnswerCorrect, type QuizQuestion } from "../../data/newcomerQuiz";
+import { getDevFlag } from "../../utils/devConsole";
+
+function useDevFlag(key: string): boolean {
+  return useSyncExternalStore(
+    (cb) => {
+      window.addEventListener("mpedev:flag-changed", cb);
+      return () => window.removeEventListener("mpedev:flag-changed", cb);
+    },
+    () => getDevFlag(key),
+  );
+}
 
 const { Title, Paragraph, Text, Link } = Typography;
 
@@ -224,6 +235,7 @@ function QuizPage({
   onSubmit: () => void;
   onBack: () => void;
 }) {
+  const cheatEnabled = useDevFlag("quizCheat");
   const allAnswered = quiz.every((q, i) => {
     const a = answers[i];
     if (a === undefined) return false;
@@ -231,10 +243,28 @@ function QuizPage({
     return true;
   });
 
+  const handleFillAll = () => {
+    quiz.forEach((q, i) => {
+      setAnswer(i, q.answer);
+    });
+  };
+
   return (
     <div>
       <Title level={4}>{title}</Title>
       <Paragraph type="secondary">{description}</Paragraph>
+
+      {cheatEnabled && (
+        <Button
+          size="small"
+          type="dashed"
+          danger
+          onClick={handleFillAll}
+          style={{ marginBottom: 12 }}
+        >
+          [DEV] Fill All Answers
+        </Button>
+      )}
 
       {error && (
         <Alert

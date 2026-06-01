@@ -1,4 +1,4 @@
-import { memo, lazy, Suspense, useMemo, useState } from "react";
+import { memo, lazy, Suspense, useMemo, useState, useEffect, useRef } from "react";
 import { message, Tooltip, Popover } from "antd";
 import classNames from "classnames";
 import IconFont from "../../iconfonts";
@@ -7,8 +7,6 @@ import { useFlowStore } from "../../../stores/flow";
 import { useConfigStore } from "../../../stores/configStore";
 import { useClipboardStore } from "../../../stores/clipboardStore";
 import { useDebugSessionStore } from "../../../stores/debugSessionStore";
-import { useWikiStore } from "../../../stores/wikiStore";
-import { isWikiModuleVisible } from "../../../wiki/visibility";
 import PathSelector from "./PathSelector";
 import style from "../../../styles/panels/ToolPanel.module.less";
 
@@ -25,7 +23,59 @@ type GlobalToolType = {
   onDisabledClick?: () => void;
 };
 
+const DOCS_URL = "https://mpe.codax.site/docs";
+const HOLD_DURATION_MS = 600;
+
+function isEditableTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+  const tagName = target.tagName.toLowerCase();
+  if (tagName === "input" || tagName === "textarea" || tagName === "select") return true;
+  if (target.isContentEditable) return true;
+  if (target.closest('[contenteditable="true"]')) return true;
+  return Boolean(target.closest(".monaco-editor"));
+}
+
+function useDocsHoldHotkey() {
+  const timerRef = useRef<number | undefined>(undefined);
+  const holdingRef = useRef(false);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() !== "w") return;
+      if (event.repeat || holdingRef.current) return;
+      if (event.ctrlKey || event.altKey || event.metaKey) return;
+      if (event.isComposing || isEditableTarget(event.target)) return;
+
+      holdingRef.current = true;
+      timerRef.current = window.setTimeout(() => {
+        holdingRef.current = false;
+        window.open(DOCS_URL, "_blank");
+      }, HOLD_DURATION_MS);
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() === "w") {
+        if (timerRef.current !== undefined) {
+          window.clearTimeout(timerRef.current);
+          timerRef.current = undefined;
+        }
+        holdingRef.current = false;
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("keyup", handleKeyUp);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("keyup", handleKeyUp);
+      if (timerRef.current !== undefined) window.clearTimeout(timerRef.current);
+    };
+  }, []);
+}
+
 function GlobalPanel() {
+  useDocsHoldHotkey();
+
   // store
   const clipboardNodes = useClipboardStore((state) => state.clipboardNodes);
   const debouncedSelectedNodes = useFlowStore(
@@ -42,7 +92,6 @@ function GlobalPanel() {
   const getHistoryState = useFlowStore((state) => state.getHistoryState);
   const pathMode = useFlowStore((state) => state.pathMode);
   const openDebugModal = useDebugSessionStore((state) => state.openModal);
-  const openWiki = useWikiStore((state) => state.openWiki);
 
   // 历史状态
   const [, forceUpdate] = useState({});
@@ -267,23 +316,21 @@ function GlobalPanel() {
             </Tooltip>
           </li>
         </div>
-        {isWikiModuleVisible && (
-          <div className={style.group}>
+        <div className={style.group}>
             <div className={style.devider}>
               <div></div>
             </div>
             <li className={style.item}>
-              <Tooltip placement="bottom" title="MPE Wiki / 俺寻思">
+              <Tooltip placement="bottom" title="文档站">
                 <IconFont
                   className={style.icon}
                   name="icon-icon_wendangziliaopeizhi"
                   size={24}
-                  onClick={() => openWiki()}
+                  onClick={() => window.open("https://mpe.codax.site/docs", "_blank")}
                 />
               </Tooltip>
             </li>
           </div>
-        )}
       </ul>
       <ul className={editPanelClass}>{renderTools(editingTools)}</ul>
     </>
