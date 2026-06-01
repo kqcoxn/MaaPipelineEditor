@@ -6,6 +6,7 @@ import { type IconNames } from "../../iconfonts";
 import { useFlowStore } from "../../../stores/flow";
 import { useFileStore } from "../../../stores/fileStore";
 import { LayoutHelper, AlignmentEnum } from "../../../core/layout";
+import { rerouteEdgesToNearestReplica } from "../../../core/parser/edgeRerouter";
 import { saveNodesToImage } from "../../../utils/ui/snapper";
 import { useEmbedMode } from "../../../hooks/useEmbedMode";
 import { sendToParent } from "../../../utils/embedBridge";
@@ -105,6 +106,9 @@ function LayoutPanel() {
         iconName: "icon-connecting_line",
         iconSize: 24,
         onClick: () => {
+          const { nodes, edges, setEdges } = useFlowStore.getState();
+          const rerouted = rerouteEdgesToNearestReplica(nodes, edges);
+          setEdges(rerouted);
           resetEdgeControls();
           message.success("连接线路径已还原");
         },
