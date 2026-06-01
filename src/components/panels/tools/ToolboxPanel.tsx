@@ -4,7 +4,6 @@ import { CopyOutlined } from "@ant-design/icons";
 import IconFont from "../../iconfonts";
 import { type IconNames } from "../../iconfonts";
 import { useMFWStore } from "../../../stores/mfwStore";
-import { WikiContextHint } from "../../../features/wiki/components/WikiContextHint";
 import style from "../../../styles/panels/ToolboxPanel.module.less";
 
 const ROIModal = lazy(() =>
@@ -458,27 +457,6 @@ function ToolboxPanel() {
         ))}
       </div>
 
-      {connectionStatus !== "connected" && (
-        <WikiContextHint
-          title="截图类工具依赖本地能力"
-          summary="工具箱里的 OCR、模板截图、ROI 和颜色取点都需要先连上本地服务与设备。看到“请先连接本地服务与设备”时，先回到连接状态与截图前置条件。"
-          actions={[
-            {
-              label: "连接状态与前置条件",
-              target: {
-                entryId: "localbridge",
-                moduleId: "connection-prerequisites",
-              },
-            },
-            {
-              label: "设备与截图前置",
-              target: { entryId: "localbridge", moduleId: "device-screenshot" },
-            },
-          ]}
-          type="warning"
-          className={style.resultArea}
-        />
-      )}
 
       {/* 结果预览区 */}
       {renderResultPreview()}

@@ -16,7 +16,6 @@ import { useFlowStore } from "../../../stores/flow";
 import { useMFWStore } from "../../../stores/mfwStore";
 import { useConfigStore } from "../../../stores/configStore";
 import { NodeTypeEnum } from "../../flow/nodes/constants";
-import { WikiContextHint } from "../../../features/wiki/components/WikiContextHint";
 import style from "../../../styles/panels/ExplorationPanel.module.less";
 
 const { TextArea } = Input;
@@ -275,27 +274,6 @@ function ExplorationPanelBase({ visible, onClose }: ExplorationPanelProps) {
           />
         </div>
         <div className={style.content}>
-          {(connectionStatus !== "connected" || !aiApiUrl || !aiApiKey || !aiModel) && (
-            <WikiContextHint
-              title="流程探索还没满足前置条件"
-              summary="流程探索不是单纯的文字问答。它需要设备连接、截图来源和 AI API 配置共同就绪，缺一项都无法稳定推进。"
-              actions={[
-                {
-                  label: "AI 前置条件",
-                  target: { entryId: "ai", moduleId: "prerequisites" },
-                },
-                {
-                  label: "连接状态与前置条件",
-                  target: {
-                    entryId: "localbridge",
-                    moduleId: "connection-prerequisites",
-                  },
-                },
-              ]}
-              type="warning"
-              className={style.inlineHint}
-            />
-          )}
           {renderContent()}
         </div>
       </div>

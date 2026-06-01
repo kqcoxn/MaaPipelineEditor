@@ -454,16 +454,6 @@ function Header() {
             </Tooltip>
           </div>
           <div className={style.links}>
-            <Tooltip placement="bottom" title="文档站">
-              <IconFont
-                className="icon-interactive"
-                name="icon-icon_wendangziliaopeizhi"
-                size={25}
-                onClick={() => {
-                  window.open("https://mpe.codax.site/docs");
-                }}
-              />
-            </Tooltip>
             <Tooltip placement="bottom" title="Pipeline协议">
               <img
                 className="icon-interactive"
