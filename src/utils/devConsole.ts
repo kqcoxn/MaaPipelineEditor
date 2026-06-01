@@ -40,11 +40,12 @@ export function registerDevCommand(field: string, handler: DevHandler) {
 }
 
 export function initDevConsole() {
-  if (import.meta.env.PROD) return;
   (window as unknown as Record<string, unknown>).mpedev = mpedev;
 
   import("./devCommands").then(({ registerBuiltinDevCommands }) => {
     registerBuiltinDevCommands();
-    console.log("[mpedev] Dev console ready. Type mpedev() for available commands.");
+    if (!import.meta.env.PROD) {
+      console.log("[mpedev] Dev console ready. Type mpedev() for available commands.");
+    }
   });
 }
