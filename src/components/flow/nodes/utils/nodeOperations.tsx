@@ -141,6 +141,26 @@ export function saveNodeAsTemplate(
  */
 export function deleteNode(nodeId: string): void {
   const flowStore = useFlowStore.getState();
+  const { instance, edges } = flowStore;
+
+  if (instance) {
+    const nodeToDelete = flowStore.nodes.find((n) => n.id === nodeId);
+    if (nodeToDelete) {
+      void instance.deleteElements({ nodes: [nodeToDelete], edges: [] });
+      return;
+    }
+  }
+
+  const connectedEdgeIds = edges
+    .filter((edge) => edge.source === nodeId || edge.target === nodeId)
+    .map((edge) => edge.id);
+
+  if (connectedEdgeIds.length > 0) {
+    flowStore.updateEdges(
+      connectedEdgeIds.map((id) => ({ id, type: "remove" as const })),
+    );
+  }
+
   flowStore.updateNodes([{ type: "remove", id: nodeId }]);
 }
 
