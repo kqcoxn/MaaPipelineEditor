@@ -108,7 +108,7 @@ export const fixedQuestions: QuizQuestion[] = [
     type: "multi",
     question: "以下哪些情况会导致 MaaFW 任务流程终止？",
     options: [
-      "执行 action 后，当前节点的 next 列表为空",
+      "执行 action 后，当前节点的 next 列表为空，且非由 jumpback 进入此子链",
       "执行 action 后，当前节点的 next 列表识别超时，且未配置 on_error",
       "当前节点的 action 执行失败，且未配置 on_error",
       "当前节点执行 StopTask action 或直接调用 post_stop() 函数",
