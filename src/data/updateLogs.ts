@@ -99,7 +99,10 @@ export const updateLogs: UpdateLogItem[] = [
     type: "feature",
     updates: {
       features: [""],
-      perfs: ["还原连接线路径时会自动进行 external 节点的就近连接重计算"],
+      perfs: [
+        "还原连接线路径时会自动进行 external 节点的就近连接重计算",
+        "优化资源健康检查相关术语",
+      ],
     },
   },
   {

@@ -21,7 +21,7 @@ const genericLoadingDiagnosticCodes = new Set([
 const categoryLabels: Record<DebugResourceHealthCategory, string> = {
   resolution: "资源路径解析",
   loading: "资源加载",
-  graph: "当前图静态检查",
+  graph: "流程图校验",
 };
 
 export function getDebugResourceHealthCategoryLabel(

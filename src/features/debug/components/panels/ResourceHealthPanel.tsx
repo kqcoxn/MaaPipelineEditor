@@ -308,18 +308,26 @@ function resolveAlertDescription(
   if (controller.resourceHealthStatus === "error") {
     if (loadFailed) {
       const failureReasons = collectSpecificLoadingReasons(diagnostics);
-      if (failureReasons.length > 0) {
+      const rawFailures = diagnostics.filter(
+        (d) =>
+          d.code === "debug.resource.load_failed" && d.severity === "error",
+      );
+      const items = [
+        ...rawFailures.map((d) => d.message),
+        ...failureReasons.map((d) => d.message),
+      ];
+      if (items.length > 0) {
         return (
           <ul style={{ margin: 0, paddingLeft: 18 }}>
-            {failureReasons.map((reason, index) => (
-              <li key={`${reason.code}-${index}`}>
-                <Text>{reason.message}</Text>
+            {items.map((msg, index) => (
+              <li key={index}>
+                <Text>{msg}</Text>
               </li>
             ))}
           </ul>
         );
       }
-      return "请优先查看下方“资源加载”分组中的错误项。";
+      return "请优先查看下方「资源加载」分组中的错误项。";
     }
     if (loadBlockedBeforeExecution) {
       return "请先修复资源路径解析或运行环境问题，再重新体检。";

@@ -84,7 +84,7 @@ const panels: PanelItem[] = [
     label: "资源体检",
     icon: <MedicineBoxOutlined />,
     description:
-      "集中查看资源路径、资源加载结果和当前图静态检查，加载失败时会直接列出具体线索。",
+      "集中查看资源路径、资源加载结果和流程图校验，加载失败时会直接列出具体线索。",
   },
   {
     id: "setup",

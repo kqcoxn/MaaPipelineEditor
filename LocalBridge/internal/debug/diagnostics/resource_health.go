@@ -426,7 +426,7 @@ func (s *Service) checkGraphHealth(
 			resourceHealthCategoryGraph,
 			"info",
 			"debug.graph.ready",
-			"当前图静态检查通过。",
+			"流程图校验通过。",
 			"",
 		))
 	}
