@@ -96,7 +96,7 @@ export const ConnectionPanel = memo(
     );
     const [manualConfig, setManualConfig] = usePersistedState<string>(
       "adb_config",
-      "",
+      "{}",
     );
     const [manualName, setManualName] = usePersistedState<string>(
       "adb_name",

@@ -114,7 +114,10 @@ export const updateLogs: UpdateLogItem[] = [
         "还原连接线路径时会自动进行 external 节点的就近连接重计算",
         "优化资源健康检查相关术语",
       ],
-      fixes: ["修复 on_error 无法连接至自身的问题"],
+      fixes: [
+        "修复 on_error 无法连接至自身的问题",
+        "修复 adb 不填写 extra 无法连接的问题",
+      ],
     },
   },
   {
