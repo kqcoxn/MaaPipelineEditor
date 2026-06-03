@@ -3,9 +3,11 @@ import { type NodeProps } from "@xyflow/react";
 
 import style from "../../../../styles/flow/nodes.module.less";
 import type { PipelineNodeDataType } from "../../../../stores/flow";
+import { useFlowStore } from "../../../../stores/flow";
 import { useConfigStore } from "../../../../stores/configStore";
 import { KVElem } from "../components/KVElem";
 import { PipelineNodeHandles } from "../components/NodeHandles";
+import { SourceHandleTypeEnum, TargetHandleTypeEnum, NodeTypeEnum } from "../constants";
 import { JsonHelper } from "../../../../utils/data/jsonHelper";
 import {
   mergeFieldSortConfig,
@@ -14,9 +16,34 @@ import {
 
 /**经典风格Pipeline节点内容 */
 export const ClassicContent = memo(
-  ({ data }: { data: PipelineNodeDataType; props: NodeProps }) => {
+  ({ data, props }: { data: PipelineNodeDataType; props: NodeProps }) => {
+    const nodeId = props.id;
+
+    const edges = useFlowStore((state) => state.edges);
+    const nodes = useFlowStore((state) => state.nodes);
+    const { nextItems, errorItems } = useMemo(() => {
+      const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+      const outEdges = edges.filter((e) => e.source === nodeId);
+      const nextItems: { label: string; variant: "normal" | "jumpback" | "anchor" }[] = [];
+      const errorItems: { label: string; variant: "normal" | "jumpback" | "anchor" }[] = [];
+      const sorted = [...outEdges].sort((a, b) => a.label - b.label);
+      for (const e of sorted) {
+        const targetNode = nodeMap.get(e.target);
+        const label = (targetNode?.data as any)?.label ?? e.target;
+        const isJumpBack = e.targetHandle === TargetHandleTypeEnum.JumpBack;
+        const isAnchor = targetNode?.type === NodeTypeEnum.Anchor || !!e.attributes?.anchor;
+        const variant = isJumpBack ? "jumpback" : isAnchor ? "anchor" : "normal";
+        if (e.sourceHandle === SourceHandleTypeEnum.Next) nextItems.push({ label, variant });
+        else if (e.sourceHandle === SourceHandleTypeEnum.Error) errorItems.push({ label, variant });
+      }
+      return { nextItems, errorItems };
+    }, [edges, nodes, nodeId]);
+
     const showNodeDetailFields = useConfigStore(
       (state) => state.configs.showNodeDetailFields,
+    );
+    const showNodeFlowSection = useConfigStore(
+      (state) => state.configs.showNodeFlowSection,
     );
     const fieldSortConfig = useConfigStore(
       (state) => state.configs.fieldSortConfig,
@@ -112,6 +139,28 @@ export const ClassicContent = memo(
             </ul>
           )}
         </ul>
+        {showNodeFlowSection && (nextItems.length > 0 || errorItems.length > 0) && (
+          <div className={style.flowSection}>
+            {nextItems.length > 0 && (
+              <div className={style.flowRow}>
+                <span className={`${style.flowTag} ${style.flowTagNext}`}>next</span>
+                <span className={style.flowArrow}>→</span>
+                {nextItems.map((item, i) => (
+                  <span key={i} className={`${style.flowTag} ${style.flowTagTarget} ${style[`flowTarget-${item.variant}`]}`}>{item.label}</span>
+                ))}
+              </div>
+            )}
+            {errorItems.length > 0 && (
+              <div className={style.flowRow}>
+                <span className={`${style.flowTag} ${style.flowTagError}`}>on_error</span>
+                <span className={style.flowArrow}>→</span>
+                {errorItems.map((item, i) => (
+                  <span key={i} className={`${style.flowTag} ${style.flowTagTarget} ${style[`flowTarget-${item.variant}`]}`}>{item.label}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         <PipelineNodeHandles direction={data.handleDirection} />
       </>
     );

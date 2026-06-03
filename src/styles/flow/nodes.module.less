@@ -223,6 +223,86 @@
     }
   }
 
+  // 流程连接区域（next / on_error）
+  .flowSection {
+    border-top: 1px dashed #e0e0e0;
+    padding: 6px 10px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .flowRow {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+      min-height: 20px;
+    }
+
+    .flowArrow {
+      font-size: 10px;
+      color: #bbb;
+      flex-shrink: 0;
+    }
+
+    // 通用 tag 基础样式
+    .flowTag {
+      display: inline-flex;
+      align-items: center;
+      height: 18px;
+      padding: 0 6px;
+      border-radius: 9px;
+      font-size: 10px;
+      font-weight: 500;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .flowTagNext {
+      background-color: mix(@next-color, #fff, 15%);
+      color: darken(@next-color, 15%);
+      border: 1px solid mix(@next-color, #fff, 35%);
+    }
+
+    .flowTagError {
+      background-color: mix(@error-color, #fff, 15%);
+      color: darken(@error-color, 15%);
+      border: 1px solid mix(@error-color, #fff, 35%);
+    }
+
+    .flowTagAttr {
+      background-color: mix(@jumpback-color, #fff, 12%);
+      color: darken(@jumpback-color, 10%);
+      border: 1px solid mix(@jumpback-color, #fff, 30%);
+    }
+
+    .flowTagTarget {
+      .ellipsis();
+      max-width: 90px;
+      background-color: #f0f0f0;
+      color: rgba(0, 0, 0, 0.65);
+      border: 1px solid #e0e0e0;
+      font-weight: 400;
+    }
+
+    // normal: 灰色（默认，同上）
+    .flowTarget-normal {}
+
+    // jumpback: 橙色
+    .flowTarget-jumpback {
+      background-color: mix(@jumpback-color, #fff, 15%);
+      color: darken(@jumpback-color, 10%);
+      border-color: mix(@jumpback-color, #fff, 35%);
+    }
+
+    // anchor: 青绿色
+    .flowTarget-anchor {
+      background-color: mix(#4a9d8e, #fff, 15%);
+      color: darken(#4a9d8e, 10%);
+      border-color: mix(#4a9d8e, #fff, 35%);
+    }
+  }
+
   // 模板图片区域
   .nodeTemplateImages {
     display: flex;

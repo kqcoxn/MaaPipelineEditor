@@ -44,6 +44,7 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   nodeStyle: "node",
   showNodeDetailFields: "node",
   showNodeTemplateImages: "node",
+  showNodeFlowSection: "node",
   enableNodeSnap: "node",
   snapOnlyInViewport: "node",
   defaultHandleDirection: "node",
@@ -157,6 +158,8 @@ const defaultConfigs = {
   inlinePanelScale: 0.8,
   // 节点显示 template 图片
   showNodeTemplateImages: true,
+  // 显示流程连接区域（next/on_error）
+  showNodeFlowSection: true,
   // 渲染节点详细字段
   showNodeDetailFields: true,
   // 节点磁吸对齐
@@ -219,6 +222,8 @@ export type ConfigState = {
     inlinePanelScale: number;
     // 节点显示 template 图片
     showNodeTemplateImages: boolean;
+    // 显示流程连接区域（next/on_error）
+    showNodeFlowSection: boolean;
     // 渲染节点详细字段
     showNodeDetailFields: boolean;
     // 节点磁吸对齐

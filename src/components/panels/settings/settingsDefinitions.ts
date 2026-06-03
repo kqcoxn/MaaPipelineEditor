@@ -237,14 +237,25 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "showNodeTemplateImages",
     category: "node",
-    label: "节点显示模板图片",
-    tipTitle: "节点显示模板图片",
+    label: "显示模板图片",
+    tipTitle: "显示模板图片",
     tipContent:
       "开启时，现代风格节点底部会显示 template 字段的图片缩略图。需要连接本地服务后生效。",
     type: "switch",
     checkedChildren: "显示",
     unCheckedChildren: "隐藏",
     order: 3,
+  },
+  {
+    key: "showNodeFlowSection",
+    category: "node",
+    label: "显示后续目标节点",
+    tipTitle: "显示后续目标节点",
+    tipContent: "开启时，节点底部会显示 next 和 on_error 的目标节点。",
+    type: "switch",
+    checkedChildren: "显示",
+    unCheckedChildren: "隐藏",
+    order: 4,
   },
   {
     key: "defaultHandleDirection",
