@@ -14,15 +14,15 @@ export const questionPool: QuizQuestion[] = [
     answer: 0,
   },
   {
-    type: "multi",
-    question: "对于入口节点（Entry），哪些情况下会进入其 on_error 列表？",
+    type: "choice",
+    question: "对于某个节点的 on_error 列表，以下说法错误的是？",
     options: [
-      "入口节点自身 recognition 未命中并超时",
-      "入口节点所有 next 指向的节点识别超时",
-      "入口节点的 action 执行失败",
-      "入口节点进入的 next 节点 action 失败",
+      "节点自身的 next 指向的节点识别超时会进入",
+      "节点自身的 action 执行失败时会进入",
+      "进入 on_error 列表后不会对列表内的节点进行识别",
+      "节点自身的 recognition 未命中并超时不会进入",
     ],
-    answer: [0, 1, 2],
+    answer: 2,
   },
   {
     type: "choice",
@@ -52,7 +52,6 @@ export const questionPool: QuizQuestion[] = [
     ],
     answer: 2,
   },
-
   {
     type: "multi",
     question: "以下哪些情况会导致 MaaFW 任务流程终止？",
@@ -89,7 +88,8 @@ export const questionPool: QuizQuestion[] = [
   },
   {
     type: "judge",
-    question: "MaaFW 的 pipeline 文件夹中不同 JSON 文件内的节点可以重名。",
+    question:
+      "在 recognition 使用 TemplateMatch 时需要了解 YOLO 算法的具体原理。",
     options: ["正确", "错误"],
     answer: 1,
   },

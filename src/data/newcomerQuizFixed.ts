@@ -59,8 +59,8 @@ export const fixedQuestions: QuizQuestion[] = [
     type: "choice",
     question: "MaaFW 中一个 Task（任务）指的是什么？",
     options: [
-      "一个 JSON 文件",
-      "若干 Node 连接起来的结构",
+      "一个 JSON 文件里的所包含的所有内容",
+      "若干 Node 按一定次序相连的逻辑顺序结构",
       "一个 pipeline 文件夹里的所有 JSON 文件的总称",
       "JSON 文件中的一个对象",
     ],
@@ -76,12 +76,12 @@ export const fixedQuestions: QuizQuestion[] = [
 
   {
     type: "choice",
-    question: "以下哪个工具中是官方推荐的 interface.json 的编辑工具？",
+    question: "以下哪个工具为 MaaFw 类项目提供了 JSON 文件的内容检查功能？",
     options: [
-      "Maa Pipeline Editor",
-      "MaaDebugger",
-      "Visual Studio",
-      "Visual Studio Code",
+      "Maa Pipeline Editor 的 maa-support-extension 插件",
+      "PyCharm 的 maa-support-extension 插件",
+      "Visual Studio 的 maa-support-extension 插件",
+      "Visual Studio Code 的 maa-support-extension 插件",
     ],
     answer: 3,
   },
