@@ -87,22 +87,34 @@ export const longTermPreview: ForecastSection = {
 };
 
 export const nextPreview: ForecastSection = {
-  title: "Next Version",
-  notice: "",
-  items: [],
+  title: "Next Version 至 v1.7.0",
+  notice: "预告内容会随开发进度与实际需求调整，不代表最终承诺。",
+  items: [
+    {
+      theme: "Wiki",
+      title: "俺寻思",
+      description: "文档站条目快速跳转",
+    },
+    {
+      theme: "test",
+      title: "使用前考试题目完善",
+      description: "还有第二关，小子！",
+    },
+  ],
 };
 
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "1.6.1",
     date: "2026-6-",
-    type: "feature",
+    type: "perf",
     updates: {
-      features: [""],
+      // features: [""],
       perfs: [
         "还原连接线路径时会自动进行 external 节点的就近连接重计算",
         "优化资源健康检查相关术语",
       ],
+      fixes: ["修复 on_error 无法连接至自身的问题"],
     },
   },
   {

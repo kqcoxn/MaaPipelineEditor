@@ -183,13 +183,6 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
             );
             break;
           case SourceHandleTypeEnum.Error:
-            if (
-              co.source === co.target &&
-              co.sourceHandle === SourceHandleTypeEnum.Error
-            ) {
-              crash = true;
-              break;
-            }
             // on_error 和 next 不能同时指向同一个节点
             crash = edges.find(
               (edge) =>
