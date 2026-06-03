@@ -38,9 +38,6 @@ function SearchPanel() {
   const allowSearch = !isEmbed || isCapAllowed("allowSearch");
   const allowAI = !isEmbed || isCapAllowed("allowAI");
 
-  // 若搜索被禁用，整个面板不渲染
-  if (!allowSearch) return null;
-
   // 状态
   const [searchValue, setSearchValue] = useState("");
   const [options, setOptions] = useState<AutoCompleteProps["options"]>([]);
@@ -326,6 +323,9 @@ function SearchPanel() {
     () => classNames(style.panel, style["h-panel"], style["search-panel"]),
     [],
   );
+
+  // 若搜索被禁用，整个面板不渲染
+  if (!allowSearch) return null;
 
   return (
     <div ref={containerRef} className={panelClass}>
