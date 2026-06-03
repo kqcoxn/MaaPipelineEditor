@@ -411,7 +411,18 @@ export const useFileStore = create<FileState>()((set) => ({
   setFileConfig(key, value) {
     set((state) => {
       const config = { ...state.currentFile.config, [key]: value };
-      state.currentFile.config = config;
+      const currentFile = { ...state.currentFile, config };
+      const currentFileIndex = state.files.findIndex(
+        (file) => file.fileName === currentFile.fileName,
+      );
+      const files =
+        currentFileIndex >= 0
+          ? state.files.map((file, index) =>
+              index === currentFileIndex ? currentFile : file,
+            )
+          : state.files;
+      state.currentFile = currentFile;
+      state.files = files;
       return {};
     });
   },

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDebugOverlayStore } from "../../../stores/debugOverlayStore";
-import type { NodeType } from "../../../stores/flow";
+import { useFileStore } from "../../../stores/fileStore";
+import type { EdgeType, NodeType } from "../../../stores/flow";
 import { useLocalFileStore } from "../../../stores/localFileStore";
 import { useDebugRunProfileStore } from "../../../stores/debugRunProfileStore";
 import { applyDebugNodeTarget } from "../nodeTargetActions";
@@ -24,6 +25,7 @@ import {
 } from "../types";
 
 interface UseDebugNodeExecutionControllerInput {
+  flowEdges: EdgeType[];
   flowNodes: NodeType[];
   liveSummary: DebugTraceSummary;
   nodeExecutionAttributionMode: DebugExecutionAttributionMode;
@@ -36,6 +38,7 @@ interface UseDebugNodeExecutionControllerInput {
 }
 
 export function useDebugNodeExecutionController({
+  flowEdges,
   flowNodes,
   liveSummary,
   nodeExecutionAttributionMode,
@@ -58,11 +61,51 @@ export function useDebugNodeExecutionController({
   const resourcePaths = useDebugRunProfileStore(
     (state) => state.profile.resourcePaths,
   );
+  const fileSnapshotKey = useFileStore((state) =>
+    JSON.stringify({
+      currentFile: {
+        fileName: state.currentFile.fileName,
+        filePath: state.currentFile.config.filePath,
+        prefix: state.currentFile.config.prefix,
+        relativePath: state.currentFile.config.relativePath,
+      },
+      files: state.files.map((file) => ({
+        fileName: file.fileName,
+        filePath: file.config.filePath,
+        prefix: file.config.prefix,
+        relativePath: file.config.relativePath,
+        nodeCount: file.nodes.length,
+        edgeCount: file.edges.length,
+      })),
+    }),
+  );
   const flowNodeIds = useMemo(
     () => new Set(flowNodes.map((node) => node.id)),
     [flowNodes],
   );
+  const flowSnapshotKey = useMemo(
+    () =>
+      JSON.stringify({
+        edges: flowEdges.map((edge) => ({
+          id: edge.id,
+          source: edge.source,
+          sourceHandle: edge.sourceHandle,
+          target: edge.target,
+          targetHandle: edge.targetHandle,
+          jumpBack: edge.attributes?.jump_back,
+          anchor: edge.attributes?.anchor,
+        })),
+        nodes: flowNodes.map((node) => ({
+          id: node.id,
+          label: node.data.label,
+          type: node.type,
+        })),
+      }),
+    [flowEdges, flowNodes],
+  );
   const debugResolver = useMemo(() => {
+    void fileSnapshotKey;
+    void flowSnapshotKey;
     const bundle = buildDebugSnapshotBundle(localFiles, resourcePaths);
     return {
       edges: bundle.resolverSnapshot.edges,
@@ -71,7 +114,7 @@ export function useDebugNodeExecutionController({
       ),
       allNodes: bundle.resolverSnapshot.nodes,
     };
-  }, [flowNodeIds, localFiles, resourcePaths]);
+  }, [fileSnapshotKey, flowNodeIds, flowSnapshotKey, localFiles, resourcePaths]);
   const resolverEdges = debugResolver.edges;
   const resolverEdgeIndex = useMemo(
     () => createDebugResolverEdgeIndex(resolverEdges),

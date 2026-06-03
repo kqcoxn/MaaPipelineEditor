@@ -202,7 +202,12 @@ export function useDebugModalController() {
       deviceInfo: state.deviceInfo,
     })),
   );
-  const flowNodes = useFlowStore((state) => state.nodes);
+  const { flowEdges, flowNodes } = useFlowStore(
+    useShallow((state) => ({
+      flowEdges: state.edges,
+      flowNodes: state.nodes,
+    })),
+  );
   const selectedFlowNodeId = useFlowStore((state) =>
     state.selectedNodes.length === 1 ? state.selectedNodes[0]?.id : undefined,
   );
@@ -298,6 +303,7 @@ export function useDebugModalController() {
   );
 
   const nodeExecutionController = useDebugNodeExecutionController({
+    flowEdges,
     flowNodes,
     liveSummary,
     nodeExecutionAttributionMode,

@@ -115,8 +115,9 @@ export const updateLogs: UpdateLogItem[] = [
         "优化资源健康检查相关术语",
       ],
       fixes: [
-        "修复 on_error 无法连接至自身的问题",
+        "修复调试功能入口节点可能无法被正常识别的问题",
         "修复 adb 不填写 extra 无法连接的问题",
+        "修复 on_error 无法连接至自身的问题",
       ],
     },
   },

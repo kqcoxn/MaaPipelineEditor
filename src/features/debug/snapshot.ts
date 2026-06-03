@@ -70,27 +70,35 @@ function buildFileSources(): DebugFileSource[] {
   const fileState = useFileStore.getState();
   const flowState = useFlowStore.getState();
 
-  return fileState.files.map((file) => {
+  const openedFiles = fileState.files.some(
+    (file) => file.fileName === fileState.currentFile.fileName,
+  )
+    ? fileState.files
+    : [...fileState.files, fileState.currentFile];
+
+  return openedFiles.map((file) => {
     const isCurrent = file.fileName === fileState.currentFile.fileName;
+    const sourceFile = isCurrent ? fileState.currentFile : file;
+    const config = sourceFile.config;
     const nodes = isCurrent ? flowState.nodes : file.nodes;
     const edges = isCurrent ? flowState.edges : file.edges;
     const pipeline = flowToPipeline({
       nodes,
       edges,
-      fileName: file.fileName,
-      config: file.config,
+      fileName: sourceFile.fileName,
+      config,
     });
 
     return {
-      fileId: file.fileName,
-      path: file.config.filePath,
-      relativePath: file.config.relativePath,
-      prefix: file.config.prefix,
+      fileId: sourceFile.fileName,
+      path: config.filePath,
+      relativePath: config.relativePath,
+      prefix: config.prefix,
       nodes,
       edges,
       pipeline,
-      config: toRecord(file.config),
-      dirty: !file.config.filePath || file.config.isModifiedExternally,
+      config: toRecord(config),
+      dirty: !config.filePath || config.isModifiedExternally,
     };
   });
 }

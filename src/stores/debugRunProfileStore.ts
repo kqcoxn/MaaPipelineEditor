@@ -358,6 +358,9 @@ export const useDebugRunProfileStore = create<DebugRunProfileState>(
           targetNodeId !== undefined
             ? resolveDebugNodeTarget(targetNodeId, bundle.resolverSnapshot)
             : undefined;
+        if (targetNodeId !== undefined && !target) {
+          throw new Error("所选入口节点不在当前调试快照中，请重新打开入口节点所在文件后再试。");
+        }
         const snapshotEntry =
           bundle.resolverSnapshot.nodes.find(
             (node) => node.fileId === bundle.resolverSnapshot.rootFileId,
