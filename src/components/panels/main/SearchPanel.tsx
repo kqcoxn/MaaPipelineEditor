@@ -400,7 +400,7 @@ function SearchPanel() {
         <div className={style.devider}>
           <div></div>
         </div>
-        <Tooltip placement="bottom" title="节点列表">
+        <Tooltip placement="left" title="节点列表">
           <DownOutlined
             className={classNames(
               style["search-icon"],
