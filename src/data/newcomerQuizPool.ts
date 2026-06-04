@@ -7,12 +7,14 @@ import type { QuizQuestion } from "./newcomerQuiz";
  */
 export const questionPool: QuizQuestion[] = [
   {
+    category: "流程控制",
     type: "choice",
     question: "节点的 next 列表识别超时后，会进入哪个列表？",
     options: ["next", "interrupt", "on_error", "retry"],
     answer: 2,
   },
   {
+    category: "流程控制",
     type: "judge",
     question:
       "修改节点的 timeout 字段不能解决当前节点 recognition 命中时间超时的问题。",
@@ -20,6 +22,7 @@ export const questionPool: QuizQuestion[] = [
     answer: 0,
   },
   {
+    category: "流程控制",
     type: "choice",
     question: "对于某个节点的 on_error 列表，以下说法错误的是？",
     options: [
@@ -31,24 +34,28 @@ export const questionPool: QuizQuestion[] = [
     answer: 2,
   },
   {
+    category: "流程控制",
     type: "judge",
     question: "只有在 action 执行失败时才会进入 on_error 列表。",
     options: ["正确", "错误"],
     answer: 1,
   },
   {
+    category: "识别与资源",
     type: "judge",
     question: "ROI（Region of Interest）是指定义图像识别边界的区域。",
     options: ["正确", "错误"],
     answer: 0,
   },
   {
+    category: "识别与资源",
     type: "judge",
     question: "目标图形在 ROI（Region of Interest）的范围外不会被识别到。",
     options: ["正确", "错误"],
     answer: 0,
   },
   {
+    category: "MaaFW 概念",
     type: "choice",
     question: "MaaFW 中，Entry 指的是什么？",
     options: [
@@ -60,12 +67,14 @@ export const questionPool: QuizQuestion[] = [
     answer: 1,
   },
   {
+    category: "识别与资源",
     type: "choice",
     question: "TemplateMatch 使用的模板图片默认应缩放到什么分辨率？",
     options: ["480p", "720p", "1080p", "原始分辨率"],
     answer: 1,
   },
   {
+    category: "MaaFW 概念",
     type: "judge",
     question:
       "MaaFW 的 pipeline 文件夹会递归读取其中所有 JSON 文件，不限制文件数量和嵌套层级。",
@@ -73,6 +82,7 @@ export const questionPool: QuizQuestion[] = [
     answer: 0,
   },
   {
+    category: "识别与资源",
     type: "judge",
     question:
       "在 recognition 使用 TemplateMatch 时需要了解 YOLO 算法的具体原理。",
@@ -80,6 +90,7 @@ export const questionPool: QuizQuestion[] = [
     answer: 1,
   },
   {
+    category: "识别与资源",
     type: "choice",
     question: "OCR 模型文件夹中需要包含哪些文件？",
     options: [
@@ -91,6 +102,7 @@ export const questionPool: QuizQuestion[] = [
     answer: 1,
   },
   {
+    category: "项目发布",
     type: "choice",
     question: "项目开发完成后社区推荐用哪种方法进行多平台打包？",
     options: [

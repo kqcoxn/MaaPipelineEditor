@@ -1,17 +1,51 @@
 /** 新手引导题目类型定义 */
-export interface QuizQuestion {
-  type: "choice" | "judge" | "multi";
+interface BaseQuizQuestion {
   question: string;
+  category?: string;
+}
+
+interface SingleChoiceQuestion extends BaseQuizQuestion {
+  type: "choice" | "judge";
   options: string[];
-  answer: number | number[];
+  answer: number;
+}
+
+interface MultiChoiceQuestion extends BaseQuizQuestion {
+  type: "multi";
+  options: string[];
+  answer: number[];
+}
+
+interface InputQuestion extends BaseQuizQuestion {
+  type: "input";
+  include: string;
+}
+
+export type QuizQuestion =
+  | SingleChoiceQuestion
+  | MultiChoiceQuestion
+  | InputQuestion;
+
+export type QuizAnswer = number | number[] | string;
+
+function normalizeInputAnswer(value: string): string {
+  return value.trim().toLowerCase();
 }
 
 /** 判断单题是否正确 */
 export function isAnswerCorrect(
   question: QuizQuestion,
-  userAnswer: number | number[] | undefined,
+  userAnswer: QuizAnswer | undefined,
 ): boolean {
   if (userAnswer === undefined) return false;
+  if (question.type === "input") {
+    return (
+      typeof userAnswer === "string" &&
+      normalizeInputAnswer(userAnswer).includes(
+        normalizeInputAnswer(question.include),
+      )
+    );
+  }
   if (question.type === "multi") {
     if (!Array.isArray(userAnswer) || !Array.isArray(question.answer))
       return false;

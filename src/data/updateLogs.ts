@@ -97,7 +97,7 @@ export const nextPreview: ForecastSection = {
     },
     {
       theme: "test",
-      title: "使用前考试题目完善",
+      title: "新手题目完善",
       description: "还有第二关，小子！",
     },
   ],
@@ -113,6 +113,7 @@ export const updateLogs: UpdateLogItem[] = [
       perfs: [
         "还原连接线路径时会自动进行 external 节点的就近连接重计算",
         "优化资源健康检查相关术语",
+        "优化新手题目",
       ],
       fixes: [
         "修复调试功能入口节点可能无法被正常识别的问题",
