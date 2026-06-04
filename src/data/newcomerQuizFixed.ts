@@ -3,6 +3,7 @@ import type { QuizQuestion } from "./newcomerQuiz";
 /**
  * 固定题目（基本常识）
  * 全部作答，必须 100% 正确才能通过
+ * 该部分对 MaaFW 的基础知识、模板教学内容和核心流程机制进行考察
  */
 export const fixedQuestions: QuizQuestion[] = [
   {
@@ -10,6 +11,24 @@ export const fixedQuestions: QuizQuestion[] = [
     question:
       "MaaPipelineEditor (MPE) 可以完全替代学习 MaaFramework，不需要先了解 MaaFW 就能直接使用。",
     options: ["正确", "错误"],
+    answer: 1,
+  },
+  {
+    type: "judge",
+    question: "现在可以直接在 MaaPipelineEditor (MPE) 创建全新的空白项目。",
+    options: ["正确", "错误"],
+    answer: 1,
+  },
+  {
+    type: "input",
+    question: "MaaFw (MaaFramework) 的项目模板仓库地址是？",
+    // 包含即可，免得出现http或者.git之类的写法
+    include: "MaaXYZ/MaaPracticeBoilerplate",
+  },
+  {
+    type: "choice",
+    question: "从模板仓库创建项目必须要按哪个按钮？",
+    options: ["Download ZIP", "Use this template", "新建文件夹", "Release"],
     answer: 1,
   },
   {
@@ -38,6 +57,19 @@ export const fixedQuestions: QuizQuestion[] = [
     options: ["正确", "错误"],
     answer: 1,
   },
+  {
+    type: "choice",
+    question:
+      "项目目录下的 assets/resource/model/ocr 文件夹中需要包含哪些文件？",
+    options: [
+      "model.bin、config.json",
+      "det.onnx、rec.onnx、keys.txt",
+      "ocr.pth、vocab.txt",
+      "detect.tflite、recognize.tflite",
+    ],
+    answer: 1,
+  },
+
   {
     type: "choice",
     question: "MaaFW 中，Pipeline 的基本格式是什么？",
@@ -126,5 +158,29 @@ export const fixedQuestions: QuizQuestion[] = [
       "存储用户的运行日志",
     ],
     answer: 1,
+  },
+  {
+    type: "judge",
+    question:
+      "有关 interface.json 文件的填写方法可以在 MaaFW 手册的 3.2 章节看到。",
+    options: ["正确", "错误"],
+    answer: 1,
+  },
+  {
+    type: "choice",
+    question: "以下哪个工具为 MaaFW 类项目提供了 JSON 文件的内容检查功能？",
+    options: [
+      "Maa Pipeline Editor 的 maa-support-extension 插件",
+      "PyCharm 的 maa-support-extension 插件",
+      "Visual Studio 的 maa-support-extension 插件",
+      "Visual Studio Code 的 maa-support-extension 插件",
+    ],
+    answer: 3,
+  },
+  {
+    type: "choice",
+    question: "以下项目中哪个是在 MaaFW 手册中指定的最佳实践参考？",
+    options: ["Maa", "M9A", "MPE", "MFAAvalonia"],
+    answer: 2,
   },
 ];
