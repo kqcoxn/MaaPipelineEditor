@@ -3,9 +3,15 @@ import type { QuizQuestion } from "./newcomerQuiz";
 /**
  * 随机题库（常用技巧/小知识）
  * 随机抽取 10 题，60% 正确率（6题）即可通过
- * 该部分对MaaFw的进阶知识进行考察
+ * 该部分对 MaaFW 的进阶知识进行考察
  */
 export const questionPool: QuizQuestion[] = [
+  {
+    type: "choice",
+    question: "节点的 next 列表识别超时后，会进入哪个列表？",
+    options: ["next", "interrupt", "on_error", "retry"],
+    answer: 2,
+  },
   {
     type: "judge",
     question:
@@ -25,43 +31,16 @@ export const questionPool: QuizQuestion[] = [
     answer: 2,
   },
   {
-    type: "choice",
-    question: "当一个节点的 next 列表中有多个子节点时，MaaFW 如何处理？",
-    options: [
-      "同时并行识别所有子节点",
-      "随机选择一个子节点执行",
-      "循环按顺序逐个识别，命中某一个后立即进入并向后执行子链",
-      "等待所有子节点都识别成功后再执行",
-    ],
-    answer: 2,
-  },
-  {
     type: "judge",
     question: "只有在 action 执行失败时才会进入 on_error 列表。",
     options: ["正确", "错误"],
     answer: 1,
   },
   {
-    type: "choice",
-    question: "在 next 列表中使用 [JumpBack] 属性的节点，被命中后会发生什么？",
-    options: [
-      "任务直接终止",
-      "立即返回父节点，不执行该节点的后续链",
-      "执行该节点及其后续节点链，全部完成后再返回父节点继续识别",
-      "跳转到 on_error 列表",
-    ],
-    answer: 2,
-  },
-  {
-    type: "multi",
-    question: "以下哪些情况会导致 MaaFW 任务流程终止？",
-    options: [
-      "由 jumpback 进入子链，执行 action 后，当前节点的 next 列表为空。",
-      "执行 action 后，当前节点的 next 列表识别超时，且未配置 on_error",
-      "当前节点的 action 执行失败，且未配置 on_error",
-      "当前节点执行 StopTask action",
-    ],
-    answer: [1, 2, 3],
+    type: "judge",
+    question: "ROI（Region of Interest）是指定义图像识别边界的区域。",
+    options: ["正确", "错误"],
+    answer: 0,
   },
   {
     type: "judge",
@@ -89,8 +68,26 @@ export const questionPool: QuizQuestion[] = [
   {
     type: "judge",
     question:
+      "MaaFW 的 pipeline 文件夹会递归读取其中所有 JSON 文件，不限制文件数量和嵌套层级。",
+    options: ["正确", "错误"],
+    answer: 0,
+  },
+  {
+    type: "judge",
+    question:
       "在 recognition 使用 TemplateMatch 时需要了解 YOLO 算法的具体原理。",
     options: ["正确", "错误"],
+    answer: 1,
+  },
+  {
+    type: "choice",
+    question: "OCR 模型文件夹中需要包含哪些文件？",
+    options: [
+      "model.bin、config.json",
+      "det.onnx、rec.onnx、keys.txt",
+      "ocr.pth、vocab.txt",
+      "detect.tflite、recognize.tflite",
+    ],
     answer: 1,
   },
   {
