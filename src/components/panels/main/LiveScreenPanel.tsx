@@ -1,7 +1,8 @@
 import style from "../../../styles/panels/LiveScreenPanel.module.less";
 
+import { DownOutlined, UpOutlined } from "@ant-design/icons";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
-import { Spin, message } from "antd";
+import { Button, Spin, Tooltip, message } from "antd";
 import classNames from "classnames";
 
 import { useMFWStore } from "../../../stores/mfwStore";
@@ -27,6 +28,7 @@ const LiveScreenPanel = memo(() => {
   const [screenImage, setScreenImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const isRequestingRef = useRef(false);
   const consecutiveFailuresRef = useRef(0);
 
@@ -46,6 +48,7 @@ const LiveScreenPanel = memo(() => {
     controllerId !== null &&
     !isDisplaced &&
     enableLiveScreen;
+  const shouldRequestScreen = shouldShow && !isCollapsed;
 
   // 注册截图结果监听
   useEffect(() => {
@@ -90,7 +93,7 @@ const LiveScreenPanel = memo(() => {
   }, [controllerId]);
 
   useEffect(() => {
-    if (!shouldShow || !controllerId) {
+    if (!shouldRequestScreen || !controllerId) {
       return;
     }
 
@@ -105,7 +108,12 @@ const LiveScreenPanel = memo(() => {
       clearInterval(timerId);
       isRequestingRef.current = false;
     };
-  }, [shouldShow, liveScreenRefreshRate, controllerId, requestScreenshot]);
+  }, [
+    shouldRequestScreen,
+    liveScreenRefreshRate,
+    controllerId,
+    requestScreenshot,
+  ]);
 
   // 设备断开时清除画面
   useEffect(() => {
@@ -121,33 +129,54 @@ const LiveScreenPanel = memo(() => {
   const panelClass = classNames(
     style.liveScreenPanel,
     shouldShow ? style.visible : style.hidden,
+    isCollapsed && style.collapsed,
   );
 
   return (
     <div className={panelClass}>
       <div className={style.header}>
         <span className={style.title}>实时画面</span>
-        {hasError && <span className={style.status}>截图异常</span>}
+        <div className={style.headerActions}>
+          {hasError && !isCollapsed && (
+            <span className={style.status}>截图异常</span>
+          )}
+          <Tooltip
+            placement="left"
+            title={isCollapsed ? "展开实时画面" : "折叠实时画面"}
+          >
+            <Button
+              aria-expanded={!isCollapsed}
+              aria-label={isCollapsed ? "展开实时画面" : "折叠实时画面"}
+              className={style.collapseButton}
+              icon={isCollapsed ? <DownOutlined /> : <UpOutlined />}
+              size="small"
+              type="text"
+              onClick={() => setIsCollapsed((collapsed) => !collapsed)}
+            />
+          </Tooltip>
+        </div>
       </div>
-      <div className={style.contentContainer}>
-        {isLoading && !screenImage ? (
-          <div className={style.loadingContainer}>
-            <Spin />
-            <span>正在获取画面...</span>
-          </div>
-        ) : hasError && !screenImage ? (
-          <div className={style.errorContainer}>
-            <span>截图失败，请检查设备连接</span>
-          </div>
-        ) : screenImage ? (
-          <img
-            className={style.screenImage}
-            src={screenImage}
-            alt="设备画面"
-            draggable={false}
-          />
-        ) : null}
-      </div>
+      {!isCollapsed && (
+        <div className={style.contentContainer}>
+          {isLoading && !screenImage ? (
+            <div className={style.loadingContainer}>
+              <Spin />
+              <span>正在获取画面...</span>
+            </div>
+          ) : hasError && !screenImage ? (
+            <div className={style.errorContainer}>
+              <span>截图失败，请检查设备连接</span>
+            </div>
+          ) : screenImage ? (
+            <img
+              className={style.screenImage}
+              src={screenImage}
+              alt="设备画面"
+              draggable={false}
+            />
+          ) : null}
+        </div>
+      )}
     </div>
   );
 });

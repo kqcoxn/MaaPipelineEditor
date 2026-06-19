@@ -96,7 +96,7 @@ export const nextPreview: ForecastSection = {
     },
     {
       theme: "test",
-      title: "使用前考试题目完善",
+      title: "新手题目完善",
       description: "还有第二关，小子！",
     },
   ],
@@ -108,10 +108,14 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2026-6-4",
     type: "perf",
     updates: {
-      features: ["🎯 节点可显示后续目标节点，可在设置面板切换是否显示"],
+      features: [
+        "🎯 节点可显示后续目标节点，可在设置面板切换是否显示",
+        "📽️ 实时画面模块新增折叠功能",
+      ],
       perfs: [
         "还原连接线路径时会自动进行 external 节点的就近连接重计算",
         "优化资源健康检查相关术语",
+        "优化新手题目",
       ],
       fixes: [
         "修复调试功能入口节点可能无法被正常识别的问题",
