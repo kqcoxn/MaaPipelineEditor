@@ -2,7 +2,7 @@
 schema_version: 1
 locale: zh-CN
 branch: main
-exported_at: "2026-06-19T16:34:57Z"
+exported_at: "2026-06-19T17:54:55Z"
 modules:
     "":
         dir_name: MaaPipelineEditor 多形态产品矩阵
@@ -39,8 +39,8 @@ modules:
             - src/
         source_files: []
         children:
-            - frontend_app/app_shell_and_shared
             - frontend_app/debug_ai_suite
+            - frontend_app/app_shell_and_shared
             - frontend_app/flow_workspace
         depends_on: []
         related_to: []
