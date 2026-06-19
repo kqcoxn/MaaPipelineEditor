@@ -8,4 +8,6 @@ scope:
     - src/hooks/usePanelOccupancy.ts
 source_files: []
 depends_on: []
-related_to: []
+related_to:
+    - path: frontend_app/debug_ai_suite
+    - path: frontend_app/app_shell_and_shared

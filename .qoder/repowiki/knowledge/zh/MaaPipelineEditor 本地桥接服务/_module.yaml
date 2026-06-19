@@ -7,4 +7,3 @@ source_files: []
 depends_on: []
 related_to:
     - path: extremer
-    - path: frontend_app

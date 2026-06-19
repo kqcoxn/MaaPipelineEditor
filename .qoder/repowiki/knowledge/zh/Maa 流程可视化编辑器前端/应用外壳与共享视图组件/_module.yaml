@@ -8,4 +8,5 @@ scope:
     - src/components/JsonViewer.tsx
 source_files: []
 depends_on: []
-related_to: []
+related_to:
+    - path: frontend_app/flow_workspace
