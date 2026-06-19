@@ -17,8 +17,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "reset": "git reset --soft HEAD~1",
-    "release": "git tag -a v1.6.1 -m \"v1.6.1\" && git push origin v1.6.1",
-    "retag": "git tag -d v1.6.1"
+    "migrate": "node scripts/migrate-version.mjs",
+    "release": "git tag -a v1.7.0 -m \"v1.7.0\" && git push origin v1.7.0",
+    "retag": "git tag -d v1.7.0"
   },
   "dependencies": {
     "@ant-design/icons": "6",
