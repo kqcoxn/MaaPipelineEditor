@@ -49,7 +49,7 @@ _✨ 可视化构建 MaaFramework Pipeline 的下一代工作流编辑器 ✨_</
 - 通过**一行命令即可增量启用** [本地服务](https://mpe.codax.site/docs/guide/server/deploy.html)，不需要时完全解耦
 - 无缝接入**文件管理**、**截图工具**、**流程调试**等本地能力
 - 支持自定义框架与 OCR 路径，直接**对齐本地环境**
-- 提供完整环境的[本地一体集成包](https://mpe.codax.site/docs/guide/extremer/deploy.html)，长期使用更便捷
+- 提供完整环境的本地一体集成包（[暂时下线](https://mpe.codax.site/docs/guide/extremer/deploy.html)，正在重构中），长期使用更便捷
 
 #### 🧠 所见即所思，流程即逻辑
 

@@ -107,26 +107,6 @@ jobs:
           cd ..
         shell: bash
 
-      - name: Build project (extremer)
-        run: yarn build --mode extremer
-
-      - name: Clean up dist (extremer)
-        run: rm -rf dist/readme dist/logo
-
-      - name: List dist contents
-        run: |
-          echo "=== Listing dist/ contents ==="
-          ls -la dist/
-          echo "=== Checking if index.html exists ==="
-          test -f dist/index.html && echo "✓ index.html found" || echo "✗ index.html NOT found"
-        shell: bash
-
-      - name: Upload extremer dist artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: extremer-dist
-          path: dist/
-
       - name: Build docs
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
@@ -168,246 +148,11 @@ jobs:
             MaaPipelineEditor-*-docs.zip
             MaaPipelineEditor-*-landing.zip
 
-  download-resources:
-    runs-on: ubuntu-latest
-    # 允许手动触发
-    if: ${{ github.event_name == 'workflow_dispatch' || (!contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test')) }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Cache MaaFramework resources
-        uses: actions/cache@v3
-        with:
-          path: resources/
-          key: mfw-resources-${{ hashFiles('.github/workflows/release.yaml') }}-${{ github.run_id }}
-          restore-keys: |
-            mfw-resources-${{ hashFiles('.github/workflows/release.yaml') }}-
-            mfw-resources-
-
-      - name: Check cached resources
-        id: check-cache
-        run: |
-          if [ -d "resources/maafw-windows-amd64" ] && [ -d "resources/maafw-linux-amd64" ] && [ -d "resources/maafw-darwin-arm64" ]; then
-            echo "cache-hit=true" >> $GITHUB_OUTPUT
-          else
-            echo "cache-hit=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Download MaaFramework resources
-        if: steps.check-cache.outputs.cache-hit != 'true'
-        env:
-          MAA_GH_TOKEN: ${{ secrets.MAA_GH_TOKEN }}
-        run: |
-          # 带认证的 curl 下载函数（优化版）
-          gh_curl() {
-            curl -L \
-              -H "Authorization: Bearer ${MAA_GH_TOKEN}" \
-              -H "Accept: application/octet-stream" \
-              -H "User-Agent: MaaPipelineEditor-CI/1.0" \
-              --retry 5 --retry-delay 3 --retry-all-errors \
-              --connect-timeout 60 --max-time 1200 \
-              --speed-time 30 --speed-limit 1000 \
-              "$@"
-          }
-
-          # 从 MaaFramework Release 自动获取最新版本
-          MFW_VERSION=$(curl -s -H "Authorization: Bearer ${MAA_GH_TOKEN}" \
-            https://api.github.com/repos/MaaXYZ/MaaFramework/releases \
-            | grep '"tag_name":' | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
-          echo "MaaFramework latest version: ${MFW_VERSION}"
-          if [ -z "$MFW_VERSION" ]; then
-            echo "Failed to fetch latest MaaFramework version"
-            exit 1
-          fi
-          MFW_BASE_URL="https://github.com/MaaXYZ/MaaFramework/releases/download/${MFW_VERSION}"
-
-          mkdir -p resources
-
-          # 并行下载各平台资源
-          download_platform() {
-            local url="$1" zipfile="$2" destdir="$3"
-            gh_curl "${url}" -o "${zipfile}"
-            mkdir -p "${destdir}"
-            unzip "${zipfile}" -d "${destdir}/" || true
-            rm "${zipfile}"
-          }
-
-          download_platform "${MFW_BASE_URL}/MAA-win-x86_64-${MFW_VERSION}.zip"    mfw-windows.zip       resources/maafw-windows-amd64 &
-          download_platform "${MFW_BASE_URL}/MAA-linux-x86_64-${MFW_VERSION}.zip"   mfw-linux.zip         resources/maafw-linux-amd64   &
-          download_platform "${MFW_BASE_URL}/MAA-macos-aarch64-${MFW_VERSION}.zip"  mfw-darwin-arm64.zip  resources/maafw-darwin-arm64  &
-
-          # OCR 资源（从 GitHub Raw 直接下载，更快更稳定）
-          (
-            mkdir -p resources/resource/model/ocr
-            # 使用 GitHub Raw CDN 下载，带认证和优化参数
-            gh_curl "https://raw.githubusercontent.com/MaaXYZ/MaaCommonAssets/main/OCR/ppocr_v5/zh_cn/det.onnx" -o resources/resource/model/ocr/det.onnx
-            gh_curl "https://raw.githubusercontent.com/MaaXYZ/MaaCommonAssets/main/OCR/ppocr_v5/zh_cn/rec.onnx" -o resources/resource/model/ocr/rec.onnx
-            gh_curl "https://raw.githubusercontent.com/MaaXYZ/MaaCommonAssets/main/OCR/ppocr_v5/zh_cn/keys.txt" -o resources/resource/model/ocr/keys.txt
-            gh_curl "https://raw.githubusercontent.com/MaaXYZ/MaaCommonAssets/main/OCR/ppocr_v5/zh_cn/README.md" -o resources/resource/model/ocr/README.md
-          ) &
-
-          # 等待所有后台下载完成
-          wait
-          echo "All resources downloaded successfully"
-
-      - name: Upload resources artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: mfw-resources
-          path: resources/
-
-  build-extremer:
-    name: Build Extremer for ${{ matrix.platform }}
-    needs: [build-web, build-localbridge, download-resources]
-    runs-on: ${{ matrix.os }}
-    # 允许手动触发
-    if: ${{ github.event_name == 'workflow_dispatch' || (!contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test')) }}
-    strategy:
-      matrix:
-        include:
-          - os: windows-latest
-            platform: windows-amd64
-            mpelb: mpelb-windows-amd64.exe
-            mpelb_target: mpelb.exe
-            mfw_dir: maafw-windows-amd64
-          - os: ubuntu-latest
-            platform: linux-amd64
-            mpelb: mpelb-linux-amd64
-            mpelb_target: mpelb
-            mfw_dir: maafw-linux-amd64
-          - os: macos-latest
-            platform: darwin-arm64
-            mpelb: mpelb-darwin-arm64
-            mpelb_target: mpelb
-            mfw_dir: maafw-darwin-arm64
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.21"
-          cache: false
-
-      - name: Install Wails
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
-
-      - name: Install Linux dependencies
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
-
-      - name: Download extremer dist
-        uses: actions/download-artifact@v4
-        with:
-          name: extremer-dist
-          path: Extremer/frontend/dist/
-
-      - name: Verify extremer dist download
-        run: |
-          echo "=== Listing Extremer/frontend/dist/ contents ==="
-          ls -la Extremer/frontend/dist/
-          echo "=== Checking if index.html exists ==="
-          test -f Extremer/frontend/dist/index.html && echo "✓ index.html found" || echo "✗ index.html NOT found"
-        shell: bash
-
-      - name: Download LocalBridge artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ matrix.mpelb }}
-          path: Extremer/resources/
-
-      - name: Rename mpelb
-        run: mv Extremer/resources/${{ matrix.mpelb }} Extremer/resources/${{ matrix.mpelb_target }}
-        shell: bash
-
-      - name: Download MFW resources
-        uses: actions/download-artifact@v4
-        with:
-          name: mfw-resources
-          path: mfw-resources/
-
-      - name: Copy MFW resources
-        run: |
-          mkdir -p Extremer/resources/maafw
-          # 只复制 bin 文件夹以节省体积
-          if [ -d "mfw-resources/${{ matrix.mfw_dir }}/bin" ]; then
-            cp -r mfw-resources/${{ matrix.mfw_dir }}/bin Extremer/resources/maafw/ || true
-          fi
-          mkdir -p Extremer/resources/resource
-          cp -r mfw-resources/resource/* Extremer/resources/resource/ || true
-        shell: bash
-
-      - name: Set execute permission
-        if: matrix.os != 'windows-latest'
-        run: chmod +x Extremer/resources/${{ matrix.mpelb_target }}
-
-      - name: Build Extremer
-        working-directory: Extremer
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="test-$(date +%Y%m%d-%H%M%S)"
-          else
-            VERSION=${GITHUB_REF#refs/tags/v}
-          fi
-          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
-            wails build -tags webkit2_41 -ldflags="-X main.version=${VERSION}"
-          else
-            wails build -ldflags="-X main.version=${VERSION}"
-          fi
-        shell: bash
-
-      - name: Copy config file after build
-        run: |
-          mkdir -p Extremer/build/bin/config
-          cp Extremer/config/default.json Extremer/build/bin/config/default.json
-        shell: bash
-
-      - name: Package Extremer (Windows)
-        if: matrix.os == 'windows-latest'
-        run: |
-          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
-            $VERSION = "test-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
-          } else {
-            $VERSION = "${{ github.ref_name }}"
-          }
-          New-Item -ItemType Directory -Force -Path package/MaaPipelineExtremer-${{ matrix.platform }}
-          Copy-Item Extremer/build/bin/MaaPipelineEditor.exe package/MaaPipelineExtremer-${{ matrix.platform }}/
-          Copy-Item -Recurse Extremer/resources package/MaaPipelineExtremer-${{ matrix.platform }}/
-          Copy-Item -Recurse Extremer/build/bin/config package/MaaPipelineExtremer-${{ matrix.platform }}/
-          cd package
-          Compress-Archive -Path MaaPipelineExtremer-${{ matrix.platform }} -DestinationPath MaaPipelineExtremer-${{ matrix.platform }}-$VERSION.zip
-        shell: pwsh
-
-      - name: Package Extremer (Unix)
-        if: matrix.os != 'windows-latest'
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="test-$(date +%Y%m%d-%H%M%S)"
-          else
-            VERSION="${{ github.ref_name }}"
-          fi
-          mkdir -p package/MaaPipelineExtremer-${{ matrix.platform }}
-          cp Extremer/build/bin/MaaPipelineEditor package/MaaPipelineExtremer-${{ matrix.platform }}/ || cp -r Extremer/build/bin/MaaPipelineEditor.app package/MaaPipelineExtremer-${{ matrix.platform }}/ || true
-          cp -r Extremer/resources package/MaaPipelineExtremer-${{ matrix.platform }}/
-          cp -r Extremer/build/bin/config package/MaaPipelineExtremer-${{ matrix.platform }}/
-          cd package
-          zip -r MaaPipelineExtremer-${{ matrix.platform }}-${VERSION}.zip MaaPipelineExtremer-${{ matrix.platform }}
-        shell: bash
-
-      - name: Upload Extremer artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: extremer-${{ matrix.platform }}
-          path: package/*.zip
+  # Extremer 服务暂时下线，download-resources 和 build-extremer job 已移除
+  # 如需恢复，请参考 git 历史中的 release.yaml
 
   release:
-    needs: [build-web, build-localbridge, build-extremer]
+    needs: [build-web, build-localbridge]
     runs-on: ubuntu-latest
     # 仅在 tag 触发时执行发布，手动触发时跳过
     if: ${{ github.event_name == 'push' && !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test') }}
@@ -428,13 +173,6 @@ jobs:
         with:
           path: localbridge-artifacts
           pattern: mpelb-*
-          merge-multiple: true
-
-      - name: Download Extremer artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: extremer-artifacts
-          pattern: extremer-*
           merge-multiple: true
 
       - name: Clean up redundant files
@@ -475,7 +213,6 @@ jobs:
             MaaPipelineEditor-${{ github.ref_name }}-docs.zip
             MaaPipelineEditor-${{ github.ref_name }}-landing.zip
             localbridge-artifacts/*
-            extremer-artifacts/*
           body_path: CHANGELOG.md
           generate_release_notes: false
           draft: false
