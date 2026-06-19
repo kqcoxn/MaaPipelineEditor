@@ -1,0 +1,16 @@
+schema_version: 1
+module_path: frontend_app/debug_ai_suite
+title: 调试状态管理模块
+scope:
+    - src/stores/debugAiSummaryStore.ts
+    - src/stores/debugArtifactStore.ts
+    - src/stores/debugDiagnosticsStore.ts
+    - src/stores/debugModalMemoryStore.ts
+    - src/stores/debugOverlayStore.ts
+    - src/stores/debugOverrideStore.ts
+    - src/stores/debugRunProfileStore.ts
+    - src/stores/debugSessionStore.ts
+    - src/stores/debugTraceStore.ts
+source_files: []
+depends_on: []
+related_to: []

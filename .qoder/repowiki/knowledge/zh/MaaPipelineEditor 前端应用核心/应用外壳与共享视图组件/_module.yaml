@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: frontend_app/app_shell_and_shared
+title: 应用外壳与共享视图组件
+scope:
+    - src/App.tsx
+    - src/main.tsx
+    - src/components/Header.tsx
+    - src/components/JsonViewer.tsx
+source_files: []
+depends_on: []
+related_to: []
