@@ -378,6 +378,8 @@ function attempt({
     screenshotRef: screenshotRefs[0],
     detailRefs,
     screenshotRefs,
+    rawImageRef: undefined,
+    drawImageRefs: [],
     maafwMessages: [],
     events: [],
   };

@@ -110,7 +110,7 @@ export const updateLogs: UpdateLogItem[] = [
     updates: {
       features: [],
       perfs: ["优化调试面板交互体验"],
-      fixes: [],
+      fixes: ["修复调试面板无法自动加载详情图片的问题"],
     },
   },
   {

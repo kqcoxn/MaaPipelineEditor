@@ -310,14 +310,14 @@ function AttemptArtifactActions({
           title: "详情 JSON",
           refs: attempt.detailRefs.map((ref) => ({
             ref,
-            label: `详情 #${shortRef(ref)}`,
+            label: "详情 JSON",
           })),
         },
         {
           title: "图像",
           refs: imageRefs.map((item) => ({
             ref: item.ref,
-            label: `${item.label} #${shortRef(item.ref)}`,
+            label: item.label,
           })),
         },
       ]}
@@ -366,6 +366,27 @@ function collectAttemptDerivedImageRefs(
   if (attempt.kind !== "recognition") return [];
   const seen = new Set<string>();
   const refs: DebugDetailImageRef[] = [];
+
+  // 优先从 attempt 本身的 event data 中获取图像 refs（不需要等 detail JSON 加载）
+  if (attempt.rawImageRef) {
+    seen.add(attempt.rawImageRef);
+    refs.push({
+      ref: attempt.rawImageRef,
+      kind: "raw",
+      label: "原图",
+    });
+  }
+  for (const [index, ref] of attempt.drawImageRefs.entries()) {
+    if (seen.has(ref)) continue;
+    seen.add(ref);
+    refs.push({
+      ref,
+      kind: "draw",
+      label: attempt.drawImageRefs.length > 1 ? `绘制图 ${index + 1}` : "绘制图",
+    });
+  }
+
+  // 再从已加载的 detail JSON payload 中解析（作为补充和兜底）
   for (const detailRef of attempt.detailRefs) {
     const summary = summarizeRecognitionArtifactPayload(
       artifacts[detailRef]?.payload,
@@ -564,8 +585,4 @@ function readFiniteNumberFromFields(
     }
   }
   return undefined;
-}
-
-function shortRef(ref: string): string {
-  return ref.slice(0, 8);
 }

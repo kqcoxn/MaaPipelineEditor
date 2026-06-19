@@ -96,6 +96,36 @@ export function registerDebugProtocolListeners(
       });
       useDebugArtifactStore.getState().selectArtifact(event.screenshotRef);
     }
+
+    // 提前注册 recognition 事件中的图像 artifact refs（不依赖 detail JSON 加载）
+    if (event.kind === "recognition" && event.data) {
+      const rawImageRef =
+        typeof event.data.rawImageRef === "string" &&
+        event.data.rawImageRef.trim() !== ""
+          ? event.data.rawImageRef.trim()
+          : undefined;
+      if (rawImageRef) {
+        useDebugArtifactStore.getState().upsertRef({
+          id: rawImageRef,
+          sessionId: event.sessionId,
+          type: "recognition-raw-image",
+          mime: "image/png",
+          createdAt: event.timestamp,
+          eventSeq: event.seq,
+        });
+      }
+      const drawImageRefs = readStringArray(event.data.drawImageRefs);
+      for (const ref of drawImageRefs) {
+        useDebugArtifactStore.getState().upsertRef({
+          id: ref,
+          sessionId: event.sessionId,
+          type: "recognition-draw-image",
+          mime: "image/png",
+          createdAt: event.timestamp,
+          eventSeq: event.seq,
+        });
+      }
+    }
   });
 
   debugProtocolClient.onArtifact((payload) => {
@@ -184,5 +214,13 @@ function isPerformanceSummary(value: unknown): value is DebugPerformanceSummary 
     "runId" in value &&
     "eventCount" in value &&
     "nodes" in value
+  );
+}
+
+function readStringArray(value: unknown): string[] {
+  if (typeof value === "string") return [value];
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (item): item is string => typeof item === "string" && item.trim() !== "",
   );
 }

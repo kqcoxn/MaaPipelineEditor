@@ -240,7 +240,7 @@ func mergeRecognitionDetailEventData(eventData map[string]interface{}, detailDat
 	if eventData == nil || detailData == nil {
 		return
 	}
-	for _, key := range []string{"id", "name", "algorithm", "hit", "box"} {
+	for _, key := range []string{"id", "name", "algorithm", "hit", "box", "rawImageRef", "drawImageRefs"} {
 		if value, ok := detailData[key]; ok {
 			eventData[key] = value
 		}

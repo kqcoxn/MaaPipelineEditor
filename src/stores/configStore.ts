@@ -8,8 +8,8 @@ export const globalConfig = {
   dev: true,
   version: `1.7.0`,
   betaIteration: 1,
-  mfwVersion: "5.10.5",
-  protocolVersion: "1.0.5",
+  mfwVersion: "5.11.1",
+  protocolVersion: "1.0.6",
 };
 
 if (globalConfig.dev) {

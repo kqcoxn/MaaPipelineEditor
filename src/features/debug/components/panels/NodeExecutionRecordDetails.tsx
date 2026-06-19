@@ -477,14 +477,14 @@ function ArtifactActions({
               title: "详情 JSON",
               refs: detailRefs.map((ref) => ({
                 ref,
-                label: `详情 #${shortRef(ref)}`,
+                label: "详情 JSON",
               })),
             },
             {
               title: "图像",
               refs: imageRefs.map((item) => ({
                 ref: item.ref,
-                label: `${item.label} #${shortRef(item.ref)}`,
+                label: item.label,
               })),
             },
           ]}
@@ -557,6 +557,31 @@ function collectDerivedImageRefs(
   const seen = new Set<string>();
   const refs: DebugDetailImageRef[] = [];
   for (const event of events) {
+    // 优先从 event data 中读取图像 refs（不需要等 detail JSON 加载）
+    const rawImageRef =
+      typeof event.data?.rawImageRef === "string" && event.data.rawImageRef.trim() !== ""
+        ? event.data.rawImageRef.trim()
+        : undefined;
+    if (rawImageRef && !seen.has(rawImageRef)) {
+      seen.add(rawImageRef);
+      refs.push({
+        ref: rawImageRef,
+        kind: "raw",
+        label: "原图",
+      });
+    }
+    const drawImageRefs = readStringArray(event.data?.drawImageRefs);
+    for (const [index, ref] of drawImageRefs.entries()) {
+      if (seen.has(ref)) continue;
+      seen.add(ref);
+      refs.push({
+        ref,
+        kind: "draw",
+        label: drawImageRefs.length > 1 ? `绘制图 ${index + 1}` : "绘制图",
+      });
+    }
+
+    // 再从已加载的 detail JSON payload 中解析（作为补充和兜底）
     if (!event.detailRef) continue;
     const summary = summarizeRecognitionArtifactPayload(
       artifacts[event.detailRef]?.payload,
@@ -568,6 +593,14 @@ function collectDerivedImageRefs(
     }
   }
   return refs;
+}
+
+function readStringArray(value: unknown): string[] {
+  if (typeof value === "string") return [value];
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (item): item is string => typeof item === "string" && item.trim() !== "",
+  );
 }
 
 function isArtifactRelatedToAttemptDerivedImage(
@@ -602,8 +635,4 @@ function readNextItems(event: DebugEvent): Array<{
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
-}
-
-function shortRef(ref: string): string {
-  return ref.slice(0, 8);
 }

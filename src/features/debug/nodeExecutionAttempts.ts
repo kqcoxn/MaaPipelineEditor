@@ -24,6 +24,8 @@ export interface DebugNodeExecutionAttempt {
   screenshotRef?: string;
   detailRefs: string[];
   screenshotRefs: string[];
+  rawImageRef?: string;
+  drawImageRefs: string[];
   maafwMessage?: string;
   maafwMessages: string[];
   targetRuntimeName?: string;
@@ -170,12 +172,34 @@ export function resolveAutoLoadAttemptArtifact(
   if (!attempt) return undefined;
 
   const imageRefs = collectAutoLoadImageRefs(artifacts, attempt);
-  if (imageRefs.includes(selectedArtifactId ?? "")) {
+
+  // 如果当前选中的 artifact 在图像 refs 中，检查它是否已加载
+  if (selectedArtifactId && imageRefs.includes(selectedArtifactId)) {
+    const entry = artifacts[selectedArtifactId];
+    // 已存在但尚未加载（且未在加载中），重新请求加载
+    if (entry && entry.status !== "ready" && entry.status !== "loading") {
+      return selectedArtifactId;
+    }
+    // 已加载或正在加载，不需要再加载
     return undefined;
   }
-  const imageRef = imageRefs.find((ref) => artifacts[ref]);
-  if (imageRef) {
-    return imageRef;
+
+  // 优先找一个已存在但尚未加载的图像 ref
+  const unloadedImageRef = imageRefs.find((ref) => {
+    const entry = artifacts[ref];
+    return entry && entry.status !== "ready" && entry.status !== "loading";
+  });
+  if (unloadedImageRef) {
+    return unloadedImageRef;
+  }
+
+  // 找一个已存在且已加载的图像 ref（用于自动选中）
+  const readyImageRef = imageRefs.find((ref) => {
+    const entry = artifacts[ref];
+    return entry?.status === "ready" && entry.payload;
+  });
+  if (readyImageRef) {
+    return readyImageRef;
   }
 
   if (attempt.kind !== "recognition") return undefined;
@@ -193,6 +217,14 @@ function collectAutoLoadImageRefs(
 ): string[] {
   const refs = new Set<string>();
   if (attempt.kind === "recognition") {
+    // 优先从 attempt 本身的 event data 中获取图像 refs（不需要等 detail JSON 加载）
+    if (attempt.rawImageRef) {
+      refs.add(attempt.rawImageRef);
+    }
+    for (const ref of attempt.drawImageRefs) {
+      refs.add(ref);
+    }
+    // 再从已加载的 detail JSON payload 中解析（作为补充和兜底）
     for (const detailRef of attempt.detailRefs) {
       const summary = summarizeRecognitionArtifactPayload(
         artifacts[detailRef]?.payload,
@@ -276,6 +308,8 @@ function toAttempt({
   const lastSeq = lastEvent.seq;
   const detailRef = detailRefs[detailRefs.length - 1];
   const screenshotRef = screenshotRefs[screenshotRefs.length - 1];
+  const rawImageRef = firstDefinedString(sortedEvents, "rawImageRef");
+  const drawImageRefs = uniqueStrings(readStringArray(firstDefinedValue(sortedEvents, "drawImageRefs")));
 
   return {
     id: `${recordId}:${kind}:${firstSeq}-${lastSeq}:${
@@ -291,6 +325,8 @@ function toAttempt({
     screenshotRef,
     detailRefs,
     screenshotRefs,
+    rawImageRef,
+    drawImageRefs,
     maafwMessage: maafwMessages.join(" / ") || undefined,
     maafwMessages,
     targetRuntimeName:
@@ -366,6 +402,14 @@ function dataString(
   return typeof value === "string" && value.trim() !== ""
     ? value.trim()
     : undefined;
+}
+
+function readStringArray(value: unknown): string[] {
+  if (typeof value === "string") return [value];
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (item): item is string => typeof item === "string" && item.trim() !== "",
+  );
 }
 
 function uniqueRefs(values: Array<string | undefined>): string[] {

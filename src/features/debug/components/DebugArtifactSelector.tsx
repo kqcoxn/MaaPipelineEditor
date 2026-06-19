@@ -43,14 +43,24 @@ export function DebugArtifactSelector({
 
   return (
     <Space direction="vertical" size={8} style={{ width: "100%" }}>
-      {groups.map((group) => (
-        <ArtifactButtonGroup
-          key={group.title}
-          activeRef={selectedArtifact?.ref.id}
-          group={group}
-          requestArtifact={requestArtifact}
-        />
-      ))}
+      <Space wrap>
+        {groups.flatMap((group) =>
+          group.refs.map((item) => {
+            const active = item.ref === selectedArtifact?.ref.id;
+            return (
+              <Button
+                key={`${group.title}-${item.ref}`}
+                disabled={active}
+                size="small"
+                type={active ? "primary" : "default"}
+                onClick={() => requestArtifact(item.ref)}
+              >
+                {item.label}
+              </Button>
+            );
+          }),
+        )}
+      </Space>
       {selectedArtifactIsRelated && (
         <DebugArtifactPreview
           artifact={selectedArtifact}
@@ -59,40 +69,6 @@ export function DebugArtifactSelector({
           overlays={overlays}
         />
       )}
-    </Space>
-  );
-}
-
-function ArtifactButtonGroup({
-  activeRef,
-  group,
-  requestArtifact,
-}: {
-  activeRef?: string;
-  group: DebugArtifactSelectorGroup;
-  requestArtifact: (artifactId: string) => void;
-}) {
-  if (group.refs.length === 0) return null;
-
-  return (
-    <Space wrap size={6}>
-      <Text type="secondary">{group.title}</Text>
-      <Space wrap>
-        {group.refs.map((item) => {
-          const active = item.ref === activeRef;
-          return (
-            <Button
-              key={`${group.title}-${item.ref}-${item.label}`}
-              disabled={active}
-              size="small"
-              type={active ? "primary" : "default"}
-              onClick={() => requestArtifact(item.ref)}
-            >
-              {item.label}
-            </Button>
-          );
-        })}
-      </Space>
     </Space>
   );
 }
