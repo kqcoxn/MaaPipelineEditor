@@ -1,5 +1,5 @@
 import { memo, lazy, Suspense, useMemo, useState, useEffect, useRef } from "react";
-import { message, Tooltip, Popover } from "antd";
+import { Badge, message, Tooltip, Popover } from "antd";
 import classNames from "classnames";
 import IconFont from "../../iconfonts";
 import { type IconNames } from "../../iconfonts";
@@ -92,6 +92,21 @@ function GlobalPanel() {
   const getHistoryState = useFlowStore((state) => state.getHistoryState);
   const pathMode = useFlowStore((state) => state.pathMode);
   const openDebugModal = useDebugSessionStore((state) => state.openModal);
+  const runBadgeStatus = useDebugSessionStore((state) => state.runBadgeStatus);
+  const runBadgeAcknowledged = useDebugSessionStore(
+    (state) => state.runBadgeAcknowledged,
+  );
+
+  const showRunBadge = !runBadgeAcknowledged && runBadgeStatus !== "idle";
+  const badgeStatusMap: Record<
+    string,
+    "success" | "processing" | "error" | "default"
+  > = {
+    running: "processing",
+    completed: "success",
+    failed: "error",
+    stopped: "default",
+  };
 
   // 历史状态
   const [, forceUpdate] = useState({});
@@ -314,6 +329,13 @@ function GlobalPanel() {
                 onClick={() => openDebugModal()}
               />
             </Tooltip>
+            {showRunBadge && (
+              <Badge
+                dot
+                status={badgeStatusMap[runBadgeStatus]}
+                style={{ position: "absolute", top: 6, right: 6 }}
+              />
+            )}
           </li>
         </div>
         <div className={style.group}>

@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import type {
-  DebugAutoOpenPanelOnRunFinish,
   DebugExecutionAttributionMode,
   DebugExecutionDetailMode,
   DebugNodeExecutionArtifactFilter,
@@ -20,9 +19,6 @@ interface DebugModalMemorySnapshot {
   lastRunMode: DebugRunMode;
   lastEntryNodeId?: string;
   autoGenerateAiSummary: boolean;
-  autoCloseOnRunStart: boolean;
-  autoOpenOnRunFinish: boolean;
-  autoOpenPanelOnRunFinish: DebugAutoOpenPanelOnRunFinish;
   nodeExecutionFilters: DebugNodeExecutionFilters;
   nodeExecutionAttributionMode: DebugExecutionAttributionMode;
   nodeExecutionDetailMode: DebugExecutionDetailMode;
@@ -38,11 +34,6 @@ interface DebugModalMemoryState extends DebugModalMemorySnapshot {
   setLastRunMode: (runMode: DebugRunMode) => void;
   setLastEntryNodeId: (nodeId?: string) => void;
   setAutoGenerateAiSummary: (enabled: boolean) => void;
-  setAutoCloseOnRunStart: (enabled: boolean) => void;
-  setAutoOpenOnRunFinish: (enabled: boolean) => void;
-  setAutoOpenPanelOnRunFinish: (
-    mode: DebugAutoOpenPanelOnRunFinish,
-  ) => void;
   setNodeExecutionFilters: (filters: DebugNodeExecutionFilters) => void;
   setNodeExecutionAttributionMode: (
     mode: DebugExecutionAttributionMode,
@@ -54,9 +45,6 @@ const defaultMemory: DebugModalMemorySnapshot = {
   lastPanel: "overview",
   lastRunMode: "run-from-node",
   autoGenerateAiSummary: false,
-  autoCloseOnRunStart: true,
-  autoOpenOnRunFinish: true,
-  autoOpenPanelOnRunFinish: "last-closed",
   nodeExecutionFilters: DEFAULT_DEBUG_NODE_EXECUTION_FILTERS,
   nodeExecutionAttributionMode: "next",
   nodeExecutionDetailMode: "compact",
@@ -96,11 +84,6 @@ const validNodeExecutionAttributionModes =
 const validNodeExecutionDetailModes = new Set<DebugExecutionDetailMode>([
   "compact",
   "detailed",
-]);
-const validAutoOpenPanels = new Set<DebugAutoOpenPanelOnRunFinish>([
-  "last-closed",
-  "overview",
-  "node-execution",
 ]);
 const validRunModes = new Set<DebugRunMode>([
   "run-from-node",
@@ -174,14 +157,6 @@ function normalizeRunMode(value: unknown): DebugRunMode {
     : defaultMemory.lastRunMode;
 }
 
-function normalizeAutoOpenPanelOnRunFinish(
-  value: unknown,
-): DebugAutoOpenPanelOnRunFinish {
-  return validAutoOpenPanels.has(value as DebugAutoOpenPanelOnRunFinish)
-    ? (value as DebugAutoOpenPanelOnRunFinish)
-    : defaultMemory.autoOpenPanelOnRunFinish;
-}
-
 function readMemory(): DebugModalMemorySnapshot {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -194,17 +169,6 @@ function readMemory(): DebugModalMemorySnapshot {
       lastRunMode: normalizeRunMode(parsed.lastRunMode),
       lastEntryNodeId: parsed.lastEntryNodeId,
       autoGenerateAiSummary: parsed.autoGenerateAiSummary === true,
-      autoCloseOnRunStart:
-        parsed.autoCloseOnRunStart !== undefined
-          ? parsed.autoCloseOnRunStart === true
-          : defaultMemory.autoCloseOnRunStart,
-      autoOpenOnRunFinish:
-        parsed.autoOpenOnRunFinish !== undefined
-          ? parsed.autoOpenOnRunFinish === true
-          : defaultMemory.autoOpenOnRunFinish,
-      autoOpenPanelOnRunFinish: normalizeAutoOpenPanelOnRunFinish(
-        parsed.autoOpenPanelOnRunFinish,
-      ),
       nodeExecutionFilters: normalizeNodeExecutionFilters(
         parsed.nodeExecutionFilters,
       ),
@@ -227,9 +191,6 @@ function writeMemory(snapshot: DebugModalMemorySnapshot): void {
       lastRunMode: snapshot.lastRunMode,
       lastEntryNodeId: snapshot.lastEntryNodeId,
       autoGenerateAiSummary: snapshot.autoGenerateAiSummary,
-      autoCloseOnRunStart: snapshot.autoCloseOnRunStart,
-      autoOpenOnRunFinish: snapshot.autoOpenOnRunFinish,
-      autoOpenPanelOnRunFinish: snapshot.autoOpenPanelOnRunFinish,
       nodeExecutionFilters: snapshot.nodeExecutionFilters,
       nodeExecutionAttributionMode: snapshot.nodeExecutionAttributionMode,
       nodeExecutionDetailMode: snapshot.nodeExecutionDetailMode,
@@ -266,24 +227,6 @@ export const useDebugModalMemoryStore = create<DebugModalMemoryState>(
       const next = { ...get(), autoGenerateAiSummary };
       writeMemory(next);
       set({ autoGenerateAiSummary });
-    },
-
-    setAutoCloseOnRunStart: (autoCloseOnRunStart) => {
-      const next = { ...get(), autoCloseOnRunStart };
-      writeMemory(next);
-      set({ autoCloseOnRunStart });
-    },
-
-    setAutoOpenOnRunFinish: (autoOpenOnRunFinish) => {
-      const next = { ...get(), autoOpenOnRunFinish };
-      writeMemory(next);
-      set({ autoOpenOnRunFinish });
-    },
-
-    setAutoOpenPanelOnRunFinish: (autoOpenPanelOnRunFinish) => {
-      const next = { ...get(), autoOpenPanelOnRunFinish };
-      writeMemory(next);
-      set({ autoOpenPanelOnRunFinish });
     },
 
     setNodeExecutionFilters: (nodeExecutionFilters) => {

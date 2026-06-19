@@ -80,13 +80,7 @@ function ProfileSection({
     profileState,
     invalidateResourcePreflight,
     autoGenerateAiSummary,
-    autoCloseOnRunStart,
-    autoOpenOnRunFinish,
-    autoOpenPanelOnRunFinish,
     setAutoGenerateAiSummary,
-    setAutoCloseOnRunStart,
-    setAutoOpenOnRunFinish,
-    setAutoOpenPanelOnRunFinish,
   } = controller;
 
   const handleCreateProfile = () => {
@@ -186,40 +180,6 @@ function ProfileSection({
           </Space>
           <Text type="secondary">
             关闭时只会在中控台或 AI 总结面板手动生成；开启后不会阻塞调试运行完成。
-          </Text>
-        </Space>
-      </DebugSection>
-      <DebugSection title="调试面板行为">
-        <Space direction="vertical" size={8} style={{ width: "100%" }}>
-          <Space wrap>
-            <Switch
-              checked={autoCloseOnRunStart}
-              onChange={setAutoCloseOnRunStart}
-            />
-            <Text>调试开始时自动关闭面板</Text>
-          </Space>
-          <Space wrap>
-            <Switch
-              checked={autoOpenOnRunFinish}
-              onChange={setAutoOpenOnRunFinish}
-            />
-            <Text>调试结束后自动打开面板</Text>
-          </Space>
-          <Space align="center" wrap>
-            <Text>结束后打开到</Text>
-            <Select
-              value={autoOpenPanelOnRunFinish}
-              style={{ width: 220 }}
-              onChange={setAutoOpenPanelOnRunFinish}
-              options={[
-                { value: "last-closed", label: "上次关闭时所在页" },
-                { value: "overview", label: "中控台" },
-                { value: "node-execution", label: "节点页" },
-              ]}
-            />
-          </Space>
-          <Text type="secondary">
-            从节点右键启动调试时不会主动打开面板；若面板原本已打开，启动后仍会按当前设置自动关闭。自动打开仅在 run 进入终态时触发一次。
           </Text>
         </Space>
       </DebugSection>

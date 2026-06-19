@@ -55,11 +55,6 @@ export type DebugNodeExecutionSortMode =
   | "latest";
 export type DebugExecutionAttributionMode = "next" | "node";
 export type DebugExecutionDetailMode = "compact" | "detailed";
-export type DebugAutoOpenPanelOnRunFinish =
-  | "last-closed"
-  | "overview"
-  | "node-execution";
-
 export interface DebugNodeExecutionFilters {
   nodeId?: string;
   runId?: string;

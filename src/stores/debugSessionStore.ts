@@ -16,6 +16,7 @@ import { useDebugModalMemoryStore } from "./debugModalMemoryStore";
 type CapabilityStatus = "idle" | "loading" | "ready" | "error";
 type ResourcePreflightStatus = "idle" | "checking" | "ready" | "error";
 type ResourceHealthStatus = "idle" | "checking" | "ready" | "error";
+type RunBadgeStatus = "idle" | "running" | "completed" | "failed" | "stopped";
 
 export interface DebugResourcePreflightState {
   status: ResourcePreflightStatus;
@@ -47,6 +48,10 @@ interface DebugSessionState {
   capabilityError?: string;
   resourcePreflight: DebugResourcePreflightState;
   resourceHealth: DebugResourceHealthState;
+  runBadgeStatus: RunBadgeStatus;
+  runBadgeAcknowledged: boolean;
+  setRunBadgeStatus: (status: RunBadgeStatus) => void;
+  acknowledgeRunBadge: () => void;
   openModal: (panel?: DebugModalPanel) => void;
   closeModal: () => void;
   setActivePanel: (panel: DebugModalPanel) => void;
@@ -90,6 +95,13 @@ export const useDebugSessionStore = create<DebugSessionState>((set) => ({
   resourceHealth: {
     status: "idle",
   },
+  runBadgeStatus: "idle",
+  runBadgeAcknowledged: true,
+
+  setRunBadgeStatus: (runBadgeStatus) =>
+    set({ runBadgeStatus, runBadgeAcknowledged: false }),
+
+  acknowledgeRunBadge: () => set({ runBadgeAcknowledged: true }),
 
   openModal: (panel) =>
     set((state) => ({
@@ -98,6 +110,7 @@ export const useDebugSessionStore = create<DebugSessionState>((set) => ({
         panel ??
         useDebugModalMemoryStore.getState().lastPanel ??
         state.activePanel,
+      runBadgeAcknowledged: true,
     })),
 
   closeModal: () =>

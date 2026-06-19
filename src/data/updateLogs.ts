@@ -109,7 +109,7 @@ export const updateLogs: UpdateLogItem[] = [
     type: "feature",
     updates: {
       features: [],
-      perfs: [],
+      perfs: ["优化调试面板交互体验"],
       fixes: [],
     },
   },

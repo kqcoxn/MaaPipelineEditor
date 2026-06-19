@@ -441,9 +441,6 @@ async function handleDebugRunModeWithInput(
     }
     profileState.setEntry(request.target);
     const sent = debugProtocolClient.startRun(request);
-    if (sent && useDebugModalMemoryStore.getState().autoCloseOnRunStart) {
-      useDebugSessionStore.getState().closeModal();
-    }
     if (!sent) message.error("发送调试启动请求失败");
   } catch (error) {
     message.error(error instanceof Error ? error.message : "生成调试请求失败");

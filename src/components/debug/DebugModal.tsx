@@ -1,8 +1,9 @@
-import type { CSSProperties, ReactNode } from "react";
-import { Alert, Button, Modal, Space, Typography } from "antd";
+import { useState, useCallback, type CSSProperties, type ReactNode } from "react";
+import { Alert, Button, Drawer, Space, Typography } from "antd";
 import {
   ApiOutlined,
   BranchesOutlined,
+  CloseOutlined,
   FileTextOutlined,
   MedicineBoxOutlined,
   NodeIndexOutlined,
@@ -17,6 +18,7 @@ import type {
 } from "../../features/debug/types";
 import { useDebugModalController } from "../../features/debug/hooks/useDebugModalController";
 import type { DebugModalController } from "../../features/debug/hooks/useDebugModalController";
+import { useDebugRunStatusTracker } from "../../features/debug/hooks/useDebugRunStatusTracker";
 import { OverviewPanel } from "../../features/debug/components/panels/OverviewPanel";
 import { AiSummaryPanel } from "../../features/debug/components/panels/AiSummaryPanel";
 import { SetupPanel } from "../../features/debug/components/panels/SetupPanel";
@@ -120,7 +122,7 @@ const navStyle: CSSProperties = {
 const scrollMainStyle: CSSProperties = {
   flex: 1,
   minWidth: 0,
-  height: "clamp(520px, calc(100vh - 220px), 680px)",
+  height: "100%",
   overflowY: "scroll",
   overflowX: "hidden",
   scrollbarGutter: "stable",
@@ -158,16 +160,49 @@ const panelDescriptionStyle: CSSProperties = {
   whiteSpace: "pre-line",
 };
 
-const modalBodyStyle: CSSProperties = {
+const DRAWER_WIDTH_KEY = "mpe_debug_drawer_width_v1";
+const DEFAULT_DRAWER_WIDTH = 900;
+const MIN_DRAWER_WIDTH = 600;
+const MAX_DRAWER_WIDTH = 1200;
+
+function readDrawerWidth(): number {
+  try {
+    const raw = localStorage.getItem(DRAWER_WIDTH_KEY);
+    if (!raw) return DEFAULT_DRAWER_WIDTH;
+    const parsed = parseInt(raw, 10);
+    return Number.isFinite(parsed) && parsed >= MIN_DRAWER_WIDTH && parsed <= MAX_DRAWER_WIDTH
+      ? parsed
+      : DEFAULT_DRAWER_WIDTH;
+  } catch {
+    return DEFAULT_DRAWER_WIDTH;
+  }
+}
+
+function saveDrawerWidth(width: number): void {
+  try {
+    localStorage.setItem(DRAWER_WIDTH_KEY, String(width));
+  } catch {
+    // ignore
+  }
+}
+
+const drawerBodyStyle: CSSProperties = {
   display: "flex",
   gap: 16,
-  height: "clamp(520px, calc(100vh - 220px), 680px)",
-  minHeight: 520,
+  flex: 1,
+  minHeight: 0,
   overflow: "hidden",
+};
+
+const drawerHeaderStyle: CSSProperties = {
+  fontSize: 16,
+  fontWeight: 500,
 };
 
 export function DebugModal() {
   const controller = useDebugModalController();
+  useDebugRunStatusTracker();
+  const [drawerWidth, setDrawerWidth] = useState(readDrawerWidth);
   const baseActivePanelMeta =
     panels.find((panel) => panel.id === controller.activePanel) ?? panels[0];
   const nodeExecutionActive = controller.activePanel === "node-execution";
@@ -178,18 +213,47 @@ export function DebugModal() {
       }
     : baseActivePanelMeta;
 
+  const handleResize = useCallback((size: number) => {
+    const clamped = Math.max(MIN_DRAWER_WIDTH, Math.min(size, MAX_DRAWER_WIDTH));
+    setDrawerWidth(clamped);
+    saveDrawerWidth(clamped);
+  }, []);
+
   return (
-    <Modal
+    <Drawer
       title={
-        <span>MPE FlowScope (调试模块)</span>
+        <span style={drawerHeaderStyle}>MPE FlowScope (调试模块)</span>
       }
       open={controller.modalOpen}
-      onCancel={controller.closeModal}
-      width="min(1180px, calc(100vw - 48px))"
-      footer={null}
+      onClose={controller.closeModal}
+      placement="right"
+      mask={false}
       destroyOnHidden
+      resizable={{
+        onResize: handleResize,
+      }}
+      size={drawerWidth}
+      minSize={MIN_DRAWER_WIDTH}
+      maxSize={MAX_DRAWER_WIDTH}
+      closeIcon={
+        <CloseOutlined style={{ color: "rgba(0, 0, 0, 0.65)", fontSize: 16 }} />
+      }
+      styles={{
+        body: {
+          padding: 16,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        },
+        header: {
+          padding: "20px 24px",
+        },
+        close: {
+          color: "rgba(0, 0, 0, 0.65)",
+        },
+      }}
     >
-      <div style={modalBodyStyle}>
+      <div style={drawerBodyStyle}>
         <nav style={navStyle}>
           <Space direction="vertical" size={4} style={{ width: "100%" }}>
             {panels.map((panel) => (
@@ -237,7 +301,7 @@ export function DebugModal() {
           </div>
         </main>
       </div>
-    </Modal>
+    </Drawer>
   );
 }
 
