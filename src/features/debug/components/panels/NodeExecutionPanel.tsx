@@ -38,7 +38,7 @@ import { formatDebugNodeDisplayName } from "../../syntheticNode";
 const workspaceStyle: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 380px), 1fr))",
-  alignItems: "stretch",
+  alignItems: "start",
   gap: 12,
   flex: "1 1 0",
   minHeight: 0,
