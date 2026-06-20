@@ -1,6 +1,13 @@
 import { lazy, memo, Suspense } from "react";
 import { Spin } from "antd";
 import type { EditorProps } from "@monaco-editor/react";
+import { loader } from "@monaco-editor/react";
+
+loader.config({
+  paths: {
+    vs: `${import.meta.env.BASE_URL}monaco-editor/min/vs`,
+  },
+});
 
 const MonacoEditor = lazy(() => import("@monaco-editor/react"));
 

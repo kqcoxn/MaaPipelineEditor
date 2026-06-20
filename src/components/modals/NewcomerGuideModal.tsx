@@ -1,4 +1,4 @@
-import { useState, useEffect, useSyncExternalStore } from "react";
+﻿import { useState, useEffect, useSyncExternalStore } from "react";
 import {
   Modal,
   Button,
@@ -269,14 +269,14 @@ function IntroPage({ onNext }: { onNext: () => void }) {
       <Alert
         type="warning"
         showIcon
-        message="重要提示"
+        title="重要提示"
         description="MPE 是 MaaFW 的辅助工具，不能替代对 MaaFW 本身的学习。请确保您已经了解 MaaFW 的基本概念（如 Node、Task、Pipeline 等）后再使用本编辑器。"
         style={{ marginBottom: 16 }}
       />
 
       <Paragraph>如果您还不熟悉 MaaFramework，请先阅读官方文档：</Paragraph>
 
-      <Space direction="vertical" style={{ marginBottom: 24 }}>
+      <Space orientation="vertical" style={{ marginBottom: 24 }}>
         <Link href="https://maafw.com/docs/1.1-QuickStarted" target="_blank">
           MaaFramework 官方文档
         </Link>
@@ -402,13 +402,13 @@ function QuizPage({
         <Alert
           type="error"
           showIcon
-          message={errorMessage}
+          title={errorMessage}
           style={{ marginBottom: 16 }}
         />
       )}
 
       <div style={{ maxHeight: 400, overflowY: "auto", paddingRight: 8 }}>
-        <Space direction="vertical" size={16} style={{ width: "100%" }}>
+        <Space orientation="vertical" size={16} style={{ width: "100%" }}>
           {quizGroups.map((group) => (
             <section
               key={group.title}
@@ -437,7 +437,7 @@ function QuizPage({
                 </Text>
               </div>
               <Space
-                direction="vertical"
+                orientation="vertical"
                 size="large"
                 style={{ width: "100%" }}
               >
@@ -649,7 +649,7 @@ function CertificatePage({
         title="恭喜通过测试！"
         subTitle={`您已具备 MaaFW 的基础知识，本次用时 ${formatElapsedTime(elapsedSeconds)}，欢迎开始使用 MaaPipelineEditor！`}
         extra={
-          <Space direction="vertical" align="center">
+          <Space orientation="vertical" align="center">
             <Link
               href="https://mpe.codax.site/docs/guide/start/quick-start.html"
               target="_blank"

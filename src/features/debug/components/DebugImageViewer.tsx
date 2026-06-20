@@ -1,4 +1,4 @@
-import {
+﻿import {
   useEffect,
   useMemo,
   useRef,
@@ -165,7 +165,7 @@ export function DebugImageViewer({
             onSearchChange={setOverlaySearchText}
             onVisibleChange={setVisibleOverlayIds}
           />
-          <Space direction="vertical" size={8} style={{ minWidth: 0, width: "100%" }}>
+          <Space orientation="vertical" size={8} style={{ minWidth: 0, width: "100%" }}>
             <ImageCanvas
               alt={alt}
               focusedOverlayId={focusedOverlayId}
@@ -312,7 +312,7 @@ function ImageCanvas({
   };
 
   return (
-    <Space direction="vertical" size={8} style={{ width: "100%" }}>
+    <Space orientation="vertical" size={8} style={{ width: "100%" }}>
       <Space wrap size={6}>
         <Tooltip title="放大">
           <Button

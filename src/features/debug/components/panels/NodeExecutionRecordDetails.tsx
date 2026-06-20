@@ -1,5 +1,6 @@
+﻿import { List } from "../../../../components/SimpleList";
+import { Typography, Space, Tag, Alert, Result } from "antd";
 import type { CSSProperties, ReactNode } from "react";
-import { Alert, List, Space, Tag, Typography } from "antd";
 import { DebugArtifactSelector } from "../DebugArtifactSelector";
 import { DebugSection } from "../DebugSection";
 import {
@@ -98,9 +99,9 @@ export function NodeExecutionRecordDetails({
     selectedAttempt,
   );
   return (
-    <Space direction="vertical" size={12} style={{ width: "100%" }}>
+    <Space orientation="vertical" size={12} style={{ width: "100%" }}>
       <DebugSection title="执行概览" collapsible defaultCollapsed>
-        <Space direction="vertical" size={8} style={{ width: "100%" }}>
+        <Space orientation="vertical" size={8} style={{ width: "100%" }}>
           <StatusTag status={record.status} />
           <div style={overviewMetaStyle}>
             <OverviewMetaItem
@@ -148,7 +149,7 @@ export function NodeExecutionRecordDetails({
         <Alert
           type="warning"
           showIcon
-          message="该记录未映射到 MPE 图节点"
+          title="该记录未映射到 MPE 图节点"
           description="面板保留 runtimeName 事件；画布定位需要 fileId/nodeId 映射。"
         />
       )}
@@ -235,7 +236,7 @@ function CompactNextSummary({
       {candidates.length === 0 ? (
         <Text type="secondary">该记录没有可展示的 next 候选。</Text>
       ) : (
-        <Space direction="vertical" size={6} style={{ width: "100%" }}>
+        <Space orientation="vertical" size={6} style={{ width: "100%" }}>
           <Space wrap size={4}>
             <Tag>候选 {record.nextCandidateSummary.candidateCount}</Tag>
             <Tag color="green">命中 {record.nextCandidateSummary.hitCount}</Tag>
@@ -309,7 +310,7 @@ function EventGroup({
         dataSource={events}
         renderItem={(event) => (
           <List.Item>
-            <Space direction="vertical" size={4} style={{ width: "100%" }}>
+            <Space orientation="vertical" size={4} style={{ width: "100%" }}>
               <Space wrap size={4}>
                 <Tag>#{event.seq}</Tag>
                 <Tag>{event.phase ?? "-"}</Tag>
@@ -374,7 +375,7 @@ function SummaryLine({
           ["box", event.data?.box ?? actionSummary?.box],
         ];
   return (
-    <Space direction="vertical" size={4} style={{ width: "100%" }}>
+    <Space orientation="vertical" size={4} style={{ width: "100%" }}>
       <Space wrap size={4}>
         {fields.map(([label, value]) => (
           <Tag key={label}>{`${label}: ${formatDebugDetailValue(value)}`}</Tag>
@@ -404,7 +405,7 @@ function NextListGroup({
         dataSource={events}
         renderItem={(event) => (
           <List.Item>
-            <Space direction="vertical" size={6} style={{ width: "100%" }}>
+            <Space orientation="vertical" size={6} style={{ width: "100%" }}>
               <Space wrap size={4}>
                 <Tag>#{event.seq}</Tag>
                 <Tag>{event.phase ?? "-"}</Tag>

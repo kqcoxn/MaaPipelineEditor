@@ -17,8 +17,6 @@ import type {
   DebugNodeExecutionFilters,
   DebugNodeExecutionStatus,
   DebugNodeResolverSnapshot,
-  DebugPerformanceNodeSummary,
-  DebugPerformanceSummary,
   DebugRunMode,
   DebugSyntheticNodeKind,
 } from "./types";
@@ -34,7 +32,6 @@ export type DebugNodeExecutionDurationSource = "trace" | "performance";
 export interface DebugNodeExecutionSelectorOptions {
   attributionMode?: DebugExecutionAttributionMode;
   resolverEdges?: ResolverEdge[];
-  performanceSummary?: DebugPerformanceSummary;
 }
 
 export interface DebugNodeExecutionNextCandidate {
@@ -134,16 +131,11 @@ export function selectDebugNodeExecutionRecords(
   const nodeByRuntime = new Map(
     resolverNodes.map((node) => [node.runtimeName, node]),
   );
-  const performanceIndex = createPerformanceIndex(
-    options.performanceSummary?.nodes,
-  );
   const attributionMode = options.attributionMode ?? "next";
   const edgeIndex = createDebugResolverEdgeIndex(options.resolverEdges ?? []);
   const context = {
     attributionMode,
     edgeIndex,
-    performanceSummary: options.performanceSummary,
-    performanceIndex,
   };
 
   const seeds =
@@ -329,8 +321,6 @@ function toRecordFromSeed(
   context: {
     attributionMode: DebugExecutionAttributionMode;
     edgeIndex: Map<string, ResolverEdge>;
-    performanceSummary?: DebugPerformanceSummary;
-    performanceIndex: Map<string, DebugPerformanceNodeSummary[]>;
   },
 ): DebugNodeExecutionRecord {
   const resolverNode =
@@ -351,21 +341,11 @@ function toRecordFromSeed(
   ]);
   const firstSeq = events[0]?.seq ?? 0;
   const lastSeq = events[events.length - 1]?.seq ?? firstSeq;
-  const performanceNode = findPerformanceNode(context, {
-    nodeId: seed.nodeId,
-    runtimeName: seed.runtimeName,
-    runId: seed.runId,
-    firstSeq,
-    lastSeq,
-  });
   const traceDurationMs = durationMillis(
     events[0]?.timestamp,
     events[events.length - 1]?.timestamp,
   );
-  const durationMs =
-    performanceNode?.durationMs !== undefined
-      ? performanceNode.durationMs
-      : traceDurationMs;
+  const durationMs = traceDurationMs;
   const eventKinds = uniqueEventKinds(events);
   const hasArtifact = detailRefs.length > 0 || screenshotRefs.length > 0;
   const sourceNextOwnerRuntimeNames = uniqueStrings(
@@ -448,7 +428,7 @@ function toRecordFromSeed(
     firstTimestamp: events[0]?.timestamp,
     lastTimestamp: events[events.length - 1]?.timestamp,
     durationMs,
-    durationSource: performanceNode ? "performance" : "trace",
+    durationSource: "trace" as const,
     hasFailure: outcome.hasFailure,
     hasArtifact,
     eventKinds,
@@ -703,57 +683,6 @@ function compareExecutionOrder(
 ): number {
   if (a.firstSeq === b.firstSeq) return a.lastSeq - b.lastSeq;
   return a.firstSeq - b.firstSeq;
-}
-
-function createPerformanceIndex(
-  nodes: DebugPerformanceNodeSummary[] | undefined,
-): Map<string, DebugPerformanceNodeSummary[]> {
-  const index = new Map<string, DebugPerformanceNodeSummary[]>();
-  for (const node of nodes ?? []) {
-    const keys = performanceNodeKeys(node.nodeId, node.runtimeName);
-    for (const key of keys) {
-      index.set(key, [...(index.get(key) ?? []), node]);
-    }
-  }
-  return index;
-}
-
-function findPerformanceNode(
-  context: {
-    performanceSummary?: DebugPerformanceSummary;
-    performanceIndex: Map<string, DebugPerformanceNodeSummary[]>;
-  },
-  replay: Pick<
-    DebugNodeReplay,
-    "nodeId" | "runtimeName" | "runId" | "firstSeq" | "lastSeq"
-  >,
-): DebugPerformanceNodeSummary | undefined {
-  if (context.performanceSummary?.runId !== replay.runId) return undefined;
-  return findMatchingPerformanceNode(context.performanceIndex, replay);
-}
-
-function findMatchingPerformanceNode(
-  index: Map<string, DebugPerformanceNodeSummary[]>,
-  replay: Pick<DebugNodeReplay, "nodeId" | "runtimeName" | "firstSeq" | "lastSeq">,
-): DebugPerformanceNodeSummary | undefined {
-  const keys = performanceNodeKeys(replay.nodeId, replay.runtimeName);
-  for (const key of keys) {
-    const node = index
-      .get(key)
-      ?.find(
-        (item) =>
-          item.firstSeq === replay.firstSeq && item.lastSeq === replay.lastSeq,
-      );
-    if (node) return node;
-  }
-  return undefined;
-}
-
-function performanceNodeKeys(nodeId: string | undefined, runtimeName: string) {
-  return [
-    nodeId ? `node:${nodeId}` : undefined,
-    runtimeName ? `runtime:${runtimeName}` : undefined,
-  ].filter((key): key is string => Boolean(key));
 }
 
 function durationMillis(

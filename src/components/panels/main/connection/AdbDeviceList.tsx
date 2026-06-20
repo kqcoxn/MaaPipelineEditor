@@ -1,5 +1,6 @@
+﻿import { List } from "../../../SimpleList";
 import { memo } from "react";
-import { List, Typography } from "antd";
+import { Typography } from "antd";
 import { MobileOutlined, CheckCircleOutlined } from "@ant-design/icons";
 import type { AdbDevice } from "../../../../stores/mfwStore";
 import { AdbManualForm } from "./AdbManualForm";

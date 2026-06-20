@@ -1,4 +1,4 @@
-import { Alert, Button, Empty, Input, Select, Space, Tag, Typography, message } from "antd";
+﻿import { Alert, Button, Empty, Input, Select, Space, Tag, Typography, message } from "antd";
 import {
   CopyOutlined,
   FileTextOutlined,
@@ -48,17 +48,17 @@ export function AiSummaryPanel({
     ) ?? allNodeExecutionRecords.find((record) => record.hasFailure);
 
   return (
-    <Space direction="vertical" size={14} style={{ width: "100%" }}>
+    <Space orientation="vertical" size={14} style={{ width: "100%" }}>
       {aiSummaryState.status === "error" && (
         <Alert
           type="error"
           showIcon
-          message="AI 总结生成失败"
+          title="AI 总结生成失败"
           description={aiSummaryState.error}
         />
       )}
       <DebugSection title="生成报告">
-        <Space direction="vertical" size={10} style={{ width: "100%" }}>
+        <Space orientation="vertical" size={10} style={{ width: "100%" }}>
           <Space wrap>
             <Button
               type="primary"
@@ -118,7 +118,7 @@ export function AiSummaryPanel({
       </DebugSection>
       <DebugSection title="简单摘要">
         {report?.simpleSummary ? (
-          <Space direction="vertical" size={8} style={{ width: "100%" }}>
+          <Space orientation="vertical" size={8} style={{ width: "100%" }}>
             <Paragraph style={{ margin: 0 }}>{report.simpleSummary}</Paragraph>
             <ReportMeta report={report} />
           </Space>
@@ -128,7 +128,7 @@ export function AiSummaryPanel({
       </DebugSection>
       <DebugSection title="详细报告">
         {report?.detailedReport ? (
-          <Space direction="vertical" size={10} style={{ width: "100%" }}>
+          <Space orientation="vertical" size={10} style={{ width: "100%" }}>
             <Space wrap>
               <Button
                 size="small"

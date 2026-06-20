@@ -1,5 +1,6 @@
+﻿import { List } from "../../../../components/SimpleList";
+import { Typography, Space, Tag } from "antd";
 import { useEffect, type CSSProperties } from "react";
-import { List, Space, Tag, Typography } from "antd";
 import { DebugArtifactSelector } from "../DebugArtifactSelector";
 import { DebugSection } from "../DebugSection";
 import {
@@ -104,7 +105,7 @@ export function NodeExecutionAttemptFocus({
     : [];
 
   return (
-    <Space direction="vertical" size={12} style={{ width: "100%" }}>
+    <Space orientation="vertical" size={12} style={{ width: "100%" }}>
       <DebugSection title="单次识别 / 动作">
         {attempts.length === 0 || !selectedAttempt ? (
           <Text type="secondary">
@@ -113,7 +114,7 @@ export function NodeExecutionAttemptFocus({
               : "当前记录没有可选择的识别或动作 attempt。"}
           </Text>
         ) : (
-          <Space direction="vertical" size={10} style={{ width: "100%" }}>
+          <Space orientation="vertical" size={10} style={{ width: "100%" }}>
             <List
               size="small"
               dataSource={attempts}
@@ -244,7 +245,7 @@ function AttemptSummary({
           ["box", attempt.box ?? actionSummary?.box],
         ];
   return (
-    <Space direction="vertical" size={8} style={{ width: "100%" }}>
+    <Space orientation="vertical" size={8} style={{ width: "100%" }}>
       <Space wrap size={4}>
         <Tag>{attempt.kind === "recognition" ? "识别 attempt" : "动作 attempt"}</Tag>
         <Tag>

@@ -1,4 +1,4 @@
-import { Modal, Button, Space, Alert, Typography, Tooltip } from "antd";
+﻿import { Modal, Button, Space, Alert, Typography, Tooltip } from "antd";
 import {
   CodeOutlined,
   FormatPainterOutlined,
@@ -197,7 +197,7 @@ export const NodeJsonEditorModal = memo(
         }}
       >
         <Space
-          direction="vertical"
+          orientation="vertical"
           style={{ width: "100%" }}
           size="middle"
           onDoubleClick={(e: React.MouseEvent) => e.stopPropagation()}
@@ -227,7 +227,7 @@ export const NodeJsonEditorModal = memo(
           {/* 错误提示 */}
           {validationError && (
             <Alert
-              message={validationError}
+              title={validationError}
               type="error"
               showIcon
               closable

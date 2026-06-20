@@ -1,4 +1,4 @@
-import { memo } from "react";
+﻿import { memo } from "react";
 import { Typography, Card, Select, Alert } from "antd";
 import { AppleOutlined } from "@ant-design/icons";
 
@@ -128,7 +128,7 @@ export const MacOSForm = memo(
       </div>
 
       <Alert
-        message="权限要求"
+        title="权限要求"
         description={
           <div>
             <div style={{ marginBottom: 8 }}>需要授予以下权限:</div>

@@ -1,5 +1,6 @@
+﻿import { List } from "../../../../components/SimpleList";
+import { Typography, Button, Space, Tag, Alert, Empty, Result } from "antd";
 import { useMemo, type CSSProperties, type ReactNode } from "react";
-import { Alert, Button, Empty, List, Space, Tag, Typography } from "antd";
 import {
   FileTextOutlined,
   NodeIndexOutlined,
@@ -71,11 +72,11 @@ export function ResourceHealthPanel({
   const alertDescription = resolveAlertDescription(controller, severityCounts);
 
   return (
-    <Space direction="vertical" size={14} style={{ width: "100%" }}>
+    <Space orientation="vertical" size={14} style={{ width: "100%" }}>
       <Alert
         type={alertType}
         showIcon
-        message={alertMessage}
+        title={alertMessage}
         description={alertDescription}
       />
       <Space wrap>
@@ -121,7 +122,7 @@ export function ResourceHealthPanel({
         <Alert
           type="error"
           showIcon
-          message="资源体检请求生成失败"
+          title="资源体检请求生成失败"
           description={controller.resourceHealthDraftError}
         />
       )}
@@ -215,7 +216,7 @@ function ResourceHealthSection({
                   }
                   description={
                     <Space
-                      direction="vertical"
+                      orientation="vertical"
                       size={6}
                       style={{ width: "100%" }}
                     >
@@ -223,7 +224,7 @@ function ResourceHealthSection({
                       {(diagnostic.sourcePath ||
                         diagnostic.fileId ||
                         diagnostic.nodeId) && (
-                        <Space direction="vertical" size={2}>
+                        <Space orientation="vertical" size={2}>
                           {diagnostic.sourcePath && (
                             <Text style={metaValueStyle}>
                               路径: {diagnostic.sourcePath}

@@ -1,4 +1,4 @@
-import { Button, Space, Typography } from "antd";
+﻿import { Button, Space, Typography } from "antd";
 import { DebugArtifactPreview } from "./DebugArtifactPreview";
 import type { DebugArtifactEntry } from "../../../stores/debugArtifactStore";
 import type {
@@ -42,7 +42,7 @@ export function DebugArtifactSelector({
   }
 
   return (
-    <Space direction="vertical" size={8} style={{ width: "100%" }}>
+    <Space orientation="vertical" size={8} style={{ width: "100%" }}>
       <Space wrap>
         {groups.flatMap((group) =>
           group.refs.map((item) => {

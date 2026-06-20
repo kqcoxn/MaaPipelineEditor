@@ -7,6 +7,8 @@ import {
   Input,
   Slider,
   Tooltip,
+  Button,
+  Space,
 } from "antd";
 import { UndoOutlined } from "@ant-design/icons";
 import { useConfigStore } from "../../../stores/configStore";
@@ -91,15 +93,14 @@ const ConfigItemRenderer = memo(
             />
           );
 
-        case "inputNumber":
-          return (
+        case "inputNumber": {
+          const inputNumber = (
             <InputNumber
               value={value as number}
               style={{ width: item.controlWidth || 100 }}
               min={item.min}
               max={item.max}
               step={item.step}
-              addonAfter={item.addonAfter}
               onChange={(val) => {
                 if (val !== null && val !== undefined) {
                   setConfig(item.key as keyof typeof configDefaults, val);
@@ -107,6 +108,16 @@ const ConfigItemRenderer = memo(
               }}
             />
           );
+          if (item.addonAfter) {
+            return (
+              <Space.Compact>
+                {inputNumber}
+                <Button disabled>{item.addonAfter}</Button>
+              </Space.Compact>
+            );
+          }
+          return inputNumber;
+        }
 
         case "input":
           return (

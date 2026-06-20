@@ -1,5 +1,6 @@
+﻿import { List } from "../../../../components/SimpleList";
+import { Typography, Space, Tag, Collapse } from "antd";
 import type { CSSProperties } from "react";
-import { Collapse, List, Space, Tag, Typography } from "antd";
 import type {
   DebugNodeExecutionRecord,
   DebugNodeExecutionRecordGroup,

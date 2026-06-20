@@ -1,5 +1,6 @@
+﻿import { List } from "../../../components/SimpleList";
+import { Typography, Button, Input, Space, Tag, Checkbox } from "antd";
 import { useMemo, type CSSProperties } from "react";
-import { Button, Checkbox, Input, List, Space, Tag, Typography } from "antd";
 import { CheckSquareOutlined } from "@ant-design/icons";
 import type { DebugImageOverlay } from "./DebugImageViewer";
 import type { DebugImageOverlayGroup } from "./DebugImageViewer";
@@ -52,7 +53,7 @@ export function DebugImageRoiPanel({
 
   return (
     <aside style={roiPanelStyle}>
-      <Space direction="vertical" size={8} style={{ width: "100%" }}>
+      <Space orientation="vertical" size={8} style={{ width: "100%" }}>
         <Space wrap>
           <Tag>ROI {overlays.length}</Tag>
           <Tag>显示 {visibleOverlayIds.size}</Tag>
@@ -115,7 +116,7 @@ export function DebugImageRoiPanel({
                 onMouseEnter={() => onHover(overlay.id)}
                 onMouseLeave={() => onHover(undefined)}
               >
-                <Space direction="vertical" size={4} style={{ width: "100%" }}>
+                <Space orientation="vertical" size={4} style={{ width: "100%" }}>
                   <Space wrap size={4}>
                     <Checkbox
                       checked={visibleOverlayIds.has(overlay.id)}

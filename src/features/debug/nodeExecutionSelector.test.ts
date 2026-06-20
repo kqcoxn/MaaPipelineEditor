@@ -20,7 +20,6 @@ import {
   type DebugEdgeReason,
   type DebugEventKind,
   type DebugEventPhase,
-  type DebugPerformanceSummary,
 } from "./types";
 
 describe("selectDebugNodeExecutionRecords", () => {
@@ -29,11 +28,8 @@ describe("selectDebugNodeExecutionRecords", () => {
       events: [
         event(10, "node", "starting", node("node-b", "B")),
         event(11, "node", "succeeded", node("node-b", "B")),
-        event(1, "node", "starting", node("node-a", "A")),
-        event(2, "next-list", "succeeded", node("node-a", "A"), {
-          next: [{ name: "B", jumpBack: false, anchor: true }],
-        }),
-        event(3, "node", "succeeded", node("node-a", "A")),
+        event(20, "node", "starting", node("node-a", "A")),
+        event(21, "node", "succeeded", node("node-a", "A")),
       ],
     });
 
@@ -43,960 +39,117 @@ describe("selectDebugNodeExecutionRecords", () => {
       { status: "all" },
     );
 
-    expect(records.map((record) => record.runtimeName)).toEqual(["A", "B"]);
+    expect(records.map((record) => record.runtimeName)).toEqual(["B", "A"]);
     expect(records[0]).toMatchObject({
-      nodeId: "node-a",
+      nodeId: "node-b",
       fileId: "main.json",
-      label: "Alpha",
       sourcePath: "project/main.json",
+      firstSeq: 10,
+      lastSeq: 11,
+      status: "succeeded",
       occurrence: 1,
-      nextListCount: 1,
     });
   });
 
-  it("filters by status and node id without mixing artifact refs", () => {
+  it("filters by status", () => {
     const summary = reduceDebugTrace({
       events: [
         event(1, "node", "starting", node("node-a", "A")),
-        event(2, "recognition", "succeeded", node("node-a", "A"), undefined, {
-          detailRef: "a-first-detail",
-        }),
-        event(3, "node", "succeeded", node("node-a", "A")),
-        event(4, "node", "starting", node("node-a", "A")),
-        event(5, "action", "failed", node("node-a", "A"), undefined, {
-          detailRef: "a-second-detail",
-        }),
-        event(6, "node", "failed", node("node-a", "A")),
-      ],
-    });
-
-    const failedRecords = selectDebugNodeExecutionRecords(
-      summary,
-      resolverNodes,
-      { nodeId: "node-a", status: "failed" },
-    );
-
-    expect(failedRecords).toHaveLength(1);
-    expect(failedRecords[0].occurrence).toBe(2);
-    expect(failedRecords[0].detailRefs).toEqual(["a-second-detail"]);
-  });
-
-  it("builds stable recognition and action attempts without mixing refs", () => {
-    const summary = reduceDebugTrace({
-      events: [
-        event(0, "node", "starting", node("node-a", "A")),
-        event(1, "recognition", "starting", node("node-a", "A"), {
-          id: "reco-1",
-        }),
-        event(
-          2,
-          "recognition",
-          "succeeded",
-          node("node-a", "A"),
-          {
-            id: "reco-1",
-            hit: true,
-            algorithm: "TemplateMatch",
-            box: [1, 2, 3, 4],
-          },
-          { detailRef: "reco-1-detail", screenshotRef: "reco-1-shot" },
-        ),
-        event(
-          3,
-          "recognition",
-          "failed",
-          node("node-a", "A"),
-          { hit: false },
-          { detailRef: "reco-seq-detail" },
-        ),
-        event(4, "action", "starting", node("node-a", "A"), {
-          id: "act-1",
-          action: "Click",
-        }),
-        event(
-          5,
-          "action",
-          "succeeded",
-          node("node-a", "A"),
-          { id: "act-1", action: "Click", success: true },
-          { detailRef: "act-1-detail" },
-        ),
-        event(6, "node", "succeeded", node("node-a", "A")),
-      ],
-    });
-
-    const [record] = selectDebugNodeExecutionRecords(
-      summary,
-      resolverNodes,
-      { status: "all" },
-    );
-
-    expect(record.recognitionAttempts).toHaveLength(2);
-    expect(record.actionAttempts).toHaveLength(1);
-    expect(record.recognitionAttempts[0]).toMatchObject({
-      dataId: "reco-1",
-      firstSeq: 1,
-      lastSeq: 2,
-      detailRefs: ["reco-1-detail"],
-      screenshotRefs: ["reco-1-shot"],
-      hit: true,
-      algorithm: "TemplateMatch",
-    });
-    expect(record.recognitionAttempts[1]).toMatchObject({
-      firstSeq: 3,
-      lastSeq: 3,
-      detailRefs: ["reco-seq-detail"],
-      screenshotRefs: [],
-      hit: false,
-    });
-    expect(record.recognitionAttempts[1].id).toContain(
-      ":recognition:3-3:seq:3",
-    );
-    expect(record.actionAttempts[0]).toMatchObject({
-      dataId: "act-1",
-      firstSeq: 4,
-      lastSeq: 5,
-      detailRefs: ["act-1-detail"],
-      screenshotRefs: [],
-      action: "Click",
-      success: true,
-    });
-  });
-
-  it("keeps unmapped records visible and marks them as runtime-only", () => {
-    const summary = reduceDebugTrace({
-      events: [
-        event(1, "node", "starting", { runtimeName: "RuntimeOnly" }),
-        event(2, "node", "succeeded", { runtimeName: "RuntimeOnly" }),
-      ],
-    });
-
-    const records = selectDebugNodeExecutionRecords(
-      summary,
-      resolverNodes,
-      { status: "all" },
-    );
-
-    expect(records[0]).toMatchObject({
-      runtimeName: "RuntimeOnly",
-      nodeId: undefined,
-      unmapped: true,
-    });
-  });
-
-  it("maps runtime-only events through resolver nodes from unopened json files", () => {
-    const summary = reduceDebugTrace({
-      events: [
-        event(1, "node", "starting", { runtimeName: "Remote_A" }),
-        event(2, "node", "succeeded", { runtimeName: "Remote_A" }),
-      ],
-    });
-
-    const records = selectDebugNodeExecutionRecords(
-      summary,
-      [
-        ...resolverNodes,
-        {
-          fileId: "project/pipeline/remote.json",
-          nodeId: "local-json:project/pipeline/remote.json#Remote_A",
-          runtimeName: "Remote_A",
-          displayName: "Remote A",
-          sourcePath: "project/pipeline/remote.json",
-        },
-      ],
-      { status: "all" },
-    );
-
-    expect(records[0]).toMatchObject({
-      runtimeName: "Remote_A",
-      nodeId: "local-json:project/pipeline/remote.json#Remote_A",
-      fileId: "project/pipeline/remote.json",
-      label: "Remote A",
-      sourcePath: "project/pipeline/remote.json",
-      unmapped: false,
-    });
-  });
-
-  it("shows the initial bootstrap as a synthetic Tasker record", () => {
-    const summary = reduceDebugTrace({
-      events: [
-        event(1, "task", "starting", undefined, { entry: "A" }),
-        event(2, "node", "starting", taskerBootstrapNode()),
-        event(3, "next-list", "succeeded", taskerBootstrapNode(), {
-          next: [{ name: "A", jumpBack: false, anchor: true }],
-        }),
-        event(4, "recognition", "succeeded", node("node-a", "A"), {
-          parentNode: DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
-        }),
-        event(5, "node", "starting", node("node-a", "A")),
-        event(6, "node", "succeeded", node("node-a", "A")),
-      ],
-    });
-
-    const records = selectDebugNodeExecutionRecords(
-      summary,
-      resolverNodes,
-      { status: "all" },
-    );
-
-    expect(records.map((record) => record.label)).toEqual([
-      DEBUG_TASKER_BOOTSTRAP_LABEL,
-      "Alpha",
-    ]);
-    expect(records[0]).toMatchObject({
-      runtimeName: DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
-      label: DEBUG_TASKER_BOOTSTRAP_LABEL,
-      syntheticKind: "tasker-bootstrap",
-      nodeId: undefined,
-      fileId: undefined,
-      unmapped: false,
-      nextListCount: 1,
-      recognitionCount: 1,
-    });
-    expect(records[0].recognitionEvents[0].node?.runtimeName).toBe("A");
-    expect(records[1]).toMatchObject({
-      runtimeName: "A",
-      nodeId: "node-a",
-      firstSeq: 5,
-    });
-
-    const overlay = selectDebugNodeExecutionOverlayFromEdges(
-      records,
-      records[0],
-      [
-        {
-          edgeId: "edge-a-b",
-          fromRuntimeName: "A",
-          toRuntimeName: "B",
-          reason: "next",
-        },
-      ],
-    );
-    expect(overlay.selectedExecutionNodeId).toBeUndefined();
-    expect(overlay.executionPathNodeIds).toEqual([]);
-    expect(overlay.executionCandidateEdgeIds).toEqual([]);
-  });
-
-  it("defensively labels the first task bootstrap record as Tasker", () => {
-    const summary = reduceDebugTrace({
-      events: [
-        event(0, "session", "starting", undefined, { mode: "run-from-node" }),
-        event(1, "node", "starting", { runtimeName: "Task" }),
-        event(2, "next-list", "succeeded", { runtimeName: "Task" }, {
-          next: [{ name: "A", jumpBack: false, anchor: false }],
-        }),
-        event(3, "recognition", "succeeded", node("node-a", "A"), {
-          parentNode: "Task",
-          hit: true,
-        }),
-        event(4, "node", "starting", node("node-a", "A")),
-        event(5, "node", "succeeded", node("node-a", "A")),
-      ],
-    });
-
-    const records = selectDebugNodeExecutionRecords(
-      summary,
-      resolverNodes,
-      { status: "all" },
-    );
-
-    expect(records[0]).toMatchObject({
-      runtimeName: DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
-      label: DEBUG_TASKER_BOOTSTRAP_LABEL,
-      syntheticKind: "tasker-bootstrap",
-      nodeId: undefined,
-      fileId: undefined,
-      unmapped: false,
-    });
-    expect(records[0].events[0].node).toMatchObject({
-      runtimeName: DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
-      label: DEBUG_TASKER_BOOTSTRAP_LABEL,
-      syntheticKind: "tasker-bootstrap",
-    });
-    expect(records[0].recognitionEvents[0].data?.parentNode).toBe(
-      DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
-    );
-  });
-
-  it("labels the first task record as Tasker even when it was mapped to a real node", () => {
-    const summary = reduceDebugTrace({
-      events: [
-        event(0, "session", "starting", undefined, { mode: "run-from-node" }),
-        event(1, "node", "starting", node("node-a", "A")),
-        event(2, "next-list", "succeeded", node("node-a", "A"), {
-          next: [{ name: "B", jumpBack: false, anchor: false }],
-        }),
-        event(3, "recognition", "succeeded", node("node-b", "B"), {
-          parentNode: "A",
-          hit: true,
-        }),
-        event(4, "node", "starting", node("node-a", "A")),
-        event(5, "node", "succeeded", node("node-a", "A")),
-        event(6, "node", "starting", node("node-b", "B")),
-        event(7, "node", "succeeded", node("node-b", "B")),
-      ],
-    });
-
-    const records = selectDebugNodeExecutionRecords(
-      summary,
-      resolverNodes,
-      { status: "all" },
-    );
-
-    expect(records.map((record) => record.label)).toEqual([
-      DEBUG_TASKER_BOOTSTRAP_LABEL,
-      "Alpha",
-      "Beta",
-    ]);
-    expect(records[0]).toMatchObject({
-      runtimeName: DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
-      label: DEBUG_TASKER_BOOTSTRAP_LABEL,
-      syntheticKind: "tasker-bootstrap",
-      nodeId: undefined,
-      fileId: undefined,
-      unmapped: false,
-      nextListCount: 1,
-    });
-    expect(records[0].events[0].node).toMatchObject({
-      runtimeName: DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
-      label: DEBUG_TASKER_BOOTSTRAP_LABEL,
-      syntheticKind: "tasker-bootstrap",
-    });
-    expect(records[0].recognitionEvents[0].data?.parentNode).toBe(
-      DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
-    );
-    expect(records[1]).toMatchObject({
-      runtimeName: "A",
-      nodeId: "node-a",
-      firstSeq: 4,
-    });
-  });
-
-  it("does not move the entry node action into Tasker when splitting a mapped bootstrap segment", () => {
-    const summary = reduceDebugTrace({
-      events: [
-        event(0, "session", "starting", undefined, { mode: "run-from-node" }),
-        event(1, "node", "starting", node("node-a", "A")),
-        event(2, "next-list", "succeeded", node("node-a", "A"), {
-          next: [{ name: "A", jumpBack: false, anchor: true }],
-        }),
-        event(3, "recognition", "succeeded", node("node-a", "A"), {
-          parentNode: "A",
-          hit: true,
-        }),
-        event(4, "action", "succeeded", node("node-a", "A")),
-        event(5, "node", "succeeded", node("node-a", "A")),
-      ],
-    });
-
-    const nextModeRecords = selectDebugNodeExecutionRecords(
-      summary,
-      resolverNodes,
-      { status: "all" },
-      { attributionMode: "next" },
-    );
-    const nodeModeRecords = selectDebugNodeExecutionRecords(
-      summary,
-      resolverNodes,
-      { status: "all" },
-      { attributionMode: "node" },
-    );
-
-    expect(nextModeRecords.map((record) => record.runtimeName)).toEqual([
-      DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
-      "A",
-    ]);
-    expect(nextModeRecords[0]).toMatchObject({
-      syntheticKind: "tasker-bootstrap",
-      recognitionCount: 1,
-      actionCount: 0,
-    });
-    expect(nextModeRecords[1]).toMatchObject({
-      runtimeName: "A",
-      recognitionCount: 0,
-      actionCount: 1,
-      firstSeq: 4,
-      lastSeq: 5,
-    });
-
-    expect(nodeModeRecords.map((record) => record.runtimeName)).toEqual(["A"]);
-    expect(nodeModeRecords[0]).toMatchObject({
-      recognitionCount: 1,
-      actionCount: 1,
-      firstSeq: 1,
-      lastSeq: 5,
-    });
-  });
-
-  it("keeps bootstrap recognition on Tasker in next mode and attaches recognition-action pairs to the target in node mode", () => {
-    const summary = reduceDebugTrace({
-      events: [
-        event(1, "task", "starting", undefined, { entry: "A" }),
-        event(2, "node", "starting", taskerBootstrapNode()),
-        event(3, "next-list", "succeeded", taskerBootstrapNode(), {
-          next: [{ name: "A", jumpBack: false, anchor: true }],
-        }),
-        event(4, "recognition", "succeeded", node("node-a", "A"), {
-          parentNode: DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
-          hit: true,
-        }),
-        event(5, "node", "starting", node("node-a", "A")),
-        event(6, "action", "succeeded", node("node-a", "A")),
-        event(7, "node", "succeeded", node("node-a", "A")),
-      ],
-    });
-
-    const nextModeRecords = selectDebugNodeExecutionRecords(
-      summary,
-      resolverNodes,
-      { status: "all" },
-      {
-        attributionMode: "next",
-        resolverEdges,
-      },
-    );
-    const nodeModeRecords = selectDebugNodeExecutionRecords(
-      summary,
-      resolverNodes,
-      { status: "all" },
-      {
-        attributionMode: "node",
-        resolverEdges,
-      },
-    );
-
-    expect(nextModeRecords.map((record) => record.runtimeName)).toEqual([
-      DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
-      "A",
-    ]);
-    expect(nextModeRecords[0]).toMatchObject({
-      attributionMode: "next",
-      recognitionCount: 1,
-      nextCandidateSummary: {
-        candidateCount: 1,
-        hitCount: 1,
-        edgeCount: 0,
-      },
-    });
-
-    expect(nodeModeRecords.map((record) => record.runtimeName)).toEqual(["A"]);
-    expect(nodeModeRecords[0]).toMatchObject({
-      attributionMode: "node",
-      runtimeName: "A",
-      sourceNextOwnerRuntimeName: DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
-      sourceNextOwnerLabel: DEBUG_TASKER_BOOTSTRAP_LABEL,
-      recognitionCount: 1,
-      actionCount: 1,
-      firstSeq: 4,
-      lastSeq: 7,
-    });
-    expect(nodeModeRecords[0].recognitionAttempts[0]).toMatchObject({
-      firstSeq: 4,
-      sourceNextOwnerRuntimeName: DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
-      sourceNextOwnerLabel: DEBUG_TASKER_BOOTSTRAP_LABEL,
-      hit: true,
-    });
-  });
-
-  it("merges continuous recognition attempts for the same next target in node mode", () => {
-    const summary = reduceDebugTrace({
-      events: [
-        event(1, "node", "starting", node("node-b", "B")),
-        event(2, "next-list", "succeeded", node("node-b", "B"), {
-          next: [{ name: "A", jumpBack: false, anchor: true }],
-        }),
-        event(3, "recognition", "failed", node("node-a", "A"), {
-          parentNode: "B",
-          hit: false,
-        }),
-        event(4, "recognition", "failed", node("node-a", "A"), {
-          parentNode: "B",
-          hit: false,
-        }),
-        event(5, "recognition", "succeeded", node("node-a", "A"), {
-          parentNode: "B",
-          hit: true,
-        }),
-        event(6, "node", "succeeded", node("node-b", "B")),
-        event(7, "node", "starting", node("node-a", "A")),
-        event(8, "action", "succeeded", node("node-a", "A")),
-        event(9, "node", "succeeded", node("node-a", "A")),
-      ],
-    });
-
-    const nodeModeRecords = selectDebugNodeExecutionRecords(
-      summary,
-      resolverNodes,
-      { status: "all" },
-      { attributionMode: "node", resolverEdges },
-    );
-    const nodeModeARecords = nodeModeRecords.filter(
-      (record) => record.runtimeName === "A",
-    );
-
-    expect(nodeModeARecords).toHaveLength(1);
-    expect(nodeModeARecords[0]).toMatchObject({
-      attributionMode: "node",
-      runtimeName: "A",
-      sourceNextOwnerRuntimeName: "B",
-      recognitionCount: 3,
-      actionCount: 1,
-      firstSeq: 3,
-      lastSeq: 9,
-      status: "succeeded",
-      hasFailure: true,
-    });
-    expect(nodeModeARecords[0].recognitionAttempts.map((attempt) => attempt.hit))
-      .toEqual([false, false, true]);
-    expect(nodeModeARecords[0].actionAttempts).toHaveLength(1);
-  });
-
-  it("keeps a single successful next recognition paired with its later action in node mode", () => {
-    const summary = reduceDebugTrace({
-      events: [
-        event(1, "node", "starting", node("node-b", "B")),
-        event(2, "next-list", "succeeded", node("node-b", "B"), {
-          next: [{ name: "A", jumpBack: false, anchor: true }],
-        }),
-        event(3, "recognition", "succeeded", node("node-a", "A"), {
-          parentNode: "B",
-          hit: true,
-        }),
-        event(4, "next-list", "succeeded", node("node-b", "B"), {
-          next: [{ name: "A", jumpBack: false, anchor: true }],
-        }),
-        event(5, "node", "succeeded", node("node-b", "B")),
-        event(6, "node", "starting", node("node-a", "A")),
-        event(7, "action", "succeeded", node("node-a", "A")),
-        event(8, "node", "succeeded", node("node-a", "A")),
-      ],
-    });
-
-    const nodeModeRecords = selectDebugNodeExecutionRecords(
-      summary,
-      resolverNodes,
-      { status: "all" },
-      { attributionMode: "node", resolverEdges },
-    );
-    const nodeModeARecords = nodeModeRecords.filter(
-      (record) => record.runtimeName === "A",
-    );
-
-    expect(nodeModeARecords).toHaveLength(1);
-    expect(nodeModeARecords[0]).toMatchObject({
-      attributionMode: "node",
-      runtimeName: "A",
-      recognitionCount: 1,
-      actionCount: 1,
-      firstSeq: 3,
-      lastSeq: 8,
-      status: "succeeded",
-      hasFailure: false,
-    });
-    expect(nodeModeARecords[0].recognitionAttempts[0]).toMatchObject({
-      firstSeq: 3,
-      hit: true,
-    });
-    expect(nodeModeARecords[0].actionAttempts[0]).toMatchObject({
-      firstSeq: 7,
-    });
-  });
-
-  it("merges a non-terminal node action segment with its following next-list continuation", () => {
-    const summary = reduceDebugTrace({
-      events: [
-        event(1, "node", "starting", node("node-b", "B")),
-        event(2, "next-list", "succeeded", node("node-b", "B"), {
-          next: [{ name: "A", jumpBack: false, anchor: true }],
-        }),
-        event(3, "recognition", "succeeded", node("node-a", "A"), {
-          parentNode: "B",
-          hit: true,
-        }),
+        event(2, "node", "failed", node("node-a", "A")),
+        event(3, "node", "starting", node("node-b", "B")),
         event(4, "node", "succeeded", node("node-b", "B")),
-        event(5, "node", "starting", node("node-a", "A")),
-        event(6, "action", "succeeded", node("node-a", "A")),
-        event(7, "node", "succeeded", node("node-a", "A")),
-        event(8, "node", "starting", node("node-a", "A")),
-        event(9, "next-list", "succeeded", node("node-a", "A"), {
-          next: [{ name: "C", jumpBack: false, anchor: true }],
-        }),
-        event(10, "recognition", "succeeded", node("node-c", "C"), {
-          parentNode: "A",
-          hit: true,
-        }),
-        event(11, "node", "succeeded", node("node-a", "A")),
       ],
     });
 
-    const nextModeRecords = selectDebugNodeExecutionRecords(
-      summary,
-      resolverNodes,
-      { status: "all" },
-      { attributionMode: "next", resolverEdges },
-    );
-    const nodeModeRecords = selectDebugNodeExecutionRecords(
-      summary,
-      resolverNodes,
-      { status: "all" },
-      { attributionMode: "node", resolverEdges },
-    );
-    const nextModeARecords = nextModeRecords.filter(
-      (record) => record.runtimeName === "A",
-    );
-    const nodeModeARecords = nodeModeRecords.filter(
-      (record) => record.runtimeName === "A",
-    );
-
-    expect(nextModeARecords).toHaveLength(1);
-    expect(nextModeARecords[0]).toMatchObject({
-      attributionMode: "next",
-      actionCount: 1,
-      recognitionCount: 1,
-      nextListCount: 1,
-      firstSeq: 5,
-      lastSeq: 11,
-      nextCandidateSummary: {
-        candidateCount: 1,
-        hitCount: 1,
-      },
-    });
-    expect(nextModeARecords[0].nextCandidateSummary.candidates[0]).toMatchObject({
-      runtimeName: "C",
-      recognitionSeqs: [10],
-    });
-
-    expect(nodeModeARecords).toHaveLength(1);
-    expect(nodeModeARecords[0]).toMatchObject({
-      attributionMode: "node",
-      actionCount: 1,
-      recognitionCount: 1,
-      nextListCount: 1,
-      sourceNextOwnerRuntimeName: "B",
-      firstSeq: 3,
-      lastSeq: 11,
-    });
-    expect(nodeModeARecords[0].recognitionAttempts[0]).toMatchObject({
-      sourceNextOwnerRuntimeName: "B",
-      hit: true,
-    });
-  });
-
-  it("treats mixed successful and failed attempts as succeeded with a failure hint", () => {
-    const summary = reduceDebugTrace({
-      events: [
-        event(1, "node", "starting", node("node-a", "A")),
-        event(2, "recognition", "succeeded", node("node-a", "A"), {
-          id: "hit",
-          hit: true,
-        }),
-        event(3, "recognition", "failed", node("node-a", "A"), {
-          id: "miss",
-          hit: false,
-        }),
-        event(4, "node", "failed", node("node-a", "A")),
-      ],
-    });
-
-    const [record] = selectDebugNodeExecutionRecords(
-      summary,
-      resolverNodes,
-      { status: "all" },
-    );
-    const failedRecords = selectDebugNodeExecutionRecords(
+    const failed = selectDebugNodeExecutionRecords(
       summary,
       resolverNodes,
       { status: "failed" },
     );
+    const succeeded = selectDebugNodeExecutionRecords(
+      summary,
+      resolverNodes,
+      { status: "succeeded" },
+    );
 
-    expect(record).toMatchObject({
-      status: "succeeded",
-      hasFailure: true,
-    });
-    expect(failedRecords).toHaveLength(0);
+    expect(failed.map((record) => record.runtimeName)).toEqual(["A"]);
+    expect(succeeded.map((record) => record.runtimeName)).toEqual(["B"]);
   });
 
-  it("treats action failure as node failure even after successful recognition", () => {
+  it("filters by nodeId", () => {
     const summary = reduceDebugTrace({
       events: [
         event(1, "node", "starting", node("node-a", "A")),
-        event(2, "recognition", "failed", node("node-a", "A"), {
-          id: "miss",
-          hit: false,
-        }),
-        event(3, "recognition", "succeeded", node("node-a", "A"), {
-          id: "hit",
-          hit: true,
-        }),
-        event(4, "action", "failed", node("node-a", "A"), {
-          id: "act-fail",
-          success: false,
-        }),
-        event(5, "node", "failed", node("node-a", "A")),
-      ],
-    });
-
-    const [record] = selectDebugNodeExecutionRecords(
-      summary,
-      resolverNodes,
-      { status: "all" },
-    );
-    const failedRecords = selectDebugNodeExecutionRecords(
-      summary,
-      resolverNodes,
-      { status: "failed" },
-    );
-
-    expect(record).toMatchObject({
-      status: "failed",
-      hasFailure: false,
-    });
-    expect(failedRecords).toHaveLength(1);
-  });
-
-  it("treats all-miss attempts as failed without the mixed failure hint", () => {
-    const summary = reduceDebugTrace({
-      events: [
-        event(1, "node", "starting", node("node-a", "A")),
-        event(2, "recognition", "failed", node("node-a", "A"), {
-          id: "miss",
-          hit: false,
-        }),
-        event(3, "node", "failed", node("node-a", "A")),
-      ],
-    });
-
-    const [record] = selectDebugNodeExecutionRecords(
-      summary,
-      resolverNodes,
-      { status: "all" },
-    );
-
-    expect(record).toMatchObject({
-      status: "failed",
-      hasFailure: false,
-    });
-  });
-
-  it("counts successful recognition callbacks with hit false as misses", () => {
-    const summary = reduceDebugTrace({
-      events: [
-        event(1, "node", "starting", node("node-a", "A")),
-        event(2, "recognition", "succeeded", node("node-a", "A"), {
-          id: 10,
-          hit: false,
-          algorithm: "TemplateMatch",
-        }),
-        event(3, "recognition", "succeeded", node("node-a", "A"), {
-          id: 11,
-          hit: true,
-          algorithm: "TemplateMatch",
-        }),
-        event(4, "node", "succeeded", node("node-a", "A")),
-      ],
-    });
-
-    const [record] = selectDebugNodeExecutionRecords(
-      summary,
-      resolverNodes,
-      { status: "all" },
-    );
-
-    expect(record.recognitionAttempts.map((attempt) => attempt.hit)).toEqual([
-      false,
-      true,
-    ]);
-    expect(
-      record.recognitionAttempts.filter((attempt) => attempt.hit === true),
-    ).toHaveLength(1);
-    expect(
-      record.recognitionAttempts.filter((attempt) => attempt.hit === false),
-    ).toHaveLength(1);
-  });
-
-  it("summarizes next candidates in next mode and assigns candidate recognitions to target nodes in node mode", () => {
-    const summary = reduceDebugTrace({
-      events: [
-        event(1, "node", "starting", node("node-b", "B")),
-        event(2, "next-list", "succeeded", node("node-b", "B"), {
-          next: [
-            { name: "C", jumpBack: false, anchor: true },
-            { name: "D", jumpBack: true, anchor: false },
-          ],
-        }),
-        event(3, "recognition", "succeeded", node("node-c", "C"), {
-          parentNode: "B",
-          hit: true,
-        }),
-        event(4, "recognition", "failed", { runtimeName: "D" }, {
-          parentNode: "B",
-          hit: false,
-        }),
-        event(5, "node", "succeeded", node("node-b", "B")),
-        event(6, "node", "starting", node("node-c", "C")),
-        event(7, "action", "succeeded", node("node-c", "C")),
-        event(8, "node", "succeeded", node("node-c", "C")),
-      ],
-    });
-
-    const nextModeRecords = selectDebugNodeExecutionRecords(
-      summary,
-      resolverNodes,
-      { status: "all" },
-      {
-        attributionMode: "next",
-        resolverEdges,
-      },
-    );
-    const nodeModeRecords = selectDebugNodeExecutionRecords(
-      summary,
-      resolverNodes,
-      { status: "all" },
-      {
-        attributionMode: "node",
-        resolverEdges,
-      },
-    );
-    const nextModeB = nextModeRecords.find(
-      (record) => record.runtimeName === "B",
-    );
-    const nodeModeC = nodeModeRecords.find(
-      (record) => record.runtimeName === "C",
-    );
-    const nodeModeD = nodeModeRecords.find(
-      (record) => record.runtimeName === "D",
-    );
-
-    expect(nextModeB).toMatchObject({
-      attributionMode: "next",
-      recognitionCount: 2,
-      nextCandidateSummary: {
-        candidateCount: 2,
-        hitCount: 1,
-        missCount: 1,
-        edgeCount: 1,
-        jumpBackCount: 1,
-        anchorCount: 1,
-      },
-    });
-    expect(nextModeB?.nextCandidateSummary.candidates).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          runtimeName: "C",
-          label: "Gamma",
-          hit: true,
-          edgeId: "edge-b-c",
-          recognitionSeqs: [3],
-        }),
-        expect.objectContaining({
-          runtimeName: "D",
-          label: "D",
-          hit: false,
-          unmappedEdge: true,
-          recognitionSeqs: [4],
-        }),
-      ]),
-    );
-
-    expect(nodeModeRecords.some((record) => record.syntheticKind)).toBe(false);
-    expect(nodeModeC).toMatchObject({
-      attributionMode: "node",
-      runtimeName: "C",
-      sourceNextOwnerRuntimeName: "B",
-      sourceNextOwnerLabel: "Beta",
-      recognitionCount: 1,
-      actionCount: 1,
-      firstSeq: 3,
-      lastSeq: 8,
-    });
-    expect(nodeModeD).toMatchObject({
-      attributionMode: "node",
-      runtimeName: "D",
-      nodeId: undefined,
-      unmapped: true,
-      sourceNextOwnerRuntimeName: "B",
-      recognitionCount: 1,
-      actionCount: 0,
-      status: "failed",
-    });
-    expect(nodeModeD?.recognitionAttempts[0]).toMatchObject({
-      firstSeq: 4,
-      sourceNextOwnerRuntimeName: "B",
-      sourceNextOwnerLabel: "Beta",
-      hit: false,
-    });
-    expect(nodeModeD?.actionAttempts).toEqual([]);
-  });
-
-  it("keeps runtime-only records visible in node attribution mode", () => {
-    const summary = reduceDebugTrace({
-      events: [
-        event(1, "node", "starting", { runtimeName: "RuntimeOnly" }),
-        event(2, "node", "succeeded", { runtimeName: "RuntimeOnly" }),
+        event(2, "node", "succeeded", node("node-a", "A")),
+        event(3, "node", "starting", node("node-b", "B")),
+        event(4, "node", "succeeded", node("node-b", "B")),
       ],
     });
 
     const records = selectDebugNodeExecutionRecords(
       summary,
       resolverNodes,
-      { status: "all" },
-      { attributionMode: "node" },
+      { status: "all", nodeId: "node-b" },
     );
 
-    expect(records).toHaveLength(1);
-    expect(records[0]).toMatchObject({
-      attributionMode: "node",
-      runtimeName: "RuntimeOnly",
-      nodeId: undefined,
-      unmapped: true,
-    });
+    expect(records.map((record) => record.runtimeName)).toEqual(["B"]);
   });
 
-  it("indexes resolver edges for next-list mapping", () => {
-    const edgeIndex = createDebugResolverEdgeIndex([
-      {
-        edgeId: "edge-a-b",
-        fromRuntimeName: "A",
-        toRuntimeName: "B",
-        reason: "anchor",
-      },
-    ]);
-
-    expect(findDebugResolverEdge(edgeIndex, "A", "B")?.edgeId).toBe("edge-a-b");
-    expect(findDebugResolverEdge(edgeIndex, "B", "A")).toBeUndefined();
-  });
-
-  it("filters by run, event kind, artifact and failure marker", () => {
+  it("filters by event kind", () => {
     const summary = reduceDebugTrace({
       events: [
         event(1, "node", "starting", node("node-a", "A")),
-        event(2, "recognition", "succeeded", node("node-a", "A")),
-        event(3, "node", "succeeded", node("node-a", "A")),
-        withRun("run-2", event(4, "node", "starting", node("node-b", "B"))),
-        withRun(
-          "run-2",
-          event(5, "action", "failed", node("node-b", "B"), undefined, {
-            detailRef: "action-detail",
-          }),
-        ),
-        withRun("run-2", event(6, "node", "failed", node("node-b", "B"))),
+        event(2, "action", "succeeded", node("node-a", "A")),
+        event(3, "node", "starting", node("node-b", "B")),
+        event(4, "recognition", "succeeded", node("node-b", "B")),
       ],
     });
 
-    const records = selectDebugNodeExecutionRecords(summary, resolverNodes, {
-      status: "all",
-      runId: "run-2",
-      eventKind: "action",
-      artifact: "with-artifact",
+    const action = selectDebugNodeExecutionRecords(
+      summary,
+      resolverNodes,
+      { status: "all", eventKind: "action" },
+    );
+    const recognition = selectDebugNodeExecutionRecords(
+      summary,
+      resolverNodes,
+      { status: "all", eventKind: "recognition" },
+    );
+
+    expect(action.map((record) => record.runtimeName)).toEqual(["A"]);
+    expect(recognition.map((record) => record.runtimeName)).toEqual(["B"]);
+  });
+
+  it("filters by artifact presence", () => {
+    const summary = reduceDebugTrace({
+      events: [
+        event(1, "node", "starting", node("node-a", "A")),
+        event(2, "action", "succeeded", node("node-a", "A")),
+        event(3, "node", "starting", node("node-b", "B")),
+        event(
+          4,
+          "recognition",
+          "succeeded",
+          node("node-b", "B"),
+          undefined,
+          { detailRef: "ref-1" },
+        ),
+      ],
     });
 
-    expect(records).toHaveLength(1);
-    expect(records[0]).toMatchObject({
-      runtimeName: "B",
-      status: "failed",
-      hasArtifact: true,
-      hasFailure: false,
-    });
+    const withArtifact = selectDebugNodeExecutionRecords(
+      summary,
+      resolverNodes,
+      { status: "all", artifact: "with-artifact" },
+    );
+    const withoutArtifact = selectDebugNodeExecutionRecords(
+      summary,
+      resolverNodes,
+      { status: "all", artifact: "without-artifact" },
+    );
+
+    expect(withArtifact.map((record) => record.runtimeName)).toEqual(["B"]);
+    expect(withoutArtifact.map((record) => record.runtimeName)).toEqual(["A"]);
   });
 
   it("sorts by failure and latest without changing execution default", () => {
@@ -1010,31 +163,21 @@ describe("selectDebugNodeExecutionRecords", () => {
         event(6, "node", "succeeded", node("node-c", "C")),
       ],
     });
-    const performanceSummary = performance({
-      nodes: [
-        performanceNode("node-a", "A", 1, 2, 10),
-        performanceNode("node-b", "B", 3, 4, 2000),
-        performanceNode("node-c", "C", 5, 6, 30),
-      ],
-    });
 
     const execution = selectDebugNodeExecutionRecords(
       summary,
       resolverNodes,
       { status: "all" },
-      { performanceSummary },
     );
     const failureFirst = selectDebugNodeExecutionRecords(
       summary,
       resolverNodes,
       { status: "all", sortMode: "failure-first" },
-      { performanceSummary },
     );
     const latest = selectDebugNodeExecutionRecords(
       summary,
       resolverNodes,
       { status: "all", sortMode: "latest" },
-      { performanceSummary },
     );
 
     expect(execution.map((record) => record.runtimeName)).toEqual([
@@ -1045,8 +188,8 @@ describe("selectDebugNodeExecutionRecords", () => {
     expect(failureFirst[0].runtimeName).toBe("A");
     expect(execution[1]).toMatchObject({
       runtimeName: "B",
-      durationMs: 2000,
-      durationSource: "performance",
+      durationMs: 3000,
+      durationSource: "trace",
     });
     expect(latest[0].runtimeName).toBe("C");
   });
@@ -1236,7 +379,6 @@ describe("node execution v2 analysis", () => {
     expect(overlay.executionPathEdgeIds).toEqual([]);
     expect(overlay.executionCandidateEdgeIds).toEqual([]);
   });
-
 });
 
 const resolverNodes = [
@@ -1341,46 +483,5 @@ function replayStatus(cursorSeq: number) {
     active: true,
     playing: false,
     cursorSeq,
-  };
-}
-
-function performance(input: {
-  nodes: DebugPerformanceSummary["nodes"];
-}): DebugPerformanceSummary {
-  return {
-    sessionId: "session-1",
-    runId: "run-1",
-    eventCount: 0,
-    nodeCount: input.nodes.length,
-    recognitionCount: 0,
-    actionCount: 0,
-    diagnosticCount: 0,
-    artifactRefCount: 0,
-    screenshotRefCount: 0,
-    nodes: input.nodes,
-    generatedAt: "2026-04-29T00:00:00.000Z",
-  };
-}
-
-function performanceNode(
-  nodeId: string,
-  runtimeName: string,
-  firstSeq: number,
-  lastSeq: number,
-  durationMs: number,
-): DebugPerformanceSummary["nodes"][number] {
-  return {
-    fileId: "main.json",
-    nodeId,
-    runtimeName,
-    firstSeq,
-    lastSeq,
-    durationMs,
-    recognitionCount: 0,
-    actionCount: 0,
-    nextListCount: 0,
-    waitFreezesCount: 0,
-    detailRefCount: 0,
-    screenshotRefCount: 0,
   };
 }

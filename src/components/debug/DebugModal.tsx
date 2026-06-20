@@ -1,16 +1,17 @@
-import { useState, useCallback, type CSSProperties, type ReactNode } from "react";
+﻿import {
+  useState,
+  useCallback,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { Alert, Button, Drawer, Space, Typography } from "antd";
 import {
-  ApiOutlined,
-  BranchesOutlined,
   CloseOutlined,
   FileTextOutlined,
   MedicineBoxOutlined,
   NodeIndexOutlined,
-  PictureOutlined,
   ProfileOutlined,
   SettingOutlined,
-  StepForwardOutlined,
 } from "@ant-design/icons";
 import type {
   DebugExecutionAttributionMode,
@@ -23,11 +24,7 @@ import { OverviewPanel } from "../../features/debug/components/panels/OverviewPa
 import { AiSummaryPanel } from "../../features/debug/components/panels/AiSummaryPanel";
 import { SetupPanel } from "../../features/debug/components/panels/SetupPanel";
 import { ResourceHealthPanel } from "../../features/debug/components/panels/ResourceHealthPanel";
-import { TimelinePanel } from "../../features/debug/components/panels/TimelinePanel";
 import { NodeExecutionPanel } from "../../features/debug/components/panels/NodeExecutionPanel";
-import { PerformancePanel } from "../../features/debug/components/panels/PerformancePanel";
-import { ImagesPanel } from "../../features/debug/components/panels/ImagesPanel";
-import { DiagnosticsPanel } from "../../features/debug/components/panels/DiagnosticsPanel";
 
 const { Text, Title } = Typography;
 
@@ -39,6 +36,12 @@ interface PanelItem {
 }
 
 const panels: PanelItem[] = [
+  {
+    id: "setup",
+    label: "调试配置",
+    icon: <SettingOutlined />,
+    description: "配置资源路径、控制器、截图和 Agent，并写入本地调试配置。",
+  },
   {
     id: "overview",
     label: "中控台",
@@ -52,34 +55,10 @@ const panels: PanelItem[] = [
     description: "按 Pipeline 节点聚合已选展示会话，查看执行路径和节点详情。",
   },
   {
-    id: "timeline",
-    label: "事件线",
-    icon: <BranchesOutlined />,
-    description: "按 mfw seq 查看已选展示会话的事件顺序和详情。",
-  },
-  {
     id: "ai-summary",
     label: "AI 总结",
     icon: <FileTextOutlined />,
     description: "查看 AI 生成的调试摘要、详细报告和整理后的上下文。",
-  },
-  {
-    id: "performance",
-    label: "性能",
-    icon: <StepForwardOutlined />,
-    description: "查看已选展示会话的性能摘要和相关产物。",
-  },
-  {
-    id: "images",
-    label: "图像",
-    icon: <PictureOutlined />,
-    description: "查看图像列表和产物预览。",
-  },
-  {
-    id: "diagnostics",
-    label: "诊断",
-    icon: <ApiOutlined />,
-    description: "查看启动前检查、运行时诊断和资源/控制器/Agent 问题。",
   },
   {
     id: "resource-health",
@@ -87,12 +66,6 @@ const panels: PanelItem[] = [
     icon: <MedicineBoxOutlined />,
     description:
       "集中查看资源路径、资源加载结果和流程图校验，加载失败时会直接列出具体线索。",
-  },
-  {
-    id: "setup",
-    label: "调试配置",
-    icon: <SettingOutlined />,
-    description: "配置资源路径、控制器、截图和 Agent，并写入本地调试配置。",
   },
 ];
 
@@ -113,7 +86,7 @@ const nodeExecutionHeadings: Record<
 };
 
 const navStyle: CSSProperties = {
-  width: 168,
+  width: 132,
   flexShrink: 0,
   borderRight: "1px solid rgba(5, 5, 5, 0.08)",
   paddingRight: 12,
@@ -170,7 +143,9 @@ function readDrawerWidth(): number {
     const raw = localStorage.getItem(DRAWER_WIDTH_KEY);
     if (!raw) return DEFAULT_DRAWER_WIDTH;
     const parsed = parseInt(raw, 10);
-    return Number.isFinite(parsed) && parsed >= MIN_DRAWER_WIDTH && parsed <= MAX_DRAWER_WIDTH
+    return Number.isFinite(parsed) &&
+      parsed >= MIN_DRAWER_WIDTH &&
+      parsed <= MAX_DRAWER_WIDTH
       ? parsed
       : DEFAULT_DRAWER_WIDTH;
   } catch {
@@ -214,16 +189,17 @@ export function DebugModal() {
     : baseActivePanelMeta;
 
   const handleResize = useCallback((size: number) => {
-    const clamped = Math.max(MIN_DRAWER_WIDTH, Math.min(size, MAX_DRAWER_WIDTH));
+    const clamped = Math.max(
+      MIN_DRAWER_WIDTH,
+      Math.min(size, MAX_DRAWER_WIDTH),
+    );
     setDrawerWidth(clamped);
     saveDrawerWidth(clamped);
   }, []);
 
   return (
     <Drawer
-      title={
-        <span style={drawerHeaderStyle}>MPE FlowScope (调试模块)</span>
-      }
+      title={<span style={drawerHeaderStyle}>MPE FlowScope</span>}
       open={controller.modalOpen}
       onClose={controller.closeModal}
       placement="right"
@@ -255,7 +231,7 @@ export function DebugModal() {
     >
       <div style={drawerBodyStyle}>
         <nav style={navStyle}>
-          <Space direction="vertical" size={4} style={{ width: "100%" }}>
+          <Space orientation="vertical" size={4} style={{ width: "100%" }}>
             {panels.map((panel) => (
               <Button
                 key={panel.id}
@@ -291,11 +267,15 @@ export function DebugModal() {
               <Alert
                 type="warning"
                 showIcon
-                message="调试前置条件未满足"
+                title="调试前置条件未满足"
                 description={controller.debugReadinessDescription}
               />
             )}
-            <div style={nodeExecutionActive ? nodeExecutionPanelSlotStyle : undefined}>
+            <div
+              style={
+                nodeExecutionActive ? nodeExecutionPanelSlotStyle : undefined
+              }
+            >
               <ActivePanel controller={controller} />
             </div>
           </div>
@@ -305,11 +285,7 @@ export function DebugModal() {
   );
 }
 
-function ActivePanel({
-  controller,
-}: {
-  controller: DebugModalController;
-}) {
+function ActivePanel({ controller }: { controller: DebugModalController }) {
   switch (controller.activePanel) {
     case "overview":
       return <OverviewPanel controller={controller} />;
@@ -319,16 +295,6 @@ function ActivePanel({
       return <SetupPanel controller={controller} />;
     case "resource-health":
       return <ResourceHealthPanel controller={controller} />;
-    case "timeline":
-      return <TimelinePanel controller={controller} />;
-    case "node-execution":
-      return <NodeExecutionPanel controller={controller} />;
-    case "performance":
-      return <PerformancePanel controller={controller} />;
-    case "images":
-      return <ImagesPanel controller={controller} />;
-    case "diagnostics":
-      return <DiagnosticsPanel controller={controller} />;
     default:
       return null;
   }

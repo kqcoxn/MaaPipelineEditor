@@ -1,4 +1,4 @@
-import {
+﻿import {
   useMemo,
   memo,
   useCallback,
@@ -64,7 +64,7 @@ class EditorErrorBoundary extends Component<
       return (
         <div style={{ padding: 20 }}>
           <Alert
-            message="节点编辑器渲染失败"
+            title="节点编辑器渲染失败"
             description={
               <div>
                 <p>节点名称: {this.props.nodeName}</p>
@@ -212,7 +212,7 @@ function FieldPanel() {
       return (
         <div style={{ padding: 20 }}>
           <Alert
-            message="节点数据损坏"
+            title="节点数据损坏"
             description={
               <div>
                 <p>节点名称: {currentNode.data?.label || "未知"}</p>
@@ -277,7 +277,7 @@ function FieldPanel() {
           return (
             <div style={{ padding: 20 }}>
               <Alert
-                message="未知节点类型"
+                title="未知节点类型"
                 description={`节点类型 "${nodeToRender.type}" 不受支持`}
                 type="warning"
                 showIcon
@@ -396,7 +396,7 @@ function FieldPanel() {
       {validationWarning && (
         <div style={{ padding: "8px 12px", flexShrink: 0 }}>
           <Alert
-            message={validationWarning}
+            title={validationWarning}
             type="warning"
             showIcon
             closable

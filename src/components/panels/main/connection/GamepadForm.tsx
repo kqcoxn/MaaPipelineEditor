@@ -1,4 +1,4 @@
-import { memo } from "react";
+﻿import { memo } from "react";
 import { Typography, Select, Alert } from "antd";
 
 const { Text } = Typography;
@@ -98,7 +98,7 @@ export const GamepadForm = memo(
       </div>
 
       <Alert
-        message="前置要求"
+        title="前置要求"
         description="需要安装 ViGEm Bus Driver 才能使用手柄功能。下载: https://github.com/ViGEm/ViGEmBus/releases"
         type="info"
         showIcon

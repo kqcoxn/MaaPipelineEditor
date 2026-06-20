@@ -26,11 +26,7 @@ export type DebugModalPanel =
   | "ai-summary"
   | "setup"
   | "resource-health"
-  | "timeline"
-  | "node-execution"
-  | "performance"
-  | "images"
-  | "diagnostics";
+  | "node-execution";
 
 export type DebugNodeExecutionStatus =
   | "running"

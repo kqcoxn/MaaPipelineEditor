@@ -1,5 +1,6 @@
+﻿import { List } from "../../../SimpleList";
 import { memo } from "react";
-import { List, Typography, Input, Alert, Checkbox } from "antd";
+import { Typography, Input, Alert, Checkbox } from "antd";
 import { DesktopOutlined, CheckCircleOutlined } from "@ant-design/icons";
 import type { WlRootsCompositor } from "../../../../stores/mfwStore";
 
@@ -165,7 +166,7 @@ export const WlRootsForm = memo(
 
         {/* 提示信息 */}
         <Alert
-          message="提示"
+          title="提示"
           description={
             <div>
               <div>

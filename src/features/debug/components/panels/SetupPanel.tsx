@@ -1,21 +1,8 @@
-import {
-  Alert,
-  Button,
-  Checkbox,
-  Collapse,
-  Input,
-  InputNumber,
-  List,
-  Modal,
-  Select,
-  Space,
-  Switch,
-  Tag,
-  Typography,
-} from "antd";
+﻿import { List } from "../../../../components/SimpleList";
+import { Typography, Button, Input, Space, Tag, Modal, Alert, Select, Checkbox, Switch, Collapse, InputNumber, Result } from "antd";
 import {
   DeleteOutlined,
-  PictureOutlined,
+  InfoCircleOutlined,
   PlusOutlined,
   ReloadOutlined,
 } from "@ant-design/icons";
@@ -37,9 +24,44 @@ export function SetupPanel({
   controller: DebugModalController;
 }) {
   return (
-    <Space direction="vertical" size={14} style={{ width: "100%" }}>
+    <Space orientation="vertical" size={14} style={{ width: "100%" }}>
+      <DebugSection title="关于 MPE FlowScope (调试模块)">
+        <Space orientation="vertical" size={8} style={{ width: "100%" }}>
+          <Text>
+            本调试模块定位为临时调试，适合在编辑流程时快速验证节点行为。
+          </Text>
+          <Text>
+            使用 MPE FlowScope
+            调试时，识别、执行的耗时会因特殊设计有明显延长，此问题不影响节点效果。
+          </Text>
+          <Text>如需进行正式、系统化的调试，推荐使用以下工具：</Text>
+
+          <Space wrap>
+            <Button
+              type="link"
+              icon={<InfoCircleOutlined />}
+              href="https://github.com/MaaXYZ/MaaDebugger"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ padding: 0 }}
+            >
+              MaaDebugger
+            </Button>
+            <Button
+              type="link"
+              icon={<InfoCircleOutlined />}
+              href="https://github.com/neko-para/maa-support-extension"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ padding: 0 }}
+            >
+              maa-support-extension
+            </Button>
+          </Space>
+        </Space>
+      </DebugSection>
       <Collapse
-        defaultActiveKey={[]}
+        defaultActiveKey={["profile", "resources"]}
         items={[
           {
             key: "profile",
@@ -53,7 +75,7 @@ export function SetupPanel({
           },
           {
             key: "controller",
-            label: "控制器与截图（Controller / Screenshot）",
+            label: "控制器（Controller）",
             children: <ControllerSection controller={controller} />,
           },
           {
@@ -102,9 +124,9 @@ function ProfileSection({
   };
 
   return (
-    <Space direction="vertical" size={14} style={{ width: "100%" }}>
+    <Space orientation="vertical" size={14} style={{ width: "100%" }}>
       <DebugSection title="基础配置">
-        <Space direction="vertical" style={{ width: "100%" }}>
+        <Space orientation="vertical" style={{ width: "100%" }}>
           <Space.Compact style={{ width: "100%" }}>
             <Select
               value={profileState.activeProfileId}
@@ -130,13 +152,15 @@ function ProfileSection({
               删除配置
             </Button>
           </Space.Compact>
-          <Input
-            value={profileState.profile.name}
-            onChange={(event) =>
-              profileState.updateProfile({ name: event.target.value })
-            }
-            addonBefore="名称"
-          />
+          <Space.Compact>
+            <Button disabled>名称</Button>
+            <Input
+              value={profileState.profile.name}
+              onChange={(event) =>
+                profileState.updateProfile({ name: event.target.value })
+              }
+            />
+          </Space.Compact>
           <Select
             value={profileState.profile.savePolicy}
             style={{ width: 240 }}
@@ -170,7 +194,7 @@ function ProfileSection({
         />
       </DebugSection>
       <DebugSection title="AI 总结">
-        <Space direction="vertical" size={8} style={{ width: "100%" }}>
+        <Space orientation="vertical" size={8} style={{ width: "100%" }}>
           <Space wrap>
             <Switch
               checked={autoGenerateAiSummary}
@@ -204,7 +228,7 @@ function ResourceSection({
   } = controller;
 
   return (
-    <Space direction="vertical" size={14} style={{ width: "100%" }}>
+    <Space orientation="vertical" size={14} style={{ width: "100%" }}>
       <Alert
         type={
           resourcePreflightStatus === "ready"
@@ -214,7 +238,7 @@ function ResourceSection({
               : "info"
         }
         showIcon
-        message={
+        title={
           resourcePreflightStatus === "ready"
             ? "资源加载检测通过"
             : resourcePreflightStatus === "checking"
@@ -291,12 +315,11 @@ function ControllerSection({
 }) {
   const {
     mfwState,
-    captureScreenshot,
     controllerDisplayName,
   } = controller;
 
   return (
-    <Space direction="vertical" size={14} style={{ width: "100%" }}>
+    <Space orientation="vertical" size={14} style={{ width: "100%" }}>
       <DebugSection title="当前控制器（Controller）">
         <Space wrap>
           <Tag color={mfwState.connectionStatus === "connected" ? "green" : "red"}>
@@ -305,20 +328,12 @@ function ControllerSection({
           <Tag>{mfwState.controllerType ?? "无类型"}</Tag>
           <Tag>名称 {controllerDisplayName}</Tag>
           <Tag>{mfwState.controllerId ?? "无控制器 ID"}</Tag>
-          <Button
-            size="small"
-            icon={<PictureOutlined />}
-            onClick={captureScreenshot}
-            disabled={!mfwState.controllerId}
-          >
-            截图
-          </Button>
         </Space>
       </DebugSection>
       <Alert
         type="info"
         showIcon
-        message="控制器能力"
+        title="控制器能力"
         description="启动请求会自动使用已连接控制器（Controller）；当前 maa-framework-go 未暴露 MaaDbgController 的能力按清单标记为不可用。"
       />
     </Space>
@@ -332,12 +347,15 @@ function AgentSection({
 }) {
   const {
     profileState,
-    agentDiagnostics,
+    diagnosticsState,
     agentTestResults,
     testingAgentIds,
     testAgent,
   } = controller;
-  const agents = profileState.profile.agents;
+  const agents = profileState.profile.agents ?? [];
+  const agentDiagnostics = diagnosticsState.diagnostics.filter(
+    (d) => typeof d.code === "string" && d.code.startsWith("debug.agent."),
+  );
   const updateAgent = (
     index: number,
     updates: Partial<DebugAgentProfile>,
@@ -363,7 +381,7 @@ function AgentSection({
   };
 
   return (
-    <Space direction="vertical" size={14} style={{ width: "100%" }}>
+    <Space orientation="vertical" size={14} style={{ width: "100%" }}>
       <Button icon={<PlusOutlined />} onClick={addAgent}>
         添加代理（Agent）
       </Button>
@@ -391,7 +409,7 @@ function AgentSection({
                 />,
               ]}
             >
-              <Space direction="vertical" style={{ width: "100%" }}>
+              <Space orientation="vertical" style={{ width: "100%" }}>
                 <Space wrap>
                   <Switch
                     checked={agent.enabled}
@@ -456,7 +474,7 @@ function AgentSection({
                   <Alert
                     type={testResult.success ? "success" : "error"}
                     showIcon
-                    message={testResult.message}
+                    title={testResult.message}
                     description={
                       testResult.success ? (
                         <Text type="secondary">
@@ -484,7 +502,7 @@ function AgentSection({
           locale={{ emptyText: "暂无代理（Agent）诊断" }}
           renderItem={(diagnostic) => (
             <List.Item>
-              <Space direction="vertical" style={{ width: "100%" }}>
+              <Space orientation="vertical" style={{ width: "100%" }}>
                 <Space>
                   <Tag>{diagnostic.severity}</Tag>
                   <Text>{diagnostic.message}</Text>
@@ -509,7 +527,7 @@ function AgentSection({
         />
       </DebugSection>
       <DebugSection title="代理运行配置">
-        <Space direction="vertical" style={{ width: "100%" }}>
+        <Space orientation="vertical" style={{ width: "100%" }}>
           <Space wrap>
             <Tag>已配置 {agents.length}</Tag>
             <Tag color="green">

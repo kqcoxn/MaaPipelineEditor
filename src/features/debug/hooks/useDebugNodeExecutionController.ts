@@ -21,7 +21,6 @@ import {
   DEFAULT_DEBUG_NODE_EXECUTION_FILTERS,
   type DebugExecutionAttributionMode,
   type DebugNodeExecutionFilters,
-  type DebugPerformanceSummary,
 } from "../types";
 
 interface UseDebugNodeExecutionControllerInput {
@@ -30,7 +29,6 @@ interface UseDebugNodeExecutionControllerInput {
   liveSummary: DebugTraceSummary;
   nodeExecutionAttributionMode: DebugExecutionAttributionMode;
   nodeExecutionFilters: DebugNodeExecutionFilters;
-  performanceSummary?: DebugPerformanceSummary;
   selectedNodeId?: string;
   selectNode: (nodeId?: string) => void;
   setNodeExecutionFilters: (filters: DebugNodeExecutionFilters) => void;
@@ -43,7 +41,6 @@ export function useDebugNodeExecutionController({
   liveSummary,
   nodeExecutionAttributionMode,
   nodeExecutionFilters,
-  performanceSummary,
   selectedNodeId,
   selectNode,
   setNodeExecutionFilters,
@@ -161,14 +158,12 @@ export function useDebugNodeExecutionController({
         {
           attributionMode: nodeExecutionAttributionMode,
           resolverEdges,
-          performanceSummary,
         },
       ),
     [
       liveSummary,
       nodeExecutionAttributionMode,
       nodeExecutionResolverNodes,
-      performanceSummary,
       resolverEdges,
     ],
   );
@@ -181,14 +176,12 @@ export function useDebugNodeExecutionController({
         {
           attributionMode: nodeExecutionAttributionMode,
           resolverEdges,
-          performanceSummary,
         },
       ),
     [
       nodeExecutionAttributionMode,
       nodeExecutionResolverNodes,
       nodeExecutionFilters,
-      performanceSummary,
       resolverEdges,
       summary,
     ],

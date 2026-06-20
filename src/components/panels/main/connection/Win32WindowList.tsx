@@ -1,5 +1,6 @@
+﻿import { List } from "../../../SimpleList";
 import { memo } from "react";
-import { List, Typography, Alert } from "antd";
+import { Typography, Alert } from "antd";
 import { DesktopOutlined, CheckCircleOutlined } from "@ant-design/icons";
 import type { Win32Window } from "../../../../stores/mfwStore";
 
@@ -16,7 +17,7 @@ export const Win32WindowList = memo(
   ({ windows, selectedWindow, onSelect, loading }: Win32WindowListProps) => (
     <>
       <Alert
-        message="权限提示"
+        title="权限提示"
         description="大多数 Win32 控制需要以管理员模式启动后端(LocalBridge)或客户端(Extremer)才能正常工作,如果遇到连接失败或控制无响应的情况,请尝试以管理员身份重新启动应用。"
         type="info"
         showIcon

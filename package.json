@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "icon": "npx iconfont-h5",
+    "postinstall": "node scripts/copy-monaco.cjs",
     "dev": "vite",
     "landing": "yarn --cwd Landing dev",
     "landing:build": "yarn --cwd Landing build",

@@ -326,7 +326,7 @@ function ExportButton() {
           menu={{ items: menuItems }}
           trigger={["hover"]}
           placement="bottomLeft"
-          overlayClassName="toolbar-dropdown"
+          classNames={{ root: "toolbar-dropdown" }}
           mouseEnterDelay={0}
         >
           <Button

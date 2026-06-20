@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+﻿import type { CSSProperties } from "react";
 import { Alert, Spin, Typography } from "antd";
 import type { DebugArtifactEntry } from "../../../stores/debugArtifactStore";
 import { normalizeDebugArtifactBox } from "../artifactDetailSummary";
@@ -37,7 +37,7 @@ export function DebugArtifactPreview({
   if (!artifact) return null;
 
   if (artifact.error) {
-    return <Alert type="error" showIcon message={artifact.error} />;
+    return <Alert type="error" showIcon title={artifact.error} />;
   }
 
   if (artifact.status === "loading") {

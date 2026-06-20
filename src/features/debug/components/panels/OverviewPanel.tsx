@@ -1,4 +1,4 @@
-import {
+﻿import {
   useEffect,
   useMemo,
   useState,
@@ -11,6 +11,7 @@ import {
   FileSearchOutlined,
   FileTextOutlined,
   FormatPainterOutlined,
+  InfoCircleOutlined,
   NodeIndexOutlined,
   ReloadOutlined,
   StopOutlined,
@@ -164,8 +165,6 @@ export function OverviewPanel({
     lastRunMode,
     events,
     liveSummary,
-    performanceSummary,
-    selectedPerformanceSummaries,
     displaySessions,
     selectedDisplaySessionIds,
     latestDisplaySessionId,
@@ -260,8 +259,6 @@ export function OverviewPanel({
     currentRunId,
     activeRun?.startedAt ?? findDebugRunFirstTimestamp(currentRunId, events),
   );
-  const activePerformanceSummary =
-    selectedPerformanceSummaries[0] ?? performanceSummary;
   const displaySessionSelectionLabel =
     displaySessions.length === 0
       ? "暂无"
@@ -292,12 +289,13 @@ export function OverviewPanel({
       })
       .map((node) => ({
         label: node.runtimeName,
-        detail: node.sourcePath ? `${node.displayName} · ${node.sourcePath}` : node.displayName,
+        detail: node.sourcePath
+          ? `${node.displayName} · ${node.sourcePath}`
+          : node.displayName,
       }));
   }, [nodeExecutionResolverNodes]);
-  const overrideDefaultCollapsed = !hasDebugPipelineOverrideDraftContent(
-    overrideDraft,
-  );
+  const overrideDefaultCollapsed =
+    !hasDebugPipelineOverrideDraftContent(overrideDraft);
 
   useEffect(() => {
     if (!overrideEditorModel) {
@@ -312,12 +310,12 @@ export function OverviewPanel({
   }, [overrideEditorModel, overrideNodeNameSuggestions]);
 
   return (
-    <Space direction="vertical" size={14} style={{ width: "100%" }}>
+    <Space orientation="vertical" size={14} style={{ width: "100%" }}>
       {capabilityStatus === "error" && (
         <Alert
           type="error"
           showIcon
-          message="调试能力读取失败"
+          title="调试能力读取失败"
           description={capabilityError}
         />
       )}
@@ -325,7 +323,7 @@ export function OverviewPanel({
         <Alert
           type="error"
           showIcon
-          message={lastError.code}
+          title={lastError.code}
           description={lastError.message}
         />
       )}
@@ -354,7 +352,7 @@ export function OverviewPanel({
                   );
                   if (!node) return option.label;
                   return (
-                    <Space direction="vertical" size={0}>
+                    <Space orientation="vertical" size={0}>
                       <Text>{node.displayName}</Text>
                       <Text type="secondary" style={{ fontSize: 12 }}>
                         {node.fileId} · {node.runtimeName}
@@ -370,14 +368,16 @@ export function OverviewPanel({
                   setIncludeAllJsonRunTargets(event.target.checked)
                 }
               >
-                检索所有 JSON 节点
+                跨文件检索节点
               </Checkbox>
             </div>
             <Space wrap style={runActionsStyle}>
               <Button
                 type="primary"
                 icon={<CaretRightOutlined />}
-                onClick={() => startRun("run-from-node", selectedRunTargetNodeId)}
+                onClick={() =>
+                  startRun("run-from-node", selectedRunTargetNodeId)
+                }
                 disabled={
                   !canStartRun ||
                   !hasSelectedNode ||
@@ -445,7 +445,10 @@ export function OverviewPanel({
             <MetaItem label="模式" value={summary.runMode ?? lastRunMode} />
             <MetaItem label="展示" value={displaySessionSelectionLabel} />
             <MetaItem label="事件" value={events.length} />
-            <MetaItem label="实时事件" value={liveSummary.lastEvent?.seq ?? 0} />
+            <MetaItem
+              label="实时事件"
+              value={liveSummary.lastEvent?.seq ?? 0}
+            />
             <MetaItem
               label="当前节点"
               value={summary.currentRuntimeName ?? "-"}
@@ -456,30 +459,30 @@ export function OverviewPanel({
             <MetaItem label="失败" value={summary.failedNodeIds.length} />
           </div>
           <div style={metaListStyle}>
-            {activePerformanceSummary ? (
-              <>
-                <MetaItem
-                  label="耗时"
-                  value={`${activePerformanceSummary.durationMs ?? 0}ms`}
-                />
-                <MetaItem label="节点" value={activePerformanceSummary.nodeCount} />
-                <MetaItem
-                  label="识别"
-                  value={activePerformanceSummary.recognitionCount}
-                />
-                <MetaItem label="动作" value={activePerformanceSummary.actionCount} />
-                <MetaItem
-                  label="产物"
-                  value={activePerformanceSummary.artifactRefCount}
-                />
-                <MetaItem
-                  label="摘要"
-                  value={selectedPerformanceSummaries.length || 1}
-                />
-              </>
-            ) : (
-              <MetaItem label="性能摘要" value="运行结束后生成" wide />
-            )}
+            <MetaItem
+              label="耗时"
+              value={`${summary.durationMs ?? 0}ms`}
+            />
+            <MetaItem
+              label="节点"
+              value={summary.visitedNodeIds.length + summary.failedNodeIds.length}
+            />
+            <MetaItem
+              label="识别"
+              value={summary.recognitionCount}
+            />
+            <MetaItem
+              label="动作"
+              value={summary.actionCount}
+            />
+            <MetaItem
+              label="产物"
+              value={summary.artifactRefCount}
+            />
+            <MetaItem
+              label="会话"
+              value={displaySessions.length || 1}
+            />
           </div>
           {displaySessions.length > 0 && (
             <div style={sessionManagerStyle}>
@@ -505,7 +508,7 @@ export function OverviewPanel({
                   );
                   if (!item) return option.label;
                   return (
-                    <Space direction="vertical" size={0}>
+                    <Space orientation="vertical" size={0}>
                       <Text>
                         {formatDebugRunDisplayName(item.runId, item.startedAt)}
                       </Text>
@@ -584,7 +587,7 @@ export function OverviewPanel({
             <Alert
               type="error"
               showIcon
-              message="Override JSON 无效"
+              title="Override JSON 无效"
               description={overrideValidationError}
             />
           )}
@@ -593,7 +596,7 @@ export function OverviewPanel({
       {shouldShowAiSummarySection && (
         <DebugSection title="AI 简要摘要">
           {aiSummaryState.activeReport?.simpleSummary ? (
-            <Space direction="vertical" size={8} style={{ width: "100%" }}>
+            <Space orientation="vertical" size={8} style={{ width: "100%" }}>
               <Text>{aiSummaryState.activeReport.simpleSummary}</Text>
               <Space wrap>
                 <Button
@@ -614,7 +617,7 @@ export function OverviewPanel({
               </Space>
             </Space>
           ) : (
-            <Space direction="vertical" size={8} style={{ width: "100%" }}>
+            <Space orientation="vertical" size={8} style={{ width: "100%" }}>
               <Text type="secondary">
                 尚未生成 AI 简要摘要；生成后会在这里显示结论并可跳转到详细报告。
               </Text>
@@ -636,35 +639,39 @@ export function OverviewPanel({
           )}
         </DebugSection>
       )}
-      {failedNodeExecutionRecords.length > 0 && latestFailedNodeExecutionRecord && (
-        <DebugSection title="失败节点">
-          <Space direction="vertical" size={8} style={{ width: "100%" }}>
-            <div style={metaListStyle}>
-              <MetaItem label="失败记录" value={failedNodeExecutionRecords.length} />
-              <MetaItem
-                label="节点"
-                value={
-                  latestFailedNodeExecutionRecord.label ??
-                  latestFailedNodeExecutionRecord.runtimeName
-                }
-                wide
-              />
-              <MetaItem
-                label="seq"
-                value={`${latestFailedNodeExecutionRecord.firstSeq}-${latestFailedNodeExecutionRecord.lastSeq}`}
-              />
-            </div>
-            <Button
-              danger
-              size="small"
-              icon={<NodeIndexOutlined />}
-              onClick={openLatestFailedNode}
-            >
-              查看失败节点
-            </Button>
-          </Space>
-        </DebugSection>
-      )}
+      {failedNodeExecutionRecords.length > 0 &&
+        latestFailedNodeExecutionRecord && (
+          <DebugSection title="失败节点">
+            <Space orientation="vertical" size={8} style={{ width: "100%" }}>
+              <div style={metaListStyle}>
+                <MetaItem
+                  label="失败记录"
+                  value={failedNodeExecutionRecords.length}
+                />
+                <MetaItem
+                  label="节点"
+                  value={
+                    latestFailedNodeExecutionRecord.label ??
+                    latestFailedNodeExecutionRecord.runtimeName
+                  }
+                  wide
+                />
+                <MetaItem
+                  label="seq"
+                  value={`${latestFailedNodeExecutionRecord.firstSeq}-${latestFailedNodeExecutionRecord.lastSeq}`}
+                />
+              </div>
+              <Button
+                danger
+                size="small"
+                icon={<NodeIndexOutlined />}
+                onClick={openLatestFailedNode}
+              >
+                查看失败节点
+              </Button>
+            </Space>
+          </DebugSection>
+        )}
     </Space>
   );
 }

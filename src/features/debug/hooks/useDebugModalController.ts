@@ -9,7 +9,6 @@ import {
 import { useDebugSessionStore } from "../../../stores/debugSessionStore";
 import { useDebugModalMemoryStore } from "../../../stores/debugModalMemoryStore";
 import { useDebugTraceStore } from "../../../stores/debugTraceStore";
-import { useDebugArtifactStore } from "../../../stores/debugArtifactStore";
 import {
   debugAiSummaryTargetKey,
   useDebugAiSummaryStore,
@@ -39,7 +38,6 @@ import {
   captureScreenshotAction,
   testAgentAction,
 } from "../debugModalActions";
-import { selectPerformanceRefs } from "../debugEventSelectors";
 import {
   applyDebugNodeTarget,
   focusDebugCanvasNode,
@@ -57,9 +55,6 @@ import {
   DEBUG_PIPELINE_OVERRIDE_ERROR_CODE,
   parseDebugPipelineOverrideDraft,
 } from "../pipelineOverride";
-import {
-  requestTraceSnapshotAction,
-} from "../traceReplayActions";
 import type { DebugNodeExecutionRecord } from "../nodeExecutionSelector";
 import { useDebugResourceChecks } from "./useDebugResourceChecks";
 import { useDebugNodeExecutionController } from "./useDebugNodeExecutionController";
@@ -147,12 +142,10 @@ export function useDebugModalController() {
     displaySessions,
     events,
     latestDisplaySessionId,
-    performanceSummary,
     selectAllDisplaySessions,
     selectDisplaySessions,
     selectLatestDisplaySession,
     selectedDisplaySessionIds,
-    selectedPerformanceSummaries,
     summary,
     liveSummary,
   } = useDebugTraceStore(
@@ -161,24 +154,12 @@ export function useDebugModalController() {
       displaySessions: state.displaySessions,
       events: state.displayEvents,
       latestDisplaySessionId: state.latestDisplaySessionId,
-      performanceSummary: state.performanceSummary,
       selectAllDisplaySessions: state.selectAllDisplaySessions,
       selectDisplaySessions: state.selectDisplaySessions,
       selectLatestDisplaySession: state.selectLatestDisplaySession,
       selectedDisplaySessionIds: state.selectedDisplaySessionIds,
-      selectedPerformanceSummaries: state.selectedPerformanceSummaries,
       summary: state.summary,
       liveSummary: state.liveSummary,
-    })),
-  );
-  const artifacts = useDebugArtifactStore((state) => state.artifacts);
-  const selectedArtifactId = useDebugArtifactStore(
-    (state) => state.selectedArtifactId,
-  );
-  const artifactActions = useDebugArtifactStore(
-    useShallow((state) => ({
-      setLoading: state.setLoading,
-      selectArtifact: state.selectArtifact,
     })),
   );
   const diagnosticsState = useDebugDiagnosticsStore(
@@ -302,7 +283,6 @@ export function useDebugModalController() {
     liveSummary,
     nodeExecutionAttributionMode,
     nodeExecutionFilters,
-    performanceSummary,
     selectedNodeId,
     selectNode,
     setNodeExecutionFilters,
@@ -313,18 +293,11 @@ export function useDebugModalController() {
     selectPipelineNode,
   } = nodeExecutionController;
 
-  const selectedArtifact = selectedArtifactId
-    ? artifacts[selectedArtifactId]
-    : undefined;
-  const performanceRefs = useMemo(() => selectPerformanceRefs(events), [events]);
   const selectedDisplaySession = useMemo(
     () =>
       displaySessions.find((item) => item.id === selectedDisplaySessionIds[0]) ??
       displaySessions[0],
     [displaySessions, selectedDisplaySessionIds],
-  );
-  const agentDiagnostics = diagnosticsState.diagnostics.filter((diagnostic) =>
-    diagnostic.code.startsWith("debug.agent."),
   );
 
   const setOverrideDraft = useCallback(
@@ -472,18 +445,10 @@ export function useDebugModalController() {
         sessionId: session?.sessionId,
       },
       () => {
-        setActivePanel("images");
-        setLastPanel("images");
+        setActivePanel("overview");
+        setLastPanel("overview");
       },
     );
-  };
-
-  const requestTraceSnapshot = () => {
-    requestTraceSnapshotAction({
-      activeRunId: summary.runId ?? activeRun?.runId,
-      client: debugProtocolClient,
-      sessionId: summary.sessionId ?? session?.sessionId,
-    });
   };
 
   const testAgent = (agent: DebugAgentProfile) => {
@@ -494,23 +459,6 @@ export function useDebugModalController() {
       resourcePaths: resolvedResourcePaths,
       setTestingAgentIds,
     });
-  };
-
-  const requestArtifact = (artifactId: string) => {
-    const entry = artifacts[artifactId];
-    if (!entry) return;
-    artifactActions.selectArtifact(artifactId);
-    if (entry.status === "ready" || entry.status === "loading") return;
-    artifactActions.setLoading(artifactId);
-    const sent = debugProtocolClient.requestArtifact({
-      sessionId: entry.ref.sessionId,
-      artifactId,
-    });
-    if (!sent) {
-      useDebugArtifactStore
-        .getState()
-        .setError(artifactId, "发送产物（Artifact）请求失败");
-    }
   };
 
   const focusNode = (nodeId: string) => {
@@ -590,8 +538,6 @@ export function useDebugModalController() {
           mode: selectedDisplaySession?.mode ?? summary.runMode,
           events,
           diagnostics: diagnosticsState.diagnostics,
-          artifacts,
-          performanceSummary,
           nodeRecords: nodeExecutionController.allNodeExecutionRecords,
           selectedNodeRecord: targetRecord,
         });
@@ -630,12 +576,10 @@ export function useDebugModalController() {
     },
     [
       aiSummaryState,
-      artifacts,
       diagnosticsState.diagnostics,
       events,
       nodeExecutionController.allNodeExecutionRecords,
       nodeExecutionController.selectedNodeExecutionRecord,
-      performanceSummary,
       selectedDisplaySession,
       summary.runMode,
       summary.runId,
@@ -709,11 +653,6 @@ export function useDebugModalController() {
     latestDisplaySessionId,
     summary,
     liveSummary,
-    performanceSummary,
-    selectedPerformanceSummaries,
-    artifacts,
-    selectedArtifactId,
-    selectedArtifact,
     diagnosticsState,
     profileState,
     overrideDraft,
@@ -756,14 +695,11 @@ export function useDebugModalController() {
     selectedNodeExecutionRecordId: nodeExecutionController.selectedNodeExecutionRecordId,
     selectedNodeExecutionAttempt: nodeExecutionController.selectedNodeExecutionAttempt,
     selectedNodeExecutionAttemptId: nodeExecutionController.selectedNodeExecutionAttemptId,
-    performanceRefs,
-    agentDiagnostics,
     testingAgentIds,
     startRun,
     confirmActionRun,
     stopRun,
     captureScreenshot,
-    requestTraceSnapshot,
     selectDisplaySessions,
     selectLatestDisplaySession,
     selectAllDisplaySessions,
@@ -783,7 +719,6 @@ export function useDebugModalController() {
     requestResourceHealth,
     invalidateResourcePreflight,
     updateResourcePaths,
-    requestArtifact,
     focusNode,
     focusFile,
     handlePanelClick,

@@ -1,4 +1,4 @@
-import {
+﻿import {
   Alert,
   Card,
   Empty,
@@ -358,7 +358,7 @@ const UpdateLog = ({ open, onClose }: UpdateLogProps) => {
     >
       {pinnedNotice.content && pinnedNotice.content.length > 0 && (
         <Alert
-          message={pinnedNotice.title || "置顶公告"}
+          title={pinnedNotice.title || "置顶公告"}
           description={
             <div className={style.noticeList}>
               {pinnedNotice.content.map((item, index) => (
