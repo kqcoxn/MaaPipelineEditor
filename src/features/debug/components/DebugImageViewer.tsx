@@ -42,6 +42,8 @@ export interface DebugImageOverlay {
   point?: DebugImagePoint;
   points?: DebugImagePoint[];
   label?: string;
+  text?: string;
+  score?: number;
   status?: "hit" | "miss" | "selected" | "candidate";
 }
 
@@ -148,7 +150,7 @@ export function DebugImageViewer({
           body: imageModalBodyStyle,
         }}
         style={imageModalStyle}
-        title={metadata?.artifactId ?? alt}
+        title="图片详情"
         width="min(1320px, calc(100vw - 48px))"
         onCancel={() => setModalOpen(false)}
       >
@@ -179,6 +181,10 @@ export function DebugImageViewer({
               onOverlayHover={setHoveredOverlayId}
             />
             <ImageMetadata metadata={{ ...metadata, ...naturalSize }} />
+            <OverlayDetailPanel
+              overlays={overlays}
+              focusedId={hoveredOverlayId ?? focusedOverlayId}
+            />
           </Space>
         </div>
       </Modal>
@@ -622,6 +628,50 @@ function ImageMetadata({
       )}
     </Space>
   );
+}
+
+function OverlayDetailPanel({
+  overlays,
+  focusedId,
+}: {
+  overlays: DebugImageOverlay[];
+  focusedId?: string;
+}) {
+  const overlay = overlays.find((o) => o.id === focusedId);
+  if (!overlay) {
+    return (
+      <Text type="secondary" style={{ fontSize: 12 }}>
+        悬停或点击左侧列表项查看详情
+      </Text>
+    );
+  }
+  return (
+    <Space wrap size={6}>
+      {overlay.label && <Tag color="blue">{overlay.label}</Tag>}
+      <Tag>{overlay.kind}</Tag>
+      {overlay.status && <Tag>{overlay.status}</Tag>}
+      {overlay.text && (
+        <Tag color="green">{`识别: ${overlay.text}`}</Tag>
+      )}
+      {overlay.score !== undefined && (
+        <Tag color="geekblue">{`置信度: ${overlay.score.toFixed(3)}`}</Tag>
+      )}
+      <Tag>{formatOverlayGeometryInline(overlay)}</Tag>
+    </Space>
+  );
+}
+
+function formatOverlayGeometryInline(overlay: DebugImageOverlay): string {
+  if (overlay.box) {
+    return `[${overlay.box.x}, ${overlay.box.y}, ${overlay.box.width}, ${overlay.box.height}]`;
+  }
+  if (overlay.point) return `(${overlay.point.x}, ${overlay.point.y})`;
+  if (overlay.points?.length) {
+    return overlay.points
+      .map((point) => `(${point.x}, ${point.y})`)
+      .join(" -> ");
+  }
+  return "-";
 }
 
 function normalizeBoxStyle(

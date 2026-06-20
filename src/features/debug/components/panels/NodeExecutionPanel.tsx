@@ -240,6 +240,30 @@ export function NodeExecutionPanel({
     selectedRecord,
   ]);
 
+  // Auto-load detail JSON refs for overlay data (boxes, text, etc.)
+  useEffect(() => {
+    const selectedAttempt = selectedRecord
+      ? selectDebugNodeExecutionAttemptForDetailMode(
+          selectedRecord,
+          nodeExecutionDetailMode,
+          selectedNodeExecutionAttemptId,
+        )
+      : undefined;
+    if (!selectedAttempt) return;
+    for (const detailRef of selectedAttempt.detailRefs) {
+      const entry = artifacts[detailRef];
+      if (!entry || (entry.status !== "ready" && entry.status !== "loading")) {
+        requestArtifact(detailRef);
+      }
+    }
+  }, [
+    artifacts,
+    nodeExecutionDetailMode,
+    requestArtifact,
+    selectedNodeExecutionAttemptId,
+    selectedRecord,
+  ]);
+
   const nodeOptions = useMemo(
     () => {
       const runtimeOnlyOptions = uniqueRuntimeOnlyOptions(

@@ -430,11 +430,19 @@ function resolveAttemptPreviewOverlays(
       attempt.box ?? summary?.box,
     );
     if (primaryBox) {
+      const primaryText =
+        extractRecognitionResultText(summary?.detail) ??
+        extractRecognitionResultText(summary?.combinedResult?.[0]);
+      const primaryScore =
+        extractRecognitionResultScore(summary?.detail) ??
+        extractRecognitionResultScore(summary?.combinedResult?.[0]);
       overlays.push({
         id: `${attempt.id}:box`,
         kind: "box",
         box: primaryBox,
         label: attempt.hit === false ? "miss" : "hit",
+        text: primaryText,
+        score: primaryScore,
         status: attempt.hit === false ? "miss" : "selected",
       });
     }
@@ -446,19 +454,22 @@ function resolveAttemptPreviewOverlays(
         kind: "box",
         box,
         label: `result ${index + 1}`,
+        text: extractRecognitionResultText(item),
+        score: extractRecognitionResultScore(item),
         status: "candidate",
       });
     }
     for (const group of summary?.resultGroups ?? []) {
       for (const item of group.results) {
         if (!item.box) continue;
-        const extraLabel = formatRecognitionResultExtra(item.extra);
         overlays.push({
           id: `${attempt.id}:detail:${group.key}:${item.index}`,
           groupKey: group.key,
           kind: "box",
           box: item.box,
-          label: `${group.label} #${item.index}${extraLabel ? ` ${extraLabel}` : ""}`,
+          label: `${group.label} #${item.index}`,
+          text: extractRecognitionResultText(item.extra),
+          score: extractRecognitionResultScore(item.extra),
           status: group.key === "best" ? "selected" : "candidate",
         });
       }
@@ -513,13 +524,27 @@ function resolveAttemptPreviewOverlayGroups(
   }));
 }
 
-function formatRecognitionResultExtra(
-  extra: Record<string, unknown> | undefined,
-): string | undefined {
-  if (!extra) return undefined;
-  if (typeof extra.score === "number") return extra.score.toFixed(3);
-  if (typeof extra.text === "string") return `"${extra.text}"`;
-  if (typeof extra.label === "string") return extra.label;
+function extractRecognitionResultText(value: unknown): string | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const record = value as Record<string, unknown>;
+  if (typeof record.text === "string" && record.text.trim() !== "") {
+    return record.text.trim();
+  }
+  if (Array.isArray(record.texts)) {
+    const texts = record.texts.filter(
+      (t): t is string => typeof t === "string" && t.trim() !== "",
+    );
+    if (texts.length > 0) return texts.join(" ");
+  }
+  return undefined;
+}
+
+function extractRecognitionResultScore(value: unknown): number | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const record = value as Record<string, unknown>;
+  if (typeof record.score === "number" && Number.isFinite(record.score)) {
+    return record.score;
+  }
   return undefined;
 }
 

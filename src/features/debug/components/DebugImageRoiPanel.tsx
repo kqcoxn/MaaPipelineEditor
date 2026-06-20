@@ -116,7 +116,7 @@ export function DebugImageRoiPanel({
                 onMouseEnter={() => onHover(overlay.id)}
                 onMouseLeave={() => onHover(undefined)}
               >
-                <Space orientation="vertical" size={4} style={{ width: "100%" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}>
                   <Space wrap size={4}>
                     <Checkbox
                       checked={visibleOverlayIds.has(overlay.id)}
@@ -135,12 +135,11 @@ export function DebugImageRoiPanel({
                       <Text strong>{overlay.label ?? `ROI ${index + 1}`}</Text>
                     </button>
                     <Tag>{overlay.kind}</Tag>
-                    {overlay.status && <Tag>{overlay.status}</Tag>}
                   </Space>
                   <Text type="secondary" style={{ fontSize: 12 }}>
                     {formatOverlayGeometry(overlay)}
                   </Text>
-                </Space>
+                </div>
               </List.Item>
             );
           }}
@@ -153,6 +152,7 @@ export function DebugImageRoiPanel({
 function overlaySearchCorpus(overlay: DebugImageOverlay, index: number): string {
   return [
     overlay.label,
+    overlay.text,
     overlay.kind,
     overlay.status,
     `ROI ${index + 1}`,
