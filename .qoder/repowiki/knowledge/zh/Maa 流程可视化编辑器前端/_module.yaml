@@ -1,8 +1,0 @@
-schema_version: 1
-module_path: frontend_app
-title: Maa 流程可视化编辑器前端
-scope:
-    - src/
-source_files: []
-depends_on: []
-related_to: []

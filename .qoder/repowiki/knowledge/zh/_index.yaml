@@ -2,7 +2,7 @@
 schema_version: 1
 locale: zh-CN
 branch: main
-exported_at: "2026-06-19T17:54:55Z"
+exported_at: "2026-06-20T10:44:13Z"
 modules:
     "":
         dir_name: MaaPipelineEditor 多形态产品矩阵
@@ -33,8 +33,8 @@ modules:
         related_to:
             - path: local_bridge
     frontend_app:
-        dir_name: Maa 流程可视化编辑器前端
-        title: Maa 流程可视化编辑器前端
+        dir_name: MaaPipelineEditor 前端应用核心
+        title: MaaPipelineEditor 前端应用核心
         scope:
             - src/
         source_files: []
@@ -100,8 +100,8 @@ modules:
         related_to:
             - path: docsite
     local_bridge:
-        dir_name: MaaPipelineEditor 本地桥接服务
-        title: MaaPipelineEditor 本地桥接服务
+        dir_name: MaaFramework 本地桥接服务
+        title: MaaFramework 本地桥接服务
         scope:
             - LocalBridge/
         source_files: []
