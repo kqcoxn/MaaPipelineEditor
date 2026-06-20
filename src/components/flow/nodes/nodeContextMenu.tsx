@@ -328,10 +328,21 @@ function scheduleDebugRunAfterResourcePreflight(
       const firstError = result.diagnostics?.find(
         (diagnostic) => diagnostic.severity === "error",
       );
-      message.error(
-        firstError?.message ??
-          "资源加载检测失败，无法自动启动调试。",
-      );
+      const errorMessage = firstError?.message ?? "资源加载检测失败，无法自动启动调试。";
+      Modal.error({
+        title: "资源加载检测失败",
+        content: (
+          <div>
+            <p>{errorMessage}</p>
+            <p>您可以前往「资源体检」面板查看详细诊断信息并尝试修复。</p>
+          </div>
+        ),
+        okText: "前往资源体检",
+        onOk: () => {
+          const debugSessionStore = useDebugSessionStore.getState();
+          debugSessionStore.openModal("resource-health");
+        },
+      });
       return;
     }
 

@@ -1,5 +1,5 @@
 ﻿import { List } from "../../../../components/SimpleList";
-import { Typography, Button, Space, Tag, Alert, Empty, Result } from "antd";
+import { Typography, Button, Space, Tag, Alert, Empty } from "antd";
 import { useMemo, type CSSProperties, type ReactNode } from "react";
 import {
   FileTextOutlined,
@@ -171,6 +171,7 @@ function ResourceHealthSection({
         <List
           bordered
           dataSource={diagnostics}
+          style={{ padding: "12px 16px" }}
           renderItem={(diagnostic) => {
             const suggestion = getDebugDiagnosticSuggestion(diagnostic);
             const actions = [];
@@ -204,27 +205,27 @@ function ResourceHealthSection({
               );
             }
             return (
-              <List.Item actions={actions.length > 0 ? actions : undefined}>
-                <List.Item.Meta
-                  title={
+              <List.Item>
+                {(List.Item as any).Meta({
+                  title: (
                     <Space wrap>
                       <Tag color={severityColor(diagnostic.severity)}>
                         {diagnostic.severity}
                       </Tag>
                       <Text>{diagnostic.message}</Text>
                     </Space>
-                  }
-                  description={
+                  ),
+                  description: (
                     <Space
-                      orientation="vertical"
-                      size={6}
+                      direction="vertical"
+                      size={0}
                       style={{ width: "100%" }}
                     >
                       <Text type="secondary">{diagnostic.code}</Text>
                       {(diagnostic.sourcePath ||
                         diagnostic.fileId ||
                         diagnostic.nodeId) && (
-                        <Space orientation="vertical" size={2}>
+                        <Space direction="vertical" size={2} style={{ marginTop: 4 }}>
                           {diagnostic.sourcePath && (
                             <Text style={metaValueStyle}>
                               路径: {diagnostic.sourcePath}
@@ -243,11 +244,18 @@ function ResourceHealthSection({
                         </Space>
                       )}
                       {suggestion && (
-                        <Text type="secondary">修复建议: {suggestion}</Text>
+                        <Text type="secondary" style={{ marginTop: 4 }}>
+                          修复建议: {suggestion}
+                        </Text>
+                      )}
+                      {actions.length > 0 && (
+                        <Space wrap style={{ marginTop: 8 }}>
+                          {actions}
+                        </Space>
                       )}
                     </Space>
-                  }
-                />
+                  ),
+                })}
               </List.Item>
             );
           }}
@@ -319,13 +327,11 @@ function resolveAlertDescription(
       ];
       if (items.length > 0) {
         return (
-          <ul style={{ margin: 0, paddingLeft: 18 }}>
+          <Space direction="vertical" size={4} style={{ width: "100%" }}>
             {items.map((msg, index) => (
-              <li key={index}>
-                <Text>{msg}</Text>
-              </li>
+              <Text key={index}>{msg}</Text>
             ))}
-          </ul>
+          </Space>
         );
       }
       return "请优先查看下方「资源加载」分组中的错误项。";
