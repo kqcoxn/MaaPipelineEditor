@@ -1,4 +1,4 @@
-import { Button, Dropdown, message } from "antd";
+import { Button, Dropdown, message, Modal } from "antd";
 import type { MenuProps } from "antd";
 import { ImportOutlined } from "@ant-design/icons";
 import { memo, useMemo, useRef } from "react";
@@ -8,6 +8,7 @@ import {
 } from "../../../stores/toolbarStore";
 import { useConfigStore } from "../../../stores/configStore";
 import { useWSStore } from "../../../stores/wsStore";
+import { useFlowStore } from "../../../stores/flow";
 import { pipelineToFlow, mergePipelineAndConfig } from "../../../core/parser";
 import { ClipboardHelper } from "../../../utils/ui/clipboard";
 import { flowToPipeline } from "../../../core/parser";
@@ -47,6 +48,22 @@ function ImportButton() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const configFileInputRef = useRef<HTMLInputElement>(null);
+
+  // 画布非空时二次确认，防止误导入覆盖工作成果
+  const confirmImport = (onConfirm: () => void) => {
+    const currentNodes = useFlowStore.getState().nodes;
+    if (currentNodes.length > 0) {
+      Modal.confirm({
+        title: "当前画布不为空",
+        content: "导入将覆盖现有内容。导入后可通过撤销恢复，是否继续？",
+        okText: "继续导入",
+        cancelText: "取消",
+        onOk: () => onConfirm(),
+      });
+      return;
+    }
+    onConfirm();
+  };
   const effectiveDefaultImportAction = useMemo(
     () =>
       resolveAvailableImportAction(
@@ -57,16 +74,18 @@ function ImportButton() {
   );
 
   // 导入操作处理
-  const handleImportFromClipboard = async () => {
-    try {
-      const success = await pipelineToFlow();
-      if (success) {
-        message.success("从粘贴板导入 Pipeline 成功");
+  const handleImportFromClipboard = () => {
+    confirmImport(async () => {
+      try {
+        const success = await pipelineToFlow();
+        if (success) {
+          message.success("从粘贴板导入 Pipeline 成功");
+        }
+      } catch (err) {
+        message.error("导入失败,请检查粘贴板内容");
+        console.error(err);
       }
-    } catch (err) {
-      message.error("导入失败,请检查粘贴板内容");
-      console.error(err);
-    }
+    });
   };
 
   const handleImportFromFile = () => {
@@ -75,33 +94,39 @@ function ImportButton() {
       return;
     }
 
-    fileInputRef.current?.click();
+    confirmImport(() => {
+      fileInputRef.current?.click();
+    });
   };
 
-  const handleImportConfigFromClipboard = async () => {
-    try {
-      const text = await ClipboardHelper.read();
-      if (!text) {
-        message.error("粘贴板内容为空");
-        return;
+  const handleImportConfigFromClipboard = () => {
+    confirmImport(async () => {
+      try {
+        const text = await ClipboardHelper.read();
+        if (!text) {
+          message.error("粘贴板内容为空");
+          return;
+        }
+        const mpeConfig = JSON.parse(text);
+        const currentPipeline = flowToPipeline();
+        const mergedPipeline = mergePipelineAndConfig(currentPipeline, mpeConfig);
+        const success = await pipelineToFlow({
+          pString: JSON.stringify(mergedPipeline),
+        });
+        if (success) {
+          message.success("从粘贴板导入配置成功");
+        }
+      } catch (err) {
+        message.error("导入配置失败");
+        console.error(err);
       }
-      const mpeConfig = JSON.parse(text);
-      const currentPipeline = flowToPipeline();
-      const mergedPipeline = mergePipelineAndConfig(currentPipeline, mpeConfig);
-      const success = await pipelineToFlow({
-        pString: JSON.stringify(mergedPipeline),
-      });
-      if (success) {
-        message.success("从粘贴板导入配置成功");
-      }
-    } catch (err) {
-      message.error("导入配置失败");
-      console.error(err);
-    }
+    });
   };
 
   const handleImportConfigFromFile = () => {
-    configFileInputRef.current?.click();
+    confirmImport(() => {
+      configFileInputRef.current?.click();
+    });
   };
 
   const onFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {

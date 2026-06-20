@@ -106,10 +106,14 @@ export const updateLogs: UpdateLogItem[] = [
   {
     version: "1.7.0",
     date: "2026-6-21",
-    type: "feature",
+    type: "perf",
     updates: {
       features: [],
-      perfs: ["优化调试面板交互体验", "从 lb 打开新文件默认填充真实文件名"],
+      perfs: [
+        "优化调试面板交互体验",
+        "从 lb 打开新文件默认填充真实文件名",
+        "覆盖式导入时支持撤销操作",
+      ],
       fixes: ["修复调试面板无法自动加载详情图片的问题"],
     },
   },

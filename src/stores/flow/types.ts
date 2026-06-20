@@ -270,6 +270,7 @@ export interface FlowHistoryState {
   undo: () => boolean;
   redo: () => boolean;
   initHistory: (nodes: NodeType[], edges: EdgeType[]) => void;
+  importHistory: (nodes: NodeType[], edges: EdgeType[]) => void;
   clearHistory: () => void;
   getHistoryState: () => { canUndo: boolean; canRedo: boolean };
 }

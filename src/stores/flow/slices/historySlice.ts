@@ -217,6 +217,77 @@ export const createHistorySlice: StateCreator<
     });
   },
 
+  // 导入历史记录（追加模式，保留撤销能力）
+  // 与 initHistory 不同，此方法不清空历史栈，
+  // 而是将导入前状态和导入后状态依次追加，使 undo 可以回到导入前
+  importHistory(nodes: NodeType[], edges: EdgeType[]) {
+    const state = get();
+
+    // 清除待保存的超时
+    if (state.saveTimeout) {
+      clearTimeout(state.saveTimeout);
+    }
+
+    const importSnapshotStr = serializeState(nodes, edges);
+    const importSnapshot = {
+      nodes: fastClone(nodes),
+      edges: fastClone(edges),
+    };
+
+    set((state) => {
+      let newStack = [...state.historyStack];
+      let newIndex = state.historyIndex;
+
+      // 如果历史栈为空，直接初始化（与 initHistory 行为一致）
+      if (newStack.length === 0) {
+        return {
+          historyStack: [importSnapshot],
+          historyIndex: 0,
+          lastSnapshot: importSnapshotStr,
+          saveTimeout: null,
+        };
+      }
+
+      // 截断 redo 分支
+      if (newIndex < newStack.length - 1) {
+        newStack = newStack.slice(0, newIndex + 1);
+      }
+
+      // 如果当前画布有内容，且与栈顶不同，先把当前状态（导入前）压入栈
+      // 这样 undo 可以回到导入前的状态
+      if (state.nodes.length > 0) {
+        const currentStr = serializeState(state.nodes, state.edges);
+        if (currentStr !== state.lastSnapshot) {
+          const currentSnapshot = {
+            nodes: fastClone(state.nodes),
+            edges: fastClone(state.edges),
+          };
+          newStack.push(currentSnapshot);
+          if (newStack.length > 100) {
+            newStack.shift();
+          } else {
+            newIndex++;
+          }
+        }
+      }
+
+      // 添加导入后的状态
+      newStack.push(importSnapshot);
+      if (newStack.length > 100) {
+        newStack.shift();
+      } else {
+        newIndex++;
+      }
+
+      return {
+        historyStack: newStack,
+        historyIndex: newIndex,
+        lastSnapshot: importSnapshotStr,
+        saveTimeout: null,
+      };
+    });
+  },
+
   // 清空历史记录
   clearHistory() {
     const state = get();

@@ -513,11 +513,14 @@ export async function pipelineToFlow(
     // 视觉副本就近匹配：把指向 External / Anchor 的边重定向到最近的副本
     edges = rerouteEdgesToNearestReplica(nodes, edges);
 
-    // 更新flow
-    useFlowStore.getState().replace(nodes, edges, { isFitView: isIncludePos });
+    // 先追加历史记录（此时 state.nodes 仍为导入前状态，可正确保存）
+    useFlowStore.getState().importHistory(nodes, edges);
 
-    // 初始化历史记录
-    useFlowStore.getState().initHistory(nodes, edges);
+    // 再替换画布（跳过历史，已在 importHistory 中处理）
+    useFlowStore.getState().replace(nodes, edges, {
+      isFitView: isIncludePos,
+      skipHistory: true,
+    });
 
     // 更新文件配置
     const fileState = useFileStore.getState();
