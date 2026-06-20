@@ -35,6 +35,22 @@ export const createGraphSlice: StateCreator<
       // 确保 Group 节点排在子节点之前
       processedNodes = ensureGroupNodeOrder(processedNodes);
 
+      let maxPasteId = 0;
+      let maxNodeId = 0;
+      for (const node of processedNodes) {
+        if (node.id.startsWith("paste_")) {
+          const num = parseInt(node.id.slice(6), 10);
+          if (!isNaN(num) && num > maxPasteId) {
+            maxPasteId = num;
+          }
+        } else {
+          const num = parseInt(node.id, 10);
+          if (!isNaN(num) && num > maxNodeId) {
+            maxNodeId = num;
+          }
+        }
+      }
+
       // 清空选择
       get().clearSelection();
 
@@ -46,6 +62,8 @@ export const createGraphSlice: StateCreator<
       return {
         nodes: processedNodes,
         edges: processedEdges,
+        pasteIdCounter: Math.max(state.pasteIdCounter, maxPasteId + 1),
+        nodeIdCounter: Math.max(state.nodeIdCounter, maxNodeId + 1),
       };
     });
 
@@ -90,6 +108,9 @@ export const createGraphSlice: StateCreator<
         [...originNodes, ...nodes].map((n) => n.data.label),
       );
 
+      // 收集所有已存在的节点 ID，用于检测冲突
+      const existingIds = new Set(originNodes.map((n) => n.id));
+
       let minLeft = Infinity;
       let minTop = Infinity;
       const sourceAbsolutePositions = new Map<string, { x: number; y: number }>();
@@ -102,8 +123,15 @@ export const createGraphSlice: StateCreator<
         minTop = Math.min(minTop, absolutePosition.y);
 
         const newId = "paste_" + pasteCounter;
-        pairs[originalId] = newId;
-        node.id = newId;
+        // 检测 ID 冲突，跳过已存在的 paste_ ID
+        let safeId = newId;
+        while (existingIds.has(safeId)) {
+          pasteCounter++;
+          safeId = "paste_" + pasteCounter;
+        }
+        existingIds.add(safeId);
+        pairs[originalId] = safeId;
+        node.id = safeId;
 
         // External / Anchor 节点保留原 label，作为视觉副本
         const isReplica =

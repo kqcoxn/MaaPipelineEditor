@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { message } from "antd";
+import { cloneDeep } from "lodash";
 import type { NodeType, EdgeType } from "./flow/types";
 
 type ClipboardState = {
@@ -22,8 +23,8 @@ export const useClipboardStore = create<ClipboardState>()((set, get) => ({
     }
 
     set({
-      clipboardNodes: nodes || [],
-      clipboardEdges: edges || [],
+      clipboardNodes: cloneDeep(nodes),
+      clipboardEdges: cloneDeep(edges || []),
     });
 
     message.success("已将选中节点加载至内部粘贴板");
