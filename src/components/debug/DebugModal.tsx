@@ -295,6 +295,8 @@ function ActivePanel({ controller }: { controller: DebugModalController }) {
       return <SetupPanel controller={controller} />;
     case "resource-health":
       return <ResourceHealthPanel controller={controller} />;
+    case "node-execution":
+      return <NodeExecutionPanel controller={controller} />;
     default:
       return null;
   }

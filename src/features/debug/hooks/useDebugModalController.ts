@@ -9,6 +9,7 @@ import {
 import { useDebugSessionStore } from "../../../stores/debugSessionStore";
 import { useDebugModalMemoryStore } from "../../../stores/debugModalMemoryStore";
 import { useDebugTraceStore } from "../../../stores/debugTraceStore";
+import { useDebugArtifactStore } from "../../../stores/debugArtifactStore";
 import {
   debugAiSummaryTargetKey,
   useDebugAiSummaryStore,
@@ -168,6 +169,16 @@ export function useDebugModalController() {
       setPreflightDiagnostics: state.setPreflightDiagnostics,
     })),
   );
+  const artifacts = useDebugArtifactStore((state) => state.artifacts);
+  const selectedArtifactId = useDebugArtifactStore(
+    (state) => state.selectedArtifactId,
+  );
+  const artifactActions = useDebugArtifactStore(
+    useShallow((state) => ({
+      setLoading: state.setLoading,
+      selectArtifact: state.selectArtifact,
+    })),
+  );
   const profileState = useDebugRunProfileStore();
   const mfwState = useMFWStore(
     useShallow((state) => ({
@@ -292,6 +303,27 @@ export function useDebugModalController() {
     pipelineNodes,
     selectPipelineNode,
   } = nodeExecutionController;
+
+  const selectedArtifact = selectedArtifactId
+    ? artifacts[selectedArtifactId]
+    : undefined;
+
+  const requestArtifact = (artifactId: string) => {
+    const entry = artifacts[artifactId];
+    if (!entry) return;
+    artifactActions.selectArtifact(artifactId);
+    if (entry.status === "ready" || entry.status === "loading") return;
+    artifactActions.setLoading(artifactId);
+    const sent = debugProtocolClient.requestArtifact({
+      sessionId: entry.ref.sessionId,
+      artifactId,
+    });
+    if (!sent) {
+      useDebugArtifactStore
+        .getState()
+        .setError(artifactId, "发送产物（Artifact）请求失败");
+    }
+  };
 
   const selectedDisplaySession = useMemo(
     () =>
@@ -695,6 +727,9 @@ export function useDebugModalController() {
     selectedNodeExecutionRecordId: nodeExecutionController.selectedNodeExecutionRecordId,
     selectedNodeExecutionAttempt: nodeExecutionController.selectedNodeExecutionAttempt,
     selectedNodeExecutionAttemptId: nodeExecutionController.selectedNodeExecutionAttemptId,
+    artifacts,
+    selectedArtifact,
+    requestArtifact,
     testingAgentIds,
     startRun,
     confirmActionRun,

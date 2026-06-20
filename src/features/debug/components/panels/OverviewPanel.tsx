@@ -133,18 +133,6 @@ const metaValueStyle: CSSProperties = {
   wordBreak: "break-word",
 };
 
-interface NodeSelectOption {
-  value: string;
-  label: string;
-  searchText: string;
-}
-
-interface DisplaySessionSelectOption {
-  value: string;
-  label: string;
-  searchText: string;
-}
-
 export function OverviewPanel({
   controller,
 }: {
@@ -197,7 +185,15 @@ export function OverviewPanel({
       runTargetNodes.map((node) => ({
         value: node.nodeId,
         label: node.displayName,
-        searchText: [
+      })),
+    [runTargetNodes],
+  );
+  const nodeSearchTextMap = useMemo(() => {
+    const map = new Map<string, string>();
+    runTargetNodes.forEach((node) => {
+      map.set(
+        node.nodeId,
+        [
           node.displayName,
           node.runtimeName,
           node.fileId,
@@ -205,9 +201,10 @@ export function OverviewPanel({
         ]
           .filter(Boolean)
           .join(" "),
-      })),
-    [runTargetNodes],
-  );
+      );
+    });
+    return map;
+  }, [runTargetNodes]);
   const displaySessionOptions = useMemo(
     () =>
       displaySessions.map((item) => ({
@@ -215,7 +212,15 @@ export function OverviewPanel({
         label: `${formatDebugRunDisplayName(item.runId, item.startedAt)} · ${
           item.status ?? "-"
         } · ${item.eventCount} 事件`,
-        searchText: [
+      })),
+    [displaySessions],
+  );
+  const displaySessionSearchTextMap = useMemo(() => {
+    const map = new Map<string, string>();
+    displaySessions.forEach((item) => {
+      map.set(
+        item.id,
+        [
           item.id,
           item.sessionId,
           item.runId,
@@ -225,9 +230,10 @@ export function OverviewPanel({
         ]
           .filter(Boolean)
           .join(" "),
-      })),
-    [displaySessions],
-  );
+      );
+    });
+    return map;
+  }, [displaySessions]);
   const hasSelectedNode = Boolean(selectedRunTargetNodeId);
   const runLocked = ["preparing", "running", "stopping"].includes(
     session?.status ?? "idle",
@@ -337,9 +343,7 @@ export function OverviewPanel({
                 style={nodeSelectStyle}
                 placeholder="搜索并选择 Pipeline 节点"
                 filterOption={(input, option) =>
-                  String(
-                    (option as NodeSelectOption | undefined)?.searchText ?? "",
-                  )
+                  String(nodeSearchTextMap.get(option?.value ?? "") ?? "")
                     .toLowerCase()
                     .includes(input.trim().toLowerCase())
                 }
@@ -496,8 +500,8 @@ export function OverviewPanel({
                 onChange={selectDisplaySessions}
                 filterOption={(input, option) =>
                   String(
-                    (option as DisplaySessionSelectOption | undefined)
-                      ?.searchText ?? "",
+                    displaySessionSearchTextMap.get(option?.value ?? "") ??
+                      "",
                   )
                     .toLowerCase()
                     .includes(input.trim().toLowerCase())
