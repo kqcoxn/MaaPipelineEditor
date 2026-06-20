@@ -37,7 +37,7 @@ export const fixedQuestions: QuizQuestion[] = [
     category: "项目模板",
     type: "judge",
     question:
-      "新手开发 MaaFW 项目时，推荐使用官方模板项目（MaaPracticeBoilerplate）作为起点，而不是自行创建文件夹结构。",
+      "新手开发 MaaFW 项目时，推荐使用官方项目模板（MaaPracticeBoilerplate）或 create-maa-project 脚手架工具作为起点，而不是自行创建文件夹结构。",
     options: ["正确", "错误"],
     answer: 0,
   },

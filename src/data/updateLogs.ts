@@ -104,11 +104,10 @@ export const nextPreview: ForecastSection = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
-    version: "1.7.0",
+    version: "1.6.2",
     date: "2026-6-21",
     type: "perf",
     updates: {
-      features: [],
       perfs: [
         "优化调试面板交互体验",
         "从 lb 打开新文件默认填充真实文件名",
