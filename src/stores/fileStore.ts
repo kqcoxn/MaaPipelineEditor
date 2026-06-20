@@ -584,6 +584,12 @@ export const useFileStore = create<FileState>()((set) => ({
       // 获取原始键顺序
       const keyOrder = extractKeyOrder(contentString);
 
+      // 从文件路径提取真实文件名（不含扩展名）
+      const realFileName = (filePath.split(/[\/\\]/).pop() || "").replace(
+        /\.(json|jsonc)$/i,
+        "",
+      );
+
       // 合并配置文件
       let finalContentString = contentString;
       if (mpeConfig) {
@@ -592,7 +598,7 @@ export const useFileStore = create<FileState>()((set) => ({
           const mergedPipeline = mergePipelineAndConfig(
             pipelineObj,
             mpeConfig,
-            undefined,
+            realFileName,
             keyOrder,
           );
           finalContentString = JSON.stringify(mergedPipeline);
@@ -636,6 +642,8 @@ export const useFileStore = create<FileState>()((set) => ({
         const savedViewport = currentFile.config.savedViewport;
         await pipelineToFlow({ pString: finalContentString });
         syncFlowStoreToFileStore({ ...configUpdates, filePath });
+        // 设置文件名
+        useFileStore.getState().setFileName(realFileName);
         // 恢复视口
         if (savedViewport) {
           setTimeout(() => {
@@ -652,7 +660,8 @@ export const useFileStore = create<FileState>()((set) => ({
       useFileStore.getState().addFile({ isSwitch: true });
       await pipelineToFlow({ pString: finalContentString });
       syncFlowStoreToFileStore({ ...configUpdates, filePath });
-      useWikiUiMemoryStore.getState().requestMigrationHint(filePath);
+      // 设置文件名
+      useFileStore.getState().setFileName(realFileName);
       return true;
     } catch (error) {
       console.error("[fileStore] Failed to open file from local:", error);
