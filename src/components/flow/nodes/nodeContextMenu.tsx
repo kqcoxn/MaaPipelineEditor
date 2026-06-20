@@ -269,19 +269,14 @@ function handleDebugRunMode(node: NodeContextMenuNode, mode: DebugRunMode) {
       return;
     }
 
-    if (resourcePreflightMatches && resourcePreflight.status === "error") {
-      message.error(
-        readiness.issues[0]?.message ?? "资源加载检测失败，无法启动调试。",
-      );
-      return;
-    }
-
     if (resourcePreflightMatches && resourcePreflight.status === "checking") {
       scheduleDebugRunAfterResourcePreflight(node, mode, resourceKey);
       message.info("资源检测完成后将自动启动调试。");
       return;
     }
 
+    // status 为 error 或 idle 时均重新发起检测，
+    // 避免资源修复后仍卡在旧的失败结果上。
     const requestResult = requestDebugResourcePreflight(resourceKey);
     if (requestResult === "sent") {
       scheduleDebugRunAfterResourcePreflight(node, mode, resourceKey);
