@@ -1,0 +1,34 @@
+# Air hot-reload configuration for LocalBridge
+# Docs: https://github.com/air-verse/air
+
+root = "."
+tmp_dir = "build"
+
+[build]
+  cmd = "go mod tidy ; go build -o ./build/mpelb.exe ./cmd/lb"
+  bin = "./build/mpelb.exe"
+  full_bin = "./build/mpelb.exe --root ./test-json/resource --log-level DEBUG"
+  include_ext = ["go", "toml", "yaml", "yml", "json"]
+  exclude_dir = ["build", "test-json", "node_modules", "vendor", ".git"]
+  exclude_file = []
+  exclude_regex = ["_test\\.go"]
+  exclude_unchanged = false
+  follow_symlink = false
+  delay = 500
+  kill_delay = "0s"
+  log = "build-errors.log"
+  send_interrupt = false
+  stop_on_error = true
+
+[color]
+  main = "magenta"
+  watcher = "cyan"
+  build = "yellow"
+  runner = "green"
+
+[log]
+  time = true
+  main_only = false
+
+[misc]
+  clean_on_exit = true

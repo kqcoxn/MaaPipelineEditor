@@ -54,6 +54,9 @@ logs/
 *.bak
 *.tmp
 
+# Air hot-reload build log
+build-errors.log
+
 # Coverage reports
 coverage.html
 *.coverage
