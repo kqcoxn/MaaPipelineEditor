@@ -555,6 +555,39 @@ export const settingsDefinitions: ConfigItemDef[] = [
     placeholder: "例如：pipeline\npipeline/sub",
     order: 6,
   },
+  {
+    key: "screenshotResolutionMode",
+    category: "local-service",
+    label: "截图分辨率",
+    tipTitle: "截图分辨率",
+    tipContent:
+      "设备截图（ROI/OCR/模板匹配等取图工具）的缩放方式，与 MaaFramework 的缩放分辨率一致：\n默认：短边缩放至 720（maafw 默认）\n短边：将短边缩放至指定长度，长边按比例自适应\n长边：将长边缩放至指定长度，短边按比例自适应\n原始：不缩放，使用设备原始分辨率\n\n注意：取图分辨率应与运行时控制器的缩放设置保持一致，否则 ROI/坐标会错位。",
+    type: "select",
+    options: [
+      { value: "default", label: "默认 (短边 720)" },
+      { value: "shortSide", label: "自定义短边" },
+      { value: "longSide", label: "自定义长边" },
+      { value: "raw", label: "原始分辨率" },
+    ],
+    controlWidth: 150,
+    order: 7,
+  },
+  {
+    key: "screenshotResolutionValue",
+    category: "local-service",
+    label: "分辨率长度",
+    tipTitle: "分辨率长度",
+    tipContent:
+      "自定义短边/长边模式下的目标边长（像素），另一边按原始宽高比自动缩放。常用值：720、1280、1080、1920。",
+    type: "inputNumber",
+    min: 1,
+    max: 8192,
+    addonAfter: "px",
+    visible: (configs) =>
+      configs.screenshotResolutionMode === "shortSide" ||
+      configs.screenshotResolutionMode === "longSide",
+    order: 8,
+  },
 
   // ==================== AI (ai) ====================
   {

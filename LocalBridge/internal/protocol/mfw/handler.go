@@ -425,6 +425,17 @@ func (h *MFWHandler) handleScreencap(conn *server.Connection, msg models.Message
 		ControllerID: controllerID,
 	}
 
+	// 解析分辨率参数（三者互斥，由前端保证只传其一）
+	if v, ok := dataMap["target_long_side"].(float64); ok && v > 0 {
+		req.TargetLongSide = int32(v)
+	}
+	if v, ok := dataMap["target_short_side"].(float64); ok && v > 0 {
+		req.TargetShortSide = int32(v)
+	}
+	if v, ok := dataMap["use_raw_size"].(bool); ok {
+		req.UseRawSize = v
+	}
+
 	result, err := h.service.ControllerManager().Screencap(req)
 	if err != nil {
 		logger.Error("MFW", "截图失败: %v", err)

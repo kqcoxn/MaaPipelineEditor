@@ -11,6 +11,10 @@ import {
   UploadOutlined,
 } from "@ant-design/icons";
 import { useMFWStore } from "../../stores/mfwStore";
+import {
+  useConfigStore,
+  getScreenshotResolutionParams,
+} from "../../stores/configStore";
 import { mfwProtocol } from "../../services/server";
 import { useCanvasViewport } from "../../hooks/useCanvasViewport";
 
@@ -93,6 +97,12 @@ export const ScreenshotModalBase = memo(
     onReset,
   }: ScreenshotModalBaseProps) => {
     const { connectionStatus, controllerId } = useMFWStore();
+    const resolutionMode = useConfigStore(
+      (state) => state.configs.screenshotResolutionMode,
+    );
+    const resolutionValue = useConfigStore(
+      (state) => state.configs.screenshotResolutionValue,
+    );
     const [screenshot, setScreenshot] = useState<string | null>(null);
     const [imageLoaded, setImageLoaded] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -132,8 +142,11 @@ export const ScreenshotModalBase = memo(
       }
 
       setIsLoading(true);
-      mfwProtocol.requestScreencap({ controller_id: controllerId });
-    }, [connectionStatus, controllerId]);
+      mfwProtocol.requestScreencap({
+        controller_id: controllerId,
+        ...getScreenshotResolutionParams(useConfigStore.getState().configs),
+      });
+    }, [connectionStatus, controllerId, resolutionMode, resolutionValue]);
 
     // 上传本地图片作为底图
     const handleUploadClick = useCallback(() => {
