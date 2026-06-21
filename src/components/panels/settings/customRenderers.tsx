@@ -83,6 +83,11 @@ const BackendConfigRenderer = memo(() => {
             : "var(--ant-color-warning-bg)",
           cursor: "pointer",
           width: "100%",
+          textAlign: "center",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
         }}
         onClick={() => {
           if (!isConnected) {
@@ -92,20 +97,18 @@ const BackendConfigRenderer = memo(() => {
           setOpen(true);
         }}
       >
-        <div
-          style={{
-            fontWeight: 500,
-            marginBottom: 4,
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <div>编辑后端配置</div>
-        </div>
-        <div style={{ fontSize: 12, color: "var(--ant-color-text-secondary)" }}>
-          {isConnected ? "" : "需要先连接本地服务才能打开"}
-        </div>
+        <div style={{ fontWeight: 500 }}>编辑后端配置</div>
+        {!isConnected && (
+          <div
+            style={{
+              fontSize: 12,
+              color: "var(--ant-color-text-secondary)",
+              marginTop: 4,
+            }}
+          >
+            需要先连接本地服务才能打开
+          </div>
+        )}
       </div>
       <BackendConfigModal open={open} onClose={() => setOpen(false)} />
     </>

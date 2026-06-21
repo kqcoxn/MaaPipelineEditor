@@ -208,7 +208,7 @@ const ConfigItemRenderer = memo(
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "8px 12px",
+          padding: item.hideLabel ? 0 : "8px 12px",
           borderRadius: 8,
           border: "1px solid var(--ant-color-border-secondary)",
           marginBottom: 6,
@@ -221,50 +221,52 @@ const ConfigItemRenderer = memo(
         }}
       >
         {/* 标签区域 */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            flexShrink: 0,
-            marginRight: 16,
-            position: "relative",
-          }}
-        >
-          {/* 修改标记小圆点 */}
-          {isModified && (
-            <span
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                background: "var(--ant-color-primary)",
-                display: "inline-block",
-                flexShrink: 0,
-              }}
-            />
-          )}
-          <Popover
-            placement="bottomLeft"
-            title={item.tipTitle}
-            content={
-              resolvedTipContent ? (
-                <div style={{ maxWidth: 260, whiteSpace: "pre-wrap" }}>
-                  {resolvedTipContent}
-                </div>
-              ) : undefined
-            }
+        {!item.hideLabel && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              flexShrink: 0,
+              marginRight: 16,
+              position: "relative",
+            }}
           >
-            <span style={{ cursor: "help", fontSize: 14 }}>{item.label}</span>
-          </Popover>
-        </div>
+            {/* 修改标记小圆点 */}
+            {isModified && (
+              <span
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  background: "var(--ant-color-primary)",
+                  display: "inline-block",
+                  flexShrink: 0,
+                }}
+              />
+            )}
+            <Popover
+              placement="bottomLeft"
+              title={item.tipTitle}
+              content={
+                resolvedTipContent ? (
+                  <div style={{ maxWidth: 260, whiteSpace: "pre-wrap" }}>
+                    {resolvedTipContent}
+                  </div>
+                ) : undefined
+              }
+            >
+              <span style={{ cursor: "help", fontSize: 14 }}>{item.label}</span>
+            </Popover>
+          </div>
+        )}
 
         {/* 控件区域 */}
         <div
           style={{
             flex: 1,
             display: "flex",
-            justifyContent: "flex-end",
+            justifyContent: item.hideLabel ? "flex-start" : "flex-end",
             alignItems: "center",
             gap: 6,
           }}

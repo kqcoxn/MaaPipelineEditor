@@ -61,6 +61,8 @@ export interface ConfigItemDef {
   order?: number;
   /**控件样式宽度 */
   controlWidth?: number;
+  /**是否隐藏左侧标签（自定义区块占满整行时使用） */
+  hideLabel?: boolean;
 }
 
 /** 各 Provider 类型对应的范例信息 */
@@ -598,6 +600,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
     tipContent: "",
     type: "custom",
     customRender: "aiWarning",
+    hideLabel: true,
     order: 0,
   },
   {
