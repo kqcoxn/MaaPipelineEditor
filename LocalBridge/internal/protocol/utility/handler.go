@@ -61,6 +61,12 @@ func (h *UtilityHandler) Handle(msg models.Message, conn *server.Connection) *mo
 	case "/etl/utility/open_log":
 		h.handleOpenLog(conn, msg)
 
+	case "/etl/utility/read_maafw_log":
+		h.handleReadMaafwLog(conn, msg)
+
+	case "/etl/utility/open_maafw_log_dir":
+		h.handleOpenMaafwLogDir(conn, msg)
+
 	default:
 		logger.Warn("Utility", "未知的Utility路由: %s", path)
 		h.sendError(conn, errors.NewInvalidRequestError("未知的Utility路由: "+path))

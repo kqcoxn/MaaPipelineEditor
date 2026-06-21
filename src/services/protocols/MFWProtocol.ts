@@ -26,6 +26,10 @@ export class MFWProtocol extends BaseProtocol {
   private imagePathCallbacks: Array<(data: any) => void> = [];
   // 打开日志结果回调函数
   private openLogCallbacks: Array<(data: any) => void> = [];
+  // maafw.log 内容回调函数
+  private maafwLogContentCallbacks: Array<(data: any) => void> = [];
+  // maafw.log 打开结果回调函数
+  private maafwLogOpenedCallbacks: Array<(data: any) => void> = [];
   // 执行动作结果回调函数
   private executeActionCallbacks: Array<(data: any) => void> = [];
   // 记录最后一次连接请求的设备信息
@@ -107,6 +111,16 @@ export class MFWProtocol extends BaseProtocol {
     // 注册打开日志结果路由
     this.wsClient.registerRoute("/lte/utility/log_opened", (data) =>
       this.handleLogOpened(data),
+    );
+
+    // 注册 maafw.log 内容路由
+    this.wsClient.registerRoute("/lte/utility/maafw_log_content", (data) =>
+      this.handleMaafwLogContent(data),
+    );
+
+    // 注册 maafw.log 打开结果路由
+    this.wsClient.registerRoute("/lte/utility/maafw_log_opened", (data) =>
+      this.handleMaafwLogOpened(data),
     );
 
     // 注册操作结果路由
@@ -341,6 +355,34 @@ export class MFWProtocol extends BaseProtocol {
         callback(data);
       } catch (error) {
         console.error("[MFWProtocol] Error in open log callback:", error);
+      }
+    });
+  }
+
+  /**
+   * 处理 maafw.log 内容
+   * 路由: /lte/utility/maafw_log_content
+   */
+  private handleMaafwLogContent(data: any): void {
+    this.maafwLogContentCallbacks.forEach((callback) => {
+      try {
+        callback(data);
+      } catch (error) {
+        console.error("[MFWProtocol] Error in maafw log content callback:", error);
+      }
+    });
+  }
+
+  /**
+   * 处理 maafw.log 打开结果
+   * 路由: /lte/utility/maafw_log_opened
+   */
+  private handleMaafwLogOpened(data: any): void {
+    this.maafwLogOpenedCallbacks.forEach((callback) => {
+      try {
+        callback(data);
+      } catch (error) {
+        console.error("[MFWProtocol] Error in maafw log opened callback:", error);
       }
     });
   }
@@ -754,6 +796,79 @@ export class MFWProtocol extends BaseProtocol {
       const index = this.openLogCallbacks.indexOf(callback);
       if (index > -1) {
         this.openLogCallbacks.splice(index, 1);
+      }
+    };
+  }
+
+  /**
+   * 请求读取 maafw.log 尾部内容
+   */
+  public requestMaafwLogContent(): boolean {
+    if (!this.wsClient) {
+      console.error("[MFWProtocol] WebSocket client not initialized");
+      return false;
+    }
+
+    return this.wsClient.send("/etl/utility/read_maafw_log", {});
+  }
+
+  /**
+   * 请求打开 maafw.log 所在文件夹
+   */
+  public requestOpenMaafwLogDir(): boolean {
+    if (!this.wsClient) {
+      console.error("[MFWProtocol] WebSocket client not initialized");
+      return false;
+    }
+
+    return this.wsClient.send("/etl/utility/open_maafw_log_dir", {});
+  }
+
+  /**
+   * 注册 maafw.log 内容回调
+   * @returns 注销函数
+   */
+  public onMaafwLogContent(
+    callback: (data: {
+      success: boolean;
+      exists: boolean;
+      dir?: string;
+      path?: string;
+      content?: string;
+      size?: number;
+      truncated?: boolean;
+      modTime?: string;
+      message?: string;
+    }) => void,
+  ): () => void {
+    this.maafwLogContentCallbacks.push(callback);
+
+    return () => {
+      const index = this.maafwLogContentCallbacks.indexOf(callback);
+      if (index > -1) {
+        this.maafwLogContentCallbacks.splice(index, 1);
+      }
+    };
+  }
+
+  /**
+   * 注册 maafw.log 打开结果回调
+   * @returns 注销函数
+   */
+  public onMaafwLogOpened(
+    callback: (data: {
+      success: boolean;
+      target: "file" | "dir";
+      path?: string;
+      message: string;
+    }) => void,
+  ): () => void {
+    this.maafwLogOpenedCallbacks.push(callback);
+
+    return () => {
+      const index = this.maafwLogOpenedCallbacks.indexOf(callback);
+      if (index > -1) {
+        this.maafwLogOpenedCallbacks.splice(index, 1);
       }
     };
   }

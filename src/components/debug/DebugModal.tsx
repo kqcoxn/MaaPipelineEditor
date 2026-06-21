@@ -7,6 +7,7 @@
 import { Alert, Button, Drawer, Space, Typography } from "antd";
 import {
   CloseOutlined,
+  FileSearchOutlined,
   FileTextOutlined,
   MedicineBoxOutlined,
   NodeIndexOutlined,
@@ -25,6 +26,7 @@ import { AiSummaryPanel } from "../../features/debug/components/panels/AiSummary
 import { SetupPanel } from "../../features/debug/components/panels/SetupPanel";
 import { ResourceHealthPanel } from "../../features/debug/components/panels/ResourceHealthPanel";
 import { NodeExecutionPanel } from "../../features/debug/components/panels/NodeExecutionPanel";
+import { DebugLogPanel } from "../../features/debug/components/panels/DebugLogPanel";
 import { WikiAnchor } from "../wiki/WikiAnchor";
 
 const { Text, Title } = Typography;
@@ -54,6 +56,13 @@ const panels: PanelItem[] = [
     label: "节点线",
     icon: <NodeIndexOutlined />,
     description: "按 Pipeline 节点聚合已选展示会话，查看执行路径和节点详情。",
+  },
+  {
+    id: "debug-log",
+    label: "调试日志",
+    icon: <FileSearchOutlined />,
+    description:
+      "查看调试产物 maafw.log 的末尾内容，可直接打开日志文件或其所在文件夹。",
   },
   {
     id: "ai-summary",
@@ -311,6 +320,8 @@ function ActivePanel({ controller }: { controller: DebugModalController }) {
       return <ResourceHealthPanel controller={controller} />;
     case "node-execution":
       return <NodeExecutionPanel controller={controller} />;
+    case "debug-log":
+      return <DebugLogPanel controller={controller} />;
     default:
       return null;
   }
