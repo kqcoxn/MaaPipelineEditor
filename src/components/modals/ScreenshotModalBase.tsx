@@ -1,6 +1,6 @@
 import { memo, useState, useCallback, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
-import { Modal, Button, Space, Spin, Tooltip } from "antd";
+import { Modal, Button, Space, Spin, Tooltip, message } from "antd";
 import {
   ReloadOutlined,
   CheckOutlined,
@@ -8,6 +8,7 @@ import {
   ZoomInOutlined,
   ZoomOutOutlined,
   FullscreenOutlined,
+  UploadOutlined,
 } from "@ant-design/icons";
 import { useMFWStore } from "../../stores/mfwStore";
 import { mfwProtocol } from "../../services/server";
@@ -98,6 +99,9 @@ export const ScreenshotModalBase = memo(
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const loadedImageRef = useRef<HTMLImageElement | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const isConnected = connectionStatus === "connected" && !!controllerId;
 
     // 使用视口控制 Hook
     const viewportProps = useCanvasViewport({ open, screenshot });
@@ -131,18 +135,52 @@ export const ScreenshotModalBase = memo(
       mfwProtocol.requestScreencap({ controller_id: controllerId });
     }, [connectionStatus, controllerId]);
 
-    // 每次打开时重新截图
+    // 上传本地图片作为底图
+    const handleUploadClick = useCallback(() => {
+      fileInputRef.current?.click();
+    }, []);
+
+    const handleFileChange = useCallback(
+      (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        // 清空 input 值，确保同一文件可重复选择
+        e.target.value = "";
+        if (!file) return;
+
+        if (!file.type.startsWith("image/")) {
+          message.warning("请选择图片文件");
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+          const dataUrl = reader.result as string;
+          setScreenshot(dataUrl);
+          setImageLoaded(false);
+          onScreenshotChangeRef.current?.(dataUrl);
+        };
+        reader.onerror = () => {
+          message.error("图片读取失败");
+        };
+        reader.readAsDataURL(file);
+      },
+      [],
+    );
+
+    // 每次打开时重新截图（已连接设备时自动截一张；未连接则等待上传）
     useEffect(() => {
       if (!open) return;
 
-      // 清除旧截图并请求新截图
+      // 清除旧截图
       setScreenshot(null);
       setImageLoaded(false);
       onScreenshotChangeRef.current?.(null);
       resetViewport();
       onResetRef.current?.();
-      requestScreenshot();
-    }, [open, requestScreenshot, resetViewport]);
+      if (connectionStatus === "connected" && controllerId) {
+        requestScreenshot();
+      }
+    }, [open, requestScreenshot, resetViewport, connectionStatus, controllerId]);
 
     // 监听截图结果
     useEffect(() => {
@@ -236,15 +274,24 @@ export const ScreenshotModalBase = memo(
                   justifyContent: "space-between",
                 }}
               >
-                <div
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 500,
-                    color: "#262626",
-                  }}
-                >
-                  截图预览
-                </div>
+                <Space size={8} align="center">
+                  <span
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 500,
+                      color: "#262626",
+                    }}
+                  >
+                    截图预览
+                  </span>
+                  <Button
+                    icon={<UploadOutlined />}
+                    onClick={handleUploadClick}
+                    size="small"
+                  >
+                    上传图片
+                  </Button>
+                </Space>
 
                 {/* 视图控制 */}
                 {screenshot && (
@@ -303,13 +350,20 @@ export const ScreenshotModalBase = memo(
                 ) : (
                   <div
                     style={{
-                      height: "100%",
+                      position: "absolute",
+                      inset: 0,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
+                      padding: 16,
+                      textAlign: "center",
                     }}
                   >
-                    <span style={{ color: "#999" }}>等待截图...</span>
+                    <span style={{ color: "#999" }}>
+                      {isConnected
+                        ? "等待截图..."
+                        : "未连接设备，请点击上方“上传图片”选择本地图片作为底图"}
+                    </span>
                   </div>
                 )}
               </div>
@@ -369,14 +423,16 @@ export const ScreenshotModalBase = memo(
                   style={{ width: "100%", justifyContent: "flex-end" }}
                   size="small"
                 >
-                  <Button
-                    icon={<ReloadOutlined />}
-                    onClick={requestScreenshot}
-                    disabled={isLoading}
-                    size="small"
-                  >
-                    重新截图
-                  </Button>
+                  <Tooltip title={isConnected ? "" : "未连接设备"}>
+                    <Button
+                      icon={<ReloadOutlined />}
+                      onClick={requestScreenshot}
+                      disabled={isLoading || !isConnected}
+                      size="small"
+                    >
+                      重新截图
+                    </Button>
+                  </Tooltip>
                   <Button
                     icon={<CloseOutlined />}
                     onClick={handleClose}
@@ -397,6 +453,13 @@ export const ScreenshotModalBase = memo(
               </div>
             </div>
           </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: "none" }}
+            onChange={handleFileChange}
+          />
         </Spin>
       </Modal>
     );

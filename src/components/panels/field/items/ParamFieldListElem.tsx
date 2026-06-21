@@ -12,13 +12,13 @@ import {
   ROIOffsetModal,
   OCRModal,
   TemplateModal,
+  TemplateMatchModal,
   ColorModal,
   DeltaModal,
 } from "../../../modals";
 import { ListValueElem } from "./ListValueElem";
 import { TemplatePreview } from "./TemplatePreview";
 import { ImageSelect } from "./ImageSelect";
-import { message } from "antd";
 import { sortKeysByOrder } from "../../../../core/sorting";
 
 // 快捷工具类型
@@ -94,6 +94,7 @@ export const ParamFieldListElem = memo(
     const [roiModalOpen, setRoiModalOpen] = useState(false);
     const [ocrModalOpen, setOcrModalOpen] = useState(false);
     const [templateModalOpen, setTemplateModalOpen] = useState(false);
+    const [templateMatchModalOpen, setTemplateMatchModalOpen] = useState(false);
     const [colorModalOpen, setColorModalOpen] = useState(false);
     const [currentROIKey, setCurrentROIKey] = useState<string | null>(null);
     const [currentExpectedKey, setCurrentExpectedKey] = useState<string | null>(
@@ -117,10 +118,6 @@ export const ParamFieldListElem = memo(
     // 打开 ROI 配置面板
     const handleOpenROI = useCallback(
       (key: string, listIndex?: number) => {
-        if (connectionStatus !== "connected") {
-          message.warning("请先连接设备");
-          return;
-        }
         setCurrentROIKey(key);
         setCurrentListIndex(listIndex ?? null);
         setRoiModalOpen(true);
@@ -131,10 +128,6 @@ export const ParamFieldListElem = memo(
     // 打开 OCR 配置面板
     const handleOpenOCR = useCallback(
       (key: string, listIndex?: number) => {
-        if (connectionStatus !== "connected") {
-          message.warning("请先连接设备");
-          return;
-        }
         setCurrentExpectedKey(key);
         setCurrentListIndex(listIndex ?? null);
         setOcrModalOpen(true);
@@ -145,10 +138,6 @@ export const ParamFieldListElem = memo(
     // 打开模板配置面板
     const handleOpenTemplate = useCallback(
       (key: string, listIndex?: number) => {
-        if (connectionStatus !== "connected") {
-          message.warning("请先连接设备");
-          return;
-        }
         setCurrentTemplateKey(key);
         setCurrentListIndex(listIndex ?? null);
         setTemplateModalOpen(true);
@@ -156,13 +145,19 @@ export const ParamFieldListElem = memo(
       [connectionStatus],
     );
 
+    // 打开模板匹配验证面板
+    const handleOpenTemplateMatch = useCallback(
+      (key: string, listIndex?: number) => {
+        setCurrentTemplateKey(key);
+        setCurrentListIndex(listIndex ?? null);
+        setTemplateMatchModalOpen(true);
+      },
+      [],
+    );
+
     // 打开颜色配置面板
     const handleOpenColor = useCallback(
       (key: string, listIndex?: number) => {
-        if (connectionStatus !== "connected") {
-          message.warning("请先连接设备");
-          return;
-        }
         setCurrentColorKey(key);
         setCurrentListIndex(listIndex ?? null);
         setColorModalOpen(true);
@@ -173,10 +168,6 @@ export const ParamFieldListElem = memo(
     // 打开位移差值配置面板
     const handleOpenDelta = useCallback(
       (key: string, listIndex?: number) => {
-        if (connectionStatus !== "connected") {
-          message.warning("请先连接设备");
-          return;
-        }
         setCurrentDeltaKey(key);
         setCurrentListIndex(listIndex ?? null);
         setDeltaModalOpen(true);
@@ -187,10 +178,6 @@ export const ParamFieldListElem = memo(
     // 打开 ROI 偏移配置面板
     const handleOpenROIOffset = useCallback(
       (key: string, listIndex?: number) => {
-        if (connectionStatus !== "connected") {
-          message.warning("请先连接设备");
-          return;
-        }
         setCurrentROIOffsetKey(key);
         setCurrentListIndex(listIndex ?? null);
         setRoiOffsetModalOpen(true);
@@ -406,17 +393,29 @@ export const ParamFieldListElem = memo(
         }
 
         return (
-          <div className={style.operation}>
-            <IconFont
-              className="icon-interactive"
-              name={config.icon}
-              size={18}
-              onClick={() => handleQuickToolClick(key, listIndex)}
-            />
-          </div>
+          <>
+            <div className={style.operation}>
+              <IconFont
+                className="icon-interactive"
+                name={config.icon}
+                size={18}
+                onClick={() => handleQuickToolClick(key, listIndex)}
+              />
+            </div>
+            {config.type === "template" && (
+              <div className={style.operation}>
+                <IconFont
+                  className="icon-interactive"
+                  name="icon-Imagetuxiangshibie"
+                  size={18}
+                  onClick={() => handleOpenTemplateMatch(key, listIndex)}
+                />
+              </div>
+            )}
+          </>
         );
       },
-      [getQuickToolConfig, handleQuickToolClick],
+      [getQuickToolConfig, handleQuickToolClick, handleOpenTemplateMatch],
     );
 
     const existingFields = Object.keys(paramData);
@@ -462,9 +461,14 @@ export const ParamFieldListElem = memo(
             const valueList = Array.isArray(value) ? value : [value];
             const listItems = valueList.map((item: string, index: number) => {
               const quickToolElem = renderQuickTool(key, index);
-              // 计算图标数量
+              // 计算图标数量（template 字段的快捷工具含截图+验证两个图标）
+              const quickToolIconCount = quickToolElem
+                ? getQuickToolConfig(key)?.type === "template"
+                  ? 2
+                  : 1
+                : 0;
               const iconCount =
-                (quickToolElem ? 1 : 0) +
+                quickToolIconCount +
                 (valueList.length > 1 ? 1 : 0) +
                 (index === valueList.length - 1 ? 1 : 0);
               return (
@@ -725,6 +729,29 @@ export const ParamFieldListElem = memo(
               setCurrentListIndex(null);
             }}
             onConfirm={handleTemplateConfirm}
+          />
+        )}
+        {currentTemplateKey && templateMatchModalOpen && (
+          <TemplateMatchModal
+            open={templateMatchModalOpen}
+            onClose={() => {
+              setTemplateMatchModalOpen(false);
+              setCurrentTemplateKey(null);
+              setCurrentListIndex(null);
+            }}
+            templateValue={
+              paramData[currentTemplateKey] as string | string[]
+            }
+            initialROI={
+              paramData["roi"] as [number, number, number, number] | undefined
+            }
+            initialThreshold={
+              Array.isArray(paramData["threshold"])
+                ? (paramData["threshold"] as number[])[0]
+                : (paramData["threshold"] as number | undefined)
+            }
+            initialMethod={paramData["method"] as number | undefined}
+            initialGreenMask={paramData["green_mask"] as boolean | undefined}
           />
         )}
         {currentColorKey && (

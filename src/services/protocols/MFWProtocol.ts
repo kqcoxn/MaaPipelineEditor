@@ -20,6 +20,8 @@ export class MFWProtocol extends BaseProtocol {
   private screencapCallbacks: Array<(data: any) => void> = [];
   // OCR结果回调函数
   private ocrCallbacks: Array<(data: any) => void> = [];
+  // 模板匹配结果回调函数
+  private templateMatchCallbacks: Array<(data: any) => void> = [];
   // 图片路径解析结果回调函数
   private imagePathCallbacks: Array<(data: any) => void> = [];
   // 打开日志结果回调函数
@@ -90,6 +92,11 @@ export class MFWProtocol extends BaseProtocol {
     // 注册 OCR 结果路由
     this.wsClient.registerRoute("/lte/utility/ocr_result", (data) =>
       this.handleOCRResult(data),
+    );
+
+    // 注册模板匹配结果路由
+    this.wsClient.registerRoute("/lte/utility/template_match_result", (data) =>
+      this.handleTemplateMatchResult(data),
     );
 
     // 注图片路径解析结果路由
@@ -290,6 +297,20 @@ export class MFWProtocol extends BaseProtocol {
         callback(data);
       } catch (error) {
         console.error("[MFWProtocol] Error in OCR callback:", error);
+      }
+    });
+  }
+
+  /**
+   * 处理模板匹配结果
+   * 路由: /lte/utility/template_match_result
+   */
+  private handleTemplateMatchResult(data: any): void {
+    this.templateMatchCallbacks.forEach((callback) => {
+      try {
+        callback(data);
+      } catch (error) {
+        console.error("[MFWProtocol] Error in template match callback:", error);
       }
     });
   }
@@ -596,9 +617,10 @@ export class MFWProtocol extends BaseProtocol {
 
   /**
    * 请求 OCR 识别
+   * 识别基于前端固定下来的底图（base_image），不再二次截取设备画面。
    */
   public requestOCR(params: {
-    controller_id: string;
+    base_image: string;
     resource_id?: string;
     roi: [number, number, number, number];
   }): boolean {
@@ -623,6 +645,42 @@ export class MFWProtocol extends BaseProtocol {
       const index = this.ocrCallbacks.indexOf(callback);
       if (index > -1) {
         this.ocrCallbacks.splice(index, 1);
+      }
+    };
+  }
+
+  /**
+   * 请求模板匹配快速验证
+   * 在前端固定底图上，用指定模板图跑一次 TemplateMatch 识别。
+   */
+  public requestTemplateMatch(params: {
+    base_image: string;
+    template_image: string;
+    roi?: [number, number, number, number];
+    threshold?: number;
+    method?: number;
+    green_mask?: boolean;
+  }): boolean {
+    if (!this.wsClient) {
+      console.error("[MFWProtocol] WebSocket client not initialized");
+      return false;
+    }
+
+    return this.wsClient.send("/etl/utility/template_match", params);
+  }
+
+  /**
+   * 注册模板匹配结果回调
+   * @param callback 模板匹配结果回调函数
+   * @returns 注销函数
+   */
+  public onTemplateMatchResult(callback: (data: any) => void): () => void {
+    this.templateMatchCallbacks.push(callback);
+
+    return () => {
+      const index = this.templateMatchCallbacks.indexOf(callback);
+      if (index > -1) {
+        this.templateMatchCallbacks.splice(index, 1);
       }
     };
   }

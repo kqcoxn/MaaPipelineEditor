@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
+	_ "image/jpeg" // 注册 JPEG 解码器（本地上传底图可能为 JPEG）
 	"image/png"
 	"os"
 	"os/exec"
@@ -51,6 +52,9 @@ func (h *UtilityHandler) Handle(msg models.Message, conn *server.Connection) *mo
 	case "/etl/utility/ocr_recognize":
 		h.handleOCRRecognize(conn, msg)
 
+	case "/etl/utility/template_match":
+		h.handleTemplateMatch(conn, msg)
+
 	case "/etl/utility/resolve_image_path":
 		h.handleResolveImagePath(conn, msg)
 
@@ -73,8 +77,13 @@ func (h *UtilityHandler) handleOCRRecognize(conn *server.Connection, msg models.
 		return
 	}
 
-	controllerID, _ := dataMap["controller_id"].(string)
+	baseImage, _ := dataMap["base_image"].(string)
 	resourceID, _ := dataMap["resource_id"].(string)
+
+	if baseImage == "" {
+		h.sendUtilityError(conn, "INVALID_REQUEST", "底图不能为空", "base_image 必须是 base64 编码的图片")
+		return
+	}
 
 	// 解析 ROI 区域
 	var roi [4]int32
@@ -89,10 +98,10 @@ func (h *UtilityHandler) handleOCRRecognize(conn *server.Connection, msg models.
 		return
 	}
 
-	logger.Debug("Utility", "执行OCR识别 - ControllerID: %s, ResourceID: %s, ROI: %v", controllerID, resourceID, roi)
+	logger.Debug("Utility", "执行OCR识别 - ResourceID: %s, ROI: %v", resourceID, roi)
 
 	// 执行OCR识别
-	result, err := h.performOCR(controllerID, resourceID, roi)
+	result, err := h.performOCR(baseImage, resourceID, roi)
 	if err != nil {
 		logger.Error("Utility", "OCR识别失败: %v", err)
 		// 返回错误
@@ -123,31 +132,26 @@ func (h *UtilityHandler) handleOCRRecognize(conn *server.Connection, msg models.
 }
 
 // 执行OCR识别
-func (h *UtilityHandler) performOCR(controllerID, resourceID string, roi [4]int32) (map[string]interface{}, error) {
-	// 获取控制器
-	controllerInfo, err := h.mfwService.ControllerManager().GetController(controllerID)
-	if err != nil {
-		return nil, err
+//
+// baseImageB64 为前端固定下来的底图（base64，可带 data URL 前缀）。无论底图来自设备实时截图
+// 还是本地上传，识别都严格基于这张图，不再二次截取设备，保证"所见即所得"。
+func (h *UtilityHandler) performOCR(baseImageB64, resourceID string, roi [4]int32) (map[string]interface{}, error) {
+	// 解码底图并创建固定图片控制器
+	img, decErr := decodeBase64Image(baseImageB64)
+	if decErr != nil {
+		return nil, mfw.NewMFWError(mfw.ErrCodeInvalidParameter, "底图解码失败: "+decErr.Error(), nil)
 	}
 
-	ctrl, ok := controllerInfo.Controller.(*maa.Controller)
-	if !ok || ctrl == nil {
-		return nil, mfw.NewMFWError(mfw.ErrCodeControllerNotConnected, "controller instance not available", nil)
+	ctrl, ctrlErr := mfw.NewFixedImageController(img)
+	if ctrlErr != nil || ctrl == nil {
+		return nil, mfw.NewMFWError(mfw.ErrCodeControllerCreateFail, "创建固定图片控制器失败", nil)
 	}
+	defer ctrl.Destroy()
 
-	// 执行截图获取当前屏幕图像
-	logger.Debug("Utility", "使用控制器 %s 进行截图", controllerInfo.ControllerID)
-	job := ctrl.PostScreencap()
-	if job == nil {
-		return nil, mfw.NewMFWError(mfw.ErrCodeOperationFail, "failed to post screencap", nil)
+	if connJob := ctrl.PostConnect(); connJob != nil {
+		connJob.Wait()
 	}
-	job.Wait()
-
-	img, imgErr := ctrl.CacheImage()
-	if imgErr != nil || img == nil {
-		return nil, mfw.NewMFWError(mfw.ErrCodeOperationFail, "failed to get screenshot", nil)
-	}
-	logger.Debug("Utility", "截图获取成功")
+	logger.Debug("Utility", "固定图片控制器已就绪 (底图 %dx%d)", img.Bounds().Dx(), img.Bounds().Dy())
 
 	// 获取或创建资源
 	var res *maa.Resource
@@ -475,6 +479,23 @@ func (h *UtilityHandler) encodeImageToBase64(img image.Image) (string, error) {
 		return "", mfw.NewMFWError(mfw.ErrCodeOperationFail, "failed to encode image", nil)
 	}
 	return "data:image/png;base64," + base64.StdEncoding.EncodeToString(buf.Bytes()), nil
+}
+
+// decodeBase64Image 将 base64 图片（可带 data URL 前缀，如 "data:image/png;base64,xxxx"）
+// 解码为 image.Image。支持 PNG / JPEG。
+func decodeBase64Image(b64 string) (image.Image, error) {
+	if idx := strings.Index(b64, ","); strings.HasPrefix(b64, "data:") && idx >= 0 {
+		b64 = b64[idx+1:]
+	}
+	raw, err := base64.StdEncoding.DecodeString(strings.TrimSpace(b64))
+	if err != nil {
+		return nil, err
+	}
+	img, _, err := image.Decode(bytes.NewReader(raw))
+	if err != nil {
+		return nil, err
+	}
+	return img, nil
 }
 
 // 辅助方法

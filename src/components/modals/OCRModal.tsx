@@ -16,7 +16,6 @@ import {
   InfoCircleOutlined,
 } from "@ant-design/icons";
 import { createWorker, PSM, OEM, type Worker } from "tesseract.js";
-import { useMFWStore } from "../../stores/mfwStore";
 import { mfwProtocol } from "../../services/server";
 import {
   ScreenshotModalBase,
@@ -55,7 +54,6 @@ type OCRMode = "native" | "frontend";
 
 export const OCRModal = memo(
   ({ open, onClose, onConfirm, initialROI }: OCRModalProps) => {
-    const { connectionStatus, controllerId } = useMFWStore();
     const [screenshot, setScreenshot] = useState<string | null>(null);
     const [isOCRing, setIsOCRing] = useState(false);
     const [rectangle, setRectangle] = useState<Rectangle | null>(null);
@@ -257,10 +255,11 @@ export const OCRModal = memo(
       [screenshot, tesseractWorker],
     );
 
-    // 请求后端 OCR 识别
+    // 请求后端 OCR 识别（基于当前固定底图，不再二次截取设备）
     const requestNativeOCR = useCallback(
       (roi: Rectangle) => {
-        if (connectionStatus !== "connected" || !controllerId) {
+        if (!screenshot) {
+          message.warning("请先截图或上传底图");
           return;
         }
         if (isOCRing) {
@@ -269,7 +268,7 @@ export const OCRModal = memo(
 
         setIsOCRing(true);
         mfwProtocol.requestOCR({
-          controller_id: controllerId,
+          base_image: screenshot,
           roi: [
             Math.round(roi.x),
             Math.round(roi.y),
@@ -278,7 +277,7 @@ export const OCRModal = memo(
           ],
         });
       },
-      [connectionStatus, controllerId, isOCRing],
+      [screenshot, isOCRing],
     );
 
     // 根据模式选择 OCR 方法
@@ -751,11 +750,8 @@ export const OCRModal = memo(
                       原生OCR（MaaFramework）
                     </div>
                     <div>• 使用本地 OCR 模型识别</div>
+                    <div>• 基于当前固定底图识别，所见即所得</div>
                     <div>• 速度较慢，无后处理</div>
-                    <div style={{ color: "#faad14", marginTop: 4 }}>
-                      ⚠️
-                      后端会重新截取当前窗口画面，可能因窗口更新导致内容不一致
-                    </div>
                   </div>
                 }
               >
