@@ -63,11 +63,6 @@ export const longTermPreview: ForecastSection = {
   notice: "不绑定具体版本，仅方向性规划，可能随时增删或调整。",
   items: [
     {
-      theme: "生态",
-      title: "VSCode 插件（MSE）接入",
-      description: "以 Iframe 形式嵌入 MSE，提供文件至节点级联动相关功能",
-    },
-    {
       theme: "日志",
       title: "集成式分析",
       description: "支持调试与导入本地 maa.log 可视化分析",
@@ -86,18 +81,13 @@ export const longTermPreview: ForecastSection = {
 };
 
 export const nextPreview: ForecastSection = {
-  title: "Next Version 至 v1.7.0",
+  title: "Next Version 至 v1.8.0",
   notice: "预告内容会随开发进度与实际需求调整，不代表最终承诺。",
   items: [
     {
-      theme: "Wiki",
-      title: "俺寻思",
-      description: "文档站条目快速跳转",
-    },
-    {
-      theme: "test",
-      title: "新手题目完善",
-      description: "还有第二关，小子！",
+      theme: "生态",
+      title: "VSCode 插件（MSE）接入",
+      description: "以 Iframe 形式嵌入 MSE，提供文件至节点级联动相关功能",
     },
   ],
 };
@@ -110,7 +100,6 @@ export const updateLogs: UpdateLogItem[] = [
     updates: {
       features: [
         "🤔 俺寻思功能已上线，长按 w 或 icon 可快速跳转至对应文档，覆盖主要功能模块",
-        "📽️ 实时画面模块新增折叠功能",
       ],
     },
   },
