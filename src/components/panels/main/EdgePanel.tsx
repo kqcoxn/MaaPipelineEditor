@@ -4,6 +4,7 @@ import { memo, useMemo, useCallback, useEffect } from "react";
 import { Tag, InputNumber, Tooltip, Switch } from "antd";
 import classNames from "classnames";
 import IconFont from "../../iconfonts";
+import { WikiAnchor } from "../../wiki/WikiAnchor";
 
 import {
   useFlowStore,
@@ -239,9 +240,11 @@ function EdgePanel() {
   const panelContent = (
     <>
       <div className="header">
-        <div className="header-left"></div>
+        <div className="header-left">
+        </div>
         <div className="header-center">
           <div className="title">连接设置</div>
+          <WikiAnchor path="10.工作流面板/40.连接.html" title="连接" description="节点间连接与流程编排" />
         </div>
         <div className="header-right">
           {currentEdge && (

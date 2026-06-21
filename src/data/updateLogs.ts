@@ -104,6 +104,17 @@ export const nextPreview: ForecastSection = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "1.7.0",
+    date: "2026-6",
+    type: "feature",
+    updates: {
+      features: [
+        "🤔 俺寻思功能已上线，长按 w 或 icon 可快速跳转至对应文档，覆盖主要功能模块",
+        "📽️ 实时画面模块新增折叠功能",
+      ],
+    },
+  },
+  {
     version: "1.6.2",
     date: "2026-6-21",
     type: "perf",

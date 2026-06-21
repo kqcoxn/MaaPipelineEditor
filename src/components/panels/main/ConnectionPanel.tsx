@@ -40,6 +40,7 @@ import {
   PLATFORM_TABS,
   MACOS_DEFAULT_METHODS,
 } from "./connection";
+import { WikiAnchor } from "../../wiki/WikiAnchor";
 
 const { Text } = Typography;
 
@@ -661,6 +662,9 @@ export const ConnectionPanel = memo(
           >
             <span>连接配置</span>
             <Badge status={statusBadge.status} text={statusBadge.text} />
+            <span style={{ marginLeft: -10, marginTop: 3 }}>
+              <WikiAnchor path="20.本地服务/15.设备连接.html" title="设备连接" description="配置与管理设备连接" />
+            </span>
           </div>
         }
         placement="right"

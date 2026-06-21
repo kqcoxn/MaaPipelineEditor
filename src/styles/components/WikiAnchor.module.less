@@ -1,0 +1,71 @@
+.wikiAnchor {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+  padding: 2px;
+  margin-left: 6px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  opacity: 0.55;
+  flex-shrink: 0;
+
+  &:hover {
+    opacity: 0.85;
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+
+  .icon {
+    font-size: 13px;
+    color: #666;
+    transition: color 0.2s ease;
+  }
+
+  &:hover .icon {
+    color: #1677ff;
+  }
+}
+
+.tooltipOverlay {
+  :global(.ant-tooltip-inner) {
+    padding: 8px 12px;
+    min-width: 140px;
+  }
+}
+
+.tipContent {
+  .tipTitle {
+    font-size: 13px;
+    font-weight: 500;
+    color: #fff;
+    margin-bottom: 2px;
+  }
+
+  .tipDesc {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.75);
+    margin-bottom: 4px;
+    line-height: 1.4;
+  }
+
+  .tipHint {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 4px;
+  }
+
+  .progressBar {
+    height: 3px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    margin-top: 6px;
+    overflow: hidden;
+
+    .progressFill {
+      height: 100%;
+      width: 0%;
+      background-color: #fff;
+      border-radius: 2px;
+    }
+  }
+}

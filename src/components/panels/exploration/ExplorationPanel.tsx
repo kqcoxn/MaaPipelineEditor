@@ -16,6 +16,7 @@ import { useFlowStore } from "../../../stores/flow";
 import { useMFWStore } from "../../../stores/mfwStore";
 import { useConfigStore } from "../../../stores/configStore";
 import { NodeTypeEnum } from "../../flow/nodes/constants";
+import { WikiAnchor } from "../../wiki/WikiAnchor";
 import style from "../../../styles/panels/ExplorationPanel.module.less";
 
 const { TextArea } = Input;
@@ -265,6 +266,9 @@ function ExplorationPanelBase({ visible, onClose }: ExplorationPanelProps) {
             <Text strong className={style.text}>
               流程探索模式
             </Text>
+            <span style={{ marginLeft: -8, marginTop: 4 }}>
+              <WikiAnchor path="20.本地服务/50.AI 服务.html" title="流程探索" description="AI驱动的流程自动探索" />
+            </span>
           </div>
           <IconFont
             name="icon-dituweizhixinxi_chahao"

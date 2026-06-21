@@ -18,6 +18,7 @@ import type { ConfigCategory } from "../../../stores/configStore";
 import { settingsDefinitions, settingsTabs } from "./settingsDefinitions";
 import type { ConfigItemDef } from "./settingsDefinitions";
 import ConfigItemRenderer from "./ConfigItemRenderer";
+import { WikiAnchor } from "../../wiki/WikiAnchor";
 import style from "../../../styles/panels/SettingsPanel.module.less";
 
 /**图标映射 */
@@ -100,7 +101,9 @@ function SettingsPanel() {
           <div className={style.container}>
             {/* 标题栏 */}
             <div className={style.titleBar}>
-              <div className={style.title}>系统配置</div>
+              <div className={style.title}>
+                系统配置
+              </div>
               <Input
                 className={style.searchInput}
                 placeholder="搜索配置项..."
@@ -110,6 +113,7 @@ function SettingsPanel() {
                 allowClear
               />
               <span className={style.hintText}>悬浮标题可查看详情</span>
+              <WikiAnchor path="20.本地服务/100.进阶配置.html" title="进阶配置" description="应用高级配置项" />
               <CloseOutlined className={style.closeBtn} onClick={handleClose} />
             </div>
 

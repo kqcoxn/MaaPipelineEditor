@@ -4,6 +4,7 @@ import { memo, useMemo, useState, useEffect } from "react";
 import { Empty, Tag, Tooltip, Modal } from "antd";
 import classNames from "classnames";
 import IconFont from "../../iconfonts";
+import { WikiAnchor } from "../../wiki/WikiAnchor";
 
 import { useConfigStore } from "../../../stores/configStore";
 import {
@@ -215,7 +216,10 @@ function AIHistoryPanel() {
   return (
     <div className={panelClass}>
       <div className={classNames("header", style.header)}>
-        <div className="title">AI 对话历史</div>
+        <div className="title">
+          AI 对话历史
+          <WikiAnchor path="20.本地服务/50.AI 服务.html" title="AI 服务" description="AI对话与智能辅助功能" />
+        </div>
         <div className={style.right}>
           {records.length > 0 && (
             <Tooltip title="清空历史">

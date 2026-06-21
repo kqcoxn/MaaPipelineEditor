@@ -21,6 +21,7 @@ import {
   NODE_TYPE_CONFIG,
 } from "./types";
 import style from "./NodeListPanel.module.less";
+import { WikiAnchor } from "../../../wiki/WikiAnchor";
 
 const { Search } = Input;
 
@@ -362,6 +363,7 @@ function NodeListPanel({ visible, onClose, anchorEl }: NodeListPanelProps) {
           size="small"
           style={{ width: 100 }}
         />
+        <WikiAnchor path="10.工作流面板/20.节点.html" title="节点" description="节点类型与属性详解" />
       </div>
 
       {/* 统计信息 */}

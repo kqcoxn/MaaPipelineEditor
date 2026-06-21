@@ -1,4 +1,12 @@
-import { memo, lazy, Suspense, useMemo, useState, useEffect, useRef } from "react";
+import {
+  memo,
+  lazy,
+  Suspense,
+  useMemo,
+  useState,
+  useEffect,
+  useRef,
+} from "react";
 import { Badge, message, Tooltip, Popover } from "antd";
 import classNames from "classnames";
 import IconFont from "../../iconfonts";
@@ -8,6 +16,8 @@ import { useConfigStore } from "../../../stores/configStore";
 import { useClipboardStore } from "../../../stores/clipboardStore";
 import { useDebugSessionStore } from "../../../stores/debugSessionStore";
 import PathSelector from "./PathSelector";
+import { useWikiStore } from "../../../stores/wikiStore";
+import { WikiAnchor } from "../../wiki/WikiAnchor";
 import style from "../../../styles/panels/ToolPanel.module.less";
 
 const ToolboxPanel = lazy(() => import("./ToolboxPanel"));
@@ -23,13 +33,14 @@ type GlobalToolType = {
   onDisabledClick?: () => void;
 };
 
-const DOCS_URL = "https://mpe.codax.site/docs";
+const DOCS_BASE_URL = "https://mpe.codax.site/docs";
 const HOLD_DURATION_MS = 600;
 
 function isEditableTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) return false;
   const tagName = target.tagName.toLowerCase();
-  if (tagName === "input" || tagName === "textarea" || tagName === "select") return true;
+  if (tagName === "input" || tagName === "textarea" || tagName === "select")
+    return true;
   if (target.isContentEditable) return true;
   if (target.closest('[contenteditable="true"]')) return true;
   return Boolean(target.closest(".monaco-editor"));
@@ -46,10 +57,13 @@ function useDocsHoldHotkey() {
       if (event.ctrlKey || event.altKey || event.metaKey) return;
       if (event.isComposing || isEditableTarget(event.target)) return;
 
+      // 如果有 WikiAnchor 正在被 hover，由其自行处理，全局不触发
+      if (useWikiStore.getState().activePath) return;
+
       holdingRef.current = true;
       timerRef.current = window.setTimeout(() => {
         holdingRef.current = false;
-        window.open(DOCS_URL, "_blank");
+        window.open(DOCS_BASE_URL, "_blank");
       }, HOLD_DURATION_MS);
     };
 
@@ -297,7 +311,18 @@ function GlobalPanel() {
           <li className={style.item}>
             <Popover
               placement="bottom"
-              title="工具箱"
+              title={
+                <span style={{ display: "inline-flex", alignItems: "center" }}>
+                  工具箱
+                  <span style={{ marginTop: 2 }}>
+                    <WikiAnchor
+                      path="20.本地服务/20.字段快捷工具.html"
+                      title="字段快捷工具"
+                      description="ROI选区、OCR、取色等快捷操作"
+                    />
+                  </span>
+                </span>
+              }
               content={
                 <Suspense fallback={null}>
                   <ToolboxPanel />
@@ -339,20 +364,20 @@ function GlobalPanel() {
           </li>
         </div>
         <div className={style.group}>
-            <div className={style.devider}>
-              <div></div>
-            </div>
-            <li className={style.item}>
-              <Tooltip placement="bottom" title="文档站">
-                <IconFont
-                  className={style.icon}
-                  name="icon-icon_wendangziliaopeizhi"
-                  size={24}
-                  onClick={() => window.open("https://mpe.codax.site/docs", "_blank")}
-                />
-              </Tooltip>
-            </li>
+          <div className={style.devider}>
+            <div></div>
           </div>
+          <li className={style.item}>
+            <Tooltip placement="bottom" title="文档站">
+              <IconFont
+                className={style.icon}
+                name="icon-icon_wendangziliaopeizhi"
+                size={24}
+                onClick={() => window.open(DOCS_BASE_URL, "_blank")}
+              />
+            </Tooltip>
+          </li>
+        </div>
       </ul>
       <ul className={editPanelClass}>{renderTools(editingTools)}</ul>
     </>

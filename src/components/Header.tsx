@@ -28,6 +28,7 @@ import { useMFWStore, type DeviceInfo } from "../stores/mfwStore";
 
 import { globalConfig } from "../stores/configStore";
 import { useTheme } from "../contexts/ThemeContext";
+import { WikiAnchor } from "./wiki/WikiAnchor";
 import classNames from "classnames";
 import { useState, useEffect } from "react";
 import { checkUpdateFromFrontend, type UpdateInfo } from "../utils/wailsBridge";
@@ -379,6 +380,7 @@ function Header() {
             <Tag variant="filled" color="purple">
               MFW v{globalConfig.mfwVersion}
             </Tag>
+            <WikiAnchor path="10.工作流面板/50.文件与视口.html" title="文件与视口" description="文件管理与视口操作" />
           </div>
         </div>
         <div className={style.right}>

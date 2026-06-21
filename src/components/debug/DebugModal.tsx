@@ -25,6 +25,7 @@ import { AiSummaryPanel } from "../../features/debug/components/panels/AiSummary
 import { SetupPanel } from "../../features/debug/components/panels/SetupPanel";
 import { ResourceHealthPanel } from "../../features/debug/components/panels/ResourceHealthPanel";
 import { NodeExecutionPanel } from "../../features/debug/components/panels/NodeExecutionPanel";
+import { WikiAnchor } from "../wiki/WikiAnchor";
 
 const { Text, Title } = Typography;
 
@@ -172,6 +173,8 @@ const drawerBodyStyle: CSSProperties = {
 const drawerHeaderStyle: CSSProperties = {
   fontSize: 16,
   fontWeight: 500,
+  display: "inline-flex",
+  alignItems: "center",
 };
 
 export function DebugModal() {
@@ -199,7 +202,18 @@ export function DebugModal() {
 
   return (
     <Drawer
-      title={<span style={drawerHeaderStyle}>MPE FlowScope</span>}
+      title={
+        <span style={drawerHeaderStyle}>
+          MPE FlowScope
+          <span style={{ marginTop: 5 }}>
+            <WikiAnchor
+              path="20.本地服务/40.流程级调试.html"
+              title="流程级调试"
+              description="快速验证节点行为与流程执行"
+            />
+          </span>
+        </span>
+      }
       open={controller.modalOpen}
       onClose={controller.closeModal}
       placement="right"

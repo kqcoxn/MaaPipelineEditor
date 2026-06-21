@@ -35,6 +35,7 @@ import AdjacentInfoPanel from "./AdjacentInfoPanel";
 import { DraggablePanel } from "../common/DraggablePanel";
 import { NodeJsonEditorModal } from "../../modals/NodeJsonEditorModal";
 import { validateAndRepairNode } from "../../../utils/node/nodeJsonValidator";
+import { WikiAnchor } from "../../wiki/WikiAnchor";
 
 // 错误边界组件
 class EditorErrorBoundary extends Component<
@@ -382,6 +383,7 @@ function FieldPanel() {
         </div>
         <div className="header-center">
           <div className="title">节点字段</div>
+          <WikiAnchor path="10.工作流面板/30.字段面板.html" title="字段面板" description="编辑节点属性与字段配置" />
         </div>
         <div className="header-right">
           <FieldPanelToolbarRight

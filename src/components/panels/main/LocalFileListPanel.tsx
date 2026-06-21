@@ -16,6 +16,7 @@ import { useConfigStore } from "../../../stores/configStore";
 import { localServer } from "../../../services/server";
 import { filterLocalFilesByFolderFilter } from "../../../utils/file/folderFilter";
 import classNames from "classnames";
+import { WikiAnchor } from "../../wiki/WikiAnchor";
 
 import styles from "../../../styles/panels/LocalFileListPanel.module.less";
 
@@ -98,6 +99,9 @@ export const LocalFileListPanel: React.FC = () => {
         <div className={styles.title}>
           <FolderOutlined />
           <span className={styles.titleText}>本地文件</span>
+          <span style={{ marginLeft: -12, marginTop: 2 }}>
+            <WikiAnchor path="20.本地服务/10.本地文件管理.html" title="本地文件管理" description="管理资源目录下Pipeline文件" />
+          </span>
           {files.length > 0 && (
             <Badge count={files.length} showZero overflowCount={999} />
           )}
