@@ -106,6 +106,7 @@ export const updateLogs: UpdateLogItem[] = [
         "📒 调试模块新增 maafw.log 面板",
       ],
       perfs: ["OCR 工具会固定快照作为识别源"],
+      fixes: ["修复本地文件面板交互失效的问题"],
     },
   },
   {

@@ -155,6 +155,7 @@ export const LocalFileListPanel: React.FC = () => {
         ) : (
           <List
             size="small"
+            split={false}
             dataSource={filteredFiles}
             renderItem={(file) => (
               <List.Item
