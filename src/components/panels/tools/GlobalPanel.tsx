@@ -4,8 +4,6 @@ import {
   Suspense,
   useMemo,
   useState,
-  useEffect,
-  useRef,
 } from "react";
 import { Badge, message, Tooltip, Popover } from "antd";
 import classNames from "classnames";
@@ -16,7 +14,6 @@ import { useConfigStore } from "../../../stores/configStore";
 import { useClipboardStore } from "../../../stores/clipboardStore";
 import { useDebugSessionStore } from "../../../stores/debugSessionStore";
 import PathSelector from "./PathSelector";
-import { useWikiStore } from "../../../stores/wikiStore";
 import { WikiAnchor } from "../../wiki/WikiAnchor";
 import style from "../../../styles/panels/ToolPanel.module.less";
 
@@ -34,61 +31,8 @@ type GlobalToolType = {
 };
 
 const DOCS_BASE_URL = "https://mpe.codax.site/docs";
-const HOLD_DURATION_MS = 600;
-
-function isEditableTarget(target: EventTarget | null) {
-  if (!(target instanceof HTMLElement)) return false;
-  const tagName = target.tagName.toLowerCase();
-  if (tagName === "input" || tagName === "textarea" || tagName === "select")
-    return true;
-  if (target.isContentEditable) return true;
-  if (target.closest('[contenteditable="true"]')) return true;
-  return Boolean(target.closest(".monaco-editor"));
-}
-
-function useDocsHoldHotkey() {
-  const timerRef = useRef<number | undefined>(undefined);
-  const holdingRef = useRef(false);
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key.toLowerCase() !== "w") return;
-      if (event.repeat || holdingRef.current) return;
-      if (event.ctrlKey || event.altKey || event.metaKey) return;
-      if (event.isComposing || isEditableTarget(event.target)) return;
-
-      // 如果有 WikiAnchor 正在被 hover，由其自行处理，全局不触发
-      if (useWikiStore.getState().activePath) return;
-
-      holdingRef.current = true;
-      timerRef.current = window.setTimeout(() => {
-        holdingRef.current = false;
-        window.open(DOCS_BASE_URL, "_blank");
-      }, HOLD_DURATION_MS);
-    };
-
-    const handleKeyUp = (event: KeyboardEvent) => {
-      if (event.key.toLowerCase() === "w") {
-        if (timerRef.current !== undefined) {
-          window.clearTimeout(timerRef.current);
-          timerRef.current = undefined;
-        }
-        holdingRef.current = false;
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    document.addEventListener("keyup", handleKeyUp);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      document.removeEventListener("keyup", handleKeyUp);
-      if (timerRef.current !== undefined) window.clearTimeout(timerRef.current);
-    };
-  }, []);
-}
 
 function GlobalPanel() {
-  useDocsHoldHotkey();
 
   // store
   const clipboardNodes = useClipboardStore((state) => state.clipboardNodes);

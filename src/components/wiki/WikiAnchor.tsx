@@ -29,7 +29,6 @@ function WikiAnchorBase({ path, title, description }: WikiAnchorProps) {
   const [hovered, setHovered] = useState(false);
   const [holding, setHolding] = useState(false);
 
-  const progressRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const hoveredRef = useRef(false);
   const holdingRef = useRef(false);
@@ -45,15 +44,6 @@ function WikiAnchorBase({ path, title, description }: WikiAnchorProps) {
     holdingRef.current = true;
     setHolding(true);
 
-    // 下一帧启动 CSS transition
-    requestAnimationFrame(() => {
-      if (progressRef.current) {
-        progressRef.current.style.transition = `width ${HOLD_DURATION_MS}ms linear`;
-        progressRef.current.style.width = "100%";
-      }
-    });
-
-    // 定时器触发跳转
     timerRef.current = setTimeout(() => {
       holdingRef.current = false;
       setHolding(false);
@@ -65,12 +55,6 @@ function WikiAnchorBase({ path, title, description }: WikiAnchorProps) {
     if (!holdingRef.current) return;
     holdingRef.current = false;
     setHolding(false);
-
-    // 立即重置进度条
-    if (progressRef.current) {
-      progressRef.current.style.transition = "none";
-      progressRef.current.style.width = "0%";
-    }
 
     if (timerRef.current !== undefined) {
       clearTimeout(timerRef.current);
@@ -133,11 +117,17 @@ function WikiAnchorBase({ path, title, description }: WikiAnchorProps) {
       <div className={style.tipTitle}>{title}</div>
       {description && <div className={style.tipDesc}>{description}</div>}
       <div className={style.tipHint}>长按 W 或长按图标查看详情</div>
-      {holding && (
-        <div className={style.progressBar}>
-          <div ref={progressRef} className={style.progressFill} />
-        </div>
-      )}
+      <div className={style.progressBar} style={{ opacity: holding ? 1 : 0 }}>
+        <div
+          className={style.progressFill}
+          style={{
+            width: holding ? "100%" : "0%",
+            transition: holding
+              ? `width ${HOLD_DURATION_MS}ms linear`
+              : "none",
+          }}
+        />
+      </div>
     </div>
   );
 
