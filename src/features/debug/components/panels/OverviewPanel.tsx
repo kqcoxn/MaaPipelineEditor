@@ -19,7 +19,6 @@ import {
 import type { editor as MonacoEditor } from "monaco-editor";
 import { DebugSection } from "../DebugSection";
 import type { DebugModalController } from "../../hooks/useDebugModalController";
-import { DEFAULT_DEBUG_NODE_EXECUTION_FILTERS } from "../../types";
 import {
   findDebugRunFirstTimestamp,
   formatDebugRunDisplayName,
@@ -163,7 +162,6 @@ export function OverviewPanel({
     stopRun,
     selectPipelineNode,
     setIncludeAllJsonRunTargets,
-    setNodeExecutionFilters,
     selectDisplaySessions,
     selectLatestDisplaySession,
     selectAllDisplaySessions,
@@ -253,11 +251,6 @@ export function OverviewPanel({
   );
   const openLatestFailedNode = () => {
     if (!latestFailedNodeExecutionRecord) return;
-    setNodeExecutionFilters({
-      ...DEFAULT_DEBUG_NODE_EXECUTION_FILTERS,
-      status: "failed",
-      sortMode: "failure-first",
-    });
     openNodeExecutionRecord(latestFailedNodeExecutionRecord);
   };
   const currentRunId = activeRun?.runId ?? summary.runId;
