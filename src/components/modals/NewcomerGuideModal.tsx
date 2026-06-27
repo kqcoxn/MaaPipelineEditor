@@ -469,6 +469,22 @@ function QuizPage({
   );
 }
 
+function renderLinkedText(text: string) {
+  const parts = text.split(/(\[[^\]]+\]\([^)]+\))/g);
+  if (parts.length === 1) return text;
+  return parts.map((part, i) => {
+    const match = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+    if (match) {
+      return (
+        <Link key={i} href={match[2]} target="_blank">
+          {match[1]}
+        </Link>
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
+
 function QuizItem({
   index,
   question,
@@ -499,30 +515,22 @@ function QuizItem({
       }
     : undefined;
   const questionTitle = (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "flex-start",
-        gap: 8,
-        lineHeight: 1.6,
-      }}
-    >
+    <div style={{ lineHeight: 1.6 }}>
       <Text
         strong
         type={isWrong ? "danger" : undefined}
-        style={{ flex: "0 0 auto", whiteSpace: "nowrap" }}
+        style={{ marginRight: 8 }}
       >
         {index + 1}.
       </Text>
-      <Tag color={meta.color} style={{ marginInlineEnd: 0, flex: "0 0 auto" }}>
+      <Tag color={meta.color} style={{ marginInlineEnd: 8, verticalAlign: "middle" }}>
         {meta.label}
       </Tag>
       <Text
         strong
         type={isWrong ? "danger" : undefined}
-        style={{ minWidth: 0 }}
       >
-        {question.question}
+        {renderLinkedText(question.question)}
       </Text>
     </div>
   );
