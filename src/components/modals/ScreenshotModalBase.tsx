@@ -61,6 +61,9 @@ interface ScreenshotModalBaseProps {
   confirmDisabled?: boolean;
   onConfirm: () => void;
 
+  // 额外按钮（渲染在确认按钮之前）
+  extraButtons?: ReactNode;
+
   // 工具栏渲染
   renderToolbar?: (props: ViewportProps) => ReactNode;
 
@@ -89,6 +92,7 @@ export const ScreenshotModalBase = memo(
     confirmText = "确定",
     confirmDisabled = false,
     onConfirm,
+    extraButtons,
     renderToolbar,
     renderCanvas,
     children,
@@ -431,11 +435,16 @@ export const ScreenshotModalBase = memo(
               />
 
               {/* 操作按钮 */}
-              <div>
-                <Space
-                  style={{ width: "100%", justifyContent: "flex-end" }}
-                  size="small"
-                >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: 8,
+                }}
+              >
+                <Space size="small">
                   <Tooltip title={isConnected ? "" : "未连接设备"}>
                     <Button
                       icon={<ReloadOutlined />}
@@ -453,6 +462,9 @@ export const ScreenshotModalBase = memo(
                   >
                     取消
                   </Button>
+                </Space>
+                <Space size="small">
+                  {extraButtons}
                   <Button
                     type="primary"
                     icon={<CheckOutlined />}

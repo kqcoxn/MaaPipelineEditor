@@ -212,7 +212,11 @@ export const ParamFieldListElem = memo(
 
     // OCR 确认回调
     const handleOCRConfirm = useCallback(
-      (text: string, roi?: [number, number, number, number]) => {
+      (
+        text: string,
+        roi?: [number, number, number, number],
+        withROI?: boolean,
+      ) => {
         if (currentExpectedKey) {
           // 列表类型只替换指定索引的值
           if (currentListIndex !== null) {
@@ -227,6 +231,10 @@ export const ParamFieldListElem = memo(
           } else {
             onChange(currentExpectedKey, text);
           }
+        }
+        // 同时填充 ROI
+        if (withROI && roi) {
+          onChange("roi", roi);
         }
         setOcrModalOpen(false);
         setCurrentExpectedKey(null);

@@ -31,7 +31,11 @@ const { TextArea } = Input;
 interface OCRModalProps {
   open: boolean;
   onClose: () => void;
-  onConfirm: (text: string, roi?: [number, number, number, number]) => void;
+  onConfirm: (
+    text: string,
+    roi?: [number, number, number, number],
+    withROI?: boolean,
+  ) => void;
   initialROI?: [number, number, number, number];
 }
 
@@ -568,6 +572,26 @@ export const OCRModal = memo(
       onClose();
     }, [ocrText, rectangle, onConfirm, onClose]);
 
+    // 确定回填并同时填充 ROI
+    const handleConfirmWithROI = useCallback(() => {
+      if (!ocrText) {
+        message.warning("请先框选区域进行识别");
+        return;
+      }
+
+      const roi: [number, number, number, number] | undefined = rectangle
+        ? [
+            Math.round(rectangle.x),
+            Math.round(rectangle.y),
+            Math.round(rectangle.width),
+            Math.round(rectangle.height),
+          ]
+        : undefined;
+
+      onConfirm(ocrText, roi, true);
+      onClose();
+    }, [ocrText, rectangle, onConfirm, onClose]);
+
     // 重置状态
     const handleReset = useCallback(() => {
       setScreenshot(null);
@@ -672,9 +696,19 @@ export const OCRModal = memo(
         onClose={onClose}
         title="OCR 文字识别预览"
         width={900}
-        confirmText="确定（添加到字段）"
+        confirmText="填充文本"
         confirmDisabled={!ocrText}
         onConfirm={handleConfirm}
+        extraButtons={
+          <Button
+            icon={<CheckCircleOutlined />}
+            onClick={handleConfirmWithROI}
+            disabled={!ocrText || !rectangle}
+            size="small"
+          >
+            填充 ROI 与文本
+          </Button>
+        }
         renderCanvas={renderCanvas}
         onScreenshotChange={setScreenshot}
         onImageLoaded={handleImageLoaded}
