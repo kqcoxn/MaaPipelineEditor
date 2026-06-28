@@ -1,9 +1,10 @@
-import { useMemo, memo, useCallback } from "react";
-import { Collapse, Tag, Empty } from "antd";
+import { useMemo, memo, useCallback, useState, useRef } from "react";
+import { Collapse, Tag, Empty, AutoComplete, message } from "antd";
 import {
   ArrowLeftOutlined,
   ArrowRightOutlined,
   HolderOutlined,
+  PlusOutlined,
 } from "@ant-design/icons";
 import { CSS } from "@dnd-kit/utilities";
 import {
@@ -19,7 +20,11 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { useFlowStore, getNodeAbsolutePosition } from "../../../stores/flow";
+import {
+  useFlowStore,
+  getNodeAbsolutePosition,
+  findNodeByLabel,
+} from "../../../stores/flow";
 import { useEmbedMode } from "../../../hooks/useEmbedMode";
 import {
   SourceHandleTypeEnum,
@@ -27,6 +32,7 @@ import {
   NodeTypeEnum,
 } from "../../flow/nodes";
 import type { EdgeType } from "../../../stores/flow/types";
+import { crossFileService } from "../../../services/crossFileService";
 import style from "./AdjacentInfoPanel.module.less";
 
 /**邻接信息面板 - 展示选中节点的前驱和后继节点信息 */
@@ -260,7 +266,7 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
 
     return (
       <div className={style["node-list"]}>
-        {nextSuccessors.length > 0 && (
+        {(nextSuccessors.length > 0 || !readOnly) && (
           <SuccessorGroup
             groupTag="next"
             tagColor="green"
@@ -270,9 +276,10 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
             readOnly={readOnly}
             onReorder={reorderEdges}
             renderNodeTag={renderNodeTag}
+            showInput={!readOnly}
           />
         )}
-        {errorSuccessors.length > 0 && (
+        {(errorSuccessors.length > 0 || !readOnly) && (
           <SuccessorGroup
             groupTag="on_error"
             tagColor="magenta"
@@ -282,13 +289,14 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
             readOnly={readOnly}
             onReorder={reorderEdges}
             renderNodeTag={renderNodeTag}
+            showInput={!readOnly}
           />
         )}
       </div>
     );
   };
 
-  // 构建折叠面板项 - 只显示有数据的部分
+  // 构建折叠面板项 - 只显示有数据的部分（非只读时始终显示后继区域）
   const collapseItems = useMemo(() => {
     const items = [];
 
@@ -306,7 +314,7 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
       });
     }
 
-    if (successors.length > 0) {
+    if (successors.length > 0 || !readOnly) {
       items.push({
         key: "successors",
         label: (
@@ -315,7 +323,9 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
             <ArrowRightOutlined className={style["icon"]} />
             <span className={style["count"]}>({successors.length})</span>
             {!readOnly && (
-              <span className={style["drag-hint"]}>可拖拽调序</span>
+              <span className={style["drag-hint"]}>
+                {successors.length > 0 ? "可拖拽调序" : "输入节点名添加"}
+              </span>
             )}
           </div>
         ),
@@ -326,12 +336,13 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
     return items;
   }, [predecessors, successors, readOnly]);
 
-  // 无连接提示
+  // 无连接提示（非只读模式下始终显示后继区域供输入）
   const hasNoConnections = predecessors.length === 0 && successors.length === 0;
+  const showEmpty = hasNoConnections && readOnly;
 
   return (
     <div className={style["adjacent-panel"]}>
-      {hasNoConnections ? (
+      {showEmpty ? (
         <div className={style["empty-container"]}>
           <Empty
             description={
@@ -372,6 +383,7 @@ interface SuccessorGroupProps {
     label: string,
     nodeId: string
   ) => React.ReactNode;
+  showInput?: boolean;
 }
 
 // 单个后继分组：一个独立的 DndContext（不跨组）
@@ -385,6 +397,7 @@ const SuccessorGroup: React.FC<SuccessorGroupProps> = memo(
     readOnly,
     onReorder,
     renderNodeTag,
+    showInput = false,
   }) => {
     const sensor = useSensor(PointerSensor, {
       activationConstraint: { distance: 5 },
@@ -442,6 +455,12 @@ const SuccessorGroup: React.FC<SuccessorGroupProps> = memo(
             </div>
           </SortableContext>
         </DndContext>
+        {showInput && (
+          <AddSuccessorInput
+            sourceNodeId={source}
+            sourceHandle={sourceHandle}
+          />
+        )}
       </div>
     );
   },
@@ -509,5 +528,144 @@ const SortableSuccessorItem: React.FC<SortableSuccessorItemProps> = memo(
 );
 
 SortableSuccessorItem.displayName = "SortableSuccessorItem";
+
+// ===== 添加后继节点输入框 =====
+
+interface AddSuccessorInputProps {
+  sourceNodeId: string;
+  sourceHandle: SourceHandleTypeEnum;
+}
+
+const AddSuccessorInput: React.FC<AddSuccessorInputProps> = memo(
+  ({ sourceNodeId, sourceHandle }) => {
+    const [inputValue, setInputValue] = useState("");
+    const nodes = useFlowStore((state) => state.nodes);
+    const edges = useFlowStore((state) => state.edges);
+    const addEdge = useFlowStore((state) => state.addEdge);
+    const addNode = useFlowStore((state) => state.addNode);
+    const setNodeData = useFlowStore((state) => state.setNodeData);
+
+    // 防止 onSelect + onKeyDown 重复触发
+    const justSelectedRef = useRef(false);
+
+    // 搜索节点选项
+    const options = useMemo(() => {
+      if (!inputValue.trim()) return [];
+
+      const results = crossFileService.searchNodes(inputValue, {
+        crossFile: true,
+        limit: 20,
+        excludeTypes: [NodeTypeEnum.Sticker, NodeTypeEnum.Group],
+      });
+
+      return results.map((n) => ({
+        value: n.label,
+        label: n.label,
+        nodeName: n.fullName,
+        filePath: n.isCurrentFile ? "当前文件" : n.relativePath,
+        isCurrentFile: n.isCurrentFile,
+      }));
+    }, [inputValue]);
+
+    // 执行连接
+    const doConnect = useCallback(
+      (targetLabel: string) => {
+        if (!targetLabel.trim()) return;
+
+        // 查找当前文件中是否存在该节点
+        const targetNode = findNodeByLabel(nodes, targetLabel);
+        let targetId: string;
+
+        if (targetNode) {
+          targetId = targetNode.id;
+
+          // 去重检查：是否已存在同类型边
+          const exists = edges.some(
+            (edge) =>
+              edge.source === sourceNodeId &&
+              edge.sourceHandle === sourceHandle &&
+              edge.target === targetId,
+          );
+          if (exists) {
+            message.warning(`已存在到 "${targetLabel}" 的连接`);
+            setInputValue("");
+            return;
+          }
+        } else {
+          // 目标不存在，创建外部节点并修正 label
+          targetId = addNode({
+            type: NodeTypeEnum.External,
+          });
+          setNodeData(targetId, "", "label", targetLabel);
+        }
+
+        // 创建边
+        addEdge({
+          source: sourceNodeId,
+          sourceHandle: sourceHandle,
+          target: targetId,
+          targetHandle: TargetHandleTypeEnum.Target,
+        });
+
+        setInputValue("");
+      },
+      [nodes, edges, sourceNodeId, sourceHandle, addEdge, addNode, setNodeData],
+    );
+
+    // 回车确认
+    const handleKeyDown = useCallback(
+      (e: React.KeyboardEvent) => {
+        if (e.key === "Enter" && inputValue.trim()) {
+          // 如果刚刚通过 onSelect 触发过，跳过本次回车
+          if (justSelectedRef.current) {
+            justSelectedRef.current = false;
+            return;
+          }
+          e.preventDefault();
+          doConnect(inputValue.trim());
+        }
+      },
+      [inputValue, doConnect],
+    );
+
+    // 选中下拉项
+    const handleSelect = useCallback(
+      (value: string) => {
+        justSelectedRef.current = true;
+        doConnect(value);
+      },
+      [doConnect],
+    );
+
+    return (
+      <div className={style["add-successor-input"]}>
+        <PlusOutlined className={style["add-icon"]} />
+        <AutoComplete
+          size="small"
+          placeholder="输入节点名添加连接..."
+          value={inputValue}
+          options={options}
+          onChange={setInputValue}
+          onSelect={handleSelect}
+          onKeyDown={handleKeyDown}
+          style={{ flex: 1 }}
+          allowClear
+          optionRender={(option) => (
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span style={{ fontWeight: 500 }}>
+                {option.data.nodeName}
+              </span>
+              <span style={{ color: "#888", fontSize: 12 }}>
+                {option.data.filePath}
+              </span>
+            </div>
+          )}
+        />
+      </div>
+    );
+  },
+);
+
+AddSuccessorInput.displayName = "AddSuccessorInput";
 
 export default memo(AdjacentInfoPanel);

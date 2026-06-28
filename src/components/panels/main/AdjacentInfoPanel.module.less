@@ -146,3 +146,27 @@
   flex: 1;
   min-height: 80px;
 }
+
+.add-successor-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  margin-top: 4px;
+
+  .add-icon {
+    color: #bbb;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  :global {
+    .ant-select-auto-complete {
+      font-size: 12px;
+    }
+
+    .ant-input {
+      font-size: 12px;
+    }
+  }
+}
