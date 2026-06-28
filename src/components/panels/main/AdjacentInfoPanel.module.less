@@ -75,10 +75,17 @@
   padding: 4px 8px;
   background: #fafafa;
   border-radius: 4px;
+  cursor: default;
   transition: background 0.2s;
 
   &:hover {
     background: #f0f0f0;
+  }
+
+  &.dragging {
+    background: #e6f7ff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    z-index: 1;
   }
 
   .order {
@@ -86,6 +93,27 @@
     font-size: 12px;
     min-width: 20px;
   }
+}
+
+.drag-handle {
+  display: inline-flex;
+  align-items: center;
+  cursor: move;
+  color: #bbb;
+  font-size: 12px;
+  transition: color 0.2s;
+  touch-action: none;
+
+  &:hover {
+    color: #666;
+  }
+}
+
+.drag-hint {
+  margin-left: auto;
+  color: #bbb;
+  font-size: 11px;
+  font-weight: normal;
 }
 
 .node-tag {

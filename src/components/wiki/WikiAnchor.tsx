@@ -136,7 +136,7 @@ function WikiAnchorBase({ path, title, description }: WikiAnchorProps) {
       title={tooltipContent}
       placement="bottom"
       open={hovered}
-      overlayClassName={style.tooltipOverlay}
+      classNames={{ root: style.tooltipOverlay }}
     >
       <span
         className={style.wikiAnchor}

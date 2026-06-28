@@ -162,6 +162,38 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
     });
   },
 
+  // 批量重排同源同类型边的顺序（一次拖拽一条历史）
+  reorderEdges(
+    source: string,
+    sourceHandle: SourceHandleTypeEnum,
+    orderedEdgeIds: string[],
+  ) {
+    set((state) => {
+      const edges = [...state.edges];
+
+      // 按新顺序给同组边重排 label（1..N 连续）
+      // 同组判定 = source + sourceHandle，与 setEdgeLabel 一致
+      orderedEdgeIds.forEach((id, index) => {
+        const edgeIndex = edges.findIndex((e) => e.id === id);
+        if (edgeIndex >= 0) {
+          edges[edgeIndex] = { ...edges[edgeIndex], label: index + 1 };
+        }
+      });
+
+      const selectedEdges = getSelectedEdges(edges);
+      get().updateSelection(state.selectedNodes, selectedEdges);
+      return { edges };
+    });
+
+    // 保存历史记录（拖拽结束是一次性动作，立即落盘）
+    get().saveHistory(0, {
+      category: "edge",
+      action: "update",
+      description: "批量调整连接顺序",
+      targetIds: orderedEdgeIds,
+    });
+  },
+
   // 添加边
   addEdge(co: Connection, options) {
     const { isCheck = true } = options || {};

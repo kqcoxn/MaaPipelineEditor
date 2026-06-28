@@ -309,6 +309,11 @@ export interface FlowEdgeState {
   updateEdges: (changes: EdgeChange[]) => void;
   setEdgeData: (id: string, key: string, value: any) => void;
   setEdgeLabel: (id: string, newLabel: number) => void;
+  reorderEdges: (
+    source: string,
+    sourceHandle: SourceHandleTypeEnum,
+    orderedEdgeIds: string[],
+  ) => void;
   addEdge: (co: Connection, options?: { isCheck?: boolean }) => void;
   setEdges: (edges: EdgeType[]) => void;
   resetEdgeControls: (targetEdgeIds?: string[]) => void;

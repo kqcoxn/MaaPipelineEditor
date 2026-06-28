@@ -3,8 +3,24 @@ import { Collapse, Tag, Empty } from "antd";
 import {
   ArrowLeftOutlined,
   ArrowRightOutlined,
+  HolderOutlined,
 } from "@ant-design/icons";
+import { CSS } from "@dnd-kit/utilities";
+import {
+  closestCenter,
+  DndContext,
+  PointerSensor,
+  useSensor,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { useFlowStore, getNodeAbsolutePosition } from "../../../stores/flow";
+import { useEmbedMode } from "../../../hooks/useEmbedMode";
 import {
   SourceHandleTypeEnum,
   TargetHandleTypeEnum,
@@ -32,6 +48,7 @@ interface PredecessorInfo {
 
 // 后继节点信息
 interface SuccessorInfo {
+  edgeId: string; // 边 id，用于拖拽排序
   nodeId: string;
   nodeLabel: string;
   nodeType: NodeTypeEnum;
@@ -40,15 +57,25 @@ interface SuccessorInfo {
   isJumpBack: boolean;
 }
 
+// dnd-kit 用的唯一 id：source-sourceHandle-edgeId
+function makeSortableId(edge: { id: string }, source: string, handle: SourceHandleTypeEnum) {
+  return `${source}-${handle}-${edge.id}`;
+}
+
 function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPanelProps) {
   const nodes = useFlowStore((state) => state.nodes);
   const edges = useFlowStore((state) => state.edges);
   const instance = useFlowStore((state) => state.instance);
+  const reorderEdges = useFlowStore((state) => state.reorderEdges);
+
+  // 嵌入模式权限控制（与 Flow.tsx 一致）
+  const { isEmbed, isCapAllowed } = useEmbedMode();
+  const readOnly = isEmbed && isCapAllowed("readOnly");
 
   // 计算前驱节点
   const predecessors = useMemo(() => {
     const result: PredecessorInfo[] = [];
-    
+
     edges.forEach((edge: EdgeType) => {
       if (edge.target === currentNodeId) {
         const sourceNode = nodes.find((n) => n.id === edge.source);
@@ -79,12 +106,13 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
   // 计算后继节点
   const successors = useMemo(() => {
     const result: SuccessorInfo[] = [];
-    
+
     edges.forEach((edge: EdgeType) => {
       if (edge.source === currentNodeId) {
         const targetNode = nodes.find((n) => n.id === edge.target);
         if (targetNode) {
           result.push({
+            edgeId: edge.id,
             nodeId: edge.target,
             nodeLabel: targetNode.data?.label || "未知",
             nodeType: targetNode.type as NodeTypeEnum,
@@ -168,7 +196,7 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
     );
   };
 
-  // 渲染前驱节点列表
+  // 渲染前驱节点列表（只读，无拖拽）
   const renderPredecessors = () => {
     // 按类型分组
     const nextPreds = predecessors.filter(
@@ -226,53 +254,35 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
     );
   };
 
-  // 渲染后继节点列表
+  // 渲染后继节点列表（next / on_error 组各自独立排序，不跨组）
   const renderSuccessors = () => {
     const { nextSuccessors, errorSuccessors } = successorsByType;
 
     return (
       <div className={style["node-list"]}>
         {nextSuccessors.length > 0 && (
-          <div className={style["group-section"]}>
-            <div className={style["group-label"]}>
-              <Tag color="green">next</Tag>
-              <span className={style["count"]}>({nextSuccessors.length})</span>
-            </div>
-            <div className={style["node-items"]}>
-              {nextSuccessors.map((succ) => (
-                <div key={`${succ.nodeId}-${succ.order}`} className={style["node-item"]}>
-                  <span className={style["order"]}>{succ.order}.</span>
-                  {renderNodeTag(succ.nodeType, succ.nodeLabel, succ.nodeId)}
-                  {succ.isJumpBack && (
-                    <Tag color="orange" className={style["mini-tag"]}>
-                      jumpback
-                    </Tag>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+          <SuccessorGroup
+            groupTag="next"
+            tagColor="green"
+            items={nextSuccessors}
+            sourceHandle={SourceHandleTypeEnum.Next}
+            source={currentNodeId}
+            readOnly={readOnly}
+            onReorder={reorderEdges}
+            renderNodeTag={renderNodeTag}
+          />
         )}
         {errorSuccessors.length > 0 && (
-          <div className={style["group-section"]}>
-            <div className={style["group-label"]}>
-              <Tag color="magenta">on_error</Tag>
-              <span className={style["count"]}>({errorSuccessors.length})</span>
-            </div>
-            <div className={style["node-items"]}>
-              {errorSuccessors.map((succ) => (
-                <div key={`${succ.nodeId}-${succ.order}`} className={style["node-item"]}>
-                  <span className={style["order"]}>{succ.order}.</span>
-                  {renderNodeTag(succ.nodeType, succ.nodeLabel, succ.nodeId)}
-                  {succ.isJumpBack && (
-                    <Tag color="orange" className={style["mini-tag"]}>
-                      jumpback
-                    </Tag>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+          <SuccessorGroup
+            groupTag="on_error"
+            tagColor="magenta"
+            items={errorSuccessors}
+            sourceHandle={SourceHandleTypeEnum.Error}
+            source={currentNodeId}
+            readOnly={readOnly}
+            onReorder={reorderEdges}
+            renderNodeTag={renderNodeTag}
+          />
         )}
       </div>
     );
@@ -281,7 +291,7 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
   // 构建折叠面板项 - 只显示有数据的部分
   const collapseItems = useMemo(() => {
     const items = [];
-    
+
     if (predecessors.length > 0) {
       items.push({
         key: "predecessors",
@@ -295,7 +305,7 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
         children: renderPredecessors(),
       });
     }
-    
+
     if (successors.length > 0) {
       items.push({
         key: "successors",
@@ -304,14 +314,17 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
             <span>后继节点</span>
             <ArrowRightOutlined className={style["icon"]} />
             <span className={style["count"]}>({successors.length})</span>
+            {!readOnly && (
+              <span className={style["drag-hint"]}>可拖拽调序</span>
+            )}
           </div>
         ),
         children: renderSuccessors(),
       });
     }
-    
+
     return items;
-  }, [predecessors, successors]);
+  }, [predecessors, successors, readOnly]);
 
   // 无连接提示
   const hasNoConnections = predecessors.length === 0 && successors.length === 0;
@@ -339,5 +352,162 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
     </div>
   );
 }
+
+// ===== 后继分组（可拖拽调序）=====
+
+interface SuccessorGroupProps {
+  groupTag: string;
+  tagColor: string;
+  items: SuccessorInfo[];
+  source: string;
+  sourceHandle: SourceHandleTypeEnum;
+  readOnly: boolean;
+  onReorder: (
+    source: string,
+    sourceHandle: SourceHandleTypeEnum,
+    orderedEdgeIds: string[],
+  ) => void;
+  renderNodeTag: (
+    nodeType: NodeTypeEnum,
+    label: string,
+    nodeId: string
+  ) => React.ReactNode;
+}
+
+// 单个后继分组：一个独立的 DndContext（不跨组）
+const SuccessorGroup: React.FC<SuccessorGroupProps> = memo(
+  ({
+    groupTag,
+    tagColor,
+    items,
+    source,
+    sourceHandle,
+    readOnly,
+    onReorder,
+    renderNodeTag,
+  }) => {
+    const sensor = useSensor(PointerSensor, {
+      activationConstraint: { distance: 5 },
+    });
+
+    // 本组的可排序 id 列表（按当前 order）
+    const sortableIds = useMemo(
+      () => items.map((s) => makeSortableId({ id: s.edgeId }, source, sourceHandle)),
+      [items, source, sourceHandle],
+    );
+
+    const handleDragEnd = useCallback(
+      (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+
+        const oldIndex = sortableIds.indexOf(active.id as string);
+        const newIndex = sortableIds.indexOf(over.id as string);
+        if (oldIndex < 0 || newIndex < 0) return;
+
+        // 算出新顺序的 edgeId 数组，调用一次 reorderEdges（一条历史）
+        const reordered = arrayMove(items, oldIndex, newIndex);
+        onReorder(
+          source,
+          sourceHandle,
+          reordered.map((s) => s.edgeId),
+        );
+      },
+      [items, sortableIds, source, sourceHandle, onReorder],
+    );
+
+    return (
+      <div className={style["group-section"]}>
+        <div className={style["group-label"]}>
+          <Tag color={tagColor}>{groupTag}</Tag>
+          <span className={style["count"]}>({items.length})</span>
+        </div>
+        <DndContext
+          sensors={[sensor]}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+            <div className={style["node-items"]}>
+              {items.map((succ) => (
+                <SortableSuccessorItem
+                  key={succ.edgeId}
+                  item={succ}
+                  source={source}
+                  sourceHandle={sourceHandle}
+                  readOnly={readOnly}
+                  renderNodeTag={renderNodeTag}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      </div>
+    );
+  },
+);
+
+SuccessorGroup.displayName = "SuccessorGroup";
+
+interface SortableSuccessorItemProps {
+  item: SuccessorInfo;
+  source: string;
+  sourceHandle: SourceHandleTypeEnum;
+  readOnly: boolean;
+  renderNodeTag: (
+    nodeType: NodeTypeEnum,
+    label: string,
+    nodeId: string
+  ) => React.ReactNode;
+}
+
+// 单个可拖拽后继项：手柄负责拖、整行保留点击跳转
+const SortableSuccessorItem: React.FC<SortableSuccessorItemProps> = memo(
+  ({ item, source, sourceHandle, readOnly, renderNodeTag }) => {
+    const sortableId = makeSortableId({ id: item.edgeId }, source, sourceHandle);
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ id: sortableId, disabled: readOnly });
+
+    const itemStyle: React.CSSProperties = {
+      transform: CSS.Translate.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+      <div
+        ref={setNodeRef}
+        style={itemStyle}
+        className={`${style["node-item"]} ${isDragging ? style["dragging"] : ""}`}
+      >
+        {!readOnly && (
+          <span
+            {...attributes}
+            {...listeners}
+            className={style["drag-handle"]}
+            title="拖拽调整顺序"
+          >
+            <HolderOutlined />
+          </span>
+        )}
+        <span className={style["order"]}>{item.order}.</span>
+        {renderNodeTag(item.nodeType, item.nodeLabel, item.nodeId)}
+        {item.isJumpBack && (
+          <Tag color="orange" className={style["mini-tag"]}>
+            jumpback
+          </Tag>
+        )}
+      </div>
+    );
+  },
+);
+
+SortableSuccessorItem.displayName = "SortableSuccessorItem";
 
 export default memo(AdjacentInfoPanel);

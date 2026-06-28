@@ -164,10 +164,10 @@ const VersionTimeline = ({
 
           return {
             color: typeConfig[log.type].color,
-            dot: isSelected ? (
+            icon: isSelected ? (
               <ClockCircleOutlined className={style.timelineDot} />
             ) : undefined,
-            children: (
+            content: (
               <button
                 type="button"
                 className={`${style.versionButton} ${
