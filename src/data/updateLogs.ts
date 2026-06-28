@@ -95,7 +95,7 @@ export const nextPreview: ForecastSection = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "1.7.0",
-    date: "2026-6",
+    date: "2026-6-28",
     type: "feature",
     updates: {
       features: [
@@ -108,7 +108,10 @@ export const updateLogs: UpdateLogItem[] = [
         "📒 调试模块新增 maafw.log 面板",
       ],
       perfs: ["OCR 工具会固定快照作为识别源"],
-      fixes: ["修复本地文件面板交互失效的问题"],
+      fixes: [
+        "修复了手动输入 ROI 后小工具解析异常的问题",
+        "修复本地文件面板交互失效的问题",
+      ],
     },
   },
   {

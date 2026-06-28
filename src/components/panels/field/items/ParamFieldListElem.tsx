@@ -21,6 +21,33 @@ import { TemplatePreview } from "./TemplatePreview";
 import { ImageSelect } from "./ImageSelect";
 import { sortKeysByOrder } from "../../../../core/sorting";
 
+/**
+ * 将可能为字符串的 ROI 值解析为 [number, number, number, number] 元组
+ * 处理手动输入的字符串如 "[1, 6, 8, 2]" 被错误索引的问题
+ */
+function parseROIValue(
+  value: any,
+): [number, number, number, number] | undefined {
+  if (value == null) return undefined;
+  if (
+    Array.isArray(value) &&
+    value.length === 4 &&
+    value.every((n) => typeof n === "number")
+  ) {
+    return value as [number, number, number, number];
+  }
+  if (typeof value === "string") {
+    const nums = value
+      .replace(/[\s\[\]]/g, "")
+      .split(/[,，]/)
+      .map(Number);
+    if (nums.length === 4 && nums.every((n) => Number.isInteger(n))) {
+      return nums as [number, number, number, number];
+    }
+  }
+  return undefined;
+}
+
 // 快捷工具类型
 type QuickToolType =
   | "roi"
@@ -708,12 +735,8 @@ export const ParamFieldListElem = memo(
             initialROI={
               currentListIndex !== null &&
               Array.isArray(paramData[currentROIKey])
-                ? (paramData[currentROIKey][currentListIndex] as
-                    | [number, number, number, number]
-                    | undefined)
-                : (paramData[currentROIKey] as
-                    | [number, number, number, number]
-                    | undefined)
+                ? parseROIValue(paramData[currentROIKey][currentListIndex])
+                : parseROIValue(paramData[currentROIKey])
             }
           />
         )}
@@ -750,9 +773,7 @@ export const ParamFieldListElem = memo(
             templateValue={
               paramData[currentTemplateKey] as string | string[]
             }
-            initialROI={
-              paramData["roi"] as [number, number, number, number] | undefined
-            }
+            initialROI={parseROIValue(paramData["roi"])}
             initialThreshold={
               Array.isArray(paramData["threshold"])
                 ? (paramData["threshold"] as number[])[0]
@@ -812,9 +833,7 @@ export const ParamFieldListElem = memo(
               setCurrentListIndex(null);
             }}
             onConfirm={handleROIOffsetConfirm}
-            initialROI={
-              paramData["roi"] as [number, number, number, number] | undefined
-            }
+            initialROI={parseROIValue(paramData["roi"])}
           />
         )}
       </>
