@@ -71,6 +71,8 @@ import { useEmbedChangeNotifier } from "./hooks/useEmbedChangeNotifier";
 import { useFlowStore } from "./stores/flow";
 import { useNewcomerStore, isNewcomerPassed } from "./stores/newcomerStore";
 import { NewcomerGuideModal } from "./components/modals/NewcomerGuideModal";
+import { useTermsStore, isTermsAccepted } from "./stores/termsStore";
+import { TermsAgreementModal } from "./components/modals/TermsAgreementModal";
 
 const JsonViewer = lazy(() => import("./components/JsonViewer"));
 const DebugModal = lazy(() =>
@@ -492,10 +494,21 @@ function App() {
       }
     }
 
-    // 新手引导检测
-    if (!isNewcomerPassed()) {
+    // 使用协议检测（优先于新手引导）
+    if (!isTermsAccepted()) {
+      useTermsStore.getState().openModal();
+    } else if (!isNewcomerPassed()) {
+      // 协议已接受，检测新手引导
       useNewcomerStore.getState().openModal();
     }
+
+    // 监听协议接受事件，接受后再触发新手引导检测
+    const handleTermsAccepted = () => {
+      if (!isNewcomerPassed()) {
+        useNewcomerStore.getState().openModal();
+      }
+    };
+    window.addEventListener("mpe:terms-accepted", handleTermsAccepted);
 
     // Star定时提醒（需通过新手测试后才启动）
     if (
@@ -519,6 +532,7 @@ function App() {
     // 清理监听器
     return () => {
       unsubscribeConfigCache();
+      window.removeEventListener("mpe:terms-accepted", handleTermsAccepted);
       document.removeEventListener("drop", handleFileDrop);
       document.removeEventListener("dragover", handleDragOver);
       // 清理 Wails 事件监听
@@ -587,6 +601,7 @@ function App() {
       <Suspense fallback={null}>
         <DebugModal />
       </Suspense>
+      <TermsAgreementModal />
       <NewcomerGuideModal />
       <GlobalListener />
     </ThemeProvider>
