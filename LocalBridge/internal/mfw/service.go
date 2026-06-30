@@ -56,13 +56,20 @@ func (s *Service) Initialize() (err error) {
 
 	logger.Info("MFW", "初始化 MaaFramework")
 
-	// 从配置获取库路径
+	// 从配置获取库路径，未配置或路径失效时尝试使用安装器附带的运行时
 	cfg := config.GetGlobal()
-	if cfg == nil || cfg.MaaFW.LibDir == "" {
-		return fmt.Errorf("MaaFramework 库路径未配置，请使用 'mpelb config set-lib' 设置路径")
+	if cfg == nil {
+		return fmt.Errorf("MaaFramework 配置未加载")
 	}
-	libDir := cfg.MaaFW.LibDir
-	logger.Info("MFW", "使用配置的库路径: %s", libDir)
+	libDir := cfg.ResolvedMaaFWLibDir()
+	if libDir == "" {
+		return fmt.Errorf("MaaFramework 库路径未配置，请使用 'mpelb config set-lib' 设置路径，或通过安装脚本安装附属运行时")
+	}
+	if cfg.MaaFW.LibDir == libDir {
+		logger.Info("MFW", "使用配置的库路径: %s", libDir)
+	} else {
+		logger.Info("MFW", "使用附带的库路径: %s", libDir)
+	}
 
 	// Windows 下处理中文路径
 	useWorkDirSwitch := false

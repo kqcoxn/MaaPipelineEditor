@@ -20,8 +20,8 @@
     "reset": "git reset --soft HEAD~1",
     "migrate": "node scripts/migrate-version.mjs",
     "proto": "node scripts/proto-version.mjs",
-    "release": "git tag -a v1.7.0 -m \"v1.7.0\" && git push origin v1.7.0",
-    "retag": "git tag -d v1.7.0"
+    "release": "git tag -a v1.7.1 -m \"v1.7.1\" && git push origin v1.7.1",
+    "retag": "git tag -d v1.7.1"
   },
   "dependencies": {
     "@ant-design/icons": "6",

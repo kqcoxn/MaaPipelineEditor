@@ -1,85 +1,206 @@
-# MPE Local Bridge 安装脚本 (Windows)
-# 使用方式: irm https://raw.githubusercontent.com/kqcoxn/MaaPipelineEditor/main/tools/install.ps1 | iex
+# MPE Local Bridge installer (Windows)
+# Usage: irm https://raw.githubusercontent.com/kqcoxn/MaaPipelineEditor/main/tools/install.ps1 | iex
 
 $ErrorActionPreference = "Stop"
 
 $REPO = "kqcoxn/MaaPipelineEditor"
 $INSTALL_DIR = "$env:LOCALAPPDATA\mpelb"
 $BIN_PATH = "$INSTALL_DIR\mpelb.exe"
+$RUNTIME_DIR = "$INSTALL_DIR\runtime"
+$MAAFW_BIN_DIR = "$RUNTIME_DIR\maafw\bin"
+$OCR_DIR = "$RUNTIME_DIR\resource\model\ocr"
+$OCR_URL = "https://download.maafw.xyz/MaaCommonAssets/OCR/ppocr_v6/ppocr_v6-small.zip"
+$PROCESSOR_ARCH = if ([Environment]::Is64BitOperatingSystem -and $env:PROCESSOR_ARCHITECTURE -match "ARM64") { "aarch64" } else { "x86_64" }
+$MPELB_ASSET_PATTERN = if ($PROCESSOR_ARCH -eq "aarch64") { "*windows-arm64.exe" } else { "*windows-amd64.exe" }
+$MAAFW_ASSET_PATTERN = "MAA-win-$PROCESSOR_ARCH-*.zip"
 
-Write-Host "🚀 正在安装 MPE Local Bridge..." -ForegroundColor Cyan
+Write-Host "Installing MPE Local Bridge..." -ForegroundColor Cyan
 
-# 创建安装目录
-if (!(Test-Path $INSTALL_DIR)) {
-    New-Item -ItemType Directory -Path $INSTALL_DIR -Force | Out-Null
+function Ensure-Directory($path) {
+    if (!(Test-Path $path)) {
+        New-Item -ItemType Directory -Path $path -Force | Out-Null
+    }
 }
 
-# 获取最新版本
-Write-Host "📡 正在获取最新版本..." -ForegroundColor Yellow
-try {
+function Test-NonEmptyDirectory($path) {
+    return (Test-Path $path) -and ((Get-ChildItem -Path $path -Force -ErrorAction SilentlyContinue | Select-Object -First 1) -ne $null)
+}
+
+function Invoke-Download($url, $outputPath) {
+    Invoke-WebRequest -Uri $url -OutFile $outputPath -UseBasicParsing
+}
+
+function Get-GitHubLatestRelease($repo) {
     $headers = @{}
     if ($env:GITHUB_TOKEN) {
         $headers["Authorization"] = "token $env:GITHUB_TOKEN"
     }
-    $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$REPO/releases/latest" -Headers $headers
+    return Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases/latest" -Headers $headers
+}
+
+function Copy-DirectoryContents($source, $destination) {
+    Ensure-Directory $destination
+    Copy-Item -Path (Join-Path $source "*") -Destination $destination -Recurse -Force
+}
+
+function Find-MaaFrameworkAsset($release) {
+    return $release.assets | Where-Object { $_.name -like $MAAFW_ASSET_PATTERN } | Select-Object -First 1
+}
+
+function Install-MaaFramework() {
+    if (Test-NonEmptyDirectory $MAAFW_BIN_DIR) {
+        Write-Host "MaaFramework runtime already exists, skip: $MAAFW_BIN_DIR" -ForegroundColor Green
+        return
+    }
+
+    Write-Host "Fetching latest MaaFramework release..." -ForegroundColor Yellow
+    $maafwRelease = Get-GitHubLatestRelease "MaaXYZ/MaaFramework"
+    $asset = Find-MaaFrameworkAsset $maafwRelease
+    if (!$asset) {
+        Write-Host "MaaFramework Windows $PROCESSOR_ARCH runtime asset not found" -ForegroundColor Red
+        exit 1
+    }
+
+    $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("mpelb-maafw-" + [Guid]::NewGuid().ToString("N"))
+    $zipPath = Join-Path $tempRoot $asset.name
+    $extractDir = Join-Path $tempRoot "extract"
+
+    try {
+        Ensure-Directory $tempRoot
+        Ensure-Directory $extractDir
+        Write-Host "Downloading MaaFramework runtime: $($asset.name)" -ForegroundColor Yellow
+        Invoke-Download $asset.browser_download_url $zipPath
+
+        Write-Host "Extracting MaaFramework runtime..." -ForegroundColor Yellow
+        Expand-Archive -Path $zipPath -DestinationPath $extractDir -Force
+
+        $binDir = Get-ChildItem -Path $extractDir -Directory -Recurse |
+            Where-Object { $_.Name -eq "bin" -and (Test-Path (Join-Path $_.FullName "MaaFramework.dll")) } |
+            Select-Object -First 1
+
+        if (!$binDir) {
+            Write-Host "Failed to locate MaaFramework bin directory in archive" -ForegroundColor Red
+            exit 1
+        }
+
+        Copy-DirectoryContents $binDir.FullName $MAAFW_BIN_DIR
+        Write-Host "MaaFramework runtime installed: $MAAFW_BIN_DIR" -ForegroundColor Green
+    } finally {
+        if (Test-Path $tempRoot) {
+            Remove-Item -Path $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+function Install-OCRAssets() {
+    if (Test-NonEmptyDirectory $OCR_DIR) {
+        Write-Host "OCR assets already exist, skip: $OCR_DIR" -ForegroundColor Green
+        return
+    }
+
+    $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("mpelb-ocr-" + [Guid]::NewGuid().ToString("N"))
+    $zipPath = Join-Path $tempRoot "ppocr_v6-small.zip"
+    $extractDir = Join-Path $tempRoot "extract"
+
+    try {
+        Ensure-Directory $tempRoot
+        Ensure-Directory $extractDir
+        Write-Host "Downloading OCR assets: ppocr_v6-small.zip" -ForegroundColor Yellow
+        Invoke-Download $OCR_URL $zipPath
+
+        Write-Host "Extracting OCR assets..." -ForegroundColor Yellow
+        Expand-Archive -Path $zipPath -DestinationPath $extractDir -Force
+
+        $modelDir = Get-ChildItem -Path $extractDir -Directory -Recurse |
+            Where-Object {
+                (Test-Path (Join-Path $_.FullName "det.onnx")) -and
+                (Test-Path (Join-Path $_.FullName "rec.onnx")) -and
+                (Test-Path (Join-Path $_.FullName "keys.txt"))
+            } |
+            Select-Object -First 1
+
+        if (!$modelDir) {
+            Write-Host "Failed to locate det.onnx / rec.onnx / keys.txt in OCR archive" -ForegroundColor Red
+            exit 1
+        }
+
+        Copy-DirectoryContents $modelDir.FullName $OCR_DIR
+        Write-Host "OCR assets installed: $OCR_DIR" -ForegroundColor Green
+    } finally {
+        if (Test-Path $tempRoot) {
+            Remove-Item -Path $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+Ensure-Directory $INSTALL_DIR
+
+Write-Host "Fetching latest MPE release..." -ForegroundColor Yellow
+try {
+    $release = Get-GitHubLatestRelease $REPO
     $version = $release.tag_name
-    Write-Host "✅ 最新版本: $version" -ForegroundColor Green
+    Write-Host "Latest version: $version" -ForegroundColor Green
 } catch {
-    Write-Host "❌ 获取版本信息失败" -ForegroundColor Red
+    Write-Host "Failed to fetch release info" -ForegroundColor Red
     Write-Host ""
-    Write-Host "可能原因: GitHub API 请求频率超限 (未认证每小时仅 60 次)" -ForegroundColor Yellow
-    Write-Host "解决方法: 设置 GITHUB_TOKEN 环境变量后重试" -ForegroundColor Yellow
+    Write-Host "Possible reason: GitHub API rate limit" -ForegroundColor Yellow
+    Write-Host "Set GITHUB_TOKEN and retry:" -ForegroundColor Yellow
     Write-Host ""
     Write-Host '  $env:GITHUB_TOKEN="your_github_token"' -ForegroundColor White
     Write-Host "  irm https://raw.githubusercontent.com/$REPO/main/tools/install.ps1 | iex" -ForegroundColor White
     Write-Host ""
-    Write-Host "获取 Token: https://github.com/settings/tokens (无需勾选任何权限)" -ForegroundColor Yellow
-    Write-Host "错误详情: $_" -ForegroundColor DarkGray
+    Write-Host "Token page: https://github.com/settings/tokens" -ForegroundColor Yellow
+    Write-Host "Error: $_" -ForegroundColor DarkGray
     exit 1
 }
 
-# 下载二进制文件
-$asset = $release.assets | Where-Object { $_.name -like "*windows-amd64.exe" }
+$asset = $release.assets | Where-Object { $_.name -like $MPELB_ASSET_PATTERN } | Select-Object -First 1
 if (!$asset) {
-    Write-Host "❌ 未找到 Windows 版本的下载文件" -ForegroundColor Red
+    Write-Host "Windows mpelb asset not found" -ForegroundColor Red
     exit 1
 }
 
-$downloadUrl = $asset.browser_download_url
-Write-Host "⬇️  正在下载: $($asset.name)" -ForegroundColor Yellow
-
+Write-Host "Downloading: $($asset.name)" -ForegroundColor Yellow
 try {
-    Invoke-WebRequest -Uri $downloadUrl -OutFile $BIN_PATH -UseBasicParsing
-    Write-Host "✅ 下载完成" -ForegroundColor Green
+    Invoke-Download $asset.browser_download_url $BIN_PATH
+    Write-Host "Download completed" -ForegroundColor Green
 } catch {
-    Write-Host "❌ 下载失败: $_" -ForegroundColor Red
+    Write-Host "Download failed: $_" -ForegroundColor Red
     exit 1
 }
 
-# 添加到 PATH
+Write-Host ""
+Write-Host "Checking bundled runtime..." -ForegroundColor Cyan
+Install-MaaFramework
+Install-OCRAssets
+
 $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
 if ($userPath -notlike "*$INSTALL_DIR*") {
-    Write-Host "📌 正在添加到系统 PATH..." -ForegroundColor Yellow
+    Write-Host "Adding install directory to PATH..." -ForegroundColor Yellow
     [Environment]::SetEnvironmentVariable(
         "Path",
         "$userPath;$INSTALL_DIR",
         "User"
     )
     $env:Path = "$env:Path;$INSTALL_DIR"
-    Write-Host "✅ 已添加到 PATH" -ForegroundColor Green
+    Write-Host "PATH updated" -ForegroundColor Green
 } else {
-    Write-Host "✅ 已在 PATH 中" -ForegroundColor Green
+    Write-Host "Install directory already exists in PATH" -ForegroundColor Green
 }
 
-# 验证安装
 Write-Host ""
-Write-Host "🎉 安装完成！" -ForegroundColor Green
+Write-Host "Installation completed" -ForegroundColor Green
 Write-Host ""
-Write-Host "运行以下命令开始使用:" -ForegroundColor Cyan
+Write-Host "Usage:" -ForegroundColor Cyan
 Write-Host "  mpelb --help" -ForegroundColor White
 Write-Host ""
-Write-Host "快速启动服务:" -ForegroundColor Cyan
-Write-Host "  mpelb --root .\你的项目目录" -ForegroundColor White
+Write-Host "Quick start:" -ForegroundColor Cyan
+Write-Host "  mpelb --root .\your-project" -ForegroundColor White
 Write-Host ""
-Write-Host "注意: 如果命令未找到，请重启终端或运行:" -ForegroundColor Yellow
-Write-Host "  `$env:Path += `";$INSTALL_DIR`"" -ForegroundColor White
+Write-Host "Update lb:" -ForegroundColor Cyan
+Write-Host "  irm https://raw.githubusercontent.com/$REPO/main/tools/install.ps1 | iex" -ForegroundColor White
+Write-Host ""
+Write-Host "Existing MaaFramework runtime and OCR assets are not overwritten." -ForegroundColor Yellow
+Write-Host "To update bundled runtime assets, delete the runtime directory and rerun this installer." -ForegroundColor Yellow
+Write-Host "If mpelb is not found, restart the terminal or run:" -ForegroundColor Yellow
+Write-Host ('  $env:Path += ";' + $INSTALL_DIR + '"') -ForegroundColor White

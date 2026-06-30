@@ -94,6 +94,16 @@ export const nextPreview: ForecastSection = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "1.7.1",
+    date: "2026-6-28",
+    type: "feature",
+    updates: {
+      perfs: [
+        "lb 安装时支持同步安装 mfw runtime 与 ocr，在未配置指定目录时自动使用",
+      ],
+    },
+  },
+  {
     version: "1.7.0",
     date: "2026-6-28",
     type: "feature",

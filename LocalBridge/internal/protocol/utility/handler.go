@@ -177,9 +177,14 @@ func (h *UtilityHandler) performOCR(baseImageB64, resourceID string, roi [4]int3
 	if res == nil {
 		// 检查配置中是否有 OCR 资源路径
 		cfg := config.GetGlobal()
-		if cfg == nil || cfg.MaaFW.ResourceDir == "" {
+		if cfg == nil {
+			logger.Error("Utility", "未加载 OCR 资源配置")
+			return nil, mfw.NewMFWError(mfw.ErrCodeOCRResourceNotConfigured, "OCR 资源路径未配置，请在后端运行 'mpelb config set-resource' 进行配置，或通过安装脚本安装附属资源", nil)
+		}
+		resourcePath := cfg.ResolvedMaaFWResourceDir()
+		if resourcePath == "" {
 			logger.Error("Utility", "未配置 OCR 资源路径 (maafw.resource_dir)")
-			return nil, mfw.NewMFWError(mfw.ErrCodeOCRResourceNotConfigured, "OCR 资源路径未配置，请在后端运行 'mpelb config set-resource' 进行配置", nil)
+			return nil, mfw.NewMFWError(mfw.ErrCodeOCRResourceNotConfigured, "OCR 资源路径未配置，请在后端运行 'mpelb config set-resource' 进行配置，或通过安装脚本安装附属资源", nil)
 		}
 
 		var resErr error
@@ -194,9 +199,8 @@ func (h *UtilityHandler) performOCR(baseImageB64, resourceID string, roi [4]int3
 			}
 		}()
 
-		// 从配置加载 OCR 资源
-		resourcePath := cfg.MaaFW.ResourceDir
-		logger.Debug("Utility", "从配置加载 OCR 资源: %s", resourcePath)
+		// 加载 OCR 资源
+		logger.Debug("Utility", "加载 OCR 资源: %s", resourcePath)
 
 		// Windows 下处理中文路径
 		actualPath := resourcePath

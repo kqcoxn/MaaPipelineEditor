@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/paths"
 	"github.com/spf13/viper"
@@ -150,6 +151,43 @@ func (c *Config) normalize() error {
 	}
 
 	return nil
+}
+
+func (c *Config) ResolvedMaaFWLibDir() string {
+	if pathExists(c.MaaFW.LibDir) {
+		return strings.TrimSpace(c.MaaFW.LibDir)
+	}
+	if defaultLibDir := bundledMaaFWLibDir(); pathExists(defaultLibDir) {
+		return defaultLibDir
+	}
+	return strings.TrimSpace(c.MaaFW.LibDir)
+}
+
+func (c *Config) ResolvedMaaFWResourceDir() string {
+	if pathExists(c.MaaFW.ResourceDir) {
+		return strings.TrimSpace(c.MaaFW.ResourceDir)
+	}
+	if defaultResourceDir := bundledMaaFWResourceDir(); pathExists(defaultResourceDir) {
+		return defaultResourceDir
+	}
+	return strings.TrimSpace(c.MaaFW.ResourceDir)
+}
+
+func pathExists(path string) bool {
+	trimmed := strings.TrimSpace(path)
+	if trimmed == "" {
+		return false
+	}
+	_, err := os.Stat(trimmed)
+	return err == nil
+}
+
+func bundledMaaFWLibDir() string {
+	return filepath.Join(paths.GetExeDir(), "runtime", "maafw", "bin")
+}
+
+func bundledMaaFWResourceDir() string {
+	return filepath.Join(paths.GetExeDir(), "runtime", "resource")
 }
 
 // 从命令行参数覆盖配置

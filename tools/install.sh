@@ -2,24 +2,38 @@
 # MPE Local Bridge 安装脚本 (Linux/macOS)
 # 使用方式: curl -fsSL https://raw.githubusercontent.com/kqcoxn/MaaPipelineEditor/main/tools/install.sh | bash
 
-set -e
+set -euo pipefail
 
 REPO="kqcoxn/MaaPipelineEditor"
 INSTALL_DIR="$HOME/.local/bin"
 BIN_NAME="mpelb"
+BIN_PATH="$INSTALL_DIR/$BIN_NAME"
+RUNTIME_DIR="$INSTALL_DIR/runtime"
+MAAFW_BIN_DIR="$RUNTIME_DIR/maafw/bin"
+OCR_DIR="$RUNTIME_DIR/resource/model/ocr"
+OCR_URL="https://download.maafw.xyz/MaaCommonAssets/OCR/ppocr_v6/ppocr_v6-small.zip"
+
+TMP_DIR=""
+cleanup() {
+    if [ -n "$TMP_DIR" ] && [ -d "$TMP_DIR" ]; then
+        rm -rf "$TMP_DIR"
+    fi
+}
+trap cleanup EXIT
 
 echo "🚀 正在安装 MPE Local Bridge..."
 
-# 检测操作系统和架构
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m)
 
 case "$OS" in
     linux)
         OS="linux"
+        MAAFW_OS="linux"
         ;;
     darwin)
         OS="darwin"
+        MAAFW_OS="macos"
         ;;
     *)
         echo "❌ 不支持的操作系统: $OS"
@@ -30,9 +44,11 @@ esac
 case "$ARCH" in
     x86_64|amd64)
         ARCH="amd64"
+        MAAFW_ARCH="x86_64"
         ;;
     arm64|aarch64)
         ARCH="arm64"
+        MAAFW_ARCH="aarch64"
         ;;
     *)
         echo "❌ 不支持的架构: $ARCH"
@@ -40,19 +56,55 @@ case "$ARCH" in
         ;;
 esac
 
+require_command() {
+    if ! command -v "$1" >/dev/null 2>&1; then
+        echo "❌ 缺少必要命令: $1"
+        exit 1
+    fi
+}
+
+is_non_empty_dir() {
+    [ -d "$1" ] && [ -n "$(find "$1" -mindepth 1 -maxdepth 1 -print -quit 2>/dev/null)" ]
+}
+
+download_file() {
+    local url="$1"
+    local output="$2"
+    curl --fail --location --progress-bar "$url" -o "$output"
+}
+
+release_api() {
+    if [ -n "${GITHUB_TOKEN:-}" ]; then
+        curl -s -H "Authorization: token $GITHUB_TOKEN" "$1"
+    else
+        curl -s "$1"
+    fi
+}
+
+extract_json_value() {
+    local json="$1"
+    local key="$2"
+    echo "$json" | grep "\"$key\":" | head -n 1 | sed -E 's/.*"'"$key"'": *"([^"]+)".*/\1/'
+}
+
+find_asset_url() {
+    local json="$1"
+    local pattern="$2"
+    echo "$json" | tr '{' '\n' | grep 'browser_download_url' | grep "$pattern" | head -n 1 | sed -E 's/.*"browser_download_url": *"([^"]+)".*/\1/'
+}
+
+require_command curl
+require_command unzip
+require_command find
+require_command sed
+require_command grep
+
+mkdir -p "$INSTALL_DIR"
+
 # 获取最新版本
 echo "📡 正在获取最新版本..."
-AUTH_HEADER=""
-if [ -n "$GITHUB_TOKEN" ]; then
-    AUTH_HEADER="Authorization: token $GITHUB_TOKEN"
-fi
-
-if [ -n "$AUTH_HEADER" ]; then
-    LATEST_RELEASE=$(curl -s -H "$AUTH_HEADER" "https://api.github.com/repos/$REPO/releases/latest")
-else
-    LATEST_RELEASE=$(curl -s "https://api.github.com/repos/$REPO/releases/latest")
-fi
-VERSION=$(echo "$LATEST_RELEASE" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+LATEST_RELEASE=$(release_api "https://api.github.com/repos/$REPO/releases/latest")
+VERSION=$(extract_json_value "$LATEST_RELEASE" "tag_name")
 
 if [ -z "$VERSION" ]; then
     echo "❌ 获取版本信息失败"
@@ -69,25 +121,94 @@ fi
 
 echo "✅ 最新版本: $VERSION"
 
-# 构建下载 URL
 BINARY_NAME="mpelb-${OS}-${ARCH}"
 DOWNLOAD_URL="https://github.com/$REPO/releases/download/$VERSION/$BINARY_NAME"
 
-# 创建安装目录
-mkdir -p "$INSTALL_DIR"
-
-# 下载二进制文件
 echo "⬇️  正在下载: $BINARY_NAME"
-if ! curl -fsSL "$DOWNLOAD_URL" -o "$INSTALL_DIR/$BIN_NAME"; then
-    echo "❌ 下载失败"
-    exit 1
-fi
-
-# 添加执行权限
-chmod +x "$INSTALL_DIR/$BIN_NAME"
+download_file "$DOWNLOAD_URL" "$BIN_PATH"
+chmod +x "$BIN_PATH"
 echo "✅ 下载完成"
 
-# 检查是否在 PATH 中
+TMP_DIR=$(mktemp -d)
+
+install_maafw() {
+    if is_non_empty_dir "$MAAFW_BIN_DIR"; then
+        echo "✅ MaaFramework runtime 已存在，跳过下载: $MAAFW_BIN_DIR"
+        return
+    fi
+
+    local maafw_release maafw_asset_url zip_path extract_dir lib_file bin_dir
+    echo "📡 正在获取 MaaFramework 最新版本..."
+    maafw_release=$(release_api "https://api.github.com/repos/MaaXYZ/MaaFramework/releases/latest")
+    maafw_asset_url=$(find_asset_url "$maafw_release" "MAA-${MAAFW_OS}-${MAAFW_ARCH}-.*\\.zip")
+
+    if [ -z "$maafw_asset_url" ]; then
+        echo "❌ 未找到 MaaFramework ${MAAFW_OS}-${MAAFW_ARCH} 运行时"
+        exit 1
+    fi
+
+    zip_path="$TMP_DIR/maafw.zip"
+    extract_dir="$TMP_DIR/maafw"
+    mkdir -p "$extract_dir"
+
+    echo "⬇️  正在下载 MaaFramework runtime..."
+    download_file "$maafw_asset_url" "$zip_path"
+
+    echo "📦 正在解压 MaaFramework runtime..."
+    unzip -q "$zip_path" -d "$extract_dir"
+
+    lib_file=$(find "$extract_dir" -type f \( -name 'libMaaFramework.so' -o -name 'libMaaFramework.dylib' -o -name 'MaaFramework.dll' \) -print -quit)
+    bin_dir=""
+    if [ -n "$lib_file" ]; then
+        bin_dir=$(dirname "$lib_file")
+    fi
+    if [ -z "$bin_dir" ] || [ ! -d "$bin_dir" ]; then
+        echo "❌ 未能在 MaaFramework 压缩包中找到 bin 目录"
+        exit 1
+    fi
+
+    mkdir -p "$MAAFW_BIN_DIR"
+    cp -R "$bin_dir"/. "$MAAFW_BIN_DIR"/
+    echo "✅ MaaFramework runtime 已安装: $MAAFW_BIN_DIR"
+}
+
+install_ocr() {
+    if is_non_empty_dir "$OCR_DIR"; then
+        echo "✅ OCR 资源已存在，跳过下载: $OCR_DIR"
+        return
+    fi
+
+    local zip_path extract_dir det_file model_dir
+    zip_path="$TMP_DIR/ocr.zip"
+    extract_dir="$TMP_DIR/ocr"
+    mkdir -p "$extract_dir"
+
+    echo "⬇️  正在下载 OCR 资源: ppocr_v6-small.zip"
+    download_file "$OCR_URL" "$zip_path"
+
+    echo "📦 正在解压 OCR 资源..."
+    unzip -q "$zip_path" -d "$extract_dir"
+
+    det_file=$(find "$extract_dir" -type f -name 'det.onnx' -print -quit)
+    model_dir=""
+    if [ -n "$det_file" ]; then
+        model_dir=$(dirname "$det_file")
+    fi
+    if [ -z "$model_dir" ] || [ ! -f "$model_dir/rec.onnx" ] || [ ! -f "$model_dir/keys.txt" ]; then
+        echo "❌ 未能在 OCR 压缩包中找到 det.onnx / rec.onnx / keys.txt"
+        exit 1
+    fi
+
+    mkdir -p "$OCR_DIR"
+    cp -R "$model_dir"/. "$OCR_DIR"/
+    echo "✅ OCR 资源已安装: $OCR_DIR"
+}
+
+echo ""
+echo "🔧 正在检查附属运行环境..."
+install_maafw
+install_ocr
+
 if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
     echo ""
     echo "⚠️  $INSTALL_DIR 不在你的 PATH 中"
@@ -97,7 +218,6 @@ if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
     echo ""
 fi
 
-# 验证安装
 echo ""
 echo "🎉 安装完成！"
 echo ""
@@ -106,3 +226,8 @@ echo "  mpelb --help"
 echo ""
 echo "快速启动服务:"
 echo "  mpelb --root ./你的项目目录"
+echo ""
+echo "更新 lb:"
+echo "  curl -fsSL https://raw.githubusercontent.com/$REPO/main/tools/install.sh | bash"
+echo ""
+echo "注意: 已存在的 MaaFramework runtime 与 OCR 资源不会被覆盖；如需更新附属环境，请删除 runtime 目录后重跑安装脚本。"

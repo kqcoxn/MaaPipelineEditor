@@ -294,7 +294,7 @@ func runServer(cmd *cobra.Command, args []string) {
 	} else {
 		logger.Debug("Main", "MFW 服务初始化完成")
 		// 检查 OCR 资源路径是否配置
-		if cfg.MaaFW.ResourceDir == "" {
+		if cfg.ResolvedMaaFWResourceDir() == "" {
 			logger.Warn("Main", "OCR 资源路径未配置，原生 OCR 功能将不可用（但仍可用前端 OCR，若无需求无需配置）。请运行 'mpelb config set-resource' 进行配置")
 		}
 	}
