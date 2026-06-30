@@ -5,7 +5,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import { Badge, message, Tooltip, Popover } from "antd";
+import { Badge, message, Tooltip, Popover, Modal } from "antd";
 import classNames from "classnames";
 import IconFont from "../../iconfonts";
 import { type IconNames } from "../../iconfonts";
@@ -13,6 +13,7 @@ import { useFlowStore } from "../../../stores/flow";
 import { useConfigStore } from "../../../stores/configStore";
 import { useClipboardStore } from "../../../stores/clipboardStore";
 import { useDebugSessionStore } from "../../../stores/debugSessionStore";
+import { DebugFlowScopeIntro } from "../../../features/debug/components/DebugFlowScopeIntro";
 import PathSelector from "./PathSelector";
 import { WikiAnchor } from "../../wiki/WikiAnchor";
 import style from "../../../styles/panels/ToolPanel.module.less";
@@ -31,6 +32,23 @@ type GlobalToolType = {
 };
 
 const DOCS_BASE_URL = "https://mpe.codax.site/docs";
+const DEBUG_INTRO_CONFIRMED_KEY = "mpe_debug_intro_confirmed_v1";
+
+function hasConfirmedDebugIntro(): boolean {
+  try {
+    return localStorage.getItem(DEBUG_INTRO_CONFIRMED_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function confirmDebugIntro(): void {
+  try {
+    localStorage.setItem(DEBUG_INTRO_CONFIRMED_KEY, "true");
+  } catch {
+    // ignore
+  }
+}
 
 function GlobalPanel() {
 
@@ -56,6 +74,22 @@ function GlobalPanel() {
   );
 
   const showRunBadge = !runBadgeAcknowledged && runBadgeStatus !== "idle";
+  const handleOpenDebugModal = () => {
+    if (hasConfirmedDebugIntro()) {
+      openDebugModal();
+      return;
+    }
+
+    Modal.info({
+      title: "关于 MPE FlowScope (调试模块)",
+      content: <DebugFlowScopeIntro />,
+      okText: "我知道了",
+      onOk: () => {
+        confirmDebugIntro();
+        openDebugModal();
+      },
+    });
+  };
   const badgeStatusMap: Record<
     string,
     "success" | "processing" | "error" | "default"
@@ -295,7 +329,7 @@ function GlobalPanel() {
                 className={style.icon}
                 name="icon-tiaoshi"
                 size={24}
-                onClick={() => openDebugModal()}
+                onClick={handleOpenDebugModal}
               />
             </Tooltip>
             {showRunBadge && (

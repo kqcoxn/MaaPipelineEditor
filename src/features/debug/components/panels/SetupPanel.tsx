@@ -1,12 +1,26 @@
 ﻿import { List } from "../../../../components/SimpleList";
-import { Typography, Button, Input, Space, Tag, Modal, Alert, Select, Checkbox, Switch, Collapse, InputNumber, Result } from "antd";
+import {
+  Typography,
+  Button,
+  Input,
+  Space,
+  Tag,
+  Modal,
+  Alert,
+  Select,
+  Checkbox,
+  Switch,
+  Collapse,
+  InputNumber,
+  Result,
+} from "antd";
 import {
   DeleteOutlined,
-  InfoCircleOutlined,
   PlusOutlined,
   ReloadOutlined,
 } from "@ant-design/icons";
 import { DebugSection } from "../DebugSection";
+import { DebugFlowScopeIntro } from "../DebugFlowScopeIntro";
 import type { DebugModalController } from "../../hooks/useDebugModalController";
 import type { DebugAgentProfile, DebugArtifactPolicy } from "../../types";
 import {
@@ -26,39 +40,7 @@ export function SetupPanel({
   return (
     <Space orientation="vertical" size={14} style={{ width: "100%" }}>
       <DebugSection title="关于 MPE FlowScope (调试模块)">
-        <Space orientation="vertical" size={8} style={{ width: "100%" }}>
-          <Text>
-            本调试模块定位为临时调试，适合在编辑流程时快速验证节点行为。
-          </Text>
-          <Text>
-            使用 MPE FlowScope
-            调试时，识别、执行的耗时会因特殊设计有明显延长，此问题不影响节点效果。
-          </Text>
-          <Text>如需进行正式、系统化的调试，推荐使用以下工具：</Text>
-
-          <Space wrap>
-            <Button
-              type="link"
-              icon={<InfoCircleOutlined />}
-              href="https://github.com/MaaXYZ/MaaDebugger"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ padding: 0 }}
-            >
-              MaaDebugger
-            </Button>
-            <Button
-              type="link"
-              icon={<InfoCircleOutlined />}
-              href="https://github.com/neko-para/maa-support-extension"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ padding: 0 }}
-            >
-              maa-support-extension
-            </Button>
-          </Space>
-        </Space>
+        <DebugFlowScopeIntro />
       </DebugSection>
       <Collapse
         defaultActiveKey={["profile", "resources"]}
@@ -93,11 +75,7 @@ function agentResultKey(agent: DebugAgentProfile, index: number): string {
   return getDebugAgentProfileKey(agent) ?? `agent-${index + 1}`;
 }
 
-function ProfileSection({
-  controller,
-}: {
-  controller: DebugModalController;
-}) {
+function ProfileSection({ controller }: { controller: DebugModalController }) {
   const {
     profileState,
     invalidateResourcePreflight,
@@ -164,7 +142,9 @@ function ProfileSection({
           <Select
             value={profileState.profile.savePolicy}
             style={{ width: 240 }}
-            onChange={(savePolicy) => profileState.updateProfile({ savePolicy })}
+            onChange={(savePolicy) =>
+              profileState.updateProfile({ savePolicy })
+            }
             options={[
               { value: "sandbox", label: "沙盒快照（Sandbox）" },
               { value: "save-open-files", label: "保存打开文件" },
@@ -189,7 +169,10 @@ function ProfileSection({
           options={[
             { value: "includeRawImage", label: "原始图（Raw Image）" },
             { value: "includeDrawImage", label: "绘制图（Draw Image）" },
-            { value: "includeActionDetail", label: "动作详情（Action Detail）" },
+            {
+              value: "includeActionDetail",
+              label: "动作详情（Action Detail）",
+            },
           ]}
         />
       </DebugSection>
@@ -203,7 +186,8 @@ function ProfileSection({
             <Text>运行结束后自动生成 AI 总结</Text>
           </Space>
           <Text type="secondary">
-            关闭时只会在中控台或 AI 总结面板手动生成；开启后不会阻塞调试运行完成。
+            关闭时只会在中控台或 AI
+            总结面板手动生成；开启后不会阻塞调试运行完成。
           </Text>
         </Space>
       </DebugSection>
@@ -211,11 +195,7 @@ function ProfileSection({
   );
 }
 
-function ResourceSection({
-  controller,
-}: {
-  controller: DebugModalController;
-}) {
+function ResourceSection({ controller }: { controller: DebugModalController }) {
   const {
     connected,
     resourcePreflightStatus,
@@ -256,8 +236,8 @@ function ResourceSection({
               }。`
             : resourcePreflightStatus === "checking"
               ? "后端正在使用 MaaFramework 加载资源，请稍候。"
-              : resourcePreflight.error ??
-                "留空时会使用 LocalBridge 当前扫描到的资源包绝对路径；打开调试模块或修改资源路径后会检测一次。"
+              : (resourcePreflight.error ??
+                "留空时会使用 LocalBridge 当前扫描到的资源包绝对路径；打开调试模块或修改资源路径后会检测一次。")
         }
       />
       <Space wrap>
@@ -313,16 +293,15 @@ function ControllerSection({
 }: {
   controller: DebugModalController;
 }) {
-  const {
-    mfwState,
-    controllerDisplayName,
-  } = controller;
+  const { mfwState, controllerDisplayName } = controller;
 
   return (
     <Space orientation="vertical" size={14} style={{ width: "100%" }}>
       <DebugSection title="当前控制器（Controller）">
         <Space wrap>
-          <Tag color={mfwState.connectionStatus === "connected" ? "green" : "red"}>
+          <Tag
+            color={mfwState.connectionStatus === "connected" ? "green" : "red"}
+          >
             {mfwState.connectionStatus}
           </Tag>
           <Tag>{mfwState.controllerType ?? "无类型"}</Tag>
@@ -340,11 +319,7 @@ function ControllerSection({
   );
 }
 
-function AgentSection({
-  controller,
-}: {
-  controller: DebugModalController;
-}) {
+function AgentSection({ controller }: { controller: DebugModalController }) {
   const {
     profileState,
     diagnosticsState,
@@ -356,10 +331,7 @@ function AgentSection({
   const agentDiagnostics = diagnosticsState.diagnostics.filter(
     (d) => typeof d.code === "string" && d.code.startsWith("debug.agent."),
   );
-  const updateAgent = (
-    index: number,
-    updates: Partial<DebugAgentProfile>,
-  ) => {
+  const updateAgent = (index: number, updates: Partial<DebugAgentProfile>) => {
     profileState.setAgents(
       agents.map((agent, agentIndex) =>
         agentIndex === index ? { ...agent, ...updates } : agent,
@@ -482,9 +454,10 @@ function AgentSection({
                         </Text>
                       ) : (
                         <Text type="secondary">
-                          常见的原因包括：未启动项目 Agent、项目 Agent 版本（一般为
-                          python/go 的 maafw 库版本）与 MPE 的依赖版本（可自行替换，即填写的
-                          Lib 目录）不一致、连接前未成功加载资源等。
+                          常见的原因包括：未启动项目 Agent、项目 Agent
+                          版本（一般为 python/go 的 maafw 库版本）与 MPE
+                          的依赖版本（可自行替换，即填写的 Lib
+                          目录）不一致、连接前未成功加载资源等。
                         </Text>
                       )
                     }
