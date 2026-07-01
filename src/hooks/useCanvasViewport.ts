@@ -175,7 +175,7 @@ export function useCanvasViewport({
     const containerHeight = container.clientHeight - containerPadding;
     const scaleX = containerWidth / img.width;
     const scaleY = containerHeight / img.height;
-    const fitScale = Math.min(scaleX, scaleY, 1);
+    const fitScale = Math.min(scaleX, scaleY);
 
     setScale(fitScale);
     const scaledWidth = img.width * fitScale;
@@ -198,7 +198,7 @@ export function useCanvasViewport({
       const containerHeight = container.clientHeight - containerPadding;
       const scaleX = containerWidth / img.width;
       const scaleY = containerHeight / img.height;
-      const fitScale = Math.min(scaleX, scaleY, 1);
+      const fitScale = Math.min(scaleX, scaleY);
 
       setScale(fitScale);
       setInitialScale(fitScale);

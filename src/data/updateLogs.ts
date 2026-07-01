@@ -98,7 +98,11 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2026-7-1",
     type: "perf",
     updates: {
-      perfs: ["日志面板收到消息时自动切换到最新通知的模块"],
+      perfs: [
+        "日志面板收到消息时自动切换到最新通知的模块",
+        "识别失败时，保留原始截图供前端展示",
+      ],
+      fixes: ["修复部分情况下小工具预览图无法放大的问题"],
     },
   },
   {
