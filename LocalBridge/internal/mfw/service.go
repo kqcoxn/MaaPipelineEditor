@@ -133,8 +133,8 @@ func (s *Service) Initialize() (err error) {
 		return err
 	}
 
-	// 错误时不保存截图
-	if err := maa.SetSaveOnError(false); err != nil {
+	// 错误时也保存截图（调试面板需要展示识别失败时的截图）
+	if err := maa.SetSaveOnError(true); err != nil {
 		logger.Warn("MFW", "设置 SaveOnError 失败: %v", err)
 	}
 
