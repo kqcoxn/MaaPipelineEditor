@@ -94,6 +94,14 @@ export const nextPreview: ForecastSection = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "1.7.2",
+    date: "2026-7-1",
+    type: "perf",
+    updates: {
+      perfs: ["日志面板收到消息时自动切换到最新通知的模块"],
+    },
+  },
+  {
     version: "1.7.1",
     date: "2026-6-30",
     type: "perf",

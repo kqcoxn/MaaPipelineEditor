@@ -119,7 +119,8 @@ export function LoggerPanel() {
   const [autoScroll, setAutoScroll] = useState(true);
   const [pulse, setPulse] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("operation");
-  const prevLogsLengthRef = useRef(opLogs.length);
+  const prevOpLenRef = useRef(opLogs.length);
+  const prevBackendLenRef = useRef(backendLogs.length);
 
   const currentLogs = activeTab === "operation" ? opLogs : backendLogs;
 
@@ -130,16 +131,35 @@ export function LoggerPanel() {
     }
   }, [currentLogs, expanded, autoScroll]);
 
-  // 新日志到达时触发脉冲动画（收起态）
+  // 新操作日志到达时自动切换到操作记录 tab
   useEffect(() => {
-    const len = activeTab === "operation" ? opLogs.length : backendLogs.length;
-    if (!expanded && len > prevLogsLengthRef.current) {
-      setPulse(true);
-      const timer = setTimeout(() => setPulse(false), 1600);
-      return () => clearTimeout(timer);
+    if (opLogs.length > prevOpLenRef.current) {
+      setActiveTab("operation");
+      if (!expanded) {
+        setPulse(true);
+        const timer = setTimeout(() => setPulse(false), 1600);
+        return () => clearTimeout(timer);
+      }
+      setAutoScroll(true);
     }
-    prevLogsLengthRef.current = len;
-  }, [opLogs.length, backendLogs.length, expanded, activeTab]);
+    prevOpLenRef.current = opLogs.length;
+  }, [opLogs.length, expanded]);
+
+  // 新后端日志到达时自动切换到后端日志 tab
+  useEffect(() => {
+    if (backendLogs.length > prevBackendLenRef.current) {
+      if (connected) {
+        setActiveTab("backend");
+      }
+      if (!expanded) {
+        setPulse(true);
+        const timer = setTimeout(() => setPulse(false), 1600);
+        return () => clearTimeout(timer);
+      }
+      setAutoScroll(true);
+    }
+    prevBackendLenRef.current = backendLogs.length;
+  }, [backendLogs.length, expanded, connected]);
 
   // 监听滚动事件
   const handleScroll = () => {
@@ -175,8 +195,10 @@ export function LoggerPanel() {
     }
   }, [activeTab, clearOpLogs, clearBackendLogs]);
 
-  // 收起态最新条目
+  // 收起态最新条目（根据当前 activeTab 显示对应日志）
   const latestOpLog = opLogs.length > 0 ? opLogs[opLogs.length - 1] : null;
+  const latestBackendLog =
+    backendLogs.length > 0 ? backendLogs[backendLogs.length - 1] : null;
 
   // 收起态
   if (!expanded) {
@@ -186,19 +208,34 @@ export function LoggerPanel() {
         onClick={toggleExpanded}
       >
         <div className={`${styles.bar} ${pulse ? styles.barPulse : ""}`}>
-          {latestOpLog ? (
+          {activeTab === "operation" ? (
+            latestOpLog ? (
+              <>
+                <span
+                  className={`${styles.barIcon} ${getCategoryClass(latestOpLog.category)}`}
+                >
+                  {getCategoryIcon(latestOpLog.category)}
+                </span>
+                <span className={styles.barMessage}>
+                  {latestOpLog.description}
+                </span>
+              </>
+            ) : (
+              <span className={styles.barMessage}>暂无操作记录</span>
+            )
+          ) : latestBackendLog ? (
             <>
               <span
-                className={`${styles.barIcon} ${getCategoryClass(latestOpLog.category)}`}
+                className={`${styles.barIcon} ${getLevelClass(latestBackendLog.level)}`}
               >
-                {getCategoryIcon(latestOpLog.category)}
+                {getLevelIcon(latestBackendLog.level)}
               </span>
               <span className={styles.barMessage}>
-                {latestOpLog.description}
+                {latestBackendLog.message}
               </span>
             </>
           ) : (
-            <span className={styles.barMessage}>暂无操作记录</span>
+            <span className={styles.barMessage}>暂无日志</span>
           )}
         </div>
       </div>
