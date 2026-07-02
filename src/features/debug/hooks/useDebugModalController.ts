@@ -27,7 +27,6 @@ import {
   saveOpenedLocalFilesForDebug,
   useFileStore,
 } from "../../../stores/fileStore";
-import { showActionRunConfirm } from "../confirmActionRun";
 import {
   buildDebugAiSummaryPrompt,
   parseDebugAiSummaryResponse,
@@ -354,10 +353,6 @@ export function useDebugModalController() {
     nodeId?: string,
     input?: DebugRunRequest["input"],
   ): Promise<void> => {
-    if (mode === "action-only" && !input?.confirmAction) {
-      confirmActionRun(nodeId);
-      return;
-    }
     clearProtocolError();
     if (overrideValidationError) {
       diagnosticsState.setPreflightDiagnostics([
@@ -445,11 +440,6 @@ export function useDebugModalController() {
     }
   };
 
-  function confirmActionRun(nodeId?: string) {
-    showActionRunConfirm(() => {
-      void startRun("action-only", nodeId, { confirmAction: true });
-    });
-  }
 
   const stopRun = () => {
     if (!session?.sessionId) {
@@ -732,7 +722,6 @@ export function useDebugModalController() {
     requestArtifact,
     testingAgentIds,
     startRun,
-    confirmActionRun,
     stopRun,
     captureScreenshot,
     selectDisplaySessions,

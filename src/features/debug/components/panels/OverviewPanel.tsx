@@ -158,7 +158,6 @@ export function OverviewPanel({
     allNodeExecutionRecords,
     nodeExecutionResolverNodes,
     startRun,
-    confirmActionRun,
     stopRun,
     selectPipelineNode,
     setIncludeAllJsonRunTargets,
@@ -412,7 +411,7 @@ export function OverviewPanel({
               <Button
                 danger
                 icon={<CaretRightOutlined />}
-                onClick={() => confirmActionRun(selectedRunTargetNodeId)}
+                onClick={() => startRun("action-only", selectedRunTargetNodeId)}
                 disabled={
                   !canStartRun ||
                   !hasSelectedNode ||

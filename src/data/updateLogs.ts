@@ -99,6 +99,7 @@ export const updateLogs: UpdateLogItem[] = [
     type: "perf",
     updates: {
       perfs: ["日志面板可复制"],
+      fixes: ["修复仅调试动作时无法忽略 inverse 字段的问题"],
     },
   },
   {

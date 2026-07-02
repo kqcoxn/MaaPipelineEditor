@@ -89,12 +89,5 @@ export function validateRunRequest(
       message: "节点级调试缺少目标节点（Target）。",
     });
   }
-  if (request.mode === "action-only" && !request.input?.confirmAction) {
-    diagnostics.push({
-      severity: "error",
-      code: "debug.action.confirm_missing",
-      message: "仅动作模式需要危险操作确认。",
-    });
-  }
   return diagnostics;
 }

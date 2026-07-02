@@ -610,6 +610,7 @@ func (r *Runtime) directModeOverride(mode protocol.RunMode) (map[string]interfac
 			"type":  string(maa.RecognitionTypeDirectHit),
 			"param": map[string]interface{}{},
 		}
+		node["inverse"] = false
 	default:
 		return nil, fmt.Errorf("unsupported direct mode override: %s", mode)
 	}

@@ -290,19 +290,6 @@ function handleDebugRunMode(node: NodeContextMenuNode, mode: DebugRunMode) {
     message.warning(`当前 LocalBridge 暂不支持调试模式: ${mode}`);
     return;
   }
-  if (mode === "action-only") {
-    Modal.confirm({
-      title: "确认执行动作",
-      content: "仅动作模式会跳过识别，直接执行目标节点 action。",
-      okText: "确认执行",
-      okButtonProps: { danger: true },
-      cancelText: "取消",
-      onOk: () =>
-        void handleDebugRunModeWithInput(node, mode, { confirmAction: true }),
-    });
-    return;
-  }
-
   void handleDebugRunModeWithInput(node, mode);
 }
 

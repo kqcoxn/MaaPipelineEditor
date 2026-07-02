@@ -552,9 +552,6 @@ func validateRunRequest(req protocol.RunRequest) error {
 	if !protocol.IsValidRunMode(req.Mode) {
 		return fmt.Errorf("无效的 run mode: %s", req.Mode)
 	}
-	if req.Mode == protocol.RunModeActionOnly && (req.Input == nil || !req.Input.ConfirmAction) {
-		return fmt.Errorf("action-only requires input.confirmAction=true")
-	}
 	if strings.TrimSpace(req.Profile.ID) == "" {
 		return fmt.Errorf("缺少必需字段: profile.id")
 	}
