@@ -94,6 +94,14 @@ export const nextPreview: ForecastSection = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "1.7.3",
+    date: "2026-7-3",
+    type: "perf",
+    updates: {
+      perfs: ["日志面板可复制"],
+    },
+  },
+  {
     version: "1.7.2",
     date: "2026-7-1",
     type: "perf",

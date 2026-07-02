@@ -110,6 +110,7 @@ const scrollMainStyle: CSSProperties = {
   overflowX: "hidden",
   scrollbarGutter: "stable",
   paddingRight: 4,
+  userSelect: "text",
 };
 
 const nodeExecutionMainStyle: CSSProperties = {

@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Button, Empty, Space, Tag, Typography, message } from "antd";
-import { FolderOpenOutlined, ReloadOutlined } from "@ant-design/icons";
+import {
+  CopyOutlined,
+  FolderOpenOutlined,
+  ReloadOutlined,
+} from "@ant-design/icons";
 import type { CSSProperties } from "react";
 import { DebugSection } from "../DebugSection";
 import { mfwProtocol } from "../../../../services/server";
@@ -24,6 +28,7 @@ const logViewerStyle: CSSProperties = {
   lineHeight: 1.5,
   whiteSpace: "pre-wrap",
   wordBreak: "break-word",
+  userSelect: "text",
 };
 
 interface MaafwLogState {
@@ -162,6 +167,19 @@ export function DebugLogPanel({
             <Button icon={<FolderOpenOutlined />} onClick={openDir}>
               打开所在文件夹
             </Button>
+            {logState.status === "loaded" && logState.content && (
+              <Button
+                icon={<CopyOutlined />}
+                onClick={() => {
+                  navigator.clipboard.writeText(logState.content).then(
+                    () => message.success("已复制日志全文"),
+                    () => message.error("复制失败"),
+                  );
+                }}
+              >
+                复制全文
+              </Button>
+            )}
             {logState.truncated && <Tag color="orange">仅显示末尾片段</Tag>}
             {logState.size !== undefined && (
               <Tag>{formatSize(logState.size)}</Tag>
