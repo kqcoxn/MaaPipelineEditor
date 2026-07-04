@@ -111,20 +111,30 @@ function Install-OCRAssets() {
         Write-Host "Extracting OCR assets..." -ForegroundColor Yellow
         Expand-Archive -Path $zipPath -DestinationPath $extractDir -Force
 
-        $modelDir = Get-ChildItem -Path $extractDir -Directory -Recurse |
-            Where-Object {
-                (Test-Path (Join-Path $_.FullName "det.onnx")) -and
-                (Test-Path (Join-Path $_.FullName "rec.onnx")) -and
-                (Test-Path (Join-Path $_.FullName "keys.txt"))
-            } |
-            Select-Object -First 1
+        $modelDirPath = $null
+        if ((Test-Path (Join-Path $extractDir "det.onnx")) -and
+            (Test-Path (Join-Path $extractDir "rec.onnx")) -and
+            (Test-Path (Join-Path $extractDir "keys.txt"))) {
+            $modelDirPath = $extractDir
+        } else {
+            $modelDir = Get-ChildItem -Path $extractDir -Directory -Recurse |
+                Where-Object {
+                    (Test-Path (Join-Path $_.FullName "det.onnx")) -and
+                    (Test-Path (Join-Path $_.FullName "rec.onnx")) -and
+                    (Test-Path (Join-Path $_.FullName "keys.txt"))
+                } |
+                Select-Object -First 1
+            if ($modelDir) {
+                $modelDirPath = $modelDir.FullName
+            }
+        }
 
-        if (!$modelDir) {
+        if (!$modelDirPath) {
             Write-Host "Failed to locate det.onnx / rec.onnx / keys.txt in OCR archive" -ForegroundColor Red
             exit 1
         }
 
-        Copy-DirectoryContents $modelDir.FullName $OCR_DIR
+        Copy-DirectoryContents $modelDirPath $OCR_DIR
         Write-Host "OCR assets installed: $OCR_DIR" -ForegroundColor Green
     } finally {
         if (Test-Path $tempRoot) {
