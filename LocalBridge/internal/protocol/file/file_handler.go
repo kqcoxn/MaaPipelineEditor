@@ -272,6 +272,10 @@ func (h *Handler) handleCreateFile(msg models.Message, conn *server.Connection) 
 
 // 处理刷新文件列表请求
 func (h *Handler) handleRefreshFileList(msg models.Message, conn *server.Connection) *models.Message {
+	// 重新扫描文件系统，而非仅推送内存索引
+	if err := h.fileService.Rescan(); err != nil {
+		logger.Error("FileProtocol", "重新扫描文件失败: %v", err)
+	}
 	h.pushFileList()
 	return nil
 }
@@ -317,16 +321,18 @@ func (h *Handler) subscribeEvents() {
 // 推送文件列表
 func (h *Handler) pushFileList() {
 	fileList := h.fileService.GetFileList()
+	directories := h.fileService.GetDirectories()
 
 	h.wsServer.Broadcast(models.Message{
 		Path: "/lte/file_list",
 		Data: models.FileListData{
-			Root:  h.root,
-			Files: fileList,
+			Root:        h.root,
+			Files:       fileList,
+			Directories: directories,
 		},
 	})
 
-	logger.Debug("FileProtocol", "推送文件列表，共 %d 个文件", len(fileList))
+	logger.Debug("FileProtocol", "推送文件列表，共 %d 个文件, %d 个目录", len(fileList), len(directories))
 }
 
 // 解析消息数据

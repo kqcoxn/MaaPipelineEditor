@@ -146,6 +146,44 @@ func (s *Scanner) ScanWithLimit() (*ScanResult, error) {
 	return result, err
 }
 
+// ScanDirectories 扫描根目录下所有子目录（包括空目录）
+func (s *Scanner) ScanDirectories() []string {
+	var dirs []string
+
+	rootDepth := strings.Count(s.root, string(filepath.Separator))
+
+	filepath.WalkDir(s.root, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+
+		if !d.IsDir() {
+			return nil
+		}
+
+		// 跳过根目录自身
+		if path == s.root {
+			return nil
+		}
+
+		// 检查深度限制
+		currentDepth := strings.Count(path, string(filepath.Separator)) - rootDepth
+		if s.maxDepth > 0 && currentDepth > s.maxDepth {
+			return filepath.SkipDir
+		}
+
+		// 检查是否在排除列表中
+		if s.shouldExcludeDir(d.Name()) {
+			return filepath.SkipDir
+		}
+
+		dirs = append(dirs, path)
+		return nil
+	})
+
+	return dirs
+}
+
 // 检查目录是否应该被排除
 func (s *Scanner) shouldExcludeDir(dirName string) bool {
 	for _, excluded := range s.exclude {

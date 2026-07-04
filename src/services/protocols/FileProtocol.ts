@@ -77,7 +77,7 @@ export class FileProtocol extends BaseProtocol {
    */
   private handleFileList(data: any): void {
     try {
-      const { root, files } = data;
+      const { root, files, directories } = data;
 
       if (!root || !Array.isArray(files)) {
         console.error("[FileProtocol] Invalid file list data:", data);
@@ -87,7 +87,11 @@ export class FileProtocol extends BaseProtocol {
       // 更新本地文件缓存
       const localFileStore = useLocalFileStore.getState();
       const wasRefreshing = localFileStore.isRefreshing;
-      localFileStore.setFileList(root, files as LocalFileInfo[]);
+      localFileStore.setFileList(
+        root,
+        files as LocalFileInfo[],
+        Array.isArray(directories) ? directories : [],
+      );
 
       if (wasRefreshing) {
         message.success(`文件列表刷新完成，共 ${files.length} 个文件`);

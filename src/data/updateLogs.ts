@@ -95,13 +95,14 @@ export const nextPreview: ForecastSection = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "1.7.3",
-    date: "2026-7-3",
+    date: "2026-7-4",
     type: "fix",
     updates: {
       perfs: ["日志面板可复制", "适配 ppocr v6 包新目录结构"],
       fixes: [
         "修复仅调试动作时无法忽略 inverse 字段的问题",
         "修复控制器截图分辨率竞态问题",
+        "修复修复空文件夹无法被索引的问题",
       ],
     },
   },

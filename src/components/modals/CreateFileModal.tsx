@@ -23,13 +23,14 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
 
   const rootPath = useLocalFileStore((state) => state.rootPath);
   const files = useLocalFileStore((state) => state.files);
+  const directories = useLocalFileStore((state) => state.directories);
   const currentFileName = useFileStore((state) => state.currentFile.fileName);
   const currentFilePath = useFileStore(
     (state) => state.currentFile.config.filePath
   );
   const setFileConfig = useFileStore((state) => state.setFileConfig);
 
-  // 提取目录列表
+  // 提取目录列表（合并后端提供的目录和从文件路径推导的目录）
   const directoryOptions = useMemo(() => {
     const dirSet = new Set<string>();
 
@@ -38,7 +39,12 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
       dirSet.add(rootPath);
     }
 
-    // 提取精简目录
+    // 添加后端提供的子目录列表（包括空目录）
+    directories.forEach((dir) => {
+      dirSet.add(dir);
+    });
+
+    // 从已有文件中提取目录（兜底，确保所有包含文件的目录都在列表中）
     files.forEach((file) => {
       const path = file.file_path;
       const lastSep = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));
@@ -48,7 +54,7 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
     });
 
     return Array.from(dirSet).sort();
-  }, [rootPath, files]);
+  }, [rootPath, files, directories]);
 
   // 显示名称
   const getDisplayPath = (

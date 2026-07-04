@@ -61,6 +61,7 @@ export type ImageFileInfo = {
 type LocalFileState = {
   rootPath: string; // 根目录路径
   files: LocalFileInfo[]; // 文件列表
+  directories: string[]; // 子目录绝对路径列表（包括空目录）
   lastUpdateTime: number; // 最后更新时间戳
   isRefreshing: boolean; // 是否正在刷新
 
@@ -77,7 +78,7 @@ type LocalFileState = {
   imageListLoading: boolean; // 是否正在加载图片列表
 
   // 更新文件列表（全量替换）
-  setFileList: (rootPath: string, files: LocalFileInfo[]) => void;
+  setFileList: (rootPath: string, files: LocalFileInfo[], directories: string[]) => void;
 
   // 增量添加文件
   addFile: (file: LocalFileInfo) => void;
@@ -130,6 +131,7 @@ type LocalFileState = {
 export const useLocalFileStore = create<LocalFileState>()((set, get) => ({
   rootPath: "",
   files: [],
+  directories: [],
   lastUpdateTime: 0,
   isRefreshing: false,
 
@@ -146,10 +148,11 @@ export const useLocalFileStore = create<LocalFileState>()((set, get) => ({
   imageListLoading: false,
 
   // 更新文件列表
-  setFileList(rootPath, files) {
+  setFileList(rootPath, files, directories) {
     set({
       rootPath,
       files,
+      directories,
       lastUpdateTime: Date.now(),
       isRefreshing: false,
     });
@@ -298,6 +301,7 @@ export const useLocalFileStore = create<LocalFileState>()((set, get) => ({
     set({
       rootPath: "",
       files: [],
+      directories: [],
       lastUpdateTime: 0,
       isRefreshing: false,
       resourceBundles: [],

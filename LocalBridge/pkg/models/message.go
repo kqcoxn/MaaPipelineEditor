@@ -24,8 +24,9 @@ type FileInfo struct {
 
 // 文件列表数据
 type FileListData struct {
-	Root  string     `json:"root"`  // 根目录绝对路径
-	Files []FileInfo `json:"files"` // 文件列表
+	Root        string     `json:"root"`        // 根目录绝对路径
+	Files       []FileInfo `json:"files"`       // 文件列表
+	Directories []string   `json:"directories"` // 子目录绝对路径列表（包括空目录）
 }
 
 // 文件内容数据

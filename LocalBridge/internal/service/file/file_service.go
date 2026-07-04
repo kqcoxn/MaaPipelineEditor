@@ -119,6 +119,40 @@ func (s *Service) GetFileList() []models.FileInfo {
 	return fileList
 }
 
+// 获取子目录列表（包括空目录）
+func (s *Service) GetDirectories() []string {
+	dirs := s.scanner.ScanDirectories()
+
+	// 按路径排序
+	sort.Strings(dirs)
+
+	return dirs
+}
+
+// Rescan 重新扫描文件系统，刷新内存索引
+func (s *Service) Rescan() error {
+	result, err := s.scanner.ScanWithLimit()
+	if err != nil {
+		return err
+	}
+
+	// 重建文件索引
+	s.mu.Lock()
+	s.fileIndex = make(map[string]*models.File)
+	for i := range result.Files {
+		s.fileIndex[result.Files[i].AbsPath] = &result.Files[i]
+	}
+	s.mu.Unlock()
+
+	if result.Truncated {
+		logger.Warn("FileService", "重新扫描完成，发现 %d 个文件（%s）", len(result.Files), result.LimitReason)
+	} else {
+		logger.Info("FileService", "重新扫描完成，发现 %d 个文件", len(result.Files))
+	}
+
+	return nil
+}
+
 // 读取文件内容
 func (s *Service) ReadFile(filePath string) (interface{}, error) {
 	// 验证路径安全性
@@ -252,6 +286,11 @@ func (s *Service) CreateFile(directory, fileName string, content interface{}) (s
 	// 检查文件是否已存在
 	if _, err := os.Stat(filePath); err == nil {
 		return "", errors.NewFileNameConflictError(filePath)
+	}
+
+	// 确保目录存在（支持在新建的空目录中创建文件）
+	if err := os.MkdirAll(directory, 0755); err != nil {
+		return "", errors.NewFileWriteError(directory, err)
 	}
 
 	// 序列化初始内容
