@@ -5,6 +5,15 @@ import {
   type OperationDescriptor,
 } from "../../operationLogStore";
 
+let saveTimeout: ReturnType<typeof setTimeout> | null = null;
+
+function clearSaveTimeout() {
+  if (saveTimeout !== null) {
+    clearTimeout(saveTimeout);
+    saveTimeout = null;
+  }
+}
+
 // 快速序列化状态（排除 UI 状态）
 function serializeState(nodes: NodeType[], edges: EdgeType[]): string {
   const cleanNodes = nodes.map((node) => ({
@@ -47,19 +56,15 @@ export const createHistorySlice: StateCreator<
   // 初始状态
   historyStack: [],
   historyIndex: -1,
-  saveTimeout: null,
   lastSnapshot: null,
 
   // 保存历史记录
   saveHistory(delay: number = 500, opDescriptor?: OperationDescriptor) {
-    const state = get();
-
     // 清除旧的超时
-    if (state.saveTimeout) {
-      clearTimeout(state.saveTimeout);
-    }
+    clearSaveTimeout();
 
-    const timeout = setTimeout(() => {
+    saveTimeout = setTimeout(() => {
+      saveTimeout = null;
       const currentState = get();
 
       // 获取历史限制配置
@@ -71,7 +76,6 @@ export const createHistorySlice: StateCreator<
         currentState.edges
       );
       if (currentState.lastSnapshot === currentStateStr) {
-        set({ saveTimeout: null });
         return;
       }
 
@@ -113,12 +117,9 @@ export const createHistorySlice: StateCreator<
           historyStack: newStack,
           historyIndex: newIndex,
           lastSnapshot: currentStateStr,
-          saveTimeout: null,
         };
       });
-    }, delay) as unknown as number;
-
-    set({ saveTimeout: timeout });
+    }, delay);
   },
 
   // 撤销
@@ -127,10 +128,7 @@ export const createHistorySlice: StateCreator<
     if (state.historyIndex <= 0) return false;
 
     // 清除保存超时
-    if (state.saveTimeout) {
-      clearTimeout(state.saveTimeout);
-      set({ saveTimeout: null });
-    }
+    clearSaveTimeout();
 
     const newIndex = state.historyIndex - 1;
     const snapshot = state.historyStack[newIndex];
@@ -167,10 +165,7 @@ export const createHistorySlice: StateCreator<
     if (state.historyIndex >= state.historyStack.length - 1) return false;
 
     // 清除保存超时
-    if (state.saveTimeout) {
-      clearTimeout(state.saveTimeout);
-      set({ saveTimeout: null });
-    }
+    clearSaveTimeout();
 
     const newIndex = state.historyIndex + 1;
     const snapshot = state.historyStack[newIndex];
@@ -203,6 +198,8 @@ export const createHistorySlice: StateCreator<
 
   // 初始化历史记录
   initHistory(nodes: NodeType[], edges: EdgeType[]) {
+    clearSaveTimeout();
+
     const snapshot = {
       nodes: fastClone(nodes),
       edges: fastClone(edges),
@@ -213,7 +210,6 @@ export const createHistorySlice: StateCreator<
       historyStack: [snapshot],
       historyIndex: 0,
       lastSnapshot: snapshotStr,
-      saveTimeout: null,
     });
   },
 
@@ -221,12 +217,8 @@ export const createHistorySlice: StateCreator<
   // 与 initHistory 不同，此方法不清空历史栈，
   // 而是将导入前状态和导入后状态依次追加，使 undo 可以回到导入前
   importHistory(nodes: NodeType[], edges: EdgeType[]) {
-    const state = get();
-
     // 清除待保存的超时
-    if (state.saveTimeout) {
-      clearTimeout(state.saveTimeout);
-    }
+    clearSaveTimeout();
 
     const importSnapshotStr = serializeState(nodes, edges);
     const importSnapshot = {
@@ -244,7 +236,6 @@ export const createHistorySlice: StateCreator<
           historyStack: [importSnapshot],
           historyIndex: 0,
           lastSnapshot: importSnapshotStr,
-          saveTimeout: null,
         };
       }
 
@@ -283,23 +274,18 @@ export const createHistorySlice: StateCreator<
         historyStack: newStack,
         historyIndex: newIndex,
         lastSnapshot: importSnapshotStr,
-        saveTimeout: null,
       };
     });
   },
 
   // 清空历史记录
   clearHistory() {
-    const state = get();
-    if (state.saveTimeout) {
-      clearTimeout(state.saveTimeout);
-    }
+    clearSaveTimeout();
 
     set({
       historyStack: [],
       historyIndex: -1,
       lastSnapshot: null,
-      saveTimeout: null,
     });
   },
 

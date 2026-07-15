@@ -1,0 +1,26 @@
+diff --git a/node_modules/@rc-component/portal/es/Portal.js b/node_modules/@rc-component/portal/es/Portal.js
+index 3a2b35a..24ac32c 100644
+--- a/node_modules/@rc-component/portal/es/Portal.js
++++ b/node_modules/@rc-component/portal/es/Portal.js
+@@ -56,7 +56,7 @@ const Portal = /*#__PURE__*/React.forwardRef((props, ref) => {
+     // React do the state update even the value is the same,
+     // Use function call to force React to compare update
+     customizeContainer ?? null);
+-  });
++  }, [getContainer]);
+   const [defaultContainer, queueCreate] = useDom(mergedRender && !innerContainer, debug);
+   const mergedContainer = innerContainer ?? defaultContainer;
+ 
+diff --git a/node_modules/@rc-component/portal/lib/Portal.js b/node_modules/@rc-component/portal/lib/Portal.js
+index ce4c0fc..cbadd69 100644
+--- a/node_modules/@rc-component/portal/lib/Portal.js
++++ b/node_modules/@rc-component/portal/lib/Portal.js
+@@ -65,7 +65,7 @@ const Portal = /*#__PURE__*/React.forwardRef((props, ref) => {
+     // React do the state update even the value is the same,
+     // Use function call to force React to compare update
+     customizeContainer ?? null);
+-  });
++  }, [getContainer]);
+   const [defaultContainer, queueCreate] = (0, _useDom.default)(mergedRender && !innerContainer, debug);
+   const mergedContainer = innerContainer ?? defaultContainer;
+ 

@@ -60,19 +60,18 @@ export const NodeJsonEditorModal = memo(
     const [validationError, setValidationError] = useState<string | null>(null);
 
     const jsonIndent = useConfigStore((state) => state.configs.jsonIndent);
-    const allNodes = useFlowStore((state) => state.nodes);
 
     // 将节点数据转换为 MFW 格式
     const convertNodeToMfwFormat = useCallback((node: NodeType): unknown => {
       if (node.type === NodeTypeEnum.Pipeline) {
         return parsePipelineNodeForExport(
           node as unknown as PipelineNodeType,
-          allNodes,
+          useFlowStore.getState().nodes,
         );
       }
       // 其他节点类型直接返回 data
       return node.data;
-    }, [allNodes]);
+    }, []);
 
     // 当模态框打开时，初始化 JSON 值
     useEffect(() => {

@@ -5,7 +5,11 @@ import { useShallow } from "zustand/shallow";
 
 /**路径选择浮层内容 */
 export default function PathSelector() {
-  const nodes = useFlowStore((state) => state.nodes);
+  const nodeOptionValues = useFlowStore(
+    useShallow((state) =>
+      state.nodes.flatMap((node) => [node.id, node.data.label]),
+    ),
+  );
   const {
     pathMode,
     pathStartNodeId,
@@ -30,11 +34,15 @@ export default function PathSelector() {
 
   // 生成节点选项
   const nodeOptions = useMemo(() => {
-    return nodes.map((node) => ({
-      label: node.data.label,
-      value: node.id,
-    }));
-  }, [nodes]);
+    const options = [];
+    for (let index = 0; index < nodeOptionValues.length; index += 2) {
+      options.push({
+        value: nodeOptionValues[index],
+        label: nodeOptionValues[index + 1],
+      });
+    }
+    return options;
+  }, [nodeOptionValues]);
 
   const hasPath = pathNodeIds.size > 0;
   const noPath = pathStartNodeId && pathEndNodeId && !hasPath;

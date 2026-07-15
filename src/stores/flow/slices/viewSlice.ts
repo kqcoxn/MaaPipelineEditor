@@ -3,7 +3,7 @@ import type { ReactFlowInstance, Viewport } from "@xyflow/react";
 import type { FlowStore, FlowViewState } from "../types";
 
 export const createViewSlice: StateCreator<FlowStore, [], [], FlowViewState> = (
-  set
+  set,
 ) => ({
   // 初始状态
   instance: null,
@@ -22,6 +22,10 @@ export const createViewSlice: StateCreator<FlowStore, [], [], FlowViewState> = (
 
   // 更新画布尺寸
   updateSize(width: number, height: number) {
-    set({ size: { width, height } });
+    set((state) =>
+      state.size.width === width && state.size.height === height
+        ? state
+        : { size: { width, height } },
+    );
   },
 });

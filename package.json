@@ -3,9 +3,12 @@
   "private": true,
   "version": "0.0.1",
   "type": "module",
+  "resolutions": {
+    "@rc-component/portal": "2.2.1"
+  },
   "scripts": {
     "icon": "npx iconfont-h5",
-    "postinstall": "node scripts/copy-monaco.cjs",
+    "postinstall": "patch-package && node scripts/copy-monaco.cjs",
     "dev": "vite",
     "landing": "yarn --cwd Landing dev",
     "landing:build": "yarn --cwd Landing build",
@@ -20,8 +23,8 @@
     "reset": "git reset --soft HEAD~1",
     "migrate": "node scripts/migrate-version.mjs",
     "proto": "node scripts/proto-version.mjs",
-    "release": "git tag -a v1.7.3 -m \"v1.7.3\" && git push origin v1.7.3",
-    "retag": "git tag -d v1.7.3"
+    "release": "git tag -a v1.7.4 -m \"v1.7.4\" && git push origin v1.7.4",
+    "retag": "git tag -d v1.7.4"
   },
   "dependencies": {
     "@ant-design/icons": "6",
@@ -67,6 +70,7 @@
     "globals": "^16.2.0",
     "happy-dom": "^20.0.11",
     "less": "^4.3.0",
+    "patch-package": "^8.0.1",
     "react-iconfont-cli": "^2.0.2",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.34.1",

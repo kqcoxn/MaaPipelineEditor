@@ -4,9 +4,7 @@ import classNames from "classnames";
 
 import style from "../../../../styles/flow/nodes.module.less";
 import type { PipelineNodeDataType } from "../../../../stores/flow";
-import { useFlowStore } from "../../../../stores/flow";
 import { useConfigStore } from "../../../../stores/configStore";
-import { SourceHandleTypeEnum, TargetHandleTypeEnum, NodeTypeEnum } from "../constants";
 import IconFont from "../../../iconfonts";
 import { KVElem } from "../components/KVElem";
 import { PipelineNodeHandles } from "../components/NodeHandles";
@@ -18,6 +16,7 @@ import {
   mergeFieldSortConfig,
   sortKeysByOrder,
 } from "../../../../core/sorting";
+import { useNodeFlowItems } from "./useNodeFlowItems";
 
 // focus 子项 key 到 displayName 的映射
 const focusDisplayNameMap: Record<string, string> = (() => {
@@ -58,26 +57,7 @@ export const ModernContent = memo(
       [fieldSortConfig],
     );
 
-    // 读取出边，按 sourceHandle 分为 next/on_error 两组，保留顺序
-    const edges = useFlowStore((state) => state.edges);
-    const nodes = useFlowStore((state) => state.nodes);
-    const { nextItems, errorItems } = useMemo(() => {
-      const nodeMap = new Map(nodes.map((n) => [n.id, n]));
-      const outEdges = edges.filter((e) => e.source === nodeId);
-      const nextItems: { label: string; variant: "normal" | "jumpback" | "anchor" }[] = [];
-      const errorItems: { label: string; variant: "normal" | "jumpback" | "anchor" }[] = [];
-      const sorted = [...outEdges].sort((a, b) => a.label - b.label);
-      for (const e of sorted) {
-        const targetNode = nodeMap.get(e.target);
-        const label = (targetNode?.data as any)?.label ?? e.target;
-        const isJumpBack = e.targetHandle === TargetHandleTypeEnum.JumpBack;
-        const isAnchor = targetNode?.type === NodeTypeEnum.Anchor || !!e.attributes?.anchor;
-        const variant = isJumpBack ? "jumpback" : isAnchor ? "anchor" : "normal";
-        if (e.sourceHandle === SourceHandleTypeEnum.Next) nextItems.push({ label, variant });
-        else if (e.sourceHandle === SourceHandleTypeEnum.Error) errorItems.push({ label, variant });
-      }
-      return { nextItems, errorItems };
-    }, [edges, nodes, nodeId]);
+    const { nextItems, errorItems } = useNodeFlowItems(nodeId);
 
     useEffect(() => {
       if (headerRef.current) {

@@ -33,6 +33,7 @@ import {
 } from "../../flow/nodes";
 import type { EdgeType } from "../../../stores/flow/types";
 import { crossFileService } from "../../../services/crossFileService";
+import { useShallow } from "zustand/shallow";
 import style from "./AdjacentInfoPanel.module.less";
 
 /**邻接信息面板 - 展示选中节点的前驱和后继节点信息 */
@@ -69,8 +70,24 @@ function makeSortableId(edge: { id: string }, source: string, handle: SourceHand
 }
 
 function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPanelProps) {
-  const nodes = useFlowStore((state) => state.nodes);
   const edges = useFlowStore((state) => state.edges);
+  const adjacentNodeIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const edge of edges) {
+      if (edge.target === currentNodeId) {
+        ids.add(edge.source);
+      }
+      if (edge.source === currentNodeId) {
+        ids.add(edge.target);
+      }
+    }
+    return ids;
+  }, [currentNodeId, edges]);
+  const adjacentNodes = useFlowStore(
+    useShallow((state) =>
+      state.nodes.filter((node) => adjacentNodeIds.has(node.id)),
+    ),
+  );
   const instance = useFlowStore((state) => state.instance);
   const reorderEdges = useFlowStore((state) => state.reorderEdges);
 
@@ -84,7 +101,7 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
 
     edges.forEach((edge: EdgeType) => {
       if (edge.target === currentNodeId) {
-        const sourceNode = nodes.find((n) => n.id === edge.source);
+        const sourceNode = adjacentNodes.find((n) => n.id === edge.source);
         if (sourceNode) {
           result.push({
             nodeId: edge.source,
@@ -107,7 +124,7 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
     });
 
     return result;
-  }, [edges, currentNodeId, nodes]);
+  }, [adjacentNodes, edges, currentNodeId]);
 
   // 计算后继节点
   const successors = useMemo(() => {
@@ -115,7 +132,7 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
 
     edges.forEach((edge: EdgeType) => {
       if (edge.source === currentNodeId) {
-        const targetNode = nodes.find((n) => n.id === edge.target);
+        const targetNode = adjacentNodes.find((n) => n.id === edge.target);
         if (targetNode) {
           result.push({
             edgeId: edge.id,
@@ -139,7 +156,7 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
     });
 
     return result;
-  }, [edges, currentNodeId, nodes]);
+  }, [adjacentNodes, edges, currentNodeId]);
 
   // 按类型分组后继节点
   const successorsByType = useMemo(() => {
@@ -154,12 +171,13 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
 
   // 点击节点跳转
   const handleNodeClick = useCallback((nodeId: string) => {
-    const targetNode = nodes.find((n) => n.id === nodeId);
+    const currentNodes = useFlowStore.getState().nodes;
+    const targetNode = currentNodes.find((n) => n.id === nodeId);
     if (!targetNode) return;
 
     // 取消其他节点的选中状态，选中目标节点
     useFlowStore.getState().updateNodes(
-      nodes.map((n) => ({
+      currentNodes.map((n) => ({
         type: "select" as const,
         id: n.id,
         selected: n.id === nodeId,
@@ -168,14 +186,14 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
 
     // 聚焦视图到该节点
     if (instance) {
-      const { x, y } = getNodeAbsolutePosition(targetNode, nodes);
+      const { x, y } = getNodeAbsolutePosition(targetNode, currentNodes);
       const { width = 200, height = 100 } = targetNode.measured || {};
       instance.setCenter(x + width / 2, y + height / 2, {
         duration: 500,
         zoom: 1.5,
       });
     }
-  }, [nodes, instance]);
+  }, [instance]);
 
   // 渲染节点标签
   const renderNodeTag = (
@@ -539,8 +557,6 @@ interface AddSuccessorInputProps {
 const AddSuccessorInput: React.FC<AddSuccessorInputProps> = memo(
   ({ sourceNodeId, sourceHandle }) => {
     const [inputValue, setInputValue] = useState("");
-    const nodes = useFlowStore((state) => state.nodes);
-    const edges = useFlowStore((state) => state.edges);
     const addEdge = useFlowStore((state) => state.addEdge);
     const addNode = useFlowStore((state) => state.addNode);
     const setNodeData = useFlowStore((state) => state.setNodeData);
@@ -571,6 +587,7 @@ const AddSuccessorInput: React.FC<AddSuccessorInputProps> = memo(
     const doConnect = useCallback(
       (targetLabel: string) => {
         if (!targetLabel.trim()) return;
+        const { nodes, edges } = useFlowStore.getState();
 
         // 查找当前文件中是否存在该节点
         const targetNode = findNodeByLabel(nodes, targetLabel);
@@ -609,7 +626,7 @@ const AddSuccessorInput: React.FC<AddSuccessorInputProps> = memo(
 
         setInputValue("");
       },
-      [nodes, edges, sourceNodeId, sourceHandle, addEdge, addNode, setNodeData],
+      [sourceNodeId, sourceHandle, addEdge, addNode, setNodeData],
     );
 
     // 回车确认

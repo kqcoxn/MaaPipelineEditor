@@ -3,6 +3,9 @@ import { useShallow } from "zustand/shallow";
 import { useFlowStore } from "../stores/flow";
 import { sendToParent } from "../utils/embedBridge";
 
+const EMPTY_NODES: never[] = [];
+const EMPTY_EDGES: never[] = [];
+
 /**
  * 嵌入模式变更通知 Hook
  * 订阅 FlowStore 的节点/边/选中状态变化，向宿主发送通知
@@ -18,9 +21,9 @@ interface PendingChange {
 export function useEmbedChangeNotifier(enabled: boolean = true) {
   const { nodes, edges, selectedNodes } = useFlowStore(
     useShallow((state) => ({
-      nodes: state.nodes,
-      edges: state.edges,
-      selectedNodes: state.selectedNodes,
+      nodes: enabled ? state.nodes : EMPTY_NODES,
+      edges: enabled ? state.edges : EMPTY_EDGES,
+      selectedNodes: enabled ? state.selectedNodes : EMPTY_NODES,
     })),
   );
 

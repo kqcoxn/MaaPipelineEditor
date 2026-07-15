@@ -139,42 +139,42 @@ export function AnchorNode(props: NodeProps<AnchorNodeData>) {
     })),
   );
   const edges = useFlowStore((state) => state.edges);
-  const nodes = useFlowStore((state) => state.nodes);
   const instance = useFlowStore((state) => state.instance);
-  const getNodesUsingAnchor = useFlowStore(
-    (state) => state.getNodesUsingAnchor,
+  const referencedNodeIds = useFlowStore((state) =>
+    state.anchorReferenceIndex.get(props.data.label),
+  );
+  const referencedNodes = useFlowStore(
+    useShallow((state) =>
+      state.nodes.filter((node) => referencedNodeIds?.has(node.id)),
+    ),
   );
 
   // 视觉副本数量（同 label 的其他 Anchor 节点）
-  const replicaCount = useMemo(() => {
+  const replicaCount = useFlowStore((state) => {
     let count = 0;
-    for (const n of nodes) {
+    for (const node of state.nodes) {
       if (
-        n.type === NodeTypeEnum.Anchor &&
-        n.id !== props.id &&
-        n.data.label === props.data.label
+        node.type === NodeTypeEnum.Anchor &&
+        node.id !== props.id &&
+        node.data.label === props.data.label
       ) {
         count++;
       }
     }
     return count;
-  }, [nodes, props.id, props.data.label]);
+  });
 
   // 获取引用此 anchor 的节点列表（支持跨文件）
   const referenceNodes = useMemo((): ReferenceNodeInfo[] => {
     const result: ReferenceNodeInfo[] = [];
 
     // 1. 当前文件中的引用节点（从索引获取）
-    const currentNodeIds = getNodesUsingAnchor(props.data.label);
-    for (const id of currentNodeIds) {
-      const node = nodes.find((n: NodeType) => n.id === id);
-      if (node) {
-        result.push({
-          id: node.id,
-          label: node.data.label,
-          isCurrentFile: true,
-        });
-      }
+    for (const node of referencedNodes) {
+      result.push({
+        id: node.id,
+        label: node.data.label,
+        isCurrentFile: true,
+      });
     }
 
     // 2. 跨文件搜索引用该 anchor 的节点
@@ -192,7 +192,7 @@ export function AnchorNode(props: NodeProps<AnchorNodeData>) {
     }
 
     return result;
-  }, [props.data.label, nodes, getNodesUsingAnchor]);
+  }, [props.data.label, referencedNodes]);
 
   // 跳转到指定节点
   const handleNavigateToNode = useCallback(
@@ -201,12 +201,13 @@ export function AnchorNode(props: NodeProps<AnchorNodeData>) {
         // 当前文件内跳转
         if (!instance) return;
 
-        const targetNode = nodes.find((n: NodeType) => n.id === node.id);
+        const currentNodes = useFlowStore.getState().nodes;
+        const targetNode = currentNodes.find((n: NodeType) => n.id === node.id);
         if (!targetNode) return;
 
         // 取消所有选中，选中目标节点
         useFlowStore.getState().updateNodes(
-          nodes.map((n: NodeType) => ({
+          currentNodes.map((n: NodeType) => ({
             type: "select" as const,
             id: n.id,
             selected: n.id === node.id,
@@ -214,7 +215,7 @@ export function AnchorNode(props: NodeProps<AnchorNodeData>) {
         );
 
         // 聚焦到目标节点
-        const { x, y } = getNodeAbsolutePosition(targetNode, nodes);
+        const { x, y } = getNodeAbsolutePosition(targetNode, currentNodes);
         const { width = 200, height = 100 } = targetNode.measured || {};
         instance.setCenter(x + width / 2, y + height / 2, {
           duration: 500,
@@ -236,7 +237,7 @@ export function AnchorNode(props: NodeProps<AnchorNodeData>) {
         }
       }
     },
-    [instance, nodes],
+    [instance],
   );
 
   // 计算是否与选中元素相关联

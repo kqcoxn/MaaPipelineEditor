@@ -27,7 +27,7 @@ function LayoutPanel() {
   const debouncedSelectedNodes = useFlowStore(
     (state) => state.debouncedSelectedNodes,
   );
-  const allNodes = useFlowStore((state) => state.nodes);
+  const nodeCount = useFlowStore((state) => state.nodes.length);
   const currentFileName = useFileStore((state) => state.currentFile.fileName);
   const shiftNodes = useFlowStore((state) => state.shiftNodes);
   const resetEdgeControls = useFlowStore((state) => state.resetEdgeControls);
@@ -48,7 +48,7 @@ function LayoutPanel() {
     iconSize: 25,
     iconColor: "#487aaa",
     disabled:
-      debouncedSelectedNodes.length >= 2 ? false : allNodes.length === 0,
+      debouncedSelectedNodes.length >= 2 ? false : nodeCount === 0,
     onClick: () => {
       const targetIds =
         debouncedSelectedNodes.length >= 2
@@ -120,7 +120,7 @@ function LayoutPanel() {
         disabled:
           !allowAutoLayout ||
           debouncedSelectedNodes.length === 1 ||
-          allNodes.length === 0,
+          nodeCount === 0,
         onClick: () => {
           if (!allowAutoLayout) {
             sendToParent("mpe:error", {
@@ -150,18 +150,25 @@ function LayoutPanel() {
         label: "将布局保存为图片",
         iconName: "icon-guangquan",
         iconSize: 24,
-        disabled: allNodes.length === 0,
+        disabled: nodeCount === 0,
         onClick: () => {
           saveNodesToImage(
             debouncedSelectedNodes as any,
-            allNodes as any,
+            useFlowStore.getState().nodes as any,
             currentFileName,
           );
         },
         onDisabledClick: () => message.error("没有可保存的节点"),
       },
     ];
-  }, [debouncedSelectedNodes, currentFileName, shiftNodes, resetEdgeControls]);
+  }, [
+    allowAutoLayout,
+    currentFileName,
+    debouncedSelectedNodes,
+    nodeCount,
+    resetEdgeControls,
+    shiftNodes,
+  ]);
 
   // 生成
   const tools = layoutTools.map((item, index) => {

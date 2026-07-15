@@ -243,8 +243,6 @@ function MainFlow() {
     updateSelection,
     attachNodeToGroup,
     detachNodeFromGroup,
-    viewport,
-    size,
   } = useFlowStore(
     useShallow((state) => ({
       nodes: state.nodes,
@@ -256,8 +254,6 @@ function MainFlow() {
       updateSelection: state.updateSelection,
       attachNodeToGroup: state.attachNodeToGroup,
       detachNodeFromGroup: state.detachNodeFromGroup,
-      viewport: state.viewport,
-      size: state.size,
     })),
   );
   const canvasBackgroundMode = useConfigStore(
@@ -469,15 +465,20 @@ function MainFlow() {
   const onNodeDrag = useCallback(
     (_event: React.MouseEvent, draggedNode: NodeType) => {
       if (!enableNodeSnap) return;
+      const {
+        nodes: currentNodes,
+        viewport: currentViewport,
+        size: currentSize,
+      } = useFlowStore.getState();
       // 过滤拖拽节点和分组节点
-      let otherNodes = nodes.filter(
+      let otherNodes = currentNodes.filter(
         (n) => n.id !== draggedNode.id && n.type !== NodeTypeEnum.Group,
       );
       // 过滤可视范围内的节点
       if (snapOnlyInViewport) {
         otherNodes = filterNodesInViewport(otherNodes, {
-          ...viewport,
-          ...size,
+          ...currentViewport,
+          ...currentSize,
         });
       }
       if (otherNodes.length === 0) {
@@ -500,7 +501,7 @@ function MainFlow() {
         ]);
       }
     },
-    [enableNodeSnap, snapOnlyInViewport, nodes, updateNodes, viewport, size],
+    [enableNodeSnap, snapOnlyInViewport, updateNodes],
   );
 
   const onNodeDragStop = useCallback(
@@ -509,15 +510,20 @@ function MainFlow() {
 
       // 磁吸对齐
       if (enableNodeSnap) {
+        const {
+          nodes: currentNodes,
+          viewport: currentViewport,
+          size: currentSize,
+        } = useFlowStore.getState();
         // 过滤掉拖拽节点和分组节点
-        let otherNodes = nodes.filter(
+        let otherNodes = currentNodes.filter(
           (n) => n.id !== draggedNode.id && n.type !== NodeTypeEnum.Group,
         );
         // 过滤可视范围内的节点
         if (snapOnlyInViewport) {
           otherNodes = filterNodesInViewport(otherNodes, {
-            ...viewport,
-            ...size,
+            ...currentViewport,
+            ...currentSize,
           });
         }
         if (otherNodes.length > 0) {
@@ -598,12 +604,9 @@ function MainFlow() {
     [
       enableNodeSnap,
       snapOnlyInViewport,
-      nodes,
       updateNodes,
       attachNodeToGroup,
       detachNodeFromGroup,
-      viewport,
-      size,
     ],
   );
 
@@ -611,6 +614,12 @@ function MainFlow() {
   const onSelectionContextMenu = useCallback((event: React.MouseEvent) => {
     event.preventDefault();
     setSelectionMenuPos({ x: event.clientX, y: event.clientY });
+  }, []);
+
+  const onSelectionMenuOpenChange = useCallback((open: boolean) => {
+    if (!open) {
+      setSelectionMenuPos(null);
+    }
   }, []);
 
   const defaultViewport = useMemo(() => ({ x: 0, y: 0, zoom: 1.5 }), []);
@@ -622,27 +631,26 @@ function MainFlow() {
 
   // hook
   const ref = useRef(null);
-  const debouncedUpdateSize = useDebounceFn(
+  const { run: updateCanvasSize } = useDebounceFn(
     (width: number, height: number) => updateSize(width, height),
     { wait: 300 },
   );
 
   useEffect(() => {
+    const element = ref.current;
     const observer = new ResizeObserver((entries) => {
       entries.forEach((e) => {
         const { width, height } = e.contentRect;
-        debouncedUpdateSize.run(width, height);
+        updateCanvasSize(width, height);
       });
     });
-    if (ref.current) {
-      observer.observe(ref.current);
+    if (element) {
+      observer.observe(element);
     }
     return () => {
-      if (ref.current) {
-        observer.unobserve(ref.current);
-      }
+      observer.disconnect();
     };
-  });
+  }, [updateCanvasSize]);
 
   // 渲染
   return (
@@ -697,9 +705,7 @@ function MainFlow() {
       <SelectionContextMenu
         position={selectionMenuPos}
         open={!!selectionMenuPos}
-        onOpenChange={(open) => {
-          if (!open) setSelectionMenuPos(null);
-        }}
+        onOpenChange={onSelectionMenuOpenChange}
       />
     </div>
   );

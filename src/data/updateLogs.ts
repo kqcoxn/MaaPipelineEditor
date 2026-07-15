@@ -94,6 +94,14 @@ export const nextPreview: ForecastSection = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "1.7.4",
+    date: "2026-7-15",
+    type: "fix",
+    updates: {
+      fixes: ["修复在打开 Devtools 的情况下拖拽节点会崩溃的问题"],
+    },
+  },
+  {
     version: "1.7.3",
     date: "2026-7-4",
     type: "fix",

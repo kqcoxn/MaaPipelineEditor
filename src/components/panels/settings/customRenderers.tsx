@@ -19,11 +19,10 @@ const ApplyToAllRenderer = memo(() => {
   const defaultHandleDirection = useConfigStore(
     (state) => state.configs.defaultHandleDirection,
   );
-  const nodes = useFlowStore((state) => state.nodes);
   const setNodes = useFlowStore((state) => state.setNodes);
 
   const handleApplyToAll = useCallback(() => {
-    const newNodes = nodes.map((node) => ({
+    const newNodes = useFlowStore.getState().nodes.map((node) => ({
       ...node,
       data: {
         ...node.data,
@@ -40,7 +39,7 @@ const ApplyToAllRenderer = memo(() => {
           ?.label
       }」`,
     );
-  }, [nodes, setNodes, defaultHandleDirection]);
+  }, [setNodes, defaultHandleDirection]);
 
   return (
     <Button size="small" onClick={handleApplyToAll}>

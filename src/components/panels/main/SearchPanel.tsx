@@ -27,7 +27,6 @@ import { useEmbedMode } from "../../../hooks/useEmbedMode";
 /**搜索工具 */
 function SearchPanel() {
   // store
-  const nodes = useFlowStore((state) => state.nodes);
   const instance = useFlowStore((state) => state.instance);
   const enableCrossFileSearch = useConfigStore(
     (state) => state.configs.enableCrossFileSearch,
@@ -94,7 +93,8 @@ function SearchPanel() {
   // 选中节点并聚焦
   const focusNodeInCurrentFile = useCallback(
     (label: string) => {
-      const targetNode = nodes.find(
+      const currentNodes = useFlowStore.getState().nodes;
+      const targetNode = currentNodes.find(
         (node: NodeType) => node.data.label === label,
       );
       if (!targetNode) {
@@ -104,7 +104,7 @@ function SearchPanel() {
 
       // 选中节点
       useFlowStore.getState().updateNodes(
-        nodes.map((node: NodeType) => ({
+        currentNodes.map((node: NodeType) => ({
           type: "select" as const,
           id: node.id,
           selected: node.id === targetNode.id,
@@ -113,7 +113,7 @@ function SearchPanel() {
 
       // 聚焦视图到该节点
       if (instance) {
-        const { x, y } = getNodeAbsolutePosition(targetNode, nodes);
+        const { x, y } = getNodeAbsolutePosition(targetNode, currentNodes);
         const { width = 200, height = 100 } = targetNode.measured || {};
         instance.setCenter(x + width / 2, y + height / 2, {
           duration: 500,
@@ -127,7 +127,7 @@ function SearchPanel() {
       setOptions([]);
       setSearchResults([]);
     },
-    [nodes, instance],
+    [instance],
   );
 
   // 跨文件跳转到节点
@@ -194,7 +194,7 @@ function SearchPanel() {
 
   // 构建节点上下文信息
   const buildNodesContext = useCallback(() => {
-    return nodes.map((node: NodeType) => {
+    return useFlowStore.getState().nodes.map((node: NodeType) => {
       const baseInfo = {
         label: node.data.label,
         type: node.type,
@@ -219,7 +219,7 @@ function SearchPanel() {
 
       return baseInfo;
     });
-  }, [nodes]);
+  }, []);
 
   // AI搜索
   const handleAISearchClick = useCallback(async () => {

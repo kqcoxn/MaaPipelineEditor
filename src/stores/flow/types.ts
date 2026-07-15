@@ -264,7 +264,6 @@ export interface FlowSelectionState {
 export interface FlowHistoryState {
   historyStack: Array<{ nodes: NodeType[]; edges: EdgeType[] }>;
   historyIndex: number;
-  saveTimeout: number | null;
   lastSnapshot: string | null;
   saveHistory: (delay?: number, opDescriptor?: OperationDescriptor) => void;
   undo: () => boolean;

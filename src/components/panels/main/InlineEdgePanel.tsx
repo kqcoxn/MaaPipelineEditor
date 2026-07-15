@@ -5,12 +5,11 @@ import { useMemo, memo, useCallback } from "react";
 import { ViewportPortal, useReactFlow, useStore } from "@xyflow/react";
 import { Tag, InputNumber, Tooltip, Switch } from "antd";
 import classNames from "classnames";
+import { useShallow } from "zustand/shallow";
 
 import {
   useFlowStore,
-  findNodeLabelById,
   type EdgeType,
-  type NodeType,
 } from "../../../stores/flow";
 import {
   NodeTypeEnum,
@@ -24,7 +23,7 @@ import IconFont from "../../iconfonts";
 const PANEL_WIDTH = 240;
 
 // 获取连接类型信息
-const getEdgeTypeTags = (edge: EdgeType, nodes: NodeType[]) => {
+const getEdgeTypeTags = (edge: EdgeType, targetIsAnchor: boolean) => {
   const tags: { label: string; color: string }[] = [];
 
   // jumpback
@@ -34,8 +33,7 @@ const getEdgeTypeTags = (edge: EdgeType, nodes: NodeType[]) => {
   }
 
   // anchor
-  const targetNode = nodes.find((n) => n.id === edge.target);
-  if (targetNode?.type === NodeTypeEnum.Anchor) {
+  if (targetIsAnchor) {
     tags.push({ label: "anchor", color: "blue" });
   }
 
@@ -55,7 +53,6 @@ const getEdgeTypeTags = (edge: EdgeType, nodes: NodeType[]) => {
 /**内嵌连接面板 - 在边中点附近渲染 */
 function InlineEdgePanel() {
   const selectedEdges = useFlowStore((state) => state.selectedEdges);
-  const nodes = useFlowStore((state) => state.nodes);
   const targetNode = useFlowStore((state) => state.targetNode);
   const edges = useFlowStore((state) => state.edges);
   const setEdgeLabel = useFlowStore((state) => state.setEdgeLabel);
@@ -75,19 +72,44 @@ function InlineEdgePanel() {
     return null;
   }, [selectedEdges, targetNode]);
 
+  const { sourceLabel, targetLabel, targetIsAnchor } = useFlowStore(
+    useShallow((state) => {
+      if (!currentEdge) {
+        return {
+          sourceLabel: "",
+          targetLabel: "",
+          targetIsAnchor: false,
+        };
+      }
+      const sourceNode = state.nodes.find(
+        (node) => node.id === currentEdge.source,
+      );
+      const currentTargetNode = state.nodes.find(
+        (node) => node.id === currentEdge.target,
+      );
+      return {
+        sourceLabel: sourceNode?.data.label ?? "未知",
+        targetLabel: currentTargetNode?.data.label ?? "未知",
+        targetIsAnchor: currentTargetNode?.type === NodeTypeEnum.Anchor,
+      };
+    }),
+  );
+
   // 使用 useStore 订阅源节点和目标节点的拖拽状态和位置
-  const edgeState = useStore((state) => {
-    if (!currentEdge) {
-      return { isDragging: false, sourcePos: null, targetPos: null };
-    }
-    const sourceNode = state.nodeLookup.get(currentEdge.source);
-    const targetNode = state.nodeLookup.get(currentEdge.target);
-    return {
-      isDragging: sourceNode?.dragging || targetNode?.dragging || false,
-      sourcePos: sourceNode?.position,
-      targetPos: targetNode?.position,
-    };
-  });
+  const edgeState = useStore(
+    useShallow((state) => {
+      if (!currentEdge) {
+        return { isDragging: false, sourcePos: null, targetPos: null };
+      }
+      const sourceNode = state.nodeLookup.get(currentEdge.source);
+      const targetNode = state.nodeLookup.get(currentEdge.target);
+      return {
+        isDragging: sourceNode?.dragging || targetNode?.dragging || false,
+        sourcePos: sourceNode?.position,
+        targetPos: targetNode?.position,
+      };
+    }),
+  );
 
   const isDragging = edgeState.isDragging;
 
@@ -122,17 +144,6 @@ function InlineEdgePanel() {
       y: midY,
     };
   }, [currentEdge, edgeState.sourcePos, edgeState.targetPos, getNode]);
-
-  // 获取源节点和目标节点的名称
-  const { sourceLabel, targetLabel } = useMemo(() => {
-    if (!currentEdge) {
-      return { sourceLabel: "", targetLabel: "" };
-    }
-    return {
-      sourceLabel: findNodeLabelById(nodes, currentEdge.source) ?? "未知",
-      targetLabel: findNodeLabelById(nodes, currentEdge.target) ?? "未知",
-    };
-  }, [currentEdge, nodes]);
 
   // 总边数
   const maxOrder = useMemo(() => {
@@ -185,7 +196,7 @@ function InlineEdgePanel() {
     return null;
   }
 
-  const tags = getEdgeTypeTags(currentEdge, nodes);
+  const tags = getEdgeTypeTags(currentEdge, targetIsAnchor);
 
   return (
     <ViewportPortal>

@@ -24,6 +24,8 @@ import style from "./NodeListPanel.module.less";
 import { WikiAnchor } from "../../../wiki/WikiAnchor";
 
 const { Search } = Input;
+const EMPTY_NODES: NodeType[] = [];
+const EMPTY_EDGES: EdgeType[] = [];
 
 /** 节点类型选项 */
 const NODE_TYPE_OPTIONS: SelectProps["options"] = [
@@ -45,9 +47,16 @@ export interface NodeListPanelProps {
 }
 
 function NodeListPanel({ visible, onClose, anchorEl }: NodeListPanelProps) {
+  // 过渡动画状态：visible 变 false 时延迟卸载，等动画结束
+  const [shouldRender, setShouldRender] = useState(false);
+
   // Store
-  const nodes = useFlowStore((state) => state.nodes);
-  const edges = useFlowStore((state) => state.edges);
+  const nodes = useFlowStore((state) =>
+    shouldRender ? state.nodes : EMPTY_NODES,
+  );
+  const edges = useFlowStore((state) =>
+    shouldRender ? state.edges : EMPTY_EDGES,
+  );
   const instance = useFlowStore((state) => state.instance);
 
   // 状态
@@ -67,9 +76,6 @@ function NodeListPanel({ visible, onClose, anchorEl }: NodeListPanelProps) {
   );
   const [position, setPosition] = useState({ top: 0, left: 0, maxHeight: 500 });
   const panelRef = useRef<HTMLDivElement>(null);
-
-  // 过渡动画状态：visible 变 false 时延迟卸载，等动画结束
-  const [shouldRender, setShouldRender] = useState(false);
 
   useEffect(() => {
     if (visible) {

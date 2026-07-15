@@ -18,17 +18,17 @@ import { useFlowStore } from "../../stores/flow";
 import {
   SourceHandleTypeEnum,
   TargetHandleTypeEnum,
-  getHandlePositions,
-  DEFAULT_HANDLE_DIRECTION,
   NodeTypeEnum,
 } from "./nodes";
-import type { HandleDirection } from "./nodes";
 import type { EdgeType, NodeType } from "../../stores/flow/types";
 import {
   calculateAvoidancePath,
   buildNodeBoundsList,
   DEFAULT_AVOIDANCE_CONFIG,
 } from "../../core/avoidanceUtils";
+
+const EMPTY_NODES: NodeType[] = [];
+const EMPTY_EDGES: EdgeType[] = [];
 
 // 判断位置是否为水平方向
 function isHorizontalPosition(position: string): boolean {
@@ -317,51 +317,18 @@ function MarkedEdge(props: EdgeProps) {
   );
   const edgePathMode = useConfigStore((state) => state.configs.edgePathMode);
 
-  // 直接从节点数据获取方向信息、节点列表和边列表
-  const { sourceDirection, targetDirection, nodes, edges } = useFlowStore(
+  // 避让模式才需要订阅完整图数据
+  const { nodes, edges } = useFlowStore(
     useShallow((state) => {
-      const sourceNode = state.nodes.find((n) => n.id === props.source);
-      const targetNode = state.nodes.find((n) => n.id === props.target);
-
-      const getSourceDirection = (): HandleDirection => {
-        if (sourceNode && "handleDirection" in sourceNode.data) {
-          return (
-            (sourceNode.data as { handleDirection?: HandleDirection })
-              .handleDirection || DEFAULT_HANDLE_DIRECTION
-          );
-        }
-        return DEFAULT_HANDLE_DIRECTION;
-      };
-
-      const getTargetDirection = (): HandleDirection => {
-        if (targetNode && "handleDirection" in targetNode.data) {
-          return (
-            (targetNode.data as { handleDirection?: HandleDirection })
-              .handleDirection || DEFAULT_HANDLE_DIRECTION
-          );
-        }
-        return DEFAULT_HANDLE_DIRECTION;
-      };
-
       return {
-        sourceDirection: getSourceDirection(),
-        targetDirection: getTargetDirection(),
-        nodes: state.nodes,
-        edges: state.edges,
+        nodes: edgePathMode === "avoid" ? state.nodes : EMPTY_NODES,
+        edges: edgePathMode === "avoid" ? state.edges : EMPTY_EDGES,
       };
     }),
   );
 
-  // 根据节点方向获取实际的 Handle 位置
-  const actualSourcePosition = useMemo(() => {
-    const { sourcePosition } = getHandlePositions(sourceDirection);
-    return sourcePosition.toLowerCase();
-  }, [sourceDirection]);
-
-  const actualTargetPosition = useMemo(() => {
-    const { targetPosition } = getHandlePositions(targetDirection);
-    return targetPosition.toLowerCase();
-  }, [targetDirection]);
+  const actualSourcePosition = props.sourcePosition.toLowerCase();
+  const actualTargetPosition = props.targetPosition.toLowerCase();
 
   // 控制点拖拽状态
   const [controlOffset, setControlOffset] = useState({ x: 0, y: 0 });

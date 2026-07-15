@@ -3,14 +3,13 @@ import style from "../../../styles/panels/EdgePanel.module.less";
 import { memo, useMemo, useCallback, useEffect } from "react";
 import { Tag, InputNumber, Tooltip, Switch } from "antd";
 import classNames from "classnames";
+import { useShallow } from "zustand/shallow";
 import IconFont from "../../iconfonts";
 import { WikiAnchor } from "../../wiki/WikiAnchor";
 
 import {
   useFlowStore,
-  findNodeLabelById,
   type EdgeType,
-  type NodeType,
 } from "../../../stores/flow";
 import {
   NodeTypeEnum,
@@ -22,7 +21,7 @@ import { usePanelOccupancy } from "../../../hooks/usePanelOccupancy";
 import { DraggablePanel } from "../common/DraggablePanel";
 
 // 获取连接类型信息
-const getEdgeTypeTags = (edge: EdgeType, nodes: NodeType[]) => {
+const getEdgeTypeTags = (edge: EdgeType, targetIsAnchor: boolean) => {
   const tags: { label: string; color: string }[] = [];
 
   // jumpback
@@ -32,8 +31,7 @@ const getEdgeTypeTags = (edge: EdgeType, nodes: NodeType[]) => {
   }
 
   // anchor
-  const targetNode = nodes.find((n) => n.id === edge.target);
-  if (targetNode?.type === NodeTypeEnum.Anchor) {
+  if (targetIsAnchor) {
     tags.push({ label: "anchor", color: "blue" });
   }
 
@@ -130,7 +128,6 @@ const EdgeInfoElem = memo(
 // 边编辑面板
 function EdgePanel() {
   const selectedEdges = useFlowStore((state) => state.selectedEdges);
-  const nodes = useFlowStore((state) => state.nodes);
   const targetNode = useFlowStore((state) => state.targetNode);
   const fieldPanelMode = useConfigStore(
     (state) => state.configs.fieldPanelMode,
@@ -145,6 +142,29 @@ function EdgePanel() {
     }
     return null;
   }, [selectedEdges, targetNode]);
+
+  const { sourceLabel, targetLabel, targetIsAnchor } = useFlowStore(
+    useShallow((state) => {
+      if (!currentEdge) {
+        return {
+          sourceLabel: "",
+          targetLabel: "",
+          targetIsAnchor: false,
+        };
+      }
+      const sourceNode = state.nodes.find(
+        (node) => node.id === currentEdge.source,
+      );
+      const currentTargetNode = state.nodes.find(
+        (node) => node.id === currentEdge.target,
+      );
+      return {
+        sourceLabel: sourceNode?.data.label ?? "未知",
+        targetLabel: currentTargetNode?.data.label ?? "未知",
+        targetIsAnchor: currentTargetNode?.type === NodeTypeEnum.Anchor,
+      };
+    }),
+  );
 
   // 当面板打开/关闭时同步占位系统
   useEffect(() => {
@@ -176,17 +196,6 @@ function EdgePanel() {
   const setEdgeLabel = useFlowStore((state) => state.setEdgeLabel);
   const setEdgeData = useFlowStore((state) => state.setEdgeData);
   const updateEdges = useFlowStore((state) => state.updateEdges);
-
-  // 获取源节点和目标节点的名称
-  const { sourceLabel, targetLabel } = useMemo(() => {
-    if (!currentEdge) {
-      return { sourceLabel: "", targetLabel: "" };
-    }
-    return {
-      sourceLabel: findNodeLabelById(nodes, currentEdge.source) ?? "未知",
-      targetLabel: findNodeLabelById(nodes, currentEdge.target) ?? "未知",
-    };
-  }, [currentEdge, nodes]);
 
   // 总边数
   const maxOrder = useMemo(() => {
@@ -267,7 +276,7 @@ function EdgePanel() {
             sourceLabel={sourceLabel}
             targetLabel={targetLabel}
             maxOrder={maxOrder}
-            tags={getEdgeTypeTags(currentEdge, nodes)}
+            tags={getEdgeTypeTags(currentEdge, targetIsAnchor)}
             onOrderChange={handleOrderChange}
             onJumpBackChange={handleJumpBackChange}
           />

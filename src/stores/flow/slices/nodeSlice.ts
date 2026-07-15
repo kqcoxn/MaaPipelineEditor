@@ -126,8 +126,8 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       checkRepeatNodeLabelList();
       // 删除节点后重建 anchor 引用索引
       get().rebuildAnchorReferenceIndex();
-    } else if (hasPosition) {
-      get().saveHistory(isDragging ? 1000 : 0, {
+    } else if (hasPosition && !isDragging) {
+      get().saveHistory(0, {
         category: "node",
         action: "move",
         description: "移动节点",

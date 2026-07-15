@@ -5,6 +5,7 @@ import { useMemo, memo, useCallback, useState } from "react";
 import { ViewportPortal, useReactFlow, useStore } from "@xyflow/react";
 import { Spin } from "antd";
 import classNames from "classnames";
+import { useShallow } from "zustand/shallow";
 
 import {
   useFlowStore,
@@ -28,6 +29,7 @@ import { NodeJsonEditorModal } from "../../modals/NodeJsonEditorModal";
 const PANEL_GAP = 20;
 // 面板默认宽度
 const PANEL_WIDTH = 220;
+const EMPTY_NODE_POSITION = { x: 0, y: 0 };
 
 /**内嵌字段面板 - 在节点旁边渲染 */
 function InlineFieldPanel() {
@@ -46,14 +48,18 @@ function InlineFieldPanel() {
   const [jsonEditorOpen, setJsonEditorOpen] = useState(false);
 
   // 使用 useStore 订阅节点的 dragging 状态和实时位置变化（响应式）
-  const nodeState = useStore((state) => {
-    if (!currentNode) return { isDragging: false, position: { x: 0, y: 0 } };
-    const node = state.nodeLookup.get(currentNode.id);
-    return {
-      isDragging: node?.dragging ?? false,
-      position: node?.position || currentNode.position,
-    };
-  });
+  const nodeState = useStore(
+    useShallow((state) => {
+      if (!currentNode) {
+        return { isDragging: false, position: EMPTY_NODE_POSITION };
+      }
+      const node = state.nodeLookup.get(currentNode.id);
+      return {
+        isDragging: node?.dragging ?? false,
+        position: node?.position || currentNode.position,
+      };
+    }),
+  );
 
   const isDragging = nodeState.isDragging;
 

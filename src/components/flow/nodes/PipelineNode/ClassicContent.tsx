@@ -3,41 +3,22 @@ import { type NodeProps } from "@xyflow/react";
 
 import style from "../../../../styles/flow/nodes.module.less";
 import type { PipelineNodeDataType } from "../../../../stores/flow";
-import { useFlowStore } from "../../../../stores/flow";
 import { useConfigStore } from "../../../../stores/configStore";
 import { KVElem } from "../components/KVElem";
 import { PipelineNodeHandles } from "../components/NodeHandles";
-import { SourceHandleTypeEnum, TargetHandleTypeEnum, NodeTypeEnum } from "../constants";
 import { JsonHelper } from "../../../../utils/data/jsonHelper";
 import {
   mergeFieldSortConfig,
   sortKeysByOrder,
 } from "../../../../core/sorting";
+import { useNodeFlowItems } from "./useNodeFlowItems";
 
 /**经典风格Pipeline节点内容 */
 export const ClassicContent = memo(
   ({ data, props }: { data: PipelineNodeDataType; props: NodeProps }) => {
     const nodeId = props.id;
 
-    const edges = useFlowStore((state) => state.edges);
-    const nodes = useFlowStore((state) => state.nodes);
-    const { nextItems, errorItems } = useMemo(() => {
-      const nodeMap = new Map(nodes.map((n) => [n.id, n]));
-      const outEdges = edges.filter((e) => e.source === nodeId);
-      const nextItems: { label: string; variant: "normal" | "jumpback" | "anchor" }[] = [];
-      const errorItems: { label: string; variant: "normal" | "jumpback" | "anchor" }[] = [];
-      const sorted = [...outEdges].sort((a, b) => a.label - b.label);
-      for (const e of sorted) {
-        const targetNode = nodeMap.get(e.target);
-        const label = (targetNode?.data as any)?.label ?? e.target;
-        const isJumpBack = e.targetHandle === TargetHandleTypeEnum.JumpBack;
-        const isAnchor = targetNode?.type === NodeTypeEnum.Anchor || !!e.attributes?.anchor;
-        const variant = isJumpBack ? "jumpback" : isAnchor ? "anchor" : "normal";
-        if (e.sourceHandle === SourceHandleTypeEnum.Next) nextItems.push({ label, variant });
-        else if (e.sourceHandle === SourceHandleTypeEnum.Error) errorItems.push({ label, variant });
-      }
-      return { nextItems, errorItems };
-    }, [edges, nodes, nodeId]);
+    const { nextItems, errorItems } = useNodeFlowItems(nodeId);
 
     const showNodeDetailFields = useConfigStore(
       (state) => state.configs.showNodeDetailFields,
