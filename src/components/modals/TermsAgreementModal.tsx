@@ -42,7 +42,7 @@ export function TermsAgreementModal() {
     <Modal
       open={modalOpen}
       closable={false}
-      maskClosable={false}
+      mask={{ closable: false }}
       keyboard={false}
       footer={null}
       width={600}
@@ -60,7 +60,7 @@ export function TermsAgreementModal() {
 
       <Divider style={{ margin: "16px 0" }} />
 
-      <Space direction="vertical" size={0} style={{ width: "100%" }}>
+      <Space orientation="vertical" size={0} style={{ width: "100%" }}>
         {termsItems.map((item, index) => (
           <div
             key={item.id}

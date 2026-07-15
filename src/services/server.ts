@@ -134,11 +134,11 @@ export class LocalWebSocketServer {
           const key = `connection-error-${Date.now()}`;
           notification.error({
             key,
-            message: "连接超时",
+            title: "连接超时",
             description: "请检查本地服务是否已启动或端口是否可用",
             placement: "topRight",
             duration: 5,
-            btn: createElement(
+            actions: createElement(
               Button,
               {
                 type: "primary",
@@ -191,11 +191,11 @@ export class LocalWebSocketServer {
         const key = `connection-error-${Date.now()}`;
         notification.error({
           key,
-          message: "连接失败",
+          title: "连接失败",
           description: "请检查本地服务是否已启动或端口是否可用",
           placement: "topRight",
           duration: 5,
-          btn: createElement(
+          actions: createElement(
             Button,
             {
               type: "primary",
@@ -230,11 +230,11 @@ export class LocalWebSocketServer {
       const errorMsg = error instanceof Error ? error.message : "未知错误";
       notification.error({
         key,
-        message: "本地服务连接失败",
+        title: "本地服务连接失败",
         description: errorMsg,
         placement: "topRight",
         duration: 5,
-        btn: createElement(
+        actions: createElement(
           Button,
           {
             type: "primary",

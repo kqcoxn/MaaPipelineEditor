@@ -229,8 +229,7 @@ export const NodeJsonEditorModal = memo(
               title={validationError}
               type="error"
               showIcon
-              closable
-              onClose={() => setValidationError(null)}
+              closable={{ onClose: () => setValidationError(null) }}
             />
           )}
         </Space>

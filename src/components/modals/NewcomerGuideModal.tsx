@@ -189,7 +189,7 @@ export function NewcomerGuideModal() {
     <Modal
       open={modalOpen}
       closable={false}
-      maskClosable={false}
+      mask={{ closable: false }}
       keyboard={false}
       footer={null}
       width={760}

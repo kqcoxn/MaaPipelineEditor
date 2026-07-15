@@ -401,8 +401,7 @@ function FieldPanel() {
             title={validationWarning}
             type="warning"
             showIcon
-            closable
-            onClose={() => setValidationWarning(null)}
+            closable={{ onClose: () => setValidationWarning(null) }}
             action={
               <Button size="small" type="primary" onClick={handleNodeRepair}>
                 应用修复

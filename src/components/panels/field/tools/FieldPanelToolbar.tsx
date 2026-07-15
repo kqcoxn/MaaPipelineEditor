@@ -207,7 +207,7 @@ export const FieldPanelToolbarRight = memo(
           // 显示需要验证的字段提示
           if (result.validationHints.length > 0) {
             notification.warning({
-              message: "以下字段需要手动验证",
+              title: "以下字段需要手动验证",
               description: (
                 <div>
                   <p style={{ marginBottom: 8 }}>

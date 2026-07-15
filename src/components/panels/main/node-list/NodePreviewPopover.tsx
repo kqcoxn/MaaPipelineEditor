@@ -289,17 +289,19 @@ export const NodePreviewPopover = memo(
         mouseLeaveDelay={0.1}
         open={open}
         onOpenChange={setOpen}
-        overlayStyle={{
-          maxWidth: 280,
-          position: "fixed",
-        }}
-        overlayInnerStyle={{
-          padding: 0,
+        styles={{
+          root: {
+            maxWidth: 280,
+            position: "fixed",
+          },
+          container: {
+            padding: 0,
+          },
         }}
         align={{
           overflow: { adjustX: true, adjustY: true },
         }}
-        destroyTooltipOnHide
+        destroyOnHidden
       >
         {children}
       </Popover>

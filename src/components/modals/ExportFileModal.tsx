@@ -250,10 +250,13 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
           label="导出格式"
           rules={[{ required: true, message: "请选择导出格式" }]}
         >
-          <Select onChange={handleFormatChange}>
-            <Select.Option value="json">.json</Select.Option>
-            <Select.Option value="jsonc">.jsonc</Select.Option>
-          </Select>
+          <Select
+            options={[
+              { value: "json", label: ".json" },
+              { value: "jsonc", label: ".jsonc" },
+            ]}
+            onChange={handleFormatChange}
+          />
         </Form.Item>
 
         {configHandlingMode === "separated" && (

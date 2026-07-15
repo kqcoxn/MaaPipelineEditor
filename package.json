@@ -27,8 +27,7 @@
     "retag": "git tag -d v1.7.4"
   },
   "dependencies": {
-    "@ant-design/icons": "6",
-    "@ant-design/v5-patch-for-react-19": "^1.0.3",
+    "@ant-design/icons": "6.3.2",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -36,7 +35,7 @@
     "@monaco-editor/react": "^4.7.0",
     "@xyflow/react": "^12.7.1",
     "ahooks": "^3.9.4",
-    "antd": "6",
+    "antd": "6.5.1",
     "canvas-confetti": "^1.9.4",
     "classnames": "^2.5.1",
     "darkreader": "^4.9.109",

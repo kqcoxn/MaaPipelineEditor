@@ -274,12 +274,12 @@ export const ImageSelect = memo(
         onSelect={handleSelect}
         onSearch={handleSearch}
         onBlur={handleBlur}
-        onDropdownVisibleChange={handleDropdownOpen}
+        onOpenChange={handleDropdownOpen}
         open={open}
         placeholder={placeholder || "输入或选择图片路径"}
         allowClear
         backfill
-        dropdownMatchSelectWidth={300}
+        popupMatchSelectWidth={300}
         listHeight={280}
         notFoundContent={null}
       />

@@ -217,7 +217,7 @@ function ResourceHealthSection({
                   ),
                   description: (
                     <Space
-                      direction="vertical"
+                      orientation="vertical"
                       size={0}
                       style={{ width: "100%" }}
                     >
@@ -225,7 +225,11 @@ function ResourceHealthSection({
                       {(diagnostic.sourcePath ||
                         diagnostic.fileId ||
                         diagnostic.nodeId) && (
-                        <Space direction="vertical" size={2} style={{ marginTop: 4 }}>
+                        <Space
+                          orientation="vertical"
+                          size={2}
+                          style={{ marginTop: 4 }}
+                        >
                           {diagnostic.sourcePath && (
                             <Text style={metaValueStyle}>
                               路径: {diagnostic.sourcePath}
@@ -327,7 +331,7 @@ function resolveAlertDescription(
       ];
       if (items.length > 0) {
         return (
-          <Space direction="vertical" size={4} style={{ width: "100%" }}>
+          <Space orientation="vertical" size={4} style={{ width: "100%" }}>
             {items.map((msg, index) => (
               <Text key={index}>{msg}</Text>
             ))}

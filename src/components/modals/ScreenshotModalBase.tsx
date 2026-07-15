@@ -290,7 +290,7 @@ export const ScreenshotModalBase = memo(
           },
         }}
       >
-        <Spin spinning={isLoading} tip="截图中...">
+        <Spin spinning={isLoading} description="截图中...">
           {/* 左右分栏布局 */}
           <div style={{ display: "flex", gap: 16, minHeight: 500 }}>
             {/* 截图显示区（左侧） */}

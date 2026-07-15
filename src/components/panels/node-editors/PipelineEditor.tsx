@@ -953,7 +953,7 @@ export const PipelineEditorWithSuspense = ({
 }) => (
   <Suspense
     fallback={
-      <Spin tip="Loading..." size="large">
+      <Spin description="Loading..." size="large">
         <div className={style.spin}></div>
       </Spin>
     }

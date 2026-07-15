@@ -405,7 +405,7 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
                 </Tooltip>
               );
             }}
-            dropdownRender={(menu) => (
+            popupRender={(menu) => (
               <>
                 {menu}
                 {directoryOptions.length === 0 && (
@@ -429,11 +429,11 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
           label="保存选项"
           rules={[{ required: true }]}
         >
-          <Select>
-            <Select.Option value={true}>
-              保存当前编辑器内容到新文件
-            </Select.Option>
-          </Select>
+          <Select
+            options={[
+              { value: true, label: "保存当前编辑器内容到新文件" },
+            ]}
+          />
         </Form.Item>
 
         <Form.Item>

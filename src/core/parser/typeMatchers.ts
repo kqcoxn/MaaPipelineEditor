@@ -327,7 +327,7 @@ export function matchParamType(
       } else {
         // 显示错误通知
         notification.error({
-          message: "类型错误",
+          title: "类型错误",
           description: `部分参数类型错误，请检查各节点字段是否符合Pipeline协议；可能的参数：${key}`,
           placement: "top",
         });

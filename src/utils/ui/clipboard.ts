@@ -13,7 +13,7 @@ export class ClipboardHelper {
       message.success(successMsg);
     } catch (err) {
       notification.error({
-        message: errorMsg,
+        title: errorMsg,
         description: String(err),
         placement: "top",
       });
@@ -33,7 +33,7 @@ export class ClipboardHelper {
       message.success(successMsg);
     } catch (err) {
       notification.error({
-        message: errorMsg,
+        title: errorMsg,
         description: String(err),
         placement: "top",
       });
@@ -53,7 +53,7 @@ export class ClipboardHelper {
       return text;
     } catch (err) {
       notification.error({
-        message: errorMsg,
+        title: errorMsg,
         description: String(err),
         placement: "top",
       });

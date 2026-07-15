@@ -168,11 +168,13 @@ export const TemplatePreview = memo(
         mouseLeaveDelay={0.1}
         open={open}
         onOpenChange={setOpen}
-        overlayStyle={{
-          maxWidth: 380,
-        }}
-        overlayInnerStyle={{
-          padding: 10,
+        styles={{
+          root: {
+            maxWidth: 380,
+          },
+          container: {
+            padding: 10,
+          },
         }}
       >
         {children}

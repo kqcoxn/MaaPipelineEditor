@@ -260,7 +260,7 @@ export function localSave(): { success: boolean; error?: string } {
     // 检测是否是 localStorage 配额超限
     if (err instanceof DOMException && err.name === "QuotaExceededError") {
       notification.error({
-        message: "本地存储空间不足",
+        title: "本地存储空间不足",
         description:
           "浏览器本地存储空间已满，无法保存文件缓存。建议清理本域名在浏览器中的数据或减少文件数量。",
         placement: "topRight",
@@ -698,7 +698,7 @@ export const useFileStore = create<FileState>()((set) => ({
       const repeatErrors = findErrorsByType(ErrorTypeEnum.NodeNameRepeat);
       if (repeatErrors.length > 0) {
         notification.error({
-          message: "保存失败！",
+          title: "保存失败！",
           description: `存在重复的节点名: ${repeatErrors
             .map((e) => e.msg)
             .join(", ")}，请修改后再试。`,

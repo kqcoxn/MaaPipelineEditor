@@ -47,7 +47,7 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
     const repeatErrors = findErrorsByType(ErrorTypeEnum.NodeNameRepeat);
     if (repeatErrors.length > 0) {
       notification.error({
-        message: "导出失败！",
+        title: "导出失败！",
         description: `存在重复的节点名: ${repeatErrors
           .map((e) => e.msg)
           .join(", ")}，请修改后再试。`,
@@ -276,7 +276,7 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
     };
   } catch (err) {
     notification.error({
-      message: "导出失败！",
+      title: "导出失败！",
       description: "请检查各节点字段是否符合格式，详细程序错误请在控制台查看",
       placement: "top",
     });

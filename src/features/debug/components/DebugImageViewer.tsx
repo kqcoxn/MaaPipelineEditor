@@ -143,7 +143,7 @@ export function DebugImageViewer({
         </span>
       </button>
       <Modal
-        destroyOnClose
+        destroyOnHidden
         footer={null}
         open={modalOpen}
         styles={{
