@@ -1,0 +1,152 @@
+# MaaFramework 社区参考项目索引
+
+本文集中记录 MaaPipelineEditor（MPE）开发过程中可供调研的 MaaFramework 社区项目，便于按问题类型快速定位实现案例，也便于在更换开发设备后恢复本地参考仓库。
+
+这些项目用于了解协议落地方式、产品交互和工程组织。形成 MPE 方案时，应结合自身架构重新评估设计取舍；如需引用代码、素材或文档内容，以对应仓库的许可证和署名要求为准。本文不表示 MPE 与相关项目存在隶属或背书关系。
+
+## 使用约定
+
+- 表内相对路径均以 `MaaPipelineEditor` 仓库根目录为基准，默认参考仓库位于同级的 `maa-refs` 目录。
+- MaaFramework 的协议语义优先查阅官方文档和项目内的 `maafw` skill；只有需要确认底层行为或实现细节时，再进入框架源码。
+- “关注方向”描述的是调研入口，不要求 MPE 与参考项目采用相同的技术栈或交互方案。
+- 仓库地址同时保存在 [reference-projects.json](../../scripts/docs/reference-projects.json) 中，并由同步脚本直接读取。
+
+## 项目与仓库地址
+
+| 类别 | 项目 | 本地相对路径 | 仓库地址 | 关注方向 |
+| --- | --- | --- | --- | --- |
+| 核心框架 | MaaFramework | `../maa-refs/MaaFramework` | <https://github.com/MaaXYZ/MaaFramework> | 协议、核心 API、运行时行为与框架内部实现 |
+| 通用客户端 | MFW-PyQt6 | `../maa-refs/MFW-PyQt6` | <https://github.com/overflow65537/MFW-PyQt6> | PySide6 客户端、PI V2 配置与任务运行体验 |
+| 通用客户端 | MXU | `../maa-refs/MXU` | <https://github.com/MistEO/MXU> | Tauri + React 客户端、PI V2 动态界面与多实例管理 |
+| 编辑器工具 | maa-support-extension（MSE） | `../maa-refs/maa-support-extension` | <https://github.com/neko-para/maa-support-extension> | VS Code 内的 Pipeline 开发辅助与配套小工具 |
+| 调试工具 | MaaDebugger | `../maa-refs/MaaDebugger` | <https://github.com/MaaXYZ/MaaDebugger> | 节点调试、运行控制、识别结果与错误信息呈现 |
+| 开发工具 | MFAToolsPlus | `../maa-refs/MFAToolsPlus` | <https://github.com/SweetSmellFox/MFAToolsPlus> | 截图、取色、ROI 等工具的组织与交互方式 |
+| 日志工具 | MaaLogAnalyzer | `../maa-refs/MaaLogAnalyzer` | <https://github.com/MaaXYZ/MaaLogAnalyzer> | `maafw.log` 解析、检索、流程回放与统计 |
+| 项目模板 | MaaPracticeBoilerplate | `../maa-refs/MaaPracticeBoilerplate` | <https://github.com/MaaXYZ/MaaPracticeBoilerplate> | 官方推荐项目骨架、资源布局与工程化约定 |
+| 项目脚手架 | create-maa-project | `../maa-refs/create-maa-project` | <https://github.com/Windsland52/create-maa-project> | 项目创建、增量维护、状态管理、CLI 与 MCP |
+| 实践项目 | M9A | `../maa-refs/M9A` | <https://github.com/MaaXYZ/M9A> | 大型 MaaFW 应用的资源、Agent、测试与发布组织 |
+| AI 辅助实践 | MaaGumballs | `../maa-refs/MaaGumballs` | <https://github.com/KhazixW2/MaaGumballs> | Skill 与 MCP 协同的 Pipeline 构建、验证和测试流程 |
+
+> `M9A` 在 MaaFramework README 中使用 `MaaXYZ/M9A` 入口；本地仓库当前可能显示迁移后的 `MAA1999/M9A` origin。同步清单将两者视作同一项目，已有仓库始终沿用其当前 origin。
+
+## 项目调研指南
+
+### MaaFramework
+
+**定位**：MaaFW 的核心仓库，是协议和运行时行为的首要依据。
+
+**主要内容**：`include/` 提供公开接口，`source/` 包含核心实现，`docs/` 维护用户与开发文档，`sample/`、`test/` 和 `tools/` 分别提供接入示例、行为验证和配套工具。
+
+**建议关注**：Pipeline 与 ProjectInterface V2 的真实语义、Controller/Resource/Tasker 生命周期、回调数据结构、资源加载及 Agent/Custom 扩展边界。一般功能设计先使用 `maafw` skill 定位文档；源码探索用于回答文档未覆盖的实现问题。
+
+### MFW-PyQt6
+
+**定位**：基于 PySide6 与 MaaFramework 的跨平台通用 GUI，完整支持 interface v2，用于承载构建完成的 MaaFW 项目。
+
+**主要内容**：`app/` 是界面与应用逻辑主体，`main.py`、`mfw_cli.py` 提供启动入口，`docs/`、`tests/` 和 `tools/` 覆盖开发说明、验证与辅助脚本。
+
+**建议关注**：PI V2 到界面控件的映射、配置和任务编排、控制器连接、运行状态反馈、计划任务、通知、热更新、Agent/自定义扩展以及跨平台打包。适合作为 Python 桌面客户端路线的完整案例。
+
+### MXU
+
+**定位**：基于 Tauri、React 与 TypeScript 的 PI V2 通用 GUI，可解析标准 `interface.json` 并为 MaaFW 应用提供桌面界面。
+
+**主要内容**：`src/` 是前端应用，`src-tauri/` 负责桌面能力和 MaaFramework 集成，`docs/` 与 `public/` 存放说明和静态资源。
+
+**建议关注**：协议驱动的动态表单、任务拖拽排序、多实例标签页、多控制器、实时截图、日志、定时任务、自动更新和 Agent 输出。与 MFW-PyQt6 对照阅读，可比较原生 Python UI 与 Web 技术桌面壳在状态管理和能力边界上的差异。
+
+### maa-support-extension（MSE）
+
+**定位**：覆盖面较广的 MaaFW VS Code 开发扩展，是编辑器辅助能力和轻量工具设计的重要参考。
+
+**主要内容**：仓库采用 monorepo；`pkgs/extension` 与 `pkgs/webview` 构成扩展和 Webview，`pkgs/maa-pipeline-manager`、`pkgs/maa-tasker`、`pkgs/maa-tools`、`pkgs/maa-version-manager` 提供运行及工具能力，`pkgs/simple-parser`、`pkgs/types`、`pkgs/utils` 支撑解析和共享逻辑。
+
+**建议关注**：编辑器内的解析、诊断、导航、提示、预览和运行入口，Webview 与扩展宿主通信，以及小工具如何嵌入开发上下文。MPE 设计相关能力时，优先提炼用户任务和反馈闭环，再结合画布式工作流重新组织交互。
+
+### MaaDebugger
+
+**定位**：Python/NiceGUI 技术栈的 MaaFW 调试工具，适合研究从选定节点到观察结果的完整调试过程。
+
+**主要内容**：`src/MaaDebugger/maafw/launch_graph.py` 连接 MaaFW 运行逻辑；`webpage/index_page`、`webpage/reco_page`、`webpage/traceback_page` 分别组织运行控制、识别调试和错误信息；`utils/` 提供图像、输入校验及系统辅助能力。
+
+**建议关注**：调试会话生命周期、单节点/局部流程启动、参数编辑、截图与识别结果对照、运行状态、异常回溯和错误恢复。MPE 后续调试功能应重点比较信息层级与反馈时机，而非绑定其界面框架。
+
+### MFAToolsPlus
+
+**定位**：面向 MaaFW 开发过程的桌面工具箱，重点观察截图、取色、ROI 等高频工具的组合方式。
+
+**主要内容**：`MFAToolsPlus/Views`、`ViewModels` 组织 Avalonia 界面及状态，`Utilities/`、`Helper/` 承载工具逻辑，`Configuration/` 和连接设置相关组件管理设备与工具配置。
+
+**建议关注**：工具入口分组、设备连接复用、画面获取、坐标/区域选择、结果复制与持久化、快捷键和错误反馈。MSE 中的轻量工具可作为编辑器内嵌形态的补充对照。
+
+### MaaLogAnalyzer
+
+**定位**：针对 MaaFramework 应用日志的可视化分析工具，支持 `maa.log`、`maafw.log` 及其备份、目录和压缩包输入。
+
+**主要内容**：`packages/maa-log-parser`、`maa-log-kernel`、`maa-log-runtime`、`maa-log-adapter` 和 `maa-log-tools` 拆分解析与运行能力；`src/`、`src-tauri/`、`src-vscode/` 分别承载 Web、桌面和 VS Code 形态。
+
+**建议关注**：大文件流式解析、任务/节点事件归并、原始日志与结构化视图联动、搜索上下文、流程回放、耗时与成功率统计，以及同一分析内核面向多宿主复用的边界。
+
+### MaaPracticeBoilerplate
+
+**定位**：官方推荐的 MaaFW 项目模板；本地仓库保持上游原始形态，适合作为标准工程基线。
+
+**主要内容**：`assets/`、`agent/`、`deps/`、`tools/`、`docs/` 和 `.github/` 展示资源、扩展逻辑、依赖、开发工具、文档及 CI 的基础组织方式。
+
+**建议关注**：新项目的最小目录结构、依赖引入、资源与 Agent 分层、格式检查、构建发布和贡献者工作流。涉及“从模板开始”的功能时，用它确认基线预期。
+
+### create-maa-project
+
+**定位**：用于创建和持续维护 MaaFW 应用的脚手架 CLI，可覆盖传统项目模板的初始化场景，并扩展到增量项目管理。
+
+**主要内容**：`templates/base`、`templates/agent`、`templates/addons` 提供模板资产；`src/scaffold.ts`、`project.ts`、`update.ts`、`sync.ts`、`doctor.ts`、`report.ts` 组织创建、状态同步、检查和报告；`src/mcp.ts` 暴露 MCP 服务。
+
+**建议关注**：确定性生成、已提交状态文件、锁与哈希、备份、pending action、`update/sync/diff/doctor` 命令、JSON 报告，以及 CLI 和 MCP 共用同一写入路径的安全模型。MPE 增加项目管理能力时，应优先研究其状态转换和失败恢复设计。
+
+### M9A
+
+**定位**：规模较完整的 MaaFW 产品项目，可用于观察协议能力在长期维护项目中的组合方式。
+
+**主要内容**：根目录 `interface.json` 描述 PI V2 项目；`resource/` 按基础资源、渠道和地区组织资源包；`agent/` 包含自定义逻辑与运行入口；`tasks/`、`tests/`、`tools/`、`docs/` 形成任务、验证、工具和文档体系。
+
+**建议关注**：多资源包复用、国际化/渠道差异、复杂任务拆分、Agent 与 Pipeline 的职责分配、测试资产和发布流程。它更适合验证大型项目中的可维护性问题，而不是作为单一功能示例。
+
+### MaaGumballs
+
+**定位**：MaaFW 产品项目之一，其 Skill 与 MCP 配合方式为 AI 辅助开发提供了较完整的实践样本。
+
+**主要内容**：`.claude/skills/` 包含 Pipeline 指南、生成、图谱、选项和测试等技能；`.mcp.json` 声明 Maa MCP 接入；`agent/`、`assets/`、`tools/` 和开发文档覆盖自定义逻辑、资源、检查脚本与工程流程。
+
+**建议关注**：Skill 的职责拆分与上下文控制、MCP 工具边界、结构化生成、Pipeline 图关系检查、从构建到测试的反馈闭环，以及自动化步骤怎样保留人工确认点。相关研究用于优化 MPE 的 AI 辅助能力，不预设具体模型或客户端。
+
+## 按任务选择参考项目
+
+| 开发任务 | 首选项目 | 补充对照 |
+| --- | --- | --- |
+| 核对协议或运行时语义 | MaaFramework | `maafw` skill、M9A |
+| 设计 PI V2 通用运行界面 | MFW-PyQt6、MXU | M9A |
+| 设计 Pipeline 编辑辅助 | maa-support-extension | MaaDebugger、MFAToolsPlus |
+| 设计节点调试流程 | MaaDebugger | maa-support-extension、MaaLogAnalyzer |
+| 设计截图、ROI、取色等工具 | MFAToolsPlus | maa-support-extension |
+| 设计日志分析与执行回放 | MaaLogAnalyzer | MaaDebugger |
+| 设计项目初始化 | MaaPracticeBoilerplate | create-maa-project |
+| 设计项目维护与迁移 | create-maa-project | MaaPracticeBoilerplate、M9A |
+| 验证大型项目可维护性 | M9A | MaaGumballs |
+| 设计 AI 辅助 MaaFW 开发 | MaaGumballs | create-maa-project、maa-support-extension |
+
+## 一键同步
+
+在 MPE 仓库根目录运行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\docs\sync-reference-projects.ps1
+```
+
+脚本从 [reference-projects.json](../../scripts/docs/reference-projects.json) 读取项目列表：
+
+- 目标目录不存在时，使用 `git clone --recurse-submodules` 拉取仓库。
+- 目标为已有 Git 仓库且工作区干净、分支已配置 upstream 时，使用 `git pull --ff-only --recurse-submodules` 更新，避免自动制造合并提交。
+- 工作区有本地修改、处于 detached HEAD 或没有 upstream 时，只获取远端引用并给出提示，不覆盖本地状态。
+- 单个项目失败不会中断其余项目；脚本结束时输出汇总，并在存在失败时返回非零退出码。
+- 若参考仓库不放在默认的同级 `maa-refs` 目录，可通过 `-ReferenceRoot <目录>` 指定统一存放位置。
+- 可先追加 `-WhatIf` 预览目标和操作。

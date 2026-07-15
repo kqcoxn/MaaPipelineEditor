@@ -192,7 +192,7 @@ jobs:
           CURRENT_TAG="${{ github.ref_name }}"
           PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
 
-          node .github/scripts/render-release-notes.mjs \
+          node scripts/ci/render-release-notes.mjs \
             --tag "$CURRENT_TAG" \
             --previous-tag "$PREVIOUS_TAG" \
             --update-logs src/data/updateLogs.ts \

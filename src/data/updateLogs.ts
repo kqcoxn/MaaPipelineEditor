@@ -94,6 +94,12 @@ export const nextPreview: ForecastSection = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "1.7.5",
+    date: "2026-7",
+    type: "fix",
+    updates: {},
+  },
+  {
     version: "1.7.4",
     date: "2026-7-15",
     type: "fix",

@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "relativeTo": "MaaPipelineEditor repository root",
+  "projects": [
+    {
+      "name": "MaaFramework",
+      "directory": "MaaFramework",
+      "relativePath": "../maa-refs/MaaFramework",
+      "repository": "https://github.com/MaaXYZ/MaaFramework",
+      "repositoryAliases": [],
+      "category": "核心框架",
+      "mainContent": "MaaFW 协议、公开 API、运行时、示例、测试与核心源码"
+    },
+    {
+      "name": "MFW-PyQt6",
+      "directory": "MFW-PyQt6",
+      "relativePath": "../maa-refs/MFW-PyQt6",
+      "repository": "https://github.com/overflow65537/MFW-PyQt6",
+      "repositoryAliases": [],
+      "category": "通用客户端",
+      "mainContent": "基于 PySide6 的 PI V2 通用 GUI、任务运行、调度、通知与扩展"
+    },
+    {
+      "name": "MXU",
+      "directory": "MXU",
+      "relativePath": "../maa-refs/MXU",
+      "repository": "https://github.com/MistEO/MXU",
+      "repositoryAliases": [],
+      "category": "通用客户端",
+      "mainContent": "基于 Tauri、React、TypeScript 的 PI V2 通用 GUI 与桌面集成"
+    },
+    {
+      "name": "maa-support-extension",
+      "directory": "maa-support-extension",
+      "relativePath": "../maa-refs/maa-support-extension",
+      "repository": "https://github.com/neko-para/maa-support-extension",
+      "repositoryAliases": [],
+      "category": "编辑器工具",
+      "mainContent": "VS Code 中的 Pipeline 开发辅助、运行能力、解析能力与配套工具"
+    },
+    {
+      "name": "MaaDebugger",
+      "directory": "MaaDebugger",
+      "relativePath": "../maa-refs/MaaDebugger",
+      "repository": "https://github.com/MaaXYZ/MaaDebugger",
+      "repositoryAliases": [],
+      "category": "调试工具",
+      "mainContent": "基于 Python 的 MaaFW 节点调试、运行控制、识别结果和错误呈现"
+    },
+    {
+      "name": "MFAToolsPlus",
+      "directory": "MFAToolsPlus",
+      "relativePath": "../maa-refs/MFAToolsPlus",
+      "repository": "https://github.com/SweetSmellFox/MFAToolsPlus",
+      "repositoryAliases": [],
+      "category": "开发工具",
+      "mainContent": "截图、取色、ROI 等 MaaFW 开发工具及其桌面交互"
+    },
+    {
+      "name": "MaaLogAnalyzer",
+      "directory": "MaaLogAnalyzer",
+      "relativePath": "../maa-refs/MaaLogAnalyzer",
+      "repository": "https://github.com/MaaXYZ/MaaLogAnalyzer",
+      "repositoryAliases": [],
+      "category": "日志工具",
+      "mainContent": "maafw.log 解析、搜索、流程可视化、执行回放与统计"
+    },
+    {
+      "name": "MaaPracticeBoilerplate",
+      "directory": "MaaPracticeBoilerplate",
+      "relativePath": "../maa-refs/MaaPracticeBoilerplate",
+      "repository": "https://github.com/MaaXYZ/MaaPracticeBoilerplate",
+      "repositoryAliases": [],
+      "category": "项目模板",
+      "mainContent": "官方推荐的 MaaFW 项目骨架、资源布局和工程化约定"
+    },
+    {
+      "name": "create-maa-project",
+      "directory": "create-maa-project",
+      "relativePath": "../maa-refs/create-maa-project",
+      "repository": "https://github.com/Windsland52/create-maa-project",
+      "repositoryAliases": [],
+      "category": "项目脚手架",
+      "mainContent": "MaaFW 项目创建、增量维护、状态管理、CLI 与 MCP 服务"
+    },
+    {
+      "name": "M9A",
+      "directory": "M9A",
+      "relativePath": "../maa-refs/M9A",
+      "repository": "https://github.com/MaaXYZ/M9A",
+      "repositoryAliases": [
+        "https://github.com/MAA1999/M9A"
+      ],
+      "category": "实践项目",
+      "mainContent": "大型 MaaFW 应用的多资源包、Agent、任务、测试与发布组织"
+    },
+    {
+      "name": "MaaGumballs",
+      "directory": "MaaGumballs",
+      "relativePath": "../maa-refs/MaaGumballs",
+      "repository": "https://github.com/KhazixW2/MaaGumballs",
+      "repositoryAliases": [],
+      "category": "AI 辅助实践",
+      "mainContent": "Skill 与 MCP 协同的 Pipeline 构建、验证、测试和项目自动化"
+    }
+  ]
+}

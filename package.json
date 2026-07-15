@@ -8,7 +8,7 @@
   },
   "scripts": {
     "icon": "npx iconfont-h5",
-    "postinstall": "patch-package && node scripts/copy-monaco.cjs",
+    "postinstall": "patch-package && node scripts/setup/copy-monaco.cjs",
     "dev": "vite",
     "landing": "yarn --cwd Landing dev",
     "landing:build": "yarn --cwd Landing build",
@@ -21,10 +21,10 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "reset": "git reset --soft HEAD~1",
-    "migrate": "node scripts/migrate-version.mjs",
-    "proto": "node scripts/proto-version.mjs",
-    "release": "git tag -a v1.7.4 -m \"v1.7.4\" && git push origin v1.7.4",
-    "retag": "git tag -d v1.7.4"
+    "migrate": "node scripts/development/migrate-version.mjs",
+    "proto": "node scripts/development/proto-version.mjs",
+    "release": "git tag -a v1.7.5 -m \"v1.7.5\" && git push origin v1.7.5",
+    "retag": "git tag -d v1.7.5"
   },
   "dependencies": {
     "@ant-design/icons": "6.3.2",

@@ -14,14 +14,14 @@ func PrintInstallCommand() {
 		shell := os.Getenv("PSModulePath")
 		if shell != "" {
 			// PowerShell 环境
-			fmt.Println("   irm https://raw.githubusercontent.com/kqcoxn/MaaPipelineEditor/main/tools/install.ps1 | iex")
+			fmt.Println("   irm https://raw.githubusercontent.com/kqcoxn/MaaPipelineEditor/main/scripts/install/install.ps1 | iex")
 		} else {
 			// CMD 环境
-			fmt.Printf("   curl -fsSL https://raw.githubusercontent.com/kqcoxn/MaaPipelineEditor/main/tools/install.bat -o %%TEMP%%\\install-mpelb.bat && %%TEMP%%\\install-mpelb.bat\n")
+			fmt.Printf("   curl -fsSL https://raw.githubusercontent.com/kqcoxn/MaaPipelineEditor/main/scripts/install/install.bat -o %%TEMP%%\\install-mpelb.bat && %%TEMP%%\\install-mpelb.bat\n")
 		}
 	case "darwin", "linux":
 		// Linux/macOS
-		fmt.Println("   curl -fsSL https://raw.githubusercontent.com/kqcoxn/MaaPipelineEditor/main/tools/install.sh | bash")
+		fmt.Println("   curl -fsSL https://raw.githubusercontent.com/kqcoxn/MaaPipelineEditor/main/scripts/install/install.sh | bash")
 	default:
 		fmt.Println("   请访问 GitHub Release 页面手动下载")
 	}
