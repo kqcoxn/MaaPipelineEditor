@@ -35,7 +35,9 @@ import { NodeTypeEnum } from "./flow/nodes/constants";
 import { edgeTypes } from "./flow/edges";
 import { SelectionContextMenu } from "./flow/components/SelectionContextMenu";
 import { localSave, useFileStore } from "../stores/fileStore";
-import NodeAddPanel from "./panels/main/NodeAddPanel";
+import NodeAddPanel, {
+  type QuickCreateConnection,
+} from "./panels/main/NodeAddPanel";
 import InlineFieldPanel from "./panels/main/InlineFieldPanel";
 import InlineEdgePanel from "./panels/main/InlineEdgePanel";
 import { useConfigStore } from "../stores/configStore";
@@ -192,6 +194,7 @@ const UpdateMonitor = memo(() => {
 interface NodeAddPanelControllerProps {
   visible: boolean;
   screenPos: { x: number; y: number };
+  quickCreateConnection: QuickCreateConnection | null;
   setVisible: (v: boolean) => void;
   setScreenPos: (pos: { x: number; y: number }) => void;
   onClose: () => void;
@@ -200,6 +203,7 @@ const NodeAddPanelController = memo(
   ({
     visible,
     screenPos,
+    quickCreateConnection,
     setVisible,
     setScreenPos,
     onClose,
@@ -225,6 +229,7 @@ const NodeAddPanelController = memo(
         visible={visible}
         position={screenPos}
         flowPosition={flowPos}
+        quickCreateConnection={quickCreateConnection}
         onClose={onClose}
         onReopen={handleReopen}
       />
@@ -282,6 +287,8 @@ function MainFlow() {
   // 节点添加面板状态
   const [nodeAddPanelVisible, setNodeAddPanelVisible] = useState(false);
   const [nodeAddPanelPos, setNodeAddPanelPos] = useState({ x: 0, y: 0 });
+  const [quickCreateConnection, setQuickCreateConnection] =
+    useState<QuickCreateConnection | null>(null);
 
   // 磁吸对齐参考线
   const [snapGuidelines, setSnapGuidelines] = useState<SnapGuideline[]>([]);
@@ -399,12 +406,22 @@ function MainFlow() {
           ? event.changedTouches[0]?.clientY
           : event.clientY;
 
-      if (clientX == null || clientY == null || !connectStart.nodeId) {
+      if (
+        clientX == null ||
+        clientY == null ||
+        !connectStart.nodeId ||
+        !connectStart.handleId ||
+        connectStart.handleType !== "source"
+      ) {
         connectionCompletedRef.current = false;
         return;
       }
 
       suppressNextPaneClickRef.current = true;
+      setQuickCreateConnection({
+        source: connectStart.nodeId,
+        sourceHandle: connectStart.handleId,
+      });
       setNodeAddPanelPos({ x: clientX, y: clientY });
       setNodeAddPanelVisible(true);
 
@@ -430,6 +447,7 @@ function MainFlow() {
       // 单击关闭面板
       if (nodeAddPanelVisible) {
         setNodeAddPanelVisible(false);
+        setQuickCreateConnection(null);
       }
     },
     [nodeAddPanelVisible],
@@ -439,6 +457,7 @@ function MainFlow() {
   const onDoubleClick = useCallback(
     (event: React.MouseEvent | MouseEvent) => {
       if (readOnly) return;
+      setQuickCreateConnection(null);
       setNodeAddPanelPos({ x: event.clientX, y: event.clientY });
       setNodeAddPanelVisible(true);
     },
@@ -450,6 +469,7 @@ function MainFlow() {
     (event: React.MouseEvent | MouseEvent) => {
       if (readOnly) return;
       event.preventDefault();
+      setQuickCreateConnection(null);
       setNodeAddPanelPos({ x: event.clientX, y: event.clientY });
       setNodeAddPanelVisible(true);
     },
@@ -459,6 +479,7 @@ function MainFlow() {
   // 关闭节点添加面板
   const closeNodeAddPanel = useCallback(() => {
     setNodeAddPanelVisible(false);
+    setQuickCreateConnection(null);
   }, []);
 
   // 节点拖拽磁吸对齐
@@ -693,6 +714,7 @@ function MainFlow() {
         <NodeAddPanelController
           visible={nodeAddPanelVisible}
           screenPos={nodeAddPanelPos}
+          quickCreateConnection={quickCreateConnection}
           setVisible={setNodeAddPanelVisible}
           setScreenPos={setNodeAddPanelPos}
           onClose={closeNodeAddPanel}

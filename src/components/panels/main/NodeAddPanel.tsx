@@ -1,5 +1,6 @@
 import { memo, useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Input, Modal } from "antd";
+import type { Connection } from "@xyflow/react";
 import classNames from "classnames";
 import style from "../../../styles/panels/NodeAddPanel.module.less";
 import IconFont from "../../iconfonts";
@@ -11,12 +12,20 @@ import {
 import { useFlowStore } from "../../../stores/flow";
 import { useCustomTemplateStore } from "../../../stores/customTemplateStore";
 import { useClipboardStore } from "../../../stores/clipboardStore";
-import { NodeTypeEnum } from "../../flow/nodes";
+import {
+  NodeTypeEnum,
+  TargetHandleTypeEnum,
+} from "../../flow/nodes";
 import {
   getRecognitionIcon,
   getActionIcon,
   getNodeTypeIcon,
 } from "../../flow/nodes/utils";
+
+export interface QuickCreateConnection {
+  source: Connection["source"];
+  sourceHandle: NonNullable<Connection["sourceHandle"]>;
+}
 
 interface NodeAddPanelProps {
   visible: boolean;
@@ -24,6 +33,7 @@ interface NodeAddPanelProps {
   onClose: () => void;
   onReopen?: (screenPos: { x: number; y: number }) => void;
   flowPosition?: { x: number; y: number };
+  quickCreateConnection?: QuickCreateConnection | null;
 }
 
 // 格式化参数值为可读字符串
@@ -280,6 +290,7 @@ function NodeAddPanel({
   onClose,
   onReopen,
   flowPosition,
+  quickCreateConnection,
 }: NodeAddPanelProps) {
   const [searchText, setSearchText] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -288,6 +299,7 @@ function NodeAddPanel({
   const listRef = useRef<HTMLDivElement>(null);
 
   const addNode = useFlowStore((state) => state.addNode);
+  const addEdge = useFlowStore((state) => state.addEdge);
   const paste = useFlowStore((state) => state.paste);
   const customTemplates = useCustomTemplateStore(
     (state) => state.customTemplates,
@@ -350,17 +362,31 @@ function NodeAddPanel({
   // 添加节点
   const handleAddNode = useCallback(
     (template: NodeTemplateType) => {
-      addNode({
-        type: template.nodeType ?? NodeTypeEnum.Pipeline,
+      const nodeType = template.nodeType ?? NodeTypeEnum.Pipeline;
+      const nodeId = addNode({
+        type: nodeType,
         data: template.data?.(),
         position: flowPosition,
         select: true,
         focus: !flowPosition,
         link: false,
       });
+
+      if (
+        quickCreateConnection &&
+        nodeType !== NodeTypeEnum.Sticker &&
+        nodeType !== NodeTypeEnum.Group
+      ) {
+        addEdge({
+          ...quickCreateConnection,
+          target: nodeId,
+          targetHandle: TargetHandleTypeEnum.Target,
+        });
+      }
+
       onClose();
     },
-    [addNode, flowPosition, onClose],
+    [addEdge, addNode, flowPosition, onClose, quickCreateConnection],
   );
 
   // 粘贴板节点
