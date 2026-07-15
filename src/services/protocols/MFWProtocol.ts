@@ -10,14 +10,18 @@ import {
   type WlRootsCompositor,
   type MacOSDevice,
 } from "../../stores/mfwStore";
+import {
+  ScreencapRequestManager,
+  type ScreencapRequestParams,
+  type ScreencapResult,
+} from "./screencapRequests";
 
 /**
  * MaaFramework 协议处理器
  * 处理所有 MaaFramework 相关的 WebSocket 消息
  */
 export class MFWProtocol extends BaseProtocol {
-  // 截图结果回调函数
-  private screencapCallbacks: Array<(data: any) => void> = [];
+  private screencapRequests = new ScreencapRequestManager();
   // OCR结果回调函数
   private ocrCallbacks: Array<(data: any) => void> = [];
   // 模板匹配结果回调函数
@@ -59,6 +63,7 @@ export class MFWProtocol extends BaseProtocol {
       const mfwStore = useMFWStore.getState();
       // 清除控制器状态
       if (!connected) {
+        this.screencapRequests.rejectAll("LocalBridge 连接已断开");
         mfwStore.clearConnection();
         // 清除待连接设备信息
         this.lastConnectionDevice = null;
@@ -133,6 +138,11 @@ export class MFWProtocol extends BaseProtocol {
     this.wsClient.registerRoute("/lte/mfw/execute_action_result", (data) =>
       this.handleExecuteActionResult(data),
     );
+  }
+
+  override unregister(): void {
+    this.screencapRequests.rejectAll("MaaFramework 协议已注销");
+    super.unregister();
   }
 
   protected handleMessage(path: string, data: any): void {}
@@ -268,15 +278,8 @@ export class MFWProtocol extends BaseProtocol {
    * 处理截图结果
    * 路由: /lte/mfw/screencap_result
    */
-  private handleScreencapResult(data: any): void {
-    // 触发所有注册的回调
-    this.screencapCallbacks.forEach((callback) => {
-      try {
-        callback(data);
-      } catch (error) {
-        console.error("[MFWProtocol] Error in screencap callback:", error);
-      }
-    });
+  private handleScreencapResult(data: ScreencapResult): void {
+    this.screencapRequests.resolve(data);
   }
 
   /**
@@ -625,36 +628,11 @@ export class MFWProtocol extends BaseProtocol {
   /**
    * 请求截图
    */
-  public requestScreencap(params: {
-    controller_id: string;
-    use_cache?: boolean;
-    target_long_side?: number;
-    target_short_side?: number;
-    use_raw_size?: boolean;
-  }): boolean {
-    if (!this.wsClient) {
-      console.error("[MFWProtocol] WebSocket client not initialized");
-      return false;
-    }
-
-    return this.wsClient.send("/etl/mfw/request_screencap", params);
-  }
-
-  /**
-   * 注册截图结果回调
-   * @param callback 截图结果回调函数
-   * @returns 注销函数
-   */
-  public onScreencapResult(callback: (data: any) => void): () => void {
-    this.screencapCallbacks.push(callback);
-
-    // 返回注销函数
-    return () => {
-      const index = this.screencapCallbacks.indexOf(callback);
-      if (index > -1) {
-        this.screencapCallbacks.splice(index, 1);
-      }
-    };
+  public requestScreencap(
+    params: ScreencapRequestParams,
+    signal?: AbortSignal,
+  ): Promise<ScreencapResult> {
+    return this.screencapRequests.request(this.wsClient, params, signal);
   }
 
   /**

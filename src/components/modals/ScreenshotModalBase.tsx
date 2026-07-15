@@ -114,6 +114,7 @@ export const ScreenshotModalBase = memo(
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const loadedImageRef = useRef<HTMLImageElement | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const requestAbortControllerRef = useRef<AbortController | null>(null);
 
     const isConnected = connectionStatus === "connected" && !!controllerId;
 
@@ -140,16 +141,45 @@ export const ScreenshotModalBase = memo(
     }, [onScreenshotChange, onImageLoaded, onReset]);
 
     // 请求截图
-    const requestScreenshot = useCallback(() => {
+    const requestScreenshot = useCallback(async () => {
       if (connectionStatus !== "connected" || !controllerId) {
         return;
       }
 
+      requestAbortControllerRef.current?.abort();
+      const abortController = new AbortController();
+      requestAbortControllerRef.current = abortController;
       setIsLoading(true);
-      mfwProtocol.requestScreencap({
-        controller_id: controllerId,
-        ...getScreenshotResolutionParams(useConfigStore.getState().configs),
-      });
+      try {
+        const result = await mfwProtocol.requestScreencap(
+          {
+            controller_id: controllerId,
+            ...getScreenshotResolutionParams({
+              screenshotResolutionMode: resolutionMode,
+              screenshotResolutionValue: resolutionValue,
+            }),
+          },
+          abortController.signal,
+        );
+        if (abortController.signal.aborted) return;
+
+        if (result.success && result.image) {
+          setScreenshot(result.image);
+          setImageLoaded(false);
+          onScreenshotChangeRef.current?.(result.image);
+        } else {
+          message.error(result.error || "截图失败");
+        }
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          message.error(error instanceof Error ? error.message : "截图失败");
+        }
+      } finally {
+        if (requestAbortControllerRef.current === abortController) {
+          requestAbortControllerRef.current = null;
+          setIsLoading(false);
+        }
+      }
     }, [connectionStatus, controllerId, resolutionMode, resolutionValue]);
 
     // 上传本地图片作为底图
@@ -169,6 +199,7 @@ export const ScreenshotModalBase = memo(
           return;
         }
 
+        requestAbortControllerRef.current?.abort();
         const reader = new FileReader();
         reader.onload = () => {
           const dataUrl = reader.result as string;
@@ -197,31 +228,10 @@ export const ScreenshotModalBase = memo(
       if (connectionStatus === "connected" && controllerId) {
         requestScreenshot();
       }
-    }, [open, requestScreenshot, resetViewport, connectionStatus, controllerId]);
-
-    // 监听截图结果
-    useEffect(() => {
-      if (!open) return;
-
-      const handleScreencap = (data: {
-        success: boolean;
-        image?: string;
-        error?: string;
-      }) => {
-        setIsLoading(false);
-        if (data.success && data.image) {
-          setScreenshot(data.image);
-          setImageLoaded(false); // 重置加载状态
-          onScreenshotChangeRef.current?.(data.image);
-        }
-      };
-
-      const unregister = mfwProtocol.onScreencapResult(handleScreencap);
-
       return () => {
-        unregister();
+        requestAbortControllerRef.current?.abort();
       };
-    }, [open]);
+    }, [open, requestScreenshot, resetViewport, connectionStatus, controllerId]);
 
     // 加载图片
     useEffect(() => {
@@ -244,7 +254,10 @@ export const ScreenshotModalBase = memo(
 
     // 关闭时重置状态
     const handleClose = useCallback(() => {
+      requestAbortControllerRef.current?.abort();
+      requestAbortControllerRef.current = null;
       setScreenshot(null);
+      setIsLoading(false);
       resetViewport();
       onReset?.();
       onClose();

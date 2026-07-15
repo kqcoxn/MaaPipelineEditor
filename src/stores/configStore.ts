@@ -7,7 +7,7 @@ import { encryptApiKey } from "../utils/ai/crypto";
 export const globalConfig = {
   dev: true,
   version: `1.7.4`,
-  betaIteration: 1,
+  betaIteration: 2,
   mfwVersion: "5.12.1",
   protocolVersion: "1.2.3",
 };
@@ -130,13 +130,18 @@ export interface ScreenshotResolutionParams {
   use_raw_size?: boolean;
 }
 
+type ScreenshotResolutionConfig = Pick<
+  ConfigState["configs"],
+  "screenshotResolutionMode" | "screenshotResolutionValue"
+>;
+
 /**
  * 根据配置生成截图请求的分辨率参数。
- * maafw 三种模式互斥，每次请求只发送恰好一种，避免继承控制器残留状态。
- * default 模式显式回落到短边 720（maafw 默认），覆盖实时预览可能设置的长边。
+ * maafw 三种模式互斥，每次请求只发送一种；后端负责清理其他模式的残留状态。
+ * default 模式显式回落到短边 720（maafw 默认）。
  */
 export const getScreenshotResolutionParams = (
-  configs: ConfigState["configs"],
+  configs: ScreenshotResolutionConfig,
 ): ScreenshotResolutionParams => {
   const value = configs.screenshotResolutionValue;
   switch (configs.screenshotResolutionMode) {

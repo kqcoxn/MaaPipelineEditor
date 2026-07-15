@@ -527,29 +527,11 @@ async function performExplorationScreenshot(): Promise<string | null> {
     throw new Error("未连接到设备");
   }
 
-  const screenshotPromise = new Promise<any>((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error("截图超时")), 10000);
-    const unregister = mfwProtocol.onScreencapResult((data) => {
-      clearTimeout(timeout);
-      unregister();
-      resolve(data);
-    });
-
-    const success = mfwProtocol.requestScreencap({
-      controller_id: controllerId,
-      use_cache: true,
-    });
-
-    if (!success) {
-      clearTimeout(timeout);
-      unregister();
-      reject(new Error("截图请求发送失败"));
-    }
+  const screenshotResult = await mfwProtocol.requestScreencap({
+    controller_id: controllerId,
+    use_cache: true,
   });
-
-  const screenshotResult = await screenshotPromise;
   if (
-    !screenshotResult ||
     !screenshotResult.success ||
     !screenshotResult.image
   ) {

@@ -89,13 +89,16 @@ func New(
 		adapter.Destroy()
 		return nil, fmt.Errorf("控制器未连接: %s", controllerID)
 	}
-	adapter.SetController(controller, controllerInfo.Type, controllerInfo.UUID)
-
-	// 重置控制器截图分辨率为原始设备分辨率，
-	// 避免被 LiveScreen 预览面板的低分辨率设置（target_long_side=400）污染。
-	if err := controller.SetScreenshot(maa.WithScreenshotUseRawSize(true)); err != nil {
-		logger.Warn("DebugVNext", "重置控制器截图分辨率失败: %v", err)
+	resolution, err := mfw.ScreenshotResolutionFromControllerOptions(req.Profile.Controller.Options)
+	if err != nil {
+		adapter.Destroy()
+		return nil, fmt.Errorf("解析调试截图分辨率失败: %w", err)
 	}
+	if err := service.ControllerManager().SetScreenshotResolution(controllerID, resolution); err != nil {
+		adapter.Destroy()
+		return nil, fmt.Errorf("设置调试截图分辨率失败: %w", err)
+	}
+	adapter.SetController(controller, controllerInfo.Type, controllerInfo.UUID)
 
 	// 判断是否有启用的 agent，决定 Resource 的来源
 	enabledAgents := filterEnabledAgents(req.Profile.Agents)

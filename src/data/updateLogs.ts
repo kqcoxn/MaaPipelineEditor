@@ -100,6 +100,7 @@ export const updateLogs: UpdateLogItem[] = [
     updates: {
       perfs: ["更新 Win32 输入方法解析以兼容 Interception 驱动"],
       fixes: [
+        "修复各场景下截图分辨率表现不一致的问题",
         "修复在打开 Devtools 的情况下拖拽节点会崩溃的问题",
         "修复连接空白处时创建时没有自动连接新节点的问题",
       ],

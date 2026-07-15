@@ -563,7 +563,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
     label: "截图分辨率",
     tipTitle: "截图分辨率",
     tipContent:
-      "设备截图（ROI/OCR/模板匹配等取图工具）的缩放方式，与 MaaFramework 的缩放分辨率一致：\n默认：短边缩放至 720（maafw 默认）\n短边：将短边缩放至指定长度，长边按比例自适应\n长边：将长边缩放至指定长度，短边按比例自适应\n原始：不缩放，使用设备原始分辨率\n\n注意：取图分辨率应与运行时控制器的缩放设置保持一致，否则 ROI/坐标会错位。",
+      "设备截图与网页调试共用此缩放方式：\n默认：短边缩放至 720（maafw 默认）\n短边：将短边缩放至指定长度，长边按比例自适应\n长边：将长边缩放至指定长度，短边按比例自适应\n原始：不缩放，使用设备原始分辨率\n\nMPE 不读取 interface.json，网页调试以此处设置为准。ROI/OCR/模板匹配工具与调试运行会始终使用同一坐标系。",
     type: "select",
     options: [
       { value: "default", label: "默认 (短边 720)" },

@@ -12,6 +12,7 @@ require (
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
 	github.com/tailscale/hujson v0.0.0-20250605163823-992244df8c5a
+	golang.org/x/image v0.14.0
 	golang.org/x/sys v0.39.0
 )
 

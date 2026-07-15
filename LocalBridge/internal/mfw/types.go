@@ -1,6 +1,7 @@
 package mfw
 
 import (
+	"sync"
 	"time"
 )
 
@@ -39,7 +40,7 @@ type GamepadDeviceInfo struct {
 
 // WlRoots信息
 type WlRootsCompositorInfo struct {
-	SocketPath             string   `json:"socket_path"` // 套接字路径
+	SocketPath string `json:"socket_path"` // 套接字路径
 }
 
 // 控制器实例信息
@@ -51,6 +52,7 @@ type ControllerInfo struct {
 	UUID         string    `json:"uuid"`
 	CreatedAt    time.Time `json:"created_at"`
 	LastActiveAt time.Time `json:"last_active_at"`
+	screenshotMu sync.Mutex
 }
 
 // 资源实例信息
@@ -74,13 +76,18 @@ type TaskInfo struct {
 	SubmittedAt  time.Time              `json:"submitted_at"`
 }
 
+type ScreenshotResolution struct {
+	TargetLongSide  int32
+	TargetShortSide int32
+	UseRawSize      bool
+}
+
 // 截图请求
 type ScreencapRequest struct {
-	ControllerID    string `json:"controller_id"`
-	UseCache        bool   `json:"use_cache"`
-	TargetLongSide  int32  `json:"target_long_side,omitempty"`
-	TargetShortSide int32  `json:"target_short_side,omitempty"`
-	UseRawSize      bool   `json:"use_raw_size"`
+	ControllerID   string
+	UseCache       bool
+	Resolution     *ScreenshotResolution
+	OutputLongSide int32
 }
 
 // 截图结果

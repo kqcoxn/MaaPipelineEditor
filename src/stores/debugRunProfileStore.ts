@@ -20,6 +20,10 @@ import {
 } from "../features/debug/agentProfile";
 import { useLocalFileStore, type ResourceBundle } from "./localFileStore";
 import { useMFWStore } from "./mfwStore";
+import {
+  getScreenshotResolutionParams,
+  useConfigStore,
+} from "./configStore";
 
 const STORAGE_KEY = "mpe_debug_run_profiles_v3";
 const LEGACY_STORAGE_KEY = "mpe_debug_run_profiles_v2";
@@ -193,12 +197,13 @@ function resolveControllerType(): DebugRunProfile["controller"]["type"] {
   return "adb";
 }
 
-function omitStoredControllerId(
+function omitRuntimeControllerOptions(
   options: DebugRunProfile["controller"]["options"],
 ): DebugRunProfile["controller"]["options"] {
   const next = { ...options };
   delete next.controllerId;
   delete next.controller_id;
+  delete next.screenshotResolution;
   return next;
 }
 
@@ -382,7 +387,10 @@ export const useDebugRunProfileStore = create<DebugRunProfileState>(
             ? mfwState.controllerId
             : undefined;
         const controllerOptions = {
-          ...omitStoredControllerId(storeProfile.controller.options),
+          ...omitRuntimeControllerOptions(storeProfile.controller.options),
+          screenshotResolution: getScreenshotResolutionParams(
+            useConfigStore.getState().configs,
+          ),
           ...(liveControllerId && { controllerId: liveControllerId }),
         };
         const requestInput: DebugRunInput = { ...input };

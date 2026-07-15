@@ -419,27 +419,44 @@ func (h *MFWHandler) handleScreencap(conn *server.Connection, msg models.Message
 	}
 
 	controllerID, _ := dataMap["controller_id"].(string)
+	requestID, _ := dataMap["request_id"].(string)
+	useCache, _ := dataMap["use_cache"].(bool)
 
-	// 创建截图请求
+	resolution, err := mfw.ParseOptionalScreenshotResolution(dataMap)
+	if err != nil {
+		conn.Send(models.Message{
+			Path: "/lte/mfw/screencap_result",
+			Data: map[string]interface{}{
+				"request_id":    requestID,
+				"controller_id": controllerID,
+				"success":       false,
+				"error":         err.Error(),
+			},
+		})
+		return
+	}
+
 	req := &mfw.ScreencapRequest{
 		ControllerID: controllerID,
+		UseCache:     useCache,
+		Resolution:   resolution,
 	}
-
-	// 解析分辨率参数（三者互斥，由前端保证只传其一）
-	if v, ok := dataMap["target_long_side"].(float64); ok && v > 0 {
-		req.TargetLongSide = int32(v)
-	}
-	if v, ok := dataMap["target_short_side"].(float64); ok && v > 0 {
-		req.TargetShortSide = int32(v)
-	}
-	if v, ok := dataMap["use_raw_size"].(bool); ok {
-		req.UseRawSize = v
+	if value, ok := dataMap["output_long_side"].(float64); ok && value > 0 {
+		req.OutputLongSide = int32(value)
 	}
 
 	result, err := h.service.ControllerManager().Screencap(req)
 	if err != nil {
 		logger.Error("MFW", "截图失败: %v", err)
-		h.sendMFWError(conn, mfw.ErrCodeScreencapFailed, "截图失败", err.Error())
+		conn.Send(models.Message{
+			Path: "/lte/mfw/screencap_result",
+			Data: map[string]interface{}{
+				"request_id":    requestID,
+				"controller_id": controllerID,
+				"success":       false,
+				"error":         err.Error(),
+			},
+		})
 		return
 	}
 
@@ -447,6 +464,7 @@ func (h *MFWHandler) handleScreencap(conn *server.Connection, msg models.Message
 	response := models.Message{
 		Path: "/lte/mfw/screencap_result",
 		Data: map[string]interface{}{
+			"request_id":    requestID,
 			"controller_id": controllerID,
 			"success":       result.Success,
 			"image":         result.ImageData,

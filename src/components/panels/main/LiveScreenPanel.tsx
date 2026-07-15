@@ -30,6 +30,7 @@ const LiveScreenPanel = memo(() => {
   const [hasError, setHasError] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const isRequestingRef = useRef(false);
+  const requestAbortControllerRef = useRef<AbortController | null>(null);
   const consecutiveFailuresRef = useRef(0);
 
   // 页面不可见时暂停截图请求
@@ -50,47 +51,57 @@ const LiveScreenPanel = memo(() => {
     enableLiveScreen;
   const shouldRequestScreen = shouldShow && !isCollapsed;
 
-  // 注册截图结果监听
-  useEffect(() => {
-    const unregister = mfwProtocol.onScreencapResult(
-      (data: { success: boolean; image?: string; error?: string }) => {
-        isRequestingRef.current = false;
-        if (data.success && data.image) {
-          setScreenImage(data.image);
-          setIsLoading(false);
-          setHasError(false);
-          // 成功时重置连续失败计数
-          consecutiveFailuresRef.current = 0;
-        } else {
-          setHasError(true);
-          setIsLoading(false);
-          // 连续失败计数，超过阈值自动断开设备连接
-          consecutiveFailuresRef.current++;
-          if (consecutiveFailuresRef.current >= SCREENCAP_FAILURE_THRESHOLD) {
-            console.warn(
-              "[LiveScreenPanel] 连续截图失败次数超过阈值，自动断开设备连接",
-            );
-            message.warning("设备连接异常，已自动断开");
-            clearConnection();
-          }
-        }
-      },
-    );
-
-    return unregister;
+  const handleScreenshotFailure = useCallback(() => {
+    setHasError(true);
+    setIsLoading(false);
+    consecutiveFailuresRef.current++;
+    if (consecutiveFailuresRef.current >= SCREENCAP_FAILURE_THRESHOLD) {
+      console.warn(
+        "[LiveScreenPanel] 连续截图失败次数超过阈值，自动断开设备连接",
+      );
+      message.warning("设备连接异常，已自动断开");
+      clearConnection();
+    }
   }, [clearConnection]);
 
   // 定时截图请求
-  const requestScreenshot = useCallback(() => {
+  const requestScreenshot = useCallback(async () => {
     if (!controllerId || isRequestingRef.current) return;
     // 页面不可见时跳过请求
     if (!isPageVisibleRef.current) return;
+
     isRequestingRef.current = true;
-    mfwProtocol.requestScreencap({
-      controller_id: controllerId,
-      target_long_side: 400,
-    });
-  }, [controllerId]);
+    const abortController = new AbortController();
+    requestAbortControllerRef.current = abortController;
+    try {
+      const result = await mfwProtocol.requestScreencap(
+        {
+          controller_id: controllerId,
+          output_long_side: 400,
+        },
+        abortController.signal,
+      );
+      if (abortController.signal.aborted) return;
+
+      if (result.success && result.image) {
+        setScreenImage(result.image);
+        setIsLoading(false);
+        setHasError(false);
+        consecutiveFailuresRef.current = 0;
+      } else {
+        handleScreenshotFailure();
+      }
+    } catch (error) {
+      if (!(error instanceof DOMException && error.name === "AbortError")) {
+        handleScreenshotFailure();
+      }
+    } finally {
+      if (requestAbortControllerRef.current === abortController) {
+        requestAbortControllerRef.current = null;
+        isRequestingRef.current = false;
+      }
+    }
+  }, [controllerId, handleScreenshotFailure]);
 
   useEffect(() => {
     if (!shouldRequestScreen || !controllerId) {
@@ -106,6 +117,8 @@ const LiveScreenPanel = memo(() => {
 
     return () => {
       clearInterval(timerId);
+      requestAbortControllerRef.current?.abort();
+      requestAbortControllerRef.current = null;
       isRequestingRef.current = false;
     };
   }, [

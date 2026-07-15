@@ -1,9 +1,6 @@
 package mfw
 
 import (
-	"bytes"
-	"encoding/base64"
-	"image/png"
 	"strconv"
 	"strings"
 	"sync"
@@ -538,85 +535,6 @@ func (cm *ControllerManager) StopApp(controllerID, intent string) (*ControllerOp
 		Success:      job.Success(),
 		Status:       "Success",
 	}, nil
-}
-
-// 截图
-func (cm *ControllerManager) Screencap(req *ScreencapRequest) (*ScreencapResult, error) {
-	cm.mu.RLock()
-	info, exists := cm.controllers[req.ControllerID]
-	cm.mu.RUnlock()
-
-	if !exists {
-		return nil, ErrControllerNotFound
-	}
-
-	if !info.Connected {
-		return nil, ErrNotConnected
-	}
-
-	ctrl, ok := info.Controller.(*maa.Controller)
-	if !ok || ctrl == nil {
-		return nil, ErrNotConnected
-	}
-
-	// 设置截图参数
-	if req.TargetLongSide > 0 {
-		ctrl.SetScreenshot(maa.WithScreenshotTargetLongSide(req.TargetLongSide))
-	}
-	if req.TargetShortSide > 0 {
-		ctrl.SetScreenshot(maa.WithScreenshotTargetShortSide(req.TargetShortSide))
-	}
-	if req.UseRawSize {
-		ctrl.SetScreenshot(maa.WithScreenshotUseRawSize(true))
-	}
-
-	// 执行截图
-	if !req.UseCache {
-		job := ctrl.PostScreencap()
-		if job == nil {
-			return nil, NewMFWError(ErrCodeOperationFail, "failed to post screencap", nil)
-		}
-		job.Wait()
-		if !job.Success() {
-			return &ScreencapResult{
-				ControllerID: req.ControllerID,
-				Success:      false,
-				Error:        "screencap job failed",
-				Timestamp:    time.Now().Format(time.RFC3339),
-			}, nil
-		}
-	}
-
-	// 获取缓存图像
-	img, imgErr := ctrl.CacheImage()
-	info.LastActiveAt = time.Now()
-
-	if imgErr != nil || img == nil {
-		return &ScreencapResult{
-			ControllerID: req.ControllerID,
-			Success:      false,
-			Error:        "no image captured",
-			Timestamp:    time.Now().Format(time.RFC3339),
-		}, nil
-	}
-
-	// 编码为 PNG 并转为 Base64
-	var buf bytes.Buffer
-	if err := png.Encode(&buf, img); err != nil {
-		return nil, NewMFWError(ErrCodeOperationFail, "failed to encode image", nil)
-	}
-
-	bounds := img.Bounds()
-	result := &ScreencapResult{
-		ControllerID: req.ControllerID,
-		Success:      true,
-		ImageData:    "data:image/png;base64," + base64.StdEncoding.EncodeToString(buf.Bytes()),
-		Width:        bounds.Dx(),
-		Height:       bounds.Dy(),
-		Timestamp:    time.Now().Format(time.RFC3339),
-	}
-
-	return result, nil
 }
 
 // 获取控制器状态
