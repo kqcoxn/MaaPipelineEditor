@@ -9,7 +9,9 @@ INSTALL_DIR="$HOME/.local/bin"
 BIN_NAME="mpelb"
 BIN_PATH="$INSTALL_DIR/$BIN_NAME"
 RUNTIME_DIR="$INSTALL_DIR/runtime"
-MAAFW_BIN_DIR="$RUNTIME_DIR/maafw/bin"
+MAAFW_ROOT_DIR="$RUNTIME_DIR/maafw"
+MAAFW_BIN_DIR="$MAAFW_ROOT_DIR/bin"
+MAAFW_VERSION_FILE="$MAAFW_ROOT_DIR/.version"
 OCR_DIR="$RUNTIME_DIR/resource/model/ocr"
 OCR_URL="https://download.maafw.xyz/MaaCommonAssets/OCR/ppocr_v6/ppocr_v6-small.zip"
 
@@ -132,14 +134,30 @@ echo "✅ 下载完成"
 TMP_DIR=$(mktemp -d)
 
 install_maafw() {
-    if is_non_empty_dir "$MAAFW_BIN_DIR"; then
-        echo "✅ MaaFramework runtime 已存在，跳过下载: $MAAFW_BIN_DIR"
+    local maafw_release maafw_version installed_version maafw_asset_url
+    local zip_path extract_dir lib_file bin_dir staged_bin_dir backup_bin_dir had_existing_bin
+    echo "📡 正在获取 MaaFramework 最新版本..."
+    maafw_release=$(release_api "https://api.github.com/repos/MaaXYZ/MaaFramework/releases/latest")
+    maafw_version=$(extract_json_value "$maafw_release" "tag_name")
+    if [ -z "$maafw_version" ]; then
+        echo "❌ 获取 MaaFramework 版本信息失败"
+        exit 1
+    fi
+
+    installed_version=""
+    if [ -f "$MAAFW_VERSION_FILE" ]; then
+        installed_version=$(tr -d '\r\n' < "$MAAFW_VERSION_FILE")
+    fi
+
+    if is_non_empty_dir "$MAAFW_BIN_DIR" && [ "$installed_version" = "$maafw_version" ]; then
+        echo "✅ MaaFramework runtime 已是最新版本: $maafw_version"
         return
     fi
 
-    local maafw_release maafw_asset_url zip_path extract_dir lib_file bin_dir
-    echo "📡 正在获取 MaaFramework 最新版本..."
-    maafw_release=$(release_api "https://api.github.com/repos/MaaXYZ/MaaFramework/releases/latest")
+    if is_non_empty_dir "$MAAFW_BIN_DIR"; then
+        echo "🔄 正在更新 MaaFramework runtime: ${installed_version:-unknown} -> $maafw_version"
+    fi
+
     maafw_asset_url=$(find_asset_url "$maafw_release" "MAA-${MAAFW_OS}-${MAAFW_ARCH}-.*\\.zip")
 
     if [ -z "$maafw_asset_url" ]; then
@@ -149,6 +167,8 @@ install_maafw() {
 
     zip_path="$TMP_DIR/maafw.zip"
     extract_dir="$TMP_DIR/maafw"
+    staged_bin_dir="$TMP_DIR/maafw-staged-bin"
+    backup_bin_dir="$TMP_DIR/maafw-previous-bin"
     mkdir -p "$extract_dir"
 
     echo "⬇️  正在下载 MaaFramework runtime..."
@@ -167,9 +187,34 @@ install_maafw() {
         exit 1
     fi
 
-    mkdir -p "$MAAFW_BIN_DIR"
-    cp -R "$bin_dir"/. "$MAAFW_BIN_DIR"/
-    echo "✅ MaaFramework runtime 已安装: $MAAFW_BIN_DIR"
+    mkdir -p "$staged_bin_dir"
+    cp -R "$bin_dir"/. "$staged_bin_dir"/
+    mkdir -p "$MAAFW_ROOT_DIR"
+
+    had_existing_bin=0
+    if [ -e "$MAAFW_BIN_DIR" ]; then
+        mv "$MAAFW_BIN_DIR" "$backup_bin_dir"
+        had_existing_bin=1
+    fi
+
+    if ! mv "$staged_bin_dir" "$MAAFW_BIN_DIR"; then
+        if [ "$had_existing_bin" -eq 1 ] && [ -e "$backup_bin_dir" ]; then
+            mv "$backup_bin_dir" "$MAAFW_BIN_DIR"
+        fi
+        echo "❌ 替换 MaaFramework runtime 失败"
+        exit 1
+    fi
+
+    if ! printf '%s\n' "$maafw_version" > "$MAAFW_VERSION_FILE"; then
+        rm -rf "$MAAFW_BIN_DIR"
+        if [ "$had_existing_bin" -eq 1 ] && [ -e "$backup_bin_dir" ]; then
+            mv "$backup_bin_dir" "$MAAFW_BIN_DIR"
+        fi
+        echo "❌ 写入 MaaFramework 版本标记失败"
+        exit 1
+    fi
+
+    echo "✅ MaaFramework runtime 已安装: $maafw_version"
 }
 
 install_ocr() {
@@ -230,4 +275,4 @@ echo ""
 echo "更新 lb:"
 echo "  curl -fsSL https://raw.githubusercontent.com/$REPO/main/tools/install.sh | bash"
 echo ""
-echo "注意: 已存在的 MaaFramework runtime 与 OCR 资源不会被覆盖；如需更新附属环境，请删除 runtime 目录后重跑安装脚本。"
+echo "注意: MaaFramework runtime 会自动更新，已有 OCR 资源仍会保留。"

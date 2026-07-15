@@ -74,18 +74,17 @@ func (cm *ControllerManager) CreateAdbController(adbPath, address string, screen
 	return controllerID, nil
 }
 
-// win32InputMethodMapping 文档显示名称到实际 API 名称的映射
-var win32InputMethodMapping = map[string]string{
-	"SendMessageWithWindowPos": "SendMessageWithCursorPosAndBlockInput",
-	"PostMessageWithWindowPos": "PostMessageWithCursorPosAndBlockInput",
-}
+const (
+	win32InputMethodInterceptionName  = "Interception"
+	win32InputMethodInterceptionValue = win32.InputMethod(1 << 9)
+)
 
-// mapWin32InputMethod 将文档显示名称映射为实际 API 名称
-func mapWin32InputMethod(name string) string {
-	if mapped, ok := win32InputMethodMapping[name]; ok {
-		return mapped
+// parseWin32InputMethod 在 Go 绑定提供正式枚举前兼容 MaaFramework 5.12.1 的 Interception。
+func parseWin32InputMethod(name string) (win32.InputMethod, error) {
+	if strings.EqualFold(strings.TrimSpace(name), win32InputMethodInterceptionName) {
+		return win32InputMethodInterceptionValue, nil
 	}
-	return name
+	return win32.ParseInputMethod(name)
 }
 
 // win32ScreencapMethodMapping 额外的截图方法映射（WithPseudoMinimize 变体）
@@ -131,8 +130,7 @@ func (cm *ControllerManager) CreateWin32Controller(hwnd, screencapMethod, inputM
 	}
 
 	// 解析鼠标输入方法，默认使用 SendMessageWithCursorPos
-	actualInputMethod := mapWin32InputMethod(inputMethod)
-	mouseMethod, err := win32.ParseInputMethod(actualInputMethod)
+	mouseMethod, err := parseWin32InputMethod(inputMethod)
 	if err != nil || mouseMethod == win32.InputNone {
 		mouseMethod = win32.InputSendMessageWithCursorPos
 		logger.Debug("MFW", "使用默认输入方法: SendMessageWithCursorPos")

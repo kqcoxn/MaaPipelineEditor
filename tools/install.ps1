@@ -7,7 +7,9 @@ $REPO = "kqcoxn/MaaPipelineEditor"
 $INSTALL_DIR = "$env:LOCALAPPDATA\mpelb"
 $BIN_PATH = "$INSTALL_DIR\mpelb.exe"
 $RUNTIME_DIR = "$INSTALL_DIR\runtime"
-$MAAFW_BIN_DIR = "$RUNTIME_DIR\maafw\bin"
+$MAAFW_ROOT_DIR = "$RUNTIME_DIR\maafw"
+$MAAFW_BIN_DIR = "$MAAFW_ROOT_DIR\bin"
+$MAAFW_VERSION_PATH = "$MAAFW_ROOT_DIR\.version"
 $OCR_DIR = "$RUNTIME_DIR\resource\model\ocr"
 $OCR_URL = "https://download.maafw.xyz/MaaCommonAssets/OCR/ppocr_v6/ppocr_v6-small.zip"
 $PROCESSOR_ARCH = if ([Environment]::Is64BitOperatingSystem -and $env:PROCESSOR_ARCHITECTURE -match "ARM64") { "aarch64" } else { "x86_64" }
@@ -47,14 +49,34 @@ function Find-MaaFrameworkAsset($release) {
     return $release.assets | Where-Object { $_.name -like $MAAFW_ASSET_PATTERN } | Select-Object -First 1
 }
 
+function Get-InstalledMaaFrameworkVersion() {
+    if (!(Test-Path -LiteralPath $MAAFW_VERSION_PATH -PathType Leaf)) {
+        return ""
+    }
+    return (Get-Content -LiteralPath $MAAFW_VERSION_PATH -Raw).Trim()
+}
+
 function Install-MaaFramework() {
-    if (Test-NonEmptyDirectory $MAAFW_BIN_DIR) {
-        Write-Host "MaaFramework runtime already exists, skip: $MAAFW_BIN_DIR" -ForegroundColor Green
+    Write-Host "Fetching latest MaaFramework release..." -ForegroundColor Yellow
+    $maafwRelease = Get-GitHubLatestRelease "MaaXYZ/MaaFramework"
+    $latestVersion = "$($maafwRelease.tag_name)".Trim()
+    if (!$latestVersion) {
+        Write-Host "Failed to read MaaFramework release version" -ForegroundColor Red
+        exit 1
+    }
+
+    $installedVersion = Get-InstalledMaaFrameworkVersion
+    $hasExistingRuntime = Test-NonEmptyDirectory $MAAFW_BIN_DIR
+    if ($hasExistingRuntime -and $installedVersion -eq $latestVersion) {
+        Write-Host "MaaFramework runtime is up to date: $latestVersion" -ForegroundColor Green
         return
     }
 
-    Write-Host "Fetching latest MaaFramework release..." -ForegroundColor Yellow
-    $maafwRelease = Get-GitHubLatestRelease "MaaXYZ/MaaFramework"
+    if ($hasExistingRuntime) {
+        $versionLabel = if ($installedVersion) { $installedVersion } else { "unknown" }
+        Write-Host "Updating MaaFramework runtime: $versionLabel -> $latestVersion" -ForegroundColor Yellow
+    }
+
     $asset = Find-MaaFrameworkAsset $maafwRelease
     if (!$asset) {
         Write-Host "MaaFramework Windows $PROCESSOR_ARCH runtime asset not found" -ForegroundColor Red
@@ -64,6 +86,8 @@ function Install-MaaFramework() {
     $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("mpelb-maafw-" + [Guid]::NewGuid().ToString("N"))
     $zipPath = Join-Path $tempRoot $asset.name
     $extractDir = Join-Path $tempRoot "extract"
+    $stagedBinDir = Join-Path $tempRoot "staged-bin"
+    $backupBinDir = Join-Path $tempRoot "previous-bin"
 
     try {
         Ensure-Directory $tempRoot
@@ -83,8 +107,28 @@ function Install-MaaFramework() {
             exit 1
         }
 
-        Copy-DirectoryContents $binDir.FullName $MAAFW_BIN_DIR
-        Write-Host "MaaFramework runtime installed: $MAAFW_BIN_DIR" -ForegroundColor Green
+        Copy-DirectoryContents $binDir.FullName $stagedBinDir
+        Ensure-Directory $MAAFW_ROOT_DIR
+
+        $hadExistingBin = Test-Path -LiteralPath $MAAFW_BIN_DIR
+        if ($hadExistingBin) {
+            Move-Item -LiteralPath $MAAFW_BIN_DIR -Destination $backupBinDir
+        }
+
+        try {
+            Move-Item -LiteralPath $stagedBinDir -Destination $MAAFW_BIN_DIR
+            Set-Content -LiteralPath $MAAFW_VERSION_PATH -Value $latestVersion -Encoding UTF8 -NoNewline
+        } catch {
+            if (Test-Path -LiteralPath $MAAFW_BIN_DIR) {
+                Remove-Item -LiteralPath $MAAFW_BIN_DIR -Recurse -Force -ErrorAction SilentlyContinue
+            }
+            if ($hadExistingBin -and (Test-Path -LiteralPath $backupBinDir)) {
+                Move-Item -LiteralPath $backupBinDir -Destination $MAAFW_BIN_DIR
+            }
+            throw
+        }
+
+        Write-Host "MaaFramework runtime installed: $latestVersion" -ForegroundColor Green
     } finally {
         if (Test-Path $tempRoot) {
             Remove-Item -Path $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
@@ -210,7 +254,6 @@ Write-Host ""
 Write-Host "Update lb:" -ForegroundColor Cyan
 Write-Host "  irm https://raw.githubusercontent.com/$REPO/main/tools/install.ps1 | iex" -ForegroundColor White
 Write-Host ""
-Write-Host "Existing MaaFramework runtime and OCR assets are not overwritten." -ForegroundColor Yellow
-Write-Host "To update bundled runtime assets, delete the runtime directory and rerun this installer." -ForegroundColor Yellow
+Write-Host "MaaFramework runtime is updated automatically; existing OCR assets are preserved." -ForegroundColor Yellow
 Write-Host "If mpelb is not found, restart the terminal or run:" -ForegroundColor Yellow
 Write-Host ('  $env:Path += ";' + $INSTALL_DIR + '"') -ForegroundColor White

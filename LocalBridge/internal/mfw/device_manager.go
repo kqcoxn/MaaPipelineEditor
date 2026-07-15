@@ -73,8 +73,8 @@ func (dm *DeviceManager) RefreshWin32Windows() ([]Win32WindowInfo, error) {
 	// Win32 可用的截图和输入方法
 	// 截图方法: GDI、FramePool、DXGI桌面复制、DXGI窗口模式、PrintWindow、ScreenDC、伪最小化
 	screencapMethods := []string{"GDI", "FramePool", "FramePoolWithPseudoMinimize", "DXGI_DesktopDup", "DXGI_DesktopDup_Window", "PrintWindow", "PrintWindowWithPseudoMinimize", "ScreenDC"}
-	// 输入方法: Seize、SendMessage、PostMessage、LegacyEvent、带光标位置的消息、带窗口位置的消息
-	inputMethods := []string{"Seize", "SendMessage", "PostMessage", "LegacyEvent", "SendMessageWithCursorPos", "PostMessageWithCursorPos", "SendMessageWithWindowPos", "PostMessageWithWindowPos"}
+	// 输入方法: 常规 Win32 消息、光标/窗口位置兼容方式及驱动级 Interception
+	inputMethods := []string{"Seize", "SendMessage", "PostMessage", "LegacyEvent", "SendMessageWithCursorPos", "PostMessageWithCursorPos", "SendMessageWithWindowPos", "PostMessageWithWindowPos", win32InputMethodInterceptionName}
 
 	dm.mu.Lock()
 	defer dm.mu.Unlock()

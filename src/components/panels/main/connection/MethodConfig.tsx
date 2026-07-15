@@ -1,5 +1,5 @@
 import { memo, useMemo } from "react";
-import { Select, Typography } from "antd";
+import { Alert, Select, Typography } from "antd";
 import type { AdbDevice, Win32Window } from "../../../../stores/mfwStore";
 
 const { Text } = Typography;
@@ -30,6 +30,9 @@ export const MethodConfig = memo(
     onInputChange,
     isAdbManualMode = false,
   }: MethodConfigProps) => {
+    const usesInterception =
+      activeTab === "win32" && customInput === "Interception";
+
     // 收集所有可用的截图和输入方法
     const allMethods = useMemo(() => {
       const screencapSet = new Set<string>();
@@ -182,6 +185,15 @@ export const MethodConfig = memo(
             />
           </div>
         </div>
+        {usesInterception && (
+          <Alert
+            type="warning"
+            showIcon
+            title="Interception 驱动要求"
+            description="需要安装 Interception 驱动，并以不低于目标程序的权限运行。鼠标和按键操作通过驱动发送，文本输入仍使用系统 Unicode 输入。"
+            style={{ marginTop: 12 }}
+          />
+        )}
       </div>
     );
   },

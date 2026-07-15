@@ -98,6 +98,7 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2026-7-15",
     type: "fix",
     updates: {
+      perfs: ["更新 Win32 输入方法解析以兼容 Interception 驱动"],
       fixes: ["修复在打开 Devtools 的情况下拖拽节点会崩溃的问题"],
     },
   },
