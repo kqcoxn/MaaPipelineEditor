@@ -7,14 +7,15 @@
 
 ## 项目结构
 
-- **前端（editor）**：`/src`
+- **前端（editor）**：`/Editor`
 - **后端（localbridge / lb）**：`/LocalBridge`
-- **客户端（extremer）**：`/Extremer`
+- **桌面客户端（desktop）**：`/Desktop`
 - **页面嵌入测试（iframe）**：`/Iframe`
-- **文档站（docsite）**：`/docsite`
+- **文档站**：`/DocumentStation`
 - **展示页/主页（landing）**：`/Landing`
 
 > 默认开发需同时完善前后端；客户端由构建流程自动生成。
+> 根目录 `package.json` 仅提供仓库级命令代理；Editor 依赖使用 `yarn editor:install` 安装。
 
 ## 开发准则
 

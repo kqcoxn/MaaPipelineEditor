@@ -4,7 +4,6 @@ on:
   pull_request:
     paths:
       - "Landing/**"
-      - "package.json"
       - ".github/workflows/landing.yml"
   workflow_dispatch:
 

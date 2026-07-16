@@ -25,7 +25,7 @@ test-results
 .astro
 
 # Auto-generated assets
-/public/monaco-editor
+/Editor/public/monaco-editor
 
 # Editor directories and files
 !.vscode/extensions.json

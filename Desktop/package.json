@@ -1,0 +1,12 @@
+{
+  "scripts": {
+    "dev": "wails dev",
+    "dev:rb": "yarn --cwd ../Editor build --mode desktop && yarn copy:dist && cd ../LocalBridge && go build -o ../Desktop/build/bin/resources/mpelb.exe ./cmd/lb && cd ../Desktop && wails dev",
+    "build": "yarn copy:config && wails build",
+    "build:all": "yarn --cwd ../Editor build --mode desktop && yarn copy:dist && cd ../LocalBridge && go build -o ../Desktop/build/bin/resources/mpelb.exe ./cmd/lb && cd ../Desktop && yarn copy:config && wails build",
+    "copy:dist": "xcopy /E /I /Y ..\\Editor\\dist frontend\\dist",
+    "copy:config": "if not exist build\\bin\\config mkdir build\\bin\\config && xcopy /E /I /Y config\\default.json build\\bin\\config\\default.json",
+    "copy:maafw": "if exist ..\\maafw\\bin xcopy /E /I /Y ..\\maafw\\bin build\\bin\\resources\\maafw\\bin",
+    "copy:ocr": "if exist ..\\ocr xcopy /E /I /Y ..\\ocr build\\bin\\resources\\resource\\model\\ocr"
+  }
+}

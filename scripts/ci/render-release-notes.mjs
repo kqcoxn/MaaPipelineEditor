@@ -124,7 +124,7 @@ function renderReleaseNotes({ currentTag, previousTag, log }) {
     "- **Docs**（`MaaPipelineEditor-*-docs.zip`）：文档站静态资源包",
     "- **Landing**（`MaaPipelineEditor-*-landing.zip`）：展示页（主页）静态资源包",
     "- **Stable**（`MaaPipelineEditor-*-stable.zip`）：前端静态资源包，用于自部署在线编辑器",
-    "- **Extremer**（`MaaPipelineExtremer-*.zip`）：桌面客户端",
+    "- **Desktop**（`MaaPipelineEditor-Desktop-*.zip`）：桌面客户端",
     "- **LocalBridge**（`mpelb-*`）：后端服务二进制（推荐使用[命令行工具](https://mpe.codax.site/docs/guide/server/deploy.html#%E6%96%B9%E5%BC%8F%E4%B8%80-%E4%B8%80%E9%94%AE%E5%AE%89%E8%A3%85-%E6%8E%A8%E8%8D%90)安装）",
     "- **Source code**：版本源代码",
     "",
@@ -139,7 +139,7 @@ function renderReleaseNotes({ currentTag, previousTag, log }) {
 
 const currentTag = readArg("tag", process.env.GITHUB_REF_NAME);
 const previousTag = readArg("previous-tag");
-const updateLogsPath = readArg("update-logs", "src/data/updateLogs.ts");
+const updateLogsPath = readArg("update-logs", "Editor/src/data/updateLogs.ts");
 const outputPath = readArg("output", "CHANGELOG.md");
 
 if (!currentTag) {

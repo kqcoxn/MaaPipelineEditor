@@ -79,21 +79,24 @@ jobs:
         with:
           node-version: 22
           cache: yarn
+          cache-dependency-path: |
+            Editor/yarn.lock
+            DocumentStation/yarn.lock
+            Landing/yarn.lock
 
       - name: Install dependencies
         run: yarn install
+        working-directory: Editor
 
       - name: Modify config for production build
         run: |
           # 将configStore.ts中的globalConfig.dev改为false
-          sed -i 's/dev: true,/dev: false,/g' src/stores/configStore.ts
+          sed -i 's/dev: true,/dev: false,/g' Editor/src/stores/configStore.ts
           echo "已修改configStore.ts中的dev配置为false"
 
       - name: Build project (stable)
         run: yarn build --mode stable
-
-      - name: Clean up dist (stable)
-        run: rm -rf dist/readme dist/logo
+        working-directory: Editor
 
       - name: Create stable archive
         run: |
@@ -102,9 +105,9 @@ jobs:
           else
             VERSION="${{ github.ref_name }}"
           fi
-          cd dist
-          zip -r ../MaaPipelineEditor-${VERSION}-stable.zip .
-          cd ..
+          cd Editor/dist
+          zip -r ../../MaaPipelineEditor-${VERSION}-stable.zip .
+          cd ../..
         shell: bash
 
       - name: Build docs
@@ -114,11 +117,11 @@ jobs:
           else
             VERSION="${{ github.ref_name }}"
           fi
-          cd docsite
+          cd DocumentStation
           yarn install
           yarn build
           cd ..
-          cd docsite/docs/.vitepress/dist
+          cd DocumentStation/docs/.vitepress/dist
           zip -r ../../../../MaaPipelineEditor-${VERSION}-docs.zip .
           cd ../../../..
         shell: bash
@@ -148,7 +151,7 @@ jobs:
             MaaPipelineEditor-*-docs.zip
             MaaPipelineEditor-*-landing.zip
 
-  # Extremer 服务暂时下线，download-resources 和 build-extremer job 已移除
+  # Desktop 服务暂时下线，download-resources 和 build-desktop job 已移除
   # 如需恢复，请参考 git 历史中的 release.yaml
 
   release:
@@ -195,7 +198,7 @@ jobs:
           node scripts/ci/render-release-notes.mjs \
             --tag "$CURRENT_TAG" \
             --previous-tag "$PREVIOUS_TAG" \
-            --update-logs src/data/updateLogs.ts \
+            --update-logs Editor/src/data/updateLogs.ts \
             --output CHANGELOG.md
 
           # 输出到GitHub Actions

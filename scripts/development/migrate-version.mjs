@@ -3,9 +3,9 @@
  * MaaPipelineEditor 版本号迁移脚本 (交互式 / 精确替换)
  *
  * 用法:
- *   yarn release:migrate                 交互模式: 提示输入目标版本
- *   yarn release:migrate 1.8.0           指定目标版本 (仍需确认)
- *   yarn release:migrate 1.8.0 --yes     指定目标版本并跳过确认
+ *   yarn migrate                 交互模式: 提示输入目标版本
+ *   yarn migrate 1.8.0           指定目标版本 (仍需确认)
+ *   yarn migrate 1.8.0 --yes     指定目标版本并跳过确认
  *   node scripts/development/migrate-version.mjs     等价调用
  *
  * 设计要点:
@@ -36,34 +36,34 @@ const SEMVER_RE = /^\d+\.\d+\.\d+(?:-[\w.]+)?$/;
 const TARGETS = [
   {
     id: "configStore.ts (version)",
-    file: "src/stores/configStore.ts",
+    file: "Editor/src/stores/configStore.ts",
     re: /(version:\s*`)([^`]+)(`)/,
   },
   {
     id: "main.go (var version)",
-    file: "Extremer/main.go",
+    file: "Desktop/main.go",
     re: /(var version = ")([^"]+)(")/,
   },
   {
     id: "wails.json (productVersion)",
-    file: "Extremer/wails.json",
+    file: "Desktop/wails.json",
     re: /("productVersion":\s*")([^"]+)(")/,
   },
   {
     id: "wails.exe.manifest (assemblyIdentity version)",
-    file: "Extremer/build/windows/wails.exe.manifest",
+    file: "Desktop/build/windows/wails.exe.manifest",
     // 多行正则: 通过 name="MaaPipelineEditor" 上下文锚定, 只匹配该元素内的 version
     re: /(name="MaaPipelineEditor"[\s\S]*?version=")([^"]+)(")/,
   },
   {
     id: "Info.plist (CFBundleVersion)",
-    file: "Extremer/build/darwin/Info.plist",
+    file: "Desktop/build/darwin/Info.plist",
     // 上下文锚定: 只匹配 CFBundleVersion 后面的版本号
     re: /(<key>CFBundleVersion<\/key>\s*<string>)([^<]+)(<\/string>)/,
   },
   {
     id: "Info.plist (CFBundleShortVersionString)",
-    file: "Extremer/build/darwin/Info.plist",
+    file: "Desktop/build/darwin/Info.plist",
     // 上下文锚定: 只匹配 CFBundleShortVersionString 后面的版本号
     re: /(<key>CFBundleShortVersionString<\/key>\s*<string>)([^<]+)(<\/string>)/,
   },
