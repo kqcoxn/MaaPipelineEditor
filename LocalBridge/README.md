@@ -2,7 +2,7 @@
 
 LocalBridge 是 MaaPipelineEditor 的唯一业务后端，基于 Python、FastAPI 与官方
 `MaaFw` Python Binding。Editor 通过协议 `2.0.0` 的 `/v2/ws` 接口连接；图片和
-调试产物通过鉴权 artifact HTTP 接口传输。
+调试产物通过 artifact HTTP 接口传输。
 
 ## 环境
 
@@ -35,8 +35,8 @@ mpelb doctor --json
 mpelb version
 ```
 
-`serve` 默认只绑定 `127.0.0.1`。每次启动生成独立的 256 位 token；独立运行时
-token 通过 Editor URL fragment 交付，Desktop 模式则通过受限 stdio 控制通道交付。
+`serve` 默认只绑定 `127.0.0.1`。独立运行时端口通过 Editor URL fragment 交付，
+Desktop 模式则通过受限 stdio 控制通道交付。
 
 ## 测试
 

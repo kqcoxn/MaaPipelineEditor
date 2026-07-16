@@ -58,7 +58,7 @@ describe("LocalWebSocketServer", () => {
   beforeEach(() => {
     FakeWebSocket.instances = [];
     sessionStorage.clear();
-    window.location.hash = "mpelb-token=test-token&mpelb-port=9066";
+    window.location.hash = "mpelb-port=9066";
     vi.stubGlobal("WebSocket", FakeWebSocket);
   });
 
@@ -76,6 +76,8 @@ describe("LocalWebSocketServer", () => {
     await connected;
 
     const socket = FakeWebSocket.instances[0];
+    const hello = socket.requests.find((request) => request.method === "system.hello");
+    expect(hello?.params).not.toHaveProperty("token");
     const first = server.request<{ order: number }>("system.health", { order: 1 });
     const second = server.request<{ order: number }>("system.health", { order: 2 });
     const requests = socket.requests.filter((request) => request.method === "system.health");

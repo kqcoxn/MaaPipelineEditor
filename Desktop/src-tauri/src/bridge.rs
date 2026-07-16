@@ -51,7 +51,6 @@ struct ReadyMessage {
     #[serde(rename = "type")]
     message_type: String,
     port: u16,
-    token: String,
     protocol_version: String,
     package_version: String,
 }
@@ -400,9 +399,9 @@ fn bootstrap_from_ready(ready: ReadyMessage) -> AppResult<LocalBridgeBootstrap> 
     if ready.message_type != "ready" {
         return Err(AppError::Bridge("LocalBridge 控制消息不是 ready".into()));
     }
-    if ready.port == 0 || ready.token.len() < 43 {
+    if ready.port == 0 {
         return Err(AppError::Bridge(
-            "LocalBridge ready 消息缺少有效端口或 256 位 token".into(),
+            "LocalBridge ready 消息缺少有效端口".into(),
         ));
     }
     if ready.protocol_version != PROTOCOL_VERSION || ready.package_version != PACKAGE_VERSION {
@@ -413,7 +412,6 @@ fn bootstrap_from_ready(ready: ReadyMessage) -> AppResult<LocalBridgeBootstrap> 
     }
     Ok(LocalBridgeBootstrap {
         port: ready.port,
-        token: ready.token,
         protocol_version: ready.protocol_version,
         package_version: ready.package_version,
     })
@@ -435,7 +433,6 @@ mod tests {
         ReadyMessage {
             message_type: "ready".into(),
             port: 32100,
-            token: "a".repeat(43),
             protocol_version: PROTOCOL_VERSION.into(),
             package_version: PACKAGE_VERSION.into(),
         }
@@ -446,7 +443,6 @@ mod tests {
         let bootstrap = bootstrap_from_ready(valid_ready()).expect("ready should be valid");
 
         assert_eq!(bootstrap.port, 32100);
-        assert_eq!(bootstrap.token.len(), 43);
         assert_eq!(bootstrap.protocol_version, PROTOCOL_VERSION);
         assert_eq!(bootstrap.package_version, PACKAGE_VERSION);
     }
@@ -459,15 +455,5 @@ mod tests {
         let error = bootstrap_from_ready(ready).expect_err("version must be rejected");
 
         assert!(error.to_string().contains("版本拒绝"));
-    }
-
-    #[test]
-    fn weak_ready_token_is_rejected() {
-        let mut ready = valid_ready();
-        ready.token = "short".into();
-
-        let error = bootstrap_from_ready(ready).expect_err("weak token must be rejected");
-
-        assert!(error.to_string().contains("256 位 token"));
     }
 }

@@ -23,14 +23,12 @@ import { LoggerProtocol } from "./protocols/LoggerProtocol";
 import { MFWProtocol } from "./protocols/MFWProtocol";
 import { ResourceProtocol } from "./protocols/ResourceProtocol";
 
-const TOKEN_STORAGE_KEY = "mpe.localbridge.token";
 const PORT_STORAGE_KEY = "mpe.localbridge.port";
 const REQUEST_TIMEOUT_MS = 30_000;
 const CONNECTION_TIMEOUT_MS = 5_000;
 
 interface DesktopBootstrap {
   port: number;
-  token: string;
   protocolVersion: string;
   packageVersion: string;
   status: string;
@@ -63,7 +61,6 @@ export class BridgeRpcError extends Error {
 export class LocalWebSocketServer {
   private ws: WebSocket | null = null;
   private port: number;
-  private token = "";
   private clientKind: "web" | "desktop" = "web";
   private clientVersion = globalConfig.version;
   private routes = new Map<string, Set<MessageHandler>>();
@@ -82,8 +79,7 @@ export class LocalWebSocketServer {
   constructor(port = 9066) {
     this.port = port;
     this.captureFragmentBootstrap();
-    if (!this.token) {
-      this.token = sessionStorage.getItem(TOKEN_STORAGE_KEY) ?? "";
+    if (!this.fragmentBootstrap) {
       const storedPort = Number(sessionStorage.getItem(PORT_STORAGE_KEY));
       if (Number.isInteger(storedPort) && storedPort > 0 && storedPort <= 65535) {
         this.port = storedPort;
@@ -162,12 +158,10 @@ export class LocalWebSocketServer {
   }
 
   async uploadArtifact(blob: Blob, filename = "artifact.bin"): Promise<ArtifactRef> {
-    this.requireBootstrap();
     const body = new FormData();
     body.append("file", blob, filename);
     const response = await fetch(this.artifactEndpoint(), {
       method: "POST",
-      headers: { Authorization: `Bearer ${this.token}` },
       body,
     });
     if (!response.ok) {
@@ -183,11 +177,8 @@ export class LocalWebSocketServer {
   async fetchArtifactResponse(
     artifact: ArtifactRef | string,
   ): Promise<{ blob: Blob; headers: Headers }> {
-    this.requireBootstrap();
     const artifactId = typeof artifact === "string" ? artifact : artifact.artifactId;
-    const response = await fetch(`${this.artifactEndpoint()}/${encodeURIComponent(artifactId)}`, {
-      headers: { Authorization: `Bearer ${this.token}` },
-    });
+    const response = await fetch(`${this.artifactEndpoint()}/${encodeURIComponent(artifactId)}`);
     if (!response.ok) {
       throw new Error(`artifact 下载失败: HTTP ${response.status}`);
     }
@@ -238,7 +229,6 @@ export class LocalWebSocketServer {
     this.setConnecting(true);
     try {
       await this.loadDesktopBootstrap();
-      this.requireBootstrap();
       const socket = await this.openSocket();
       this.ws = socket;
       const hello = await this.requestOnOpenSocket<{
@@ -247,7 +237,6 @@ export class LocalWebSocketServer {
       }>(
         "system.hello",
         {
-          token: this.token,
           protocolVersion: globalConfig.protocolVersion,
           clientVersion: this.clientVersion,
           clientKind: this.clientKind,
@@ -449,13 +438,10 @@ export class LocalWebSocketServer {
 
   private captureFragmentBootstrap(): void {
     const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-    const token = fragment.get("mpelb-token");
     const port = Number(fragment.get("mpelb-port"));
-    if (!token || !Number.isInteger(port) || port <= 0 || port > 65535) return;
-    this.token = token;
+    if (!Number.isInteger(port) || port <= 0 || port > 65535) return;
     this.port = port;
     this.fragmentBootstrap = true;
-    sessionStorage.setItem(TOKEN_STORAGE_KEY, token);
     sessionStorage.setItem(PORT_STORAGE_KEY, String(port));
     history.replaceState(null, "", `${location.pathname}${location.search}`);
   }
@@ -467,17 +453,12 @@ export class LocalWebSocketServer {
       throw new Error(`Desktop LocalBridge 协议不匹配: ${bootstrap.protocolVersion}`);
     }
     this.port = bootstrap.port;
-    this.token = bootstrap.token;
     this.clientKind = "desktop";
     this.clientVersion = bootstrap.packageVersion;
   }
 
   private isDesktopEnvironment(): boolean {
     return "__TAURI_INTERNALS__" in window;
-  }
-
-  private requireBootstrap(): void {
-    if (!this.token) throw new Error("缺少 LocalBridge 会话 token，请重新从 mpelb 打开 Editor");
   }
 
   private artifactEndpoint(): string {
@@ -531,10 +512,10 @@ function normalizeError(error: unknown): Record<string, unknown> {
 
 function isRetryableConnectionError(error: unknown): boolean {
   if (error instanceof BridgeRpcError) {
-    return !["unauthenticated", "protocol_mismatch", "version_mismatch"].includes(error.code);
+    return !["protocol_mismatch", "version_mismatch"].includes(error.code);
   }
   const messageText = error instanceof Error ? error.message : String(error);
-  return !/token|协议.*不匹配|版本.*不匹配/i.test(messageText);
+  return !/协议.*不匹配|版本.*不匹配/i.test(messageText);
 }
 
 export const localServer = new LocalWebSocketServer();

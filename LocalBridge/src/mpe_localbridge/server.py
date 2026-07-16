@@ -3,17 +3,17 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import logging
-import secrets
 import sys
 import time
 from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
 import httpx
-from fastapi import FastAPI, Header, HTTPException, Request, UploadFile, WebSocket
+from fastapi import FastAPI, HTTPException, Request, UploadFile, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import ValidationError
@@ -37,7 +37,14 @@ from .watcher import WorkspaceWatcher
 from .workspace import Workspace
 
 Handler = Callable[["RpcContext", dict[str, Any]], Awaitable[Any]]
+AfterResponse = Callable[[], Awaitable[None]]
 LOGGER = logging.getLogger(__name__)
+
+
+@dataclass(slots=True)
+class HandlerResult:
+    value: Any
+    after_response: AfterResponse | None = None
 
 
 class ConnectionHub:
@@ -62,7 +69,7 @@ class ConnectionHub:
             *(
                 connection.emit(event, data)
                 for connection in connections
-                if connection.authenticated
+                if connection.handshake_completed
             ),
             return_exceptions=True,
         )
@@ -72,11 +79,9 @@ class LocalBridgeState:
     def __init__(
         self,
         config_store: ConfigStore,
-        token: str | None = None,
         data_dir: Path | None = None,
     ) -> None:
         self.config_store = config_store
-        self.token = token or secrets.token_urlsafe(32)
         self.artifacts = ArtifactStore(data_dir / "artifacts" if data_dir else None)
         self.events = EventLog(data_dir / "debug-events.sqlite3" if data_dir else None)
         self.workspace = Workspace(config_store.value.file)
@@ -109,7 +114,7 @@ class RpcContext:
     def __init__(self, websocket: WebSocket, state: LocalBridgeState) -> None:
         self.websocket = websocket
         self.state = state
-        self.authenticated = False
+        self.handshake_completed = False
         self.client_kind = "web"
         self.client_version = ""
         self._send_lock = asyncio.Lock()
@@ -123,6 +128,16 @@ class RpcContext:
             await self.websocket.send_text(
                 response.model_dump_json(by_alias=True, exclude_none=True)
             )
+
+    async def complete_handshake(self, response: RpcResponse) -> bool:
+        if self.websocket.client_state != WebSocketState.CONNECTED:
+            return False
+        async with self._send_lock:
+            self.handshake_completed = True
+            await self.websocket.send_text(
+                response.model_dump_json(by_alias=True, exclude_none=True)
+            )
+        return True
 
     async def emit(self, event: str, data: dict[str, Any]) -> None:
         if self.websocket.client_state != WebSocketState.CONNECTED:
@@ -208,14 +223,14 @@ class Dispatcher:
             raise RuntimeError("RPC 方法实现与协议清单不一致")
 
     async def dispatch(self, context: RpcContext, request: RpcRequest) -> None:
-        if not context.authenticated and request.method != "system.hello":
+        if not context.handshake_completed and request.method != "system.hello":
             await context.send_response(
                 RpcResponse(
                     id=request.id,
-                    error=RpcError(code="unauthenticated", message="必须先调用 system.hello"),
+                    error=RpcError(code="handshake_required", message="必须先调用 system.hello"),
                 )
             )
-            await context.websocket.close(code=1008, reason="authentication required")
+            await context.websocket.close(code=1008, reason="handshake required")
             return
         handler = self.handlers.get(request.method)
         if handler is None:
@@ -229,9 +244,20 @@ class Dispatcher:
 
         async def execute() -> None:
             async with context.request_slots:
+                after_response: AfterResponse | None = None
                 try:
-                    result = await handler(context, request.params)
-                    await context.send_response(RpcResponse(id=request.id, result=result))
+                    handled = await handler(context, request.params)
+                    if isinstance(handled, HandlerResult):
+                        result = handled.value
+                        after_response = handled.after_response
+                    else:
+                        result = handled
+                    response = RpcResponse(id=request.id, result=result)
+                    if request.method == "system.hello":
+                        if not await context.complete_handshake(response):
+                            after_response = None
+                    else:
+                        await context.send_response(response)
                 except asyncio.CancelledError:
                     await context.send_response(
                         RpcResponse(
@@ -261,6 +287,14 @@ class Dispatcher:
                             error=RpcError(code="internal", message=str(error)),
                         )
                     )
+                else:
+                    if after_response is not None:
+                        try:
+                            await after_response()
+                        except asyncio.CancelledError:
+                            raise
+                        except Exception:
+                            LOGGER.exception("RPC %s post-response task failed", request.method)
                 finally:
                     context.finish(request.id)
 
@@ -274,10 +308,8 @@ class Dispatcher:
                 )
             )
 
-    async def _hello(self, context: RpcContext, params: dict[str, Any]) -> dict[str, Any]:
+    async def _hello(self, context: RpcContext, params: dict[str, Any]) -> HandlerResult:
         hello = HelloParams.model_validate(params)
-        if not secrets.compare_digest(hello.token, self.state.token):
-            raise LocalBridgeError("unauthenticated", "连接 token 无效")
         if hello.protocol_version != PROTOCOL_VERSION:
             raise LocalBridgeError(
                 "protocol_mismatch",
@@ -289,28 +321,29 @@ class Dispatcher:
                 "version_mismatch",
                 f"Desktop 与 LocalBridge 版本必须一致: {hello.client_version} != {PACKAGE_VERSION}",
             )
-        context.authenticated = True
         context.client_kind = hello.client_kind
         context.client_version = hello.client_version
-        maa = await self.state.maa.probe()
-        await self._push_initial_state(context, hello.after_seq)
-        return {
-            "success": True,
-            "protocolVersion": PROTOCOL_VERSION,
-            "packageVersion": PACKAGE_VERSION,
-            "pythonVersion": sys.version.split()[0],
-            "maa": maa,
-            "capabilities": {
-                "rpcCancellation": True,
-                "eventResume": True,
-                "binaryArtifacts": True,
-                "debug": self.state.debug.capabilities(),
+        return HandlerResult(
+            value={
+                "success": True,
+                "protocolVersion": PROTOCOL_VERSION,
+                "packageVersion": PACKAGE_VERSION,
+                "pythonVersion": sys.version.split()[0],
+                "capabilities": {
+                    "rpcCancellation": True,
+                    "eventResume": True,
+                    "binaryArtifacts": True,
+                    "debug": self.state.debug.capabilities(),
+                },
             },
-        }
+            after_response=lambda: self._push_initial_state(context, hello.after_seq),
+        )
 
     async def _push_initial_state(self, context: RpcContext, cursors: dict[str, int]) -> None:
-        await context.emit("workspace.files", self.state.workspace.snapshot())
-        await context.emit("resource.bundles", self.state.workspace.resource_bundles())
+        snapshot = await asyncio.to_thread(self.state.workspace.snapshot)
+        await context.emit("workspace.files", snapshot)
+        bundles = await asyncio.to_thread(self.state.workspace.resource_bundles)
+        await context.emit("resource.bundles", bundles)
         for session_id, after_seq in cursors.items():
             events = self.state.events.list(session_id, after_seq=after_seq)
             for event in events:
@@ -769,10 +802,9 @@ def _check_resources(params: dict[str, Any]) -> dict[str, Any]:
 def create_app(
     *,
     config_store: ConfigStore | None = None,
-    token: str | None = None,
     data_dir: Path | None = None,
 ) -> tuple[FastAPI, LocalBridgeState]:
-    state = LocalBridgeState(config_store or ConfigStore(), token, data_dir)
+    state = LocalBridgeState(config_store or ConfigStore(), data_dir)
     dispatcher = Dispatcher(state)
 
     @asynccontextmanager
@@ -826,9 +858,8 @@ def create_app(
     async def upload_artifact(
         request: Request,
         file: UploadFile,
-        authorization: str | None = Header(default=None),
     ) -> dict[str, Any]:
-        _authorize_http(state, request, authorization)
+        _validate_http_origin(state, request)
         data = await file.read(MAX_ARTIFACT_BYTES + 1)
         if len(data) > MAX_ARTIFACT_BYTES:
             raise HTTPException(status_code=413, detail="artifact too large")
@@ -842,9 +873,8 @@ def create_app(
     async def get_artifact(
         artifact_id: str,
         request: Request,
-        authorization: str | None = Header(default=None),
     ) -> FileResponse:
-        _authorize_http(state, request, authorization)
+        _validate_http_origin(state, request)
         try:
             record = state.artifacts.get(artifact_id)
         except LocalBridgeError as error:
@@ -872,7 +902,7 @@ def create_app(
         allow_origins=state.config_store.value.server.allowed_origins,
         allow_credentials=False,
         allow_methods=["GET", "POST"],
-        allow_headers=["Authorization", "Content-Type"],
+        allow_headers=["Content-Type"],
         expose_headers=[
             "X-MPE-Artifact-Kind",
             "X-MPE-Artifact-Created-At",
@@ -885,12 +915,7 @@ def create_app(
     return app, state
 
 
-def _authorize_http(
-    state: LocalBridgeState, request: Request, authorization: str | None
-) -> None:
+def _validate_http_origin(state: LocalBridgeState, request: Request) -> None:
     origin = request.headers.get("origin")
     if origin not in set(state.config_store.value.server.allowed_origins):
         raise HTTPException(status_code=403, detail="origin not allowed")
-    expected = f"Bearer {state.token}"
-    if authorization is None or not secrets.compare_digest(authorization, expected):
-        raise HTTPException(status_code=401, detail="invalid token")

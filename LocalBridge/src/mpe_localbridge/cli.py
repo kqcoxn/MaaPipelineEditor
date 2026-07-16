@@ -4,20 +4,21 @@ import argparse
 import asyncio
 import json
 import logging
-import secrets
 import socket
 import sys
 import threading
 import webbrowser
 from pathlib import Path
 from typing import Any, cast
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit, urlunsplit
 
 import uvicorn
 
 from .config import ConfigStore
 from .constants import MAX_WS_MESSAGE_BYTES, PACKAGE_VERSION, PROTOCOL_VERSION
 from .server import LocalBridgeState, create_app
+
+DEFAULT_EDITOR_URL = "https://mpe.codax.site/stable/"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -28,9 +29,9 @@ def build_parser() -> argparse.ArgumentParser:
     serve.add_argument("--host", default=None)
     serve.add_argument("--port", type=int, default=None)
     serve.add_argument("--root", default=None)
-    serve.add_argument("--token", default=None)
     serve.add_argument("--allow-origin", action="append", default=[])
     serve.add_argument("--config", type=Path, default=None)
+    serve.add_argument("--editor-url", default=DEFAULT_EDITOR_URL, type=_editor_url)
     serve.add_argument("--control-stdio", action="store_true")
     serve.add_argument("--no-open", action="store_true")
 
@@ -163,8 +164,7 @@ async def _serve(args: argparse.Namespace) -> None:
     host = config_store.value.server.host
     if host not in {"127.0.0.1", "localhost"}:
         raise SystemExit("LocalBridge v2 只允许绑定 loopback 地址")
-    token = args.token or secrets.token_urlsafe(32)
-    app, state = create_app(config_store=config_store, token=token)
+    app, state = create_app(config_store=config_store)
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -197,7 +197,6 @@ async def _serve(args: argparse.Namespace) -> None:
     ready = {
         "type": "ready",
         "port": port,
-        "token": token,
         "protocolVersion": PROTOCOL_VERSION,
         "packageVersion": PACKAGE_VERSION,
     }
@@ -206,12 +205,24 @@ async def _serve(args: argparse.Namespace) -> None:
         _start_control_reader(asyncio.get_running_loop(), server, state)
     else:
         print(f"LocalBridge 已启动: ws://127.0.0.1:{port}/v2/ws", file=sys.stderr)
-        fragment = urlencode({"mpelb-port": port, "mpelb-token": token})
-        url = f"https://mpe.codax.site/stable/#{fragment}"
+        url = build_editor_url(cast(str, args.editor_url), port)
         print(f"Editor: {url}", file=sys.stderr)
         if not args.no_open:
             webbrowser.open(url)
     await server_task
+
+
+def _editor_url(value: str) -> str:
+    parsed = urlsplit(value)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise argparse.ArgumentTypeError("Editor URL 必须是有效的 HTTP(S) 地址")
+    return value
+
+
+def build_editor_url(base_url: str, port: int) -> str:
+    parsed = urlsplit(base_url)
+    fragment = urlencode({"mpelb-port": port})
+    return urlunsplit(parsed._replace(fragment=fragment))
 
 
 def _start_control_reader(

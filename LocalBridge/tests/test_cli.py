@@ -53,3 +53,29 @@ def test_empty_arguments_start_serve(monkeypatch: MonkeyPatch) -> None:
     main([])
 
     assert called is True
+
+
+def test_serve_does_not_accept_token_option() -> None:
+    with pytest.raises(SystemExit) as exit_info:
+        cli.build_parser().parse_args(["serve", "--token", "obsolete"])
+
+    assert exit_info.value.code == 2
+
+
+def test_serve_uses_stable_editor_by_default() -> None:
+    args = cli.build_parser().parse_args(["serve"])
+
+    assert args.editor_url == cli.DEFAULT_EDITOR_URL
+
+
+def test_editor_url_uses_selected_base_and_port() -> None:
+    url = cli.build_editor_url("http://127.0.0.1:3000/development/", 9066)
+
+    assert url == "http://127.0.0.1:3000/development/#mpelb-port=9066"
+
+
+def test_serve_rejects_non_http_editor_url() -> None:
+    with pytest.raises(SystemExit) as exit_info:
+        cli.build_parser().parse_args(["serve", "--editor-url", "file:///tmp/editor"])
+
+    assert exit_info.value.code == 2

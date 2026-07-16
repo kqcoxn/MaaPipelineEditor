@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from pathlib import Path
+from threading import Event
 from typing import Any, cast
 
 import httpx
@@ -14,7 +15,6 @@ from mpe_localbridge.constants import PACKAGE_VERSION, PROTOCOL_VERSION
 from mpe_localbridge.server import LocalBridgeState, create_app
 
 ORIGIN = "http://localhost:3000"
-TOKEN = "test-token-with-more-than-thirty-two-characters"
 
 
 @pytest.fixture
@@ -23,7 +23,7 @@ def client(tmp_path: Path) -> Iterator[tuple[TestClient, LocalBridgeState]]:
     workspace.mkdir()
     config_store = ConfigStore(tmp_path / "config.json")
     config_store.update({"file": {"root": str(workspace)}})
-    app, state = create_app(config_store=config_store, token=TOKEN, data_dir=tmp_path / "data")
+    app, state = create_app(config_store=config_store, data_dir=tmp_path / "data")
     with TestClient(app) as test_client:
         yield test_client, state
 
@@ -41,7 +41,6 @@ def _receive_response(websocket: Any, request_id: str) -> dict[str, Any]:
 
 def _hello(websocket: Any, **overrides: Any) -> dict[str, Any]:
     params: dict[str, Any] = {
-        "token": TOKEN,
         "protocolVersion": PROTOCOL_VERSION,
         "clientVersion": PACKAGE_VERSION,
         "clientKind": "test",
@@ -61,24 +60,60 @@ def test_websocket_rejects_unknown_origin(client: tuple[TestClient, LocalBridgeS
     assert caught.value.code == 1008
 
 
-def test_websocket_requires_hello(client: tuple[TestClient, LocalBridgeState]) -> None:
+def test_websocket_requires_hello_handshake(client: tuple[TestClient, LocalBridgeState]) -> None:
     test_client, _ = client
     with test_client.websocket_connect("/v2/ws", headers={"origin": ORIGIN}) as websocket:
         websocket.send_json(_request("health", "system.health", {}))
         response = _receive_response(websocket, "health")
-        assert response["error"]["code"] == "unauthenticated"
+        assert response["error"]["code"] == "handshake_required"
 
 
 def test_hello_reports_versions_and_capabilities(
     client: tuple[TestClient, LocalBridgeState],
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    test_client, _ = client
+    test_client, state = client
+
+    async def fail_probe() -> dict[str, Any]:
+        raise AssertionError("system.hello must not wait for MaaFw probe")
+
+    monkeypatch.setattr(state.maa, "probe", fail_probe)
     with test_client.websocket_connect("/v2/ws", headers={"origin": ORIGIN}) as websocket:
         response = _hello(websocket)
         assert response["result"]["protocolVersion"] == PROTOCOL_VERSION
         assert response["result"]["packageVersion"] == PACKAGE_VERSION
+        assert "maa" not in response["result"]
         assert response["result"]["capabilities"]["binaryArtifacts"] is True
         assert response["result"]["capabilities"]["debug"]["pause"] is False
+
+
+def test_hello_responds_before_workspace_scan_without_blocking_rpc(
+    client: tuple[TestClient, LocalBridgeState],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    test_client, state = client
+    scan_started = Event()
+    release_scan = Event()
+    scan_timed_out = Event()
+
+    def slow_snapshot() -> dict[str, Any]:
+        scan_started.set()
+        if not release_scan.wait(timeout=5):
+            scan_timed_out.set()
+        return {"root": str(state.workspace.root), "files": [], "directories": []}
+
+    monkeypatch.setattr(state.workspace, "snapshot", slow_snapshot)
+    with test_client.websocket_connect("/v2/ws", headers={"origin": ORIGIN}) as websocket:
+        hello = _hello(websocket)
+        assert hello["result"]["success"] is True
+        assert scan_started.wait(timeout=1)
+
+        websocket.send_json(_request("health", "system.health", {}))
+        health = _receive_response(websocket, "health")
+        release_scan.set()
+
+        assert health["result"]["status"] == "ok"
+        assert not scan_timed_out.is_set()
 
 
 def test_hello_rejects_protocol_and_desktop_version(
@@ -97,7 +132,7 @@ def test_hello_rejects_protocol_and_desktop_version(
         assert desktop_response["error"]["code"] == "version_mismatch"
 
 
-def test_artifact_upload_and_download_require_authentication(
+def test_artifact_upload_and_download_require_allowed_origin(
     client: tuple[TestClient, LocalBridgeState],
 ) -> None:
     test_client, _ = client
@@ -109,15 +144,15 @@ def test_artifact_upload_and_download_require_authentication(
         http_client.post(
             "/v2/artifacts",
             files=files,
-            headers={"origin": ORIGIN, "authorization": "Bearer wrong"},
+            headers={"origin": "https://untrusted.example"},
         ).status_code
-        == 401
+        == 403
     )
 
     response = http_client.post(
         "/v2/artifacts",
         files=files,
-        headers={"origin": ORIGIN, "authorization": f"Bearer {TOKEN}"},
+        headers={"origin": ORIGIN},
     )
     assert response.status_code == 200
     artifact = cast(dict[str, Any], response.json())
@@ -126,7 +161,7 @@ def test_artifact_upload_and_download_require_authentication(
 
     download = http_client.get(
         f"/v2/artifacts/{artifact['artifactId']}",
-        headers={"origin": ORIGIN, "authorization": f"Bearer {TOKEN}"},
+        headers={"origin": ORIGIN},
     )
     assert download.status_code == 200
     assert download.content == b"artifact-body"

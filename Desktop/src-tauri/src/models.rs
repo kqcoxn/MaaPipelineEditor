@@ -7,7 +7,6 @@ pub const PROTOCOL_VERSION: &str = "2.0.0";
 #[serde(rename_all = "camelCase")]
 pub struct LocalBridgeBootstrap {
     pub port: u16,
-    pub token: String,
     pub protocol_version: String,
     pub package_version: String,
 }

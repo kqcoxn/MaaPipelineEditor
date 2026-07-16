@@ -49,7 +49,6 @@ class RpcEvent(ApiModel):
 
 
 class HelloParams(ApiModel):
-    token: str = Field(min_length=32, max_length=256)
     protocol_version: str
     client_version: str
     client_kind: Literal["web", "desktop", "test"] = "web"
