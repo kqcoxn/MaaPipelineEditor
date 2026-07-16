@@ -13,7 +13,14 @@ function Invoke-Git {
         [string[]]$Arguments
     )
 
-    $output = @(& git @Arguments 2>&1)
+    $previousErrorAction = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $output = @(& git @Arguments 2>&1)
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorAction
+    }
     if ($LASTEXITCODE -ne 0) {
         $detail = ($output | ForEach-Object { "$_" }) -join [Environment]::NewLine
         throw "git $($Arguments -join ' ') failed.$([Environment]::NewLine)$detail"
@@ -31,7 +38,14 @@ function Get-GitOutput {
         [switch]$AllowFailure
     )
 
-    $output = @(& git @Arguments 2>&1)
+    $previousErrorAction = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $output = @(& git @Arguments 2>&1)
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorAction
+    }
     if ($LASTEXITCODE -ne 0) {
         if ($AllowFailure) {
             return $null
