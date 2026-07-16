@@ -174,13 +174,13 @@ describe("nodeExecutionOverlay", () => {
     ).toBe("detail-1");
     expect(
       resolveAutoLoadAttemptArtifact(
-        { "shot-1": artifactEntry("shot-1", "pending", undefined, "image/png") },
+        { "shot-1": artifactEntry("shot-1", "idle", undefined, "image/png") },
         recognitionWithEventImageAttempt,
       ),
     ).toBe("shot-1");
     expect(
       resolveAutoLoadAttemptArtifact(
-        { "shot-1": artifactEntry("shot-1", "pending", undefined, "image/png") },
+        { "shot-1": artifactEntry("shot-1", "loading", undefined, "image/png") },
         recognitionWithEventImageAttempt,
         "shot-1",
       ),
@@ -199,7 +199,7 @@ describe("nodeExecutionOverlay", () => {
     });
     expect(
       resolveAutoLoadAttemptArtifact(
-        { "shot-1": artifactEntry("shot-1", "pending", undefined, "image/png") },
+        { "shot-1": artifactEntry("shot-1", "idle", undefined, "image/png") },
         directActionImageAttempt,
       ),
     ).toBe("shot-1");
@@ -226,7 +226,7 @@ describe("nodeExecutionOverlay", () => {
             rawImageRef: "raw-1",
             drawImageRefs: ["draw-1"],
           }),
-          "raw-1": artifactEntry("raw-1", "pending", undefined, "image/png"),
+          "raw-1": artifactEntry("raw-1", "idle", undefined, "image/png"),
         },
         detailOnlyAttempt,
         "detail-2",

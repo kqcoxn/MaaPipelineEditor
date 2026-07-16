@@ -1,4 +1,5 @@
 import { message } from "antd";
+import { invoke } from "@tauri-apps/api/core";
 import { BaseProtocol } from "./BaseProtocol";
 import type { LocalWebSocketServer } from "../server";
 import {
@@ -75,67 +76,57 @@ export class MFWProtocol extends BaseProtocol {
     });
 
     // 注册设备列表路由
-    this.wsClient.registerRoute("/lte/mfw/adb_devices", (data) =>
+    this.wsClient.registerRoute("maa.adbDevices", (data) =>
       this.handleAdbDevices(data),
     );
-    this.wsClient.registerRoute("/lte/mfw/win32_windows", (data) =>
+    this.wsClient.registerRoute("maa.desktopWindows", (data) =>
       this.handleWin32Windows(data),
     );
-    this.wsClient.registerRoute("/lte/mfw/wlroots_sockets", (data) =>
+    this.wsClient.registerRoute("maa.wlrootsSockets", (data) =>
       this.handleWlRootsSockets(data),
     );
 
     // 注册控制器路由
-    this.wsClient.registerRoute("/lte/mfw/controller_created", (data) =>
+    this.wsClient.registerRoute("maa.controllerCreated", (data) =>
       this.handleControllerCreated(data),
     );
-    this.wsClient.registerRoute("/lte/mfw/controller_status", (data) =>
+    this.wsClient.registerRoute("maa.controllerStatus", (data) =>
       this.handleControllerStatus(data),
     );
 
-    // 注册截图路由
-    this.wsClient.registerRoute("/lte/mfw/screencap_result", (data) =>
-      this.handleScreencapResult(data),
-    );
-
     // 注册 OCR 结果路由
-    this.wsClient.registerRoute("/lte/utility/ocr_result", (data) =>
+    this.wsClient.registerRoute("tool.ocrResult", (data) =>
       this.handleOCRResult(data),
     );
 
     // 注册模板匹配结果路由
-    this.wsClient.registerRoute("/lte/utility/template_match_result", (data) =>
+    this.wsClient.registerRoute("tool.templateMatchResult", (data) =>
       this.handleTemplateMatchResult(data),
     );
 
     // 注图片路径解析结果路由
-    this.wsClient.registerRoute("/lte/utility/image_path_resolved", (data) =>
+    this.wsClient.registerRoute("tool.imageResolved", (data) =>
       this.handleImagePathResolved(data),
     );
 
-    // 注册打开日志结果路由
-    this.wsClient.registerRoute("/lte/utility/log_opened", (data) =>
-      this.handleLogOpened(data),
+    // 注册日志定位结果路由
+    this.wsClient.registerRoute("tool.logLocated", (data) =>
+      this.handleLogLocated(data),
     );
 
     // 注册 maafw.log 内容路由
-    this.wsClient.registerRoute("/lte/utility/maafw_log_content", (data) =>
+    this.wsClient.registerRoute("tool.logContent", (data) =>
       this.handleMaafwLogContent(data),
-    );
-
-    // 注册 maafw.log 打开结果路由
-    this.wsClient.registerRoute("/lte/utility/maafw_log_opened", (data) =>
-      this.handleMaafwLogOpened(data),
     );
 
     // 注册操作结果路由
     this.wsClient.registerRoute(
-      "/lte/mfw/controller_operation_result",
+      "maa.commandResult",
       (data) => this.handleOperationResult(data),
     );
 
     // 注册执行动作结果路由
-    this.wsClient.registerRoute("/lte/mfw/execute_action_result", (data) =>
+    this.wsClient.registerRoute("maa.actionExecuted", (data) =>
       this.handleExecuteActionResult(data),
     );
   }
@@ -149,7 +140,7 @@ export class MFWProtocol extends BaseProtocol {
 
   /**
    * 处理 ADB 设备列表
-   * 路由: /lte/mfw/adb_devices
+   * 事件: maa.adbDevices
    */
   private handleAdbDevices(data: any): void {
     try {
@@ -170,7 +161,7 @@ export class MFWProtocol extends BaseProtocol {
 
   /**
    * 处理 Win32 窗口列表
-   * 路由: /lte/mfw/win32_windows
+   * 事件: maa.desktopWindows
    */
   private handleWin32Windows(data: any): void {
     try {
@@ -191,7 +182,7 @@ export class MFWProtocol extends BaseProtocol {
 
   /**
    * 处理 WlRoots 合成器列表
-   * 路由: /lte/mfw/wlroots_sockets
+   * 事件: maa.wlrootsSockets
    */
   private handleWlRootsSockets(data: any): void {
     try {
@@ -212,11 +203,16 @@ export class MFWProtocol extends BaseProtocol {
 
   /**
    * 处理控制器创建结果
-   * 路由: /lte/mfw/controller_created
+   * 事件: maa.controllerCreated
    */
   private handleControllerCreated(data: any): void {
     try {
-      const { success, controller_id, type, error } = data;
+      const {
+        success,
+        controller_id,
+        controller_type: type,
+        error,
+      } = data;
 
       const mfwStore = useMFWStore.getState();
 
@@ -256,11 +252,12 @@ export class MFWProtocol extends BaseProtocol {
 
   /**
    * 处理控制器状态更新
-   * 路由: /lte/mfw/controller_status
+   * 事件: maa.controllerStatus
    */
   private handleControllerStatus(data: any): void {
     try {
-      const { controller_id, connected, uuid } = data;
+      const { status } = data;
+      const connected = status === "connected";
 
       const mfwStore = useMFWStore.getState();
 
@@ -276,21 +273,17 @@ export class MFWProtocol extends BaseProtocol {
 
   /**
    * 处理截图结果
-   * 路由: /lte/mfw/screencap_result
+   * 事件: maa.screencap
    */
-  private handleScreencapResult(data: ScreencapResult): void {
-    this.screencapRequests.resolve(data);
-  }
-
   /**
    * 处理操作结果（存根）
-   * 路由: /lte/mfw/controller_operation_result
+   * 事件: maa.commandResult
    */
   private handleOperationResult(data: any): void {}
 
   /**
    * 处理执行动作结果
-   * 路由: /lte/mfw/execute_action_result
+   * 事件: maa.actionExecuted
    */
   private handleExecuteActionResult(data: any): void {
     // 触发所有注册的回调
@@ -305,13 +298,17 @@ export class MFWProtocol extends BaseProtocol {
 
   /**
    * 处理 OCR 识别结果
-   * 路由: /lte/utility/ocr_result
+   * 事件: tool.ocrResult
    */
   private handleOCRResult(data: any): void {
+    const normalized = {
+      ...data,
+      no_content: data.no_content ?? data.noContent,
+    };
     // 触发所有注册的回调
     this.ocrCallbacks.forEach((callback) => {
       try {
-        callback(data);
+        callback(normalized);
       } catch (error) {
         console.error("[MFWProtocol] Error in OCR callback:", error);
       }
@@ -320,7 +317,7 @@ export class MFWProtocol extends BaseProtocol {
 
   /**
    * 处理模板匹配结果
-   * 路由: /lte/utility/template_match_result
+   * 事件: tool.templateMatchResult
    */
   private handleTemplateMatchResult(data: any): void {
     this.templateMatchCallbacks.forEach((callback) => {
@@ -334,7 +331,7 @@ export class MFWProtocol extends BaseProtocol {
 
   /**
    * 处理图片路径解析结果
-   * 路由: /lte/utility/image_path_resolved
+   * 事件: tool.imageResolved
    */
   private handleImagePathResolved(data: any): void {
     // 触发所有注册的回调
@@ -349,10 +346,9 @@ export class MFWProtocol extends BaseProtocol {
 
   /**
    * 处理打开日志结果
-   * 路由: /lte/utility/log_opened
+   * 事件: tool.logLocated
    */
-  private handleLogOpened(data: any): void {
-    // 触发所有注册的回调
+  private handleLogLocated(data: any): void {
     this.openLogCallbacks.forEach((callback) => {
       try {
         callback(data);
@@ -360,11 +356,26 @@ export class MFWProtocol extends BaseProtocol {
         console.error("[MFWProtocol] Error in open log callback:", error);
       }
     });
+
+    this.maafwLogOpenedCallbacks.forEach((callback) => {
+      try {
+        callback(data);
+      } catch (error) {
+        console.error("[MFWProtocol] Error in maafw log opened callback:", error);
+      }
+    });
+
+    if (data.success && data.path && "__TAURI_INTERNALS__" in window) {
+      void invoke("open_path", { path: data.path }).catch((error) => {
+        console.error("[MFWProtocol] Failed to open log path:", error);
+        message.error(`打开日志失败: ${String(error)}`);
+      });
+    }
   }
 
   /**
    * 处理 maafw.log 内容
-   * 路由: /lte/utility/maafw_log_content
+   * 事件: tool.logContent
    */
   private handleMaafwLogContent(data: any): void {
     this.maafwLogContentCallbacks.forEach((callback) => {
@@ -372,20 +383,6 @@ export class MFWProtocol extends BaseProtocol {
         callback(data);
       } catch (error) {
         console.error("[MFWProtocol] Error in maafw log content callback:", error);
-      }
-    });
-  }
-
-  /**
-   * 处理 maafw.log 打开结果
-   * 路由: /lte/utility/maafw_log_opened
-   */
-  private handleMaafwLogOpened(data: any): void {
-    this.maafwLogOpenedCallbacks.forEach((callback) => {
-      try {
-        callback(data);
-      } catch (error) {
-        console.error("[MFWProtocol] Error in maafw log opened callback:", error);
       }
     });
   }
@@ -401,7 +398,7 @@ export class MFWProtocol extends BaseProtocol {
       return false;
     }
 
-    return this.wsClient.send("/etl/mfw/refresh_adb_devices", {});
+    return this.wsClient.send("maa.device.listAdb", {});
   }
 
   /**
@@ -413,7 +410,7 @@ export class MFWProtocol extends BaseProtocol {
       return false;
     }
 
-    return this.wsClient.send("/etl/mfw/refresh_win32_windows", {});
+    return this.wsClient.send("maa.window.listDesktop", {});
   }
 
   /**
@@ -425,7 +422,7 @@ export class MFWProtocol extends BaseProtocol {
       return false;
     }
 
-    return this.wsClient.send("/etl/mfw/refresh_wlroots_sockets", {});
+    return this.wsClient.send("maa.window.listWlroots", {});
   }
 
   /**
@@ -464,7 +461,10 @@ export class MFWProtocol extends BaseProtocol {
       },
     };
 
-    return this.wsClient.send("/etl/mfw/create_adb_controller", params);
+    return this.wsClient.send("maa.controller.create", {
+      controller_type: "adb",
+      options: params,
+    });
   }
 
   /**
@@ -492,7 +492,10 @@ export class MFWProtocol extends BaseProtocol {
       };
     }
 
-    return this.wsClient.send("/etl/mfw/create_win32_controller", params);
+    return this.wsClient.send("maa.controller.create", {
+      controller_type: "win32",
+      options: params,
+    });
   }
 
   /**
@@ -521,7 +524,10 @@ export class MFWProtocol extends BaseProtocol {
       },
     };
 
-    return this.wsClient.send("/etl/mfw/create_playcover_controller", params);
+    return this.wsClient.send("maa.controller.create", {
+      controller_type: "playcover",
+      options: params,
+    });
   }
 
   /**
@@ -551,13 +557,19 @@ export class MFWProtocol extends BaseProtocol {
       },
     };
 
-    return this.wsClient.send("/etl/mfw/create_gamepad_controller", params);
+    return this.wsClient.send("maa.controller.create", {
+      controller_type: "gamepad",
+      options: params,
+    });
   }
 
   /**
    * 创建 WlRoots 控制器
    */
-  public createWlRootsController(params: { socket_path: string, use_win32_vk_code: boolean }): boolean {
+  public createWlRootsController(params: {
+    socket_path: string;
+    use_win32_vk_code: boolean;
+  }): boolean {
     if (!this.wsClient) {
       console.error("[MFWProtocol] WebSocket client not initialized");
       return false;
@@ -577,7 +589,10 @@ export class MFWProtocol extends BaseProtocol {
       },
     };
 
-    return this.wsClient.send("/etl/mfw/create_wlroots_controller", params);
+    return this.wsClient.send("maa.controller.create", {
+      controller_type: "wlroots",
+      options: params,
+    });
   }
 
   /**
@@ -608,7 +623,10 @@ export class MFWProtocol extends BaseProtocol {
       },
     };
 
-    return this.wsClient.send("/etl/mfw/create_macos_controller", params);
+    return this.wsClient.send("maa.controller.create", {
+      controller_type: "macos",
+      options: params,
+    });
   }
 
   /**
@@ -620,7 +638,7 @@ export class MFWProtocol extends BaseProtocol {
       return false;
     }
 
-    return this.wsClient.send("/etl/mfw/disconnect_controller", {
+    return this.wsClient.send("maa.controller.disconnect", {
       controller_id: controllerId,
     });
   }
@@ -649,7 +667,25 @@ export class MFWProtocol extends BaseProtocol {
       return false;
     }
 
-    return this.wsClient.send("/etl/utility/ocr_recognize", params);
+    const client = this.wsClient;
+    void (async () => {
+      try {
+        const base = await client.uploadArtifact(
+          await imageSourceToBlob(params.base_image),
+          "ocr-input.png",
+        );
+        client.send("tool.ocr", {
+          baseArtifactId: base.artifactId,
+          roi: params.roi,
+        });
+      } catch (error) {
+        this.handleOCRResult({
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    })();
+    return true;
   }
 
   /**
@@ -686,7 +722,35 @@ export class MFWProtocol extends BaseProtocol {
       return false;
     }
 
-    return this.wsClient.send("/etl/utility/template_match", params);
+    const client = this.wsClient;
+    void (async () => {
+      try {
+        const [base, template] = await Promise.all([
+          client.uploadArtifact(
+            await imageSourceToBlob(params.base_image),
+            "template-base.png",
+          ),
+          client.uploadArtifact(
+            await imageSourceToBlob(params.template_image),
+            "template.png",
+          ),
+        ]);
+        client.send("tool.templateMatch", {
+          baseArtifactId: base.artifactId,
+          templateArtifactId: template.artifactId,
+          roi: params.roi,
+          threshold: params.threshold,
+          method: params.method,
+          greenMask: params.green_mask,
+        });
+      } catch (error) {
+        this.handleTemplateMatchResult({
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    })();
+    return true;
   }
 
   /**
@@ -714,7 +778,7 @@ export class MFWProtocol extends BaseProtocol {
       return false;
     }
 
-    return this.wsClient.send("/etl/utility/resolve_image_path", {
+    return this.wsClient.send("tool.image.resolve", {
       file_name: fileName,
     });
   }
@@ -752,7 +816,7 @@ export class MFWProtocol extends BaseProtocol {
       return false;
     }
 
-    return this.wsClient.send("/etl/utility/open_log", {});
+    return this.wsClient.send("tool.log.locate", {});
   }
 
   /**
@@ -787,7 +851,7 @@ export class MFWProtocol extends BaseProtocol {
       return false;
     }
 
-    return this.wsClient.send("/etl/utility/read_maafw_log", {});
+    return this.wsClient.send("tool.log.read", {});
   }
 
   /**
@@ -799,7 +863,7 @@ export class MFWProtocol extends BaseProtocol {
       return false;
     }
 
-    return this.wsClient.send("/etl/utility/open_maafw_log_dir", {});
+    return this.wsClient.send("tool.log.locate", {});
   }
 
   /**
@@ -865,7 +929,7 @@ export class MFWProtocol extends BaseProtocol {
       console.error("[MFWProtocol] WebSocket client not initialized");
       return false;
     }
-    return this.wsClient.send("/etl/mfw/controller_click", params);
+    return this.controllerCommand("click", params);
   }
 
   /**
@@ -883,7 +947,7 @@ export class MFWProtocol extends BaseProtocol {
       console.error("[MFWProtocol] WebSocket client not initialized");
       return false;
     }
-    return this.wsClient.send("/etl/mfw/controller_swipe", params);
+    return this.controllerCommand("swipe", params);
   }
 
   /**
@@ -894,7 +958,7 @@ export class MFWProtocol extends BaseProtocol {
       console.error("[MFWProtocol] WebSocket client not initialized");
       return false;
     }
-    return this.wsClient.send("/etl/mfw/controller_input_text", params);
+    return this.controllerCommand("input_text", params);
   }
 
   /**
@@ -905,7 +969,10 @@ export class MFWProtocol extends BaseProtocol {
       console.error("[MFWProtocol] WebSocket client not initialized");
       return false;
     }
-    return this.wsClient.send("/etl/mfw/controller_start_app", params);
+    return this.controllerCommand("start_app", {
+      ...params,
+      intent: params.package,
+    });
   }
 
   /**
@@ -916,7 +983,10 @@ export class MFWProtocol extends BaseProtocol {
       console.error("[MFWProtocol] WebSocket client not initialized");
       return false;
     }
-    return this.wsClient.send("/etl/mfw/controller_stop_app", params);
+    return this.controllerCommand("stop_app", {
+      ...params,
+      intent: params.package,
+    });
   }
 
   /**
@@ -927,7 +997,7 @@ export class MFWProtocol extends BaseProtocol {
       console.error("[MFWProtocol] WebSocket client not initialized");
       return false;
     }
-    return this.wsClient.send("/etl/mfw/controller_click_key", params);
+    return this.controllerCommand("click_key", params);
   }
 
   /**
@@ -945,7 +1015,7 @@ export class MFWProtocol extends BaseProtocol {
       console.error("[MFWProtocol] WebSocket client not initialized");
       return false;
     }
-    return this.wsClient.send("/etl/mfw/controller_touch_gamepad", params);
+    return this.controllerCommand(`touch_${params.action}`, params);
   }
 
   /**
@@ -960,7 +1030,7 @@ export class MFWProtocol extends BaseProtocol {
       console.error("[MFWProtocol] WebSocket client not initialized");
       return false;
     }
-    return this.wsClient.send("/etl/mfw/controller_scroll", params);
+    return this.controllerCommand("scroll", params);
   }
 
   /**
@@ -971,7 +1041,7 @@ export class MFWProtocol extends BaseProtocol {
       console.error("[MFWProtocol] WebSocket client not initialized");
       return false;
     }
-    return this.wsClient.send("/etl/mfw/controller_key_down", params);
+    return this.controllerCommand("key_down", params);
   }
 
   /**
@@ -982,7 +1052,7 @@ export class MFWProtocol extends BaseProtocol {
       console.error("[MFWProtocol] WebSocket client not initialized");
       return false;
     }
-    return this.wsClient.send("/etl/mfw/controller_key_up", params);
+    return this.controllerCommand("key_up", params);
   }
 
   /**
@@ -999,7 +1069,7 @@ export class MFWProtocol extends BaseProtocol {
       console.error("[MFWProtocol] WebSocket client not initialized");
       return false;
     }
-    return this.wsClient.send("/etl/mfw/controller_click_v2", params);
+    return this.controllerCommand("click", params);
   }
 
   /**
@@ -1019,7 +1089,7 @@ export class MFWProtocol extends BaseProtocol {
       console.error("[MFWProtocol] WebSocket client not initialized");
       return false;
     }
-    return this.wsClient.send("/etl/mfw/controller_swipe_v2", params);
+    return this.controllerCommand("swipe", params);
   }
 
   /**
@@ -1034,10 +1104,7 @@ export class MFWProtocol extends BaseProtocol {
       console.error("[MFWProtocol] WebSocket client not initialized");
       return false;
     }
-    return this.wsClient.send("/etl/mfw/controller_shell", {
-      ...params,
-      timeout: params.timeout || 10000, // 默认 10 秒
-    });
+    return this.controllerCommand("shell", params);
   }
 
   /**
@@ -1048,7 +1115,7 @@ export class MFWProtocol extends BaseProtocol {
       console.error("[MFWProtocol] WebSocket client not initialized");
       return false;
     }
-    return this.wsClient.send("/etl/mfw/controller_inactive", params);
+    return this.controllerCommand("inactive", params);
   }
 
   // === 探索模式执行动作方法 ===
@@ -1067,7 +1134,7 @@ export class MFWProtocol extends BaseProtocol {
       console.error("[MFWProtocol] WebSocket client not initialized");
       return false;
     }
-    return this.wsClient.send("/etl/mfw/execute_action", params);
+    return this.wsClient.send("maa.action.execute", params);
   }
 
   /**
@@ -1092,4 +1159,25 @@ export class MFWProtocol extends BaseProtocol {
       }
     };
   }
+
+  private controllerCommand<T extends { controller_id: string }>(
+    command: string,
+    params: T,
+  ): boolean {
+    if (!this.wsClient) return false;
+    const { controller_id, ...commandParams } = params;
+    return this.wsClient.send("maa.controller.command", {
+      controller_id,
+      command,
+      params: commandParams,
+    });
+  }
+}
+
+async function imageSourceToBlob(source: string): Promise<Blob> {
+  const response = await fetch(source);
+  if (!response.ok) {
+    throw new Error(`读取图片失败: HTTP ${response.status}`);
+  }
+  return response.blob();
 }

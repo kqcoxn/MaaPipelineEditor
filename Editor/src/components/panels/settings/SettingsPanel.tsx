@@ -20,6 +20,7 @@ import type { ConfigItemDef } from "./settingsDefinitions";
 import ConfigItemRenderer from "./ConfigItemRenderer";
 import { WikiAnchor } from "../../wiki/WikiAnchor";
 import style from "../../../styles/panels/SettingsPanel.module.less";
+import { DesktopSettings } from "../../desktop/DesktopSettings";
 
 /**图标映射 */
 const iconMap: Record<string, React.FC<{ className?: string }>> = {
@@ -141,6 +142,9 @@ function SettingsPanel() {
 
               {/* 配置列表 */}
               <div className={style.configList}>
+                {"__TAURI_INTERNALS__" in window &&
+                  !searchKeyword.trim() &&
+                  activeTab === "local-service" && <DesktopSettings />}
                 {filteredItems.length === 0 ? (
                   <div className={style.emptyState}>
                     <InboxOutlined className={style.emptyIcon} />

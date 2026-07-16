@@ -45,24 +45,24 @@ export class FileProtocol extends BaseProtocol {
     this.wsClient = wsClient;
 
     // 注册接收路由
-    this.wsClient.registerRoute("/lte/file_list", (data) =>
+    this.wsClient.registerRoute("workspace.files", (data) =>
       this.handleFileList(data),
     );
-    this.wsClient.registerRoute("/lte/file_content", (data) =>
+    this.wsClient.registerRoute("file.content", (data) =>
       this.handleFileContent(data),
     );
-    this.wsClient.registerRoute("/lte/file_changed", (data) =>
+    this.wsClient.registerRoute("file.changed", (data) =>
       this.handleFileChanged(data),
     );
 
     // 注册确认路由
-    this.wsClient.registerRoute("/ack/save_file", (data) =>
+    this.wsClient.registerRoute("file.saved", (data) =>
       this.handleSaveAck(data),
     );
-    this.wsClient.registerRoute("/ack/save_separated", (data) =>
+    this.wsClient.registerRoute("file.separatedSaved", (data) =>
       this.handleSaveSeparatedAck(data),
     );
-    this.wsClient.registerRoute("/ack/create_file", (data) =>
+    this.wsClient.registerRoute("file.created", (data) =>
       this.handleCreateFileAck(data),
     );
   }
@@ -73,7 +73,7 @@ export class FileProtocol extends BaseProtocol {
 
   /**
    * 处理文件列表推送
-   * 路由: /lte/file_list
+   * 事件: workspace.files
    */
   private handleFileList(data: any): void {
     try {
@@ -108,7 +108,7 @@ export class FileProtocol extends BaseProtocol {
 
   /**
    * 处理文件内容推送
-   * 路由: /lte/file_content
+   * 事件: file.content
    */
   private async handleFileContent(data: any): Promise<void> {
     try {
@@ -146,7 +146,7 @@ export class FileProtocol extends BaseProtocol {
 
   /**
    * 处理文件变化通知
-   * 路由: /lte/file_changed
+   * 事件: file.changed
    */
   private handleFileChanged(data: any): void {
     try {
@@ -236,7 +236,7 @@ export class FileProtocol extends BaseProtocol {
 
   /**
    * 处理保存成功确认
-   * 路由: /ack/save_file
+   * 事件: file.saved
    */
   private handleSaveAck(data: any): void {
     try {
@@ -262,7 +262,7 @@ export class FileProtocol extends BaseProtocol {
 
   /**
    * 处理分离保存成功确认
-   * 路由: /ack/save_separated
+   * 事件: file.separatedSaved
    */
   private handleSaveSeparatedAck(data: any): void {
     try {
@@ -294,7 +294,7 @@ export class FileProtocol extends BaseProtocol {
 
   /**
    * 处理创建文件成功确认
-   * 路由: /ack/create_file
+   * 事件: file.created
    */
   private handleCreateFileAck(data: any): void {
     try {
@@ -337,7 +337,7 @@ export class FileProtocol extends BaseProtocol {
 
   /**
    * 请求打开文件
-   * 发送路由: /etl/open_file
+   * RPC: file.open
    */
   public requestOpenFile(filePath: string): boolean {
     if (!this.wsClient) {
@@ -345,14 +345,14 @@ export class FileProtocol extends BaseProtocol {
       return false;
     }
 
-    return this.wsClient.send("/etl/open_file", {
+    return this.wsClient.send("file.open", {
       file_path: filePath,
     });
   }
 
   /**
    * 请求创建文件
-   * 发送路由: /etl/create_file
+   * RPC: file.create
    */
   public requestCreateFile(
     fileName: string,
@@ -364,7 +364,7 @@ export class FileProtocol extends BaseProtocol {
       return false;
     }
 
-    return this.wsClient.send("/etl/create_file", {
+    return this.wsClient.send("file.create", {
       file_name: fileName,
       directory,
       content,
@@ -373,7 +373,7 @@ export class FileProtocol extends BaseProtocol {
 
   /**
    * 请求分离保存文件
-   * 发送路由: /etl/save_separated
+   * RPC: file.saveSeparated
    */
   public requestSaveSeparated(
     pipelinePath: string,
@@ -386,7 +386,7 @@ export class FileProtocol extends BaseProtocol {
       return false;
     }
 
-    return this.wsClient.send("/etl/save_separated", {
+    return this.wsClient.send("file.saveSeparated", {
       pipeline_path: pipelinePath,
       config_path: configPath,
       pipeline,

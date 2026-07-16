@@ -38,6 +38,7 @@ import {
   captureScreenshotAction,
   testAgentAction,
 } from "../debugModalActions";
+import { debugCommandBus } from "../debugCommandBus";
 import {
   applyDebugNodeTarget,
   focusDebugCanvasNode,
@@ -441,7 +442,7 @@ export function useDebugModalController() {
   };
 
 
-  const stopRun = () => {
+  const stopRun = (reason = "user_stop") => {
     if (!session?.sessionId) {
       message.warning("当前没有调试会话（Session）");
       return;
@@ -453,10 +454,18 @@ export function useDebugModalController() {
     const sent = debugProtocolClient.stopRun({
       sessionId: session.sessionId,
       runId: activeRun.runId,
-      reason: "user_stop",
+      reason,
     });
     if (!sent) message.error("发送停止请求失败");
   };
+
+  useEffect(
+    () =>
+      debugCommandBus.register({
+        start: ({ mode, nodeId, input }) => startRun(mode, nodeId, input),
+        stop: ({ reason }) => stopRun(reason),
+      }),
+  );
 
   const captureScreenshot = () => {
     captureScreenshotAction(

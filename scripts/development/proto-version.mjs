@@ -1,230 +1,135 @@
 #!/usr/bin/env node
-/**
- * MaaPipelineEditor 前后端通信协议版本迁移脚本 (交互式 / 精确替换)
- *
- * 用法:
- *   yarn proto                      交互模式: 提示输入目标协议版本
- *   yarn proto 1.2.0                指定目标协议版本 (仍需确认)
- *   yarn proto 1.2.0 --yes          指定目标协议版本并跳过确认
- *   node scripts/development/proto-version.mjs  等价调用
- *
- * 设计要点:
- *   - 仅替换前后端通信协议版本号 (configStore.ts / websocket.go)
- *   - 每处均通过"上下文锚定"精确定位, 非全局搜索替换
- *   - 替换前强制预览, 确认后才落盘; 检测阶段任一失败则整体中止
- */
 
-import { createInterface } from "node:readline/promises";
-import { stdin as input, stdout as output } from "node:process";
 import { readFile, writeFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
+import { stdin as input, stdout as output } from "node:process";
+import { createInterface } from "node:readline/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(__dirname, "..", "..");
-
-// ───────────────────────── 常量 ─────────────────────────
-
-// 严格语义化版本: X.Y.Z, 可选预发布标识 (如 1.1.0-beta.1)
-const SEMVER_RE = /^\d+\.\d+\.\d+(?:-[\w.]+)?$/;
-
-// 替换目标清单: 每项精确定位一个协议版本号出现位置
-//   re : 上下文锚定正则 (捕获组1=前缀, 2=版本号, 3=后缀), 仅匹配首个
-const TARGETS = [
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+const SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
+const sources = [
   {
-    id: "configStore.ts (protocolVersion)",
-    file: "Editor/src/stores/configStore.ts",
-    re: /(protocolVersion:\s*")([^"]+)(")/,
+    file: "LocalBridge/src/mpe_localbridge/constants.py",
+    pattern: /(PROTOCOL_VERSION\s*=\s*")([^"]+)(")/,
   },
   {
-    id: "websocket.go (ProtocolVersion)",
-    file: "LocalBridge/internal/server/websocket.go",
-    re: /(ProtocolVersion = ")([^"]+)(")/,
+    file: "Editor/src/stores/configStore.ts",
+    pattern: /(protocolVersion:\s*")([^"]+)(")/,
+  },
+  {
+    file: "Desktop/src-tauri/src/models.rs",
+    pattern: /(PROTOCOL_VERSION:\s*&str\s*=\s*")([^"]+)(")/,
   },
 ];
 
-// ───────────────────────── 工具函数 ─────────────────────────
-
-const C = {
-  reset: "\x1b[0m", bold: "\x1b[1m", dim: "\x1b[2m",
-  red: "\x1b[31m", green: "\x1b[32m", yellow: "\x1b[33m",
-  cyan: "\x1b[36m", gray: "\x1b[90m",
-};
-const log = (m = "") => process.stdout.write(m + "\n");
-const ok = (m) => log(`${C.green}✓${C.reset} ${m}`);
-const warn = (m) => log(`${C.yellow}!${C.reset} ${m}`);
-const err = (m) => log(`${C.red}✗${C.reset} ${m}`);
-const info = (m) => log(`${C.cyan}i${C.reset} ${m}`);
-
-// 读取文件 (带缓存, 同一文件只读一次)
-const fileCache = new Map();
-async function readText(rel) {
-  if (fileCache.has(rel)) return fileCache.get(rel);
-  const buf = await readFile(path.join(ROOT, rel), "utf8");
-  fileCache.set(rel, buf);
-  return buf;
+async function inspectSources() {
+  return Promise.all(
+    sources.map(async (source) => {
+      const content = await readFile(path.join(ROOT, source.file), "utf8");
+      return { ...source, content, version: content.match(source.pattern)?.[2] };
+    }),
+  );
 }
 
-// 检测单个目标中的当前协议版本号
-function detectIn(content, target) {
-  const m = content.match(target.re);
-  return m ? m[2] : null;
+async function generatedVersions() {
+  const schema = JSON.parse(
+    await readFile(path.join(ROOT, "LocalBridge/schema/protocol-v2.schema.json"), "utf8"),
+  );
+  const types = await readFile(
+    path.join(ROOT, "Editor/src/services/generated/bridge-v2.ts"),
+    "utf8",
+  );
+  return [
+    { file: "LocalBridge/schema/protocol-v2.schema.json", version: schema["x-protocol-version"] },
+    {
+      file: "Editor/src/services/generated/bridge-v2.ts",
+      version: types.match(/BRIDGE_PROTOCOL_VERSION = "([^"]+)"/)?.[1],
+    },
+  ];
 }
-
-// 生成预览 diff (不改写文件, 仅收集变更)
-function planReplace(content, target, newVer) {
-  const diffs = [];
-  content.replace(target.re, (full, pre, _ver, suf, offset) => {
-    const lineNo = content.slice(0, offset).split(/\r?\n/).length;
-    diffs.push({ line: lineNo, before: full.trim(), after: (pre + newVer + suf).trim() });
-    return full; // 不在此处变更, 仅供收集 diff
-  });
-  return diffs;
-}
-
-// 生成新文件内容 (函数式 replacement, 规避 $n 误解析)
-function buildNewContent(content, target, newVer) {
-  return content.replace(target.re, (_m, pre, _ver, suf) => pre + newVer + suf);
-}
-
-// ───────────────────────── 主流程 ─────────────────────────
 
 async function main() {
-  const argv = process.argv.slice(2);
-  const yesFlag = argv.includes("--yes") || argv.includes("-y");
-  const cliVersion = argv.find((a) => !a.startsWith("-"));
-
-  log(`${C.bold}=== MaaPipelineEditor 通信协议版本迁移 ===${C.reset}\n`);
-
-  // 1. 检测当前版本
-  info("正在检测当前协议版本号...");
-  const detections = [];
-  try {
-    for (const t of TARGETS) {
-      const content = await readText(t.file);
-      detections.push({ target: t, version: detectIn(content, t), content });
+  const args = process.argv.slice(2);
+  const checkOnly = args.includes("--check");
+  const yes = args.includes("--yes") || args.includes("-y");
+  const entries = await inspectSources();
+  const generated = await generatedVersions();
+  const all = [...entries, ...generated];
+  if (all.some((entry) => !SEMVER.test(entry.version ?? ""))) {
+    throw new Error("存在无法识别的协议版本");
+  }
+  if (checkOnly) {
+    all.forEach((entry) => console.log(`${entry.file}: ${entry.version}`));
+    if (new Set(all.map((entry) => entry.version)).size !== 1) {
+      throw new Error("协议版本或生成产物不一致");
     }
-  } catch (e) {
-    err(`读取文件失败: ${e.message}`);
-    process.exit(1);
+    return;
   }
 
-  const failed = detections.filter((d) => !d.version);
-  if (failed.length) {
-    err("以下位置未能检测到协议版本号, 已中止 (避免遗漏):");
-    for (const f of failed) err(`  - ${f.target.id}  (${f.target.file})`);
-    process.exit(1);
-  }
-
-  const versions = [...new Set(detections.map((d) => d.version))];
-  let currentVersion;
-  if (versions.length === 1) {
-    currentVersion = versions[0];
-    ok(`当前协议版本: ${C.bold}${currentVersion}${C.reset}`);
-  } else {
-    warn("前后端协议版本号不一致:");
-    for (const d of detections) log(`    ${d.target.id.padEnd(36)} ${d.version}`);
-    log("");
-    const counts = {};
-    for (const d of detections) counts[d.version] = (counts[d.version] || 0) + 1;
-    currentVersion = Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
-    warn(`将以 ${currentVersion} 作为基准显示; 迁移后前后端将统一为目标版本`);
-  }
-
-  // 2. 获取目标版本
-  let targetVersion = cliVersion;
-  if (!targetVersion) {
-    const rl = createInterface({ input, output });
+  let nextVersion = args.find((arg) => !arg.startsWith("-"))?.replace(/^v/, "");
+  if (!nextVersion) {
+    const prompt = createInterface({ input, output });
     try {
-      targetVersion = (await rl.question(`请输入目标协议版本号 (当前 ${currentVersion}): `)).trim();
+      nextVersion = (await prompt.question("请输入目标协议版本: ")).trim().replace(/^v/, "");
     } finally {
-      rl.close();
+      prompt.close();
     }
   }
-  if (!targetVersion) {
-    err("未输入目标协议版本号, 已中止");
-    process.exit(1);
+  if (!SEMVER.test(nextVersion ?? "")) {
+    throw new Error(`无效语义化版本: ${nextVersion}`);
   }
-  // 去除可能的 v 前缀
-  targetVersion = targetVersion.replace(/^v/i, "");
-  if (!SEMVER_RE.test(targetVersion)) {
-    err(`目标协议版本号格式无效: "${targetVersion}" (应为 X.Y.Z, 如 1.2.0)`);
-    process.exit(1);
-  }
-  if (versions.length === 1 && targetVersion === currentVersion) {
-    warn(`目标协议版本与当前版本相同 (${currentVersion}), 无需迁移`);
-    process.exit(0);
-  }
-
-  // 3. 生成替换计划
-  const plan = detections.map(({ target: t, content }) => ({
-    target: t,
-    content,
-    diffs: planReplace(content, t, targetVersion),
-  }));
-  const totalDiffs = plan.reduce((n, p) => n + p.diffs.length, 0);
-  if (totalDiffs === 0) {
-    err("没有任何位置需要替换, 已中止");
-    process.exit(1);
-  }
-  for (const p of plan) {
-    if (p.diffs.length === 0) warn(`未产生变更: ${p.target.id} (请检查该处版本号格式)`);
-  }
-
-  // 4. 预览
-  log("");
-  log(`${C.bold}---- 协议版本迁移预览 ----${C.reset}`);
-  log(`  ${C.gray}${currentVersion}${C.reset}  ->  ${C.green}${C.bold}${targetVersion}${C.reset}\n`);
-  let idx = 0;
-  const touchedFiles = new Set();
-  for (const p of plan) {
-    for (const d of p.diffs) {
-      idx++;
-      touchedFiles.add(p.target.file);
-      log(`  ${C.cyan}[${idx}]${C.reset} ${C.bold}${p.target.file}${C.reset} ${C.gray}(行 ${d.line})${C.reset}  ${C.dim}${p.target.id}${C.reset}`);
-      log(`  ${C.red}-${C.reset} ${d.before}`);
-      log(`  ${C.green}+${C.reset} ${d.after}`);
-      log("");
-    }
-  }
-  log(`${C.dim}共 ${totalDiffs} 处位置, 涉及 ${touchedFiles.size} 个文件${C.reset}\n`);
-
-  // 5. 确认
-  if (!yesFlag) {
-    const rl = createInterface({ input, output });
-    let confirmed;
+  entries.forEach((entry) =>
+    console.log(`${entry.file}: ${entry.version} -> ${nextVersion}`),
+  );
+  if (!yes) {
+    const prompt = createInterface({ input, output });
     try {
-      const ans = (await rl.question(`确认执行以上替换? ${C.bold}(y/N)${C.reset}: `)).trim().toLowerCase();
-      confirmed = ans === "y" || ans === "yes";
+      const answer = (await prompt.question("确认写入并重新生成契约? (y/N): "))
+        .trim()
+        .toLowerCase();
+      if (answer !== "y" && answer !== "yes") return;
     } finally {
-      rl.close();
-    }
-    if (!confirmed) {
-      warn("用户取消, 未做任何修改");
-      process.exit(0);
+      prompt.close();
     }
   }
 
-  // 6. 落盘
-  try {
-    for (const p of plan) {
-      if (p.diffs.length === 0) continue;
-      const newContent = buildNewContent(p.content, p.target, targetVersion);
-      await writeFile(path.join(ROOT, p.target.file), newContent, "utf8");
-      ok(`已更新: ${p.target.file}`);
-    }
-  } catch (e) {
-    err(`写入文件失败: ${e.message}`);
-    err("部分文件可能已写入, 请用 git diff 检查并手动修复");
-    process.exit(1);
+  await Promise.all(
+    entries.map((entry) =>
+      writeFile(
+        path.join(ROOT, entry.file),
+        entry.content.replace(
+          entry.pattern,
+          (_match, prefix, _version, suffix) => `${prefix}${nextVersion}${suffix}`,
+        ),
+        "utf8",
+      ),
+    ),
+  );
+  const command = spawnSync(
+    "uv",
+    [
+      "run",
+      "--project",
+      "LocalBridge",
+      "python",
+      "-m",
+      "mpe_localbridge.schema",
+      "--schema",
+      "LocalBridge/schema/protocol-v2.schema.json",
+      "--typescript",
+      "Editor/src/services/generated/bridge-v2.ts",
+    ],
+    { cwd: ROOT, stdio: "inherit", shell: process.platform === "win32" },
+  );
+  if (command.status !== 0) {
+    throw new Error("协议源已更新，但 schema/type 生成失败，请修复后重新运行 yarn localbridge:schema");
   }
-
-  log("");
-  ok(`${C.bold}协议版本迁移完成${C.reset}: ${currentVersion} -> ${targetVersion} (${totalDiffs} 处位置)`);
-  info("建议执行 git diff 复核变更后再提交");
+  console.log(`协议版本已更新为 ${nextVersion}`);
 }
 
-main().catch((e) => {
-  err(`未捕获异常: ${e?.stack || e}`);
+main().catch((error) => {
+  console.error(error instanceof Error ? error.message : error);
   process.exit(1);
 });

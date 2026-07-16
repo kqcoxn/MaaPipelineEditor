@@ -5,6 +5,7 @@ import {
   type ResourceBundle,
   type ImageCacheItem,
 } from "../../stores/localFileStore";
+import type { ArtifactRef } from "../generated/bridge-v2";
 
 /**
  * 资源协议处理器
@@ -23,14 +24,14 @@ export class ResourceProtocol extends BaseProtocol {
     this.wsClient = wsClient;
 
     // 注册接收路由
-    this.wsClient.registerRoute("/lte/resource_bundles", (data) =>
+    this.wsClient.registerRoute("resource.bundles", (data) =>
       this.handleResourceBundles(data)
     );
-    this.wsClient.registerRoute("/lte/image", (data) => this.handleImage(data));
-    this.wsClient.registerRoute("/lte/images", (data) =>
+    this.wsClient.registerRoute("resource.image", (data) => void this.handleImage(data));
+    this.wsClient.registerRoute("resource.images", (data) =>
       this.handleImages(data)
     );
-    this.wsClient.registerRoute("/lte/image_list", (data) =>
+    this.wsClient.registerRoute("resource.imageList", (data) =>
       this.handleImageList(data)
     );
   }
@@ -41,7 +42,7 @@ export class ResourceProtocol extends BaseProtocol {
 
   /**
    * 处理资源包列表推送
-   * 路由: /lte/resource_bundles
+   * 事件: resource.bundles
    */
   private handleResourceBundles(data: any): void {
     try {
@@ -71,19 +72,16 @@ export class ResourceProtocol extends BaseProtocol {
 
   /**
    * 处理单张图片数据
-   * 路由: /lte/image
+   * 事件: resource.image
    */
-  private handleImage(data: any): void {
+  private async handleImage(data: any): Promise<void> {
     try {
       const {
         success,
         relative_path,
         absolute_path,
         bundle_name,
-        base64,
-        mime_type,
-        width,
-        height,
+        artifact,
         message,
       } = data;
 
@@ -94,13 +92,15 @@ export class ResourceProtocol extends BaseProtocol {
 
       const localFileStore = useLocalFileStore.getState();
 
-      if (success && base64) {
+      if (success && artifact && this.wsClient) {
+        const ref = artifact as ArtifactRef;
+        const imageUrl = await this.wsClient.getArtifactUrl(ref);
         // 缓存图片数据
         const cacheItem: ImageCacheItem = {
-          base64,
-          mimeType: mime_type || "image/png",
-          width: width || 0,
-          height: height || 0,
+          base64: imageUrl,
+          mimeType: ref.mimeType || "image/png",
+          width: ref.width || 0,
+          height: ref.height || 0,
           bundleName: bundle_name || "",
           absPath: absolute_path || "",
           timestamp: Date.now(),
@@ -122,7 +122,7 @@ export class ResourceProtocol extends BaseProtocol {
 
   /**
    * 处理批量图片数据
-   * 路由: /lte/images
+   * 事件: resource.images
    */
   private handleImages(data: any): void {
     try {
@@ -135,7 +135,7 @@ export class ResourceProtocol extends BaseProtocol {
 
       // 逐个处理
       images.forEach((imageData: any) => {
-        this.handleImage(imageData);
+        void this.handleImage(imageData);
       });
     } catch (error) {
       console.error("[ResourceProtocol] Failed to handle images:", error);
@@ -144,7 +144,7 @@ export class ResourceProtocol extends BaseProtocol {
 
   /**
    * 请求获取单张图片
-   * 发送路由: /etl/get_image
+   * RPC: resource.image.get
    */
   public requestImage(relativePath: string): boolean {
     if (!this.wsClient) {
@@ -167,14 +167,14 @@ export class ResourceProtocol extends BaseProtocol {
     // 标记为请求中
     localFileStore.setPendingImageRequest(relativePath, true);
 
-    return this.wsClient.send("/etl/get_image", {
+    return this.wsClient.send("resource.image.get", {
       relative_path: relativePath,
     });
   }
 
   /**
    * 请求获取多张图片
-   * 发送路由: /etl/get_images
+   * RPC: resource.image.getMany
    */
   public requestImages(relativePaths: string[]): boolean {
     if (!this.wsClient) {
@@ -201,14 +201,14 @@ export class ResourceProtocol extends BaseProtocol {
       localFileStore.setPendingImageRequest(path, true);
     });
 
-    return this.wsClient.send("/etl/get_images", {
+    return this.wsClient.send("resource.image.getMany", {
       relative_paths: pathsToRequest,
     });
   }
 
   /**
    * 请求刷新资源列表
-   * 发送路由: /etl/refresh_resources
+   * RPC: resource.refresh
    */
   public requestRefreshResources(): boolean {
     if (!this.wsClient) {
@@ -216,12 +216,12 @@ export class ResourceProtocol extends BaseProtocol {
       return false;
     }
 
-    return this.wsClient.send("/etl/refresh_resources", {});
+    return this.wsClient.send("resource.refresh", {});
   }
 
   /**
    * 请求获取图片列表
-   * 发送路由: /etl/get_image_list
+   * RPC: resource.image.list
    * @param pipelinePath 当前 pipeline 文件的绝对路径（可选）
    */
   public requestImageList(pipelinePath?: string): boolean {
@@ -234,14 +234,14 @@ export class ResourceProtocol extends BaseProtocol {
     const localFileStore = useLocalFileStore.getState();
     localFileStore.setImageListLoading(true);
 
-    return this.wsClient.send("/etl/get_image_list", {
+    return this.wsClient.send("resource.image.list", {
       pipeline_path: pipelinePath || "",
     });
   }
 
   /**
    * 处理图片列表响应
-   * 路由: /lte/image_list
+   * 事件: resource.imageList
    */
   private handleImageList(data: any): void {
     try {

@@ -486,7 +486,7 @@ export const useFileStore = create<FileState>()((set) => ({
       setTimeout(() => {
         import("../services/server").then(({ localServer }) => {
           if (localServer.isConnected()) {
-            localServer.send("/etl/open_file", { file_path: reloadFilePath });
+            localServer.send("file.open", { file_path: reloadFilePath });
           }
         });
       }, 0);
@@ -789,7 +789,7 @@ export const useFileStore = create<FileState>()((set) => ({
         if (effectiveMode === "all") {
           // 全部保存
           ackFilePath = targetFilePath;
-          sendSuccess = localServer.send("/etl/save_separated", {
+          sendSuccess = localServer.send("file.saveSeparated", {
             pipeline_path: targetFilePath,
             config_path: configPath,
             pipeline: pipelineString,
@@ -802,7 +802,7 @@ export const useFileStore = create<FileState>()((set) => ({
         } else if (effectiveMode === "pipeline") {
           // 等待 pipeline 路径的 ack
           ackFilePath = targetFilePath;
-          sendSuccess = localServer.send("/etl/save_file", {
+          sendSuccess = localServer.send("file.save", {
             file_path: targetFilePath,
             content: pipelineString,
             indent: jsonIndent,
@@ -810,7 +810,7 @@ export const useFileStore = create<FileState>()((set) => ({
         } else if (effectiveMode === "config") {
           // 等待 config 路径的 ack
           ackFilePath = configPath;
-          sendSuccess = localServer.send("/etl/save_file", {
+          sendSuccess = localServer.send("file.save", {
             file_path: configPath,
             content: configString,
             indent: jsonIndent,
@@ -823,7 +823,7 @@ export const useFileStore = create<FileState>()((set) => ({
         // 集成模式或不导出模式
         const pipelineString = flowToPipelineString(exportOptions);
 
-        sendSuccess = localServer.send("/etl/save_file", {
+        sendSuccess = localServer.send("file.save", {
           file_path: targetFilePath,
           content: pipelineString,
           indent: jsonIndent,

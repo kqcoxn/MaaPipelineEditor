@@ -63,7 +63,7 @@ export const LocalFileListPanel: React.FC = () => {
     message.info("正在刷新文件列表...");
 
     // 发送请求
-    localServer.send("/etl/refresh_file_list", {});
+    localServer.send("workspace.scan", {});
   };
 
   // 打开文件
@@ -74,7 +74,7 @@ export const LocalFileListPanel: React.FC = () => {
     }
 
     // 直接发送打开文件请求
-    localServer.send("/etl/open_file", {
+    localServer.send("file.open", {
       file_path: file.file_path,
     });
 

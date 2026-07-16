@@ -52,9 +52,7 @@ const controllerLabels: Record<string, string> = {
   record: "录制控制器",
 };
 
-const unavailableReasonLabels: Record<string, string> = {
-  "go-binding-dbg-controller-missing": "当前 Go 绑定未提供该控制器",
-};
+const unavailableReasonLabels: Record<string, string> = {};
 
 const taskerApiLabels: Record<string, string> = {
   PostTask: "提交任务",

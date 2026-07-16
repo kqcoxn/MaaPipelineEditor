@@ -18,17 +18,13 @@ import {
   FolderOutlined,
   InfoCircleOutlined,
 } from "@ant-design/icons";
-import { useEffect, useState, useCallback } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { configProtocol, localServer } from "../../services/server";
 import type {
   BackendConfig,
   ConfigResponse,
 } from "../../services/protocols/ConfigProtocol";
-import {
-  isWailsEnvironment,
-  setRootDir as wailsSetRootDir,
-  restartBridge as wailsRestartBridge,
-} from "../../utils/wailsBridge";
 
 interface BackendConfigModalProps {
   open: boolean;
@@ -41,6 +37,7 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
   const [saving, setSaving] = useState(false);
   const [reloading, setReloading] = useState(false);
   const [configPath, setConfigPath] = useState("");
+  const pendingDesktopRoot = useRef<string | undefined>(undefined);
 
   // 加载配置
   const loadConfig = useCallback(() => {
@@ -75,8 +72,8 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
           log_dir: data.config.log.dir,
           log_push_to_client: data.config.log.push_to_client,
           maafw_enabled: data.config.maafw.enabled,
-          maafw_lib_dir: data.config.maafw.lib_dir,
           maafw_resource_dir: data.config.maafw.resource_dir,
+          maafw_debug_mode: data.config.maafw.debug_mode,
         });
         setConfigPath(data.config_path);
 
@@ -98,15 +95,19 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
             },
           });
 
-          // 延迟500ms后自动触发重载
-          setTimeout(() => {
+          const desktopRoot = pendingDesktopRoot.current;
+          pendingDesktopRoot.current = undefined;
+          if (desktopRoot && "__TAURI_INTERNALS__" in window) {
             setReloading(true);
-            const success = configProtocol.requestReload();
-            if (!success) {
-              message.error("自动重载失败，请手动点击重启按钮");
-              setReloading(false);
-            }
-          }, 500);
+            void invoke("switch_workspace", { path: desktopRoot })
+              .catch((error) => {
+                console.error("同步 Desktop 工作区失败:", error);
+                message.error(`同步 Desktop 工作区失败: ${String(error)}`);
+              })
+              .finally(() => setReloading(false));
+          } else {
+            configProtocol.requestReload();
+          }
         }
       }
     });
@@ -157,26 +158,19 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
         },
         maafw: {
           enabled: values.maafw_enabled,
-          lib_dir: values.maafw_lib_dir,
           resource_dir: values.maafw_resource_dir,
+          debug_mode: values.maafw_debug_mode,
         },
       };
 
-      // 如果在 Desktop 环境中且根目录有值，同步保存到 Desktop 配置
-      if (isWailsEnvironment() && values.file_root) {
-        try {
-          const success = await wailsSetRootDir(values.file_root);
-          if (success === false) {
-            message.warning(
-              "Desktop 配置保存失败，但 LocalBridge 配置将继续保存",
-            );
-          }
-        } catch (error) {
-          console.error("保存 Desktop 根目录配置失败:", error);
-        }
-      }
+      pendingDesktopRoot.current =
+        "__TAURI_INTERNALS__" in window ? values.file_root : undefined;
 
-      configProtocol.requestSetConfig(config);
+      if (!configProtocol.requestSetConfig(config)) {
+        pendingDesktopRoot.current = undefined;
+        setSaving(false);
+        message.error("发送配置保存请求失败");
+      }
     } catch (error) {
       console.error("表单验证失败:", error);
     }
@@ -201,8 +195,6 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
       setReloading(false);
     }, 5000);
   };
-
-  const labelStyle = { style: { minWidth: 120 } };
 
   return (
     <Modal
@@ -283,7 +275,7 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
             }
             rules={[{ required: true, message: "请输入端口号" }]}
           >
-            <InputNumber min={1} max={65535} style={{ width: "100%" }} />
+            <InputNumber min={0} max={65535} style={{ width: "100%" }} />
           </Form.Item>
 
           <Form.Item
@@ -291,7 +283,7 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
             label="主机"
             rules={[{ required: true, message: "请输入主机地址" }]}
           >
-            <Input placeholder="localhost" />
+            <Input placeholder="127.0.0.1" disabled />
           </Form.Item>
 
           {/* 文件配置 */}
@@ -369,7 +361,7 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
             label={
               <span>
                 最大文件数量
-                <Tooltip title="扫描的最大文件数量，0 表示无限制">
+                <Tooltip title="扫描的最大文件数量">
                   <InfoCircleOutlined
                     style={{ marginLeft: 4, color: "#8c8c8c" }}
                   />
@@ -378,7 +370,7 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
             }
           >
             <InputNumber
-              min={0}
+              min={1}
               style={{ width: "100%" }}
               placeholder="10000"
             />
@@ -426,22 +418,6 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
           </Form.Item>
 
           <Form.Item
-            name="maafw_lib_dir"
-            label={
-              <span>
-                Lib 目录
-                <Tooltip title="MaaFramework Release 包的 bin 目录路径">
-                  <InfoCircleOutlined
-                    style={{ marginLeft: 4, color: "#8c8c8c" }}
-                  />
-                </Tooltip>
-              </span>
-            }
-          >
-            <Input placeholder="MaaFramework bin 目录路径" />
-          </Form.Item>
-
-          <Form.Item
             name="maafw_resource_dir"
             label={
               <span>
@@ -455,6 +431,14 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
             }
           >
             <Input placeholder="OCR 资源目录路径" />
+          </Form.Item>
+
+          <Form.Item
+            name="maafw_debug_mode"
+            label="调试模式"
+            valuePropName="checked"
+          >
+            <Switch checkedChildren="启用" unCheckedChildren="禁用" />
           </Form.Item>
         </Form>
 

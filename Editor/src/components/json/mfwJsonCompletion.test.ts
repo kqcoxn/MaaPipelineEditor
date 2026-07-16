@@ -12,6 +12,8 @@ interface MockModel {
   getOffsetAt(position: { lineNumber: number; column: number }): number;
 }
 
+const completionItemKinds = { Field: 1, Value: 2 } as never;
+
 function createMockModel(text: string): MockModel {
   const lines = text.split("\n");
   return {
@@ -62,7 +64,7 @@ async function collectSuggestionLabels(
   lineNumber: number,
   column: number,
 ) {
-  const provider = createMfwCompletionProvider();
+  const provider = createMfwCompletionProvider(completionItemKinds);
   const result = await Promise.resolve(
     provider.provideCompletionItems(
       createMockModel(text) as never,
@@ -132,7 +134,7 @@ describe("createMfwCompletionProvider", () => {
       ],
     });
 
-    const provider = createMfwCompletionProvider();
+    const provider = createMfwCompletionProvider(completionItemKinds);
     const result = await Promise.resolve(
       provider.provideCompletionItems(
         model as never,

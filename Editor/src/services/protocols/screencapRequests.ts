@@ -1,6 +1,5 @@
+import type { ArtifactRef } from "../generated/bridge-v2";
 import type { LocalWebSocketServer } from "../server";
-
-const REQUEST_TIMEOUT_MS = 10000;
 
 export interface ScreencapRequestParams {
   controller_id: string;
@@ -18,98 +17,39 @@ export interface ScreencapResult {
   image?: string;
   width?: number;
   height?: number;
+  artifact?: ArtifactRef;
   error?: string;
 }
 
-interface PendingRequest {
-  resolve: (result: ScreencapResult) => void;
-  reject: (error: Error) => void;
-  timeoutId: ReturnType<typeof setTimeout>;
-  signal?: AbortSignal;
-  abortHandler?: () => void;
+interface BridgeScreencapResult {
+  controller_id: string;
+  success: boolean;
+  artifact: ArtifactRef;
 }
 
 export class ScreencapRequestManager {
-  private pendingRequests = new Map<string, PendingRequest>();
-
-  request(
+  async request(
     wsClient: LocalWebSocketServer | null,
     params: ScreencapRequestParams,
     signal?: AbortSignal,
   ): Promise<ScreencapResult> {
-    if (!wsClient) {
-      return Promise.reject(new Error("LocalBridge 未连接"));
-    }
-    if (signal?.aborted) {
-      return Promise.reject(new DOMException("截图请求已取消", "AbortError"));
-    }
-
-    const requestId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    return new Promise<ScreencapResult>((resolve, reject) => {
-      const abortHandler = signal
-        ? () => {
-            this.reject(
-              requestId,
-              new DOMException("截图请求已取消", "AbortError"),
-            );
-          }
-        : undefined;
-      const timeoutId = setTimeout(() => {
-        this.reject(requestId, new Error("截图请求超时"));
-      }, REQUEST_TIMEOUT_MS);
-
-      this.pendingRequests.set(requestId, {
-        resolve,
-        reject,
-        timeoutId,
-        signal,
-        abortHandler,
-      });
-      if (signal && abortHandler) {
-        signal.addEventListener("abort", abortHandler, { once: true });
-      }
-
-      const sent = wsClient.send("/etl/mfw/request_screencap", {
-        ...params,
-        request_id: requestId,
-      });
-      if (!sent) {
-        this.reject(requestId, new Error("截图请求发送失败"));
-      }
-    });
+    if (!wsClient) throw new Error("LocalBridge 未连接");
+    const result = await wsClient.request<BridgeScreencapResult>(
+      "maa.controller.screencap",
+      { controller_id: params.controller_id },
+      { signal, timeoutMs: 15_000 },
+    );
+    const image = await wsClient.getArtifactUrl(result.artifact);
+    return {
+      ...result,
+      request_id: crypto.randomUUID(),
+      image,
+      width: result.artifact.width ?? undefined,
+      height: result.artifact.height ?? undefined,
+    };
   }
 
-  resolve(result: ScreencapResult): void {
-    const requestId = result?.request_id;
-    if (!requestId) {
-      console.warn("[MFWProtocol] Screenshot result missing request_id");
-      return;
-    }
+  rejectAll(_reason: string): void {}
 
-    const pending = this.take(requestId);
-    pending?.resolve(result);
-  }
-
-  rejectAll(reason: string): void {
-    for (const requestId of [...this.pendingRequests.keys()]) {
-      this.reject(requestId, new Error(reason));
-    }
-  }
-
-  private take(requestId: string): PendingRequest | undefined {
-    const pending = this.pendingRequests.get(requestId);
-    if (!pending) return undefined;
-
-    this.pendingRequests.delete(requestId);
-    clearTimeout(pending.timeoutId);
-    if (pending.signal && pending.abortHandler) {
-      pending.signal.removeEventListener("abort", pending.abortHandler);
-    }
-    return pending;
-  }
-
-  private reject(requestId: string, error: Error): void {
-    const pending = this.take(requestId);
-    pending?.reject(error);
-  }
+  resolve(_result: ScreencapResult): void {}
 }

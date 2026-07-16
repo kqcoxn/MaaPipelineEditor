@@ -1,0 +1,122 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python-quality:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Install LocalBridge dependencies
+        run: uv sync --project LocalBridge --all-groups --frozen --python ${{ matrix.python-version }}
+      - name: Ruff
+        run: uv run --project LocalBridge ruff check LocalBridge/src LocalBridge/tests
+      - name: Pyright strict
+        run: uv run --project LocalBridge pyright -p LocalBridge/pyproject.toml
+      - name: Unit and protocol tests
+        run: uv run --project LocalBridge pytest -m "not integration" LocalBridge/tests
+      - name: Check generated protocol artifacts
+        if: matrix.python-version == '3.12'
+        run: |
+          uv run --project LocalBridge python -m mpe_localbridge.schema \
+            --schema LocalBridge/schema/protocol-v2.schema.json \
+            --typescript Editor/src/services/generated/bridge-v2.ts
+          git diff --exit-code -- \
+            LocalBridge/schema/protocol-v2.schema.json \
+            Editor/src/services/generated/bridge-v2.ts
+          node scripts/development/proto-version.mjs --check
+
+  native-integration:
+    name: MaaFw native (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-x64
+            os: windows-latest
+          - name: macos-arm64
+            os: macos-14
+          - name: linux-x64
+            os: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Install LocalBridge dependencies
+        run: uv sync --project LocalBridge --all-groups --frozen --python 3.12
+      - name: Probe MaaFw native runtime
+        run: uv run --project LocalBridge mpelb doctor --json
+      - name: Run native integration tests
+        run: uv run --project LocalBridge pytest -m integration LocalBridge/tests/integration
+
+  editor:
+    name: Editor
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+          cache-dependency-path: Editor/yarn.lock
+      - run: yarn editor:install
+      - run: yarn --cwd Editor test
+      - run: yarn lint
+      - run: yarn build
+
+  desktop:
+    name: Tauri (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-x64
+            os: windows-latest
+          - name: macos-arm64
+            os: macos-14
+          - name: linux-x64
+            os: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: Desktop/src-tauri
+      - name: Rust format
+        run: cargo fmt --manifest-path Desktop/src-tauri/Cargo.toml --all -- --check
+      - name: Rust clippy
+        run: cargo clippy --manifest-path Desktop/src-tauri/Cargo.toml --all-targets -- -D warnings
+      - name: Rust tests
+        run: cargo test --manifest-path Desktop/src-tauri/Cargo.toml --all-targets

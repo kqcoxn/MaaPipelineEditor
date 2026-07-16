@@ -73,7 +73,11 @@ export function DebugArtifactPreview({
         }}
         overlayGroups={overlayGroups}
         overlays={overlays}
-        src={`data:${payload.ref.mime};base64,${payload.content}`}
+        src={
+          payload.encoding === "url"
+            ? payload.content
+            : `data:${payload.ref.mime};base64,${payload.content}`
+        }
       />
     );
   }

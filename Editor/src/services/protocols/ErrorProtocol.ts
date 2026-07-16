@@ -19,7 +19,7 @@ export class ErrorProtocol extends BaseProtocol {
 
   register(wsClient: LocalWebSocketServer): void {
     this.wsClient = wsClient;
-    this.wsClient.registerRoute("/error", (data) =>
+    this.wsClient.registerRoute("system.error", (data) =>
       this.handleMessage("/error", data),
     );
   }

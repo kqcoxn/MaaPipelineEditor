@@ -188,7 +188,7 @@ describe("selectDebugNodeExecutionRecords", () => {
     expect(failureFirst[0].runtimeName).toBe("A");
     expect(execution[1]).toMatchObject({
       runtimeName: "B",
-      durationMs: 3000,
+      durationMs: 1000,
       durationSource: "trace",
     });
     expect(latest[0].runtimeName).toBe("C");

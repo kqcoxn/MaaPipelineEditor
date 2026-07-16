@@ -1,0 +1,60 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "MaaPipelineEditor",
+  "version": "1.7.5",
+  "identifier": "io.github.kqcoxn.maapipelineeditor",
+  "build": {
+    "beforeDevCommand": "yarn --cwd ../Editor dev --mode desktop",
+    "beforeBuildCommand": "yarn --cwd ../Editor build --mode desktop",
+    "devUrl": "http://127.0.0.1:3000",
+    "frontendDist": "../../Editor/dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "MaaPipelineEditor",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 960,
+        "minHeight": 640,
+        "center": true,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "capabilities": ["main"],
+      "csp": "default-src 'self' customprotocol: asset:; connect-src 'self' ws://127.0.0.1:* http://127.0.0.1:* https://mpe.codax.site https://api.deepseek.com https://api.openai.com; img-src 'self' asset: data: blob: http://127.0.0.1:*; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval'; worker-src 'self' blob:"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis", "dmg", "appimage"],
+    "createUpdaterArtifacts": true,
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "category": "DeveloperTool",
+    "shortDescription": "MaaFramework Pipeline visual editor",
+    "longDescription": "MaaPipelineEditor desktop host with a private Python LocalBridge environment.",
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "endpoints": [
+        "https://github.com/kqcoxn/MaaPipelineEditor/releases/latest/download/latest.json"
+      ],
+      "pubkey": ""
+    }
+  }
+}

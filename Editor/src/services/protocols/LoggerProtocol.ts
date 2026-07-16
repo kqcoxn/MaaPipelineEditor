@@ -24,8 +24,8 @@ export class LoggerProtocol extends BaseProtocol {
 
   register(wsClient: LocalWebSocketServer): void {
     this.wsClient = wsClient;
-    this.wsClient.registerRoute("/lte/logger", (data) =>
-      this.handleMessage("/lte/logger", data)
+    this.wsClient.registerRoute("log.entry", (data) =>
+      this.handleMessage("log.entry", data)
     );
   }
 

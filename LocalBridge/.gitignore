@@ -1,62 +1,12 @@
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-
-# Test binary, built with go test -c
-*.test
-
-# Output of the go coverage tool, specifically when used with go cover
-cover.out
-
-# Build output
-/bin/
-/build/
-/dist/
-/out/
-
-# Go build cache
-/bin/
-
-# Go module support
-/vendor/
-
-# Local development files
-*.local
-*.env
-.env
-
-# Editor and IDE files
-/.vscode/
-/.idea/
-*.swp
-*.swo
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
+.venv/
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.coverage
+htmlcov/
+dist/
+build/
 logs/
-
-# Debug files
-/debug/
-
-# Git related
-!.gitkeep
-
-# macOS folder attributes
-._*
-
-# Backup files
-*~
-*.bak
-*.tmp
-
-# Air hot-reload build log
-build-errors.log
-
-# Coverage reports
-coverage.html
-*.coverage
+*.log

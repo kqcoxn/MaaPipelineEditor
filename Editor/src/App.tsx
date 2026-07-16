@@ -1,6 +1,7 @@
 import style from "./styles/layout/App.module.less";
 
 import { memo, Suspense, lazy, useCallback, useEffect, useState } from "react";
+import { listen } from "@tauri-apps/api/event";
 import {
   Flex,
   Layout,
@@ -50,13 +51,6 @@ import {
 } from "./utils/data/shareHelper";
 import { parseUrlParams } from "./utils/data/urlHelper";
 import {
-  isWailsEnvironment,
-  onWailsEvent,
-  getWailsPort,
-  isBridgeRunning,
-  wailsLog,
-} from "./utils/wailsBridge";
-import {
   isEmbedEnvironment,
   initEmbedBridge,
   onParentMessage,
@@ -73,6 +67,7 @@ import { useNewcomerStore, isNewcomerPassed } from "./stores/newcomerStore";
 import { NewcomerGuideModal } from "./components/modals/NewcomerGuideModal";
 import { useTermsStore, isTermsAccepted } from "./stores/termsStore";
 import { TermsAgreementModal } from "./components/modals/TermsAgreementModal";
+import { debugCommandBus } from "./features/debug/debugCommandBus";
 
 const JsonViewer = lazy(() => import("./components/JsonViewer"));
 const DebugModal = lazy(() =>
@@ -178,6 +173,22 @@ function App() {
   const enableShortcuts =
     !isEmbed || (isCapAllowed("allowUndoRedo") && !isCapAllowed("readOnly"));
   useGlobalShortcuts(enableShortcuts);
+
+  useEffect(() => {
+    if (!("__TAURI_INTERNALS__" in window)) return;
+    let disposed = false;
+    let unlisten: (() => void) | undefined;
+    void listen("desktop-stop-debug", () => {
+      void debugCommandBus.stop({ reason: "desktop_shortcut" });
+    }).then((cleanup) => {
+      if (disposed) cleanup();
+      else unlisten = cleanup;
+    });
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
+  }, []);
 
   // 嵌入模式变更通知
   useEmbedChangeNotifier(isEmbed && isReady);
@@ -436,62 +447,14 @@ function App() {
     // 统一解析 URL 参数
     const urlParams = parseUrlParams();
 
-    // Wails 环境下的连接逻辑
-    let cleanupWailsListener: (() => void) | null = null;
-
-    if (isWailsEnvironment()) {
-      wailsLog("[Frontend] Wails environment detected");
-
-      let connectionInitiated = false;
-
-      // 监听后端发送的端口事件
-      cleanupWailsListener = onWailsEvent<number>("bridge:port", (port) => {
-        if (connectionInitiated) {
-          return;
-        }
-        connectionInitiated = true;
-        wailsLog(`[Frontend] Received port: ${port}`);
-        localServer.setPort(port);
-        localServer.connect();
-      });
-
-      // 尝试直接获取端口
-      getWailsPort().then(async (port) => {
-        if (connectionInitiated) {
-          return;
-        }
-        if (
-          port &&
-          !localServer.isConnected() &&
-          !localServer.getIsConnecting()
-        ) {
-          // 检查 bridge 是否已经就绪
-          const running = await isBridgeRunning();
-          // 防止在 await 期间事件已经触发了连接
-          if (running && !connectionInitiated) {
-            connectionInitiated = true;
-            wailsLog(`[Frontend] Got port from GetPort: ${port}`);
-            localServer.setPort(port);
-            localServer.connect();
-          } else {
-            wailsLog(
-              "[Frontend] Bridge not ready or connection initiated, waiting for event",
-            );
-          }
-        }
-      });
-    } else {
-      // 非 Wails 环境：使用 URL 参数或配置
-      // 确定使用的端口：URL参数 > 配置端口 > 默认端口
+    if (!localServer.hasBootstrap()) {
       const targetPort = urlParams.port || configuredPort;
       if (targetPort) {
         localServer.setPort(targetPort);
       }
-
-      // 自动连接或者 URL 参数连接
-      if (wsAutoConnect || urlParams.linkLb) {
-        localServer.connect();
-      }
+    }
+    if (wsAutoConnect || urlParams.linkLb || localServer.hasBootstrap()) {
+      localServer.connect();
     }
 
     // 使用协议检测（优先于新手引导）
@@ -535,10 +498,6 @@ function App() {
       window.removeEventListener("mpe:terms-accepted", handleTermsAccepted);
       document.removeEventListener("drop", handleFileDrop);
       document.removeEventListener("dragover", handleDragOver);
-      // 清理 Wails 事件监听
-      if (cleanupWailsListener) {
-        cleanupWailsListener();
-      }
     };
   }, [handleFileDrop, handleDragOver]);
 

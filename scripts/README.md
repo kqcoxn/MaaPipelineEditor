@@ -7,7 +7,6 @@
 | `ci/` | 持续集成与发布流程专用脚本 | GitHub Actions |
 | `development/` | 需要开发者主动运行的仓库维护脚本 | `yarn` 命令或命令行 |
 | `docs/` | 文档与参考资料维护脚本及配置清单 | 文档维护者 |
-| `install/` | 面向最终用户分发的一键安装入口 | PowerShell、CMD、Shell |
 | `web/` | 独立的网页辅助文件 | 手动部署或预览 |
 
 子项目独占的脚本继续放在对应项目内，例如 `Editor/scripts/`、`Landing/scripts/`。新增仓库级脚本时，应按实际调用场景放入上述目录，避免在 `.github/`、`dev/` 或根目录新增零散入口。

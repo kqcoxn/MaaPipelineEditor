@@ -24,8 +24,8 @@ export interface BackendConfig {
   };
   maafw: {
     enabled: boolean;
-    lib_dir: string;
     resource_dir: string;
+    debug_mode: boolean;
   };
 }
 
@@ -61,10 +61,10 @@ export class ConfigProtocol extends BaseProtocol {
     this.wsClient = wsClient;
 
     // 注册接收路由
-    this.wsClient.registerRoute("/lte/config/data", (data) =>
+    this.wsClient.registerRoute("config.data", (data) =>
       this.handleConfigData(data)
     );
-    this.wsClient.registerRoute("/lte/config/reload", (data) =>
+    this.wsClient.registerRoute("config.reloaded", (data) =>
       this.handleReloadResponse(data)
     );
   }
@@ -75,7 +75,7 @@ export class ConfigProtocol extends BaseProtocol {
 
   /**
    * 处理配置数据推送
-   * 路由: /lte/config/data
+   * 事件: config.data
    */
   private handleConfigData(data: ConfigResponse): void {
     try {
@@ -99,7 +99,7 @@ export class ConfigProtocol extends BaseProtocol {
 
   /**
    * 处理重载响应
-   * 路由: /lte/config/reload
+   * 事件: config.reloaded
    */
   private handleReloadResponse(data: any): void {
     try {
@@ -123,7 +123,7 @@ export class ConfigProtocol extends BaseProtocol {
 
   /**
    * 请求获取配置
-   * 发送路由: /etl/config/get
+   * RPC: config.get
    */
   public requestGetConfig(): boolean {
     if (!this.wsClient) {
@@ -131,12 +131,12 @@ export class ConfigProtocol extends BaseProtocol {
       return false;
     }
 
-    return this.wsClient.send("/etl/config/get", {});
+    return this.wsClient.send("config.get", {});
   }
 
   /**
    * 请求设置配置
-   * 发送路由: /etl/config/set
+   * RPC: config.update
    */
   public requestSetConfig(config: Partial<BackendConfig>): boolean {
     if (!this.wsClient) {
@@ -144,12 +144,12 @@ export class ConfigProtocol extends BaseProtocol {
       return false;
     }
 
-    return this.wsClient.send("/etl/config/set", config);
+    return this.wsClient.send("config.update", config);
   }
 
   /**
    * 请求重载配置
-   * 发送路由: /etl/config/reload
+   * RPC: config.reload
    */
   public requestReload(): boolean {
     if (!this.wsClient) {
@@ -157,7 +157,7 @@ export class ConfigProtocol extends BaseProtocol {
       return false;
     }
 
-    return this.wsClient.send("/etl/config/reload", {});
+    return this.wsClient.send("config.reload", {});
   }
 
   /**

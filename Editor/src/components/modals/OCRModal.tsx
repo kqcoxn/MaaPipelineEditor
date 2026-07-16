@@ -317,7 +317,7 @@ export const OCRModal = memo(
           // 处理特定的错误码
           if (data.code === "MFW_OCR_RESOURCE_NOT_CONFIGURED") {
             errorContent =
-              "OCR 资源路径未配置，请运行 'mpelb config set-resource' 并按提示输入后重启服务";
+              "OCR 资源路径未配置，请运行 mpelb config set maafw.resource_dir '<资源目录>' 后重试";
           } else if (
             (data.code === "MFW_RESOURCE_LOAD_FAILED" ||
               data.code === "MFW_TASK_SUBMIT_FAILED") &&

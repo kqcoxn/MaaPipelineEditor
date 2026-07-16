@@ -4,78 +4,172 @@ on:
   push:
     tags:
       - "v*"
-  workflow_dispatch:
 
 permissions:
   contents: write
-  actions: write
+  id-token: write
 
 jobs:
-  build-localbridge:
-    name: Build LocalBridge for ${{ matrix.name }}
+  package-python:
+    name: Test and package LocalBridge
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Check product and protocol versions
+        run: |
+          node scripts/development/migrate-version.mjs --check
+          node scripts/development/proto-version.mjs --check
+          test "${GITHUB_REF_NAME#v}" = "$(node -p "require('./Desktop/package.json').version")"
+      - name: Test LocalBridge
+        run: |
+          uv sync --project LocalBridge --all-groups --frozen --python 3.12
+          uv run --project LocalBridge ruff check LocalBridge/src LocalBridge/tests
+          uv run --project LocalBridge pyright -p LocalBridge/pyproject.toml
+          uv run --project LocalBridge pytest LocalBridge/tests
+      - name: Build sdist and wheel
+        run: uv build --project LocalBridge --out-dir dist/localbridge
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-package
+          path: dist/localbridge/*
+          if-no-files-found: error
+
+  publish-pypi:
+    name: Publish LocalBridge to PyPI
+    needs: package-python
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/MaaPipelineEditor-LocalBridge/
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-package
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+
+  verify-pypi:
+    name: Verify PyPI (${{ matrix.name }})
+    needs: publish-pypi
     runs-on: ${{ matrix.os }}
-    # 跳过测试版本 tag，允许手动触发
-    if: ${{ github.event_name == 'workflow_dispatch' || (!contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test')) }}
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - os: windows-latest
-            goos: windows
-            goarch: amd64
-            name: mpelb-windows-amd64.exe
-          - os: ubuntu-latest
-            goos: linux
-            goarch: amd64
-            name: mpelb-linux-amd64
-          - os: macos-latest
-            goos: darwin
-            goarch: arm64
-            name: mpelb-darwin-arm64
-
+          - name: windows-x64
+            os: windows-latest
+          - name: macos-arm64
+            os: macos-14
+          - name: linux-x64
+            os: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          go-version: "1.21"
-          cache: false
-
-      - name: Build LocalBridge
-        working-directory: LocalBridge
-        env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-          CGO_ENABLED: 0
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="test-$(date +%Y%m%d-%H%M%S)"
-          else
-            VERSION=${GITHUB_REF#refs/tags/v}
-          fi
-          go build -ldflags="-s -w -X main.Version=${VERSION}" -o ../build/${{ matrix.name }} ./cmd/lb
+          python-version: "3.12"
+      - name: Wait for PyPI and install exact version
         shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          for attempt in {1..12}; do
+            if python -m pip install --no-cache-dir \
+              "MaaPipelineEditor-LocalBridge==${VERSION}" pytest; then
+              break
+            fi
+            if [ "$attempt" = 12 ]; then exit 1; fi
+            sleep 10
+          done
+      - name: Verify package metadata and doctor
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          python -c "import importlib.metadata as m; assert m.version('MaaPipelineEditor-LocalBridge') == '${VERSION}'"
+          python -m mpe_localbridge.cli doctor --json
+          python -m pytest -q -m integration LocalBridge/tests/integration
 
-      - name: Upload LocalBridge artifact
-        uses: actions/upload-artifact@v4
+  build-desktop:
+    name: Build Desktop (${{ matrix.name }})
+    needs: verify-pypi
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-x64
+            os: windows-latest
+            bundles: nsis
+          - name: macos-arm64
+            os: macos-14
+            bundles: dmg
+          - name: linux-x64
+            os: ubuntu-latest
+            bundles: appimage
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - uses: actions/setup-node@v4
         with:
-          name: ${{ matrix.name }}
-          path: build/${{ matrix.name }}
+          node-version: 22
+          cache: yarn
+          cache-dependency-path: |
+            Editor/yarn.lock
+            Desktop/yarn.lock
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: Desktop/src-tauri
+      - name: Install frontend and Tauri dependencies
+        run: |
+          yarn editor:install
+          yarn desktop:install
+      - name: Prepare signed updater configuration
+        env:
+          TAURI_UPDATER_PUBLIC_KEY: ${{ secrets.TAURI_UPDATER_PUBLIC_KEY }}
+        run: node scripts/ci/prepare-tauri-release-config.mjs
+      - name: Build signed Desktop bundle
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: >-
+          yarn --cwd Desktop tauri build
+          --config src-tauri/tauri.release.conf.json
+          --bundles ${{ matrix.bundles }}
+      - name: Stage installers and updater archives
+        shell: bash
+        run: |
+          mkdir -p Desktop/desktop-release
+          find Desktop/src-tauri/target/release/bundle -type f \
+            \( -name '*.exe' -o -name '*.dmg' -o -name '*.AppImage' \
+               -o -name '*.tar.gz' -o -name '*.zip' -o -name '*.sig' \) \
+            -exec cp '{}' Desktop/desktop-release/ \;
+          test -n "$(find Desktop/desktop-release -type f -print -quit)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.name }}
+          path: Desktop/desktop-release/*
+          if-no-files-found: error
 
   build-web:
+    name: Build web packages
     runs-on: ubuntu-latest
-    # 跳过测试版本 tag，允许手动触发
-    if: ${{ github.event_name == 'workflow_dispatch' || (!contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test')) }}
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: yarn
@@ -83,143 +177,75 @@ jobs:
             Editor/yarn.lock
             DocumentStation/yarn.lock
             Landing/yarn.lock
-
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
-        working-directory: Editor
-
-      - name: Modify config for production build
+      - name: Build stable Editor
         run: |
-          # 将configStore.ts中的globalConfig.dev改为false
+          yarn editor:install
           sed -i 's/dev: true,/dev: false,/g' Editor/src/stores/configStore.ts
-          echo "已修改configStore.ts中的dev配置为false"
-
-      - name: Build project (stable)
-        run: yarn build --mode stable
-        working-directory: Editor
-
-      - name: Create stable archive
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="test-$(date +%Y%m%d-%H%M%S)"
-          else
-            VERSION="${{ github.ref_name }}"
-          fi
+          yarn --cwd Editor build --mode stable
           cd Editor/dist
-          zip -r ../../MaaPipelineEditor-${VERSION}-stable.zip .
-          cd ../..
-        shell: bash
-
+          zip -r "../../MaaPipelineEditor-${GITHUB_REF_NAME}-stable.zip" .
       - name: Build docs
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="test-$(date +%Y%m%d-%H%M%S)"
-          else
-            VERSION="${{ github.ref_name }}"
-          fi
-          cd DocumentStation
-          yarn install
-          yarn build
-          cd ..
+          yarn --cwd DocumentStation install --frozen-lockfile
+          yarn --cwd DocumentStation build
           cd DocumentStation/docs/.vitepress/dist
-          zip -r ../../../../MaaPipelineEditor-${VERSION}-docs.zip .
-          cd ../../../..
-        shell: bash
-
+          zip -r "../../../../MaaPipelineEditor-${GITHUB_REF_NAME}-docs.zip" .
       - name: Build landing
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="test-$(date +%Y%m%d-%H%M%S)"
-          else
-            VERSION="${{ github.ref_name }}"
-          fi
-          cd Landing
-          yarn install --frozen-lockfile
-          yarn typecheck
-          yarn build
-          cd dist
-          zip -r ../../MaaPipelineEditor-${VERSION}-landing.zip .
-          cd ../..
-        shell: bash
-
-      - name: Upload web artifacts
-        uses: actions/upload-artifact@v4
+          yarn --cwd Landing install --frozen-lockfile
+          yarn --cwd Landing typecheck
+          yarn --cwd Landing build
+          cd Landing/dist
+          zip -r "../../MaaPipelineEditor-${GITHUB_REF_NAME}-landing.zip" .
+      - uses: actions/upload-artifact@v4
         with:
           name: web-packages
-          path: |
-            MaaPipelineEditor-*-stable.zip
-            MaaPipelineEditor-*-docs.zip
-            MaaPipelineEditor-*-landing.zip
-
-  # Desktop 服务暂时下线，download-resources 和 build-desktop job 已移除
-  # 如需恢复，请参考 git 历史中的 release.yaml
+          path: MaaPipelineEditor-*.zip
+          if-no-files-found: error
 
   release:
-    needs: [build-web, build-localbridge]
+    name: Publish GitHub Release and updater manifest
+    needs: [package-python, verify-pypi, build-desktop, build-web]
     runs-on: ubuntu-latest
-    # 仅在 tag 触发时执行发布，手动触发时跳过
-    if: ${{ github.event_name == 'push' && !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test') }}
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Download web artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: desktop-*
+          path: release-artifacts
+          merge-multiple: true
+      - uses: actions/download-artifact@v4
         with:
           name: web-packages
-
-      - name: Download LocalBridge artifacts
-        uses: actions/download-artifact@v4
+          path: release-artifacts
+      - uses: actions/download-artifact@v4
         with:
-          path: localbridge-artifacts
-          pattern: mpelb-*
-          merge-multiple: true
-
-      - name: Clean up redundant files
+          name: python-package
+          path: release-artifacts
+      - name: Generate release notes
         run: |
-          # 删除所有 artifacts 目录中的多余文件
-          find . -type f \( -name "index.html" -o -name "*.ico" -o -name "logo.png" -o -name "maafw.png" \) -delete
-          echo "已删除多余文件"
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Generate Changelog
-        id: changelog
-        run: |
-          CURRENT_TAG="${{ github.ref_name }}"
-          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
-
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || true)
           node scripts/ci/render-release-notes.mjs \
-            --tag "$CURRENT_TAG" \
+            --tag "$GITHUB_REF_NAME" \
             --previous-tag "$PREVIOUS_TAG" \
             --update-logs Editor/src/data/updateLogs.ts \
             --output CHANGELOG.md
-
-          # 输出到GitHub Actions
-          {
-            echo "changelog<<EOF"
-            cat CHANGELOG.md
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
+      - name: Generate signed updater manifest
+        run: |
+          node scripts/ci/generate-updater-manifest.mjs \
+            --version "${GITHUB_REF_NAME#v}" \
+            --tag "$GITHUB_REF_NAME" \
+            --repository "$GITHUB_REPOSITORY" \
+            --artifacts release-artifacts \
+            --notes-file CHANGELOG.md \
+            --output latest.json
+      - uses: softprops/action-gh-release@v2
         with:
           files: |
-            MaaPipelineEditor-${{ github.ref_name }}-stable.zip
-            MaaPipelineEditor-${{ github.ref_name }}-docs.zip
-            MaaPipelineEditor-${{ github.ref_name }}-landing.zip
-            localbridge-artifacts/*
+            release-artifacts/*
+            latest.json
           body_path: CHANGELOG.md
           generate_release_notes: false
-          draft: false
-          prerelease: false
           fail_on_unmatched_files: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

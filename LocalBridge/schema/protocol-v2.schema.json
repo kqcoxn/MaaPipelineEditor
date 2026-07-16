@@ -1,0 +1,451 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifactId": {
+          "title": "Artifactid",
+          "type": "string"
+        },
+        "createdAt": {
+          "format": "date-time",
+          "title": "Createdat",
+          "type": "string"
+        },
+        "height": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Height"
+        },
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "mimeType": {
+          "title": "Mimetype",
+          "type": "string"
+        },
+        "runId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Runid"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sessionid"
+        },
+        "sha256": {
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size": {
+          "title": "Size",
+          "type": "integer"
+        },
+        "width": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Width"
+        }
+      },
+      "required": [
+        "artifactId",
+        "kind",
+        "mimeType",
+        "size",
+        "sha256",
+        "createdAt"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "DebugEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "artifactRefs": {
+          "items": {
+            "$ref": "#/$defs/ArtifactRef"
+          },
+          "title": "Artifactrefs",
+          "type": "array"
+        },
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "parentSeq": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parentseq"
+        },
+        "payload": {
+          "additionalProperties": true,
+          "title": "Payload",
+          "type": "object"
+        },
+        "phase": {
+          "title": "Phase",
+          "type": "string"
+        },
+        "runId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Runid"
+        },
+        "seq": {
+          "default": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "sessionId": {
+          "title": "Sessionid",
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "maafw",
+            "localbridge",
+            "mpe"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "timestamp": {
+          "format": "date-time",
+          "title": "Timestamp",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sessionId",
+        "source",
+        "kind",
+        "phase",
+        "status"
+      ],
+      "title": "DebugEvent",
+      "type": "object"
+    },
+    "RpcError": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "data": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Data"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "RpcError",
+      "type": "object"
+    },
+    "RpcEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "title": "Data"
+        },
+        "event": {
+          "title": "Event",
+          "type": "string"
+        },
+        "type": {
+          "const": "event",
+          "default": "event",
+          "title": "Type",
+          "type": "string"
+        },
+        "v": {
+          "const": 2,
+          "default": 2,
+          "title": "V",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "event",
+        "data"
+      ],
+      "title": "RpcEvent",
+      "type": "object"
+    },
+    "RpcRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "method": {
+          "pattern": "^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)+$",
+          "title": "Method",
+          "type": "string"
+        },
+        "params": {
+          "additionalProperties": true,
+          "title": "Params",
+          "type": "object"
+        },
+        "type": {
+          "const": "request",
+          "title": "Type",
+          "type": "string"
+        },
+        "v": {
+          "const": 2,
+          "title": "V",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "v",
+        "type",
+        "id",
+        "method"
+      ],
+      "title": "RpcRequest",
+      "type": "object"
+    },
+    "RpcResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RpcError"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "result": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Result"
+        },
+        "type": {
+          "const": "response",
+          "default": "response",
+          "title": "Type",
+          "type": "string"
+        },
+        "v": {
+          "const": 2,
+          "default": 2,
+          "title": "V",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "RpcResponse",
+      "type": "object"
+    }
+  },
+  "$id": "https://mpe.codax.site/schema/localbridge-v2.json",
+  "properties": {
+    "artifact": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "debug_event": {
+      "$ref": "#/$defs/DebugEvent"
+    },
+    "message": {
+      "discriminator": {
+        "mapping": {
+          "event": "#/$defs/RpcEvent",
+          "request": "#/$defs/RpcRequest",
+          "response": "#/$defs/RpcResponse"
+        },
+        "propertyName": "type"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/RpcRequest"
+        },
+        {
+          "$ref": "#/$defs/RpcResponse"
+        },
+        {
+          "$ref": "#/$defs/RpcEvent"
+        }
+      ],
+      "title": "Message"
+    }
+  },
+  "required": [
+    "message",
+    "artifact",
+    "debug_event"
+  ],
+  "title": "ProtocolDocument",
+  "type": "object",
+  "x-event-names": [
+    "system.error",
+    "log.entry",
+    "workspace.files",
+    "file.content",
+    "file.changed",
+    "file.saved",
+    "file.separatedSaved",
+    "file.created",
+    "config.data",
+    "config.reloaded",
+    "resource.bundles",
+    "resource.image",
+    "resource.images",
+    "resource.imageList",
+    "maa.adbDevices",
+    "maa.desktopWindows",
+    "maa.wlrootsSockets",
+    "maa.controllerCreated",
+    "maa.controllerStatus",
+    "maa.screencap",
+    "maa.commandResult",
+    "maa.actionExecuted",
+    "tool.ocrResult",
+    "tool.templateMatchResult",
+    "tool.imageResolved",
+    "tool.logContent",
+    "tool.logLocated",
+    "ai.response",
+    "ai.streamChunk",
+    "debug.capabilities",
+    "debug.sessionCreated",
+    "debug.sessionDestroyed",
+    "debug.sessionSnapshot",
+    "debug.event",
+    "debug.runStarted",
+    "debug.runStopRequested",
+    "debug.resourcePreflight",
+    "debug.resourceHealth",
+    "debug.agentTested",
+    "debug.artifact"
+  ],
+  "x-protocol-version": "2.0.0",
+  "x-rpc-methods": [
+    "system.hello",
+    "system.health",
+    "system.cancel",
+    "config.get",
+    "config.update",
+    "config.reload",
+    "workspace.scan",
+    "file.open",
+    "file.create",
+    "file.save",
+    "file.saveSeparated",
+    "resource.list",
+    "resource.refresh",
+    "resource.image.list",
+    "resource.image.get",
+    "resource.image.getMany",
+    "maa.device.listAdb",
+    "maa.window.listDesktop",
+    "maa.window.listWlroots",
+    "maa.controller.create",
+    "maa.controller.disconnect",
+    "maa.controller.screencap",
+    "maa.controller.command",
+    "maa.action.execute",
+    "tool.ocr",
+    "tool.templateMatch",
+    "tool.image.resolve",
+    "tool.log.read",
+    "tool.log.locate",
+    "ai.complete",
+    "ai.stream.start",
+    "ai.stream.cancel",
+    "debug.capabilities",
+    "debug.session.create",
+    "debug.session.destroy",
+    "debug.session.snapshot",
+    "debug.run.start",
+    "debug.run.stop",
+    "debug.events.list",
+    "debug.resource.preflight",
+    "debug.resource.health",
+    "debug.agent.test",
+    "debug.screenshot.capture"
+  ]
+}

@@ -1,4 +1,4 @@
-export const DEBUG_GENERATION = "debug-vNext" as const;
+export const DEBUG_GENERATION = "debug-v2" as const;
 export const DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME =
   "__mpe_tasker_bootstrap__" as const;
 export const DEBUG_TASKER_BOOTSTRAP_LABEL = "(Tasker)" as const;
@@ -17,6 +17,7 @@ export type DebugSessionStatus =
   | "preparing"
   | "running"
   | "stopping"
+  | "error"
   | "completed"
   | "failed"
   | "disposed";
@@ -101,7 +102,7 @@ export type DebugResourceHealthCategory =
   | "resolution"
   | "loading"
   | "graph";
-export type DebugArtifactEncoding = "base64" | "utf8" | "json";
+export type DebugArtifactEncoding = "base64" | "utf8" | "json" | "url";
 export type DebugEdgeReason =
   | "next"
   | "on_error"
@@ -118,6 +119,8 @@ export interface DebugCapabilityManifest {
   profileFeatures: DebugProfileFeature[];
   debugFeatures?: Array<
     | "trace-replay"
+    | "local-replay"
+    | "event-resume"
     | "performance-summary"
     | "agent-run-profile"
   >;

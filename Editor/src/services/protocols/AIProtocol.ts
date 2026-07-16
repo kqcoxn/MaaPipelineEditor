@@ -21,13 +21,13 @@ export class AIProtocol extends BaseProtocol {
     this.wsClient = wsClient;
 
     // 注册代理响应路由
-    wsClient.registerRoute("/lte/ai/proxy_response", (data) => {
-      this.handleMessage("/lte/ai/proxy_response", data);
+    wsClient.registerRoute("ai.response", (data) => {
+      this.handleMessage("ai.response", data);
     });
 
     // 注册流式代理响应路由
-    wsClient.registerRoute("/lte/ai/proxy_stream", (data) => {
-      this.handleMessage("/lte/ai/proxy_stream", data);
+    wsClient.registerRoute("ai.streamChunk", (data) => {
+      this.handleMessage("ai.streamChunk", data);
     });
   }
 
@@ -35,7 +35,7 @@ export class AIProtocol extends BaseProtocol {
     const requestId = data?.request_id || "default";
 
     switch (path) {
-      case "/lte/ai/proxy_response": {
+      case "ai.response": {
         const handler = this.responseHandlers.get(requestId);
         if (handler) {
           handler(data);
@@ -43,7 +43,7 @@ export class AIProtocol extends BaseProtocol {
         }
         break;
       }
-      case "/lte/ai/proxy_stream": {
+      case "ai.streamChunk": {
         const handler = this.streamHandlers.get(requestId);
         if (handler) {
           handler(data);
@@ -101,7 +101,7 @@ export class AIProtocol extends BaseProtocol {
       });
 
       // 发送代理请求
-      const success = this.wsClient.send("/etl/ai/proxy", {
+      const success = this.wsClient.send("ai.complete", {
         request_id: requestId,
         url: request.url,
         method: request.method,
@@ -160,7 +160,7 @@ export class AIProtocol extends BaseProtocol {
           return;
         }
 
-        const success = this.wsClient.send("/etl/ai/proxy_stream", {
+        const success = this.wsClient.send("ai.stream.start", {
           request_id: requestId,
           url: request.url,
           method: request.method,
@@ -176,7 +176,7 @@ export class AIProtocol extends BaseProtocol {
       cancel: () => {
         this.streamHandlers.delete(requestId);
         // 通知后端取消
-        this.wsClient?.send("/etl/ai/proxy_cancel", {
+        this.wsClient?.send("ai.stream.cancel", {
           request_id: requestId,
         });
       },

@@ -1,5 +1,6 @@
 import { BaseProtocol } from "./BaseProtocol";
 import type { LocalWebSocketServer } from "../server";
+import type { DebugEvent as BridgeDebugEvent } from "../generated/bridge-v2";
 import { globalConfig } from "../../stores/configStore";
 import type {
   DebugArtifactGetRequest,
@@ -29,6 +30,9 @@ import type {
 type Listener<T> = (payload: T) => void;
 
 export class DebugProtocolClient extends BaseProtocol {
+  private readonly eventCache = new Map<string, DebugEvent[]>();
+  private replayStatus?: DebugTraceReplayStatus;
+  private replayTimer?: ReturnType<typeof setInterval>;
   private readonly capabilityListeners = new Set<
     Listener<DebugCapabilityManifest>
   >();
@@ -76,46 +80,40 @@ export class DebugProtocolClient extends BaseProtocol {
 
   register(wsClient: LocalWebSocketServer): void {
     this.wsClient = wsClient;
-    this.wsClient.registerRoute("/lte/debug/capabilities", (data) =>
+    this.wsClient.registerRoute("debug.capabilities", (data) =>
       this.handleCapabilities(data),
     );
-    this.wsClient.registerRoute("/lte/debug/session_created", (data) =>
+    this.wsClient.registerRoute("debug.sessionCreated", (data) =>
       this.handleSessionCreated(data),
     );
-    this.wsClient.registerRoute("/lte/debug/session_destroyed", (data) =>
+    this.wsClient.registerRoute("debug.sessionDestroyed", (data) =>
       this.handleSessionDestroyed(data),
     );
-    this.wsClient.registerRoute("/lte/debug/session_snapshot", (data) =>
+    this.wsClient.registerRoute("debug.sessionSnapshot", (data) =>
       this.handleSessionSnapshot(data),
     );
-    this.wsClient.registerRoute("/lte/debug/event", (data) =>
+    this.wsClient.registerRoute("debug.event", (data) =>
       this.handleDebugEvent(data),
     );
-    this.wsClient.registerRoute("/lte/debug/run_started", (data) =>
+    this.wsClient.registerRoute("debug.runStarted", (data) =>
       this.handleRunStarted(data),
     );
-    this.wsClient.registerRoute("/lte/debug/resource_preflight", (data) =>
+    this.wsClient.registerRoute("debug.resourcePreflight", (data) =>
       this.handleResourcePreflight(data),
     );
-    this.wsClient.registerRoute("/lte/debug/resource_health", (data) =>
+    this.wsClient.registerRoute("debug.resourceHealth", (data) =>
       this.handleResourceHealth(data),
     );
-    this.wsClient.registerRoute("/lte/debug/run_stop_requested", (data) =>
+    this.wsClient.registerRoute("debug.runStopRequested", (data) =>
       this.handleRunStopRequested(data),
     );
-    this.wsClient.registerRoute("/lte/debug/artifact", (data) =>
+    this.wsClient.registerRoute("debug.artifact", (data) =>
       this.handleArtifact(data),
     );
-    this.wsClient.registerRoute("/lte/debug/agent_tested", (data) =>
+    this.wsClient.registerRoute("debug.agentTested", (data) =>
       this.handleAgentTested(data),
     );
-    this.wsClient.registerRoute("/lte/debug/trace_snapshot", (data) =>
-      this.handleTraceSnapshot(data),
-    );
-    this.wsClient.registerRoute("/lte/debug/trace_replay_status", (data) =>
-      this.handleTraceReplayStatus(data),
-    );
-    this.wsClient.registerRoute("/lte/debug/error", (data) =>
+    this.wsClient.registerRoute("system.error", (data) =>
       this.handleError(data),
     );
   }
@@ -126,65 +124,173 @@ export class DebugProtocolClient extends BaseProtocol {
   }
 
   requestCapabilities(): boolean {
-    return this.send("/mpe/debug/capabilities", {});
+    return this.send("debug.capabilities", {});
   }
 
   createSession(payload: unknown = {}): boolean {
-    return this.send("/mpe/debug/session/create", payload);
+    return this.send("debug.session.create", payload);
   }
 
   destroySession(sessionId: string): boolean {
-    return this.send("/mpe/debug/session/destroy", { sessionId });
+    return this.send("debug.session.destroy", { sessionId });
   }
 
   requestSessionSnapshot(sessionId: string): boolean {
-    return this.send("/mpe/debug/session/snapshot", {
+    return this.send("debug.session.snapshot", {
       sessionId,
     });
   }
 
   startRun(request: DebugRunRequest): boolean {
-    return this.send("/mpe/debug/run/start", request);
+    return this.send("debug.run.start", request);
   }
 
   preflightResources(request: DebugResourcePreflightRequest): boolean {
-    return this.send("/mpe/debug/resource/preflight", request);
+    return this.send("debug.resource.preflight", request);
   }
 
   checkResourceHealth(request: DebugResourceHealthRequest): boolean {
-    return this.send("/mpe/debug/resource/health", request);
+    return this.send("debug.resource.health", request);
   }
 
   stopRun(request: DebugRunStopRequest): boolean {
-    return this.send("/mpe/debug/run/stop", request);
+    return this.send("debug.run.stop", request);
   }
 
   requestArtifact(request: DebugArtifactGetRequest): boolean {
-    return this.send("/mpe/debug/artifact/get", request);
+    const client = this.wsClient;
+    if (!client) return false;
+    void (async () => {
+      try {
+        const { blob, headers } = await client.fetchArtifactResponse(request.artifactId);
+        const mime = blob.type || "application/octet-stream";
+        const type = headers.get("X-MPE-Artifact-Kind") || "debug-artifact";
+        const ref = {
+          id: request.artifactId,
+          sessionId:
+            headers.get("X-MPE-Artifact-Session-Id") || request.sessionId,
+          type,
+          mime,
+          size: blob.size,
+          createdAt:
+            headers.get("X-MPE-Artifact-Created-At") || new Date().toISOString(),
+        };
+        if (mime.startsWith("image/")) {
+          this.handleArtifact({
+            ref,
+            encoding: "url",
+            content: client.cacheArtifactUrl(request.artifactId, blob),
+          });
+          return;
+        }
+        const content = await blob.text();
+        if (mime.includes("json")) {
+          this.handleArtifact({ ref, encoding: "json", data: JSON.parse(content) });
+        } else {
+          this.handleArtifact({ ref, encoding: "utf8", content });
+        }
+      } catch (error) {
+        this.handleError({
+          code: "artifact_fetch_failed",
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
+    })();
+    return true;
   }
 
   captureScreenshot(request: DebugScreenshotCaptureRequest): boolean {
-    return this.send("/mpe/debug/screenshot/capture", request);
+    return this.send("debug.screenshot.capture", request);
   }
 
   testAgent(request: DebugAgentTestRequest): boolean {
-    return this.send("/mpe/debug/agent/test", request);
+    return this.send("debug.agent.test", request);
   }
 
   requestTraceSnapshot(request: DebugTraceSnapshotRequest): boolean {
-    return this.send("/mpe/debug/trace/snapshot", request);
+    const client = this.wsClient;
+    if (!client) return false;
+    void client
+      .request<{ events: BridgeDebugEvent[] }>("debug.events.list", {
+        sessionId: request.sessionId,
+        afterSeq: 0,
+        limit: 10_000,
+      })
+      .then((result) => {
+        const events = result.events
+          .map(normalizeBridgeDebugEvent)
+          .filter((event) => !request.runId || event.runId === request.runId);
+        this.eventCache.set(request.sessionId, events);
+        this.handleTraceSnapshot({ ...request, events });
+      })
+      .catch((error: unknown) =>
+        this.handleError({
+          code: "trace_snapshot_failed",
+          message: error instanceof Error ? error.message : String(error),
+        }),
+      );
+    return true;
   }
 
   startTraceReplay(request: DebugTraceReplayRequest): boolean {
-    return this.send("/mpe/debug/trace/replay/start", request);
+    this.stopReplayTimer();
+    const events = this.replayEvents(request.sessionId, request.runId);
+    const now = new Date().toISOString();
+    this.replayStatus = {
+      sessionId: request.sessionId,
+      runId: request.runId,
+      active: true,
+      playing: true,
+      cursorSeq: request.cursorSeq ?? events[0]?.seq ?? 0,
+      minSeq: events[0]?.seq,
+      maxSeq: events.at(-1)?.seq,
+      nodeId: request.nodeId,
+      speed: request.speed ?? 1,
+      startedAt: now,
+      updatedAt: now,
+    };
+    this.handleTraceReplayStatus(this.replayStatus);
+    this.replayTimer = setInterval(
+      () => this.advanceReplay(),
+      Math.max(40, 400 / (this.replayStatus.speed || 1)),
+    );
+    return true;
   }
 
   seekTraceReplay(request: DebugTraceReplayRequest): boolean {
-    return this.send("/mpe/debug/trace/replay/seek", request);
+    const events = this.replayEvents(request.sessionId, request.runId);
+    this.replayStatus = {
+      ...(this.replayStatus ?? {
+        sessionId: request.sessionId,
+        active: true,
+        playing: false,
+        cursorSeq: 0,
+      }),
+      runId: request.runId,
+      cursorSeq: request.cursorSeq ?? events[0]?.seq ?? 0,
+      minSeq: events[0]?.seq,
+      maxSeq: events.at(-1)?.seq,
+      nodeId: request.nodeId,
+      speed: request.speed ?? this.replayStatus?.speed ?? 1,
+      updatedAt: new Date().toISOString(),
+    };
+    this.handleTraceReplayStatus(this.replayStatus);
+    return true;
   }
 
   stopTraceReplay(request: DebugTraceReplayStopRequest): boolean {
-    return this.send("/mpe/debug/trace/replay/stop", request);
+    this.stopReplayTimer();
+    if (this.replayStatus) {
+      this.replayStatus = {
+        ...this.replayStatus,
+        active: false,
+        playing: false,
+        reason: request.reason,
+        stoppedAt: new Date().toISOString(),
+      };
+      this.handleTraceReplayStatus(this.replayStatus);
+    }
+    return true;
   }
 
   onCapabilities(listener: Listener<DebugCapabilityManifest>): () => void {
@@ -301,7 +407,13 @@ export class DebugProtocolClient extends BaseProtocol {
   }
 
   private handleDebugEvent(data: unknown): void {
-    const event = data as DebugEvent;
+    const event = normalizeBridgeDebugEvent(data as BridgeDebugEvent);
+    const events = this.eventCache.get(event.sessionId) ?? [];
+    if (!events.some((candidate) => candidate.seq === event.seq)) {
+      events.push(event);
+      events.sort((left, right) => left.seq - right.seq);
+      this.eventCache.set(event.sessionId, events);
+    }
     this.debugEventListeners.forEach((listener) => listener(event));
   }
 
@@ -349,4 +461,58 @@ export class DebugProtocolClient extends BaseProtocol {
     const error = data as DebugProtocolError;
     this.errorListeners.forEach((listener) => listener(error));
   }
+
+  private replayEvents(sessionId: string, runId?: string): DebugEvent[] {
+    const events = this.eventCache.get(sessionId) ?? [];
+    return runId ? events.filter((event) => event.runId === runId) : events;
+  }
+
+  private advanceReplay(): void {
+    const status = this.replayStatus;
+    if (!status?.active || !status.playing) return;
+    const events = this.replayEvents(status.sessionId, status.runId);
+    const next = events.find((event) => event.seq > status.cursorSeq);
+    if (!next) {
+      this.stopTraceReplay({ sessionId: status.sessionId, reason: "completed" });
+      return;
+    }
+    this.replayStatus = {
+      ...status,
+      cursorSeq: next.seq,
+      updatedAt: new Date().toISOString(),
+    };
+    this.handleTraceReplayStatus(this.replayStatus);
+  }
+
+  private stopReplayTimer(): void {
+    if (this.replayTimer) clearInterval(this.replayTimer);
+    this.replayTimer = undefined;
+  }
+}
+
+function normalizeBridgeDebugEvent(event: BridgeDebugEvent): DebugEvent {
+  const payload = event.payload ?? {};
+  const refs = event.artifactRefs ?? [];
+  const detail = refs.find((ref) => ref.mimeType.includes("json"));
+  const screenshot = refs.find((ref) => ref.mimeType.startsWith("image/"));
+  return {
+    sessionId: event.sessionId,
+    runId: event.runId ?? "",
+    seq: event.seq,
+    timestamp: event.timestamp,
+    source: event.source,
+    kind: event.kind as DebugEvent["kind"],
+    maafwMessage:
+      typeof payload.message === "string" ? payload.message : undefined,
+    phase: event.phase as DebugEvent["phase"],
+    status: event.status,
+    taskId: typeof payload.taskId === "number" ? payload.taskId : undefined,
+    node:
+      typeof payload.node === "object" && payload.node !== null
+        ? (payload.node as DebugEvent["node"])
+        : undefined,
+    detailRef: detail?.artifactId,
+    screenshotRef: screenshot?.artifactId,
+    data: payload,
+  };
 }

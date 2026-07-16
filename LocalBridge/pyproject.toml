@@ -1,0 +1,64 @@
+[project]
+name = "MaaPipelineEditor-LocalBridge"
+version = "1.7.5"
+description = "Local backend for MaaPipelineEditor"
+readme = "README.md"
+requires-python = ">=3.11,<3.15"
+license = { text = "AGPL-3.0-or-later" }
+authors = [{ name = "MaaPipelineEditor contributors" }]
+dependencies = [
+    "MaaFw==5.12.1",
+    "fastapi>=0.116,<1",
+    "httpx>=0.28,<1",
+    "json5>=0.12,<1",
+    "numpy>=1.26,<3",
+    "pillow>=11,<13",
+    "platformdirs>=4.3,<5",
+    "pydantic>=2.11,<3",
+    "python-multipart>=0.0.20,<1",
+    "uvicorn[standard]>=0.35,<1",
+    "watchfiles>=1.1,<2",
+]
+
+[project.scripts]
+mpelb = "mpe_localbridge.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/kqcoxn/MaaPipelineEditor"
+Documentation = "https://mpe.codax.site/docs/"
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mpe_localbridge"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC", "RUF"]
+
+[tool.pyright]
+include = ["src", "tests"]
+pythonVersion = "3.11"
+typeCheckingMode = "strict"
+reportMissingTypeStubs = "none"
+venvPath = "."
+venv = ".venv"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["--strict-markers", "--strict-config"]
+markers = ["integration: requires MaaFw native runtime"]
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.403",
+    "pytest>=8.4,<9",
+    "pytest-asyncio>=1.1,<2",
+    "pytest-cov>=6.2,<7",
+    "ruff>=0.12,<1",
+]

@@ -456,7 +456,7 @@ class CrossFileService {
   ): Promise<boolean> {
     try {
       // 请求文件内容
-      const success = localServer.send("/etl/open_file", {
+      const success = localServer.send("file.open", {
         file_path: filePath,
       });
 

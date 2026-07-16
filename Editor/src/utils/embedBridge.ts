@@ -1,7 +1,7 @@
 /**
  * iframe 嵌入模式桥接模块
  * 用于检测嵌入环境并提供 postMessage 双向通信
- * 镜像 wailsBridge.ts 的环境检测 + 条件桥接模式
+ * 使用环境检测与条件桥接模式隔离宿主能力
  */
 
 export const PROTOCOL_VERSION = "1.0.0";

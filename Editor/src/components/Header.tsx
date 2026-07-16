@@ -31,7 +31,7 @@ import { useTheme } from "../contexts/ThemeContext";
 import { WikiAnchor } from "./wiki/WikiAnchor";
 import classNames from "classnames";
 import { useState, useEffect } from "react";
-import { checkUpdateFromFrontend, type UpdateInfo } from "../utils/wailsBridge";
+import { checkUpdateFromFrontend, type UpdateInfo } from "../utils/updateCheck";
 import { useEmbedMode } from "../hooks/useEmbedMode";
 
 const versionLinks = [

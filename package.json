@@ -4,13 +4,22 @@
   "packageManager": "yarn@1.22.22",
   "scripts": {
     "editor:install": "yarn --cwd Editor install --frozen-lockfile",
+    "desktop:install": "yarn --cwd Desktop install --frozen-lockfile",
     "icon": "yarn --cwd Editor icon",
     "dev": "yarn --cwd Editor dev",
     "build": "yarn --cwd Editor build",
     "build-past": "yarn --cwd Editor build-past",
     "lint": "yarn --cwd Editor lint",
+    "test": "yarn --cwd Editor test",
     "preview": "yarn --cwd Editor preview",
-    "server": "yarn --cwd LocalBridge server",
+    "server": "uv run --project LocalBridge mpelb serve",
+    "localbridge:sync": "uv sync --project LocalBridge --all-groups",
+    "localbridge:lint": "uv run --project LocalBridge ruff check LocalBridge/src LocalBridge/tests && uv run --project LocalBridge pyright -p LocalBridge/pyproject.toml",
+    "localbridge:test": "uv run --project LocalBridge pytest LocalBridge/tests",
+    "localbridge:schema": "uv run --project LocalBridge python -m mpe_localbridge.schema --schema LocalBridge/schema/protocol-v2.schema.json --typescript Editor/src/services/generated/bridge-v2.ts",
+    "desktop:dev": "yarn --cwd Desktop dev",
+    "desktop:build": "yarn --cwd Desktop build",
+    "desktop:check": "cargo fmt --manifest-path Desktop/src-tauri/Cargo.toml --all -- --check && cargo clippy --manifest-path Desktop/src-tauri/Cargo.toml --all-targets -- -D warnings && cargo test --manifest-path Desktop/src-tauri/Cargo.toml --all-targets",
     "doc": "yarn --cwd DocumentStation dev",
     "landing": "yarn --cwd Landing dev",
     "landing:build": "yarn --cwd Landing build",
@@ -18,7 +27,6 @@
     "landing:preview": "yarn --cwd Landing preview",
     "migrate": "node scripts/development/migrate-version.mjs",
     "proto": "node scripts/development/proto-version.mjs",
-    "release": "git tag -a v1.7.5 -m \"v1.7.5\" && git push origin v1.7.5",
-    "retag": "git tag -d v1.7.5"
+    "check": "yarn localbridge:lint && yarn localbridge:test && yarn localbridge:schema && yarn test && yarn lint && yarn build && yarn desktop:check"
   }
 }
