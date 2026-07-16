@@ -69,7 +69,7 @@ jobs:
         uses: actions/configure-pages@v4
 
       - name: Install dependencies
-        run: yarn install
+        run: yarn install --frozen-lockfile
         working-directory: Editor
 
       - name: Build with Vite

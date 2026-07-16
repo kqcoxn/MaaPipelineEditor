@@ -85,7 +85,7 @@ jobs:
             Landing/yarn.lock
 
       - name: Install dependencies
-        run: yarn install
+        run: yarn install --frozen-lockfile
         working-directory: Editor
 
       - name: Modify config for production build

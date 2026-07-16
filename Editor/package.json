@@ -4,7 +4,8 @@
   "version": "0.0.1",
   "type": "module",
   "resolutions": {
-    "@rc-component/portal": "2.2.1"
+    "@rc-component/portal": "2.2.1",
+    "@rc-component/util": "1.12.0"
   },
   "scripts": {
     "icon": "npx iconfont-h5",
