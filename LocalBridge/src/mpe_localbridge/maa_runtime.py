@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import io
 import json
+import logging
 import os
 import platform
 import uuid
@@ -63,6 +64,7 @@ _MACOS_SCREENCAP_METHODS = {"ScreenCaptureKit": 1}
 _MACOS_INPUT_METHODS = {"GlobalEvent": 1, "PostToPid": 1 << 1}
 _GAMEPAD_TYPES = {"Xbox360": 0, "DualShock4": 1}
 _MAAFW_LOG_TAIL_BYTES = 256 * 1024
+LOGGER = logging.getLogger(__name__)
 
 
 class MaaRuntimeService:
@@ -165,7 +167,13 @@ class MaaRuntimeService:
                 "status": "connected",
             }
 
-        return await self.call(create_sync)
+        result = await self.call(create_sync)
+        LOGGER.info(
+            "已连接 %s 控制器: %s",
+            controller_type.upper(),
+            _controller_display_name(controller_type, options),
+        )
+        return result
 
     async def disconnect_controller(self, controller_id: str) -> dict[str, Any]:
         def disconnect_sync() -> dict[str, Any]:
@@ -175,7 +183,9 @@ class MaaRuntimeService:
             controller.post_inactive().wait()
             return {"success": True, "controller_id": controller_id, "status": "disconnected"}
 
-        return await self.call(disconnect_sync)
+        result = await self.call(disconnect_sync)
+        LOGGER.info("已断开控制器: %s", controller_id)
+        return result
 
     async def screencap(self, controller_id: str, *, force: bool = True) -> dict[str, Any]:
         del force
@@ -960,6 +970,14 @@ def _flatten_result_box(value: dict[str, Any]) -> dict[str, Any]:
 
 def _image_present(value: Any) -> bool:
     return value is not None and bool(getattr(value, "size", 0))
+
+
+def _controller_display_name(controller_type: str, options: dict[str, Any]) -> str:
+    for key in ("name", "address", "window_name", "hwnd", "pid", "socket_path"):
+        value = str(options.get(key, "")).strip()
+        if value:
+            return value
+    return controller_type
 
 
 def _required_int(params: dict[str, Any], primary: str, fallback: str) -> int:

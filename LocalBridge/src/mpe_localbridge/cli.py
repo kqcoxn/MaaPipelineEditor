@@ -13,9 +13,11 @@ from typing import Any, cast
 from urllib.parse import urlencode, urlsplit, urlunsplit
 
 import uvicorn
+from fastapi import FastAPI
 
 from .config import ConfigStore
 from .constants import MAX_WS_MESSAGE_BYTES, PACKAGE_VERSION, PROTOCOL_VERSION
+from .logging_config import configure_logging
 from .server import LocalBridgeState, create_app
 
 DEFAULT_EDITOR_URL = "https://mpe.codax.site/stable/"
@@ -159,7 +161,7 @@ async def _serve(args: argparse.Namespace) -> None:
     if args.root is not None:
         updates["file"] = {"root": args.root}
     if updates:
-        config_store.update(updates)
+        config_store.override(updates)
 
     host = config_store.value.server.host
     if host not in {"127.0.0.1", "localhost"}:
@@ -173,19 +175,8 @@ async def _serve(args: argparse.Namespace) -> None:
     sock.setblocking(False)
     port = int(sock.getsockname()[1])
 
-    logging.basicConfig(
-        level=getattr(logging, config_store.value.log.level.upper(), logging.INFO),
-        stream=sys.stderr,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    )
-    uvicorn_config = uvicorn.Config(
-        app,
-        host="127.0.0.1",
-        port=port,
-        log_config=None,
-        ws_max_size=MAX_WS_MESSAGE_BYTES,
-        timeout_graceful_shutdown=5,
-    )
+    configure_logging(config_store.value.log.level)
+    uvicorn_config = _build_uvicorn_config(app, port)
     server = uvicorn.Server(uvicorn_config)
     server_task = asyncio.create_task(server.serve(sockets=[sock]))
     while not server.started and not server_task.done():  # noqa: ASYNC110
@@ -210,6 +201,19 @@ async def _serve(args: argparse.Namespace) -> None:
         if not args.no_open:
             webbrowser.open(url)
     await server_task
+
+
+def _build_uvicorn_config(app: FastAPI, port: int) -> uvicorn.Config:
+    return uvicorn.Config(
+        app,
+        host="127.0.0.1",
+        port=port,
+        log_config=None,
+        log_level=logging.DEBUG,
+        access_log=False,
+        ws_max_size=MAX_WS_MESSAGE_BYTES,
+        timeout_graceful_shutdown=5,
+    )
 
 
 def _editor_url(value: str) -> str:

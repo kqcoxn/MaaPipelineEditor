@@ -69,9 +69,7 @@ class ConfigStore:
         return self._config
 
     def update(self, updates: dict[str, Any]) -> AppConfig:
-        merged: dict[str, Any] = self._config.model_dump(mode="json")
-        _deep_merge(merged, updates)
-        config = AppConfig.model_validate(merged)
+        config = self._merge(updates)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         temp = self.path.with_suffix(f"{self.path.suffix}.{os.getpid()}.tmp")
         temp.write_text(
@@ -81,6 +79,15 @@ class ConfigStore:
         temp.replace(self.path)
         self._config = config
         return config
+
+    def override(self, updates: dict[str, Any]) -> AppConfig:
+        self._config = self._merge(updates)
+        return self._config
+
+    def _merge(self, updates: dict[str, Any]) -> AppConfig:
+        merged: dict[str, Any] = self._config.model_dump(mode="json")
+        _deep_merge(merged, updates)
+        return AppConfig.model_validate(merged)
 
     def _read(self) -> AppConfig:
         if not self.path.exists():

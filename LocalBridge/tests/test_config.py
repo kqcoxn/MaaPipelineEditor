@@ -15,3 +15,14 @@ def test_config_update_deep_merges_and_writes_atomically(tmp_path: Path) -> None
     assert updated.server.host == "127.0.0.1"
     assert ConfigStore(path).value.file.root == str(tmp_path)
     assert not list(tmp_path.glob("*.tmp"))
+
+
+def test_config_override_only_affects_current_process(tmp_path: Path) -> None:
+    path = tmp_path / "config.json"
+    store = ConfigStore(path)
+
+    overridden = store.override({"file": {"root": str(tmp_path / "workspace")}})
+
+    assert overridden.file.root == str(tmp_path / "workspace")
+    assert not path.exists()
+    assert ConfigStore(path).value.file.root == "."

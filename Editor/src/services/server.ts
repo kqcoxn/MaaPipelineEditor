@@ -71,9 +71,6 @@ export class LocalWebSocketServer {
   private artifactUrls = new Map<string, string>();
   private isConnecting = false;
   private handshakeCompleted = false;
-  private reconnectAttempt = 0;
-  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  private shouldReconnect = false;
   private fragmentBootstrap = false;
 
   constructor(port = 9066) {
@@ -125,14 +122,10 @@ export class LocalWebSocketServer {
 
   connect(): void {
     if (this.isConnected() || this.isConnecting) return;
-    this.shouldReconnect = true;
-    this.clearReconnectTimer();
     void this.connectInternal();
   }
 
   disconnect(): void {
-    this.shouldReconnect = false;
-    this.clearReconnectTimer();
     this.closeSocket("连接已由用户关闭");
   }
 
@@ -248,17 +241,13 @@ export class LocalWebSocketServer {
         throw new Error(`LocalBridge 协议版本不匹配: ${hello.protocolVersion}`);
       }
       this.handshakeCompleted = true;
-      this.reconnectAttempt = 0;
       this.setConnecting(false);
       this.emitStatus(true);
       notification.destroy("localbridge-connection-error");
       message.success("已连接到本地服务");
     } catch (error) {
-      const retry = this.shouldReconnect && isRetryableConnectionError(error);
-      if (!retry) this.shouldReconnect = false;
       this.closeSocket(error instanceof Error ? error.message : "连接失败");
-      if (this.reconnectAttempt === 0 || !retry) this.showConnectionError(error);
-      if (retry) this.scheduleReconnect();
+      this.showConnectionError(error);
     }
   }
 
@@ -393,16 +382,6 @@ export class LocalWebSocketServer {
     this.setConnecting(false);
     this.rejectPending("LocalBridge 连接已断开");
     this.emitStatus(false);
-    if (this.shouldReconnect) this.scheduleReconnect();
-  }
-
-  private scheduleReconnect(): void {
-    this.clearReconnectTimer();
-    const delay = Math.min(8_000, 500 * 2 ** this.reconnectAttempt++);
-    this.reconnectTimer = setTimeout(() => {
-      this.reconnectTimer = null;
-      void this.connectInternal();
-    }, delay);
   }
 
   private closeSocket(reason: string): void {
@@ -429,11 +408,6 @@ export class LocalWebSocketServer {
 
   private emitStatus(connected: boolean): void {
     this.statusListeners.forEach((listener) => listener(connected));
-  }
-
-  private clearReconnectTimer(): void {
-    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
-    this.reconnectTimer = null;
   }
 
   private captureFragmentBootstrap(): void {
@@ -508,14 +482,6 @@ function normalizeError(error: unknown): Record<string, unknown> {
     return { code: error.code, message: error.message, data: error.data };
   }
   return { code: "client_error", message: error instanceof Error ? error.message : String(error) };
-}
-
-function isRetryableConnectionError(error: unknown): boolean {
-  if (error instanceof BridgeRpcError) {
-    return !["protocol_mismatch", "version_mismatch"].includes(error.code);
-  }
-  const messageText = error instanceof Error ? error.message : String(error);
-  return !/协议.*不匹配|版本.*不匹配/i.test(messageText);
 }
 
 export const localServer = new LocalWebSocketServer();

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterator
 from pathlib import Path
 from threading import Event
@@ -165,3 +166,22 @@ def test_artifact_upload_and_download_require_allowed_origin(
     )
     assert download.status_code == 200
     assert download.content == b"artifact-body"
+
+
+def test_http_access_is_logged_at_debug(
+    client: tuple[TestClient, LocalBridgeState],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    test_client, _ = client
+    http_client = cast(httpx.Client, test_client)
+    caplog.set_level(logging.DEBUG, logger="mpe_localbridge.server")
+
+    response = http_client.get(
+        "/v2/artifacts/missing",
+        headers={"origin": ORIGIN},
+    )
+
+    assert response.status_code == 404
+    access_records = [record for record in caplog.records if record.message.startswith("HTTP ")]
+    assert len(access_records) == 1
+    assert access_records[0].levelno == logging.DEBUG

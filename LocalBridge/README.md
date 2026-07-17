@@ -19,6 +19,10 @@ uv run pyright
 uv run pytest
 ```
 
+从仓库根目录运行 `yarn server` 时，工作区固定为 `LocalBridge`，Editor 地址固定为
+`http://127.0.0.1:3000/development/`。命令行的 `--root`、`--port` 等覆盖只对当前
+进程生效，不会写回用户配置。
+
 生成协议 JSON Schema 与 Editor TypeScript 类型：
 
 ```bash
@@ -37,6 +41,9 @@ mpelb version
 
 `serve` 默认只绑定 `127.0.0.1`。独立运行时端口通过 Editor URL fragment 交付，
 Desktop 模式则通过受限 stdio 控制通道交付。
+
+`INFO` 只保留连接和控制器等用户可读信息；HTTP access、RPC、扫描耗时及框架运行
+日志归入 `DEBUG`。
 
 ## 测试
 

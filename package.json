@@ -13,7 +13,7 @@
     "lint": "yarn --cwd Editor lint",
     "test": "yarn --cwd Editor test",
     "preview": "yarn --cwd Editor preview",
-    "server": "uv run --project LocalBridge mpelb serve --editor-url http://127.0.0.1:3000/development/ --no-open",
+    "server": "uv run --project LocalBridge mpelb serve --root LocalBridge --editor-url http://127.0.0.1:3000/development/ --no-open",
     "localbridge:sync": "uv sync --project LocalBridge --all-groups",
     "localbridge:lint": "uv run --project LocalBridge ruff check LocalBridge/src LocalBridge/tests && uv run --project LocalBridge pyright -p LocalBridge/pyproject.toml",
     "localbridge:test": "uv run --project LocalBridge pytest LocalBridge/tests",

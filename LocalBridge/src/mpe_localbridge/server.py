@@ -17,6 +17,8 @@ from fastapi import FastAPI, HTTPException, Request, UploadFile, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import ValidationError
+from starlette.middleware.base import RequestResponseEndpoint
+from starlette.responses import Response
 from starlette.websockets import WebSocketDisconnect, WebSocketState
 
 from .artifacts import ArtifactStore
@@ -39,6 +41,19 @@ from .workspace import Workspace
 Handler = Callable[["RpcContext", dict[str, Any]], Awaitable[Any]]
 AfterResponse = Callable[[], Awaitable[None]]
 LOGGER = logging.getLogger(__name__)
+
+
+async def _debug_http_access(request: Request, call_next: RequestResponseEndpoint) -> Response:
+    started = time.perf_counter()
+    response = await call_next(request)
+    LOGGER.debug(
+        "HTTP %s %s -> %s (%.3f ms)",
+        request.method,
+        request.url.path,
+        response.status_code,
+        (time.perf_counter() - started) * 1000,
+    )
+    return response
 
 
 @dataclass(slots=True)
@@ -223,6 +238,7 @@ class Dispatcher:
             raise RuntimeError("RPC 方法实现与协议清单不一致")
 
     async def dispatch(self, context: RpcContext, request: RpcRequest) -> None:
+        LOGGER.debug("RPC %s (%s)", request.method, request.id)
         if not context.handshake_completed and request.method != "system.hello":
             await context.send_response(
                 RpcResponse(
@@ -256,6 +272,12 @@ class Dispatcher:
                     if request.method == "system.hello":
                         if not await context.complete_handshake(response):
                             after_response = None
+                        else:
+                            LOGGER.info(
+                                "Editor 已连接: %s %s",
+                                context.client_kind,
+                                context.client_version,
+                            )
                     else:
                         await context.send_response(response)
                 except asyncio.CancelledError:
@@ -340,7 +362,13 @@ class Dispatcher:
         )
 
     async def _push_initial_state(self, context: RpcContext, cursors: dict[str, int]) -> None:
+        started = time.perf_counter()
         snapshot = await asyncio.to_thread(self.state.workspace.snapshot)
+        LOGGER.debug(
+            "工作区扫描完成: %s 个文件 (%.3f ms)",
+            len(cast(list[Any], snapshot.get("files", []))),
+            (time.perf_counter() - started) * 1000,
+        )
         await context.emit("workspace.files", snapshot)
         bundles = await asyncio.to_thread(self.state.workspace.resource_bundles)
         await context.emit("resource.bundles", bundles)
@@ -819,6 +847,7 @@ def create_app(
         docs_url=None,
         lifespan=lifespan,
     )
+    app.middleware("http")(_debug_http_access)
 
     async def websocket_endpoint(websocket: WebSocket) -> None:
         origin = websocket.headers.get("origin")
@@ -854,6 +883,8 @@ def create_app(
         finally:
             await state.hub.remove(context)
             await context.close()
+            if context.handshake_completed:
+                LOGGER.info("Editor 已断开: %s %s", context.client_kind, context.client_version)
 
     async def upload_artifact(
         request: Request,

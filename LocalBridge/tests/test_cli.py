@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+# pyright: reportPrivateUsage=false
 import argparse
 import json
 from pathlib import Path
@@ -79,3 +80,20 @@ def test_serve_rejects_non_http_editor_url() -> None:
         cli.build_parser().parse_args(["serve", "--editor-url", "file:///tmp/editor"])
 
     assert exit_info.value.code == 2
+
+
+def test_repository_server_uses_localbridge_as_workspace() -> None:
+    package_path = Path(__file__).parents[2] / "package.json"
+    package = json.loads(package_path.read_text(encoding="utf-8"))
+
+    assert "--root LocalBridge" in package["scripts"]["server"]
+
+
+def test_uvicorn_access_logger_is_disabled() -> None:
+    app, state = cli.create_app()
+    try:
+        config = cli._build_uvicorn_config(app, 9066)
+    finally:
+        state.events.close()
+
+    assert config.access_log is False

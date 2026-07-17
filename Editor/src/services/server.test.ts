@@ -63,6 +63,7 @@ describe("LocalWebSocketServer", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
@@ -104,6 +105,23 @@ describe("LocalWebSocketServer", () => {
     server.destroy();
     expect(createObjectURL).toHaveBeenCalledTimes(2);
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:second");
+  });
+
+  it("does not reconnect after the active connection closes", async () => {
+    const server = new LocalWebSocketServer();
+    const connected = new Promise<void>((resolve) => {
+      server.onStatus((value) => value && resolve());
+    });
+    server.connect();
+    await connected;
+    vi.useFakeTimers();
+
+    FakeWebSocket.instances[0].close();
+    await vi.advanceTimersByTimeAsync(10_000);
+
+    expect(FakeWebSocket.instances).toHaveLength(1);
+    server.destroy();
+    vi.useRealTimers();
   });
 });
 
