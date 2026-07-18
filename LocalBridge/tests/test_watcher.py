@@ -3,16 +3,19 @@ from __future__ import annotations
 from pathlib import Path
 
 from watchfiles import Change
+from workspace_helpers import create_project
 
-from mpe_localbridge.config import FileConfig
-from mpe_localbridge.watcher import normalize_changes
-from mpe_localbridge.workspace import Workspace
+from mpe_localbridge.watcher import normalize_changes, prepare_changes
 
 
 def test_normalize_changes_merges_events_and_ignores_save_echo(tmp_path: Path) -> None:
-    workspace = Workspace(FileConfig(root=str(tmp_path)))
-    workspace.save_file("owned.json", None, {"Node": {}}, 2)
-    external = tmp_path / "external.json"
+    workspace = create_project(
+        tmp_path,
+        preferences_path=tmp_path / "preferences.json",
+    )
+    pipeline = tmp_path / "project" / "resource" / "pipeline"
+    workspace.save_file("project/resource/pipeline/owned.json", None, {"Node": {}}, 2)
+    external = pipeline / "external.json"
     external.write_text("{}\n", encoding="utf-8")
 
     events = normalize_changes(
@@ -20,20 +23,27 @@ def test_normalize_changes_merges_events_and_ignores_save_echo(tmp_path: Path) -
         {
             (Change.added, str(external)),
             (Change.modified, str(external)),
-            (Change.modified, str(tmp_path / "owned.json")),
+            (Change.modified, str(pipeline / "owned.json")),
             (Change.modified, str(tmp_path / "ignored.txt")),
         },
     )
 
     assert events == [
-        {"type": "created", "file_path": "external.json", "is_directory": False}
+        {
+            "type": "created",
+            "file_path": "project/resource/pipeline/external.json",
+            "is_directory": False,
+            "workspace_kind": "pipeline",
+        }
     ]
 
 
 def test_normalize_changes_rejects_symlink_escape(tmp_path: Path) -> None:
     workspace_root = tmp_path / "workspace"
-    workspace_root.mkdir()
-    workspace = Workspace(FileConfig(root=str(workspace_root)))
+    workspace = create_project(
+        workspace_root,
+        preferences_path=tmp_path / "preferences.json",
+    )
     outside = tmp_path / "outside.json"
     outside.write_text("{}", encoding="utf-8")
     link = workspace_root / "link.json"
@@ -43,3 +53,68 @@ def test_normalize_changes_rejects_symlink_escape(tmp_path: Path) -> None:
         return
 
     assert normalize_changes(workspace, {(Change.modified, str(link))}) == []
+
+
+def test_prepare_changes_removes_internal_kind_from_every_event() -> None:
+    events = [
+        {
+            "type": "modified",
+            "file_path": "project/interface.json",
+            "is_directory": False,
+            "workspace_kind": "interface",
+        },
+        {
+            "type": "modified",
+            "file_path": "project/resource/pipeline/main.json",
+            "is_directory": False,
+            "workspace_kind": "pipeline",
+        },
+    ]
+
+    public_events, needs_discovery = prepare_changes(events)
+
+    assert needs_discovery is True
+    assert public_events == [
+        {
+            "type": "modified",
+            "file_path": "project/interface.json",
+            "is_directory": False,
+        },
+        {
+            "type": "modified",
+            "file_path": "project/resource/pipeline/main.json",
+            "is_directory": False,
+        },
+    ]
+
+
+def test_normalize_changes_ignores_non_pipeline_json_and_marks_deleted_directory(
+    tmp_path: Path,
+) -> None:
+    workspace = create_project(
+        tmp_path,
+        preferences_path=tmp_path / "preferences.json",
+    )
+    pipeline = tmp_path / "project" / "resource" / "pipeline"
+    nested = pipeline / "nested"
+    nested.mkdir()
+    workspace.refresh_files()
+    nested.rmdir()
+
+    events = normalize_changes(
+        workspace,
+        {
+            (Change.modified, str(pipeline / "notes.txt")),
+            (Change.modified, str(pipeline / ".main.mpe.json")),
+            (Change.deleted, str(nested)),
+        },
+    )
+
+    assert events == [
+        {
+            "type": "deleted",
+            "file_path": "project/resource/pipeline/nested",
+            "is_directory": True,
+            "workspace_kind": "pipeline",
+        }
+    ]

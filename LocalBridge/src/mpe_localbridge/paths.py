@@ -12,6 +12,14 @@ def config_path() -> Path:
     return user_config_path(_APP_NAME, appauthor=False) / _COMPONENT_NAME / "config.json"
 
 
+def workspace_preferences_path() -> Path:
+    return (
+        user_config_path(_APP_NAME, appauthor=False)
+        / _COMPONENT_NAME
+        / "workspace-preferences.json"
+    )
+
+
 def cache_dir() -> Path:
     return user_cache_path(_APP_NAME, appauthor=False) / _COMPONENT_NAME
 

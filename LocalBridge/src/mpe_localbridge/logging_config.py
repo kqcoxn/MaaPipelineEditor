@@ -9,6 +9,9 @@ _FRAMEWORK_LOGGERS = (
     "httpcore",
     "watchfiles.main",
 )
+_IGNORED_DEBUG_MESSAGES = {
+    ("watchfiles.main", "rust notify timeout, continuing"),
+}
 
 
 class FrameworkInfoToDebugFilter(logging.Filter):
@@ -17,6 +20,11 @@ class FrameworkInfoToDebugFilter(logging.Filter):
         self.output_level = output_level
 
     def filter(self, record: logging.LogRecord) -> bool:
+        if record.levelno == logging.DEBUG and (
+            record.name,
+            record.getMessage(),
+        ) in _IGNORED_DEBUG_MESSAGES:
+            return False
         is_framework_log = any(
             record.name == name or record.name.startswith(f"{name}.")
             for name in _FRAMEWORK_LOGGERS

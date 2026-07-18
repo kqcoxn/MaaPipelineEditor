@@ -53,6 +53,13 @@ export function validateRunRequest(
   request: DebugRunRequest,
 ): DebugDiagnostic[] {
   const diagnostics: DebugDiagnostic[] = [];
+  if (!request.sessionId) {
+    diagnostics.push({
+      severity: "error",
+      code: "debug.session.missing",
+      message: "调试会话（Session）尚未创建，无法启动调试。",
+    });
+  }
   if (!request.profile.controller.options.controllerId) {
     diagnostics.push({
       severity: "error",

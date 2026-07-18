@@ -1,10 +1,15 @@
 import { useState, useEffect, useMemo } from "react";
-import { Modal, Form, Input, Select, message, Tooltip } from "antd";
-import { FolderOutlined, FileOutlined, HomeFilled } from "@ant-design/icons";
+import { App, Modal, Form, Input, Select, Tooltip } from "antd";
+import { FolderOutlined, FileOutlined } from "@ant-design/icons";
 import { useLocalFileStore } from "../../stores/localFileStore";
 import { useFileStore } from "../../stores/fileStore";
 import { localServer, fileProtocol } from "../../services/server";
 import { flowToPipeline } from "../../core/parser";
+import {
+  formatPipelineDirectory,
+  getInitialPipelineDirectory,
+  normalizePipelineDirectories,
+} from "./createFileDirectories";
 
 interface CreateFileModalProps {
   visible: boolean;
@@ -15,13 +20,13 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
   visible,
   onCancel,
 }) => {
+  const { message } = App.useApp();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [previewFileName, setPreviewFileName] = useState<string>("");
   const [isDuplicate, setIsDuplicate] = useState(false);
   const [isValidFileName, setIsValidFileName] = useState(false);
 
-  const rootPath = useLocalFileStore((state) => state.rootPath);
   const files = useLocalFileStore((state) => state.files);
   const directories = useLocalFileStore((state) => state.directories);
   const currentFileName = useFileStore((state) => state.currentFile.fileName);
@@ -30,67 +35,10 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
   );
   const setFileConfig = useFileStore((state) => state.setFileConfig);
 
-  // 提取目录列表（合并后端提供的目录和从文件路径推导的目录）
-  const directoryOptions = useMemo(() => {
-    const dirSet = new Set<string>();
-
-    // 添加根目录
-    if (rootPath) {
-      dirSet.add(rootPath);
-    }
-
-    // 添加后端提供的子目录列表（包括空目录）
-    directories.forEach((dir) => {
-      dirSet.add(dir);
-    });
-
-    // 从已有文件中提取目录（兜底，确保所有包含文件的目录都在列表中）
-    files.forEach((file) => {
-      const path = file.file_path;
-      const lastSep = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));
-      if (lastSep > 0) {
-        dirSet.add(path.substring(0, lastSep));
-      }
-    });
-
-    return Array.from(dirSet).sort();
-  }, [rootPath, files, directories]);
-
-  // 显示名称
-  const getDisplayPath = (
-    fullPath: string
-  ): { display: string; isRoot: boolean } => {
-    if (!rootPath || fullPath === rootPath) {
-      // 根目录显示文件夹名
-      const lastSep = Math.max(
-        fullPath.lastIndexOf("/"),
-        fullPath.lastIndexOf("\\")
-      );
-      return {
-        display: lastSep > 0 ? fullPath.substring(lastSep + 1) : fullPath,
-        isRoot: true,
-      };
-    }
-
-    // 相对路径
-    if (fullPath.startsWith(rootPath)) {
-      const relativePath = fullPath.substring(rootPath.length);
-      return {
-        display: relativePath.replace(/^[\/\\]/, "") || ".",
-        isRoot: false,
-      };
-    }
-
-    // 完整路径的最后部分
-    const lastSep = Math.max(
-      fullPath.lastIndexOf("/"),
-      fullPath.lastIndexOf("\\")
-    );
-    return {
-      display: lastSep > 0 ? fullPath.substring(lastSep + 1) : fullPath,
-      isRoot: false,
-    };
-  };
+  const directoryOptions = useMemo(
+    () => normalizePipelineDirectories(directories),
+    [directories],
+  );
 
   useEffect(() => {
     if (visible) {
@@ -100,18 +48,10 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
       // 自动填充当前文件名
       const initialFileName = currentFileName || "";
 
-      // 优先使用当前文件所在目录，否则使用根路径
-      let initialDirectory = rootPath || "";
-      if (currentFilePath) {
-        // 从文件路径中提取目录路径
-        const lastSeparatorIndex = Math.max(
-          currentFilePath.lastIndexOf("/"),
-          currentFilePath.lastIndexOf("\\")
-        );
-        if (lastSeparatorIndex > 0) {
-          initialDirectory = currentFilePath.substring(0, lastSeparatorIndex);
-        }
-      }
+      const initialDirectory = getInitialPipelineDirectory(
+        directoryOptions,
+        currentFilePath,
+      );
 
       form.setFieldsValue({
         fileName: initialFileName,
@@ -134,7 +74,13 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
         setIsDuplicate(false);
       }
     }
-  }, [visible, form, rootPath, currentFileName, currentFilePath]);
+  }, [
+    visible,
+    form,
+    currentFileName,
+    currentFilePath,
+    directoryOptions,
+  ]);
 
   // 规范化文件名
   const normalizeFileName = (fileName: string): string => {
@@ -297,7 +243,7 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
         layout="vertical"
         autoComplete="off"
         initialValues={{
-          directory: rootPath || "",
+          directory: directoryOptions[0] || "",
           saveToLocal: true,
         }}
       >
@@ -358,22 +304,18 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
           rules={[{ required: true, message: "请选择或输入保存目录" }]}
         >
           <Select
-            showSearch
+            showSearch={{ optionFilterProp: "label" }}
             allowClear
             placeholder="选择目录"
-            optionFilterProp="label"
             onChange={handleDirectoryChange}
-            options={directoryOptions.map((dir) => {
-              const { display, isRoot } = getDisplayPath(dir);
-              return {
-                label: display,
-                value: dir,
-                title: dir, // 用于搜索匹配
-              };
-            })}
+            options={directoryOptions.map((dir) => ({
+              label: formatPipelineDirectory(dir),
+              value: dir,
+              title: dir,
+            }))}
             optionRender={(option) => {
               const fullPath = option.value as string;
-              const { display, isRoot } = getDisplayPath(fullPath);
+              const display = formatPipelineDirectory(fullPath);
               return (
                 <Tooltip
                   title={fullPath}
@@ -389,13 +331,7 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {isRoot ? (
-                      <HomeFilled
-                        style={{ marginRight: 8, color: "#1890ff" }}
-                      />
-                    ) : (
-                      <FolderOutlined style={{ marginRight: 8 }} />
-                    )}
+                    <FolderOutlined style={{ marginRight: 8 }} />
                     <span
                       style={{ overflow: "hidden", textOverflow: "ellipsis" }}
                     >

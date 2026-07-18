@@ -12,21 +12,324 @@ import json5
 
 from .config import FileConfig
 from .errors import ForbiddenError, InvalidArgumentError, NotFoundError
+from .paths import workspace_preferences_path
+from .project_interface import (
+    InterfaceCandidate,
+    InterfaceDiscovery,
+    WorkspacePreferences,
+    discover_interfaces,
+    load_json_or_jsonc,
+)
 
 _CONFIG_SUFFIX_RE = re.compile(r"^\..+\.mpe\.json$", re.IGNORECASE)
+_PIPELINE_EXTENSIONS = {".json", ".jsonc"}
 _IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp"}
 
 
 class Workspace:
-    def __init__(self, config: FileConfig) -> None:
+    def __init__(
+        self,
+        config: FileConfig,
+        preferences_path: Path | None = None,
+    ) -> None:
         self.config = config
         self.root = Path(config.root).expanduser().resolve()
-        self.root.mkdir(parents=True, exist_ok=True)
+        self.preferences = WorkspacePreferences(
+            preferences_path or workspace_preferences_path()
+        )
+        self._lock = RLock()
         self._own_writes: dict[Path, tuple[int, int, float]] = {}
         self._own_writes_lock = RLock()
+        self._revision = 0
+        self._state = "discovering"
+        self._reason = ""
+        self._discovery = InterfaceDiscovery([], [], 0)
+        self._active: InterfaceCandidate | None = None
+        self._files: dict[str, dict[str, Any]] = {}
+        self._directories: list[str] = []
+        self._index_cache: dict[
+            Path,
+            tuple[tuple[int, int], list[dict[str, Any]], str, str],
+        ] = {}
+        self._indexed_files = 0
+        self._total_files = 0
+
+    @property
+    def revision(self) -> int:
+        with self._lock:
+            return self._revision
+
+    @property
+    def active_interface(self) -> InterfaceCandidate | None:
+        with self._lock:
+            return self._active
 
     def reconfigure(self, config: FileConfig) -> None:
-        self.__init__(config)
+        with self._lock:
+            self.config = config
+            self.root = Path(config.root).expanduser().resolve()
+            self._revision += 1
+            self._state = "discovering"
+            self._reason = ""
+            self._discovery = InterfaceDiscovery([], [], 0)
+            self._active = None
+            self._files = {}
+            self._directories = []
+            self._indexed_files = 0
+            self._total_files = 0
+
+    def begin_discovery(self) -> dict[str, Any]:
+        with self._lock:
+            self._revision += 1
+            self._state = "discovering"
+            self._reason = ""
+            self._active = None
+            self._files = {}
+            self._directories = []
+            self._indexed_files = 0
+            self._total_files = 0
+        return self.status()
+
+    def discover(self, *, prepared: bool = False) -> dict[str, Any]:
+        if not prepared:
+            self.begin_discovery()
+
+        if not self.root.is_dir():
+            with self._lock:
+                self._discovery = InterfaceDiscovery([], [], 0)
+                self._state = "invalid"
+                self._reason = "root_missing"
+            return self.status()
+
+        discovery = discover_interfaces(self.root, set(self.config.exclude))
+        selected: InterfaceCandidate | None = None
+        remembered = self.preferences.selected_interface(self.root)
+        if len(discovery.candidates) == 1:
+            selected = discovery.candidates[0]
+        elif remembered:
+            selected = next(
+                (
+                    candidate
+                    for candidate in discovery.candidates
+                    if candidate.relative_path == remembered
+                ),
+                None,
+            )
+
+        with self._lock:
+            self._discovery = discovery
+            if selected is not None:
+                self._activate(selected)
+            elif discovery.candidates:
+                self._state = "selection_required"
+                self._reason = "multiple_interfaces"
+            else:
+                self._state = "invalid"
+                self._reason = (
+                    "interface_invalid"
+                    if discovery.named_files_found
+                    else "interface_not_found"
+                )
+        if selected is not None:
+            self.preferences.set_selected_interface(self.root, selected.relative_path)
+        return self.status()
+
+    def select_interface(self, relative_path: str) -> dict[str, Any]:
+        normalized = Path(relative_path).as_posix()
+        with self._lock:
+            selected = next(
+                (
+                    candidate
+                    for candidate in self._discovery.candidates
+                    if candidate.relative_path == normalized
+                ),
+                None,
+            )
+            if selected is None:
+                raise InvalidArgumentError("Interface 不在当前候选列表中")
+            self._revision += 1
+            self._activate(selected)
+        self.preferences.set_selected_interface(self.root, selected.relative_path)
+        return self.status()
+
+    def refresh_files(self, *, bump_revision: bool = False) -> dict[str, Any]:
+        with self._lock:
+            if bump_revision:
+                self._revision += 1
+            active = self._active
+            revision = self._revision
+        files: dict[str, dict[str, Any]] = {}
+        directories: set[str] = set()
+        if active is not None:
+            for bundle in active.bundles:
+                if not bundle.path.is_dir():
+                    continue
+                pipeline = bundle.path / "pipeline"
+                if pipeline.is_dir():
+                    for current, child_directories, child_files in os.walk(pipeline):
+                        current_path = Path(current)
+                        child_directories[:] = [
+                            name for name in child_directories if not name.startswith(".")
+                        ]
+                        directories.add(self.relative(current_path))
+                        for name in child_files:
+                            path = current_path / name
+                            if not self._is_pipeline_file(path):
+                                continue
+                            self._add_file_metadata(files, path, is_default=False)
+                for name in ("default_pipeline.json", "default_pipeline.jsonc"):
+                    path = bundle.path / name
+                    if path.is_file():
+                        self._add_file_metadata(files, path, is_default=True)
+                        break
+
+        indexed_files = sum(
+            1 for item in files.values() if item["index_status"] in {"ready", "error"}
+        )
+        with self._lock:
+            if revision != self._revision:
+                return self.snapshot()
+            self._files = files
+            self._directories = sorted(directories, key=str.casefold)
+            self._indexed_files = indexed_files
+            self._total_files = len(files)
+            if self._active is not None:
+                self._state = "indexing" if indexed_files < len(files) else "ready"
+                self._reason = ""
+        return self.snapshot()
+
+    def refresh_modified_files(self, relative_paths: list[str]) -> dict[str, Any]:
+        with self._lock:
+            self._revision += 1
+            revision = self._revision
+            current_files = dict(self._files)
+            for relative_path in relative_paths:
+                self._index_cache.pop((self.root / relative_path).resolve(), None)
+
+        for relative_path in dict.fromkeys(relative_paths):
+            if relative_path not in current_files:
+                continue
+            try:
+                path = self.resolve(relative_path, must_exist=True)
+            except (ForbiddenError, InvalidArgumentError, NotFoundError, OSError):
+                continue
+            metadata: dict[str, dict[str, Any]] = {}
+            self._add_file_metadata(
+                metadata,
+                path,
+                is_default=bool(current_files[relative_path].get("is_default_pipeline")),
+            )
+            if relative_path in metadata:
+                current_files[relative_path] = metadata[relative_path]
+
+        with self._lock:
+            if revision != self._revision:
+                return self.snapshot()
+            self._files = current_files
+            self._indexed_files = sum(
+                1
+                for item in current_files.values()
+                if item["index_status"] in {"ready", "error"}
+            )
+            self._total_files = len(current_files)
+            if self._active is not None:
+                self._state = (
+                    "indexing" if self._indexed_files < self._total_files else "ready"
+                )
+                self._reason = ""
+        return self.snapshot()
+
+    def tracks_files(self, relative_paths: list[str]) -> bool:
+        with self._lock:
+            return all(relative_path in self._files for relative_path in relative_paths)
+
+    def snapshot(self) -> dict[str, Any]:
+        with self._lock:
+            active = self._active
+            return {
+                "revision": self._revision,
+                "root": str(self.root),
+                "interface_path": active.relative_path if active else "",
+                "files": sorted(
+                    (dict(item) for item in self._files.values()),
+                    key=lambda item: str(item["relative_path"]).casefold(),
+                ),
+                "directories": list(self._directories),
+            }
+
+    def status(self) -> dict[str, Any]:
+        with self._lock:
+            active = self._active
+            diagnostics = list(self._discovery.diagnostics)
+            if active is not None:
+                diagnostics = active.diagnostics
+            return {
+                "revision": self._revision,
+                "root": str(self.root),
+                "state": self._state,
+                "reason": self._reason,
+                "candidates": [
+                    candidate.summary() for candidate in self._discovery.candidates
+                ],
+                "current_interface": active.summary() if active else None,
+                "indexed_files": self._indexed_files,
+                "total_files": self._total_files,
+                "diagnostics": [diagnostic.dump() for diagnostic in diagnostics],
+            }
+
+    def pending_index_paths(self, revision: int) -> list[str]:
+        with self._lock:
+            if revision != self._revision:
+                return []
+            return [
+                relative
+                for relative, item in self._files.items()
+                if item["index_status"] == "pending"
+            ]
+
+    def index_file(self, revision: int, relative_path: str) -> dict[str, Any] | None:
+        with self._lock:
+            if revision != self._revision:
+                return None
+            existing = self._files.get(relative_path)
+            if existing is None or existing["index_status"] != "pending":
+                return None
+            is_default = bool(existing.get("is_default_pipeline"))
+        path = self.resolve(relative_path, must_exist=True)
+        if is_default:
+            nodes: list[dict[str, Any]] = []
+            prefix = ""
+            index_status = "ready"
+        else:
+            nodes, prefix, index_status = self._parse_nodes(path)
+        try:
+            stat = path.stat()
+            fingerprint = (stat.st_mtime_ns, stat.st_size)
+        except OSError:
+            return None
+
+        with self._lock:
+            if revision != self._revision or relative_path not in self._files:
+                return None
+            item = self._files[relative_path]
+            item["nodes"] = nodes
+            item["prefix"] = prefix
+            item["index_status"] = index_status
+            self._index_cache[path] = (fingerprint, nodes, prefix, index_status)
+            self._indexed_files = sum(
+                1
+                for value in self._files.values()
+                if value["index_status"] in {"ready", "error"}
+            )
+            if self._indexed_files >= self._total_files:
+                self._state = "ready"
+            return {
+                "revision": revision,
+                "files": [dict(item)],
+                "indexed_files": self._indexed_files,
+                "total_files": self._total_files,
+                "complete": self._indexed_files >= self._total_files,
+            }
 
     def resolve(self, relative_path: str, *, must_exist: bool = False) -> Path:
         if not relative_path or Path(relative_path).is_absolute():
@@ -41,16 +344,51 @@ class Workspace:
     def relative(self, path: Path) -> str:
         return path.resolve().relative_to(self.root).as_posix()
 
-    def event_path(self, path: Path) -> tuple[str, bool] | None:
+    def change_kind(self, path: Path) -> str | None:
         try:
             resolved = path.resolve()
-            relative = resolved.relative_to(self.root).as_posix()
+            resolved.relative_to(self.root)
         except (OSError, ValueError):
             return None
-        is_directory = resolved.is_dir()
-        if not is_directory and not self._has_allowed_extension(resolved.name):
+        with self._lock:
+            candidates = tuple(self._discovery.candidates)
+            active = self._active
+        if path.name.casefold() in {"interface.json", "interface.jsonc"}:
+            return "interface"
+        if any(resolved in candidate.imports for candidate in candidates):
+            return "interface"
+        if active is None:
             return None
-        return relative, is_directory
+        for bundle in active.bundles:
+            pipeline = bundle.path / "pipeline"
+            try:
+                resolved.relative_to(pipeline)
+                relative = resolved.relative_to(self.root).as_posix()
+                with self._lock:
+                    known_directory = relative in self._directories
+                if path.is_dir() or known_directory or self._is_pipeline_file(path):
+                    return "pipeline"
+                return None
+            except ValueError:
+                pass
+            if resolved.parent == bundle.path and resolved.name.casefold() in {
+                "default_pipeline.json",
+                "default_pipeline.jsonc",
+            }:
+                return "pipeline"
+        return None
+
+    def event_path(self, path: Path) -> tuple[str, bool] | None:
+        kind = self.change_kind(path)
+        if kind is None:
+            return None
+        try:
+            relative = path.resolve().relative_to(self.root).as_posix()
+        except (OSError, ValueError):
+            return None
+        with self._lock:
+            known_directory = relative in self._directories
+        return relative, path.is_dir() or known_directory
 
     def is_own_write(self, path: Path) -> bool:
         try:
@@ -68,36 +406,10 @@ class Workspace:
             for candidate in expired:
                 self._own_writes.pop(candidate, None)
             fingerprint = self._own_writes.get(resolved)
-        return fingerprint is not None and fingerprint[:2] == (stat.st_mtime_ns, stat.st_size)
-
-    def snapshot(self) -> dict[str, Any]:
-        files: list[dict[str, Any]] = []
-        directories: list[str] = []
-        for path in self._walk():
-            relative = self.relative(path)
-            if path.is_dir():
-                if relative != ".":
-                    directories.append(relative)
-                continue
-            if not self._is_pipeline_file(path):
-                continue
-            nodes, prefix = self._parse_nodes(path)
-            files.append(
-                {
-                    "file_path": relative,
-                    "file_name": path.name,
-                    "relative_path": relative,
-                    "nodes": nodes,
-                    "prefix": prefix,
-                }
-            )
-            if len(files) >= self.config.max_files:
-                break
-        return {
-            "root": str(self.root),
-            "files": sorted(files, key=lambda item: item["relative_path"].lower()),
-            "directories": sorted(directories, key=str.lower),
-        }
+        return fingerprint is not None and fingerprint[:2] == (
+            stat.st_mtime_ns,
+            stat.st_size,
+        )
 
     def open_file(self, relative_path: str) -> dict[str, Any]:
         path = self.resolve(relative_path, must_exist=True)
@@ -125,15 +437,20 @@ class Workspace:
             "config_path": config_relative,
         }
 
-    def create_file(self, file_name: str, directory: str, content: Any | None) -> dict[str, Any]:
-        if Path(file_name).name != file_name or not self._has_allowed_extension(file_name):
+    def create_file(
+        self,
+        file_name: str,
+        directory: str,
+        content: Any | None,
+    ) -> dict[str, Any]:
+        if Path(file_name).name != file_name or not self._is_pipeline_file(Path(file_name)):
             raise InvalidArgumentError("文件名无效或扩展名不受支持")
-        parent = self.root if not directory else self.resolve(directory, must_exist=True)
+        if not directory:
+            raise InvalidArgumentError("必须选择 Pipeline 目录")
+        parent = self.resolve(directory, must_exist=True)
+        if not parent.is_dir() or not self._is_pipeline_directory(parent):
+            raise ForbiddenError("文件只能创建在所选项目的 Pipeline 目录中")
         path = (parent / file_name).resolve()
-        try:
-            path.relative_to(self.root)
-        except ValueError as error:
-            raise ForbiddenError("创建路径超出工作区") from error
         if path.exists():
             raise InvalidArgumentError("文件已存在")
         self._atomic_write(path, json.dumps(content or {}, ensure_ascii=False, indent=4) + "\n")
@@ -158,7 +475,9 @@ class Workspace:
         pipeline = self._serialize_content(
             params.get("pipeline"), params.get("pipeline_json"), indent
         )
-        config = self._serialize_content(params.get("config"), params.get("config_json"), indent)
+        config = self._serialize_content(
+            params.get("config"), params.get("config_json"), indent
+        )
         self._atomic_write(pipeline_path, pipeline)
         self._atomic_write(config_path, config)
         return {
@@ -168,51 +487,35 @@ class Workspace:
         }
 
     def resource_bundles(self) -> dict[str, Any]:
-        bundles: list[dict[str, Any]] = []
-        image_dirs: list[str] = []
-        candidates = [self.root]
-        candidates.extend(path for path in self.root.glob("*") if path.is_dir())
-        candidates.extend(path for path in self.root.glob("*/*") if path.is_dir())
-        seen: set[Path] = set()
-        for path in candidates:
-            path = path.resolve()
-            if path in seen:
-                continue
-            seen.add(path)
-            pipeline = path / "pipeline"
-            image = path / "image"
-            model = path / "model"
-            default_pipeline = path / "default_pipeline.json"
-            if not any(item.exists() for item in (pipeline, image, model, default_pipeline)):
-                continue
-            rel = "" if path == self.root else self.relative(path)
-            bundle = {
-                "abs_path": str(path),
-                "rel_path": rel,
-                "name": "(root)" if path == self.root else path.name,
-                "has_pipeline": pipeline.is_dir(),
-                "has_image": image.is_dir(),
-                "has_model": model.is_dir(),
-                "has_default_pipeline": default_pipeline.is_file(),
-                "image_dir": str(image) if image.is_dir() else "",
-            }
-            bundles.append(bundle)
-            if image.is_dir():
-                image_dirs.append(str(image))
-        return {"root": str(self.root), "bundles": bundles, "image_dirs": image_dirs}
+        with self._lock:
+            active = self._active
+            revision = self._revision
+        bundles = [bundle.dump(self.root) for bundle in active.bundles] if active else []
+        image_dirs = [
+            str(bundle["image_dir"])
+            for bundle in bundles
+            if bundle.get("image_dir")
+        ]
+        return {
+            "revision": revision,
+            "root": str(self.root),
+            "interface_path": active.relative_path if active else "",
+            "bundles": bundles,
+            "image_dirs": image_dirs,
+        }
 
     def image_list(self, pipeline_path: str = "") -> dict[str, Any]:
         images: list[dict[str, str]] = []
         bundle_name = ""
-        bundles = self.resource_bundles()["bundles"]
+        bundles = cast(list[dict[str, Any]], self.resource_bundles()["bundles"])
         for bundle in bundles:
-            image_dir_value = bundle["image_dir"]
+            image_dir_value = str(bundle["image_dir"])
             if not image_dir_value:
                 continue
             image_dir = Path(image_dir_value)
             if pipeline_path and not bundle_name:
                 try:
-                    self.resolve(pipeline_path).relative_to(Path(bundle["abs_path"]))
+                    self.resolve(pipeline_path).relative_to(Path(str(bundle["abs_path"])))
                     bundle_name = str(bundle["name"])
                 except ValueError:
                     pass
@@ -224,15 +527,21 @@ class Workspace:
                             "bundle_name": str(bundle["name"]),
                         }
                     )
-        return {"images": images, "bundle_name": bundle_name, "is_filtered": bool(bundle_name)}
+        return {
+            "images": images,
+            "bundle_name": bundle_name,
+            "is_filtered": bool(bundle_name),
+        }
 
     def find_image(self, relative_path: str) -> tuple[Path, str]:
         if Path(relative_path).is_absolute() or ".." in Path(relative_path).parts:
             raise InvalidArgumentError("图片路径必须是资源包内相对路径")
-        for bundle in self.resource_bundles()["bundles"]:
-            if not bundle["image_dir"]:
+        bundles = cast(list[dict[str, Any]], self.resource_bundles()["bundles"])
+        for bundle in bundles:
+            image_dir_value = str(bundle["image_dir"])
+            if not image_dir_value:
                 continue
-            image_dir = Path(bundle["image_dir"]).resolve()
+            image_dir = Path(image_dir_value).resolve()
             path = (image_dir / relative_path).resolve()
             try:
                 path.relative_to(image_dir)
@@ -246,7 +555,8 @@ class Workspace:
         if not file_name or Path(file_name).name != file_name:
             raise InvalidArgumentError("图片名称必须是不含目录的文件名")
         matches: list[tuple[int, Path, Path]] = []
-        for bundle in self.resource_bundles()["bundles"]:
+        bundles = cast(list[dict[str, Any]], self.resource_bundles()["bundles"])
+        for bundle in bundles:
             image_dir_value = str(bundle["image_dir"])
             if not image_dir_value:
                 continue
@@ -272,37 +582,83 @@ class Workspace:
             "message": "ok",
         }
 
-    def _walk(self) -> list[Path]:
-        result: list[Path] = []
-        root_depth = len(self.root.parts)
-        for current, dirs, files in os.walk(self.root):
-            current_path = Path(current)
-            depth = len(current_path.parts) - root_depth
-            dirs[:] = [
-                name
-                for name in dirs
-                if name not in self.config.exclude
-                and not name.startswith(".")
-                and (self.config.max_depth == 0 or depth < self.config.max_depth)
-            ]
-            result.extend(current_path / name for name in dirs)
-            result.extend(current_path / name for name in files)
-        return result
+    def _activate(self, candidate: InterfaceCandidate) -> None:
+        self._active = candidate
+        self._state = "indexing"
+        self._reason = ""
+        self._files = {}
+        self._directories = []
+        self._indexed_files = 0
+        self._total_files = 0
 
-    def _is_pipeline_file(self, path: Path) -> bool:
-        return self._has_allowed_extension(path.name) and not _CONFIG_SUFFIX_RE.match(path.name)
-
-    def _has_allowed_extension(self, name: str) -> bool:
-        return Path(name).suffix.lower() in {item.lower() for item in self.config.extensions}
-
-    def _parse_nodes(self, path: Path) -> tuple[list[dict[str, Any]], str]:
+    def _add_file_metadata(
+        self,
+        target: dict[str, dict[str, Any]],
+        path: Path,
+        *,
+        is_default: bool,
+    ) -> None:
+        resolved = path.resolve()
+        relative = self.relative(resolved)
         try:
-            loaded: Any = json5.loads(path.read_text(encoding="utf-8-sig"))
+            stat = resolved.stat()
+        except OSError:
+            return
+        fingerprint = (stat.st_mtime_ns, stat.st_size)
+        cached = self._index_cache.get(resolved)
+        if is_default:
+            nodes: list[dict[str, Any]] = []
+            prefix = ""
+            index_status = "ready"
+        elif cached is not None and cached[0] == fingerprint:
+            nodes = cached[1]
+            prefix = cached[2]
+            index_status = cached[3]
+        else:
+            nodes = []
+            prefix = ""
+            index_status = "pending"
+        target[relative] = {
+            "file_path": relative,
+            "file_name": resolved.name,
+            "relative_path": relative,
+            "nodes": nodes,
+            "prefix": prefix,
+            "index_status": index_status,
+            "is_default_pipeline": is_default,
+        }
+
+    def _is_pipeline_directory(self, path: Path) -> bool:
+        with self._lock:
+            active = self._active
+        if active is None:
+            return False
+        for bundle in active.bundles:
+            pipeline = (bundle.path / "pipeline").resolve()
+            try:
+                path.resolve().relative_to(pipeline)
+                return True
+            except ValueError:
+                continue
+        return False
+
+    @staticmethod
+    def _is_pipeline_file(path: Path) -> bool:
+        return (
+            path.suffix.casefold() in _PIPELINE_EXTENSIONS
+            and not path.name.startswith(".")
+            and not _CONFIG_SUFFIX_RE.match(path.name)
+        )
+
+    @staticmethod
+    def _parse_nodes(path: Path) -> tuple[list[dict[str, Any]], str, str]:
+        try:
+            loaded = load_json_or_jsonc(path)
         except (OSError, ValueError):
-            return [], ""
+            return [], "", "error"
         content = _json_object(loaded)
         if content is None:
-            return [], ""
+            return [], "", "error"
         mpe = _json_object(content.get("$mpe"))
         prefix = str(mpe.get("prefix", "")) if mpe is not None else ""
         nodes: list[dict[str, Any]] = []
@@ -322,7 +678,7 @@ class Workspace:
                     if raw_object is not None:
                         anchors = [str(item) for item in raw_object if item]
             nodes.append({"label": str(label), "prefix": prefix, "anchors": anchors})
-        return nodes, prefix
+        return nodes, prefix, "ready"
 
     @staticmethod
     def _serialize_content(content: Any, content_json: Any, indent: int) -> str:

@@ -56,6 +56,23 @@ def test_empty_arguments_start_serve(monkeypatch: MonkeyPatch) -> None:
     assert called is True
 
 
+def test_reload_starts_source_watcher_without_recursing(monkeypatch: MonkeyPatch) -> None:
+    watched_arguments: list[str] | None = None
+
+    def fake_reload(arguments: list[str]) -> int:
+        nonlocal watched_arguments
+        watched_arguments = arguments
+        return 0
+
+    monkeypatch.setattr(cli, "_serve_with_reload", fake_reload)
+
+    with pytest.raises(SystemExit) as exit_info:
+        main(["serve", "--reload", "--no-open"])
+
+    assert exit_info.value.code == 0
+    assert watched_arguments == ["serve", "--no-open"]
+
+
 def test_serve_does_not_accept_token_option() -> None:
     with pytest.raises(SystemExit) as exit_info:
         cli.build_parser().parse_args(["serve", "--token", "obsolete"])
@@ -67,6 +84,13 @@ def test_serve_uses_stable_editor_by_default() -> None:
     args = cli.build_parser().parse_args(["serve"])
 
     assert args.editor_url == cli.DEFAULT_EDITOR_URL
+    assert args.log_level is None
+
+
+def test_serve_accepts_temporary_log_level_override() -> None:
+    args = cli.build_parser().parse_args(["serve", "--log-level", "debug"])
+
+    assert args.log_level == "DEBUG"
 
 
 def test_editor_url_uses_selected_base_and_port() -> None:
@@ -82,11 +106,13 @@ def test_serve_rejects_non_http_editor_url() -> None:
     assert exit_info.value.code == 2
 
 
-def test_repository_server_uses_localbridge_as_workspace() -> None:
+def test_repository_server_uses_sibling_development_workspace() -> None:
     package_path = Path(__file__).parents[2] / "package.json"
     package = json.loads(package_path.read_text(encoding="utf-8"))
 
-    assert "--root LocalBridge" in package["scripts"]["server"]
+    assert "--root ../MaaDuDuL-backup" in package["scripts"]["server"]
+    assert "--log-level DEBUG" in package["scripts"]["server"]
+    assert "--reload" in package["scripts"]["server"]
 
 
 def test_uvicorn_access_logger_is_disabled() -> None:

@@ -17,6 +17,7 @@ import { localServer } from "../../../services/server";
 import { filterLocalFilesByFolderFilter } from "../../../utils/file/folderFilter";
 import classNames from "classnames";
 import { WikiAnchor } from "../../wiki/WikiAnchor";
+import { useWorkspaceStore } from "../../../stores/workspaceStore";
 
 import styles from "../../../styles/panels/LocalFileListPanel.module.less";
 
@@ -26,7 +27,13 @@ export const LocalFileListPanel: React.FC = () => {
   );
   const setStatus = useConfigStore((state) => state.setStatus);
   const rootPath = useLocalFileStore((state) => state.rootPath);
+  const interfacePath = useLocalFileStore((state) => state.interfacePath);
   const files = useLocalFileStore((state) => state.files);
+  const workspaceState = useWorkspaceStore((state) => state.state);
+  const indexedFiles = useWorkspaceStore((state) => state.indexedFiles);
+  const totalFiles = useWorkspaceStore((state) => state.totalFiles);
+  const candidateCount = useWorkspaceStore((state) => state.candidates.length);
+  const openSelector = useWorkspaceStore((state) => state.openSelector);
   const folderFilter = useConfigStore(
     (state) => state.configs.crossFileSearchFolderFilter,
   );
@@ -131,6 +138,23 @@ export const LocalFileListPanel: React.FC = () => {
           <Tooltip title={rootPath}>
             <div className={styles.rootPathText}>{rootPath}</div>
           </Tooltip>
+          {interfacePath && (
+            <div className={styles.interfaceRow}>
+              <Tooltip title={interfacePath}>
+                <span className={styles.rootPathText}>{interfacePath}</span>
+              </Tooltip>
+              {candidateCount > 1 && (
+                <Button type="link" size="small" onClick={openSelector}>
+                  切换
+                </Button>
+              )}
+            </div>
+          )}
+          {workspaceState === "indexing" && totalFiles > 0 && (
+            <div className={styles.indexProgress}>
+              正在建立节点索引 {indexedFiles}/{totalFiles}
+            </div>
+          )}
         </div>
       )}
 
@@ -167,6 +191,9 @@ export const LocalFileListPanel: React.FC = () => {
                   <div className={styles.fileDetails}>
                     <div className={styles.fileName}>{file.file_name}</div>
                     <div className={styles.filePath}>{file.relative_path}</div>
+                    {file.index_status === "error" && (
+                      <div className={styles.indexError}>索引解析失败</div>
+                    )}
                   </div>
                 </div>
               </List.Item>

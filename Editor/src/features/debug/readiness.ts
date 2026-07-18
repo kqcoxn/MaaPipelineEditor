@@ -4,11 +4,13 @@ export interface DebugReadinessInput {
   controllerId?: string | null;
   resourceStatus?: string | null;
   resourceError?: string | null;
+  workspaceState?: string | null;
 }
 
 export interface DebugReadinessIssue {
   code:
     | "debug.localbridge.disconnected"
+    | "debug.workspace.indexing"
     | "debug.device.disconnected"
     | "debug.resource.not_ready";
   title: string;
@@ -30,6 +32,14 @@ export function getDebugReadiness(
       code: "debug.localbridge.disconnected",
       title: "LocalBridge 未连接",
       message: "LocalBridge 未连接，无法启动调试。",
+    });
+  }
+
+  if (input.workspaceState === "indexing") {
+    issues.push({
+      code: "debug.workspace.indexing",
+      title: "Pipeline 索引未完成",
+      message: "Pipeline 正在建立索引，请等待索引完成后再启动调试。",
     });
   }
 
@@ -75,5 +85,5 @@ export function formatDebugReadinessMessage(
     .map((issue) => issue.title)
     .join("、");
 
-  return `需要同时连接 LocalBridge、设备并成功加载资源后才能启动调试。当前：${issueTitles}。`;
+  return `需要 LocalBridge、Pipeline 索引、设备与资源全部就绪后才能启动调试。当前：${issueTitles}。`;
 }

@@ -26,12 +26,12 @@ class FileConfig(BaseModel):
             ".vscode",
             ".venv",
             "__pycache__",
+            "deps",
+            "MaaDeps",
+            "MaaUtils",
             "node_modules",
         ]
     )
-    extensions: list[str] = Field(default_factory=lambda: [".json", ".jsonc"])
-    max_depth: int = Field(default=0, ge=0)
-    max_files: int = Field(default=10_000, ge=1)
 
 
 class LogConfig(BaseModel):

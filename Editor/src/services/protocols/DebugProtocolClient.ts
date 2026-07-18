@@ -127,8 +127,12 @@ export class DebugProtocolClient extends BaseProtocol {
     return this.send("debug.capabilities", {});
   }
 
-  createSession(payload: unknown = {}): boolean {
-    return this.send("debug.session.create", payload);
+  createSession(payload: unknown = {}): Promise<DebugSessionSnapshot> {
+    const client = this.wsClient;
+    if (!client) {
+      return Promise.reject(new Error("DebugProtocolClient 尚未初始化"));
+    }
+    return client.request<DebugSessionSnapshot>("debug.session.create", payload);
   }
 
   destroySession(sessionId: string): boolean {

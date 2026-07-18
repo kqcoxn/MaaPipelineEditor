@@ -10,6 +10,7 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
+from workspace_helpers import create_project
 
 from mpe_localbridge.config import ConfigStore
 from mpe_localbridge.constants import PACKAGE_VERSION, PROTOCOL_VERSION
@@ -22,6 +23,12 @@ ORIGIN = "http://localhost:3000"
 def client(tmp_path: Path) -> Iterator[tuple[TestClient, LocalBridgeState]]:
     workspace = tmp_path / "workspace"
     workspace.mkdir()
+    prepared = create_project(
+        workspace,
+        preferences_path=tmp_path / "prepared-preferences.json",
+    )
+    pipeline = prepared.root / "project" / "resource" / "pipeline" / "main.json"
+    pipeline.write_text('{"Start": {}}', encoding="utf-8")
     config_store = ConfigStore(tmp_path / "config.json")
     config_store.update({"file": {"root": str(workspace)}})
     app, state = create_app(config_store=config_store, data_dir=tmp_path / "data")
@@ -97,13 +104,15 @@ def test_hello_responds_before_workspace_scan_without_blocking_rpc(
     release_scan = Event()
     scan_timed_out = Event()
 
-    def slow_snapshot() -> dict[str, Any]:
+    original_index_file = state.workspace.index_file
+
+    def slow_index_file(revision: int, relative_path: str) -> dict[str, Any] | None:
         scan_started.set()
         if not release_scan.wait(timeout=5):
             scan_timed_out.set()
-        return {"root": str(state.workspace.root), "files": [], "directories": []}
+        return original_index_file(revision, relative_path)
 
-    monkeypatch.setattr(state.workspace, "snapshot", slow_snapshot)
+    monkeypatch.setattr(state.workspace, "index_file", slow_index_file)
     with test_client.websocket_connect("/v2/ws", headers={"origin": ORIGIN}) as websocket:
         hello = _hello(websocket)
         assert hello["result"]["success"] is True

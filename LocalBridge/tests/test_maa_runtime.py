@@ -91,3 +91,53 @@ async def test_controller_connection_emits_user_facing_info(
         await runtime.close()
 
     assert "已连接 ADB 控制器: MuMu 12" in caplog.messages
+
+
+@pytest.mark.asyncio
+async def test_debug_runtime_reuses_connected_controller_without_deactivating_it(
+    tmp_path: Path,
+) -> None:
+    class SuccessfulJob:
+        succeeded = True
+
+        def wait(self) -> SuccessfulJob:
+            return self
+
+    class Controller:
+        inactive_calls = 0
+
+        def post_inactive(self) -> SuccessfulJob:
+            self.inactive_calls += 1
+            return SuccessfulJob()
+
+    class Tasker:
+        running = False
+
+        def clear_sinks(self) -> None:
+            pass
+
+        def clear_context_sinks(self) -> None:
+            pass
+
+    runtime = MaaRuntimeService(
+        MaaConfig(), ArtifactStore(tmp_path / "artifacts"), tmp_path / "logs"
+    )
+    controller = Controller()
+    runtime._controllers["controller-1"] = controller
+    try:
+        resolved, owns_controller = runtime._resolve_debug_controller(
+            "win32", {"controllerId": "controller-1"}
+        )
+        assert resolved is controller
+        assert owns_controller is False
+
+        await runtime.release_debug_objects(
+            resolved,
+            Tasker(),
+            [],
+            deactivate_controller=owns_controller,
+        )
+        assert controller.inactive_calls == 0
+    finally:
+        runtime._controllers.clear()
+        await runtime.close()

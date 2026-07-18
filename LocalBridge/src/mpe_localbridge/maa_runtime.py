@@ -617,14 +617,14 @@ class MaaRuntimeService:
         controller_options: dict[str, Any],
         resource_paths: list[str],
         agent_profiles: list[dict[str, Any]],
-    ) -> tuple[Any, Any, Any, list[Any]]:
+    ) -> tuple[Any, Any, Any, list[Any], bool]:
         self._ensure_initialized()
         from maa.resource import Resource
         from maa.tasker import Tasker
 
-        controller = self._create_controller_sync(controller_type, controller_options)
-        if not controller.post_connection().wait().succeeded:
-            raise LocalBridgeError("maa_controller_connection_failed", "调试控制器连接失败")
+        controller, owns_controller = self._resolve_debug_controller(
+            controller_type, controller_options
+        )
         resource = Resource()
         for resource_path in resource_paths:
             if not resource.post_bundle(resource_path).wait().succeeded:
@@ -645,10 +645,31 @@ class MaaRuntimeService:
                     raise
                 continue
             agents.append(client)
-        return controller, resource, tasker, agents
+        return controller, resource, tasker, agents, owns_controller
+
+    def _resolve_debug_controller(
+        self, controller_type: str, controller_options: dict[str, Any]
+    ) -> tuple[Any, bool]:
+        controller_id = str(
+            controller_options.get("controllerId")
+            or controller_options.get("controller_id")
+            or ""
+        ).strip()
+        if controller_id:
+            return self._require_controller(controller_id), False
+
+        controller = self._create_controller_sync(controller_type, controller_options)
+        if not controller.post_connection().wait().succeeded:
+            raise LocalBridgeError("maa_controller_connection_failed", "调试控制器连接失败")
+        return controller, True
 
     async def release_debug_objects(
-        self, controller: Any, tasker: Any, agents: list[Any]
+        self,
+        controller: Any,
+        tasker: Any,
+        agents: list[Any],
+        *,
+        deactivate_controller: bool = True,
     ) -> None:
         def release_sync() -> None:
             if tasker is not None:
@@ -659,7 +680,7 @@ class MaaRuntimeService:
             for agent in agents:
                 if agent.connected:
                     agent.disconnect()
-            if controller is not None:
+            if controller is not None and deactivate_controller:
                 controller.post_inactive().wait()
 
         await self.call(release_sync)

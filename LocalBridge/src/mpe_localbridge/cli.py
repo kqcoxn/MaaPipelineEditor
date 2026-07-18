@@ -14,6 +14,7 @@ from urllib.parse import urlencode, urlsplit, urlunsplit
 
 import uvicorn
 from fastapi import FastAPI
+from watchfiles import PythonFilter, run_process
 
 from .config import ConfigStore
 from .constants import MAX_WS_MESSAGE_BYTES, PACKAGE_VERSION, PROTOCOL_VERSION
@@ -34,6 +35,8 @@ def build_parser() -> argparse.ArgumentParser:
     serve.add_argument("--allow-origin", action="append", default=[])
     serve.add_argument("--config", type=Path, default=None)
     serve.add_argument("--editor-url", default=DEFAULT_EDITOR_URL, type=_editor_url)
+    serve.add_argument("--log-level", default=None, type=_log_level)
+    serve.add_argument("--reload", action="store_true")
     serve.add_argument("--control-stdio", action="store_true")
     serve.add_argument("--no-open", action="store_true")
 
@@ -67,7 +70,27 @@ def main(argv: list[str] | None = None) -> None:
         raise SystemExit(asyncio.run(_doctor(args.as_json)))
     if command == "config":
         raise SystemExit(_config_command(args))
+    if args.reload:
+        child_arguments = [argument for argument in arguments if argument != "--reload"]
+        raise SystemExit(_serve_with_reload(child_arguments))
     asyncio.run(_serve(args))
+
+
+def _serve_with_reload(arguments: list[str]) -> int:
+    source_dir = Path(__file__).parent
+    print(f"监听后端源码变更: {source_dir}", file=sys.stderr)
+    run_process(
+        source_dir,
+        target=_serve_reload_target,
+        args=(arguments,),
+        target_type="function",
+        watch_filter=PythonFilter(),
+    )
+    return 0
+
+
+def _serve_reload_target(arguments: list[str]) -> None:
+    main(arguments)
 
 
 def _config_command(args: argparse.Namespace) -> int:
@@ -175,7 +198,7 @@ async def _serve(args: argparse.Namespace) -> None:
     sock.setblocking(False)
     port = int(sock.getsockname()[1])
 
-    configure_logging(config_store.value.log.level)
+    configure_logging(args.log_level or config_store.value.log.level)
     uvicorn_config = _build_uvicorn_config(app, port)
     server = uvicorn.Server(uvicorn_config)
     server_task = asyncio.create_task(server.serve(sockets=[sock]))
@@ -221,6 +244,13 @@ def _editor_url(value: str) -> str:
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         raise argparse.ArgumentTypeError("Editor URL 必须是有效的 HTTP(S) 地址")
     return value
+
+
+def _log_level(value: str) -> str:
+    level = value.upper()
+    if level not in {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}:
+        raise argparse.ArgumentTypeError("日志级别必须是 DEBUG、INFO、WARNING、ERROR 或 CRITICAL")
+    return level
 
 
 def build_editor_url(base_url: str, port: int) -> str:

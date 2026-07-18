@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { subscribeWithSelector } from "zustand/middleware";
 
 /**
  * 文件节点信息
@@ -13,11 +14,13 @@ export type FileNodeInfo = {
  * 本地文件信息
  */
 export type LocalFileInfo = {
-  file_path: string; // 绝对路径
+  file_path: string; // 工作区相对路径
   file_name: string; // 文件名
   relative_path: string; // 相对路径
   nodes: FileNodeInfo[]; // 节点列表
   prefix: string; // 文件前缀
+  index_status: "pending" | "ready" | "error";
+  is_default_pipeline: boolean;
 };
 
 /**
@@ -32,6 +35,8 @@ export type ResourceBundle = {
   has_model: boolean; // 是否有 model 目录
   has_default_pipeline: boolean; // 是否有 default_pipeline.json
   image_dir: string; // image 目录绝对路径
+  pipeline_path: string; // pipeline 目录相对工作区的路径
+  sources: Array<{ kind: "resource" | "controller"; name: string }>;
 };
 
 /**
@@ -59,9 +64,11 @@ export type ImageFileInfo = {
  * 本地文件缓存状态
  */
 type LocalFileState = {
+  revision: number;
   rootPath: string; // 根目录路径
+  interfacePath: string;
   files: LocalFileInfo[]; // 文件列表
-  directories: string[]; // 子目录绝对路径列表（包括空目录）
+  directories: string[]; // 可创建 Pipeline 的工作区相对目录（包括空目录）
   lastUpdateTime: number; // 最后更新时间戳
   isRefreshing: boolean; // 是否正在刷新
 
@@ -78,7 +85,15 @@ type LocalFileState = {
   imageListLoading: boolean; // 是否正在加载图片列表
 
   // 更新文件列表（全量替换）
-  setFileList: (rootPath: string, files: LocalFileInfo[], directories: string[]) => void;
+  setFileList: (
+    revision: number,
+    rootPath: string,
+    interfacePath: string,
+    files: LocalFileInfo[],
+    directories: string[],
+  ) => void;
+
+  applyIndexUpdate: (revision: number, files: LocalFileInfo[]) => void;
 
   // 增量添加文件
   addFile: (file: LocalFileInfo) => void;
@@ -128,8 +143,11 @@ type LocalFileState = {
  * 用于存储从LocalBridge接收的文件列表
  * 不进行localStorage持久化，始终从后端实时获取
  */
-export const useLocalFileStore = create<LocalFileState>()((set, get) => ({
+export const useLocalFileStore = create<LocalFileState>()(
+  subscribeWithSelector((set, get) => ({
+  revision: 0,
   rootPath: "",
+  interfacePath: "",
   files: [],
   directories: [],
   lastUpdateTime: 0,
@@ -148,14 +166,26 @@ export const useLocalFileStore = create<LocalFileState>()((set, get) => ({
   imageListLoading: false,
 
   // 更新文件列表
-  setFileList(rootPath, files, directories) {
+  setFileList(revision, rootPath, interfacePath, files, directories) {
+    if (revision < get().revision) return;
     set({
+      revision,
       rootPath,
+      interfacePath,
       files,
       directories,
       lastUpdateTime: Date.now(),
       isRefreshing: false,
     });
+  },
+
+  applyIndexUpdate(revision, files) {
+    if (revision !== get().revision) return;
+    const updates = new Map(files.map((file) => [file.file_path, file]));
+    set((state) => ({
+      files: state.files.map((file) => updates.get(file.file_path) ?? file),
+      lastUpdateTime: Date.now(),
+    }));
   },
 
   // 增量添加文件
@@ -225,6 +255,8 @@ export const useLocalFileStore = create<LocalFileState>()((set, get) => ({
         relative_path: relPath,
         nodes: info.nodes || [],
         prefix: info.prefix || "",
+        index_status: info.index_status || "pending",
+        is_default_pipeline: info.is_default_pipeline || false,
       };
 
       return {
@@ -299,7 +331,9 @@ export const useLocalFileStore = create<LocalFileState>()((set, get) => ({
   // 清空缓存
   clear() {
     set({
+      revision: 0,
       rootPath: "",
+      interfacePath: "",
       files: [],
       directories: [],
       lastUpdateTime: 0,
@@ -339,4 +373,5 @@ export const useLocalFileStore = create<LocalFileState>()((set, get) => ({
       imageListLoading: false,
     });
   },
-}));
+  })),
+);

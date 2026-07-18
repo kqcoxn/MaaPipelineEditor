@@ -10,14 +10,14 @@ from watchfiles import Change, awatch  # pyright: ignore[reportUnknownVariableTy
 
 from .workspace import Workspace
 
-Emit = Callable[[str, dict[str, Any]], Awaitable[None]]
+ChangeHandler = Callable[[list[dict[str, Any]], bool], Awaitable[None]]
 LOGGER = logging.getLogger(__name__)
 
 
 class WorkspaceWatcher:
-    def __init__(self, workspace: Workspace, emit: Emit) -> None:
+    def __init__(self, workspace: Workspace, on_change: ChangeHandler) -> None:
         self.workspace = workspace
-        self.emit = emit
+        self.on_change = on_change
         self._task: asyncio.Task[None] | None = None
         self._stop_event: asyncio.Event | None = None
 
@@ -50,6 +50,8 @@ class WorkspaceWatcher:
         stop_event = self._stop_event
         if stop_event is None:
             return
+        if not self.workspace.root.is_dir():
+            return
         try:
             async for changes in awatch(
                 self.workspace.root,
@@ -61,9 +63,8 @@ class WorkspaceWatcher:
                 events = normalize_changes(self.workspace, changes)
                 if not events:
                     continue
-                for event in events:
-                    await self.emit("file.changed", event)
-                await self.emit("workspace.files", self.workspace.snapshot())
+                public_events, needs_discovery = prepare_changes(events)
+                await self.on_change(public_events, needs_discovery)
         except asyncio.CancelledError:
             raise
         except Exception:
@@ -74,9 +75,12 @@ def normalize_changes(
     workspace: Workspace, changes: Iterable[tuple[Change, str]]
 ) -> list[dict[str, Any]]:
     priorities = {Change.modified: 1, Change.added: 2, Change.deleted: 3}
-    merged: dict[str, tuple[Change, bool]] = {}
+    merged: dict[str, tuple[Change, bool, str]] = {}
     for change, raw_path in changes:
         path = Path(raw_path)
+        workspace_kind = workspace.change_kind(path)
+        if workspace_kind is None:
+            continue
         event_path = workspace.event_path(path)
         if event_path is None:
             continue
@@ -85,7 +89,7 @@ def normalize_changes(
             continue
         previous = merged.get(relative_path)
         if previous is None or priorities[change] >= priorities[previous[0]]:
-            merged[relative_path] = (change, is_directory)
+            merged[relative_path] = (change, is_directory, workspace_kind)
     names = {
         Change.added: "created",
         Change.modified: "modified",
@@ -96,6 +100,18 @@ def normalize_changes(
             "type": names[change],
             "file_path": relative_path,
             "is_directory": is_directory,
+            "workspace_kind": workspace_kind,
         }
-        for relative_path, (change, is_directory) in sorted(merged.items())
+        for relative_path, (change, is_directory, workspace_kind) in sorted(merged.items())
     ]
+
+
+def prepare_changes(
+    events: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], bool]:
+    needs_discovery = any(event.get("workspace_kind") == "interface" for event in events)
+    public_events = [
+        {key: value for key, value in event.items() if key != "workspace_kind"}
+        for event in events
+    ]
+    return public_events, needs_discovery

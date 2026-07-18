@@ -99,7 +99,8 @@ class LocalBridgeState:
         self.config_store = config_store
         self.artifacts = ArtifactStore(data_dir / "artifacts" if data_dir else None)
         self.events = EventLog(data_dir / "debug-events.sqlite3" if data_dir else None)
-        self.workspace = Workspace(config_store.value.file)
+        preferences_path = data_dir / "workspace-preferences.json" if data_dir else None
+        self.workspace = Workspace(config_store.value.file, preferences_path)
         self.hub = ConnectionHub()
         self.maa = MaaRuntimeService(
             config_store.value.maafw,
@@ -107,22 +108,143 @@ class LocalBridgeState:
             Path(config_store.value.log.dir),
         )
         self.debug = DebugManager(self.maa, self.events, self.artifacts, self.hub.emit)
-        self.watcher = WorkspaceWatcher(self.workspace, self.hub.emit)
+        self.watcher = WorkspaceWatcher(self.workspace, self.workspace_changed)
         self.http = httpx.AsyncClient(timeout=httpx.Timeout(120, connect=15))
         self._closed = False
+        self._workspace_lock = asyncio.Lock()
+        self._index_task: asyncio.Task[None] | None = None
 
     async def start(self) -> None:
+        await asyncio.to_thread(self.workspace.discover)
+        await asyncio.to_thread(self.workspace.refresh_files)
         await self.watcher.start()
 
     async def close(self) -> None:
         if self._closed:
             return
         self._closed = True
+        await self.cancel_indexing()
         await self.watcher.close()
         await self.debug.close()
         await self.maa.close()
         await self.http.aclose()
         self.events.close()
+
+    async def refresh_workspace(self, *, rediscover: bool) -> None:
+        async with self._workspace_lock:
+            await self.cancel_indexing()
+            if rediscover:
+                discovering = await asyncio.to_thread(self.workspace.begin_discovery)
+                await self.hub.emit("workspace.status", discovering)
+                await asyncio.to_thread(self.workspace.discover, prepared=True)
+            snapshot = await asyncio.to_thread(
+                self.workspace.refresh_files,
+                bump_revision=not rediscover,
+            )
+            await self.hub.emit("workspace.status", self.workspace.status())
+            await self.hub.emit("workspace.files", snapshot)
+            await self.hub.emit("resource.bundles", self.workspace.resource_bundles())
+            self.start_indexing()
+
+    async def refresh_modified_files(self, paths: list[str]) -> None:
+        async with self._workspace_lock:
+            await self.cancel_indexing()
+            snapshot = await asyncio.to_thread(self.workspace.refresh_modified_files, paths)
+            await self.hub.emit("workspace.status", self.workspace.status())
+            await self.hub.emit("workspace.files", snapshot)
+            self.start_indexing()
+
+    async def select_interface(self, interface_path: str) -> dict[str, Any]:
+        async with self._workspace_lock:
+            await self.cancel_indexing()
+            status = await asyncio.to_thread(self.workspace.select_interface, interface_path)
+            snapshot = await asyncio.to_thread(self.workspace.refresh_files)
+            await self.hub.emit("workspace.status", self.workspace.status())
+            await self.hub.emit("workspace.files", snapshot)
+            await self.hub.emit("resource.bundles", self.workspace.resource_bundles())
+            self.start_indexing()
+            return status
+
+    def start_indexing(self) -> None:
+        if self._index_task is not None and not self._index_task.done():
+            return
+        revision = self.workspace.revision
+        pending = self.workspace.pending_index_paths(revision)
+        if not pending:
+            return
+        self._index_task = asyncio.create_task(
+            self._run_indexing(revision, pending),
+            name=f"workspace-index-{revision}",
+        )
+
+    async def cancel_indexing(self) -> None:
+        task = self._index_task
+        self._index_task = None
+        if task is None or task.done():
+            return
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
+
+    async def _run_indexing(self, revision: int, paths: list[str]) -> None:
+        try:
+            for index in range(0, len(paths), 8):
+                chunk = paths[index : index + 8]
+                updates = await asyncio.gather(
+                    *(
+                        asyncio.to_thread(self.workspace.index_file, revision, path)
+                        for path in chunk
+                    )
+                )
+                valid = [update for update in updates if update is not None]
+                if not valid or revision != self.workspace.revision:
+                    return
+                files = [
+                    file
+                    for update in valid
+                    for file in cast(list[dict[str, Any]], update["files"])
+                ]
+                status = self.workspace.status()
+                await self.hub.emit(
+                    "workspace.indexUpdated",
+                    {
+                        "revision": revision,
+                        "files": files,
+                        "indexed_files": status["indexed_files"],
+                        "total_files": status["total_files"],
+                        "complete": status["state"] == "ready",
+                    },
+                )
+                await self.hub.emit("workspace.status", self.workspace.status())
+                await asyncio.sleep(0)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            LOGGER.exception("工作区后台索引失败")
+        finally:
+            if self._index_task is asyncio.current_task():
+                self._index_task = None
+
+    async def workspace_changed(
+        self,
+        events: list[dict[str, Any]],
+        needs_discovery: bool,
+    ) -> None:
+        for event in events:
+            await self.hub.emit("file.changed", event)
+        if needs_discovery:
+            await self.refresh_workspace(rediscover=True)
+            return
+        modified_files = [
+            str(event["file_path"])
+            for event in events
+            if event.get("type") == "modified" and not event.get("is_directory")
+        ]
+        if len(modified_files) == len(events) and self.workspace.tracks_files(
+            modified_files
+        ):
+            await self.refresh_modified_files(modified_files)
+            return
+        await self.refresh_workspace(rediscover=False)
 
 
 class RpcContext:
@@ -197,6 +319,7 @@ class Dispatcher:
             "config.update": self._config_update,
             "config.reload": self._config_reload,
             "workspace.scan": self._workspace_scan,
+            "workspace.interface.select": self._workspace_interface_select,
             "file.open": self._file_open,
             "file.create": self._file_create,
             "file.save": self._file_save,
@@ -362,16 +485,10 @@ class Dispatcher:
         )
 
     async def _push_initial_state(self, context: RpcContext, cursors: dict[str, int]) -> None:
-        started = time.perf_counter()
-        snapshot = await asyncio.to_thread(self.state.workspace.snapshot)
-        LOGGER.debug(
-            "工作区扫描完成: %s 个文件 (%.3f ms)",
-            len(cast(list[Any], snapshot.get("files", []))),
-            (time.perf_counter() - started) * 1000,
-        )
-        await context.emit("workspace.files", snapshot)
-        bundles = await asyncio.to_thread(self.state.workspace.resource_bundles)
-        await context.emit("resource.bundles", bundles)
+        await context.emit("workspace.status", self.state.workspace.status())
+        await context.emit("workspace.files", self.state.workspace.snapshot())
+        await context.emit("resource.bundles", self.state.workspace.resource_bundles())
+        self.state.start_indexing()
         for session_id, after_seq in cursors.items():
             events = self.state.events.list(session_id, after_seq=after_seq)
             for event in events:
@@ -400,7 +517,7 @@ class Dispatcher:
         await self.state.watcher.restart()
         result = self._config_response("配置已保存")
         await context.emit("config.data", result)
-        await self.state.hub.emit("workspace.files", self.state.workspace.snapshot())
+        await self.state.refresh_workspace(rediscover=True)
         return result
 
     async def _config_reload(self, context: RpcContext, params: dict[str, Any]) -> dict[str, Any]:
@@ -410,7 +527,7 @@ class Dispatcher:
         await self.state.watcher.restart()
         result = {"success": True, "config": config.model_dump(mode="json")}
         await context.emit("config.reloaded", result)
-        await self.state.hub.emit("workspace.files", self.state.workspace.snapshot())
+        await self.state.refresh_workspace(rediscover=True)
         return result
 
     def _config_response(self, message: str | None = None) -> dict[str, Any]:
@@ -423,10 +540,15 @@ class Dispatcher:
         }
 
     async def _workspace_scan(self, context: RpcContext, params: dict[str, Any]) -> dict[str, Any]:
-        del params
-        result = await asyncio.to_thread(self.state.workspace.snapshot)
-        await context.emit("workspace.files", result)
-        return result
+        del context, params
+        await self.state.refresh_workspace(rediscover=True)
+        return self.state.workspace.status()
+
+    async def _workspace_interface_select(
+        self, context: RpcContext, params: dict[str, Any]
+    ) -> dict[str, Any]:
+        del context
+        return await self.state.select_interface(str(params["interface_path"]))
 
     async def _file_open(self, context: RpcContext, params: dict[str, Any]) -> dict[str, Any]:
         result = await asyncio.to_thread(self.state.workspace.open_file, str(params["file_path"]))
@@ -441,7 +563,7 @@ class Dispatcher:
             params.get("content"),
         )
         await context.emit("file.created", result)
-        await self.state.hub.emit("workspace.files", self.state.workspace.snapshot())
+        await self.state.refresh_workspace(rediscover=False)
         return result
 
     async def _file_save(self, context: RpcContext, params: dict[str, Any]) -> dict[str, Any]:
@@ -453,9 +575,15 @@ class Dispatcher:
             int(params.get("indent", 0)),
         )
         await context.emit("file.saved", result)
-        await self.state.hub.emit(
-            "file.changed",
-            {"type": "modified", "file_path": result["file_path"], "is_directory": False},
+        await self.state.workspace_changed(
+            [
+                {
+                    "type": "modified",
+                    "file_path": result["file_path"],
+                    "is_directory": False,
+                }
+            ],
+            False,
         )
         return result
 
@@ -464,6 +592,16 @@ class Dispatcher:
     ) -> dict[str, Any]:
         result = await asyncio.to_thread(self.state.workspace.save_separated, params)
         await context.emit("file.separatedSaved", result)
+        await self.state.workspace_changed(
+            [
+                {
+                    "type": "modified",
+                    "file_path": result["pipeline_path"],
+                    "is_directory": False,
+                }
+            ],
+            False,
+        )
         return result
 
     async def _resource_list(self, context: RpcContext, params: dict[str, Any]) -> dict[str, Any]:

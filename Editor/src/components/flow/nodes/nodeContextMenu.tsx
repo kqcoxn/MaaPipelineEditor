@@ -22,18 +22,15 @@ import {
 import { debugProtocolClient } from "../../../services/server";
 import { useDebugModalMemoryStore } from "../../../stores/debugModalMemoryStore";
 import {
-  makeDebugResourceKey,
   normalizeDebugResourcePaths,
   useDebugRunProfileStore,
 } from "../../../stores/debugRunProfileStore";
 import { useDebugSessionStore } from "../../../stores/debugSessionStore";
-import { useMFWStore } from "../../../stores/mfwStore";
-import { useWSStore } from "../../../stores/wsStore";
 import type {
   DebugCapabilityManifest,
   DebugRunMode,
 } from "../../../features/debug/types";
-import { getDebugReadiness } from "../../../features/debug/readiness";
+import { getCurrentDebugReadiness } from "../../../features/debug/readinessState";
 import { applyDebugNodeTarget } from "../../../features/debug/nodeTargetActions";
 import { debugCommandBus } from "../../../features/debug/debugCommandBus";
 
@@ -229,8 +226,6 @@ function handleDebugRunMode(node: NodeContextMenuNode, mode: DebugRunMode) {
   if (node.type !== NodeTypeEnum.Pipeline) return;
 
   const sessionState = useDebugSessionStore.getState();
-  const profileState = useDebugRunProfileStore.getState();
-  const mfwState = useMFWStore.getState();
 
   const target = applyDebugNodeTarget(node.id, {
     focusCanvas: true,
@@ -240,21 +235,12 @@ function handleDebugRunMode(node: NodeContextMenuNode, mode: DebugRunMode) {
   useDebugModalMemoryStore.getState().setLastRunMode(mode);
 
   const capabilities = sessionState.capabilities;
-  const resourceKey = makeDebugResourceKey(profileState.profile.resourcePaths);
-  const resourcePreflight = sessionState.resourcePreflight;
-  const resourcePreflightMatches =
-    resourcePreflight.resourceKey === resourceKey;
-  const readiness = getDebugReadiness({
-    localBridgeConnected: useWSStore.getState().connected,
-    deviceConnectionStatus: mfwState.connectionStatus,
-    controllerId: mfwState.controllerId,
-    resourceStatus: resourcePreflightMatches
-      ? resourcePreflight.status
-      : "idle",
-    resourceError: resourcePreflightMatches
-      ? resourcePreflight.error
-      : undefined,
-  });
+  const {
+    readiness,
+    resourceKey,
+    resourcePreflight,
+    resourcePreflightMatches,
+  } = getCurrentDebugReadiness();
   if (!readiness.ready) {
     const blockingIssue = readiness.issues.find(
       (issue) => issue.code !== "debug.resource.not_ready",

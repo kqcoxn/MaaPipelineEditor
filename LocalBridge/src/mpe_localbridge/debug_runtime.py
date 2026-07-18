@@ -42,6 +42,7 @@ class DebugSession:
     status: SessionStatus = "idle"
     run: DebugRun | None = None
     controller: Any = None
+    owns_controller: bool = False
     resource: Any = None
     tasker: Any = None
     sink: Any = None
@@ -181,9 +182,11 @@ class DebugManager:
             copied = copy.deepcopy(details)
             loop.call_soon_threadsafe(session.queue.put_nowait, (run, message, copied))
 
-        def prepare() -> tuple[Any, Any, Any, tuple[Any, ...], list[Any], Any]:
-            controller, resource, tasker, agents = self.maa.create_debug_objects(
+        def prepare() -> tuple[Any, Any, Any, tuple[Any, ...], list[Any], bool, Any]:
+            controller, resource, tasker, agents, owns_controller = (
+                self.maa.create_debug_objects(
                 controller_type, controller_options, resource_paths, agent_profiles
+                )
             )
             from maa.context import ContextEventSink
             from maa.tasker import TaskerEventSink
@@ -214,11 +217,14 @@ class DebugManager:
                 tasker,
                 (sink, context_sink, tasker_sink_id, context_sink_id),
                 agents,
+                owns_controller,
                 job,
             )
 
         try:
-            controller, resource, tasker, sink, agents, job = await self.maa.call(prepare)
+            controller, resource, tasker, sink, agents, owns_controller, job = (
+                await self.maa.call(prepare)
+            )
         except Exception as error:
             session.status = "error"
             run.status = "failed"
@@ -234,6 +240,7 @@ class DebugManager:
             raise
 
         session.controller = controller
+        session.owns_controller = owns_controller
         session.resource = resource
         session.tasker = tasker
         session.sink = sink
@@ -343,11 +350,15 @@ class DebugManager:
             run.completed_at = datetime.now(UTC)
             try:
                 await self.maa.release_debug_objects(
-                    session.controller, session.tasker, session.agents
+                    session.controller,
+                    session.tasker,
+                    session.agents,
+                    deactivate_controller=session.owns_controller,
                 )
             finally:
                 if session.run is run:
                     session.controller = None
+                    session.owns_controller = False
                     session.resource = None
                     session.tasker = None
                     session.sink = None

@@ -22,6 +22,7 @@ import {
   useMFWStore,
 } from "../../../stores/mfwStore";
 import { useWSStore } from "../../../stores/wsStore";
+import { useWorkspaceStore } from "../../../stores/workspaceStore";
 import { useFlowStore } from "../../../stores/flow";
 import {
   saveOpenedLocalFilesForDebug,
@@ -47,6 +48,7 @@ import {
   formatDebugReadinessMessage,
   getDebugReadiness,
 } from "../readiness";
+import { getCurrentDebugReadiness } from "../readinessState";
 import {
   runnableModes,
   targetRunModes,
@@ -56,6 +58,7 @@ import {
   DEBUG_PIPELINE_OVERRIDE_ERROR_CODE,
   parseDebugPipelineOverrideDraft,
 } from "../pipelineOverride";
+import { ensureDebugSession } from "../sessionActions";
 import type { DebugNodeExecutionRecord } from "../nodeExecutionSelector";
 import { useDebugResourceChecks } from "./useDebugResourceChecks";
 import { useDebugNodeExecutionController } from "./useDebugNodeExecutionController";
@@ -113,6 +116,7 @@ export function useDebugModalController() {
     (state) => state.resetDraft,
   );
   const connected = useWSStore((state) => state.connected);
+  const workspaceState = useWorkspaceStore((state) => state.state);
   const {
     lastRunMode,
     autoGenerateAiSummary,
@@ -234,6 +238,7 @@ export function useDebugModalController() {
     () =>
       getDebugReadiness({
         localBridgeConnected: connected,
+        workspaceState,
         deviceConnectionStatus: mfwState.connectionStatus,
         controllerId: mfwState.controllerId,
         resourceStatus: resourcePreflightStatus,
@@ -241,6 +246,7 @@ export function useDebugModalController() {
       }),
     [
       connected,
+      workspaceState,
       mfwState.connectionStatus,
       mfwState.controllerId,
       resourcePreflight.error,
@@ -370,14 +376,17 @@ export function useDebugModalController() {
       message.error(overrideValidationError);
       return;
     }
-    if (!debugReadiness.ready) {
-      const diagnostics = debugReadiness.issues.map((issue) => ({
+    const currentDebugReadiness = getCurrentDebugReadiness().readiness;
+    if (!currentDebugReadiness.ready) {
+      const diagnostics = currentDebugReadiness.issues.map((issue) => ({
         severity: "error" as const,
         code: issue.code,
         message: issue.message,
       }));
       diagnosticsState.setPreflightDiagnostics([...diagnostics]);
-      message.error(debugReadiness.issues[0]?.message ?? "调试前置条件未满足");
+      message.error(
+        currentDebugReadiness.issues[0]?.message ?? "调试前置条件未满足",
+      );
       return;
     }
     if (!runnableModes.has(mode) || !availableModeIds.has(mode)) {
@@ -402,10 +411,11 @@ export function useDebugModalController() {
           return;
         }
       }
+      const activeSession = await ensureDebugSession();
       const request = profileState.buildRunRequest(
         mode,
         nodeId,
-        session?.sessionId,
+        activeSession.sessionId,
         input,
         overrideEntries,
       );

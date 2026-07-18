@@ -1,0 +1,48 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  container-type: inline-size;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 12px;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.scrollPane {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  padding-right: 4px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+@container (max-width: 771px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+    grid-auto-rows: max-content;
+    align-content: start;
+    padding-right: 4px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+  }
+
+  .scrollPane {
+    height: auto;
+    padding-right: 0;
+    overflow: visible;
+    scrollbar-gutter: auto;
+  }
+}

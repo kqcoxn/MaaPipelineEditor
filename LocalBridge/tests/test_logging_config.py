@@ -31,3 +31,28 @@ def test_info_filter_suppresses_framework_info_and_keeps_app_info() -> None:
 
     assert filter_.filter(framework_info) is False
     assert filter_.filter(app_info) is True
+
+
+def test_debug_filter_suppresses_watchfiles_timeout_heartbeat() -> None:
+    filter_ = FrameworkInfoToDebugFilter(logging.DEBUG)
+    heartbeat = logging.LogRecord(
+        "watchfiles.main",
+        logging.DEBUG,
+        "",
+        0,
+        "rust notify timeout, continuing",
+        (),
+        None,
+    )
+    change = logging.LogRecord(
+        "watchfiles.main",
+        logging.DEBUG,
+        "",
+        0,
+        "1 change detected",
+        (),
+        None,
+    )
+
+    assert filter_.filter(heartbeat) is False
+    assert filter_.filter(change) is True

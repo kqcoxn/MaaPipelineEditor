@@ -8,6 +8,10 @@ import {
   useLocalFileStore,
   type LocalFileInfo,
 } from "../../stores/localFileStore";
+import {
+  useWorkspaceStore,
+  type WorkspaceStatusPayload,
+} from "../../stores/workspaceStore";
 
 /**
  * 文件协议处理器
@@ -48,6 +52,12 @@ export class FileProtocol extends BaseProtocol {
     this.wsClient.registerRoute("workspace.files", (data) =>
       this.handleFileList(data),
     );
+    this.wsClient.registerRoute("workspace.status", (data) =>
+      this.handleWorkspaceStatus(data),
+    );
+    this.wsClient.registerRoute("workspace.indexUpdated", (data) =>
+      this.handleIndexUpdate(data),
+    );
     this.wsClient.registerRoute("file.content", (data) =>
       this.handleFileContent(data),
     );
@@ -77,9 +87,9 @@ export class FileProtocol extends BaseProtocol {
    */
   private handleFileList(data: any): void {
     try {
-      const { root, files, directories } = data;
+      const { revision, root, interface_path, files, directories } = data;
 
-      if (!root || !Array.isArray(files)) {
+      if (typeof revision !== "number" || !root || !Array.isArray(files)) {
         console.error("[FileProtocol] Invalid file list data:", data);
         return;
       }
@@ -88,7 +98,9 @@ export class FileProtocol extends BaseProtocol {
       const localFileStore = useLocalFileStore.getState();
       const wasRefreshing = localFileStore.isRefreshing;
       localFileStore.setFileList(
+        revision,
         root,
+        interface_path || "",
         files as LocalFileInfo[],
         Array.isArray(directories) ? directories : [],
       );
@@ -104,6 +116,24 @@ export class FileProtocol extends BaseProtocol {
       const localFileStore = useLocalFileStore.getState();
       localFileStore.setRefreshing(false);
     }
+  }
+
+  private handleWorkspaceStatus(data: unknown): void {
+    if (!isWorkspaceStatus(data)) {
+      console.error("[FileProtocol] Invalid workspace status:", data);
+      return;
+    }
+    useWorkspaceStore.getState().applyStatus(data);
+  }
+
+  private handleIndexUpdate(data: unknown): void {
+    if (!isRecord(data) || typeof data.revision !== "number" || !Array.isArray(data.files)) {
+      console.error("[FileProtocol] Invalid workspace index update:", data);
+      return;
+    }
+    useLocalFileStore
+      .getState()
+      .applyIndexUpdate(data.revision, data.files as LocalFileInfo[]);
   }
 
   /**
@@ -581,4 +611,19 @@ export class FileProtocol extends BaseProtocol {
     });
     FileProtocol.pendingSaveCallbacks.clear();
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isWorkspaceStatus(value: unknown): value is WorkspaceStatusPayload {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.revision === "number" &&
+    typeof value.root === "string" &&
+    typeof value.state === "string" &&
+    Array.isArray(value.candidates) &&
+    Array.isArray(value.diagnostics)
+  );
 }

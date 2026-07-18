@@ -67,7 +67,11 @@ import { useNewcomerStore, isNewcomerPassed } from "./stores/newcomerStore";
 import { NewcomerGuideModal } from "./components/modals/NewcomerGuideModal";
 import { useTermsStore, isTermsAccepted } from "./stores/termsStore";
 import { TermsAgreementModal } from "./components/modals/TermsAgreementModal";
+import { WorkspaceSetupModal } from "./components/modals/WorkspaceSetupModal";
+import { useLocalFileStore } from "./stores/localFileStore";
+import { useWorkspaceStore } from "./stores/workspaceStore";
 import { debugCommandBus } from "./features/debug/debugCommandBus";
+import { resetDebugSessionLifecycle } from "./features/debug/sessionActions";
 
 const JsonViewer = lazy(() => import("./components/JsonViewer"));
 const DebugModal = lazy(() =>
@@ -434,6 +438,9 @@ function App() {
       // WebSocket 断开时清除设备连接状态，确保实时画面等 UI 正确隐藏
       if (!connected) {
         clearMFWConnection();
+        resetDebugSessionLifecycle();
+        useWorkspaceStore.getState().clear();
+        useLocalFileStore.getState().clear();
       }
     });
     localServer.onConnecting((isConnecting) => {
@@ -562,6 +569,7 @@ function App() {
       </Suspense>
       <TermsAgreementModal />
       <NewcomerGuideModal />
+      <WorkspaceSetupModal />
       <GlobalListener />
     </ThemeProvider>
   );

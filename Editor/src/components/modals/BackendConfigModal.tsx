@@ -65,9 +65,6 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
           server_host: data.config.server.host,
           file_root: data.config.file.root,
           file_exclude: data.config.file.exclude.join(", "),
-          file_extensions: data.config.file.extensions.join(", "),
-          file_max_depth: data.config.file.max_depth,
-          file_max_files: data.config.file.max_files,
           log_level: data.config.log.level,
           log_dir: data.config.log.dir,
           log_push_to_client: data.config.log.push_to_client,
@@ -144,12 +141,6 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
             .split(",")
             .map((s: string) => s.trim())
             .filter(Boolean),
-          extensions: values.file_extensions
-            .split(",")
-            .map((s: string) => s.trim())
-            .filter(Boolean),
-          max_depth: values.file_max_depth,
-          max_files: values.file_max_files,
         },
         log: {
           level: values.log_level,
@@ -296,7 +287,7 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
             label={
               <span>
                 根目录
-                <Tooltip title="文件扫描的根目录路径，修改后需重启服务。仅在 LocalBridge 指定了配置文件或 Desktop 环境中生效。">
+                <Tooltip title="MaaFramework 项目的搜索边界，目录内必须存在有效的 Project Interface。">
                   <InfoCircleOutlined
                     style={{ marginLeft: 4, color: "#8c8c8c" }}
                   />
@@ -305,7 +296,7 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
             }
             extra="仅在 LB 指定了配置文件（--config）或在 Desktop 环境中生效。"
           >
-            <Input placeholder="文件扫描根目录" />
+            <Input placeholder="MaaFramework 项目搜索根目录" />
           </Form.Item>
 
           <Form.Item
@@ -322,58 +313,6 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
             }
           >
             <Input placeholder="node_modules, .git, dist" />
-          </Form.Item>
-
-          <Form.Item
-            name="file_extensions"
-            label={
-              <span>
-                文件类型
-                <Tooltip title="多个扩展名用逗号分隔">
-                  <InfoCircleOutlined
-                    style={{ marginLeft: 4, color: "#8c8c8c" }}
-                  />
-                </Tooltip>
-              </span>
-            }
-          >
-            <Input placeholder=".json, .jsonc" />
-          </Form.Item>
-
-          <Form.Item
-            name="file_max_depth"
-            label={
-              <span>
-                最大扫描深度
-                <Tooltip title="目录扫描的最大深度，0 表示无限制">
-                  <InfoCircleOutlined
-                    style={{ marginLeft: 4, color: "#8c8c8c" }}
-                  />
-                </Tooltip>
-              </span>
-            }
-          >
-            <InputNumber min={0} style={{ width: "100%" }} placeholder="10" />
-          </Form.Item>
-
-          <Form.Item
-            name="file_max_files"
-            label={
-              <span>
-                最大文件数量
-                <Tooltip title="扫描的最大文件数量">
-                  <InfoCircleOutlined
-                    style={{ marginLeft: 4, color: "#8c8c8c" }}
-                  />
-                </Tooltip>
-              </span>
-            }
-          >
-            <InputNumber
-              min={1}
-              style={{ width: "100%" }}
-              placeholder="10000"
-            />
           </Form.Item>
 
           {/* 日志配置 */}
