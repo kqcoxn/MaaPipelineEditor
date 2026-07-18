@@ -477,18 +477,6 @@ export const settingsDefinitions: ConfigItemDef[] = [
     unCheckedChildren: "关闭",
     order: 1,
   },
-  {
-    key: "useDarkMode",
-    category: "canvas",
-    label: "深色模式",
-    tipTitle: "深色模式",
-    tipContent: "切换编辑器的深色/浅色主题",
-    type: "switch",
-    checkedChildren: "深色",
-    unCheckedChildren: "浅色",
-    order: 3,
-  },
-
   // ==================== 本地服务 (local-service) ====================
   {
     key: "__backendConfig",

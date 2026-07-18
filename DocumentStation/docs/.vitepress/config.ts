@@ -65,6 +65,7 @@ export default defineConfig({
   cleanUrls: false,
   lastUpdated: true,
   lang: "zh-CN",
+  appearance: false,
   head: [
     ["link", { rel: "icon", type: "image/png", href: "/docs/logo.png" }],
     ["meta", { property: "og:type", content: "website" }],
@@ -114,7 +115,6 @@ export default defineConfig({
   },
   themeConfig: {
     logo: "/logo.png",
-    darkModeSwitchLabel: "主题",
     sidebarMenuLabel: "菜单",
     returnToTopLabel: "返回顶部",
     lastUpdatedText: "上次更新时间",

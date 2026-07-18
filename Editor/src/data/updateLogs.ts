@@ -94,10 +94,13 @@ export const nextPreview: ForecastSection = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
-    version: "1.7.5",
+    version: "2.0.0",
     date: "2026-7",
     type: "fix",
-    updates: {},
+    updates: {
+      features: ["🔍 为连接面板 win32 窗口添加搜索功能"],
+      perfs: ["优化文件索引方式，增强安全性与速度"],
+    },
   },
   {
     version: "1.7.4",
@@ -977,7 +980,7 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2025-09-16",
     type: "major",
     updates: {
-      features: ["新增暗色/夜间模式支持", "新增 Star 提醒功能"],
+      features: ["新增 Star 提醒功能"],
       perfs: ["优化在线使用提示", "精简版本发布说明内容"],
     },
   },

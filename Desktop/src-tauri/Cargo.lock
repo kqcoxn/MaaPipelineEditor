@@ -2078,7 +2078,7 @@ checksum = "0ceec5bc11778974d1bcb055b18002eba7f4b3518b6a0081b3af5f21666da9ad"
 
 [[package]]
 name = "maa-pipeline-editor-desktop"
-version = "1.7.5"
+version = "2.0.0"
 dependencies = [
  "atomicwrites",
  "chrono",

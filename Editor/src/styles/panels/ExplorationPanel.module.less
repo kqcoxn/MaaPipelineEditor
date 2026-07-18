@@ -81,10 +81,6 @@
     transform 0.25s ease;
   pointer-events: none;
 
-  :global(.dark) & {
-    background-color: #1f1f1f;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-  }
 }
 
 .panelVisible {
@@ -101,10 +97,6 @@
   border-bottom: 1px solid #e8e8e8;
   background: #fafafa;
 
-  :global(.dark) & {
-    border-bottom-color: #333;
-    background: #2a2a2a;
-  }
 }
 
 .title {
@@ -203,9 +195,6 @@
   background: var(--color-bg-layout);
   border-radius: 8px;
 
-  :global(.dark) & {
-    background: #2a2a2a;
-  }
 }
 
 .stepInfo {
@@ -233,9 +222,6 @@
   padding-top: 12px;
   border-top: 1px solid var(--color-border-secondary);
 
-  :global(.dark) & {
-    border-top-color: #333;
-  }
 }
 
 // executing 状态
@@ -261,9 +247,6 @@
   background: rgba(24, 144, 255, 0.1);
   border-radius: 4px;
 
-  :global(.dark) & {
-    background: rgba(24, 144, 255, 0.15);
-  }
 }
 
 // completed 状态
@@ -281,9 +264,6 @@
   background: rgba(24, 144, 255, 0.05) !important;
   opacity: 0.9;
 
-  :global(.dark) & {
-    background: rgba(24, 144, 255, 0.1) !important;
-  }
 }
 
 .ghostNodeLabel {
@@ -310,7 +290,4 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   z-index: 10;
 
-  :global(.dark) & {
-    background: #2a2a2a;
-  }
 }

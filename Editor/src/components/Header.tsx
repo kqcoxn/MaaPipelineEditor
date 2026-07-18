@@ -11,8 +11,6 @@ import {
 } from "antd";
 import {
   DownOutlined,
-  SunOutlined,
-  MoonOutlined,
   LinkOutlined,
   DisconnectOutlined,
   LoadingOutlined,
@@ -27,7 +25,6 @@ import { localServer } from "../services/server";
 import { useMFWStore, type DeviceInfo } from "../stores/mfwStore";
 
 import { globalConfig } from "../stores/configStore";
-import { useTheme } from "../contexts/ThemeContext";
 import { WikiAnchor } from "./wiki/WikiAnchor";
 import classNames from "classnames";
 import { useState, useEffect } from "react";
@@ -256,7 +253,6 @@ const DeviceConnectionButton: React.FC<{ onOpenPanel: () => void }> = ({
 };
 
 function Header() {
-  const { isDark, toggleTheme } = useTheme();
   const { isEmbed } = useEmbedMode();
   const [updateLogOpen, setUpdateLogOpen] = useState(false);
   const [connectionPanelOpen, setConnectionPanelOpen] = useState(false);
@@ -439,21 +435,6 @@ function Header() {
                 </Tag>
               </Tooltip>
             )}
-          </div>
-          <div className={style.theme}>
-            <Tooltip
-              placement="bottom"
-              title={isDark ? "切换到亮色模式" : "切换到暗色模式"}
-            >
-              <Button
-                type="text"
-                shape="circle"
-                icon={isDark ? <MoonOutlined /> : <SunOutlined />}
-                onClick={toggleTheme}
-                className={style.themeButton}
-                aria-label={isDark ? "切换到亮色模式" : "切换到暗色模式"}
-              />
-            </Tooltip>
           </div>
           <div className={style.links}>
             <Tooltip placement="bottom" title="Pipeline协议">

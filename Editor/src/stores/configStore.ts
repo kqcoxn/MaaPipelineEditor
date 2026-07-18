@@ -6,7 +6,7 @@ import { encryptApiKey } from "../utils/ai/crypto";
 /**固有配置 */
 export const globalConfig = {
   dev: true,
-  version: `1.7.5`,
+  version: `2.0.0`,
   betaIteration: 0,
   mfwVersion: "5.12.1",
   protocolVersion: "2.0.0",
@@ -57,7 +57,6 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   canvasBackgroundMode: "canvas",
   isAutoFocus: "canvas",
   focusOpacity: "canvas",
-  useDarkMode: "canvas",
   // 组件配置
   isExportConfig: "component",
   saveFilesBeforeDebug: "component",
@@ -163,7 +162,6 @@ const defaultConfigs = {
   configHandlingMode: "integrated" as ConfigHandlingMode,
   showEdgeLabel: true,
   isAutoFocus: true,
-  useDarkMode: false,
   historyLimit: 100,
   nodeStyle: "modern" as NodeStyleType,
   nodeAttrExportStyle: "prefix" as NodeAttrExportStyle,
@@ -230,7 +228,6 @@ export type ConfigState = {
     configHandlingMode: ConfigHandlingMode;
     showEdgeLabel: boolean;
     isAutoFocus: boolean;
-    useDarkMode: boolean;
     historyLimit: number;
     nodeStyle: NodeStyleType;
     nodeAttrExportStyle: NodeAttrExportStyle;

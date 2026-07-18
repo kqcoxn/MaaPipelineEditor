@@ -41,7 +41,6 @@ import {
   ExplorationPanel,
 } from "./components/panels/exploration";
 import { pipelineToFlow, flowToPipelineString } from "./core/parser";
-import { ThemeProvider } from "./contexts/ThemeContext";
 import {
   getShareParam,
   loadFromShareUrl,
@@ -515,7 +514,7 @@ function App() {
 
   // 渲染组件
   return (
-    <ThemeProvider>
+    <>
       <Flex className={style.container} gap="middle" wrap>
         <Layout className={style.layout}>
           {showHeader && (
@@ -571,7 +570,7 @@ function App() {
       <NewcomerGuideModal />
       <WorkspaceSetupModal />
       <GlobalListener />
-    </ThemeProvider>
+    </>
   );
 }
 

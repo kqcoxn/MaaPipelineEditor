@@ -158,32 +158,3 @@
     }
   }
 }
-
-// 暗色模式适配
-:global(.dark-mode) {
-  .panel {
-    .list {
-      .item {
-        background: var(--bg-secondary, #1f1f1f);
-        border-color: var(--border-color, #303030);
-
-        .content {
-          .section {
-            .actualMessage {
-              background: var(--bg-tertiary, #2a2a2a);
-            }
-
-            .imageThumbnail {
-              border-color: var(--border-color, #303030);
-            }
-
-            .textContent {
-              background: var(--bg-tertiary, #2a2a2a);
-              color: var(--text-primary, #e8e8e8);
-            }
-          }
-        }
-      }
-    }
-  }
-}

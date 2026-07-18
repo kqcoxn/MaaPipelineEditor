@@ -1,7 +1,7 @@
 {
   "name": "maa-pipeline-editor-desktop",
   "private": true,
-  "version": "1.7.5",
+  "version": "2.0.0",
   "packageManager": "yarn@1.22.22",
   "scripts": {
     "dev": "tauri dev",

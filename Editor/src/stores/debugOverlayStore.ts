@@ -26,6 +26,47 @@ interface DebugOverlayState {
   clearOverlay: () => void;
 }
 
+type DebugTraceOverlayState = Pick<
+  DebugOverlayState,
+  | "currentNodeId"
+  | "activeRecognitionNodeIds"
+  | "visitedNodeIds"
+  | "succeededNodeIds"
+  | "failedNodeIds"
+  | "executedEdgeIds"
+  | "candidateEdgeIds"
+>;
+
+function traceOverlayStateFromSummary(
+  summary: DebugTraceSummary,
+): DebugTraceOverlayState {
+  if (
+    summary.status === "completed" ||
+    summary.status === "failed" ||
+    summary.status === "stopped"
+  ) {
+    return {
+      currentNodeId: undefined,
+      activeRecognitionNodeIds: new Set(),
+      visitedNodeIds: new Set(),
+      succeededNodeIds: new Set(),
+      failedNodeIds: new Set(),
+      executedEdgeIds: new Set(),
+      candidateEdgeIds: new Set(),
+    };
+  }
+
+  return {
+    currentNodeId: summary.currentNodeId,
+    activeRecognitionNodeIds: new Set(summary.activeRecognitionNodeIds),
+    visitedNodeIds: new Set(summary.visitedNodeIds),
+    succeededNodeIds: new Set(summary.succeededNodeIds),
+    failedNodeIds: new Set(summary.failedNodeIds),
+    executedEdgeIds: new Set(summary.executedEdgeIds),
+    candidateEdgeIds: new Set(summary.candidateEdgeIds),
+  };
+}
+
 export const useDebugOverlayStore = create<DebugOverlayState>((set) => ({
   activeRecognitionNodeIds: new Set(),
   visitedNodeIds: new Set(),
@@ -39,27 +80,9 @@ export const useDebugOverlayStore = create<DebugOverlayState>((set) => ({
   executionCandidateEdgeIds: new Set(),
   highlightedFailureNodeIds: new Set(),
 
-  applyTraceSummary: (summary) =>
-    set({
-      currentNodeId: summary.currentNodeId,
-      activeRecognitionNodeIds: new Set(summary.activeRecognitionNodeIds),
-      visitedNodeIds: new Set(summary.visitedNodeIds),
-      succeededNodeIds: new Set(summary.succeededNodeIds),
-      failedNodeIds: new Set(summary.failedNodeIds),
-      executedEdgeIds: new Set(summary.executedEdgeIds),
-      candidateEdgeIds: new Set(summary.candidateEdgeIds),
-    }),
+  applyTraceSummary: (summary) => set(traceOverlayStateFromSummary(summary)),
 
-  applyReplaySummary: (summary) =>
-    set({
-      currentNodeId: summary.currentNodeId,
-      activeRecognitionNodeIds: new Set(summary.activeRecognitionNodeIds),
-      visitedNodeIds: new Set(summary.visitedNodeIds),
-      succeededNodeIds: new Set(summary.succeededNodeIds),
-      failedNodeIds: new Set(summary.failedNodeIds),
-      executedEdgeIds: new Set(summary.executedEdgeIds),
-      candidateEdgeIds: new Set(summary.candidateEdgeIds),
-    }),
+  applyReplaySummary: (summary) => set(traceOverlayStateFromSummary(summary)),
 
   applyNodeExecutionOverlay: (overlay) =>
     set({

@@ -1,6 +1,6 @@
 [project]
 name = "MaaPipelineEditor-LocalBridge"
-version = "1.7.5"
+version = "2.0.0"
 description = "Local backend for MaaPipelineEditor"
 readme = "README.md"
 requires-python = ">=3.11,<3.15"
