@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
+import mimetypes
 import os
 import re
 import time
@@ -12,7 +14,14 @@ from typing import Any, cast
 import json5
 
 from .config import FileConfig
-from .errors import ForbiddenError, InvalidArgumentError, NotFoundError
+from .constants import MAX_WS_MESSAGE_BYTES
+from .errors import (
+    DocumentConflictError,
+    ForbiddenError,
+    InvalidArgumentError,
+    NotFoundError,
+)
+from .models import WorkspaceDocumentsPayload
 from .paths import workspace_preferences_path
 from .project_interface import (
     InterfaceCandidate,
@@ -22,9 +31,46 @@ from .project_interface import (
     load_json_or_jsonc,
 )
 
-_CONFIG_SUFFIX_RE = re.compile(r"^\..+\.mpe\.json$", re.IGNORECASE)
+_CONFIG_SUFFIX_RE = re.compile(r"(?:^|\.)mpe\.jsonc?$", re.IGNORECASE)
 _PIPELINE_EXTENSIONS = {".json", ".jsonc"}
 _IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp"}
+_TEXT_LANGUAGES = {
+    ".bat": "bat",
+    ".c": "c",
+    ".cc": "cpp",
+    ".cfg": "ini",
+    ".conf": "ini",
+    ".cpp": "cpp",
+    ".cs": "csharp",
+    ".css": "css",
+    ".env": "shell",
+    ".go": "go",
+    ".h": "c",
+    ".hpp": "cpp",
+    ".html": "html",
+    ".ini": "ini",
+    ".java": "java",
+    ".js": "javascript",
+    ".jsx": "javascript",
+    ".json": "json",
+    ".jsonc": "json",
+    ".log": "plaintext",
+    ".lua": "lua",
+    ".md": "markdown",
+    ".ps1": "powershell",
+    ".py": "python",
+    ".rs": "rust",
+    ".scss": "scss",
+    ".sh": "shell",
+    ".sql": "sql",
+    ".toml": "ini",
+    ".ts": "typescript",
+    ".tsx": "typescript",
+    ".txt": "plaintext",
+    ".xml": "xml",
+    ".yaml": "yaml",
+    ".yml": "yaml",
+}
 LOGGER = logging.getLogger(__name__)
 
 
@@ -44,6 +90,7 @@ class Workspace:
         self._own_writes_lock = RLock()
         self._revision = 0
         self._tree_revision = 0
+        self._documents_revision = 0
         self._state = "discovering"
         self._reason = ""
         self._discovery = InterfaceDiscovery([], [], 0)
@@ -51,6 +98,7 @@ class Workspace:
         self._files: dict[str, dict[str, Any]] = {}
         self._directories: list[str] = []
         self._tree_entries: list[dict[str, str]] = []
+        self._documents: list[dict[str, Any]] = []
         self._index_cache: dict[
             Path,
             tuple[tuple[int, int], list[dict[str, Any]], str, str],
@@ -80,6 +128,8 @@ class Workspace:
             self._files = {}
             self._directories = []
             self._tree_entries = []
+            self._documents_revision = 0
+            self._documents = []
             self._indexed_files = 0
             self._total_files = 0
 
@@ -90,6 +140,7 @@ class Workspace:
             self._reason = ""
             self._active = None
             self._files = {}
+            self._documents = []
             self._directories = []
             self._indexed_files = 0
             self._total_files = 0
@@ -254,6 +305,29 @@ class Workspace:
             self._tree_entries = entries
         return self.tree_snapshot()
 
+    def refresh_documents(self) -> dict[str, Any]:
+        """Classify project files from metadata without reading ordinary content."""
+        with self._lock:
+            root = self.root
+            tree_entries = tuple(self._tree_entries)
+            active = self._active
+            revision = self._documents_revision + 1
+
+        documents = [
+            self._classify_document(root, active, root / entry["path"])
+            for entry in tree_entries
+            if entry["kind"] == "file"
+        ]
+        documents = [document for document in documents if document is not None]
+        documents.sort(key=lambda item: (str(item["path"]).casefold(), str(item["path"])))
+
+        with self._lock:
+            if root != self.root or active is not self._active:
+                return self.documents_snapshot()
+            self._documents_revision = revision
+            self._documents = documents
+        return self.documents_snapshot()
+
     def refresh_modified_files(self, relative_paths: list[str]) -> dict[str, Any]:
         with self._lock:
             self._revision += 1
@@ -320,6 +394,17 @@ class Workspace:
                 "root": str(self.root),
                 "entries": [dict(entry) for entry in self._tree_entries],
             }
+
+    def documents_snapshot(self) -> dict[str, Any]:
+        with self._lock:
+            payload = WorkspaceDocumentsPayload.model_validate(
+                {
+                    "revision": self._documents_revision,
+                    "root": str(self.root),
+                    "documents": self._documents,
+                }
+            )
+        return payload.model_dump(mode="json", by_alias=True)
 
     def status(self) -> dict[str, Any]:
         with self._lock:
@@ -404,6 +489,204 @@ class Workspace:
         except ValueError as error:
             raise ForbiddenError("路径超出工作区") from error
         return candidate
+
+    def document_descriptor(self, relative_path: str) -> dict[str, Any]:
+        path = self._resolve_document_path(relative_path)
+        if not path.is_file():
+            raise NotFoundError("文件不存在")
+        with self._lock:
+            descriptor = next(
+                (
+                    dict(document)
+                    for document in self._documents
+                    if document["path"] == relative_path
+                ),
+                None,
+            )
+        if descriptor is None:
+            raise NotFoundError("文件不存在或不可访问")
+        return descriptor
+
+    def open_document(self, relative_path: str) -> dict[str, Any]:
+        descriptor = self.document_descriptor(relative_path)
+        path = self._resolve_document_path(relative_path)
+        revision = _sha256_path(path)
+        result = {
+            **descriptor,
+            "revision": revision,
+        }
+        if descriptor["kind"] in {"image", "binary"}:
+            return {**result, "_path": path}
+        if path.stat().st_size >= MAX_WS_MESSAGE_BYTES:
+            return {
+                **result,
+                "editable": False,
+                "previewable": True,
+                "read_only_reason": "too_large",
+                "_path": path,
+            }
+        raw = path.read_bytes()
+        try:
+            result["content"] = raw.decode("utf-8-sig")
+            result["encoding"] = "utf-8"
+        except UnicodeDecodeError:
+            result["kind"] = "binary"
+            result["language"] = ""
+            result["mime_type"] = "application/octet-stream"
+            result["editable"] = False
+            result["previewable"] = True
+            result["read_only_reason"] = "binary"
+        return {**result, "_path": path}
+
+    def save_document(
+        self,
+        relative_path: str,
+        content: str,
+        base_revision: str,
+    ) -> dict[str, Any]:
+        descriptor = self.document_descriptor(relative_path)
+        if not descriptor["editable"] or descriptor["kind"] in {"image", "binary"}:
+            raise ForbiddenError("该文件不支持文本编辑")
+        path = self._resolve_document_path(relative_path)
+        current = path.read_bytes()
+        try:
+            current.decode("utf-8-sig")
+        except UnicodeDecodeError as error:
+            raise ForbiddenError("该文件不是可安全编辑的 UTF-8 文本") from error
+        current_revision = hashlib.sha256(current).hexdigest()
+        if current_revision != base_revision:
+            raise DocumentConflictError(
+                "文件已被外部修改",
+                data={
+                    "path": relative_path,
+                    "currentRevision": current_revision,
+                },
+            )
+        encoded = content.encode("utf-8")
+        if len(encoded) >= MAX_WS_MESSAGE_BYTES:
+            raise InvalidArgumentError("文件内容超过 WebSocket 消息限制")
+        self._atomic_write_bytes(path, encoded)
+        revision = hashlib.sha256(encoded).hexdigest()
+        return {
+            "path": relative_path,
+            "revision": revision,
+            "size": len(encoded),
+            "sha256": revision,
+        }
+
+    def _resolve_document_path(self, relative_path: str) -> Path:
+        lexical = self.root / relative_path
+        normalized = self._lexical_relative(lexical)
+        if not normalized or normalized != Path(relative_path).as_posix():
+            raise InvalidArgumentError("文件路径必须是规范的工作区相对路径")
+        if self._has_symlink_ancestor(normalized):
+            raise ForbiddenError("不允许访问符号链接")
+        with self._lock:
+            excluded = {name.casefold() for name in self.config.exclude}
+        if any(part.casefold() in excluded for part in Path(normalized).parts):
+            raise ForbiddenError("文件位于已排除目录")
+        return self.resolve(normalized, must_exist=True)
+
+    def _classify_document(
+        self,
+        root: Path,
+        active: InterfaceCandidate | None,
+        path: Path | None = None,
+    ) -> dict[str, Any] | None:
+        candidate = path or root
+        try:
+            resolved = candidate.resolve(strict=True)
+            relative = resolved.relative_to(root.resolve()).as_posix()
+            stat = resolved.stat()
+        except (OSError, ValueError):
+            return None
+        if not resolved.is_file() or candidate.is_symlink():
+            return None
+
+        suffix = resolved.suffix.casefold()
+        name = resolved.name
+        language = _TEXT_LANGUAGES.get(name.casefold(), _TEXT_LANGUAGES.get(suffix, ""))
+        mime_type = mimetypes.guess_type(name)[0] or "application/octet-stream"
+        role: str | None = None
+
+        is_interface = bool(
+            active is not None
+            and (resolved == active.path or resolved in active.imports)
+        )
+        is_default_pipeline = bool(
+            active is not None
+            and any(
+                resolved == bundle.path / default_name
+                for bundle in active.bundles
+                for default_name in ("default_pipeline.json", "default_pipeline.jsonc")
+            )
+        )
+        is_pipeline = bool(
+            active is not None
+            and any(
+                _path_is_relative_to(resolved, bundle.path / "pipeline")
+                and self._is_pipeline_file(resolved)
+                for bundle in active.bundles
+            )
+        )
+
+        if is_interface:
+            kind = "interface"
+            language = "json"
+            mime_type = "application/json"
+        elif is_pipeline:
+            kind = "pipeline"
+            language = "json"
+            mime_type = "application/json"
+        elif is_default_pipeline:
+            kind = "json"
+            role = "default_pipeline"
+            language = "json"
+            mime_type = "application/json"
+        elif suffix in _PIPELINE_EXTENSIONS:
+            kind = "json"
+            language = "json"
+            mime_type = "application/json"
+            if _CONFIG_SUFFIX_RE.search(name):
+                role = "mpe_config"
+        elif suffix in _IMAGE_EXTENSIONS:
+            kind = "image"
+        elif suffix == ".md":
+            kind = "markdown"
+            mime_type = "text/markdown"
+        elif language:
+            kind = "text"
+            mime_type = mime_type if mime_type.startswith("text/") else "text/plain"
+        else:
+            kind = "binary"
+
+        editable = kind in {"interface", "json", "text", "markdown"}
+        previewable = True
+        read_only_reason: str | None = None
+        if kind == "pipeline":
+            read_only_reason = "pipeline"
+        elif kind == "image":
+            editable = False
+            read_only_reason = "image"
+        elif kind == "binary":
+            editable = False
+            read_only_reason = "binary"
+        elif stat.st_size >= MAX_WS_MESSAGE_BYTES:
+            editable = False
+            read_only_reason = "too_large"
+
+        return {
+            "path": relative,
+            "name": name,
+            "kind": kind,
+            "language": language,
+            "mime_type": mime_type,
+            "size": stat.st_size,
+            "editable": editable,
+            "previewable": previewable,
+            "read_only_reason": read_only_reason,
+            "role": role,
+        }
 
     def relative(self, path: Path) -> str:
         return path.resolve().relative_to(self.root).as_posix()
@@ -789,9 +1072,12 @@ class Workspace:
         return json.dumps(content_json, ensure_ascii=False, indent=spaces) + "\n"
 
     def _atomic_write(self, path: Path, content: str) -> None:
+        self._atomic_write_bytes(path, content.encode("utf-8"))
+
+    def _atomic_write_bytes(self, path: Path, content: bytes) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         temp = path.with_suffix(f"{path.suffix}.{os.getpid()}.tmp")
-        with temp.open("w", encoding="utf-8", newline="\n") as file:
+        with temp.open("wb") as file:
             file.write(content)
             file.flush()
             os.fsync(file.fileno())
@@ -814,3 +1100,19 @@ def _json_object(value: Any) -> dict[str, Any] | None:
         return None
     mapping = cast(dict[Any, Any], value)
     return {str(key): item for key, item in mapping.items()}
+
+
+def _path_is_relative_to(path: Path, parent: Path) -> bool:
+    try:
+        path.relative_to(parent.resolve())
+        return True
+    except (OSError, ValueError):
+        return False
+
+
+def _sha256_path(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as file:
+        while chunk := file.read(1024 * 1024):
+            digest.update(chunk)
+    return digest.hexdigest()

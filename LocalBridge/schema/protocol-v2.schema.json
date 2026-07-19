@@ -173,6 +173,162 @@
       "title": "DebugEvent",
       "type": "object"
     },
+    "DocumentOpenResult": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "content": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Content"
+        },
+        "editable": {
+          "default": false,
+          "title": "Editable",
+          "type": "boolean"
+        },
+        "encoding": {
+          "anyOf": [
+            {
+              "const": "utf-8",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Encoding"
+        },
+        "kind": {
+          "enum": [
+            "pipeline",
+            "interface",
+            "json",
+            "text",
+            "markdown",
+            "image",
+            "binary"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "language": {
+          "default": "",
+          "title": "Language",
+          "type": "string"
+        },
+        "mimeType": {
+          "default": "application/octet-stream",
+          "title": "Mimetype",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "previewable": {
+          "default": true,
+          "title": "Previewable",
+          "type": "boolean"
+        },
+        "readOnlyReason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Readonlyreason"
+        },
+        "revision": {
+          "title": "Revision",
+          "type": "string"
+        },
+        "role": {
+          "anyOf": [
+            {
+              "enum": [
+                "default_pipeline",
+                "mpe_config"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Role"
+        },
+        "size": {
+          "default": 0,
+          "title": "Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "name",
+        "kind",
+        "revision"
+      ],
+      "title": "DocumentOpenResult",
+      "type": "object"
+    },
+    "DocumentSaveResult": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "revision": {
+          "title": "Revision",
+          "type": "string"
+        },
+        "sha256": {
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size": {
+          "title": "Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "revision",
+        "size",
+        "sha256"
+      ],
+      "title": "DocumentSaveResult",
+      "type": "object"
+    },
     "RpcError": {
       "additionalProperties": false,
       "properties": {
@@ -321,6 +477,119 @@
       "title": "RpcResponse",
       "type": "object"
     },
+    "WorkspaceDocument": {
+      "additionalProperties": false,
+      "properties": {
+        "editable": {
+          "default": false,
+          "title": "Editable",
+          "type": "boolean"
+        },
+        "kind": {
+          "enum": [
+            "pipeline",
+            "interface",
+            "json",
+            "text",
+            "markdown",
+            "image",
+            "binary"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "language": {
+          "default": "",
+          "title": "Language",
+          "type": "string"
+        },
+        "mimeType": {
+          "default": "application/octet-stream",
+          "title": "Mimetype",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "previewable": {
+          "default": true,
+          "title": "Previewable",
+          "type": "boolean"
+        },
+        "readOnlyReason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Readonlyreason"
+        },
+        "role": {
+          "anyOf": [
+            {
+              "enum": [
+                "default_pipeline",
+                "mpe_config"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Role"
+        },
+        "size": {
+          "default": 0,
+          "title": "Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "name",
+        "kind"
+      ],
+      "title": "WorkspaceDocument",
+      "type": "object"
+    },
+    "WorkspaceDocumentsPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "documents": {
+          "items": {
+            "$ref": "#/$defs/WorkspaceDocument"
+          },
+          "title": "Documents",
+          "type": "array"
+        },
+        "revision": {
+          "title": "Revision",
+          "type": "integer"
+        },
+        "root": {
+          "title": "Root",
+          "type": "string"
+        }
+      },
+      "required": [
+        "revision",
+        "root",
+        "documents"
+      ],
+      "title": "WorkspaceDocumentsPayload",
+      "type": "object"
+    },
     "WorkspaceTreeEntry": {
       "additionalProperties": false,
       "properties": {
@@ -385,6 +654,12 @@
     "debug_event": {
       "$ref": "#/$defs/DebugEvent"
     },
+    "document_open_result": {
+      "$ref": "#/$defs/DocumentOpenResult"
+    },
+    "document_save_result": {
+      "$ref": "#/$defs/DocumentSaveResult"
+    },
     "message": {
       "discriminator": {
         "mapping": {
@@ -407,6 +682,9 @@
       ],
       "title": "Message"
     },
+    "workspace_documents": {
+      "$ref": "#/$defs/WorkspaceDocumentsPayload"
+    },
     "workspace_tree": {
       "$ref": "#/$defs/WorkspaceTreePayload"
     }
@@ -415,7 +693,10 @@
     "message",
     "artifact",
     "debug_event",
-    "workspace_tree"
+    "workspace_tree",
+    "workspace_documents",
+    "document_open_result",
+    "document_save_result"
   ],
   "title": "ProtocolDocument",
   "type": "object",
@@ -423,6 +704,7 @@
     "system.error",
     "log.entry",
     "workspace.files",
+    "workspace.documents",
     "workspace.tree",
     "workspace.status",
     "workspace.indexUpdated",
@@ -464,7 +746,7 @@
     "debug.agentTested",
     "debug.artifact"
   ],
-  "x-protocol-version": "2.1.0",
+  "x-protocol-version": "2.2.0",
   "x-rpc-methods": [
     "system.hello",
     "system.health",
@@ -474,6 +756,8 @@
     "config.reload",
     "workspace.scan",
     "workspace.interface.select",
+    "document.open",
+    "document.save",
     "file.open",
     "file.create",
     "file.save",

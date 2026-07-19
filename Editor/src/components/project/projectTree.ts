@@ -1,4 +1,5 @@
 import type { WorkspaceTreeEntry } from "../../stores/workspaceStore";
+import type { WorkspaceDocument } from "../../services/generated/bridge-v2";
 import type { Key } from "react";
 
 export const PROJECT_TREE_ROOT_KEY = "__mpe_workspace_root__";
@@ -11,6 +12,7 @@ export interface ProjectTreeNode {
   path: string;
   kind: ProjectTreeNodeKind;
   selectable: boolean;
+  document?: WorkspaceDocument;
   isLeaf?: boolean;
   children?: ProjectTreeNode[];
 }
@@ -80,7 +82,7 @@ export function getWorkspaceRootName(root: string): string {
 export function buildProjectTree(
   root: string,
   entries: WorkspaceTreeEntry[],
-  pipelinePaths: Iterable<string>,
+  capabilities: Iterable<string | WorkspaceDocument>,
 ): ProjectTreeNode {
   const rootNode: ProjectTreeNode = {
     key: PROJECT_TREE_ROOT_KEY,
@@ -91,9 +93,16 @@ export function buildProjectTree(
     children: [],
   };
   const directories = new Map<string, ProjectTreeNode>();
-  const pipelineSet = new Set(
-    Array.from(pipelinePaths, (path) => normalizePath(path)),
-  );
+  const capabilityList = Array.from(capabilities);
+  const documentMap = new Map<string, WorkspaceDocument>();
+  const pipelineSet = new Set<string>();
+  capabilityList.forEach((item) => {
+    if (typeof item === "string") {
+      pipelineSet.add(normalizePath(item));
+    } else {
+      documentMap.set(normalizePath(item.path), item);
+    }
+  });
 
   entries.forEach((entry) => {
     const path = normalizePath(entry.path);
@@ -109,12 +118,14 @@ export function buildProjectTree(
       ? ensureDirectory(rootNode, directories, parentPath)
       : rootNode;
     if (parent.children?.some((child) => child.path === path)) return;
+    const document = documentMap.get(path);
     parent.children?.push({
       key: path,
       title: entry.name || segments.at(-1) || path,
       path,
       kind: "file",
-      selectable: pipelineSet.has(path),
+      selectable: document ? true : pipelineSet.has(path),
+      document,
       isLeaf: true,
     });
   });
@@ -140,11 +151,15 @@ export function preserveExpandedProjectTreeKeys(
 
 export function getSelectedProjectTreeKeys(
   currentFilePath: string | undefined,
-  pipelinePaths: Iterable<string>,
+  capabilities: Iterable<string | WorkspaceDocument>,
 ): string[] {
   if (!currentFilePath) return [];
   const normalized = normalizePath(currentFilePath);
-  return Array.from(pipelinePaths, normalizePath).includes(normalized)
-    ? [normalized]
-    : [];
+  const list = Array.from(capabilities);
+  const selectable = list.some((item) =>
+    typeof item === "string"
+      ? normalizePath(item) === normalized
+      : normalizePath(item.path) === normalized,
+  );
+  return selectable ? [normalized] : [];
 }

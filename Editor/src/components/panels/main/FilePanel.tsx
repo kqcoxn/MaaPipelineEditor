@@ -1,24 +1,32 @@
 import { CSS } from "@dnd-kit/utilities";
 import style from "../../../styles/panels/FilePanel.module.less";
 
-import React, { useState, memo, useMemo, useCallback } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import {
   closestCenter,
   DndContext,
   PointerSensor,
   useSensor,
+  type DragEndEvent,
 } from "@dnd-kit/core";
 import {
   horizontalListSortingStrategy,
   SortableContext,
   useSortable,
 } from "@dnd-kit/sortable";
-import { Tabs, Input, Button, Tooltip } from "antd";
+import { Button, Input, Tabs, Tooltip } from "antd";
 import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
+
 import { useFileStore } from "../../../stores/fileStore";
 import { useEmbedMode } from "../../../hooks/useEmbedMode";
 import { useProjectSidebarStore } from "../../../stores/projectSidebarStore";
 import { useWSStore } from "../../../stores/wsStore";
+import { useProjectSessionStore } from "../../../stores/projectSessionStore";
+import { useDocumentStore } from "../../../stores/documentStore";
+import {
+  activateEditorTab,
+  closeEditorTab,
+} from "../../../services/projectSessionActions";
 
 interface DraggableTabPaneProps extends React.HTMLAttributes<HTMLDivElement> {
   "data-node-key": string;
@@ -27,20 +35,19 @@ interface DraggableTabPaneProps extends React.HTMLAttributes<HTMLDivElement> {
 const DraggableTabNode: React.FC<Readonly<DraggableTabPaneProps>> = memo(
   ({ ...props }) => {
     const { attributes, listeners, setNodeRef, transform, transition } =
-      useSortable({
-        id: props["data-node-key"],
-      });
-
-    const style: React.CSSProperties = {
+      useSortable({ id: props["data-node-key"] });
+    const tabStyle: React.CSSProperties = {
       ...props.style,
       transform: CSS.Translate.toString(transform),
       transition,
       cursor: "move",
     };
-
-    return React.cloneElement(props.children as React.ReactElement, {
+    const child = props.children as React.ReactElement<
+      React.HTMLAttributes<HTMLElement> & React.RefAttributes<HTMLElement>
+    >;
+    return React.cloneElement(child, {
       ref: setNodeRef,
-      style,
+      style: tabStyle,
       ...attributes,
       ...listeners,
     });
@@ -48,69 +55,119 @@ const DraggableTabNode: React.FC<Readonly<DraggableTabPaneProps>> = memo(
 );
 
 function FilePanel() {
-  // 当前文件名
   const files = useFileStore((state) => state.files);
   const fileName = useFileStore((state) => state.currentFile.fileName);
   const setFileName = useFileStore((state) => state.setFileName);
-  const switchFile = useFileStore((state) => state.switchFile);
+  const addFile = useFileStore((state) => state.addFile);
+  const tabs = useProjectSessionStore((state) => state.tabs);
+  const activeKey = useProjectSessionStore((state) => state.activeKey);
+  const syncPipelineTabs = useProjectSessionStore(
+    (state) => state.syncPipelineTabs,
+  );
+  const reorderTab = useProjectSessionStore((state) => state.reorderTab);
+  const openedDocuments = useDocumentStore((state) => state.opened);
+  const documentIndex = useDocumentStore((state) => state.documents);
   const sidebarVisible = useProjectSidebarStore((state) => state.visible);
   const toggleSidebar = useProjectSidebarStore((state) => state.toggle);
   const wsConnected = useWSStore((state) => state.connected);
   const { isEmbed } = useEmbedMode();
-  const sidebarAvailable = wsConnected && !isEmbed;
-  const sidebarShown = sidebarAvailable && sidebarVisible;
-
-  // 文件名状态
   const [fileNameState, setFileNameState] = useState<
     "" | "warning" | "error" | undefined
   >("");
+  const pipelinePaths = useMemo(
+    () => files.map((file) => file.config.filePath || file.fileName),
+    [files],
+  );
 
-  // 文件列表
-  const [activeKey, setActiveKey] = useState("");
-  const tabs = useMemo(() => {
-    setActiveKey(fileName);
-    return files.map((file) => ({
-      key: file.fileName,
-      label: file.fileName,
-    }));
-  }, [files, fileName]);
-  // 变化监测
+  useEffect(() => syncPipelineTabs(pipelinePaths), [pipelinePaths, syncPipelineTabs]);
+
+  const activeTab = tabs.find((tab) => tab.key === activeKey);
+  const activeDocument =
+    activeTab?.kind === "document" ? openedDocuments[activeTab.path] : undefined;
+  const sidebarAvailable = wsConnected && !isEmbed;
+  const sidebarShown = sidebarAvailable && sidebarVisible;
+  const pipelineCount = tabs.filter((tab) => tab.kind === "pipeline").length;
+
+  const items = useMemo(
+    () =>
+      tabs.map((tab) => {
+        const pipeline =
+          tab.kind === "pipeline"
+            ? files.find(
+                (file) =>
+                  file.config.filePath === tab.path || file.fileName === tab.path,
+              )
+            : undefined;
+        const document =
+          tab.kind === "document"
+            ? openedDocuments[tab.path]?.descriptor ?? documentIndex[tab.path]
+            : undefined;
+        const dirty = tab.kind === "document" && openedDocuments[tab.path]?.dirty;
+        const label = pipeline?.fileName ?? document?.name ?? tab.path;
+        return {
+          key: tab.key,
+          closable: tab.kind === "document" || pipelineCount > 1,
+          label: (
+            <span className={style.tabLabel}>
+              <span className={style.tabName}>{label}</span>
+              {dirty && <span className={style.dirtyDot} aria-label="未保存" />}
+            </span>
+          ),
+        };
+      }),
+    [documentIndex, files, openedDocuments, pipelineCount, tabs],
+  );
+
   const sensor = useSensor(PointerSensor, {
-    activationConstraint: { distance: 10 },
+    activationConstraint: { distance: 8 },
   });
-  const onLabelChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const key = e.target.value;
-    const isValid = setFileName(key);
-    setFileNameState(isValid ? "" : "error");
-    if (isValid) setActiveKey(key);
-  }, [setFileName]);
-  const onTabChange = useCallback((key: string) => {
-    const newKey = switchFile(key);
-    if (newKey) setActiveKey(newKey);
-  }, [switchFile]);
-  const onDragEnd = useFileStore((state) => state.onDragEnd);
-  const addFile = useFileStore((state) => state.addFile);
-  const removeFile = useFileStore((state) => state.removeFile);
+
+  const onLabelChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const nextName = event.target.value;
+      const isValid = setFileName(nextName);
+      setFileNameState(isValid ? "" : "error");
+    },
+    [setFileName],
+  );
+
+  const onTabChange = useCallback(
+    (key: string) => {
+      const tab = useProjectSessionStore
+        .getState()
+        .tabs.find((item) => item.key === key);
+      if (tab) void activateEditorTab(tab);
+    },
+    [],
+  );
+
   const onEdit = useCallback(
     (
       key: React.MouseEvent | React.KeyboardEvent | string,
       action: "add" | "remove",
     ) => {
-      let newKey;
-      switch (action) {
-        case "add":
-          newKey = addFile();
-          break;
-        case "remove":
-          newKey = removeFile(key as string);
-          break;
+      if (action === "add") {
+        const nextName = addFile({ isSwitch: true });
+        if (nextName) useProjectSessionStore.getState().openPipeline(nextName);
+        return;
       }
-      if (newKey) setActiveKey(newKey);
+      const tab = useProjectSessionStore
+        .getState()
+        .tabs.find((item) => item.key === String(key));
+      if (tab) void closeEditorTab(tab);
     },
-    [addFile, removeFile],
+    [addFile],
   );
 
-  // 渲染
+  const onDragEnd = useCallback(
+    ({ active, over }: DragEndEvent) => {
+      if (over && active.id !== over.id) {
+        reorderTab(String(active.id), String(over.id));
+      }
+    },
+    [reorderTab],
+  );
+
   return (
     <div className={style.panel}>
       <div className={style.fileControls}>
@@ -119,19 +176,17 @@ function FilePanel() {
             isEmbed
               ? "嵌入模式不显示项目侧栏"
               : wsConnected
-              ? sidebarShown
-                ? "收起项目侧栏"
-                : "展开项目侧栏"
-              : "连接 LocalBridge 后可用"
+                ? sidebarShown
+                  ? "收起项目侧栏"
+                  : "展开项目侧栏"
+                : "连接 LocalBridge 后可用"
           }
           placement="bottom"
         >
           <span>
             <Button
               type={sidebarShown ? "primary" : "default"}
-              icon={
-                sidebarShown ? <MenuFoldOutlined /> : <MenuUnfoldOutlined />
-              }
+              icon={sidebarShown ? <MenuFoldOutlined /> : <MenuUnfoldOutlined />}
               size="small"
               disabled={!sidebarAvailable}
               aria-label={sidebarShown ? "收起项目侧栏" : "展开项目侧栏"}
@@ -142,16 +197,17 @@ function FilePanel() {
         <Input
           className={style.filename}
           placeholder="文件名"
-          value={fileName}
-          status={fileNameState}
-          onChange={onLabelChange}
+          value={activeDocument ? activeDocument.path : fileName}
+          readOnly={Boolean(activeDocument)}
+          status={activeDocument ? undefined : fileNameState}
+          onChange={activeDocument ? undefined : onLabelChange}
         />
       </div>
       <Tabs
         className={style.tabs}
         type="editable-card"
-        items={tabs}
-        activeKey={activeKey}
+        items={items}
+        activeKey={activeKey ?? undefined}
         onChange={onTabChange}
         onEdit={onEdit}
         renderTabBar={(tabBarProps, DefaultTabBar) => (
@@ -161,14 +217,13 @@ function FilePanel() {
             collisionDetection={closestCenter}
           >
             <SortableContext
-              items={tabs.map((i) => i.key)}
+              items={items.map((item) => item.key)}
               strategy={horizontalListSortingStrategy}
             >
               <DefaultTabBar {...tabBarProps}>
                 {(node) => (
                   <DraggableTabNode
-                    {...(node as React.ReactElement<DraggableTabPaneProps>)
-                      .props}
+                    {...(node as React.ReactElement<DraggableTabPaneProps>).props}
                     key={node.key}
                   >
                     {node}

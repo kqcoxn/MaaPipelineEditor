@@ -13,6 +13,7 @@ import {
   useWorkspaceStore,
   type WorkspaceStatusPayload,
 } from "../../stores/workspaceStore";
+import { useProjectSessionStore } from "../../stores/projectSessionStore";
 
 /**
  * 文件协议处理器
@@ -171,6 +172,7 @@ export class FileProtocol extends BaseProtocol {
       );
 
       if (success) {
+        useProjectSessionStore.getState().openPipeline(file_path);
         const fileName = file_path.split(/[\/\\]/).pop();
         if (mpe_config) {
           message.success(`已打开文件: ${fileName} (含配置)`);

@@ -60,6 +60,33 @@ class WorkspaceTreePayload(ApiModel):
     entries: list[WorkspaceTreeEntry]
 
 
+class WorkspaceDocument(ApiModel):
+    path: str
+    name: str
+    kind: Literal[
+        "pipeline",
+        "interface",
+        "json",
+        "text",
+        "markdown",
+        "image",
+        "binary",
+    ]
+    language: str = ""
+    mime_type: str = "application/octet-stream"
+    size: int = 0
+    editable: bool = False
+    previewable: bool = True
+    read_only_reason: str | None = None
+    role: Literal["default_pipeline", "mpe_config"] | None = None
+
+
+class WorkspaceDocumentsPayload(ApiModel):
+    revision: int
+    root: str
+    documents: list[WorkspaceDocument]
+
+
 class HelloParams(ApiModel):
     protocol_version: str
     client_version: str
@@ -78,6 +105,20 @@ class ArtifactRef(ApiModel):
     session_id: str | None = None
     run_id: str | None = None
     created_at: datetime
+
+
+class DocumentOpenResult(WorkspaceDocument):
+    content: str | None = None
+    encoding: Literal["utf-8"] | None = None
+    revision: str
+    artifact: ArtifactRef | None = None
+
+
+class DocumentSaveResult(ApiModel):
+    path: str
+    revision: str
+    size: int
+    sha256: str
 
 
 class DebugEvent(ApiModel):

@@ -5,6 +5,8 @@ import { localServer } from "./server";
 import { useFileStore } from "../stores/fileStore";
 import { useLocalFileStore } from "../stores/localFileStore";
 import { useWorkspaceStore } from "../stores/workspaceStore";
+import { useDocumentStore, getDirtyDocumentPaths } from "../stores/documentStore";
+import { useProjectSessionStore } from "../stores/projectSessionStore";
 
 export type DesktopProjectOpenResult =
   | { status: "unavailable" }
@@ -26,10 +28,14 @@ export function isDesktopEnvironment(): boolean {
 }
 
 function confirmProjectSwitch(path: string): Promise<boolean> {
+  const dirty = getDirtyDocumentPaths();
+  const dirtyNotice = dirty.length
+    ? `当前有 ${dirty.length} 个文档包含未保存修改，确认后将丢弃这些草稿。`
+    : "";
   return new Promise((resolve) => {
     Modal.confirm({
       title: "打开新项目",
-      content: `切换到“${path}”将关闭当前 Pipeline 标签并清空画布。是否继续？`,
+      content: `切换到“${path}”将关闭当前 Pipeline 标签并清空画布。${dirtyNotice}是否继续？`,
       okText: "打开项目",
       cancelText: "取消",
       mask: { closable: false },
@@ -44,11 +50,14 @@ function resetProjectSession(): void {
   localStorage.removeItem("_mpe_files");
   useWorkspaceStore.getState().clear();
   useLocalFileStore.getState().clear();
+  useDocumentStore.getState().clearProject();
+  useProjectSessionStore.getState().clear();
 }
 
 function reconnectLocalBridge(): void {
   useWorkspaceStore.getState().prepareReconnect();
   useLocalFileStore.getState().prepareReconnect();
+  useDocumentStore.getState().prepareReconnect();
   localServer.disconnect();
   localServer.connect();
 }

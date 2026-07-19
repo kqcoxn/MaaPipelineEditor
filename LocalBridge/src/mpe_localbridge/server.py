@@ -34,7 +34,15 @@ from .debug_runtime import DebugManager
 from .errors import InvalidArgumentError, LocalBridgeError
 from .event_log import EventLog
 from .maa_runtime import MaaRuntimeService
-from .models import HelloParams, RpcError, RpcEvent, RpcRequest, RpcResponse
+from .models import (
+    DocumentOpenResult,
+    DocumentSaveResult,
+    HelloParams,
+    RpcError,
+    RpcEvent,
+    RpcRequest,
+    RpcResponse,
+)
 from .watcher import WorkspaceWatcher
 from .workspace import Workspace
 
@@ -118,6 +126,7 @@ class LocalBridgeState:
         await asyncio.to_thread(self.workspace.discover)
         await asyncio.to_thread(self.workspace.refresh_files)
         await asyncio.to_thread(self.workspace.refresh_tree)
+        await asyncio.to_thread(self.workspace.refresh_documents)
         await self.watcher.start()
 
     async def close(self) -> None:
@@ -143,9 +152,11 @@ class LocalBridgeState:
                 bump_revision=not rediscover,
             )
             tree = await asyncio.to_thread(self.workspace.refresh_tree)
+            documents = await asyncio.to_thread(self.workspace.refresh_documents)
             await self.hub.emit("workspace.status", self.workspace.status())
             await self.hub.emit("workspace.files", snapshot)
             await self.hub.emit("workspace.tree", tree)
+            await self.hub.emit("workspace.documents", documents)
             await self.hub.emit("resource.bundles", self.workspace.resource_bundles())
             self.start_indexing()
 
@@ -153,21 +164,27 @@ class LocalBridgeState:
         async with self._workspace_lock:
             await self.cancel_indexing()
             snapshot = await asyncio.to_thread(self.workspace.refresh_modified_files, paths)
+            documents = await asyncio.to_thread(self.workspace.refresh_documents)
             await self.hub.emit("workspace.status", self.workspace.status())
             await self.hub.emit("workspace.files", snapshot)
+            await self.hub.emit("workspace.documents", documents)
             self.start_indexing()
 
     async def refresh_tree(self) -> None:
         tree = await asyncio.to_thread(self.workspace.refresh_tree)
         await self.hub.emit("workspace.tree", tree)
+        documents = await asyncio.to_thread(self.workspace.refresh_documents)
+        await self.hub.emit("workspace.documents", documents)
 
     async def select_interface(self, interface_path: str) -> dict[str, Any]:
         async with self._workspace_lock:
             await self.cancel_indexing()
             status = await asyncio.to_thread(self.workspace.select_interface, interface_path)
             snapshot = await asyncio.to_thread(self.workspace.refresh_files)
+            documents = await asyncio.to_thread(self.workspace.refresh_documents)
             await self.hub.emit("workspace.status", self.workspace.status())
             await self.hub.emit("workspace.files", snapshot)
+            await self.hub.emit("workspace.documents", documents)
             await self.hub.emit("resource.bundles", self.workspace.resource_bundles())
             self.start_indexing()
             return status
@@ -249,6 +266,9 @@ class LocalBridgeState:
         if not pipeline_events:
             if needs_tree_refresh:
                 await self.refresh_tree()
+            elif events:
+                documents = await asyncio.to_thread(self.workspace.refresh_documents)
+                await self.hub.emit("workspace.documents", documents)
             return
         modified_files = [
             str(event["file_path"])
@@ -338,6 +358,8 @@ class Dispatcher:
             "config.reload": self._config_reload,
             "workspace.scan": self._workspace_scan,
             "workspace.interface.select": self._workspace_interface_select,
+            "document.open": self._document_open,
+            "document.save": self._document_save,
             "file.open": self._file_open,
             "file.create": self._file_create,
             "file.save": self._file_save,
@@ -506,6 +528,7 @@ class Dispatcher:
         await context.emit("workspace.status", self.state.workspace.status())
         await context.emit("workspace.files", self.state.workspace.snapshot())
         await context.emit("workspace.tree", self.state.workspace.tree_snapshot())
+        await context.emit("workspace.documents", self.state.workspace.documents_snapshot())
         await context.emit("resource.bundles", self.state.workspace.resource_bundles())
         self.state.start_indexing()
         for session_id, after_seq in cursors.items():
@@ -568,6 +591,56 @@ class Dispatcher:
     ) -> dict[str, Any]:
         del context
         return await self.state.select_interface(str(params["interface_path"]))
+
+    async def _document_open(
+        self, context: RpcContext, params: dict[str, Any]
+    ) -> dict[str, Any]:
+        del context
+        result = await asyncio.to_thread(
+            self.state.workspace.open_document,
+            str(params.get("path", params.get("file_path", ""))),
+        )
+        path = result.pop("_path", None)
+        if (
+            result.get("kind") == "image"
+            and isinstance(path, Path)
+            and int(result.get("size", 0)) <= MAX_ARTIFACT_BYTES
+        ):
+            ref = await asyncio.to_thread(
+                self.state.artifacts.add_path,
+                path,
+                kind="project-image",
+            )
+            result["artifact"] = ref
+        elif result.get("kind") == "image":
+            result["previewable"] = False
+            result["read_only_reason"] = "too_large"
+        return DocumentOpenResult.model_validate(result).model_dump(
+            mode="json",
+            by_alias=True,
+            exclude_none=True,
+        )
+
+    async def _document_save(
+        self, context: RpcContext, params: dict[str, Any]
+    ) -> dict[str, Any]:
+        del context
+        result = await asyncio.to_thread(
+            self.state.workspace.save_document,
+            str(params.get("path", "")),
+            str(params.get("content", "")),
+            str(params.get("base_revision", "")),
+        )
+        response = DocumentSaveResult.model_validate(result).model_dump(
+            mode="json", by_alias=True
+        )
+        event = {
+            "type": "modified",
+            "file_path": result["path"],
+            "is_directory": False,
+        }
+        await self.state.workspace_changed([event], False, [])
+        return response
 
     async def _file_open(self, context: RpcContext, params: dict[str, Any]) -> dict[str, Any]:
         result = await asyncio.to_thread(self.state.workspace.open_file, str(params["file_path"]))

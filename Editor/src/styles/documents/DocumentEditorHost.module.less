@@ -1,0 +1,161 @@
+.host {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  color: #262626;
+  background: #fff;
+}
+
+.toolbar {
+  flex: 0 0 44px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 14px 0 16px;
+  border-bottom: 1px solid #f0f0f0;
+  background: #fff;
+}
+
+.identity {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.name {
+  flex: 0 0 auto;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.path,
+.metaPath {
+  min-width: 0;
+  overflow: hidden;
+  color: #8c8c8c;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.content {
+  min-height: 0;
+  flex: 1;
+  position: relative;
+}
+
+.centerState {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.conflict {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.conflictBar {
+  flex: 0 0 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 14px 0 16px;
+  border-bottom: 1px solid #ffe58f;
+  background: #fffbe6;
+}
+
+.conflictHint {
+  display: block;
+  margin-top: 1px;
+  font-size: 12px;
+}
+
+.diffEditor {
+  min-height: 0;
+  flex: 1;
+}
+
+.imagePreview {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background:
+    linear-gradient(45deg, #f5f7fa 25%, transparent 25%),
+    linear-gradient(-45deg, #f5f7fa 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #f5f7fa 75%),
+    linear-gradient(-45deg, transparent 75%, #f5f7fa 75%);
+  background-color: #fff;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  background-size: 16px 16px;
+}
+
+.imageStage {
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  overflow: auto;
+}
+
+.imageStage img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  image-rendering: auto;
+}
+
+.imageMeta {
+  flex: 0 0 38px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+  color: #595959;
+  border-top: 1px solid #f0f0f0;
+  background: rgba(255, 255, 255, 0.96);
+  font-size: 12px;
+}
+
+.metaPath {
+  margin-left: auto;
+}
+
+.metadata {
+  width: min(720px, calc(100% - 48px));
+  margin: 36px auto 0;
+}
+
+.metadataHeading {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.metadataHeading > :global(.anticon) {
+  margin-top: 2px;
+  color: #1677ff;
+  font-size: 30px;
+}
+
+.metadataHeading :global(.ant-typography) {
+  margin: 0;
+  letter-spacing: 0;
+}

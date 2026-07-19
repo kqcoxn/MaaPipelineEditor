@@ -11,9 +11,12 @@ from .constants import EVENT_NAMES, PROTOCOL_VERSION, RPC_METHOD_NAMES
 from .models import (
     ArtifactRef,
     DebugEvent,
+    DocumentOpenResult,
+    DocumentSaveResult,
     RpcEvent,
     RpcRequest,
     RpcResponse,
+    WorkspaceDocumentsPayload,
     WorkspaceTreePayload,
 )
 
@@ -23,6 +26,9 @@ class ProtocolDocument(BaseModel):
     artifact: ArtifactRef
     debug_event: DebugEvent
     workspace_tree: WorkspaceTreePayload
+    workspace_documents: WorkspaceDocumentsPayload
+    document_open_result: DocumentOpenResult
+    document_save_result: DocumentSaveResult
 
 
 def protocol_schema() -> dict[str, object]:
@@ -90,6 +96,58 @@ export interface WorkspaceTreePayload {{
   revision: number;
   root: string;
   entries: WorkspaceTreeEntry[];
+}}
+
+export type DocumentKind =
+  | "pipeline"
+  | "interface"
+  | "json"
+  | "text"
+  | "markdown"
+  | "image"
+  | "binary";
+
+export interface WorkspaceDocument {{
+  path: string;
+  name: string;
+  kind: DocumentKind;
+  language: string;
+  mimeType: string;
+  size: number;
+  editable: boolean;
+  previewable: boolean;
+  readOnlyReason?: string | null;
+  role?: "default_pipeline" | "mpe_config" | null;
+}}
+
+export interface WorkspaceDocumentsPayload {{
+  revision: number;
+  root: string;
+  documents: WorkspaceDocument[];
+}}
+
+export interface DocumentOpenResult {{
+  path: string;
+  name: string;
+  kind: DocumentKind;
+  language: string;
+  mimeType: string;
+  size: number;
+  editable: boolean;
+  previewable: boolean;
+  readOnlyReason?: string | null;
+  role?: "default_pipeline" | "mpe_config" | null;
+  content?: string;
+  encoding?: "utf-8";
+  revision: string;
+  artifact?: ArtifactRef;
+}}
+
+export interface DocumentSaveResult {{
+  path: string;
+  revision: string;
+  size: number;
+  sha256: string;
 }}
 
 export interface ArtifactRef {{

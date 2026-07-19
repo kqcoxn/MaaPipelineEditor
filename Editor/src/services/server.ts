@@ -17,6 +17,7 @@ import type {
 import { AIProtocol } from "./protocols/AIProtocol";
 import { ConfigProtocol } from "./protocols/ConfigProtocol";
 import { DebugProtocolClient } from "./protocols/DebugProtocolClient";
+import { DocumentProtocol } from "./protocols/DocumentProtocol";
 import { ErrorProtocol } from "./protocols/ErrorProtocol";
 import { FileProtocol } from "./protocols/FileProtocol";
 import { LoggerProtocol } from "./protocols/LoggerProtocol";
@@ -486,6 +487,7 @@ function normalizeError(error: unknown): Record<string, unknown> {
 
 export const localServer = new LocalWebSocketServer();
 export const fileProtocol = new FileProtocol();
+export const documentProtocol = new DocumentProtocol();
 export const mfwProtocol = new MFWProtocol();
 export const errorProtocol = new ErrorProtocol();
 export const configProtocol = new ConfigProtocol();
@@ -497,6 +499,7 @@ export const aiProtocol = new AIProtocol();
 export function initializeWebSocket(): void {
   errorProtocol.register(localServer);
   fileProtocol.register(localServer);
+  documentProtocol.register(localServer);
   mfwProtocol.register(localServer);
   configProtocol.register(localServer);
   debugProtocolClient.register(localServer);

@@ -13,6 +13,10 @@ def test_schema_contains_protocol_contract() -> None:
     assert isinstance(definitions, dict)
     assert "WorkspaceTreeEntry" in definitions
     assert "WorkspaceTreePayload" in definitions
+    assert "WorkspaceDocument" in definitions
+    assert "WorkspaceDocumentsPayload" in definitions
+    assert "DocumentOpenResult" in definitions
+    assert "DocumentSaveResult" in definitions
 
 
 def test_generated_types_include_every_method_and_event() -> None:
@@ -21,3 +25,6 @@ def test_generated_types_include_every_method_and_event() -> None:
     assert all(f'"{event}"' in typescript for event in EVENT_NAMES)
     assert "export interface WorkspaceTreeEntry" in typescript
     assert "export interface WorkspaceTreePayload" in typescript
+    assert "export interface WorkspaceDocument" in typescript
+    assert "export interface DocumentOpenResult" in typescript
+    assert "export interface DocumentSaveResult" in typescript

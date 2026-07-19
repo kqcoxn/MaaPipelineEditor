@@ -1,7 +1,12 @@
 import {
   CaretDownOutlined,
+  CodeOutlined,
   EditOutlined,
   FileOutlined,
+  FileImageOutlined,
+  FileMarkdownOutlined,
+  FileTextOutlined,
+  FileUnknownOutlined,
   FolderOpenOutlined,
   FolderOutlined,
 } from "@ant-design/icons";
@@ -30,9 +35,10 @@ import {
   openDesktopProject,
   isDesktopEnvironment,
 } from "../../services/desktopProject";
-import { localServer } from "../../services/server";
-import { useFileStore } from "../../stores/fileStore";
 import { useLocalFileStore } from "../../stores/localFileStore";
+import { activateEditorTab } from "../../services/projectSessionActions";
+import { useProjectSessionStore } from "../../stores/projectSessionStore";
+import { useDocumentStore } from "../../stores/documentStore";
 import {
   PROJECT_SIDEBAR_MAX_WIDTH,
   PROJECT_SIDEBAR_MIN_WIDTH,
@@ -91,7 +97,9 @@ function ActiveModeLabel() {
         <span>MPE</span>
         <span className={style.modeEnglish}>Elaborator</span>
       </span>
-      <span className={style.activeModeDescription}>查阅、编辑并构建</span>
+      <span className={style.activeModeDescription}>
+        查阅、编辑并构建 MaaFW 项目
+      </span>
     </span>
   );
 }
@@ -118,17 +126,25 @@ function ProjectDirectoryTree() {
   const root = useWorkspaceStore((state) => state.treeRoot || state.root);
   const entries = useWorkspaceStore((state) => state.treeEntries);
   const treeRevision = useWorkspaceStore((state) => state.treeRevision);
-  const files = useLocalFileStore((state) => state.files);
-  const currentFilePath = useFileStore(
-    (state) => state.currentFile.config.filePath,
+  const documentIndex = useDocumentStore((state) => state.documents);
+  const documents = useMemo(
+    () => Object.values(documentIndex),
+    [documentIndex],
   );
-  const pipelinePaths = useMemo(
-    () => files.map((file) => file.file_path),
-    [files],
+  const pipelineFiles = useLocalFileStore((state) => state.files);
+  const activeTab = useProjectSessionStore((state) =>
+    state.tabs.find((tab) => tab.key === state.activeKey),
+  );
+  const capabilities = useMemo(
+    () =>
+      documents.length
+        ? documents
+        : pipelineFiles.map((file) => file.file_path),
+    [documents, pipelineFiles],
   );
   const tree = useMemo(
-    () => buildProjectTree(root, entries, pipelinePaths),
-    [entries, pipelinePaths, root],
+    () => buildProjectTree(root, entries, capabilities),
+    [capabilities, entries, root],
   );
   const [expandedKeys, setExpandedKeys] = useState<Key[]>([
     PROJECT_TREE_ROOT_KEY,
@@ -141,19 +157,33 @@ function ProjectDirectoryTree() {
   }, [tree, treeRevision]);
 
   const selectedKeys = useMemo(
-    () => getSelectedProjectTreeKeys(currentFilePath, pipelinePaths),
-    [currentFilePath, pipelinePaths],
+    () => getSelectedProjectTreeKeys(activeTab?.path, capabilities),
+    [activeTab?.path, capabilities],
   );
 
   const handleSelect = useCallback(
     (_keys: Key[], info: { node: unknown }) => {
       const node = info.node as ProjectTreeNode;
       if (node.kind !== "file" || !node.selectable) return;
-      if (!localServer.send("file.open", { file_path: node.path })) {
-        message.error("打开 Pipeline 请求发送失败");
-      }
+      const isPipeline =
+        node.document?.kind === "pipeline" ||
+        (!documents.length && node.selectable);
+      const tab = isPipeline
+        ? {
+            kind: "pipeline" as const,
+            path: node.path,
+            key: `pipeline:${node.path}`,
+          }
+        : {
+            kind: "document" as const,
+            path: node.path,
+            key: `document:${node.path}`,
+          };
+      void activateEditorTab(tab).then((success) => {
+        if (!success) message.error("打开项目文件请求发送失败");
+      });
     },
-    [],
+    [documents.length],
   );
 
   return (
@@ -195,7 +225,7 @@ function ProjectDirectoryTree() {
             return (
               <span className={style.treeTitle}>
                 {projectNode.kind === "file" ? (
-                  <FileOutlined className={iconClassName} />
+                  fileIcon(projectNode, iconClassName)
                 ) : (
                   <FolderOutlined className={iconClassName} />
                 )}
@@ -207,6 +237,24 @@ function ProjectDirectoryTree() {
       </ConfigProvider>
     </div>
   );
+}
+
+function fileIcon(node: ProjectTreeNode, className: string) {
+  switch (node.document?.kind) {
+    case "image":
+      return <FileImageOutlined className={className} />;
+    case "markdown":
+      return <FileMarkdownOutlined className={className} />;
+    case "interface":
+    case "json":
+      return <CodeOutlined className={className} />;
+    case "text":
+      return <FileTextOutlined className={className} />;
+    case "binary":
+      return <FileUnknownOutlined className={className} />;
+    default:
+      return <FileOutlined className={className} />;
+  }
 }
 
 function applySidebarPreviewWidth(
@@ -387,7 +435,9 @@ export function ProjectSidebar() {
         <div className={style.toolbarSection}>
           <Tooltip
             title={
-              desktop ? "选择 MaaFramework 项目目录" : "仅 Desktop 支持更改项目根目录"
+              desktop
+                ? "选择 MaaFramework 项目目录"
+                : "仅 Desktop 支持更改项目根目录"
             }
           >
             <span className={style.toolbarButtonWrapper}>
@@ -407,11 +457,9 @@ export function ProjectSidebar() {
 
         <ProjectDirectoryTree />
 
-        <Tooltip title={projectName}>
-          <footer className={style.footer}>
-            <span className={style.footerName}>{projectName}</span>
-          </footer>
-        </Tooltip>
+        <footer className={style.footer}>
+          <span className={style.footerName}>{projectName}</span>
+        </footer>
       </aside>
       <SidebarResizeHandle sidebarRef={sidebarRef} />
     </>

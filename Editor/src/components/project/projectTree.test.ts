@@ -48,6 +48,28 @@ describe("projectTree", () => {
     );
   });
 
+  it("marks every file with a document capability selectable", () => {
+    const tree = buildProjectTree("C:/workspace", entries, [
+      {
+        path: "zeta.txt",
+        name: "zeta.txt",
+        kind: "text",
+        language: "plaintext",
+        mimeType: "text/plain",
+        size: 12,
+        editable: true,
+        previewable: true,
+      },
+    ]);
+    const text = tree.children?.find((node) => node.path === "zeta.txt");
+
+    expect(text?.selectable).toBe(true);
+    expect(text?.document?.kind).toBe("text");
+    expect(getSelectedProjectTreeKeys("zeta.txt", [text!.document!])).toEqual([
+      "zeta.txt",
+    ]);
+  });
+
   it("keeps expanded directories that still exist", () => {
     const tree = buildProjectTree("C:/workspace", entries, []);
     expect(

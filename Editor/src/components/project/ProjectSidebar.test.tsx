@@ -37,11 +37,11 @@ describe("ProjectSidebar", () => {
     render(<ProjectSidebar />);
 
     const modeButton = screen.getByRole("button", {
-      name: "MPE Elaborator 查阅、编辑并构建",
+      name: "MPE Elaborator 查阅、编辑并构建 MaaFW 项目",
     });
 
     expect(modeButton).toHaveTextContent(/MPE\s*Elaborator/);
-    expect(modeButton).toHaveTextContent("查阅、编辑并构建");
+    expect(modeButton).toHaveTextContent("查阅、编辑并构建 MaaFW 项目");
     expect(modeButton.querySelector(".anticon-edit")).toBeNull();
   });
 

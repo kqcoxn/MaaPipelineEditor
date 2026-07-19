@@ -32,6 +32,11 @@ class ConflictError(LocalBridgeError):
         super().__init__("conflict", message, data=data)
 
 
+class DocumentConflictError(LocalBridgeError):
+    def __init__(self, message: str, *, data: dict[str, Any] | None = None) -> None:
+        super().__init__("document_conflict", message, data=data)
+
+
 class ForbiddenError(LocalBridgeError):
     def __init__(self, message: str) -> None:
         super().__init__("forbidden", message)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 PACKAGE_VERSION = "2.0.0"
-PROTOCOL_VERSION = "2.1.0"
+PROTOCOL_VERSION = "2.2.0"
 MAX_WS_MESSAGE_BYTES = 8 * 1024 * 1024
 MAX_ARTIFACT_BYTES = 64 * 1024 * 1024
 MAX_CONNECTION_REQUESTS = 64
@@ -15,6 +15,8 @@ RPC_METHOD_NAMES = (
     "config.reload",
     "workspace.scan",
     "workspace.interface.select",
+    "document.open",
+    "document.save",
     "file.open",
     "file.create",
     "file.save",
@@ -57,6 +59,7 @@ EVENT_NAMES = (
     "system.error",
     "log.entry",
     "workspace.files",
+    "workspace.documents",
     "workspace.tree",
     "workspace.status",
     "workspace.indexUpdated",

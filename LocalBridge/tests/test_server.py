@@ -5,7 +5,7 @@ from collections.abc import Iterator
 from pathlib import Path
 from threading import Event
 from typing import Any, cast
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import httpx
 import pytest
@@ -30,6 +30,12 @@ def client(tmp_path: Path) -> Iterator[tuple[TestClient, LocalBridgeState]]:
     )
     pipeline = prepared.root / "project" / "resource" / "pipeline" / "main.json"
     pipeline.write_text('{"Start": {}}', encoding="utf-8")
+    (prepared.root / "project" / "notes.jsonc").write_text(
+        "// note\n{\"value\": 1}\n",
+        encoding="utf-8",
+    )
+    (prepared.root / "project" / "preview.png").write_bytes(b"\x89PNG\r\n\x1a\n")
+    (prepared.root / "project" / "archive.bin").write_bytes(b"\x00\x01")
     config_store = ConfigStore(tmp_path / "config.json")
     config_store.update({"file": {"root": str(workspace)}})
     app, state = create_app(config_store=config_store, data_dir=tmp_path / "data")
@@ -118,6 +124,95 @@ def test_hello_pushes_initial_workspace_tree(
         entry["path"] == "project/resource/pipeline/main.json"
         for entry in tree_event["data"]["entries"]
     )
+
+
+def test_hello_pushes_initial_workspace_documents(
+    client: tuple[TestClient, LocalBridgeState],
+) -> None:
+    test_client, state = client
+    with test_client.websocket_connect("/v2/ws", headers={"origin": ORIGIN}) as websocket:
+        response = _hello(websocket)
+        documents_event = _receive_event(websocket, "workspace.documents")
+
+    assert response["result"]["success"] is True
+    assert documents_event["data"]["root"] == str(state.workspace.root)
+    documents = {
+        document["path"]: document for document in documents_event["data"]["documents"]
+    }
+    assert documents["project/resource/pipeline/main.json"]["kind"] == "pipeline"
+    assert documents["project/notes.jsonc"]["mimeType"] == "application/json"
+
+
+def test_document_rpc_opens_text_image_and_binary(
+    client: tuple[TestClient, LocalBridgeState],
+) -> None:
+    test_client, state = client
+    with test_client.websocket_connect("/v2/ws", headers={"origin": ORIGIN}) as websocket:
+        _hello(websocket)
+        websocket.send_json(
+            _request("text", "document.open", {"path": "project/notes.jsonc"})
+        )
+        text_response = _receive_response(websocket, "text")
+        websocket.send_json(
+            _request("image", "document.open", {"path": "project/preview.png"})
+        )
+        image_response = _receive_response(websocket, "image")
+        websocket.send_json(
+            _request("binary", "document.open", {"path": "project/archive.bin"})
+        )
+        binary_response = _receive_response(websocket, "binary")
+
+    expected = (state.workspace.root / "project" / "notes.jsonc").read_bytes().decode()
+    assert text_response["result"]["content"] == expected
+    assert text_response["result"]["encoding"] == "utf-8"
+    assert text_response["result"]["mimeType"] == "application/json"
+    assert image_response["result"]["artifact"]["kind"] == "project-image"
+    assert image_response["result"]["artifact"]["mimeType"] == "image/png"
+    assert binary_response["result"]["kind"] == "binary"
+    assert "content" not in binary_response["result"]
+    assert "_path" not in binary_response["result"]
+
+
+def test_document_rpc_saves_with_revision_and_reports_conflict(
+    client: tuple[TestClient, LocalBridgeState],
+) -> None:
+    test_client, state = client
+    path = "project/notes.jsonc"
+    with test_client.websocket_connect("/v2/ws", headers={"origin": ORIGIN}) as websocket:
+        _hello(websocket)
+        websocket.send_json(_request("open", "document.open", {"path": path}))
+        opened = _receive_response(websocket, "open")["result"]
+        changed = "// retained\n{\"second\": 2, \"first\": 1}\r\n"
+        websocket.send_json(
+            _request(
+                "save",
+                "document.save",
+                {
+                    "path": path,
+                    "content": changed,
+                    "base_revision": opened["revision"],
+                },
+            )
+        )
+        saved = _receive_response(websocket, "save")
+
+        (state.workspace.root / path).write_text("external\n", encoding="utf-8")
+        websocket.send_json(
+            _request(
+                "conflict",
+                "document.save",
+                {
+                    "path": path,
+                    "content": "local\n",
+                    "base_revision": saved["result"]["revision"],
+                },
+            )
+        )
+        conflict = _receive_response(websocket, "conflict")
+
+    assert (state.workspace.root / path).read_text(encoding="utf-8") == "external\n"
+    assert conflict["error"]["code"] == "document_conflict"
+    assert conflict["error"]["data"]["path"] == path
 
 
 def test_hello_responds_before_workspace_scan_without_blocking_rpc(
@@ -271,3 +366,39 @@ async def test_workspace_change_refreshes_tree_for_mixed_structural_events(
     )
     refresh_tree.assert_awaited_once_with()
     assert emit.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_workspace_change_refreshes_documents_for_ordinary_modification(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace_root = tmp_path / "workspace"
+    workspace_root.mkdir()
+    create_project(
+        workspace_root,
+        preferences_path=tmp_path / "prepared-preferences.json",
+    )
+    config_store = ConfigStore(tmp_path / "config.json")
+    config_store.update({"file": {"root": str(workspace_root)}})
+    state = LocalBridgeState(config_store, tmp_path / "data")
+    refresh_documents = Mock(
+        return_value={"revision": 2, "root": str(workspace_root), "documents": []}
+    )
+    emit = AsyncMock()
+    monkeypatch.setattr(state.workspace, "refresh_documents", refresh_documents)
+    monkeypatch.setattr(state.hub, "emit", emit)
+    event = {
+        "type": "modified",
+        "file_path": "project/readme.md",
+        "is_directory": False,
+    }
+
+    try:
+        await state.workspace_changed([event], False, [])
+    finally:
+        await state.close()
+
+    refresh_documents.assert_called_once_with()
+    assert emit.await_args_list[0].args == ("file.changed", event)
+    assert emit.await_args_list[1].args[0] == "workspace.documents"

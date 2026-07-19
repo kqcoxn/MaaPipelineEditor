@@ -76,6 +76,9 @@ import {
   useProjectSidebarStore,
 } from "./stores/projectSidebarStore";
 import { shouldPreserveProjectStateOnDisconnect } from "./services/desktopProject";
+import { useProjectSessionStore } from "./stores/projectSessionStore";
+import { useDocumentStore } from "./stores/documentStore";
+import { DocumentEditorHost } from "./components/documents/DocumentEditorHost";
 
 const JsonViewer = lazy(() => import("./components/JsonViewer"));
 const DebugModal = lazy(() =>
@@ -145,6 +148,10 @@ function App() {
   const projectSidebarVisible = useProjectSidebarStore(
     (state) => state.visible,
   );
+  const activeTab = useProjectSessionStore((state) =>
+    state.tabs.find((tab) => tab.key === state.activeKey),
+  );
+  const documentActive = activeTab?.kind === "document";
 
   // 探索面板状态
   const [explorationPanelVisible, setExplorationPanelVisible] = useState(false);
@@ -451,6 +458,7 @@ function App() {
           useWorkspaceStore.getState().clear();
           useLocalFileStore.getState().clear();
         }
+        useDocumentStore.getState().prepareReconnect();
       }
     });
     localServer.onConnecting((isConnecting) => {
@@ -544,36 +552,42 @@ function App() {
               <div className={style.editorArea}>
                 {showPanel("file") && <FilePanel />}
                 <div className={style.workspace}>
-                  {showToolbar && <ToolbarPanel />}
-                  <MainFlow />
-                  {showPanel("json") && (
-                    <Suspense fallback={null}>
-                      <JsonViewer />
-                    </Suspense>
-                  )}
-                  {showPanel("liveScreen") && <LiveScreenPanel />}
-                  {showPanel("field") && <FieldPanel />}
-                  {showPanel("edge") && <EdgePanel />}
-                  {showPanel("config") && <SettingsPanel />}
-                  {showPanel("config") && <FileConfigPanel />}
-                  {showPanel("ai-history") && <AIHistoryPanel />}
-                  <ToolPanel.Add />
-                  <ToolPanel.Global />
-                  {showPanel("search") && <SearchPanel />}
-                  <ToolPanel.Layout />
-                  {showPanel("error") && <ErrorPanel />}
-                  {showPanel("logger") && <LoggerPanel />}
-                  {showPanel("exploration") && (
+                  {documentActive && activeTab ? (
+                    <DocumentEditorHost path={activeTab.path} />
+                  ) : (
                     <>
-                      <ExplorationFAB
-                        onClick={() => setExplorationPanelVisible((v) => !v)}
-                        visible={true}
-                        active={explorationPanelVisible}
-                      />
-                      <ExplorationPanel
-                        visible={explorationPanelVisible}
-                        onClose={() => setExplorationPanelVisible(false)}
-                      />
+                      {showToolbar && <ToolbarPanel />}
+                      <MainFlow />
+                      {showPanel("json") && (
+                        <Suspense fallback={null}>
+                          <JsonViewer />
+                        </Suspense>
+                      )}
+                      {showPanel("liveScreen") && <LiveScreenPanel />}
+                      {showPanel("field") && <FieldPanel />}
+                      {showPanel("edge") && <EdgePanel />}
+                      {showPanel("config") && <SettingsPanel />}
+                      {showPanel("config") && <FileConfigPanel />}
+                      {showPanel("ai-history") && <AIHistoryPanel />}
+                      <ToolPanel.Add />
+                      <ToolPanel.Global />
+                      {showPanel("search") && <SearchPanel />}
+                      <ToolPanel.Layout />
+                      {showPanel("error") && <ErrorPanel />}
+                      {showPanel("logger") && <LoggerPanel />}
+                      {showPanel("exploration") && (
+                        <>
+                          <ExplorationFAB
+                            onClick={() => setExplorationPanelVisible((v) => !v)}
+                            visible={true}
+                            active={explorationPanelVisible}
+                          />
+                          <ExplorationPanel
+                            visible={explorationPanelVisible}
+                            onClose={() => setExplorationPanelVisible(false)}
+                          />
+                        </>
+                      )}
                     </>
                   )}
                 </div>
