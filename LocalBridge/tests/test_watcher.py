@@ -71,7 +71,7 @@ def test_prepare_changes_removes_internal_kind_from_every_event() -> None:
         },
     ]
 
-    public_events, needs_discovery = prepare_changes(events)
+    public_events, needs_discovery, pipeline_events = prepare_changes(events)
 
     assert needs_discovery is True
     assert public_events == [
@@ -85,6 +85,13 @@ def test_prepare_changes_removes_internal_kind_from_every_event() -> None:
             "file_path": "project/resource/pipeline/main.json",
             "is_directory": False,
         },
+    ]
+    assert pipeline_events == [
+        {
+            "type": "modified",
+            "file_path": "project/resource/pipeline/main.json",
+            "is_directory": False,
+        }
     ]
 
 
@@ -118,3 +125,28 @@ def test_normalize_changes_ignores_non_pipeline_json_and_marks_deleted_directory
             "workspace_kind": "pipeline",
         }
     ]
+
+
+def test_normalize_changes_emits_ordinary_project_file_without_pipeline_refresh(
+    tmp_path: Path,
+) -> None:
+    workspace = create_project(
+        tmp_path,
+        preferences_path=tmp_path / "preferences.json",
+    )
+    ordinary = tmp_path / "project" / "notes.txt"
+    ordinary.write_text("notes", encoding="utf-8")
+    workspace.refresh_tree()
+
+    events = normalize_changes(workspace, {(Change.modified, str(ordinary))})
+    public_events, needs_discovery, pipeline_events = prepare_changes(events)
+
+    assert public_events == [
+        {
+            "type": "modified",
+            "file_path": "project/notes.txt",
+            "is_directory": False,
+        }
+    ]
+    assert needs_discovery is False
+    assert pipeline_events == []

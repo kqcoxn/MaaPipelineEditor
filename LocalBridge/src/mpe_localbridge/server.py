@@ -117,6 +117,7 @@ class LocalBridgeState:
     async def start(self) -> None:
         await asyncio.to_thread(self.workspace.discover)
         await asyncio.to_thread(self.workspace.refresh_files)
+        await asyncio.to_thread(self.workspace.refresh_tree)
         await self.watcher.start()
 
     async def close(self) -> None:
@@ -141,8 +142,10 @@ class LocalBridgeState:
                 self.workspace.refresh_files,
                 bump_revision=not rediscover,
             )
+            tree = await asyncio.to_thread(self.workspace.refresh_tree)
             await self.hub.emit("workspace.status", self.workspace.status())
             await self.hub.emit("workspace.files", snapshot)
+            await self.hub.emit("workspace.tree", tree)
             await self.hub.emit("resource.bundles", self.workspace.resource_bundles())
             self.start_indexing()
 
@@ -153,6 +156,10 @@ class LocalBridgeState:
             await self.hub.emit("workspace.status", self.workspace.status())
             await self.hub.emit("workspace.files", snapshot)
             self.start_indexing()
+
+    async def refresh_tree(self) -> None:
+        tree = await asyncio.to_thread(self.workspace.refresh_tree)
+        await self.hub.emit("workspace.tree", tree)
 
     async def select_interface(self, interface_path: str) -> dict[str, Any]:
         async with self._workspace_lock:
@@ -228,21 +235,32 @@ class LocalBridgeState:
         self,
         events: list[dict[str, Any]],
         needs_discovery: bool,
+        pipeline_events: list[dict[str, Any]],
     ) -> None:
         for event in events:
             await self.hub.emit("file.changed", event)
         if needs_discovery:
             await self.refresh_workspace(rediscover=True)
             return
+        needs_tree_refresh = any(
+            event.get("type") in {"created", "deleted", "renamed"}
+            for event in events
+        )
+        if not pipeline_events:
+            if needs_tree_refresh:
+                await self.refresh_tree()
+            return
         modified_files = [
             str(event["file_path"])
-            for event in events
+            for event in pipeline_events
             if event.get("type") == "modified" and not event.get("is_directory")
         ]
-        if len(modified_files) == len(events) and self.workspace.tracks_files(
+        if len(modified_files) == len(pipeline_events) and self.workspace.tracks_files(
             modified_files
         ):
             await self.refresh_modified_files(modified_files)
+            if needs_tree_refresh:
+                await self.refresh_tree()
             return
         await self.refresh_workspace(rediscover=False)
 
@@ -487,6 +505,7 @@ class Dispatcher:
     async def _push_initial_state(self, context: RpcContext, cursors: dict[str, int]) -> None:
         await context.emit("workspace.status", self.state.workspace.status())
         await context.emit("workspace.files", self.state.workspace.snapshot())
+        await context.emit("workspace.tree", self.state.workspace.tree_snapshot())
         await context.emit("resource.bundles", self.state.workspace.resource_bundles())
         self.state.start_indexing()
         for session_id, after_seq in cursors.items():
@@ -575,15 +594,17 @@ class Dispatcher:
             int(params.get("indent", 0)),
         )
         await context.emit("file.saved", result)
+        events = [
+            {
+                "type": "modified",
+                "file_path": result["file_path"],
+                "is_directory": False,
+            }
+        ]
         await self.state.workspace_changed(
-            [
-                {
-                    "type": "modified",
-                    "file_path": result["file_path"],
-                    "is_directory": False,
-                }
-            ],
+            events,
             False,
+            events,
         )
         return result
 
@@ -592,15 +613,17 @@ class Dispatcher:
     ) -> dict[str, Any]:
         result = await asyncio.to_thread(self.state.workspace.save_separated, params)
         await context.emit("file.separatedSaved", result)
+        events = [
+            {
+                "type": "modified",
+                "file_path": result["pipeline_path"],
+                "is_directory": False,
+            }
+        ]
         await self.state.workspace_changed(
-            [
-                {
-                    "type": "modified",
-                    "file_path": result["pipeline_path"],
-                    "is_directory": False,
-                }
-            ],
+            events,
             False,
+            events,
         )
         return result
 

@@ -1,7 +1,7 @@
 # MaaPipelineEditor LocalBridge
 
 LocalBridge 是 MaaPipelineEditor 的唯一业务后端，基于 Python、FastAPI 与官方
-`MaaFw` Python Binding。Editor 通过协议 `2.0.0` 的 `/v2/ws` 接口连接；图片和
+`MaaFw` Python Binding。Editor 通过协议 `2.1.0` 的 `/v2/ws` 接口连接；图片和
 调试产物通过 artifact HTTP 接口传输。
 
 ## 环境

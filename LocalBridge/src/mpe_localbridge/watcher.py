@@ -10,7 +10,10 @@ from watchfiles import Change, awatch  # pyright: ignore[reportUnknownVariableTy
 
 from .workspace import Workspace
 
-ChangeHandler = Callable[[list[dict[str, Any]], bool], Awaitable[None]]
+ChangeHandler = Callable[
+    [list[dict[str, Any]], bool, list[dict[str, Any]]],
+    Awaitable[None],
+]
 LOGGER = logging.getLogger(__name__)
 
 
@@ -63,8 +66,8 @@ class WorkspaceWatcher:
                 events = normalize_changes(self.workspace, changes)
                 if not events:
                     continue
-                public_events, needs_discovery = prepare_changes(events)
-                await self.on_change(public_events, needs_discovery)
+                public_events, needs_discovery, pipeline_events = prepare_changes(events)
+                await self.on_change(public_events, needs_discovery, pipeline_events)
         except asyncio.CancelledError:
             raise
         except Exception:
@@ -108,10 +111,16 @@ def normalize_changes(
 
 def prepare_changes(
     events: list[dict[str, Any]],
-) -> tuple[list[dict[str, Any]], bool]:
+) -> tuple[list[dict[str, Any]], bool, list[dict[str, Any]]]:
     needs_discovery = any(event.get("workspace_kind") == "interface" for event in events)
+    pipeline_events = [
+        event for event in events if event.get("workspace_kind") == "pipeline"
+    ]
     public_events = [
         {key: value for key, value in event.items() if key != "workspace_kind"}
         for event in events
     ]
-    return public_events, needs_discovery
+    return public_events, needs_discovery, [
+        {key: value for key, value in event.items() if key != "workspace_kind"}
+        for event in pipeline_events
+    ]

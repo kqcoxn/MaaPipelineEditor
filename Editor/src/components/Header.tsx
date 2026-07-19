@@ -338,12 +338,12 @@ function Header() {
     <>
       {isNarrowScreen && (
         <Alert
+          className={style.narrowWarning}
           title="页面宽度过窄"
           description="当前页面宽度过小，可能影响使用体验，建议使用更大的屏幕或调整浏览器窗口大小。"
           type="warning"
           closable
           banner
-          style={{ marginBottom: 0 }}
         />
       )}
       <div className={style.container}>

@@ -98,7 +98,10 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2026-7",
     type: "fix",
     updates: {
-      features: ["🔍 为连接面板 win32 窗口添加搜索功能"],
+      features: [
+        "📂 新增项目级文件管理系统，将 MPE 用作你的项目工作台！",
+        "🔍 为连接面板 win32 窗口添加搜索功能",
+      ],
       perfs: ["优化文件索引方式，增强安全性与速度"],
     },
   },

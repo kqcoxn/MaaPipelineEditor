@@ -119,11 +119,18 @@ impl BridgeSupervisor {
         }
     }
 
-    pub fn set_workspace(&self, workspace: PathBuf) -> AppResult<()> {
+    pub fn workspace(&self) -> Option<PathBuf> {
+        self.workspace
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clone()
+    }
+
+    pub fn set_workspace(&self, workspace: Option<PathBuf>) -> AppResult<()> {
         *self
             .workspace
             .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(workspace);
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = workspace;
         self.restart()
     }
 

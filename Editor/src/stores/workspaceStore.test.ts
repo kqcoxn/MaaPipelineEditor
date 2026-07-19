@@ -59,4 +59,43 @@ describe("workspaceStore", () => {
 
     expect(useWorkspaceStore.getState().selectorOpen).toBe(true);
   });
+
+  it("tracks tree revisions independently and ignores stale trees", () => {
+    useWorkspaceStore.getState().applyStatus(status(12, "ready"));
+    useWorkspaceStore.getState().applyTree({
+      revision: 4,
+      root: "C:/project",
+      entries: [{ path: "new.json", name: "new.json", kind: "file" }],
+    });
+    useWorkspaceStore.getState().applyTree({
+      revision: 3,
+      root: "C:/old-project",
+      entries: [{ path: "old.json", name: "old.json", kind: "file" }],
+    });
+
+    expect(useWorkspaceStore.getState()).toMatchObject({
+      revision: 12,
+      treeRevision: 4,
+      treeRoot: "C:/project",
+      treeEntries: [{ path: "new.json" }],
+    });
+  });
+
+  it("resets revisions for a restarted bridge without clearing visible project data", () => {
+    useWorkspaceStore.getState().applyStatus(status(8, "ready"));
+    useWorkspaceStore.getState().applyTree({
+      revision: 6,
+      root: "C:/project",
+      entries: [{ path: "main.json", name: "main.json", kind: "file" }],
+    });
+
+    useWorkspaceStore.getState().prepareReconnect();
+
+    expect(useWorkspaceStore.getState()).toMatchObject({
+      revision: 0,
+      treeRevision: 0,
+      state: "ready",
+      treeEntries: [{ path: "main.json" }],
+    });
+  });
 });

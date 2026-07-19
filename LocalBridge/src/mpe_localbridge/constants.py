@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 PACKAGE_VERSION = "2.0.0"
-PROTOCOL_VERSION = "2.0.0"
+PROTOCOL_VERSION = "2.1.0"
 MAX_WS_MESSAGE_BYTES = 8 * 1024 * 1024
 MAX_ARTIFACT_BYTES = 64 * 1024 * 1024
 MAX_CONNECTION_REQUESTS = 64
@@ -57,6 +57,7 @@ EVENT_NAMES = (
     "system.error",
     "log.entry",
     "workspace.files",
+    "workspace.tree",
     "workspace.status",
     "workspace.indexUpdated",
     "file.content",

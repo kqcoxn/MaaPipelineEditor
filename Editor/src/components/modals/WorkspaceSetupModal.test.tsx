@@ -1,6 +1,7 @@
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import * as desktopProject from "../../services/desktopProject";
 import { useWorkspaceStore } from "../../stores/workspaceStore";
 import { useWSStore } from "../../stores/wsStore";
 import { WorkspaceSetupModal } from "./WorkspaceSetupModal";
@@ -13,6 +14,7 @@ describe("WorkspaceSetupModal", () => {
 
   afterEach(() => {
     cleanup();
+    vi.restoreAllMocks();
     useWSStore.getState().setConnected(false);
   });
 
@@ -94,5 +96,29 @@ describe("WorkspaceSetupModal", () => {
       "正在检测 MaaFramework 项目",
     );
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("offers the shared Desktop project picker for an invalid workspace", async () => {
+    vi.spyOn(desktopProject, "isDesktopEnvironment").mockReturnValue(true);
+    const openProject = vi
+      .spyOn(desktopProject, "openDesktopProject")
+      .mockResolvedValue({ status: "cancelled" });
+    useWorkspaceStore.getState().applyStatus({
+      revision: 4,
+      root: "C:/invalid",
+      state: "invalid",
+      reason: "interface_not_found",
+      candidates: [],
+      current_interface: null,
+      indexed_files: 0,
+      total_files: 0,
+      diagnostics: [],
+    });
+
+    render(<WorkspaceSetupModal />);
+    fireEvent.click(screen.getByRole("button", { name: /打开项目/ }));
+
+    await waitFor(() => expect(openProject).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole("button", { name: /重新检测/ })).toBeInTheDocument();
   });
 });

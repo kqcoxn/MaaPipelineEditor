@@ -13,6 +13,7 @@ import {
   useState,
 } from "react";
 import style from "./DesktopSettings.module.less";
+import { openDesktopProject } from "../../services/desktopProject";
 
 const { Text, Title } = Typography;
 
@@ -111,8 +112,10 @@ export function DesktopSettings() {
             loading={busy === "workspace"}
             onClick={() =>
               run("workspace", async () => {
-                const path = await invoke<string | null>("select_workspace");
-                if (path) await invoke("switch_workspace", { path });
+                const result = await openDesktopProject();
+                if (result.status === "failed") {
+                  throw result.error;
+                }
               })
             }
           />

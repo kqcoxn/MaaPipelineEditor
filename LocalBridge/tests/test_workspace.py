@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -262,3 +264,105 @@ def test_discovery_exposes_transition_without_changing_revision_twice(
     assert discovering["revision"] == previous_revision + 1
     assert completed["revision"] == discovering["revision"]
     assert completed["state"] == "indexing"
+
+
+def test_refresh_tree_lists_nested_empty_and_dot_directories(
+    tmp_path: Path,
+) -> None:
+    workspace = create_project(
+        tmp_path,
+        preferences_path=tmp_path / "preferences.json",
+    )
+    empty = tmp_path / "project" / "empty"
+    nested = tmp_path / "project" / "nested"
+    dot_directory = tmp_path / "project" / ".visible"
+    excluded = tmp_path / "project" / "excluded"
+    empty.mkdir()
+    nested.mkdir()
+    dot_directory.mkdir()
+    excluded.mkdir()
+    (nested / "notes.txt").write_text("metadata only", encoding="utf-8")
+    (dot_directory / ".config").write_text("shown", encoding="utf-8")
+    (excluded / "hidden.txt").write_text("hidden", encoding="utf-8")
+    workspace.reconfigure(FileConfig(root=str(tmp_path), exclude=["excluded"]))
+    workspace.discover()
+    workspace.refresh_files()
+
+    first = workspace.refresh_tree()
+    second = workspace.refresh_tree()
+    entries = {item["path"]: item["kind"] for item in second["entries"]}
+
+    assert first["root"] == str(workspace.root)
+    assert second["revision"] == first["revision"] + 1
+    assert entries["project/empty"] == "directory"
+    assert entries["project/nested/notes.txt"] == "file"
+    assert entries["project/.visible"] == "directory"
+    assert entries["project/.visible/.config"] == "file"
+    assert not any(path.startswith("project/excluded") for path in entries)
+
+
+def test_refresh_tree_does_not_follow_internal_or_external_symlinks(
+    tmp_path: Path,
+) -> None:
+    workspace = create_project(
+        tmp_path / "workspace",
+        preferences_path=tmp_path / "preferences.json",
+    )
+    internal_target = workspace.root / "project" / "internal.txt"
+    external_target = tmp_path / "external"
+    internal_target.write_text("internal", encoding="utf-8")
+    external_target.mkdir()
+    (external_target / "external.txt").write_text("external", encoding="utf-8")
+    internal_link = workspace.root / "internal-link.txt"
+    external_link = workspace.root / "external-link"
+    try:
+        internal_link.symlink_to(internal_target)
+        external_link.symlink_to(external_target, target_is_directory=True)
+    except OSError:
+        return
+
+    snapshot = workspace.refresh_tree()
+    paths = {item["path"] for item in snapshot["entries"]}
+
+    assert "internal-link.txt" not in paths
+    assert "external-link" not in paths
+    assert workspace.change_kind(internal_link) is None
+    assert workspace.change_kind(external_link / "external.txt") is None
+
+
+def test_refresh_tree_skips_unreadable_directory_contents_and_warns(
+    workspace: Workspace,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    blocked = workspace.root / "blocked"
+    blocked.mkdir()
+    (blocked / "secret.txt").write_text("secret", encoding="utf-8")
+    original_scandir = os.scandir
+
+    def guarded_scandir(path: str | os.PathLike[str]) -> Iterator[os.DirEntry[str]]:
+        if Path(path) == blocked:
+            raise PermissionError("blocked for test")
+        return original_scandir(path)
+
+    monkeypatch.setattr("mpe_localbridge.workspace.os.scandir", guarded_scandir)
+    caplog.set_level("WARNING", logger="mpe_localbridge.workspace")
+
+    snapshot = workspace.refresh_tree()
+
+    assert not any(
+        item["path"].startswith("blocked") for item in snapshot["entries"]
+    )
+    assert "blocked for test" in caplog.text
+
+
+def test_deleted_project_directory_retains_event_directory_metadata(
+    workspace: Workspace,
+) -> None:
+    directory = workspace.root / "ordinary"
+    directory.mkdir()
+    workspace.refresh_tree()
+    directory.rmdir()
+
+    assert workspace.change_kind(directory) == "project"
+    assert workspace.event_path(directory) == ("ordinary", True)

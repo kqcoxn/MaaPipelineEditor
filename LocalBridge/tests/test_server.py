@@ -5,6 +5,7 @@ from collections.abc import Iterator
 from pathlib import Path
 from threading import Event
 from typing import Any, cast
+from unittest.mock import AsyncMock
 
 import httpx
 import pytest
@@ -44,6 +45,13 @@ def _receive_response(websocket: Any, request_id: str) -> dict[str, Any]:
     while True:
         message: dict[str, Any] = websocket.receive_json()
         if message.get("type") == "response" and message.get("id") == request_id:
+            return message
+
+
+def _receive_event(websocket: Any, event_name: str) -> dict[str, Any]:
+    while True:
+        message: dict[str, Any] = websocket.receive_json()
+        if message.get("type") == "event" and message.get("event") == event_name:
             return message
 
 
@@ -93,6 +101,23 @@ def test_hello_reports_versions_and_capabilities(
         assert "maa" not in response["result"]
         assert response["result"]["capabilities"]["binaryArtifacts"] is True
         assert response["result"]["capabilities"]["debug"]["pause"] is False
+
+
+def test_hello_pushes_initial_workspace_tree(
+    client: tuple[TestClient, LocalBridgeState],
+) -> None:
+    test_client, state = client
+    with test_client.websocket_connect("/v2/ws", headers={"origin": ORIGIN}) as websocket:
+        response = _hello(websocket)
+        tree_event = _receive_event(websocket, "workspace.tree")
+
+    assert response["result"]["success"] is True
+    assert tree_event["data"]["root"] == str(state.workspace.root)
+    assert tree_event["data"]["revision"] >= 1
+    assert any(
+        entry["path"] == "project/resource/pipeline/main.json"
+        for entry in tree_event["data"]["entries"]
+    )
 
 
 def test_hello_responds_before_workspace_scan_without_blocking_rpc(
@@ -194,3 +219,55 @@ def test_http_access_is_logged_at_debug(
     access_records = [record for record in caplog.records if record.message.startswith("HTTP ")]
     assert len(access_records) == 1
     assert access_records[0].levelno == logging.DEBUG
+
+
+@pytest.mark.asyncio
+async def test_workspace_change_refreshes_tree_for_mixed_structural_events(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace_root = tmp_path / "workspace"
+    workspace_root.mkdir()
+    create_project(
+        workspace_root,
+        preferences_path=tmp_path / "prepared-preferences.json",
+    )
+    config_store = ConfigStore(tmp_path / "config.json")
+    config_store.update({"file": {"root": str(workspace_root)}})
+    state = LocalBridgeState(config_store, tmp_path / "data")
+    refresh_files = AsyncMock()
+    refresh_tree = AsyncMock()
+    emit = AsyncMock()
+
+    def tracks_files(_: list[str]) -> bool:
+        return True
+
+    monkeypatch.setattr(state, "refresh_modified_files", refresh_files)
+    monkeypatch.setattr(state, "refresh_tree", refresh_tree)
+    monkeypatch.setattr(state.hub, "emit", emit)
+    monkeypatch.setattr(state.workspace, "tracks_files", tracks_files)
+    pipeline_event = {
+        "type": "modified",
+        "file_path": "project/resource/pipeline/main.json",
+        "is_directory": False,
+    }
+    project_event = {
+        "type": "created",
+        "file_path": "project/readme.md",
+        "is_directory": False,
+    }
+
+    try:
+        await state.workspace_changed(
+            [pipeline_event, project_event],
+            False,
+            [pipeline_event],
+        )
+    finally:
+        await state.close()
+
+    refresh_files.assert_awaited_once_with(
+        ["project/resource/pipeline/main.json"]
+    )
+    refresh_tree.assert_awaited_once_with()
+    assert emit.await_count == 2

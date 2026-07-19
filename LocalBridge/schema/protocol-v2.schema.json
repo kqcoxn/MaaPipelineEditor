@@ -320,6 +320,61 @@
       ],
       "title": "RpcResponse",
       "type": "object"
+    },
+    "WorkspaceTreeEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "directory",
+            "file"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "name",
+        "kind"
+      ],
+      "title": "WorkspaceTreeEntry",
+      "type": "object"
+    },
+    "WorkspaceTreePayload": {
+      "additionalProperties": false,
+      "properties": {
+        "entries": {
+          "items": {
+            "$ref": "#/$defs/WorkspaceTreeEntry"
+          },
+          "title": "Entries",
+          "type": "array"
+        },
+        "revision": {
+          "title": "Revision",
+          "type": "integer"
+        },
+        "root": {
+          "title": "Root",
+          "type": "string"
+        }
+      },
+      "required": [
+        "revision",
+        "root",
+        "entries"
+      ],
+      "title": "WorkspaceTreePayload",
+      "type": "object"
     }
   },
   "$id": "https://mpe.codax.site/schema/localbridge-v2.json",
@@ -351,12 +406,16 @@
         }
       ],
       "title": "Message"
+    },
+    "workspace_tree": {
+      "$ref": "#/$defs/WorkspaceTreePayload"
     }
   },
   "required": [
     "message",
     "artifact",
-    "debug_event"
+    "debug_event",
+    "workspace_tree"
   ],
   "title": "ProtocolDocument",
   "type": "object",
@@ -364,6 +423,7 @@
     "system.error",
     "log.entry",
     "workspace.files",
+    "workspace.tree",
     "workspace.status",
     "workspace.indexUpdated",
     "file.content",
@@ -404,7 +464,7 @@
     "debug.agentTested",
     "debug.artifact"
   ],
-  "x-protocol-version": "2.0.0",
+  "x-protocol-version": "2.1.0",
   "x-rpc-methods": [
     "system.hello",
     "system.health",

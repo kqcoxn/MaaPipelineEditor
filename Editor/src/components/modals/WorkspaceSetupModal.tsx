@@ -15,6 +15,10 @@ import { useShallow } from "zustand/shallow";
 import { localServer } from "../../services/server";
 import { useWSStore } from "../../stores/wsStore";
 import { useWorkspaceStore } from "../../stores/workspaceStore";
+import {
+  isDesktopEnvironment,
+  openDesktopProject,
+} from "../../services/desktopProject";
 
 const { Paragraph, Text } = Typography;
 
@@ -33,6 +37,8 @@ export function WorkspaceSetupModal() {
   );
   const [selectedPath, setSelectedPath] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [openingProject, setOpeningProject] = useState(false);
+  const desktop = isDesktopEnvironment();
   const discovering = workspace.state === "discovering";
   const requiresSelection = workspace.state === "selection_required";
   const invalid = workspace.state === "invalid";
@@ -77,13 +83,39 @@ export function WorkspaceSetupModal() {
     }
   };
 
+  const openProject = async () => {
+    setOpeningProject(true);
+    try {
+      const result = await openDesktopProject();
+      if (result.status === "failed") {
+        message.error(
+          result.error instanceof Error
+            ? result.error.message
+            : String(result.error),
+        );
+      }
+    } finally {
+      setOpeningProject(false);
+    }
+  };
+
   const footer = discovering
     ? null
     : invalid
     ? [
+        desktop && (
+          <Button
+            key="open-project"
+            icon={<FolderOpenOutlined />}
+            loading={openingProject}
+            onClick={() => void openProject()}
+          >
+            打开项目
+          </Button>
+        ),
         <Button
           key="refresh"
-          type="primary"
+          type={desktop ? "default" : "primary"}
           icon={<ReloadOutlined />}
           onClick={refresh}
         >
@@ -143,7 +175,11 @@ export function WorkspaceSetupModal() {
             type="error"
             showIcon
             title={invalidReason(workspace.reason)}
-            description="请从包含 MaaFramework 项目的目录启动 mpelb。interface.json 可以位于该目录的任意子目录。"
+            description={
+              desktop
+                ? "请选择包含 MaaFramework 项目的目录，或重新检测当前目录。"
+                : "请从包含 MaaFramework 项目的目录启动 mpelb。interface.json 可以位于该目录的任意子目录。"
+            }
           />
           <div>
             <Text type="secondary">当前启动根目录</Text>

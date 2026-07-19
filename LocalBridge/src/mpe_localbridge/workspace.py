@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import time
@@ -24,6 +25,7 @@ from .project_interface import (
 _CONFIG_SUFFIX_RE = re.compile(r"^\..+\.mpe\.json$", re.IGNORECASE)
 _PIPELINE_EXTENSIONS = {".json", ".jsonc"}
 _IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp"}
+LOGGER = logging.getLogger(__name__)
 
 
 class Workspace:
@@ -41,12 +43,14 @@ class Workspace:
         self._own_writes: dict[Path, tuple[int, int, float]] = {}
         self._own_writes_lock = RLock()
         self._revision = 0
+        self._tree_revision = 0
         self._state = "discovering"
         self._reason = ""
         self._discovery = InterfaceDiscovery([], [], 0)
         self._active: InterfaceCandidate | None = None
         self._files: dict[str, dict[str, Any]] = {}
         self._directories: list[str] = []
+        self._tree_entries: list[dict[str, str]] = []
         self._index_cache: dict[
             Path,
             tuple[tuple[int, int], list[dict[str, Any]], str, str],
@@ -75,6 +79,7 @@ class Workspace:
             self._active = None
             self._files = {}
             self._directories = []
+            self._tree_entries = []
             self._indexed_files = 0
             self._total_files = 0
 
@@ -198,6 +203,57 @@ class Workspace:
                 self._reason = ""
         return self.snapshot()
 
+    def refresh_tree(self) -> dict[str, Any]:
+        """Build a metadata-only tree without following links or reading files."""
+        with self._lock:
+            root = self.root
+            excluded = {name.casefold() for name in self.config.exclude}
+
+        entries: list[dict[str, str]] = []
+        if root.is_dir():
+            pending: list[tuple[Path, dict[str, str] | None]] = [(root, None)]
+            while pending:
+                current, current_entry = pending.pop()
+                try:
+                    children = list(os.scandir(current))
+                except OSError as error:
+                    LOGGER.warning("无法读取项目目录 %s: %s", current, error)
+                    if current_entry is not None:
+                        entries.remove(current_entry)
+                    continue
+
+                for child in children:
+                    try:
+                        child_path = Path(child.path)
+                        if child.is_symlink():
+                            continue
+                        relative = child_path.relative_to(root).as_posix()
+                        if child.is_dir(follow_symlinks=False):
+                            if child.name.casefold() in excluded:
+                                continue
+                            entry = {
+                                "path": relative,
+                                "name": child.name,
+                                "kind": "directory",
+                            }
+                            entries.append(entry)
+                            pending.append((child_path, entry))
+                        elif child.is_file(follow_symlinks=False):
+                            entries.append(
+                                {"path": relative, "name": child.name, "kind": "file"}
+                            )
+                    except (OSError, ValueError) as error:
+                        LOGGER.warning("跳过项目目录项 %s: %s", child.path, error)
+
+        entries.sort(key=lambda item: (item["path"].casefold(), item["path"]))
+        with self._lock:
+            current_excluded = {name.casefold() for name in self.config.exclude}
+            if root != self.root or excluded != current_excluded:
+                return self.tree_snapshot()
+            self._tree_revision += 1
+            self._tree_entries = entries
+        return self.tree_snapshot()
+
     def refresh_modified_files(self, relative_paths: list[str]) -> dict[str, Any]:
         with self._lock:
             self._revision += 1
@@ -255,6 +311,14 @@ class Workspace:
                     key=lambda item: str(item["relative_path"]).casefold(),
                 ),
                 "directories": list(self._directories),
+            }
+
+    def tree_snapshot(self) -> dict[str, Any]:
+        with self._lock:
+            return {
+                "revision": self._tree_revision,
+                "root": str(self.root),
+                "entries": [dict(entry) for entry in self._tree_entries],
             }
 
     def status(self) -> dict[str, Any]:
@@ -345,6 +409,11 @@ class Workspace:
         return path.resolve().relative_to(self.root).as_posix()
 
     def change_kind(self, path: Path) -> str | None:
+        relative = self._lexical_relative(path)
+        if relative is None:
+            return None
+        if self._has_symlink_ancestor(relative):
+            return None
         try:
             resolved = path.resolve()
             resolved.relative_to(self.root)
@@ -353,12 +422,19 @@ class Workspace:
         with self._lock:
             candidates = tuple(self._discovery.candidates)
             active = self._active
+            tree_kinds = {
+                entry["path"]: entry["kind"] for entry in self._tree_entries
+            }
+            excluded = {name.casefold() for name in self.config.exclude}
+
+        if any(part.casefold() in excluded for part in Path(relative).parts):
+            return None
         if path.name.casefold() in {"interface.json", "interface.jsonc"}:
             return "interface"
         if any(resolved in candidate.imports for candidate in candidates):
             return "interface"
         if active is None:
-            return None
+            return "project" if path.exists() or relative in tree_kinds else None
         for bundle in active.bundles:
             pipeline = bundle.path / "pipeline"
             try:
@@ -368,7 +444,7 @@ class Workspace:
                     known_directory = relative in self._directories
                 if path.is_dir() or known_directory or self._is_pipeline_file(path):
                     return "pipeline"
-                return None
+                return "project" if path.exists() or relative in tree_kinds else None
             except ValueError:
                 pass
             if resolved.parent == bundle.path and resolved.name.casefold() in {
@@ -376,19 +452,44 @@ class Workspace:
                 "default_pipeline.jsonc",
             }:
                 return "pipeline"
-        return None
+        return "project" if path.exists() or relative in tree_kinds else None
 
     def event_path(self, path: Path) -> tuple[str, bool] | None:
         kind = self.change_kind(path)
         if kind is None:
             return None
-        try:
-            relative = path.resolve().relative_to(self.root).as_posix()
-        except (OSError, ValueError):
+        relative = self._lexical_relative(path)
+        if relative is None:
             return None
         with self._lock:
             known_directory = relative in self._directories
-        return relative, path.is_dir() or known_directory
+            tree_kind = next(
+                (
+                    entry["kind"]
+                    for entry in self._tree_entries
+                    if entry["path"] == relative
+                ),
+                None,
+            )
+        return relative, path.is_dir() or known_directory or tree_kind == "directory"
+
+    def _lexical_relative(self, path: Path) -> str | None:
+        lexical = Path(os.path.abspath(path))
+        try:
+            return lexical.relative_to(self.root).as_posix()
+        except ValueError:
+            return None
+
+    def _has_symlink_ancestor(self, relative: str) -> bool:
+        current = self.root
+        for part in Path(relative).parts:
+            current /= part
+            try:
+                if current.is_symlink():
+                    return True
+            except OSError:
+                return True
+        return False
 
     def is_own_write(self, path: Path) -> bool:
         try:

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 pub const PACKAGE_VERSION: &str = env!("CARGO_PKG_VERSION");
-pub const PROTOCOL_VERSION: &str = "2.0.0";
+pub const PROTOCOL_VERSION: &str = "2.1.0";
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]

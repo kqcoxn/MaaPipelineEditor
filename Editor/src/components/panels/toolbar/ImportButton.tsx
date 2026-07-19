@@ -7,6 +7,7 @@ import {
   type ImportAction,
 } from "../../../stores/toolbarStore";
 import { useConfigStore } from "../../../stores/configStore";
+import { useProjectSidebarStore } from "../../../stores/projectSidebarStore";
 import { useWSStore } from "../../../stores/wsStore";
 import { useFlowStore } from "../../../stores/flow";
 import { pipelineToFlow, mergePipelineAndConfig } from "../../../core/parser";
@@ -43,7 +44,9 @@ function ImportButton() {
   const configHandlingMode = useConfigStore(
     (state) => state.configs.configHandlingMode,
   );
-  const setStatus = useConfigStore((state) => state.setStatus);
+  const showProjectSidebar = useProjectSidebarStore(
+    (state) => state.setVisible,
+  );
   const wsConnected = useWSStore((state) => state.connected);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -90,7 +93,7 @@ function ImportButton() {
 
   const handleImportFromFile = () => {
     if (wsConnected) {
-      setStatus("showLocalFilePanel", true);
+      showProjectSidebar(true);
       return;
     }
 

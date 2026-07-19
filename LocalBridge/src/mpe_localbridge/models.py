@@ -48,6 +48,18 @@ class RpcEvent(ApiModel):
     data: Any
 
 
+class WorkspaceTreeEntry(ApiModel):
+    path: str
+    name: str
+    kind: Literal["directory", "file"]
+
+
+class WorkspaceTreePayload(ApiModel):
+    revision: int
+    root: str
+    entries: list[WorkspaceTreeEntry]
+
+
 class HelloParams(ApiModel):
     protocol_version: str
     client_version: str

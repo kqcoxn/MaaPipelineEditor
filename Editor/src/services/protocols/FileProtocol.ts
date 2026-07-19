@@ -2,6 +2,7 @@ import { message, Modal, Button, Space } from "antd";
 import { createElement } from "react";
 import { BaseProtocol } from "./BaseProtocol";
 import type { LocalWebSocketServer } from "../server";
+import type { WorkspaceTreePayload } from "../generated/bridge-v2";
 import { useFileStore } from "../../stores/fileStore";
 import { useConfigStore } from "../../stores/configStore";
 import {
@@ -54,6 +55,9 @@ export class FileProtocol extends BaseProtocol {
     );
     this.wsClient.registerRoute("workspace.status", (data) =>
       this.handleWorkspaceStatus(data),
+    );
+    this.wsClient.registerRoute("workspace.tree", (data) =>
+      this.handleWorkspaceTree(data),
     );
     this.wsClient.registerRoute("workspace.indexUpdated", (data) =>
       this.handleIndexUpdate(data),
@@ -124,6 +128,14 @@ export class FileProtocol extends BaseProtocol {
       return;
     }
     useWorkspaceStore.getState().applyStatus(data);
+  }
+
+  private handleWorkspaceTree(data: unknown): void {
+    if (!isWorkspaceTree(data)) {
+      console.error("[FileProtocol] Invalid workspace tree:", data);
+      return;
+    }
+    useWorkspaceStore.getState().applyTree(data);
   }
 
   private handleIndexUpdate(data: unknown): void {
@@ -625,5 +637,23 @@ function isWorkspaceStatus(value: unknown): value is WorkspaceStatusPayload {
     typeof value.state === "string" &&
     Array.isArray(value.candidates) &&
     Array.isArray(value.diagnostics)
+  );
+}
+
+function isWorkspaceTree(value: unknown): value is WorkspaceTreePayload {
+  if (
+    !isRecord(value) ||
+    typeof value.revision !== "number" ||
+    typeof value.root !== "string" ||
+    !Array.isArray(value.entries)
+  ) {
+    return false;
+  }
+  return value.entries.every(
+    (entry) =>
+      isRecord(entry) &&
+      typeof entry.path === "string" &&
+      typeof entry.name === "string" &&
+      (entry.kind === "directory" || entry.kind === "file"),
   );
 }

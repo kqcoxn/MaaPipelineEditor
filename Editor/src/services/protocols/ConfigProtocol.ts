@@ -26,6 +26,10 @@ export interface BackendConfig {
   };
 }
 
+export type BackendConfigUpdate = {
+  [Key in keyof BackendConfig]?: Partial<BackendConfig[Key]>;
+};
+
 /**
  * 配置响应数据结构
  */
@@ -135,7 +139,7 @@ export class ConfigProtocol extends BaseProtocol {
    * 请求设置配置
    * RPC: config.update
    */
-  public requestSetConfig(config: Partial<BackendConfig>): boolean {
+  public requestSetConfig(config: BackendConfigUpdate): boolean {
     if (!this.wsClient) {
       console.error("[ConfigProtocol] WebSocket client not initialized");
       return false;

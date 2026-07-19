@@ -115,6 +115,7 @@ type LocalFileState = {
 
   // 设置刷新状态
   setRefreshing: (isRefreshing: boolean) => void;
+  prepareReconnect: () => void;
 
   // 资源目录相关
   setResourceBundles: (bundles: ResourceBundle[], imageDirs: string[]) => void;
@@ -281,6 +282,10 @@ export const useLocalFileStore = create<LocalFileState>()(
   // 设置刷新状态
   setRefreshing(isRefreshing: boolean) {
     set({ isRefreshing });
+  },
+
+  prepareReconnect() {
+    set({ revision: 0 });
   },
 
   // 设置资源包列表

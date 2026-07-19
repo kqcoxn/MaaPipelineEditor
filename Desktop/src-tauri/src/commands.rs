@@ -79,18 +79,71 @@ pub async fn switch_workspace(
     path: String,
     state: State<'_, AppState>,
 ) -> AppResult<DesktopPreferences> {
-    let workspace = PathBuf::from(path).canonicalize()?;
+    let workspace = validate_workspace_path(Path::new(&path))?;
+    let bridge = Arc::clone(&state.bridge);
+    let settings = Arc::clone(&state.settings);
+    tauri::async_runtime::spawn_blocking(move || {
+        switch_workspace_transaction(&bridge, &settings, workspace)
+    })
+    .await
+    .map_err(|error| AppError::Bridge(format!("切换工作区任务失败: {error}")))?
+}
+
+fn validate_workspace_path(path: &Path) -> AppResult<PathBuf> {
+    let workspace = path.canonicalize()?;
     if !workspace.is_dir() {
         return Err(AppError::Desktop("工作区必须是已存在的目录".into()));
     }
-    let preferences = state
-        .settings
-        .update(|value| value.workspace = Some(workspace.to_string_lossy().into_owned()))?;
-    let bridge = Arc::clone(&state.bridge);
-    tauri::async_runtime::spawn_blocking(move || bridge.set_workspace(workspace))
-        .await
-        .map_err(|error| AppError::Bridge(format!("切换工作区任务失败: {error}")))??;
-    Ok(preferences)
+    Ok(workspace)
+}
+
+fn switch_workspace_transaction(
+    bridge: &BridgeSupervisor,
+    settings: &SettingsStore,
+    workspace: PathBuf,
+) -> AppResult<DesktopPreferences> {
+    let previous_workspace = bridge.workspace();
+    run_workspace_switch(
+        previous_workspace,
+        workspace,
+        |target| bridge.set_workspace(target),
+        |target| {
+            settings.update(|value| {
+                value.workspace = Some(target.to_string_lossy().into_owned());
+            })
+        },
+    )
+}
+
+fn run_workspace_switch<T>(
+    previous_workspace: Option<PathBuf>,
+    workspace: PathBuf,
+    mut apply_workspace: impl FnMut(Option<PathBuf>) -> AppResult<()>,
+    persist_workspace: impl FnOnce(&Path) -> AppResult<T>,
+) -> AppResult<T> {
+    if let Err(error) = apply_workspace(Some(workspace.clone())) {
+        let rollback = apply_workspace(previous_workspace);
+        return Err(workspace_switch_error(
+            "启动新 LocalBridge",
+            error,
+            rollback,
+        ));
+    }
+    match persist_workspace(&workspace) {
+        Ok(value) => Ok(value),
+        Err(error) => {
+            let rollback = apply_workspace(previous_workspace);
+            Err(workspace_switch_error("写入桌面偏好", error, rollback))
+        }
+    }
+}
+
+fn workspace_switch_error(stage: &str, error: AppError, rollback: AppResult<()>) -> AppError {
+    let rollback_result = match rollback {
+        Ok(()) => "旧工作区已恢复".to_string(),
+        Err(rollback_error) => format!("旧工作区恢复失败: {rollback_error}"),
+    };
+    AppError::Desktop(format!("{stage}失败: {error}; 回滚结果: {rollback_result}"))
 }
 
 #[tauri::command]
@@ -326,9 +379,13 @@ fn unregister_shortcuts(app: &AppHandle, preferences: &DesktopPreferences) -> Ap
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
+    use std::cell::RefCell;
+    use std::path::{Path, PathBuf};
 
-    use super::path_is_within;
+    use tempfile::tempdir;
+
+    use super::{path_is_within, run_workspace_switch, validate_workspace_path};
+    use crate::error::AppError;
 
     #[test]
     fn path_allowlist_accepts_descendants_and_rejects_sibling_prefixes() {
@@ -342,5 +399,103 @@ mod tests {
             Path::new("C:/application/database/secret.log"),
             root
         ));
+    }
+
+    #[test]
+    fn workspace_path_validation_accepts_directories_and_rejects_files() {
+        let directory = tempdir().expect("tempdir should be created");
+        let file = directory.path().join("pipeline.json");
+        std::fs::write(&file, "{}").expect("test file should be written");
+
+        assert_eq!(
+            validate_workspace_path(directory.path()).expect("directory should be valid"),
+            directory
+                .path()
+                .canonicalize()
+                .expect("path should canonicalize")
+        );
+        assert!(validate_workspace_path(&file).is_err());
+        assert!(validate_workspace_path(&directory.path().join("missing")).is_err());
+    }
+
+    #[test]
+    fn workspace_switch_persists_only_after_new_bridge_is_ready() {
+        let calls = RefCell::new(Vec::new());
+        let previous = PathBuf::from("old");
+        let next = PathBuf::from("next");
+
+        let result = run_workspace_switch(
+            Some(previous),
+            next.clone(),
+            |workspace| {
+                calls.borrow_mut().push(format!("bridge:{workspace:?}"));
+                Ok(())
+            },
+            |workspace| {
+                calls.borrow_mut().push(format!("persist:{workspace:?}"));
+                Ok("saved")
+            },
+        )
+        .expect("switch should succeed");
+
+        assert_eq!(result, "saved");
+        assert_eq!(
+            calls.into_inner(),
+            vec![
+                format!("bridge:{:?}", Some(next.clone())),
+                format!("persist:{next:?}"),
+            ]
+        );
+    }
+
+    #[test]
+    fn workspace_switch_rolls_back_after_launch_failure() {
+        let previous = PathBuf::from("old");
+        let next = PathBuf::from("next");
+        let calls = RefCell::new(Vec::new());
+        let mut attempt = 0;
+
+        let error = run_workspace_switch(
+            Some(previous.clone()),
+            next.clone(),
+            |workspace| {
+                calls.borrow_mut().push(workspace.clone());
+                attempt += 1;
+                if attempt == 1 {
+                    Err(AppError::Bridge("new launch failed".into()))
+                } else {
+                    Ok(())
+                }
+            },
+            |_| -> Result<(), AppError> { panic!("preferences must not be persisted") },
+        )
+        .expect_err("switch should fail");
+
+        assert_eq!(calls.into_inner(), vec![Some(next), Some(previous)]);
+        assert!(error.to_string().contains("旧工作区已恢复"));
+    }
+
+    #[test]
+    fn workspace_switch_rolls_back_after_preference_write_failure() {
+        let previous = PathBuf::from("old");
+        let next = PathBuf::from("next");
+        let calls = RefCell::new(Vec::new());
+
+        let error = run_workspace_switch(
+            Some(previous.clone()),
+            next.clone(),
+            |workspace| {
+                calls.borrow_mut().push(workspace);
+                Ok(())
+            },
+            |_| -> Result<(), AppError> {
+                Err(AppError::Desktop("preferences are read-only".into()))
+            },
+        )
+        .expect_err("switch should fail");
+
+        assert_eq!(calls.into_inner(), vec![Some(next), Some(previous)]);
+        assert!(error.to_string().contains("写入桌面偏好失败"));
+        assert!(error.to_string().contains("旧工作区已恢复"));
     }
 }

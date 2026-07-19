@@ -9,7 +9,7 @@ export const globalConfig = {
   version: `2.0.0`,
   betaIteration: 0,
   mfwVersion: "5.12.1",
-  protocolVersion: "2.0.0",
+  protocolVersion: "2.1.0",
 };
 
 if (globalConfig.dev) {
@@ -305,7 +305,6 @@ export type ConfigState = {
     showConfigPanel: boolean;
     showFileConfigPanel: boolean;
     showAIHistoryPanel: boolean;
-    showLocalFilePanel: boolean;
     showFieldSortModal: boolean;
     rightPanelWidth: number;
   };
@@ -449,7 +448,6 @@ export const useConfigStore = create<ConfigState>()((set, get) => ({
     showConfigPanel: false,
     showFileConfigPanel: false,
     showAIHistoryPanel: false,
-    showLocalFilePanel: false,
     showFieldSortModal: false,
     rightPanelWidth: 350,
   },

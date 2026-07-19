@@ -126,7 +126,7 @@ describe("LocalWebSocketServer", () => {
 });
 
 describe("generated bridge contract", () => {
-  it("uses protocol 2.0.0", () => {
-    expect(BRIDGE_PROTOCOL_VERSION).toBe("2.0.0");
+  it("uses protocol 2.1.0", () => {
+    expect(BRIDGE_PROTOCOL_VERSION).toBe("2.1.0");
   });
 });

@@ -1,5 +1,11 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
+import type {
+  WorkspaceTreeEntry,
+  WorkspaceTreePayload,
+} from "../services/generated/bridge-v2";
+
+export type { WorkspaceTreeEntry, WorkspaceTreePayload };
 
 export type WorkspaceStateName =
   | "disconnected"
@@ -37,7 +43,10 @@ export interface WorkspaceStatusPayload {
 
 interface WorkspaceState {
   revision: number;
+  treeRevision: number;
   root: string;
+  treeRoot: string;
+  treeEntries: WorkspaceTreeEntry[];
   state: WorkspaceStateName;
   reason: string;
   candidates: WorkspaceInterfaceCandidate[];
@@ -47,6 +56,8 @@ interface WorkspaceState {
   diagnostics: WorkspaceDiagnostic[];
   selectorOpen: boolean;
   applyStatus: (status: WorkspaceStatusPayload) => void;
+  applyTree: (tree: WorkspaceTreePayload) => void;
+  prepareReconnect: () => void;
   openSelector: () => void;
   closeSelector: () => void;
   clear: () => void;
@@ -54,7 +65,10 @@ interface WorkspaceState {
 
 const initialWorkspaceState = {
   revision: 0,
+  treeRevision: 0,
   root: "",
+  treeRoot: "",
+  treeEntries: [] as WorkspaceTreeEntry[],
   state: "disconnected" as const,
   reason: "",
   candidates: [] as WorkspaceInterfaceCandidate[],
@@ -84,6 +98,17 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           status.state === "selection_required" ||
           (get().selectorOpen && status.candidates.length > 1),
       });
+    },
+    applyTree(tree) {
+      if (tree.revision < get().treeRevision) return;
+      set({
+        treeRevision: tree.revision,
+        treeRoot: tree.root,
+        treeEntries: tree.entries,
+      });
+    },
+    prepareReconnect() {
+      set({ revision: 0, treeRevision: 0 });
     },
     openSelector() {
       if (get().candidates.length > 1) set({ selectorOpen: true });

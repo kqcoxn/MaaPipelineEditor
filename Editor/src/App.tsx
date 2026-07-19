@@ -32,7 +32,6 @@ import FilePanel from "./components/panels/main/FilePanel";
 import SettingsPanel from "./components/panels/settings/SettingsPanel";
 import FileConfigPanel from "./components/panels/main/FileConfigPanel";
 import AIHistoryPanel from "./components/panels/main/AIHistoryPanel";
-import { LocalFileListPanel } from "./components/panels/main/LocalFileListPanel";
 import ErrorPanel from "./components/panels/main/ErrorPanel";
 import ToolbarPanel from "./components/panels/main/ToolbarPanel";
 import { LoggerPanel } from "./components/panels/tools/LoggerPanel";
@@ -71,6 +70,12 @@ import { useLocalFileStore } from "./stores/localFileStore";
 import { useWorkspaceStore } from "./stores/workspaceStore";
 import { debugCommandBus } from "./features/debug/debugCommandBus";
 import { resetDebugSessionLifecycle } from "./features/debug/sessionActions";
+import { ProjectSidebar } from "./components/project/ProjectSidebar";
+import {
+  shouldRenderProjectSidebar,
+  useProjectSidebarStore,
+} from "./stores/projectSidebarStore";
+import { shouldPreserveProjectStateOnDisconnect } from "./services/desktopProject";
 
 const JsonViewer = lazy(() => import("./components/JsonViewer"));
 const DebugModal = lazy(() =>
@@ -136,6 +141,10 @@ const GlobalListener = memo(() => {
 function App() {
   // 嵌入模式状态
   const { isEmbed, isReady, isCapAllowed, isPanelHidden } = useEmbedMode();
+  const wsConnected = useWSStore((state) => state.connected);
+  const projectSidebarVisible = useProjectSidebarStore(
+    (state) => state.visible,
+  );
 
   // 探索面板状态
   const [explorationPanelVisible, setExplorationPanelVisible] = useState(false);
@@ -438,8 +447,10 @@ function App() {
       if (!connected) {
         clearMFWConnection();
         resetDebugSessionLifecycle();
-        useWorkspaceStore.getState().clear();
-        useLocalFileStore.getState().clear();
+        if (!shouldPreserveProjectStateOnDisconnect()) {
+          useWorkspaceStore.getState().clear();
+          useLocalFileStore.getState().clear();
+        }
       }
     });
     localServer.onConnecting((isConnecting) => {
@@ -511,6 +522,11 @@ function App() {
   const showHeader = !isEmbed || !isPanelHidden("header");
   const showToolbar = !isEmbed || !isPanelHidden("toolbar");
   const showPanel = (id: string) => !isEmbed || !isPanelHidden(id);
+  const showProjectSidebar = shouldRenderProjectSidebar(
+    isEmbed,
+    wsConnected,
+    projectSidebarVisible,
+  );
 
   // 渲染组件
   return (
@@ -523,42 +539,45 @@ function App() {
             </HeaderSection>
           )}
           <Content className={style.content}>
-            {showPanel("file") && <FilePanel />}
-            <div className={style.workspace}>
-              {showToolbar && <ToolbarPanel />}
-              <MainFlow />
-              {showPanel("json") && (
-                <Suspense fallback={null}>
-                  <JsonViewer />
-                </Suspense>
-              )}
-              {showPanel("liveScreen") && <LiveScreenPanel />}
-              {showPanel("field") && <FieldPanel />}
-              {showPanel("edge") && <EdgePanel />}
-              {showPanel("config") && <SettingsPanel />}
-              {showPanel("config") && <FileConfigPanel />}
-              {showPanel("ai-history") && <AIHistoryPanel />}
-              {showPanel("local-file") && <LocalFileListPanel />}
-              <ToolPanel.Add />
-              <ToolPanel.Global />
-              {showPanel("search") && <SearchPanel />}
-              <ToolPanel.Layout />
-              {showPanel("error") && <ErrorPanel />}
-              {showPanel("logger") && <LoggerPanel />}
-              {/* 探索模式组件 */}
-              {showPanel("exploration") && (
-                <>
-                  <ExplorationFAB
-                    onClick={() => setExplorationPanelVisible((v) => !v)}
-                    visible={true}
-                    active={explorationPanelVisible}
-                  />
-                  <ExplorationPanel
-                    visible={explorationPanelVisible}
-                    onClose={() => setExplorationPanelVisible(false)}
-                  />
-                </>
-              )}
+            <div className={style.workbenchBody}>
+              {showProjectSidebar && <ProjectSidebar />}
+              <div className={style.editorArea}>
+                {showPanel("file") && <FilePanel />}
+                <div className={style.workspace}>
+                  {showToolbar && <ToolbarPanel />}
+                  <MainFlow />
+                  {showPanel("json") && (
+                    <Suspense fallback={null}>
+                      <JsonViewer />
+                    </Suspense>
+                  )}
+                  {showPanel("liveScreen") && <LiveScreenPanel />}
+                  {showPanel("field") && <FieldPanel />}
+                  {showPanel("edge") && <EdgePanel />}
+                  {showPanel("config") && <SettingsPanel />}
+                  {showPanel("config") && <FileConfigPanel />}
+                  {showPanel("ai-history") && <AIHistoryPanel />}
+                  <ToolPanel.Add />
+                  <ToolPanel.Global />
+                  {showPanel("search") && <SearchPanel />}
+                  <ToolPanel.Layout />
+                  {showPanel("error") && <ErrorPanel />}
+                  {showPanel("logger") && <LoggerPanel />}
+                  {showPanel("exploration") && (
+                    <>
+                      <ExplorationFAB
+                        onClick={() => setExplorationPanelVisible((v) => !v)}
+                        visible={true}
+                        active={explorationPanelVisible}
+                      />
+                      <ExplorationPanel
+                        visible={explorationPanelVisible}
+                        onClose={() => setExplorationPanelVisible(false)}
+                      />
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           </Content>
         </Layout>

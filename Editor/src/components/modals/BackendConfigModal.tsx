@@ -18,11 +18,10 @@ import {
   FolderOutlined,
   InfoCircleOutlined,
 } from "@ant-design/icons";
-import { invoke } from "@tauri-apps/api/core";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { configProtocol, localServer } from "../../services/server";
 import type {
-  BackendConfig,
+  BackendConfigUpdate,
   ConfigResponse,
 } from "../../services/protocols/ConfigProtocol";
 
@@ -37,7 +36,7 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
   const [saving, setSaving] = useState(false);
   const [reloading, setReloading] = useState(false);
   const [configPath, setConfigPath] = useState("");
-  const pendingDesktopRoot = useRef<string | undefined>(undefined);
+  const desktop = "__TAURI_INTERNALS__" in window;
 
   // 加载配置
   const loadConfig = useCallback(() => {
@@ -92,19 +91,8 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
             },
           });
 
-          const desktopRoot = pendingDesktopRoot.current;
-          pendingDesktopRoot.current = undefined;
-          if (desktopRoot && "__TAURI_INTERNALS__" in window) {
-            setReloading(true);
-            void invoke("switch_workspace", { path: desktopRoot })
-              .catch((error) => {
-                console.error("同步 Desktop 工作区失败:", error);
-                message.error(`同步 Desktop 工作区失败: ${String(error)}`);
-              })
-              .finally(() => setReloading(false));
-          } else {
-            configProtocol.requestReload();
-          }
+          setReloading(true);
+          configProtocol.requestReload();
         }
       }
     });
@@ -130,18 +118,25 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
       const values = await form.validateFields();
       setSaving(true);
 
-      const config: Partial<BackendConfig> = {
+      const config: BackendConfigUpdate = {
         server: {
           port: values.server_port,
           host: values.server_host,
         },
-        file: {
-          root: values.file_root,
-          exclude: values.file_exclude
-            .split(",")
-            .map((s: string) => s.trim())
-            .filter(Boolean),
-        },
+        file: desktop
+          ? {
+              exclude: values.file_exclude
+                .split(",")
+                .map((s: string) => s.trim())
+                .filter(Boolean),
+            }
+          : {
+              root: values.file_root,
+              exclude: values.file_exclude
+                .split(",")
+                .map((s: string) => s.trim())
+                .filter(Boolean),
+            },
         log: {
           level: values.log_level,
           dir: values.log_dir,
@@ -154,11 +149,7 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
         },
       };
 
-      pendingDesktopRoot.current =
-        "__TAURI_INTERNALS__" in window ? values.file_root : undefined;
-
       if (!configProtocol.requestSetConfig(config)) {
-        pendingDesktopRoot.current = undefined;
         setSaving(false);
         message.error("发送配置保存请求失败");
       }
@@ -294,9 +285,16 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
                 </Tooltip>
               </span>
             }
-            extra="仅在 LB 指定了配置文件（--config）或在 Desktop 环境中生效。"
+            extra={
+              desktop
+                ? "Desktop 工作区请使用项目侧栏或桌面设置中的“打开项目”切换。"
+                : "仅在 LB 指定了配置文件（--config）时生效。"
+            }
           >
-            <Input placeholder="MaaFramework 项目搜索根目录" />
+            <Input
+              placeholder="MaaFramework 项目搜索根目录"
+              disabled={desktop}
+            />
           </Form.Item>
 
           <Form.Item
@@ -392,7 +390,7 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
           }}
         >
           <InfoCircleOutlined style={{ marginRight: 4 }} />
-          提示：部分配置（如端口、根目录）修改后需要重启后端服务才能生效
+          提示：部分配置修改后需要重启后端服务才能生效
         </div>
       </Spin>
     </Modal>

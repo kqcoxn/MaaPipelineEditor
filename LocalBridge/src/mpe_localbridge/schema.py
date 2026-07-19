@@ -8,13 +8,21 @@ from typing import Annotated
 from pydantic import BaseModel, Field
 
 from .constants import EVENT_NAMES, PROTOCOL_VERSION, RPC_METHOD_NAMES
-from .models import ArtifactRef, DebugEvent, RpcEvent, RpcRequest, RpcResponse
+from .models import (
+    ArtifactRef,
+    DebugEvent,
+    RpcEvent,
+    RpcRequest,
+    RpcResponse,
+    WorkspaceTreePayload,
+)
 
 
 class ProtocolDocument(BaseModel):
     message: Annotated[RpcRequest | RpcResponse | RpcEvent, Field(discriminator="type")]
     artifact: ArtifactRef
     debug_event: DebugEvent
+    workspace_tree: WorkspaceTreePayload
 
 
 def protocol_schema() -> dict[str, object]:
@@ -70,6 +78,18 @@ export interface RpcEvent<TData = unknown> {{
   type: "event";
   event: BridgeEventName;
   data: TData;
+}}
+
+export interface WorkspaceTreeEntry {{
+  path: string;
+  name: string;
+  kind: "directory" | "file";
+}}
+
+export interface WorkspaceTreePayload {{
+  revision: number;
+  root: string;
+  entries: WorkspaceTreeEntry[];
 }}
 
 export interface ArtifactRef {{

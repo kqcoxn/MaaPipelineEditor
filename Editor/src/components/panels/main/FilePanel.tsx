@@ -14,9 +14,11 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { Tabs, Input, Button, Tooltip } from "antd";
-import { FileAddOutlined } from "@ant-design/icons";
+import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 import { useFileStore } from "../../../stores/fileStore";
-import { useConfigStore } from "../../../stores/configStore";
+import { useEmbedMode } from "../../../hooks/useEmbedMode";
+import { useProjectSidebarStore } from "../../../stores/projectSidebarStore";
+import { useWSStore } from "../../../stores/wsStore";
 
 interface DraggableTabPaneProps extends React.HTMLAttributes<HTMLDivElement> {
   "data-node-key": string;
@@ -51,7 +53,12 @@ function FilePanel() {
   const fileName = useFileStore((state) => state.currentFile.fileName);
   const setFileName = useFileStore((state) => state.setFileName);
   const switchFile = useFileStore((state) => state.switchFile);
-  const setStatus = useConfigStore((state) => state.setStatus);
+  const sidebarVisible = useProjectSidebarStore((state) => state.visible);
+  const toggleSidebar = useProjectSidebarStore((state) => state.toggle);
+  const wsConnected = useWSStore((state) => state.connected);
+  const { isEmbed } = useEmbedMode();
+  const sidebarAvailable = wsConnected && !isEmbed;
+  const sidebarShown = sidebarAvailable && sidebarVisible;
 
   // 文件名状态
   const [fileNameState, setFileNameState] = useState<
@@ -106,7 +113,32 @@ function FilePanel() {
   // 渲染
   return (
     <div className={style.panel}>
-      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+      <div className={style.fileControls}>
+        <Tooltip
+          title={
+            isEmbed
+              ? "嵌入模式不显示项目侧栏"
+              : wsConnected
+              ? sidebarShown
+                ? "收起项目侧栏"
+                : "展开项目侧栏"
+              : "连接 LocalBridge 后可用"
+          }
+          placement="bottom"
+        >
+          <span>
+            <Button
+              type={sidebarShown ? "primary" : "default"}
+              icon={
+                sidebarShown ? <MenuFoldOutlined /> : <MenuUnfoldOutlined />
+              }
+              size="small"
+              disabled={!sidebarAvailable}
+              aria-label={sidebarShown ? "收起项目侧栏" : "展开项目侧栏"}
+              onClick={toggleSidebar}
+            />
+          </span>
+        </Tooltip>
         <Input
           className={style.filename}
           placeholder="文件名"
@@ -114,16 +146,6 @@ function FilePanel() {
           status={fileNameState}
           onChange={onLabelChange}
         />
-        <Tooltip title="本地文件" placement="bottom">
-          <Button
-            type="primary"
-            icon={<FileAddOutlined />}
-            size="small"
-            onClick={() => {
-              setStatus("showLocalFilePanel", true);
-            }}
-          />
-        </Tooltip>
       </div>
       <Tabs
         className={style.tabs}

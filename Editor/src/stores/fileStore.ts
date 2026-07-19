@@ -356,6 +356,7 @@ type FileState = {
   removeFile: (fileName: string) => string | null;
   onDragEnd: (result: DragEndEvent) => void;
   replace: (files?: FileType[]) => any;
+  resetProjectSession: () => void;
   // 本地文件操作方法
   openFileFromLocal: (
     filePath: string,
@@ -568,6 +569,14 @@ export const useFileStore = create<FileState>()((set) => ({
       return err;
     }
     return null;
+  },
+
+  resetProjectSession() {
+    const blankFile = createFile();
+    set({ files: [blankFile], currentFile: blankFile });
+    const flowStore = useFlowStore.getState();
+    flowStore.replace([], [], { skipSave: true });
+    flowStore.clearHistory();
   },
 
   // 从本地打开文件
