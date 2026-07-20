@@ -4,7 +4,7 @@ import {
   PROJECT_SIDEBAR_MAX_WIDTH,
   PROJECT_SIDEBAR_MIN_WIDTH,
   clampProjectSidebarWidth,
-  shouldRenderProjectSidebar,
+  shouldMountProjectSidebar,
   useProjectSidebarStore,
 } from "./projectSidebarStore";
 
@@ -44,10 +44,9 @@ describe("projectSidebarStore", () => {
     });
   });
 
-  it("renders only for a connected non-embed editor", () => {
-    expect(shouldRenderProjectSidebar(false, true, true)).toBe(true);
-    expect(shouldRenderProjectSidebar(false, false, true)).toBe(false);
-    expect(shouldRenderProjectSidebar(true, true, true)).toBe(false);
-    expect(shouldRenderProjectSidebar(false, true, false)).toBe(false);
+  it("mounts only for a connected non-embed editor", () => {
+    expect(shouldMountProjectSidebar(false, true)).toBe(true);
+    expect(shouldMountProjectSidebar(false, false)).toBe(false);
+    expect(shouldMountProjectSidebar(true, true)).toBe(false);
   });
 });

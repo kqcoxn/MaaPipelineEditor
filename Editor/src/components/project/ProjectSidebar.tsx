@@ -29,6 +29,7 @@ import {
   useRef,
   useState,
 } from "react";
+import classNames from "classnames";
 
 import style from "../../styles/layout/ProjectSidebar.module.less";
 import {
@@ -272,8 +273,10 @@ function applySidebarPreviewWidth(
 
 function SidebarResizeHandle({
   sidebarRef,
+  visible,
 }: {
   sidebarRef: RefObject<HTMLElement | null>;
+  visible: boolean;
 }) {
   const width = useProjectSidebarStore((state) => state.width);
   const setWidth = useProjectSidebarStore((state) => state.setWidth);
@@ -287,6 +290,7 @@ function SidebarResizeHandle({
     const startX = event.clientX;
     const startWidth = width;
     const handle = event.currentTarget;
+    const sidebar = sidebarRef.current;
     const previousCursor = document.body.style.cursor;
     const previousUserSelect = document.body.style.userSelect;
     let latestWidth = startWidth;
@@ -296,6 +300,7 @@ function SidebarResizeHandle({
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
     handle.dataset.resizing = "true";
+    if (sidebar) sidebar.dataset.resizing = "true";
 
     const flushPreview = () => {
       if (frameId !== undefined) {
@@ -331,6 +336,7 @@ function SidebarResizeHandle({
       document.body.style.cursor = previousCursor;
       document.body.style.userSelect = previousUserSelect;
       delete handle.dataset.resizing;
+      if (sidebar) delete sidebar.dataset.resizing;
       if (cleanupRef.current === cleanup) cleanupRef.current = undefined;
     };
 
@@ -368,14 +374,17 @@ function SidebarResizeHandle({
 
   return (
     <div
-      className={style.resizeHandle}
+      className={classNames(style.resizeHandle, {
+        [style.resizeHandleCollapsed]: !visible,
+      })}
       role="separator"
       aria-label="调整项目侧栏宽度"
+      aria-hidden={!visible}
       aria-orientation="vertical"
       aria-valuemin={PROJECT_SIDEBAR_MIN_WIDTH}
       aria-valuemax={PROJECT_SIDEBAR_MAX_WIDTH}
       aria-valuenow={width}
-      tabIndex={0}
+      tabIndex={visible ? 0 : -1}
       onPointerDown={startResize}
       onKeyDown={handleKeyDown}
     />
@@ -384,6 +393,7 @@ function SidebarResizeHandle({
 
 export function ProjectSidebar() {
   const width = useProjectSidebarStore((state) => state.width);
+  const visible = useProjectSidebarStore((state) => state.visible);
   const currentInterface = useWorkspaceStore((state) => state.currentInterface);
   const sidebarRef = useRef<HTMLElement | null>(null);
   const [opening, setOpening] = useState(false);
@@ -412,9 +422,16 @@ export function ProjectSidebar() {
     <>
       <aside
         ref={sidebarRef}
-        className={style.sidebar}
-        style={{ width, flexBasis: width }}
+        className={classNames(style.sidebar, {
+          [style.sidebarCollapsed]: !visible,
+        })}
+        style={{
+          width: visible ? width : 0,
+          flexBasis: visible ? width : 0,
+        }}
         aria-label="项目侧栏"
+        aria-hidden={!visible}
+        inert={!visible}
       >
         <div className={style.modeSection}>
           <Dropdown
@@ -461,7 +478,7 @@ export function ProjectSidebar() {
           <span className={style.footerName}>{projectName}</span>
         </footer>
       </aside>
-      <SidebarResizeHandle sidebarRef={sidebarRef} />
+      <SidebarResizeHandle sidebarRef={sidebarRef} visible={visible} />
     </>
   );
 }

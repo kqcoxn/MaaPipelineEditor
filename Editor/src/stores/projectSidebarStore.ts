@@ -26,12 +26,11 @@ export function clampProjectSidebarWidth(width: number): number {
   );
 }
 
-export function shouldRenderProjectSidebar(
+export function shouldMountProjectSidebar(
   isEmbed: boolean,
   connected: boolean,
-  visible: boolean,
 ): boolean {
-  return !isEmbed && connected && visible;
+  return !isEmbed && connected;
 }
 
 export const useProjectSidebarStore = create<ProjectSidebarStore>()(

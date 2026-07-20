@@ -71,10 +71,7 @@ import { useWorkspaceStore } from "./stores/workspaceStore";
 import { debugCommandBus } from "./features/debug/debugCommandBus";
 import { resetDebugSessionLifecycle } from "./features/debug/sessionActions";
 import { ProjectSidebar } from "./components/project/ProjectSidebar";
-import {
-  shouldRenderProjectSidebar,
-  useProjectSidebarStore,
-} from "./stores/projectSidebarStore";
+import { shouldMountProjectSidebar } from "./stores/projectSidebarStore";
 import { shouldPreserveProjectStateOnDisconnect } from "./services/desktopProject";
 import { useProjectSessionStore } from "./stores/projectSessionStore";
 import { useDocumentStore } from "./stores/documentStore";
@@ -145,9 +142,6 @@ function App() {
   // 嵌入模式状态
   const { isEmbed, isReady, isCapAllowed, isPanelHidden } = useEmbedMode();
   const wsConnected = useWSStore((state) => state.connected);
-  const projectSidebarVisible = useProjectSidebarStore(
-    (state) => state.visible,
-  );
   const activeTab = useProjectSessionStore((state) =>
     state.tabs.find((tab) => tab.key === state.activeKey),
   );
@@ -530,11 +524,7 @@ function App() {
   const showHeader = !isEmbed || !isPanelHidden("header");
   const showToolbar = !isEmbed || !isPanelHidden("toolbar");
   const showPanel = (id: string) => !isEmbed || !isPanelHidden(id);
-  const showProjectSidebar = shouldRenderProjectSidebar(
-    isEmbed,
-    wsConnected,
-    projectSidebarVisible,
-  );
+  const mountProjectSidebar = shouldMountProjectSidebar(isEmbed, wsConnected);
 
   // 渲染组件
   return (
@@ -548,7 +538,7 @@ function App() {
           )}
           <Content className={style.content}>
             <div className={style.workbenchBody}>
-              {showProjectSidebar && <ProjectSidebar />}
+              {mountProjectSidebar && <ProjectSidebar />}
               <div className={style.editorArea}>
                 {showPanel("file") && <FilePanel />}
                 <div className={style.workspace}>

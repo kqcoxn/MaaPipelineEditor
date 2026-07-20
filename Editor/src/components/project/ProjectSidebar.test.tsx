@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { useWorkspaceStore } from "../../stores/workspaceStore";
@@ -31,6 +31,31 @@ describe("ProjectSidebar", () => {
     fireEvent.pointerUp(window, { clientX: 360, pointerId: 1 });
 
     expect(useProjectSidebarStore.getState().width).toBe(360);
+  });
+
+  it("keeps the sidebar mounted in an inert collapsed state", () => {
+    useProjectSidebarStore.setState({ visible: false });
+
+    render(<ProjectSidebar />);
+
+    const sidebar = screen.getByLabelText("项目侧栏", { hidden: true });
+    const separator = screen.getByRole("separator", { hidden: true });
+
+    expect(sidebar).toHaveClass(style.sidebarCollapsed);
+    expect(sidebar).toHaveStyle({ width: "0px", flexBasis: "0px" });
+    expect(sidebar).toHaveAttribute("aria-hidden", "true");
+    expect(sidebar).toHaveAttribute("inert");
+    expect(separator).toHaveClass(style.resizeHandleCollapsed);
+    expect(separator).toHaveAttribute("tabindex", "-1");
+
+    act(() => useProjectSidebarStore.getState().setVisible(true));
+
+    expect(screen.getByLabelText("项目侧栏")).toBe(sidebar);
+    expect(sidebar).not.toHaveClass(style.sidebarCollapsed);
+    expect(sidebar).toHaveStyle({ width: "280px", flexBasis: "280px" });
+    expect(sidebar).not.toHaveAttribute("inert");
+    expect(separator).not.toHaveClass(style.resizeHandleCollapsed);
+    expect(separator).toHaveAttribute("tabindex", "0");
   });
 
   it("renders the active mode as a larger two-line label without an icon", () => {

@@ -181,7 +181,7 @@ function FilePanel() {
                   : "展开项目侧栏"
                 : "连接 LocalBridge 后可用"
           }
-          placement="bottom"
+          placement="right"
         >
           <span>
             <Button
