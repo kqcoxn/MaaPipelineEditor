@@ -1,9 +1,11 @@
 ﻿import {
   useState,
   useCallback,
+  useMemo,
   type CSSProperties,
   type ReactNode,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { Alert, Button, Drawer, Space, Typography } from "antd";
 import {
   CloseOutlined,
@@ -28,6 +30,7 @@ import { ResourceHealthPanel } from "../../features/debug/components/panels/Reso
 import { NodeExecutionPanel } from "../../features/debug/components/panels/NodeExecutionPanel";
 import { DebugLogPanel } from "../../features/debug/components/panels/DebugLogPanel";
 import { WikiAnchor } from "../wiki/WikiAnchor";
+import { WIKI_FLOW_DEBUG_PATH } from "../wiki/paths";
 
 const { Text, Title } = Typography;
 
@@ -37,63 +40,6 @@ interface PanelItem {
   icon: ReactNode;
   description: string;
 }
-
-const panels: PanelItem[] = [
-  {
-    id: "setup",
-    label: "调试配置",
-    icon: <SettingOutlined />,
-    description: "配置资源路径、控制器、截图和 Agent，并写入本地调试配置。",
-  },
-  {
-    id: "overview",
-    label: "中控台",
-    icon: <ProfileOutlined />,
-    description: "运行控制、展示会话选择和当前/最新运行摘要。",
-  },
-  {
-    id: "node-execution",
-    label: "节点线",
-    icon: <NodeIndexOutlined />,
-    description: "按 Pipeline 节点聚合已选展示会话，查看执行路径和节点详情。",
-  },
-  {
-    id: "debug-log",
-    label: "调试日志",
-    icon: <FileSearchOutlined />,
-    description:
-      "查看调试产物 maafw.log 的末尾内容，可直接打开日志文件或其所在文件夹。",
-  },
-  {
-    id: "ai-summary",
-    label: "AI 总结",
-    icon: <FileTextOutlined />,
-    description: "查看 AI 生成的调试摘要、详细报告和整理后的上下文。",
-  },
-  {
-    id: "resource-health",
-    label: "资源体检",
-    icon: <MedicineBoxOutlined />,
-    description:
-      "集中查看资源路径、资源加载结果和流程图校验，加载失败时会直接列出具体线索。",
-  },
-];
-
-const nodeExecutionHeadings: Record<
-  DebugExecutionAttributionMode,
-  Pick<PanelItem, "label" | "description">
-> = {
-  next: {
-    label: "节点线（Next 模式）",
-    description:
-      "以节点为单位查看调试结果。\nNext 模式：以 MFW 内部执行逻辑为单位组织，将当前节点的 action 与 next-list 中的所有 reco 放在一起",
-  },
-  node: {
-    label: "节点线（Pair 模式）",
-    description:
-      "以节点为单位查看调试结果。\nPair 模式：以物理节点（即定义的JSON）为单位组织，将某个节点的一次 reco-action 对放在一起",
-  },
-};
 
 const navStyle: CSSProperties = {
   width: 132,
@@ -188,9 +134,93 @@ const drawerHeaderStyle: CSSProperties = {
 };
 
 export function DebugModal() {
+  const { t } = useTranslation();
   const controller = useDebugModalController();
   useDebugRunStatusTracker();
   const [drawerWidth, setDrawerWidth] = useState(readDrawerWidth);
+
+  const panels = useMemo<PanelItem[]>(
+    () => [
+      {
+        id: "setup",
+        label: t("ui.debug.modal.setupLabel", "调试配置"),
+        icon: <SettingOutlined />,
+        description: t(
+          "ui.debug.modal.setupDescription",
+          "配置资源路径、控制器、截图和 Agent，并写入本地调试配置。",
+        ),
+      },
+      {
+        id: "overview",
+        label: t("ui.debug.modal.overviewLabel", "中控台"),
+        icon: <ProfileOutlined />,
+        description: t(
+          "ui.debug.modal.overviewDescription",
+          "运行控制、展示会话选择和当前/最新运行摘要。",
+        ),
+      },
+      {
+        id: "node-execution",
+        label: t("ui.debug.modal.nodeExecutionLabel", "节点线"),
+        icon: <NodeIndexOutlined />,
+        description: t(
+          "ui.debug.modal.nodeExecutionDescription",
+          "按 Pipeline 节点聚合已选展示会话，查看执行路径和节点详情。",
+        ),
+      },
+      {
+        id: "debug-log",
+        label: t("ui.debug.modal.debugLogLabel", "调试日志"),
+        icon: <FileSearchOutlined />,
+        description: t(
+          "ui.debug.modal.debugLogDescription",
+          "查看调试产物 maafw.log 的末尾内容，可直接打开日志文件或其所在文件夹。",
+        ),
+      },
+      {
+        id: "ai-summary",
+        label: t("ui.debug.modal.aiSummaryLabel", "AI 总结"),
+        icon: <FileTextOutlined />,
+        description: t(
+          "ui.debug.modal.aiSummaryDescription",
+          "查看 AI 生成的调试摘要、详细报告和整理后的上下文。",
+        ),
+      },
+      {
+        id: "resource-health",
+        label: t("ui.debug.modal.resourceHealthLabel", "资源体检"),
+        icon: <MedicineBoxOutlined />,
+        description: t(
+          "ui.debug.modal.resourceHealthDescription",
+          "集中查看资源路径、资源加载结果和流程图校验，加载失败时会直接列出具体线索。",
+        ),
+      },
+    ],
+    [t],
+  );
+
+  const nodeExecutionHeadings = useMemo<
+    Record<DebugExecutionAttributionMode, Pick<PanelItem, "label" | "description">>
+  >(
+    () => ({
+      next: {
+        label: t("ui.debug.modal.nodeExecutionNextLabel", "节点线（Next 模式）"),
+        description: t(
+          "ui.debug.modal.nodeExecutionNextDescription",
+          "以节点为单位查看调试结果。\nNext 模式：以 MFW 内部执行逻辑为单位组织，将当前节点的 action 与 next-list 中的所有 reco 放在一起",
+        ),
+      },
+      node: {
+        label: t("ui.debug.modal.nodeExecutionPairLabel", "节点线（Pair 模式）"),
+        description: t(
+          "ui.debug.modal.nodeExecutionPairDescription",
+          "以节点为单位查看调试结果。\nPair 模式：以物理节点（即定义的JSON）为单位组织，将某个节点的一次 reco-action 对放在一起",
+        ),
+      },
+    }),
+    [t],
+  );
+
   const baseActivePanelMeta =
     panels.find((panel) => panel.id === controller.activePanel) ?? panels[0];
   const nodeExecutionActive = controller.activePanel === "node-execution";
@@ -217,9 +247,12 @@ export function DebugModal() {
           MPE FlowScope
           <span style={{ marginTop: 5 }}>
             <WikiAnchor
-              path="20.本地服务/40.流程级调试.html"
-              title="流程级调试"
-              description="快速验证节点行为与流程执行"
+              path={WIKI_FLOW_DEBUG_PATH}
+              title={t("ui.debug.modal.wikiTitle", "流程级调试")}
+              description={t(
+                "ui.debug.modal.wikiDescription",
+                "快速验证节点行为与流程执行",
+              )}
             />
           </span>
         </span>
@@ -233,8 +266,6 @@ export function DebugModal() {
         onResize: handleResize,
       }}
       size={drawerWidth}
-      minSize={MIN_DRAWER_WIDTH}
-      maxSize={MAX_DRAWER_WIDTH}
       closeIcon={
         <CloseOutlined style={{ color: "rgba(0, 0, 0, 0.65)", fontSize: 16 }} />
       }
@@ -291,7 +322,10 @@ export function DebugModal() {
               <Alert
                 type="warning"
                 showIcon
-                title="调试前置条件未满足"
+                title={t(
+                  "ui.debug.modal.readinessNotMetTitle",
+                  "调试前置条件未满足",
+                )}
                 description={controller.debugReadinessDescription}
               />
             )}

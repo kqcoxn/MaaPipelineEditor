@@ -1,4 +1,5 @@
 import { Modal } from "antd";
+import uiT from "../../i18n/translate";
 import { parse as parseJsonc, visit } from "jsonc-parser";
 import {
   useFlowStore,
@@ -539,9 +540,11 @@ export async function pipelineToFlow(
     return true;
   } catch (err) {
     Modal.error({
-      title: "导入失败！",
-      content:
+      title: uiT("ui.parser.importer.importFailedTitle", "导入失败！"),
+      content: uiT(
+        "ui.parser.importer.importFailedContent",
         "请检查pipeline格式是否正确，或版本是否一致，详细程序错误请在控制台查看。",
+      ),
     });
     console.error(err);
     return false;

@@ -59,8 +59,14 @@ export function isAnswerCorrect(
   return userAnswer === question.answer;
 }
 
+/** 从题库中随机抽取 n 个索引 */
+export function pickRandomIndices(length: number, n: number): number[] {
+  const indices = Array.from({ length }, (_, i) => i);
+  const shuffled = [...indices].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, Math.min(n, length));
+}
+
 /** 从题库中随机抽取 n 题 */
 export function pickRandom(pool: QuizQuestion[], n: number): QuizQuestion[] {
-  const shuffled = [...pool].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, Math.min(n, pool.length));
+  return pickRandomIndices(pool.length, n).map((i) => pool[i]);
 }

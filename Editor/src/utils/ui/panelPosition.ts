@@ -110,7 +110,7 @@ export function calculateEmbeddedPosition(
   // 获取 .workspace 元素
   const workspace = document.querySelector(".workspace") as HTMLElement;
   if (!workspace) {
-    console.warn("无法找到 .workspace 元素");
+    console.warn("[panelPosition] .workspace element not found");
     return {
       x: targetScreenPos.x + scaledTargetWidth + spacing,
       y: targetScreenPos.y,
@@ -188,7 +188,7 @@ export function calculateEdgeEmbeddedPosition(
   // 获取 .workspace 元素
   const workspace = document.querySelector(".workspace") as HTMLElement;
   if (!workspace) {
-    console.warn("无法找到 .workspace 元素");
+    console.warn("[panelPosition] .workspace element not found");
     return { x: midScreenPos.x + spacing, y: midScreenPos.y - panelHeight / 2 };
   }
 

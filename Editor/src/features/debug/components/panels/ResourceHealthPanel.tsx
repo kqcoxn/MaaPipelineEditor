@@ -8,7 +8,10 @@ import {
   ReloadOutlined,
   SettingOutlined,
 } from "@ant-design/icons";
+import type { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
 import { DebugSection } from "../DebugSection";
+import { useDebugComponentT } from "../useDebugComponentT";
 import type { DebugModalController } from "../../hooks/useDebugModalController";
 import {
   countDebugDiagnosticsBySeverity,
@@ -16,7 +19,6 @@ import {
   debugResourceHealthCategories,
   getDebugDiagnosticSuggestion,
   getDebugResourceHealthCategory,
-  getDebugResourceHealthCategoryLabel,
   sortDebugResourceHealthDiagnostics,
 } from "../../resourceHealth";
 import type { DebugDiagnostic, DebugResourceHealthCategory } from "../../types";
@@ -40,6 +42,8 @@ export function ResourceHealthPanel({
 }: {
   controller: DebugModalController;
 }) {
+  const { t } = useTranslation();
+  const { resourceHealthCategoryLabel } = useDebugComponentT();
   const graphFileCount =
     controller.resourceHealthRequest?.graphSnapshot.files.length ?? 0;
   const diagnostics =
@@ -65,11 +69,12 @@ export function ResourceHealthPanel({
     severityCounts,
   );
   const alertMessage = resolveAlertMessage(
+    t,
     controller.resourceHealthStatus,
     severityCounts,
     Boolean(controller.connected),
   );
-  const alertDescription = resolveAlertDescription(controller, severityCounts);
+  const alertDescription = resolveAlertDescription(t, controller, severityCounts);
 
   return (
     <Space orientation="vertical" size={14} style={{ width: "100%" }}>
@@ -85,44 +90,72 @@ export function ResourceHealthPanel({
           loading={controller.resourceHealthStatus === "checking"}
           onClick={controller.requestResourceHealth}
         >
-          重新体检
+          {t("debug.resourceHealth.recheck", "重新体检")}
         </Button>
         <Button
           icon={<SettingOutlined />}
           onClick={() => controller.handlePanelClick("setup")}
         >
-          打开调试配置
+          {t("debug.resourceHealth.openSetup", "打开调试配置")}
         </Button>
         <Button
           icon={<ProfileOutlined />}
           onClick={() => controller.handlePanelClick("overview")}
         >
-          打开中控台
+          {t("debug.resourceHealth.openOverview", "打开中控台")}
         </Button>
       </Space>
       <div style={metaListStyle}>
         <Tag>
-          资源路径 {controller.resourceHealthRequest?.resourcePaths.length ?? 0}
-        </Tag>
-        <Tag>MPE已加载文件 {graphFileCount}</Tag>
-        <Tag>
-          节点映射{" "}
-          {controller.resourceHealthRequest?.resolverSnapshot.nodes.length ?? 0}
+          {t("debug.resourceHealth.resourcePaths", {
+            count: controller.resourceHealthRequest?.resourcePaths.length ?? 0,
+            defaultValue: `资源路径 ${controller.resourceHealthRequest?.resourcePaths.length ?? 0}`,
+          })}
         </Tag>
         <Tag>
-          连线映射{" "}
-          {controller.resourceHealthRequest?.resolverSnapshot.edges.length ?? 0}
+          {t("debug.resourceHealth.loadedFiles", {
+            count: graphFileCount,
+            defaultValue: `MPE已加载文件 ${graphFileCount}`,
+          })}
         </Tag>
-        {loadingReasonCount > 0 && <Tag>加载失败线索 {loadingReasonCount}</Tag>}
+        <Tag>
+          {t("debug.resourceHealth.nodeMapping", {
+            count:
+              controller.resourceHealthRequest?.resolverSnapshot.nodes.length ??
+              0,
+            defaultValue: `节点映射 ${controller.resourceHealthRequest?.resolverSnapshot.nodes.length ?? 0}`,
+          })}
+        </Tag>
+        <Tag>
+          {t("debug.resourceHealth.edgeMapping", {
+            count:
+              controller.resourceHealthRequest?.resolverSnapshot.edges.length ??
+              0,
+            defaultValue: `连线映射 ${controller.resourceHealthRequest?.resolverSnapshot.edges.length ?? 0}`,
+          })}
+        </Tag>
+        {loadingReasonCount > 0 && (
+          <Tag>
+            {t("debug.resourceHealth.loadFailureClues", {
+              count: loadingReasonCount,
+              defaultValue: `加载失败线索 ${loadingReasonCount}`,
+            })}
+          </Tag>
+        )}
         {controller.resourceHealthResult?.durationMs !== undefined && (
-          <Tag>耗时 {controller.resourceHealthResult.durationMs}ms</Tag>
+          <Tag>
+            {t("debug.resourceHealth.duration", {
+              ms: controller.resourceHealthResult.durationMs,
+              defaultValue: `耗时 ${controller.resourceHealthResult.durationMs}ms`,
+            })}
+          </Tag>
         )}
       </div>
       {controller.resourceHealthDraftError && (
         <Alert
           type="error"
           showIcon
-          title="资源体检请求生成失败"
+          title={t("debug.resourceHealth.draftFailed", "资源体检请求生成失败")}
           description={controller.resourceHealthDraftError}
         />
       )}
@@ -132,6 +165,7 @@ export function ResourceHealthPanel({
           category={group.category}
           diagnostics={group.diagnostics}
           controller={controller}
+          resourceHealthCategoryLabel={resourceHealthCategoryLabel}
         />
       ))}
     </Space>
@@ -142,11 +176,16 @@ function ResourceHealthSection({
   category,
   diagnostics,
   controller,
+  resourceHealthCategoryLabel,
 }: {
   category: DebugResourceHealthCategory;
   diagnostics: DebugDiagnostic[];
   controller: DebugModalController;
+  resourceHealthCategoryLabel: (
+    category: DebugResourceHealthCategory,
+  ) => string;
 }) {
+  const { t } = useTranslation();
   const blockingCount = diagnostics.filter(
     (diagnostic) => diagnostic.severity === "error",
   ).length;
@@ -156,15 +195,19 @@ function ResourceHealthSection({
 
   return (
     <DebugSection
-      title={`${getDebugResourceHealthCategoryLabel(category)}${
+      title={`${resourceHealthCategoryLabel(category)}${
         diagnostics.length > 0
-          ? ` · ${blockingCount} 错误 / ${warningCount} 警告`
+          ? t("debug.resourceHealth.sectionSummary", {
+              errors: blockingCount,
+              warnings: warningCount,
+              defaultValue: ` · ${blockingCount} 错误 / ${warningCount} 警告`,
+            })
           : ""
       }`}
     >
       {diagnostics.length === 0 ? (
         <Empty
-          description="当前分组暂无结果"
+          description={t("debug.resourceHealth.emptyGroup", "当前分组暂无结果")}
           image={Empty.PRESENTED_IMAGE_SIMPLE}
         />
       ) : (
@@ -188,7 +231,7 @@ function ResourceHealthSection({
                     )
                   }
                 >
-                  打开文件
+                  {t("debug.resourceHealth.openFile", "打开文件")}
                 </Button>,
               );
             }
@@ -200,7 +243,7 @@ function ResourceHealthSection({
                   icon={<NodeIndexOutlined />}
                   onClick={() => controller.focusNode(diagnostic.nodeId!)}
                 >
-                  定位节点
+                  {t("debug.resourceHealth.focusNode", "定位节点")}
                 </Button>,
               );
             }
@@ -232,7 +275,8 @@ function ResourceHealthSection({
                         >
                           {diagnostic.sourcePath && (
                             <Text style={metaValueStyle}>
-                              路径: {diagnostic.sourcePath}
+                              {t("debug.common.path", "路径")}:{" "}
+                              {diagnostic.sourcePath}
                             </Text>
                           )}
                           {diagnostic.fileId && (
@@ -249,7 +293,10 @@ function ResourceHealthSection({
                       )}
                       {suggestion && (
                         <Text type="secondary" style={{ marginTop: 4 }}>
-                          修复建议: {suggestion}
+                          {t("debug.resourceHealth.fixSuggestion", {
+                            text: suggestion,
+                            defaultValue: `修复建议: ${suggestion}`,
+                          })}
                         </Text>
                       )}
                       {actions.length > 0 && (
@@ -281,21 +328,34 @@ function resolveAlertType(
 }
 
 function resolveAlertMessage(
+  t: TFunction,
   status: DebugModalController["resourceHealthStatus"],
   counts: Record<DebugDiagnostic["severity"], number>,
   connected: boolean,
 ): string {
-  if (!connected) return "LocalBridge 未连接";
-  if (status === "checking") return "正在执行资源体检";
-  if (status === "error") return "资源体检发现阻塞问题";
-  if (status === "ready" && counts.warning > 0) {
-    return "资源体检通过，但仍有提醒";
+  if (!connected) {
+    return t("debug.resourceHealth.alert.notConnected", "LocalBridge 未连接");
   }
-  if (status === "ready") return "资源体检通过";
-  return "资源体检待执行";
+  if (status === "checking") {
+    return t("debug.resourceHealth.alert.checking", "正在执行资源体检");
+  }
+  if (status === "error") {
+    return t("debug.resourceHealth.alert.blocking", "资源体检发现阻塞问题");
+  }
+  if (status === "ready" && counts.warning > 0) {
+    return t(
+      "debug.resourceHealth.alert.passedWithWarnings",
+      "资源体检通过，但仍有提醒",
+    );
+  }
+  if (status === "ready") {
+    return t("debug.resourceHealth.alert.passed", "资源体检通过");
+  }
+  return t("debug.resourceHealth.alert.pending", "资源体检待执行");
 }
 
 function resolveAlertDescription(
+  t: TFunction,
   controller: DebugModalController,
   counts: Record<DebugDiagnostic["severity"], number>,
 ): ReactNode {
@@ -310,10 +370,16 @@ function resolveAlertDescription(
       diagnostic.code === "debug.resource.load_unavailable",
   );
   if (!controller.connected) {
-    return "资源体检需要 LocalBridge 连接后才能执行。";
+    return t(
+      "debug.resourceHealth.desc.needsConnection",
+      "资源体检需要 LocalBridge 连接后才能执行。",
+    );
   }
   if (controller.resourceHealthStatus === "checking") {
-    return "正在检查资源路径和资源加载情况。";
+    return t(
+      "debug.resourceHealth.desc.checking",
+      "正在检查资源路径和资源加载情况。",
+    );
   }
   if (controller.resourceHealthError && diagnostics.length === 0) {
     return controller.resourceHealthError;
@@ -338,17 +404,36 @@ function resolveAlertDescription(
           </Space>
         );
       }
-      return "请优先查看下方「资源加载」分组中的错误项。";
+      return t(
+        "debug.resourceHealth.desc.checkLoadGroup",
+        "请优先查看下方「资源加载」分组中的错误项。",
+      );
     }
     if (loadBlockedBeforeExecution) {
-      return "请先修复资源路径解析或运行环境问题，再重新体检。";
+      return t(
+        "debug.resourceHealth.desc.fixBeforeRecheck",
+        "请先修复资源路径解析或运行环境问题，再重新体检。",
+      );
     }
-    return `本次体检共返回 ${counts.error} 个错误、${counts.warning} 个警告、${counts.info} 个提示。`;
+    return t("debug.resourceHealth.desc.summary", {
+      errors: counts.error,
+      warnings: counts.warning,
+      infos: counts.info,
+      defaultValue: `本次体检共返回 ${counts.error} 个错误、${counts.warning} 个警告、${counts.info} 个提示。`,
+    });
   }
   if (controller.resourceHealthStatus === "ready") {
-    return `本次体检共返回 ${counts.error} 个错误、${counts.warning} 个警告、${counts.info} 个提示。`;
+    return t("debug.resourceHealth.desc.summary", {
+      errors: counts.error,
+      warnings: counts.warning,
+      infos: counts.info,
+      defaultValue: `本次体检共返回 ${counts.error} 个错误、${counts.warning} 个警告、${counts.info} 个提示。`,
+    });
   }
-  return "打开此页后会自动针对当前调试上下文做一次体检；也可以手动重新触发。";
+  return t(
+    "debug.resourceHealth.desc.autoCheck",
+    "打开此页后会自动针对当前调试上下文做一次体检；也可以手动重新触发。",
+  );
 }
 
 function severityColor(severity: DebugDiagnostic["severity"]): string {

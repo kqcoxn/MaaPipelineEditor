@@ -1,5 +1,6 @@
 ﻿import type { CSSProperties } from "react";
 import { Alert, Spin, Typography } from "antd";
+import { useTranslation } from "react-i18next";
 import type { DebugArtifactEntry } from "../../../stores/debugArtifactStore";
 import { normalizeDebugArtifactBox } from "../artifactDetailSummary";
 import {
@@ -34,6 +35,8 @@ export function DebugArtifactPreview({
   overlayGroups,
   overlays: inputOverlays,
 }: DebugArtifactPreviewProps) {
+  const { t } = useTranslation();
+
   if (!artifact) return null;
 
   if (artifact.error) {
@@ -45,7 +48,11 @@ export function DebugArtifactPreview({
   }
 
   if (!artifact.payload) {
-    return <Text type="secondary">产物（Artifact）尚未加载。</Text>;
+    return (
+      <Text type="secondary">
+        {t("debug.artifact.notLoaded", "产物（Artifact）尚未加载。")}
+      </Text>
+    );
   }
 
   const { payload } = artifact;
@@ -93,5 +100,9 @@ export function DebugArtifactPreview({
     return <pre style={preStyle}>{payload.content}</pre>;
   }
 
-  return <Text type="secondary">产物（Artifact）没有可预览内容。</Text>;
+  return (
+    <Text type="secondary">
+      {t("debug.artifact.noPreview", "产物（Artifact）没有可预览内容。")}
+    </Text>
+  );
 }

@@ -1,4 +1,5 @@
 import { memo, useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { Popover, Spin, Image } from "antd";
 import { useLocalFileStore } from "../../../../stores/localFileStore";
 import { resourceProtocol } from "../../../../services/server";
@@ -17,6 +18,7 @@ interface TemplatePreviewProps {
  */
 export const TemplatePreview = memo(
   ({ templatePaths, title, description, children }: TemplatePreviewProps) => {
+    const { t } = useTranslation();
     const connected = useWSStore((state) => state.connected);
     const [open, setOpen] = useState(false);
 
@@ -90,7 +92,9 @@ export const TemplatePreview = memo(
             background: "#f5f5f5",
             borderRadius: 4,
           }}>
-            {path} - 未找到
+            {t("ui.panels.field.templatePreview.notFound", "{{path}} - 未找到", {
+              path,
+            })}
           </div>
         );
       }

@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useSyncExternalStore } from "react";
+﻿import { useState, useEffect, useMemo, useSyncExternalStore } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Modal,
   Button,
@@ -26,6 +27,10 @@ import {
   type QuizAnswer,
   type QuizQuestion,
 } from "../../data/newcomerQuiz";
+import {
+  getLocalizedFixedQuestions,
+  getLocalizedQuestionPool,
+} from "../../data/localize";
 import { getDevFlag } from "../../utils/devConsole";
 
 function useDevFlag(key: string): boolean {
@@ -55,11 +60,11 @@ function formatElapsedTime(totalSeconds: number): string {
 }
 
 export function NewcomerGuideModal() {
+  const { t } = useTranslation();
   const {
     modalOpen,
     step,
-    fixedQuiz,
-    randomQuiz,
+    randomQuizIndices,
     fixedAnswers,
     randomAnswers,
     setStep,
@@ -68,6 +73,18 @@ export function NewcomerGuideModal() {
     markPassed,
     closeModal,
   } = useNewcomerStore();
+
+  const fixedQuiz = useMemo(
+    () => getLocalizedFixedQuestions(t),
+    [t],
+  );
+  const randomQuiz = useMemo(
+    () => {
+      const pool = getLocalizedQuestionPool(t);
+      return randomQuizIndices.map((i) => pool[i]);
+    },
+    [t, randomQuizIndices],
+  );
 
   const [fixedError, setFixedError] = useState(false);
   const [fixedWrongIndices, setFixedWrongIndices] = useState<Set<number>>(
@@ -201,26 +218,48 @@ export function NewcomerGuideModal() {
         size="small"
         style={{ marginBottom: 24 }}
         items={[
-          { title: "了解", icon: <BookOutlined /> },
-          { title: "基础", icon: <FormOutlined /> },
-          { title: "通关", icon: <TrophyOutlined /> },
+          {
+            title: t("newcomerGuide.steps.learn", "了解"),
+            icon: <BookOutlined />,
+          },
+          {
+            title: t("newcomerGuide.steps.basics", "基础"),
+            icon: <FormOutlined />,
+          },
+          {
+            title: t("newcomerGuide.steps.complete", "通关"),
+            icon: <TrophyOutlined />,
+          },
         ]}
       />
 
       {step === 0 && <IntroPage onNext={startQuiz} />}
       {step === 1 && (
         <QuizPage
-          title="基础知识测试"
+          title={t("newcomerGuide.fixed.title", "基础知识测试")}
           elapsedSeconds={elapsedSeconds}
-          description="以下为 MaaFW 基本常识，必须全部答对才能进入下一步。如果您首次接触 MaaFW 项目，可配合文档或 AI 作答，这将对您后续项目维护有很大帮助；如果您了解过这些内容，将非常快速通过！"
+          description={t(
+            "newcomerGuide.fixed.description",
+            "以下为 MaaFW 基本常识，必须全部答对才能进入下一步。如果您首次接触 MaaFW 项目，可配合文档或 AI 作答，这将对您后续项目维护有很大帮助；如果您了解过这些内容，将非常快速通过！",
+          )}
           quiz={fixedQuiz}
           answers={fixedAnswers}
           setAnswer={setFixedAnswer}
           error={fixedError}
           errorMessage={
             fixedScore
-              ? `得分 ${fixedScore.correct}/${fixedScore.total}，请修正标红题目后重新提交。`
-              : "存在错误答案，请全部答对后再提交。"
+              ? t(
+                  "newcomerGuide.fixed.errorWithScore",
+                  "得分 {{correct}}/{{total}}，请修正标红题目后重新提交。",
+                  {
+                    correct: fixedScore.correct,
+                    total: fixedScore.total,
+                  },
+                )
+              : t(
+                  "newcomerGuide.fixed.errorAllWrong",
+                  "存在错误答案，请全部答对后再提交。",
+                )
           }
           wrongIndices={fixedWrongIndices}
           onSubmit={handleSubmitFixed}
@@ -229,17 +268,30 @@ export function NewcomerGuideModal() {
       )}
       {step === 2 && (
         <QuizPage
-          title="常用技巧测试"
+          title={t("newcomerGuide.random.title", "常用技巧测试")}
           elapsedSeconds={elapsedSeconds}
-          description="以下为常用小知识，答对 60% 即可通过。"
+          description={t(
+            "newcomerGuide.random.description",
+            "以下为常用小知识，答对 60% 即可通过。",
+          )}
           quiz={randomQuiz}
           answers={randomAnswers}
           setAnswer={setRandomAnswer}
           error={randomError}
           errorMessage={
             randomScore
-              ? `得分 ${randomScore.correct}/${randomScore.total}，正确率不足 60%，请修正标红题目后重新提交。`
-              : "正确率不足 60%，请重新检查后再提交。"
+              ? t(
+                  "newcomerGuide.random.errorWithScore",
+                  "得分 {{correct}}/{{total}}，正确率不足 60%，请修正标红题目后重新提交。",
+                  {
+                    correct: randomScore.correct,
+                    total: randomScore.total,
+                  },
+                )
+              : t(
+                  "newcomerGuide.random.errorInsufficient",
+                  "正确率不足 60%，请重新检查后再提交。",
+                )
           }
           wrongIndices={randomWrongIndices}
           onSubmit={handleSubmitRandom}
@@ -257,28 +309,41 @@ export function NewcomerGuideModal() {
 }
 
 function IntroPage({ onNext }: { onNext: () => void }) {
+  const { t } = useTranslation();
+
   return (
     <div>
-      <Title level={4}>欢迎使用 MaaPipelineEditor</Title>
+      <Title level={4}>
+        {t("newcomerGuide.intro.title", "欢迎使用 MaaPipelineEditor")}
+      </Title>
       <Paragraph>
-        <Text strong>MaaPipelineEditor (MPE)</Text> 是{" "}
-        <Text strong>MaaFramework (MaaFW)</Text> 的可视化 Pipeline
-        编辑器，帮助您以图形化方式编辑任务流程。
+        {t(
+          "newcomerGuide.intro.description",
+          "MaaPipelineEditor (MPE) 是 MaaFramework (MaaFW) 的可视化 Pipeline 编辑器，帮助您以图形化方式编辑任务流程。",
+        )}
       </Paragraph>
 
       <Alert
         type="warning"
         showIcon
-        title="重要提示"
-        description="MPE 是 MaaFW 的辅助工具，不能替代对 MaaFW 本身的学习。请确保您已经了解 MaaFW 的基本概念（如 Node、Task、Pipeline 等）后再使用本编辑器。"
+        title={t("newcomerGuide.intro.warningTitle", "重要提示")}
+        description={t(
+          "newcomerGuide.intro.warningDescription",
+          "MPE 是 MaaFW 的辅助工具，不能替代对 MaaFW 本身的学习。请确保您已经了解 MaaFW 的基本概念（如 Node、Task、Pipeline 等）后再使用本编辑器。",
+        )}
         style={{ marginBottom: 16 }}
       />
 
-      <Paragraph>如果您还不熟悉 MaaFramework，请先阅读官方文档：</Paragraph>
+      <Paragraph>
+        {t(
+          "newcomerGuide.intro.docsHint",
+          "如果您还不熟悉 MaaFramework，请先阅读官方文档：",
+        )}
+      </Paragraph>
 
       <Space orientation="vertical" style={{ marginBottom: 24 }}>
         <Link href="https://maafw.com/docs/1.1-QuickStarted" target="_blank">
-          MaaFramework 官方文档
+          {t("newcomerGuide.intro.docsLink", "MaaFramework 官方文档")}
         </Link>
       </Space>
 
@@ -286,7 +351,7 @@ function IntroPage({ onNext }: { onNext: () => void }) {
 
       <div style={{ textAlign: "right" }}>
         <Button type="primary" onClick={onNext}>
-          我已了解，开始答题
+          {t("newcomerGuide.intro.startButton", "我已了解，开始答题")}
         </Button>
       </div>
     </div>
@@ -301,9 +366,12 @@ interface QuizGroup {
   }>;
 }
 
-function groupQuizByCategory(quiz: QuizQuestion[]): QuizGroup[] {
+function groupQuizByCategory(
+  quiz: QuizQuestion[],
+  defaultCategory: string,
+): QuizGroup[] {
   return quiz.reduce<QuizGroup[]>((groups, question, index) => {
-    const title = question.category ?? "综合题目";
+    const title = question.category ?? defaultCategory;
     const existingGroup = groups.find((group) => group.title === title);
     const item = { question, index };
 
@@ -342,9 +410,13 @@ function QuizPage({
   onSubmit: () => void;
   onBack: () => void;
 }) {
+  const { t } = useTranslation();
   const { token } = theme.useToken();
   const cheatEnabled = useDevFlag("quizCheat");
-  const quizGroups = groupQuizByCategory(quiz);
+  const quizGroups = groupQuizByCategory(
+    quiz,
+    t("newcomerGuide.quiz.defaultCategory", "综合题目"),
+  );
   const allAnswered = quiz.every((q, i) => {
     const a = answers[i];
     if (a === undefined) return false;
@@ -381,7 +453,9 @@ function QuizPage({
             fontVariantNumeric: "tabular-nums",
           }}
         >
-          用时 {formatElapsedTime(elapsedSeconds)}
+          {t("newcomerGuide.quiz.elapsed", "用时 {{time}}", {
+            time: formatElapsedTime(elapsedSeconds),
+          })}
         </Tag>
       </div>
       <Paragraph type="secondary">{description}</Paragraph>
@@ -433,7 +507,9 @@ function QuizPage({
                   {group.title}
                 </Text>
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  {group.items.length} 题
+                  {t("newcomerGuide.quiz.questionCount", "{{count}} 题", {
+                    count: group.items.length,
+                  })}
                 </Text>
               </div>
               <Space
@@ -460,9 +536,11 @@ function QuizPage({
       <Divider />
 
       <div style={{ display: "flex", justifyContent: "space-between" }}>
-        <Button onClick={onBack}>上一步</Button>
+        <Button onClick={onBack}>
+          {t("newcomerGuide.quiz.back", "上一步")}
+        </Button>
         <Button type="primary" disabled={!allAnswered} onClick={onSubmit}>
-          提交答案
+          {t("newcomerGuide.quiz.submit", "提交答案")}
         </Button>
       </div>
     </div>
@@ -498,11 +576,24 @@ function QuizItem({
   onChange: (val: QuizAnswer) => void;
   isWrong?: boolean;
 }) {
+  const { t } = useTranslation();
   const typeMeta = {
-    choice: { label: "单选", color: "blue" },
-    judge: { label: "判断", color: "cyan" },
-    multi: { label: "多选", color: "purple" },
-    input: { label: "填空", color: "gold" },
+    choice: {
+      label: t("newcomerGuide.quiz.types.choice", "单选"),
+      color: "blue",
+    },
+    judge: {
+      label: t("newcomerGuide.quiz.types.judge", "判断"),
+      color: "cyan",
+    },
+    multi: {
+      label: t("newcomerGuide.quiz.types.multi", "多选"),
+      color: "purple",
+    },
+    input: {
+      label: t("newcomerGuide.quiz.types.input", "填空"),
+      color: "gold",
+    },
   };
   const meta = typeMeta[question.type];
 
@@ -566,7 +657,10 @@ function QuizItem({
         <Input
           value={typeof value === "string" ? value : ""}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="请输入答案"
+          placeholder={t(
+            "newcomerGuide.quiz.inputPlaceholder",
+            "请输入答案",
+          )}
           style={{ marginTop: 8 }}
         />
       </div>
@@ -605,6 +699,8 @@ function CertificatePage({
   elapsedSeconds: number;
   onFinish: () => void;
 }) {
+  const { t } = useTranslation();
+
   useEffect(() => {
     import("canvas-confetti").then(({ default: confetti }) => {
       const canvas = document.createElement("canvas");
@@ -654,18 +750,25 @@ function CertificatePage({
       <Result
         status="success"
         icon={<TrophyOutlined style={{ color: "#faad14" }} />}
-        title="恭喜通过测试！"
-        subTitle={`您已具备 MaaFW 的基础知识，本次用时 ${formatElapsedTime(elapsedSeconds)}，欢迎开始使用 MaaPipelineEditor！`}
+        title={t("newcomerGuide.certificate.title", "恭喜通过测试！")}
+        subTitle={t(
+          "newcomerGuide.certificate.subTitle",
+          "您已具备 MaaFW 的基础知识，本次用时 {{time}}，欢迎开始使用 MaaPipelineEditor！",
+          { time: formatElapsedTime(elapsedSeconds) },
+        )}
         extra={
           <Space orientation="vertical" align="center">
             <Link
               href="https://mpe.codax.site/docs/guide/start/quick-start.html"
               target="_blank"
             >
-              查看 MaaPipelineEditor 使用文档
+              {t(
+                "newcomerGuide.certificate.docsLink",
+                "查看 MaaPipelineEditor 使用文档",
+              )}
             </Link>
             <Button type="primary" size="large" onClick={onFinish}>
-              开始使用 MPE
+              {t("newcomerGuide.certificate.startButton", "开始使用 MPE")}
             </Button>
           </Space>
         }

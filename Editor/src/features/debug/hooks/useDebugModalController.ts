@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import uiT from "../../../i18n/translate";
 import { message } from "antd";
 import { useShallow } from "zustand/shallow";
 import { AIClient } from "../../../utils/ai/aiClient";
@@ -146,22 +147,24 @@ export function useDebugModalController() {
     selectDisplaySessions,
     selectLatestDisplaySession,
     selectedDisplaySessionIds,
-    summary,
-    liveSummary,
-  } = useDebugTraceStore(
-    useShallow((state) => ({
-      allEvents: state.events,
-      displaySessions: state.displaySessions,
-      events: state.displayEvents,
-      latestDisplaySessionId: state.latestDisplaySessionId,
-      selectAllDisplaySessions: state.selectAllDisplaySessions,
-      selectDisplaySessions: state.selectDisplaySessions,
-      selectLatestDisplaySession: state.selectLatestDisplaySession,
-      selectedDisplaySessionIds: state.selectedDisplaySessionIds,
-      summary: state.summary,
-      liveSummary: state.liveSummary,
-    })),
-  );
+      summary,
+      liveSummary,
+      performanceSummary,
+    } = useDebugTraceStore(
+      useShallow((state) => ({
+        allEvents: state.events,
+        displaySessions: state.displaySessions,
+        events: state.displayEvents,
+        latestDisplaySessionId: state.latestDisplaySessionId,
+        selectAllDisplaySessions: state.selectAllDisplaySessions,
+        selectDisplaySessions: state.selectDisplaySessions,
+        selectLatestDisplaySession: state.selectLatestDisplaySession,
+        selectedDisplaySessionIds: state.selectedDisplaySessionIds,
+        summary: state.summary,
+        liveSummary: state.liveSummary,
+        performanceSummary: state.performanceSummary,
+      })),
+    );
   const diagnosticsState = useDebugDiagnosticsStore(
     useShallow((state) => ({
       diagnostics: state.diagnostics,
@@ -320,7 +323,13 @@ export function useDebugModalController() {
     if (!sent) {
       useDebugArtifactStore
         .getState()
-        .setError(artifactId, "发送产物（Artifact）请求失败");
+        .setError(
+          artifactId,
+          uiT(
+            "ui.debug.modalController.artifactRequestFailed",
+            "发送产物（Artifact）请求失败",
+          ),
+        );
     }
   };
 
@@ -376,7 +385,10 @@ export function useDebugModalController() {
         message: issue.message,
       }));
       diagnosticsState.setPreflightDiagnostics([...diagnostics]);
-      message.error(debugReadiness.issues[0]?.message ?? "调试前置条件未满足");
+      message.error(
+        debugReadiness.issues[0]?.message ??
+          uiT("ui.debug.modalController.preflightNotMet", "调试前置条件未满足"),
+      );
       return;
     }
     if (!runnableModes.has(mode) || !availableModeIds.has(mode)) {
@@ -384,10 +396,19 @@ export function useDebugModalController() {
         {
           severity: "error",
           code: "debug.run_mode.unsupported",
-          message: `当前 LocalBridge 暂不支持调试模式: ${mode}`,
+          message: uiT(
+            "ui.debug.modalController.unsupportedMode",
+            "当前 LocalBridge 暂不支持调试模式: {{mode}}",
+            { mode },
+          ),
         },
       ]);
-      message.warning("当前 LocalBridge 暂不支持该调试模式");
+      message.warning(
+        uiT(
+          "ui.debug.modalController.unsupportedModeShort",
+          "当前 LocalBridge 暂不支持该调试模式",
+        ),
+      );
       return;
     }
 
@@ -396,7 +417,11 @@ export function useDebugModalController() {
         const saveResult = await saveOpenedLocalFilesForDebug();
         if (saveResult.failedFiles.length > 0) {
           message.error(
-            `调试前保存打开文件失败：${saveResult.failedFiles.join("、")}`,
+            uiT(
+              "ui.debug.modalController.saveOpenFilesFailed",
+              "调试前保存打开文件失败：{{files}}",
+              { files: saveResult.failedFiles.join("、") },
+            ),
           );
           return;
         }
@@ -418,12 +443,19 @@ export function useDebugModalController() {
         return;
       }
       if (targetRunModes.has(request.mode) && !request.target) {
-        message.error("请选择可调试的 Pipeline 节点");
+        message.error(
+          uiT(
+            "ui.debug.nodeTarget.selectPipelineNode",
+            "请选择可调试的 Pipeline 节点",
+          ),
+        );
         return;
       }
       const sent = debugProtocolClient.startRun(request);
       if (!sent) {
-        message.error("发送调试启动请求失败");
+        message.error(
+          uiT("ui.debug.modalController.startRequestFailed", "发送调试启动请求失败"),
+        );
         return;
       }
       useDebugAiSummaryStore.getState().reset();
@@ -436,18 +468,29 @@ export function useDebugModalController() {
         });
       }
     } catch (error) {
-      message.error(error instanceof Error ? error.message : "生成调试请求失败");
+      message.error(
+        error instanceof Error
+          ? error.message
+          : uiT(
+              "ui.debug.modalController.buildRequestFailed",
+              "生成调试请求失败",
+            ),
+      );
     }
   };
 
 
   const stopRun = () => {
     if (!session?.sessionId) {
-      message.warning("当前没有调试会话（Session）");
+      message.warning(
+        uiT("ui.debug.traceReplay.noSession", "当前没有调试会话（Session）"),
+      );
       return;
     }
     if (session.status !== "running" || !activeRun?.runId) {
-      message.warning("当前没有运行中的调试任务");
+      message.warning(
+        uiT("ui.debug.modalController.noRunningTask", "当前没有运行中的调试任务"),
+      );
       return;
     }
     const sent = debugProtocolClient.stopRun({
@@ -455,7 +498,11 @@ export function useDebugModalController() {
       runId: activeRun.runId,
       reason: "user_stop",
     });
-    if (!sent) message.error("发送停止请求失败");
+    if (!sent) {
+      message.error(
+        uiT("ui.debug.modalController.stopRequestFailed", "发送停止请求失败"),
+      );
+    }
   };
 
   const captureScreenshot = () => {
@@ -502,10 +549,14 @@ export function useDebugModalController() {
     if (sourcePath) {
       const sent = fileProtocol.requestOpenFile(sourcePath);
       if (sent) return;
-      message.error("发送打开文件请求失败");
+      message.error(
+        uiT("ui.debug.modalController.openFileRequestFailed", "发送打开文件请求失败"),
+      );
       return;
     }
-    message.warning("当前诊断没有可定位的文件");
+    message.warning(
+      uiT("ui.debug.modalController.noLocatableFile", "当前诊断没有可定位的文件"),
+    );
   };
 
   const generateDebugAiSummary = useCallback(
@@ -538,13 +589,19 @@ export function useDebugModalController() {
         aiSummaryState.markAutoRequested(targetId);
       }
       if (events.length === 0) {
-        const error = "当前没有可总结的调试事件。";
+        const error = uiT(
+          "ui.debug.modalController.noSummaryEvents",
+          "当前没有可总结的调试事件。",
+        );
         aiSummaryState.setError(error);
         if (!options.automatic) message.warning(error);
         return;
       }
       if (focus === "node" && !targetRecord) {
-        const error = "请先选择要解释的节点执行记录。";
+        const error = uiT(
+          "ui.debug.modalController.selectNodeRecordFirst",
+          "请先选择要解释的节点执行记录。",
+        );
         aiSummaryState.setError(error);
         if (!options.automatic) message.warning(error);
         return;
@@ -560,16 +617,27 @@ export function useDebugModalController() {
           mode: selectedDisplaySession?.mode ?? summary.runMode,
           events,
           diagnostics: diagnosticsState.diagnostics,
+          artifacts,
+          performanceSummary,
           nodeRecords: nodeExecutionController.allNodeExecutionRecords,
           selectedNodeRecord: targetRecord,
         });
         const client = new AIClient({
           historyLimit: 0,
-          systemPrompt: "你是 MaaPipelineEditor 的调试报告助手，只根据给定上下文输出 JSON。",
+          systemPrompt: uiT(
+            "ui.debug.modalController.aiSystemPrompt",
+            "你是 MaaPipelineEditor 的调试报告助手，只根据给定上下文输出 JSON。",
+          ),
         });
-        const result = await client.send(prompt, "生成调试 AI 总结");
+        const result = await client.send(
+          prompt,
+          uiT("ui.debug.modalController.generateAiSummary", "生成调试 AI 总结"),
+        );
         if (!result.success) {
-          throw new Error(result.error || "AI 总结生成失败");
+          throw new Error(
+            result.error ||
+              uiT("ui.debug.modalController.aiSummaryFailed", "AI 总结生成失败"),
+          );
         }
         const parsed = parseDebugAiSummaryResponse(result.content);
         aiSummaryState.setReport({
@@ -587,11 +655,15 @@ export function useDebugModalController() {
           generatedAt: new Date().toISOString(),
         });
         if (!options.automatic) {
-          message.success("AI 总结已生成");
+          message.success(
+            uiT("ui.debug.modalController.aiSummaryGenerated", "AI 总结已生成"),
+          );
         }
       } catch (error) {
         const errorMessage =
-          error instanceof Error ? error.message : "AI 总结生成失败";
+          error instanceof Error
+            ? error.message
+            : uiT("ui.debug.modalController.aiSummaryFailed", "AI 总结生成失败");
         aiSummaryState.setError(errorMessage);
         if (!options.automatic) message.error(errorMessage);
       }

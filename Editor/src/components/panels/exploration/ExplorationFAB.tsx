@@ -5,6 +5,7 @@
  */
 
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Tooltip, Badge, message } from "antd";
 import classNames from "classnames";
 import IconFont from "../../iconfonts";
@@ -25,6 +26,7 @@ function ExplorationFABBase({
   visible = true,
   active = false,
 }: ExplorationFABProps) {
+  const { t } = useTranslation();
   const connectionStatus = useMFWStore((s) => s.connectionStatus);
   const aiApiUrl = useConfigStore((s) => s.configs.aiApiUrl);
   const aiApiKey = useConfigStore((s) => s.configs.aiApiKey);
@@ -51,11 +53,11 @@ function ExplorationFABBase({
   const handleClick = () => {
     if (isHidden) return;
     if (!isConnected) {
-      message.warning("请先连接设备");
+      message.warning(t("ui.panels.exploration.connectDeviceFirst", "请先连接设备"));
       return;
     }
     if (!isAIConfigured) {
-      message.warning("请先配置 AI API");
+      message.warning(t("ui.panels.exploration.configureAiFirst", "请先配置 AI API"));
       return;
     }
     onClick();
@@ -63,10 +65,18 @@ function ExplorationFABBase({
 
   // 获取提示文本
   const getTooltipTitle = () => {
-    if (!isConnected) return "流程探索 (需连接设备)";
-    if (!isAIConfigured) return "流程探索 (需配置 AI)";
-    if (isExploring) return `探索中 (${stepCount} 步)`;
-    return "流程探索";
+    if (!isConnected) {
+      return t("ui.panels.exploration.tooltipNeedDevice", "流程探索 (需连接设备)");
+    }
+    if (!isAIConfigured) {
+      return t("ui.panels.exploration.tooltipNeedAi", "流程探索 (需配置 AI)");
+    }
+    if (isExploring) {
+      return t("ui.panels.exploration.tooltipExploring", "探索中 ({{count}} 步)", {
+        count: stepCount,
+      });
+    }
+    return t("ui.panels.exploration.tooltipDefault", "流程探索");
   };
 
   return (

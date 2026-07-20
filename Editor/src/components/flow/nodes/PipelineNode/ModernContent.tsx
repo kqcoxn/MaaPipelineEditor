@@ -1,4 +1,5 @@
 import { memo, useMemo, useRef, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { type NodeProps } from "@xyflow/react";
 import classNames from "classnames";
 
@@ -34,6 +35,7 @@ const focusDisplayNameMap: Record<string, string> = (() => {
 /**现代风格Pipeline节点内容 */
 export const ModernContent = memo(
   ({ data, props }: { data: PipelineNodeDataType; props: NodeProps }) => {
+    const { t } = useTranslation();
     const nodeId = props.id;
     const headerRef = useRef<HTMLDivElement>(null);
     const [headerHeight, setHeaderHeight] = useState(0);
@@ -174,7 +176,7 @@ export const ModernContent = memo(
         {/* 顶部区域 */}
         <div ref={headerRef} className={style.modernHeader}>
           <div className={style.headerLeft}>
-            <span title="Pipeline节点">
+            <span title={t("ui.flow.pipelineNode.pipelineNodeTitle", "Pipeline节点")}>
               <IconFont
                 className={style.typeIcon}
                 name={nodeTypeIconConfig.name}
@@ -201,7 +203,11 @@ export const ModernContent = memo(
                   size={recoIconConfig.size}
                 />
               )}
-              <span>识别 - {data.recognition.type}</span>
+              <span>
+                {t("ui.flow.pipelineNode.recognitionSection", "识别 - {{type}}", {
+                  type: data.recognition.type,
+                })}
+              </span>
             </div>
             {showNodeDetailFields && hasRecoParams && (
               <ul className={style.sectionList}>
@@ -227,7 +233,11 @@ export const ModernContent = memo(
                   size={actionIconConfig.size}
                 />
               )}
-              <span>动作 - {data.action.type}</span>
+              <span>
+                {t("ui.flow.pipelineNode.actionSection", "动作 - {{type}}", {
+                  type: data.action.type,
+                })}
+              </span>
             </div>
             {showNodeDetailFields && hasActionParams && (
               <ul className={style.sectionList}>
@@ -249,7 +259,7 @@ export const ModernContent = memo(
                 className={classNames(style.sectionHeader, style.otherHeader)}
               >
                 <IconFont name="icon-zidingyi" size={12} />
-                <span>其他</span>
+                <span>{t("ui.flow.pipelineNode.otherSection", "其他")}</span>
               </div>
               <ul className={style.sectionList}>
                 {otherParamKeys.map((key) => (

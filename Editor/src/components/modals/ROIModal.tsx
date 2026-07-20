@@ -1,10 +1,12 @@
 import { memo, useState, useCallback, useEffect, useRef } from "react";
 import { Space, InputNumber, message, Tooltip } from "antd";
 import { InfoCircleOutlined } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 import {
   ScreenshotModalBase,
   type CanvasRenderProps,
 } from "./ScreenshotModalBase";
+import { getRoiModalStrings } from "./shared/roiModalStrings";
 import {
   resolveNegativeROI,
   type Rectangle,
@@ -19,6 +21,8 @@ interface ROIModalProps {
 
 export const ROIModal = memo(
   ({ open, onClose, onConfirm, initialROI }: ROIModalProps) => {
+    const { t } = useTranslation();
+    const roi = getRoiModalStrings(t, "roiModal");
     const [screenshot, setScreenshot] = useState<string | null>(null);
     const [rectangle, setRectangle] = useState<Rectangle | null>(null);
     const [isDrawing, setIsDrawing] = useState(false);
@@ -217,19 +221,21 @@ export const ROIModal = memo(
     // 确定回填
     const handleConfirm = useCallback(() => {
       if (!rectangle) {
-        message.warning("请先框选区域");
+        message.warning(
+          t("ui.modals.roiModal.selectRegionFirst", "请先框选区域"),
+        );
         return;
       }
 
-      const roi: [number, number, number, number] = [
+      const roiValue: [number, number, number, number] = [
         Math.round(rectangle.x),
         Math.round(rectangle.y),
         Math.round(rectangle.width),
         Math.round(rectangle.height),
       ];
-      onConfirm(roi);
+      onConfirm(roiValue);
       onClose();
-    }, [rectangle, onConfirm, onClose]);
+    }, [rectangle, onConfirm, onClose, t]);
 
     // 重置状态
     const handleReset = useCallback(() => {
@@ -304,7 +310,7 @@ export const ROIModal = memo(
       <ScreenshotModalBase
         open={open}
         onClose={onClose}
-        title="ROI 区域配置"
+        title={t("ui.modals.roiModal.title", "ROI 区域配置")}
         width={900}
         confirmDisabled={!rectangle}
         onConfirm={handleConfirm}
@@ -340,19 +346,19 @@ export const ROIModal = memo(
               }}
             />
             <span style={{ fontSize: 14, fontWeight: 500, color: "#262626" }}>
-              ROI 坐标
+              {roi.roiCoords}
             </span>
             <span style={{ fontSize: 12, color: "#8c8c8c" }}>[x, y, w, h]</span>
             <Tooltip
               title={
                 <div>
                   <div style={{ fontWeight: 500, marginBottom: 4 }}>
-                    负数坐标说明 (v5.6+)
+                    {roi.negativeCoordTitle}
                   </div>
-                  <div>• x 负数：从右边缘计算</div>
-                  <div>• y 负数：从下边缘计算</div>
-                  <div>• w/h 为 0：延伸至边缘</div>
-                  <div>• w/h 负数：取绝对值， 作为右下角</div>
+                  <div>{roi.negativeX}</div>
+                  <div>{roi.negativeY}</div>
+                  <div>{roi.zeroExtend}</div>
+                  <div>{roi.negativeAbs}</div>
                 </div>
               }
             >
@@ -383,14 +389,14 @@ export const ROIModal = memo(
                 style={{ width: 80 }}
                 disabled={!screenshot}
               />
-              <Tooltip title="负数从右边缘计算">
+              <Tooltip title={roi.tooltipNegativeX}>
                 <span
                   style={{
                     fontSize: 10,
                     color: rectangle && rectangle.x < 0 ? "#faad14" : "#bfbfbf",
                   }}
                 >
-                  {rectangle && rectangle.x < 0 ? "←右" : ""}
+                  {rectangle && rectangle.x < 0 ? roi.indicatorFromRight : ""}
                 </span>
               </Tooltip>
               <span
@@ -413,14 +419,14 @@ export const ROIModal = memo(
                 style={{ width: 80 }}
                 disabled={!screenshot}
               />
-              <Tooltip title="负数从下边缘计算">
+              <Tooltip title={roi.tooltipNegativeY}>
                 <span
                   style={{
                     fontSize: 10,
                     color: rectangle && rectangle.y < 0 ? "#faad14" : "#bfbfbf",
                   }}
                 >
-                  {rectangle && rectangle.y < 0 ? "↑下" : ""}
+                  {rectangle && rectangle.y < 0 ? roi.indicatorFromBottom : ""}
                 </span>
               </Tooltip>
             </Space>
@@ -445,7 +451,7 @@ export const ROIModal = memo(
                 style={{ width: 80 }}
                 disabled={!screenshot}
               />
-              <Tooltip title="0 表示延伸至右边缘，负数取绝对值并将 作为右下角">
+              <Tooltip title={roi.tooltipZeroExtendW}>
                 <span
                   style={{
                     fontSize: 10,
@@ -454,9 +460,9 @@ export const ROIModal = memo(
                   }}
                 >
                   {rectangle && rectangle.width === 0
-                    ? "→边"
+                    ? roi.indicatorToEdge
                     : rectangle && rectangle.width < 0
-                      ? "←→"
+                      ? roi.indicatorBothH
                       : ""}
                 </span>
               </Tooltip>
@@ -480,7 +486,7 @@ export const ROIModal = memo(
                 style={{ width: 80 }}
                 disabled={!screenshot}
               />
-              <Tooltip title="0 表示延伸至下边缘，负数取绝对值并将 作为右下角">
+              <Tooltip title={roi.tooltipZeroExtendH}>
                 <span
                   style={{
                     fontSize: 10,
@@ -489,9 +495,9 @@ export const ROIModal = memo(
                   }}
                 >
                   {rectangle && rectangle.height === 0
-                    ? "↓边"
+                    ? roi.indicatorToBottomEdge
                     : rectangle && rectangle.height < 0
-                      ? "↑↓"
+                      ? roi.indicatorBothV
                       : ""}
                 </span>
               </Tooltip>
@@ -534,8 +540,10 @@ export const ROIModal = memo(
                               marginBottom: 4,
                             }}
                           >
-                            <span style={{ color: "#1890ff" }}>左上: </span>[
-                            {resolved.split.topLeft.x},{" "}
+                            <span style={{ color: "#1890ff" }}>
+                              {roi.splitTopLeft}
+                            </span>
+                            [{resolved.split.topLeft.x},{" "}
                             {resolved.split.topLeft.y},{" "}
                             {resolved.split.topLeft.width},{" "}
                             {resolved.split.topLeft.height}]
@@ -543,8 +551,10 @@ export const ROIModal = memo(
                         )}
                         {resolved.split.bottomRight && (
                           <div style={{ fontSize: 12, color: "#262626" }}>
-                            <span style={{ color: "#1890ff" }}>右下: </span>[
-                            {resolved.split.bottomRight.x},{" "}
+                            <span style={{ color: "#1890ff" }}>
+                              {roi.splitBottomRight}
+                            </span>
+                            [{resolved.split.bottomRight.x},{" "}
                             {resolved.split.bottomRight.y},{" "}
                             {resolved.split.bottomRight.width},{" "}
                             {resolved.split.bottomRight.height}]

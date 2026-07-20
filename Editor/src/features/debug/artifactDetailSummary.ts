@@ -1,3 +1,4 @@
+import uiT from "../../i18n/translate";
 import type { DebugArtifactPayload } from "./types";
 
 export interface DebugArtifactBox {
@@ -117,7 +118,7 @@ export function recognitionDetailImageRefs(
     refs.push({
       ref: summary.rawImageRef,
       kind: "raw",
-      label: "原图",
+      label: uiT("debug.common.rawImage", "原图"),
     });
   }
   summary.drawImageRefs.forEach((ref, index) => {
@@ -125,14 +126,18 @@ export function recognitionDetailImageRefs(
       ref,
       kind: "draw",
       label:
-        summary.drawImageRefs.length > 1 ? `绘制图 ${index + 1}` : "绘制图",
+        summary.drawImageRefs.length > 1
+          ? uiT("debug.common.drawImageIndexed", "绘制图 {{index}}", {
+              index: index + 1,
+            })
+          : uiT("debug.common.drawImage", "绘制图"),
     });
   });
   if (summary.screenshotRef) {
     refs.push({
       ref: summary.screenshotRef,
       kind: "screenshot",
-      label: "截图",
+      label: uiT("debug.common.screenshot", "截图"),
     });
   }
   return dedupeImageRefs(refs);

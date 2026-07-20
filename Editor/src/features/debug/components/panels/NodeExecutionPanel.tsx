@@ -5,6 +5,8 @@ import {
   ClearOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { DebugSection } from "../DebugSection";
 import type { DebugModalController } from "../../hooks/useDebugModalController";
 import type { DebugNodeExecutionRecord } from "../../nodeExecutionSelector";
@@ -17,7 +19,6 @@ import {
   GroupedRecordList,
   RecordList,
 } from "./NodeExecutionRecordList";
-import { debugNodeExecutionEventKindLabels } from "../../nodeExecutionDisplay";
 import type {
   DebugExecutionAttributionMode,
   DebugExecutionDetailMode,
@@ -34,6 +35,7 @@ import {
   formatDebugRunDisplayName,
 } from "../../runDisplayName";
 import { formatDebugNodeDisplayName } from "../../syntheticNode";
+import { useDebugComponentT } from "../useDebugComponentT";
 
 const workspaceStyle: CSSProperties = {
   display: "grid",
@@ -64,81 +66,27 @@ const scrollPaneStyle: CSSProperties = {
   scrollbarGutter: "stable",
 };
 
-const statusOptions: Array<{
-  value: DebugNodeExecutionStatusFilter;
-  label: string;
-}> = [
-  { value: "all", label: "全部状态" },
-  { value: "running", label: "运行中" },
-  { value: "succeeded", label: "成功" },
-  { value: "failed", label: "失败" },
-  { value: "visited", label: "已访问" },
-];
-
-const eventKindOptions: Array<{
-  value: DebugNodeExecutionEventKindFilter;
-  label: string;
-}> = [
-  { value: "all", label: "全部事件" },
-  ...(
-    [
-      "node",
-      "recognition",
-      "action",
-      "next-list",
-      "wait-freezes",
-      "diagnostic",
-      "screenshot",
-      "artifact",
-      "task",
-      "session",
-      "log",
-    ] satisfies DebugEventKind[]
-  ).map((kind) => ({
-    value: kind,
-    label: debugNodeExecutionEventKindLabels[kind],
-  })),
-];
-
-const artifactOptions: Array<{
-  value: DebugNodeExecutionArtifactFilter;
-  label: string;
-}> = [
-  { value: "all", label: "全部产物" },
-  { value: "with-artifact", label: "含产物" },
-  { value: "without-artifact", label: "无产物" },
-];
-
-const sortOptions: Array<{
-  value: DebugNodeExecutionSortMode;
-  label: string;
-}> = [
-  { value: "execution", label: "执行顺序" },
-  { value: "failure-first", label: "失败优先" },
-  { value: "latest", label: "最新优先" },
-];
-
-const attributionModeOptions: Array<{
-  value: DebugExecutionAttributionMode;
-  label: string;
-}> = [
-  { value: "next", label: "Next 模式" },
-  { value: "node", label: "Pair 模式" },
-];
-
-const detailModeOptions: Array<{
-  value: DebugExecutionDetailMode;
-  label: string;
-}> = [
-  { value: "compact", label: "精简" },
-  { value: "detailed", label: "详细" },
-];
+const eventKindFilterValues = [
+  "node",
+  "recognition",
+  "action",
+  "next-list",
+  "wait-freezes",
+  "diagnostic",
+  "screenshot",
+  "artifact",
+  "task",
+  "session",
+  "log",
+] satisfies DebugEventKind[];
 
 export function NodeExecutionPanel({
   controller,
 }: {
   controller: DebugModalController;
 }) {
+  const { t } = useTranslation();
+  const { statusLabel, eventKindLabel } = useDebugComponentT();
   const {
     allNodeExecutionRecords,
     artifacts,
@@ -183,6 +131,98 @@ export function NodeExecutionPanel({
     visibleRecords.find(
       (record) => record.id === selectedNodeExecutionRecordId,
     ) ?? visibleRecords[0];
+
+  const statusOptions = useMemo(
+    (): Array<{ value: DebugNodeExecutionStatusFilter; label: string }> => [
+      {
+        value: "all",
+        label: t("debug.nodeExecution.filters.statusAll", "全部状态"),
+      },
+      { value: "running", label: statusLabel("running") },
+      { value: "succeeded", label: statusLabel("succeeded") },
+      { value: "failed", label: statusLabel("failed") },
+      { value: "visited", label: statusLabel("visited") },
+    ],
+    [statusLabel, t],
+  );
+
+  const eventKindOptions = useMemo(
+    (): Array<{ value: DebugNodeExecutionEventKindFilter; label: string }> => [
+      {
+        value: "all",
+        label: t("debug.nodeExecution.filters.eventAll", "全部事件"),
+      },
+      ...eventKindFilterValues.map((kind) => ({
+        value: kind,
+        label: eventKindLabel(kind),
+      })),
+    ],
+    [eventKindLabel, t],
+  );
+
+  const artifactOptions = useMemo(
+    (): Array<{ value: DebugNodeExecutionArtifactFilter; label: string }> => [
+      {
+        value: "all",
+        label: t("debug.nodeExecution.filters.artifactAll", "全部产物"),
+      },
+      {
+        value: "with-artifact",
+        label: t("debug.nodeExecution.filters.artifactWith", "含产物"),
+      },
+      {
+        value: "without-artifact",
+        label: t("debug.nodeExecution.filters.artifactWithout", "无产物"),
+      },
+    ],
+    [t],
+  );
+
+  const sortOptions = useMemo(
+    (): Array<{ value: DebugNodeExecutionSortMode; label: string }> => [
+      {
+        value: "execution",
+        label: t("debug.nodeExecution.filters.sortExecution", "执行顺序"),
+      },
+      {
+        value: "failure-first",
+        label: t("debug.nodeExecution.filters.sortFailureFirst", "失败优先"),
+      },
+      {
+        value: "latest",
+        label: t("debug.nodeExecution.filters.sortLatest", "最新优先"),
+      },
+    ],
+    [t],
+  );
+
+  const attributionModeOptions = useMemo(
+    (): Array<{ value: DebugExecutionAttributionMode; label: string }> => [
+      {
+        value: "next",
+        label: t("debug.nodeExecution.filters.attributionNext", "Next 模式"),
+      },
+      {
+        value: "node",
+        label: t("debug.nodeExecution.filters.attributionPair", "Pair 模式"),
+      },
+    ],
+    [t],
+  );
+
+  const detailModeOptions = useMemo(
+    (): Array<{ value: DebugExecutionDetailMode; label: string }> => [
+      {
+        value: "compact",
+        label: t("debug.nodeExecution.filters.detailCompact", "精简"),
+      },
+      {
+        value: "detailed",
+        label: t("debug.nodeExecution.filters.detailFull", "详细"),
+      },
+    ],
+    [t],
+  );
 
   const userSelectedArtifactRef = useRef(false);
 
@@ -271,9 +311,13 @@ export function NodeExecutionPanel({
       );
       const systemRecordOptions = uniqueSystemRecordOptions(
         allNodeExecutionRecords,
+        t,
       );
       return [
-        { value: "", label: "全部节点" },
+        {
+          value: "",
+          label: t("debug.nodeExecution.panel.allNodes", "全部节点"),
+        },
         ...systemRecordOptions,
         ...nodeExecutionResolverNodes.map((node) => ({
           value: node.nodeId,
@@ -284,11 +328,14 @@ export function NodeExecutionPanel({
         ...runtimeOnlyOptions,
       ];
     },
-    [allNodeExecutionRecords, nodeExecutionResolverNodes],
+    [allNodeExecutionRecords, nodeExecutionResolverNodes, t],
   );
   const runOptions = useMemo(
     () => [
-      { value: "", label: "全部运行" },
+      {
+        value: "",
+        label: t("debug.nodeExecution.panel.allRuns", "全部运行"),
+      },
       ...uniqueStrings(allNodeExecutionRecords.map((record) => record.runId)).map(
         (runId) => ({
           value: runId,
@@ -299,7 +346,7 @@ export function NodeExecutionPanel({
         }),
       ),
     ],
-    [allNodeExecutionRecords, events],
+    [allNodeExecutionRecords, events, t],
   );
 
   const handleSelectRecord = (record: DebugNodeExecutionRecord) => {
@@ -320,25 +367,47 @@ export function NodeExecutionPanel({
   };
 
   if (events.length === 0) {
-    return <Empty description="暂无节点执行记录" />;
+    return (
+      <Empty
+        description={t(
+          "debug.nodeExecution.panel.noRecords",
+          "暂无节点执行记录",
+        )}
+      />
+    );
   }
 
   if (rawNodeExecutionCount === 0) {
-    return <Empty description="当前 trace 尚未出现可映射节点事件" />;
+    return (
+      <Empty
+        description={t(
+          "debug.nodeExecution.panel.noMappableEvents",
+          "当前 trace 尚未出现可映射节点事件",
+        )}
+      />
+    );
   }
 
   return (
     <div style={panelStyle}>
-      <DebugSection title="节点执行筛选" collapsible defaultCollapsed>
+      <DebugSection
+        title={t("debug.nodeExecution.panel.filterTitle", "节点执行筛选")}
+        collapsible
+        defaultCollapsed
+      >
         <Space wrap>
           <Tag>
-            运行{" "}
+            {t("debug.common.run", "运行")}{" "}
             {formatDebugRunDisplayName(
               summary.runId,
               findDebugRunFirstTimestamp(summary.runId, events),
             )}
           </Tag>
-          <Tag>记录 {visibleRecords.length}</Tag>
+          <Tag>
+            {t("debug.nodeExecution.panel.records", "记录 {{count}}", {
+              count: visibleRecords.length,
+            })}
+          </Tag>
           <Segmented
             size="small"
             value={nodeExecutionAttributionMode}
@@ -351,8 +420,14 @@ export function NodeExecutionPanel({
           />
           <Typography.Text type="secondary">
             {nodeExecutionAttributionMode === "next"
-              ? "Next 看跳转判断"
-              : "Pair 看识别 / 动作"}
+              ? t(
+                  "debug.nodeExecution.panel.nextModeHint",
+                  "Next 看跳转判断",
+                )
+              : t(
+                  "debug.nodeExecution.panel.pairModeHint",
+                  "Pair 看识别 / 动作",
+                )}
           </Typography.Text>
           <Segmented
             size="small"
@@ -380,7 +455,10 @@ export function NodeExecutionPanel({
             size="small"
             allowClear
             prefix={<SearchOutlined />}
-            placeholder="搜索节点 / runtime / seq"
+            placeholder={t(
+              "debug.nodeExecution.panel.searchPlaceholder",
+              "搜索节点 / runtime / seq",
+            )}
             style={{ width: 220 }}
             value={searchText}
             onChange={(event) => setSearchText(event.target.value)}
@@ -456,7 +534,7 @@ export function NodeExecutionPanel({
               })
             }
           >
-            按节点折叠
+            {t("debug.nodeExecution.panel.groupByNode", "按节点折叠")}
           </Checkbox>
           <Button
             size="small"
@@ -464,18 +542,31 @@ export function NodeExecutionPanel({
             disabled={!selectedFlowNode}
             onClick={setSelectedFlowFilter}
           >
-            只看选中节点
+            {t(
+              "debug.nodeExecution.panel.selectedNodeOnly",
+              "只看选中节点",
+            )}
           </Button>
           <Button size="small" icon={<ClearOutlined />} onClick={clearFilters}>
-            清空筛选
+            {t("debug.nodeExecution.panel.clearFilters", "清空筛选")}
           </Button>
         </Space>
       </DebugSection>
 
       {nodeExecutionRecords.length === 0 ? (
-        <Empty description="没有符合筛选条件的节点执行记录" />
+        <Empty
+          description={t(
+            "debug.nodeExecution.panel.noFilterMatch",
+            "没有符合筛选条件的节点执行记录",
+          )}
+        />
       ) : visibleRecords.length === 0 ? (
-        <Empty description="没有符合搜索条件的节点执行记录" />
+        <Empty
+          description={t(
+            "debug.nodeExecution.panel.noSearchMatch",
+            "没有符合搜索条件的节点执行记录",
+          )}
+        />
       ) : (
         <div style={workspaceStyle}>
           <div style={scrollPaneStyle}>
@@ -553,13 +644,18 @@ function uniqueRuntimeOnlyOptions(records: DebugNodeExecutionRecord[]) {
   }));
 }
 
-function uniqueSystemRecordOptions(records: DebugNodeExecutionRecord[]) {
+function uniqueSystemRecordOptions(
+  records: DebugNodeExecutionRecord[],
+  t: TFunction,
+) {
   const options = new Map<string, string>();
   for (const record of records) {
     if (!record.syntheticKind) continue;
     options.set(
       record.runtimeName,
-      `${formatDebugNodeDisplayName(record, record.runtimeName)} · 系统记录`,
+      t("debug.nodeExecution.panel.systemRecordOption", "{{name}} · 系统记录", {
+        name: formatDebugNodeDisplayName(record, record.runtimeName),
+      }),
     );
   }
   return [...options.entries()].map(([value, label]) => ({ value, label }));

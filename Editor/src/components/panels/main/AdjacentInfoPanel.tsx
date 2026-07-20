@@ -1,4 +1,5 @@
 import { useMemo, memo, useCallback, useState, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Collapse, Tag, Empty, AutoComplete, message } from "antd";
 import {
   ArrowLeftOutlined,
@@ -70,6 +71,7 @@ function makeSortableId(edge: { id: string }, source: string, handle: SourceHand
 }
 
 function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPanelProps) {
+  const { t } = useTranslation();
   const edges = useFlowStore((state) => state.edges);
   const adjacentNodeIds = useMemo(() => {
     const ids = new Set<string>();
@@ -105,7 +107,9 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
         if (sourceNode) {
           result.push({
             nodeId: edge.source,
-            nodeLabel: sourceNode.data?.label || "未知",
+            nodeLabel:
+              sourceNode.data?.label ||
+              t("ui.panels.main.adjacent.unknown", "未知"),
             nodeType: sourceNode.type as NodeTypeEnum,
             edgeType: edge.sourceHandle,
             order: edge.label as number,
@@ -124,7 +128,7 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
     });
 
     return result;
-  }, [adjacentNodes, edges, currentNodeId]);
+  }, [adjacentNodes, edges, currentNodeId, t]);
 
   // 计算后继节点
   const successors = useMemo(() => {
@@ -137,7 +141,9 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
           result.push({
             edgeId: edge.id,
             nodeId: edge.target,
-            nodeLabel: targetNode.data?.label || "未知",
+            nodeLabel:
+              targetNode.data?.label ||
+              t("ui.panels.main.adjacent.unknown", "未知"),
             nodeType: targetNode.type as NodeTypeEnum,
             edgeType: edge.sourceHandle,
             order: edge.label as number,
@@ -156,7 +162,7 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
     });
 
     return result;
-  }, [adjacentNodes, edges, currentNodeId]);
+  }, [adjacentNodes, edges, currentNodeId, t]);
 
   // 按类型分组后继节点
   const successorsByType = useMemo(() => {
@@ -323,7 +329,7 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
         key: "predecessors",
         label: (
           <div className={style["collapse-header"]}>
-            <span>前驱节点</span>
+            <span>{t("ui.panels.main.adjacent.predecessors", "前驱节点")}</span>
             <ArrowLeftOutlined className={style["icon"]} />
             <span className={style["count"]}>({predecessors.length})</span>
           </div>
@@ -337,12 +343,14 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
         key: "successors",
         label: (
           <div className={style["collapse-header"]}>
-            <span>后继节点</span>
+            <span>{t("ui.panels.main.adjacent.successors", "后继节点")}</span>
             <ArrowRightOutlined className={style["icon"]} />
             <span className={style["count"]}>({successors.length})</span>
             {!readOnly && (
               <span className={style["drag-hint"]}>
-                {successors.length > 0 ? "可拖拽调序" : "输入节点名添加"}
+                {successors.length > 0
+                  ? t("ui.panels.main.adjacent.dragToReorder", "可拖拽调序")
+                  : t("ui.panels.main.adjacent.inputToAdd", "输入节点名添加")}
               </span>
             )}
           </div>
@@ -352,7 +360,7 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
     }
 
     return items;
-  }, [predecessors, successors, readOnly]);
+  }, [predecessors, successors, readOnly, t]);
 
   // 无连接提示（非只读模式下始终显示后继区域供输入）
   const hasNoConnections = predecessors.length === 0 && successors.length === 0;
@@ -365,7 +373,9 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
           <Empty
             description={
               <span>
-                节点 <strong>{currentNodeLabel}</strong> 无任何连接
+                {t("ui.panels.main.adjacent.noConnectionsPrefix", "节点")}{" "}
+                <strong>{currentNodeLabel}</strong>{" "}
+                {t("ui.panels.main.adjacent.noConnectionsSuffix", "无任何连接")}
               </span>
             }
             image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -501,6 +511,7 @@ interface SortableSuccessorItemProps {
 // 单个可拖拽后继项：手柄负责拖、整行保留点击跳转
 const SortableSuccessorItem: React.FC<SortableSuccessorItemProps> = memo(
   ({ item, source, sourceHandle, readOnly, renderNodeTag }) => {
+    const { t } = useTranslation();
     const sortableId = makeSortableId({ id: item.edgeId }, source, sourceHandle);
     const {
       attributes,
@@ -528,7 +539,7 @@ const SortableSuccessorItem: React.FC<SortableSuccessorItemProps> = memo(
             {...attributes}
             {...listeners}
             className={style["drag-handle"]}
-            title="拖拽调整顺序"
+            title={t("ui.panels.main.adjacent.dragAdjustOrder", "拖拽调整顺序")}
           >
             <HolderOutlined />
           </span>
@@ -556,6 +567,7 @@ interface AddSuccessorInputProps {
 
 const AddSuccessorInput: React.FC<AddSuccessorInputProps> = memo(
   ({ sourceNodeId, sourceHandle }) => {
+    const { t } = useTranslation();
     const [inputValue, setInputValue] = useState("");
     const addEdge = useFlowStore((state) => state.addEdge);
     const addNode = useFlowStore((state) => state.addNode);
@@ -578,10 +590,12 @@ const AddSuccessorInput: React.FC<AddSuccessorInputProps> = memo(
         value: n.label,
         label: n.label,
         nodeName: n.fullName,
-        filePath: n.isCurrentFile ? "当前文件" : n.relativePath,
+        filePath: n.isCurrentFile
+          ? t("ui.panels.main.adjacent.currentFile", "当前文件")
+          : n.relativePath,
         isCurrentFile: n.isCurrentFile,
       }));
-    }, [inputValue]);
+    }, [inputValue, t]);
 
     // 执行连接
     const doConnect = useCallback(
@@ -604,7 +618,13 @@ const AddSuccessorInput: React.FC<AddSuccessorInputProps> = memo(
               edge.target === targetId,
           );
           if (exists) {
-            message.warning(`已存在到 "${targetLabel}" 的连接`);
+            message.warning(
+              t(
+                "ui.panels.main.adjacent.connectionExists",
+                "已存在到 \"{{label}}\" 的连接",
+                { label: targetLabel },
+              ),
+            );
             setInputValue("");
             return;
           }
@@ -626,7 +646,7 @@ const AddSuccessorInput: React.FC<AddSuccessorInputProps> = memo(
 
         setInputValue("");
       },
-      [sourceNodeId, sourceHandle, addEdge, addNode, setNodeData],
+      [sourceNodeId, sourceHandle, addEdge, addNode, setNodeData, t],
     );
 
     // 回车确认
@@ -659,7 +679,10 @@ const AddSuccessorInput: React.FC<AddSuccessorInputProps> = memo(
         <PlusOutlined className={style["add-icon"]} />
         <AutoComplete
           size="small"
-          placeholder="输入节点名添加连接..."
+          placeholder={t(
+            "ui.panels.main.adjacent.addSuccessorPlaceholder",
+            "输入节点名添加连接...",
+          )}
           value={inputValue}
           options={options}
           onChange={setInputValue}

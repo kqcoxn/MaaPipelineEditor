@@ -16,6 +16,7 @@ import { LoggerProtocol } from "./protocols/LoggerProtocol";
 import { AIProtocol } from "./protocols/AIProtocol";
 import { globalConfig } from "../stores/configStore";
 import { registerDebugProtocolListeners } from "../features/debug/registerProtocolListeners";
+import uiT from "../i18n/translate";
 
 const PROTOCOL_VERSION = globalConfig.protocolVersion;
 
@@ -47,17 +48,26 @@ export class LocalWebSocketServer {
           this.clearConnectTimeout();
           this.isConnecting = false;
           this.emitConnecting(false);
-          message.success(`已连接到本地服务`);
+          message.success(
+            uiT("ui.services.server.connected", "已连接到本地服务"),
+          );
           this.emitStatus(true);
         } else {
           console.error(
-            "[WebSocket] 协议版本不匹配，前端需求:",
+            "[WebSocket] Protocol version mismatch, frontend requires:",
             PROTOCOL_VERSION,
-            "，当前本地服务协议:",
+            ", local service protocol:",
             data.required_version,
           );
           message.error(
-            `协议版本不匹配，前端需求: ${PROTOCOL_VERSION}，当前本地服务协议: ${data.required_version}，请按后端提示更新`,
+            uiT(
+              "ui.services.server.protocolVersionMismatch",
+              "协议版本不匹配，前端需求: {{required}}，当前本地服务协议: {{current}}，请按后端提示更新",
+              {
+                required: PROTOCOL_VERSION,
+                current: data.required_version,
+              },
+            ),
           );
           // 主动断开连接
           this.disconnect();
@@ -115,7 +125,12 @@ export class LocalWebSocketServer {
     // 防止重复连接
     if (this.isConnecting) {
       console.warn("[WebSocket] Connection already in progress");
-      message.warning("正在尝试连接本地服务中，请稍候...");
+      message.warning(
+        uiT(
+          "ui.services.server.connectingInProgress",
+          "正在尝试连接本地服务中，请稍候...",
+        ),
+      );
       return;
     }
 
@@ -134,8 +149,14 @@ export class LocalWebSocketServer {
           const key = `connection-error-${Date.now()}`;
           notification.error({
             key,
-            title: "连接超时",
-            description: "请检查本地服务是否已启动或端口是否可用",
+            title: uiT(
+              "ui.services.server.connectionTimeoutTitle",
+              "连接超时",
+            ),
+            description: uiT(
+              "ui.services.server.checkLocalService",
+              "请检查本地服务是否已启动或端口是否可用",
+            ),
             placement: "topRight",
             duration: 5,
             actions: createElement(
@@ -151,7 +172,7 @@ export class LocalWebSocketServer {
                   notification.destroy(key);
                 },
               },
-              "查看文档",
+              uiT("ui.services.server.viewDocs", "查看文档"),
             ),
           });
           this.ws.close();
@@ -191,8 +212,14 @@ export class LocalWebSocketServer {
         const key = `connection-error-${Date.now()}`;
         notification.error({
           key,
-          title: "连接失败",
-          description: "请检查本地服务是否已启动或端口是否可用",
+          title: uiT(
+            "ui.services.server.connectionFailedTitle",
+            "连接失败",
+          ),
+          description: uiT(
+            "ui.services.server.checkLocalService",
+            "请检查本地服务是否已启动或端口是否可用",
+          ),
           placement: "topRight",
           duration: 5,
           actions: createElement(
@@ -208,7 +235,7 @@ export class LocalWebSocketServer {
                 notification.destroy(key);
               },
             },
-            "查看文档",
+            uiT("ui.services.server.viewDocs", "查看文档"),
           ),
         });
       };
@@ -217,7 +244,9 @@ export class LocalWebSocketServer {
         this.clearConnectTimeout();
         this.isConnecting = false;
         this.emitConnecting(false);
-        message.info("本地服务已断开连接");
+        message.info(
+          uiT("ui.services.server.disconnected", "本地服务已断开连接"),
+        );
         this.emitStatus(false);
         this.ws = null;
       };
@@ -227,10 +256,16 @@ export class LocalWebSocketServer {
       this.isConnecting = false;
       this.emitConnecting(false);
       const key = `connection-error-${Date.now()}`;
-      const errorMsg = error instanceof Error ? error.message : "未知错误";
+      const errorMsg =
+        error instanceof Error
+          ? error.message
+          : uiT("ui.services.common.unknownError", "未知错误");
       notification.error({
         key,
-        title: "本地服务连接失败",
+        title: uiT(
+          "ui.services.server.localConnectionFailed",
+          "本地服务连接失败",
+        ),
         description: errorMsg,
         placement: "topRight",
         duration: 5,
@@ -247,7 +282,7 @@ export class LocalWebSocketServer {
               notification.destroy(key);
             },
           },
-          "查看文档",
+          uiT("ui.services.server.viewDocs", "查看文档"),
         ),
       });
       this.emitStatus(false);

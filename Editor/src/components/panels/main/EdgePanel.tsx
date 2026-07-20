@@ -1,6 +1,7 @@
 import style from "../../../styles/panels/EdgePanel.module.less";
 
 import { memo, useMemo, useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Tag, InputNumber, Tooltip, Switch } from "antd";
 import classNames from "classnames";
 import { useShallow } from "zustand/shallow";
@@ -67,19 +68,30 @@ const EdgeInfoElem = memo(
     onOrderChange: (value: number) => void;
     onJumpBackChange: (checked: boolean) => void;
   }) => {
+    const { t } = useTranslation();
     return (
       <>
         <div className={style.info}>
           <div className={style["info-item"]}>
-            <span className={style.label}>源节点</span>
-            <span className={style.content}>{sourceLabel}</span>
+            <span className={style.label}>
+              {t("ui.panels.edge.sourceNode", "源节点")}
+            </span>
+            <span className={style.content}>
+              {sourceLabel || t("ui.panels.edge.unknown", "未知")}
+            </span>
           </div>
           <div className={style["info-item"]}>
-            <span className={style.label}>目标节点</span>
-            <span className={style.content}>{targetLabel}</span>
+            <span className={style.label}>
+              {t("ui.panels.edge.targetNode", "目标节点")}
+            </span>
+            <span className={style.content}>
+              {targetLabel || t("ui.panels.edge.unknown", "未知")}
+            </span>
           </div>
           <div className={style["info-item"]}>
-            <span className={style.label}>连接类型</span>
+            <span className={style.label}>
+              {t("ui.panels.edge.connectionType", "连接类型")}
+            </span>
             <span className={style.content}>
               {tags.map((tag, index) => (
                 <Tag key={index} color={tag.color}>
@@ -89,7 +101,9 @@ const EdgeInfoElem = memo(
             </span>
           </div>
           <div className={style["info-item"]}>
-            <span className={style.label}>顺序</span>
+            <span className={style.label}>
+              {t("ui.panels.edge.order", "顺序")}
+            </span>
             <span className={style.content}>
               <InputNumber
                 size="small"
@@ -127,6 +141,7 @@ const EdgeInfoElem = memo(
 
 // 边编辑面板
 function EdgePanel() {
+  const { t } = useTranslation();
   const selectedEdges = useFlowStore((state) => state.selectedEdges);
   const targetNode = useFlowStore((state) => state.targetNode);
   const fieldPanelMode = useConfigStore(
@@ -159,8 +174,8 @@ function EdgePanel() {
         (node) => node.id === currentEdge.target,
       );
       return {
-        sourceLabel: sourceNode?.data.label ?? "未知",
-        targetLabel: currentTargetNode?.data.label ?? "未知",
+        sourceLabel: sourceNode?.data.label ?? "",
+        targetLabel: currentTargetNode?.data.label ?? "",
         targetIsAnchor: currentTargetNode?.type === NodeTypeEnum.Anchor,
       };
     }),
@@ -252,12 +267,22 @@ function EdgePanel() {
         <div className="header-left">
         </div>
         <div className="header-center">
-          <div className="title">连接设置</div>
-          <WikiAnchor path="10.工作流面板/40.连接.html" title="连接" description="节点间连接与流程编排" />
+          <div className="title">{t("ui.panels.edge.title", "连接设置")}</div>
+          <WikiAnchor
+            path={t("ui.panels.edge.wiki.path", "10.工作流面板/40.连接.html")}
+            title={t("ui.panels.edge.wiki.title", "连接")}
+            description={t(
+              "ui.panels.edge.wiki.description",
+              "节点间连接与流程编排",
+            )}
+          />
         </div>
         <div className="header-right">
           {currentEdge && (
-            <Tooltip placement="top" title="删除连接">
+            <Tooltip
+              placement="top"
+              title={t("ui.panels.edge.deleteTooltip", "删除连接")}
+            >
               <IconFont
                 className="icon-interactive"
                 name="icon-shanchu"

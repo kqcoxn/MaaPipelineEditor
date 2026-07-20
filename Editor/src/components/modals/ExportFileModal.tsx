@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Modal, Form, Input, Select, message, Radio } from "antd";
 import { FileOutlined, DownloadOutlined } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 import { useFileStore } from "../../stores/fileStore";
 import { useConfigStore } from "../../stores/configStore";
 import {
@@ -17,6 +18,7 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
   visible,
   onCancel,
 }) => {
+  const { t } = useTranslation();
   const [form] = Form.useForm();
   const [previewFileName, setPreviewFileName] = useState<string>("");
   const [exportTarget, setExportTarget] = useState<
@@ -25,14 +27,13 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
 
   const currentFileName = useFileStore((state) => state.currentFile.fileName);
   const configHandlingMode = useConfigStore(
-    (state) => state.configs.configHandlingMode
+    (state) => state.configs.configHandlingMode,
   );
 
   useEffect(() => {
     if (visible) {
       form.resetFields();
 
-      // 从当前文件名提取基础名称
       let baseName = currentFileName || "pipeline";
       if (baseName.endsWith(".json")) {
         baseName = baseName.slice(0, -5);
@@ -45,13 +46,11 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
         format: "json",
       });
 
-      // 分离模式默认导出两个文件
       setExportTarget(configHandlingMode === "separated" ? "both" : "pipeline");
       setPreviewFileName(`${baseName}.json`);
     }
   }, [visible, form, currentFileName, configHandlingMode]);
 
-  // 更新预览文件名
   const updatePreview = () => {
     const fileName = form.getFieldValue("fileName") || "";
     const format = form.getFieldValue("format") || "json";
@@ -59,7 +58,7 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
     if (fileName.trim()) {
       if (configHandlingMode === "separated" && exportTarget === "both") {
         setPreviewFileName(
-          `${fileName.trim()}.${format} + ${fileName.trim()}.mpe.json`
+          `${fileName.trim()}.${format} + ${fileName.trim()}.mpe.json`,
         );
       } else if (
         configHandlingMode === "separated" &&
@@ -74,27 +73,22 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
     }
   };
 
-  // 处理文件名变化
   const handleFileNameChange = () => {
     updatePreview();
   };
 
-  // 处理格式变化
   const handleFormatChange = () => {
     updatePreview();
   };
 
-  // 处理导出目标变化
   const handleExportTargetChange = (value: "pipeline" | "config" | "both") => {
     setExportTarget(value);
     updatePreview();
   };
 
-  // 验证文件名
   const validateFileName = (fileName: string): boolean => {
     if (!fileName || !fileName.trim()) return false;
 
-    // 检查是否包含非法字符
     const invalidChars = /[\\/:*?"<>|]/;
     return !invalidChars.test(fileName);
   };
@@ -107,7 +101,6 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
       const trimmedName = fileName.trim();
 
       if (configHandlingMode === "separated") {
-        // 分离模式导出
         const { pipelineString, configString } = flowToSeparatedStrings();
 
         if (exportTarget === "both" || exportTarget === "pipeline") {
@@ -120,16 +113,34 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
 
         message.success(
           exportTarget === "both"
-            ? `已导出 ${trimmedName}.${format} 和 ${trimmedName}.mpe.json`
+            ? t(
+                "ui.modals.exportFile.exportedBoth",
+                "已导出 {{pipeline}} 和 {{config}}",
+                {
+                  pipeline: `${trimmedName}.${format}`,
+                  config: `${trimmedName}.mpe.json`,
+                },
+              )
             : exportTarget === "pipeline"
-            ? `已导出 ${trimmedName}.${format}`
-            : `已导出 ${trimmedName}.mpe.json`
+              ? t(
+                  "ui.modals.exportFile.exportedPipeline",
+                  "已导出 {{fileName}}",
+                  { fileName: `${trimmedName}.${format}` },
+                )
+              : t(
+                  "ui.modals.exportFile.exportedConfig",
+                  "已导出 {{fileName}}",
+                  { fileName: `${trimmedName}.mpe.json` },
+                ),
         );
       } else {
-        // 集成模式导出
         const content = flowToPipelineString();
         await exportFile(`${trimmedName}.${format}`, content, format);
-        message.success(`已导出 ${trimmedName}.${format}`);
+        message.success(
+          t("ui.modals.exportFile.exportedPipeline", "已导出 {{fileName}}", {
+            fileName: `${trimmedName}.${format}`,
+          }),
+        );
       }
 
       onCancel();
@@ -138,16 +149,13 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
     }
   };
 
-  // 导出文件的通用函数
   const exportFile = async (
     fullFileName: string,
     content: string,
-    format: string
+    format: string,
   ) => {
-    // 检查是否支持 File System Access API
     if ("showSaveFilePicker" in window) {
       try {
-        // 使用 File System Access API 选择保存位置
         const handle = await (window as any).showSaveFilePicker({
           suggestedName: fullFileName,
           types: [
@@ -160,24 +168,21 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
           ],
         });
 
-        // 创建可写流并写入内容
         const writable = await handle.createWritable();
         await writable.write(content);
         await writable.close();
         return;
       } catch (err: any) {
-        // 用户取消选择
         if (err.name === "AbortError") {
           throw err;
         }
         console.warn(
           "[ExportFileModal] File System Access API failed, fallback to download:",
-          err
+          err,
         );
       }
     }
 
-    // 降级使用传统下载方式
     const blob = new Blob([content], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -198,14 +203,16 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
       title={
         <span>
           <DownloadOutlined />
-          <span style={{ marginLeft: 8 }}>导出为文件</span>
+          <span style={{ marginLeft: 8 }}>
+            {t("ui.modals.exportFile.title", "导出为文件")}
+          </span>
         </span>
       }
       open={visible}
       onOk={handleOk}
       onCancel={handleCancel}
-      okText="导出"
-      cancelText="取消"
+      okText={t("ui.modals.exportFile.export", "导出")}
+      cancelText={t("ui.modals.exportFile.cancel", "取消")}
       okButtonProps={{
         disabled: !previewFileName,
       }}
@@ -221,16 +228,21 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
       >
         <Form.Item
           name="fileName"
-          label="文件名"
+          label={t("ui.modals.exportFile.fileNameLabel", "文件名")}
           rules={[
             {
               validator: (_, value) => {
                 if (!value || !value.trim()) {
-                  return Promise.reject("请输入文件名");
+                  return Promise.reject(
+                    t("ui.modals.exportFile.fileNameRequired", "请输入文件名"),
+                  );
                 }
                 if (!validateFileName(value)) {
                   return Promise.reject(
-                    '文件名不能包含特殊字符 \\ / : * ? " < > |'
+                    t(
+                      "ui.modals.exportFile.fileNameInvalid",
+                      '文件名不能包含特殊字符 \\ / : * ? " < > |',
+                    ),
                   );
                 }
                 return Promise.resolve();
@@ -239,7 +251,10 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
           ]}
         >
           <Input
-            placeholder="输入文件名（不含后缀）"
+            placeholder={t(
+              "ui.modals.exportFile.fileNamePlaceholder",
+              "输入文件名（不含后缀）",
+            )}
             prefix={<FileOutlined />}
             onChange={handleFileNameChange}
           />
@@ -247,8 +262,13 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
 
         <Form.Item
           name="format"
-          label="导出格式"
-          rules={[{ required: true, message: "请选择导出格式" }]}
+          label={t("ui.modals.exportFile.formatLabel", "导出格式")}
+          rules={[
+            {
+              required: true,
+              message: t("ui.modals.exportFile.formatRequired", "请选择导出格式"),
+            },
+          ]}
         >
           <Select
             options={[
@@ -260,20 +280,26 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
         </Form.Item>
 
         {configHandlingMode === "separated" && (
-          <Form.Item label="导出目标">
+          <Form.Item label={t("ui.modals.exportFile.targetLabel", "导出目标")}>
             <Radio.Group
               value={exportTarget}
               onChange={(e) => handleExportTargetChange(e.target.value)}
             >
-              <Radio value="both">导出 Pipeline 和配置</Radio>
-              <Radio value="pipeline">仅导出 Pipeline</Radio>
-              <Radio value="config">仅导出配置</Radio>
+              <Radio value="both">
+                {t("ui.modals.exportFile.targetBoth", "导出 Pipeline 和配置")}
+              </Radio>
+              <Radio value="pipeline">
+                {t("ui.modals.exportFile.targetPipeline", "仅导出 Pipeline")}
+              </Radio>
+              <Radio value="config">
+                {t("ui.modals.exportFile.targetConfig", "仅导出配置")}
+              </Radio>
             </Radio.Group>
           </Form.Item>
         )}
 
         {previewFileName && (
-          <Form.Item label="预览文件名">
+          <Form.Item label={t("ui.modals.exportFile.previewLabel", "预览文件名")}>
             <div
               style={{
                 padding: "8px 12px",
@@ -290,12 +316,27 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
 
         <Form.Item>
           <div style={{ fontSize: 12, color: "#8c8c8c" }}>
-            <div>提示：</div>
-            <div>• 将当前画布内容编译为 Pipeline 并导出</div>
+            <div>{t("ui.modals.exportFile.hintsTitle", "提示：")}</div>
+            <div>
+              {t(
+                "ui.modals.exportFile.hintCompile",
+                "• 将当前画布内容编译为 Pipeline 并导出",
+              )}
+            </div>
             {configHandlingMode === "separated" && (
-              <div>• 分离模式下可选择导出 Pipeline、配置或两者</div>
+              <div>
+                {t(
+                  "ui.modals.exportFile.hintSeparated",
+                  "• 分离模式下可选择导出 Pipeline、配置或两者",
+                )}
+              </div>
             )}
-            <div>• 使用浏览器下载功能保存到本地</div>
+            <div>
+              {t(
+                "ui.modals.exportFile.hintDownload",
+                "• 使用浏览器下载功能保存到本地",
+              )}
+            </div>
           </div>
         </Form.Item>
       </Form>

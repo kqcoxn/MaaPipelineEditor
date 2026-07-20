@@ -7,6 +7,7 @@ import {
   recoParamKeys,
   actionParamKeys,
 } from "../../core/fields";
+import { uiT } from "../../i18n/translate";
 
 type MonacoModule = typeof import("monaco-editor");
 type MonacoLanguages = MonacoModule["languages"];
@@ -187,7 +188,7 @@ function createNodeNameFieldSuggestions(
     label: item.label,
     kind: MonacoLanguages.CompletionItemKind.Field,
     insertText: item.insertText ?? item.label,
-    detail: item.detail ?? "运行时节点名",
+    detail: item.detail ?? uiT("ui.jsonCompletion.runtimeNodeName", "运行时节点名"),
     documentation: item.documentation,
     sortText: item.label.startsWith(currentInput) ? `0${item.label}` : `1${item.label}`,
     range,
@@ -204,7 +205,7 @@ function createNodeNameValueSuggestions(
     label: item.label,
     kind: MonacoLanguages.CompletionItemKind.Value,
     insertText: item.insertText ?? item.label,
-    detail: item.detail ?? "运行时节点名",
+    detail: item.detail ?? uiT("ui.jsonCompletion.runtimeNodeName", "运行时节点名"),
     documentation: item.documentation,
     sortText: item.label.startsWith(currentInput) ? `0${item.label}` : `1${item.label}`,
     range,
@@ -276,8 +277,12 @@ export function createMfwCompletionProvider(): MonacoLanguages.CompletionItemPro
             label: type,
             kind: MonacoLanguages.CompletionItemKind.Value,
             insertText: type,
-            detail: `识别类型: ${recoFields[type]?.desc?.split("。")[0] || ""}`,
-            documentation: recoFields[type]?.desc || "",
+            detail: uiT("ui.jsonCompletion.recognitionType", "识别类型: {{name}}", {
+              name: recoFields[type]?.desc?.split("。")[0] || "",
+            }),
+            documentation: recoFields[type]?.desc
+              ? uiT(`fields.recoTypes.${type}.desc`, recoFields[type]!.desc!)
+              : "",
             sortText: type.toLowerCase().startsWith(currentInput.toLowerCase())
               ? `0${type}`
               : `1${type}`,
@@ -294,8 +299,12 @@ export function createMfwCompletionProvider(): MonacoLanguages.CompletionItemPro
             label: type,
             kind: MonacoLanguages.CompletionItemKind.Value,
             insertText: type,
-            detail: `动作类型: ${actionFields[type]?.desc?.split("。")[0] || ""}`,
-            documentation: actionFields[type]?.desc || "",
+            detail: uiT("ui.jsonCompletion.actionType", "动作类型: {{name}}", {
+              name: actionFields[type]?.desc?.split("。")[0] || "",
+            }),
+            documentation: actionFields[type]?.desc
+              ? uiT(`fields.actionTypes.${type}.desc`, actionFields[type]!.desc!)
+              : "",
             sortText: type.toLowerCase().startsWith(currentInput.toLowerCase())
               ? `0${type}`
               : `1${type}`,
@@ -357,7 +366,7 @@ export function createMfwCompletionProvider(): MonacoLanguages.CompletionItemPro
           label: key,
           kind: MonacoLanguages.CompletionItemKind.Field,
           insertText: key,
-          detail: "MaaFramework 字段",
+          detail: uiT("ui.jsonCompletion.mfwField", "MaaFramework 字段"),
           sortText: key.startsWith(currentInput) ? `0${key}` : `1${key}`,
           range: createCompletionRange(position, currentInput),
         }));

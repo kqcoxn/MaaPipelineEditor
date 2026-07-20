@@ -1,5 +1,6 @@
 import style from "../../../styles/panels/FieldPanel.module.less";
 import { memo, useMemo, useCallback, lazy, Suspense } from "react";
+import { useTranslation } from "react-i18next";
 import { Popover, Input, Select, Spin, Modal, InputNumber } from "antd";
 import classNames from "classnames";
 import IconFont from "../../iconfonts";
@@ -24,6 +25,7 @@ function LeftTipContentElem(content: string) {
 export const PipelineEditor = lazy(() =>
   Promise.resolve({
     default: memo(({ currentNode }: { currentNode: PipelineNodeType }) => {
+      const { t } = useTranslation();
       const setNodeData = useFlowStore((state) => state.setNodeData);
       const fieldSortConfig = useConfigStore(
         (state) => state.configs.fieldSortConfig,
@@ -138,10 +140,16 @@ export const PipelineEditor = lazy(() =>
             currentFocusValue.trim() !== ""
           ) {
             Modal.confirm({
-              title: "切换到结构化模式",
-              content: "切换到结构化模式会丢失当前的字符串值,是否继续?",
-              okText: "确定",
-              cancelText: "取消",
+              title: t(
+                "ui.panels.pipelineEditor.modal.switchStructured.title",
+                "切换到结构化模式",
+              ),
+              content: t(
+                "ui.panels.pipelineEditor.modal.switchStructured.focusContent",
+                "切换到结构化模式会丢失当前的字符串值,是否继续?",
+              ),
+              okText: t("ui.panels.pipelineEditor.modal.ok", "确定"),
+              cancelText: t("ui.panels.pipelineEditor.modal.cancel", "取消"),
               onOk: () => {
                 const newFocus = { [param.key]: param.default };
                 setNodeData(currentNode.id, "others", "focus", newFocus);
@@ -157,7 +165,7 @@ export const PipelineEditor = lazy(() =>
             setNodeData(currentNode.id, "others", "focus", newFocus);
           }
         },
-        [currentNode],
+        [currentNode, t],
       );
 
       const handleFocusFieldChange = useCallback(
@@ -263,10 +271,16 @@ export const PipelineEditor = lazy(() =>
           // 有 int 值时提示
           if (typeof currentValue === "number" && currentValue !== 0) {
             Modal.confirm({
-              title: "切换到结构化模式",
-              content: "切换到结构化模式会丢失当前的数值，是否继续?",
-              okText: "确定",
-              cancelText: "取消",
+              title: t(
+                "ui.panels.pipelineEditor.modal.switchStructured.title",
+                "切换到结构化模式",
+              ),
+              content: t(
+                "ui.panels.pipelineEditor.modal.switchStructured.numberContent",
+                "切换到结构化模式会丢失当前的数值，是否继续?",
+              ),
+              okText: t("ui.panels.pipelineEditor.modal.ok", "确定"),
+              cancelText: t("ui.panels.pipelineEditor.modal.cancel", "取消"),
               onOk: () => {
                 const newValue = { [param.key]: param.default };
                 setNodeData(currentNode.id, "others", fieldKey, newValue);
@@ -281,7 +295,7 @@ export const PipelineEditor = lazy(() =>
             setNodeData(currentNode.id, "others", fieldKey, newValue);
           }
         },
-        [currentNode],
+        [currentNode, t],
       );
 
       // 通用的 waitFreezes 子字段变更处理
@@ -321,7 +335,10 @@ export const PipelineEditor = lazy(() =>
             <Popover
               placement="left"
               title={"key"}
-              content={"节点名，会被编译为 pipeline 的 key。"}
+              content={t(
+                "ui.panels.pipelineEditor.nodeName.tooltip",
+                "节点名，会被编译为 pipeline 的 key。",
+              )}
             >
               <div className={classNames([style.key, style["head-key"]])}>
                 key
@@ -329,7 +346,10 @@ export const PipelineEditor = lazy(() =>
             </Popover>
             <div className={style.value}>
               <Input
-                placeholder="节点名"
+                placeholder={t(
+                  "ui.panels.pipelineEditor.nodeName.placeholder",
+                  "节点名",
+                )}
                 value={currentLabel}
                 onChange={onLabelChange}
               />
@@ -342,7 +362,11 @@ export const PipelineEditor = lazy(() =>
               placement="left"
               title={"recognition"}
               content={LeftTipContentElem(
-                `识别算法(${currentRecoName})：${currentReco.desc}`,
+                t(
+                  "ui.panels.pipelineEditor.recognition.tooltip",
+                  "识别算法({{name}})：{{desc}}",
+                  { name: currentRecoName, desc: currentReco.desc },
+                ),
               )}
             >
               <div className={classNames([style.key, style["head-key"]])}>
@@ -406,7 +430,11 @@ export const PipelineEditor = lazy(() =>
               placement="left"
               title={"action"}
               content={LeftTipContentElem(
-                `动作类型(${currentActionName})：${currentAction.desc}`,
+                t(
+                  "ui.panels.pipelineEditor.action.tooltip",
+                  "动作类型({{name}})：{{desc}}",
+                  { name: currentActionName, desc: currentAction.desc },
+                ),
               )}
             >
               <div className={classNames([style.key, style["head-key"]])}>
@@ -468,7 +496,10 @@ export const PipelineEditor = lazy(() =>
             <Popover
               placement="left"
               title={"others"}
-              content={"除 recognition、action、focus 之外的字段"}
+              content={t(
+                "ui.panels.pipelineEditor.others.tooltip",
+                "除 recognition、action、focus 之外的字段",
+              )}
             >
               <div className={classNames([style.key, style["head-key"]])}>
                 others
@@ -563,7 +594,10 @@ export const PipelineEditor = lazy(() =>
                     <div className={style.value}>
                       <InputNumber
                         style={{ width: "100%" }}
-                        placeholder="等待时间(毫秒)，或点击右侧添加详细参数"
+                        placeholder={t(
+                          "ui.panels.pipelineEditor.waitFreezes.placeholder",
+                          "等待时间(毫秒)，或点击右侧添加详细参数",
+                        )}
                         value={
                           typeof currentPreWaitFreezes === "number"
                             ? currentPreWaitFreezes
@@ -667,7 +701,10 @@ export const PipelineEditor = lazy(() =>
                     <div className={style.value}>
                       <InputNumber
                         style={{ width: "100%" }}
-                        placeholder="等待时间(毫秒)，或点击右侧添加详细参数"
+                        placeholder={t(
+                          "ui.panels.pipelineEditor.waitFreezes.placeholder",
+                          "等待时间(毫秒)，或点击右侧添加详细参数",
+                        )}
                         value={
                           typeof currentPostWaitFreezes === "number"
                             ? currentPostWaitFreezes
@@ -779,7 +816,10 @@ export const PipelineEditor = lazy(() =>
                     <div className={style.value}>
                       <InputNumber
                         style={{ width: "100%" }}
-                        placeholder="等待时间(毫秒)，或点击右侧添加详细参数"
+                        placeholder={t(
+                          "ui.panels.pipelineEditor.waitFreezes.placeholder",
+                          "等待时间(毫秒)，或点击右侧添加详细参数",
+                        )}
                         value={
                           typeof currentRepeatWaitFreezes === "number"
                             ? currentRepeatWaitFreezes
@@ -860,7 +900,10 @@ export const PipelineEditor = lazy(() =>
               placement="left"
               title={"focus"}
               content={LeftTipContentElem(
-                "关注节点，会额外产生部分回调消息。可选，默认 null，不产生回调消息。详见 节点通知。",
+                t(
+                  "ui.panels.pipelineEditor.focus.tooltip",
+                  "关注节点，会额外产生部分回调消息。可选，默认 null，不产生回调消息。详见 节点通知。",
+                ),
               )}
             >
               <div className={classNames([style.key, style["head-key"]])}>
@@ -888,7 +931,10 @@ export const PipelineEditor = lazy(() =>
               <>
                 <div className={style.value}>
                   <Input
-                    placeholder="字符串值，或点击右侧按钮添加消息类型"
+                    placeholder={t(
+                      "ui.panels.pipelineEditor.focus.placeholder",
+                      "字符串值，或点击右侧按钮添加消息类型",
+                    )}
                     value={typeof currentFocus === "string" ? currentFocus : ""}
                     onChange={handleFocusStringChange}
                   />
@@ -924,7 +970,10 @@ export const PipelineEditor = lazy(() =>
             <Popover
               placement="left"
               title={"extras"}
-              content={"自定义字段，JSON格式，会直接将一级字段渲染在节点上"}
+              content={t(
+                "ui.panels.pipelineEditor.extras.tooltip",
+                "自定义字段，JSON格式，会直接将一级字段渲染在节点上",
+              )}
             >
               <div className={classNames([style.key, style["head-key"]])}>
                 extras
@@ -932,7 +981,10 @@ export const PipelineEditor = lazy(() =>
             </Popover>
             <div className={style.value}>
               <TextArea
-                placeholder="自定义字段，完整 JSON 格式"
+                placeholder={t(
+                  "ui.panels.pipelineEditor.extras.placeholder",
+                  "自定义字段，完整 JSON 格式",
+                )}
                 autoSize={{ minRows: 1, maxRows: 6 }}
                 value={currentExtra}
                 onChange={(e) => handleExtraChange(e.target.value)}

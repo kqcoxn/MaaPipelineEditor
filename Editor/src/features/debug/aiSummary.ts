@@ -1,3 +1,4 @@
+import uiT from "../../i18n/translate";
 import type { DebugArtifactEntry } from "../../stores/debugArtifactStore";
 import type { DebugAiSummaryFocus } from "../../stores/debugAiSummaryStore";
 import type { DebugNodeExecutionRecord } from "./nodeExecutionSelector";
@@ -11,6 +12,11 @@ const MAX_EVENTS = 120;
 const MAX_ARTIFACTS = 24;
 const MAX_ARTIFACT_TEXT = 1600;
 const MAX_FAILED_RECORDS = 12;
+
+const AI_SUMMARY_DEFAULT_FALLBACK = uiT(
+  "ui.debug.aiSummary.defaultFallback",
+  "AI 总结已生成，打开详细报告查看。",
+);
 
 export interface DebugAiSummaryInput {
   focus: DebugAiSummaryFocus;
@@ -81,24 +87,54 @@ export function buildDebugAiSummaryPrompt(input: DebugAiSummaryInput): {
   };
   const contextText = JSON.stringify(context, null, 2);
   const prompt = [
-    "你是 MaaPipelineEditor 调试报告助手。",
-    "请基于用户提供的结构化调试上下文，生成中文调试总结。",
-    "必须遵守：",
-    "- 不要编造未出现在上下文中的节点、事件、产物或错误。",
-    "- 所有结论尽量引用证据，例如节点名、nodeId、runtimeName、seq、diagnostic code、artifact id。",
-    "- 当 focus 为 failure 时，优先输出失败原因和异常证据，弱化正常节点描述。",
-    "- 当 focus 为 node 时，只解释 selectedNode，不要扩展成全局运行报告。",
-    "- 不做性能瓶颈专项分析；性能字段只能作为辅助背景。",
-    "- 如果证据不足，请明确说证据不足，并给出下一步应该查看的调试视图。",
-    "- 输出必须是 JSON，不要包裹 Markdown 代码块。",
+    uiT("ui.debug.aiSummary.prompt.role", "你是 MaaPipelineEditor 调试报告助手。"),
+    uiT(
+      "ui.debug.aiSummary.prompt.task",
+      "请基于用户提供的结构化调试上下文，生成中文调试总结。",
+    ),
+    uiT("ui.debug.aiSummary.prompt.rulesHeader", "必须遵守："),
+    uiT(
+      "ui.debug.aiSummary.prompt.ruleNoFabrication",
+      "- 不要编造未出现在上下文中的节点、事件、产物或错误。",
+    ),
+    uiT(
+      "ui.debug.aiSummary.prompt.ruleEvidence",
+      "- 所有结论尽量引用证据，例如节点名、nodeId、runtimeName、seq、diagnostic code、artifact id。",
+    ),
+    uiT(
+      "ui.debug.aiSummary.prompt.ruleFailureFocus",
+      "- 当 focus 为 failure 时，优先输出失败原因和异常证据，弱化正常节点描述。",
+    ),
+    uiT(
+      "ui.debug.aiSummary.prompt.ruleNodeFocus",
+      "- 当 focus 为 node 时，只解释 selectedNode，不要扩展成全局运行报告。",
+    ),
+    uiT(
+      "ui.debug.aiSummary.prompt.ruleNoPerformance",
+      "- 不做性能瓶颈专项分析；性能字段只能作为辅助背景。",
+    ),
+    uiT(
+      "ui.debug.aiSummary.prompt.ruleInsufficientEvidence",
+      "- 如果证据不足，请明确说证据不足，并给出下一步应该查看的调试视图。",
+    ),
+    uiT(
+      "ui.debug.aiSummary.prompt.ruleJsonOnly",
+      "- 输出必须是 JSON，不要包裹 Markdown 代码块。",
+    ),
     "",
-    "JSON 格式：",
+    uiT("ui.debug.aiSummary.prompt.jsonFormatHeader", "JSON 格式："),
     "{",
-    '  "simpleSummary": "面向中控台的一段短摘要，控制在 120 个中文字符以内",',
-    '  "detailedReport": "Markdown 格式详细报告，包含：整体结论、运行概况、失败/异常节点、关键证据、建议下一步"',
+    uiT(
+      "ui.debug.aiSummary.prompt.jsonSimpleSummary",
+      '  "simpleSummary": "面向中控台的一段短摘要，控制在 120 个中文字符以内",',
+    ),
+    uiT(
+      "ui.debug.aiSummary.prompt.jsonDetailedReport",
+      '  "detailedReport": "Markdown 格式详细报告，包含：整体结论、运行概况、失败/异常节点、关键证据、建议下一步"',
+    ),
     "}",
     "",
-    "调试上下文：",
+    uiT("ui.debug.aiSummary.prompt.contextHeader", "调试上下文："),
     contextText,
   ].join("\n");
   return { prompt, contextText };
@@ -111,9 +147,10 @@ export function parseDebugAiSummaryResponse(
   try {
     const parsed = JSON.parse(trimmed) as Partial<ParsedDebugAiSummary>;
     const detailedReport = normalizeReportText(parsed.detailedReport);
-    const simpleSummary = normalizeSimpleSummary(parsed.simpleSummary) ||
+    const simpleSummary =
+      normalizeSimpleSummary(parsed.simpleSummary) ||
       firstMeaningfulLine(detailedReport) ||
-      "AI 总结已生成，打开详细报告查看。";
+      AI_SUMMARY_DEFAULT_FALLBACK;
     return {
       simpleSummary,
       detailedReport: detailedReport || content.trim(),
@@ -121,7 +158,7 @@ export function parseDebugAiSummaryResponse(
   } catch {
     return {
       simpleSummary:
-        firstMeaningfulLine(trimmed) || "AI 总结已生成，打开详细报告查看。",
+        firstMeaningfulLine(trimmed) || AI_SUMMARY_DEFAULT_FALLBACK,
       detailedReport: trimmed,
     };
   }

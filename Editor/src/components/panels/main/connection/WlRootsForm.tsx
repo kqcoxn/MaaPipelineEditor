@@ -2,6 +2,7 @@
 import { memo } from "react";
 import { Typography, Input, Alert, Checkbox } from "antd";
 import { DesktopOutlined, CheckCircleOutlined } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 import type { WlRootsCompositor } from "../../../../stores/mfwStore";
 
 const { Text } = Typography;
@@ -28,6 +29,8 @@ export const WlRootsForm = memo(
     onUseWin32VkCodeChange,
     loading,
   }: WlRootsFormProps) => {
+    const { t } = useTranslation();
+
     const handleSelectPreset = (socket: WlRootsCompositor) => {
       onSelect(socket);
       onManualPathChange(""); // 清空手动输入
@@ -48,12 +51,20 @@ export const WlRootsForm = memo(
         {/* 预设列表 */}
         <div style={{ marginBottom: 16 }}>
           <Text type="secondary" style={{ display: "block", marginBottom: 8 }}>
-            可用 Socket 路径
+            {t(
+              "ui.panels.connection.wlroots.availableSockets",
+              "可用 Socket 路径",
+            )}
           </Text>
           <List
             loading={loading}
             dataSource={sockets}
-            locale={{ emptyText: "暂无可用路径，请手动输入或点击刷新" }}
+            locale={{
+              emptyText: t(
+                "ui.panels.connection.wlroots.emptySockets",
+                "暂无可用路径，请手动输入或点击刷新",
+              ),
+            }}
             split={false}
             renderItem={(socket) => {
               const isSelected =
@@ -125,7 +136,7 @@ export const WlRootsForm = memo(
         >
           <div style={{ flex: 1, height: 1, backgroundColor: "#f0f0f0" }} />
           <Text type="secondary" style={{ padding: "0 12px" }}>
-            或手动输入
+            {t("ui.panels.connection.wlroots.orManualInput", "或手动输入")}
           </Text>
           <div style={{ flex: 1, height: 1, backgroundColor: "#f0f0f0" }} />
         </div>
@@ -133,7 +144,10 @@ export const WlRootsForm = memo(
         {/* 手动输入 */}
         <div style={{ marginBottom: 16 }}>
           <Input
-            placeholder="例如: /run/user/1000/wayland-0"
+            placeholder={t(
+              "ui.panels.connection.wlroots.pathPlaceholder",
+              "例如: /run/user/1000/wayland-0",
+            )}
             value={manualPath}
             onChange={(e) => handleManualChange(e.target.value)}
             prefix={<DesktopOutlined style={{ color: "#999" }} />}
@@ -149,7 +163,10 @@ export const WlRootsForm = memo(
                 fontSize: 12,
               }}
             >
-              将使用手动输入的路径，列表选择将被忽略
+              {t(
+                "ui.panels.connection.wlroots.manualInputWarning",
+                "将使用手动输入的路径，列表选择将被忽略",
+              )}
             </Text>
           )}
         </div>
@@ -160,21 +177,30 @@ export const WlRootsForm = memo(
             checked={useWin32VkCode}
             onChange={(e) => onUseWin32VkCodeChange(e.target.checked)}
           >
-            键盘输入使用 Win32 Virtual Keycode
+            {t(
+              "ui.panels.connection.wlroots.useWin32VkCode",
+              "键盘输入使用 Win32 Virtual Keycode",
+            )}
           </Checkbox>
         </div>
 
         {/* 提示信息 */}
         <Alert
-          title="提示"
+          title={t("ui.panels.connection.wlroots.tipTitle", "提示")}
           description={
             <div>
               <div>
-                选择上方列表中的 socket 路径，或手动输入自定义路径。通常为{" "}
+                {t(
+                  "ui.panels.connection.wlroots.tipSelectOrInputPrefix",
+                  "选择上方列表中的 socket 路径，或手动输入自定义路径。通常为",
+                )}{" "}
                 <Text code>/run/user/$UID/wayland-0</Text>
               </div>
               <div style={{ marginTop: 4 }}>
-                建议使用嵌套合成器会话，避免控制当前桌面。
+                {t(
+                  "ui.panels.connection.wlroots.tipNestedCompositor",
+                  "建议使用嵌套合成器会话，避免控制当前桌面。",
+                )}
               </div>
             </div>
           }

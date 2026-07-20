@@ -1,7 +1,11 @@
 import { create } from "zustand";
 import { globalConfig } from "./configStore";
-import { pickRandom, isAnswerCorrect, type QuizAnswer, type QuizQuestion } from "../data/newcomerQuiz";
-import { fixedQuestions } from "../data/newcomerQuizFixed";
+import {
+  pickRandomIndices,
+  isAnswerCorrect,
+  type QuizAnswer,
+  type QuizQuestion,
+} from "../data/newcomerQuiz";
 import { questionPool } from "../data/newcomerQuizPool";
 
 const STORAGE_KEY = "mpe_newcomer_passed";
@@ -12,8 +16,7 @@ const RANDOM_PASS_RATE = 0.6;
 interface NewcomerStore {
   modalOpen: boolean;
   step: number; // 0=介绍, 1=固定题, 2=随机题, 3=证书
-  fixedQuiz: QuizQuestion[];
-  randomQuiz: QuizQuestion[];
+  randomQuizIndices: number[];
   fixedAnswers: Record<number, QuizAnswer>;
   randomAnswers: Record<number, QuizAnswer>;
   passed: boolean;
@@ -28,8 +31,7 @@ interface NewcomerStore {
 export const useNewcomerStore = create<NewcomerStore>((set) => ({
   modalOpen: false,
   step: 0,
-  fixedQuiz: [],
-  randomQuiz: [],
+  randomQuizIndices: [],
   fixedAnswers: {},
   randomAnswers: {},
   passed: localStorage.getItem(STORAGE_KEY) === "true",
@@ -42,8 +44,10 @@ export const useNewcomerStore = create<NewcomerStore>((set) => ({
       step: startStep,
       fixedAnswers: {},
       randomAnswers: {},
-      fixedQuiz: fixedQuestions,
-      randomQuiz: pickRandom(questionPool, RANDOM_PICK_COUNT),
+      randomQuizIndices: pickRandomIndices(
+        questionPool.length,
+        RANDOM_PICK_COUNT,
+      ),
     });
   },
   closeModal: () => set({ modalOpen: false }),

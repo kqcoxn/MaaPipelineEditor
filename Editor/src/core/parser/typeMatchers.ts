@@ -1,4 +1,5 @@
 import { notification } from "antd";
+import uiT from "../../i18n/translate";
 import { flatten } from "lodash";
 import type { ParamType } from "./types";
 import { FieldTypeEnum, type FieldType } from "../fields";
@@ -327,8 +328,12 @@ export function matchParamType(
       } else {
         // 显示错误通知
         notification.error({
-          title: "类型错误",
-          description: `部分参数类型错误，请检查各节点字段是否符合Pipeline协议；可能的参数：${key}`,
+          title: uiT("ui.parser.typeMatchers.typeErrorTitle", "类型错误"),
+          description: uiT(
+            "ui.parser.typeMatchers.typeErrorDesc",
+            "部分参数类型错误，请检查各节点字段是否符合Pipeline协议；可能的参数：{{key}}",
+            { key },
+          ),
           placement: "top",
         });
       }

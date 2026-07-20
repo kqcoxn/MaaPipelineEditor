@@ -8,9 +8,11 @@
   useEffect,
 } from "react";
 import { Spin, Alert, Button, Tabs } from "antd";
+import { useTranslation } from "react-i18next";
 import classNames from "classnames";
 
 import style from "../../../styles/panels/FieldPanel.module.less";
+import uiT from "../../../i18n/translate";
 
 import {
   useFlowStore,
@@ -57,7 +59,7 @@ class EditorErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, errorInfo: any) {
-    console.error("节点编辑器渲染错误:", error, errorInfo);
+    console.error("Node editor render error:", error, errorInfo);
   }
 
   render() {
@@ -65,14 +67,26 @@ class EditorErrorBoundary extends Component<
       return (
         <div style={{ padding: 20 }}>
           <Alert
-            title="节点编辑器渲染失败"
+            title={uiT("ui.panels.main.field.editorRenderFailed", "节点编辑器渲染失败")}
             description={
               <div>
-                <p>节点名称: {this.props.nodeName}</p>
-                <p>节点类型: {this.props.nodeType}</p>
-                <p>错误信息: {this.state.error?.message}</p>
+                <p>
+                  {uiT("ui.panels.main.field.nodeName", "节点名称:")}{" "}
+                  {this.props.nodeName}
+                </p>
+                <p>
+                  {uiT("ui.panels.main.field.nodeType", "节点类型:")}{" "}
+                  {this.props.nodeType}
+                </p>
+                <p>
+                  {uiT("ui.panels.main.field.errorMessage", "错误信息:")}{" "}
+                  {this.state.error?.message}
+                </p>
                 <p style={{ marginTop: 10, color: "#666" }}>
-                  可能原因：节点数据结构损坏或缺少必要字段
+                  {uiT(
+                    "ui.panels.main.field.possibleCause",
+                    "可能原因：节点数据结构损坏或缺少必要字段",
+                  )}
                 </p>
                 {this.props.onRepair && (
                   <Button
@@ -84,7 +98,7 @@ class EditorErrorBoundary extends Component<
                     }}
                     style={{ marginTop: 10 }}
                   >
-                    尝试修复节点
+                    {uiT("ui.panels.main.field.tryRepair", "尝试修复节点")}
                   </Button>
                 )}
               </div>
@@ -102,6 +116,7 @@ class EditorErrorBoundary extends Component<
 
 // 面板
 function FieldPanel() {
+  const { t } = useTranslation();
   const currentNode = useFlowStore((state) => state.targetNode);
   const updateNodes = useFlowStore((state) => state.updateNodes);
   const fieldPanelMode = useConfigStore(
@@ -168,11 +183,14 @@ function FieldPanel() {
       saveHistory(0, {
         category: "node",
         action: "update",
-        description: "JSON 编辑节点数据",
+        description: t(
+          "ui.panels.main.field.jsonEditDescription",
+          "JSON 编辑节点数据",
+        ),
         targetIds: [currentNode.id],
       });
     },
-    [currentNode],
+    [currentNode, t],
   );
 
   // 验证并修复节点数据
@@ -213,14 +231,28 @@ function FieldPanel() {
       return (
         <div style={{ padding: 20 }}>
           <Alert
-            title="节点数据损坏"
+            title={t("ui.panels.main.field.nodeDataCorrupt", "节点数据损坏")}
             description={
               <div>
-                <p>节点名称: {currentNode.data?.label || "未知"}</p>
-                <p>节点类型: {currentNode.type || "未知"}</p>
-                <p>错误: {nodeValidation.error}</p>
+                <p>
+                  {t("ui.panels.main.field.nodeName", "节点名称:")}{" "}
+                  {currentNode.data?.label ||
+                    t("ui.panels.main.field.unknown", "未知")}
+                </p>
+                <p>
+                  {t("ui.panels.main.field.nodeType", "节点类型:")}{" "}
+                  {currentNode.type ||
+                    t("ui.panels.main.field.unknown", "未知")}
+                </p>
+                <p>
+                  {t("ui.panels.main.field.errorLabel", "错误:")}{" "}
+                  {nodeValidation.error}
+                </p>
                 <p style={{ marginTop: 10, color: "#666" }}>
-                  建议删除此节点并重新创建
+                  {t(
+                    "ui.panels.main.field.suggestDelete",
+                    "建议删除此节点并重新创建",
+                  )}
                 </p>
               </div>
             }
@@ -239,7 +271,10 @@ function FieldPanel() {
         case NodeTypeEnum.Pipeline:
           return (
             <EditorErrorBoundary
-              nodeName={nodeToRender.data?.label || "未知"}
+              nodeName={
+                nodeToRender.data?.label ||
+                t("ui.panels.main.field.unknown", "未知")
+              }
               nodeType="Pipeline"
               onRepair={handleNodeRepair}
             >
@@ -251,7 +286,10 @@ function FieldPanel() {
         case NodeTypeEnum.External:
           return (
             <EditorErrorBoundary
-              nodeName={nodeToRender.data?.label || "未知"}
+              nodeName={
+                nodeToRender.data?.label ||
+                t("ui.panels.main.field.unknown", "未知")
+              }
               nodeType="External"
               onRepair={handleNodeRepair}
             >
@@ -261,7 +299,10 @@ function FieldPanel() {
         case NodeTypeEnum.Anchor:
           return (
             <EditorErrorBoundary
-              nodeName={nodeToRender.data?.label || "未知"}
+              nodeName={
+                nodeToRender.data?.label ||
+                t("ui.panels.main.field.unknown", "未知")
+              }
               nodeType="Anchor"
               onRepair={handleNodeRepair}
             >
@@ -278,8 +319,12 @@ function FieldPanel() {
           return (
             <div style={{ padding: 20 }}>
               <Alert
-                title="未知节点类型"
-                description={`节点类型 "${nodeToRender.type}" 不受支持`}
+                title={t("ui.panels.main.field.unknownNodeType", "未知节点类型")}
+                description={t(
+                  "ui.panels.main.field.unsupportedNodeType",
+                  "节点类型 \"{{type}}\" 不受支持",
+                  { type: String(nodeToRender.type) },
+                )}
                 type="warning"
                 showIcon
               />
@@ -343,6 +388,7 @@ function FieldPanel() {
     progressDetail,
     nodeValidation,
     handleNodeRepair,
+    t,
   ]);
 
   // 样式
@@ -382,8 +428,20 @@ function FieldPanel() {
           />
         </div>
         <div className="header-center">
-          <div className="title">节点字段</div>
-          <WikiAnchor path="10.工作流面板/30.字段面板.html" title="字段面板" description="编辑节点属性与字段配置" />
+          <div className="title">
+            {t("ui.panels.main.field.title", "节点字段")}
+          </div>
+          <WikiAnchor
+            path={t(
+              "ui.panels.main.field.wiki.path",
+              "10.工作流面板/30.字段面板.html",
+            )}
+            title={t("ui.panels.main.field.wiki.title", "字段面板")}
+            description={t(
+              "ui.panels.main.field.wiki.description",
+              "编辑节点属性与字段配置",
+            )}
+          />
         </div>
         <div className="header-right">
           <FieldPanelToolbarRight
@@ -404,7 +462,7 @@ function FieldPanel() {
             closable={{ onClose: () => setValidationWarning(null) }}
             action={
               <Button size="small" type="primary" onClick={handleNodeRepair}>
-                应用修复
+                {t("ui.panels.main.field.applyFix", "应用修复")}
               </Button>
             }
           />
@@ -420,12 +478,12 @@ function FieldPanel() {
           items={[
             {
               key: "fields",
-              label: "字段配置",
+              label: t("ui.panels.main.field.fieldsTab", "字段配置"),
               children: renderContent,
             },
             {
               key: "adjacent",
-              label: "邻接信息",
+              label: t("ui.panels.main.field.adjacentTab", "邻接信息"),
               children: (
                 <AdjacentInfoPanel
                   currentNodeId={currentNode.id}

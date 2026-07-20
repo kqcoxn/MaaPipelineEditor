@@ -10,6 +10,7 @@ import {
   FullscreenOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 import { useMFWStore } from "../../stores/mfwStore";
 import {
   useConfigStore,
@@ -32,7 +33,7 @@ export interface ViewportProps {
   startPan: (
     clientX: number,
     clientY: number,
-    isMiddleButton?: boolean
+    isMiddleButton?: boolean,
   ) => void;
   updatePan: (clientX: number, clientY: number) => void;
   endPan: () => void;
@@ -50,36 +51,19 @@ export interface CanvasRenderProps extends ViewportProps {
 
 // 基础组件 Props
 interface ScreenshotModalBaseProps {
-  // 基础属性
   open: boolean;
   onClose: () => void;
   title: string;
   width?: number;
-
-  // 确认按钮
   confirmText?: string;
   confirmDisabled?: boolean;
   onConfirm: () => void;
-
-  // 额外按钮（渲染在确认按钮之前）
   extraButtons?: ReactNode;
-
-  // 工具栏渲染
   renderToolbar?: (props: ViewportProps) => ReactNode;
-
-  // Canvas 渲染
   renderCanvas: (props: CanvasRenderProps) => ReactNode;
-
-  // Canvas 下方额外内容
   children?: ReactNode;
-
-  // 截图变化回调
   onScreenshotChange?: (screenshot: string | null) => void;
-
-  // 图片加载完成回调
   onImageLoaded?: (img: HTMLImageElement) => void;
-
-  // 关闭时的额外重置逻辑
   onReset?: () => void;
 }
 
@@ -89,7 +73,7 @@ export const ScreenshotModalBase = memo(
     onClose,
     title,
     width = 900,
-    confirmText = "确定",
+    confirmText,
     confirmDisabled = false,
     onConfirm,
     extraButtons,
@@ -100,6 +84,10 @@ export const ScreenshotModalBase = memo(
     onImageLoaded,
     onReset,
   }: ScreenshotModalBaseProps) => {
+    const { t } = useTranslation();
+    const resolvedConfirmText =
+      confirmText ?? t("ui.modals.screenshotModalBase.confirm", "确定");
+
     const { connectionStatus, controllerId } = useMFWStore();
     const resolutionMode = useConfigStore(
       (state) => state.configs.screenshotResolutionMode,
@@ -118,7 +106,6 @@ export const ScreenshotModalBase = memo(
 
     const isConnected = connectionStatus === "connected" && !!controllerId;
 
-    // 使用视口控制 Hook
     const viewportProps = useCanvasViewport({ open, screenshot });
     const {
       scale,
@@ -130,7 +117,6 @@ export const ScreenshotModalBase = memo(
       handleZoomReset,
     } = viewportProps;
 
-    // 存储回调
     const onScreenshotChangeRef = useRef(onScreenshotChange);
     const onImageLoadedRef = useRef(onImageLoaded);
     const onResetRef = useRef(onReset);
@@ -140,7 +126,6 @@ export const ScreenshotModalBase = memo(
       onResetRef.current = onReset;
     }, [onScreenshotChange, onImageLoaded, onReset]);
 
-    // 请求截图
     const requestScreenshot = useCallback(async () => {
       if (connectionStatus !== "connected" || !controllerId) {
         return;
@@ -168,11 +153,18 @@ export const ScreenshotModalBase = memo(
           setImageLoaded(false);
           onScreenshotChangeRef.current?.(result.image);
         } else {
-          message.error(result.error || "截图失败");
+          message.error(
+            result.error ||
+              t("ui.modals.screenshotModalBase.screenshotFailed", "截图失败"),
+          );
         }
       } catch (error) {
         if (!(error instanceof DOMException && error.name === "AbortError")) {
-          message.error(error instanceof Error ? error.message : "截图失败");
+          message.error(
+            error instanceof Error
+              ? error.message
+              : t("ui.modals.screenshotModalBase.screenshotFailed", "截图失败"),
+          );
         }
       } finally {
         if (requestAbortControllerRef.current === abortController) {
@@ -180,9 +172,8 @@ export const ScreenshotModalBase = memo(
           setIsLoading(false);
         }
       }
-    }, [connectionStatus, controllerId, resolutionMode, resolutionValue]);
+    }, [connectionStatus, controllerId, resolutionMode, resolutionValue, t]);
 
-    // 上传本地图片作为底图
     const handleUploadClick = useCallback(() => {
       fileInputRef.current?.click();
     }, []);
@@ -190,12 +181,13 @@ export const ScreenshotModalBase = memo(
     const handleFileChange = useCallback(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        // 清空 input 值，确保同一文件可重复选择
         e.target.value = "";
         if (!file) return;
 
         if (!file.type.startsWith("image/")) {
-          message.warning("请选择图片文件");
+          message.warning(
+            t("ui.modals.screenshotModalBase.selectImageFile", "请选择图片文件"),
+          );
           return;
         }
 
@@ -208,18 +200,18 @@ export const ScreenshotModalBase = memo(
           onScreenshotChangeRef.current?.(dataUrl);
         };
         reader.onerror = () => {
-          message.error("图片读取失败");
+          message.error(
+            t("ui.modals.screenshotModalBase.imageReadFailed", "图片读取失败"),
+          );
         };
         reader.readAsDataURL(file);
       },
-      [],
+      [t],
     );
 
-    // 每次打开时重新截图（已连接设备时自动截一张；未连接则等待上传）
     useEffect(() => {
       if (!open) return;
 
-      // 清除旧截图
       setScreenshot(null);
       setImageLoaded(false);
       onScreenshotChangeRef.current?.(null);
@@ -233,7 +225,6 @@ export const ScreenshotModalBase = memo(
       };
     }, [open, requestScreenshot, resetViewport, connectionStatus, controllerId]);
 
-    // 加载图片
     useEffect(() => {
       if (!screenshot) {
         setImageLoaded(false);
@@ -243,16 +234,13 @@ export const ScreenshotModalBase = memo(
 
       const img = new Image();
       img.onload = () => {
-        // 存储到 ref 并触发重渲染
         loadedImageRef.current = img;
         setImageLoaded(true);
-        // 通知子组件图片
         onImageLoadedRef.current?.(img);
       };
       img.src = screenshot;
     }, [screenshot]);
 
-    // 关闭时重置状态
     const handleClose = useCallback(() => {
       requestAbortControllerRef.current?.abort();
       requestAbortControllerRef.current = null;
@@ -263,7 +251,6 @@ export const ScreenshotModalBase = memo(
       onClose();
     }, [onClose, resetViewport, onReset]);
 
-    // Canvas 渲染 Props
     const canvasRenderProps: CanvasRenderProps | null = screenshot
       ? {
           ...viewportProps,
@@ -290,12 +277,12 @@ export const ScreenshotModalBase = memo(
           },
         }}
       >
-        <Spin spinning={isLoading} description="截图中...">
-          {/* 左右分栏布局 */}
+        <Spin
+          spinning={isLoading}
+          description={t("ui.modals.screenshotModalBase.capturing", "截图中...")}
+        >
           <div style={{ display: "flex", gap: 16, minHeight: 500 }}>
-            {/* 截图显示区（左侧） */}
             <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-              {/* 截图预览标题 */}
               <div
                 style={{
                   marginBottom: 12,
@@ -312,35 +299,49 @@ export const ScreenshotModalBase = memo(
                       color: "#262626",
                     }}
                   >
-                    截图预览
+                    {t("ui.modals.screenshotModalBase.previewTitle", "截图预览")}
                   </span>
                   <Button
                     icon={<UploadOutlined />}
                     onClick={handleUploadClick}
                     size="small"
                   >
-                    上传图片
+                    {t("ui.modals.screenshotModalBase.uploadImage", "上传图片")}
                   </Button>
                 </Space>
 
-                {/* 视图控制 */}
                 {screenshot && (
                   <Space size={4}>
-                    <Tooltip title="缩小 (滚轮向下)">
+                    <Tooltip
+                      title={t(
+                        "ui.modals.screenshotModalBase.zoomOut",
+                        "缩小 (滚轮向下)",
+                      )}
+                    >
                       <Button
                         size="small"
                         icon={<ZoomOutOutlined />}
                         onClick={handleZoomOut}
                       />
                     </Tooltip>
-                    <Tooltip title="放大 (滚轮向上)">
+                    <Tooltip
+                      title={t(
+                        "ui.modals.screenshotModalBase.zoomIn",
+                        "放大 (滚轮向上)",
+                      )}
+                    >
                       <Button
                         size="small"
                         icon={<ZoomInOutlined />}
                         onClick={handleZoomIn}
                       />
                     </Tooltip>
-                    <Tooltip title="适应窗口">
+                    <Tooltip
+                      title={t(
+                        "ui.modals.screenshotModalBase.fitWindow",
+                        "适应窗口",
+                      )}
+                    >
                       <Button
                         size="small"
                         icon={<FullscreenOutlined />}
@@ -362,7 +363,6 @@ export const ScreenshotModalBase = memo(
                 )}
               </div>
 
-              {/* 截图显示区 */}
               <div
                 ref={containerRef}
                 style={{
@@ -391,24 +391,31 @@ export const ScreenshotModalBase = memo(
                   >
                     <span style={{ color: "#999" }}>
                       {isConnected
-                        ? "等待截图..."
-                        : "未连接设备，请点击上方“上传图片”选择本地图片作为底图"}
+                        ? t(
+                            "ui.modals.screenshotModalBase.waitingScreenshot",
+                            "等待截图...",
+                          )
+                        : t(
+                            "ui.modals.screenshotModalBase.notConnectedHint",
+                            "未连接设备，请点击上方“上传图片”选择本地图片作为底图",
+                          )}
                     </span>
                   </div>
                 )}
               </div>
 
-              {/* 提示 */}
               {screenshot && (
                 <div style={{ marginTop: 8, textAlign: "center" }}>
                   <span style={{ color: "#8c8c8c", fontSize: 12 }}>
-                    💡 滚轮缩放 | 按住空格或中键拖动
+                    {t(
+                      "ui.modals.screenshotModalBase.viewportHint",
+                      "💡 滚轮缩放 | 按住空格或中键拖动",
+                    )}
                   </span>
                 </div>
               )}
             </div>
 
-            {/* 参数配置区（右侧） */}
             <div
               style={{
                 width: 340,
@@ -416,7 +423,6 @@ export const ScreenshotModalBase = memo(
                 flexDirection: "column",
               }}
             >
-              {/* 调节参数标题 */}
               <div
                 style={{
                   marginBottom: 12,
@@ -425,20 +431,17 @@ export const ScreenshotModalBase = memo(
                   color: "#262626",
                 }}
               >
-                调节参数
+                {t("ui.modals.screenshotModalBase.paramsTitle", "调节参数")}
               </div>
 
-              {/* 自定义工具栏 */}
               {screenshot && renderToolbar && (
                 <div style={{ marginBottom: 16 }}>
                   {renderToolbar(viewportProps)}
                 </div>
               )}
 
-              {/* 参数配置区域 */}
               <div style={{ flex: 1, overflowY: "auto" }}>{children}</div>
 
-              {/* 分割线 */}
               <div
                 style={{
                   marginTop: 16,
@@ -447,7 +450,6 @@ export const ScreenshotModalBase = memo(
                 }}
               />
 
-              {/* 操作按钮 */}
               <div
                 style={{
                   display: "flex",
@@ -458,14 +460,26 @@ export const ScreenshotModalBase = memo(
                 }}
               >
                 <Space size="small">
-                  <Tooltip title={isConnected ? "" : "未连接设备"}>
+                  <Tooltip
+                    title={
+                      isConnected
+                        ? ""
+                        : t(
+                            "ui.modals.screenshotModalBase.notConnected",
+                            "未连接设备",
+                          )
+                    }
+                  >
                     <Button
                       icon={<ReloadOutlined />}
                       onClick={requestScreenshot}
                       disabled={isLoading || !isConnected}
                       size="small"
                     >
-                      重新截图
+                      {t(
+                        "ui.modals.screenshotModalBase.retakeScreenshot",
+                        "重新截图",
+                      )}
                     </Button>
                   </Tooltip>
                   <Button
@@ -473,7 +487,7 @@ export const ScreenshotModalBase = memo(
                     onClick={handleClose}
                     size="small"
                   >
-                    取消
+                    {t("ui.modals.screenshotModalBase.cancel", "取消")}
                   </Button>
                 </Space>
                 <Space size="small">
@@ -485,7 +499,7 @@ export const ScreenshotModalBase = memo(
                     disabled={confirmDisabled}
                     size="small"
                   >
-                    {confirmText}
+                    {resolvedConfirmText}
                   </Button>
                 </Space>
               </div>
@@ -501,5 +515,5 @@ export const ScreenshotModalBase = memo(
         </Spin>
       </Modal>
     );
-  }
+  },
 );

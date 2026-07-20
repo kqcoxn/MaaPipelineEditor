@@ -1,4 +1,5 @@
 import { memo, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { type Node, type NodeProps, useReactFlow } from "@xyflow/react";
 import classNames from "classnames";
 import { useShallow } from "zustand/shallow";
@@ -20,6 +21,7 @@ const ENodeContent = memo(
     data: ExternalNodeDataType;
     replicaCount: number;
   }) => {
+    const { t } = useTranslation();
     return (
       <>
         <div className={style.title}>
@@ -27,7 +29,9 @@ const ENodeContent = memo(
           {replicaCount > 0 && (
             <span
               className={style["replica-badge"]}
-              title={`此外部引用共有 ${replicaCount + 1} 个视觉副本`}
+              title={t("ui.flow.externalNode.replicaCountTitle", "此外部引用共有 {{count}} 个视觉副本", {
+                count: replicaCount + 1,
+              })}
             >
               +{replicaCount}
             </span>

@@ -1,5 +1,6 @@
-import { memo, useState, useCallback, useEffect, useRef } from "react";
+import { memo, useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { Space, InputNumber, message, Radio } from "antd";
+import { useTranslation } from "react-i18next";
 import {
   ScreenshotModalBase,
   type CanvasRenderProps,
@@ -21,6 +22,7 @@ interface Point {
 
 export const DeltaModal = memo(
   ({ open, onClose, onConfirm, initialMode = "dx" }: DeltaModalProps) => {
+    const { t } = useTranslation();
     const [screenshot, setScreenshot] = useState<string | null>(null);
     const [startPoint, setStartPoint] = useState<Point | null>(null);
     const [endPoint, setEndPoint] = useState<Point | null>(null);
@@ -31,17 +33,23 @@ export const DeltaModal = memo(
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const viewportPropsRef = useRef<CanvasRenderProps | null>(null);
 
-    // 计算差值
+    const modeLabel = useMemo(
+      () =>
+        mode === "dx"
+          ? t("ui.modals.deltaModal.modeDx", "水平差 (dx)")
+          : t("ui.modals.deltaModal.modeDy", "垂直差 (dy)"),
+      [mode, t],
+    );
+    const modeColor = mode === "dx" ? "#1890ff" : "#722ed1";
+
     const getDelta = useCallback(() => {
       if (!startPoint || !endPoint) return 0;
       if (mode === "dx") {
         return Math.round(endPoint.x - startPoint.x);
-      } else {
-        return Math.round(endPoint.y - startPoint.y);
       }
+      return Math.round(endPoint.y - startPoint.y);
     }, [startPoint, endPoint, mode]);
 
-    // 重绘 canvas
     const redrawCanvas = useCallback(
       (canvas: HTMLCanvasElement | null) => {
         const ctx = canvas?.getContext("2d");
@@ -51,7 +59,6 @@ export const DeltaModal = memo(
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0);
 
-        // 绘制起点
         if (startPoint) {
           ctx.fillStyle = "#52c41a";
           ctx.beginPath();
@@ -62,7 +69,6 @@ export const DeltaModal = memo(
           ctx.stroke();
         }
 
-        // 绘制终点
         if (endPoint) {
           ctx.fillStyle = "#ff4a4a";
           ctx.beginPath();
@@ -73,7 +79,6 @@ export const DeltaModal = memo(
           ctx.stroke();
         }
 
-        // 绘制连线
         if (startPoint && endPoint) {
           ctx.strokeStyle = mode === "dx" ? "#1890ff" : "#722ed1";
           ctx.lineWidth = 2;
@@ -84,16 +89,13 @@ export const DeltaModal = memo(
           ctx.stroke();
           ctx.setLineDash([]);
 
-          // 绘制差值方向指示
           if (mode === "dx") {
-            // 绘制水平辅助线
             ctx.strokeStyle = "rgba(24, 144, 255, 0.5)";
             ctx.beginPath();
             ctx.moveTo(startPoint.x, startPoint.y);
             ctx.lineTo(endPoint.x, startPoint.y);
             ctx.stroke();
           } else {
-            // 绘制垂直辅助线
             ctx.strokeStyle = "rgba(114, 46, 209, 0.5)";
             ctx.beginPath();
             ctx.moveTo(startPoint.x, startPoint.y);
@@ -102,17 +104,15 @@ export const DeltaModal = memo(
           }
         }
       },
-      [startPoint, endPoint, mode]
+      [startPoint, endPoint, mode],
     );
 
-    // startPoint/endPoint 变化或图片加载后重绘
     useEffect(() => {
       if (canvasRef.current && imageRef.current) {
         redrawCanvas(canvasRef.current);
       }
     }, [startPoint, endPoint, mode, redrawCanvas]);
 
-    // 创建鼠标事件处理器
     const createMouseHandlers = useCallback(
       (props: CanvasRenderProps) => {
         const {
@@ -176,20 +176,19 @@ export const DeltaModal = memo(
 
         return { handleMouseDown, handleMouseMove, handleMouseUp };
       },
-      [isDrawing]
+      [isDrawing],
     );
 
-    // 手动输入坐标
     const handleStartChange = useCallback(
       (key: "x" | "y", value: number | null) => {
         if (value === null) return;
         setStartPoint((prev) =>
           prev
             ? { ...prev, [key]: Math.round(value) }
-            : { x: 0, y: 0, [key]: Math.round(value) }
+            : { x: 0, y: 0, [key]: Math.round(value) },
         );
       },
-      []
+      [],
     );
 
     const handleEndChange = useCallback(
@@ -198,25 +197,28 @@ export const DeltaModal = memo(
         setEndPoint((prev) =>
           prev
             ? { ...prev, [key]: Math.round(value) }
-            : { x: 0, y: 0, [key]: Math.round(value) }
+            : { x: 0, y: 0, [key]: Math.round(value) },
         );
       },
-      []
+      [],
     );
 
-    // 确定回填
     const handleConfirm = useCallback(() => {
       if (!startPoint || !endPoint) {
-        message.warning("请先在截图上拖动选择起点和终点");
+        message.warning(
+          t(
+            "ui.modals.deltaModal.selectPointsFirst",
+            "请先在截图上拖动选择起点和终点",
+          ),
+        );
         return;
       }
 
       const delta = getDelta();
       onConfirm(delta, mode);
       onClose();
-    }, [startPoint, endPoint, getDelta, onConfirm, onClose, mode]);
+    }, [startPoint, endPoint, getDelta, onConfirm, onClose, mode, t]);
 
-    // 重置状态
     const handleReset = useCallback(() => {
       setScreenshot(null);
       setStartPoint(null);
@@ -226,15 +228,12 @@ export const DeltaModal = memo(
       imageRef.current = null;
     }, [initialMode]);
 
-    // 渲染 Canvas
     const renderCanvas = useCallback(
       (props: CanvasRenderProps) => {
         const { scale, panOffset, getBaseCursorStyle, imageElement } = props;
 
-        // 存储最新的 props
         viewportPropsRef.current = props;
 
-        // 存储图片到 ref
         if (imageElement) {
           imageRef.current = imageElement;
         }
@@ -244,7 +243,6 @@ export const DeltaModal = memo(
 
         const cursorStyle = getBaseCursorStyle() || "crosshair";
 
-        // 滚轮缩放事件处理
         const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
           e.preventDefault();
           e.stopPropagation();
@@ -267,10 +265,9 @@ export const DeltaModal = memo(
           />
         );
       },
-      [createMouseHandlers]
+      [createMouseHandlers],
     );
 
-    // 初始化 canvas
     const handleImageLoaded = useCallback(
       (img: HTMLImageElement) => {
         imageRef.current = img;
@@ -283,18 +280,16 @@ export const DeltaModal = memo(
         props?.initializeImage?.(img);
         redrawCanvas(canvas);
       },
-      [redrawCanvas]
+      [redrawCanvas],
     );
 
     const deltaValue = getDelta();
-    const modeLabel = mode === "dx" ? "水平差 (dx)" : "垂直差 (dy)";
-    const modeColor = mode === "dx" ? "#1890ff" : "#722ed1";
 
     return (
       <ScreenshotModalBase
         open={open}
         onClose={onClose}
-        title="位移差值配置"
+        title={t("ui.modals.deltaModal.title", "位移差值配置")}
         width={900}
         confirmDisabled={!startPoint || !endPoint}
         onConfirm={handleConfirm}
@@ -303,29 +298,39 @@ export const DeltaModal = memo(
         onImageLoaded={handleImageLoaded}
         onReset={handleReset}
       >
-        {/* 模式切换 */}
         <div style={{ marginBottom: 12 }}>
           <Radio.Group
             value={mode}
             onChange={(e) => setMode(e.target.value)}
             buttonStyle="solid"
           >
-            <Radio.Button value="dx">水平差 (dx)</Radio.Button>
-            <Radio.Button value="dy">垂直差 (dy)</Radio.Button>
+            <Radio.Button value="dx">
+              {t("ui.modals.deltaModal.modeDx", "水平差 (dx)")}
+            </Radio.Button>
+            <Radio.Button value="dy">
+              {t("ui.modals.deltaModal.modeDy", "垂直差 (dy)")}
+            </Radio.Button>
           </Radio.Group>
         </div>
 
-        {/* 提示信息 */}
         <div style={{ marginBottom: 12, color: "#666", fontSize: 13 }}>
-          在截图上拖动鼠标，从起点拖到终点，将计算
-          {mode === "dx" ? "水平" : "垂直"}方向的位移差值。
+          {mode === "dx"
+            ? t(
+                "ui.modals.deltaModal.hintHorizontal",
+                "在截图上拖动鼠标，从起点拖到终点，将计算水平方向的位移差值。",
+              )
+            : t(
+                "ui.modals.deltaModal.hintVertical",
+                "在截图上拖动鼠标，从起点拖到终点，将计算垂直方向的位移差值。",
+              )}
         </div>
 
-        {/* 起点与终点坐标 */}
         <div style={{ marginBottom: 12 }}>
           <Space size="large" wrap>
             <Space>
-              <span style={{ fontWeight: 500, color: "#52c41a" }}>起点:</span>
+              <span style={{ fontWeight: 500, color: "#52c41a" }}>
+                {t("ui.modals.deltaModal.startPoint", "起点:")}
+              </span>
               <span>X:</span>
               <InputNumber
                 value={startPoint?.x ?? 0}
@@ -344,7 +349,9 @@ export const DeltaModal = memo(
               />
             </Space>
             <Space>
-              <span style={{ fontWeight: 500, color: "#ff4a4a" }}>终点:</span>
+              <span style={{ fontWeight: 500, color: "#ff4a4a" }}>
+                {t("ui.modals.deltaModal.endPoint", "终点:")}
+              </span>
               <span>X:</span>
               <InputNumber
                 value={endPoint?.x ?? 0}
@@ -365,7 +372,6 @@ export const DeltaModal = memo(
           </Space>
         </div>
 
-        {/* 差值结果 */}
         <div style={{ marginBottom: 16 }}>
           <div style={{ marginBottom: 8, fontWeight: 500, color: modeColor }}>
             {modeLabel}:
@@ -384,7 +390,10 @@ export const DeltaModal = memo(
             {deltaValue}
           </div>
           <span style={{ marginLeft: 12, color: "#999", fontSize: 13 }}>
-            = {mode === "dx" ? "终点X - 起点X" : "终点Y - 起点Y"}
+            ={" "}
+            {mode === "dx"
+              ? t("ui.modals.deltaModal.formulaDx", "终点X - 起点X")
+              : t("ui.modals.deltaModal.formulaDy", "终点Y - 起点Y")}
             {startPoint && endPoint && (
               <span>
                 {" "}
@@ -396,5 +405,5 @@ export const DeltaModal = memo(
         </div>
       </ScreenshotModalBase>
     );
-  }
+  },
 );

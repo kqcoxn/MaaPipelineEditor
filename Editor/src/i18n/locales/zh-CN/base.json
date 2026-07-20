@@ -1,0 +1,481 @@
+{
+  "app": {
+    "starRemind": {
+      "starNow": "这就去点！",
+      "remindLater": "稍后提醒",
+      "neverRemind": "不再提醒",
+      "title": "来点 Star，秋梨膏！",
+      "description": "如果 MaaPipelineEditor 对您有帮助，可以为项目点一个免费的 Star⭐ 吗 QAQ"
+    },
+    "fileDrop": {
+      "unsupportedType": "仅支持 .json 或 .jsonc 文件",
+      "importSuccess": "已导入文件: {{fileName}}",
+      "importFailed": "文件导入失败，请检查文件格式"
+    },
+    "cache": {
+      "loaded": "已读取本地缓存"
+    },
+    "importRequest": {
+      "contentWithFile": "是否从 \"{{dirName}}\" 目录选择文件 \"{{expectedFile}}\" 导入？",
+      "contentWithoutFile": "是否从 \"{{dirName}}\" 目录选择文件导入？",
+      "title": "检测到导入请求",
+      "okText": "选择文件",
+      "cancelText": "取消"
+    }
+  },
+  "stores": {
+    "clipboard": {
+      "noSelection": "未选中节点",
+      "copySuccess": "已将选中节点加载至内部粘贴板",
+      "pasteEmpty": "粘贴板中无已复制节点"
+    },
+    "debug": {
+      "diagnosticFallback": "调试诊断事件",
+      "defaultProfileName": "默认调试配置",
+      "entryNotInSnapshot": "所选入口节点不在当前调试快照中，请重新打开入口节点所在文件后再试。"
+    },
+    "error": {
+      "nodeNameRepeat": "节点名重复"
+    },
+    "flow": {
+      "history": {
+        "deleteEdge": "删除连接",
+        "updateEdge": "修改连接属性",
+        "reorderEdge": "调整连接顺序",
+        "batchReorderEdge": "批量调整连接顺序",
+        "addEdge": "添加连接",
+        "replaceCanvas": "替换画布",
+        "adjustNodeSpacing": "调整节点间距",
+        "deleteNode": "删除节点",
+        "moveNode": "移动节点",
+        "createGroup": "创建分组",
+        "ungroup": "解散分组",
+        "attachGroup": "加入分组",
+        "detachGroup": "移出分组"
+      },
+      "node": {
+        "copySuffix": "_副本",
+        "newNode": "新建节点",
+        "external": "外部节点",
+        "anchor": "重定向节点",
+        "sticker": "便签",
+        "group": "分组"
+      }
+    },
+    "exploration": {
+      "connectDeviceFirst": "请先连接设备",
+      "configureAiFirst": "请先配置 AI API",
+      "init": "初始化",
+      "preparing": "正在准备...",
+      "aiPredictFailed": "AI 预测失败",
+      "executeFailed": "执行失败",
+      "validationFailed": "节点数据验证失败",
+      "nextStepStage": "准备下一步",
+      "analyzing": "正在分析..."
+    }
+  },
+  "newcomerGuide": {
+    "steps": {
+      "learn": "了解",
+      "basics": "基础",
+      "complete": "通关"
+    },
+    "fixed": {
+      "title": "基础知识测试",
+      "description": "以下为 MaaFW 基本常识，必须全部答对才能进入下一步。如果您首次接触 MaaFW 项目，可配合文档或 AI 作答，这将对您后续项目维护有很大帮助；如果您了解过这些内容，将非常快速通过！",
+      "errorWithScore": "得分 {{correct}}/{{total}}，请修正标红题目后重新提交。",
+      "errorAllWrong": "存在错误答案，请全部答对后再提交。"
+    },
+    "random": {
+      "title": "常用技巧测试",
+      "description": "以下为常用小知识，答对 60% 即可通过。",
+      "errorWithScore": "得分 {{correct}}/{{total}}，正确率不足 60%，请修正标红题目后重新提交。",
+      "errorInsufficient": "正确率不足 60%，请重新检查后再提交。"
+    },
+    "intro": {
+      "title": "欢迎使用 MaaPipelineEditor",
+      "description": "MaaPipelineEditor (MPE) 是 MaaFramework (MaaFW) 的可视化 Pipeline 编辑器，帮助您以图形化方式编辑任务流程。",
+      "warningTitle": "重要提示",
+      "warningDescription": "MPE 是 MaaFW 的辅助工具，不能替代对 MaaFW 本身的学习。请确保您已经了解 MaaFW 的基本概念（如 Node、Task、Pipeline 等）后再使用本编辑器。",
+      "docsHint": "如果您还不熟悉 MaaFramework，请先阅读官方文档：",
+      "docsLink": "MaaFramework 官方文档",
+      "startButton": "我已了解，开始答题"
+    },
+    "quiz": {
+      "defaultCategory": "综合题目",
+      "elapsed": "用时 {{time}}",
+      "questionCount": "{{count}} 题",
+      "back": "上一步",
+      "submit": "提交答案",
+      "types": {
+        "choice": "单选",
+        "judge": "判断",
+        "multi": "多选",
+        "input": "填空"
+      },
+      "inputPlaceholder": "请输入答案"
+    },
+    "certificate": {
+      "title": "恭喜通过测试！",
+      "subTitle": "您已具备 MaaFW 的基础知识，本次用时 {{time}}，欢迎开始使用 MaaPipelineEditor！",
+      "docsLink": "查看 MaaPipelineEditor 使用文档",
+      "startButton": "开始使用 MPE"
+    }
+  },
+  "updateLog": {
+    "types": {
+      "major": "重大更新",
+      "feature": "新功能",
+      "fix": "问题修复",
+      "perf": "体验优化"
+    },
+    "categories": {
+      "features": "新功能",
+      "perfs": "体验优化",
+      "fixes": "问题修复"
+    },
+    "versions": "版本",
+    "versionCount": "共{{count}}个版本",
+    "timelineAriaLabel": "版本时间线",
+    "forecastButton": "下期预告 / 长期预告",
+    "forecastTag": "预告",
+    "forecastSubtitle": "近期计划与方向规划",
+    "updateCount": "{{date}} / 共 {{count}} 项更新",
+    "emptyVersion": "该版本暂无更新内容",
+    "title": "更新日志",
+    "emptyLogs": "暂无更新日志"
+  },
+  "data": {
+    "terms": {
+      "tool_nature": "我已了解 MaaPipelineEditor (MPE) 是 MaaFramework 的辅助可视化编辑器，不能替代对 MaaFW 本身的学习与理解。",
+      "no_warranty": "我理解本工具为开源社区项目，按「原样」提供，不附带任何明示或暗示的保证，因使用本工具产生的任何后果由使用者自行承担。",
+      "data_local": "我已知晓本工具的所有数据均存储在本地浏览器中，不会上传至任何服务器；清除浏览器数据可能导致工作内容丢失，我将自行在必要时做好备份。（配置面板可导出配置文件）",
+      "project_allow": "对于即将使用 MPE 开发或辅助的项目，我是主决策者，或我已咨询项目主维护者并得到其允许使用 MPE 进行开发或辅助的答复。（部分项目不使用 MPE 作为主开发工具，一般项目架构会不适配，或会产生大量冗余内容，如果正在参与其他项目的贡献请遵循其项目规范与工具建议）"
+    },
+    "nodeTemplates": {
+      "icon-kongjiedian": {
+        "label": "外部节点"
+      },
+      "icon-xiaofangtongdao": {
+        "label": "重定向节点 (Anchor)"
+      },
+      "icon-ziyuan": {
+        "label": "便签贴纸"
+      },
+      "icon-bianqian1": {
+        "label": "分组框"
+      },
+      "icon-kuangxuanzhong": {
+        "label": "文字识别"
+      },
+      "icon-ocr": {
+        "label": "图像识别"
+      },
+      "icon-tuxiang": {
+        "label": "无延迟节点"
+      },
+      "icon-weizhihang": {
+        "label": "直接点击"
+      },
+      "icon-dianji": {
+        "label": "Custom"
+      }
+    },
+    "newcomer": {
+      "fixed": {
+        "q0": {
+          "question": "MaaPipelineEditor（MPE）与 MaaFramework（MaaFW）的关系是？",
+          "category": "MPE 定位",
+          "options": {
+            "0": "MPE 是 MaaFW 的代替品，可以完全替代 MaaFW 本身，定位类似上层封装",
+            "1": "MPE 是 MaaFW 的一个可选组件，用于替代手写 Pipeline JSON 代码，定位类似模块/库",
+            "2": "MPE 是 MaaFW 生态的一个独立工具，用于辅助开发 MaaFW 项目，定位类似 IDE",
+            "3": "MPE 与 MaaFW 没有关系，是两个完全独立的项目"
+          }
+        },
+        "q1": {
+          "question": "MPE 可以完全替代学习 MaaFW，不需要先了解 MaaFW 就能直接使用。",
+          "category": "项目模板",
+          "options": {
+            "0": "正确",
+            "1": "错误"
+          }
+        },
+        "q2": {
+          "question": "可以直接使用 MPE 创建全新的空白项目，或复用 MPE Desktop 的 resource 子目录作为项目目录",
+          "category": "项目模板",
+          "options": {
+            "0": "正确",
+            "1": "错误"
+          }
+        },
+        "q3": {
+          "question": "新手开发 MaaFW 项目时，推荐使用官方项目模板（[MaaPracticeBoilerplate](https://github.com/MaaXYZ/MaaPracticeBoilerplate)）或 [create-maa-project](https://github.com/Windsland52/create-maa-project) 脚手架工具作为起点，而不是自行创建文件夹结构。",
+          "category": "项目模板",
+          "options": {
+            "0": "正确",
+            "1": "错误"
+          }
+        },
+        "q4": {
+          "question": "MaaFw (MaaFramework) 的项目模板仓库地址是？",
+          "category": "项目模板"
+        },
+        "q5": {
+          "question": "从模板仓库创建项目必须要按哪个按钮？",
+          "category": "资源结构",
+          "options": {
+            "0": "Download ZIP",
+            "1": "Use this template",
+            "2": "新建文件夹",
+            "3": "Release"
+          }
+        },
+        "q6": {
+          "question": "一个标准的 MaaFW 资源（Resource）文件夹结构中，应该包含哪些子文件夹？",
+          "category": "资源结构",
+          "options": {
+            "0": "pipeline（任务流程）",
+            "1": "image（图片素材）",
+            "2": "model（模型文件）",
+            "3": "config（项目配置）"
+          }
+        },
+        "q7": {
+          "question": "开发自己的 MaaFW 项目时不需要再单独下载 OCR 模型，项目模板或 MPE 会自行处理。",
+          "category": "资源结构",
+          "options": {
+            "0": "正确",
+            "1": "错误"
+          }
+        },
+        "q8": {
+          "question": "资源目录下的 ./model/ocr 文件夹中需要包含哪些文件？",
+          "category": "MaaFW 概念",
+          "options": {
+            "0": "det.onnx、rec.onnx、keys.txt",
+            "1": "ocr.pth、vocab.txt",
+            "2": "model.bin、config.json",
+            "3": "detect.tflite、recognize.tflite"
+          }
+        },
+        "q9": {
+          "question": "MaaFW 中，Pipeline 的基本格式是什么？",
+          "category": "MaaFW 概念",
+          "options": {
+            "0": "纯文本脚本",
+            "1": "XML 格式描述的任务流程",
+            "2": "JSON 格式描述的若干节点（Node）",
+            "3": "YAML 格式的配置文件"
+          }
+        },
+        "q10": {
+          "question": "MaaFW 中 Task（任务）指的是什么？",
+          "category": "流程控制",
+          "options": {
+            "0": "单个 JSON 文件",
+            "1": "一个 pipeline 文件夹",
+            "2": "一次完整的应用启动过程",
+            "3": "若干 Node 按一定顺序连接的逻辑序列结构"
+          }
+        },
+        "q11": {
+          "question": "当一个节点的 next 列表中有多个子节点时，MaaFW 如何处理？",
+          "category": "流程控制",
+          "options": {
+            "0": "随机选择一个子节点执行",
+            "1": "同时并行识别所有子节点",
+            "2": "循环按顺序逐个识别，命中某一个后立即进入并向后执行子链",
+            "3": "等待所有子节点都识别成功后再执行"
+          }
+        },
+        "q12": {
+          "question": "在 next 列表中使用 [JumpBack] 属性的节点，被命中与成功执行后会发生什么？",
+          "category": "流程控制",
+          "options": {
+            "0": "任务直接终止",
+            "1": "立即返回父节点，不执行该节点的后续链",
+            "2": "尝试识别与执行其后续节点链，全部完成后再返回父节点继续识别",
+            "3": "跳转到 on_error 列表"
+          }
+        },
+        "q13": {
+          "question": "对于非入口节点，哪些情况下会进入此节点的 on_error 列表？",
+          "category": "流程控制",
+          "options": {
+            "0": "前一个节点尝试识别此节点的 recognition 未命中并超时",
+            "1": "此节点尝试识别自身 next 列表中节点的 recognition 时未命中并超时",
+            "2": "此节点的 action 执行失败",
+            "3": "此节点命中的 next 节点 action 执行失败"
+          }
+        },
+        "q14": {
+          "question": "对于入口节点（Entry），哪些情况下会进入其 on_error 列表？",
+          "category": "流程控制",
+          "options": {
+            "0": "任务开始时尝试识别入口节点自身的 recognition 时未命中并超时",
+            "1": "入口节点尝试识别自身 next 列表中节点的 recognition 时未命中并超时",
+            "2": "入口节点的 action 执行失败",
+            "3": "入口节点命中的 next 节点 action 执行失败"
+          }
+        },
+        "q15": {
+          "question": "以下哪些情况会导致 MaaFW 任务流程终止？",
+          "category": "PI",
+          "options": {
+            "0": "执行 action 后，当前节点的 next 列表为空，且非由 jumpback 进入此子链",
+            "1": "执行 action 后，当前节点的 next 列表识别超时，且未配置 on_error",
+            "2": "当前节点的 action 执行失败，且未配置 on_error",
+            "3": "当前节点执行 StopTask action 或直接调用 post_stop() 函数"
+          }
+        },
+        "q16": {
+          "question": "MaaFW 项目中，interface.json 的作用是什么？（MPE 只负责处理 Pipeline，不负责处理 interface）",
+          "category": "PI",
+          "options": {
+            "0": "定义 Pipeline 节点的识别算法",
+            "1": "声明项目结构，使通用 UI 能正确加载和运行项目",
+            "2": "配置 OCR 模型的参数",
+            "3": "存储用户的运行日志"
+          }
+        },
+        "q17": {
+          "question": "有关 interface.json 文件的填写方法（PI 协议）可以在 MaaFW 手册的 3.2 章节看到。",
+          "category": "工具与参考",
+          "options": {
+            "0": "正确",
+            "1": "错误"
+          }
+        },
+        "q18": {
+          "question": "以下哪个工具为 MaaFW 项目提供了 JSON 文件的内容检查功能？",
+          "category": "工具与参考",
+          "options": {
+            "0": "Maa Pipeline Editor 的 maa-support-extension 插件",
+            "1": "PyCharm 的 maa-support-extension 插件",
+            "2": "Visual Studio 的 maa-support-extension 插件",
+            "3": "Visual Studio Code 的 maa-support-extension 插件"
+          }
+        },
+        "q19": {
+          "question": "以下项目中哪个是在 MaaFW 手册中指定的最佳实践参考？",
+          "options": {
+            "0": "Maa",
+            "1": "M9A",
+            "2": "MPE",
+            "3": "MFAAvalonia"
+          }
+        }
+      },
+      "pool": {
+        "q0": {
+          "question": "节点的 next 列表识别超时后，会进入哪个列表？",
+          "category": "流程控制",
+          "options": {
+            "0": "next",
+            "1": "interrupt",
+            "2": "on_error",
+            "3": "retry"
+          }
+        },
+        "q1": {
+          "question": "修改节点的 timeout 字段不能解决当前节点 recognition 命中时间超时的问题。",
+          "category": "流程控制",
+          "options": {
+            "0": "正确",
+            "1": "错误"
+          }
+        },
+        "q2": {
+          "question": "对于某个节点的 on_error 列表，以下说法错误的是？",
+          "category": "流程控制",
+          "options": {
+            "0": "节点自身的 next 指向的节点识别超时会进入",
+            "1": "节点自身的 action 执行失败时会进入",
+            "2": "进入 on_error 列表后不会对列表内的节点进行识别",
+            "3": "节点自身的 recognition 未命中并超时不会进入"
+          }
+        },
+        "q3": {
+          "question": "只有在 action 执行失败时才会进入 on_error 列表。",
+          "category": "识别与资源",
+          "options": {
+            "0": "正确",
+            "1": "错误"
+          }
+        },
+        "q4": {
+          "question": "ROI（Region of Interest）是指定义图像识别边界的区域。",
+          "category": "识别与资源",
+          "options": {
+            "0": "正确",
+            "1": "错误"
+          }
+        },
+        "q5": {
+          "question": "目标图形在 ROI（Region of Interest）的范围外不会被识别到。",
+          "category": "MaaFW 概念",
+          "options": {
+            "0": "正确",
+            "1": "错误"
+          }
+        },
+        "q6": {
+          "question": "MaaFW 中，Entry 指的是什么？",
+          "category": "识别与资源",
+          "options": {
+            "0": "Pipeline 文件夹的入口文件",
+            "1": "一个 Task 中的第一个 Node",
+            "2": "应用程序的启动配置",
+            "3": "资源加载的起始路径"
+          }
+        },
+        "q7": {
+          "question": "TemplateMatch 使用的模板图片默认应缩放到什么分辨率？",
+          "category": "MaaFW 概念",
+          "options": {
+            "0": "480p",
+            "1": "720p",
+            "2": "1080p",
+            "3": "原始分辨率"
+          }
+        },
+        "q8": {
+          "question": "MaaFW 的 pipeline 文件夹会递归读取其中所有 JSON 文件，不限制文件数量和嵌套层级。",
+          "category": "识别与资源",
+          "options": {
+            "0": "正确",
+            "1": "错误"
+          }
+        },
+        "q9": {
+          "question": "在 recognition 使用 TemplateMatch 时需要了解 YOLO 算法的具体原理。",
+          "category": "识别与资源",
+          "options": {
+            "0": "正确",
+            "1": "错误"
+          }
+        },
+        "q10": {
+          "question": "OCR 模型文件夹中需要包含哪些文件？",
+          "category": "项目发布",
+          "options": {
+            "0": "model.bin、config.json",
+            "1": "det.onnx、rec.onnx、keys.txt",
+            "2": "ocr.pth、vocab.txt",
+            "3": "detect.tflite、recognize.tflite"
+          }
+        },
+        "q11": {
+          "question": "项目开发完成后社区推荐用哪种方法进行多平台打包？",
+          "options": {
+            "0": "自行在本地将资源和通用 UI 组装打包到一个压缩包中",
+            "1": "在自己的电脑上使用跨平台工具链编译通用 UI",
+            "2": "在自己的电脑上使用跨平台工具链编译 MaaFramework",
+            "3": "用 git 标记版本 tag 并推送到 github"
+          }
+        }
+      }
+    }
+  }
+}

@@ -15,12 +15,14 @@ import {
   QuestionCircleOutlined,
   InfoCircleOutlined,
 } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 import { createWorker, PSM, OEM, type Worker } from "tesseract.js";
 import { mfwProtocol } from "../../services/server";
 import {
   ScreenshotModalBase,
   type CanvasRenderProps,
 } from "./ScreenshotModalBase";
+import { getRoiModalStrings } from "./shared/roiModalStrings";
 import {
   resolveNegativeROI,
   type Rectangle,
@@ -58,6 +60,8 @@ type OCRMode = "native" | "frontend";
 
 export const OCRModal = memo(
   ({ open, onClose, onConfirm, initialROI }: OCRModalProps) => {
+    const { t } = useTranslation();
+    const roi = getRoiModalStrings(t, "ocrModal");
     const [screenshot, setScreenshot] = useState<string | null>(null);
     const [isOCRing, setIsOCRing] = useState(false);
     const [rectangle, setRectangle] = useState<Rectangle | null>(null);
@@ -98,7 +102,7 @@ export const OCRModal = memo(
 
     // 前端 OCR 识别
     const requestFrontendOCR = useCallback(
-      async (roi: Rectangle) => {
+      async (roiRect: Rectangle) => {
         if (!screenshot || !canvasRef.current) return;
 
         setIsOCRing(true);
@@ -109,21 +113,23 @@ export const OCRModal = memo(
           const tempCanvas = document.createElement("canvas");
           const tempCtx = tempCanvas.getContext("2d");
           if (!tempCtx || !imageRef.current) {
-            throw new Error("无法创建画布");
+            throw new Error(
+              t("ui.modals.ocrModal.canvasCreateFailed", "无法创建画布"),
+            );
           }
 
-          tempCanvas.width = Math.round(roi.width);
-          tempCanvas.height = Math.round(roi.height);
+          tempCanvas.width = Math.round(roiRect.width);
+          tempCanvas.height = Math.round(roiRect.height);
           tempCtx.drawImage(
             imageRef.current,
-            Math.round(roi.x),
-            Math.round(roi.y),
-            Math.round(roi.width),
-            Math.round(roi.height),
+            Math.round(roiRect.x),
+            Math.round(roiRect.y),
+            Math.round(roiRect.width),
+            Math.round(roiRect.height),
             0,
             0,
-            Math.round(roi.width),
-            Math.round(roi.height),
+            Math.round(roiRect.width),
+            Math.round(roiRect.height),
           );
 
           // 图像预处理
@@ -166,14 +172,14 @@ export const OCRModal = memo(
           let maxVariance = 0;
           let threshold = 0;
 
-          for (let t = 0; t < 256; t++) {
-            wB += histogram[t];
+          for (let tVal = 0; tVal < 256; tVal++) {
+            wB += histogram[tVal];
             if (wB === 0) continue;
 
             wF = total - wB;
             if (wF === 0) break;
 
-            sumB += t * histogram[t];
+            sumB += tVal * histogram[tVal];
 
             const mB = sumB / wB;
             const mF = (sum - sumB) / wF;
@@ -182,7 +188,7 @@ export const OCRModal = memo(
 
             if (variance > maxVariance) {
               maxVariance = variance;
-              threshold = t;
+              threshold = tVal;
             }
           }
 
@@ -247,23 +253,28 @@ export const OCRModal = memo(
           setOcrSuccess(processedText.length > 0 && confidence > 50);
         } catch (error) {
           message.error(
-            `前端OCR识别失败: ${
-              error instanceof Error ? error.message : "未知错误"
-            }`,
+            t("ui.modals.ocrModal.frontendOcrFailed", "前端OCR识别失败: {{message}}", {
+              message:
+                error instanceof Error
+                  ? error.message
+                  : t("ui.modals.ocrModal.unknownError", "未知错误"),
+            }),
           );
           setOcrSuccess(false);
         } finally {
           setIsOCRing(false);
         }
       },
-      [screenshot, tesseractWorker],
+      [screenshot, tesseractWorker, t],
     );
 
     // 请求后端 OCR 识别（基于当前固定底图，不再二次截取设备）
     const requestNativeOCR = useCallback(
-      (roi: Rectangle) => {
+      (roiRect: Rectangle) => {
         if (!screenshot) {
-          message.warning("请先截图或上传底图");
+          message.warning(
+            t("ui.modals.ocrModal.needScreenshot", "请先截图或上传底图"),
+          );
           return;
         }
         if (isOCRing) {
@@ -274,23 +285,23 @@ export const OCRModal = memo(
         mfwProtocol.requestOCR({
           base_image: screenshot,
           roi: [
-            Math.round(roi.x),
-            Math.round(roi.y),
-            Math.round(roi.width),
-            Math.round(roi.height),
+            Math.round(roiRect.x),
+            Math.round(roiRect.y),
+            Math.round(roiRect.width),
+            Math.round(roiRect.height),
           ],
         });
       },
-      [screenshot, isOCRing],
+      [screenshot, isOCRing, t],
     );
 
     // 根据模式选择 OCR 方法
     const requestOCR = useCallback(
-      (roi: Rectangle) => {
+      (roiRect: Rectangle) => {
         if (ocrMode === "frontend") {
-          requestFrontendOCR(roi);
+          requestFrontendOCR(roiRect);
         } else {
-          requestNativeOCR(roi);
+          requestNativeOCR(roiRect);
         }
       },
       [ocrMode, requestFrontendOCR, requestNativeOCR],
@@ -311,30 +322,48 @@ export const OCRModal = memo(
           }
         } else if (data.error) {
           // 构建详细的错误提示
-          let errorTitle = "OCR 识别失败";
+          let errorTitle = t("ui.modals.ocrModal.ocrFailed", "OCR 识别失败");
           let errorContent: React.ReactNode = data.error;
 
           // 处理特定的错误码
           if (data.code === "MFW_OCR_RESOURCE_NOT_CONFIGURED") {
-            errorContent =
-              "OCR 资源路径未配置，请运行 'mpelb config set-resource' 并按提示输入后重启服务";
+            errorContent = t(
+              "ui.modals.ocrModal.resourceNotConfigured",
+              "OCR 资源路径未配置，请运行 'mpelb config set-resource' 并按提示输入后重启服务",
+            );
           } else if (
             (data.code === "MFW_RESOURCE_LOAD_FAILED" ||
               data.code === "MFW_TASK_SUBMIT_FAILED") &&
             data.detail
           ) {
             // 资源加载失败或任务提交失败，展示详细信息
-            const reason = data.detail.reason || "未知原因";
+            const reason =
+              data.detail.reason ||
+              t("ui.modals.ocrModal.unknownReason", "未知原因");
             const resourceDir = data.detail.resource_dir || "";
             const suggestions: string[] = data.detail.suggestions || [];
 
-            errorTitle = "OCR 资源加载失败";
-            let content = `原因: ${reason}`;
+            errorTitle = t(
+              "ui.modals.ocrModal.resourceLoadFailed",
+              "OCR 资源加载失败",
+            );
+            let content = t(
+              "ui.modals.ocrModal.errorReason",
+              "原因: {{reason}}",
+              { reason },
+            );
             if (resourceDir) {
-              content += `\n\n资源目录:\n${resourceDir}`;
+              content += t(
+                "ui.modals.ocrModal.errorResourceDir",
+                "\n\n资源目录:\n{{dir}}",
+                { dir: resourceDir },
+              );
             }
             if (suggestions.length > 0) {
-              content += "\n\n排查建议:";
+              content += t(
+                "ui.modals.ocrModal.errorSuggestionsHeader",
+                "\n\n排查建议:",
+              );
               suggestions.forEach((s) => {
                 content += `\n• ${s}`;
               });
@@ -366,7 +395,7 @@ export const OCRModal = memo(
       return () => {
         unregisterOCR();
       };
-    }, [open]);
+    }, [open, t]);
 
     // 重绘 canvas
     const redrawCanvas = useCallback(() => {
@@ -555,11 +584,13 @@ export const OCRModal = memo(
     // 确定回填
     const handleConfirm = useCallback(() => {
       if (!ocrText) {
-        message.warning("请先框选区域进行识别");
+        message.warning(
+          t("ui.modals.ocrModal.selectRegionFirst", "请先框选区域进行识别"),
+        );
         return;
       }
 
-      const roi: [number, number, number, number] | undefined = rectangle
+      const roiValue: [number, number, number, number] | undefined = rectangle
         ? [
             Math.round(rectangle.x),
             Math.round(rectangle.y),
@@ -568,18 +599,20 @@ export const OCRModal = memo(
           ]
         : undefined;
 
-      onConfirm(ocrText, roi);
+      onConfirm(ocrText, roiValue);
       onClose();
-    }, [ocrText, rectangle, onConfirm, onClose]);
+    }, [ocrText, rectangle, onConfirm, onClose, t]);
 
     // 确定回填并同时填充 ROI
     const handleConfirmWithROI = useCallback(() => {
       if (!ocrText) {
-        message.warning("请先框选区域进行识别");
+        message.warning(
+          t("ui.modals.ocrModal.selectRegionFirst", "请先框选区域进行识别"),
+        );
         return;
       }
 
-      const roi: [number, number, number, number] | undefined = rectangle
+      const roiValue: [number, number, number, number] | undefined = rectangle
         ? [
             Math.round(rectangle.x),
             Math.round(rectangle.y),
@@ -588,9 +621,9 @@ export const OCRModal = memo(
           ]
         : undefined;
 
-      onConfirm(ocrText, roi, true);
+      onConfirm(ocrText, roiValue, true);
       onClose();
-    }, [ocrText, rectangle, onConfirm, onClose]);
+    }, [ocrText, rectangle, onConfirm, onClose, t]);
 
     // 重置状态
     const handleReset = useCallback(() => {
@@ -694,9 +727,9 @@ export const OCRModal = memo(
       <ScreenshotModalBase
         open={open}
         onClose={onClose}
-        title="OCR 文字识别预览"
+        title={t("ui.modals.ocrModal.title", "OCR 文字识别预览")}
         width={900}
-        confirmText="填充文本"
+        confirmText={t("ui.modals.ocrModal.confirmText", "填充文本")}
         confirmDisabled={!ocrText}
         onConfirm={handleConfirm}
         extraButtons={
@@ -706,7 +739,7 @@ export const OCRModal = memo(
             disabled={!ocrText || !rectangle}
             size="small"
           >
-            填充 ROI 与文本
+            {t("ui.modals.ocrModal.confirmWithRoi", "填充 ROI 与文本")}
           </Button>
         }
         renderCanvas={renderCanvas}
@@ -742,7 +775,7 @@ export const OCRModal = memo(
                 }}
               />
               <span style={{ fontSize: 14, fontWeight: 500, color: "#262626" }}>
-                识别模式
+                {t("ui.modals.ocrModal.modeSectionTitle", "识别模式")}
               </span>
             </div>
             <Radio.Group
@@ -756,41 +789,88 @@ export const OCRModal = memo(
                 title={
                   <div>
                     <div style={{ fontWeight: 500, marginBottom: 4 }}>
-                      前端OCR（Tesseract.js）
+                      {t(
+                        "ui.modals.ocrModal.frontendModeTitle",
+                        "前端OCR（Tesseract.js）",
+                      )}
                     </div>
-                    <div>• 基于当前已截取的图片识别</div>
-                    <div>• 支持100+多语言混合识别</div>
-                    <div>• 速度较快（初次需要加载模型）</div>
-                    <div style={{ color: "#52c41a", marginTop: 4 }}>
-                      ✓ 无需额外配置资源位置
+                    <div>
+                      {t(
+                        "ui.modals.ocrModal.frontendModeLine1",
+                        "• 基于当前已截取的图片识别",
+                      )}
+                    </div>
+                    <div>
+                      {t(
+                        "ui.modals.ocrModal.frontendModeLine2",
+                        "• 支持100+多语言混合识别",
+                      )}
+                    </div>
+                    <div>
+                      {t(
+                        "ui.modals.ocrModal.frontendModeLine3",
+                        "• 速度较快（初次需要加载模型）",
+                      )}
                     </div>
                     <div style={{ color: "#52c41a", marginTop: 4 }}>
-                      ✓ 不会因窗口更新导致内容不一致
+                      {t(
+                        "ui.modals.ocrModal.frontendModeBenefit1",
+                        "✓ 无需额外配置资源位置",
+                      )}
+                    </div>
+                    <div style={{ color: "#52c41a", marginTop: 4 }}>
+                      {t(
+                        "ui.modals.ocrModal.frontendModeBenefit2",
+                        "✓ 不会因窗口更新导致内容不一致",
+                      )}
                     </div>
                     <div style={{ color: "#faad14", marginTop: 4 }}>
-                      ⚠️ 识别信息可能与原生 OCR 不一致
+                      {t(
+                        "ui.modals.ocrModal.frontendModeWarning",
+                        "⚠️ 识别信息可能与原生 OCR 不一致",
+                      )}
                     </div>
                   </div>
                 }
               >
                 <Radio.Button value="frontend">
-                  前端 <QuestionCircleOutlined style={{ marginLeft: 4 }} />
+                  {t("ui.modals.ocrModal.frontendLabel", "前端")}{" "}
+                  <QuestionCircleOutlined style={{ marginLeft: 4 }} />
                 </Radio.Button>
               </Tooltip>
               <Tooltip
                 title={
                   <div>
                     <div style={{ fontWeight: 500, marginBottom: 4 }}>
-                      原生OCR（MaaFramework）
+                      {t(
+                        "ui.modals.ocrModal.nativeModeTitle",
+                        "原生OCR（MaaFramework）",
+                      )}
                     </div>
-                    <div>• 使用本地 OCR 模型识别</div>
-                    <div>• 基于当前固定底图识别，所见即所得</div>
-                    <div>• 速度较慢，无后处理</div>
+                    <div>
+                      {t(
+                        "ui.modals.ocrModal.nativeModeLine1",
+                        "• 使用本地 OCR 模型识别",
+                      )}
+                    </div>
+                    <div>
+                      {t(
+                        "ui.modals.ocrModal.nativeModeLine2",
+                        "• 基于当前固定底图识别，所见即所得",
+                      )}
+                    </div>
+                    <div>
+                      {t(
+                        "ui.modals.ocrModal.nativeModeLine3",
+                        "• 速度较慢，无后处理",
+                      )}
+                    </div>
                   </div>
                 }
               >
                 <Radio.Button value="native">
-                  原生 <QuestionCircleOutlined style={{ marginLeft: 4 }} />
+                  {t("ui.modals.ocrModal.nativeLabel", "原生")}{" "}
+                  <QuestionCircleOutlined style={{ marginLeft: 4 }} />
                 </Radio.Button>
               </Tooltip>
             </Radio.Group>
@@ -823,7 +903,7 @@ export const OCRModal = memo(
                 }}
               />
               <span style={{ fontSize: 14, fontWeight: 500, color: "#262626" }}>
-                ROI 坐标
+                {roi.roiCoords}
               </span>
               <span style={{ fontSize: 12, color: "#8c8c8c" }}>
                 [x, y, w, h]
@@ -832,12 +912,12 @@ export const OCRModal = memo(
                 title={
                   <div>
                     <div style={{ fontWeight: 500, marginBottom: 4 }}>
-                      负数坐标说明 (v5.6+)
+                      {roi.negativeCoordTitle}
                     </div>
-                    <div>• x 负数：从右边缘计算</div>
-                    <div>• y 负数：从下边缘计算</div>
-                    <div>• w/h 为 0：延伸至边缘</div>
-                    <div>• w/h 负数：取绝对值， 作为右下角</div>
+                    <div>{roi.negativeX}</div>
+                    <div>{roi.negativeY}</div>
+                    <div>{roi.zeroExtend}</div>
+                    <div>{roi.negativeAbs}</div>
                   </div>
                 }
               >
@@ -868,7 +948,7 @@ export const OCRModal = memo(
                   style={{ width: 80 }}
                   disabled={!screenshot}
                 />
-                <Tooltip title="负数从右边缘计算">
+                <Tooltip title={roi.tooltipNegativeX}>
                   <span
                     style={{
                       fontSize: 10,
@@ -876,7 +956,7 @@ export const OCRModal = memo(
                         rectangle && rectangle.x < 0 ? "#faad14" : "#bfbfbf",
                     }}
                   >
-                    {rectangle && rectangle.x < 0 ? "←右" : ""}
+                    {rectangle && rectangle.x < 0 ? roi.indicatorFromRight : ""}
                   </span>
                 </Tooltip>
                 <span
@@ -899,7 +979,7 @@ export const OCRModal = memo(
                   style={{ width: 80 }}
                   disabled={!screenshot}
                 />
-                <Tooltip title="负数从下边缘计算">
+                <Tooltip title={roi.tooltipNegativeY}>
                   <span
                     style={{
                       fontSize: 10,
@@ -907,7 +987,7 @@ export const OCRModal = memo(
                         rectangle && rectangle.y < 0 ? "#faad14" : "#bfbfbf",
                     }}
                   >
-                    {rectangle && rectangle.y < 0 ? "↑下" : ""}
+                    {rectangle && rectangle.y < 0 ? roi.indicatorFromBottom : ""}
                   </span>
                 </Tooltip>
               </Space>
@@ -932,7 +1012,7 @@ export const OCRModal = memo(
                   style={{ width: 80 }}
                   disabled={!screenshot}
                 />
-                <Tooltip title="0 表示延伸至右边缘，负数取绝对值并将 作为右下角">
+                <Tooltip title={roi.tooltipZeroExtendW}>
                   <span
                     style={{
                       fontSize: 10,
@@ -943,9 +1023,9 @@ export const OCRModal = memo(
                     }}
                   >
                     {rectangle && rectangle.width === 0
-                      ? "→边"
+                      ? roi.indicatorToEdge
                       : rectangle && rectangle.width < 0
-                        ? "←→"
+                        ? roi.indicatorBothH
                         : ""}
                   </span>
                 </Tooltip>
@@ -969,7 +1049,7 @@ export const OCRModal = memo(
                   style={{ width: 80 }}
                   disabled={!screenshot}
                 />
-                <Tooltip title="0 表示延伸至下边缘，负数取绝对值并将 作为右下角">
+                <Tooltip title={roi.tooltipZeroExtendH}>
                   <span
                     style={{
                       fontSize: 10,
@@ -980,9 +1060,9 @@ export const OCRModal = memo(
                     }}
                   >
                     {rectangle && rectangle.height === 0
-                      ? "↓边"
+                      ? roi.indicatorToBottomEdge
                       : rectangle && rectangle.height < 0
-                        ? "↑↓"
+                        ? roi.indicatorBothV
                         : ""}
                   </span>
                 </Tooltip>
@@ -1025,8 +1105,10 @@ export const OCRModal = memo(
                                 marginBottom: 4,
                               }}
                             >
-                              <span style={{ color: "#1890ff" }}>左上: </span>[
-                              {resolved.split.topLeft.x},{" "}
+                              <span style={{ color: "#1890ff" }}>
+                                {roi.splitTopLeft}
+                              </span>
+                              [{resolved.split.topLeft.x},{" "}
                               {resolved.split.topLeft.y},{" "}
                               {resolved.split.topLeft.width},{" "}
                               {resolved.split.topLeft.height}]
@@ -1034,8 +1116,10 @@ export const OCRModal = memo(
                           )}
                           {resolved.split.bottomRight && (
                             <div style={{ fontSize: 12, color: "#262626" }}>
-                              <span style={{ color: "#1890ff" }}>右下: </span>[
-                              {resolved.split.bottomRight.x},{" "}
+                              <span style={{ color: "#1890ff" }}>
+                                {roi.splitBottomRight}
+                              </span>
+                              [{resolved.split.bottomRight.x},{" "}
                               {resolved.split.bottomRight.y},{" "}
                               {resolved.split.bottomRight.width},{" "}
                               {resolved.split.bottomRight.height}]
@@ -1081,24 +1165,31 @@ export const OCRModal = memo(
                 <span
                   style={{ fontSize: 13, fontWeight: 500, color: "#262626" }}
                 >
-                  识别结果
+                  {t("ui.modals.ocrModal.resultSectionTitle", "识别结果")}
                 </span>
                 {isOCRing && (
                   <span style={{ fontSize: 11, color: "#1890ff" }}>
-                    识别中...
+                    {t("ui.modals.ocrModal.recognizing", "识别中...")}
                     {isLoadingModel &&
                       ocrMode === "frontend" &&
-                      "（首次加载模型中）"}
+                      t(
+                        "ui.modals.ocrModal.loadingModel",
+                        "（首次加载模型中）",
+                      )}
                   </span>
                 )}
                 {!isOCRing && ocrSuccess === true && (
                   <span style={{ fontSize: 11, color: "#52c41a" }}>
-                    <CheckCircleOutlined /> 识别成功
+                    <CheckCircleOutlined />{" "}
+                    {t("ui.modals.ocrModal.recognizeSuccess", "识别成功")}
                   </span>
                 )}
                 {!isOCRing && ocrSuccess === false && ocrText === "" && (
                   <span style={{ fontSize: 11, color: "#faad14" }}>
-                    未检测到文字内容
+                    {t(
+                      "ui.modals.ocrModal.noTextDetected",
+                      "未检测到文字内容",
+                    )}
                   </span>
                 )}
               </div>
@@ -1111,7 +1202,7 @@ export const OCRModal = memo(
                 }}
                 disabled={!ocrText}
               >
-                清空
+                {t("ui.modals.ocrModal.clear", "清空")}
               </Button>
             </div>
             <TextArea
@@ -1120,7 +1211,10 @@ export const OCRModal = memo(
                 setOcrText(e.target.value);
                 if (ocrSuccess !== null) setOcrSuccess(null);
               }}
-              placeholder="在截图上框选区域后，系统将自动识别文字"
+              placeholder={t(
+                "ui.modals.ocrModal.resultPlaceholder",
+                "在截图上框选区域后，系统将自动识别文字",
+              )}
               rows={4}
               style={{ resize: "none" }}
               disabled={isOCRing}

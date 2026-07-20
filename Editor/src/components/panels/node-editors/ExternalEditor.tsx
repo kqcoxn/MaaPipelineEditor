@@ -1,5 +1,6 @@
 import style from "../../../styles/panels/FieldPanel.module.less";
 import { memo, useMemo, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Popover, AutoComplete } from "antd";
 import classNames from "classnames";
 import { useFlowStore, type ExternalNodeType } from "../../../stores/flow";
@@ -7,6 +8,7 @@ import { crossFileService } from "../../../services/crossFileService";
 
 export const ExternalEditor = memo(
   ({ currentNode }: { currentNode: ExternalNodeType }) => {
+    const { t } = useTranslation();
     const setNodeData = useFlowStore((state) => state.setNodeData);
     const [searchValue, setSearchValue] = useState("");
 
@@ -66,7 +68,10 @@ export const ExternalEditor = memo(
           <Popover
             placement="left"
             title={"key"}
-            content={"节点名，转录时不会添加 prefix 前缀"}
+            content={t(
+              "ui.panels.nodeEditors.external.keyTip",
+              "节点名，转录时不会添加 prefix 前缀",
+            )}
           >
             <div
               className={classNames([style.key, style["head-key"]])}
@@ -77,7 +82,10 @@ export const ExternalEditor = memo(
           </Popover>
           <div className={style.value}>
             <AutoComplete
-              placeholder="节点名 (转录时不会添加前缀)"
+              placeholder={t(
+                "ui.panels.nodeEditors.external.placeholder",
+                "节点名 (转录时不会添加前缀)",
+              )}
               value={currentLabel}
               options={renderOptions}
               onChange={onLabelChange}

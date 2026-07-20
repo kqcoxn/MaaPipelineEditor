@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { message } from "antd";
+import uiT from "../i18n/translate";
 import { useFlowStore } from "../stores/flow";
 
 /**
@@ -94,9 +95,13 @@ function handleUndo(event: KeyboardEvent): boolean {
   event.stopImmediatePropagation();
 
   if (useFlowStore.getState().undo()) {
-    message.success("撤销成功");
+    message.success(
+      uiT("ui.hooks.globalShortcuts.undoSuccess", "撤销成功"),
+    );
   } else {
-    message.warning("真的没有了😭");
+    message.warning(
+      uiT("ui.hooks.globalShortcuts.nothingLeft", "真的没有了😭"),
+    );
   }
 
   return true;
@@ -129,9 +134,13 @@ function handleRedo(event: KeyboardEvent): boolean {
   event.stopImmediatePropagation();
 
   if (useFlowStore.getState().redo()) {
-    message.success("重做成功");
+    message.success(
+      uiT("ui.hooks.globalShortcuts.redoSuccess", "重做成功"),
+    );
   } else {
-    message.warning("真的没有了😭");
+    message.warning(
+      uiT("ui.hooks.globalShortcuts.nothingLeft", "真的没有了😭"),
+    );
   }
 
   return true;

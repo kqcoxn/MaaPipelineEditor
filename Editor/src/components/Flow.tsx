@@ -49,6 +49,7 @@ import {
 } from "../core/snapUtils";
 import { useEmbedMode } from "../hooks/useEmbedMode";
 import { sendToParent } from "../utils/embedBridge";
+import { useTranslation } from "react-i18next";
 
 /**工作流 */
 // 按键监听
@@ -238,6 +239,7 @@ const NodeAddPanelController = memo(
 );
 
 function MainFlow() {
+  const { t } = useTranslation();
   const {
     nodes,
     edges,
@@ -314,7 +316,10 @@ function MainFlow() {
         if (blocked.length > 0) {
           sendToParent("mpe:error", {
             code: "capability_denied",
-            message: "当前为只读模式，禁止修改节点",
+            message: t(
+              "ui.flow.readOnly.noNodeModify",
+              "当前为只读模式，禁止修改节点",
+            ),
           });
           // 仅允许 select 类型变更通过
           const allowed = changes.filter((c) => c.type === "select");
@@ -324,7 +329,7 @@ function MainFlow() {
       }
       updateNodes(changes);
     },
-    [updateNodes, readOnly],
+    [updateNodes, readOnly, t],
   );
   const onEdgesChange = useCallback(
     (changes: EdgeChange[]) => {
@@ -335,7 +340,10 @@ function MainFlow() {
         if (blocked.length > 0) {
           sendToParent("mpe:error", {
             code: "capability_denied",
-            message: "当前为只读模式，禁止修改边",
+            message: t(
+              "ui.flow.readOnly.noEdgeModify",
+              "当前为只读模式，禁止修改边",
+            ),
           });
           const allowed = changes.filter((c) => c.type === "select");
           if (allowed.length > 0) updateEdges(allowed);
@@ -344,21 +352,24 @@ function MainFlow() {
       }
       updateEdges(changes);
     },
-    [updateEdges, readOnly],
+    [updateEdges, readOnly, t],
   );
   const onConnect = useCallback(
     (co: Connection) => {
       if (readOnly) {
         sendToParent("mpe:error", {
           code: "capability_denied",
-          message: "当前为只读模式，禁止添加连接",
+          message: t(
+            "ui.flow.readOnly.noConnect",
+            "当前为只读模式，禁止添加连接",
+          ),
         });
         return;
       }
       connectionCompletedRef.current = true;
       addEdge(co);
     },
-    [addEdge, readOnly],
+    [addEdge, readOnly, t],
   );
   const onConnectStart = useCallback(
     (_event: MouseEvent | TouchEvent, params: OnConnectStartParams) => {

@@ -1,6 +1,7 @@
 import { Dropdown } from "antd";
 import type { MenuProps } from "antd";
 import { memo, useMemo, useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { CheckOutlined } from "@ant-design/icons";
 import IconFont from "../../../iconfonts";
 import type { IconNames } from "../../../iconfonts";
@@ -27,6 +28,7 @@ interface NodeContextMenuProps {
 /**节点右键菜单组件 */
 export const NodeContextMenu = memo<NodeContextMenuProps>(
   ({ node, children, open, onOpenChange }) => {
+    const { t } = useTranslation();
     // JSON 编辑器状态
     const [jsonEditorOpen, setJsonEditorOpen] = useState(false);
     const debugCapabilities = useDebugSessionStore(
@@ -59,11 +61,14 @@ export const NodeContextMenu = memo<NodeContextMenuProps>(
         saveHistory(0, {
           category: "node",
           action: "update",
-          description: "JSON 编辑节点数据",
+          description: t(
+            "ui.flow.nodeContextMenu.editJsonHistory",
+            "JSON 编辑节点数据",
+          ),
           targetIds: [node.id],
         });
       },
-      [node]
+      [node, t],
     );
 
     // 监听编辑 JSON 事件

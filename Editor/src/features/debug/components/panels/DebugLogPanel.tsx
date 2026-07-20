@@ -6,6 +6,7 @@ import {
   ReloadOutlined,
 } from "@ant-design/icons";
 import type { CSSProperties } from "react";
+import { useTranslation } from "react-i18next";
 import { DebugSection } from "../DebugSection";
 import { mfwProtocol } from "../../../../services/server";
 import { useWSStore } from "../../../../stores/wsStore";
@@ -62,13 +63,16 @@ export function DebugLogPanel({
   controller: DebugModalController;
 }) {
   void controller;
+  const { t } = useTranslation();
   const connected = useWSStore((state) => state.connected);
   const [logState, setLogState] = useState<MaafwLogState>(INITIAL_STATE);
   const viewerRef = useRef<HTMLPreElement>(null);
 
   const refreshLog = useCallback(() => {
     if (!connected) {
-      message.warning("未连接本地服务，无法读取 maafw.log");
+      message.warning(
+        t("debug.log.notConnected", "未连接本地服务，无法读取 maafw.log"),
+      );
       return;
     }
     setLogState((prev) => ({ ...prev, status: "loading" }));
@@ -77,10 +81,10 @@ export function DebugLogPanel({
       setLogState((prev) => ({
         ...prev,
         status: "error",
-        message: "发送读取 maafw.log 请求失败",
+        message: t("debug.log.readRequestFailed", "发送读取 maafw.log 请求失败"),
       }));
     }
-  }, [connected]);
+  }, [connected, t]);
 
   useEffect(() => {
     const unsubscribeContent = mfwProtocol.onMaafwLogContent((data) => {
@@ -91,7 +95,7 @@ export function DebugLogPanel({
           exists: data.exists ?? false,
           dir: data.dir,
           path: data.path,
-          message: data.message ?? "读取 maafw.log 失败",
+          message: data.message ?? t("debug.log.readFailed", "读取 maafw.log 失败"),
         });
         return;
       }
@@ -118,7 +122,7 @@ export function DebugLogPanel({
       unsubscribeContent();
       unsubscribeOpened();
     };
-  }, []);
+  }, [t]);
 
   // 面板首次挂载且已连接时自动读取
   useEffect(() => {
@@ -136,11 +140,13 @@ export function DebugLogPanel({
 
   const openDir = () => {
     if (!connected) {
-      message.warning("未连接本地服务");
+      message.warning(t("debug.log.notConnectedShort", "未连接本地服务"));
       return;
     }
     if (!mfwProtocol.requestOpenMaafwLogDir()) {
-      message.error("发送打开 maafw.log 目录请求失败");
+      message.error(
+        t("debug.log.openDirFailed", "发送打开 maafw.log 目录请求失败"),
+      );
     }
   };
 
@@ -150,11 +156,11 @@ export function DebugLogPanel({
         <Alert
           type="error"
           showIcon
-          title="读取 maafw.log 失败"
+          title={t("debug.log.readFailed", "读取 maafw.log 失败")}
           description={logState.message}
         />
       )}
-      <DebugSection title="调试日志（maafw.log）">
+      <DebugSection title={t("debug.log.title", "调试日志（maafw.log）")}>
         <Space orientation="vertical" size={10} style={{ width: "100%" }}>
           <Space wrap>
             <Button
@@ -162,30 +168,42 @@ export function DebugLogPanel({
               loading={logState.status === "loading"}
               onClick={refreshLog}
             >
-              刷新
+              {t("debug.log.refresh", "刷新")}
             </Button>
             <Button icon={<FolderOpenOutlined />} onClick={openDir}>
-              打开所在文件夹
+              {t("debug.log.openFolder", "打开所在文件夹")}
             </Button>
             {logState.status === "loaded" && logState.content && (
               <Button
                 icon={<CopyOutlined />}
                 onClick={() => {
                   navigator.clipboard.writeText(logState.content).then(
-                    () => message.success("已复制日志全文"),
-                    () => message.error("复制失败"),
+                    () =>
+                      message.success(
+                        t("debug.log.logCopied", "已复制日志全文"),
+                      ),
+                    () =>
+                      message.error(t("debug.common.copyFailed", "复制失败")),
                   );
                 }}
               >
-                复制全文
+                {t("debug.log.copyAll", "复制全文")}
               </Button>
             )}
-            {logState.truncated && <Tag color="orange">仅显示末尾片段</Tag>}
+            {logState.truncated && (
+              <Tag color="orange">
+                {t("debug.log.truncated", "仅显示末尾片段")}
+              </Tag>
+            )}
             {logState.size !== undefined && (
               <Tag>{formatSize(logState.size)}</Tag>
             )}
             {logState.modTime && (
-              <Text type="secondary">更新于 {logState.modTime}</Text>
+              <Text type="secondary">
+                {t("debug.log.updatedAt", "更新于 {{time}}", {
+                  time: logState.modTime,
+                })}
+              </Text>
             )}
           </Space>
           {logState.path && (
@@ -198,11 +216,18 @@ export function DebugLogPanel({
               {logState.content}
             </pre>
           ) : logState.status === "loaded" ? (
-            <Empty description="maafw.log 内容为空" />
+            <Empty description={t("debug.log.empty", "maafw.log 内容为空")} />
           ) : logState.status === "error" && !logState.exists ? (
-            <Empty description="maafw.log 不存在，执行一次调试任务后再试" />
+            <Empty
+              description={t(
+                "debug.log.notExists",
+                "maafw.log 不存在，执行一次调试任务后再试",
+              )}
+            />
           ) : (
-            <Empty description="点击刷新读取 maafw.log" />
+            <Empty
+              description={t("debug.log.clickRefresh", "点击刷新读取 maafw.log")}
+            />
           )}
         </Space>
       </DebugSection>

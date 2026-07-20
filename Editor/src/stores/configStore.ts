@@ -30,6 +30,10 @@ export type ConfigCategory =
 /**字段面板模式 */
 export type FieldPanelMode = "fixed" | "draggable" | "inline";
 
+/**界面语言（实际生效） */
+export type { UiLocale, UiLocaleSetting } from "../i18n/localeUtils";
+import type { UiLocaleSetting } from "../i18n/localeUtils";
+
 /**配置分类映射 - 用于确定哪些配置属于哪个类别 */
 export const configCategoryMap: Record<string, ConfigCategory> = {
   // 导出配置
@@ -66,6 +70,7 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   enableLiveScreen: "component",
   liveScreenRefreshRate: "component",
   historyLimit: "component",
+  uiLocale: "component",
   screenshotResolutionMode: "local-service",
   screenshotResolutionValue: "local-service",
   // 本地服务配置
@@ -217,6 +222,8 @@ const defaultConfigs = {
   screenshotResolutionMode: "default" as ScreenshotResolutionMode,
   // 截图分辨率值（短边/长边长度）
   screenshotResolutionValue: 720,
+  // 界面语言
+  uiLocale: "auto" as UiLocaleSetting,
 };
 
 /**配置默认值（只读），用于重置和对比 */
@@ -285,6 +292,8 @@ export type ConfigState = {
     screenshotResolutionMode: ScreenshotResolutionMode;
     // 截图分辨率值（短边/长边长度）
     screenshotResolutionValue: number;
+    // 界面语言
+    uiLocale: UiLocaleSetting;
     // 字段排序配置
     fieldSortConfig?: FieldSortConfig;
   };
@@ -359,6 +368,10 @@ export const useConfigStore = create<ConfigState>()((set, get) => ({
         configuredKeys: new Set(state.configuredKeys),
       };
     });
+
+    if (key === "uiLocale") {
+      saveConfigCache();
+    }
   },
   replaceConfig(configs, configuredKeys) {
     set((state) => {

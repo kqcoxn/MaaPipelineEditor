@@ -1,0 +1,1363 @@
+{
+  "ui": {
+    "app": {
+      "configCacheSaveFailed": "[App] Failed to save config cache:",
+      "importRequest": {
+        "dirs": {
+          "desktop": "Desktop",
+          "documents": "Documents",
+          "downloads": "Downloads",
+          "music": "Music",
+          "pictures": "Pictures",
+          "videos": "Videos"
+        }
+      }
+    },
+    "flow": {
+      "readOnly": {
+        "noNodeModify": "Read-only mode: node editing is disabled",
+        "noEdgeModify": "Read-only mode: edge editing is disabled",
+        "noConnect": "Read-only mode: adding connections is disabled"
+      },
+      "edges": {
+        "controlPointHint": "Drag to adjust the path; double-click to reset"
+      },
+      "selectionContextMenu": {
+        "noSelection": "No node selected",
+        "duplicateCreated": "Duplicate created",
+        "partialExportSuccess": "Selected content exported to clipboard",
+        "needTwoNodes": "Select at least two nodes",
+        "noGroupableNodes": "No groupable nodes selected",
+        "groupCreated": "Group created",
+        "nodesNotInGroup": "Selected nodes are not in a group",
+        "detachedFromGroup": "Nodes removed from group",
+        "noGroupSelected": "No group selected",
+        "groupsUngrouped": "Selected groups ungrouped",
+        "noResettableEdges": "No restorable edges selected",
+        "edgeControlsReset": "Selected edge paths restored",
+        "copy": "Copy",
+        "duplicate": "Duplicate",
+        "partialExport": "Partial export",
+        "align": "Align",
+        "alignLeft": "Align left",
+        "alignCenter": "Align center horizontally",
+        "alignRight": "Align right",
+        "alignTop": "Align top",
+        "alignMiddle": "Align center vertically",
+        "alignBottom": "Align bottom",
+        "spacing": "Spacing",
+        "decreaseHorizontalSpacing": "Decrease horizontal spacing",
+        "increaseHorizontalSpacing": "Increase horizontal spacing",
+        "decreaseVerticalSpacing": "Decrease vertical spacing",
+        "increaseVerticalSpacing": "Increase vertical spacing",
+        "autoLayout": "Partial auto layout",
+        "resetEdgeControls": "Reset edge paths",
+        "group": "Group",
+        "createGroup": "Create group",
+        "detachFromGroup": "Remove from current group",
+        "ungroup": "Ungroup selected",
+        "delete": "Delete"
+      },
+      "anchorNode": {
+        "replicaCountTitle": "This redirect node has {{count}} visual replicas",
+        "referenceNodesTitle": "Nodes referencing this anchor ({{count}})",
+        "noReferences": "No references",
+        "referenceCountTitle": "{{count}} nodes reference this anchor",
+        "navigateSuccess": "Jumped to {{path}} and located node: {{label}}",
+        "navigateFailed": "Navigation failed: {{label}}"
+      },
+      "constants": {
+        "handleDirection": {
+          "leftRight": "Left-right",
+          "rightLeft": "Right-left",
+          "topBottom": "Top-bottom",
+          "bottomTop": "Bottom-top"
+        }
+      },
+      "externalNode": {
+        "replicaCountTitle": "This external reference has {{count}} visual replicas"
+      },
+      "groupNode": {
+        "editTitleHistory": "Edit group title",
+        "namePlaceholder": "Group name"
+      },
+      "nodeContextMenu": {
+        "pipelineTemplateOnly": "Only Pipeline nodes can be saved as templates",
+        "setHandleDirectionHistory": "Set handle position",
+        "handleDirectionSet": "Handle position set to \"{{label}}\"",
+        "changeGroupColorHistory": "Change group color",
+        "changeStickerColorHistory": "Change sticky note color",
+        "stickerContentCopied": "Sticky note content copied to clipboard",
+        "stickerContentEmpty": "Sticky note content is empty",
+        "autoStartAfterPreflight": "Debug will start automatically after resource checks complete.",
+        "checkingResourcesAutoStart": "Checking resource paths; debug will start automatically when checks complete.",
+        "configureResourcePathsFirst": "Configure resource paths first, or wait for LocalBridge to scan resource bundles",
+        "runModeUnsupported": "LocalBridge does not support debug mode yet: {{mode}}",
+        "resourcePreflightFailedAutoStart": "Resource load check failed; cannot start debug automatically.",
+        "resourcePreflightFailedTitle": "Resource load check failed",
+        "resourcePreflightFailedHint": "Open the Resource Health panel for detailed diagnostics and fixes.",
+        "goToResourceHealth": "Go to Resource Health",
+        "resourcePreflightTimeout": "Resource path check timed out; cannot start debug automatically.",
+        "setDebugEntrySuccess": "Set as debug entry node",
+        "sendPreflightRequestFailedDetail": "Failed to send resource load check request.",
+        "sendPreflightRequestFailed": "Failed to send resource load check request",
+        "saveOpenFilesFailed": "Failed to save open files before debug: {{files}}",
+        "resolveRunNameFailed": "Unable to resolve node runtime name",
+        "sendDebugStartFailed": "Failed to send debug start request",
+        "buildDebugRequestFailed": "Failed to build debug request",
+        "color": {
+          "blue": "Blue",
+          "green": "Green",
+          "purple": "Purple",
+          "orange": "Orange",
+          "gray": "Gray",
+          "yellow": "Yellow",
+          "pink": "Pink"
+        },
+        "groupColor": "Group color",
+        "ungroup": "Ungroup",
+        "deleteGroup": "Delete group",
+        "setDebugEntry": "Set as entry node",
+        "runFromNode": "Run from this node",
+        "runFromNodeUnavailable": "LocalBridge does not expose run-from-node capability",
+        "singleNodeRun": "Single-node run",
+        "singleNodeRunUnavailable": "LocalBridge does not expose single-node-run capability",
+        "recognitionOnly": "Recognition only",
+        "recognitionOnlyUnavailable": "LocalBridge does not expose recognition-only capability",
+        "actionOnly": "Action only",
+        "actionOnlyUnavailable": "LocalBridge does not expose action-only capability",
+        "copyNodeName": "Copy node name",
+        "editJson": "Edit JSON",
+        "copyStickerContent": "Copy sticky note content",
+        "copyRecoJson": "Copy Reco JSON",
+        "saveAsTemplate": "Save as template",
+        "stickerColor": "Sticky note color",
+        "handleDirection": "Handle position",
+        "delete": "Delete",
+        "editJsonHistory": "Edit node data as JSON"
+      },
+      "stickerNode": {
+        "editContentHistory": "Edit sticky note content",
+        "titlePlaceholder": "Sticky note title",
+        "contentPlaceholder": "Double-click to edit content..."
+      },
+      "pipelineNode": {
+        "execute": "Execute",
+        "regenerate": "Regenerate",
+        "confirm": "Confirm",
+        "pipelineNodeTitle": "Pipeline node",
+        "recognitionSection": "Recognition - {{type}}",
+        "actionSection": "Action - {{type}}",
+        "otherSection": "Other"
+      },
+      "nodeOperations": {
+        "saveAsTemplateTitle": "Save as template",
+        "saveAsTemplateConfirm": "Save the current node as a custom template?",
+        "templateNameLabel": "Template name",
+        "templateNamePlaceholder": "Enter a template name",
+        "nodeTypePipeline": "Node type: Pipeline",
+        "saveAsTemplateHint": "Tip: after saving, choose it from the right-click template list",
+        "save": "Save",
+        "cancel": "Cancel",
+        "templateNameEmpty": "Template name cannot be empty",
+        "templateNameTooLong": "Template name cannot exceed 30 characters",
+        "templateExistsTitle": "Template name already exists",
+        "templateExistsContent": "Template \"{{name}}\" already exists. Overwrite?",
+        "overwrite": "Overwrite",
+        "reenter": "Re-enter",
+        "templateUpdated": "Template updated",
+        "templateSaved": "Template saved",
+        "copyRecoJsonPipelineOnly": "Only Pipeline nodes support copying Reco JSON",
+        "recoJsonCopied": "Reco JSON copied to clipboard",
+        "copyRecoJsonFailed": "Copy failed; check node configuration"
+      }
+    },
+    "header": {
+      "connection": {
+        "embedMode": "EmbedBridge embed mode",
+        "disconnectTooltip": "Click to disconnect from local service",
+        "connecting": "Connecting to service...",
+        "connectingTooltip": "Connecting to local service",
+        "disconnected": "Local service not connected",
+        "connectTooltip": "Click to connect to local service"
+      },
+      "device": {
+        "unknown": "Unknown device",
+        "manageTooltip": "Click to manage device connections",
+        "configTooltip": "Device connection settings",
+        "connect": "Connect device"
+      },
+      "version": {
+        "stable": "Stable",
+        "preview": "Preview"
+      },
+      "theme": {
+        "toLight": "Switch to light mode",
+        "toDark": "Switch to dark mode"
+      },
+      "narrowScreen": {
+        "title": "Page width too narrow",
+        "description": "The page is too narrow and may affect usability. Use a larger screen or resize the browser window."
+      },
+      "wiki": {
+        "fileViewportPath": "10.工作流面板/50.文件与视口.html",
+        "fileViewportTitle": "Files & viewport",
+        "fileViewportDesc": "File management and viewport controls"
+      },
+      "update": {
+        "tooltipLine1": "New version available: {{version}}. Click to download",
+        "tooltipLine2": "When using online, press Ctrl+R to refresh the page cache",
+        "available": "Update available"
+      },
+      "links": {
+        "pipelineProtocol": "Pipeline protocol",
+        "updateLog": "Changelog"
+      }
+    },
+    "jsonViewer": {
+      "refresh": "Refresh",
+      "close": "Close",
+      "searchPlaceholder": "Search keys or values...",
+      "prev": "Previous",
+      "next": "Next"
+    },
+    "hooks": {
+      "globalShortcuts": {
+        "undoSuccess": "Undo successful",
+        "nothingLeft": "Nothing left 😭",
+        "redoSuccess": "Redo successful"
+      },
+      "panelOccupancy": {
+        "unregisteredPanel": "[usePanelOccupancy] Unregistered panel: {{panelId}}"
+      }
+    },
+    "services": {
+      "crossFile": {
+        "emptyNodeName": "Node name is empty",
+        "nodeNotFound": "Node not found: {{name}}",
+        "locatedNode": "Located node: {{label}}",
+        "navigatedToNode": "Jumped to {{path}} and located node: {{label}}",
+        "navigateFailed": "Navigation failed",
+        "currentFile": "Current file"
+      },
+      "server": {
+        "connected": "Connected to local service",
+        "protocolVersionMismatch": "Protocol version mismatch. Frontend requires: {{required}}; local service protocol: {{current}}. Update as prompted by the backend.",
+        "connectingInProgress": "Connecting to local service, please wait...",
+        "connectionTimeoutTitle": "Connection timed out",
+        "checkLocalService": "Check whether the local service is running and the port is available",
+        "viewDocs": "View docs",
+        "connectionFailedTitle": "Connection failed",
+        "disconnected": "Local service disconnected",
+        "localConnectionFailed": "Local service connection failed"
+      },
+      "common": {
+        "unknownError": "Unknown error"
+      },
+      "ai": {
+        "wsNotConnected": "WebSocket not connected",
+        "proxyTimeout": "Proxy request timed out (60s)",
+        "proxySendFailed": "Proxy request failed; local service not connected",
+        "streamProxyTimeout": "Streaming proxy request timed out (120s)",
+        "streamProxySendFailed": "Streaming proxy request failed"
+      },
+      "config": {
+        "getFailed": "Failed to fetch config",
+        "dataProcessFailed": "Failed to process config data",
+        "reloadFailed": "Reload failed",
+        "reloadSuccess": "Config reload complete",
+        "reloadResponseFailed": "Failed to process reload response"
+      },
+      "error": {
+        "fileNotFound": "File does not exist or was deleted",
+        "fileReadError": "Failed to read file; check permissions",
+        "fileWriteError": "Failed to save file: {{message}}",
+        "fileNameConflict": "File name already exists; use a different name",
+        "invalidJson": "Invalid JSON: {{message}}",
+        "permissionDenied": "Permission denied for this file",
+        "mfwNotInitialized": "MaaFramework not initialized: {{detail}}",
+        "mfwControllerCreateFail": "Failed to create controller: {{message}}",
+        "mfwControllerNotFound": "Controller not found",
+        "mfwControllerConnectFail": "Controller connection failed: {{message}}",
+        "mfwControllerNotConnected": "Controller not connected",
+        "mfwDeviceNotFound": "Failed to refresh device list: {{message}}",
+        "mfwOcrResourceNotConfigured": "OCR resources not configured: {{detail}}",
+        "ocrUnknownReason": "Unknown reason",
+        "ocrReason": "Reason: {{reason}}",
+        "ocrResourceDir": "Resource directory:\n{{dir}}",
+        "ocrSuggestions": "Troubleshooting suggestions:",
+        "ocrResourceLoadFailed": "Failed to load OCR resources",
+        "ocrError": "OCR error"
+      },
+      "file": {
+        "listRefreshSuccess": "File list refreshed: {{count}} files",
+        "listUpdateFailed": "Failed to update file list",
+        "invalidFileData": "Received invalid file data",
+        "openedWithConfig": "Opened file: {{name}} (with config)",
+        "opened": "Opened file: {{name}}",
+        "openFailed": "Failed to open file",
+        "importFailed": "Failed to import file",
+        "deleted": "File \"{{name}}\" was deleted",
+        "saved": "File saved: {{name}}",
+        "saveFailed": "Failed to save file",
+        "savedSeparated": "File saved: {{pipeline}} + {{config}}",
+        "created": "File created: {{name}}",
+        "createFailed": "Failed to create file",
+        "reloadRequestFailed": "Failed to send reload request",
+        "autoReloaded": "File \"{{name}}\" reloaded automatically",
+        "autoReloadEnabled": "Auto-reload enabled; future file changes will apply automatically",
+        "externalModifiedSingle": "File \"{{name}}\" was modified externally. Choose how to proceed:",
+        "externalModifiedMultiple": "{{names}} and {{count}} other files",
+        "externalModifiedPrompt": "{{names}} was modified externally. Choose how to proceed:",
+        "externalModifiedTitle": "File modified externally",
+        "dismissLater": "Handle later",
+        "autoReload": "Auto-reload",
+        "reload": "Reload"
+      },
+      "mfw": {
+        "localBridgeDisconnected": "LocalBridge disconnected",
+        "protocolUnregistered": "MaaFramework protocol unregistered",
+        "deviceListUpdateFailed": "Failed to update device list",
+        "windowListUpdateFailed": "Failed to update window list",
+        "controllerConnected": "Controller connected",
+        "controllerConnectFailed": "Controller connection failed",
+        "controllerDisconnected": "Controller disconnected"
+      },
+      "screencap": {
+        "localBridgeNotConnected": "LocalBridge not connected",
+        "requestCancelled": "Screenshot request cancelled",
+        "requestTimeout": "Screenshot request timed out",
+        "requestSendFailed": "Failed to send screenshot request"
+      }
+    },
+    "stores": {
+      "customTemplate": {
+        "versionMismatch": "Template data version mismatch: {{stored}} != {{expected}}; attempting migration or reset",
+        "loadError": "Failed to load custom templates:",
+        "loadFailed": "Failed to load custom templates; cleared corrupted data",
+        "maxReached": "Custom template limit reached ({{max}}). Delete old templates first.",
+        "nameEmpty": "Template name cannot be empty",
+        "nameTooLong": "Template name cannot exceed 30 characters",
+        "saved": "Template saved",
+        "saveLocalStorageError": "Failed to save template to localStorage:",
+        "saveFailed": "Failed to save template; check browser storage space",
+        "deleted": "Template deleted",
+        "deleteError": "Failed to delete template:",
+        "deleteFailed": "Failed to delete template",
+        "invalidFormat": "Invalid template data format: not an array",
+        "importError": "Failed to import templates:"
+      },
+      "file": {
+        "newPipeline": "New Pipeline",
+        "pageNotReady": "Page initialization not finished",
+        "storageQuotaTitle": "Local storage quota exceeded",
+        "storageQuotaDesc": "Browser local storage is full and file cache cannot be saved. Clear site data in the browser or reduce the number of files.",
+        "duplicateFileNameTitle": "Duplicate file name",
+        "duplicateFileNameDesc": "Target file name conflicts with an existing file. Use a different name, or continue typing to distinguish an intermediate name.",
+        "localCacheNotFound": "Local files cache not found",
+        "saveFailedTitle": "Save failed!",
+        "saveFailedDuplicateNodes": "Duplicate node names: {{names}}. Fix them and try again."
+      }
+    },
+    "debug": {
+      "modal": {
+        "setupLabel": "Debug setup",
+        "setupDescription": "Configure resource paths, controller, screenshots, and Agent, then write local debug config.",
+        "overviewLabel": "Overview",
+        "overviewDescription": "Run controls, session selection, and current/latest run summary.",
+        "nodeExecutionLabel": "Node execution",
+        "nodeExecutionDescription": "Aggregate selected display sessions by Pipeline node to view execution paths and node details.",
+        "debugLogLabel": "Debug log",
+        "debugLogDescription": "View the tail of debug artifact maafw.log; open the log file or its folder directly.",
+        "aiSummaryLabel": "AI summary",
+        "aiSummaryDescription": "View AI-generated debug summary, detailed report, and organized context.",
+        "resourceHealthLabel": "Resource health",
+        "resourceHealthDescription": "Review resource paths, load results, and graph validation in one place; load failures list concrete clues.",
+        "nodeExecutionNextLabel": "Node execution (Next mode)",
+        "nodeExecutionNextDescription": "View debug results by node.\nNext mode: organized by MFW internal execution logic, grouping the current node's action with all reco entries in the next-list",
+        "nodeExecutionPairLabel": "Node execution (Pair mode)",
+        "nodeExecutionPairDescription": "View debug results by node.\nPair mode: organized by physical node (defined JSON), grouping one reco-action pair per node",
+        "wikiTitle": "Flow-level debug",
+        "wikiDescription": "Quickly verify node behavior and flow execution",
+        "readinessNotMetTitle": "Debug prerequisites not met",
+        "panel": {
+          "overview": "Overview",
+          "nodeExecution": "Node execution",
+          "debugLog": "Debug log",
+          "aiSummary": "AI summary",
+          "resourceHealth": "Resource health",
+          "setup": "Run setup"
+        },
+        "artifact": {
+          "jsonDetail": "JSON details",
+          "imagePreview": "Image preview"
+        },
+        "overlay": {
+          "runtimeNodeState": "Current node and execution result",
+          "runtimePath": "Executed path"
+        },
+        "action": {
+          "runFromNode": "Run from this node",
+          "singleNodeRun": "Single-node run",
+          "recognitionOnly": "Recognition only",
+          "actionOnly": "Action only"
+        }
+      },
+      "aiSummary": {
+        "defaultFallback": "AI summary generated. Open the detailed report to view it.",
+        "prompt": {
+          "role": "You are the MaaPipelineEditor debug report assistant.",
+          "task": "Based on the structured debug context provided by the user, generate an English debug summary.",
+          "rulesHeader": "You must follow:",
+          "ruleNoFabrication": "- Do not invent nodes, events, artifacts, or errors not present in the context.",
+          "ruleEvidence": "- Support conclusions with evidence when possible, e.g. node name, nodeId, runtimeName, seq, diagnostic code, artifact id.",
+          "ruleFailureFocus": "- When focus is failure, prioritize failure causes and abnormal evidence; minimize description of normal nodes.",
+          "ruleNodeFocus": "- When focus is node, explain selectedNode only; do not expand into a global run report.",
+          "ruleNoPerformance": "- Do not perform dedicated performance bottleneck analysis; performance fields may only serve as background context.",
+          "ruleInsufficientEvidence": "- If evidence is insufficient, state that clearly and suggest which debug views to inspect next.",
+          "ruleJsonOnly": "- Output must be JSON only; do not wrap in Markdown code fences.",
+          "jsonFormatHeader": "JSON format:",
+          "jsonSimpleSummary": "  \"simpleSummary\": \"A short dashboard summary, within 120 characters\",",
+          "jsonDetailedReport": "  \"detailedReport\": \"Detailed Markdown report including: overall conclusion, run overview, failed/abnormal nodes, key evidence, suggested next steps\"",
+          "contextHeader": "Debug context:"
+        }
+      },
+      "capability": {
+        "localBridgeDisconnected": "LocalBridge not connected; debug capabilities unavailable for now.",
+        "runFromNode": "Run from specified node",
+        "singleNodeRun": "Run a single node only",
+        "recognitionOnly": "Run recognition only",
+        "actionOnly": "Run action only",
+        "replay": "Replay",
+        "traceReplay": "Timeline replay",
+        "performanceSummary": "Performance summary",
+        "agentRunProfile": "Agent run profile",
+        "preflight": "Preflight check",
+        "resourceHealth": "Resource health",
+        "resourceLoad": "Resource load diagnostics",
+        "targetNode": "Target node check",
+        "agent": "Agent connection diagnostics",
+        "agentProfileDiagnostic": "Agent profile diagnostics",
+        "performanceSummaryDiagnostic": "Performance summary diagnostics",
+        "traceReplayDiagnostic": "Timeline replay diagnostics",
+        "taskDetail": "Task details",
+        "recognitionDetail": "Recognition details",
+        "actionDetail": "Action details",
+        "screenshot": "Screenshot",
+        "performanceSummaryArtifact": "Performance summary",
+        "screenshotManual": "Manual screenshot",
+        "screenshotRecognitionInput": "Recognition input screenshot",
+        "multiResource": "Multiple resource paths",
+        "multiAgent": "Multiple agent configs",
+        "agentRunProfileFeature": "Agent run profile",
+        "controllerAdb": "Android device",
+        "controllerWin32": "Windows window",
+        "controllerDbg": "Debug controller",
+        "controllerReplay": "Replay controller",
+        "controllerRecord": "Record controller",
+        "goBindingDbgMissing": "Current Go binding does not provide this controller",
+        "postTask": "Post task",
+        "postRecognition": "Post recognition",
+        "postAction": "Post action",
+        "postStop": "Stop task",
+        "postBundle": "Load resource bundle",
+        "overridePipeline": "Override Pipeline",
+        "overrideNext": "Override node next",
+        "overrideImage": "Override image",
+        "getNode": "Get node definition",
+        "getNodeJson": "Get node JSON",
+        "getNodeList": "Get node list",
+        "agentIdentifier": "Identifier connection",
+        "agentTcp": "TCP connection"
+      },
+      "confirmActionRun": {
+        "title": "Confirm action execution",
+        "content": "Action-only mode skips recognition and executes the target node action (Action) directly.",
+        "ok": "Confirm run",
+        "cancel": "Cancel"
+      },
+      "controller": {
+        "notConnected": "Not connected"
+      },
+      "actions": {
+        "localBridgeDisconnected": "LocalBridge not connected",
+        "connectControllerFirst": "Connect a MaaFramework controller (Controller) first",
+        "screenshotRequestFailed": "Failed to send screenshot request",
+        "configureResourcePaths": "Configure resource paths first, or wait for LocalBridge to scan resource bundles",
+        "resourcePreflightRequestFailed": "Failed to send resource load check request.",
+        "resourcePreflightRequestFailedShort": "Failed to send resource load check request",
+        "invalidTcpPort": "Enter a TCP port between 1 and 65535",
+        "agentIdentifierRequired": "Enter an agent identifier (Identifier)",
+        "agentTestRequestFailed": "Failed to send agent connection test request",
+        "resourceHealthRequestFailed": "Failed to send resource health request.",
+        "resourceHealthRequestFailedShort": "Failed to send resource health request"
+      },
+      "modalUtils": {
+        "controllerMissing": "Device not connected: no connected controller (Controller); cannot start debug.",
+        "resourceEmpty": "Resource paths (Resource Paths) are empty. Configure resource paths or refresh the LocalBridge resource bundle (Resource Bundle).",
+        "graphEmpty": "Current graph snapshot is empty; cannot start debug.",
+        "resolverEmpty": "No Pipeline nodes can be mapped to runtime.",
+        "targetMissing": "Node-level debug is missing a target node (Target)."
+      },
+      "nodeExecution": {
+        "multipleNextList": "Multiple NextLists"
+      },
+      "nodeTarget": {
+        "selectPipelineNode": "Select a debuggable Pipeline node"
+      },
+      "pipelineOverride": {
+        "invalidJson": "Override JSON syntax error: {{message}}",
+        "unparseable": "Unable to parse",
+        "mustBeObject": "Override must be a JSON object, e.g. { \"RuntimeName\": { ...partial pipeline... } }",
+        "emptyRuntimeName": "Override contains an empty runtime node name (RuntimeName).",
+        "nodeMustBeObject": "Override node {{name}} must be an object.",
+        "normalizeFailed": "Override node {{name}} version normalization failed: {{message}}",
+        "unconvertible": "Unable to convert"
+      },
+      "readiness": {
+        "localBridgeTitle": "LocalBridge not connected",
+        "localBridgeMessage": "LocalBridge not connected; cannot start debug.",
+        "deviceTitle": "Device not connected",
+        "deviceMessage": "Device not connected; cannot start debug. Connect a device and create a MaaFramework controller (Controller) first.",
+        "resourceCheckingTitle": "Resources checking",
+        "resourceNotReadyTitle": "Resources not loaded",
+        "resourceCheckingMessage": "Resources are being checked. Wait for checks to finish before starting debug.",
+        "resourceNotReadyMessage": "Resources have not passed load checks; cannot start debug. Configure and check resource paths first.",
+        "allReady": "LocalBridge, device, and resources are ready. You can start debug.",
+        "notReadySummary": "Debug requires LocalBridge, device, and successful resource load. Current: {{issues}}."
+      },
+      "traceReducer": {
+        "diagnosticEvent": "Debug diagnostic event"
+      },
+      "traceReplay": {
+        "noSession": "No debug session (Session)",
+        "snapshotRequestFailed": "Failed to send trace snapshot (Trace Snapshot) request",
+        "startRequestFailed": "Failed to send trace replay (Trace Replay) start request",
+        "seekRequestFailed": "Failed to send trace replay seek (Trace Replay Seek) request",
+        "stopRequestFailed": "Failed to send trace replay (Trace Replay) stop request",
+        "selectNodeRecord": "Select a node execution record",
+        "nodeStartRequestFailed": "Failed to send node replay start request",
+        "nodeSeekRequestFailed": "Failed to send node replay seek request"
+      },
+      "runMode": {
+        "runFromNode": {
+          "label": "Run from node",
+          "description": "Run subsequent pipeline starting from the selected node."
+        },
+        "singleNodeRun": {
+          "label": "Single-node run",
+          "description": "Run one recognition and action cycle on the selected node."
+        },
+        "recognitionOnly": {
+          "label": "Test recognition only",
+          "description": "Verify recognition logic for the selected node only."
+        },
+        "actionOnly": {
+          "label": "Execute action only",
+          "description": "Skip recognition and execute the selected node's action directly."
+        }
+      },
+      "modalController": {
+        "artifactRequestFailed": "Failed to send artifact (Artifact) request",
+        "preflightNotMet": "Debug prerequisites not met",
+        "unsupportedMode": "LocalBridge does not support debug mode yet: {{mode}}",
+        "unsupportedModeShort": "LocalBridge does not support this debug mode yet",
+        "saveOpenFilesFailed": "Failed to save open files before debug: {{files}}",
+        "startRequestFailed": "Failed to send debug start request",
+        "buildRequestFailed": "Failed to build debug request",
+        "noRunningTask": "No running debug task",
+        "stopRequestFailed": "Failed to send stop request",
+        "openFileRequestFailed": "Failed to send open file request",
+        "noLocatableFile": "No locatable file in current diagnostics",
+        "noSummaryEvents": "No debug events available to summarize.",
+        "selectNodeRecordFirst": "Select a node execution record to explain first.",
+        "aiSystemPrompt": "You are the MaaPipelineEditor debug report assistant. Output JSON based only on the given context.",
+        "generateAiSummary": "Generate debug AI summary",
+        "aiSummaryFailed": "AI summary generation failed",
+        "aiSummaryGenerated": "AI summary generated"
+      },
+      "resourceChecks": {
+        "buildRequestFailed": "Failed to build resource health request"
+      },
+      "runStatus": {
+        "unknown": "Unknown",
+        "completed": "Run succeeded",
+        "failed": "Run failed",
+        "stopped": "Run stopped",
+        "finished": "Run finished",
+        "notificationTitle": "Debug {{status}}",
+        "notificationDesc": "Mode: {{mode}}{{durationPart}}",
+        "durationPart": " | Duration: {{duration}}",
+        "viewDetails": "View details"
+      }
+    },
+    "jsonCompletion": {
+      "runtimeNodeName": "Runtime node name",
+      "recognitionType": "Recognition type: {{name}}",
+      "actionType": "Action type: {{name}}",
+      "mfwField": "MaaFramework field"
+    },
+    "wiki": {
+      "paths": {
+        "flowDebug": "20.本地服务/40.流程级调试.html"
+      },
+      "docsGuidePath": "01.指南",
+      "holdHint": "Hold W or long-press the icon for details"
+    },
+    "parser": {
+      "configSplitter": {
+        "untitled": "Untitled"
+      },
+      "exporter": {
+        "exportFailedTitle": "Export failed!",
+        "duplicateNodeNames": "Duplicate node names: {{names}}. Fix them and try again.",
+        "exportFailedDesc": "Check whether node fields match the expected format. See the console for detailed errors."
+      },
+      "importer": {
+        "importFailedTitle": "Import failed!",
+        "importFailedContent": "Check whether the pipeline format and version are correct. See the console for detailed errors."
+      },
+      "typeMatchers": {
+        "typeErrorTitle": "Type error",
+        "typeErrorDesc": "Some parameter types are invalid. Check node fields against the Pipeline protocol. Possible parameter: {{key}}"
+      },
+      "versionDetector": {
+        "recoTypeError": "Invalid recognition algorithm type",
+        "actionTypeError": "Invalid action type"
+      }
+    },
+    "utils": {
+      "aiClient": {
+        "apiUrlNotConfigured": "API URL not configured",
+        "apiKeyNotConfigured": "API Key not configured",
+        "modelNotConfigured": "Model name not configured",
+        "corsError": "Request failed, possibly due to browser CORS restrictions. Enable LocalBridge proxy (Settings → AI → Use LocalBridge proxy), or ensure the API allows cross-origin requests from this domain.",
+        "requestCancelled": "Request cancelled",
+        "responseStreamUnavailable": "Unable to get response stream",
+        "deviceScreenshot": "Device screenshot"
+      },
+      "nodeJsonValidator": {
+        "nodeEmpty": "Node data is empty",
+        "nodeTypeMissing": "Node type missing",
+        "nodeDataCorrupted": "Node data structure corrupted",
+        "nodeDataRepaired": "Node data structure incomplete; auto-repaired",
+        "jsonSyntaxError": "JSON syntax error: {{message}}",
+        "mustBeObject": "Node data must be an object",
+        "unknownNodeType": "Unknown node type: {{nodeType}}",
+        "missingField": "Missing required field: {{field}}",
+        "fieldMustBeString": "Field {{field}} must be a string",
+        "fieldMustBeObject": "Field {{field}} must be an object",
+        "nestedMissingField": "{{parent}} missing required field: {{field}}",
+        "colorMustBeOneOf": "Field color must be one of: {{values}}"
+      },
+      "clipboard": {
+        "copySuccess": "Copied to clipboard",
+        "copyFailed": "Failed to copy to clipboard",
+        "readFailed": "Failed to read clipboard"
+      },
+      "snapper": {
+        "noNodes": "No nodes to save",
+        "canvasNotFound": "Canvas element not found",
+        "savedSelected": "Saved {{count}} selected nodes as image",
+        "savedAll": "Saved all {{count}} nodes as image",
+        "saveFailed": "Failed to save image"
+      },
+      "aiProviders": {
+        "custom": "Custom (OpenAI compatible)"
+      }
+    },
+    "panels": {
+      "exploration": {
+        "connectDeviceFirst": "Please connect a device first",
+        "configureAiFirst": "Please configure the AI API first",
+        "tooltipNeedDevice": "Flow exploration (device required)",
+        "tooltipNeedAi": "Flow exploration (AI required)",
+        "tooltipExploring": "Exploring ({{count}} steps)",
+        "tooltipDefault": "Flow exploration",
+        "goalPlaceholder": "Enter an exploration goal, e.g. complete daily check-in",
+        "start": "Start",
+        "startNodeLabel": "Start node:",
+        "startNodePlaceholder": "(Optional) Select a start node",
+        "cancel": "Cancel",
+        "stepsCompleted": "Completed {{count}} steps",
+        "reviewingHint": "Use actions beside each node: execute, regenerate, or confirm",
+        "exit": "Exit",
+        "complete": "Complete",
+        "executing": "Executing action...",
+        "confirmedSteps": "Confirmed {{count}} steps",
+        "nextStep": "Next step",
+        "completeExploration": "Finish exploration",
+        "explorationComplete": "Exploration complete",
+        "totalSteps": "{{count}} steps total",
+        "close": "Close",
+        "title": "Flow exploration mode",
+        "wiki": {
+          "path": "20.本地服务/50.AI 服务.html",
+          "title": "Flow exploration",
+          "description": "AI-driven automatic flow exploration"
+        },
+        "abortModal": {
+          "title": "Confirm exit",
+          "cancel": "Cancel",
+          "discard": "Exit without saving",
+          "save": "Save and exit",
+          "content": "Exploration is incomplete. Keep the {{count}} confirmed nodes?"
+        }
+      },
+      "main": {
+        "adjacent": {
+          "unknown": "Unknown",
+          "predecessors": "Predecessors",
+          "successors": "Successors",
+          "dragToReorder": "Drag to reorder",
+          "inputToAdd": "Enter node name to add",
+          "noConnectionsPrefix": "Node",
+          "noConnectionsSuffix": "has no connections",
+          "dragAdjustOrder": "Drag to adjust order",
+          "currentFile": "Current file",
+          "connectionExists": "Connection to \"{{label}}\" already exists",
+          "addSuccessorPlaceholder": "Enter node name to add connection..."
+        },
+        "aiHistory": {
+          "success": "Success",
+          "failed": "Failed",
+          "inputTokens": "Input:",
+          "outputTokens": "Output:",
+          "totalTokens": "Total:",
+          "estimated": "(estimated)",
+          "hasPromptTooltip": "Actual message includes preset prompt",
+          "hasPromptTag": "With prompt",
+          "userInput": "User input:",
+          "actualMessage": "Actual message",
+          "aiReply": "AI reply:",
+          "collapse": "Collapse",
+          "expandFull": "Expand full reply",
+          "unknownError": "Unknown error",
+          "title": "AI chat history",
+          "wiki": {
+            "path": "20.本地服务/50.AI 服务.html",
+            "title": "AI services",
+            "description": "AI chat and intelligent assistance"
+          },
+          "clearHistory": "Clear history",
+          "empty": "No chat history"
+        },
+        "connection": {
+          "fillAdbPathAndAddress": "Enter ADB path and device address",
+          "noAdbMethods": "Device has no available screenshot or input method",
+          "noWin32Methods": "Window has no available screenshot or input method",
+          "enterPlayCoverAddress": "Enter PlayCover address",
+          "enterDeviceUuid": "Enter device UUID",
+          "selectSocketPath": "Select or enter a socket path",
+          "enterAppPid": "Enter app PID",
+          "selectScreencapMethod": "Select a screenshot method",
+          "selectInputMethod": "Select an input method",
+          "selectDeviceFirst": "Select a device first",
+          "status": {
+            "disconnected": "Not connected",
+            "connecting": "Connecting",
+            "connected": "Connected",
+            "failed": "Connection failed"
+          },
+          "title": "Connection settings",
+          "wiki": {
+            "path": "20.本地服务/15.设备连接.html",
+            "title": "Device connection",
+            "description": "Configure and manage device connections"
+          },
+          "connectedTo": "Connected:",
+          "unknownDevice": "Unknown device",
+          "connectNewDevice": "Connect new device",
+          "disconnect": "Disconnect",
+          "connectDevice": "Connect device",
+          "refresh": "Refresh",
+          "tab": {
+            "adb": "ADB devices",
+            "win32": "Win32 windows",
+            "macosNative": "macOS native"
+          }
+        },
+        "error": {
+          "title": "Error list"
+        },
+        "field": {
+          "editorRenderFailed": "Node editor render failed",
+          "nodeName": "Node name:",
+          "nodeType": "Node type:",
+          "errorMessage": "Error message:",
+          "possibleCause": "Possible cause: corrupted node data or missing required fields",
+          "tryRepair": "Try to repair node",
+          "jsonEditDescription": "Edit node data as JSON",
+          "nodeDataCorrupt": "Node data corrupted",
+          "unknown": "Unknown",
+          "errorLabel": "Error:",
+          "suggestDelete": "Delete this node and recreate it",
+          "unknownNodeType": "Unknown node type",
+          "unsupportedNodeType": "Node type \"{{type}}\" is not supported",
+          "title": "Node fields",
+          "wiki": {
+            "path": "10.工作流面板/30.字段面板.html",
+            "title": "Field panel",
+            "description": "Edit node properties and field configuration"
+          },
+          "applyFix": "Apply fix",
+          "fieldsTab": "Field config",
+          "adjacentTab": "Adjacency"
+        },
+        "fileConfig": {
+          "title": "File config",
+          "nodePrefixLabel": "Node prefix",
+          "nodePrefixTip": "Add a prefix to all nodes joined with _ to prevent duplicate node names across files",
+          "filePathLabel": "File path",
+          "filePathTip": "Full path to the local JSON file used to identify the file when communicating with the local service. Leave empty to disable local communication. Example: D:/path/to/your/pipeline.json"
+        },
+        "file": {
+          "fileNamePlaceholder": "File name",
+          "localFile": "Local file"
+        },
+        "inlineField": {
+          "jsonEditHistory": "Edit node data as JSON",
+          "unsupportedNodeType": "Unsupported node type: {{type}}",
+          "title": "Node fields"
+        },
+        "liveScreen": {
+          "autoDisconnectMessage": "Device connection error; disconnected automatically",
+          "expand": "Expand live view",
+          "collapse": "Collapse live view",
+          "title": "Live view",
+          "screenshotError": "Screenshot error",
+          "loading": "Fetching screen...",
+          "screenshotFailed": "Screenshot failed; check device connection",
+          "deviceScreen": "Device screen"
+        },
+        "localFile": {
+          "refreshing": "Refreshing file list...",
+          "connectLocalFirst": "Connect to local service first",
+          "title": "Local file",
+          "wiki": {
+            "path": "20.本地服务/10.本地文件管理.html",
+            "title": "Local file management",
+            "description": "Manage Pipeline files in the resource directory"
+          },
+          "refreshList": "Refresh file list",
+          "close": "Close",
+          "searchPlaceholder": "Search files...",
+          "emptyNoFiles": "No files. Click refresh to load",
+          "emptyNoMatch": "No matching files"
+        },
+        "nodeAdd": {
+          "arrayItems": "[...{{count}} items]",
+          "objectItems": "{...{{count}} items}",
+          "descExternal": "Reference external node",
+          "descAnchor": "Redirect to another node",
+          "descSticker": "Sticky note for annotations",
+          "descGroup": "Group nodes for organization",
+          "descBlank": "Blank node template",
+          "recognitionType": "Recognition: {{type}}",
+          "actionType": "Action: {{type}}",
+          "descCustom": "Custom node",
+          "selectTemplatePreview": "Select a template to preview",
+          "doubleClickEdit": "Double-click to edit content...",
+          "pipelineNode": "Pipeline node",
+          "recognitionSection": "Recognition - {{type}}",
+          "actionSection": "Action - {{type}}",
+          "otherSection": "Other",
+          "andMoreNodes": " and {{count}} more nodes",
+          "deleteTemplateTitle": "Delete custom template",
+          "deleteTemplateContent": "Delete template \"{{label}}\"? This cannot be undone.",
+          "confirm": "OK",
+          "cancel": "Cancel",
+          "nodePreview": "Node preview",
+          "pasteNodes": "Paste {{count}} nodes",
+          "pasteHint": "Click to paste clipboard nodes at the cursor",
+          "searchPlaceholder": "Search node templates...",
+          "clipboardBadge": "Clipboard",
+          "customBadge": "Custom",
+          "deleteTemplate": "Delete template",
+          "noMatchingTemplates": "No matching templates",
+          "shortcutSelect": "Select",
+          "shortcutAdd": "Add",
+          "shortcutClose": "Close"
+        },
+        "search": {
+          "currentFile": "Current file",
+          "nodeNotFound": "Node not found",
+          "locatedNode": "Located node: {{label}}",
+          "jumpToFileAndNode": "Jumped to {{path}} and located node: {{label}}",
+          "jumpFailed": "Navigation failed",
+          "enterNodeName": "Enter a node name",
+          "none": "None",
+          "enterSearchContent": "Enter search content",
+          "noNodes": "No nodes in the current graph",
+          "aiSearchFailed": "AI search failed: {{error}}",
+          "noRelatedNodes": "No related nodes found",
+          "aiSearchError": "AI search error: {{error}}",
+          "unknownError": "Unknown error",
+          "placeholder": "Search nodes...",
+          "searchNode": "Search nodes",
+          "aiSearching": "AI searching...",
+          "aiSearch": "AI smart search",
+          "nodeList": "Node list"
+        },
+        "toolbar": {
+          "wiki": {
+            "path": "10.工作流面板/90.导入与导出.html"
+          },
+          "importExportTitle": "Import & export",
+          "importExportDesc": "Import and export Pipeline files"
+        },
+        "nodeList": {
+          "externalRef": "External ref",
+          "redirect": "Redirect",
+          "sticker": "Note",
+          "group": "Group"
+        }
+      },
+      "edge": {
+        "sourceNode": "Source node",
+        "unknown": "Unknown",
+        "targetNode": "Target node",
+        "connectionType": "Connection type",
+        "order": "Order",
+        "title": "Connection settings",
+        "wiki": {
+          "path": "10.工作流面板/40.连接.html",
+          "title": "Connection",
+          "description": "Connections and flow orchestration between nodes"
+        },
+        "deleteTooltip": "Delete connection"
+      },
+      "nodeEditors": {
+        "anchor": {
+          "keyTip": "Redirect node name; [Anchor] prefix is added at compile time",
+          "placeholder": "Redirect node name ([Anchor] prefix added at compile time)"
+        },
+        "external": {
+          "keyTip": "Node name; prefix is not added during transcription",
+          "placeholder": "Node name (prefix not added during transcription)"
+        }
+      },
+      "groupEditor": {
+        "colors": {
+          "blue": "Blue",
+          "green": "Green",
+          "purple": "Purple",
+          "orange": "Orange",
+          "gray": "Gray"
+        },
+        "history": {
+          "changeColor": "Change group color"
+        },
+        "name": {
+          "title": "Name",
+          "content": "Group name",
+          "placeholder": "Group name"
+        },
+        "color": {
+          "title": "Color",
+          "content": "Group color theme"
+        }
+      },
+      "pipelineEditor": {
+        "modal": {
+          "switchStructured": {
+            "title": "Switch to structured mode",
+            "focusContent": "Switching to structured mode will discard the current string value. Continue?",
+            "numberContent": "Switching to structured mode will discard the current numeric value. Continue?"
+          },
+          "ok": "OK",
+          "cancel": "Cancel"
+        },
+        "nodeName": {
+          "tooltip": "Node name; compiled as the pipeline key.",
+          "placeholder": "Node name"
+        },
+        "recognition": {
+          "tooltip": "Recognition algorithm ({{name}}): {{desc}}"
+        },
+        "action": {
+          "tooltip": "Action type ({{name}}): {{desc}}"
+        },
+        "others": {
+          "tooltip": "Fields other than recognition, action, and focus"
+        },
+        "waitFreezes": {
+          "placeholder": "Wait time (ms), or click the button on the right for detailed params"
+        },
+        "focus": {
+          "tooltip": "Focus node emits extra callback messages. Optional; default null emits none. See node notifications.",
+          "placeholder": "String value, or click the button on the right to add message types"
+        },
+        "extras": {
+          "tooltip": "Custom fields in JSON; top-level fields render directly on the node",
+          "placeholder": "Custom fields, full JSON format"
+        }
+      },
+      "stickerEditor": {
+        "colors": {
+          "yellow": "Yellow",
+          "green": "Green",
+          "blue": "Blue",
+          "pink": "Pink",
+          "purple": "Purple"
+        },
+        "history": {
+          "changeColor": "Change sticky note color"
+        },
+        "title": {
+          "label": "Title",
+          "content": "Sticky note title",
+          "placeholder": "Sticky note title"
+        },
+        "color": {
+          "title": "Color",
+          "content": "Sticky note color theme"
+        },
+        "content": {
+          "label": "Content",
+          "tooltip": "Sticky note body content",
+          "placeholder": "Enter sticky note content here..."
+        }
+      },
+      "settings": {
+        "applyToAllSuccess": "Updated handle position for all nodes to \"{{direction}}\"",
+        "applyToAll": "Apply to all nodes",
+        "configureSort": "Configure sort order",
+        "connectLocalFirst": "Connect to local service first",
+        "editBackendConfig": "Edit backend config",
+        "needLocalConnection": "Connect to local service first to open this",
+        "aiWarningLine1": "🌐 Enabling LocalBridge proxy resolves CORS restrictions; otherwise the API must support CORS",
+        "aiWarningLine2": "💡 Node prediction requires a vision-capable model (e.g. GPT-4o, Claude Sonnet, Gemini Flash)",
+        "aiWarningLine3": "🔐 Pasted API keys are encrypted automatically; ENC:-prefixed ciphertext is expected",
+        "testConnectionPrompt": "Reply exactly: AI service connected successfully",
+        "testSuccess": "Test succeeded: {{content}}",
+        "testFailed": "Test failed: {{error}}",
+        "testConnection": "Test connection",
+        "exportSuccessWithTemplates": "Config exported (includes {{count}} custom templates)",
+        "exportSuccess": "Config exported",
+        "export": "Export",
+        "invalidConfigFormat": "Invalid config file format",
+        "importSuccessWithTemplates": "Config imported (includes {{count}} custom templates)",
+        "importSuccessTemplatesFailed": "Config imported, but custom template import failed",
+        "importSuccess": "Config imported",
+        "importParseFailed": "Failed to parse config file",
+        "import": "Import",
+        "resetAllTitle": "Reset all settings",
+        "resetAllContent": "Reset all settings to defaults? This cannot be undone.",
+        "resetConfirm": "Confirm reset",
+        "cancel": "Cancel",
+        "resetSuccess": "Defaults restored",
+        "resetDefaults": "Reset defaults",
+        "title": "System settings",
+        "searchPlaceholder": "Search settings...",
+        "hintText": "Hover titles for details",
+        "wiki": {
+          "path": "20.本地服务/100.进阶配置.html"
+        },
+        "wikiTitle": "Advanced settings",
+        "wikiDescription": "Application advanced settings",
+        "emptyState": "No matching settings"
+      },
+      "toolbar": {
+        "export": {
+          "clipboardSuccess": "Pipeline exported to clipboard",
+          "saveFailed": "Failed to save file",
+          "partialClipboardSuccess": "Selected nodes' Pipeline exported to clipboard",
+          "configClipboardSuccess": "Config exported to clipboard",
+          "toClipboard": "Export to clipboard",
+          "toFile": "Export to file",
+          "saveLocal": "Save locally",
+          "saveAll": "Save all",
+          "savePipelineOnly": "Save Pipeline only",
+          "saveConfigOnly": "Save config only",
+          "createWithLocal": "Create with local service",
+          "partial": "Partial export",
+          "exportPipeline": "Export Pipeline",
+          "exportConfig": "Export config",
+          "buttonLabel": "Export",
+          "actionClipboard": "Clipboard",
+          "actionFile": "File",
+          "actionLocal": "Local",
+          "actionAll": "All",
+          "actionConfig": "Config",
+          "actionPartial": "Partial",
+          "actionLocalCreate": "Local create"
+        },
+        "import": {
+          "canvasNotEmptyTitle": "Canvas is not empty",
+          "canvasNotEmptyContent": "Import will overwrite existing content. You can undo afterward. Continue?",
+          "continueImport": "Continue import",
+          "cancel": "Cancel",
+          "clipboardPipelineSuccess": "Pipeline imported from clipboard",
+          "importFailed": "Import failed; check clipboard content",
+          "clipboardEmpty": "Clipboard is empty",
+          "clipboardConfigSuccess": "Config imported from clipboard",
+          "importConfigFailed": "Config import failed",
+          "filePipelineSuccess": "Pipeline imported from file",
+          "fileImportFailed": "File import failed; check file format",
+          "fileConfigSuccess": "Config imported from file",
+          "fileConfigImportFailed": "Config file import failed",
+          "fromClipboardPipeline": "Import Pipeline from clipboard",
+          "fromFilePipeline": "Import Pipeline from file",
+          "fromClipboardConfig": "Import config from clipboard",
+          "fromFileConfig": "Import config from file",
+          "buttonLabel": "Import",
+          "actionClipboard": "Clipboard",
+          "actionFile": "File",
+          "actionClipboardConfig": "Clipboard config",
+          "actionFileConfig": "Config file"
+        },
+        "jsonPreview": "JSON preview"
+      },
+      "tools": {
+        "add": {
+          "rightClickHint": "Right-click the canvas for more templates"
+        },
+        "global": {
+          "debugIntroTitle": "About MPE FlowScope (debug module)",
+          "debugIntroOk": "Got it",
+          "systemConfig": "System settings",
+          "fileConfig": "File config",
+          "aiHistory": "AI chat history",
+          "focusOpacityOff": "Focus opacity (off)",
+          "focusOpacityOn": "Focus opacity (on)",
+          "focusOpacityEnabled": "Focus opacity enabled",
+          "focusOpacityDisabled": "Focus opacity disabled",
+          "copy": "Copy (Ctrl+C)",
+          "noNodeSelected": "No node selected",
+          "paste": "Paste (Ctrl+V)",
+          "clipboardEmpty": "No copied nodes in clipboard",
+          "undo": "Undo (Ctrl+Z)",
+          "nothingLeft": "Nothing left 😭",
+          "undoSuccess": "Undo successful",
+          "redo": "Redo (Ctrl+Y)",
+          "redoSuccess": "Redo successful",
+          "nodePath": "Node path",
+          "nodePathEnabled": "Node path (on)",
+          "toolbox": "Toolbox",
+          "wiki": {
+            "path": "20.本地服务/20.字段快捷工具.html"
+          },
+          "fieldToolsWikiTitle": "Field quick tools",
+          "fieldToolsWikiDesc": "Quick actions for ROI selection, OCR, color picking, and more",
+          "debug": "Debug",
+          "docs": "Docs site"
+        },
+        "layout": {
+          "noNodesToAdjust": "No nodes to adjust",
+          "selectTwoForAlign": "Select more than two nodes to align",
+          "autoLayoutDenied": "Auto layout is disabled in this environment",
+          "alignCenter": "Align center",
+          "alignTop": "Align top",
+          "alignBottom": "Align bottom",
+          "shrinkHorizontal": "Shrink horizontal spacing",
+          "expandHorizontal": "Expand horizontal spacing",
+          "shrinkVertical": "Shrink vertical spacing",
+          "expandVertical": "Expand vertical spacing",
+          "resetEdgePaths": "Reset connection paths",
+          "edgesReset": "Connection paths restored",
+          "partialAutoLayout": "Partial auto layout",
+          "autoLayout": "Auto layout",
+          "selectTwoForPartial": "Select more than two nodes for partial layout",
+          "saveAsImage": "Save layout as image",
+          "noNodesToSave": "No nodes to save"
+        },
+        "logger": {
+          "noOperationLogs": "No operation logs",
+          "noLogs": "No logs",
+          "operationTab": "Operations",
+          "notConnected": "LocalBridge not connected",
+          "backendTab": "Backend logs",
+          "clear": "Clear",
+          "collapse": "Collapse"
+        },
+        "path": {
+          "startNode": "Start node",
+          "selectStart": "Select start node",
+          "endNode": "End node",
+          "selectEnd": "Select end node",
+          "found": "✓ Path found: {{count}} nodes",
+          "notFound": "✗ Path not found",
+          "clear": "Clear",
+          "disablePathMode": "Disable path mode",
+          "enablePathMode": "Enable path mode"
+        },
+        "toolbox": {
+          "ocr": "OCR text recognition",
+          "template": "Template capture",
+          "color": "Color picker",
+          "roi": "Region selection",
+          "roiOffset": "Offset measurement",
+          "delta": "Delta measurement (dx/dy)",
+          "connectFirst": "Connect to local service and device first",
+          "ocrComplete": "OCR complete",
+          "templateSaved": "Template capture saved",
+          "colorComplete": "Color pick complete",
+          "roiComplete": "Region selection complete",
+          "roiOffsetComplete": "Offset measurement complete",
+          "horizontalDeltaComplete": "Horizontal delta measurement complete",
+          "verticalDeltaComplete": "Vertical delta measurement complete",
+          "copiedValue": "Value copied",
+          "copiedKeyValue": "Key-value pair copied",
+          "ocrResult": "OCR result",
+          "templateResult": "Template capture",
+          "greenMask": "Green screen: {{value}}",
+          "yes": "Yes",
+          "no": "No",
+          "colorResult": "Color pick result",
+          "roiResult": "Region result",
+          "offsetResult": "Offset result",
+          "horizontalDelta": "Horizontal delta",
+          "verticalDelta": "Vertical delta",
+          "copyValue": "Copy value",
+          "copyKeyValue": "Copy key-value"
+        }
+      },
+      "field": {
+        "imageSelect": {
+          "loadingList": "Loading image list...",
+          "noMatch": "No matching images",
+          "noAvailable": "No available images",
+          "placeholder": "Enter or select image path"
+        },
+        "templatePreview": {
+          "notFound": "{{path}} - not found"
+        },
+        "toolbar": {
+          "copyNodeName": "Copy node name",
+          "copyRecoJson": "Copy Reco JSON",
+          "editJson": "Edit JSON",
+          "emptyNodeName": "Node name is empty",
+          "connectLocalFirst": "Connect to local service and device first",
+          "configureAiFirst": "Configure AI API in settings first",
+          "screenshotFailed": "Failed to capture screenshot; check device connection",
+          "applyConfig": "Apply config",
+          "fillingFields": "Filling node fields...",
+          "filledSuccess": "Filled {{count}} fields. See AI chat history for detailed reasoning.",
+          "validationRequiredTitle": "These fields require manual verification",
+          "validationRequiredDesc": "AI cannot predict these field values accurately. Verify with field tools:",
+          "aiAnalysisNoFill": "AI analysis complete, but no fields needed filling. See AI chat history for reasoning.",
+          "aiPredictFailed": "AI prediction failed",
+          "errNotConnected": "Not connected",
+          "errScreenshot": "Screenshot",
+          "screenshotError": "Screenshot failed; ensure the device is connected",
+          "errConfig": "Config",
+          "aiConfigError": "Configure AI API in settings first",
+          "errVision": "Vision",
+          "visionNotSupported": "Current model does not support vision. Use a vision-capable model (e.g. GPT-4o).",
+          "aiPredictFailedWithError": "AI prediction failed: {{error}}",
+          "navigateToTarget": "Jump to target node",
+          "saveAsTemplate": "Save as template",
+          "aiPredictTooltip": "AI smart node config prediction",
+          "deleteNode": "Delete node"
+        }
+      },
+      "connection": {
+        "adb": {
+          "discoveredDevices": "Discovered devices",
+          "emptyDevices": "No devices. Click refresh",
+          "orManualConnect": "Or connect manually",
+          "manualInputWarning": "Manual connection info will be used; list selection is ignored",
+          "deviceNameOptional": "Device name (optional)",
+          "deviceNamePlaceholder": "e.g. MuMu emulator",
+          "adbPath": "ADB path",
+          "adbPathPlaceholder": "e.g. C:\\platform-tools\\adb.exe",
+          "deviceAddress": "Device address",
+          "deviceAddressPlaceholder": "e.g. 127.0.0.1:5555",
+          "extraConfigOptional": "Extra config (optional)",
+          "extraConfigPlaceholder": "e.g. {\"extras\":{}}"
+        },
+        "gamepad": {
+          "typeLabel": "Gamepad type *",
+          "hwndLabel": "Window handle (optional, for screenshots)",
+          "hwndPlaceholder": "e.g. 0x123456 (can be empty)",
+          "screencapLabel": "Screenshot method (optional)",
+          "screencapAuto": "Auto select",
+          "screencapFramePoolPseudo": "FramePool (pseudo-minimize)",
+          "screencapPrintWindowPseudo": "PrintWindow (pseudo-minimize)",
+          "prerequisiteTitle": "Prerequisites",
+          "prerequisiteDesc": "ViGEm Bus Driver is required for gamepad support. Download: https://github.com/ViGEm/ViGEmBus/releases"
+        },
+        "macos": {
+          "nativeAppTitle": "macOS native app",
+          "nativeAppDesc": "Control native macOS applications",
+          "pidLabel": "App PID",
+          "pidPlaceholder": "e.g. 12345",
+          "pidHint": "Find via Activity Monitor or `ps aux | grep AppName`",
+          "screencapLabel": "Screenshot method",
+          "screencapPlaceholder": "Select screenshot method",
+          "screencapHint": "ScreenCaptureKit: requires macOS 14.0+ and screen recording permission",
+          "inputLabel": "Input method",
+          "inputPlaceholder": "Select input method",
+          "inputHint": "GlobalEvent: global event injection (auto-activates window) | PostToPid: send directly to process (background supported)",
+          "permissionsTitle": "Permission requirements",
+          "permissionsIntro": "Grant the following permissions:",
+          "screenRecordingPermission": "Screen Recording permission",
+          "screenRecordingPurpose": "Required for screenshots",
+          "accessibilityPermission": "Accessibility permission",
+          "accessibilityPurpose": "Required for input control",
+          "resetPermissions": "If you hit permission issues, reset with:"
+        },
+        "method": {
+          "multipleSuffix": "(multiple allowed)",
+          "autoSelect": "Auto select",
+          "screencapLabel": "Screenshot method",
+          "inputLabel": "Input method",
+          "interceptionTitle": "Interception driver requirements",
+          "interceptionDesc": "Install the Interception driver and run with at least the target app's privilege level. Mouse and key actions go through the driver; text input still uses system Unicode input."
+        },
+        "playcover": {
+          "title": "PlayCover connection",
+          "desc": "Connect to iOS apps running on macOS",
+          "addressLabel": "PlayCover address",
+          "addressPlaceholder": "e.g. 127.0.0.1:1234",
+          "uuidLabel": "Device UUID",
+          "uuidPlaceholder": "e.g. 12345678-1234-1234-1234-123456789abc",
+          "nameLabel": "Device name (optional)",
+          "namePlaceholder": "Custom device name"
+        },
+        "win32": {
+          "permissionTitle": "Permission notice",
+          "permissionDesc": "Most Win32 controls require LocalBridge or Desktop to run as administrator. If connection fails or controls do not respond, restart the app as administrator.",
+          "emptyWindows": "No windows. Click refresh",
+          "handleLabel": "Handle: {{hwnd}}"
+        },
+        "wlroots": {
+          "availableSockets": "Available socket paths",
+          "emptySockets": "No paths available. Enter manually or click refresh",
+          "orManualInput": "Or enter manually",
+          "pathPlaceholder": "e.g. /run/user/1000/wayland-0",
+          "manualInputWarning": "Manual path will be used; list selection is ignored",
+          "useWin32VkCode": "Use Win32 Virtual Keycode for keyboard input",
+          "tipTitle": "Tip",
+          "tipSelectOrInputPrefix": "Select a socket path from the list above, or enter a custom path. Usually",
+          "tipNestedCompositor": "Use a nested compositor session to avoid controlling the current desktop."
+        }
+      },
+      "nodeList": {
+        "allTypes": "All types",
+        "filterPlaceholder": "Filter nodes...",
+        "wiki": {
+          "path": "10.工作流面板/20.节点.html",
+          "title": "Node",
+          "description": "Node types and properties explained"
+        },
+        "stats": {
+          "total": "{{count}} nodes total"
+        },
+        "empty": "No nodes",
+        "preview": {
+          "external": "External reference node",
+          "anchor": "Redirect node",
+          "sticker": "Sticky note",
+          "group": "Group frame",
+          "recognition": "Recognition - {{type}}",
+          "action": "Action - {{type}}",
+          "otherParams": "Other parameters",
+          "inEdges": "In edges: {{count}}",
+          "outEdges": "Out edges: {{count}}"
+        }
+      }
+    }
+  }
+}

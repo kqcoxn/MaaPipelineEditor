@@ -1,14 +1,16 @@
 import { memo, useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Input, Modal } from "antd";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import type { Connection } from "@xyflow/react";
 import classNames from "classnames";
 import style from "../../../styles/panels/NodeAddPanel.module.less";
 import IconFont from "../../iconfonts";
 import type { IconNames } from "../../iconfonts";
 import {
-  nodeTemplates,
   type NodeTemplateType,
 } from "../../../data/nodeTemplates";
+import { getLocalizedNodeTemplates } from "../../../data/localize";
 import { useFlowStore } from "../../../stores/flow";
 import { useCustomTemplateStore } from "../../../stores/customTemplateStore";
 import { useClipboardStore } from "../../../stores/clipboardStore";
@@ -37,7 +39,7 @@ interface NodeAddPanelProps {
 }
 
 // 格式化参数值为可读字符串
-function formatParamValue(value: unknown): string {
+function formatParamValue(value: unknown, t: TFunction): string {
   if (value === null || value === undefined) return "null";
   if (typeof value === "string") {
     return value === "" ? '""' : `"${value}"`;
@@ -48,44 +50,69 @@ function formatParamValue(value: unknown): string {
   if (Array.isArray(value)) {
     if (value.length === 0) return "[]";
     if (value.length <= 4 && value.every((v) => typeof v !== "object")) {
-      return `[${value.map((v) => formatParamValue(v)).join(", ")}]`;
+      return `[${value.map((v) => formatParamValue(v, t)).join(", ")}]`;
     }
-    return `[...${value.length}项]`;
+    return t("ui.panels.main.nodeAdd.arrayItems", "[...{{count}}项]", {
+      count: value.length,
+    });
   }
   if (typeof value === "object") {
     const keys = Object.keys(value);
     if (keys.length === 0) return "{}";
-    return `{...${keys.length}项}`;
+    return t("ui.panels.main.nodeAdd.objectItems", "{...{{count}}项}", {
+      count: keys.length,
+    });
   }
   return String(value);
 }
 
 // 获取模板描述
-function getTemplateDescription(template: NodeTemplateType): string {
+function getTemplateDescription(template: NodeTemplateType, t: TFunction): string {
   const data = template.data?.();
   if (!data) {
-    if (template.nodeType === NodeTypeEnum.External) return "引用外部节点";
-    if (template.nodeType === NodeTypeEnum.Anchor) return "重定向到其他节点";
-    if (template.nodeType === NodeTypeEnum.Sticker) return "记录注释信息的便签";
-    if (template.nodeType === NodeTypeEnum.Group) return "对节点进行分组管理";
-    return "空白节点模板";
+    if (template.nodeType === NodeTypeEnum.External) {
+      return t("ui.panels.main.nodeAdd.descExternal", "引用外部节点");
+    }
+    if (template.nodeType === NodeTypeEnum.Anchor) {
+      return t("ui.panels.main.nodeAdd.descAnchor", "重定向到其他节点");
+    }
+    if (template.nodeType === NodeTypeEnum.Sticker) {
+      return t("ui.panels.main.nodeAdd.descSticker", "记录注释信息的便签");
+    }
+    if (template.nodeType === NodeTypeEnum.Group) {
+      return t("ui.panels.main.nodeAdd.descGroup", "对节点进行分组管理");
+    }
+    return t("ui.panels.main.nodeAdd.descBlank", "空白节点模板");
   }
 
   const parts: string[] = [];
   if (data.recognition?.type) {
-    parts.push(`识别: ${data.recognition.type}`);
+    parts.push(
+      t("ui.panels.main.nodeAdd.recognitionType", "识别: {{type}}", {
+        type: data.recognition.type,
+      }),
+    );
   }
   if (data.action?.type) {
-    parts.push(`动作: ${data.action.type}`);
+    parts.push(
+      t("ui.panels.main.nodeAdd.actionType", "动作: {{type}}", {
+        type: data.action.type,
+      }),
+    );
   }
-  return parts.join(" | ") || "自定义节点";
+  return parts.join(" | ") || t("ui.panels.main.nodeAdd.descCustom", "自定义节点");
 }
 
 // 节点预览组件
 const NodePreview = memo(
   ({ template }: { template: NodeTemplateType | null }) => {
+    const { t } = useTranslation();
     if (!template) {
-      return <div className={style.emptyPreview}>选择一个模板以预览</div>;
+      return (
+        <div className={style.emptyPreview}>
+          {t("ui.panels.main.nodeAdd.selectTemplatePreview", "选择一个模板以预览")}
+        </div>
+      );
     }
 
     const data = template.data?.();
@@ -164,7 +191,7 @@ const NodePreview = memo(
               opacity: 0.6,
             }}
           >
-            双击编辑内容...
+            {t("ui.panels.main.nodeAdd.doubleClickEdit", "双击编辑内容...")}
           </div>
         </div>
       );
@@ -188,7 +215,7 @@ const NodePreview = memo(
       <div className={style.previewNode}>
         <div className={style.previewHeader}>
           <div className={style.headerLeft}>
-            <span title="Pipeline节点">
+            <span title={t("ui.panels.main.nodeAdd.pipelineNode", "Pipeline节点")}>
               <IconFont
                 className={style.typeIcon}
                 name={nodeTypeIconConfig.name}
@@ -213,7 +240,11 @@ const NodePreview = memo(
                   size={recoIconConfig.size}
                 />
               )}
-              <span>识别 - {recoType}</span>
+              <span>
+                {t("ui.panels.main.nodeAdd.recognitionSection", "识别 - {{type}}", {
+                  type: recoType,
+                })}
+              </span>
             </div>
             {hasRecoParams && (
               <div className={style.paramList}>
@@ -221,7 +252,7 @@ const NodePreview = memo(
                   <div key={key} className={style.paramItem}>
                     <span className={style.paramKey}>{key}:</span>
                     <span className={style.paramValue}>
-                      {formatParamValue(value)}
+                      {formatParamValue(value, t)}
                     </span>
                   </div>
                 ))}
@@ -240,7 +271,11 @@ const NodePreview = memo(
                   size={actionIconConfig.size}
                 />
               )}
-              <span>动作 - {actionType}</span>
+              <span>
+                {t("ui.panels.main.nodeAdd.actionSection", "动作 - {{type}}", {
+                  type: actionType,
+                })}
+              </span>
             </div>
             {hasActionParams && (
               <div className={style.paramList}>
@@ -248,7 +283,7 @@ const NodePreview = memo(
                   <div key={key} className={style.paramItem}>
                     <span className={style.paramKey}>{key}:</span>
                     <span className={style.paramValue}>
-                      {formatParamValue(value)}
+                      {formatParamValue(value, t)}
                     </span>
                   </div>
                 ))}
@@ -263,14 +298,14 @@ const NodePreview = memo(
                 className={classNames(style.sectionHeader, style.otherHeader)}
               >
                 <IconFont name="icon-zidingyi" size={10} />
-                <span>其他</span>
+                <span>{t("ui.panels.main.nodeAdd.otherSection", "其他")}</span>
               </div>
               <div className={style.paramList}>
                 {Object.entries(data.others).map(([key, value]) => (
                   <div key={key} className={style.paramItem}>
                     <span className={style.paramKey}>{key}:</span>
                     <span className={style.paramValue}>
-                      {formatParamValue(value)}
+                      {formatParamValue(value, t)}
                     </span>
                   </div>
                 ))}
@@ -292,6 +327,8 @@ function NodeAddPanel({
   flowPosition,
   quickCreateConnection,
 }: NodeAddPanelProps) {
+  const { t } = useTranslation();
+  const nodeTemplates = useMemo(() => getLocalizedNodeTemplates(t), [t]);
   const [searchText, setSearchText] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
@@ -319,7 +356,7 @@ function NodeAddPanel({
   // 获取所有模板
   const allTemplates = useMemo(
     () => getAllTemplates(nodeTemplates),
-    [getAllTemplates, customTemplates],
+    [getAllTemplates, customTemplates, nodeTemplates],
   );
 
   // 过滤模板
@@ -342,7 +379,7 @@ function NodeAddPanel({
 
       // 在空节点后插入粘贴项
       if (
-        template.label === "空节点" &&
+        template.iconName === "icon-kongjiedian" &&
         hasClipboardContent &&
         !searchText.trim()
       ) {
@@ -408,8 +445,8 @@ function NodeAddPanel({
     if (clipboardNodes.length === 1) {
       return clipboardNodes[0].data.label;
     }
-    return `${clipboardNodes[0]?.data.label ?? ""}等${clipboardNodes.length}个节点`;
-  }, [clipboardNodes]);
+    return `${clipboardNodes[0]?.data.label ?? ""}${t("ui.panels.main.nodeAdd.andMoreNodes", "等{{count}}个节点", { count: clipboardNodes.length })}`;
+  }, [clipboardNodes, t]);
 
   // 删除自定义模板
   const handleDeleteTemplate = useCallback(
@@ -418,17 +455,21 @@ function NodeAddPanel({
       if (!template.isCustom) return;
 
       Modal.confirm({
-        title: "删除自定义模板",
-        content: `确定要删除模板“${template.label}”吗？此操作不可恢复。`,
-        okText: "确定",
-        cancelText: "取消",
+        title: t("ui.panels.main.nodeAdd.deleteTemplateTitle", "删除自定义模板"),
+        content: t(
+          "ui.panels.main.nodeAdd.deleteTemplateContent",
+          "确定要删除模板“{{label}}”吗？此操作不可恢复。",
+          { label: template.label },
+        ),
+        okText: t("ui.panels.main.nodeAdd.confirm", "确定"),
+        cancelText: t("ui.panels.main.nodeAdd.cancel", "取消"),
         okButtonProps: { danger: true },
         onOk: () => {
           removeTemplate(template.label);
         },
       });
     },
-    [removeTemplate],
+    [removeTemplate, t],
   );
 
   // 键盘事件
@@ -560,16 +601,25 @@ function NodeAddPanel({
       >
         {/* 左侧预览 */}
         <div className={style.previewSection}>
-          <div className={style.previewTitle}>节点预览</div>
+          <div className={style.previewTitle}>
+            {t("ui.panels.main.nodeAdd.nodePreview", "节点预览")}
+          </div>
           <div className={style.previewContainer}>
             {selectedItem?.type === "clipboard" ? (
               <div className={style.clipboardPreview}>
                 <IconFont name="icon-niantie1" size={32} color="#52c41a" />
                 <div className={style.clipboardPreviewTitle}>
-                  粘贴 {clipboardNodes.length} 个节点
+                  {t(
+                    "ui.panels.main.nodeAdd.pasteNodes",
+                    "粘贴 {{count}} 个节点",
+                    { count: clipboardNodes.length },
+                  )}
                 </div>
                 <div className={style.clipboardPreviewDesc}>
-                  点击将粘贴板中的节点粘贴到鼠标位置
+                  {t(
+                    "ui.panels.main.nodeAdd.pasteHint",
+                    "点击将粘贴板中的节点粘贴到鼠标位置",
+                  )}
                 </div>
               </div>
             ) : (
@@ -584,7 +634,10 @@ function NodeAddPanel({
           <div className={style.searchBox}>
             <Input
               ref={inputRef}
-              placeholder="搜索节点模板..."
+              placeholder={t(
+                "ui.panels.main.nodeAdd.searchPlaceholder",
+                "搜索节点模板...",
+              )}
               prefix={
                 <IconFont
                   name="icon-AIsousuo1"
@@ -636,10 +689,16 @@ function NodeAddPanel({
                       <div className={style.templateInfo}>
                         <div className={style.templateName}>
                           {getPasteTitle()}
-                          <span className={style.clipboardBadge}>粘贴板</span>
+                          <span className={style.clipboardBadge}>
+                            {t("ui.panels.main.nodeAdd.clipboardBadge", "粘贴板")}
+                          </span>
                         </div>
                         <div className={style.templateDesc}>
-                          粘贴 {clipboardNodes.length} 个节点
+                          {t(
+                            "ui.panels.main.nodeAdd.pasteNodes",
+                            "粘贴 {{count}} 个节点",
+                            { count: clipboardNodes.length },
+                          )}
                         </div>
                       </div>
                     </div>
@@ -674,11 +733,13 @@ function NodeAddPanel({
                       <div className={style.templateName}>
                         {template.label}
                         {template.isCustom && (
-                          <span className={style.customBadge}>自定义</span>
+                          <span className={style.customBadge}>
+                            {t("ui.panels.main.nodeAdd.customBadge", "自定义")}
+                          </span>
                         )}
                       </div>
                       <div className={style.templateDesc}>
-                        {getTemplateDescription(template)}
+                        {getTemplateDescription(template, t)}
                       </div>
                     </div>
                     {template.isCustom ? (
@@ -686,7 +747,7 @@ function NodeAddPanel({
                         <div
                           className={style.deleteBtn}
                           onClick={(e) => handleDeleteTemplate(e, template)}
-                          title="删除模板"
+                          title={t("ui.panels.main.nodeAdd.deleteTemplate", "删除模板")}
                         >
                           <IconFont
                             name="icon-shanchu"
@@ -706,7 +767,9 @@ function NodeAddPanel({
                   size={48}
                   className={style.emptyIcon}
                 />
-                <div className={style.emptyText}>未找到匹配的模板</div>
+                <div className={style.emptyText}>
+                  {t("ui.panels.main.nodeAdd.noMatchingTemplates", "未找到匹配的模板")}
+                </div>
               </div>
             )}
           </div>
@@ -715,13 +778,13 @@ function NodeAddPanel({
           <div className={style.shortcutHint}>
             <div className={style.hintItem}>
               <kbd>↑</kbd>
-              <kbd>↓</kbd> 选择
+              <kbd>↓</kbd> {t("ui.panels.main.nodeAdd.shortcutSelect", "选择")}
             </div>
             <div className={style.hintItem}>
-              <kbd>Enter</kbd> 添加
+              <kbd>Enter</kbd> {t("ui.panels.main.nodeAdd.shortcutAdd", "添加")}
             </div>
             <div className={style.hintItem}>
-              <kbd>Esc</kbd> 关闭
+              <kbd>Esc</kbd> {t("ui.panels.main.nodeAdd.shortcutClose", "关闭")}
             </div>
           </div>
         </div>

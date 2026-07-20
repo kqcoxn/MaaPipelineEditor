@@ -1,4 +1,5 @@
 import { memo, useMemo, useState, useCallback, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { type Node, type NodeProps, NodeResizer } from "@xyflow/react";
 import classNames from "classnames";
 
@@ -51,6 +52,7 @@ type GroupNodeData = Node<GroupNodeDataType, NodeTypeEnum.Group>;
 /**分组节点内容 */
 const GroupContent = memo(
   ({ data, nodeId }: { data: GroupNodeDataType; nodeId: string }) => {
+    const { t } = useTranslation();
     const setNodeData = useFlowStore((state) => state.setNodeData);
     const saveHistory = useFlowStore((state) => state.saveHistory);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -69,10 +71,10 @@ const GroupContent = memo(
       saveHistory(0, {
         category: "group",
         action: "update",
-        description: "编辑分组标题",
+        description: t("ui.flow.groupNode.editTitleHistory", "编辑分组标题"),
         targetIds: [nodeId],
       });
-    }, [saveHistory, nodeId]);
+    }, [saveHistory, nodeId, t]);
 
     return (
       <div
@@ -95,7 +97,7 @@ const GroupContent = memo(
             onBlur={handleTitleBlur}
             onMouseDown={(e) => e.stopPropagation()}
             style={{ color: theme.text }}
-            placeholder="分组名称"
+            placeholder={t("ui.flow.groupNode.namePlaceholder", "分组名称")}
           />
         </div>
 

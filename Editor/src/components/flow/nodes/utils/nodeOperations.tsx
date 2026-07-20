@@ -1,4 +1,5 @@
 import { Modal, message } from "antd";
+import uiT from "../../../../i18n/translate";
 import { ClipboardHelper } from "../../../../utils/ui/clipboard";
 import { useFileStore } from "../../../../stores/fileStore";
 import { useCustomTemplateStore } from "../../../../stores/customTemplateStore";
@@ -43,12 +44,19 @@ export function saveNodeAsTemplate(
   let templateName = defaultTemplateName;
 
   Modal.confirm({
-    title: "保存为模板",
+    title: uiT("ui.flow.nodeOperations.saveAsTemplateTitle", "保存为模板"),
     content: (
       <div style={{ marginBottom: 16 }}>
-        <div style={{ marginBottom: 8 }}>是否将当前节点保存为自定义模板？</div>
+        <div style={{ marginBottom: 8 }}>
+          {uiT(
+            "ui.flow.nodeOperations.saveAsTemplateConfirm",
+            "是否将当前节点保存为自定义模板？",
+          )}
+        </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <label style={{ flexShrink: 0, fontSize: 14 }}>模板名</label>
+          <label style={{ flexShrink: 0, fontSize: 14 }}>
+            {uiT("ui.flow.nodeOperations.templateNameLabel", "模板名")}
+          </label>
           <input
             ref={(el) => {
               if (el) {
@@ -58,7 +66,10 @@ export function saveNodeAsTemplate(
               }
             }}
             type="text"
-            placeholder="请输入模板名称"
+            placeholder={uiT(
+              "ui.flow.nodeOperations.templateNamePlaceholder",
+              "请输入模板名称",
+            )}
             maxLength={30}
             style={{
               flex: 1,
@@ -83,26 +94,36 @@ export function saveNodeAsTemplate(
           />
         </div>
         <div style={{ fontSize: 12, color: "#999", marginTop: 8 }}>
-          节点类型：Pipeline
+          {uiT("ui.flow.nodeOperations.nodeTypePipeline", "节点类型：Pipeline")}
         </div>
         <div style={{ fontSize: 12, color: "#999" }}>
-          提示：保存后可从右键模板列表中选择已保存的模板
+          {uiT(
+            "ui.flow.nodeOperations.saveAsTemplateHint",
+            "提示：保存后可从右键模板列表中选择已保存的模板",
+          )}
         </div>
       </div>
     ),
-    okText: "保存",
-    cancelText: "取消",
+    okText: uiT("ui.flow.nodeOperations.save", "保存"),
+    cancelText: uiT("ui.flow.nodeOperations.cancel", "取消"),
     onOk: () => {
       const trimmedName = templateName.trim();
 
       // 名称验证
       if (!trimmedName) {
-        message.error("模板名称不能为空");
+        message.error(
+          uiT("ui.flow.nodeOperations.templateNameEmpty", "模板名称不能为空"),
+        );
         return Promise.reject();
       }
 
       if (trimmedName.length > 30) {
-        message.error("模板名称长度不能超过30个字符");
+        message.error(
+          uiT(
+            "ui.flow.nodeOperations.templateNameTooLong",
+            "模板名称长度不能超过30个字符",
+          ),
+        );
         return Promise.reject();
       }
 
@@ -110,13 +131,22 @@ export function saveNodeAsTemplate(
       if (templateStore.hasTemplate(trimmedName)) {
         return new Promise((resolve, reject) => {
           Modal.confirm({
-            title: "模板名称已存在",
-            content: `模板 "${trimmedName}" 已存在，是否覆盖？`,
-            okText: "覆盖",
-            cancelText: "重新输入",
+            title: uiT(
+              "ui.flow.nodeOperations.templateExistsTitle",
+              "模板名称已存在",
+            ),
+            content: uiT(
+              "ui.flow.nodeOperations.templateExistsContent",
+              '模板 "{{name}}" 已存在，是否覆盖？',
+              { name: trimmedName },
+            ),
+            okText: uiT("ui.flow.nodeOperations.overwrite", "覆盖"),
+            cancelText: uiT("ui.flow.nodeOperations.reenter", "重新输入"),
             onOk: () => {
               templateStore.updateTemplate(trimmedName, nodeData);
-              message.success("模板已更新");
+              message.success(
+                uiT("ui.flow.nodeOperations.templateUpdated", "模板已更新"),
+              );
               resolve(true);
             },
             onCancel: () => {
@@ -127,7 +157,9 @@ export function saveNodeAsTemplate(
       } else {
         const success = templateStore.addTemplate(trimmedName, nodeData);
         if (success) {
-          message.success("模板保存成功");
+          message.success(
+            uiT("ui.flow.nodeOperations.templateSaved", "模板保存成功"),
+          );
         }
         return Promise.resolve();
       }
@@ -175,7 +207,12 @@ export function copyNodeRecoJSON(nodeId: string): void {
     | undefined;
 
   if (!node || node.type !== "pipeline") {
-    message.error("仅支持 Pipeline 节点复制 Reco JSON");
+    message.error(
+      uiT(
+        "ui.flow.nodeOperations.copyRecoJsonPipelineOnly",
+        "仅支持 Pipeline 节点复制 Reco JSON",
+      ),
+    );
     return;
   }
 
@@ -190,10 +227,18 @@ export function copyNodeRecoJSON(nodeId: string): void {
     const indent = useConfigStore.getState().configs.jsonIndent;
     const jsonString = JSON.stringify(recoJSON, null, indent);
     ClipboardHelper.write(jsonString, {
-      successMsg: "Reco JSON 已复制到剪贴板",
+      successMsg: uiT(
+        "ui.flow.nodeOperations.recoJsonCopied",
+        "Reco JSON 已复制到剪贴板",
+      ),
     });
   } catch (error) {
-    console.error("复制 Reco JSON 失败:", error);
-    message.error("复制失败，请检查节点配置是否正确");
+    console.error("Failed to copy Reco JSON:", error);
+    message.error(
+      uiT(
+        "ui.flow.nodeOperations.copyRecoJsonFailed",
+        "复制失败，请检查节点配置是否正确",
+      ),
+    );
   }
 }

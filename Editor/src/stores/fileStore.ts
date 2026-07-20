@@ -20,6 +20,7 @@ import {
 import { localServer } from "../services/server";
 import { FileProtocol } from "../services/protocols/FileProtocol";
 import { findErrorsByType, ErrorTypeEnum } from "./errorStore";
+import uiT from "../i18n/translate";
 import type { CoordinateMode } from "./flow/utils/coordinateUtils";
 
 export type FileConfigType = {
@@ -76,9 +77,10 @@ function isFileNameRepate(fileName: string, isSelf = true): boolean {
 // 创建空文件
 let fileIdCounter = 1;
 function createFile(options?: { fileName?: string; config?: any }): FileType {
-  let { fileName = "新建Pipeline" + fileIdCounter++, config } = options || {};
+  const defaultName = uiT("ui.stores.file.newPipeline", "新建Pipeline");
+  let { fileName = defaultName + fileIdCounter++, config } = options || {};
   while (isFileNameRepate(fileName, false)) {
-    fileName = "新建Pipeline" + fileIdCounter++;
+    fileName = defaultName + fileIdCounter++;
   }
   return {
     fileName,
@@ -197,7 +199,7 @@ export function saveFlow(): FileType | null {
     );
 
     if (fileIndex < 0) {
-      console.error("[fileStore] saveFlow: 当前文件不在 files 数组中");
+      console.error("[fileStore] saveFlow: current file not in files array");
       return null;
     }
 
@@ -226,15 +228,15 @@ export function saveFlow(): FileType | null {
 
     return useFileStore.getState().currentFile;
   } catch (err) {
-    console.error("[fileStore] saveFlow 失败:", err);
+    console.error("[fileStore] saveFlow failed:", err);
     return null;
   }
 }
 // 本地存储
 export function localSave(): { success: boolean; error?: string } {
   if (!saveFlow()) {
-    console.warn("[fileStore] localSave: 页面未初始化结束");
-    return { success: false, error: "页面未初始化结束" };
+    console.warn("[fileStore] localSave: page not initialized");
+    return { success: false, error: uiT("ui.stores.file.pageNotReady", "页面未初始化结束") };
   }
   try {
     const fileState = useFileStore.getState();
@@ -255,14 +257,16 @@ export function localSave(): { success: boolean; error?: string } {
     return { success: true };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
-    console.error("[fileStore] localSave 失败:", errorMsg);
+    console.error("[fileStore] localSave failed:", errorMsg);
 
     // 检测是否是 localStorage 配额超限
     if (err instanceof DOMException && err.name === "QuotaExceededError") {
       notification.error({
-        title: "本地存储空间不足",
-        description:
+        title: uiT("ui.stores.file.storageQuotaTitle", "本地存储空间不足"),
+        description: uiT(
+          "ui.stores.file.storageQuotaDesc",
           "浏览器本地存储空间已满，无法保存文件缓存。建议清理本域名在浏览器中的数据或减少文件数量。",
+        ),
         placement: "topRight",
         duration: 10,
       });
@@ -398,9 +402,11 @@ export const useFileStore = create<FileState>()((set) => ({
     });
     if (!isValid) {
       notification.warning({
-        title: `重复的文件名`,
-        description:
+        title: uiT("ui.stores.file.duplicateFileNameTitle", "重复的文件名"),
+        description: uiT(
+          "ui.stores.file.duplicateFileNameDesc",
           "预检测到目标文件名与现有文件重复，请使用不同的名称命名文件；若仅为中间状态，请先输入后续部分以区分。",
+        ),
         placement: "topLeft",
       });
     }
@@ -554,7 +560,11 @@ export const useFileStore = create<FileState>()((set) => ({
       if (!files) {
         restoreConfigCache();
         const ls = localStorage.getItem("_mpe_files");
-        if (!ls) return Error.call("未找到本地files缓存");
+        if (!ls) {
+          return Error.call(
+            uiT("ui.stores.file.localCacheNotFound", "未找到本地files缓存"),
+          );
+        }
         files = JSON.parse(ls) as FileType[];
       }
       const currentFile = files[0];
@@ -698,10 +708,12 @@ export const useFileStore = create<FileState>()((set) => ({
       const repeatErrors = findErrorsByType(ErrorTypeEnum.NodeNameRepeat);
       if (repeatErrors.length > 0) {
         notification.error({
-          title: "保存失败！",
-          description: `存在重复的节点名: ${repeatErrors
-            .map((e) => e.msg)
-            .join(", ")}，请修改后再试。`,
+          title: uiT("ui.stores.file.saveFailedTitle", "保存失败！"),
+          description: uiT(
+            "ui.stores.file.saveFailedDuplicateNodes",
+            "存在重复的节点名: {{names}}，请修改后再试。",
+            { names: repeatErrors.map((e) => e.msg).join(", ") },
+          ),
           placement: "top",
         });
         return false;

@@ -1,5 +1,6 @@
 import style from "../../../styles/panels/FieldPanel.module.less";
 import { memo, useMemo, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Popover, AutoComplete } from "antd";
 import classNames from "classnames";
 import { useFlowStore, type AnchorNodeType } from "../../../stores/flow";
@@ -7,6 +8,7 @@ import { crossFileService } from "../../../services/crossFileService";
 
 export const AnchorEditor = memo(
   ({ currentNode }: { currentNode: AnchorNodeType }) => {
+    const { t } = useTranslation();
     const setNodeData = useFlowStore((state) => state.setNodeData);
     const [searchValue, setSearchValue] = useState("");
 
@@ -66,7 +68,10 @@ export const AnchorEditor = memo(
           <Popover
             placement="left"
             title={"key"}
-            content={"重定向节点名，编译时会添加 [Anchor] 前缀"}
+            content={t(
+              "ui.panels.nodeEditors.anchor.keyTip",
+              "重定向节点名，编译时会添加 [Anchor] 前缀",
+            )}
           >
             <div
               className={classNames([style.key, style["head-key"]])}
@@ -77,7 +82,10 @@ export const AnchorEditor = memo(
           </Popover>
           <div className={style.value}>
             <AutoComplete
-              placeholder="重定向节点名 (编译时添加 [Anchor] 前缀)"
+              placeholder={t(
+                "ui.panels.nodeEditors.anchor.placeholder",
+                "重定向节点名 (编译时添加 [Anchor] 前缀)",
+              )}
               value={currentLabel}
               options={renderOptions}
               onChange={onLabelChange}

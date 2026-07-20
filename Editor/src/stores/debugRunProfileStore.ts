@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import i18n from "../i18n";
 import type {
   DebugAgentTransport,
   DebugAgentProfile,
@@ -87,7 +88,10 @@ const defaultArtifactPolicy: DebugArtifactPolicy = {
   includeActionDetail: true,
 };
 
-function createDefaultProfile(id = "default", name = "默认调试配置"): DebugRunProfile {
+function createDefaultProfile(
+  id = "default",
+  name = i18n.t("stores.debug.defaultProfileName", "默认调试配置"),
+): DebugRunProfile {
   return {
     id,
     name,
@@ -112,7 +116,10 @@ function createDefaultProfile(id = "default", name = "默认调试配置"): Debu
   };
 }
 
-function createDefaultPreset(id = "default", name = "默认调试配置"): DebugRunProfilePreset {
+function createDefaultPreset(
+  id = "default",
+  name = i18n.t("stores.debug.defaultProfileName", "默认调试配置"),
+): DebugRunProfilePreset {
   return {
     id,
     profile: createDefaultProfile(id, name),
@@ -256,7 +263,10 @@ export const useDebugRunProfileStore = create<DebugRunProfileState>(
       createProfile: () => {
         const current = get();
         const nextId = uniqueProfileId(current.profiles);
-        const nextName = `调试配置 ${current.profiles.length + 1}`;
+        const nextName = i18n.t("stores.debug.profileName", {
+          defaultValue: "调试配置 {{index}}",
+          index: current.profiles.length + 1,
+        });
         const currentPreset = activePreset({
           profiles: current.profiles,
           activeProfileId: current.activeProfileId,
@@ -364,7 +374,12 @@ export const useDebugRunProfileStore = create<DebugRunProfileState>(
             ? resolveDebugNodeTarget(targetNodeId, bundle.resolverSnapshot)
             : undefined;
         if (targetNodeId !== undefined && !target) {
-          throw new Error("所选入口节点不在当前调试快照中，请重新打开入口节点所在文件后再试。");
+          throw new Error(
+            i18n.t(
+              "stores.debug.entryNotInSnapshot",
+              "所选入口节点不在当前调试快照中，请重新打开入口节点所在文件后再试。",
+            ),
+          );
         }
         const snapshotEntry =
           bundle.resolverSnapshot.nodes.find(
@@ -463,7 +478,12 @@ function normalizePreset(
 ): DebugRunProfilePreset {
   const fallback = createDefaultPreset(
     index === 0 ? "default" : `profile-${index + 1}`,
-    index === 0 ? "默认调试配置" : `调试配置 ${index + 1}`,
+    index === 0
+      ? i18n.t("stores.debug.defaultProfileName", "默认调试配置")
+      : i18n.t("stores.debug.profileName", {
+          defaultValue: "调试配置 {{index}}",
+          index: index + 1,
+        }),
   );
   const profile = sanitizeProfile(preset?.profile, fallback.profile);
   const id = stringFromValue(preset?.id) ?? profile.id;

@@ -16,6 +16,7 @@ export type {
 } from "./types";
 
 import type { AIProviderType, AIProvider } from "./types";
+import uiT from "../../../i18n/translate";
 import { openaiProvider } from "./openai";
 import { anthropicProvider } from "./anthropic";
 import { geminiProvider } from "./gemini";
@@ -27,7 +28,7 @@ import { geminiProvider } from "./gemini";
 const customProvider: AIProvider = {
   ...openaiProvider,
   type: "custom",
-  displayName: "自定义 (OpenAI 兼容)",
+  displayName: uiT("ui.utils.aiProviders.custom", "自定义 (OpenAI 兼容)"),
   defaultBaseUrl: "",
   models: [],
   visionModels: [],
@@ -84,9 +85,15 @@ export function getProviderOptions(): Array<{
   label: string;
 }> {
   return [
-    { value: "openai", label: "OpenAI" },
-    { value: "anthropic", label: "Claude (Anthropic)" },
-    { value: "gemini", label: "Gemini (Google)" },
-    { value: "custom", label: "自定义 (OpenAI 兼容)" },
+    { value: "openai", label: uiT("ui.utils.aiProviders.openai", "OpenAI") },
+    {
+      value: "anthropic",
+      label: uiT("ui.utils.aiProviders.anthropic", "Claude (Anthropic)"),
+    },
+    { value: "gemini", label: uiT("ui.utils.aiProviders.gemini", "Gemini (Google)") },
+    {
+      value: "custom",
+      label: uiT("ui.utils.aiProviders.custom", "自定义 (OpenAI 兼容)"),
+    },
   ];
 }

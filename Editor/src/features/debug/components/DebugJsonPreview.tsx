@@ -1,6 +1,7 @@
 import { useMemo, type CSSProperties } from "react";
 import { Button, message } from "antd";
 import { CopyOutlined } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 import ReactJsonView from "@microlink/react-json-view";
 
 const jsonContainerStyle: CSSProperties = {
@@ -34,6 +35,7 @@ const containerWrapStyle: CSSProperties = {
 };
 
 export function DebugJsonPreview({ value }: { value: unknown }) {
+  const { t } = useTranslation();
   const parsed = useMemo(() => parseJsonLikeValue(value), [value]);
 
   const fullText = parsed.json
@@ -42,8 +44,8 @@ export function DebugJsonPreview({ value }: { value: unknown }) {
 
   const copyAll = () => {
     navigator.clipboard.writeText(fullText).then(
-      () => message.success("已复制"),
-      () => message.error("复制失败"),
+      () => message.success(t("debug.common.copied", "已复制")),
+      () => message.error(t("debug.common.copyFailed", "复制失败")),
     );
   };
 

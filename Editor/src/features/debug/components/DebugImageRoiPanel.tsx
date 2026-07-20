@@ -1,6 +1,7 @@
 ﻿import { List } from "../../../components/SimpleList";
 import { Typography, Button, Input, Space, Tag, Checkbox } from "antd";
 import { useMemo, type CSSProperties } from "react";
+import { useTranslation } from "react-i18next";
 import { CheckSquareOutlined } from "@ant-design/icons";
 import type { DebugImageOverlay } from "./DebugImageViewer";
 import type { DebugImageOverlayGroup } from "./DebugImageViewer";
@@ -30,6 +31,7 @@ export function DebugImageRoiPanel({
   searchText: string;
   visibleOverlayIds: Set<string>;
 }) {
+  const { t } = useTranslation();
   const filteredOverlays = useMemo(() => {
     const search = searchText.trim().toLocaleLowerCase();
     if (!search) return overlays;
@@ -56,7 +58,11 @@ export function DebugImageRoiPanel({
       <Space orientation="vertical" size={8} style={{ width: "100%" }}>
         <Space wrap>
           <Tag>ROI {overlays.length}</Tag>
-          <Tag>显示 {visibleOverlayIds.size}</Tag>
+          <Tag>
+            {t("debug.imageRoi.show", "显示 {{count}}", {
+              count: visibleOverlayIds.size,
+            })}
+          </Tag>
         </Space>
         {overlayGroups.length > 0 && (
           <Space wrap size={4}>
@@ -80,13 +86,16 @@ export function DebugImageRoiPanel({
                 onVisibleChange(new Set(overlays.map((overlay) => overlay.id)))
               }
             >
-              全部
+              {t("debug.imageRoi.all", "全部")}
             </Button>
           </Space>
         )}
         <Input.Search
           allowClear
-          placeholder="筛选 ROI / box / score"
+          placeholder={t(
+            "debug.imageRoi.filterPlaceholder",
+            "筛选 ROI / box / score",
+          )}
           size="small"
           value={searchText}
           onChange={(event) => onSearchChange(event.target.value)}
@@ -97,12 +106,14 @@ export function DebugImageRoiPanel({
           size="small"
           onClick={toggleFiltered}
         >
-          {allFilteredVisible ? "隐藏当前结果" : "显示当前结果"}
+          {allFilteredVisible
+            ? t("debug.imageRoi.hideCurrent", "隐藏当前结果")
+            : t("debug.imageRoi.showCurrent", "显示当前结果")}
         </Button>
         <List
           size="small"
           dataSource={filteredOverlays}
-          locale={{ emptyText: "暂无 ROI" }}
+          locale={{ emptyText: t("debug.imageRoi.empty", "暂无 ROI") }}
           renderItem={(overlay, index) => {
             const active =
               overlay.id === focusedOverlayId || overlay.id === hoveredOverlayId;

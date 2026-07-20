@@ -11,6 +11,7 @@ import type {
 } from "../types";
 import { NodeTypeEnum } from "../../../components/flow/nodes";
 import { getNodeAbsolutePosition } from "./coordinateUtils";
+import i18n from "../../../i18n";
 
 // 创建 Pipeline 节点
 export function createPipelineNode(
@@ -132,7 +133,7 @@ export function createStickerNode(
   },
 ): StickerNodeType {
   const {
-    label = "便签",
+    label = i18n.t("stores.flow.node.sticker", "便签"),
     position = { x: 0, y: 0 },
     select = false,
     datas = {},
@@ -292,7 +293,7 @@ export function createGroupNode(
   },
 ): GroupNodeType {
   const {
-    label = "分组",
+    label = i18n.t("stores.flow.node.group", "分组"),
     position = { x: 0, y: 0 },
     select = false,
     datas = {},

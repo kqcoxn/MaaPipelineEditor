@@ -1,4 +1,5 @@
 import { notification } from "antd";
+import uiT from "../../i18n/translate";
 import { useFlowStore, findNodeLabelById } from "../../stores/flow";
 import { useFileStore } from "../../stores/fileStore";
 import { globalConfig, useConfigStore } from "../../stores/configStore";
@@ -47,10 +48,12 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
     const repeatErrors = findErrorsByType(ErrorTypeEnum.NodeNameRepeat);
     if (repeatErrors.length > 0) {
       notification.error({
-        title: "导出失败！",
-        description: `存在重复的节点名: ${repeatErrors
-          .map((e) => e.msg)
-          .join(", ")}，请修改后再试。`,
+        title: uiT("ui.parser.exporter.exportFailedTitle", "导出失败！"),
+        description: uiT(
+          "ui.parser.exporter.duplicateNodeNames",
+          "存在重复的节点名: {{names}}，请修改后再试。",
+          { names: repeatErrors.map((e) => e.msg).join(", ") },
+        ),
         placement: "top",
       });
       return {};
@@ -276,8 +279,11 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
     };
   } catch (err) {
     notification.error({
-      title: "导出失败！",
-      description: "请检查各节点字段是否符合格式，详细程序错误请在控制台查看",
+      title: uiT("ui.parser.exporter.exportFailedTitle", "导出失败！"),
+      description: uiT(
+        "ui.parser.exporter.exportFailedDesc",
+        "请检查各节点字段是否符合格式，详细程序错误请在控制台查看",
+      ),
       placement: "top",
     });
     console.error(err);

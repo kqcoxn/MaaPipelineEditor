@@ -1,4 +1,5 @@
 import { message } from "antd";
+import uiT from "../../i18n/translate";
 import type { DebugProtocolClient } from "../../services/protocols/DebugProtocolClient";
 import { getDebugAgentProfileKey } from "./agentProfile";
 import type {
@@ -46,11 +47,16 @@ type TestingAgentIdsSetter = (
 
 function ensureControllerReady(connected: boolean, controllerId?: string) {
   if (!connected) {
-    message.error("LocalBridge 未连接");
+    message.error(uiT("ui.debug.actions.localBridgeDisconnected", "LocalBridge 未连接"));
     return false;
   }
   if (!controllerId) {
-    message.error("请先连接 MaaFramework 控制器（Controller）");
+    message.error(
+      uiT(
+        "ui.debug.actions.connectControllerFirst",
+        "请先连接 MaaFramework 控制器（Controller）",
+      ),
+    );
     return false;
   }
   return true;
@@ -67,7 +73,9 @@ export function captureScreenshotAction(
     force: true,
   });
   if (!sent) {
-    message.error("发送截图请求失败");
+    message.error(
+      uiT("ui.debug.actions.screenshotRequestFailed", "发送截图请求失败"),
+    );
     return;
   }
   onSuccess();
@@ -83,12 +91,17 @@ export function requestResourcePreflightAction({
   setResourcePreflightError,
 }: ResourcePreflightActionContext): void {
   if (!connected || !client.isConnected()) {
-    message.error("LocalBridge 未连接");
+    message.error(uiT("ui.debug.actions.localBridgeDisconnected", "LocalBridge 未连接"));
     return;
   }
   if (resourcePaths.length === 0) {
     invalidateResourcePreflight();
-    message.warning("请先配置资源路径或等待 LocalBridge 扫描资源包");
+    message.warning(
+      uiT(
+        "ui.debug.actions.configureResourcePaths",
+        "请先配置资源路径或等待 LocalBridge 扫描资源包",
+      ),
+    );
     return;
   }
   const requestId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -98,12 +111,17 @@ export function requestResourcePreflightAction({
     resourcePaths,
   });
   if (!sent) {
-    setResourcePreflightError(
-      requestId,
-      resourceKey,
+    const errorMsg = uiT(
+      "ui.debug.actions.resourcePreflightRequestFailed",
       "发送资源加载检测请求失败。",
     );
-    message.error("发送资源加载检测请求失败");
+    setResourcePreflightError(requestId, resourceKey, errorMsg);
+    message.error(
+      uiT(
+        "ui.debug.actions.resourcePreflightRequestFailedShort",
+        "发送资源加载检测请求失败",
+      ),
+    );
   }
 }
 
@@ -121,20 +139,29 @@ export function testAgentAction({
   setTestingAgentIds: TestingAgentIdsSetter;
 }): void {
   if (!connected || !client.isConnected()) {
-    message.error("LocalBridge 未连接");
+    message.error(uiT("ui.debug.actions.localBridgeDisconnected", "LocalBridge 未连接"));
     return;
   }
   if (agent.transport === "tcp") {
     if (!agent.tcpPort || agent.tcpPort <= 0 || agent.tcpPort > 65535) {
-      message.warning("请输入 1-65535 范围内的 TCP 端口");
+      message.warning(
+        uiT("ui.debug.actions.invalidTcpPort", "请输入 1-65535 范围内的 TCP 端口"),
+      );
       return;
     }
   } else if (!agent.identifier?.trim()) {
-    message.warning("请输入代理标识符（Identifier）");
+    message.warning(
+      uiT("ui.debug.actions.agentIdentifierRequired", "请输入代理标识符（Identifier）"),
+    );
     return;
   }
   if (resourcePaths.length === 0) {
-    message.warning("请先配置资源路径或等待 LocalBridge 扫描资源包");
+    message.warning(
+      uiT(
+        "ui.debug.actions.configureResourcePaths",
+        "请先配置资源路径或等待 LocalBridge 扫描资源包",
+      ),
+    );
     return;
   }
   const agentId = getDebugAgentProfileKey(agent) ?? "agent";
@@ -153,7 +180,9 @@ export function testAgentAction({
       next.delete(agentId);
       return next;
     });
-    message.error("发送代理连接测试请求失败");
+    message.error(
+      uiT("ui.debug.actions.agentTestRequestFailed", "发送代理连接测试请求失败"),
+    );
   }
 }
 
@@ -166,7 +195,7 @@ export function requestResourceHealthAction({
   setResourceHealthError,
 }: ResourceHealthActionContext): void {
   if (!connected || !client.isConnected()) {
-    message.error("LocalBridge 未连接");
+    message.error(uiT("ui.debug.actions.localBridgeDisconnected", "LocalBridge 未连接"));
     return;
   }
   const requestId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -176,11 +205,16 @@ export function requestResourceHealthAction({
     requestId,
   });
   if (!sent) {
-    setResourceHealthError(
-      requestId,
-      requestKey,
+    const errorMsg = uiT(
+      "ui.debug.actions.resourceHealthRequestFailed",
       "发送资源体检请求失败。",
     );
-    message.error("发送资源体检请求失败");
+    setResourceHealthError(requestId, requestKey, errorMsg);
+    message.error(
+      uiT(
+        "ui.debug.actions.resourceHealthRequestFailedShort",
+        "发送资源体检请求失败",
+      ),
+    );
   }
 }

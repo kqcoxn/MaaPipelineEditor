@@ -1,7 +1,8 @@
 import { create } from "zustand";
+import i18n from "../i18n";
 
 export enum ErrorTypeEnum {
-  NodeNameRepeat = "节点名重复",
+  NodeNameRepeat = "nodeNameRepeat",
 }
 export type ErrorType = {
   type: ErrorTypeEnum;
@@ -12,6 +13,15 @@ export type ErrorType = {
 
 export function findErrorsByType(type: ErrorTypeEnum) {
   return useErrorStore.getState().errors.filter((error) => error.type === type);
+}
+
+export function getErrorTypeLabel(type: ErrorTypeEnum): string {
+  switch (type) {
+    case ErrorTypeEnum.NodeNameRepeat:
+      return i18n.t("stores.error.nodeNameRepeat", "节点名重复");
+    default:
+      return String(type);
+  }
 }
 
 type ErrorState = {

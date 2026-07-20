@@ -2,6 +2,7 @@ import { Button, Dropdown, message, Modal } from "antd";
 import type { MenuProps } from "antd";
 import { ImportOutlined } from "@ant-design/icons";
 import { memo, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import {
   useToolbarStore,
   type ImportAction,
@@ -39,6 +40,7 @@ const resolveAvailableImportAction = (
  * 支持从粘贴板或文件导入 Pipeline/配置，连接 LocalBridge 时文件导入唤起本地文件面板
  */
 function ImportButton() {
+  const { t } = useTranslation();
   const { defaultImportAction, setDefaultImportAction } = useToolbarStore();
   const configHandlingMode = useConfigStore(
     (state) => state.configs.configHandlingMode,
@@ -54,10 +56,16 @@ function ImportButton() {
     const currentNodes = useFlowStore.getState().nodes;
     if (currentNodes.length > 0) {
       Modal.confirm({
-        title: "当前画布不为空",
-        content: "导入将覆盖现有内容。导入后可通过撤销恢复，是否继续？",
-        okText: "继续导入",
-        cancelText: "取消",
+        title: t(
+          "ui.panels.toolbar.import.canvasNotEmptyTitle",
+          "当前画布不为空",
+        ),
+        content: t(
+          "ui.panels.toolbar.import.canvasNotEmptyContent",
+          "导入将覆盖现有内容。导入后可通过撤销恢复，是否继续？",
+        ),
+        okText: t("ui.panels.toolbar.import.continueImport", "继续导入"),
+        cancelText: t("ui.panels.toolbar.import.cancel", "取消"),
         onOk: () => onConfirm(),
       });
       return;
@@ -79,10 +87,17 @@ function ImportButton() {
       try {
         const success = await pipelineToFlow();
         if (success) {
-          message.success("从粘贴板导入 Pipeline 成功");
+          message.success(
+            t(
+              "ui.panels.toolbar.import.clipboardPipelineSuccess",
+              "从粘贴板导入 Pipeline 成功",
+            ),
+          );
         }
       } catch (err) {
-        message.error("导入失败,请检查粘贴板内容");
+        message.error(
+          t("ui.panels.toolbar.import.importFailed", "导入失败,请检查粘贴板内容"),
+        );
         console.error(err);
       }
     });
@@ -104,7 +119,9 @@ function ImportButton() {
       try {
         const text = await ClipboardHelper.read();
         if (!text) {
-          message.error("粘贴板内容为空");
+          message.error(
+            t("ui.panels.toolbar.import.clipboardEmpty", "粘贴板内容为空"),
+          );
           return;
         }
         const mpeConfig = JSON.parse(text);
@@ -114,10 +131,17 @@ function ImportButton() {
           pString: JSON.stringify(mergedPipeline),
         });
         if (success) {
-          message.success("从粘贴板导入配置成功");
+          message.success(
+            t(
+              "ui.panels.toolbar.import.clipboardConfigSuccess",
+              "从粘贴板导入配置成功",
+            ),
+          );
         }
       } catch (err) {
-        message.error("导入配置失败");
+        message.error(
+          t("ui.panels.toolbar.import.importConfigFailed", "导入配置失败"),
+        );
         console.error(err);
       }
     });
@@ -136,10 +160,20 @@ function ImportButton() {
         const text = await file.text();
         const success = await pipelineToFlow({ pString: text });
         if (success) {
-          message.success("从文件导入 Pipeline 成功");
+          message.success(
+            t(
+              "ui.panels.toolbar.import.filePipelineSuccess",
+              "从文件导入 Pipeline 成功",
+            ),
+          );
         }
       } catch (err) {
-        message.error("文件导入失败,请检查文件格式");
+        message.error(
+          t(
+            "ui.panels.toolbar.import.fileImportFailed",
+            "文件导入失败,请检查文件格式",
+          ),
+        );
         console.error(err);
       }
       e.target.value = "";
@@ -161,10 +195,20 @@ function ImportButton() {
           pString: JSON.stringify(mergedPipeline),
         });
         if (success) {
-          message.success("从文件导入配置成功");
+          message.success(
+            t(
+              "ui.panels.toolbar.import.fileConfigSuccess",
+              "从文件导入配置成功",
+            ),
+          );
         }
       } catch (err) {
-        message.error("配置文件导入失败");
+        message.error(
+          t(
+            "ui.panels.toolbar.import.fileConfigImportFailed",
+            "配置文件导入失败",
+          ),
+        );
         console.error(err);
       }
       e.target.value = "";
@@ -203,7 +247,10 @@ function ImportButton() {
   const menuItems: MenuProps["items"] = [
     {
       key: "clipboard-pipeline",
-      label: "从粘贴板导入 Pipeline",
+      label: t(
+        "ui.panels.toolbar.import.fromClipboardPipeline",
+        "从粘贴板导入 Pipeline",
+      ),
       onClick: () => {
         setDefaultImportAction("clipboard-pipeline");
         executeImportAction("clipboard-pipeline");
@@ -213,7 +260,10 @@ function ImportButton() {
 
   menuItems.push({
     key: "file-pipeline",
-    label: "从文件导入 Pipeline",
+    label: t(
+      "ui.panels.toolbar.import.fromFilePipeline",
+      "从文件导入 Pipeline",
+    ),
     onClick: () => {
       setDefaultImportAction("file-pipeline");
       executeImportAction("file-pipeline");
@@ -226,7 +276,10 @@ function ImportButton() {
       { type: "divider" },
       {
         key: "clipboard-config",
-        label: "从粘贴板导入配置",
+        label: t(
+          "ui.panels.toolbar.import.fromClipboardConfig",
+          "从粘贴板导入配置",
+        ),
         onClick: () => {
           setDefaultImportAction("clipboard-config");
           executeImportAction("clipboard-config");
@@ -236,7 +289,10 @@ function ImportButton() {
 
     menuItems.push({
       key: "file-config",
-      label: "从文件导入配置",
+      label: t(
+        "ui.panels.toolbar.import.fromFileConfig",
+        "从文件导入配置",
+      ),
       onClick: () => {
         setDefaultImportAction("file-config");
         executeImportAction("file-config");
@@ -246,19 +302,47 @@ function ImportButton() {
 
   // 获取按钮文本和当前操作描述
   const { buttonLabel, currentActionDesc } = useMemo(() => {
+    const importLabel = t("ui.panels.toolbar.import.buttonLabel", "导入");
     switch (effectiveDefaultImportAction) {
       case "clipboard-pipeline":
-        return { buttonLabel: "导入", currentActionDesc: "粘贴板" };
+        return {
+          buttonLabel: importLabel,
+          currentActionDesc: t(
+            "ui.panels.toolbar.import.actionClipboard",
+            "粘贴板",
+          ),
+        };
       case "file-pipeline":
-        return { buttonLabel: "导入", currentActionDesc: "文件" };
+        return {
+          buttonLabel: importLabel,
+          currentActionDesc: t("ui.panels.toolbar.import.actionFile", "文件"),
+        };
       case "clipboard-config":
-        return { buttonLabel: "导入", currentActionDesc: "粘贴板配置" };
+        return {
+          buttonLabel: importLabel,
+          currentActionDesc: t(
+            "ui.panels.toolbar.import.actionClipboardConfig",
+            "粘贴板配置",
+          ),
+        };
       case "file-config":
-        return { buttonLabel: "导入", currentActionDesc: "配置文件" };
+        return {
+          buttonLabel: importLabel,
+          currentActionDesc: t(
+            "ui.panels.toolbar.import.actionFileConfig",
+            "配置文件",
+          ),
+        };
       default:
-        return { buttonLabel: "导入", currentActionDesc: "粘贴板" };
+        return {
+          buttonLabel: importLabel,
+          currentActionDesc: t(
+            "ui.panels.toolbar.import.actionClipboard",
+            "粘贴板",
+          ),
+        };
     }
-  }, [effectiveDefaultImportAction]);
+  }, [effectiveDefaultImportAction, t]);
 
   return (
     <>
@@ -289,7 +373,10 @@ function ImportButton() {
             onClick={handleButtonClick}
             className={style.toolbarButton}
           >
-            {buttonLabel}（{currentActionDesc}）
+            {t("ui.panels.toolbar.import.buttonWithAction", "{{label}}（{{desc}}）", {
+              label: buttonLabel,
+              desc: currentActionDesc,
+            })}
           </Button>
         </Dropdown>
       </div>

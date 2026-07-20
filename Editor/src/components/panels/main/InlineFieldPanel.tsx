@@ -2,6 +2,7 @@ import inlineStyle from "../../../styles/panels/InlineFieldPanel.module.less";
 import fieldStyle from "../../../styles/panels/FieldPanel.module.less";
 
 import { useMemo, memo, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ViewportPortal, useReactFlow, useStore } from "@xyflow/react";
 import { Spin } from "antd";
 import classNames from "classnames";
@@ -33,6 +34,7 @@ const EMPTY_NODE_POSITION = { x: 0, y: 0 };
 
 /**内嵌字段面板 - 在节点旁边渲染 */
 function InlineFieldPanel() {
+  const { t } = useTranslation();
   const currentNode = useFlowStore((state) => state.targetNode);
   const updateNodes = useFlowStore((state) => state.updateNodes);
   const fieldPanelMode = useConfigStore(
@@ -113,11 +115,14 @@ function InlineFieldPanel() {
       saveHistory(0, {
         category: "node",
         action: "update",
-        description: "JSON 编辑节点数据",
+        description: t(
+          "ui.panels.main.inlineField.jsonEditHistory",
+          "JSON 编辑节点数据",
+        ),
         targetIds: [currentNode.id],
       });
     },
-    [currentNode],
+    [currentNode, t],
   );
 
   // 渲染编辑器内容
@@ -140,11 +145,13 @@ function InlineFieldPanel() {
       default:
         return (
           <div style={{ padding: 12, color: "#999" }}>
-            不支持的节点类型: {currentNode.type}
+            {t("ui.panels.main.inlineField.unsupportedNodeType", "不支持的节点类型: {{type}}", {
+              type: currentNode.type,
+            })}
           </div>
         );
     }
-  }, [currentNode]);
+  }, [currentNode, t]);
 
   // 只在 inline 模式下渲染
   if (fieldPanelMode !== "inline") {
@@ -208,7 +215,9 @@ function InlineFieldPanel() {
             />
           </div>
           <div className="header-center">
-            <div className="title">节点字段</div>
+            <div className="title">
+              {t("ui.panels.main.inlineField.title", "节点字段")}
+            </div>
           </div>
           <div className="header-right">
             <FieldPanelToolbarRight

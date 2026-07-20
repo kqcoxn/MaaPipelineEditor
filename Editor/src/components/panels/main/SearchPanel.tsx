@@ -1,5 +1,6 @@
 import style from "../../../styles/panels/ToolPanel.module.less";
 import { memo, useMemo, useState, useCallback, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 import { message, Tooltip, AutoComplete, Spin } from "antd";
 import type { AutoCompleteProps } from "antd";
@@ -26,6 +27,7 @@ import { useEmbedMode } from "../../../hooks/useEmbedMode";
 
 /**搜索工具 */
 function SearchPanel() {
+  const { t } = useTranslation();
   // store
   const instance = useFlowStore((state) => state.instance);
   const enableCrossFileSearch = useConfigStore(
@@ -83,7 +85,9 @@ function SearchPanel() {
         value: `${node.label}__${index}`,
         label: node.label,
         nodeName: node.label,
-        filePath: node.isCurrentFile ? "当前文件" : node.relativePath,
+        filePath: node.isCurrentFile
+          ? t("ui.panels.main.search.currentFile", "当前文件")
+          : node.relativePath,
       }));
       setOptions(filtered);
     },
@@ -98,7 +102,7 @@ function SearchPanel() {
         (node: NodeType) => node.data.label === label,
       );
       if (!targetNode) {
-        message.warning("未找到该节点");
+        message.warning(t("ui.panels.main.search.nodeNotFound", "未找到该节点"));
         return;
       }
 
@@ -121,13 +125,17 @@ function SearchPanel() {
         });
       }
 
-      message.success(`已定位到节点: ${label}`);
+      message.success(
+        t("ui.panels.main.search.locatedNode", "已定位到节点: {{label}}", {
+          label,
+        }),
+      );
       // 关闭下拉提示，但不清空内容
       setIsOpen(false);
       setOptions([]);
       setSearchResults([]);
     },
-    [instance],
+    [instance, t],
   );
 
   // 跨文件跳转到节点
@@ -136,11 +144,17 @@ function SearchPanel() {
     if (success) {
       message.success(
         nodeInfo.isCurrentFile
-          ? `已定位到节点: ${nodeInfo.label}`
-          : `已跳转到 ${nodeInfo.relativePath} 并定位节点: ${nodeInfo.label}`,
+          ? t("ui.panels.main.search.locatedNode", "已定位到节点: {{label}}", {
+              label: nodeInfo.label,
+            })
+          : t(
+              "ui.panels.main.search.jumpToFileAndNode",
+              "已跳转到 {{path}} 并定位节点: {{label}}",
+              { path: nodeInfo.relativePath, label: nodeInfo.label },
+            ),
       );
     } else {
-      message.warning("跳转失败");
+      message.warning(t("ui.panels.main.search.jumpFailed", "跳转失败"));
     }
     setIsOpen(false);
     setOptions([]);
@@ -184,13 +198,13 @@ function SearchPanel() {
         if (results.length > 0) {
           navigateToNode(results[0]);
         } else {
-          message.warning("未找到该节点");
+          message.warning(t("ui.panels.main.search.nodeNotFound", "未找到该节点"));
         }
       }
     } else {
-      message.info("请输入节点名称");
+      message.info(t("ui.panels.main.search.enterNodeName", "请输入节点名称"));
     }
-  }, [searchValue, searchResults, enableCrossFileSearch, navigateToNode]);
+  }, [searchValue, searchResults, enableCrossFileSearch, navigateToNode, t]);
 
   // 构建节点上下文信息
   const buildNodesContext = useCallback(() => {
@@ -206,11 +220,11 @@ function SearchPanel() {
         return {
           ...baseInfo,
           recognition: {
-            type: pipelineNode.data.recognition?.type || "无",
+            type: pipelineNode.data.recognition?.type || t("ui.panels.main.search.none", "无"),
             param: pipelineNode.data.recognition?.param || {},
           },
           action: {
-            type: pipelineNode.data.action?.type || "无",
+            type: pipelineNode.data.action?.type || t("ui.panels.main.search.none", "无"),
             param: pipelineNode.data.action?.param || {},
           },
           others: pipelineNode.data.others || {},
@@ -219,12 +233,12 @@ function SearchPanel() {
 
       return baseInfo;
     });
-  }, []);
+  }, [t]);
 
   // AI搜索
   const handleAISearchClick = useCallback(async () => {
     if (!searchValue.trim()) {
-      message.info("请输入搜索内容");
+      message.info(t("ui.panels.main.search.enterSearchContent", "请输入搜索内容"));
       return;
     }
 
@@ -235,7 +249,7 @@ function SearchPanel() {
       // 构建节点上下文
       const nodesContext = buildNodesContext();
       if (nodesContext.length === 0) {
-        message.warning("当前没有任何节点");
+        message.warning(t("ui.panels.main.search.noNodes", "当前没有任何节点"));
         return;
       }
 
@@ -256,7 +270,11 @@ function SearchPanel() {
       const result = await aiChat.send(userInput, userInput);
 
       if (!result.success) {
-        message.error(`AI搜索失败: ${result.error}`);
+        message.error(
+          t("ui.panels.main.search.aiSearchFailed", "AI搜索失败: {{error}}", {
+            error: result.error,
+          }),
+        );
         return;
       }
 
@@ -264,19 +282,25 @@ function SearchPanel() {
 
       // 检查是否找到节点
       if (response === "NOT_FOUND") {
-        message.warning("未找到相关节点");
+        message.warning(
+          t("ui.panels.main.search.noRelatedNodes", "未找到相关节点"),
+        );
         return;
       }
 
       // 定位到节点
       focusNodeInCurrentFile(response);
     } catch (error: any) {
-      message.error(`AI搜索异常: ${error.message || "未知错误"}`);
+      message.error(
+        t("ui.panels.main.search.aiSearchError", "AI搜索异常: {{error}}", {
+          error: error.message || t("ui.panels.main.search.unknownError", "未知错误"),
+        }),
+      );
     } finally {
       setAiSearching(false);
       aiChatRef.current = null;
     }
-  }, [searchValue, buildNodesContext, focusNodeInCurrentFile]);
+  }, [searchValue, buildNodesContext, focusNodeInCurrentFile, t]);
 
   // 处理输入变化
   const handleChange = useCallback(
@@ -340,7 +364,7 @@ function SearchPanel() {
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
         onKeyDown={handleKeyDown}
-        placeholder="搜索节点..."
+        placeholder={t("ui.panels.main.search.placeholder", "搜索节点...")}
         size="large"
         allowClear
         // 自定义下拉选项渲染
@@ -354,7 +378,7 @@ function SearchPanel() {
         )}
       />
       <div className={style["search-buttons"]}>
-        <Tooltip placement="bottom" title="搜索节点">
+        <Tooltip placement="bottom" title={t("ui.panels.main.search.searchNode", "搜索节点")}>
           <IconFont
             className={style["search-icon"]}
             name="icon-AIsousuo1"
@@ -370,7 +394,11 @@ function SearchPanel() {
             </div>
             <Tooltip
               placement="bottom"
-              title={aiSearching ? "AI搜索中..." : "AI智能搜索"}
+              title={
+                aiSearching
+                  ? t("ui.panels.main.search.aiSearching", "AI搜索中...")
+                  : t("ui.panels.main.search.aiSearch", "AI智能搜索")
+              }
             >
               <div
                 style={{
@@ -400,7 +428,7 @@ function SearchPanel() {
         <div className={style.devider}>
           <div></div>
         </div>
-        <Tooltip placement="left" title="节点列表">
+        <Tooltip placement="left" title={t("ui.panels.main.search.nodeList", "节点列表")}>
           <DownOutlined
             className={classNames(
               style["search-icon"],

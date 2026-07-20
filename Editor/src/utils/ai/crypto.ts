@@ -62,7 +62,7 @@ export async function encryptApiKey(plainKey: string): Promise<string> {
 
     return ENCRYPTION_PREFIX + btoa(String.fromCharCode(...combined));
   } catch (err) {
-    console.error("[AI Crypto] 加密失败:", err);
+    console.error("[AI Crypto] encrypt failed:", err);
     // 加密失败时返回原文（降级）
     return plainKey;
   }
@@ -96,7 +96,7 @@ export async function decryptApiKey(encryptedKey: string): Promise<string> {
 
     return new TextDecoder().decode(decrypted);
   } catch (err) {
-    console.error("[AI Crypto] 解密失败:", err);
+    console.error("[AI Crypto] decrypt failed:", err);
     // 解密失败返回空，避免泄露密文
     return "";
   }

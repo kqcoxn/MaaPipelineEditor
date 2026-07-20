@@ -1,5 +1,6 @@
 import { message } from "antd";
 import type { ReactNode } from "react";
+import uiT from "../../i18n/translate";
 import { LayoutHelper, AlignmentEnum } from "../../core/layout";
 import { flowToPipeline } from "../../core/parser";
 import { useClipboardStore } from "../../stores/clipboardStore";
@@ -128,7 +129,7 @@ function hasGroupedNodes(selection: SelectionContextMenuSelection): boolean {
 
 function handleCopySelection(selection: SelectionContextMenuSelection): void {
   if (!hasSelectedNodes(selection)) {
-    message.error("未选中节点");
+    message.error(uiT("ui.flow.selectionContextMenu.noSelection", "未选中节点"));
     return;
   }
 
@@ -141,14 +142,16 @@ function handleDuplicateSelection(
   selection: SelectionContextMenuSelection,
 ): void {
   if (!hasSelectedNodes(selection)) {
-    message.error("未选中节点");
+    message.error(uiT("ui.flow.selectionContextMenu.noSelection", "未选中节点"));
     return;
   }
 
   useFlowStore
     .getState()
     .paste(selection.selectedNodes, getSelectionRelatedEdges(selection));
-  message.success("已创建副本");
+  message.success(
+    uiT("ui.flow.selectionContextMenu.duplicateCreated", "已创建副本"),
+  );
 }
 
 async function handleDeleteSelection(
@@ -198,7 +201,7 @@ async function handleDeleteSelection(
 
 function handlePartialExport(selection: SelectionContextMenuSelection): void {
   if (!hasSelectedNodes(selection)) {
-    message.error("未选中节点");
+    message.error(uiT("ui.flow.selectionContextMenu.noSelection", "未选中节点"));
     return;
   }
 
@@ -212,7 +215,10 @@ function handlePartialExport(selection: SelectionContextMenuSelection): void {
   }
 
   void ClipboardHelper.write(exported, {
-    successMsg: "已将选中内容导出到剪贴板",
+    successMsg: uiT(
+      "ui.flow.selectionContextMenu.partialExportSuccess",
+      "已将选中内容导出到剪贴板",
+    ),
   });
 }
 
@@ -221,7 +227,9 @@ function handleAlignSelection(
   selection: SelectionContextMenuSelection,
 ): void {
   if (!hasMultiSelectedNodes(selection)) {
-    message.error("请至少选择两个节点");
+    message.error(
+      uiT("ui.flow.selectionContextMenu.needTwoNodes", "请至少选择两个节点"),
+    );
     return;
   }
 
@@ -234,7 +242,9 @@ function handleShiftSelection(
   selection: SelectionContextMenuSelection,
 ): void {
   if (!hasMultiSelectedNodes(selection)) {
-    message.error("请至少选择两个节点");
+    message.error(
+      uiT("ui.flow.selectionContextMenu.needTwoNodes", "请至少选择两个节点"),
+    );
     return;
   }
 
@@ -247,12 +257,16 @@ function handleShiftSelection(
 
 function handleCreateGroup(selection: SelectionContextMenuSelection): void {
   if (!hasNonGroupNodes(selection)) {
-    message.error("未选中可分组节点");
+    message.error(
+      uiT("ui.flow.selectionContextMenu.noGroupableNodes", "未选中可分组节点"),
+    );
     return;
   }
 
   useFlowStore.getState().groupSelectedNodes();
-  message.success("已创建分组");
+  message.success(
+    uiT("ui.flow.selectionContextMenu.groupCreated", "已创建分组"),
+  );
 }
 
 function handleDetachSelectionFromGroup(
@@ -266,13 +280,17 @@ function handleDetachSelectionFromGroup(
     .map((node) => node.id);
 
   if (nodeIds.length === 0) {
-    message.error("选中节点不在分组中");
+    message.error(
+      uiT("ui.flow.selectionContextMenu.nodesNotInGroup", "选中节点不在分组中"),
+    );
     return;
   }
 
   const { detachNodeFromGroup } = useFlowStore.getState();
   nodeIds.forEach((nodeId) => detachNodeFromGroup(nodeId));
-  message.success("已将节点移出分组");
+  message.success(
+    uiT("ui.flow.selectionContextMenu.detachedFromGroup", "已将节点移出分组"),
+  );
 }
 
 function handleUngroupSelection(
@@ -283,20 +301,26 @@ function handleUngroupSelection(
     .map((node) => node.id);
 
   if (groupIds.length === 0) {
-    message.error("未选中分组");
+    message.error(
+      uiT("ui.flow.selectionContextMenu.noGroupSelected", "未选中分组"),
+    );
     return;
   }
 
   const { ungroupNodes } = useFlowStore.getState();
   groupIds.forEach((groupId) => ungroupNodes(groupId));
-  message.success("已解散所选分组");
+  message.success(
+    uiT("ui.flow.selectionContextMenu.groupsUngrouped", "已解散所选分组"),
+  );
 }
 
 function handleAutoLayoutSelection(
   selection: SelectionContextMenuSelection,
 ): void {
   if (!hasMultiSelectedNodes(selection)) {
-    message.error("请至少选择两个节点");
+    message.error(
+      uiT("ui.flow.selectionContextMenu.needTwoNodes", "请至少选择两个节点"),
+    );
     return;
   }
 
@@ -311,12 +335,16 @@ function handleResetEdgeControls(
   );
 
   if (targetEdgeIds.length === 0) {
-    message.error("未选中可还原的连线");
+    message.error(
+      uiT("ui.flow.selectionContextMenu.noResettableEdges", "未选中可还原的连线"),
+    );
     return;
   }
 
   useFlowStore.getState().resetEdgeControls(targetEdgeIds);
-  message.success("已还原所选连线路径");
+  message.success(
+    uiT("ui.flow.selectionContextMenu.edgeControlsReset", "已还原所选连线路径"),
+  );
 }
 
 export function getSelectionContextMenuConfig(
@@ -328,7 +356,7 @@ export function getSelectionContextMenuConfig(
   return [
     {
       key: "copy-selection",
-      label: "复制",
+      label: uiT("ui.flow.selectionContextMenu.copy", "复制"),
       icon: "icon-a-copyfubenfuzhi",
       iconSize: 16,
       onClick: handleCopySelection,
@@ -336,7 +364,7 @@ export function getSelectionContextMenuConfig(
     },
     {
       key: "duplicate-selection",
-      label: "创建副本",
+      label: uiT("ui.flow.selectionContextMenu.duplicate", "创建副本"),
       icon: "icon-beifen",
       iconSize: 16,
       onClick: handleDuplicateSelection,
@@ -344,7 +372,7 @@ export function getSelectionContextMenuConfig(
     },
     {
       key: "partial-export-selection",
-      label: "部分导出",
+      label: uiT("ui.flow.selectionContextMenu.partialExport", "部分导出"),
       icon: "icon-daoru",
       iconSize: 16,
       onClick: handlePartialExport,
@@ -356,48 +384,48 @@ export function getSelectionContextMenuConfig(
     },
     {
       key: "align-selection",
-      label: "对齐",
+      label: uiT("ui.flow.selectionContextMenu.align", "对齐"),
       icon: "icon-jurassic_horizalign-center",
       iconSize: 16,
       children: [
         {
           key: "align-left",
-          label: "左对齐",
+          label: uiT("ui.flow.selectionContextMenu.alignLeft", "左对齐"),
           onClick: (selection) =>
             handleAlignSelection(AlignmentEnum.Left, selection),
           disabled: (selection) => !hasMultiSelectedNodes(selection),
         },
         {
           key: "align-center",
-          label: "水平居中",
+          label: uiT("ui.flow.selectionContextMenu.alignCenter", "水平居中"),
           onClick: (selection) =>
             handleAlignSelection(AlignmentEnum.Center, selection),
           disabled: (selection) => !hasMultiSelectedNodes(selection),
         },
         {
           key: "align-right",
-          label: "右对齐",
+          label: uiT("ui.flow.selectionContextMenu.alignRight", "右对齐"),
           onClick: (selection) =>
             handleAlignSelection(AlignmentEnum.Right, selection),
           disabled: (selection) => !hasMultiSelectedNodes(selection),
         },
         {
           key: "align-top",
-          label: "顶部对齐",
+          label: uiT("ui.flow.selectionContextMenu.alignTop", "顶部对齐"),
           onClick: (selection) =>
             handleAlignSelection(AlignmentEnum.Top, selection),
           disabled: (selection) => !hasMultiSelectedNodes(selection),
         },
         {
           key: "align-middle",
-          label: "垂直居中",
+          label: uiT("ui.flow.selectionContextMenu.alignMiddle", "垂直居中"),
           onClick: (selection) =>
             handleAlignSelection(AlignmentEnum.Middle, selection),
           disabled: (selection) => !hasMultiSelectedNodes(selection),
         },
         {
           key: "align-bottom",
-          label: "底部对齐",
+          label: uiT("ui.flow.selectionContextMenu.alignBottom", "底部对齐"),
           onClick: (selection) =>
             handleAlignSelection(AlignmentEnum.Bottom, selection),
           disabled: (selection) => !hasMultiSelectedNodes(selection),
@@ -407,34 +435,46 @@ export function getSelectionContextMenuConfig(
     },
     {
       key: "spacing-selection",
-      label: "间距",
+      label: uiT("ui.flow.selectionContextMenu.spacing", "间距"),
       icon: "icon-jurassic_HorFensan-align",
       iconSize: 16,
       children: [
         {
           key: "spacing-horizontal-decrease",
-          label: "减小水平间距",
+          label: uiT(
+            "ui.flow.selectionContextMenu.decreaseHorizontalSpacing",
+            "减小水平间距",
+          ),
           onClick: (selection) =>
             handleShiftSelection("horizontal", -5, selection),
           disabled: (selection) => !hasMultiSelectedNodes(selection),
         },
         {
           key: "spacing-horizontal-increase",
-          label: "增大水平间距",
+          label: uiT(
+            "ui.flow.selectionContextMenu.increaseHorizontalSpacing",
+            "增大水平间距",
+          ),
           onClick: (selection) =>
             handleShiftSelection("horizontal", 5, selection),
           disabled: (selection) => !hasMultiSelectedNodes(selection),
         },
         {
           key: "spacing-vertical-decrease",
-          label: "减小垂直间距",
+          label: uiT(
+            "ui.flow.selectionContextMenu.decreaseVerticalSpacing",
+            "减小垂直间距",
+          ),
           onClick: (selection) =>
             handleShiftSelection("vertical", -5, selection),
           disabled: (selection) => !hasMultiSelectedNodes(selection),
         },
         {
           key: "spacing-vertical-increase",
-          label: "增大垂直间距",
+          label: uiT(
+            "ui.flow.selectionContextMenu.increaseVerticalSpacing",
+            "增大垂直间距",
+          ),
           onClick: (selection) =>
             handleShiftSelection("vertical", 5, selection),
           disabled: (selection) => !hasMultiSelectedNodes(selection),
@@ -444,7 +484,7 @@ export function getSelectionContextMenuConfig(
     },
     {
       key: "auto-layout-selection",
-      label: "局部自动布局",
+      label: uiT("ui.flow.selectionContextMenu.autoLayout", "局部自动布局"),
       icon: "icon-liuchengtu",
       iconSize: 16,
       onClick: handleAutoLayoutSelection,
@@ -453,7 +493,7 @@ export function getSelectionContextMenuConfig(
     },
     {
       key: "reset-edge-controls",
-      label: "还原连线路径",
+      label: uiT("ui.flow.selectionContextMenu.resetEdgeControls", "还原连线路径"),
       icon: "icon-connecting_line",
       iconSize: 16,
       onClick: handleResetEdgeControls,
@@ -462,25 +502,28 @@ export function getSelectionContextMenuConfig(
     },
     {
       key: "group-selection",
-      label: "分组",
+      label: uiT("ui.flow.selectionContextMenu.group", "分组"),
       icon: "icon-kuangxuanzhong",
       iconSize: 16,
       children: [
         {
           key: "create-group",
-          label: "创建分组",
+          label: uiT("ui.flow.selectionContextMenu.createGroup", "创建分组"),
           onClick: handleCreateGroup,
           disabled: (selection) => !hasNonGroupNodes(selection),
         },
         {
           key: "detach-from-group",
-          label: "移出当前分组",
+          label: uiT(
+            "ui.flow.selectionContextMenu.detachFromGroup",
+            "移出当前分组",
+          ),
           onClick: handleDetachSelectionFromGroup,
           disabled: (selection) => !hasGroupedNodes(selection),
         },
         {
           key: "ungroup-selection",
-          label: "解散所选分组",
+          label: uiT("ui.flow.selectionContextMenu.ungroup", "解散所选分组"),
           onClick: handleUngroupSelection,
           disabled: (selection) => !hasGroupNodes(selection),
         },
@@ -493,7 +536,7 @@ export function getSelectionContextMenuConfig(
     },
     {
       key: "delete-selection",
-      label: "删除",
+      label: uiT("ui.flow.selectionContextMenu.delete", "删除"),
       icon: "icon-shanchu",
       iconSize: 16,
       onClick: handleDeleteSelection,

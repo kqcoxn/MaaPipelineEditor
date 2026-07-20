@@ -1,3 +1,4 @@
+import uiT from "../../i18n/translate";
 import type {
   DebugDiagnostic,
   DebugEvent,
@@ -57,36 +58,50 @@ export function validateRunRequest(
     diagnostics.push({
       severity: "error",
       code: "debug.controller.missing",
-      message: "设备未连接：缺少已连接控制器（Controller），无法启动调试。",
+      message: uiT(
+        "ui.debug.modalUtils.controllerMissing",
+        "设备未连接：缺少已连接控制器（Controller），无法启动调试。",
+      ),
     });
   }
   if (request.profile.resourcePaths.length === 0) {
     diagnostics.push({
       severity: "error",
       code: "debug.resource.empty",
-      message:
+      message: uiT(
+        "ui.debug.modalUtils.resourceEmpty",
         "资源路径（Resource Paths）为空，请配置资源路径或刷新 LocalBridge 资源包（Resource Bundle）。",
+      ),
     });
   }
   if (!request.graphSnapshot.files.length) {
     diagnostics.push({
       severity: "error",
       code: "debug.graph.empty",
-      message: "当前图快照为空，无法启动调试。",
+      message: uiT(
+        "ui.debug.modalUtils.graphEmpty",
+        "当前图快照为空，无法启动调试。",
+      ),
     });
   }
   if (!request.resolverSnapshot.nodes.length) {
     diagnostics.push({
       severity: "error",
       code: "debug.resolver.empty",
-      message: "当前没有可映射到运行时的 Pipeline 节点。",
+      message: uiT(
+        "ui.debug.modalUtils.resolverEmpty",
+        "当前没有可映射到运行时的 Pipeline 节点。",
+      ),
     });
   }
   if (targetRunModes.has(request.mode) && !request.target?.runtimeName) {
     diagnostics.push({
       severity: "error",
       code: "debug.target.missing",
-      message: "节点级调试缺少目标节点（Target）。",
+      message: uiT(
+        "ui.debug.modalUtils.targetMissing",
+        "节点级调试缺少目标节点（Target）。",
+      ),
     });
   }
   return diagnostics;

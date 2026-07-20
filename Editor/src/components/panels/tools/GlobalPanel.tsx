@@ -5,6 +5,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { Badge, message, Tooltip, Popover, Modal } from "antd";
 import classNames from "classnames";
 import IconFont from "../../iconfonts";
@@ -51,6 +52,7 @@ function confirmDebugIntro(): void {
 }
 
 function GlobalPanel() {
+  const { t } = useTranslation();
 
   // store
   const clipboardNodes = useClipboardStore((state) => state.clipboardNodes);
@@ -81,9 +83,12 @@ function GlobalPanel() {
     }
 
     Modal.info({
-      title: "关于 MPE FlowScope (调试模块)",
+      title: t(
+        "ui.panels.tools.global.debugIntroTitle",
+        "关于 MPE FlowScope (调试模块)",
+      ),
       content: <DebugFlowScopeIntro />,
-      okText: "我知道了",
+      okText: t("ui.panels.tools.global.debugIntroOk", "我知道了"),
       onOk: () => {
         confirmDebugIntro();
         openDebugModal();
@@ -108,25 +113,25 @@ function GlobalPanel() {
   const globalTools = useMemo<GlobalToolType[]>(
     () => [
       {
-        label: "系统配置",
+        label: t("ui.panels.tools.global.systemConfig", "系统配置"),
         iconName: "icon-a-080_shezhi",
         iconSize: 39,
         onClick: () => setStatus("showConfigPanel", true),
       },
       {
-        label: "文件配置",
+        label: t("ui.panels.tools.global.fileConfig", "文件配置"),
         iconName: "icon-wenjianpeizhi",
         iconSize: 24,
         onClick: () => setStatus("showFileConfigPanel", true),
       },
       {
-        label: "AI 对话历史",
+        label: t("ui.panels.tools.global.aiHistory", "AI 对话历史"),
         iconName: "icon-jiqiren",
         iconSize: 27,
         onClick: () => setStatus("showAIHistoryPanel", true),
       },
     ],
-    [setStatus],
+    [setStatus, t],
   );
 
   // 编辑工具
@@ -134,34 +139,52 @@ function GlobalPanel() {
     () => [
       {
         label:
-          focusOpacity === 1 ? "聚焦透明度（已关闭）" : "聚焦透明度（已开启）",
+          focusOpacity === 1
+            ? t("ui.panels.tools.global.focusOpacityOff", "聚焦透明度（已关闭）")
+            : t("ui.panels.tools.global.focusOpacityOn", "聚焦透明度（已开启）"),
         iconName: "icon-toumingdu",
         iconSize: 27,
         dimmed: focusOpacity === 1,
         onClick: () => {
           if (focusOpacity === 1) {
             setConfig("focusOpacity", 0.3);
-            message.success("聚焦透明度已开启");
+            message.success(
+              t(
+                "ui.panels.tools.global.focusOpacityEnabled",
+                "聚焦透明度已开启",
+              ),
+            );
           } else {
             setConfig("focusOpacity", 1);
-            message.success("聚焦透明度已关闭");
+            message.success(
+              t(
+                "ui.panels.tools.global.focusOpacityDisabled",
+                "聚焦透明度已关闭",
+              ),
+            );
           }
         },
       },
       {
-        label: "复制 (Ctrl+C)",
+        label: t("ui.panels.tools.global.copy", "复制 (Ctrl+C)"),
         iconName: "icon-a-copyfubenfuzhi",
         iconSize: 25,
         disabled: debouncedSelectedNodes.length === 0,
         onClick: () => copy(debouncedSelectedNodes, []),
-        onDisabledClick: () => message.error("未选中节点"),
+        onDisabledClick: () =>
+          message.error(
+            t("ui.panels.tools.global.noNodeSelected", "未选中节点"),
+          ),
       },
       {
-        label: "粘贴 (Ctrl+V)",
+        label: t("ui.panels.tools.global.paste", "粘贴 (Ctrl+V)"),
         iconName: "icon-niantie1",
         iconSize: 29,
         disabled: clipboardNodes.length === 0,
-        onDisabledClick: () => message.error("粘贴板中无已复制节点"),
+        onDisabledClick: () =>
+          message.error(
+            t("ui.panels.tools.global.clipboardEmpty", "粘贴板中无已复制节点"),
+          ),
         onClick: () => {
           const content = clipboardPaste();
           if (content) {
@@ -170,27 +193,37 @@ function GlobalPanel() {
         },
       },
       {
-        label: "撤销 (Ctrl+Z)",
+        label: t("ui.panels.tools.global.undo", "撤销 (Ctrl+Z)"),
         iconName: "icon-fanhui",
         iconSize: 22,
         disabled: !historyState.canUndo,
-        onDisabledClick: () => message.warning("真的没有了😭"),
+        onDisabledClick: () =>
+          message.warning(
+            t("ui.panels.tools.global.nothingLeft", "真的没有了😭"),
+          ),
         onClick: () => {
           if (undo()) {
-            message.success("撤销成功");
+            message.success(
+              t("ui.panels.tools.global.undoSuccess", "撤销成功"),
+            );
             forceUpdate({});
           }
         },
       },
       {
-        label: "重做 (Ctrl+Y)",
+        label: t("ui.panels.tools.global.redo", "重做 (Ctrl+Y)"),
         iconName: "icon-qianjin",
         iconSize: 22,
         disabled: !historyState.canRedo,
-        onDisabledClick: () => message.warning("真的没有了😭"),
+        onDisabledClick: () =>
+          message.warning(
+            t("ui.panels.tools.global.nothingLeft", "真的没有了😭"),
+          ),
         onClick: () => {
           if (redo()) {
-            message.success("重做成功");
+            message.success(
+              t("ui.panels.tools.global.redoSuccess", "重做成功"),
+            );
             forceUpdate({});
           }
         },
@@ -207,6 +240,7 @@ function GlobalPanel() {
       flowPaste,
       undo,
       redo,
+      t,
     ],
   );
 
@@ -263,13 +297,20 @@ function GlobalPanel() {
           <li className={style.item}>
             <Popover
               placement="bottom"
-              title="节点路径"
+              title={t("ui.panels.tools.global.nodePath", "节点路径")}
               content={<PathSelector />}
               trigger="click"
             >
               <Tooltip
                 placement="bottom"
-                title={pathMode ? "节点路径（已开启）" : "节点路径"}
+                title={
+                  pathMode
+                    ? t(
+                        "ui.panels.tools.global.nodePathEnabled",
+                        "节点路径（已开启）",
+                      )
+                    : t("ui.panels.tools.global.nodePath", "节点路径")
+                }
               >
                 <IconFont
                   style={{ opacity: pathMode ? 1 : 0.4 }}
@@ -291,12 +332,21 @@ function GlobalPanel() {
               placement="bottom"
               title={
                 <span style={{ display: "inline-flex", alignItems: "center" }}>
-                  工具箱
+                  {t("ui.panels.tools.global.toolbox", "工具箱")}
                   <span style={{ marginTop: 2 }}>
                     <WikiAnchor
-                      path="20.本地服务/20.字段快捷工具.html"
-                      title="字段快捷工具"
-                      description="ROI选区、OCR、取色等快捷操作"
+                      path={t(
+                        "ui.panels.tools.global.wiki.path",
+                        "20.本地服务/20.字段快捷工具.html",
+                      )}
+                      title={t(
+                        "ui.panels.tools.global.fieldToolsWikiTitle",
+                        "字段快捷工具",
+                      )}
+                      description={t(
+                        "ui.panels.tools.global.fieldToolsWikiDesc",
+                        "ROI选区、OCR、取色等快捷操作",
+                      )}
                     />
                   </span>
                 </span>
@@ -308,7 +358,10 @@ function GlobalPanel() {
               }
               trigger="click"
             >
-              <Tooltip placement="bottom" title="工具箱">
+              <Tooltip
+                placement="bottom"
+                title={t("ui.panels.tools.global.toolbox", "工具箱")}
+              >
                 <IconFont
                   className={style.icon}
                   name="icon-gongjuxiang"
@@ -324,7 +377,10 @@ function GlobalPanel() {
             <div></div>
           </div>
           <li className={style.item}>
-            <Tooltip placement="bottom" title="调试">
+            <Tooltip
+              placement="bottom"
+              title={t("ui.panels.tools.global.debug", "调试")}
+            >
               <IconFont
                 className={style.icon}
                 name="icon-tiaoshi"
@@ -346,7 +402,10 @@ function GlobalPanel() {
             <div></div>
           </div>
           <li className={style.item}>
-            <Tooltip placement="bottom" title="文档站">
+            <Tooltip
+              placement="bottom"
+              title={t("ui.panels.tools.global.docs", "文档站")}
+            >
               <IconFont
                 className={style.icon}
                 name="icon-icon_wendangziliaopeizhi"

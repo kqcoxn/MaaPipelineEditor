@@ -4,6 +4,7 @@
  */
 
 import { useConfigStore } from "../../stores/configStore";
+import uiT from "../../i18n/translate";
 import { aiHistoryManager } from "./history";
 import { decryptApiKey } from "./crypto";
 import {
@@ -78,9 +79,15 @@ export class AIClient {
   /** 校验配置 */
   private async validateConfig(): Promise<string | null> {
     const config = await this.getConfig();
-    if (!config.apiUrl) return "API URL 未配置";
-    if (!config.apiKey) return "API Key 未配置";
-    if (!config.model) return "模型名称未配置";
+    if (!config.apiUrl) {
+      return uiT("ui.utils.aiClient.apiUrlNotConfigured", "API URL 未配置");
+    }
+    if (!config.apiKey) {
+      return uiT("ui.utils.aiClient.apiKeyNotConfigured", "API Key 未配置");
+    }
+    if (!config.model) {
+      return uiT("ui.utils.aiClient.modelNotConfigured", "模型名称未配置");
+    }
     return null;
   }
 
@@ -123,10 +130,9 @@ export class AIClient {
   /** 将错误转为用户友好的提示信息 */
   private formatError(err: any): string {
     if (this.isCorsLikeError(err)) {
-      return (
-        "请求失败，可能是浏览器跨域(CORS)限制。" +
-        "请开启 LocalBridge 代理（设置 → AI → 使用 LocalBridge 代理），" +
-        "或确认 API 服务已允许当前域的跨域请求。"
+      return uiT(
+        "ui.utils.aiClient.corsError",
+        "请求失败，可能是浏览器跨域(CORS)限制。请开启 LocalBridge 代理（设置 → AI → 使用 LocalBridge 代理），或确认 API 服务已允许当前域的跨域请求。",
       );
     }
     return err.message || String(err);
@@ -259,7 +265,11 @@ export class AIClient {
       } catch (err: any) {
         if (err.name === "AbortError") {
           this.messages.pop();
-          return { success: false, content: "", error: "请求已取消" };
+          return {
+            success: false,
+            content: "",
+            error: uiT("ui.utils.aiClient.requestCancelled", "请求已取消"),
+          };
         }
         lastError = this.formatError(err);
         // CORS 类错误不重试（重试也无法解决）
@@ -325,7 +335,9 @@ export class AIClient {
 
         const reader = response.body?.getReader();
         if (!reader) {
-          throw new Error("无法获取响应流");
+          throw new Error(
+            uiT("ui.utils.aiClient.responseStreamUnavailable", "无法获取响应流"),
+          );
         }
 
         const decoder = new TextDecoder();
@@ -369,7 +381,11 @@ export class AIClient {
       } catch (err: any) {
         if (err.name === "AbortError") {
           this.messages.pop();
-          return { success: false, content: "", error: "请求已取消" };
+          return {
+            success: false,
+            content: "",
+            error: uiT("ui.utils.aiClient.requestCancelled", "请求已取消"),
+          };
         }
         lastError = this.formatError(err);
         if (this.isCorsLikeError(err)) break;
@@ -408,7 +424,7 @@ export class AIClient {
         error: configError,
         hasImage: true,
         imageBase64,
-        imageDescription: "设备截图",
+        imageDescription: uiT("ui.utils.aiClient.deviceScreenshot", "设备截图"),
         textContent,
       });
       return { success: false, content: "", error: configError };
@@ -455,7 +471,7 @@ export class AIClient {
           success: true,
           hasImage: true,
           imageBase64,
-          imageDescription: "设备截图",
+          imageDescription: uiT("ui.utils.aiClient.deviceScreenshot", "设备截图"),
           textContent,
           tokenUsage: finalUsage,
         });
@@ -464,7 +480,11 @@ export class AIClient {
       } catch (err: any) {
         if (err.name === "AbortError") {
           this.messages.pop();
-          return { success: false, content: "", error: "请求已取消" };
+          return {
+            success: false,
+            content: "",
+            error: uiT("ui.utils.aiClient.requestCancelled", "请求已取消"),
+          };
         }
         lastError = this.formatError(err);
         if (this.isCorsLikeError(err)) break;
@@ -483,7 +503,7 @@ export class AIClient {
       error: lastError,
       hasImage: true,
       imageBase64,
-      imageDescription: "设备截图",
+      imageDescription: uiT("ui.utils.aiClient.deviceScreenshot", "设备截图"),
       textContent,
     });
     return { success: false, content: "", error: lastError };

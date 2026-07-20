@@ -1,6 +1,7 @@
 import style from "../../../styles/panels/AIHistoryPanel.module.less";
 
 import { memo, useMemo, useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Empty, Tag, Tooltip, Modal } from "antd";
 import classNames from "classnames";
 import IconFont from "../../iconfonts";
@@ -23,6 +24,7 @@ function formatTime(timestamp: number): string {
 
 /** 单条历史记录组件 */
 const HistoryItem = memo(({ record }: { record: AIHistoryRecord }) => {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false); // 实际消息展开
   const [responseExpanded, setResponseExpanded] = useState(false); // AI回复展开
   const [imagePreview, setImagePreview] = useState(false); // 图片预览
@@ -39,7 +41,9 @@ const HistoryItem = memo(({ record }: { record: AIHistoryRecord }) => {
       <div className={style.header}>
         <span className={style.time}>{formatTime(record.timestamp)}</span>
         <Tag color={record.success ? "success" : "error"} className={style.tag}>
-          {record.success ? "成功" : "失败"}
+          {record.success
+            ? t("ui.panels.main.aiHistory.success", "成功")
+            : t("ui.panels.main.aiHistory.failed", "失败")}
         </Tag>
 
         {/* Token统计标签 */}
@@ -47,11 +51,22 @@ const HistoryItem = memo(({ record }: { record: AIHistoryRecord }) => {
           <Tooltip
             title={
               <div>
-                <div>输入: {record.tokenUsage.promptTokens} tokens</div>
-                <div>输出: {record.tokenUsage.completionTokens} tokens</div>
-                <div>总计: {record.tokenUsage.totalTokens} tokens</div>
+                <div>
+                  {t("ui.panels.main.aiHistory.inputTokens", "输入:")}{" "}
+                  {record.tokenUsage.promptTokens} tokens
+                </div>
+                <div>
+                  {t("ui.panels.main.aiHistory.outputTokens", "输出:")}{" "}
+                  {record.tokenUsage.completionTokens} tokens
+                </div>
+                <div>
+                  {t("ui.panels.main.aiHistory.totalTokens", "总计:")}{" "}
+                  {record.tokenUsage.totalTokens} tokens
+                </div>
                 {record.tokenUsage.isEstimated && (
-                  <div style={{ color: "#faad14" }}>(估算值)</div>
+                  <div style={{ color: "#faad14" }}>
+                    {t("ui.panels.main.aiHistory.estimated", "(估算值)")}
+                  </div>
                 )}
               </div>
             }
@@ -64,9 +79,14 @@ const HistoryItem = memo(({ record }: { record: AIHistoryRecord }) => {
         )}
 
         {record.actualMessage !== record.userPrompt && (
-          <Tooltip title="实际消息包含预设提示词">
+          <Tooltip
+            title={t(
+              "ui.panels.main.aiHistory.hasPromptTooltip",
+              "实际消息包含预设提示词",
+            )}
+          >
             <Tag color="processing" className={style.tag}>
-              含提示词
+              {t("ui.panels.main.aiHistory.hasPromptTag", "含提示词")}
             </Tag>
           </Tooltip>
         )}
@@ -74,7 +94,9 @@ const HistoryItem = memo(({ record }: { record: AIHistoryRecord }) => {
 
       <div className={style.content}>
         <div className={style.section}>
-          <div className={style.label}>用户输入:</div>
+          <div className={style.label}>
+            {t("ui.panels.main.aiHistory.userInput", "用户输入:")}
+          </div>
           <div className={style.text}>{record.userPrompt}</div>
         </div>
 
@@ -84,7 +106,7 @@ const HistoryItem = memo(({ record }: { record: AIHistoryRecord }) => {
               className={style.expandLabel}
               onClick={() => setExpanded(!expanded)}
             >
-              <span>实际消息</span>
+              <span>{t("ui.panels.main.aiHistory.actualMessage", "实际消息")}</span>
               <IconFont
                 name={expanded ? "icon-xiahua" : "icon-qianjin"}
                 size={12}
@@ -118,7 +140,9 @@ const HistoryItem = memo(({ record }: { record: AIHistoryRecord }) => {
         )}
 
         <div className={style.section}>
-          <div className={style.label}>AI 回复:</div>
+          <div className={style.label}>
+            {t("ui.panels.main.aiHistory.aiReply", "AI 回复:")}
+          </div>
           <div className={style.text}>
             {record.success ? (
               <>
@@ -134,7 +158,11 @@ const HistoryItem = memo(({ record }: { record: AIHistoryRecord }) => {
                     className={style.expandLabel}
                     onClick={() => setResponseExpanded(!responseExpanded)}
                   >
-                    <span>{responseExpanded ? "收起" : "展开完整回复"}</span>
+                    <span>
+                      {responseExpanded
+                        ? t("ui.panels.main.aiHistory.collapse", "收起")
+                        : t("ui.panels.main.aiHistory.expandFull", "展开完整回复")}
+                    </span>
                     <IconFont
                       name={responseExpanded ? "icon-xiahua" : "icon-qianjin"}
                       size={12}
@@ -144,7 +172,10 @@ const HistoryItem = memo(({ record }: { record: AIHistoryRecord }) => {
                 )}
               </>
             ) : (
-              <span className={style.error}>{record.error || "未知错误"}</span>
+              <span className={style.error}>
+                {record.error ||
+                  t("ui.panels.main.aiHistory.unknownError", "未知错误")}
+              </span>
             )}
           </div>
         </div>
@@ -172,6 +203,7 @@ const HistoryItem = memo(({ record }: { record: AIHistoryRecord }) => {
 
 /** AI 对话历史面板 */
 function AIHistoryPanel() {
+  const { t } = useTranslation();
   // store
   const showAIHistoryPanel = useConfigStore(
     (state) => state.status.showAIHistoryPanel,
@@ -217,12 +249,22 @@ function AIHistoryPanel() {
     <div className={panelClass}>
       <div className={classNames("header", style.header)}>
         <div className="title">
-          AI 对话历史
-          <WikiAnchor path="20.本地服务/50.AI 服务.html" title="AI 服务" description="AI对话与智能辅助功能" />
+          {t("ui.panels.main.aiHistory.title", "AI 对话历史")}
+          <WikiAnchor
+            path={t(
+              "ui.panels.main.aiHistory.wiki.path",
+              "20.本地服务/50.AI 服务.html",
+            )}
+            title={t("ui.panels.main.aiHistory.wiki.title", "AI 服务")}
+            description={t(
+              "ui.panels.main.aiHistory.wiki.description",
+              "AI对话与智能辅助功能",
+            )}
+          />
         </div>
         <div className={style.right}>
           {records.length > 0 && (
-            <Tooltip title="清空历史">
+            <Tooltip title={t("ui.panels.main.aiHistory.clearHistory", "清空历史")}>
               <IconFont
                 className="icon-interactive"
                 name="icon-lanzilajitongshanchu"
@@ -243,7 +285,7 @@ function AIHistoryPanel() {
         {records.length === 0 ? (
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description="暂无对话记录"
+            description={t("ui.panels.main.aiHistory.empty", "暂无对话记录")}
             style={{ marginTop: 40 }}
           />
         ) : (

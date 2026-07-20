@@ -1,3 +1,4 @@
+import uiT from "../../i18n/translate";
 import type { DebugNodeReplay, DebugTraceSummary } from "./traceReducer";
 import {
   selectNodeAttributionRecordSeeds,
@@ -364,7 +365,7 @@ function toRecordFromSeed(
   const sourceNextOwnerLabel = sourceNextOwnerRuntimeName
     ? formatOwnerRuntimeName(sourceNextOwnerRuntimeName, nodeByRuntime)
     : sourceNextOwnerRuntimeNames.length > 1
-      ? "多个 NextList"
+      ? uiT("ui.debug.nodeExecution.multipleNextList", "多个 NextList")
       : undefined;
   const recognitionEvents = events.filter(
     (event) => event.kind === "recognition",

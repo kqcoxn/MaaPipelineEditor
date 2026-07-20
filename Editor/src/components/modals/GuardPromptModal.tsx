@@ -1,8 +1,10 @@
 import { memo, useCallback, useState } from "react";
 import { Modal } from "antd";
+import { useTranslation } from "react-i18next";
 import { useConfigStore } from "../../stores/configStore";
 import { checkGuard } from "../panels/settings/guardSystem";
 import type { ConfigItemDef } from "../panels/settings/settingsDefinitions";
+import uiT from "../../i18n/translate";
 
 interface GuardPromptModalProps {
   action: string;
@@ -11,8 +13,25 @@ interface GuardPromptModalProps {
   onCancel: () => void;
 }
 
+function settingsItemKey(itemKey: string, field: string): string {
+  return `settings.items.${itemKey}.${field}`;
+}
+
+function translateSettingsField(
+  t: (key: string, defaultValue: string) => string,
+  item: ConfigItemDef,
+  field: string,
+  value?: string,
+): string | undefined {
+  if (!value) return value;
+  return t(settingsItemKey(String(item.key), field), value);
+}
+
 /**获取配置项的当前值显示文本 */
-function getCurrentValueLabel(item: ConfigItemDef): string | null {
+function getCurrentValueLabel(
+  item: ConfigItemDef,
+  t: (key: string, defaultValue: string) => string,
+): string | null {
   const configs = useConfigStore.getState().configs;
   const key = item.key as keyof typeof configs;
   const value = configs[key];
@@ -22,12 +41,23 @@ function getCurrentValueLabel(item: ConfigItemDef): string | null {
   // select 类型：从 options 中查找对应的 label
   if (item.type === "select" && item.options) {
     const matched = item.options.find((opt) => opt.value === value);
-    return matched?.label ?? String(value);
+    if (!matched) return String(value);
+    return t(
+      `${settingsItemKey(String(item.key), "options")}.${String(matched.value)}`,
+      matched.label,
+    );
   }
 
   // switch 类型
   if (item.type === "switch") {
-    return value ? "开启" : "关闭";
+    const childrenKey = value ? "checkedChildren" : "unCheckedChildren";
+    const raw = value ? item.checkedChildren : item.unCheckedChildren;
+    if (raw) {
+      return t(settingsItemKey(String(item.key), childrenKey), raw);
+    }
+    return value
+      ? uiT("ui.modals.guardPrompt.switchOn", "开启")
+      : uiT("ui.modals.guardPrompt.switchOff", "关闭");
   }
 
   // 其他类型直接展示值
@@ -42,6 +72,7 @@ const GuardPromptModal = memo(
     onContinue,
     onCancel,
   }: GuardPromptModalProps) => {
+    const { t } = useTranslation();
     const setStatus = useConfigStore((state) => state.setStatus);
 
     const markAsConfigured = useConfigStore((state) => state.markAsConfigured);
@@ -64,7 +95,14 @@ const GuardPromptModal = memo(
     return (
       <Modal
         open
-        title={unconfiguredItems[0]?.guardPromptTitle ?? "需要先完成配置"}
+        title={
+          translateSettingsField(
+            t,
+            unconfiguredItems[0],
+            "guardPromptTitle",
+            unconfiguredItems[0]?.guardPromptTitle,
+          ) ?? t("ui.modals.guardPrompt.defaultTitle", "需要先完成配置")
+        }
         onCancel={onCancel}
         footer={
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
@@ -80,7 +118,7 @@ const GuardPromptModal = memo(
               }}
               onClick={handleGoToSettings}
             >
-              前往配置
+              {t("ui.modals.guardPrompt.goToSettings", "前往配置")}
             </button>
             <button
               style={{
@@ -94,22 +132,31 @@ const GuardPromptModal = memo(
               }}
               onClick={handleContinue}
             >
-              确认并继续
+              {t("ui.modals.guardPrompt.confirmContinue", "确认并继续")}
             </button>
           </div>
         }
         width={420}
       >
         <div style={{ marginBottom: 12 }}>
-          {unconfiguredItems[0]?.guardPromptDescription ??
-            "以下配置项尚未设置，可能影响功能使用："}
+          {translateSettingsField(
+            t,
+            unconfiguredItems[0],
+            "guardPromptDescription",
+            unconfiguredItems[0]?.guardPromptDescription,
+          ) ??
+            t(
+              "ui.modals.guardPrompt.defaultDescription",
+              "以下配置项尚未设置，可能影响功能使用：",
+            )}
         </div>
         <ul style={{ paddingLeft: 20, margin: 0 }}>
           {unconfiguredItems.map((item) => {
-            const currentValue = getCurrentValueLabel(item);
+            const currentValue = getCurrentValueLabel(item, t);
+            const itemLabel = translateSettingsField(t, item, "label", item.label);
             return (
               <li key={item.key} style={{ marginBottom: 4 }}>
-                <span style={{ fontWeight: 500 }}>{item.label}</span>
+                <span style={{ fontWeight: 500 }}>{itemLabel}</span>
                 {currentValue != null && (
                   <span
                     style={{
@@ -118,7 +165,9 @@ const GuardPromptModal = memo(
                       marginLeft: 8,
                     }}
                   >
-                    （当前：{currentValue}）
+                    {t("ui.modals.guardPrompt.currentValue", "（当前：{{value}}）", {
+                      value: currentValue,
+                    })}
                   </span>
                 )}
               </li>

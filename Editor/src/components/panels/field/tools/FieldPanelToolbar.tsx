@@ -1,4 +1,5 @@
 import { memo, useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { Tooltip, message, notification } from "antd";
 import IconFont from "../../../iconfonts";
 import type {
@@ -30,6 +31,7 @@ export const FieldPanelToolbarLeft = memo(
     currentNode: NodeType | null;
     onEditJson?: () => void;
   }) => {
+    const { t } = useTranslation();
     const showCopyRecoButton =
       currentNode && currentNode.type === NodeTypeEnum.Pipeline;
 
@@ -53,7 +55,10 @@ export const FieldPanelToolbarLeft = memo(
 
     return (
       <div style={{ display: "flex", gap: 8 }}>
-        <Tooltip placement="top" title={"复制节点名"}>
+        <Tooltip
+          placement="top"
+          title={t("ui.panels.field.toolbar.copyNodeName", "复制节点名")}
+        >
           <IconFont
             className="icon-interactive"
             name="icon-xiaohongshubiaoti"
@@ -62,7 +67,10 @@ export const FieldPanelToolbarLeft = memo(
           />
         </Tooltip>
         {showCopyRecoButton && (
-          <Tooltip placement="top" title="复制 Reco JSON">
+          <Tooltip
+            placement="top"
+            title={t("ui.panels.field.toolbar.copyRecoJson", "复制 Reco JSON")}
+          >
             <IconFont
               className="icon-interactive"
               name="icon-kapianshibie"
@@ -72,7 +80,10 @@ export const FieldPanelToolbarLeft = memo(
           </Tooltip>
         )}
         {currentNode && (
-          <Tooltip placement="top" title="编辑 JSON">
+          <Tooltip
+            placement="top"
+            title={t("ui.panels.field.toolbar.editJson", "编辑 JSON")}
+          >
             <IconFont
               className="icon-interactive"
               name="icon-JSON"
@@ -99,6 +110,7 @@ export const FieldPanelToolbarRight = memo(
     onProgressChange?: (stage: string, detail?: string) => void;
     onDelete?: () => void;
   }) => {
+    const { t } = useTranslation();
     const [aiPredicting, setAiPredicting] = useState(false);
 
     const showPipelineButtons =
@@ -137,7 +149,9 @@ export const FieldPanelToolbarRight = memo(
 
       const label = currentNode.data.label;
       if (!label) {
-        message.warning("节点名为空");
+        message.warning(
+          t("ui.panels.field.toolbar.emptyNodeName", "节点名为空"),
+        );
         return;
       }
 
@@ -151,7 +165,7 @@ export const FieldPanelToolbarRight = memo(
       } else {
         message.warning(result.message);
       }
-    }, [currentNode]);
+    }, [currentNode, t]);
 
     // 处理AI预测
     const handleAIPredict = async () => {
@@ -161,13 +175,20 @@ export const FieldPanelToolbarRight = memo(
 
       // 检查前置条件
       if (connectionStatus !== "connected" || !controllerId) {
-        message.error("请先连接到本地服务与设备");
+        message.error(
+          t(
+            "ui.panels.field.toolbar.connectLocalFirst",
+            "请先连接到本地服务与设备",
+          ),
+        );
         return;
       }
 
       // 检查 AI 配置
       if (!aiApiUrl || !aiApiKey || !aiModel) {
-        message.error("请先在配置面板中设置 AI API");
+        message.error(
+          t("ui.panels.field.toolbar.configureAiFirst", "请先在配置面板中设置 AI API"),
+        );
         return;
       }
 
@@ -188,7 +209,12 @@ export const FieldPanelToolbarRight = memo(
 
         // 检查截图是否成功
         if (!context.screenshot) {
-          message.error("截图获取失败，请检查设备连接");
+          message.error(
+            t(
+              "ui.panels.field.toolbar.screenshotFailed",
+              "截图获取失败，请检查设备连接",
+            ),
+          );
           return;
         }
 
@@ -196,22 +222,35 @@ export const FieldPanelToolbarRight = memo(
         const prediction = await predictNodeConfig(context, onProgressChange);
 
         // 应用预测结果
-        onProgressChange?.("应用配置", "正在填充节点字段...");
+        onProgressChange?.(
+          t("ui.panels.field.toolbar.applyConfig", "应用配置"),
+          t("ui.panels.field.toolbar.fillingFields", "正在填充节点字段..."),
+        );
         const result = applyPrediction(currentNode.id, prediction);
 
         if (result.filledCount > 0) {
           message.success(
-            `已成功填充 ${result.filledCount} 个字段，可在AI对话历史中查看详细推理依据`,
+            t(
+              "ui.panels.field.toolbar.filledSuccess",
+              "已成功填充 {{count}} 个字段，可在AI对话历史中查看详细推理依据",
+              { count: result.filledCount },
+            ),
           );
 
           // 显示需要验证的字段提示
           if (result.validationHints.length > 0) {
             notification.warning({
-              title: "以下字段需要手动验证",
+              title: t(
+                "ui.panels.field.toolbar.validationRequiredTitle",
+                "以下字段需要手动验证",
+              ),
               description: (
                 <div>
                   <p style={{ marginBottom: 8 }}>
-                    AI 无法准确预测这些字段的值，请使用字段工具验证：
+                    {t(
+                      "ui.panels.field.toolbar.validationRequiredDesc",
+                      "AI 无法准确预测这些字段的值，请使用字段工具验证：",
+                    )}
                   </p>
                   {result.validationHints.map((hint, idx) => (
                     <div key={idx} style={{ marginBottom: 4 }}>
@@ -229,26 +268,62 @@ export const FieldPanelToolbarRight = memo(
           }
         } else {
           message.info(
-            "AI分析完成，但没有需要填充的字段，可在AI对话历史中查看推理依据",
+            t(
+              "ui.panels.field.toolbar.aiAnalysisNoFill",
+              "AI分析完成，但没有需要填充的字段，可在AI对话历史中查看推理依据",
+            ),
           );
         }
       } catch (err: unknown) {
-        const errorMsg = err instanceof Error ? err.message : "AI预测失败";
+        const errorMsg =
+          err instanceof Error
+            ? err.message
+            : t("ui.panels.field.toolbar.aiPredictFailed", "AI预测失败");
 
         // 根据错误类型给出不同提示
-        if (errorMsg.includes("未连接") || errorMsg.includes("截图")) {
-          message.error("截图失败，请确保设备已连接");
-        } else if (errorMsg.includes("API") || errorMsg.includes("配置")) {
-          message.error("请先在配置面板中设置AI API");
-        } else if (errorMsg.includes("视觉") || errorMsg.includes("vision")) {
+        if (
+          errorMsg.includes(t("ui.panels.field.toolbar.errNotConnected", "未连接")) ||
+          errorMsg.includes(t("ui.panels.field.toolbar.errScreenshot", "截图"))
+        ) {
           message.error(
-            "当前模型不支持视觉功能，请使用支持视觉的模型（如 GPT-4o）",
+            t(
+              "ui.panels.field.toolbar.screenshotError",
+              "截图失败，请确保设备已连接",
+            ),
+          );
+        } else if (
+          errorMsg.includes("API") ||
+          errorMsg.includes(
+            t("ui.panels.field.toolbar.errConfig", "配置"),
+          )
+        ) {
+          message.error(
+            t(
+              "ui.panels.field.toolbar.aiConfigError",
+              "请先在配置面板中设置AI API",
+            ),
+          );
+        } else if (
+          errorMsg.includes(t("ui.panels.field.toolbar.errVision", "视觉")) ||
+          errorMsg.includes("vision")
+        ) {
+          message.error(
+            t(
+              "ui.panels.field.toolbar.visionNotSupported",
+              "当前模型不支持视觉功能，请使用支持视觉的模型（如 GPT-4o）",
+            ),
           );
         } else {
-          message.error(`AI预测失败: ${errorMsg}`);
+          message.error(
+            t(
+              "ui.panels.field.toolbar.aiPredictFailedWithError",
+              "AI预测失败: {{error}}",
+              { error: errorMsg },
+            ),
+          );
         }
 
-        console.error("AI预测失败:", err);
+        console.error("AI predict failed:", err);
       } finally {
         setAiPredicting(false);
         onLoadingChange?.(false);
@@ -262,7 +337,10 @@ export const FieldPanelToolbarRight = memo(
     return (
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         {showNavigateButton && (
-          <Tooltip placement="top" title="跳转到目标节点">
+          <Tooltip
+            placement="top"
+            title={t("ui.panels.field.toolbar.navigateToTarget", "跳转到目标节点")}
+          >
             <IconFont
               className="icon-interactive"
               name="icon-qianjin"
@@ -273,7 +351,10 @@ export const FieldPanelToolbarRight = memo(
         )}
         {showPipelineButtons && (
           <>
-            <Tooltip placement="top" title="保存为模板">
+            <Tooltip
+              placement="top"
+              title={t("ui.panels.field.toolbar.saveAsTemplate", "保存为模板")}
+            >
               <IconFont
                 className="icon-interactive"
                 name="icon-biaodanmoban"
@@ -281,7 +362,13 @@ export const FieldPanelToolbarRight = memo(
                 onClick={handleSaveTemplate}
               />
             </Tooltip>
-            <Tooltip placement="top" title="AI智能预测节点配置">
+            <Tooltip
+              placement="top"
+              title={t(
+                "ui.panels.field.toolbar.aiPredictTooltip",
+                "AI智能预测节点配置",
+              )}
+            >
               <IconFont
                 className={aiPredicting ? "icon-loading" : "icon-interactive"}
                 name="icon-jiqiren"
@@ -293,7 +380,10 @@ export const FieldPanelToolbarRight = memo(
                 }}
               />
             </Tooltip>
-            <Tooltip placement="top" title="删除节点">
+            <Tooltip
+              placement="top"
+              title={t("ui.panels.field.toolbar.deleteNode", "删除节点")}
+            >
               <IconFont
                 className="icon-interactive"
                 name="icon-shanchu"

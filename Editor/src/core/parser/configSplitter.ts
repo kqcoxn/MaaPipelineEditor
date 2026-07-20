@@ -4,6 +4,7 @@
  */
 
 import type { PipelineObjType, MpeConfigType, NodeConfigType } from "./types";
+import uiT from "../../i18n/translate";
 import {
   configMark,
   configMarkPrefix,
@@ -160,7 +161,7 @@ export function mergePipelineAndConfig(
   const merged: PipelineObjType = {};
 
   // 添加文件配置节点
-  const actualFileName = fileName || config.file_config.filename || "未命名";
+  const actualFileName = fileName || config.file_config.filename || uiT("ui.parser.configSplitter.untitled", "未命名");
   merged[configMarkPrefix + actualFileName] = {
     [configMark]: {
       ...config.file_config,

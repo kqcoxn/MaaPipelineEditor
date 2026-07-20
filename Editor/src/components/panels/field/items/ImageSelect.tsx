@@ -1,4 +1,5 @@
 import { memo, useState, useEffect, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { AutoComplete, Image, Spin, Empty } from "antd";
 import {
   useLocalFileStore,
@@ -27,6 +28,7 @@ const THUMBNAIL_SIZE = 28;
  */
 export const ImageSelect = memo(
   ({ value, onChange, placeholder, inList = false }: ImageSelectProps) => {
+    const { t } = useTranslation();
     const connected = useWSStore((state) => state.connected);
     const currentFile = useFileStore((state) => state.currentFile);
     const currentFilePath = currentFile?.config?.filePath;
@@ -122,7 +124,10 @@ export const ImageSelect = memo(
               >
                 <Spin size="small" />
                 <span style={{ marginLeft: 8, color: "#999" }}>
-                  加载图片列表...
+                  {t(
+                    "ui.panels.field.imageSelect.loadingList",
+                    "加载图片列表...",
+                  )}
                 </span>
               </div>
             ),
@@ -138,7 +143,17 @@ export const ImageSelect = memo(
             label: (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={searchValue ? "无匹配图片" : "无可用图片"}
+                description={
+                  searchValue
+                    ? t(
+                        "ui.panels.field.imageSelect.noMatch",
+                        "无匹配图片",
+                      )
+                    : t(
+                        "ui.panels.field.imageSelect.noAvailable",
+                        "无可用图片",
+                      )
+                }
                 style={{ margin: "12px 0" }}
               />
             ),
@@ -239,6 +254,7 @@ export const ImageSelect = memo(
       imageCache,
       pendingImageRequests,
       searchValue,
+      t,
     ]);
 
     // 处理选择
@@ -276,7 +292,10 @@ export const ImageSelect = memo(
         onBlur={handleBlur}
         onOpenChange={handleDropdownOpen}
         open={open}
-        placeholder={placeholder || "输入或选择图片路径"}
+        placeholder={
+          placeholder ||
+          t("ui.panels.field.imageSelect.placeholder", "输入或选择图片路径")
+        }
         allowClear
         backfill
         popupMatchSelectWidth={300}

@@ -1,3 +1,5 @@
+import uiT from "../../../i18n/translate";
+
 /**节点源句柄类型枚举 */
 export enum SourceHandleTypeEnum {
   Next = "next",
@@ -39,8 +41,20 @@ export const HANDLE_DIRECTION_OPTIONS: {
   value: HandleDirection;
   label: string;
 }[] = [
-  { value: "left-right", label: "左右" },
-  { value: "right-left", label: "右左" },
-  { value: "top-bottom", label: "上下" },
-  { value: "bottom-top", label: "下上" },
+  {
+    value: "left-right",
+    label: uiT("ui.flow.constants.handleDirection.leftRight", "左右"),
+  },
+  {
+    value: "right-left",
+    label: uiT("ui.flow.constants.handleDirection.rightLeft", "右左"),
+  },
+  {
+    value: "top-bottom",
+    label: uiT("ui.flow.constants.handleDirection.topBottom", "上下"),
+  },
+  {
+    value: "bottom-top",
+    label: uiT("ui.flow.constants.handleDirection.bottomTop", "下上"),
+  },
 ];

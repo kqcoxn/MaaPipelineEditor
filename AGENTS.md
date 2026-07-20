@@ -5,6 +5,10 @@
 - 名称：MaaPipelineEditor (mpe)
 - 地址：https://github.com/kqcoxn/MaaPipelineEditor
 
+## 代码导航
+
+- **LLM 快速检索地图**：`.agents/CODEBASE_MAP.md`（模块树、Store 索引、WS 路由、按任务检索表）
+
 ## 项目结构
 
 - **前端（editor）**：`/Editor`

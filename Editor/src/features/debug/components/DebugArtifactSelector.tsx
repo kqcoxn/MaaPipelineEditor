@@ -1,4 +1,5 @@
 ﻿import { Button, Space, Typography } from "antd";
+import { useTranslation } from "react-i18next";
 import { DebugArtifactPreview } from "./DebugArtifactPreview";
 import type { DebugArtifactEntry } from "../../../stores/debugArtifactStore";
 import type {
@@ -15,7 +16,7 @@ export interface DebugArtifactSelectorGroup {
 
 export function DebugArtifactSelector({
   box,
-  emptyText = "没有可查看的 artifact 引用。",
+  emptyText,
   groups,
   overlayGroups,
   overlays,
@@ -30,6 +31,9 @@ export function DebugArtifactSelector({
   requestArtifact: (artifactId: string) => void;
   selectedArtifact?: DebugArtifactEntry;
 }) {
+  const { t } = useTranslation();
+  const resolvedEmptyText =
+    emptyText ?? t("debug.artifact.emptyDefault", "没有可查看的 artifact 引用。");
   const activeRefs = new Set(
     groups.flatMap((group) => group.refs.map((item) => item.ref)),
   );
@@ -38,7 +42,7 @@ export function DebugArtifactSelector({
     selectedArtifact && activeRefs.has(selectedArtifact.ref.id);
 
   if (!hasRefs) {
-    return <Text type="secondary">{emptyText}</Text>;
+    return <Text type="secondary">{resolvedEmptyText}</Text>;
   }
 
   return (

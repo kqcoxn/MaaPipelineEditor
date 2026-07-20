@@ -1,4 +1,5 @@
 import { message } from "antd";
+import uiT from "../../i18n/translate";
 import type { DebugModalPanel, DebugNodeTarget } from "./types";
 import {
   buildDebugSnapshotBundle,
@@ -40,7 +41,9 @@ export function applyDebugNodeTarget(
 ): DebugNodeTarget | undefined {
   const target = getDebugNodeTarget(nodeId);
   if (!target) {
-    message.warning("请选择可调试的 Pipeline 节点");
+    message.warning(
+      uiT("ui.debug.nodeTarget.selectPipelineNode", "请选择可调试的 Pipeline 节点"),
+    );
     return undefined;
   }
 

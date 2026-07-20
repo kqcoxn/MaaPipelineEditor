@@ -12,6 +12,7 @@ import {
   calcuLinkOrder,
   getSelectedEdges,
 } from "../utils/edgeUtils";
+import i18n from "../../../i18n";
 
 export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
   set,
@@ -60,7 +61,7 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
       get().saveHistory(0, {
         category: "edge",
         action: "delete",
-        description: "删除连接",
+        description: i18n.t("stores.flow.history.deleteEdge", "删除连接"),
       });
     }
   },
@@ -104,7 +105,7 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
     get().saveHistory(500, {
       category: "edge",
       action: "update",
-      description: "修改连接属性",
+      description: i18n.t("stores.flow.history.updateEdge", "修改连接属性"),
       targetIds: [id],
     });
   },
@@ -157,7 +158,7 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
     get().saveHistory(500, {
       category: "edge",
       action: "update",
-      description: "调整连接顺序",
+      description: i18n.t("stores.flow.history.reorderEdge", "调整连接顺序"),
       targetIds: [id],
     });
   },
@@ -189,7 +190,10 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
     get().saveHistory(0, {
       category: "edge",
       action: "update",
-      description: "批量调整连接顺序",
+      description: i18n.t(
+        "stores.flow.history.batchReorderEdge",
+        "批量调整连接顺序",
+      ),
       targetIds: orderedEdgeIds,
     });
   },
@@ -249,7 +253,7 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
     get().saveHistory(0, {
       category: "edge",
       action: "add",
-      description: "添加连接",
+      description: i18n.t("stores.flow.history.addEdge", "添加连接"),
     });
   },
 

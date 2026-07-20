@@ -6,6 +6,8 @@ import {
   CloseOutlined,
 } from "@ant-design/icons";
 import { memo, useState, useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import type { NodeType } from "../../stores/flow/types";
 import { useFlowStore } from "../../stores/flow";
 import { NodeTypeEnum } from "../flow/nodes";
@@ -35,7 +37,10 @@ const { Text } = Typography;
  * 验证 JSON/JSONC 格式
  * 现阶段只验证格式是否正确，不验证业务规则
  */
-function validateMfwNodeJson(jsonString: string): {
+function validateMfwNodeJson(
+  jsonString: string,
+  t: TFunction,
+): {
   valid: boolean;
   error?: string;
   data?: unknown;
@@ -44,18 +49,26 @@ function validateMfwNodeJson(jsonString: string): {
   try {
     data = JSON.parse(jsonString);
   } catch (error: unknown) {
-    return { valid: false, error: `JSON 语法错误: ${getErrorMessage(error)}` };
+    return {
+      valid: false,
+      error: t("ui.modals.nodeJsonEditor.jsonSyntaxError", "JSON 语法错误: {{message}}", {
+        message: getErrorMessage(error, t),
+      }),
+    };
   }
 
   return { valid: true, data };
 }
 
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "无法解析";
+function getErrorMessage(error: unknown, t: TFunction): string {
+  return error instanceof Error
+    ? error.message
+    : t("ui.modals.nodeJsonEditor.unparseable", "无法解析");
 }
 
 export const NodeJsonEditorModal = memo(
   ({ open, onClose, node, onSave }: NodeJsonEditorModalProps) => {
+    const { t } = useTranslation();
     const [jsonValue, setJsonValue] = useState<string>("");
     const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -84,18 +97,25 @@ export const NodeJsonEditorModal = memo(
     }, [open, node, jsonIndent, convertNodeToMfwFormat]);
 
     // 处理编辑器内容变化
-    const handleEditorChange = useCallback((value: string | undefined) => {
-      const newValue = value || "";
-      setJsonValue(newValue);
+    const handleEditorChange = useCallback(
+      (value: string | undefined) => {
+        const newValue = value || "";
+        setJsonValue(newValue);
 
-      // 实时验证 JSON 语法
-      try {
-        JSON.parse(newValue);
-        setValidationError(null);
-      } catch (error: unknown) {
-        setValidationError(`JSON 语法错误: ${getErrorMessage(error)}`);
-      }
-    }, []);
+        // 实时验证 JSON 语法
+        try {
+          JSON.parse(newValue);
+          setValidationError(null);
+        } catch (error: unknown) {
+          setValidationError(
+            t("ui.modals.nodeJsonEditor.jsonSyntaxError", "JSON 语法错误: {{message}}", {
+              message: getErrorMessage(error, t),
+            }),
+          );
+        }
+      },
+      [t],
+    );
 
     // 格式化 JSON
     const handleFormat = useCallback(() => {
@@ -109,10 +129,13 @@ export const NodeJsonEditorModal = memo(
       if (!node) return;
 
       // 验证 JSON 格式
-      const validationResult = validateMfwNodeJson(jsonValue);
+      const validationResult = validateMfwNodeJson(jsonValue, t);
 
       if (!validationResult.valid) {
-        setValidationError(validationResult.error || "验证失败");
+        setValidationError(
+          validationResult.error ||
+            t("ui.modals.nodeJsonEditor.validationFailed", "验证失败"),
+        );
         return;
       }
 
@@ -125,7 +148,7 @@ export const NodeJsonEditorModal = memo(
       // 保存数据
       onSave(storeData);
       onClose();
-    }, [jsonValue, node, onSave, onClose]);
+    }, [jsonValue, node, onSave, onClose, t]);
 
     // 获取节点类型显示名称
     const getNodeTypeLabel = (type: NodeTypeEnum): string => {
@@ -155,9 +178,13 @@ export const NodeJsonEditorModal = memo(
         title={
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <CodeOutlined style={{ fontSize: 20 }} />
-            <span style={{ fontSize: 18, fontWeight: 600 }}>编辑节点 JSON</span>
+            <span style={{ fontSize: 18, fontWeight: 600 }}>
+              {t("ui.modals.nodeJsonEditor.title", "编辑节点 JSON")}
+            </span>
             <Text type="secondary" style={{ fontSize: 14, marginLeft: 8 }}>
-              {getNodeTypeLabel(node.type)} - {node.data.label || "未命名"}
+              {getNodeTypeLabel(node.type)} -{" "}
+              {node.data.label ||
+                t("ui.modals.nodeJsonEditor.unnamed", "未命名")}
             </Text>
           </div>
         }
@@ -168,15 +195,18 @@ export const NodeJsonEditorModal = memo(
         style={{ maxHeight: "90vh" }}
         footer={[
           <Button key="cancel" onClick={onClose} icon={<CloseOutlined />}>
-            取消
+            {t("ui.modals.nodeJsonEditor.cancel", "取消")}
           </Button>,
-          <Tooltip key="format-tooltip" title="格式化 JSON">
+          <Tooltip
+            key="format-tooltip"
+            title={t("ui.modals.nodeJsonEditor.formatJson", "格式化 JSON")}
+          >
             <Button
               key="format"
               onClick={handleFormat}
               icon={<FormatPainterOutlined />}
             >
-              格式化
+              {t("ui.modals.nodeJsonEditor.format", "格式化")}
             </Button>
           </Tooltip>,
           <Button
@@ -186,7 +216,7 @@ export const NodeJsonEditorModal = memo(
             icon={<SaveOutlined />}
             disabled={!!validationError}
           >
-            保存
+            {t("ui.modals.nodeJsonEditor.save", "保存")}
           </Button>,
         ]}
         styles={{

@@ -1,6 +1,7 @@
 ﻿import { List } from "../../SimpleList";
 import { Tooltip, Badge, Button, Input, message, Empty } from "antd";
 import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   FileOutlined,
   FolderOutlined,
@@ -21,6 +22,7 @@ import { WikiAnchor } from "../../wiki/WikiAnchor";
 import styles from "../../../styles/panels/LocalFileListPanel.module.less";
 
 export const LocalFileListPanel: React.FC = () => {
+  const { t } = useTranslation();
   const showLocalFilePanel = useConfigStore(
     (state) => state.status.showLocalFilePanel,
   );
@@ -60,7 +62,7 @@ export const LocalFileListPanel: React.FC = () => {
 
     // 设置刷新状态
     setRefreshing(true);
-    message.info("正在刷新文件列表...");
+    message.info(t("ui.panels.main.localFile.refreshing", "正在刷新文件列表..."));
 
     // 发送请求
     localServer.send("/etl/refresh_file_list", {});
@@ -69,7 +71,9 @@ export const LocalFileListPanel: React.FC = () => {
   // 打开文件
   const handleOpenFile = (file: LocalFileInfo) => {
     if (!localServer.isConnected()) {
-      message.warning("请先连接本地服务");
+      message.warning(
+        t("ui.panels.main.localFile.connectLocalFirst", "请先连接本地服务"),
+      );
       return;
     }
 
@@ -98,16 +102,28 @@ export const LocalFileListPanel: React.FC = () => {
       <div className={classNames("header", styles.header)}>
         <div className={styles.title}>
           <FolderOutlined />
-          <span className={styles.titleText}>本地文件</span>
+          <span className={styles.titleText}>
+            {t("ui.panels.main.localFile.title", "本地文件")}
+          </span>
           <span style={{ marginLeft: -12, marginTop: 2 }}>
-            <WikiAnchor path="20.本地服务/10.本地文件管理.html" title="本地文件管理" description="管理资源目录下Pipeline文件" />
+            <WikiAnchor
+              path={t(
+                "ui.panels.main.localFile.wiki.path",
+                "20.本地服务/10.本地文件管理.html",
+              )}
+              title={t("ui.panels.main.localFile.wiki.title", "本地文件管理")}
+              description={t(
+                "ui.panels.main.localFile.wiki.description",
+                "管理资源目录下Pipeline文件",
+              )}
+            />
           </span>
           {files.length > 0 && (
             <Badge count={files.length} showZero overflowCount={999} />
           )}
         </div>
         <div className={styles.actions}>
-          <Tooltip title="刷新文件列表">
+          <Tooltip title={t("ui.panels.main.localFile.refreshList", "刷新文件列表")}>
             <Button
               type="text"
               size="small"
@@ -115,7 +131,7 @@ export const LocalFileListPanel: React.FC = () => {
               onClick={handleRefresh}
             />
           </Tooltip>
-          <Tooltip title="关闭">
+          <Tooltip title={t("ui.panels.main.localFile.close", "关闭")}>
             <Button
               type="text"
               size="small"
@@ -136,7 +152,7 @@ export const LocalFileListPanel: React.FC = () => {
 
       <div className={styles.searchBar}>
         <Input
-          placeholder="搜索文件..."
+          placeholder={t("ui.panels.main.localFile.searchPlaceholder", "搜索文件...")}
           prefix={<SearchOutlined />}
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
@@ -149,7 +165,9 @@ export const LocalFileListPanel: React.FC = () => {
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
             description={
-              files.length === 0 ? "暂无文件，点击刷新加载" : "未找到匹配的文件"
+              files.length === 0
+                ? t("ui.panels.main.localFile.emptyNoFiles", "暂无文件，点击刷新加载")
+                : t("ui.panels.main.localFile.emptyNoMatch", "未找到匹配的文件")
             }
           />
         ) : (

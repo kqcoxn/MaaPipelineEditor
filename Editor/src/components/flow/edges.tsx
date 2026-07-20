@@ -2,6 +2,7 @@ import style from "../../styles/flow/edges.module.less";
 /* eslint-disable react-refresh/only-export-components */
 
 import { memo, useMemo, useState, useCallback, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   BaseEdge,
   EdgeLabelRenderer,
@@ -309,6 +310,7 @@ function getAvoidanceEdgePath({
 }
 
 function MarkedEdge(props: EdgeProps) {
+  const { t } = useTranslation();
   const { screenToFlowPosition } = useReactFlow();
   const showEdgeLabel = useConfigStore((state) => state.configs.showEdgeLabel);
   const focusOpacity = useConfigStore((state) => state.configs.focusOpacity);
@@ -623,7 +625,10 @@ function MarkedEdge(props: EdgeProps) {
             style={controlPointStyle}
             onMouseDown={handleMouseDown}
             onDoubleClick={handleDoubleClick}
-            title="拖拽调整路径，双击重置"
+            title={t(
+              "ui.flow.edges.controlPointHint",
+              "拖拽调整路径，双击重置",
+            )}
           />
         )}
         {/* 标签 */}

@@ -13,11 +13,13 @@ import {
   ClearOutlined,
   InfoCircleOutlined,
 } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 import {
   ScreenshotModalBase,
   type CanvasRenderProps,
   type ViewportProps,
 } from "./ScreenshotModalBase";
+import { getRoiModalStrings } from "./shared/roiModalStrings";
 import { mfwProtocol } from "../../services/server";
 import {
   resolveNegativeROI,
@@ -39,6 +41,8 @@ type DrawTool = "none" | "select" | "brush" | "eraser";
 
 export const TemplateModal = memo(
   ({ open, onClose, onConfirm, initialROI }: TemplateModalProps) => {
+    const { t } = useTranslation();
+    const roi = getRoiModalStrings(t, "templateModal");
     const [screenshot, setScreenshot] = useState<string | null>(null);
     const [rectangle, setRectangle] = useState<Rectangle | null>(null);
     const [currentTool, setCurrentTool] = useState<DrawTool>("select");
@@ -87,7 +91,12 @@ export const TemplateModal = memo(
         if (data.success && roi) {
           onConfirm(data.relative_path, greenMask, roi);
         } else if (roi && fileName) {
-          message.warning("无法自动确定路径，已填充文件名，请手动调整");
+          message.warning(
+            t(
+              "ui.modals.templateModal.pathResolveWarning",
+              "无法自动确定路径，已填充文件名，请手动调整",
+            ),
+          );
           onConfirm(fileName, greenMask, roi);
         }
 
@@ -98,7 +107,7 @@ export const TemplateModal = memo(
       });
 
       return () => unsubscribe();
-    }, [onConfirm]);
+    }, [onConfirm, t]);
 
     // 重绘 canvas
     const redrawCanvas = useCallback(
@@ -379,7 +388,12 @@ export const TemplateModal = memo(
     // 保存模板
     const handleSave = useCallback(async () => {
       if (!rectangle || !imageRef.current) {
-        message.warning("请先框选模板区域");
+        message.warning(
+          t(
+            "ui.modals.templateModal.selectRegionFirst",
+            "请先框选模板区域",
+          ),
+        );
         return;
       }
 
@@ -425,7 +439,9 @@ export const TemplateModal = memo(
       );
 
       if (!blob) {
-        message.error("生成模板图片失败");
+        message.error(
+          t("ui.modals.templateModal.generateFailed", "生成模板图片失败"),
+        );
         return;
       }
 
@@ -446,7 +462,10 @@ export const TemplateModal = memo(
             suggestedName: defaultFilename,
             types: [
               {
-                description: "PNG 图片",
+                description: t(
+                  "ui.modals.templateModal.pngDescription",
+                  "PNG 图片",
+                ),
                 accept: { "image/png": [".png"] },
               },
             ],
@@ -457,7 +476,9 @@ export const TemplateModal = memo(
           await writable.close();
 
           const filename = fileHandle.name;
-          message.success("模板已保存");
+          message.success(
+            t("ui.modals.templateModal.saveSuccess", "模板已保存"),
+          );
 
           // 存储待确认的数据
           pendingRoiRef.current = roi;
@@ -470,7 +491,11 @@ export const TemplateModal = memo(
           }, 500);
         } catch (err: any) {
           if (err.name !== "AbortError") {
-            message.error("保存失败: " + err.message);
+            message.error(
+              t("ui.modals.templateModal.saveFailed", "保存失败: {{message}}", {
+                message: err.message,
+              }),
+            );
           }
         }
       } else {
@@ -482,7 +507,9 @@ export const TemplateModal = memo(
         a.click();
         URL.revokeObjectURL(url);
 
-        message.success("模板已保存");
+        message.success(
+          t("ui.modals.templateModal.saveSuccess", "模板已保存"),
+        );
 
         // 存储待确认的数据并尝试解析
         pendingRoiRef.current = roi;
@@ -493,7 +520,7 @@ export const TemplateModal = memo(
           mfwProtocol.requestResolveImagePath(defaultFilename);
         }, 500);
       }
-    }, [rectangle, hasGreenMask]);
+    }, [rectangle, hasGreenMask, t]);
 
     // 重置状态
     const handleReset = useCallback(() => {
@@ -516,14 +543,22 @@ export const TemplateModal = memo(
       (_props: ViewportProps) => (
         <>
           <div>
-            <span style={{ marginRight: 8, fontWeight: 500 }}>工具:</span>
+            <span style={{ marginRight: 8, fontWeight: 500 }}>
+              {t("ui.modals.templateModal.toolsLabel", "工具:")}
+            </span>
             <Radio.Group
               value={currentTool}
               onChange={(e) => setCurrentTool(e.target.value)}
             >
-              <Radio.Button value="select">框选</Radio.Button>
-              <Radio.Button value="brush">画笔</Radio.Button>
-              <Radio.Button value="eraser">橡皮擦</Radio.Button>
+              <Radio.Button value="select">
+                {t("ui.modals.templateModal.toolSelect", "框选")}
+              </Radio.Button>
+              <Radio.Button value="brush">
+                {t("ui.modals.templateModal.toolBrush", "画笔")}
+              </Radio.Button>
+              <Radio.Button value="eraser">
+                {t("ui.modals.templateModal.toolEraser", "橡皮擦")}
+              </Radio.Button>
             </Radio.Group>
             <Button
               icon={<ClearOutlined />}
@@ -531,12 +566,12 @@ export const TemplateModal = memo(
               style={{ marginLeft: 8 }}
               size="small"
             >
-              清除遮罩
+              {t("ui.modals.templateModal.clearMask", "清除遮罩")}
             </Button>
           </div>
         </>
       ),
-      [currentTool, clearMask],
+      [currentTool, clearMask, t],
     );
 
     // 渲染 Canvas
@@ -628,9 +663,9 @@ export const TemplateModal = memo(
       <ScreenshotModalBase
         open={open}
         onClose={onClose}
-        title="模板图片编辑"
+        title={t("ui.modals.templateModal.title", "模板图片编辑")}
         width={950}
-        confirmText="保存模板"
+        confirmText={t("ui.modals.templateModal.confirmText", "保存模板")}
         confirmDisabled={!rectangle}
         onConfirm={handleSave}
         renderToolbar={renderToolbar}
@@ -670,12 +705,12 @@ export const TemplateModal = memo(
                 <span
                   style={{ fontSize: 14, fontWeight: 500, color: "#262626" }}
                 >
-                  画笔大小
+                  {t("ui.modals.templateModal.brushSizeTitle", "画笔大小")}
                 </span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <span style={{ fontSize: 12, color: "#8c8c8c", width: 60 }}>
-                  大小
+                  {t("ui.modals.templateModal.sizeLabel", "大小")}
                 </span>
                 <Slider
                   value={brushSize}
@@ -718,7 +753,7 @@ export const TemplateModal = memo(
                 }}
               />
               <span style={{ fontSize: 14, fontWeight: 500, color: "#262626" }}>
-                模板区域
+                {t("ui.modals.templateModal.templateRegion", "模板区域")}
               </span>
               <span style={{ fontSize: 12, color: "#8c8c8c" }}>
                 [x, y, w, h]
@@ -727,12 +762,12 @@ export const TemplateModal = memo(
                 title={
                   <div>
                     <div style={{ fontWeight: 500, marginBottom: 4 }}>
-                      负数坐标说明 (v5.6+)
+                      {roi.negativeCoordTitle}
                     </div>
-                    <div>• x 负数：从右边缘计算</div>
-                    <div>• y 负数：从下边缘计算</div>
-                    <div>• w/h 为 0：延伸至边缘</div>
-                    <div>• w/h 负数：取绝对值， 作为右下角</div>
+                    <div>{roi.negativeX}</div>
+                    <div>{roi.negativeY}</div>
+                    <div>{roi.zeroExtend}</div>
+                    <div>{roi.negativeAbs}</div>
                   </div>
                 }
               >
@@ -763,7 +798,7 @@ export const TemplateModal = memo(
                   style={{ width: 80 }}
                   disabled={!screenshot || currentTool !== "select"}
                 />
-                <Tooltip title="负数从右边缘计算">
+                <Tooltip title={roi.tooltipNegativeX}>
                   <span
                     style={{
                       fontSize: 10,
@@ -771,7 +806,7 @@ export const TemplateModal = memo(
                         rectangle && rectangle.x < 0 ? "#faad14" : "#bfbfbf",
                     }}
                   >
-                    {rectangle && rectangle.x < 0 ? "←右" : ""}
+                    {rectangle && rectangle.x < 0 ? roi.indicatorFromRight : ""}
                   </span>
                 </Tooltip>
                 <span
@@ -794,7 +829,7 @@ export const TemplateModal = memo(
                   style={{ width: 80 }}
                   disabled={!screenshot || currentTool !== "select"}
                 />
-                <Tooltip title="负数从下边缘计算">
+                <Tooltip title={roi.tooltipNegativeY}>
                   <span
                     style={{
                       fontSize: 10,
@@ -802,7 +837,7 @@ export const TemplateModal = memo(
                         rectangle && rectangle.y < 0 ? "#faad14" : "#bfbfbf",
                     }}
                   >
-                    {rectangle && rectangle.y < 0 ? "↑下" : ""}
+                    {rectangle && rectangle.y < 0 ? roi.indicatorFromBottom : ""}
                   </span>
                 </Tooltip>
               </Space>
@@ -827,7 +862,7 @@ export const TemplateModal = memo(
                   style={{ width: 80 }}
                   disabled={!screenshot || currentTool !== "select"}
                 />
-                <Tooltip title="0 表示延伸至右边缘，负数取绝对值并将 作为右下角">
+                <Tooltip title={roi.tooltipZeroExtendW}>
                   <span
                     style={{
                       fontSize: 10,
@@ -838,9 +873,9 @@ export const TemplateModal = memo(
                     }}
                   >
                     {rectangle && rectangle.width === 0
-                      ? "→边"
+                      ? roi.indicatorToEdge
                       : rectangle && rectangle.width < 0
-                        ? "←→"
+                        ? roi.indicatorBothH
                         : ""}
                   </span>
                 </Tooltip>
@@ -864,7 +899,7 @@ export const TemplateModal = memo(
                   style={{ width: 80 }}
                   disabled={!screenshot || currentTool !== "select"}
                 />
-                <Tooltip title="0 表示延伸至下边缘，负数取绝对值并将 作为右下角">
+                <Tooltip title={roi.tooltipZeroExtendH}>
                   <span
                     style={{
                       fontSize: 10,
@@ -875,9 +910,9 @@ export const TemplateModal = memo(
                     }}
                   >
                     {rectangle && rectangle.height === 0
-                      ? "↓边"
+                      ? roi.indicatorToBottomEdge
                       : rectangle && rectangle.height < 0
-                        ? "↑↓"
+                        ? roi.indicatorBothV
                         : ""}
                   </span>
                 </Tooltip>
@@ -920,8 +955,10 @@ export const TemplateModal = memo(
                                 marginBottom: 4,
                               }}
                             >
-                              <span style={{ color: "#1890ff" }}>左上: </span>[
-                              {resolved.split.topLeft.x},{" "}
+                              <span style={{ color: "#1890ff" }}>
+                                {roi.splitTopLeft}
+                              </span>
+                              [{resolved.split.topLeft.x},{" "}
                               {resolved.split.topLeft.y},{" "}
                               {resolved.split.topLeft.width},{" "}
                               {resolved.split.topLeft.height}]
@@ -929,8 +966,10 @@ export const TemplateModal = memo(
                           )}
                           {resolved.split.bottomRight && (
                             <div style={{ fontSize: 12, color: "#262626" }}>
-                              <span style={{ color: "#1890ff" }}>右下: </span>[
-                              {resolved.split.bottomRight.x},{" "}
+                              <span style={{ color: "#1890ff" }}>
+                                {roi.splitBottomRight}
+                              </span>
+                              [{resolved.split.bottomRight.x},{" "}
                               {resolved.split.bottomRight.y},{" "}
                               {resolved.split.bottomRight.width},{" "}
                               {resolved.split.bottomRight.height}]
@@ -970,7 +1009,7 @@ export const TemplateModal = memo(
                 }}
               />
               <span style={{ fontSize: 14, fontWeight: 500, color: "#262626" }}>
-                绿色遮罩
+                {t("ui.modals.templateModal.greenMaskTitle", "绿色遮罩")}
               </span>
               <BgColorsOutlined
                 style={{
@@ -979,7 +1018,9 @@ export const TemplateModal = memo(
                 }}
               />
               <span style={{ fontSize: 12, color: "#8c8c8c", marginLeft: 4 }}>
-                {hasGreenMask ? "已启用" : "未使用"}
+                {hasGreenMask
+                  ? t("ui.modals.templateModal.greenMaskEnabled", "已启用")
+                  : t("ui.modals.templateModal.greenMaskUnused", "未使用")}
               </span>
             </div>
           </div>

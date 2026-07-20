@@ -4,6 +4,7 @@
  */
 
 import { memo, useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { Input, Button, Select, Spin, Typography, Modal } from "antd";
 import {
   StopOutlined,
@@ -28,6 +29,8 @@ interface ExplorationPanelProps {
 }
 
 function ExplorationPanelBase({ visible, onClose }: ExplorationPanelProps) {
+  const { t } = useTranslation();
+
   // Store 状态
   const status = useFlowStore((s) => s.status);
   const goal = useFlowStore((s) => s.goal);
@@ -113,7 +116,10 @@ function ExplorationPanelBase({ visible, onClose }: ExplorationPanelProps) {
           <div className={style.idleContent}>
             <div className={style.inputRow}>
               <TextArea
-                placeholder="输入探索目标，例如：完成每日签到任务"
+                placeholder={t(
+                  "ui.panels.exploration.goalPlaceholder",
+                  "输入探索目标，例如：完成每日签到任务",
+                )}
                 value={inputGoal}
                 onChange={(e) => setInputGoal(e.target.value)}
                 maxLength={200}
@@ -127,15 +133,18 @@ function ExplorationPanelBase({ visible, onClose }: ExplorationPanelProps) {
                 disabled={!canStart}
                 className={style.startBtn}
               >
-                开始
+                {t("ui.panels.exploration.start", "开始")}
               </Button>
             </div>
             <div className={style.startNodeRow}>
               <Text type="secondary" className={style.label}>
-                起始节点：
+                {t("ui.panels.exploration.startNodeLabel", "起始节点：")}
               </Text>
               <Select
-                placeholder="（可选）选择起始节点"
+                placeholder={t(
+                  "ui.panels.exploration.startNodePlaceholder",
+                  "（可选）选择起始节点",
+                )}
                 value={startNodeId}
                 onChange={setStartNodeId}
                 allowClear
@@ -164,7 +173,7 @@ function ExplorationPanelBase({ visible, onClose }: ExplorationPanelProps) {
               onClick={() => setAbortModalVisible(true)}
               danger
             >
-              取消
+              {t("ui.panels.exploration.cancel", "取消")}
             </Button>
           </div>
         );
@@ -177,11 +186,18 @@ function ExplorationPanelBase({ visible, onClose }: ExplorationPanelProps) {
               <Text strong>{goal}</Text>
             </div>
             <div className={style.stepInfo}>
-              <Text type="secondary">已完成 {stepCount} 步</Text>
+              <Text type="secondary">
+                {t("ui.panels.exploration.stepsCompleted", "已完成 {{count}} 步", {
+                  count: stepCount,
+                })}
+              </Text>
             </div>
             <div className={style.hintText}>
               <Text type="secondary">
-                请在节点旁边操作：执行、重新生成或确认
+                {t(
+                  "ui.panels.exploration.reviewingHint",
+                  "请在节点旁边操作：执行、重新生成或确认",
+                )}
               </Text>
             </div>
             {error && (
@@ -191,10 +207,10 @@ function ExplorationPanelBase({ visible, onClose }: ExplorationPanelProps) {
             )}
             <div className={style.footerButtons}>
               <Button onClick={() => setAbortModalVisible(true)} danger>
-                退出
+                {t("ui.panels.exploration.exit", "退出")}
               </Button>
               <Button type="primary" onClick={handleComplete}>
-                完成
+                {t("ui.panels.exploration.complete", "完成")}
               </Button>
             </div>
           </div>
@@ -204,7 +220,7 @@ function ExplorationPanelBase({ visible, onClose }: ExplorationPanelProps) {
         return (
           <div className={style.executingContent}>
             <Spin size="small" />
-            <Text>正在执行动作...</Text>
+            <Text>{t("ui.panels.exploration.executing", "正在执行动作...")}</Text>
           </div>
         );
 
@@ -216,7 +232,11 @@ function ExplorationPanelBase({ visible, onClose }: ExplorationPanelProps) {
               <Text strong>{goal}</Text>
             </div>
             <div className={style.stepInfo}>
-              <Text type="success">已确认 {stepCount} 步</Text>
+              <Text type="success">
+                {t("ui.panels.exploration.confirmedSteps", "已确认 {{count}} 步", {
+                  count: stepCount,
+                })}
+              </Text>
             </div>
             <div className={style.actionButtons}>
               <Button
@@ -224,13 +244,15 @@ function ExplorationPanelBase({ visible, onClose }: ExplorationPanelProps) {
                 icon={<StepForwardOutlined />}
                 onClick={handleNextStep}
               >
-                下一步
+                {t("ui.panels.exploration.nextStep", "下一步")}
               </Button>
-              <Button onClick={handleComplete}>完成探索</Button>
+              <Button onClick={handleComplete}>
+                {t("ui.panels.exploration.completeExploration", "完成探索")}
+              </Button>
             </div>
             <div className={style.footerButtons}>
               <Button onClick={() => setAbortModalVisible(true)} danger>
-                退出
+                {t("ui.panels.exploration.exit", "退出")}
               </Button>
             </div>
           </div>
@@ -240,10 +262,16 @@ function ExplorationPanelBase({ visible, onClose }: ExplorationPanelProps) {
         return (
           <div className={style.completedContent}>
             <IconFont name="icon-chenggong" size={32} color="#52c41a" />
-            <Text strong>探索完成</Text>
-            <Text type="secondary">共 {stepCount} 步</Text>
+            <Text strong>
+              {t("ui.panels.exploration.explorationComplete", "探索完成")}
+            </Text>
+            <Text type="secondary">
+              {t("ui.panels.exploration.totalSteps", "共 {{count}} 步", {
+                count: stepCount,
+              })}
+            </Text>
             <Button type="primary" onClick={handleComplete}>
-              关闭
+              {t("ui.panels.exploration.close", "关闭")}
             </Button>
           </div>
         );
@@ -264,10 +292,20 @@ function ExplorationPanelBase({ visible, onClose }: ExplorationPanelProps) {
           <div className={style.title}>
             <IconFont name="icon-jiqiren" size={22} />
             <Text strong className={style.text}>
-              流程探索模式
+              {t("ui.panels.exploration.title", "流程探索模式")}
             </Text>
             <span style={{ marginLeft: -8, marginTop: 4 }}>
-              <WikiAnchor path="20.本地服务/50.AI 服务.html" title="流程探索" description="AI驱动的流程自动探索" />
+              <WikiAnchor
+                path={t(
+                  "ui.panels.exploration.wiki.path",
+                  "20.本地服务/50.AI 服务.html",
+                )}
+                title={t("ui.panels.exploration.wiki.title", "流程探索")}
+                description={t(
+                  "ui.panels.exploration.wiki.description",
+                  "AI驱动的流程自动探索",
+                )}
+              />
             </span>
           </div>
           <IconFont
@@ -284,23 +322,27 @@ function ExplorationPanelBase({ visible, onClose }: ExplorationPanelProps) {
 
       {/* 退出确认弹窗 */}
       <Modal
-        title="确认退出"
+        title={t("ui.panels.exploration.abortModal.title", "确认退出")}
         open={abortModalVisible}
         onCancel={() => setAbortModalVisible(false)}
         footer={[
           <Button key="cancel" onClick={() => setAbortModalVisible(false)}>
-            取消
+            {t("ui.panels.exploration.abortModal.cancel", "取消")}
           </Button>,
           <Button key="discard" danger onClick={() => handleAbort(false)}>
-            不保存退出
+            {t("ui.panels.exploration.abortModal.discard", "不保存退出")}
           </Button>,
           <Button key="save" type="primary" onClick={() => handleAbort(true)}>
-            保存并退出
+            {t("ui.panels.exploration.abortModal.save", "保存并退出")}
           </Button>,
         ]}
       >
         <Paragraph>
-          当前探索未完成，是否保留已确认的 {stepCount} 个节点？
+          {t(
+            "ui.panels.exploration.abortModal.content",
+            "当前探索未完成，是否保留已确认的 {{count}} 个节点？",
+            { count: stepCount },
+          )}
         </Paragraph>
       </Modal>
     </>

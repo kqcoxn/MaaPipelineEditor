@@ -1,0 +1,243 @@
+{
+  "fields": {
+    "schema": {
+      "roi": {
+        "desc": "Region of interest (ROI) coordinates. Optional, default [0, 0, 0, 0] (full screen). array<int, 4>: recognition region [x, y, w, h]; use [0, 0, 0, 0] for full screen. string: node name — recognize within the target region matched by a previously executed node. Passed via MaaCustomRecognitionCallback.roi."
+      },
+      "roi_offset": {
+        "desc": "Additional offset applied on top of roi before use; the four values are added respectively. Optional, default [0, 0, 0, 0]."
+      },
+      "index": {
+        "desc": "Which matched result to pick. Optional, default 0. With N results, index is in [-N, N - 1]; negative values use Python-style conversion to N - index. Out of range means no match."
+      },
+      "template": {
+        "desc": "Template image path, relative to the image folder. Required. Images must be lossless originals scaled to 720p then cropped. Folder paths are supported; all images inside are loaded recursively."
+      },
+      "threshold": {
+        "desc": "Template match threshold for treating the screen as having no significant change. Optional, default 0.95."
+      },
+      "method": {
+        "desc": "Template match algorithm, i.e. cv::TemplateMatchModes. Optional, default 5."
+      },
+      "green_mask": {
+        "desc": "Whether to apply a green mask. Optional, default false. If true, paint unwanted areas green RGB (0, 255, 0); green pixels are excluded from matching."
+      },
+      "order_by": {
+        "desc": "Result sort order. Optional, default Horizontal. Values: Horizontal | Vertical | Area | Length | Random | Expected. Can be combined with index."
+      },
+      "count": {
+        "desc": "Minimum number of matching pixels required (threshold). Optional, default 1."
+      },
+      "detector": {
+        "desc": "Feature detector. Optional, default SIFT. SIFT: slower, scale- and rotation-invariant, highest accuracy — recommended for precision-critical cases. KAZE: slower, scale- and rotation-invariant, high accuracy; good for 2D/3D with strong edge preservation. AKAZE: medium speed, scale- and rotation-invariant, good speed/accuracy balance. BRISK: fast, scale- and rotation-invariant, medium accuracy; good for real-time. ORB: fastest, rotation-invariant but not scale-invariant, lower accuracy — use only when template and target share the same size."
+      },
+      "ratio": {
+        "desc": "KNN match distance ratio, [0–1.0]; higher means looser matching (easier to link). Optional, default 0.6."
+      },
+      "lower": {
+        "desc": "Lower color bound. Required. Innermost list length must match method channel count."
+      },
+      "upper": {
+        "desc": "Upper color bound. Required. Innermost list length must match method channel count."
+      },
+      "connected": {
+        "desc": "Whether only connected pixels are counted. Optional, default false. If true, after color filtering only the largest fully connected pixel block is counted. If false, connectivity is ignored."
+      },
+      "expected": {
+        "desc": "Expected class index. Required."
+      },
+      "replace": {
+        "desc": "Replace inaccurate OCR text segments. Optional."
+      },
+      "only_rec": {
+        "desc": "Recognition only (no detection; roi must be set precisely). Optional, default false."
+      },
+      "model": {
+        "desc": "Model file path, relative to model/detect. Required. Currently supports YoloV8 ONNX; other Yolo models with the same I/O may work but are untested."
+      },
+      "color_filter": {
+        "desc": "Color filter. Enter a ColorMatch node name; its color params (method, lower, upper) binarize the image before OCR. Optional, default empty. Uses only that node's binarization logic, not count/order_by etc. OCR nodes with this field skip batch optimization."
+      },
+      "labels": {
+        "desc": "Class labels (names per category). Optional. Affects debug images and logs only; unfilled entries become \"Unknown\"."
+      },
+      "all_of": {
+        "desc": "Sub-recognition list. All sub-recognitions must match to succeed. Required. Elements may be: string — node name reference, uses that node's recognition algorithm and params; object — inline recognition definition, same as a normal node's recognition (v1/v2 compatible, may mix)."
+      },
+      "box_index": {
+        "desc": "Which sub-recognition box to use as this node's recognition box. Optional, default 0. Must satisfy 0 <= box_index < all_of.size."
+      },
+      "sub_name": {
+        "desc": "Later sub-recognitions may reference roi: sub_name to use a prior sub-recognition's filtered region as ROI; duplicate names use the last one. Valid only within this node."
+      },
+      "any_of": {
+        "desc": "Sub-recognition list. First match wins; later items are skipped. Required. Elements may be: string — node name reference; object — inline recognition definition (v1/v2 compatible, may mix)."
+      },
+      "custom_recognition": {
+        "desc": "Recognition name, same as registered with the API. Also passed via MaaCustomRecognitionCallback.custom_recognition_name. Required."
+      },
+      "custom_recognition_param": {
+        "desc": "Recognition parameter, any type. Passed via MaaCustomRecognitionCallback.custom_recognition_param. Optional, default empty JSON {}."
+      },
+      "target": {
+        "desc": "Wait target position. Optional, default true. Same values as Click.target."
+      },
+      "target_offset": {
+        "desc": "Additional offset applied on top of target; the four values are added respectively. Optional, default [0, 0, 0, 0]."
+      },
+      "duration": {
+        "desc": "Long-press duration in milliseconds. Optional, default 1000."
+      },
+      "begin": {
+        "desc": "Swipe start point. Optional, default true. true: position just recognized in this node (self). string: node name — position recognized by a previously executed node. array<int, 2>: fixed point [x, y]. array<int, 4>: fixed region [x, y, w, h]; picks a random point inside (center-weighted). Use [0, 0, 0, 0] for full screen."
+      },
+      "begin_offset": {
+        "desc": "Additional offset applied on top of begin; the four values are added respectively. Optional, default [0, 0, 0, 0]."
+      },
+      "end": {
+        "desc": "Swipe end point. Optional, default true. Same value forms as begin. v4.5.x+ supports list for waypoints; multiple ends without lifting the finger = one polyline swipe (unlike multiple separate swipes)."
+      },
+      "end_offset": {
+        "desc": "Additional offset applied on top of end; the four values are added respectively. Optional, default [0, 0, 0, 0]."
+      },
+      "end_hold": {
+        "desc": "Extra wait at the end before lifting, in ms. Optional, default 0."
+      },
+      "only_hover": {
+        "desc": "Hover move only, no press/release. Optional, default false."
+      },
+      "dx": {
+        "desc": "Horizontal scroll distance; positive scrolls right, negative left. Optional, default 0."
+      },
+      "dy": {
+        "desc": "Vertical scroll distance; positive scrolls up, negative down. Optional, default 0."
+      },
+      "swipes": {
+        "desc": "Array of multiple swipes. Required. Element order does not matter; starting determines timing. starting: swipe start time (ms) within this action, default 0. begin/end/begin_offset/end_offset/duration/end_hold/only_hover/contact: same as swipe fields. In MultiSwipe, if contact is 0, the array index is used as the contact id."
+      },
+      "starting": {
+        "desc": "Swipe start time in milliseconds. Optional, default 0. MultiSwipe-only field; the swipe begins at this millisecond within the action."
+      },
+      "contact": {
+        "desc": "Contact id to distinguish touch points. Optional, default 0. Adb controller: finger index (0 = first finger, 1 = second, …). Win32 controller: mouse button index (0 = left, 1 = right, 2 = middle, 3 = XBUTTON1, 4 = XBUTTON2)."
+      },
+      "pressure": {
+        "desc": "Touch pressure; range depends on controller implementation. Optional, default 0."
+      },
+      "key": {
+        "desc": "Key to press or release; only virtual key codes supported by the controller. Required."
+      },
+      "input_text": {
+        "desc": "Text to input; some controllers support ASCII only. Required."
+      },
+      "package": {
+        "desc": "Launch entry. Required. Package name or activity, e.g. com.hypergryph.arknights or com.hypergryph.arknights/com.u8.sdk.U8UnityContext."
+      },
+      "exec": {
+        "desc": "Program path to execute. Required."
+      },
+      "args": {
+        "desc": "Execution arguments. Optional. Runtime placeholders: {ENTRY}: task entry name. {NODE}: current node name. {IMAGE}: screenshot file path (deleted on process exit; copy to persist). {BOX}: matched target [x, y, w, h]. {RESOURCE_DIR}: last loaded resource folder. {LIBRARY_DIR}: MaaFW library folder."
+      },
+      "detach": {
+        "desc": "Detach subprocess — do not wait for completion, continue the task. Optional, default false."
+      },
+      "cmd": {
+        "desc": "Shell command to run. Required. e.g. getprop ro.build.version.sdk or settings put global animator_duration_scale 0."
+      },
+      "shell_timeout": {
+        "desc": "Command timeout in milliseconds. Optional, default 20000 (20 s). -1 waits indefinitely. (ADB controller only. Output available via MaaTaskerGetActionDetail.)"
+      },
+      "filename": {
+        "desc": "Screenshot filename without extension. Optional, default timestamp_nodeName."
+      },
+      "format": {
+        "desc": "Image format. Optional, default png (lossless). Values: png | jpg | jpeg."
+      },
+      "quality": {
+        "desc": "Image quality (0–100), jpg/jpeg only. Optional, default 100. png is always lossless; this field has no effect for png."
+      },
+      "custom_action": {
+        "desc": "Action name, same as registered with the API. Also passed via MaaCustomActionCallback.custom_action_name. Required."
+      },
+      "custom_action_param": {
+        "desc": "Action parameter, any type. Passed via MaaCustomActionCallback.custom_action_param. Optional, default empty JSON {}."
+      },
+      "rate_limit": {
+        "desc": "Recognition rate limit in milliseconds. Optional, default 1000. Each recognition consumes at least rate_limit ms."
+      },
+      "timeout": {
+        "desc": "Recognition timeout in milliseconds. Optional, default 20000."
+      },
+      "anchor": {
+        "desc": "Anchor name. Optional, default empty. On success, sets this anchor to the node; multiple nodes may share a name (later overwrites earlier). Formats: string \"MyAnchor\" — set to current node; array [\"A\", \"B\"] — set multiple anchors; object {\"A\": \"TargetNode\", \"B\": \"\"} — set/clear anchors (empty string clears). Reference in next/on_error via [Anchor]; unresolved anchors skip the node. See node attributes docs."
+      },
+      "inverse": {
+        "desc": "Invert recognition result: match treated as miss and vice versa. Optional, default false. Inverted nodes: Click-on-self fails (nothing was actually matched); set target separately if needed."
+      },
+      "enabled": {
+        "desc": "Whether this node is enabled. Optional, default true. If false, the node is skipped in other nodes' next lists — neither recognized nor executed."
+      },
+      "max_hit": {
+        "desc": "Max successful recognition count for this node. Optional, default UINT_MAX (unlimited). Exceeding skips the node in next lists."
+      },
+      "pre_delay": {
+        "desc": "Delay after match before action, in ms. Optional, default 200. Prefer intermediate nodes over delays for stability."
+      },
+      "post_delay": {
+        "desc": "Delay after action before recognizing next, in ms. Optional, default 200. Prefer intermediate nodes over delays."
+      },
+      "pre_wait_freezes": {
+        "desc": "Wait for screen stillness after match before action, in ms. Optional, default 0. Screen must show no significant change for the duration. Object form allows extra params (see wait-freezes docs). Order: pre_wait_freezes → pre_delay → action → post_wait_freezes → post_delay."
+      },
+      "time": {
+        "desc": "Screen must show no significant change for this many ms before exiting wait. Optional, default 1."
+      },
+      "post_wait_freezes": {
+        "desc": "Wait for screen stillness after action before recognizing next, in ms. Optional, default 0. Object form allows extra params. Order: pre_wait_freezes → pre_delay → action → post_wait_freezes → post_delay."
+      },
+      "focus": {
+        "desc": "Focus node; emits extra callbacks. Optional, default {}. focus is a dict: keys = message types, values = template strings or objects. Templates support file paths, URLs, or direct Markdown text and i18n ($ prefix). Use {fieldName} placeholders; UI replaces them. v2.3.0+: display channel — log (default), toast, notification, dialog, modal."
+      },
+      "Node.Recognition.Starting": {
+        "desc": "Fired when recognition starts. Placeholders: task_id, reco_id, name, anchor. Value: string (equivalent to display: log) or {content: string, display: string|string[]}."
+      },
+      "Node.Recognition.Succeeded": {
+        "desc": "Fired on recognition success. Placeholders: task_id, reco_id, name, anchor. Value: string or {content, display}."
+      },
+      "Node.Recognition.Failed": {
+        "desc": "Fired on recognition failure. Placeholders: task_id, reco_id, name, anchor. Value: string or {content, display}."
+      },
+      "Node.Action.Starting": {
+        "desc": "Fired when action starts. Placeholders: task_id, action_id, name. Value: string or {content, display}."
+      },
+      "Node.Action.Succeeded": {
+        "desc": "Fired on action success. Placeholders: task_id, action_id, name. Value: string or {content, display}."
+      },
+      "Node.Action.Failed": {
+        "desc": "Fired on action failure. Placeholders: task_id, action_id, name. Value: string or {content, display}."
+      },
+      "Node.WaitFreezes.Starting": {
+        "desc": "Fired when wait_freezes starts. Placeholders: task_id, wf_id, name, phase, roi, param. phase: pre/post/repeat/context. Value: string or {content, display}."
+      },
+      "Node.WaitFreezes.Succeeded": {
+        "desc": "Fired on wait_freezes success. Extra placeholders: reco_ids, elapsed. Value: string or {content, display}."
+      },
+      "Node.WaitFreezes.Failed": {
+        "desc": "Fired on wait_freezes failure (e.g. timeout). Extra placeholders: reco_ids, elapsed. Value: string or {content, display}."
+      },
+      "repeat": {
+        "desc": "Action repeat count. Optional, default 1 (no repeat). Flow: action → [repeat_wait_freezes → repeat_delay → action] × (repeat-1)."
+      },
+      "repeat_delay": {
+        "desc": "Delay between repeated actions, in ms. Optional, default 0. Applies when repeat > 1, before the 2nd and later runs."
+      },
+      "repeat_wait_freezes": {
+        "desc": "Wait for screen stillness between repeated actions, in ms. Optional, default 0. Applies when repeat > 1, before the 2nd and later runs. Object form allows extra params."
+      },
+      "attach": {
+        "desc": "Additional JSON object for extra node config. Optional, default {}. Does not affect execution; readable via related APIs. Merged with default attach (dict merge), not replaced — node values override same keys, other keys retained."
+      }
+    }
+  }
+}

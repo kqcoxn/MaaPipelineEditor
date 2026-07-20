@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   InfoCircleOutlined,
   WarningOutlined,
@@ -111,6 +112,7 @@ function handleOperationLogClick(log: OperationLog) {
 // ========== 主组件 ==========
 
 export function LoggerPanel() {
+  const { t } = useTranslation();
   const { logs: backendLogs, expanded, toggleExpanded, clearLogs: clearBackendLogs } =
     useLoggerStore();
   const { logs: opLogs, clearLogs: clearOpLogs } = useOperationLogStore();
@@ -221,7 +223,9 @@ export function LoggerPanel() {
                 </span>
               </>
             ) : (
-              <span className={styles.barMessage}>暂无操作记录</span>
+              <span className={styles.barMessage}>
+                {t("ui.panels.tools.logger.noOperationLogs", "暂无操作记录")}
+              </span>
             )
           ) : latestBackendLog ? (
             <>
@@ -235,7 +239,9 @@ export function LoggerPanel() {
               </span>
             </>
           ) : (
-            <span className={styles.barMessage}>暂无日志</span>
+            <span className={styles.barMessage}>
+              {t("ui.panels.tools.logger.noLogs", "暂无日志")}
+            </span>
           )}
         </div>
       </div>
@@ -252,28 +258,32 @@ export function LoggerPanel() {
               className={`${styles.tab} ${activeTab === "operation" ? styles.tabActive : ""}`}
               onClick={() => handleTabChange("operation")}
             >
-              操作记录
+              {t("ui.panels.tools.logger.operationTab", "操作记录")}
             </button>
             <button
               className={`${styles.tab} ${activeTab === "backend" ? styles.tabActive : ""} ${!connected ? styles.tabDisabled : ""}`}
               onClick={() => handleTabChange("backend")}
-              title={!connected ? "未连接 LocalBridge" : "后端日志"}
+              title={
+                !connected
+                  ? t("ui.panels.tools.logger.notConnected", "未连接 LocalBridge")
+                  : t("ui.panels.tools.logger.backendTab", "后端日志")
+              }
             >
-              后端日志
+              {t("ui.panels.tools.logger.backendTab", "后端日志")}
             </button>
           </div>
           <div className={styles.headerActions}>
             <button
               className={styles.headerBtn}
               onClick={handleClear}
-              title="清空"
+              title={t("ui.panels.tools.logger.clear", "清空")}
             >
               <DeleteOutlined />
             </button>
             <button
               className={styles.headerBtn}
               onClick={toggleExpanded}
-              title="收起"
+              title={t("ui.panels.tools.logger.collapse", "收起")}
             >
               <DownOutlined />
             </button>
@@ -294,8 +304,14 @@ export function LoggerPanel() {
 // ========== 子组件 ==========
 
 function OperationLogList({ logs }: { logs: OperationLog[] }) {
+  const { t } = useTranslation();
+
   if (logs.length === 0) {
-    return <div className={styles.empty}>暂无操作记录</div>;
+    return (
+      <div className={styles.empty}>
+        {t("ui.panels.tools.logger.noOperationLogs", "暂无操作记录")}
+      </div>
+    );
   }
 
   return (
@@ -324,8 +340,14 @@ function OperationLogList({ logs }: { logs: OperationLog[] }) {
 }
 
 function BackendLogList({ logs }: { logs: LogEntry[] }) {
+  const { t } = useTranslation();
+
   if (logs.length === 0) {
-    return <div className={styles.empty}>暂无日志</div>;
+    return (
+      <div className={styles.empty}>
+        {t("ui.panels.tools.logger.noLogs", "暂无日志")}
+      </div>
+    );
   }
 
   return (

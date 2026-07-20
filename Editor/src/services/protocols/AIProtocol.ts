@@ -1,5 +1,6 @@
 import type { LocalWebSocketServer } from "../server";
 import { BaseProtocol } from "./BaseProtocol";
+import uiT from "../../i18n/translate";
 
 /**
  * AI 代理协议
@@ -72,7 +73,11 @@ export class AIProtocol extends BaseProtocol {
   }> {
     return new Promise((resolve, reject) => {
       if (!this.wsClient) {
-        reject(new Error("WebSocket 未连接"));
+        reject(
+          new Error(
+            uiT("ui.services.ai.wsNotConnected", "WebSocket 未连接"),
+          ),
+        );
         return;
       }
 
@@ -81,7 +86,11 @@ export class AIProtocol extends BaseProtocol {
       // 注册响应处理
       const timeout = setTimeout(() => {
         this.responseHandlers.delete(requestId);
-        reject(new Error("代理请求超时（60s）"));
+        reject(
+          new Error(
+            uiT("ui.services.ai.proxyTimeout", "代理请求超时（60s）"),
+          ),
+        );
       }, 60000);
 
       this.responseHandlers.set(requestId, (data) => {
@@ -112,7 +121,14 @@ export class AIProtocol extends BaseProtocol {
       if (!success) {
         clearTimeout(timeout);
         this.responseHandlers.delete(requestId);
-        reject(new Error("代理请求发送失败，本地服务未连接"));
+        reject(
+          new Error(
+            uiT(
+              "ui.services.ai.proxySendFailed",
+              "代理请求发送失败，本地服务未连接",
+            ),
+          ),
+        );
       }
     });
   }
@@ -150,13 +166,24 @@ export class AIProtocol extends BaseProtocol {
         setTimeout(() => {
           if (this.streamHandlers.has(requestId)) {
             this.streamHandlers.delete(requestId);
-            controller.error(new Error("流式代理请求超时（120s）"));
+            controller.error(
+              new Error(
+                uiT(
+                  "ui.services.ai.streamProxyTimeout",
+                  "流式代理请求超时（120s）",
+                ),
+              ),
+            );
           }
         }, 120000);
 
         // 发送请求
         if (!this.wsClient) {
-          controller.error(new Error("WebSocket 未连接"));
+          controller.error(
+            new Error(
+              uiT("ui.services.ai.wsNotConnected", "WebSocket 未连接"),
+            ),
+          );
           return;
         }
 
@@ -170,7 +197,14 @@ export class AIProtocol extends BaseProtocol {
 
         if (!success) {
           this.streamHandlers.delete(requestId);
-          controller.error(new Error("流式代理请求发送失败"));
+          controller.error(
+            new Error(
+              uiT(
+                "ui.services.ai.streamProxySendFailed",
+                "流式代理请求发送失败",
+              ),
+            ),
+          );
         }
       },
       cancel: () => {

@@ -1,6 +1,7 @@
-import { memo, useState, useCallback, useRef, useEffect } from "react";
+import { memo, useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { message, Radio, Space, InputNumber, Button } from "antd";
 import { EyeOutlined, StopOutlined } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 import {
   ScreenshotModalBase,
   type CanvasRenderProps,
@@ -22,6 +23,7 @@ interface ColorModalProps {
 
 export const ColorModal = memo(
   ({ open, onClose, onConfirm, targetKey, initialMethod, initialLower, initialUpper }: ColorModalProps) => {
+    const { t } = useTranslation();
     const [screenshot, setScreenshot] = useState<string | null>(null);
 
     // 检测初始颜色模式
@@ -191,7 +193,7 @@ export const ColorModal = memo(
     );
 
     // 获取通道信息
-    const getChannelInfo = useCallback((): {
+    const channelInfo = useMemo((): {
       count: number;
       labels: string[];
       max: number[];
@@ -202,9 +204,13 @@ export const ColorModal = memo(
         case "HSV":
           return { count: 3, labels: ["H", "S", "V"], max: [180, 255, 255] };
         case "GRAY":
-          return { count: 1, labels: ["灰度"], max: [255] };
+          return {
+            count: 1,
+            labels: [t("ui.modals.colorModal.grayLabel", "灰度")],
+            max: [255],
+          };
       }
-    }, [colorMode]);
+    }, [colorMode, t]);
 
     // 更新边界值的某个通道
     const handleBoundChange = useCallback(
@@ -234,13 +240,19 @@ export const ColorModal = memo(
       const canvas = canvasRef.current;
       const img = imageRef.current;
       if (!canvas || !img) {
-        message.warning("请先等待截图加载");
+        message.warning(
+          t("ui.modals.colorModal.waitForScreenshot", "请先等待截图加载")
+        );
         return;
       }
 
-      const channelInfo = getChannelInfo();
       if (lowerBound.length !== channelInfo.count || upperBound.length !== channelInfo.count) {
-        message.warning("颜色边界通道数与当前颜色模式不匹配");
+        message.warning(
+          t(
+            "ui.modals.colorModal.channelMismatch",
+            "颜色边界通道数与当前颜色模式不匹配"
+          )
+        );
         return;
       }
 
@@ -325,10 +337,14 @@ export const ColorModal = memo(
 
         const percentage = ((count / totalPixels) * 100).toFixed(2);
         message.success(
-          `匹配到 ${count.toLocaleString()} 个像素（${percentage}%）`
+          t(
+            "ui.modals.colorModal.matchedPixels",
+            "匹配到 {{count}} 个像素（{{percentage}}%）",
+            { count, percentage },
+          ),
         );
       });
-    }, [lowerBound, upperBound, colorMode, rgbToHsv, rgbToGray, getChannelInfo]);
+    }, [lowerBound, upperBound, colorMode, rgbToHsv, rgbToGray, channelInfo, t]);
 
     // 清除预览
     const clearPreview = useCallback(() => {
@@ -388,21 +404,27 @@ export const ColorModal = memo(
         }
 
         setPickedColor(color);
-        message.success(`取色成功: ${displayText}`);
+        message.success(
+          t("ui.modals.colorModal.pickSuccess", "取色成功: {{displayText}}", {
+            displayText,
+          })
+        );
       },
-      [colorMode, rgbToHsv, rgbToGray]
+      [colorMode, rgbToHsv, rgbToGray, t]
     );
 
     // 确定回填
     const handleConfirm = useCallback(() => {
       if (!pickedColor) {
-        message.warning("请先在截图上点击取色");
+        message.warning(
+          t("ui.modals.colorModal.pickFirst", "请先在截图上点击取色")
+        );
         return;
       }
 
       onConfirm(pickedColor);
       onClose();
-    }, [pickedColor, onConfirm, onClose]);
+    }, [pickedColor, onConfirm, onClose, t]);
 
     // 重置状态
     const handleReset = useCallback(() => {
@@ -591,12 +613,21 @@ export const ColorModal = memo(
     }, []);
 
     // 根据 targetKey 生成标题
-    const title =
-      targetKey === "lower"
-        ? "颜色取点工具 - 下界颜色"
-        : targetKey === "upper"
-        ? "颜色取点工具 - 上界颜色"
-        : "颜色取点工具";
+    const title = useMemo(() => {
+      if (targetKey === "lower") {
+        return t(
+          "ui.modals.colorModal.titleLower",
+          "颜色取点工具 - 下界颜色"
+        );
+      }
+      if (targetKey === "upper") {
+        return t(
+          "ui.modals.colorModal.titleUpper",
+          "颜色取点工具 - 上界颜色"
+        );
+      }
+      return t("ui.modals.colorModal.title", "颜色取点工具");
+    }, [targetKey, t]);
 
     // 格式化颜色显示文本
     const formatColorText = useCallback(
@@ -666,7 +697,7 @@ export const ColorModal = memo(
               }}
             />
             <span style={{ fontSize: 14, fontWeight: 500, color: "#262626" }}>
-              颜色模式
+              {t("ui.modals.colorModal.colorMode", "颜色模式")}
             </span>
           </div>
           <Radio.Group
@@ -675,9 +706,15 @@ export const ColorModal = memo(
             size="small"
           >
             <Space orientation="vertical">
-              <Radio value="RGB">RGB（3通道）</Radio>
-              <Radio value="HSV">HSV（3通道）</Radio>
-              <Radio value="GRAY">灰度（1通道）</Radio>
+              <Radio value="RGB">
+                {t("ui.modals.colorModal.modeRgb", "RGB（3通道）")}
+              </Radio>
+              <Radio value="HSV">
+                {t("ui.modals.colorModal.modeHsv", "HSV（3通道）")}
+              </Radio>
+              <Radio value="GRAY">
+                {t("ui.modals.colorModal.modeGray", "灰度（1通道）")}
+              </Radio>
             </Space>
           </Radio.Group>
         </div>
@@ -709,7 +746,7 @@ export const ColorModal = memo(
               }}
             />
             <span style={{ fontSize: 14, fontWeight: 500, color: "#262626" }}>
-              已选颜色
+              {t("ui.modals.colorModal.selectedColor", "已选颜色")}
             </span>
           </div>
           {pickedColor ? (
@@ -729,7 +766,7 @@ export const ColorModal = memo(
             </div>
           ) : (
             <span style={{ fontSize: 12, color: "#8c8c8c" }}>
-              请在截图上点击取色
+              {t("ui.modals.colorModal.clickToPick", "请在截图上点击取色")}
             </span>
           )}
         </div>
@@ -762,7 +799,7 @@ export const ColorModal = memo(
               }}
             />
             <span style={{ fontSize: 14, fontWeight: 500, color: "#262626" }}>
-              颜色范围预览
+              {t("ui.modals.colorModal.rangePreview", "颜色范围预览")}
             </span>
           </div>
 
@@ -784,7 +821,7 @@ export const ColorModal = memo(
                   width: 42,
                 }}
               >
-                下界
+                {t("ui.modals.colorModal.lowerBound", "下界")}
               </span>
               <div
                 style={{
@@ -810,7 +847,7 @@ export const ColorModal = memo(
               />
             </div>
             <Space size={4}>
-              {getChannelInfo().labels.map((label, idx) => (
+              {channelInfo.labels.map((label, idx) => (
                 <div key={`lower-${idx}`} style={{ display: "flex", alignItems: "center", gap: 2 }}>
                   <span style={{ fontSize: 11, color: "#8c8c8c", width: 12, textAlign: "right" }}>
                     {label}
@@ -819,7 +856,7 @@ export const ColorModal = memo(
                     value={lowerBound[idx] ?? 0}
                     onChange={(v) => handleBoundChange("lower", idx, v)}
                     min={0}
-                    max={getChannelInfo().max[idx]}
+                    max={channelInfo.max[idx]}
                     precision={0}
                     size="small"
                     style={{ width: 58 }}
@@ -847,7 +884,7 @@ export const ColorModal = memo(
                   width: 42,
                 }}
               >
-                上界
+                {t("ui.modals.colorModal.upperBound", "上界")}
               </span>
               <div
                 style={{
@@ -873,7 +910,7 @@ export const ColorModal = memo(
               />
             </div>
             <Space size={4}>
-              {getChannelInfo().labels.map((label, idx) => (
+              {channelInfo.labels.map((label, idx) => (
                 <div key={`upper-${idx}`} style={{ display: "flex", alignItems: "center", gap: 2 }}>
                   <span style={{ fontSize: 11, color: "#8c8c8c", width: 12, textAlign: "right" }}>
                     {label}
@@ -882,7 +919,7 @@ export const ColorModal = memo(
                     value={upperBound[idx] ?? 255}
                     onChange={(v) => handleBoundChange("upper", idx, v)}
                     min={0}
-                    max={getChannelInfo().max[idx]}
+                    max={channelInfo.max[idx]}
                     precision={0}
                     size="small"
                     style={{ width: 58 }}
@@ -902,7 +939,7 @@ export const ColorModal = memo(
               loading={isComputing}
               disabled={!screenshot}
             >
-              预览
+              {t("ui.modals.colorModal.preview", "预览")}
             </Button>
             {previewActive && (
               <Button
@@ -910,7 +947,7 @@ export const ColorModal = memo(
                 icon={<StopOutlined />}
                 onClick={clearPreview}
               >
-                清除
+                {t("ui.modals.colorModal.clear", "清除")}
               </Button>
             )}
           </Space>
@@ -934,7 +971,7 @@ export const ColorModal = memo(
                 }}
               >
                 <span style={{ fontSize: 12, color: "#52c41a", fontWeight: 500 }}>
-                  匹配像素
+                  {t("ui.modals.colorModal.matchedPixelsLabel", "匹配像素")}
                 </span>
                 <span style={{ fontSize: 14, color: "#262626", fontWeight: 600 }}>
                   {matchedPixelCount.toLocaleString()}
@@ -950,7 +987,7 @@ export const ColorModal = memo(
                   }}
                 >
                   <span style={{ fontSize: 11, color: "#8c8c8c" }}>
-                    占比
+                    {t("ui.modals.colorModal.ratio", "占比")}
                   </span>
                   <span style={{ fontSize: 12, color: "#595959" }}>
                     {(

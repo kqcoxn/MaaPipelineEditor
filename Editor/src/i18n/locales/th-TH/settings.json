@@ -1,0 +1,370 @@
+{
+  "settings": {
+    "tabs": {
+      "export": "ส่งออก",
+      "node": "โหนด",
+      "connection": "การเชื่อมต่อ",
+      "canvas": "แคนวาส",
+      "component": "ส่วนประกอบ",
+      "local-service": "บริการ local",
+      "ai": "AI",
+      "management": "จัดการ"
+    },
+    "resetDefault": "คืนค่าเริ่มต้น",
+    "items": {
+      "configHandlingMode": {
+        "label": "แผนบันทึกการตั้งค่า",
+        "tipTitle": "แผนบันทึกการตั้งค่า",
+        "tipContent": "ส่งออกแบบรวม: ฝังการตั้งค่าในไฟล์ Pipeline เหมาะสำหรับแชร์ไฟล์เดียว\nส่งออกแบบแยก: เก็บการตั้งค่าในไฟล์ .mpe.json แยก จัดการเวอร์ชันได้ง่าย\nไม่ส่งออก: ไม่บันทึกการตั้งค่า นำเข้าจะจัดเลย์เอาต์อัตโนมัติ",
+        "guardPromptTitle": "ยืนยันการตั้งค่าส่งออก",
+        "guardPromptDescription": "ก่อนส่งออกครั้งแรก โปรดยืนยันวิธีส่งออกการตั้งค่า Pipeline",
+        "options": {
+          "integrated": "ส่งออกแบบรวม",
+          "separated": "ส่งออกแบบแยก",
+          "none": "ไม่ส่งออก"
+        }
+      },
+      "pipelineProtocolVersion": {
+        "label": "เวอร์ชันส่งออก Pipeline",
+        "tipTitle": "เวอร์ชันส่งออก Pipeline",
+        "tipContent": "v2: ใช้โครงสร้างออบเจ็กต์ซ้อน\n{ recognition: { type: 'X', param: {...} } }\n\nv1: พารามิเตอร์แบนอยู่ที่รากของโหนด\n{ recognition: 'X', template: '...' }",
+        "guardPromptTitle": "ยืนยันการตั้งค่าส่งออก",
+        "guardPromptDescription": "ก่อนส่งออกครั้งแรก โปรดยืนยันเวอร์ชันส่งออก Pipeline",
+        "options": {
+          "v2": "v2",
+          "v1": "v1"
+        }
+      },
+      "nodeAttrExportStyle": {
+        "label": "รูปแบบส่งออกคุณสมบัติโหนด",
+        "tipTitle": "รูปแบบส่งออกคุณสมบัติโหนด",
+        "tipContent": "รูปแบบออบเจ็กต์: { name: 'C', anchor: true, jump_back: true }\nรูปแบบคำนำหน้า: '[Anchor][JumpBack]C'",
+        "options": {
+          "prefix": "รูปแบบคำนำหน้า",
+          "object": "รูปแบบออบเจ็กต์"
+        }
+      },
+      "exportDefaultRecoAction": {
+        "label": "ส่งออก recognition/action ค่าเริ่มต้น",
+        "tipTitle": "ส่งออก recognition/action ค่าเริ่มต้น",
+        "tipContent": "ปิด: หากประเภท recognition เป็น DirectHit และไม่มีพารามิเตอร์ จะไม่ส่งออกฟิลด์ recognition\nหากประเภท action เป็น DoNothing และไม่มีพารามิเตอร์ จะไม่ส่งออกฟิลด์ action\nตรวจสอบแยกกันทั้งสอง",
+        "checkedChildren": "ส่งออก",
+        "unCheckedChildren": "ข้าม"
+      },
+      "exportEmptyParam": {
+        "label": "ตัวแทนเมื่อฟิลด์ย่อยว่าง",
+        "tipTitle": "ตัวแทนเมื่อฟิลด์ย่อยว่าง",
+        "tipContent": "ปิด: หาก param ของ recognition/action เป็นออบเจ็กต์ว่าง จะไม่ส่งออกคีย์ param เหลือแค่ type\nเปิด: แม้ param ว่างก็ส่งออกตัวแทนไว้ (ใช้กับ v2 เท่านั้น)",
+        "checkedChildren": "ตัวแทน",
+        "unCheckedChildren": "ข้าม"
+      },
+      "jsonIndent": {
+        "label": "การเยื้องบรรทัด JSON",
+        "tipTitle": "การเยื้องบรรทัด JSON",
+        "tipContent": "จำนวนช่องว่างเยื้องต่อชั้นเมื่อส่งออกไฟล์ JSON\nค่าเริ่มต้น 4 ช่องว่าง ตั้งเป็น 2 หรือค่าอื่นได้",
+        "addonAfter": "ช่องว่าง"
+      },
+      "skipFieldValidation": {
+        "label": "ข้ามการตรวจสอบฟิลด์",
+        "tipTitle": "ข้ามการตรวจสอบฟิลด์",
+        "tipContent": "เปิด: ข้ามการตรวจสอบรูปแบบฟิลด์เมื่อส่งออก แม้เนื้อหาโหนดไม่ตรงมาตรฐานก็ส่งออกได้\nเหมาะสำหรับส่งออกด่วนหรือดีบัก",
+        "checkedChildren": "ข้าม",
+        "unCheckedChildren": "ตรวจสอบ"
+      },
+      "__fieldSort": {
+        "label": "การตั้งค่าเรียงลำดับฟิลด์",
+        "tipTitle": "การตั้งค่าเรียงลำดับฟิลด์",
+        "tipContent": "กำหนดลำดับฟิลด์เมื่อส่งออกเอง"
+      },
+      "nodeStyle": {
+        "label": "สไตล์โหนด",
+        "tipTitle": "สไตล์โหนด",
+        "tipContent": "สลับสไตล์แสดงผลโหนด: สมัยใหม่มีหัวข้อกลุ่มและไอคอน คลาสสิกเป็นแบบเรียงเดิม มินิมอลแสดงแค่ไอคอนและชื่อ",
+        "options": {
+          "modern": "สไตล์สมัยใหม่",
+          "classic": "สไตล์คลาสสิก",
+          "minimal": "สไตล์มินิมอล"
+        }
+      },
+      "showNodeDetailFields": {
+        "label": "แสดงฟิลด์ระดับสองของโหนด",
+        "tipTitle": "แสดงฟิลด์ระดับสองของโหนด",
+        "tipContent": "ปิด: โหนดแสดงแค่ประเภท recognition และ action ซ่อนรายละเอียดพารามิเตอร์ เหมาะเมื่อมีโหนดจำนวนมาก",
+        "checkedChildren": "ละเอียด",
+        "unCheckedChildren": "ย่อ"
+      },
+      "showNodeTemplateImages": {
+        "label": "แสดงภาพเทมเพลต",
+        "tipTitle": "แสดงภาพเทมเพลต",
+        "tipContent": "เปิด: โหนดสไตล์สมัยใหม่จะแสดงภาพย่อของฟิลด์ template ด้านล่าง ต้องเชื่อมต่อบริการ local",
+        "checkedChildren": "แสดง",
+        "unCheckedChildren": "ซ่อน"
+      },
+      "showNodeFlowSection": {
+        "label": "แสดงโหนดเป้าหมายถัดไป",
+        "tipTitle": "แสดงโหนดเป้าหมายถัดไป",
+        "tipContent": "เปิด: ด้านล่างโหนดจะแสดงโหนดเป้าหมายของ next และ on_error",
+        "checkedChildren": "แสดง",
+        "unCheckedChildren": "ซ่อน"
+      },
+      "defaultHandleDirection": {
+        "label": "ตำแหน่งจุดเชื่อมเริ่มต้น",
+        "tipTitle": "ตำแหน่งจุดเชื่อมเริ่มต้น",
+        "tipContent": "ตำแหน่งจุดเชื่อมเริ่มต้นของโหนดใหม่\nซ้าย-ขวา: รับซ้าย ส่งขวา (ค่าเริ่มต้น)\nขวา-ซ้าย: รับขวา ส่งซ้าย\nบน-ล่าง: รับบน ส่งล่าง\nล่าง-บน: รับล่าง ส่งบน",
+        "options": {
+          "left-right": "ซ้าย-ขวา",
+          "right-left": "ขวา-ซ้าย",
+          "top-bottom": "บน-ล่าง",
+          "bottom-top": "ล่าง-บน"
+        }
+      },
+      "__applyToAll": {
+        "label": "เปลี่ยนตำแหน่งจุดเชื่อมทั้งหมด",
+        "tipTitle": "เปลี่ยนครั้งเดียว",
+        "tipContent": "เปลี่ยนตำแหน่งจุดเชื่อมของโหนดทั้งหมดเป็นค่าเริ่มต้นที่เลือกอยู่"
+      },
+      "enableNodeSnap": {
+        "label": "จัดแนวโหนดแบบแม่เหล็ก",
+        "tipTitle": "จัดแนวโหนดแบบแม่เหล็ก",
+        "tipContent": "เปิด: ลากโหนดจะจัดแนวขอบและเส้นกลางของโหนดอื่นอัตโนมัติ และแสดงเส้นอ้างอิง",
+        "checkedChildren": "เปิด",
+        "unCheckedChildren": "ปิด"
+      },
+      "snapOnlyInViewport": {
+        "label": "จัดแนวเฉพาะโหนดที่มองเห็น",
+        "tipTitle": "จัดแนวเฉพาะโหนดที่มองเห็น",
+        "tipContent": "เปิด: จัดแนวเฉพาะกับโหนดในขอบเขตที่มองเห็น",
+        "checkedChildren": "เปิด",
+        "unCheckedChildren": "ปิด"
+      },
+      "edgePathMode": {
+        "label": "โหมดเส้นเชื่อม",
+        "tipTitle": "โหมดเส้นเชื่อม",
+        "tipContent": "โค้ง: ใช้เส้น Bezier เชื่อมโหนด ลื่นไหล\nมุมฉาก: ใช้เส้นหักเป็นขั้นบันได ชัดเจน\nหลบ: หลบโหนดบนเส้นทางอัตโนมัติ",
+        "options": {
+          "bezier": "โค้ง",
+          "smoothstep": "มุมฉาก",
+          "avoid": "หลบ"
+        }
+      },
+      "showEdgeLabel": {
+        "label": "แสดงป้ายเส้นเชื่อม",
+        "tipTitle": "แสดงป้ายเส้นเชื่อม",
+        "tipContent": "เปิด: กลางเส้นจะแสดงลำดับการเชื่อมต่อ ปิดได้หากรบกวนการมอง อาจเพิ่มภาระเล็กน้อยเมื่อลากโหนด",
+        "checkedChildren": "แสดง",
+        "unCheckedChildren": "ซ่อน"
+      },
+      "showEdgeControlPoint": {
+        "label": "ที่จับลากเส้นเชื่อม",
+        "tipTitle": "ที่จับลากเส้นเชื่อม",
+        "tipContent": "เปิด: ลากที่จับกลางเส้นเพื่อปรับรูปทรง (ไม่บันทึก) ดับเบิลคลิกรีเซ็ตเส้นเดียว รีเซ็ตทั้งหมดได้จากเครื่องมือจัดเลย์เอาต์",
+        "checkedChildren": "แสดง",
+        "unCheckedChildren": "ซ่อน"
+      },
+      "uiLocale": {
+        "label": "ภาษาอินเทอร์เฟซ",
+        "tipTitle": "ภาษาอินเทอร์เฟซ",
+        "tipContent": "ตามระบบ: เลือกภาษาตามเบราว์เซอร์หรือระบบปฏิบัติการ\nเลือก 简体中文, English หรือ ไทย ด้วยตนเองได้",
+        "options": {
+          "auto": "ตามระบบ",
+          "zh-CN": "简体中文",
+          "en-US": "English",
+          "th-TH": "ไทย"
+        }
+      },
+      "fieldPanelMode": {
+        "label": "โหมดแผงฟิลด์/การเชื่อมต่อ",
+        "tipTitle": "โหมดแผงฟิลด์/การเชื่อมต่อ",
+        "tipContent": "คงที่: แผงติดมุมขวาบน\nลากได้: ลากแผงได้ ตำแหน่งคงเมื่อสลับการเลือก\nฝัง: แผงฟิลด์อยู่ข้างโหนด แก้ไขบนแคนวาสโดยตรง",
+        "options": {
+          "fixed": "คงที่",
+          "draggable": "ลากได้",
+          "inline": "ฝัง"
+        }
+      },
+      "inlinePanelScale": {
+        "label": "สัดส่วนย่อ/ขยายแผงฝัง",
+        "tipTitle": "สัดส่วนย่อ/ขยายแผงฝัง",
+        "tipContent": "ตั้งขนาดรวมของแผงฟิลด์ในโหมดฝัง ช่วง 0.5–1.0 โหมดอื่นไม่มีผล"
+      },
+      "quickCreateNodeOnConnectBlank": {
+        "label": "สร้างเมื่อเชื่อมไปพื้นที่ว่าง",
+        "tipTitle": "สร้างเมื่อเชื่อมไปพื้นที่ว่าง",
+        "tipContent": "ลากเส้นจากโหนด หากปลายอยู่บนพื้นที่ว่าง จะเปิดแผงเพิ่มโหนดที่จุดนั้น ปิดจะใช้พฤติกรรมเดิม",
+        "checkedChildren": "เปิด",
+        "unCheckedChildren": "ปิด"
+      },
+      "canvasBackgroundMode": {
+        "label": "พื้นหลังแคนวาส",
+        "tipTitle": "พื้นหลังแคนวาส",
+        "tipContent": "ขาวล้วน: พื้นหลังขาว เหมาะผู้ชอบสว่าง\nถนอมสายตา: พื้นหลังฟ้าอ่อน (#f9fafd) นุ่มตา",
+        "options": {
+          "eyecare": "ถนอมสายตา",
+          "pure": "ขาวล้วน"
+        }
+      },
+      "isAutoFocus": {
+        "label": "โฟกัสอัตโนมัติ",
+        "tipTitle": "โฟกัสอัตโนมัติ",
+        "tipContent": "เปิด: เมื่อมีโหนดใหม่จะเลื่อนวิวพอร์ตไปโฟกัสโหนดนั้น",
+        "checkedChildren": "เปิด",
+        "unCheckedChildren": "ปิด"
+      },
+      "focusOpacity": {
+        "label": "ความทึบของโหนดที่ไม่โฟกัส",
+        "tipTitle": "ความทึบของโหนดที่ไม่โฟกัส",
+        "tipContent": "เมื่อเลือกโหนดหรือเส้น ความโปร่งใสขององค์ประกอบที่ไม่เกี่ยวข้อง ตั้ง 1 เพื่อปิด น้อยกว่า 1 จะแสดงเต็มเฉพาะโหนด/เส้นที่เกี่ยวข้อง"
+      },
+      "enableLiveScreen": {
+        "label": "ดูภาพสดแบบเรียลไทม์",
+        "tipTitle": "ดูภาพสดแบบเรียลไทม์",
+        "tipContent": "หลังเชื่อมต่ออุปกรณ์ แสดงหน้าจออุปกรณ์มุมขวาบนอัตโนมัติ ซ่อนเมื่อเปิดแผงฟิลด์/การเชื่อมต่อ/JSON",
+        "checkedChildren": "เปิด",
+        "unCheckedChildren": "ปิด"
+      },
+      "liveScreenRefreshRate": {
+        "label": "ช่วงรีเฟรชภาพ (ms)",
+        "tipTitle": "ช่วงรีเฟรชภาพ (ms)",
+        "tipContent": "ช่วงอัปเดตหน้าจออุปกรณ์ (มิลลิวินาที) ค่าน้อยลื่นกว่าแต่กินทรัพยากรมากกว่า แนะนำ 500–2000 ms"
+      },
+      "historyLimit": {
+        "label": "ขีดจำกัดประวัติ",
+        "tipTitle": "ขีดจำกัดประวัติ",
+        "tipContent": "จำนวนประวัติสูงสุดของย้อนกลับ/ทำซ้ำ ตั้งสูงเกินไปอาจกินแรมและทำให้กระตุก"
+      },
+      "saveFilesBeforeDebug": {
+        "label": "บันทึกไฟล์ก่อนดีบัก",
+        "tipTitle": "บันทึกไฟล์ก่อนดีบัก",
+        "tipContent": "เปิด: บันทึกไฟล์ปัจจุบันอัตโนมัติก่อนเริ่มดีบัก",
+        "checkedChildren": "เปิด",
+        "unCheckedChildren": "ปิด"
+      },
+      "useDarkMode": {
+        "label": "โหมดมืด",
+        "tipTitle": "โหมดมืด",
+        "tipContent": "สลับธีมมืด/สว่างของตัวแก้ไข",
+        "checkedChildren": "มืด",
+        "unCheckedChildren": "สว่าง"
+      },
+      "__backendConfig": {
+        "label": "การตั้งค่าบริการ local",
+        "tipTitle": "การตั้งค่าบริการ local",
+        "tipContent": "ดูและแก้การตั้งค่าแบ็กเอนด์ รวมเซิร์ฟเวอร์ ไฟล์ บันทึก MaaFramework ฯลฯ"
+      },
+      "wsPort": {
+        "label": "พอร์ตเชื่อมต่อ",
+        "tipTitle": "พอร์ต WebSocket",
+        "tipContent": "พอร์ตบริการ local เปลี่ยนพอร์ตแล้วต้องเชื่อมต่อใหม่"
+      },
+      "wsAutoConnect": {
+        "label": "เชื่อมต่ออัตโนมัติ",
+        "tipTitle": "เชื่อมต่ออัตโนมัติ",
+        "tipContent": "เปิด: เข้าหน้าแล้วพยายามเชื่อมต่อบริการสื่อสาร local อัตโนมัติ",
+        "checkedChildren": "เปิด",
+        "unCheckedChildren": "ปิด"
+      },
+      "fileAutoReload": {
+        "label": "โหลดไฟล์ที่เปลี่ยนอัตโนมัติ",
+        "tipTitle": "โหลดไฟล์ที่เปลี่ยนอัตโนมัติ",
+        "tipContent": "เปิด: เมื่อไฟล์ถูกแก้จากภายนอกจะโหลดเนื้อหาใหม่โดยอัตโนมัติ",
+        "checkedChildren": "เปิด",
+        "unCheckedChildren": "ปิด"
+      },
+      "enableCrossFileSearch": {
+        "label": "เปิดค้นหาข้ามไฟล์",
+        "tipTitle": "เปิดค้นหาข้ามไฟล์",
+        "tipContent": "เปิด: ค้นหาจากไฟล์ที่เปิดอยู่ทั้งหมด",
+        "checkedChildren": "เปิด",
+        "unCheckedChildren": "ปิด"
+      },
+      "crossFileSearchFolderFilter": {
+        "label": "กรองโฟลเดอร์",
+        "tipTitle": "กรองโฟลเดอร์",
+        "tipContent": "กรองรายการไฟล์ local และผลค้นหาข้ามไฟล์ ใส่เส้นทางโฟลเดอร์เทียบรากบริการ local คั่นด้วยจุลภาค เซมิโคลอน หรือขึ้นบรรทัดใหม่ ว่าง = ไม่กรอง",
+        "placeholder": "เช่น: pipeline\npipeline/sub"
+      },
+      "screenshotResolutionMode": {
+        "label": "ความละเอียดภาพหน้าจอ",
+        "tipTitle": "ความละเอียดภาพหน้าจอ",
+        "tipContent": "อุปกรณ์และดีบักเว็บใช้วิธีย่อเดียวกัน:\nค่าเริ่มต้น: ย่อด้านสั้นเป็น 720 (ค่าเริ่มต้น maafw)\nด้านสั้น: ย่อด้านสั้นตามความยาวที่กำหนด\nด้านยาว: ย่อด้านยาวตามความยาวที่กำหนด\nดิบ: ไม่ย่อ ใช้ความละเอียดเดิม\n\nMPE ไม่อ่าน interface.json ดีบักเว็บใช้การตั้งค่านี้ ROI/OCR/เทมเพลตและรันดีบักใช้ระบบพิกัดเดียวกัน",
+        "options": {
+          "default": "ค่าเริ่มต้น (ด้านสั้น 720)",
+          "shortSide": "กำหนดด้านสั้นเอง",
+          "longSide": "กำหนดด้านยาวเอง",
+          "raw": "ความละเอียดดิบ"
+        }
+      },
+      "screenshotResolutionValue": {
+        "label": "ความยาวความละเอียด",
+        "tipTitle": "ความยาวความละเอียด",
+        "tipContent": "ความยาวเป้าหมาย (พิกเซล) ในโหมดกำหนดด้านสั้น/ยาว อีกด้านปรับตามสัดส่วน ค่าที่ใช้บ่อย: 720, 1280, 1080, 1920",
+        "addonAfter": "px"
+      },
+      "__aiWarning": {
+        "label": "ข้อควรทราบการตั้งค่า AI",
+        "tipTitle": "ข้อควรทราบการตั้งค่า AI"
+      },
+      "aiProviderType": {
+        "label": "ประเภท API",
+        "tipTitle": "ประเภทบริการ API",
+        "tipContent": "เลือกผู้ให้บริการ AI แต่ละประเภทใช้โปรโตคอลและรูปแบบ endpoint ต่างกัน หากใช้บริการ OpenAI-compatible ของบุคคลที่สาม (เช่น DeepSeek, 通义千问) เลือก 'กำหนดเอง'",
+        "options": {
+          "custom": "กำหนดเอง (OpenAI compatible)",
+          "openai": "OpenAI",
+          "anthropic": "Claude (Anthropic)",
+          "gemini": "Gemini (Google)"
+        }
+      },
+      "aiApiUrl": {
+        "label": "API URL",
+        "tipTitle": "API URL",
+        "tipContent": "ที่อยู่ฐาน API หรือ endpoint เต็ม OpenAI: https://api.openai.com Anthropic: https://api.anthropic.com Gemini: https://generativelanguage.googleapis.com บริการ OpenAI-compatible ใส่ฐานหรือ /chat/completions เต็มได้",
+        "placeholder": "เช่น: https://api.openai.com"
+      },
+      "aiApiKey": {
+        "label": "API Key",
+        "tipTitle": "API Key",
+        "tipContent": "คีย์ API ของคุณ จะเข้ารหัสเก็บในเบราว์เซอร์ (AES-GCM)",
+        "placeholder": "เช่น: sk-xxxx"
+      },
+      "aiModel": {
+        "label": "โมเดล",
+        "tipTitle": "ชื่อโมเดล",
+        "tipContent": "ชื่อโมเดลที่ใช้ เช่น gpt-4o, gpt-4o-mini, claude-sonnet-4-20250514, gemini-2.5-flash",
+        "placeholder": "เช่น: gpt-4o / claude-sonnet-4-20250514 / gemini-2.5-flash"
+      },
+      "aiTemperature": {
+        "label": "อุณหภูมิ",
+        "tipTitle": "พารามิเตอร์อุณหภูมิ",
+        "tipContent": "ควบคุมความสุ่มของผลลัพธ์ AI ค่าต่ำ (0.3) เสถียรกว่า ค่าสูง (0.8) สร้างสรรค์กว่า ทำนายโหนดแนะนำ 0.5–0.7"
+      },
+      "aiUseProxy": {
+        "label": "พร็อกซี LocalBridge",
+        "tipTitle": "พร็อกซี LocalBridge",
+        "tipContent": "เปิด: ส่งคำขอ AI ผ่าน LocalBridge แก้ข้อจำกัด CORS ปิด: เรียก API จากเบราว์เซอร์โดยตรง (ต้องรองรับ CORS)",
+        "checkedChildren": "เปิด",
+        "unCheckedChildren": "ปิด"
+      },
+      "__testConnection": {
+        "label": "ทดสอบ",
+        "tipTitle": "ทดสอบการเชื่อมต่อ",
+        "tipContent": "ทดสอบว่าการตั้งค่า AI ปัจจุบันใช้งานได้"
+      },
+      "__exportConfig": {
+        "label": "ส่งออกการตั้งค่า",
+        "tipTitle": "ส่งออก/นำเข้าการตั้งค่า",
+        "tipContent": "ส่งออกการตั้งค่าปัจจุบันเป็น JSON หรือนำเข้าจาก JSON รวมการตั้งค่าตัวแก้ไขและเทมเพลตโหนดกำหนดเอง"
+      },
+      "__importConfig": {
+        "label": "นำเข้าการตั้งค่า",
+        "tipTitle": "ส่งออก/นำเข้าการตั้งค่า",
+        "tipContent": "ส่งออกการตั้งค่าปัจจุบันเป็น JSON หรือนำเข้าจาก JSON รวมการตั้งค่าตัวแก้ไขและเทมเพลตโหนดกำหนดเอง"
+      },
+      "__resetDefaults": {
+        "label": "รีเซ็ตค่าเริ่มต้น",
+        "tipTitle": "รีเซ็ตค่าเริ่มต้น",
+        "tipContent": "คืนค่าเริ่มต้นให้รายการตั้งค่าทั้งหมด"
+      }
+    }
+  }
+}

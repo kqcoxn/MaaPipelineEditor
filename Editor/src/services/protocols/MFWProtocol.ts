@@ -15,6 +15,7 @@ import {
   type ScreencapRequestParams,
   type ScreencapResult,
 } from "./screencapRequests";
+import uiT from "../../i18n/translate";
 
 /**
  * MaaFramework 协议处理器
@@ -63,7 +64,12 @@ export class MFWProtocol extends BaseProtocol {
       const mfwStore = useMFWStore.getState();
       // 清除控制器状态
       if (!connected) {
-        this.screencapRequests.rejectAll("LocalBridge 连接已断开");
+        this.screencapRequests.rejectAll(
+          uiT(
+            "ui.services.mfw.localBridgeDisconnected",
+            "LocalBridge 连接已断开",
+          ),
+        );
         mfwStore.clearConnection();
         // 清除待连接设备信息
         this.lastConnectionDevice = null;
@@ -141,7 +147,9 @@ export class MFWProtocol extends BaseProtocol {
   }
 
   override unregister(): void {
-    this.screencapRequests.rejectAll("MaaFramework 协议已注销");
+    this.screencapRequests.rejectAll(
+      uiT("ui.services.mfw.protocolUnregistered", "MaaFramework 协议已注销"),
+    );
     super.unregister();
   }
 
@@ -164,7 +172,12 @@ export class MFWProtocol extends BaseProtocol {
       mfwStore.updateAdbDevices(devices as AdbDevice[]);
     } catch (error) {
       console.error("[MFWProtocol] Failed to handle ADB devices:", error);
-      message.error("设备列表更新失败");
+      message.error(
+        uiT(
+          "ui.services.mfw.deviceListUpdateFailed",
+          "设备列表更新失败",
+        ),
+      );
     }
   }
 
@@ -185,7 +198,12 @@ export class MFWProtocol extends BaseProtocol {
       mfwStore.updateWin32Windows(windows as Win32Window[]);
     } catch (error) {
       console.error("[MFWProtocol] Failed to handle Win32 windows:", error);
-      message.error("窗口列表更新失败");
+      message.error(
+        uiT(
+          "ui.services.mfw.windowListUpdateFailed",
+          "窗口列表更新失败",
+        ),
+      );
     }
   }
 
@@ -206,7 +224,12 @@ export class MFWProtocol extends BaseProtocol {
       mfwStore.updateWlRootsCompositors(compositors as WlRootsCompositor[]);
     } catch (error) {
       console.error("[MFWProtocol] Failed to handle WlRoots sockets:", error);
-      message.error("设备列表更新失败");
+      message.error(
+        uiT(
+          "ui.services.mfw.deviceListUpdateFailed",
+          "设备列表更新失败",
+        ),
+      );
     }
   }
 
@@ -228,13 +251,30 @@ export class MFWProtocol extends BaseProtocol {
             : null;
 
         mfwStore.setControllerInfo(type, controller_id, deviceInfo || null);
-        message.success(`控制器连接成功`);
+        message.success(
+          uiT(
+            "ui.services.mfw.controllerConnected",
+            "控制器连接成功",
+          ),
+        );
 
         // 清除记录的设备信息
         this.lastConnectionDevice = null;
       } else {
-        mfwStore.setErrorMessage(error || "控制器连接失败");
-        message.error(error || "控制器连接失败");
+        mfwStore.setErrorMessage(
+          error ||
+            uiT(
+              "ui.services.mfw.controllerConnectFailed",
+              "控制器连接失败",
+            ),
+        );
+        message.error(
+          error ||
+            uiT(
+              "ui.services.mfw.controllerConnectFailed",
+              "控制器连接失败",
+            ),
+        );
         console.error("[MFWProtocol] Controller creation failed:", error);
 
         // 清除记录的设备信息
@@ -246,8 +286,12 @@ export class MFWProtocol extends BaseProtocol {
         error,
       );
       const mfwStore = useMFWStore.getState();
-      mfwStore.setErrorMessage("控制器连接失败");
-      message.error("控制器连接失败");
+      mfwStore.setErrorMessage(
+        uiT("ui.services.mfw.controllerConnectFailed", "控制器连接失败"),
+      );
+      message.error(
+        uiT("ui.services.mfw.controllerConnectFailed", "控制器连接失败"),
+      );
 
       // 清除记录的设备信息
       this.lastConnectionDevice = null;
@@ -267,7 +311,9 @@ export class MFWProtocol extends BaseProtocol {
       if (!connected) {
         // 控制器断开
         mfwStore.clearConnection();
-        message.info("控制器已断开");
+        message.info(
+          uiT("ui.services.mfw.controllerDisconnected", "控制器已断开"),
+        );
       }
     } catch (error) {
       console.error("[MFWProtocol] Failed to handle controller status:", error);

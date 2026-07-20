@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import i18n from "../i18n";
 import type { DebugDiagnostic, DebugEvent } from "../features/debug/types";
 
 interface DebugDiagnosticsState {
@@ -22,7 +23,8 @@ function diagnosticFromEvent(event: DebugEvent): DebugDiagnostic | undefined {
     message:
       typeof data?.message === "string"
         ? data.message
-        : event.maafwMessage ?? "调试诊断事件",
+        : event.maafwMessage ??
+          i18n.t("stores.debug.diagnosticFallback", "调试诊断事件"),
     fileId: typeof data?.fileId === "string" ? data.fileId : event.node?.fileId,
     nodeId: typeof data?.nodeId === "string" ? data.nodeId : event.node?.nodeId,
     fieldPath: typeof data?.fieldPath === "string" ? data.fieldPath : undefined,

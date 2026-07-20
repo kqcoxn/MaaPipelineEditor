@@ -8,6 +8,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import ReactJsonView, {
   type ReactJsonViewProps,
 } from "@microlink/react-json-view";
@@ -111,6 +112,7 @@ const ViewerElem = memo(({ obj }: { obj: any }) => {
 });
 
 function JsonViewer() {
+  const { t } = useTranslation();
   const { isActive, isDisplaced, activate, deactivate } =
     usePanelOccupancy("json");
 
@@ -200,7 +202,7 @@ function JsonViewer() {
         <div className={style.headerRow}>
           <div className={style.title}>Pipeline JSON</div>
           <div className={style.actions}>
-            <Tooltip title="刷新">
+            <Tooltip title={t("ui.jsonViewer.refresh", "刷新")}>
               <Button
                 type="text"
                 size="small"
@@ -208,7 +210,7 @@ function JsonViewer() {
                 onClick={handleRefresh}
               />
             </Tooltip>
-            <Tooltip title="关闭">
+            <Tooltip title={t("ui.jsonViewer.close", "关闭")}>
               <Button
                 type="text"
                 size="small"
@@ -222,7 +224,10 @@ function JsonViewer() {
           <Input
             size="small"
             allowClear
-            placeholder="搜索键名或值..."
+            placeholder={t(
+              "ui.jsonViewer.searchPlaceholder",
+              "搜索键名或值...",
+            )}
             prefix={<SearchOutlined />}
             value={searchText}
             onChange={handleSearchChange}
@@ -238,7 +243,7 @@ function JsonViewer() {
           />
           {searchKeyword && matchCount > 0 && (
             <div className={style.searchNav}>
-              <Tooltip title="上一个">
+              <Tooltip title={t("ui.jsonViewer.prev", "上一个")}>
                 <Button
                   type="text"
                   size="small"
@@ -246,7 +251,7 @@ function JsonViewer() {
                   onClick={handlePrev}
                 />
               </Tooltip>
-              <Tooltip title="下一个">
+              <Tooltip title={t("ui.jsonViewer.next", "下一个")}>
                 <Button
                   type="text"
                   size="small"

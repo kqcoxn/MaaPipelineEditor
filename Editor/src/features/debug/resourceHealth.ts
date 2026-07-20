@@ -1,3 +1,4 @@
+import uiT from "../../i18n/translate";
 import type {
   DebugDiagnostic,
   DebugDiagnosticSeverity,
@@ -18,16 +19,19 @@ const genericLoadingDiagnosticCodes = new Set([
   "debug.resource.ready",
 ]);
 
-const categoryLabels: Record<DebugResourceHealthCategory, string> = {
-  resolution: "资源路径解析",
-  loading: "资源加载",
-  graph: "流程图校验",
-};
-
 export function getDebugResourceHealthCategoryLabel(
   category: DebugResourceHealthCategory,
 ): string {
-  return categoryLabels[category];
+  switch (category) {
+    case "resolution":
+      return uiT("debug.resourceHealth.category.resolution", "资源路径解析");
+    case "loading":
+      return uiT("debug.resourceHealth.category.loading", "资源加载");
+    case "graph":
+      return uiT("debug.resourceHealth.category.graph", "流程图校验");
+    default:
+      return category;
+  }
 }
 
 export function getDebugResourceHealthCategory(

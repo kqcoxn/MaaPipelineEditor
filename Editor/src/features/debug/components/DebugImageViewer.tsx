@@ -7,6 +7,7 @@
   type PointerEvent as ReactPointerEvent,
   type WheelEvent,
 } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Button,
   Modal,
@@ -83,6 +84,7 @@ export function DebugImageViewer({
   overlays = [],
   src,
 }: DebugImageViewerProps) {
+  const { t } = useTranslation();
   const [modalOpen, setModalOpen] = useState(false);
   const [naturalSize, setNaturalSize] = useState<{
     width: number;
@@ -109,7 +111,7 @@ export function DebugImageViewer({
     <>
       <button
         type="button"
-        aria-label="打开图片预览"
+        aria-label={t("debug.imageViewer.openPreview", "打开图片预览")}
         style={thumbnailButtonStyle}
         onClick={() => setModalOpen(true)}
       >
@@ -133,7 +135,9 @@ export function DebugImageViewer({
           />
         </span>
         <span style={thumbnailMetaStyle}>
-          <Tag icon={<FullscreenOutlined />}>点击预览</Tag>
+          <Tag icon={<FullscreenOutlined />}>
+            {t("debug.imageViewer.clickPreview", "点击预览")}
+          </Tag>
           {naturalSize && (
             <Tag icon={<BorderOutlined />}>
               {naturalSize.width} x {naturalSize.height}
@@ -150,7 +154,7 @@ export function DebugImageViewer({
           body: imageModalBodyStyle,
         }}
         style={imageModalStyle}
-        title="图片详情"
+        title={t("debug.imageViewer.imageDetails", "图片详情")}
         width="min(1320px, calc(100vw - 48px))"
         onCancel={() => setModalOpen(false)}
       >
@@ -215,6 +219,7 @@ function ImageCanvas({
   overlays: DebugImageOverlay[];
   src: string;
 }) {
+  const { t } = useTranslation();
   const viewportRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{
     pointerId: number;
@@ -320,41 +325,41 @@ function ImageCanvas({
   return (
     <Space orientation="vertical" size={8} style={{ width: "100%" }}>
       <Space wrap size={6}>
-        <Tooltip title="放大">
+        <Tooltip title={t("debug.imageViewer.zoomIn", "放大")}>
           <Button
-            aria-label="放大图片"
+            aria-label={t("debug.imageViewer.zoomInAria", "放大图片")}
             icon={<ZoomInOutlined />}
             size="small"
             onClick={() => updateZoom(zoom * ZOOM_STEP)}
           />
         </Tooltip>
-        <Tooltip title="缩小">
+        <Tooltip title={t("debug.imageViewer.zoomOut", "缩小")}>
           <Button
-            aria-label="缩小图片"
+            aria-label={t("debug.imageViewer.zoomOutAria", "缩小图片")}
             icon={<ZoomOutOutlined />}
             size="small"
             onClick={() => updateZoom(zoom / ZOOM_STEP)}
           />
         </Tooltip>
-        <Tooltip title="适配">
+        <Tooltip title={t("debug.imageViewer.fit", "适配")}>
           <Button
-            aria-label="适配窗口"
+            aria-label={t("debug.imageViewer.fitAria", "适配窗口")}
             icon={<ColumnWidthOutlined />}
             size="small"
             onClick={reset}
           />
         </Tooltip>
-        <Tooltip title="原始尺寸">
+        <Tooltip title={t("debug.imageViewer.actualSize", "原始尺寸")}>
           <Button
-            aria-label="原始尺寸"
+            aria-label={t("debug.imageViewer.actualSizeAria", "原始尺寸")}
             icon={<AimOutlined />}
             size="small"
             onClick={showActualSize}
           />
         </Tooltip>
-        <Tooltip title="重置">
+        <Tooltip title={t("debug.imageViewer.reset", "重置")}>
           <Button
-            aria-label="重置图片视图"
+            aria-label={t("debug.imageViewer.resetAria", "重置图片视图")}
             icon={<ReloadOutlined />}
             size="small"
             onClick={reset}
@@ -465,6 +470,7 @@ function ImageOverlay({
   onHover: (overlayId?: string) => void;
   overlay: DebugImageOverlay;
 }) {
+  const { t } = useTranslation();
   const color = overlayColor(overlay.status, index);
   const opacity = dimmed ? 0.34 : 1;
   const commonHandlers = {
@@ -502,7 +508,13 @@ function ImageOverlay({
         }}
       >
         {(overlay.label || focused) && (
-          <OverlayLabel color={color} label={overlay.label ?? `ROI ${index + 1}`} />
+          <OverlayLabel
+            color={color}
+            label={
+              overlay.label ??
+              t("debug.imageViewer.roiIndex", "ROI {{index}}", { index: index + 1 })
+            }
+          />
         )}
       </span>
     );
@@ -545,7 +557,12 @@ function ImageOverlay({
               {pointIndex === 0 && (overlay.label || focused) && (
                 <OverlayLabel
                   color={color}
-                  label={overlay.label ?? `ROI ${index + 1}`}
+                  label={
+                    overlay.label ??
+                    t("debug.imageViewer.roiIndex", "ROI {{index}}", {
+                      index: index + 1,
+                    })
+                  }
                 />
               )}
             </span>
@@ -576,7 +593,13 @@ function ImageOverlay({
       }}
     >
       {(overlay.label || focused) && (
-        <OverlayLabel color={color} label={overlay.label ?? `ROI ${index + 1}`} />
+        <OverlayLabel
+          color={color}
+          label={
+            overlay.label ??
+            t("debug.imageViewer.roiIndex", "ROI {{index}}", { index: index + 1 })
+          }
+        />
       )}
     </span>
   );
@@ -637,11 +660,12 @@ function OverlayDetailPanel({
   overlays: DebugImageOverlay[];
   focusedId?: string;
 }) {
+  const { t } = useTranslation();
   const overlay = overlays.find((o) => o.id === focusedId);
   if (!overlay) {
     return (
       <Text type="secondary" style={{ fontSize: 12 }}>
-        悬停或点击左侧列表项查看详情
+        {t("debug.imageViewer.hoverHint", "悬停或点击左侧列表项查看详情")}
       </Text>
     );
   }
@@ -651,10 +675,18 @@ function OverlayDetailPanel({
       <Tag>{overlay.kind}</Tag>
       {overlay.status && <Tag>{overlay.status}</Tag>}
       {overlay.text && (
-        <Tag color="green">{`识别: ${overlay.text}`}</Tag>
+        <Tag color="green">
+          {t("debug.imageViewer.recognitionText", "识别: {{text}}", {
+            text: overlay.text,
+          })}
+        </Tag>
       )}
       {overlay.score !== undefined && (
-        <Tag color="geekblue">{`置信度: ${overlay.score.toFixed(3)}`}</Tag>
+        <Tag color="geekblue">
+          {t("debug.imageViewer.confidence", "置信度: {{score}}", {
+            score: overlay.score.toFixed(3),
+          })}
+        </Tag>
       )}
       <Tag>{formatOverlayGeometryInline(overlay)}</Tag>
     </Space>

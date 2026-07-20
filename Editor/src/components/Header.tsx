@@ -31,37 +31,14 @@ import { useTheme } from "../contexts/ThemeContext";
 import { WikiAnchor } from "./wiki/WikiAnchor";
 import classNames from "classnames";
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { checkUpdateFromFrontend, type UpdateInfo } from "../utils/wailsBridge";
 import { useEmbedMode } from "../hooks/useEmbedMode";
-
-const versionLinks = [
-  {
-    key: "stable",
-    href: "https://mpe.codax.site/stable",
-    text: "稳定版",
-  },
-  {
-    key: "preview",
-    href: "https://kqcoxn.github.io/MaaPipelineEditor/",
-    text: "预览版",
-  },
-  { key: "yamaape", href: "https://yamaape.codax.site", text: "YAMaaPE" },
-];
-
-const otherVersions: MenuProps["items"] = versionLinks.map(
-  ({ key, href, text }) => ({
-    key,
-    label: (
-      <a target="_self" rel="noopener noreferrer" href={href}>
-        {text}
-      </a>
-    ),
-  }),
-);
 
 type ConnectionStatus = "connected" | "disconnected" | "connecting";
 
 const ConnectionButton: React.FC = () => {
+  const { t } = useTranslation();
   const { isEmbed } = useEmbedMode();
   const [status, setStatus] = useState<ConnectionStatus>("disconnected");
 
@@ -105,7 +82,7 @@ const ConnectionButton: React.FC = () => {
   // 嵌入模式下显示 EmbedBridge，不可点击断开
   if (isEmbed) {
     return (
-      <Tooltip title="EmbedBridge 嵌入模式">
+      <Tooltip title={t("ui.header.connection.embedMode", "EmbedBridge 嵌入模式")}>
         <Button
           type="primary"
           icon={<LinkOutlined />}
@@ -138,21 +115,30 @@ const ConnectionButton: React.FC = () => {
           icon: <LinkOutlined />,
           text: "MPE LocalBridge",
           type: "primary" as const,
-          tooltip: "点击断开本地服务连接",
+          tooltip: t(
+            "ui.header.connection.disconnectTooltip",
+            "点击断开本地服务连接",
+          ),
         };
       case "connecting":
         return {
           icon: <LoadingOutlined />,
-          text: "连接服务中...",
+          text: t("ui.header.connection.connecting", "连接服务中..."),
           type: "default" as const,
-          tooltip: "正在连接本地服务",
+          tooltip: t(
+            "ui.header.connection.connectingTooltip",
+            "正在连接本地服务",
+          ),
         };
       case "disconnected":
         return {
           icon: <DisconnectOutlined />,
-          text: "未连接本地服务",
+          text: t("ui.header.connection.disconnected", "未连接本地服务"),
           type: "default" as const,
-          tooltip: "点击连接本地服务",
+          tooltip: t(
+            "ui.header.connection.connectTooltip",
+            "点击连接本地服务",
+          ),
         };
     }
   };
@@ -179,7 +165,10 @@ const ConnectionButton: React.FC = () => {
   );
 };
 
-function getDeviceDisplayName(deviceInfo: NonNullable<DeviceInfo>) {
+function getDeviceDisplayName(
+  deviceInfo: NonNullable<DeviceInfo>,
+  unknownLabel: string,
+) {
   if ("name" in deviceInfo && deviceInfo.name) {
     return deviceInfo.name;
   }
@@ -192,19 +181,21 @@ function getDeviceDisplayName(deviceInfo: NonNullable<DeviceInfo>) {
   if ("class_name" in deviceInfo && deviceInfo.class_name) {
     return deviceInfo.class_name;
   }
-  return "未知设备";
+  return unknownLabel;
 }
 
 // 设备连接按钮
 const DeviceConnectionButton: React.FC<{ onOpenPanel: () => void }> = ({
   onOpenPanel,
 }) => {
+  const { t } = useTranslation();
   const { connectionStatus, controllerType, deviceInfo } = useMFWStore();
+  const unknownDevice = t("ui.header.device.unknown", "未知设备");
 
   // 获取设备名称
   const getDeviceName = () => {
-    if (!deviceInfo) return "未知设备";
-    const name = getDeviceDisplayName(deviceInfo);
+    if (!deviceInfo) return unknownDevice;
+    const name = getDeviceDisplayName(deviceInfo, unknownDevice);
     return name.length > 15 ? name.substring(0, 15) + "..." : name;
   };
 
@@ -212,7 +203,10 @@ const DeviceConnectionButton: React.FC<{ onOpenPanel: () => void }> = ({
 
   if (isConnected) {
     return (
-      <Tooltip placement="bottom" title="点击管理设备连接">
+      <Tooltip
+        placement="bottom"
+        title={t("ui.header.device.manageTooltip", "点击管理设备连接")}
+      >
         <Button
           type="primary"
           size="small"
@@ -235,7 +229,10 @@ const DeviceConnectionButton: React.FC<{ onOpenPanel: () => void }> = ({
   }
 
   return (
-    <Tooltip placement="bottom" title="设备连接配置">
+    <Tooltip
+      placement="bottom"
+      title={t("ui.header.device.configTooltip", "设备连接配置")}
+    >
       <Button
         type="default"
         size="small"
@@ -249,13 +246,14 @@ const DeviceConnectionButton: React.FC<{ onOpenPanel: () => void }> = ({
           maxWidth: "140px",
         }}
       >
-        连接设备
+        {t("ui.header.device.connect", "连接设备")}
       </Button>
     </Tooltip>
   );
 };
 
 function Header() {
+  const { t } = useTranslation();
   const { isDark, toggleTheme } = useTheme();
   const { isEmbed } = useEmbedMode();
   const [updateLogOpen, setUpdateLogOpen] = useState(false);
@@ -338,12 +336,43 @@ function Header() {
     });
   }, []);
 
+  const versionLinks = [
+    {
+      key: "stable",
+      href: "https://mpe.codax.site/stable",
+      text: t("ui.header.version.stable", "稳定版"),
+    },
+    {
+      key: "preview",
+      href: "https://kqcoxn.github.io/MaaPipelineEditor/",
+      text: t("ui.header.version.preview", "预览版"),
+    },
+    { key: "yamaape", href: "https://yamaape.codax.site", text: "YAMaaPE" },
+  ];
+
+  const otherVersions: MenuProps["items"] = versionLinks.map(
+    ({ key, href, text }) => ({
+      key,
+      label: (
+        <a target="_self" rel="noopener noreferrer" href={href}>
+          {text}
+        </a>
+      ),
+    }),
+  );
+
+  const themeToLight = t("ui.header.theme.toLight", "切换到亮色模式");
+  const themeToDark = t("ui.header.theme.toDark", "切换到暗色模式");
+
   return (
     <>
       {isNarrowScreen && (
         <Alert
-          title="页面宽度过窄"
-          description="当前页面宽度过小，可能影响使用体验，建议使用更大的屏幕或调整浏览器窗口大小。"
+          title={t("ui.header.narrowScreen.title", "页面宽度过窄")}
+          description={t(
+            "ui.header.narrowScreen.description",
+            "当前页面宽度过小，可能影响使用体验，建议使用更大的屏幕或调整浏览器窗口大小。",
+          )}
           type="warning"
           closable
           banner
@@ -380,7 +409,17 @@ function Header() {
             <Tag variant="filled" color="purple">
               MFW v{globalConfig.mfwVersion}
             </Tag>
-            <WikiAnchor path="10.工作流面板/50.文件与视口.html" title="文件与视口" description="文件管理与视口操作" />
+            <WikiAnchor
+              path={t(
+                "ui.header.wiki.fileViewportPath",
+                "10.工作流面板/50.文件与视口.html",
+              )}
+              title={t("ui.header.wiki.fileViewportTitle", "文件与视口")}
+              description={t(
+                "ui.header.wiki.fileViewportDesc",
+                "文件管理与视口操作",
+              )}
+            />
           </div>
         </div>
         <div className={style.right}>
@@ -418,9 +457,16 @@ function Header() {
               <Tooltip
                 title={
                   <span>
-                    发现新版本：{updateInfo.latestVersion}，点击前往下载
+                    {t(
+                      "ui.header.update.tooltipLine1",
+                      "发现新版本：{{version}}，点击前往下载",
+                      { version: updateInfo.latestVersion },
+                    )}
                     <br />
-                    在线使用时可按 Ctrl+R 快捷刷新页面缓存以更新
+                    {t(
+                      "ui.header.update.tooltipLine2",
+                      "在线使用时可按 Ctrl+R 快捷刷新页面缓存以更新",
+                    )}
                   </span>
                 }
               >
@@ -435,7 +481,7 @@ function Header() {
                     );
                   }}
                 >
-                  新版本可用
+                  {t("ui.header.update.available", "新版本可用")}
                 </Tag>
               </Tooltip>
             )}
@@ -443,7 +489,7 @@ function Header() {
           <div className={style.theme}>
             <Tooltip
               placement="bottom"
-              title={isDark ? "切换到亮色模式" : "切换到暗色模式"}
+              title={isDark ? themeToLight : themeToDark}
             >
               <Button
                 type="text"
@@ -451,12 +497,15 @@ function Header() {
                 icon={isDark ? <MoonOutlined /> : <SunOutlined />}
                 onClick={toggleTheme}
                 className={style.themeButton}
-                aria-label={isDark ? "切换到亮色模式" : "切换到暗色模式"}
+                aria-label={isDark ? themeToLight : themeToDark}
               />
             </Tooltip>
           </div>
           <div className={style.links}>
-            <Tooltip placement="bottom" title="Pipeline协议">
+            <Tooltip
+              placement="bottom"
+              title={t("ui.header.links.pipelineProtocol", "Pipeline协议")}
+            >
               <img
                 className="icon-interactive"
                 style={{ width: 29, marginLeft: 7, marginRight: 2 }}
@@ -468,7 +517,10 @@ function Header() {
                 }}
               />
             </Tooltip>
-            <Tooltip placement="bottom" title="更新日志">
+            <Tooltip
+              placement="bottom"
+              title={t("ui.header.links.updateLog", "更新日志")}
+            >
               <IconFont
                 className="icon-interactive"
                 name="icon-gengxinrizhi"

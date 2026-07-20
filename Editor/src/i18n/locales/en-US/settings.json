@@ -1,0 +1,370 @@
+{
+  "settings": {
+    "tabs": {
+      "export": "Export",
+      "node": "Node",
+      "connection": "Connection",
+      "canvas": "Canvas",
+      "component": "Components",
+      "local-service": "Local service",
+      "ai": "AI",
+      "management": "Management"
+    },
+    "resetDefault": "Reset to default",
+    "items": {
+      "configHandlingMode": {
+        "label": "Config save mode",
+        "tipTitle": "Config save mode",
+        "tipContent": "Embedded export: embed config in the Pipeline file, good for sharing a single file\nSeparate export: store config in a separate .mpe.json file for easier versioning\nDo not export: save no config; import triggers auto layout",
+        "guardPromptTitle": "Confirm export settings",
+        "guardPromptDescription": "On first export, confirm how Pipeline config should be exported",
+        "options": {
+          "integrated": "Embedded export",
+          "separated": "Separate export",
+          "none": "Do not export"
+        }
+      },
+      "pipelineProtocolVersion": {
+        "label": "Pipeline export version",
+        "tipTitle": "Pipeline export version",
+        "tipContent": "v2: nested object structure\n{ recognition: { type: 'X', param: {...} } }\n\nv1: flat parameters at node root\n{ recognition: 'X', template: '...' }",
+        "guardPromptTitle": "Confirm export settings",
+        "guardPromptDescription": "On first export, confirm Pipeline export version",
+        "options": {
+          "v2": "v2",
+          "v1": "v1"
+        }
+      },
+      "nodeAttrExportStyle": {
+        "label": "Node attribute export style",
+        "tipTitle": "Node attribute export style",
+        "tipContent": "Object form: { name: 'C', anchor: true, jump_back: true }\nPrefix form: '[Anchor][JumpBack]C'",
+        "options": {
+          "prefix": "Prefix form",
+          "object": "Object form"
+        }
+      },
+      "exportDefaultRecoAction": {
+        "label": "Export default recognition/action",
+        "tipTitle": "Export default recognition/action",
+        "tipContent": "When off: if recognition type is DirectHit with no params, recognition is omitted; if action type is DoNothing with no params, action is omitted. Checked independently.",
+        "checkedChildren": "Export",
+        "unCheckedChildren": "Omit"
+      },
+      "exportEmptyParam": {
+        "label": "Placeholder when subfields are empty",
+        "tipTitle": "Placeholder when subfields are empty",
+        "tipContent": "When off: if recognition/action param is an empty object, param key is omitted and only type remains.\nWhen on: export a placeholder even when param is empty (v2 only).",
+        "checkedChildren": "Placeholder",
+        "unCheckedChildren": "Omit"
+      },
+      "jsonIndent": {
+        "label": "JSON indent",
+        "tipTitle": "JSON indent",
+        "tipContent": "Spaces per indent level when exporting JSON.\nDefault is 4 spaces; you can use 2 or another value.",
+        "addonAfter": "spaces"
+      },
+      "skipFieldValidation": {
+        "label": "Skip field validation",
+        "tipTitle": "Skip field validation",
+        "tipContent": "When on, field format validation is skipped on export even if node content is non-compliant.\nUseful for quick export or debugging.",
+        "checkedChildren": "Skip",
+        "unCheckedChildren": "Validate"
+      },
+      "__fieldSort": {
+        "label": "Field sort settings",
+        "tipTitle": "Field sort settings",
+        "tipContent": "Customize field order on export"
+      },
+      "nodeStyle": {
+        "label": "Node style",
+        "tipTitle": "Node style",
+        "tipContent": "Switch node display style: Modern has group headers and icons; Classic is the legacy layout; Minimal shows only icon and name",
+        "options": {
+          "modern": "Modern",
+          "classic": "Classic",
+          "minimal": "Minimal"
+        }
+      },
+      "showNodeDetailFields": {
+        "label": "Show node secondary fields",
+        "tipTitle": "Show node secondary fields",
+        "tipContent": "When off, nodes show only recognition and action types, hiding parameter details. Good when there are many nodes.",
+        "checkedChildren": "Detailed",
+        "unCheckedChildren": "Compact"
+      },
+      "showNodeTemplateImages": {
+        "label": "Show template images",
+        "tipTitle": "Show template images",
+        "tipContent": "When on, modern-style nodes show template field thumbnails at the bottom. Requires local service connection.",
+        "checkedChildren": "Show",
+        "unCheckedChildren": "Hide"
+      },
+      "showNodeFlowSection": {
+        "label": "Show next target nodes",
+        "tipTitle": "Show next target nodes",
+        "tipContent": "When on, the bottom of the node shows next and on_error target nodes.",
+        "checkedChildren": "Show",
+        "unCheckedChildren": "Hide"
+      },
+      "defaultHandleDirection": {
+        "label": "Default handle position",
+        "tipTitle": "Default handle position",
+        "tipContent": "Default handle position for new nodes\nLeft-right: input left, output right (default)\nRight-left: input right, output left\nTop-bottom: input top, output bottom\nBottom-top: input bottom, output top",
+        "options": {
+          "left-right": "Left-right",
+          "right-left": "Right-left",
+          "top-bottom": "Top-bottom",
+          "bottom-top": "Bottom-top"
+        }
+      },
+      "__applyToAll": {
+        "label": "Apply handle position to all",
+        "tipTitle": "Apply once",
+        "tipContent": "Change all nodes' handle positions to the currently selected default"
+      },
+      "enableNodeSnap": {
+        "label": "Node snap alignment",
+        "tipTitle": "Node snap alignment",
+        "tipContent": "When on, dragging nodes snaps to other nodes' edges and center lines with guide lines",
+        "checkedChildren": "On",
+        "unCheckedChildren": "Off"
+      },
+      "snapOnlyInViewport": {
+        "label": "Snap only to visible nodes",
+        "tipTitle": "Snap only to visible nodes",
+        "tipContent": "When on, snap only to nodes within the viewport",
+        "checkedChildren": "On",
+        "unCheckedChildren": "Off"
+      },
+      "edgePathMode": {
+        "label": "Edge path mode",
+        "tipTitle": "Edge path mode",
+        "tipContent": "Curved: Bezier edges, smooth\nOrthogonal: stepped right-angle edges, clear\nAvoid: auto-avoid nodes on the path",
+        "options": {
+          "bezier": "Curved",
+          "smoothstep": "Orthogonal",
+          "avoid": "Avoid"
+        }
+      },
+      "showEdgeLabel": {
+        "label": "Show edge labels",
+        "tipTitle": "Show edge labels",
+        "tipContent": "When on, connection order is shown at edge center. Turn off if distracting. May add slight cost while dragging nodes.",
+        "checkedChildren": "Show",
+        "unCheckedChildren": "Hide"
+      },
+      "showEdgeControlPoint": {
+        "label": "Edge drag handles",
+        "tipTitle": "Edge drag handles",
+        "tipContent": "When on, drag the middle handle to adjust path shape (not saved). Double-click to reset one edge; layout tools can reset all.",
+        "checkedChildren": "Show",
+        "unCheckedChildren": "Hide"
+      },
+      "uiLocale": {
+        "label": "Interface language",
+        "tipTitle": "Interface language",
+        "tipContent": "Follow system: auto-select from browser/OS locale\nOr choose 简体中文, English, or ไทย manually",
+        "options": {
+          "auto": "Follow system",
+          "zh-CN": "简体中文",
+          "en-US": "English",
+          "th-TH": "ไทย"
+        }
+      },
+      "fieldPanelMode": {
+        "label": "Field/connection panel mode",
+        "tipTitle": "Field/connection panel mode",
+        "tipContent": "Fixed: panel pinned top-right\nDraggable: panel can be dragged; position kept when selection changes\nInline: field panel beside node for direct canvas editing",
+        "options": {
+          "fixed": "Fixed",
+          "draggable": "Draggable",
+          "inline": "Inline"
+        }
+      },
+      "inlinePanelScale": {
+        "label": "Inline panel scale",
+        "tipTitle": "Inline panel scale",
+        "tipContent": "Overall scale of the field panel in inline mode, range 0.5–1.0. No effect in other modes."
+      },
+      "quickCreateNodeOnConnectBlank": {
+        "label": "Create on connect to blank",
+        "tipTitle": "Create on connect to blank",
+        "tipContent": "When dragging from a node, if the end lands on blank canvas, open the add-node panel there. Off keeps the original behavior.",
+        "checkedChildren": "On",
+        "unCheckedChildren": "Off"
+      },
+      "canvasBackgroundMode": {
+        "label": "Canvas background",
+        "tipTitle": "Canvas background",
+        "tipContent": "Pure white: white background for bright preference\nEye comfort: soft blue-gray (#f9fafd)",
+        "options": {
+          "eyecare": "Eye comfort",
+          "pure": "Pure white"
+        }
+      },
+      "isAutoFocus": {
+        "label": "Auto focus",
+        "tipTitle": "Auto focus",
+        "tipContent": "When on, the viewport moves to focus new nodes automatically",
+        "checkedChildren": "On",
+        "unCheckedChildren": "Off"
+      },
+      "focusOpacity": {
+        "label": "Unfocused node opacity",
+        "tipTitle": "Unfocused node opacity",
+        "tipContent": "When a node or edge is selected, opacity of unrelated elements. Set to 1 to disable; below 1 highlights only related nodes/edges"
+      },
+      "enableLiveScreen": {
+        "label": "Live screen preview",
+        "tipTitle": "Live screen preview",
+        "tipContent": "After connecting a device, show live device screen top-right. Hidden when field/connection/JSON panels are open.",
+        "checkedChildren": "On",
+        "unCheckedChildren": "Off"
+      },
+      "liveScreenRefreshRate": {
+        "label": "Screen refresh interval (ms)",
+        "tipTitle": "Screen refresh interval (ms)",
+        "tipContent": "Device screen update interval in milliseconds. Lower is smoother but uses more resources. Recommended 500–2000 ms."
+      },
+      "historyLimit": {
+        "label": "History limit",
+        "tipTitle": "History limit",
+        "tipContent": "Max undo/redo history entries. Too high may use more memory and cause stutter."
+      },
+      "saveFilesBeforeDebug": {
+        "label": "Save files before debug",
+        "tipTitle": "Save files before debug",
+        "tipContent": "When on, current files are saved automatically before starting debug",
+        "checkedChildren": "On",
+        "unCheckedChildren": "Off"
+      },
+      "useDarkMode": {
+        "label": "Dark mode",
+        "tipTitle": "Dark mode",
+        "tipContent": "Switch editor dark/light theme",
+        "checkedChildren": "Dark",
+        "unCheckedChildren": "Light"
+      },
+      "__backendConfig": {
+        "label": "Local service settings",
+        "tipTitle": "Local service settings",
+        "tipContent": "View and edit backend settings including server, files, logs, MaaFramework, etc."
+      },
+      "wsPort": {
+        "label": "Connection port",
+        "tipTitle": "WebSocket port",
+        "tipContent": "Local service port. Reconnect after changing the port."
+      },
+      "wsAutoConnect": {
+        "label": "Auto connect",
+        "tipTitle": "Auto connect",
+        "tipContent": "When on, automatically try to connect to the local service on page load",
+        "checkedChildren": "On",
+        "unCheckedChildren": "Off"
+      },
+      "fileAutoReload": {
+        "label": "Auto-reload changed files",
+        "tipTitle": "Auto-reload changed files",
+        "tipContent": "When on, externally modified files reload automatically",
+        "checkedChildren": "On",
+        "unCheckedChildren": "Off"
+      },
+      "enableCrossFileSearch": {
+        "label": "Enable cross-file search",
+        "tipTitle": "Enable cross-file search",
+        "tipContent": "When on, search runs across all open files",
+        "checkedChildren": "On",
+        "unCheckedChildren": "Off"
+      },
+      "crossFileSearchFolderFilter": {
+        "label": "Folder filter",
+        "tipTitle": "Folder filter",
+        "tipContent": "Filter local file list and cross-file search results. Paths relative to local service root; comma, semicolon, or newline separated. Empty means no filter.",
+        "placeholder": "e.g.: pipeline\npipeline/sub"
+      },
+      "screenshotResolutionMode": {
+        "label": "Screenshot resolution",
+        "tipTitle": "Screenshot resolution",
+        "tipContent": "Device and web debug share this scaling:\nDefault: scale short side to 720 (maafw default)\nShort side: scale short side to specified length\nLong side: scale long side to specified length\nRaw: no scaling, original resolution\n\nMPE does not read interface.json; web debug uses this setting. ROI/OCR/template and debug runs share the same coordinate system.",
+        "options": {
+          "default": "Default (short side 720)",
+          "shortSide": "Custom short side",
+          "longSide": "Custom long side",
+          "raw": "Raw resolution"
+        }
+      },
+      "screenshotResolutionValue": {
+        "label": "Resolution length",
+        "tipTitle": "Resolution length",
+        "tipContent": "Target length in pixels for custom short/long side modes; other edge scales proportionally. Common values: 720, 1280, 1080, 1920",
+        "addonAfter": "px"
+      },
+      "__aiWarning": {
+        "label": "AI settings notice",
+        "tipTitle": "AI settings notice"
+      },
+      "aiProviderType": {
+        "label": "API type",
+        "tipTitle": "API service type",
+        "tipContent": "Choose AI provider type. Each uses different protocols and endpoint formats. For OpenAI-compatible third-party services (e.g. DeepSeek, Qwen), choose Custom",
+        "options": {
+          "custom": "Custom (OpenAI compatible)",
+          "openai": "OpenAI",
+          "anthropic": "Claude (Anthropic)",
+          "gemini": "Gemini (Google)"
+        }
+      },
+      "aiApiUrl": {
+        "label": "API URL",
+        "tipTitle": "API URL",
+        "tipContent": "API base URL or full endpoint. OpenAI: https://api.openai.com, Anthropic: https://api.anthropic.com, Gemini: https://generativelanguage.googleapis.com. OpenAI-compatible services: base URL or full /chat/completions URL",
+        "placeholder": "e.g.: https://api.openai.com"
+      },
+      "aiApiKey": {
+        "label": "API Key",
+        "tipTitle": "API Key",
+        "tipContent": "Your API key, encrypted and stored locally in the browser (AES-GCM)",
+        "placeholder": "e.g.: sk-xxxx"
+      },
+      "aiModel": {
+        "label": "Model",
+        "tipTitle": "Model name",
+        "tipContent": "Model name to use, e.g. gpt-4o, gpt-4o-mini, claude-sonnet-4-20250514, gemini-2.5-flash",
+        "placeholder": "e.g.: gpt-4o / claude-sonnet-4-20250514 / gemini-2.5-flash"
+      },
+      "aiTemperature": {
+        "label": "Temperature",
+        "tipTitle": "Temperature",
+        "tipContent": "Controls AI output randomness. Lower (0.3) is more stable; higher (0.8) is more creative. Node prediction: 0.5–0.7 recommended"
+      },
+      "aiUseProxy": {
+        "label": "LocalBridge proxy",
+        "tipTitle": "LocalBridge proxy",
+        "tipContent": "When on, AI requests go through LocalBridge to avoid CORS limits. When off, browser calls API directly (must support CORS)",
+        "checkedChildren": "On",
+        "unCheckedChildren": "Off"
+      },
+      "__testConnection": {
+        "label": "Test",
+        "tipTitle": "Test connection",
+        "tipContent": "Test whether current AI settings work"
+      },
+      "__exportConfig": {
+        "label": "Export settings",
+        "tipTitle": "Export/import settings",
+        "tipContent": "Export current settings to JSON or import from JSON, including editor settings and custom node templates"
+      },
+      "__importConfig": {
+        "label": "Import settings",
+        "tipTitle": "Export/import settings",
+        "tipContent": "Export current settings to JSON or import from JSON, including editor settings and custom node templates"
+      },
+      "__resetDefaults": {
+        "label": "Reset defaults",
+        "tipTitle": "Reset defaults",
+        "tipContent": "Restore all settings to default values"
+      }
+    }
+  }
+}

@@ -2,6 +2,7 @@ import { message, Modal } from "antd";
 import type { ReactNode } from "react";
 import { FlagOutlined, PlayCircleOutlined } from "@ant-design/icons";
 import type { Node } from "@xyflow/react";
+import uiT from "../../../i18n/translate";
 import { NodeTypeEnum, HANDLE_DIRECTION_OPTIONS } from "./constants";
 import type { HandleDirection } from "./constants";
 import type {
@@ -116,7 +117,12 @@ function handleCopyNodeName(node: NodeContextMenuNode) {
 /**保存为模板处理器 */
 function handleSaveAsTemplate(node: NodeContextMenuNode) {
   if (node.type !== NodeTypeEnum.Pipeline) {
-    message.error("仅支持 Pipeline 节点保存为模板");
+    message.error(
+      uiT(
+        "ui.flow.nodeContextMenu.pipelineTemplateOnly",
+        "仅支持 Pipeline 节点保存为模板",
+      ),
+    );
     return;
   }
 
@@ -159,13 +165,14 @@ function handleSetNodeDirection(
   saveHistory(0, {
     category: "node",
     action: "update",
-    description: "设置端点位置",
+    description: uiT("ui.flow.nodeContextMenu.setHandleDirectionHistory", "设置端点位置"),
     targetIds: [node.id],
   });
   message.success(
-    `端点位置已设置为「${
-      HANDLE_DIRECTION_OPTIONS.find((o) => o.value === direction)?.label
-    }」`,
+    uiT("ui.flow.nodeContextMenu.handleDirectionSet", "端点位置已设置为「{{label}}」", {
+      label:
+        HANDLE_DIRECTION_OPTIONS.find((o) => o.value === direction)?.label ?? "",
+    }),
   );
 }
 
@@ -187,7 +194,7 @@ function handleSetGroupColor(node: NodeContextMenuNode, color: string) {
   useFlowStore.getState().saveHistory(0, {
     category: "group",
     action: "update",
-    description: "更改分组颜色",
+    description: uiT("ui.flow.nodeContextMenu.changeGroupColorHistory", "更改分组颜色"),
     targetIds: [node.id],
   });
 }
@@ -203,7 +210,7 @@ function handleSetStickerColor(
   useFlowStore.getState().saveHistory(0, {
     category: "node",
     action: "update",
-    description: "更改便签颜色",
+    description: uiT("ui.flow.nodeContextMenu.changeStickerColorHistory", "更改便签颜色"),
     targetIds: [node.id],
   });
 }
@@ -215,9 +222,11 @@ function handleCopyStickerContent(node: NodeContextMenuNode) {
   const content = (node.data as StickerNodeDataType).content;
   if (content) {
     navigator.clipboard.writeText(content);
-    message.success("便签内容已复制到剪贴板");
+    message.success(
+      uiT("ui.flow.nodeContextMenu.stickerContentCopied", "便签内容已复制到剪贴板"),
+    );
   } else {
-    message.info("便签内容为空");
+    message.info(uiT("ui.flow.nodeContextMenu.stickerContentEmpty", "便签内容为空"));
   }
 }
 
@@ -271,7 +280,12 @@ function handleDebugRunMode(node: NodeContextMenuNode, mode: DebugRunMode) {
 
     if (resourcePreflightMatches && resourcePreflight.status === "checking") {
       scheduleDebugRunAfterResourcePreflight(node, mode, resourceKey);
-      message.info("资源检测完成后将自动启动调试。");
+      message.info(
+        uiT(
+          "ui.flow.nodeContextMenu.autoStartAfterPreflight",
+          "资源检测完成后将自动启动调试。",
+        ),
+      );
       return;
     }
 
@@ -280,14 +294,28 @@ function handleDebugRunMode(node: NodeContextMenuNode, mode: DebugRunMode) {
     const requestResult = requestDebugResourcePreflight(resourceKey);
     if (requestResult === "sent") {
       scheduleDebugRunAfterResourcePreflight(node, mode, resourceKey);
-      message.info("正在检测资源路径，检测完成后将自动启动调试。");
+      message.info(
+        uiT(
+          "ui.flow.nodeContextMenu.checkingResourcesAutoStart",
+          "正在检测资源路径，检测完成后将自动启动调试。",
+        ),
+      );
     } else if (requestResult === "empty") {
-      message.warning("请先配置资源路径或等待 LocalBridge 扫描资源包");
+      message.warning(
+        uiT(
+          "ui.flow.nodeContextMenu.configureResourcePathsFirst",
+          "请先配置资源路径或等待 LocalBridge 扫描资源包",
+        ),
+      );
     }
     return;
   }
   if (!capabilities?.runModes.includes(mode)) {
-    message.warning(`当前 LocalBridge 暂不支持调试模式: ${mode}`);
+    message.warning(
+      uiT("ui.flow.nodeContextMenu.runModeUnsupported", "当前 LocalBridge 暂不支持调试模式: {{mode}}", {
+        mode,
+      }),
+    );
     return;
   }
   void handleDebugRunModeWithInput(node, mode);
@@ -315,16 +343,32 @@ function scheduleDebugRunAfterResourcePreflight(
       const firstError = result.diagnostics?.find(
         (diagnostic) => diagnostic.severity === "error",
       );
-      const errorMessage = firstError?.message ?? "资源加载检测失败，无法自动启动调试。";
+      const errorMessage =
+        firstError?.message ??
+        uiT(
+          "ui.flow.nodeContextMenu.resourcePreflightFailedAutoStart",
+          "资源加载检测失败，无法自动启动调试。",
+        );
       Modal.error({
-        title: "资源加载检测失败",
+        title: uiT(
+          "ui.flow.nodeContextMenu.resourcePreflightFailedTitle",
+          "资源加载检测失败",
+        ),
         content: (
           <div>
             <p>{errorMessage}</p>
-            <p>您可以前往「资源体检」面板查看详细诊断信息并尝试修复。</p>
+            <p>
+              {uiT(
+                "ui.flow.nodeContextMenu.resourcePreflightFailedHint",
+                "您可以前往「资源体检」面板查看详细诊断信息并尝试修复。",
+              )}
+            </p>
           </div>
         ),
-        okText: "前往资源体检",
+        okText: uiT(
+          "ui.flow.nodeContextMenu.goToResourceHealth",
+          "前往资源体检",
+        ),
         onOk: () => {
           const debugSessionStore = useDebugSessionStore.getState();
           debugSessionStore.openModal("resource-health");
@@ -338,7 +382,12 @@ function scheduleDebugRunAfterResourcePreflight(
 
   timeoutId = window.setTimeout(() => {
     cleanup();
-    message.error("资源路径检测超时，无法自动启动调试。");
+    message.error(
+      uiT(
+        "ui.flow.nodeContextMenu.resourcePreflightTimeout",
+        "资源路径检测超时，无法自动启动调试。",
+      ),
+    );
   }, 60_000);
 
   function cleanup() {
@@ -359,7 +408,7 @@ function handleSetDebugEntry(node: NodeContextMenuNode) {
     openPanel: "overview",
     rememberPanel: true,
     setEntry: true,
-    successMessage: "已设为调试入口节点",
+    successMessage: uiT("ui.flow.nodeContextMenu.setDebugEntrySuccess", "已设为调试入口节点"),
   });
 }
 
@@ -381,9 +430,17 @@ function requestDebugResourcePreflight(
     sessionState.setResourcePreflightError(
       requestId,
       resourceKey,
-      "发送资源加载检测请求失败。",
+      uiT(
+        "ui.flow.nodeContextMenu.sendPreflightRequestFailedDetail",
+        "发送资源加载检测请求失败。",
+      ),
     );
-    message.error("发送资源加载检测请求失败");
+    message.error(
+      uiT(
+        "ui.flow.nodeContextMenu.sendPreflightRequestFailed",
+        "发送资源加载检测请求失败",
+      ),
+    );
     return "send-failed";
   }
   return "sent";
@@ -416,7 +473,11 @@ async function handleDebugRunModeWithInput(
       const saveResult = await saveOpenedLocalFilesForDebug();
       if (saveResult.failedFiles.length > 0) {
         message.error(
-          `调试前保存打开文件失败：${saveResult.failedFiles.join("、")}`,
+          uiT(
+            "ui.flow.nodeContextMenu.saveOpenFilesFailed",
+            "调试前保存打开文件失败：{{files}}",
+            { files: saveResult.failedFiles.join("、") },
+          ),
         );
         return;
       }
@@ -429,14 +490,23 @@ async function handleDebugRunModeWithInput(
       overrideParseResult.overrides,
     );
     if (!request.target) {
-      message.error("无法解析节点运行名");
+      message.error(
+        uiT("ui.flow.nodeContextMenu.resolveRunNameFailed", "无法解析节点运行名"),
+      );
       return;
     }
     profileState.setEntry(request.target);
     const sent = debugProtocolClient.startRun(request);
-    if (!sent) message.error("发送调试启动请求失败");
+    if (!sent)
+      message.error(
+        uiT("ui.flow.nodeContextMenu.sendDebugStartFailed", "发送调试启动请求失败"),
+      );
   } catch (error) {
-    message.error(error instanceof Error ? error.message : "生成调试请求失败");
+    message.error(
+      error instanceof Error
+        ? error.message
+        : uiT("ui.flow.nodeContextMenu.buildDebugRequestFailed", "生成调试请求失败"),
+    );
   }
 }
 
@@ -461,16 +531,16 @@ export function getNodeContextMenuConfig(
   // Group 节点使用专用菜单
   if (node.type === NodeTypeEnum.Group) {
     const groupColors = [
-      { key: "blue", label: "蓝色" },
-      { key: "green", label: "绿色" },
-      { key: "purple", label: "紫色" },
-      { key: "orange", label: "橙色" },
-      { key: "gray", label: "灰色" },
+      { key: "blue", label: uiT("ui.flow.nodeContextMenu.color.blue", "蓝色") },
+      { key: "green", label: uiT("ui.flow.nodeContextMenu.color.green", "绿色") },
+      { key: "purple", label: uiT("ui.flow.nodeContextMenu.color.purple", "紫色") },
+      { key: "orange", label: uiT("ui.flow.nodeContextMenu.color.orange", "橙色") },
+      { key: "gray", label: uiT("ui.flow.nodeContextMenu.color.gray", "灰色") },
     ];
     return [
       {
         key: "group-color",
-        label: "分组颜色",
+        label: uiT("ui.flow.nodeContextMenu.groupColor", "分组颜色"),
         icon: "icon-tiaoseban",
         iconSize: 16,
         children: groupColors.map((c) => ({
@@ -486,14 +556,14 @@ export function getNodeContextMenuConfig(
       },
       {
         key: "ungroup",
-        label: "解散分组",
+        label: uiT("ui.flow.nodeContextMenu.ungroup", "解散分组"),
         icon: "icon-quxiaoguanlian",
         iconSize: 16,
         onClick: handleUngroupNodes,
       },
       {
         key: "delete-group",
-        label: "删除分组",
+        label: uiT("ui.flow.nodeContextMenu.deleteGroup", "删除分组"),
         icon: "icon-shanchu",
         iconSize: 16,
         onClick: handleDeleteGroup,
@@ -505,14 +575,14 @@ export function getNodeContextMenuConfig(
   const config: NodeContextMenuConfig[] = [
     {
       key: "debug-set-entry",
-      label: "设为入口节点",
+      label: uiT("ui.flow.nodeContextMenu.setDebugEntry", "设为入口节点"),
       icon: <FlagOutlined />,
       onClick: handleSetDebugEntry,
       visible: (node) => node.type === NodeTypeEnum.Pipeline,
     },
     {
       key: "debug-run-from-node",
-      label: "从此节点运行",
+      label: uiT("ui.flow.nodeContextMenu.runFromNode", "从此节点运行"),
       icon: <PlayCircleOutlined />,
       onClick: (node) => handleDebugRunMode(node, "run-from-node"),
       visible: (node) => node.type === NodeTypeEnum.Pipeline,
@@ -521,11 +591,14 @@ export function getNodeContextMenuConfig(
           "run-from-node",
           options.debugCapabilities,
         ),
-      disabledTip: "当前 LocalBridge 未暴露 run-from-node 能力",
+      disabledTip: uiT(
+        "ui.flow.nodeContextMenu.runFromNodeUnavailable",
+        "当前 LocalBridge 未暴露 run-from-node 能力",
+      ),
     },
     {
       key: "debug-single-node-run",
-      label: "单节点运行",
+      label: uiT("ui.flow.nodeContextMenu.singleNodeRun", "单节点运行"),
       icon: <PlayCircleOutlined />,
       onClick: (node) => handleDebugRunMode(node, "single-node-run"),
       visible: (node) => node.type === NodeTypeEnum.Pipeline,
@@ -534,11 +607,14 @@ export function getNodeContextMenuConfig(
           "single-node-run",
           options.debugCapabilities,
         ),
-      disabledTip: "当前 LocalBridge 未暴露 single-node-run 能力",
+      disabledTip: uiT(
+        "ui.flow.nodeContextMenu.singleNodeRunUnavailable",
+        "当前 LocalBridge 未暴露 single-node-run 能力",
+      ),
     },
     {
       key: "debug-recognition-only",
-      label: "仅识别",
+      label: uiT("ui.flow.nodeContextMenu.recognitionOnly", "仅识别"),
       icon: <PlayCircleOutlined />,
       onClick: (node) => handleDebugRunMode(node, "recognition-only"),
       visible: (node) => node.type === NodeTypeEnum.Pipeline,
@@ -547,17 +623,23 @@ export function getNodeContextMenuConfig(
           "recognition-only",
           options.debugCapabilities,
         ),
-      disabledTip: "当前 LocalBridge 未暴露 recognition-only 能力",
+      disabledTip: uiT(
+        "ui.flow.nodeContextMenu.recognitionOnlyUnavailable",
+        "当前 LocalBridge 未暴露 recognition-only 能力",
+      ),
     },
     {
       key: "debug-action-only",
-      label: "仅动作",
+      label: uiT("ui.flow.nodeContextMenu.actionOnly", "仅动作"),
       icon: <PlayCircleOutlined />,
       onClick: (node) => handleDebugRunMode(node, "action-only"),
       visible: (node) => node.type === NodeTypeEnum.Pipeline,
       disabled: () =>
         isDebugRunModeUnavailable("action-only", options.debugCapabilities),
-      disabledTip: "当前 LocalBridge 未暴露 action-only 能力",
+      disabledTip: uiT(
+        "ui.flow.nodeContextMenu.actionOnlyUnavailable",
+        "当前 LocalBridge 未暴露 action-only 能力",
+      ),
       danger: true,
     },
     {
@@ -567,7 +649,7 @@ export function getNodeContextMenuConfig(
     // 复制节点名
     {
       key: "copy-node-name",
-      label: "复制节点名",
+      label: uiT("ui.flow.nodeContextMenu.copyNodeName", "复制节点名"),
       icon: "icon-a-copyfubenfuzhi",
       iconSize: 16,
       onClick: handleCopyNodeName,
@@ -575,7 +657,7 @@ export function getNodeContextMenuConfig(
     // 编辑 JSON (所有节点)
     {
       key: "edit-json",
-      label: "编辑 JSON",
+      label: uiT("ui.flow.nodeContextMenu.editJson", "编辑 JSON"),
       icon: "icon-JSON",
       iconSize: 16,
       onClick: handleEditNodeJson,
@@ -583,7 +665,7 @@ export function getNodeContextMenuConfig(
     // 复制便签内容 (仅 Sticker 节点)
     {
       key: "copy-sticker-content",
-      label: "复制便签内容",
+      label: uiT("ui.flow.nodeContextMenu.copyStickerContent", "复制便签内容"),
       icon: "icon-fuzhi",
       iconSize: 16,
       onClick: handleCopyStickerContent,
@@ -592,7 +674,7 @@ export function getNodeContextMenuConfig(
     // 复制 Reco JSON (仅 Pipeline 节点)
     {
       key: "copy-reco-json",
-      label: "复制 Reco JSON",
+      label: uiT("ui.flow.nodeContextMenu.copyRecoJson", "复制 Reco JSON"),
       icon: "icon-kapianshibie",
       iconSize: 18,
       onClick: handleCopyRecoJSON,
@@ -601,7 +683,7 @@ export function getNodeContextMenuConfig(
     // 保存为模板 (仅 Pipeline 节点)
     {
       key: "save-as-template",
-      label: "保存为模板",
+      label: uiT("ui.flow.nodeContextMenu.saveAsTemplate", "保存为模板"),
       icon: "icon-biaodanmoban",
       iconSize: 16,
       onClick: handleSaveAsTemplate,
@@ -610,42 +692,42 @@ export function getNodeContextMenuConfig(
     // 便签颜色子菜单 (仅 Sticker 节点)
     {
       key: "sticker-color",
-      label: "便签颜色",
+      label: uiT("ui.flow.nodeContextMenu.stickerColor", "便签颜色"),
       icon: "icon-tiaoseban",
       iconSize: 16,
       visible: (node) => node.type === NodeTypeEnum.Sticker,
       children: [
         {
           key: "color-yellow",
-          label: "黄色",
+          label: uiT("ui.flow.nodeContextMenu.color.yellow", "黄色"),
           onClick: (node) => handleSetStickerColor(node, "yellow"),
           checked: (node) =>
             (node.data as StickerNodeDataType).color === "yellow",
         },
         {
           key: "color-green",
-          label: "绿色",
+          label: uiT("ui.flow.nodeContextMenu.color.green", "绿色"),
           onClick: (node) => handleSetStickerColor(node, "green"),
           checked: (node) =>
             (node.data as StickerNodeDataType).color === "green",
         },
         {
           key: "color-blue",
-          label: "蓝色",
+          label: uiT("ui.flow.nodeContextMenu.color.blue", "蓝色"),
           onClick: (node) => handleSetStickerColor(node, "blue"),
           checked: (node) =>
             (node.data as StickerNodeDataType).color === "blue",
         },
         {
           key: "color-pink",
-          label: "粉色",
+          label: uiT("ui.flow.nodeContextMenu.color.pink", "粉色"),
           onClick: (node) => handleSetStickerColor(node, "pink"),
           checked: (node) =>
             (node.data as StickerNodeDataType).color === "pink",
         },
         {
           key: "color-purple",
-          label: "紫色",
+          label: uiT("ui.flow.nodeContextMenu.color.purple", "紫色"),
           onClick: (node) => handleSetStickerColor(node, "purple"),
           checked: (node) =>
             (node.data as StickerNodeDataType).color === "purple",
@@ -655,7 +737,7 @@ export function getNodeContextMenuConfig(
     // 端点位置子菜单 (除 Sticker 和 Group 节点外)
     {
       key: "node-direction",
-      label: "端点位置",
+      label: uiT("ui.flow.nodeContextMenu.handleDirection", "端点位置"),
       icon: "icon-lianjie",
       iconSize: 16,
       visible: (node) =>
@@ -678,7 +760,7 @@ export function getNodeContextMenuConfig(
     // 删除
     {
       key: "delete-node",
-      label: "删除",
+      label: uiT("ui.flow.nodeContextMenu.delete", "删除"),
       icon: "icon-shanchu",
       iconSize: 16,
       onClick: handleDeleteNode,

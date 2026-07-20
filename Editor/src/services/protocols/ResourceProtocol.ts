@@ -108,9 +108,9 @@ export class ResourceProtocol extends BaseProtocol {
         localFileStore.setImageCache(relative_path, cacheItem);
       } else {
         console.warn(
-          "[ResourceProtocol] 图片加载失败:",
+          "[ResourceProtocol] Image load failed:",
           relative_path,
-          message
+          message,
         );
         // 请求失败，移除 pending 状态
         localFileStore.setPendingImageRequest(relative_path, false);

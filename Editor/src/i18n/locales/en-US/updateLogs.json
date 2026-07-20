@@ -1,0 +1,782 @@
+{
+  "data": {
+    "updateLogs": {
+      "0": {
+        "5": {
+          "2": {
+            "features": {
+              "0": "Added zero-delay node template",
+              "1": "Support for MaaFramework 4.5 Swipe features"
+            },
+            "fixes": {
+              "0": "Fixed wait_freezes field parse and compile errors",
+              "1": "Fixed abnormal node names when copying nodes"
+            },
+            "perfs": {
+              "0": "Adjusted zero-delay node template display position"
+            }
+          },
+          "3": {
+            "features": {
+              "0": "Added dark/night mode support",
+              "1": "Added Star reminder feature"
+            },
+            "perfs": {
+              "0": "Improved online usage hints",
+              "1": "Streamlined release notes content"
+            }
+          },
+          "4": {
+            "features": {
+              "0": "Added MaaFramework version notice"
+            },
+            "perfs": {
+              "0": "Improved auto-layout algorithm for better node arrangement",
+              "1": "Number arrays now support Chinese comma separators",
+              "2": "Improved responsive title display",
+              "3": "Improved auto-layout when importing MPE-exported files to preserve layout",
+              "4": "Compatible with legacy action-Key field",
+              "5": "Improved top-level field dropdown ordering"
+            }
+          },
+          "5": {
+            "features": {
+              "0": "Added automatic case correction"
+            },
+            "fixes": {
+              "0": "Fixed export failure when extras field was unchanged"
+            },
+            "perfs": {
+              "0": "Improved recognition and action type validation"
+            }
+          }
+        },
+        "7": {
+          "0": {
+            "features": {
+              "0": "Added quick jump to historical versions",
+              "1": "Support attach field configuration"
+            },
+            "fixes": {
+              "0": "Fixed inability to import legacy config files",
+              "1": "Fixed config not parsed on file import"
+            },
+            "perfs": {
+              "0": "Unified import behavior across protocol versions"
+            }
+          },
+          "2": {
+            "features": {
+              "0": "Added visual update log modal",
+              "1": "Added undo and redo",
+              "2": "Added export as image",
+              "3": "Added local communication framework for real-time external program integration",
+              "4": "Support data exchange with external programs via filesystem"
+            },
+            "fixes": {
+              "0": "Fixed icons shrinking when list shows both plus and minus"
+            }
+          }
+        },
+        "8": {
+          "1": {
+            "features": {
+              "0": "Mixed protocol import within a single node",
+              "1": "MFW snapshot version selection",
+              "2": "Adapted anchor, maxHit, scroll, order_by field updates",
+              "3": "Updated interrupt connections and handles to jump_back",
+              "4": "Added edge editor to adjust connection order",
+              "5": "Added redirect node template as Anchor target position"
+            },
+            "fixes": {
+              "0": "Fixed potential selection state or history anomalies"
+            },
+            "perfs": {
+              "0": "Improved responsive page display"
+            }
+          },
+          "4": {
+            "features": {
+              "0": "⭐ Brand-new **Modern theme** (switch back in settings)",
+              "1": "🔧 Layout bar: node spacing scale tool (for theme migration)",
+              "2": "⭐ Brand-new **right-click node template preview and add panel**",
+              "3": "🔍 **Node search** with AI 🤖",
+              "4": "🤖 AI conversation history panel and related settings"
+            },
+            "perfs": {
+              "0": "Auto-migrate interrupt and is_sub fields",
+              "1": "Greatly improved drag panel rendering with many nodes"
+            }
+          },
+          "5": {
+            "fixes": {
+              "0": "Fixed import of heterogeneous array-style jump_back"
+            }
+          }
+        },
+        "9": {
+          "0": {
+            "fixes": {
+              "0": "Fixed anchor nodes unable to save position"
+            },
+            "perfs": {
+              "0": "🗺️ Viewport position auto-saved when closing or switching panels; restored on next open",
+              "1": "👍 Improved node rendering performance"
+            }
+          },
+          "1": {
+            "features": {
+              "0": "🔃 **Auto-sync local file change config** — two-way collaboration!"
+            },
+            "fixes": {
+              "0": "Fixed change notifications missing confirm button — change confirm panel must have confirm ✍️✍️✍️"
+            }
+          }
+        },
+        "10": {
+          "3": {
+            "features": {
+              "0": "🧰 **Field screenshot tools** — expected OCR, template capture, color pick, roi selection. Start LocalBridge and connect your emulator!",
+              "1": "🖥️ Device connection panel — **full-output emulators and Win32 windows**"
+            },
+            "perfs": {
+              "0": "Improved nested list editing",
+              "1": "Improved local service interaction"
+            }
+          },
+          "4": {
+            "features": {
+              "0": "🤖 Node-level AI prediction — draft new nodes with LLMs!"
+            },
+            "fixes": {
+              "0": "Fixed working directory unchangeable after confirm. File index: --root takes priority over mpelb cwd; no other config."
+            }
+          }
+        },
+        "11": {
+          "0": {
+            "features": {
+              "0": "🔗 Share link — share your Pipeline in one click",
+              "1": "🍟 Adapted on_error jump_back node attribute"
+            }
+          },
+          "1": {
+            "features": {
+              "0": "🦕 Adapted repeat, repeat_delay, repeat_wait_freezes fields",
+              "1": "👀 Focus opacity — tune opacity and enable/disable for clearer node relationships",
+              "2": "🔍 Path highlight — highlight all nodes on a start-to-end path",
+              "3": "☝️ Connections can be curved via midpoint handles"
+            }
+          },
+          "2": {
+            "features": {
+              "0": "📄 Export to file without local service connection!"
+            },
+            "fixes": {
+              "0": "Fixed inability to highlight all critical paths"
+            }
+          },
+          "4": {
+            "features": {
+              "0": "Full focus subfield quick configuration"
+            },
+            "fixes": {
+              "0": "Fixed field tools unable to retake screenshot",
+              "1": "Fixed local service unable to index Chinese paths"
+            },
+            "perfs": {
+              "0": "JSON import/export preserves original order!",
+              "1": "Improved LB export UX"
+            }
+          }
+        },
+        "12": {
+          "0": {
+            "features": {
+              "0": "🧰 Tools support Action fields (target, begin, end, dx, dy)",
+              "1": "🌉 All local service settings editable in the frontend!"
+            },
+            "fixes": {
+              "0": "Fixed unable to close connection when controller missing after reconnect"
+            },
+            "perfs": {
+              "0": "Improved focus rendering",
+              "1": "Improved connection semi-transparent state",
+              "2": "Higher frontend OCR accuracy; persistent model loading",
+              "3": "Removed unnecessary node order persistence",
+              "4": "Empty file import parses as empty JSON"
+            }
+          }
+        },
+        "13": {
+          "0": {
+            "features": {
+              "0": "🔧 Config can be saved independently — three modes!",
+              "1": "📍 Node context menu for quicker graph-level actions",
+              "2": "🐛 Debug preview — progress, pause, breakpoints (WIP; feedback welcome!)"
+            },
+            "fixes": {
+              "0": "Fixed empty file import via file picker"
+            },
+            "perfs": {
+              "0": "Auto-add path config after export",
+              "1": "Auto-migrate TemplateMatch method: 1 to 10001"
+            }
+          },
+          "1": {
+            "features": {
+              "0": "➕ And and Or recognition types",
+              "1": "🦕 Quick copy reco json for composite logic",
+              "2": "🔧 Config export — sync device and version preferences quickly"
+            }
+          }
+        },
+        "14": {
+          "0": {
+            "features": {
+              "0": "🔧 ROI offset tool",
+              "1": "🧰 Standalone toolbox — field tools usable independently",
+              "2": "🎨 Color tool: HSV and GRAY modes",
+              "3": "🌉 LocalBridge quick-open UI auto-connects",
+              "4": "✨ Soft gray eye-comfort canvas (default; switch in settings)",
+              "5": "🚀 Config import/export includes node templates"
+            },
+            "fixes": {
+              "0": "Fixed screenshot not showing on first tool open"
+            },
+            "perfs": {
+              "0": "👍 Refactored tool panel styling",
+              "1": "🎯 New JSON interaction — simpler and clearer"
+            }
+          },
+          "1": {
+            "features": {
+              "0": "👐 Field and connection panels are draggable (switch mode in settings)"
+            },
+            "fixes": {
+              "0": "Fixed interaction lag from some operations",
+              "1": "Fixed JSON preview blocking layout toolbar"
+            }
+          },
+          "2": {
+            "features": {
+              "0": "🐛 Inline field/connection panel with adjustable scale (settings)",
+              "1": "🦕 Minimal node style (settings)",
+              "2": "🍎 LocalBridge PlayCover controller support"
+            },
+            "fixes": {
+              "0": "Fixed prefix appended to external and Anchor nodes",
+              "1": "Fixed phantom nodes/edges while selected",
+              "2": "Fixed missing hint when exporting via local service"
+            },
+            "perfs": {
+              "0": "👍 jump_back now uses input handle — clearer logic"
+            }
+          }
+        },
+        "15": {
+          "1": {
+            "features": {
+              "0": "🐛 Per-node handle direction — any combination, persistent",
+              "1": "🖼 Modern nodes + template hover images when LB connected (configurable, default off)",
+              "2": "🎯 Template field: quick image pick with LB + screenshot tools",
+              "3": "📥 Auto-save all open files before debug (default on; disable in debug settings)"
+            },
+            "perfs": {
+              "0": "🐞 Refactored debug for clearer node execution view"
+            }
+          },
+          "2": {
+            "fixes": {
+              "0": "Fixed template field error on export"
+            }
+          },
+          "3": {
+            "features": {
+              "0": "🎯 Cross-file search and jump when connected to LocalBridge",
+              "1": "👍 External and Anchor nodes: node name dropdown hints across files"
+            },
+            "perfs": {
+              "0": "Improved export ordering",
+              "1": "Freeze fields: progressive interaction"
+            }
+          }
+        },
+        "16": {
+          "0": {
+            "features": {
+              "0": "🐛 Debug: agent connection and multi-resource loading",
+              "1": "🎮 Gamepad controller support"
+            },
+            "fixes": {
+              "0": "Fixed edge order changes sometimes having no effect",
+              "1": "Fixed OCR threshold type issue"
+            },
+            "perfs": {
+              "0": "Connection timeout checks",
+              "1": "Improved LB error messages",
+              "2": "Improved LB log levels",
+              "3": "LB quick link includes port config"
+            }
+          },
+          "1": {
+            "features": {
+              "0": "🐛 Debug: single node and single recognition/action tests"
+            },
+            "fixes": {
+              "0": "Fixed frontend/backend desync after connection loss",
+              "1": "Fixed unable to restart debug after manual stop"
+            },
+            "perfs": {
+              "0": "Check local path before debug run and prompt"
+            }
+          }
+        }
+      },
+      "1": {
+        "0": {
+          "0": {
+            "features": {
+              "0": "🦕 All-in-one Desktop editor!",
+              "1": "📇 LB: open log folder command",
+              "2": "📜 Frontend log window for quick backend logs",
+              "3": "⚡ LB hot reload — no manual restart after config changes"
+            },
+            "perfs": {
+              "0": "Debug on_error no longer captures screenshot (delete existing manually)",
+              "1": "Auto-sync file path after creating file",
+              "2": "Improved search module layout"
+            }
+          },
+          "1": {
+            "features": {
+              "0": "🧩 Default recognition/action export setting"
+            },
+            "fixes": {
+              "0": "Fixed single node repeated recognition showing one record only",
+              "1": "Fixed single-node debug not showing records",
+              "2": "Fixed LB crash on debug failure"
+            },
+            "perfs": {
+              "0": "Desktop loading hint",
+              "1": "Debug record rotation"
+            }
+          },
+          "2": {
+            "features": {
+              "0": "🦕 Shell action; Scroll-target/offset, Click/LongPress/Swipe-concat/pressure updates; synced field descriptions",
+              "1": "🧰 Field tools overhauled with field bindings for easier measurement and input"
+            },
+            "fixes": {
+              "0": "Fixed Desktop crash",
+              "1": "Fixed nested array live parsing"
+            },
+            "perfs": {
+              "0": "Auto-enable image rendering when connecting LB (does not override existing config)"
+            }
+          },
+          "3": {
+            "fixes": {
+              "0": "Disabled shell-timeout field to work around v1 protocol compatibility"
+            }
+          }
+        },
+        "1": {
+          "0": {
+            "features": {
+              "0": "🗒️ Sticker nodes for area annotations",
+              "1": "🗂️ Node grouping for clearer management",
+              "2": "🖥️ Live preview window syncing device screen (disable in settings)",
+              "3": "🧲 Snap alignment guides when dragging nodes (default off)",
+              "4": "🔍 JSON preview search with highlight and navigation",
+              "5": "🎨 Color picker range preview",
+              "6": "🔤 Collapsible node field sections"
+            },
+            "fixes": {
+              "0": "Fixed external node position loss in separated export"
+            },
+            "perfs": {
+              "0": "Improved Desktop auto-connect handshake stability"
+            }
+          },
+          "1": {
+            "fixes": {
+              "0": "Fixed all_of/any_of unable to use string node name references",
+              "1": "Fixed local service unable to import jsonc",
+              "2": "Fixed Anchor node handle anomaly"
+            }
+          },
+          "2": {
+            "fixes": {
+              "0": "Fixed binding anomaly when moving nodes inside group",
+              "1": "Fixed wrong position when copying nodes inside group"
+            },
+            "perfs": {
+              "0": "Selection tools default w/h to 1 on click",
+              "1": "Unified default names for stickers and groups; duplicates allowed",
+              "2": "Auto-save when debugging single node",
+              "3": "Improved sticker context menu",
+              "4": "Stickers always visible; excluded from focus dimming"
+            }
+          },
+          "3": {
+            "fixes": {
+              "0": "Fixed Any-type fields failing to parse list values",
+              "1": "Fixed debug auto-save applying same config to all open files"
+            }
+          },
+          "4": {
+            "fixes": {
+              "0": "Temporary fix for anchor field type parsing"
+            },
+            "perfs": {
+              "0": "Adjusted OCR tool default mode"
+            }
+          }
+        },
+        "2": {
+          "0": {
+            "features": {
+              "0": "😎 Configurable Pipeline export protocol version",
+              "1": "🤐 Skip field validation when types mismatch presets",
+              "2": "🗂️ Separated mode save split: all / Pipeline only / config only",
+              "3": "🫰 Configurable JSON export indent"
+            },
+            "fixes": {
+              "0": "Fixed node data loss when saving via lb",
+              "1": "Fixed rendering from on_error to external and anchor jumpback",
+              "2": "Fixed bool field panel rendering",
+              "3": "Fixed only one node bound when dragging multiple into group",
+              "4": "Fixed wrong node position on quick connect",
+              "5": "Fixed group/sticker size on re-import",
+              "6": "Fixed lb not detecting file modify/delete/rename/new dirs",
+              "7": "Fixed lb config changes not applying",
+              "8": "Fixed data loss when syncing multiple local files",
+              "9": "Fixed import/export node order mismatch",
+              "10": "Fixed desktop lb connection flash disconnect",
+              "11": "Fixed desktop default fw env load failure"
+            },
+            "perfs": {
+              "0": "Improved auto-layout",
+              "1": "Optimized delay series defaults",
+              "2": "Fixed node field order on export",
+              "3": "Stable file list sorting",
+              "4": "LB startup directory safety check",
+              "5": "Clearer save feedback on data loss"
+            }
+          },
+          "1": {
+            "features": {
+              "0": "🦕 color_filter, shell_timeout; Screencap action series",
+              "1": "🪟 WithWindowPos input support",
+              "2": "🧲 Snap to viewport nodes only (default on; disable in settings)",
+              "3": "🙃 Negative roi/target rendering and hints"
+            },
+            "fixes": {
+              "0": "Fixed cmd-cmd field parsing",
+              "1": "Fixed LB crash on duplicate agent connection"
+            }
+          },
+          "2": {
+            "features": {
+              "0": "♿ WithPseudoMinimize screenshot modes",
+              "1": "🐈 Node list and stats panel with search and jump"
+            },
+            "fixes": {
+              "0": "Fixed non-Pipeline node positions unreadable in separated mode",
+              "1": "Fixed cross-resource-pack image references"
+            }
+          },
+          "3": {
+            "features": {
+              "0": "🐍 Predecessor/successor panel with jump and order view",
+              "1": "🦕 DirectHit field series"
+            },
+            "fixes": {
+              "0": "Fixed cannot recreate same-name file after delete",
+              "1": "Fixed fields inconsistent with docs",
+              "2": "Fixed copy issues"
+            }
+          }
+        },
+        "3": {
+          "0": {
+            "features": {
+              "0": "📐 Orthogonal and avoid edge routing (settings)",
+              "1": "👩‍💻 Node JSON editor — format, hints, MFW field completion",
+              "2": "👍 Custom field sort; default MaaEnd recommendation"
+            },
+            "fixes": {
+              "0": "Fixed edge order not updating after delete in some cases",
+              "1": "Fixed state not updating after removing duplicate node names"
+            },
+            "perfs": {
+              "0": "Modals no longer capture global undo shortcuts"
+            }
+          },
+          "1": {
+            "features": {
+              "0": "🥢 Custom sort affects field panel and node render consistently",
+              "1": "🍡 Drag connect to blank opens add-node panel (default on)",
+              "2": "♿ Multi-select context menu: more batch actions"
+            }
+          }
+        },
+        "4": {
+          "0": {
+            "features": {
+              "0": "🤖 AI flow exploration for pathfinding-style tasks",
+              "1": "📔 AI history: token usage, prompts, etc.",
+              "2": "🌟 Anchor nodes: highlight index and cross-file jump",
+              "3": "🥂 Paste clipboard in node panel at pointer",
+              "4": "🐍 Desktop auto-checks for new versions"
+            },
+            "fixes": {
+              "0": "Fixed debug auto-save path pollution across files",
+              "1": "Fixed live screen persisting after disconnect/device off"
+            },
+            "perfs": {
+              "0": "Improved node field smart fill",
+              "1": "Better OCR load failure hints",
+              "2": "Improved add-node panel sort; slimmer left list",
+              "3": "Improved settings panel field order"
+            }
+          },
+          "1": {
+            "features": {
+              "0": "🐧 WlRoots and macOS controllers",
+              "1": "💬 WaitFreezes Focus field series"
+            },
+            "fixes": {
+              "0": "Fixed field order ignored when saving locally"
+            },
+            "perfs": {
+              "0": "Device panel shows current platform schemes only"
+            }
+          },
+          "2": {
+            "features": {
+              "0": "🎏 Auto-layout for selected nodes",
+              "1": "👾 \"Placeholder when subfields empty\" for empty v2 param"
+            },
+            "fixes": {
+              "0": "Fixed nested coordinate list parsed as string list when not nested",
+              "1": "Fixed double scrollbar on long field panel",
+              "2": "Fixed dev build showing outdated version warning"
+            },
+            "perfs": {
+              "0": "Improved same-position panel mutual exclusion",
+              "1": "Improved right-side component layering"
+            }
+          },
+          "3": {
+            "features": {
+              "0": "🤖 AI: OpenAI, Claude, Gemini, custom; encrypted API key; LB CORS proxy",
+              "1": "👾 Emulator: manual path and connection"
+            },
+            "fixes": {
+              "0": "Fixed avoid routing anomaly inside groups"
+            },
+            "perfs": {
+              "0": "Improved settings UX; separate file config panel",
+              "1": "Connection panel custom items persist"
+            }
+          }
+        },
+        "5": {
+          "0": {
+            "features": {
+              "0": "🎚️ MPE FlowScope debug — visual entry, single-node/single-reco runs, dual timeline modes, log events, performance, images, interactive target, filters, AI summary"
+            },
+            "fixes": {
+              "0": "Fixed OpenAI-compatible URL parsing (base and full endpoint)",
+              "1": "Fixed LB external-change warning after MPE local save",
+              "2": "Fixed config not detecting changes on page reopen"
+            },
+            "perfs": {
+              "0": "When LB connected, local import opens file panel",
+              "1": "Improved log module UI/UX",
+              "2": "Split top toolbar; reduced visual clutter"
+            }
+          },
+          "1": {
+            "features": {
+              "0": "🚷 Folder filter for file search",
+              "1": "⌨️ WlRoots Win32 virtual input (by heipiao233)"
+            },
+            "fixes": {
+              "0": "Fixed debug not counting recognition hits",
+              "1": "Fixed debug log hiding nodes from other files"
+            },
+            "perfs": {
+              "0": "Auto-run debug after initial resource load wait",
+              "1": "Auto-load preview screenshots when switching debug records"
+            }
+          },
+          "2": {
+            "features": {
+              "0": "👾 Debug override module",
+              "1": "🛂 Resource health check in debug"
+            },
+            "fixes": {
+              "0": "Fixed agent interrupt on debug end",
+              "1": "Fixed debug sometimes not referencing specified file"
+            },
+            "perfs": {
+              "0": "Resource paths auto-discovered from root when applicable"
+            }
+          },
+          "3": {
+            "fixes": {
+              "0": "Fixed offset when locating nodes inside groups",
+              "1": "Fixed duplicate node warnings from multi-resource load"
+            }
+          }
+        },
+        "6": {
+          "0": {
+            "features": {
+              "0": "🔃 Multiple external and anchor node instances with persistence",
+              "1": "📑 Node operation log with quick jump",
+              "2": "👾 Newcomer guide — earn your certificate!"
+            },
+            "fixes": {
+              "0": "Fixed debug not recognizing agent custom",
+              "1": "Fixed JSON view wrongly showing images",
+              "2": "Fixed duplicate node warnings from multi-resource load"
+            },
+            "perfs": {
+              "0": "Faster frontend load",
+              "1": "Paths accept mixed slashes on any platform",
+              "2": "Debug trace timeline: millisecond timestamps"
+            }
+          },
+          "1": {
+            "features": {
+              "0": "🎯 Show next target nodes on node (settings toggle)",
+              "1": "📽️ Live screen fold/collapse"
+            },
+            "fixes": {
+              "0": "Fixed debug entry node sometimes not recognized",
+              "1": "Fixed adb connect without extra",
+              "2": "Fixed on_error unable to connect to self"
+            },
+            "perfs": {
+              "0": "Reset edge path recalculates external node nearest connection",
+              "1": "Improved resource health terminology",
+              "2": "Improved newcomer guide questions"
+            }
+          },
+          "2": {
+            "fixes": {
+              "0": "Fixed paste creating phantom nodes",
+              "1": "Fixed debug panel not auto-loading detail images",
+              "2": "Fixed debug unable to auto-reload after resource load failure"
+            },
+            "perfs": {
+              "0": "Improved debug panel UX",
+              "1": "LB open file prefills real filename",
+              "2": "Overwrite import supports undo"
+            }
+          }
+        },
+        "7": {
+          "0": {
+            "features": {
+              "0": "🤔 \"I reckon\" docs — long-press w or icon to jump to docs for major modules",
+              "1": "🔬 Quick template match tool",
+              "2": "🔼 Tools accept uploaded background images without device",
+              "3": "🔼 OCR tool fills recognition ROI",
+              "4": "📐 Custom screenshot resolution",
+              "5": "🫳 Adjacency panel: drag reorder and input add",
+              "6": "📒 Debug: maafw.log panel"
+            },
+            "fixes": {
+              "0": "Fixed tool parse error after manual ROI input",
+              "1": "Fixed local file panel interaction broken"
+            },
+            "perfs": {
+              "0": "OCR tool uses fixed snapshot as recognition source"
+            }
+          },
+          "1": {
+            "perfs": {
+              "0": "LB install can bundle mfw runtime and OCR; auto-used when dir not set",
+              "1": "Added terms of use and friendly tips"
+            }
+          },
+          "2": {
+            "fixes": {
+              "0": "Fixed tool preview zoom in some cases"
+            },
+            "perfs": {
+              "0": "Log panel switches to latest notified module on message",
+              "1": "Keep original screenshot on recognition failure for UI"
+            }
+          },
+          "3": {
+            "fixes": {
+              "0": "Fixed action-only debug not ignoring inverse",
+              "1": "Fixed controller screenshot resolution race",
+              "2": "Fixed empty folders not indexed"
+            },
+            "perfs": {
+              "0": "Log panel copyable",
+              "1": "Adapted ppocr v6 package directory layout"
+            }
+          },
+          "4": {
+            "fixes": {
+              "0": "Fixed inconsistent screenshot resolution across scenarios",
+              "1": "Fixed crash when dragging nodes with Devtools open",
+              "2": "Fixed connect-to-blank not auto-connecting new node"
+            },
+            "perfs": {
+              "0": "Updated Win32 input parsing for Interception driver"
+            }
+          }
+        }
+      },
+      "pinned": {
+        "title": "Pinned notice",
+        "content": {
+          "0": "info",
+          "1": "**First time? Please read [Quick start](https://mpe.codax.site/docs/guide/start/quick-start.html) in full** **so you know how to use the editor.**",
+          "2": "**LocalBridge🌉 stable is live**! Full **local document management**, **field quick-fill** (OCR, crop, etc.), and **pipeline debug** — **one-line install**. See [Local service docs](https://mpe.codax.site/docs/guide/server/deploy.html)"
+        }
+      },
+      "longTerm": {
+        "title": "Long-term roadmap",
+        "notice": "Not tied to a specific version; directional plans may change anytime.",
+        "items": {
+          "0": {
+            "theme": "Logs",
+            "title": "Integrated analysis",
+            "description": "Debug and import local maa.log for visual analysis"
+          },
+          "1": {
+            "theme": "Tools",
+            "title": "Custom business enhancements",
+            "description": "Key tools, image import, custom resolution, etc."
+          },
+          "2": {
+            "theme": "Maintenance",
+            "title": "Feature polish and fixes",
+            "description": "Ongoing polish and bug fixes with each release"
+          }
+        }
+      },
+      "next": {
+        "title": "Next version through v1.8.0",
+        "notice": "Preview items may change with development; not a final commitment.",
+        "items": {
+          "0": {
+            "theme": "Ecosystem",
+            "title": "VSCode extension (MSE) integration",
+            "description": "Embed MSE via iframe; file-to-node linkage features"
+          }
+        }
+      }
+    }
+  }
+}

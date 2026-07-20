@@ -1,10 +1,12 @@
 import { memo, useState, useRef, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { Tooltip } from "antd";
 import { QuestionCircleOutlined } from "@ant-design/icons";
+import uiT from "../../i18n/translate";
 import { useWikiStore } from "../../stores/wikiStore";
 import style from "../../styles/components/WikiAnchor.module.less";
 
-const DOCS_BASE_URL = "https://mpe.codax.site/docs/01.指南/";
+const DOCS_BASE_URL = `https://mpe.codax.site/docs/${uiT("ui.wiki.docsGuidePath", "01.指南")}/`;
 const HOLD_DURATION_MS = 1000;
 
 export interface WikiAnchorProps {
@@ -23,6 +25,7 @@ export interface WikiAnchorProps {
  * 使用 CSS transition 驱动动画，避免高频 React 重渲染
  */
 function WikiAnchorBase({ path, title, description }: WikiAnchorProps) {
+  const { t } = useTranslation();
   const setActivePath = useWikiStore((s) => s.setActivePath);
   const clearActivePath = useWikiStore((s) => s.clearActivePath);
 
@@ -116,7 +119,9 @@ function WikiAnchorBase({ path, title, description }: WikiAnchorProps) {
     <div className={style.tipContent}>
       <div className={style.tipTitle}>{title}</div>
       {description && <div className={style.tipDesc}>{description}</div>}
-      <div className={style.tipHint}>长按 W 或长按图标查看详情</div>
+      <div className={style.tipHint}>
+        {t("ui.wiki.holdHint", "长按 W 或长按图标查看详情")}
+      </div>
       <div className={style.progressBar} style={{ opacity: holding ? 1 : 0 }}>
         <div
           className={style.progressFill}

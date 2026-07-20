@@ -3,6 +3,7 @@
  */
 
 import { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import classNames from "classnames";
 import type { NodeListItemInfo } from "./types";
 import { NodePreviewPopover } from "./NodePreviewPopover";
@@ -25,6 +26,7 @@ function NodeListItem({
   onClick,
   onHover,
 }: NodeListItemProps) {
+  const { t } = useTranslation();
   // 点击节点项
   const handleClick = useCallback(() => {
     onClick?.(node);
@@ -46,16 +48,16 @@ function NodeListItem({
       return `${node.recognitionType} → ${node.actionType}`;
     }
     if (node.nodeType === "external") {
-      return "外部引用";
+      return t("ui.panels.main.nodeList.externalRef", "外部引用");
     }
     if (node.nodeType === "anchor") {
-      return "重定向";
+      return t("ui.panels.main.nodeList.redirect", "重定向");
     }
     if (node.nodeType === "sticker") {
-      return "注释";
+      return t("ui.panels.main.nodeList.sticker", "注释");
     }
     if (node.nodeType === "group") {
-      return "分组";
+      return t("ui.panels.main.nodeList.group", "分组");
     }
     return "";
   };

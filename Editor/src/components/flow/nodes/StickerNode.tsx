@@ -1,4 +1,5 @@
 import { memo, useMemo, useState, useCallback, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { type Node, type NodeProps, NodeResizer } from "@xyflow/react";
 import classNames from "classnames";
 
@@ -63,6 +64,7 @@ const StickerContent = memo(
     nodeId: string;
     selected?: boolean;
   }) => {
+    const { t } = useTranslation();
     const setNodeData = useFlowStore((state) => state.setNodeData);
     const saveHistory = useFlowStore((state) => state.saveHistory);
     const [editing, setEditing] = useState(false);
@@ -83,10 +85,10 @@ const StickerContent = memo(
       saveHistory(0, {
         category: "node",
         action: "update",
-        description: "编辑便签内容",
+        description: t("ui.flow.stickerNode.editContentHistory", "编辑便签内容"),
         targetIds: [nodeId],
       });
-    }, [saveHistory, nodeId]);
+    }, [saveHistory, nodeId, t]);
 
     // 内容变化
     const handleContentChange = useCallback(
@@ -132,7 +134,7 @@ const StickerContent = memo(
             onChange={handleTitleChange}
             onMouseDown={(e) => e.stopPropagation()}
             style={{ color: "#fff" }}
-            placeholder="便签标题"
+            placeholder={t("ui.flow.stickerNode.titlePlaceholder", "便签标题")}
           />
         </div>
 
@@ -146,14 +148,17 @@ const StickerContent = memo(
               onChange={handleContentChange}
               onBlur={handleBlur}
               onMouseDown={(e) => e.stopPropagation()}
-              placeholder="双击编辑内容..."
+              placeholder={t(
+                "ui.flow.stickerNode.contentPlaceholder",
+                "双击编辑内容...",
+              )}
               style={{ color: theme.text }}
             />
           ) : (
             <div className={style.stickerText}>
               {data.content || (
                 <span className={style.stickerPlaceholder}>
-                  双击编辑内容...
+                  {t("ui.flow.stickerNode.contentPlaceholder", "双击编辑内容...")}
                 </span>
               )}
             </div>

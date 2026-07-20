@@ -2,6 +2,7 @@ import { toPng } from "html-to-image";
 import { getNodesBounds, getViewportForBounds } from "@xyflow/react";
 import type { Node } from "@xyflow/react";
 import { message } from "antd";
+import uiT from "../../i18n/translate";
 
 /**
  * 下载图片到本地
@@ -28,7 +29,7 @@ export async function saveNodesToImage(
     // 确定节点
     const targetNodes = selectedNodes.length > 0 ? selectedNodes : allNodes;
     if (targetNodes.length === 0) {
-      message.warning("没有可保存的节点");
+      message.warning(uiT("ui.utils.snapper.noNodes", "没有可保存的节点"));
       return;
     }
 
@@ -37,7 +38,7 @@ export async function saveNodesToImage(
       ".react-flow__viewport"
     ) as HTMLElement;
     if (!viewportElement) {
-      message.error("无法找到画布元素");
+      message.error(uiT("ui.utils.snapper.canvasNotFound", "无法找到画布元素"));
       return;
     }
 
@@ -76,11 +77,15 @@ export async function saveNodesToImage(
 
     message.success(
       selectedNodes.length > 0
-        ? `已保存 ${selectedNodes.length} 个选中节点为图片`
-        : `已保存全部 ${allNodes.length} 个节点为图片`
+        ? uiT("ui.utils.snapper.savedSelected", "已保存 {{count}} 个选中节点为图片", {
+            count: selectedNodes.length,
+          })
+        : uiT("ui.utils.snapper.savedAll", "已保存全部 {{count}} 个节点为图片", {
+            count: allNodes.length,
+          }),
     );
   } catch (error) {
-    console.error("保存图片失败:", error);
-    message.error("保存图片失败");
+    console.error(uiT("ui.utils.snapper.saveFailed", "保存图片失败"), error);
+    message.error(uiT("ui.utils.snapper.saveFailed", "保存图片失败"));
   }
 }

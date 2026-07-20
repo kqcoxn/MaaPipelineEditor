@@ -1,4 +1,5 @@
 import { debugProtocolClient } from "../../services/server";
+import uiT from "../../i18n/translate";
 import { useDebugSessionStore } from "../../stores/debugSessionStore";
 import { useWSStore } from "../../stores/wsStore";
 
@@ -17,7 +18,12 @@ export function ensureDebugCapabilitiesRequested(): boolean {
   sessionState.setCapabilitiesLoading();
   const sent = debugProtocolClient.requestCapabilities();
   if (!sent) {
-    sessionState.setCapabilitiesError("LocalBridge 未连接，暂时无法读取调试能力。");
+    sessionState.setCapabilitiesError(
+      uiT(
+        "ui.debug.capability.localBridgeDisconnected",
+        "LocalBridge 未连接，暂时无法读取调试能力。",
+      ),
+    );
   }
   return sent;
 }

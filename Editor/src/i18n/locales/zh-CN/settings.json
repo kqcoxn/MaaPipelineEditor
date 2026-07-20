@@ -1,0 +1,330 @@
+{
+  "settings": {
+    "resetDefault": "恢复默认",
+    "tabs": {
+      "export": "导出",
+      "node": "节点",
+      "connection": "连接",
+      "canvas": "画布",
+      "component": "组件",
+      "local-service": "本地服务",
+      "ai": "AI",
+      "management": "管理"
+    },
+    "items": {
+      "sk-xxxx": {
+        "label": "配置保存方案",
+        "tipTitle": "配置保存方案",
+        "tipContent": "集成导出：配置嵌入 Pipeline 文件，适合单文件分享\n分离导出：配置存储至独立 .mpe.json 文件，便于版本管理\n不导出：不保存任何配置，导入时触发自动布局",
+        "guardPromptTitle": "确认导出配置",
+        "guardPromptDescription": "首次导出时，请确认 Pipeline 配置的导出方式后再导出",
+        "options": {
+          "integrated": "集成导出",
+          "separated": "分离导出",
+          "none": "不导出"
+        }
+      },
+      "pipelineProtocolVersion": {
+        "label": "Pipeline 导出版本",
+        "tipTitle": "Pipeline 导出版本",
+        "tipContent": "v2：使用嵌套对象结构\n{ recognition: { type: 'X', param: {...} } }\n\nv1：参数平铺在节点根对象\n{ recognition: 'X', template: '...' }",
+        "guardPromptTitle": "确认导出配置",
+        "guardPromptDescription": "首次导出时，请确认 Pipeline 导出版本后再导出",
+        "options": {
+          "v2": "v2",
+          "v1": "v1"
+        }
+      },
+      "nodeAttrExportStyle": {
+        "label": "节点属性导出形式",
+        "tipTitle": "节点属性导出形式",
+        "tipContent": "对象形式：{ name: 'C', anchor: true, jump_back: true }\n前缀形式：'[Anchor][JumpBack]C'",
+        "options": {
+          "prefix": "前缀形式",
+          "object": "对象形式"
+        }
+      },
+      "exportDefaultRecoAction": {
+        "label": "导出默认识别/动作",
+        "tipTitle": "导出默认识别/动作",
+        "tipContent": "关闭时，导出时若节点的识别类型为 DirectHit 且无参数，则不导出 recognition 字段；\n若动作类型为 DoNothing 且无参数，则不导出 action 字段。\n两者独立检测。",
+        "checkedChildren": "导出",
+        "unCheckedChildren": "省略"
+      },
+      "exportEmptyParam": {
+        "label": "子字段为空时占位",
+        "tipTitle": "子字段为空时占位",
+        "tipContent": "关闭时，若识别/动作的 param 为空对象，则不导出 param 键，仅保留 type。\n开启时，即使 param 为空也保留占位导出。（仅 v2 版本需要考虑）",
+        "checkedChildren": "占位",
+        "unCheckedChildren": "省略"
+      },
+      "jsonIndent": {
+        "label": "JSON 行缩进",
+        "tipTitle": "JSON 行缩进",
+        "tipContent": "导出 JSON 文件时每层缩进的空格数。\n默认为 4 空格，可设置为 2 或其他值。",
+        "addonAfter": "空格"
+      },
+      "skipFieldValidation": {
+        "label": "忽略字段校验",
+        "tipTitle": "忽略字段校验",
+        "tipContent": "开启后，导出时将跳过字段格式校验，即使节点内容不符合规范也会强制导出。\n适用于快速导出或调试场景。",
+        "checkedChildren": "忽略",
+        "unCheckedChildren": "校验"
+      },
+      "__fieldSort": {
+        "label": "字段排序配置",
+        "tipTitle": "字段排序配置",
+        "tipContent": "自定义导出时的字段排序顺序",
+        "options": {
+          "modern": "现代风格",
+          "classic": "经典风格",
+          "minimal": "极简风格"
+        }
+      },
+      "showNodeDetailFields": {
+        "label": "节点显示二级字段",
+        "tipTitle": "节点显示二级字段",
+        "tipContent": "关闭时节点仅显示识别类型和动作类型，隐藏所有参数细节。适合在节点数量较多时减少视觉干扰。",
+        "checkedChildren": "详细",
+        "unCheckedChildren": "精简"
+      },
+      "showNodeTemplateImages": {
+        "label": "显示模板图片",
+        "tipTitle": "显示模板图片",
+        "tipContent": "开启时，现代风格节点底部会显示 template 字段的图片缩略图。需要连接本地服务后生效。",
+        "checkedChildren": "显示",
+        "unCheckedChildren": "隐藏"
+      },
+      "showNodeFlowSection": {
+        "label": "显示后续目标节点",
+        "tipTitle": "显示后续目标节点",
+        "tipContent": "开启时，节点底部会显示 next 和 on_error 的目标节点。",
+        "checkedChildren": "显示",
+        "unCheckedChildren": "隐藏"
+      },
+      "defaultHandleDirection": {
+        "label": "默认端点位置",
+        "tipTitle": "默认端点位置",
+        "tipContent": "新创建节点的默认端点位置\n左右：左侧输入，右侧输出（默认）\n右左：右侧输入，左侧输出\n上下：上方输入，下方输出\n下上：下方输入，上方输出"
+      },
+      "__applyToAll": {
+        "label": "一键更改端点位置",
+        "tipTitle": "一键更改",
+        "tipContent": "将所有节点的端点位置更改为当前选中的默认位置"
+      },
+      "enableNodeSnap": {
+        "label": "节点磁吸对齐",
+        "tipTitle": "节点磁吸对齐",
+        "tipContent": "开启后拖拽节点时会自动对齐到其他节点的边缘和中心线，并显示对齐参考线",
+        "checkedChildren": "启用",
+        "unCheckedChildren": "关闭"
+      },
+      "snapOnlyInViewport": {
+        "label": "仅磁吸可视节点",
+        "tipTitle": "仅磁吸可视节点",
+        "tipContent": "开启时仅与可视范围内的节点进行磁吸对齐",
+        "checkedChildren": "启用",
+        "unCheckedChildren": "关闭",
+        "options": {
+          "bezier": "曲线",
+          "smoothstep": "直角",
+          "avoid": "避让"
+        }
+      },
+      "showEdgeLabel": {
+        "label": "显示边标签",
+        "tipTitle": "显示边标签",
+        "tipContent": "开启时边中心会显示连接次序，若影响观察可关闭此选项；显示时会稍微增加拖拽节点时性能损耗，若造成明显卡顿请关闭此选项。",
+        "checkedChildren": "显示",
+        "unCheckedChildren": "隐藏"
+      },
+      "showEdgeControlPoint": {
+        "label": "边拖拽手柄",
+        "tipTitle": "边拖拽手柄",
+        "tipContent": "开启时可以拖拽连接线中间的手柄来调整路径形状，该效果不会保存。双击手柄可重置单条连接线，排版工具中可一键重置所有连接线。",
+        "checkedChildren": "显示",
+        "unCheckedChildren": "隐藏"
+      },
+      "uiLocale": {
+        "label": "界面语言",
+        "tipTitle": "界面语言",
+        "tipContent": "跟随系统：根据浏览器或操作系统的语言/区域自动选择界面语言\n可手动指定简体中文、English 或 ไทย",
+        "options": {
+          "auto": "跟随系统",
+          "zh-CN": "简体中文",
+          "en-US": "English",
+          "th-TH": "ไทย"
+        }
+      },
+      "fieldPanelMode": {
+        "label": "字段/连接面板模式",
+        "tipTitle": "字段/连接面板模式",
+        "tipContent": "固定模式：面板固定在右上角\n拖动模式：面板可拖动，切换选中时保持位置\n内嵌模式：字段面板嵌入在节点旁边，直接在画布中编辑",
+        "options": {
+          "fixed": "固定",
+          "draggable": "拖动",
+          "inline": "内嵌"
+        }
+      },
+      "inlinePanelScale": {
+        "label": "内嵌面板缩放比例",
+        "tipTitle": "内嵌面板缩放比例",
+        "tipContent": "设置内嵌模式下字段面板的整体缩放大小，范围 0.5-1.0。可根据个人视图查阅缩放比例偏好调试，其他模式不起作用。"
+      },
+      "quickCreateNodeOnConnectBlank": {
+        "label": "连接空白处时创建",
+        "tipTitle": "连接空白处时创建",
+        "tipContent": "从节点拖出连接线，如果终点落在画布空白处，则在落点直接弹出节点添加面板，方便继续选择要创建的节点类型。关闭后将保持原有行为。",
+        "checkedChildren": "开启",
+        "unCheckedChildren": "关闭",
+        "options": {
+          "eyecare": "护眼",
+          "pure": "纯白"
+        }
+      },
+      "isAutoFocus": {
+        "label": "自动聚焦",
+        "tipTitle": "自动聚焦",
+        "tipContent": "开启时若出现新节点则自动移动视口以聚焦",
+        "checkedChildren": "启用",
+        "unCheckedChildren": "关闭"
+      },
+      "focusOpacity": {
+        "label": "非聚焦节点不透明度",
+        "tipTitle": "非聚焦节点不透明度",
+        "tipContent": "选中节点或边时，非相关元素的透明度。设置为1时关闭此功能，小于1时只完全显示与选中元素直接关联的节点和边"
+      },
+      "enableLiveScreen": {
+        "label": "实时画面预览",
+        "tipTitle": "实时画面预览",
+        "tipContent": "连接设备后，在右上角自动显示实时设备屏幕。当字段/连接/JSON面板打开时自动隐藏。",
+        "checkedChildren": "启用",
+        "unCheckedChildren": "关闭"
+      },
+      "liveScreenRefreshRate": {
+        "label": "画面刷新间隔(ms)",
+        "tipTitle": "画面刷新间隔(ms)",
+        "tipContent": "设置设备屏幕更新间隔（毫秒）。值越小越流畅但性能消耗越高。推荐 500-2000ms。"
+      },
+      "historyLimit": {
+        "label": "历史记录上限",
+        "tipTitle": "历史记录上限",
+        "tipContent": "设置撤销/重做功能的最大历史记录数量，设置过大可能占用较多内存并产生卡顿",
+        "checkedChildren": "启用",
+        "unCheckedChildren": "关闭"
+      },
+      "useDarkMode": {
+        "label": "深色模式",
+        "tipTitle": "深色模式",
+        "tipContent": "切换编辑器的深色/浅色主题",
+        "checkedChildren": "深色",
+        "unCheckedChildren": "浅色"
+      },
+      "wsPort": {
+        "label": "连接端口",
+        "tipTitle": "WebSocket 端口",
+        "tipContent": "本地服务端口，修改端口后需要重新连接"
+      },
+      "wsAutoConnect": {
+        "label": "自动连接",
+        "tipTitle": "自动连接",
+        "tipContent": "开启后，进入页面时会自动尝试连接本地通信服务",
+        "checkedChildren": "开启",
+        "unCheckedChildren": "关闭"
+      },
+      "fileAutoReload": {
+        "label": "自动重载变更文件",
+        "tipTitle": "自动重载变更文件",
+        "tipContent": "开启后，当文件被外部修改时会自动重新加载文件内容，无需手动确认",
+        "checkedChildren": "开启",
+        "unCheckedChildren": "关闭"
+      },
+      "enableCrossFileSearch": {
+        "label": "启用跨文件搜索",
+        "tipTitle": "启用跨文件搜索",
+        "tipContent": "开启后，搜索时将在所有已打开的文件中搜索匹配项",
+        "checkedChildren": "开启",
+        "unCheckedChildren": "关闭"
+      },
+      "crossFileSearchFolderFilter": {
+        "label": "文件夹过滤",
+        "tipTitle": "文件夹过滤",
+        "tipContent": "前端过滤本地文件列表与跨文件搜索候选。填写相对于本地服务根目录的文件夹路径，多个目录可用逗号、分号或换行分隔；留空表示不过滤。",
+        "placeholder": "例如：pipeline\npipeline/sub"
+      },
+      "screenshotResolutionMode": {
+        "label": "截图分辨率",
+        "tipTitle": "截图分辨率",
+        "tipContent": "设备截图与网页调试共用此缩放方式：\n默认：短边缩放至 720（maafw 默认）\n短边：将短边缩放至指定长度，长边按比例自适应\n长边：将长边缩放至指定长度，短边按比例自适应\n原始：不缩放，使用设备原始分辨率\n\nMPE 不读取 interface.json，网页调试以此处设置为准。ROI/OCR/模板匹配工具与调试运行会始终使用同一坐标系。",
+        "options": {
+          "default": "默认 (短边 720)",
+          "shortSide": "自定义短边",
+          "longSide": "自定义长边",
+          "raw": "原始分辨率"
+        }
+      },
+      "screenshotResolutionValue": {
+        "label": "分辨率长度",
+        "tipTitle": "分辨率长度",
+        "tipContent": "自定义短边/长边模式下的目标边长（像素），另一边按原始宽高比自动缩放。常用值：720、1280、1080、1920。",
+        "addonAfter": "px"
+      },
+      "aiProviderType": {
+        "label": "API 类型",
+        "tipTitle": "API 服务类型",
+        "tipContent": "选择 AI 服务提供商类型。不同类型使用不同的协议和端点格式。如果你使用的是 OpenAI 兼容的第三方服务（如 DeepSeek、通义千问等），请选择'自定义'",
+        "options": {
+          "custom": "自定义 (OpenAI 兼容)",
+          "openai": "OpenAI",
+          "anthropic": "Claude (Anthropic)",
+          "gemini": "Gemini (Google)"
+        }
+      },
+      "aiApiUrl": {
+        "label": "API URL",
+        "tipTitle": "API URL",
+        "tipContent": "API 基础地址或完整端点。OpenAI: https://api.openai.com，Anthropic: https://api.anthropic.com，Gemini: https://generativelanguage.googleapis.com。自定义 OpenAI 兼容服务可填写基础地址（如 https://open.bigmodel.cn/api/paas/v4）或完整 /chat/completions 地址",
+        "placeholder": "例如: https://api.openai.com"
+      },
+      "aiApiKey": {
+        "label": "API Key",
+        "tipTitle": "API Key",
+        "tipContent": "你的 API 密钥，将加密存储在浏览器本地（AES-GCM）",
+        "placeholder": "例如: sk-xxxx"
+      },
+      "aiModel": {
+        "label": "模型",
+        "tipTitle": "模型名称",
+        "tipContent": "使用的模型名称。例如: gpt-4o, gpt-4o-mini, claude-sonnet-4-20250514, gemini-2.5-flash 等",
+        "placeholder": "例如: gpt-4o / claude-sonnet-4-20250514 / gemini-2.5-flash"
+      },
+      "aiTemperature": {
+        "label": "温度",
+        "tipTitle": "温度参数",
+        "tipContent": "控制 AI 输出的随机性。较低的值（0.3）更稳定保守，较高的值（0.8）更有创造性。节点预测建议 0.5-0.7"
+      },
+      "aiUseProxy": {
+        "label": "LocalBridge 代理",
+        "tipTitle": "LocalBridge 代理",
+        "tipContent": "开启后通过 LocalBridge 本地服务代理 AI 请求，可解决浏览器 CORS 跨域限制。关闭则直接从浏览器调用 API（需要 API 服务支持 CORS）",
+        "checkedChildren": "开启",
+        "unCheckedChildren": "关闭"
+      },
+      "__testConnection": {
+        "label": "测试",
+        "tipTitle": "测试连接",
+        "tipContent": "测试当前 AI 配置是否可用"
+      },
+      "__importConfig": {
+        "label": "导入配置",
+        "tipTitle": "导出/导入配置",
+        "tipContent": "导出当前设置为 JSON 文件，或从 JSON 文件导入设置。包括：编辑器配置、自定义节点模板。"
+      },
+      "__resetDefaults": {
+        "label": "重置默认值",
+        "tipTitle": "重置默认值",
+        "tipContent": "将所有配置项恢复为默认值"
+      }
+    }
+  }
+}

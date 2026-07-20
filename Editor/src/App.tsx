@@ -1,6 +1,8 @@
 import style from "./styles/layout/App.module.less";
 
-import { memo, Suspense, lazy, useCallback, useEffect, useState } from "react";
+import { memo, Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import uiT from "./i18n/translate";
 import {
   Flex,
   Layout,
@@ -9,6 +11,7 @@ import {
   Button,
   Space,
   Modal,
+  ConfigProvider,
 } from "antd";
 const { Header: HeaderSection, Content } = Layout;
 
@@ -73,6 +76,12 @@ import { useNewcomerStore, isNewcomerPassed } from "./stores/newcomerStore";
 import { NewcomerGuideModal } from "./components/modals/NewcomerGuideModal";
 import { useTermsStore, isTermsAccepted } from "./stores/termsStore";
 import { TermsAgreementModal } from "./components/modals/TermsAgreementModal";
+import { getAntdLocale } from "./i18n/antdLocales";
+import i18n, { syncI18nLocale } from "./i18n";
+import {
+  detectSystemLocale,
+  resolveUiLocale,
+} from "./i18n/localeUtils";
 
 const JsonViewer = lazy(() => import("./components/JsonViewer"));
 const DebugModal = lazy(() =>
@@ -96,7 +105,7 @@ function starRemind() {
           notification.destroy();
         }}
       >
-        这就去点！
+        {i18n.t("app.starRemind.starNow", "这就去点！")}
       </Button>
       <Button
         onClick={() => {
@@ -104,7 +113,7 @@ function starRemind() {
           notification.destroy();
         }}
       >
-        稍后提醒
+        {i18n.t("app.starRemind.remindLater", "稍后提醒")}
       </Button>
       <Button
         style={{ color: "gray" }}
@@ -114,14 +123,16 @@ function starRemind() {
           notification.destroy();
         }}
       >
-        不再提醒
+        {i18n.t("app.starRemind.neverRemind", "不再提醒")}
       </Button>
     </Space>
   );
   notification.open({
-    title: "来点 Star，秋梨膏！",
-    description:
+    title: i18n.t("app.starRemind.title", "来点 Star，秋梨膏！"),
+    description: i18n.t(
+      "app.starRemind.description",
       "如果 MaaPipelineEditor 对您有帮助，可以为项目点一个免费的 Star⭐ 吗 QAQ",
+    ),
     actions: operations,
     key,
     duration: 0,
@@ -136,6 +147,31 @@ const GlobalListener = memo(() => {
 
 /**主程序 */
 function App() {
+  const { t } = useTranslation();
+  const uiLocaleSetting = useConfigStore((state) => state.configs.uiLocale);
+  const resolvedLocale = useMemo(
+    () => resolveUiLocale(uiLocaleSetting),
+    [uiLocaleSetting],
+  );
+  const cacheLoadedNotifiedRef = useRef(false);
+
+  useEffect(() => {
+    syncI18nLocale(resolvedLocale);
+  }, [resolvedLocale]);
+
+  useEffect(() => {
+    if (uiLocaleSetting !== "auto") return;
+
+    const handleLanguageChange = () => {
+      syncI18nLocale(detectSystemLocale());
+    };
+
+    window.addEventListener("languagechange", handleLanguageChange);
+    return () => {
+      window.removeEventListener("languagechange", handleLanguageChange);
+    };
+  }, [uiLocaleSetting]);
+
   // 嵌入模式状态
   const { isEmbed, isReady, isCapAllowed, isPanelHidden } = useEmbedMode();
 
@@ -153,7 +189,9 @@ function App() {
     const file = files[0];
     // 检查文件类型
     if (!file.name.endsWith(".json") && !file.name.endsWith(".jsonc")) {
-      message.error("仅支持 .json 或 .jsonc 文件");
+      message.error(
+        t("app.fileDrop.unsupportedType", "仅支持 .json 或 .jsonc 文件"),
+      );
       return;
     }
 
@@ -161,13 +199,19 @@ function App() {
       const text = await file.text();
       const success = await pipelineToFlow({ pString: text });
       if (success) {
-        message.success(`已导入文件: ${file.name}`);
+        message.success(
+          t("app.fileDrop.importSuccess", "已导入文件: {{fileName}}", {
+            fileName: file.name,
+          }),
+        );
       }
     } catch (err) {
-      message.error("文件导入失败，请检查文件格式");
+      message.error(
+        t("app.fileDrop.importFailed", "文件导入失败，请检查文件格式"),
+      );
       console.error(err);
     }
-  }, []);
+  }, [t]);
 
   const handleDragOver = useCallback((e: DragEvent) => {
     e.preventDefault();
@@ -362,7 +406,10 @@ function App() {
     // 读取本地存储
     if (!hasShareParam && !hasPending) {
       const err = useFileStore.getState().replace();
-      if (!err) message.success("已读取本地缓存");
+      if (!err && !cacheLoadedNotifiedRef.current) {
+        cacheLoadedNotifiedRef.current = true;
+        message.success(t("app.cache.loaded", "已读取本地缓存"));
+      }
     }
 
     const unsubscribeConfigCache = useConfigStore.subscribe(
@@ -374,7 +421,10 @@ function App() {
           try {
             saveConfigCache();
           } catch (error) {
-            console.error("[App] 保存配置缓存失败:", error);
+            console.error(
+              uiT("ui.app.configCacheSaveFailed", "[App] 保存配置缓存失败:"),
+              error,
+            );
           }
         }
       },
@@ -387,25 +437,36 @@ function App() {
 
     // 处理导入请求
     if (hasPending) {
-      const dirMap: Record<string, string> = {
-        desktop: "桌面",
-        documents: "文档",
-        downloads: "下载",
-        music: "音乐",
-        pictures: "图片",
-        videos: "视频",
+      const dirDefaults: Record<string, string> = {
+        desktop: uiT("ui.app.importRequest.dirs.desktop", "桌面"),
+        documents: uiT("ui.app.importRequest.dirs.documents", "文档"),
+        downloads: uiT("ui.app.importRequest.dirs.downloads", "下载"),
+        music: uiT("ui.app.importRequest.dirs.music", "音乐"),
+        pictures: uiT("ui.app.importRequest.dirs.pictures", "图片"),
+        videos: uiT("ui.app.importRequest.dirs.videos", "视频"),
       };
-
-      const dirName = dirMap[startIn || "downloads"] || startIn;
+      const dirKey = startIn || "downloads";
+      const dirName = t(
+        `app.importRequest.dirs.${dirKey}`,
+        dirDefaults[dirKey] ?? dirKey,
+      );
       const content = expectedFile
-        ? `是否从 "${dirName}" 目录选择文件 "${expectedFile}" 导入？`
-        : `是否从 "${dirName}" 目录选择文件导入？`;
+        ? t(
+            "app.importRequest.contentWithFile",
+            '是否从 "{{dirName}}" 目录选择文件 "{{expectedFile}}" 导入？',
+            { dirName, expectedFile },
+          )
+        : t(
+            "app.importRequest.contentWithoutFile",
+            '是否从 "{{dirName}}" 目录选择文件导入？',
+            { dirName },
+          );
 
       Modal.confirm({
-        title: "检测到导入请求",
+        title: t("app.importRequest.title", "检测到导入请求"),
         content,
-        okText: "选择文件",
-        cancelText: "取消",
+        okText: t("app.importRequest.okText", "选择文件"),
+        cancelText: t("app.importRequest.cancelText", "取消"),
         onOk: () => handleImportFromUrl(),
         onCancel: () => clearImportParam(),
       });
@@ -540,7 +601,7 @@ function App() {
         cleanupWailsListener();
       }
     };
-  }, [handleFileDrop, handleDragOver]);
+  }, [handleFileDrop, handleDragOver, t]);
 
   // 条件渲染控制
   const showHeader = !isEmbed || !isPanelHidden("header");
@@ -549,7 +610,8 @@ function App() {
 
   // 渲染组件
   return (
-    <ThemeProvider>
+    <ConfigProvider locale={getAntdLocale(resolvedLocale)}>
+      <ThemeProvider>
       <Flex className={style.container} gap="middle" wrap>
         <Layout className={style.layout}>
           {showHeader && (
@@ -604,7 +666,8 @@ function App() {
       <TermsAgreementModal />
       <NewcomerGuideModal />
       <GlobalListener />
-    </ThemeProvider>
+      </ThemeProvider>
+    </ConfigProvider>
   );
 }
 

@@ -1,6 +1,7 @@
 import style from "../../../../styles/panels/FieldPanel.module.less";
 import { memo } from "react";
 import { Popover } from "antd";
+import { useTranslation } from "react-i18next";
 import IconFont from "../../../iconfonts";
 import type { ParamType } from "../../../../stores/flow";
 import type { FieldType } from "../../../../core/fields";
@@ -19,6 +20,7 @@ export const AddFieldElem = memo(
     paramData: ParamType;
     onClick: (param: FieldType) => void;
   }) => {
+    const { t } = useTranslation();
     if (paramType.length === 0) {
       return null;
     }
@@ -32,7 +34,9 @@ export const AddFieldElem = memo(
           key={param.key}
           placement="right"
           title={param.key}
-          content={LeftTipContentElem(param.desc)}
+          content={LeftTipContentElem(
+            t(`fields.schema.${param.key}.desc`, param.desc),
+          )}
         >
           <div className={style.param} onClick={() => onClick(param)}>
             {displayText}

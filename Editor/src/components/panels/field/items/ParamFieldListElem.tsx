@@ -1,6 +1,7 @@
 import style from "../../../../styles/panels/FieldPanel.module.less";
 import { memo, useState, useCallback, useMemo } from "react";
 import { Popover, Input, InputNumber, Select, Switch } from "antd";
+import { useTranslation } from "react-i18next";
 import IconFont, { type IconNames } from "../../../iconfonts";
 import type { ParamType } from "../../../../stores/flow";
 import type { FieldType } from "../../../../core/fields";
@@ -117,6 +118,11 @@ export const ParamFieldListElem = memo(
     onListDelete: (key: string, valueList: any[], index: number) => void;
     sortOrder?: string[];
   }) => {
+    const { t } = useTranslation();
+    const fieldDesc = useCallback(
+      (field: FieldType) => t(`fields.schema.${field.key}.desc`, field.desc),
+      [t],
+    );
     const { connectionStatus } = useMFWStore();
     const [roiModalOpen, setRoiModalOpen] = useState(false);
     const [ocrModalOpen, setOcrModalOpen] = useState(false);
@@ -515,7 +521,10 @@ export const ParamFieldListElem = memo(
                       newList[index] = newValue;
                       onListChange(key, newList);
                     }}
-                    placeholder="输入或选择图片路径"
+                    placeholder={t(
+                      "ui.panels.field.imageSelect.placeholder",
+                      "输入或选择图片路径",
+                    )}
                     inList
                   />
                   <div
@@ -558,7 +567,10 @@ export const ParamFieldListElem = memo(
               <ImageSelect
                 value={value || ""}
                 onChange={(newValue) => onChange(key, newValue)}
-                placeholder="输入或选择图片路径"
+                placeholder={t(
+                  "ui.panels.field.imageSelect.placeholder",
+                  "输入或选择图片路径",
+                )}
               />
             );
             break;
@@ -685,7 +697,7 @@ export const ParamFieldListElem = memo(
           <TemplatePreview
             templatePaths={templatePaths}
             title={key}
-            description={type.desc}
+            description={fieldDesc(type)}
           >
             <div className={style.key}>{displayText}</div>
           </TemplatePreview>
@@ -696,7 +708,7 @@ export const ParamFieldListElem = memo(
             style={{ maxWidth: 10 }}
             placement="left"
             title={key}
-            content={LeftTipContentElem(type.desc)}
+            content={LeftTipContentElem(fieldDesc(type))}
           >
             <div className={style.key}>{displayText}</div>
           </Popover>

@@ -1,3 +1,4 @@
+import uiT from "../../i18n/translate";
 import type {
   DebugEvent,
   DebugEventPhase,
@@ -342,7 +343,7 @@ function toAttempt({
           ? resolveSourceNextOwnerLabel?.(sourceNextOwnerRuntimeNames[0]) ??
             sourceNextOwnerLabel ??
             sourceNextOwnerRuntimeNames[0]
-          : "多个 NextList",
+          : uiT("ui.debug.nodeExecution.multipleNextList", "多个 NextList"),
     hit: readAttemptHit(sortedEvents),
     algorithm: firstDefinedValue(sortedEvents, "algorithm"),
     box: firstDefinedValue(sortedEvents, "box"),

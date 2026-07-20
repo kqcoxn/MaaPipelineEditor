@@ -2,6 +2,7 @@ import inlineStyle from "../../../styles/panels/InlineFieldPanel.module.less";
 import edgeStyle from "../../../styles/panels/EdgePanel.module.less";
 
 import { useMemo, memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { ViewportPortal, useReactFlow, useStore } from "@xyflow/react";
 import { Tag, InputNumber, Tooltip, Switch } from "antd";
 import classNames from "classnames";
@@ -52,6 +53,7 @@ const getEdgeTypeTags = (edge: EdgeType, targetIsAnchor: boolean) => {
 
 /**内嵌连接面板 - 在边中点附近渲染 */
 function InlineEdgePanel() {
+  const { t } = useTranslation();
   const selectedEdges = useFlowStore((state) => state.selectedEdges);
   const targetNode = useFlowStore((state) => state.targetNode);
   const edges = useFlowStore((state) => state.edges);
@@ -88,8 +90,8 @@ function InlineEdgePanel() {
         (node) => node.id === currentEdge.target,
       );
       return {
-        sourceLabel: sourceNode?.data.label ?? "未知",
-        targetLabel: currentTargetNode?.data.label ?? "未知",
+        sourceLabel: sourceNode?.data.label ?? "",
+        targetLabel: currentTargetNode?.data.label ?? "",
         targetIsAnchor: currentTargetNode?.type === NodeTypeEnum.Anchor,
       };
     }),
@@ -223,10 +225,15 @@ function InlineEdgePanel() {
         <div className="header">
           <div className="header-left"></div>
           <div className="header-center">
-            <div className="title">连接设置</div>
+            <div className="title">
+              {t("ui.panels.edge.title", "连接设置")}
+            </div>
           </div>
           <div className="header-right">
-            <Tooltip placement="top" title="删除连接">
+            <Tooltip
+              placement="top"
+              title={t("ui.panels.edge.deleteTooltip", "删除连接")}
+            >
               <IconFont
                 className="icon-interactive"
                 name="icon-shanchu"
@@ -242,15 +249,27 @@ function InlineEdgePanel() {
         <div className={inlineStyle.content}>
           <div className={edgeStyle.info}>
             <div className={edgeStyle["info-item"]}>
-              <span className={edgeStyle.label}>源节点</span>
-              <span className={edgeStyle.content}>{sourceLabel}</span>
+              <span className={edgeStyle.label}>
+                {t("ui.panels.edge.sourceNode", "源节点")}
+              </span>
+              <span className={edgeStyle.content}>
+                {sourceLabel ||
+                  t("ui.panels.edge.unknown", "未知")}
+              </span>
             </div>
             <div className={edgeStyle["info-item"]}>
-              <span className={edgeStyle.label}>目标节点</span>
-              <span className={edgeStyle.content}>{targetLabel}</span>
+              <span className={edgeStyle.label}>
+                {t("ui.panels.edge.targetNode", "目标节点")}
+              </span>
+              <span className={edgeStyle.content}>
+                {targetLabel ||
+                  t("ui.panels.edge.unknown", "未知")}
+              </span>
             </div>
             <div className={edgeStyle["info-item"]}>
-              <span className={edgeStyle.label}>连接类型</span>
+              <span className={edgeStyle.label}>
+                {t("ui.panels.edge.connectionType", "连接类型")}
+              </span>
               <span className={edgeStyle.content}>
                 {tags.map((tag, index) => (
                   <Tag key={index} color={tag.color}>
@@ -260,7 +279,9 @@ function InlineEdgePanel() {
               </span>
             </div>
             <div className={edgeStyle["info-item"]}>
-              <span className={edgeStyle.label}>顺序</span>
+              <span className={edgeStyle.label}>
+                {t("ui.panels.edge.order", "顺序")}
+              </span>
               <span className={edgeStyle.content}>
                 <InputNumber
                   size="small"

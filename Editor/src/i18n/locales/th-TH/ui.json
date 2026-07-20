@@ -1,0 +1,1210 @@
+{
+  "ui": {
+    "flow": {
+      "edges": {
+        "controlPointHint": "ลากเพื่อปรับเส้นทาง ดับเบิลคลิกเพื่อรีเซ็ต"
+      },
+      "constants": {
+        "handleDirection": {
+          "leftRight": "ซ้าย-ขวา",
+          "rightLeft": "ขวา-ซ้าย",
+          "topBottom": "บน-ล่าง",
+          "bottomTop": "ล่าง-บน"
+        }
+      },
+      "anchorNode": {
+        "replicaCountTitle": "โหนดเปลี่ยนเส้นทางนี้มี {{count}} สำเนาภาพ",
+        "referenceNodesTitle": "โหนดที่อ้างอิงจุดยึดนี้ ({{count}})",
+        "noReferences": "ยังไม่มีการอ้างอิง",
+        "referenceCountTitle": "{{count}} โหนดอ้างอิงจุดยึดนี้",
+        "navigateSuccess": "ไปยัง {{path}} และโฟกัสโหนดแล้ว: {{label}}",
+        "navigateFailed": "ไปยังโหนดล้มเหลว: {{label}}"
+      },
+      "externalNode": {
+        "replicaCountTitle": "การอ้างอิงภายนอกนี้มี {{count}} สำเนาภาพ"
+      },
+      "groupNode": {
+        "editTitleHistory": "แก้ไขชื่อกลุ่ม",
+        "namePlaceholder": "ชื่อกลุ่ม"
+      },
+      "stickerNode": {
+        "editContentHistory": "แก้ไขเนื้อหาโน้ต",
+        "titlePlaceholder": "ชื่อโน้ต",
+        "contentPlaceholder": "ดับเบิลคลิกเพื่อแก้ไขเนื้อหา..."
+      },
+      "pipelineNode": {
+        "pipelineNodeTitle": "โหนด Pipeline",
+        "recognitionSection": "การจดจำ - {{type}}",
+        "actionSection": "การกระทำ - {{type}}",
+        "otherSection": "อื่นๆ",
+        "execute": "ดำเนินการ",
+        "regenerate": "สร้างใหม่",
+        "confirm": "ยืนยัน"
+      },
+      "nodeContextMenu": {
+        "editJsonHistory": "แก้ไขข้อมูลโหนดด้วย JSON",
+        "pipelineTemplateOnly": "รองรับเฉพาะโหนด Pipeline ในการบันทึกเป็นเทมเพลต",
+        "setHandleDirectionHistory": "ตั้งตำแหน่งปลายทาง",
+        "handleDirectionSet": "ตั้งตำแหน่งปลายทางเป็น「{{label}}」แล้ว",
+        "changeGroupColorHistory": "เปลี่ยนสีกลุ่ม",
+        "changeStickerColorHistory": "เปลี่ยนสีโน้ต",
+        "stickerContentCopied": "คัดลอกเนื้อหาโน้ตไปยังคลิปบอร์ดแล้ว",
+        "stickerContentEmpty": "เนื้อหาโน้ตว่าง",
+        "autoStartAfterPreflight": "จะเริ่มดีบักอัตโนมัติหลังตรวจสอบ resource เสร็จ",
+        "checkingResourcesAutoStart": "กำลังตรวจสอบเส้นทาง resource จะเริ่มดีบักอัตโนมัติเมื่อเสร็จ",
+        "configureResourcePathsFirst": "โปรดตั้งค่าเส้นทาง resource หรือรอ LocalBridge สแกน resource bundle",
+        "runModeUnsupported": "LocalBridge ปัจจุบันยังไม่รองรับโหมดดีบัก: {{mode}}",
+        "resourcePreflightFailedAutoStart": "ตรวจสอบการโหลด resource ล้มเหลว ไม่สามารถเริ่มดีบักอัตโนมัติได้",
+        "resourcePreflightFailedTitle": "ตรวจสอบการโหลด resource ล้มเหลว",
+        "resourcePreflightFailedHint": "คุณสามารถไปที่แผง「ตรวจสุขภาพ resource」เพื่อดูรายละเอียดและลองแก้ไข",
+        "goToResourceHealth": "ไปที่ตรวจสุขภาพ resource",
+        "resourcePreflightTimeout": "ตรวจสอบเส้นทาง resource หมดเวลา ไม่สามารถเริ่มดีบักอัตโนมัติได้",
+        "setDebugEntrySuccess": "ตั้งเป็นโหนดเริ่มดีบักแล้ว",
+        "sendPreflightRequestFailedDetail": "ส่งคำขอตรวจสอบการโหลด resource ล้มเหลว",
+        "sendPreflightRequestFailed": "ส่งคำขอตรวจสอบการโหลด resource ล้มเหลว",
+        "saveOpenFilesFailed": "บันทึกไฟล์ที่เปิดอยู่ก่อนดีบักล้มเหลว: {{files}}",
+        "resolveRunNameFailed": "ไม่สามารถแปลงชื่อการรันของโหนดได้",
+        "sendDebugStartFailed": "ส่งคำขอเริ่มดีบักล้มเหลว",
+        "buildDebugRequestFailed": "สร้างคำขอดีบักล้มเหลว",
+        "groupColor": "สีกลุ่ม",
+        "ungroup": "ยกเลิกการจัดกลุ่ม",
+        "deleteGroup": "ลบกลุ่ม",
+        "setDebugEntry": "ตั้งเป็นโหนดเริ่มต้น",
+        "runFromNode": "รันจากโหนดนี้",
+        "runFromNodeUnavailable": "LocalBridge ปัจจุบันไม่ได้เปิดเผยความสามารถ run-from-node",
+        "singleNodeRun": "รันโหนดเดียว",
+        "singleNodeRunUnavailable": "LocalBridge ปัจจุบันไม่ได้เปิดเผยความสามารถ single-node-run",
+        "recognitionOnly": "จดจำเท่านั้น",
+        "recognitionOnlyUnavailable": "LocalBridge ปัจจุบันไม่ได้เปิดเผยความสามารถ recognition-only",
+        "actionOnly": "กระทำเท่านั้น",
+        "actionOnlyUnavailable": "LocalBridge ปัจจุบันไม่ได้เปิดเผยความสามารถ action-only",
+        "copyNodeName": "คัดลอกชื่อโหนด",
+        "editJson": "แก้ไข JSON",
+        "copyStickerContent": "คัดลอกเนื้อหาโน้ต",
+        "copyRecoJson": "คัดลอก Reco JSON",
+        "saveAsTemplate": "บันทึกเป็นเทมเพลต",
+        "stickerColor": "สีโน้ต",
+        "handleDirection": "ตำแหน่งปลายทาง",
+        "delete": "ลบ",
+        "color": {
+          "blue": "น้ำเงิน",
+          "green": "เขียว",
+          "purple": "ม่วง",
+          "orange": "ส้ม",
+          "gray": "เทา",
+          "yellow": "เหลือง",
+          "pink": "ชมพู"
+        }
+      },
+      "nodeOperations": {
+        "saveAsTemplateTitle": "บันทึกเป็นเทมเพลต",
+        "saveAsTemplateConfirm": "ต้องการบันทึกโหนดปัจจุบันเป็นเทมเพลตกำหนดเองหรือไม่?",
+        "templateNameLabel": "ชื่อเทมเพลต",
+        "templateNamePlaceholder": "กรุณาใส่ชื่อเทมเพลต",
+        "nodeTypePipeline": "ประเภทโหนด: Pipeline",
+        "saveAsTemplateHint": "คำแนะนำ: หลังบันทึกแล้วสามารถเลือกเทมเพลตที่บันทึกไว้จากรายการเทมเพลตคลิกขวา",
+        "save": "บันทึก",
+        "cancel": "ยกเลิก",
+        "templateNameEmpty": "ชื่อเทมเพลตต้องไม่ว่าง",
+        "templateNameTooLong": "ชื่อเทมเพลตต้องไม่เกิน 30 ตัวอักษร",
+        "templateExistsTitle": "ชื่อเทมเพลตมีอยู่แล้ว",
+        "templateExistsContent": "เทมเพลต \"{{name}}\" มีอยู่แล้ว ต้องการเขียนทับหรือไม่?",
+        "overwrite": "เขียนทับ",
+        "reenter": "ใส่ใหม่",
+        "templateUpdated": "อัปเดตเทมเพลตแล้ว",
+        "templateSaved": "บันทึกเทมเพลตสำเร็จ",
+        "copyRecoJsonPipelineOnly": "รองรับเฉพาะโหนด Pipeline ในการคัดลอก Reco JSON",
+        "recoJsonCopied": "คัดลอก Reco JSON ไปยังคลิปบอร์ดแล้ว",
+        "copyRecoJsonFailed": "คัดลอกล้มเหลว โปรดตรวจสอบการตั้งค่าโหนด"
+      },
+      "selectionContextMenu": {
+        "noSelection": "ยังไม่ได้เลือกโหนด",
+        "duplicateCreated": "สร้างสำเนาแล้ว",
+        "partialExportSuccess": "ส่งออกเนื้อหาที่เลือกไปยังคลิปบอร์ดแล้ว",
+        "needTwoNodes": "โปรดเลือกอย่างน้อยสองโหนด",
+        "noGroupableNodes": "ยังไม่ได้เลือกโหนดที่จัดกลุ่มได้",
+        "groupCreated": "สร้างกลุ่มแล้ว",
+        "nodesNotInGroup": "โหนดที่เลือกไม่อยู่ในกลุ่ม",
+        "detachedFromGroup": "ย้ายโหนดออกจากกลุ่มแล้ว",
+        "noGroupSelected": "ยังไม่ได้เลือกกลุ่ม",
+        "groupsUngrouped": "ยกเลิกการจัดกลุ่มที่เลือกแล้ว",
+        "noResettableEdges": "ยังไม่ได้เลือกเส้นเชื่อมที่สามารถคืนค่าได้",
+        "edgeControlsReset": "คืนค่าเส้นทางเส้นเชื่อมที่เลือกแล้ว",
+        "copy": "คัดลอก",
+        "duplicate": "สร้างสำเนา",
+        "partialExport": "ส่งออกบางส่วน",
+        "align": "จัดแนว",
+        "alignLeft": "จัดชิดซ้าย",
+        "alignCenter": "จัดกึ่งกลางแนวนอน",
+        "alignRight": "จัดชิดขวา",
+        "alignTop": "จัดชิดบน",
+        "alignMiddle": "จัดกึ่งกลางแนวตั้ง",
+        "alignBottom": "จัดชิดล่าง",
+        "spacing": "ระยะห่าง",
+        "decreaseHorizontalSpacing": "ลดระยะห่างแนวนอน",
+        "increaseHorizontalSpacing": "เพิ่มระยะห่างแนวนอน",
+        "decreaseVerticalSpacing": "ลดระยะห่างแนวตั้ง",
+        "increaseVerticalSpacing": "เพิ่มระยะห่างแนวตั้ง",
+        "autoLayout": "จัดเลย์เอาต์เฉพาะส่วน",
+        "resetEdgeControls": "คืนค่าเส้นทางเส้นเชื่อม",
+        "group": "จัดกลุ่ม",
+        "createGroup": "สร้างกลุ่ม",
+        "detachFromGroup": "ย้ายออกจากกลุ่มปัจจุบัน",
+        "ungroup": "ยกเลิกการจัดกลุ่มที่เลือก",
+        "delete": "ลบ"
+      },
+      "readOnly": {
+        "noNodeModify": "อยู่ในโหมดอ่านอย่างเดียว ห้ามแก้ไขโหนด",
+        "noEdgeModify": "อยู่ในโหมดอ่านอย่างเดียว ห้ามแก้ไขเส้นเชื่อม",
+        "noConnect": "อยู่ในโหมดอ่านอย่างเดียว ห้ามเพิ่มการเชื่อมต่อ"
+      }
+    },
+    "debug": {
+      "modal": {
+        "setupLabel": "การตั้งค่าดีบัก",
+        "setupDescription": "ตั้งค่าเส้นทาง resource, คอนโทรลเลอร์, ภาพหน้าจอ และ Agent แล้วบันทึกลงการตั้งค่าดีบักในเครื่อง",
+        "overviewLabel": "ศูนย์ควบคุม",
+        "overviewDescription": "ควบคุมการรัน เลือกเซสชันที่แสดง และสรุปการรันล่าสุด/ปัจจุบัน",
+        "nodeExecutionLabel": "เส้นโหนด",
+        "nodeExecutionDescription": "รวมเซสชันที่เลือกตามโหนด Pipeline เพื่อดูเส้นทางการรันและรายละเอียดโหนด",
+        "debugLogLabel": "บันทึกดีบัก",
+        "debugLogDescription": "ดูท้ายไฟล์ maafw.log จากผลลัพธ์ดีบัก สามารถเปิดไฟล์บันทึกหรือโฟลเดอร์ที่เก็บได้โดยตรง",
+        "aiSummaryLabel": "สรุป AI",
+        "aiSummaryDescription": "ดูสรุปดีบักจาก AI รายงานละเอียด และบริบทที่จัดระเบียบแล้ว",
+        "resourceHealthLabel": "ตรวจสุขภาพ resource",
+        "resourceHealthDescription": "ดูเส้นทาง resource ผลการโหลด และการตรวจสอบ flow chart รวมศูนย์ เมื่อโหลดล้มเหลวจะแสดงเบาะแสโดยตรง",
+        "nodeExecutionNextLabel": "เส้นโหนด (โหมด Next)",
+        "nodeExecutionNextDescription": "ดูผลดีบักตามหน่วยโหนด\nโหมด Next: จัดตามตรรกะการรันภายในของ MFW รวม action ของโหนดปัจจุบันกับ reco ทั้งหมดใน next-list",
+        "nodeExecutionPairLabel": "เส้นโหนด (โหมด Pair)",
+        "nodeExecutionPairDescription": "ดูผลดีบักตามหน่วยโหนด\nโหมด Pair: จัดตามโหนดทางกายภาพ (JSON ที่กำหนด) รวมคู่ reco-action หนึ่งครั้งของโหนด",
+        "wikiTitle": "ดีบักระดับ flow",
+        "wikiDescription": "ตรวจสอบพฤติกรรมโหนดและการรัน flow อย่างรวดเร็ว",
+        "readinessNotMetTitle": "เงื่อนไขก่อนดีบักยังไม่ครบ"
+      },
+      "modalUtils": {
+        "controllerMissing": "อุปกรณ์ยังไม่เชื่อมต่อ: ขาดคอนโทรลเลอร์ที่เชื่อมต่อแล้ว ไม่สามารถเริ่มดีบักได้",
+        "resourceEmpty": "เส้นทาง resource ว่าง โปรดตั้งค่าเส้นทาง resource หรือรีเฟรช resource bundle ของ LocalBridge",
+        "graphEmpty": "สแนปช็อตกราฟปัจจุบันว่าง ไม่สามารถเริ่มดีบักได้",
+        "resolverEmpty": "ไม่มีโหนด Pipeline ที่แมปไปยัง runtime ได้",
+        "targetMissing": "การดีบักระดับโหนดขาดเป้าหมาย (Target)"
+      },
+      "capability": {
+        "runFromNode": "รันจากโหนดที่ระบุ",
+        "singleNodeRun": "รันโหนดเดียว",
+        "recognitionOnly": "จดจำเท่านั้น",
+        "actionOnly": "กระทำเท่านั้น",
+        "replay": "เล่นซ้ำ",
+        "localBridgeDisconnected": "LocalBridge ยังไม่เชื่อมต่อ ไม่สามารถอ่านความสามารถดีบักได้ชั่วคราว"
+      },
+      "readiness": {
+        "localBridgeTitle": "LocalBridge ยังไม่เชื่อมต่อ",
+        "localBridgeMessage": "LocalBridge ยังไม่เชื่อมต่อ ไม่สามารถเริ่มดีบักได้",
+        "deviceTitle": "อุปกรณ์ยังไม่เชื่อมต่อ",
+        "deviceMessage": "อุปกรณ์ยังไม่เชื่อมต่อ ไม่สามารถเริ่มดีบักได้ โปรดเชื่อมต่ออุปกรณ์และสร้างคอนโทรลเลอร์ MaaFramework ก่อน",
+        "resourceCheckingTitle": "กำลังตรวจสอบ resource",
+        "resourceNotReadyTitle": "โหลด resource ไม่สำเร็จ",
+        "resourceCheckingMessage": "กำลังตรวจสอบการโหลด resource โปรดรอให้เสร็จก่อนเริ่มดีบัก",
+        "resourceNotReadyMessage": "resource ยังไม่ผ่านการตรวจสอบการโหลด ไม่สามารถเริ่มดีบักได้ โปรดตั้งค่าและตรวจสอบเส้นทาง resource",
+        "allReady": "LocalBridge อุปกรณ์ และ resource พร้อมแล้ว สามารถเริ่มดีบักได้",
+        "notReadySummary": "ต้องเชื่อมต่อ LocalBridge อุปกรณ์ และโหลด resource สำเร็จก่อนจึงจะเริ่มดีบักได้ ปัจจุบัน: {{issues}}"
+      },
+      "actions": {
+        "localBridgeDisconnected": "LocalBridge ยังไม่เชื่อมต่อ",
+        "connectControllerFirst": "โปรดเชื่อมต่อคอนโทรลเลอร์ MaaFramework ก่อน",
+        "screenshotRequestFailed": "ส่งคำขอภาพหน้าจอล้มเหลว",
+        "configureResourcePaths": "โปรดตั้งค่าเส้นทาง resource หรือรอ LocalBridge สแกน resource bundle",
+        "resourcePreflightRequestFailed": "ส่งคำขอตรวจสอบการโหลด resource ล้มเหลว",
+        "resourcePreflightRequestFailedShort": "ส่งคำขอตรวจสอบการโหลด resource ล้มเหลว",
+        "invalidTcpPort": "โปรดใส่พอร์ต TCP ในช่วง 1-65535",
+        "agentIdentifierRequired": "โปรดใส่ตัวระบุ Agent (Identifier)",
+        "agentTestRequestFailed": "ส่งคำขอทดสอบการเชื่อมต่อ Agent ล้มเหลว",
+        "resourceHealthRequestFailed": "ส่งคำขอตรวจสุขภาพ resource ล้มเหลว",
+        "resourceHealthRequestFailedShort": "ส่งคำขอตรวจสุขภาพ resource ล้มเหลว"
+      },
+      "confirmActionRun": {
+        "title": "ยืนยันการกระทำ",
+        "content": "โหมดกระทำเท่านั้นจะข้ามการจดจำและกระทำโหนดเป้าหมายโดยตรง (Action)",
+        "ok": "ยืนยันการกระทำ",
+        "cancel": "ยกเลิก"
+      },
+      "controller": {
+        "notConnected": "ยังไม่เชื่อมต่อ"
+      },
+      "nodeTarget": {
+        "selectPipelineNode": "โปรดเลือกโหนด Pipeline ที่ดีบักได้"
+      },
+      "traceReplay": {
+        "noSession": "ไม่มีเซสชันดีบัก (Session) ในปัจจุบัน",
+        "snapshotRequestFailed": "ส่งคำขอ Trace Snapshot ล้มเหลว",
+        "startRequestFailed": "ส่งคำขอเริ่ม Trace Replay ล้มเหลว",
+        "seekRequestFailed": "ส่งคำขอ Trace Replay Seek ล้มเหลว",
+        "stopRequestFailed": "ส่งคำขอหยุด Trace Replay ล้มเหลว",
+        "selectNodeRecord": "โปรดเลือกบันทึกการรันโหนด",
+        "nodeStartRequestFailed": "ส่งคำขอเริ่มเล่นซ้ำโหนดล้มเหลว",
+        "nodeSeekRequestFailed": "ส่งคำขอ Seek เล่นซ้ำโหนดล้มเหลว"
+      },
+      "runStatus": {
+        "unknown": "ไม่ทราบ",
+        "completed": "รันสำเร็จ",
+        "failed": "รันล้มเหลว",
+        "stopped": "หยุดรันแล้ว",
+        "finished": "รันเสร็จสิ้น",
+        "notificationTitle": "ดีบัก{{status}}",
+        "notificationDesc": "โหมด: {{mode}}{{durationPart}}",
+        "durationPart": " | ใช้เวลา: {{duration}}",
+        "viewDetails": "ดูรายละเอียด"
+      },
+      "modalController": {
+        "artifactRequestFailed": "ส่งคำขอ Artifact ล้มเหลว",
+        "preflightNotMet": "เงื่อนไขก่อนดีบักยังไม่ครบ",
+        "unsupportedMode": "LocalBridge ปัจจุบันยังไม่รองรับโหมดดีบัก: {{mode}}",
+        "unsupportedModeShort": "LocalBridge ปัจจุบันยังไม่รองรับโหมดดีบักนี้",
+        "saveOpenFilesFailed": "บันทึกไฟล์ที่เปิดอยู่ก่อนดีบักล้มเหลว: {{files}}",
+        "startRequestFailed": "ส่งคำขอเริ่มดีบักล้มเหลว",
+        "buildRequestFailed": "สร้างคำขอดีบักล้มเหลว",
+        "noRunningTask": "ไม่มีงานดีบักที่กำลังรัน",
+        "stopRequestFailed": "ส่งคำขอหยุดล้มเหลว",
+        "openFileRequestFailed": "ส่งคำขอเปิดไฟล์ล้มเหลว",
+        "noLocatableFile": "การวินิจฉัยปัจจุบันไม่มีไฟล์ที่โฟกัสได้",
+        "noSummaryEvents": "ไม่มีเหตุการณ์ดีบักที่สรุปได้ในปัจจุบัน",
+        "selectNodeRecordFirst": "โปรดเลือกบันทึกการรันโหนดที่จะอธิบายก่อน",
+        "aiSystemPrompt": "คุณเป็นผู้ช่วยรายงานดีบัก MaaPipelineEditor ให้ส่งออก JSON ตามบริบทที่ให้เท่านั้น",
+        "generateAiSummary": "สร้างสรุป AI ดีบัก",
+        "aiSummaryFailed": "สร้างสรุป AI ล้มเหลว",
+        "aiSummaryGenerated": "สร้างสรุป AI แล้ว"
+      },
+      "resourceChecks": {
+        "buildRequestFailed": "สร้างคำขอตรวจสุขภาพ resource ล้มเหลว"
+      },
+      "pipelineOverride": {
+        "invalidJson": "Override JSON ไวยากรณ์ผิดพลาด: {{message}}",
+        "unparseable": "ไม่สามารถแยกวิเคราะห์ได้",
+        "mustBeObject": "Override ต้องเป็นอ็อบเจกต์ JSON",
+        "emptyRuntimeName": "Override มีชื่อโหนด runtime ว่าง (RuntimeName)",
+        "nodeMustBeObject": "ค่าของโหนด Override {{name}} ต้องเป็นอ็อบเจกต์",
+        "normalizeFailed": "Normalize โหนด Override {{name}} ล้มเหลว: {{message}}",
+        "unconvertible": "ไม่สามารถแปลงได้"
+      },
+      "aiSummary": {
+        "defaultFallback": "สร้างสรุป AI แล้ว เปิดรายงานละเอียดเพื่อดู"
+      },
+      "traceReducer": {
+        "diagnosticEvent": "เหตุการณ์วินิจฉัยดีบัก"
+      },
+      "nodeExecution": {
+        "multipleNextList": "หลาย NextList"
+      },
+      "runMode": {
+        "runFromNode": { "label": "รันจากโหนด", "description": "ใช้โหนดที่เลือกเป็นจุดเริ่มรัน pipeline ถัดไป" },
+        "singleNodeRun": { "label": "รันโหนดเดียว", "description": "รันการจดจำและการกระทำของโหนดที่เลือกหนึ่งครั้ง" },
+        "recognitionOnly": { "label": "ทดสอบจดจำเท่านั้น", "description": "ตรวจสอบเฉพาะตรรกะการจดจำของโหนดที่เลือก" },
+        "actionOnly": { "label": "กระทำเท่านั้น", "description": "ข้ามการจดจำและกระทำโหนดที่เลือกโดยตรง" }
+      }
+    },
+    "app": {
+      "configCacheSaveFailed": "[App] บันทึกแคชการตั้งค่าล้มเหลว:",
+      "importRequest": {
+        "dirs": {
+          "desktop": "เดสก์ท็อป",
+          "documents": "เอกสาร",
+          "downloads": "ดาวน์โหลด",
+          "music": "เพลง",
+          "pictures": "รูปภาพ",
+          "videos": "วิดีโอ"
+        }
+      }
+    },
+    "header": {
+      "version": { "stable": "เวอร์ชันเสถียร", "preview": "เวอร์ชันทดลอง" },
+      "embedBridge": "โหมดฝัง EmbedBridge",
+      "localBridge": {
+        "connectedTooltip": "คลิกเพื่อตัดการเชื่อมต่อบริการท้องถิ่น",
+        "connectingText": "กำลังเชื่อมต่อบริการ...",
+        "connectingTooltip": "กำลังเชื่อมต่อบริการท้องถิ่น",
+        "disconnectedText": "ยังไม่เชื่อมต่อบริการท้องถิ่น",
+        "disconnectedTooltip": "คลิกเพื่อเชื่อมต่อบริการท้องถิ่น"
+      },
+      "connection": {
+        "embedMode": "โหมดฝัง EmbedBridge",
+        "disconnectTooltip": "คลิกเพื่อตัดการเชื่อมต่อบริการ local",
+        "connecting": "กำลังเชื่อมต่อบริการ...",
+        "connectingTooltip": "กำลังเชื่อมต่อบริการ local",
+        "disconnected": "ยังไม่เชื่อมต่อบริการ local",
+        "connectTooltip": "คลิกเพื่อเชื่อมต่อบริการ local"
+      },
+      "device": {
+        "unknown": "อุปกรณ์ไม่ทราบชื่อ",
+        "manageTooltip": "คลิกเพื่อจัดการการเชื่อมต่ออุปกรณ์",
+        "configTooltip": "การตั้งค่าการเชื่อมต่ออุปกรณ์",
+        "connect": "เชื่อมต่ออุปกรณ์"
+      },
+      "narrowScreen": {
+        "title": "ความกว้างหน้าจอแคบเกินไป",
+        "description": "ความกว้างหน้าจอปัจจุบันเล็กเกินไป อาจส่งผลต่อประสบการณ์ใช้งาน แนะนำให้ใช้หน้าจอที่ใหญ่ขึ้นหรือปรับขนาดหน้าต่างเบราว์เซอร์"
+      },
+      "wiki": {
+        "fileViewportTitle": "ไฟล์และวิวพอร์ต",
+        "fileViewportDesc": "การจัดการไฟล์และการทำงานของวิวพอร์ต",
+        "fileViewportPath": "10.工作流面板/50.文件与视口.html"
+      },
+      "update": {
+        "tooltip": "พบเวอร์ชันใหม่: {{version}} คลิกเพื่อดาวน์โหลด",
+        "refreshHint": "เมื่อใช้งานออนไลน์กด Ctrl+R เพื่อรีเฟรชแคชหน้าและอัปเดต",
+        "tag": "มีเวอร์ชันใหม่"
+      },
+      "theme": {
+        "switchToLight": "สลับเป็นโหมดสว่าง",
+        "switchToDark": "สลับเป็นโหมดมืด"
+      },
+      "links": {
+        "pipelineProtocol": "โปรโตคอล Pipeline",
+        "updateLog": "บันทึกการอัปเดต"
+      }
+    },
+    "jsonViewer": {
+      "refresh": "รีเฟรช",
+      "close": "ปิด",
+      "searchPlaceholder": "ค้นหาชื่อคีย์หรือค่า...",
+      "previous": "ก่อนหน้า",
+      "next": "ถัดไป"
+    },
+    "modals": {
+      "guardPrompt": {
+        "defaultTitle": "ต้องตั้งค่าให้เสร็จก่อน",
+        "defaultDescription": "รายการตั้งค่าต่อไปนี้ยังไม่ได้ตั้งค่า อาจส่งผลต่อการใช้งาน:",
+        "goToSettings": "ไปที่การตั้งค่า",
+        "confirmContinue": "ยืนยันและดำเนินการต่อ",
+        "currentValue": "（ปัจจุบัน: {{value}}）",
+        "switchOn": "เปิด",
+        "switchOff": "ปิด"
+      },
+      "fieldSort": {
+        "title": "การตั้งค่าเรียงลำดับฟิลด์",
+        "mainTaskFields": "เรียงลำดับฟิลด์งานหลัก",
+        "recognitionFields": "เรียงลำดับพารามิเตอร์ Recognition",
+        "actionFields": "เรียงลำดับพารามิเตอร์ Action",
+        "swipeFields": "เรียงลำดับพารามิเตอร์ Swipes",
+        "freezeFields": "เรียงลำดับพารามิเตอร์ Freeze",
+        "save": "บันทึก",
+        "cancel": "ยกเลิก",
+        "resetToDefault": "รีเซ็ตเป็นค่าเริ่มต้น",
+        "resetConfirmTitle": "ยืนยันการรีเซ็ต",
+        "resetConfirmContent": "ต้องการคืนค่าการเรียงลำดับเริ่มต้นหรือไม่?",
+        "resetSuccess": "คืนค่าการเรียงลำดับเริ่มต้นแล้ว",
+        "saveSuccess": "บันทึกการตั้งค่าเรียงลำดับแล้ว",
+        "hint": "ลากฟิลด์เพื่อปรับลำดับ การส่งออกจะเรียงฟิลด์ตามลำดับนี้"
+      }
+    },
+    "jsonCompletion": {
+      "runtimeNodeName": "ชื่อโหนด runtime",
+      "recognitionType": "ประเภทการจดจำ: {{name}}",
+      "actionType": "ประเภทการกระทำ: {{name}}",
+      "mfwField": "ฟิลด์ MaaFramework"
+    },
+    "wiki": {
+      "holdHint": "กด W ค้างหรือกดไอคอนค้างเพื่อดูรายละเอียด",
+      "docsGuidePath": "01.指南",
+      "paths": {
+        "flowDebug": "20.本地服务/40.流程级调试.html"
+      }
+    },
+    "hooks": {
+      "globalShortcuts": {
+        "undoSuccess": "ยกเลิกสำเร็จ",
+        "redoSuccess": "ทำซ้ำสำเร็จ",
+        "nothingLeft": "ไม่มีอะไรให้ยกเลิกแล้ว 😭"
+      },
+      "panelOccupancy": {
+        "unregisteredPanel": "[usePanelOccupancy] แผงไม่ได้ลงทะเบียน: {{panelId}}"
+      }
+    },
+    "utils": {
+      "clipboard": {
+        "copySuccess": "คัดลอกไปยังคลิปบอร์ดแล้ว",
+        "copyFailed": "คัดลอกไปยังคลิปบอร์ดล้มเหลว",
+        "readFailed": "อ่านคลิปบอร์ดล้มเหลว"
+      },
+      "snapper": {
+        "noNodes": "ไม่มีโหนดที่บันทึกได้",
+        "canvasNotFound": "ไม่พบองค์ประกอบแคนวาส",
+        "savedSelected": "บันทึก {{count}} โหนดที่เลือกเป็นรูปภาพแล้ว",
+        "savedAll": "บันทึกโหนดทั้งหมด {{count}} โหนดเป็นรูปภาพแล้ว",
+        "saveFailed": "บันทึกรูปภาพล้มเหลว"
+      },
+      "nodeJsonValidator": {
+        "nodeEmpty": "ข้อมูลโหนดว่างเปล่า",
+        "nodeTypeMissing": "ไม่มีประเภทโหนด",
+        "nodeDataCorrupted": "โครงสร้างข้อมูลโหนดเสียหาย",
+        "nodeDataRepaired": "โครงสร้างข้อมูลโหนดไม่สมบูรณ์ ได้ซ่อมแซมอัตโนมัติแล้ว",
+        "jsonSyntaxError": "JSON ไวยากรณ์ผิดพลาด: {{message}}",
+        "mustBeObject": "ข้อมูลโหนดต้องเป็นอ็อบเจกต์",
+        "unknownNodeType": "ประเภทโหนดไม่รู้จัก: {{nodeType}}",
+        "missingField": "ขาดฟิลด์ที่จำเป็น: {{field}}",
+        "fieldMustBeString": "ฟิลด์ {{field}} ต้องเป็นสตริง",
+        "fieldMustBeObject": "ฟิลด์ {{field}} ต้องเป็นอ็อบเจกต์",
+        "nestedMissingField": "{{parent}} ขาดฟิลด์ที่จำเป็น: {{field}}",
+        "colorMustBeOneOf": "ฟิลด์ color ต้องเป็นหนึ่งในค่าต่อไปนี้: {{values}}"
+      },
+      "aiClient": {
+        "apiUrlNotConfigured": "ยังไม่ได้ตั้งค่า API URL",
+        "apiKeyNotConfigured": "ยังไม่ได้ตั้งค่า API Key",
+        "modelNotConfigured": "ยังไม่ได้ตั้งค่าชื่อโมเดล",
+        "corsError": "คำขอล้มเหลว อาจเกิดจากข้อจำกัด CORS ของเบราว์เซอร์ โปรดเปิดพร็อกซี LocalBridge (การตั้งค่า → AI → ใช้พร็อกซี LocalBridge) หรือยืนยันว่า API อนุญาต CORS จากโดเมนปัจจุบัน",
+        "requestCancelled": "ยกเลิกคำขอแล้ว",
+        "responseStreamUnavailable": "ไม่สามารถรับสตรีมการตอบกลับได้",
+        "deviceScreenshot": "ภาพหน้าจออุปกรณ์"
+      },
+      "aiProviders": {
+        "openai": "OpenAI",
+        "anthropic": "Claude (Anthropic)",
+        "gemini": "Gemini (Google)",
+        "custom": "กำหนดเอง (เข้ากันได้กับ OpenAI)"
+      }
+    },
+    "parser": {
+      "exporter": {
+        "exportFailedTitle": "ส่งออกล้มเหลว!",
+        "duplicateNodeNames": "มีชื่อโหนดซ้ำ: {{names}} โปรดแก้ไขแล้วลองอีกครั้ง",
+        "exportFailedDesc": "โปรดตรวจสอบว่าฟิลด์ของแต่ละโหนดตรงตามรูปแบบ ดูรายละเอียดข้อผิดพลาดในคอนโซล"
+      },
+      "importer": {
+        "importFailedTitle": "นำเข้าล้มเหลว!",
+        "importFailedContent": "โปรดตรวจสอบรูปแบบ pipeline หรือความสอดคล้องของเวอร์ชัน ดูรายละเอียดข้อผิดพลาดในคอนโซล"
+      },
+      "typeMatchers": {
+        "typeErrorTitle": "ประเภทข้อมูลผิดพลาด",
+        "typeErrorDesc": "พารามิเตอร์บางรายการมีประเภทไม่ถูกต้อง โปรดตรวจสอบฟิลด์โหนดตามโปรโตคอล Pipeline พารามิเตอร์ที่เป็นไปได้: {{key}}"
+      },
+      "versionDetector": {
+        "recoTypeError": "ประเภทอัลกอริทึมการจดจำผิดพลาด",
+        "actionTypeError": "ประเภทการกระทำผิดพลาด"
+      },
+      "configSplitter": {
+        "untitled": "ไม่มีชื่อ"
+      }
+    },
+    "stores": {
+      "customTemplate": {
+        "loadFailed": "โหลดเทมเพลตกำหนดเองล้มเหลว ข้อมูลเสียหายถูกล้างแล้ว",
+        "maxReached": "จำนวนเทมเพลตกำหนดเองถึงขีดจำกัดแล้ว ({{max}}) โปรดลบเทมเพลตเก่าก่อน",
+        "nameEmpty": "ชื่อเทมเพลตต้องไม่ว่าง",
+        "nameTooLong": "ชื่อเทมเพลตต้องไม่เกิน 30 ตัวอักษร",
+        "saved": "บันทึกเทมเพลตแล้ว",
+        "saveFailed": "บันทึกเทมเพลตล้มเหลว โปรดตรวจสอบพื้นที่เก็บข้อมูลของเบราว์เซอร์",
+        "deleted": "ลบเทมเพลตแล้ว",
+        "deleteFailed": "ลบเทมเพลตล้มเหลว",
+        "versionMismatch": "เวอร์ชันข้อมูลเทมเพลตไม่ตรงกัน: {{stored}} != {{expected}} กำลังพยายามย้ายหรือล้างข้อมูล",
+        "loadError": "โหลดเทมเพลตกำหนดเองล้มเหลว:",
+        "saveLocalStorageError": "บันทึกเทมเพลตลง localStorage ล้มเหลว:",
+        "deleteError": "ลบเทมเพลตล้มเหลว:",
+        "invalidFormat": "รูปแบบข้อมูลเทมเพลตผิดพลาด: ไม่ใช่อาร์เรย์",
+        "importError": "นำเข้าเทมเพลตล้มเหลว:"
+      },
+      "file": {
+        "newPipeline": "Pipelineใหม่",
+        "pageNotReady": "หน้ายังไม่พร้อมใช้งาน",
+        "storageQuotaTitle": "พื้นที่เก็บข้อมูลในเครื่องไม่เพียงพอ",
+        "storageQuotaDesc": "พื้นที่เก็บข้อมูลในเบราว์เซอร์เต็ม ไม่สามารถบันทึกแคชไฟล์ได้ แนะนำให้ล้างข้อมูลของโดเมนนี้หรือลดจำนวนไฟล์",
+        "duplicateFileNameTitle": "ชื่อไฟล์ซ้ำ",
+        "duplicateFileNameDesc": "ตรวจพบชื่อไฟล์เป้าหมายซ้ำกับไฟล์ที่มีอยู่ โปรดใช้ชื่ออื่น หากเป็นสถานะกลาง โปรดใส่ส่วนที่เหลือเพื่อแยกความแตกต่าง",
+        "saveFailedTitle": "บันทึกล้มเหลว!",
+        "saveFailedDuplicateNodes": "มีชื่อโหนดซ้ำ: {{names}} โปรดแก้ไขแล้วลองอีกครั้ง",
+        "localCacheNotFound": "ไม่พบแคช files ในเครื่อง"
+      }
+    },
+    "services": {
+      "common": {
+        "unknownError": "ข้อผิดพลาดที่ไม่ทราบสาเหตุ"
+      },
+      "server": {
+        "connected": "เชื่อมต่อบริการท้องถิ่นแล้ว",
+        "protocolVersionMismatch": "เวอร์ชันโปรโตคอลไม่ตรงกัน ฝั่งหน้าเว็บต้องการ: {{required}} โปรโตคอลบริการท้องถิ่นปัจจุบัน: {{current}} โปรดอัปเดตตามคำแนะนำของแบ็กเอนด์",
+        "connectingInProgress": "กำลังพยายามเชื่อมต่อบริการท้องถิ่น โปรดรอสักครู่...",
+        "connectionTimeoutTitle": "หมดเวลาการเชื่อมต่อ",
+        "checkLocalService": "โปรดตรวจสอบว่าบริการท้องถิ่นเริ่มทำงานแล้วหรือพอร์ตใช้งานได้",
+        "viewDocs": "ดูเอกสาร",
+        "connectionFailedTitle": "เชื่อมต่อล้มเหลว",
+        "disconnected": "ตัดการเชื่อมต่อบริการท้องถิ่นแล้ว",
+        "localConnectionFailed": "เชื่อมต่อบริการท้องถิ่นล้มเหลว"
+      },
+      "crossFile": {
+        "emptyNodeName": "ชื่อโหนดว่างเปล่า",
+        "nodeNotFound": "ไม่พบโหนด: {{name}}",
+        "locatedNode": "โฟกัสโหนดแล้ว: {{label}}",
+        "navigatedToNode": "ไปยัง {{path}} และโฟกัสโหนดแล้ว: {{label}}",
+        "navigateFailed": "นำทางล้มเหลว",
+        "currentFile": "ไฟล์ปัจจุบัน"
+      },
+      "ai": {
+        "wsNotConnected": "WebSocket ยังไม่เชื่อมต่อ",
+        "proxyTimeout": "คำขอพร็อกซีหมดเวลา (60s)",
+        "proxySendFailed": "ส่งคำขอพร็อกซีล้มเหลว บริการท้องถิ่นยังไม่เชื่อมต่อ",
+        "streamProxyTimeout": "คำขอพร็อกซีแบบสตรีมหมดเวลา (120s)",
+        "streamProxySendFailed": "ส่งคำขอพร็อกซีแบบสตรีมล้มเหลว"
+      },
+      "config": {
+        "getFailed": "ดึงการตั้งค่าล้มเหลว",
+        "dataProcessFailed": "ประมวลผลข้อมูลการตั้งค่าล้มเหลว",
+        "reloadFailed": "โหลดใหม่ล้มเหลว",
+        "reloadSuccess": "โหลดการตั้งค่าใหม่เสร็จแล้ว",
+        "reloadResponseFailed": "ประมวลผลการตอบกลับการโหลดใหม่ล้มเหลว"
+      },
+      "error": {
+        "fileNotFound": "ไม่พบไฟล์หรือไฟล์ถูกลบแล้ว",
+        "fileReadError": "อ่านไฟล์ล้มเหลว โปรดตรวจสอบสิทธิ์",
+        "fileWriteError": "บันทึกไฟล์ล้มเหลว: {{message}}",
+        "fileNameConflict": "ชื่อไฟล์มีอยู่แล้ว โปรดใช้ชื่ออื่น",
+        "invalidJson": "รูปแบบ JSON ผิดพลาด: {{message}}",
+        "permissionDenied": "ไม่มีสิทธิ์เข้าถึงไฟล์นี้",
+        "mfwNotInitialized": "MaaFramework ยังไม่ได้เริ่มต้น: {{detail}}",
+        "mfwControllerCreateFail": "สร้างคอนโทรลเลอร์ล้มเหลว: {{message}}",
+        "mfwControllerNotFound": "ไม่พบคอนโทรลเลอร์",
+        "mfwControllerConnectFail": "เชื่อมต่อคอนโทรลเลอร์ล้มเหลว: {{message}}",
+        "mfwControllerNotConnected": "คอนโทรลเลอร์ยังไม่เชื่อมต่อ",
+        "mfwDeviceNotFound": "รีเฟรชรายการอุปกรณ์ล้มเหลว: {{message}}",
+        "mfwOcrResourceNotConfigured": "ยังไม่ได้ตั้งค่า resource OCR: {{detail}}",
+        "ocrUnknownReason": "ไม่ทราบสาเหตุ",
+        "ocrReason": "สาเหตุ: {{reason}}",
+        "ocrResourceDir": "ไดเรกทอรี resource:\n{{dir}}",
+        "ocrSuggestions": "คำแนะนำการตรวจสอบ:",
+        "ocrResourceLoadFailed": "โหลด resource OCR ล้มเหลว",
+        "ocrError": "ข้อผิดพลาด OCR"
+      },
+      "file": {
+        "listRefreshSuccess": "รีเฟรชรายการไฟล์เสร็จแล้ว ทั้งหมด {{count}} ไฟล์",
+        "listUpdateFailed": "อัปเดตรายการไฟล์ล้มเหลว",
+        "invalidFileData": "ข้อมูลไฟล์ที่ได้รับไม่ถูกต้อง",
+        "openedWithConfig": "เปิดไฟล์แล้ว: {{name}} (รวมการตั้งค่า)",
+        "opened": "เปิดไฟล์แล้ว: {{name}}",
+        "openFailed": "เปิดไฟล์ล้มเหลว",
+        "importFailed": "นำเข้าไฟล์ล้มเหลว",
+        "deleted": "ไฟล์ \"{{name}}\" ถูกลบแล้ว",
+        "saved": "บันทึกไฟล์แล้ว: {{name}}",
+        "saveFailed": "บันทึกไฟล์ล้มเหลว",
+        "savedSeparated": "บันทึกไฟล์แล้ว: {{pipeline}} + {{config}}",
+        "created": "สร้างไฟล์แล้ว: {{name}}",
+        "createFailed": "สร้างไฟล์ล้มเหลว",
+        "reloadRequestFailed": "ส่งคำขอโหลดใหม่ล้มเหลว",
+        "autoReloaded": "ไฟล์ \"{{name}}\" โหลดใหม่อัตโนมัติแล้ว",
+        "autoReloadEnabled": "เปิดโหลดใหม่อัตโนมัติแล้ว การเปลี่ยนแปลงไฟล์ครั้งถัดไปจะถูกนำไปใช้โดยอัตโนมัติ",
+        "externalModifiedSingle": "ไฟล์ \"{{name}}\" ถูกแก้ไขจากภายนอก โปรดเลือกวิธีจัดการ:",
+        "externalModifiedMultiple": "{{names}} และอีก {{count}} ไฟล์",
+        "externalModifiedPrompt": "{{names}} ถูกแก้ไขจากภายนอก โปรดเลือกวิธีจัดการ:",
+        "externalModifiedTitle": "ไฟล์ถูกแก้ไขจากภายนอก",
+        "dismissLater": "จัดการภายหลัง",
+        "autoReload": "โหลดใหม่อัตโนมัติ",
+        "reload": "โหลดใหม่"
+      },
+      "mfw": {
+        "localBridgeDisconnected": "การเชื่อมต่อ LocalBridge ถูกตัด",
+        "protocolUnregistered": "ยกเลิกการลงทะเบียนโปรโตคอล MaaFramework แล้ว",
+        "deviceListUpdateFailed": "อัปเดตรายการอุปกรณ์ล้มเหลว",
+        "windowListUpdateFailed": "อัปเดตรายการหน้าต่างล้มเหลว",
+        "controllerConnected": "เชื่อมต่อคอนโทรลเลอร์สำเร็จ",
+        "controllerConnectFailed": "เชื่อมต่อคอนโทรลเลอร์ล้มเหลว",
+        "controllerDisconnected": "ตัดการเชื่อมต่อคอนโทรลเลอร์แล้ว"
+      },
+      "screencap": {
+        "localBridgeNotConnected": "LocalBridge ยังไม่เชื่อมต่อ",
+        "requestCancelled": "ยกเลิกคำขอภาพหน้าจอแล้ว",
+        "requestTimeout": "คำขอภาพหน้าจอหมดเวลา",
+        "requestSendFailed": "ส่งคำขอภาพหน้าจอล้มเหลว"
+      }
+    },
+    "panels": {
+      "settings": {
+        "title": "การตั้งค่าระบบ",
+        "searchPlaceholder": "ค้นหารายการตั้งค่า...",
+        "hintText": "วางเมาส์เหนือหัวข้อเพื่อดูรายละเอียด",
+        "wikiTitle": "การตั้งค่าขั้นสูง",
+        "wikiDescription": "รายการตั้งค่าขั้นสูงของแอป",
+        "wiki": {
+          "path": "20.本地服务/100.进阶配置.html"
+        },
+        "testConnectionPrompt": "ตอบกลับโดยตรง: เชื่อมต่อบริการ AI สำเร็จ",
+        "emptyState": "ไม่พบรายการตั้งค่าที่ตรงกัน",
+        "applyToAll": "นำไปใช้กับโหนดทั้งหมด",
+        "applyToAllSuccess": "เปลี่ยนตำแหน่งจุดเชื่อมของโหนดทั้งหมดเป็น「{{direction}}」แล้ว",
+        "configureSort": "กำหนดการเรียงลำดับ",
+        "connectLocalFirst": "โปรดเชื่อมต่อบริการท้องถิ่นก่อน",
+        "editBackendConfig": "แก้ไขการตั้งค่าแบ็กเอนด์",
+        "needLocalConnection": "ต้องเชื่อมต่อบริการท้องถิ่นก่อนจึงจะเปิดได้",
+        "aiWarningLine1": "🌐 เปิดพร็อกซี LocalBridge ช่วยแก้ข้อจำกัด CORS หากปิดต้องให้บริการ API รองรับ CORS",
+        "aiWarningLine2": "💡 การทำนายโหนดต้องใช้โมเดลที่รองรับการมองเห็น (เช่น GPT-4o, Claude Sonnet, Gemini Flash เป็นต้น)",
+        "aiWarningLine3": "🔐 API Key จะถูกเข้ารหัสอัตโนมัติหลังวาง ข้อความที่ขึ้นต้นด้วย ENC: เป็นพฤติกรรมปกติ",
+        "testConnection": "ทดสอบการเชื่อมต่อ",
+        "testSuccess": "ทดสอบสำเร็จ: {{content}}",
+        "testFailed": "ทดสอบล้มเหลว: {{error}}",
+        "export": "ส่งออก",
+        "exportSuccess": "ส่งออกการตั้งค่าสำเร็จ",
+        "exportSuccessWithTemplates": "ส่งออกการตั้งค่าสำเร็จ (รวมเทมเพลตกำหนดเอง {{count}} รายการ)",
+        "import": "นำเข้า",
+        "invalidConfigFormat": "รูปแบบไฟล์การตั้งค่าไม่ถูกต้อง",
+        "importSuccess": "นำเข้าการตั้งค่าสำเร็จ",
+        "importSuccessWithTemplates": "นำเข้าการตั้งค่าสำเร็จ (รวมเทมเพลตกำหนดเอง {{count}} รายการ)",
+        "importSuccessTemplatesFailed": "นำเข้าการตั้งค่าสำเร็จ แต่นำเข้าเทมเพลตกำหนดเองล้มเหลว",
+        "importParseFailed": "แยกวิเคราะห์ไฟล์การตั้งค่าล้มเหลว",
+        "resetAllTitle": "รีเซ็ตการตั้งค่าทั้งหมด",
+        "resetAllContent": "ต้องการคืนค่าเริ่มต้นให้รายการตั้งค่าทั้งหมดหรือไม่? การดำเนินการนี้ไม่สามารถยกเลิกได้",
+        "resetConfirm": "ยืนยันรีเซ็ต",
+        "cancel": "ยกเลิก",
+        "resetSuccess": "คืนค่ากการตั้งค่าเริ่มต้นแล้ว",
+        "resetDefaults": "รีเซ็ตค่าเริ่มต้น"
+      },
+      "toolbar": {
+        "export": {
+          "clipboardSuccess": "ส่งออก Pipeline ไปยังคลิปบอร์ดแล้ว",
+          "saveFailed": "บันทึกไฟล์ล้มเหลว",
+          "partialClipboardSuccess": "ส่งออก Pipeline ของโหนดที่เลือกไปยังคลิปบอร์ดแล้ว",
+          "configClipboardSuccess": "ส่งออกการตั้งค่าไปยังคลิปบอร์ดแล้ว",
+          "toClipboard": "ส่งออกไปยังคลิปบอร์ด",
+          "toFile": "ส่งออกเป็นไฟล์",
+          "saveLocal": "บันทึกลงเครื่อง",
+          "saveAll": "บันทึกทั้งหมด",
+          "savePipelineOnly": "บันทึกเฉพาะ Pipeline",
+          "saveConfigOnly": "บันทึกเฉพาะการตั้งค่า",
+          "createWithLocal": "สร้างด้วยบริการท้องถิ่น",
+          "partial": "ส่งออกบางส่วน",
+          "exportPipeline": "ส่งออก Pipeline",
+          "exportConfig": "ส่งออกการตั้งค่า",
+          "buttonLabel": "ส่งออก",
+          "actionClipboard": "คลิปบอร์ด",
+          "actionFile": "ไฟล์",
+          "actionLocal": "เครื่อง",
+          "actionAll": "ทั้งหมด",
+          "actionPipeline": "Pipeline",
+          "actionConfig": "การตั้งค่า",
+          "actionPartial": "บางส่วน",
+          "actionLocalCreate": "สร้างบนเครื่อง",
+          "buttonWithAction": "{{label}}（{{desc}}）"
+        },
+        "import": {
+          "canvasNotEmptyTitle": "แคนวาสไม่ว่าง",
+          "canvasNotEmptyContent": "การนำเข้าจะเขียนทับเนื้อหาปัจจุบัน สามารถย้อนกลับได้หลังนำเข้า ต้องการดำเนินการต่อหรือไม่?",
+          "continueImport": "ดำเนินการนำเข้าต่อ",
+          "cancel": "ยกเลิก",
+          "clipboardPipelineSuccess": "นำเข้า Pipeline จากคลิปบอร์ดสำเร็จ",
+          "importFailed": "นำเข้าล้มเหลว โปรดตรวจสอบเนื้อหาในคลิปบอร์ด",
+          "clipboardEmpty": "คลิปบอร์ดว่าง",
+          "clipboardConfigSuccess": "นำเข้าการตั้งค่าจากคลิปบอร์ดสำเร็จ",
+          "importConfigFailed": "นำเข้าการตั้งค่าล้มเหลว",
+          "filePipelineSuccess": "นำเข้า Pipeline จากไฟล์สำเร็จ",
+          "fileImportFailed": "นำเข้าไฟล์ล้มเหลว โปรดตรวจสอบรูปแบบไฟล์",
+          "fileConfigSuccess": "นำเข้าการตั้งค่าจากไฟล์สำเร็จ",
+          "fileConfigImportFailed": "นำเข้าไฟล์การตั้งค่าล้มเหลว",
+          "fromClipboardPipeline": "นำเข้า Pipeline จากคลิปบอร์ด",
+          "fromFilePipeline": "นำเข้า Pipeline จากไฟล์",
+          "fromClipboardConfig": "นำเข้าการตั้งค่าจากคลิปบอร์ด",
+          "fromFileConfig": "นำเข้าการตั้งค่าจากไฟล์",
+          "buttonLabel": "นำเข้า",
+          "actionClipboard": "คลิปบอร์ด",
+          "actionFile": "ไฟล์",
+          "actionClipboardConfig": "คลิปบอร์ดการตั้งค่า",
+          "actionFileConfig": "ไฟล์การตั้งค่า",
+          "buttonWithAction": "{{label}}（{{desc}}）"
+        },
+        "jsonPreview": "ดูตัวอย่าง JSON"
+      },
+      "tools": {
+        "global": {
+          "systemConfig": "การตั้งค่าระบบ",
+          "fileConfig": "การตั้งค่าไฟล์",
+          "aiHistory": "ประวัติการสนทนา AI",
+          "focusOpacityOff": "ความโปร่งใสโฟกัส (ปิด)",
+          "focusOpacityOn": "ความโปร่งใสโฟกัส (เปิด)",
+          "focusOpacityEnabled": "เปิดความโปร่งใสโฟกัสแล้ว",
+          "focusOpacityDisabled": "ปิดความโปร่งใสโฟกัสแล้ว",
+          "copy": "คัดลอก (Ctrl+C)",
+          "paste": "วาง (Ctrl+V)",
+          "undo": "ย้อนกลับ (Ctrl+Z)",
+          "redo": "ทำซ้ำ (Ctrl+Y)",
+          "noNodeSelected": "ยังไม่ได้เลือกโหนด",
+          "clipboardEmpty": "ไม่มีโหนดที่คัดลอกในคลิปบอร์ด",
+          "nothingLeft": "ไม่มีอะไรเหลือแล้ว😭",
+          "undoSuccess": "ย้อนกลับสำเร็จ",
+          "redoSuccess": "ทำซ้ำสำเร็จ",
+          "debugIntroTitle": "เกี่ยวกับ MPE FlowScope (โมดูลดีบัก)",
+          "debugIntroOk": "เข้าใจแล้ว",
+          "nodePath": "เส้นทางโหนด",
+          "nodePathEnabled": "เส้นทางโหนด (เปิด)",
+          "toolbox": "กล่องเครื่องมือ",
+          "fieldToolsWikiTitle": "เครื่องมือลัดฟิลด์",
+          "fieldToolsWikiDesc": "ROI, OCR, การเลือกสี และเครื่องมือลัดอื่นๆ",
+          "wiki": {
+            "path": "20.本地服务/20.字段快捷工具.html"
+          },
+          "debug": "ดีบัก",
+          "docs": "เอกสาร"
+        },
+        "layout": {
+          "alignCenter": "จัดกึ่งกลาง",
+          "alignTop": "จัดชิดบน",
+          "alignBottom": "จัดชิดล่าง",
+          "shrinkHorizontal": "ลดระยะห่างแนวนอน",
+          "expandHorizontal": "เพิ่มระยะห่างแนวนอน",
+          "shrinkVertical": "ลดระยะห่างแนวตั้ง",
+          "expandVertical": "เพิ่มระยะห่างแนวตั้ง",
+          "resetEdgePaths": "คืนเส้นทางเส้นเชื่อม",
+          "edgesReset": "คืนเส้นทางเส้นเชื่อมแล้ว",
+          "partialAutoLayout": "จัดเลย์เอาต์เฉพาะส่วน",
+          "autoLayout": "จัดเลย์เอาต์อัตโนมัติ",
+          "autoLayoutDenied": "สภาพแวดล้อมปัจจุบันห้ามจัดเลย์เอาต์อัตโนมัติ",
+          "selectTwoForPartial": "โปรดเลือกโหนดอย่างน้อยสองโหนดเพื่อจัดเลย์เอาต์เฉพาะส่วน",
+          "saveAsImage": "บันทึกเลย์เอาต์เป็นภาพ",
+          "noNodesToAdjust": "ไม่มีโหนดที่ปรับได้",
+          "selectTwoForAlign": "โปรดเลือกโหนดอย่างน้อยสองโหนดเพื่อจัดแนว",
+          "noNodesToSave": "ไม่มีโหนดที่บันทึกได้"
+        },
+        "logger": {
+          "noOperationLogs": "ยังไม่มีบันทึกการดำเนินการ",
+          "noLogs": "ยังไม่มีบันทึก",
+          "operationTab": "บันทึกการดำเนินการ",
+          "backendTab": "บันทึกแบ็กเอนด์",
+          "notConnected": "ยังไม่ได้เชื่อมต่อ LocalBridge",
+          "clear": "ล้าง",
+          "collapse": "ย่อ"
+        },
+        "path": {
+          "startNode": "โหนดเริ่มต้น",
+          "selectStart": "เลือกโหนดเริ่มต้น",
+          "endNode": "โหนดสิ้นสุด",
+          "selectEnd": "เลือกโหนดสิ้นสุด",
+          "found": "✓ พบเส้นทาง รวม {{count}} โหนด",
+          "notFound": "✗ ไม่พบเส้นทาง",
+          "clear": "ล้าง",
+          "disablePathMode": "ปิดโหมดเส้นทาง",
+          "enablePathMode": "เปิดโหมดเส้นทาง"
+        },
+        "add": {
+          "rightClickHint": "คลิกขวาบนแคนวาสเพื่อแสดงเทมเพลตเพิ่มเติม"
+        },
+        "toolbox": {
+          "ocr": "OCR จดจำข้อความ",
+          "template": "จับภาพเทมเพลต",
+          "color": "เลือกจุดสี",
+          "roi": "เลือกพื้นที่",
+          "roiOffset": "วัดออฟเซต",
+          "delta": "ค่าต่างการเคลื่อนที่ (dx/dy)",
+          "connectFirst": "โปรดเชื่อมต่อบริการท้องถิ่นและอุปกรณ์ก่อน",
+          "ocrComplete": "OCR สำเร็จ",
+          "templateSaved": "บันทึกภาพเทมเพลตแล้ว",
+          "colorComplete": "เลือกสีสำเร็จ",
+          "roiComplete": "เลือกพื้นที่สำเร็จ",
+          "roiOffsetComplete": "วัดออฟเซตสำเร็จ",
+          "horizontalDeltaComplete": "วัดการเคลื่อนที่แนวนอนสำเร็จ",
+          "verticalDeltaComplete": "วัดการเคลื่อนที่แนวตั้งสำเร็จ",
+          "copiedValue": "คัดลอกค่าแล้ว",
+          "copiedKeyValue": "คัดลอกคู่คีย์-ค่าแล้ว",
+          "ocrResult": "ผลลัพธ์ OCR",
+          "templateResult": "ภาพเทมเพลต",
+          "greenMask": "พื้นหลังเขียว: {{value}}",
+          "yes": "ใช่",
+          "no": "ไม่",
+          "colorResult": "ผลการเลือกสี",
+          "roiResult": "ผลพื้นที่",
+          "offsetResult": "ผลออฟเซต",
+          "horizontalDelta": "การเคลื่อนที่แนวนอน",
+          "verticalDelta": "การเคลื่อนที่แนวตั้ง",
+          "copyValue": "คัดลอกค่า",
+          "copyKeyValue": "คัดลอกคู่คีย์-ค่า"
+        }
+      },
+      "exploration": {
+        "connectDeviceFirst": "โปรดเชื่อมต่ออุปกรณ์ก่อน",
+        "configureAiFirst": "โปรดตั้งค่า AI API ก่อน",
+        "tooltipNeedDevice": "สำรวจ Flow (ต้องเชื่อมต่ออุปกรณ์)",
+        "tooltipNeedAi": "สำรวจ Flow (ต้องตั้งค่า AI)",
+        "tooltipExploring": "กำลังสำรวจ ({{count}} ขั้นตอน)",
+        "tooltipDefault": "สำรวจ Flow",
+        "goalPlaceholder": "ป้อนเป้าหมายการสำรวจ เช่น ทำภารกิจเช็คอินรายวันให้เสร็จ",
+        "start": "เริ่ม",
+        "startNodeLabel": "โหนดเริ่มต้น:",
+        "startNodePlaceholder": "(ไม่บังคับ) เลือกโหนดเริ่มต้น",
+        "cancel": "ยกเลิก",
+        "stepsCompleted": "เสร็จแล้ว {{count}} ขั้นตอน",
+        "reviewingHint": "ดำเนินการข้างโหนด: รัน สร้างใหม่ หรือยืนยัน",
+        "exit": "ออก",
+        "complete": "เสร็จสิ้น",
+        "executing": "กำลังดำเนินการ...",
+        "confirmedSteps": "ยืนยันแล้ว {{count}} ขั้นตอน",
+        "nextStep": "ขั้นตอนถัดไป",
+        "completeExploration": "เสร็จสิ้นการสำรวจ",
+        "explorationComplete": "สำรวจเสร็จสิ้น",
+        "totalSteps": "รวม {{count}} ขั้นตอน",
+        "close": "ปิด",
+        "title": "โหมดสำรวจ Flow",
+        "wiki": {
+          "path": "20.本地服务/50.AI 服务.html",
+          "title": "สำรวจ Flow",
+          "description": "สำรวจ Flow อัตโนมัติด้วย AI"
+        },
+        "abortModal": {
+          "title": "ยืนยันการออก",
+          "cancel": "ยกเลิก",
+          "discard": "ออกโดยไม่บันทึก",
+          "save": "บันทึกและออก",
+          "content": "การสำรวจยังไม่เสร็จ ต้องการเก็บโหนดที่ยืนยันแล้ว {{count}} โหนดหรือไม่?"
+        }
+      },
+      "field": {
+        "toolbar": {
+          "copyNodeName": "คัดลอกชื่อโหนด",
+          "copyRecoJson": "คัดลอก Reco JSON",
+          "editJson": "แก้ไข JSON",
+          "emptyNodeName": "ชื่อโหนดว่าง",
+          "connectLocalFirst": "โปรดเชื่อมต่อบริการท้องถิ่นและอุปกรณ์ก่อน",
+          "configureAiFirst": "โปรดตั้งค่า AI API ในแผงการตั้งค่าก่อน",
+          "screenshotFailed": "ถ่ายภาพหน้าจอล้มเหลว โปรดตรวจสอบการเชื่อมต่ออุปกรณ์",
+          "applyConfig": "นำการตั้งค่าไปใช้",
+          "fillingFields": "กำลังเติมฟิลด์โหนด...",
+          "filledSuccess": "เติมฟิลด์สำเร็จ {{count}} รายการ ดูเหตุผลโดยละเอียดในประวัติ AI",
+          "validationRequiredTitle": "ฟิลด์ต่อไปนี้ต้องตรวจสอบด้วยตนเอง",
+          "validationRequiredDesc": "AI ไม่สามารถทำนายค่าฟิลด์เหล่านี้ได้อย่างแม่นยำ โปรดใช้เครื่องมือฟิลด์ตรวจสอบ:",
+          "aiAnalysisNoFill": "วิเคราะห์ AI เสร็จแล้ว แต่ไม่มีฟิลด์ที่ต้องเติม ดูเหตุผลในประวัติ AI",
+          "aiPredictFailed": "ทำนาย AI ล้มเหลว",
+          "errNotConnected": "ยังไม่เชื่อมต่อ",
+          "errScreenshot": "ถ่ายภาพ",
+          "errConfig": "การตั้งค่า",
+          "errVision": "การมองเห็น",
+          "screenshotError": "ถ่ายภาพหน้าจอล้มเหลว โปรดตรวจสอบว่าอุปกรณ์เชื่อมต่อแล้ว",
+          "aiConfigError": "โปรดตั้งค่า AI API ในแผงการตั้งค่าก่อน",
+          "visionNotSupported": "โมเดลปัจจุบันไม่รองรับการมองเห็น โปรดใช้โมเดลที่รองรับ (เช่น GPT-4o)",
+          "aiPredictFailedWithError": "ทำนาย AI ล้มเหลว: {{error}}",
+          "navigateToTarget": "ไปยังโหนดเป้าหมาย",
+          "saveAsTemplate": "บันทึกเป็นเทมเพลต",
+          "aiPredictTooltip": "ทำนายการตั้งค่าโหนดด้วย AI",
+          "deleteNode": "ลบโหนด"
+        },
+        "imageSelect": {
+          "placeholder": "ป้อนหรือเลือกเส้นทางรูปภาพ",
+          "loadingList": "กำลังโหลดรายการรูปภาพ...",
+          "noMatch": "ไม่พบรูปภาพที่ตรงกัน",
+          "noAvailable": "ไม่มีรูปภาพที่ใช้ได้"
+        },
+        "templatePreview": {
+          "notFound": "{{path}} - ไม่พบ"
+        }
+      },
+      "edge": {
+        "title": "การตั้งค่าการเชื่อมต่อ",
+        "deleteTooltip": "ลบการเชื่อมต่อ",
+        "sourceNode": "โหนดต้นทาง",
+        "targetNode": "โหนดปลายทาง",
+        "connectionType": "ประเภทการเชื่อมต่อ",
+        "order": "ลำดับ",
+        "unknown": "ไม่ทราบ",
+        "wiki": {
+          "path": "10.工作流面板/40.连接.html",
+          "title": "การเชื่อมต่อ",
+          "description": "การเชื่อมต่อโหนดและการจัด flow"
+        }
+      },
+      "nodeList": {
+        "filterPlaceholder": "กรองโหนด...",
+        "allTypes": "ทุกประเภท",
+        "empty": "ยังไม่มีโหนด",
+        "wiki": {
+          "path": "10.工作流面板/20.节点.html",
+          "title": "โหนด",
+          "description": "ประเภทโหนดและคุณสมบัติโดยละเอียด"
+        },
+        "stats": {
+          "total": "รวม {{count}} โหนด"
+        },
+        "preview": {
+          "external": "โหนดอ้างอิงภายนอก",
+          "anchor": "โหนดเปลี่ยนทาง",
+          "sticker": "สติกเกอร์โน้ต",
+          "group": "กรอบกลุ่ม",
+          "recognition": "การจดจำ - {{type}}",
+          "action": "การกระทำ - {{type}}",
+          "otherParams": "พารามิเตอร์อื่น",
+          "inEdges": "เส้นเข้า: {{count}}",
+          "outEdges": "เส้นออก: {{count}}"
+        }
+      },
+      "pipelineEditor": {
+        "nodeName": {
+          "tooltip": "ชื่อโหนด จะถูกคอมไพล์เป็น key ของ pipeline",
+          "placeholder": "ชื่อโหนด"
+        },
+        "recognition": {
+          "tooltip": "อัลกอริทึมการจดจำ ({{name}}): {{desc}}"
+        },
+        "action": {
+          "tooltip": "อัลกอริทึมการกระทำ ({{name}}): {{desc}}"
+        },
+        "others": {
+          "tooltip": "ฟิลด์นอกเหนือจาก recognition, action และ focus"
+        },
+        "waitFreezes": {
+          "placeholder": "เวลารอ (มิลลิวินาที) หรือคลิกขวาเพื่อเพิ่มพารามิเตอร์ละเอียด"
+        },
+        "focus": {
+          "tooltip": "โหนดที่ติดตาม จะสร้าง callback เพิ่มเติม ไม่บังคับ ค่าเริ่มต้น null ไม่สร้าง callback ดูรายละเอียดที่การแจ้งเตือนโหนด",
+          "placeholder": "ค่าสตริง หรือคลิกปุ่มขวาเพื่อเพิ่มประเภทข้อความ"
+        },
+        "extras": {
+          "tooltip": "ฟิลด์กำหนดเอง รูปแบบ JSON จะเรนเดอร์ฟิลด์ระดับบนบนโหนดโดยตรง",
+          "placeholder": "ฟิลด์กำหนดเอง รูปแบบ JSON เต็ม"
+        },
+        "modal": {
+          "ok": "ยืนยัน",
+          "cancel": "ยกเลิก",
+          "switchStructured": {
+            "title": "สลับเป็นโหมดโครงสร้าง",
+            "focusContent": "การสลับเป็นโหมดโครงสร้างจะทำให้ค่าสตริงปัจจุบันหายไป ต้องการดำเนินการต่อหรือไม่?",
+            "numberContent": "การสลับเป็นโหมดโครงสร้างจะทำให้ค่าตัวเลขปัจจุบันหายไป ต้องการดำเนินการต่อหรือไม่?"
+          }
+        }
+      },
+      "groupEditor": {
+        "name": {
+          "title": "ชื่อ",
+          "content": "ชื่อกลุ่ม",
+          "placeholder": "ชื่อกลุ่ม"
+        },
+        "color": {
+          "title": "สี",
+          "content": "ธีมสีของกลุ่ม"
+        },
+        "colors": {
+          "blue": "น้ำเงิน",
+          "green": "เขียว",
+          "purple": "ม่วง",
+          "orange": "ส้ม",
+          "gray": "เทา"
+        }
+      },
+      "stickerEditor": {
+        "title": {
+          "label": "ชื่อเรื่อง",
+          "content": "ชื่อสติกเกอร์โน้ต",
+          "placeholder": "ชื่อสติกเกอร์โน้ต"
+        },
+        "color": {
+          "title": "สี",
+          "content": "ธีมสีของสติกเกอร์โน้ต"
+        },
+        "content": {
+          "label": "เนื้อหา",
+          "tooltip": "เนื้อหาหลักของสติกเกอร์โน้ต",
+          "placeholder": "ป้อนเนื้อหาสติกเกอร์โน้ตที่นี่..."
+        },
+        "history": {
+          "changeColor": "เปลี่ยนสีสติกเกอร์โน้ต"
+        },
+        "colors": {
+          "yellow": "เหลือง",
+          "green": "เขียว",
+          "blue": "น้ำเงิน",
+          "pink": "ชมพู",
+          "purple": "ม่วง"
+        }
+      },
+      "main": {
+        "file": {
+          "localFile": "ไฟล์ในเครื่อง"
+        },
+        "fileConfig": {
+          "title": "การตั้งค่าไฟล์",
+          "nodePrefixLabel": "คำนำหน้าโหนด",
+          "nodePrefixTip": "เพิ่มคำนำหน้าก่อนชื่อโหนดทุกตัว และเชื่อมด้วย _ เพื่อป้องกันชื่อโหนดซ้ำข้ามไฟล์",
+          "filePathLabel": "เส้นทางไฟล์",
+          "filePathTip": "เส้นทางเต็มของไฟล์ JSON ในเครื่อง ใช้ระบุไฟล์เมื่อสื่อสารกับบริการ local ว่างไว้จะใช้ฟีเจอร์สื่อสาร local ไม่ได้ เช่น D:/path/to/your/pipeline.json"
+        },
+        "toolbar": {
+          "importExportTitle": "นำเข้าและส่งออก",
+          "importExportDesc": "นำเข้าและส่งออกไฟล์ Pipeline",
+          "wiki": {
+            "path": "10.工作流面板/90.导入与导出.html"
+          }
+        },
+        "error": {
+          "title": "รายการข้อผิดพลาด"
+        },
+        "nodeList": {
+          "externalRef": "อ้างอิงภายนอก",
+          "redirect": "เปลี่ยนทาง",
+          "sticker": "หมายเหตุ",
+          "group": "กลุ่ม"
+        },
+        "adjacent": {
+          "unknown": "ไม่ทราบ",
+          "predecessors": "โหนดก่อนหน้า",
+          "successors": "โหนดถัดไป",
+          "dragToReorder": "ลากเพื่อจัดลำดับ",
+          "inputToAdd": "ป้อนชื่อโหนดเพื่อเพิ่ม",
+          "noConnectionsPrefix": "โหนด",
+          "noConnectionsSuffix": "ไม่มีการเชื่อมต่อใดๆ",
+          "dragAdjustOrder": "ลากเพื่อปรับลำดับ",
+          "currentFile": "ไฟล์ปัจจุบัน",
+          "connectionExists": "มีการเชื่อมต่อไปยัง \"{{label}}\" อยู่แล้ว",
+          "addSuccessorPlaceholder": "ป้อนชื่อโหนดเพื่อเพิ่มการเชื่อมต่อ..."
+        },
+        "aiHistory": {
+          "success": "สำเร็จ",
+          "failed": "ล้มเหลว",
+          "inputTokens": "อินพุต:",
+          "outputTokens": "เอาต์พุต:",
+          "totalTokens": "รวม:",
+          "estimated": "(ประมาณการ)",
+          "hasPromptTooltip": "ข้อความจริงมีพรอมต์ที่ตั้งไว้ล่วงหน้า",
+          "hasPromptTag": "มีพรอมต์",
+          "userInput": "อินพุตผู้ใช้:",
+          "actualMessage": "ข้อความจริง",
+          "aiReply": "ตอบกลับ AI:",
+          "collapse": "ย่อ",
+          "expandFull": "ขยายการตอบกลับทั้งหมด",
+          "unknownError": "ข้อผิดพลาดไม่ทราบสาเหตุ",
+          "title": "ประวัติการสนทนา AI",
+          "wiki": {
+            "path": "20.本地服务/50.AI 服务.html",
+            "title": "บริการ AI",
+            "description": "การสนทนา AI และเครื่องมือช่วยอัจฉริยะ"
+          },
+          "clearHistory": "ล้างประวัติ",
+          "empty": "ยังไม่มีบันทึกการสนทนา"
+        },
+        "connection": {
+          "fillAdbPathAndAddress": "โปรดกรอก path ADB และที่อยู่อุปกรณ์",
+          "noAdbMethods": "อุปกรณ์ไม่มีวิธีถ่ายภาพหรือป้อนข้อมูลที่ใช้ได้",
+          "noWin32Methods": "หน้าต่างไม่มีวิธีถ่ายภาพหรือป้อนข้อมูลที่ใช้ได้",
+          "enterPlayCoverAddress": "โปรดป้อนที่อยู่ PlayCover",
+          "enterDeviceUuid": "โปรดป้อน UUID อุปกรณ์",
+          "selectSocketPath": "โปรดเลือกหรือป้อนเส้นทาง socket",
+          "enterAppPid": "โปรดป้อน PID แอป",
+          "selectScreencapMethod": "โปรดเลือกวิธีถ่ายภาพ",
+          "selectInputMethod": "โปรดเลือกวิธีป้อนข้อมูล",
+          "selectDeviceFirst": "โปรดเลือกอุปกรณ์ก่อน",
+          "status": {
+            "disconnected": "ยังไม่เชื่อมต่อ",
+            "connecting": "กำลังเชื่อมต่อ",
+            "connected": "เชื่อมต่อแล้ว",
+            "failed": "เชื่อมต่อล้มเหลว"
+          },
+          "title": "การตั้งค่าการเชื่อมต่อ",
+          "wiki": {
+            "path": "20.本地服务/15.设备连接.html",
+            "title": "การเชื่อมต่ออุปกรณ์",
+            "description": "ตั้งค่าและจัดการการเชื่อมต่ออุปกรณ์"
+          },
+          "connectedTo": "เชื่อมต่อแล้ว:",
+          "unknownDevice": "อุปกรณ์ไม่ทราบ",
+          "connectNewDevice": "เชื่อมต่ออุปกรณ์ใหม่",
+          "disconnect": "ตัดการเชื่อมต่อ",
+          "connectDevice": "เชื่อมต่ออุปกรณ์",
+          "refresh": "รีเฟรช",
+          "tab": {
+            "adb": "อุปกรณ์ ADB",
+            "win32": "หน้าต่าง Win32",
+            "macosNative": "macOS เนทีฟ"
+          }
+        },
+        "field": {
+          "editorRenderFailed": "เรนเดอร์ตัวแก้ไขโหนดล้มเหลว",
+          "nodeName": "ชื่อโหนด:",
+          "nodeType": "ประเภทโหนด:",
+          "errorMessage": "ข้อความข้อผิดพลาด:",
+          "possibleCause": "สาเหตุที่เป็นไปได้: โครงสร้างข้อมูลโหนดเสียหายหรือขาดฟิลด์ที่จำเป็น",
+          "tryRepair": "ลองซ่อมโหนด",
+          "jsonEditDescription": "แก้ไขข้อมูลโหนดด้วย JSON",
+          "nodeDataCorrupt": "ข้อมูลโหนดเสียหาย",
+          "unknown": "ไม่ทราบ",
+          "errorLabel": "ข้อผิดพลาด:",
+          "suggestDelete": "แนะนำให้ลบโหนดนี้และสร้างใหม่",
+          "unknownNodeType": "ประเภทโหนดไม่ทราบ",
+          "unsupportedNodeType": "ไม่รองรับประเภทโหนด \"{{type}}\"",
+          "title": "ฟิลด์โหนด",
+          "wiki": {
+            "path": "10.工作流面板/30.字段面板.html",
+            "title": "แผงฟิลด์",
+            "description": "แก้ไขคุณสมบัติและการตั้งค่าฟิลด์โหนด"
+          },
+          "applyFix": "นำการซ่อมไปใช้",
+          "fieldsTab": "การตั้งค่าฟิลด์",
+          "adjacentTab": "ข้อมูลเชื่อมต่อ"
+        },
+        "liveScreen": {
+          "autoDisconnectMessage": "การเชื่อมต่ออุปกรณ์ผิดปกติ ตัดการเชื่อมต่ออัตโนมัติแล้ว",
+          "title": "ภาพสด",
+          "screenshotError": "ถ่ายภาพผิดปกติ",
+          "expand": "ขยายภาพสด",
+          "collapse": "ย่อภาพสด",
+          "loading": "กำลังโหลดภาพ...",
+          "screenshotFailed": "ถ่ายภาพล้มเหลว โปรดตรวจสอบการเชื่อมต่ออุปกรณ์",
+          "deviceScreen": "ภาพอุปกรณ์"
+        },
+        "localFile": {
+          "refreshing": "กำลังรีเฟรชรายการไฟล์...",
+          "connectLocalFirst": "โปรดเชื่อมต่อบริการท้องถิ่นก่อน",
+          "title": "ไฟล์ในเครื่อง",
+          "wiki": {
+            "path": "20.本地服务/10.本地文件管理.html",
+            "title": "จัดการไฟล์ในเครื่อง",
+            "description": "จัดการไฟล์ Pipeline ในไดเรกทอรีทรัพยากร"
+          },
+          "refreshList": "รีเฟรชรายการไฟล์",
+          "close": "ปิด",
+          "searchPlaceholder": "ค้นหาไฟล์...",
+          "emptyNoFiles": "ยังไม่มีไฟล์ คลิกรีเฟรชเพื่อโหลด",
+          "emptyNoMatch": "ไม่พบไฟล์ที่ตรงกัน"
+        },
+        "nodeAdd": {
+          "arrayItems": "[...{{count}} รายการ]",
+          "objectItems": "{...{{count}} รายการ}",
+          "descExternal": "อ้างอิงโหนดภายนอก",
+          "descAnchor": "เปลี่ยนเส้นทางไปยังโหนดอื่น",
+          "descSticker": "บันทึกข้อมูลหมายเหตุ",
+          "descGroup": "จัดกลุ่มโหนด",
+          "descBlank": "เทมเพลตโหนดว่าง",
+          "recognitionType": "การจดจำ: {{type}}",
+          "actionType": "การกระทำ: {{type}}",
+          "descCustom": "โหนดกำหนดเอง",
+          "selectTemplatePreview": "เลือกเทมเพลตเพื่อดูตัวอย่าง",
+          "doubleClickEdit": "ดับเบิลคลิกเพื่อแก้ไขเนื้อหา...",
+          "pipelineNode": "โหนด Pipeline",
+          "recognitionSection": "การจดจำ - {{type}}",
+          "actionSection": "การกระทำ - {{type}}",
+          "otherSection": "อื่นๆ",
+          "andMoreNodes": "และอีก {{count}} โหนด",
+          "deleteTemplateTitle": "ลบเทมเพลตกำหนดเอง",
+          "deleteTemplateContent": "ต้องการลบเทมเพลต「{{label}}」หรือไม่? ไม่สามารถย้อนกลับได้",
+          "confirm": "ยืนยัน",
+          "cancel": "ยกเลิก",
+          "nodePreview": "ตัวอย่างโหนด",
+          "pasteNodes": "วาง {{count}} โหนด",
+          "pasteHint": "คลิกเพื่อวางโหนดจากคลิปบอร์ดที่ตำแหน่งเมาส์",
+          "searchPlaceholder": "ค้นหาเทมเพลตโหนด...",
+          "clipboardBadge": "คลิปบอร์ด",
+          "customBadge": "กำหนดเอง",
+          "deleteTemplate": "ลบเทมเพลต",
+          "noMatchingTemplates": "ไม่พบเทมเพลตที่ตรงกัน",
+          "shortcutSelect": "เลือก",
+          "shortcutAdd": "เพิ่ม",
+          "shortcutClose": "ปิด"
+        },
+        "search": {
+          "currentFile": "ไฟล์ปัจจุบัน",
+          "nodeNotFound": "ไม่พบโหนดนี้",
+          "locatedNode": "ไปที่โหนดแล้ว: {{label}}",
+          "jumpToFileAndNode": "ไปยัง {{path}} และไปที่โหนด: {{label}}",
+          "jumpFailed": "ไปยังโหนดล้มเหลว",
+          "enterNodeName": "โปรดป้อนชื่อโหนด",
+          "none": "ไม่มี",
+          "enterSearchContent": "โปรดป้อนเนื้อหาที่ต้องการค้นหา",
+          "noNodes": "ยังไม่มีโหนดใดๆ",
+          "aiSearchFailed": "ค้นหา AI ล้มเหลว: {{error}}",
+          "noRelatedNodes": "ไม่พบโหนดที่เกี่ยวข้อง",
+          "aiSearchError": "ค้นหา AI ผิดปกติ: {{error}}",
+          "unknownError": "ข้อผิดพลาดไม่ทราบสาเหตุ",
+          "placeholder": "ค้นหาโหนด...",
+          "searchNode": "ค้นหาโหนด",
+          "aiSearching": "กำลังค้นหา AI...",
+          "aiSearch": "ค้นหาอัจฉริยะด้วย AI",
+          "nodeList": "รายการโหนด"
+        }
+      }
+    }
+  }
+}

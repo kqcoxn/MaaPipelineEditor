@@ -1,4 +1,4 @@
-import type { DebugPipelineOverride } from "./types";
+import uiT from "../../i18n/translate";
 import { configMark } from "../../core/parser/types";
 import { useConfigStore } from "../../stores/configStore";
 import {
@@ -14,6 +14,8 @@ import {
 import { formatNodeJson } from "../../utils/node/nodeJsonValidator";
 
 const INVALID_JSON_ERROR_CODE = "debug.override.invalid_json";
+
+import type { DebugPipelineOverride } from "./types";
 
 export interface DebugPipelineOverrideParseResult {
   error?: string;
@@ -31,16 +33,25 @@ export function parseDebugPipelineOverrideDraft(
     parsed = JSON.parse(draft);
   } catch (error) {
     return {
-      error: `Override JSON 语法错误: ${
-        error instanceof Error ? error.message : "无法解析"
-      }`,
+      error: uiT(
+        "ui.debug.pipelineOverride.invalidJson",
+        "Override JSON 语法错误: {{message}}",
+        {
+          message:
+            error instanceof Error
+              ? error.message
+              : uiT("ui.debug.pipelineOverride.unparseable", "无法解析"),
+        },
+      ),
     };
   }
 
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     return {
-      error:
-        "Override 必须是 JSON 对象，格式示例：{ \"RuntimeName\": { ...partial pipeline... } }",
+      error: uiT(
+        "ui.debug.pipelineOverride.mustBeObject",
+        'Override 必须是 JSON 对象，格式示例：{ "RuntimeName": { ...partial pipeline... } }',
+      ),
     };
   }
 
@@ -49,12 +60,19 @@ export function parseDebugPipelineOverrideDraft(
     const normalizedRuntimeName = runtimeName.trim();
     if (!normalizedRuntimeName) {
       return {
-        error: "Override 中存在空的运行时节点名（RuntimeName）。",
+        error: uiT(
+          "ui.debug.pipelineOverride.emptyRuntimeName",
+          "Override 中存在空的运行时节点名（RuntimeName）。",
+        ),
       };
     }
     if (!pipeline || typeof pipeline !== "object" || Array.isArray(pipeline)) {
       return {
-        error: `Override 节点 ${normalizedRuntimeName} 的值必须是对象。`,
+        error: uiT(
+          "ui.debug.pipelineOverride.nodeMustBeObject",
+          "Override 节点 {{name}} 的值必须是对象。",
+          { name: normalizedRuntimeName },
+        ),
       };
     }
 
@@ -66,9 +84,17 @@ export function parseDebugPipelineOverrideDraft(
       );
     } catch (error) {
       return {
-        error: `Override 节点 ${normalizedRuntimeName} 版本归一化失败: ${
-          error instanceof Error ? error.message : "无法转换"
-        }`,
+        error: uiT(
+          "ui.debug.pipelineOverride.normalizeFailed",
+          "Override 节点 {{name}} 版本归一化失败: {{message}}",
+          {
+            name: normalizedRuntimeName,
+            message:
+              error instanceof Error
+                ? error.message
+                : uiT("ui.debug.pipelineOverride.unconvertible", "无法转换"),
+          },
+        ),
       };
     }
 

@@ -2,6 +2,7 @@
 import { memo } from "react";
 import { Typography } from "antd";
 import { MobileOutlined, CheckCircleOutlined } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 import type { AdbDevice } from "../../../../stores/mfwStore";
 import { AdbManualForm } from "./AdbManualForm";
 
@@ -37,6 +38,8 @@ export const AdbDeviceList = memo(
     onManualConfigChange,
     onManualNameChange,
   }: AdbDeviceListProps) => {
+    const { t } = useTranslation();
+
     const handleSelectPreset = (device: AdbDevice) => {
       onSelect(device);
       // 清空手动输入
@@ -69,12 +72,17 @@ export const AdbDeviceList = memo(
         {/* 设备列表 */}
         <div style={{ marginBottom: 16 }}>
           <Text type="secondary" style={{ display: "block", marginBottom: 8 }}>
-            已发现的设备
+            {t("ui.panels.connection.adb.discoveredDevices", "已发现的设备")}
           </Text>
           <List
             loading={loading}
             dataSource={devices}
-            locale={{ emptyText: "暂无设备,请点击刷新" }}
+            locale={{
+              emptyText: t(
+                "ui.panels.connection.adb.emptyDevices",
+                "暂无设备,请点击刷新",
+              ),
+            }}
             split={false}
             renderItem={(device) => {
               const isSelected = selectedDevice?.address === device.address;
@@ -145,7 +153,7 @@ export const AdbDeviceList = memo(
         >
           <div style={{ flex: 1, height: 1, backgroundColor: "#f0f0f0" }} />
           <Text type="secondary" style={{ padding: "0 12px" }}>
-            或手动连接
+            {t("ui.panels.connection.adb.orManualConnect", "或手动连接")}
           </Text>
           <div style={{ flex: 1, height: 1, backgroundColor: "#f0f0f0" }} />
         </div>
@@ -171,7 +179,10 @@ export const AdbDeviceList = memo(
               fontSize: 12,
             }}
           >
-            将使用手动输入的连接信息，列表选择将被忽略
+            {t(
+              "ui.panels.connection.adb.manualInputWarning",
+              "将使用手动输入的连接信息，列表选择将被忽略",
+            )}
           </Text>
         )}
       </div>

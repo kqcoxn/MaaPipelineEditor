@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { message } from "antd";
+import uiT from "../i18n/translate";
 import type { NodeTemplateType } from "../data/nodeTemplates";
 import type { PipelineNodeDataType } from "./flow/types";
 import { NodeTypeEnum } from "../components/flow/nodes";
@@ -60,7 +61,11 @@ export const useCustomTemplateStore = create<CustomTemplateState>(
         // 版本检查
         if (data.version !== STORAGE_VERSION) {
           console.warn(
-            `模板数据版本不匹配: ${data.version} != ${STORAGE_VERSION}, 尝试迁移或清空`,
+            uiT(
+              "ui.stores.customTemplate.versionMismatch",
+              "模板数据版本不匹配: {{stored}} != {{expected}}, 尝试迁移或清空",
+              { stored: data.version, expected: STORAGE_VERSION },
+            ),
           );
           // 清空旧版本数据
           localStorage.removeItem(STORAGE_KEY);
@@ -86,8 +91,16 @@ export const useCustomTemplateStore = create<CustomTemplateState>(
 
         set({ customTemplates: templates, isLoaded: true });
       } catch (error) {
-        console.error("加载自定义模板失败:", error);
-        message.warning("加载自定义模板失败，已清空损坏数据");
+        console.error(
+          uiT("ui.stores.customTemplate.loadError", "加载自定义模板失败:"),
+          error,
+        );
+        message.warning(
+          uiT(
+            "ui.stores.customTemplate.loadFailed",
+            "加载自定义模板失败，已清空损坏数据",
+          ),
+        );
         localStorage.removeItem(STORAGE_KEY);
         set({ customTemplates: [], isLoaded: true });
       }
@@ -99,19 +112,30 @@ export const useCustomTemplateStore = create<CustomTemplateState>(
       // 数量限制检查
       if (customTemplates.length >= MAX_TEMPLATES) {
         message.error(
-          `自定义模板数量已达上限（${MAX_TEMPLATES}个），请先删除旧模板`,
+          uiT(
+            "ui.stores.customTemplate.maxReached",
+            "自定义模板数量已达上限（{{max}}个），请先删除旧模板",
+            { max: MAX_TEMPLATES },
+          ),
         );
         return false;
       }
 
       // 名称验证
       if (!label || label.trim().length === 0) {
-        message.error("模板名称不能为空");
+        message.error(
+          uiT("ui.stores.customTemplate.nameEmpty", "模板名称不能为空"),
+        );
         return false;
       }
 
       if (label.length > 30) {
-        message.error("模板名称长度不能超过30个字符");
+        message.error(
+          uiT(
+            "ui.stores.customTemplate.nameTooLong",
+            "模板名称长度不能超过30个字符",
+          ),
+        );
         return false;
       }
 
@@ -158,11 +182,19 @@ export const useCustomTemplateStore = create<CustomTemplateState>(
         };
 
         localStorage.setItem(STORAGE_KEY, JSON.stringify(storageData));
-        message.success("模板已保存");
+        message.success(uiT("ui.stores.customTemplate.saved", "模板已保存"));
         return true;
       } catch (error) {
-        console.error("保存模板到 localStorage 失败:", error);
-        message.error("保存模板失败，请检查浏览器存储空间");
+        console.error(
+          uiT("ui.stores.customTemplate.saveLocalStorageError", "保存模板到 localStorage 失败:"),
+          error,
+        );
+        message.error(
+          uiT(
+            "ui.stores.customTemplate.saveFailed",
+            "保存模板失败，请检查浏览器存储空间",
+          ),
+        );
         // 回滚
         set({ customTemplates });
         return false;
@@ -190,10 +222,15 @@ export const useCustomTemplateStore = create<CustomTemplateState>(
         };
 
         localStorage.setItem(STORAGE_KEY, JSON.stringify(storageData));
-        message.info("模板已删除");
+        message.info(uiT("ui.stores.customTemplate.deleted", "模板已删除"));
       } catch (error) {
-        console.error("删除模板失败:", error);
-        message.error("删除模板失败");
+        console.error(
+          uiT("ui.stores.customTemplate.deleteError", "删除模板失败:"),
+          error,
+        );
+        message.error(
+          uiT("ui.stores.customTemplate.deleteFailed", "删除模板失败"),
+        );
         // 回滚
         set({ customTemplates });
       }
@@ -213,7 +250,9 @@ export const useCustomTemplateStore = create<CustomTemplateState>(
       const { customTemplates } = get();
 
       // 按指定顺序提取预设模板
-      const emptyTemplate = presetTemplates.find((t) => t.label === "空节点");
+      const emptyTemplate = presetTemplates.find(
+        (t) => t.iconName === "icon-kongjiedian",
+      );
       const externalTemplate = presetTemplates.find(
         (t) => t.nodeType === NodeTypeEnum.External,
       );
@@ -229,7 +268,7 @@ export const useCustomTemplateStore = create<CustomTemplateState>(
       // 其他预设模板
       const otherPresetTemplates = presetTemplates.filter(
         (t) =>
-          t.label !== "空节点" &&
+          t.iconName !== "icon-kongjiedian" &&
           t.nodeType !== NodeTypeEnum.External &&
           t.nodeType !== NodeTypeEnum.Anchor &&
           t.nodeType !== NodeTypeEnum.Sticker &&
@@ -284,7 +323,12 @@ export const useCustomTemplateStore = create<CustomTemplateState>(
       try {
         // 验证模板数据格式
         if (!Array.isArray(templates)) {
-          console.error("模板数据格式错误：不是数组");
+          console.error(
+            uiT(
+              "ui.stores.customTemplate.invalidFormat",
+              "模板数据格式错误：不是数组",
+            ),
+          );
           return false;
         }
 
@@ -318,7 +362,10 @@ export const useCustomTemplateStore = create<CustomTemplateState>(
         localStorage.setItem(STORAGE_KEY, JSON.stringify(storageData));
         return true;
       } catch (error) {
-        console.error("导入模板失败:", error);
+        console.error(
+          uiT("ui.stores.customTemplate.importError", "导入模板失败:"),
+          error,
+        );
         return false;
       }
     },

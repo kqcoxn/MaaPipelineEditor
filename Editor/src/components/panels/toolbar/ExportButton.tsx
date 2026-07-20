@@ -2,6 +2,7 @@ import { Button, Dropdown, message } from "antd";
 import type { MenuProps } from "antd";
 import { ExportOutlined } from "@ant-design/icons";
 import { memo, useMemo, useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import {
   useToolbarStore,
   type ExportAction,
@@ -31,6 +32,7 @@ const actionGroupStyle = {
  * 支持导出到粘贴板或文件,点击执行默认操作,悬停显示菜单
  */
 function ExportButton() {
+  const { t } = useTranslation();
   const { defaultExportAction, setDefaultExportAction } = useToolbarStore();
   const configHandlingMode = useConfigStore(
     (state) => state.configs.configHandlingMode,
@@ -74,7 +76,10 @@ function ExportButton() {
   // 导出操作处理
   const handleExportToClipboard = () => {
     ClipboardHelper.write(flowToPipeline(), {
-      successMsg: "已将 Pipeline 导出到粘贴板",
+      successMsg: t(
+        "ui.panels.toolbar.export.clipboardSuccess",
+        "已将 Pipeline 导出到粘贴板",
+      ),
     });
   };
 
@@ -86,7 +91,9 @@ function ExportButton() {
     async (mode?: "all" | "pipeline" | "config") => {
       const success = await saveFileToLocal(undefined, undefined, mode);
       if (!success) {
-        message.error("文件保存失败");
+        message.error(
+          t("ui.panels.toolbar.export.saveFailed", "文件保存失败"),
+        );
       }
     },
     [saveFileToLocal],
@@ -102,21 +109,30 @@ function ExportButton() {
         nodes: selectedNodes,
         edges: selectedEdges,
       }),
-      { successMsg: "已将选中节点 Pipeline 导出到粘贴板" },
+      { successMsg: t(
+        "ui.panels.toolbar.export.partialClipboardSuccess",
+        "已将选中节点 Pipeline 导出到粘贴板",
+      ) },
     );
   }, [selectedEdges, selectedNodes]);
 
   const handleExportPipeline = () => {
     const { pipelineString } = flowToSeparatedStrings();
     ClipboardHelper.writeString(pipelineString, {
-      successMsg: "已将 Pipeline 导出到粘贴板",
+      successMsg: t(
+        "ui.panels.toolbar.export.clipboardSuccess",
+        "已将 Pipeline 导出到粘贴板",
+      ),
     });
   };
 
   const handleExportConfig = () => {
     const { configString } = flowToSeparatedStrings();
     ClipboardHelper.writeString(configString, {
-      successMsg: "已将配置导出到粘贴板",
+      successMsg: t(
+        "ui.panels.toolbar.export.configClipboardSuccess",
+        "已将配置导出到粘贴板",
+      ),
     });
   };
 
@@ -169,7 +185,7 @@ function ExportButton() {
     const items: MenuProps["items"] = [
       {
         key: "clipboard",
-        label: "导出到粘贴板",
+        label: t("ui.panels.toolbar.export.toClipboard", "导出到粘贴板"),
         onClick: () => {
           setDefaultExportAction("clipboard");
           executeExportAction("clipboard");
@@ -177,7 +193,7 @@ function ExportButton() {
       },
       {
         key: "file",
-        label: "导出为文件",
+        label: t("ui.panels.toolbar.export.toFile", "导出为文件"),
         onClick: () => {
           setDefaultExportAction("file");
           executeExportAction("file");
@@ -191,11 +207,11 @@ function ExportButton() {
         // 分离导出模式下显示子菜单
         items.push({
           key: "save-local-group",
-          label: "保存到本地",
+          label: t("ui.panels.toolbar.export.saveLocal", "保存到本地"),
           children: [
             {
               key: "save-local-all",
-              label: "全部保存",
+              label: t("ui.panels.toolbar.export.saveAll", "全部保存"),
               onClick: () => {
                 setDefaultExportAction("save-local-all");
                 executeExportAction("save-local-all");
@@ -203,7 +219,10 @@ function ExportButton() {
             },
             {
               key: "save-local-pipeline",
-              label: "仅保存 Pipeline",
+              label: t(
+                "ui.panels.toolbar.export.savePipelineOnly",
+                "仅保存 Pipeline",
+              ),
               onClick: () => {
                 setDefaultExportAction("save-local-pipeline");
                 executeExportAction("save-local-pipeline");
@@ -211,7 +230,10 @@ function ExportButton() {
             },
             {
               key: "save-local-config",
-              label: "仅保存配置",
+              label: t(
+                "ui.panels.toolbar.export.saveConfigOnly",
+                "仅保存配置",
+              ),
               onClick: () => {
                 setDefaultExportAction("save-local-config");
                 executeExportAction("save-local-config");
@@ -222,7 +244,7 @@ function ExportButton() {
       } else {
         items.push({
           key: "save-local",
-          label: "保存到本地",
+          label: t("ui.panels.toolbar.export.saveLocal", "保存到本地"),
           onClick: () => {
             setDefaultExportAction("save-local");
             executeExportAction("save-local");
@@ -235,7 +257,10 @@ function ExportButton() {
     if (wsConnected) {
       items.push({
         key: "create-local",
-        label: "使用本地服务创建",
+        label: t(
+          "ui.panels.toolbar.export.createWithLocal",
+          "使用本地服务创建",
+        ),
         onClick: () => {
           setDefaultExportAction("create-local");
           executeExportAction("create-local");
@@ -249,7 +274,7 @@ function ExportButton() {
         { type: "divider" },
         {
           key: "partial",
-          label: "部分导出",
+          label: t("ui.panels.toolbar.export.partial", "部分导出"),
           onClick: () => {
             setDefaultExportAction("partial");
             executeExportAction("partial");
@@ -264,7 +289,10 @@ function ExportButton() {
         { type: "divider" },
         {
           key: "export-pipeline",
-          label: "导出 Pipeline",
+          label: t(
+            "ui.panels.toolbar.export.exportPipeline",
+            "导出 Pipeline",
+          ),
           onClick: () => {
             setDefaultExportAction("export-pipeline");
             executeExportAction("export-pipeline");
@@ -272,7 +300,7 @@ function ExportButton() {
         },
         {
           key: "export-config",
-          label: "导出配置",
+          label: t("ui.panels.toolbar.export.exportConfig", "导出配置"),
           onClick: () => {
             setDefaultExportAction("export-config");
             executeExportAction("export-config");
@@ -289,35 +317,94 @@ function ExportButton() {
     isPartable,
     executeExportAction,
     setDefaultExportAction,
+    t,
   ]);
 
   // 获取按钮文本和当前操作描述
   const { buttonLabel, currentActionDesc } = useMemo(() => {
+    const exportLabel = t("ui.panels.toolbar.export.buttonLabel", "导出");
     switch (defaultExportAction) {
       case "clipboard":
-        return { buttonLabel: "导出", currentActionDesc: "粘贴板" };
+        return {
+          buttonLabel: exportLabel,
+          currentActionDesc: t(
+            "ui.panels.toolbar.export.actionClipboard",
+            "粘贴板",
+          ),
+        };
       case "file":
-        return { buttonLabel: "导出", currentActionDesc: "文件" };
+        return {
+          buttonLabel: exportLabel,
+          currentActionDesc: t("ui.panels.toolbar.export.actionFile", "文件"),
+        };
       case "save-local":
-        return { buttonLabel: "导出", currentActionDesc: "本地" };
+        return {
+          buttonLabel: exportLabel,
+          currentActionDesc: t("ui.panels.toolbar.export.actionLocal", "本地"),
+        };
       case "save-local-all":
-        return { buttonLabel: "导出", currentActionDesc: "全部" };
+        return {
+          buttonLabel: exportLabel,
+          currentActionDesc: t("ui.panels.toolbar.export.actionAll", "全部"),
+        };
       case "save-local-pipeline":
-        return { buttonLabel: "导出", currentActionDesc: "Pipeline" };
+        return {
+          buttonLabel: exportLabel,
+          currentActionDesc: t(
+            "ui.panels.toolbar.export.actionPipeline",
+            "Pipeline",
+          ),
+        };
       case "save-local-config":
-        return { buttonLabel: "导出", currentActionDesc: "配置" };
+        return {
+          buttonLabel: exportLabel,
+          currentActionDesc: t(
+            "ui.panels.toolbar.export.actionConfig",
+            "配置",
+          ),
+        };
       case "partial":
-        return { buttonLabel: "导出", currentActionDesc: "部分" };
+        return {
+          buttonLabel: exportLabel,
+          currentActionDesc: t(
+            "ui.panels.toolbar.export.actionPartial",
+            "部分",
+          ),
+        };
       case "export-pipeline":
-        return { buttonLabel: "导出", currentActionDesc: "Pipeline" };
+        return {
+          buttonLabel: exportLabel,
+          currentActionDesc: t(
+            "ui.panels.toolbar.export.actionPipeline",
+            "Pipeline",
+          ),
+        };
       case "export-config":
-        return { buttonLabel: "导出", currentActionDesc: "配置" };
+        return {
+          buttonLabel: exportLabel,
+          currentActionDesc: t(
+            "ui.panels.toolbar.export.actionConfig",
+            "配置",
+          ),
+        };
       case "create-local":
-        return { buttonLabel: "导出", currentActionDesc: "本地创建" };
+        return {
+          buttonLabel: exportLabel,
+          currentActionDesc: t(
+            "ui.panels.toolbar.export.actionLocalCreate",
+            "本地创建",
+          ),
+        };
       default:
-        return { buttonLabel: "导出", currentActionDesc: "粘贴板" };
+        return {
+          buttonLabel: exportLabel,
+          currentActionDesc: t(
+            "ui.panels.toolbar.export.actionClipboard",
+            "粘贴板",
+          ),
+        };
     }
-  }, [defaultExportAction]);
+  }, [defaultExportAction, t]);
 
   return (
     <>
@@ -334,7 +421,10 @@ function ExportButton() {
             onClick={handleButtonClick}
             className={style.toolbarButton}
           >
-            {buttonLabel}（{currentActionDesc}）
+            {t("ui.panels.toolbar.export.buttonWithAction", "{{label}}（{{desc}}）", {
+              label: buttonLabel,
+              desc: currentActionDesc,
+            })}
           </Button>
         </Dropdown>
       </div>

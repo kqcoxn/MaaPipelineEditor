@@ -18,6 +18,7 @@ import {
 } from "../../../utils/ai/explorationAI";
 import { applyPrediction } from "../../../utils/ai/aiPredictor";
 import { validateAndRepairNode } from "../../../utils/node/nodeJsonValidator";
+import i18n from "../../../i18n";
 
 // 初始状态
 const initialState: FlowExplorationState = {
@@ -47,11 +48,15 @@ export const createExplorationSlice: StateCreator<
     const { aiApiUrl, aiApiKey } = useConfigStore.getState().configs;
 
     if (connectionStatus !== "connected") {
-      set({ error: "请先连接设备" });
+      set({
+        error: i18n.t("stores.exploration.connectDeviceFirst", "请先连接设备"),
+      });
       return;
     }
     if (!aiApiUrl || !aiApiKey) {
-      set({ error: "请先配置 AI API" });
+      set({
+        error: i18n.t("stores.exploration.configureAiFirst", "请先配置 AI API"),
+      });
       return;
     }
 
@@ -64,8 +69,8 @@ export const createExplorationSlice: StateCreator<
       stepCount: 0,
       confirmedNodeIds: [],
       error: null,
-      progressStage: "初始化",
-      progressDetail: "正在准备...",
+      progressStage: i18n.t("stores.exploration.init", "初始化"),
+      progressDetail: i18n.t("stores.exploration.preparing", "正在准备..."),
     });
 
     try {
@@ -110,7 +115,9 @@ export const createExplorationSlice: StateCreator<
     } catch (err) {
       set({
         status: "idle",
-        error: err instanceof Error ? err.message : "AI 预测失败",
+        error: err instanceof Error
+          ? err.message
+          : i18n.t("stores.exploration.aiPredictFailed", "AI 预测失败"),
         progressStage: "",
         progressDetail: "",
       });
@@ -127,7 +134,11 @@ export const createExplorationSlice: StateCreator<
     try {
       const result = await executeNodeAction(ghostNodeId);
       if (!result.success) {
-        set({ status: "reviewing", error: result.error || "执行失败" });
+        set({
+          status: "reviewing",
+          error: result.error ||
+            i18n.t("stores.exploration.executeFailed", "执行失败"),
+        });
         return;
       }
 
@@ -136,7 +147,9 @@ export const createExplorationSlice: StateCreator<
     } catch (err) {
       set({
         status: "reviewing",
-        error: err instanceof Error ? err.message : "执行失败",
+        error: err instanceof Error
+          ? err.message
+          : i18n.t("stores.exploration.executeFailed", "执行失败"),
       });
     }
   },
@@ -152,7 +165,10 @@ export const createExplorationSlice: StateCreator<
     if (node) {
       const validation = validateAndRepairNode(node);
       if (!validation.valid) {
-        set({ error: validation.error || "节点数据验证失败" });
+        set({
+          error: validation.error ||
+            i18n.t("stores.exploration.validationFailed", "节点数据验证失败"),
+        });
         return false;
       }
     }
@@ -194,8 +210,8 @@ export const createExplorationSlice: StateCreator<
 
     set({
       status: "predicting",
-      progressStage: "准备下一步",
-      progressDetail: "正在分析...",
+      progressStage: i18n.t("stores.exploration.nextStepStage", "准备下一步"),
+      progressDetail: i18n.t("stores.exploration.analyzing", "正在分析..."),
     });
 
     try {
@@ -239,7 +255,9 @@ export const createExplorationSlice: StateCreator<
     } catch (err) {
       set({
         status: "confirmed",
-        error: err instanceof Error ? err.message : "AI 预测失败",
+        error: err instanceof Error
+          ? err.message
+          : i18n.t("stores.exploration.aiPredictFailed", "AI 预测失败"),
         progressStage: "",
         progressDetail: "",
       });
@@ -297,7 +315,9 @@ export const createExplorationSlice: StateCreator<
     } catch (err) {
       set({
         status: "reviewing",
-        error: err instanceof Error ? err.message : "AI 预测失败",
+        error: err instanceof Error
+          ? err.message
+          : i18n.t("stores.exploration.aiPredictFailed", "AI 预测失败"),
         progressStage: "",
         progressDetail: "",
       });

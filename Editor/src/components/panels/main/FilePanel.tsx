@@ -15,6 +15,7 @@ import {
 } from "@dnd-kit/sortable";
 import { Tabs, Input, Button, Tooltip } from "antd";
 import { FileAddOutlined } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 import { useFileStore } from "../../../stores/fileStore";
 import { useConfigStore } from "../../../stores/configStore";
 
@@ -46,6 +47,7 @@ const DraggableTabNode: React.FC<Readonly<DraggableTabPaneProps>> = memo(
 );
 
 function FilePanel() {
+  const { t } = useTranslation();
   // 当前文件名
   const files = useFileStore((state) => state.files);
   const fileName = useFileStore((state) => state.currentFile.fileName);
@@ -109,12 +111,15 @@ function FilePanel() {
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
         <Input
           className={style.filename}
-          placeholder="文件名"
+          placeholder={t("ui.panels.main.file.fileNamePlaceholder", "文件名")}
           value={fileName}
           status={fileNameState}
           onChange={onLabelChange}
         />
-        <Tooltip title="本地文件" placement="bottom">
+        <Tooltip
+          title={t("ui.panels.main.file.localFile", "本地文件")}
+          placement="bottom"
+        >
           <Button
             type="primary"
             icon={<FileAddOutlined />}

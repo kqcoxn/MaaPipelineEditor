@@ -1,5 +1,6 @@
 import { NodeTypeEnum } from "../../components/flow/nodes";
 import type { NodeType, PipelineNodeType } from "../../stores/flow";
+import uiT from "../../i18n/translate";
 
 export interface ValidationResult {
   valid: boolean;
@@ -20,15 +21,15 @@ export interface NodeValidationResult {
  */
 export function validateAndRepairNode(node: NodeType): NodeValidationResult {
   if (!node) {
-    return { valid: false, error: "节点数据为空" };
+    return { valid: false, error: uiT("ui.utils.nodeJsonValidator.nodeEmpty", "节点数据为空") };
   }
 
   if (!node.type) {
-    return { valid: false, error: "节点类型缺失" };
+    return { valid: false, error: uiT("ui.utils.nodeJsonValidator.nodeTypeMissing", "节点类型缺失") };
   }
 
   if (!node.data) {
-    return { valid: false, error: "节点数据结构损坏" };
+    return { valid: false, error: uiT("ui.utils.nodeJsonValidator.nodeDataCorrupted", "节点数据结构损坏") };
   }
 
   // 验证 Pipeline 节点
@@ -85,7 +86,7 @@ export function validateAndRepairNode(node: NodeType): NodeValidationResult {
     if (needsRepair) {
       return {
         valid: true,
-        error: "节点数据结构不完整，已自动修复",
+        error: uiT("ui.utils.nodeJsonValidator.nodeDataRepaired", "节点数据结构不完整，已自动修复"),
         repaired: { ...pipelineNode, data: repairedData } as NodeType,
       };
     }
@@ -111,7 +112,9 @@ export function validateNodeJson(
   } catch (error: any) {
     return {
       valid: false,
-      error: `JSON 语法错误: ${error.message}`,
+      error: uiT("ui.utils.nodeJsonValidator.jsonSyntaxError", "JSON 语法错误: {{message}}", {
+        message: error.message,
+      }),
     };
   }
 
@@ -119,7 +122,7 @@ export function validateNodeJson(
   if (typeof data !== "object" || data === null || Array.isArray(data)) {
     return {
       valid: false,
-      error: "节点数据必须是对象类型",
+      error: uiT("ui.utils.nodeJsonValidator.mustBeObject", "节点数据必须是对象类型"),
     };
   }
 
@@ -138,7 +141,9 @@ export function validateNodeJson(
     default:
       return {
         valid: false,
-        error: `未知的节点类型: ${nodeType}`,
+        error: uiT("ui.utils.nodeJsonValidator.unknownNodeType", "未知的节点类型: {{nodeType}}", {
+          nodeType,
+        }),
       };
   }
 }
@@ -151,13 +156,15 @@ function validatePipelineNodeData(data: any): ValidationResult {
   if (!("label" in data)) {
     return {
       valid: false,
-      error: "缺少必填字段: label",
+      error: uiT("ui.utils.nodeJsonValidator.missingField", "缺少必填字段: {{field}}", { field: "label" }),
     };
   }
   if (typeof data.label !== "string") {
     return {
       valid: false,
-      error: "字段 label 必须是字符串类型",
+      error: uiT("ui.utils.nodeJsonValidator.fieldMustBeString", "字段 {{field}} 必须是字符串类型", {
+        field: "label",
+      }),
     };
   }
 
@@ -165,25 +172,35 @@ function validatePipelineNodeData(data: any): ValidationResult {
   if (!("recognition" in data)) {
     return {
       valid: false,
-      error: "缺少必填字段: recognition",
+      error: uiT("ui.utils.nodeJsonValidator.missingField", "缺少必填字段: {{field}}", {
+        field: "recognition",
+      }),
     };
   }
   if (typeof data.recognition !== "object" || data.recognition === null) {
     return {
       valid: false,
-      error: "字段 recognition 必须是对象类型",
+      error: uiT("ui.utils.nodeJsonValidator.fieldMustBeObject", "字段 {{field}} 必须是对象类型", {
+        field: "recognition",
+      }),
     };
   }
   if (!("type" in data.recognition)) {
     return {
       valid: false,
-      error: "recognition 缺少必填字段: type",
+      error: uiT("ui.utils.nodeJsonValidator.nestedMissingField", "{{parent}} 缺少必填字段: {{field}}", {
+        parent: "recognition",
+        field: "type",
+      }),
     };
   }
   if (!("param" in data.recognition)) {
     return {
       valid: false,
-      error: "recognition 缺少必填字段: param",
+      error: uiT("ui.utils.nodeJsonValidator.nestedMissingField", "{{parent}} 缺少必填字段: {{field}}", {
+        parent: "recognition",
+        field: "param",
+      }),
     };
   }
 
@@ -191,25 +208,35 @@ function validatePipelineNodeData(data: any): ValidationResult {
   if (!("action" in data)) {
     return {
       valid: false,
-      error: "缺少必填字段: action",
+      error: uiT("ui.utils.nodeJsonValidator.missingField", "缺少必填字段: {{field}}", {
+        field: "action",
+      }),
     };
   }
   if (typeof data.action !== "object" || data.action === null) {
     return {
       valid: false,
-      error: "字段 action 必须是对象类型",
+      error: uiT("ui.utils.nodeJsonValidator.fieldMustBeObject", "字段 {{field}} 必须是对象类型", {
+        field: "action",
+      }),
     };
   }
   if (!("type" in data.action)) {
     return {
       valid: false,
-      error: "action 缺少必填字段: type",
+      error: uiT("ui.utils.nodeJsonValidator.nestedMissingField", "{{parent}} 缺少必填字段: {{field}}", {
+        parent: "action",
+        field: "type",
+      }),
     };
   }
   if (!("param" in data.action)) {
     return {
       valid: false,
-      error: "action 缺少必填字段: param",
+      error: uiT("ui.utils.nodeJsonValidator.nestedMissingField", "{{parent}} 缺少必填字段: {{field}}", {
+        parent: "action",
+        field: "param",
+      }),
     };
   }
 
@@ -223,13 +250,15 @@ function validateExternalNodeData(data: any): ValidationResult {
   if (!("label" in data)) {
     return {
       valid: false,
-      error: "缺少必填字段: label",
+      error: uiT("ui.utils.nodeJsonValidator.missingField", "缺少必填字段: {{field}}", { field: "label" }),
     };
   }
   if (typeof data.label !== "string") {
     return {
       valid: false,
-      error: "字段 label 必须是字符串类型",
+      error: uiT("ui.utils.nodeJsonValidator.fieldMustBeString", "字段 {{field}} 必须是字符串类型", {
+        field: "label",
+      }),
     };
   }
 
@@ -243,13 +272,15 @@ function validateAnchorNodeData(data: any): ValidationResult {
   if (!("label" in data)) {
     return {
       valid: false,
-      error: "缺少必填字段: label",
+      error: uiT("ui.utils.nodeJsonValidator.missingField", "缺少必填字段: {{field}}", { field: "label" }),
     };
   }
   if (typeof data.label !== "string") {
     return {
       valid: false,
-      error: "字段 label 必须是字符串类型",
+      error: uiT("ui.utils.nodeJsonValidator.fieldMustBeString", "字段 {{field}} 必须是字符串类型", {
+        field: "label",
+      }),
     };
   }
 
@@ -263,39 +294,49 @@ function validateStickerNodeData(data: any): ValidationResult {
   if (!("label" in data)) {
     return {
       valid: false,
-      error: "缺少必填字段: label",
+      error: uiT("ui.utils.nodeJsonValidator.missingField", "缺少必填字段: {{field}}", { field: "label" }),
     };
   }
   if (typeof data.label !== "string") {
     return {
       valid: false,
-      error: "字段 label 必须是字符串类型",
+      error: uiT("ui.utils.nodeJsonValidator.fieldMustBeString", "字段 {{field}} 必须是字符串类型", {
+        field: "label",
+      }),
     };
   }
 
   if (!("content" in data)) {
     return {
       valid: false,
-      error: "缺少必填字段: content",
+      error: uiT("ui.utils.nodeJsonValidator.missingField", "缺少必填字段: {{field}}", {
+        field: "content",
+      }),
     };
   }
   if (typeof data.content !== "string") {
     return {
       valid: false,
-      error: "字段 content 必须是字符串类型",
+      error: uiT("ui.utils.nodeJsonValidator.fieldMustBeString", "字段 {{field}} 必须是字符串类型", {
+        field: "content",
+      }),
     };
   }
 
   if (!("color" in data)) {
     return {
       valid: false,
-      error: "缺少必填字段: color",
+      error: uiT("ui.utils.nodeJsonValidator.missingField", "缺少必填字段: {{field}}", {
+        field: "color",
+      }),
     };
   }
   if (typeof data.color !== "string") {
     return {
       valid: false,
-      error: "字段 color 必须是字符串类型",
+      error: uiT("ui.utils.nodeJsonValidator.fieldMustBeString", "字段 {{field}} 必须是字符串类型", {
+        field: "color",
+      }),
     };
   }
 
@@ -303,7 +344,11 @@ function validateStickerNodeData(data: any): ValidationResult {
   if (!validColors.includes(data.color)) {
     return {
       valid: false,
-      error: `字段 color 必须是以下值之一: ${validColors.join(", ")}`,
+      error: uiT(
+        "ui.utils.nodeJsonValidator.colorMustBeOneOf",
+        "字段 color 必须是以下值之一: {{values}}",
+        { values: validColors.join(", ") },
+      ),
     };
   }
 
@@ -317,26 +362,32 @@ function validateGroupNodeData(data: any): ValidationResult {
   if (!("label" in data)) {
     return {
       valid: false,
-      error: "缺少必填字段: label",
+      error: uiT("ui.utils.nodeJsonValidator.missingField", "缺少必填字段: {{field}}", { field: "label" }),
     };
   }
   if (typeof data.label !== "string") {
     return {
       valid: false,
-      error: "字段 label 必须是字符串类型",
+      error: uiT("ui.utils.nodeJsonValidator.fieldMustBeString", "字段 {{field}} 必须是字符串类型", {
+        field: "label",
+      }),
     };
   }
 
   if (!("color" in data)) {
     return {
       valid: false,
-      error: "缺少必填字段: color",
+      error: uiT("ui.utils.nodeJsonValidator.missingField", "缺少必填字段: {{field}}", {
+        field: "color",
+      }),
     };
   }
   if (typeof data.color !== "string") {
     return {
       valid: false,
-      error: "字段 color 必须是字符串类型",
+      error: uiT("ui.utils.nodeJsonValidator.fieldMustBeString", "字段 {{field}} 必须是字符串类型", {
+        field: "color",
+      }),
     };
   }
 
@@ -344,7 +395,11 @@ function validateGroupNodeData(data: any): ValidationResult {
   if (!validColors.includes(data.color)) {
     return {
       valid: false,
-      error: `字段 color 必须是以下值之一: ${validColors.join(", ")}`,
+      error: uiT(
+        "ui.utils.nodeJsonValidator.colorMustBeOneOf",
+        "字段 color 必须是以下值之一: {{values}}",
+        { values: validColors.join(", ") },
+      ),
     };
   }
 

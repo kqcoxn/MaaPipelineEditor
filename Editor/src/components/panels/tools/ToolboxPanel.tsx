@@ -1,4 +1,5 @@
-import { memo, lazy, Suspense, useState, useCallback } from "react";
+import { memo, lazy, Suspense, useState, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { message, Tooltip, Button } from "antd";
 import { CopyOutlined } from "@ant-design/icons";
 import IconFont from "../../iconfonts";
@@ -46,52 +47,6 @@ interface ToolConfig {
   modalType: "ocr" | "template" | "color" | "roi" | "roi_offset" | "delta";
 }
 
-// 工具列表配置
-const TOOLBOX_TOOLS: ToolConfig[] = [
-  {
-    key: "ocr",
-    label: "OCR 文字识别",
-    icon: "icon-ocr1",
-    iconSize: 22,
-    modalType: "ocr",
-  },
-  {
-    key: "template",
-    label: "模板截图",
-    icon: "icon-jietu",
-    iconSize: 22,
-    modalType: "template",
-  },
-  {
-    key: "color",
-    label: "颜色取点",
-    icon: "icon-ic_quseqi",
-    iconSize: 22,
-    modalType: "color",
-  },
-  {
-    key: "roi",
-    label: "区域选择",
-    icon: "icon-kuangxuanzhong",
-    iconSize: 22,
-    modalType: "roi",
-  },
-  {
-    key: "roi_offset",
-    label: "偏移测量",
-    icon: "icon-celiang1",
-    iconSize: 22,
-    modalType: "roi_offset",
-  },
-  {
-    key: "delta",
-    label: "位移差值 (dx/dy)",
-    icon: "icon-celiang2",
-    iconSize: 22,
-    modalType: "delta",
-  },
-];
-
 // 结果类型
 type ToolResult =
   | { type: "ocr"; text: string; roi?: [number, number, number, number] }
@@ -108,7 +63,56 @@ type ToolResult =
   | { type: "dy"; delta: number };
 
 function ToolboxPanel() {
+  const { t } = useTranslation();
   const { connectionStatus } = useMFWStore();
+
+  const toolboxTools = useMemo<ToolConfig[]>(
+    () => [
+      {
+        key: "ocr",
+        label: t("ui.panels.tools.toolbox.ocr", "OCR 文字识别"),
+        icon: "icon-ocr1",
+        iconSize: 22,
+        modalType: "ocr",
+      },
+      {
+        key: "template",
+        label: t("ui.panels.tools.toolbox.template", "模板截图"),
+        icon: "icon-jietu",
+        iconSize: 22,
+        modalType: "template",
+      },
+      {
+        key: "color",
+        label: t("ui.panels.tools.toolbox.color", "颜色取点"),
+        icon: "icon-ic_quseqi",
+        iconSize: 22,
+        modalType: "color",
+      },
+      {
+        key: "roi",
+        label: t("ui.panels.tools.toolbox.roi", "区域选择"),
+        icon: "icon-kuangxuanzhong",
+        iconSize: 22,
+        modalType: "roi",
+      },
+      {
+        key: "roi_offset",
+        label: t("ui.panels.tools.toolbox.roiOffset", "偏移测量"),
+        icon: "icon-celiang1",
+        iconSize: 22,
+        modalType: "roi_offset",
+      },
+      {
+        key: "delta",
+        label: t("ui.panels.tools.toolbox.delta", "位移差值 (dx/dy)"),
+        icon: "icon-celiang2",
+        iconSize: 22,
+        modalType: "delta",
+      },
+    ],
+    [t],
+  );
 
   // Modal 状态
   const [ocrModalOpen, setOcrModalOpen] = useState(false);
@@ -124,11 +128,13 @@ function ToolboxPanel() {
   // 检查连接状态
   const checkConnection = useCallback(() => {
     if (connectionStatus !== "connected") {
-      message.error("请先连接本地服务与设备");
+      message.error(
+        t("ui.panels.tools.toolbox.connectFirst", "请先连接本地服务与设备"),
+      );
       return false;
     }
     return true;
-  }, [connectionStatus]);
+  }, [connectionStatus, t]);
 
   // 打开工具
   const openTool = useCallback(
@@ -163,9 +169,11 @@ function ToolboxPanel() {
   const handleOCRConfirm = useCallback(
     (text: string, roi?: [number, number, number, number]) => {
       setLastResult({ type: "ocr", text, roi });
-      message.success("OCR 识别完成");
+      message.success(
+        t("ui.panels.tools.toolbox.ocrComplete", "OCR 识别完成"),
+      );
     },
-    [],
+    [t],
   );
 
   // 模板确认回调
@@ -176,43 +184,64 @@ function ToolboxPanel() {
       roi?: [number, number, number, number],
     ) => {
       setLastResult({ type: "template", path: templatePath, greenMask, roi });
-      message.success("模板截图已保存");
+      message.success(
+        t("ui.panels.tools.toolbox.templateSaved", "模板截图已保存"),
+      );
     },
-    [],
+    [t],
   );
 
   // 颜色确认回调
   const handleColorConfirm = useCallback(
     (color: [number, number, number] | [number]) => {
       setLastResult({ type: "color", color });
-      message.success("颜色取点完成");
+      message.success(
+        t("ui.panels.tools.toolbox.colorComplete", "颜色取点完成"),
+      );
     },
-    [],
+    [t],
   );
 
   // ROI 确认回调
   const handleROIConfirm = useCallback(
     (roi: [number, number, number, number]) => {
       setLastResult({ type: "roi", roi });
-      message.success("区域选择完成");
+      message.success(
+        t("ui.panels.tools.toolbox.roiComplete", "区域选择完成"),
+      );
     },
-    [],
+    [t],
   );
 
   // ROI Offset 确认回调
   const handleROIOffsetConfirm = useCallback(
     (offset: [number, number, number, number]) => {
       setLastResult({ type: "roi_offset", offset });
-      message.success("偏移测量完成");
+      message.success(
+        t("ui.panels.tools.toolbox.roiOffsetComplete", "偏移测量完成"),
+      );
     },
-    [],
+    [t],
   );
 
   // Delta 确认回调
-  const handleDeltaConfirm = useCallback((delta: number, mode: "dx" | "dy") => {
-    setLastResult({ type: mode, delta });
-    message.success(`${mode === "dx" ? "水平" : "垂直"}位移测量完成`);
-  }, []);
+  const handleDeltaConfirm = useCallback(
+    (delta: number, mode: "dx" | "dy") => {
+      setLastResult({ type: mode, delta });
+      message.success(
+        mode === "dx"
+          ? t(
+              "ui.panels.tools.toolbox.horizontalDeltaComplete",
+              "水平位移测量完成",
+            )
+          : t(
+              "ui.panels.tools.toolbox.verticalDeltaComplete",
+              "垂直位移测量完成",
+            ),
+      );
+    },
+    [t],
+  );
 
   // 复制值到剪贴板
   const copyValue = useCallback(() => {
@@ -263,9 +292,11 @@ function ToolboxPanel() {
     }
 
     navigator.clipboard.writeText(valueStr).then(() => {
-      message.success("已复制值");
+      message.success(
+        t("ui.panels.tools.toolbox.copiedValue", "已复制值"),
+      );
     });
-  }, [lastResult]);
+  }, [lastResult, t]);
 
   // 复制键值对到剪贴板
   const copyKeyValue = useCallback(() => {
@@ -311,9 +342,11 @@ function ToolboxPanel() {
     }
 
     navigator.clipboard.writeText(keyValueStr).then(() => {
-      message.success("已复制键值对");
+      message.success(
+        t("ui.panels.tools.toolbox.copiedKeyValue", "已复制键值对"),
+      );
     });
-  }, [lastResult]);
+  }, [lastResult, t]);
 
   // 渲染结果预览
   const renderResultPreview = () => {
@@ -324,7 +357,7 @@ function ToolboxPanel() {
 
     switch (lastResult.type) {
       case "ocr":
-        label = "OCR 结果";
+        label = t("ui.panels.tools.toolbox.ocrResult", "OCR 结果");
         content = (
           <div className={style.resultContent}>
             <div className={style.resultText}>{lastResult.text}</div>
@@ -337,18 +370,22 @@ function ToolboxPanel() {
         );
         break;
       case "template":
-        label = "模板截图";
+        label = t("ui.panels.tools.toolbox.templateResult", "模板截图");
         content = (
           <div className={style.resultContent}>
             <div className={style.resultText}>{lastResult.path}</div>
             <div className={style.resultMeta}>
-              绿幕: {lastResult.greenMask ? "是" : "否"}
+              {t("ui.panels.tools.toolbox.greenMask", "绿幕: {{value}}", {
+                value: lastResult.greenMask
+                  ? t("ui.panels.tools.toolbox.yes", "是")
+                  : t("ui.panels.tools.toolbox.no", "否"),
+              })}
             </div>
           </div>
         );
         break;
       case "color":
-        label = "取色结果";
+        label = t("ui.panels.tools.toolbox.colorResult", "取色结果");
         // 根据颜色值长度判断模式
         if (lastResult.color.length === 1) {
           // GRAY模式
@@ -383,7 +420,7 @@ function ToolboxPanel() {
         }
         break;
       case "roi":
-        label = "区域结果";
+        label = t("ui.panels.tools.toolbox.roiResult", "区域结果");
         content = (
           <div className={style.resultContent}>
             [{lastResult.roi.join(", ")}]
@@ -391,7 +428,7 @@ function ToolboxPanel() {
         );
         break;
       case "roi_offset":
-        label = "偏移结果";
+        label = t("ui.panels.tools.toolbox.offsetResult", "偏移结果");
         content = (
           <div className={style.resultContent}>
             [{lastResult.offset.join(", ")}]
@@ -399,11 +436,11 @@ function ToolboxPanel() {
         );
         break;
       case "dx":
-        label = "水平位移";
+        label = t("ui.panels.tools.toolbox.horizontalDelta", "水平位移");
         content = <div className={style.resultContent}>{lastResult.delta}</div>;
         break;
       case "dy":
-        label = "垂直位移";
+        label = t("ui.panels.tools.toolbox.verticalDelta", "垂直位移");
         content = <div className={style.resultContent}>{lastResult.delta}</div>;
         break;
     }
@@ -419,7 +456,7 @@ function ToolboxPanel() {
               icon={<CopyOutlined />}
               onClick={copyValue}
             >
-              复制值
+              {t("ui.panels.tools.toolbox.copyValue", "复制值")}
             </Button>
             <Button
               type="text"
@@ -427,7 +464,7 @@ function ToolboxPanel() {
               icon={<CopyOutlined />}
               onClick={copyKeyValue}
             >
-              复制键值对
+              {t("ui.panels.tools.toolbox.copyKeyValue", "复制键值对")}
             </Button>
           </div>
         </div>
@@ -439,7 +476,7 @@ function ToolboxPanel() {
   return (
     <div className={style.toolboxPanel}>
       <div className={style.toolsRow}>
-        {TOOLBOX_TOOLS.map((tool) => (
+        {toolboxTools.map((tool) => (
           <div key={tool.key} className={style.toolItemWrapper}>
             <Tooltip title={tool.label} placement="bottom">
               <div

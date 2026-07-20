@@ -1,4 +1,5 @@
 import type { LocalWebSocketServer } from "../server";
+import uiT from "../../i18n/translate";
 
 const REQUEST_TIMEOUT_MS = 10000;
 
@@ -38,10 +39,22 @@ export class ScreencapRequestManager {
     signal?: AbortSignal,
   ): Promise<ScreencapResult> {
     if (!wsClient) {
-      return Promise.reject(new Error("LocalBridge 未连接"));
+      return Promise.reject(
+        new Error(
+          uiT(
+            "ui.services.screencap.localBridgeNotConnected",
+            "LocalBridge 未连接",
+          ),
+        ),
+      );
     }
     if (signal?.aborted) {
-      return Promise.reject(new DOMException("截图请求已取消", "AbortError"));
+      return Promise.reject(
+        new DOMException(
+          uiT("ui.services.screencap.requestCancelled", "截图请求已取消"),
+          "AbortError",
+        ),
+      );
     }
 
     const requestId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -50,12 +63,23 @@ export class ScreencapRequestManager {
         ? () => {
             this.reject(
               requestId,
-              new DOMException("截图请求已取消", "AbortError"),
+              new DOMException(
+                uiT(
+                  "ui.services.screencap.requestCancelled",
+                  "截图请求已取消",
+                ),
+                "AbortError",
+              ),
             );
           }
         : undefined;
       const timeoutId = setTimeout(() => {
-        this.reject(requestId, new Error("截图请求超时"));
+        this.reject(
+          requestId,
+          new Error(
+            uiT("ui.services.screencap.requestTimeout", "截图请求超时"),
+          ),
+        );
       }, REQUEST_TIMEOUT_MS);
 
       this.pendingRequests.set(requestId, {
@@ -74,7 +98,15 @@ export class ScreencapRequestManager {
         request_id: requestId,
       });
       if (!sent) {
-        this.reject(requestId, new Error("截图请求发送失败"));
+        this.reject(
+          requestId,
+          new Error(
+            uiT(
+              "ui.services.screencap.requestSendFailed",
+              "截图请求发送失败",
+            ),
+          ),
+        );
       }
     });
   }

@@ -8,6 +8,7 @@ import {
   useLocalFileStore,
   type LocalFileInfo,
 } from "../../stores/localFileStore";
+import uiT from "../../i18n/translate";
 
 /**
  * 文件协议处理器
@@ -94,11 +95,19 @@ export class FileProtocol extends BaseProtocol {
       );
 
       if (wasRefreshing) {
-        message.success(`文件列表刷新完成，共 ${files.length} 个文件`);
+        message.success(
+          uiT(
+            "ui.services.file.listRefreshSuccess",
+            "文件列表刷新完成，共 {{count}} 个文件",
+            { count: files.length },
+          ),
+        );
       }
     } catch (error) {
       console.error("[FileProtocol] Failed to handle file list:", error);
-      message.error("文件列表更新失败");
+      message.error(
+        uiT("ui.services.file.listUpdateFailed", "文件列表更新失败"),
+      );
 
       // 重置刷新状态
       const localFileStore = useLocalFileStore.getState();
@@ -116,7 +125,9 @@ export class FileProtocol extends BaseProtocol {
 
       if (!file_path || !content) {
         console.error("[FileProtocol] Invalid file content data:", data);
-        message.error("接收到的文件数据无效");
+        message.error(
+          uiT("ui.services.file.invalidFileData", "接收到的文件数据无效"),
+        );
         return;
       }
 
@@ -131,16 +142,30 @@ export class FileProtocol extends BaseProtocol {
       if (success) {
         const fileName = file_path.split(/[\/\\]/).pop();
         if (mpe_config) {
-          message.success(`已打开文件: ${fileName} (含配置)`);
+          message.success(
+            uiT(
+              "ui.services.file.openedWithConfig",
+              "已打开文件: {{name}} (含配置)",
+              { name: fileName },
+            ),
+          );
         } else {
-          message.success(`已打开文件: ${fileName}`);
+          message.success(
+            uiT("ui.services.file.opened", "已打开文件: {{name}}", {
+              name: fileName,
+            }),
+          );
         }
       } else {
-        message.error("文件打开失败");
+        message.error(
+          uiT("ui.services.file.openFailed", "文件打开失败"),
+        );
       }
     } catch (error) {
       console.error("[FileProtocol] Failed to handle file content:", error);
-      message.error("文件导入失败");
+      message.error(
+        uiT("ui.services.file.importFailed", "文件导入失败"),
+      );
     }
   }
 
@@ -204,7 +229,13 @@ export class FileProtocol extends BaseProtocol {
             const deletedFile = fileStore.findFileByPath(file_path);
             if (deletedFile) {
               fileStore.markFileDeleted(file_path);
-              message.warning(`文件"${fileName}"已被删除`);
+              message.warning(
+                uiT(
+                  "ui.services.file.deleted",
+                  "文件\"{{name}}\"已被删除",
+                  { name: fileName },
+                ),
+              );
             }
           }
           break;
@@ -248,12 +279,18 @@ export class FileProtocol extends BaseProtocol {
 
       if (success) {
         const fileName = file_path.split(/[\/\\]/).pop() || file_path;
-        message.success(`文件已保存: ${fileName}`);
+        message.success(
+          uiT("ui.services.file.saved", "文件已保存: {{name}}", {
+            name: fileName,
+          }),
+        );
 
         // 忽略刚保存文件的变更通知（记录保存时间戳）
         this.recentlySavedFiles.set(file_path, Date.now());
       } else {
-        message.error("文件保存失败");
+        message.error(
+          uiT("ui.services.file.saveFailed", "文件保存失败"),
+        );
       }
     } catch (error) {
       console.error("[FileProtocol] Failed to handle save ack:", error);
@@ -276,13 +313,21 @@ export class FileProtocol extends BaseProtocol {
         const pipelineName =
           pipeline_path.split(/[\/\\]/).pop() || pipeline_path;
         const configName = config_path.split(/[\/\\]/).pop() || config_path;
-        message.success(`文件已保存: ${pipelineName} + ${configName}`);
+        message.success(
+          uiT(
+            "ui.services.file.savedSeparated",
+            "文件已保存: {{pipeline}} + {{config}}",
+            { pipeline: pipelineName, config: configName },
+          ),
+        );
 
         // 忽略刚保存文件的变更通知
         this.recentlySavedFiles.set(pipeline_path, Date.now());
         this.recentlySavedFiles.set(config_path, Date.now());
       } else {
-        message.error("文件保存失败");
+        message.error(
+          uiT("ui.services.file.saveFailed", "文件保存失败"),
+        );
       }
     } catch (error) {
       console.error(
@@ -302,7 +347,11 @@ export class FileProtocol extends BaseProtocol {
 
       if (status === "ok") {
         const fileName = file_path.split(/[\/\\]/).pop() || file_path;
-        message.success(`文件已创建: ${fileName}`);
+        message.success(
+          uiT("ui.services.file.created", "文件已创建: {{name}}", {
+            name: fileName,
+          }),
+        );
 
         // 更新当前文件的路径配置
         const fileStore = useFileStore.getState();
@@ -328,7 +377,9 @@ export class FileProtocol extends BaseProtocol {
         // 更新同步时间
         fileStore.setFileConfig("lastSyncTime", Date.now());
       } else {
-        message.error("文件创建失败");
+        message.error(
+          uiT("ui.services.file.createFailed", "文件创建失败"),
+        );
       }
     } catch (error) {
       console.error("[FileProtocol] Failed to handle create file ack:", error);
@@ -402,7 +453,12 @@ export class FileProtocol extends BaseProtocol {
     this.currentModal = null;
 
     if (!this.requestOpenFile(filePath)) {
-      message.error("重新加载请求发送失败");
+      message.error(
+        uiT(
+          "ui.services.file.reloadRequestFailed",
+          "重新加载请求发送失败",
+        ),
+      );
     }
   }
 
@@ -418,7 +474,13 @@ export class FileProtocol extends BaseProtocol {
     // 自动重载
     if (configStore.configs.fileAutoReload) {
       this.requestFileReload(filePath);
-      message.info(`文件"${fileName}"已自动重新加载`);
+      message.info(
+        uiT(
+          "ui.services.file.autoReloaded",
+          "文件\"{{name}}\"已自动重新加载",
+          { name: fileName },
+        ),
+      );
       return;
     }
 
@@ -469,28 +531,51 @@ export class FileProtocol extends BaseProtocol {
       this.pendingModifiedFiles.clear();
       this.currentModal?.destroy();
       this.currentModal = null;
-      message.success("已开启自动重载，后续文件变更将自动应用");
+      message.success(
+        uiT(
+          "ui.services.file.autoReloadEnabled",
+          "已开启自动重载，后续文件变更将自动应用",
+        ),
+      );
     };
 
     const buildModalContent = (): string => {
       const count = this.pendingModifiedFiles.size;
       if (count === 1) {
         const fileName = Array.from(this.pendingModifiedFiles.values())[0];
-        return `文件"${fileName}"已被外部修改，请选择处理方式：`;
+        return uiT(
+          "ui.services.file.externalModifiedSingle",
+          "文件\"{{name}}\"已被外部修改，请选择处理方式：",
+          { name: fileName },
+        );
       }
       const fileNames = Array.from(this.pendingModifiedFiles.values());
       const displayNames =
         fileNames.length <= 3
           ? fileNames.map((n) => `"${n}"`).join("、")
-          : `${fileNames
-              .slice(0, 3)
-              .map((n) => `"${n}"`)
-              .join("、")} 等 ${count} 个文件`;
-      return `${displayNames}已被外部修改，请选择处理方式：`;
+          : uiT(
+              "ui.services.file.externalModifiedMultiple",
+              "{{names}} 等 {{count}} 个文件",
+              {
+                names: fileNames
+                  .slice(0, 3)
+                  .map((n) => `"${n}"`)
+                  .join("、"),
+                count,
+              },
+            );
+      return uiT(
+        "ui.services.file.externalModifiedPrompt",
+        "{{names}}已被外部修改，请选择处理方式：",
+        { names: displayNames },
+      );
     };
 
     this.currentModal = Modal.confirm({
-      title: "文件已被外部修改",
+      title: uiT(
+        "ui.services.file.externalModifiedTitle",
+        "文件已被外部修改",
+      ),
       content: buildModalContent(),
       icon: null,
       closable: true,
@@ -500,12 +585,20 @@ export class FileProtocol extends BaseProtocol {
         {
           style: { display: "flex", justifyContent: "flex-end", marginTop: 16 },
         },
-        createElement(Button, { onClick: handleDismiss }, "稍后处理"),
-        createElement(Button, { onClick: handleAutoReload }, "自动重载"),
+        createElement(
+          Button,
+          { onClick: handleDismiss },
+          uiT("ui.services.file.dismissLater", "稍后处理"),
+        ),
+        createElement(
+          Button,
+          { onClick: handleAutoReload },
+          uiT("ui.services.file.autoReload", "自动重载"),
+        ),
         createElement(
           Button,
           { type: "primary", onClick: handleReloadAll },
-          "重新加载",
+          uiT("ui.services.file.reload", "重新加载"),
         ),
       ),
       onCancel: () => {
@@ -519,16 +612,6 @@ export class FileProtocol extends BaseProtocol {
    */
   private updateFileChangedModal(): void {
     if (!this.currentModal) return;
-
-    const count = this.pendingModifiedFiles.size;
-    const fileNames = Array.from(this.pendingModifiedFiles.values());
-    const displayNames =
-      fileNames.length <= 3
-        ? fileNames.map((n) => `"${n}"`).join("、")
-        : `${fileNames
-            .slice(0, 3)
-            .map((n) => `"${n}"`)
-            .join("、")} 等 ${count} 个文件`;
 
     this.currentModal.destroy();
     this.currentModal = null;
@@ -548,7 +631,7 @@ export class FileProtocol extends BaseProtocol {
       const timeout = setTimeout(() => {
         // 超时后移除回调并返回失败
         FileProtocol.pendingSaveCallbacks.delete(filePath);
-        console.warn(`[FileProtocol] 等待保存确认超时: ${filePath}`);
+        console.warn(`[FileProtocol] Save ack timeout: ${filePath}`);
         resolve(false);
       }, FileProtocol.SAVE_ACK_TIMEOUT);
 

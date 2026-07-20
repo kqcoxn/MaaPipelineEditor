@@ -1,10 +1,12 @@
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Select } from "antd";
 import { useFlowStore } from "../../../stores/flow";
 import { useShallow } from "zustand/shallow";
 
 /**路径选择浮层内容 */
 export default function PathSelector() {
+  const { t } = useTranslation();
   const nodeOptionValues = useFlowStore(
     useShallow((state) =>
       state.nodes.flatMap((node) => [node.id, node.data.label]),
@@ -51,11 +53,11 @@ export default function PathSelector() {
     <div style={{ width: 240, padding: "8px 0" }}>
       <div style={{ marginBottom: 12 }}>
         <div style={{ marginBottom: 4, fontSize: 12, color: "#666" }}>
-          起始节点
+          {t("ui.panels.tools.path.startNode", "起始节点")}
         </div>
         <Select
           style={{ width: "100%" }}
-          placeholder="选择起始节点"
+          placeholder={t("ui.panels.tools.path.selectStart", "选择起始节点")}
           value={pathStartNodeId}
           onChange={(value) => setPathStartNode(value)}
           options={nodeOptions}
@@ -68,11 +70,11 @@ export default function PathSelector() {
       </div>
       <div style={{ marginBottom: 12 }}>
         <div style={{ marginBottom: 4, fontSize: 12, color: "#666" }}>
-          结束节点
+          {t("ui.panels.tools.path.endNode", "结束节点")}
         </div>
         <Select
           style={{ width: "100%" }}
-          placeholder="选择结束节点"
+          placeholder={t("ui.panels.tools.path.selectEnd", "选择结束节点")}
           value={pathEndNodeId}
           onChange={(value) => setPathEndNode(value)}
           options={nodeOptions}
@@ -85,12 +87,14 @@ export default function PathSelector() {
       </div>
       {hasPath && (
         <div style={{ fontSize: 12, color: "#52c41a", marginBottom: 8 }}>
-          ✓ 找到路径，共 {pathNodeIds.size} 个节点
+          {t("ui.panels.tools.path.found", "✓ 找到路径，共 {{count}} 个节点", {
+            count: pathNodeIds.size,
+          })}
         </div>
       )}
       {noPath && (
         <div style={{ fontSize: 12, color: "#ff4d4f", marginBottom: 8 }}>
-          ✗ 未找到路径
+          {t("ui.panels.tools.path.notFound", "✗ 未找到路径")}
         </div>
       )}
       <div style={{ display: "flex", gap: 8 }}>
@@ -105,7 +109,7 @@ export default function PathSelector() {
           }}
           onClick={() => clearPath()}
         >
-          清除
+          {t("ui.panels.tools.path.clear", "清除")}
         </button>
         <button
           style={{
@@ -119,7 +123,9 @@ export default function PathSelector() {
           }}
           onClick={() => setPathMode(!pathMode)}
         >
-          {pathMode ? "关闭路径模式" : "开启路径模式"}
+          {pathMode
+            ? t("ui.panels.tools.path.disablePathMode", "关闭路径模式")
+            : t("ui.panels.tools.path.enablePathMode", "开启路径模式")}
         </button>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { memo, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button, message, Modal } from "antd";
 import {
   useConfigStore,
@@ -16,6 +17,7 @@ import { HANDLE_DIRECTION_OPTIONS } from "../../flow/nodes/constants";
 
 /**一键更改所有节点端点位置 */
 const ApplyToAllRenderer = memo(() => {
+  const { t } = useTranslation();
   const defaultHandleDirection = useConfigStore(
     (state) => state.configs.defaultHandleDirection,
   );
@@ -34,22 +36,24 @@ const ApplyToAllRenderer = memo(() => {
     }));
     setNodes(newNodes);
     message.success(
-      `已将所有节点端点位置更改为「${
-        HANDLE_DIRECTION_OPTIONS.find((o) => o.value === defaultHandleDirection)
-          ?.label
-      }」`,
+      t("ui.panels.settings.applyToAllSuccess", "已将所有节点端点位置更改为「{{direction}}」", {
+        direction:
+          HANDLE_DIRECTION_OPTIONS.find((o) => o.value === defaultHandleDirection)
+            ?.label ?? "",
+      }),
     );
-  }, [setNodes, defaultHandleDirection]);
+  }, [setNodes, defaultHandleDirection, t]);
 
   return (
     <Button size="small" onClick={handleApplyToAll}>
-      应用到所有节点
+      {t("ui.panels.settings.applyToAll", "应用到所有节点")}
     </Button>
   );
 });
 
 /**字段排序配置 */
 const FieldSortRenderer = memo(() => {
+  const { t } = useTranslation();
   const setStatus = useConfigStore((state) => state.setStatus);
 
   return (
@@ -58,7 +62,7 @@ const FieldSortRenderer = memo(() => {
         size="small"
         onClick={() => setStatus("showFieldSortModal", true)}
       >
-        配置排序
+        {t("ui.panels.settings.configureSort", "配置排序")}
       </Button>
       <FieldSortModal />
     </>
@@ -67,6 +71,7 @@ const FieldSortRenderer = memo(() => {
 
 /**本地服务配置（醒目卡片） */
 const BackendConfigRenderer = memo(() => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const isConnected = localServer.isConnected();
 
@@ -90,13 +95,17 @@ const BackendConfigRenderer = memo(() => {
         }}
         onClick={() => {
           if (!isConnected) {
-            message.warning("请先连接本地服务");
+            message.warning(
+              t("ui.panels.settings.connectLocalFirst", "请先连接本地服务"),
+            );
             return;
           }
           setOpen(true);
         }}
       >
-        <div style={{ fontWeight: 500 }}>编辑后端配置</div>
+        <div style={{ fontWeight: 500 }}>
+          {t("ui.panels.settings.editBackendConfig", "编辑后端配置")}
+        </div>
         {!isConnected && (
           <div
             style={{
@@ -105,7 +114,10 @@ const BackendConfigRenderer = memo(() => {
               marginTop: 4,
             }}
           >
-            需要先连接本地服务才能打开
+            {t(
+              "ui.panels.settings.needLocalConnection",
+              "需要先连接本地服务才能打开",
+            )}
           </div>
         )}
       </div>
@@ -115,29 +127,42 @@ const BackendConfigRenderer = memo(() => {
 });
 
 /**AI 警告框 */
-const AIWarningRenderer = memo(() => (
-  <div
-    style={{
-      fontSize: 12,
-      color: "#ff7875",
-      padding: "8px 12px",
-      background: "#fff2f0",
-      borderRadius: 8,
-      lineHeight: 1.5,
-      width: "100%",
-    }}
-  >
-    🌐 开启 LocalBridge 代理可解决 CORS 跨域限制，关闭则需要 API 服务支持 CORS
-    <br />
-    💡 节点预测功能需要支持视觉的模型（如 GPT-4o、Claude Sonnet、Gemini Flash
-    等）
-    <br />
-    🔐 API Key 粘贴后会自动加密存储，显示为 ENC: 开头的密文属于正常现象
-  </div>
-));
+const AIWarningRenderer = memo(() => {
+  const { t } = useTranslation();
+
+  return (
+    <div
+      style={{
+        fontSize: 12,
+        color: "#ff7875",
+        padding: "8px 12px",
+        background: "#fff2f0",
+        borderRadius: 8,
+        lineHeight: 1.5,
+        width: "100%",
+      }}
+    >
+      {t(
+        "ui.panels.settings.aiWarningLine1",
+        "🌐 开启 LocalBridge 代理可解决 CORS 跨域限制，关闭则需要 API 服务支持 CORS",
+      )}
+      <br />
+      {t(
+        "ui.panels.settings.aiWarningLine2",
+        "💡 节点预测功能需要支持视觉的模型（如 GPT-4o、Claude Sonnet、Gemini Flash 等）",
+      )}
+      <br />
+      {t(
+        "ui.panels.settings.aiWarningLine3",
+        "🔐 API Key 粘贴后会自动加密存储，显示为 ENC: 开头的密文属于正常现象",
+      )}
+    </div>
+  );
+});
 
 /**测试 AI 连接 */
 const TestConnectionRenderer = memo(() => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
 
   const handleTest = async () => {
@@ -146,11 +171,21 @@ const TestConnectionRenderer = memo(() => {
       const chat = new AIClient({
         systemPrompt: SYSTEM_PROMPTS.TEST_CONNECTION,
       });
-      const result = await chat.send("直接回复：AI 服务连接成功");
+      const result = await chat.send(
+        t("ui.panels.settings.testConnectionPrompt", "直接回复：AI 服务连接成功"),
+      );
       if (result.success) {
-        message.success(`测试成功: ${result.content}`);
+        message.success(
+          t("ui.panels.settings.testSuccess", "测试成功: {{content}}", {
+            content: result.content,
+          }),
+        );
       } else {
-        message.error(`测试失败: ${result.error}`);
+        message.error(
+          t("ui.panels.settings.testFailed", "测试失败: {{error}}", {
+            error: result.error,
+          }),
+        );
       }
     } finally {
       setLoading(false);
@@ -159,13 +194,14 @@ const TestConnectionRenderer = memo(() => {
 
   return (
     <Button size="small" type="primary" loading={loading} onClick={handleTest}>
-      测试连接
+      {t("ui.panels.settings.testConnection", "测试连接")}
     </Button>
   );
 });
 
 /**导出配置 */
 const ExportConfigRenderer = memo(() => {
+  const { t } = useTranslation();
   const configs = useConfigStore((state) => state.configs);
   const exportTemplates = useCustomTemplateStore(
     (state) => state.exportTemplates,
@@ -196,20 +232,25 @@ const ExportConfigRenderer = memo(() => {
     const templateCount = customTemplates.length;
     const msg =
       templateCount > 0
-        ? `配置导出成功（包含 ${templateCount} 个自定义模板）`
-        : "配置导出成功";
+        ? t(
+            "ui.panels.settings.exportSuccessWithTemplates",
+            "配置导出成功（包含 {{count}} 个自定义模板）",
+            { count: templateCount },
+          )
+        : t("ui.panels.settings.exportSuccess", "配置导出成功");
     message.success(msg);
   };
 
   return (
     <Button size="small" onClick={handleExport}>
-      导出
+      {t("ui.panels.settings.export", "导出")}
     </Button>
   );
 });
 
 /**导入配置 */
 const ImportConfigRenderer = memo(() => {
+  const { t } = useTranslation();
   const replaceConfig = useConfigStore((state) => state.replaceConfig);
   const importTemplates = useCustomTemplateStore(
     (state) => state.importTemplates,
@@ -228,7 +269,9 @@ const ImportConfigRenderer = memo(() => {
         const data = JSON.parse(text);
 
         if (!data.configs || typeof data.configs !== "object") {
-          message.error("无效的配置文件格式");
+          message.error(
+            t("ui.panels.settings.invalidConfigFormat", "无效的配置文件格式"),
+          );
           return;
         }
 
@@ -242,14 +285,29 @@ const ImportConfigRenderer = memo(() => {
         }
 
         if (templateCount > 0 && templateImportSuccess) {
-          message.success(`配置导入成功（包含 ${templateCount} 个自定义模板）`);
+          message.success(
+            t(
+              "ui.panels.settings.importSuccessWithTemplates",
+              "配置导入成功（包含 {{count}} 个自定义模板）",
+              { count: templateCount },
+            ),
+          );
         } else if (templateCount > 0 && !templateImportSuccess) {
-          message.warning("配置导入成功，但自定义模板导入失败");
+          message.warning(
+            t(
+              "ui.panels.settings.importSuccessTemplatesFailed",
+              "配置导入成功，但自定义模板导入失败",
+            ),
+          );
         } else {
-          message.success("配置导入成功");
+          message.success(
+            t("ui.panels.settings.importSuccess", "配置导入成功"),
+          );
         }
       } catch {
-        message.error("配置文件解析失败");
+        message.error(
+          t("ui.panels.settings.importParseFailed", "配置文件解析失败"),
+        );
       }
     };
     input.click();
@@ -257,32 +315,38 @@ const ImportConfigRenderer = memo(() => {
 
   return (
     <Button size="small" onClick={handleImport}>
-      导入
+      {t("ui.panels.settings.import", "导入")}
     </Button>
   );
 });
 
 /**重置默认值 */
 const ResetDefaultsRenderer = memo(() => {
+  const { t } = useTranslation();
   const resetAllConfigs = useConfigStore((state) => state.resetAllConfigs);
 
   const handleReset = () => {
     Modal.confirm({
-      title: "重置所有配置",
-      content: "确定要将所有配置项恢复为默认值吗？此操作不可撤销。",
-      okText: "确定重置",
+      title: t("ui.panels.settings.resetAllTitle", "重置所有配置"),
+      content: t(
+        "ui.panels.settings.resetAllContent",
+        "确定要将所有配置项恢复为默认值吗？此操作不可撤销。",
+      ),
+      okText: t("ui.panels.settings.resetConfirm", "确定重置"),
       okType: "danger",
-      cancelText: "取消",
+      cancelText: t("ui.panels.settings.cancel", "取消"),
       onOk: () => {
         resetAllConfigs();
-        message.success("已恢复默认配置");
+        message.success(
+          t("ui.panels.settings.resetSuccess", "已恢复默认配置"),
+        );
       },
     });
   };
 
   return (
     <Button size="small" danger onClick={handleReset}>
-      重置默认值
+      {t("ui.panels.settings.resetDefaults", "重置默认值")}
     </Button>
   );
 });

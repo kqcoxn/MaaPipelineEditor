@@ -1,0 +1,481 @@
+{
+  "app": {
+    "starRemind": {
+      "starNow": "Star it now!",
+      "remindLater": "Remind me later",
+      "neverRemind": "Don't remind again",
+      "title": "Give us a Star!",
+      "description": "If MaaPipelineEditor has been helpful to you, would you mind giving the project a free Star⭐? QAQ"
+    },
+    "fileDrop": {
+      "unsupportedType": "Only .json or .jsonc files are supported",
+      "importSuccess": "Imported file: {{fileName}}",
+      "importFailed": "File import failed. Please check the file format"
+    },
+    "cache": {
+      "loaded": "Loaded local cache"
+    },
+    "importRequest": {
+      "contentWithFile": "Import file \"{{expectedFile}}\" from directory \"{{dirName}}\"?",
+      "contentWithoutFile": "Select a file to import from directory \"{{dirName}}\"?",
+      "title": "Import request detected",
+      "okText": "Select file",
+      "cancelText": "Cancel"
+    }
+  },
+  "stores": {
+    "clipboard": {
+      "noSelection": "No node selected",
+      "copySuccess": "Selected nodes copied to internal clipboard",
+      "pasteEmpty": "No copied nodes in clipboard"
+    },
+    "debug": {
+      "diagnosticFallback": "Debug diagnostic event",
+      "defaultProfileName": "Default debug profile",
+      "entryNotInSnapshot": "The selected entry node is not in the current debug snapshot. Reopen the file containing the entry node and try again."
+    },
+    "error": {
+      "nodeNameRepeat": "Duplicate node name"
+    },
+    "flow": {
+      "history": {
+        "deleteEdge": "Delete connection",
+        "updateEdge": "Update connection properties",
+        "reorderEdge": "Reorder connection",
+        "batchReorderEdge": "Batch reorder connections",
+        "addEdge": "Add connection",
+        "replaceCanvas": "Replace canvas",
+        "adjustNodeSpacing": "Adjust node spacing",
+        "deleteNode": "Delete node",
+        "moveNode": "Move node",
+        "createGroup": "Create group",
+        "ungroup": "Ungroup",
+        "attachGroup": "Add to group",
+        "detachGroup": "Remove from group"
+      },
+      "node": {
+        "copySuffix": "_copy",
+        "newNode": "New node",
+        "external": "External node",
+        "anchor": "Redirect node",
+        "sticker": "Sticker",
+        "group": "Group"
+      }
+    },
+    "exploration": {
+      "connectDeviceFirst": "Please connect a device first",
+      "configureAiFirst": "Please configure the AI API first",
+      "init": "Initialize",
+      "preparing": "Preparing...",
+      "aiPredictFailed": "AI prediction failed",
+      "executeFailed": "Execution failed",
+      "validationFailed": "Node data validation failed",
+      "nextStepStage": "Preparing next step",
+      "analyzing": "Analyzing..."
+    }
+  },
+  "newcomerGuide": {
+    "steps": {
+      "learn": "Learn",
+      "basics": "Basics",
+      "complete": "Complete"
+    },
+    "fixed": {
+      "title": "Basics quiz",
+      "description": "The following covers basic MaaFW knowledge. You must answer all questions correctly to proceed. If you are new to MaaFW, use the docs or AI to help — it will greatly help with future project maintenance. If you already know this material, you'll pass quickly!",
+      "errorWithScore": "Score {{correct}}/{{total}}. Please fix the highlighted questions and resubmit.",
+      "errorAllWrong": "Some answers are incorrect. Please get all questions right before submitting."
+    },
+    "random": {
+      "title": "Tips quiz",
+      "description": "The following covers common tips. A score of 60% or higher is required to pass.",
+      "errorWithScore": "Score {{correct}}/{{total}}. Accuracy below 60%. Please fix the highlighted questions and resubmit.",
+      "errorInsufficient": "Accuracy below 60%. Please review and resubmit."
+    },
+    "intro": {
+      "title": "Welcome to MaaPipelineEditor",
+      "description": "MaaPipelineEditor (MPE) is a visual Pipeline editor for MaaFramework (MaaFW), helping you edit task flows graphically.",
+      "warningTitle": "Important",
+      "warningDescription": "MPE is an auxiliary tool for MaaFW and cannot replace learning MaaFW itself. Make sure you understand MaaFW basics (such as Node, Task, Pipeline, etc.) before using this editor.",
+      "docsHint": "If you are not familiar with MaaFramework yet, please read the official docs first:",
+      "docsLink": "MaaFramework official documentation",
+      "startButton": "I understand — start the quiz"
+    },
+    "quiz": {
+      "defaultCategory": "General",
+      "elapsed": "Time {{time}}",
+      "questionCount": "{{count}} questions",
+      "back": "Previous",
+      "submit": "Submit answers",
+      "types": {
+        "choice": "Single choice",
+        "judge": "True/False",
+        "multi": "Multiple choice",
+        "input": "Fill in the blank"
+      },
+      "inputPlaceholder": "Enter your answer"
+    },
+    "certificate": {
+      "title": "Congratulations — you passed!",
+      "subTitle": "You have the basics of MaaFW. Time taken: {{time}}. Welcome to MaaPipelineEditor!",
+      "docsLink": "View MaaPipelineEditor documentation",
+      "startButton": "Start using MPE"
+    }
+  },
+  "updateLog": {
+    "types": {
+      "major": "Major update",
+      "feature": "New feature",
+      "fix": "Bug fix",
+      "perf": "Improvement"
+    },
+    "categories": {
+      "features": "New features",
+      "perfs": "Improvements",
+      "fixes": "Bug fixes"
+    },
+    "versions": "Versions",
+    "versionCount": "{{count}} versions total",
+    "timelineAriaLabel": "Version timeline",
+    "forecastButton": "Upcoming / long-term roadmap",
+    "forecastTag": "Preview",
+    "forecastSubtitle": "Near-term plans and direction",
+    "updateCount": "{{date}} / {{count}} updates",
+    "emptyVersion": "No updates for this version",
+    "title": "Update log",
+    "emptyLogs": "No update logs"
+  },
+  "data": {
+    "terms": {
+      "tool_nature": "I understand that MaaPipelineEditor (MPE) is an auxiliary visual editor for MaaFramework and cannot replace learning and understanding MaaFW itself.",
+      "no_warranty": "I understand this tool is an open-source community project provided \"as is\" without any express or implied warranty. I am solely responsible for any consequences of using this tool.",
+      "data_local": "I understand that all data in this tool is stored locally in the browser and is not uploaded to any server. Clearing browser data may cause work to be lost, and I will back up when necessary. (Configuration can be exported from the settings panel.)",
+      "project_allow": "For projects I will develop or assist with using MPE, I am the primary decision-maker, or I have consulted the main maintainer and received permission to use MPE for development or assistance. (Some projects do not use MPE as the primary dev tool — project architecture may not fit, or may produce redundant content. When contributing to other projects, follow their conventions and tool recommendations.)"
+    },
+    "nodeTemplates": {
+      "icon-kongjiedian": {
+        "label": "External node"
+      },
+      "icon-xiaofangtongdao": {
+        "label": "Redirect node (Anchor)"
+      },
+      "icon-ziyuan": {
+        "label": "Sticker"
+      },
+      "icon-bianqian1": {
+        "label": "Group frame"
+      },
+      "icon-kuangxuanzhong": {
+        "label": "Text recognition"
+      },
+      "icon-ocr": {
+        "label": "Image recognition"
+      },
+      "icon-tuxiang": {
+        "label": "No-delay node"
+      },
+      "icon-weizhihang": {
+        "label": "Direct click"
+      },
+      "icon-dianji": {
+        "label": "Custom"
+      }
+    },
+    "newcomer": {
+      "fixed": {
+        "q0": {
+          "question": "What is the relationship between MaaPipelineEditor (MPE) and MaaFramework (MaaFW)?",
+          "category": "MPE role",
+          "options": {
+            "0": "MPE replaces MaaFW entirely, similar to a higher-level wrapper",
+            "1": "MPE is an optional MaaFW component that replaces hand-written Pipeline JSON, similar to a module/library",
+            "2": "MPE is an independent tool in the MaaFW ecosystem that assists MaaFW project development, similar to an IDE",
+            "3": "MPE and MaaFW are unrelated — two completely independent projects"
+          }
+        },
+        "q1": {
+          "question": "MPE can fully replace learning MaaFW; you can use it without knowing MaaFW first.",
+          "category": "Project templates",
+          "options": {
+            "0": "True",
+            "1": "False"
+          }
+        },
+        "q2": {
+          "question": "You can create a brand-new blank project directly in MPE, or reuse the resource subdirectory of MPE Desktop as the project directory",
+          "category": "Project templates",
+          "options": {
+            "0": "True",
+            "1": "False"
+          }
+        },
+        "q3": {
+          "question": "When starting a MaaFW project, it is recommended to use the official template ([MaaPracticeBoilerplate](https://github.com/MaaXYZ/MaaPracticeBoilerplate)) or the [create-maa-project](https://github.com/Windsland52/create-maa-project) scaffold rather than creating folder structure manually.",
+          "category": "Project templates",
+          "options": {
+            "0": "True",
+            "1": "False"
+          }
+        },
+        "q4": {
+          "question": "What is the MaaFW (MaaFramework) project template repository URL?",
+          "category": "Project templates"
+        },
+        "q5": {
+          "question": "Which button must you use when creating a project from the template repository?",
+          "category": "Resource structure",
+          "options": {
+            "0": "Download ZIP",
+            "1": "Use this template",
+            "2": "New folder",
+            "3": "Release"
+          }
+        },
+        "q6": {
+          "question": "Which subfolders should a standard MaaFW Resource folder contain?",
+          "category": "Resource structure",
+          "options": {
+            "0": "pipeline (task flows)",
+            "1": "image (image assets)",
+            "2": "model (model files)",
+            "3": "config (project configuration)"
+          }
+        },
+        "q7": {
+          "question": "When developing your own MaaFW project, you do not need to download OCR models separately — the project template or MPE handles it.",
+          "category": "Resource structure",
+          "options": {
+            "0": "True",
+            "1": "False"
+          }
+        },
+        "q8": {
+          "question": "Which files must be in the ./model/ocr folder under the resource directory?",
+          "category": "MaaFW concepts",
+          "options": {
+            "0": "det.onnx, rec.onnx, keys.txt",
+            "1": "ocr.pth, vocab.txt",
+            "2": "model.bin, config.json",
+            "3": "detect.tflite, recognize.tflite"
+          }
+        },
+        "q9": {
+          "question": "In MaaFW, what is the basic format of a Pipeline?",
+          "category": "MaaFW concepts",
+          "options": {
+            "0": "Plain text script",
+            "1": "XML task flow description",
+            "2": "JSON describing multiple nodes (Node)",
+            "3": "YAML configuration file"
+          }
+        },
+        "q10": {
+          "question": "In MaaFW, what does Task refer to?",
+          "category": "Flow control",
+          "options": {
+            "0": "A single JSON file",
+            "1": "A pipeline folder",
+            "2": "A complete application startup process",
+            "3": "A logical sequence of nodes connected in a certain order"
+          }
+        },
+        "q11": {
+          "question": "When a node's next list has multiple child nodes, how does MaaFW handle it?",
+          "category": "Flow control",
+          "options": {
+            "0": "Randomly picks one child to execute",
+            "1": "Recognizes all children in parallel",
+            "2": "Loops through them in order; on first match, enters that branch and continues",
+            "3": "Waits until all children are recognized successfully before executing"
+          }
+        },
+        "q12": {
+          "question": "When a node with the [JumpBack] attribute in the next list is matched and executed successfully, what happens?",
+          "category": "Flow control",
+          "options": {
+            "0": "The task terminates immediately",
+            "1": "Returns to the parent immediately without running that node's subsequent chain",
+            "2": "Tries to recognize and run its subsequent chain, then returns to the parent",
+            "3": "Jumps to the on_error list"
+          }
+        },
+        "q13": {
+          "question": "For a non-entry node, in which cases does execution enter its on_error list?",
+          "category": "Flow control",
+          "options": {
+            "0": "The previous node failed to match this node's recognition and timed out",
+            "1": "This node failed to match recognition of nodes in its own next list and timed out",
+            "2": "This node's action execution failed",
+            "3": "A matched next node's action execution failed"
+          }
+        },
+        "q14": {
+          "question": "For an entry node (Entry), in which cases does execution enter its on_error list?",
+          "category": "Flow control",
+          "options": {
+            "0": "At task start, matching the entry node's own recognition failed and timed out",
+            "1": "The entry node failed to match recognition of nodes in its own next list and timed out",
+            "2": "The entry node's action execution failed",
+            "3": "A matched next node's action execution failed"
+          }
+        },
+        "q15": {
+          "question": "Which of the following will terminate a MaaFW task flow?",
+          "category": "PI",
+          "options": {
+            "0": "After action execution, the current node's next list is empty and this sub-chain was not entered via jumpback",
+            "1": "After action execution, next list recognition timed out and on_error is not configured",
+            "2": "The current node's action failed and on_error is not configured",
+            "3": "The current node executes StopTask action or post_stop() is called directly"
+          }
+        },
+        "q16": {
+          "question": "In a MaaFW project, what is interface.json for? (MPE only handles Pipeline, not interface)",
+          "category": "PI",
+          "options": {
+            "0": "Defines recognition algorithms for Pipeline nodes",
+            "1": "Declares project structure so a generic UI can load and run the project",
+            "2": "Configures OCR model parameters",
+            "3": "Stores user runtime logs"
+          }
+        },
+        "q17": {
+          "question": "How to fill in interface.json (PI protocol) is documented in section 3.2 of the MaaFW manual.",
+          "category": "Tools & reference",
+          "options": {
+            "0": "True",
+            "1": "False"
+          }
+        },
+        "q18": {
+          "question": "Which tool provides JSON content checking for MaaFW projects?",
+          "category": "Tools & reference",
+          "options": {
+            "0": "Maa Pipeline Editor's maa-support-extension plugin",
+            "1": "PyCharm's maa-support-extension plugin",
+            "2": "Visual Studio's maa-support-extension plugin",
+            "3": "Visual Studio Code's maa-support-extension plugin"
+          }
+        },
+        "q19": {
+          "question": "Which project is specified as a best-practice reference in the MaaFW manual?",
+          "options": {
+            "0": "Maa",
+            "1": "M9A",
+            "2": "MPE",
+            "3": "MFAAvalonia"
+          }
+        }
+      },
+      "pool": {
+        "q0": {
+          "question": "After next list recognition times out, which list is entered?",
+          "category": "Flow control",
+          "options": {
+            "0": "next",
+            "1": "interrupt",
+            "2": "on_error",
+            "3": "retry"
+          }
+        },
+        "q1": {
+          "question": "Changing a node's timeout field cannot fix recognition match timeout for the current node.",
+          "category": "Flow control",
+          "options": {
+            "0": "True",
+            "1": "False"
+          }
+        },
+        "q2": {
+          "question": "Which statement about a node's on_error list is incorrect?",
+          "category": "Flow control",
+          "options": {
+            "0": "Recognition timeout for nodes pointed to by the node's own next enters on_error",
+            "1": "The node's own action failure enters on_error",
+            "2": "After entering on_error, nodes in the list are not recognized",
+            "3": "The node's own recognition miss and timeout does not enter on_error"
+          }
+        },
+        "q3": {
+          "question": "on_error is entered only when action execution fails.",
+          "category": "Recognition & resources",
+          "options": {
+            "0": "True",
+            "1": "False"
+          }
+        },
+        "q4": {
+          "question": "ROI (Region of Interest) defines the boundary region for image recognition.",
+          "category": "Recognition & resources",
+          "options": {
+            "0": "True",
+            "1": "False"
+          }
+        },
+        "q5": {
+          "question": "Targets outside the ROI (Region of Interest) will not be recognized.",
+          "category": "MaaFW concepts",
+          "options": {
+            "0": "True",
+            "1": "False"
+          }
+        },
+        "q6": {
+          "question": "In MaaFW, what does Entry refer to?",
+          "category": "Recognition & resources",
+          "options": {
+            "0": "The pipeline folder's entry file",
+            "1": "The first Node in a Task",
+            "2": "Application startup configuration",
+            "3": "Resource loading start path"
+          }
+        },
+        "q7": {
+          "question": "Template images for TemplateMatch should be scaled to what resolution by default?",
+          "category": "MaaFW concepts",
+          "options": {
+            "0": "480p",
+            "1": "720p",
+            "2": "1080p",
+            "3": "Original resolution"
+          }
+        },
+        "q8": {
+          "question": "The MaaFW pipeline folder recursively reads all JSON files with no limit on count or nesting depth.",
+          "category": "Recognition & resources",
+          "options": {
+            "0": "True",
+            "1": "False"
+          }
+        },
+        "q9": {
+          "question": "When using TemplateMatch for recognition, you need to understand YOLO algorithm internals.",
+          "category": "Recognition & resources",
+          "options": {
+            "0": "True",
+            "1": "False"
+          }
+        },
+        "q10": {
+          "question": "Which files must the OCR model folder contain?",
+          "category": "Project release",
+          "options": {
+            "0": "model.bin, config.json",
+            "1": "det.onnx, rec.onnx, keys.txt",
+            "2": "ocr.pth, vocab.txt",
+            "3": "detect.tflite, recognize.tflite"
+          }
+        },
+        "q11": {
+          "question": "After development, which method does the community recommend for multi-platform packaging?",
+          "options": {
+            "0": "Manually bundle resources and generic UI into a zip locally",
+            "1": "Cross-compile the generic UI on your machine",
+            "2": "Cross-compile MaaFramework on your machine",
+            "3": "Tag a version with git and push to GitHub"
+          }
+        }
+      }
+    }
+  }
+}

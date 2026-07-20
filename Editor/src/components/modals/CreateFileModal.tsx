@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Modal, Form, Input, Select, message, Tooltip } from "antd";
 import { FolderOutlined, FileOutlined, HomeFilled } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 import { useLocalFileStore } from "../../stores/localFileStore";
 import { useFileStore } from "../../stores/fileStore";
 import { localServer, fileProtocol } from "../../services/server";
@@ -15,6 +16,7 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
   visible,
   onCancel,
 }) => {
+  const { t } = useTranslation();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [previewFileName, setPreviewFileName] = useState<string>("");
@@ -26,25 +28,27 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
   const directories = useLocalFileStore((state) => state.directories);
   const currentFileName = useFileStore((state) => state.currentFile.fileName);
   const currentFilePath = useFileStore(
-    (state) => state.currentFile.config.filePath
+    (state) => state.currentFile.config.filePath,
   );
   const setFileConfig = useFileStore((state) => state.setFileConfig);
+
+  const duplicateHelp = t(
+    "ui.modals.createFile.duplicateHelp",
+    "该目录下已存在同名文件，请使用不同的文件名",
+  );
 
   // 提取目录列表（合并后端提供的目录和从文件路径推导的目录）
   const directoryOptions = useMemo(() => {
     const dirSet = new Set<string>();
 
-    // 添加根目录
     if (rootPath) {
       dirSet.add(rootPath);
     }
 
-    // 添加后端提供的子目录列表（包括空目录）
     directories.forEach((dir) => {
       dirSet.add(dir);
     });
 
-    // 从已有文件中提取目录（兜底，确保所有包含文件的目录都在列表中）
     files.forEach((file) => {
       const path = file.file_path;
       const lastSep = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));
@@ -56,15 +60,13 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
     return Array.from(dirSet).sort();
   }, [rootPath, files, directories]);
 
-  // 显示名称
   const getDisplayPath = (
-    fullPath: string
+    fullPath: string,
   ): { display: string; isRoot: boolean } => {
     if (!rootPath || fullPath === rootPath) {
-      // 根目录显示文件夹名
       const lastSep = Math.max(
         fullPath.lastIndexOf("/"),
-        fullPath.lastIndexOf("\\")
+        fullPath.lastIndexOf("\\"),
       );
       return {
         display: lastSep > 0 ? fullPath.substring(lastSep + 1) : fullPath,
@@ -72,7 +74,6 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
       };
     }
 
-    // 相对路径
     if (fullPath.startsWith(rootPath)) {
       const relativePath = fullPath.substring(rootPath.length);
       return {
@@ -81,10 +82,9 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
       };
     }
 
-    // 完整路径的最后部分
     const lastSep = Math.max(
       fullPath.lastIndexOf("/"),
-      fullPath.lastIndexOf("\\")
+      fullPath.lastIndexOf("\\"),
     );
     return {
       display: lastSep > 0 ? fullPath.substring(lastSep + 1) : fullPath,
@@ -97,16 +97,13 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
       form.resetFields();
       setPreviewFileName("");
 
-      // 自动填充当前文件名
       const initialFileName = currentFileName || "";
 
-      // 优先使用当前文件所在目录，否则使用根路径
       let initialDirectory = rootPath || "";
       if (currentFilePath) {
-        // 从文件路径中提取目录路径
         const lastSeparatorIndex = Math.max(
           currentFilePath.lastIndexOf("/"),
-          currentFilePath.lastIndexOf("\\")
+          currentFilePath.lastIndexOf("\\"),
         );
         if (lastSeparatorIndex > 0) {
           initialDirectory = currentFilePath.substring(0, lastSeparatorIndex);
@@ -119,14 +116,12 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
         saveToLocal: true,
       });
 
-      // 更新预览文件名和验证状态
       if (initialFileName && validateFileName(initialFileName)) {
         setPreviewFileName(normalizeFileName(initialFileName));
         setIsValidFileName(true);
-        // 检查重名
         const duplicate = checkDuplicateFileName(
           initialFileName,
-          initialDirectory
+          initialDirectory,
         );
         setIsDuplicate(duplicate);
       } else {
@@ -136,41 +131,34 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
     }
   }, [visible, form, rootPath, currentFileName, currentFilePath]);
 
-  // 规范化文件名
   const normalizeFileName = (fileName: string): string => {
     if (!fileName) return "";
 
     const trimmed = fileName.trim();
 
-    // 已有后缀
     if (trimmed.endsWith(".json") || trimmed.endsWith(".jsonc")) {
       return trimmed;
     }
 
-    // 自动补全
     return `${trimmed}.json`;
   };
 
-  // 验证文件名
   const validateFileName = (fileName: string): boolean => {
     if (!fileName) return false;
 
     const normalized = normalizeFileName(fileName);
 
-    // 检查是否包含非法字符
     const invalidChars = /[\\/:*?"<>|]/;
     if (invalidChars.test(normalized)) {
       return false;
     }
 
-    // 必须以.json或.jsonc结尾
     return normalized.endsWith(".json") || normalized.endsWith(".jsonc");
   };
 
-  // 检查文件名是否在本地文件列表中已存在
   const checkDuplicateFileName = (
     fileName: string,
-    directory: string
+    directory: string,
   ): boolean => {
     if (!fileName || !directory) return false;
 
@@ -186,35 +174,29 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
     });
   };
 
-  // 处理文件名变化
   const handleFileNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     const directory = form.getFieldValue("directory");
 
-    // 验证文件名
     const isValid = validateFileName(value);
     setIsValidFileName(isValid);
 
     if (isValid) {
       setPreviewFileName(normalizeFileName(value));
-      // 检查重名
       const duplicate = checkDuplicateFileName(value, directory);
       setIsDuplicate(duplicate);
     } else if (!value) {
       setPreviewFileName("");
       setIsDuplicate(false);
     } else {
-      // 无效临时输入值
       setPreviewFileName("");
       setIsDuplicate(false);
     }
   };
 
-  // 处理目录变化
   const handleDirectoryChange = (value: string) => {
     const fileName = form.getFieldValue("fileName");
 
-    // 如果文件名有效，重新检查重名
     if (fileName && validateFileName(fileName)) {
       const duplicate = checkDuplicateFileName(fileName, value);
       setIsDuplicate(duplicate);
@@ -227,38 +209,43 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
       const { fileName, directory } = values;
 
       if (!localServer.isConnected()) {
-        message.error("未连接到本地服务，无法创建文件");
+        message.error(
+          t(
+            "ui.modals.createFile.notConnected",
+            "未连接到本地服务，无法创建文件",
+          ),
+        );
         return;
       }
 
-      // 检查重名
       if (isDuplicate) {
-        message.warning("该目录下已存在同名文件，请使用不同的文件名");
+        message.warning(duplicateHelp);
         return;
       }
 
       setLoading(true);
 
-      // 规范化文件名
       const normalizedFileName = normalizeFileName(fileName);
 
-      // 获取当前编辑器的内容
       const content = flowToPipeline();
 
-      // 通过协议请求创建文件
       const success = fileProtocol.requestCreateFile(
         normalizedFileName,
         directory,
-        content
+        content,
       );
 
       if (success) {
-        message.success("文件创建请求已发送");
+        message.success(
+          t("ui.modals.createFile.requestSent", "文件创建请求已发送"),
+        );
         onCancel();
         form.resetFields();
         setPreviewFileName("");
       } else {
-        message.error("文件创建请求发送失败");
+        message.error(
+          t("ui.modals.createFile.requestFailed", "文件创建请求发送失败"),
+        );
       }
     } catch (error) {
       console.error("[CreateFileModal] Failed to create file:", error);
@@ -280,15 +267,17 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
       title={
         <span>
           <FileOutlined />
-          <span style={{ marginLeft: 8 }}>新建本地文件</span>
+          <span style={{ marginLeft: 8 }}>
+            {t("ui.modals.createFile.title", "新建本地文件")}
+          </span>
         </span>
       }
       open={visible}
       onOk={handleOk}
       onCancel={handleCancel}
       confirmLoading={loading}
-      okText="创建"
-      cancelText="取消"
+      okText={t("ui.modals.createFile.create", "创建")}
+      cancelText={t("ui.modals.createFile.cancel", "取消")}
       okButtonProps={{ disabled: !isValidFileName || isDuplicate }}
       width={500}
     >
@@ -303,24 +292,27 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
       >
         <Form.Item
           name="fileName"
-          label="文件名"
+          label={t("ui.modals.createFile.fileNameLabel", "文件名")}
           validateStatus={isDuplicate ? "error" : undefined}
           help={
             isDuplicate ? (
-              <span style={{ color: "#ff4d4f" }}>
-                该目录下已存在同名文件，请使用不同的文件名
-              </span>
+              <span style={{ color: "#ff4d4f" }}>{duplicateHelp}</span>
             ) : undefined
           }
           rules={[
             {
               validator: (_, value) => {
                 if (!value) {
-                  return Promise.reject("请输入文件名");
+                  return Promise.reject(
+                    t("ui.modals.createFile.fileNameRequired", "请输入文件名"),
+                  );
                 }
                 if (!validateFileName(value)) {
                   return Promise.reject(
-                    '文件名不能包含特殊字符 \\ / : * ? " < > |'
+                    t(
+                      "ui.modals.createFile.fileNameInvalid",
+                      '文件名不能包含特殊字符 \\ / : * ? " < > |',
+                    ),
                   );
                 }
                 return Promise.resolve();
@@ -329,7 +321,10 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
           ]}
         >
           <Input
-            placeholder="例如: pipeline 或 pipeline.json 或 pipeline.jsonc"
+            placeholder={t(
+              "ui.modals.createFile.fileNamePlaceholder",
+              "例如: pipeline 或 pipeline.json 或 pipeline.jsonc",
+            )}
             prefix={<FileOutlined />}
             onChange={handleFileNameChange}
             status={isDuplicate ? "error" : undefined}
@@ -337,7 +332,7 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
         </Form.Item>
 
         {previewFileName && (
-          <Form.Item label="预览文件名">
+          <Form.Item label={t("ui.modals.createFile.previewLabel", "预览文件名")}>
             <div
               style={{
                 padding: "8px 12px",
@@ -354,13 +349,21 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
 
         <Form.Item
           name="directory"
-          label="保存目录"
-          rules={[{ required: true, message: "请选择或输入保存目录" }]}
+          label={t("ui.modals.createFile.directoryLabel", "保存目录")}
+          rules={[
+            {
+              required: true,
+              message: t(
+                "ui.modals.createFile.directoryRequired",
+                "请选择或输入保存目录",
+              ),
+            },
+          ]}
         >
           <Select
             showSearch
             allowClear
-            placeholder="选择目录"
+            placeholder={t("ui.modals.createFile.directoryPlaceholder", "选择目录")}
             optionFilterProp="label"
             onChange={handleDirectoryChange}
             options={directoryOptions.map((dir) => {
@@ -368,7 +371,7 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
               return {
                 label: display,
                 value: dir,
-                title: dir, // 用于搜索匹配
+                title: dir,
               };
             })}
             optionRender={(option) => {
@@ -416,7 +419,10 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
                       textAlign: "center",
                     }}
                   >
-                    暂无可用目录，请先连接本地服务
+                    {t(
+                      "ui.modals.createFile.noDirectory",
+                      "暂无可用目录，请先连接本地服务",
+                    )}
                   </div>
                 )}
               </>
@@ -426,26 +432,54 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
 
         <Form.Item
           name="saveToLocal"
-          label="保存选项"
+          label={t("ui.modals.createFile.saveOptionsLabel", "保存选项")}
           rules={[{ required: true }]}
         >
           <Select
             options={[
-              { value: true, label: "保存当前编辑器内容到新文件" },
+              {
+                value: true,
+                label: t(
+                  "ui.modals.createFile.saveCurrentContent",
+                  "保存当前编辑器内容到新文件",
+                ),
+              },
             ]}
           />
         </Form.Item>
 
         <Form.Item>
           <div style={{ fontSize: 12, color: "#8c8c8c" }}>
-            <div>提示：</div>
-            <div>• 文件名支持 .json 和 .jsonc 后缀</div>
-            <div>• 不带后缀时自动补全为 .json</div>
-            <div>• 保存目录快捷选择为相对路径，但自行输入时需要为绝对路径</div>
-            <div>• 文件将创建在指定目录下，创建成功后会自动刷新文件列表</div>
+            <div>{t("ui.modals.createFile.hintsTitle", "提示：")}</div>
             <div>
-              • 「保存当前编辑器内容到新文件」会将画布中的节点编译为 Pipeline
-              并写入新文件，您可以先点击Tab栏右侧的添加按钮再点击新建本地文件
+              {t(
+                "ui.modals.createFile.hintExtensions",
+                "• 文件名支持 .json 和 .jsonc 后缀",
+              )}
+            </div>
+            <div>
+              {t(
+                "ui.modals.createFile.hintAutoExt",
+                "• 不带后缀时自动补全为 .json",
+              )}
+            </div>
+            <div>
+              {t(
+                "ui.modals.createFile.hintPath",
+                "• 保存目录快捷选择为相对路径，但自行输入时需要为绝对路径",
+              )}
+            </div>
+            <div>
+              {t(
+                "ui.modals.createFile.hintRefresh",
+                "• 文件将创建在指定目录下，创建成功后会自动刷新文件列表",
+              )}
+            </div>
+            <div>
+              {t(
+                "ui.modals.createFile.hintSaveContent",
+                "• 「保存当前编辑器内容到新文件」会将画布中的节点编译为 Pipeline 并写入新文件，您可以先点击Tab栏右侧的添加按钮再点击新建本地文件",
+              )}
             </div>
           </div>
         </Form.Item>

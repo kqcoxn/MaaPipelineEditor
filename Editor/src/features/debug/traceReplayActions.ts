@@ -1,4 +1,5 @@
 import { message } from "antd";
+import uiT from "../../i18n/translate";
 import type { DebugProtocolClient } from "../../services/protocols/DebugProtocolClient";
 import { useDebugTraceStore } from "../../stores/debugTraceStore";
 import type { DebugNodeExecutionRecord } from "./nodeExecutionSelector";
@@ -21,14 +22,23 @@ export function requestTraceSnapshotAction({
   sessionId?: string;
 }): void {
   if (!sessionId) {
-    message.warning("当前没有调试会话（Session）");
+    message.warning(
+      uiT("ui.debug.traceReplay.noSession", "当前没有调试会话（Session）"),
+    );
     return;
   }
   const sent = client.requestTraceSnapshot({
     sessionId,
     runId: activeRunId,
   });
-  if (!sent) message.error("发送追踪快照（Trace Snapshot）请求失败");
+  if (!sent) {
+    message.error(
+      uiT(
+        "ui.debug.traceReplay.snapshotRequestFailed",
+        "发送追踪快照（Trace Snapshot）请求失败",
+      ),
+    );
+  }
 }
 
 export function startTraceReplayAction({
@@ -43,7 +53,9 @@ export function startTraceReplayAction({
   selectedNodeId?: string;
 }): void {
   if (!sessionId) {
-    message.warning("当前没有调试会话（Session）");
+    message.warning(
+      uiT("ui.debug.traceReplay.noSession", "当前没有调试会话（Session）"),
+    );
     return;
   }
   const replayEvents = summaryRunId
@@ -56,7 +68,14 @@ export function startTraceReplayAction({
     nodeId: selectedNodeId,
     speed: replayStatus?.speed ?? 1,
   });
-  if (!sent) message.error("发送追踪回放（Trace Replay）启动请求失败");
+  if (!sent) {
+    message.error(
+      uiT(
+        "ui.debug.traceReplay.startRequestFailed",
+        "发送追踪回放（Trace Replay）启动请求失败",
+      ),
+    );
+  }
 }
 
 export function seekTraceReplayAction({
@@ -67,7 +86,9 @@ export function seekTraceReplayAction({
   summaryRunId,
 }: TraceReplayActionContext & { cursorSeq?: number }): void {
   if (!sessionId) {
-    message.warning("当前没有调试会话（Session）");
+    message.warning(
+      uiT("ui.debug.traceReplay.noSession", "当前没有调试会话（Session）"),
+    );
     return;
   }
   const sent = client.seekTraceReplay({
@@ -77,7 +98,14 @@ export function seekTraceReplayAction({
     nodeId: replayStatus?.nodeId,
     speed: replayStatus?.speed ?? 1,
   });
-  if (!sent) message.error("发送追踪回放定位（Trace Replay Seek）请求失败");
+  if (!sent) {
+    message.error(
+      uiT(
+        "ui.debug.traceReplay.seekRequestFailed",
+        "发送追踪回放定位（Trace Replay Seek）请求失败",
+      ),
+    );
+  }
 }
 
 export function stopTraceReplayAction({
@@ -94,7 +122,12 @@ export function stopTraceReplayAction({
   });
   if (!sent) {
     useDebugTraceStore.getState().stopTraceReplay();
-    message.error("发送追踪回放（Trace Replay）停止请求失败");
+    message.error(
+      uiT(
+        "ui.debug.traceReplay.stopRequestFailed",
+        "发送追踪回放（Trace Replay）停止请求失败",
+      ),
+    );
   }
 }
 
@@ -110,12 +143,16 @@ export function startNodeTraceReplayAction({
   sessionId?: string;
 }): void {
   if (!record) {
-    message.warning("请选择节点执行记录");
+    message.warning(
+      uiT("ui.debug.traceReplay.selectNodeRecord", "请选择节点执行记录"),
+    );
     return;
   }
   const targetSessionId = record.sessionId ?? sessionId;
   if (!targetSessionId) {
-    message.warning("当前没有调试会话（Session）");
+    message.warning(
+      uiT("ui.debug.traceReplay.noSession", "当前没有调试会话（Session）"),
+    );
     return;
   }
   const sent = client.startTraceReplay({
@@ -125,7 +162,14 @@ export function startNodeTraceReplayAction({
     nodeId: record.nodeId,
     speed: replayStatus?.speed ?? 1,
   });
-  if (!sent) message.error("发送节点回放启动请求失败");
+  if (!sent) {
+    message.error(
+      uiT(
+        "ui.debug.traceReplay.nodeStartRequestFailed",
+        "发送节点回放启动请求失败",
+      ),
+    );
+  }
 }
 
 export function seekNodeTraceReplayAction({
@@ -142,12 +186,16 @@ export function seekNodeTraceReplayAction({
   sessionId?: string;
 }): void {
   if (!record) {
-    message.warning("请选择节点执行记录");
+    message.warning(
+      uiT("ui.debug.traceReplay.selectNodeRecord", "请选择节点执行记录"),
+    );
     return;
   }
   const targetSessionId = record.sessionId ?? sessionId;
   if (!targetSessionId) {
-    message.warning("当前没有调试会话（Session）");
+    message.warning(
+      uiT("ui.debug.traceReplay.noSession", "当前没有调试会话（Session）"),
+    );
     return;
   }
   const sent = client.seekTraceReplay({
@@ -157,5 +205,12 @@ export function seekNodeTraceReplayAction({
     nodeId: record.nodeId,
     speed: replayStatus?.speed ?? 1,
   });
-  if (!sent) message.error("发送节点回放定位请求失败");
+  if (!sent) {
+    message.error(
+      uiT(
+        "ui.debug.traceReplay.nodeSeekRequestFailed",
+        "发送节点回放定位请求失败",
+      ),
+    );
+  }
 }

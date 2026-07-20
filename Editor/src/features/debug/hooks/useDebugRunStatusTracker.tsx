@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Button, notification } from "antd";
+import uiT from "../../../i18n/translate";
 import { useDebugTraceStore } from "../../../stores/debugTraceStore";
 import { useDebugSessionStore } from "../../../stores/debugSessionStore";
 import { getRunModeLabel } from "../capabilityLabels";
@@ -10,7 +11,9 @@ function isTerminalDebugSessionStatus(status?: string): boolean {
 }
 
 function formatDuration(ms: number): string {
-  if (!Number.isFinite(ms) || ms < 0) return "未知";
+  if (!Number.isFinite(ms) || ms < 0) {
+    return uiT("ui.debug.runStatus.unknown", "未知");
+  }
   if (ms < 1000) return `${ms}ms`;
   if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
   const m = Math.floor(ms / 60000);
@@ -18,11 +21,18 @@ function formatDuration(ms: number): string {
   return `${m}m${s}s`;
 }
 
-const statusLabels: Record<string, string> = {
-  completed: "运行成功",
-  failed: "运行失败",
-  stopped: "运行已停止",
-};
+function getStatusLabel(status?: string): string {
+  switch (status) {
+    case "completed":
+      return uiT("ui.debug.runStatus.completed", "运行成功");
+    case "failed":
+      return uiT("ui.debug.runStatus.failed", "运行失败");
+    case "stopped":
+      return uiT("ui.debug.runStatus.stopped", "运行已停止");
+    default:
+      return uiT("ui.debug.runStatus.finished", "运行结束");
+  }
+}
 
 /**
  * 追踪调试运行状态：
@@ -42,23 +52,19 @@ export function useDebugRunStatusTracker(): void {
     const sessionStore = useDebugSessionStore.getState();
 
     if (!isTerminalDebugSessionStatus(latest.status)) {
-      // 记录见过非终态的会话（区分实时运行 vs 回放历史）
       seenRunningRef.current.add(sessionKey);
       sessionStore.setRunBadgeStatus("running");
       return;
     }
 
-    // 终态：更新 badge
     sessionStore.setRunBadgeStatus(
       latest.status as "completed" | "failed" | "stopped",
     );
 
-    // 仅对"见过运行中"的会话发通知（跳过回放/快照加载的历史会话）
     if (!seenRunningRef.current.has(sessionKey)) return;
     if (notifiedRef.current.has(sessionKey)) return;
     notifiedRef.current.add(sessionKey);
 
-    // 调试窗口已打开则不弹通知
     if (sessionStore.modalOpen) return;
 
     const started = Date.parse(latest.startedAt ?? "");
@@ -68,10 +74,10 @@ export function useDebugRunStatusTracker(): void {
         ? completed - started
         : undefined;
 
-    const statusLabel = statusLabels[latest.status ?? ""] ?? "运行结束";
+    const statusLabel = getStatusLabel(latest.status);
     const modeLabel = latest.mode
       ? getRunModeLabel(latest.mode as DebugRunMode)
-      : "未知";
+      : uiT("ui.debug.runStatus.unknown", "未知");
     const notifyKey = `debug-run-finished-${sessionKey}`;
 
     const method =
@@ -83,8 +89,22 @@ export function useDebugRunStatusTracker(): void {
 
     method({
       key: notifyKey,
-      title: `调试${statusLabel}`,
-      description: `模式：${modeLabel}${durationMs !== undefined ? ` | 耗时：${formatDuration(durationMs)}` : ""}`,
+      title: uiT("ui.debug.runStatus.notificationTitle", "调试{{status}}", {
+        status: statusLabel,
+      }),
+      description: uiT(
+        "ui.debug.runStatus.notificationDesc",
+        "模式：{{mode}}{{durationPart}}",
+        {
+          mode: modeLabel,
+          durationPart:
+            durationMs !== undefined
+              ? uiT("ui.debug.runStatus.durationPart", " | 耗时：{{duration}}", {
+                  duration: formatDuration(durationMs),
+                })
+              : "",
+        },
+      ),
       duration: 6,
       placement: "top",
       actions: (
@@ -96,7 +116,7 @@ export function useDebugRunStatusTracker(): void {
             notification.destroy(notifyKey);
           }}
         >
-          查看详情
+          {uiT("ui.debug.runStatus.viewDetails", "查看详情")}
         </Button>
       ),
     });

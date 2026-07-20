@@ -346,6 +346,23 @@ export const settingsDefinitions: ConfigItemDef[] = [
     order: 3,
   },
   {
+    key: "uiLocale",
+    category: "component",
+    label: "界面语言",
+    tipTitle: "界面语言",
+    tipContent:
+      "跟随系统：根据浏览器或操作系统的语言/区域自动选择界面语言\n可手动指定简体中文、English 或 ไทย",
+    type: "select",
+    options: [
+      { value: "auto", label: "跟随系统" },
+      { value: "zh-CN", label: "简体中文" },
+      { value: "en-US", label: "English" },
+      { value: "th-TH", label: "ไทย" },
+    ],
+    controlWidth: 160,
+    order: 1,
+  },
+  {
     key: "fieldPanelMode",
     category: "component",
     label: "字段/连接面板模式",

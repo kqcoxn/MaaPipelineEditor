@@ -11,12 +11,12 @@ import {
   FileSearchOutlined,
   FileTextOutlined,
   FormatPainterOutlined,
-  InfoCircleOutlined,
   NodeIndexOutlined,
   ReloadOutlined,
   StopOutlined,
 } from "@ant-design/icons";
 import type { editor as MonacoEditor } from "monaco-editor";
+import { useTranslation } from "react-i18next";
 import { DebugSection } from "../DebugSection";
 import type { DebugModalController } from "../../hooks/useDebugModalController";
 import {
@@ -137,6 +137,7 @@ export function OverviewPanel({
 }: {
   controller: DebugModalController;
 }) {
+  const { t } = useTranslation();
   const {
     capabilityStatus,
     capabilityError,
@@ -206,11 +207,14 @@ export function OverviewPanel({
     () =>
       displaySessions.map((item) => ({
         value: item.id,
-        label: `${formatDebugRunDisplayName(item.runId, item.startedAt)} · ${
-          item.status ?? "-"
-        } · ${item.eventCount} 事件`,
+        label: t("debug.overview.sessionOption", {
+          run: formatDebugRunDisplayName(item.runId, item.startedAt),
+          status: item.status ?? "-",
+          count: item.eventCount,
+          defaultValue: `${formatDebugRunDisplayName(item.runId, item.startedAt)} · ${item.status ?? "-"} · ${item.eventCount} 事件`,
+        }),
       })),
-    [displaySessions],
+    [displaySessions, t],
   );
   const displaySessionSearchTextMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -259,14 +263,27 @@ export function OverviewPanel({
   );
   const displaySessionSelectionLabel =
     displaySessions.length === 0
-      ? "暂无"
-      : `${selectedDisplaySessionIds.length}/${displaySessions.length}`;
+      ? t("debug.overview.none", "暂无")
+      : t("debug.overview.displaySessions", {
+          selected: selectedDisplaySessionIds.length,
+          total: displaySessions.length,
+          defaultValue: `${selectedDisplaySessionIds.length}/${displaySessions.length}`,
+        });
   const shouldShowAiSummarySection = displaySessions.length > 0;
   const overrideSummaryText = overrideValidationError
-    ? "当前 JSON 无效，启动调试会被阻止。"
+    ? t(
+        "debug.overview.overrideInvalid",
+        "当前 JSON 无效，启动调试会被阻止。",
+      )
     : overrideEntries.length > 0
-      ? `当前会覆盖 ${overrideEntries.length} 个运行时节点。`
-      : "当前没有额外 override，将直接使用基础 pipeline。";
+      ? t("debug.overview.overrideActive", {
+          count: overrideEntries.length,
+          defaultValue: `当前会覆盖 ${overrideEntries.length} 个运行时节点。`,
+        })
+      : t(
+          "debug.overview.overrideEmpty",
+          "当前没有额外 override，将直接使用基础 pipeline。",
+        );
   const overrideEditorOptions = useMemo(
     () => createMfwJsonEditorOptions(jsonIndent, { fontSize: 13 }),
     [jsonIndent],
@@ -313,7 +330,7 @@ export function OverviewPanel({
         <Alert
           type="error"
           showIcon
-          title="调试能力读取失败"
+          title={t("debug.overview.capabilityReadFailed", "调试能力读取失败")}
           description={capabilityError}
         />
       )}
@@ -325,7 +342,9 @@ export function OverviewPanel({
           description={lastError.message}
         />
       )}
-      <DebugSection title="当前 / 最新运行">
+      <DebugSection
+        title={t("debug.overview.currentRun", "当前 / 最新运行")}
+      >
         <div style={runSummaryStyle}>
           <div style={runControlStyle}>
             <div style={nodePickerStyle}>
@@ -333,7 +352,10 @@ export function OverviewPanel({
                 showSearch
                 value={selectedRunTargetNodeId}
                 style={nodeSelectStyle}
-                placeholder="搜索并选择 Pipeline 节点"
+                placeholder={t(
+                  "debug.overview.searchNodePlaceholder",
+                  "搜索并选择 Pipeline 节点",
+                )}
                 filterOption={(input, option) =>
                   String(nodeSearchTextMap.get(option?.value ?? "") ?? "")
                     .toLowerCase()
@@ -341,7 +363,10 @@ export function OverviewPanel({
                 }
                 onChange={selectPipelineNode}
                 options={nodeOptions}
-                notFoundContent="当前图没有可调试 Pipeline 节点"
+                notFoundContent={t(
+                  "debug.overview.noDebuggableNodes",
+                  "当前图没有可调试 Pipeline 节点",
+                )}
                 optionRender={(option) => {
                   const node = runTargetNodes.find(
                     (item) => item.nodeId === option.value,
@@ -364,7 +389,7 @@ export function OverviewPanel({
                   setIncludeAllJsonRunTargets(event.target.checked)
                 }
               >
-                跨文件检索节点
+                {t("debug.overview.crossFileSearch", "跨文件检索节点")}
               </Checkbox>
             </div>
             <Space wrap style={runActionsStyle}>
@@ -380,7 +405,7 @@ export function OverviewPanel({
                   !availableModeIds.has("run-from-node")
                 }
               >
-                从此节点运行
+                {t("debug.overview.runFromNode", "从此节点运行")}
               </Button>
               <Button
                 icon={<CaretRightOutlined />}
@@ -393,7 +418,7 @@ export function OverviewPanel({
                   !availableModeIds.has("single-node-run")
                 }
               >
-                单节点运行
+                {t("debug.overview.singleNodeRun", "单节点运行")}
               </Button>
               <Button
                 icon={<FileSearchOutlined />}
@@ -406,7 +431,7 @@ export function OverviewPanel({
                   !availableModeIds.has("recognition-only")
                 }
               >
-                仅识别
+                {t("debug.overview.recognitionOnly", "仅识别")}
               </Button>
               <Button
                 danger
@@ -418,7 +443,7 @@ export function OverviewPanel({
                   !availableModeIds.has("action-only")
                 }
               >
-                仅动作
+                {t("debug.overview.actionOnly", "仅动作")}
               </Button>
               <Button
                 danger
@@ -426,57 +451,85 @@ export function OverviewPanel({
                 onClick={stopRun}
                 disabled={!canStopRun}
               >
-                停止
+                {t("debug.overview.stop", "停止")}
               </Button>
             </Space>
           </div>
           <div style={metaListStyle}>
             <MetaItem
-              label="会话"
-              value={summary.sessionId ?? session?.sessionId ?? "未创建会话"}
+              label={t("debug.overview.session", "会话")}
+              value={
+                summary.sessionId ??
+                session?.sessionId ??
+                t("debug.overview.noSession", "未创建会话")
+              }
               wide
             />
-            <MetaItem label="状态" value={session?.status ?? summary.status} />
-            <MetaItem label="运行" value={currentRunLabel} />
-            <MetaItem label="模式" value={summary.runMode ?? lastRunMode} />
-            <MetaItem label="展示" value={displaySessionSelectionLabel} />
-            <MetaItem label="事件" value={events.length} />
             <MetaItem
-              label="实时事件"
+              label={t("debug.overview.status", "状态")}
+              value={session?.status ?? summary.status}
+            />
+            <MetaItem
+              label={t("debug.common.run", "运行")}
+              value={currentRunLabel}
+            />
+            <MetaItem
+              label={t("debug.overview.mode", "模式")}
+              value={summary.runMode ?? lastRunMode}
+            />
+            <MetaItem
+              label={t("debug.overview.display", "展示")}
+              value={displaySessionSelectionLabel}
+            />
+            <MetaItem
+              label={t("debug.common.events", "事件")}
+              value={events.length}
+            />
+            <MetaItem
+              label={t("debug.overview.liveEvents", "实时事件")}
               value={liveSummary.lastEvent?.seq ?? 0}
             />
             <MetaItem
-              label="当前节点"
+              label={t("debug.overview.currentNode", "当前节点")}
               value={summary.currentRuntimeName ?? "-"}
               wide
             />
-            <MetaItem label="追踪" value="实时" />
-            <MetaItem label="已访问" value={summary.visitedNodeIds.length} />
-            <MetaItem label="失败" value={summary.failedNodeIds.length} />
+            <MetaItem
+              label={t("debug.overview.trace", "追踪")}
+              value={t("debug.overview.live", "实时")}
+            />
+            <MetaItem
+              label={t("debug.overview.visited", "已访问")}
+              value={summary.visitedNodeIds.length}
+            />
+            <MetaItem
+              label={t("debug.overview.failed", "失败")}
+              value={summary.failedNodeIds.length}
+            />
           </div>
           <div style={metaListStyle}>
             <MetaItem
-              label="耗时"
+              label={t("debug.common.duration", "耗时")}
               value={`${summary.durationMs ?? 0}ms`}
             />
             <MetaItem
-              label="节点"
+              label={t("debug.overview.node", "节点")}
               value={summary.visitedNodeIds.length + summary.failedNodeIds.length}
             />
             <MetaItem
-              label="识别"
+              label={t("debug.common.recognition", "识别")}
               value={summary.recognitionCount}
             />
             <MetaItem
-              label="动作"
+              label={t("debug.common.action", "动作")}
               value={summary.actionCount}
             />
             <MetaItem
-              label="产物"
+              label={t("debug.common.artifact", "产物")}
               value={summary.artifactRefCount}
             />
             <MetaItem
-              label="会话"
+              label={t("debug.overview.session", "会话")}
               value={displaySessions.length || 1}
             />
           </div>
@@ -487,7 +540,10 @@ export function OverviewPanel({
                 allowClear
                 value={selectedDisplaySessionIds}
                 style={sessionSelectStyle}
-                placeholder="选择要展示的调试会话"
+                placeholder={t(
+                  "debug.overview.selectDisplaySessions",
+                  "选择要展示的调试会话",
+                )}
                 options={displaySessionOptions}
                 onChange={selectDisplaySessions}
                 filterOption={(input, option) =>
@@ -509,7 +565,8 @@ export function OverviewPanel({
                         {formatDebugRunDisplayName(item.runId, item.startedAt)}
                       </Text>
                       <Text type="secondary" style={{ fontSize: 12 }}>
-                        {item.status ?? "-"} · {item.eventCount} 事件 ·{" "}
+                        {item.status ?? "-"} · {item.eventCount}{" "}
+                        {t("debug.common.events", "事件")} ·{" "}
                         {item.sessionId.slice(0, 8)}
                       </Text>
                     </Space>
@@ -522,14 +579,14 @@ export function OverviewPanel({
                   onClick={selectLatestDisplaySession}
                   disabled={!latestDisplaySessionId}
                 >
-                  仅最新
+                  {t("debug.overview.latestOnly", "仅最新")}
                 </Button>
                 <Button
                   size="small"
                   onClick={selectAllDisplaySessions}
                   disabled={displaySessions.length === 0}
                 >
-                  全选
+                  {t("debug.overview.selectAll", "全选")}
                 </Button>
               </Space>
             </div>
@@ -537,14 +594,17 @@ export function OverviewPanel({
         </div>
       </DebugSection>
       <DebugSection
-        title="运行时 Override"
+        title={t("debug.overview.runtimeOverride", "运行时 Override")}
         collapsible
         defaultCollapsed={overrideDefaultCollapsed}
       >
         <div style={overrideSectionStyle}>
           <div style={overrideToolbarStyle}>
             <Text type="secondary">
-              使用 MaaFW `pipeline_override` 兼容结构：
+              {t(
+                "debug.overview.overrideHint",
+                "使用 MaaFW `pipeline_override` 兼容结构：",
+              )}
               {` { "RuntimeName": { ...partial pipeline... } } `}
             </Text>
             <Space wrap>
@@ -557,10 +617,10 @@ export function OverviewPanel({
                   )
                 }
               >
-                格式化
+                {t("debug.overview.format", "格式化")}
               </Button>
               <Button size="small" onClick={resetOverrideDraft}>
-                清空
+                {t("debug.overview.clear", "清空")}
               </Button>
             </Space>
           </div>
@@ -583,14 +643,19 @@ export function OverviewPanel({
             <Alert
               type="error"
               showIcon
-              title="Override JSON 无效"
+              title={t(
+                "debug.overview.overrideJsonInvalid",
+                "Override JSON 无效",
+              )}
               description={overrideValidationError}
             />
           )}
         </div>
       </DebugSection>
       {shouldShowAiSummarySection && (
-        <DebugSection title="AI 简要摘要">
+        <DebugSection
+          title={t("debug.overview.aiBriefSummary", "AI 简要摘要")}
+        >
           {aiSummaryState.activeReport?.simpleSummary ? (
             <Space orientation="vertical" size={8} style={{ width: "100%" }}>
               <Text>{aiSummaryState.activeReport.simpleSummary}</Text>
@@ -600,7 +665,7 @@ export function OverviewPanel({
                   icon={<FileTextOutlined />}
                   onClick={openAiSummaryPanel}
                 >
-                  查看详细报告
+                  {t("debug.overview.viewDetailedReport", "查看详细报告")}
                 </Button>
                 <Button
                   size="small"
@@ -608,14 +673,17 @@ export function OverviewPanel({
                   loading={aiSummaryState.status === "generating"}
                   onClick={() => generateDebugAiSummary("full")}
                 >
-                  重新生成
+                  {t("debug.overview.regenerate", "重新生成")}
                 </Button>
               </Space>
             </Space>
           ) : (
             <Space orientation="vertical" size={8} style={{ width: "100%" }}>
               <Text type="secondary">
-                尚未生成 AI 简要摘要；生成后会在这里显示结论并可跳转到详细报告。
+                {t(
+                  "debug.overview.noAiBriefSummary",
+                  "尚未生成 AI 简要摘要；生成后会在这里显示结论并可跳转到详细报告。",
+                )}
               </Text>
               <Space wrap>
                 <Button
@@ -625,10 +693,10 @@ export function OverviewPanel({
                   disabled={events.length === 0}
                   onClick={() => generateDebugAiSummary("full")}
                 >
-                  生成 AI 总结
+                  {t("debug.overview.generateAiSummary", "生成 AI 总结")}
                 </Button>
                 <Button size="small" onClick={openAiSummaryPanel}>
-                  打开 AI 总结
+                  {t("debug.overview.openAiSummary", "打开 AI 总结")}
                 </Button>
               </Space>
             </Space>
@@ -637,15 +705,17 @@ export function OverviewPanel({
       )}
       {failedNodeExecutionRecords.length > 0 &&
         latestFailedNodeExecutionRecord && (
-          <DebugSection title="失败节点">
+          <DebugSection
+            title={t("debug.overview.failedNodes", "失败节点")}
+          >
             <Space orientation="vertical" size={8} style={{ width: "100%" }}>
               <div style={metaListStyle}>
                 <MetaItem
-                  label="失败记录"
+                  label={t("debug.overview.failedRecords", "失败记录")}
                   value={failedNodeExecutionRecords.length}
                 />
                 <MetaItem
-                  label="节点"
+                  label={t("debug.overview.node", "节点")}
                   value={
                     latestFailedNodeExecutionRecord.label ??
                     latestFailedNodeExecutionRecord.runtimeName
@@ -663,7 +733,7 @@ export function OverviewPanel({
                 icon={<NodeIndexOutlined />}
                 onClick={openLatestFailedNode}
               >
-                查看失败节点
+                {t("debug.overview.viewFailedNode", "查看失败节点")}
               </Button>
             </Space>
           </DebugSection>

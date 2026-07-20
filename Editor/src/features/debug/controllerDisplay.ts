@@ -1,3 +1,4 @@
+import uiT from "../../i18n/translate";
 import type { DeviceInfo, DeviceType } from "../../stores/mfwStore";
 
 export function getControllerDisplayName(
@@ -6,7 +7,7 @@ export function getControllerDisplayName(
   controllerType: DeviceType,
 ): string {
   if (!deviceInfo || typeof deviceInfo !== "object") {
-    return controllerId ?? "未连接";
+    return controllerId ?? uiT("ui.debug.controller.notConnected", "未连接");
   }
   const info = deviceInfo as Record<string, unknown>;
   const keys =
@@ -21,5 +22,5 @@ export function getControllerDisplayName(
       return value.trim();
     }
   }
-  return controllerId ?? "未连接";
+  return controllerId ?? uiT("ui.debug.controller.notConnected", "未连接");
 }

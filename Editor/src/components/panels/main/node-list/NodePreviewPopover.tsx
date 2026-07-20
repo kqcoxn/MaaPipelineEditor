@@ -5,6 +5,7 @@
 
 import { memo, useState, useEffect, useMemo } from "react";
 import { Popover, Image, Spin } from "antd";
+import { useTranslation } from "react-i18next";
 import { useLocalFileStore } from "../../../../stores/localFileStore";
 import { resourceProtocol } from "../../../../services/server";
 import { useWSStore } from "../../../../stores/wsStore";
@@ -42,6 +43,7 @@ const formatParamValue = (value: any, maxLength = 30): string => {
 
 /** 节点预览内容组件 */
 const NodePreviewContent = memo(({ node }: { node: NodeListItemInfo }) => {
+  const { t } = useTranslation();
   const connected = useWSStore((state) => state.connected);
   const imageCache = useLocalFileStore((state) => state.imageCache);
   const pendingImageRequests = useLocalFileStore((state) => state.pendingImageRequests);
@@ -136,7 +138,9 @@ const NodePreviewContent = memo(({ node }: { node: NodeListItemInfo }) => {
           <IconFont name={nodeTypeIconConfig.name} size={16} style={{ marginRight: 6 }} />
           <span className={style["preview-label"]}>{node.label}</span>
         </div>
-        <div className={style["preview-info"]}>外部引用节点</div>
+        <div className={style["preview-info"]}>
+          {t("ui.panels.nodeList.preview.external", "外部引用节点")}
+        </div>
       </div>
     );
   }
@@ -149,7 +153,9 @@ const NodePreviewContent = memo(({ node }: { node: NodeListItemInfo }) => {
           <IconFont name={nodeTypeIconConfig.name} size={16} style={{ marginRight: 6 }} />
           <span className={style["preview-label"]}>{node.label}</span>
         </div>
-        <div className={style["preview-info"]}>重定向节点</div>
+        <div className={style["preview-info"]}>
+          {t("ui.panels.nodeList.preview.anchor", "重定向节点")}
+        </div>
       </div>
     );
   }
@@ -164,7 +170,9 @@ const NodePreviewContent = memo(({ node }: { node: NodeListItemInfo }) => {
         <div className={style["preview-header"]} style={{ backgroundColor: "#f9e066", borderBottom: "none" }}>
           <span className={style["preview-label"]}>{node.label}</span>
         </div>
-        <div className={style["preview-info"]}>便签贴纸</div>
+        <div className={style["preview-info"]}>
+          {t("ui.panels.nodeList.preview.sticker", "便签贴纸")}
+        </div>
       </div>
     );
   }
@@ -177,7 +185,9 @@ const NodePreviewContent = memo(({ node }: { node: NodeListItemInfo }) => {
           <IconFont name="icon-kuangxuanzhong" size={16} style={{ marginRight: 6 }} />
           <span className={style["preview-label"]}>{node.label}</span>
         </div>
-        <div className={style["preview-info"]}>分组框</div>
+        <div className={style["preview-info"]}>
+          {t("ui.panels.nodeList.preview.group", "分组框")}
+        </div>
       </div>
     );
   }
@@ -203,7 +213,11 @@ const NodePreviewContent = memo(({ node }: { node: NodeListItemInfo }) => {
           {recoIconConfig.name && (
             <IconFont name={recoIconConfig.name} size={recoIconConfig.size} />
           )}
-          <span>识别 - {node.recognitionType || "DirectHit"}</span>
+          <span>
+            {t("ui.panels.nodeList.preview.recognition", "识别 - {{type}}", {
+              type: node.recognitionType || "DirectHit",
+            })}
+          </span>
         </div>
         {hasRecoParams && (
           <div className={style["param-list"]}>
@@ -226,7 +240,11 @@ const NodePreviewContent = memo(({ node }: { node: NodeListItemInfo }) => {
           {actionIconConfig.name && (
             <IconFont name={actionIconConfig.name} size={actionIconConfig.size} />
           )}
-          <span>动作 - {node.actionType || "DoNothing"}</span>
+          <span>
+            {t("ui.panels.nodeList.preview.action", "动作 - {{type}}", {
+              type: node.actionType || "DoNothing",
+            })}
+          </span>
         </div>
         {hasActionParams && (
           <div className={style["param-list"]}>
@@ -248,7 +266,7 @@ const NodePreviewContent = memo(({ node }: { node: NodeListItemInfo }) => {
         <div className={style["preview-section"]}>
           <div className={style["section-header"]}>
             <IconFont name="icon-gengduo" size={12} />
-            <span>其他参数</span>
+            <span>{t("ui.panels.nodeList.preview.otherParams", "其他参数")}</span>
           </div>
           <div className={style["param-list"]}>
             {Object.entries(node.others!).slice(0, 2).map(([key, value]) => (
@@ -266,8 +284,16 @@ const NodePreviewContent = memo(({ node }: { node: NodeListItemInfo }) => {
 
       {/* 连接信息 */}
       <div className={style["preview-edges"]}>
-        <span>入边: {node.inEdgeCount}</span>
-        <span>出边: {node.outEdgeCount}</span>
+        <span>
+          {t("ui.panels.nodeList.preview.inEdges", "入边: {{count}}", {
+            count: node.inEdgeCount,
+          })}
+        </span>
+        <span>
+          {t("ui.panels.nodeList.preview.outEdges", "出边: {{count}}", {
+            count: node.outEdgeCount,
+          })}
+        </span>
       </div>
     </div>
   );

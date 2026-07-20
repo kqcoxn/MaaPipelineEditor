@@ -1,13 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Modal, Button, Checkbox, Typography, Divider, Space, Tag, theme } from "antd";
+import { useTranslation } from "react-i18next";
 import { useTermsStore, isAllChecked } from "../../stores/termsStore";
-import { TERMS_VERSION, termsItems } from "../../data/termsData";
+import { TERMS_VERSION } from "../../data/termsData";
+import { getLocalizedTermsItems } from "../../data/localize";
 
 const { Title, Paragraph, Text } = Typography;
 
 const COUNTDOWN_SECONDS = 10;
 
 export function TermsAgreementModal() {
+  const { t } = useTranslation();
+  const termsItems = useMemo(() => getLocalizedTermsItems(t), [t]);
   const { modalOpen, checkedItems, toggleItem, acceptTerms } = useTermsStore();
   const { token } = theme.useToken();
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -51,10 +55,13 @@ export function TermsAgreementModal() {
     >
       <div style={{ textAlign: "center", marginBottom: 16 }}>
         <Title level={4} style={{ margin: 0 }}>
-          使用协议
+          {t("ui.modals.termsAgreement.title", "使用协议")}
         </Title>
         <Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
-          在使用 MaaPipelineEditor 之前，请阅读并同意以下条款。
+          {t(
+            "ui.modals.termsAgreement.description",
+            "在使用 MaaPipelineEditor 之前，请阅读并同意以下条款。",
+          )}
         </Paragraph>
       </div>
 
@@ -101,14 +108,22 @@ export function TermsAgreementModal() {
           justifyContent: "space-between",
         }}
       >
-        <Tag color="default">协议版本: v{TERMS_VERSION}</Tag>
+        <Tag color="default">
+          {t("ui.modals.termsAgreement.versionLabel", "协议版本: v{{version}}", {
+            version: TERMS_VERSION,
+          })}
+        </Tag>
         <Button
           type="primary"
           disabled={!canSubmit}
           onClick={acceptTerms}
           size="large"
         >
-          {countdown > 0 ? `请阅读条款 (${countdown}s)` : "同意并继续"}
+          {countdown > 0
+            ? t("ui.modals.termsAgreement.readCountdown", "请阅读条款 ({{seconds}}s)", {
+                seconds: countdown,
+              })
+            : t("ui.modals.termsAgreement.accept", "同意并继续")}
         </Button>
       </div>
     </Modal>

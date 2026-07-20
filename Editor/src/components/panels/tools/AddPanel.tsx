@@ -1,14 +1,15 @@
 import { memo, useMemo } from "react";
 import { Tooltip } from "antd";
+import { useTranslation } from "react-i18next";
 import classNames from "classnames";
 import IconFont from "../../iconfonts";
 import { type IconNames } from "../../iconfonts";
 import { useFlowStore } from "../../../stores/flow";
 import { NodeTypeEnum } from "../../flow/nodes";
 import {
-  nodeTemplates,
   type NodeTemplateType,
 } from "../../../data/nodeTemplates";
+import { getLocalizedNodeTemplates } from "../../../data/localize";
 import style from "../../../styles/panels/ToolPanel.module.less";
 
 /** 基准画布高度1 */
@@ -33,17 +34,19 @@ const HEIGHT_PER_ITEM =
  * 基准：720px 时显示 7 个，840px 时显示 10 个
  * 每 40px 增减 1 个模板，最少显示 5 个
  */
-function calcTemplateCount(canvasHeight: number): number {
+function calcTemplateCount(canvasHeight: number, templateCount: number): number {
   if (canvasHeight <= 0) return BASE_COUNT_1;
   // 从 720px 为基准计算偏移量
   const count =
     BASE_COUNT_1 + Math.round((canvasHeight - BASE_HEIGHT_1) / HEIGHT_PER_ITEM);
   // 限制范围：最少5个，最多不超过模板总数
-  return Math.max(MIN_COUNT, Math.min(nodeTemplates.length, count));
+  return Math.max(MIN_COUNT, Math.min(templateCount, count));
 }
 
 /**添加工具 */
 function AddPanel() {
+  const { t } = useTranslation();
+  const nodeTemplates = useMemo(() => getLocalizedNodeTemplates(t), [t]);
   const addNode = useFlowStore((state) => state.addNode);
   const canvasHeight = useFlowStore((state) => state.size.height);
 
@@ -51,9 +54,12 @@ function AddPanel() {
   const addTools = useMemo<NodeTemplateType[]>(
     () => {
       const availableCanvasHeight = canvasHeight - TOP_TOOLBAR_RESERVED_HEIGHT;
-      return nodeTemplates.slice(0, calcTemplateCount(availableCanvasHeight));
+      return nodeTemplates.slice(
+        0,
+        calcTemplateCount(availableCanvasHeight, nodeTemplates.length),
+      );
     },
-    [canvasHeight],
+    [canvasHeight, nodeTemplates],
   );
 
   // 渲染节点项
@@ -99,7 +105,10 @@ function AddPanel() {
       <div className={style.hintDivider}>
         <div></div>
       </div>
-      <Tooltip placement="right" title="右键画布以显示更多模板">
+      <Tooltip
+        placement="right"
+        title={t("ui.panels.tools.add.rightClickHint", "右键画布以显示更多模板")}
+      >
         <li className={style.hintItem}>
           <IconFont className={style.hintIcon} name="icon-gengduo" size={20} />
         </li>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo } from "react";
+import uiT from "../../../i18n/translate";
 import { message } from "antd";
 import { useShallow } from "zustand/shallow";
 import { debugProtocolClient } from "../../../services/server";
@@ -158,7 +159,12 @@ export function useDebugResourceChecks({
     } catch (error) {
       return {
         error:
-          error instanceof Error ? error.message : "生成资源体检请求失败",
+          error instanceof Error
+            ? error.message
+            : uiT(
+                "ui.debug.resourceChecks.buildRequestFailed",
+                "生成资源体检请求失败",
+              ),
       };
     }
   }, [
@@ -205,7 +211,10 @@ export function useDebugResourceChecks({
       setResourcePreflightError(
         requestId,
         resourceKey,
-        "发送资源加载检测请求失败。",
+        uiT(
+          "ui.debug.actions.resourcePreflightRequestFailed",
+          "发送资源加载检测请求失败。",
+        ),
       );
     }
   }, [
@@ -270,7 +279,13 @@ export function useDebugResourceChecks({
 
   const requestResourceHealth = useCallback(() => {
     if (!resourceHealthDraft.request || !resourceHealthDraft.requestKey) {
-      message.error(resourceHealthDraft.error ?? "生成资源体检请求失败");
+      message.error(
+        resourceHealthDraft.error ??
+          uiT(
+            "ui.debug.resourceChecks.buildRequestFailed",
+            "生成资源体检请求失败",
+          ),
+      );
       return;
     }
     requestResourceHealthAction({

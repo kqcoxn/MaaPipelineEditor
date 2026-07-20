@@ -32,6 +32,7 @@ import { fitFlowView } from "../utils/viewportUtils";
 import { assignNodeOrder, removeNodeOrder } from "../../fileStore";
 import { useConfigStore } from "../../configStore";
 import { checkRepeatNodeLabelList } from "../index";
+import i18n from "../../../i18n";
 
 export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
   set,
@@ -119,7 +120,7 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       get().saveHistory(0, {
         category: "node",
         action: "delete",
-        description: "删除节点",
+        description: i18n.t("stores.flow.history.deleteNode", "删除节点"),
         targetIds: Array.from(removedIds),
       });
       // 检查重名
@@ -130,7 +131,7 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       get().saveHistory(0, {
         category: "node",
         action: "move",
-        description: "移动节点",
+        description: i18n.t("stores.flow.history.moveNode", "移动节点"),
       });
     }
   },
@@ -154,20 +155,20 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
 
     switch (type) {
       case NodeTypeEnum.Pipeline:
-        labelBase = "新建节点";
+        labelBase = i18n.t("stores.flow.node.newNode", "新建节点");
         break;
       case NodeTypeEnum.External:
-        labelBase = "外部节点";
+        labelBase = i18n.t("stores.flow.node.external", "外部节点");
         break;
       case NodeTypeEnum.Anchor:
-        labelBase = "重定向节点";
+        labelBase = i18n.t("stores.flow.node.anchor", "重定向节点");
         break;
       case NodeTypeEnum.Sticker:
-        labelBase = "便签";
+        labelBase = i18n.t("stores.flow.node.sticker", "便签");
         useNumberSuffix = false;
         break;
       case NodeTypeEnum.Group:
-        labelBase = "分组";
+        labelBase = i18n.t("stores.flow.node.group", "分组");
         useNumberSuffix = false;
         break;
     }
@@ -300,7 +301,10 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
     get().saveHistory(0, {
       category: "node",
       action: "add",
-      description: `创建节点 ${label}`,
+      description: i18n.t("stores.flow.history.createNode", {
+        defaultValue: "创建节点 {{label}}",
+        label,
+      }),
       targetIds: [finalId],
     });
 
@@ -408,7 +412,11 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
     get().saveHistory(1000, {
       category: "node",
       action: "update",
-      description: `修改 ${nodeLabel} 的 ${key}`,
+      description: i18n.t("stores.flow.history.updateNode", {
+        defaultValue: "修改 {{nodeLabel}} 的 {{key}}",
+        nodeLabel,
+        key,
+      }),
       targetIds: [id],
     });
   },
@@ -535,7 +543,10 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
     get().saveHistory(1000, {
       category: "node",
       action: "update",
-      description: `批量修改 ${batchNodeLabel}`,
+      description: i18n.t("stores.flow.history.batchUpdateNode", {
+        defaultValue: "批量修改 {{nodeLabel}}",
+        nodeLabel: batchNodeLabel,
+      }),
       targetIds: [id],
     });
   },
@@ -585,7 +596,7 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       }
 
       const groupNode = createGroupNode(groupId, {
-        label: "分组",
+        label: i18n.t("stores.flow.node.group", "分组"),
         position: { x: groupX, y: groupY },
         style: { width: groupW, height: groupH },
       });
@@ -619,7 +630,7 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
     get().saveHistory(0, {
       category: "group",
       action: "add",
-      description: "创建分组",
+      description: i18n.t("stores.flow.history.createGroup", "创建分组"),
     });
   },
 
@@ -655,7 +666,7 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
     get().saveHistory(0, {
       category: "group",
       action: "delete",
-      description: "解散分组",
+      description: i18n.t("stores.flow.history.ungroup", "解散分组"),
       targetIds: [groupId],
     });
   },
@@ -684,7 +695,7 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
     get().saveHistory(0, {
       category: "group",
       action: "update",
-      description: "加入分组",
+      description: i18n.t("stores.flow.history.attachGroup", "加入分组"),
       targetIds: [nodeId],
     });
   },
@@ -710,7 +721,7 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
     get().saveHistory(0, {
       category: "group",
       action: "update",
-      description: "移出分组",
+      description: i18n.t("stores.flow.history.detachGroup", "移出分组"),
       targetIds: [nodeId],
     });
   },

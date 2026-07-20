@@ -6,6 +6,7 @@ import {
   DeleteOutlined,
   AimOutlined,
 } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 import {
   ScreenshotModalBase,
   type CanvasRenderProps,
@@ -30,6 +31,7 @@ type DrawingTarget = "source" | "target";
 
 export const ROIOffsetModal = memo(
   ({ open, onClose, onConfirm, initialROI }: ROIOffsetModalProps) => {
+    const { t } = useTranslation();
     const [screenshot, setScreenshot] = useState<string | null>(null);
     // 原 ROI（来源区域）
     const [sourceRect, setSourceRect] = useState<Rectangle | null>(null);
@@ -111,7 +113,7 @@ export const ROIOffsetModal = memo(
           ctx.font = "bold 14px sans-serif";
           ctx.fillStyle = "#1890ff";
           ctx.fillText(
-            "原 ROI",
+            t("ui.modals.roiOffsetModal.sourceRoi", "原 ROI"),
             sourceRect.x + 4,
             sourceRect.y > 20 ? sourceRect.y - 6 : sourceRect.y + 18
           );
@@ -139,7 +141,7 @@ export const ROIOffsetModal = memo(
           ctx.font = "bold 14px sans-serif";
           ctx.fillStyle = "#fa8c16";
           ctx.fillText(
-            "期望 ROI",
+            t("ui.modals.roiOffsetModal.targetRoi", "期望 ROI"),
             targetRect.x + 4,
             targetRect.y > 20 ? targetRect.y - 6 : targetRect.y + 18
           );
@@ -188,7 +190,7 @@ export const ROIOffsetModal = memo(
           ctx.fill();
         }
       },
-      [sourceRect, targetRect]
+      [sourceRect, targetRect, t]
     );
 
     // sourceRect/targetRect 变化或图片加载后重绘
@@ -367,17 +369,27 @@ export const ROIOffsetModal = memo(
     // 确定回填
     const handleConfirm = useCallback(() => {
       if (!sourceRect) {
-        message.warning("请先框选或输入原 ROI");
+        message.warning(
+          t(
+            "ui.modals.roiOffsetModal.warnNeedSource",
+            "请先框选或输入原 ROI"
+          )
+        );
         return;
       }
       if (!targetRect) {
-        message.warning("请先框选或输入期望 ROI");
+        message.warning(
+          t(
+            "ui.modals.roiOffsetModal.warnNeedTarget",
+            "请先框选或输入期望 ROI"
+          )
+        );
         return;
       }
 
       onConfirm(offset);
       onClose();
-    }, [offset, sourceRect, targetRect, onConfirm, onClose]);
+    }, [offset, sourceRect, targetRect, onConfirm, onClose, t]);
 
     // 重置状态
     const handleReset = useCallback(() => {
@@ -393,7 +405,9 @@ export const ROIOffsetModal = memo(
     const renderToolbar = useCallback(
       (_props: ViewportProps) => (
         <Space size="small">
-          <span style={{ fontSize: 12, color: "#666" }}>当前绘制:</span>
+          <span style={{ fontSize: 12, color: "#666" }}>
+            {t("ui.modals.roiOffsetModal.currentDrawing", "当前绘制:")}
+          </span>
           <Button.Group>
             <Button
               size="small"
@@ -405,7 +419,7 @@ export const ROIOffsetModal = memo(
                   : {}
               }
             >
-              原 ROI
+              {t("ui.modals.roiOffsetModal.sourceRoi", "原 ROI")}
             </Button>
             <Button
               size="small"
@@ -417,35 +431,50 @@ export const ROIOffsetModal = memo(
                   : {}
               }
             >
-              期望 ROI
+              {t("ui.modals.roiOffsetModal.targetRoi", "期望 ROI")}
             </Button>
           </Button.Group>
           {sourceRect && targetRect && (
-            <Tooltip title="交换原 ROI 与期望 ROI">
+            <Tooltip
+              title={t(
+                "ui.modals.roiOffsetModal.swapTooltip",
+                "交换原 ROI 与期望 ROI"
+              )}
+            >
               <Button size="small" icon={<SwapOutlined />} onClick={handleSwap}>
-                交换
+                {t("ui.modals.roiOffsetModal.swap", "交换")}
               </Button>
             </Tooltip>
           )}
           {targetRect && !sourceRect && (
-            <Tooltip title="将期望 ROI 复制为原 ROI">
+            <Tooltip
+              title={t(
+                "ui.modals.roiOffsetModal.copyToSourceTooltip",
+                "将期望 ROI 复制为原 ROI"
+              )}
+            >
               <Button
                 size="small"
                 icon={<CopyOutlined />}
                 onClick={handleCopyTargetToSource}
               >
-                复制到原 ROI
+                {t("ui.modals.roiOffsetModal.copyToSource", "复制到原 ROI")}
               </Button>
             </Tooltip>
           )}
           {initialROI && (
-            <Tooltip title="使用节点的 roi 属性重置原 ROI">
+            <Tooltip
+              title={t(
+                "ui.modals.roiOffsetModal.resetToNodeTooltip",
+                "使用节点的 roi 属性重置原 ROI"
+              )}
+            >
               <Button
                 size="small"
                 icon={<AimOutlined />}
                 onClick={handleResetToInitial}
               >
-                使用节点 ROI
+                {t("ui.modals.roiOffsetModal.resetToNode", "使用节点 ROI")}
               </Button>
             </Tooltip>
           )}
@@ -459,6 +488,7 @@ export const ROIOffsetModal = memo(
         handleSwap,
         handleCopyTargetToSource,
         handleResetToInitial,
+        t,
       ]
     );
 
@@ -528,9 +558,9 @@ export const ROIOffsetModal = memo(
       <ScreenshotModalBase
         open={open}
         onClose={onClose}
-        title="ROI 偏移计算工具"
+        title={t("ui.modals.roiOffsetModal.title", "ROI 偏移计算工具")}
         width={1200}
-        confirmText="应用偏移"
+        confirmText={t("ui.modals.roiOffsetModal.confirmText", "应用偏移")}
         confirmDisabled={!hasValidOffset}
         onConfirm={handleConfirm}
         renderToolbar={renderToolbar}
@@ -571,14 +601,19 @@ export const ROIOffsetModal = memo(
                 <span
                   style={{ fontSize: 14, fontWeight: 500, color: "#262626" }}
                 >
-                  原 ROI
+                  {t("ui.modals.roiOffsetModal.sourceRoi", "原 ROI")}
                 </span>
                 <span style={{ fontSize: 12, color: "#8c8c8c" }}>
                   [x, y, w, h]
                 </span>
               </div>
               {sourceRect && (
-                <Tooltip title="清除原 ROI">
+                <Tooltip
+                  title={t(
+                    "ui.modals.roiOffsetModal.clearSourceTooltip",
+                    "清除原 ROI"
+                  )}
+                >
                   <Button
                     type="text"
                     size="small"
@@ -708,14 +743,19 @@ export const ROIOffsetModal = memo(
                 <span
                   style={{ fontSize: 14, fontWeight: 500, color: "#262626" }}
                 >
-                  期望 ROI
+                  {t("ui.modals.roiOffsetModal.targetRoi", "期望 ROI")}
                 </span>
                 <span style={{ fontSize: 12, color: "#8c8c8c" }}>
                   [x, y, w, h]
                 </span>
               </div>
               {targetRect && (
-                <Tooltip title="清除期望 ROI">
+                <Tooltip
+                  title={t(
+                    "ui.modals.roiOffsetModal.clearTargetTooltip",
+                    "清除期望 ROI"
+                  )}
+                >
                   <Button
                     type="text"
                     size="small"
@@ -842,7 +882,7 @@ export const ROIOffsetModal = memo(
                 }}
               />
               <span style={{ fontSize: 14, fontWeight: 500, color: "#262626" }}>
-                计算结果
+                {t("ui.modals.roiOffsetModal.resultTitle", "计算结果")}
               </span>
               <span style={{ fontSize: 12, color: "#8c8c8c", marginLeft: 8 }}>
                 roi_offset
@@ -860,7 +900,10 @@ export const ROIOffsetModal = memo(
                   textAlign: "center",
                 }}
               >
-                = 期望 ROI - 原 ROI
+                {t(
+                  "ui.modals.roiOffsetModal.resultFormula",
+                  "= 期望 ROI - 原 ROI"
+                )}
               </div>
             )}
             <Space orientation="vertical" size={8} style={{ width: "100%" }}>
@@ -925,7 +968,10 @@ export const ROIOffsetModal = memo(
                   lineHeight: 1.5,
                 }}
               >
-                💡 先设置原 ROI，然后可直接输入偏移量自动计算期望 ROI
+                {t(
+                  "ui.modals.roiOffsetModal.offsetHint",
+                  "💡 先设置原 ROI，然后可直接输入偏移量自动计算期望 ROI"
+                )}
               </div>
             )}
           </div>

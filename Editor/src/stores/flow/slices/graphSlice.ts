@@ -11,6 +11,7 @@ import {
 } from "../utils/coordinateUtils";
 import { fitFlowView } from "../utils/viewportUtils";
 import { assignNodeOrder } from "../../fileStore";
+import i18n from "../../../i18n";
 
 export const createGraphSlice: StateCreator<
   FlowStore,
@@ -74,7 +75,7 @@ export const createGraphSlice: StateCreator<
       get().saveHistory(0, {
         category: "graph",
         action: "replace",
-        description: "替换画布",
+        description: i18n.t("stores.flow.history.replaceCanvas", "替换画布"),
       });
     }
   },
@@ -140,11 +141,12 @@ export const createGraphSlice: StateCreator<
 
         if (!isReplica) {
           // 生成不重复的节点名
-          let newLabel = node.data.label + "_副本" + pasteCounter;
+          const copySuffix = i18n.t("stores.flow.node.copySuffix", "_副本");
+          let newLabel = node.data.label + copySuffix + pasteCounter;
           let labelCounter = pasteCounter;
           while (existingLabels.has(newLabel)) {
             labelCounter++;
-            newLabel = node.data.label + "_副本" + labelCounter;
+            newLabel = node.data.label + copySuffix + labelCounter;
           }
 
           node.data.label = newLabel;
@@ -272,7 +274,10 @@ export const createGraphSlice: StateCreator<
     get().saveHistory(0, {
       category: "graph",
       action: "paste",
-      description: `粘贴 ${nodes.length} 个节点`,
+      description: i18n.t("stores.flow.history.pasteNodes", {
+        defaultValue: "粘贴 {{count}} 个节点",
+        count: nodes.length,
+      }),
     });
   },
 
@@ -331,7 +336,10 @@ export const createGraphSlice: StateCreator<
     get().saveHistory(0, {
       category: "graph",
       action: "shift",
-      description: "调整节点间距",
+      description: i18n.t(
+        "stores.flow.history.adjustNodeSpacing",
+        "调整节点间距",
+      ),
     });
   },
 });

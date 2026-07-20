@@ -1,6 +1,7 @@
 import style from "../../../styles/panels/FileConfigPanel.module.less";
 
 import { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Popover, Input } from "antd";
 import classNames from "classnames";
 import IconFont from "../../iconfonts";
@@ -10,6 +11,7 @@ import { useFileStore } from "../../../stores/fileStore";
 import { checkRepeatNodeLabelList } from "../../../stores/flow";
 
 function FileConfigPanel() {
+  const { t } = useTranslation();
   const showFileConfigPanel = useConfigStore(
     (state) => state.status.showFileConfigPanel,
   );
@@ -30,7 +32,9 @@ function FileConfigPanel() {
   return (
     <div className={panelClass}>
       <div className={classNames("header", style.header)}>
-        <div className="title">文件配置</div>
+        <div className="title">
+          {t("ui.panels.main.fileConfig.title", "文件配置")}
+        </div>
         <div className={style.right}>
           <IconFont
             className="icon-interactive"
@@ -46,10 +50,15 @@ function FileConfigPanel() {
           <div className={style.key}>
             <Popover
               placement="bottomLeft"
-              title={"节点前缀"}
-              content="在所有节点前添加一个前缀,并使用 _ 与节点名连接,防止跨文件节点名重复"
+              title={t("ui.panels.main.fileConfig.nodePrefixLabel", "节点前缀")}
+              content={t(
+                "ui.panels.main.fileConfig.nodePrefixTip",
+                "在所有节点前添加一个前缀,并使用 _ 与节点名连接,防止跨文件节点名重复",
+              )}
             >
-              <span>节点前缀</span>
+              <span>
+                {t("ui.panels.main.fileConfig.nodePrefixLabel", "节点前缀")}
+              </span>
             </Popover>
           </div>
           <Input
@@ -67,10 +76,15 @@ function FileConfigPanel() {
           <div className={style.key}>
             <Popover
               placement="bottomLeft"
-              title={"文件路径"}
-              content="本地JSON文件的完整路径,用于与本地服务通信时标识文件。留空则无法使用本地通信功能。例如: D:/path/to/your/pipeline.json"
+              title={t("ui.panels.main.fileConfig.filePathLabel", "文件路径")}
+              content={t(
+                "ui.panels.main.fileConfig.filePathTip",
+                "本地JSON文件的完整路径,用于与本地服务通信时标识文件。留空则无法使用本地通信功能。例如: D:/path/to/your/pipeline.json",
+              )}
             >
-              <span>文件路径</span>
+              <span>
+                {t("ui.panels.main.fileConfig.filePathLabel", "文件路径")}
+              </span>
             </Popover>
           </div>
           <Input

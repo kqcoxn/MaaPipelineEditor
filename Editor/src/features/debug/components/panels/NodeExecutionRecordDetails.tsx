@@ -1,6 +1,8 @@
 ﻿import { List } from "../../../../components/SimpleList";
-import { Typography, Space, Tag, Alert, Result } from "antd";
+import { Typography, Space, Tag, Alert } from "antd";
 import type { CSSProperties, ReactNode } from "react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { DebugArtifactSelector } from "../DebugArtifactSelector";
 import { DebugSection } from "../DebugSection";
 import {
@@ -83,9 +85,11 @@ export function NodeExecutionRecordDetails({
   selectedArtifact?: DebugArtifactEntry;
   selectedAttemptId?: string;
 }) {
+  const { t } = useTranslation();
   const derivedImageRefs = collectDerivedImageRefs(
     artifacts,
     record.recognitionEvents,
+    t,
   );
   const selectedAttempt = allDebugNodeExecutionAttempts(record).find(
     (attempt) => attempt.id === selectedAttemptId,
@@ -100,25 +104,39 @@ export function NodeExecutionRecordDetails({
   );
   return (
     <Space orientation="vertical" size={12} style={{ width: "100%" }}>
-      <DebugSection title="执行概览" collapsible defaultCollapsed>
+      <DebugSection
+        title={t("debug.nodeExecution.details.overview", "执行概览")}
+        collapsible
+        defaultCollapsed
+      >
         <Space orientation="vertical" size={8} style={{ width: "100%" }}>
           <StatusTag status={record.status} />
           <div style={overviewMetaStyle}>
             <OverviewMetaItem
-              label="运行"
+              label={t("debug.common.run", "运行")}
               value={formatDebugRunDisplayName(
                 record.runId,
                 findDebugRunFirstTimestamp(record.runId, events),
               )}
             />
-            <OverviewMetaItem label="命中" value={`第 ${record.occurrence} 次`} />
+            <OverviewMetaItem
+              label={t(
+                "debug.nodeExecution.details.occurrenceLabel",
+                "命中",
+              )}
+              value={t(
+                "debug.nodeExecution.details.occurrence",
+                "第 {{count}} 次",
+                { count: record.occurrence },
+              )}
+            />
             <OverviewMetaItem
               label="seq"
               value={`${record.firstSeq}-${record.lastSeq}`}
             />
             {record.durationMs !== undefined && (
               <OverviewMetaItem
-                label="耗时"
+                label={t("debug.common.duration", "耗时")}
                 value={`${formatDebugNodeExecutionDuration(record.durationMs)}${
                   record.durationSource === "performance"
                     ? " · performance"
@@ -132,15 +150,30 @@ export function NodeExecutionRecordDetails({
               wide
             />
             {record.syntheticKind && (
-              <OverviewMetaItem label="类型" value="系统记录" />
+              <OverviewMetaItem
+                label={t("debug.common.type", "类型")}
+                value={t("debug.common.systemRecord", "系统记录")}
+              />
             )}
             {record.sourcePath && (
-              <OverviewMetaItem label="路径" value={record.sourcePath} wide />
+              <OverviewMetaItem
+                label={t("debug.common.path", "路径")}
+                value={record.sourcePath}
+                wide
+              />
             )}
             {record.hasFailure && record.status !== "failed" && (
-              <OverviewMetaItem label="结果" value="含失败" />
+              <OverviewMetaItem
+                label={t("debug.common.result", "结果")}
+                value={t("debug.common.withFailure", "含失败")}
+              />
             )}
-            {record.hasArtifact && <OverviewMetaItem label="产物" value="含产物" />}
+            {record.hasArtifact && (
+              <OverviewMetaItem
+                label={t("debug.common.artifact", "产物")}
+                value={t("debug.common.withArtifact", "含产物")}
+              />
+            )}
           </div>
         </Space>
       </DebugSection>
@@ -149,8 +182,14 @@ export function NodeExecutionRecordDetails({
         <Alert
           type="warning"
           showIcon
-          title="该记录未映射到 MPE 图节点"
-          description="面板保留 runtimeName 事件；画布定位需要 fileId/nodeId 映射。"
+          title={t(
+            "debug.nodeExecution.details.unmappedTitle",
+            "该记录未映射到 MPE 图节点",
+          )}
+          description={t(
+            "debug.nodeExecution.details.unmappedDesc",
+            "面板保留 runtimeName 事件；画布定位需要 fileId/nodeId 映射。",
+          )}
         />
       )}
 
@@ -169,7 +208,10 @@ export function NodeExecutionRecordDetails({
           <CompactNextSummary record={record} />
           <SimpleEventGroup
             events={record.events.filter((event) => event.kind === "diagnostic")}
-            title="诊断事件"
+            title={t(
+              "debug.nodeExecution.details.diagnosticEvents",
+              "诊断事件",
+            )}
           />
         </>
       ) : (
@@ -179,14 +221,20 @@ export function NodeExecutionRecordDetails({
             events={record.recognitionEvents}
             kind="recognition"
             record={record}
-            title="识别事件"
+            title={t(
+              "debug.nodeExecution.details.recognitionEvents",
+              "识别事件",
+            )}
           />
           <EventGroup
             artifacts={artifacts}
             events={record.actionEvents}
             kind="action"
             record={record}
-            title="动作事件"
+            title={t(
+              "debug.nodeExecution.details.actionEvents",
+              "动作事件",
+            )}
           />
           <NextListGroup
             events={record.nextListEvents}
@@ -196,11 +244,17 @@ export function NodeExecutionRecordDetails({
           />
           <SimpleEventGroup
             events={record.waitFreezesEvents}
-            title="WaitFreezes"
+            title={t(
+              "debug.nodeExecution.details.waitFreezes",
+              "WaitFreezes",
+            )}
           />
           <SimpleEventGroup
             events={record.events.filter((event) => event.kind === "diagnostic")}
-            title="诊断事件"
+            title={t(
+              "debug.nodeExecution.details.diagnosticEvents",
+              "诊断事件",
+            )}
           />
 
           <ArtifactActions
@@ -215,7 +269,10 @@ export function NodeExecutionRecordDetails({
 
           <SimpleEventGroup
             events={record.events.filter((event) => event.maafwMessage)}
-            title="MaaFW 原始消息"
+            title={t(
+              "debug.nodeExecution.details.maafwRawMessages",
+              "MaaFW 原始消息",
+            )}
           />
         </>
       )}
@@ -228,20 +285,48 @@ function CompactNextSummary({
 }: {
   record: DebugNodeExecutionRecord;
 }) {
+  const { t } = useTranslation();
   const candidates = record.nextCandidateSummary.candidates;
   if (record.nextListCount === 0 && candidates.length === 0) return null;
 
   return (
-    <DebugSection title="Next 摘要">
+    <DebugSection
+      title={t("debug.nodeExecution.details.nextSummary", "Next 摘要")}
+    >
       {candidates.length === 0 ? (
-        <Text type="secondary">该记录没有可展示的 next 候选。</Text>
+        <Text type="secondary">
+          {t(
+            "debug.nodeExecution.details.noNextCandidates",
+            "该记录没有可展示的 next 候选。",
+          )}
+        </Text>
       ) : (
         <Space orientation="vertical" size={6} style={{ width: "100%" }}>
           <Space wrap size={4}>
-            <Tag>候选 {record.nextCandidateSummary.candidateCount}</Tag>
-            <Tag color="green">命中 {record.nextCandidateSummary.hitCount}</Tag>
-            <Tag color="red">失败 {record.nextCandidateSummary.missCount}</Tag>
-            <Tag>已映射边 {record.nextCandidateSummary.edgeCount}</Tag>
+            <Tag>
+              {t(
+                "debug.nodeExecution.details.candidates",
+                "候选 {{count}}",
+                { count: record.nextCandidateSummary.candidateCount },
+              )}
+            </Tag>
+            <Tag color="green">
+              {t("debug.nodeExecution.details.hits", "命中 {{count}}", {
+                count: record.nextCandidateSummary.hitCount,
+              })}
+            </Tag>
+            <Tag color="red">
+              {t("debug.nodeExecution.details.misses", "失败 {{count}}", {
+                count: record.nextCandidateSummary.missCount,
+              })}
+            </Tag>
+            <Tag>
+              {t(
+                "debug.nodeExecution.details.mappedEdges",
+                "已映射边 {{count}}",
+                { count: record.nextCandidateSummary.edgeCount },
+              )}
+            </Tag>
             {record.nextCandidateSummary.jumpBackCount > 0 && (
               <Tag>jump_back {record.nextCandidateSummary.jumpBackCount}</Tag>
             )}
@@ -255,8 +340,12 @@ function CompactNextSummary({
                 {candidate.label ?? candidate.runtimeName}
                 {candidate.hit === true ? " · hit" : ""}
                 {candidate.hit === false ? " · miss" : ""}
-                {candidate.edgeId ? " · 已映射边" : ""}
-                {candidate.unmappedEdge ? " · 未映射边" : ""}
+                {candidate.edgeId
+                  ? ` · ${t("debug.common.mappedEdge", "已映射边")}`
+                  : ""}
+                {candidate.unmappedEdge
+                  ? ` · ${t("debug.common.unmappedEdge", "未映射边")}`
+                  : ""}
                 {candidate.jumpBack ? " · jump_back" : ""}
                 {candidate.anchor ? " · anchor" : ""}
                 {candidate.recognitionSeqs.length > 0
@@ -301,6 +390,7 @@ function EventGroup({
   record: DebugNodeExecutionRecord;
   title: string;
 }) {
+  const { t } = useTranslation();
   if (events.length === 0) return null;
 
   return (
@@ -315,14 +405,29 @@ function EventGroup({
                 <Tag>#{event.seq}</Tag>
                 <Tag>{event.phase ?? "-"}</Tag>
                 {event.maafwMessage && <Tag>{event.maafwMessage}</Tag>}
-                {event.detailRef && <Tag color="purple">详情</Tag>}
-                {event.screenshotRef && <Tag color="cyan">图像</Tag>}
+                {event.detailRef && (
+                  <Tag color="purple">
+                    {t("debug.common.detail", "详情")}
+                  </Tag>
+                )}
+                {event.screenshotRef && (
+                  <Tag color="cyan">
+                    {t("debug.common.image", "图像")}
+                  </Tag>
+                )}
                 {kind === "recognition" &&
                   record.attributionMode === "node" &&
                   event.data?.parentNode &&
                   event.data.parentNode !== record.runtimeName && (
                     <Tag color="geekblue">
-                      来源 {record.sourceNextOwnerLabel ?? event.data.parentNode} NextList
+                      {t(
+                        "debug.common.sourceNextList",
+                        "来源 {{label}} NextList",
+                        {
+                          label:
+                            record.sourceNextOwnerLabel ?? event.data.parentNode,
+                        },
+                      )}
                     </Tag>
                   )}
               </Space>
@@ -396,10 +501,16 @@ function NextListGroup({
   record: DebugNodeExecutionRecord;
   resolverEdgeIndex: Map<string, ResolverEdge>;
 }) {
+  const { t } = useTranslation();
   if (events.length === 0) return null;
 
   return (
-    <DebugSection title="Next-list 事件">
+    <DebugSection
+      title={t(
+        "debug.nodeExecution.details.nextListEvents",
+        "Next-list 事件",
+      )}
+    >
       <List
         size="small"
         dataSource={events}
@@ -429,18 +540,42 @@ function NextListGroup({
                       {item.anchor ? " · anchor" : ""}
                       {candidate?.hit === true ? " · hit" : ""}
                       {candidate?.hit === false ? " · miss" : ""}
-                      {edge ? " · 已映射边" : ""}
-                      {!edge && !record.syntheticKind ? " · 未映射边" : ""}
+                      {edge
+                        ? ` · ${t("debug.common.mappedEdge", "已映射边")}`
+                        : ""}
+                      {!edge && !record.syntheticKind
+                        ? ` · ${t("debug.common.unmappedEdge", "未映射边")}`
+                        : ""}
                     </Tag>
                   );
                 })}
               </Space>
               {record.nextCandidateSummary.candidates.length > 0 && (
                 <Space wrap size={4}>
-                  <Tag>候选 {record.nextCandidateSummary.candidateCount}</Tag>
-                  <Tag color="green">命中 {record.nextCandidateSummary.hitCount}</Tag>
-                  <Tag color="red">失败 {record.nextCandidateSummary.missCount}</Tag>
-                  <Tag>已映射边 {record.nextCandidateSummary.edgeCount}</Tag>
+                  <Tag>
+                    {t(
+                      "debug.nodeExecution.details.candidates",
+                      "候选 {{count}}",
+                      { count: record.nextCandidateSummary.candidateCount },
+                    )}
+                  </Tag>
+                  <Tag color="green">
+                    {t("debug.nodeExecution.details.hits", "命中 {{count}}", {
+                      count: record.nextCandidateSummary.hitCount,
+                    })}
+                  </Tag>
+                  <Tag color="red">
+                    {t("debug.nodeExecution.details.misses", "失败 {{count}}", {
+                      count: record.nextCandidateSummary.missCount,
+                    })}
+                  </Tag>
+                  <Tag>
+                    {t(
+                      "debug.nodeExecution.details.mappedEdges",
+                      "已映射边 {{count}}",
+                      { count: record.nextCandidateSummary.edgeCount },
+                    )}
+                  </Tag>
                 </Space>
               )}
             </Space>
@@ -464,25 +599,31 @@ function ArtifactActions({
   selectedArtifact?: DebugArtifactEntry;
   screenshotRefs: string[];
 }) {
-  const imageRefs = mergeRecordImageRefs(derivedImageRefs, screenshotRefs);
+  const { t } = useTranslation();
+  const imageRefs = mergeRecordImageRefs(derivedImageRefs, screenshotRefs, t);
   const hasRefs = detailRefs.length > 0 || imageRefs.length > 0;
 
   return (
-    <DebugSection title="Artifact">
+    <DebugSection title={t("debug.common.artifact", "Artifact")}>
       {!hasRefs ? (
-        <Text type="secondary">该执行记录没有 artifact 引用。</Text>
+        <Text type="secondary">
+          {t(
+            "debug.artifact.emptyRecord",
+            "该执行记录没有 artifact 引用。",
+          )}
+        </Text>
       ) : (
         <DebugArtifactSelector
           groups={[
             {
-              title: "详情 JSON",
+              title: t("debug.common.detailJson", "详情 JSON"),
               refs: detailRefs.map((ref) => ({
                 ref,
-                label: "详情 JSON",
+                label: t("debug.common.detailJson", "详情 JSON"),
               })),
             },
             {
-              title: "图像",
+              title: t("debug.common.image", "图像"),
               refs: imageRefs.map((item) => ({
                 ref: item.ref,
                 label: item.label,
@@ -500,6 +641,7 @@ function ArtifactActions({
 function mergeRecordImageRefs(
   derivedImageRefs: DebugDetailImageRef[],
   screenshotRefs: string[],
+  t: TFunction,
 ): DebugDetailImageRef[] {
   const seen = new Set<string>();
   const result: DebugDetailImageRef[] = [];
@@ -514,7 +656,7 @@ function mergeRecordImageRefs(
     result.push({
       ref,
       kind: "screenshot",
-      label: "图像",
+      label: t("debug.common.image", "图像"),
     });
   }
   return result;
@@ -554,6 +696,7 @@ function SimpleEventGroup({
 function collectDerivedImageRefs(
   artifacts: ArtifactEntries,
   events: DebugEvent[],
+  t: TFunction,
 ): DebugDetailImageRef[] {
   const seen = new Set<string>();
   const refs: DebugDetailImageRef[] = [];
@@ -568,7 +711,7 @@ function collectDerivedImageRefs(
       refs.push({
         ref: rawImageRef,
         kind: "raw",
-        label: "原图",
+        label: t("debug.common.rawImage", "原图"),
       });
     }
     const drawImageRefs = readStringArray(event.data?.drawImageRefs);
@@ -578,7 +721,12 @@ function collectDerivedImageRefs(
       refs.push({
         ref,
         kind: "draw",
-        label: drawImageRefs.length > 1 ? `绘制图 ${index + 1}` : "绘制图",
+        label:
+          drawImageRefs.length > 1
+            ? t("debug.common.drawImageIndexed", "绘制图 {{index}}", {
+                index: index + 1,
+              })
+            : t("debug.common.drawImage", "绘制图"),
       });
     }
 

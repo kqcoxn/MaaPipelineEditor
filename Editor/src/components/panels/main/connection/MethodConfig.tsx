@@ -1,5 +1,6 @@
 import { memo, useMemo } from "react";
 import { Alert, Select, Typography } from "antd";
+import { useTranslation } from "react-i18next";
 import type { AdbDevice, Win32Window } from "../../../../stores/mfwStore";
 
 const { Text } = Typography;
@@ -30,6 +31,8 @@ export const MethodConfig = memo(
     onInputChange,
     isAdbManualMode = false,
   }: MethodConfigProps) => {
+    const { t } = useTranslation();
+
     const usesInterception =
       activeTab === "win32" && customInput === "Interception";
 
@@ -113,6 +116,15 @@ export const MethodConfig = memo(
       return null;
     }
 
+    const multipleSuffix = t(
+      "ui.panels.connection.method.multipleSuffix",
+      "(可多选)",
+    );
+    const autoSelect = t(
+      "ui.panels.connection.method.autoSelect",
+      "自动选择",
+    );
+
     return (
       <div
         style={{
@@ -131,11 +143,12 @@ export const MethodConfig = memo(
                 display: "block",
               }}
             >
-              截图方法 {activeTab === "adb" && "(可多选)"}
+              {t("ui.panels.connection.method.screencapLabel", "截图方法")}
+              {activeTab === "adb" && ` ${multipleSuffix}`}
             </Text>
             <Select
               mode={activeTab === "adb" ? "multiple" : undefined}
-              placeholder="自动选择"
+              placeholder={autoSelect}
               allowClear
               value={customScreencap}
               onChange={onScreencapChange}
@@ -162,11 +175,12 @@ export const MethodConfig = memo(
                 display: "block",
               }}
             >
-              输入方法 {activeTab === "adb" && "(可多选)"}
+              {t("ui.panels.connection.method.inputLabel", "输入方法")}
+              {activeTab === "adb" && ` ${multipleSuffix}`}
             </Text>
             <Select
               mode={activeTab === "adb" ? "multiple" : undefined}
-              placeholder="自动选择"
+              placeholder={autoSelect}
               allowClear
               value={customInput}
               onChange={onInputChange}
@@ -189,8 +203,14 @@ export const MethodConfig = memo(
           <Alert
             type="warning"
             showIcon
-            title="Interception 驱动要求"
-            description="需要安装 Interception 驱动，并以不低于目标程序的权限运行。鼠标和按键操作通过驱动发送，文本输入仍使用系统 Unicode 输入。"
+            title={t(
+              "ui.panels.connection.method.interceptionTitle",
+              "Interception 驱动要求",
+            )}
+            description={t(
+              "ui.panels.connection.method.interceptionDesc",
+              "需要安装 Interception 驱动，并以不低于目标程序的权限运行。鼠标和按键操作通过驱动发送，文本输入仍使用系统 Unicode 输入。",
+            )}
             style={{ marginTop: 12 }}
           />
         )}

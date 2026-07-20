@@ -1,6 +1,7 @@
 import { memo, useState, useCallback, useEffect, useRef } from "react";
 import { Button, Space, InputNumber, message, Select, Switch, Tag } from "antd";
 import { ThunderboltOutlined } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 import {
   ScreenshotModalBase,
   type CanvasRenderProps,
@@ -55,8 +56,6 @@ function prettyJson(raw: string): string {
   }
 }
 
-// PLACEHOLDER_BODY
-
 export const TemplateMatchModal = memo(
   ({
     open,
@@ -67,6 +66,7 @@ export const TemplateMatchModal = memo(
     initialMethod = 5,
     initialGreenMask = false,
   }: TemplateMatchModalProps) => {
+    const { t } = useTranslation();
     const [screenshot, setScreenshot] = useState<string | null>(null);
     const [rectangle, setRectangle] = useState<Rectangle | null>(null);
     const [isDrawing, setIsDrawing] = useState(false);
@@ -118,15 +118,26 @@ export const TemplateMatchModal = memo(
     // 发起验证
     const handleVerify = useCallback(() => {
       if (!screenshot) {
-        message.warning("请先截图或上传底图");
+        message.warning(
+          t(
+            "ui.modals.templateMatchModal.needScreenshot",
+            "请先截图或上传底图",
+          ),
+        );
         return;
       }
       const tpl = templateDataUrl();
       if (!tpl) {
         message.warning(
           templatePath
-            ? "模板图尚未加载，请稍候或确认 template 路径正确"
-            : "当前节点未设置 template 路径",
+            ? t(
+                "ui.modals.templateMatchModal.templateNotLoaded",
+                "模板图尚未加载，请稍候或确认 template 路径正确",
+              )
+            : t(
+                "ui.modals.templateMatchModal.noTemplatePath",
+                "当前节点未设置 template 路径",
+              ),
         );
         return;
       }
@@ -150,7 +161,16 @@ export const TemplateMatchModal = memo(
         method,
         green_mask: greenMask,
       });
-    }, [screenshot, templateDataUrl, templatePath, rectangle, threshold, method, greenMask]);
+    }, [
+      screenshot,
+      templateDataUrl,
+      templatePath,
+      rectangle,
+      threshold,
+      method,
+      greenMask,
+      t,
+    ]);
 
     // 监听匹配结果
     useEffect(() => {
@@ -161,15 +181,19 @@ export const TemplateMatchModal = memo(
           if (data.success) {
             setResult(data);
           } else {
-            message.error(data.error || "模板匹配失败");
+            message.error(
+              data.error ||
+                t(
+                  "ui.modals.templateMatchModal.matchFailed",
+                  "模板匹配失败",
+                ),
+            );
             setResult(data);
           }
         },
       );
       return () => unregister();
-    }, [open]);
-
-    // PLACEHOLDER_CANVAS
+    }, [open, t]);
 
     // 重绘 canvas：底图 + ROI 框 + 匹配结果框
     const redrawCanvas = useCallback(() => {
@@ -341,17 +365,15 @@ export const TemplateMatchModal = memo(
       imageRef.current = null;
     }, []);
 
-    // PLACEHOLDER_RENDER
-
     const tplUrl = templateDataUrl();
 
     return (
       <ScreenshotModalBase
         open={open}
         onClose={onClose}
-        title="模板匹配验证"
+        title={t("ui.modals.templateMatchModal.title", "模板匹配验证")}
         width={950}
-        confirmText="关闭"
+        confirmText={t("ui.modals.templateMatchModal.close", "关闭")}
         onConfirm={onClose}
         renderCanvas={renderCanvas}
         onScreenshotChange={setScreenshot}
@@ -369,7 +391,7 @@ export const TemplateMatchModal = memo(
             }}
           >
             <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 8 }}>
-              待验证模板
+              {t("ui.modals.templateMatchModal.pendingTemplate", "待验证模板")}
             </div>
             {tplUrl ? (
               <div
@@ -398,8 +420,15 @@ export const TemplateMatchModal = memo(
             ) : (
               <span style={{ fontSize: 12, color: "#faad14" }}>
                 {templatePath
-                  ? `加载中: ${templatePath}`
-                  : "当前节点未设置 template 路径"}
+                  ? t(
+                      "ui.modals.templateMatchModal.loading",
+                      "加载中: {{path}}",
+                      { path: templatePath },
+                    )
+                  : t(
+                      "ui.modals.templateMatchModal.noTemplatePath",
+                      "当前节点未设置 template 路径",
+                    )}
               </span>
             )}
           </div>
@@ -414,12 +443,12 @@ export const TemplateMatchModal = memo(
             }}
           >
             <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>
-              匹配参数
+              {t("ui.modals.templateMatchModal.matchParams", "匹配参数")}
             </div>
             <Space orientation="vertical" size={10} style={{ width: "100%" }}>
               <Space size={8} align="center">
                 <span style={{ fontSize: 12, color: "#8c8c8c", width: 48 }}>
-                  阈值
+                  {t("ui.modals.templateMatchModal.threshold", "阈值")}
                 </span>
                 <InputNumber
                   value={threshold}
@@ -433,7 +462,7 @@ export const TemplateMatchModal = memo(
               </Space>
               <Space size={8} align="center">
                 <span style={{ fontSize: 12, color: "#8c8c8c", width: 48 }}>
-                  算法
+                  {t("ui.modals.templateMatchModal.method", "算法")}
                 </span>
                 <Select
                   value={method}
@@ -449,7 +478,7 @@ export const TemplateMatchModal = memo(
               </Space>
               <Space size={8} align="center">
                 <span style={{ fontSize: 12, color: "#8c8c8c", width: 48 }}>
-                  绿掩码
+                  {t("ui.modals.templateMatchModal.greenMask", "绿掩码")}
                 </span>
                 <Switch
                   checked={greenMask}
@@ -464,7 +493,7 @@ export const TemplateMatchModal = memo(
                 loading={isMatching}
                 block
               >
-                验证匹配
+                {t("ui.modals.templateMatchModal.verifyMatch", "验证匹配")}
               </Button>
             </Space>
           </div>
@@ -489,32 +518,55 @@ export const TemplateMatchModal = memo(
                   gap: 8,
                 }}
               >
-                识别结果
+                {t(
+                  "ui.modals.templateMatchModal.recognitionResult",
+                  "识别结果",
+                )}
                 {result.hit ? (
-                  <Tag color="success">命中</Tag>
+                  <Tag color="success">
+                    {t("ui.modals.templateMatchModal.hit", "命中")}
+                  </Tag>
                 ) : (
-                  <Tag color="error">未命中</Tag>
+                  <Tag color="error">
+                    {t("ui.modals.templateMatchModal.miss", "未命中")}
+                  </Tag>
                 )}
               </div>
               {result.best && (
                 <div style={{ fontSize: 12, color: "#262626", marginBottom: 6 }}>
-                  最佳分数:{" "}
+                  {t("ui.modals.templateMatchModal.bestScore", "最佳分数:")}{" "}
                   <span style={{ color: "#52c41a", fontWeight: 600 }}>
                     {result.best.score.toFixed(4)}
                   </span>
-                  {"  "}框: [{result.best.x}, {result.best.y}, {result.best.width},{" "}
-                  {result.best.height}]
+                  {"  "}
+                  {t(
+                    "ui.modals.templateMatchModal.boxCoords",
+                    "框: [{{x}}, {{y}}, {{width}}, {{height}}]",
+                    {
+                      x: result.best.x,
+                      y: result.best.y,
+                      width: result.best.width,
+                      height: result.best.height,
+                    },
+                  )}
                 </div>
               )}
               <div style={{ fontSize: 12, color: "#8c8c8c" }}>
-                候选数: {result.all?.length ?? 0}
+                {t(
+                  "ui.modals.templateMatchModal.candidateCount",
+                  "候选数: {{count}}",
+                  { count: result.all?.length ?? 0 },
+                )}
               </div>
               {result.detail_json && (
                 <details style={{ marginTop: 8 }}>
                   <summary
                     style={{ fontSize: 12, color: "#1890ff", cursor: "pointer" }}
                   >
-                    完整识别详情 (JSON)
+                    {t(
+                      "ui.modals.templateMatchModal.fullDetailJson",
+                      "完整识别详情 (JSON)",
+                    )}
                   </summary>
                   <pre
                     style={{
@@ -540,5 +592,3 @@ export const TemplateMatchModal = memo(
     );
   },
 );
-
-

@@ -4,6 +4,7 @@
 
 import { memo, useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { Input, Select, Empty } from "antd";
+import { useTranslation } from "react-i18next";
 import { DownOutlined } from "@ant-design/icons";
 import type { SelectProps } from "antd";
 import classNames from "classnames";
@@ -27,16 +28,6 @@ const { Search } = Input;
 const EMPTY_NODES: NodeType[] = [];
 const EMPTY_EDGES: EdgeType[] = [];
 
-/** 节点类型选项 */
-const NODE_TYPE_OPTIONS: SelectProps["options"] = [
-  { value: "all", label: "全部类型" },
-  { value: NodeTypeEnum.Pipeline, label: "Pipeline" },
-  { value: NodeTypeEnum.External, label: "External" },
-  { value: NodeTypeEnum.Anchor, label: "Anchor" },
-  { value: NodeTypeEnum.Sticker, label: "Sticker" },
-  { value: NodeTypeEnum.Group, label: "Group" },
-];
-
 export interface NodeListPanelProps {
   /** 是否显示 */
   visible: boolean;
@@ -47,6 +38,20 @@ export interface NodeListPanelProps {
 }
 
 function NodeListPanel({ visible, onClose, anchorEl }: NodeListPanelProps) {
+  const { t } = useTranslation();
+
+  const nodeTypeOptions = useMemo<SelectProps["options"]>(
+    () => [
+      { value: "all", label: t("ui.panels.nodeList.allTypes", "全部类型") },
+      { value: NodeTypeEnum.Pipeline, label: "Pipeline" },
+      { value: NodeTypeEnum.External, label: "External" },
+      { value: NodeTypeEnum.Anchor, label: "Anchor" },
+      { value: NodeTypeEnum.Sticker, label: "Sticker" },
+      { value: NodeTypeEnum.Group, label: "Group" },
+    ],
+    [t],
+  );
+
   // 过渡动画状态：visible 变 false 时延迟卸载，等动画结束
   const [shouldRender, setShouldRender] = useState(false);
 
@@ -355,7 +360,10 @@ function NodeListPanel({ visible, onClose, anchorEl }: NodeListPanelProps) {
       <div className={style["node-list-header"]}>
         <Search
           className={style["filter-input"]}
-          placeholder="筛选节点..."
+          placeholder={t(
+            "ui.panels.nodeList.filterPlaceholder",
+            "筛选节点...",
+          )}
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
           allowClear
@@ -365,17 +373,26 @@ function NodeListPanel({ visible, onClose, anchorEl }: NodeListPanelProps) {
           className={style["type-select"]}
           value={selectedType}
           onChange={(value) => setSelectedType(value)}
-          options={NODE_TYPE_OPTIONS}
+          options={nodeTypeOptions}
           size="small"
           style={{ width: 100 }}
         />
-        <WikiAnchor path="10.工作流面板/20.节点.html" title="节点" description="节点类型与属性详解" />
+        <WikiAnchor
+          path={t("ui.panels.nodeList.wiki.path", "10.工作流面板/20.节点.html")}
+          title={t("ui.panels.nodeList.wiki.title", "节点")}
+          description={t(
+            "ui.panels.nodeList.wiki.description",
+            "节点类型与属性详解",
+          )}
+        />
       </div>
 
       {/* 统计信息 */}
       <div className={style["node-list-stats"]}>
         <span className={style["stats-total"]}>
-          共 {statistics.total} 个节点
+          {t("ui.panels.nodeList.stats.total", "共 {{count}} 个节点", {
+            count: statistics.total,
+          })}
         </span>
         <span className={style["stats-divider"]}>|</span>
         <span className={style["stats-detail"]}>
@@ -390,7 +407,11 @@ function NodeListPanel({ visible, onClose, anchorEl }: NodeListPanelProps) {
         {groupedNodes.length === 0 ? (
           <Empty
             className={style["empty-state"]}
-            description={<span className={style["empty-text"]}>暂无节点</span>}
+            description={
+              <span className={style["empty-text"]}>
+                {t("ui.panels.nodeList.empty", "暂无节点")}
+              </span>
+            }
             image={Empty.PRESENTED_IMAGE_SIMPLE}
           />
         ) : (

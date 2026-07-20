@@ -19,6 +19,7 @@ import {
   filterLocalFilesByFolderFilter,
   matchesFolderFilter,
 } from "../utils/file/folderFilter";
+import uiT from "../i18n/translate";
 
 /**
  * 跨文件节点信息
@@ -294,7 +295,10 @@ class CrossFileService {
     message?: string;
   }> {
     if (!nodeName.trim()) {
-      return { success: false, message: "节点名为空" };
+      return {
+        success: false,
+        message: uiT("ui.services.crossFile.emptyNodeName", "节点名为空"),
+      };
     }
 
     // 搜索匹配的节点
@@ -305,7 +309,14 @@ class CrossFileService {
     });
 
     if (matchedNodes.length === 0) {
-      return { success: false, message: `未找到节点: ${nodeName}` };
+      return {
+        success: false,
+        message: uiT(
+          "ui.services.crossFile.nodeNotFound",
+          "未找到节点: {{name}}",
+          { name: nodeName },
+        ),
+      };
     }
 
     const nodeInfo = matchedNodes[0];
@@ -316,9 +327,17 @@ class CrossFileService {
       nodeInfo,
       message: success
         ? nodeInfo.isCurrentFile
-          ? `已定位到节点: ${nodeInfo.label}`
-          : `已跳转到 ${nodeInfo.relativePath} 并定位节点: ${nodeInfo.label}`
-        : "跳转失败",
+          ? uiT(
+              "ui.services.crossFile.locatedNode",
+              "已定位到节点: {{label}}",
+              { label: nodeInfo.label },
+            )
+          : uiT(
+              "ui.services.crossFile.navigatedToNode",
+              "已跳转到 {{path}} 并定位节点: {{label}}",
+              { path: nodeInfo.relativePath, label: nodeInfo.label },
+            )
+        : uiT("ui.services.crossFile.navigateFailed", "跳转失败"),
     };
   }
 
@@ -461,7 +480,7 @@ class CrossFileService {
       });
 
       if (!success) {
-        console.warn("[loadAndNavigate] 请求文件失败");
+        console.warn("[loadAndNavigate] Failed to request file");
         return false;
       }
 
@@ -511,16 +530,16 @@ class CrossFileService {
 
         // 超时仍未找到节点
         console.warn(
-          `[loadAndNavigate] 节点 "${nodeLabel}" 超时未找到，当前节点列表:`,
+          `[loadAndNavigate] Node "${nodeLabel}" not found after timeout, current nodes:`,
           useFlowStore.getState().nodes.map((n: NodeType) => n.data.label),
         );
         return false;
       }
 
-      console.warn("[loadAndNavigate] 文件加载超时");
+      console.warn("[loadAndNavigate] File load timeout");
       return false;
     } catch (error) {
-      console.error("[loadAndNavigate] 异常:", error);
+      console.error("[loadAndNavigate] Error:", error);
       return false;
     }
   }
@@ -613,7 +632,9 @@ class CrossFileService {
     return allNodes.map((n) => ({
       value: n.fullName, // 总是使用带前缀的完整节点名
       label: n.fullName, // 显示完整节点名
-      description: n.isCurrentFile ? "当前文件" : n.relativePath,
+      description: n.isCurrentFile
+        ? uiT("ui.services.crossFile.currentFile", "当前文件")
+        : n.relativePath,
       nodeInfo: n,
     }));
   }

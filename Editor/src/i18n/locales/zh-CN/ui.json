@@ -1,0 +1,1363 @@
+{
+  "ui": {
+    "app": {
+      "configCacheSaveFailed": "[App] 保存配置缓存失败:",
+      "importRequest": {
+        "dirs": {
+          "desktop": "桌面",
+          "documents": "文档",
+          "downloads": "下载",
+          "music": "音乐",
+          "pictures": "图片",
+          "videos": "视频"
+        }
+      }
+    },
+    "flow": {
+      "readOnly": {
+        "noNodeModify": "当前为只读模式，禁止修改节点",
+        "noEdgeModify": "当前为只读模式，禁止修改边",
+        "noConnect": "当前为只读模式，禁止添加连接"
+      },
+      "edges": {
+        "controlPointHint": "拖拽调整路径，双击重置"
+      },
+      "selectionContextMenu": {
+        "noSelection": "未选中节点",
+        "duplicateCreated": "已创建副本",
+        "partialExportSuccess": "已将选中内容导出到剪贴板",
+        "needTwoNodes": "请至少选择两个节点",
+        "noGroupableNodes": "未选中可分组节点",
+        "groupCreated": "已创建分组",
+        "nodesNotInGroup": "选中节点不在分组中",
+        "detachedFromGroup": "已将节点移出分组",
+        "noGroupSelected": "未选中分组",
+        "groupsUngrouped": "已解散所选分组",
+        "noResettableEdges": "未选中可还原的连线",
+        "edgeControlsReset": "已还原所选连线路径",
+        "copy": "复制",
+        "duplicate": "创建副本",
+        "partialExport": "部分导出",
+        "align": "对齐",
+        "alignLeft": "左对齐",
+        "alignCenter": "水平居中",
+        "alignRight": "右对齐",
+        "alignTop": "顶部对齐",
+        "alignMiddle": "垂直居中",
+        "alignBottom": "底部对齐",
+        "spacing": "间距",
+        "decreaseHorizontalSpacing": "减小水平间距",
+        "increaseHorizontalSpacing": "增大水平间距",
+        "decreaseVerticalSpacing": "减小垂直间距",
+        "increaseVerticalSpacing": "增大垂直间距",
+        "autoLayout": "局部自动布局",
+        "resetEdgeControls": "还原连线路径",
+        "group": "分组",
+        "createGroup": "创建分组",
+        "detachFromGroup": "移出当前分组",
+        "ungroup": "解散所选分组",
+        "delete": "删除"
+      },
+      "anchorNode": {
+        "replicaCountTitle": "此重定向节点共有 {{count}} 个视觉副本",
+        "referenceNodesTitle": "引用此锚点的节点 ({{count}})",
+        "noReferences": "暂无引用",
+        "referenceCountTitle": "{{count}} 个节点引用此锚点",
+        "navigateSuccess": "已跳转到 {{path}} 并定位节点: {{label}}",
+        "navigateFailed": "跳转失败: {{label}}"
+      },
+      "constants": {
+        "handleDirection": {
+          "leftRight": "左右",
+          "rightLeft": "右左",
+          "topBottom": "上下",
+          "bottomTop": "下上"
+        }
+      },
+      "externalNode": {
+        "replicaCountTitle": "此外部引用共有 {{count}} 个视觉副本"
+      },
+      "groupNode": {
+        "editTitleHistory": "编辑分组标题",
+        "namePlaceholder": "分组名称"
+      },
+      "nodeContextMenu": {
+        "pipelineTemplateOnly": "仅支持 Pipeline 节点保存为模板",
+        "setHandleDirectionHistory": "设置端点位置",
+        "handleDirectionSet": "端点位置已设置为「{{label}}」",
+        "changeGroupColorHistory": "更改分组颜色",
+        "changeStickerColorHistory": "更改便签颜色",
+        "stickerContentCopied": "便签内容已复制到剪贴板",
+        "stickerContentEmpty": "便签内容为空",
+        "autoStartAfterPreflight": "资源检测完成后将自动启动调试。",
+        "checkingResourcesAutoStart": "正在检测资源路径，检测完成后将自动启动调试。",
+        "configureResourcePathsFirst": "请先配置资源路径或等待 LocalBridge 扫描资源包",
+        "runModeUnsupported": "当前 LocalBridge 暂不支持调试模式: {{mode}}",
+        "resourcePreflightFailedAutoStart": "资源加载检测失败，无法自动启动调试。",
+        "resourcePreflightFailedTitle": "资源加载检测失败",
+        "resourcePreflightFailedHint": "您可以前往「资源体检」面板查看详细诊断信息并尝试修复。",
+        "goToResourceHealth": "前往资源体检",
+        "resourcePreflightTimeout": "资源路径检测超时，无法自动启动调试。",
+        "setDebugEntrySuccess": "已设为调试入口节点",
+        "sendPreflightRequestFailedDetail": "发送资源加载检测请求失败。",
+        "sendPreflightRequestFailed": "发送资源加载检测请求失败",
+        "saveOpenFilesFailed": "调试前保存打开文件失败：{{files}}",
+        "resolveRunNameFailed": "无法解析节点运行名",
+        "sendDebugStartFailed": "发送调试启动请求失败",
+        "buildDebugRequestFailed": "生成调试请求失败",
+        "color": {
+          "blue": "蓝色",
+          "green": "绿色",
+          "purple": "紫色",
+          "orange": "橙色",
+          "gray": "灰色",
+          "yellow": "黄色",
+          "pink": "粉色"
+        },
+        "groupColor": "分组颜色",
+        "ungroup": "解散分组",
+        "deleteGroup": "删除分组",
+        "setDebugEntry": "设为入口节点",
+        "runFromNode": "从此节点运行",
+        "runFromNodeUnavailable": "当前 LocalBridge 未暴露 run-from-node 能力",
+        "singleNodeRun": "单节点运行",
+        "singleNodeRunUnavailable": "当前 LocalBridge 未暴露 single-node-run 能力",
+        "recognitionOnly": "仅识别",
+        "recognitionOnlyUnavailable": "当前 LocalBridge 未暴露 recognition-only 能力",
+        "actionOnly": "仅动作",
+        "actionOnlyUnavailable": "当前 LocalBridge 未暴露 action-only 能力",
+        "copyNodeName": "复制节点名",
+        "editJson": "编辑 JSON",
+        "copyStickerContent": "复制便签内容",
+        "copyRecoJson": "复制 Reco JSON",
+        "saveAsTemplate": "保存为模板",
+        "stickerColor": "便签颜色",
+        "handleDirection": "端点位置",
+        "delete": "删除",
+        "editJsonHistory": "JSON 编辑节点数据"
+      },
+      "stickerNode": {
+        "editContentHistory": "编辑便签内容",
+        "titlePlaceholder": "便签标题",
+        "contentPlaceholder": "双击编辑内容..."
+      },
+      "pipelineNode": {
+        "execute": "执行",
+        "regenerate": "重新生成",
+        "confirm": "确认",
+        "pipelineNodeTitle": "Pipeline节点",
+        "recognitionSection": "识别 - {{type}}",
+        "actionSection": "动作 - {{type}}",
+        "otherSection": "其他"
+      },
+      "nodeOperations": {
+        "saveAsTemplateTitle": "保存为模板",
+        "saveAsTemplateConfirm": "是否将当前节点保存为自定义模板？",
+        "templateNameLabel": "模板名",
+        "templateNamePlaceholder": "请输入模板名称",
+        "nodeTypePipeline": "节点类型：Pipeline",
+        "saveAsTemplateHint": "提示：保存后可从右键模板列表中选择已保存的模板",
+        "save": "保存",
+        "cancel": "取消",
+        "templateNameEmpty": "模板名称不能为空",
+        "templateNameTooLong": "模板名称长度不能超过30个字符",
+        "templateExistsTitle": "模板名称已存在",
+        "templateExistsContent": "模板 \"{{name}}\" 已存在，是否覆盖？",
+        "overwrite": "覆盖",
+        "reenter": "重新输入",
+        "templateUpdated": "模板已更新",
+        "templateSaved": "模板保存成功",
+        "copyRecoJsonPipelineOnly": "仅支持 Pipeline 节点复制 Reco JSON",
+        "recoJsonCopied": "Reco JSON 已复制到剪贴板",
+        "copyRecoJsonFailed": "复制失败，请检查节点配置是否正确"
+      }
+    },
+    "header": {
+      "connection": {
+        "embedMode": "EmbedBridge 嵌入模式",
+        "disconnectTooltip": "点击断开本地服务连接",
+        "connecting": "连接服务中...",
+        "connectingTooltip": "正在连接本地服务",
+        "disconnected": "未连接本地服务",
+        "connectTooltip": "点击连接本地服务"
+      },
+      "device": {
+        "unknown": "未知设备",
+        "manageTooltip": "点击管理设备连接",
+        "configTooltip": "设备连接配置",
+        "connect": "连接设备"
+      },
+      "version": {
+        "stable": "稳定版",
+        "preview": "预览版"
+      },
+      "theme": {
+        "toLight": "切换到亮色模式",
+        "toDark": "切换到暗色模式"
+      },
+      "narrowScreen": {
+        "title": "页面宽度过窄",
+        "description": "当前页面宽度过小，可能影响使用体验，建议使用更大的屏幕或调整浏览器窗口大小。"
+      },
+      "wiki": {
+        "fileViewportPath": "10.工作流面板/50.文件与视口.html",
+        "fileViewportTitle": "文件与视口",
+        "fileViewportDesc": "文件管理与视口操作"
+      },
+      "update": {
+        "tooltipLine1": "发现新版本：{{version}}，点击前往下载",
+        "tooltipLine2": "在线使用时可按 Ctrl+R 快捷刷新页面缓存以更新",
+        "available": "新版本可用"
+      },
+      "links": {
+        "pipelineProtocol": "Pipeline协议",
+        "updateLog": "更新日志"
+      }
+    },
+    "jsonViewer": {
+      "refresh": "刷新",
+      "close": "关闭",
+      "searchPlaceholder": "搜索键名或值...",
+      "prev": "上一个",
+      "next": "下一个"
+    },
+    "hooks": {
+      "globalShortcuts": {
+        "undoSuccess": "撤销成功",
+        "nothingLeft": "真的没有了😭",
+        "redoSuccess": "重做成功"
+      },
+      "panelOccupancy": {
+        "unregisteredPanel": "[usePanelOccupancy] 未注册的面板: {{panelId}}"
+      }
+    },
+    "services": {
+      "crossFile": {
+        "emptyNodeName": "节点名为空",
+        "nodeNotFound": "未找到节点: {{name}}",
+        "locatedNode": "已定位到节点: {{label}}",
+        "navigatedToNode": "已跳转到 {{path}} 并定位节点: {{label}}",
+        "navigateFailed": "跳转失败",
+        "currentFile": "当前文件"
+      },
+      "server": {
+        "connected": "已连接到本地服务",
+        "protocolVersionMismatch": "协议版本不匹配，前端需求: {{required}}，当前本地服务协议: {{current}}，请按后端提示更新",
+        "connectingInProgress": "正在尝试连接本地服务中，请稍候...",
+        "connectionTimeoutTitle": "连接超时",
+        "checkLocalService": "请检查本地服务是否已启动或端口是否可用",
+        "viewDocs": "查看文档",
+        "connectionFailedTitle": "连接失败",
+        "disconnected": "本地服务已断开连接",
+        "localConnectionFailed": "本地服务连接失败"
+      },
+      "common": {
+        "unknownError": "未知错误"
+      },
+      "ai": {
+        "wsNotConnected": "WebSocket 未连接",
+        "proxyTimeout": "代理请求超时（60s）",
+        "proxySendFailed": "代理请求发送失败，本地服务未连接",
+        "streamProxyTimeout": "流式代理请求超时（120s）",
+        "streamProxySendFailed": "流式代理请求发送失败"
+      },
+      "config": {
+        "getFailed": "获取配置失败",
+        "dataProcessFailed": "配置数据处理失败",
+        "reloadFailed": "重载失败",
+        "reloadSuccess": "配置重载完成",
+        "reloadResponseFailed": "重载响应处理失败"
+      },
+      "error": {
+        "fileNotFound": "文件不存在或已被删除",
+        "fileReadError": "文件读取失败，请检查权限",
+        "fileWriteError": "文件保存失败：{{message}}",
+        "fileNameConflict": "文件名已存在，请使用不同的名称",
+        "invalidJson": "JSON 格式错误：{{message}}",
+        "permissionDenied": "无权限访问该文件",
+        "mfwNotInitialized": "MaaFramework 未初始化：{{detail}}",
+        "mfwControllerCreateFail": "控制器创建失败：{{message}}",
+        "mfwControllerNotFound": "控制器不存在",
+        "mfwControllerConnectFail": "控制器连接失败：{{message}}",
+        "mfwControllerNotConnected": "控制器未连接",
+        "mfwDeviceNotFound": "设备列表刷新失败：{{message}}",
+        "mfwOcrResourceNotConfigured": "OCR 资源未配置：{{detail}}",
+        "ocrUnknownReason": "未知原因",
+        "ocrReason": "原因: {{reason}}",
+        "ocrResourceDir": "资源目录:\n{{dir}}",
+        "ocrSuggestions": "排查建议:",
+        "ocrResourceLoadFailed": "OCR 资源加载失败",
+        "ocrError": "OCR 错误"
+      },
+      "file": {
+        "listRefreshSuccess": "文件列表刷新完成，共 {{count}} 个文件",
+        "listUpdateFailed": "文件列表更新失败",
+        "invalidFileData": "接收到的文件数据无效",
+        "openedWithConfig": "已打开文件: {{name}} (含配置)",
+        "opened": "已打开文件: {{name}}",
+        "openFailed": "文件打开失败",
+        "importFailed": "文件导入失败",
+        "deleted": "文件\"{{name}}\"已被删除",
+        "saved": "文件已保存: {{name}}",
+        "saveFailed": "文件保存失败",
+        "savedSeparated": "文件已保存: {{pipeline}} + {{config}}",
+        "created": "文件已创建: {{name}}",
+        "createFailed": "文件创建失败",
+        "reloadRequestFailed": "重新加载请求发送失败",
+        "autoReloaded": "文件\"{{name}}\"已自动重新加载",
+        "autoReloadEnabled": "已开启自动重载，后续文件变更将自动应用",
+        "externalModifiedSingle": "文件\"{{name}}\"已被外部修改，请选择处理方式：",
+        "externalModifiedMultiple": "{{names}} 等 {{count}} 个文件",
+        "externalModifiedPrompt": "{{names}}已被外部修改，请选择处理方式：",
+        "externalModifiedTitle": "文件已被外部修改",
+        "dismissLater": "稍后处理",
+        "autoReload": "自动重载",
+        "reload": "重新加载"
+      },
+      "mfw": {
+        "localBridgeDisconnected": "LocalBridge 连接已断开",
+        "protocolUnregistered": "MaaFramework 协议已注销",
+        "deviceListUpdateFailed": "设备列表更新失败",
+        "windowListUpdateFailed": "窗口列表更新失败",
+        "controllerConnected": "控制器连接成功",
+        "controllerConnectFailed": "控制器连接失败",
+        "controllerDisconnected": "控制器已断开"
+      },
+      "screencap": {
+        "localBridgeNotConnected": "LocalBridge 未连接",
+        "requestCancelled": "截图请求已取消",
+        "requestTimeout": "截图请求超时",
+        "requestSendFailed": "截图请求发送失败"
+      }
+    },
+    "stores": {
+      "customTemplate": {
+        "versionMismatch": "模板数据版本不匹配: {{stored}} != {{expected}}, 尝试迁移或清空",
+        "loadError": "加载自定义模板失败:",
+        "loadFailed": "加载自定义模板失败，已清空损坏数据",
+        "maxReached": "自定义模板数量已达上限（{{max}}个），请先删除旧模板",
+        "nameEmpty": "模板名称不能为空",
+        "nameTooLong": "模板名称长度不能超过30个字符",
+        "saved": "模板已保存",
+        "saveLocalStorageError": "保存模板到 localStorage 失败:",
+        "saveFailed": "保存模板失败，请检查浏览器存储空间",
+        "deleted": "模板已删除",
+        "deleteError": "删除模板失败:",
+        "deleteFailed": "删除模板失败",
+        "invalidFormat": "模板数据格式错误：不是数组",
+        "importError": "导入模板失败:"
+      },
+      "file": {
+        "newPipeline": "新建Pipeline",
+        "pageNotReady": "页面未初始化结束",
+        "storageQuotaTitle": "本地存储空间不足",
+        "storageQuotaDesc": "浏览器本地存储空间已满，无法保存文件缓存。建议清理本域名在浏览器中的数据或减少文件数量。",
+        "duplicateFileNameTitle": "重复的文件名",
+        "duplicateFileNameDesc": "预检测到目标文件名与现有文件重复，请使用不同的名称命名文件；若仅为中间状态，请先输入后续部分以区分。",
+        "localCacheNotFound": "未找到本地files缓存",
+        "saveFailedTitle": "保存失败！",
+        "saveFailedDuplicateNodes": "存在重复的节点名: {{names}}，请修改后再试。"
+      }
+    },
+    "debug": {
+      "modal": {
+        "setupLabel": "调试配置",
+        "setupDescription": "配置资源路径、控制器、截图和 Agent，并写入本地调试配置。",
+        "overviewLabel": "中控台",
+        "overviewDescription": "运行控制、展示会话选择和当前/最新运行摘要。",
+        "nodeExecutionLabel": "节点线",
+        "nodeExecutionDescription": "按 Pipeline 节点聚合已选展示会话，查看执行路径和节点详情。",
+        "debugLogLabel": "调试日志",
+        "debugLogDescription": "查看调试产物 maafw.log 的末尾内容，可直接打开日志文件或其所在文件夹。",
+        "aiSummaryLabel": "AI 总结",
+        "aiSummaryDescription": "查看 AI 生成的调试摘要、详细报告和整理后的上下文。",
+        "resourceHealthLabel": "资源体检",
+        "resourceHealthDescription": "集中查看资源路径、资源加载结果和流程图校验，加载失败时会直接列出具体线索。",
+        "nodeExecutionNextLabel": "节点线（Next 模式）",
+        "nodeExecutionNextDescription": "以节点为单位查看调试结果。\nNext 模式：以 MFW 内部执行逻辑为单位组织，将当前节点的 action 与 next-list 中的所有 reco 放在一起",
+        "nodeExecutionPairLabel": "节点线（Pair 模式）",
+        "nodeExecutionPairDescription": "以节点为单位查看调试结果。\nPair 模式：以物理节点（即定义的JSON）为单位组织，将某个节点的一次 reco-action 对放在一起",
+        "wikiTitle": "流程级调试",
+        "wikiDescription": "快速验证节点行为与流程执行",
+        "readinessNotMetTitle": "调试前置条件未满足",
+        "panel": {
+          "overview": "中控台",
+          "nodeExecution": "节点线",
+          "debugLog": "调试日志",
+          "aiSummary": "AI 总结",
+          "resourceHealth": "资源体检",
+          "setup": "运行配置"
+        },
+        "artifact": {
+          "jsonDetail": "JSON 详情",
+          "imagePreview": "图像预览"
+        },
+        "overlay": {
+          "runtimeNodeState": "当前节点与执行结果",
+          "runtimePath": "已执行路径"
+        },
+        "action": {
+          "runFromNode": "从此节点运行",
+          "singleNodeRun": "单节点运行",
+          "recognitionOnly": "仅识别",
+          "actionOnly": "仅动作"
+        }
+      },
+      "aiSummary": {
+        "defaultFallback": "AI 总结已生成，打开详细报告查看。",
+        "prompt": {
+          "role": "你是 MaaPipelineEditor 调试报告助手。",
+          "task": "请基于用户提供的结构化调试上下文，生成中文调试总结。",
+          "rulesHeader": "必须遵守：",
+          "ruleNoFabrication": "- 不要编造未出现在上下文中的节点、事件、产物或错误。",
+          "ruleEvidence": "- 所有结论尽量引用证据，例如节点名、nodeId、runtimeName、seq、diagnostic code、artifact id。",
+          "ruleFailureFocus": "- 当 focus 为 failure 时，优先输出失败原因和异常证据，弱化正常节点描述。",
+          "ruleNodeFocus": "- 当 focus 为 node 时，只解释 selectedNode，不要扩展成全局运行报告。",
+          "ruleNoPerformance": "- 不做性能瓶颈专项分析；性能字段只能作为辅助背景。",
+          "ruleInsufficientEvidence": "- 如果证据不足，请明确说证据不足，并给出下一步应该查看的调试视图。",
+          "ruleJsonOnly": "- 输出必须是 JSON，不要包裹 Markdown 代码块。",
+          "jsonFormatHeader": "JSON 格式：",
+          "jsonSimpleSummary": "  \"simpleSummary\": \"面向中控台的一段短摘要，控制在 120 个中文字符以内\",",
+          "jsonDetailedReport": "  \"detailedReport\": \"Markdown 格式详细报告，包含：整体结论、运行概况、失败/异常节点、关键证据、建议下一步\"",
+          "contextHeader": "调试上下文："
+        }
+      },
+      "capability": {
+        "localBridgeDisconnected": "LocalBridge 未连接，暂时无法读取调试能力。",
+        "runFromNode": "从指定节点运行",
+        "singleNodeRun": "只运行一个节点",
+        "recognitionOnly": "只执行识别",
+        "actionOnly": "只执行动作",
+        "replay": "回放",
+        "traceReplay": "时间线回放",
+        "performanceSummary": "性能摘要",
+        "agentRunProfile": "代理运行配置",
+        "preflight": "启动前检查",
+        "resourceHealth": "资源体检",
+        "resourceLoad": "资源加载诊断",
+        "targetNode": "目标节点检查",
+        "agent": "代理连接诊断",
+        "agentProfileDiagnostic": "代理配置诊断",
+        "performanceSummaryDiagnostic": "性能摘要诊断",
+        "traceReplayDiagnostic": "时间线回放诊断",
+        "taskDetail": "任务详情",
+        "recognitionDetail": "识别详情",
+        "actionDetail": "动作详情",
+        "screenshot": "截图",
+        "performanceSummaryArtifact": "性能摘要",
+        "screenshotManual": "手动截图",
+        "screenshotRecognitionInput": "识别输入截图",
+        "multiResource": "多资源路径",
+        "multiAgent": "多代理配置",
+        "agentRunProfileFeature": "代理运行配置",
+        "controllerAdb": "安卓设备",
+        "controllerWin32": "Windows 窗口",
+        "controllerDbg": "调试控制器",
+        "controllerReplay": "回放控制器",
+        "controllerRecord": "录制控制器",
+        "goBindingDbgMissing": "当前 Go 绑定未提供该控制器",
+        "postTask": "提交任务",
+        "postRecognition": "提交识别",
+        "postAction": "提交动作",
+        "postStop": "停止任务",
+        "postBundle": "加载资源包",
+        "overridePipeline": "覆盖 Pipeline",
+        "overrideNext": "覆盖节点后继",
+        "overrideImage": "覆盖图像",
+        "getNode": "读取节点定义",
+        "getNodeJson": "读取节点 JSON",
+        "getNodeList": "读取节点列表",
+        "agentIdentifier": "标识符连接",
+        "agentTcp": "TCP 连接"
+      },
+      "confirmActionRun": {
+        "title": "确认执行动作",
+        "content": "仅动作模式会跳过识别，直接执行目标节点动作（Action）。",
+        "ok": "确认执行",
+        "cancel": "取消"
+      },
+      "controller": {
+        "notConnected": "未连接"
+      },
+      "actions": {
+        "localBridgeDisconnected": "LocalBridge 未连接",
+        "connectControllerFirst": "请先连接 MaaFramework 控制器（Controller）",
+        "screenshotRequestFailed": "发送截图请求失败",
+        "configureResourcePaths": "请先配置资源路径或等待 LocalBridge 扫描资源包",
+        "resourcePreflightRequestFailed": "发送资源加载检测请求失败。",
+        "resourcePreflightRequestFailedShort": "发送资源加载检测请求失败",
+        "invalidTcpPort": "请输入 1-65535 范围内的 TCP 端口",
+        "agentIdentifierRequired": "请输入代理标识符（Identifier）",
+        "agentTestRequestFailed": "发送代理连接测试请求失败",
+        "resourceHealthRequestFailed": "发送资源体检请求失败。",
+        "resourceHealthRequestFailedShort": "发送资源体检请求失败"
+      },
+      "modalUtils": {
+        "controllerMissing": "设备未连接：缺少已连接控制器（Controller），无法启动调试。",
+        "resourceEmpty": "资源路径（Resource Paths）为空，请配置资源路径或刷新 LocalBridge 资源包（Resource Bundle）。",
+        "graphEmpty": "当前图快照为空，无法启动调试。",
+        "resolverEmpty": "当前没有可映射到运行时的 Pipeline 节点。",
+        "targetMissing": "节点级调试缺少目标节点（Target）。"
+      },
+      "nodeExecution": {
+        "multipleNextList": "多个 NextList"
+      },
+      "nodeTarget": {
+        "selectPipelineNode": "请选择可调试的 Pipeline 节点"
+      },
+      "pipelineOverride": {
+        "invalidJson": "Override JSON 语法错误: {{message}}",
+        "unparseable": "无法解析",
+        "mustBeObject": "Override 必须是 JSON 对象，格式示例：{ \"RuntimeName\": { ...partial pipeline... } }",
+        "emptyRuntimeName": "Override 中存在空的运行时节点名（RuntimeName）。",
+        "nodeMustBeObject": "Override 节点 {{name}} 的值必须是对象。",
+        "normalizeFailed": "Override 节点 {{name}} 版本归一化失败: {{message}}",
+        "unconvertible": "无法转换"
+      },
+      "readiness": {
+        "localBridgeTitle": "LocalBridge 未连接",
+        "localBridgeMessage": "LocalBridge 未连接，无法启动调试。",
+        "deviceTitle": "设备未连接",
+        "deviceMessage": "设备未连接，无法启动调试。请先连接设备并创建 MaaFramework 控制器（Controller）。",
+        "resourceCheckingTitle": "资源正在检测",
+        "resourceNotReadyTitle": "资源未加载成功",
+        "resourceCheckingMessage": "资源正在加载检测中，请等待检测完成后再启动调试。",
+        "resourceNotReadyMessage": "资源尚未通过加载检测，无法启动调试。请先配置并检测资源路径。",
+        "allReady": "LocalBridge、设备与资源均已就绪，可以启动调试。",
+        "notReadySummary": "需要同时连接 LocalBridge、设备并成功加载资源后才能启动调试。当前：{{issues}}。"
+      },
+      "traceReducer": {
+        "diagnosticEvent": "调试诊断事件"
+      },
+      "traceReplay": {
+        "noSession": "当前没有调试会话（Session）",
+        "snapshotRequestFailed": "发送追踪快照（Trace Snapshot）请求失败",
+        "startRequestFailed": "发送追踪回放（Trace Replay）启动请求失败",
+        "seekRequestFailed": "发送追踪回放定位（Trace Replay Seek）请求失败",
+        "stopRequestFailed": "发送追踪回放（Trace Replay）停止请求失败",
+        "selectNodeRecord": "请选择节点执行记录",
+        "nodeStartRequestFailed": "发送节点回放启动请求失败",
+        "nodeSeekRequestFailed": "发送节点回放定位请求失败"
+      },
+      "runMode": {
+        "runFromNode": {
+          "label": "从节点运行",
+          "description": "以选中节点作为入口运行后续 pipeline。"
+        },
+        "singleNodeRun": {
+          "label": "单节点运行",
+          "description": "对选中节点执行一次识别与动作组合。"
+        },
+        "recognitionOnly": {
+          "label": "仅测试识别",
+          "description": "只验证选中节点的识别逻辑。"
+        },
+        "actionOnly": {
+          "label": "仅执行动作",
+          "description": "跳过识别，直接执行选中节点的动作。"
+        }
+      },
+      "modalController": {
+        "artifactRequestFailed": "发送产物（Artifact）请求失败",
+        "preflightNotMet": "调试前置条件未满足",
+        "unsupportedMode": "当前 LocalBridge 暂不支持调试模式: {{mode}}",
+        "unsupportedModeShort": "当前 LocalBridge 暂不支持该调试模式",
+        "saveOpenFilesFailed": "调试前保存打开文件失败：{{files}}",
+        "startRequestFailed": "发送调试启动请求失败",
+        "buildRequestFailed": "生成调试请求失败",
+        "noRunningTask": "当前没有运行中的调试任务",
+        "stopRequestFailed": "发送停止请求失败",
+        "openFileRequestFailed": "发送打开文件请求失败",
+        "noLocatableFile": "当前诊断没有可定位的文件",
+        "noSummaryEvents": "当前没有可总结的调试事件。",
+        "selectNodeRecordFirst": "请先选择要解释的节点执行记录。",
+        "aiSystemPrompt": "你是 MaaPipelineEditor 的调试报告助手，只根据给定上下文输出 JSON。",
+        "generateAiSummary": "生成调试 AI 总结",
+        "aiSummaryFailed": "AI 总结生成失败",
+        "aiSummaryGenerated": "AI 总结已生成"
+      },
+      "resourceChecks": {
+        "buildRequestFailed": "生成资源体检请求失败"
+      },
+      "runStatus": {
+        "unknown": "未知",
+        "completed": "运行成功",
+        "failed": "运行失败",
+        "stopped": "运行已停止",
+        "finished": "运行结束",
+        "notificationTitle": "调试{{status}}",
+        "notificationDesc": "模式：{{mode}}{{durationPart}}",
+        "durationPart": " | 耗时：{{duration}}",
+        "viewDetails": "查看详情"
+      }
+    },
+    "jsonCompletion": {
+      "runtimeNodeName": "运行时节点名",
+      "recognitionType": "识别类型: {{name}}",
+      "actionType": "动作类型: {{name}}",
+      "mfwField": "MaaFramework 字段"
+    },
+    "wiki": {
+      "paths": {
+        "flowDebug": "20.本地服务/40.流程级调试.html"
+      },
+      "docsGuidePath": "01.指南",
+      "holdHint": "长按 W 或长按图标查看详情"
+    },
+    "parser": {
+      "configSplitter": {
+        "untitled": "未命名"
+      },
+      "exporter": {
+        "exportFailedTitle": "导出失败！",
+        "duplicateNodeNames": "存在重复的节点名: {{names}}，请修改后再试。",
+        "exportFailedDesc": "请检查各节点字段是否符合格式，详细程序错误请在控制台查看"
+      },
+      "importer": {
+        "importFailedTitle": "导入失败！",
+        "importFailedContent": "请检查pipeline格式是否正确，或版本是否一致，详细程序错误请在控制台查看。"
+      },
+      "typeMatchers": {
+        "typeErrorTitle": "类型错误",
+        "typeErrorDesc": "部分参数类型错误，请检查各节点字段是否符合Pipeline协议；可能的参数：{{key}}"
+      },
+      "versionDetector": {
+        "recoTypeError": "识别算法类型错误",
+        "actionTypeError": "动作类型错误"
+      }
+    },
+    "utils": {
+      "aiClient": {
+        "apiUrlNotConfigured": "API URL 未配置",
+        "apiKeyNotConfigured": "API Key 未配置",
+        "modelNotConfigured": "模型名称未配置",
+        "corsError": "请求失败，可能是浏览器跨域(CORS)限制。请开启 LocalBridge 代理（设置 → AI → 使用 LocalBridge 代理），或确认 API 服务已允许当前域的跨域请求。",
+        "requestCancelled": "请求已取消",
+        "responseStreamUnavailable": "无法获取响应流",
+        "deviceScreenshot": "设备截图"
+      },
+      "nodeJsonValidator": {
+        "nodeEmpty": "节点数据为空",
+        "nodeTypeMissing": "节点类型缺失",
+        "nodeDataCorrupted": "节点数据结构损坏",
+        "nodeDataRepaired": "节点数据结构不完整，已自动修复",
+        "jsonSyntaxError": "JSON 语法错误: {{message}}",
+        "mustBeObject": "节点数据必须是对象类型",
+        "unknownNodeType": "未知的节点类型: {{nodeType}}",
+        "missingField": "缺少必填字段: {{field}}",
+        "fieldMustBeString": "字段 {{field}} 必须是字符串类型",
+        "fieldMustBeObject": "字段 {{field}} 必须是对象类型",
+        "nestedMissingField": "{{parent}} 缺少必填字段: {{field}}",
+        "colorMustBeOneOf": "字段 color 必须是以下值之一: {{values}}"
+      },
+      "clipboard": {
+        "copySuccess": "已成功复制到粘贴板",
+        "copyFailed": "复制到粘贴板失败",
+        "readFailed": "读取粘贴板失败"
+      },
+      "snapper": {
+        "noNodes": "没有可保存的节点",
+        "canvasNotFound": "无法找到画布元素",
+        "savedSelected": "已保存 {{count}} 个选中节点为图片",
+        "savedAll": "已保存全部 {{count}} 个节点为图片",
+        "saveFailed": "保存图片失败"
+      },
+      "aiProviders": {
+        "custom": "自定义 (OpenAI 兼容)"
+      }
+    },
+    "panels": {
+      "exploration": {
+        "connectDeviceFirst": "请先连接设备",
+        "configureAiFirst": "请先配置 AI API",
+        "tooltipNeedDevice": "流程探索 (需连接设备)",
+        "tooltipNeedAi": "流程探索 (需配置 AI)",
+        "tooltipExploring": "探索中 ({{count}} 步)",
+        "tooltipDefault": "流程探索",
+        "goalPlaceholder": "输入探索目标，例如：完成每日签到任务",
+        "start": "开始",
+        "startNodeLabel": "起始节点：",
+        "startNodePlaceholder": "（可选）选择起始节点",
+        "cancel": "取消",
+        "stepsCompleted": "已完成 {{count}} 步",
+        "reviewingHint": "请在节点旁边操作：执行、重新生成或确认",
+        "exit": "退出",
+        "complete": "完成",
+        "executing": "正在执行动作...",
+        "confirmedSteps": "已确认 {{count}} 步",
+        "nextStep": "下一步",
+        "completeExploration": "完成探索",
+        "explorationComplete": "探索完成",
+        "totalSteps": "共 {{count}} 步",
+        "close": "关闭",
+        "title": "流程探索模式",
+        "wiki": {
+          "path": "20.本地服务/50.AI 服务.html",
+          "title": "流程探索",
+          "description": "AI驱动的流程自动探索"
+        },
+        "abortModal": {
+          "title": "确认退出",
+          "cancel": "取消",
+          "discard": "不保存退出",
+          "save": "保存并退出",
+          "content": "当前探索未完成，是否保留已确认的 {{count}} 个节点？"
+        }
+      },
+      "main": {
+        "adjacent": {
+          "unknown": "未知",
+          "predecessors": "前驱节点",
+          "successors": "后继节点",
+          "dragToReorder": "可拖拽调序",
+          "inputToAdd": "输入节点名添加",
+          "noConnectionsPrefix": "节点",
+          "noConnectionsSuffix": "无任何连接",
+          "dragAdjustOrder": "拖拽调整顺序",
+          "currentFile": "当前文件",
+          "connectionExists": "已存在到 \"{{label}}\" 的连接",
+          "addSuccessorPlaceholder": "输入节点名添加连接..."
+        },
+        "aiHistory": {
+          "success": "成功",
+          "failed": "失败",
+          "inputTokens": "输入:",
+          "outputTokens": "输出:",
+          "totalTokens": "总计:",
+          "estimated": "(估算值)",
+          "hasPromptTooltip": "实际消息包含预设提示词",
+          "hasPromptTag": "含提示词",
+          "userInput": "用户输入:",
+          "actualMessage": "实际消息",
+          "aiReply": "AI 回复:",
+          "collapse": "收起",
+          "expandFull": "展开完整回复",
+          "unknownError": "未知错误",
+          "title": "AI 对话历史",
+          "wiki": {
+            "path": "20.本地服务/50.AI 服务.html",
+            "title": "AI 服务",
+            "description": "AI对话与智能辅助功能"
+          },
+          "clearHistory": "清空历史",
+          "empty": "暂无对话记录"
+        },
+        "connection": {
+          "fillAdbPathAndAddress": "请填写 ADB 路径和设备地址",
+          "noAdbMethods": "设备没有可用的截图或输入方法",
+          "noWin32Methods": "窗口没有可用的截图或输入方法",
+          "enterPlayCoverAddress": "请输入 PlayCover 地址",
+          "enterDeviceUuid": "请输入设备 UUID",
+          "selectSocketPath": "请选择或输入 socket 路径",
+          "enterAppPid": "请输入应用 PID",
+          "selectScreencapMethod": "请选择截图方法",
+          "selectInputMethod": "请选择输入方法",
+          "selectDeviceFirst": "请先选择设备",
+          "status": {
+            "disconnected": "未连接",
+            "connecting": "连接中",
+            "connected": "已连接",
+            "failed": "连接失败"
+          },
+          "title": "连接配置",
+          "wiki": {
+            "path": "20.本地服务/15.设备连接.html",
+            "title": "设备连接",
+            "description": "配置与管理设备连接"
+          },
+          "connectedTo": "已连接:",
+          "unknownDevice": "未知设备",
+          "connectNewDevice": "连接新设备",
+          "disconnect": "断开连接",
+          "connectDevice": "连接设备",
+          "refresh": "刷新",
+          "tab": {
+            "adb": "ADB 设备",
+            "win32": "Win32 窗口",
+            "macosNative": "macOS 原生"
+          }
+        },
+        "error": {
+          "title": "错误列表"
+        },
+        "field": {
+          "editorRenderFailed": "节点编辑器渲染失败",
+          "nodeName": "节点名称:",
+          "nodeType": "节点类型:",
+          "errorMessage": "错误信息:",
+          "possibleCause": "可能原因：节点数据结构损坏或缺少必要字段",
+          "tryRepair": "尝试修复节点",
+          "jsonEditDescription": "JSON 编辑节点数据",
+          "nodeDataCorrupt": "节点数据损坏",
+          "unknown": "未知",
+          "errorLabel": "错误:",
+          "suggestDelete": "建议删除此节点并重新创建",
+          "unknownNodeType": "未知节点类型",
+          "unsupportedNodeType": "节点类型 \"{{type}}\" 不受支持",
+          "title": "节点字段",
+          "wiki": {
+            "path": "10.工作流面板/30.字段面板.html",
+            "title": "字段面板",
+            "description": "编辑节点属性与字段配置"
+          },
+          "applyFix": "应用修复",
+          "fieldsTab": "字段配置",
+          "adjacentTab": "邻接信息"
+        },
+        "fileConfig": {
+          "title": "文件配置",
+          "nodePrefixLabel": "节点前缀",
+          "nodePrefixTip": "在所有节点前添加一个前缀,并使用 _ 与节点名连接,防止跨文件节点名重复",
+          "filePathLabel": "文件路径",
+          "filePathTip": "本地JSON文件的完整路径,用于与本地服务通信时标识文件。留空则无法使用本地通信功能。例如: D:/path/to/your/pipeline.json"
+        },
+        "file": {
+          "fileNamePlaceholder": "文件名",
+          "localFile": "本地文件"
+        },
+        "inlineField": {
+          "jsonEditHistory": "JSON 编辑节点数据",
+          "unsupportedNodeType": "不支持的节点类型: {{type}}",
+          "title": "节点字段"
+        },
+        "liveScreen": {
+          "autoDisconnectMessage": "设备连接异常，已自动断开",
+          "expand": "展开实时画面",
+          "collapse": "折叠实时画面",
+          "title": "实时画面",
+          "screenshotError": "截图异常",
+          "loading": "正在获取画面...",
+          "screenshotFailed": "截图失败，请检查设备连接",
+          "deviceScreen": "设备画面"
+        },
+        "localFile": {
+          "refreshing": "正在刷新文件列表...",
+          "connectLocalFirst": "请先连接本地服务",
+          "title": "本地文件",
+          "wiki": {
+            "path": "20.本地服务/10.本地文件管理.html",
+            "title": "本地文件管理",
+            "description": "管理资源目录下Pipeline文件"
+          },
+          "refreshList": "刷新文件列表",
+          "close": "关闭",
+          "searchPlaceholder": "搜索文件...",
+          "emptyNoFiles": "暂无文件，点击刷新加载",
+          "emptyNoMatch": "未找到匹配的文件"
+        },
+        "nodeAdd": {
+          "arrayItems": "[...{{count}}项]",
+          "objectItems": "{...{{count}}项}",
+          "descExternal": "引用外部节点",
+          "descAnchor": "重定向到其他节点",
+          "descSticker": "记录注释信息的便签",
+          "descGroup": "对节点进行分组管理",
+          "descBlank": "空白节点模板",
+          "recognitionType": "识别: {{type}}",
+          "actionType": "动作: {{type}}",
+          "descCustom": "自定义节点",
+          "selectTemplatePreview": "选择一个模板以预览",
+          "doubleClickEdit": "双击编辑内容...",
+          "pipelineNode": "Pipeline节点",
+          "recognitionSection": "识别 - {{type}}",
+          "actionSection": "动作 - {{type}}",
+          "otherSection": "其他",
+          "andMoreNodes": "等{{count}}个节点",
+          "deleteTemplateTitle": "删除自定义模板",
+          "deleteTemplateContent": "确定要删除模板“{{label}}”吗？此操作不可恢复。",
+          "confirm": "确定",
+          "cancel": "取消",
+          "nodePreview": "节点预览",
+          "pasteNodes": "粘贴 {{count}} 个节点",
+          "pasteHint": "点击将粘贴板中的节点粘贴到鼠标位置",
+          "searchPlaceholder": "搜索节点模板...",
+          "clipboardBadge": "粘贴板",
+          "customBadge": "自定义",
+          "deleteTemplate": "删除模板",
+          "noMatchingTemplates": "未找到匹配的模板",
+          "shortcutSelect": "选择",
+          "shortcutAdd": "添加",
+          "shortcutClose": "关闭"
+        },
+        "search": {
+          "currentFile": "当前文件",
+          "nodeNotFound": "未找到该节点",
+          "locatedNode": "已定位到节点: {{label}}",
+          "jumpToFileAndNode": "已跳转到 {{path}} 并定位节点: {{label}}",
+          "jumpFailed": "跳转失败",
+          "enterNodeName": "请输入节点名称",
+          "none": "无",
+          "enterSearchContent": "请输入搜索内容",
+          "noNodes": "当前没有任何节点",
+          "aiSearchFailed": "AI搜索失败: {{error}}",
+          "noRelatedNodes": "未找到相关节点",
+          "aiSearchError": "AI搜索异常: {{error}}",
+          "unknownError": "未知错误",
+          "placeholder": "搜索节点...",
+          "searchNode": "搜索节点",
+          "aiSearching": "AI搜索中...",
+          "aiSearch": "AI智能搜索",
+          "nodeList": "节点列表"
+        },
+        "toolbar": {
+          "wiki": {
+            "path": "10.工作流面板/90.导入与导出.html"
+          },
+          "importExportTitle": "导入与导出",
+          "importExportDesc": "Pipeline文件的导入导出"
+        },
+        "nodeList": {
+          "externalRef": "外部引用",
+          "redirect": "重定向",
+          "sticker": "注释",
+          "group": "分组"
+        }
+      },
+      "edge": {
+        "sourceNode": "源节点",
+        "unknown": "未知",
+        "targetNode": "目标节点",
+        "connectionType": "连接类型",
+        "order": "顺序",
+        "title": "连接设置",
+        "wiki": {
+          "path": "10.工作流面板/40.连接.html",
+          "title": "连接",
+          "description": "节点间连接与流程编排"
+        },
+        "deleteTooltip": "删除连接"
+      },
+      "nodeEditors": {
+        "anchor": {
+          "keyTip": "重定向节点名，编译时会添加 [Anchor] 前缀",
+          "placeholder": "重定向节点名 (编译时添加 [Anchor] 前缀)"
+        },
+        "external": {
+          "keyTip": "节点名，转录时不会添加 prefix 前缀",
+          "placeholder": "节点名 (转录时不会添加前缀)"
+        }
+      },
+      "groupEditor": {
+        "colors": {
+          "blue": "蓝色",
+          "green": "绿色",
+          "purple": "紫色",
+          "orange": "橙色",
+          "gray": "灰色"
+        },
+        "history": {
+          "changeColor": "更改分组颜色"
+        },
+        "name": {
+          "title": "名称",
+          "content": "分组名称",
+          "placeholder": "分组名称"
+        },
+        "color": {
+          "title": "颜色",
+          "content": "分组颜色主题"
+        }
+      },
+      "pipelineEditor": {
+        "modal": {
+          "switchStructured": {
+            "title": "切换到结构化模式",
+            "focusContent": "切换到结构化模式会丢失当前的字符串值,是否继续?",
+            "numberContent": "切换到结构化模式会丢失当前的数值，是否继续?"
+          },
+          "ok": "确定",
+          "cancel": "取消"
+        },
+        "nodeName": {
+          "tooltip": "节点名，会被编译为 pipeline 的 key。",
+          "placeholder": "节点名"
+        },
+        "recognition": {
+          "tooltip": "识别算法({{name}})：{{desc}}"
+        },
+        "action": {
+          "tooltip": "动作类型({{name}})：{{desc}}"
+        },
+        "others": {
+          "tooltip": "除 recognition、action、focus 之外的字段"
+        },
+        "waitFreezes": {
+          "placeholder": "等待时间(毫秒)，或点击右侧添加详细参数"
+        },
+        "focus": {
+          "tooltip": "关注节点，会额外产生部分回调消息。可选，默认 null，不产生回调消息。详见 节点通知。",
+          "placeholder": "字符串值，或点击右侧按钮添加消息类型"
+        },
+        "extras": {
+          "tooltip": "自定义字段，JSON格式，会直接将一级字段渲染在节点上",
+          "placeholder": "自定义字段，完整 JSON 格式"
+        }
+      },
+      "stickerEditor": {
+        "colors": {
+          "yellow": "黄色",
+          "green": "绿色",
+          "blue": "蓝色",
+          "pink": "粉色",
+          "purple": "紫色"
+        },
+        "history": {
+          "changeColor": "更改便签颜色"
+        },
+        "title": {
+          "label": "标题",
+          "content": "便签标题",
+          "placeholder": "便签标题"
+        },
+        "color": {
+          "title": "颜色",
+          "content": "便签颜色主题"
+        },
+        "content": {
+          "label": "内容",
+          "tooltip": "便签正文内容",
+          "placeholder": "在此输入便签内容..."
+        }
+      },
+      "settings": {
+        "applyToAllSuccess": "已将所有节点端点位置更改为「{{direction}}」",
+        "applyToAll": "应用到所有节点",
+        "configureSort": "配置排序",
+        "connectLocalFirst": "请先连接本地服务",
+        "editBackendConfig": "编辑后端配置",
+        "needLocalConnection": "需要先连接本地服务才能打开",
+        "aiWarningLine1": "🌐 开启 LocalBridge 代理可解决 CORS 跨域限制，关闭则需要 API 服务支持 CORS",
+        "aiWarningLine2": "💡 节点预测功能需要支持视觉的模型（如 GPT-4o、Claude Sonnet、Gemini Flash 等）",
+        "aiWarningLine3": "🔐 API Key 粘贴后会自动加密存储，显示为 ENC: 开头的密文属于正常现象",
+        "testConnectionPrompt": "直接回复：AI 服务连接成功",
+        "testSuccess": "测试成功: {{content}}",
+        "testFailed": "测试失败: {{error}}",
+        "testConnection": "测试连接",
+        "exportSuccessWithTemplates": "配置导出成功（包含 {{count}} 个自定义模板）",
+        "exportSuccess": "配置导出成功",
+        "export": "导出",
+        "invalidConfigFormat": "无效的配置文件格式",
+        "importSuccessWithTemplates": "配置导入成功（包含 {{count}} 个自定义模板）",
+        "importSuccessTemplatesFailed": "配置导入成功，但自定义模板导入失败",
+        "importSuccess": "配置导入成功",
+        "importParseFailed": "配置文件解析失败",
+        "import": "导入",
+        "resetAllTitle": "重置所有配置",
+        "resetAllContent": "确定要将所有配置项恢复为默认值吗？此操作不可撤销。",
+        "resetConfirm": "确定重置",
+        "cancel": "取消",
+        "resetSuccess": "已恢复默认配置",
+        "resetDefaults": "重置默认值",
+        "title": "系统配置",
+        "searchPlaceholder": "搜索配置项...",
+        "hintText": "悬浮标题可查看详情",
+        "wiki": {
+          "path": "20.本地服务/100.进阶配置.html"
+        },
+        "wikiTitle": "进阶配置",
+        "wikiDescription": "应用高级配置项",
+        "emptyState": "未找到匹配的配置项"
+      },
+      "toolbar": {
+        "export": {
+          "clipboardSuccess": "已将 Pipeline 导出到粘贴板",
+          "saveFailed": "文件保存失败",
+          "partialClipboardSuccess": "已将选中节点 Pipeline 导出到粘贴板",
+          "configClipboardSuccess": "已将配置导出到粘贴板",
+          "toClipboard": "导出到粘贴板",
+          "toFile": "导出为文件",
+          "saveLocal": "保存到本地",
+          "saveAll": "全部保存",
+          "savePipelineOnly": "仅保存 Pipeline",
+          "saveConfigOnly": "仅保存配置",
+          "createWithLocal": "使用本地服务创建",
+          "partial": "部分导出",
+          "exportPipeline": "导出 Pipeline",
+          "exportConfig": "导出配置",
+          "buttonLabel": "导出",
+          "actionClipboard": "粘贴板",
+          "actionFile": "文件",
+          "actionLocal": "本地",
+          "actionAll": "全部",
+          "actionConfig": "配置",
+          "actionPartial": "部分",
+          "actionLocalCreate": "本地创建"
+        },
+        "import": {
+          "canvasNotEmptyTitle": "当前画布不为空",
+          "canvasNotEmptyContent": "导入将覆盖现有内容。导入后可通过撤销恢复，是否继续？",
+          "continueImport": "继续导入",
+          "cancel": "取消",
+          "clipboardPipelineSuccess": "从粘贴板导入 Pipeline 成功",
+          "importFailed": "导入失败,请检查粘贴板内容",
+          "clipboardEmpty": "粘贴板内容为空",
+          "clipboardConfigSuccess": "从粘贴板导入配置成功",
+          "importConfigFailed": "导入配置失败",
+          "filePipelineSuccess": "从文件导入 Pipeline 成功",
+          "fileImportFailed": "文件导入失败,请检查文件格式",
+          "fileConfigSuccess": "从文件导入配置成功",
+          "fileConfigImportFailed": "配置文件导入失败",
+          "fromClipboardPipeline": "从粘贴板导入 Pipeline",
+          "fromFilePipeline": "从文件导入 Pipeline",
+          "fromClipboardConfig": "从粘贴板导入配置",
+          "fromFileConfig": "从文件导入配置",
+          "buttonLabel": "导入",
+          "actionClipboard": "粘贴板",
+          "actionFile": "文件",
+          "actionClipboardConfig": "粘贴板配置",
+          "actionFileConfig": "配置文件"
+        },
+        "jsonPreview": "JSON 预览"
+      },
+      "tools": {
+        "add": {
+          "rightClickHint": "右键画布以显示更多模板"
+        },
+        "global": {
+          "debugIntroTitle": "关于 MPE FlowScope (调试模块)",
+          "debugIntroOk": "我知道了",
+          "systemConfig": "系统配置",
+          "fileConfig": "文件配置",
+          "aiHistory": "AI 对话历史",
+          "focusOpacityOff": "聚焦透明度（已关闭）",
+          "focusOpacityOn": "聚焦透明度（已开启）",
+          "focusOpacityEnabled": "聚焦透明度已开启",
+          "focusOpacityDisabled": "聚焦透明度已关闭",
+          "copy": "复制 (Ctrl+C)",
+          "noNodeSelected": "未选中节点",
+          "paste": "粘贴 (Ctrl+V)",
+          "clipboardEmpty": "粘贴板中无已复制节点",
+          "undo": "撤销 (Ctrl+Z)",
+          "nothingLeft": "真的没有了😭",
+          "undoSuccess": "撤销成功",
+          "redo": "重做 (Ctrl+Y)",
+          "redoSuccess": "重做成功",
+          "nodePath": "节点路径",
+          "nodePathEnabled": "节点路径（已开启）",
+          "toolbox": "工具箱",
+          "wiki": {
+            "path": "20.本地服务/20.字段快捷工具.html"
+          },
+          "fieldToolsWikiTitle": "字段快捷工具",
+          "fieldToolsWikiDesc": "ROI选区、OCR、取色等快捷操作",
+          "debug": "调试",
+          "docs": "文档站"
+        },
+        "layout": {
+          "noNodesToAdjust": "没有可调整的节点",
+          "selectTwoForAlign": "请选择两个以上的节点进行对齐操作",
+          "autoLayoutDenied": "当前环境禁止自动布局",
+          "alignCenter": "居中对齐",
+          "alignTop": "顶部对齐",
+          "alignBottom": "底部对齐",
+          "shrinkHorizontal": "缩减水平间距",
+          "expandHorizontal": "增加水平间距",
+          "shrinkVertical": "缩减垂直间距",
+          "expandVertical": "增加垂直间距",
+          "resetEdgePaths": "还原连接线路径",
+          "edgesReset": "连接线路径已还原",
+          "partialAutoLayout": "局部自动布局",
+          "autoLayout": "自动布局",
+          "selectTwoForPartial": "请选择两个以上节点进行局部排版",
+          "saveAsImage": "将布局保存为图片",
+          "noNodesToSave": "没有可保存的节点"
+        },
+        "logger": {
+          "noOperationLogs": "暂无操作记录",
+          "noLogs": "暂无日志",
+          "operationTab": "操作记录",
+          "notConnected": "未连接 LocalBridge",
+          "backendTab": "后端日志",
+          "clear": "清空",
+          "collapse": "收起"
+        },
+        "path": {
+          "startNode": "起始节点",
+          "selectStart": "选择起始节点",
+          "endNode": "结束节点",
+          "selectEnd": "选择结束节点",
+          "found": "✓ 找到路径，共 {{count}} 个节点",
+          "notFound": "✗ 未找到路径",
+          "clear": "清除",
+          "disablePathMode": "关闭路径模式",
+          "enablePathMode": "开启路径模式"
+        },
+        "toolbox": {
+          "ocr": "OCR 文字识别",
+          "template": "模板截图",
+          "color": "颜色取点",
+          "roi": "区域选择",
+          "roiOffset": "偏移测量",
+          "delta": "位移差值 (dx/dy)",
+          "connectFirst": "请先连接本地服务与设备",
+          "ocrComplete": "OCR 识别完成",
+          "templateSaved": "模板截图已保存",
+          "colorComplete": "颜色取点完成",
+          "roiComplete": "区域选择完成",
+          "roiOffsetComplete": "偏移测量完成",
+          "horizontalDeltaComplete": "水平位移测量完成",
+          "verticalDeltaComplete": "垂直位移测量完成",
+          "copiedValue": "已复制值",
+          "copiedKeyValue": "已复制键值对",
+          "ocrResult": "OCR 结果",
+          "templateResult": "模板截图",
+          "greenMask": "绿幕: {{value}}",
+          "yes": "是",
+          "no": "否",
+          "colorResult": "取色结果",
+          "roiResult": "区域结果",
+          "offsetResult": "偏移结果",
+          "horizontalDelta": "水平位移",
+          "verticalDelta": "垂直位移",
+          "copyValue": "复制值",
+          "copyKeyValue": "复制键值对"
+        }
+      },
+      "field": {
+        "imageSelect": {
+          "loadingList": "加载图片列表...",
+          "noMatch": "无匹配图片",
+          "noAvailable": "无可用图片",
+          "placeholder": "输入或选择图片路径"
+        },
+        "templatePreview": {
+          "notFound": "{{path}} - 未找到"
+        },
+        "toolbar": {
+          "copyNodeName": "复制节点名",
+          "copyRecoJson": "复制 Reco JSON",
+          "editJson": "编辑 JSON",
+          "emptyNodeName": "节点名为空",
+          "connectLocalFirst": "请先连接到本地服务与设备",
+          "configureAiFirst": "请先在配置面板中设置 AI API",
+          "screenshotFailed": "截图获取失败，请检查设备连接",
+          "applyConfig": "应用配置",
+          "fillingFields": "正在填充节点字段...",
+          "filledSuccess": "已成功填充 {{count}} 个字段，可在AI对话历史中查看详细推理依据",
+          "validationRequiredTitle": "以下字段需要手动验证",
+          "validationRequiredDesc": "AI 无法准确预测这些字段的值，请使用字段工具验证：",
+          "aiAnalysisNoFill": "AI分析完成，但没有需要填充的字段，可在AI对话历史中查看推理依据",
+          "aiPredictFailed": "AI预测失败",
+          "errNotConnected": "未连接",
+          "errScreenshot": "截图",
+          "screenshotError": "截图失败，请确保设备已连接",
+          "errConfig": "配置",
+          "aiConfigError": "请先在配置面板中设置AI API",
+          "errVision": "视觉",
+          "visionNotSupported": "当前模型不支持视觉功能，请使用支持视觉的模型（如 GPT-4o）",
+          "aiPredictFailedWithError": "AI预测失败: {{error}}",
+          "navigateToTarget": "跳转到目标节点",
+          "saveAsTemplate": "保存为模板",
+          "aiPredictTooltip": "AI智能预测节点配置",
+          "deleteNode": "删除节点"
+        }
+      },
+      "connection": {
+        "adb": {
+          "discoveredDevices": "已发现的设备",
+          "emptyDevices": "暂无设备,请点击刷新",
+          "orManualConnect": "或手动连接",
+          "manualInputWarning": "将使用手动输入的连接信息，列表选择将被忽略",
+          "deviceNameOptional": "设备名称（可选）",
+          "deviceNamePlaceholder": "例如: mumu模拟器",
+          "adbPath": "ADB 路径",
+          "adbPathPlaceholder": "例如: C:\\platform-tools\\adb.exe",
+          "deviceAddress": "设备地址",
+          "deviceAddressPlaceholder": "例如: 127.0.0.1:5555",
+          "extraConfigOptional": "额外配置（可选）",
+          "extraConfigPlaceholder": "例如: {\"extras\":{}}"
+        },
+        "gamepad": {
+          "typeLabel": "手柄类型 *",
+          "hwndLabel": "窗口句柄 (可选,用于截图)",
+          "hwndPlaceholder": "例: 0x123456 (可以为空)",
+          "screencapLabel": "截图方法 (可选)",
+          "screencapAuto": "自动选择",
+          "screencapFramePoolPseudo": "FramePool (伪最小化)",
+          "screencapPrintWindowPseudo": "PrintWindow (伪最小化)",
+          "prerequisiteTitle": "前置要求",
+          "prerequisiteDesc": "需要安装 ViGEm Bus Driver 才能使用手柄功能。下载: https://github.com/ViGEm/ViGEmBus/releases"
+        },
+        "macos": {
+          "nativeAppTitle": "macOS 原生应用",
+          "nativeAppDesc": "控制 macOS 原生应用程序",
+          "pidLabel": "应用 PID",
+          "pidPlaceholder": "例如: 12345",
+          "pidHint": "可通过 Activity Monitor 或 `ps aux | grep 应用名` 查找",
+          "screencapLabel": "截图方法",
+          "screencapPlaceholder": "选择截图方法",
+          "screencapHint": "ScreenCaptureKit: 需要 macOS 14.0+ 和录屏权限",
+          "inputLabel": "输入方法",
+          "inputPlaceholder": "选择输入方法",
+          "inputHint": "GlobalEvent: 全局事件注入(自动激活窗口) | PostToPid: 直接发送到进程(支持后台)",
+          "permissionsTitle": "权限要求",
+          "permissionsIntro": "需要授予以下权限:",
+          "screenRecordingPermission": "录屏权限 (Screen Recording)",
+          "screenRecordingPurpose": "用于截图功能",
+          "accessibilityPermission": "辅助功能权限 (Accessibility)",
+          "accessibilityPurpose": "用于输入控制功能",
+          "resetPermissions": "如遇权限问题,可执行以下命令重置:"
+        },
+        "method": {
+          "multipleSuffix": "(可多选)",
+          "autoSelect": "自动选择",
+          "screencapLabel": "截图方法",
+          "inputLabel": "输入方法",
+          "interceptionTitle": "Interception 驱动要求",
+          "interceptionDesc": "需要安装 Interception 驱动，并以不低于目标程序的权限运行。鼠标和按键操作通过驱动发送，文本输入仍使用系统 Unicode 输入。"
+        },
+        "playcover": {
+          "title": "PlayCover 连接",
+          "desc": "连接 macOS 上运行的 iOS 应用",
+          "addressLabel": "PlayCover 地址",
+          "addressPlaceholder": "例如: 127.0.0.1:1234",
+          "uuidLabel": "设备 UUID",
+          "uuidPlaceholder": "例如: 12345678-1234-1234-1234-123456789abc",
+          "nameLabel": "设备名称 (可选)",
+          "namePlaceholder": "自定义设备名称"
+        },
+        "win32": {
+          "permissionTitle": "权限提示",
+          "permissionDesc": "大多数 Win32 控制需要以管理员模式启动后端(LocalBridge)或客户端(Desktop)才能正常工作,如果遇到连接失败或控制无响应的情况,请尝试以管理员身份重新启动应用。",
+          "emptyWindows": "暂无窗口,请点击刷新",
+          "handleLabel": "句柄: {{hwnd}}"
+        },
+        "wlroots": {
+          "availableSockets": "可用 Socket 路径",
+          "emptySockets": "暂无可用路径，请手动输入或点击刷新",
+          "orManualInput": "或手动输入",
+          "pathPlaceholder": "例如: /run/user/1000/wayland-0",
+          "manualInputWarning": "将使用手动输入的路径，列表选择将被忽略",
+          "useWin32VkCode": "键盘输入使用 Win32 Virtual Keycode",
+          "tipTitle": "提示",
+          "tipSelectOrInputPrefix": "选择上方列表中的 socket 路径，或手动输入自定义路径。通常为",
+          "tipNestedCompositor": "建议使用嵌套合成器会话，避免控制当前桌面。"
+        }
+      },
+      "nodeList": {
+        "allTypes": "全部类型",
+        "filterPlaceholder": "筛选节点...",
+        "wiki": {
+          "path": "10.工作流面板/20.节点.html",
+          "title": "节点",
+          "description": "节点类型与属性详解"
+        },
+        "stats": {
+          "total": "共 {{count}} 个节点"
+        },
+        "empty": "暂无节点",
+        "preview": {
+          "external": "外部引用节点",
+          "anchor": "重定向节点",
+          "sticker": "便签贴纸",
+          "group": "分组框",
+          "recognition": "识别 - {{type}}",
+          "action": "动作 - {{type}}",
+          "otherParams": "其他参数",
+          "inEdges": "入边: {{count}}",
+          "outEdges": "出边: {{count}}"
+        }
+      }
+    }
+  }
+}

@@ -1,4 +1,5 @@
 import { memo, useMemo, useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { type Node, type NodeProps, useReactFlow } from "@xyflow/react";
 import classNames from "classnames";
 import { useShallow } from "zustand/shallow";
@@ -39,6 +40,7 @@ const ANodeContent = memo(
     onNavigateToNode?: (node: ReferenceNodeInfo) => void;
     replicaCount: number;
   }) => {
+    const { t } = useTranslation();
     const [popoverOpen, setPopoverOpen] = useState(false);
 
     const handleNavigate = useCallback(
@@ -56,7 +58,9 @@ const ANodeContent = memo(
           {replicaCount > 0 && (
             <span
               className={style["replica-badge"]}
-              title={`此重定向节点共有 ${replicaCount + 1} 个视觉副本`}
+              title={t("ui.flow.anchorNode.replicaCountTitle", "此重定向节点共有 {{count}} 个视觉副本", {
+                count: replicaCount + 1,
+              })}
             >
               +{replicaCount}
             </span>
@@ -67,12 +71,14 @@ const ANodeContent = memo(
               onOpenChange={setPopoverOpen}
               trigger="click"
               placement="right"
-              title={`引用此锚点的节点 (${referenceNodes.length})`}
+              title={t("ui.flow.anchorNode.referenceNodesTitle", "引用此锚点的节点 ({{count}})", {
+                count: referenceNodes.length,
+              })}
               content={
                 <div className={style["anchor-ref-list"]}>
                   {referenceNodes.length === 0 ? (
                     <Empty
-                      description="暂无引用"
+                      description={t("ui.flow.anchorNode.noReferences", "暂无引用")}
                       image={Empty.PRESENTED_IMAGE_SIMPLE}
                     />
                   ) : (
@@ -101,7 +107,9 @@ const ANodeContent = memo(
             >
               <div
                 className={style["navigate-btn"]}
-                title={`${referenceNodes.length} 个节点引用此锚点`}
+                title={t("ui.flow.anchorNode.referenceCountTitle", "{{count}} 个节点引用此锚点", {
+                  count: referenceNodes.length,
+                })}
               >
                 <ExportOutlined />
               </div>
@@ -118,6 +126,7 @@ type AnchorNodeData = Node<AnchorNodeDataType, NodeTypeEnum.Anchor>;
 
 /**重定向节点组件 */
 export function AnchorNode(props: NodeProps<AnchorNodeData>) {
+  const { t } = useTranslation();
   const focusOpacity = useConfigStore((state) => state.configs.focusOpacity);
   const { getNode } = useReactFlow();
 
@@ -230,14 +239,21 @@ export function AnchorNode(props: NodeProps<AnchorNodeData>) {
 
         if (success) {
           message.success(
-            `已跳转到 ${node.relativePath || node.filePath} 并定位节点: ${node.label}`,
+            t("ui.flow.anchorNode.navigateSuccess", "已跳转到 {{path}} 并定位节点: {{label}}", {
+              path: node.relativePath || node.filePath,
+              label: node.label,
+            }),
           );
         } else {
-          message.warning(`跳转失败: ${node.label}`);
+          message.warning(
+            t("ui.flow.anchorNode.navigateFailed", "跳转失败: {{label}}", {
+              label: node.label,
+            }),
+          );
         }
       }
     },
-    [instance],
+    [instance, t],
   );
 
   // 计算是否与选中元素相关联

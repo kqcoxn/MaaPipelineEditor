@@ -17,6 +17,7 @@ import {
 } from "@dnd-kit/sortable";
 import { Modal, Collapse, Button, message } from "antd";
 import { HolderOutlined, ReloadOutlined } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 
 import { useConfigStore } from "../../stores/configStore";
 import type { FieldSortConfig } from "../../core/sorting/types";
@@ -106,6 +107,7 @@ const SortableList: React.FC<SortableListProps> = memo(
 SortableList.displayName = "SortableList";
 
 const FieldSortModal: React.FC = () => {
+  const { t } = useTranslation();
   const showFieldSortModal = useConfigStore(
     (state) => state.status.showFieldSortModal,
   );
@@ -142,8 +144,8 @@ const FieldSortModal: React.FC = () => {
   // 重置为默认值
   const handleReset = useCallback(() => {
     Modal.confirm({
-      title: "确认重置",
-      content: "确定要恢复默认排序吗？",
+      title: t("ui.modals.fieldSort.resetConfirmTitle", "确认重置"),
+      content: t("ui.modals.fieldSort.resetConfirmContent", "确定要恢复默认排序吗？"),
       onOk: () => {
         const defaultConfig = getDefaultSortConfig();
         setMainTaskFields(defaultConfig.mainTaskFields);
@@ -151,10 +153,10 @@ const FieldSortModal: React.FC = () => {
         setActionParamFields(defaultConfig.actionParamFields);
         setSwipeFields(defaultConfig.swipeFields);
         setFreezeParamFields(defaultConfig.freezeParamFields);
-        message.success("已恢复默认排序");
+        message.success(t("ui.modals.fieldSort.resetSuccess", "已恢复默认排序"));
       },
     });
-  }, []);
+  }, [t]);
 
   // 保存配置
   const handleOk = useCallback(() => {
@@ -174,7 +176,7 @@ const FieldSortModal: React.FC = () => {
     // 如果与默认值相同，则设为 undefined
     setConfig("fieldSortConfig", isDefault ? undefined : newConfig);
     setStatus("showFieldSortModal", false);
-    message.success("排序配置已保存");
+    message.success(t("ui.modals.fieldSort.saveSuccess", "排序配置已保存"));
   }, [
     mainTaskFields,
     recognitionParamFields,
@@ -183,6 +185,7 @@ const FieldSortModal: React.FC = () => {
     freezeParamFields,
     setConfig,
     setStatus,
+    t,
   ]);
 
   // 取消
@@ -219,7 +222,7 @@ const FieldSortModal: React.FC = () => {
       key: "main",
       label: (
         <div className={style.panelHeader}>
-          <span>主任务字段排序</span>
+          <span>{t("ui.modals.fieldSort.mainTaskFields", "主任务字段排序")}</span>
           <Button
             type="text"
             size="small"
@@ -239,7 +242,9 @@ const FieldSortModal: React.FC = () => {
       key: "reco",
       label: (
         <div className={style.panelHeader}>
-          <span>Recognition 参数排序</span>
+          <span>
+            {t("ui.modals.fieldSort.recognitionFields", "Recognition 参数排序")}
+          </span>
           <Button
             type="text"
             size="small"
@@ -262,7 +267,7 @@ const FieldSortModal: React.FC = () => {
       key: "action",
       label: (
         <div className={style.panelHeader}>
-          <span>Action 参数排序</span>
+          <span>{t("ui.modals.fieldSort.actionFields", "Action 参数排序")}</span>
           <Button
             type="text"
             size="small"
@@ -285,7 +290,7 @@ const FieldSortModal: React.FC = () => {
       key: "swipe",
       label: (
         <div className={style.panelHeader}>
-          <span>Swipes 参数排序</span>
+          <span>{t("ui.modals.fieldSort.swipeFields", "Swipes 参数排序")}</span>
           <Button
             type="text"
             size="small"
@@ -303,7 +308,7 @@ const FieldSortModal: React.FC = () => {
       key: "freeze",
       label: (
         <div className={style.panelHeader}>
-          <span>Freeze 参数排序</span>
+          <span>{t("ui.modals.fieldSort.freezeFields", "Freeze 参数排序")}</span>
           <Button
             type="text"
             size="small"
@@ -326,26 +331,31 @@ const FieldSortModal: React.FC = () => {
 
   return (
     <Modal
-      title="字段排序配置"
+      title={t("ui.modals.fieldSort.title", "字段排序配置")}
       open={showFieldSortModal}
       onOk={handleOk}
       onCancel={handleCancel}
       width={500}
-      okText="保存"
-      cancelText="取消"
+      okText={t("ui.modals.fieldSort.save", "保存")}
+      cancelText={t("ui.modals.fieldSort.cancel", "取消")}
       footer={[
         <Button key="reset" onClick={handleReset}>
-          重置为默认
+          {t("ui.modals.fieldSort.resetToDefault", "重置为默认")}
         </Button>,
         <Button key="cancel" onClick={handleCancel}>
-          取消
+          {t("ui.modals.fieldSort.cancel", "取消")}
         </Button>,
         <Button key="ok" type="primary" onClick={handleOk}>
-          保存
+          {t("ui.modals.fieldSort.save", "保存")}
         </Button>,
       ]}
     >
-      <p className={style.hint}>拖拽字段调整顺序，导出时将按此顺序排列字段。</p>
+      <p className={style.hint}>
+        {t(
+          "ui.modals.fieldSort.hint",
+          "拖拽字段调整顺序，导出时将按此顺序排列字段。",
+        )}
+      </p>
       <Collapse
         items={collapseItems}
         activeKey={activePanel}

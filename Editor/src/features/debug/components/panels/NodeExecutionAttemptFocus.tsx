@@ -1,6 +1,8 @@
 ﻿import { List } from "../../../../components/SimpleList";
 import { Typography, Space, Tag } from "antd";
 import { useEffect, type CSSProperties } from "react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { DebugArtifactSelector } from "../DebugArtifactSelector";
 import { DebugSection } from "../DebugSection";
 import {
@@ -60,6 +62,7 @@ export function NodeExecutionAttemptFocus({
   selectedArtifact?: DebugArtifactEntry;
   selectedAttemptId?: string;
 }) {
+  const { t } = useTranslation();
   const allAttempts = allDebugNodeExecutionAttempts(record);
   const attempts =
     detailMode === "compact"
@@ -106,12 +109,18 @@ export function NodeExecutionAttemptFocus({
 
   return (
     <Space orientation="vertical" size={12} style={{ width: "100%" }}>
-      <DebugSection title="单次识别 / 动作">
+      <DebugSection title={t("debug.nodeExecution.attemptFocus.title", "单次识别 / 动作")}>
         {attempts.length === 0 || !selectedAttempt ? (
           <Text type="secondary">
             {detailMode === "compact"
-              ? "当前记录暂无成功 / 失败 attempt。"
-              : "当前记录没有可选择的识别或动作 attempt。"}
+              ? t(
+                  "debug.nodeExecution.attemptFocus.noTerminalAttempt",
+                  "当前记录暂无成功 / 失败 attempt。",
+                )
+              : t(
+                  "debug.nodeExecution.attemptFocus.noSelectableAttempt",
+                  "当前记录没有可选择的识别或动作 attempt。",
+                )}
           </Text>
         ) : (
           <Space orientation="vertical" size={10} style={{ width: "100%" }}>
@@ -155,6 +164,7 @@ function AttemptListItem({
   onSelectAttempt: (attemptId?: string) => void;
   selected: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <List.Item>
       <div
@@ -167,7 +177,11 @@ function AttemptListItem({
         }}
       >
         <Space wrap size={4}>
-          <Text strong>{attempt.kind === "recognition" ? "识别" : "动作"}</Text>
+          <Text strong>
+            {attempt.kind === "recognition"
+              ? t("debug.common.recognition", "识别")
+              : t("debug.common.action", "动作")}
+          </Text>
           <Tag>
             #{attempt.firstSeq}
             {attempt.lastSeq !== attempt.firstSeq ? `-${attempt.lastSeq}` : ""}
@@ -186,11 +200,17 @@ function AttemptListItem({
               {attempt.success ? "success" : "failed"}
             </Tag>
           )}
-          {attempt.detailRefs.length > 0 && <Tag color="purple">详情</Tag>}
-          {attempt.screenshotRefs.length > 0 && <Tag color="cyan">图像</Tag>}
+          {attempt.detailRefs.length > 0 && (
+            <Tag color="purple">{t("debug.common.detail", "详情")}</Tag>
+          )}
+          {attempt.screenshotRefs.length > 0 && (
+            <Tag color="cyan">{t("debug.common.image", "图像")}</Tag>
+          )}
           {attempt.sourceNextOwnerLabel && (
             <Tag color="geekblue">
-              来源 {attempt.sourceNextOwnerLabel} NextList
+              {t("debug.common.sourceNextList", "来源 {{label}} NextList", {
+                label: attempt.sourceNextOwnerLabel,
+              })}
             </Tag>
           )}
         </Space>
@@ -218,6 +238,7 @@ function AttemptSummary({
   selectedAttemptOverlayGroups: DebugImageOverlayGroup[];
   selectedAttemptOverlays: DebugImageOverlay[];
 }) {
+  const { t } = useTranslation();
   const payload = attempt.detailRef
     ? artifacts[attempt.detailRef]?.payload
     : undefined;
@@ -247,7 +268,11 @@ function AttemptSummary({
   return (
     <Space orientation="vertical" size={8} style={{ width: "100%" }}>
       <Space wrap size={4}>
-        <Tag>{attempt.kind === "recognition" ? "识别 attempt" : "动作 attempt"}</Tag>
+        <Tag>
+          {attempt.kind === "recognition"
+            ? t("debug.nodeExecution.attemptFocus.recognitionAttempt", "识别 attempt")
+            : t("debug.nodeExecution.attemptFocus.actionAttempt", "动作 attempt")}
+        </Tag>
         <Tag>
           seq {attempt.firstSeq}
           {attempt.lastSeq !== attempt.firstSeq ? `-${attempt.lastSeq}` : ""}
@@ -257,7 +282,9 @@ function AttemptSummary({
         {attempt.maafwMessage && <Tag>{attempt.maafwMessage}</Tag>}
         {attempt.sourceNextOwnerLabel && (
           <Tag color="geekblue">
-            来源 {attempt.sourceNextOwnerLabel} NextList
+            {t("debug.common.sourceNextList", "来源 {{label}} NextList", {
+              label: attempt.sourceNextOwnerLabel,
+            })}
           </Tag>
         )}
       </Space>
@@ -298,6 +325,7 @@ function AttemptArtifactActions({
   selectedAttemptOverlayGroups: DebugImageOverlayGroup[];
   selectedAttemptOverlays: DebugImageOverlay[];
 }) {
+  const { t } = useTranslation();
   const imageRefs =
     attempt.kind === "recognition"
       ? resolveRecognitionAttemptImageRefs(derivedImageRefs, attempt.screenshotRefs)
@@ -305,20 +333,20 @@ function AttemptArtifactActions({
   return (
     <DebugArtifactSelector
       box={selectedAttemptBox}
-      emptyText="该 attempt 没有 artifact 引用。"
+      emptyText={t("debug.artifact.emptyAttempt", "该 attempt 没有 artifact 引用。")}
       groups={[
         {
-          title: "详情 JSON",
+          title: t("debug.common.detailJson", "详情 JSON"),
           refs: attempt.detailRefs.map((ref) => ({
             ref,
-            label: "详情 JSON",
+            label: t("debug.common.detailJson", "详情 JSON"),
           })),
         },
         {
-          title: "图像",
+          title: t("debug.common.image", "图像"),
           refs: imageRefs.map((item) => ({
             ref: item.ref,
-            label: item.label,
+            label: detailImageRefLabel(t, item),
           })),
         },
       ]}
@@ -334,8 +362,28 @@ function refsToScreenshotImageRefs(refs: string[]): DebugDetailImageRef[] {
   return refs.map((ref) => ({
     ref,
     kind: "screenshot",
-    label: "图像",
+    label: "screenshot",
   }));
+}
+
+function detailImageRefLabel(t: TFunction, ref: DebugDetailImageRef): string {
+  switch (ref.kind) {
+    case "raw":
+      return t("debug.common.rawImage", "原图");
+    case "screenshot":
+      return t("debug.common.image", "图像");
+    case "draw": {
+      const trailingNumber = /(\d+)$/.exec(ref.label);
+      if (trailingNumber && ref.label !== "draw") {
+        return t("debug.common.drawImageIndexed", "绘制图 {{index}}", {
+          index: Number(trailingNumber[1]),
+        });
+      }
+      return t("debug.common.drawImage", "绘制图");
+    }
+    default:
+      return ref.label;
+  }
 }
 
 function resolveRecognitionAttemptImageRefs(
@@ -374,7 +422,7 @@ function collectAttemptDerivedImageRefs(
     refs.push({
       ref: attempt.rawImageRef,
       kind: "raw",
-      label: "原图",
+      label: "raw",
     });
   }
   for (const [index, ref] of attempt.drawImageRefs.entries()) {
@@ -383,7 +431,7 @@ function collectAttemptDerivedImageRefs(
     refs.push({
       ref,
       kind: "draw",
-      label: attempt.drawImageRefs.length > 1 ? `绘制图 ${index + 1}` : "绘制图",
+      label: attempt.drawImageRefs.length > 1 ? String(index + 1) : "draw",
     });
   }
 

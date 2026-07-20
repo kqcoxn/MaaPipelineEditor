@@ -1,4 +1,5 @@
 import { memo, useMemo, useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import type { Node, NodeProps } from "@xyflow/react";
 import { useReactFlow } from "@xyflow/react";
 import classNames from "classnames";
@@ -27,6 +28,7 @@ type ParentNodeRef = { parentId?: string };
 
 /**Pipeline节点组件 */
 export function PipelineNode(props: NodeProps<PNodeData>) {
+  const { t } = useTranslation();
   const nodeStyle = useConfigStore((state) => state.configs.nodeStyle);
   const focusOpacity = useConfigStore((state) => state.configs.focusOpacity);
   const { getNode } = useReactFlow();
@@ -229,7 +231,7 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
                 execute();
               }}
             >
-              执行
+              {t("ui.flow.pipelineNode.execute", "执行")}
             </Button>
             <Button
               size="small"
@@ -239,7 +241,7 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
                 handleRegenerate();
               }}
             >
-              重新生成
+              {t("ui.flow.pipelineNode.regenerate", "重新生成")}
             </Button>
             <Button
               size="small"
@@ -250,7 +252,7 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
                 handleConfirm();
               }}
             >
-              确认
+              {t("ui.flow.pipelineNode.confirm", "确认")}
             </Button>
           </div>
         )}
@@ -276,7 +278,7 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
                 execute();
               }}
             >
-              执行
+              {t("ui.flow.pipelineNode.execute", "执行")}
             </Button>
             <Button
               size="small"
@@ -286,7 +288,7 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
                 handleRegenerate();
               }}
             >
-              重新生成
+              {t("ui.flow.pipelineNode.regenerate", "重新生成")}
             </Button>
             <Button
               size="small"
@@ -297,7 +299,7 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
                 handleConfirm();
               }}
             >
-              确认
+              {t("ui.flow.pipelineNode.confirm", "确认")}
             </Button>
           </div>
         )}

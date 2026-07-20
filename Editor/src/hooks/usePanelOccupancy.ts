@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from "react";
+import uiT from "../i18n/translate";
 import {
   usePanelOccupancyStore,
   getPanelDescriptor,
@@ -28,7 +29,11 @@ export function usePanelOccupancy(panelId: string): {
   const descriptor = getPanelDescriptor(panelId);
 
   if (!descriptor) {
-    throw new Error(`[usePanelOccupancy] 未注册的面板: ${panelId}`);
+    throw new Error(
+      uiT("ui.hooks.panelOccupancy.unregisteredPanel", "[usePanelOccupancy] 未注册的面板: {{panelId}}", {
+        panelId,
+      }),
+    );
   }
 
   const { area, reaction, passive } = descriptor;

@@ -1,4 +1,5 @@
 import { memo, useEffect, useState, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { usePersistedState } from "../../../hooks/usePersistedState";
 import {
   Drawer,
@@ -51,6 +52,7 @@ interface ConnectionPanelProps {
 
 export const ConnectionPanel = memo(
   ({ open, onClose }: ConnectionPanelProps) => {
+    const { t } = useTranslation();
     const {
       connectionStatus,
       controllerId,
@@ -361,7 +363,12 @@ export const ConnectionPanel = memo(
         if (isAdbManualMode) {
           // 手动连接模式
           if (!manualAdbPath.trim() || !manualAddress.trim()) {
-            message.warning("请填写 ADB 路径和设备地址");
+            message.warning(
+              t(
+                "ui.panels.main.connection.fillAdbPathAndAddress",
+                "请填写 ADB 路径和设备地址",
+              ),
+            );
             return;
           }
 
@@ -398,7 +405,12 @@ export const ConnectionPanel = memo(
             : selectedAdbDevice.input_methods;
 
           if (screencapMethods.length === 0 || inputMethods.length === 0) {
-            message.warning("设备没有可用的截图或输入方法");
+            message.warning(
+              t(
+                "ui.panels.main.connection.noAdbMethods",
+                "设备没有可用的截图或输入方法",
+              ),
+            );
             return;
           }
 
@@ -420,7 +432,12 @@ export const ConnectionPanel = memo(
           : customInput || selectedWin32Window.input_methods[0];
 
         if (!screencapMethod || !inputMethod) {
-          message.warning("窗口没有可用的截图或输入方法");
+          message.warning(
+            t(
+              "ui.panels.main.connection.noWin32Methods",
+              "窗口没有可用的截图或输入方法",
+            ),
+          );
           return;
         }
 
@@ -432,11 +449,15 @@ export const ConnectionPanel = memo(
       } else if (activeTab === "playcover") {
         // PlayCover 连接
         if (!playCoverAddress.trim()) {
-          message.warning("请输入 PlayCover 地址");
+          message.warning(
+            t("ui.panels.main.connection.enterPlayCoverAddress", "请输入 PlayCover 地址"),
+          );
           return;
         }
         if (!playCoverUUID.trim()) {
-          message.warning("请输入设备 UUID");
+          message.warning(
+            t("ui.panels.main.connection.enterDeviceUuid", "请输入设备 UUID"),
+          );
           return;
         }
 
@@ -457,7 +478,12 @@ export const ConnectionPanel = memo(
         const socketPath =
           wlrootsSocketPath.trim() || selectedWlRootsSocket?.socket_path;
         if (!socketPath) {
-          message.warning("请选择或输入 socket 路径");
+          message.warning(
+            t(
+              "ui.panels.main.connection.selectSocketPath",
+              "请选择或输入 socket 路径",
+            ),
+          );
           return;
         }
         mfwProtocol.createWlRootsController({
@@ -467,15 +493,21 @@ export const ConnectionPanel = memo(
       } else if (activeTab === "macos") {
         // macOS 连接
         if (!macosPid.trim()) {
-          message.warning("请输入应用 PID");
+          message.warning(
+            t("ui.panels.main.connection.enterAppPid", "请输入应用 PID"),
+          );
           return;
         }
         if (!macosScreencap) {
-          message.warning("请选择截图方法");
+          message.warning(
+            t("ui.panels.main.connection.selectScreencapMethod", "请选择截图方法"),
+          );
           return;
         }
         if (!macosInput) {
-          message.warning("请选择输入方法");
+          message.warning(
+            t("ui.panels.main.connection.selectInputMethod", "请选择输入方法"),
+          );
           return;
         }
 
@@ -485,7 +517,9 @@ export const ConnectionPanel = memo(
           input_method: macosInput,
         });
       } else {
-        message.warning("请先选择设备");
+        message.warning(
+          t("ui.panels.main.connection.selectDeviceFirst", "请先选择设备"),
+        );
       }
     }, [
       activeTab,
@@ -521,10 +555,22 @@ export const ConnectionPanel = memo(
     // 渲染连接状态徽章
     const getStatusBadge = () => {
       const statusConfig = {
-        disconnected: { status: "default" as const, text: "未连接" },
-        connecting: { status: "processing" as const, text: "连接中" },
-        connected: { status: "success" as const, text: "已连接" },
-        failed: { status: "error" as const, text: "连接失败" },
+        disconnected: {
+          status: "default" as const,
+          text: t("ui.panels.main.connection.status.disconnected", "未连接"),
+        },
+        connecting: {
+          status: "processing" as const,
+          text: t("ui.panels.main.connection.status.connecting", "连接中"),
+        },
+        connected: {
+          status: "success" as const,
+          text: t("ui.panels.main.connection.status.connected", "已连接"),
+        },
+        failed: {
+          status: "error" as const,
+          text: t("ui.panels.main.connection.status.failed", "连接失败"),
+        },
       };
       return statusConfig[connectionStatus];
     };
@@ -660,10 +706,20 @@ export const ConnectionPanel = memo(
               fontSize: 16,
             }}
           >
-            <span>连接配置</span>
+            <span>{t("ui.panels.main.connection.title", "连接配置")}</span>
             <Badge status={statusBadge.status} text={statusBadge.text} />
             <span style={{ marginLeft: -10, marginTop: 3 }}>
-              <WikiAnchor path="20.本地服务/15.设备连接.html" title="设备连接" description="配置与管理设备连接" />
+              <WikiAnchor
+                path={t(
+                  "ui.panels.main.connection.wiki.path",
+                  "20.本地服务/15.设备连接.html",
+                )}
+                title={t("ui.panels.main.connection.wiki.title", "设备连接")}
+                description={t(
+                  "ui.panels.main.connection.wiki.description",
+                  "配置与管理设备连接",
+                )}
+              />
             </span>
           </div>
         }
@@ -701,10 +757,10 @@ export const ConnectionPanel = memo(
                     style={{ color: "#52c41a", fontSize: 16 }}
                   />
                   <Text style={{ fontSize: 14 }}>
-                    已连接:{" "}
+                    {t("ui.panels.main.connection.connectedTo", "已连接:")}{" "}
                     {(deviceInfo as any)?.name ||
                       (deviceInfo as any)?.window_name ||
-                      "未知设备"}
+                      t("ui.panels.main.connection.unknownDevice", "未知设备")}
                   </Text>
                 </div>
               </Card>
@@ -733,7 +789,7 @@ export const ConnectionPanel = memo(
                       size="large"
                       style={{ flex: 1 }}
                     >
-                      连接新设备
+                      {t("ui.panels.main.connection.connectNewDevice", "连接新设备")}
                     </Button>
                   )}
                   <Button
@@ -747,7 +803,7 @@ export const ConnectionPanel = memo(
                     }}
                     block={isCurrentDevice || !canConnect}
                   >
-                    断开连接
+                    {t("ui.panels.main.connection.disconnect", "断开连接")}
                   </Button>
                 </>
               ) : (
@@ -761,7 +817,7 @@ export const ConnectionPanel = memo(
                     size="large"
                     style={{ flex: 1 }}
                   >
-                    连接设备
+                    {t("ui.panels.main.connection.connectDevice", "连接设备")}
                   </Button>
                   <Button
                     icon={<ReloadOutlined spin={isRefreshing} />}
@@ -770,7 +826,7 @@ export const ConnectionPanel = memo(
                     size="large"
                     style={{ flex: 1 }}
                   >
-                    刷新
+                    {t("ui.panels.main.connection.refresh", "刷新")}
                   </Button>
                 </>
               )}
@@ -808,7 +864,7 @@ export const ConnectionPanel = memo(
                         label: (
                           <span>
                             <MobileOutlined style={{ marginRight: 8 }} />
-                            ADB 设备
+                            {t("ui.panels.main.connection.tab.adb", "ADB 设备")}
                           </span>
                         ),
                       },
@@ -821,7 +877,7 @@ export const ConnectionPanel = memo(
                         label: (
                           <span>
                             <DesktopOutlined style={{ marginRight: 8 }} />
-                            Win32 窗口
+                            {t("ui.panels.main.connection.tab.win32", "Win32 窗口")}
                           </span>
                         ),
                       },
@@ -873,7 +929,7 @@ export const ConnectionPanel = memo(
                         label: (
                           <span>
                             <AppleOutlined style={{ marginRight: 8 }} />
-                            macOS 原生
+                            {t("ui.panels.main.connection.tab.macosNative", "macOS 原生")}
                           </span>
                         ),
                       },

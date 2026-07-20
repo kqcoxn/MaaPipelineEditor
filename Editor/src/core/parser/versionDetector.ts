@@ -4,6 +4,7 @@ import {
   upperRecoValues,
   upperActionValues,
 } from "../fields";
+import uiT from "../../i18n/translate";
 
 /**
  * 节点版本检测结果
@@ -123,7 +124,7 @@ export function normalizeRecoType(value: string): string {
     if (idx >= 0) {
       return Object.values(upperRecoValues)[idx];
     }
-    throw new Error("识别算法类型错误");
+    throw new Error(uiT("ui.parser.versionDetector.recoTypeError", "识别算法类型错误"));
   }
   return value;
 }
@@ -142,7 +143,7 @@ export function normalizeActionType(value: string): string {
     if (idx >= 0) {
       return Object.values(upperActionValues)[idx];
     }
-    throw new Error("动作类型错误");
+    throw new Error(uiT("ui.parser.versionDetector.actionTypeError", "动作类型错误"));
   }
   return value;
 }

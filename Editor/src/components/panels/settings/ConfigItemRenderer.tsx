@@ -1,4 +1,5 @@
 import { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Popover,
   Switch,
@@ -24,8 +25,8 @@ interface ConfigItemRendererProps {
 /**通用配置项渲染器 */
 const ConfigItemRenderer = memo(
   ({ item, isConditional }: ConfigItemRendererProps) => {
+    const { t } = useTranslation();
     const value = useConfigStore((state) => {
-      // 自定义项可能用虚拟 key，从 configs 中取不到值
       if (item.key.startsWith("__")) return undefined;
       return state.configs[item.key as keyof typeof state.configs];
     });
@@ -33,15 +34,42 @@ const ConfigItemRenderer = memo(
     const setConfig = useConfigStore((state) => state.setConfig);
     const resetConfig = useConfigStore((state) => state.resetConfig);
 
-    // 计算动态属性
-    const resolvedPlaceholder = useMemo(
-      () => item.dynamicPlaceholder?.(configs) ?? item.placeholder,
-      [item, configs],
+    const itemKey = String(item.key);
+    const settingsKey = (field: string) => `settings.items.${itemKey}.${field}`;
+    const translateField = (field: string, value?: string) =>
+      value ? t(settingsKey(field), value) : value;
+
+    const resolvedPlaceholder = useMemo(() => {
+      const raw = item.dynamicPlaceholder?.(configs) ?? item.placeholder;
+      return raw ? translateField("placeholder", raw) : raw;
+    }, [item, configs, t]);
+    const resolvedTipContent = useMemo(() => {
+      const raw = item.dynamicTipContent?.(configs) ?? item.tipContent;
+      return raw ? translateField("tipContent", raw) : raw;
+    }, [item, configs, t]);
+
+    const resolvedLabel = translateField("label", item.label) ?? item.label;
+    const resolvedTipTitle = translateField("tipTitle", item.tipTitle) ?? item.tipTitle;
+    const resolvedCheckedChildren = translateField(
+      "checkedChildren",
+      item.checkedChildren,
     );
-    const resolvedTipContent = useMemo(
-      () => item.dynamicTipContent?.(configs) ?? item.tipContent,
-      [item, configs],
+    const resolvedUnCheckedChildren = translateField(
+      "unCheckedChildren",
+      item.unCheckedChildren,
     );
+    const resolvedAddonAfter = translateField("addonAfter", item.addonAfter);
+
+    const resolvedSelectOptions = useMemo(() => {
+      if (!item.options) return item.options;
+      return item.options.map((option, index) => ({
+        ...option,
+        label: t(
+          `${settingsKey("options")}.${String(option.value ?? index)}`,
+          String(option.label),
+        ),
+      }));
+    }, [item.options, itemKey, t]);
 
     // 判断是否已修改（值 ≠ 默认值）
     const isModified = useMemo(() => {
@@ -70,8 +98,8 @@ const ConfigItemRenderer = memo(
           return (
             <Switch
               checked={value as boolean}
-              checkedChildren={item.checkedChildren}
-              unCheckedChildren={item.unCheckedChildren}
+              checkedChildren={resolvedCheckedChildren}
+              unCheckedChildren={resolvedUnCheckedChildren}
               onChange={(checked) =>
                 setConfig(
                   item.key as keyof typeof configDefaults,
@@ -86,7 +114,7 @@ const ConfigItemRenderer = memo(
             <Select
               value={value}
               style={{ width: item.controlWidth || 120 }}
-              options={item.options}
+              options={resolvedSelectOptions ?? item.options}
               onChange={(val) =>
                 setConfig(item.key as keyof typeof configDefaults, val)
               }
@@ -108,11 +136,11 @@ const ConfigItemRenderer = memo(
               }}
             />
           );
-          if (item.addonAfter) {
+          if (resolvedAddonAfter) {
             return (
               <Space.Compact>
                 {inputNumber}
-                <Button disabled>{item.addonAfter}</Button>
+                <Button disabled>{resolvedAddonAfter}</Button>
               </Space.Compact>
             );
           }
@@ -247,7 +275,7 @@ const ConfigItemRenderer = memo(
             )}
             <Popover
               placement="bottomLeft"
-              title={item.tipTitle}
+              title={resolvedTipTitle}
               content={
                 resolvedTipContent ? (
                   <div style={{ maxWidth: 260, whiteSpace: "pre-wrap" }}>
@@ -256,7 +284,7 @@ const ConfigItemRenderer = memo(
                 ) : undefined
               }
             >
-              <span style={{ cursor: "help", fontSize: 14 }}>{item.label}</span>
+              <span style={{ cursor: "help", fontSize: 14 }}>{resolvedLabel}</span>
             </Popover>
           </div>
         )}
@@ -272,7 +300,7 @@ const ConfigItemRenderer = memo(
           }}
         >
           {isModified && (
-            <Tooltip title="恢复默认">
+            <Tooltip title={t("settings.resetDefault", "恢复默认")}>
               <UndoOutlined
                 onClick={handleReset}
                 style={{

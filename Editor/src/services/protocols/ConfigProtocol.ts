@@ -1,6 +1,7 @@
 import { message } from "antd";
 import { BaseProtocol } from "./BaseProtocol";
 import type { LocalWebSocketServer } from "../server";
+import uiT from "../../i18n/translate";
 
 /**
  * 后端配置数据结构
@@ -80,7 +81,10 @@ export class ConfigProtocol extends BaseProtocol {
   private handleConfigData(data: ConfigResponse): void {
     try {
       if (!data.success) {
-        message.error(data.message || "获取配置失败");
+        message.error(
+          data.message ||
+            uiT("ui.services.config.getFailed", "获取配置失败"),
+        );
         return;
       }
 
@@ -93,7 +97,9 @@ export class ConfigProtocol extends BaseProtocol {
       }
     } catch (error) {
       console.error("[ConfigProtocol] Failed to handle config data:", error);
-      message.error("配置数据处理失败");
+      message.error(
+        uiT("ui.services.config.dataProcessFailed", "配置数据处理失败"),
+      );
     }
   }
 
@@ -104,11 +110,15 @@ export class ConfigProtocol extends BaseProtocol {
   private handleReloadResponse(data: any): void {
     try {
       if (!data.success) {
-        message.error(data.error || "重载失败");
+        message.error(
+          data.error || uiT("ui.services.config.reloadFailed", "重载失败"),
+        );
         return;
       }
 
-      message.success("配置重载完成");
+      message.success(
+        uiT("ui.services.config.reloadSuccess", "配置重载完成"),
+      );
 
       // 通知所有回调
       this.reloadCallbacks.forEach((callback) => callback(data));
@@ -117,7 +127,12 @@ export class ConfigProtocol extends BaseProtocol {
         "[ConfigProtocol] Failed to handle reload response:",
         error
       );
-      message.error("重载响应处理失败");
+      message.error(
+        uiT(
+          "ui.services.config.reloadResponseFailed",
+          "重载响应处理失败",
+        ),
+      );
     }
   }
 

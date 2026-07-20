@@ -1,4 +1,5 @@
 import { memo, useMemo, useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { Input } from "antd";
 import {
   AppstoreOutlined,
@@ -34,6 +35,7 @@ const iconMap: Record<string, React.FC<{ className?: string }>> = {
 };
 
 function SettingsPanel() {
+  const { t } = useTranslation();
   const showConfigPanel = useConfigStore(
     (state) => state.status.showConfigPanel,
   );
@@ -102,18 +104,33 @@ function SettingsPanel() {
             {/* 标题栏 */}
             <div className={style.titleBar}>
               <div className={style.title}>
-                系统配置
+                {t("ui.panels.settings.title", "系统配置")}
               </div>
               <Input
                 className={style.searchInput}
-                placeholder="搜索配置项..."
+                placeholder={t(
+                  "ui.panels.settings.searchPlaceholder",
+                  "搜索配置项...",
+                )}
                 prefix={<SearchOutlined />}
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
                 allowClear
               />
-              <span className={style.hintText}>悬浮标题可查看详情</span>
-              <WikiAnchor path="20.本地服务/100.进阶配置.html" title="进阶配置" description="应用高级配置项" />
+              <span className={style.hintText}>
+                {t("ui.panels.settings.hintText", "悬浮标题可查看详情")}
+              </span>
+              <WikiAnchor
+                path={t(
+                  "ui.panels.settings.wiki.path",
+                  "20.本地服务/100.进阶配置.html",
+                )}
+                title={t("ui.panels.settings.wikiTitle", "进阶配置")}
+                description={t(
+                  "ui.panels.settings.wikiDescription",
+                  "应用高级配置项",
+                )}
+              />
               <CloseOutlined className={style.closeBtn} onClick={handleClose} />
             </div>
 
@@ -132,7 +149,9 @@ function SettingsPanel() {
                         onClick={() => setActiveTab(tab.key)}
                       >
                         {IconComp && <IconComp className={style.sidebarIcon} />}
-                        <span className={style.sidebarLabel}>{tab.label}</span>
+                        <span className={style.sidebarLabel}>
+                          {t(`settings.tabs.${tab.key}`, tab.label)}
+                        </span>
                       </div>
                     );
                   })}
@@ -144,7 +163,9 @@ function SettingsPanel() {
                 {filteredItems.length === 0 ? (
                   <div className={style.emptyState}>
                     <InboxOutlined className={style.emptyIcon} />
-                    <span>未找到匹配的配置项</span>
+                    <span>
+                      {t("ui.panels.settings.emptyState", "未找到匹配的配置项")}
+                    </span>
                   </div>
                 ) : groupedItems ? (
                   // 搜索模式：按 category 分组显示
@@ -153,7 +174,9 @@ function SettingsPanel() {
                     return (
                       <div key={category}>
                         <div className={style.configGroupTitle}>
-                          {tab?.label ?? category}
+                          {tab
+                            ? t(`settings.tabs.${tab.key}`, tab.label)
+                            : category}
                         </div>
                         {items.map((item) => (
                           <ConfigItemRenderer key={item.key} item={item} />
