@@ -11,6 +11,10 @@ import {
 } from "../../../data/nodeTemplates";
 import style from "../../../styles/panels/ToolPanel.module.less";
 
+interface AddPanelProps {
+  hidden?: boolean;
+}
+
 /** 基准画布高度1 */
 const BASE_HEIGHT_1 = 720;
 /** 基准显示模板数量1 */
@@ -43,7 +47,7 @@ function calcTemplateCount(canvasHeight: number): number {
 }
 
 /**添加工具 */
-function AddPanel() {
+function AddPanel({ hidden = false }: AddPanelProps) {
   const addNode = useFlowStore((state) => state.addNode);
   const canvasHeight = useFlowStore((state) => state.size.height);
 
@@ -88,12 +92,15 @@ function AddPanel() {
   });
 
   const panelClass = useMemo(
-    () => classNames(style.panel, style["add-panel"]),
-    [],
+    () =>
+      classNames(style.panel, style["add-panel"], {
+        [style["add-panel-hidden"]]: hidden,
+      }),
+    [hidden],
   );
 
   return (
-    <ul className={panelClass}>
+    <ul className={panelClass} aria-hidden={hidden} inert={hidden}>
       {tools}
       {/* 底部提示项 */}
       <div className={style.hintDivider}>

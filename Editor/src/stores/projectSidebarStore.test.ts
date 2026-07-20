@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import {
+  PROJECT_SIDEBAR_DEFAULT_WIDTH,
   PROJECT_SIDEBAR_MAX_WIDTH,
   PROJECT_SIDEBAR_MIN_WIDTH,
   clampProjectSidebarWidth,
@@ -17,7 +18,9 @@ describe("projectSidebarStore", () => {
   it("clamps pointer and keyboard width updates", () => {
     expect(clampProjectSidebarWidth(100)).toBe(PROJECT_SIDEBAR_MIN_WIDTH);
     expect(clampProjectSidebarWidth(999)).toBe(PROJECT_SIDEBAR_MAX_WIDTH);
-    expect(clampProjectSidebarWidth(Number.NaN)).toBe(280);
+    expect(clampProjectSidebarWidth(Number.NaN)).toBe(
+      PROJECT_SIDEBAR_DEFAULT_WIDTH,
+    );
   });
 
   it("persists visibility and width preferences", () => {

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist, subscribeWithSelector } from "zustand/middleware";
 
-export const PROJECT_SIDEBAR_DEFAULT_WIDTH = 280;
+export const PROJECT_SIDEBAR_DEFAULT_WIDTH = 300;
 export const PROJECT_SIDEBAR_MIN_WIDTH = 240;
 export const PROJECT_SIDEBAR_MAX_WIDTH = 480;
 

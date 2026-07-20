@@ -71,7 +71,10 @@ import { useWorkspaceStore } from "./stores/workspaceStore";
 import { debugCommandBus } from "./features/debug/debugCommandBus";
 import { resetDebugSessionLifecycle } from "./features/debug/sessionActions";
 import { ProjectSidebar } from "./components/project/ProjectSidebar";
-import { shouldMountProjectSidebar } from "./stores/projectSidebarStore";
+import {
+  shouldMountProjectSidebar,
+  useProjectSidebarStore,
+} from "./stores/projectSidebarStore";
 import { shouldPreserveProjectStateOnDisconnect } from "./services/desktopProject";
 import { useProjectSessionStore } from "./stores/projectSessionStore";
 import { useDocumentStore } from "./stores/documentStore";
@@ -142,6 +145,9 @@ function App() {
   // 嵌入模式状态
   const { isEmbed, isReady, isCapAllowed, isPanelHidden } = useEmbedMode();
   const wsConnected = useWSStore((state) => state.connected);
+  const projectSidebarVisible = useProjectSidebarStore(
+    (state) => state.visible,
+  );
   const activeTab = useProjectSessionStore((state) =>
     state.tabs.find((tab) => tab.key === state.activeKey),
   );
@@ -525,6 +531,7 @@ function App() {
   const showToolbar = !isEmbed || !isPanelHidden("toolbar");
   const showPanel = (id: string) => !isEmbed || !isPanelHidden(id);
   const mountProjectSidebar = shouldMountProjectSidebar(isEmbed, wsConnected);
+  const hideNodeToolPanel = mountProjectSidebar && projectSidebarVisible;
 
   // 渲染组件
   return (
@@ -559,7 +566,7 @@ function App() {
                       {showPanel("config") && <SettingsPanel />}
                       {showPanel("config") && <FileConfigPanel />}
                       {showPanel("ai-history") && <AIHistoryPanel />}
-                      <ToolPanel.Add />
+                      <ToolPanel.Add hidden={hideNodeToolPanel} />
                       <ToolPanel.Global />
                       {showPanel("search") && <SearchPanel />}
                       <ToolPanel.Layout />
