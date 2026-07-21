@@ -66,20 +66,87 @@ def test_save_is_atomic_and_preserves_raw_json_text(workspace: Workspace) -> Non
 
 def test_create_file_rejects_nested_file_name(workspace: Workspace) -> None:
     with pytest.raises(InvalidArgumentError):
-        workspace.create_file("nested/test.json", "", {})
+        workspace.create_file("nested/test.json", "")
 
 
-def test_create_file_only_allows_active_pipeline_directories(workspace: Workspace) -> None:
+def test_create_file_allows_project_directories_and_default_content(workspace: Workspace) -> None:
     allowed = "project/first/pipeline/nested"
     (workspace.root / allowed).mkdir()
 
-    result = workspace.create_file("new.json", allowed, {"Start": {}})
+    result = workspace.create_file("new.json", allowed)
 
     assert result["file_path"] == f"{allowed}/new.json"
+    assert (workspace.root / allowed / "new.json").read_text(encoding="utf-8") == "{}\n"
+
+    root_file = workspace.create_file("README.md", "")
+    assert root_file["file_path"] == "README.md"
+    assert (workspace.root / "README.md").read_text(encoding="utf-8") == ""
+
+    outside_pipeline = workspace.create_file("bundle.json", "project/first")
+    assert outside_pipeline["file_path"] == "project/first/bundle.json"
+
+
+def test_create_file_rejects_path_components(workspace: Workspace) -> None:
+    with pytest.raises(InvalidArgumentError):
+        workspace.create_file("nested/test.json", "")
+    with pytest.raises(InvalidArgumentError):
+        workspace.create_file("nested\\test.json", "")
+
+
+def test_rename_entry_changes_only_the_file_name(workspace: Workspace) -> None:
+    source = workspace.root / "project" / "notes.txt"
+    source.write_text("notes", encoding="utf-8")
+
+    result = workspace.rename_entry("project/notes.txt", "renamed.txt")
+
+    assert result == {
+        "file_path": "project/notes.txt",
+        "new_file_path": "project/renamed.txt",
+        "is_directory": False,
+        "status": "ok",
+    }
+    assert not source.exists()
+    assert (workspace.root / "project" / "renamed.txt").read_text(encoding="utf-8") == "notes"
+
+
+def test_rename_entry_renames_directories_with_their_contents(workspace: Workspace) -> None:
+    directory = workspace.root / "project" / "nested"
+    directory.mkdir()
+    (directory / "notes.txt").write_text("notes", encoding="utf-8")
+
+    result = workspace.rename_entry("project/nested", "renamed")
+
+    assert result == {
+        "file_path": "project/nested",
+        "new_file_path": "project/renamed",
+        "is_directory": True,
+        "status": "ok",
+    }
+    assert not directory.exists()
+    assert (workspace.root / "project/renamed/notes.txt").read_text(encoding="utf-8") == "notes"
+
+
+def test_rename_entry_rejects_duplicates_and_nested_names(workspace: Workspace) -> None:
+    (workspace.root / "project" / "notes.txt").write_text("notes", encoding="utf-8")
+    (workspace.root / "project" / "other.txt").write_text("other", encoding="utf-8")
+
+    with pytest.raises(InvalidArgumentError):
+        workspace.rename_entry("project/notes.txt", "other.txt")
+    with pytest.raises(InvalidArgumentError):
+        workspace.rename_entry("project/notes.txt", "nested/notes.txt")
+
+
+def test_delete_file_removes_only_files(workspace: Workspace) -> None:
+    path = workspace.root / "project" / "notes.txt"
+    path.write_text("notes", encoding="utf-8")
+
+    assert workspace.delete_file("project/notes.txt") == {
+        "file_path": "project/notes.txt",
+        "status": "ok",
+    }
+    assert not path.exists()
     with pytest.raises(ForbiddenError):
-        workspace.create_file("outside.json", "project", {})
-    with pytest.raises(ForbiddenError):
-        workspace.create_file("bundle.json", "project/first", {})
+        workspace.delete_file("project")
 
 
 def test_separated_config_is_loaded(workspace: Workspace) -> None:

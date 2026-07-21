@@ -58,7 +58,6 @@ function FilePanel() {
   const files = useFileStore((state) => state.files);
   const fileName = useFileStore((state) => state.currentFile.fileName);
   const setFileName = useFileStore((state) => state.setFileName);
-  const addFile = useFileStore((state) => state.addFile);
   const tabs = useProjectSessionStore((state) => state.tabs);
   const activeKey = useProjectSessionStore((state) => state.activeKey);
   const syncPipelineTabs = useProjectSessionStore(
@@ -146,17 +145,13 @@ function FilePanel() {
       key: React.MouseEvent | React.KeyboardEvent | string,
       action: "add" | "remove",
     ) => {
-      if (action === "add") {
-        const nextName = addFile({ isSwitch: true });
-        if (nextName) useProjectSessionStore.getState().openPipeline(nextName);
-        return;
-      }
+      if (action !== "remove") return;
       const tab = useProjectSessionStore
         .getState()
         .tabs.find((item) => item.key === String(key));
       if (tab) void closeEditorTab(tab);
     },
-    [addFile],
+    [],
   );
 
   const onDragEnd = useCallback(
@@ -206,6 +201,7 @@ function FilePanel() {
       <Tabs
         className={style.tabs}
         type="editable-card"
+        hideAdd
         items={items}
         activeKey={activeKey ?? undefined}
         onChange={onTabChange}

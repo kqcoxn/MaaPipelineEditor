@@ -746,7 +746,7 @@
     "debug.agentTested",
     "debug.artifact"
   ],
-  "x-protocol-version": "2.2.0",
+  "x-protocol-version": "2.3.0",
   "x-rpc-methods": [
     "system.hello",
     "system.health",
@@ -760,6 +760,8 @@
     "document.save",
     "file.open",
     "file.create",
+    "file.rename",
+    "file.delete",
     "file.save",
     "file.saveSeparated",
     "resource.list",

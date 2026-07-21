@@ -825,20 +825,55 @@ class Workspace:
         self,
         file_name: str,
         directory: str,
-        content: Any | None,
     ) -> dict[str, Any]:
-        if Path(file_name).name != file_name or not self._is_pipeline_file(Path(file_name)):
-            raise InvalidArgumentError("文件名无效或扩展名不受支持")
-        if not directory:
-            raise InvalidArgumentError("必须选择 Pipeline 目录")
-        parent = self.resolve(directory, must_exist=True)
-        if not parent.is_dir() or not self._is_pipeline_directory(parent):
-            raise ForbiddenError("文件只能创建在所选项目的 Pipeline 目录中")
+        self._validate_entry_name(file_name)
+        parent = self.root if not directory else self.resolve(directory, must_exist=True)
+        if not parent.is_dir():
+            raise ForbiddenError("文件只能创建在项目文件夹中")
         path = (parent / file_name).resolve()
         if path.exists():
             raise InvalidArgumentError("文件已存在")
-        self._atomic_write(path, json.dumps(content or {}, ensure_ascii=False, indent=4) + "\n")
+        serialized = "{}\n" if path.suffix.casefold() in _PIPELINE_EXTENSIONS else ""
+        self._atomic_write(path, serialized)
         return {"file_path": self.relative(path), "status": "ok"}
+
+    def rename_entry(self, relative_path: str, entry_name: str) -> dict[str, Any]:
+        self._validate_entry_name(entry_name)
+        source = self.resolve(relative_path, must_exist=True)
+        is_directory = source.is_dir()
+        if not source.is_file() and not is_directory:
+            raise ForbiddenError("只能重命名文件或文件夹")
+        target = source.with_name(entry_name)
+        if target != source and target.exists():
+            raise InvalidArgumentError("同名文件或文件夹已存在")
+        if target != source:
+            source.rename(target)
+        return {
+            "file_path": self.relative(source),
+            "new_file_path": self.relative(target),
+            "is_directory": is_directory,
+            "status": "ok",
+        }
+
+    def delete_file(self, relative_path: str) -> dict[str, Any]:
+        path = self.resolve(relative_path, must_exist=True)
+        if not path.is_file():
+            raise ForbiddenError("只能删除文件")
+        path.unlink()
+        return {"file_path": self.relative(path), "status": "ok"}
+
+    @staticmethod
+    def _validate_entry_name(file_name: str) -> None:
+        if (
+            not file_name
+            or Path(file_name).name != file_name
+            or "/" in file_name
+            or "\\" in file_name
+            or file_name in {".", ".."}
+            or file_name.endswith((".", " "))
+            or any(ord(character) < 32 for character in file_name)
+        ):
+            raise InvalidArgumentError("名称无效")
 
     def save_file(
         self,
@@ -1011,20 +1046,6 @@ class Workspace:
             "index_status": index_status,
             "is_default_pipeline": is_default,
         }
-
-    def _is_pipeline_directory(self, path: Path) -> bool:
-        with self._lock:
-            active = self._active
-        if active is None:
-            return False
-        for bundle in active.bundles:
-            pipeline = (bundle.path / "pipeline").resolve()
-            try:
-                path.resolve().relative_to(pipeline)
-                return True
-            except ValueError:
-                continue
-        return False
 
     @staticmethod
     def _is_pipeline_file(path: Path) -> bool:

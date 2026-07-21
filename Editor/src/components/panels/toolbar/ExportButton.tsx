@@ -14,7 +14,6 @@ import { useShallow } from "zustand/shallow";
 import { flowToPipeline, flowToSeparatedStrings } from "../../../core/parser";
 import { ClipboardHelper } from "../../../utils/ui/clipboard";
 import { ExportFileModal } from "../../modals/ExportFileModal";
-import { CreateFileModal } from "../../modals/CreateFileModal";
 import { checkGuard } from "../../panels/settings/guardSystem";
 import GuardPromptModal from "../../modals/GuardPromptModal";
 import type { ConfigItemDef } from "../../panels/settings/settingsDefinitions";
@@ -48,7 +47,6 @@ function ExportButton() {
   );
 
   const [exportModalVisible, setExportModalVisible] = useState(false);
-  const [createFileModalVisible, setCreateFileModalVisible] = useState(false);
   const [guardState, setGuardState] = useState<{
     items: ConfigItemDef[];
     onContinue: () => void;
@@ -91,10 +89,6 @@ function ExportButton() {
     },
     [saveFileToLocal],
   );
-
-  const handleCreateFileWithLocal = () => {
-    setCreateFileModalVisible(true);
-  };
 
   const handlePartialExport = useCallback(() => {
     ClipboardHelper.write(
@@ -149,9 +143,6 @@ function ExportButton() {
         break;
       case "export-config":
         handleExportConfig();
-        break;
-      case "create-local":
-        handleCreateFileWithLocal();
         break;
     }
   }, [
@@ -231,18 +222,6 @@ function ExportButton() {
       }
     }
 
-    // 仅在已连接本地服务时显示
-    if (wsConnected) {
-      items.push({
-        key: "create-local",
-        label: "使用本地服务创建",
-        onClick: () => {
-          setDefaultExportAction("create-local");
-          executeExportAction("create-local");
-        },
-      });
-    }
-
     // 仅在有选中节点时显示
     if (isPartable) {
       items.push(
@@ -312,8 +291,6 @@ function ExportButton() {
         return { buttonLabel: "导出", currentActionDesc: "Pipeline" };
       case "export-config":
         return { buttonLabel: "导出", currentActionDesc: "配置" };
-      case "create-local":
-        return { buttonLabel: "导出", currentActionDesc: "本地创建" };
       default:
         return { buttonLabel: "导出", currentActionDesc: "粘贴板" };
     }
@@ -341,10 +318,6 @@ function ExportButton() {
       <ExportFileModal
         visible={exportModalVisible}
         onCancel={() => setExportModalVisible(false)}
-      />
-      <CreateFileModal
-        visible={createFileModalVisible}
-        onCancel={() => setCreateFileModalVisible(false)}
       />
       {guardState && (
         <GuardPromptModal

@@ -173,6 +173,43 @@ def test_document_rpc_opens_text_image_and_binary(
     assert "_path" not in binary_response["result"]
 
 
+def test_file_management_rpcs_rename_and_delete(
+    client: tuple[TestClient, LocalBridgeState],
+) -> None:
+    test_client, state = client
+    source = state.workspace.root / "project" / "managed.txt"
+    source.write_text("managed", encoding="utf-8")
+
+    with test_client.websocket_connect("/v2/ws", headers={"origin": ORIGIN}) as websocket:
+        _hello(websocket)
+        websocket.send_json(
+            _request(
+                "rename",
+                "file.rename",
+                {"file_path": "project/managed.txt", "file_name": "renamed.txt"},
+            )
+        )
+        rename_response = _receive_response(websocket, "rename")
+        websocket.send_json(
+            _request("delete", "file.delete", {"file_path": "project/renamed.txt"})
+        )
+        delete_response = _receive_response(websocket, "delete")
+
+    renamed = state.workspace.root / "project" / "renamed.txt"
+    assert rename_response["result"] == {
+        "file_path": "project/managed.txt",
+        "new_file_path": "project/renamed.txt",
+        "is_directory": False,
+        "status": "ok",
+    }
+    assert delete_response["result"] == {
+        "file_path": "project/renamed.txt",
+        "status": "ok",
+    }
+    assert not source.exists()
+    assert not renamed.exists()
+
+
 def test_document_rpc_saves_with_revision_and_reports_conflict(
     client: tuple[TestClient, LocalBridgeState],
 ) -> None:

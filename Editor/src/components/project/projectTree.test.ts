@@ -5,6 +5,7 @@ import {
   buildProjectTree,
   getSelectedProjectTreeKeys,
   preserveExpandedProjectTreeKeys,
+  withCreateFileDraft,
 } from "./projectTree";
 
 describe("projectTree", () => {
@@ -79,5 +80,19 @@ describe("projectTree", () => {
       ),
     ).toEqual([PROJECT_TREE_ROOT_KEY, "src"]);
     expect(preserveExpandedProjectTreeKeys([], tree)).toEqual([]);
+  });
+
+  it("inserts a temporary create row under the target directory", () => {
+    const tree = buildProjectTree("C:/workspace", entries, []);
+    const rendered = withCreateFileDraft(tree, "src");
+    const source = tree.children?.find((node) => node.path === "src");
+    const target = rendered.children?.find((node) => node.path === "src");
+
+    expect(source?.children?.some((node) => node.kind === "draft")).toBe(false);
+    expect(target?.children?.[0]).toMatchObject({
+      kind: "draft",
+      path: "src",
+      selectable: false,
+    });
   });
 });

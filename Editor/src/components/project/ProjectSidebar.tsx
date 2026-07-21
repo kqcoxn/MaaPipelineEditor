@@ -1,7 +1,9 @@
 import {
   CaretDownOutlined,
   CodeOutlined,
+  DeleteOutlined,
   EditOutlined,
+  FileAddOutlined,
   FileOutlined,
   FileImageOutlined,
   FileMarkdownOutlined,
@@ -11,10 +13,10 @@ import {
   FolderOutlined,
 } from "@ant-design/icons";
 import {
+  App,
   Button,
   ConfigProvider,
   Dropdown,
-  message,
   Tooltip,
   Tree,
   type MenuProps,
@@ -36,6 +38,7 @@ import {
   openDesktopProject,
   isDesktopEnvironment,
 } from "../../services/desktopProject";
+import { fileProtocol } from "../../services/server";
 import { useLocalFileStore } from "../../stores/localFileStore";
 import { activateEditorTab } from "../../services/projectSessionActions";
 import { useProjectSessionStore } from "../../stores/projectSessionStore";
@@ -53,7 +56,15 @@ import {
   getSelectedProjectTreeKeys,
   preserveExpandedProjectTreeKeys,
   type ProjectTreeNode,
+  withCreateFileDraft,
 } from "./projectTree";
+import {
+  CreateFileTreeInput,
+  getDirectoryPath,
+  RenameTreeEntryInput,
+  type CreateFileTarget,
+  type RenameEntryTarget,
+} from "./ProjectFileNameInput";
 
 const { DirectoryTree } = Tree;
 const RESIZE_STEP = 10;
@@ -124,6 +135,7 @@ const modeItems: MenuProps["items"] = [
 ];
 
 function ProjectDirectoryTree() {
+  const { message, modal } = App.useApp();
   const root = useWorkspaceStore((state) => state.treeRoot || state.root);
   const entries = useWorkspaceStore((state) => state.treeEntries);
   const treeRevision = useWorkspaceStore((state) => state.treeRevision);
@@ -150,6 +162,14 @@ function ProjectDirectoryTree() {
   const [expandedKeys, setExpandedKeys] = useState<Key[]>([
     PROJECT_TREE_ROOT_KEY,
   ]);
+  const [createTarget, setCreateTarget] = useState<CreateFileTarget | null>(null);
+  const [renameTarget, setRenameTarget] = useState<RenameEntryTarget | null>(null);
+
+  const renderedTree = useMemo(
+    () =>
+      createTarget ? withCreateFileDraft(tree, createTarget.path) : tree,
+    [createTarget, tree],
+  );
 
   useEffect(() => {
     setExpandedKeys((current) => {
@@ -160,6 +180,58 @@ function ProjectDirectoryTree() {
   const selectedKeys = useMemo(
     () => getSelectedProjectTreeKeys(activeTab?.path, capabilities),
     [activeTab?.path, capabilities],
+  );
+
+  const beginCreateFile = useCallback((node: ProjectTreeNode) => {
+    const target = {
+      key: node.key,
+      label: node.title,
+      path: node.path,
+    };
+    setRenameTarget(null);
+    setCreateTarget(target);
+    setExpandedKeys((current) =>
+      current.includes(target.key) ? current : [...current, target.key],
+    );
+  }, []);
+
+  const beginRenameEntry = useCallback((node: ProjectTreeNode) => {
+    setCreateTarget(null);
+    setRenameTarget({
+      label: node.title,
+      path: node.path,
+      directoryPath: getDirectoryPath(node.path),
+      kind: node.kind === "directory" ? "directory" : "file",
+    });
+  }, []);
+
+  const confirmDeleteFile = useCallback(
+    (node: ProjectTreeNode) => {
+      setCreateTarget(null);
+      setRenameTarget(null);
+      modal.confirm({
+        title: "删除文件",
+        content: `确定删除“${node.title}”吗？此操作无法撤销。`,
+        okText: "删除",
+        cancelText: "取消",
+        okButtonProps: { danger: true },
+        onOk: async () => {
+          try {
+            const deleted = await fileProtocol.requestDeleteFile(node.path);
+            if (!deleted) throw new Error("文件删除失败");
+            message.success(`文件已删除：${node.title}`);
+          } catch (deleteError) {
+            message.error(
+              deleteError instanceof Error
+                ? deleteError.message
+                : "文件删除失败",
+            );
+            throw deleteError;
+          }
+        },
+      });
+    },
+    [message, modal],
   );
 
   const handleSelect = useCallback(
@@ -184,7 +256,7 @@ function ProjectDirectoryTree() {
         if (!success) message.error("打开项目文件请求发送失败");
       });
     },
-    [documents.length],
+    [documents.length, message],
   );
 
   return (
@@ -199,7 +271,7 @@ function ProjectDirectoryTree() {
             itemTitle: style.treeItemTitle,
             itemSwitcher: style.treeItemSwitcher,
           }}
-          treeData={[tree]}
+          treeData={[renderedTree]}
           expandedKeys={expandedKeys}
           selectedKeys={selectedKeys}
           switcherIcon={({ isLeaf, expanded }) => {
@@ -217,13 +289,34 @@ function ProjectDirectoryTree() {
           onSelect={handleSelect}
           titleRender={(node) => {
             const projectNode = node as ProjectTreeNode;
+            if (projectNode.kind === "draft" && createTarget) {
+              return (
+                <CreateFileTreeInput
+                  target={createTarget}
+                  entries={entries}
+                  onFinish={() => setCreateTarget(null)}
+                />
+              );
+            }
+            if (
+              (projectNode.kind === "file" || projectNode.kind === "directory") &&
+              renameTarget?.path === projectNode.path
+            ) {
+              return (
+                <RenameTreeEntryInput
+                  target={renameTarget}
+                  entries={entries}
+                  onFinish={() => setRenameTarget(null)}
+                />
+              );
+            }
             const iconClassName = `${style.treeNodeIcon} ${
               projectNode.selectable ? style.pipelineIcon : ""
             }`;
             const nameClassName = `${style.treeName} ${
               projectNode.kind === "root" ? style.treeRootName : ""
             }`;
-            return (
+            const title = (
               <span className={style.treeTitle}>
                 {projectNode.kind === "file" ? (
                   fileIcon(projectNode, iconClassName)
@@ -232,6 +325,54 @@ function ProjectDirectoryTree() {
                 )}
                 <span className={nameClassName}>{projectNode.title}</span>
               </span>
+            );
+            const isFile = projectNode.kind === "file";
+            const isDirectory = projectNode.kind === "directory";
+            return (
+              <Dropdown
+                trigger={["contextMenu"]}
+                menu={{
+                  items: isFile
+                    ? [
+                        {
+                          key: "rename-entry",
+                          icon: <EditOutlined />,
+                          label: "重命名",
+                        },
+                        {
+                          key: "delete-file",
+                          icon: <DeleteOutlined />,
+                          label: "删除",
+                          danger: true,
+                        },
+                      ]
+                    : [
+                        {
+                          key: "create-file",
+                          icon: <FileAddOutlined />,
+                          label: "新建文件",
+                        },
+                        ...(isDirectory
+                          ? [
+                              {
+                                key: "rename-entry",
+                                icon: <EditOutlined />,
+                                label: "重命名",
+                              },
+                            ]
+                          : []),
+                      ],
+                  onClick: ({ key, domEvent }) => {
+                    domEvent.preventDefault();
+                    domEvent.stopPropagation();
+                    if (key === "create-file") beginCreateFile(projectNode);
+                    else if (key === "rename-entry") beginRenameEntry(projectNode);
+                    else if (key === "delete-file") confirmDeleteFile(projectNode);
+                  },
+                }}
+              >
+                {title}
+              </Dropdown>
             );
           }}
         />
@@ -392,6 +533,7 @@ function SidebarResizeHandle({
 }
 
 export function ProjectSidebar() {
+  const { message } = App.useApp();
   const width = useProjectSidebarStore((state) => state.width);
   const visible = useProjectSidebarStore((state) => state.visible);
   const currentInterface = useWorkspaceStore((state) => state.currentInterface);

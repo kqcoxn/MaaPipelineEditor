@@ -362,6 +362,8 @@ class Dispatcher:
             "document.save": self._document_save,
             "file.open": self._file_open,
             "file.create": self._file_create,
+            "file.rename": self._file_rename,
+            "file.delete": self._file_delete,
             "file.save": self._file_save,
             "file.saveSeparated": self._file_save_separated,
             "resource.list": self._resource_list,
@@ -652,10 +654,47 @@ class Dispatcher:
             self.state.workspace.create_file,
             str(params["file_name"]),
             str(params.get("directory", "")),
-            params.get("content"),
         )
         await context.emit("file.created", result)
         await self.state.refresh_workspace(rediscover=False)
+        return result
+
+    async def _file_rename(self, context: RpcContext, params: dict[str, Any]) -> dict[str, Any]:
+        del context
+        result = await asyncio.to_thread(
+            self.state.workspace.rename_entry,
+            str(params["file_path"]),
+            str(params["file_name"]),
+        )
+        event = {
+            "type": "renamed",
+            "file_path": result["file_path"],
+            "new_file_path": result["new_file_path"],
+            "is_directory": result["is_directory"],
+        }
+        await self.state.workspace_changed(
+            [event],
+            False,
+            [event],
+        )
+        return result
+
+    async def _file_delete(self, context: RpcContext, params: dict[str, Any]) -> dict[str, Any]:
+        del context
+        result = await asyncio.to_thread(
+            self.state.workspace.delete_file,
+            str(params["file_path"]),
+        )
+        event = {
+            "type": "deleted",
+            "file_path": result["file_path"],
+            "is_directory": False,
+        }
+        await self.state.workspace_changed(
+            [event],
+            False,
+            [event],
+        )
         return result
 
     async def _file_save(self, context: RpcContext, params: dict[str, Any]) -> dict[str, Any]:

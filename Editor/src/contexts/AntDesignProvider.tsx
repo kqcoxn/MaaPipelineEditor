@@ -1,4 +1,4 @@
-import { ConfigProvider } from "antd";
+import { App, ConfigProvider } from "antd";
 import type { ReactNode } from "react";
 
 const modalDefaults = {
@@ -7,7 +7,9 @@ const modalDefaults = {
 
 export function AntDesignProvider({ children }: { children: ReactNode }) {
   return (
-    <ConfigProvider modal={modalDefaults}>{children}</ConfigProvider>
+    <ConfigProvider modal={modalDefaults}>
+      <App style={{ display: "contents" }}>{children}</App>
+    </ConfigProvider>
   );
 }
 

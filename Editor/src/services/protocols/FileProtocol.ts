@@ -347,30 +347,6 @@ export class FileProtocol extends BaseProtocol {
       if (status === "ok") {
         const fileName = file_path.split(/[\/\\]/).pop() || file_path;
         message.success(`文件已创建: ${fileName}`);
-
-        // 更新当前文件的路径配置
-        const fileStore = useFileStore.getState();
-        const configStore = useConfigStore.getState();
-
-        // 更新文件路径
-        fileStore.setFileConfig("filePath", file_path);
-
-        // 如果是分离模式，更新配置文件路径
-        if (configStore.configs.configHandlingMode === "separated") {
-          // 生成配置文件路径
-          const lastSep = Math.max(
-            file_path.lastIndexOf("/"),
-            file_path.lastIndexOf("\\"),
-          );
-          const directory = file_path.substring(0, lastSep + 1);
-          const fileName = file_path.substring(lastSep + 1);
-          const baseName = fileName.replace(/\.(json|jsonc)$/i, "");
-          const configPath = `${directory}.${baseName}.mpe.json`;
-          fileStore.setFileConfig("separatedConfigPath", configPath);
-        }
-
-        // 更新同步时间
-        fileStore.setFileConfig("lastSyncTime", Date.now());
       } else {
         message.error("文件创建失败");
       }
@@ -398,21 +374,61 @@ export class FileProtocol extends BaseProtocol {
    * 请求创建文件
    * RPC: file.create
    */
-  public requestCreateFile(
+  public async requestCreateFile(
     fileName: string,
     directory: string,
-    content?: any,
-  ): boolean {
+  ): Promise<string | null> {
+    if (!this.wsClient) {
+      console.error("[FileProtocol] WebSocket client not initialized");
+      return null;
+    }
+
+    const result = await this.wsClient.request<{
+      file_path?: unknown;
+      status?: unknown;
+    }>("file.create", {
+      file_name: fileName,
+      directory,
+    });
+    return result.status === "ok" && typeof result.file_path === "string"
+      ? result.file_path
+      : null;
+  }
+
+  /** RPC: file.rename */
+  public async requestRenameEntry(
+    entryPath: string,
+    entryName: string,
+  ): Promise<string | null> {
+    if (!this.wsClient) {
+      console.error("[FileProtocol] WebSocket client not initialized");
+      return null;
+    }
+
+    const result = await this.wsClient.request<{
+      new_file_path?: unknown;
+      status?: unknown;
+    }>("file.rename", {
+      file_path: entryPath,
+      file_name: entryName,
+    });
+    return result.status === "ok" && typeof result.new_file_path === "string"
+      ? result.new_file_path
+      : null;
+  }
+
+  /** RPC: file.delete */
+  public async requestDeleteFile(filePath: string): Promise<boolean> {
     if (!this.wsClient) {
       console.error("[FileProtocol] WebSocket client not initialized");
       return false;
     }
 
-    return this.wsClient.send("file.create", {
-      file_name: fileName,
-      directory,
-      content,
-    });
+    const result = await this.wsClient.request<{ status?: unknown }>(
+      "file.delete",
+      { file_path: filePath },
+    );
+    return result.status === "ok";
   }
 
   /**

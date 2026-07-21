@@ -19,7 +19,6 @@ export type ExportAction =
   | "save-local-all"
   | "save-local-pipeline"
   | "save-local-config"
-  | "create-local"
   | "partial"
   | "export-pipeline"
   | "export-config";
@@ -71,7 +70,6 @@ function isValidExportAction(action: string): boolean {
     "save-local-all",
     "save-local-pipeline",
     "save-local-config",
-    "create-local",
     "partial",
     "export-pipeline",
     "export-config",

@@ -3,8 +3,9 @@ import type { WorkspaceDocument } from "../../services/generated/bridge-v2";
 import type { Key } from "react";
 
 export const PROJECT_TREE_ROOT_KEY = "__mpe_workspace_root__";
+export const PROJECT_TREE_CREATE_KEY = "__mpe_create_file__";
 
-export type ProjectTreeNodeKind = "root" | "directory" | "file";
+export type ProjectTreeNodeKind = "root" | "directory" | "file" | "draft";
 
 export interface ProjectTreeNode {
   key: string;
@@ -132,6 +133,34 @@ export function buildProjectTree(
 
   sortChildren(rootNode);
   return rootNode;
+}
+
+export function withCreateFileDraft(
+  root: ProjectTreeNode,
+  directoryPath: string,
+): ProjectTreeNode {
+  const targetPath = normalizePath(directoryPath);
+  const visit = (node: ProjectTreeNode): ProjectTreeNode => {
+    const children = node.children?.map(visit);
+    if (node.path !== targetPath || node.kind === "file") {
+      return children ? { ...node, children } : { ...node };
+    }
+
+    const draft: ProjectTreeNode = {
+      key: `${PROJECT_TREE_CREATE_KEY}:${targetPath || "."}`,
+      title: "",
+      path: targetPath,
+      kind: "draft",
+      selectable: false,
+      isLeaf: true,
+    };
+    return {
+      ...node,
+      children: [draft, ...(children ?? [])],
+    };
+  };
+
+  return visit(root);
 }
 
 export function preserveExpandedProjectTreeKeys(
