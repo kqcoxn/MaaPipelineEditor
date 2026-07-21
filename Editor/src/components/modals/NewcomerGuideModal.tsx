@@ -212,7 +212,7 @@ export function NewcomerGuideModal() {
         <QuizPage
           title="基础知识测试"
           elapsedSeconds={elapsedSeconds}
-          description="以下为 MaaFW 基本常识，必须全部答对才能进入下一步。如果您首次接触 MaaFW 项目，可配合文档或 AI 作答，这将对您后续项目维护有很大帮助；如果您了解过这些内容，将非常快速通过！"
+          description="以下为 MaaFW 基本常识，必须全部答对才能进入下一步。如果您首次接触 MaaFW 项目，可配合官方文档作答，这将对您后续项目维护有很大帮助；如果您了解过这些内容，将非常快速通过！"
           quiz={fixedQuiz}
           answers={fixedAnswers}
           setAnswer={setFixedAnswer}

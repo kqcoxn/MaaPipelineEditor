@@ -3,7 +3,6 @@ import fieldStyle from "../../../styles/panels/FieldPanel.module.less";
 
 import { useMemo, memo, useCallback, useState } from "react";
 import { ViewportPortal, useReactFlow, useStore } from "@xyflow/react";
-import { Spin } from "antd";
 import classNames from "classnames";
 import { useShallow } from "zustand/shallow";
 
@@ -42,9 +41,6 @@ function InlineFieldPanel() {
   const panelScale = useConfigStore((state) => state.configs.inlinePanelScale);
   const { getNode } = useReactFlow();
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [progressStage, setProgressStage] = useState("");
-  const [progressDetail, setProgressDetail] = useState("");
   const [jsonEditorOpen, setJsonEditorOpen] = useState(false);
 
   // 使用 useStore 订阅节点的 dragging 状态和实时位置变化（响应式）
@@ -82,12 +78,6 @@ function InlineFieldPanel() {
       updateNodes([{ type: "remove", id: currentNode.id }]);
     }
   }, [currentNode, updateNodes]);
-
-  // 进度变化回调
-  const handleProgressChange = useCallback((stage: string, detail?: string) => {
-    setProgressStage(stage);
-    setProgressDetail(detail || "");
-  }, []);
 
   // 处理 JSON 编辑保存
   const handleJsonEditorSave = useCallback(
@@ -166,17 +156,6 @@ function InlineFieldPanel() {
     return null;
   }
 
-  // 加载遮罩
-  const loadingOverlay = isLoading && (
-    <div className={inlineStyle.loadingOverlay}>
-      <Spin size="large" />
-      <div className={inlineStyle.loadingText}>{progressStage}</div>
-      {progressDetail && (
-        <div className={inlineStyle.loadingDetail}>{progressDetail}</div>
-      )}
-    </div>
-  );
-
   return (
     <ViewportPortal>
       <div
@@ -213,8 +192,6 @@ function InlineFieldPanel() {
           <div className="header-right">
             <FieldPanelToolbarRight
               currentNode={currentNode}
-              onLoadingChange={setIsLoading}
-              onProgressChange={handleProgressChange}
               onDelete={handleDelete}
             />
           </div>
@@ -222,7 +199,6 @@ function InlineFieldPanel() {
 
         {/* 面板内容 */}
         <div className={inlineStyle.content}>
-          {loadingOverlay}
           {renderEditor}
         </div>
       </div>

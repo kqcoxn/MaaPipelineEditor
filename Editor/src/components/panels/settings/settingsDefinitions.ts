@@ -66,7 +66,7 @@ export interface ConfigItemDef {
 }
 
 /** 各 Provider 类型对应的范例信息 */
-const AI_PROVIDER_EXAMPLES: Record<
+const API_PROVIDER_EXAMPLES: Record<
   string,
   { url: string; key: string; models: string }
 > = {
@@ -92,8 +92,8 @@ const AI_PROVIDER_EXAMPLES: Record<
   },
 };
 
-const getAIExample = (configs: ConfigState["configs"]) =>
-  AI_PROVIDER_EXAMPLES[configs.aiProviderType] || AI_PROVIDER_EXAMPLES.custom;
+const getAPIExample = (configs: ConfigState["configs"]) =>
+  API_PROVIDER_EXAMPLES[configs.aiProviderType] || API_PROVIDER_EXAMPLES.custom;
 
 /**所有配置项定义 */
 export const settingsDefinitions: ConfigItemDef[] = [
@@ -579,25 +579,14 @@ export const settingsDefinitions: ConfigItemDef[] = [
     order: 8,
   },
 
-  // ==================== AI (ai) ====================
-  {
-    key: "__aiWarning",
-    category: "ai",
-    label: "AI 配置须知",
-    tipTitle: "AI 配置须知",
-    tipContent: "",
-    type: "custom",
-    customRender: "aiWarning",
-    hideLabel: true,
-    order: 0,
-  },
+  // ==================== 模型 API (api) ====================
   {
     key: "aiProviderType",
-    category: "ai",
+    category: "api",
     label: "API 类型",
     tipTitle: "API 服务类型",
     tipContent:
-      "选择 AI 服务提供商类型。不同类型使用不同的协议和端点格式。如果你使用的是 OpenAI 兼容的第三方服务（如 DeepSeek、通义千问等），请选择'自定义'",
+      "选择模型 API 服务类型。不同类型使用不同的协议和端点格式。如果你使用的是 OpenAI 兼容的第三方服务，请选择“自定义”。",
     type: "select",
     options: [
       { value: "custom", label: "自定义 (OpenAI 兼容)" },
@@ -610,46 +599,46 @@ export const settingsDefinitions: ConfigItemDef[] = [
   },
   {
     key: "aiApiUrl",
-    category: "ai",
+    category: "api",
     label: "API URL",
     tipTitle: "API URL",
     tipContent:
       "API 基础地址或完整端点。OpenAI: https://api.openai.com，Anthropic: https://api.anthropic.com，Gemini: https://generativelanguage.googleapis.com。自定义 OpenAI 兼容服务可填写基础地址（如 https://open.bigmodel.cn/api/paas/v4）或完整 /chat/completions 地址",
     type: "input",
     placeholder: "例如: https://api.openai.com",
-    dynamicPlaceholder: (configs) => `例如: ${getAIExample(configs).url}`,
+    dynamicPlaceholder: (configs) => `例如: ${getAPIExample(configs).url}`,
     order: 2,
   },
   {
     key: "aiApiKey",
-    category: "ai",
+    category: "api",
     label: "API Key",
     tipTitle: "API Key",
     tipContent: "你的 API 密钥，将加密存储在浏览器本地（AES-GCM）",
     type: "inputPassword",
     placeholder: "例如: sk-xxxx",
-    dynamicPlaceholder: (configs) => `例如: ${getAIExample(configs).key}`,
+    dynamicPlaceholder: (configs) => `例如: ${getAPIExample(configs).key}`,
     order: 3,
   },
   {
     key: "aiModel",
-    category: "ai",
+    category: "api",
     label: "模型",
     tipTitle: "模型名称",
     tipContent:
       "使用的模型名称。例如: gpt-4o, gpt-4o-mini, claude-sonnet-4-20250514, gemini-2.5-flash 等",
     type: "input",
     placeholder: "例如: gpt-4o / claude-sonnet-4-20250514 / gemini-2.5-flash",
-    dynamicPlaceholder: (configs) => `例如: ${getAIExample(configs).models}`,
+    dynamicPlaceholder: (configs) => `例如: ${getAPIExample(configs).models}`,
     order: 4,
   },
   {
     key: "aiTemperature",
-    category: "ai",
+    category: "api",
     label: "温度",
     tipTitle: "温度参数",
     tipContent:
-      "控制 AI 输出的随机性。较低的值（0.3）更稳定保守，较高的值（0.8）更有创造性。节点预测建议 0.5-0.7",
+      "控制模型输出的随机性，范围为 0-1。",
     type: "slider",
     min: 0,
     max: 1,
@@ -658,25 +647,15 @@ export const settingsDefinitions: ConfigItemDef[] = [
   },
   {
     key: "aiUseProxy",
-    category: "ai",
+    category: "api",
     label: "LocalBridge 代理",
     tipTitle: "LocalBridge 代理",
     tipContent:
-      "开启后通过 LocalBridge 本地服务代理 AI 请求，可解决浏览器 CORS 跨域限制。关闭则直接从浏览器调用 API（需要 API 服务支持 CORS）",
+      "开启后通过 LocalBridge 代理请求，可解决浏览器 CORS 跨域限制；关闭后直接从浏览器调用 API。",
     type: "switch",
     checkedChildren: "开启",
     unCheckedChildren: "关闭",
     order: 6,
-  },
-  {
-    key: "__testConnection",
-    category: "ai",
-    label: "测试",
-    tipTitle: "测试连接",
-    tipContent: "测试当前 AI 配置是否可用",
-    type: "custom",
-    customRender: "testConnection",
-    order: 7,
   },
 
   // ==================== 管理 (management) ====================
@@ -726,6 +705,6 @@ export const settingsTabs: {
   { key: "canvas", label: "画布", icon: "LayoutOutlined" },
   { key: "component", label: "组件", icon: "CodeOutlined" },
   { key: "local-service", label: "本地服务", icon: "GlobalOutlined" },
-  { key: "ai", label: "AI", icon: "RobotOutlined" },
+  { key: "api", label: "模型 API", icon: "ApiOutlined" },
   { key: "management", label: "管理", icon: "SettingOutlined" },
 ];

@@ -2,8 +2,8 @@ import type { LocalWebSocketServer } from "../server";
 import { BaseProtocol } from "./BaseProtocol";
 
 /**
- * AI 代理协议
- * 通过 LocalBridge 代理转发 AI API 请求，解决 CORS 限制
+ * 模型 API 代理协议
+ * 通过 LocalBridge 转发模型 API 请求，解决 CORS 限制
  */
 export class AIProtocol extends BaseProtocol {
   private responseHandlers: Map<string, (data: any) => void> = new Map();
@@ -58,14 +58,17 @@ export class AIProtocol extends BaseProtocol {
   }
 
   /**
-   * 发送 AI 代理请求（非流式）
+   * 发送模型 API 代理请求（非流式）
    */
-  sendProxyRequest(request: {
-    url: string;
-    method: string;
-    headers: Record<string, string>;
-    body: string;
-  }): Promise<{
+  sendProxyRequest(
+    request: {
+      url: string;
+      method: string;
+      headers: Record<string, string>;
+      body: string;
+    },
+    signal?: AbortSignal,
+  ): Promise<{
     status: number;
     headers: Record<string, string>;
     body: string;
@@ -78,14 +81,35 @@ export class AIProtocol extends BaseProtocol {
 
       const requestId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
+      if (signal?.aborted) {
+        const error = new Error("请求已取消");
+        error.name = "AbortError";
+        reject(error);
+        return;
+      }
+
+      const cleanup = () => {
+        clearTimeout(timeout);
+        this.responseHandlers.delete(requestId);
+        signal?.removeEventListener("abort", handleAbort);
+      };
+      const handleAbort = () => {
+        cleanup();
+        const error = new Error("请求已取消");
+        error.name = "AbortError";
+        reject(error);
+      };
+
       // 注册响应处理
       const timeout = setTimeout(() => {
-        this.responseHandlers.delete(requestId);
+        cleanup();
         reject(new Error("代理请求超时（60s）"));
       }, 60000);
 
+      signal?.addEventListener("abort", handleAbort, { once: true });
+
       this.responseHandlers.set(requestId, (data) => {
-        clearTimeout(timeout);
+        cleanup();
         if (data.error) {
           reject(new Error(data.error));
         } else {
@@ -110,15 +134,14 @@ export class AIProtocol extends BaseProtocol {
       });
 
       if (!success) {
-        clearTimeout(timeout);
-        this.responseHandlers.delete(requestId);
+        cleanup();
         reject(new Error("代理请求发送失败，本地服务未连接"));
       }
     });
   }
 
   /**
-   * 发送 AI 流式代理请求
+   * 发送模型 API 流式代理请求
    * 返回一个 ReadableStream 供上层消费
    */
   sendStreamProxyRequest(request: {

@@ -7,7 +7,7 @@
   type ReactNode,
   useEffect,
 } from "react";
-import { Spin, Alert, Button, Tabs } from "antd";
+import { Alert, Button, Tabs } from "antd";
 import classNames from "classnames";
 
 import style from "../../../styles/panels/FieldPanel.module.less";
@@ -109,9 +109,6 @@ function FieldPanel() {
   );
   const { isActive, isDisplaced, activate, deactivate } =
     usePanelOccupancy("field");
-  const [isLoading, setIsLoading] = useState(false);
-  const [progressStage, setProgressStage] = useState("");
-  const [progressDetail, setProgressDetail] = useState("");
   const [validationWarning, setValidationWarning] = useState<string | null>(
     null,
   );
@@ -288,59 +285,9 @@ function FieldPanel() {
       }
     })();
 
-    // 添加遮罩层
-    if (isLoading) {
-      return (
-        <div style={{ position: "relative" }}>
-          {content}
-          <div
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: "rgba(255, 255, 255, 0.9)",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 1000,
-            }}
-          >
-            <Spin size="large" />
-            <div
-              style={{
-                marginTop: 16,
-                fontSize: 16,
-                fontWeight: 500,
-                color: "#1890ff",
-              }}
-            >
-              {progressStage}
-            </div>
-            {progressDetail && (
-              <div
-                style={{
-                  marginTop: 8,
-                  fontSize: 14,
-                  color: "#666",
-                }}
-              >
-                {progressDetail}
-              </div>
-            )}
-          </div>
-        </div>
-      );
-    }
-
     return content;
   }, [
     currentNode,
-    isLoading,
-    progressStage,
-    progressDetail,
     nodeValidation,
     handleNodeRepair,
   ]);
@@ -365,12 +312,6 @@ function FieldPanel() {
     }
   }, [currentNode]);
 
-  // 进度变化回调
-  const handleProgressChange = useCallback((stage: string, detail?: string) => {
-    setProgressStage(stage);
-    setProgressDetail(detail || "");
-  }, []);
-
   // 面板内容
   const panelContent = (
     <>
@@ -388,8 +329,6 @@ function FieldPanel() {
         <div className="header-right">
           <FieldPanelToolbarRight
             currentNode={currentNode}
-            onLoadingChange={setIsLoading}
-            onProgressChange={handleProgressChange}
             onDelete={handleDelete}
           />
         </div>

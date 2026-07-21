@@ -87,7 +87,7 @@ export const heroContent = {
   title: "MaaPipelineEditor",
   description:
     "告别手调千行 JSON！用拖拽+配置的方式，高效构建、调试、分享您的 MFW 自动化流程",
-  highlightItems: ["可视化审阅与编辑", "本地能力按需接入", "AI 辅助 MCP 联动"],
+  highlightItems: ["可视化审阅与编辑", "本地能力按需接入", "面向 MaaFramework 项目"],
   primaryAction: {
     label: "在线使用",
     href: siteConfig.editorUrl,
@@ -115,14 +115,14 @@ export const featureItems: FeatureItem[] = [
     label: "清晰审阅",
     title: "所见即所思，流程即逻辑",
     description:
-      "配合粘贴板导入、自动布局、协议兼容、节点聚焦、关键路径、AI 搜索等功能，您可以快速了解自己或其他项目的某个功能是如何实现的，打开网页粘贴即用，无需下载或面对成堆 JSON",
-    tags: ["粘贴板导入", "自动布局", "节点聚焦", "关键路径", "AI 搜索"],
+      "配合粘贴板导入、自动布局、协议兼容、节点聚焦和关键路径等功能，您可以快速了解自己或其他项目的某个功能是如何实现的，打开网页粘贴即用，无需下载或面对成堆 JSON",
+    tags: ["粘贴板导入", "自动布局", "节点聚焦", "关键路径"],
     tone: "blue",
     demoImages: [siteConfig.resolveLandingPath("/screens/review.png")],
     metrics: [
       "梳理任务流程",
       "快速理解其他项目思路",
-      "提升 AI 生成后 Review 效率",
+      "提升复杂流程 Review 效率",
     ],
   },
   {
@@ -157,29 +157,6 @@ export const featureItems: FeatureItem[] = [
     tone: "orange",
     demoImages: [siteConfig.resolveLandingPath("/screens/lb.png")],
     metrics: ["本地文件直接管理", "快速截图、ROI 测绘", "资源变更实时同步"],
-  },
-  {
-    id: "ai",
-    label: "AI 辅助",
-    title: "智能搜索与上下文感知补全",
-    description:
-      "基于当前节点上下文提供精准的字段补全建议，智能搜索快速定位目标节点，MCP 联动实现跨工具流程打开",
-    tags: ["智能搜索", "上下文补全", "MCP 联动", "节点定位"],
-    tone: "rose",
-    demoLabel: "AI 能力预览",
-    demoTitle: "智能补全与搜索",
-    demoDescription: "输入时自动提示可用字段，支持模糊搜索快速定位节点",
-    demoSteps: [
-      "在节点编辑器中输入字段名称",
-      "根据上下文获得精准补全建议",
-      "使用搜索框快速定位目标节点",
-      "通过 MCP 联动外部工具",
-    ],
-    metrics: [
-      "快速定位复杂流程节点",
-      "减少字段记忆成本",
-      "RLHF-Mode Coming Soon!",
-    ],
   },
 ];
 
@@ -313,12 +290,6 @@ export const footerColumns: FooterColumn[] = [
       {
         label: "MaaFramework",
         href: "https://github.com/MaaXYZ/MaaFramework",
-        external: true,
-        variant: "text",
-      },
-      {
-        label: "MaaMCP",
-        href: "https://maa-ai.com/",
         external: true,
         variant: "text",
       },

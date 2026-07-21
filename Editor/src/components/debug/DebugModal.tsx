@@ -8,7 +8,6 @@ import { Alert, Button, Drawer, Space, Typography } from "antd";
 import {
   CloseOutlined,
   FileSearchOutlined,
-  FileTextOutlined,
   MedicineBoxOutlined,
   NodeIndexOutlined,
   ProfileOutlined,
@@ -22,7 +21,6 @@ import { useDebugModalController } from "../../features/debug/hooks/useDebugModa
 import type { DebugModalController } from "../../features/debug/hooks/useDebugModalController";
 import { useDebugRunStatusTracker } from "../../features/debug/hooks/useDebugRunStatusTracker";
 import { OverviewPanel } from "../../features/debug/components/panels/OverviewPanel";
-import { AiSummaryPanel } from "../../features/debug/components/panels/AiSummaryPanel";
 import { SetupPanel } from "../../features/debug/components/panels/SetupPanel";
 import { ResourceHealthPanel } from "../../features/debug/components/panels/ResourceHealthPanel";
 import { NodeExecutionPanel } from "../../features/debug/components/panels/NodeExecutionPanel";
@@ -63,12 +61,6 @@ const panels: PanelItem[] = [
     icon: <FileSearchOutlined />,
     description:
       "查看调试产物 maafw.log 的末尾内容，可直接打开日志文件或其所在文件夹。",
-  },
-  {
-    id: "ai-summary",
-    label: "AI 总结",
-    icon: <FileTextOutlined />,
-    description: "查看 AI 生成的调试摘要、详细报告和整理后的上下文。",
   },
   {
     id: "resource-health",
@@ -313,8 +305,6 @@ function ActivePanel({ controller }: { controller: DebugModalController }) {
   switch (controller.activePanel) {
     case "overview":
       return <OverviewPanel controller={controller} />;
-    case "ai-summary":
-      return <AiSummaryPanel controller={controller} />;
     case "setup":
       return <SetupPanel controller={controller} />;
     case "resource-health":

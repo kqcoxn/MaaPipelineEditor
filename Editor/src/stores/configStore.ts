@@ -24,7 +24,7 @@ export type ConfigCategory =
   | "canvas"
   | "component"
   | "local-service"
-  | "ai"
+  | "api"
   | "management";
 
 /**字段面板模式 */
@@ -73,13 +73,13 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   fileAutoReload: "local-service",
   enableCrossFileSearch: "local-service",
   crossFileSearchFolderFilter: "local-service",
-  // AI 配置
-  aiApiUrl: "ai",
-  aiApiKey: "ai",
-  aiModel: "ai",
-  aiTemperature: "ai",
-  aiProviderType: "ai",
-  aiUseProxy: "ai",
+  // 模型 API 配置
+  aiApiUrl: "api",
+  aiApiKey: "api",
+  aiModel: "api",
+  aiTemperature: "api",
+  aiProviderType: "api",
+  aiUseProxy: "api",
 };
 
 /**获取可导出的配置 */
@@ -178,7 +178,7 @@ const defaultConfigs = {
   saveFilesBeforeDebug: true,
   enableCrossFileSearch: true,
   crossFileSearchFolderFilter: "",
-  // AI 配置
+  // 模型 API 配置
   aiApiUrl: "",
   aiApiKey: "",
   aiModel: "",
@@ -243,7 +243,7 @@ export type ConfigState = {
     fileAutoReload: boolean;
     saveFilesBeforeDebug: boolean;
     crossFileSearchFolderFilter: string;
-    // AI 配置
+    // 模型 API 配置
     aiApiUrl: string;
     aiApiKey: string;
     aiModel: string;
@@ -304,7 +304,6 @@ export type ConfigState = {
   status: {
     showConfigPanel: boolean;
     showFileConfigPanel: boolean;
-    showAIHistoryPanel: boolean;
     showFieldSortModal: boolean;
     rightPanelWidth: number;
   };
@@ -447,7 +446,6 @@ export const useConfigStore = create<ConfigState>()((set, get) => ({
   status: {
     showConfigPanel: false,
     showFileConfigPanel: false,
-    showAIHistoryPanel: false,
     showFieldSortModal: false,
     rightPanelWidth: 350,
   },

@@ -1,6 +1,6 @@
 import style from "./styles/layout/App.module.less";
 
-import { memo, Suspense, lazy, useCallback, useEffect, useState } from "react";
+import { memo, Suspense, lazy, useCallback, useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
 import {
   Flex,
@@ -31,14 +31,9 @@ import SearchPanel from "./components/panels/main/SearchPanel";
 import FilePanel from "./components/panels/main/FilePanel";
 import SettingsPanel from "./components/panels/settings/SettingsPanel";
 import FileConfigPanel from "./components/panels/main/FileConfigPanel";
-import AIHistoryPanel from "./components/panels/main/AIHistoryPanel";
 import ErrorPanel from "./components/panels/main/ErrorPanel";
 import ToolbarPanel from "./components/panels/main/ToolbarPanel";
 import { LoggerPanel } from "./components/panels/tools/LoggerPanel";
-import {
-  ExplorationFAB,
-  ExplorationPanel,
-} from "./components/panels/exploration";
 import { pipelineToFlow, flowToPipelineString } from "./core/parser";
 import {
   getShareParam,
@@ -152,9 +147,6 @@ function App() {
     state.tabs.find((tab) => tab.key === state.activeKey),
   );
   const documentActive = activeTab?.kind === "document";
-
-  // 探索面板状态
-  const [explorationPanelVisible, setExplorationPanelVisible] = useState(false);
 
   // 处理文件拖拽
   const handleFileDrop = useCallback(async (e: DragEvent) => {
@@ -565,26 +557,12 @@ function App() {
                       {showPanel("edge") && <EdgePanel />}
                       {showPanel("config") && <SettingsPanel />}
                       {showPanel("config") && <FileConfigPanel />}
-                      {showPanel("ai-history") && <AIHistoryPanel />}
                       <ToolPanel.Add hidden={hideNodeToolPanel} />
                       <ToolPanel.Global />
                       {showPanel("search") && <SearchPanel />}
                       <ToolPanel.Layout />
                       {showPanel("error") && <ErrorPanel />}
                       {showPanel("logger") && <LoggerPanel />}
-                      {showPanel("exploration") && (
-                        <>
-                          <ExplorationFAB
-                            onClick={() => setExplorationPanelVisible((v) => !v)}
-                            visible={true}
-                            active={explorationPanelVisible}
-                          />
-                          <ExplorationPanel
-                            visible={explorationPanelVisible}
-                            onClose={() => setExplorationPanelVisible(false)}
-                          />
-                        </>
-                      )}
                     </>
                   )}
                 </div>

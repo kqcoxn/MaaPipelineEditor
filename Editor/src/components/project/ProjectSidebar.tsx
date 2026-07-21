@@ -127,11 +127,6 @@ const modeItems: MenuProps["items"] = [
     disabled: true,
     label: <ModeLabel chinese="运行器" english="Embodier" />,
   },
-  {
-    key: "erranter",
-    disabled: true,
-    label: <ModeLabel chinese="智能体" english="Erranter" />,
-  },
 ];
 
 function ProjectDirectoryTree() {

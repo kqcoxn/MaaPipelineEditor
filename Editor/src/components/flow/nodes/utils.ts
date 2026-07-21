@@ -119,7 +119,7 @@ export const getMinimalNodeColor = (recoType: string): MinimalNodeColor => {
       return { primary: "#722ed1", background: "#f9f0ff" };
     case "FeatureMatch":
       return { primary: "#2f54eb", background: "#f0f5ff" };
-    // AI类节点 - 渐变紫
+    // 神经网络识别节点 - 渐变紫
     case "NeuralNetworkClassify":
     case "NeuralNetworkDetect":
       return { primary: "#9254de", background: "#f9f0ff" };

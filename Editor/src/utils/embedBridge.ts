@@ -21,7 +21,6 @@ export interface EmbedCapabilities {
   allowCopy: boolean;
   allowUndoRedo: boolean;
   allowAutoLayout: boolean;
-  allowAI: boolean;
   allowSearch: boolean;
   allowCustomTemplate: boolean;
 }
@@ -45,7 +44,6 @@ export const DEFAULT_CAPABILITIES: EmbedCapabilities = {
   allowCopy: true,
   allowUndoRedo: true,
   allowAutoLayout: true,
-  allowAI: false,
   allowSearch: true,
   allowCustomTemplate: true,
 };

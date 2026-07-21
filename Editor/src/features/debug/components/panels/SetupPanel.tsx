@@ -12,7 +12,6 @@ import {
   Switch,
   Collapse,
   InputNumber,
-  Result,
 } from "antd";
 import {
   DeleteOutlined,
@@ -79,8 +78,6 @@ function ProfileSection({ controller }: { controller: DebugModalController }) {
   const {
     profileState,
     invalidateResourcePreflight,
-    autoGenerateAiSummary,
-    setAutoGenerateAiSummary,
   } = controller;
 
   const handleCreateProfile = () => {
@@ -175,21 +172,6 @@ function ProfileSection({ controller }: { controller: DebugModalController }) {
             },
           ]}
         />
-      </DebugSection>
-      <DebugSection title="AI 总结">
-        <Space orientation="vertical" size={8} style={{ width: "100%" }}>
-          <Space wrap>
-            <Switch
-              checked={autoGenerateAiSummary}
-              onChange={setAutoGenerateAiSummary}
-            />
-            <Text>运行结束后自动生成 AI 总结</Text>
-          </Space>
-          <Text type="secondary">
-            关闭时只会在中控台或 AI
-            总结面板手动生成；开启后不会阻塞调试运行完成。
-          </Text>
-        </Space>
       </DebugSection>
     </Space>
   );

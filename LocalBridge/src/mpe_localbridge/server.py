@@ -928,7 +928,7 @@ class Dispatcher:
         if response.is_error:
             raise LocalBridgeError(
                 "ai_upstream_error",
-                f"AI 上游返回 HTTP {response.status_code}",
+                f"模型 API 上游返回 HTTP {response.status_code}",
                 data={"status": response.status_code, "body": response_body},
             )
         result = {
@@ -955,7 +955,7 @@ class Dispatcher:
                 content = (await response.aread()).decode(errors="replace")
                 raise LocalBridgeError(
                     "ai_upstream_error",
-                    f"AI 上游返回 HTTP {response.status_code}",
+                    f"模型 API 上游返回 HTTP {response.status_code}",
                     data={"status": response.status_code, "body": content},
                 )
             async for chunk in response.aiter_text():

@@ -8,7 +8,6 @@ import { createEdgeSlice } from "./slices/edgeSlice";
 import { createGraphSlice } from "./slices/graphSlice";
 import { createPathSlice } from "./slices/pathSlice";
 import { createAnchorRefSlice } from "./slices/anchorRefSlice";
-import { createExplorationSlice } from "./slices/explorationSlice";
 import { checkRepeatNodeLabelList as checkRepeatNodeLabelListUtil } from "./utils/nodeUtils";
 import { ErrorTypeEnum, useErrorStore } from "../errorStore";
 import { useConfigStore } from "../configStore";
@@ -24,7 +23,6 @@ export const useFlowStore = create<FlowStore>()((...a) => ({
   ...createGraphSlice(...a),
   ...createPathSlice(...a),
   ...createAnchorRefSlice(...a),
-  ...createExplorationSlice(...a),
 }));
 export type {
   NodeType,
@@ -47,9 +45,6 @@ export type {
   StickerColorTheme,
   GroupNodeDataType,
   GroupColorTheme,
-  ExplorationStatus,
-  FlowExplorationState,
-  FlowExplorationActions,
 } from "./types";
 export {
   createPipelineNode,

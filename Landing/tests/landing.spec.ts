@@ -18,18 +18,12 @@ test("feature tabs switch content and support keyboard navigation", async ({ pag
 
   const firstTab = page.getByTestId("feature-tab-review-edit");
   const secondTab = page.getByTestId("feature-tab-local-bridge");
-  const fourthTab = page.getByTestId("feature-tab-ai-mcp");
 
   await firstTab.click();
   await firstTab.press("ArrowRight");
   await expect(secondTab).toHaveAttribute("aria-selected", "true");
 
-  await fourthTab.click();
-  await expect(fourthTab).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByTestId("feature-panel")).toContainText("AI Assist");
-  await expect(page.getByTestId("feature-panel")).toContainText(
-    "把节点搜索、补全与跨工具联动组织成可信的辅助层",
-  );
+  await expect(page.getByTestId("feature-panel")).toContainText("所见即所思");
 });
 
 test("mobile navigation opens, closes, and can reach anchor sections", async ({ page }) => {

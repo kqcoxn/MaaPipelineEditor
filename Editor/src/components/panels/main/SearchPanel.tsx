@@ -1,12 +1,11 @@
 import style from "../../../styles/panels/ToolPanel.module.less";
 import { memo, useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { message, Tooltip, AutoComplete, Spin } from "antd";
+import { message, Tooltip, AutoComplete } from "antd";
 import type { AutoCompleteProps } from "antd";
-import { DownOutlined } from "@ant-design/icons";
+import { DownOutlined, SearchOutlined } from "@ant-design/icons";
 import classNames from "classnames";
 import { useDebounceFn } from "ahooks";
-import IconFont from "../../iconfonts";
 import {
   useFlowStore,
   getNodeAbsolutePosition,
@@ -14,9 +13,6 @@ import {
 } from "../../../stores/flow";
 import { useConfigStore } from "../../../stores/configStore";
 import { usePanelOccupancy } from "../../../hooks/usePanelOccupancy";
-import { AIClient } from "../../../utils/ai/aiClient";
-import { buildAISearchPrompt } from "../../../utils/ai/aiPrompts";
-import { NodeTypeEnum } from "../../flow/nodes";
 import {
   crossFileService,
   type CrossFileNodeInfo,
@@ -35,7 +31,6 @@ function SearchPanel() {
   // 嵌入模式权限控制
   const { isEmbed, isCapAllowed } = useEmbedMode();
   const allowSearch = !isEmbed || isCapAllowed("allowSearch");
-  const allowAI = !isEmbed || isCapAllowed("allowAI");
 
   // 状态
   const [searchValue, setSearchValue] = useState("");
@@ -43,7 +38,6 @@ function SearchPanel() {
   const [searchResults, setSearchResults] = useState<CrossFileNodeInfo[]>([]);
   const [isFocused, setIsFocused] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [aiSearching, setAiSearching] = useState(false);
   const {
     isActive: showNodeList,
     isDisplaced,
@@ -52,7 +46,6 @@ function SearchPanel() {
   } = usePanelOccupancy("nodeList");
   const searchRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const aiChatRef = useRef<AIClient | null>(null);
 
   // 被其他面板排挤时执行 close 反应
   useEffect(() => {
@@ -192,92 +185,6 @@ function SearchPanel() {
     }
   }, [searchValue, searchResults, enableCrossFileSearch, navigateToNode]);
 
-  // 构建节点上下文信息
-  const buildNodesContext = useCallback(() => {
-    return useFlowStore.getState().nodes.map((node: NodeType) => {
-      const baseInfo = {
-        label: node.data.label,
-        type: node.type,
-      };
-
-      // Pipeline 节点包含识别和动作信息
-      if (node.type === NodeTypeEnum.Pipeline) {
-        const pipelineNode = node as any;
-        return {
-          ...baseInfo,
-          recognition: {
-            type: pipelineNode.data.recognition?.type || "无",
-            param: pipelineNode.data.recognition?.param || {},
-          },
-          action: {
-            type: pipelineNode.data.action?.type || "无",
-            param: pipelineNode.data.action?.param || {},
-          },
-          others: pipelineNode.data.others || {},
-        };
-      }
-
-      return baseInfo;
-    });
-  }, []);
-
-  // AI搜索
-  const handleAISearchClick = useCallback(async () => {
-    if (!searchValue.trim()) {
-      message.info("请输入搜索内容");
-      return;
-    }
-
-    setAiSearching(true);
-    const userInput = searchValue.trim();
-
-    try {
-      // 构建节点上下文
-      const nodesContext = buildNodesContext();
-      if (nodesContext.length === 0) {
-        message.warning("当前没有任何节点");
-        return;
-      }
-
-      // 构建提示词
-      const systemPrompt = buildAISearchPrompt(
-        JSON.stringify(nodesContext, null, 2),
-      );
-
-      // 创建AI实例
-      const aiChat = new AIClient({
-        systemPrompt,
-        historyLimit: 0,
-      });
-
-      aiChatRef.current = aiChat;
-
-      // 发送搜索请求
-      const result = await aiChat.send(userInput, userInput);
-
-      if (!result.success) {
-        message.error(`AI搜索失败: ${result.error}`);
-        return;
-      }
-
-      const response = result.content.trim();
-
-      // 检查是否找到节点
-      if (response === "NOT_FOUND") {
-        message.warning("未找到相关节点");
-        return;
-      }
-
-      // 定位到节点
-      focusNodeInCurrentFile(response);
-    } catch (error: any) {
-      message.error(`AI搜索异常: ${error.message || "未知错误"}`);
-    } finally {
-      setAiSearching(false);
-      aiChatRef.current = null;
-    }
-  }, [searchValue, buildNodesContext, focusNodeInCurrentFile]);
-
   // 处理输入变化
   const handleChange = useCallback(
     (value: string) => {
@@ -355,48 +262,12 @@ function SearchPanel() {
       />
       <div className={style["search-buttons"]}>
         <Tooltip placement="bottom" title="搜索节点">
-          <IconFont
+          <SearchOutlined
             className={style["search-icon"]}
-            name="icon-AIsousuo1"
-            size={28}
-            color={"#0075ff"}
             onClick={handleSearchClick}
+            style={{ fontSize: 28, color: "#0075ff" }}
           />
         </Tooltip>
-        {allowAI && (
-          <>
-            <div className={style.devider}>
-              <div></div>
-            </div>
-            <Tooltip
-              placement="bottom"
-              title={aiSearching ? "AI搜索中..." : "AI智能搜索"}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 28,
-                  height: 28,
-                  marginRight: 6,
-                }}
-              >
-                {aiSearching ? (
-                  <Spin size="small" />
-                ) : (
-                  <IconFont
-                    className={style["search-icon"]}
-                    name="icon-AIsousuo"
-                    size={28}
-                    color={"#5f50ff"}
-                    onClick={handleAISearchClick}
-                  />
-                )}
-              </div>
-            </Tooltip>
-          </>
-        )}
         <div className={style.devider}>
           <div></div>
         </div>

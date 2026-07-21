@@ -1,5 +1,6 @@
 import { memo, useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Input, Modal } from "antd";
+import { SearchOutlined } from "@ant-design/icons";
 import type { Connection } from "@xyflow/react";
 import classNames from "classnames";
 import style from "../../../styles/panels/NodeAddPanel.module.less";
@@ -585,13 +586,7 @@ function NodeAddPanel({
             <Input
               ref={inputRef}
               placeholder="搜索节点模板..."
-              prefix={
-                <IconFont
-                  name="icon-AIsousuo1"
-                  size={16}
-                  style={{ color: "#999" }}
-                />
-              }
+              prefix={<SearchOutlined style={{ color: "#999" }} />}
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               allowClear
@@ -701,10 +696,9 @@ function NodeAddPanel({
               })
             ) : (
               <div className={style.emptyList}>
-                <IconFont
-                  name="icon-AIsousuo1"
-                  size={48}
+                <SearchOutlined
                   className={style.emptyIcon}
+                  style={{ fontSize: 48 }}
                 />
                 <div className={style.emptyText}>未找到匹配的模板</div>
               </div>
