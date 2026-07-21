@@ -75,9 +75,8 @@ export async function closeEditorTab(tab: EditorTab): Promise<boolean> {
       (item) =>
         item.fileName === tab.path || item.config.filePath === tab.path,
     );
-  if (!file) return false;
   const nextKey = useProjectSessionStore.getState().closeTab(tab.key);
-  useFileStore.getState().removeFile(file.fileName);
+  if (file) useFileStore.getState().removeFile(file.fileName);
   if (nextKey) {
     const next = useProjectSessionStore
       .getState()

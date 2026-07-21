@@ -87,7 +87,7 @@ function createFile(options?: { fileName?: string; config?: any }): FileType {
     config: { prefix: "", ...config },
   };
 }
-const defaltFile = createFile();
+const initialFile = createFile();
 
 /** 同步 FlowStore 数据到 FileStore.currentFile 和 files 数组 */
 function syncFlowStoreToFileStore(
@@ -375,8 +375,8 @@ type FileState = {
   findFileByPath: (filePath: string) => FileType | undefined;
 };
 export const useFileStore = create<FileState>()((set) => ({
-  files: [defaltFile],
-  currentFile: defaltFile,
+  files: [],
+  currentFile: initialFile,
 
   // 修改文件名
   setFileName(fileName) {
@@ -450,13 +450,13 @@ export const useFileStore = create<FileState>()((set) => ({
         reloadFilePath = targetFile.config.filePath;
       }
 
-      // 保存当前flow和视口位置
-      saveFlow();
       const flowStore = useFlowStore.getState();
       // 保存当前文件的视口位置到files数组中
       const currentViewport = flowStore.viewport;
       const currentFileIndex = findFileIndex(currentFile.fileName);
       if (currentFileIndex >= 0) {
+        // 只有已打开的 Pipeline 才需要保存离开前的画布状态。
+        saveFlow();
         state.files[currentFileIndex].config.savedViewport = {
           ...currentViewport,
         };
@@ -521,15 +521,22 @@ export const useFileStore = create<FileState>()((set) => ({
   removeFile(fileName) {
     let activeKey = null;
     set((state) => {
-      let files = state.files;
+      const files = state.files;
       const newFiles = files.filter((file) => file.fileName !== fileName);
-      if (newFiles.length === 0 || files.length - newFiles.length !== 1) {
+      if (files.length - newFiles.length !== 1) {
         return {};
       }
       if (fileName === state.currentFile.fileName) {
-        const newFileName = newFiles[0].fileName;
-        state.switchFile(newFileName);
-        activeKey = newFileName;
+        const nextFile = newFiles[0];
+        if (nextFile) {
+          state.switchFile(nextFile.fileName);
+          activeKey = nextFile.fileName;
+        } else {
+          state.currentFile = createFile();
+          const flowStore = useFlowStore.getState();
+          flowStore.replace([], [], { skipSave: true });
+          flowStore.clearHistory();
+        }
       }
       return { files: newFiles };
     });
@@ -558,11 +565,11 @@ export const useFileStore = create<FileState>()((set) => ({
         if (!ls) return Error.call("未找到本地files缓存");
         files = JSON.parse(ls) as FileType[];
       }
-      const currentFile = files[0];
+      const currentFile = files[0] ?? createFile();
       set({ files, currentFile });
-      useFlowStore
-        .getState()
-        .replace(currentFile.nodes, currentFile.edges, { skipSave: true });
+      useFlowStore.getState().replace(currentFile.nodes, currentFile.edges, {
+        skipSave: true,
+      });
       // 初始化历史记录
       useFlowStore.getState().initHistory(currentFile.nodes, currentFile.edges);
     } catch (err) {
@@ -573,7 +580,7 @@ export const useFileStore = create<FileState>()((set) => ({
 
   resetProjectSession() {
     const blankFile = createFile();
-    set({ files: [blankFile], currentFile: blankFile });
+    set({ files: [], currentFile: blankFile });
     const flowStore = useFlowStore.getState();
     flowStore.replace([], [], { skipSave: true });
     flowStore.clearHistory();
@@ -644,6 +651,9 @@ export const useFileStore = create<FileState>()((set) => ({
       // 直接导入
       const currentFile = useFileStore.getState().currentFile;
       if (
+        useFileStore.getState().files.some(
+          (file) => file.fileName === currentFile.fileName,
+        ) &&
         currentFile.nodes.length === 0 &&
         currentFile.edges.length === 0 &&
         !currentFile.config.filePath

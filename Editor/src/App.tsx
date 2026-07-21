@@ -74,6 +74,7 @@ import { shouldPreserveProjectStateOnDisconnect } from "./services/desktopProjec
 import { useProjectSessionStore } from "./stores/projectSessionStore";
 import { useDocumentStore } from "./stores/documentStore";
 import { DocumentEditorHost } from "./components/documents/DocumentEditorHost";
+import { WelcomeScreen } from "./components/welcome/WelcomeScreen";
 
 const JsonViewer = lazy(() => import("./components/JsonViewer"));
 const DebugModal = lazy(() =>
@@ -146,7 +147,16 @@ function App() {
   const activeTab = useProjectSessionStore((state) =>
     state.tabs.find((tab) => tab.key === state.activeKey),
   );
+  const pipelineFiles = useFileStore((state) => state.files);
   const documentActive = activeTab?.kind === "document";
+
+  useEffect(() => {
+    useProjectSessionStore
+      .getState()
+      .syncPipelineTabs(
+        pipelineFiles.map((file) => file.config.filePath || file.fileName),
+      );
+  }, [pipelineFiles]);
 
   // 处理文件拖拽
   const handleFileDrop = useCallback(async (e: DragEvent) => {
@@ -182,7 +192,8 @@ function App() {
 
   // 启用全局快捷键（嵌入模式下根据 capabilities 控制）
   const enableShortcuts =
-    !isEmbed || (isCapAllowed("allowUndoRedo") && !isCapAllowed("readOnly"));
+    Boolean(activeTab) &&
+    (!isEmbed || (isCapAllowed("allowUndoRedo") && !isCapAllowed("readOnly")));
   useGlobalShortcuts(enableShortcuts);
 
   useEffect(() => {
@@ -541,7 +552,9 @@ function App() {
               <div className={style.editorArea}>
                 {showPanel("file") && <FilePanel />}
                 <div className={style.workspace}>
-                  {documentActive && activeTab ? (
+                  {!activeTab ? (
+                    <WelcomeScreen />
+                  ) : documentActive ? (
                     <DocumentEditorHost path={activeTab.path} />
                   ) : (
                     <>

@@ -1,7 +1,7 @@
 import { CSS } from "@dnd-kit/utilities";
 import style from "../../../styles/panels/FilePanel.module.less";
 
-import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
+import React, { memo, useCallback, useMemo, useState } from "react";
 import {
   closestCenter,
   DndContext,
@@ -60,9 +60,6 @@ function FilePanel() {
   const setFileName = useFileStore((state) => state.setFileName);
   const tabs = useProjectSessionStore((state) => state.tabs);
   const activeKey = useProjectSessionStore((state) => state.activeKey);
-  const syncPipelineTabs = useProjectSessionStore(
-    (state) => state.syncPipelineTabs,
-  );
   const reorderTab = useProjectSessionStore((state) => state.reorderTab);
   const openedDocuments = useDocumentStore((state) => state.opened);
   const documentIndex = useDocumentStore((state) => state.documents);
@@ -73,19 +70,11 @@ function FilePanel() {
   const [fileNameState, setFileNameState] = useState<
     "" | "warning" | "error" | undefined
   >("");
-  const pipelinePaths = useMemo(
-    () => files.map((file) => file.config.filePath || file.fileName),
-    [files],
-  );
-
-  useEffect(() => syncPipelineTabs(pipelinePaths), [pipelinePaths, syncPipelineTabs]);
-
   const activeTab = tabs.find((tab) => tab.key === activeKey);
   const activeDocument =
     activeTab?.kind === "document" ? openedDocuments[activeTab.path] : undefined;
   const sidebarAvailable = wsConnected && !isEmbed;
   const sidebarShown = sidebarAvailable && sidebarVisible;
-  const pipelineCount = tabs.filter((tab) => tab.kind === "pipeline").length;
 
   const items = useMemo(
     () =>
@@ -105,7 +94,7 @@ function FilePanel() {
         const label = pipeline?.fileName ?? document?.name ?? tab.path;
         return {
           key: tab.key,
-          closable: tab.kind === "document" || pipelineCount > 1,
+          closable: true,
           label: (
             <span className={style.tabLabel}>
               <span className={style.tabName}>{label}</span>
@@ -114,7 +103,7 @@ function FilePanel() {
           ),
         };
       }),
-    [documentIndex, files, openedDocuments, pipelineCount, tabs],
+    [documentIndex, files, openedDocuments, tabs],
   );
 
   const sensor = useSensor(PointerSensor, {
@@ -191,10 +180,11 @@ function FilePanel() {
         </Tooltip>
         <Input
           className={style.filename}
-          placeholder="文件名"
-          value={activeDocument ? activeDocument.path : fileName}
+          placeholder={activeTab ? "文件名" : "未打开文件"}
+          value={activeTab ? (activeDocument ? activeDocument.path : fileName) : ""}
+          disabled={!activeTab}
           readOnly={Boolean(activeDocument)}
-          status={activeDocument ? undefined : fileNameState}
+          status={activeTab && !activeDocument ? fileNameState : undefined}
           onChange={activeDocument ? undefined : onLabelChange}
         />
       </div>

@@ -513,6 +513,11 @@ export async function pipelineToFlow(
     // 视觉副本就近匹配：把指向 External / Anchor 的边重定向到最近的副本
     edges = rerouteEdgesToNearestReplica(nodes, edges);
 
+    // 欢迎状态下没有占位 Pipeline，首次导入时显式创建目标文件。
+    if (useFileStore.getState().files.length === 0) {
+      useFileStore.getState().addFile({ isSwitch: true });
+    }
+
     // 先追加历史记录（此时 state.nodes 仍为导入前状态，可正确保存）
     useFlowStore.getState().importHistory(nodes, edges);
 

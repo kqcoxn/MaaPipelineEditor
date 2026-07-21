@@ -36,6 +36,16 @@ describe("projectSessionStore", () => {
     expect(next).toBe(documentTabKey("notes.txt"));
   });
 
+  it("allows the last pipeline tab to close", () => {
+    const store = useProjectSessionStore.getState();
+    store.openPipeline("pipeline/missing.json");
+
+    const next = store.closeTab(pipelineTabKey("pipeline/missing.json"));
+
+    expect(next).toBeNull();
+    expect(useProjectSessionStore.getState().tabs).toEqual([]);
+  });
+
   it("syncs pipeline tabs without removing document tabs", () => {
     const store = useProjectSessionStore.getState();
     store.openPipeline("old.json");
@@ -47,5 +57,16 @@ describe("projectSessionStore", () => {
       documentTabKey("README.md"),
       pipelineTabKey("new.json"),
     ]);
+  });
+
+  it("keeps the session empty when no pipelines are open", () => {
+    const store = useProjectSessionStore.getState();
+
+    store.syncPipelineTabs([]);
+
+    expect(useProjectSessionStore.getState()).toMatchObject({
+      tabs: [],
+      activeKey: null,
+    });
   });
 });
