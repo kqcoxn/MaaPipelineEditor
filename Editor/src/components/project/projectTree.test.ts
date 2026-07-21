@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   PROJECT_TREE_ROOT_KEY,
   buildProjectTree,
+  filterProjectTree,
   getSelectedProjectTreeKeys,
   preserveExpandedProjectTreeKeys,
   withCreateFileDraft,
@@ -69,6 +70,78 @@ describe("projectTree", () => {
     expect(getSelectedProjectTreeKeys("zeta.txt", [text!.document!])).toEqual([
       "zeta.txt",
     ]);
+  });
+
+  it("filters resource directories while retaining their complete subtree", () => {
+    const resourceEntries = [
+      ...entries,
+      { path: "base", name: "base", kind: "directory" as const },
+      {
+        path: "base/pipeline",
+        name: "pipeline",
+        kind: "directory" as const,
+      },
+      {
+        path: "base/pipeline/main.json",
+        name: "main.json",
+        kind: "file" as const,
+      },
+    ];
+    const tree = buildProjectTree("C:/workspace", resourceEntries, []);
+    const filtered = filterProjectTree(tree, {
+      resourcePaths: ["base"],
+      includeInterfaceFiles: false,
+    });
+
+    expect(filtered.children?.map((node) => node.path)).toEqual(["base"]);
+    expect(filtered.children?.[0].children?.[0].children?.[0].path).toBe(
+      "base/pipeline/main.json",
+    );
+  });
+
+  it("filters interface and import files while retaining parent directories", () => {
+    const interfaceDocument = {
+      name: "interface.json",
+      kind: "interface" as const,
+      language: "json",
+      mimeType: "application/json",
+      size: 12,
+      editable: true,
+      previewable: true,
+    };
+    const tree = buildProjectTree(
+      "C:/workspace",
+      [
+        ...entries,
+        {
+          path: "project/interface.json",
+          name: "interface.json",
+          kind: "file" as const,
+        },
+        {
+          path: "project/imports/shared.json",
+          name: "shared.json",
+          kind: "file" as const,
+        },
+      ],
+      [
+        { ...interfaceDocument, path: "project/interface.json" },
+        { ...interfaceDocument, path: "project/imports/shared.json" },
+      ],
+    );
+    const filtered = filterProjectTree(tree, {
+      resourcePaths: [],
+      includeInterfaceFiles: true,
+    });
+
+    expect(filtered.children?.map((node) => node.path)).toEqual(["project"]);
+    expect(filtered.children?.[0].children?.map((node) => node.path)).toEqual([
+      "project/imports",
+      "project/interface.json",
+    ]);
+    expect(
+      filtered.children?.[0].children?.[0].children?.map((node) => node.path),
+    ).toEqual(["project/imports/shared.json"]);
   });
 
   it("keeps expanded directories that still exist", () => {

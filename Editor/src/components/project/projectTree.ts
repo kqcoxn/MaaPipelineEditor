@@ -18,6 +18,16 @@ export interface ProjectTreeNode {
   children?: ProjectTreeNode[];
 }
 
+export interface ProjectTreeFilter {
+  resourcePaths: string[];
+  includeInterfaceFiles: boolean;
+}
+
+export const EMPTY_PROJECT_TREE_FILTER: ProjectTreeFilter = {
+  resourcePaths: [],
+  includeInterfaceFiles: false,
+};
+
 function normalizePath(path: string): string {
   return path.replaceAll("\\", "/").replace(/^\/+|\/+$/g, "");
 }
@@ -133,6 +143,40 @@ export function buildProjectTree(
 
   sortChildren(rootNode);
   return rootNode;
+}
+
+export function filterProjectTree(
+  root: ProjectTreeNode,
+  filter: ProjectTreeFilter,
+): ProjectTreeNode {
+  const resourcePaths = filter.resourcePaths
+    .map(normalizePath)
+    .filter(Boolean);
+  if (!resourcePaths.length && !filter.includeInterfaceFiles) return root;
+
+  const isInSelectedResource = (path: string) =>
+    resourcePaths.some(
+      (resourcePath) =>
+        path === resourcePath || path.startsWith(`${resourcePath}/`),
+    );
+
+  const visit = (node: ProjectTreeNode): ProjectTreeNode | undefined => {
+    if (node.kind !== "root" && isInSelectedResource(node.path)) return node;
+
+    if (node.kind === "file") {
+      return filter.includeInterfaceFiles && node.document?.kind === "interface"
+        ? node
+        : undefined;
+    }
+
+    const children = node.children
+      ?.map(visit)
+      .filter((child): child is ProjectTreeNode => child !== undefined);
+    if (node.kind !== "root" && !children?.length) return undefined;
+    return { ...node, children: children ?? [] };
+  };
+
+  return visit(root) ?? { ...root, children: [] };
 }
 
 export function withCreateFileDraft(

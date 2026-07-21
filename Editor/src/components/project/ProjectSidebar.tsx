@@ -51,13 +51,17 @@ import {
 } from "../../stores/projectSidebarStore";
 import { useWorkspaceStore } from "../../stores/workspaceStore";
 import {
+  EMPTY_PROJECT_TREE_FILTER,
   PROJECT_TREE_ROOT_KEY,
   buildProjectTree,
+  filterProjectTree,
   getSelectedProjectTreeKeys,
   preserveExpandedProjectTreeKeys,
+  type ProjectTreeFilter,
   type ProjectTreeNode,
   withCreateFileDraft,
 } from "./projectTree";
+import { ProjectTreeFilterButton } from "./ProjectTreeFilter";
 import {
   CreateFileTreeInput,
   getDirectoryPath,
@@ -129,7 +133,7 @@ const modeItems: MenuProps["items"] = [
   },
 ];
 
-function ProjectDirectoryTree() {
+function ProjectDirectoryTree({ filter }: { filter: ProjectTreeFilter }) {
   const { message, modal } = App.useApp();
   const root = useWorkspaceStore((state) => state.treeRoot || state.root);
   const entries = useWorkspaceStore((state) => state.treeEntries);
@@ -154,6 +158,10 @@ function ProjectDirectoryTree() {
     () => buildProjectTree(root, entries, capabilities),
     [capabilities, entries, root],
   );
+  const filteredTree = useMemo(
+    () => filterProjectTree(tree, filter),
+    [filter, tree],
+  );
   const [expandedKeys, setExpandedKeys] = useState<Key[]>([
     PROJECT_TREE_ROOT_KEY,
   ]);
@@ -162,8 +170,10 @@ function ProjectDirectoryTree() {
 
   const renderedTree = useMemo(
     () =>
-      createTarget ? withCreateFileDraft(tree, createTarget.path) : tree,
-    [createTarget, tree],
+      createTarget
+        ? withCreateFileDraft(filteredTree, createTarget.path)
+        : filteredTree,
+    [createTarget, filteredTree],
   );
 
   useEffect(() => {
@@ -532,11 +542,28 @@ export function ProjectSidebar() {
   const width = useProjectSidebarStore((state) => state.width);
   const visible = useProjectSidebarStore((state) => state.visible);
   const currentInterface = useWorkspaceStore((state) => state.currentInterface);
+  const workspaceRoot = useWorkspaceStore((state) => state.root);
+  const resourceBundles = useLocalFileStore((state) => state.resourceBundles);
+  const documentIndex = useDocumentStore((state) => state.documents);
   const sidebarRef = useRef<HTMLElement | null>(null);
   const [opening, setOpening] = useState(false);
+  const [treeFilter, setTreeFilter] = useState<ProjectTreeFilter>(() => ({
+    ...EMPTY_PROJECT_TREE_FILTER,
+  }));
   const desktop = isDesktopEnvironment();
   const projectName =
     currentInterface?.label || currentInterface?.name || "项目树";
+  const hasInterfaceFiles = useMemo(
+    () =>
+      Object.values(documentIndex).some(
+        (document) => document.kind === "interface",
+      ),
+    [documentIndex],
+  );
+
+  useEffect(() => {
+    setTreeFilter({ ...EMPTY_PROJECT_TREE_FILTER });
+  }, [currentInterface?.interface_path, workspaceRoot]);
 
   const handleOpenProject = async () => {
     if (!desktop || opening) return;
@@ -594,7 +621,7 @@ export function ProjectSidebar() {
                 : "仅 Desktop 支持更改项目根目录"
             }
           >
-            <span className={style.toolbarButtonWrapper}>
+            <span className={style.toolbarOpenButton}>
               <Button
                 type="text"
                 size="small"
@@ -609,11 +636,18 @@ export function ProjectSidebar() {
           </Tooltip>
         </div>
 
-        <ProjectDirectoryTree />
+        <div className={style.fileSection}>
+          <span className={style.fileSectionTitle}>项目</span>
+          <span className={style.fileSectionProjectName}>{projectName}</span>
+          <ProjectTreeFilterButton
+            resourceBundles={resourceBundles}
+            hasInterfaceFiles={hasInterfaceFiles}
+            value={treeFilter}
+            onChange={setTreeFilter}
+          />
+        </div>
 
-        <footer className={style.footer}>
-          <span className={style.footerName}>{projectName}</span>
-        </footer>
+        <ProjectDirectoryTree filter={treeFilter} />
       </aside>
       <SidebarResizeHandle sidebarRef={sidebarRef} visible={visible} />
     </>

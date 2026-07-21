@@ -29,7 +29,8 @@
 }
 
 .modeSection,
-.toolbarSection {
+.toolbarSection,
+.fileSection {
   display: flex;
   align-items: center;
   border-bottom: 1px solid var(--sidebar-border);
@@ -37,7 +38,7 @@
 
 .modeSection {
   flex: 0 0 68px;
-  padding: 6px 7px;
+  padding: 6px 0;
 }
 
 .modeButton {
@@ -46,7 +47,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding-inline: 11px 9px;
+  padding-inline: 15px 9px;
   color: #1677ff;
   border-radius: 4px;
   box-shadow: none;
@@ -121,15 +122,17 @@
 
 .toolbarSection {
   flex: 0 0 36px;
-  padding: 3px 6px;
+  gap: 2px;
+  padding: 3px 8px;
 }
 
-.toolbarButtonWrapper,
-.toolbarButtonWrapper > button {
+.toolbarOpenButton {
+  min-width: 0;
+  flex: 1;
+}
+
+.toolbarOpenButton > button {
   width: 100%;
-}
-
-.toolbarButtonWrapper > button {
   height: 28px;
   justify-content: flex-start;
   padding-inline: 7px;
@@ -147,6 +150,46 @@
     color: #bfbfbf;
     opacity: 1;
   }
+}
+
+.fileSection {
+  flex: 0 0 36px;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 3px 8px 3px 15px;
+  color: #595959;
+}
+
+.fileSectionTitle {
+  min-width: 0;
+  display: block;
+  color: #262626;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 28px;
+}
+
+.fileSectionProjectName {
+  min-width: 0;
+  display: block;
+  overflow: hidden;
+  color: #8c8c8c;
+  font-size: 12px;
+  line-height: 28px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filterButtonActive {
+  color: #1677ff !important;
+  background: #e6f4ff !important;
+}
+
+.filterDropdown {
+  min-width: 210px;
+  max-width: min(320px, calc(100vw - 16px));
 }
 
 .treeViewport {
@@ -290,29 +333,6 @@
 .treeRootName {
   color: #262626;
   font-weight: 600;
-}
-
-.footer {
-  flex: 0 0 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 0;
-  padding: 0 12px;
-  color: #595959;
-  background: #fff;
-  border-top: 1px solid var(--sidebar-border);
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 20px;
-  text-align: center;
-}
-
-.footerName {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .resizeHandle {

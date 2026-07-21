@@ -13,6 +13,8 @@ import { fileProtocol } from "../../services/server";
 import { AntDesignProvider } from "../../contexts/AntDesignProvider";
 import { useWorkspaceStore } from "../../stores/workspaceStore";
 import { useProjectSidebarStore } from "../../stores/projectSidebarStore";
+import { useDocumentStore } from "../../stores/documentStore";
+import { useLocalFileStore } from "../../stores/localFileStore";
 import { ProjectSidebar } from "./ProjectSidebar";
 import style from "../../styles/layout/ProjectSidebar.module.less";
 
@@ -35,6 +37,8 @@ describe("ProjectSidebar", () => {
     cleanup();
     vi.restoreAllMocks();
     useWorkspaceStore.getState().clear();
+    useDocumentStore.getState().clearProject();
+    useLocalFileStore.getState().clear();
   });
 
   it("starts inline file creation from a directory context menu", async () => {
@@ -232,6 +236,22 @@ describe("ProjectSidebar", () => {
     expect(modeButton.querySelector(".anticon-edit")).toBeNull();
   });
 
+  it("keeps the file filter in its own file section", () => {
+    renderSidebar();
+
+    const filterButton = screen.getByRole("button", {
+      name: "筛选项目文件",
+    });
+    const fileSection = filterButton.closest(`.${style.fileSection}`);
+
+    expect(fileSection).not.toBeNull();
+    expect(fileSection).toHaveTextContent("项目");
+    expect(fileSection?.querySelector(".anticon-down")).toBeNull();
+    expect(
+      screen.getByRole("button", { name: /打开项目|选择 MaaFramework 项目目录/ }),
+    ).not.toBe(fileSection);
+  });
+
   it("renders one icon per node with compact right-to-down switchers and unclipped titles", () => {
     useWorkspaceStore.getState().applyTree({
       revision: 1,
@@ -274,5 +294,72 @@ describe("ProjectSidebar", () => {
     expect(rootName).toBeVisible();
     expect(screen.getByText(".agents")).toBeVisible();
     expect(rootName.closest(`.${style.treeTitle}`)).toBeVisible();
+  });
+
+  it("filters the tree by resource directory and interface files", async () => {
+    useWorkspaceStore.getState().applyTree({
+      revision: 1,
+      root: "C:/project",
+      entries: [
+        { path: "base", name: "base", kind: "directory" },
+        { path: "base/pipeline.json", name: "pipeline.json", kind: "file" },
+        { path: "other", name: "other", kind: "directory" },
+        { path: "other/note.txt", name: "note.txt", kind: "file" },
+        { path: "interface.json", name: "interface.json", kind: "file" },
+        { path: "shared.json", name: "shared.json", kind: "file" },
+      ],
+    });
+    useLocalFileStore.setState({
+      resourceBundles: [
+        {
+          abs_path: "C:/project/base",
+          rel_path: "base",
+          name: "base",
+          has_pipeline: true,
+          has_image: false,
+          has_model: false,
+          has_default_pipeline: false,
+          image_dir: "",
+          pipeline_path: "base",
+          sources: [{ kind: "resource", name: "main" }],
+        },
+      ],
+    });
+    useDocumentStore.getState().applyDocuments({
+      revision: 1,
+      root: "C:/project",
+      documents: ["interface.json", "shared.json"].map((path) => ({
+        path,
+        name: path,
+        kind: "interface" as const,
+        language: "json",
+        mimeType: "application/json",
+        size: 12,
+        editable: true,
+        previewable: true,
+      })),
+    });
+    renderSidebar();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "筛选项目文件" }),
+    );
+    fireEvent.click(await screen.findByRole("menuitem", { name: "base" }));
+
+    expect(screen.getAllByText("base")).toHaveLength(2);
+    expect(screen.queryByText("other")).not.toBeInTheDocument();
+    expect(screen.queryByText("interface.json")).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("menuitem", { name: "Interface / import 文件" }),
+    );
+
+    expect(screen.getByText("interface.json")).toBeInTheDocument();
+    expect(screen.getByText("shared.json")).toBeInTheDocument();
+    expect(screen.queryByText("other")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("menuitem", { name: "全部文件" }));
+
+    expect(screen.getByText("other")).toBeInTheDocument();
   });
 });
