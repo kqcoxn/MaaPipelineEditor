@@ -95,6 +95,15 @@
       "mainContent": "大型 MaaFW 应用的多资源包、Agent、任务、测试与发布组织"
     },
     {
+      "name": "Everything-Maa",
+      "directory": "Everything-Maa",
+      "relativePath": "../maa-refs/Everything-Maa",
+      "repository": "https://github.com/KhazixW2/Everything-Maa",
+      "repositoryAliases": [],
+      "category": "AI 辅助实践",
+      "mainContent": "Maa 生态 AI 提示设计、上下文组织、约束表达与输出格式的主要参考"
+    },
+    {
       "name": "MaaGumballs",
       "directory": "MaaGumballs",
       "relativePath": "../maa-refs/MaaGumballs",
