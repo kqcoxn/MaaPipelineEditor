@@ -1,5 +1,6 @@
 import { pipelineToFlow } from "../core/parser";
 import { saveFlow, useFileStore } from "../stores/fileStore";
+import { useDocumentStore } from "../stores/documentStore";
 import { useProjectSessionStore } from "../stores/projectSessionStore";
 
 export interface ImportPipelineDraftOptions {
@@ -26,8 +27,23 @@ export async function importPipelineAsDraft({
       const displayName = suggestedName.replace(/\.(json|jsonc)$/i, "");
       useFileStore.getState().setFileName(displayName);
     }
-    if (savedBaseline) useFileStore.getState().markCurrentSaved();
     const current = useFileStore.getState().currentFile;
+    const name = `${current.fileName}.json`;
+    useDocumentStore.getState().registerDraft(
+      current.documentId,
+      {
+        path: "",
+        name,
+        kind: "pipeline",
+        language: "json",
+        mimeType: "application/json",
+        size: new TextEncoder().encode(content).length,
+        editable: true,
+        previewable: true,
+      },
+      content,
+      { saved: savedBaseline },
+    );
     useProjectSessionStore.getState().openDocument(current.documentId);
     return true;
   } catch (error) {

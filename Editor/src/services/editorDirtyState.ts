@@ -1,10 +1,8 @@
 import { Modal } from "antd";
 
 import { useDocumentStore } from "../stores/documentStore";
-import { useFileStore } from "../stores/fileStore";
 
 export interface DirtyEditorItem {
-  kind: "pipeline" | "document";
   key: string;
   name: string;
   path?: string;
@@ -18,24 +16,13 @@ export type UnsavedTransitionReason =
   | "exit-application";
 
 export function collectDirtyEditorItems(): DirtyEditorItem[] {
-  const pipelines = useFileStore
-    .getState()
-    .files.filter((file) => file.saveState.dirty)
-    .map((file) => ({
-      kind: "pipeline" as const,
-      key: file.documentId,
-      name: file.fileName,
-      path: file.config.filePath,
-    }));
-  const documents = Object.values(useDocumentStore.getState().opened)
+  return Object.values(useDocumentStore.getState().opened)
     .filter((document) => document.dirty)
     .map((document) => ({
-      kind: "document" as const,
       key: document.documentId,
       name: document.descriptor.name,
       path: document.path,
     }));
-  return [...pipelines, ...documents];
 }
 
 export function confirmUnsavedTransition(

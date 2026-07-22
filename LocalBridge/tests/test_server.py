@@ -293,11 +293,25 @@ def test_document_rpc_saves_with_revision_and_reports_conflict(
                 {
                     "path": path,
                     "content": changed,
-                    "base_revision": opened["revision"],
+                    "expected_revision": opened["revision"],
+                    "encoding": "utf-8",
+                    "operation_id": "save:rpc",
+                    "reason": "user",
                 },
             )
         )
-        saved = _receive_response(websocket, "save")
+        saved = None
+        save_event = None
+        while saved is None or save_event is None:
+            message = websocket.receive_json()
+            if message.get("type") == "response" and message.get("id") == "save":
+                saved = message
+            if (
+                message.get("type") == "event"
+                and message.get("event") == "project.changed"
+                and message.get("data", {}).get("path") == path
+            ):
+                save_event = message["data"]
 
         (state.workspace.root / path).write_text("external\n", encoding="utf-8")
         websocket.send_json(
@@ -307,13 +321,19 @@ def test_document_rpc_saves_with_revision_and_reports_conflict(
                 {
                     "path": path,
                     "content": "local\n",
-                    "base_revision": saved["result"]["revision"],
+                    "expected_revision": saved["result"]["revision"],
+                    "encoding": "utf-8",
+                    "operation_id": "save:conflict",
+                    "reason": "user",
                 },
             )
         )
         conflict = _receive_response(websocket, "conflict")
 
     assert (state.workspace.root / path).read_text(encoding="utf-8") == "external\n"
+    assert saved["result"]["operationId"] == "save:rpc"
+    assert saved["result"]["encoding"] == "utf-8"
+    assert save_event["operationId"] == saved["result"]["operationId"]
     assert conflict["error"]["code"] == "document_conflict"
     assert conflict["error"]["data"]["path"] == path
 

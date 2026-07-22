@@ -8,7 +8,7 @@ from workspace_helpers import create_project
 from mpe_localbridge.watcher import normalize_changes, prepare_changes
 
 
-def test_normalize_changes_merges_events_and_ignores_save_echo(tmp_path: Path) -> None:
+def test_normalize_changes_merges_events_without_time_window_filtering(tmp_path: Path) -> None:
     workspace = create_project(
         tmp_path,
         preferences_path=tmp_path / "preferences.json",
@@ -34,7 +34,13 @@ def test_normalize_changes_merges_events_and_ignores_save_echo(tmp_path: Path) -
             "file_path": "resource/pipeline/external.json",
             "is_directory": False,
             "workspace_kind": "pipeline",
-        }
+        },
+        {
+            "type": "modified",
+            "file_path": "resource/pipeline/owned.json",
+            "is_directory": False,
+            "workspace_kind": "pipeline",
+        },
     ]
 
 

@@ -204,7 +204,7 @@ class ArtifactRef(ApiModel):
 
 class DocumentOpenResult(WorkspaceDocument):
     content: str | None = None
-    encoding: Literal["utf-8"] | None = None
+    encoding: Literal["utf-8", "utf-8-bom"] | None = None
     revision: str
     artifact: ArtifactRef | None = None
 
@@ -214,6 +214,8 @@ class DocumentSaveResult(ApiModel):
     revision: str
     size: int
     sha256: str
+    operation_id: str
+    encoding: Literal["utf-8", "utf-8-bom"]
 
 
 class DebugEvent(ApiModel):

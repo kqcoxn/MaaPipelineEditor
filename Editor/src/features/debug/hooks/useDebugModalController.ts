@@ -3,7 +3,7 @@ import { message } from "antd";
 import { useShallow } from "zustand/shallow";
 import {
   debugProtocolClient,
-  fileProtocol,
+  documentProtocol,
 } from "../../../services/server";
 import { useDebugSessionStore } from "../../../stores/debugSessionStore";
 import { useDebugModalMemoryStore } from "../../../stores/debugModalMemoryStore";
@@ -18,10 +18,9 @@ import {
 import { useWSStore } from "../../../stores/wsStore";
 import { useWorkspaceStore } from "../../../stores/workspaceStore";
 import { useFlowStore } from "../../../stores/flow";
-import {
-  saveOpenedLocalFilesForDebug,
-  useFileStore,
-} from "../../../stores/fileStore";
+import { useFileStore } from "../../../stores/fileStore";
+import { useProjectSessionStore } from "../../../stores/projectSessionStore";
+import { activateEditorTab } from "../../../services/projectSessionActions";
 import { ensureDebugCapabilitiesRequested } from "../capabilityActions";
 import { debugContributionRegistry } from "../contributions/registry";
 import { getControllerDisplayName } from "../controllerDisplay";
@@ -371,10 +370,13 @@ export function useDebugModalController() {
 
     try {
       if (profileState.profile.savePolicy === "save-open-files") {
-        const saveResult = await saveOpenedLocalFilesForDebug();
-        if (saveResult.failedFiles.length > 0) {
+        const saveResults = await documentProtocol.saveAllDirty("before-run");
+        const failedFiles = saveResults
+          .filter((result) => result.status === "failed")
+          .map((result) => result.name);
+        if (failedFiles.length > 0) {
           message.error(
-            `调试前保存打开文件失败：${saveResult.failedFiles.join("、")}`,
+            `调试前保存打开文件失败：${failedFiles.join("、")}`,
           );
           return;
         }
@@ -482,13 +484,16 @@ export function useDebugModalController() {
         : undefined) ??
       (sourcePath ? fileStore.findFileByPath(sourcePath) : undefined);
     if (openedFile) {
-      fileStore.switchFile(openedFile.fileName);
+      fileStore.switchDocument(openedFile.documentId);
       return;
     }
     if (sourcePath) {
-      const sent = fileProtocol.requestOpenFile(sourcePath);
-      if (sent) return;
-      message.error("发送打开文件请求失败");
+      const documentId = useProjectSessionStore.getState().documentIdByPath[sourcePath];
+      if (documentId) {
+        void activateEditorTab({ documentId });
+        return;
+      }
+      message.error("文件不属于当前项目索引");
       return;
     }
     message.warning("当前诊断没有可定位的文件");

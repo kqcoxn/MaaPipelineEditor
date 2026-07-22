@@ -15,6 +15,7 @@ import {
   type NodeType,
 } from "../stores/flow";
 import { localServer } from "./server";
+import { activateEditorTab } from "./projectSessionActions";
 import { NodeTypeEnum } from "../components/flow/nodes/constants";
 import { getFullNodeName } from "../utils/node/nodeNameHelper";
 import {
@@ -349,7 +350,7 @@ class CrossFileService {
       );
 
       if (targetFile) {
-        fileStore.switchFile(targetFile.fileName);
+        fileStore.switchDocument(targetFile.documentId);
         // 等待切换完成后定位节点
         await new Promise((resolve) => setTimeout(resolve, 100));
         return this.focusNodeInCurrentFile(nodeInfo.label);
@@ -399,7 +400,7 @@ class CrossFileService {
 
     if (targetFile) {
       // 切换文件
-      fileStore.switchFile(targetFile.fileName);
+      fileStore.switchDocument(targetFile.documentId);
       // 等待切换完成后定位节点
       await new Promise((resolve) => setTimeout(resolve, 100));
       return this.focusNodeInCurrentFile(nodeLabel);
@@ -461,69 +462,20 @@ class CrossFileService {
     nodeLabel: string,
   ): Promise<boolean> {
     try {
-      // 请求文件内容
-      const success = localServer.send("file.open", {
-        file_path: filePath,
-      });
-
-      if (!success) {
-        console.warn("[loadAndNavigate] 请求文件失败");
+      const documentId = useProjectSessionStore.getState().documentIdByPath[filePath];
+      if (!documentId) {
+        console.warn("[loadAndNavigate] 项目索引中未找到文件", filePath);
         return false;
       }
-
-      // 等待文件加载
-      const fileStore = useFileStore.getState();
-      const maxAttempts = 20; // 最多尝试20次
-      const attemptInterval = 100; // 每次间隔100ms
-
-      let targetFile:
-        | ReturnType<typeof useFileStore.getState>["files"][number]
-        | undefined;
-      for (let i = 0; i < maxAttempts; i++) {
-        await new Promise((resolve) => setTimeout(resolve, attemptInterval));
-
-        const currentFiles = useFileStore.getState().files;
-        targetFile = currentFiles.find((f) => f.config.filePath === filePath);
-
-        if (targetFile) {
-          break;
-        }
-      }
-
-      if (targetFile) {
-        fileStore.switchFile(targetFile.fileName);
-
-        // 等待切换完成并轮询等待节点加载
-        // 等待节点加载到 flowStore 中
-        const maxNodeAttempts = 15; // 最多尝试15次
-        const nodeAttemptInterval = 100; // 每次间隔100ms
-
-        for (let i = 0; i < maxNodeAttempts; i++) {
-          await new Promise((resolve) =>
-            setTimeout(resolve, nodeAttemptInterval),
-          );
-
-          const flowStore = useFlowStore.getState();
-          const nodes = flowStore.nodes;
-          const targetNode = nodes.find(
-            (n: NodeType) => n.data.label === nodeLabel,
-          );
-
-          // 找到节点，执行定位
-          if (targetNode) {
-            return this.focusNodeInCurrentFile(nodeLabel);
-          }
-        }
-
-        // 超时仍未找到节点
-        console.warn(
-          `[loadAndNavigate] 节点 "${nodeLabel}" 超时未找到，当前节点列表:`,
-          useFlowStore.getState().nodes.map((n: NodeType) => n.data.label),
-        );
+      if (!(await activateEditorTab({ documentId }))) {
+        console.warn("[loadAndNavigate] 文档打开失败", filePath);
         return false;
       }
-
-      console.warn("[loadAndNavigate] 文件加载超时");
+      if (this.focusNodeInCurrentFile(nodeLabel)) return true;
+      console.warn(
+        `[loadAndNavigate] 节点 "${nodeLabel}" 未找到，当前节点列表:`,
+        useFlowStore.getState().nodes.map((node: NodeType) => node.data.label),
+      );
       return false;
     } catch (error) {
       console.error("[loadAndNavigate] 异常:", error);

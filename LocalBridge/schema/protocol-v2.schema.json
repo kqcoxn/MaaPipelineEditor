@@ -236,7 +236,10 @@
         "encoding": {
           "anyOf": [
             {
-              "const": "utf-8",
+              "enum": [
+                "utf-8",
+                "utf-8-bom"
+              ],
               "type": "string"
             },
             {
@@ -332,6 +335,18 @@
     "DocumentSaveResult": {
       "additionalProperties": false,
       "properties": {
+        "encoding": {
+          "enum": [
+            "utf-8",
+            "utf-8-bom"
+          ],
+          "title": "Encoding",
+          "type": "string"
+        },
+        "operationId": {
+          "title": "Operationid",
+          "type": "string"
+        },
         "path": {
           "title": "Path",
           "type": "string"
@@ -353,7 +368,9 @@
         "path",
         "revision",
         "size",
-        "sha256"
+        "sha256",
+        "operationId",
+        "encoding"
       ],
       "title": "DocumentSaveResult",
       "type": "object"

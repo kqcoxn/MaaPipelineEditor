@@ -1,6 +1,7 @@
-import { flowToPipelineString } from "../core/parser";
+import { syncCurrentPipelineToDocuments } from "../features/pipeline-document/pipelineDocumentService";
+import type { DocumentId } from "../features/project-session/types";
+import { useDocumentStore } from "../stores/documentStore";
 import { saveFlow, useFileStore } from "../stores/fileStore";
-import { createPipelineFingerprint } from "../stores/pipelineSaveState";
 
 export interface EmbedSaveData {
   saveToken: string;
@@ -9,25 +10,28 @@ export interface EmbedSaveData {
 }
 
 interface PendingEmbedSave {
-  fileName: string;
-  fingerprint: string;
+  documentId: DocumentId;
+  savedText: string;
 }
 
 const pendingSaves = new Map<string, PendingEmbedSave>();
 let saveSequence = 0;
 
-export function beginEmbedSave(): EmbedSaveData {
+export async function beginEmbedSave(): Promise<EmbedSaveData> {
   saveFlow();
+  await syncCurrentPipelineToDocuments();
   const file = useFileStore.getState().currentFile;
+  const document = useDocumentStore.getState().opened[file.documentId];
+  if (!document) throw new Error("当前 Pipeline 尚未注册为文档");
   const saveToken = `mpe-save-${Date.now()}-${++saveSequence}`;
   pendingSaves.set(saveToken, {
-    fileName: file.fileName,
-    fingerprint: createPipelineFingerprint(file),
+    documentId: document.documentId,
+    savedText: document.workingText,
   });
   return {
     saveToken,
     fileName: file.fileName,
-    data: flowToPipelineString(),
+    data: document.workingText,
   };
 }
 
@@ -37,9 +41,21 @@ export function resolveEmbedSaveResult(payload: unknown): boolean {
   if (!pending) return false;
   pendingSaves.delete(payload.saveToken);
   if (!payload.success) return false;
-  useFileStore
-    .getState()
-    .markFileSaved(pending.fileName, pending.fingerprint);
+  const document = useDocumentStore.getState().opened[pending.documentId];
+  if (!document) return false;
+  const size = new TextEncoder().encode(pending.savedText).length;
+  useDocumentStore.getState().markSaved(
+    pending.documentId,
+    {
+      path: document.path,
+      revision: `embedded:${payload.saveToken}`,
+      size,
+      sha256: `embedded:${payload.saveToken}`,
+      operationId: payload.saveToken,
+      encoding: document.encoding,
+    },
+    pending.savedText,
+  );
   return true;
 }
 

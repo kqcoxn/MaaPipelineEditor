@@ -231,7 +231,7 @@ export interface DocumentOpenResult {{
   readOnlyReason?: string | null;
   role?: "default_pipeline" | "mpe_config" | null;
   content?: string;
-  encoding?: "utf-8";
+  encoding?: "utf-8" | "utf-8-bom";
   revision: string;
   artifact?: ArtifactRef;
 }}
@@ -241,6 +241,8 @@ export interface DocumentSaveResult {{
   revision: string;
   size: number;
   sha256: string;
+  operationId: string;
+  encoding: "utf-8" | "utf-8-bom";
 }}
 
 export interface ArtifactRef {{

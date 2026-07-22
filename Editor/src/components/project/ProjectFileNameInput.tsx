@@ -127,12 +127,9 @@ export function CreateFileTreeInput({
       const session = useProjectSessionStore.getState();
       const documentId = session.documentIdByPath[createdPath];
       const descriptor = documentId ? session.entriesById[documentId] : undefined;
-      let opened: boolean;
-      if (descriptor && documentId) {
-        opened = await activateEditorTab({ documentId });
-      } else {
-        opened = fileProtocol.requestOpenFile(createdPath);
-      }
+      const opened = Boolean(
+        descriptor && documentId && (await activateEditorTab({ documentId })),
+      );
       if (!opened) message.error("文件已创建，但自动打开失败");
     } catch (submitError) {
       setError(

@@ -18,7 +18,7 @@ import type {
 } from "./ProjectStorageAdapter";
 import { getCapability } from "./ProjectStorageAdapter";
 import { useProjectSessionStore } from "../../stores/projectSessionStore";
-import { useFileStore, type FileType } from "../../stores/fileStore";
+import { useFileStore } from "../../stores/fileStore";
 
 const operations: ProjectStorageOperation[] = [
   "list",
@@ -142,7 +142,7 @@ describe("ProjectStorageAdapter contracts", () => {
     await expect(sameHandle.list()).resolves.toMatchObject({ entries: [] });
   });
 
-  it("indexes and saves a Pipeline through a Browser directory handle", async () => {
+  it("indexes and saves a Pipeline through the unified Browser write contract", async () => {
     const { handle, write } = pipelineDirectory();
     const adapter = new BrowserProjectStorageAdapter(handle);
     const listed = await adapter.list();
@@ -160,24 +160,21 @@ describe("ProjectStorageAdapter contracts", () => {
       },
     });
     const documentId = asDocumentId(entry?.documentId ?? "");
-    const file: FileType = {
+    const opened = await adapter.read(documentId);
+    const result = await adapter.write({
       documentId,
-      fileName: "main",
-      nodes: [],
-      edges: [],
-      config: { prefix: "Demo", filePath: "resource/pipeline/main.json" },
-      saveState: {
-        dirty: true,
-        savedFingerprint: "baseline",
-        saving: false,
-      },
-    };
-    useFileStore.setState({ files: [file], currentFile: file });
+      content: '{"Demo_Start":{}}\n',
+      expectedRevision: opened.revision,
+      encoding: "utf-8-bom",
+      operationId: "save:browser",
+      reason: "user",
+    });
 
-    await expect(adapter.savePipeline(documentId, file)).resolves.toBe("saved");
-
-    expect(write).toHaveBeenCalledWith(expect.stringContaining("Demo"));
-    expect(useFileStore.getState().currentFile.saveState.dirty).toBe(false);
+    expect(write).toHaveBeenCalledWith('\ufeff{"Demo_Start":{}}\n');
+    expect(result).toMatchObject({
+      operationId: "save:browser",
+      encoding: "utf-8-bom",
+    });
   });
 
   it("defaults EmbeddedHost to a read-only temporary project", async () => {
@@ -199,6 +196,8 @@ describe("ProjectStorageAdapter contracts", () => {
       revision: "r2",
       size: 2,
       sha256: "r2",
+      operationId: "save:embedded",
+      encoding: "utf-8",
     });
     const adapter = new EmbeddedHostProjectStorageAdapter({
       project: { projectId: "embed:writable" },
@@ -216,23 +215,31 @@ describe("ProjectStorageAdapter contracts", () => {
     const documentId = asDocumentId("document:notes");
 
     expectCapabilityContract(adapter);
-    await adapter.write(documentId, "{}", "r1");
-    await expect(
-      adapter.savePipeline(documentId, {} as never),
-    ).resolves.toBe("delegated");
+    await adapter.write({
+      documentId,
+      content: "{}",
+      expectedRevision: "r1",
+      encoding: "utf-8",
+      operationId: "save:embedded",
+      reason: "before-run",
+    });
 
     expect(embedMocks.requestParent).toHaveBeenCalledWith(
       "mpe:projectRequest",
       {
         method: "document.save",
-        params: { documentId, content: "{}", baseRevision: "r1" },
+        params: {
+          documentId,
+          content: "{}",
+          expectedRevision: "r1",
+          encoding: "utf-8",
+          operationId: "save:embedded",
+          reason: "before-run",
+        },
       },
       "mpe:projectResponse",
     );
-    expect(embedMocks.sendToParent).toHaveBeenCalledWith("mpe:saveRequest", {
-      documentId,
-      hint: "user-triggered",
-    });
+    expect(embedMocks.sendToParent).not.toHaveBeenCalled();
   });
 
   it("maps LocalBridge list calls and session capabilities", async () => {
@@ -259,5 +266,54 @@ describe("ProjectStorageAdapter contracts", () => {
     expectCapabilityContract(adapter);
     await expect(adapter.list()).resolves.toMatchObject({ entries: [] });
     expect(request).toHaveBeenCalledWith("project.entries.list", {});
+  });
+
+  it("maps LocalBridge document writes with revision, encoding and operation id", async () => {
+    const documentId = asDocumentId("document:pipeline");
+    const request = vi.fn(async () => ({
+      path: "pipeline/main.jsonc",
+      revision: "r2",
+      size: 3,
+      sha256: "r2",
+      operationId: "save:localbridge",
+      encoding: "utf-8",
+    }));
+    const adapter = new LocalBridgeProjectStorageAdapter({
+      request,
+      registerRoute: vi.fn(() => () => undefined),
+    } as never);
+    useProjectSessionStore.getState().establishSession(adapter.identity, "localbridge");
+    useProjectSessionStore.getState().applyEntries({
+      revision: 1,
+      projectId: "localbridge:pending",
+      entries: [
+        {
+          path: "pipeline/main.jsonc",
+          name: "main.jsonc",
+          entryKind: "file",
+          documentId,
+          kind: "pipeline",
+          editable: true,
+        },
+      ],
+    });
+
+    await adapter.write({
+      documentId,
+      content: "{}\n",
+      expectedRevision: "r1",
+      encoding: "utf-8",
+      operationId: "save:localbridge",
+      reason: "save-all",
+    });
+
+    expect(request).toHaveBeenCalledWith("document.save", {
+      path: "pipeline/main.jsonc",
+      content: "{}\n",
+      expected_revision: "r1",
+      encoding: "utf-8",
+      operation_id: "save:localbridge",
+      reason: "save-all",
+    });
   });
 });

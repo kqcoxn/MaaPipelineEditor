@@ -82,7 +82,7 @@ export const DocumentEditorHost = memo(({ documentId }: DocumentEditorHostProps)
   const save = async () => {
     setSaving(true);
     try {
-      await documentProtocol.saveDocument(documentId);
+      await documentProtocol.saveDocumentGroup(documentId);
     } finally {
       setSaving(false);
     }
@@ -98,7 +98,7 @@ export const DocumentEditorHost = memo(({ documentId }: DocumentEditorHostProps)
           <span className={style.path}>{document.path}</span>
         </div>
         <Space size="small">
-          <Tag bordered={false}>{kindLabel(descriptor.kind)}</Tag>
+          <Tag variant="filled">{kindLabel(descriptor.kind)}</Tag>
           {descriptor.editable && (
             <Button
               type="primary"
@@ -138,7 +138,7 @@ export const DocumentEditorHost = memo(({ documentId }: DocumentEditorHostProps)
           <MfwJsonEditor
             path={`mpe-project:///${document.path}`}
             language={language}
-            value={document.content}
+            value={document.workingText}
             beforeMount={
               descriptor.kind === "json" || descriptor.kind === "interface"
                 ? configureJson
@@ -149,7 +149,9 @@ export const DocumentEditorHost = memo(({ documentId }: DocumentEditorHostProps)
               readOnly: !descriptor.editable || document.deleted,
             }}
             onChange={(value) =>
-              useDocumentStore.getState().updateContent(documentId, value ?? "")
+              useDocumentStore
+                .getState()
+                .updateWorkingText(documentId, value ?? "")
             }
           />
         )}
@@ -192,8 +194,8 @@ function ConflictEditor({ documentId, language }: { documentId: DocumentId; lang
           }
         >
           <MonacoDiffEditor
-            original={document.conflict.externalContent}
-            modified={document.content}
+            original={document.conflict.externalText}
+            modified={document.workingText}
             language={language}
             options={{
               ...editorOptions,
@@ -257,7 +259,7 @@ function BinaryInfo({ documentId }: { documentId: DocumentId }) {
           { key: "path", label: "项目路径", children: document.path },
           { key: "type", label: "MIME 类型", children: descriptor.mimeType },
           { key: "size", label: "文件大小", children: formatBytes(descriptor.size) },
-          { key: "revision", label: "Revision", children: document.baseRevision },
+          { key: "revision", label: "Revision", children: document.savedRevision },
         ]}
       />
     </div>

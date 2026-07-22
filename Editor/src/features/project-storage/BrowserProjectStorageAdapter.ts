@@ -7,10 +7,6 @@ import type {
   ProjectEntry,
 } from "../../services/generated/bridge-v2";
 import { parse } from "jsonc-parser";
-import { flowToPipelineString, flowToSeparatedStrings } from "../../core/parser";
-import { useConfigStore } from "../../stores/configStore";
-import { saveFlow, useFileStore, type FileType } from "../../stores/fileStore";
-import { createPipelineFingerprint } from "../../stores/pipelineSaveState";
 import {
   asDocumentId,
   asProjectId,
@@ -25,6 +21,7 @@ import type {
   EntryRenameResult,
   ProjectEntryTarget,
   ProjectStorageAdapter,
+  WriteDocumentInput,
 } from "./ProjectStorageAdapter";
 
 type AsyncDirectoryHandle = FileSystemDirectoryHandle & {
@@ -103,79 +100,36 @@ export class BrowserProjectStorageAdapter implements ProjectStorageAdapter {
       role: entry.role,
       revision: await digestFile(file),
     };
-    if (kind !== "image" && kind !== "binary") result.content = await file.text();
+    if (kind !== "image" && kind !== "binary") {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      result.content = new TextDecoder("utf-8").decode(bytes);
+      result.encoding = hasUtf8Bom(bytes) ? "utf-8-bom" : "utf-8";
+    }
     return result;
   }
 
-  async write(
-    documentId: DocumentId,
-    content: string,
-    baseRevision: string,
-  ): Promise<DocumentSaveResult> {
-    const entry = this.requireDocument(documentId);
+  async write(input: WriteDocumentInput): Promise<DocumentSaveResult> {
+    const entry = this.requireDocument(input.documentId);
     const handle = await this.getFileHandle(entry.path);
     const current = await handle.getFile();
-    if ((await digestFile(current)) !== baseRevision) {
+    if ((await digestFile(current)) !== input.expectedRevision) {
       throw new Error("文件已被外部修改");
     }
     const writable = await handle.createWritable();
+    const content = input.encoding === "utf-8-bom" ? `\ufeff${input.content}` : input.content;
     await writable.write(content);
     await writable.close();
     const saved = await handle.getFile();
     const revision = await digestFile(saved);
-    return { path: entry.path, revision, sha256: revision, size: saved.size };
-  }
-
-  async savePipeline(
-    documentId: DocumentId,
-    file: FileType,
-    options?: { allowOverwrite?: boolean },
-  ): Promise<"saved" | "unsupported"> {
-    if (!this.directory || file.saveState.saving) return "unsupported";
-    if (
-      file.saveState.externalChange === "deleted" ||
-      (file.saveState.externalChange === "modified" && !options?.allowOverwrite)
-    ) {
-      return "unsupported";
-    }
-    const entry = this.requireDocument(documentId);
-    if (entry.kind !== "pipeline" || file.config.filePath !== entry.path) {
-      return "unsupported";
-    }
-
-    if (useFileStore.getState().currentFile.documentId === documentId) saveFlow();
-    const target = useFileStore.getState().findFileByDocumentId(documentId) ?? file;
-    const savedFingerprint = createPipelineFingerprint(target);
-    useFileStore.getState().setFileSaving(target.fileName, true);
-    try {
-      const exportOptions = {
-        nodes: target.nodes,
-        edges: target.edges,
-        fileName: target.fileName,
-        config: target.config,
-      };
-      if (useConfigStore.getState().configs.configHandlingMode === "separated") {
-        const { pipelineString, configString } = flowToSeparatedStrings(exportOptions);
-        const configPath =
-          target.config.separatedConfigPath ?? separatedConfigPath(entry.path);
-        await this.writeText(entry.path, pipelineString);
-        await this.writeText(configPath, configString, true);
-        if (useFileStore.getState().currentFile.documentId === documentId) {
-          useFileStore
-            .getState()
-            .setFileConfig("separatedConfigPath", configPath);
-        }
-      } else {
-        await this.writeText(entry.path, flowToPipelineString(exportOptions));
-      }
-      useFileStore.getState().markFileSaved(target.fileName, savedFingerprint);
-      return "saved";
-    } catch (error) {
-      console.error("[BrowserProjectStorageAdapter] Pipeline save failed", error);
-      return "unsupported";
-    } finally {
-      useFileStore.getState().setFileSaving(target.fileName, false);
-    }
+    this.emit("modified", entry.path, false, input.operationId);
+    return {
+      path: entry.path,
+      revision,
+      sha256: revision,
+      size: saved.size,
+      operationId: input.operationId,
+      encoding: input.encoding,
+    };
   }
 
   async create(directory: string, name: string): Promise<EntryCreateResult> {
@@ -282,17 +236,6 @@ export class BrowserProjectStorageAdapter implements ProjectStorageAdapter {
     });
   }
 
-  private async writeText(
-    path: string,
-    content: string,
-    create = false,
-  ): Promise<void> {
-    const handle = await this.getFileHandle(path, create);
-    const writable = await handle.createWritable();
-    await writable.write(content);
-    await writable.close();
-  }
-
   private emit(
     change: ProjectChangedPayload["change"],
     path: string,
@@ -349,7 +292,7 @@ function classifyFile(name: string, path: string): Pick<
     kind = "text";
     language = lower.split(".").at(-1) ?? "text";
   }
-  const editable = !["binary", "image", "pipeline"].includes(kind);
+  const editable = !["binary", "image"].includes(kind);
   const role = /^default_pipeline\.jsonc?$/.test(lower)
     ? "default_pipeline"
     : /(?:^|\.)mpe\.jsonc?$/.test(lower)
@@ -358,7 +301,10 @@ function classifyFile(name: string, path: string): Pick<
   return {
     kind,
     language,
-    mimeType: kind === "json" || kind === "interface" ? "application/json" : "text/plain",
+    mimeType:
+      kind === "json" || kind === "interface" || kind === "pipeline"
+        ? "application/json"
+        : "text/plain",
     editable,
     readOnlyReason: editable ? null : kind,
     role,
@@ -414,13 +360,10 @@ async function digestFile(file: File): Promise<string> {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-function defaultContent(name: string): string {
-  return /\.jsonc?$/.test(name.toLowerCase()) ? "{}\n" : "";
+function hasUtf8Bom(bytes: Uint8Array): boolean {
+  return bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf;
 }
 
-function separatedConfigPath(pipelinePath: string): string {
-  const segments = pipelinePath.split("/");
-  const fileName = segments.pop()!;
-  const baseName = fileName.replace(/\.(json|jsonc)$/i, "");
-  return [...segments, `.${baseName}.mpe.json`].join("/");
+function defaultContent(name: string): string {
+  return /\.jsonc?$/.test(name.toLowerCase()) ? "{}\n" : "";
 }

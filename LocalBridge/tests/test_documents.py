@@ -69,7 +69,7 @@ def test_document_index_classifies_project_files(tmp_path: Path) -> None:
     assert documents["interface.import.jsonc"]["kind"] == "interface"
     pipeline = documents["resource/pipeline/main.jsonc"]
     assert pipeline["kind"] == "pipeline"
-    assert pipeline["editable"] is False
+    assert pipeline["editable"] is True
     default_pipeline = documents["resource/default_pipeline.json"]
     assert default_pipeline["kind"] == "json"
     assert default_pipeline["role"] == "default_pipeline"
@@ -106,9 +106,17 @@ def test_open_and_save_document_preserve_jsonc_source(tmp_path: Path) -> None:
     opened = workspace.open_document(path)
     changed = "// keep comment\n{\n  \"second\": 2,\n  \"first\": 1\n}\r\n"
 
-    saved = workspace.save_document(path, changed, opened["revision"])
+    saved = workspace.save_document(
+        path,
+        changed,
+        opened["revision"],
+        "utf-8",
+        "save:jsonc",
+    )
 
     assert saved["revision"] == saved["sha256"]
+    assert saved["operation_id"] == "save:jsonc"
+    assert saved["encoding"] == "utf-8"
     assert (workspace.root / path).read_bytes() == changed.encode("utf-8")
     assert not list(workspace.root.glob("*.tmp"))
 
@@ -120,7 +128,13 @@ def test_save_document_rejects_stale_revision_and_non_text(tmp_path: Path) -> No
     (workspace.root / path).write_text('{"external": true}\n', encoding="utf-8")
 
     with pytest.raises(DocumentConflictError) as conflict:
-        workspace.save_document(path, '{"local": true}\n', opened["revision"])
+        workspace.save_document(
+            path,
+            '{"local": true}\n',
+            opened["revision"],
+            "utf-8",
+            "save:conflict",
+        )
     assert conflict.value.code == "document_conflict"
     assert conflict.value.data is not None
     assert conflict.value.data["path"] == path
@@ -130,13 +144,38 @@ def test_save_document_rejects_stale_revision_and_non_text(tmp_path: Path) -> No
             "archive.bin",
             "not binary",
             workspace.open_document("archive.bin")["revision"],
+            "utf-8",
+            "save:binary",
         )
-    with pytest.raises(ForbiddenError):
-        workspace.save_document(
-            "resource/pipeline/main.jsonc",
-            "{}",
-            workspace.open_document("resource/pipeline/main.jsonc")["revision"],
-        )
+
+
+def test_pipeline_jsonc_and_utf8_bom_round_trip(tmp_path: Path) -> None:
+    workspace = _prepare_documents(tmp_path)
+    pipeline_path = "resource/pipeline/main.jsonc"
+    pipeline_source = "// pipeline comment\r\n{\r\n  \"Second\": {},\r\n  \"First\": {}\r\n}\r\n"
+    (workspace.root / pipeline_path).write_bytes(b"\xef\xbb\xbf" + pipeline_source.encode())
+    workspace.refresh_documents()
+
+    opened = workspace.open_document(pipeline_path)
+
+    assert opened["kind"] == "pipeline"
+    assert opened["editable"] is True
+    assert opened["content"] == pipeline_source
+    assert opened["encoding"] == "utf-8-bom"
+
+    saved = workspace.save_document(
+        pipeline_path,
+        pipeline_source,
+        opened["revision"],
+        opened["encoding"],
+        "save:pipeline-bom",
+    )
+
+    assert saved["operation_id"] == "save:pipeline-bom"
+    assert saved["encoding"] == "utf-8-bom"
+    assert (workspace.root / pipeline_path).read_bytes() == (
+        b"\xef\xbb\xbf" + pipeline_source.encode()
+    )
 
 
 def test_open_document_reports_image_binary_and_large_text_metadata(

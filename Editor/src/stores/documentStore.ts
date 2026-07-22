@@ -5,24 +5,31 @@ import type {
   ArtifactRef,
   DocumentMapping,
   DocumentOpenResult,
+  DocumentSaveResult,
   WorkspaceDocument,
 } from "../services/generated/bridge-v2";
 import { asDocumentId, type DocumentId } from "../features/project-session/types";
+import type { DocumentEncoding } from "../features/project-storage/ProjectStorageAdapter";
 
 export interface DocumentConflict {
-  externalContent: string;
+  externalText: string;
   externalRevision: string;
+  externalEncoding: DocumentEncoding;
 }
 
 export interface OpenDocument {
   documentId: DocumentId;
   path: string;
   descriptor: WorkspaceDocument;
-  content: string;
-  savedContent: string;
-  baseRevision: string;
+  savedText: string;
+  workingText: string;
+  savedRevision: string;
+  workingRevision: number;
+  encoding: DocumentEncoding;
   dirty: boolean;
+  saving: boolean;
   loading: boolean;
+  linkedDocumentIds: DocumentId[];
   error?: string;
   conflict?: DocumentConflict;
   artifact?: ArtifactRef;
@@ -41,12 +48,19 @@ interface DocumentActions {
     result: DocumentOpenResult,
     imageUrl?: string,
   ) => void;
+  registerDraft: (
+    documentId: DocumentId,
+    descriptor: WorkspaceDocument,
+    text: string,
+    options?: { saved?: boolean; encoding?: DocumentEncoding },
+  ) => void;
   failOpen: (documentId: DocumentId, error: string) => void;
-  updateContent: (documentId: DocumentId, content: string) => void;
+  updateWorkingText: (documentId: DocumentId, text: string) => void;
+  setSaving: (documentId: DocumentId, saving: boolean) => void;
   markSaved: (
     documentId: DocumentId,
-    revision: string,
-    savedContent: string,
+    result: DocumentSaveResult,
+    savedText: string,
   ) => void;
   setConflict: (documentId: DocumentId, external: DocumentOpenResult) => void;
   keepLocal: (documentId: DocumentId) => void;
@@ -56,6 +70,7 @@ interface DocumentActions {
     imageUrl?: string,
   ) => void;
   markDeleted: (documentId: DocumentId) => void;
+  setLinkedDocuments: (documentId: DocumentId, linkedIds: DocumentId[]) => void;
   applyDocumentMappings: (mappings: DocumentMapping[]) => void;
   closeDocument: (documentId: DocumentId) => void;
   clearProject: () => void;
@@ -67,7 +82,6 @@ export const useDocumentStore = create<DocumentStore>()(
   subscribeWithSelector((set) => ({
     opened: {},
     beginOpen(documentId, descriptor) {
-      if (descriptor.kind === "pipeline") return false;
       set((state) => {
         const existing = state.opened[documentId];
         return {
@@ -77,11 +91,15 @@ export const useDocumentStore = create<DocumentStore>()(
               documentId,
               path: descriptor.path,
               descriptor,
-              content: existing?.content ?? "",
-              savedContent: existing?.savedContent ?? "",
-              baseRevision: existing?.baseRevision ?? "",
+              savedText: existing?.savedText ?? "",
+              workingText: existing?.workingText ?? "",
+              savedRevision: existing?.savedRevision ?? "",
+              workingRevision: existing?.workingRevision ?? 0,
+              encoding: existing?.encoding ?? "utf-8",
               dirty: existing?.dirty ?? false,
+              saving: existing?.saving ?? false,
               loading: true,
+              linkedDocumentIds: existing?.linkedDocumentIds ?? [],
               conflict: existing?.conflict,
               artifact: existing?.artifact,
               imageUrl: existing?.imageUrl,
@@ -93,7 +111,7 @@ export const useDocumentStore = create<DocumentStore>()(
     },
     finishOpen(documentId, result, imageUrl) {
       const descriptor = descriptorFromOpenResult(result);
-      const content = result.content ?? "";
+      const text = result.content ?? "";
       set((state) => ({
         opened: {
           ...state.opened,
@@ -101,13 +119,39 @@ export const useDocumentStore = create<DocumentStore>()(
             documentId,
             path: result.path,
             descriptor,
-            content,
-            savedContent: content,
-            baseRevision: result.revision,
+            savedText: text,
+            workingText: text,
+            savedRevision: result.revision,
+            workingRevision: 0,
+            encoding: result.encoding ?? "utf-8",
             dirty: false,
+            saving: false,
             loading: false,
+            linkedDocumentIds: state.opened[documentId]?.linkedDocumentIds ?? [],
             artifact: result.artifact,
             imageUrl,
+          },
+        },
+      }));
+    },
+    registerDraft(documentId, descriptor, text, options) {
+      const saved = options?.saved ?? false;
+      set((state) => ({
+        opened: {
+          ...state.opened,
+          [documentId]: {
+            documentId,
+            path: descriptor.path,
+            descriptor,
+            savedText: saved ? text : "",
+            workingText: text,
+            savedRevision: "",
+            workingRevision: 0,
+            encoding: options?.encoding ?? "utf-8",
+            dirty: !saved,
+            saving: false,
+            loading: false,
+            linkedDocumentIds: [],
           },
         },
       }));
@@ -116,45 +160,64 @@ export const useDocumentStore = create<DocumentStore>()(
       updateOpened(set, documentId, (document) => ({
         ...document,
         loading: false,
+        saving: false,
         error,
       }));
     },
-    updateContent(documentId, content) {
-      updateOpened(set, documentId, (document) =>
-        document.descriptor.editable
-          ? { ...document, content, dirty: content !== document.savedContent }
-          : document,
-      );
+    updateWorkingText(documentId, text) {
+      updateOpened(set, documentId, (document) => {
+        if (!document.descriptor.editable || document.workingText === text) return document;
+        return {
+          ...document,
+          workingText: text,
+          workingRevision: document.workingRevision + 1,
+          dirty: text !== document.savedText,
+          error: undefined,
+        };
+      });
     },
-    markSaved(documentId, revision, savedContent) {
+    setSaving(documentId, saving) {
+      updateOpened(set, documentId, (document) => ({ ...document, saving }));
+    },
+    markSaved(documentId, result, savedText) {
       updateOpened(set, documentId, (document) => ({
         ...document,
-        savedContent,
-        baseRevision: revision,
-        dirty: document.content !== savedContent,
+        savedText,
+        savedRevision: result.revision,
+        encoding: result.encoding,
+        dirty: document.workingText !== savedText,
+        saving: false,
         conflict: undefined,
         error: undefined,
+        deleted: false,
+        descriptor: { ...document.descriptor, size: result.size },
       }));
     },
     setConflict(documentId, external) {
-      updateOpened(set, documentId, (document) => ({
-        ...document,
-        descriptor: descriptorFromOpenResult(external),
-        conflict: {
-          externalContent: external.content ?? "",
-          externalRevision: external.revision,
-        },
-        loading: false,
-      }));
+      updateOpened(set, documentId, (document) => {
+        if (external.revision === document.savedRevision) return document;
+        return {
+          ...document,
+          descriptor: descriptorFromOpenResult(external),
+          conflict: {
+            externalText: external.content ?? "",
+            externalRevision: external.revision,
+            externalEncoding: external.encoding ?? "utf-8",
+          },
+          loading: false,
+          saving: false,
+        };
+      });
     },
     keepLocal(documentId) {
       updateOpened(set, documentId, (document) =>
         document.conflict
           ? {
               ...document,
-              savedContent: document.conflict.externalContent,
-              baseRevision: document.conflict.externalRevision,
-              dirty: document.content !== document.conflict.externalContent,
+              savedText: document.conflict.externalText,
+              savedRevision: document.conflict.externalRevision,
+              encoding: document.conflict.externalEncoding,
+              dirty: document.workingText !== document.conflict.externalText,
               conflict: undefined,
             }
           : document,
@@ -162,7 +225,7 @@ export const useDocumentStore = create<DocumentStore>()(
     },
     reloadExternal(documentId, external, imageUrl) {
       const descriptor = descriptorFromOpenResult(external);
-      const content = external.content ?? "";
+      const text = external.content ?? "";
       set((state) => ({
         opened: {
           ...state.opened,
@@ -170,11 +233,15 @@ export const useDocumentStore = create<DocumentStore>()(
             documentId,
             path: external.path,
             descriptor,
-            content,
-            savedContent: content,
-            baseRevision: external.revision,
+            savedText: text,
+            workingText: text,
+            savedRevision: external.revision,
+            workingRevision: state.opened[documentId]?.workingRevision ?? 0,
+            encoding: external.encoding ?? "utf-8",
             dirty: false,
+            saving: false,
             loading: false,
+            linkedDocumentIds: state.opened[documentId]?.linkedDocumentIds ?? [],
             artifact: external.artifact,
             imageUrl,
           },
@@ -182,10 +249,27 @@ export const useDocumentStore = create<DocumentStore>()(
       }));
     },
     markDeleted(documentId) {
-      updateOpened(set, documentId, (document) => ({ ...document, deleted: true }));
+      updateOpened(set, documentId, (document) => ({
+        ...document,
+        deleted: true,
+        dirty: true,
+        saving: false,
+      }));
+    },
+    setLinkedDocuments(documentId, linkedIds) {
+      updateOpened(set, documentId, (document) => ({
+        ...document,
+        linkedDocumentIds: [...new Set(linkedIds)],
+      }));
     },
     applyDocumentMappings(mappings) {
       set((state) => {
+        const idMappings = new Map(
+          mappings.map((mapping) => [
+            asDocumentId(mapping.oldDocumentId),
+            asDocumentId(mapping.newDocumentId),
+          ]),
+        );
         const opened = { ...state.opened };
         mappings.forEach((mapping) => {
           const oldId = asDocumentId(mapping.oldDocumentId);
@@ -202,6 +286,14 @@ export const useDocumentStore = create<DocumentStore>()(
               path: mapping.newPath,
               name: mapping.newPath.split("/").at(-1) ?? document.descriptor.name,
             },
+          };
+        });
+        Object.entries(opened).forEach(([id, document]) => {
+          opened[asDocumentId(id)] = {
+            ...document,
+            linkedDocumentIds: document.linkedDocumentIds.map(
+              (linkedId) => idMappings.get(linkedId) ?? linkedId,
+            ),
           };
         });
         return { opened };

@@ -4,8 +4,7 @@ import type {
   ProjectChangedPayload,
   ProjectEntriesPayload,
 } from "../../services/generated/bridge-v2";
-import type { FileType } from "../../stores/fileStore";
-import { onParentMessage, requestParent, sendToParent } from "../../utils/embedBridge";
+import { onParentMessage, requestParent } from "../../utils/embedBridge";
 import {
   asDocumentId,
   asProjectId,
@@ -24,6 +23,7 @@ import type {
   EntryRenameResult,
   ProjectEntryTarget,
   ProjectStorageAdapter,
+  WriteDocumentInput,
 } from "./ProjectStorageAdapter";
 
 export interface EmbeddedProjectHandshake {
@@ -81,21 +81,8 @@ export class EmbeddedHostProjectStorageAdapter implements ProjectStorageAdapter 
     return this.request("document.open", { documentId });
   }
 
-  write(
-    documentId: DocumentId,
-    content: string,
-    baseRevision: string,
-  ): Promise<DocumentSaveResult> {
-    return this.request("document.save", { documentId, content, baseRevision });
-  }
-
-  savePipeline(documentId: DocumentId, file: FileType): Promise<"delegated" | "unsupported"> {
-    void file;
-    if (!this.storageCapabilities.operations.write?.available) {
-      return Promise.resolve("unsupported");
-    }
-    sendToParent("mpe:saveRequest", { documentId, hint: "user-triggered" });
-    return Promise.resolve("delegated");
+  write(input: WriteDocumentInput): Promise<DocumentSaveResult> {
+    return this.request("document.save", input);
   }
 
   async create(directory: string, name: string): Promise<EntryCreateResult> {

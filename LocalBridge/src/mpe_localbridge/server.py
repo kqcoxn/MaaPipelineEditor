@@ -698,11 +698,17 @@ class Dispatcher:
         self, context: RpcContext, params: dict[str, Any]
     ) -> dict[str, Any]:
         del context
+        operation_id = str(params.get("operation_id", ""))
+        reason = str(params.get("reason", ""))
+        if reason not in {"user", "save-all", "before-run"}:
+            raise InvalidArgumentError("文档保存原因无效")
         result = await asyncio.to_thread(
             self.state.workspace.save_document,
             str(params.get("path", "")),
             str(params.get("content", "")),
-            str(params.get("base_revision", "")),
+            str(params.get("expected_revision", "")),
+            str(params.get("encoding", "")),
+            operation_id,
         )
         response = DocumentSaveResult.model_validate(result).model_dump(
             mode="json", by_alias=True
@@ -711,6 +717,7 @@ class Dispatcher:
             "type": "modified",
             "file_path": result["path"],
             "is_directory": False,
+            "operation_id": operation_id,
         }
         await self.state.workspace_changed([event], False, [])
         return response

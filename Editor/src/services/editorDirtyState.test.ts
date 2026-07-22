@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useFileStore } from "../stores/fileStore";
 import { useDocumentStore } from "../stores/documentStore";
+import { asDocumentId } from "../features/project-session/types";
 import { collectDirtyEditorItems, handleDirtyBeforeUnload } from "./editorDirtyState";
 
 describe("editorDirtyState", () => {
@@ -22,8 +23,21 @@ describe("editorDirtyState", () => {
   });
 
   it("blocks browser close and reports dirty Pipeline drafts", () => {
-    useFileStore.getState().addFile({ isSwitch: true });
-    useFileStore.getState().setFileConfig("prefix", "draft");
+    const documentId = asDocumentId("draft:pipeline");
+    useDocumentStore.getState().registerDraft(
+      documentId,
+      {
+        path: "",
+        name: "draft",
+        kind: "pipeline",
+        language: "json",
+        mimeType: "application/json",
+        size: 2,
+        editable: true,
+        previewable: true,
+      },
+      "{}",
+    );
     const event = {
       preventDefault: vi.fn(),
       returnValue: undefined,

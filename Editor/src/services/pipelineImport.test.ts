@@ -2,12 +2,14 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { asDocumentId } from "../features/project-session/types";
 import { useFileStore } from "../stores/fileStore";
+import { useDocumentStore } from "../stores/documentStore";
 import { useProjectSessionStore } from "../stores/projectSessionStore";
 import { importPipelineAsDraft } from "./pipelineImport";
 
 describe("importPipelineAsDraft", () => {
   beforeEach(() => {
     useFileStore.getState().resetProjectSession();
+    useDocumentStore.getState().clearProject();
     useProjectSessionStore.getState().clear();
   });
 
@@ -44,7 +46,6 @@ describe("importPipelineAsDraft", () => {
     });
     expect(state.currentFile).toMatchObject({
       fileName: "imported",
-      saveState: { dirty: true },
     });
     expect(state.currentFile.documentId).not.toBe(originalDocumentId);
     expect(state.currentFile.documentId).toMatch(/^draft:/);
@@ -52,5 +53,11 @@ describe("importPipelineAsDraft", () => {
     expect(useProjectSessionStore.getState().activeDocumentId).toBe(
       state.currentFile.documentId,
     );
+    expect(
+      useDocumentStore.getState().opened[state.currentFile.documentId],
+    ).toMatchObject({
+      descriptor: { kind: "pipeline" },
+      dirty: true,
+    });
   });
 });

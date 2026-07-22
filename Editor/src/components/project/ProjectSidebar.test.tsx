@@ -138,16 +138,12 @@ describe("ProjectSidebar", () => {
     const createFile = vi
       .spyOn(fileProtocol, "requestCreateFile")
       .mockResolvedValue("pipeline/new.json");
-    const openFile = vi
-      .spyOn(fileProtocol, "requestOpenFile")
-      .mockReturnValue(true);
     fireEvent.change(input, { target: { value: "new.json" } });
     fireEvent.keyDown(input, { key: "Enter" });
 
     await waitFor(() => {
       expect(createFile).toHaveBeenCalledWith("new.json", "pipeline");
     });
-    expect(openFile).toHaveBeenCalledWith("pipeline/new.json");
   });
 
   it("renames a file from its context menu", async () => {

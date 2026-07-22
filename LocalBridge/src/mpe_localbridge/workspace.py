@@ -6,7 +6,6 @@ import logging
 import mimetypes
 import os
 import re
-import time
 from pathlib import Path
 from threading import RLock
 from typing import Any, cast
@@ -87,8 +86,6 @@ class Workspace:
             preferences_path or workspace_preferences_path()
         )
         self._lock = RLock()
-        self._own_writes: dict[Path, tuple[int, int, float]] = {}
-        self._own_writes_lock = RLock()
         self._revision = 0
         self._tree_revision = 0
         self._documents_revision = 0
@@ -644,7 +641,9 @@ class Workspace:
         raw = path.read_bytes()
         try:
             result["content"] = raw.decode("utf-8-sig")
-            result["encoding"] = "utf-8"
+            result["encoding"] = (
+                "utf-8-bom" if raw.startswith(b"\xef\xbb\xbf") else "utf-8"
+            )
         except UnicodeDecodeError:
             result["kind"] = "binary"
             result["language"] = ""
@@ -658,7 +657,9 @@ class Workspace:
         self,
         relative_path: str,
         content: str,
-        base_revision: str,
+        expected_revision: str,
+        encoding: str,
+        operation_id: str,
     ) -> dict[str, Any]:
         descriptor = self.document_descriptor(relative_path)
         if not descriptor["editable"] or descriptor["kind"] in {"image", "binary"}:
@@ -670,7 +671,7 @@ class Workspace:
         except UnicodeDecodeError as error:
             raise ForbiddenError("该文件不是可安全编辑的 UTF-8 文本") from error
         current_revision = hashlib.sha256(current).hexdigest()
-        if current_revision != base_revision:
+        if current_revision != expected_revision:
             raise DocumentConflictError(
                 "文件已被外部修改",
                 data={
@@ -678,7 +679,13 @@ class Workspace:
                     "currentRevision": current_revision,
                 },
             )
+        if encoding not in {"utf-8", "utf-8-bom"}:
+            raise InvalidArgumentError("文档编码必须是 utf-8 或 utf-8-bom")
+        if not operation_id:
+            raise InvalidArgumentError("文档保存必须提供 operation_id")
         encoded = content.encode("utf-8")
+        if encoding == "utf-8-bom":
+            encoded = b"\xef\xbb\xbf" + encoded
         if len(encoded) >= MAX_WS_MESSAGE_BYTES:
             raise InvalidArgumentError("文件内容超过 WebSocket 消息限制")
         self._atomic_write_bytes(path, encoded)
@@ -688,6 +695,8 @@ class Workspace:
             "revision": revision,
             "size": len(encoded),
             "sha256": revision,
+            "operation_id": operation_id,
+            "encoding": encoding,
         }
 
     def _resolve_document_path(self, relative_path: str) -> Path:
@@ -777,12 +786,10 @@ class Workspace:
         else:
             kind = "binary"
 
-        editable = kind in {"interface", "json", "text", "markdown"}
+        editable = kind in {"pipeline", "interface", "json", "text", "markdown"}
         previewable = True
         read_only_reason: str | None = None
-        if kind == "pipeline":
-            read_only_reason = "pipeline"
-        elif kind == "image":
+        if kind == "image":
             editable = False
             read_only_reason = "image"
         elif kind == "binary":
@@ -897,27 +904,6 @@ class Workspace:
             except OSError:
                 return True
         return False
-
-    def is_own_write(self, path: Path) -> bool:
-        try:
-            resolved = path.resolve()
-            stat = resolved.stat()
-        except OSError:
-            return False
-        now = time.monotonic()
-        with self._own_writes_lock:
-            expired = [
-                candidate
-                for candidate, (_, _, expires_at) in self._own_writes.items()
-                if expires_at < now
-            ]
-            for candidate in expired:
-                self._own_writes.pop(candidate, None)
-            fingerprint = self._own_writes.get(resolved)
-        return fingerprint is not None and fingerprint[:2] == (
-            stat.st_mtime_ns,
-            stat.st_size,
-        )
 
     def open_file(self, relative_path: str) -> dict[str, Any]:
         path = self.resolve(relative_path, must_exist=True)
@@ -1239,13 +1225,6 @@ class Workspace:
             file.flush()
             os.fsync(file.fileno())
         temp.replace(path)
-        stat = path.stat()
-        with self._own_writes_lock:
-            self._own_writes[path.resolve()] = (
-                stat.st_mtime_ns,
-                stat.st_size,
-                time.monotonic() + 2.0,
-            )
 
     @staticmethod
     def _separated_config_path(path: Path) -> Path:

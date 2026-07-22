@@ -11,6 +11,7 @@ import {
   Button,
   Space,
   Modal,
+  Alert,
 } from "antd";
 const { Header: HeaderSection, Content } = Layout;
 
@@ -89,6 +90,7 @@ import {
 } from "./services/embedSaveCoordinator";
 import { handleDirtyBeforeUnload } from "./services/editorDirtyState";
 import { handleDesktopCloseRequest } from "./services/desktopCloseGuard";
+import { syncCurrentPipelineToDocuments } from "./features/pipeline-document/pipelineDocumentService";
 
 const JsonViewer = lazy(() => import("./components/JsonViewer"));
 const DebugModal = lazy(() =>
@@ -165,12 +167,14 @@ function App() {
   const activeEntry = useProjectSessionStore((state) =>
     activeDocumentId ? state.entriesById[activeDocumentId] : undefined,
   );
-  const pipelineFiles = useFileStore((state) => state.files);
   const openedDocuments = useDocumentStore((state) => state.opened);
+  const activeOpenDocument = activeDocumentId
+    ? openedDocuments[activeDocumentId]
+    : undefined;
   const documentActive = Boolean(activeEntry && activeEntry.kind !== "pipeline");
-  const hasDirtyItems =
-    pipelineFiles.some((file) => file.saveState.dirty) ||
-    Object.values(openedDocuments).some((document) => document.dirty);
+  const hasDirtyItems = Object.values(openedDocuments).some(
+    (document) => document.dirty,
+  );
 
   useEffect(
     () =>
@@ -184,6 +188,16 @@ function App() {
             previous[0] === next[0] && previous[1] === next[1],
         },
       ),
+    [],
+  );
+
+  useEffect(
+    () =>
+      useFileStore.subscribe((state, previous) => {
+        if (state.currentFile !== previous.currentFile) {
+          void syncCurrentPipelineToDocuments();
+        }
+      }),
     [],
   );
 
@@ -338,9 +352,9 @@ function App() {
         },
       );
 
-      const cleanupSave = onParentMessage("mpe:save", (_payload, requestId) => {
+      const cleanupSave = onParentMessage("mpe:save", async (_payload, requestId) => {
         try {
-          sendToParent("mpe:saveData", beginEmbedSave(), requestId);
+          sendToParent("mpe:saveData", await beginEmbedSave(), requestId);
         } catch (err) {
           sendToParent(
             "mpe:error",
@@ -424,8 +438,12 @@ function App() {
                 result[field] = useEmbedStore.getState().capabilities.readOnly;
                 break;
               case "dirty":
-                result[field] =
-                  useFileStore.getState().currentFile.saveState.dirty;
+                {
+                  const currentId = useProjectSessionStore.getState().activeDocumentId;
+                  result[field] = currentId
+                    ? Boolean(useDocumentStore.getState().opened[currentId]?.dirty)
+                    : false;
+                }
                 break;
               default:
                 result[field] = undefined;
@@ -627,6 +645,12 @@ function App() {
                     <WelcomeScreen />
                   ) : documentActive ? (
                     <DocumentEditorHost documentId={activeDocumentId} />
+                  ) : activeOpenDocument?.error ? (
+                    <Alert
+                      banner
+                      type="error"
+                      title={activeOpenDocument.error}
+                    />
                   ) : (
                     <>
                       {showToolbar && <ToolbarPanel />}

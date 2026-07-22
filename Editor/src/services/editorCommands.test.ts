@@ -1,70 +1,49 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  saveDocument: vi.fn(async () => true),
+  saveDocumentGroup: vi.fn(async () => []),
+  saveAllDirty: vi.fn(async () => []),
+  syncCurrentPipelineToDocuments: vi.fn(async () => undefined),
 }));
 
 vi.mock("./server", () => ({
-  documentProtocol: { saveDocument: mocks.saveDocument },
+  documentProtocol: {
+    saveDocumentGroup: mocks.saveDocumentGroup,
+    saveAllDirty: mocks.saveAllDirty,
+  },
+}));
+vi.mock("../features/pipeline-document/pipelineDocumentService", () => ({
+  syncCurrentPipelineToDocuments: mocks.syncCurrentPipelineToDocuments,
 }));
 
 import { parseProjectPath } from "../features/project-session/projectPath";
-import {
-  asDocumentId,
-  asProjectId,
-  type DocumentId,
-} from "../features/project-session/types";
-import type { ProjectStorageAdapter } from "../features/project-storage/ProjectStorageAdapter";
-import { projectStorageCoordinator } from "../features/project-storage/projectStorageCoordinator";
+import { asDocumentId, asProjectId, type DocumentId } from "../features/project-session/types";
 import { useDocumentStore } from "../stores/documentStore";
-import type { FileType } from "../stores/fileStore";
-import { useFileStore } from "../stores/fileStore";
 import { useProjectSessionStore } from "../stores/projectSessionStore";
 import { useToolbarStore } from "../stores/toolbarStore";
-import { saveActiveEditor } from "./editorCommands";
+import { saveActiveEditor, saveAllDocuments } from "./editorCommands";
 
 const projectId = asProjectId("project:test");
-const identity = {
-  projectId,
-  projectRoot: "C:/project",
-  interfacePath: parseProjectPath("interface.json"),
-  name: "test",
-  label: "Test",
-  version: "1.0.0",
-};
-const capabilities = {
-  projectId,
-  pathCaseSensitive: true,
-  operations: {
-    list: { available: true },
-    read: { available: true },
-    write: { available: true },
-  },
-};
 
-function createAdapter(
-  savePipeline: ProjectStorageAdapter["savePipeline"] = vi.fn(
-    async () => "saved" as const,
-  ),
-  kind: ProjectStorageAdapter["kind"] = "localbridge",
-): ProjectStorageAdapter {
-  return {
-    kind,
-    identity,
-    capabilities: () => capabilities,
-    list: vi.fn(async () => ({ revision: 1, projectId, entries: [] })),
-    read: vi.fn(),
-    write: vi.fn(),
-    savePipeline,
-    create: vi.fn(),
-    rename: vi.fn(),
-    delete: vi.fn(),
-    watch: vi.fn(() => () => undefined),
-  };
-}
-
-function applyEntry(documentId: DocumentId, path: string, kind: "pipeline" | "json") {
-  useProjectSessionStore.getState().applyEntries({
+function establish(documentId: DocumentId, kind: "pipeline" | "json", path: string) {
+  const session = useProjectSessionStore.getState();
+  session.establishSession(
+    {
+      projectId,
+      projectRoot: "C:/project",
+      interfacePath: parseProjectPath("interface.json"),
+      name: "test",
+      label: "Test",
+      version: "1.0.0",
+    },
+    "localbridge",
+  );
+  session.setCapabilities({
+    projectId,
+    pathCaseSensitive: true,
+    operations: { write: { available: true } },
+  });
+  session.applyEntries({
     revision: 1,
     projectId,
     entries: [
@@ -82,104 +61,116 @@ function applyEntry(documentId: DocumentId, path: string, kind: "pipeline" | "js
       },
     ],
   });
-  useProjectSessionStore.getState().openDocument(documentId);
-}
-
-function pipeline(documentId: DocumentId, path?: string): FileType {
-  return {
-    documentId,
-    fileName: "main",
-    nodes: [],
-    edges: [],
-    config: { prefix: "draft", filePath: path },
-    saveState: {
-      dirty: true,
-      savedFingerprint: "baseline",
-      saving: false,
-    },
+  session.openDocument(documentId);
+  const descriptor = {
+    path,
+    name: path.split("/").at(-1) ?? path,
+    kind,
+    language: "json",
+    mimeType: "application/json",
+    size: 2,
+    editable: true,
+    previewable: true,
   };
+  useDocumentStore.getState().beginOpen(documentId, descriptor);
+  useDocumentStore.getState().finishOpen(documentId, {
+    ...descriptor,
+    revision: "r1",
+    content: "{}",
+    encoding: "utf-8",
+  });
+  useDocumentStore.getState().updateWorkingText(documentId, '{"dirty":true}');
 }
 
-describe("saveActiveEditor", () => {
+describe("editor document save commands", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    projectStorageCoordinator.destroy();
     useProjectSessionStore.getState().clear();
     useDocumentStore.getState().clearProject();
     useToolbarStore.getState().closeExportDialog();
-    useFileStore.getState().resetProjectSession();
   });
 
-  it("routes ordinary documents through the active adapter command", async () => {
-    const documentId = asDocumentId("document:notes");
-    projectStorageCoordinator.setAdapter(createAdapter());
-    applyEntry(documentId, "notes.jsonc", "json");
-    const descriptor = {
-      path: "notes.jsonc",
-      name: "notes.jsonc",
-      kind: "json" as const,
-      language: "json",
-      mimeType: "application/json",
-      size: 2,
-      editable: true,
-      previewable: true,
-    };
-    useDocumentStore.getState().beginOpen(documentId, descriptor);
-    useDocumentStore.getState().finishOpen(documentId, {
-      ...descriptor,
-      revision: "r1",
-      content: "{}",
-    });
-    useDocumentStore.getState().updateContent(documentId, '{"dirty":true}');
+  it.each(["json", "pipeline"] as const)(
+    "saves the active %s document through its associated document group",
+    async (kind) => {
+      const documentId = asDocumentId(`document:${kind}`);
+      establish(documentId, kind, `${kind}/main.jsonc`);
+      mocks.saveDocumentGroup.mockResolvedValueOnce([
+        { documentId, status: "saved", name: "main.jsonc" },
+      ]);
 
-    await expect(saveActiveEditor()).resolves.toBe("saved");
+      await expect(saveActiveEditor()).resolves.toBe("saved");
 
-    expect(mocks.saveDocument).toHaveBeenCalledWith(documentId);
-  });
+      expect(mocks.saveDocumentGroup).toHaveBeenCalledWith(documentId, "user");
+      expect(mocks.syncCurrentPipelineToDocuments).toHaveBeenCalledTimes(
+        kind === "pipeline" ? 1 : 0,
+      );
+    },
+  );
 
-  it("routes project Pipelines through the active adapter", async () => {
+  it("saves a Pipeline and its linked sidecar as one group", async () => {
     const documentId = asDocumentId("document:pipeline");
-    const savePipeline = vi.fn(async () => "saved" as const);
-    projectStorageCoordinator.setAdapter(createAdapter(savePipeline));
-    applyEntry(documentId, "pipeline/main.json", "pipeline");
-    const file = pipeline(documentId, "pipeline/main.json");
-    useFileStore.setState({ files: [file], currentFile: file });
+    const sidecarId = asDocumentId("document:sidecar");
+    establish(documentId, "pipeline", "pipeline/main.jsonc");
+    useDocumentStore.getState().registerDraft(
+      sidecarId,
+      {
+        path: "pipeline/.main.mpe.json",
+        name: ".main.mpe.json",
+        kind: "json",
+        language: "json",
+        mimeType: "application/json",
+        size: 2,
+        editable: true,
+        previewable: true,
+        role: "mpe_config",
+      },
+      "{}",
+    );
+    useDocumentStore.getState().setLinkedDocuments(documentId, [sidecarId]);
+    mocks.saveDocumentGroup.mockResolvedValueOnce([
+      { documentId, status: "saved", name: "main.jsonc" },
+      { documentId: sidecarId, status: "saved", name: ".main.mpe.json" },
+    ]);
 
     await expect(saveActiveEditor()).resolves.toBe("saved");
-
-    expect(savePipeline).toHaveBeenCalledWith(documentId, file, {
-      allowOverwrite: false,
-    });
+    expect(mocks.saveDocumentGroup).toHaveBeenCalledWith(documentId, "user");
   });
 
-  it("opens ExportCopy for a pathless Pipeline draft", async () => {
+  it("opens export for a pathless dirty draft", async () => {
     const documentId = asDocumentId("draft:pipeline");
-    projectStorageCoordinator.setAdapter(
-      createAdapter(vi.fn(async () => "unsupported" as const)),
+    const session = useProjectSessionStore.getState();
+    session.registerDraft("main", "pipeline", documentId);
+    session.openDocument(documentId);
+    useDocumentStore.getState().registerDraft(
+      documentId,
+      {
+        path: "",
+        name: "main",
+        kind: "pipeline",
+        language: "json",
+        mimeType: "application/json",
+        size: 2,
+        editable: true,
+        previewable: true,
+      },
+      "{}",
     );
-    useProjectSessionStore.getState().registerDraft("main", "pipeline", documentId);
-    useProjectSessionStore.getState().openDocument(documentId);
-    const file = pipeline(documentId);
-    useFileStore.setState({ files: [file], currentFile: file });
 
     await expect(saveActiveEditor()).resolves.toBe("export-requested");
-
     expect(useToolbarStore.getState().exportDialogOpen).toBe(true);
   });
 
-  it("delegates embedded Pipeline saves to the host adapter", async () => {
-    const documentId = asDocumentId("draft:embedded-pipeline");
-    const savePipeline = vi.fn(async () => "delegated" as const);
-    projectStorageCoordinator.setAdapter(createAdapter(savePipeline, "embedded"));
-    useProjectSessionStore
-      .getState()
-      .registerDraft("main", "pipeline", documentId);
-    useProjectSessionStore.getState().openDocument(documentId);
-    const file = pipeline(documentId);
-    useFileStore.setState({ files: [file], currentFile: file });
+  it("saves all dirty documents with the save-all reason", async () => {
+    const documentId = asDocumentId("document:notes");
+    establish(documentId, "json", "notes.jsonc");
+    mocks.saveAllDirty.mockResolvedValueOnce([
+      { documentId, status: "saved", name: "notes.jsonc" },
+    ]);
 
-    await expect(saveActiveEditor()).resolves.toBe("delegated");
+    const outcomes = await saveAllDocuments();
 
-    expect(savePipeline).toHaveBeenCalledWith(documentId, file);
+    expect(outcomes).toHaveLength(1);
+    expect(mocks.saveAllDirty).toHaveBeenCalledWith("save-all");
   });
 });

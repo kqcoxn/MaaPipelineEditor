@@ -1,4 +1,4 @@
-import { Button, Dropdown, message } from "antd";
+import { Button, Dropdown } from "antd";
 import type { MenuProps } from "antd";
 import { ExportOutlined } from "@ant-design/icons";
 import { memo, useMemo, useState, useCallback } from "react";
@@ -18,7 +18,10 @@ import GuardPromptModal from "../../modals/GuardPromptModal";
 import type { ConfigItemDef } from "../../panels/settings/settingsDefinitions";
 import style from "../../../styles/panels/ToolbarPanel.module.less";
 import { getCapability } from "../../../features/project-storage/ProjectStorageAdapter";
-import { saveActiveEditor } from "../../../services/editorCommands";
+import {
+  saveActiveEditor,
+  saveAllDocuments,
+} from "../../../services/editorCommands";
 
 const actionGroupStyle = {
   display: "inline-flex",
@@ -98,15 +101,9 @@ function ExportButton() {
     openExportDialog();
   }, [openExportDialog]);
 
-  const handleSaveToProject = useCallback(
-    async () => {
-      const result = await saveActiveEditor();
-      if (result === "failed") {
-        message.error("文件保存失败");
-      }
-    },
-    [],
-  );
+  const handleSaveToProject = useCallback(() => {
+    void saveActiveEditor();
+  }, []);
 
   const handlePartialExport = useCallback(() => {
     ClipboardHelper.write(
@@ -125,6 +122,10 @@ function ExportButton() {
     });
   };
 
+  const handleSaveAllDocuments = useCallback(() => {
+    void saveAllDocuments();
+  }, []);
+
   const handleExportConfig = () => {
     const { configString } = flowToSeparatedStrings();
     ClipboardHelper.writeString(configString, {
@@ -142,10 +143,12 @@ function ExportButton() {
         handleExportToFile();
         break;
       case "save-local":
-      case "save-local-all":
       case "save-local-pipeline":
       case "save-local-config":
         handleSaveToProject();
+        break;
+      case "save-local-all":
+        handleSaveAllDocuments();
         break;
       case "partial":
         handlePartialExport();
@@ -160,6 +163,7 @@ function ExportButton() {
   }, [
     handleExportToFile,
     handlePartialExport,
+    handleSaveAllDocuments,
     handleSaveToProject,
   ]);
 
@@ -192,10 +196,18 @@ function ExportButton() {
     if (canSaveToProject) {
       items.push({
         key: "save-local",
-        label: "保存到项目",
+        label: "保存当前文档",
         onClick: () => {
           setDefaultExportAction("save-local");
           executeExportAction("save-local");
+        },
+      });
+      items.push({
+        key: "save-local-all",
+        label: "保存全部已修改文档",
+        onClick: () => {
+          setDefaultExportAction("save-local-all");
+          executeExportAction("save-local-all");
         },
       });
     }
@@ -255,9 +267,9 @@ function ExportButton() {
       case "file":
         return { buttonLabel: "导出", currentActionDesc: "文件" };
       case "save-local":
-        return { buttonLabel: "导出", currentActionDesc: "本地" };
+        return { buttonLabel: "保存", currentActionDesc: "当前" };
       case "save-local-all":
-        return { buttonLabel: "导出", currentActionDesc: "全部" };
+        return { buttonLabel: "保存", currentActionDesc: "全部" };
       case "save-local-pipeline":
         return { buttonLabel: "导出", currentActionDesc: "Pipeline" };
       case "save-local-config":

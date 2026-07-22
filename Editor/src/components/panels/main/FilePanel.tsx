@@ -92,7 +92,7 @@ function FilePanel() {
             ? files.find((file) => file.documentId === tab.documentId)
             : undefined;
         const document = openedDocuments[tab.documentId]?.descriptor;
-        const dirty = pipeline?.saveState.dirty ?? openedDocuments[tab.documentId]?.dirty;
+        const dirty = openedDocuments[tab.documentId]?.dirty;
         const label =
           (entry && "path" in entry ? entry.name : undefined) ??
           pipeline?.fileName ??

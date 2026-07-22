@@ -25,7 +25,6 @@ function pendingLocalBridge(): ProjectStorageAdapter {
     list: vi.fn(),
     read: vi.fn(),
     write: vi.fn(),
-    savePipeline: vi.fn(),
     create: vi.fn(),
     rename: vi.fn(),
     delete: vi.fn(),

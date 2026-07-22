@@ -88,8 +88,6 @@ def normalize_changes(
         if event_path is None:
             continue
         relative_path, is_directory = event_path
-        if change != Change.deleted and not is_directory and workspace.is_own_write(path):
-            continue
         previous = merged.get(relative_path)
         if previous is None or priorities[change] >= priorities[previous[0]]:
             merged[relative_path] = (change, is_directory, workspace_kind)

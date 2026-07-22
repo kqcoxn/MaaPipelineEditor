@@ -1,4 +1,3 @@
-import { Modal } from "antd";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { asDocumentId, asProjectId } from "../../features/project-session/types";
@@ -7,7 +6,7 @@ import { useConfigStore } from "../../stores/configStore";
 import { useDocumentStore } from "../../stores/documentStore";
 import { useFileStore } from "../../stores/fileStore";
 import { useProjectSessionStore } from "../../stores/projectSessionStore";
-import type { LocalWebSocketServer } from "../server";
+import { documentProtocol, type LocalWebSocketServer } from "../server";
 import type { MessageHandler } from "../type";
 import { FileProtocol } from "./FileProtocol";
 
@@ -76,11 +75,29 @@ describe("FileProtocol project changes", () => {
     useConfigStore.getState().setConfig("fileAutoReload", true);
   });
 
-  it("never auto-reloads a dirty Pipeline after an external modification", () => {
-    establishPipeline();
-    useFileStore.getState().markCurrentSaved();
-    useFileStore.getState().setFileConfig("prefix", "draft");
-    vi.spyOn(Modal, "confirm").mockReturnValue({ destroy: vi.fn(), update: vi.fn() } as never);
+  it("routes external Pipeline modifications through the unified document service", async () => {
+    const documentId = establishPipeline();
+    const descriptor = {
+      path: "pipeline/main.json",
+      name: "main.json",
+      kind: "pipeline" as const,
+      language: "json",
+      mimeType: "application/json",
+      size: 2,
+      editable: true,
+      previewable: true,
+    };
+    useDocumentStore.getState().beginOpen(documentId, descriptor);
+    useDocumentStore.getState().finishOpen(documentId, {
+      ...descriptor,
+      revision: "r1",
+      content: "{}",
+      encoding: "utf-8",
+    });
+    useDocumentStore.getState().updateWorkingText(documentId, '{"Draft":{}}');
+    const refresh = vi
+      .spyOn(documentProtocol, "refreshFromExternal")
+      .mockResolvedValue(undefined);
     const { client, emit, send } = setupClient();
     const protocol = new FileProtocol();
     protocol.register(client);
@@ -94,10 +111,13 @@ describe("FileProtocol project changes", () => {
       documentMappings: [],
     });
 
+    await vi.waitFor(() => {
+      expect(refresh).toHaveBeenCalledWith(documentId, "modify:1");
+    });
     expect(send).not.toHaveBeenCalledWith("file.open", expect.anything());
-    expect(useFileStore.getState().currentFile.saveState).toMatchObject({
+    expect(useDocumentStore.getState().opened[documentId]).toMatchObject({
+      workingText: '{"Draft":{}}',
       dirty: true,
-      externalChange: "modified",
     });
   });
 

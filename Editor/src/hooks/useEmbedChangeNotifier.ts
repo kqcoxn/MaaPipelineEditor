@@ -2,7 +2,8 @@ import { useEffect, useRef } from "react";
 import { useShallow } from "zustand/shallow";
 import { useFlowStore } from "../stores/flow";
 import { sendToParent } from "../utils/embedBridge";
-import { useFileStore } from "../stores/fileStore";
+import { useDocumentStore } from "../stores/documentStore";
+import { useProjectSessionStore } from "../stores/projectSessionStore";
 
 const EMPTY_NODES: never[] = [];
 const EMPTY_EDGES: never[] = [];
@@ -27,8 +28,11 @@ export function useEmbedChangeNotifier(enabled: boolean = true) {
       selectedNodes: enabled ? state.selectedNodes : EMPTY_NODES,
     })),
   );
-  const dirty = useFileStore((state) =>
-    enabled ? state.currentFile.saveState.dirty : false,
+  const activeDocumentId = useProjectSessionStore((state) => state.activeDocumentId);
+  const dirty = useDocumentStore((state) =>
+    enabled && activeDocumentId
+      ? Boolean(state.opened[activeDocumentId]?.dirty)
+      : false,
   );
 
   // 保存上一次状态用于推断变更类型

@@ -4,7 +4,6 @@ import type {
   ProjectChangedPayload,
   ProjectEntriesPayload,
 } from "../../services/generated/bridge-v2";
-import type { FileType } from "../../stores/fileStore";
 import type {
   DocumentId,
   ProjectIdentity,
@@ -47,22 +46,25 @@ export interface ProjectEntryTarget {
   documentId?: DocumentId;
 }
 
+export type DocumentEncoding = "utf-8" | "utf-8-bom";
+export type DocumentSaveReason = "user" | "save-all" | "before-run";
+
+export interface WriteDocumentInput {
+  documentId: DocumentId;
+  content: string;
+  expectedRevision: string;
+  encoding: DocumentEncoding;
+  operationId: string;
+  reason: DocumentSaveReason;
+}
+
 export interface ProjectStorageAdapter {
   readonly kind: ProjectStorageAdapterKind;
   readonly identity: ProjectIdentity;
   capabilities(): ProjectStorageCapabilities;
   list(): Promise<ProjectEntriesPayload>;
   read(documentId: DocumentId): Promise<DocumentOpenResult>;
-  write(
-    documentId: DocumentId,
-    content: string,
-    baseRevision: string,
-  ): Promise<DocumentSaveResult>;
-  savePipeline(
-    documentId: DocumentId,
-    file: FileType,
-    options?: { allowOverwrite?: boolean },
-  ): Promise<"saved" | "delegated" | "unsupported">;
+  write(input: WriteDocumentInput): Promise<DocumentSaveResult>;
   create(directory: string, name: string): Promise<EntryCreateResult>;
   rename(target: ProjectEntryTarget, name: string): Promise<EntryRenameResult>;
   delete(target: ProjectEntryTarget): Promise<EntryDeleteResult>;

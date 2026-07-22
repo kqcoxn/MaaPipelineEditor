@@ -5,7 +5,6 @@ import type {
   ProjectEntriesPayload,
 } from "../../services/generated/bridge-v2";
 import type { LocalWebSocketServer } from "../../services/server";
-import { useFileStore, type FileType } from "../../stores/fileStore";
 import { useProjectSessionStore } from "../../stores/projectSessionStore";
 import {
   asDocumentId,
@@ -25,6 +24,7 @@ import type {
   EntryRenameResult,
   ProjectEntryTarget,
   ProjectStorageAdapter,
+  WriteDocumentInput,
 } from "./ProjectStorageAdapter";
 
 const unavailableCapabilities: ProjectStorageCapabilities = {
@@ -66,33 +66,17 @@ export class LocalBridgeProjectStorageAdapter implements ProjectStorageAdapter {
     });
   }
 
-  write(
-    documentId: DocumentId,
-    content: string,
-    baseRevision: string,
-  ): Promise<DocumentSaveResult> {
-    const entry = useProjectSessionStore.getState().entriesById[documentId];
+  write(input: WriteDocumentInput): Promise<DocumentSaveResult> {
+    const entry = useProjectSessionStore.getState().entriesById[input.documentId];
     if (!entry || entry.path === undefined) return Promise.reject(new Error("文档不属于当前项目"));
     return this.client.request<DocumentSaveResult>("document.save", {
       path: entry.path,
-      content,
-      base_revision: baseRevision,
+      content: input.content,
+      expected_revision: input.expectedRevision,
+      encoding: input.encoding,
+      operation_id: input.operationId,
+      reason: input.reason,
     });
-  }
-
-  savePipeline(
-    documentId: DocumentId,
-    file: FileType,
-    options?: { allowOverwrite?: boolean },
-  ): Promise<"saved" | "unsupported"> {
-    const entry = useProjectSessionStore.getState().entriesById[documentId];
-    if (!entry || entry.path === undefined || file.config.filePath !== entry.path) {
-      return Promise.resolve("unsupported");
-    }
-    return useFileStore
-      .getState()
-      .saveFileToLocal(entry.path, file, undefined, options)
-      .then((saved) => (saved ? "saved" : "unsupported"));
   }
 
   async create(directory: string, name: string): Promise<EntryCreateResult> {
