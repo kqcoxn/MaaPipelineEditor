@@ -49,6 +49,13 @@ import {
 } from "../core/snapUtils";
 import { useEmbedMode } from "../hooks/useEmbedMode";
 import { sendToParent } from "../utils/embedBridge";
+import { FlowReadOnlyContext } from "./flow/FlowInteractionContext";
+import { setPipelineViewport } from "../features/pipeline-document/pipelineDocumentService";
+import type { DocumentId } from "../features/project-session/types";
+import {
+  allowedReadOnlyEdgeChanges,
+  allowedReadOnlyNodeChanges,
+} from "./flow/flowReadOnlyGuards";
 
 /**工作流 */
 // 按键监听
@@ -56,9 +63,11 @@ const KeyListener = memo(
   ({
     targetRef,
     allowCopy,
+    allowPaste,
   }: {
     targetRef: RefObject<HTMLDivElement | null>;
     allowCopy: boolean;
+    allowPaste: boolean;
   }) => {
     const isTextEditorFocused = useCallback(() => {
       const target = document.activeElement;
@@ -98,7 +107,7 @@ const KeyListener = memo(
         target: targetRef.current,
         actInsideInputWithModifier: false,
       }),
-      [targetRef.current],
+      [targetRef],
     );
 
     // 复制节点
@@ -119,7 +128,7 @@ const KeyListener = memo(
     const pastePressed = useKeyPress("Control+v", keyPressOptions);
     useEffect(() => {
       if (
-        !allowCopy ||
+        !allowPaste ||
         !pastePressed ||
         clipboardNodes.length === 0 ||
         isTextEditorFocused()
@@ -130,7 +139,7 @@ const KeyListener = memo(
       if (content) {
         flowPaste(content.nodes, content.edges);
       }
-    }, [allowCopy, clipboardNodes, flowPaste, isTextEditorFocused, paste, pastePressed]);
+    }, [allowPaste, clipboardNodes, flowPaste, isTextEditorFocused, paste, pastePressed]);
 
     return null;
   },
@@ -145,20 +154,31 @@ const InstanceMonitor = memo(() => {
   return null;
 });
 // 视口监视器
-const ViewportChangeMonitor = memo(() => {
-  const updateViewport = useFlowStore((state) => state.updateViewport);
-  const setFileConfig = useFileStore((state) => state.setFileConfig);
-  useOnViewportChange({
-    onEnd: (viewport: Viewport) => {
-      updateViewport(viewport);
-      // 保存视口位置到当前文件配置
-      setFileConfig("savedViewport", { ...viewport });
-    },
-  });
-  return null;
-});
+const ViewportChangeMonitor = memo(
+  ({
+    documentId,
+    projectionOnly,
+  }: {
+    documentId?: DocumentId;
+    projectionOnly: boolean;
+  }) => {
+    const updateViewport = useFlowStore((state) => state.updateViewport);
+    const setFileConfig = useFileStore((state) => state.setFileConfig);
+    useOnViewportChange({
+      onEnd: (viewport: Viewport) => {
+        updateViewport(viewport);
+        if (projectionOnly && documentId) {
+          setPipelineViewport(documentId, viewport);
+        } else {
+          setFileConfig("savedViewport", { ...viewport });
+        }
+      },
+    });
+    return null;
+  },
+);
 // 更新器
-const UpdateMonitor = memo(() => {
+const UpdateMonitor = memo(({ disabled = false }: { disabled?: boolean }) => {
   const {
     debouncedSelectedNodes,
     debouncedSelectedEdges,
@@ -174,6 +194,7 @@ const UpdateMonitor = memo(() => {
 
   useDebounceEffect(
     () => {
+      if (disabled) return;
       localSave();
     },
     [
@@ -181,6 +202,7 @@ const UpdateMonitor = memo(() => {
       debouncedSelectedEdges,
       debouncedTargetNode,
       filesLength,
+      disabled,
     ],
     {
       wait: 500,
@@ -195,7 +217,6 @@ interface NodeAddPanelControllerProps {
   visible: boolean;
   screenPos: { x: number; y: number };
   quickCreateConnection: QuickCreateConnection | null;
-  setVisible: (v: boolean) => void;
   setScreenPos: (pos: { x: number; y: number }) => void;
   onClose: () => void;
 }
@@ -204,7 +225,6 @@ const NodeAddPanelController = memo(
     visible,
     screenPos,
     quickCreateConnection,
-    setVisible,
     setScreenPos,
     onClose,
   }: NodeAddPanelControllerProps) => {
@@ -237,7 +257,12 @@ const NodeAddPanelController = memo(
   },
 );
 
-function MainFlow() {
+interface MainFlowProps {
+  readOnly?: boolean;
+  documentId?: DocumentId;
+}
+
+function MainFlow({ readOnly: projectionReadOnly = false, documentId }: MainFlowProps) {
   const {
     nodes,
     edges,
@@ -276,7 +301,7 @@ function MainFlow() {
 
   // 嵌入模式权限控制
   const { isEmbed, isCapAllowed } = useEmbedMode();
-  const readOnly = isEmbed && isCapAllowed("readOnly");
+  const readOnly = projectionReadOnly || (isEmbed && isCapAllowed("readOnly"));
   const allowCopy = !isEmbed || isCapAllowed("allowCopy");
 
   const selfElem = useRef<HTMLDivElement>(null);
@@ -303,69 +328,62 @@ function MainFlow() {
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
       if (readOnly) {
-        // 过滤掉添加/删除/位置变更等修改性操作
-        const blocked = changes.filter(
-          (c) =>
-            c.type === "remove" ||
-            c.type === "add" ||
-            c.type === "position" ||
-            c.type === "dimensions",
-        );
-        if (blocked.length > 0) {
+        const allowed = allowedReadOnlyNodeChanges(changes);
+        const blocked = changes.length !== allowed.length;
+        if (blocked && isEmbed) {
           sendToParent("mpe:error", {
             code: "capability_denied",
             message: "当前为只读模式，禁止修改节点",
           });
-          // 仅允许 select 类型变更通过
-          const allowed = changes.filter((c) => c.type === "select");
-          if (allowed.length > 0) updateNodes(allowed);
-          return;
         }
+        if (allowed.length > 0) updateNodes(allowed);
+        return;
       }
       updateNodes(changes);
     },
-    [updateNodes, readOnly],
+    [isEmbed, updateNodes, readOnly],
   );
   const onEdgesChange = useCallback(
     (changes: EdgeChange[]) => {
       if (readOnly) {
-        const blocked = changes.filter(
-          (c) => c.type === "remove" || c.type === "add",
-        );
-        if (blocked.length > 0) {
+        const allowed = allowedReadOnlyEdgeChanges(changes);
+        const blocked = changes.length !== allowed.length;
+        if (blocked && isEmbed) {
           sendToParent("mpe:error", {
             code: "capability_denied",
             message: "当前为只读模式，禁止修改边",
           });
-          const allowed = changes.filter((c) => c.type === "select");
-          if (allowed.length > 0) updateEdges(allowed);
-          return;
         }
+        if (allowed.length > 0) updateEdges(allowed);
+        return;
       }
       updateEdges(changes);
     },
-    [updateEdges, readOnly],
+    [isEmbed, updateEdges, readOnly],
   );
   const onConnect = useCallback(
     (co: Connection) => {
       if (readOnly) {
-        sendToParent("mpe:error", {
-          code: "capability_denied",
-          message: "当前为只读模式，禁止添加连接",
-        });
+        if (isEmbed) {
+          sendToParent("mpe:error", {
+            code: "capability_denied",
+            message: "当前为只读模式，禁止添加连接",
+          });
+        }
         return;
       }
       connectionCompletedRef.current = true;
       addEdge(co);
     },
-    [addEdge, readOnly],
+    [addEdge, isEmbed, readOnly],
   );
   const onConnectStart = useCallback(
     (_event: MouseEvent | TouchEvent, params: OnConnectStartParams) => {
+      if (readOnly) return;
       pendingConnectionRef.current = params;
       connectionCompletedRef.current = false;
     },
-    [],
+    [readOnly],
   );
   const onConnectEnd = useCallback(
     (
@@ -438,7 +456,7 @@ function MainFlow() {
 
   // 双击空白区域打开节点添加面板
   const onPaneClick = useCallback(
-    (event: React.MouseEvent | MouseEvent) => {
+    () => {
       if (suppressNextPaneClickRef.current) {
         suppressNextPaneClickRef.current = false;
         return;
@@ -676,59 +694,72 @@ function MainFlow() {
   // 渲染
   return (
     <div className={style.editor} ref={ref}>
-      <ReactFlow
-        ref={selfElem}
-        nodeTypes={nodeTypes}
-        nodes={nodes}
-        onNodesChange={onNodesChange}
-        edgeTypes={edgeTypes}
-        edges={edges}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onConnectStart={onConnectStart}
-        onConnectEnd={onConnectEnd}
-        onSelectionChange={onSelectionChange}
-        defaultViewport={defaultViewport}
-        minZoom={0.2}
-        maxZoom={2.5}
-        onPaneClick={onPaneClick}
-        onDoubleClick={onDoubleClick}
-        onPaneContextMenu={onPaneContextMenu}
-        onSelectionContextMenu={onSelectionContextMenu}
-        onNodeDrag={onNodeDrag}
-        onNodeDragStop={onNodeDragStop}
-        nodesDraggable={!readOnly}
-        nodesConnectable={!readOnly}
-        elementsSelectable={true}
-        autoPanOnConnect={false}
-        autoPanOnNodeDrag={false}
-        preventScrolling={true}
-        elevateNodesOnSelect={true}
-      >
-        <Background bgColor={backgroundColor} />
-        <Controls orientation="vertical" />
-        <InstanceMonitor />
-        <ViewportChangeMonitor />
-        <KeyListener targetRef={selfElem} allowCopy={allowCopy} />
-        <UpdateMonitor />
-        <NodeAddPanelController
-          visible={nodeAddPanelVisible}
-          screenPos={nodeAddPanelPos}
-          quickCreateConnection={quickCreateConnection}
-          setVisible={setNodeAddPanelVisible}
-          setScreenPos={setNodeAddPanelPos}
-          onClose={closeNodeAddPanel}
-        />
-        <InlineFieldPanel />
-        <InlineEdgePanel />
-        <SnapGuidelines guidelines={snapGuidelines} />
-      </ReactFlow>
+      <FlowReadOnlyContext.Provider value={readOnly}>
+          <ReactFlow
+            ref={selfElem}
+            nodeTypes={nodeTypes}
+            nodes={nodes}
+            onNodesChange={onNodesChange}
+            edgeTypes={edgeTypes}
+            edges={edges}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onConnectStart={onConnectStart}
+            onConnectEnd={onConnectEnd}
+            onSelectionChange={onSelectionChange}
+            defaultViewport={defaultViewport}
+            minZoom={0.2}
+            maxZoom={2.5}
+            onPaneClick={onPaneClick}
+            onDoubleClick={onDoubleClick}
+            onPaneContextMenu={onPaneContextMenu}
+            onSelectionContextMenu={onSelectionContextMenu}
+            onNodeDrag={onNodeDrag}
+            onNodeDragStop={onNodeDragStop}
+            nodesDraggable={!readOnly}
+            nodesConnectable={!readOnly}
+            deleteKeyCode={readOnly ? null : ["Backspace", "Delete"]}
+            elementsSelectable
+            autoPanOnConnect={false}
+            autoPanOnNodeDrag={false}
+            preventScrolling
+            elevateNodesOnSelect
+          >
+            <Background bgColor={backgroundColor} />
+            <Controls orientation="vertical" />
+            <InstanceMonitor />
+            <ViewportChangeMonitor
+              documentId={documentId}
+              projectionOnly={projectionReadOnly}
+            />
+            <KeyListener
+              targetRef={selfElem}
+              allowCopy={!readOnly && allowCopy}
+              allowPaste={!readOnly}
+            />
+            <UpdateMonitor disabled={projectionReadOnly} />
+          {!readOnly && (
+            <NodeAddPanelController
+              visible={nodeAddPanelVisible}
+              screenPos={nodeAddPanelPos}
+              quickCreateConnection={quickCreateConnection}
+              setScreenPos={setNodeAddPanelPos}
+              onClose={closeNodeAddPanel}
+            />
+          )}
+          {!readOnly && <InlineFieldPanel />}
+          {!readOnly && <InlineEdgePanel />}
+            {!readOnly && <SnapGuidelines guidelines={snapGuidelines} />}
+          </ReactFlow>
+      </FlowReadOnlyContext.Provider>
       {/* 选区右键菜单 */}
-      <SelectionContextMenu
-        position={selectionMenuPos}
-        open={!!selectionMenuPos}
-        onOpenChange={onSelectionMenuOpenChange}
-      />
+      {!readOnly && (
+        <SelectionContextMenu
+          position={selectionMenuPos}
+          open={!!selectionMenuPos}
+          onOpenChange={onSelectionMenuOpenChange}
+        />
+      )}
     </div>
   );
 }

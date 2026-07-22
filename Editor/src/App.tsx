@@ -25,17 +25,7 @@ import { localServer } from "./services/server";
 import Header from "./components/Header";
 import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
 import MainFlow from "./components/Flow";
-import FieldPanel from "./components/panels/main/FieldPanel";
-import EdgePanel from "./components/panels/main/EdgePanel";
-import LiveScreenPanel from "./components/panels/main/LiveScreenPanel";
-import ToolPanel from "./components/panels/tools/ToolPanel";
-import SearchPanel from "./components/panels/main/SearchPanel";
 import FilePanel from "./components/panels/main/FilePanel";
-import SettingsPanel from "./components/panels/settings/SettingsPanel";
-import FileConfigPanel from "./components/panels/main/FileConfigPanel";
-import ErrorPanel from "./components/panels/main/ErrorPanel";
-import ToolbarPanel from "./components/panels/main/ToolbarPanel";
-import { LoggerPanel } from "./components/panels/tools/LoggerPanel";
 import {
   getShareParam,
   loadFromShareUrl,
@@ -75,12 +65,12 @@ import { resetDebugSessionLifecycle } from "./features/debug/sessionActions";
 import { ProjectSidebar } from "./components/project/ProjectSidebar";
 import {
   shouldMountProjectSidebar,
-  useProjectSidebarStore,
 } from "./stores/projectSidebarStore";
 import { shouldPreserveProjectStateOnDisconnect } from "./services/desktopProject";
 import { useProjectSessionStore } from "./stores/projectSessionStore";
 import { useDocumentStore } from "./stores/documentStore";
 import { DocumentEditorHost } from "./components/documents/DocumentEditorHost";
+import { PipelineDocumentHost } from "./components/documents/PipelineDocumentHost";
 import { WelcomeScreen } from "./components/welcome/WelcomeScreen";
 import { importPipelineAsDraft } from "./services/pipelineImport";
 import {
@@ -90,9 +80,8 @@ import {
 } from "./services/embedSaveCoordinator";
 import { handleDirtyBeforeUnload } from "./services/editorDirtyState";
 import { handleDesktopCloseRequest } from "./services/desktopCloseGuard";
-import { syncCurrentPipelineToDocuments } from "./features/pipeline-document/pipelineDocumentService";
+import { initializePipelineDocumentService } from "./features/pipeline-document/pipelineDocumentService";
 
-const JsonViewer = lazy(() => import("./components/JsonViewer"));
 const DebugModal = lazy(() =>
   import("./components/debug/DebugModal").then((module) => ({
     default: module.DebugModal,
@@ -158,9 +147,6 @@ function App() {
   const { isEmbed, isReady, isCapAllowed, isPanelHidden } = useEmbedMode();
   const wsConnected = useWSStore((state) => state.connected);
   const projectAdapterKind = useProjectSessionStore((state) => state.adapterKind);
-  const projectSidebarVisible = useProjectSidebarStore(
-    (state) => state.visible,
-  );
   const activeDocumentId = useProjectSessionStore(
     (state) => state.activeDocumentId,
   );
@@ -171,7 +157,8 @@ function App() {
   const activeOpenDocument = activeDocumentId
     ? openedDocuments[activeDocumentId]
     : undefined;
-  const documentActive = Boolean(activeEntry && activeEntry.kind !== "pipeline");
+  const pipelineActive = activeEntry?.kind === "pipeline";
+  const documentActive = Boolean(activeEntry && !pipelineActive);
   const hasDirtyItems = Object.values(openedDocuments).some(
     (document) => document.dirty,
   );
@@ -191,15 +178,7 @@ function App() {
     [],
   );
 
-  useEffect(
-    () =>
-      useFileStore.subscribe((state, previous) => {
-        if (state.currentFile !== previous.currentFile) {
-          void syncCurrentPipelineToDocuments();
-        }
-      }),
-    [],
-  );
+  useEffect(() => initializePipelineDocumentService(), []);
 
   // 处理文件拖拽
   const handleFileDrop = useCallback(async (e: DragEvent) => {
@@ -239,6 +218,7 @@ function App() {
   // 启用全局快捷键（嵌入模式下根据 capabilities 控制）
   const enableShortcuts = Boolean(activeDocumentId);
   const enableEditingShortcuts =
+    !pipelineActive &&
     (!isEmbed || (isCapAllowed("allowUndoRedo") && !isCapAllowed("readOnly")));
   useGlobalShortcuts(enableShortcuts, enableEditingShortcuts);
 
@@ -617,13 +597,11 @@ function App() {
 
   // 条件渲染控制
   const showHeader = !isEmbed || !isPanelHidden("header");
-  const showToolbar = !isEmbed || !isPanelHidden("toolbar");
-  const showPanel = (id: string) => !isEmbed || !isPanelHidden(id);
+  const showFilePanel = !isEmbed || !isPanelHidden("file");
   const mountProjectSidebar = shouldMountProjectSidebar(
     isEmbed,
     wsConnected || projectAdapterKind === "browser",
   );
-  const hideNodeToolPanel = mountProjectSidebar && projectSidebarVisible;
 
   // 渲染组件
   return (
@@ -639,7 +617,7 @@ function App() {
             <div className={style.workbenchBody}>
               {mountProjectSidebar && <ProjectSidebar />}
               <div className={style.editorArea}>
-                {showPanel("file") && <FilePanel />}
+                {showFilePanel && <FilePanel />}
                 <div className={style.workspace}>
                   {!activeDocumentId ? (
                     <WelcomeScreen />
@@ -651,27 +629,15 @@ function App() {
                       type="error"
                       title={activeOpenDocument.error}
                     />
+                  ) : pipelineActive ? (
+                    <PipelineDocumentHost
+                      documentId={activeDocumentId}
+                      canvas={
+                        <MainFlow readOnly documentId={activeDocumentId} />
+                      }
+                    />
                   ) : (
-                    <>
-                      {showToolbar && <ToolbarPanel />}
-                      <MainFlow />
-                      {showPanel("json") && (
-                        <Suspense fallback={null}>
-                          <JsonViewer />
-                        </Suspense>
-                      )}
-                      {showPanel("liveScreen") && <LiveScreenPanel />}
-                      {showPanel("field") && <FieldPanel />}
-                      {showPanel("edge") && <EdgePanel />}
-                      {showPanel("config") && <SettingsPanel />}
-                      {showPanel("config") && <FileConfigPanel />}
-                      <ToolPanel.Add hidden={hideNodeToolPanel} />
-                      <ToolPanel.Global />
-                      {showPanel("search") && <SearchPanel />}
-                      <ToolPanel.Layout />
-                      {showPanel("error") && <ErrorPanel />}
-                      {showPanel("logger") && <LoggerPanel />}
-                    </>
+                    <WelcomeScreen />
                   )}
                 </div>
               </div>

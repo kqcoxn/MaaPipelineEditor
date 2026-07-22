@@ -21,6 +21,7 @@ import {
   type DocumentId,
 } from "../features/project-session/types";
 import { useProjectSessionStore } from "./projectSessionStore";
+import type { PipelineFlowProjection } from "../features/pipeline-document/types";
 
 export type FileConfigType = {
   prefix: string;
@@ -262,6 +263,11 @@ type FileState = {
     configPath?: string,
     documentId?: DocumentId,
   ) => Promise<boolean>;
+  applyDocumentProjection: (
+    documentId: DocumentId,
+    filePath: string,
+    projection: PipelineFlowProjection,
+  ) => void;
   findFileByPath: (filePath: string) => FileType | undefined;
   findFileByDocumentId: (documentId: DocumentId) => FileType | undefined;
   applyDocumentIdMappings: (
@@ -593,6 +599,45 @@ export const useFileStore = create<FileState>()((set, get) => ({
     } catch (error) {
       console.error("[fileStore] Failed to open file from local:", error);
       return false;
+    }
+  },
+
+  applyDocumentProjection(documentId, filePath, projection) {
+    const existingFile = get().files.find((file) => file.documentId === documentId);
+    const pathName = (filePath.split(/[/\\]/).pop() ?? "").replace(
+      /\.(json|jsonc)$/i,
+      "",
+    );
+    const fileName = pathName || existingFile?.fileName || "pipeline";
+    const projectedFile: FileType = {
+      documentId,
+      fileName,
+      nodes: projection.nodes,
+      edges: projection.edges,
+      config: {
+        ...projection.config,
+        ...(filePath ? { filePath } : {}),
+      },
+    };
+    set((state) => ({
+      files: state.files.some((file) => file.documentId === documentId)
+        ? state.files.map((file) =>
+            file.documentId === documentId ? projectedFile : file,
+          )
+        : [...state.files, projectedFile],
+      currentFile:
+        useProjectSessionStore.getState().activeDocumentId === documentId
+          ? projectedFile
+          : state.currentFile,
+    }));
+    if (useProjectSessionStore.getState().activeDocumentId === documentId) {
+      const flowStore = useFlowStore.getState();
+      flowStore.replace(projection.nodes, projection.edges, {
+        skipSave: true,
+        skipHistory: true,
+        isFitView: projection.hasAuthoredPositions,
+      });
+      flowStore.clearHistory();
     }
   },
 

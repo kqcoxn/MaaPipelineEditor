@@ -1,12 +1,12 @@
 import { message } from "antd";
 
 import { getCapability } from "../features/project-storage/ProjectStorageAdapter";
-import { syncCurrentPipelineToDocuments } from "../features/pipeline-document/pipelineDocumentService";
 import { useDocumentStore } from "../stores/documentStore";
 import { useProjectSessionStore } from "../stores/projectSessionStore";
 import { useToolbarStore } from "../stores/toolbarStore";
 import { documentProtocol } from "./server";
 import type { DocumentSaveOutcome } from "./protocols/DocumentProtocol";
+import type { DocumentId } from "../features/project-session/types";
 
 export type SaveActiveEditorResult =
   | "saved"
@@ -18,9 +18,6 @@ export async function saveActiveEditor(): Promise<SaveActiveEditorResult> {
   const session = useProjectSessionStore.getState();
   const documentId = session.activeDocumentId;
   if (!documentId) return "failed";
-  if (session.entriesById[documentId]?.kind === "pipeline") {
-    await syncCurrentPipelineToDocuments();
-  }
   const document = useDocumentStore.getState().opened[documentId];
   if (!document) return "failed";
   if (!document.dirty && !hasDirtyLinkedDocument(documentId)) return "clean";
@@ -45,7 +42,7 @@ export async function saveAllDocuments(): Promise<DocumentSaveOutcome[]> {
   return outcomes;
 }
 
-function hasDirtyLinkedDocument(documentId: string): boolean {
+function hasDirtyLinkedDocument(documentId: DocumentId): boolean {
   const opened = useDocumentStore.getState().opened;
   return Boolean(
     opened[documentId]?.linkedDocumentIds.some(

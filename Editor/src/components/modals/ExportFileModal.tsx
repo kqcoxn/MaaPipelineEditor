@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Modal, Form, Input, Select, message, Radio } from "antd";
+import { App as AntdApp, Modal, Form, Input, Select, Radio } from "antd";
 import { FileOutlined, DownloadOutlined } from "@ant-design/icons";
 import { useFileStore } from "../../stores/fileStore";
 import { useConfigStore } from "../../stores/configStore";
@@ -7,23 +7,44 @@ import {
   flowToPipelineString,
   flowToSeparatedStrings,
 } from "../../core/parser";
+import { useDocumentStore } from "../../stores/documentStore";
+import type { DocumentId } from "../../features/project-session/types";
+import {
+  createPipelineSourceExports,
+  type PipelineSourceExportFormat,
+} from "../../features/pipeline-document/pipelineSourceExport";
 
 interface ExportFileModalProps {
   visible: boolean;
   onCancel: () => void;
+  documentId?: DocumentId;
 }
 
 export const ExportFileModal: React.FC<ExportFileModalProps> = ({
   visible,
   onCancel,
+  documentId,
 }) => {
+  const { message } = AntdApp.useApp();
   const [form] = Form.useForm();
   const [previewFileName, setPreviewFileName] = useState<string>("");
   const [exportTarget, setExportTarget] = useState<
     "pipeline" | "config" | "both"
   >("both");
 
-  const currentFileName = useFileStore((state) => state.currentFile.fileName);
+  const legacyFileName = useFileStore((state) => state.currentFile.fileName);
+  const sourceDocument = useDocumentStore((state) =>
+    documentId ? state.opened[documentId] : undefined,
+  );
+  const linkedSourceDocument = useDocumentStore((state) =>
+    sourceDocument
+      ? sourceDocument.linkedDocumentIds
+          .map((linkedId) => state.opened[linkedId])
+          .find((document) => document?.descriptor.role === "mpe_config")
+      : undefined,
+  );
+  const currentFileName = sourceDocument?.descriptor.name ?? legacyFileName;
+  const sourceBacked = sourceDocument?.descriptor.kind === "pipeline";
   const configHandlingMode = useConfigStore(
     (state) => state.configs.configHandlingMode
   );
@@ -40,16 +61,23 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
         baseName = baseName.slice(0, -6);
       }
 
+      const sourceFormat = currentFileName.toLowerCase().endsWith(".jsonc")
+        ? "jsonc"
+        : "json";
       form.setFieldsValue({
         fileName: baseName,
-        format: "json",
+        format: sourceFormat,
       });
 
       // 分离模式默认导出两个文件
-      setExportTarget(configHandlingMode === "separated" ? "both" : "pipeline");
-      setPreviewFileName(`${baseName}.json`);
+      setExportTarget(
+        configHandlingMode === "separated" && linkedSourceDocument
+          ? "both"
+          : "pipeline",
+      );
+      setPreviewFileName(`${baseName}.${sourceFormat}`);
     }
-  }, [visible, form, currentFileName, configHandlingMode]);
+  }, [visible, form, currentFileName, configHandlingMode, linkedSourceDocument]);
 
   // 更新预览文件名
   const updatePreview = () => {
@@ -105,6 +133,22 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
       const { fileName, format } = values;
 
       const trimmedName = fileName.trim();
+
+      if (sourceBacked && sourceDocument) {
+        const exports = createPipelineSourceExports({
+          baseName: trimmedName,
+          format: format as PipelineSourceExportFormat,
+          target: exportTarget,
+          pipelineText: sourceDocument.workingText,
+          configText: linkedSourceDocument?.workingText,
+        });
+        for (const file of exports) {
+          await exportFile(file.name, file.text, file.format);
+        }
+        message.success(`已导出 ${exports.map((file) => file.name).join("、")}`);
+        onCancel();
+        return;
+      }
 
       if (configHandlingMode === "separated") {
         // 分离模式导出
@@ -251,6 +295,7 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
           rules={[{ required: true, message: "请选择导出格式" }]}
         >
           <Select
+            disabled={sourceBacked}
             options={[
               { value: "json", label: ".json" },
               { value: "jsonc", label: ".jsonc" },
@@ -259,18 +304,19 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
           />
         </Form.Item>
 
-        {configHandlingMode === "separated" && (
-          <Form.Item label="导出目标">
-            <Radio.Group
-              value={exportTarget}
-              onChange={(e) => handleExportTargetChange(e.target.value)}
-            >
-              <Radio value="both">导出 Pipeline 和配置</Radio>
-              <Radio value="pipeline">仅导出 Pipeline</Radio>
-              <Radio value="config">仅导出配置</Radio>
-            </Radio.Group>
-          </Form.Item>
-        )}
+        {configHandlingMode === "separated" &&
+          (!sourceBacked || linkedSourceDocument) && (
+            <Form.Item label="导出目标">
+              <Radio.Group
+                value={exportTarget}
+                onChange={(e) => handleExportTargetChange(e.target.value)}
+              >
+                <Radio value="both">导出 Pipeline 和配置</Radio>
+                <Radio value="pipeline">仅导出 Pipeline</Radio>
+                <Radio value="config">仅导出配置</Radio>
+              </Radio.Group>
+            </Form.Item>
+          )}
 
         {previewFileName && (
           <Form.Item label="预览文件名">
@@ -291,7 +337,9 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
         <Form.Item>
           <div style={{ fontSize: 12, color: "#8c8c8c" }}>
             <div>提示：</div>
-            <div>• 将当前画布内容编译为 Pipeline 并导出</div>
+            <div>
+              • {sourceBacked ? "按当前源码原样导出" : "将当前画布编译为 Pipeline"}
+            </div>
             {configHandlingMode === "separated" && (
               <div>• 分离模式下可选择导出 Pipeline、配置或两者</div>
             )}

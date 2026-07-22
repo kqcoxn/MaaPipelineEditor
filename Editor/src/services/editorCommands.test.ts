@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   saveDocumentGroup: vi.fn(async () => []),
   saveAllDirty: vi.fn(async () => []),
-  syncCurrentPipelineToDocuments: vi.fn(async () => undefined),
 }));
 
 vi.mock("./server", () => ({
@@ -11,9 +10,6 @@ vi.mock("./server", () => ({
     saveDocumentGroup: mocks.saveDocumentGroup,
     saveAllDirty: mocks.saveAllDirty,
   },
-}));
-vi.mock("../features/pipeline-document/pipelineDocumentService", () => ({
-  syncCurrentPipelineToDocuments: mocks.syncCurrentPipelineToDocuments,
 }));
 
 import { parseProjectPath } from "../features/project-session/projectPath";
@@ -102,8 +98,8 @@ describe("editor document save commands", () => {
       await expect(saveActiveEditor()).resolves.toBe("saved");
 
       expect(mocks.saveDocumentGroup).toHaveBeenCalledWith(documentId, "user");
-      expect(mocks.syncCurrentPipelineToDocuments).toHaveBeenCalledTimes(
-        kind === "pipeline" ? 1 : 0,
+      expect(useDocumentStore.getState().opened[documentId].workingText).toBe(
+        '{"dirty":true}',
       );
     },
   );

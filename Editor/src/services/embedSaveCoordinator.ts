@@ -1,7 +1,6 @@
-import { syncCurrentPipelineToDocuments } from "../features/pipeline-document/pipelineDocumentService";
 import type { DocumentId } from "../features/project-session/types";
 import { useDocumentStore } from "../stores/documentStore";
-import { saveFlow, useFileStore } from "../stores/fileStore";
+import { useFileStore } from "../stores/fileStore";
 
 export interface EmbedSaveData {
   saveToken: string;
@@ -18,8 +17,6 @@ const pendingSaves = new Map<string, PendingEmbedSave>();
 let saveSequence = 0;
 
 export async function beginEmbedSave(): Promise<EmbedSaveData> {
-  saveFlow();
-  await syncCurrentPipelineToDocuments();
   const file = useFileStore.getState().currentFile;
   const document = useDocumentStore.getState().opened[file.documentId];
   if (!document) throw new Error("当前 Pipeline 尚未注册为文档");

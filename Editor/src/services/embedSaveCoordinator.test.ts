@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { syncCurrentPipelineToDocuments } from "../features/pipeline-document/pipelineDocumentService";
 import { useDocumentStore } from "../stores/documentStore";
 import { useFileStore } from "../stores/fileStore";
 import {
@@ -28,19 +27,22 @@ describe("embedSaveCoordinator", () => {
         editable: true,
         previewable: true,
       },
-      "",
+      '// baseline\n{\n  "Start": {}\n}\n',
       { saved: true },
     );
   });
 
   it("advances only the matching captured document baseline", async () => {
-    useFileStore.getState().setFileConfig("prefix", "saving-version");
-    const request = await beginEmbedSave();
     const documentId = useFileStore.getState().currentFile.documentId;
+    const savingText = '// saving\n{\n  "Start": {},\n}\n';
+    useDocumentStore.getState().updateWorkingText(documentId, savingText);
+    const request = await beginEmbedSave();
     const submittedText = request.data;
-    useFileStore.getState().setFileConfig("prefix", "later-version");
-    await syncCurrentPipelineToDocuments();
+    useDocumentStore
+      .getState()
+      .updateWorkingText(documentId, '// later\n{"Start": {}, "Next": {}}\n');
 
+    expect(request.data).toBe(savingText);
     expect(resolveEmbedSaveResult({ saveToken: "unknown", success: true })).toBe(false);
     expect(
       resolveEmbedSaveResult({ saveToken: request.saveToken, success: true }),
@@ -54,7 +56,9 @@ describe("embedSaveCoordinator", () => {
   it("does not advance the document baseline after failed host persistence", async () => {
     const documentId = useFileStore.getState().currentFile.documentId;
     const baseline = useDocumentStore.getState().opened[documentId].savedText;
-    useFileStore.getState().setFileConfig("prefix", "draft");
+    useDocumentStore
+      .getState()
+      .updateWorkingText(documentId, '// unsaved\n{"Start": {}}\n');
     const request = await beginEmbedSave();
 
     expect(

@@ -16,6 +16,7 @@ import { useFlowStore, type NodeType } from "../../../../stores/flow";
 import { useDebugSessionStore } from "../../../../stores/debugSessionStore";
 import { useWSStore } from "../../../../stores/wsStore";
 import { ensureDebugCapabilitiesRequested } from "../../../../features/debug/capabilityActions";
+import { useFlowReadOnly } from "../../FlowInteractionContext";
 
 interface NodeContextMenuProps {
   node: NodeContextMenuNode;
@@ -27,6 +28,7 @@ interface NodeContextMenuProps {
 /**节点右键菜单组件 */
 export const NodeContextMenu = memo<NodeContextMenuProps>(
   ({ node, children, open, onOpenChange }) => {
+    const readOnly = useFlowReadOnly();
     // JSON 编辑器状态
     const [jsonEditorOpen, setJsonEditorOpen] = useState(false);
     const debugCapabilities = useDebugSessionStore(
@@ -40,6 +42,7 @@ export const NodeContextMenu = memo<NodeContextMenuProps>(
     // 处理 JSON 编辑保存
     const handleJsonEditorSave = useCallback(
       (nodeData: NodeType["data"]) => {
+        if (readOnly) return;
         const { setNodes, nodes, saveHistory } = useFlowStore.getState();
         const newNodes = nodes.map((n) => {
           if (n.id === node.id) {
@@ -63,13 +66,13 @@ export const NodeContextMenu = memo<NodeContextMenuProps>(
           targetIds: [node.id],
         });
       },
-      [node]
+      [node, readOnly]
     );
 
     // 监听编辑 JSON 事件
     useEffect(() => {
       const handleEditJson = (e: CustomEvent) => {
-        if (e.detail.node.id === node.id) {
+        if (!readOnly && e.detail.node.id === node.id) {
           setJsonEditorOpen(true);
         }
       };
@@ -83,7 +86,7 @@ export const NodeContextMenu = memo<NodeContextMenuProps>(
           handleEditJson as EventListener
         );
       };
-    }, [node]);
+    }, [node, readOnly]);
 
     const handleDropdownOpenChange = useCallback(
       (nextOpen: boolean) => {
@@ -109,6 +112,7 @@ export const NodeContextMenu = memo<NodeContextMenuProps>(
     const menuItems = useMemo<MenuProps["items"]>(() => {
       const config = getNodeContextMenuConfig(node, {
         debugCapabilities,
+        readOnly,
       });
 
       return config
@@ -233,7 +237,7 @@ export const NodeContextMenu = memo<NodeContextMenuProps>(
             danger: menuItem.danger,
           };
         });
-    }, [debugCapabilities, node, onOpenChange]);
+    }, [debugCapabilities, node, onOpenChange, readOnly]);
 
     return (
       <>
@@ -245,12 +249,14 @@ export const NodeContextMenu = memo<NodeContextMenuProps>(
         >
           {children}
         </Dropdown>
-        <NodeJsonEditorModal
-          open={jsonEditorOpen}
-          onClose={() => setJsonEditorOpen(false)}
-          node={node as unknown as NodeType}
-          onSave={handleJsonEditorSave}
-        />
+        {!readOnly && (
+          <NodeJsonEditorModal
+            open={jsonEditorOpen}
+            onClose={() => setJsonEditorOpen(false)}
+            node={node as unknown as NodeType}
+            onSave={handleJsonEditorSave}
+          />
+        )}
       </>
     );
   }

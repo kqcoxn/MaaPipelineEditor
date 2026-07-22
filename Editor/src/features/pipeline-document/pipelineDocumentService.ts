@@ -1,97 +1,211 @@
 import { parse, type ParseError } from "jsonc-parser";
 
-import {
-  flowToPipelineString,
-  flowToSeparatedStrings,
-  type MpeConfigType,
-} from "../../core/parser";
 import { documentProtocol } from "../../services/server";
-import { useConfigStore } from "../../stores/configStore";
 import { useDocumentStore, type OpenDocument } from "../../stores/documentStore";
-import { useFileStore, type FileType } from "../../stores/fileStore";
+import { useFileStore } from "../../stores/fileStore";
+import { useFlowStore } from "../../stores/flow";
 import { useProjectSessionStore } from "../../stores/projectSessionStore";
+import type { MpeConfigType } from "../../core/parser";
+import type { Viewport } from "@xyflow/react";
 import { asDocumentId, type DocumentId } from "../project-session/types";
+import { analyzePipelineSource } from "./pipelineSourceAnalysis";
+import { buildPipelineProjection } from "./pipelineProjectionBuilder";
+import { layoutPipelineProjection } from "./pipelineProjectionLayout";
+import { usePipelineDocumentStore } from "./pipelineDocumentStore";
+import { disposePipelineModel } from "./pipelineMonacoModels";
+import type { PipelineFlowProjection, PipelineViewMode } from "./types";
 
-let projectionLoadDepth = 0;
+const SOURCE_PARSE_DELAY_MS = 250;
+const parseTimers = new Map<DocumentId, ReturnType<typeof setTimeout>>();
+const parseGenerations = new Map<DocumentId, number>();
 
 export async function openPipelineDocument(documentId: DocumentId): Promise<boolean> {
   if (!(await documentProtocol.openDocument(documentId))) return false;
-  return loadPipelineProjection(documentId);
+  await refreshPipelineDocumentProjection(documentId);
+  return true;
 }
 
 export async function activatePipelineDocument(documentId: DocumentId): Promise<boolean> {
-  const file = useFileStore.getState().findFileByDocumentId(documentId);
-  if (!file) return openPipelineDocument(documentId);
-  projectionLoadDepth += 1;
-  try {
-    useProjectSessionStore.getState().activateTab(documentId);
-  } finally {
-    projectionLoadDepth -= 1;
-  }
-  return loadPipelineProjection(documentId);
+  const document = useDocumentStore.getState().opened[documentId];
+  if (!document) return openPipelineDocument(documentId);
+  useProjectSessionStore.getState().activateTab(documentId);
+  const state = usePipelineDocumentStore.getState().documents[documentId];
+  if (state?.projection) applyProjection(document, state.projection);
+  else await refreshPipelineDocumentProjection(documentId);
+  restoreViewport(documentId);
+  return true;
 }
 
 export async function reloadPipelineProjection(documentId: DocumentId): Promise<boolean> {
   if (!useDocumentStore.getState().opened[documentId]) return false;
-  return loadPipelineProjection(documentId);
+  await refreshPipelineDocumentProjection(documentId);
+  return true;
 }
 
-export async function syncCurrentPipelineToDocuments(): Promise<void> {
-  if (projectionLoadDepth > 0) return;
-  const file = useFileStore.getState().currentFile;
-  const document = useDocumentStore.getState().opened[file.documentId];
-  if (!document || document.descriptor.kind !== "pipeline") return;
+export function updatePipelineWorkingText(
+  documentId: DocumentId,
+  text: string,
+): void {
+  useDocumentStore.getState().updateWorkingText(documentId, text);
+  schedulePipelineProjection(documentId);
+}
 
-  const options = pipelineExportOptions(file);
-  if (useConfigStore.getState().configs.configHandlingMode === "separated") {
-    const { pipelineString, configString } = flowToSeparatedStrings(options);
-    useDocumentStore
-      .getState()
-      .updateWorkingText(document.documentId, withTrailingNewline(pipelineString));
-    const metadataId = await ensureMetadataDraft(
-      document,
-      withTrailingNewline(configString),
-    );
-    if (!metadataId) return;
-    useDocumentStore
-      .getState()
-      .updateWorkingText(metadataId, withTrailingNewline(configString));
+export function setPipelineViewMode(
+  documentId: DocumentId,
+  viewMode: PipelineViewMode,
+): boolean {
+  const state = usePipelineDocumentStore.getState().ensureDocument(documentId);
+  if (viewMode === "flow" && state.parseState === "invalid") {
+    usePipelineDocumentStore.getState().setViewMode(documentId, "source");
+    return false;
+  }
+  usePipelineDocumentStore.getState().setViewMode(documentId, viewMode);
+  return true;
+}
+
+export function setPipelineViewport(documentId: DocumentId, viewport: Viewport): void {
+  usePipelineDocumentStore.getState().setViewport(documentId, viewport);
+}
+
+export function initializePipelineDocumentService(): () => void {
+  return useDocumentStore.subscribe(
+    (state) => state.opened,
+    (opened, previous) => {
+      Object.entries(opened).forEach(([rawId, document]) => {
+        const documentId = asDocumentId(rawId);
+        const before = previous[documentId];
+        const changed =
+          !before ||
+          before.workingRevision !== document.workingRevision ||
+          before.workingText !== document.workingText;
+        if (!changed) return;
+        if (document.descriptor.kind === "pipeline") {
+          schedulePipelineProjection(documentId);
+          return;
+        }
+        Object.values(opened)
+          .filter(
+            (candidate) =>
+              candidate.descriptor.kind === "pipeline" &&
+              candidate.linkedDocumentIds.includes(documentId),
+          )
+          .forEach((candidate) => schedulePipelineProjection(candidate.documentId));
+      });
+      Object.keys(previous).forEach((rawId) => {
+        const documentId = asDocumentId(rawId);
+        if (!opened[documentId]) releasePipelineDocument(documentId);
+      });
+    },
+  );
+}
+
+export function releasePipelineDocument(documentId: DocumentId): void {
+  const timer = parseTimers.get(documentId);
+  if (timer) clearTimeout(timer);
+  parseTimers.delete(documentId);
+  parseGenerations.delete(documentId);
+  usePipelineDocumentStore.getState().removeDocument(documentId);
+  disposePipelineModel(documentId);
+}
+
+function schedulePipelineProjection(documentId: DocumentId): void {
+  const previous = parseTimers.get(documentId);
+  if (previous) clearTimeout(previous);
+  const generation = (parseGenerations.get(documentId) ?? 0) + 1;
+  parseGenerations.set(documentId, generation);
+  parseTimers.set(
+    documentId,
+    setTimeout(() => {
+      parseTimers.delete(documentId);
+      void refreshPipelineDocumentProjection(documentId, generation);
+    }, SOURCE_PARSE_DELAY_MS),
+  );
+}
+
+export async function refreshPipelineDocumentProjection(
+  documentId: DocumentId,
+  scheduledGeneration?: number,
+): Promise<void> {
+  if (scheduledGeneration === undefined) {
+    const timer = parseTimers.get(documentId);
+    if (timer) clearTimeout(timer);
+    parseTimers.delete(documentId);
+  }
+  const document = useDocumentStore.getState().opened[documentId];
+  if (!document || document.descriptor.kind !== "pipeline") return;
+  const generation = scheduledGeneration ?? (parseGenerations.get(documentId) ?? 0) + 1;
+  if (scheduledGeneration === undefined) parseGenerations.set(documentId, generation);
+
+  const analysis = analyzePipelineSource(document.workingText);
+  if (parseGenerations.get(documentId) !== generation) return;
+  const store = usePipelineDocumentStore.getState();
+  if (!analysis.syntaxValid) {
+    useDocumentStore.getState().setDiagnostics(documentId, analysis.diagnostics);
+    store.updateDocument(documentId, (state) => ({
+      ...state,
+      viewMode: "source",
+      parseState: "invalid",
+      projectionStatus: "unavailable",
+      syntaxTree: analysis.root,
+      sourceMap: analysis.sourceMap,
+      parsedWorkingRevision: document.workingRevision,
+    }));
     return;
   }
 
-  useDocumentStore
-    .getState()
-    .updateWorkingText(
-      document.documentId,
-      withTrailingNewline(flowToPipelineString(options)),
-    );
+  const metadata = await loadMetadataDocument(document);
+  if (parseGenerations.get(documentId) !== generation) return;
+  let projection = analysis.value
+    ? buildPipelineProjection({
+        pipeline: analysis.value,
+        keyOrder: rootKeyOrder(analysis.sourceMap),
+        mpeConfig: metadata?.config,
+      })
+    : emptyProjection();
+  projection = await layoutPipelineProjection(projection);
+  if (parseGenerations.get(documentId) !== generation) return;
+  useDocumentStore.getState().setDiagnostics(documentId, analysis.diagnostics);
+  const partial = analysis.diagnostics.some(
+    (item) => item.supportLevel === "graph-unsupported",
+  );
+  store.updateDocument(documentId, (state) => ({
+    ...state,
+    parseState: "valid",
+    projectionStatus: partial ? "partial" : "ready",
+    syntaxTree: analysis.root,
+    sourceMap: analysis.sourceMap,
+    projection,
+    lastValidProjection: projection,
+    parsedWorkingRevision: document.workingRevision,
+  }));
+  if (useProjectSessionStore.getState().activeDocumentId === documentId) {
+    applyProjection(document, projection);
+    restoreViewport(documentId);
+  }
 }
 
-async function loadPipelineProjection(documentId: DocumentId): Promise<boolean> {
-  const document = useDocumentStore.getState().opened[documentId];
-  if (!document) return false;
-  projectionLoadDepth += 1;
-  try {
-    const metadata = await loadMetadataDocument(document);
-    const success = await useFileStore.getState().openFileFromLocal(
-      document.path,
-      document.workingText,
-      metadata?.config,
-      metadata?.document.path,
-      documentId,
-    );
-    if (!success) {
-      useDocumentStore.getState().failOpen(documentId, "Pipeline 解析失败，画布已锁定");
-    }
-    return success;
-  } finally {
-    projectionLoadDepth -= 1;
-  }
+function applyProjection(
+  document: OpenDocument,
+  projection: PipelineFlowProjection,
+): void {
+  useFileStore
+    .getState()
+    .applyDocumentProjection(document.documentId, document.path, projection);
+}
+
+function restoreViewport(documentId: DocumentId): void {
+  const viewport = usePipelineDocumentStore.getState().documents[documentId]?.viewport;
+  if (!viewport) return;
+  setTimeout(() => {
+    if (useProjectSessionStore.getState().activeDocumentId !== documentId) return;
+    useFlowStore.getState().instance?.setViewport(viewport, { duration: 0 });
+  }, 0);
 }
 
 async function loadMetadataDocument(
   pipelineDocument: OpenDocument,
 ): Promise<{ document: OpenDocument; config: MpeConfigType } | undefined> {
+  if (!pipelineDocument.path) return undefined;
   const session = useProjectSessionStore.getState();
   const metadataPath = separatedMetadataPath(pipelineDocument.path);
   const metadataId =
@@ -103,68 +217,76 @@ async function loadMetadataDocument(
   }
   const document = useDocumentStore.getState().opened[metadataId];
   if (!document) return undefined;
+  useDocumentStore
+    .getState()
+    .setLinkedDocuments(pipelineDocument.documentId, [metadataId]);
   const errors: ParseError[] = [];
-  const config = parse(document.workingText, errors, {
+  const parsed = parse(document.workingText, errors, {
     allowTrailingComma: true,
     disallowComments: false,
-  }) as MpeConfigType | undefined;
-  if (!config || errors.length > 0) {
-    useDocumentStore.getState().failOpen(metadataId, "MPE sidecar 解析失败");
+  }) as unknown;
+  if (!parsed || errors.length > 0) {
+    useDocumentStore.getState().setDiagnostics(
+      metadataId,
+      errors.map((error) => ({
+        code: "pipeline.sidecar.syntax",
+        severity: "error" as const,
+        message: "关联可视化配置不是有效的 JSONC",
+        offset: error.offset,
+        length: Math.max(error.length, 1),
+        path: [],
+        supportLevel: "unparseable" as const,
+      })),
+    );
     return undefined;
   }
-  useDocumentStore.getState().setLinkedDocuments(pipelineDocument.documentId, [metadataId]);
-  return { document, config };
-}
-
-async function ensureMetadataDraft(
-  pipelineDocument: OpenDocument,
-  text: string,
-): Promise<DocumentId | undefined> {
-  const linked = pipelineDocument.linkedDocumentIds
-    .map((documentId) => useDocumentStore.getState().opened[documentId])
-    .find((document) => document?.descriptor.role === "mpe_config");
-  if (linked) return linked.documentId;
-
-  const path = separatedMetadataPath(pipelineDocument.path);
-  const indexedId = useProjectSessionStore.getState().documentIdByPath[path];
-  if (indexedId) {
-    if (!(await documentProtocol.openDocument(indexedId, { activate: false }))) {
-      return undefined;
-    }
-    useDocumentStore.getState().setLinkedDocuments(pipelineDocument.documentId, [indexedId]);
-    return indexedId;
+  if (!isMpeConfig(parsed)) {
+    useDocumentStore.getState().setDiagnostics(metadataId, [
+      {
+        code: "pipeline.sidecar.structure",
+        severity: "error",
+        message: "关联可视化配置缺少 file_config 或 node_configs",
+        offset: 0,
+        length: Math.max(document.workingText.length, 1),
+        path: [],
+        supportLevel: "graph-unsupported",
+      },
+    ]);
+    return undefined;
   }
-
-  const name = path.split("/").at(-1) ?? ".pipeline.mpe.json";
-  const documentId = useProjectSessionStore
-    .getState()
-    .registerDraft(name, "json", asDocumentId(`draft:${crypto.randomUUID()}`));
-  useDocumentStore.getState().registerDraft(
-    documentId,
-    {
-      path,
-      name,
-      kind: "json",
-      language: "json",
-      mimeType: "application/json",
-      size: new TextEncoder().encode(text).length,
-      editable: true,
-      previewable: true,
-      role: "mpe_config",
-    },
-    text,
-  );
-  useDocumentStore.getState().setLinkedDocuments(pipelineDocument.documentId, [documentId]);
-  useFileStore.getState().setFileConfig("separatedConfigPath", path);
-  return documentId;
+  useDocumentStore.getState().setDiagnostics(metadataId, []);
+  return { document, config: parsed };
 }
 
-function pipelineExportOptions(file: FileType) {
+function isMpeConfig(value: unknown): value is MpeConfigType {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.file_config === "object" &&
+    candidate.file_config !== null &&
+    !Array.isArray(candidate.file_config) &&
+    typeof candidate.node_configs === "object" &&
+    candidate.node_configs !== null &&
+    !Array.isArray(candidate.node_configs)
+  );
+}
+
+function rootKeyOrder(
+  sourceMap: ReturnType<typeof analyzePipelineSource>["sourceMap"],
+): string[] {
+  const keys = sourceMap?.locations
+    .filter((location) => location.path.length === 1)
+    .map((location) => location.path[0])
+    .filter((key): key is string => typeof key === "string") ?? [];
+  return [...new Set(keys)];
+}
+
+function emptyProjection(): PipelineFlowProjection {
   return {
-    nodes: file.nodes,
-    edges: file.edges,
-    fileName: file.fileName,
-    config: file.config,
+    nodes: [],
+    edges: [],
+    config: { prefix: "" },
+    hasAuthoredPositions: false,
   };
 }
 
@@ -173,8 +295,4 @@ function separatedMetadataPath(pipelinePath: string): string {
   const fileName = segments.pop() ?? "pipeline.json";
   const stem = fileName.replace(/\.(json|jsonc)$/i, "");
   return [...segments, `.${stem}.mpe.json`].join("/");
-}
-
-function withTrailingNewline(value: string): string {
-  return value.endsWith("\n") ? value : `${value}\n`;
 }

@@ -8,6 +8,7 @@ import {
 } from "../../../stores/toolbarStore";
 import { useConfigStore } from "../../../stores/configStore";
 import { useProjectSessionStore } from "../../../stores/projectSessionStore";
+import { useDocumentStore } from "../../../stores/documentStore";
 import { useFlowStore } from "../../../stores/flow";
 import { useShallow } from "zustand/shallow";
 import { flowToPipeline, flowToSeparatedStrings } from "../../../core/parser";
@@ -55,6 +56,17 @@ function ExportButton() {
   const storageCapabilities = useProjectSessionStore(
     (state) => state.capabilities,
   );
+  const sourceDocument = useDocumentStore((state) =>
+    activeDocumentId ? state.opened[activeDocumentId] : undefined,
+  );
+  const linkedConfigDocument = useDocumentStore((state) =>
+    sourceDocument
+      ? sourceDocument.linkedDocumentIds
+          .map((documentId) => state.opened[documentId])
+          .find((document) => document?.descriptor.role === "mpe_config")
+      : undefined,
+  );
+  const sourceBacked = sourceDocument?.descriptor.kind === "pipeline";
   const canSaveToProject = Boolean(
     activeDocumentId &&
       activeEntry &&
@@ -91,11 +103,15 @@ function ExportButton() {
   }, []);
 
   // 导出操作处理
-  const handleExportToClipboard = () => {
-    ClipboardHelper.write(flowToPipeline(), {
-      successMsg: "已将 Pipeline 导出到粘贴板",
-    });
-  };
+  const handleExportToClipboard = useCallback(() => {
+    if (sourceDocument?.descriptor.kind === "pipeline") {
+      ClipboardHelper.writeString(sourceDocument.workingText, {
+        successMsg: "已将 Pipeline 源码复制到粘贴板",
+      });
+      return;
+    }
+    ClipboardHelper.write(flowToPipeline(), { successMsg: "已将 Pipeline 导出到粘贴板" });
+  }, [sourceDocument]);
 
   const handleExportToFile = useCallback(() => {
     openExportDialog();
@@ -115,23 +131,35 @@ function ExportButton() {
     );
   }, [selectedEdges, selectedNodes]);
 
-  const handleExportPipeline = () => {
+  const handleExportPipeline = useCallback(() => {
+    if (sourceDocument?.descriptor.kind === "pipeline") {
+      ClipboardHelper.writeString(sourceDocument.workingText, {
+        successMsg: "已将 Pipeline 源码复制到粘贴板",
+      });
+      return;
+    }
     const { pipelineString } = flowToSeparatedStrings();
     ClipboardHelper.writeString(pipelineString, {
       successMsg: "已将 Pipeline 导出到粘贴板",
     });
-  };
+  }, [sourceDocument]);
 
   const handleSaveAllDocuments = useCallback(() => {
     void saveAllDocuments();
   }, []);
 
-  const handleExportConfig = () => {
+  const handleExportConfig = useCallback(() => {
+    if (linkedConfigDocument) {
+      ClipboardHelper.writeString(linkedConfigDocument.workingText, {
+        successMsg: "已将配置源码复制到粘贴板",
+      });
+      return;
+    }
     const { configString } = flowToSeparatedStrings();
     ClipboardHelper.writeString(configString, {
       successMsg: "已将配置导出到粘贴板",
     });
-  };
+  }, [linkedConfigDocument]);
 
   // 执行对应的导出操作
   const executeExportAction = useCallback((action: ExportAction) => {
@@ -162,6 +190,9 @@ function ExportButton() {
     }
   }, [
     handleExportToFile,
+    handleExportToClipboard,
+    handleExportPipeline,
+    handleExportConfig,
     handlePartialExport,
     handleSaveAllDocuments,
     handleSaveToProject,
@@ -213,7 +244,7 @@ function ExportButton() {
     }
 
     // 仅在有选中节点时显示
-    if (isPartable) {
+    if (isPartable && !sourceBacked) {
       items.push(
         { type: "divider" },
         {
@@ -255,6 +286,7 @@ function ExportButton() {
     configHandlingMode,
     canSaveToProject,
     isPartable,
+    sourceBacked,
     executeExportAction,
     setDefaultExportAction,
   ]);
@@ -304,10 +336,13 @@ function ExportButton() {
           </Button>
         </Dropdown>
       </div>
-      <ExportFileModal
-        visible={exportModalVisible}
-        onCancel={closeExportDialog}
-      />
+      {!sourceBacked && (
+        <ExportFileModal
+          visible={exportModalVisible}
+          onCancel={closeExportDialog}
+          documentId={activeDocumentId ?? undefined}
+        />
+      )}
       {guardState && (
         <GuardPromptModal
           action="export"

@@ -1,7 +1,7 @@
-import { pipelineToFlow } from "../core/parser";
-import { saveFlow, useFileStore } from "../stores/fileStore";
+import { useFileStore } from "../stores/fileStore";
 import { useDocumentStore } from "../stores/documentStore";
 import { useProjectSessionStore } from "../stores/projectSessionStore";
+import { refreshPipelineDocumentProjection } from "../features/pipeline-document/pipelineDocumentService";
 
 export interface ImportPipelineDraftOptions {
   content: string;
@@ -20,23 +20,26 @@ export async function importPipelineAsDraft({
   if (!newFileName) return false;
 
   try {
-    const success = await pipelineToFlow({ pString: content });
-    if (!success) throw new Error("Pipeline 解析失败");
-    saveFlow();
     if (suggestedName) {
       const displayName = suggestedName.replace(/\.(json|jsonc)$/i, "");
       useFileStore.getState().setFileName(displayName);
     }
     const current = useFileStore.getState().currentFile;
-    const name = `${current.fileName}.json`;
+    const extension = suggestedName?.toLowerCase().endsWith(".jsonc")
+      ? "jsonc"
+      : "json";
+    const name = `${current.fileName}.${extension}`;
+    useProjectSessionStore
+      .getState()
+      .registerDraft(name, "pipeline", current.documentId);
     useDocumentStore.getState().registerDraft(
       current.documentId,
       {
         path: "",
         name,
         kind: "pipeline",
-        language: "json",
-        mimeType: "application/json",
+        language: extension,
+        mimeType: extension === "jsonc" ? "application/jsonc" : "application/json",
         size: new TextEncoder().encode(content).length,
         editable: true,
         previewable: true,
@@ -45,6 +48,7 @@ export async function importPipelineAsDraft({
       { saved: savedBaseline },
     );
     useProjectSessionStore.getState().openDocument(current.documentId);
+    await refreshPipelineDocumentProjection(current.documentId);
     return true;
   } catch (error) {
     console.error("[pipelineImport] Failed to import draft:", error);

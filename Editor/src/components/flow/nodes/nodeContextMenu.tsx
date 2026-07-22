@@ -396,8 +396,22 @@ function handleDeleteGroup(node: NodeContextMenuNode) {
 /**获取节点右键菜单配置 */
 export function getNodeContextMenuConfig(
   node: NodeContextMenuNode,
-  options: { debugCapabilities?: DebugCapabilityManifest } = {},
+  options: {
+    debugCapabilities?: DebugCapabilityManifest;
+    readOnly?: boolean;
+  } = {},
 ): NodeContextMenuConfig[] {
+  if (options.readOnly && node.type === NodeTypeEnum.Group) {
+    return [
+      {
+        key: "copy-node-name",
+        label: "复制节点名",
+        icon: "icon-a-copyfubenfuzhi",
+        iconSize: 16,
+        onClick: handleCopyNodeName,
+      },
+    ];
+  }
   // Group 节点使用专用菜单
   if (node.type === NodeTypeEnum.Group) {
     const groupColors = [
@@ -626,5 +640,17 @@ export function getNodeContextMenuConfig(
     },
   );
 
-  return config;
+  if (!options.readOnly) return config;
+  const readOnlyKeys = new Set([
+    "debug-set-entry",
+    "debug-run-from-node",
+    "debug-single-node-run",
+    "debug-recognition-only",
+    "debug-action-only",
+    "divider-debug",
+    "copy-node-name",
+    "copy-sticker-content",
+    "copy-reco-json",
+  ]);
+  return config.filter((item) => readOnlyKeys.has(item.key));
 }

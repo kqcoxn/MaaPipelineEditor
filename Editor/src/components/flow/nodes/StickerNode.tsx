@@ -8,10 +8,10 @@ import type {
   StickerColorTheme,
 } from "../../../stores/flow";
 import { useFlowStore } from "../../../stores/flow";
-import { useConfigStore } from "../../../stores/configStore";
 import { NodeTypeEnum } from "./constants";
 import { NodeContextMenu } from "./components/NodeContextMenu";
 import type { NodeContextMenuNode } from "./nodeContextMenu";
+import { useFlowReadOnly } from "../FlowInteractionContext";
 
 /**便签颜色主题配置 */
 export const STICKER_COLOR_THEMES: Record<
@@ -57,13 +57,12 @@ const StickerContent = memo(
   ({
     data,
     nodeId,
-    selected,
   }: {
     data: StickerNodeDataType;
     nodeId: string;
-    selected?: boolean;
   }) => {
     const setNodeData = useFlowStore((state) => state.setNodeData);
+    const readOnly = useFlowReadOnly();
     const saveHistory = useFlowStore((state) => state.saveHistory);
     const [editing, setEditing] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -74,19 +73,21 @@ const StickerContent = memo(
     // 双击进入编辑
     const handleDoubleClick = useCallback((e: React.MouseEvent) => {
       e.stopPropagation();
+      if (readOnly) return;
       setEditing(true);
-    }, []);
+    }, [readOnly]);
 
     // 退出编辑
     const handleBlur = useCallback(() => {
       setEditing(false);
+      if (readOnly) return;
       saveHistory(0, {
         category: "node",
         action: "update",
         description: "编辑便签内容",
         targetIds: [nodeId],
       });
-    }, [saveHistory, nodeId]);
+    }, [readOnly, saveHistory, nodeId]);
 
     // 内容变化
     const handleContentChange = useCallback(
@@ -129,6 +130,7 @@ const StickerContent = memo(
           <input
             className={style.stickerTitle}
             value={data.label}
+            readOnly={readOnly}
             onChange={handleTitleChange}
             onMouseDown={(e) => e.stopPropagation()}
             style={{ color: "#fff" }}
@@ -166,11 +168,8 @@ const StickerContent = memo(
 
 /**便签节点组件 */
 export function StickerNode(props: NodeProps<StickerNodeData>) {
-  const focusOpacity = useConfigStore((state) => state.configs.focusOpacity);
+  const readOnly = useFlowReadOnly();
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
-
-  // 便签节点始终不受聚焦效果影响
-  const isRelated = true;
 
   const theme =
     STICKER_COLOR_THEMES[props.data.color] || STICKER_COLOR_THEMES.yellow;
@@ -204,14 +203,13 @@ export function StickerNode(props: NodeProps<StickerNodeData>) {
         <NodeResizer
           minWidth={140}
           minHeight={100}
-          isVisible={props.selected}
+          isVisible={props.selected && !readOnly}
           lineStyle={{ borderColor: theme.border }}
           handleStyle={{ backgroundColor: theme.border, borderColor: "#fff" }}
         />
         <StickerContent
           data={props.data}
           nodeId={props.id}
-          selected={props.selected}
         />
       </div>
     </NodeContextMenu>

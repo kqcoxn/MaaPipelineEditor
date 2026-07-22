@@ -4,14 +4,16 @@ import type { ProjectStorageAdapter } from "../project-storage/ProjectStorageAda
 import { projectStorageCoordinator } from "../project-storage/projectStorageCoordinator";
 import { parseProjectPath } from "../project-session/projectPath";
 import { asDocumentId, asProjectId, type DocumentId } from "../project-session/types";
-import { useConfigStore } from "../../stores/configStore";
 import { useDocumentStore } from "../../stores/documentStore";
 import { useFileStore } from "../../stores/fileStore";
 import { useProjectSessionStore } from "../../stores/projectSessionStore";
+import { usePipelineDocumentStore } from "./pipelineDocumentStore";
 import {
   activatePipelineDocument,
   openPipelineDocument,
-  syncCurrentPipelineToDocuments,
+  refreshPipelineDocumentProjection,
+  setPipelineViewport,
+  updatePipelineWorkingText,
 } from "./pipelineDocumentService";
 import { documentProtocol } from "../../services/server";
 
@@ -29,7 +31,9 @@ const identity = {
 };
 
 function createAdapter(source: string, sidecar?: string): ProjectStorageAdapter {
-  const read = vi.fn(async (documentId: DocumentId) => {
+  const read = vi.fn(async (
+    documentId: DocumentId,
+  ): ReturnType<ProjectStorageAdapter["read"]> => {
     const isSidecar = documentId === sidecarId;
     const content = isSidecar ? sidecar ?? "{}\n" : source;
     const path = isSidecar ? sidecarPath : pipelinePath;
@@ -67,7 +71,14 @@ function createAdapter(source: string, sidecar?: string): ProjectStorageAdapter 
       entries: [],
     })),
     read,
-    write: vi.fn(),
+    write: vi.fn(async (input) => ({
+      path: input.documentId === sidecarId ? sidecarPath : pipelinePath,
+      revision: "r2",
+      size: new TextEncoder().encode(input.content).length,
+      sha256: "sha256:test",
+      operationId: input.operationId,
+      encoding: input.encoding,
+    })),
     create: vi.fn(),
     rename: vi.fn(),
     delete: vi.fn(),
@@ -106,7 +117,7 @@ function establish(adapter: ProjectStorageAdapter, includeSidecar = false): void
               size: 2,
               editable: true,
               previewable: true,
-              role: "mpe_config",
+              role: "mpe_config" as const,
             },
           ]
         : []),
@@ -120,7 +131,7 @@ describe("pipelineDocumentService", () => {
     useProjectSessionStore.getState().clear();
     useDocumentStore.getState().clearProject();
     useFileStore.getState().resetProjectSession();
-    useConfigStore.getState().resetAllConfigs();
+    usePipelineDocumentStore.getState().clear();
   });
 
   it("builds the Flow from JSONC while preserving untouched source text", async () => {
@@ -141,61 +152,114 @@ describe("pipelineDocumentService", () => {
     expect(adapter.write).not.toHaveBeenCalled();
   });
 
-  it("keeps the document and source when Pipeline parsing fails", async () => {
+  it("opens invalid JSONC in source mode without turning syntax errors into storage errors", async () => {
     const source = "// invalid\n{\"Start\": }\n";
     establish(createAdapter(source));
 
-    expect(await openPipelineDocument(pipelineId)).toBe(false);
+    expect(await openPipelineDocument(pipelineId)).toBe(true);
     expect(useDocumentStore.getState().opened[pipelineId]).toMatchObject({
       workingText: source,
       dirty: false,
-      error: expect.any(String),
+    });
+    expect(useDocumentStore.getState().opened[pipelineId].error).toBeUndefined();
+    expect(useDocumentStore.getState().opened[pipelineId].diagnostics[0]).toMatchObject({
+      severity: "error",
+      supportLevel: "unparseable",
+    });
+    expect(usePipelineDocumentStore.getState().documents[pipelineId]).toMatchObject({
+      viewMode: "source",
+      parseState: "invalid",
+      projectionStatus: "unavailable",
     });
   });
 
-  it("loads an indexed sidecar before projection changes update both documents", async () => {
-    useConfigStore.getState().setConfig("configHandlingMode", "separated");
+  it("keeps the last valid projection while invalid and restores stable node ids", async () => {
+    establish(createAdapter('{"Start": {}}\n'));
+    expect(await openPipelineDocument(pipelineId)).toBe(true);
+    const first = usePipelineDocumentStore.getState().documents[pipelineId].projection!;
+
+    updatePipelineWorkingText(pipelineId, '{"Start": }');
+    await refreshPipelineDocumentProjection(pipelineId);
+    const invalid = usePipelineDocumentStore.getState().documents[pipelineId];
+    expect(invalid.lastValidProjection).toBe(first);
+    expect(invalid.viewMode).toBe("source");
+
+    const recoveredSource = '// recovered\r\n{\r\n  "Start": { "timeout": 1 },\r\n}\r\n';
+    updatePipelineWorkingText(pipelineId, recoveredSource);
+    await refreshPipelineDocumentProjection(pipelineId);
+    const recovered = usePipelineDocumentStore.getState().documents[pipelineId];
+    expect(recovered.parseState).toBe("valid");
+    expect(recovered.projection?.nodes[0].id).toBe(first.nodes[0].id);
+    expect(useDocumentStore.getState().opened[pipelineId]).toMatchObject({
+      workingText: recoveredSource,
+      dirty: true,
+    });
+  });
+
+  it("discards an older projection result after a newer working revision starts", async () => {
     establish(
       createAdapter(
-        '{"Start": {}}\n',
-        '{"file_config":{"filename":"main"},"node_configs":{}}\n',
+        '{"Initial":{"$__mpe_code":{"position":{"x":0,"y":0}}}}',
+        '{"file_config":{"filename":"main"},"node_configs":{}}',
       ),
       true,
     );
     expect(await openPipelineDocument(pipelineId)).toBe(true);
-    useFileStore.getState().setFileConfig("prefix", "Changed");
 
-    await syncCurrentPipelineToDocuments();
+    updatePipelineWorkingText(
+      pipelineId,
+      '{"Stale":{"$__mpe_code":{"position":{"x":1,"y":1}}}}',
+    );
+    const staleProjection = refreshPipelineDocumentProjection(pipelineId);
+    updatePipelineWorkingText(
+      pipelineId,
+      '{"Latest":{"$__mpe_code":{"position":{"x":2,"y":2}}}}',
+    );
+    const latestProjection = refreshPipelineDocumentProjection(pipelineId);
+    await Promise.all([staleProjection, latestProjection]);
+
+    const state = usePipelineDocumentStore.getState().documents[pipelineId];
+    expect(state.parsedWorkingRevision).toBe(
+      useDocumentStore.getState().opened[pipelineId].workingRevision,
+    );
+    expect(state.projection?.nodes.map((node) => node.data.label)).toEqual(["Latest"]);
+  });
+
+  it("loads an indexed sidecar without rewriting either source document", async () => {
+    const source = '// pipeline\n{"Start": {}}\n';
+    const sidecar = '{"file_config":{"filename":"main"},"node_configs":{}}\n';
+    establish(
+      createAdapter(source, sidecar),
+      true,
+    );
+    expect(await openPipelineDocument(pipelineId)).toBe(true);
 
     const documents = useDocumentStore.getState().opened;
     expect(documents[pipelineId].linkedDocumentIds).toEqual([sidecarId]);
-    expect(documents[pipelineId].dirty).toBe(true);
+    expect(documents[pipelineId]).toMatchObject({ workingText: source, dirty: false });
     expect(documents[sidecarId]).toMatchObject({
       descriptor: { role: "mpe_config" },
-      dirty: true,
+      workingText: sidecar,
+      dirty: false,
     });
   });
 
-  it("creates a linked in-memory sidecar draft only when no indexed sidecar exists", async () => {
-    useConfigStore.getState().setConfig("configHandlingMode", "separated");
-    establish(createAdapter('{"Start": {}}\n'));
+  it("saves the exact working text instead of serializing the Flow projection", async () => {
+    const adapter = createAdapter('{"Start": {}}\n');
+    establish(adapter);
     expect(await openPipelineDocument(pipelineId)).toBe(true);
-    useFileStore.getState().setFileConfig("prefix", "Draft");
+    const exact = '\uFEFF// keep\r\n{\r\n  "Unknown": { "extension": true },\r\n}\r\n';
+    updatePipelineWorkingText(pipelineId, exact);
 
-    await syncCurrentPipelineToDocuments();
-
-    const primary = useDocumentStore.getState().opened[pipelineId];
-    expect(primary.linkedDocumentIds).toHaveLength(1);
-    const draft = useDocumentStore.getState().opened[primary.linkedDocumentIds[0]];
-    expect(draft).toMatchObject({
-      path: sidecarPath,
-      savedRevision: "",
-      dirty: true,
-      descriptor: { role: "mpe_config" },
+    await expect(documentProtocol.saveDocument(pipelineId)).resolves.toMatchObject({
+      status: "saved",
     });
+    expect(adapter.write).toHaveBeenCalledWith(
+      expect.objectContaining({ content: exact }),
+    );
   });
 
-  it("keeps same-named Pipeline projections isolated by DocumentId", async () => {
+  it("keeps same-named projections and viewports isolated by DocumentId", async () => {
     const secondId = asDocumentId("document:pipeline-second");
     const secondPath = "resource/other/pipeline/main.jsonc";
     const adapter = createAdapter('{"First": {}}\n');
@@ -250,10 +314,14 @@ describe("pipelineDocumentService", () => {
       ]),
     );
 
-    useFileStore.getState().setFileConfig("prefix", "SecondChanged");
-    await syncCurrentPipelineToDocuments();
-    expect(useDocumentStore.getState().opened[pipelineId].dirty).toBe(false);
-    expect(useDocumentStore.getState().opened[secondId].dirty).toBe(true);
+    setPipelineViewport(secondId, { x: 12, y: 34, zoom: 1.25 });
+    expect(useDocumentStore.getState().opened[secondId].dirty).toBe(false);
+    expect(usePipelineDocumentStore.getState().documents[secondId].viewport).toEqual({
+      x: 12,
+      y: 34,
+      zoom: 1.25,
+    });
+    expect(usePipelineDocumentStore.getState().documents[pipelineId].viewport).toBeUndefined();
 
     expect(await activatePipelineDocument(pipelineId)).toBe(true);
     expect(useFileStore.getState().currentFile.documentId).toBe(pipelineId);

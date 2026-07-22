@@ -17,6 +17,22 @@ export interface DocumentConflict {
   externalEncoding: DocumentEncoding;
 }
 
+export type PipelineSupportLevel =
+  | "full"
+  | "preserved"
+  | "graph-unsupported"
+  | "unparseable";
+
+export interface DocumentDiagnostic {
+  code: string;
+  severity: "error" | "warning" | "info";
+  message: string;
+  offset: number;
+  length: number;
+  path: Array<string | number>;
+  supportLevel: PipelineSupportLevel;
+}
+
 export interface OpenDocument {
   documentId: DocumentId;
   path: string;
@@ -30,6 +46,7 @@ export interface OpenDocument {
   saving: boolean;
   loading: boolean;
   linkedDocumentIds: DocumentId[];
+  diagnostics: DocumentDiagnostic[];
   error?: string;
   conflict?: DocumentConflict;
   artifact?: ArtifactRef;
@@ -71,6 +88,10 @@ interface DocumentActions {
   ) => void;
   markDeleted: (documentId: DocumentId) => void;
   setLinkedDocuments: (documentId: DocumentId, linkedIds: DocumentId[]) => void;
+  setDiagnostics: (
+    documentId: DocumentId,
+    diagnostics: DocumentDiagnostic[],
+  ) => void;
   applyDocumentMappings: (mappings: DocumentMapping[]) => void;
   closeDocument: (documentId: DocumentId) => void;
   clearProject: () => void;
@@ -100,6 +121,7 @@ export const useDocumentStore = create<DocumentStore>()(
               saving: existing?.saving ?? false,
               loading: true,
               linkedDocumentIds: existing?.linkedDocumentIds ?? [],
+              diagnostics: existing?.diagnostics ?? [],
               conflict: existing?.conflict,
               artifact: existing?.artifact,
               imageUrl: existing?.imageUrl,
@@ -128,6 +150,7 @@ export const useDocumentStore = create<DocumentStore>()(
             saving: false,
             loading: false,
             linkedDocumentIds: state.opened[documentId]?.linkedDocumentIds ?? [],
+            diagnostics: [],
             artifact: result.artifact,
             imageUrl,
           },
@@ -152,6 +175,7 @@ export const useDocumentStore = create<DocumentStore>()(
             saving: false,
             loading: false,
             linkedDocumentIds: [],
+            diagnostics: [],
           },
         },
       }));
@@ -242,6 +266,7 @@ export const useDocumentStore = create<DocumentStore>()(
             saving: false,
             loading: false,
             linkedDocumentIds: state.opened[documentId]?.linkedDocumentIds ?? [],
+            diagnostics: [],
             artifact: external.artifact,
             imageUrl,
           },
@@ -260,6 +285,12 @@ export const useDocumentStore = create<DocumentStore>()(
       updateOpened(set, documentId, (document) => ({
         ...document,
         linkedDocumentIds: [...new Set(linkedIds)],
+      }));
+    },
+    setDiagnostics(documentId, diagnostics) {
+      updateOpened(set, documentId, (document) => ({
+        ...document,
+        diagnostics,
       }));
     },
     applyDocumentMappings(mappings) {

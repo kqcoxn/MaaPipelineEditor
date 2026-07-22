@@ -1,554 +1,71 @@
 import { Modal } from "antd";
-import { parse as parseJsonc, visit } from "jsonc-parser";
-import {
-  useFlowStore,
-  createPipelineNode,
-  createExternalNode,
-  createAnchorNode,
-  createStickerNode,
-  createGroupNode,
-  ensureGroupNodeOrder,
-  normalizeImportedNodePosition,
-} from "../../stores/flow";
+import { parse, type ParseError } from "jsonc-parser";
+
+import { LayoutHelper } from "../layout";
+import { ClipboardHelper } from "../../utils/ui/clipboard";
+import { useFlowStore } from "../../stores/flow";
 import { useFileStore } from "../../stores/fileStore";
 import {
-  NodeTypeEnum,
-  SourceHandleTypeEnum,
-} from "../../components/flow/nodes";
-import { ClipboardHelper } from "../../utils/ui/clipboard";
-import { LayoutHelper } from "../layout";
-import type {
-  PipelineToFlowOptions,
-  NodeType,
-  EdgeType,
-  IdLabelPairsType,
-  PipelineNodeType,
-  PipelineConfigType,
-} from "./types";
-import {
-  externalMarkPrefix,
-  anchorMarkPrefix,
-  stickerMarkPrefix,
-  groupMarkPrefix,
-} from "./types";
-import { parsePipelineConfig, isMark } from "./configParser";
-import { detectNodeVersion } from "./versionDetector";
-import {
-  linkEdge,
-  getNextId,
-  type NodeRefType,
-  type NodeAttr,
-} from "./edgeLinker";
-import { parseNodeField } from "./nodeParser";
-import { mergePipelineAndConfig } from "./configSplitter";
-import { rerouteEdgesToNearestReplica } from "./edgeRerouter";
+  buildPipelineProjection,
+  type BuildPipelineProjectionOptions,
+} from "../../features/pipeline-document/pipelineProjectionBuilder";
+import type { PipelineToFlowOptions } from "./types";
+
+export { buildPipelineProjection };
+export type { BuildPipelineProjectionOptions };
 
 /**
- * 迁移 Pipeline v5.1 废弃字段
- */
-function migratePipelineV5(
-  pipelineObj: Record<string, unknown>,
-  objKeys: string[],
-): void {
-  const JUMPBACK_PREFIX = "[JumpBack]";
-  const subNodes = new Set<string>();
-  for (const objKey of objKeys) {
-    const obj = pipelineObj[objKey];
-    if (
-      obj &&
-      typeof obj === "object" &&
-      (obj as Record<string, unknown>)["is_sub"] === true
-    ) {
-      subNodes.add(objKey);
-    }
-  }
-
-  for (const objKey of objKeys) {
-    const obj = pipelineObj[objKey] as Record<string, unknown> | undefined;
-    if (!obj || typeof obj !== "object") continue;
-
-    // 处理 interrupt 字段
-    if ("interrupt" in obj) {
-      const interrupt = obj["interrupt"];
-      let interruptNodes: NodeRefType[] = [];
-
-      if (typeof interrupt === "string") {
-        interruptNodes = [interrupt];
-      } else if (Array.isArray(interrupt)) {
-        interruptNodes = interrupt;
-      }
-
-      if (interruptNodes.length > 0) {
-        // [JumpBack] 前缀
-        const prefixedInterruptNodes = interruptNodes.map((n) => {
-          if (typeof n === "string") {
-            return n.startsWith(JUMPBACK_PREFIX) ? n : `${JUMPBACK_PREFIX}${n}`;
-          } else if (typeof n === "object" && n !== null) {
-            // 对象形式，添加 jump_back 属性
-            return { ...n, jump_back: true };
-          }
-          return n;
-        });
-
-        // 合并到 next
-        let currentNext: NodeRefType[] = [];
-        if (obj["next"]) {
-          if (typeof obj["next"] === "string") {
-            currentNext = [obj["next"]];
-          } else if (Array.isArray(obj["next"])) {
-            currentNext = obj["next"];
-          }
-        }
-        obj["next"] = [...currentNext, ...prefixedInterruptNodes];
-      }
-
-      // 删除 interrupt 字段
-      delete obj["interrupt"];
-    }
-
-    // 处理 next 和 on_error 中对 is_sub 节点的引用
-    const processRefs = (field: string) => {
-      if (!(field in obj)) return;
-      const refs = obj[field];
-      let refArray: NodeRefType[] = [];
-
-      if (typeof refs === "string") {
-        refArray = [refs];
-      } else if (Array.isArray(refs)) {
-        refArray = refs;
-      }
-
-      if (refArray.length > 0) {
-        obj[field] = refArray.map((n) => {
-          // 字符串形式
-          if (typeof n === "string") {
-            if (subNodes.has(n) && !n.startsWith(JUMPBACK_PREFIX)) {
-              return `${JUMPBACK_PREFIX}${n}`;
-            }
-            return n;
-          }
-          // 对象形式
-          if (typeof n === "object" && n !== null) {
-            const nodeName = (n as NodeAttr).name;
-            if (nodeName && subNodes.has(nodeName)) {
-              return { ...n, jump_back: true };
-            }
-            return n;
-          }
-          return n;
-        });
-      }
-    };
-
-    processRefs("next");
-    processRefs("on_error");
-
-    // 删除 is_sub 字段
-    if ("is_sub" in obj) {
-      delete obj["is_sub"];
-    }
-  }
-}
-
-/**
- * 将Pipeline对象导入为Flow
- * @param options 导入选项，可以传入Pipeline字符串和外部配置
+ * Legacy import entry. Project documents use the pipeline-document service;
+ * clipboard and compatibility callers still apply the same pure projection.
  */
 export async function pipelineToFlow(
   options?: PipelineToFlowOptions,
 ): Promise<boolean> {
   try {
-    // 获取参数
-    let pString = options?.pString ?? (await ClipboardHelper.read());
-    const mpeConfig = options?.mpeConfig;
-
-    // 处理空文件或只包含空格的文件
-    const trimmedString = pString.trim();
-    if (trimmedString === "" || trimmedString === "null") {
-      pString = "{}";
+    const source = options?.pString ?? (await ClipboardHelper.read());
+    const normalized = source.trim() === "" || source.trim() === "null" ? "{}" : source;
+    const errors: ParseError[] = [];
+    const pipeline = parse(normalized, errors, {
+      allowTrailingComma: true,
+      disallowComments: false,
+    }) as Record<string, unknown> | undefined;
+    if (errors.length || !pipeline || Array.isArray(pipeline)) {
+      throw new Error("Pipeline JSONC 无法解析");
     }
-
-    // 获取原始键顺序
-    const originalKeyOrder: string[] = [];
-    let currentDepth = 0;
-    try {
-      visit(
-        pString,
-        {
-          onObjectBegin: () => {
-            currentDepth++;
-          },
-          onObjectEnd: () => {
-            currentDepth--;
-          },
-          onObjectProperty: (property) => {
-            if (currentDepth === 1) {
-              originalKeyOrder.push(property);
-            }
-          },
-        },
-        { allowTrailingComma: true },
-      );
-    } catch (visitError) {
-      console.warn(
-        "[importer] visit parse failed, using empty object",
-        visitError,
-      );
-    }
-
-    // 合并外部配置
-    let pipelineObj: Record<string, any> | undefined;
-    if (mpeConfig) {
-      // 解析 Pipeline 对象
-      const purePipeline = parseJsonc(pString);
-      // 合并配置时传入原始键顺序
-      pipelineObj = mergePipelineAndConfig(
-        purePipeline,
-        mpeConfig,
-        undefined,
-        originalKeyOrder,
-      );
-      pString = JSON.stringify(pipelineObj);
-    }
-    const keyOrder = originalKeyOrder.length > 0 ? originalKeyOrder : [];
-
-    if (!pipelineObj) {
-      pipelineObj = parseJsonc(pString);
-    }
-
-    if (!pipelineObj || typeof pipelineObj !== "object") {
-      pipelineObj = {};
-    }
-
-    // 解析配置
-    const configs = parsePipelineConfig(pipelineObj);
-    const coordinateMode =
-      (configs.coordinateMode as PipelineConfigType["coordinateMode"]) ??
-      "relative-legacy";
-
-    // 迁移废弃字段
-    const objKeys = keyOrder.length > 0 ? keyOrder : Object.keys(pipelineObj);
-    migratePipelineV5(pipelineObj, objKeys);
-
-    // 解析节点
-    let nodes: NodeType[] = [];
-    const originLabels: string[] = [];
-    const originalKeys: string[] = [];
-    let idOLPairs: IdLabelPairsType = [];
-    let isIncludePos = false;
-
-    // 初始化顺序映射
-    const orderMap: Record<string, number> = {};
-    let nextOrder = 0;
-
-    objKeys.forEach((objKey) => {
-      const obj = pipelineObj[objKey];
-
-      // 跳过配置键
-      if (
-        objKey.startsWith("$__mpe_config_") ||
-        objKey.startsWith("__mpe_config_") ||
-        objKey.startsWith("__yamaape_config_")
-      ) {
-        return;
-      }
-
-      // 便签节点
-      if (objKey.startsWith(stickerMarkPrefix)) {
-        const id = "sticker_" + getNextId();
-        let label = objKey.substring(stickerMarkPrefix.length);
-        const filename = configs.filename;
-        if (filename) {
-          label = label.substring(0, label.length - filename.length - 1);
-        }
-
-        // 解析便签数据
-        const mpeCode = obj?.["$__mpe_code"] ?? obj;
-        const stickerNode = createStickerNode(id, {
-          label,
-          position: mpeCode?.position ?? { x: 0, y: 0 },
-          datas: {
-            content: mpeCode?.content ?? "",
-            color: mpeCode?.color ?? "yellow",
-          },
-          style: {
-            ...(mpeCode?.width && { width: mpeCode.width }),
-            ...(mpeCode?.height && { height: mpeCode.height }),
-          },
-        });
-        if (mpeCode?.position) isIncludePos = true;
-
-        // 分配顺序号
-        orderMap[id] = nextOrder++;
-        nodes.push(stickerNode as unknown as NodeType);
-        return;
-      }
-
-      // 分组节点
-      if (objKey.startsWith(groupMarkPrefix)) {
-        const id = "group_" + getNextId();
-        let label = objKey.substring(groupMarkPrefix.length);
-        const filename = configs.filename;
-        if (filename) {
-          label = label.substring(0, label.length - filename.length - 1);
-        }
-
-        // 解析分组数据
-        const mpeCode = obj?.["$__mpe_code"] ?? obj;
-        const groupNode = createGroupNode(id, {
-          label,
-          position: mpeCode?.position ?? { x: 0, y: 0 },
-          datas: {
-            color: mpeCode?.color ?? "blue",
-          },
-          style: {
-            ...(mpeCode?.width && { width: mpeCode.width }),
-            ...(mpeCode?.height && { height: mpeCode.height }),
-          },
-        });
-
-        if (mpeCode?.position) isIncludePos = true;
-
-        // 记录子节点关系
-        if (mpeCode?.childrenLabels && Array.isArray(mpeCode.childrenLabels)) {
-          (groupNode as any)._pendingChildrenLabels = mpeCode.childrenLabels;
-        }
-
-        // 分配顺序号
-        orderMap[id] = nextOrder++;
-        nodes.push(groupNode as unknown as NodeType);
-        return;
-      }
-
-      // 检测当前节点的版本
-      const { recognitionVersion, actionVersion } = detectNodeVersion(obj);
-
-      // 处理节点名
-      const id = "p_" + getNextId();
-      let label = objKey;
-
-      // 分配顺序号
-      orderMap[id] = nextOrder++;
-
-      // 判断是否为外部节点或重定向节点
-      let type = NodeTypeEnum.Pipeline;
-      if (objKey.startsWith(externalMarkPrefix)) {
-        type = NodeTypeEnum.External;
-        label = label.substring(externalMarkPrefix.length);
-        const filename = configs.filename;
-        if (filename) {
-          label = label.substring(0, label.length - filename.length - 1);
-        }
-        originLabels.push(label);
-        originalKeys.push(objKey);
-        idOLPairs.push({ id, label });
-      } else if (objKey.startsWith(anchorMarkPrefix)) {
-        type = NodeTypeEnum.Anchor;
-        label = label.substring(anchorMarkPrefix.length);
-        const filename = configs.filename;
-        if (filename) {
-          label = label.substring(0, label.length - filename.length - 1);
-        }
-        originLabels.push(label);
-        originalKeys.push(objKey);
-        idOLPairs.push({ id, label });
-      } else {
-        originLabels.push(label);
-        originalKeys.push(objKey);
-        idOLPairs.push({ id, label });
-        // 删除前缀
-        const prefix = configs.prefix;
-        if (prefix) {
-          label = label.substring(prefix.length + 1);
-        }
-      }
-
-      // 创建节点
-      const node =
-        type === NodeTypeEnum.Pipeline
-          ? createPipelineNode(id, { label })
-          : type === NodeTypeEnum.External
-            ? (createExternalNode(id, { label }) as PipelineNodeType)
-            : (createAnchorNode(id, { label }) as PipelineNodeType);
-
-      // 收集副本位置（仅 External / Anchor 适用）
-      let extraPositions: { x: number; y: number }[] | undefined;
-
-      // 解析节点字段
-      const keys = Object.keys(obj);
-      keys.forEach((key) => {
-        const value = obj[key];
-
-        // 标记字段
-        if (isMark(key)) {
-          // 处理位置信息
-          if (value.position) {
-            node.position = value.position;
-          }
-          // 处理端点位置
-          if (value.handleDirection) {
-            node.data.handleDirection = value.handleDirection;
-          }
-          // 视觉副本位置
-          if (
-            (type === NodeTypeEnum.External || type === NodeTypeEnum.Anchor) &&
-            Array.isArray(value.extra_positions)
-          ) {
-            extraPositions = value.extra_positions;
-          }
-          isIncludePos = true;
-          return;
-        }
-
-        // 解析其他字段
-        const isHandled = parseNodeField(
-          node,
-          key,
-          value,
-          recognitionVersion,
-          actionVersion,
-        );
-
-        // 如果字段未被处理，作为额外字段
-        if (!isHandled) {
-          node.data.extras[key] = value;
-        }
-      });
-
-      // 检查Pipeline节点参数完整性
-      if (type === NodeTypeEnum.Pipeline) {
-        node.data.recognition.param ??= {};
-        node.data.action.param ??= {};
-      }
-
-      // 保存节点
-      nodes.push(node);
-
-      // 创建额外副本（不进 idOLPairs，避免被 linkEdge 当做新目标）
-      if (extraPositions && extraPositions.length > 0) {
-        for (const pos of extraPositions) {
-          const replicaId =
-            (type === NodeTypeEnum.External ? "e_" : "a_") + getNextId();
-          const replica =
-            type === NodeTypeEnum.External
-              ? (createExternalNode(replicaId, { label }) as PipelineNodeType)
-              : (createAnchorNode(replicaId, { label }) as PipelineNodeType);
-          replica.position = pos;
-          if ((node.data as any).handleDirection) {
-            (replica.data as any).handleDirection = (node.data as any).handleDirection;
-          }
-          nodes.push(replica);
-        }
-      }
+    const projection = buildPipelineProjection({
+      pipeline,
+      keyOrder: Object.keys(pipeline),
+      mpeConfig: options?.mpeConfig,
     });
-
-    // 恢复分组子节点关系
-    // Group 节点的 _pendingChildrenLabels 存储了子节点的 label
-    // 通过 label 匹配找到对应节点，设置 parentId
-    const labelToNodeIndex = new Map<string, number>();
-    nodes.forEach((node, index) => {
-      labelToNodeIndex.set(node.data.label, index);
-    });
-
-    nodes.forEach((node) => {
-      if ((node as any)._pendingChildrenLabels) {
-        const groupId = node.id;
-        const childrenLabels: string[] = (node as any)._pendingChildrenLabels;
-        delete (node as any)._pendingChildrenLabels;
-
-        childrenLabels.forEach((label) => {
-          const childIndex = labelToNodeIndex.get(label);
-          if (childIndex !== undefined) {
-            const childNode = nodes[childIndex];
-            if (childNode.type !== NodeTypeEnum.Group) {
-              (nodes[childIndex] as any).parentId = groupId;
-            }
-          }
-        });
-      }
-    });
-
-    nodes = nodes.map((node) =>
-      normalizeImportedNodePosition(node, nodes, coordinateMode),
-    );
-    nodes = ensureGroupNodeOrder(nodes);
-
-    // 解析连接
-    let edges: EdgeType[] = [];
-    for (let index = 0; index < originLabels.length; index++) {
-      const objKey = originalKeys[index];
-      const obj = pipelineObj[objKey];
-      if (!obj) continue;
-      const originLabel = originLabels[index];
-
-      // 解析 next 连接
-      const next = obj["next"] as NodeRefType[];
-      if (next) {
-        const [newEdges, newNodes, newIdOLPairs] = linkEdge(
-          originLabel,
-          next,
-          SourceHandleTypeEnum.Next,
-          idOLPairs,
-        );
-        if (newEdges.length > 0) edges = edges.concat(newEdges);
-        if (newNodes.length > 0) nodes = nodes.concat(newNodes);
-        if (newIdOLPairs.length > 0) idOLPairs = idOLPairs.concat(newIdOLPairs);
-      }
-
-      // 解析 on_error 连接
-      const onError = obj["on_error"] as NodeRefType[];
-      if (onError) {
-        const [newEdges, newNodes, newIdOLPairs] = linkEdge(
-          originLabel,
-          onError,
-          SourceHandleTypeEnum.Error,
-          idOLPairs,
-        );
-        if (newEdges.length > 0) edges = edges.concat(newEdges);
-        if (newNodes.length > 0) nodes = nodes.concat(newNodes);
-        if (newIdOLPairs.length > 0) idOLPairs = idOLPairs.concat(newIdOLPairs);
-      }
-    }
-
-    // 视觉副本就近匹配：把指向 External / Anchor 的边重定向到最近的副本
-    edges = rerouteEdgesToNearestReplica(nodes, edges);
-
-    // 欢迎状态下没有占位 Pipeline，首次导入时显式创建目标文件。
-    if (useFileStore.getState().files.length === 0) {
-      useFileStore.getState().addFile({ isSwitch: true });
-    }
-
-    // 先追加历史记录（此时 state.nodes 仍为导入前状态，可正确保存）
-    useFlowStore.getState().importHistory(nodes, edges);
-
-    // 再替换画布（跳过历史，已在 importHistory 中处理）
-    useFlowStore.getState().replace(nodes, edges, {
-      isFitView: isIncludePos,
-      skipHistory: true,
-    });
-
-    // 更新文件配置
-    const fileState = useFileStore.getState();
-    if (configs.filename) fileState.setFileName(configs.filename);
-    const setFileConfig = fileState.setFileConfig;
-    if (configs.prefix) setFileConfig("prefix", configs.prefix);
-    setFileConfig("coordinateMode", "absolute-v1");
-
-    // 保存顺序映射
-    setFileConfig("nodeOrderMap", orderMap);
-    setFileConfig("nextOrderNumber", nextOrder);
-
-    // 自动布局
-    if (!isIncludePos) LayoutHelper.auto();
-
+    applyLegacyProjection(projection);
     return true;
-  } catch (err) {
+  } catch (error) {
     Modal.error({
       title: "导入失败！",
       content:
-        "请检查pipeline格式是否正确，或版本是否一致，详细程序错误请在控制台查看。",
+        "请检查 Pipeline 格式是否正确，或版本是否一致，详细错误请查看控制台。",
     });
-    console.error(err);
+    console.error(error);
     return false;
   }
+}
+
+function applyLegacyProjection(
+  projection: ReturnType<typeof buildPipelineProjection>,
+): void {
+  if (useFileStore.getState().files.length === 0) {
+    useFileStore.getState().addFile({ isSwitch: true });
+  }
+  const flowStore = useFlowStore.getState();
+  flowStore.importHistory(projection.nodes, projection.edges);
+  flowStore.replace(projection.nodes, projection.edges, {
+    isFitView: projection.hasAuthoredPositions,
+    skipHistory: true,
+  });
+  const fileStore = useFileStore.getState();
+  if (projection.config.prefix) fileStore.setFileConfig("prefix", projection.config.prefix);
+  fileStore.setFileConfig("coordinateMode", projection.config.coordinateMode);
+  fileStore.setFileConfig("nodeOrderMap", projection.config.nodeOrderMap);
+  fileStore.setFileConfig("nextOrderNumber", projection.config.nextOrderNumber);
+  if (!projection.hasAuthoredPositions) LayoutHelper.auto();
 }

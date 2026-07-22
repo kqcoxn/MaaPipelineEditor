@@ -1,4 +1,4 @@
-import { memo, useMemo, useState, useCallback, useRef, useEffect } from "react";
+import { memo, useMemo, useState, useCallback, useRef } from "react";
 import { type Node, type NodeProps, NodeResizer } from "@xyflow/react";
 import classNames from "classnames";
 
@@ -8,6 +8,7 @@ import { useFlowStore } from "../../../stores/flow";
 import { NodeTypeEnum } from "./constants";
 import { NodeContextMenu } from "./components/NodeContextMenu";
 import type { NodeContextMenuNode } from "./nodeContextMenu";
+import { useFlowReadOnly } from "../FlowInteractionContext";
 
 /**分组颜色主题配置 */
 export const GROUP_COLOR_THEMES: Record<
@@ -52,6 +53,7 @@ type GroupNodeData = Node<GroupNodeDataType, NodeTypeEnum.Group>;
 const GroupContent = memo(
   ({ data, nodeId }: { data: GroupNodeDataType; nodeId: string }) => {
     const setNodeData = useFlowStore((state) => state.setNodeData);
+    const readOnly = useFlowReadOnly();
     const saveHistory = useFlowStore((state) => state.saveHistory);
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -66,13 +68,14 @@ const GroupContent = memo(
     );
 
     const handleTitleBlur = useCallback(() => {
+      if (readOnly) return;
       saveHistory(0, {
         category: "group",
         action: "update",
         description: "编辑分组标题",
         targetIds: [nodeId],
       });
-    }, [saveHistory, nodeId]);
+    }, [readOnly, saveHistory, nodeId]);
 
     return (
       <div
@@ -91,6 +94,7 @@ const GroupContent = memo(
             ref={inputRef}
             className={style.groupTitle}
             value={data.label}
+            readOnly={readOnly}
             onChange={handleTitleChange}
             onBlur={handleTitleBlur}
             onMouseDown={(e) => e.stopPropagation()}
@@ -108,10 +112,8 @@ const GroupContent = memo(
 
 /**分组节点组件 */
 export function GroupNode(props: NodeProps<GroupNodeData>) {
+  const readOnly = useFlowReadOnly();
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
-
-  // 分组节点始终不受聚焦效果影响
-  const isRelated = true;
 
   const theme = GROUP_COLOR_THEMES[props.data.color] || GROUP_COLOR_THEMES.blue;
 
@@ -144,7 +146,7 @@ export function GroupNode(props: NodeProps<GroupNodeData>) {
         <NodeResizer
           minWidth={200}
           minHeight={150}
-          isVisible={props.selected}
+          isVisible={props.selected && !readOnly}
           lineStyle={{ borderColor: theme.border }}
           handleStyle={{
             backgroundColor: theme.border,
