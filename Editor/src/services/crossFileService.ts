@@ -4,7 +4,9 @@
  */
 
 import { useWSStore } from "../stores/wsStore";
-import { useLocalFileStore } from "../stores/localFileStore";
+import { getProjectPipelineFiles } from "../features/project-session/projectPipelineIndex";
+import type { DocumentId } from "../features/project-session/types";
+import { useProjectSessionStore } from "../stores/projectSessionStore";
 import { useFileStore } from "../stores/fileStore";
 import { useConfigStore } from "../stores/configStore";
 import {
@@ -24,6 +26,8 @@ import {
  * 跨文件节点信息
  */
 export interface CrossFileNodeInfo {
+  /** 稳定文档身份 */
+  documentId: DocumentId;
   /** 节点标签（不含前缀） */
   label: string;
   /** 完整节点名（含前缀） */
@@ -65,8 +69,7 @@ class CrossFileService {
 
     if (isConnected) {
       // 连接 localbridge 时
-      // 从 localFileStore 获取所有本地文件的节点
-      const allLocalFiles = useLocalFileStore.getState().files;
+      const allLocalFiles = getProjectPipelineFiles();
       const folderFilter =
         useConfigStore.getState().configs.crossFileSearchFolderFilter;
       const localFiles = filterLocalFilesByFolderFilter(
@@ -84,7 +87,7 @@ class CrossFileService {
         processedFilePaths.add(localFile.file_path);
 
         const loadedFile = loadedFiles.find(
-          (f) => f.config.filePath === localFile.file_path,
+          (file) => file.documentId === localFile.document_id,
         );
 
         if (loadedFile) {
@@ -94,6 +97,7 @@ class CrossFileService {
 
           for (const node of loadedFile.nodes) {
             result.push({
+              documentId: loadedFile.documentId,
               label: node.data.label,
               fullName: getFullNodeName(node.data.label, prefix),
               nodeType: node.type as NodeTypeEnum,
@@ -134,6 +138,7 @@ class CrossFileService {
             }
 
             result.push({
+              documentId: localFile.document_id,
               label,
               fullName: nodeInfo.label, // JSON 键名就是完整名
               nodeType: NodeTypeEnum.Pipeline, // 未加载文件默认为 Pipeline 节点
@@ -168,6 +173,7 @@ class CrossFileService {
 
         for (const node of file.nodes) {
           result.push({
+            documentId: file.documentId,
             label: node.data.label,
             fullName: getFullNodeName(node.data.label, prefix),
             nodeType: node.type as NodeTypeEnum,
@@ -189,6 +195,7 @@ class CrossFileService {
 
         for (const node of file.nodes) {
           result.push({
+            documentId: file.documentId,
             label: node.data.label,
             fullName: getFullNodeName(node.data.label, prefix),
             nodeType: node.type as NodeTypeEnum,
@@ -338,9 +345,7 @@ class CrossFileService {
     // 如果已加载，切换文件并定位
     if (nodeInfo.isLoaded) {
       const targetFile = fileStore.files.find(
-        (f) =>
-          f.config.filePath === nodeInfo.filePath ||
-          f.fileName === nodeInfo.filePath,
+        (file) => file.documentId === nodeInfo.documentId,
       );
 
       if (targetFile) {
@@ -376,11 +381,12 @@ class CrossFileService {
   ): Promise<boolean> {
     const fileStore = useFileStore.getState();
     const currentFile = fileStore.currentFile;
+    const documentId =
+      useProjectSessionStore.getState().documentIdByPath[filePath];
 
     // 检查是否是当前文件
     const isCurrentFile =
-      currentFile.config.filePath === filePath ||
-      currentFile.fileName === filePath;
+      documentId !== undefined && currentFile.documentId === documentId;
 
     if (isCurrentFile) {
       return this.focusNodeInCurrentFile(nodeLabel);
@@ -388,7 +394,7 @@ class CrossFileService {
 
     // 查找目标文件
     const targetFile = fileStore.files.find(
-      (f) => f.config.filePath === filePath || f.fileName === filePath,
+      (file) => documentId !== undefined && file.documentId === documentId,
     );
 
     if (targetFile) {
@@ -624,6 +630,7 @@ class CrossFileService {
    * @returns 引用该 anchor 的节点列表
    */
   getAnchorReferencesCrossFile(anchorName: string): Array<{
+    documentId: DocumentId;
     id: string;
     label: string;
     filePath: string;
@@ -632,6 +639,7 @@ class CrossFileService {
     isLoaded: boolean;
   }> {
     const result: Array<{
+      documentId: DocumentId;
       id: string;
       label: string;
       filePath: string;
@@ -642,7 +650,7 @@ class CrossFileService {
 
     const currentFile = useFileStore.getState().currentFile;
     const files = useFileStore.getState().files;
-    const localFiles = useLocalFileStore.getState().files;
+    const localFiles = getProjectPipelineFiles();
     const isConnected = this.isConnected();
 
     // 处理已加载的文件，排除当前文件
@@ -661,6 +669,7 @@ class CrossFileService {
           "others" in node.data ? node.data.others?.anchor : undefined;
         if (this.anchorValueContains(anchorValue, anchorName)) {
           result.push({
+            documentId: file.documentId,
             id: node.id,
             label: node.data.label,
             filePath,
@@ -693,6 +702,7 @@ class CrossFileService {
             }
 
             result.push({
+              documentId: localFile.document_id,
               id: `${localFile.file_path}#${nodeInfo.label}`, // 使用文件路径+节点名作为临时ID
               label,
               filePath: localFile.file_path,

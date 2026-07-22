@@ -21,7 +21,8 @@ import style from "../../styles/documents/DocumentEditorHost.module.less";
 import { MfwJsonEditor } from "../json/MfwJsonEditor";
 import { documentProtocol } from "../../services/server";
 import { useDocumentStore } from "../../stores/documentStore";
-import { useLocalFileStore } from "../../stores/localFileStore";
+import { useResourceStore } from "../../stores/resourceStore";
+import type { DocumentId } from "../../features/project-session/types";
 
 const MonacoDiffEditor = lazy(() =>
   import("@monaco-editor/react").then((module) => ({
@@ -32,7 +33,7 @@ const MonacoDiffEditor = lazy(() =>
 const { Text } = Typography;
 
 interface DocumentEditorHostProps {
-  path: string;
+  documentId: DocumentId;
 }
 
 const configureJson: BeforeMount = (monaco) => {
@@ -57,9 +58,11 @@ const editorOptions = {
   wordWrap: "on" as const,
 };
 
-export const DocumentEditorHost = memo(({ path }: DocumentEditorHostProps) => {
-  const document = useDocumentStore((state) => state.opened[path]);
-  const imageCache = useLocalFileStore((state) => state.imageCache.get(path));
+export const DocumentEditorHost = memo(({ documentId }: DocumentEditorHostProps) => {
+  const document = useDocumentStore((state) => state.opened[documentId]);
+  const imageCache = useResourceStore((state) =>
+    document ? state.imageCache.get(document.path) : undefined,
+  );
   const [saving, setSaving] = useState(false);
 
   const language = useMemo(() => {
@@ -79,7 +82,7 @@ export const DocumentEditorHost = memo(({ path }: DocumentEditorHostProps) => {
   const save = async () => {
     setSaving(true);
     try {
-      await documentProtocol.saveDocument(path);
+      await documentProtocol.saveDocument(documentId);
     } finally {
       setSaving(false);
     }
@@ -92,7 +95,7 @@ export const DocumentEditorHost = memo(({ path }: DocumentEditorHostProps) => {
       <header className={style.toolbar}>
         <div className={style.identity}>
           <span className={style.name}>{descriptor.name}</span>
-          <span className={style.path}>{path}</span>
+          <span className={style.path}>{document.path}</span>
         </div>
         <Space size="small">
           <Tag bordered={false}>{kindLabel(descriptor.kind)}</Tag>
@@ -126,14 +129,14 @@ export const DocumentEditorHost = memo(({ path }: DocumentEditorHostProps) => {
 
       <div className={style.content}>
         {document.conflict ? (
-          <ConflictEditor path={path} language={language} />
+          <ConflictEditor documentId={documentId} language={language} />
         ) : descriptor.kind === "image" ? (
-          <ImagePreview path={path} imageUrl={imageUrl} />
+          <ImagePreview documentId={documentId} imageUrl={imageUrl} />
         ) : descriptor.kind === "binary" || descriptor.readOnlyReason === "too_large" ? (
-          <BinaryInfo path={path} />
+          <BinaryInfo documentId={documentId} />
         ) : (
           <MfwJsonEditor
-            path={`mpe-project:///${path}`}
+            path={`mpe-project:///${document.path}`}
             language={language}
             value={document.content}
             beforeMount={
@@ -146,7 +149,7 @@ export const DocumentEditorHost = memo(({ path }: DocumentEditorHostProps) => {
               readOnly: !descriptor.editable || document.deleted,
             }}
             onChange={(value) =>
-              useDocumentStore.getState().updateContent(path, value ?? "")
+              useDocumentStore.getState().updateContent(documentId, value ?? "")
             }
           />
         )}
@@ -155,8 +158,8 @@ export const DocumentEditorHost = memo(({ path }: DocumentEditorHostProps) => {
   );
 });
 
-function ConflictEditor({ path, language }: { path: string; language: string }) {
-  const document = useDocumentStore((state) => state.opened[path]);
+function ConflictEditor({ documentId, language }: { documentId: DocumentId; language: string }) {
+  const document = useDocumentStore((state) => state.opened[documentId]);
   if (!document?.conflict) return null;
   return (
     <div className={style.conflict}>
@@ -168,13 +171,13 @@ function ConflictEditor({ path, language }: { path: string; language: string }) 
           </Text>
         </div>
         <Space size="small">
-          <Button onClick={() => useDocumentStore.getState().keepLocal(path)}>
+          <Button onClick={() => useDocumentStore.getState().keepLocal(documentId)}>
             保留本地
           </Button>
           <Button
             type="primary"
             icon={<ReloadOutlined />}
-            onClick={() => void documentProtocol.reloadExternal(path)}
+            onClick={() => void documentProtocol.reloadExternal(documentId)}
           >
             重新加载外部版本
           </Button>
@@ -205,8 +208,8 @@ function ConflictEditor({ path, language }: { path: string; language: string }) 
   );
 }
 
-function ImagePreview({ path, imageUrl }: { path: string; imageUrl?: string }) {
-  const document = useDocumentStore((state) => state.opened[path]);
+function ImagePreview({ documentId, imageUrl }: { documentId: DocumentId; imageUrl?: string }) {
+  const document = useDocumentStore((state) => state.opened[documentId]);
   const artifact = document?.artifact;
   if (!imageUrl) {
     return (
@@ -218,20 +221,20 @@ function ImagePreview({ path, imageUrl }: { path: string; imageUrl?: string }) {
   return (
     <div className={style.imagePreview}>
       <div className={style.imageStage}>
-        <img src={imageUrl} alt={document?.descriptor.name || path} />
+        <img src={imageUrl} alt={document?.descriptor.name || documentId} />
       </div>
       <div className={style.imageMeta}>
         <FileImageOutlined />
         <span>{formatDimensions(artifact?.width, artifact?.height)}</span>
         <span>{formatBytes(document?.descriptor.size ?? 0)}</span>
-        <span className={style.metaPath}>{path}</span>
+        <span className={style.metaPath}>{document?.path}</span>
       </div>
     </div>
   );
 }
 
-function BinaryInfo({ path }: { path: string }) {
-  const document = useDocumentStore((state) => state.opened[path]);
+function BinaryInfo({ documentId }: { documentId: DocumentId }) {
+  const document = useDocumentStore((state) => state.opened[documentId]);
   if (!document) return null;
   const descriptor = document.descriptor;
   return (
@@ -251,7 +254,7 @@ function BinaryInfo({ path }: { path: string }) {
         column={1}
         size="small"
         items={[
-          { key: "path", label: "项目路径", children: path },
+          { key: "path", label: "项目路径", children: document.path },
           { key: "type", label: "MIME 类型", children: descriptor.mimeType },
           { key: "size", label: "文件大小", children: formatBytes(descriptor.size) },
           { key: "revision", label: "Revision", children: document.baseRevision },

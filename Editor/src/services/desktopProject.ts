@@ -2,7 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { localServer } from "./server";
 import { useFileStore } from "../stores/fileStore";
-import { useLocalFileStore } from "../stores/localFileStore";
+import { useResourceStore } from "../stores/resourceStore";
 import { useWorkspaceStore } from "../stores/workspaceStore";
 import { useDocumentStore } from "../stores/documentStore";
 import { useProjectSessionStore } from "../stores/projectSessionStore";
@@ -33,18 +33,17 @@ function confirmProjectSwitch(path: string): Promise<boolean> {
 }
 
 function resetProjectSession(): void {
-  useFileStore.getState().resetProjectSession();
+  useFileStore.getState().clearProjectFiles();
   localStorage.removeItem("_mpe_files");
   useWorkspaceStore.getState().clear();
-  useLocalFileStore.getState().clear();
+  useResourceStore.getState().clear();
   useDocumentStore.getState().clearProject();
-  useProjectSessionStore.getState().clear();
+  useProjectSessionStore.getState().clearProject();
 }
 
 function reconnectLocalBridge(): void {
   useWorkspaceStore.getState().prepareReconnect();
-  useLocalFileStore.getState().prepareReconnect();
-  useDocumentStore.getState().prepareReconnect();
+  useProjectSessionStore.getState().prepareReconnect();
   localServer.disconnect();
   localServer.connect();
 }

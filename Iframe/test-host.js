@@ -1,10 +1,10 @@
 /**
  * MPE iframe 嵌入测试宿主
- * 实现 mpe-embed 协议 v1.0.0 的宿主侧通信逻辑
+ * 实现 mpe-embed 协议 v2.0.0 的宿主侧通信逻辑
  */
 
 const PROTOCOL = "mpe-embed";
-const VERSION = "1.0.0";
+const VERSION = "2.0.0";
 const REQUEST_TIMEOUT = 10000;
 
 // DOM 元素引用
@@ -164,6 +164,19 @@ function sendMessage(type, payload, needResponse = false) {
   return null;
 }
 
+function sendResponse(type, payload, requestId) {
+  if (!iframe || !iframe.contentWindow) return;
+  const msg = {
+    protocol: PROTOCOL,
+    version: VERSION,
+    type,
+    requestId,
+    payload,
+  };
+  iframe.contentWindow.postMessage(msg, "*");
+  log(type, msg, "outgoing");
+}
+
 function getCapabilities() {
   return {
     readOnly: caps.readOnly.checked,
@@ -249,9 +262,43 @@ function destroyIframe() {
 // ========== 消息发送处理 ==========
 
 async function handleInit() {
+  const projectId = "iframe:test-project";
+  const available = { available: true, reason: null };
+  const unavailable = {
+    available: false,
+    reason: "host_capability_not_declared",
+  };
   const payload = {
     capabilities: getCapabilities(),
     ui: getUIConfig(),
+    project: {
+      projectId,
+      projectRoot: "iframe-project",
+      interfacePath: "interface.json",
+      name: "iframe-project",
+      label: "Iframe Test Project",
+      version: "1.0.0",
+    },
+    entries: {
+      revision: 1,
+      projectId,
+      entries: [],
+    },
+    storageCapabilities: {
+      projectId,
+      pathCaseSensitive: true,
+      operations: {
+        list: available,
+        read: available,
+        write: available,
+        create: available,
+        rename: available,
+        delete: available,
+        watch: unavailable,
+        execute: unavailable,
+        external_paths: unavailable,
+      },
+    },
   };
 
   try {
@@ -382,6 +429,27 @@ function clearLog() {
   els.logContainer.innerHTML = "";
 }
 
+function handleProjectRequest(msg) {
+  const { method } = msg.payload || {};
+  if (method === "project.entries.list") {
+    sendResponse(
+      "mpe:projectResponse",
+      {
+        revision: 1,
+        projectId: "iframe:test-project",
+        entries: [],
+      },
+      msg.requestId,
+    );
+    return;
+  }
+  sendResponse(
+    "mpe:projectResponse",
+    { error: `Iframe 测试宿主尚未实现 ${method}` },
+    msg.requestId,
+  );
+}
+
 // ========== 消息监听 ==========
 
 window.addEventListener("message", (event) => {
@@ -418,6 +486,10 @@ window.addEventListener("message", (event) => {
         logSystem("自动响应 saveRequest → 发送 mpe:save");
         handleSave();
       }, 100);
+      break;
+
+    case "mpe:projectRequest":
+      handleProjectRequest(msg);
       break;
 
     case "mpe:nodeSelect":

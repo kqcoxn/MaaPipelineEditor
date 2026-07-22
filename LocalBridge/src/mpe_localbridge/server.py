@@ -5,6 +5,7 @@ import hashlib
 import logging
 import sys
 import time
+import uuid
 from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -38,6 +39,11 @@ from .models import (
     DocumentOpenResult,
     DocumentSaveResult,
     HelloParams,
+    ProjectChangedPayload,
+    ProjectDiscoveryStatus,
+    ProjectEntriesPayload,
+    ProjectStatus,
+    ProjectStorageCapabilities,
     RpcError,
     RpcEvent,
     RpcRequest,
@@ -145,46 +151,41 @@ class LocalBridgeState:
             await self.cancel_indexing()
             if rediscover:
                 discovering = await asyncio.to_thread(self.workspace.begin_discovery)
-                await self.hub.emit("workspace.status", discovering)
+                await self.hub.emit(
+                    "project.discovery", self.project_discovery_payload(discovering)
+                )
                 await asyncio.to_thread(self.workspace.discover, prepared=True)
-            snapshot = await asyncio.to_thread(
+            await asyncio.to_thread(
                 self.workspace.refresh_files,
                 bump_revision=not rediscover,
             )
-            tree = await asyncio.to_thread(self.workspace.refresh_tree)
-            documents = await asyncio.to_thread(self.workspace.refresh_documents)
-            await self.hub.emit("workspace.status", self.workspace.status())
-            await self.hub.emit("workspace.files", snapshot)
-            await self.hub.emit("workspace.tree", tree)
-            await self.hub.emit("workspace.documents", documents)
+            await asyncio.to_thread(self.workspace.refresh_tree)
+            await asyncio.to_thread(self.workspace.refresh_documents)
+            await self._emit_project_state(include_discovery=True)
             await self.hub.emit("resource.bundles", self.workspace.resource_bundles())
             self.start_indexing()
 
     async def refresh_modified_files(self, paths: list[str]) -> None:
         async with self._workspace_lock:
             await self.cancel_indexing()
-            snapshot = await asyncio.to_thread(self.workspace.refresh_modified_files, paths)
-            documents = await asyncio.to_thread(self.workspace.refresh_documents)
-            await self.hub.emit("workspace.status", self.workspace.status())
-            await self.hub.emit("workspace.files", snapshot)
-            await self.hub.emit("workspace.documents", documents)
+            await asyncio.to_thread(self.workspace.refresh_modified_files, paths)
+            await asyncio.to_thread(self.workspace.refresh_documents)
+            await self._emit_project_state()
             self.start_indexing()
 
     async def refresh_tree(self) -> None:
-        tree = await asyncio.to_thread(self.workspace.refresh_tree)
-        await self.hub.emit("workspace.tree", tree)
-        documents = await asyncio.to_thread(self.workspace.refresh_documents)
-        await self.hub.emit("workspace.documents", documents)
+        await asyncio.to_thread(self.workspace.refresh_tree)
+        await asyncio.to_thread(self.workspace.refresh_documents)
+        await self.hub.emit("project.entries", self.project_entries_payload())
 
-    async def select_interface(self, interface_path: str) -> dict[str, Any]:
+    async def select_interface(self, candidate_id: str) -> dict[str, Any]:
         async with self._workspace_lock:
             await self.cancel_indexing()
-            status = await asyncio.to_thread(self.workspace.select_interface, interface_path)
-            snapshot = await asyncio.to_thread(self.workspace.refresh_files)
-            documents = await asyncio.to_thread(self.workspace.refresh_documents)
-            await self.hub.emit("workspace.status", self.workspace.status())
-            await self.hub.emit("workspace.files", snapshot)
-            await self.hub.emit("workspace.documents", documents)
+            status = await asyncio.to_thread(self.workspace.select_interface, candidate_id)
+            await asyncio.to_thread(self.workspace.refresh_files)
+            await asyncio.to_thread(self.workspace.refresh_tree)
+            await asyncio.to_thread(self.workspace.refresh_documents)
+            await self._emit_project_state(include_discovery=True)
             await self.hub.emit("resource.bundles", self.workspace.resource_bundles())
             self.start_indexing()
             return status
@@ -228,17 +229,24 @@ class LocalBridgeState:
                     for file in cast(list[dict[str, Any]], update["files"])
                 ]
                 status = self.workspace.status()
+                entries = self.workspace.entries_snapshot()
+                updated_paths = {str(file["file_path"]) for file in files}
                 await self.hub.emit(
-                    "workspace.indexUpdated",
+                    "project.indexUpdated",
                     {
                         "revision": revision,
-                        "files": files,
-                        "indexed_files": status["indexed_files"],
-                        "total_files": status["total_files"],
+                        "projectId": status["project_id"],
+                        "entries": [
+                            entry
+                            for entry in self.project_entries_payload(entries)["entries"]
+                            if entry["path"] in updated_paths
+                        ],
+                        "indexedFiles": status["indexed_files"],
+                        "totalFiles": status["total_files"],
                         "complete": status["state"] == "ready",
                     },
                 )
-                await self.hub.emit("workspace.status", self.workspace.status())
+                await self.hub.emit("project.status", self.project_status_payload())
                 await asyncio.sleep(0)
         except asyncio.CancelledError:
             raise
@@ -255,7 +263,10 @@ class LocalBridgeState:
         pipeline_events: list[dict[str, Any]],
     ) -> None:
         for event in events:
-            await self.hub.emit("file.changed", event)
+            event.setdefault("operation_id", str(uuid.uuid4()))
+            payload = self.project_changed_payload(event)
+            if payload is not None:
+                await self.hub.emit("project.changed", payload)
         if needs_discovery:
             await self.refresh_workspace(rediscover=True)
             return
@@ -267,8 +278,8 @@ class LocalBridgeState:
             if needs_tree_refresh:
                 await self.refresh_tree()
             elif events:
-                documents = await asyncio.to_thread(self.workspace.refresh_documents)
-                await self.hub.emit("workspace.documents", documents)
+                await asyncio.to_thread(self.workspace.refresh_documents)
+                await self.hub.emit("project.entries", self.project_entries_payload())
             return
         modified_files = [
             str(event["file_path"])
@@ -283,6 +294,56 @@ class LocalBridgeState:
                 await self.refresh_tree()
             return
         await self.refresh_workspace(rediscover=False)
+
+    async def _emit_project_state(self, *, include_discovery: bool = False) -> None:
+        if include_discovery:
+            await self.hub.emit("project.discovery", self.project_discovery_payload())
+        await self.hub.emit("project.status", self.project_status_payload())
+        await self.hub.emit("project.capabilities", self.project_capabilities_payload())
+        await self.hub.emit("project.entries", self.project_entries_payload())
+
+    def project_discovery_payload(
+        self, value: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        return ProjectDiscoveryStatus.model_validate(
+            value or self.workspace.discovery_status()
+        ).model_dump(mode="json", by_alias=True)
+
+    def project_status_payload(self) -> dict[str, Any]:
+        return ProjectStatus.model_validate(self.workspace.status()).model_dump(
+            mode="json", by_alias=True
+        )
+
+    def project_capabilities_payload(self) -> dict[str, Any]:
+        return ProjectStorageCapabilities.model_validate(
+            self.workspace.capabilities()
+        ).model_dump(mode="json", by_alias=True)
+
+    def project_entries_payload(
+        self, value: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        return ProjectEntriesPayload.model_validate(
+            value or self.workspace.entries_snapshot()
+        ).model_dump(mode="json", by_alias=True)
+
+    def project_changed_payload(
+        self, event: dict[str, Any]
+    ) -> dict[str, Any] | None:
+        project_id = self.workspace.status().get("project_id")
+        if not isinstance(project_id, str):
+            return None
+        payload = {
+            "project_id": project_id,
+            "operation_id": event.get("operation_id"),
+            "change": event["type"],
+            "path": event["file_path"],
+            "new_path": event.get("new_file_path"),
+            "is_directory": bool(event.get("is_directory")),
+            "document_mappings": event.get("document_mappings", []),
+        }
+        return ProjectChangedPayload.model_validate(payload).model_dump(
+            mode="json", by_alias=True, exclude_none=True
+        )
 
 
 class RpcContext:
@@ -356,14 +417,15 @@ class Dispatcher:
             "config.get": self._config_get,
             "config.update": self._config_update,
             "config.reload": self._config_reload,
-            "workspace.scan": self._workspace_scan,
-            "workspace.interface.select": self._workspace_interface_select,
+            "project.scan": self._project_scan,
+            "project.select": self._project_select,
+            "project.entries.list": self._project_entries_list,
             "document.open": self._document_open,
             "document.save": self._document_save,
             "file.open": self._file_open,
-            "file.create": self._file_create,
-            "file.rename": self._file_rename,
-            "file.delete": self._file_delete,
+            "entry.create": self._entry_create,
+            "entry.rename": self._entry_rename,
+            "entry.delete": self._entry_delete,
             "file.save": self._file_save,
             "file.saveSeparated": self._file_save_separated,
             "resource.list": self._resource_list,
@@ -527,10 +589,12 @@ class Dispatcher:
         )
 
     async def _push_initial_state(self, context: RpcContext, cursors: dict[str, int]) -> None:
-        await context.emit("workspace.status", self.state.workspace.status())
-        await context.emit("workspace.files", self.state.workspace.snapshot())
-        await context.emit("workspace.tree", self.state.workspace.tree_snapshot())
-        await context.emit("workspace.documents", self.state.workspace.documents_snapshot())
+        await context.emit("project.discovery", self.state.project_discovery_payload())
+        await context.emit("project.status", self.state.project_status_payload())
+        await context.emit(
+            "project.capabilities", self.state.project_capabilities_payload()
+        )
+        await context.emit("project.entries", self.state.project_entries_payload())
         await context.emit("resource.bundles", self.state.workspace.resource_bundles())
         self.state.start_indexing()
         for session_id, after_seq in cursors.items():
@@ -583,16 +647,23 @@ class Dispatcher:
             "message": message,
         }
 
-    async def _workspace_scan(self, context: RpcContext, params: dict[str, Any]) -> dict[str, Any]:
+    async def _project_scan(self, context: RpcContext, params: dict[str, Any]) -> dict[str, Any]:
         del context, params
         await self.state.refresh_workspace(rediscover=True)
-        return self.state.workspace.status()
+        return self.state.project_discovery_payload()
 
-    async def _workspace_interface_select(
+    async def _project_select(
         self, context: RpcContext, params: dict[str, Any]
     ) -> dict[str, Any]:
         del context
-        return await self.state.select_interface(str(params["interface_path"]))
+        await self.state.select_interface(str(params["candidateId"]))
+        return self.state.project_status_payload()
+
+    async def _project_entries_list(
+        self, context: RpcContext, params: dict[str, Any]
+    ) -> dict[str, Any]:
+        del context, params
+        return self.state.project_entries_payload()
 
     async def _document_open(
         self, context: RpcContext, params: dict[str, Any]
@@ -649,53 +720,114 @@ class Dispatcher:
         await context.emit("file.content", result)
         return result
 
-    async def _file_create(self, context: RpcContext, params: dict[str, Any]) -> dict[str, Any]:
-        result = await asyncio.to_thread(
-            self.state.workspace.create_file,
-            str(params["file_name"]),
-            str(params.get("directory", "")),
-        )
-        await context.emit("file.created", result)
-        await self.state.refresh_workspace(rediscover=False)
-        return result
-
-    async def _file_rename(self, context: RpcContext, params: dict[str, Any]) -> dict[str, Any]:
+    async def _entry_create(self, context: RpcContext, params: dict[str, Any]) -> dict[str, Any]:
         del context
         result = await asyncio.to_thread(
-            self.state.workspace.rename_entry,
-            str(params["file_path"]),
-            str(params["file_name"]),
+            self.state.workspace.create_file,
+            str(params["name"]),
+            str(params.get("directory", "")),
         )
-        event = {
+        operation_id = str(uuid.uuid4())
+        result["operation_id"] = operation_id
+        change = self.state.project_changed_payload(
+            {
+                "type": "created",
+                "file_path": result["file_path"],
+                "is_directory": False,
+                "operation_id": operation_id,
+            }
+        )
+        if change is not None:
+            await self.state.hub.emit("project.changed", change)
+        await self.state.refresh_workspace(rediscover=False)
+        path = str(result["file_path"])
+        return {
+            "path": path,
+            "documentId": self.state.workspace.document_id(path),
+            "operationId": operation_id,
+        }
+
+    async def _entry_rename(self, context: RpcContext, params: dict[str, Any]) -> dict[str, Any]:
+        del context
+        old_path = str(params["path"])
+        before = self.state.workspace.entries_snapshot()["entries"]
+        result = await asyncio.to_thread(
+            self.state.workspace.rename_entry,
+            old_path,
+            str(params["name"]),
+        )
+        new_path = str(result["new_file_path"])
+        is_directory = bool(result["is_directory"])
+        mappings: list[dict[str, str]] = []
+        for entry in cast(list[dict[str, Any]], before):
+            entry_path = str(entry["path"])
+            document_id = entry.get("document_id")
+            if not isinstance(document_id, str):
+                continue
+            if entry_path != old_path and not (
+                is_directory and entry_path.startswith(f"{old_path}/")
+            ):
+                continue
+            mapped_path = new_path + entry_path[len(old_path) :]
+            mappings.append(
+                {
+                    "old_path": entry_path,
+                    "new_path": mapped_path,
+                    "old_document_id": document_id,
+                    "new_document_id": self.state.workspace.document_id(mapped_path),
+                }
+            )
+        operation_id = str(uuid.uuid4())
+        event: dict[str, Any] = {
             "type": "renamed",
-            "file_path": result["file_path"],
-            "new_file_path": result["new_file_path"],
-            "is_directory": result["is_directory"],
+            "file_path": old_path,
+            "new_file_path": new_path,
+            "is_directory": is_directory,
+            "operation_id": operation_id,
+            "document_mappings": mappings,
         }
         await self.state.workspace_changed(
             [event],
             False,
             [event],
         )
-        return result
+        return {
+            "oldPath": old_path,
+            "newPath": new_path,
+            "isDirectory": is_directory,
+            "operationId": operation_id,
+            "documentMappings": ProjectChangedPayload.model_validate(
+                {
+                    "project_id": self.state.workspace.status()["project_id"],
+                    "operation_id": operation_id,
+                    "change": "renamed",
+                    "path": old_path,
+                    "new_path": new_path,
+                    "is_directory": is_directory,
+                    "document_mappings": mappings,
+                }
+            ).model_dump(mode="json", by_alias=True)["documentMappings"],
+        }
 
-    async def _file_delete(self, context: RpcContext, params: dict[str, Any]) -> dict[str, Any]:
+    async def _entry_delete(self, context: RpcContext, params: dict[str, Any]) -> dict[str, Any]:
         del context
         result = await asyncio.to_thread(
             self.state.workspace.delete_file,
-            str(params["file_path"]),
+            str(params["path"]),
         )
+        operation_id = str(uuid.uuid4())
         event = {
             "type": "deleted",
             "file_path": result["file_path"],
             "is_directory": False,
+            "operation_id": operation_id,
         }
         await self.state.workspace_changed(
             [event],
             False,
             [event],
         )
-        return result
+        return {"path": result["file_path"], "operationId": operation_id}
 
     async def _file_save(self, context: RpcContext, params: dict[str, Any]) -> dict[str, Any]:
         result = await asyncio.to_thread(

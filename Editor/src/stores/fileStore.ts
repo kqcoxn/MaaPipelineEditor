@@ -31,6 +31,11 @@ import {
   createPipelineFingerprint,
   type PipelineSaveState,
 } from "./pipelineSaveState";
+import {
+  asDocumentId,
+  type DocumentId,
+} from "../features/project-session/types";
+import { useProjectSessionStore } from "./projectSessionStore";
 
 export type FileConfigType = {
   prefix: string;
@@ -45,6 +50,7 @@ export type FileConfigType = {
   nextOrderNumber?: number;
 };
 export type FileType = {
+  documentId: DocumentId;
   fileName: string;
   nodes: NodeType[];
   edges: EdgeType[];
@@ -81,13 +87,18 @@ let fileIdCounter = 1;
 function createFile(options?: {
   fileName?: string;
   config?: Partial<FileConfigType>;
+  documentId?: DocumentId;
 }): FileType {
   let { fileName = "新建Pipeline" + fileIdCounter++ } = options || {};
-  const { config } = options || {};
+  const {
+    config,
+    documentId = asDocumentId(`draft:${crypto.randomUUID()}`),
+  } = options || {};
   while (isFileNameRepate(fileName, false)) {
     fileName = "新建Pipeline" + fileIdCounter++;
   }
   const file = {
+    documentId,
     fileName,
     nodes: [],
     edges: [],
@@ -150,11 +161,13 @@ function updateFileSaveState(file: FileType, markSaved = false): FileType {
   };
 }
 
-function normalizeCachedFile(file: Omit<FileType, "saveState"> & {
+function normalizeCachedFile(file: Omit<FileType, "saveState" | "documentId"> & {
   saveState?: PipelineSaveState;
+  documentId?: DocumentId;
 }): FileType {
   const normalized = {
     ...file,
+    documentId: file.documentId ?? asDocumentId(`draft:${crypto.randomUUID()}`),
     config: {
       prefix: "",
       ...file.config,
@@ -383,12 +396,14 @@ type FileState = {
   onDragEnd: (result: DragEndEvent) => void;
   replace: (files?: FileType[]) => any;
   resetProjectSession: () => void;
+  clearProjectFiles: () => void;
   // 本地文件操作方法
   openFileFromLocal: (
     filePath: string,
     content: any,
     mpeConfig?: any,
     configPath?: string,
+    documentId?: DocumentId,
   ) => Promise<boolean>;
   saveFileToLocal: (
     filePath?: string,
@@ -400,6 +415,10 @@ type FileState = {
   markFileModified: (filePath: string) => void;
   reloadFileFromLocal: (filePath: string, content: any) => Promise<boolean>;
   findFileByPath: (filePath: string) => FileType | undefined;
+  findFileByDocumentId: (documentId: DocumentId) => FileType | undefined;
+  applyDocumentIdMappings: (
+    mappings: Array<{ oldDocumentId: string; newDocumentId: string }>,
+  ) => void;
   renamePath: (oldPath: string, newPath: string, isDirectory: boolean) => void;
 };
 export const useFileStore = create<FileState>()((set, get) => ({
@@ -561,6 +580,9 @@ export const useFileStore = create<FileState>()((set, get) => ({
     const { isSwitch = true } = options ?? {};
     let activeKey = null;
     const newFile = createFile();
+    useProjectSessionStore
+      .getState()
+      .registerDraft(newFile.fileName, "pipeline", newFile.documentId);
     set((state) => {
       const files = [...state.files];
       files.push(newFile);
@@ -636,12 +658,28 @@ export const useFileStore = create<FileState>()((set, get) => ({
     flowStore.clearHistory();
   },
 
+  clearProjectFiles() {
+    const drafts = get().files.filter((file) =>
+      file.documentId.startsWith("draft:"),
+    );
+    const currentFile =
+      drafts.find((file) => file.documentId === get().currentFile.documentId) ??
+      drafts[0] ??
+      createFile();
+    set({ files: drafts, currentFile });
+    const flowStore = useFlowStore.getState();
+    flowStore.replace(currentFile.nodes, currentFile.edges, { skipSave: true });
+    if (drafts.length) flowStore.initHistory(currentFile.nodes, currentFile.edges);
+    else flowStore.clearHistory();
+  },
+
   // 从本地打开文件
   async openFileFromLocal(
     filePath: string,
     content: any,
     mpeConfig?: any,
     configPath?: string,
+    documentId?: DocumentId,
   ): Promise<boolean> {
     try {
       const contentString =
@@ -687,7 +725,11 @@ export const useFileStore = create<FileState>()((set, get) => ({
       // 查找是否已有相同路径的文件打开
       const existingFile = useFileStore
         .getState()
-        .files.find((file) => file.config.filePath === filePath);
+        .files.find((file) =>
+          documentId
+            ? file.documentId === documentId
+            : file.config.filePath === filePath,
+        );
 
       if (existingFile) {
         // 切换到已有文件并更新内容
@@ -710,6 +752,7 @@ export const useFileStore = create<FileState>()((set, get) => ({
         const savedViewport = currentFile.config.savedViewport;
         await pipelineToFlow({ pString: finalContentString });
         syncFlowStoreToFileStore({ ...configUpdates, filePath });
+        if (documentId) replaceCurrentDocumentId(documentId);
         // 设置文件名
         useFileStore.getState().setFileName(realFileName);
         useFileStore.getState().markCurrentSaved();
@@ -727,6 +770,7 @@ export const useFileStore = create<FileState>()((set, get) => ({
 
       // 新建文件
       useFileStore.getState().addFile({ isSwitch: true });
+      if (documentId) replaceCurrentDocumentId(documentId);
       await pipelineToFlow({ pString: finalContentString });
       syncFlowStoreToFileStore({ ...configUpdates, filePath });
       // 设置文件名
@@ -1008,6 +1052,31 @@ export const useFileStore = create<FileState>()((set, get) => ({
       .files.find((file) => file.config.filePath === filePath);
   },
 
+  findFileByDocumentId(documentId: DocumentId): FileType | undefined {
+    return useFileStore
+      .getState()
+      .files.find((file) => file.documentId === documentId);
+  },
+
+  applyDocumentIdMappings(mappings) {
+    const ids = new Map(
+      mappings.map((mapping) => [
+        mapping.oldDocumentId,
+        asDocumentId(mapping.newDocumentId),
+      ]),
+    );
+    set((state) => {
+      const update = (file: FileType): FileType => ({
+        ...file,
+        documentId: ids.get(file.documentId) ?? file.documentId,
+      });
+      return {
+        files: state.files.map(update),
+        currentFile: update(state.currentFile),
+      };
+    });
+  },
+
   renamePath(oldPath, newPath, isDirectory) {
     set((state) => {
       const update = (file: FileType) => {
@@ -1045,6 +1114,18 @@ export const useFileStore = create<FileState>()((set, get) => ({
     });
   },
 }));
+
+function replaceCurrentDocumentId(documentId: DocumentId): void {
+  useFileStore.setState((state) => {
+    const currentName = state.currentFile.fileName;
+    return {
+      files: state.files.map((file) =>
+        file.fileName === currentName ? { ...file, documentId } : file,
+      ),
+      currentFile: { ...state.currentFile, documentId },
+    };
+  });
+}
 
 function remapSeparatedConfigPath(
   separatedConfigPath: string | undefined,

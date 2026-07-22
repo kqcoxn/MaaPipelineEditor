@@ -134,9 +134,9 @@ def test_bundle_paths_merge_in_declaration_order_and_skip_invalid_paths(
     assert len(discovery.candidates) == 1
     candidate = discovery.candidates[0]
     assert [bundle.relative_path for bundle in candidate.bundles] == [
-        "project/base",
-        "project/locale",
-        "project/controller",
+        "base",
+        "locale",
+        "controller",
     ]
     assert [source.dump() for source in candidate.bundles[0].sources] == [
         {"kind": "resource", "name": "main"},
@@ -146,7 +146,7 @@ def test_bundle_paths_merge_in_declaration_order_and_skip_invalid_paths(
     assert {item.code for item in candidate.diagnostics} == {
         "bundle_path_missing",
         "bundle_path_not_relative",
-        "bundle_path_outside_root",
+        "external_path_authorization_required",
     }
 
 
@@ -165,7 +165,7 @@ def test_interface_requires_a_resource_path_within_root(tmp_path: Path) -> None:
     assert discovery.candidates == []
     assert {item.code for item in discovery.diagnostics} == {
         "bundle_path_not_relative",
-        "bundle_path_outside_root",
+        "external_path_authorization_required",
         "interface_resource_missing",
     }
 

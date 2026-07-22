@@ -1,9 +1,8 @@
 import { memo, useState, useEffect, useCallback, useMemo } from "react";
 import { AutoComplete, Image, Spin, Empty } from "antd";
 import {
-  useLocalFileStore,
-  type ImageFileInfo,
-} from "../../../../stores/localFileStore";
+  useResourceStore,
+} from "../../../../stores/resourceStore";
 import { resourceProtocol } from "../../../../services/server";
 import { useWSStore } from "../../../../stores/wsStore";
 import { useFileStore } from "../../../../stores/fileStore";
@@ -30,15 +29,15 @@ export const ImageSelect = memo(
     const connected = useWSStore((state) => state.connected);
     const currentFile = useFileStore((state) => state.currentFile);
     const currentFilePath = currentFile?.config?.filePath;
-    const imageList = useLocalFileStore((state) => state.imageList);
-    const imageListLoading = useLocalFileStore(
+    const imageList = useResourceStore((state) => state.imageList);
+    const imageListLoading = useResourceStore(
       (state) => state.imageListLoading,
     );
-    const imageListIsFiltered = useLocalFileStore(
+    const imageListIsFiltered = useResourceStore(
       (state) => state.imageListIsFiltered,
     );
-    const imageCache = useLocalFileStore((state) => state.imageCache);
-    const pendingImageRequests = useLocalFileStore(
+    const imageCache = useResourceStore((state) => state.imageCache);
+    const pendingImageRequests = useResourceStore(
       (state) => state.pendingImageRequests,
     );
 

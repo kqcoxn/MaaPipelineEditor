@@ -23,7 +23,7 @@ export function collectDirtyEditorItems(): DirtyEditorItem[] {
     .files.filter((file) => file.saveState.dirty)
     .map((file) => ({
       kind: "pipeline" as const,
-      key: file.config.filePath ?? file.fileName,
+      key: file.documentId,
       name: file.fileName,
       path: file.config.filePath,
     }));
@@ -31,7 +31,7 @@ export function collectDirtyEditorItems(): DirtyEditorItem[] {
     .filter((document) => document.dirty)
     .map((document) => ({
       kind: "document" as const,
-      key: document.path,
+      key: document.documentId,
       name: document.descriptor.name,
       path: document.path,
     }));

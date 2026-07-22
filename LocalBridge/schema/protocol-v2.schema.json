@@ -173,6 +173,35 @@
       "title": "DebugEvent",
       "type": "object"
     },
+    "DocumentMapping": {
+      "additionalProperties": false,
+      "properties": {
+        "newDocumentId": {
+          "title": "Newdocumentid",
+          "type": "string"
+        },
+        "newPath": {
+          "title": "Newpath",
+          "type": "string"
+        },
+        "oldDocumentId": {
+          "title": "Olddocumentid",
+          "type": "string"
+        },
+        "oldPath": {
+          "title": "Oldpath",
+          "type": "string"
+        }
+      },
+      "required": [
+        "oldPath",
+        "newPath",
+        "oldDocumentId",
+        "newDocumentId"
+      ],
+      "title": "DocumentMapping",
+      "type": "object"
+    },
     "DocumentOpenResult": {
       "additionalProperties": false,
       "properties": {
@@ -327,6 +356,543 @@
         "sha256"
       ],
       "title": "DocumentSaveResult",
+      "type": "object"
+    },
+    "ProjectCapability": {
+      "additionalProperties": false,
+      "properties": {
+        "available": {
+          "title": "Available",
+          "type": "boolean"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        }
+      },
+      "required": [
+        "available"
+      ],
+      "title": "ProjectCapability",
+      "type": "object"
+    },
+    "ProjectChangedPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "change": {
+          "enum": [
+            "created",
+            "modified",
+            "deleted",
+            "renamed"
+          ],
+          "title": "Change",
+          "type": "string"
+        },
+        "documentMappings": {
+          "items": {
+            "$ref": "#/$defs/DocumentMapping"
+          },
+          "title": "Documentmappings",
+          "type": "array"
+        },
+        "isDirectory": {
+          "default": false,
+          "title": "Isdirectory",
+          "type": "boolean"
+        },
+        "newPath": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Newpath"
+        },
+        "operationId": {
+          "title": "Operationid",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "projectId": {
+          "title": "Projectid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "projectId",
+        "operationId",
+        "change",
+        "path"
+      ],
+      "title": "ProjectChangedPayload",
+      "type": "object"
+    },
+    "ProjectDiscoveryCandidate": {
+      "additionalProperties": false,
+      "properties": {
+        "candidateId": {
+          "title": "Candidateid",
+          "type": "string"
+        },
+        "interfacePath": {
+          "title": "Interfacepath",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "candidateId",
+        "interfacePath",
+        "name",
+        "label",
+        "version"
+      ],
+      "title": "ProjectDiscoveryCandidate",
+      "type": "object"
+    },
+    "ProjectDiscoveryStatus": {
+      "additionalProperties": false,
+      "properties": {
+        "candidates": {
+          "items": {
+            "$ref": "#/$defs/ProjectDiscoveryCandidate"
+          },
+          "title": "Candidates",
+          "type": "array"
+        },
+        "currentInterface": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProjectDiscoveryCandidate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "diagnostics": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Diagnostics",
+          "type": "array"
+        },
+        "discoveryRoot": {
+          "title": "Discoveryroot",
+          "type": "string"
+        },
+        "indexedFiles": {
+          "title": "Indexedfiles",
+          "type": "integer"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "revision": {
+          "title": "Revision",
+          "type": "integer"
+        },
+        "state": {
+          "enum": [
+            "discovering",
+            "selection_required",
+            "indexing",
+            "ready",
+            "invalid"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "totalFiles": {
+          "title": "Totalfiles",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "revision",
+        "discoveryRoot",
+        "state",
+        "reason",
+        "candidates",
+        "indexedFiles",
+        "totalFiles",
+        "diagnostics"
+      ],
+      "title": "ProjectDiscoveryStatus",
+      "type": "object"
+    },
+    "ProjectEntriesPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "entries": {
+          "items": {
+            "$ref": "#/$defs/ProjectEntry"
+          },
+          "title": "Entries",
+          "type": "array"
+        },
+        "projectId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Projectid"
+        },
+        "revision": {
+          "title": "Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "revision",
+        "entries"
+      ],
+      "title": "ProjectEntriesPayload",
+      "type": "object"
+    },
+    "ProjectEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Documentid"
+        },
+        "editable": {
+          "default": false,
+          "title": "Editable",
+          "type": "boolean"
+        },
+        "entryKind": {
+          "enum": [
+            "directory",
+            "file"
+          ],
+          "title": "Entrykind",
+          "type": "string"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "pipeline",
+                "interface",
+                "json",
+                "text",
+                "markdown",
+                "image",
+                "binary"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Kind"
+        },
+        "language": {
+          "default": "",
+          "title": "Language",
+          "type": "string"
+        },
+        "mimeType": {
+          "default": "application/octet-stream",
+          "title": "Mimetype",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "pipeline": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProjectPipelineIndex"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "previewable": {
+          "default": true,
+          "title": "Previewable",
+          "type": "boolean"
+        },
+        "readOnlyReason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Readonlyreason"
+        },
+        "role": {
+          "anyOf": [
+            {
+              "enum": [
+                "default_pipeline",
+                "mpe_config"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Role"
+        },
+        "size": {
+          "default": 0,
+          "title": "Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "name",
+        "entryKind"
+      ],
+      "title": "ProjectEntry",
+      "type": "object"
+    },
+    "ProjectPipelineIndex": {
+      "additionalProperties": false,
+      "properties": {
+        "indexStatus": {
+          "enum": [
+            "pending",
+            "ready",
+            "error"
+          ],
+          "title": "Indexstatus",
+          "type": "string"
+        },
+        "isDefaultPipeline": {
+          "title": "Isdefaultpipeline",
+          "type": "boolean"
+        },
+        "nodes": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Nodes",
+          "type": "array"
+        },
+        "prefix": {
+          "title": "Prefix",
+          "type": "string"
+        }
+      },
+      "required": [
+        "nodes",
+        "prefix",
+        "indexStatus",
+        "isDefaultPipeline"
+      ],
+      "title": "ProjectPipelineIndex",
+      "type": "object"
+    },
+    "ProjectStatus": {
+      "additionalProperties": false,
+      "properties": {
+        "available": {
+          "title": "Available",
+          "type": "boolean"
+        },
+        "indexedFiles": {
+          "title": "Indexedfiles",
+          "type": "integer"
+        },
+        "interfacePath": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interfacepath"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "projectId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Projectid"
+        },
+        "projectRoot": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Projectroot"
+        },
+        "revision": {
+          "title": "Revision",
+          "type": "integer"
+        },
+        "state": {
+          "enum": [
+            "discovering",
+            "selection_required",
+            "indexing",
+            "ready",
+            "invalid"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "totalFiles": {
+          "title": "Totalfiles",
+          "type": "integer"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version"
+        }
+      },
+      "required": [
+        "revision",
+        "available",
+        "state",
+        "indexedFiles",
+        "totalFiles"
+      ],
+      "title": "ProjectStatus",
+      "type": "object"
+    },
+    "ProjectStorageCapabilities": {
+      "additionalProperties": false,
+      "properties": {
+        "operations": {
+          "additionalProperties": {
+            "$ref": "#/$defs/ProjectCapability"
+          },
+          "title": "Operations",
+          "type": "object"
+        },
+        "pathCaseSensitive": {
+          "title": "Pathcasesensitive",
+          "type": "boolean"
+        },
+        "projectId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Projectid"
+        }
+      },
+      "required": [
+        "pathCaseSensitive",
+        "operations"
+      ],
+      "title": "ProjectStorageCapabilities",
       "type": "object"
     },
     "RpcError": {
@@ -682,6 +1248,21 @@
       ],
       "title": "Message"
     },
+    "project_capabilities": {
+      "$ref": "#/$defs/ProjectStorageCapabilities"
+    },
+    "project_changed": {
+      "$ref": "#/$defs/ProjectChangedPayload"
+    },
+    "project_discovery": {
+      "$ref": "#/$defs/ProjectDiscoveryStatus"
+    },
+    "project_entries": {
+      "$ref": "#/$defs/ProjectEntriesPayload"
+    },
+    "project_status": {
+      "$ref": "#/$defs/ProjectStatus"
+    },
     "workspace_documents": {
       "$ref": "#/$defs/WorkspaceDocumentsPayload"
     },
@@ -696,23 +1277,27 @@
     "workspace_tree",
     "workspace_documents",
     "document_open_result",
-    "document_save_result"
+    "document_save_result",
+    "project_discovery",
+    "project_status",
+    "project_capabilities",
+    "project_entries",
+    "project_changed"
   ],
   "title": "ProtocolDocument",
   "type": "object",
   "x-event-names": [
     "system.error",
     "log.entry",
-    "workspace.files",
-    "workspace.documents",
-    "workspace.tree",
-    "workspace.status",
-    "workspace.indexUpdated",
+    "project.discovery",
+    "project.status",
+    "project.capabilities",
+    "project.entries",
+    "project.indexUpdated",
+    "project.changed",
     "file.content",
-    "file.changed",
     "file.saved",
     "file.separatedSaved",
-    "file.created",
     "config.data",
     "config.reloaded",
     "resource.bundles",
@@ -746,7 +1331,7 @@
     "debug.agentTested",
     "debug.artifact"
   ],
-  "x-protocol-version": "2.3.0",
+  "x-protocol-version": "2.4.0",
   "x-rpc-methods": [
     "system.hello",
     "system.health",
@@ -754,14 +1339,15 @@
     "config.get",
     "config.update",
     "config.reload",
-    "workspace.scan",
-    "workspace.interface.select",
+    "project.scan",
+    "project.select",
+    "project.entries.list",
     "document.open",
     "document.save",
     "file.open",
-    "file.create",
-    "file.rename",
-    "file.delete",
+    "entry.create",
+    "entry.rename",
+    "entry.delete",
     "file.save",
     "file.saveSeparated",
     "resource.list",

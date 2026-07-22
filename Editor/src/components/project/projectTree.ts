@@ -1,6 +1,16 @@
-import type { WorkspaceTreeEntry } from "../../stores/workspaceStore";
-import type { WorkspaceDocument } from "../../services/generated/bridge-v2";
 import type { Key } from "react";
+
+export interface ProjectTreeEntry {
+  path: string;
+  name: string;
+  kind: "directory" | "file";
+}
+
+export interface ProjectTreeDocument {
+  path: string;
+  kind?: string | null;
+  [key: string]: unknown;
+}
 
 export const PROJECT_TREE_ROOT_KEY = "__mpe_workspace_root__";
 export const PROJECT_TREE_CREATE_KEY = "__mpe_create_file__";
@@ -13,7 +23,7 @@ export interface ProjectTreeNode {
   path: string;
   kind: ProjectTreeNodeKind;
   selectable: boolean;
-  document?: WorkspaceDocument;
+  document?: ProjectTreeDocument;
   isLeaf?: boolean;
   children?: ProjectTreeNode[];
 }
@@ -92,8 +102,8 @@ export function getWorkspaceRootName(root: string): string {
 
 export function buildProjectTree(
   root: string,
-  entries: WorkspaceTreeEntry[],
-  capabilities: Iterable<string | WorkspaceDocument>,
+  entries: ProjectTreeEntry[],
+  capabilities: Iterable<string | ProjectTreeDocument>,
 ): ProjectTreeNode {
   const rootNode: ProjectTreeNode = {
     key: PROJECT_TREE_ROOT_KEY,
@@ -105,7 +115,7 @@ export function buildProjectTree(
   };
   const directories = new Map<string, ProjectTreeNode>();
   const capabilityList = Array.from(capabilities);
-  const documentMap = new Map<string, WorkspaceDocument>();
+  const documentMap = new Map<string, ProjectTreeDocument>();
   const pipelineSet = new Set<string>();
   capabilityList.forEach((item) => {
     if (typeof item === "string") {
@@ -224,7 +234,7 @@ export function preserveExpandedProjectTreeKeys(
 
 export function getSelectedProjectTreeKeys(
   currentFilePath: string | undefined,
-  capabilities: Iterable<string | WorkspaceDocument>,
+  capabilities: Iterable<string | ProjectTreeDocument>,
 ): string[] {
   if (!currentFilePath) return [];
   const normalized = normalizePath(currentFilePath);

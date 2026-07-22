@@ -144,7 +144,7 @@ function handleEditorSave(event: KeyboardEvent): boolean {
     return false;
   }
   const session = useProjectSessionStore.getState();
-  if (!session.activeKey) return false;
+  if (!session.activeDocumentId) return false;
   event.preventDefault();
   event.stopPropagation();
   event.stopImmediatePropagation();

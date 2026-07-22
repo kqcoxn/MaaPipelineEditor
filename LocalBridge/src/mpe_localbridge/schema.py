@@ -13,6 +13,11 @@ from .models import (
     DebugEvent,
     DocumentOpenResult,
     DocumentSaveResult,
+    ProjectChangedPayload,
+    ProjectDiscoveryStatus,
+    ProjectEntriesPayload,
+    ProjectStatus,
+    ProjectStorageCapabilities,
     RpcEvent,
     RpcRequest,
     RpcResponse,
@@ -29,6 +34,11 @@ class ProtocolDocument(BaseModel):
     workspace_documents: WorkspaceDocumentsPayload
     document_open_result: DocumentOpenResult
     document_save_result: DocumentSaveResult
+    project_discovery: ProjectDiscoveryStatus
+    project_status: ProjectStatus
+    project_capabilities: ProjectStorageCapabilities
+    project_entries: ProjectEntriesPayload
+    project_changed: ProjectChangedPayload
 
 
 def protocol_schema() -> dict[str, object]:
@@ -124,6 +134,89 @@ export interface WorkspaceDocumentsPayload {{
   revision: number;
   root: string;
   documents: WorkspaceDocument[];
+}}
+
+export interface ProjectCapability {{
+  available: boolean;
+  reason?: string | null;
+}}
+
+export interface ProjectStorageCapabilities {{
+  projectId?: string | null;
+  pathCaseSensitive: boolean;
+  operations: Record<string, ProjectCapability>;
+}}
+
+export interface ProjectDiscoveryCandidate {{
+  candidateId: string;
+  interfacePath: string;
+  name: string;
+  label: string;
+  version: string;
+}}
+
+export interface ProjectDiscoveryStatus {{
+  revision: number;
+  discoveryRoot: string;
+  state: "discovering" | "selection_required" | "indexing" | "ready" | "invalid";
+  reason: string;
+  candidates: ProjectDiscoveryCandidate[];
+  currentInterface?: ProjectDiscoveryCandidate | null;
+  indexedFiles: number;
+  totalFiles: number;
+  diagnostics: Array<Record<string, unknown>>;
+}}
+
+export interface ProjectStatus {{
+  revision: number;
+  available: boolean;
+  projectId?: string | null;
+  projectRoot?: string | null;
+  interfacePath?: string | null;
+  name?: string | null;
+  label?: string | null;
+  version?: string | null;
+  state: "discovering" | "selection_required" | "indexing" | "ready" | "invalid";
+  indexedFiles: number;
+  totalFiles: number;
+}}
+
+export interface ProjectPipelineIndex {{
+  nodes: Array<Record<string, unknown>>;
+  prefix: string;
+  indexStatus: "pending" | "ready" | "error";
+  isDefaultPipeline: boolean;
+}}
+
+export interface ProjectEntry extends Partial<WorkspaceDocument> {{
+  path: string;
+  name: string;
+  entryKind: "directory" | "file";
+  documentId?: string | null;
+  pipeline?: ProjectPipelineIndex | null;
+}}
+
+export interface ProjectEntriesPayload {{
+  revision: number;
+  projectId?: string | null;
+  entries: ProjectEntry[];
+}}
+
+export interface DocumentMapping {{
+  oldPath: string;
+  newPath: string;
+  oldDocumentId: string;
+  newDocumentId: string;
+}}
+
+export interface ProjectChangedPayload {{
+  projectId: string;
+  operationId: string;
+  change: "created" | "modified" | "deleted" | "renamed";
+  path: string;
+  newPath?: string | null;
+  isDirectory: boolean;
+  documentMappings: DocumentMapping[];
 }}
 
 export interface DocumentOpenResult {{

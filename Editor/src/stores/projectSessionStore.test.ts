@@ -1,94 +1,110 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import {
-  documentTabKey,
-  pipelineTabKey,
-  useProjectSessionStore,
-} from "./projectSessionStore";
+import { asDocumentId, asProjectId } from "../features/project-session/types";
+import { parseProjectPath } from "../features/project-session/projectPath";
+import { useProjectSessionStore } from "./projectSessionStore";
+
+const identity = (projectId: string) => ({
+  projectId: asProjectId(projectId),
+  projectRoot: "C:/project",
+  interfacePath: parseProjectPath("interface.json"),
+  name: "project",
+  label: "Project",
+  version: "1.0.0",
+});
+
+const entries = (projectId = "project:a") => ({
+  revision: 1,
+  projectId,
+  entries: [
+    { path: "pipeline", name: "pipeline", entryKind: "directory" as const },
+    {
+      path: "pipeline/main.json",
+      name: "main.json",
+      entryKind: "file" as const,
+      documentId: "document:main",
+      kind: "pipeline" as const,
+    },
+    {
+      path: "README.md",
+      name: "README.md",
+      entryKind: "file" as const,
+      documentId: "document:readme",
+      kind: "markdown" as const,
+    },
+  ],
+});
 
 describe("projectSessionStore", () => {
   beforeEach(() => useProjectSessionStore.getState().clear());
 
-  it("mixes pipeline and document tabs while preserving order", () => {
+  it("uses DocumentId as the only tab identity", () => {
     const store = useProjectSessionStore.getState();
-    store.openPipeline("pipeline/main.json");
-    store.openDocument("README.md");
-    store.openPipeline("pipeline/next.json");
+    store.establishSession(identity("project:a"), "localbridge");
+    store.applyEntries(entries());
+    const pipelineId = asDocumentId("document:main");
+    const readmeId = asDocumentId("document:readme");
 
-    expect(useProjectSessionStore.getState().tabs.map((tab) => tab.kind)).toEqual([
-      "pipeline",
-      "document",
-      "pipeline",
+    store.openDocument(pipelineId);
+    store.openDocument(readmeId);
+    store.openDocument(pipelineId);
+
+    expect(useProjectSessionStore.getState().tabs).toEqual([
+      { documentId: pipelineId },
+      { documentId: readmeId },
     ]);
-    expect(useProjectSessionStore.getState().activeKey).toBe(
-      pipelineTabKey("pipeline/next.json"),
-    );
+    expect(useProjectSessionStore.getState().activeDocumentId).toBe(pipelineId);
   });
 
-  it("selects the adjacent tab when closing the active item", () => {
+  it("keeps ProjectSessionId stable when reconnecting to the same project", () => {
     const store = useProjectSessionStore.getState();
-    store.openPipeline("pipeline/main.json");
-    store.openDocument("README.md");
-    store.openDocument("notes.txt");
+    store.establishSession(identity("project:a"), "localbridge");
+    const first = useProjectSessionStore.getState().sessionId;
+    store.prepareReconnect();
+    store.establishSession(identity("project:a"), "localbridge");
 
-    const next = store.closeTab(documentTabKey("README.md"));
-
-    expect(next).toBe(documentTabKey("notes.txt"));
+    expect(useProjectSessionStore.getState().sessionId).toBe(first);
+    expect(useProjectSessionStore.getState().availability).toBe("ready");
   });
 
-  it("allows the last pipeline tab to close", () => {
+  it("starts a new session and retains drafts when project identity changes", () => {
     const store = useProjectSessionStore.getState();
-    store.openPipeline("pipeline/missing.json");
+    store.establishSession(identity("project:a"), "localbridge");
+    store.applyEntries(entries());
+    const oldSession = useProjectSessionStore.getState().sessionId;
+    const draftId = store.registerDraft("draft", "pipeline");
+    store.openDocument(draftId);
 
-    const next = store.closeTab(pipelineTabKey("pipeline/missing.json"));
+    store.establishSession(identity("project:b"), "localbridge");
 
-    expect(next).toBeNull();
-    expect(useProjectSessionStore.getState().tabs).toEqual([]);
+    const next = useProjectSessionStore.getState();
+    expect(next.sessionId).not.toBe(oldSession);
+    expect(next.tabs).toEqual([{ documentId: draftId }]);
+    expect(next.entriesById[draftId]?.name).toBe("draft");
+    expect(next.entriesById[asDocumentId("document:main")]).toBeUndefined();
   });
 
-  it("syncs pipeline tabs without removing document tabs", () => {
+  it("migrates paths, DocumentIds, tabs, and active identity from rename mappings", () => {
     const store = useProjectSessionStore.getState();
-    store.openPipeline("old.json");
-    store.openDocument("README.md");
+    store.establishSession(identity("project:a"), "localbridge");
+    store.applyEntries(entries());
+    store.openDocument(asDocumentId("document:main"));
 
-    store.syncPipelineTabs(["new.json"]);
-
-    expect(useProjectSessionStore.getState().tabs.map((tab) => tab.key)).toEqual([
-      documentTabKey("README.md"),
-      pipelineTabKey("new.json"),
+    store.applyDocumentMappings([
+      {
+        oldPath: "pipeline/main.json",
+        newPath: "flows/main.json",
+        oldDocumentId: "document:main",
+        newDocumentId: "document:renamed",
+      },
     ]);
-  });
 
-  it("keeps the session empty when no pipelines are open", () => {
-    const store = useProjectSessionStore.getState();
-
-    store.syncPipelineTabs([]);
-
-    expect(useProjectSessionStore.getState()).toMatchObject({
-      tabs: [],
-      activeKey: null,
-    });
-  });
-
-  it("migrates directory paths, tab keys, and the active key on rename", () => {
-    const store = useProjectSessionStore.getState();
-    store.openPipeline("resource/pipeline/main.json");
-    store.openDocument("resource/notes.jsonc");
-
-    store.renamePath("resource", "assets/resource", true);
-
-    expect(useProjectSessionStore.getState()).toMatchObject({
-      tabs: [
-        {
-          path: "assets/resource/pipeline/main.json",
-          key: pipelineTabKey("assets/resource/pipeline/main.json"),
-        },
-        {
-          path: "assets/resource/notes.jsonc",
-          key: documentTabKey("assets/resource/notes.jsonc"),
-        },
-      ],
-      activeKey: documentTabKey("assets/resource/notes.jsonc"),
-    });
+    const state = useProjectSessionStore.getState();
+    expect(state.documentIdByPath["flows/main.json"]).toBe("document:renamed");
+    expect(state.entriesByPath["flows/main.json"]?.name).toBe("main.json");
+    expect(state.tabs).toEqual([
+      { documentId: asDocumentId("document:renamed") },
+    ]);
+    expect(state.activeDocumentId).toBe("document:renamed");
   });
 });

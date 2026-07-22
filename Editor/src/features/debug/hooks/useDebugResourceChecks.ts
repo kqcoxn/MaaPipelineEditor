@@ -4,7 +4,9 @@ import { useShallow } from "zustand/shallow";
 import { debugProtocolClient } from "../../../services/server";
 import { useFileStore } from "../../../stores/fileStore";
 import { useFlowStore } from "../../../stores/flow";
-import { useLocalFileStore } from "../../../stores/localFileStore";
+import { selectProjectPipelineFiles } from "../../project-session/projectPipelineIndex";
+import { useProjectSessionStore } from "../../../stores/projectSessionStore";
+import { useResourceStore } from "../../../stores/resourceStore";
 import { useDebugSessionStore } from "../../../stores/debugSessionStore";
 import {
   makeDebugResourceKey,
@@ -61,11 +63,11 @@ export function useDebugResourceChecks({
       flowEdges: state.edges,
     })),
   );
-  const { resourceBundles, localFiles } = useLocalFileStore(
-    useShallow((state) => ({
-      resourceBundles: state.resourceBundles,
-      localFiles: state.files,
-    })),
+  const resourceBundles = useResourceStore((state) => state.resourceBundles);
+  const projectEntries = useProjectSessionStore((state) => state.entriesByPath);
+  const projectPipelineFiles = useMemo(
+    () => selectProjectPipelineFiles(projectEntries),
+    [projectEntries],
   );
   const {
     resourcePreflight,
@@ -129,13 +131,13 @@ export function useDebugResourceChecks({
           sourceHandle: edge.sourceHandle,
           targetHandle: edge.targetHandle,
         })),
-        localFiles: localFiles.map((file) => ({
+        projectPipelineFiles: projectPipelineFiles.map((file) => ({
           path: file.file_path,
           prefix: file.prefix,
           nodeCount: file.nodes?.length ?? 0,
         })),
       }),
-    [currentFileName, files, flowEdges, flowNodes, localFiles],
+    [currentFileName, files, flowEdges, flowNodes, projectPipelineFiles],
   );
 
   const resourceHealthDraft = useMemo(() => {

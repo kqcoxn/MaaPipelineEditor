@@ -87,6 +87,101 @@ class WorkspaceDocumentsPayload(ApiModel):
     documents: list[WorkspaceDocument]
 
 
+class ProjectCapability(ApiModel):
+    available: bool
+    reason: str | None = None
+
+
+class ProjectStorageCapabilities(ApiModel):
+    project_id: str | None = None
+    path_case_sensitive: bool
+    operations: dict[str, ProjectCapability]
+
+
+class ProjectDiscoveryCandidate(ApiModel):
+    candidate_id: str
+    interface_path: str
+    name: str
+    label: str
+    version: str
+
+
+class ProjectDiscoveryStatus(ApiModel):
+    revision: int
+    discovery_root: str
+    state: Literal["discovering", "selection_required", "indexing", "ready", "invalid"]
+    reason: str
+    candidates: list[ProjectDiscoveryCandidate]
+    current_interface: ProjectDiscoveryCandidate | None = None
+    indexed_files: int
+    total_files: int
+    diagnostics: list[dict[str, Any]]
+
+
+class ProjectStatus(ApiModel):
+    revision: int
+    available: bool
+    project_id: str | None = None
+    project_root: str | None = None
+    interface_path: str | None = None
+    name: str | None = None
+    label: str | None = None
+    version: str | None = None
+    state: Literal["discovering", "selection_required", "indexing", "ready", "invalid"]
+    indexed_files: int
+    total_files: int
+
+
+class ProjectPipelineIndex(ApiModel):
+    nodes: list[dict[str, Any]]
+    prefix: str
+    index_status: Literal["pending", "ready", "error"]
+    is_default_pipeline: bool
+
+
+class ProjectEntry(ApiModel):
+    path: str
+    name: str
+    entry_kind: Literal["directory", "file"]
+    document_id: str | None = None
+    kind: Literal[
+        "pipeline", "interface", "json", "text", "markdown", "image", "binary"
+    ] | None = None
+    language: str = ""
+    mime_type: str = "application/octet-stream"
+    size: int = 0
+    editable: bool = False
+    previewable: bool = True
+    read_only_reason: str | None = None
+    role: Literal["default_pipeline", "mpe_config"] | None = None
+    pipeline: ProjectPipelineIndex | None = None
+
+
+class ProjectEntriesPayload(ApiModel):
+    revision: int
+    project_id: str | None = None
+    entries: list[ProjectEntry]
+
+
+class DocumentMapping(ApiModel):
+    old_path: str
+    new_path: str
+    old_document_id: str
+    new_document_id: str
+
+
+class ProjectChangedPayload(ApiModel):
+    project_id: str
+    operation_id: str
+    change: Literal["created", "modified", "deleted", "renamed"]
+    path: str
+    new_path: str | None = None
+    is_directory: bool = False
+    document_mappings: list[DocumentMapping] = Field(
+        default_factory=lambda: list[DocumentMapping]()
+    )
+
+
 class HelloParams(ApiModel):
     protocol_version: str
     client_version: str

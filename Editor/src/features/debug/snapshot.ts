@@ -3,9 +3,9 @@ import type { EdgeType, NodeType, PipelineNodeType } from "../../stores/flow";
 import { useFileStore } from "../../stores/fileStore";
 import { useFlowStore } from "../../stores/flow";
 import {
-  useLocalFileStore,
-  type LocalFileInfo,
-} from "../../stores/localFileStore";
+  getProjectPipelineFiles,
+  type ProjectPipelineFileIndex,
+} from "../project-session/projectPipelineIndex";
 import {
   NodeTypeEnum,
   SourceHandleTypeEnum,
@@ -116,7 +116,7 @@ function displayNameFromRuntimeName(runtimeName: string, prefix?: string): strin
 }
 
 export function buildDebugSnapshotBundle(
-  localFiles: LocalFileInfo[] | undefined = useLocalFileStore.getState().files,
+  localFiles: ProjectPipelineFileIndex[] = getProjectPipelineFiles(),
   resourcePaths: string[] = [],
 ): DebugSnapshotBundle {
   const generatedAt = new Date().toISOString();

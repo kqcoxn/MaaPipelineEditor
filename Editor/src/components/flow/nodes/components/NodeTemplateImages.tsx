@@ -1,6 +1,6 @@
 import { memo, useEffect, useMemo, useRef, useCallback } from "react";
 import { Image as AntImage } from "antd";
-import { useLocalFileStore } from "../../../../stores/localFileStore";
+import { useResourceStore } from "../../../../stores/resourceStore";
 import { resourceProtocol } from "../../../../services/server";
 import { useWSStore } from "../../../../stores/wsStore";
 import style from "../../../../styles/flow/nodes.module.less";
@@ -23,8 +23,8 @@ export const NodeTemplateImages = memo(
     const connected = useWSStore((state) => state.connected);
 
     // 订阅图片缓存
-    const imageCache = useLocalFileStore((state) => state.imageCache);
-    const pendingImageRequests = useLocalFileStore(
+    const imageCache = useResourceStore((state) => state.imageCache);
+    const pendingImageRequests = useResourceStore(
       (state) => state.pendingImageRequests,
     );
 

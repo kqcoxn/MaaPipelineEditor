@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 PACKAGE_VERSION = "2.0.0"
-PROTOCOL_VERSION = "2.3.0"
+PROTOCOL_VERSION = "2.4.0"
 MAX_WS_MESSAGE_BYTES = 8 * 1024 * 1024
 MAX_ARTIFACT_BYTES = 64 * 1024 * 1024
 MAX_CONNECTION_REQUESTS = 64
@@ -13,14 +13,15 @@ RPC_METHOD_NAMES = (
     "config.get",
     "config.update",
     "config.reload",
-    "workspace.scan",
-    "workspace.interface.select",
+    "project.scan",
+    "project.select",
+    "project.entries.list",
     "document.open",
     "document.save",
     "file.open",
-    "file.create",
-    "file.rename",
-    "file.delete",
+    "entry.create",
+    "entry.rename",
+    "entry.delete",
     "file.save",
     "file.saveSeparated",
     "resource.list",
@@ -60,16 +61,15 @@ RPC_METHOD_NAMES = (
 EVENT_NAMES = (
     "system.error",
     "log.entry",
-    "workspace.files",
-    "workspace.documents",
-    "workspace.tree",
-    "workspace.status",
-    "workspace.indexUpdated",
+    "project.discovery",
+    "project.status",
+    "project.capabilities",
+    "project.entries",
+    "project.indexUpdated",
+    "project.changed",
     "file.content",
-    "file.changed",
     "file.saved",
     "file.separatedSaved",
-    "file.created",
     "config.data",
     "config.reloaded",
     "resource.bundles",

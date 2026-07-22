@@ -38,11 +38,15 @@ import {
   openDesktopProject,
   isDesktopEnvironment,
 } from "../../services/desktopProject";
+import {
+  canOpenBrowserProject,
+  openBrowserProject,
+} from "../../services/browserProject";
 import { fileProtocol } from "../../services/server";
-import { useLocalFileStore } from "../../stores/localFileStore";
+import { useResourceStore } from "../../stores/resourceStore";
 import { activateEditorTab } from "../../services/projectSessionActions";
 import { useProjectSessionStore } from "../../stores/projectSessionStore";
-import { useDocumentStore } from "../../stores/documentStore";
+import { getCapability } from "../../features/project-storage/ProjectStorageAdapter";
 import {
   PROJECT_SIDEBAR_MAX_WIDTH,
   PROJECT_SIDEBAR_MIN_WIDTH,
@@ -135,25 +139,35 @@ const modeItems: MenuProps["items"] = [
 
 function ProjectDirectoryTree({ filter }: { filter: ProjectTreeFilter }) {
   const { message, modal } = App.useApp();
-  const root = useWorkspaceStore((state) => state.treeRoot || state.root);
-  const entries = useWorkspaceStore((state) => state.treeEntries);
-  const treeRevision = useWorkspaceStore((state) => state.treeRevision);
-  const documentIndex = useDocumentStore((state) => state.documents);
-  const documents = useMemo(
-    () => Object.values(documentIndex),
-    [documentIndex],
+  const root = useProjectSessionStore((state) => state.identity?.projectRoot ?? "");
+  const projectEntries = useProjectSessionStore((state) => state.entriesByPath);
+  const treeRevision = useProjectSessionStore((state) => state.entriesRevision);
+  const documentIdByPath = useProjectSessionStore(
+    (state) => state.documentIdByPath,
   );
-  const pipelineFiles = useLocalFileStore((state) => state.files);
-  const activeTab = useProjectSessionStore((state) =>
-    state.tabs.find((tab) => tab.key === state.activeKey),
+  const storageCapabilities = useProjectSessionStore(
+    (state) => state.capabilities,
   );
-  const capabilities = useMemo(
+  const entries = useMemo(
     () =>
-      documents.length
-        ? documents
-        : pipelineFiles.map((file) => file.file_path),
-    [documents, pipelineFiles],
+      Object.values(projectEntries).map((entry) => ({
+        path: entry.path,
+        name: entry.name,
+        kind: entry.entryKind,
+      })),
+    [projectEntries],
   );
+  const documents = useMemo(
+    () =>
+      Object.values(projectEntries).filter(
+        (entry) => entry.entryKind === "file" && entry.documentId,
+      ),
+    [projectEntries],
+  );
+  const activeTab = useProjectSessionStore((state) =>
+    state.tabs.find((tab) => tab.documentId === state.activeDocumentId),
+  );
+  const capabilities = documents;
   const tree = useMemo(
     () => buildProjectTree(root, entries, capabilities),
     [capabilities, entries, root],
@@ -183,8 +197,16 @@ function ProjectDirectoryTree({ filter }: { filter: ProjectTreeFilter }) {
   }, [tree, treeRevision]);
 
   const selectedKeys = useMemo(
-    () => getSelectedProjectTreeKeys(activeTab?.path, capabilities),
-    [activeTab?.path, capabilities],
+    () => {
+      const activeEntry = activeTab
+        ? useProjectSessionStore.getState().entriesById[activeTab.documentId]
+        : undefined;
+      return getSelectedProjectTreeKeys(
+        activeEntry && "path" in activeEntry ? activeEntry.path : undefined,
+        capabilities,
+      );
+    },
+    [activeTab, capabilities],
   );
 
   const beginCreateFile = useCallback((node: ProjectTreeNode) => {
@@ -243,25 +265,13 @@ function ProjectDirectoryTree({ filter }: { filter: ProjectTreeFilter }) {
     (_keys: Key[], info: { node: unknown }) => {
       const node = info.node as ProjectTreeNode;
       if (node.kind !== "file" || !node.selectable) return;
-      const isPipeline =
-        node.document?.kind === "pipeline" ||
-        (!documents.length && node.selectable);
-      const tab = isPipeline
-        ? {
-            kind: "pipeline" as const,
-            path: node.path,
-            key: `pipeline:${node.path}`,
-          }
-        : {
-            kind: "document" as const,
-            path: node.path,
-            key: `document:${node.path}`,
-          };
-      void activateEditorTab(tab).then((success) => {
+      const documentId = documentIdByPath[node.path];
+      if (!documentId) return;
+      void activateEditorTab({ documentId }).then((success) => {
         if (!success) message.error("打开项目文件请求发送失败");
       });
     },
-    [documents.length, message],
+    [documentIdByPath, message],
   );
 
   return (
@@ -343,12 +353,14 @@ function ProjectDirectoryTree({ filter }: { filter: ProjectTreeFilter }) {
                           key: "rename-entry",
                           icon: <EditOutlined />,
                           label: "重命名",
+                          disabled: !getCapability(storageCapabilities, "rename").available,
                         },
                         {
                           key: "delete-file",
                           icon: <DeleteOutlined />,
                           label: "删除",
                           danger: true,
+                          disabled: !getCapability(storageCapabilities, "delete").available,
                         },
                       ]
                     : [
@@ -356,6 +368,7 @@ function ProjectDirectoryTree({ filter }: { filter: ProjectTreeFilter }) {
                           key: "create-file",
                           icon: <FileAddOutlined />,
                           label: "新建文件",
+                          disabled: !getCapability(storageCapabilities, "create").available,
                         },
                         ...(isDirectory
                           ? [
@@ -363,6 +376,7 @@ function ProjectDirectoryTree({ filter }: { filter: ProjectTreeFilter }) {
                                 key: "rename-entry",
                                 icon: <EditOutlined />,
                                 label: "重命名",
+                                disabled: !getCapability(storageCapabilities, "rename").available,
                               },
                             ]
                           : []),
@@ -543,22 +557,24 @@ export function ProjectSidebar() {
   const visible = useProjectSidebarStore((state) => state.visible);
   const currentInterface = useWorkspaceStore((state) => state.currentInterface);
   const workspaceRoot = useWorkspaceStore((state) => state.root);
-  const resourceBundles = useLocalFileStore((state) => state.resourceBundles);
-  const documentIndex = useDocumentStore((state) => state.documents);
+  const resourceBundles = useResourceStore((state) => state.resourceBundles);
+  const projectEntries = useProjectSessionStore((state) => state.entriesByPath);
+  const projectIdentity = useProjectSessionStore((state) => state.identity);
   const sidebarRef = useRef<HTMLElement | null>(null);
   const [opening, setOpening] = useState(false);
   const [treeFilter, setTreeFilter] = useState<ProjectTreeFilter>(() => ({
     ...EMPTY_PROJECT_TREE_FILTER,
   }));
   const desktop = isDesktopEnvironment();
+  const browserDirectoryAvailable = !desktop && canOpenBrowserProject();
   const projectName =
-    currentInterface?.label || currentInterface?.name || "项目树";
+    projectIdentity?.label || currentInterface?.label || currentInterface?.name || "项目树";
   const hasInterfaceFiles = useMemo(
     () =>
-      Object.values(documentIndex).some(
+      Object.values(projectEntries).some(
         (document) => document.kind === "interface",
       ),
-    [documentIndex],
+    [projectEntries],
   );
 
   useEffect(() => {
@@ -566,10 +582,12 @@ export function ProjectSidebar() {
   }, [currentInterface?.interface_path, workspaceRoot]);
 
   const handleOpenProject = async () => {
-    if (!desktop || opening) return;
+    if ((!desktop && !browserDirectoryAvailable) || opening) return;
     setOpening(true);
     try {
-      const result = await openDesktopProject();
+      const result = desktop
+        ? await openDesktopProject()
+        : await openBrowserProject();
       if (result.status === "failed") {
         message.error(
           result.error instanceof Error
@@ -618,7 +636,9 @@ export function ProjectSidebar() {
             title={
               desktop
                 ? "选择 MaaFramework 项目目录"
-                : "仅 Desktop 支持更改项目根目录"
+                : browserDirectoryAvailable
+                  ? "授权浏览器访问 MaaFramework 项目目录"
+                  : "当前浏览器不支持目录授权"
             }
           >
             <span className={style.toolbarOpenButton}>
@@ -626,7 +646,7 @@ export function ProjectSidebar() {
                 type="text"
                 size="small"
                 icon={<FolderOpenOutlined />}
-                disabled={!desktop}
+                disabled={!desktop && !browserDirectoryAvailable}
                 loading={opening}
                 onClick={() => void handleOpenProject()}
               >

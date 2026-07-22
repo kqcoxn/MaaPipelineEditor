@@ -1,67 +1,61 @@
 import { message } from "antd";
 
-import type {
-  DocumentOpenResult,
-  DocumentSaveResult,
-  WorkspaceDocumentsPayload,
-} from "../generated/bridge-v2";
+import type { DocumentOpenResult, WorkspaceDocument } from "../generated/bridge-v2";
 import type { LocalWebSocketServer } from "../server";
+import { projectStorageCoordinator } from "../../features/project-storage/projectStorageCoordinator";
+import type { DocumentId, ProjectEntry } from "../../features/project-session/types";
 import { useDocumentStore } from "../../stores/documentStore";
-import { useLocalFileStore } from "../../stores/localFileStore";
+import { useResourceStore } from "../../stores/resourceStore";
 import { useProjectSessionStore } from "../../stores/projectSessionStore";
 import { BaseProtocol } from "./BaseProtocol";
 
 export class DocumentProtocol extends BaseProtocol {
-  private readonly savingPaths = new Set<string>();
+  private readonly savingIds = new Set<DocumentId>();
 
   getName(): string {
     return "DocumentProtocol";
   }
 
   getVersion(): string {
-    return "1.0.0";
+    return "2.0.0";
   }
 
   register(wsClient: LocalWebSocketServer): void {
     this.wsClient = wsClient;
-    wsClient.registerRoute("workspace.documents", (data) =>
-      this.handleDocuments(data),
-    );
-    wsClient.registerRoute("file.changed", (data) => this.handleFileChanged(data));
   }
 
   protected handleMessage(): void {}
 
-  async openDocument(path: string): Promise<boolean> {
-    const store = useDocumentStore.getState();
-    const descriptor = store.documents[path];
-    if (!descriptor || descriptor.kind === "pipeline") return false;
-
-    useProjectSessionStore.getState().openDocument(path);
-    const existing = store.opened[path];
+  async openDocument(documentId: DocumentId): Promise<boolean> {
+    const session = useProjectSessionStore.getState();
+    const entry = session.entriesById[documentId];
+    if (!entry || entry.path === undefined || entry.entryKind !== "file" || entry.kind === "pipeline") {
+      return false;
+    }
+    session.openDocument(documentId);
+    const existing = useDocumentStore.getState().opened[documentId];
     if (existing && !existing.loading && !existing.error && !existing.deleted) {
       return true;
     }
-    if (!store.beginOpen(path)) return false;
+    const descriptor = descriptorFromEntry(entry);
+    if (!useDocumentStore.getState().beginOpen(documentId, descriptor)) return false;
 
     try {
-      const result = await this.requestOpen(path);
+      const result = await projectStorageCoordinator.requireAdapter().read(documentId);
       const imageUrl = await this.cacheProjectImage(result);
-      useDocumentStore.getState().finishOpen(result, imageUrl);
+      useDocumentStore.getState().finishOpen(documentId, result, imageUrl);
       return true;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      useDocumentStore.getState().failOpen(path, errorMessage);
+      useDocumentStore.getState().failOpen(documentId, errorMessage);
       message.error(`文件打开失败: ${errorMessage}`);
       return false;
     }
   }
 
-  async saveDocument(path: string): Promise<boolean> {
-    const client = this.wsClient;
-    const document = useDocumentStore.getState().opened[path];
+  async saveDocument(documentId: DocumentId): Promise<boolean> {
+    const document = useDocumentStore.getState().opened[documentId];
     if (
-      !client ||
       !document ||
       !document.descriptor.editable ||
       !document.baseRevision ||
@@ -71,88 +65,58 @@ export class DocumentProtocol extends BaseProtocol {
       return false;
     }
 
-    this.savingPaths.add(path);
+    this.savingIds.add(documentId);
     const savedContent = document.content;
     try {
-      const result = await client.request<DocumentSaveResult>("document.save", {
-        path,
-        content: savedContent,
-        base_revision: document.baseRevision,
-      });
-      useDocumentStore.getState().markSaved(path, result.revision, savedContent);
+      const result = await projectStorageCoordinator
+        .requireAdapter()
+        .write(documentId, savedContent, document.baseRevision);
+      useDocumentStore
+        .getState()
+        .markSaved(documentId, result.revision, savedContent);
       message.success(`已保存 ${document.descriptor.name}`);
       return true;
     } catch (error) {
-      if (isRecord(error) && error.code === "document_conflict") {
-        await this.refreshFromExternal(path);
-        message.warning("文件已被外部修改，请选择要保留的版本");
-      } else {
-        message.error(error instanceof Error ? error.message : "文档保存失败");
-      }
+      message.error(error instanceof Error ? error.message : "文档保存失败");
       return false;
     } finally {
-      this.savingPaths.delete(path);
+      this.savingIds.delete(documentId);
     }
   }
 
-  async reloadExternal(path: string): Promise<boolean> {
+  async reloadExternal(documentId: DocumentId): Promise<boolean> {
     try {
-      const result = await this.requestOpen(path);
+      const result = await projectStorageCoordinator.requireAdapter().read(documentId);
       const imageUrl = await this.cacheProjectImage(result);
-      useDocumentStore.getState().reloadExternal(path, result, imageUrl);
+      useDocumentStore.getState().reloadExternal(documentId, result, imageUrl);
       return true;
     } catch (error) {
       useDocumentStore
         .getState()
-        .failOpen(path, error instanceof Error ? error.message : String(error));
+        .failOpen(documentId, error instanceof Error ? error.message : String(error));
       return false;
     }
   }
 
-  private handleDocuments(data: unknown): void {
-    if (!isWorkspaceDocuments(data)) {
-      console.error("[DocumentProtocol] Invalid workspace documents:", data);
-      return;
-    }
-    useDocumentStore.getState().applyDocuments(data);
-  }
-
-  private handleFileChanged(data: unknown): void {
-    if (!isFileChanged(data) || data.is_directory) return;
-    const opened = useDocumentStore.getState().opened[data.file_path];
-    if (!opened) return;
-    if (data.type === "modified") {
-      if (!this.savingPaths.has(data.file_path)) {
-        void this.refreshFromExternal(data.file_path);
-      }
-      return;
-    }
-    if (data.type === "deleted") {
-      useDocumentStore.getState().markDeleted(data.file_path);
-    }
-  }
-
-  private async refreshFromExternal(path: string): Promise<void> {
+  async refreshFromExternal(documentId: DocumentId): Promise<void> {
+    if (this.savingIds.has(documentId)) return;
     try {
-      const external = await this.requestOpen(path);
+      const external = await projectStorageCoordinator.requireAdapter().read(documentId);
       const imageUrl = await this.cacheProjectImage(external);
-      const document = useDocumentStore.getState().opened[path];
+      const document = useDocumentStore.getState().opened[documentId];
       if (!document) return;
       if (document.dirty) {
-        useDocumentStore.getState().setConflict(path, external);
+        useDocumentStore.getState().setConflict(documentId, external);
       } else {
-        useDocumentStore.getState().reloadExternal(path, external, imageUrl);
+        useDocumentStore
+          .getState()
+          .reloadExternal(documentId, external, imageUrl);
       }
     } catch (error) {
       useDocumentStore
         .getState()
-        .failOpen(path, error instanceof Error ? error.message : String(error));
+        .failOpen(documentId, error instanceof Error ? error.message : String(error));
     }
-  }
-
-  private requestOpen(path: string): Promise<DocumentOpenResult> {
-    if (!this.wsClient) return Promise.reject(new Error("LocalBridge 未连接"));
-    return this.wsClient.request<DocumentOpenResult>("document.open", { path });
   }
 
   private async cacheProjectImage(
@@ -162,7 +126,7 @@ export class DocumentProtocol extends BaseProtocol {
       return undefined;
     }
     const imageUrl = await this.wsClient.getArtifactUrl(result.artifact);
-    useLocalFileStore.getState().setImageCache(result.path, {
+    useResourceStore.getState().setImageCache(result.path, {
       base64: imageUrl,
       mimeType: result.artifact.mimeType,
       width: result.artifact.width ?? 0,
@@ -175,40 +139,17 @@ export class DocumentProtocol extends BaseProtocol {
   }
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-export function isWorkspaceDocuments(
-  value: unknown,
-): value is WorkspaceDocumentsPayload {
-  if (
-    !isRecord(value) ||
-    typeof value.revision !== "number" ||
-    typeof value.root !== "string" ||
-    !Array.isArray(value.documents)
-  ) {
-    return false;
-  }
-  return value.documents.every(
-    (document) =>
-      isRecord(document) &&
-      typeof document.path === "string" &&
-      typeof document.name === "string" &&
-      typeof document.kind === "string" &&
-      typeof document.mimeType === "string" &&
-      typeof document.size === "number" &&
-      typeof document.editable === "boolean" &&
-      typeof document.previewable === "boolean",
-  );
-}
-
-function isFileChanged(
-  value: unknown,
-): value is { type: string; file_path: string; is_directory?: boolean } {
-  return (
-    isRecord(value) &&
-    typeof value.type === "string" &&
-    typeof value.file_path === "string"
-  );
+function descriptorFromEntry(entry: ProjectEntry): WorkspaceDocument {
+  return {
+    path: entry.path,
+    name: entry.name,
+    kind: entry.kind ?? "binary",
+    language: entry.language ?? "",
+    mimeType: entry.mimeType ?? "application/octet-stream",
+    size: entry.size ?? 0,
+    editable: entry.editable ?? false,
+    previewable: entry.previewable ?? false,
+    readOnlyReason: entry.readOnlyReason,
+    role: entry.role,
+  };
 }

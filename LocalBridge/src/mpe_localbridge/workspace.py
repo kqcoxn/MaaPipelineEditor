@@ -81,7 +81,8 @@ class Workspace:
         preferences_path: Path | None = None,
     ) -> None:
         self.config = config
-        self.root = Path(config.root).expanduser().resolve()
+        self.discovery_root = Path(config.root).expanduser().resolve()
+        self.project_root: Path | None = None
         self.preferences = WorkspacePreferences(
             preferences_path or workspace_preferences_path()
         )
@@ -112,6 +113,12 @@ class Workspace:
             return self._revision
 
     @property
+    def root(self) -> Path:
+        """Return the active project root, falling back to discovery for setup state."""
+        with self._lock:
+            return self.project_root or self.discovery_root
+
+    @property
     def active_interface(self) -> InterfaceCandidate | None:
         with self._lock:
             return self._active
@@ -119,12 +126,14 @@ class Workspace:
     def reconfigure(self, config: FileConfig) -> None:
         with self._lock:
             self.config = config
-            self.root = Path(config.root).expanduser().resolve()
+            self.discovery_root = Path(config.root).expanduser().resolve()
+            self.project_root = None
             self._revision += 1
             self._state = "discovering"
             self._reason = ""
             self._discovery = InterfaceDiscovery([], [], 0)
             self._active = None
+            self.project_root = None
             self._files = {}
             self._directories = []
             self._tree_entries = []
@@ -139,27 +148,29 @@ class Workspace:
             self._state = "discovering"
             self._reason = ""
             self._active = None
+            self.project_root = None
             self._files = {}
             self._documents = []
             self._directories = []
+            self._tree_entries = []
             self._indexed_files = 0
             self._total_files = 0
-        return self.status()
+        return self.discovery_status()
 
     def discover(self, *, prepared: bool = False) -> dict[str, Any]:
         if not prepared:
             self.begin_discovery()
 
-        if not self.root.is_dir():
+        if not self.discovery_root.is_dir():
             with self._lock:
                 self._discovery = InterfaceDiscovery([], [], 0)
                 self._state = "invalid"
                 self._reason = "root_missing"
-            return self.status()
+            return self.discovery_status()
 
-        discovery = discover_interfaces(self.root, set(self.config.exclude))
+        discovery = discover_interfaces(self.discovery_root, set(self.config.exclude))
         selected: InterfaceCandidate | None = None
-        remembered = self.preferences.selected_interface(self.root)
+        remembered = self.preferences.selected_interface(self.discovery_root)
         if len(discovery.candidates) == 1:
             selected = discovery.candidates[0]
         elif remembered:
@@ -187,17 +198,18 @@ class Workspace:
                     else "interface_not_found"
                 )
         if selected is not None:
-            self.preferences.set_selected_interface(self.root, selected.relative_path)
-        return self.status()
+            self.preferences.set_selected_interface(
+                self.discovery_root, selected.relative_path
+            )
+        return self.discovery_status()
 
-    def select_interface(self, relative_path: str) -> dict[str, Any]:
-        normalized = Path(relative_path).as_posix()
+    def select_interface(self, candidate_id: str) -> dict[str, Any]:
         with self._lock:
             selected = next(
                 (
                     candidate
                     for candidate in self._discovery.candidates
-                    if candidate.relative_path == normalized
+                    if candidate.candidate_id == candidate_id
                 ),
                 None,
             )
@@ -205,7 +217,9 @@ class Workspace:
                 raise InvalidArgumentError("Interface 不在当前候选列表中")
             self._revision += 1
             self._activate(selected)
-        self.preferences.set_selected_interface(self.root, selected.relative_path)
+        self.preferences.set_selected_interface(
+            self.discovery_root, selected.relative_path
+        )
         return self.status()
 
     def refresh_files(self, *, bump_revision: bool = False) -> dict[str, Any]:
@@ -257,11 +271,11 @@ class Workspace:
     def refresh_tree(self) -> dict[str, Any]:
         """Build a metadata-only tree without following links or reading files."""
         with self._lock:
-            root = self.root
+            root = self.project_root
             excluded = {name.casefold() for name in self.config.exclude}
 
         entries: list[dict[str, str]] = []
-        if root.is_dir():
+        if root is not None and root.is_dir():
             pending: list[tuple[Path, dict[str, str] | None]] = [(root, None)]
             while pending:
                 current, current_entry = pending.pop()
@@ -299,7 +313,7 @@ class Workspace:
         entries.sort(key=lambda item: (item["path"].casefold(), item["path"]))
         with self._lock:
             current_excluded = {name.casefold() for name in self.config.exclude}
-            if root != self.root or excluded != current_excluded:
+            if root != self.project_root or excluded != current_excluded:
                 return self.tree_snapshot()
             self._tree_revision += 1
             self._tree_entries = entries
@@ -308,21 +322,25 @@ class Workspace:
     def refresh_documents(self) -> dict[str, Any]:
         """Classify project files from metadata without reading ordinary content."""
         with self._lock:
-            root = self.root
+            root = self.project_root
             tree_entries = tuple(self._tree_entries)
             active = self._active
             revision = self._documents_revision + 1
 
-        documents = [
-            self._classify_document(root, active, root / entry["path"])
-            for entry in tree_entries
-            if entry["kind"] == "file"
-        ]
+        documents = (
+            [
+                self._classify_document(root, active, root / entry["path"])
+                for entry in tree_entries
+                if entry["kind"] == "file"
+            ]
+            if root is not None
+            else []
+        )
         documents = [document for document in documents if document is not None]
         documents.sort(key=lambda item: (str(item["path"]).casefold(), str(item["path"])))
 
         with self._lock:
-            if root != self.root or active is not self._active:
+            if root != self.project_root or active is not self._active:
                 return self.documents_snapshot()
             self._documents_revision = revision
             self._documents = documents
@@ -379,7 +397,7 @@ class Workspace:
             return {
                 "revision": self._revision,
                 "root": str(self.root),
-                "interface_path": active.relative_path if active else "",
+                "interface_path": active.path.name if active else "",
                 "files": sorted(
                     (dict(item) for item in self._files.values()),
                     key=lambda item: str(item["relative_path"]).casefold(),
@@ -406,7 +424,7 @@ class Workspace:
             )
         return payload.model_dump(mode="json", by_alias=True)
 
-    def status(self) -> dict[str, Any]:
+    def discovery_status(self) -> dict[str, Any]:
         with self._lock:
             active = self._active
             diagnostics = list(self._discovery.diagnostics)
@@ -414,7 +432,7 @@ class Workspace:
                 diagnostics = active.diagnostics
             return {
                 "revision": self._revision,
-                "root": str(self.root),
+                "discovery_root": str(self.discovery_root),
                 "state": self._state,
                 "reason": self._reason,
                 "candidates": [
@@ -425,6 +443,104 @@ class Workspace:
                 "total_files": self._total_files,
                 "diagnostics": [diagnostic.dump() for diagnostic in diagnostics],
             }
+
+    def status(self) -> dict[str, Any]:
+        with self._lock:
+            active = self._active
+            return {
+                "revision": self._revision,
+                "available": active is not None,
+                "project_id": active.project_id if active else None,
+                "project_root": str(active.project_root) if active else None,
+                "interface_path": active.path.name if active else None,
+                "name": active.name if active else None,
+                "label": active.label if active else None,
+                "version": active.version if active else None,
+                "state": self._state,
+                "indexed_files": self._indexed_files,
+                "total_files": self._total_files,
+            }
+
+    def capabilities(self) -> dict[str, Any]:
+        with self._lock:
+            active = self._active
+            available = active is not None
+        unavailable_reason = None if available else "no_project"
+
+        def capability(supported: bool = True, reason: str | None = None) -> dict[str, Any]:
+            enabled = available and supported
+            return {
+                "available": enabled,
+                "reason": None if enabled else (reason or unavailable_reason),
+            }
+
+        return {
+            "project_id": active.project_id if active else None,
+            "path_case_sensitive": os.name != "nt",
+            "operations": {
+                "list": capability(),
+                "read": capability(),
+                "write": capability(),
+                "create": capability(),
+                "rename": capability(),
+                "delete": capability(),
+                "watch": capability(),
+                "execute": capability(),
+                "external_paths": capability(
+                    False, "external_path_authorization_not_implemented"
+                ),
+            },
+        }
+
+    def entries_snapshot(self) -> dict[str, Any]:
+        with self._lock:
+            active = self._active
+            revision = max(
+                self._revision, self._tree_revision, self._documents_revision
+            )
+            tree_entries = [dict(entry) for entry in self._tree_entries]
+            documents = {str(item["path"]): dict(item) for item in self._documents}
+            pipeline_files = {path: dict(item) for path, item in self._files.items()}
+        if active is None:
+            return {"revision": revision, "project_id": None, "entries": []}
+
+        entries: list[dict[str, Any]] = []
+        for tree_entry in tree_entries:
+            path = str(tree_entry["path"])
+            entry: dict[str, Any] = {
+                "path": path,
+                "name": str(tree_entry["name"]),
+                "entry_kind": str(tree_entry["kind"]),
+            }
+            descriptor = documents.get(path)
+            if descriptor is not None:
+                entry.update(descriptor)
+                entry["document_id"] = self.document_id(path)
+            pipeline = pipeline_files.get(path)
+            if pipeline is not None:
+                entry["pipeline"] = {
+                    "nodes": pipeline["nodes"],
+                    "prefix": pipeline["prefix"],
+                    "index_status": pipeline["index_status"],
+                    "is_default_pipeline": pipeline["is_default_pipeline"],
+                }
+            entries.append(entry)
+        return {
+            "revision": revision,
+            "project_id": active.project_id,
+            "entries": entries,
+        }
+
+    def document_id(self, relative_path: str) -> str:
+        normalized = _normalize_project_path(relative_path)
+        with self._lock:
+            active = self._active
+            if active is None:
+                raise InvalidArgumentError("尚未选择项目")
+            identity_path = normalized if os.name != "nt" else normalized.casefold()
+            source = f"{active.project_id}\0{identity_path}"
+        digest = hashlib.sha256(source.encode("utf-8")).hexdigest()[:32]
+        return f"document:{digest}"
 
     def pending_index_paths(self, revision: int) -> list[str]:
         with self._lock:
@@ -481,11 +597,11 @@ class Workspace:
             }
 
     def resolve(self, relative_path: str, *, must_exist: bool = False) -> Path:
-        if not relative_path or Path(relative_path).is_absolute():
-            raise InvalidArgumentError("文件路径必须是工作区相对路径")
-        candidate = (self.root / relative_path).resolve(strict=must_exist)
+        normalized = _normalize_project_path(relative_path)
+        root = self._require_project_root()
+        candidate = (root / normalized).resolve(strict=must_exist)
         try:
-            candidate.relative_to(self.root)
+            candidate.relative_to(root)
         except ValueError as error:
             raise ForbiddenError("路径超出工作区") from error
         return candidate
@@ -575,9 +691,10 @@ class Workspace:
         }
 
     def _resolve_document_path(self, relative_path: str) -> Path:
-        lexical = self.root / relative_path
+        normalized_input = _normalize_project_path(relative_path)
+        lexical = self.root / normalized_input
         normalized = self._lexical_relative(lexical)
-        if not normalized or normalized != Path(relative_path).as_posix():
+        if not normalized or normalized != normalized_input:
             raise InvalidArgumentError("文件路径必须是规范的工作区相对路径")
         if self._has_symlink_ancestor(normalized):
             raise ForbiddenError("不允许访问符号链接")
@@ -689,7 +806,7 @@ class Workspace:
         }
 
     def relative(self, path: Path) -> str:
-        return path.resolve().relative_to(self.root).as_posix()
+        return path.resolve().relative_to(self._require_project_root()).as_posix()
 
     def change_kind(self, path: Path) -> str | None:
         relative = self._lexical_relative(path)
@@ -757,14 +874,21 @@ class Workspace:
         return relative, path.is_dir() or known_directory or tree_kind == "directory"
 
     def _lexical_relative(self, path: Path) -> str | None:
+        with self._lock:
+            root = self.project_root
+        if root is None:
+            return None
         lexical = Path(os.path.abspath(path))
         try:
-            return lexical.relative_to(self.root).as_posix()
+            return lexical.relative_to(root).as_posix()
         except ValueError:
             return None
 
     def _has_symlink_ancestor(self, relative: str) -> bool:
-        current = self.root
+        with self._lock:
+            current = self.project_root
+        if current is None:
+            return True
         for part in Path(relative).parts:
             current /= part
             try:
@@ -827,7 +951,11 @@ class Workspace:
         directory: str,
     ) -> dict[str, Any]:
         self._validate_entry_name(file_name)
-        parent = self.root if not directory else self.resolve(directory, must_exist=True)
+        parent = (
+            self._require_project_root()
+            if not directory
+            else self.resolve(directory, must_exist=True)
+        )
         if not parent.is_dir():
             raise ForbiddenError("文件只能创建在项目文件夹中")
         path = (parent / file_name).resolve()
@@ -874,6 +1002,13 @@ class Workspace:
             or any(ord(character) < 32 for character in file_name)
         ):
             raise InvalidArgumentError("名称无效")
+
+    def _require_project_root(self) -> Path:
+        with self._lock:
+            root = self.project_root
+        if root is None:
+            raise ForbiddenError("尚未选择项目")
+        return root
 
     def save_file(
         self,
@@ -1003,6 +1138,7 @@ class Workspace:
 
     def _activate(self, candidate: InterfaceCandidate) -> None:
         self._active = candidate
+        self.project_root = candidate.project_root
         self._state = "indexing"
         self._reason = ""
         self._files = {}
@@ -1129,6 +1265,17 @@ def _path_is_relative_to(path: Path, parent: Path) -> bool:
         return True
     except (OSError, ValueError):
         return False
+
+
+def _normalize_project_path(value: str) -> str:
+    if not value or "\\" in value or "//" in value:
+        raise InvalidArgumentError("文件路径必须是规范的项目相对路径")
+    path = Path(value)
+    if path.is_absolute() or re.match(r"^[A-Za-z]:", value):
+        raise InvalidArgumentError("文件路径必须是规范的项目相对路径")
+    if any(part in {"", ".", ".."} for part in value.split("/")):
+        raise InvalidArgumentError("文件路径必须是规范的项目相对路径")
+    return value
 
 
 def _sha256_path(path: Path) -> str:

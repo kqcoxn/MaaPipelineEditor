@@ -1,10 +1,10 @@
 import { BaseProtocol } from "./BaseProtocol";
 import type { LocalWebSocketServer } from "../server";
 import {
-  useLocalFileStore,
+  useResourceStore,
   type ResourceBundle,
   type ImageCacheItem,
-} from "../../stores/localFileStore";
+} from "../../stores/resourceStore";
 import type { ArtifactRef } from "../generated/bridge-v2";
 
 /**
@@ -57,8 +57,8 @@ export class ResourceProtocol extends BaseProtocol {
       }
 
       // 更新本地文件缓存中的资源包信息
-      const localFileStore = useLocalFileStore.getState();
-      localFileStore.setResourceBundles(
+      const resourceStore = useResourceStore.getState();
+      resourceStore.setResourceBundles(
         bundles as ResourceBundle[],
         image_dirs || []
       );
@@ -90,7 +90,7 @@ export class ResourceProtocol extends BaseProtocol {
         return;
       }
 
-      const localFileStore = useLocalFileStore.getState();
+      const resourceStore = useResourceStore.getState();
 
       if (success && artifact && this.wsClient) {
         const ref = artifact as ArtifactRef;
@@ -105,7 +105,7 @@ export class ResourceProtocol extends BaseProtocol {
           absPath: absolute_path || "",
           timestamp: Date.now(),
         };
-        localFileStore.setImageCache(relative_path, cacheItem);
+        resourceStore.setImageCache(relative_path, cacheItem);
       } else {
         console.warn(
           "[ResourceProtocol] 图片加载失败:",
@@ -113,7 +113,7 @@ export class ResourceProtocol extends BaseProtocol {
           message
         );
         // 请求失败，移除 pending 状态
-        localFileStore.setPendingImageRequest(relative_path, false);
+        resourceStore.setPendingImageRequest(relative_path, false);
       }
     } catch (error) {
       console.error("[ResourceProtocol] Failed to handle image:", error);
@@ -152,20 +152,20 @@ export class ResourceProtocol extends BaseProtocol {
       return false;
     }
 
-    const localFileStore = useLocalFileStore.getState();
+    const resourceStore = useResourceStore.getState();
 
     // 已缓存，不重复请求
-    if (localFileStore.getImageCache(relativePath)) {
+    if (resourceStore.getImageCache(relativePath)) {
       return true;
     }
 
     // 正在请求中，不重复请求
-    if (localFileStore.isImagePending(relativePath)) {
+    if (resourceStore.isImagePending(relativePath)) {
       return true;
     }
 
     // 标记为请求中
-    localFileStore.setPendingImageRequest(relativePath, true);
+    resourceStore.setPendingImageRequest(relativePath, true);
 
     return this.wsClient.send("resource.image.get", {
       relative_path: relativePath,
@@ -182,13 +182,13 @@ export class ResourceProtocol extends BaseProtocol {
       return false;
     }
 
-    const localFileStore = useLocalFileStore.getState();
+    const resourceStore = useResourceStore.getState();
 
     // 过滤已缓存和正在请求的
     const pathsToRequest = relativePaths.filter((path) => {
       return (
-        !localFileStore.getImageCache(path) &&
-        !localFileStore.isImagePending(path)
+        !resourceStore.getImageCache(path) &&
+        !resourceStore.isImagePending(path)
       );
     });
 
@@ -198,7 +198,7 @@ export class ResourceProtocol extends BaseProtocol {
 
     // 标记为请求中
     pathsToRequest.forEach((path) => {
-      localFileStore.setPendingImageRequest(path, true);
+      resourceStore.setPendingImageRequest(path, true);
     });
 
     return this.wsClient.send("resource.image.getMany", {
@@ -231,8 +231,8 @@ export class ResourceProtocol extends BaseProtocol {
     }
 
     // 标记正在请求
-    const localFileStore = useLocalFileStore.getState();
-    localFileStore.setImageListLoading(true);
+    const resourceStore = useResourceStore.getState();
+    resourceStore.setImageListLoading(true);
 
     return this.wsClient.send("resource.image.list", {
       pipeline_path: pipelinePath || "",
@@ -252,8 +252,8 @@ export class ResourceProtocol extends BaseProtocol {
         return;
       }
 
-      const localFileStore = useLocalFileStore.getState();
-      localFileStore.setImageList(
+      const resourceStore = useResourceStore.getState();
+      resourceStore.setImageList(
         images.map((img: any) => ({
           relativePath: img.relative_path,
           bundleName: img.bundle_name,
@@ -263,8 +263,8 @@ export class ResourceProtocol extends BaseProtocol {
       );
     } catch (error) {
       console.error("[ResourceProtocol] Failed to handle image list:", error);
-      const localFileStore = useLocalFileStore.getState();
-      localFileStore.setImageListLoading(false);
+      const resourceStore = useResourceStore.getState();
+      resourceStore.setImageListLoading(false);
     }
   }
 }

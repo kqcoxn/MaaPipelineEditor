@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { NodeTypeEnum } from "../../components/flow/nodes";
 import { useFileStore } from "../../stores/fileStore";
 import { useFlowStore, type PipelineNodeType } from "../../stores/flow";
+import { asDocumentId } from "../project-session/types";
 import {
   buildDebugSnapshotBundle,
   selectEffectiveResolverEdges,
@@ -45,6 +46,7 @@ describe("snapshot resource override resolution", () => {
     const bundle = buildDebugSnapshotBundle(
       [
         {
+          document_id: asDocumentId("document:external"),
           file_path: "C:/resource/base/pipeline/main.json",
           file_name: "main.json",
           relative_path: "pipeline/main.json",
@@ -56,6 +58,8 @@ describe("snapshot resource override resolution", () => {
               anchors: [],
             },
           ],
+          index_status: "ready",
+          is_default_pipeline: false,
         },
       ],
       ["C:/resource/base"],

@@ -15,7 +15,7 @@ import {
 import style from "../../styles/layout/ProjectSidebar.module.less";
 import { activateEditorTab } from "../../services/projectSessionActions";
 import { fileProtocol } from "../../services/server";
-import { useDocumentStore } from "../../stores/documentStore";
+import { useProjectSessionStore } from "../../stores/projectSessionStore";
 
 const INVALID_FILE_NAME_PATTERN = /[<>:"/\\|?*]/;
 
@@ -124,20 +124,12 @@ export function CreateFileTreeInput({
         return;
       }
       onFinish();
-      const descriptor = useDocumentStore.getState().documents[createdPath];
+      const session = useProjectSessionStore.getState();
+      const documentId = session.documentIdByPath[createdPath];
+      const descriptor = documentId ? session.entriesById[documentId] : undefined;
       let opened: boolean;
-      if (descriptor?.kind === "pipeline") {
-        opened = await activateEditorTab({
-          kind: "pipeline",
-          path: createdPath,
-          key: `pipeline:${createdPath}`,
-        });
-      } else if (descriptor) {
-        opened = await activateEditorTab({
-          kind: "document",
-          path: createdPath,
-          key: `document:${createdPath}`,
-        });
+      if (descriptor && documentId) {
+        opened = await activateEditorTab({ documentId });
       } else {
         opened = fileProtocol.requestOpenFile(createdPath);
       }

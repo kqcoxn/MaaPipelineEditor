@@ -1,25 +1,17 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
-import type {
-  WorkspaceTreeEntry,
-  WorkspaceTreePayload,
-} from "../services/generated/bridge-v2";
-import {
-  projectPathName,
-  remapProjectPath,
-} from "../utils/projectPath";
 
-export type { WorkspaceTreeEntry, WorkspaceTreePayload };
+import type {
+  ProjectDiscoveryCandidate,
+  ProjectDiscoveryStatus,
+} from "../services/generated/bridge-v2";
 
 export type WorkspaceStateName =
   | "disconnected"
-  | "discovering"
-  | "selection_required"
-  | "indexing"
-  | "ready"
-  | "invalid";
+  | ProjectDiscoveryStatus["state"];
 
 export interface WorkspaceInterfaceCandidate {
+  candidate_id: string;
   interface_path: string;
   name: string;
   label: string;
@@ -33,24 +25,9 @@ export interface WorkspaceDiagnostic {
   severity: "warning" | "error";
 }
 
-export interface WorkspaceStatusPayload {
-  revision: number;
-  root: string;
-  state: Exclude<WorkspaceStateName, "disconnected">;
-  reason: string;
-  candidates: WorkspaceInterfaceCandidate[];
-  current_interface: WorkspaceInterfaceCandidate | null;
-  indexed_files: number;
-  total_files: number;
-  diagnostics: WorkspaceDiagnostic[];
-}
-
 interface WorkspaceState {
   revision: number;
-  treeRevision: number;
   root: string;
-  treeRoot: string;
-  treeEntries: WorkspaceTreeEntry[];
   state: WorkspaceStateName;
   reason: string;
   candidates: WorkspaceInterfaceCandidate[];
@@ -59,105 +36,56 @@ interface WorkspaceState {
   totalFiles: number;
   diagnostics: WorkspaceDiagnostic[];
   selectorOpen: boolean;
-  applyStatus: (status: WorkspaceStatusPayload) => void;
-  applyTree: (tree: WorkspaceTreePayload) => void;
+}
+
+interface WorkspaceActions {
+  applyDiscovery: (status: ProjectDiscoveryStatus) => void;
   prepareReconnect: () => void;
-  renamePath: (oldPath: string, newPath: string, isDirectory: boolean) => void;
   openSelector: () => void;
   closeSelector: () => void;
   clear: () => void;
 }
 
-const initialWorkspaceState = {
+export type WorkspaceStore = WorkspaceState & WorkspaceActions;
+
+const initialWorkspaceState: WorkspaceState = {
   revision: 0,
-  treeRevision: 0,
   root: "",
-  treeRoot: "",
-  treeEntries: [] as WorkspaceTreeEntry[],
-  state: "disconnected" as const,
+  state: "disconnected",
   reason: "",
-  candidates: [] as WorkspaceInterfaceCandidate[],
-  currentInterface: null as WorkspaceInterfaceCandidate | null,
+  candidates: [],
+  currentInterface: null,
   indexedFiles: 0,
   totalFiles: 0,
-  diagnostics: [] as WorkspaceDiagnostic[],
+  diagnostics: [],
   selectorOpen: false,
 };
 
-export const useWorkspaceStore = create<WorkspaceState>()(
+export const useWorkspaceStore = create<WorkspaceStore>()(
   subscribeWithSelector((set, get) => ({
     ...initialWorkspaceState,
-    applyStatus(status) {
+    applyDiscovery(status) {
       if (status.revision < get().revision) return;
+      const candidates = status.candidates.map(mapCandidate);
       set({
         revision: status.revision,
-        root: status.root,
+        root: status.discoveryRoot,
         state: status.state,
         reason: status.reason,
-        candidates: status.candidates,
-        currentInterface: status.current_interface,
-        indexedFiles: status.indexed_files,
-        totalFiles: status.total_files,
-        diagnostics: status.diagnostics,
+        candidates,
+        currentInterface: status.currentInterface
+          ? mapCandidate(status.currentInterface)
+          : null,
+        indexedFiles: status.indexedFiles,
+        totalFiles: status.totalFiles,
+        diagnostics: status.diagnostics.filter(isDiagnostic),
         selectorOpen:
           status.state === "selection_required" ||
-          (get().selectorOpen && status.candidates.length > 1),
-      });
-    },
-    applyTree(tree) {
-      if (tree.revision < get().treeRevision) return;
-      set({
-        treeRevision: tree.revision,
-        treeRoot: tree.root,
-        treeEntries: tree.entries,
+          (get().selectorOpen && candidates.length > 1),
       });
     },
     prepareReconnect() {
-      set({ revision: 0, treeRevision: 0 });
-    },
-    renamePath(oldPath, newPath, isDirectory) {
-      set((state) => ({
-        treeEntries: state.treeEntries.map((entry) => {
-          const path = remapProjectPath(
-            entry.path,
-            oldPath,
-            newPath,
-            isDirectory,
-          );
-          return path === entry.path
-            ? entry
-            : { ...entry, path, name: projectPathName(path) };
-        }),
-        candidates: state.candidates.map((candidate) => ({
-          ...candidate,
-          interface_path: remapProjectPath(
-            candidate.interface_path,
-            oldPath,
-            newPath,
-            isDirectory,
-          ),
-        })),
-        currentInterface: state.currentInterface
-          ? {
-              ...state.currentInterface,
-              interface_path: remapProjectPath(
-                state.currentInterface.interface_path,
-                oldPath,
-                newPath,
-                isDirectory,
-              ),
-            }
-          : null,
-        diagnostics: state.diagnostics.map((diagnostic) => ({
-          ...diagnostic,
-          path: remapProjectPath(
-            diagnostic.path,
-            oldPath,
-            newPath,
-            isDirectory,
-          ),
-        })),
-      }));
+      set({ revision: 0, state: "disconnected" });
     },
     openSelector() {
       if (get().candidates.length > 1) set({ selectorOpen: true });
@@ -170,3 +98,24 @@ export const useWorkspaceStore = create<WorkspaceState>()(
     },
   })),
 );
+
+function mapCandidate(candidate: ProjectDiscoveryCandidate): WorkspaceInterfaceCandidate {
+  return {
+    candidate_id: candidate.candidateId,
+    interface_path: candidate.interfacePath,
+    name: candidate.name,
+    label: candidate.label,
+    version: candidate.version,
+  };
+}
+
+function isDiagnostic(value: unknown): value is WorkspaceDiagnostic {
+  if (!value || typeof value !== "object") return false;
+  const diagnostic = value as Record<string, unknown>;
+  return (
+    typeof diagnostic.code === "string" &&
+    typeof diagnostic.message === "string" &&
+    typeof diagnostic.path === "string" &&
+    (diagnostic.severity === "warning" || diagnostic.severity === "error")
+  );
+}

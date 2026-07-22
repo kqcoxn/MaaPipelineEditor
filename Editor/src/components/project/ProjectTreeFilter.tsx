@@ -2,7 +2,7 @@ import { FilterOutlined } from "@ant-design/icons";
 import { Button, Dropdown, Tooltip, type MenuProps } from "antd";
 import { useMemo, useState } from "react";
 
-import type { ResourceBundle } from "../../stores/localFileStore";
+import type { ResourceBundle } from "../../stores/resourceStore";
 import style from "../../styles/layout/ProjectSidebar.module.less";
 import type { ProjectTreeFilter } from "./projectTree";
 

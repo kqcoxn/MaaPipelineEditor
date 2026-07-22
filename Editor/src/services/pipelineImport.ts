@@ -27,9 +27,8 @@ export async function importPipelineAsDraft({
       useFileStore.getState().setFileName(displayName);
     }
     if (savedBaseline) useFileStore.getState().markCurrentSaved();
-    useProjectSessionStore
-      .getState()
-      .openPipeline(useFileStore.getState().currentFile.fileName);
+    const current = useFileStore.getState().currentFile;
+    useProjectSessionStore.getState().openDocument(current.documentId);
     return true;
   } catch (error) {
     console.error("[pipelineImport] Failed to import draft:", error);

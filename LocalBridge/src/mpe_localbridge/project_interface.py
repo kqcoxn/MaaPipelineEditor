@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from dataclasses import dataclass, field
@@ -61,7 +62,10 @@ class ProjectBundle:
 
 @dataclass(slots=True)
 class InterfaceCandidate:
+    candidate_id: str
+    project_id: str
     path: Path
+    project_root: Path
     relative_path: str
     name: str
     label: str
@@ -72,6 +76,7 @@ class InterfaceCandidate:
 
     def summary(self) -> dict[str, str]:
         return {
+            "candidate_id": self.candidate_id,
             "interface_path": self.relative_path,
             "name": self.name,
             "label": self.label,
@@ -216,6 +221,7 @@ def _parse_candidate(
         ]
 
     interface_dir = resolved_path.parent
+    project_root = interface_dir.resolve()
     bundle_map: dict[Path, ProjectBundle] = {}
     declared_resource_paths = 0
     resources = document.get("resource")
@@ -236,7 +242,7 @@ def _parse_candidate(
                     raw_path.strip(),
                     BundleSource("resource", resource_name),
                     interface_dir,
-                    root,
+                    project_root,
                     relative_path,
                     diagnostics,
                 ):
@@ -271,7 +277,7 @@ def _parse_candidate(
                     raw_path.strip(),
                     BundleSource("controller", controller_name),
                     interface_dir,
-                    root,
+                    project_root,
                     relative_path,
                     diagnostics,
                 )
@@ -284,13 +290,14 @@ def _parse_candidate(
                 continue
             imported = (interface_dir / raw_import).resolve()
             try:
-                imported.relative_to(root)
+                imported.relative_to(project_root)
             except ValueError:
                 diagnostics.append(
                     WorkspaceDiagnostic(
-                        code="interface_import_outside_root",
-                        message=f"Interface import 超出启动根目录: {raw_import}",
+                        code="external_path_authorization_required",
+                        message=f"Interface import 超出项目根目录且未授权: {raw_import}",
                         path=relative_path,
+                        severity="error",
                     )
                 )
                 continue
@@ -304,7 +311,10 @@ def _parse_candidate(
         else project_name
     )
     candidate = InterfaceCandidate(
+        candidate_id=_stable_id("candidate", resolved_path),
+        project_id=_stable_id("project", project_root, resolved_path),
         path=resolved_path,
+        project_root=project_root,
         relative_path=relative_path,
         name=project_name,
         label=label,
@@ -341,8 +351,8 @@ def _add_bundle(
     except ValueError:
         diagnostics.append(
             WorkspaceDiagnostic(
-                code="bundle_path_outside_root",
-                message=f"资源路径超出启动根目录: {declared_path}",
+                code="external_path_authorization_required",
+                message=f"资源路径超出项目根目录且未授权: {declared_path}",
                 path=interface_path,
                 severity="error",
             )
@@ -372,6 +382,12 @@ def _default_pipeline_path(bundle: Path) -> Path | None:
         if path.is_file():
             return path
     return None
+
+
+def _stable_id(prefix: str, *paths: Path) -> str:
+    identity = "\0".join(os.path.normcase(str(path.resolve())) for path in paths)
+    digest = hashlib.sha256(identity.encode("utf-8")).hexdigest()[:32]
+    return f"{prefix}:{digest}"
 
 
 def _display_name(document: dict[str, Any], fallback: str) -> str:

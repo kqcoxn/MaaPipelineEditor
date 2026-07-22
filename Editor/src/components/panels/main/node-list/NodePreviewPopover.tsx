@@ -5,7 +5,7 @@
 
 import { memo, useState, useEffect, useMemo } from "react";
 import { Popover, Image, Spin } from "antd";
-import { useLocalFileStore } from "../../../../stores/localFileStore";
+import { useResourceStore } from "../../../../stores/resourceStore";
 import { resourceProtocol } from "../../../../services/server";
 import { useWSStore } from "../../../../stores/wsStore";
 import { NodeTypeEnum } from "../../../flow/nodes/constants";
@@ -43,8 +43,8 @@ const formatParamValue = (value: any, maxLength = 30): string => {
 /** 节点预览内容组件 */
 const NodePreviewContent = memo(({ node }: { node: NodeListItemInfo }) => {
   const connected = useWSStore((state) => state.connected);
-  const imageCache = useLocalFileStore((state) => state.imageCache);
-  const pendingImageRequests = useLocalFileStore((state) => state.pendingImageRequests);
+  const imageCache = useResourceStore((state) => state.imageCache);
+  const pendingImageRequests = useResourceStore((state) => state.pendingImageRequests);
 
   // 节点类型图标
   const nodeTypeIconConfig = useMemo(() => {

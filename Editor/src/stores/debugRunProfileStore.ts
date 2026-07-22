@@ -18,7 +18,7 @@ import {
   DEFAULT_DEBUG_AGENT_TIMEOUT_MS,
   getDebugAgentProfileKey,
 } from "../features/debug/agentProfile";
-import { useLocalFileStore, type ResourceBundle } from "./localFileStore";
+import { useResourceStore, type ResourceBundle } from "./resourceStore";
 import { useMFWStore } from "./mfwStore";
 import {
   getScreenshotResolutionParams,
@@ -171,7 +171,7 @@ function writeSnapshot(snapshot: DebugRunProfilesSnapshot): void {
 
 export function normalizeDebugResourcePaths(
   resourcePaths: string[],
-  resourceBundles: ResourceBundle[] = useLocalFileStore.getState()
+  resourceBundles: ResourceBundle[] = useResourceStore.getState()
     .resourceBundles,
 ): string[] {
   const explicitPaths = resourcePaths

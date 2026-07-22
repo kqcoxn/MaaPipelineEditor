@@ -1,139 +1,296 @@
 import { arrayMove } from "@dnd-kit/sortable";
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
+
+import type {
+  DocumentMapping,
+  ProjectEntriesPayload,
+} from "../services/generated/bridge-v2";
+import { parseProjectPath } from "../features/project-session/projectPath";
 import {
-  normalizeProjectPath,
-  remapProjectPath,
-} from "../utils/projectPath";
+  asDocumentId,
+  asProjectId,
+  asProjectSessionId,
+  type DocumentId,
+  type DraftEntry,
+  type EditorDocumentEntry,
+  type ProjectAvailability,
+  type ProjectEntry,
+  type ProjectIdentity,
+  type ProjectStorageAdapterKind,
+  type ProjectStorageCapabilities,
+} from "../features/project-session/types";
 
-export type EditorTab =
-  | { kind: "pipeline"; path: string; key: string }
-  | { kind: "document"; path: string; key: string };
-
-export function pipelineTabKey(path: string): string {
-  return `pipeline:${normalizeProjectPath(path)}`;
-}
-
-export function documentTabKey(path: string): string {
-  return `document:${normalizeProjectPath(path)}`;
-}
-
-export function createPipelineTab(path: string): EditorTab {
-  const normalized = normalizeProjectPath(path);
-  return { kind: "pipeline", path: normalized, key: pipelineTabKey(normalized) };
-}
-
-export function createDocumentTab(path: string): EditorTab {
-  const normalized = normalizeProjectPath(path);
-  return { kind: "document", path: normalized, key: documentTabKey(normalized) };
+export interface EditorTab {
+  documentId: DocumentId;
 }
 
 interface ProjectSessionState {
+  sessionId: ReturnType<typeof asProjectSessionId> | null;
+  identity: ProjectIdentity | null;
+  adapterKind: ProjectStorageAdapterKind | null;
+  availability: ProjectAvailability;
+  connected: boolean;
+  capabilities: ProjectStorageCapabilities | null;
+  entriesRevision: number;
+  entriesByPath: Record<string, ProjectEntry>;
+  entriesById: Record<DocumentId, EditorDocumentEntry>;
+  documentIdByPath: Record<string, DocumentId>;
   tabs: EditorTab[];
-  activeKey: string | null;
-  openPipeline: (path: string) => string;
-  openDocument: (path: string) => string;
-  activateTab: (key: string) => boolean;
-  closeTab: (key: string) => string | null;
-  reorderTab: (activeKey: string, overKey: string) => void;
-  syncPipelineTabs: (paths: string[]) => void;
-  renamePath: (oldPath: string, newPath: string, isDirectory: boolean) => void;
+  activeDocumentId: DocumentId | null;
+}
+
+interface ProjectSessionActions {
+  establishSession: (
+    identity: ProjectIdentity,
+    adapterKind: ProjectStorageAdapterKind,
+  ) => void;
+  setAvailability: (
+    availability: ProjectAvailability,
+    connected?: boolean,
+  ) => void;
+  setCapabilities: (capabilities: ProjectStorageCapabilities | null) => void;
+  applyEntries: (payload: ProjectEntriesPayload) => void;
+  applyDocumentMappings: (mappings: DocumentMapping[]) => void;
+  registerDraft: (
+    name: string,
+    kind?: DraftEntry["kind"],
+    documentId?: DocumentId,
+  ) => DocumentId;
+  openDocument: (documentId: DocumentId) => DocumentId | null;
+  activateTab: (documentId: DocumentId) => boolean;
+  closeTab: (documentId: DocumentId) => DocumentId | null;
+  reorderTab: (activeId: DocumentId, overId: DocumentId) => void;
+  prepareReconnect: () => void;
+  clearProject: () => void;
   clear: () => void;
 }
 
-function openTab(
-  set: (updater: (state: ProjectSessionState) => Partial<ProjectSessionState>) => void,
-  tab: EditorTab,
-): string {
-  set((state) => ({
-    tabs: state.tabs.some((item) => item.key === tab.key)
-      ? state.tabs
-      : [...state.tabs, tab],
-    activeKey: tab.key,
-  }));
-  return tab.key;
-}
+export type ProjectSessionStore = ProjectSessionState & ProjectSessionActions;
 
-export const useProjectSessionStore = create<ProjectSessionState>()(
-  subscribeWithSelector((set, get) => ({
+const initialState: ProjectSessionState = {
+  sessionId: null,
+  identity: null,
+  adapterKind: null,
+  availability: "unavailable",
+  connected: false,
+  capabilities: null,
+  entriesRevision: 0,
+  entriesByPath: {},
+  entriesById: {},
+  documentIdByPath: {},
   tabs: [],
-  activeKey: null,
-  openPipeline(path) {
-    return openTab(set, createPipelineTab(path));
-  },
-  openDocument(path) {
-    return openTab(set, createDocumentTab(path));
-  },
-  activateTab(key) {
-    if (!get().tabs.some((tab) => tab.key === key)) return false;
-    set({ activeKey: key });
-    return true;
-  },
-  closeTab(key) {
-    const { tabs, activeKey } = get();
-    const index = tabs.findIndex((tab) => tab.key === key);
-    if (index < 0) return activeKey;
-    const nextTabs = tabs.filter((tab) => tab.key !== key);
-    const nextActiveKey =
-      activeKey === key
-        ? (nextTabs[Math.min(index, nextTabs.length - 1)]?.key ?? null)
-        : activeKey;
-    set({ tabs: nextTabs, activeKey: nextActiveKey });
-    return nextActiveKey;
-  },
-  reorderTab(activeKey, overKey) {
-    set((state) => {
-      const activeIndex = state.tabs.findIndex((tab) => tab.key === activeKey);
-      const overIndex = state.tabs.findIndex((tab) => tab.key === overKey);
-      if (activeIndex < 0 || overIndex < 0 || activeIndex === overIndex) return state;
-      return { tabs: arrayMove(state.tabs, activeIndex, overIndex) };
-    });
-  },
-  syncPipelineTabs(paths) {
-    const pipelineTabs = paths.map(createPipelineTab);
-    const pipelineByKey = new Map(pipelineTabs.map((tab) => [tab.key, tab]));
-    set((state) => {
-      const nextTabs = state.tabs
-        .filter((tab) => tab.kind === "document" || pipelineByKey.has(tab.key))
-        .map((tab) => (tab.kind === "pipeline" ? pipelineByKey.get(tab.key)! : tab));
-      const existing = new Set(nextTabs.map((tab) => tab.key));
-      pipelineTabs.forEach((tab) => {
-        if (!existing.has(tab.key)) nextTabs.push(tab);
+  activeDocumentId: null,
+};
+
+export const useProjectSessionStore = create<ProjectSessionStore>()(
+  subscribeWithSelector((set, get) => ({
+    ...initialState,
+    establishSession(identity, adapterKind) {
+      set((state) => {
+        const sameProject = state.identity?.projectId === identity.projectId;
+        const drafts = draftEntries(state.entriesById);
+        const tabs = sameProject
+          ? state.tabs
+          : state.tabs.filter((tab) => drafts[tab.documentId]);
+        return {
+          sessionId: sameProject
+            ? state.sessionId
+            : asProjectSessionId(crypto.randomUUID()),
+          identity,
+          adapterKind,
+          availability: "ready",
+          connected: true,
+          capabilities: sameProject ? state.capabilities : null,
+          entriesRevision: sameProject ? state.entriesRevision : 0,
+          entriesByPath: sameProject ? state.entriesByPath : {},
+          entriesById: sameProject ? state.entriesById : drafts,
+          documentIdByPath: sameProject ? state.documentIdByPath : {},
+          tabs,
+          activeDocumentId: tabs.some(
+            (tab) => tab.documentId === state.activeDocumentId,
+          )
+            ? state.activeDocumentId
+            : (tabs.at(-1)?.documentId ?? null),
+        };
       });
-      const activeKey = nextTabs.some((tab) => tab.key === state.activeKey)
-        ? state.activeKey
-        : (nextTabs[0]?.key ?? null);
-      return { tabs: nextTabs, activeKey };
-    });
-  },
-  renamePath(oldPath, newPath, isDirectory) {
-    set((state) => {
-      const keyChanges = new Map<string, string>();
-      const tabs = state.tabs.map((tab) => {
-        const path = remapProjectPath(
-          tab.path,
-          oldPath,
-          newPath,
-          isDirectory,
+    },
+    setAvailability(availability, connected = availability === "ready") {
+      set({ availability, connected });
+    },
+    setCapabilities(capabilities) {
+      set({ capabilities });
+    },
+    applyEntries(payload) {
+      const state = get();
+      if (
+        !payload.projectId ||
+        state.identity?.projectId !== asProjectId(payload.projectId) ||
+        payload.revision < state.entriesRevision
+      ) {
+        return;
+      }
+      const entriesById = draftEntries(state.entriesById);
+      const entriesByPath: ProjectSessionState["entriesByPath"] = {};
+      const documentIdByPath: Record<string, DocumentId> = {};
+      payload.entries.forEach((value) => {
+        const path = parseProjectPath(value.path);
+        const documentId = value.documentId
+          ? asDocumentId(value.documentId)
+          : undefined;
+        const entry = { ...value, path, documentId };
+        entriesByPath[path] = entry;
+        if (documentId) {
+          entriesById[documentId] = entry;
+          documentIdByPath[path] = documentId;
+        }
+      });
+      set({
+        entriesRevision: payload.revision,
+        entriesByPath,
+        entriesById,
+        documentIdByPath,
+      });
+    },
+    applyDocumentMappings(mappings) {
+      if (!mappings.length) return;
+      set((state) => {
+        const entriesById = { ...state.entriesById };
+        const entriesByPath = { ...state.entriesByPath };
+        const documentIdByPath = { ...state.documentIdByPath };
+        const idMappings = new Map<DocumentId, DocumentId>();
+        mappings.forEach((mapping) => {
+          const oldId = asDocumentId(mapping.oldDocumentId);
+          const newId = asDocumentId(mapping.newDocumentId);
+          const entry = entriesById[oldId];
+          delete entriesById[oldId];
+          delete documentIdByPath[mapping.oldPath];
+          const pathEntry = entriesByPath[mapping.oldPath];
+          delete entriesByPath[mapping.oldPath];
+          if (entry && "path" in entry) {
+            const path = parseProjectPath(mapping.newPath);
+            entriesById[newId] = {
+              ...entry,
+              documentId: newId,
+              path,
+              name: path.split("/").at(-1) ?? entry.name,
+            };
+            documentIdByPath[path] = newId;
+            entriesByPath[path] = entriesById[newId];
+          } else if (pathEntry) {
+            const path = parseProjectPath(mapping.newPath);
+            entriesByPath[path] = {
+              ...pathEntry,
+              path,
+              name: path.split("/").at(-1) ?? pathEntry.name,
+            };
+          }
+          idMappings.set(oldId, newId);
+        });
+        return {
+          entriesById,
+          entriesByPath,
+          documentIdByPath,
+          tabs: state.tabs.map((tab) => ({
+            documentId: idMappings.get(tab.documentId) ?? tab.documentId,
+          })),
+          activeDocumentId: state.activeDocumentId
+            ? (idMappings.get(state.activeDocumentId) ?? state.activeDocumentId)
+            : null,
+        };
+      });
+    },
+    registerDraft(name, kind = "pipeline", documentId) {
+      const id = documentId ?? asDocumentId(`draft:${crypto.randomUUID()}`);
+      set((state) => ({
+        entriesById: {
+          ...state.entriesById,
+          [id]: { documentId: id, entryKind: "file", kind, name },
+        },
+      }));
+      return id;
+    },
+    openDocument(documentId) {
+      if (!get().entriesById[documentId]) return null;
+      set((state) => ({
+        tabs: state.tabs.some((tab) => tab.documentId === documentId)
+          ? state.tabs
+          : [...state.tabs, { documentId }],
+        activeDocumentId: documentId,
+      }));
+      return documentId;
+    },
+    activateTab(documentId) {
+      if (!get().tabs.some((tab) => tab.documentId === documentId)) return false;
+      set({ activeDocumentId: documentId });
+      return true;
+    },
+    closeTab(documentId) {
+      const { tabs, activeDocumentId } = get();
+      const index = tabs.findIndex((tab) => tab.documentId === documentId);
+      if (index < 0) return activeDocumentId;
+      const nextTabs = tabs.filter((tab) => tab.documentId !== documentId);
+      const nextActiveId =
+        activeDocumentId === documentId
+          ? (nextTabs[Math.min(index, nextTabs.length - 1)]?.documentId ?? null)
+          : activeDocumentId;
+      set({ tabs: nextTabs, activeDocumentId: nextActiveId });
+      return nextActiveId;
+    },
+    reorderTab(activeId, overId) {
+      set((state) => {
+        const activeIndex = state.tabs.findIndex(
+          (tab) => tab.documentId === activeId,
         );
-        if (path === tab.path) return tab;
-        const nextTab =
-          tab.kind === "pipeline"
-            ? createPipelineTab(path)
-            : createDocumentTab(path);
-        keyChanges.set(tab.key, nextTab.key);
-        return nextTab;
+        const overIndex = state.tabs.findIndex(
+          (tab) => tab.documentId === overId,
+        );
+        if (activeIndex < 0 || overIndex < 0 || activeIndex === overIndex) {
+          return state;
+        }
+        return { tabs: arrayMove(state.tabs, activeIndex, overIndex) };
       });
-      return {
-        tabs,
-        activeKey: state.activeKey
-          ? (keyChanges.get(state.activeKey) ?? state.activeKey)
-          : null,
-      };
-    });
-  },
-  clear() {
-    set({ tabs: [], activeKey: null });
-  },
+    },
+    prepareReconnect() {
+      set({ availability: "connecting", connected: false, entriesRevision: 0 });
+    },
+    clearProject() {
+      set((state) => {
+        const entriesById = draftEntries(state.entriesById);
+        const tabs = state.tabs.filter((tab) => entriesById[tab.documentId]);
+        return {
+          ...initialState,
+          entriesById,
+          entriesByPath: {},
+          tabs,
+          activeDocumentId: tabs.at(-1)?.documentId ?? null,
+        };
+      });
+    },
+    clear() {
+      set(initialState);
+    },
   })),
 );
+
+function draftEntries(
+  entries: Record<DocumentId, EditorDocumentEntry>,
+): Record<DocumentId, EditorDocumentEntry> {
+  return Object.fromEntries(
+    Object.entries(entries).filter(([documentId]) =>
+      documentId.startsWith("draft:"),
+    ),
+  ) as Record<DocumentId, EditorDocumentEntry>;
+}
+
+export function getEntryByDocumentId(
+  documentId: DocumentId | null | undefined,
+): EditorDocumentEntry | undefined {
+  return documentId
+    ? useProjectSessionStore.getState().entriesById[documentId]
+    : undefined;
+}
+
+export function getDocumentIdByPath(path: string): DocumentId | undefined {
+  return useProjectSessionStore.getState().documentIdByPath[path];
+}

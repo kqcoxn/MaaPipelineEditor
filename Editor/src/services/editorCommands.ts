@@ -1,10 +1,12 @@
 import { Modal } from "antd";
 
-import { documentProtocol } from "./server";
-import { sendToParent, isEmbedEnvironment } from "../utils/embedBridge";
+import { getCapability } from "../features/project-storage/ProjectStorageAdapter";
+import { projectStorageCoordinator } from "../features/project-storage/projectStorageCoordinator";
+import { useDocumentStore } from "../stores/documentStore";
 import { useFileStore } from "../stores/fileStore";
 import { useProjectSessionStore } from "../stores/projectSessionStore";
 import { useToolbarStore } from "../stores/toolbarStore";
+import { documentProtocol } from "./server";
 
 export type SaveActiveEditorResult =
   | "saved"
@@ -14,36 +16,37 @@ export type SaveActiveEditorResult =
   | "failed";
 
 export async function saveActiveEditor(): Promise<SaveActiveEditorResult> {
-  if (isEmbedEnvironment()) {
-    sendToParent("mpe:saveRequest", { hint: "user-triggered" });
-    return "delegated";
-  }
-
   const session = useProjectSessionStore.getState();
-  const active = session.tabs.find((tab) => tab.key === session.activeKey);
-  if (!active) return "failed";
-  if (active.kind === "document") {
-    const document = documentProtocol
-      ? await documentProtocol.saveDocument(active.path)
-      : false;
-    return document ? "saved" : "failed";
+  const documentId = session.activeDocumentId;
+  if (!documentId) return "failed";
+  const entry = session.entriesById[documentId];
+  if (!entry) return "failed";
+
+  if (entry.kind !== "pipeline") {
+    const document = useDocumentStore.getState().opened[documentId];
+    if (!document?.dirty) return "clean";
+    if (!getCapability(session.capabilities, "write").available) return "failed";
+    return (await documentProtocol.saveDocument(documentId)) ? "saved" : "failed";
   }
 
-  const fileStore = useFileStore.getState();
-  const file = fileStore.files.find(
-    (item) =>
-      item.config.filePath === active.path || item.fileName === active.path,
-  );
+  const file = useFileStore.getState().findFileByDocumentId(documentId);
   if (!file) return "failed";
   if (!file.saveState.dirty) return "clean";
   if (file.saveState.externalChange === "deleted") {
     useToolbarStore.getState().openExportDialog();
     return "export-requested";
   }
-  if (!file.config.filePath) {
+  const adapter = projectStorageCoordinator.requireAdapter();
+  const canWrite = getCapability(session.capabilities, "write").available;
+  if (entry.path === undefined) {
+    if (canWrite) {
+      const delegated = await adapter.savePipeline(documentId, file);
+      if (delegated !== "unsupported") return delegated;
+    }
     useToolbarStore.getState().openExportDialog();
     return "export-requested";
   }
+  if (!canWrite) return "failed";
   const allowOverwrite =
     file.saveState.externalChange === "modified"
       ? await confirmOverwriteExternalFile(file.fileName)
@@ -51,11 +54,8 @@ export async function saveActiveEditor(): Promise<SaveActiveEditorResult> {
   if (file.saveState.externalChange === "modified" && !allowOverwrite) {
     return "failed";
   }
-  return (await fileStore.saveFileToLocal(undefined, file, undefined, {
-    allowOverwrite,
-  }))
-    ? "saved"
-    : "failed";
+  const result = await adapter.savePipeline(documentId, file, { allowOverwrite });
+  return result === "unsupported" ? "failed" : result;
 }
 
 function confirmOverwriteExternalFile(fileName: string): Promise<boolean> {

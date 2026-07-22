@@ -6,7 +6,7 @@ import {
   type CanvasRenderProps,
 } from "./ScreenshotModalBase";
 import { mfwProtocol, resourceProtocol } from "../../services/server";
-import { useLocalFileStore } from "../../stores/localFileStore";
+import { useResourceStore } from "../../stores/resourceStore";
 import type { Rectangle } from "../../utils/data/roiNegativeCoord";
 
 interface MatchBox {
@@ -83,7 +83,7 @@ export const TemplateMatchModal = memo(
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const viewportPropsRef = useRef<CanvasRenderProps | null>(null);
 
-    const imageCache = useLocalFileStore((state) => state.imageCache);
+    const imageCache = useResourceStore((state) => state.imageCache);
     const templatePath = firstTemplatePath(templateValue);
 
     // 打开时按需请求模板图
@@ -540,5 +540,4 @@ export const TemplateMatchModal = memo(
     );
   },
 );
-
 

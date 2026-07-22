@@ -7,8 +7,7 @@ import {
   type ExportAction,
 } from "../../../stores/toolbarStore";
 import { useConfigStore } from "../../../stores/configStore";
-import { useFileStore } from "../../../stores/fileStore";
-import { useWSStore } from "../../../stores/wsStore";
+import { useProjectSessionStore } from "../../../stores/projectSessionStore";
 import { useFlowStore } from "../../../stores/flow";
 import { useShallow } from "zustand/shallow";
 import { flowToPipeline, flowToSeparatedStrings } from "../../../core/parser";
@@ -18,6 +17,8 @@ import { checkGuard } from "../../panels/settings/guardSystem";
 import GuardPromptModal from "../../modals/GuardPromptModal";
 import type { ConfigItemDef } from "../../panels/settings/settingsDefinitions";
 import style from "../../../styles/panels/ToolbarPanel.module.less";
+import { getCapability } from "../../../features/project-storage/ProjectStorageAdapter";
+import { saveActiveEditor } from "../../../services/editorCommands";
 
 const actionGroupStyle = {
   display: "inline-flex",
@@ -40,11 +41,23 @@ function ExportButton() {
   const configHandlingMode = useConfigStore(
     (state) => state.configs.configHandlingMode,
   );
-  const wsConnected = useWSStore((state) => state.connected);
-  const currentFilePath = useFileStore(
-    (state) => state.currentFile.config.filePath,
+  const activeDocumentId = useProjectSessionStore(
+    (state) => state.activeDocumentId,
   );
-  const saveFileToLocal = useFileStore((state) => state.saveFileToLocal);
+  const activeEntry = useProjectSessionStore((state) =>
+    state.activeDocumentId
+      ? state.entriesById[state.activeDocumentId]
+      : undefined,
+  );
+  const storageCapabilities = useProjectSessionStore(
+    (state) => state.capabilities,
+  );
+  const canSaveToProject = Boolean(
+    activeDocumentId &&
+      activeEntry &&
+      "path" in activeEntry &&
+      getCapability(storageCapabilities, "write").available,
+  );
   const { selectedNodes, selectedEdges } = useFlowStore(
     useShallow((state) => ({
       selectedNodes: state.debouncedSelectedNodes,
@@ -85,14 +98,14 @@ function ExportButton() {
     openExportDialog();
   }, [openExportDialog]);
 
-  const handleSaveToLocal = useCallback(
-    async (mode?: "all" | "pipeline" | "config") => {
-      const success = await saveFileToLocal(undefined, undefined, mode);
-      if (!success) {
+  const handleSaveToProject = useCallback(
+    async () => {
+      const result = await saveActiveEditor();
+      if (result === "failed") {
         message.error("文件保存失败");
       }
     },
-    [saveFileToLocal],
+    [],
   );
 
   const handlePartialExport = useCallback(() => {
@@ -129,16 +142,10 @@ function ExportButton() {
         handleExportToFile();
         break;
       case "save-local":
-        handleSaveToLocal();
-        break;
       case "save-local-all":
-        handleSaveToLocal("all");
-        break;
       case "save-local-pipeline":
-        handleSaveToLocal("pipeline");
-        break;
       case "save-local-config":
-        handleSaveToLocal("config");
+        handleSaveToProject();
         break;
       case "partial":
         handlePartialExport();
@@ -153,7 +160,7 @@ function ExportButton() {
   }, [
     handleExportToFile,
     handlePartialExport,
-    handleSaveToLocal,
+    handleSaveToProject,
   ]);
 
   // 点击按钮执行默认操作
@@ -182,50 +189,15 @@ function ExportButton() {
       },
     ];
 
-    // 仅在已连接本地服务且存在当前文件路径时显示
-    if (wsConnected && currentFilePath) {
-      if (configHandlingMode === "separated") {
-        // 分离导出模式下显示子菜单
-        items.push({
-          key: "save-local-group",
-          label: "保存到本地",
-          children: [
-            {
-              key: "save-local-all",
-              label: "全部保存",
-              onClick: () => {
-                setDefaultExportAction("save-local-all");
-                executeExportAction("save-local-all");
-              },
-            },
-            {
-              key: "save-local-pipeline",
-              label: "仅保存 Pipeline",
-              onClick: () => {
-                setDefaultExportAction("save-local-pipeline");
-                executeExportAction("save-local-pipeline");
-              },
-            },
-            {
-              key: "save-local-config",
-              label: "仅保存配置",
-              onClick: () => {
-                setDefaultExportAction("save-local-config");
-                executeExportAction("save-local-config");
-              },
-            },
-          ],
-        });
-      } else {
-        items.push({
-          key: "save-local",
-          label: "保存到本地",
-          onClick: () => {
-            setDefaultExportAction("save-local");
-            executeExportAction("save-local");
-          },
-        });
-      }
+    if (canSaveToProject) {
+      items.push({
+        key: "save-local",
+        label: "保存到项目",
+        onClick: () => {
+          setDefaultExportAction("save-local");
+          executeExportAction("save-local");
+        },
+      });
     }
 
     // 仅在有选中节点时显示
@@ -269,8 +241,7 @@ function ExportButton() {
     return items;
   }, [
     configHandlingMode,
-    wsConnected,
-    currentFilePath,
+    canSaveToProject,
     isPartable,
     executeExportAction,
     setDefaultExportAction,

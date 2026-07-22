@@ -14,7 +14,10 @@ import { AntDesignProvider } from "../../contexts/AntDesignProvider";
 import { useWorkspaceStore } from "../../stores/workspaceStore";
 import { useProjectSidebarStore } from "../../stores/projectSidebarStore";
 import { useDocumentStore } from "../../stores/documentStore";
-import { useLocalFileStore } from "../../stores/localFileStore";
+import { useResourceStore } from "../../stores/resourceStore";
+import { useProjectSessionStore } from "../../stores/projectSessionStore";
+import { asProjectId } from "../../features/project-session/types";
+import { parseProjectPath } from "../../features/project-session/projectPath";
 import { ProjectSidebar } from "./ProjectSidebar";
 import style from "../../styles/layout/ProjectSidebar.module.less";
 
@@ -24,6 +27,59 @@ function renderSidebar() {
       <ProjectSidebar />
     </AntDesignProvider>,
   );
+}
+
+function applyProjectEntries(payload: {
+  revision: number;
+  root: string;
+  entries: Array<{
+    path: string;
+    name: string;
+    kind: "directory" | "file";
+    documentKind?: "pipeline" | "interface" | "json" | "text" | "markdown";
+  }>;
+}) {
+  const store = useProjectSessionStore.getState();
+  store.establishSession(
+    {
+      projectId: asProjectId("project:test"),
+      projectRoot: payload.root,
+      interfacePath: parseProjectPath("interface.json"),
+      name: "project",
+      label: "project",
+      version: "1.0.0",
+    },
+    "localbridge",
+  );
+  store.setCapabilities({
+    projectId: "project:test",
+    pathCaseSensitive: true,
+    operations: Object.fromEntries(
+      ["list", "read", "write", "create", "rename", "delete", "watch"].map(
+        (name) => [name, { available: true, reason: null }],
+      ),
+    ),
+  });
+  store.applyEntries({
+    revision: payload.revision,
+    projectId: "project:test",
+    entries: payload.entries.map((entry) => ({
+      path: entry.path,
+      name: entry.name,
+      entryKind: entry.kind,
+      ...(entry.kind === "file"
+        ? {
+            documentId: `document:${entry.path}`,
+            kind: entry.documentKind ?? "text",
+            language: "",
+            mimeType: "text/plain",
+            size: 0,
+            editable: true,
+            previewable: true,
+          }
+        : {}),
+    })),
+  });
 }
 
 describe("ProjectSidebar", () => {
@@ -38,11 +94,12 @@ describe("ProjectSidebar", () => {
     vi.restoreAllMocks();
     useWorkspaceStore.getState().clear();
     useDocumentStore.getState().clearProject();
-    useLocalFileStore.getState().clear();
+  useResourceStore.getState().clear();
+    useProjectSessionStore.getState().clear();
   });
 
   it("starts inline file creation from a directory context menu", async () => {
-    useWorkspaceStore.getState().applyTree({
+    applyProjectEntries({
       revision: 1,
       root: "C:/project",
       entries: [
@@ -94,7 +151,7 @@ describe("ProjectSidebar", () => {
   });
 
   it("renames a file from its context menu", async () => {
-    useWorkspaceStore.getState().applyTree({
+    applyProjectEntries({
       revision: 1,
       root: "C:/project",
       entries: [{ path: "README.md", name: "README.md", kind: "file" }],
@@ -120,7 +177,7 @@ describe("ProjectSidebar", () => {
   });
 
   it("renames a directory from its context menu", async () => {
-    useWorkspaceStore.getState().applyTree({
+    applyProjectEntries({
       revision: 1,
       root: "C:/project",
       entries: [
@@ -156,7 +213,7 @@ describe("ProjectSidebar", () => {
   });
 
   it("requires confirmation before deleting a file", async () => {
-    useWorkspaceStore.getState().applyTree({
+    applyProjectEntries({
       revision: 1,
       root: "C:/project",
       entries: [{ path: "README.md", name: "README.md", kind: "file" }],
@@ -253,7 +310,7 @@ describe("ProjectSidebar", () => {
   });
 
   it("renders one icon per node with compact right-to-down switchers and unclipped titles", () => {
-    useWorkspaceStore.getState().applyTree({
+    applyProjectEntries({
       revision: 1,
       root: "C:/project",
       entries: [
@@ -272,11 +329,7 @@ describe("ProjectSidebar", () => {
     const treeItems = screen.getAllByRole("treeitem");
     expect(treeItems).toHaveLength(3);
     treeItems.forEach((treeItem) => {
-      expect(
-        treeItem.querySelectorAll(
-          ".anticon-folder, .anticon-folder-open, .anticon-file",
-        ),
-      ).toHaveLength(1);
+      expect(treeItem.querySelectorAll(`.${style.treeNodeIcon}`)).toHaveLength(1);
     });
 
     const fileItem = screen.getByText("README.md").closest('[role="treeitem"]');
@@ -289,7 +342,10 @@ describe("ProjectSidebar", () => {
     expect(switchers[1]).not.toHaveClass(style.treeChevronExpanded);
     expect(document.querySelectorAll(".anticon-down")).toHaveLength(0);
 
-    const rootName = screen.getByText("project");
+    const rootName = screen
+      .getAllByText("project")
+      .find((element) => element.classList.contains(style.treeName));
+    expect(rootName).toBeDefined();
     expect(rootName).toHaveClass(style.treeName);
     expect(rootName).toBeVisible();
     expect(screen.getByText(".agents")).toBeVisible();
@@ -297,7 +353,7 @@ describe("ProjectSidebar", () => {
   });
 
   it("filters the tree by resource directory and interface files", async () => {
-    useWorkspaceStore.getState().applyTree({
+    applyProjectEntries({
       revision: 1,
       root: "C:/project",
       entries: [
@@ -305,11 +361,11 @@ describe("ProjectSidebar", () => {
         { path: "base/pipeline.json", name: "pipeline.json", kind: "file" },
         { path: "other", name: "other", kind: "directory" },
         { path: "other/note.txt", name: "note.txt", kind: "file" },
-        { path: "interface.json", name: "interface.json", kind: "file" },
-        { path: "shared.json", name: "shared.json", kind: "file" },
+        { path: "interface.json", name: "interface.json", kind: "file", documentKind: "interface" },
+        { path: "shared.json", name: "shared.json", kind: "file", documentKind: "interface" },
       ],
     });
-    useLocalFileStore.setState({
+    useResourceStore.setState({
       resourceBundles: [
         {
           abs_path: "C:/project/base",
@@ -324,20 +380,6 @@ describe("ProjectSidebar", () => {
           sources: [{ kind: "resource", name: "main" }],
         },
       ],
-    });
-    useDocumentStore.getState().applyDocuments({
-      revision: 1,
-      root: "C:/project",
-      documents: ["interface.json", "shared.json"].map((path) => ({
-        path,
-        name: path,
-        kind: "interface" as const,
-        language: "json",
-        mimeType: "application/json",
-        size: 12,
-        editable: true,
-        previewable: true,
-      })),
     });
     renderSidebar();
 

@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDebugOverlayStore } from "../../../stores/debugOverlayStore";
 import { useFileStore } from "../../../stores/fileStore";
 import type { EdgeType, NodeType } from "../../../stores/flow";
-import { useLocalFileStore } from "../../../stores/localFileStore";
+import { selectProjectPipelineFiles } from "../../project-session/projectPipelineIndex";
+import { useProjectSessionStore } from "../../../stores/projectSessionStore";
 import { useDebugRunProfileStore } from "../../../stores/debugRunProfileStore";
 import { applyDebugNodeTarget } from "../nodeTargetActions";
 import { allDebugNodeExecutionAttempts } from "../nodeExecutionAttempts";
@@ -54,7 +55,11 @@ export function useDebugNodeExecutionController({
     useState(false);
   const [selectedRunTargetNodeIdState, setSelectedRunTargetNodeId] =
     useState<string>();
-  const localFiles = useLocalFileStore((state) => state.files);
+  const projectEntries = useProjectSessionStore((state) => state.entriesByPath);
+  const projectPipelineFiles = useMemo(
+    () => selectProjectPipelineFiles(projectEntries),
+    [projectEntries],
+  );
   const resourcePaths = useDebugRunProfileStore(
     (state) => state.profile.resourcePaths,
   );
@@ -103,7 +108,7 @@ export function useDebugNodeExecutionController({
   const debugResolver = useMemo(() => {
     void fileSnapshotKey;
     void flowSnapshotKey;
-    const bundle = buildDebugSnapshotBundle(localFiles, resourcePaths);
+    const bundle = buildDebugSnapshotBundle(projectPipelineFiles, resourcePaths);
     return {
       edges: bundle.resolverSnapshot.edges,
       nodes: bundle.resolverSnapshot.nodes.filter((node) =>
@@ -111,7 +116,13 @@ export function useDebugNodeExecutionController({
       ),
       allNodes: bundle.resolverSnapshot.nodes,
     };
-  }, [fileSnapshotKey, flowNodeIds, flowSnapshotKey, localFiles, resourcePaths]);
+  }, [
+    fileSnapshotKey,
+    flowNodeIds,
+    flowSnapshotKey,
+    projectPipelineFiles,
+    resourcePaths,
+  ]);
   const resolverEdges = debugResolver.edges;
   const resolverEdgeIndex = useMemo(
     () => createDebugResolverEdgeIndex(resolverEdges),

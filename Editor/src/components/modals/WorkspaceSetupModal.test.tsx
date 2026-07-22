@@ -19,15 +19,15 @@ describe("WorkspaceSetupModal", () => {
   });
 
   it("shows a blocking invalid workspace dialog with only rescan", () => {
-    useWorkspaceStore.getState().applyStatus({
+    useWorkspaceStore.getState().applyDiscovery({
       revision: 1,
-      root: "C:/not-a-maafw-project",
+      discoveryRoot: "C:/not-a-maafw-project",
       state: "invalid",
       reason: "interface_not_found",
       candidates: [],
-      current_interface: null,
-      indexed_files: 0,
-      total_files: 0,
+      currentInterface: null,
+      indexedFiles: 0,
+      totalFiles: 0,
       diagnostics: [],
     });
 
@@ -45,28 +45,30 @@ describe("WorkspaceSetupModal", () => {
   });
 
   it("requires choosing one of multiple interfaces", () => {
-    useWorkspaceStore.getState().applyStatus({
+    useWorkspaceStore.getState().applyDiscovery({
       revision: 2,
-      root: "C:/projects",
+      discoveryRoot: "C:/projects",
       state: "selection_required",
       reason: "multiple_interfaces",
       candidates: [
         {
-          interface_path: "assets/interface.json",
+          candidateId: "candidate:assets",
+          interfacePath: "assets/interface.json",
           name: "assets",
           label: "Assets",
           version: "1.0.0",
         },
         {
-          interface_path: "desktop/interface.json",
+          candidateId: "candidate:desktop",
+          interfacePath: "desktop/interface.json",
           name: "desktop",
           label: "Desktop",
           version: "2.0.0",
         },
       ],
-      current_interface: null,
-      indexed_files: 0,
-      total_files: 0,
+      currentInterface: null,
+      indexedFiles: 0,
+      totalFiles: 0,
       diagnostics: [],
     });
 
@@ -78,15 +80,15 @@ describe("WorkspaceSetupModal", () => {
   });
 
   it("stays blocking while rediscovering the workspace", () => {
-    useWorkspaceStore.getState().applyStatus({
+    useWorkspaceStore.getState().applyDiscovery({
       revision: 3,
-      root: "C:/projects",
+      discoveryRoot: "C:/projects",
       state: "discovering",
       reason: "",
       candidates: [],
-      current_interface: null,
-      indexed_files: 0,
-      total_files: 0,
+      currentInterface: null,
+      indexedFiles: 0,
+      totalFiles: 0,
       diagnostics: [],
     });
 
@@ -103,15 +105,15 @@ describe("WorkspaceSetupModal", () => {
     const openProject = vi
       .spyOn(desktopProject, "openDesktopProject")
       .mockResolvedValue({ status: "cancelled" });
-    useWorkspaceStore.getState().applyStatus({
+    useWorkspaceStore.getState().applyDiscovery({
       revision: 4,
-      root: "C:/invalid",
+      discoveryRoot: "C:/invalid",
       state: "invalid",
       reason: "interface_not_found",
       candidates: [],
-      current_interface: null,
-      indexed_files: 0,
-      total_files: 0,
+      currentInterface: null,
+      indexedFiles: 0,
+      totalFiles: 0,
       diagnostics: [],
     });
 

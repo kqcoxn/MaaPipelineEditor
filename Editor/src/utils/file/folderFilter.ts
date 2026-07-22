@@ -1,4 +1,4 @@
-import type { LocalFileInfo } from "../../stores/localFileStore";
+import type { ProjectPipelineFileIndex } from "../../features/project-session/projectPipelineIndex";
 
 const FOLDER_FILTER_SEPARATOR = /[,;；\r\n]+/;
 
@@ -32,9 +32,9 @@ export function matchesFolderFilter(
 }
 
 export function filterLocalFilesByFolderFilter(
-  files: LocalFileInfo[],
+  files: ProjectPipelineFileIndex[],
   filterText: string,
-): LocalFileInfo[] {
+): ProjectPipelineFileIndex[] {
   const folders = parseFolderFilter(filterText);
   if (folders.length === 0) return files;
 

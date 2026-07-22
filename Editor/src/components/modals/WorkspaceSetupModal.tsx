@@ -36,7 +36,7 @@ export function WorkspaceSetupModal() {
       selectorOpen: state.selectorOpen,
     })),
   );
-  const [selectedPath, setSelectedPath] = useState("");
+  const [selectedCandidateId, setSelectedCandidateId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [openingProject, setOpeningProject] = useState(false);
   const desktop = isDesktopEnvironment();
@@ -51,29 +51,31 @@ export function WorkspaceSetupModal() {
   useEffect(() => {
     if (!open) return;
     const current = workspace.currentInterface?.interface_path;
-    setSelectedPath(
+    setSelectedCandidateId(
       current &&
         workspace.candidates.some(
           (candidate) => candidate.interface_path === current,
         )
-        ? current
+        ? workspace.candidates.find(
+            (candidate) => candidate.interface_path === current,
+          )?.candidate_id ?? ""
         : "",
     );
   }, [open, workspace.candidates, workspace.currentInterface]);
 
   const refresh = () => {
-    if (!localServer.send("workspace.scan", {})) {
+    if (!localServer.send("project.scan", {})) {
       message.error("重新检测请求发送失败");
     }
   };
 
   const selectInterface = async () => {
-    if (!selectedPath) return;
+    if (!selectedCandidateId) return;
     if (!(await confirmUnsavedTransition("switch-interface"))) return;
     setSubmitting(true);
     try {
-      await localServer.request("workspace.interface.select", {
-        interface_path: selectedPath,
+      await localServer.request("project.select", {
+        candidateId: selectedCandidateId,
       });
       useWorkspaceStore.getState().closeSelector();
     } catch (error) {
@@ -137,7 +139,7 @@ export function WorkspaceSetupModal() {
           key="select"
           type="primary"
           loading={submitting}
-          disabled={!selectedPath}
+          disabled={!selectedCandidateId}
           onClick={() => void selectInterface()}
         >
           使用此 Interface
@@ -206,8 +208,10 @@ export function WorkspaceSetupModal() {
             Interface。
           </Paragraph>
           <Radio.Group
-            value={selectedPath}
-            onChange={(event) => setSelectedPath(event.target.value as string)}
+            value={selectedCandidateId}
+            onChange={(event) =>
+              setSelectedCandidateId(event.target.value as string)
+            }
             style={{ width: "100%" }}
             orientation="vertical"
             block
@@ -215,7 +219,7 @@ export function WorkspaceSetupModal() {
             {workspace.candidates.map((candidate) => (
               <Radio
                 key={candidate.interface_path}
-                value={candidate.interface_path}
+                value={candidate.candidate_id}
                 style={{ padding: "10px 0", alignItems: "flex-start" }}
               >
                 <Space orientation="vertical" size={0}>

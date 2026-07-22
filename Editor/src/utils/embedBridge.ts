@@ -4,7 +4,7 @@
  * 使用环境检测与条件桥接模式隔离宿主能力
  */
 
-export const PROTOCOL_VERSION = "1.0.0";
+export const PROTOCOL_VERSION = "2.0.0";
 
 /** 协议消息信封 */
 export interface EmbedMessage {
@@ -40,13 +40,15 @@ export interface EmbedInitConfig {
 
 /** 默认能力集（PRD 5.2） */
 export const DEFAULT_CAPABILITIES: EmbedCapabilities = {
-  readOnly: false,
+  readOnly: true,
   allowCopy: true,
   allowUndoRedo: true,
   allowAutoLayout: true,
   allowSearch: true,
   allowCustomTemplate: true,
 };
+
+const REQUEST_TIMEOUT_MS = 10000;
 
 /** 默认 UI 配置 */
 export const DEFAULT_UI: EmbedUIConfig = {
@@ -123,6 +125,37 @@ export function sendToParent(
   if (typeof window === "undefined") return;
   const msg = buildMessage(type, payload, requestId);
   window.parent.postMessage(msg, "*");
+}
+
+export function requestParent<TResult>(
+  type: string,
+  payload: unknown,
+  responseType: string,
+  timeoutMs = REQUEST_TIMEOUT_MS,
+): Promise<TResult> {
+  const requestId = crypto.randomUUID();
+  return new Promise<TResult>((resolve, reject) => {
+    const unsubscribe = onParentMessage(responseType, (response, responseId) => {
+      if (responseId !== requestId) return;
+      clearTimeout(timeout);
+      unsubscribe();
+      if (
+        response &&
+        typeof response === "object" &&
+        "error" in response &&
+        typeof response.error === "string"
+      ) {
+        reject(new Error(response.error));
+        return;
+      }
+      resolve(response as TResult);
+    });
+    const timeout = setTimeout(() => {
+      unsubscribe();
+      reject(new Error(`嵌入宿主请求超时: ${type}`));
+    }, timeoutMs);
+    sendToParent(type, payload, requestId);
+  });
 }
 
 /**
@@ -219,7 +252,7 @@ export function initEmbedBridge(): { cleanup: () => void } {
   handshakeTimeoutId = setTimeout(() => {
     if (!isHandshakeCompleted) {
       console.warn(
-        "[EmbedBridge] Handshake timeout, using default capabilities",
+        "[EmbedBridge] Handshake timeout, entering read-only temporary project",
       );
       completeHandshake(DEFAULT_CAPABILITIES, DEFAULT_UI);
     }

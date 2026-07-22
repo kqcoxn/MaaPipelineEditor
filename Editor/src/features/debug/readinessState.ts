@@ -1,6 +1,6 @@
 import { useDebugRunProfileStore } from "../../stores/debugRunProfileStore";
 import { useDebugSessionStore } from "../../stores/debugSessionStore";
-import { useLocalFileStore } from "../../stores/localFileStore";
+import { useResourceStore } from "../../stores/resourceStore";
 import { useMFWStore } from "../../stores/mfwStore";
 import { useWorkspaceStore } from "../../stores/workspaceStore";
 import { useWSStore } from "../../stores/wsStore";
@@ -19,11 +19,11 @@ export interface CurrentDebugReadiness {
 export function getCurrentDebugReadiness(): CurrentDebugReadiness {
   const sessionState = useDebugSessionStore.getState();
   const profileState = useDebugRunProfileStore.getState();
-  const localFileState = useLocalFileStore.getState();
+  const resourceState = useResourceStore.getState();
   const mfwState = useMFWStore.getState();
   const resourceKey = makeDebugResourceKey(
     profileState.profile.resourcePaths,
-    localFileState.resourceBundles,
+    resourceState.resourceBundles,
   );
   const resourcePreflight = sessionState.resourcePreflight;
   const resourcePreflightMatches = resourcePreflight.resourceKey === resourceKey;

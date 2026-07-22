@@ -1,6 +1,6 @@
 import { memo, useState, useEffect, useCallback } from "react";
 import { Popover, Spin, Image } from "antd";
-import { useLocalFileStore } from "../../../../stores/localFileStore";
+import { useResourceStore } from "../../../../stores/resourceStore";
 import { resourceProtocol } from "../../../../services/server";
 import { useWSStore } from "../../../../stores/wsStore";
 
@@ -24,8 +24,8 @@ export const TemplatePreview = memo(
     const validPaths = templatePaths.filter(p => p && p.trim() !== "");
 
     // 订阅整个 imageCache 对象以触发重新渲染
-    const imageCache = useLocalFileStore((state) => state.imageCache);
-    const pendingImageRequests = useLocalFileStore((state) => state.pendingImageRequests);
+    const imageCache = useResourceStore((state) => state.imageCache);
+    const pendingImageRequests = useResourceStore((state) => state.pendingImageRequests);
 
     // 获取缓存和 pending 状态
     const getCache = (path: string) => imageCache.get(path);

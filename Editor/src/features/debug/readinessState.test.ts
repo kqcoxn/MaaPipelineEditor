@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { useDebugSessionStore } from "../../stores/debugSessionStore";
 import { useDebugRunProfileStore } from "../../stores/debugRunProfileStore";
-import { useLocalFileStore } from "../../stores/localFileStore";
+import { useResourceStore } from "../../stores/resourceStore";
 import { useMFWStore } from "../../stores/mfwStore";
 import { useWorkspaceStore } from "../../stores/workspaceStore";
 import { useWSStore } from "../../stores/wsStore";
@@ -15,7 +15,7 @@ beforeEach(() => {
     connectionStatus: "connected",
     controllerId: "controller-1",
   });
-  useLocalFileStore.setState({ resourceBundles: [] });
+  useResourceStore.setState({ resourceBundles: [] });
   useDebugRunProfileStore.getState().setResourcePaths(["C:/resource"]);
   useDebugSessionStore.setState({
     resourcePreflight: {

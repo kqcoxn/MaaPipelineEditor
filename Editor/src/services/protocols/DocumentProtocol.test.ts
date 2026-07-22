@@ -1,154 +1,126 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type {
-  DocumentOpenResult,
-  WorkspaceDocument,
-  WorkspaceDocumentsPayload,
-} from "../generated/bridge-v2";
-import type { LocalWebSocketServer } from "../server";
-import type { MessageHandler } from "../type";
+import type { ProjectStorageAdapter } from "../../features/project-storage/ProjectStorageAdapter";
+import { projectStorageCoordinator } from "../../features/project-storage/projectStorageCoordinator";
+import { asDocumentId, asProjectId } from "../../features/project-session/types";
+import { parseProjectPath } from "../../features/project-session/projectPath";
 import { useDocumentStore } from "../../stores/documentStore";
-import { useLocalFileStore } from "../../stores/localFileStore";
-import { documentTabKey, useProjectSessionStore } from "../../stores/projectSessionStore";
+import { useProjectSessionStore } from "../../stores/projectSessionStore";
 import { DocumentProtocol } from "./DocumentProtocol";
 
-const descriptor: WorkspaceDocument = {
-  path: "notes.jsonc",
-  name: "notes.jsonc",
-  kind: "json",
-  language: "json",
-  mimeType: "application/json",
-  size: 8,
-  editable: true,
-  previewable: true,
+const documentId = asDocumentId("document:notes");
+const identity = {
+  projectId: asProjectId("project:test"),
+  projectRoot: "C:/project",
+  interfacePath: parseProjectPath("interface.json"),
+  name: "test",
+  label: "Test",
+  version: "1.0.0",
+};
+const capabilities = {
+  projectId: "project:test",
+  pathCaseSensitive: true,
+  operations: {
+    list: { available: true },
+    read: { available: true },
+    write: { available: true },
+  },
 };
 
-const opened: DocumentOpenResult = {
-  ...descriptor,
-  content: "{}\n",
-  encoding: "utf-8",
-  revision: "r1",
-};
-
-function setupClient() {
-  const routes = new Map<string, MessageHandler>();
-  const request = vi.fn(async () => opened);
-  const client = {
-    registerRoute: vi.fn((event: string, handler: MessageHandler) => {
-      routes.set(event, handler);
-      return () => undefined;
-    }),
-    request,
-    getArtifactUrl: vi.fn(async () => "blob:project-image"),
-  } as unknown as LocalWebSocketServer;
-  const emit = (event: string, data: unknown) =>
-    routes.get(event)?.(data, {} as WebSocket);
-  return { client, emit, request };
+function adapter(content = "{}", revision = "r1"): ProjectStorageAdapter {
+  return {
+    kind: "localbridge",
+    identity,
+    capabilities: () => capabilities,
+    list: vi.fn(async () => ({ revision: 1, projectId: "project:test", entries: [] })),
+    read: vi.fn(async () => ({
+      path: "notes.jsonc",
+      name: "notes.jsonc",
+      kind: "json" as const,
+      language: "json",
+      mimeType: "application/json",
+      size: content.length,
+      editable: true,
+      previewable: true,
+      content,
+      revision,
+    })),
+    write: vi.fn(async () => ({ path: "notes.jsonc", revision: "r2", size: 2, sha256: "r2" })),
+    savePipeline: vi.fn(async () => "unsupported" as const),
+    create: vi.fn(),
+    rename: vi.fn(),
+    delete: vi.fn(),
+    watch: vi.fn(() => () => undefined),
+  };
 }
 
-function capabilities(
-  revision = 1,
-  documents: WorkspaceDocument[] = [descriptor],
-): WorkspaceDocumentsPayload {
-  return { revision, root: "C:/project", documents };
+function establish(currentAdapter: ProjectStorageAdapter) {
+  projectStorageCoordinator.setAdapter(currentAdapter);
+  useProjectSessionStore.getState().applyEntries({
+    revision: 1,
+    projectId: "project:test",
+    entries: [
+      {
+        path: "notes.jsonc",
+        name: "notes.jsonc",
+        entryKind: "file",
+        documentId,
+        kind: "json",
+        language: "json",
+        mimeType: "application/json",
+        size: 2,
+        editable: true,
+        previewable: true,
+      },
+    ],
+  });
 }
 
 describe("DocumentProtocol", () => {
   beforeEach(() => {
-    useDocumentStore.getState().clearProject();
     useProjectSessionStore.getState().clear();
-    useLocalFileStore.getState().clear();
+    useDocumentStore.getState().clearProject();
   });
 
-  it("applies capability events and opens the matching document tab", async () => {
-    const { client, emit, request } = setupClient();
+  it("opens and saves through the active storage adapter", async () => {
+    const storage = adapter();
+    establish(storage);
     const protocol = new DocumentProtocol();
-    protocol.register(client);
-    emit("workspace.documents", capabilities());
 
-    const success = await protocol.openDocument(descriptor.path);
+    expect(await protocol.openDocument(documentId)).toBe(true);
+    useDocumentStore.getState().updateContent(documentId, '{"a":1}');
+    expect(await protocol.saveDocument(documentId)).toBe(true);
 
-    expect(success).toBe(true);
-    expect(request).toHaveBeenCalledWith("document.open", { path: descriptor.path });
-    expect(useProjectSessionStore.getState().activeKey).toBe(
-      documentTabKey(descriptor.path),
-    );
-    expect(useDocumentStore.getState().opened[descriptor.path].content).toBe("{}\n");
+    expect(storage.read).toHaveBeenCalledWith(documentId);
+    expect(storage.write).toHaveBeenCalledWith(documentId, '{"a":1}', "r1");
+    expect(useProjectSessionStore.getState().activeDocumentId).toBe(documentId);
+    expect(useDocumentStore.getState().opened[documentId].dirty).toBe(false);
   });
 
-  it("marks a dirty document as conflicted after an external change", async () => {
-    const { client, emit, request } = setupClient();
+  it("retains a dirty draft when external content changes", async () => {
+    const storage = adapter();
+    establish(storage);
     const protocol = new DocumentProtocol();
-    protocol.register(client);
-    emit("workspace.documents", capabilities());
-    await protocol.openDocument(descriptor.path);
-    useDocumentStore.getState().updateContent(descriptor.path, "local\n");
-    request.mockResolvedValueOnce({ ...opened, content: "external\n", revision: "r2" });
-
-    emit("file.changed", {
-      type: "modified",
-      file_path: descriptor.path,
-      is_directory: false,
+    await protocol.openDocument(documentId);
+    useDocumentStore.getState().updateContent(documentId, "local");
+    vi.mocked(storage.read).mockResolvedValueOnce({
+      path: "notes.jsonc",
+      name: "notes.jsonc",
+      kind: "json",
+      language: "json",
+      mimeType: "application/json",
+      size: 8,
+      editable: true,
+      previewable: true,
+      content: "external",
+      revision: "r2",
     });
 
-    await vi.waitFor(() => {
-      expect(
-        useDocumentStore.getState().opened[descriptor.path].conflict,
-      ).toEqual({ externalContent: "external\n", externalRevision: "r2" });
+    await protocol.refreshFromExternal(documentId);
+
+    expect(useDocumentStore.getState().opened[documentId].conflict).toEqual({
+      externalContent: "external",
+      externalRevision: "r2",
     });
-  });
-
-  it("caches project images by workspace-relative path", async () => {
-    const image: WorkspaceDocument = {
-      ...descriptor,
-      path: "image/sample.png",
-      name: "sample.png",
-      kind: "image",
-      language: "",
-      mimeType: "image/png",
-      editable: false,
-    };
-    const imageResult: DocumentOpenResult = {
-      ...image,
-      revision: "image-r1",
-      artifact: {
-        artifactId: "artifact",
-        kind: "project-image",
-        mimeType: "image/png",
-        size: 8,
-        sha256: "image-r1",
-        width: 10,
-        height: 20,
-        createdAt: new Date(0).toISOString(),
-      },
-    };
-    const { client, emit, request } = setupClient();
-    request.mockResolvedValueOnce(imageResult);
-    const protocol = new DocumentProtocol();
-    protocol.register(client);
-    emit("workspace.documents", capabilities(1, [image]));
-
-    await protocol.openDocument(image.path);
-
-    expect(useLocalFileStore.getState().imageCache.get(image.path)).toMatchObject({
-      base64: "blob:project-image",
-      width: 10,
-      height: 20,
-    });
-  });
-
-  it("does not recreate an externally deleted document on save", async () => {
-    const { client, emit, request } = setupClient();
-    const protocol = new DocumentProtocol();
-    protocol.register(client);
-    emit("workspace.documents", capabilities());
-    await protocol.openDocument(descriptor.path);
-    useDocumentStore.getState().updateContent(descriptor.path, "draft");
-    useDocumentStore.getState().markDeleted(descriptor.path);
-    request.mockClear();
-
-    await expect(protocol.saveDocument(descriptor.path)).resolves.toBe(false);
-
-    expect(request).not.toHaveBeenCalled();
   });
 });

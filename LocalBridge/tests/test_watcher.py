@@ -14,7 +14,7 @@ def test_normalize_changes_merges_events_and_ignores_save_echo(tmp_path: Path) -
         preferences_path=tmp_path / "preferences.json",
     )
     pipeline = tmp_path / "project" / "resource" / "pipeline"
-    workspace.save_file("project/resource/pipeline/owned.json", None, {"Node": {}}, 2)
+    workspace.save_file("resource/pipeline/owned.json", None, {"Node": {}}, 2)
     external = pipeline / "external.json"
     external.write_text("{}\n", encoding="utf-8")
 
@@ -31,7 +31,7 @@ def test_normalize_changes_merges_events_and_ignores_save_echo(tmp_path: Path) -
     assert events == [
         {
             "type": "created",
-            "file_path": "project/resource/pipeline/external.json",
+            "file_path": "resource/pipeline/external.json",
             "is_directory": False,
             "workspace_kind": "pipeline",
         }
@@ -120,7 +120,7 @@ def test_normalize_changes_ignores_non_pipeline_json_and_marks_deleted_directory
     assert events == [
         {
             "type": "deleted",
-            "file_path": "project/resource/pipeline/nested",
+            "file_path": "resource/pipeline/nested",
             "is_directory": True,
             "workspace_kind": "pipeline",
         }
@@ -144,7 +144,7 @@ def test_normalize_changes_emits_ordinary_project_file_without_pipeline_refresh(
     assert public_events == [
         {
             "type": "modified",
-            "file_path": "project/notes.txt",
+            "file_path": "notes.txt",
             "is_directory": False,
         }
     ]

@@ -21,7 +21,7 @@ def _prepare_documents(tmp_path: Path) -> Workspace:
         tmp_path,
         preferences_path=tmp_path / "preferences.json",
     )
-    project = workspace.root / "project"
+    project = workspace.root
     interface_path = project / "interface.json"
     interface = json.loads(interface_path.read_text(encoding="utf-8"))
     interface["import"] = ["interface.import.jsonc"]
@@ -42,7 +42,7 @@ def _prepare_documents(tmp_path: Path) -> Workspace:
     (project / ".main.mpe.jsonc").write_text("{}\n", encoding="utf-8")
     (project / "agent.py").write_text("print('hello')\n", encoding="utf-8")
     (project / ".env").write_text("KEY=value\n", encoding="utf-8")
-    (workspace.root / "README.md").write_text("# Project\n", encoding="utf-8")
+    (workspace.discovery_root / "README.md").write_text("# Discovery root\n", encoding="utf-8")
     (project / "preview.png").write_bytes(b"\x89PNG\r\n\x1a\n")
     (project / "archive.bin").write_bytes(b"\x00\x01\x02")
     (project / ".visible").write_text("visible\n", encoding="utf-8")
@@ -65,22 +65,22 @@ def test_document_index_classifies_project_files(tmp_path: Path) -> None:
     workspace = _prepare_documents(tmp_path)
     documents = _documents_by_path(workspace)
 
-    assert documents["project/interface.json"]["kind"] == "interface"
-    assert documents["project/interface.import.jsonc"]["kind"] == "interface"
-    pipeline = documents["project/resource/pipeline/main.jsonc"]
+    assert documents["interface.json"]["kind"] == "interface"
+    assert documents["interface.import.jsonc"]["kind"] == "interface"
+    pipeline = documents["resource/pipeline/main.jsonc"]
     assert pipeline["kind"] == "pipeline"
     assert pipeline["editable"] is False
-    default_pipeline = documents["project/resource/default_pipeline.json"]
+    default_pipeline = documents["resource/default_pipeline.json"]
     assert default_pipeline["kind"] == "json"
     assert default_pipeline["role"] == "default_pipeline"
-    assert documents["project/settings.jsonc"]["kind"] == "json"
-    assert documents["project/.main.mpe.jsonc"]["role"] == "mpe_config"
-    assert documents["project/agent.py"]["language"] == "python"
-    assert documents["project/.env"]["kind"] == "text"
-    assert documents["README.md"]["kind"] == "markdown"
-    assert documents["project/preview.png"]["kind"] == "image"
-    assert documents["project/archive.bin"]["kind"] == "binary"
-    assert "project/.visible" in documents
+    assert documents["settings.jsonc"]["kind"] == "json"
+    assert documents[".main.mpe.jsonc"]["role"] == "mpe_config"
+    assert documents["agent.py"]["language"] == "python"
+    assert documents[".env"]["kind"] == "text"
+    assert "README.md" not in documents
+    assert documents["preview.png"]["kind"] == "image"
+    assert documents["archive.bin"]["kind"] == "binary"
+    assert ".visible" in documents
 
 
 def test_document_index_uses_independent_revision_and_does_not_read_content(
@@ -102,7 +102,7 @@ def test_document_index_uses_independent_revision_and_does_not_read_content(
 
 def test_open_and_save_document_preserve_jsonc_source(tmp_path: Path) -> None:
     workspace = _prepare_documents(tmp_path)
-    path = "project/settings.jsonc"
+    path = "settings.jsonc"
     opened = workspace.open_document(path)
     changed = "// keep comment\n{\n  \"second\": 2,\n  \"first\": 1\n}\r\n"
 
@@ -110,12 +110,12 @@ def test_open_and_save_document_preserve_jsonc_source(tmp_path: Path) -> None:
 
     assert saved["revision"] == saved["sha256"]
     assert (workspace.root / path).read_bytes() == changed.encode("utf-8")
-    assert not list((workspace.root / "project").glob("*.tmp"))
+    assert not list(workspace.root.glob("*.tmp"))
 
 
 def test_save_document_rejects_stale_revision_and_non_text(tmp_path: Path) -> None:
     workspace = _prepare_documents(tmp_path)
-    path = "project/settings.jsonc"
+    path = "settings.jsonc"
     opened = workspace.open_document(path)
     (workspace.root / path).write_text('{"external": true}\n', encoding="utf-8")
 
@@ -127,15 +127,15 @@ def test_save_document_rejects_stale_revision_and_non_text(tmp_path: Path) -> No
 
     with pytest.raises(ForbiddenError):
         workspace.save_document(
-            "project/archive.bin",
+            "archive.bin",
             "not binary",
-            workspace.open_document("project/archive.bin")["revision"],
+            workspace.open_document("archive.bin")["revision"],
         )
     with pytest.raises(ForbiddenError):
         workspace.save_document(
-            "project/resource/pipeline/main.jsonc",
+            "resource/pipeline/main.jsonc",
             "{}",
-            workspace.open_document("project/resource/pipeline/main.jsonc")["revision"],
+            workspace.open_document("resource/pipeline/main.jsonc")["revision"],
         )
 
 
@@ -145,16 +145,16 @@ def test_open_document_reports_image_binary_and_large_text_metadata(
 ) -> None:
     workspace = _prepare_documents(tmp_path)
     monkeypatch.setattr("mpe_localbridge.workspace.MAX_WS_MESSAGE_BYTES", 8)
-    large_path = workspace.root / "project" / "large.txt"
+    large_path = workspace.root / "large.txt"
     large_path.write_text("larger than eight bytes", encoding="utf-8")
     workspace.refresh_tree()
     workspace.refresh_documents()
 
-    image = workspace.open_document("project/preview.png")
-    binary = workspace.open_document("project/archive.bin")
-    large = workspace.open_document("project/large.txt")
+    image = workspace.open_document("preview.png")
+    binary = workspace.open_document("archive.bin")
+    large = workspace.open_document("large.txt")
 
-    assert image["kind"] == "image" and image["_path"] == workspace.root / "project/preview.png"
+    assert image["kind"] == "image" and image["_path"] == workspace.root / "preview.png"
     assert binary["kind"] == "binary" and "content" not in binary
     assert large["read_only_reason"] == "too_large"
     assert large["editable"] is False
@@ -182,7 +182,7 @@ def test_document_access_rejects_unindexed_excluded_and_unsafe_paths(tmp_path: P
 
 def test_document_index_and_open_reject_symlinks(tmp_path: Path) -> None:
     workspace = _prepare_documents(tmp_path / "workspace")
-    target = workspace.root / "project" / "agent.py"
+    target = workspace.root / "agent.py"
     link = workspace.root / "linked.py"
     try:
         link.symlink_to(target)

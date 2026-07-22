@@ -7,8 +7,6 @@ import {
   type ImportAction,
 } from "../../../stores/toolbarStore";
 import { useConfigStore } from "../../../stores/configStore";
-import { useProjectSidebarStore } from "../../../stores/projectSidebarStore";
-import { useWSStore } from "../../../stores/wsStore";
 import { useFlowStore } from "../../../stores/flow";
 import { pipelineToFlow, mergePipelineAndConfig } from "../../../core/parser";
 import { ClipboardHelper } from "../../../utils/ui/clipboard";
@@ -38,18 +36,13 @@ const resolveAvailableImportAction = (
 
 /**
  * 导入按钮组件
- * 支持从粘贴板或文件导入 Pipeline/配置，连接 LocalBridge 时文件导入唤起本地文件面板
+ * 支持从粘贴板或文件导入 Pipeline/配置
  */
 function ImportButton() {
   const { defaultImportAction, setDefaultImportAction } = useToolbarStore();
   const configHandlingMode = useConfigStore(
     (state) => state.configs.configHandlingMode,
   );
-  const showProjectSidebar = useProjectSidebarStore(
-    (state) => state.setVisible,
-  );
-  const wsConnected = useWSStore((state) => state.connected);
-
   const fileInputRef = useRef<HTMLInputElement>(null);
   const configFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -98,11 +91,6 @@ function ImportButton() {
   };
 
   const handleImportFromFile = () => {
-    if (wsConnected) {
-      showProjectSidebar(true);
-      return;
-    }
-
     fileInputRef.current?.click();
   };
 

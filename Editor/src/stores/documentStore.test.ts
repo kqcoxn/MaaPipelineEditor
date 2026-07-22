@@ -1,165 +1,91 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import type {
-  DocumentOpenResult,
-  WorkspaceDocument,
-} from "../services/generated/bridge-v2";
-import { getDirtyDocumentPaths, useDocumentStore } from "./documentStore";
+import { asDocumentId } from "../features/project-session/types";
+import { getDirtyDocumentIds, useDocumentStore } from "./documentStore";
 
-const descriptor: WorkspaceDocument = {
+const documentId = asDocumentId("document:notes");
+const descriptor = {
   path: "notes.jsonc",
   name: "notes.jsonc",
-  kind: "json",
+  kind: "json" as const,
   language: "json",
   mimeType: "application/json",
-  size: 8,
+  size: 2,
   editable: true,
   previewable: true,
 };
-
-const opened: DocumentOpenResult = {
+const opened = {
   ...descriptor,
-  content: "{\n}\n",
-  encoding: "utf-8",
   revision: "r1",
+  content: "{}",
 };
 
 describe("documentStore", () => {
   beforeEach(() => useDocumentStore.getState().clearProject());
 
-  it("ignores stale document capability revisions", () => {
+  it("tracks content dirty state and request-time save baselines", () => {
     const store = useDocumentStore.getState();
-    store.applyDocuments({ revision: 3, root: "C:/project", documents: [descriptor] });
-    store.applyDocuments({ revision: 2, root: "C:/project", documents: [] });
+    store.beginOpen(documentId, descriptor);
+    store.finishOpen(documentId, opened);
+    store.updateContent(documentId, '{"a":1}');
+    const savedContent = useDocumentStore.getState().opened[documentId].content;
+    store.updateContent(documentId, '{"a":2}');
+    store.markSaved(documentId, "r2", savedContent);
 
-    expect(useDocumentStore.getState().documents).toHaveProperty("notes.jsonc");
-    expect(useDocumentStore.getState().revision).toBe(3);
-  });
-
-  it("tracks drafts and updates the base revision after saving", () => {
-    const store = useDocumentStore.getState();
-    store.applyDocuments({ revision: 1, root: "C:/project", documents: [descriptor] });
-    store.beginOpen(descriptor.path);
-    store.finishOpen(opened);
-    store.updateContent(descriptor.path, "{\n  \"changed\": true\n}\n");
-
-    expect(getDirtyDocumentPaths()).toEqual([descriptor.path]);
-
-    const savedContent = useDocumentStore.getState().opened[descriptor.path].content;
-    store.markSaved(descriptor.path, "r2", savedContent);
-    expect(useDocumentStore.getState().opened[descriptor.path]).toMatchObject({
-      dirty: false,
-      baseRevision: "r2",
-    });
-  });
-
-  it("keeps later edits dirty when an earlier save request succeeds", () => {
-    const store = useDocumentStore.getState();
-    store.applyDocuments({ revision: 1, root: "C:/project", documents: [descriptor] });
-    store.beginOpen(descriptor.path);
-    store.finishOpen(opened);
-    store.updateContent(descriptor.path, "first draft");
-    const savedContent = useDocumentStore.getState().opened[descriptor.path].content;
-
-    store.updateContent(descriptor.path, "second draft");
-    store.markSaved(descriptor.path, "r2", savedContent);
-
-    expect(useDocumentStore.getState().opened[descriptor.path]).toMatchObject({
-      content: "second draft",
-      savedContent: "first draft",
+    expect(useDocumentStore.getState().opened[documentId]).toMatchObject({
+      savedContent: '{"a":1}',
+      content: '{"a":2}',
       dirty: true,
       baseRevision: "r2",
     });
+    expect(getDirtyDocumentIds()).toEqual([documentId]);
   });
 
-  it("supports keeping a local draft or reloading an external conflict", () => {
+  it("supports conflict retention and explicit external reload", () => {
     const store = useDocumentStore.getState();
-    store.applyDocuments({ revision: 1, root: "C:/project", documents: [descriptor] });
-    store.beginOpen(descriptor.path);
-    store.finishOpen(opened);
-    store.updateContent(descriptor.path, "local");
-    const external = { ...opened, content: "external", revision: "r2" };
-    store.setConflict(descriptor.path, external);
-    store.keepLocal(descriptor.path);
+    store.beginOpen(documentId, descriptor);
+    store.finishOpen(documentId, opened);
+    store.updateContent(documentId, "local");
+    store.setConflict(documentId, { ...opened, content: "external", revision: "r2" });
+    store.keepLocal(documentId);
 
-    expect(useDocumentStore.getState().opened[descriptor.path]).toMatchObject({
+    expect(useDocumentStore.getState().opened[documentId]).toMatchObject({
       content: "local",
+      savedContent: "external",
       baseRevision: "r2",
       dirty: true,
       conflict: undefined,
     });
 
-    store.setConflict(descriptor.path, { ...external, revision: "r3" });
-    store.reloadExternal(descriptor.path, { ...external, revision: "r3" });
-    expect(useDocumentStore.getState().opened[descriptor.path]).toMatchObject({
-      content: "external",
-      baseRevision: "r3",
+    store.reloadExternal(documentId, { ...opened, content: "disk", revision: "r3" });
+    expect(useDocumentStore.getState().opened[documentId]).toMatchObject({
+      content: "disk",
       dirty: false,
+      baseRevision: "r3",
     });
   });
 
-  it("retains opened drafts while preparing a reconnect", () => {
+  it("migrates opened content without changing dirty state", () => {
     const store = useDocumentStore.getState();
-    store.applyDocuments({ revision: 4, root: "C:/project", documents: [descriptor] });
-    store.beginOpen(descriptor.path);
-    store.finishOpen(opened);
-    store.updateContent(descriptor.path, "draft");
+    store.beginOpen(documentId, descriptor);
+    store.finishOpen(documentId, opened);
+    store.updateContent(documentId, "draft");
+    const renamedId = asDocumentId("document:renamed");
+    store.applyDocumentMappings([
+      {
+        oldPath: "notes.jsonc",
+        newPath: "docs/notes.jsonc",
+        oldDocumentId: documentId,
+        newDocumentId: renamedId,
+      },
+    ]);
 
-    store.prepareReconnect();
-
-    expect(useDocumentStore.getState().revision).toBe(0);
-    expect(useDocumentStore.getState().opened[descriptor.path].content).toBe("draft");
-  });
-
-  it("migrates an opened draft on directory rename without changing its state", () => {
-    const nestedDescriptor = {
-      ...descriptor,
-      path: "config/notes.jsonc",
-    };
-    const store = useDocumentStore.getState();
-    store.applyDocuments({
-      revision: 1,
-      root: "C:/project",
-      documents: [nestedDescriptor],
-    });
-    store.beginOpen(nestedDescriptor.path);
-    store.finishOpen({ ...opened, ...nestedDescriptor });
-    store.updateContent(nestedDescriptor.path, "local draft");
-
-    store.renamePath("config", "settings", true);
-
-    expect(useDocumentStore.getState().opened).not.toHaveProperty(
-      "config/notes.jsonc",
-    );
-    expect(useDocumentStore.getState().opened["settings/notes.jsonc"]).toMatchObject({
-      path: "settings/notes.jsonc",
-      content: "local draft",
-      baseRevision: "r1",
-      dirty: true,
-    });
-  });
-
-  it("retains drafts as unavailable when reconnecting to a different project", () => {
-    const store = useDocumentStore.getState();
-    store.applyDocuments({
-      revision: 1,
-      root: "C:/project-a",
-      documents: [descriptor],
-    });
-    store.beginOpen(descriptor.path);
-    store.finishOpen(opened);
-    store.updateContent(descriptor.path, "draft");
-
-    store.applyDocuments({
-      revision: 1,
-      root: "C:/project-b",
-      documents: [],
-    });
-
-    expect(useDocumentStore.getState().opened[descriptor.path]).toMatchObject({
+    expect(useDocumentStore.getState().opened[renamedId]).toMatchObject({
+      documentId: renamedId,
+      path: "docs/notes.jsonc",
       content: "draft",
       dirty: true,
-      deleted: true,
     });
+    expect(useDocumentStore.getState().opened[documentId]).toBeUndefined();
   });
 });

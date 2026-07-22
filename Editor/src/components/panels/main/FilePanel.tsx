@@ -18,11 +18,11 @@ import { Button, Input, Tabs, Tooltip } from "antd";
 import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 
 import { useFileStore } from "../../../stores/fileStore";
-import { useEmbedMode } from "../../../hooks/useEmbedMode";
 import { useProjectSidebarStore } from "../../../stores/projectSidebarStore";
-import { useWSStore } from "../../../stores/wsStore";
 import { useProjectSessionStore } from "../../../stores/projectSessionStore";
 import { useDocumentStore } from "../../../stores/documentStore";
+import { getCapability } from "../../../features/project-storage/ProjectStorageAdapter";
+import { asDocumentId } from "../../../features/project-session/types";
 import {
   activateEditorTab,
   closeEditorTab,
@@ -59,44 +59,48 @@ function FilePanel() {
   const fileName = useFileStore((state) => state.currentFile.fileName);
   const setFileName = useFileStore((state) => state.setFileName);
   const tabs = useProjectSessionStore((state) => state.tabs);
-  const activeKey = useProjectSessionStore((state) => state.activeKey);
+  const activeDocumentId = useProjectSessionStore(
+    (state) => state.activeDocumentId,
+  );
+  const entriesById = useProjectSessionStore((state) => state.entriesById);
+  const capabilities = useProjectSessionStore((state) => state.capabilities);
+  const adapterKind = useProjectSessionStore((state) => state.adapterKind);
   const reorderTab = useProjectSessionStore((state) => state.reorderTab);
   const openedDocuments = useDocumentStore((state) => state.opened);
-  const documentIndex = useDocumentStore((state) => state.documents);
   const sidebarVisible = useProjectSidebarStore((state) => state.visible);
   const toggleSidebar = useProjectSidebarStore((state) => state.toggle);
-  const wsConnected = useWSStore((state) => state.connected);
-  const { isEmbed } = useEmbedMode();
   const [fileNameState, setFileNameState] = useState<
     "" | "warning" | "error" | undefined
   >("");
-  const activeTab = tabs.find((tab) => tab.key === activeKey);
-  const activeDocument =
-    activeTab?.kind === "document" ? openedDocuments[activeTab.path] : undefined;
-  const sidebarAvailable = wsConnected && !isEmbed;
+  const activeTab = tabs.find(
+    (tab) => tab.documentId === activeDocumentId,
+  );
+  const activeEntry = activeTab ? entriesById[activeTab.documentId] : undefined;
+  const activeDocument = activeTab
+    ? openedDocuments[activeTab.documentId]
+    : undefined;
+  const sidebarAvailable =
+    adapterKind === "browser" || getCapability(capabilities, "list").available;
   const sidebarShown = sidebarAvailable && sidebarVisible;
 
   const items = useMemo(
     () =>
       tabs.map((tab) => {
+        const entry = entriesById[tab.documentId];
         const pipeline =
-          tab.kind === "pipeline"
-            ? files.find(
-                (file) =>
-                  file.config.filePath === tab.path || file.fileName === tab.path,
-              )
+          entry?.kind === "pipeline"
+            ? files.find((file) => file.documentId === tab.documentId)
             : undefined;
-        const document =
-          tab.kind === "document"
-            ? openedDocuments[tab.path]?.descriptor ?? documentIndex[tab.path]
-            : undefined;
-        const dirty =
-          tab.kind === "pipeline"
-            ? pipeline?.saveState.dirty
-            : openedDocuments[tab.path]?.dirty;
-        const label = pipeline?.fileName ?? document?.name ?? tab.path;
+        const document = openedDocuments[tab.documentId]?.descriptor;
+        const dirty = pipeline?.saveState.dirty ?? openedDocuments[tab.documentId]?.dirty;
+        const label =
+          (entry && "path" in entry ? entry.name : undefined) ??
+          pipeline?.fileName ??
+          document?.name ??
+          entry?.name ??
+          tab.documentId;
         return {
-          key: tab.key,
+          key: tab.documentId,
           closable: true,
           label: (
             <span className={style.tabLabel}>
@@ -106,7 +110,7 @@ function FilePanel() {
           ),
         };
       }),
-    [documentIndex, files, openedDocuments, tabs],
+    [entriesById, files, openedDocuments, tabs],
   );
 
   const sensor = useSensor(PointerSensor, {
@@ -126,7 +130,7 @@ function FilePanel() {
     (key: string) => {
       const tab = useProjectSessionStore
         .getState()
-        .tabs.find((item) => item.key === key);
+        .tabs.find((item) => item.documentId === asDocumentId(key));
       if (tab) void activateEditorTab(tab);
     },
     [],
@@ -140,7 +144,7 @@ function FilePanel() {
       if (action !== "remove") return;
       const tab = useProjectSessionStore
         .getState()
-        .tabs.find((item) => item.key === String(key));
+        .tabs.find((item) => item.documentId === asDocumentId(String(key)));
       if (tab) void closeEditorTab(tab);
     },
     [],
@@ -149,7 +153,7 @@ function FilePanel() {
   const onDragEnd = useCallback(
     ({ active, over }: DragEndEvent) => {
       if (over && active.id !== over.id) {
-        reorderTab(String(active.id), String(over.id));
+        reorderTab(asDocumentId(String(active.id)), asDocumentId(String(over.id)));
       }
     },
     [reorderTab],
@@ -160,13 +164,11 @@ function FilePanel() {
       <div className={style.fileControls}>
         <Tooltip
           title={
-            isEmbed
-              ? "嵌入模式不显示项目侧栏"
-              : wsConnected
-                ? sidebarShown
-                  ? "收起项目侧栏"
-                  : "展开项目侧栏"
-                : "连接 LocalBridge 后可用"
+            sidebarAvailable
+              ? sidebarShown
+                ? "收起项目侧栏"
+                : "展开项目侧栏"
+              : getCapability(capabilities, "list").reason ?? "项目列表不可用"
           }
           placement="right"
         >
@@ -184,11 +186,17 @@ function FilePanel() {
         <Input
           className={style.filename}
           placeholder={activeTab ? "文件名" : "未打开文件"}
-          value={activeTab ? (activeDocument ? activeDocument.path : fileName) : ""}
+          value={
+            activeTab
+              ? "path" in (activeEntry ?? {})
+                ? activeEntry.path
+                : activeDocument?.path ?? fileName
+              : ""
+          }
           disabled={!activeTab}
-          readOnly={Boolean(activeDocument)}
-          status={activeTab && !activeDocument ? fileNameState : undefined}
-          onChange={activeDocument ? undefined : onLabelChange}
+          readOnly={Boolean(activeEntry && "path" in activeEntry)}
+          status={activeTab && !(activeEntry && "path" in activeEntry) ? fileNameState : undefined}
+          onChange={activeEntry && "path" in activeEntry ? undefined : onLabelChange}
         />
       </div>
       <Tabs
@@ -196,7 +204,7 @@ function FilePanel() {
         type="editable-card"
         hideAdd
         items={items}
-        activeKey={activeKey ?? undefined}
+        activeKey={activeDocumentId ?? undefined}
         onChange={onTabChange}
         onEdit={onEdit}
         renderTabBar={(tabBarProps, DefaultTabBar) => (

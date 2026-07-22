@@ -52,6 +52,12 @@ import {
   type EmbedCapabilities,
   type EmbedUIConfig,
 } from "./utils/embedBridge";
+import {
+  EmbeddedHostProjectStorageAdapter,
+  type EmbeddedProjectHandshake,
+} from "./features/project-storage/EmbeddedHostProjectStorageAdapter";
+import { LocalBridgeProjectStorageAdapter } from "./features/project-storage/LocalBridgeProjectStorageAdapter";
+import { projectStorageCoordinator } from "./features/project-storage/projectStorageCoordinator";
 import { useEmbedStore } from "./stores/embedStore";
 import { useEmbedMode } from "./hooks/useEmbedMode";
 import { useEmbedChangeNotifier } from "./hooks/useEmbedChangeNotifier";
@@ -61,7 +67,7 @@ import { NewcomerGuideModal } from "./components/modals/NewcomerGuideModal";
 import { useTermsStore, isTermsAccepted } from "./stores/termsStore";
 import { TermsAgreementModal } from "./components/modals/TermsAgreementModal";
 import { WorkspaceSetupModal } from "./components/modals/WorkspaceSetupModal";
-import { useLocalFileStore } from "./stores/localFileStore";
+import { useResourceStore } from "./stores/resourceStore";
 import { useWorkspaceStore } from "./stores/workspaceStore";
 import { debugCommandBus } from "./features/debug/debugCommandBus";
 import { resetDebugSessionLifecycle } from "./features/debug/sessionActions";
@@ -149,15 +155,19 @@ function App() {
   // 嵌入模式状态
   const { isEmbed, isReady, isCapAllowed, isPanelHidden } = useEmbedMode();
   const wsConnected = useWSStore((state) => state.connected);
+  const projectAdapterKind = useProjectSessionStore((state) => state.adapterKind);
   const projectSidebarVisible = useProjectSidebarStore(
     (state) => state.visible,
   );
-  const activeTab = useProjectSessionStore((state) =>
-    state.tabs.find((tab) => tab.key === state.activeKey),
+  const activeDocumentId = useProjectSessionStore(
+    (state) => state.activeDocumentId,
+  );
+  const activeEntry = useProjectSessionStore((state) =>
+    activeDocumentId ? state.entriesById[activeDocumentId] : undefined,
   );
   const pipelineFiles = useFileStore((state) => state.files);
   const openedDocuments = useDocumentStore((state) => state.opened);
-  const documentActive = activeTab?.kind === "document";
+  const documentActive = Boolean(activeEntry && activeEntry.kind !== "pipeline");
   const hasDirtyItems =
     pipelineFiles.some((file) => file.saveState.dirty) ||
     Object.values(openedDocuments).some((document) => document.dirty);
@@ -176,14 +186,6 @@ function App() {
       ),
     [],
   );
-
-  useEffect(() => {
-    useProjectSessionStore
-      .getState()
-      .syncPipelineTabs(
-        pipelineFiles.map((file) => file.config.filePath || file.fileName),
-      );
-  }, [pipelineFiles]);
 
   // 处理文件拖拽
   const handleFileDrop = useCallback(async (e: DragEvent) => {
@@ -221,7 +223,7 @@ function App() {
   }, []);
 
   // 启用全局快捷键（嵌入模式下根据 capabilities 控制）
-  const enableShortcuts = Boolean(activeTab);
+  const enableShortcuts = Boolean(activeDocumentId);
   const enableEditingShortcuts =
     (!isEmbed || (isCapAllowed("allowUndoRedo") && !isCapAllowed("readOnly")));
   useGlobalShortcuts(enableShortcuts, enableEditingShortcuts);
@@ -280,17 +282,25 @@ function App() {
 
       // 初始化 EmbedBridge
       const { cleanup: cleanupEmbedBridge } = initEmbedBridge();
+      projectStorageCoordinator.setAdapter(
+        new EmbeddedHostProjectStorageAdapter(),
+      );
 
       // 注册业务消息处理器
       const cleanupInit = onParentMessage("mpe:init", (payload, requestId) => {
         const config = payload as {
           capabilities?: Partial<EmbedCapabilities>;
           ui?: Partial<EmbedUIConfig>;
-        };
+        } & EmbeddedProjectHandshake;
         useEmbedStore
           .getState()
           .initConfig(config.capabilities || {}, config.ui || {});
         useEmbedStore.getState().setReady(true);
+        const adapter = new EmbeddedHostProjectStorageAdapter(config);
+        projectStorageCoordinator.setAdapter(adapter);
+        void adapter.list().then((entries) =>
+          useProjectSessionStore.getState().applyEntries(entries),
+        );
         completeHandshake(
           useEmbedStore.getState().capabilities,
           useEmbedStore.getState().ui,
@@ -399,7 +409,7 @@ function App() {
           fields.forEach((field) => {
             switch (field) {
               case "version":
-                result[field] = "1.0.0";
+                result[field] = "2.0.0";
                 break;
               case "nodesCount":
                 result[field] = state.nodes.length;
@@ -505,15 +515,21 @@ function App() {
     const clearMFWConnection = useMFWStore.getState().clearConnection;
     localServer.onStatus((connected) => {
       setConnected(connected);
+      if (connected) {
+        projectStorageCoordinator.setAdapter(
+          new LocalBridgeProjectStorageAdapter(localServer),
+        );
+      } else {
+        projectStorageCoordinator.disconnect();
+      }
       // WebSocket 断开时清除设备连接状态，确保实时画面等 UI 正确隐藏
       if (!connected) {
         clearMFWConnection();
         resetDebugSessionLifecycle();
         if (!shouldPreserveProjectStateOnDisconnect()) {
           useWorkspaceStore.getState().clear();
-          useLocalFileStore.getState().clear();
+          useResourceStore.getState().clear();
         }
-        useDocumentStore.getState().prepareReconnect();
       }
     });
     localServer.onConnecting((isConnecting) => {
@@ -585,7 +601,10 @@ function App() {
   const showHeader = !isEmbed || !isPanelHidden("header");
   const showToolbar = !isEmbed || !isPanelHidden("toolbar");
   const showPanel = (id: string) => !isEmbed || !isPanelHidden(id);
-  const mountProjectSidebar = shouldMountProjectSidebar(isEmbed, wsConnected);
+  const mountProjectSidebar = shouldMountProjectSidebar(
+    isEmbed,
+    wsConnected || projectAdapterKind === "browser",
+  );
   const hideNodeToolPanel = mountProjectSidebar && projectSidebarVisible;
 
   // 渲染组件
@@ -604,10 +623,10 @@ function App() {
               <div className={style.editorArea}>
                 {showPanel("file") && <FilePanel />}
                 <div className={style.workspace}>
-                  {!activeTab ? (
+                  {!activeDocumentId ? (
                     <WelcomeScreen />
                   ) : documentActive ? (
-                    <DocumentEditorHost path={activeTab.path} />
+                    <DocumentEditorHost documentId={activeDocumentId} />
                   ) : (
                     <>
                       {showToolbar && <ToolbarPanel />}

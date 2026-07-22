@@ -29,12 +29,12 @@ def test_snapshot_reads_jsonc_without_rewriting_source(workspace: Workspace) -> 
       \"Start\": { \"anchor\": [\"A\", \"B\"] },
     }
     """
-    path = workspace.root / "project" / "first" / "pipeline" / "pipeline.jsonc"
+    path = workspace.root / "first" / "pipeline" / "pipeline.jsonc"
     path.write_text(source, encoding="utf-8")
 
     snapshot = workspace.refresh_files()
     revision = snapshot["revision"]
-    relative_path = "project/first/pipeline/pipeline.jsonc"
+    relative_path = "first/pipeline/pipeline.jsonc"
     assert snapshot["files"][0]["index_status"] == "pending"
     workspace.index_file(revision, relative_path)
     snapshot = workspace.snapshot()
@@ -50,7 +50,7 @@ def test_snapshot_reads_jsonc_without_rewriting_source(workspace: Workspace) -> 
 def test_resolve_rejects_absolute_and_parent_paths(workspace: Workspace, tmp_path: Path) -> None:
     with pytest.raises(InvalidArgumentError):
         workspace.resolve(str(tmp_path / "outside.json"))
-    with pytest.raises(ForbiddenError):
+    with pytest.raises(InvalidArgumentError):
         workspace.resolve("../outside.json")
 
 
@@ -70,7 +70,7 @@ def test_create_file_rejects_nested_file_name(workspace: Workspace) -> None:
 
 
 def test_create_file_allows_project_directories_and_default_content(workspace: Workspace) -> None:
-    allowed = "project/first/pipeline/nested"
+    allowed = "first/pipeline/nested"
     (workspace.root / allowed).mkdir()
 
     result = workspace.create_file("new.json", allowed)
@@ -82,8 +82,8 @@ def test_create_file_allows_project_directories_and_default_content(workspace: W
     assert root_file["file_path"] == "README.md"
     assert (workspace.root / "README.md").read_text(encoding="utf-8") == ""
 
-    outside_pipeline = workspace.create_file("bundle.json", "project/first")
-    assert outside_pipeline["file_path"] == "project/first/bundle.json"
+    outside_pipeline = workspace.create_file("bundle.json", "first")
+    assert outside_pipeline["file_path"] == "first/bundle.json"
 
 
 def test_create_file_rejects_path_components(workspace: Workspace) -> None:
@@ -94,59 +94,59 @@ def test_create_file_rejects_path_components(workspace: Workspace) -> None:
 
 
 def test_rename_entry_changes_only_the_file_name(workspace: Workspace) -> None:
-    source = workspace.root / "project" / "notes.txt"
+    source = workspace.root / "notes.txt"
     source.write_text("notes", encoding="utf-8")
 
-    result = workspace.rename_entry("project/notes.txt", "renamed.txt")
+    result = workspace.rename_entry("notes.txt", "renamed.txt")
 
     assert result == {
-        "file_path": "project/notes.txt",
-        "new_file_path": "project/renamed.txt",
+        "file_path": "notes.txt",
+        "new_file_path": "renamed.txt",
         "is_directory": False,
         "status": "ok",
     }
     assert not source.exists()
-    assert (workspace.root / "project" / "renamed.txt").read_text(encoding="utf-8") == "notes"
+    assert (workspace.root / "renamed.txt").read_text(encoding="utf-8") == "notes"
 
 
 def test_rename_entry_renames_directories_with_their_contents(workspace: Workspace) -> None:
-    directory = workspace.root / "project" / "nested"
+    directory = workspace.root / "nested"
     directory.mkdir()
     (directory / "notes.txt").write_text("notes", encoding="utf-8")
 
-    result = workspace.rename_entry("project/nested", "renamed")
+    result = workspace.rename_entry("nested", "renamed")
 
     assert result == {
-        "file_path": "project/nested",
-        "new_file_path": "project/renamed",
+        "file_path": "nested",
+        "new_file_path": "renamed",
         "is_directory": True,
         "status": "ok",
     }
     assert not directory.exists()
-    assert (workspace.root / "project/renamed/notes.txt").read_text(encoding="utf-8") == "notes"
+    assert (workspace.root / "renamed/notes.txt").read_text(encoding="utf-8") == "notes"
 
 
 def test_rename_entry_rejects_duplicates_and_nested_names(workspace: Workspace) -> None:
-    (workspace.root / "project" / "notes.txt").write_text("notes", encoding="utf-8")
-    (workspace.root / "project" / "other.txt").write_text("other", encoding="utf-8")
+    (workspace.root / "notes.txt").write_text("notes", encoding="utf-8")
+    (workspace.root / "other.txt").write_text("other", encoding="utf-8")
 
     with pytest.raises(InvalidArgumentError):
-        workspace.rename_entry("project/notes.txt", "other.txt")
+        workspace.rename_entry("notes.txt", "other.txt")
     with pytest.raises(InvalidArgumentError):
-        workspace.rename_entry("project/notes.txt", "nested/notes.txt")
+        workspace.rename_entry("notes.txt", "nested/notes.txt")
 
 
 def test_delete_file_removes_only_files(workspace: Workspace) -> None:
-    path = workspace.root / "project" / "notes.txt"
+    path = workspace.root / "notes.txt"
     path.write_text("notes", encoding="utf-8")
 
-    assert workspace.delete_file("project/notes.txt") == {
-        "file_path": "project/notes.txt",
+    assert workspace.delete_file("notes.txt") == {
+        "file_path": "notes.txt",
         "status": "ok",
     }
     assert not path.exists()
     with pytest.raises(ForbiddenError):
-        workspace.delete_file("project")
+        workspace.delete_file("first")
 
 
 def test_separated_config_is_loaded(workspace: Workspace) -> None:
@@ -162,8 +162,8 @@ def test_separated_config_is_loaded(workspace: Workspace) -> None:
 
 
 def test_resolve_image_name_uses_latest_resource_match(workspace: Workspace) -> None:
-    first = workspace.root / "project" / "first" / "image" / "nested" / "sample.png"
-    second = workspace.root / "project" / "second" / "image" / "sample.png"
+    first = workspace.root / "first" / "image" / "nested" / "sample.png"
+    second = workspace.root / "second" / "image" / "sample.png"
     first.parent.mkdir(parents=True)
     second.parent.mkdir(parents=True)
     first.write_bytes(b"old")
@@ -188,7 +188,7 @@ def test_refresh_files_does_not_read_pipeline_content(
     workspace: Workspace,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    pipeline = workspace.root / "project" / "first" / "pipeline" / "main.json"
+    pipeline = workspace.root / "first" / "pipeline" / "main.json"
     pipeline.write_text('{"Start": {}}', encoding="utf-8")
 
     def fail_parser(_: Path) -> object:
@@ -204,7 +204,7 @@ def test_refresh_files_does_not_read_pipeline_content(
 def test_default_pipeline_is_listed_without_default_keys_in_node_index(
     workspace: Workspace,
 ) -> None:
-    default_pipeline = workspace.root / "project" / "first" / "default_pipeline.json"
+    default_pipeline = workspace.root / "first" / "default_pipeline.json"
     default_pipeline.write_text(
         json.dumps({"Default": {}, "OCR": {}, "Click": {}}),
         encoding="utf-8",
@@ -221,8 +221,8 @@ def test_modified_pipeline_only_invalidates_its_own_index(
     workspace: Workspace,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    first = workspace.root / "project" / "first" / "pipeline" / "first.json"
-    second = workspace.root / "project" / "first" / "pipeline" / "second.json"
+    first = workspace.root / "first" / "pipeline" / "first.json"
+    second = workspace.root / "first" / "pipeline" / "second.json"
     first.write_text('{"First": {}}', encoding="utf-8")
     second.write_text('{"Second": {}}', encoding="utf-8")
     snapshot = workspace.refresh_files()
@@ -237,7 +237,7 @@ def test_modified_pipeline_only_invalidates_its_own_index(
 
     monkeypatch.setattr("mpe_localbridge.workspace.os.walk", fail_walk)
     updated = workspace.refresh_modified_files(
-        ["project/first/pipeline/first.json"]
+        ["first/pipeline/first.json"]
     )
 
     statuses = {item["file_name"]: item["index_status"] for item in updated["files"]}
@@ -248,8 +248,8 @@ def test_modified_pipeline_only_invalidates_its_own_index(
 def test_deleted_pipeline_is_removed_without_reindexing_unchanged_files(
     workspace: Workspace,
 ) -> None:
-    first = workspace.root / "project" / "first" / "pipeline" / "first.json"
-    second = workspace.root / "project" / "first" / "pipeline" / "second.json"
+    first = workspace.root / "first" / "pipeline" / "first.json"
+    second = workspace.root / "first" / "pipeline" / "second.json"
     first.write_text('{"First": {}}', encoding="utf-8")
     second.write_text('{"Second": {}}', encoding="utf-8")
     snapshot = workspace.refresh_files()
@@ -280,14 +280,29 @@ def test_multiple_interfaces_require_selection_and_restore_history(tmp_path: Pat
     status = workspace.discover()
     assert status["state"] == "selection_required"
 
-    selected = workspace.select_interface("second/interface.json")
-    assert selected["current_interface"]["interface_path"] == "second/interface.json"
+    candidates = workspace.discovery_status()["candidates"]
+    second_candidate = next(
+        item for item in candidates if item["interface_path"] == "second/interface.json"
+    )
+    selected = workspace.select_interface(str(second_candidate["candidate_id"]))
+    assert selected["interface_path"] == "interface.json"
+    assert selected["project_root"] == str((tmp_path / "second").resolve())
 
     restored = Workspace(FileConfig(root=str(tmp_path)), preferences_path)
     restored_status = restored.discover()
     assert restored_status["current_interface"]["interface_path"] == (
         "second/interface.json"
     )
+
+
+def test_discovery_root_does_not_grant_file_access_before_project_selection(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "secret.txt").write_text("discovery only", encoding="utf-8")
+    workspace = Workspace(FileConfig(root=str(tmp_path)))
+
+    with pytest.raises(ForbiddenError, match="尚未选择项目"):
+        workspace.resolve("secret.txt", must_exist=True)
 
 
 @pytest.mark.parametrize(
@@ -361,11 +376,11 @@ def test_refresh_tree_lists_nested_empty_and_dot_directories(
 
     assert first["root"] == str(workspace.root)
     assert second["revision"] == first["revision"] + 1
-    assert entries["project/empty"] == "directory"
-    assert entries["project/nested/notes.txt"] == "file"
-    assert entries["project/.visible"] == "directory"
-    assert entries["project/.visible/.config"] == "file"
-    assert not any(path.startswith("project/excluded") for path in entries)
+    assert entries["empty"] == "directory"
+    assert entries["nested/notes.txt"] == "file"
+    assert entries[".visible"] == "directory"
+    assert entries[".visible/.config"] == "file"
+    assert not any(path.startswith("excluded") for path in entries)
 
 
 def test_refresh_tree_does_not_follow_internal_or_external_symlinks(
@@ -375,7 +390,7 @@ def test_refresh_tree_does_not_follow_internal_or_external_symlinks(
         tmp_path / "workspace",
         preferences_path=tmp_path / "preferences.json",
     )
-    internal_target = workspace.root / "project" / "internal.txt"
+    internal_target = workspace.root / "internal.txt"
     external_target = tmp_path / "external"
     internal_target.write_text("internal", encoding="utf-8")
     external_target.mkdir()

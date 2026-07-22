@@ -28,14 +28,14 @@ def client(tmp_path: Path) -> Iterator[tuple[TestClient, LocalBridgeState]]:
         workspace,
         preferences_path=tmp_path / "prepared-preferences.json",
     )
-    pipeline = prepared.root / "project" / "resource" / "pipeline" / "main.json"
+    pipeline = prepared.root / "resource" / "pipeline" / "main.json"
     pipeline.write_text('{"Start": {}}', encoding="utf-8")
-    (prepared.root / "project" / "notes.jsonc").write_text(
+    (prepared.root / "notes.jsonc").write_text(
         "// note\n{\"value\": 1}\n",
         encoding="utf-8",
     )
-    (prepared.root / "project" / "preview.png").write_bytes(b"\x89PNG\r\n\x1a\n")
-    (prepared.root / "project" / "archive.bin").write_bytes(b"\x00\x01")
+    (prepared.root / "preview.png").write_bytes(b"\x89PNG\r\n\x1a\n")
+    (prepared.root / "archive.bin").write_bytes(b"\x00\x01")
     config_store = ConfigStore(tmp_path / "config.json")
     config_store.update({"file": {"root": str(workspace)}})
     app, state = create_app(config_store=config_store, data_dir=tmp_path / "data")
@@ -109,38 +109,38 @@ def test_hello_reports_versions_and_capabilities(
         assert response["result"]["capabilities"]["debug"]["pause"] is False
 
 
-def test_hello_pushes_initial_workspace_tree(
+def test_hello_pushes_initial_project_entries(
     client: tuple[TestClient, LocalBridgeState],
 ) -> None:
     test_client, state = client
     with test_client.websocket_connect("/v2/ws", headers={"origin": ORIGIN}) as websocket:
         response = _hello(websocket)
-        tree_event = _receive_event(websocket, "workspace.tree")
+        entries_event = _receive_event(websocket, "project.entries")
 
     assert response["result"]["success"] is True
-    assert tree_event["data"]["root"] == str(state.workspace.root)
-    assert tree_event["data"]["revision"] >= 1
+    assert entries_event["data"]["projectId"] == state.workspace.status()["project_id"]
+    assert entries_event["data"]["revision"] >= 1
     assert any(
-        entry["path"] == "project/resource/pipeline/main.json"
-        for entry in tree_event["data"]["entries"]
+        entry["path"] == "resource/pipeline/main.json"
+        for entry in entries_event["data"]["entries"]
     )
 
 
-def test_hello_pushes_initial_workspace_documents(
+def test_hello_project_entries_include_document_metadata(
     client: tuple[TestClient, LocalBridgeState],
 ) -> None:
-    test_client, state = client
+    test_client, _state = client
     with test_client.websocket_connect("/v2/ws", headers={"origin": ORIGIN}) as websocket:
         response = _hello(websocket)
-        documents_event = _receive_event(websocket, "workspace.documents")
+        entries_event = _receive_event(websocket, "project.entries")
 
     assert response["result"]["success"] is True
-    assert documents_event["data"]["root"] == str(state.workspace.root)
-    documents = {
-        document["path"]: document for document in documents_event["data"]["documents"]
+    entries = {
+        entry["path"]: entry for entry in entries_event["data"]["entries"]
     }
-    assert documents["project/resource/pipeline/main.json"]["kind"] == "pipeline"
-    assert documents["project/notes.jsonc"]["mimeType"] == "application/json"
+    assert entries["resource/pipeline/main.json"]["kind"] == "pipeline"
+    assert entries["notes.jsonc"]["mimeType"] == "application/json"
+    assert entries["notes.jsonc"]["documentId"].startswith("document:")
 
 
 def test_document_rpc_opens_text_image_and_binary(
@@ -150,19 +150,19 @@ def test_document_rpc_opens_text_image_and_binary(
     with test_client.websocket_connect("/v2/ws", headers={"origin": ORIGIN}) as websocket:
         _hello(websocket)
         websocket.send_json(
-            _request("text", "document.open", {"path": "project/notes.jsonc"})
+            _request("text", "document.open", {"path": "notes.jsonc"})
         )
         text_response = _receive_response(websocket, "text")
         websocket.send_json(
-            _request("image", "document.open", {"path": "project/preview.png"})
+            _request("image", "document.open", {"path": "preview.png"})
         )
         image_response = _receive_response(websocket, "image")
         websocket.send_json(
-            _request("binary", "document.open", {"path": "project/archive.bin"})
+            _request("binary", "document.open", {"path": "archive.bin"})
         )
         binary_response = _receive_response(websocket, "binary")
 
-    expected = (state.workspace.root / "project" / "notes.jsonc").read_bytes().decode()
+    expected = (state.workspace.root / "notes.jsonc").read_bytes().decode()
     assert text_response["result"]["content"] == expected
     assert text_response["result"]["encoding"] == "utf-8"
     assert text_response["result"]["mimeType"] == "application/json"
@@ -177,16 +177,18 @@ def test_file_management_rpcs_rename_and_delete(
     client: tuple[TestClient, LocalBridgeState],
 ) -> None:
     test_client, state = client
-    source = state.workspace.root / "project" / "managed.txt"
+    source = state.workspace.root / "managed.txt"
     source.write_text("managed", encoding="utf-8")
+    state.workspace.refresh_tree()
+    state.workspace.refresh_documents()
 
     with test_client.websocket_connect("/v2/ws", headers={"origin": ORIGIN}) as websocket:
         _hello(websocket)
         websocket.send_json(
             _request(
                 "rename",
-                "file.rename",
-                {"file_path": "project/managed.txt", "file_name": "renamed.txt"},
+                "entry.rename",
+                {"path": "managed.txt", "name": "renamed.txt"},
             )
         )
         rename_response = None
@@ -197,32 +199,28 @@ def test_file_management_rpcs_rename_and_delete(
                 rename_response = message
             if (
                 message.get("type") == "event"
-                and message.get("event") == "file.changed"
-                and message.get("data", {}).get("type") == "renamed"
+                and message.get("event") == "project.changed"
+                and message.get("data", {}).get("change") == "renamed"
             ):
                 rename_event = message["data"]
         websocket.send_json(
-            _request("delete", "file.delete", {"file_path": "project/renamed.txt"})
+            _request("delete", "entry.delete", {"path": "renamed.txt"})
         )
         delete_response = _receive_response(websocket, "delete")
 
-    renamed = state.workspace.root / "project" / "renamed.txt"
-    assert rename_response["result"] == {
-        "file_path": "project/managed.txt",
-        "new_file_path": "project/renamed.txt",
-        "is_directory": False,
-        "status": "ok",
-    }
-    assert rename_event == {
-        "type": "renamed",
-        "file_path": "project/managed.txt",
-        "new_file_path": "project/renamed.txt",
-        "is_directory": False,
-    }
-    assert delete_response["result"] == {
-        "file_path": "project/renamed.txt",
-        "status": "ok",
-    }
+    renamed = state.workspace.root / "renamed.txt"
+    assert rename_response["result"]["oldPath"] == "managed.txt"
+    assert rename_response["result"]["newPath"] == "renamed.txt"
+    assert rename_response["result"]["isDirectory"] is False
+    assert rename_response["result"]["documentMappings"][0]["oldPath"] == "managed.txt"
+    assert rename_response["result"]["documentMappings"][0]["newPath"] == "renamed.txt"
+    assert isinstance(rename_response["result"]["operationId"], str)
+    assert rename_response["result"]["operationId"]
+    assert rename_event["path"] == "managed.txt"
+    assert rename_event["newPath"] == "renamed.txt"
+    assert rename_event["isDirectory"] is False
+    assert rename_event["operationId"] == rename_response["result"]["operationId"]
+    assert delete_response["result"]["path"] == "renamed.txt"
     assert not source.exists()
     assert not renamed.exists()
 
@@ -231,17 +229,19 @@ def test_directory_rename_event_reports_old_and_new_paths(
     client: tuple[TestClient, LocalBridgeState],
 ) -> None:
     test_client, state = client
-    source = state.workspace.root / "project" / "nested"
+    source = state.workspace.root / "nested"
     source.mkdir()
     (source / "notes.txt").write_text("notes", encoding="utf-8")
+    state.workspace.refresh_tree()
+    state.workspace.refresh_documents()
 
     with test_client.websocket_connect("/v2/ws", headers={"origin": ORIGIN}) as websocket:
         _hello(websocket)
         websocket.send_json(
             _request(
                 "rename-directory",
-                "file.rename",
-                {"file_path": "project/nested", "file_name": "renamed"},
+                "entry.rename",
+                {"path": "nested", "name": "renamed"},
             )
         )
         rename_response = None
@@ -255,32 +255,32 @@ def test_directory_rename_event_reports_old_and_new_paths(
                 rename_response = message
             if (
                 message.get("type") == "event"
-                and message.get("event") == "file.changed"
-                and message.get("data", {}).get("type") == "renamed"
+                and message.get("event") == "project.changed"
+                and message.get("data", {}).get("change") == "renamed"
             ):
                 rename_event = message["data"]
 
-    assert rename_response["result"] == {
-        "file_path": "project/nested",
-        "new_file_path": "project/renamed",
-        "is_directory": True,
-        "status": "ok",
-    }
-    assert rename_event == {
-        "type": "renamed",
-        "file_path": "project/nested",
-        "new_file_path": "project/renamed",
-        "is_directory": True,
-    }
+    assert rename_response["result"]["oldPath"] == "nested"
+    assert rename_response["result"]["newPath"] == "renamed"
+    assert rename_response["result"]["isDirectory"] is True
+    mappings = rename_response["result"]["documentMappings"]
+    assert [(item["oldPath"], item["newPath"]) for item in mappings] == [
+        ("nested/notes.txt", "renamed/notes.txt")
+    ]
+    assert rename_event["path"] == "nested"
+    assert rename_event["newPath"] == "renamed"
+    assert rename_event["isDirectory"] is True
+    assert rename_event["documentMappings"] == mappings
+    assert rename_event["operationId"] == rename_response["result"]["operationId"]
     assert not source.exists()
-    assert (state.workspace.root / "project" / "renamed" / "notes.txt").exists()
+    assert (state.workspace.root / "renamed" / "notes.txt").exists()
 
 
 def test_document_rpc_saves_with_revision_and_reports_conflict(
     client: tuple[TestClient, LocalBridgeState],
 ) -> None:
     test_client, state = client
-    path = "project/notes.jsonc"
+    path = "notes.jsonc"
     with test_client.websocket_connect("/v2/ws", headers={"origin": ORIGIN}) as websocket:
         _hello(websocket)
         websocket.send_json(_request("open", "document.open", {"path": path}))
@@ -433,6 +433,10 @@ async def test_workspace_change_refreshes_tree_for_mixed_structural_events(
     config_store = ConfigStore(tmp_path / "config.json")
     config_store.update({"file": {"root": str(workspace_root)}})
     state = LocalBridgeState(config_store, tmp_path / "data")
+    state.workspace.discover()
+    state.workspace.refresh_files()
+    state.workspace.refresh_tree()
+    state.workspace.refresh_documents()
     refresh_files = AsyncMock()
     refresh_tree = AsyncMock()
     emit = AsyncMock()
@@ -446,12 +450,12 @@ async def test_workspace_change_refreshes_tree_for_mixed_structural_events(
     monkeypatch.setattr(state.workspace, "tracks_files", tracks_files)
     pipeline_event = {
         "type": "modified",
-        "file_path": "project/resource/pipeline/main.json",
+        "file_path": "resource/pipeline/main.json",
         "is_directory": False,
     }
     project_event = {
         "type": "created",
-        "file_path": "project/readme.md",
+        "file_path": "readme.md",
         "is_directory": False,
     }
 
@@ -465,7 +469,7 @@ async def test_workspace_change_refreshes_tree_for_mixed_structural_events(
         await state.close()
 
     refresh_files.assert_awaited_once_with(
-        ["project/resource/pipeline/main.json"]
+        ["resource/pipeline/main.json"]
     )
     refresh_tree.assert_awaited_once_with()
     assert emit.await_count == 2
@@ -485,6 +489,10 @@ async def test_workspace_change_refreshes_documents_for_ordinary_modification(
     config_store = ConfigStore(tmp_path / "config.json")
     config_store.update({"file": {"root": str(workspace_root)}})
     state = LocalBridgeState(config_store, tmp_path / "data")
+    state.workspace.discover()
+    state.workspace.refresh_files()
+    state.workspace.refresh_tree()
+    state.workspace.refresh_documents()
     refresh_documents = Mock(
         return_value={"revision": 2, "root": str(workspace_root), "documents": []}
     )
@@ -493,7 +501,7 @@ async def test_workspace_change_refreshes_documents_for_ordinary_modification(
     monkeypatch.setattr(state.hub, "emit", emit)
     event = {
         "type": "modified",
-        "file_path": "project/readme.md",
+        "file_path": "readme.md",
         "is_directory": False,
     }
 
@@ -503,5 +511,8 @@ async def test_workspace_change_refreshes_documents_for_ordinary_modification(
         await state.close()
 
     refresh_documents.assert_called_once_with()
-    assert emit.await_args_list[0].args == ("file.changed", event)
-    assert emit.await_args_list[1].args[0] == "workspace.documents"
+    assert emit.await_args_list[0].args[0] == "project.changed"
+    assert emit.await_args_list[0].args[1]["path"] == "readme.md"
+    assert isinstance(emit.await_args_list[0].args[1]["operationId"], str)
+    assert emit.await_args_list[0].args[1]["operationId"]
+    assert emit.await_args_list[1].args[0] == "project.entries"

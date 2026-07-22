@@ -3,6 +3,8 @@ import { Button, message, notification } from "antd";
 import { createElement } from "react";
 
 import { registerDebugProtocolListeners } from "../features/debug/registerProtocolListeners";
+import { BrowserProjectStorageAdapter } from "../features/project-storage/BrowserProjectStorageAdapter";
+import { projectStorageCoordinator } from "../features/project-storage/projectStorageCoordinator";
 import { globalConfig } from "../stores/configStore";
 import type { APIRoute, MessageHandler } from "./type";
 import type {
@@ -497,6 +499,7 @@ export const loggerProtocol = new LoggerProtocol();
 export const aiProtocol = new AIProtocol();
 
 export function initializeWebSocket(): void {
+  projectStorageCoordinator.setAdapter(new BrowserProjectStorageAdapter());
   errorProtocol.register(localServer);
   fileProtocol.register(localServer);
   documentProtocol.register(localServer);
