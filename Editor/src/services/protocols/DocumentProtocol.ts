@@ -30,7 +30,7 @@ export class DocumentProtocol extends BaseProtocol {
     wsClient.registerRoute("file.changed", (data) => this.handleFileChanged(data));
   }
 
-  protected handleMessage(_path: string, _data: unknown): void {}
+  protected handleMessage(): void {}
 
   async openDocument(path: string): Promise<boolean> {
     const store = useDocumentStore.getState();
@@ -65,19 +65,21 @@ export class DocumentProtocol extends BaseProtocol {
       !document ||
       !document.descriptor.editable ||
       !document.baseRevision ||
-      !document.dirty
+      !document.dirty ||
+      document.deleted
     ) {
       return false;
     }
 
     this.savingPaths.add(path);
+    const savedContent = document.content;
     try {
       const result = await client.request<DocumentSaveResult>("document.save", {
         path,
-        content: document.content,
+        content: savedContent,
         base_revision: document.baseRevision,
       });
-      useDocumentStore.getState().markSaved(path, result.revision);
+      useDocumentStore.getState().markSaved(path, result.revision, savedContent);
       message.success(`已保存 ${document.descriptor.name}`);
       return true;
     } catch (error) {
@@ -125,7 +127,7 @@ export class DocumentProtocol extends BaseProtocol {
       }
       return;
     }
-    if (data.type === "deleted" || data.type === "renamed") {
+    if (data.type === "deleted") {
       useDocumentStore.getState().markDeleted(data.file_path);
     }
   }

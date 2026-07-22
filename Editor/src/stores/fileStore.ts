@@ -21,6 +21,16 @@ import { localServer } from "../services/server";
 import { FileProtocol } from "../services/protocols/FileProtocol";
 import { findErrorsByType, ErrorTypeEnum } from "./errorStore";
 import type { CoordinateMode } from "./flow/utils/coordinateUtils";
+import {
+  normalizeProjectPath,
+  projectPathName,
+  remapProjectPath,
+} from "../utils/projectPath";
+import {
+  createCleanPipelineSaveState,
+  createPipelineFingerprint,
+  type PipelineSaveState,
+} from "./pipelineSaveState";
 
 export type FileConfigType = {
   prefix: string;
@@ -28,28 +38,21 @@ export type FileConfigType = {
   filePath?: string;
   relativePath?: string;
   separatedConfigPath?: string;
-  isDeleted?: boolean;
-  isModifiedExternally?: boolean;
   lastSyncTime?: number;
   savedViewport?: { x: number; y: number; zoom: number };
   // 节点顺序管理
   nodeOrderMap?: Record<string, number>;
   nextOrderNumber?: number;
 };
-type FileType = {
+export type FileType = {
   fileName: string;
   nodes: NodeType[];
   edges: EdgeType[];
   config: FileConfigType;
+  saveState: PipelineSaveState;
 };
 
 /**辅助函数 */
-// 查找文件
-function findFile(fileName: string): FileType | undefined {
-  return useFileStore
-    .getState()
-    .files.find((file) => file.fileName === fileName);
-}
 function findFileIndex(fileName: string): number {
   return useFileStore
     .getState()
@@ -75,58 +78,98 @@ function isFileNameRepate(fileName: string, isSelf = true): boolean {
 }
 // 创建空文件
 let fileIdCounter = 1;
-function createFile(options?: { fileName?: string; config?: any }): FileType {
-  let { fileName = "新建Pipeline" + fileIdCounter++, config } = options || {};
+function createFile(options?: {
+  fileName?: string;
+  config?: Partial<FileConfigType>;
+}): FileType {
+  let { fileName = "新建Pipeline" + fileIdCounter++ } = options || {};
+  const { config } = options || {};
   while (isFileNameRepate(fileName, false)) {
     fileName = "新建Pipeline" + fileIdCounter++;
   }
-  return {
+  const file = {
     fileName,
     nodes: [],
     edges: [],
     config: { prefix: "", ...config },
   };
+  return { ...file, saveState: createCleanPipelineSaveState(file) };
 }
 const initialFile = createFile();
 
 /** 同步 FlowStore 数据到 FileStore.currentFile 和 files 数组 */
 function syncFlowStoreToFileStore(
   additionalConfig?: Partial<FileConfigType>,
+  markSaved = false,
 ): void {
   const flowStore = useFlowStore.getState();
   useFileStore.setState((state) => {
-    // 更新 currentFile
-    state.currentFile.nodes = flowStore.nodes.map((node: NodeType) => ({
+    const nodes = flowStore.nodes.map((node: NodeType) => ({
       ...node,
       selected: undefined,
     }));
-    state.currentFile.edges = flowStore.edges.map((edge: EdgeType) => ({
+    const edges = flowStore.edges.map((edge: EdgeType) => ({
       ...edge,
       selected: undefined,
     }));
-    if (additionalConfig) {
-      state.currentFile.config = {
-        ...state.currentFile.config,
-        ...additionalConfig,
-      };
-    }
-
-    // 同步更新 files 数组中对应的文件
-    const currentFileName = state.currentFile.fileName;
+    const nextFile = updateFileSaveState(
+      {
+        ...state.currentFile,
+        nodes,
+        edges,
+        config: { ...state.currentFile.config, ...additionalConfig },
+      },
+      markSaved,
+    );
     const fileIndex = state.files.findIndex(
-      (f) => f.fileName === currentFileName,
+      (file) => file.fileName === nextFile.fileName,
     );
     if (fileIndex >= 0) {
-      state.files[fileIndex] = {
-        ...state.files[fileIndex],
-        nodes: state.currentFile.nodes,
-        edges: state.currentFile.edges,
-        config: state.currentFile.config,
-      };
+      state.files = state.files.map((file, index) =>
+        index === fileIndex ? nextFile : file,
+      );
     }
-
-    return {};
+    return { currentFile: nextFile };
   });
+}
+
+function updateFileSaveState(file: FileType, markSaved = false): FileType {
+  const fingerprint = createPipelineFingerprint(file);
+  const savedFingerprint = markSaved
+    ? fingerprint
+    : file.saveState.savedFingerprint;
+  return {
+    ...file,
+    saveState: {
+      ...file.saveState,
+      savedFingerprint,
+      dirty: fingerprint !== savedFingerprint,
+      saving: markSaved ? false : file.saveState.saving,
+      externalChange: markSaved ? undefined : file.saveState.externalChange,
+    },
+  };
+}
+
+function normalizeCachedFile(file: Omit<FileType, "saveState"> & {
+  saveState?: PipelineSaveState;
+}): FileType {
+  const normalized = {
+    ...file,
+    config: {
+      prefix: "",
+      ...file.config,
+      filePath: undefined,
+      relativePath: undefined,
+      separatedConfigPath: undefined,
+      lastSyncTime: undefined,
+    },
+    saveState: {
+      dirty: true,
+      savedFingerprint: "",
+      saving: false,
+    },
+  } as FileType;
+  return updateFileSaveState(normalized);
 }
 
 /** 从 JSONC 内容中提取顶层键顺序 */
@@ -189,41 +232,17 @@ function updateFileConfigAfterSave(
 // 保存Flow
 export function saveFlow(): FileType | null {
   try {
-    const flowState = useFlowStore.getState();
     const fileState = useFileStore.getState();
-    const currentFileName = fileState.currentFile.fileName;
-    const fileIndex = fileState.files.findIndex(
-      (f) => f.fileName === currentFileName,
-    );
-
-    if (fileIndex < 0) {
+    if (
+      !fileState.files.some(
+        (file) => file.fileName === fileState.currentFile.fileName,
+      )
+    ) {
       console.error("[fileStore] saveFlow: 当前文件不在 files 数组中");
       return null;
     }
-
-    // 清除选中状态并更新数据
-    const updatedNodes = flowState.nodes.map((node: NodeType) => ({
-      ...node,
-      selected: undefined,
-    }));
-    const updatedEdges = flowState.edges.map((edge: EdgeType) => ({
-      ...edge,
-      selected: undefined,
-    }));
-
-    // 更新状态
-    useFileStore.setState((state) => {
-      state.currentFile.nodes = updatedNodes;
-      state.currentFile.edges = updatedEdges;
-      // 确保 files 数组中的对应文件也被更新
-      state.files[fileIndex] = {
-        ...state.files[fileIndex],
-        nodes: updatedNodes,
-        edges: updatedEdges,
-      };
-      return {};
-    });
-
+    const flowState = useFlowStore.getState();
+    fileState.syncCurrentGraph(flowState.nodes, flowState.edges);
     return useFileStore.getState().currentFile;
   } catch (err) {
     console.error("[fileStore] saveFlow 失败:", err);
@@ -282,7 +301,10 @@ export async function saveOpenedLocalFilesForDebug(): Promise<SaveOpenedLocalFil
 
   const filesToSave = useFileStore
     .getState()
-    .files.filter((file) => file.config.filePath && !file.config.isDeleted);
+    .files.filter(
+      (file) =>
+        file.config.filePath && file.saveState.externalChange !== "deleted",
+    );
   const failedFiles: string[] = [];
   let savedCount = 0;
 
@@ -351,6 +373,10 @@ type FileState = {
     key: K,
     value: FileConfigType[K],
   ) => void;
+  syncCurrentGraph: (nodes: NodeType[], edges: EdgeType[]) => void;
+  markCurrentSaved: () => void;
+  markFileSaved: (fileName: string, savedFingerprint: string) => void;
+  setFileSaving: (fileName: string, saving: boolean) => void;
   switchFile: (fileName: string) => string | null;
   addFile: (options?: { isSwitch: boolean }) => string | null;
   removeFile: (fileName: string) => string | null;
@@ -368,13 +394,15 @@ type FileState = {
     filePath?: string,
     fileToSave?: FileType,
     saveMode?: "all" | "pipeline" | "config",
+    options?: { allowOverwrite?: boolean },
   ) => Promise<boolean>;
   markFileDeleted: (filePath: string) => void;
   markFileModified: (filePath: string) => void;
   reloadFileFromLocal: (filePath: string, content: any) => Promise<boolean>;
   findFileByPath: (filePath: string) => FileType | undefined;
+  renamePath: (oldPath: string, newPath: string, isDirectory: boolean) => void;
 };
-export const useFileStore = create<FileState>()((set) => ({
+export const useFileStore = create<FileState>()((set, get) => ({
   files: [],
   currentFile: initialFile,
 
@@ -392,7 +420,7 @@ export const useFileStore = create<FileState>()((set) => ({
       let files = state.files;
       let currentFile = state.currentFile;
       const index = findFileIndex(currentFile.fileName);
-      currentFile = { ...state.currentFile, fileName };
+      currentFile = updateFileSaveState({ ...state.currentFile, fileName });
       files[index] = currentFile;
       files = [...files];
       return { files, currentFile };
@@ -412,7 +440,7 @@ export const useFileStore = create<FileState>()((set) => ({
   setFileConfig(key, value) {
     set((state) => {
       const config = { ...state.currentFile.config, [key]: value };
-      const currentFile = { ...state.currentFile, config };
+      const currentFile = updateFileSaveState({ ...state.currentFile, config });
       const currentFileIndex = state.files.findIndex(
         (file) => file.fileName === currentFile.fileName,
       );
@@ -428,72 +456,104 @@ export const useFileStore = create<FileState>()((set) => ({
     });
   },
 
+  syncCurrentGraph(nodes, edges) {
+    set((state) => {
+      if (!state.files.some((file) => file.fileName === state.currentFile.fileName)) {
+        return state;
+      }
+      const currentFile = updateFileSaveState({
+        ...state.currentFile,
+        nodes: nodes.map((node) => ({ ...node, selected: undefined })),
+        edges: edges.map((edge) => ({ ...edge, selected: undefined })),
+      });
+      return {
+        currentFile,
+        files: state.files.map((file) =>
+          file.fileName === currentFile.fileName ? currentFile : file,
+        ),
+      };
+    });
+  },
+
+  markCurrentSaved() {
+    syncFlowStoreToFileStore(undefined, true);
+  },
+
+  markFileSaved(fileName, savedFingerprint) {
+    set((state) => {
+      const update = (file: FileType) => {
+        if (file.fileName !== fileName) return file;
+        const currentFingerprint = createPipelineFingerprint(file);
+        return {
+          ...file,
+          saveState: {
+            ...file.saveState,
+            savedFingerprint,
+            dirty: currentFingerprint !== savedFingerprint,
+            externalChange: undefined,
+            saving: false,
+          },
+        };
+      };
+      return {
+        files: state.files.map(update),
+        currentFile: update(state.currentFile),
+      };
+    });
+  },
+
+  setFileSaving(fileName, saving) {
+    set((state) => {
+      const update = (file: FileType) =>
+        file.fileName === fileName
+          ? { ...file, saveState: { ...file.saveState, saving } }
+          : file;
+      return { files: state.files.map(update), currentFile: update(state.currentFile) };
+    });
+  },
+
   // 切换文件
   switchFile: (fileName: string) => {
-    let activeKey = null;
-    let needReload = false;
-    let reloadFilePath: string | undefined;
-    set((state) => {
-      // 查找文件
-      let currentFile = state.currentFile;
-      if (currentFile.fileName === fileName) return {};
-      const targetFile = findFile(fileName);
-      if (!targetFile) return {};
-      activeKey = targetFile.fileName;
+    const state = get();
+    if (state.currentFile.fileName === fileName) return fileName;
+    if (!state.files.some((file) => file.fileName === fileName)) return null;
 
-      // 检测目标文件是否被外部修改
-      if (
-        targetFile.config.isModifiedExternally &&
-        targetFile.config.filePath
-      ) {
-        needReload = true;
-        reloadFilePath = targetFile.config.filePath;
-      }
-
-      const flowStore = useFlowStore.getState();
-      // 保存当前文件的视口位置到files数组中
-      const currentViewport = flowStore.viewport;
-      const currentFileIndex = findFileIndex(currentFile.fileName);
-      if (currentFileIndex >= 0) {
-        // 只有已打开的 Pipeline 才需要保存离开前的画布状态。
-        saveFlow();
-        state.files[currentFileIndex].config.savedViewport = {
-          ...currentViewport,
-        };
-      }
-      // 更新flow
-      flowStore.replace(targetFile.nodes, targetFile.edges, {
-        skipSave: true,
-        isFitView: false,
-      });
-      // 初始化历史记录
-      flowStore.initHistory(targetFile.nodes, targetFile.edges);
-      // 恢复目标文件的视口位置
-      if (targetFile.config.savedViewport) {
-        setTimeout(() => {
-          const instance = flowStore.instance;
-          if (instance) {
-            instance.setViewport(targetFile.config.savedViewport!, {
-              duration: 300,
-            });
-          }
-        }, 50);
-      }
-      return { currentFile: targetFile };
-    });
-
-    // 如果目标文件被外部修改，触发重载
-    if (needReload && reloadFilePath) {
-      setTimeout(() => {
-        import("../services/server").then(({ localServer }) => {
-          if (localServer.isConnected()) {
-            localServer.send("file.open", { file_path: reloadFilePath });
-          }
-        });
-      }, 0);
+    if (
+      state.files.some(
+        (file) => file.fileName === state.currentFile.fileName,
+      )
+    ) {
+      saveFlow();
     }
-
-    return activeKey;
+    const flowStore = useFlowStore.getState();
+    const currentViewport = flowStore.viewport;
+    const refreshed = get();
+    const targetFile = refreshed.files.find((file) => file.fileName === fileName);
+    if (!targetFile) return null;
+    set({
+      files: refreshed.files.map((file) =>
+        file.fileName === refreshed.currentFile.fileName
+          ? updateFileSaveState({
+              ...file,
+              config: { ...file.config, savedViewport: { ...currentViewport } },
+            })
+          : file,
+      ),
+      currentFile: targetFile,
+    });
+    flowStore.replace(targetFile.nodes, targetFile.edges, {
+      skipSave: true,
+      isFitView: false,
+    });
+    flowStore.initHistory(targetFile.nodes, targetFile.edges);
+    if (targetFile.config.savedViewport) {
+      setTimeout(() => {
+        flowStore.instance?.setViewport(targetFile.config.savedViewport!, {
+          duration: 300,
+        });
+      }, 50);
+    }
+    return targetFile.fileName;
   },
 
   // 添加文件
@@ -507,40 +567,29 @@ export const useFileStore = create<FileState>()((set) => ({
       return { files };
     });
     if (isSwitch) {
-      set((state) => {
-        const newFileName = newFile.fileName;
-        state.switchFile(newFileName);
-        activeKey = newFileName;
-        return {};
-      });
+      get().switchFile(newFile.fileName);
+      activeKey = newFile.fileName;
     }
     return activeKey;
   },
 
   // 删除文件
   removeFile(fileName) {
-    let activeKey = null;
-    set((state) => {
-      const files = state.files;
-      const newFiles = files.filter((file) => file.fileName !== fileName);
-      if (files.length - newFiles.length !== 1) {
-        return {};
-      }
-      if (fileName === state.currentFile.fileName) {
-        const nextFile = newFiles[0];
-        if (nextFile) {
-          state.switchFile(nextFile.fileName);
-          activeKey = nextFile.fileName;
-        } else {
-          state.currentFile = createFile();
-          const flowStore = useFlowStore.getState();
-          flowStore.replace([], [], { skipSave: true });
-          flowStore.clearHistory();
-        }
-      }
-      return { files: newFiles };
-    });
-    return activeKey;
+    const state = get();
+    const newFiles = state.files.filter((file) => file.fileName !== fileName);
+    if (newFiles.length === state.files.length) return null;
+    if (fileName !== state.currentFile.fileName) {
+      set({ files: newFiles });
+      return state.currentFile.fileName;
+    }
+    const nextFile = newFiles[0];
+    const currentFile = nextFile ?? createFile();
+    set({ files: newFiles, currentFile });
+    const flowStore = useFlowStore.getState();
+    flowStore.replace(currentFile.nodes, currentFile.edges, { skipSave: true });
+    if (nextFile) flowStore.initHistory(nextFile.nodes, nextFile.edges);
+    else flowStore.clearHistory();
+    return nextFile?.fileName ?? null;
   },
 
   // 拖拽文件
@@ -565,8 +614,9 @@ export const useFileStore = create<FileState>()((set) => ({
         if (!ls) return Error.call("未找到本地files缓存");
         files = JSON.parse(ls) as FileType[];
       }
-      const currentFile = files[0] ?? createFile();
-      set({ files, currentFile });
+      const normalizedFiles = files.map(normalizeCachedFile);
+      const currentFile = normalizedFiles[0] ?? createFile();
+      set({ files: normalizedFiles, currentFile });
       useFlowStore.getState().replace(currentFile.nodes, currentFile.edges, {
         skipSave: true,
       });
@@ -601,7 +651,7 @@ export const useFileStore = create<FileState>()((set) => ({
       const keyOrder = extractKeyOrder(contentString);
 
       // 从文件路径提取真实文件名（不含扩展名）
-      const realFileName = (filePath.split(/[\/\\]/).pop() || "").replace(
+      const realFileName = (filePath.split(/[/\\]/).pop() || "").replace(
         /\.(json|jsonc)$/i,
         "",
       );
@@ -629,7 +679,6 @@ export const useFileStore = create<FileState>()((set) => ({
       // 构建配置更新
       const configUpdates: Partial<FileConfigType> = {
         lastSyncTime: Date.now(),
-        isModifiedExternally: false,
       };
       if (configPath) {
         configUpdates.separatedConfigPath = configPath;
@@ -644,7 +693,7 @@ export const useFileStore = create<FileState>()((set) => ({
         // 切换到已有文件并更新内容
         useFileStore.getState().switchFile(existingFile.fileName);
         await pipelineToFlow({ pString: finalContentString });
-        syncFlowStoreToFileStore(configUpdates);
+        syncFlowStoreToFileStore(configUpdates, true);
         return true;
       }
 
@@ -663,6 +712,7 @@ export const useFileStore = create<FileState>()((set) => ({
         syncFlowStoreToFileStore({ ...configUpdates, filePath });
         // 设置文件名
         useFileStore.getState().setFileName(realFileName);
+        useFileStore.getState().markCurrentSaved();
         // 恢复视口
         if (savedViewport) {
           setTimeout(() => {
@@ -681,6 +731,7 @@ export const useFileStore = create<FileState>()((set) => ({
       syncFlowStoreToFileStore({ ...configUpdates, filePath });
       // 设置文件名
       useFileStore.getState().setFileName(realFileName);
+      useFileStore.getState().markCurrentSaved();
       return true;
     } catch (error) {
       console.error("[fileStore] Failed to open file from local:", error);
@@ -693,15 +744,47 @@ export const useFileStore = create<FileState>()((set) => ({
     filePath?: string,
     fileToSave?: FileType,
     saveMode?: "all" | "pipeline" | "config",
+    options?: { allowOverwrite?: boolean },
   ): Promise<boolean> {
+    let savingFileName: string | undefined;
     try {
       const state = useFileStore.getState();
 
       // 优先使用传入的文件，否则使用当前文件
-      const targetFile = fileToSave || state.currentFile;
+      if (
+        !fileToSave ||
+        fileToSave.fileName === state.currentFile.fileName
+      ) {
+        saveFlow();
+      }
+      const refreshedState = useFileStore.getState();
+      const targetFile = fileToSave
+        ? refreshedState.files.find((file) => file.fileName === fileToSave.fileName) ?? fileToSave
+        : refreshedState.currentFile;
       const configHandlingMode =
         useConfigStore.getState().configs.configHandlingMode;
       const targetFilePath = filePath || targetFile.config.filePath;
+
+      if (targetFile.saveState.saving) return false;
+      if (targetFile.saveState.externalChange === "deleted") {
+        notification.error({
+          title: "文件已被删除",
+          description: "无法保存到原路径，请导出副本后重新加入项目。",
+          placement: "top",
+        });
+        return false;
+      }
+      if (
+        targetFile.saveState.externalChange === "modified" &&
+        !options?.allowOverwrite
+      ) {
+        notification.warning({
+          title: "文件存在外部修改",
+          description: "请先在冲突提示中明确选择重新加载或覆盖磁盘版本。",
+          placement: "top",
+        });
+        return false;
+      }
 
       if (!targetFilePath) {
         console.error("[fileStore] No file path specified");
@@ -726,38 +809,11 @@ export const useFileStore = create<FileState>()((set) => ({
         return false;
       }
 
-      // 同步当前 flowStore 数据到 fileStore
-      let nodesToSave = targetFile.nodes;
-      let edgesToSave = targetFile.edges;
-
-      if (!fileToSave || fileToSave === state.currentFile) {
-        const flowState = useFlowStore.getState();
-        nodesToSave = flowState.nodes.map((node: NodeType) => ({
-          ...node,
-          selected: undefined,
-        }));
-        edgesToSave = flowState.edges.map((edge: EdgeType) => ({
-          ...edge,
-          selected: undefined,
-        }));
-
-        // 更新 fileStore 中的数据
-        useFileStore.setState((s) => {
-          const fileIndex = s.files.findIndex(
-            (f) => f.fileName === targetFile.fileName,
-          );
-          if (fileIndex >= 0) {
-            s.files[fileIndex] = {
-              ...s.files[fileIndex],
-              nodes: nodesToSave,
-              edges: edgesToSave,
-            };
-          }
-          s.currentFile.nodes = nodesToSave;
-          s.currentFile.edges = edgesToSave;
-          return {};
-        });
-      }
+      const nodesToSave = targetFile.nodes;
+      const edgesToSave = targetFile.edges;
+      const savedFingerprint = createPipelineFingerprint(targetFile);
+      savingFileName = targetFile.fileName;
+      useFileStore.getState().setFileSaving(targetFile.fileName, true);
 
       // 构建导出选项
       const exportOptions = {
@@ -863,6 +919,13 @@ export const useFileStore = create<FileState>()((set) => ({
       if (ackSuccess) {
         configUpdates.lastSyncTime = Date.now();
         updateFileConfigAfterSave(targetFile.fileName, configUpdates);
+        const isFullSave =
+          configHandlingMode !== "separated" || !saveMode || saveMode === "all";
+        if (isFullSave) {
+          useFileStore
+            .getState()
+            .markFileSaved(targetFile.fileName, savedFingerprint);
+        }
         return true;
       } else {
         console.error("[fileStore] Save ack not received or failed");
@@ -871,50 +934,38 @@ export const useFileStore = create<FileState>()((set) => ({
     } catch (error) {
       console.error("[fileStore] Failed to save file to local:", error);
       return false;
+    } finally {
+      if (savingFileName) {
+        useFileStore.getState().setFileSaving(savingFileName, false);
+      }
     }
   },
 
   // 标记文件为已删除
   markFileDeleted(filePath: string): void {
     set((state) => {
-      const currentFilePath = state.currentFile.config.filePath;
-      state.files = state.files.map((file) => {
-        if (file.config.filePath === filePath) {
-          const updated = {
-            ...file,
-            config: { ...file.config, isDeleted: true },
-          };
-          // 如果是当前文件，同步更新 currentFile
-          if (filePath === currentFilePath) {
-            state.currentFile = updated;
-          }
-          return updated;
-        }
-        return file;
-      });
-      return {};
+      const update = (file: FileType) =>
+        file.config.filePath === filePath
+          ? {
+              ...file,
+              saveState: { ...file.saveState, externalChange: "deleted" as const },
+            }
+          : file;
+      return { files: state.files.map(update), currentFile: update(state.currentFile) };
     });
   },
 
   // 标记文件被外部修改
   markFileModified(filePath: string): void {
     set((state) => {
-      const currentFilePath = state.currentFile.config.filePath;
-      state.files = state.files.map((file) => {
-        if (file.config.filePath === filePath) {
-          const updated = {
-            ...file,
-            config: { ...file.config, isModifiedExternally: true },
-          };
-          // 如果是当前文件，同步更新 currentFile
-          if (filePath === currentFilePath) {
-            state.currentFile = updated;
-          }
-          return updated;
-        }
-        return file;
-      });
-      return {};
+      const update = (file: FileType) =>
+        file.config.filePath === filePath
+          ? {
+              ...file,
+              saveState: { ...file.saveState, externalChange: "modified" as const },
+            }
+          : file;
+      return { files: state.files.map(update), currentFile: update(state.currentFile) };
     });
   },
 
@@ -940,9 +991,8 @@ export const useFileStore = create<FileState>()((set) => ({
 
       // 同步 FlowStore 数据到 FileStore，清除修改标记
       syncFlowStoreToFileStore({
-        isModifiedExternally: false,
         lastSyncTime: Date.now(),
-      });
+      }, true);
 
       return true;
     } catch (error) {
@@ -957,4 +1007,77 @@ export const useFileStore = create<FileState>()((set) => ({
       .getState()
       .files.find((file) => file.config.filePath === filePath);
   },
+
+  renamePath(oldPath, newPath, isDirectory) {
+    set((state) => {
+      const update = (file: FileType) => {
+        const filePath = file.config.filePath
+          ? remapProjectPath(file.config.filePath, oldPath, newPath, isDirectory)
+          : undefined;
+        const separatedConfigPath = remapSeparatedConfigPath(
+          file.config.separatedConfigPath,
+          file.config.filePath,
+          oldPath,
+          newPath,
+          isDirectory,
+        );
+        if (
+          filePath === file.config.filePath &&
+          separatedConfigPath === file.config.separatedConfigPath
+        ) {
+          return file;
+        }
+        const exactRename =
+          file.config.filePath?.replaceAll("\\", "/") ===
+          oldPath.replaceAll("\\", "/");
+        return {
+          ...file,
+          fileName: exactRename
+            ? (newPath.split(/[\\/]/).pop() ?? file.fileName).replace(
+                /\.(json|jsonc)$/i,
+                "",
+              )
+            : file.fileName,
+          config: { ...file.config, filePath, separatedConfigPath },
+        };
+      };
+      return { files: state.files.map(update), currentFile: update(state.currentFile) };
+    });
+  },
 }));
+
+function remapSeparatedConfigPath(
+  separatedConfigPath: string | undefined,
+  pipelinePath: string | undefined,
+  oldPath: string,
+  newPath: string,
+  isDirectory: boolean,
+): string | undefined {
+  if (!separatedConfigPath) return undefined;
+  const directlyRemapped = remapProjectPath(
+    separatedConfigPath,
+    oldPath,
+    newPath,
+    isDirectory,
+  );
+  if (directlyRemapped !== normalizeProjectPath(separatedConfigPath)) {
+    return directlyRemapped;
+  }
+  if (
+    isDirectory ||
+    !pipelinePath ||
+    normalizeProjectPath(pipelinePath) !== normalizeProjectPath(oldPath)
+  ) {
+    return directlyRemapped;
+  }
+  const oldBase = projectPathName(oldPath).replace(/\.(json|jsonc)$/i, "");
+  const sidecarName = projectPathName(separatedConfigPath);
+  const sidecarMatch = sidecarName.match(/^\.(.+)\.mpe\.(jsonc?)$/i);
+  if (!sidecarMatch || sidecarMatch[1] !== oldBase) return directlyRemapped;
+  const newBase = projectPathName(newPath).replace(/\.(json|jsonc)$/i, "");
+  const normalizedNew = normalizeProjectPath(newPath);
+  const lastSeparator = normalizedNew.lastIndexOf("/");
+  const directory =
+    lastSeparator >= 0 ? normalizedNew.slice(0, lastSeparator + 1) : "";
+  return `${directory}.${newBase}.mpe.${sidecarMatch[2]}`;
+}

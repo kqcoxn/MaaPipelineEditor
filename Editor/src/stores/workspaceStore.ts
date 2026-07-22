@@ -4,6 +4,10 @@ import type {
   WorkspaceTreeEntry,
   WorkspaceTreePayload,
 } from "../services/generated/bridge-v2";
+import {
+  projectPathName,
+  remapProjectPath,
+} from "../utils/projectPath";
 
 export type { WorkspaceTreeEntry, WorkspaceTreePayload };
 
@@ -58,6 +62,7 @@ interface WorkspaceState {
   applyStatus: (status: WorkspaceStatusPayload) => void;
   applyTree: (tree: WorkspaceTreePayload) => void;
   prepareReconnect: () => void;
+  renamePath: (oldPath: string, newPath: string, isDirectory: boolean) => void;
   openSelector: () => void;
   closeSelector: () => void;
   clear: () => void;
@@ -109,6 +114,50 @@ export const useWorkspaceStore = create<WorkspaceState>()(
     },
     prepareReconnect() {
       set({ revision: 0, treeRevision: 0 });
+    },
+    renamePath(oldPath, newPath, isDirectory) {
+      set((state) => ({
+        treeEntries: state.treeEntries.map((entry) => {
+          const path = remapProjectPath(
+            entry.path,
+            oldPath,
+            newPath,
+            isDirectory,
+          );
+          return path === entry.path
+            ? entry
+            : { ...entry, path, name: projectPathName(path) };
+        }),
+        candidates: state.candidates.map((candidate) => ({
+          ...candidate,
+          interface_path: remapProjectPath(
+            candidate.interface_path,
+            oldPath,
+            newPath,
+            isDirectory,
+          ),
+        })),
+        currentInterface: state.currentInterface
+          ? {
+              ...state.currentInterface,
+              interface_path: remapProjectPath(
+                state.currentInterface.interface_path,
+                oldPath,
+                newPath,
+                isDirectory,
+              ),
+            }
+          : null,
+        diagnostics: state.diagnostics.map((diagnostic) => ({
+          ...diagnostic,
+          path: remapProjectPath(
+            diagnostic.path,
+            oldPath,
+            newPath,
+            isDirectory,
+          ),
+        })),
+      }));
     },
     openSelector() {
       if (get().candidates.length > 1) set({ selectorOpen: true });

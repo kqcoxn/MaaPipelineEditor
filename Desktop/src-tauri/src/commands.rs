@@ -1,4 +1,5 @@
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -21,6 +22,7 @@ pub struct AppState {
     pub settings: Arc<SettingsStore>,
     pub app_data_dir: PathBuf,
     pub capabilities: CapabilityStatus,
+    pub close_guard_ready: AtomicBool,
 }
 
 #[derive(Debug, Serialize)]
@@ -346,7 +348,13 @@ pub async fn install_update(
 }
 
 #[tauri::command]
+pub fn set_close_guard_ready(ready: bool, state: State<'_, AppState>) {
+    state.close_guard_ready.store(ready, Ordering::SeqCst);
+}
+
+#[tauri::command]
 pub fn exit_app(app: AppHandle, state: State<'_, AppState>) {
+    state.close_guard_ready.store(false, Ordering::SeqCst);
     let bridge = Arc::clone(&state.bridge);
     std::thread::spawn(move || {
         let _ = bridge.shutdown();

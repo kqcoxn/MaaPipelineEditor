@@ -53,4 +53,26 @@ describe("localFileStore workspace revisions", () => {
       files: [pendingFile],
     });
   });
+
+  it("migrates indexed files and directory entries with path boundaries", () => {
+    useLocalFileStore.getState().setFileList(
+      7,
+      "C:/project",
+      "project/interface.json",
+      [pendingFile, { ...pendingFile, file_path: "project-old/main.json" }],
+      ["project/resource/pipeline"],
+    );
+
+    useLocalFileStore
+      .getState()
+      .renamePath("project/resource", "project/assets", true);
+
+    expect(useLocalFileStore.getState().files.map((file) => file.file_path)).toEqual([
+      "project/assets/pipeline/main.json",
+      "project-old/main.json",
+    ]);
+    expect(useLocalFileStore.getState().directories).toEqual([
+      "project/assets/pipeline",
+    ]);
+  });
 });

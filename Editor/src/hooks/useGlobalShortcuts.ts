@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { message } from "antd";
 import { useFlowStore } from "../stores/flow";
 import { useProjectSessionStore } from "../stores/projectSessionStore";
-import { documentProtocol } from "../services/server";
+import { saveActiveEditor } from "../services/editorCommands";
 
 /**
  * 检查目标元素是否为可编辑元素（输入框、文本域等）
@@ -139,26 +139,26 @@ function handleRedo(event: KeyboardEvent): boolean {
   return true;
 }
 
-function handleDocumentSave(event: KeyboardEvent): boolean {
+function handleEditorSave(event: KeyboardEvent): boolean {
   if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "s") {
     return false;
   }
   const session = useProjectSessionStore.getState();
-  const active = session.tabs.find((tab) => tab.key === session.activeKey);
-  if (!active || active.kind !== "document") return false;
+  if (!session.activeKey) return false;
   event.preventDefault();
   event.stopPropagation();
   event.stopImmediatePropagation();
-  void documentProtocol.saveDocument(active.path);
+  void saveActiveEditor();
   return true;
 }
 
 /**
  * 全局快捷键处理函数
  */
-function handleGlobalKeydown(event: KeyboardEvent) {
+function handleGlobalKeydown(event: KeyboardEvent, editingEnabled: boolean) {
   // 按优先级处理各种快捷键
-  if (handleDocumentSave(event)) return;
+  if (handleEditorSave(event)) return;
+  if (!editingEnabled) return;
   if (handleDeleteKeyRedirection(event)) return;
   if (handleUndo(event)) return;
   if (handleRedo(event)) return;
@@ -170,16 +170,21 @@ function handleGlobalKeydown(event: KeyboardEvent) {
  *
  * @param enabled - 是否启用全局快捷键，默认为 true
  */
-export function useGlobalShortcuts(enabled: boolean = true) {
+export function useGlobalShortcuts(
+  enabled: boolean = true,
+  editingEnabled: boolean = enabled,
+) {
   useEffect(() => {
     if (!enabled) return;
+    const handleKeydown = (event: KeyboardEvent) =>
+      handleGlobalKeydown(event, editingEnabled);
 
     // 订阅全局键盘事件
-    document.addEventListener("keydown", handleGlobalKeydown, true);
+    document.addEventListener("keydown", handleKeydown, true);
 
     // 组件卸载时解绑
     return () => {
-      document.removeEventListener("keydown", handleGlobalKeydown, true);
+      document.removeEventListener("keydown", handleKeydown, true);
     };
-  }, [enabled]);
+  }, [editingEnabled, enabled]);
 }

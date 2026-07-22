@@ -6,6 +6,10 @@ import type {
   WorkspaceDocument,
   WorkspaceDocumentsPayload,
 } from "../services/generated/bridge-v2";
+import {
+  projectPathName,
+  remapProjectPath,
+} from "../utils/projectPath";
 
 export interface DocumentConflict {
   externalContent: string;
@@ -38,11 +42,12 @@ interface DocumentState {
   finishOpen: (result: DocumentOpenResult, imageUrl?: string) => void;
   failOpen: (path: string, error: string) => void;
   updateContent: (path: string, content: string) => void;
-  markSaved: (path: string, revision: string) => void;
+  markSaved: (path: string, revision: string, savedContent: string) => void;
   setConflict: (path: string, external: DocumentOpenResult) => void;
   keepLocal: (path: string) => void;
   reloadExternal: (path: string, external: DocumentOpenResult, imageUrl?: string) => void;
   markDeleted: (path: string) => void;
+  renamePath: (oldPath: string, newPath: string, isDirectory: boolean) => void;
   closeDocument: (path: string) => void;
   clearProject: () => void;
 }
@@ -64,7 +69,13 @@ export const useDocumentStore = create<DocumentState>()((set, get) => ({
       payload.documents.map((document) => [document.path, document]),
     );
     if (!sameRoot) {
-      set({ revision: payload.revision, root: payload.root, documents, opened: {} });
+      const opened = Object.fromEntries(
+        Object.entries(state.opened).map(([path, document]) => [
+          path,
+          { ...document, deleted: true },
+        ]),
+      );
+      set({ revision: payload.revision, root: payload.root, documents, opened });
       return;
     }
     const opened = Object.fromEntries(
@@ -151,7 +162,7 @@ export const useDocumentStore = create<DocumentState>()((set, get) => ({
       };
     });
   },
-  markSaved(path, revision) {
+  markSaved(path, revision, savedContent) {
     set((state) => {
       const document = state.opened[path];
       if (!document) return state;
@@ -160,9 +171,9 @@ export const useDocumentStore = create<DocumentState>()((set, get) => ({
           ...state.opened,
           [path]: {
             ...document,
-            savedContent: document.content,
+            savedContent,
             baseRevision: revision,
-            dirty: false,
+            dirty: document.content !== savedContent,
             conflict: undefined,
             error: undefined,
           },
@@ -241,6 +252,37 @@ export const useDocumentStore = create<DocumentState>()((set, get) => ({
       };
     });
   },
+  renamePath(oldPath, newPath, isDirectory) {
+    set((state) => {
+      const documents = remapDocumentRecord(
+        state.documents,
+        oldPath,
+        newPath,
+        isDirectory,
+        (descriptor, path) => ({
+          ...descriptor,
+          path,
+          name: projectPathName(path),
+        }),
+      );
+      const opened = remapDocumentRecord(
+        state.opened,
+        oldPath,
+        newPath,
+        isDirectory,
+        (document, path) => ({
+          ...document,
+          path,
+          descriptor: {
+            ...document.descriptor,
+            path,
+            name: projectPathName(path),
+          },
+        }),
+      );
+      return { documents, opened };
+    });
+  },
   closeDocument(path) {
     set((state) => {
       const opened = { ...state.opened };
@@ -252,6 +294,26 @@ export const useDocumentStore = create<DocumentState>()((set, get) => ({
     set(initialState);
   },
 }));
+
+function remapDocumentRecord<T>(
+  record: Record<string, T>,
+  oldPath: string,
+  newPath: string,
+  isDirectory: boolean,
+  update: (value: T, path: string) => T,
+): Record<string, T> {
+  return Object.fromEntries(
+    Object.entries(record).map(([path, value]) => {
+      const remappedPath = remapProjectPath(
+        path,
+        oldPath,
+        newPath,
+        isDirectory,
+      );
+      return [remappedPath, update(value, remappedPath)];
+    }),
+  );
+}
 
 export function getDirtyDocumentPaths(): string[] {
   return Object.values(useDocumentStore.getState().opened)

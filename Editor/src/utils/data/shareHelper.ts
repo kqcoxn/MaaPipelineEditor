@@ -5,8 +5,9 @@
  */
 
 import LZString from "lz-string";
-import { flowToPipeline, pipelineToFlow } from "../../core/parser";
+import { flowToPipeline } from "../../core/parser";
 import { message } from "antd";
+import { importPipelineAsDraft } from "../../services/pipelineImport";
 
 // URL 参数名
 const SHARE_PARAM = "shared";
@@ -221,19 +222,9 @@ export async function loadFromShareUrl(): Promise<boolean> {
       return false;
     }
 
-    // 新建文件
-    const { useFileStore } = await import("../../stores/fileStore");
-    const newFileName = useFileStore.getState().addFile({ isSwitch: true });
-
-    if (!newFileName) {
-      message.error("创建新文件失败");
-      clearShareParam();
-      return false;
-    }
-
-    // 导入到新文件
-    const pString = JSON.stringify(pipelineObj);
-    const success = await pipelineToFlow({ pString });
+    const success = await importPipelineAsDraft({
+      content: JSON.stringify(pipelineObj),
+    });
 
     if (success) {
       message.success("已从分享链接加载 Pipeline");
@@ -298,27 +289,10 @@ export async function importFromLocalFile(
     const file = await fileHandle.getFile();
     const content = await file.text();
 
-    // 解析 JSON
-    let pipelineObj;
-    try {
-      pipelineObj = JSON.parse(content);
-    } catch {
-      message.error("文件内容不是有效的 JSON 格式");
-      return false;
-    }
-
-    // 新建文件用于加载内容
-    const { useFileStore } = await import("../../stores/fileStore");
-    const newFileName = useFileStore.getState().addFile({ isSwitch: true });
-
-    if (!newFileName) {
-      message.error("创建新文件失败");
-      return false;
-    }
-
-    // 导入到新文件
-    const pString = JSON.stringify(pipelineObj);
-    const success = await pipelineToFlow({ pString });
+    const success = await importPipelineAsDraft({
+      content,
+      suggestedName: file.name,
+    });
 
     if (success) {
       message.success(`已从 ${file.name} 导入 Pipeline`);

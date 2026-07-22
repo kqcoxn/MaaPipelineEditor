@@ -1,3 +1,4 @@
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
@@ -36,13 +37,7 @@ pub fn build(app: &AppHandle, visible: bool) -> AppResult<MenuItem<tauri::Wry>> 
                 let _ = app.emit("desktop-stop-debug", ());
             }
             "quit" => {
-                let state = app.state::<AppState>();
-                let bridge = Arc::clone(&state.bridge);
-                let app = app.clone();
-                std::thread::spawn(move || {
-                    let _ = bridge.shutdown();
-                    app.exit(0);
-                });
+                request_app_exit(app);
             }
             _ => {}
         })
@@ -62,6 +57,20 @@ pub fn build(app: &AppHandle, visible: bool) -> AppResult<MenuItem<tauri::Wry>> 
         .map_err(desktop_error)?;
     tray.set_visible(visible).map_err(desktop_error)?;
     Ok(status)
+}
+
+pub fn request_app_exit(app: &AppHandle) {
+    let state = app.state::<AppState>();
+    if !state.close_guard_ready.load(Ordering::SeqCst) {
+        app.exit(0);
+        return;
+    }
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.show();
+        let _ = window.unminimize();
+        let _ = window.set_focus();
+    }
+    let _ = app.emit("desktop-close-requested", ());
 }
 
 pub fn start_status_updates(status_item: MenuItem<tauri::Wry>, bridge: Arc<BridgeSupervisor>) {

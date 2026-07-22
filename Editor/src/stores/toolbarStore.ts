@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { subscribeWithSelector } from "zustand/middleware";
 
 /**
  * 工具栏状态管理
@@ -28,10 +29,13 @@ interface ToolbarState {
   defaultImportAction: ImportAction;
   // 默认导出操作
   defaultExportAction: ExportAction;
+  exportDialogOpen: boolean;
 
   // Actions
   setDefaultImportAction: (action: ImportAction) => void;
   setDefaultExportAction: (action: ExportAction) => void;
+  openExportDialog: () => void;
+  closeExportDialog: () => void;
 }
 
 // 从 localStorage 读取默认操作
@@ -76,17 +80,22 @@ function isValidExportAction(action: string): boolean {
   ].includes(action);
 }
 
-export const useToolbarStore = create<ToolbarState>((set) => ({
-  defaultImportAction: getDefaultImportAction(),
-  defaultExportAction: getDefaultExportAction(),
+export const useToolbarStore = create<ToolbarState>()(
+  subscribeWithSelector((set) => ({
+    defaultImportAction: getDefaultImportAction(),
+    defaultExportAction: getDefaultExportAction(),
+    exportDialogOpen: false,
 
-  setDefaultImportAction: (action: ImportAction) => {
-    localStorage.setItem("mpe_default_import_action", action);
-    set({ defaultImportAction: action });
-  },
+    setDefaultImportAction: (action: ImportAction) => {
+      localStorage.setItem("mpe_default_import_action", action);
+      set({ defaultImportAction: action });
+    },
 
-  setDefaultExportAction: (action: ExportAction) => {
-    localStorage.setItem("mpe_default_export_action", action);
-    set({ defaultExportAction: action });
-  },
-}));
+    setDefaultExportAction: (action: ExportAction) => {
+      localStorage.setItem("mpe_default_export_action", action);
+      set({ defaultExportAction: action });
+    },
+    openExportDialog: () => set({ exportDialogOpen: true }),
+    closeExportDialog: () => set({ exportDialogOpen: false }),
+  })),
+);

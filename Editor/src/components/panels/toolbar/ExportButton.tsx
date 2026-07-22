@@ -30,7 +30,13 @@ const actionGroupStyle = {
  * 支持导出到粘贴板或文件,点击执行默认操作,悬停显示菜单
  */
 function ExportButton() {
-  const { defaultExportAction, setDefaultExportAction } = useToolbarStore();
+  const defaultExportAction = useToolbarStore((state) => state.defaultExportAction);
+  const setDefaultExportAction = useToolbarStore(
+    (state) => state.setDefaultExportAction,
+  );
+  const exportModalVisible = useToolbarStore((state) => state.exportDialogOpen);
+  const openExportDialog = useToolbarStore((state) => state.openExportDialog);
+  const closeExportDialog = useToolbarStore((state) => state.closeExportDialog);
   const configHandlingMode = useConfigStore(
     (state) => state.configs.configHandlingMode,
   );
@@ -46,7 +52,6 @@ function ExportButton() {
     })),
   );
 
-  const [exportModalVisible, setExportModalVisible] = useState(false);
   const [guardState, setGuardState] = useState<{
     items: ConfigItemDef[];
     onContinue: () => void;
@@ -76,9 +81,9 @@ function ExportButton() {
     });
   };
 
-  const handleExportToFile = () => {
-    setExportModalVisible(true);
-  };
+  const handleExportToFile = useCallback(() => {
+    openExportDialog();
+  }, [openExportDialog]);
 
   const handleSaveToLocal = useCallback(
     async (mode?: "all" | "pipeline" | "config") => {
@@ -146,6 +151,7 @@ function ExportButton() {
         break;
     }
   }, [
+    handleExportToFile,
     handlePartialExport,
     handleSaveToLocal,
   ]);
@@ -317,7 +323,7 @@ function ExportButton() {
       </div>
       <ExportFileModal
         visible={exportModalVisible}
-        onCancel={() => setExportModalVisible(false)}
+        onCancel={closeExportDialog}
       />
       {guardState && (
         <GuardPromptModal

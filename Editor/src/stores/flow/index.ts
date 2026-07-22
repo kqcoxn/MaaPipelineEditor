@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { subscribeWithSelector } from "zustand/middleware";
 import type { FlowStore } from "./types";
 import { createViewSlice } from "./slices/viewSlice";
 import { createSelectionSlice } from "./slices/selectionSlice";
@@ -14,16 +15,18 @@ import { useConfigStore } from "../configStore";
 import { useFileStore } from "../fileStore";
 
 // 组合所有 slices
-export const useFlowStore = create<FlowStore>()((...a) => ({
-  ...createViewSlice(...a),
-  ...createSelectionSlice(...a),
-  ...createHistorySlice(...a),
-  ...createNodeSlice(...a),
-  ...createEdgeSlice(...a),
-  ...createGraphSlice(...a),
-  ...createPathSlice(...a),
-  ...createAnchorRefSlice(...a),
-}));
+export const useFlowStore = create<FlowStore>()(
+  subscribeWithSelector((...a) => ({
+    ...createViewSlice(...a),
+    ...createSelectionSlice(...a),
+    ...createHistorySlice(...a),
+    ...createNodeSlice(...a),
+    ...createEdgeSlice(...a),
+    ...createGraphSlice(...a),
+    ...createPathSlice(...a),
+    ...createAnchorRefSlice(...a),
+  })),
+);
 export type {
   NodeType,
   PipelineNodeType,

@@ -189,7 +189,18 @@ def test_file_management_rpcs_rename_and_delete(
                 {"file_path": "project/managed.txt", "file_name": "renamed.txt"},
             )
         )
-        rename_response = _receive_response(websocket, "rename")
+        rename_response = None
+        rename_event = None
+        while rename_response is None or rename_event is None:
+            message = websocket.receive_json()
+            if message.get("type") == "response" and message.get("id") == "rename":
+                rename_response = message
+            if (
+                message.get("type") == "event"
+                and message.get("event") == "file.changed"
+                and message.get("data", {}).get("type") == "renamed"
+            ):
+                rename_event = message["data"]
         websocket.send_json(
             _request("delete", "file.delete", {"file_path": "project/renamed.txt"})
         )
@@ -202,12 +213,67 @@ def test_file_management_rpcs_rename_and_delete(
         "is_directory": False,
         "status": "ok",
     }
+    assert rename_event == {
+        "type": "renamed",
+        "file_path": "project/managed.txt",
+        "new_file_path": "project/renamed.txt",
+        "is_directory": False,
+    }
     assert delete_response["result"] == {
         "file_path": "project/renamed.txt",
         "status": "ok",
     }
     assert not source.exists()
     assert not renamed.exists()
+
+
+def test_directory_rename_event_reports_old_and_new_paths(
+    client: tuple[TestClient, LocalBridgeState],
+) -> None:
+    test_client, state = client
+    source = state.workspace.root / "project" / "nested"
+    source.mkdir()
+    (source / "notes.txt").write_text("notes", encoding="utf-8")
+
+    with test_client.websocket_connect("/v2/ws", headers={"origin": ORIGIN}) as websocket:
+        _hello(websocket)
+        websocket.send_json(
+            _request(
+                "rename-directory",
+                "file.rename",
+                {"file_path": "project/nested", "file_name": "renamed"},
+            )
+        )
+        rename_response = None
+        rename_event = None
+        while rename_response is None or rename_event is None:
+            message = websocket.receive_json()
+            if (
+                message.get("type") == "response"
+                and message.get("id") == "rename-directory"
+            ):
+                rename_response = message
+            if (
+                message.get("type") == "event"
+                and message.get("event") == "file.changed"
+                and message.get("data", {}).get("type") == "renamed"
+            ):
+                rename_event = message["data"]
+
+    assert rename_response["result"] == {
+        "file_path": "project/nested",
+        "new_file_path": "project/renamed",
+        "is_directory": True,
+        "status": "ok",
+    }
+    assert rename_event == {
+        "type": "renamed",
+        "file_path": "project/nested",
+        "new_file_path": "project/renamed",
+        "is_directory": True,
+    }
+    assert not source.exists()
+    assert (state.workspace.root / "project" / "renamed" / "notes.txt").exists()
 
 
 def test_document_rpc_saves_with_revision_and_reports_conflict(

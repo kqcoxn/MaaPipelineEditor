@@ -136,4 +136,19 @@ describe("DocumentProtocol", () => {
       height: 20,
     });
   });
+
+  it("does not recreate an externally deleted document on save", async () => {
+    const { client, emit, request } = setupClient();
+    const protocol = new DocumentProtocol();
+    protocol.register(client);
+    emit("workspace.documents", capabilities());
+    await protocol.openDocument(descriptor.path);
+    useDocumentStore.getState().updateContent(descriptor.path, "draft");
+    useDocumentStore.getState().markDeleted(descriptor.path);
+    request.mockClear();
+
+    await expect(protocol.saveDocument(descriptor.path)).resolves.toBe(false);
+
+    expect(request).not.toHaveBeenCalled();
+  });
 });

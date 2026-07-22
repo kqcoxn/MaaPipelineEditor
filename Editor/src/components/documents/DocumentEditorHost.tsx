@@ -102,7 +102,11 @@ export const DocumentEditorHost = memo(({ path }: DocumentEditorHostProps) => {
               size="small"
               icon={<SaveOutlined />}
               loading={saving}
-              disabled={!document.dirty || Boolean(document.conflict)}
+              disabled={
+                !document.dirty ||
+                Boolean(document.conflict) ||
+                Boolean(document.deleted)
+              }
               onClick={() => void save()}
             >
               保存

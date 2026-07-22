@@ -77,9 +77,7 @@ function FileConfigPanel() {
             className={style.value}
             style={{ maxWidth: 160 }}
             value={fileConfig.filePath || ""}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-              setFileConfig("filePath", e.target.value);
-            }}
+            readOnly
           />
         </div>
       </div>

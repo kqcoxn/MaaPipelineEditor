@@ -90,7 +90,10 @@ function FilePanel() {
           tab.kind === "document"
             ? openedDocuments[tab.path]?.descriptor ?? documentIndex[tab.path]
             : undefined;
-        const dirty = tab.kind === "document" && openedDocuments[tab.path]?.dirty;
+        const dirty =
+          tab.kind === "pipeline"
+            ? pipeline?.saveState.dirty
+            : openedDocuments[tab.path]?.dirty;
         const label = pipeline?.fileName ?? document?.name ?? tab.path;
         return {
           key: tab.key,

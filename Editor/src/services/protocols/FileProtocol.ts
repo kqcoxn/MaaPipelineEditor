@@ -14,6 +14,11 @@ import {
   type WorkspaceStatusPayload,
 } from "../../stores/workspaceStore";
 import { useProjectSessionStore } from "../../stores/projectSessionStore";
+import { useDocumentStore } from "../../stores/documentStore";
+import {
+  isSameOrDescendantPath,
+  remapProjectPath,
+} from "../../utils/projectPath";
 
 /**
  * 文件协议处理器
@@ -82,9 +87,7 @@ export class FileProtocol extends BaseProtocol {
     );
   }
 
-  protected handleMessage(path: string, data: any): void {
-    // 统一的消息处理入口
-  }
+  protected handleMessage(): void {}
 
   /**
    * 处理文件列表推送
@@ -97,6 +100,18 @@ export class FileProtocol extends BaseProtocol {
       if (typeof revision !== "number" || !root || !Array.isArray(files)) {
         console.error("[FileProtocol] Invalid file list data:", data);
         return;
+      }
+
+      const previousRoot = useDocumentStore.getState().root;
+      if (previousRoot && !isSameWorkspaceRoot(previousRoot, root)) {
+        useFileStore.getState().files.forEach((file) => {
+          if (file.config.filePath) {
+            useFileStore.getState().markFileDeleted(file.config.filePath);
+          }
+        });
+        message.warning(
+          "LocalBridge 已连接到另一项目，原会话草稿已保留但不能保存到旧路径",
+        );
       }
 
       // 更新本地文件缓存
@@ -173,7 +188,7 @@ export class FileProtocol extends BaseProtocol {
 
       if (success) {
         useProjectSessionStore.getState().openPipeline(file_path);
-        const fileName = file_path.split(/[\/\\]/).pop();
+        const fileName = file_path.split(/[/\\]/).pop();
         if (mpe_config) {
           message.success(`已打开文件: ${fileName} (含配置)`);
         } else {
@@ -194,7 +209,7 @@ export class FileProtocol extends BaseProtocol {
    */
   private handleFileChanged(data: any): void {
     try {
-      const { type, file_path, is_directory } = data;
+      const { type, file_path, new_file_path, is_directory } = data;
 
       if (!type || !file_path) {
         console.error("[FileProtocol] Invalid file changed data:", data);
@@ -203,13 +218,13 @@ export class FileProtocol extends BaseProtocol {
 
       const localFileStore = useLocalFileStore.getState();
       const fileStore = useFileStore.getState();
-      const fileName = file_path.split(/[\/\\]/).pop() || file_path;
+      const fileName = file_path.split(/[/\\]/).pop() || file_path;
 
       switch (type) {
         case "created":
           break;
 
-        case "modified":
+        case "modified": {
           localFileStore.updateFile(file_path);
 
           // 检查是否是最近保存的文件
@@ -225,26 +240,26 @@ export class FileProtocol extends BaseProtocol {
             this.showFileChangedNotification(file_path, fileName);
           }
           break;
+        }
 
         case "deleted":
-          // 目录删除
           if (is_directory) {
-            // 清理已打开的文件
-            const filesToRemove = fileStore.files.filter(
-              (f) =>
-                f.config.filePath &&
-                f.config.filePath.startsWith(
-                  file_path + (file_path.includes("/") ? "/" : "\\"),
-                ),
-            );
-            filesToRemove.forEach((f) => {
-              if (f.config.filePath) {
-                fileStore.markFileDeleted(f.config.filePath);
+            localFileStore.removeFilesByPrefix(file_path);
+            fileStore.files.forEach((file) => {
+              if (
+                file.config.filePath &&
+                isSameOrDescendantPath(file.config.filePath, file_path)
+              ) {
+                fileStore.markFileDeleted(file.config.filePath);
+              }
+            });
+            Object.keys(useDocumentStore.getState().opened).forEach((path) => {
+              if (isSameOrDescendantPath(path, file_path)) {
+                useDocumentStore.getState().markDeleted(path);
               }
             });
           } else {
             localFileStore.removeFile(file_path);
-            // 标记已打开的文件为已删除
             const deletedFile = fileStore.findFileByPath(file_path);
             if (deletedFile) {
               fileStore.markFileDeleted(file_path);
@@ -253,22 +268,40 @@ export class FileProtocol extends BaseProtocol {
           }
           break;
 
-        case "renamed":
-          // 重命名
-          const renamedFiles = fileStore.files.filter(
-            (f) =>
-              f.config.filePath &&
-              (f.config.filePath === file_path ||
-                f.config.filePath.startsWith(
-                  file_path + (file_path.includes("/") ? "/" : "\\"),
-                )),
+        case "renamed": {
+          if (typeof new_file_path !== "string" || !new_file_path) {
+            console.error("[FileProtocol] Rename event has no new path:", data);
+            return;
+          }
+          fileStore.renamePath(file_path, new_file_path, Boolean(is_directory));
+          localFileStore.renamePath(
+            file_path,
+            new_file_path,
+            Boolean(is_directory),
           );
-          renamedFiles.forEach((f) => {
-            if (f.config.filePath) {
-              fileStore.markFileDeleted(f.config.filePath);
-            }
-          });
+          useDocumentStore
+            .getState()
+            .renamePath(file_path, new_file_path, Boolean(is_directory));
+          useProjectSessionStore
+            .getState()
+            .renamePath(file_path, new_file_path, Boolean(is_directory));
+          useWorkspaceStore
+            .getState()
+            .renamePath(file_path, new_file_path, Boolean(is_directory));
+          this.recentlySavedFiles = remapTimestampMap(
+            this.recentlySavedFiles,
+            file_path,
+            new_file_path,
+            Boolean(is_directory),
+          );
+          this.pendingModifiedFiles = remapNameMap(
+            this.pendingModifiedFiles,
+            file_path,
+            new_file_path,
+            Boolean(is_directory),
+          );
           break;
+        }
 
         default:
           console.warn("[FileProtocol] Unknown file change type:", type);
@@ -291,7 +324,7 @@ export class FileProtocol extends BaseProtocol {
       FileProtocol.resolveSaveCallback(file_path, success);
 
       if (success) {
-        const fileName = file_path.split(/[\/\\]/).pop() || file_path;
+        const fileName = file_path.split(/[/\\]/).pop() || file_path;
         message.success(`文件已保存: ${fileName}`);
 
         // 忽略刚保存文件的变更通知（记录保存时间戳）
@@ -318,8 +351,8 @@ export class FileProtocol extends BaseProtocol {
 
       if (success) {
         const pipelineName =
-          pipeline_path.split(/[\/\\]/).pop() || pipeline_path;
-        const configName = config_path.split(/[\/\\]/).pop() || config_path;
+          pipeline_path.split(/[/\\]/).pop() || pipeline_path;
+        const configName = config_path.split(/[/\\]/).pop() || config_path;
         message.success(`文件已保存: ${pipelineName} + ${configName}`);
 
         // 忽略刚保存文件的变更通知
@@ -345,7 +378,7 @@ export class FileProtocol extends BaseProtocol {
       const { file_path, status } = data;
 
       if (status === "ok") {
-        const fileName = file_path.split(/[\/\\]/).pop() || file_path;
+        const fileName = file_path.split(/[/\\]/).pop() || file_path;
         message.success(`文件已创建: ${fileName}`);
       } else {
         message.error("文件创建失败");
@@ -475,8 +508,12 @@ export class FileProtocol extends BaseProtocol {
   ): void {
     const configStore = useConfigStore.getState();
 
-    // 自动重载
-    if (configStore.configs.fileAutoReload) {
+    const openedFile = useFileStore.getState().findFileByPath(filePath);
+    if (
+      configStore.configs.fileAutoReload &&
+      !openedFile?.saveState.dirty &&
+      !this.currentModal
+    ) {
       this.requestFileReload(filePath);
       message.info(`文件"${fileName}"已自动重新加载`);
       return;
@@ -500,21 +537,19 @@ export class FileProtocol extends BaseProtocol {
   private showFileChangedModal(): void {
     const configStore = useConfigStore.getState();
 
-    const handleReloadAll = () => {
-      // 重新加载所有变更文件
+    const handleReload = () => {
       const filePaths = Array.from(this.pendingModifiedFiles.keys());
-      this.pendingModifiedFiles.clear();
+      const currentFilePath = useFileStore.getState().currentFile.config.filePath;
+      const targetPath =
+        (currentFilePath && filePaths.includes(currentFilePath)
+          ? currentFilePath
+          : filePaths[0]) ?? null;
+      if (targetPath) this.pendingModifiedFiles.delete(targetPath);
       this.currentModal?.destroy();
       this.currentModal = null;
-
-      // 如果有变更重新加载当前文件
-      const currentFilePath =
-        useFileStore.getState().currentFile.config.filePath;
-      if (currentFilePath && filePaths.includes(currentFilePath)) {
-        this.requestOpenFile(currentFilePath);
-      } else if (filePaths.length > 0) {
-        // 加载第一个变更文件
-        this.requestOpenFile(filePaths[0]);
+      if (targetPath) this.requestOpenFile(targetPath);
+      if (this.pendingModifiedFiles.size > 0) {
+        queueMicrotask(() => this.showFileChangedModal());
       }
     };
 
@@ -526,11 +561,17 @@ export class FileProtocol extends BaseProtocol {
 
     const handleAutoReload = () => {
       configStore.setConfig("fileAutoReload", true);
+      const filePaths = Array.from(this.pendingModifiedFiles.keys());
       this.pendingModifiedFiles.clear();
       this.currentModal?.destroy();
       this.currentModal = null;
+      filePaths.forEach((path) => this.requestOpenFile(path));
       message.success("已开启自动重载，后续文件变更将自动应用");
     };
+
+    const hasDirtyConflict = Array.from(this.pendingModifiedFiles.keys()).some(
+      (path) => useFileStore.getState().findFileByPath(path)?.saveState.dirty,
+    );
 
     const buildModalContent = (): string => {
       const count = this.pendingModifiedFiles.size;
@@ -550,7 +591,7 @@ export class FileProtocol extends BaseProtocol {
     };
 
     this.currentModal = Modal.confirm({
-      title: "文件已被外部修改",
+      title: hasDirtyConflict ? "文件修改冲突" : "文件已被外部修改",
       content: buildModalContent(),
       icon: null,
       closable: true,
@@ -560,12 +601,21 @@ export class FileProtocol extends BaseProtocol {
         {
           style: { display: "flex", justifyContent: "flex-end", marginTop: 16 },
         },
-        createElement(Button, { onClick: handleDismiss }, "稍后处理"),
-        createElement(Button, { onClick: handleAutoReload }, "自动重载"),
         createElement(
           Button,
-          { type: "primary", onClick: handleReloadAll },
-          "重新加载",
+          { onClick: handleDismiss },
+          hasDirtyConflict ? "保留本地修改" : "稍后处理",
+        ),
+        !hasDirtyConflict &&
+          createElement(Button, { onClick: handleAutoReload }, "自动重载"),
+        createElement(
+          Button,
+          {
+            type: hasDirtyConflict ? "default" : "primary",
+            danger: hasDirtyConflict,
+            onClick: handleReload,
+          },
+          hasDirtyConflict ? "重新加载并放弃本地修改" : "重新加载",
         ),
       ),
       onCancel: () => {
@@ -579,16 +629,6 @@ export class FileProtocol extends BaseProtocol {
    */
   private updateFileChangedModal(): void {
     if (!this.currentModal) return;
-
-    const count = this.pendingModifiedFiles.size;
-    const fileNames = Array.from(this.pendingModifiedFiles.values());
-    const displayNames =
-      fileNames.length <= 3
-        ? fileNames.map((n) => `"${n}"`).join("、")
-        : `${fileNames
-            .slice(0, 3)
-            .map((n) => `"${n}"`)
-            .join("、")} 等 ${count} 个文件`;
 
     this.currentModal.destroy();
     this.currentModal = null;
@@ -641,6 +681,40 @@ export class FileProtocol extends BaseProtocol {
     });
     FileProtocol.pendingSaveCallbacks.clear();
   }
+}
+
+function remapTimestampMap(
+  source: Map<string, number>,
+  oldPath: string,
+  newPath: string,
+  isDirectory: boolean,
+): Map<string, number> {
+  return new Map(
+    Array.from(source, ([path, timestamp]) => [
+      remapProjectPath(path, oldPath, newPath, isDirectory),
+      timestamp,
+    ]),
+  );
+}
+
+function remapNameMap(
+  source: Map<string, string>,
+  oldPath: string,
+  newPath: string,
+  isDirectory: boolean,
+): Map<string, string> {
+  return new Map(
+    Array.from(source, ([path, name]) => {
+      const remapped = remapProjectPath(path, oldPath, newPath, isDirectory);
+      return [remapped, remapped === path ? name : remapped.split("/").pop() ?? name];
+    }),
+  );
+}
+
+function isSameWorkspaceRoot(left: string, right: string): boolean {
+  const normalize = (path: string) =>
+    path.replaceAll("\\", "/").replace(/\/$/, "").toLocaleLowerCase();
+  return normalize(left) === normalize(right);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -1,5 +1,9 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
+import {
+  projectPathName,
+  remapProjectPath,
+} from "../utils/projectPath";
 
 /**
  * 文件节点信息
@@ -109,6 +113,7 @@ type LocalFileState = {
 
   // 更新文件（修改时间戳）
   updateFile: (filePath: string) => void;
+  renamePath: (oldPath: string, newPath: string, isDirectory: boolean) => void;
 
   // 根据路径查找文件
   findFileByPath: (filePath: string) => LocalFileInfo | undefined;
@@ -245,10 +250,10 @@ export const useLocalFileStore = create<LocalFileState>()(
         return {};
       }
 
-      const fileName = filePath.split(/[\/\\]/).pop() || "";
+      const fileName = filePath.split(/[/\\]/).pop() || "";
       const relPath = filePath
         .replace(state.rootPath, "")
-        .replace(/^[\/\\]/, "");
+        .replace(/^[/\\]/, "");
 
       const newFile: LocalFileInfo = {
         file_path: filePath,
@@ -268,10 +273,62 @@ export const useLocalFileStore = create<LocalFileState>()(
   },
 
   // 更新文件
-  updateFile(filePath) {
+  updateFile() {
     set({
       lastUpdateTime: Date.now(),
     });
+  },
+
+  renamePath(oldPath, newPath, isDirectory) {
+    set((state) => ({
+      files: state.files.map((file) => {
+        const filePath = remapProjectPath(
+          file.file_path,
+          oldPath,
+          newPath,
+          isDirectory,
+        );
+        const relativePath = remapProjectPath(
+          file.relative_path,
+          oldPath,
+          newPath,
+          isDirectory,
+        );
+        return filePath === file.file_path && relativePath === file.relative_path
+          ? file
+          : {
+              ...file,
+              file_path: filePath,
+              file_name: projectPathName(filePath),
+              relative_path: relativePath,
+            };
+      }),
+      directories: state.directories.map((path) =>
+        remapProjectPath(path, oldPath, newPath, isDirectory),
+      ),
+      interfacePath: remapProjectPath(
+        state.interfacePath,
+        oldPath,
+        newPath,
+        isDirectory,
+      ),
+      resourceBundles: state.resourceBundles.map((bundle) => ({
+        ...bundle,
+        rel_path: remapProjectPath(
+          bundle.rel_path,
+          oldPath,
+          newPath,
+          isDirectory,
+        ),
+        pipeline_path: remapProjectPath(
+          bundle.pipeline_path,
+          oldPath,
+          newPath,
+          isDirectory,
+        ),
+      })),
+      lastUpdateTime: Date.now(),
+    }));
   },
 
   // 根据路径查找文件

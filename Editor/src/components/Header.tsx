@@ -18,6 +18,7 @@ import {
   DesktopOutlined,
   DownloadOutlined,
 } from "@ant-design/icons";
+import { confirmUnsavedTransition } from "../services/editorDirtyState";
 import IconFont from "./iconfonts";
 import UpdateLog from "./modals/UpdateLog";
 import { ConnectionPanel } from "./panels/main/ConnectionPanel";
@@ -120,8 +121,9 @@ const ConnectionButton: React.FC = () => {
     );
   }
 
-  const handleClick = () => {
+  const handleClick = async () => {
     if (status === "connected") {
+      if (!(await confirmUnsavedTransition("disconnect"))) return;
       localServer.disconnect();
     } else if (status === "disconnected") {
       localServer.connect();
@@ -161,7 +163,7 @@ const ConnectionButton: React.FC = () => {
       <Button
         type={config.type}
         icon={config.icon}
-        onClick={handleClick}
+        onClick={() => void handleClick()}
         disabled={status === "connecting"}
         size="small"
         style={{

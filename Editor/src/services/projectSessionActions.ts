@@ -1,7 +1,9 @@
-import { Modal } from "antd";
-
 import { documentProtocol } from "./server";
 import { localServer } from "./server";
+import {
+  confirmUnsavedTransition,
+  type DirtyEditorItem,
+} from "./editorDirtyState";
 import { useDocumentStore } from "../stores/documentStore";
 import { useFileStore } from "../stores/fileStore";
 import {
@@ -9,29 +11,7 @@ import {
   type EditorTab,
 } from "../stores/projectSessionStore";
 
-export function confirmDocumentTransition(nextKey: string | null): Promise<boolean> {
-  const session = useProjectSessionStore.getState();
-  if (session.activeKey === nextKey) return Promise.resolve(true);
-  const active = session.tabs.find((tab) => tab.key === session.activeKey);
-  if (!active || active.kind !== "document") return Promise.resolve(true);
-  const document = useDocumentStore.getState().opened[active.path];
-  if (!document?.dirty) return Promise.resolve(true);
-
-  return new Promise((resolve) => {
-    Modal.confirm({
-      title: "文档尚未保存",
-      content: `“${document.descriptor.name}”有未保存修改，是否放弃这些修改？`,
-      okText: "放弃修改",
-      cancelText: "继续编辑",
-      okButtonProps: { danger: true },
-      onOk: () => resolve(true),
-      onCancel: () => resolve(false),
-    });
-  });
-}
-
 export async function activateEditorTab(tab: EditorTab): Promise<boolean> {
-  if (!(await confirmDocumentTransition(tab.key))) return false;
   if (tab.kind === "document") {
     return documentProtocol.openDocument(tab.path);
   }
@@ -52,11 +32,12 @@ export async function activateEditorTab(tab: EditorTab): Promise<boolean> {
 }
 
 export async function closeEditorTab(tab: EditorTab): Promise<boolean> {
-  if (tab.kind === "document") {
-    const document = useDocumentStore.getState().opened[tab.path];
-    if (document?.dirty && !(await confirmDirtyDocumentClose(document.descriptor.name))) {
-      return false;
-    }
+  const dirtyItem = getDirtyTabItem(tab);
+  if (
+    dirtyItem &&
+    !(await confirmUnsavedTransition("close-tab", [dirtyItem]))
+  ) {
+    return false;
   }
   if (tab.kind === "document") {
     useDocumentStore.getState().closeDocument(tab.path);
@@ -86,16 +67,30 @@ export async function closeEditorTab(tab: EditorTab): Promise<boolean> {
   return true;
 }
 
-function confirmDirtyDocumentClose(name: string): Promise<boolean> {
-  return new Promise((resolve) => {
-    Modal.confirm({
-      title: "文档尚未保存",
-      content: `“${name}”有未保存修改，是否放弃这些修改？`,
-      okText: "放弃修改",
-      cancelText: "继续编辑",
-      okButtonProps: { danger: true },
-      onOk: () => resolve(true),
-      onCancel: () => resolve(false),
-    });
-  });
+function getDirtyTabItem(tab: EditorTab): DirtyEditorItem | undefined {
+  if (tab.kind === "document") {
+    const document = useDocumentStore.getState().opened[tab.path];
+    return document?.dirty
+      ? {
+          kind: "document",
+          key: tab.path,
+          name: document.descriptor.name,
+          path: tab.path,
+        }
+      : undefined;
+  }
+  const file = useFileStore
+    .getState()
+    .files.find(
+      (item) =>
+        item.fileName === tab.path || item.config.filePath === tab.path,
+    );
+  return file?.saveState.dirty
+    ? {
+        kind: "pipeline",
+        key: tab.path,
+        name: file.fileName,
+        path: file.config.filePath,
+      }
+    : undefined;
 }

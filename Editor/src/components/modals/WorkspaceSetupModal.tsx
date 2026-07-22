@@ -19,6 +19,7 @@ import {
   isDesktopEnvironment,
   openDesktopProject,
 } from "../../services/desktopProject";
+import { confirmUnsavedTransition } from "../../services/editorDirtyState";
 
 const { Paragraph, Text } = Typography;
 
@@ -68,6 +69,7 @@ export function WorkspaceSetupModal() {
 
   const selectInterface = async () => {
     if (!selectedPath) return;
+    if (!(await confirmUnsavedTransition("switch-interface"))) return;
     setSubmitting(true);
     try {
       await localServer.request("workspace.interface.select", {

@@ -9,6 +9,7 @@ mod settings;
 mod tray;
 
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use commands::AppState;
@@ -68,6 +69,7 @@ pub fn run() {
             commands::update_shortcuts,
             commands::check_for_updates,
             commands::install_update,
+            commands::set_close_guard_ready,
             commands::exit_app,
         ])
         .setup(|app| {
@@ -124,6 +126,7 @@ pub fn run() {
                 settings: Arc::clone(&settings),
                 app_data_dir,
                 capabilities,
+                close_guard_ready: AtomicBool::new(false),
             });
             bridge.initialize();
             if let Some(status_item) = tray_status {
@@ -148,6 +151,9 @@ pub fn run() {
                 if state.settings.get().background_mode && state.capabilities.tray {
                     api.prevent_close();
                     let _ = window.hide();
+                } else if state.close_guard_ready.load(Ordering::SeqCst) {
+                    api.prevent_close();
+                    let _ = window.emit("desktop-close-requested", ());
                 }
             }
         })
@@ -160,4 +166,33 @@ pub fn run() {
             let _ = state.bridge.shutdown();
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    fn close_action(background_mode: bool, tray: bool, guard_ready: bool) -> &'static str {
+        if background_mode && tray {
+            "hide"
+        } else if guard_ready {
+            "guard"
+        } else {
+            "close"
+        }
+    }
+
+    #[test]
+    fn background_window_close_only_hides_when_tray_is_available() {
+        assert_eq!(close_action(true, true, true), "hide");
+    }
+
+    #[test]
+    fn foreground_window_close_uses_frontend_guard_when_ready() {
+        assert_eq!(close_action(false, true, true), "guard");
+        assert_eq!(close_action(false, false, true), "guard");
+    }
+
+    #[test]
+    fn startup_close_can_finish_before_frontend_guard_is_ready() {
+        assert_eq!(close_action(false, true, false), "close");
+    }
 }

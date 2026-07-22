@@ -45,9 +45,29 @@ describe("documentStore", () => {
 
     expect(getDirtyDocumentPaths()).toEqual([descriptor.path]);
 
-    store.markSaved(descriptor.path, "r2");
+    const savedContent = useDocumentStore.getState().opened[descriptor.path].content;
+    store.markSaved(descriptor.path, "r2", savedContent);
     expect(useDocumentStore.getState().opened[descriptor.path]).toMatchObject({
       dirty: false,
+      baseRevision: "r2",
+    });
+  });
+
+  it("keeps later edits dirty when an earlier save request succeeds", () => {
+    const store = useDocumentStore.getState();
+    store.applyDocuments({ revision: 1, root: "C:/project", documents: [descriptor] });
+    store.beginOpen(descriptor.path);
+    store.finishOpen(opened);
+    store.updateContent(descriptor.path, "first draft");
+    const savedContent = useDocumentStore.getState().opened[descriptor.path].content;
+
+    store.updateContent(descriptor.path, "second draft");
+    store.markSaved(descriptor.path, "r2", savedContent);
+
+    expect(useDocumentStore.getState().opened[descriptor.path]).toMatchObject({
+      content: "second draft",
+      savedContent: "first draft",
+      dirty: true,
       baseRevision: "r2",
     });
   });
@@ -89,5 +109,57 @@ describe("documentStore", () => {
 
     expect(useDocumentStore.getState().revision).toBe(0);
     expect(useDocumentStore.getState().opened[descriptor.path].content).toBe("draft");
+  });
+
+  it("migrates an opened draft on directory rename without changing its state", () => {
+    const nestedDescriptor = {
+      ...descriptor,
+      path: "config/notes.jsonc",
+    };
+    const store = useDocumentStore.getState();
+    store.applyDocuments({
+      revision: 1,
+      root: "C:/project",
+      documents: [nestedDescriptor],
+    });
+    store.beginOpen(nestedDescriptor.path);
+    store.finishOpen({ ...opened, ...nestedDescriptor });
+    store.updateContent(nestedDescriptor.path, "local draft");
+
+    store.renamePath("config", "settings", true);
+
+    expect(useDocumentStore.getState().opened).not.toHaveProperty(
+      "config/notes.jsonc",
+    );
+    expect(useDocumentStore.getState().opened["settings/notes.jsonc"]).toMatchObject({
+      path: "settings/notes.jsonc",
+      content: "local draft",
+      baseRevision: "r1",
+      dirty: true,
+    });
+  });
+
+  it("retains drafts as unavailable when reconnecting to a different project", () => {
+    const store = useDocumentStore.getState();
+    store.applyDocuments({
+      revision: 1,
+      root: "C:/project-a",
+      documents: [descriptor],
+    });
+    store.beginOpen(descriptor.path);
+    store.finishOpen(opened);
+    store.updateContent(descriptor.path, "draft");
+
+    store.applyDocuments({
+      revision: 1,
+      root: "C:/project-b",
+      documents: [],
+    });
+
+    expect(useDocumentStore.getState().opened[descriptor.path]).toMatchObject({
+      content: "draft",
+      dirty: true,
+      deleted: true,
+    });
   });
 });

@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { Modal } from "antd";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useFileStore } from "../stores/fileStore";
 import { useProjectSessionStore } from "../stores/projectSessionStore";
@@ -6,8 +7,28 @@ import { closeEditorTab } from "./projectSessionActions";
 
 describe("projectSessionActions", () => {
   beforeEach(() => {
+    vi.restoreAllMocks();
     useProjectSessionStore.getState().clear();
     useFileStore.getState().resetProjectSession();
+  });
+
+  it("keeps a dirty Pipeline tab open when the user continues editing", async () => {
+    const path = "pipeline/main.json";
+    useFileStore.getState().addFile({ isSwitch: true });
+    useFileStore.getState().setFileConfig("filePath", path);
+    useFileStore.getState().markCurrentSaved();
+    useFileStore.getState().setFileConfig("prefix", "draft");
+    useProjectSessionStore.getState().openPipeline(path);
+    const tab = useProjectSessionStore.getState().tabs[0];
+    vi.spyOn(Modal, "confirm").mockImplementation((options) => {
+      options.onCancel?.();
+      return { destroy: vi.fn(), update: vi.fn() } as never;
+    });
+
+    await expect(closeEditorTab(tab)).resolves.toBe(false);
+
+    expect(useProjectSessionStore.getState().tabs).toHaveLength(1);
+    expect(useFileStore.getState().files).toHaveLength(1);
   });
 
   it("closes a pipeline tab even when its file is no longer loaded", async () => {

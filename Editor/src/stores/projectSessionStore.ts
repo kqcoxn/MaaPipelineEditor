@@ -1,5 +1,10 @@
 import { arrayMove } from "@dnd-kit/sortable";
 import { create } from "zustand";
+import { subscribeWithSelector } from "zustand/middleware";
+import {
+  normalizeProjectPath,
+  remapProjectPath,
+} from "../utils/projectPath";
 
 export type EditorTab =
   | { kind: "pipeline"; path: string; key: string }
@@ -32,6 +37,7 @@ interface ProjectSessionState {
   closeTab: (key: string) => string | null;
   reorderTab: (activeKey: string, overKey: string) => void;
   syncPipelineTabs: (paths: string[]) => void;
+  renamePath: (oldPath: string, newPath: string, isDirectory: boolean) => void;
   clear: () => void;
 }
 
@@ -48,7 +54,8 @@ function openTab(
   return tab.key;
 }
 
-export const useProjectSessionStore = create<ProjectSessionState>()((set, get) => ({
+export const useProjectSessionStore = create<ProjectSessionState>()(
+  subscribeWithSelector((set, get) => ({
   tabs: [],
   activeKey: null,
   openPipeline(path) {
@@ -99,11 +106,34 @@ export const useProjectSessionStore = create<ProjectSessionState>()((set, get) =
       return { tabs: nextTabs, activeKey };
     });
   },
+  renamePath(oldPath, newPath, isDirectory) {
+    set((state) => {
+      const keyChanges = new Map<string, string>();
+      const tabs = state.tabs.map((tab) => {
+        const path = remapProjectPath(
+          tab.path,
+          oldPath,
+          newPath,
+          isDirectory,
+        );
+        if (path === tab.path) return tab;
+        const nextTab =
+          tab.kind === "pipeline"
+            ? createPipelineTab(path)
+            : createDocumentTab(path);
+        keyChanges.set(tab.key, nextTab.key);
+        return nextTab;
+      });
+      return {
+        tabs,
+        activeKey: state.activeKey
+          ? (keyChanges.get(state.activeKey) ?? state.activeKey)
+          : null,
+      };
+    });
+  },
   clear() {
     set({ tabs: [], activeKey: null });
   },
-}));
-
-function normalizeProjectPath(path: string): string {
-  return path.replaceAll("\\", "/").replace(/^\/+|\/+$/g, "");
-}
+  })),
+);

@@ -2,6 +2,7 @@ import style from "./styles/layout/App.module.less";
 
 import { memo, Suspense, lazy, useCallback, useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
 import {
   Flex,
   Layout,
@@ -34,7 +35,6 @@ import FileConfigPanel from "./components/panels/main/FileConfigPanel";
 import ErrorPanel from "./components/panels/main/ErrorPanel";
 import ToolbarPanel from "./components/panels/main/ToolbarPanel";
 import { LoggerPanel } from "./components/panels/tools/LoggerPanel";
-import { pipelineToFlow, flowToPipelineString } from "./core/parser";
 import {
   getShareParam,
   loadFromShareUrl,
@@ -75,6 +75,14 @@ import { useProjectSessionStore } from "./stores/projectSessionStore";
 import { useDocumentStore } from "./stores/documentStore";
 import { DocumentEditorHost } from "./components/documents/DocumentEditorHost";
 import { WelcomeScreen } from "./components/welcome/WelcomeScreen";
+import { importPipelineAsDraft } from "./services/pipelineImport";
+import {
+  beginEmbedSave,
+  clearPendingEmbedSaves,
+  resolveEmbedSaveResult,
+} from "./services/embedSaveCoordinator";
+import { handleDirtyBeforeUnload } from "./services/editorDirtyState";
+import { handleDesktopCloseRequest } from "./services/desktopCloseGuard";
 
 const JsonViewer = lazy(() => import("./components/JsonViewer"));
 const DebugModal = lazy(() =>
@@ -148,7 +156,26 @@ function App() {
     state.tabs.find((tab) => tab.key === state.activeKey),
   );
   const pipelineFiles = useFileStore((state) => state.files);
+  const openedDocuments = useDocumentStore((state) => state.opened);
   const documentActive = activeTab?.kind === "document";
+  const hasDirtyItems =
+    pipelineFiles.some((file) => file.saveState.dirty) ||
+    Object.values(openedDocuments).some((document) => document.dirty);
+
+  useEffect(
+    () =>
+      useFlowStore.subscribe(
+        (state) => [state.nodes, state.edges] as const,
+        ([nodes, edges]) => {
+          useFileStore.getState().syncCurrentGraph(nodes, edges);
+        },
+        {
+          equalityFn: (previous, next) =>
+            previous[0] === next[0] && previous[1] === next[1],
+        },
+      ),
+    [],
+  );
 
   useEffect(() => {
     useProjectSessionStore
@@ -175,7 +202,10 @@ function App() {
 
     try {
       const text = await file.text();
-      const success = await pipelineToFlow({ pString: text });
+      const success = await importPipelineAsDraft({
+        content: text,
+        suggestedName: file.name,
+      });
       if (success) {
         message.success(`已导入文件: ${file.name}`);
       }
@@ -191,26 +221,53 @@ function App() {
   }, []);
 
   // 启用全局快捷键（嵌入模式下根据 capabilities 控制）
-  const enableShortcuts =
-    Boolean(activeTab) &&
+  const enableShortcuts = Boolean(activeTab);
+  const enableEditingShortcuts =
     (!isEmbed || (isCapAllowed("allowUndoRedo") && !isCapAllowed("readOnly")));
-  useGlobalShortcuts(enableShortcuts);
+  useGlobalShortcuts(enableShortcuts, enableEditingShortcuts);
 
   useEffect(() => {
     if (!("__TAURI_INTERNALS__" in window)) return;
     let disposed = false;
-    let unlisten: (() => void) | undefined;
-    void listen("desktop-stop-debug", () => {
-      void debugCommandBus.stop({ reason: "desktop_shortcut" });
-    }).then((cleanup) => {
-      if (disposed) cleanup();
-      else unlisten = cleanup;
+    let closeRequestPending = false;
+    let unlistenStop: (() => void) | undefined;
+    let unlistenClose: (() => void) | undefined;
+    void Promise.all([
+      listen("desktop-stop-debug", () => {
+        void debugCommandBus.stop({ reason: "desktop_shortcut" });
+      }),
+      listen("desktop-close-requested", () => {
+        if (closeRequestPending) return;
+        closeRequestPending = true;
+        void handleDesktopCloseRequest()
+          .finally(() => {
+            closeRequestPending = false;
+          });
+      }),
+    ]).then(([stopCleanup, closeCleanup]) => {
+      if (disposed) {
+        stopCleanup();
+        closeCleanup();
+        return;
+      }
+      unlistenStop = stopCleanup;
+      unlistenClose = closeCleanup;
+      void invoke("set_close_guard_ready", { ready: true });
     });
     return () => {
       disposed = true;
-      unlisten?.();
+      unlistenStop?.();
+      unlistenClose?.();
+      void invoke("set_close_guard_ready", { ready: false });
     };
   }, []);
+
+  useEffect(() => {
+    if (!hasDirtyItems || "__TAURI_INTERNALS__" in window) return;
+    window.addEventListener("beforeunload", handleDirtyBeforeUnload);
+    return () =>
+      window.removeEventListener("beforeunload", handleDirtyBeforeUnload);
+  }, [hasDirtyItems]);
 
   // 嵌入模式变更通知
   useEmbedChangeNotifier(isEmbed && isReady);
@@ -249,11 +306,12 @@ function App() {
             data: unknown;
           };
           try {
-            const success = await pipelineToFlow({
-              pString: JSON.stringify(data),
+            const success = await importPipelineAsDraft({
+              content: JSON.stringify(data),
+              suggestedName: fileName,
+              savedBaseline: true,
             });
             if (success && fileName) {
-              useFileStore.getState().setFileName(fileName);
               useEmbedStore.getState().setFileName(fileName);
             }
             sendToParent("mpe:loadResult", { success, fileName }, requestId);
@@ -272,13 +330,7 @@ function App() {
 
       const cleanupSave = onParentMessage("mpe:save", (_payload, requestId) => {
         try {
-          const pipelineObj = flowToPipelineString();
-          const fileName = useFileStore.getState().currentFile.fileName;
-          sendToParent(
-            "mpe:saveData",
-            { fileName, data: pipelineObj },
-            requestId,
-          );
+          sendToParent("mpe:saveData", beginEmbedSave(), requestId);
         } catch (err) {
           sendToParent(
             "mpe:error",
@@ -289,6 +341,10 @@ function App() {
             requestId,
           );
         }
+      });
+
+      const cleanupSaveResult = onParentMessage("mpe:saveResult", (payload) => {
+        resolveEmbedSaveResult(payload);
       });
 
       const cleanupSelect = onParentMessage("mpe:selectNode", (payload) => {
@@ -357,6 +413,10 @@ function App() {
               case "readOnly":
                 result[field] = useEmbedStore.getState().capabilities.readOnly;
                 break;
+              case "dirty":
+                result[field] =
+                  useFileStore.getState().currentFile.saveState.dirty;
+                break;
               default:
                 result[field] = undefined;
             }
@@ -365,24 +425,16 @@ function App() {
         },
       );
 
-      // 嵌入模式下监听 Ctrl+S 发送 saveRequest
-      const handleSaveRequest = (e: KeyboardEvent) => {
-        if ((e.ctrlKey || e.metaKey) && e.key === "s") {
-          e.preventDefault();
-          sendToParent("mpe:saveRequest", { hint: "user-triggered" });
-        }
-      };
-      document.addEventListener("keydown", handleSaveRequest);
-
       return () => {
         cleanupEmbedBridge();
         cleanupInit();
         cleanupLoad();
         cleanupSave();
+        cleanupSaveResult();
         cleanupSelect();
         cleanupFocus();
         cleanupState();
-        document.removeEventListener("keydown", handleSaveRequest);
+        clearPendingEmbedSaves();
       };
     }
 

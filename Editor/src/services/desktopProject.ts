@@ -1,12 +1,12 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Modal } from "antd";
 
 import { localServer } from "./server";
 import { useFileStore } from "../stores/fileStore";
 import { useLocalFileStore } from "../stores/localFileStore";
 import { useWorkspaceStore } from "../stores/workspaceStore";
-import { useDocumentStore, getDirtyDocumentPaths } from "../stores/documentStore";
+import { useDocumentStore } from "../stores/documentStore";
 import { useProjectSessionStore } from "../stores/projectSessionStore";
+import { confirmUnsavedTransition } from "./editorDirtyState";
 
 export type DesktopProjectOpenResult =
   | { status: "unavailable" }
@@ -28,21 +28,8 @@ export function isDesktopEnvironment(): boolean {
 }
 
 function confirmProjectSwitch(path: string): Promise<boolean> {
-  const dirty = getDirtyDocumentPaths();
-  const dirtyNotice = dirty.length
-    ? `当前有 ${dirty.length} 个文档包含未保存修改，确认后将丢弃这些草稿。`
-    : "";
-  return new Promise((resolve) => {
-    Modal.confirm({
-      title: "打开新项目",
-      content: `切换到“${path}”将关闭当前 Pipeline 标签并清空画布。${dirtyNotice}是否继续？`,
-      okText: "打开项目",
-      cancelText: "取消",
-      mask: { closable: false },
-      onOk: () => resolve(true),
-      onCancel: () => resolve(false),
-    });
-  });
+  void path;
+  return confirmUnsavedTransition("switch-project");
 }
 
 function resetProjectSession(): void {

@@ -294,6 +294,13 @@ async function handleSave() {
       els.pipelineData.value = JSON.stringify(response.payload.data, null, 2);
       log("saveData payload", response.payload.data, "incoming");
     }
+    if (response?.payload?.saveToken) {
+      sendMessage("mpe:saveResult", {
+        saveToken: response.payload.saveToken,
+        success: true,
+      });
+      logSystem(`保存确认已回传: token=${response.payload.saveToken}`);
+    }
   } catch (err) {
     logSystem(`保存超时: ${err.message}`);
   }
@@ -399,7 +406,9 @@ window.addEventListener("message", (event) => {
       break;
 
     case "mpe:change":
-      logSystem(`流程变更: type=${msg.payload?.type}`);
+      logSystem(
+        `流程变更: type=${msg.payload?.type}, dirty=${msg.payload?.detail?.dirty}`,
+      );
       break;
 
     case "mpe:saveRequest":

@@ -69,4 +69,26 @@ describe("projectSessionStore", () => {
       activeKey: null,
     });
   });
+
+  it("migrates directory paths, tab keys, and the active key on rename", () => {
+    const store = useProjectSessionStore.getState();
+    store.openPipeline("resource/pipeline/main.json");
+    store.openDocument("resource/notes.jsonc");
+
+    store.renamePath("resource", "assets/resource", true);
+
+    expect(useProjectSessionStore.getState()).toMatchObject({
+      tabs: [
+        {
+          path: "assets/resource/pipeline/main.json",
+          key: pipelineTabKey("assets/resource/pipeline/main.json"),
+        },
+        {
+          path: "assets/resource/notes.jsonc",
+          key: documentTabKey("assets/resource/notes.jsonc"),
+        },
+      ],
+      activeKey: documentTabKey("assets/resource/notes.jsonc"),
+    });
+  });
 });

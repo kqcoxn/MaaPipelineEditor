@@ -14,6 +14,7 @@ import { pipelineToFlow, mergePipelineAndConfig } from "../../../core/parser";
 import { ClipboardHelper } from "../../../utils/ui/clipboard";
 import { flowToPipeline } from "../../../core/parser";
 import style from "../../../styles/panels/ToolbarPanel.module.less";
+import { importPipelineAsDraft } from "../../../services/pipelineImport";
 
 const actionGroupStyle = {
   display: "inline-flex",
@@ -78,9 +79,14 @@ function ImportButton() {
 
   // 导入操作处理
   const handleImportFromClipboard = () => {
-    confirmImport(async () => {
+    void (async () => {
       try {
-        const success = await pipelineToFlow();
+        const text = await ClipboardHelper.read();
+        if (!text) {
+          message.error("粘贴板内容为空");
+          return;
+        }
+        const success = await importPipelineAsDraft({ content: text });
         if (success) {
           message.success("从粘贴板导入 Pipeline 成功");
         }
@@ -88,7 +94,7 @@ function ImportButton() {
         message.error("导入失败,请检查粘贴板内容");
         console.error(err);
       }
-    });
+    })();
   };
 
   const handleImportFromFile = () => {
@@ -97,9 +103,7 @@ function ImportButton() {
       return;
     }
 
-    confirmImport(() => {
-      fileInputRef.current?.click();
-    });
+    fileInputRef.current?.click();
   };
 
   const handleImportConfigFromClipboard = () => {
@@ -137,7 +141,10 @@ function ImportButton() {
     if (file) {
       try {
         const text = await file.text();
-        const success = await pipelineToFlow({ pString: text });
+        const success = await importPipelineAsDraft({
+          content: text,
+          suggestedName: file.name,
+        });
         if (success) {
           message.success("从文件导入 Pipeline 成功");
         }

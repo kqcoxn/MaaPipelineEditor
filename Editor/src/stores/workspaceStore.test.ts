@@ -98,4 +98,42 @@ describe("workspaceStore", () => {
       treeEntries: [{ path: "main.json" }],
     });
   });
+
+  it("migrates tree entries and interface identity on directory rename", () => {
+    useWorkspaceStore.getState().applyStatus({
+      ...status(8, "ready"),
+      candidates: [
+        {
+          interface_path: "project/interface.json",
+          name: "project",
+          label: "Project",
+          version: "1.0.0",
+        },
+      ],
+      current_interface: {
+        interface_path: "project/interface.json",
+        name: "project",
+        label: "Project",
+        version: "1.0.0",
+      },
+    });
+    useWorkspaceStore.getState().applyTree({
+      revision: 2,
+      root: "C:/project",
+      entries: [
+        { path: "project", name: "project", kind: "directory" },
+        { path: "project/interface.json", name: "interface.json", kind: "file" },
+      ],
+    });
+
+    useWorkspaceStore.getState().renamePath("project", "renamed", true);
+
+    expect(useWorkspaceStore.getState()).toMatchObject({
+      treeEntries: [
+        { path: "renamed", name: "renamed" },
+        { path: "renamed/interface.json", name: "interface.json" },
+      ],
+      currentInterface: { interface_path: "renamed/interface.json" },
+    });
+  });
 });

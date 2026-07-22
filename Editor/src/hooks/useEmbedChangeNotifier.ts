@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useShallow } from "zustand/shallow";
 import { useFlowStore } from "../stores/flow";
 import { sendToParent } from "../utils/embedBridge";
+import { useFileStore } from "../stores/fileStore";
 
 const EMPTY_NODES: never[] = [];
 const EMPTY_EDGES: never[] = [];
@@ -26,6 +27,9 @@ export function useEmbedChangeNotifier(enabled: boolean = true) {
       selectedNodes: enabled ? state.selectedNodes : EMPTY_NODES,
     })),
   );
+  const dirty = useFileStore((state) =>
+    enabled ? state.currentFile.saveState.dirty : false,
+  );
 
   // 保存上一次状态用于推断变更类型
   const prevNodesRef = useRef<{ count: number; ids: string }>({
@@ -37,6 +41,7 @@ export function useEmbedChangeNotifier(enabled: boolean = true) {
     ids: "",
   });
   const prevSelectedRef = useRef<string>("");
+  const prevDirtyRef = useRef(false);
 
   // 防抖相关
   const pendingChangeRef = useRef<PendingChange | null>(null);
@@ -74,13 +79,17 @@ export function useEmbedChangeNotifier(enabled: boolean = true) {
     const prevEdges = prevEdgesRef.current;
 
     let changeType: string | null = null;
-    let detail: Record<string, any> = { nodeCount, edgeCount };
+    let detail: Record<string, any> = { nodeCount, edgeCount, dirty };
 
     if (nodeCount > prevNodes.count) {
       changeType = "node.add";
       const newNode = nodes.find((n) => !prevNodes.ids.includes(n.id));
       if (newNode) {
-        detail = { nodeId: newNode.id, taskName: newNode.data?.label };
+        detail = {
+          nodeId: newNode.id,
+          taskName: newNode.data?.label,
+          dirty,
+        };
       }
     } else if (nodeCount < prevNodes.count) {
       changeType = "node.delete";
@@ -97,10 +106,15 @@ export function useEmbedChangeNotifier(enabled: boolean = true) {
           edgeId: newEdge.id,
           source: newEdge.source,
           target: newEdge.target,
+          dirty,
         };
       }
     } else if (!changeType && edgeCount < prevEdges.count) {
       changeType = "edge.delete";
+    }
+
+    if (!changeType && dirty !== prevDirtyRef.current) {
+      changeType = "save-state";
     }
 
     if (changeType) {
@@ -110,6 +124,7 @@ export function useEmbedChangeNotifier(enabled: boolean = true) {
     // 更新快照
     prevNodesRef.current = { count: nodeCount, ids: nodeIds };
     prevEdgesRef.current = { count: edgeCount, ids: edgeIds };
+    prevDirtyRef.current = dirty;
 
     return () => {
       if (debounceTimerRef.current) {
@@ -118,7 +133,7 @@ export function useEmbedChangeNotifier(enabled: boolean = true) {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodes, edges, enabled]);
+  }, [nodes, edges, dirty, enabled]);
 
   // 监听选中节点变化（无防抖）
   useEffect(() => {
