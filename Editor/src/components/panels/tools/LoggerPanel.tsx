@@ -9,6 +9,8 @@ import {
   BranchesOutlined,
   AppstoreOutlined,
   GroupOutlined,
+  ArrowDownOutlined,
+  ArrowUpOutlined,
 } from "@ant-design/icons";
 import { useLoggerStore, type LogEntry } from "../../../stores/loggerStore";
 import {
@@ -18,9 +20,14 @@ import {
 } from "../../../stores/operationLogStore";
 import { useWSStore } from "../../../stores/wsStore";
 import { useFlowStore, findNodeById, fitFlowView } from "../../../stores/flow";
+import {
+  useEmbedMessageLogStore,
+  type EmbedMessageLog,
+} from "../../../stores/embedMessageLogStore";
+import { useEmbedMode } from "../../../hooks/useEmbedMode";
 import styles from "../../../styles/panels/LoggerPanel.module.less";
 
-type TabType = "operation" | "backend";
+type TabType = "operation" | "backend" | "embed";
 
 // ========== 后端日志工具函数 ==========
 
@@ -115,14 +122,23 @@ export function LoggerPanel() {
     useLoggerStore();
   const { logs: opLogs, clearLogs: clearOpLogs } = useOperationLogStore();
   const connected = useWSStore((state) => state.connected);
+  const embedLogs = useEmbedMessageLogStore((state) => state.logs);
+  const clearEmbedLogs = useEmbedMessageLogStore((state) => state.clearLogs);
+  const { isEmbed } = useEmbedMode();
   const listRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
   const [pulse, setPulse] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("operation");
   const prevOpLenRef = useRef(opLogs.length);
   const prevBackendLenRef = useRef(backendLogs.length);
+  const prevEmbedLenRef = useRef(embedLogs.length);
 
-  const currentLogs = activeTab === "operation" ? opLogs : backendLogs;
+  const currentLogs =
+    activeTab === "operation"
+      ? opLogs
+      : activeTab === "backend"
+        ? backendLogs
+        : embedLogs;
 
   // 自动滚动到底部
   useEffect(() => {
@@ -161,6 +177,19 @@ export function LoggerPanel() {
     prevBackendLenRef.current = backendLogs.length;
   }, [backendLogs.length, expanded, connected]);
 
+  useEffect(() => {
+    if (isEmbed && embedLogs.length > prevEmbedLenRef.current) {
+      setActiveTab("embed");
+      if (!expanded) {
+        setPulse(true);
+        const timer = setTimeout(() => setPulse(false), 1600);
+        return () => clearTimeout(timer);
+      }
+      setAutoScroll(true);
+    }
+    prevEmbedLenRef.current = embedLogs.length;
+  }, [embedLogs.length, expanded, isEmbed]);
+
   // 监听滚动事件
   const handleScroll = () => {
     if (!listRef.current) return;
@@ -180,25 +209,30 @@ export function LoggerPanel() {
   const handleTabChange = useCallback(
     (tab: TabType) => {
       if (tab === "backend" && !connected) return;
+      if (tab === "embed" && !isEmbed) return;
       setActiveTab(tab);
       setAutoScroll(true);
     },
-    [connected],
+    [connected, isEmbed],
   );
 
   // 清空当前 tab 日志
   const handleClear = useCallback(() => {
     if (activeTab === "operation") {
       clearOpLogs();
-    } else {
+    } else if (activeTab === "backend") {
       clearBackendLogs();
+    } else {
+      clearEmbedLogs();
     }
-  }, [activeTab, clearOpLogs, clearBackendLogs]);
+  }, [activeTab, clearOpLogs, clearBackendLogs, clearEmbedLogs]);
 
   // 收起态最新条目（根据当前 activeTab 显示对应日志）
   const latestOpLog = opLogs.length > 0 ? opLogs[opLogs.length - 1] : null;
   const latestBackendLog =
     backendLogs.length > 0 ? backendLogs[backendLogs.length - 1] : null;
+  const latestEmbedLog =
+    embedLogs.length > 0 ? embedLogs[embedLogs.length - 1] : null;
 
   // 收起态
   if (!expanded) {
@@ -223,7 +257,7 @@ export function LoggerPanel() {
             ) : (
               <span className={styles.barMessage}>暂无操作记录</span>
             )
-          ) : latestBackendLog ? (
+          ) : activeTab === "backend" && latestBackendLog ? (
             <>
               <span
                 className={`${styles.barIcon} ${getLevelClass(latestBackendLog.level)}`}
@@ -233,6 +267,17 @@ export function LoggerPanel() {
               <span className={styles.barMessage}>
                 {latestBackendLog.message}
               </span>
+            </>
+          ) : activeTab === "embed" && latestEmbedLog ? (
+            <>
+              <span className={`${styles.barIcon} ${styles.embedMessage}`}>
+                {latestEmbedLog.direction === "incoming" ? (
+                  <ArrowDownOutlined />
+                ) : (
+                  <ArrowUpOutlined />
+                )}
+              </span>
+              <span className={styles.barMessage}>{latestEmbedLog.type}</span>
             </>
           ) : (
             <span className={styles.barMessage}>暂无日志</span>
@@ -261,6 +306,14 @@ export function LoggerPanel() {
             >
               后端日志
             </button>
+            {isEmbed && (
+              <button
+                className={`${styles.tab} ${activeTab === "embed" ? styles.tabActive : ""}`}
+                onClick={() => handleTabChange("embed")}
+              >
+                嵌入通信
+              </button>
+            )}
           </div>
           <div className={styles.headerActions}>
             <button
@@ -282,12 +335,69 @@ export function LoggerPanel() {
         <div ref={listRef} className={styles.logList} onScroll={handleScroll}>
           {activeTab === "operation" ? (
             <OperationLogList logs={opLogs} />
-          ) : (
+          ) : activeTab === "backend" ? (
             <BackendLogList logs={backendLogs} />
+          ) : (
+            <EmbedMessageLogList logs={embedLogs} />
           )}
         </div>
       </div>
     </div>
+  );
+}
+
+function formatPayload(payload: unknown): string {
+  try {
+    return JSON.stringify(payload, null, 2);
+  } catch {
+    return String(payload);
+  }
+}
+
+function formatMessageTimestamp(timestamp: number): string {
+  return new Date(timestamp).toISOString().slice(11, 23);
+}
+
+function EmbedMessageLogList({ logs }: { logs: EmbedMessageLog[] }) {
+  if (logs.length === 0) {
+    return <div className={styles.empty}>暂无嵌入通信记录</div>;
+  }
+
+  return (
+    <>
+      {logs.map((log) => (
+        <div key={log.id} className={`${styles.logItem} ${styles.embedMessage}`}>
+          <span className={styles.logIcon}>
+            {log.direction === "incoming" ? (
+              <ArrowDownOutlined />
+            ) : (
+              <ArrowUpOutlined />
+            )}
+          </span>
+          <div className={styles.logContent}>
+            <div className={styles.logMeta}>
+              <span className={styles.logTime}>
+                {formatMessageTimestamp(log.timestamp)}
+              </span>
+              <span className={styles.embedDirection}>
+                {log.direction === "incoming" ? "接收" : "发送"}
+              </span>
+              <span className={styles.embedType}>{log.type}</span>
+            </div>
+            {(log.requestId || log.origin) && (
+              <div className={styles.embedContext}>
+                {log.requestId && <span>{log.requestId}</span>}
+                {log.origin && <span>{log.origin}</span>}
+              </div>
+            )}
+            <details className={styles.embedPayload}>
+              <summary>payload</summary>
+              <pre>{formatPayload(log.payload)}</pre>
+            </details>
+          </div>
+        </div>
+      ))}
+    </>
   );
 }
 

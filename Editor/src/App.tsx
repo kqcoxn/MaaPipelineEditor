@@ -1,6 +1,6 @@
 import style from "./styles/layout/App.module.less";
 
-import { memo, Suspense, lazy, useCallback, useEffect, useState } from "react";
+import { memo, Suspense, lazy, useCallback, useEffect } from "react";
 import {
   Flex,
   Layout,
@@ -34,7 +34,7 @@ import { LocalFileListPanel } from "./components/panels/main/LocalFileListPanel"
 import ErrorPanel from "./components/panels/main/ErrorPanel";
 import ToolbarPanel from "./components/panels/main/ToolbarPanel";
 import { LoggerPanel } from "./components/panels/tools/LoggerPanel";
-import { pipelineToFlow, flowToPipelineString } from "./core/parser";
+import { pipelineToFlow } from "./core/parser";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import {
   getShareParam,
@@ -51,19 +51,10 @@ import {
   isBridgeRunning,
   wailsLog,
 } from "./utils/wailsBridge";
-import {
-  isEmbedEnvironment,
-  initEmbedBridge,
-  onParentMessage,
-  sendToParent,
-  completeHandshake,
-  type EmbedCapabilities,
-  type EmbedUIConfig,
-} from "./utils/embedBridge";
-import { useEmbedStore } from "./stores/embedStore";
+import { isEmbedEnvironment } from "./utils/embedBridge";
 import { useEmbedMode } from "./hooks/useEmbedMode";
 import { useEmbedChangeNotifier } from "./hooks/useEmbedChangeNotifier";
-import { useFlowStore } from "./stores/flow";
+import { registerEmbedProtocol } from "./features/embed/registerEmbedProtocol";
 import { useNewcomerStore, isNewcomerPassed } from "./stores/newcomerStore";
 import { NewcomerGuideModal } from "./components/modals/NewcomerGuideModal";
 import { useTermsStore, isTermsAccepted } from "./stores/termsStore";
@@ -180,169 +171,7 @@ function App() {
     if (isEmbedEnvironment()) {
       console.log("[App] Embed mode detected");
 
-      // 初始化 EmbedBridge
-      const { cleanup: cleanupEmbedBridge } = initEmbedBridge();
-
-      // 注册业务消息处理器
-      const cleanupInit = onParentMessage("mpe:init", (payload, requestId) => {
-        const config = payload as {
-          capabilities?: Partial<EmbedCapabilities>;
-          ui?: Partial<EmbedUIConfig>;
-        };
-        useEmbedStore
-          .getState()
-          .initConfig(config.capabilities || {}, config.ui || {});
-        useEmbedStore.getState().setReady(true);
-        completeHandshake(
-          useEmbedStore.getState().capabilities,
-          useEmbedStore.getState().ui,
-          requestId,
-        );
-      });
-
-      const cleanupLoad = onParentMessage(
-        "mpe:loadPipeline",
-        async (payload, requestId) => {
-          const { fileName, data } = payload as {
-            fileName?: string;
-            data: unknown;
-          };
-          try {
-            const success = await pipelineToFlow({
-              pString: JSON.stringify(data),
-            });
-            if (success && fileName) {
-              useFileStore.getState().setFileName(fileName);
-              useEmbedStore.getState().setFileName(fileName);
-            }
-            sendToParent("mpe:loadResult", { success, fileName }, requestId);
-          } catch (err) {
-            sendToParent(
-              "mpe:loadResult",
-              {
-                success: false,
-                error: err instanceof Error ? err.message : String(err),
-              },
-              requestId,
-            );
-          }
-        },
-      );
-
-      const cleanupSave = onParentMessage("mpe:save", (_payload, requestId) => {
-        try {
-          const pipelineObj = flowToPipelineString();
-          const fileName = useFileStore.getState().currentFile.fileName;
-          sendToParent(
-            "mpe:saveData",
-            { fileName, data: pipelineObj },
-            requestId,
-          );
-        } catch (err) {
-          sendToParent(
-            "mpe:error",
-            {
-              code: "save_failed",
-              message: err instanceof Error ? err.message : String(err),
-            },
-            requestId,
-          );
-        }
-      });
-
-      const cleanupSelect = onParentMessage("mpe:selectNode", (payload) => {
-        const { nodeId } = payload as { nodeId: string };
-        const { nodes, updateNodes } = useFlowStore.getState();
-        // 先按 ID 查找，找不到则按标签回退
-        const targetNode =
-          nodes.find((n) => n.id === nodeId) ||
-          nodes.find((n) => n.data?.label === nodeId);
-        if (targetNode) {
-          updateNodes(
-            nodes.map((n) => ({
-              type: "select" as const,
-              id: n.id,
-              selected: n.id === targetNode.id,
-            })),
-          );
-        } else {
-          sendToParent("mpe:error", {
-            code: "node_not_found",
-            message: `Node not found: ${nodeId}`,
-          });
-        }
-      });
-
-      const cleanupFocus = onParentMessage("mpe:focusNode", (payload) => {
-        const { nodeId } = payload as { nodeId: string };
-        const { nodes, instance } = useFlowStore.getState();
-        // 先按 ID 查找，找不到则按标签回退
-        const targetNode =
-          nodes.find((n) => n.id === nodeId) ||
-          nodes.find((n) => n.data?.label === nodeId);
-        if (targetNode && instance) {
-          instance.fitView({
-            nodes: [{ id: targetNode.id }],
-            duration: 300,
-          });
-        } else if (!targetNode) {
-          sendToParent("mpe:error", {
-            code: "node_not_found",
-            message: `Node not found: ${nodeId}`,
-          });
-        }
-      });
-
-      const cleanupState = onParentMessage(
-        "mpe:state",
-        (payload, requestId) => {
-          const { fields } = payload as { fields: string[] };
-          const result: Record<string, unknown> = {};
-          const state = useFlowStore.getState();
-          fields.forEach((field) => {
-            switch (field) {
-              case "version":
-                result[field] = "1.0.0";
-                break;
-              case "nodesCount":
-                result[field] = state.nodes.length;
-                break;
-              case "edgesCount":
-                result[field] = state.edges.length;
-                break;
-              case "fileName":
-                result[field] = useFileStore.getState().currentFile.fileName;
-                break;
-              case "readOnly":
-                result[field] = useEmbedStore.getState().capabilities.readOnly;
-                break;
-              default:
-                result[field] = undefined;
-            }
-          });
-          sendToParent("mpe:stateResult", result, requestId);
-        },
-      );
-
-      // 嵌入模式下监听 Ctrl+S 发送 saveRequest
-      const handleSaveRequest = (e: KeyboardEvent) => {
-        if ((e.ctrlKey || e.metaKey) && e.key === "s") {
-          e.preventDefault();
-          sendToParent("mpe:saveRequest", { hint: "user-triggered" });
-        }
-      };
-      document.addEventListener("keydown", handleSaveRequest);
-
-      return () => {
-        cleanupEmbedBridge();
-        cleanupInit();
-        cleanupLoad();
-        cleanupSave();
-        cleanupSelect();
-        cleanupFocus();
-        cleanupState();
-        document.removeEventListener("keydown", handleSaveRequest);
-      };
+      return registerEmbedProtocol();
     }
 
     // 检查是否有分享链接参数

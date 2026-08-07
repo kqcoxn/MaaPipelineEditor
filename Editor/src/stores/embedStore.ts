@@ -24,6 +24,7 @@ interface EmbedState {
   ) => void;
   setReady: (ready: boolean) => void;
   setFileName: (fileName: string | null) => void;
+  reset: () => void;
   isCapabilityAllowed: (cap: keyof EmbedCapabilities) => boolean;
   isPanelHidden: (panelId: string) => boolean;
 }
@@ -49,11 +50,23 @@ export const useEmbedStore = create<EmbedState>()((set, get) => ({
     set({ currentFileName: fileName });
   },
 
+  reset() {
+    set({
+      isReady: false,
+      capabilities: { ...DEFAULT_CAPABILITIES },
+      ui: { ...DEFAULT_UI },
+      currentFileName: null,
+    });
+  },
+
   isCapabilityAllowed(cap) {
     return get().capabilities[cap];
   },
 
   isPanelHidden(panelId) {
-    return get().ui.hiddenPanels.includes(panelId);
+    const { ui } = get();
+    if (panelId === "header" && ui.hideHeader) return true;
+    if (panelId === "toolbar" && ui.hideToolbar) return true;
+    return ui.hiddenPanels.includes(panelId);
   },
 }));

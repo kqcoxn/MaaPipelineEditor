@@ -135,7 +135,11 @@ function sendMessage(type, payload, needResponse = false) {
     msg.requestId = generateRequestId();
   }
 
-  iframe.contentWindow.postMessage(msg, "*");
+  const iframeOrigin = new URL(iframe.src).origin;
+  iframe.contentWindow.postMessage(
+    msg,
+    iframeOrigin === "null" ? "*" : iframeOrigin,
+  );
   log(type, msg, "outgoing");
 
   if (needResponse && msg.requestId) {
@@ -320,6 +324,10 @@ function handleFocusNode() {
 function handleResize() {
   const width = parseInt(els.resizeWidth.value, 10) || 800;
   const height = parseInt(els.resizeHeight.value, 10) || 600;
+  if (iframe) {
+    iframe.style.width = `${width}px`;
+    iframe.style.height = `${height}px`;
+  }
   sendMessage("mpe:resize", { width, height });
 }
 
@@ -381,7 +389,13 @@ window.addEventListener("message", (event) => {
   const msg = event.data;
 
   // 只处理 mpe-embed 协议消息
-  if (!msg || msg.protocol !== PROTOCOL) return;
+  if (
+    !msg ||
+    msg.protocol !== PROTOCOL ||
+    event.source !== iframe?.contentWindow
+  ) {
+    return;
+  }
 
   log(msg.type, msg, "incoming");
 

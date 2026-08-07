@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { isEmbedEnvironment, isEmbedReady } from "../utils/embedBridge";
+import { isEmbedEnvironment } from "../utils/embedBridge";
 import { useEmbedStore } from "../stores/embedStore";
 
 /**
@@ -9,8 +9,7 @@ import { useEmbedStore } from "../stores/embedStore";
 
 export function useEmbedMode() {
   const isEmbed = useMemo(() => isEmbedEnvironment(), []);
-  const isReady = useMemo(() => isEmbedReady(), []);
-
+  const isReady = useEmbedStore((state) => state.isReady);
   const capabilities = useEmbedStore((state) => state.capabilities);
   const ui = useEmbedStore((state) => state.ui);
   const isCapabilityAllowed = useEmbedStore(

@@ -334,6 +334,68 @@
   }
 }
 
+.embedMessage {
+  .logIcon,
+  &.barIcon {
+    color: #1677ff;
+  }
+}
+
+.embedDirection {
+  flex-shrink: 0;
+  font-size: 10px;
+  color: #595959;
+}
+
+.embedType {
+  min-width: 0;
+  overflow: hidden;
+  color: #1677ff;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.embedContext {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-bottom: 3px;
+  color: #8c8c8c;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 10px;
+  word-break: break-all;
+}
+
+.embedPayload {
+  color: #595959;
+  font-size: 11px;
+
+  summary {
+    width: fit-content;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  pre {
+    max-height: 160px;
+    margin-top: 4px;
+    padding: 6px;
+    overflow: auto;
+    color: #262626;
+    background: #f5f5f5;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    font-size: 10px;
+    line-height: 1.4;
+    user-select: text;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+}
+
 // 可点击条目
 .clickable {
   cursor: pointer;

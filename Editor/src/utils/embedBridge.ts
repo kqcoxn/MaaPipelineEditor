@@ -1,3 +1,5 @@
+import { useEmbedMessageLogStore } from "../stores/embedMessageLogStore";
+
 /**
  * iframe 嵌入模式桥接模块
  * 用于检测嵌入环境并提供 postMessage 双向通信
@@ -38,6 +40,13 @@ export interface EmbedInitConfig {
   ui: EmbedUIConfig;
 }
 
+interface InitEmbedBridgeOptions {
+  onHandshakeTimeout?: (
+    capabilities: EmbedCapabilities,
+    ui: EmbedUIConfig,
+  ) => void;
+}
+
 /** 默认能力集（PRD 5.2） */
 export const DEFAULT_CAPABILITIES: EmbedCapabilities = {
   readOnly: false,
@@ -58,7 +67,7 @@ export const DEFAULT_UI: EmbedUIConfig = {
 // ============ 内部状态 ============
 
 let messageHandler: ((event: MessageEvent) => void) | null = null;
-let handlers: Map<
+const handlers: Map<
   string,
   Set<(payload: any, requestId?: string) => void>
 > = new Map();
@@ -83,6 +92,18 @@ export function getEmbedOrigin(): string | null {
   if (typeof window === "undefined") return null;
   const urlParams = new URLSearchParams(window.location.search);
   return urlParams.get("origin");
+}
+
+function getValidatedEmbedOrigin(): string | null {
+  const configuredOrigin = getEmbedOrigin();
+  if (!configuredOrigin?.startsWith("http")) return null;
+
+  try {
+    return new URL(configuredOrigin).origin;
+  } catch {
+    console.warn(`[EmbedBridge] Invalid origin: ${configuredOrigin}`);
+    return null;
+  }
 }
 
 /**
@@ -122,7 +143,16 @@ export function sendToParent(
 ): void {
   if (typeof window === "undefined") return;
   const msg = buildMessage(type, payload, requestId);
-  window.parent.postMessage(msg, "*");
+  const targetOrigin = getValidatedEmbedOrigin() ?? "*";
+  useEmbedMessageLogStore.getState().addLog({
+    direction: "outgoing",
+    type: msg.type,
+    version: msg.version,
+    requestId: msg.requestId,
+    origin: targetOrigin,
+    payload: msg.payload,
+  });
+  window.parent.postMessage(msg, targetOrigin);
 }
 
 /**
@@ -174,7 +204,9 @@ function dispatchMessage(type: string, payload: any, requestId?: string): void {
  * 注册 message 监听器，启动握手超时
  * @returns cleanup 清理函数
  */
-export function initEmbedBridge(): { cleanup: () => void } {
+export function initEmbedBridge(
+  options: InitEmbedBridgeOptions = {},
+): { cleanup: () => void } {
   if (typeof window === "undefined") {
     return { cleanup: () => {} };
   }
@@ -191,19 +223,28 @@ export function initEmbedBridge(): { cleanup: () => void } {
       return;
     }
 
+    if (event.source !== window.parent) {
+      return;
+    }
+
     // origin 校验：仅当 origin 参数为有效 URL 时才做严格匹配
     // （origin 参数可能是标识符如 "vscode-maa"，此时仅用于日志，不阻断消息）
-    const expectedOrigin = getEmbedOrigin();
-    if (
-      expectedOrigin &&
-      expectedOrigin.startsWith("http") &&
-      event.origin !== expectedOrigin
-    ) {
+    const expectedOrigin = getValidatedEmbedOrigin();
+    if (expectedOrigin && event.origin !== expectedOrigin) {
       console.warn(
         `[EmbedBridge] Origin mismatch: expected=${expectedOrigin}, got=${event.origin}`,
       );
       return;
     }
+
+    useEmbedMessageLogStore.getState().addLog({
+      direction: "incoming",
+      type: data.type,
+      version: data.version,
+      requestId: data.requestId,
+      origin: event.origin,
+      payload: data.payload,
+    });
 
     // 握手完成前，仅处理 mpe:init
     if (!isHandshakeCompleted && data.type !== "mpe:init") {
@@ -221,7 +262,8 @@ export function initEmbedBridge(): { cleanup: () => void } {
       console.warn(
         "[EmbedBridge] Handshake timeout, using default capabilities",
       );
-      completeHandshake(DEFAULT_CAPABILITIES, DEFAULT_UI);
+      options.onHandshakeTimeout?.(DEFAULT_CAPABILITIES, DEFAULT_UI);
+      completeHandshake(DEFAULT_CAPABILITIES);
     }
   }, 5000);
 
@@ -246,7 +288,6 @@ export function initEmbedBridge(): { cleanup: () => void } {
  */
 export function completeHandshake(
   capabilities: EmbedCapabilities,
-  ui: EmbedUIConfig,
   requestId?: string,
 ): void {
   if (isHandshakeCompleted) return;
@@ -269,11 +310,4 @@ export function completeHandshake(
     },
     requestId,
   );
-}
-
-/**
- * 查询握手是否已完成
- */
-export function isEmbedReady(): boolean {
-  return isHandshakeCompleted;
 }
