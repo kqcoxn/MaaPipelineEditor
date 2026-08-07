@@ -1,6 +1,5 @@
 import { memo, useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Input, Modal } from "antd";
-import type { Connection } from "@xyflow/react";
 import classNames from "classnames";
 import style from "../../../styles/panels/NodeAddPanel.module.less";
 import IconFont from "../../iconfonts";
@@ -21,11 +20,12 @@ import {
   getActionIcon,
   getNodeTypeIcon,
 } from "../../flow/nodes/utils";
+import {
+  findQuickCreateTarget,
+  type QuickCreateConnection,
+} from "./quickCreateConnection";
 
-export interface QuickCreateConnection {
-  source: Connection["source"];
-  sourceHandle: NonNullable<Connection["sourceHandle"]>;
-}
+export type { QuickCreateConnection } from "./quickCreateConnection";
 
 interface NodeAddPanelProps {
   visible: boolean;
@@ -392,15 +392,27 @@ function NodeAddPanel({
   // 粘贴板节点
   const handlePasteFromClipboard = useCallback(() => {
     if (!hasClipboardContent || !flowPosition) return;
-    paste(clipboardNodes, clipboardEdges, flowPosition);
+    const pastedNodes = paste(clipboardNodes, clipboardEdges, flowPosition);
+    const targetNode = findQuickCreateTarget(pastedNodes);
+
+    if (quickCreateConnection && targetNode) {
+      addEdge({
+        ...quickCreateConnection,
+        target: targetNode.id,
+        targetHandle: TargetHandleTypeEnum.Target,
+      });
+    }
+
     onClose();
   }, [
+    addEdge,
     hasClipboardContent,
     flowPosition,
     paste,
     clipboardNodes,
     clipboardEdges,
     onClose,
+    quickCreateConnection,
   ]);
 
   // 获取粘贴项标题

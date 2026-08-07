@@ -99,6 +99,7 @@ export const updateLogs: UpdateLogItem[] = [
     type: "major",
     updates: {
       perfs: ["搜索功能可检索字段值"],
+      fixes: ["修复右键粘贴时无法快捷连接的的问题"],
     },
   },
   {

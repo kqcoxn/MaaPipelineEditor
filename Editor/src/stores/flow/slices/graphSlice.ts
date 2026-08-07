@@ -85,7 +85,9 @@ export const createGraphSlice: StateCreator<
     edges: EdgeType[],
     position?: { x: number; y: number },
   ) {
-    if (nodes.length === 0) return;
+    if (nodes.length === 0) return [];
+
+    let pastedNodes: NodeType[] = [];
 
     set((state) => {
       // 取消所有选中
@@ -247,6 +249,8 @@ export const createGraphSlice: StateCreator<
         delete (node as any)._originalParentId;
       });
 
+      pastedNodes = nodes;
+
       // 克隆并更新边数据
       edges = cloneDeep(edges);
       edges.forEach((edge) => {
@@ -274,6 +278,8 @@ export const createGraphSlice: StateCreator<
       action: "paste",
       description: `粘贴 ${nodes.length} 个节点`,
     });
+
+    return pastedNodes;
   },
 
   // 重置粘贴计数器
