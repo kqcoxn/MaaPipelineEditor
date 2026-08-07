@@ -68,6 +68,7 @@ function SearchPanel() {
       const results = crossFileService.searchNodes(value, {
         crossFile: enableCrossFileSearch,
         limit: 10,
+        searchFieldValues: true,
       });
 
       setSearchResults(results);
@@ -78,6 +79,7 @@ function SearchPanel() {
         label: node.label,
         nodeName: node.label,
         filePath: node.isCurrentFile ? "当前文件" : node.relativePath,
+        matchedFieldValue: node.matchedFieldValue,
       }));
       setOptions(filtered);
     },
@@ -174,15 +176,16 @@ function SearchPanel() {
         const results = crossFileService.searchNodes(searchValue.trim(), {
           crossFile: enableCrossFileSearch,
           limit: 1,
+          searchFieldValues: true,
         });
         if (results.length > 0) {
           navigateToNode(results[0]);
         } else {
-          message.warning("未找到该节点");
+          message.warning("未找到匹配节点");
         }
       }
     } else {
-      message.info("请输入节点名称");
+      message.info("请输入节点名或字段值");
     }
   }, [searchValue, searchResults, enableCrossFileSearch, navigateToNode]);
 
@@ -207,11 +210,25 @@ function SearchPanel() {
         if (searchResults.length > 0) {
           navigateToNode(searchResults[0]);
         } else {
-          focusNodeInCurrentFile(searchValue.trim());
+          const results = crossFileService.searchNodes(searchValue.trim(), {
+            crossFile: enableCrossFileSearch,
+            limit: 1,
+            searchFieldValues: true,
+          });
+          if (results.length > 0) {
+            navigateToNode(results[0]);
+          } else {
+            message.warning("未找到匹配节点");
+          }
         }
       }
     },
-    [searchValue, searchResults, navigateToNode, focusNodeInCurrentFile],
+    [
+      searchValue,
+      searchResults,
+      enableCrossFileSearch,
+      navigateToNode,
+    ],
   );
 
   // 焦点不在时关闭下拉
@@ -248,15 +265,26 @@ function SearchPanel() {
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
         onKeyDown={handleKeyDown}
-        placeholder="搜索节点..."
+        placeholder="搜索节点名或字段值..."
         size="large"
         allowClear
         // 自定义下拉选项渲染
         optionRender={(option) => (
           <div style={{ display: "flex", flexDirection: "column" }}>
             <span style={{ fontWeight: 500 }}>{option.data.nodeName}</span>
-            <span style={{ color: "#888", fontSize: 12 }}>
-              {option.data.filePath}
+            <span
+              style={{
+                color: "#888",
+                fontSize: 12,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+              title={option.data.matchedFieldValue}
+            >
+              {option.data.matchedFieldValue
+                ? `字段值: ${option.data.matchedFieldValue} · ${option.data.filePath}`
+                : option.data.filePath}
             </span>
           </div>
         )}

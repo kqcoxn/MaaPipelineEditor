@@ -94,10 +94,12 @@ export const nextPreview: ForecastSection = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
-    version: "1.7.5",
-    date: "2026-7",
-    type: "fix",
-    updates: {},
+    version: "1.8.0",
+    date: "2026-8",
+    type: "major",
+    updates: {
+      perfs: ["搜索功能可检索字段值"],
+    },
   },
   {
     version: "1.7.4",

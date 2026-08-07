@@ -19,6 +19,10 @@ import {
   filterLocalFilesByFolderFilter,
   matchesFolderFilter,
 } from "../utils/file/folderFilter";
+import {
+  collectSearchableFieldValues,
+  findMatchingFieldValue,
+} from "./nodeSearch";
 
 /**
  * 跨文件节点信息
@@ -40,6 +44,10 @@ export interface CrossFileNodeInfo {
   isLoaded: boolean;
   /** 文件前缀 */
   prefix: string;
+  /** 节点字段中的可搜索值 */
+  fieldValues: string[];
+  /** 当前搜索命中的字段值 */
+  matchedFieldValue?: string;
 }
 
 /**
@@ -102,6 +110,7 @@ class CrossFileService {
               isCurrentFile,
               isLoaded: true,
               prefix,
+              fieldValues: collectSearchableFieldValues(node.data),
             });
           }
         } else {
@@ -142,6 +151,7 @@ class CrossFileService {
               isCurrentFile: false,
               isLoaded: false,
               prefix,
+              fieldValues: nodeInfo.field_values || [],
             });
           }
         }
@@ -176,6 +186,7 @@ class CrossFileService {
             isCurrentFile,
             isLoaded: true,
             prefix,
+            fieldValues: collectSearchableFieldValues(node.data),
           });
         }
       }
@@ -197,6 +208,7 @@ class CrossFileService {
             isCurrentFile,
             isLoaded: true,
             prefix,
+            fieldValues: collectSearchableFieldValues(node.data),
           });
         }
       }
@@ -220,9 +232,16 @@ class CrossFileService {
       limit?: number;
       /** 排除的节点类型 */
       excludeTypes?: NodeTypeEnum[];
+      /** 是否搜索节点字段值 */
+      searchFieldValues?: boolean;
     },
   ): CrossFileNodeInfo[] {
-    const { crossFile = true, limit = 10, excludeTypes = [] } = options || {};
+    const {
+      crossFile = true,
+      limit = 10,
+      excludeTypes = [],
+      searchFieldValues = false,
+    } = options || {};
 
     let allNodes = this.getAllNodes();
 
@@ -243,12 +262,24 @@ class CrossFileService {
 
     const lowerKeyword = keyword.toLowerCase();
 
-    // 模糊匹配
-    const matched = allNodes.filter(
-      (n) =>
-        n.label.toLowerCase().includes(lowerKeyword) ||
-        n.fullName.toLowerCase().includes(lowerKeyword),
-    );
+    // 模糊匹配；字段命中值随结果返回，用于向用户解释匹配来源
+    const matched = allNodes.flatMap((node) => {
+      const matchesName =
+        node.label.toLowerCase().includes(lowerKeyword) ||
+        node.fullName.toLowerCase().includes(lowerKeyword);
+      const matchedFieldValue = searchFieldValues
+        ? findMatchingFieldValue(node.fieldValues, lowerKeyword)
+        : undefined;
+
+      if (!matchesName && matchedFieldValue === undefined) return [];
+
+      return [
+        {
+          ...node,
+          matchedFieldValue: matchesName ? undefined : matchedFieldValue,
+        },
+      ];
+    });
 
     // 排序：当前文件优先，然后按匹配度
     matched.sort((a, b) => {
@@ -267,6 +298,12 @@ class CrossFileService {
       const bPrefix = b.label.toLowerCase().startsWith(lowerKeyword);
       if (aPrefix && !bPrefix) return -1;
       if (!aPrefix && bPrefix) return 1;
+
+      // 节点名包含匹配优先于字段值匹配
+      const aNameMatch = a.matchedFieldValue === undefined;
+      const bNameMatch = b.matchedFieldValue === undefined;
+      if (aNameMatch && !bNameMatch) return -1;
+      if (!aNameMatch && bNameMatch) return 1;
 
       return 0;
     });

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/utils"
@@ -282,13 +283,47 @@ func (s *Scanner) parseFileNodes(filePath string) ([]models.FileNode, string) {
 		anchors := s.extractAnchors(content[key])
 
 		nodes = append(nodes, models.FileNode{
-			Label:   key,
-			Prefix:  prefix,
-			Anchors: anchors,
+			Label:       key,
+			Prefix:      prefix,
+			Anchors:     anchors,
+			FieldValues: extractFieldValues(content[key]),
 		})
 	}
 
 	return nodes, prefix
+}
+
+// extractFieldValues 递归提取节点字段中的标量值，供前端跨文件搜索使用。
+func extractFieldValues(nodeData interface{}) []string {
+	values := make(map[string]struct{})
+
+	var collect func(interface{})
+	collect = func(value interface{}) {
+		switch typed := value.(type) {
+		case string:
+			if typed != "" {
+				values[typed] = struct{}{}
+			}
+		case bool, float64:
+			values[fmt.Sprint(typed)] = struct{}{}
+		case []interface{}:
+			for _, item := range typed {
+				collect(item)
+			}
+		case map[string]interface{}:
+			for _, item := range typed {
+				collect(item)
+			}
+		}
+	}
+
+	collect(nodeData)
+	result := make([]string, 0, len(values))
+	for value := range values {
+		result = append(result, value)
+	}
+	sort.Strings(result)
+	return result
 }
 
 // extractAnchors 从节点数据中提取 anchor 引用列表

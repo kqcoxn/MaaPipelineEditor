@@ -7,6 +7,7 @@ export type FileNodeInfo = {
   label: string; // 节点标签
   prefix: string; // 前缀
   anchors: string[]; // 该节点引用的 anchor 列表
+  field_values: string[]; // 节点字段中的可搜索值
 };
 
 /**
