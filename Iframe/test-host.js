@@ -44,7 +44,6 @@ const caps = {
   allowCopy: document.getElementById("cap-allowCopy"),
   allowUndoRedo: document.getElementById("cap-allowUndoRedo"),
   allowAutoLayout: document.getElementById("cap-allowAutoLayout"),
-  allowAI: document.getElementById("cap-allowAI"),
   allowSearch: document.getElementById("cap-allowSearch"),
   allowCustomTemplate: document.getElementById("cap-allowCustomTemplate"),
 };
@@ -171,7 +170,6 @@ function getCapabilities() {
     allowCopy: caps.allowCopy.checked,
     allowUndoRedo: caps.allowUndoRedo.checked,
     allowAutoLayout: caps.allowAutoLayout.checked,
-    allowAI: caps.allowAI.checked,
     allowSearch: caps.allowSearch.checked,
     allowCustomTemplate: caps.allowCustomTemplate.checked,
   };

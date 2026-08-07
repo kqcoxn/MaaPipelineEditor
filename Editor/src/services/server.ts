@@ -343,6 +343,8 @@ export class LocalWebSocketServer {
 }
 
 export const localServer = new LocalWebSocketServer();
+// 保留底层 AI 请求协议，业务层入口已移除。
+export const aiProtocol = new AIProtocol();
 
 // 创建全局协议实例
 export const fileProtocol = new FileProtocol();
@@ -352,7 +354,6 @@ export const configProtocol = new ConfigProtocol();
 export const debugProtocolClient = new DebugProtocolClient();
 export const resourceProtocol = new ResourceProtocol();
 export const loggerProtocol = new LoggerProtocol();
-export const aiProtocol = new AIProtocol();
 
 /**
  * 初始化 WebSocket 连接和所有响应路由
@@ -381,7 +382,5 @@ export function initializeWebSocket() {
   // 注册 LoggerProtocol
   loggerProtocol.register(localServer);
 
-  // 注册 AIProtocol
-  aiProtocol.register(localServer);
 
 }

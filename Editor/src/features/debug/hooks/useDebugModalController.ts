@@ -616,8 +616,7 @@ export function useDebugModalController() {
   };
 
   const openAiSummaryPanel = () => {
-    setActivePanel("ai-summary");
-    setLastPanel("ai-summary");
+    return;
   };
 
   useEffect(() => {

@@ -10,7 +10,7 @@ import {
 } from "@ant-design/icons";
 
 import style from "../../../../styles/flow/nodes.module.less";
-import explorationStyle from "../../../../styles/panels/ExplorationPanel.module.less";
+const explorationStyle = { ghostNode: "", ghostNodeActions: "" };
 import type { PipelineNodeDataType } from "../../../../stores/flow";
 import { useFlowStore } from "../../../../stores/flow";
 import { useConfigStore } from "../../../../stores/configStore";

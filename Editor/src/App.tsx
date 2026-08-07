@@ -30,15 +30,10 @@ import SearchPanel from "./components/panels/main/SearchPanel";
 import FilePanel from "./components/panels/main/FilePanel";
 import SettingsPanel from "./components/panels/settings/SettingsPanel";
 import FileConfigPanel from "./components/panels/main/FileConfigPanel";
-import AIHistoryPanel from "./components/panels/main/AIHistoryPanel";
 import { LocalFileListPanel } from "./components/panels/main/LocalFileListPanel";
 import ErrorPanel from "./components/panels/main/ErrorPanel";
 import ToolbarPanel from "./components/panels/main/ToolbarPanel";
 import { LoggerPanel } from "./components/panels/tools/LoggerPanel";
-import {
-  ExplorationFAB,
-  ExplorationPanel,
-} from "./components/panels/exploration";
 import { pipelineToFlow, flowToPipelineString } from "./core/parser";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import {
@@ -138,9 +133,6 @@ const GlobalListener = memo(() => {
 function App() {
   // 嵌入模式状态
   const { isEmbed, isReady, isCapAllowed, isPanelHidden } = useEmbedMode();
-
-  // 探索面板状态
-  const [explorationPanelVisible, setExplorationPanelVisible] = useState(false);
 
   // 处理文件拖拽
   const handleFileDrop = useCallback(async (e: DragEvent) => {
@@ -572,7 +564,6 @@ function App() {
               {showPanel("edge") && <EdgePanel />}
               {showPanel("config") && <SettingsPanel />}
               {showPanel("config") && <FileConfigPanel />}
-              {showPanel("ai-history") && <AIHistoryPanel />}
               {showPanel("local-file") && <LocalFileListPanel />}
               <ToolPanel.Add />
               <ToolPanel.Global />
@@ -580,20 +571,6 @@ function App() {
               <ToolPanel.Layout />
               {showPanel("error") && <ErrorPanel />}
               {showPanel("logger") && <LoggerPanel />}
-              {/* 探索模式组件 */}
-              {showPanel("exploration") && (
-                <>
-                  <ExplorationFAB
-                    onClick={() => setExplorationPanelVisible((v) => !v)}
-                    visible={true}
-                    active={explorationPanelVisible}
-                  />
-                  <ExplorationPanel
-                    visible={explorationPanelVisible}
-                    onClose={() => setExplorationPanelVisible(false)}
-                  />
-                </>
-              )}
             </div>
           </Content>
         </Layout>

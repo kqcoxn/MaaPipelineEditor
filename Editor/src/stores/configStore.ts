@@ -307,7 +307,6 @@ export type ConfigState = {
   status: {
     showConfigPanel: boolean;
     showFileConfigPanel: boolean;
-    showAIHistoryPanel: boolean;
     showLocalFilePanel: boolean;
     showFieldSortModal: boolean;
     rightPanelWidth: number;
@@ -451,7 +450,6 @@ export const useConfigStore = create<ConfigState>()((set, get) => ({
   status: {
     showConfigPanel: false,
     showFileConfigPanel: false,
-    showAIHistoryPanel: false,
     showLocalFilePanel: false,
     showFieldSortModal: false,
     rightPanelWidth: 350,
