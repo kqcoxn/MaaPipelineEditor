@@ -6,7 +6,7 @@ import { useEmbedMessageLogStore } from "../stores/embedMessageLogStore";
  * 镜像 wailsBridge.ts 的环境检测 + 条件桥接模式
  */
 
-export const PROTOCOL_VERSION = "1.1.0";
+export const PROTOCOL_VERSION = "1.2.0";
 
 /** 协议消息信封 */
 export interface EmbedMessage {

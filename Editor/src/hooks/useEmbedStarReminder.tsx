@@ -1,6 +1,9 @@
-import { App as AntdApp, Button, Space } from "antd";
+import { GithubOutlined } from "@ant-design/icons";
+import { App as AntdApp, Button, Flex } from "antd";
 import { useEffect } from "react";
 import { useEmbedStore } from "../stores/embedStore";
+import style from "../styles/components/EmbedStarReminder.module.less";
+import { openExternalUrl } from "../features/embed/externalNavigation";
 
 const REMINDER_INTERVAL_MS = 5 * 60 * 1000;
 const NOTIFICATION_KEY = "mpe-embed-star-reminder";
@@ -53,39 +56,48 @@ export function useEmbedStarReminder(): void {
         notification.destroy(NOTIFICATION_KEY);
       };
       const openRepository = (target: StarTarget) => {
-        window.open(target.repositoryUrl, "_blank", "noopener,noreferrer");
+        openExternalUrl(target.repositoryUrl);
         localStorage.setItem(`${target.id}_stared`, "true");
         if (targets.every((item) => !isReminderPending(item))) close();
       };
 
       notification.open({
         key: NOTIFICATION_KEY,
-        title: "支持 MPE 与 MSE",
-        description: "如果这套编辑体验对你有帮助，可以前往两个项目仓库点个 Star。",
+        title: "支持 MSE 与 MPE",
+        description: "使用顺手的话，欢迎为 MSE 和 MPE 点个 Star⭐！",
         actions: (
-          <Space wrap>
-            {pendingTargets.map((target) => (
+          <Flex vertical gap={8} className={style.actions}>
+            <Flex vertical gap={8}>
+              {pendingTargets.map((target) => (
+                <Button
+                  key={target.id}
+                  block
+                  icon={<GithubOutlined />}
+                  onClick={() => openRepository(target)}
+                  className={style.repositoryButton}
+                >
+                  {target.name}
+                </Button>
+              ))}
+            </Flex>
+            <Flex justify="flex-end" gap={4} className={style.secondaryActions}>
               <Button
-                key={target.id}
-                type="primary"
-                onClick={() => openRepository(target)}
+                type="text"
+                size="small"
+                onClick={() => {
+                  pendingTargets.forEach((target) => {
+                    localStorage.setItem(`_${target.id}_stared`, "true");
+                  });
+                  close();
+                }}
               >
-                打开 {target.name} 仓库
+                不再提醒
               </Button>
-            ))}
-            <Button onClick={close}>稍后提醒</Button>
-            <Button
-              type="text"
-              onClick={() => {
-                pendingTargets.forEach((target) => {
-                  localStorage.setItem(`_${target.id}_stared`, "true");
-                });
-                close();
-              }}
-            >
-              不再提醒
-            </Button>
-          </Space>
+              <Button size="small" onClick={close}>
+                稍后提醒
+              </Button>
+            </Flex>
+          </Flex>
         ),
         duration: 0,
         closable: false,

@@ -23,7 +23,7 @@ MSE 已经提供 MaaFramework Pipeline 的解析、诊断、导航、工具和�
 2. VS Code 文件资源管理器右键菜单。
 3. JSON/JSONC 编辑器内容区域右键菜单。
 
-打开后，用户可以使用 MPE 的全部编辑模块修改 Pipeline。iframe 中保留现有导入按钮，并额外提供“从 MSE 同步”按钮，用于请求重新读取当前 `TextDocument`。用户点击嵌入态专用的“保存到 MSE”按钮或按 `Ctrl/Cmd+S` 后，由 MSE 将结果安全写回原文件。
+打开后，用户可以使用 MPE 的全部编辑模块修改 Pipeline。MSE iframe 工具栏仅提供“保存到 MSE”和“从 MSE 同步”，同步操作用于请求重新读取当前 `TextDocument`。用户点击嵌入态专用的保存按钮或按 `Ctrl/Cmd+S` 后，由 MSE 将结果安全写回原文件。
 
 ## 首版范围
 
@@ -34,7 +34,7 @@ MSE 已经提供 MaaFramework Pipeline 的解析、诊断、导航、工具和�
 - 解析 JSON/JSONC 并加载到可编辑 MPE iframe。
 - 一个文档 URI 对应一个 MPE 标签页；同一文件复用，不同文件可以并存。
 - 保留 MPE Header、工具栏、画布、字段、连接、配置、搜索、错误和日志等模块。
-- iframe 模式保留现有手动导入按钮及其菜单，并在旁边新增单一“从 MSE 同步”操作。
+- MSE iframe 模式隐藏手动导入和 JSON 预览，工具栏提供“保存到 MSE”与“从 MSE 同步”。
 - iframe 模式将常规导出入口替换为单一“保存到 MSE”操作，不提供下载、剪贴板、LocalBridge 导出和部分导出。
 - MPE 主动发起保存，MSE 获取画布数据后以最小 JSONC 编辑写回当前文档并保存到磁盘。
 - 保存成功、失败和源文件冲突均回传 MPE，在界面内给出明确状态。
@@ -149,15 +149,14 @@ MPE iframe（可编辑嵌入模式）
 - 嵌入环境必须在应用初始化最早阶段跳过使用协议、答题系统、新手引导和更新日志检测。
 - 嵌入环境不读取浏览器缓存中的上次 Pipeline，不处理分享链接或 URL 导入参数，不注册文件拖拽导入。
 - MPE 在收到 `mpe:init` 和首次 `mpe:loadPipeline` 前显示受控加载状态，成功后直接可用。
+- iframe 隐藏本地文件入口、文件 Tab 新增按钮，并将版本号显示为不可切换的静态文本。
 
 ### 同步与保存入口
 
-- iframe 模式继续渲染现有 `ImportButton` 及其可用导入菜单。
-- 在 `ImportButton` 旁新增无下拉菜单的“从 MSE 同步”按钮，与手动导入在视觉和语义上区分。
+- MSE iframe 隐藏 `ImportButton` 和 JSON 预览，显示无下拉菜单的“从 MSE 同步”按钮。
 - 同步按钮只发送 `mpe:reloadRequest`，不直接访问文件系统。
 - MPE 存在未保存修改时，同步前必须二次确认；取消后不得发送请求。
 - 同步进行中禁止重复请求；失败时保留原画布，成功时以 MSE 返回内容建立新的 clean 基线。
-- 手动导入只替换 MPE 当前画布，不能改变 MSE 标签页绑定的源文档 URI；随后执行“保存到 MSE”仍写回最初打开的文档。
 - 分享链接启动导入和全局文件拖拽等非按钮入口是否在 iframe 开放不随本次变更扩大，首版保持禁用。
 - iframe 模式不显示常规 `ExportButton` 菜单。
 - 在原导出操作位置显示单一“保存到 MSE”按钮，使用保存图标和明确 Tooltip。
@@ -172,7 +171,7 @@ MPE iframe（可编辑嵌入模式）
 
 - 不在 iframe 内尝试连接 MPE LocalBridge。
 - 用户触发时显示环境提示，说明可以直接使用 MSE 提供的对应小工具或调试能力。
-- 同一提示提供“打开完整 MPE”链接，指向在线版 MPE；用户可在独立页面配合 LocalBridge 使用完整服务。
+- 提示的推荐操作为留在 MSE 使用对应能力；次要操作跳转到 MPE 快速开始文档。
 - 不将功能伪装为可用状态，也不静默失败。
 
 首版只做提示，不增加从 iframe 反向调用 VS Code 命令的通用协议。后续若希望一键跳转 MSE 工具，应另行设计受限的宿主动作白名单。
@@ -188,7 +187,7 @@ MPE iframe（可编辑嵌入模式）
 
 ## 嵌入协议调整
 
-现有 `mpe:init`、`mpe:ready`、`mpe:loadPipeline`、`mpe:loadResult`、`mpe:change`、`mpe:saveRequest`、`mpe:save` 和 `mpe:saveData` 可以复用。为形成完整保存反馈并支持 iframe 主动同步，建议以向后兼容方式将协议升级到 `mpe-embed` v1.1.0，不改变 1.x 主版本兼容规则。
+现有 `mpe:init`、`mpe:ready`、`mpe:loadPipeline`、`mpe:loadResult`、`mpe:change`、`mpe:saveRequest`、`mpe:save` 和 `mpe:saveData` 可以复用。保存反馈与 iframe 主动同步由 v1.1.0 补齐；v1.2.0 新增宿主外链代理，均不改变 1.x 主版本兼容规则。
 
 ### 初始化扩展
 
@@ -231,6 +230,8 @@ MPE iframe（可编辑嵌入模式）
 ### 同步请求
 
 新增 MPE 到宿主的 `mpe:reloadRequest`。MSE 收到后读取当前 `TextDocument`，解析成功则使用相同 `requestId` 复用 `mpe:loadPipeline` / `mpe:loadResult` 完成加载；读取或解析失败则发送带相同 `requestId` 的 `mpe:error`。MPE 只在 `mpe:loadResult.success` 为 true 后替换会话基线并清除 dirty。
+
+新增 MPE 到宿主的 `mpe:openExternalRequest`。MSE 收到后必须重新解析并校验 `payload.url`，只接受 `http:` / `https:`，再调用 `vscode.env.openExternal(vscode.Uri.parse(url))`。MPE iframe 内的文档、仓库和帮助链接统一走该消息，不能依赖 Webview 中可能被拦截的 `window.open`。
 
 ### 消息时序
 
@@ -373,11 +374,11 @@ MSE 不得对 MPE 返回对象直接执行 `JSON.stringify` 后整文件覆盖�
 - 未修改区域的 JSONC 注释、字段顺序和格式保持不变。
 - 文本编辑器在 MPE 打开后发生修改时，MPE 保存不会覆盖该修改。
 - MPE 页面不出现答题、协议确认或更新日志，Header 和各模块正常显示。
-- iframe 内手动导入按钮可用，但下载导出、剪贴板导出或部分导出入口不可用。
+- MSE iframe 内隐藏手动导入、JSON 预览、下载导出、剪贴板导出和部分导出入口。
 - 手动导入另一份 Pipeline 后，“保存到 MSE”仍写回原标签页绑定的 `TextDocument`。
 - 修改文本编辑器后点击“从 MSE 同步”，画布更新为最新 `TextDocument` 内容。
 - MPE 有未保存修改时同步会要求确认；取消或同步失败不会丢失当前画布。
-- 小工具和调试服务给出 MSE / 完整 MPE + LocalBridge 的正确提示。
+- 小工具和调试服务优先提示留在 MSE 使用对应能力，并提供 MPE 快速开始文档入口。
 - Star 提示包含 MPE、MSE 名称和两个正确仓库链接。
 - 两个同名但路径不同的文件可以同时编辑且不会串写。
 - 网络、协议、解析和写盘失败均有明确反馈，未保存内容不会被误标为已保存。
@@ -432,7 +433,8 @@ MSE 不得对 MPE 返回对象直接执行 `JSON.stringify` 后整文件覆盖�
 | MPE 嵌入态宿主保存按钮 | 已完成 | 等待 MSE 实现写回和结果回执 |
 | MPE 从 MSE 同步按钮 | 已完成 | 等待 MSE 响应 reloadRequest |
 | MPE 保存结果与 dirty 状态 | 已完成 | 已通过 v1.1.0 补齐 |
-| MPE 嵌入态导入与同步边界 | 已完成 | 保留 ImportButton，另设同步按钮并固定宿主写回语义 |
+| MPE 嵌入态导入与同步边界 | 已完成 | MSE 下隐藏手动导入与 JSON 预览，保留同步并固定宿主写回语义 |
+| MPE 嵌入态外链代理 | MPE 侧已完成 | 等待 MSE 处理 `mpe:openExternalRequest` 并调用 `vscode.env.openExternal` |
 | MPE 小工具/调试环境提示 | 已完成 | 已覆盖 Header、工具箱、字段快捷工具和节点调试入口 |
 | MPE 双仓库 Star 提示 | 已完成 | 由 MSE host 元数据启用 |
 | MSE WebviewPanel 与外部 iframe 基础 | 已具备 | 可复用现有 Provider 和 CSP 方案 |
@@ -452,7 +454,7 @@ MSE 不得对 MPE 返回对象直接执行 `JSON.stringify` 后整文件覆盖�
 3. 嵌入态跳过答题、协议确认和更新日志，打开后直接可用。
 4. 保留 Header 和全部模块；LocalBridge 相关能力提供 MSE / 独立 MPE 使用提示。
 5. MSE 嵌入态同时提供 MPE 与 MSE 的 Star 提示和仓库链接。
-6. iframe 保留现有导入按钮及其菜单，并额外提供“从 MSE 同步”，由 MSE 重新读取当前 `TextDocument`。
+6. MSE iframe 隐藏手动导入和 JSON 预览，仅保留“保存到 MSE”与“从 MSE 同步”，同步时由 MSE 重新读取当前 `TextDocument`。
 
 仍建议确认以下默认决策：
 

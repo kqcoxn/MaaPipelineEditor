@@ -1,10 +1,10 @@
 /**
  * MPE iframe 嵌入测试宿主
- * 实现 mpe-embed 协议 v1.1.0 的宿主侧通信逻辑
+ * 实现 mpe-embed 协议 v1.2.0 的宿主侧通信逻辑
  */
 
 const PROTOCOL = "mpe-embed";
-const VERSION = "1.1.0";
+const VERSION = "1.2.0";
 const REQUEST_TIMEOUT = 10000;
 
 // DOM 元素引用
@@ -461,6 +461,19 @@ window.addEventListener("message", (event) => {
     case "mpe:reloadRequest":
       logSystem("MPE 请求重新同步宿主文档");
       handleLoadPipeline(msg.requestId);
+      break;
+
+    case "mpe:openExternalRequest":
+      try {
+        const url = new URL(msg.payload?.url);
+        if (url.protocol !== "http:" && url.protocol !== "https:") {
+          throw new Error(`不支持的 URL 协议: ${url.protocol}`);
+        }
+        window.open(url.toString(), "_blank", "noopener,noreferrer");
+        logSystem(`MPE 请求打开外链: ${url}`);
+      } catch (error) {
+        logSystem(`拒绝打开外链: ${error.message}`);
+      }
       break;
 
     case "mpe:nodeSelect":

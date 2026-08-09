@@ -17,6 +17,7 @@ import {
   clearOperationTimeout,
   requestHostSave,
 } from "./embedOperations";
+import { registerEmbedExternalNavigation } from "./externalNavigation";
 
 type Cleanup = () => void;
 
@@ -68,6 +69,8 @@ function sendNodeNotFound(nodeId: string): void {
 export function registerEmbedProtocol(): Cleanup {
   const cleanups: Cleanup[] = [];
   let disposed = false;
+
+  cleanups.push(registerEmbedExternalNavigation());
 
   const dispose = () => {
     if (disposed) return;

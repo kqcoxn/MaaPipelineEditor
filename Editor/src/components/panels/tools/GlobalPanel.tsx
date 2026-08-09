@@ -19,6 +19,7 @@ import { WikiAnchor } from "../../wiki/WikiAnchor";
 import style from "../../../styles/panels/ToolPanel.module.less";
 import { useEmbedMode } from "../../../hooks/useEmbedMode";
 import { showEmbedServiceNotice } from "../../../features/embed/serviceNotice";
+import { openExternalUrl } from "../../../features/embed/externalNavigation";
 
 const ToolboxPanel = lazy(() => import("./ToolboxPanel"));
 
@@ -363,7 +364,7 @@ function GlobalPanel() {
                 className={style.icon}
                 name="icon-icon_wendangziliaopeizhi"
                 size={24}
-                onClick={() => window.open(DOCS_BASE_URL, "_blank")}
+                onClick={() => openExternalUrl(DOCS_BASE_URL)}
               />
             </Tooltip>
           </li>

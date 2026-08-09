@@ -60,6 +60,7 @@ import { NewcomerGuideModal } from "./components/modals/NewcomerGuideModal";
 import { useTermsStore, isTermsAccepted } from "./stores/termsStore";
 import { TermsAgreementModal } from "./components/modals/TermsAgreementModal";
 import { useEmbedStarReminder } from "./hooks/useEmbedStarReminder";
+import { openExternalUrl } from "./features/embed/externalNavigation";
 
 const JsonViewer = lazy(() => import("./components/JsonViewer"));
 const DebugModal = lazy(() =>
@@ -78,7 +79,7 @@ function starRemind() {
       <Button
         type="primary"
         onClick={() => {
-          window.open("https://github.com/kqcoxn/MaaPipelineEditor");
+          openExternalUrl("https://github.com/kqcoxn/MaaPipelineEditor");
           localStorage.setItem("mpe_stared", "true");
           notification.destroy();
         }}

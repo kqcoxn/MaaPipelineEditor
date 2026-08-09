@@ -17,6 +17,7 @@ import { Tabs, Input, Button, Tooltip } from "antd";
 import { FileAddOutlined } from "@ant-design/icons";
 import { useFileStore } from "../../../stores/fileStore";
 import { useConfigStore } from "../../../stores/configStore";
+import { useEmbedMode } from "../../../hooks/useEmbedMode";
 
 interface DraggableTabPaneProps extends React.HTMLAttributes<HTMLDivElement> {
   "data-node-key": string;
@@ -46,6 +47,8 @@ const DraggableTabNode: React.FC<Readonly<DraggableTabPaneProps>> = memo(
 );
 
 function FilePanel() {
+  const { isEmbed } = useEmbedMode();
+
   // 当前文件名
   const files = useFileStore((state) => state.files);
   const fileName = useFileStore((state) => state.currentFile.fileName);
@@ -114,20 +117,23 @@ function FilePanel() {
           status={fileNameState}
           onChange={onLabelChange}
         />
-        <Tooltip title="本地文件" placement="bottom">
-          <Button
-            type="primary"
-            icon={<FileAddOutlined />}
-            size="small"
-            onClick={() => {
-              setStatus("showLocalFilePanel", true);
-            }}
-          />
-        </Tooltip>
+        {!isEmbed && (
+          <Tooltip title="本地文件" placement="bottom">
+            <Button
+              type="primary"
+              icon={<FileAddOutlined />}
+              size="small"
+              onClick={() => {
+                setStatus("showLocalFilePanel", true);
+              }}
+            />
+          </Tooltip>
+        )}
       </div>
       <Tabs
         className={style.tabs}
         type="editable-card"
+        hideAdd={isEmbed}
         items={tabs}
         activeKey={activeKey}
         onChange={onTabChange}

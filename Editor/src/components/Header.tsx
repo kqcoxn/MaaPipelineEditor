@@ -34,6 +34,7 @@ import { useState, useEffect } from "react";
 import { checkUpdateFromFrontend, type UpdateInfo } from "../utils/wailsBridge";
 import { useEmbedMode } from "../hooks/useEmbedMode";
 import { showEmbedServiceNotice } from "../features/embed/serviceNotice";
+import { openExternalUrl } from "../features/embed/externalNavigation";
 
 const versionLinks = [
   {
@@ -409,14 +410,18 @@ function Header() {
             />
           )}
           <div className={style.versionInfo}>
-            <Dropdown menu={{ items: otherVersions }} placement="bottom">
-              <a>
-                <Space>
-                  {`v${globalConfig.version}`}
-                  <DownOutlined />
-                </Space>
-              </a>
-            </Dropdown>
+            {isEmbed ? (
+              <span>{`v${globalConfig.version}`}</span>
+            ) : (
+              <Dropdown menu={{ items: otherVersions }} placement="bottom">
+                <a>
+                  <Space>
+                    {`v${globalConfig.version}`}
+                    <DownOutlined />
+                  </Space>
+                </a>
+              </Dropdown>
+            )}
             {updateInfo && (
               <Tooltip
                 title={
@@ -432,9 +437,8 @@ function Header() {
                   style={{ marginLeft: 8, cursor: "pointer" }}
                   icon={<DownloadOutlined />}
                   onClick={() => {
-                    window.open(
+                    openExternalUrl(
                       "https://github.com/kqcoxn/MaaPipelineEditor/releases/latest",
-                      "_blank",
                     );
                   }}
                 >
@@ -465,7 +469,7 @@ function Header() {
                 style={{ width: 29, marginLeft: 7, marginRight: 2 }}
                 src={`${import.meta.env.BASE_URL}maafw.png`}
                 onClick={() => {
-                  window.open(
+                  openExternalUrl(
                     "https://maafw.xyz/docs/3.1-PipelineProtocol.html?source=mpe",
                   );
                 }}
@@ -485,7 +489,9 @@ function Header() {
                 name="icon-githublogo"
                 size={32}
                 onClick={() => {
-                  window.open("https://github.com/kqcoxn/MaaPipelineEditor");
+                  openExternalUrl(
+                    "https://github.com/kqcoxn/MaaPipelineEditor",
+                  );
                 }}
               />
             </Tooltip>

@@ -94,12 +94,11 @@ export const nextPreview: ForecastSection = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
-    version: "1.8.0",
-    date: "2026-8",
-    type: "major",
+    version: "1.7.5",
+    date: "2026-8-10",
+    type: "perf",
     updates: {
-      features: ["提供 MSE 插件接入，现在可以在 vscode 中直接使用 MPE 了！"],
-      perfs: ["搜索功能可检索字段值"],
+      perfs: ["搜索功能可检索字段值", "优化 IFrame 交互体验"],
       fixes: ["修复右键粘贴时无法快捷连接的的问题"],
     },
   },

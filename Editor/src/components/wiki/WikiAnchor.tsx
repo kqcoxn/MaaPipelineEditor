@@ -3,6 +3,7 @@ import { Tooltip } from "antd";
 import { QuestionCircleOutlined } from "@ant-design/icons";
 import { useWikiStore } from "../../stores/wikiStore";
 import style from "../../styles/components/WikiAnchor.module.less";
+import { openExternalUrl } from "../../features/embed/externalNavigation";
 
 const DOCS_BASE_URL = "https://mpe.codax.site/docs/01.指南/";
 const HOLD_DURATION_MS = 1000;
@@ -47,7 +48,7 @@ function WikiAnchorBase({ path, title, description }: WikiAnchorProps) {
     timerRef.current = setTimeout(() => {
       holdingRef.current = false;
       setHolding(false);
-      window.open(fullUrl, "_blank");
+      openExternalUrl(fullUrl);
     }, HOLD_DURATION_MS);
   }, [fullUrl]);
 

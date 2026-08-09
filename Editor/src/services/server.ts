@@ -16,6 +16,7 @@ import { LoggerProtocol } from "./protocols/LoggerProtocol";
 import { AIProtocol } from "./protocols/AIProtocol";
 import { globalConfig } from "../stores/configStore";
 import { registerDebugProtocolListeners } from "../features/debug/registerProtocolListeners";
+import { openExternalUrl } from "../features/embed/externalNavigation";
 
 const PROTOCOL_VERSION = globalConfig.protocolVersion;
 
@@ -144,9 +145,8 @@ export class LocalWebSocketServer {
                 type: "primary",
                 size: "small",
                 onClick: () => {
-                  window.open(
+                  openExternalUrl(
                     "https://mpe.codax.site/docs/guide/server/deploy.html",
-                    "_blank",
                   );
                   notification.destroy(key);
                 },
@@ -201,9 +201,8 @@ export class LocalWebSocketServer {
               type: "primary",
               size: "small",
               onClick: () => {
-                window.open(
+                openExternalUrl(
                   "https://mpe.codax.site/docs/guide/server/deploy.html",
-                  "_blank",
                 );
                 notification.destroy(key);
               },
@@ -240,9 +239,8 @@ export class LocalWebSocketServer {
             type: "primary",
             size: "small",
             onClick: () => {
-              window.open(
+              openExternalUrl(
                 "https://mpe.codax.site/docs/guide/server/deploy.html",
-                "_blank",
               );
               notification.destroy(key);
             },
