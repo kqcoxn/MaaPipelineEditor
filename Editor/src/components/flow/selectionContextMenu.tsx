@@ -1,4 +1,5 @@
 import { message } from "antd";
+import { isEmbedEnvironment } from "../../utils/embedBridge";
 import type { ReactNode } from "react";
 import { LayoutHelper, AlignmentEnum } from "../../core/layout";
 import { flowToPipeline } from "../../core/parser";
@@ -348,6 +349,7 @@ export function getSelectionContextMenuConfig(
       icon: "icon-daoru",
       iconSize: 16,
       onClick: handlePartialExport,
+      visible: () => !isEmbedEnvironment(),
       disabled: (selection) => !hasSelectedNodes(selection),
     },
     {

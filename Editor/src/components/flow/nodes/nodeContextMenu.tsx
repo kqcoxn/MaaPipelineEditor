@@ -41,6 +41,8 @@ import {
   DEBUG_PIPELINE_OVERRIDE_ERROR_CODE,
   parseDebugPipelineOverrideDraft,
 } from "../../../features/debug/pipelineOverride";
+import { isEmbedEnvironment } from "../../../utils/embedBridge";
+import { showEmbedServiceNotice } from "../../../features/embed/serviceNotice";
 
 /**菜单项类型 */
 export interface NodeContextMenuItem {
@@ -232,6 +234,10 @@ function handleEditNodeJson(node: NodeContextMenuNode) {
 
 function handleDebugRunMode(node: NodeContextMenuNode, mode: DebugRunMode) {
   if (node.type !== NodeTypeEnum.Pipeline) return;
+  if (isEmbedEnvironment()) {
+    showEmbedServiceNotice("流程调试");
+    return;
+  }
 
   const sessionState = useDebugSessionStore.getState();
   const profileState = useDebugRunProfileStore.getState();
@@ -353,6 +359,10 @@ function scheduleDebugRunAfterResourcePreflight(
 
 function handleSetDebugEntry(node: NodeContextMenuNode) {
   if (node.type !== NodeTypeEnum.Pipeline) return;
+  if (isEmbedEnvironment()) {
+    showEmbedServiceNotice("流程调试");
+    return;
+  }
 
   applyDebugNodeTarget(node.id, {
     focusCanvas: true,

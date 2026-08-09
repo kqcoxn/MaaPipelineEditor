@@ -5,6 +5,8 @@ import IconFont from "../../iconfonts";
 import { type IconNames } from "../../iconfonts";
 import { useMFWStore } from "../../../stores/mfwStore";
 import style from "../../../styles/panels/ToolboxPanel.module.less";
+import { useEmbedMode } from "../../../hooks/useEmbedMode";
+import { showEmbedServiceNotice } from "../../../features/embed/serviceNotice";
 
 const ROIModal = lazy(() =>
   import("../../modals/ROIModal").then((module) => ({
@@ -108,6 +110,7 @@ type ToolResult =
   | { type: "dy"; delta: number };
 
 function ToolboxPanel() {
+  const { isEmbed } = useEmbedMode();
   const { connectionStatus } = useMFWStore();
 
   // Modal 状态
@@ -133,6 +136,10 @@ function ToolboxPanel() {
   // 打开工具
   const openTool = useCallback(
     (modalType: ToolConfig["modalType"]) => {
+      if (isEmbed) {
+        showEmbedServiceNotice("字段快捷工具");
+        return;
+      }
       if (!checkConnection()) return;
 
       switch (modalType) {
@@ -156,7 +163,7 @@ function ToolboxPanel() {
           break;
       }
     },
-    [checkConnection],
+    [checkConnection, isEmbed],
   );
 
   // OCR 确认回调

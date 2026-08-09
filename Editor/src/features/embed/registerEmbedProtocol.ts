@@ -9,18 +9,45 @@ import {
   PROTOCOL_VERSION,
   sendToParent,
   type EmbedCapabilities,
+  type EmbedHostInfo,
   type EmbedUIConfig,
 } from "../../utils/embedBridge";
+import {
+  clearEmbedOperationTimeouts,
+  clearOperationTimeout,
+  requestHostSave,
+} from "./embedOperations";
 
 type Cleanup = () => void;
 
 function applyEmbedConfig(
   capabilities: Partial<EmbedCapabilities>,
   ui: Partial<EmbedUIConfig>,
+  host?: EmbedHostInfo | null,
 ): void {
   const store = useEmbedStore.getState();
-  store.initConfig(capabilities, ui);
+  store.initConfig(capabilities, ui, host);
   store.setReady(true);
+}
+
+function normalizeHostInfo(value: unknown): EmbedHostInfo | null {
+  if (!value || typeof value !== "object") return null;
+  const host = value as Partial<EmbedHostInfo>;
+  if (typeof host.id !== "string" || typeof host.name !== "string") {
+    return null;
+  }
+
+  let repositoryUrl: string | undefined;
+  if (typeof host.repositoryUrl === "string") {
+    try {
+      const parsed = new URL(host.repositoryUrl);
+      if (parsed.protocol === "https:") repositoryUrl = parsed.toString();
+    } catch {
+      repositoryUrl = undefined;
+    }
+  }
+
+  return { id: host.id, name: host.name, repositoryUrl };
 }
 
 function findNode(nodeId: string) {
@@ -46,6 +73,7 @@ export function registerEmbedProtocol(): Cleanup {
     if (disposed) return;
     disposed = true;
     cleanups.splice(0).forEach((cleanup) => cleanup());
+    clearEmbedOperationTimeouts();
     useEmbedStore.getState().reset();
   };
 
@@ -61,8 +89,13 @@ export function registerEmbedProtocol(): Cleanup {
       const config = payload as {
         capabilities?: Partial<EmbedCapabilities>;
         ui?: Partial<EmbedUIConfig>;
+        host?: unknown;
       };
-      applyEmbedConfig(config.capabilities ?? {}, config.ui ?? {});
+      applyEmbedConfig(
+        config.capabilities ?? {},
+        config.ui ?? {},
+        normalizeHostInfo(config.host),
+      );
       const { capabilities } = useEmbedStore.getState();
       completeHandshake(capabilities, requestId);
     }),
@@ -77,33 +110,74 @@ export function registerEmbedProtocol(): Cleanup {
           useFileStore.getState().setFileName(fileName);
           useEmbedStore.getState().setFileName(fileName);
         }
+        if (success) {
+          const flowStore = useFlowStore.getState();
+          flowStore.initHistory(flowStore.nodes, flowStore.edges);
+          useEmbedStore.getState().markClean(flowToPipelineString());
+        }
         sendToParent("mpe:loadResult", { success, fileName }, requestId);
+        if (useEmbedStore.getState().reloadOperation.requestId === requestId) {
+          clearOperationTimeout(requestId);
+          useEmbedStore
+            .getState()
+            .finishReload(requestId, success, success ? undefined : "Pipeline 加载失败");
+        }
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         sendToParent(
           "mpe:loadResult",
           {
             success: false,
-            error: error instanceof Error ? error.message : String(error),
+            error: errorMessage,
+          },
+          requestId,
+        );
+        clearOperationTimeout(requestId);
+        useEmbedStore.getState().finishReload(requestId, false, errorMessage);
+      }
+    }),
+    onParentMessage("mpe:save", (_payload, requestId) => {
+      try {
+        const pipeline = flowToPipelineString();
+        const data = JSON.parse(pipeline) as unknown;
+        const fileName = useFileStore.getState().currentFile.fileName;
+        useEmbedStore.getState().captureSavePipeline(requestId, pipeline);
+        sendToParent("mpe:saveData", { fileName, data }, requestId);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        clearOperationTimeout(requestId);
+        useEmbedStore
+          .getState()
+          .finishSave(requestId, false, "", errorMessage);
+        sendToParent(
+          "mpe:error",
+          {
+            code: "save_failed",
+            message: errorMessage,
           },
           requestId,
         );
       }
     }),
-    onParentMessage("mpe:save", (_payload, requestId) => {
-      try {
-        const data = JSON.parse(flowToPipelineString()) as unknown;
-        const fileName = useFileStore.getState().currentFile.fileName;
-        sendToParent("mpe:saveData", { fileName, data }, requestId);
-      } catch (error) {
-        sendToParent(
-          "mpe:error",
-          {
-            code: "save_failed",
-            message: error instanceof Error ? error.message : String(error),
-          },
-          requestId,
-        );
-      }
+    onParentMessage("mpe:saveResult", (payload, requestId) => {
+      const result = payload as { success?: boolean; error?: string; message?: string };
+      clearOperationTimeout(requestId);
+      useEmbedStore.getState().finishSave(
+        requestId,
+        result.success === true,
+        flowToPipelineString(),
+        result.message ?? result.error,
+      );
+    }),
+    onParentMessage("mpe:error", (payload, requestId) => {
+      const error = payload as { message?: string };
+      clearOperationTimeout(requestId);
+      useEmbedStore
+        .getState()
+        .finishReload(requestId, false, error.message ?? "宿主同步失败");
+      useEmbedStore
+        .getState()
+        .finishSave(requestId, false, flowToPipelineString(), error.message);
     }),
     onParentMessage("mpe:selectNode", (payload) => {
       const { nodeId } = payload as { nodeId: string };
@@ -173,7 +247,7 @@ export function registerEmbedProtocol(): Cleanup {
   const handleSaveRequest = (event: KeyboardEvent) => {
     if ((event.ctrlKey || event.metaKey) && event.key === "s") {
       event.preventDefault();
-      sendToParent("mpe:saveRequest", { hint: "user-triggered" });
+      requestHostSave();
     }
   };
   document.addEventListener("keydown", handleSaveRequest);

@@ -59,6 +59,7 @@ import { useNewcomerStore, isNewcomerPassed } from "./stores/newcomerStore";
 import { NewcomerGuideModal } from "./components/modals/NewcomerGuideModal";
 import { useTermsStore, isTermsAccepted } from "./stores/termsStore";
 import { TermsAgreementModal } from "./components/modals/TermsAgreementModal";
+import { useEmbedStarReminder } from "./hooks/useEmbedStarReminder";
 
 const JsonViewer = lazy(() => import("./components/JsonViewer"));
 const DebugModal = lazy(() =>
@@ -164,12 +165,16 @@ function App() {
 
   // 嵌入模式变更通知
   useEmbedChangeNotifier(isEmbed && isReady);
+  useEmbedStarReminder();
 
   // onMounted
   useEffect(() => {
     // 检查是否为嵌入模式（最高优先级）
     if (isEmbedEnvironment()) {
       console.log("[App] Embed mode detected");
+
+      useTermsStore.getState().closeModal();
+      useNewcomerStore.getState().closeModal();
 
       return registerEmbedProtocol();
     }
@@ -407,8 +412,8 @@ function App() {
       <Suspense fallback={null}>
         <DebugModal />
       </Suspense>
-      <TermsAgreementModal />
-      <NewcomerGuideModal />
+      {!isEmbed && <TermsAgreementModal />}
+      {!isEmbed && <NewcomerGuideModal />}
       <GlobalListener />
     </ThemeProvider>
   );

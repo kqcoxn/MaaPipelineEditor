@@ -33,6 +33,7 @@ import classNames from "classnames";
 import { useState, useEffect } from "react";
 import { checkUpdateFromFrontend, type UpdateInfo } from "../utils/wailsBridge";
 import { useEmbedMode } from "../hooks/useEmbedMode";
+import { showEmbedServiceNotice } from "../features/embed/serviceNotice";
 
 const versionLinks = [
   {
@@ -102,7 +103,7 @@ const ConnectionButton: React.FC = () => {
     };
   }, [isEmbed]);
 
-  // 嵌入模式下显示 EmbedBridge，不可点击断开
+  // 嵌入模式下显示 EmbedBridge，并说明本地服务能力边界
   if (isEmbed) {
     return (
       <Tooltip title="EmbedBridge 嵌入模式">
@@ -114,8 +115,9 @@ const ConnectionButton: React.FC = () => {
             borderRadius: "999px",
             paddingLeft: "12px",
             paddingRight: "12px",
-            cursor: "default",
+            cursor: "pointer",
           }}
+          onClick={() => showEmbedServiceNotice("LocalBridge")}
         >
           EmbedBridge
         </Button>
@@ -323,20 +325,21 @@ function Header() {
 
   // 答题通过后弹出更新日志
   useEffect(() => {
+    if (isEmbed) return;
     const handler = () => setUpdateLogOpen(true);
     window.addEventListener("mpe:newcomer-passed", handler);
     return () => window.removeEventListener("mpe:newcomer-passed", handler);
-  }, []);
+  }, [isEmbed]);
 
   // 检查新版本
   useEffect(() => {
-    if (globalConfig.dev) return;
+    if (globalConfig.dev || isEmbed) return;
     checkUpdateFromFrontend(globalConfig.version).then((info) => {
       if (info && info.hasUpdate) {
         setUpdateInfo(info);
       }
     });
-  }, []);
+  }, [isEmbed]);
 
   return (
     <>

@@ -17,6 +17,8 @@ import { DebugFlowScopeIntro } from "../../../features/debug/components/DebugFlo
 import PathSelector from "./PathSelector";
 import { WikiAnchor } from "../../wiki/WikiAnchor";
 import style from "../../../styles/panels/ToolPanel.module.less";
+import { useEmbedMode } from "../../../hooks/useEmbedMode";
+import { showEmbedServiceNotice } from "../../../features/embed/serviceNotice";
 
 const ToolboxPanel = lazy(() => import("./ToolboxPanel"));
 
@@ -51,6 +53,7 @@ function confirmDebugIntro(): void {
 }
 
 function GlobalPanel() {
+  const { isEmbed } = useEmbedMode();
 
   // store
   const clipboardNodes = useClipboardStore((state) => state.clipboardNodes);
@@ -75,6 +78,10 @@ function GlobalPanel() {
 
   const showRunBadge = !runBadgeAcknowledged && runBadgeStatus !== "idle";
   const handleOpenDebugModal = () => {
+    if (isEmbed) {
+      showEmbedServiceNotice("流程调试");
+      return;
+    }
     if (hasConfirmedDebugIntro()) {
       openDebugModal();
       return;
@@ -281,35 +288,46 @@ function GlobalPanel() {
             <div></div>
           </div>
           <li className={style.item}>
-            <Popover
-              placement="bottom"
-              title={
-                <span style={{ display: "inline-flex", alignItems: "center" }}>
-                  工具箱
-                  <span style={{ marginTop: 2 }}>
-                    <WikiAnchor
-                      path="20.本地服务/20.字段快捷工具.html"
-                      title="字段快捷工具"
-                      description="ROI选区、OCR、取色等快捷操作"
-                    />
-                  </span>
-                </span>
-              }
-              content={
-                <Suspense fallback={null}>
-                  <ToolboxPanel />
-                </Suspense>
-              }
-              trigger="click"
-            >
+            {isEmbed ? (
               <Tooltip placement="bottom" title="工具箱">
                 <IconFont
                   className={style.icon}
                   name="icon-gongjuxiang"
                   size={24}
+                  onClick={() => showEmbedServiceNotice("字段快捷工具")}
                 />
               </Tooltip>
-            </Popover>
+            ) : (
+              <Popover
+                placement="bottom"
+                title={
+                  <span style={{ display: "inline-flex", alignItems: "center" }}>
+                    工具箱
+                    <span style={{ marginTop: 2 }}>
+                      <WikiAnchor
+                        path="20.本地服务/20.字段快捷工具.html"
+                        title="字段快捷工具"
+                        description="ROI选区、OCR、取色等快捷操作"
+                      />
+                    </span>
+                  </span>
+                }
+                content={
+                  <Suspense fallback={null}>
+                    <ToolboxPanel />
+                  </Suspense>
+                }
+                trigger="click"
+              >
+                <Tooltip placement="bottom" title="工具箱">
+                  <IconFont
+                    className={style.icon}
+                    name="icon-gongjuxiang"
+                    size={24}
+                  />
+                </Tooltip>
+              </Popover>
+            )}
           </li>
         </div>
         {/* 调试按钮 */}

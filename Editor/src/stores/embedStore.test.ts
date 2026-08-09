@@ -23,8 +23,15 @@ describe("embedStore", () => {
 
   it("restores all embed state when reset", () => {
     const state = useEmbedStore.getState();
-    state.initConfig({ readOnly: true }, { hideHeader: true });
+    state.initConfig(
+      { readOnly: true },
+      { hideHeader: true },
+      { id: "mse", name: "MSE" },
+    );
     state.setFileName("pipeline.json");
+    state.markClean('{"A":{}}');
+    state.beginSave("save-1");
+    state.beginReload("reload-1");
     state.setReady(true);
 
     useEmbedStore.getState().reset();
@@ -33,7 +40,47 @@ describe("embedStore", () => {
       isReady: false,
       capabilities: DEFAULT_CAPABILITIES,
       ui: DEFAULT_UI,
+      host: null,
       currentFileName: null,
+      cleanPipeline: null,
+      isDirty: false,
+      saveOperation: { status: "idle", requestId: null, error: null },
+      reloadOperation: { status: "idle", requestId: null, error: null },
+    });
+  });
+
+  it("keeps post-save changes dirty while advancing the clean baseline", () => {
+    const state = useEmbedStore.getState();
+    state.markClean('{"A":{}}');
+    state.setDirty(true);
+    state.beginSave("save-1");
+    state.captureSavePipeline("save-1", '{"A":{"next":["B"]}}');
+
+    useEmbedStore
+      .getState()
+      .finishSave(
+        "save-1",
+        true,
+        '{"A":{"next":["B"]},"B":{}}',
+      );
+
+    expect(useEmbedStore.getState()).toMatchObject({
+      cleanPipeline: '{"A":{"next":["B"]}}',
+      isDirty: true,
+      saveOperation: { status: "success" },
+    });
+  });
+
+  it("ignores operation results with a different request id", () => {
+    const state = useEmbedStore.getState();
+    state.beginReload("reload-current");
+
+    state.finishReload("reload-stale", false, "stale error");
+
+    expect(useEmbedStore.getState().reloadOperation).toEqual({
+      status: "pending",
+      requestId: "reload-current",
+      error: null,
     });
   });
 });

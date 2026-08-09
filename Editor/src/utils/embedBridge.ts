@@ -6,7 +6,7 @@ import { useEmbedMessageLogStore } from "../stores/embedMessageLogStore";
  * 镜像 wailsBridge.ts 的环境检测 + 条件桥接模式
  */
 
-export const PROTOCOL_VERSION = "1.0.0";
+export const PROTOCOL_VERSION = "1.1.0";
 
 /** 协议消息信封 */
 export interface EmbedMessage {
@@ -34,10 +34,18 @@ export interface EmbedUIConfig {
   hiddenPanels: string[];
 }
 
+/** 宿主信息 */
+export interface EmbedHostInfo {
+  id: string;
+  name: string;
+  repositoryUrl?: string;
+}
+
 /** 握手配置 */
 export interface EmbedInitConfig {
   capabilities: EmbedCapabilities;
   ui: EmbedUIConfig;
+  host?: EmbedHostInfo;
 }
 
 interface InitEmbedBridgeOptions {
@@ -73,6 +81,7 @@ const handlers: Map<
 > = new Map();
 let handshakeTimeoutId: ReturnType<typeof setTimeout> | null = null;
 let isHandshakeCompleted = false;
+let requestIdCounter = 0;
 
 // ============ 环境检测 ============
 
@@ -106,12 +115,24 @@ function getValidatedEmbedOrigin(): string | null {
   }
 }
 
+export function isCompatibleProtocolVersion(version: unknown): boolean {
+  if (typeof version !== "string") return false;
+  const expectedMajor = PROTOCOL_VERSION.split(".")[0];
+  const receivedMajor = version.split(".")[0];
+  return receivedMajor === expectedMajor;
+}
+
 /**
  * 获取当前 window 的 origin（用于调试）
  */
 export function getCurrentOrigin(): string {
   if (typeof window === "undefined") return "";
   return window.location.origin;
+}
+
+export function createEmbedRequestId(prefix: string): string {
+  requestIdCounter += 1;
+  return `${prefix}-${Date.now()}-${requestIdCounter}`;
 }
 
 // ============ 消息收发 ============
@@ -233,6 +254,19 @@ export function initEmbedBridge(
     if (expectedOrigin && event.origin !== expectedOrigin) {
       console.warn(
         `[EmbedBridge] Origin mismatch: expected=${expectedOrigin}, got=${event.origin}`,
+      );
+      return;
+    }
+
+    if (!isCompatibleProtocolVersion(data.version)) {
+      sendToParent(
+        "mpe:error",
+        {
+          code: "protocol_version_mismatch",
+          message: `Unsupported mpe-embed version: ${String(data.version)}`,
+          detail: { supportedVersion: PROTOCOL_VERSION },
+        },
+        data.requestId,
       );
       return;
     }

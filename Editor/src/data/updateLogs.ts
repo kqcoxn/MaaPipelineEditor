@@ -98,6 +98,7 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2026-8",
     type: "major",
     updates: {
+      features: ["提供 MSE 插件接入，现在可以在 vscode 中直接使用 MPE 了！"],
       perfs: ["搜索功能可检索字段值"],
       fixes: ["修复右键粘贴时无法快捷连接的的问题"],
     },

@@ -1,7 +1,11 @@
 import { useEffect, useRef } from "react";
 import { useShallow } from "zustand/shallow";
 import { useFlowStore } from "../stores/flow";
+import { useConfigStore } from "../stores/configStore";
+import { useFileStore } from "../stores/fileStore";
+import { useEmbedStore } from "../stores/embedStore";
 import { sendToParent } from "../utils/embedBridge";
+import { flowToPipelineString } from "../core/parser";
 
 const EMPTY_NODES: never[] = [];
 const EMPTY_EDGES: never[] = [];
@@ -13,11 +17,6 @@ const EMPTY_EDGES: never[] = [];
  * - selectedNodes 变化：即时发送 mpe:nodeSelect（无防抖）
  */
 
-interface PendingChange {
-  type: string;
-  detail: Record<string, any>;
-}
-
 export function useEmbedChangeNotifier(enabled: boolean = true) {
   const { nodes, edges, selectedNodes } = useFlowStore(
     useShallow((state) => ({
@@ -26,90 +25,41 @@ export function useEmbedChangeNotifier(enabled: boolean = true) {
       selectedNodes: enabled ? state.selectedNodes : EMPTY_NODES,
     })),
   );
+  const configs = useConfigStore((state) => state.configs);
+  const configuredKeys = useConfigStore((state) => state.configuredKeys);
+  const fileConfig = useFileStore((state) => state.currentFile.config);
+  const cleanPipeline = useEmbedStore((state) => state.cleanPipeline);
 
   // 保存上一次状态用于推断变更类型
-  const prevNodesRef = useRef<{ count: number; ids: string }>({
-    count: 0,
-    ids: "",
-  });
-  const prevEdgesRef = useRef<{ count: number; ids: string }>({
-    count: 0,
-    ids: "",
-  });
+  const previousPipelineRef = useRef<string | null>(null);
   const prevSelectedRef = useRef<string>("");
 
   // 防抖相关
-  const pendingChangeRef = useRef<PendingChange | null>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // 发送防抖后的变更通知
-  const flushChange = () => {
-    if (pendingChangeRef.current) {
-      sendToParent("mpe:change", pendingChangeRef.current);
-      pendingChangeRef.current = null;
-    }
-  };
-
-  // 设置 pending 变更，重启防抖定时器
-  const scheduleChange = (type: string, detail: Record<string, any>) => {
-    pendingChangeRef.current = { type, detail };
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-    debounceTimerRef.current = setTimeout(() => {
-      flushChange();
-    }, 300);
-  };
 
   // 监听 nodes / edges 变化
   useEffect(() => {
     if (!enabled) return;
 
-    const nodeCount = nodes.length;
-    const edgeCount = edges.length;
-    const nodeIds = nodes.map((n) => n.id).join(",");
-    const edgeIds = edges.map((e) => e.id).join(",");
+    if (cleanPipeline === null) return;
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => {
+      const pipeline = flowToPipelineString();
+      const isDirty = pipeline !== cleanPipeline;
+      useEmbedStore.getState().setDirty(isDirty);
 
-    const prevNodes = prevNodesRef.current;
-    const prevEdges = prevEdgesRef.current;
-
-    let changeType: string | null = null;
-    let detail: Record<string, any> = { nodeCount, edgeCount };
-
-    if (nodeCount > prevNodes.count) {
-      changeType = "node.add";
-      const newNode = nodes.find((n) => !prevNodes.ids.includes(n.id));
-      if (newNode) {
-        detail = { nodeId: newNode.id, taskName: newNode.data?.label };
+      if (pipeline !== previousPipelineRef.current) {
+        previousPipelineRef.current = pipeline;
+        sendToParent("mpe:change", {
+          type: "pipeline.update",
+          detail: {
+            nodeCount: useFlowStore.getState().nodes.length,
+            edgeCount: useFlowStore.getState().edges.length,
+            isDirty,
+          },
+        });
       }
-    } else if (nodeCount < prevNodes.count) {
-      changeType = "node.delete";
-    } else if (nodeIds !== prevNodes.ids || edgeIds !== prevEdges.ids) {
-      // 长度不变但内容变化，视为 node.update
-      changeType = "node.update";
-    }
-
-    if (!changeType && edgeCount > prevEdges.count) {
-      changeType = "edge.add";
-      const newEdge = edges.find((e) => !prevEdges.ids.includes(e.id));
-      if (newEdge) {
-        detail = {
-          edgeId: newEdge.id,
-          source: newEdge.source,
-          target: newEdge.target,
-        };
-      }
-    } else if (!changeType && edgeCount < prevEdges.count) {
-      changeType = "edge.delete";
-    }
-
-    if (changeType) {
-      scheduleChange(changeType, detail);
-    }
-
-    // 更新快照
-    prevNodesRef.current = { count: nodeCount, ids: nodeIds };
-    prevEdgesRef.current = { count: edgeCount, ids: edgeIds };
+    }, 300);
 
     return () => {
       if (debounceTimerRef.current) {
@@ -117,8 +67,19 @@ export function useEmbedChangeNotifier(enabled: boolean = true) {
         debounceTimerRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodes, edges, enabled]);
+  }, [
+    nodes,
+    edges,
+    configs,
+    configuredKeys,
+    fileConfig,
+    cleanPipeline,
+    enabled,
+  ]);
+
+  useEffect(() => {
+    previousPipelineRef.current = cleanPipeline;
+  }, [cleanPipeline]);
 
   // 监听选中节点变化（无防抖）
   useEffect(() => {

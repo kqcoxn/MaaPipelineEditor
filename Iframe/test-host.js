@@ -1,10 +1,10 @@
 /**
  * MPE iframe 嵌入测试宿主
- * 实现 mpe-embed 协议 v1.0.0 的宿主侧通信逻辑
+ * 实现 mpe-embed 协议 v1.1.0 的宿主侧通信逻辑
  */
 
 const PROTOCOL = "mpe-embed";
-const VERSION = "1.0.0";
+const VERSION = "1.1.0";
 const REQUEST_TIMEOUT = 10000;
 
 // DOM 元素引用
@@ -19,6 +19,9 @@ const els = {
   resizeHeight: document.getElementById("resize-height"),
   stateFields: document.getElementById("state-fields"),
   uiHiddenPanels: document.getElementById("ui-hiddenPanels"),
+  hostId: document.getElementById("host-id"),
+  hostName: document.getElementById("host-name"),
+  hostRepositoryUrl: document.getElementById("host-repository-url"),
 };
 
 // 按钮引用
@@ -118,7 +121,7 @@ function logSystem(msg) {
   els.logContainer.scrollTop = els.logContainer.scrollHeight;
 }
 
-function sendMessage(type, payload, needResponse = false) {
+function sendMessage(type, payload, needResponse = false, requestId) {
   if (!iframe || !iframe.contentWindow) {
     logSystem("iframe 未加载，无法发送消息");
     return null;
@@ -132,7 +135,9 @@ function sendMessage(type, payload, needResponse = false) {
   };
 
   if (needResponse) {
-    msg.requestId = generateRequestId();
+    msg.requestId = requestId || generateRequestId();
+  } else if (requestId) {
+    msg.requestId = requestId;
   }
 
   const iframeOrigin = new URL(iframe.src).origin;
@@ -189,6 +194,14 @@ function getUIConfig() {
     hideHeader: uiCfgs.hideHeader.checked,
     hideToolbar: uiCfgs.hideToolbar.checked,
     hiddenPanels,
+  };
+}
+
+function getHostInfo() {
+  return {
+    id: els.hostId.value.trim(),
+    name: els.hostName.value.trim(),
+    repositoryUrl: els.hostRepositoryUrl.value.trim(),
   };
 }
 
@@ -256,6 +269,7 @@ async function handleInit() {
   const payload = {
     capabilities: getCapabilities(),
     ui: getUIConfig(),
+    host: getHostInfo(),
   };
 
   try {
@@ -266,7 +280,7 @@ async function handleInit() {
   }
 }
 
-async function handleLoadPipeline() {
+async function handleLoadPipeline(requestId) {
   const raw = els.pipelineData.value.trim();
   let data;
 
@@ -274,6 +288,14 @@ async function handleLoadPipeline() {
     data = raw ? JSON.parse(raw) : {};
   } catch (err) {
     logSystem(`JSON 解析失败: ${err.message}`);
+    if (requestId) {
+      sendMessage(
+        "mpe:error",
+        { code: "invalid_pipeline", message: `JSON 解析失败: ${err.message}` },
+        false,
+        requestId,
+      );
+    }
     return;
   }
 
@@ -283,21 +305,32 @@ async function handleLoadPipeline() {
   };
 
   try {
-    const response = await sendMessage("mpe:loadPipeline", payload, true);
+    const response = await sendMessage(
+      "mpe:loadPipeline",
+      payload,
+      true,
+      requestId,
+    );
     logSystem(`加载结果: success=${response?.payload?.success}`);
   } catch (err) {
     logSystem(`加载超时: ${err.message}`);
   }
 }
 
-async function handleSave() {
+async function handleSave(requestId) {
   try {
-    const response = await sendMessage("mpe:save", {}, true);
+    const response = await sendMessage("mpe:save", {}, true, requestId);
     logSystem(`保存数据返回: fileName=${response?.payload?.fileName}`);
     if (response?.payload?.data) {
       els.pipelineData.value = JSON.stringify(response.payload.data, null, 2);
       log("saveData payload", response.payload.data, "incoming");
     }
+    sendMessage(
+      "mpe:saveResult",
+      { success: true, documentVersion: Date.now() },
+      false,
+      response?.requestId,
+    );
   } catch (err) {
     logSystem(`保存超时: ${err.message}`);
   }
@@ -421,8 +454,13 @@ window.addEventListener("message", (event) => {
       // 自动响应 save 请求
       setTimeout(() => {
         logSystem("自动响应 saveRequest → 发送 mpe:save");
-        handleSave();
+        handleSave(msg.requestId);
       }, 100);
+      break;
+
+    case "mpe:reloadRequest":
+      logSystem("MPE 请求重新同步宿主文档");
+      handleLoadPipeline(msg.requestId);
       break;
 
     case "mpe:nodeSelect":
@@ -443,8 +481,8 @@ window.addEventListener("message", (event) => {
 btns.create.addEventListener("click", createIframe);
 btns.destroy.addEventListener("click", destroyIframe);
 btns.init.addEventListener("click", handleInit);
-btns.load.addEventListener("click", handleLoadPipeline);
-btns.save.addEventListener("click", handleSave);
+btns.load.addEventListener("click", () => handleLoadPipeline());
+btns.save.addEventListener("click", () => handleSave());
 btns.select.addEventListener("click", handleSelectNode);
 btns.focus.addEventListener("click", handleFocusNode);
 btns.resize.addEventListener("click", handleResize);

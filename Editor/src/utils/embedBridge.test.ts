@@ -3,6 +3,7 @@ import {
   DEFAULT_CAPABILITIES,
   DEFAULT_UI,
   initEmbedBridge,
+  isCompatibleProtocolVersion,
   sendToParent,
 } from "./embedBridge";
 import { useEmbedMessageLogStore } from "../stores/embedMessageLogStore";
@@ -63,7 +64,7 @@ describe("embedBridge", () => {
         origin: "https://host.example.com",
         data: {
           protocol: "mpe-embed",
-          version: "1.0.0",
+          version: "1.1.0",
           type: "mpe:init",
           requestId: "request-1",
           payload: { capabilities: {}, ui: {} },
@@ -78,6 +79,45 @@ describe("embedBridge", () => {
         requestId: "request-1",
         origin: "https://host.example.com",
       }),
+    );
+  });
+
+  it("accepts the same major version and rejects incompatible versions", () => {
+    expect(isCompatibleProtocolVersion("1.0.0")).toBe(true);
+    expect(isCompatibleProtocolVersion("1.9.0")).toBe(true);
+    expect(isCompatibleProtocolVersion("2.0.0")).toBe(false);
+    expect(isCompatibleProtocolVersion(undefined)).toBe(false);
+  });
+
+  it("reports an incompatible parent protocol version", () => {
+    const postMessage = vi
+      .spyOn(window.parent, "postMessage")
+      .mockImplementation(() => undefined);
+    ({ cleanup } = initEmbedBridge());
+
+    window.dispatchEvent(
+      new MessageEvent("message", {
+        source: window.parent,
+        origin: "https://host.example.com",
+        data: {
+          protocol: "mpe-embed",
+          version: "2.0.0",
+          type: "mpe:init",
+          requestId: "request-incompatible",
+          payload: {},
+        },
+      }),
+    );
+
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "mpe:error",
+        requestId: "request-incompatible",
+        payload: expect.objectContaining({
+          code: "protocol_version_mismatch",
+        }),
+      }),
+      "https://host.example.com",
     );
   });
 });

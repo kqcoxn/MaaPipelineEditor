@@ -19,6 +19,8 @@ import { checkGuard } from "../../panels/settings/guardSystem";
 import GuardPromptModal from "../../modals/GuardPromptModal";
 import type { ConfigItemDef } from "../../panels/settings/settingsDefinitions";
 import style from "../../../styles/panels/ToolbarPanel.module.less";
+import { useEmbedMode } from "../../../hooks/useEmbedMode";
+import EmbedSaveButton from "./EmbedSaveButton";
 
 const actionGroupStyle = {
   display: "inline-flex",
@@ -30,7 +32,7 @@ const actionGroupStyle = {
  * 导出按钮组件
  * 支持导出到粘贴板或文件,点击执行默认操作,悬停显示菜单
  */
-function ExportButton() {
+function StandaloneExportButton() {
   const { defaultExportAction, setDefaultExportAction } = useToolbarStore();
   const configHandlingMode = useConfigStore(
     (state) => state.configs.configHandlingMode,
@@ -356,6 +358,11 @@ function ExportButton() {
       )}
     </>
   );
+}
+
+function ExportButton() {
+  const { isEmbed } = useEmbedMode();
+  return isEmbed ? <EmbedSaveButton /> : <StandaloneExportButton />;
 }
 
 export default memo(ExportButton);

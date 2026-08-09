@@ -20,6 +20,8 @@ import { ListValueElem } from "./ListValueElem";
 import { TemplatePreview } from "./TemplatePreview";
 import { ImageSelect } from "./ImageSelect";
 import { sortKeysByOrder } from "../../../../core/sorting";
+import { useEmbedMode } from "../../../../hooks/useEmbedMode";
+import { showEmbedServiceNotice } from "../../../../features/embed/serviceNotice";
 
 /**
  * 将可能为字符串的 ROI 值解析为 [number, number, number, number] 元组
@@ -117,6 +119,7 @@ export const ParamFieldListElem = memo(
     onListDelete: (key: string, valueList: any[], index: number) => void;
     sortOrder?: string[];
   }) => {
+    const { isEmbed } = useEmbedMode();
     const { connectionStatus } = useMFWStore();
     const [roiModalOpen, setRoiModalOpen] = useState(false);
     const [ocrModalOpen, setOcrModalOpen] = useState(false);
@@ -385,6 +388,10 @@ export const ParamFieldListElem = memo(
     // 处理快捷工具点击
     const handleQuickToolClick = useCallback(
       (key: string, listIndex?: number) => {
+        if (isEmbed) {
+          showEmbedServiceNotice("字段快捷工具");
+          return;
+        }
         const config = QUICK_TOOLS[key];
         if (!config) return;
 
@@ -416,6 +423,7 @@ export const ParamFieldListElem = memo(
         handleOpenTemplate,
         handleOpenColor,
         handleOpenDelta,
+        isEmbed,
       ],
     );
 
@@ -443,14 +451,20 @@ export const ParamFieldListElem = memo(
                   className="icon-interactive"
                   name="icon-Imagetuxiangshibie"
                   size={18}
-                  onClick={() => handleOpenTemplateMatch(key, listIndex)}
+                  onClick={() => {
+                    if (isEmbed) {
+                      showEmbedServiceNotice("模板匹配验证");
+                      return;
+                    }
+                    handleOpenTemplateMatch(key, listIndex);
+                  }}
                 />
               </div>
             )}
           </>
         );
       },
-      [getQuickToolConfig, handleQuickToolClick, handleOpenTemplateMatch],
+      [getQuickToolConfig, handleQuickToolClick, handleOpenTemplateMatch, isEmbed],
     );
 
     const existingFields = Object.keys(paramData);
