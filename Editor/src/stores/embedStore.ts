@@ -13,7 +13,12 @@ import {
  * 集中管理 capabilities、UI 配置、ready 状态、当前文件名
  */
 
-export type EmbedOperationStatus = "idle" | "pending" | "success" | "error";
+export type EmbedOperationStatus =
+  | "idle"
+  | "pending"
+  | "success"
+  | "error"
+  | "conflict";
 
 export interface EmbedOperationState {
   status: EmbedOperationStatus;
@@ -45,6 +50,7 @@ interface EmbedState {
   setDirty: (dirty: boolean) => void;
   beginSave: (requestId: string) => void;
   captureSavePipeline: (requestId: string | undefined, pipeline: string) => void;
+  beginSaveConflict: (requestId: string | undefined) => void;
   finishSave: (
     requestId: string | undefined,
     success: boolean,
@@ -117,6 +123,14 @@ export const useEmbedStore = create<EmbedState>()(
     captureSavePipeline(requestId, pipeline) {
       if (!requestId || get().saveOperation.requestId !== requestId) return;
       set({ pendingSavePipeline: pipeline });
+    },
+
+    beginSaveConflict(requestId) {
+      if (!requestId || get().saveOperation.requestId !== requestId) return;
+      set({
+        saveOperation: { status: "conflict", requestId: null, error: null },
+        pendingSavePipeline: null,
+      });
     },
 
     finishSave(requestId, success, currentPipeline, error) {

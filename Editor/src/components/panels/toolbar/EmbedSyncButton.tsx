@@ -2,6 +2,7 @@ import { SyncOutlined } from "@ant-design/icons";
 import { App as AntdApp, Button, Tooltip } from "antd";
 import { memo, useEffect } from "react";
 import { requestHostReload } from "../../../features/embed/embedOperations";
+import { getEmbedHostName, getEmbedLocale } from "../../../utils/embedBridge";
 import { useEmbedMode } from "../../../hooks/useEmbedMode";
 import { useEmbedStore } from "../../../stores/embedStore";
 import { flowToPipelineString } from "../../../core/parser";
@@ -21,7 +22,7 @@ function EmbedSyncButton() {
   const acknowledgeResult = useEmbedStore(
     (state) => state.acknowledgeReloadResult,
   );
-  const hostLabel = host?.id === "mse" ? "MSE" : (host?.name ?? "宿主");
+  const hostLabel = getEmbedHostName(host, getEmbedLocale());
 
   useEffect(() => {
     if (operation.status === "success") {

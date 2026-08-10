@@ -2,16 +2,11 @@ import { describe, expect, it } from "vitest";
 import { shouldShowLocalToolbarActions } from "./toolbarVisibility";
 
 describe("shouldShowLocalToolbarActions", () => {
-  it("hides local toolbar actions for the MSE host", () => {
-    expect(shouldShowLocalToolbarActions({ id: "mse", name: "MSE" })).toBe(
-      false,
-    );
+  it("hides local toolbar actions in every embed host", () => {
+    expect(shouldShowLocalToolbarActions(true)).toBe(false);
   });
 
-  it("keeps local toolbar actions for standalone and other hosts", () => {
-    expect(shouldShowLocalToolbarActions(null)).toBe(true);
-    expect(
-      shouldShowLocalToolbarActions({ id: "test-host", name: "Test Host" }),
-    ).toBe(true);
+  it("keeps local toolbar actions in standalone mode", () => {
+    expect(shouldShowLocalToolbarActions(false)).toBe(true);
   });
 });

@@ -1,10 +1,10 @@
 /**
  * MPE iframe 嵌入测试宿主
- * 实现 mpe-embed 协议 v1.2.0 的宿主侧通信逻辑
+ * 实现 mpe-embed 协议 v1.3.0 的通用宿主侧通信逻辑
  */
 
 const PROTOCOL = "mpe-embed";
-const VERSION = "1.2.0";
+const VERSION = "1.3.0";
 const REQUEST_TIMEOUT = 10000;
 
 // DOM 元素引用
@@ -22,6 +22,7 @@ const els = {
   hostId: document.getElementById("host-id"),
   hostName: document.getElementById("host-name"),
   hostRepositoryUrl: document.getElementById("host-repository-url"),
+  simulateConflict: document.getElementById("simulate-document-changed"),
 };
 
 // 按钮引用
@@ -199,8 +200,8 @@ function getUIConfig() {
 
 function getHostInfo() {
   return {
-    id: els.hostId.value.trim(),
-    name: els.hostName.value.trim(),
+    id: els.hostId.value.trim() || undefined,
+    name: els.hostName.value.trim() || undefined,
     repositoryUrl: els.hostRepositoryUrl.value.trim(),
   };
 }
@@ -317,17 +318,25 @@ async function handleLoadPipeline(requestId) {
   }
 }
 
-async function handleSave(requestId) {
+async function handleSave(requestId, requestPayload = {}) {
   try {
     const response = await sendMessage("mpe:save", {}, true, requestId);
     logSystem(`保存数据返回: fileName=${response?.payload?.fileName}`);
-    if (response?.payload?.data) {
+    const shouldConflict = els.simulateConflict?.checked && requestPayload.force !== true;
+    if (response?.payload?.data && !shouldConflict) {
       els.pipelineData.value = JSON.stringify(response.payload.data, null, 2);
       log("saveData payload", response.payload.data, "incoming");
     }
     sendMessage(
       "mpe:saveResult",
-      { success: true, documentVersion: Date.now() },
+      shouldConflict
+        ? {
+            success: false,
+            code: "document_changed",
+            message: "The host document has changed",
+            canForce: true,
+          }
+        : { success: true, documentVersion: Date.now() },
       false,
       response?.requestId,
     );
@@ -454,7 +463,7 @@ window.addEventListener("message", (event) => {
       // 自动响应 save 请求
       setTimeout(() => {
         logSystem("自动响应 saveRequest → 发送 mpe:save");
-        handleSave(msg.requestId);
+        handleSave(msg.requestId, msg.payload);
       }, 100);
       break;
 

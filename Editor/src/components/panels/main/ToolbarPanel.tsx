@@ -5,7 +5,7 @@ import ExportButton from "../toolbar/ExportButton.tsx";
 import JsonPreviewButton from "../toolbar/JsonPreviewButton.tsx";
 import { WikiAnchor } from "../../wiki/WikiAnchor";
 import EmbedSyncButton from "../toolbar/EmbedSyncButton";
-import { useEmbedStore } from "../../../stores/embedStore";
+import { useEmbedMode } from "../../../hooks/useEmbedMode";
 import { shouldShowLocalToolbarActions } from "./toolbarVisibility";
 
 /**
@@ -13,8 +13,8 @@ import { shouldShowLocalToolbarActions } from "./toolbarVisibility";
  * 位于界面右上角,集成导入、导出、JSON预览功能
  */
 function ToolbarPanel() {
-  const host = useEmbedStore((state) => state.host);
-  const showLocalActions = shouldShowLocalToolbarActions(host);
+  const { isEmbed } = useEmbedMode();
+  const showLocalActions = shouldShowLocalToolbarActions(isEmbed);
 
   return (
     <div className={style.toolbarPanel}>

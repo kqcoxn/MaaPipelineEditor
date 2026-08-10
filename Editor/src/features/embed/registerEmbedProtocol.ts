@@ -10,6 +10,7 @@ import {
   sendToParent,
   type EmbedCapabilities,
   type EmbedHostInfo,
+  type EmbedSaveResultPayload,
   type EmbedUIConfig,
 } from "../../utils/embedBridge";
 import {
@@ -18,6 +19,7 @@ import {
   requestHostSave,
 } from "./embedOperations";
 import { registerEmbedExternalNavigation } from "./externalNavigation";
+import { showEmbedSaveConflict } from "./saveConflict";
 
 type Cleanup = () => void;
 
@@ -34,9 +36,7 @@ function applyEmbedConfig(
 function normalizeHostInfo(value: unknown): EmbedHostInfo | null {
   if (!value || typeof value !== "object") return null;
   const host = value as Partial<EmbedHostInfo>;
-  if (typeof host.id !== "string" || typeof host.name !== "string") {
-    return null;
-  }
+  if (typeof host.id !== "string" && typeof host.name !== "string") return null;
 
   let repositoryUrl: string | undefined;
   if (typeof host.repositoryUrl === "string") {
@@ -48,7 +48,11 @@ function normalizeHostInfo(value: unknown): EmbedHostInfo | null {
     }
   }
 
-  return { id: host.id, name: host.name, repositoryUrl };
+  return {
+    ...(typeof host.id === "string" ? { id: host.id } : {}),
+    ...(typeof host.name === "string" ? { name: host.name } : {}),
+    ...(repositoryUrl ? { repositoryUrl } : {}),
+  };
 }
 
 function findNode(nodeId: string) {
@@ -163,8 +167,15 @@ export function registerEmbedProtocol(): Cleanup {
       }
     }),
     onParentMessage("mpe:saveResult", (payload, requestId) => {
-      const result = payload as { success?: boolean; error?: string; message?: string };
+      const result = payload as Partial<EmbedSaveResultPayload>;
       clearOperationTimeout(requestId);
+      if (result.success !== true && result.code === "document_changed") {
+        const store = useEmbedStore.getState();
+        if (!requestId || store.saveOperation.requestId !== requestId) return;
+        store.beginSaveConflict(requestId);
+        showEmbedSaveConflict({ canForce: result.canForce === true });
+        return;
+      }
       useEmbedStore.getState().finishSave(
         requestId,
         result.success === true,

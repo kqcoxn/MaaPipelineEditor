@@ -46,4 +46,45 @@ describe("embedOperations", () => {
     expect(reloadRequestId).toBeNull();
     expect(useEmbedStore.getState().reloadOperation.status).toBe("idle");
   });
+
+  it("sends explicit non-force semantics for a normal save", () => {
+    const postMessage = vi.mocked(window.parent.postMessage);
+
+    const requestId = requestHostSave();
+
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "mpe:saveRequest",
+        requestId,
+        payload: { hint: "user-triggered", force: false },
+      }),
+      "*",
+    );
+  });
+
+  it("uses a new request id and only generic force fields after confirmation", () => {
+    const postMessage = vi.mocked(window.parent.postMessage);
+    const normalRequestId = requestHostSave();
+    useEmbedStore
+      .getState()
+      .finishSave(normalRequestId ?? undefined, false, "", "conflict");
+
+    const forceRequestId = requestHostSave({
+      hint: "user-confirmed-force",
+      force: true,
+    });
+
+    expect(forceRequestId).not.toBe(normalRequestId);
+    expect(postMessage).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: "mpe:saveRequest",
+        requestId: forceRequestId,
+        payload: { hint: "user-confirmed-force", force: true },
+      }),
+      "*",
+    );
+    expect(JSON.stringify(postMessage.mock.calls.at(-1))).not.toMatch(
+      /vscode|disk|filesystem/i,
+    );
+  });
 });

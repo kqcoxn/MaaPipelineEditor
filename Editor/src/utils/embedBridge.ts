@@ -6,7 +6,7 @@ import { useEmbedMessageLogStore } from "../stores/embedMessageLogStore";
  * 镜像 wailsBridge.ts 的环境检测 + 条件桥接模式
  */
 
-export const PROTOCOL_VERSION = "1.2.0";
+export const PROTOCOL_VERSION = "1.3.0";
 
 /** 协议消息信封 */
 export interface EmbedMessage {
@@ -36,9 +36,27 @@ export interface EmbedUIConfig {
 
 /** 宿主信息 */
 export interface EmbedHostInfo {
-  id: string;
-  name: string;
+  id?: string;
+  name?: string;
   repositoryUrl?: string;
+}
+
+export type EmbedLocale = "zh-cn" | "en-us";
+
+export function getEmbedLocale(): EmbedLocale {
+  const language =
+    (typeof document !== "undefined" && document.documentElement.lang) ||
+    (typeof navigator !== "undefined" && navigator.language) ||
+    "zh-CN";
+  return language.toLowerCase().startsWith("zh") ? "zh-cn" : "en-us";
+}
+
+export function getEmbedHostName(
+  host: EmbedHostInfo | null | undefined,
+  locale: EmbedLocale = getEmbedLocale(),
+): string {
+  const name = host?.name?.trim();
+  return name || (locale === "zh-cn" ? "宿主" : "Host");
 }
 
 /** 握手配置 */
@@ -46,6 +64,20 @@ export interface EmbedInitConfig {
   capabilities: EmbedCapabilities;
   ui: EmbedUIConfig;
   host?: EmbedHostInfo;
+}
+
+export interface EmbedSaveRequestPayload {
+  hint: "user-triggered" | "user-confirmed-force";
+  force: boolean;
+}
+
+export interface EmbedSaveResultPayload {
+  success: boolean;
+  code?: string;
+  message?: string;
+  error?: string;
+  canForce?: boolean;
+  documentVersion?: number;
 }
 
 interface InitEmbedBridgeOptions {

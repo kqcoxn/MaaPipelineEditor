@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_CAPABILITIES,
   DEFAULT_UI,
+  getEmbedHostName,
   initEmbedBridge,
   isCompatibleProtocolVersion,
   sendToParent,
@@ -118,6 +119,24 @@ describe("embedBridge", () => {
         }),
       }),
       "https://host.example.com",
+    );
+  });
+});
+
+describe("getEmbedHostName", () => {
+  it.each([
+    [{ id: "test-host", name: "Test Host" }, "Test Host"],
+    [{ id: "custom-editor", name: "Custom Editor" }, "Custom Editor"],
+    [{ id: "mse", name: "Maa Support" }, "Maa Support"],
+  ])("uses host.name for %o", (host, expected) => {
+    expect(getEmbedHostName(host, "zh-cn")).toBe(expected);
+  });
+
+  it("falls back by locale when host information is missing", () => {
+    expect(getEmbedHostName(null, "zh-cn")).toBe("宿主");
+    expect(getEmbedHostName(undefined, "en-us")).toBe("Host");
+    expect(getEmbedHostName({ id: "custom-editor", name: "  " }, "en-us")).toBe(
+      "Host",
     );
   });
 });

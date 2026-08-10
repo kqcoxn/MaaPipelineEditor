@@ -6,6 +6,11 @@ import {
   requestHostSave,
 } from "./embedOperations";
 import { registerEmbedProtocol } from "./registerEmbedProtocol";
+import { showEmbedSaveConflict } from "./saveConflict";
+
+vi.mock("./saveConflict", () => ({
+  showEmbedSaveConflict: vi.fn(),
+}));
 
 describe("registerEmbedProtocol", () => {
   let cleanup: (() => void) | undefined;
@@ -17,6 +22,7 @@ describe("registerEmbedProtocol", () => {
     useFlowStore.getState().replace([], [], { skipHistory: true });
     useFlowStore.getState().clearHistory();
     postMessage = vi.fn();
+    vi.mocked(showEmbedSaveConflict).mockClear();
     vi.spyOn(window.parent, "postMessage").mockImplementation(postMessage);
   });
 
@@ -177,5 +183,71 @@ describe("registerEmbedProtocol", () => {
     });
 
     expect(useEmbedStore.getState().host).toEqual({ id: "mse", name: "MSE" });
+  });
+
+  it.each([
+    { id: "test-host", name: "Test Host" },
+    { id: "custom-editor", name: "Custom Editor" },
+    { id: "mse", name: "Maa Support" },
+  ])("uses the same conflict state machine for host $id", (host) => {
+    cleanup = registerEmbedProtocol();
+    dispatchParentMessage("mpe:init", { capabilities: {}, ui: {}, host });
+    useEmbedStore.getState().setDirty(true);
+    const requestId = requestHostSave();
+
+    dispatchParentMessage(
+      "mpe:saveResult",
+      {
+        success: false,
+        code: "document_changed",
+        message: `Natural-language message from ${host.id}`,
+        canForce: true,
+      },
+      requestId ?? undefined,
+    );
+
+    expect(showEmbedSaveConflict).toHaveBeenCalledWith({ canForce: true });
+    expect(useEmbedStore.getState()).toMatchObject({
+      host,
+      isDirty: true,
+      saveOperation: { status: "conflict", requestId: null, error: null },
+    });
+  });
+
+  it("does not infer conflicts from a natural-language message", () => {
+    cleanup = registerEmbedProtocol();
+    dispatchParentMessage("mpe:init", { capabilities: {}, ui: {} });
+    const requestId = requestHostSave();
+
+    dispatchParentMessage(
+      "mpe:saveResult",
+      {
+        success: false,
+        code: "save_failed",
+        message: "document_changed",
+        canForce: true,
+      },
+      requestId ?? undefined,
+    );
+
+    expect(showEmbedSaveConflict).not.toHaveBeenCalled();
+  });
+
+  it("ignores a document conflict for a stale request id", () => {
+    cleanup = registerEmbedProtocol();
+    dispatchParentMessage("mpe:init", { capabilities: {}, ui: {} });
+    const requestId = requestHostSave();
+
+    dispatchParentMessage(
+      "mpe:saveResult",
+      { success: false, code: "document_changed", canForce: true },
+      `${requestId}-stale`,
+    );
+
+    expect(showEmbedSaveConflict).not.toHaveBeenCalled();
+    expect(useEmbedStore.getState().saveOperation).toMatchObject({
+      status: "pending",
+      requestId,
+    });
   });
 });

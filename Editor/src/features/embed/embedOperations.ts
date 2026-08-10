@@ -1,5 +1,9 @@
 import { useEmbedStore } from "../../stores/embedStore";
-import { createEmbedRequestId, sendToParent } from "../../utils/embedBridge";
+import {
+  createEmbedRequestId,
+  sendToParent,
+  type EmbedSaveRequestPayload,
+} from "../../utils/embedBridge";
 
 const OPERATION_TIMEOUT_MS = 10_000;
 const operationTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -30,7 +34,9 @@ export function clearEmbedOperationTimeouts(): void {
   operationTimers.clear();
 }
 
-export function requestHostSave(): string | null {
+export function requestHostSave(
+  options: Partial<EmbedSaveRequestPayload> = {},
+): string | null {
   const store = useEmbedStore.getState();
   if (
     !store.isReady ||
@@ -42,7 +48,14 @@ export function requestHostSave(): string | null {
 
   const requestId = createEmbedRequestId("save");
   store.beginSave(requestId);
-  sendToParent("mpe:saveRequest", { hint: "user-triggered" }, requestId);
+  sendToParent(
+    "mpe:saveRequest",
+    {
+      hint: options.hint ?? "user-triggered",
+      force: options.force === true,
+    },
+    requestId,
+  );
   startTimeout(requestId, (timedOutRequestId) => {
     useEmbedStore
       .getState()

@@ -24,6 +24,12 @@ function isReminderPending(target: StarTarget): boolean {
   );
 }
 
+export function resolveStarReminderTargets<T extends StarTarget>(
+  targets: readonly T[],
+): readonly T[] | null {
+  return targets.some(isReminderPending) ? targets : null;
+}
+
 export function useEmbedStarReminder(): void {
   const { notification } = AntdApp.useApp();
   const isReady = useEmbedStore((state) => state.isReady);
@@ -47,8 +53,8 @@ export function useEmbedStarReminder(): void {
     let isOpen = false;
 
     const showReminder = () => {
-      const pendingTargets = targets.filter(isReminderPending);
-      if (isOpen || pendingTargets.length === 0) return;
+      const reminderTargets = resolveStarReminderTargets(targets);
+      if (isOpen || !reminderTargets) return;
       isOpen = true;
 
       const close = () => {
@@ -68,7 +74,7 @@ export function useEmbedStarReminder(): void {
         actions: (
           <Flex vertical gap={8} className={style.actions}>
             <Flex vertical gap={8}>
-              {pendingTargets.map((target) => (
+              {reminderTargets.map((target) => (
                 <Button
                   key={target.id}
                   block
@@ -85,7 +91,7 @@ export function useEmbedStarReminder(): void {
                 type="text"
                 size="small"
                 onClick={() => {
-                  pendingTargets.forEach((target) => {
+                  reminderTargets.forEach((target) => {
                     localStorage.setItem(`_${target.id}_stared`, "true");
                   });
                   close();

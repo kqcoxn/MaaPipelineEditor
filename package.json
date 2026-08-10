@@ -18,7 +18,7 @@
     "landing:preview": "yarn --cwd Landing preview",
     "migrate": "node scripts/development/migrate-version.mjs",
     "proto": "node scripts/development/proto-version.mjs",
-    "release": "git tag -a v1.7.5 -m \"v1.7.5\" && git push origin v1.7.5",
-    "retag": "git tag -d v1.7.5"
+    "release": "git tag -a v1.7.6 -m \"v1.7.6\" && git push origin v1.7.6",
+    "retag": "git tag -d v1.7.6"
   }
 }

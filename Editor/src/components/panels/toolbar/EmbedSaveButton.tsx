@@ -3,6 +3,7 @@ import { App as AntdApp, Button, Tooltip } from "antd";
 import { memo, useEffect } from "react";
 import { requestHostSave } from "../../../features/embed/embedOperations";
 import { useEmbedStore } from "../../../stores/embedStore";
+import { getEmbedHostName, getEmbedLocale } from "../../../utils/embedBridge";
 import style from "../../../styles/panels/ToolbarPanel.module.less";
 
 function EmbedSaveButton() {
@@ -16,7 +17,7 @@ function EmbedSaveButton() {
   const acknowledgeResult = useEmbedStore(
     (state) => state.acknowledgeSaveResult,
   );
-  const hostLabel = host?.id === "mse" ? "MSE" : (host?.name ?? "宿主");
+  const hostLabel = getEmbedHostName(host, getEmbedLocale());
 
   useEffect(() => {
     if (operation.status === "success") {
@@ -40,7 +41,7 @@ function EmbedSaveButton() {
         icon={<SaveOutlined />}
         loading={operation.status === "pending"}
         disabled={!isReady || reloadPending}
-        onClick={requestHostSave}
+        onClick={() => requestHostSave()}
         className={style.toolbarButton}
       >
         保存到 {hostLabel}
