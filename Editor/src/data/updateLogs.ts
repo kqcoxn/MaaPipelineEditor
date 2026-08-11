@@ -94,6 +94,14 @@ export const nextPreview: ForecastSection = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "1.8.0",
+    date: "2026-8-10",
+    type: "major",
+    updates: {
+      perfs: ["提供边动画关闭配置项"],
+    },
+  },
+  {
     version: "1.7.6",
     date: "2026-8-10",
     type: "perf",

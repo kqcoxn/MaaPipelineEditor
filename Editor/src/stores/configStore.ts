@@ -6,8 +6,8 @@ import { encryptApiKey } from "../utils/ai/crypto";
 /**固有配置 */
 export const globalConfig = {
   dev: true,
-  version: `1.7.6`,
-  betaIteration: 4,
+  version: `1.8.0`,
+  betaIteration: 0,
   mfwVersion: "5.12.3",
   protocolVersion: "1.2.7",
 };
@@ -52,6 +52,7 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   edgePathMode: "connection",
   showEdgeLabel: "connection",
   showEdgeControlPoint: "connection",
+  enableEdgeAnimation: "connection",
   quickCreateNodeOnConnectBlank: "connection",
   // 画布配置
   canvasBackgroundMode: "canvas",
@@ -191,6 +192,8 @@ const defaultConfigs = {
   focusOpacity: 0.3,
   // 边控制点
   showEdgeControlPoint: true,
+  // 连线流动动画
+  enableEdgeAnimation: true,
   // 边走线模式
   edgePathMode: "bezier" as EdgePathMode,
   // 画布背景模式
@@ -257,6 +260,8 @@ export type ConfigState = {
     focusOpacity: number;
     // 边控制点
     showEdgeControlPoint: boolean;
+    // 连线流动动画
+    enableEdgeAnimation: boolean;
     // 边走线模式
     edgePathMode: EdgePathMode;
     // 启用跨文件搜索

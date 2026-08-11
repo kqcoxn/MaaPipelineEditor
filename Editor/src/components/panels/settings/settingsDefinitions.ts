@@ -316,6 +316,18 @@ export const settingsDefinitions: ConfigItemDef[] = [
     order: 3,
   },
   {
+    key: "enableEdgeAnimation",
+    category: "connection",
+    label: "连线流动动画",
+    tipTitle: "连线流动动画",
+    tipContent:
+      "开启时通过流动虚线增强连接方向感。若画布连线较多，或在不同 DPI 的显示器之间切换后出现卡顿，可关闭此选项降低持续重绘开销。",
+    type: "switch",
+    checkedChildren: "开启",
+    unCheckedChildren: "关闭",
+    order: 4,
+  },
+  {
     key: "fieldPanelMode",
     category: "component",
     label: "字段/连接面板模式",

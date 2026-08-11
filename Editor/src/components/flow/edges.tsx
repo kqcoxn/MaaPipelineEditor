@@ -315,6 +315,9 @@ function MarkedEdge(props: EdgeProps) {
   const showEdgeControlPoint = useConfigStore(
     (state) => state.configs.showEdgeControlPoint,
   );
+  const enableEdgeAnimation = useConfigStore(
+    (state) => state.configs.enableEdgeAnimation,
+  );
   const edgePathMode = useConfigStore((state) => state.configs.edgePathMode);
 
   // 避让模式才需要订阅完整图数据
@@ -556,8 +559,11 @@ function MarkedEdge(props: EdgeProps) {
       }
     }
 
-    return classNames(style.edge, markClass);
+    return classNames(style.edge, markClass, {
+      [style["edge-animated"]]: enableEdgeAnimation,
+    });
   }, [
+    enableEdgeAnimation,
     props.selected,
     props.sourceHandleId,
     props.targetHandleId,

@@ -6,10 +6,13 @@
   stroke: @norm-color;
   stroke-width: 3;
   stroke-dasharray: 30, 5;
-  animation: dash-animation 1s linear infinite;
   --xy-edge-stroke-selected-default: #ff0000;
   @trans: 0.2s ease;
   transition: stroke @trans, stroke-width @trans;
+}
+
+.edge-animated {
+  animation: dash-animation 1s linear infinite;
 }
 
 @keyframes dash-animation {
