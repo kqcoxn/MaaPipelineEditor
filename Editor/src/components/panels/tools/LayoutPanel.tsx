@@ -206,7 +206,11 @@ function LayoutPanel() {
     () => classNames(style.panel, style["h-panel"], style["layout-panel"]),
     [],
   );
-  return <ul className={panelClass}>{tools}</ul>;
+  return (
+    <ul className={panelClass} data-panel-role="layout">
+      {tools}
+    </ul>
+  );
 }
 
 export default memo(LayoutPanel);

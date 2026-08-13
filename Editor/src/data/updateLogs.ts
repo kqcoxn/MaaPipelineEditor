@@ -99,6 +99,7 @@ export const updateLogs: UpdateLogItem[] = [
     type: "major",
     updates: {
       perfs: ["提供边动画关闭配置项"],
+      fixes: ["修复 mac 系统下字段面板无法滚动的问题"],
     },
   },
   {

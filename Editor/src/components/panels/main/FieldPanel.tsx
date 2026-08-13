@@ -6,6 +6,7 @@
   Component,
   type ReactNode,
   useEffect,
+  useRef,
 } from "react";
 import { Spin, Alert, Button, Tabs } from "antd";
 import classNames from "classnames";
@@ -36,6 +37,7 @@ import { DraggablePanel } from "../common/DraggablePanel";
 import { NodeJsonEditorModal } from "../../modals/NodeJsonEditorModal";
 import { validateAndRepairNode } from "../../../utils/node/nodeJsonValidator";
 import { WikiAnchor } from "../../wiki/WikiAnchor";
+import { useViewportBoundedHeight } from "../../../hooks/useViewportBoundedHeight";
 
 // 错误边界组件
 class EditorErrorBoundary extends Component<
@@ -117,6 +119,12 @@ function FieldPanel() {
   );
   const [activeTab, setActiveTab] = useState("fields");
   const [jsonEditorOpen, setJsonEditorOpen] = useState(false);
+  const scrollContentRef = useRef<HTMLDivElement>(null);
+  const scrollLayoutKey = `${currentNode?.id ?? ""}:${activeTab}:${validationWarning ? 1 : 0}:${fieldPanelMode}`;
+  const maxScrollContentHeight = useViewportBoundedHeight(
+    scrollContentRef,
+    scrollLayoutKey,
+  );
 
   // 当面板打开/关闭时同步占位系统
   useEffect(() => {
@@ -421,19 +429,37 @@ function FieldPanel() {
             {
               key: "fields",
               label: "字段配置",
-              children: renderContent,
+              children: (
+                <div
+                  ref={activeTab === "fields" ? scrollContentRef : undefined}
+                  className={style.tabScrollContent}
+                  style={{ maxHeight: maxScrollContentHeight }}
+                >
+                  {renderContent}
+                </div>
+              ),
             },
             {
               key: "adjacent",
               label: "邻接信息",
               children: (
-                <AdjacentInfoPanel
-                  currentNodeId={currentNode.id}
-                  currentNodeLabel={currentNode.data?.label || ""}
-                />
+                <div
+                  ref={activeTab === "adjacent" ? scrollContentRef : undefined}
+                  className={style.tabScrollContent}
+                  style={{ maxHeight: maxScrollContentHeight }}
+                >
+                  <AdjacentInfoPanel
+                    currentNodeId={currentNode.id}
+                    currentNodeLabel={currentNode.data?.label || ""}
+                  />
+                </div>
               ),
             },
           ]}
+          className={style.tabs}
+          classNames={{
+            body: style.tabsBody,
+          }}
           style={{ flex: "1 1 auto", minHeight: 0 }}
           tabBarStyle={{
             margin: 0,

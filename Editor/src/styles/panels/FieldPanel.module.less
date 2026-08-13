@@ -4,36 +4,10 @@
 .panel {
   width: 380px;
   min-height: 120px;
-  max-height: calc(85vh - 180px);
   border-radius: 6px;
   right: 10px;
   top: 130px;
   overflow: hidden;
-
-  :global {
-    .ant-tabs {
-      display: flex;
-      flex-direction: column;
-      flex: 1;
-      min-height: 0;
-      overflow: hidden;
-    }
-
-    .ant-tabs-content-holder {
-      flex: 1;
-      min-height: 0;
-      overflow-y: auto;
-      overflow-x: hidden;
-    }
-
-    .ant-tabs-content {
-      height: 100%;
-    }
-
-    .ant-tabs-tabpane {
-      overflow: visible;
-    }
-  }
 
   .spin {
     width: 100%;
@@ -121,6 +95,35 @@
         text-align: center;
       }
     }
+  }
+}
+
+.tabs {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.tabsBody {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.tabScrollContent {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.25);
+    border-radius: 4px;
   }
 }
 
