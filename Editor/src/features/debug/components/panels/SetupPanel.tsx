@@ -9,6 +9,7 @@ import {
   Alert,
   Select,
   Checkbox,
+  Switch,
   Collapse,
   InputNumber,
   Result,
@@ -20,6 +21,7 @@ import {
 } from "@ant-design/icons";
 import { DebugSection } from "../DebugSection";
 import { DebugFlowScopeIntro } from "../DebugFlowScopeIntro";
+import styles from "./SetupPanel.module.less";
 import type { DebugModalController } from "../../hooks/useDebugModalController";
 import type { DebugAgentProfile, DebugArtifactPolicy } from "../../types";
 import {
@@ -341,6 +343,7 @@ function AgentSection({ controller }: { controller: DebugModalController }) {
       </Button>
       <List
         bordered
+        style={{ padding: "0 12px" }}
         dataSource={agents}
         locale={{ emptyText: "未配置代理（Agent）" }}
         renderItem={(agent, index) => {
@@ -362,16 +365,18 @@ function AgentSection({ controller }: { controller: DebugModalController }) {
                   }
                 />,
               ]}
+              style={{ padding: "14px 0 16px", alignItems: "flex-start" }}
             >
-              <Space orientation="vertical" style={{ width: "100%" }}>
-                <Space wrap>
+              <div className={styles.agentItemContent}>
+                <div className={styles.agentFields}>
                   <Switch
+                    className={styles.agentEnabled}
                     checked={agent.enabled}
                     onChange={(enabled) => updateAgent(index, { enabled })}
                   />
                   <Select
+                    className={styles.agentTransport}
                     value={agent.transport}
-                    style={{ width: 140 }}
                     onChange={(transport) => updateAgent(index, { transport })}
                     options={[
                       { value: "identifier", label: "标识符（Identifier）" },
@@ -380,6 +385,7 @@ function AgentSection({ controller }: { controller: DebugModalController }) {
                   />
                   {agent.transport === "tcp" ? (
                     <InputNumber
+                      className={styles.agentNumeric}
                       value={agent.tcpPort}
                       min={1}
                       max={65535}
@@ -390,15 +396,16 @@ function AgentSection({ controller }: { controller: DebugModalController }) {
                     />
                   ) : (
                     <Input
+                      className={styles.agentIdentifier}
                       value={agent.identifier}
                       onChange={(event) =>
                         updateAgent(index, { identifier: event.target.value })
                       }
                       placeholder="代理标识符（Identifier）"
-                      style={{ width: 240 }}
                     />
                   )}
                   <InputNumber
+                    className={styles.agentNumeric}
                     value={agent.timeoutMs}
                     min={0}
                     step={100}
@@ -408,6 +415,7 @@ function AgentSection({ controller }: { controller: DebugModalController }) {
                     }
                   />
                   <Checkbox
+                    className={styles.agentRequired}
                     checked={agent.required ?? true}
                     onChange={(event) =>
                       updateAgent(index, { required: event.target.checked })
@@ -415,6 +423,8 @@ function AgentSection({ controller }: { controller: DebugModalController }) {
                   >
                     必需
                   </Checkbox>
+                </div>
+                <div className={styles.agentActions}>
                   <Button
                     size="small"
                     icon={<ReloadOutlined />}
@@ -423,9 +433,10 @@ function AgentSection({ controller }: { controller: DebugModalController }) {
                   >
                     测试连接
                   </Button>
-                </Space>
+                </div>
                 {testResult && (
                   <Alert
+                    className={styles.agentResult}
                     type={testResult.success ? "success" : "error"}
                     showIcon
                     title={testResult.message}
@@ -445,7 +456,7 @@ function AgentSection({ controller }: { controller: DebugModalController }) {
                     }
                   />
                 )}
-              </Space>
+              </div>
             </List.Item>
           );
         }}
