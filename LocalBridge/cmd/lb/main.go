@@ -21,6 +21,7 @@ import (
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/mfw"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/paths"
+	aiProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/ai"
 	configProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/config"
 	fileProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/file"
 	mfwProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/mfw"
@@ -316,7 +317,12 @@ func runServer(cmd *cobra.Command, args []string) {
 	checkAndPrintUpdateNotice()
 
 	// 创建 WebSocket 服务器
-	wsServer := server.NewWebSocketServer(cfg.Server.Host, cfg.Server.Port, eventBus)
+	wsServer := server.NewWebSocketServer(
+		cfg.Server.Host,
+		cfg.Server.Port,
+		eventBus,
+		cfg.Server.AllowedOrigins,
+	)
 
 	// 设置日志推送函数
 	logger.SetPushFunc(func(level, module, message string) {
@@ -423,6 +429,10 @@ func runServer(cmd *cobra.Command, args []string) {
 	// 注册 Resource 协议处理器
 	resourceHandler := resourceProtocol.NewHandler(resSvc, eventBus, wsServer, cfg.File.Root)
 	rt.RegisterHandler(resourceHandler)
+
+	// 注册 AI 代理协议处理器。业务入口可以暂时没有，但传输基础设施保持可用。
+	aiHandler := aiProtocol.NewAIHandler()
+	rt.RegisterHandler(aiHandler)
 
 	// 设置消息处理器
 	wsServer.SetMessageHandler(rt.Route)

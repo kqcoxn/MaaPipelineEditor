@@ -1,7 +1,9 @@
 import { create } from "zustand";
 import type { HandleDirection } from "../components/flow/nodes/constants";
 import type { FieldSortConfig } from "../core/sorting/types";
-import { encryptApiKey } from "../utils/ai/crypto";
+import { encryptApiKey, isEncryptedKey } from "../utils/ai/crypto";
+
+let apiKeyWriteVersion = 0;
 
 /**固有配置 */
 export const globalConfig = {
@@ -60,7 +62,6 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   focusOpacity: "canvas",
   useDarkMode: "canvas",
   // 组件配置
-  isExportConfig: "component",
   saveFilesBeforeDebug: "component",
   fieldPanelMode: "component",
   inlinePanelScale: "component",
@@ -91,6 +92,8 @@ export const getExportableConfigs = (
 ): Partial<ConfigState["configs"]> => {
   const result: Partial<ConfigState["configs"]> = {};
   Object.entries(configs).forEach(([key, value]) => {
+    // API Key 只允许留在本地缓存，不随配置文件导出。
+    if (key === "aiApiKey") return;
     const category = configCategoryMap[key];
     if (category && !excludeCategories.includes(category)) {
       (result as Record<string, unknown>)[key] = value;
@@ -160,7 +163,6 @@ export const getScreenshotResolutionParams = (
 
 /**配置默认值 */
 const defaultConfigs = {
-  isExportConfig: true,
   configHandlingMode: "integrated" as ConfigHandlingMode,
   showEdgeLabel: true,
   isAutoFocus: true,
@@ -229,7 +231,6 @@ export const configDefaults: Readonly<ConfigState["configs"]> = defaultConfigs;
 export type ConfigState = {
   // 设置
   configs: {
-    isExportConfig: boolean;
     configHandlingMode: ConfigHandlingMode;
     showEdgeLabel: boolean;
     isAutoFocus: boolean;
@@ -326,6 +327,8 @@ export const useConfigStore = create<ConfigState>()((set, get) => ({
   // 设置
   configs: { ...defaultConfigs },
   setConfig(key, value) {
+    if (key === "aiApiKey") apiKeyWriteVersion++;
+
     // 加密 API Key
     if (
       key === "aiApiKey" &&
@@ -333,66 +336,61 @@ export const useConfigStore = create<ConfigState>()((set, get) => ({
       value &&
       !value.startsWith("ENC:")
     ) {
-      encryptApiKey(value).then((encrypted) => {
-        set((state) => {
-          state.configuredKeys.add(key as string);
-          return {
-            configs: { ...state.configs, [key]: encrypted },
-            configuredKeys: new Set(state.configuredKeys),
-          };
+      const writeVersion = apiKeyWriteVersion;
+      encryptApiKey(value)
+        .then((encrypted) => {
+          if (writeVersion !== apiKeyWriteVersion) return;
+          set((state) => {
+            const configuredKeys = new Set(state.configuredKeys);
+            configuredKeys.add(key as string);
+            return {
+              configs: { ...state.configs, [key]: encrypted },
+              configuredKeys,
+            };
+          });
+        })
+        .catch((error: unknown) => {
+          console.error("[Config] API Key 加密失败，未更新配置:", error);
         });
-      });
       return;
     }
 
     set((state) => {
       const newConfigs = { ...state.configs, [key]: value };
 
-      // 同步 isExportConfig 与 configHandlingMode
-      if (key === "configHandlingMode") {
-        newConfigs.isExportConfig = value !== "none";
-      } else if (key === "isExportConfig") {
-        newConfigs.configHandlingMode = value ? "integrated" : "none";
-      }
-
       // 标记为已配置
-      state.configuredKeys.add(key as string);
+      const configuredKeys = new Set(state.configuredKeys);
+      configuredKeys.add(key as string);
 
       return {
         configs: newConfigs,
-        configuredKeys: new Set(state.configuredKeys),
+        configuredKeys,
       };
     });
   },
   replaceConfig(configs, configuredKeys) {
+    apiKeyWriteVersion++;
+
     set((state) => {
       const keys = Object.keys(state.configs);
       const newConfigs: Partial<ConfigState["configs"]> = {};
       Object.keys(configs).forEach((key) => {
         if (keys.includes(key)) {
           const configKey = key as keyof ConfigState["configs"];
+          const value = configs[configKey];
+          if (
+            configKey === "aiApiKey" &&
+            (typeof value !== "string" ||
+              (value !== "" && !isEncryptedKey(value)))
+          ) {
+            return;
+          }
           (newConfigs as Record<string, unknown>)[configKey] =
-            configs[configKey];
+            value;
         }
       });
 
       const mergedConfigs = { ...state.configs, ...newConfigs };
-
-      // 从 isExportConfig 迁移至 configHandlingMode
-      if (
-        !mergedConfigs.configHandlingMode &&
-        "isExportConfig" in mergedConfigs
-      ) {
-        mergedConfigs.configHandlingMode = mergedConfigs.isExportConfig
-          ? "integrated"
-          : "none";
-      }
-
-      // 同步 isExportConfig
-      if (mergedConfigs.configHandlingMode) {
-        mergedConfigs.isExportConfig =
-          mergedConfigs.configHandlingMode !== "none";
-      }
 
       // 批量标记导入的 key 为已配置
       const newConfiguredKeys = new Set(state.configuredKeys);
@@ -402,19 +400,6 @@ export const useConfigStore = create<ConfigState>()((set, get) => ({
         }
       }
       Object.keys(newConfigs).forEach((key) => newConfiguredKeys.add(key));
-
-      // 迁移明文 API Key 为加密格式
-      if (
-        mergedConfigs.aiApiKey &&
-        !mergedConfigs.aiApiKey.startsWith("ENC:")
-      ) {
-        const plainKey = mergedConfigs.aiApiKey;
-        encryptApiKey(plainKey).then((encrypted) => {
-          set((s) => ({
-            configs: { ...s.configs, aiApiKey: encrypted },
-          }));
-        });
-      }
 
       return { configs: mergedConfigs, configuredKeys: newConfiguredKeys };
     });
@@ -434,21 +419,16 @@ export const useConfigStore = create<ConfigState>()((set, get) => ({
   },
   // 恢复默认
   resetConfig(key) {
+    if (key === "aiApiKey") apiKeyWriteVersion++;
     const defaultValue = configDefaults[key];
     set((state) => {
       const newConfigs = { ...state.configs, [key]: defaultValue };
-
-      // 同步 isExportConfig 与 configHandlingMode
-      if (key === "configHandlingMode") {
-        newConfigs.isExportConfig = defaultValue !== "none";
-      } else if (key === "isExportConfig") {
-        newConfigs.configHandlingMode = defaultValue ? "integrated" : "none";
-      }
 
       return { configs: newConfigs };
     });
   },
   resetAllConfigs() {
+    apiKeyWriteVersion++;
     set({ configs: { ...defaultConfigs }, configuredKeys: new Set() });
   },
   // 状态
@@ -470,10 +450,14 @@ const CONFIG_STORAGE_KEY = "_mpe_config";
 
 export function saveConfigCache(): void {
   const configState = useConfigStore.getState();
+  const aiApiKey = isEncryptedKey(configState.configs.aiApiKey)
+    ? configState.configs.aiApiKey
+    : "";
   localStorage.setItem(
     CONFIG_STORAGE_KEY,
     JSON.stringify({
       ...configState.configs,
+      aiApiKey,
       __configuredKeys: [...configState.configuredKeys],
     }),
   );

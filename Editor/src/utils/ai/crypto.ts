@@ -63,8 +63,8 @@ export async function encryptApiKey(plainKey: string): Promise<string> {
     return ENCRYPTION_PREFIX + btoa(String.fromCharCode(...combined));
   } catch (err) {
     console.error("[AI Crypto] 加密失败:", err);
-    // 加密失败时返回原文（降级）
-    return plainKey;
+    // 加密失败时拒绝回退到明文，避免错误地扩大 API Key 暴露面。
+    throw new Error("API Key 加密失败", { cause: err });
   }
 }
 
@@ -75,9 +75,9 @@ export async function encryptApiKey(plainKey: string): Promise<string> {
 export async function decryptApiKey(encryptedKey: string): Promise<string> {
   if (!encryptedKey) return "";
 
-  // 如果不是加密格式，直接返回（兼容旧版明文）
+  // 只有当前格式的密文可以参与请求。
   if (!isEncryptedKey(encryptedKey)) {
-    return encryptedKey;
+    return "";
   }
 
   try {
@@ -107,13 +107,4 @@ export async function decryptApiKey(encryptedKey: string): Promise<string> {
  */
 export function isEncryptedKey(key: string): boolean {
   return key.startsWith(ENCRYPTION_PREFIX);
-}
-
-/**
- * 迁移旧版明文 Key 为加密格式
- * @returns 如果已是加密格式则原样返回，否则返回加密后的结果
- */
-export async function migrateApiKey(key: string): Promise<string> {
-  if (!key || isEncryptedKey(key)) return key;
-  return encryptApiKey(key);
 }

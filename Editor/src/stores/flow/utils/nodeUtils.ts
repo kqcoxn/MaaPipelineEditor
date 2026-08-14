@@ -230,11 +230,11 @@ export function calcuNodePosition(
 // 其余组合（Pipeline 之间、Pipeline 与 External/Anchor、External 与 Anchor）一旦同 label 即报错。
 export function checkRepeatNodeLabelList(
   nodes: NodeType[],
-  config: { isExportConfig: boolean; prefix: string },
+  config: { shouldExportConfig: boolean; prefix: string },
 ): string[] {
   const repates: string[] = [];
   const reported = new Set<string>();
-  const isAddPrefix = config.isExportConfig && config.prefix;
+  const isAddPrefix = config.shouldExportConfig && config.prefix;
   let prefix = config.prefix;
   if (isAddPrefix) prefix += "_";
 

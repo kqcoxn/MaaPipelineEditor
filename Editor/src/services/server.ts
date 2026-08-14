@@ -380,5 +380,8 @@ export function initializeWebSocket() {
   // 注册 LoggerProtocol
   loggerProtocol.register(localServer);
 
+  // 注册 AI 代理协议。业务功能可以暂时没有入口，但协议层保持可复用。
+  aiProtocol.register(localServer);
+
 
 }

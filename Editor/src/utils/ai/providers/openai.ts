@@ -121,9 +121,14 @@ export const openaiProvider: AIProvider = {
       stream: options?.stream ?? false,
     };
 
+    if (options?.stream) {
+      body.stream_options = { include_usage: true };
+    }
+
     return {
       url,
       method: "POST",
+      stream: options?.stream ?? false,
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${config.apiKey}`,
@@ -137,8 +142,8 @@ export const openaiProvider: AIProvider = {
     let usage: TokenUsage | undefined;
 
     if (
-      responseBody.usage?.prompt_tokens &&
-      responseBody.usage?.completion_tokens
+      typeof responseBody.usage?.prompt_tokens === "number" &&
+      typeof responseBody.usage?.completion_tokens === "number"
     ) {
       usage = {
         promptTokens: responseBody.usage.prompt_tokens,
@@ -165,5 +170,19 @@ export const openaiProvider: AIProvider = {
     } catch {
       return "";
     }
+  },
+
+  parseStreamUsage(finalData: any): TokenUsage | undefined {
+    const usage = finalData?.usage;
+    if (!usage) return undefined;
+
+    return {
+      promptTokens: usage.prompt_tokens || 0,
+      completionTokens: usage.completion_tokens || 0,
+      totalTokens:
+        usage.total_tokens ||
+        (usage.prompt_tokens || 0) + (usage.completion_tokens || 0),
+      isEstimated: false,
+    };
   },
 };

@@ -2,7 +2,10 @@ package server
 
 import (
 	"fmt"
+	"net"
 	"net/http"
+	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -21,14 +24,6 @@ const (
 	PathHandshakeResponse = "/system/handshake/response"
 )
 
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
-}
-
 // 消息处理函数类型
 type MessageHandler func(msg models.Message, conn *Connection)
 
@@ -43,18 +38,26 @@ type WebSocketServer struct {
 	eventBus       *eventbus.EventBus
 	mu             sync.RWMutex
 	server         *http.Server
+	allowedOrigins []string
 }
 
 // 创建 WebSocket 服务器
-func NewWebSocketServer(host string, port int, eventBus *eventbus.EventBus) *WebSocketServer {
-	return &WebSocketServer{
-		host:        host,
-		port:        port,
-		connections: make(map[*Connection]bool),
-		register:    make(chan *Connection),
-		unregister:  make(chan *Connection),
-		eventBus:    eventBus,
+func NewWebSocketServer(
+	host string,
+	port int,
+	eventBus *eventbus.EventBus,
+	allowedOrigins []string,
+) *WebSocketServer {
+	server := &WebSocketServer{
+		host:           host,
+		port:           port,
+		connections:    make(map[*Connection]bool),
+		register:       make(chan *Connection),
+		unregister:     make(chan *Connection),
+		eventBus:       eventBus,
+		allowedOrigins: append([]string(nil), allowedOrigins...),
 	}
+	return server
 }
 
 // 设置消息处理器
@@ -90,6 +93,44 @@ func (s *WebSocketServer) Start() error {
 	}
 
 	return nil
+}
+
+func (s *WebSocketServer) originAllowed(origin string) bool {
+	if strings.TrimSpace(origin) == "" {
+		// 非浏览器客户端通常不会发送 Origin。
+		return true
+	}
+
+	parsedOrigin, err := url.Parse(origin)
+	if err != nil || parsedOrigin.Scheme == "" || parsedOrigin.Hostname() == "" {
+		return false
+	}
+
+	for _, allowedOrigin := range s.allowedOrigins {
+		parsedAllowed, err := url.Parse(strings.TrimSpace(allowedOrigin))
+		if err != nil || parsedAllowed.Scheme == "" || parsedAllowed.Hostname() == "" {
+			continue
+		}
+		if parsedOrigin.Scheme != parsedAllowed.Scheme ||
+			!strings.EqualFold(parsedOrigin.Hostname(), parsedAllowed.Hostname()) {
+			continue
+		}
+
+		// 未指定端口的本机 Origin 允许开发服务器使用任意端口。
+		if parsedAllowed.Port() == "" && isLoopbackHost(parsedAllowed.Hostname()) {
+			return true
+		}
+		if parsedOrigin.Port() == parsedAllowed.Port() {
+			return true
+		}
+	}
+
+	return false
+}
+
+func isLoopbackHost(hostname string) bool {
+	ip := net.ParseIP(hostname)
+	return strings.EqualFold(hostname, "localhost") || (ip != nil && ip.IsLoopback())
 }
 
 // 停止服务器
@@ -143,6 +184,13 @@ func (s *WebSocketServer) run() {
 
 // 处理WebSocket连接请求
 func (s *WebSocketServer) handleWebSocket(w http.ResponseWriter, r *http.Request) {
+	upgrader := websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+		CheckOrigin: func(request *http.Request) bool {
+			return s.originAllowed(request.Header.Get("Origin"))
+		},
+	}
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		logger.Error("WebSocket", "升级连接失败: %v", err)

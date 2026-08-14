@@ -1,6 +1,6 @@
 /**
  * AIClient 核心类
- * 替代旧版 OpenAIChat，支持多厂商 Provider、加密存储、代理转发
+ * 支持多厂商 Provider、加密存储和代理转发的统一 AI 客户端
  */
 
 import { useConfigStore } from "../../stores/configStore";
@@ -15,6 +15,13 @@ import {
   type ProviderRequest,
 } from "./providers";
 import { localServer, aiProtocol } from "../../services/server";
+import { SSEParser } from "./sse";
+
+function createAbortError(): Error {
+  const error = new Error("请求已取消");
+  error.name = "AbortError";
+  return error;
+}
 
 /** 创建 AIClient 的配置项 */
 export interface AIClientOptions {
@@ -49,6 +56,7 @@ export class AIClient {
   private retryCount: number;
   private retryDelay: number;
   private abortController: AbortController | null = null;
+  private requestInFlight = false;
 
   constructor(options: AIClientOptions = {}) {
     this.systemPrompt = options.systemPrompt || "";
@@ -102,8 +110,44 @@ export class AIClient {
   }
 
   /** 延时函数 */
-  private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+  private delay(ms: number, signal?: AbortSignal): Promise<void> {
+    if (signal?.aborted) return Promise.reject(createAbortError());
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        signal?.removeEventListener("abort", handleAbort);
+        resolve();
+      }, ms);
+      const handleAbort = () => {
+        clearTimeout(timeout);
+        signal?.removeEventListener("abort", handleAbort);
+        reject(createAbortError());
+      };
+      signal?.addEventListener("abort", handleAbort, { once: true });
+    });
+  }
+
+  private async waitForRetry(
+    signal: AbortSignal,
+  ): Promise<boolean> {
+    try {
+      await this.delay(this.retryDelay, signal);
+      return true;
+    } catch (err) {
+      if (this.isAbortError(err)) return false;
+      throw err;
+    }
+  }
+
+  private isAbortError(err: unknown): boolean {
+    return err instanceof Error && err.name === "AbortError";
+  }
+
+  private removeLastUserMessage(): void {
+    const lastMessage = this.messages[this.messages.length - 1];
+    if (lastMessage?.role === "user") {
+      this.messages = this.messages.slice(0, -1);
+    }
   }
 
   /**
@@ -164,19 +208,49 @@ export class AIClient {
    */
   private async executeProxyRequest(
     request: ProviderRequest,
-    _signal?: AbortSignal,
+    signal?: AbortSignal,
   ): Promise<Response> {
-    const result = await aiProtocol.sendProxyRequest({
+    const proxyRequest = {
       url: request.url,
       method: request.method,
       headers: request.headers,
       body: request.body,
-    });
+    };
+
+    if (request.stream) {
+      const { stream } = aiProtocol.sendStreamProxyRequest(proxyRequest, signal);
+      return new Response(stream, {
+        status: 200,
+        headers: { "Content-Type": "text/event-stream" },
+      });
+    }
+
+    const result = await aiProtocol.sendProxyRequest(proxyRequest, signal);
 
     return new Response(result.body, {
       status: result.status,
       headers: result.headers,
     });
+  }
+
+  private async withRequest<T>(
+    operation: (controller: AbortController) => Promise<T>,
+  ): Promise<T> {
+    if (this.requestInFlight) {
+      throw new Error("当前 AIClient 已有请求正在进行");
+    }
+
+    const controller = new AbortController();
+    this.requestInFlight = true;
+    this.abortController = controller;
+    try {
+      return await operation(controller);
+    } finally {
+      if (this.abortController === controller) {
+        this.abortController = null;
+      }
+      this.requestInFlight = false;
+    }
   }
 
   /**
@@ -201,84 +275,84 @@ export class AIClient {
    * 发送消息（非流式）
    */
   async send(userMessage: string, userPrompt?: string): Promise<ChatResult> {
-    const configError = await this.validateConfig();
-    if (configError) {
+    return this.withRequest(async (controller) => {
+      const configError = await this.validateConfig();
+      if (configError) {
+        aiHistoryManager.addRecord({
+          userPrompt: userPrompt || userMessage,
+          actualMessage: userMessage,
+          response: "",
+          success: false,
+          error: configError,
+        });
+        return { success: false, content: "", error: configError };
+      }
+
+      this.addMessage("user", userMessage);
+      const config = await this.getConfig();
+      const provider = getProvider(config.type);
+
+      let lastError = "";
+      for (let attempt = 0; attempt <= this.retryCount; attempt++) {
+        try {
+          const request = provider.buildRequest(this.messages, config, {
+            stream: false,
+          });
+          const promptText = this.messages.map((m) => m.content).join(" ");
+
+          const response = await this.executeRequest(request, controller.signal);
+
+          if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errText}`);
+          }
+
+          const data = await response.json();
+          const { content, usage } = provider.parseResponse(data);
+          this.addMessage("assistant", content);
+
+          const finalUsage =
+            usage ||
+            this.estimateTokenUsage(promptText, content);
+
+          aiHistoryManager.addRecord({
+            userPrompt: userPrompt || userMessage,
+            actualMessage: userMessage,
+            response: content,
+            success: true,
+            textContent: userMessage,
+            tokenUsage: finalUsage,
+          });
+
+          return { success: true, content };
+        } catch (err: any) {
+          if (this.isAbortError(err)) {
+            this.removeLastUserMessage();
+            return { success: false, content: "", error: "请求已取消" };
+          }
+          lastError = this.formatError(err);
+          // CORS 类错误不重试（重试也无法解决）
+          if (this.isCorsLikeError(err)) break;
+          if (attempt < this.retryCount) {
+            const canRetry = await this.waitForRetry(controller.signal);
+            if (!canRetry) {
+              this.removeLastUserMessage();
+              return { success: false, content: "", error: "请求已取消" };
+            }
+          }
+        }
+      }
+
+      this.removeLastUserMessage();
       aiHistoryManager.addRecord({
         userPrompt: userPrompt || userMessage,
         actualMessage: userMessage,
         response: "",
         success: false,
-        error: configError,
+        error: lastError,
       });
-      return { success: false, content: "", error: configError };
-    }
-
-    this.addMessage("user", userMessage);
-    const config = await this.getConfig();
-    const provider = getProvider(config.type);
-
-    let lastError = "";
-    for (let attempt = 0; attempt <= this.retryCount; attempt++) {
-      try {
-        this.abortController = new AbortController();
-        const request = provider.buildRequest(this.messages, config, {
-          stream: false,
-        });
-
-        const response = await this.executeRequest(
-          request,
-          this.abortController.signal,
-        );
-
-        if (!response.ok) {
-          const errText = await response.text();
-          throw new Error(`HTTP ${response.status}: ${errText}`);
-        }
-
-        const data = await response.json();
-        const { content, usage } = provider.parseResponse(data);
-        this.addMessage("assistant", content);
-
-        const finalUsage =
-          usage ||
-          this.estimateTokenUsage(
-            this.messages.map((m) => m.content).join(" "),
-            content,
-          );
-
-        aiHistoryManager.addRecord({
-          userPrompt: userPrompt || userMessage,
-          actualMessage: userMessage,
-          response: content,
-          success: true,
-          textContent: userMessage,
-          tokenUsage: finalUsage,
-        });
-
-        return { success: true, content };
-      } catch (err: any) {
-        if (err.name === "AbortError") {
-          this.messages.pop();
-          return { success: false, content: "", error: "请求已取消" };
-        }
-        lastError = this.formatError(err);
-        // CORS 类错误不重试（重试也无法解决）
-        if (this.isCorsLikeError(err)) break;
-        if (attempt < this.retryCount) {
-          await this.delay(this.retryDelay);
-        }
-      }
-    }
-
-    this.messages.pop();
-    aiHistoryManager.addRecord({
-      userPrompt: userPrompt || userMessage,
-      actualMessage: userMessage,
-      response: "",
-      success: false,
-      error: lastError,
+      return { success: false, content: "", error: lastError };
     });
-    return { success: false, content: "", error: lastError };
   }
 
   /**
@@ -289,105 +363,164 @@ export class AIClient {
     onChunk: StreamCallback,
     userPrompt?: string,
   ): Promise<ChatResult> {
-    const configError = await this.validateConfig();
-    if (configError) {
+    return this.withRequest(async (controller) => {
+      const configError = await this.validateConfig();
+      if (configError) {
+        aiHistoryManager.addRecord({
+          userPrompt: userPrompt || userMessage,
+          actualMessage: userMessage,
+          response: "",
+          success: false,
+          error: configError,
+        });
+        return { success: false, content: "", error: configError };
+      }
+
+      this.addMessage("user", userMessage);
+      const config = await this.getConfig();
+      const provider = getProvider(config.type);
+
+      let lastError = "";
+      let hasDeliveredChunk = false;
+      for (let attempt = 0; attempt <= this.retryCount; attempt++) {
+        let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
+        let readerCompleted = false;
+        try {
+          const request = provider.buildRequest(this.messages, config, {
+            stream: true,
+          });
+          const promptText = this.messages.map((m) => m.content).join(" ");
+
+          const response = await this.executeRequest(request, controller.signal);
+
+          if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errText}`);
+          }
+
+          reader = response.body?.getReader() ?? null;
+          if (!reader) throw new Error("无法获取响应流");
+
+          const decoder = new TextDecoder();
+          const parser = new SSEParser();
+          let fullContent = "";
+          let finalUsage: TokenUsage | undefined;
+          let providerDone = false;
+
+          const processEvent = (event: { event?: string; data: string }) => {
+            if (providerDone) return;
+
+            if (event.data) {
+              try {
+                const parsed = JSON.parse(event.data);
+                const usage = provider.parseStreamUsage?.(parsed);
+                if (usage) {
+                  finalUsage = provider.mergeStreamUsage
+                    ? provider.mergeStreamUsage(finalUsage, usage)
+                    : usage;
+                }
+              } catch {
+                // 非 JSON 的 SSE 数据交给 Provider 处理。
+              }
+            }
+
+            const lines = event.event
+              ? [`event: ${event.event}`, `data: ${event.data}`]
+              : [`data: ${event.data}`];
+            for (const line of lines) {
+              const delta = provider.parseStreamChunk(line);
+              if (delta === null) {
+                providerDone = true;
+                hasDeliveredChunk = true;
+                onChunk("", true);
+                break;
+              }
+              if (delta) {
+                fullContent += delta;
+                hasDeliveredChunk = true;
+                onChunk(delta, false);
+              }
+            }
+          };
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) {
+              readerCompleted = true;
+              break;
+            }
+
+            const text = decoder.decode(value, { stream: true });
+            for (const event of parser.push(text)) processEvent(event);
+            if (providerDone) {
+              await reader.cancel();
+              readerCompleted = true;
+              break;
+            }
+          }
+
+          if (!providerDone) {
+            const trailingText = decoder.decode();
+            for (const event of parser.push(trailingText)) processEvent(event);
+            for (const event of parser.flush()) processEvent(event);
+          }
+
+          if (!providerDone) {
+            providerDone = true;
+            hasDeliveredChunk = true;
+            onChunk("", true);
+          }
+
+          this.addMessage("assistant", fullContent);
+          const usage =
+            finalUsage ||
+            this.estimateTokenUsage(promptText, fullContent);
+
+          aiHistoryManager.addRecord({
+            userPrompt: userPrompt || userMessage,
+            actualMessage: userMessage,
+            response: fullContent,
+            success: true,
+            textContent: userMessage,
+            tokenUsage: usage,
+          });
+          return { success: true, content: fullContent };
+        } catch (err: any) {
+          if (this.isAbortError(err)) {
+            this.removeLastUserMessage();
+            return { success: false, content: "", error: "请求已取消" };
+          }
+          lastError = this.formatError(err);
+          if (this.isCorsLikeError(err) || hasDeliveredChunk) break;
+          if (attempt < this.retryCount) {
+            const canRetry = await this.waitForRetry(controller.signal);
+            if (!canRetry) {
+              this.removeLastUserMessage();
+              return { success: false, content: "", error: "请求已取消" };
+            }
+          }
+        } finally {
+          if (reader && !readerCompleted) {
+            try {
+              await reader.cancel();
+            } catch {
+              // 流已进入错误状态时，cancel 可能再次失败。
+            }
+          }
+          reader?.releaseLock();
+        }
+      }
+
+      this.removeLastUserMessage();
       aiHistoryManager.addRecord({
         userPrompt: userPrompt || userMessage,
         actualMessage: userMessage,
         response: "",
         success: false,
-        error: configError,
+        error: lastError,
       });
-      return { success: false, content: "", error: configError };
-    }
-
-    this.addMessage("user", userMessage);
-    const config = await this.getConfig();
-    const provider = getProvider(config.type);
-
-    let lastError = "";
-    for (let attempt = 0; attempt <= this.retryCount; attempt++) {
-      try {
-        this.abortController = new AbortController();
-        const request = provider.buildRequest(this.messages, config, {
-          stream: true,
-        });
-
-        const response = await this.executeRequest(
-          request,
-          this.abortController.signal,
-        );
-
-        if (!response.ok) {
-          const errText = await response.text();
-          throw new Error(`HTTP ${response.status}: ${errText}`);
-        }
-
-        const reader = response.body?.getReader();
-        if (!reader) {
-          throw new Error("无法获取响应流");
-        }
-
-        const decoder = new TextDecoder();
-        let fullContent = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const text = decoder.decode(value, { stream: true });
-          const lines = text.split("\n").filter((line) => line.trim());
-
-          for (const line of lines) {
-            const delta = provider.parseStreamChunk(line);
-            if (delta === null) {
-              onChunk("", true);
-              continue;
-            }
-            if (delta) {
-              fullContent += delta;
-              onChunk(delta, false);
-            }
-          }
-        }
-
-        this.addMessage("assistant", fullContent);
-        const finalUsage = this.estimateTokenUsage(
-          this.messages.map((m) => m.content).join(" "),
-          fullContent,
-        );
-
-        aiHistoryManager.addRecord({
-          userPrompt: userPrompt || userMessage,
-          actualMessage: userMessage,
-          response: fullContent,
-          success: true,
-          textContent: userMessage,
-          tokenUsage: finalUsage,
-        });
-        return { success: true, content: fullContent };
-      } catch (err: any) {
-        if (err.name === "AbortError") {
-          this.messages.pop();
-          return { success: false, content: "", error: "请求已取消" };
-        }
-        lastError = this.formatError(err);
-        if (this.isCorsLikeError(err)) break;
-        if (attempt < this.retryCount) {
-          await this.delay(this.retryDelay);
-        }
-      }
-    }
-
-    this.messages.pop();
-    aiHistoryManager.addRecord({
-      userPrompt: userPrompt || userMessage,
-      actualMessage: userMessage,
-      response: "",
-      success: false,
-      error: lastError,
+      return { success: false, content: "", error: lastError };
     });
-    return { success: false, content: "", error: lastError };
   }
 
   /**
@@ -398,95 +531,95 @@ export class AIClient {
     imageBase64: string,
     userPrompt?: string,
   ): Promise<ChatResult> {
-    const configError = await this.validateConfig();
-    if (configError) {
+    return this.withRequest(async (controller) => {
+      const configError = await this.validateConfig();
+      if (configError) {
+        aiHistoryManager.addRecord({
+          userPrompt: userPrompt || textContent,
+          actualMessage: textContent,
+          response: "",
+          success: false,
+          error: configError,
+          hasImage: true,
+          imageBase64,
+          imageDescription: "设备截图",
+          textContent,
+        });
+        return { success: false, content: "", error: configError };
+      }
+
+      this.addMessage("user", textContent);
+      const config = await this.getConfig();
+      const provider = getProvider(config.type);
+
+      let lastError = "";
+      for (let attempt = 0; attempt <= this.retryCount; attempt++) {
+        try {
+          const request = provider.buildRequest(this.messages, config, {
+            stream: false,
+            images: [{ base64: imageBase64, mimeType: "image/png" }],
+          });
+          const promptText = this.messages.map((m) => m.content).join(" ");
+
+          const response = await this.executeRequest(request, controller.signal);
+
+          if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errText}`);
+          }
+
+          const data = await response.json();
+          const { content, usage } = provider.parseResponse(data);
+          this.addMessage("assistant", content);
+
+          const finalUsage =
+            usage ||
+            this.estimateTokenUsage(promptText, content);
+
+          aiHistoryManager.addRecord({
+            userPrompt: userPrompt || textContent,
+            actualMessage: textContent,
+            response: content,
+            success: true,
+            hasImage: true,
+            imageBase64,
+            imageDescription: "设备截图",
+            textContent,
+            tokenUsage: finalUsage,
+          });
+
+          return { success: true, content };
+        } catch (err: any) {
+          if (this.isAbortError(err)) {
+            this.removeLastUserMessage();
+            return { success: false, content: "", error: "请求已取消" };
+          }
+          lastError = this.formatError(err);
+          if (this.isCorsLikeError(err)) break;
+          if (attempt < this.retryCount) {
+            const canRetry = await this.waitForRetry(controller.signal);
+            if (!canRetry) {
+              this.removeLastUserMessage();
+              return { success: false, content: "", error: "请求已取消" };
+            }
+          }
+        }
+      }
+
+      this.removeLastUserMessage();
       aiHistoryManager.addRecord({
         userPrompt: userPrompt || textContent,
         actualMessage: textContent,
         response: "",
         success: false,
-        error: configError,
+        error: lastError,
         hasImage: true,
         imageBase64,
         imageDescription: "设备截图",
         textContent,
       });
-      return { success: false, content: "", error: configError };
-    }
-
-    this.addMessage("user", textContent);
-    const config = await this.getConfig();
-    const provider = getProvider(config.type);
-
-    let lastError = "";
-    for (let attempt = 0; attempt <= this.retryCount; attempt++) {
-      try {
-        this.abortController = new AbortController();
-        const request = provider.buildRequest(this.messages, config, {
-          stream: false,
-          images: [{ base64: imageBase64, mimeType: "image/png" }],
-        });
-
-        const response = await this.executeRequest(
-          request,
-          this.abortController.signal,
-        );
-
-        if (!response.ok) {
-          const errText = await response.text();
-          throw new Error(`HTTP ${response.status}: ${errText}`);
-        }
-
-        const data = await response.json();
-        const { content, usage } = provider.parseResponse(data);
-        this.addMessage("assistant", content);
-
-        const finalUsage =
-          usage ||
-          this.estimateTokenUsage(
-            this.messages.map((m) => m.content).join(" "),
-            content,
-          );
-
-        aiHistoryManager.addRecord({
-          userPrompt: userPrompt || textContent,
-          actualMessage: textContent,
-          response: content,
-          success: true,
-          hasImage: true,
-          imageBase64,
-          imageDescription: "设备截图",
-          textContent,
-          tokenUsage: finalUsage,
-        });
-
-        return { success: true, content };
-      } catch (err: any) {
-        if (err.name === "AbortError") {
-          this.messages.pop();
-          return { success: false, content: "", error: "请求已取消" };
-        }
-        lastError = this.formatError(err);
-        if (this.isCorsLikeError(err)) break;
-        if (attempt < this.retryCount) {
-          await this.delay(this.retryDelay);
-        }
-      }
-    }
-
-    this.messages.pop();
-    aiHistoryManager.addRecord({
-      userPrompt: userPrompt || textContent,
-      actualMessage: textContent,
-      response: "",
-      success: false,
-      error: lastError,
-      hasImage: true,
-      imageBase64,
-      imageDescription: "设备截图",
-      textContent,
+      return { success: false, content: "", error: lastError };
     });
-    return { success: false, content: "", error: lastError };
   }
 
   /** 取消当前请求 */

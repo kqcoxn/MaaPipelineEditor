@@ -120,6 +120,7 @@ export const geminiProvider: AIProvider = {
     return {
       url,
       method: "POST",
+      stream: isStream,
       headers: {
         "Content-Type": "application/json",
         "x-goog-api-key": config.apiKey,

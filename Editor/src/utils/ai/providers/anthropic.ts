@@ -127,6 +127,7 @@ export const anthropicProvider: AIProvider = {
     return {
       url,
       method: "POST",
+      stream: options?.stream ?? false,
       headers: {
         "Content-Type": "application/json",
         "x-api-key": config.apiKey,
@@ -189,16 +190,36 @@ export const anthropicProvider: AIProvider = {
   },
 
   parseStreamUsage(finalData: any): TokenUsage | undefined {
-    if (finalData?.usage) {
+    const usage = finalData?.message?.usage ?? finalData?.usage;
+    if (usage) {
       return {
-        promptTokens: finalData.usage.input_tokens || 0,
-        completionTokens: finalData.usage.output_tokens || 0,
+        promptTokens: usage.input_tokens || 0,
+        completionTokens: usage.output_tokens || 0,
         totalTokens:
-          (finalData.usage.input_tokens || 0) +
-          (finalData.usage.output_tokens || 0),
+          (usage.input_tokens || 0) + (usage.output_tokens || 0),
         isEstimated: false,
       };
     }
     return undefined;
+  },
+
+  mergeStreamUsage(current, next) {
+    if (!current) return next;
+
+    const promptTokens = Math.max(current.promptTokens, next.promptTokens);
+    const completionTokens = Math.max(
+      current.completionTokens,
+      next.completionTokens,
+    );
+    return {
+      promptTokens,
+      completionTokens,
+      totalTokens: Math.max(
+        current.totalTokens,
+        next.totalTokens,
+        promptTokens + completionTokens,
+      ),
+      isEstimated: current.isEstimated && next.isEstimated,
+    };
   },
 };

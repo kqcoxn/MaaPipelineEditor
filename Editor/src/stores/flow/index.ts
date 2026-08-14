@@ -45,9 +45,6 @@ export type {
   StickerColorTheme,
   GroupNodeDataType,
   GroupColorTheme,
-  ExplorationStatus,
-  FlowExplorationState,
-  FlowExplorationActions,
 } from "./types";
 export {
   createPipelineNode,
@@ -86,7 +83,7 @@ export function checkRepeatNodeLabelList(): string[] {
   const fileConfig = useFileStore.getState().currentFile.config;
 
   const repeats = checkRepeatNodeLabelListUtil(nodes, {
-    isExportConfig: configs.isExportConfig,
+    shouldExportConfig: configs.configHandlingMode !== "none",
     prefix: fileConfig.prefix,
   });
 

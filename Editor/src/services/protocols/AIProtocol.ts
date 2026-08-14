@@ -1,13 +1,51 @@
 import type { LocalWebSocketServer } from "../server";
 import { BaseProtocol } from "./BaseProtocol";
 
+/** AI 代理请求。请求体由 Provider 负责构建，协议层只负责传输。 */
+export interface AIProxyRequest {
+  url: string;
+  method: string;
+  headers: Record<string, string>;
+  body: string;
+}
+
+interface AIProxyResponseData {
+  request_id?: string;
+  status?: number;
+  headers?: Record<string, string>;
+  body?: string;
+  chunk?: string;
+  error?: string;
+  done?: boolean;
+}
+
+const NON_STREAM_TIMEOUT_MS = 60_000;
+const STREAM_TIMEOUT_MS = 120_000;
+
+function createRequestId(): string {
+  return `${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+}
+
+function createAbortError(): Error {
+  const error = new Error("请求已取消");
+  error.name = "AbortError";
+  return error;
+}
+
 /**
- * AI 代理协议
- * 通过 LocalBridge 代理转发 AI API 请求，解决 CORS 限制
+ * AI 代理协议。
+ * 负责 WebSocket 请求生命周期，不负责 Provider 格式和业务提示词。
  */
 export class AIProtocol extends BaseProtocol {
-  private responseHandlers: Map<string, (data: any) => void> = new Map();
-  private streamHandlers: Map<string, (data: any) => void> = new Map();
+  private responseHandlers = new Map<
+    string,
+    (data: AIProxyResponseData) => void
+  >();
+  private streamHandlers = new Map<
+    string,
+    (data: AIProxyResponseData) => void
+  >();
+  private statusUnsubscribe: (() => void) | null = null;
 
   getName(): string {
     return "AIProtocol";
@@ -20,52 +58,60 @@ export class AIProtocol extends BaseProtocol {
   register(wsClient: LocalWebSocketServer): void {
     this.wsClient = wsClient;
 
-    // 注册代理响应路由
+    this.statusUnsubscribe?.();
+    this.statusUnsubscribe = wsClient.onStatus((connected) => {
+      if (!connected) {
+        this.rejectPending(
+          this.responseHandlers,
+          new Error("WebSocket 已断开"),
+        );
+        this.rejectPending(this.streamHandlers, new Error("WebSocket 已断开"));
+      }
+    });
+
     wsClient.registerRoute("/lte/ai/proxy_response", (data) => {
       this.handleMessage("/lte/ai/proxy_response", data);
     });
-
-    // 注册流式代理响应路由
     wsClient.registerRoute("/lte/ai/proxy_stream", (data) => {
       this.handleMessage("/lte/ai/proxy_stream", data);
     });
   }
 
-  protected handleMessage(path: string, data: any): void {
-    const requestId = data?.request_id || "default";
+  unregister(): void {
+    this.statusUnsubscribe?.();
+    this.statusUnsubscribe = null;
+    this.rejectPending(this.responseHandlers, new Error("WebSocket 已断开"));
+    this.rejectPending(this.streamHandlers, new Error("WebSocket 已断开"));
+    super.unregister();
+  }
 
-    switch (path) {
-      case "/lte/ai/proxy_response": {
-        const handler = this.responseHandlers.get(requestId);
-        if (handler) {
-          handler(data);
-          this.responseHandlers.delete(requestId);
-        }
-        break;
-      }
-      case "/lte/ai/proxy_stream": {
-        const handler = this.streamHandlers.get(requestId);
-        if (handler) {
-          handler(data);
-          // 流结束时清理
-          if (data.done) {
-            this.streamHandlers.delete(requestId);
-          }
-        }
-        break;
+  protected handleMessage(path: string, data: AIProxyResponseData): void {
+    const requestId = data?.request_id;
+    if (!requestId) return;
+
+    if (path === "/lte/ai/proxy_response") {
+      const handler = this.responseHandlers.get(requestId);
+      if (!handler) return;
+      handler(data);
+      this.responseHandlers.delete(requestId);
+      return;
+    }
+
+    if (path === "/lte/ai/proxy_stream") {
+      const handler = this.streamHandlers.get(requestId);
+      if (!handler) return;
+      handler(data);
+      if (data.done || data.error) {
+        this.streamHandlers.delete(requestId);
       }
     }
   }
 
-  /**
-   * 发送 AI 代理请求（非流式）
-   */
-  sendProxyRequest(request: {
-    url: string;
-    method: string;
-    headers: Record<string, string>;
-    body: string;
-  }): Promise<{
+  /** 发送非流式代理请求。 */
+  sendProxyRequest(
+    request: AIProxyRequest,
+    signal?: AbortSignal,
+  ): Promise<{
     status: number;
     headers: Record<string, string>;
     body: string;
@@ -76,31 +122,52 @@ export class AIProtocol extends BaseProtocol {
         return;
       }
 
-      const requestId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const requestId = createRequestId();
+      let settled = false;
 
-      // 注册响应处理
-      const timeout = setTimeout(() => {
+      const cleanup = () => {
+        clearTimeout(timeout);
         this.responseHandlers.delete(requestId);
+        signal?.removeEventListener("abort", handleAbort);
+      };
+
+      const handleAbort = () => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        this.cancelProxyRequest(requestId);
+        reject(createAbortError());
+      };
+
+      const timeout = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        this.cancelProxyRequest(requestId);
         reject(new Error("代理请求超时（60s）"));
-      }, 60000);
+      }, NON_STREAM_TIMEOUT_MS);
+
+      if (signal?.aborted) {
+        handleAbort();
+        return;
+      }
 
       this.responseHandlers.set(requestId, (data) => {
-        clearTimeout(timeout);
+        if (settled) return;
+        settled = true;
+        cleanup();
         if (data.error) {
           reject(new Error(data.error));
-        } else {
-          resolve({
-            status: data.status || 200,
-            headers: data.headers || {},
-            body:
-              typeof data.body === "string"
-                ? data.body
-                : JSON.stringify(data.body),
-          });
+          return;
         }
+        resolve({
+          status: data.status ?? 200,
+          headers: data.headers ?? {},
+          body: data.body ?? "",
+        });
       });
+      signal?.addEventListener("abort", handleAbort, { once: true });
 
-      // 发送代理请求
       const success = this.wsClient.send("/etl/ai/proxy", {
         request_id: requestId,
         url: request.url,
@@ -109,56 +176,75 @@ export class AIProtocol extends BaseProtocol {
         body: request.body,
       });
 
-      if (!success) {
-        clearTimeout(timeout);
-        this.responseHandlers.delete(requestId);
+      if (!success && !settled) {
+        settled = true;
+        cleanup();
         reject(new Error("代理请求发送失败，本地服务未连接"));
       }
     });
   }
 
-  /**
-   * 发送 AI 流式代理请求
-   * 返回一个 ReadableStream 供上层消费
-   */
-  sendStreamProxyRequest(request: {
-    url: string;
-    method: string;
-    headers: Record<string, string>;
-    body: string;
-  }): { stream: ReadableStream<Uint8Array>; requestId: string } {
-    const requestId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  /** 发送流式代理请求，ReadableStream 的 cancel 会取消后端请求。 */
+  sendStreamProxyRequest(
+    request: AIProxyRequest,
+    signal?: AbortSignal,
+  ): { stream: ReadableStream<Uint8Array>; requestId: string } {
+    const requestId = createRequestId();
     const encoder = new TextEncoder();
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    let closed = false;
+    let controller: ReadableStreamDefaultController<Uint8Array> | undefined;
+
+    const cleanup = (cancelRemote: boolean) => {
+      if (closed) return;
+      closed = true;
+      if (timeout) clearTimeout(timeout);
+      this.streamHandlers.delete(requestId);
+      signal?.removeEventListener("abort", handleAbort);
+      if (cancelRemote) this.cancelProxyRequest(requestId);
+    };
+
+    const handleAbort = () => {
+      if (closed) return;
+      cleanup(true);
+      controller?.error(createAbortError());
+    };
 
     const stream = new ReadableStream<Uint8Array>({
-      start: (controller) => {
-        // 注册流处理器
+      start: (streamController) => {
+        controller = streamController;
+
+        if (!this.wsClient) {
+          cleanup(false);
+          streamController.error(new Error("WebSocket 未连接"));
+          return;
+        }
+        if (signal?.aborted) {
+          handleAbort();
+          return;
+        }
+
         this.streamHandlers.set(requestId, (data) => {
+          if (closed) return;
           if (data.error) {
-            controller.error(new Error(data.error));
+            cleanup(false);
+            streamController.error(new Error(data.error));
             return;
           }
           if (data.chunk) {
-            controller.enqueue(encoder.encode(data.chunk));
+            streamController.enqueue(encoder.encode(data.chunk));
           }
           if (data.done) {
-            controller.close();
+            cleanup(false);
+            streamController.close();
           }
         });
-
-        // 超时处理
-        setTimeout(() => {
-          if (this.streamHandlers.has(requestId)) {
-            this.streamHandlers.delete(requestId);
-            controller.error(new Error("流式代理请求超时（120s）"));
-          }
-        }, 120000);
-
-        // 发送请求
-        if (!this.wsClient) {
-          controller.error(new Error("WebSocket 未连接"));
-          return;
-        }
+        signal?.addEventListener("abort", handleAbort, { once: true });
+        timeout = setTimeout(() => {
+          if (closed) return;
+          cleanup(true);
+          streamController.error(new Error("流式代理请求超时（120s）"));
+        }, STREAM_TIMEOUT_MS);
 
         const success = this.wsClient.send("/etl/ai/proxy_stream", {
           request_id: requestId,
@@ -167,21 +253,30 @@ export class AIProtocol extends BaseProtocol {
           headers: request.headers,
           body: request.body,
         });
-
         if (!success) {
-          this.streamHandlers.delete(requestId);
-          controller.error(new Error("流式代理请求发送失败"));
+          cleanup(false);
+          streamController.error(new Error("流式代理请求发送失败"));
         }
       },
       cancel: () => {
-        this.streamHandlers.delete(requestId);
-        // 通知后端取消
-        this.wsClient?.send("/etl/ai/proxy_cancel", {
-          request_id: requestId,
-        });
+        cleanup(true);
       },
     });
 
     return { stream, requestId };
+  }
+
+  private cancelProxyRequest(requestId: string): void {
+    this.wsClient?.send("/etl/ai/proxy_cancel", { request_id: requestId });
+  }
+
+  private rejectPending(
+    handlers: Map<string, (data: AIProxyResponseData) => void>,
+    error: Error,
+  ): void {
+    for (const handler of handlers.values()) {
+      handler({ error: error.message });
+    }
+    handlers.clear();
   }
 }

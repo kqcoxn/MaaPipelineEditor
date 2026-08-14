@@ -1,7 +1,13 @@
 {
   "server": {
     "port": 9066,
-    "host": "localhost"
+    "host": "localhost",
+    "allowed_origins": [
+      "https://mpe.codax.site",
+      "http://localhost",
+      "http://127.0.0.1",
+      "http://[::1]"
+    ]
   },
   "file": {
     "exclude": [

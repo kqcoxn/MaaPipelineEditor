@@ -14,8 +14,10 @@ type Connection struct {
 	ID     string
 	conn   *websocket.Conn
 	send   chan []byte
+	done   chan struct{}
 	server *WebSocketServer
 	mu     sync.Mutex
+	doneMu sync.Once
 }
 
 // 创建新连接
@@ -24,13 +26,26 @@ func newConnection(id string, conn *websocket.Conn, server *WebSocketServer) *Co
 		ID:     id,
 		conn:   conn,
 		send:   make(chan []byte, 256),
+		done:   make(chan struct{}),
 		server: server,
 	}
+}
+
+// Done 返回连接关闭信号。
+func (c *Connection) Done() <-chan struct{} {
+	return c.done
+}
+
+func (c *Connection) closeDone() {
+	c.doneMu.Do(func() {
+		close(c.done)
+	})
 }
 
 // 读取客户端消息
 func (c *Connection) readPump() {
 	defer func() {
+		c.closeDone()
 		c.server.unregister <- c
 		c.conn.Close()
 	}()

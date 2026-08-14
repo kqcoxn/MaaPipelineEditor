@@ -30,12 +30,12 @@ Local Bridge (lb) 是连接本地文件系统与 MaaPipelineEditor 前端的桥�
   - 统一的错误处理和日志系统
   - 路径安全验证，防止路径穿越攻击
 
-### 预留功能（未实现）
+### 暂不提供业务入口的基础协议
 
 - MaaFramework 协议
 - MaaMpeGoDebugger 协议
 - Debug 状态协议
-- AI 流协议
+- AI HTTP 代理协议（普通与流式传输）
 
 ## 快速开始
 
@@ -80,7 +80,13 @@ mpelb --root D:/pipelines --port 9066 --log-level DEBUG --log-dir ./logs
 {
   "server": {
     "port": 9066,
-    "host": "localhost"
+    "host": "localhost",
+    "allowed_origins": [
+      "https://mpe.codax.site",
+      "http://localhost",
+      "http://127.0.0.1",
+      "http://[::1]"
+    ]
   },
   "file": {
     "root": "./",

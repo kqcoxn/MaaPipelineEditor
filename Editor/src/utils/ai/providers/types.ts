@@ -50,6 +50,7 @@ export interface ProviderRequest {
   method: string;
   headers: Record<string, string>;
   body: string;
+  stream?: boolean;
 }
 
 /** 请求选项 */
@@ -95,4 +96,9 @@ export interface AIProvider {
    * 从流式响应最终数据中提取 token 用量（如有）
    */
   parseStreamUsage?(finalData: any): TokenUsage | undefined;
+
+  /**
+   * 合并跨多个 SSE 事件返回的 token 用量（如有）
+   */
+  mergeStreamUsage?(current: TokenUsage | undefined, next: TokenUsage): TokenUsage;
 }

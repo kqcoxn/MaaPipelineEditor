@@ -149,7 +149,7 @@ export function parsePipelineNodeForExport(
   Object.assign(pNode, extras);
 
   // 保存位置信息和端点位置
-  if (configs.isExportConfig) {
+  if (configs.configHandlingMode !== "none") {
     const position = serializeNodePosition(fNode, allNodes);
     const mpeCode: Record<string, any> = {
       position: {

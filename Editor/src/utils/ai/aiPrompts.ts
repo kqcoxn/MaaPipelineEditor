@@ -3,7 +3,7 @@
  * 统一管理所有 AI 功能的提示词
  */
 
-import type { NodeContext } from "./aiPredictor";
+import type { NodeContext } from "./types";
 
 /**
  * MaaFramework Pipeline 协议精要

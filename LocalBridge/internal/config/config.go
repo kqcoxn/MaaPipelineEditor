@@ -13,8 +13,9 @@ import (
 
 // 服务器配置
 type ServerConfig struct {
-	Port int    `mapstructure:"port" json:"port"`
-	Host string `mapstructure:"host" json:"host"`
+	Port           int      `mapstructure:"port" json:"port"`
+	Host           string   `mapstructure:"host" json:"host"`
+	AllowedOrigins []string `mapstructure:"allowed_origins" json:"allowed_origins"`
 }
 
 // 文件相关配置
@@ -105,6 +106,12 @@ func setDefaults(v *viper.Viper) {
 	// 服务器配置
 	v.SetDefault("server.port", 9066)
 	v.SetDefault("server.host", "localhost")
+	v.SetDefault("server.allowed_origins", []string{
+		"https://mpe.codax.site",
+		"http://localhost",
+		"http://127.0.0.1",
+		"http://[::1]",
+	})
 
 	// 文件相关配置
 	v.SetDefault("file.exclude", []string{"node_modules", ".git", "dist", "build", ".cache", ".venv", "__pycache__", ".idea", ".vscode"})
