@@ -49,7 +49,6 @@ _✨ 可视化构建 MaaFramework Pipeline 的下一代工作流编辑器 ✨_</
 - 通过**一行命令即可增量启用** [本地服务](https://mpe.codax.site/docs/guide/server/deploy.html)，不需要时完全解耦
 - 无缝接入**文件管理**、**截图工具**、**流程调试**等本地能力
 - 支持自定义框架与 OCR 路径，直接**对齐本地环境**
-- 提供完整环境的本地一体集成包（[暂时下线](https://mpe.codax.site/docs/guide/desktop/deploy.html)，正在重构中），长期使用更便捷
 
 #### 🧠 所见即所思，流程即逻辑
 
@@ -151,7 +150,6 @@ MPE 项目没有单独的交流群，您可以在 MaaFramework 集成/开发交�
 
 - `2026.5-NOW`：**能力扩展与形态集成**（全面化）
 - `2026.1-4`：节点扩展与交互功能优化（特色化）
-- `2026.1`：[MaaPipelineEditor Desktop](https://github.com/kqcoxn/MaaPipelineEditor/issues/50)（一体化整合）
 - `2025.10-12`：[LocalBridge 协议](https://github.com/kqcoxn/MaaPipelineEditor/issues/23)（本地能力扩展）
 - `2025.8-10`：重构，MaaPipelineEditor！（泛用化）
 - `2025.5-8`：[MNMA](https://github.com/kqcoxn/MaaNewMoonAccompanying) 实践（思路修补）

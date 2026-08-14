@@ -24,12 +24,6 @@ import type {
   BackendConfig,
   ConfigResponse,
 } from "../../services/protocols/ConfigProtocol";
-import {
-  isWailsEnvironment,
-  setRootDir as wailsSetRootDir,
-  restartBridge as wailsRestartBridge,
-} from "../../utils/wailsBridge";
-
 interface BackendConfigModalProps {
   open: boolean;
   onClose: () => void;
@@ -162,20 +156,6 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
         },
       };
 
-      // 如果在 Desktop 环境中且根目录有值，同步保存到 Desktop 配置
-      if (isWailsEnvironment() && values.file_root) {
-        try {
-          const success = await wailsSetRootDir(values.file_root);
-          if (success === false) {
-            message.warning(
-              "Desktop 配置保存失败，但 LocalBridge 配置将继续保存",
-            );
-          }
-        } catch (error) {
-          console.error("保存 Desktop 根目录配置失败:", error);
-        }
-      }
-
       configProtocol.requestSetConfig(config);
     } catch (error) {
       console.error("表单验证失败:", error);
@@ -304,14 +284,14 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
             label={
               <span>
                 根目录
-                <Tooltip title="文件扫描的根目录路径，修改后需重启服务。仅在 LocalBridge 指定了配置文件或 Desktop 环境中生效。">
+                <Tooltip title="文件扫描的根目录路径，修改后需重启服务。仅在 LocalBridge 指定了配置文件时生效。">
                   <InfoCircleOutlined
                     style={{ marginLeft: 4, color: "#8c8c8c" }}
                   />
                 </Tooltip>
               </span>
             }
-            extra="仅在 LB 指定了配置文件（--config）或在 Desktop 环境中生效。"
+            extra="仅在 LocalBridge 指定了配置文件（--config）时生效。"
           >
             <Input placeholder="文件扫描根目录" />
           </Form.Item>

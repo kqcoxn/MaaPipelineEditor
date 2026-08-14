@@ -18,7 +18,7 @@ export const Win32WindowList = memo(
     <>
       <Alert
         title="权限提示"
-        description="大多数 Win32 控制需要以管理员模式启动后端(LocalBridge)或客户端(Desktop)才能正常工作,如果遇到连接失败或控制无响应的情况,请尝试以管理员身份重新启动应用。"
+        description="大多数 Win32 控制需要以管理员模式启动 LocalBridge 才能正常工作。如果遇到连接失败或控制无响应的情况，请尝试以管理员身份重新启动 LocalBridge。"
         type="info"
         showIcon
         style={{ marginBottom: 16 }}

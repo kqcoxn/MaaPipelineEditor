@@ -363,7 +363,6 @@ export const updateLogs: UpdateLogItem[] = [
         "📔 AI 历史信息面板可具体查看 Token 用量、实际提示词等信息",
         "🌟 Anchor 节点支持高亮索引与可跨文件快捷跳转",
         "🥂 右键节点面板可粘贴复制项，直接生成在指针位置",
-        "🐍 Desktop 可自动检测新版本并提示",
       ],
       perfs: [
         "优化节点字段智能填充效果",
@@ -484,8 +483,6 @@ export const updateLogs: UpdateLogItem[] = [
         "修复修改 lb 配置后失效的问题",
         "修复同步多个本地文件时的丢失问题",
         "修复节点导入与导出顺序不一致的问题",
-        "修复 desktop lb 连接闪断问题",
-        "修复 desktop 默认 fw 环境加载失败问题",
       ],
     },
   },
@@ -553,7 +550,6 @@ export const updateLogs: UpdateLogItem[] = [
         "🎨 取色工具支持范围预览",
         "🔤 新增节点字段收起选项",
       ],
-      perfs: ["优化 Desktop 前后端自动连接逻辑，提升初次握手稳定性"],
       fixes: ["修复分离导出时外部节点位置丢失问题"],
     },
   },
@@ -575,7 +571,7 @@ export const updateLogs: UpdateLogItem[] = [
         "🧰 字段小工具全面梳理与适配各字段绑定，您可以更便捷的使用小工具测量与填写字段值了",
       ],
       perfs: ["连接 LB 服务时自动开启图片渲染（不影响现有配置）"],
-      fixes: ["修复 Desktop 闪退问题", "修复嵌套数组类型的实时解析问题"],
+      fixes: ["修复嵌套数组类型的实时解析问题"],
     },
   },
   {
@@ -584,7 +580,7 @@ export const updateLogs: UpdateLogItem[] = [
     type: "fix",
     updates: {
       features: ["🧩 新增默认识别/动作导出配置项"],
-      perfs: ["Desktop 新增加载提示", "添加调试记录轮转机制"],
+      perfs: ["添加调试记录轮转机制"],
       fixes: [
         "修复了重复识别单个节点时仅有一条记录的问题",
         "修复了单节点系列调试功能不显示记录的问题",
@@ -598,7 +594,6 @@ export const updateLogs: UpdateLogItem[] = [
     type: "major",
     updates: {
       features: [
-        "🦕 本地一体编辑器 Desktop！",
         "📇 LB 新增打开日志文件夹命令",
         "📜 前端新增日志窗口，可以快捷查看后端日志",
         "⚡ 支持 LB 热重载，更改配置后无需手动重启",

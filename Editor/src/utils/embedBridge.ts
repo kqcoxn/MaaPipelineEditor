@@ -3,7 +3,7 @@ import { useEmbedMessageLogStore } from "../stores/embedMessageLogStore";
 /**
  * iframe 嵌入模式桥接模块
  * 用于检测嵌入环境并提供 postMessage 双向通信
- * 镜像 wailsBridge.ts 的环境检测 + 条件桥接模式
+ * 提供与本地服务解耦的条件桥接模式
  */
 
 export const PROTOCOL_VERSION = "1.3.0";

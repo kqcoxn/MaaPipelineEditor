@@ -44,13 +44,6 @@ import {
   clearImportParam,
 } from "./utils/data/shareHelper";
 import { parseUrlParams } from "./utils/data/urlHelper";
-import {
-  isWailsEnvironment,
-  onWailsEvent,
-  getWailsPort,
-  isBridgeRunning,
-  wailsLog,
-} from "./utils/wailsBridge";
 import { isEmbedEnvironment } from "./utils/embedBridge";
 import { useEmbedMode } from "./hooks/useEmbedMode";
 import { useEmbedChangeNotifier } from "./hooks/useEmbedChangeNotifier";
@@ -263,62 +256,14 @@ function App() {
     // 统一解析 URL 参数
     const urlParams = parseUrlParams();
 
-    // Wails 环境下的连接逻辑
-    let cleanupWailsListener: (() => void) | null = null;
+    // 使用 URL 参数或配置连接 LocalBridge
+    const targetPort = urlParams.port || configuredPort;
+    if (targetPort) {
+      localServer.setPort(targetPort);
+    }
 
-    if (isWailsEnvironment()) {
-      wailsLog("[Frontend] Wails environment detected");
-
-      let connectionInitiated = false;
-
-      // 监听后端发送的端口事件
-      cleanupWailsListener = onWailsEvent<number>("bridge:port", (port) => {
-        if (connectionInitiated) {
-          return;
-        }
-        connectionInitiated = true;
-        wailsLog(`[Frontend] Received port: ${port}`);
-        localServer.setPort(port);
-        localServer.connect();
-      });
-
-      // 尝试直接获取端口
-      getWailsPort().then(async (port) => {
-        if (connectionInitiated) {
-          return;
-        }
-        if (
-          port &&
-          !localServer.isConnected() &&
-          !localServer.getIsConnecting()
-        ) {
-          // 检查 bridge 是否已经就绪
-          const running = await isBridgeRunning();
-          // 防止在 await 期间事件已经触发了连接
-          if (running && !connectionInitiated) {
-            connectionInitiated = true;
-            wailsLog(`[Frontend] Got port from GetPort: ${port}`);
-            localServer.setPort(port);
-            localServer.connect();
-          } else {
-            wailsLog(
-              "[Frontend] Bridge not ready or connection initiated, waiting for event",
-            );
-          }
-        }
-      });
-    } else {
-      // 非 Wails 环境：使用 URL 参数或配置
-      // 确定使用的端口：URL参数 > 配置端口 > 默认端口
-      const targetPort = urlParams.port || configuredPort;
-      if (targetPort) {
-        localServer.setPort(targetPort);
-      }
-
-      // 自动连接或者 URL 参数连接
-      if (wsAutoConnect || urlParams.linkLb) {
-        localServer.connect();
-      }
+    if (wsAutoConnect || urlParams.linkLb) {
+      localServer.connect();
     }
 
     // 使用协议检测（优先于新手引导）
@@ -362,10 +307,6 @@ function App() {
       window.removeEventListener("mpe:terms-accepted", handleTermsAccepted);
       document.removeEventListener("drop", handleFileDrop);
       document.removeEventListener("dragover", handleDragOver);
-      // 清理 Wails 事件监听
-      if (cleanupWailsListener) {
-        cleanupWailsListener();
-      }
     };
   }, [handleFileDrop, handleDragOver]);
 

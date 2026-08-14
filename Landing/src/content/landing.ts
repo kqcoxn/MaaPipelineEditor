@@ -252,14 +252,6 @@ export const statsItems: StatItem[] = [
     href: siteConfig.docsUrl,
     accent: "mint",
   },
-  {
-    kind: "ecosystem",
-    value: "Desktop",
-    label: "集成化客户端（暂时下线）",
-    note: "编辑器 + LocalBridge + MFW 依赖 + OCR 模型一体化打包，开箱即用的完整方案。目前暂时下线，正在重构中。",
-    href: siteConfig.docsUrl,
-    accent: "orange",
-  },
 ];
 
 export const footerColumns: FooterColumn[] = [

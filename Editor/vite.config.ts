@@ -6,8 +6,6 @@ export default defineConfig(({ mode }) => {
   let base = "/stable/";
   if (mode === "preview") {
     base = "/MaaPipelineEditor/";
-  } else if (mode === "desktop") {
-    base = "./";
   } else if (mode !== "stable") {
     base = `/${mode}/`;
   }

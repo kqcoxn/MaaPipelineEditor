@@ -40,34 +40,6 @@ const TARGETS = [
     re: /(version:\s*`)([^`]+)(`)/,
   },
   {
-    id: "main.go (var version)",
-    file: "Desktop/main.go",
-    re: /(var version = ")([^"]+)(")/,
-  },
-  {
-    id: "wails.json (productVersion)",
-    file: "Desktop/wails.json",
-    re: /("productVersion":\s*")([^"]+)(")/,
-  },
-  {
-    id: "wails.exe.manifest (assemblyIdentity version)",
-    file: "Desktop/build/windows/wails.exe.manifest",
-    // 多行正则: 通过 name="MaaPipelineEditor" 上下文锚定, 只匹配该元素内的 version
-    re: /(name="MaaPipelineEditor"[\s\S]*?version=")([^"]+)(")/,
-  },
-  {
-    id: "Info.plist (CFBundleVersion)",
-    file: "Desktop/build/darwin/Info.plist",
-    // 上下文锚定: 只匹配 CFBundleVersion 后面的版本号
-    re: /(<key>CFBundleVersion<\/key>\s*<string>)([^<]+)(<\/string>)/,
-  },
-  {
-    id: "Info.plist (CFBundleShortVersionString)",
-    file: "Desktop/build/darwin/Info.plist",
-    // 上下文锚定: 只匹配 CFBundleShortVersionString 后面的版本号
-    re: /(<key>CFBundleShortVersionString<\/key>\s*<string>)([^<]+)(<\/string>)/,
-  },
-  {
     id: "package.json (release)",
     file: "package.json",
     lineMode: true,

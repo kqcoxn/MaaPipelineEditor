@@ -5,7 +5,7 @@ tk:
   teekHome: false
 
 hero:
-  name: MaaPipelineEditor Desktop
+  name: MaaPipelineEditor
   text: '"连接你的想法"'
   tagline: ✨ 基于 react-flow 的 MaaFramework Pipeline 工作流式可视化编辑器
   actions:

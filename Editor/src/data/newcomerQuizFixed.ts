@@ -29,7 +29,7 @@ export const fixedQuestions: QuizQuestion[] = [
     category: "项目模板",
     type: "judge",
     question:
-      "可以直接使用 MPE 创建全新的空白项目，或复用 MPE Desktop 的 resource 子目录作为项目目录",
+      "可以直接使用 MPE 创建全新的空白项目，或直接将任意 resource 子目录作为项目目录",
     options: ["正确", "错误"],
     answer: 1,
   },

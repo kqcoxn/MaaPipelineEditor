@@ -151,9 +151,6 @@ jobs:
             MaaPipelineEditor-*-docs.zip
             MaaPipelineEditor-*-landing.zip
 
-  # Desktop 服务暂时下线，download-resources 和 build-desktop job 已移除
-  # 如需恢复，请参考 git 历史中的 release.yaml
-
   release:
     needs: [build-web, build-localbridge]
     runs-on: ubuntu-latest
