@@ -37,6 +37,9 @@ export const siteConfig = {
   githubUrl:
     import.meta.env.PUBLIC_GITHUB_URL ||
     "https://github.com/kqcoxn/MaaPipelineEditor",
+  mseUrl:
+    import.meta.env.PUBLIC_MSE_URL ||
+    "https://github.com/neko-para/maa-support-extension",
   ecosystemUrl: import.meta.env.PUBLIC_ECOSYSTEM_URL || "/docs/",
   plausibleDomain: import.meta.env.PUBLIC_PLAUSIBLE_DOMAIN || undefined,
   landingBasePath,

@@ -53,6 +53,7 @@ export type StatItem =
       note: string;
       href: string;
       accent: "blue" | "mint" | "orange" | "rose";
+      external?: boolean;
     };
 
 export type FooterColumn = {
@@ -63,13 +64,16 @@ export type FooterColumn = {
 export const siteMeta = {
   title: "MaaPipelineEditor",
   description:
-    "MaaPipelineEditor 是面向 MaaFramework 资源开发者的可视化 Pipeline 审阅与编辑工作台，让 JSON 流程更容易阅读、修改与调试。",
+    "MaaPipelineEditor 是面向 MaaFramework 资源开发者的可视化 Pipeline 审阅与编辑工作台，也支持通过 iframe 接入 Maa Support Extension，让 JSON 流程更容易阅读、修改与调试。",
   keywords: [
     "MaaPipelineEditor",
     "MaaFramework Pipeline",
     "可视化编辑器",
     "流程工作台",
     "Pipeline 审阅",
+    "Maa Support Extension",
+    "MSE",
+    "VS Code Pipeline 编辑",
   ],
   ogImage: siteConfig.resolveLandingPath("/og/landing-og.svg"),
   ogAlt: "MaaPipelineEditor Landing placeholder artwork",
@@ -252,6 +256,15 @@ export const statsItems: StatItem[] = [
     href: siteConfig.docsUrl,
     accent: "mint",
   },
+  {
+    kind: "ecosystem",
+    value: "MSE + iframe",
+    label: "VS Code 内可视化编辑",
+    note: "由 Maa Support Extension 承载 MPE，在 VS Code 中打开 Pipeline 并将编辑结果写回当前文件。",
+    href: siteConfig.mseUrl,
+    accent: "rose",
+    external: true,
+  },
 ];
 
 export const footerColumns: FooterColumn[] = [
@@ -311,6 +324,12 @@ export const footerColumns: FooterColumn[] = [
       {
         label: "MaaMCP",
         href: "https://maa-ai.com/",
+        external: true,
+        variant: "text",
+      },
+      {
+        label: "Maa Support Extension",
+        href: siteConfig.mseUrl,
         external: true,
         variant: "text",
       },

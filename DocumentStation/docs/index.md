@@ -19,6 +19,9 @@ hero:
       text: 本地服务
       link: /guide/server/deploy
     - theme: alt
+      text: MSE 集成
+      link: /guide/mse/overview
+    - theme: alt
       text: 迁移指南
       link: /guide/migrate/old
   image:
@@ -38,6 +41,9 @@ features:
   - icon: ⭐
     title: 本地服务
     details: 可增量的本地功能服务，使用一行命令为 MPE 添加文件快捷管理等实用功能！
+  - icon: 🧩
+    title: VS Code 集成
+    details: 通过 Maa Support Extension 以 iframe 接入完整 MPE，在 VS Code 中打开并保存 Pipeline 文件。
 ---
 
 <script setup lang="ts">

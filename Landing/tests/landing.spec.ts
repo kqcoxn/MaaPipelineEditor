@@ -53,6 +53,11 @@ test("desktop navigation reaches ecosystem anchor and header GitHub stays correc
 
   await page.getByRole("link", { name: "生态", exact: true }).click();
   await expect(page).toHaveURL(/#ecosystem$/);
+  const mseLink = page.locator(
+    'a[href="https://github.com/neko-para/maa-support-extension"]',
+  );
+  await expect(mseLink).toContainText("MSE + iframe");
+  await expect(mseLink).toHaveAttribute("target", "_blank");
   await expect(page.getByTestId("header-github")).toHaveAttribute(
     "href",
     "https://github.com/kqcoxn/MaaPipelineEditor",

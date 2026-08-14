@@ -85,7 +85,7 @@ if (-not (Test-Path -LiteralPath $resolvedManifestPath -PathType Leaf)) {
     throw "Project manifest not found: $resolvedManifestPath"
 }
 
-$repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\.."))
+$repositoryRoot = [IO.Path]::GetFullPath((Join-Path (Join-Path $PSScriptRoot "..") ".."))
 $manifest = Get-Content -Raw -Encoding utf8 -LiteralPath $resolvedManifestPath | ConvertFrom-Json
 $projects = @($manifest.projects)
 
@@ -97,7 +97,7 @@ if ($ReferenceRoot) {
     $resolvedReferenceRoot = [IO.Path]::GetFullPath($ReferenceRoot)
 }
 else {
-    $resolvedReferenceRoot = [IO.Path]::GetFullPath((Join-Path $repositoryRoot "..\maa-refs"))
+    $resolvedReferenceRoot = [IO.Path]::GetFullPath((Join-Path (Join-Path $repositoryRoot "..") "maa-refs"))
 }
 
 if (-not (Test-Path -LiteralPath $resolvedReferenceRoot)) {

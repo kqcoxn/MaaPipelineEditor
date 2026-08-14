@@ -89,6 +89,8 @@ const accentMap = {
           ecosystems.map((item) => (
             <a
               href={item.href}
+              target={item.external ? "_blank" : undefined}
+              rel={item.external ? "noreferrer" : undefined}
               class="group rounded-[28px] border border-slate-200 bg-slate-50/80 p-5 transition-all duration-300 ease-out hover:-mt-1 hover:mb-1 hover:border-slate-300 hover:bg-white hover:shadow-lg"
             >
               <span
