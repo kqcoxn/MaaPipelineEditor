@@ -657,7 +657,29 @@ function CertificatePage({
         title="恭喜通过测试！"
         subTitle={`您已具备 MaaFW 的基础知识，本次用时 ${formatElapsedTime(elapsedSeconds)}，欢迎开始使用 MaaPipelineEditor！`}
         extra={
-          <Space orientation="vertical" align="center">
+          <Space
+            orientation="vertical"
+            align="center"
+            style={{ width: "100%" }}
+          >
+            <Alert
+              type="info"
+              showIcon
+              title="下次可通过控制台直接跳过答题"
+              description={
+                <Paragraph style={{ margin: 0 }}>
+                  如果切换设备或清除浏览器数据，请打开
+                  <Link
+                    href="https://mpe.codax.site/docs/guide/other/devtools.html"
+                    target="_blank"
+                  >
+                    开发者工具文档
+                  </Link>
+                  ，并在浏览器控制台执行 <Text code>mpedev("skipNewcomer")</Text>。
+                </Paragraph>
+              }
+              style={{ width: "100%", textAlign: "left" }}
+            />
             <Link
               href="https://mpe.codax.site/docs/guide/start/quick-start.html"
               target="_blank"

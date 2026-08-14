@@ -2,6 +2,7 @@ import { registerDevCommand } from "./devConsole";
 import { setDevFlag } from "./devConsole";
 import { useFlowStore } from "../stores/flow";
 import { useConfigStore } from "../stores/configStore";
+import { useNewcomerStore } from "../stores/newcomerStore";
 
 export function registerBuiltinDevCommands() {
   registerDevCommand("nodes", () => {
@@ -70,5 +71,13 @@ export function registerBuiltinDevCommands() {
     setDevFlag("quizCheat", val);
     window.dispatchEvent(new CustomEvent("mpedev:flag-changed"));
     return val ? "enabled" : "disabled";
+  });
+
+  registerDevCommand("skipNewcomer", () => {
+    const newcomerStore = useNewcomerStore.getState();
+    newcomerStore.markPassed();
+    newcomerStore.closeModal();
+    window.dispatchEvent(new CustomEvent("mpe:newcomer-passed"));
+    return "newcomer guide skipped";
   });
 }
