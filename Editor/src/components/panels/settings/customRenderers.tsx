@@ -1,5 +1,5 @@
 import { memo, useCallback, useState } from "react";
-import { Button, message, Modal } from "antd";
+import { App as AntdApp, Button, message, Modal } from "antd";
 import {
   useConfigStore,
   getExportableConfigs,
@@ -8,6 +8,8 @@ import {
 import { useCustomTemplateStore } from "@/stores/project/customTemplateStore";
 import { useFlowStore } from "../../../stores/flow";
 import { localServer } from "../../../services";
+import { AIClient } from "@/utils/ai/aiClient";
+import { SYSTEM_PROMPTS } from "@/utils/ai/aiPrompts";
 import { BackendConfigModal } from "../../modals";
 import FieldSortModal from "../../modals/FieldSortModal";
 import { HANDLE_DIRECTION_OPTIONS } from "../../flow/nodes/constants";
@@ -109,6 +111,39 @@ const BackendConfigRenderer = memo(() => {
       </div>
       <BackendConfigModal open={open} onClose={() => setOpen(false)} />
     </>
+  );
+});
+
+/**测试 AI 配置和传输链路 */
+const TestConnectionRenderer = memo(() => {
+  const [loading, setLoading] = useState(false);
+  const { message: appMessage } = AntdApp.useApp();
+
+  const handleTest = async () => {
+    setLoading(true);
+    try {
+      const chat = new AIClient({
+        systemPrompt: SYSTEM_PROMPTS.TEST_CONNECTION,
+      });
+      const result = await chat.send("直接回复：AI 服务连接成功");
+      if (result.success) {
+        appMessage.success(`测试成功: ${result.content}`);
+      } else {
+        appMessage.error(`测试失败: ${result.error}`);
+      }
+    } catch (error) {
+      appMessage.error(
+        `测试失败: ${error instanceof Error ? error.message : "未知错误"}`,
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Button size="small" type="primary" loading={loading} onClick={handleTest}>
+      测试连接
+    </Button>
   );
 });
 
@@ -240,6 +275,7 @@ export const customRenderers: Record<string, React.FC> = {
   applyToAll: ApplyToAllRenderer,
   fieldSort: FieldSortRenderer,
   backendConfig: BackendConfigRenderer,
+  testConnection: TestConnectionRenderer,
   exportConfig: ExportConfigRenderer,
   importConfig: ImportConfigRenderer,
   resetDefaults: ResetDefaultsRenderer,

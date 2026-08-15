@@ -1,5 +1,6 @@
 import type { ConfigCategory, ConfigState } from "@/stores/app/configStore";
 import { HANDLE_DIRECTION_OPTIONS } from "../../flow/nodes/constants";
+import { getProviderOptions } from "@/utils/ai/providers";
 
 /**配置项控件类型 */
 export type ConfigItemType =
@@ -64,6 +65,36 @@ export interface ConfigItemDef {
   /**是否隐藏左侧标签（自定义区块占满整行时使用） */
   hideLabel?: boolean;
 }
+
+/** 各 Provider 类型对应的配置示例 */
+const AI_PROVIDER_EXAMPLES: Record<
+  string,
+  { url: string; key: string; models: string }
+> = {
+  custom: {
+    url: "https://api.example.com/v1",
+    key: "sk-xxxx",
+    models: "deepseek-chat / qwen-plus",
+  },
+  openai: {
+    url: "https://api.openai.com",
+    key: "sk-proj-xxxx",
+    models: "gpt-5 / gpt-4o",
+  },
+  anthropic: {
+    url: "https://api.anthropic.com",
+    key: "sk-ant-xxxx",
+    models: "claude-sonnet / claude-haiku",
+  },
+  gemini: {
+    url: "https://generativelanguage.googleapis.com",
+    key: "AIzaSyXXXX",
+    models: "gemini-2.5-flash / gemini-2.5-pro",
+  },
+};
+
+const getAIExample = (configs: ConfigState["configs"]) =>
+  AI_PROVIDER_EXAMPLES[configs.aiProviderType] || AI_PROVIDER_EXAMPLES.custom;
 
 /**所有配置项定义 */
 export const settingsDefinitions: ConfigItemDef[] = [
@@ -573,6 +604,88 @@ export const settingsDefinitions: ConfigItemDef[] = [
     order: 8,
   },
 
+  // ==================== AI (ai) ====================
+  {
+    key: "aiProviderType",
+    category: "ai",
+    label: "API 类型",
+    tipTitle: "API 服务类型",
+    tipContent:
+      "选择 AI 服务提供商类型。使用 OpenAI 兼容接口的第三方服务请选择“自定义”。",
+    type: "select",
+    options: getProviderOptions(),
+    controlWidth: 200,
+    order: 1,
+  },
+  {
+    key: "aiApiUrl",
+    category: "ai",
+    label: "API URL",
+    tipTitle: "API URL",
+    tipContent:
+      "填写基础地址或完整端点。Provider 会根据地址补全对应的请求路径。",
+    type: "input",
+    placeholder: "例如: https://api.openai.com",
+    dynamicPlaceholder: (configs) => `例如: ${getAIExample(configs).url}`,
+    order: 2,
+  },
+  {
+    key: "aiApiKey",
+    category: "ai",
+    label: "API Key",
+    tipTitle: "API Key",
+    tipContent: "API Key 会使用 AES-GCM 加密后保存在浏览器本地，不会随配置导出。",
+    type: "inputPassword",
+    placeholder: "例如: sk-xxxx",
+    dynamicPlaceholder: (configs) => `例如: ${getAIExample(configs).key}`,
+    order: 3,
+  },
+  {
+    key: "aiModel",
+    category: "ai",
+    label: "模型",
+    tipTitle: "模型名称",
+    tipContent: "填写 Provider 对应的模型名称。",
+    type: "input",
+    placeholder: "例如: gpt-5 / claude-sonnet / gemini-2.5-flash",
+    dynamicPlaceholder: (configs) => `例如: ${getAIExample(configs).models}`,
+    order: 4,
+  },
+  {
+    key: "aiTemperature",
+    category: "ai",
+    label: "温度",
+    tipTitle: "温度参数",
+    tipContent: "控制 AI 输出的随机性，范围为 0 到 1。",
+    type: "slider",
+    min: 0,
+    max: 1,
+    step: 0.1,
+    order: 5,
+  },
+  {
+    key: "aiUseProxy",
+    category: "ai",
+    label: "LocalBridge 代理",
+    tipTitle: "LocalBridge 代理",
+    tipContent:
+      "开启后通过 LocalBridge 转发 AI 请求，可绕过浏览器 CORS 限制；关闭则由浏览器直接请求 API。",
+    type: "switch",
+    checkedChildren: "开启",
+    unCheckedChildren: "关闭",
+    order: 6,
+  },
+  {
+    key: "__testConnection",
+    category: "ai",
+    label: "连接测试",
+    tipTitle: "测试 AI 连接",
+    tipContent: "使用当前配置发送一条最小请求，检查 API 配置和传输链路。",
+    type: "custom",
+    customRender: "testConnection",
+    order: 7,
+  },
+
   // ==================== 管理 (management) ====================
   {
     key: "__exportConfig",
@@ -620,5 +733,6 @@ export const settingsTabs: {
   { key: "canvas", label: "画布", icon: "LayoutOutlined" },
   { key: "component", label: "组件", icon: "CodeOutlined" },
   { key: "local-service", label: "本地服务", icon: "GlobalOutlined" },
+  { key: "ai", label: "AI", icon: "RobotOutlined" },
   { key: "management", label: "管理", icon: "SettingOutlined" },
 ];
