@@ -23,7 +23,7 @@ import {
   findDebugRunFirstTimestamp,
   formatDebugRunDisplayName,
 } from "../../runDisplayName";
-import { useConfigStore } from "../../../../stores/configStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import {
   formatDebugPipelineOverrideDraft,
   hasDebugPipelineOverrideDraftContent,

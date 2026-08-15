@@ -10,7 +10,7 @@ import {
   toRelativePositionFromParentAbsolute,
 } from "../utils/coordinateUtils";
 import { fitFlowView } from "../utils/viewportUtils";
-import { assignNodeOrder } from "../../fileStore";
+import { assignNodeOrder } from "@/stores/project/fileStore";
 
 export const createGraphSlice: StateCreator<
   FlowStore,

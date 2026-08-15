@@ -1,9 +1,9 @@
 import type { DebugProtocolClient } from "../../services/protocols/DebugProtocolClient";
-import { useDebugArtifactStore } from "../../stores/debugArtifactStore";
-import { useDebugDiagnosticsStore } from "../../stores/debugDiagnosticsStore";
-import { useDebugOverlayStore } from "../../stores/debugOverlayStore";
-import { useDebugSessionStore } from "../../stores/debugSessionStore";
-import { useDebugTraceStore } from "../../stores/debugTraceStore";
+import { useDebugArtifactStore } from "@/stores/debug/debugArtifactStore";
+import { useDebugDiagnosticsStore } from "@/stores/debug/debugDiagnosticsStore";
+import { useDebugOverlayStore } from "@/stores/debug/debugOverlayStore";
+import { useDebugSessionStore } from "@/stores/debug/debugSessionStore";
+import { useDebugTraceStore } from "@/stores/debug/debugTraceStore";
 import type { DebugEvent, DebugPerformanceSummary } from "./types";
 import {
   recognitionDetailImageRefs,

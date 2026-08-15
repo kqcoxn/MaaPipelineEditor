@@ -1,7 +1,7 @@
 import { GithubOutlined } from "@ant-design/icons";
 import { App as AntdApp, Button, Flex } from "antd";
 import { useEffect } from "react";
-import { useEmbedStore } from "../stores/embedStore";
+import { useEmbedStore } from "@/stores/embed/embedStore";
 import style from "../styles/components/EmbedStarReminder.module.less";
 import { openExternalUrl } from "../features/embed/externalNavigation";
 

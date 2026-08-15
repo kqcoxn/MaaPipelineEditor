@@ -23,7 +23,7 @@ import { formatDebugNodeExecutionDuration } from "../../nodeExecutionDisplay";
 import { eventTitle, formatTime } from "../../modalUtils";
 import type { DebugEvent, DebugExecutionDetailMode } from "../../types";
 import { formatDebugNodeDisplayName } from "../../syntheticNode";
-import type { DebugArtifactEntry } from "../../../../stores/debugArtifactStore";
+import type { DebugArtifactEntry } from "@/stores/debug/debugArtifactStore";
 import { StatusTag } from "./NodeExecutionRecordList";
 import {
   findDebugRunFirstTimestamp,

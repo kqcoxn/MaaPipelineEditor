@@ -5,9 +5,9 @@ import { memo, useMemo, useRef } from "react";
 import {
   useToolbarStore,
   type ImportAction,
-} from "../../../stores/toolbarStore";
-import { useConfigStore } from "../../../stores/configStore";
-import { useWSStore } from "../../../stores/wsStore";
+} from "@/stores/ui/toolbarStore";
+import { useConfigStore } from "@/stores/app/configStore";
+import { useWSStore } from "@/stores/connection/wsStore";
 import { useFlowStore } from "../../../stores/flow";
 import { pipelineToFlow, mergePipelineAndConfig } from "../../../core/parser";
 import { ClipboardHelper } from "../../../utils/ui/clipboard";

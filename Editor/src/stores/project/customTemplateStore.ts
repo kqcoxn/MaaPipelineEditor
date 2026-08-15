@@ -1,8 +1,8 @@
 import { create } from "zustand";
 import { message } from "antd";
-import type { NodeTemplateType } from "../data/nodeTemplates";
-import type { PipelineNodeDataType } from "./flow/types";
-import { NodeTypeEnum } from "../components/flow/nodes";
+import type { NodeTemplateType } from "@/data/nodeTemplates";
+import type { PipelineNodeDataType } from "@/stores/flow/types";
+import { NodeTypeEnum } from "@/components/flow/nodes";
 
 // 存储结构
 export interface StoredTemplate {

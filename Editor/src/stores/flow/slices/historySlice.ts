@@ -3,7 +3,7 @@ import type { FlowStore, FlowHistoryState, NodeType, EdgeType } from "../types";
 import {
   useOperationLogStore,
   type OperationDescriptor,
-} from "../../operationLogStore";
+} from "@/stores/flow/operationLogStore";
 
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 

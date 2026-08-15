@@ -4,23 +4,23 @@ import { arrayMove } from "@dnd-kit/sortable";
 import { notification } from "antd";
 import { visit } from "jsonc-parser";
 
-import { useFlowStore, type NodeType, type EdgeType } from "./flow";
+import { useFlowStore, type NodeType, type EdgeType } from "@/stores/flow";
 import {
   restoreConfigCache,
   saveConfigCache,
   useConfigStore,
-} from "./configStore";
-import { normalizeViewport } from "./flow/utils/viewportUtils";
+} from "@/stores/app/configStore";
+import { normalizeViewport } from "@/stores/flow/utils/viewportUtils";
 import {
   pipelineToFlow,
   flowToPipelineString,
   flowToSeparatedStrings,
   mergePipelineAndConfig,
-} from "../core/parser";
-import { localServer } from "../services/server";
-import { FileProtocol } from "../services/protocols/FileProtocol";
-import { findErrorsByType, ErrorTypeEnum } from "./errorStore";
-import type { CoordinateMode } from "./flow/utils/coordinateUtils";
+} from "@/core/parser";
+import { localServer } from "@/services/server";
+import { FileProtocol } from "@/services/protocols/FileProtocol";
+import { findErrorsByType, ErrorTypeEnum } from "@/stores/app/errorStore";
+import type { CoordinateMode } from "@/stores/flow/utils/coordinateUtils";
 
 export type FileConfigType = {
   prefix: string;
@@ -484,7 +484,7 @@ export const useFileStore = create<FileState>()((set) => ({
     // 如果目标文件被外部修改，触发重载
     if (needReload && reloadFilePath) {
       setTimeout(() => {
-        import("../services/server").then(({ localServer }) => {
+        import("@/services/server").then(({ localServer }) => {
           if (localServer.isConnected()) {
             localServer.send("/etl/open_file", { file_path: reloadFilePath });
           }

@@ -10,7 +10,7 @@ import {
   ensureGroupNodeOrder,
   normalizeImportedNodePosition,
 } from "../../stores/flow";
-import { useFileStore } from "../../stores/fileStore";
+import { useFileStore } from "@/stores/project/fileStore";
 import {
   NodeTypeEnum,
   SourceHandleTypeEnum,

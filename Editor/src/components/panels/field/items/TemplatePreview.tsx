@@ -1,8 +1,8 @@
 import { memo, useState, useEffect, useCallback } from "react";
 import { Popover, Spin, Image } from "antd";
-import { useLocalFileStore } from "../../../../stores/localFileStore";
+import { useLocalFileStore } from "@/stores/project/localFileStore";
 import { resourceProtocol } from "../../../../services/server";
-import { useWSStore } from "../../../../stores/wsStore";
+import { useWSStore } from "@/stores/connection/wsStore";
 
 interface TemplatePreviewProps {
   templatePaths: string[]; // 模板图片相对路径列表

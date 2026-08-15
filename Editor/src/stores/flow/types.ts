@@ -12,7 +12,7 @@ import {
 } from "../../components/flow/nodes";
 import type { HandleDirection } from "../../components/flow/nodes/constants";
 
-import type { OperationDescriptor } from "../operationLogStore";
+import type { OperationDescriptor } from "@/stores/flow/operationLogStore";
 
 // 位置类型
 export type PositionType = {

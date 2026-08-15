@@ -2,14 +2,14 @@ import { useCallback, useEffect, useMemo } from "react";
 import { message } from "antd";
 import { useShallow } from "zustand/shallow";
 import { debugProtocolClient } from "../../../services/server";
-import { useFileStore } from "../../../stores/fileStore";
+import { useFileStore } from "@/stores/project/fileStore";
 import { useFlowStore } from "../../../stores/flow";
-import { useLocalFileStore } from "../../../stores/localFileStore";
-import { useDebugSessionStore } from "../../../stores/debugSessionStore";
+import { useLocalFileStore } from "@/stores/project/localFileStore";
+import { useDebugSessionStore } from "@/stores/debug/debugSessionStore";
 import {
   makeDebugResourceKey,
   normalizeDebugResourcePaths,
-} from "../../../stores/debugRunProfileStore";
+} from "@/stores/debug/debugRunProfileStore";
 import {
   requestResourceHealthAction,
   requestResourcePreflightAction,

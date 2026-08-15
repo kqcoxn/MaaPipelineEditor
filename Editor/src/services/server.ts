@@ -14,7 +14,7 @@ import { DebugProtocolClient } from "./protocols/DebugProtocolClient";
 import { ResourceProtocol } from "./protocols/ResourceProtocol";
 import { LoggerProtocol } from "./protocols/LoggerProtocol";
 import { AIProtocol } from "./protocols/AIProtocol";
-import { globalConfig } from "../stores/configStore";
+import { globalConfig } from "@/stores/app/configStore";
 import { registerDebugProtocolListeners } from "../features/debug/registerProtocolListeners";
 import { openExternalUrl } from "../features/embed/externalNavigation";
 

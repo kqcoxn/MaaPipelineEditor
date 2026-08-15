@@ -22,7 +22,7 @@ import {
   StickerEditor,
 } from "../node-editors";
 import { FieldPanelToolbarLeft, FieldPanelToolbarRight } from "../field/tools";
-import { useConfigStore } from "../../../stores/configStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import { NodeJsonEditorModal } from "../../modals/NodeJsonEditorModal";
 
 // 面板与节点的间距

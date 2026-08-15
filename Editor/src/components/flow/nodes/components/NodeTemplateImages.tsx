@@ -1,8 +1,8 @@
 import { memo, useEffect, useMemo, useRef, useCallback } from "react";
 import { Image as AntImage } from "antd";
-import { useLocalFileStore } from "../../../../stores/localFileStore";
+import { useLocalFileStore } from "@/stores/project/localFileStore";
 import { resourceProtocol } from "../../../../services/server";
-import { useWSStore } from "../../../../stores/wsStore";
+import { useWSStore } from "@/stores/connection/wsStore";
 import style from "../../../../styles/flow/nodes.module.less";
 
 interface NodeTemplateImagesProps {

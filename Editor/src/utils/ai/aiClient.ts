@@ -3,7 +3,7 @@
  * 支持多厂商 Provider、加密存储和代理转发的统一 AI 客户端
  */
 
-import { useConfigStore } from "../../stores/configStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import { aiHistoryManager } from "./history";
 import { decryptApiKey } from "./crypto";
 import {

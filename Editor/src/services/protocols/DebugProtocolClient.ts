@@ -1,6 +1,6 @@
 import { BaseProtocol } from "./BaseProtocol";
 import type { LocalWebSocketServer } from "../server";
-import { globalConfig } from "../../stores/configStore";
+import { globalConfig } from "@/stores/app/configStore";
 import type {
   DebugArtifactGetRequest,
   DebugArtifactPayload,

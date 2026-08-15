@@ -4,7 +4,7 @@ import classNames from "classnames";
 
 import style from "../../../../styles/flow/nodes.module.less";
 import type { PipelineNodeDataType } from "../../../../stores/flow";
-import { useConfigStore } from "../../../../stores/configStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import IconFont from "../../../iconfonts";
 import { KVElem } from "../components/KVElem";
 import { PipelineNodeHandles } from "../components/NodeHandles";

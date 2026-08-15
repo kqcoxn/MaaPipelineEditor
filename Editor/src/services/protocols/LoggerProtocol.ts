@@ -1,6 +1,6 @@
 import { BaseProtocol } from "./BaseProtocol";
 import type { LocalWebSocketServer } from "../server";
-import { useLoggerStore } from "../../stores/loggerStore";
+import { useLoggerStore } from "@/stores/app/loggerStore";
 
 interface LogData {
   level: string;

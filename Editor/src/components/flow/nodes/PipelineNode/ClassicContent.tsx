@@ -3,7 +3,7 @@ import { type NodeProps } from "@xyflow/react";
 
 import style from "../../../../styles/flow/nodes.module.less";
 import type { PipelineNodeDataType } from "../../../../stores/flow";
-import { useConfigStore } from "../../../../stores/configStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import { KVElem } from "../components/KVElem";
 import { PipelineNodeHandles } from "../components/NodeHandles";
 import { JsonHelper } from "../../../../utils/data/jsonHelper";

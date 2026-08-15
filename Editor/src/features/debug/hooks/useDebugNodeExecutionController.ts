@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useDebugOverlayStore } from "../../../stores/debugOverlayStore";
-import { useFileStore } from "../../../stores/fileStore";
+import { useDebugOverlayStore } from "@/stores/debug/debugOverlayStore";
+import { useFileStore } from "@/stores/project/fileStore";
 import type { EdgeType, NodeType } from "../../../stores/flow";
-import { useLocalFileStore } from "../../../stores/localFileStore";
-import { useDebugRunProfileStore } from "../../../stores/debugRunProfileStore";
+import { useLocalFileStore } from "@/stores/project/localFileStore";
+import { useDebugRunProfileStore } from "@/stores/debug/debugRunProfileStore";
 import { applyDebugNodeTarget } from "../nodeTargetActions";
 import { allDebugNodeExecutionAttempts } from "../nodeExecutionAttempts";
 import {

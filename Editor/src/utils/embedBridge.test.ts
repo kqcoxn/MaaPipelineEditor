@@ -7,7 +7,7 @@ import {
   isCompatibleProtocolVersion,
   sendToParent,
 } from "./embedBridge";
-import { useEmbedMessageLogStore } from "../stores/embedMessageLogStore";
+import { useEmbedMessageLogStore } from "@/stores/embed/embedMessageLogStore";
 
 describe("embedBridge", () => {
   let cleanup: (() => void) | undefined;

@@ -1,4 +1,4 @@
-import type { PipelineProtocolVersion } from "../../stores/configStore";
+import type { PipelineProtocolVersion } from "@/stores/app/configStore";
 
 /**
  * 字段排序配置

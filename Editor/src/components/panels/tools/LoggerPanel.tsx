@@ -12,18 +12,18 @@ import {
   ArrowDownOutlined,
   ArrowUpOutlined,
 } from "@ant-design/icons";
-import { useLoggerStore, type LogEntry } from "../../../stores/loggerStore";
+import { useLoggerStore, type LogEntry } from "@/stores/app/loggerStore";
 import {
   useOperationLogStore,
   type OperationLog,
   type OperationCategory,
-} from "../../../stores/operationLogStore";
-import { useWSStore } from "../../../stores/wsStore";
+} from "@/stores/flow/operationLogStore";
+import { useWSStore } from "@/stores/connection/wsStore";
 import { useFlowStore, findNodeById, fitFlowView } from "../../../stores/flow";
 import {
   useEmbedMessageLogStore,
   type EmbedMessageLog,
-} from "../../../stores/embedMessageLogStore";
+} from "@/stores/embed/embedMessageLogStore";
 import { useEmbedMode } from "../../../hooks/useEmbedMode";
 import styles from "../../../styles/panels/LoggerPanel.module.less";
 

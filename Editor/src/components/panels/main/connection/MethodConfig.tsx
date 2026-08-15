@@ -1,6 +1,6 @@
 import { memo, useMemo } from "react";
 import { Alert, Select, Typography } from "antd";
-import type { AdbDevice, Win32Window } from "../../../../stores/mfwStore";
+import type { AdbDevice, Win32Window } from "@/stores/connection/mfwStore";
 
 const { Text } = Typography;
 

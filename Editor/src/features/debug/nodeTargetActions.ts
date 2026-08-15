@@ -4,9 +4,9 @@ import {
   buildDebugSnapshotBundle,
   resolveDebugNodeTarget,
 } from "./snapshot";
-import { useDebugModalMemoryStore } from "../../stores/debugModalMemoryStore";
-import { useDebugRunProfileStore } from "../../stores/debugRunProfileStore";
-import { useDebugSessionStore } from "../../stores/debugSessionStore";
+import { useDebugModalMemoryStore } from "@/stores/debug/debugModalMemoryStore";
+import { useDebugRunProfileStore } from "@/stores/debug/debugRunProfileStore";
+import { useDebugSessionStore } from "@/stores/debug/debugSessionStore";
 import {
   useFlowStore,
   getRuntimeNodeAbsoluteRect,

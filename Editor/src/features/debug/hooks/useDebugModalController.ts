@@ -5,22 +5,22 @@ import {
   debugProtocolClient,
   fileProtocol,
 } from "../../../services/server";
-import { useDebugSessionStore } from "../../../stores/debugSessionStore";
-import { useDebugModalMemoryStore } from "../../../stores/debugModalMemoryStore";
-import { useDebugTraceStore } from "../../../stores/debugTraceStore";
-import { useDebugArtifactStore } from "../../../stores/debugArtifactStore";
-import { useDebugDiagnosticsStore } from "../../../stores/debugDiagnosticsStore";
-import { useDebugRunProfileStore } from "../../../stores/debugRunProfileStore";
-import { useDebugOverrideStore } from "../../../stores/debugOverrideStore";
+import { useDebugSessionStore } from "@/stores/debug/debugSessionStore";
+import { useDebugModalMemoryStore } from "@/stores/debug/debugModalMemoryStore";
+import { useDebugTraceStore } from "@/stores/debug/debugTraceStore";
+import { useDebugArtifactStore } from "@/stores/debug/debugArtifactStore";
+import { useDebugDiagnosticsStore } from "@/stores/debug/debugDiagnosticsStore";
+import { useDebugRunProfileStore } from "@/stores/debug/debugRunProfileStore";
+import { useDebugOverrideStore } from "@/stores/debug/debugOverrideStore";
 import {
   useMFWStore,
-} from "../../../stores/mfwStore";
-import { useWSStore } from "../../../stores/wsStore";
+} from "@/stores/connection/mfwStore";
+import { useWSStore } from "@/stores/connection/wsStore";
 import { useFlowStore } from "../../../stores/flow";
 import {
   saveOpenedLocalFilesForDebug,
   useFileStore,
-} from "../../../stores/fileStore";
+} from "@/stores/project/fileStore";
 import { ensureDebugCapabilitiesRequested } from "../capabilityActions";
 import { debugContributionRegistry } from "../contributions/registry";
 import { getControllerDisplayName } from "../controllerDisplay";

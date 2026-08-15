@@ -3,7 +3,7 @@ import style from "../../../styles/panels/ErrorPanel.module.less";
 import { memo, useMemo } from "react";
 import classNames from "classnames";
 
-import { useErrorStore } from "../../../stores/errorStore";
+import { useErrorStore } from "@/stores/app/errorStore";
 
 function ErrorPanel() {
   const errors = useErrorStore((state) => state.errors);

@@ -1,9 +1,9 @@
 import { Modal, message } from "antd";
 import { ClipboardHelper } from "../../../../utils/ui/clipboard";
-import { useFileStore } from "../../../../stores/fileStore";
-import { useCustomTemplateStore } from "../../../../stores/customTemplateStore";
+import { useFileStore } from "@/stores/project/fileStore";
+import { useCustomTemplateStore } from "@/stores/project/customTemplateStore";
 import { useFlowStore } from "../../../../stores/flow";
-import { useConfigStore } from "../../../../stores/configStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import type { PipelineNodeDataType } from "../../../../stores/flow";
 import { parsePipelineNodeForExport } from "../../../../core/parser/nodeParser";
 import type { PipelineNodeType } from "../../../../core/parser/types";

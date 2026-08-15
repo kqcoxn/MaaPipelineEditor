@@ -13,7 +13,7 @@ import {
 import classNames from "classnames";
 import { useShallow } from "zustand/shallow";
 
-import { useConfigStore } from "../../stores/configStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import { useFlowStore } from "../../stores/flow";
 import {
   SourceHandleTypeEnum,

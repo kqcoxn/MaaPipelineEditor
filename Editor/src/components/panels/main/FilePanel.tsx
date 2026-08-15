@@ -15,8 +15,8 @@ import {
 } from "@dnd-kit/sortable";
 import { Tabs, Input, Button, Tooltip } from "antd";
 import { FileAddOutlined } from "@ant-design/icons";
-import { useFileStore } from "../../../stores/fileStore";
-import { useConfigStore } from "../../../stores/configStore";
+import { useFileStore } from "@/stores/project/fileStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import { useEmbedMode } from "../../../hooks/useEmbedMode";
 
 interface DraggableTabPaneProps extends React.HTMLAttributes<HTMLDivElement> {

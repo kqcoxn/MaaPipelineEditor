@@ -2,7 +2,7 @@
 import { memo } from "react";
 import { Typography, Input, Alert, Checkbox } from "antd";
 import { DesktopOutlined, CheckCircleOutlined } from "@ant-design/icons";
-import type { WlRootsCompositor } from "../../../../stores/mfwStore";
+import type { WlRootsCompositor } from "@/stores/connection/mfwStore";
 
 const { Text } = Typography;
 

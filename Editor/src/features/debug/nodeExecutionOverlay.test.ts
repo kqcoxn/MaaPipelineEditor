@@ -20,7 +20,7 @@ import {
   type DebugEventKind,
   type DebugEventPhase,
 } from "./types";
-import type { DebugArtifactEntry } from "../../stores/debugArtifactStore";
+import type { DebugArtifactEntry } from "@/stores/debug/debugArtifactStore";
 
 describe("nodeExecutionOverlay", () => {
   it("focuses selected recognition attempts on target node and candidate edge", () => {

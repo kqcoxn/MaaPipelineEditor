@@ -13,8 +13,8 @@ import {
   LayoutOutlined,
   CodeOutlined,
 } from "@ant-design/icons";
-import { useConfigStore } from "../../../stores/configStore";
-import type { ConfigCategory } from "../../../stores/configStore";
+import { useConfigStore } from "@/stores/app/configStore";
+import type { ConfigCategory } from "@/stores/app/configStore";
 import { settingsDefinitions, settingsTabs } from "./settingsDefinitions";
 import type { ConfigItemDef } from "./settingsDefinitions";
 import ConfigItemRenderer from "./ConfigItemRenderer";

@@ -5,10 +5,10 @@ import { memo, useMemo, useState, useCallback } from "react";
 import {
   useToolbarStore,
   type ExportAction,
-} from "../../../stores/toolbarStore";
-import { useConfigStore } from "../../../stores/configStore";
-import { useFileStore } from "../../../stores/fileStore";
-import { useWSStore } from "../../../stores/wsStore";
+} from "@/stores/ui/toolbarStore";
+import { useConfigStore } from "@/stores/app/configStore";
+import { useFileStore } from "@/stores/project/fileStore";
+import { useWSStore } from "@/stores/connection/wsStore";
 import { useFlowStore } from "../../../stores/flow";
 import { useShallow } from "zustand/shallow";
 import { flowToPipeline, flowToSeparatedStrings } from "../../../core/parser";

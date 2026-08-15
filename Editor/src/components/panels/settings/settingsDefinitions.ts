@@ -1,4 +1,4 @@
-import type { ConfigCategory, ConfigState } from "../../../stores/configStore";
+import type { ConfigCategory, ConfigState } from "@/stores/app/configStore";
 import { HANDLE_DIRECTION_OPTIONS } from "../../flow/nodes/constants";
 
 /**配置项控件类型 */

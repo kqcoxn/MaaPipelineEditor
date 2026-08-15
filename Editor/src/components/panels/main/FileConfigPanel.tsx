@@ -5,8 +5,8 @@ import { Popover, Input } from "antd";
 import classNames from "classnames";
 import IconFont from "../../iconfonts";
 
-import { useConfigStore } from "../../../stores/configStore";
-import { useFileStore } from "../../../stores/fileStore";
+import { useConfigStore } from "@/stores/app/configStore";
+import { useFileStore } from "@/stores/project/fileStore";
 import { checkRepeatNodeLabelList } from "../../../stores/flow";
 
 function FileConfigPanel() {

@@ -3,10 +3,10 @@
  * 提供跨文件节点搜索、跳转、自动完成等功能
  */
 
-import { useWSStore } from "../stores/wsStore";
-import { useLocalFileStore } from "../stores/localFileStore";
-import { useFileStore } from "../stores/fileStore";
-import { useConfigStore } from "../stores/configStore";
+import { useWSStore } from "@/stores/connection/wsStore";
+import { useLocalFileStore } from "@/stores/project/localFileStore";
+import { useFileStore } from "@/stores/project/fileStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import {
   useFlowStore,
   getNodeAbsolutePosition,

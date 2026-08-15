@@ -6,7 +6,7 @@ import {
   type CanvasRenderProps,
 } from "./ScreenshotModalBase";
 import { mfwProtocol, resourceProtocol } from "../../services/server";
-import { useLocalFileStore } from "../../stores/localFileStore";
+import { useLocalFileStore } from "@/stores/project/localFileStore";
 import type { Rectangle } from "../../utils/data/roiNegativeCoord";
 
 interface MatchBox {

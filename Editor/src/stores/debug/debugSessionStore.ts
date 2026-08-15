@@ -9,9 +9,9 @@ import type {
   DebugRunStarted,
   DebugRunStopRequested,
   DebugSessionSnapshot,
-} from "../features/debug/types";
-import { getPrimaryResourceHealthError } from "../features/debug/resourceHealth";
-import { useDebugModalMemoryStore } from "./debugModalMemoryStore";
+} from "@/features/debug/types";
+import { getPrimaryResourceHealthError } from "@/features/debug/resourceHealth";
+import { useDebugModalMemoryStore } from "@/stores/debug/debugModalMemoryStore";
 
 type CapabilityStatus = "idle" | "loading" | "ready" | "error";
 type ResourcePreflightStatus = "idle" | "checking" | "ready" | "error";

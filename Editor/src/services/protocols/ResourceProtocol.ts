@@ -4,7 +4,7 @@ import {
   useLocalFileStore,
   type ResourceBundle,
   type ImageCacheItem,
-} from "../../stores/localFileStore";
+} from "@/stores/project/localFileStore";
 
 /**
  * 资源协议处理器

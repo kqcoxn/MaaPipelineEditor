@@ -1,7 +1,7 @@
 import { memo, useState, useRef, useEffect, useCallback } from "react";
 import { Tooltip } from "antd";
 import { QuestionCircleOutlined } from "@ant-design/icons";
-import { useWikiStore } from "../../stores/wikiStore";
+import { useWikiStore } from "@/stores/ui/wikiStore";
 import style from "../../styles/components/WikiAnchor.module.less";
 import { openExternalUrl } from "../../features/embed/externalNavigation";
 

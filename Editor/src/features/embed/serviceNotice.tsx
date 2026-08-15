@@ -1,4 +1,4 @@
-import { useEmbedStore } from "../../stores/embedStore";
+import { useEmbedStore } from "@/stores/embed/embedStore";
 import { getAntdAppApi } from "../../utils/ui/antdAppApi";
 
 const MPE_QUICK_START_URL =

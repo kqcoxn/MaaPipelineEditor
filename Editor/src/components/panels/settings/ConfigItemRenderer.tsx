@@ -11,8 +11,8 @@ import {
   Space,
 } from "antd";
 import { UndoOutlined } from "@ant-design/icons";
-import { useConfigStore } from "../../../stores/configStore";
-import { configDefaults } from "../../../stores/configStore";
+import { useConfigStore } from "@/stores/app/configStore";
+import { configDefaults } from "@/stores/app/configStore";
 import type { ConfigItemDef } from "./settingsDefinitions";
 import { customRenderers } from "./customRenderers";
 

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useEmbedStore } from "../../stores/embedStore";
+import { useEmbedStore } from "@/stores/embed/embedStore";
 import * as antdAppApi from "../../utils/ui/antdAppApi";
 import { clearEmbedOperationTimeouts } from "./embedOperations";
 import { showEmbedSaveConflict } from "./saveConflict";

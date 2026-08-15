@@ -9,8 +9,8 @@ import type {
   DebugNodeExecutionStatusFilter,
   DebugNodeExecutionSortMode,
   DebugRunMode,
-} from "../features/debug/types";
-import { DEFAULT_DEBUG_NODE_EXECUTION_FILTERS } from "../features/debug/types";
+} from "@/features/debug/types";
+import { DEFAULT_DEBUG_NODE_EXECUTION_FILTERS } from "@/features/debug/types";
 
 const STORAGE_KEY = "mpe_debug_modal_memory_v1";
 

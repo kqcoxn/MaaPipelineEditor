@@ -7,7 +7,7 @@ import type {
 } from "../../../../stores/flow/types";
 import { NodeTypeEnum } from "../../../flow/nodes";
 import { useFlowStore } from "../../../../stores/flow";
-import { useMFWStore } from "../../../../stores/mfwStore";
+import { useMFWStore } from "@/stores/connection/mfwStore";
 import {
   copyNodeName,
   saveNodeAsTemplate,

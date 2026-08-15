@@ -10,11 +10,11 @@ import {
   FullscreenOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
-import { useMFWStore } from "../../stores/mfwStore";
+import { useMFWStore } from "@/stores/connection/mfwStore";
 import {
   useConfigStore,
   getScreenshotResolutionParams,
-} from "../../stores/configStore";
+} from "@/stores/app/configStore";
 import { mfwProtocol } from "../../services/server";
 import { useCanvasViewport } from "../../hooks/useCanvasViewport";
 

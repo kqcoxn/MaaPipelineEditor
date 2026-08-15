@@ -5,7 +5,7 @@ import {
   getEmbedLocale,
   type EmbedLocale,
 } from "../../utils/embedBridge";
-import { useEmbedStore } from "../../stores/embedStore";
+import { useEmbedStore } from "@/stores/embed/embedStore";
 import { requestHostReload, requestHostSave } from "./embedOperations";
 
 interface SaveConflictOptions {

@@ -4,7 +4,7 @@ import classNames from "classnames";
 import IconFont from "../../iconfonts";
 import { type IconNames } from "../../iconfonts";
 import { useFlowStore } from "../../../stores/flow";
-import { useFileStore } from "../../../stores/fileStore";
+import { useFileStore } from "@/stores/project/fileStore";
 import { LayoutHelper, AlignmentEnum } from "../../../core/layout";
 import { rerouteEdgesToNearestReplica } from "../../../core/parser/edgeRerouter";
 import { saveNodesToImage } from "../../../utils/ui/snapper";

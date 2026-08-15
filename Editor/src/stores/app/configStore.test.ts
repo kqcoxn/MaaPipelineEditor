@@ -3,7 +3,7 @@ import {
   configDefaults,
   getExportableConfigs,
   useConfigStore,
-} from "./configStore";
+} from "@/stores/app/configStore";
 
 describe("config export", () => {
   it("does not include the AI API key", () => {

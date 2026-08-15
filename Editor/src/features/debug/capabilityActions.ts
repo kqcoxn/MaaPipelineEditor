@@ -1,6 +1,6 @@
 import { debugProtocolClient } from "../../services/server";
-import { useDebugSessionStore } from "../../stores/debugSessionStore";
-import { useWSStore } from "../../stores/wsStore";
+import { useDebugSessionStore } from "@/stores/debug/debugSessionStore";
+import { useWSStore } from "@/stores/connection/wsStore";
 
 export function ensureDebugCapabilitiesRequested(): boolean {
   const sessionState = useDebugSessionStore.getState();

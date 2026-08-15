@@ -1,6 +1,6 @@
 import { flowToPipelineString, pipelineToFlow } from "../../core/parser";
-import { useEmbedStore } from "../../stores/embedStore";
-import { useFileStore } from "../../stores/fileStore";
+import { useEmbedStore } from "@/stores/embed/embedStore";
+import { useFileStore } from "@/stores/project/fileStore";
 import { useFlowStore } from "../../stores/flow";
 import {
   completeHandshake,

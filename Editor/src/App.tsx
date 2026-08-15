@@ -12,11 +12,11 @@ import {
 } from "antd";
 const { Header: HeaderSection, Content } = Layout;
 
-import { useFileStore } from "./stores/fileStore";
-import { saveConfigCache, useConfigStore } from "./stores/configStore";
-import { useWSStore } from "./stores/wsStore";
-import { useMFWStore } from "./stores/mfwStore";
-import { useCustomTemplateStore } from "./stores/customTemplateStore";
+import { useFileStore } from "@/stores/project/fileStore";
+import { saveConfigCache, useConfigStore } from "@/stores/app/configStore";
+import { useWSStore } from "@/stores/connection/wsStore";
+import { useMFWStore } from "@/stores/connection/mfwStore";
+import { useCustomTemplateStore } from "@/stores/project/customTemplateStore";
 import { localServer } from "./services/server";
 
 import Header from "./components/Header";
@@ -48,9 +48,12 @@ import { isEmbedEnvironment } from "./utils/embedBridge";
 import { useEmbedMode } from "./hooks/useEmbedMode";
 import { useEmbedChangeNotifier } from "./hooks/useEmbedChangeNotifier";
 import { registerEmbedProtocol } from "./features/embed/registerEmbedProtocol";
-import { useNewcomerStore, isNewcomerPassed } from "./stores/newcomerStore";
+import {
+  useNewcomerStore,
+  isNewcomerPassed,
+} from "@/stores/ui/newcomerStore";
 import { NewcomerGuideModal } from "./components/modals/NewcomerGuideModal";
-import { useTermsStore, isTermsAccepted } from "./stores/termsStore";
+import { useTermsStore, isTermsAccepted } from "@/stores/ui/termsStore";
 import { TermsAgreementModal } from "./components/modals/TermsAgreementModal";
 import { useEmbedStarReminder } from "./hooks/useEmbedStarReminder";
 import { openExternalUrl } from "./features/embed/externalNavigation";

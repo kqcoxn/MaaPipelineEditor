@@ -1,6 +1,6 @@
 import { message } from "antd";
 import type { DebugProtocolClient } from "../../services/protocols/DebugProtocolClient";
-import { useDebugTraceStore } from "../../stores/debugTraceStore";
+import { useDebugTraceStore } from "@/stores/debug/debugTraceStore";
 import type { DebugNodeExecutionRecord } from "./nodeExecutionSelector";
 import type { DebugEvent, DebugTraceReplayStatus } from "./types";
 

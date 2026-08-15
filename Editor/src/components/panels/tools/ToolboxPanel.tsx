@@ -3,7 +3,7 @@ import { message, Tooltip, Button } from "antd";
 import { CopyOutlined } from "@ant-design/icons";
 import IconFont from "../../iconfonts";
 import { type IconNames } from "../../iconfonts";
-import { useMFWStore } from "../../../stores/mfwStore";
+import { useMFWStore } from "@/stores/connection/mfwStore";
 import style from "../../../styles/panels/ToolboxPanel.module.less";
 import { useEmbedMode } from "../../../hooks/useEmbedMode";
 import { showEmbedServiceNotice } from "../../../features/embed/serviceNotice";

@@ -18,7 +18,7 @@ import {
 import { Modal, Collapse, Button, message } from "antd";
 import { HolderOutlined, ReloadOutlined } from "@ant-design/icons";
 
-import { useConfigStore } from "../../stores/configStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import type { FieldSortConfig } from "../../core/sorting/types";
 import {
   getDefaultSortConfig,

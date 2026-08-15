@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { DEFAULT_CAPABILITIES, DEFAULT_UI } from "../utils/embedBridge";
-import { useEmbedStore } from "./embedStore";
+import { DEFAULT_CAPABILITIES, DEFAULT_UI } from "@/utils/embedBridge";
+import { useEmbedStore } from "@/stores/embed/embedStore";
 
 describe("embedStore", () => {
   beforeEach(() => {

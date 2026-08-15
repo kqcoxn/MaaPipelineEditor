@@ -2,7 +2,7 @@ import { Modal } from "antd";
 import React from "react";
 import { BaseProtocol } from "./BaseProtocol";
 import type { LocalWebSocketServer } from "../server";
-import { useMFWStore } from "../../stores/mfwStore";
+import { useMFWStore } from "@/stores/connection/mfwStore";
 
 /**
  * 错误协议处理器

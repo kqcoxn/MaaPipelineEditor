@@ -9,8 +9,8 @@ import {
   type NodeTemplateType,
 } from "../../../data/nodeTemplates";
 import { useFlowStore } from "../../../stores/flow";
-import { useCustomTemplateStore } from "../../../stores/customTemplateStore";
-import { useClipboardStore } from "../../../stores/clipboardStore";
+import { useCustomTemplateStore } from "@/stores/project/customTemplateStore";
+import { useClipboardStore } from "@/stores/flow/clipboardStore";
 import {
   NodeTypeEnum,
   TargetHandleTypeEnum,

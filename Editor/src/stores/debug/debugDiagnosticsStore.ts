@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { DebugDiagnostic, DebugEvent } from "../features/debug/types";
+import type { DebugDiagnostic, DebugEvent } from "@/features/debug/types";
 
 interface DebugDiagnosticsState {
   diagnostics: DebugDiagnostic[];

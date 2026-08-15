@@ -2,7 +2,7 @@ import { create } from "zustand";
 import type {
   DebugArtifactPayload,
   DebugArtifactRef,
-} from "../features/debug/types";
+} from "@/features/debug/types";
 
 type ArtifactLoadStatus = "idle" | "loading" | "ready" | "error";
 

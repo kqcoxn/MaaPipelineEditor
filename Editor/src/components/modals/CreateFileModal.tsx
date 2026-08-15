@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { Modal, Form, Input, Select, message, Tooltip } from "antd";
 import { FolderOutlined, FileOutlined, HomeFilled } from "@ant-design/icons";
-import { useLocalFileStore } from "../../stores/localFileStore";
-import { useFileStore } from "../../stores/fileStore";
+import { useLocalFileStore } from "@/stores/project/localFileStore";
+import { useFileStore } from "@/stores/project/fileStore";
 import { localServer, fileProtocol } from "../../services/server";
 import { flowToPipeline } from "../../core/parser";
 

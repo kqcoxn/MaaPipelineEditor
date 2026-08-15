@@ -2,7 +2,7 @@
 import { memo } from "react";
 import { Typography, Alert } from "antd";
 import { DesktopOutlined, CheckCircleOutlined } from "@ant-design/icons";
-import type { Win32Window } from "../../../../stores/mfwStore";
+import type { Win32Window } from "@/stores/connection/mfwStore";
 
 const { Text } = Typography;
 

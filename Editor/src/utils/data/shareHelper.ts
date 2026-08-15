@@ -222,7 +222,7 @@ export async function loadFromShareUrl(): Promise<boolean> {
     }
 
     // 新建文件
-    const { useFileStore } = await import("../../stores/fileStore");
+    const { useFileStore } = await import("@/stores/project/fileStore");
     const newFileName = useFileStore.getState().addFile({ isSwitch: true });
 
     if (!newFileName) {
@@ -308,7 +308,7 @@ export async function importFromLocalFile(
     }
 
     // 新建文件用于加载内容
-    const { useFileStore } = await import("../../stores/fileStore");
+    const { useFileStore } = await import("@/stores/project/fileStore");
     const newFileName = useFileStore.getState().addFile({ isSwitch: true });
 
     if (!newFileName) {

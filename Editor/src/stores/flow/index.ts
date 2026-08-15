@@ -9,9 +9,9 @@ import { createGraphSlice } from "./slices/graphSlice";
 import { createPathSlice } from "./slices/pathSlice";
 import { createAnchorRefSlice } from "./slices/anchorRefSlice";
 import { checkRepeatNodeLabelList as checkRepeatNodeLabelListUtil } from "./utils/nodeUtils";
-import { ErrorTypeEnum, useErrorStore } from "../errorStore";
-import { useConfigStore } from "../configStore";
-import { useFileStore } from "../fileStore";
+import { ErrorTypeEnum, useErrorStore } from "@/stores/app/errorStore";
+import { useConfigStore } from "@/stores/app/configStore";
+import { useFileStore } from "@/stores/project/fileStore";
 
 // 组合所有 slices
 export const useFlowStore = create<FlowStore>()((...a) => ({

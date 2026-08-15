@@ -8,7 +8,7 @@ import {
 import type { CSSProperties } from "react";
 import { DebugSection } from "../DebugSection";
 import { mfwProtocol } from "../../../../services/server";
-import { useWSStore } from "../../../../stores/wsStore";
+import { useWSStore } from "@/stores/connection/wsStore";
 import type { DebugModalController } from "../../hooks/useDebugModalController";
 
 const { Text } = Typography;

@@ -4,7 +4,7 @@ import { memo, useEffect } from "react";
 import { requestHostReload } from "../../../features/embed/embedOperations";
 import { getEmbedHostName, getEmbedLocale } from "../../../utils/embedBridge";
 import { useEmbedMode } from "../../../hooks/useEmbedMode";
-import { useEmbedStore } from "../../../stores/embedStore";
+import { useEmbedStore } from "@/stores/embed/embedStore";
 import { flowToPipelineString } from "../../../core/parser";
 import style from "../../../styles/panels/ToolbarPanel.module.less";
 

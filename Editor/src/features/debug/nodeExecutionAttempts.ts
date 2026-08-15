@@ -4,7 +4,7 @@ import type {
   DebugExecutionAttributionMode,
   DebugExecutionDetailMode,
 } from "./types";
-import type { DebugArtifactEntry } from "../../stores/debugArtifactStore";
+import type { DebugArtifactEntry } from "@/stores/debug/debugArtifactStore";
 import {
   recognitionDetailImageRefs,
   summarizeRecognitionArtifactPayload,

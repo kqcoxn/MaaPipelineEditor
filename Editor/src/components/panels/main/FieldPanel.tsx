@@ -30,7 +30,7 @@ import {
   GroupEditor,
 } from "../node-editors";
 import { FieldPanelToolbarLeft, FieldPanelToolbarRight } from "../field/tools";
-import { useConfigStore } from "../../../stores/configStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import { usePanelOccupancy } from "../../../hooks/usePanelOccupancy";
 import AdjacentInfoPanel from "./AdjacentInfoPanel";
 import { DraggablePanel } from "../common/DraggablePanel";

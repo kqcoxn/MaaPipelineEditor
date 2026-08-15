@@ -16,7 +16,7 @@ const serverMock = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("../../stores/configStore", () => ({
+vi.mock("@/stores/app/configStore", () => ({
   useConfigStore: configStoreMock,
 }));
 vi.mock("./history", () => ({

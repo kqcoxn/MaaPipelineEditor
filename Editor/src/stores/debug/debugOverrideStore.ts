@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { DEFAULT_DEBUG_PIPELINE_OVERRIDE_DRAFT } from "../features/debug/pipelineOverride";
+import { DEFAULT_DEBUG_PIPELINE_OVERRIDE_DRAFT } from "@/features/debug/pipelineOverride";
 
 const STORAGE_KEY = "mpe_debug_override_draft_v1";
 

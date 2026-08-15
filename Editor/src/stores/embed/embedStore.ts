@@ -6,7 +6,7 @@ import {
   type EmbedUIConfig,
   DEFAULT_CAPABILITIES,
   DEFAULT_UI,
-} from "../utils/embedBridge";
+} from "@/utils/embedBridge";
 
 /**
  * 嵌入模式全局状态

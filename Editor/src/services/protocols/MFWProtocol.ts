@@ -9,7 +9,7 @@ import {
   type GamepadDevice,
   type WlRootsCompositor,
   type MacOSDevice,
-} from "../../stores/mfwStore";
+} from "@/stores/connection/mfwStore";
 import {
   ScreencapRequestManager,
   type ScreencapRequestParams,

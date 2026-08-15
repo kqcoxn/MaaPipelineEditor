@@ -8,7 +8,7 @@ import type {
   StickerColorTheme,
 } from "../../../stores/flow";
 import { useFlowStore } from "../../../stores/flow";
-import { useConfigStore } from "../../../stores/configStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import { NodeTypeEnum } from "./constants";
 import { NodeContextMenu } from "./components/NodeContextMenu";
 import type { NodeContextMenuNode } from "./nodeContextMenu";

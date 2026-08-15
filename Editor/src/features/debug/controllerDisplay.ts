@@ -1,4 +1,4 @@
-import type { DeviceInfo, DeviceType } from "../../stores/mfwStore";
+import type { DeviceInfo, DeviceType } from "@/stores/connection/mfwStore";
 
 export function getControllerDisplayName(
   deviceInfo: DeviceInfo,

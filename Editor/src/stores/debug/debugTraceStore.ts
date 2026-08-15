@@ -3,13 +3,13 @@ import {
   reduceDebugTrace,
   reduceDebugTraceForReplay,
   type DebugTraceSummary,
-} from "../features/debug/traceReducer";
+} from "@/features/debug/traceReducer";
 import type {
   DebugEvent,
   DebugPerformanceSummary,
   DebugRunMode,
   DebugTraceReplayStatus,
-} from "../features/debug/types";
+} from "@/features/debug/types";
 
 export interface DebugTraceDisplaySession {
   id: string;

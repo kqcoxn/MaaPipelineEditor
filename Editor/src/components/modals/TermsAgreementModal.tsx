@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Modal, Button, Checkbox, Typography, Divider, Space, Tag, theme } from "antd";
-import { useTermsStore, isAllChecked } from "../../stores/termsStore";
+import { useTermsStore, isAllChecked } from "@/stores/ui/termsStore";
 import { TERMS_VERSION, termsItems } from "../../data/termsData";
 
 const { Title, Paragraph, Text } = Typography;

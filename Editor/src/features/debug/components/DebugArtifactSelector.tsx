@@ -1,6 +1,6 @@
 ﻿import { Button, Space, Typography } from "antd";
 import { DebugArtifactPreview } from "./DebugArtifactPreview";
-import type { DebugArtifactEntry } from "../../../stores/debugArtifactStore";
+import type { DebugArtifactEntry } from "@/stores/debug/debugArtifactStore";
 import type {
   DebugImageOverlay,
   DebugImageOverlayGroup,

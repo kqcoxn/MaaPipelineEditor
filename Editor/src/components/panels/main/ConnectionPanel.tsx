@@ -26,7 +26,7 @@ import {
   type AdbDevice,
   type Win32Window,
   type WlRootsCompositor,
-} from "../../../stores/mfwStore";
+} from "@/stores/connection/mfwStore";
 import { mfwProtocol } from "../../../services/server";
 import {
   AdbDeviceList,

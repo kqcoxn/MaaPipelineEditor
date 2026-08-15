@@ -11,8 +11,8 @@ import {
 import {
   useLocalFileStore,
   type LocalFileInfo,
-} from "../../../stores/localFileStore";
-import { useConfigStore } from "../../../stores/configStore";
+} from "@/stores/project/localFileStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import { localServer } from "../../../services/server";
 import { filterLocalFilesByFolderFilter } from "../../../utils/file/folderFilter";
 import classNames from "classnames";

@@ -2,7 +2,7 @@ import { SaveOutlined } from "@ant-design/icons";
 import { App as AntdApp, Button, Tooltip } from "antd";
 import { memo, useEffect } from "react";
 import { requestHostSave } from "../../../features/embed/embedOperations";
-import { useEmbedStore } from "../../../stores/embedStore";
+import { useEmbedStore } from "@/stores/embed/embedStore";
 import { getEmbedHostName, getEmbedLocale } from "../../../utils/embedBridge";
 import style from "../../../styles/panels/ToolbarPanel.module.less";
 

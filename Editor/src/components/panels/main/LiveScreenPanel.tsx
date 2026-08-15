@@ -5,8 +5,8 @@ import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Button, Spin, Tooltip, message } from "antd";
 import classNames from "classnames";
 
-import { useMFWStore } from "../../../stores/mfwStore";
-import { useConfigStore } from "../../../stores/configStore";
+import { useMFWStore } from "@/stores/connection/mfwStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import { usePanelOccupancy } from "../../../hooks/usePanelOccupancy";
 import { mfwProtocol } from "../../../services/server";
 

@@ -3,7 +3,7 @@ import { isEmbedEnvironment } from "../../utils/embedBridge";
 import type { ReactNode } from "react";
 import { LayoutHelper, AlignmentEnum } from "../../core/layout";
 import { flowToPipeline } from "../../core/parser";
-import { useClipboardStore } from "../../stores/clipboardStore";
+import { useClipboardStore } from "@/stores/flow/clipboardStore";
 import { useFlowStore, type EdgeType, type NodeType } from "../../stores/flow";
 import { ClipboardHelper } from "../../utils/ui/clipboard";
 import { NodeTypeEnum } from "./nodes";

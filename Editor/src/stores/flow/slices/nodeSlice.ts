@@ -29,8 +29,8 @@ import {
   toRelativePosition,
 } from "../utils/coordinateUtils";
 import { fitFlowView } from "../utils/viewportUtils";
-import { assignNodeOrder, removeNodeOrder } from "../../fileStore";
-import { useConfigStore } from "../../configStore";
+import { assignNodeOrder, removeNodeOrder } from "@/stores/project/fileStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import { checkRepeatNodeLabelList } from "../index";
 
 export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (

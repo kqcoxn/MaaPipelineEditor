@@ -1,6 +1,6 @@
 import type { DebugPipelineOverride } from "./types";
 import { configMark } from "../../core/parser/types";
-import { useConfigStore } from "../../stores/configStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import {
   actionFieldSchemaKeyList,
   recoFieldSchemaKeyList,

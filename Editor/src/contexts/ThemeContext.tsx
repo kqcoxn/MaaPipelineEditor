@@ -3,7 +3,7 @@ import {
   enable as enableDarkMode,
   disable as disableDarkMode,
 } from "darkreader";
-import { useConfigStore } from "../stores/configStore";
+import { useConfigStore } from "@/stores/app/configStore";
 
 /**
  * 主题上下文接口

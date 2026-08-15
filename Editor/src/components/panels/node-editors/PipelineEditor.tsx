@@ -4,7 +4,7 @@ import { Popover, Input, Select, Spin, Modal, InputNumber } from "antd";
 import classNames from "classnames";
 import IconFont from "../../iconfonts";
 import { useFlowStore, type PipelineNodeType } from "../../../stores/flow";
-import { useConfigStore } from "../../../stores/configStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import {
   recoFields,
   actionFields,

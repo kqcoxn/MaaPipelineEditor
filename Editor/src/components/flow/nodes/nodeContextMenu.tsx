@@ -20,17 +20,17 @@ import {
   copyNodeRecoJSON,
 } from "./utils/nodeOperations";
 import { debugProtocolClient } from "../../../services/server";
-import { useDebugModalMemoryStore } from "../../../stores/debugModalMemoryStore";
-import { saveOpenedLocalFilesForDebug } from "../../../stores/fileStore";
+import { useDebugModalMemoryStore } from "@/stores/debug/debugModalMemoryStore";
+import { saveOpenedLocalFilesForDebug } from "@/stores/project/fileStore";
 import {
   makeDebugResourceKey,
   normalizeDebugResourcePaths,
   useDebugRunProfileStore,
-} from "../../../stores/debugRunProfileStore";
-import { useDebugOverrideStore } from "../../../stores/debugOverrideStore";
-import { useDebugSessionStore } from "../../../stores/debugSessionStore";
-import { useMFWStore } from "../../../stores/mfwStore";
-import { useWSStore } from "../../../stores/wsStore";
+} from "@/stores/debug/debugRunProfileStore";
+import { useDebugOverrideStore } from "@/stores/debug/debugOverrideStore";
+import { useDebugSessionStore } from "@/stores/debug/debugSessionStore";
+import { useMFWStore } from "@/stores/connection/mfwStore";
+import { useWSStore } from "@/stores/connection/wsStore";
 import type {
   DebugCapabilityManifest,
   DebugRunMode,

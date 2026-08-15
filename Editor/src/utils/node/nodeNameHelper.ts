@@ -3,7 +3,7 @@
  * 统一处理节点标签与前缀的拼接逻辑
  */
 
-import { useFileStore } from "../../stores/fileStore";
+import { useFileStore } from "@/stores/project/fileStore";
 
 /**
  * 获取带前缀的完整节点名

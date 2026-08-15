@@ -12,7 +12,7 @@ import {
   getNodeAbsolutePosition,
   type NodeType,
 } from "../../../stores/flow";
-import { useConfigStore } from "../../../stores/configStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import { usePanelOccupancy } from "../../../hooks/usePanelOccupancy";
 import {
   crossFileService,

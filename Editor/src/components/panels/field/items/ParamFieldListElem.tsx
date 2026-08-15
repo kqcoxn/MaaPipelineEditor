@@ -6,7 +6,7 @@ import type { ParamType } from "../../../../stores/flow";
 import type { FieldType } from "../../../../core/fields";
 import { FieldTypeEnum } from "../../../../core/fields";
 import { JsonHelper } from "../../../../utils/data/jsonHelper";
-import { useMFWStore } from "../../../../stores/mfwStore";
+import { useMFWStore } from "@/stores/connection/mfwStore";
 import {
   ROIModal,
   ROIOffsetModal,

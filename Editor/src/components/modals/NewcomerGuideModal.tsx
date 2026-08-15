@@ -20,7 +20,7 @@ import {
   useNewcomerStore,
   checkFixedPass,
   checkRandomPass,
-} from "../../stores/newcomerStore";
+} from "@/stores/ui/newcomerStore";
 import {
   isAnswerCorrect,
   type QuizAnswer,

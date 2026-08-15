@@ -8,7 +8,7 @@ import { ExportOutlined } from "@ant-design/icons";
 import style from "../../../styles/flow/nodes.module.less";
 import type { AnchorNodeDataType, NodeType } from "../../../stores/flow";
 import { useFlowStore, getNodeAbsolutePosition } from "../../../stores/flow";
-import { useConfigStore } from "../../../stores/configStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import { NodeTypeEnum } from "./constants";
 import { NodeContextMenu } from "./components/NodeContextMenu";
 import { AnchorNodeHandles } from "./components/NodeHandles";

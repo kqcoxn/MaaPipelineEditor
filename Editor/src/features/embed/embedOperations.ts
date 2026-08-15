@@ -1,4 +1,4 @@
-import { useEmbedStore } from "../../stores/embedStore";
+import { useEmbedStore } from "@/stores/embed/embedStore";
 import {
   createEmbedRequestId,
   sendToParent,

@@ -24,9 +24,9 @@ import IconFont from "./iconfonts";
 import UpdateLog from "./modals/UpdateLog";
 import { ConnectionPanel } from "./panels/main/ConnectionPanel";
 import { localServer } from "../services/server";
-import { useMFWStore, type DeviceInfo } from "../stores/mfwStore";
+import { useMFWStore, type DeviceInfo } from "@/stores/connection/mfwStore";
 
-import { globalConfig } from "../stores/configStore";
+import { globalConfig } from "@/stores/app/configStore";
 import { useTheme } from "../contexts/ThemeContext";
 import { WikiAnchor } from "./wiki/WikiAnchor";
 import classNames from "classnames";

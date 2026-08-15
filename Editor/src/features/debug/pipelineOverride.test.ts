@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { useConfigStore } from "../../stores/configStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import {
   formatDebugPipelineOverrideDraft,
   hasDebugPipelineOverrideDraftContent,

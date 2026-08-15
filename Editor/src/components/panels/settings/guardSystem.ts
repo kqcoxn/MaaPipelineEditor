@@ -1,4 +1,4 @@
-import { useConfigStore } from "../../../stores/configStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import type { ConfigItemDef } from "./settingsDefinitions";
 import { settingsDefinitions } from "./settingsDefinitions";
 

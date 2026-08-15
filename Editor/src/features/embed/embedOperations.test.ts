@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useEmbedStore } from "../../stores/embedStore";
+import { useEmbedStore } from "@/stores/embed/embedStore";
 import {
   clearEmbedOperationTimeouts,
   requestHostReload,

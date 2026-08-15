@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "react";
 import { useShallow } from "zustand/shallow";
 import { useFlowStore } from "../stores/flow";
-import { useConfigStore } from "../stores/configStore";
-import { useFileStore } from "../stores/fileStore";
-import { useEmbedStore } from "../stores/embedStore";
+import { useConfigStore } from "@/stores/app/configStore";
+import { useFileStore } from "@/stores/project/fileStore";
+import { useEmbedStore } from "@/stores/embed/embedStore";
 import { sendToParent } from "../utils/embedBridge";
 import { flowToPipelineString } from "../core/parser";
 

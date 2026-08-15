@@ -9,21 +9,21 @@ import type {
   DebugRunMode,
   DebugRunProfile,
   DebugRunRequest,
-} from "../features/debug/types";
+} from "@/features/debug/types";
 import {
   buildDebugSnapshotBundle,
   resolveDebugNodeTarget,
-} from "../features/debug/snapshot";
+} from "@/features/debug/snapshot";
 import {
   DEFAULT_DEBUG_AGENT_TIMEOUT_MS,
   getDebugAgentProfileKey,
-} from "../features/debug/agentProfile";
-import { useLocalFileStore, type ResourceBundle } from "./localFileStore";
-import { useMFWStore } from "./mfwStore";
+} from "@/features/debug/agentProfile";
+import { useLocalFileStore, type ResourceBundle } from "@/stores/project/localFileStore";
+import { useMFWStore } from "@/stores/connection/mfwStore";
 import {
   getScreenshotResolutionParams,
   useConfigStore,
-} from "./configStore";
+} from "@/stores/app/configStore";
 
 const STORAGE_KEY = "mpe_debug_run_profiles_v3";
 const LEGACY_STORAGE_KEY = "mpe_debug_run_profiles_v2";

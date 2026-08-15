@@ -5,14 +5,14 @@ import classNames from "classnames";
 import style from "../../../../styles/flow/nodes.module.less";
 import type { PipelineNodeDataType } from "../../../../stores/flow";
 import { useFlowStore } from "../../../../stores/flow";
-import { useConfigStore } from "../../../../stores/configStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import { NodeTypeEnum } from "../constants";
 import { ModernContent } from "./ModernContent";
 import { ClassicContent } from "./ClassicContent";
 import { MinimalContent } from "./MinimalContent";
 import { useShallow } from "zustand/shallow";
 import { NodeContextMenu } from "../components/NodeContextMenu";
-import { useDebugOverlayStore } from "../../../../stores/debugOverlayStore";
+import { useDebugOverlayStore } from "@/stores/debug/debugOverlayStore";
 
 type PNodeData = Node<PipelineNodeDataType, NodeTypeEnum.Pipeline>;
 type ParentNodeRef = { parentId?: string };

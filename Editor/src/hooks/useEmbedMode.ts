@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { isEmbedEnvironment } from "../utils/embedBridge";
-import { useEmbedStore } from "../stores/embedStore";
+import { useEmbedStore } from "@/stores/embed/embedStore";
 
 /**
  * 便捷读取嵌入模式状态的 Hook

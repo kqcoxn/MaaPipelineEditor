@@ -25,7 +25,7 @@ import {
 } from "../../nodeExecutionAttempts";
 import type { DebugNodeExecutionRecord } from "../../nodeExecutionSelector";
 import type { DebugExecutionDetailMode } from "../../types";
-import type { DebugArtifactEntry } from "../../../../stores/debugArtifactStore";
+import type { DebugArtifactEntry } from "@/stores/debug/debugArtifactStore";
 
 const { Text } = Typography;
 

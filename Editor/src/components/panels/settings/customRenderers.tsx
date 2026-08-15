@@ -4,8 +4,8 @@ import {
   useConfigStore,
   getExportableConfigs,
   globalConfig,
-} from "../../../stores/configStore";
-import { useCustomTemplateStore } from "../../../stores/customTemplateStore";
+} from "@/stores/app/configStore";
+import { useCustomTemplateStore } from "@/stores/project/customTemplateStore";
 import { useFlowStore } from "../../../stores/flow";
 import { localServer } from "../../../services";
 import { BackendConfigModal } from "../../modals";

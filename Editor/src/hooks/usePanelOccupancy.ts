@@ -3,7 +3,7 @@ import {
   usePanelOccupancyStore,
   getPanelDescriptor,
   type PanelReaction,
-} from "../stores/panelOccupancyStore";
+} from "@/stores/ui/panelOccupancyStore";
 
 /**
  * 面板占位互斥 Hook

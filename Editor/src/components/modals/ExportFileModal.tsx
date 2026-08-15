@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Modal, Form, Input, Select, message, Radio } from "antd";
 import { FileOutlined, DownloadOutlined } from "@ant-design/icons";
-import { useFileStore } from "../../stores/fileStore";
-import { useConfigStore } from "../../stores/configStore";
+import { useFileStore } from "@/stores/project/fileStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import {
   flowToPipelineString,
   flowToSeparatedStrings,

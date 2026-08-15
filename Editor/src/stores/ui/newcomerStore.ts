@@ -1,8 +1,13 @@
 import { create } from "zustand";
-import { globalConfig } from "./configStore";
-import { pickRandom, isAnswerCorrect, type QuizAnswer, type QuizQuestion } from "../data/newcomerQuiz";
-import { fixedQuestions } from "../data/newcomerQuizFixed";
-import { questionPool } from "../data/newcomerQuizPool";
+import { globalConfig } from "@/stores/app/configStore";
+import {
+  pickRandom,
+  isAnswerCorrect,
+  type QuizAnswer,
+  type QuizQuestion,
+} from "@/data/newcomerQuiz";
+import { fixedQuestions } from "@/data/newcomerQuizFixed";
+import { questionPool } from "@/data/newcomerQuizPool";
 
 const STORAGE_KEY = "mpe_newcomer_passed";
 const STAGE_KEY = "mpe_newcomer_stage";

@@ -1,4 +1,4 @@
-import type { LocalFileInfo } from "../../stores/localFileStore";
+import type { LocalFileInfo } from "@/stores/project/localFileStore";
 
 const FOLDER_FILTER_SEPARATOR = /[,;；\r\n]+/;
 

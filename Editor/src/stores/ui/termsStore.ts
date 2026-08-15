@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { TERMS_VERSION, termsItems } from "../data/termsData";
+import { TERMS_VERSION, termsItems } from "@/data/termsData";
 
 const STORAGE_KEY = "mpe_terms_accepted_version";
 

@@ -1,8 +1,8 @@
 import { notification } from "antd";
 import { useFlowStore, findNodeLabelById } from "../../stores/flow";
-import { useFileStore } from "../../stores/fileStore";
-import { globalConfig, useConfigStore } from "../../stores/configStore";
-import { ErrorTypeEnum, findErrorsByType } from "../../stores/errorStore";
+import { useFileStore } from "@/stores/project/fileStore";
+import { globalConfig, useConfigStore } from "@/stores/app/configStore";
+import { ErrorTypeEnum, findErrorsByType } from "@/stores/app/errorStore";
 import {
   NodeTypeEnum,
   SourceHandleTypeEnum,

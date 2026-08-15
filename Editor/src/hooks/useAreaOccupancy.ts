@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import {
   usePanelOccupancyStore,
   type PanelArea,
-} from "../stores/panelOccupancyStore";
+} from "@/stores/ui/panelOccupancyStore";
 
 /**
  * 区域占位观察 Hook

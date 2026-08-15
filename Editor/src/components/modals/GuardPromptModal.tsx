@@ -1,6 +1,6 @@
 import { memo, useCallback, useState } from "react";
 import { Modal } from "antd";
-import { useConfigStore } from "../../stores/configStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import { checkGuard } from "../panels/settings/guardSystem";
 import type { ConfigItemDef } from "../panels/settings/settingsDefinitions";
 

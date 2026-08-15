@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Button, notification } from "antd";
-import { useDebugTraceStore } from "../../../stores/debugTraceStore";
-import { useDebugSessionStore } from "../../../stores/debugSessionStore";
+import { useDebugTraceStore } from "@/stores/debug/debugTraceStore";
+import { useDebugSessionStore } from "@/stores/debug/debugSessionStore";
 import { getRunModeLabel } from "../capabilityLabels";
 import type { DebugRunMode } from "../types";
 

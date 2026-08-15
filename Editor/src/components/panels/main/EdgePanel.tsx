@@ -16,7 +16,7 @@ import {
   SourceHandleTypeEnum,
   TargetHandleTypeEnum,
 } from "../../flow/nodes";
-import { useConfigStore } from "../../../stores/configStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import { usePanelOccupancy } from "../../../hooks/usePanelOccupancy";
 import { DraggablePanel } from "../common/DraggablePanel";
 

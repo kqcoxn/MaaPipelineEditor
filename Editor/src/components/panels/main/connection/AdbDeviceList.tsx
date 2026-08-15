@@ -2,7 +2,7 @@
 import { memo } from "react";
 import { Typography } from "antd";
 import { MobileOutlined, CheckCircleOutlined } from "@ant-design/icons";
-import type { AdbDevice } from "../../../../stores/mfwStore";
+import type { AdbDevice } from "@/stores/connection/mfwStore";
 import { AdbManualForm } from "./AdbManualForm";
 
 const { Text } = Typography;

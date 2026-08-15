@@ -1,6 +1,6 @@
 ﻿import type { CSSProperties } from "react";
 import { Alert, Spin, Typography } from "antd";
-import type { DebugArtifactEntry } from "../../../stores/debugArtifactStore";
+import type { DebugArtifactEntry } from "@/stores/debug/debugArtifactStore";
 import { normalizeDebugArtifactBox } from "../artifactDetailSummary";
 import {
   DebugImageViewer,

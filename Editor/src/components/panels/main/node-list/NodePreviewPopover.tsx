@@ -5,9 +5,9 @@
 
 import { memo, useState, useEffect, useMemo } from "react";
 import { Popover, Image, Spin } from "antd";
-import { useLocalFileStore } from "../../../../stores/localFileStore";
+import { useLocalFileStore } from "@/stores/project/localFileStore";
 import { resourceProtocol } from "../../../../services/server";
-import { useWSStore } from "../../../../stores/wsStore";
+import { useWSStore } from "@/stores/connection/wsStore";
 import { NodeTypeEnum } from "../../../flow/nodes/constants";
 import {
   getRecognitionIcon,

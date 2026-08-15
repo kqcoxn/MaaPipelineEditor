@@ -8,7 +8,7 @@ import type {
   OtherParamType,
   ParamType,
 } from "../../stores/flow";
-import type { FileConfigType } from "../../stores/fileStore";
+import type { FileConfigType } from "@/stores/project/fileStore";
 import { SourceHandleTypeEnum } from "../../components/flow/nodes";
 import type { HandleDirection } from "../../components/flow/nodes/constants";
 import type { CoordinateMode } from "../../stores/flow/utils/coordinateUtils";

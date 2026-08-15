@@ -1,11 +1,11 @@
 import { flowToPipeline } from "../../core/parser";
 import type { EdgeType, NodeType, PipelineNodeType } from "../../stores/flow";
-import { useFileStore } from "../../stores/fileStore";
+import { useFileStore } from "@/stores/project/fileStore";
 import { useFlowStore } from "../../stores/flow";
 import {
   useLocalFileStore,
   type LocalFileInfo,
-} from "../../stores/localFileStore";
+} from "@/stores/project/localFileStore";
 import {
   NodeTypeEnum,
   SourceHandleTypeEnum,

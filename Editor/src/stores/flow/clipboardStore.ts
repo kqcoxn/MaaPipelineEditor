@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { message } from "antd";
 import { cloneDeep } from "lodash";
-import type { NodeType, EdgeType } from "./flow/types";
+import type { NodeType, EdgeType } from "./types";
 
 type ClipboardState = {
   clipboardNodes: NodeType[];

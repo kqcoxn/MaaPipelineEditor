@@ -3,10 +3,10 @@ import { AutoComplete, Image, Spin, Empty } from "antd";
 import {
   useLocalFileStore,
   type ImageFileInfo,
-} from "../../../../stores/localFileStore";
+} from "@/stores/project/localFileStore";
 import { resourceProtocol } from "../../../../services/server";
-import { useWSStore } from "../../../../stores/wsStore";
-import { useFileStore } from "../../../../stores/fileStore";
+import { useWSStore } from "@/stores/connection/wsStore";
+import { useFileStore } from "@/stores/project/fileStore";
 import style from "../../../../styles/panels/FieldPanel.module.less";
 
 interface ImageSelectProps {

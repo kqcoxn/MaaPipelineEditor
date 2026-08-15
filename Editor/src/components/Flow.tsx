@@ -29,18 +29,18 @@ import { useDebounceEffect, useDebounceFn } from "ahooks";
 
 import { useFlowStore, type EdgeType, type NodeType } from "../stores/flow";
 import { useShallow } from "zustand/shallow";
-import { useClipboardStore } from "../stores/clipboardStore";
+import { useClipboardStore } from "@/stores/flow/clipboardStore";
 import { nodeTypes } from "./flow/nodes";
 import { NodeTypeEnum } from "./flow/nodes/constants";
 import { edgeTypes } from "./flow/edges";
 import { SelectionContextMenu } from "./flow/components/SelectionContextMenu";
-import { localSave, useFileStore } from "../stores/fileStore";
+import { localSave, useFileStore } from "@/stores/project/fileStore";
 import NodeAddPanel, {
   type QuickCreateConnection,
 } from "./panels/main/NodeAddPanel";
 import InlineFieldPanel from "./panels/main/InlineFieldPanel";
 import InlineEdgePanel from "./panels/main/InlineEdgePanel";
-import { useConfigStore } from "../stores/configStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import SnapGuidelines from "./flow/SnapGuidelines";
 import {
   findSnapAlignment,

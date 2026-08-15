@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { NodeTypeEnum } from "../../components/flow/nodes";
-import { useFileStore } from "../../stores/fileStore";
+import { useFileStore } from "@/stores/project/fileStore";
 import { useFlowStore, type PipelineNodeType } from "../../stores/flow";
 import {
   buildDebugSnapshotBundle,

@@ -10,7 +10,7 @@ import type { NodeType } from "../../stores/flow/types";
 import { useFlowStore } from "../../stores/flow";
 import { NodeTypeEnum } from "../flow/nodes";
 import { formatNodeJson } from "../../utils/node/nodeJsonValidator";
-import { useConfigStore } from "../../stores/configStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import {
   parsePipelineNodeForExport,
   convertMfwToStoreFormat,

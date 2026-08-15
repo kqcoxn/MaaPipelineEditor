@@ -2,12 +2,12 @@ import { message, Modal, Button, Space } from "antd";
 import { createElement } from "react";
 import { BaseProtocol } from "./BaseProtocol";
 import type { LocalWebSocketServer } from "../server";
-import { useFileStore } from "../../stores/fileStore";
-import { useConfigStore } from "../../stores/configStore";
+import { useFileStore } from "@/stores/project/fileStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import {
   useLocalFileStore,
   type LocalFileInfo,
-} from "../../stores/localFileStore";
+} from "@/stores/project/localFileStore";
 
 /**
  * 文件协议处理器

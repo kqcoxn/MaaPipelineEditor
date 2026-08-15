@@ -1,4 +1,4 @@
-import { useEmbedMessageLogStore } from "../stores/embedMessageLogStore";
+import { useEmbedMessageLogStore } from "@/stores/embed/embedMessageLogStore";
 
 /**
  * iframe 嵌入模式桥接模块

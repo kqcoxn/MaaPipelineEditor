@@ -1,7 +1,7 @@
 import type { ParsedPipelineNodeType } from "../parser/types";
 import type { FieldSortConfig, SortContext } from "./types";
 import { getDefaultSortConfig } from "./defaults";
-import type { PipelineProtocolVersion } from "../../stores/configStore";
+import type { PipelineProtocolVersion } from "@/stores/app/configStore";
 
 /** MPE 特色字段前缀 */
 const MPE_FIELD_PREFIX = "$__mpe_";
