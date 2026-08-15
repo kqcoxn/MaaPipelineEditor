@@ -32,6 +32,7 @@ import SettingsPanel from "./components/panels/settings/SettingsPanel";
 import FileConfigPanel from "./components/panels/main/FileConfigPanel";
 import { LocalFileListPanel } from "./components/panels/main/LocalFileListPanel";
 import ErrorPanel from "./components/panels/main/ErrorPanel";
+import AIHistoryPanel from "./components/panels/main/AIHistoryPanel";
 import ToolbarPanel from "./components/panels/main/ToolbarPanel";
 import { LoggerPanel } from "./components/panels/tools/LoggerPanel";
 import { pipelineToFlow } from "./core/parser";
@@ -333,6 +334,7 @@ function App() {
             <div className={style.workspace}>
               {showToolbar && <ToolbarPanel />}
               <MainFlow />
+              {showPanel("ai-history") && <AIHistoryPanel />}
               {showPanel("json") && (
                 <Suspense fallback={null}>
                   <JsonViewer />

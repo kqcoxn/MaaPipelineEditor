@@ -312,6 +312,7 @@ export type ConfigState = {
   // 状态
   status: {
     showConfigPanel: boolean;
+    showAIHistoryPanel: boolean;
     showFileConfigPanel: boolean;
     showLocalFilePanel: boolean;
     showFieldSortModal: boolean;
@@ -434,6 +435,7 @@ export const useConfigStore = create<ConfigState>()((set, get) => ({
   // 状态
   status: {
     showConfigPanel: false,
+    showAIHistoryPanel: false,
     showFileConfigPanel: false,
     showLocalFilePanel: false,
     showFieldSortModal: false,

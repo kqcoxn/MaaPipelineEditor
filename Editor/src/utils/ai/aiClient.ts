@@ -4,7 +4,7 @@
  */
 
 import { useConfigStore } from "@/stores/app/configStore";
-import { aiHistoryManager } from "./history";
+import { aiHistoryManager, type AIHistoryRecord } from "./history";
 import { decryptApiKey } from "./crypto";
 import {
   getProvider,
@@ -27,6 +27,8 @@ function createAbortError(): Error {
 export interface AIClientOptions {
   /** 系统提示词 */
   systemPrompt?: string;
+  /** 将历史记录写入指定 Session；未指定时使用管理器当前 Session */
+  sessionId?: string;
   /** 保留的历史记录轮数，默认 10 */
   historyLimit?: number;
   /** 重试次数，默认 2 */
@@ -52,6 +54,7 @@ export interface ChatResult {
 export class AIClient {
   private messages: UnifiedMessage[] = [];
   private systemPrompt: string;
+  private sessionId?: string;
   private historyLimit: number;
   private retryCount: number;
   private retryDelay: number;
@@ -60,6 +63,7 @@ export class AIClient {
 
   constructor(options: AIClientOptions = {}) {
     this.systemPrompt = options.systemPrompt || "";
+    this.sessionId = options.sessionId;
     this.historyLimit = options.historyLimit ?? 10;
     this.retryCount = options.retryCount ?? 2;
     this.retryDelay = options.retryDelay ?? 1000;
@@ -271,6 +275,17 @@ export class AIClient {
     };
   }
 
+  /** 将本次请求的历史记录归入固定 Session 或当前 Session */
+  private addHistoryRecord(
+    record: Omit<AIHistoryRecord, "id" | "timestamp">,
+  ): void {
+    if (this.sessionId) {
+      aiHistoryManager.addRecord({ ...record, sessionId: this.sessionId });
+      return;
+    }
+    aiHistoryManager.addRecord(record);
+  }
+
   /**
    * 发送消息（非流式）
    */
@@ -278,7 +293,7 @@ export class AIClient {
     return this.withRequest(async (controller) => {
       const configError = await this.validateConfig();
       if (configError) {
-        aiHistoryManager.addRecord({
+        this.addHistoryRecord({
           userPrompt: userPrompt || userMessage,
           actualMessage: userMessage,
           response: "",
@@ -315,7 +330,7 @@ export class AIClient {
             usage ||
             this.estimateTokenUsage(promptText, content);
 
-          aiHistoryManager.addRecord({
+          this.addHistoryRecord({
             userPrompt: userPrompt || userMessage,
             actualMessage: userMessage,
             response: content,
@@ -344,7 +359,7 @@ export class AIClient {
       }
 
       this.removeLastUserMessage();
-      aiHistoryManager.addRecord({
+      this.addHistoryRecord({
         userPrompt: userPrompt || userMessage,
         actualMessage: userMessage,
         response: "",
@@ -366,7 +381,7 @@ export class AIClient {
     return this.withRequest(async (controller) => {
       const configError = await this.validateConfig();
       if (configError) {
-        aiHistoryManager.addRecord({
+        this.addHistoryRecord({
           userPrompt: userPrompt || userMessage,
           actualMessage: userMessage,
           response: "",
@@ -476,7 +491,7 @@ export class AIClient {
             finalUsage ||
             this.estimateTokenUsage(promptText, fullContent);
 
-          aiHistoryManager.addRecord({
+          this.addHistoryRecord({
             userPrompt: userPrompt || userMessage,
             actualMessage: userMessage,
             response: fullContent,
@@ -512,7 +527,7 @@ export class AIClient {
       }
 
       this.removeLastUserMessage();
-      aiHistoryManager.addRecord({
+      this.addHistoryRecord({
         userPrompt: userPrompt || userMessage,
         actualMessage: userMessage,
         response: "",
@@ -534,7 +549,7 @@ export class AIClient {
     return this.withRequest(async (controller) => {
       const configError = await this.validateConfig();
       if (configError) {
-        aiHistoryManager.addRecord({
+        this.addHistoryRecord({
           userPrompt: userPrompt || textContent,
           actualMessage: textContent,
           response: "",
@@ -576,7 +591,7 @@ export class AIClient {
             usage ||
             this.estimateTokenUsage(promptText, content);
 
-          aiHistoryManager.addRecord({
+          this.addHistoryRecord({
             userPrompt: userPrompt || textContent,
             actualMessage: textContent,
             response: content,
@@ -607,7 +622,7 @@ export class AIClient {
       }
 
       this.removeLastUserMessage();
-      aiHistoryManager.addRecord({
+      this.addHistoryRecord({
         userPrompt: userPrompt || textContent,
         actualMessage: textContent,
         response: "",

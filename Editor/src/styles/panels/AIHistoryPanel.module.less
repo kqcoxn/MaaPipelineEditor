@@ -1,0 +1,282 @@
+.panel {
+  left: 72px;
+  top: 10px;
+  bottom: 10px;
+  width: min(720px, calc(100vw - 92px));
+  min-width: 420px;
+  padding: 0;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 8px;
+  overflow: hidden;
+  z-index: 25;
+  background: var(--ant-color-bg-container);
+}
+
+.header {
+  height: 48px;
+  padding: 0 12px 0 16px;
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.title,
+.recordTitle,
+.sessionHeader,
+.recordLabel {
+  display: flex;
+  align-items: center;
+}
+
+.title {
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.content {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.sessionSidebar {
+  width: 190px;
+  min-width: 190px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--ant-color-border-secondary);
+  background: var(--ant-color-bg-layout);
+}
+
+.sessionHeader {
+  min-height: 46px;
+  padding: 0 8px 0 14px;
+  justify-content: space-between;
+  color: var(--ant-color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+  flex-shrink: 0;
+}
+
+.sessionList,
+.recordList {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.sessionList {
+  flex: 1;
+  padding: 8px;
+}
+
+.sessionItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 56px;
+  margin-bottom: 4px;
+  padding: 7px 5px 7px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--ant-color-text-secondary);
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease,
+    color 120ms ease;
+
+  &:hover {
+    background: var(--ant-color-fill-quaternary);
+    color: var(--ant-color-text);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ant-color-primary);
+    outline-offset: 1px;
+  }
+}
+
+.sessionItemActive {
+  background: var(--ant-color-primary-bg);
+  border-color: var(--ant-color-primary-border);
+  color: var(--ant-color-primary);
+}
+
+.sessionItemMain {
+  flex: 1;
+  min-width: 0;
+}
+
+.sessionTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.sessionMeta {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+  color: var(--ant-color-text-tertiary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.recordPane {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--ant-color-bg-container);
+}
+
+.recordHeader {
+  min-height: 46px;
+  padding: 0 10px 0 16px;
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.recordTitle {
+  min-width: 0;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+
+  > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.recordList {
+  flex: 1;
+  padding: 8px;
+}
+
+.recordItem {
+  margin-bottom: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 6px;
+  background: var(--ant-color-bg-container);
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.recordMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+
+  :global(.ant-tag) {
+    margin-inline-end: 0;
+  }
+}
+
+.recordTime {
+  margin-right: auto;
+  color: var(--ant-color-text-tertiary);
+  font-size: 11px;
+  line-height: 22px;
+}
+
+.recordSection {
+  margin-bottom: 10px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.recordLabel {
+  gap: 5px;
+  margin-bottom: 4px;
+  color: var(--ant-color-text-secondary);
+  font-size: 12px;
+}
+
+.recordText {
+  color: var(--ant-color-text);
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.errorText {
+  color: var(--ant-color-error);
+}
+
+.detailButton,
+.expandButton {
+  padding-inline: 0;
+  height: 24px;
+  color: var(--ant-color-primary);
+}
+
+.actualMessage {
+  padding: 7px 8px;
+  border-radius: 4px;
+  background: var(--ant-color-fill-quaternary);
+  font-size: 12px;
+}
+
+.textContent {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--ant-color-border-secondary);
+}
+
+.expandButton {
+  margin-top: 2px;
+  font-size: 12px;
+}
+
+@media (max-width: 640px) {
+  .panel {
+    left: 6px;
+    right: 6px;
+    width: auto;
+    min-width: 0;
+  }
+
+  .content {
+    flex-direction: column;
+  }
+
+  .sessionSidebar {
+    width: 100%;
+    min-width: 0;
+    max-height: 180px;
+    border-right: 0;
+    border-bottom: 1px solid var(--ant-color-border-secondary);
+  }
+
+  .sessionList {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .sessionItem {
+    width: 180px;
+    min-width: 180px;
+    margin-bottom: 0;
+  }
+}
