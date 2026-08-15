@@ -24,7 +24,7 @@ import {
   ZoomInOutlined,
   ZoomOutOutlined,
 } from "@ant-design/icons";
-import type { DebugArtifactBox } from "../artifactDetailSummary";
+import type { DebugArtifactBox } from "../utils/artifactDetailSummary";
 import { DebugImageRoiPanel } from "./DebugImageRoiPanel";
 
 const { Text } = Typography;

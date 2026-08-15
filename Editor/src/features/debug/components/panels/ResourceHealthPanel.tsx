@@ -18,7 +18,7 @@ import {
   getDebugResourceHealthCategory,
   getDebugResourceHealthCategoryLabel,
   sortDebugResourceHealthDiagnostics,
-} from "../../resourceHealth";
+} from "../../selectors/resourceHealth";
 import type { DebugDiagnostic, DebugResourceHealthCategory } from "../../types";
 
 const { Text } = Typography;

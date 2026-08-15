@@ -18,8 +18,8 @@ import PathSelector from "./PathSelector";
 import { WikiAnchor } from "../../wiki/WikiAnchor";
 import style from "../../../styles/panels/ToolPanel.module.less";
 import { useEmbedMode } from "../../../hooks/useEmbedMode";
-import { showEmbedServiceNotice } from "../../../features/embed/serviceNotice";
-import { openExternalUrl } from "../../../features/embed/externalNavigation";
+import { showEmbedServiceNotice } from "../../../features/embed/components/serviceNotice";
+import { openExternalUrl } from "../../../features/embed/navigation/externalNavigation";
 
 const ToolboxPanel = lazy(() => import("./ToolboxPanel"));
 

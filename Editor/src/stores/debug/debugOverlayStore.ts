@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import type { DebugNodeExecutionOverlay } from "@/features/debug/nodeExecutionAnalysis";
-import type { DebugTraceSummary } from "@/features/debug/traceReducer";
+import type { DebugNodeExecutionOverlay } from "@/features/debug/selectors/nodeExecutionAnalysis";
+import type { DebugTraceSummary } from "@/features/debug/state/traceReducer";
 
 interface DebugOverlayState {
   currentNodeId?: string;

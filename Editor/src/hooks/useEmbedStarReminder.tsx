@@ -3,7 +3,7 @@ import { App as AntdApp, Button, Flex } from "antd";
 import { useEffect } from "react";
 import { useEmbedStore } from "@/stores/embed/embedStore";
 import style from "../styles/components/EmbedStarReminder.module.less";
-import { openExternalUrl } from "../features/embed/externalNavigation";
+import { openExternalUrl } from "../features/embed/navigation/externalNavigation";
 
 const REMINDER_INTERVAL_MS = 5 * 60 * 1000;
 const NOTIFICATION_KEY = "mpe-embed-star-reminder";

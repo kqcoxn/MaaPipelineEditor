@@ -35,14 +35,14 @@ import type {
   DebugCapabilityManifest,
   DebugRunMode,
 } from "../../../features/debug/types";
-import { getDebugReadiness } from "../../../features/debug/readiness";
-import { applyDebugNodeTarget } from "../../../features/debug/nodeTargetActions";
+import { getDebugReadiness } from "../../../features/debug/selectors/readiness";
+import { applyDebugNodeTarget } from "../../../features/debug/actions/nodeTargetActions";
 import {
   DEBUG_PIPELINE_OVERRIDE_ERROR_CODE,
   parseDebugPipelineOverrideDraft,
-} from "../../../features/debug/pipelineOverride";
+} from "../../../features/debug/utils/pipelineOverride";
 import { isEmbedEnvironment } from "../../../utils/embedBridge";
-import { showEmbedServiceNotice } from "../../../features/embed/serviceNotice";
+import { showEmbedServiceNotice } from "../../../features/embed/components/serviceNotice";
 
 /**菜单项类型 */
 export interface NodeContextMenuItem {

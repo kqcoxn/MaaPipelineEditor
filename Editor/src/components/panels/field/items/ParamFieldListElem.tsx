@@ -20,7 +20,7 @@ import { TemplatePreview } from "./TemplatePreview";
 import { ImageSelect } from "./ImageSelect";
 import { sortKeysByOrder } from "../../../../core/sorting";
 import { useEmbedMode } from "../../../../hooks/useEmbedMode";
-import { showEmbedServiceNotice } from "../../../../features/embed/serviceNotice";
+import { showEmbedServiceNotice } from "../../../../features/embed/components/serviceNotice";
 
 /**
  * 将可能为字符串的 ROI 值解析为 [number, number, number, number] 元组

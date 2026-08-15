@@ -1,7 +1,7 @@
 import { SyncOutlined } from "@ant-design/icons";
 import { App as AntdApp, Button, Tooltip } from "antd";
 import { memo, useEffect } from "react";
-import { requestHostReload } from "../../../features/embed/embedOperations";
+import { requestHostReload } from "../../../features/embed/actions/embedOperations";
 import { getEmbedHostName, getEmbedLocale } from "../../../utils/embedBridge";
 import { useEmbedMode } from "../../../hooks/useEmbedMode";
 import { useEmbedStore } from "@/stores/embed/embedStore";

@@ -4,19 +4,19 @@ import { useFileStore } from "@/stores/project/fileStore";
 import type { EdgeType, NodeType } from "../../../stores/flow";
 import { useLocalFileStore } from "@/stores/project/localFileStore";
 import { useDebugRunProfileStore } from "@/stores/debug/debugRunProfileStore";
-import { applyDebugNodeTarget } from "../nodeTargetActions";
-import { allDebugNodeExecutionAttempts } from "../nodeExecutionAttempts";
+import { applyDebugNodeTarget } from "../actions/nodeTargetActions";
+import { allDebugNodeExecutionAttempts } from "../selectors/nodeExecutionAttempts";
 import {
   selectDebugNodeExecutionOverlayFromEdges,
   selectDebugNodeExecutionOverlayForSelection,
-} from "../nodeExecutionAnalysis";
+} from "../selectors/nodeExecutionAnalysis";
 import {
   createDebugResolverEdgeIndex,
   selectDebugNodeExecutionRecords,
   type DebugNodeExecutionRecord,
-} from "../nodeExecutionSelector";
-import { buildDebugSnapshotBundle } from "../snapshot";
-import type { DebugTraceSummary } from "../traceReducer";
+} from "../selectors/nodeExecutionSelector";
+import { buildDebugSnapshotBundle } from "../selectors/snapshot";
+import type { DebugTraceSummary } from "../state/traceReducer";
 import {
   DEFAULT_DEBUG_NODE_EXECUTION_FILTERS,
   type DebugExecutionAttributionMode,

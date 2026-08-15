@@ -21,30 +21,30 @@ import {
   saveOpenedLocalFilesForDebug,
   useFileStore,
 } from "@/stores/project/fileStore";
-import { ensureDebugCapabilitiesRequested } from "../capabilityActions";
+import { ensureDebugCapabilitiesRequested } from "../actions/capabilityActions";
 import { debugContributionRegistry } from "../contributions/registry";
-import { getControllerDisplayName } from "../controllerDisplay";
+import { getControllerDisplayName } from "../utils/controllerDisplay";
 import {
   captureScreenshotAction,
   testAgentAction,
-} from "../debugModalActions";
+} from "../actions/debugModalActions";
 import {
   applyDebugNodeTarget,
   focusDebugCanvasNode,
-} from "../nodeTargetActions";
+} from "../actions/nodeTargetActions";
 import {
   formatDebugReadinessMessage,
   getDebugReadiness,
-} from "../readiness";
+} from "../selectors/readiness";
 import {
   runnableModes,
   targetRunModes,
   validateRunRequest,
-} from "../modalUtils";
+} from "../utils/modalUtils";
 import {
   DEBUG_PIPELINE_OVERRIDE_ERROR_CODE,
   parseDebugPipelineOverrideDraft,
-} from "../pipelineOverride";
+} from "../utils/pipelineOverride";
 import { useDebugResourceChecks } from "./useDebugResourceChecks";
 import { useDebugNodeExecutionController } from "./useDebugNodeExecutionController";
 import type {

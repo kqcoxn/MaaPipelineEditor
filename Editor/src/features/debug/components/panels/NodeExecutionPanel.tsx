@@ -7,17 +7,17 @@ import {
 } from "@ant-design/icons";
 import { DebugSection } from "../DebugSection";
 import type { DebugModalController } from "../../hooks/useDebugModalController";
-import type { DebugNodeExecutionRecord } from "../../nodeExecutionSelector";
-import { groupDebugNodeExecutionRecords } from "../../nodeExecutionSelector";
+import type { DebugNodeExecutionRecord } from "../../selectors/nodeExecutionSelector";
+import { groupDebugNodeExecutionRecords } from "../../selectors/nodeExecutionSelector";
 import {
   resolveAutoLoadAttemptArtifact,
   selectDebugNodeExecutionAttemptForDetailMode,
-} from "../../nodeExecutionAttempts";
+} from "../../selectors/nodeExecutionAttempts";
 import {
   GroupedRecordList,
   RecordList,
 } from "./NodeExecutionRecordList";
-import { debugNodeExecutionEventKindLabels } from "../../nodeExecutionDisplay";
+import { debugNodeExecutionEventKindLabels } from "../../utils/nodeExecutionDisplay";
 import type {
   DebugExecutionAttributionMode,
   DebugExecutionDetailMode,
@@ -32,8 +32,8 @@ import { NodeExecutionRecordDetails } from "./NodeExecutionRecordDetails";
 import {
   findDebugRunFirstTimestamp,
   formatDebugRunDisplayName,
-} from "../../runDisplayName";
-import { formatDebugNodeDisplayName } from "../../syntheticNode";
+} from "../../utils/runDisplayName";
+import { formatDebugNodeDisplayName } from "../../utils/syntheticNode";
 
 const workspaceStyle: CSSProperties = {
   display: "grid",

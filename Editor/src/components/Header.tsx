@@ -36,8 +36,8 @@ import {
   type UpdateInfo,
 } from "../utils/updateChecker";
 import { useEmbedMode } from "../hooks/useEmbedMode";
-import { showEmbedServiceNotice } from "../features/embed/serviceNotice";
-import { openExternalUrl } from "../features/embed/externalNavigation";
+import { showEmbedServiceNotice } from "../features/embed/components/serviceNotice";
+import { openExternalUrl } from "../features/embed/navigation/externalNavigation";
 
 const versionLinks = [
   {

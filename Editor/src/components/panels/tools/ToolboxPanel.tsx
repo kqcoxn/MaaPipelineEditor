@@ -6,7 +6,7 @@ import { type IconNames } from "../../iconfonts";
 import { useMFWStore } from "@/stores/connection/mfwStore";
 import style from "../../../styles/panels/ToolboxPanel.module.less";
 import { useEmbedMode } from "../../../hooks/useEmbedMode";
-import { showEmbedServiceNotice } from "../../../features/embed/serviceNotice";
+import { showEmbedServiceNotice } from "../../../features/embed/components/serviceNotice";
 
 const ROIModal = lazy(() =>
   import("../../modals/ROIModal").then((module) => ({

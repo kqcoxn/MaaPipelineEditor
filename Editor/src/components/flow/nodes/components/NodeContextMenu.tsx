@@ -15,7 +15,7 @@ import { NodeJsonEditorModal } from "../../../modals/NodeJsonEditorModal";
 import { useFlowStore, type NodeType } from "../../../../stores/flow";
 import { useDebugSessionStore } from "@/stores/debug/debugSessionStore";
 import { useWSStore } from "@/stores/connection/wsStore";
-import { ensureDebugCapabilitiesRequested } from "../../../../features/debug/capabilityActions";
+import { ensureDebugCapabilitiesRequested } from "../../../../features/debug/actions/capabilityActions";
 
 interface NodeContextMenuProps {
   node: NodeContextMenuNode;

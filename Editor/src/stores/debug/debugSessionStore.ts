@@ -10,7 +10,7 @@ import type {
   DebugRunStopRequested,
   DebugSessionSnapshot,
 } from "@/features/debug/types";
-import { getPrimaryResourceHealthError } from "@/features/debug/resourceHealth";
+import { getPrimaryResourceHealthError } from "@/features/debug/selectors/resourceHealth";
 import { useDebugModalMemoryStore } from "@/stores/debug/debugModalMemoryStore";
 
 type CapabilityStatus = "idle" | "loading" | "ready" | "error";

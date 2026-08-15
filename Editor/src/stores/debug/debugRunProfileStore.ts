@@ -13,11 +13,11 @@ import type {
 import {
   buildDebugSnapshotBundle,
   resolveDebugNodeTarget,
-} from "@/features/debug/snapshot";
+} from "@/features/debug/selectors/snapshot";
 import {
   DEFAULT_DEBUG_AGENT_TIMEOUT_MS,
   getDebugAgentProfileKey,
-} from "@/features/debug/agentProfile";
+} from "@/features/debug/utils/agentProfile";
 import { useLocalFileStore, type ResourceBundle } from "@/stores/project/localFileStore";
 import { useMFWStore } from "@/stores/connection/mfwStore";
 import {

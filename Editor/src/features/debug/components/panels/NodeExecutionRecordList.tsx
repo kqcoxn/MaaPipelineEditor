@@ -4,19 +4,19 @@ import type { CSSProperties } from "react";
 import type {
   DebugNodeExecutionRecord,
   DebugNodeExecutionRecordGroup,
-} from "../../nodeExecutionSelector";
+} from "../../selectors/nodeExecutionSelector";
 import {
   debugNodeExecutionEventKindLabels,
   formatDebugNodeExecutionDuration,
-} from "../../nodeExecutionDisplay";
+} from "../../utils/nodeExecutionDisplay";
 import type { DebugEvent, DebugNodeExecutionStatus } from "../../types";
 import type { DebugExecutionDetailMode } from "../../types";
-import { formatDebugNodeDisplayName } from "../../syntheticNode";
-import { terminalDebugNodeExecutionAttempts } from "../../nodeExecutionAttempts";
+import { formatDebugNodeDisplayName } from "../../utils/syntheticNode";
+import { terminalDebugNodeExecutionAttempts } from "../../selectors/nodeExecutionAttempts";
 import {
   findDebugRunFirstTimestamp,
   formatDebugRunDisplayName,
-} from "../../runDisplayName";
+} from "../../utils/runDisplayName";
 
 const { Text } = Typography;
 

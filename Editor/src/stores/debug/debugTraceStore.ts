@@ -3,7 +3,7 @@ import {
   reduceDebugTrace,
   reduceDebugTraceForReplay,
   type DebugTraceSummary,
-} from "@/features/debug/traceReducer";
+} from "@/features/debug/state/traceReducer";
 import type {
   DebugEvent,
   DebugPerformanceSummary,

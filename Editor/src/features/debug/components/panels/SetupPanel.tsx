@@ -26,9 +26,9 @@ import type { DebugAgentProfile, DebugArtifactPolicy } from "../../types";
 import {
   DEFAULT_DEBUG_AGENT_TIMEOUT_MS,
   getDebugAgentProfileKey,
-} from "../../agentProfile";
-import { getDebugStatusLabel } from "../../capabilityLabels";
-import { stringArray } from "../../modalUtils";
+} from "../../utils/agentProfile";
+import { getDebugStatusLabel } from "../../utils/capabilityLabels";
+import { stringArray } from "../../utils/modalUtils";
 
 const { Text } = Typography;
 

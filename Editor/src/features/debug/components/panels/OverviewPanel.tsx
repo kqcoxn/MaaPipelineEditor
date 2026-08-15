@@ -19,12 +19,12 @@ import type { DebugModalController } from "../../hooks/useDebugModalController";
 import {
   findDebugRunFirstTimestamp,
   formatDebugRunDisplayName,
-} from "../../runDisplayName";
+} from "../../utils/runDisplayName";
 import { useConfigStore } from "@/stores/app/configStore";
 import {
   formatDebugPipelineOverrideDraft,
   hasDebugPipelineOverrideDraftContent,
-} from "../../pipelineOverride";
+} from "../../utils/pipelineOverride";
 import {
   clearMfwJsonCompletionContext,
   createMfwJsonEditorOptions,

@@ -47,7 +47,7 @@ import { parseUrlParams } from "./utils/data/urlHelper";
 import { isEmbedEnvironment } from "./utils/embedBridge";
 import { useEmbedMode } from "./hooks/useEmbedMode";
 import { useEmbedChangeNotifier } from "./hooks/useEmbedChangeNotifier";
-import { registerEmbedProtocol } from "./features/embed/registerEmbedProtocol";
+import { registerEmbedProtocol } from "./features/embed/protocols/registerEmbedProtocol";
 import {
   useNewcomerStore,
   isNewcomerPassed,
@@ -56,7 +56,7 @@ import { NewcomerGuideModal } from "./components/modals/NewcomerGuideModal";
 import { useTermsStore, isTermsAccepted } from "@/stores/ui/termsStore";
 import { TermsAgreementModal } from "./components/modals/TermsAgreementModal";
 import { useEmbedStarReminder } from "./hooks/useEmbedStarReminder";
-import { openExternalUrl } from "./features/embed/externalNavigation";
+import { openExternalUrl } from "./features/embed/navigation/externalNavigation";
 
 const JsonViewer = lazy(() => import("./components/JsonViewer"));
 const DebugModal = lazy(() =>

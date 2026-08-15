@@ -13,8 +13,8 @@ import {
 import {
   requestResourceHealthAction,
   requestResourcePreflightAction,
-} from "../debugModalActions";
-import { makeDebugResourceHealthRequestKey } from "../resourceHealth";
+} from "../actions/debugModalActions";
+import { makeDebugResourceHealthRequestKey } from "../selectors/resourceHealth";
 import type {
   DebugModalPanel,
   DebugResourceHealthRequest,

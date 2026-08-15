@@ -1,7 +1,7 @@
 ﻿import type { CSSProperties } from "react";
 import { Alert, Spin, Typography } from "antd";
 import type { DebugArtifactEntry } from "@/stores/debug/debugArtifactStore";
-import { normalizeDebugArtifactBox } from "../artifactDetailSummary";
+import { normalizeDebugArtifactBox } from "../utils/artifactDetailSummary";
 import {
   DebugImageViewer,
   type DebugImageOverlay,

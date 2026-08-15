@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { Button, notification } from "antd";
 import { useDebugTraceStore } from "@/stores/debug/debugTraceStore";
 import { useDebugSessionStore } from "@/stores/debug/debugSessionStore";
-import { getRunModeLabel } from "../capabilityLabels";
+import { getRunModeLabel } from "../utils/capabilityLabels";
 import type { DebugRunMode } from "../types";
 
 function isTerminalDebugSessionStatus(status?: string): boolean {

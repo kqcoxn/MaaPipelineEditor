@@ -1,0 +1,185 @@
+import { describe, expect, it } from "vitest";
+import {
+  formatDebugDetailValue,
+  normalizeDebugArtifactBox,
+  recognitionDetailImageRefs,
+  summarizeActionArtifactPayload,
+  summarizeRecognitionArtifactPayload,
+} from "./artifactDetailSummary";
+import type { DebugArtifactPayload } from "../types";
+
+describe("artifactDetailSummary", () => {
+  it("summarizes recognition detail and dedupes image refs", () => {
+    const summary = summarizeRecognitionArtifactPayload(
+      payload({
+        id: 12,
+        name: "Start",
+        algorithm: "TemplateMatch",
+        hit: true,
+        box: { x: 1, y: 2, w: 3, h: 4 },
+        detailJson: "{\"score\":0.98}",
+        rawImageRef: "raw-1",
+        drawImageRefs: ["draw-1", "", "draw-1", "draw-2", 42],
+        screenshotRef: "raw-1",
+        detail: {
+          best: { box: { x: 10, y: 20, w: 30, h: 40 }, score: 0.99 },
+          filtered: [
+            { box: { x: 11, y: 21, w: 31, h: 41 }, score: 0.88 },
+          ],
+          all: [
+            { box: { x: 12, y: 22, w: 32, h: 42 }, text: "A" },
+            { score: 0.1 },
+          ],
+        },
+        combinedResult: [{ id: 1 }, { id: 2 }],
+      }),
+    );
+
+    expect(summary).toMatchObject({
+      id: 12,
+      name: "Start",
+      algorithm: "TemplateMatch",
+      hit: true,
+      box: { x: 1, y: 2, w: 3, h: 4 },
+      detail: {
+        best: { box: { x: 10, y: 20, w: 30, h: 40 }, score: 0.99 },
+        filtered: [
+          { box: { x: 11, y: 21, w: 31, h: 41 }, score: 0.88 },
+        ],
+        all: [
+          { box: { x: 12, y: 22, w: 32, h: 42 }, text: "A" },
+          { score: 0.1 },
+        ],
+      },
+      detailJson: "{\"score\":0.98}",
+      rawImageRef: "raw-1",
+      drawImageRefs: ["draw-1", "draw-2"],
+      screenshotRef: "raw-1",
+      combinedResultCount: 2,
+      resultGroups: [
+        {
+          key: "best",
+          label: "Best",
+          results: [
+            {
+              index: 0,
+              box: { x: 10, y: 20, width: 30, height: 40 },
+              extra: { score: 0.99 },
+            },
+          ],
+        },
+        {
+          key: "filtered",
+          label: "Filtered",
+          results: [
+            {
+              index: 0,
+              box: { x: 11, y: 21, width: 31, height: 41 },
+              extra: { score: 0.88 },
+            },
+          ],
+        },
+        {
+          key: "all",
+          label: "All",
+          results: [
+            {
+              index: 0,
+              box: { x: 12, y: 22, width: 32, height: 42 },
+              extra: { text: "A" },
+            },
+            {
+              index: 1,
+              extra: { score: 0.1 },
+            },
+          ],
+        },
+      ],
+    });
+    expect(recognitionDetailImageRefs(summary)).toEqual([
+      { ref: "raw-1", kind: "raw", label: "原图" },
+      { ref: "draw-1", kind: "draw", label: "绘制图 1" },
+      { ref: "draw-2", kind: "draw", label: "绘制图 2" },
+    ]);
+  });
+
+  it("summarizes action detail shallow fields", () => {
+    const summary = summarizeActionArtifactPayload(
+      payload({
+        id: 7,
+        name: "TapConfirm",
+        action: "Click",
+        success: false,
+        box: [10, 20, 30, 40],
+        detail: { reason: "blocked" },
+        detailJson: "{\"reason\":\"blocked\"}",
+      }),
+    );
+
+    expect(summary).toEqual({
+      id: 7,
+      name: "TapConfirm",
+      action: "Click",
+      success: false,
+      box: [10, 20, 30, 40],
+      detail: { reason: "blocked" },
+      detailJson: "{\"reason\":\"blocked\"}",
+    });
+  });
+
+  it("safely ignores malformed payload data", () => {
+    expect(summarizeRecognitionArtifactPayload(payload(null))).toBeUndefined();
+    expect(summarizeRecognitionArtifactPayload(payload("raw"))).toBeUndefined();
+    expect(summarizeActionArtifactPayload(undefined)).toBeUndefined();
+    expect(recognitionDetailImageRefs(undefined)).toEqual([]);
+  });
+
+  it("formats unknown detail values without throwing", () => {
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+
+    expect(formatDebugDetailValue(undefined)).toBe("-");
+    expect(formatDebugDetailValue(true)).toBe("true");
+    expect(formatDebugDetailValue({ hit: true })).toBe("{\"hit\":true}");
+    expect(formatDebugDetailValue(circular)).toBe("[object Object]");
+  });
+
+  it("normalizes generic artifact box shapes", () => {
+    expect(normalizeDebugArtifactBox({ x: 1, y: 2, w: 3, h: 4 })).toEqual({
+      x: 1,
+      y: 2,
+      width: 3,
+      height: 4,
+    });
+    expect(
+      normalizeDebugArtifactBox({ x: 5, y: 6, width: 7, height: 8 }),
+    ).toEqual({
+      x: 5,
+      y: 6,
+      width: 7,
+      height: 8,
+    });
+    expect(normalizeDebugArtifactBox([9, 10, 11, 12])).toEqual({
+      x: 9,
+      y: 10,
+      width: 11,
+      height: 12,
+    });
+    expect(normalizeDebugArtifactBox({ x: 1, y: 2 })).toBeUndefined();
+    expect(normalizeDebugArtifactBox([1, 2, 0, 4])).toBeUndefined();
+    expect(normalizeDebugArtifactBox("bad")).toBeUndefined();
+  });
+});
+
+function payload(data: unknown): DebugArtifactPayload {
+  return {
+    ref: {
+      id: "detail-1",
+      sessionId: "session-1",
+      type: "recognition-detail",
+      mime: "application/json",
+      createdAt: "2026-04-29T00:00:00.000Z",
+    },
+    data,
+  };
+}

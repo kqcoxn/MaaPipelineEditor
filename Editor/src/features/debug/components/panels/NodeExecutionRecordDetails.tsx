@@ -9,26 +9,26 @@ import {
   summarizeActionArtifactPayload,
   summarizeRecognitionArtifactPayload,
   type DebugDetailImageRef,
-} from "../../artifactDetailSummary";
+} from "../../utils/artifactDetailSummary";
 import {
   findDebugResolverEdge,
   type DebugNodeExecutionRecord,
   type ResolverEdge,
-} from "../../nodeExecutionSelector";
+} from "../../selectors/nodeExecutionSelector";
 import {
   allDebugNodeExecutionAttempts,
   isArtifactRelatedToAttempt,
-} from "../../nodeExecutionAttempts";
-import { formatDebugNodeExecutionDuration } from "../../nodeExecutionDisplay";
-import { eventTitle, formatTime } from "../../modalUtils";
+} from "../../selectors/nodeExecutionAttempts";
+import { formatDebugNodeExecutionDuration } from "../../utils/nodeExecutionDisplay";
+import { eventTitle, formatTime } from "../../utils/modalUtils";
 import type { DebugEvent, DebugExecutionDetailMode } from "../../types";
-import { formatDebugNodeDisplayName } from "../../syntheticNode";
+import { formatDebugNodeDisplayName } from "../../utils/syntheticNode";
 import type { DebugArtifactEntry } from "@/stores/debug/debugArtifactStore";
 import { StatusTag } from "./NodeExecutionRecordList";
 import {
   findDebugRunFirstTimestamp,
   formatDebugRunDisplayName,
-} from "../../runDisplayName";
+} from "../../utils/runDisplayName";
 import { NodeExecutionAttemptFocus } from "./NodeExecutionAttemptFocus";
 
 const { Text } = Typography;

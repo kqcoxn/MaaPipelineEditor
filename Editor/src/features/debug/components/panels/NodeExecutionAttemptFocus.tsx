@@ -12,7 +12,7 @@ import {
   summarizeActionArtifactPayload,
   summarizeRecognitionArtifactPayload,
   type DebugDetailImageRef,
-} from "../../artifactDetailSummary";
+} from "../../utils/artifactDetailSummary";
 import type {
   DebugImageOverlay,
   DebugImageOverlayGroup,
@@ -22,8 +22,8 @@ import {
   selectDebugNodeExecutionAttemptForDetailMode,
   terminalDebugNodeExecutionAttempts,
   type DebugNodeExecutionAttempt,
-} from "../../nodeExecutionAttempts";
-import type { DebugNodeExecutionRecord } from "../../nodeExecutionSelector";
+} from "../../selectors/nodeExecutionAttempts";
+import type { DebugNodeExecutionRecord } from "../../selectors/nodeExecutionSelector";
 import type { DebugExecutionDetailMode } from "../../types";
 import type { DebugArtifactEntry } from "@/stores/debug/debugArtifactStore";
 
