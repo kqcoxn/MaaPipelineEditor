@@ -6,14 +6,6 @@ const MIN_SCALE = 0.1;
 const MAX_SCALE = 5;
 const ZOOM_STEP = 0.1;
 
-interface ViewportState {
-  scale: number;
-  panOffset: { x: number; y: number };
-  isPanning: boolean;
-  isSpacePressed: boolean;
-  isMiddleMouseDown: boolean;
-}
-
 interface UseCanvasViewportOptions {
   /** Modal 是否打开 */
   open: boolean;
@@ -118,7 +110,7 @@ export function useCanvasViewport({
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [open]);
+  }, [isMiddleMouseDown, open]);
 
   // 滚轮缩放
   useEffect(() => {

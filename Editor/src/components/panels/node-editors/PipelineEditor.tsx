@@ -60,7 +60,7 @@ export const PipelineEditor = lazy(() =>
         (e: React.ChangeEvent<HTMLInputElement>) => {
           setNodeData(currentNode.id, "", "label", e.target.value);
         },
-        [currentNode],
+        [currentNode, setNodeData],
       );
 
       // 识别算法
@@ -76,7 +76,7 @@ export const PipelineEditor = lazy(() =>
         (value: string) => {
           setNodeData(currentNode.id, "type", "recognition", value);
         },
-        [currentNode],
+        [currentNode, setNodeData],
       );
 
       // 动作
@@ -92,7 +92,7 @@ export const PipelineEditor = lazy(() =>
         (value: string) => {
           setNodeData(currentNode.id, "type", "action", value);
         },
-        [currentNode],
+        [currentNode, setNodeData],
       );
 
       // 自定义节点
@@ -104,7 +104,7 @@ export const PipelineEditor = lazy(() =>
         (value: string) => {
           setNodeData(currentNode.id, "extras", "extras", value);
         },
-        [currentNode],
+        [currentNode, setNodeData],
       );
 
       // focus 字段状态判断
@@ -126,7 +126,7 @@ export const PipelineEditor = lazy(() =>
         (e: React.ChangeEvent<HTMLInputElement>) => {
           setNodeData(currentNode.id, "others", "focus", e.target.value);
         },
-        [currentNode],
+        [currentNode, setNodeData],
       );
 
       const handleFocusFieldAdd = useCallback(
@@ -157,7 +157,7 @@ export const PipelineEditor = lazy(() =>
             setNodeData(currentNode.id, "others", "focus", newFocus);
           }
         },
-        [currentNode],
+        [currentNode, setNodeData],
       );
 
       const handleFocusFieldChange = useCallback(
@@ -171,7 +171,7 @@ export const PipelineEditor = lazy(() =>
             setNodeData(currentNode.id, "others", "focus", newFocus);
           }
         },
-        [currentNode],
+        [currentNode, setNodeData],
       );
 
       const handleFocusFieldDelete = useCallback(
@@ -191,7 +191,7 @@ export const PipelineEditor = lazy(() =>
             }
           }
         },
-        [currentNode],
+        [currentNode, setNodeData],
       );
 
       // waitFreezes 可见性判断
@@ -253,7 +253,7 @@ export const PipelineEditor = lazy(() =>
         (fieldKey: string, value: number | null) => {
           setNodeData(currentNode.id, "others", fieldKey, value ?? 0);
         },
-        [currentNode],
+        [currentNode, setNodeData],
       );
 
       // waitFreezes 添加子字段处理
@@ -281,7 +281,7 @@ export const PipelineEditor = lazy(() =>
             setNodeData(currentNode.id, "others", fieldKey, newValue);
           }
         },
-        [currentNode],
+        [currentNode, setNodeData],
       );
 
       // 通用的 waitFreezes 子字段变更处理
@@ -293,7 +293,7 @@ export const PipelineEditor = lazy(() =>
             setNodeData(currentNode.id, "others", fieldKey, newValue);
           }
         },
-        [currentNode],
+        [currentNode, setNodeData],
       );
 
       // 通用的 waitFreezes 子字段删除处理
@@ -311,7 +311,7 @@ export const PipelineEditor = lazy(() =>
             }
           }
         },
-        [currentNode],
+        [currentNode, setNodeData],
       );
 
       return (

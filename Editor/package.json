@@ -13,7 +13,7 @@
     "dev": "vite",
     "build": "vite build",
     "build-past": "vite build --mode mfw_5_0",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings=0",
     "preview": "vite preview"
   },
   "dependencies": {

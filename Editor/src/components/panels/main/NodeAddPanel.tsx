@@ -301,9 +301,7 @@ function NodeAddPanel({
   const addNode = useFlowStore((state) => state.addNode);
   const addEdge = useFlowStore((state) => state.addEdge);
   const paste = useFlowStore((state) => state.paste);
-  const customTemplates = useCustomTemplateStore(
-    (state) => state.customTemplates,
-  );
+  useCustomTemplateStore((state) => state.customTemplates);
   const getAllTemplates = useCustomTemplateStore(
     (state) => state.getAllTemplates,
   );
@@ -317,10 +315,7 @@ function NodeAddPanel({
   const hasClipboardContent = clipboardNodes.length > 0;
 
   // 获取所有模板
-  const allTemplates = useMemo(
-    () => getAllTemplates(nodeTemplates),
-    [getAllTemplates, customTemplates],
-  );
+  const allTemplates = getAllTemplates(nodeTemplates);
 
   // 过滤模板
   const filteredTemplates = useMemo(() => {

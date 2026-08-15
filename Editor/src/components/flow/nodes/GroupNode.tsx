@@ -1,4 +1,4 @@
-import { memo, useMemo, useState, useCallback, useRef, useEffect } from "react";
+import { memo, useMemo, useState, useCallback, useRef } from "react";
 import { type Node, type NodeProps, NodeResizer } from "@xyflow/react";
 import classNames from "classnames";
 
@@ -109,9 +109,6 @@ const GroupContent = memo(
 /**分组节点组件 */
 export function GroupNode(props: NodeProps<GroupNodeData>) {
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
-
-  // 分组节点始终不受聚焦效果影响
-  const isRelated = true;
 
   const theme = GROUP_COLOR_THEMES[props.data.color] || GROUP_COLOR_THEMES.blue;
 

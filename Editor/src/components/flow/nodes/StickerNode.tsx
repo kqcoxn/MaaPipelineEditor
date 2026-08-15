@@ -8,7 +8,6 @@ import type {
   StickerColorTheme,
 } from "../../../stores/flow";
 import { useFlowStore } from "../../../stores/flow";
-import { useConfigStore } from "@/stores/app/configStore";
 import { NodeTypeEnum } from "./constants";
 import { NodeContextMenu } from "./components/NodeContextMenu";
 import type { NodeContextMenuNode } from "./nodeContextMenu";
@@ -57,11 +56,9 @@ const StickerContent = memo(
   ({
     data,
     nodeId,
-    selected,
   }: {
     data: StickerNodeDataType;
     nodeId: string;
-    selected?: boolean;
   }) => {
     const setNodeData = useFlowStore((state) => state.setNodeData);
     const saveHistory = useFlowStore((state) => state.saveHistory);
@@ -166,11 +163,7 @@ const StickerContent = memo(
 
 /**便签节点组件 */
 export function StickerNode(props: NodeProps<StickerNodeData>) {
-  const focusOpacity = useConfigStore((state) => state.configs.focusOpacity);
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
-
-  // 便签节点始终不受聚焦效果影响
-  const isRelated = true;
 
   const theme =
     STICKER_COLOR_THEMES[props.data.color] || STICKER_COLOR_THEMES.yellow;
@@ -208,11 +201,7 @@ export function StickerNode(props: NodeProps<StickerNodeData>) {
           lineStyle={{ borderColor: theme.border }}
           handleStyle={{ backgroundColor: theme.border, borderColor: "#fff" }}
         />
-        <StickerContent
-          data={props.data}
-          nodeId={props.id}
-          selected={props.selected}
-        />
+        <StickerContent data={props.data} nodeId={props.id} />
       </div>
     </NodeContextMenu>
   );

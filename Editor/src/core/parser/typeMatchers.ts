@@ -11,7 +11,7 @@ import { JsonHelper } from "../../utils/data/jsonHelper";
  */
 function pureStringList(list: any): string[] {
   return String(list)
-    .replace(/[\s\[\]]/g, "")
+    .replace(/[\s[\]]/g, "")
     .split(/[,，]/);
 }
 
@@ -79,7 +79,7 @@ function matchSingleType(value: any, type: FieldTypeEnum): any {
         if (Array.isArray(value)) {
           const number2DList: any[] = [];
           let length = 0;
-          for (let list of value) {
+          for (const list of value) {
             temp = pureStringList(list).map((c) => Number(c));
             if (length === 0) length = temp.length;
             if (
@@ -154,12 +154,12 @@ function matchSingleType(value: any, type: FieldTypeEnum): any {
         break;
 
       // 位置数组
-      case FieldTypeEnum.PositionList:
+      case FieldTypeEnum.PositionList: {
         const buildPosition = (pos: any) => {
           // true
           if (pos === true || String(pos) === "true") return true;
           // [x,y,w,h] or [x,y]
-          let nums = pureStringList(pos).map((c) => Number(c));
+          const nums = pureStringList(pos).map((c) => Number(c));
           if (
             (nums.length === 4 || nums.length === 2) &&
             nums.every((n) => Number.isInteger(n))
@@ -181,6 +181,7 @@ function matchSingleType(value: any, type: FieldTypeEnum): any {
         } else {
           return [buildPosition(value)];
         }
+      }
 
       // 整型键值对
       case FieldTypeEnum.IntPair:
@@ -193,7 +194,7 @@ function matchSingleType(value: any, type: FieldTypeEnum): any {
       // 键值对
       case FieldTypeEnum.StringPair:
         temp = String(value)
-          .replaceAll(/[" \[\]]/g, "")
+          .replaceAll(/[" [\]]/g, "")
           .split(",");
         if (temp.length === 2) {
           return temp;
@@ -204,13 +205,13 @@ function matchSingleType(value: any, type: FieldTypeEnum): any {
       case FieldTypeEnum.StringPairList:
         if (Array.isArray(value)) {
           const stringPairList: any[] = [];
-          for (let pair of value) {
+          for (const pair of value) {
             if (Array.isArray(pair) && pair.length === 2) {
               stringPairList.push(pair.map((s) => String(s)));
               continue;
             }
             temp = String(pair)
-              .replaceAll(/[" \[\]]/g, "")
+              .replaceAll(/[" [\]]/g, "")
               .split(",");
             if (temp.length === 2) {
               stringPairList.push(temp);
@@ -232,12 +233,13 @@ function matchSingleType(value: any, type: FieldTypeEnum): any {
       case FieldTypeEnum.ObjectList:
         if (Array.isArray(value)) {
           const objList = [];
-          for (let obj of value) {
+          for (const obj of value) {
             if (JsonHelper.isObj(obj)) objList.push(obj);
             else {
               temp = String(obj).replaceAll(/[""]/g, `"`);
-              JsonHelper.isStringObj(temp) &&
+              if (JsonHelper.isStringObj(temp)) {
                 objList.push(JsonHelper.stringObjToJson(temp));
+              }
             }
           }
           if (objList.length === value.length) {
@@ -250,7 +252,7 @@ function matchSingleType(value: any, type: FieldTypeEnum): any {
       case FieldTypeEnum.StringOrObjectList:
         if (Array.isArray(value)) {
           const mixedList = [];
-          for (let item of value) {
+          for (const item of value) {
             // object
             if (JsonHelper.isObj(item)) {
               mixedList.push(item);

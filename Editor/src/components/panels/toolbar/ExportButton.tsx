@@ -350,7 +350,6 @@ function StandaloneExportButton() {
       />
       {guardState && (
         <GuardPromptModal
-          action="export"
           unconfiguredItems={guardState.items}
           onContinue={guardState.onContinue}
           onCancel={() => setGuardState(null)}

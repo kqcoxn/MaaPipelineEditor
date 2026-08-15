@@ -88,7 +88,6 @@ export const ScreenshotModalBase = memo(
     open,
     onClose,
     title,
-    width = 900,
     confirmText = "确定",
     confirmDisabled = false,
     onConfirm,
@@ -122,7 +121,6 @@ export const ScreenshotModalBase = memo(
     const viewportProps = useCanvasViewport({ open, screenshot });
     const {
       scale,
-      panOffset,
       containerRef,
       resetViewport,
       handleZoomIn,

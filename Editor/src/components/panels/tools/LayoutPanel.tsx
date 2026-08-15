@@ -1,4 +1,4 @@
-import { memo, useMemo } from "react";
+import { memo, useMemo, useCallback } from "react";
 import { message, Tooltip } from "antd";
 import classNames from "classnames";
 import IconFont from "../../iconfonts";
@@ -37,27 +37,30 @@ function LayoutPanel() {
   const allowAutoLayout = !isEmbed || isCapAllowed("allowAutoLayout");
 
   // 间距调整
-  const createShiftTool = (
-    label: string,
-    iconName: string,
-    direction: "horizontal" | "vertical",
-    delta: number,
-  ): LayoutToolType => ({
-    label,
-    iconName,
-    iconSize: 25,
-    iconColor: "#487aaa",
-    disabled:
-      debouncedSelectedNodes.length >= 2 ? false : nodeCount === 0,
-    onClick: () => {
-      const targetIds =
-        debouncedSelectedNodes.length >= 2
-          ? debouncedSelectedNodes.map((n) => n.id)
-          : undefined;
-      shiftNodes(direction, delta, targetIds);
-    },
-    onDisabledClick: () => message.error("没有可调整的节点"),
-  });
+  const createShiftTool = useCallback(
+    (
+      label: string,
+      iconName: string,
+      direction: "horizontal" | "vertical",
+      delta: number,
+    ): LayoutToolType => ({
+      label,
+      iconName,
+      iconSize: 25,
+      iconColor: "#487aaa",
+      disabled:
+        debouncedSelectedNodes.length >= 2 ? false : nodeCount === 0,
+      onClick: () => {
+        const targetIds =
+          debouncedSelectedNodes.length >= 2
+            ? debouncedSelectedNodes.map((n) => n.id)
+            : undefined;
+        shiftNodes(direction, delta, targetIds);
+      },
+      onDisabledClick: () => message.error("没有可调整的节点"),
+    }),
+    [debouncedSelectedNodes, nodeCount, shiftNodes],
+  );
 
   const layoutTools = useMemo<LayoutToolType[]>(() => {
     return [
@@ -164,10 +167,10 @@ function LayoutPanel() {
   }, [
     allowAutoLayout,
     currentFileName,
+    createShiftTool,
     debouncedSelectedNodes,
     nodeCount,
     resetEdgeControls,
-    shiftNodes,
   ]);
 
   // 生成

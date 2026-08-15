@@ -315,44 +315,41 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
   };
 
   // 构建折叠面板项 - 只显示有数据的部分（非只读时始终显示后继区域）
-  const collapseItems = useMemo(() => {
-    const items = [];
+  const collapseItems = [];
 
-    if (predecessors.length > 0) {
-      items.push({
-        key: "predecessors",
-        label: (
-          <div className={style["collapse-header"]}>
-            <span>前驱节点</span>
-            <ArrowLeftOutlined className={style["icon"]} />
-            <span className={style["count"]}>({predecessors.length})</span>
-          </div>
-        ),
-        children: renderPredecessors(),
-      });
-    }
+  if (predecessors.length > 0) {
+    items.push({
+      key: "predecessors",
+      label: (
+        <div className={style["collapse-header"]}>
+          <span>前驱节点</span>
+          <ArrowLeftOutlined className={style["icon"]} />
+          <span className={style["count"]}>({predecessors.length})</span>
+        </div>
+      ),
+      children: renderPredecessors(),
+    });
+  }
 
-    if (successors.length > 0 || !readOnly) {
-      items.push({
-        key: "successors",
-        label: (
-          <div className={style["collapse-header"]}>
-            <span>后继节点</span>
-            <ArrowRightOutlined className={style["icon"]} />
-            <span className={style["count"]}>({successors.length})</span>
-            {!readOnly && (
-              <span className={style["drag-hint"]}>
-                {successors.length > 0 ? "可拖拽调序" : "输入节点名添加"}
-              </span>
-            )}
-          </div>
-        ),
-        children: renderSuccessors(),
-      });
-    }
+  if (successors.length > 0 || !readOnly) {
+    items.push({
+      key: "successors",
+      label: (
+        <div className={style["collapse-header"]}>
+          <span>后继节点</span>
+          <ArrowRightOutlined className={style["icon"]} />
+          <span className={style["count"]}>({successors.length})</span>
+          {!readOnly && (
+            <span className={style["drag-hint"]}>
+              {successors.length > 0 ? "可拖拽调序" : "输入节点名添加"}
+            </span>
+          )}
+        </div>
+      ),
+      children: renderSuccessors(),
+    });
+  }
 
-    return items;
-  }, [predecessors, successors, readOnly]);
 
   // 无连接提示（非只读模式下始终显示后继区域供输入）
   const hasNoConnections = predecessors.length === 0 && successors.length === 0;

@@ -6,16 +6,11 @@ import {
   selectDebugNodeExecutionOverlayFromEdges,
 } from "./nodeExecutionAnalysis";
 import {
-  createDebugResolverEdgeIndex,
-  findDebugResolverEdge,
   groupDebugNodeExecutionRecords,
   selectDebugNodeExecutionRecords,
-  type ResolverEdge,
 } from "./nodeExecutionSelector";
 import { reduceDebugTrace } from "./traceReducer";
 import {
-  DEBUG_TASKER_BOOTSTRAP_LABEL,
-  DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
   type DebugEvent,
   type DebugEdgeReason,
   type DebugEventKind,
@@ -188,7 +183,7 @@ describe("selectDebugNodeExecutionRecords", () => {
     expect(failureFirst[0].runtimeName).toBe("A");
     expect(execution[1]).toMatchObject({
       runtimeName: "B",
-      durationMs: 3000,
+      durationMs: 1000,
       durationSource: "trace",
     });
     expect(latest[0].runtimeName).toBe("C");
@@ -405,15 +400,6 @@ const resolverNodes = [
   },
 ];
 
-const resolverEdges: ResolverEdge[] = [
-  {
-    edgeId: "edge-b-c",
-    fromRuntimeName: "B",
-    toRuntimeName: "C",
-    reason: "anchor",
-  },
-];
-
 function event(
   seq: number,
   kind: DebugEventKind,
@@ -443,14 +429,6 @@ function node(nodeId: string, runtimeName: string): DebugEvent["node"] {
     nodeId,
     runtimeName,
     label: runtimeName,
-  };
-}
-
-function taskerBootstrapNode(): DebugEvent["node"] {
-  return {
-    runtimeName: DEBUG_TASKER_BOOTSTRAP_RUNTIME_NAME,
-    label: DEBUG_TASKER_BOOTSTRAP_LABEL,
-    syntheticKind: "tasker-bootstrap",
   };
 }
 

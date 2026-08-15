@@ -1,4 +1,4 @@
-import { memo, useMemo, useRef, useEffect, useState } from "react";
+import { memo, useMemo, useRef } from "react";
 import { type NodeProps } from "@xyflow/react";
 import classNames from "classnames";
 
@@ -36,7 +36,6 @@ export const ModernContent = memo(
   ({ data, props }: { data: PipelineNodeDataType; props: NodeProps }) => {
     const nodeId = props.id;
     const headerRef = useRef<HTMLDivElement>(null);
-    const [headerHeight, setHeaderHeight] = useState(0);
 
     // 是否显示节点模板图片
     const showNodeTemplateImages = useConfigStore(
@@ -58,13 +57,6 @@ export const ModernContent = memo(
     );
 
     const { nextItems, errorItems } = useNodeFlowItems(nodeId);
-
-    useEffect(() => {
-      if (headerRef.current) {
-        const height = headerRef.current.offsetHeight;
-        setHeaderHeight(height);
-      }
-    }, [data.label]);
 
     const extraEntries = useMemo(() => {
       if (JsonHelper.isObj(data.extras)) {

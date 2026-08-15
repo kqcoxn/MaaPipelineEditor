@@ -98,7 +98,7 @@ const KeyListener = memo(
         target: targetRef.current,
         actInsideInputWithModifier: false,
       }),
-      [targetRef.current],
+      [targetRef],
     );
 
     // 复制节点
@@ -195,7 +195,6 @@ interface NodeAddPanelControllerProps {
   visible: boolean;
   screenPos: { x: number; y: number };
   quickCreateConnection: QuickCreateConnection | null;
-  setVisible: (v: boolean) => void;
   setScreenPos: (pos: { x: number; y: number }) => void;
   onClose: () => void;
 }
@@ -204,7 +203,6 @@ const NodeAddPanelController = memo(
     visible,
     screenPos,
     quickCreateConnection,
-    setVisible,
     setScreenPos,
     onClose,
   }: NodeAddPanelControllerProps) => {
@@ -438,7 +436,7 @@ function MainFlow() {
 
   // 双击空白区域打开节点添加面板
   const onPaneClick = useCallback(
-    (event: React.MouseEvent | MouseEvent) => {
+    () => {
       if (suppressNextPaneClickRef.current) {
         suppressNextPaneClickRef.current = false;
         return;
@@ -715,7 +713,6 @@ function MainFlow() {
           visible={nodeAddPanelVisible}
           screenPos={nodeAddPanelPos}
           quickCreateConnection={quickCreateConnection}
-          setVisible={setNodeAddPanelVisible}
           setScreenPos={setNodeAddPanelPos}
           onClose={closeNodeAddPanel}
         />

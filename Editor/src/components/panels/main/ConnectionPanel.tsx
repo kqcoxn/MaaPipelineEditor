@@ -44,6 +44,22 @@ import { WikiAnchor } from "../../wiki/WikiAnchor";
 
 const { Text } = Typography;
 
+const ADB_DEFAULT_SCREENCAP_METHODS = [
+  "EncodeToFileAndPull",
+  "Encode",
+  "RawWithGzip",
+  "RawByNetcat",
+  "MinicapDirect",
+  "MinicapStream",
+  "EmulatorExtras",
+];
+const ADB_DEFAULT_INPUT_METHODS = [
+  "AdbShell",
+  "MinitouchAndAdbKey",
+  "Maatouch",
+  "EmulatorExtras",
+];
+
 interface ConnectionPanelProps {
   open: boolean;
   onClose: () => void;
@@ -160,23 +176,6 @@ export const ConnectionPanel = memo(
     const isAdbManualMode =
       manualAdbPath.trim().length > 0 || manualAddress.trim().length > 0;
 
-    // ADB 手动连接时的默认可选方法
-    const ADB_DEFAULT_SCREENCAP_METHODS = [
-      "EncodeToFileAndPull",
-      "Encode",
-      "RawWithGzip",
-      "RawByNetcat",
-      "MinicapDirect",
-      "MinicapStream",
-      "EmulatorExtras",
-    ];
-    const ADB_DEFAULT_INPUT_METHODS = [
-      "AdbShell",
-      "MinitouchAndAdbKey",
-      "Maatouch",
-      "EmulatorExtras",
-    ];
-
     // 获取当前选中设备的方法列表(用于初始化)
     const selectedDeviceMethods = useMemo(() => {
       if (activeTab === "adb") {
@@ -201,6 +200,18 @@ export const ConnectionPanel = memo(
       return { screencap: [], input: [] };
     }, [activeTab, selectedAdbDevice, selectedWin32Window, isAdbManualMode]);
 
+    const handleRefresh = useCallback(() => {
+      setIsRefreshing(true);
+      if (activeTab === "adb") {
+        mfwProtocol.refreshAdbDevices();
+      } else if (activeTab === "win32") {
+        mfwProtocol.refreshWin32Windows();
+      } else if (activeTab === "wlroots") {
+        mfwProtocol.refreshWlRootsSockets();
+      }
+      setTimeout(() => setIsRefreshing(false), 1000);
+    }, [activeTab]);
+
     // 初始化时设置默认值
     useEffect(() => {
       if (
@@ -220,7 +231,7 @@ export const ConnectionPanel = memo(
           setCustomInput(selectedDeviceMethods.input[0]);
         }
       }
-    }, [selectedDeviceMethods, activeTab]);
+    }, [activeTab, customInput, customScreencap, selectedDeviceMethods]);
 
     // 切换设备时重置方法选择
     useEffect(() => {
@@ -259,6 +270,8 @@ export const ConnectionPanel = memo(
     }, [
       selectedAdbDevice?.address,
       selectedWin32Window?.hwnd,
+      selectedAdbDevice,
+      selectedWin32Window,
       selectedDeviceMethods,
       isAdbManualMode,
       activeTab,
@@ -320,6 +333,8 @@ export const ConnectionPanel = memo(
       win32Windows,
       wlrootsSockets,
       activeTab,
+      setMacosPid,
+      setWlrootsSocketPath,
     ]);
 
     // 未连接且第一次打开时自动刷新设备列表
@@ -332,7 +347,7 @@ export const ConnectionPanel = memo(
         setVisitedTabs((prev) => new Set(prev).add(activeTab));
         handleRefresh();
       }
-    }, [activeTab, open, visitedTabs, connectionStatus]);
+    }, [activeTab, connectionStatus, handleRefresh, open, visitedTabs]);
 
     // 关闭面板时重置访问记录和初始化状态
     useEffect(() => {
@@ -341,19 +356,6 @@ export const ConnectionPanel = memo(
         setHasInitialized(false);
       }
     }, [open]);
-
-    // 刷新设备列表
-    const handleRefresh = useCallback(() => {
-      setIsRefreshing(true);
-      if (activeTab === "adb") {
-        mfwProtocol.refreshAdbDevices();
-      } else if (activeTab === "win32") {
-        mfwProtocol.refreshWin32Windows();
-      } else if (activeTab === "wlroots") {
-        mfwProtocol.refreshWlRootsSockets();
-      }
-      setTimeout(() => setIsRefreshing(false), 1000);
-    }, [activeTab]);
 
     // 连接设备
     const handleConnect = useCallback(() => {
@@ -509,6 +511,7 @@ export const ConnectionPanel = memo(
       manualAdbPath,
       manualAddress,
       manualConfig,
+      manualName,
     ]);
 
     // 断开连接
@@ -626,7 +629,6 @@ export const ConnectionPanel = memo(
       activeTab,
       selectedAdbDevice,
       selectedWin32Window,
-      selectedWlRootsSocket,
       wlrootsSocketPath,
       playCoverAddress,
       macosPid,

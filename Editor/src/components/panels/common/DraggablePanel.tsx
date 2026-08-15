@@ -23,7 +23,6 @@ export const usePanelPositionStore = create<PanelPositionState>()((set) => ({
 
 interface DraggablePanelProps {
   children: ReactNode;
-  panelType: "field" | "edge";
   isVisible: boolean;
   className?: string;
   defaultRight?: number;
@@ -37,7 +36,6 @@ interface DraggablePanelProps {
 export const DraggablePanel = memo(
   ({
     children,
-    panelType,
     isVisible,
     className = "",
     defaultRight = 10,

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Modal, Form, Input, Select, message, Tooltip } from "antd";
 import { FolderOutlined, FileOutlined, HomeFilled } from "@ant-design/icons";
 import { useLocalFileStore } from "@/stores/project/localFileStore";
@@ -28,7 +28,6 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
   const currentFilePath = useFileStore(
     (state) => state.currentFile.config.filePath
   );
-  const setFileConfig = useFileStore((state) => state.setFileConfig);
 
   // 提取目录列表（合并后端提供的目录和从文件路径推导的目录）
   const directoryOptions = useMemo(() => {
@@ -76,7 +75,7 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
     if (fullPath.startsWith(rootPath)) {
       const relativePath = fullPath.substring(rootPath.length);
       return {
-        display: relativePath.replace(/^[\/\\]/, "") || ".",
+        display: relativePath.replace(/^[/\\]/, "") || ".",
         isRoot: false,
       };
     }
@@ -92,52 +91,8 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
     };
   };
 
-  useEffect(() => {
-    if (visible) {
-      form.resetFields();
-      setPreviewFileName("");
-
-      // 自动填充当前文件名
-      const initialFileName = currentFileName || "";
-
-      // 优先使用当前文件所在目录，否则使用根路径
-      let initialDirectory = rootPath || "";
-      if (currentFilePath) {
-        // 从文件路径中提取目录路径
-        const lastSeparatorIndex = Math.max(
-          currentFilePath.lastIndexOf("/"),
-          currentFilePath.lastIndexOf("\\")
-        );
-        if (lastSeparatorIndex > 0) {
-          initialDirectory = currentFilePath.substring(0, lastSeparatorIndex);
-        }
-      }
-
-      form.setFieldsValue({
-        fileName: initialFileName,
-        directory: initialDirectory,
-        saveToLocal: true,
-      });
-
-      // 更新预览文件名和验证状态
-      if (initialFileName && validateFileName(initialFileName)) {
-        setPreviewFileName(normalizeFileName(initialFileName));
-        setIsValidFileName(true);
-        // 检查重名
-        const duplicate = checkDuplicateFileName(
-          initialFileName,
-          initialDirectory
-        );
-        setIsDuplicate(duplicate);
-      } else {
-        setIsValidFileName(false);
-        setIsDuplicate(false);
-      }
-    }
-  }, [visible, form, rootPath, currentFileName, currentFilePath]);
-
   // 规范化文件名
-  const normalizeFileName = (fileName: string): string => {
+  const normalizeFileName = useCallback((fileName: string): string => {
     if (!fileName) return "";
 
     const trimmed = fileName.trim();
@@ -149,10 +104,10 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
 
     // 自动补全
     return `${trimmed}.json`;
-  };
+  }, []);
 
   // 验证文件名
-  const validateFileName = (fileName: string): boolean => {
+  const validateFileName = useCallback((fileName: string): boolean => {
     if (!fileName) return false;
 
     const normalized = normalizeFileName(fileName);
@@ -165,26 +120,70 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
 
     // 必须以.json或.jsonc结尾
     return normalized.endsWith(".json") || normalized.endsWith(".jsonc");
-  };
+  }, [normalizeFileName]);
 
   // 检查文件名是否在本地文件列表中已存在
-  const checkDuplicateFileName = (
-    fileName: string,
-    directory: string
-  ): boolean => {
-    if (!fileName || !directory) return false;
+  const checkDuplicateFileName = useCallback(
+    (fileName: string, directory: string): boolean => {
+      if (!fileName || !directory) return false;
 
-    const normalized = normalizeFileName(fileName);
-    const fullPath = `${directory}${
-      directory.endsWith("/") || directory.endsWith("\\") ? "" : "/"
-    }${normalized}`;
+      const normalized = normalizeFileName(fileName);
+      const fullPath = `${directory}${
+        directory.endsWith("/") || directory.endsWith("\\") ? "" : "/"
+      }${normalized}`;
 
-    return files.some((file) => {
-      const filePath = file.file_path.replace(/\\/g, "/");
-      const targetPath = fullPath.replace(/\\/g, "/");
-      return filePath.toLowerCase() === targetPath.toLowerCase();
+      return files.some((file) => {
+        const filePath = file.file_path.replace(/\\/g, "/");
+        const targetPath = fullPath.replace(/\\/g, "/");
+        return filePath.toLowerCase() === targetPath.toLowerCase();
+      });
+    },
+    [files, normalizeFileName],
+  );
+
+  useEffect(() => {
+    if (!visible) return;
+
+    form.resetFields();
+    setPreviewFileName("");
+    const initialFileName = currentFileName || "";
+    let initialDirectory = rootPath || "";
+    if (currentFilePath) {
+      const lastSeparatorIndex = Math.max(
+        currentFilePath.lastIndexOf("/"),
+        currentFilePath.lastIndexOf("\\"),
+      );
+      if (lastSeparatorIndex > 0) {
+        initialDirectory = currentFilePath.substring(0, lastSeparatorIndex);
+      }
+    }
+
+    form.setFieldsValue({
+      fileName: initialFileName,
+      directory: initialDirectory,
+      saveToLocal: true,
     });
-  };
+
+    if (initialFileName && validateFileName(initialFileName)) {
+      setPreviewFileName(normalizeFileName(initialFileName));
+      setIsValidFileName(true);
+      setIsDuplicate(
+        checkDuplicateFileName(initialFileName, initialDirectory),
+      );
+    } else {
+      setIsValidFileName(false);
+      setIsDuplicate(false);
+    }
+  }, [
+    checkDuplicateFileName,
+    currentFileName,
+    currentFilePath,
+    form,
+    normalizeFileName,
+    rootPath,
+    validateFileName,
+    visible,
+  ]);
 
   // 处理文件名变化
   const handleFileNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -364,7 +363,7 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
             optionFilterProp="label"
             onChange={handleDirectoryChange}
             options={directoryOptions.map((dir) => {
-              const { display, isRoot } = getDisplayPath(dir);
+              const { display } = getDisplayPath(dir);
               return {
                 label: display,
                 value: dir,

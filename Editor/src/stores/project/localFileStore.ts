@@ -215,10 +215,10 @@ export const useLocalFileStore = create<LocalFileState>()((set, get) => ({
         return {};
       }
 
-      const fileName = filePath.split(/[\/\\]/).pop() || "";
+      const fileName = filePath.split(/[/\\]/).pop() || "";
       const relPath = filePath
         .replace(state.rootPath, "")
-        .replace(/^[\/\\]/, "");
+        .replace(/^[/\\]/, "");
 
       const newFile: LocalFileInfo = {
         file_path: filePath,
@@ -236,7 +236,7 @@ export const useLocalFileStore = create<LocalFileState>()((set, get) => ({
   },
 
   // 更新文件
-  updateFile(filePath) {
+  updateFile(_filePath) {
     set({
       lastUpdateTime: Date.now(),
     });

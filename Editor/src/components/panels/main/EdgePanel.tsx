@@ -132,7 +132,7 @@ function EdgePanel() {
   const fieldPanelMode = useConfigStore(
     (state) => state.configs.fieldPanelMode,
   );
-  const { isActive, isDisplaced, activate, deactivate } =
+  const { isDisplaced, activate, deactivate } =
     usePanelOccupancy("edge");
 
   // 判断是否只有一条边被选中且没有选中节点
@@ -293,7 +293,6 @@ function EdgePanel() {
   if (fieldPanelMode === "draggable") {
     return (
       <DraggablePanel
-        panelType="edge"
         isVisible={currentEdge !== null}
         className={panelClass}
         defaultRight={10}

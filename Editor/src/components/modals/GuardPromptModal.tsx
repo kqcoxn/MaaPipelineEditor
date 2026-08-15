@@ -1,11 +1,9 @@
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback } from "react";
 import { Modal } from "antd";
 import { useConfigStore } from "@/stores/app/configStore";
-import { checkGuard } from "../panels/settings/guardSystem";
 import type { ConfigItemDef } from "../panels/settings/settingsDefinitions";
 
 interface GuardPromptModalProps {
-  action: string;
   unconfiguredItems: ConfigItemDef[];
   onContinue: () => void;
   onCancel: () => void;
@@ -37,7 +35,6 @@ function getCurrentValueLabel(item: ConfigItemDef): string | null {
 /**预配置引导弹窗 */
 const GuardPromptModal = memo(
   ({
-    action,
     unconfiguredItems,
     onContinue,
     onCancel,
@@ -131,41 +128,3 @@ const GuardPromptModal = memo(
 );
 
 export default GuardPromptModal;
-
-/**异步检查守卫并弹窗引导
- * @returns true = 放行, false = 阻止
- */
-export function useGuardCheck(): (action: string) => Promise<boolean> {
-  const [guardState, setGuardState] = useState<{
-    action: string;
-    items: ConfigItemDef[];
-    onContinue: () => void;
-  } | null>(null);
-
-  const checkAndPrompt = useCallback((action: string): Promise<boolean> => {
-    return new Promise((resolve) => {
-      const result = checkGuard(action);
-      if (result.passed) {
-        resolve(true);
-        return;
-      }
-      setGuardState({
-        action,
-        items: result.unconfiguredItems,
-        onContinue: () => {
-          setGuardState(null);
-          resolve(true);
-        },
-      });
-    });
-  }, []);
-
-  // 这个 hook 返回的函数用于触发检查
-  // GuardPromptModal 的渲染由调用方自行处理
-  return checkAndPrompt;
-}
-
-/**用于非 React 上下文的守卫检查（如直接在事件处理器中使用）
- * 返回守卫结果，弹窗由调用方渲染
- */
-export { checkGuard };

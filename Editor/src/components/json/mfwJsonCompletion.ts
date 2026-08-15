@@ -10,6 +10,10 @@ import {
 
 type MonacoModule = typeof import("monaco-editor");
 type MonacoLanguages = MonacoModule["languages"];
+type CompletionItemKinds = Pick<
+  MonacoLanguages["CompletionItemKind"],
+  "Field" | "Value"
+>;
 
 interface Position {
   lineNumber: number;
@@ -181,11 +185,12 @@ function createNodeNameFieldSuggestions(
   nodeNames: MfwJsonNodeNameSuggestion[],
   currentInput: string,
   position: Position,
+  completionItemKinds: CompletionItemKinds,
 ): MonacoLanguages.CompletionItem[] {
   const range = createCompletionRange(position, currentInput);
   return nodeNames.map((item) => ({
     label: item.label,
-    kind: MonacoLanguages.CompletionItemKind.Field,
+    kind: completionItemKinds.Field,
     insertText: item.insertText ?? item.label,
     detail: item.detail ?? "运行时节点名",
     documentation: item.documentation,
@@ -198,11 +203,12 @@ function createNodeNameValueSuggestions(
   nodeNames: MfwJsonNodeNameSuggestion[],
   currentInput: string,
   position: Position,
+  completionItemKinds: CompletionItemKinds,
 ): MonacoLanguages.CompletionItem[] {
   const range = createCompletionRange(position, currentInput);
   return nodeNames.map((item) => ({
     label: item.label,
-    kind: MonacoLanguages.CompletionItemKind.Value,
+    kind: completionItemKinds.Value,
     insertText: item.insertText ?? item.label,
     detail: item.detail ?? "运行时节点名",
     documentation: item.documentation,
@@ -252,7 +258,9 @@ function isNodeReferenceValueContext(
   return propertyKey === "next" || propertyKey === "on_error";
 }
 
-export function createMfwCompletionProvider(): MonacoLanguages.CompletionItemProvider {
+export function createMfwCompletionProvider(
+  completionItemKinds: CompletionItemKinds,
+): MonacoLanguages.CompletionItemProvider {
   return {
     triggerCharacters: ['"', "'"],
     provideCompletionItems: (
@@ -274,7 +282,7 @@ export function createMfwCompletionProvider(): MonacoLanguages.CompletionItemPro
           getRecognitionTypes().map(
           (type) => ({
             label: type,
-            kind: MonacoLanguages.CompletionItemKind.Value,
+            kind: completionItemKinds.Value,
             insertText: type,
             detail: `识别类型: ${recoFields[type]?.desc?.split("。")[0] || ""}`,
             documentation: recoFields[type]?.desc || "",
@@ -292,7 +300,7 @@ export function createMfwCompletionProvider(): MonacoLanguages.CompletionItemPro
           getActionTypes().map(
           (type) => ({
             label: type,
-            kind: MonacoLanguages.CompletionItemKind.Value,
+            kind: completionItemKinds.Value,
             insertText: type,
             detail: `动作类型: ${actionFields[type]?.desc?.split("。")[0] || ""}`,
             documentation: actionFields[type]?.desc || "",
@@ -314,6 +322,7 @@ export function createMfwCompletionProvider(): MonacoLanguages.CompletionItemPro
             nodeNameSuggestions,
             currentInput,
             position,
+            completionItemKinds,
           ),
         };
       }
@@ -355,7 +364,7 @@ export function createMfwCompletionProvider(): MonacoLanguages.CompletionItemPro
         .sort()
         .map((key) => ({
           label: key,
-          kind: MonacoLanguages.CompletionItemKind.Field,
+          kind: completionItemKinds.Field,
           insertText: key,
           detail: "MaaFramework 字段",
           sortText: key.startsWith(currentInput) ? `0${key}` : `1${key}`,
@@ -369,6 +378,7 @@ export function createMfwCompletionProvider(): MonacoLanguages.CompletionItemPro
               nodeNameSuggestions,
               currentInput,
               position,
+              completionItemKinds,
             )
           : [];
 
@@ -404,7 +414,7 @@ export function ensureMfwJsonCompletionProvider(
   }
   monaco.languages.registerCompletionItemProvider(
     "json",
-    createMfwCompletionProvider(),
+    createMfwCompletionProvider(monaco.languages.CompletionItemKind),
   );
   mfwJsonCompletionRegistered = true;
 }

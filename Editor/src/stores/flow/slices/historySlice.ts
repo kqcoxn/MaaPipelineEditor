@@ -40,7 +40,7 @@ function fastClone<T>(data: T): T {
   if (typeof structuredClone !== "undefined") {
     try {
       return structuredClone(data);
-    } catch (e) {
+    } catch (_error) {
       // 降级到 JSON 方式
     }
   }

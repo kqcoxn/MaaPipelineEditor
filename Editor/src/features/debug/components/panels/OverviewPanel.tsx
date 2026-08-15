@@ -9,11 +9,8 @@ import { Alert, Button, Checkbox, Select, Space, Typography } from "antd";
 import {
   CaretRightOutlined,
   FileSearchOutlined,
-  FileTextOutlined,
   FormatPainterOutlined,
-  InfoCircleOutlined,
   NodeIndexOutlined,
-  ReloadOutlined,
   StopOutlined,
 } from "@ant-design/icons";
 import type { editor as MonacoEditor } from "monaco-editor";

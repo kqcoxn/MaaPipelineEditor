@@ -12,7 +12,6 @@ import {
   Switch,
   Collapse,
   InputNumber,
-  Result,
 } from "antd";
 import {
   DeleteOutlined,

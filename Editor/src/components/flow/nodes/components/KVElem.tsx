@@ -10,7 +10,7 @@ export const KVElem = memo(
         <div className={style.key}>{paramKey}</div>
         <div className={style.value}>
           <div className={style.container}>
-            {JsonHelper.objToString(value) ?? String(value) ?? ""}
+            {JsonHelper.objToString(value) ?? String(value)}
           </div>
         </div>
       </li>

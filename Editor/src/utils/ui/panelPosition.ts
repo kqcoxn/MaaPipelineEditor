@@ -105,8 +105,6 @@ export function calculateEmbeddedPosition(
 
   // 计算目标元素在屏幕上的尺寸
   const scaledTargetWidth = targetWidth * viewport.zoom;
-  const scaledTargetHeight = targetHeight * viewport.zoom;
-
   // 获取 .workspace 元素
   const workspace = document.querySelector(".workspace") as HTMLElement;
   if (!workspace) {

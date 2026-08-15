@@ -1,5 +1,5 @@
 import type { ReactFlowInstance, Viewport } from "@xyflow/react";
-import type { NodeType, PositionType } from "../types";
+import type { NodeType } from "../types";
 
 /**
  * 规范化视口数据，将坐标取整，缩放值保留两位小数

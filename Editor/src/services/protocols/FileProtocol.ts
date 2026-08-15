@@ -67,7 +67,7 @@ export class FileProtocol extends BaseProtocol {
     );
   }
 
-  protected handleMessage(path: string, data: any): void {
+  protected handleMessage(_path: string, _data: any): void {
     // 统一的消息处理入口
   }
 
@@ -129,7 +129,7 @@ export class FileProtocol extends BaseProtocol {
       );
 
       if (success) {
-        const fileName = file_path.split(/[\/\\]/).pop();
+        const fileName = file_path.split(/[/\\]/).pop();
         if (mpe_config) {
           message.success(`已打开文件: ${fileName} (含配置)`);
         } else {
@@ -159,13 +159,13 @@ export class FileProtocol extends BaseProtocol {
 
       const localFileStore = useLocalFileStore.getState();
       const fileStore = useFileStore.getState();
-      const fileName = file_path.split(/[\/\\]/).pop() || file_path;
+      const fileName = file_path.split(/[/\\]/).pop() || file_path;
 
       switch (type) {
         case "created":
           break;
 
-        case "modified":
+        case "modified": {
           localFileStore.updateFile(file_path);
 
           // 检查是否是最近保存的文件
@@ -181,6 +181,7 @@ export class FileProtocol extends BaseProtocol {
             this.showFileChangedNotification(file_path, fileName);
           }
           break;
+        }
 
         case "deleted":
           // 目录删除
@@ -209,7 +210,7 @@ export class FileProtocol extends BaseProtocol {
           }
           break;
 
-        case "renamed":
+        case "renamed": {
           // 重命名
           const renamedFiles = fileStore.files.filter(
             (f) =>
@@ -225,6 +226,7 @@ export class FileProtocol extends BaseProtocol {
             }
           });
           break;
+        }
 
         default:
           console.warn("[FileProtocol] Unknown file change type:", type);
@@ -247,7 +249,7 @@ export class FileProtocol extends BaseProtocol {
       FileProtocol.resolveSaveCallback(file_path, success);
 
       if (success) {
-        const fileName = file_path.split(/[\/\\]/).pop() || file_path;
+        const fileName = file_path.split(/[/\\]/).pop() || file_path;
         message.success(`文件已保存: ${fileName}`);
 
         // 忽略刚保存文件的变更通知（记录保存时间戳）
@@ -274,8 +276,8 @@ export class FileProtocol extends BaseProtocol {
 
       if (success) {
         const pipelineName =
-          pipeline_path.split(/[\/\\]/).pop() || pipeline_path;
-        const configName = config_path.split(/[\/\\]/).pop() || config_path;
+          pipeline_path.split(/[/\\]/).pop() || pipeline_path;
+        const configName = config_path.split(/[/\\]/).pop() || config_path;
         message.success(`文件已保存: ${pipelineName} + ${configName}`);
 
         // 忽略刚保存文件的变更通知
@@ -301,7 +303,7 @@ export class FileProtocol extends BaseProtocol {
       const { file_path, status } = data;
 
       if (status === "ok") {
-        const fileName = file_path.split(/[\/\\]/).pop() || file_path;
+        const fileName = file_path.split(/[/\\]/).pop() || file_path;
         message.success(`文件已创建: ${fileName}`);
 
         // 更新当前文件的路径配置
@@ -519,16 +521,6 @@ export class FileProtocol extends BaseProtocol {
    */
   private updateFileChangedModal(): void {
     if (!this.currentModal) return;
-
-    const count = this.pendingModifiedFiles.size;
-    const fileNames = Array.from(this.pendingModifiedFiles.values());
-    const displayNames =
-      fileNames.length <= 3
-        ? fileNames.map((n) => `"${n}"`).join("、")
-        : `${fileNames
-            .slice(0, 3)
-            .map((n) => `"${n}"`)
-            .join("、")} 等 ${count} 个文件`;
 
     this.currentModal.destroy();
     this.currentModal = null;

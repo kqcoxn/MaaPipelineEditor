@@ -109,7 +109,7 @@ function FieldPanel() {
   const fieldPanelMode = useConfigStore(
     (state) => state.configs.fieldPanelMode,
   );
-  const { isActive, isDisplaced, activate, deactivate } =
+  const { isDisplaced, activate, deactivate } =
     usePanelOccupancy("field");
   const [isLoading, setIsLoading] = useState(false);
   const [progressStage, setProgressStage] = useState("");
@@ -483,7 +483,6 @@ function FieldPanel() {
     return (
       <>
         <DraggablePanel
-          panelType="field"
           isVisible={currentNode !== null}
           className={panelClass}
           defaultRight={10}

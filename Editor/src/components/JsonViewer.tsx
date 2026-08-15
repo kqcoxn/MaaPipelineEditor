@@ -111,7 +111,7 @@ const ViewerElem = memo(({ obj }: { obj: any }) => {
 });
 
 function JsonViewer() {
-  const { isActive, isDisplaced, activate, deactivate } =
+  const { isActive, isDisplaced, deactivate } =
     usePanelOccupancy("json");
 
   // 存储编译后的 Pipeline 对象

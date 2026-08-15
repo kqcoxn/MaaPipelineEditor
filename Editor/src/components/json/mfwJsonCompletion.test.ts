@@ -6,6 +6,11 @@ import {
   createMfwJsonEditorOptions,
 } from "./mfwJsonCompletion";
 
+const completionItemKinds = {
+  Field: 0,
+  Value: 1,
+} as Parameters<typeof createMfwCompletionProvider>[0];
+
 interface MockModel {
   getValue(): string;
   getLineContent(lineNumber: number): string;
@@ -62,7 +67,7 @@ async function collectSuggestionLabels(
   lineNumber: number,
   column: number,
 ) {
-  const provider = createMfwCompletionProvider();
+  const provider = createMfwCompletionProvider(completionItemKinds);
   const result = await Promise.resolve(
     provider.provideCompletionItems(
       createMockModel(text) as never,
@@ -132,7 +137,7 @@ describe("createMfwCompletionProvider", () => {
       ],
     });
 
-    const provider = createMfwCompletionProvider();
+    const provider = createMfwCompletionProvider(completionItemKinds);
     const result = await Promise.resolve(
       provider.provideCompletionItems(
         model as never,

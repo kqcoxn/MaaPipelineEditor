@@ -313,11 +313,11 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       const nodeIndex = findNodeIndexById(state.nodes, id);
       if (nodeIndex < 0) return {};
 
-      let nodes = [...state.nodes];
+      const nodes = [...state.nodes];
       const originalNode = nodes[nodeIndex] as any;
 
       // 深拷贝节点
-      let targetNode = {
+      const targetNode = {
         ...originalNode,
         data: {
           ...originalNode.data,
@@ -429,11 +429,11 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       const nodeIndex = findNodeIndexById(state.nodes, id);
       if (nodeIndex < 0) return {};
 
-      let nodes = [...state.nodes];
+      const nodes = [...state.nodes];
       const originalNode = nodes[nodeIndex] as PipelineNodeType;
 
       // 深拷贝节点
-      let targetNode: PipelineNodeType = {
+      const targetNode: PipelineNodeType = {
         ...originalNode,
         data: {
           ...originalNode.data,

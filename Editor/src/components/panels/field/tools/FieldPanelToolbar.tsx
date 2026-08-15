@@ -6,8 +6,6 @@ import type {
   PipelineNodeDataType,
 } from "../../../../stores/flow/types";
 import { NodeTypeEnum } from "../../../flow/nodes";
-import { useFlowStore } from "../../../../stores/flow";
-import { useMFWStore } from "@/stores/connection/mfwStore";
 import {
   copyNodeName,
   saveNodeAsTemplate,
@@ -84,13 +82,9 @@ export const FieldPanelToolbarLeft = memo(
 export const FieldPanelToolbarRight = memo(
   ({
     currentNode,
-    onLoadingChange,
-    onProgressChange,
     onDelete,
   }: {
     currentNode: NodeType | null;
-    onLoadingChange?: (loading: boolean) => void;
-    onProgressChange?: (stage: string, detail?: string) => void;
     onDelete?: () => void;
   }) => {
     const showPipelineButtons =

@@ -88,7 +88,7 @@ const NodePreviewContent = memo(({ node }: { node: NodeListItemInfo }) => {
 
     return (
       <div className={style["preview-images"]}>
-        {validPaths.map((path, index) => {
+        {validPaths.map((path) => {
           const cached = imageCache.get(path);
           const isPending = pendingImageRequests.has(path);
 

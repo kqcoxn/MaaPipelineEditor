@@ -145,7 +145,7 @@ export class MFWProtocol extends BaseProtocol {
     super.unregister();
   }
 
-  protected handleMessage(path: string, data: any): void {}
+  protected handleMessage(_path: string, _data: any): void {}
 
   /**
    * 处理 ADB 设备列表
@@ -260,7 +260,7 @@ export class MFWProtocol extends BaseProtocol {
    */
   private handleControllerStatus(data: any): void {
     try {
-      const { controller_id, connected, uuid } = data;
+      const { connected } = data;
 
       const mfwStore = useMFWStore.getState();
 
@@ -286,7 +286,7 @@ export class MFWProtocol extends BaseProtocol {
    * 处理操作结果（存根）
    * 路由: /lte/mfw/controller_operation_result
    */
-  private handleOperationResult(data: any): void {}
+  private handleOperationResult(_data: any): void {}
 
   /**
    * 处理执行动作结果

@@ -76,7 +76,9 @@ function isFileNameRepate(fileName: string, isSelf = true): boolean {
 // 创建空文件
 let fileIdCounter = 1;
 function createFile(options?: { fileName?: string; config?: any }): FileType {
-  let { fileName = "新建Pipeline" + fileIdCounter++, config } = options || {};
+  const { fileName: initialFileName = "新建Pipeline" + fileIdCounter++, config } =
+    options || {};
+  let fileName = initialFileName;
   while (isFileNameRepate(fileName, false)) {
     fileName = "新建Pipeline" + fileIdCounter++;
   }
@@ -434,7 +436,7 @@ export const useFileStore = create<FileState>()((set) => ({
     let reloadFilePath: string | undefined;
     set((state) => {
       // 查找文件
-      let currentFile = state.currentFile;
+      const currentFile = state.currentFile;
       if (currentFile.fileName === fileName) return {};
       const targetFile = findFile(fileName);
       if (!targetFile) return {};
@@ -520,7 +522,7 @@ export const useFileStore = create<FileState>()((set) => ({
   removeFile(fileName) {
     let activeKey = null;
     set((state) => {
-      let files = state.files;
+      const files = state.files;
       const newFiles = files.filter((file) => file.fileName !== fileName);
       if (newFiles.length === 0 || files.length - newFiles.length !== 1) {
         return {};
@@ -585,7 +587,7 @@ export const useFileStore = create<FileState>()((set) => ({
       const keyOrder = extractKeyOrder(contentString);
 
       // 从文件路径提取真实文件名（不含扩展名）
-      const realFileName = (filePath.split(/[\/\\]/).pop() || "").replace(
+      const realFileName = (filePath.split(/[/\\]/).pop() || "").replace(
         /\.(json|jsonc)$/i,
         "",
       );

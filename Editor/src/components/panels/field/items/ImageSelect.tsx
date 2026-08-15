@@ -1,9 +1,6 @@
 import { memo, useState, useEffect, useCallback, useMemo } from "react";
 import { AutoComplete, Image, Spin, Empty } from "antd";
-import {
-  useLocalFileStore,
-  type ImageFileInfo,
-} from "@/stores/project/localFileStore";
+import { useLocalFileStore } from "@/stores/project/localFileStore";
 import { resourceProtocol } from "../../../../services/server";
 import { useWSStore } from "@/stores/connection/wsStore";
 import { useFileStore } from "@/stores/project/fileStore";

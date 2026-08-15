@@ -380,11 +380,12 @@ export const ColorModal = memo(
             displayText = `HSV(${hsv[0]}, ${hsv[1]}, ${hsv[2]})`;
             break;
           }
-          case "GRAY":
+          case "GRAY": {
             const gray = rgbToGray(r, g, b);
             color = [gray];
             displayText = `GRAY(${gray})`;
             break;
+          }
         }
 
         setPickedColor(color);

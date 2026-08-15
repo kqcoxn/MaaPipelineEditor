@@ -6,7 +6,6 @@ import type { ParamType } from "../../../../stores/flow";
 import type { FieldType } from "../../../../core/fields";
 import { FieldTypeEnum } from "../../../../core/fields";
 import { JsonHelper } from "../../../../utils/data/jsonHelper";
-import { useMFWStore } from "@/stores/connection/mfwStore";
 import {
   ROIModal,
   ROIOffsetModal,
@@ -40,7 +39,7 @@ function parseROIValue(
   }
   if (typeof value === "string") {
     const nums = value
-      .replace(/[\s\[\]]/g, "")
+      .replace(/[\s[\]]/g, "")
       .split(/[,，]/)
       .map(Number);
     if (nums.length === 4 && nums.every((n) => Number.isInteger(n))) {
@@ -120,7 +119,6 @@ export const ParamFieldListElem = memo(
     sortOrder?: string[];
   }) => {
     const { isEmbed } = useEmbedMode();
-    const { connectionStatus } = useMFWStore();
     const [roiModalOpen, setRoiModalOpen] = useState(false);
     const [ocrModalOpen, setOcrModalOpen] = useState(false);
     const [templateModalOpen, setTemplateModalOpen] = useState(false);
@@ -152,7 +150,7 @@ export const ParamFieldListElem = memo(
         setCurrentListIndex(listIndex ?? null);
         setRoiModalOpen(true);
       },
-      [connectionStatus],
+      [],
     );
 
     // 打开 OCR 配置面板
@@ -162,7 +160,7 @@ export const ParamFieldListElem = memo(
         setCurrentListIndex(listIndex ?? null);
         setOcrModalOpen(true);
       },
-      [connectionStatus],
+      [],
     );
 
     // 打开模板配置面板
@@ -172,7 +170,7 @@ export const ParamFieldListElem = memo(
         setCurrentListIndex(listIndex ?? null);
         setTemplateModalOpen(true);
       },
-      [connectionStatus],
+      [],
     );
 
     // 打开模板匹配验证面板
@@ -192,7 +190,7 @@ export const ParamFieldListElem = memo(
         setCurrentListIndex(listIndex ?? null);
         setColorModalOpen(true);
       },
-      [connectionStatus],
+      [],
     );
 
     // 打开位移差值配置面板
@@ -202,7 +200,7 @@ export const ParamFieldListElem = memo(
         setCurrentListIndex(listIndex ?? null);
         setDeltaModalOpen(true);
       },
-      [connectionStatus],
+      [],
     );
 
     // 打开 ROI 偏移配置面板
@@ -212,7 +210,7 @@ export const ParamFieldListElem = memo(
         setCurrentListIndex(listIndex ?? null);
         setRoiOffsetModalOpen(true);
       },
-      [connectionStatus],
+      [],
     );
 
     // ROI 确认回调
@@ -244,7 +242,7 @@ export const ParamFieldListElem = memo(
     const handleOCRConfirm = useCallback(
       (
         text: string,
-        roi?: [number, number, number, number],
+        _roi?: [number, number, number, number],
         withROI?: boolean,
       ) => {
         if (currentExpectedKey) {
@@ -278,7 +276,7 @@ export const ParamFieldListElem = memo(
       (
         templatePath: string,
         greenMask: boolean,
-        roi?: [number, number, number, number],
+        _roi?: [number, number, number, number],
       ) => {
         if (currentTemplateKey) {
           // 列表类型只替换指定索引的值
@@ -339,7 +337,7 @@ export const ParamFieldListElem = memo(
 
     // 位移差值确认回调
     const handleDeltaConfirm = useCallback(
-      (delta: number, mode: "dx" | "dy") => {
+      (delta: number, _mode: "dx" | "dy") => {
         if (!currentDeltaKey) return;
 
         onChange(currentDeltaKey, delta);
@@ -485,7 +483,7 @@ export const ParamFieldListElem = memo(
       const value = paramData[key];
       // 输入方案
       let InputElem = null;
-      let paramType = Array.isArray(type.type) ? type.type[0] : type.type;
+      const paramType = Array.isArray(type.type) ? type.type[0] : type.type;
       let isListType = false;
       // 可选类型
       if ("options" in type) {

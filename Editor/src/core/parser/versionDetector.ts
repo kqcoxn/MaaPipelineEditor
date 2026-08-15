@@ -117,7 +117,7 @@ export function detectActionVersion(node: any): number {
  */
 export function normalizeRecoType(value: string): string {
   if (!Object.values(upperRecoValues).includes(value)) {
-    let idx = Object.keys(upperRecoValues).findIndex(
+    const idx = Object.keys(upperRecoValues).findIndex(
       (k) => k === value.toUpperCase()
     );
     if (idx >= 0) {
@@ -136,7 +136,7 @@ export function normalizeRecoType(value: string): string {
  */
 export function normalizeActionType(value: string): string {
   if (!Object.values(upperActionValues).includes(value)) {
-    let idx = Object.keys(upperActionValues).findIndex(
+    const idx = Object.keys(upperActionValues).findIndex(
       (k) => k === value.toUpperCase()
     );
     if (idx >= 0) {

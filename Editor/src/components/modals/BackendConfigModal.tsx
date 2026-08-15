@@ -182,8 +182,6 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
     }, 5000);
   };
 
-  const labelStyle = { style: { minWidth: 120 } };
-
   return (
     <Modal
       title={

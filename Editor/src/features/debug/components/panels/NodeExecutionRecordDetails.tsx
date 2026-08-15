@@ -1,5 +1,5 @@
 ﻿import { List } from "../../../../components/SimpleList";
-import { Typography, Space, Tag, Alert, Result } from "antd";
+import { Typography, Space, Tag, Alert } from "antd";
 import type { CSSProperties, ReactNode } from "react";
 import { DebugArtifactSelector } from "../DebugArtifactSelector";
 import { DebugSection } from "../DebugSection";

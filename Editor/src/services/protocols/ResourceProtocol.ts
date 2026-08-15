@@ -35,7 +35,7 @@ export class ResourceProtocol extends BaseProtocol {
     );
   }
 
-  protected handleMessage(path: string, data: any): void {
+  protected handleMessage(_path: string, _data: any): void {
     // 统一的消息处理入口
   }
 
