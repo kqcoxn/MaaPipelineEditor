@@ -147,4 +147,4 @@ MPE 项目没有单独的交流群，您可以在 MaaFramework 集成/开发交�
 - `2025.5-8`：[MNMA](https://github.com/kqcoxn/MaaNewMoonAccompanying) 实践（思路修补）
 - `2025.5`：[YaMaaPE](https://github.com/kqcoxn/YAMaaPE)（项目原型）
 
-[![Star History Chart](https://api.star-history.com/svg?repos=kqcoxn/MaaPipelineEditor&type=Date)](https://www.star-history.com/#kqcoxn/MaaPipelineEditor&Date)
+[![Star History Chart](https://star-history.dera.page/svg?repos=kqcoxn/MaaPipelineEditor&type=Date)](https://star-history.dera.page/#kqcoxn/MaaPipelineEditor&Date)
