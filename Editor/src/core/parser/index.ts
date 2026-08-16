@@ -81,4 +81,5 @@ export {
   parseRecognitionField,
   parseActionField,
   parseNodeField,
+  convertMfwToStoreFormat,
 } from "./nodeParser";

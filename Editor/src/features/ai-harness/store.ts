@@ -1,0 +1,261 @@
+import { create } from "zustand";
+import { subscribeWithSelector } from "zustand/middleware";
+import {
+  DEFAULT_SESSION_TITLE,
+  MAX_EVENTS_PER_RUN,
+  MAX_RUNS_PER_SESSION,
+} from "./constants";
+import type {
+  HarnessRun,
+  HarnessRunStatus,
+  HarnessSession,
+  HarnessSessionMessage,
+  RunEvent,
+} from "./types";
+
+interface AIHarnessState {
+  sessions: HarnessSession[];
+  activeSessionId: string;
+  runs: Record<string, HarnessRun>;
+  events: Record<string, RunEvent[]>;
+  activeRunId: string | null;
+  streamingText: string;
+}
+
+interface AIHarnessActions {
+  createSession: (title?: string) => string;
+  switchSession: (sessionId: string) => boolean;
+  clearSession: (sessionId?: string) => boolean;
+  deleteSession: (sessionId: string) => boolean;
+  addRun: (run: HarnessRun) => void;
+  updateRun: (runId: string, patch: Partial<HarnessRun>) => void;
+  appendEvent: (event: RunEvent) => void;
+  appendMessage: (sessionId: string, message: HarnessSessionMessage) => void;
+  setStreamingText: (text: string) => void;
+  appendStreamingText: (delta: string) => void;
+  cancelRun: (runId: string, status?: HarnessRunStatus) => void;
+  reset: () => void;
+}
+
+export type AIHarnessStore = AIHarnessState & AIHarnessActions;
+
+let sequence = 0;
+function createId(prefix: string): string {
+  sequence += 1;
+  return `${prefix}_${Date.now()}_${sequence}`;
+}
+
+function createSessionData(title = DEFAULT_SESSION_TITLE): HarnessSession {
+  const timestamp = Date.now();
+  return {
+    id: createId("session"),
+    title: title.trim() || DEFAULT_SESSION_TITLE,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    runIds: [],
+    messages: [],
+  };
+}
+
+const initialSession = createSessionData();
+const createInitialState = (): AIHarnessState => ({
+  sessions: [initialSession],
+  activeSessionId: initialSession.id,
+  runs: {},
+  events: {},
+  activeRunId: null,
+  streamingText: "",
+});
+
+export const useAIHarnessStore = create<AIHarnessStore>()(
+  subscribeWithSelector((set, get) => ({
+    ...createInitialState(),
+
+    createSession(title) {
+      const session = createSessionData(title);
+      set((state) => ({
+        sessions: [session, ...state.sessions],
+        activeSessionId: session.id,
+      }));
+      return session.id;
+    },
+
+    switchSession(sessionId) {
+      if (!get().sessions.some((session) => session.id === sessionId)) {
+        return false;
+      }
+      set({ activeSessionId: sessionId, streamingText: "" });
+      return true;
+    },
+
+    clearSession(sessionId = get().activeSessionId) {
+      const session = get().sessions.find((item) => item.id === sessionId);
+      if (!session) return false;
+      if (
+        session.runIds.some((runId) =>
+          ["queued", "running", "waiting_tool"].includes(
+            get().runs[runId]?.status ?? "",
+          ),
+        )
+      ) {
+        return false;
+      }
+      const runIds = new Set(session.runIds);
+      set((state) => ({
+        sessions: state.sessions.map((item) =>
+          item.id === sessionId
+            ? { ...item, runIds: [], messages: [], updatedAt: Date.now() }
+            : item,
+        ),
+        runs: Object.fromEntries(
+          Object.entries(state.runs).filter(([id]) => !runIds.has(id)),
+        ),
+        events: Object.fromEntries(
+          Object.entries(state.events).filter(([id]) => !runIds.has(id)),
+        ),
+        activeRunId: runIds.has(state.activeRunId ?? "")
+          ? null
+          : state.activeRunId,
+        streamingText: runIds.has(state.activeRunId ?? "")
+          ? ""
+          : state.streamingText,
+      }));
+      return true;
+    },
+
+    deleteSession(sessionId) {
+      const state = get();
+      if (state.sessions.length <= 1) return false;
+      const session = state.sessions.find((item) => item.id === sessionId);
+      if (!session) return false;
+      if (
+        session.runIds.some((runId) =>
+          ["queued", "running", "waiting_tool"].includes(
+            state.runs[runId]?.status ?? "",
+          ),
+        )
+      ) {
+        return false;
+      }
+      const runIds = new Set(session.runIds);
+      const sessions = state.sessions.filter((item) => item.id !== sessionId);
+      set({
+        sessions,
+        activeSessionId:
+          state.activeSessionId === sessionId
+            ? sessions[0].id
+            : state.activeSessionId,
+        runs: Object.fromEntries(
+          Object.entries(state.runs).filter(([id]) => !runIds.has(id)),
+        ),
+        events: Object.fromEntries(
+          Object.entries(state.events).filter(([id]) => !runIds.has(id)),
+        ),
+        activeRunId: runIds.has(state.activeRunId ?? "")
+          ? null
+          : state.activeRunId,
+        streamingText: runIds.has(state.activeRunId ?? "")
+          ? ""
+          : state.streamingText,
+      });
+      return true;
+    },
+
+    addRun(run) {
+      set((state) => {
+        const session = state.sessions.find((item) => item.id === run.sessionId);
+        if (!session) throw new Error(`Session 不存在: ${run.sessionId}`);
+        const runIds = [...session.runIds, run.id];
+        const evictedRunIds = runIds.slice(0, -MAX_RUNS_PER_SESSION);
+        const keptRunIds = runIds.slice(-MAX_RUNS_PER_SESSION);
+        const runs = { ...state.runs, [run.id]: run };
+        const events = { ...state.events, [run.id]: [] };
+        evictedRunIds.forEach((id) => {
+          delete runs[id];
+          delete events[id];
+        });
+        return {
+          sessions: state.sessions.map((item) =>
+            item.id === run.sessionId
+              ? { ...item, runIds: keptRunIds, updatedAt: Date.now() }
+              : item,
+          ),
+          runs,
+          events,
+          activeRunId: run.id,
+          streamingText: "",
+        };
+      });
+    },
+
+    updateRun(runId, patch) {
+      set((state) => {
+        const run = state.runs[runId];
+        return run
+          ? { runs: { ...state.runs, [runId]: { ...run, ...patch } } }
+          : {};
+      });
+    },
+
+    appendEvent(event) {
+      set((state) => ({
+        events: {
+          ...state.events,
+          [event.runId]: [
+            ...(state.events[event.runId] ?? []),
+            event,
+          ].slice(-MAX_EVENTS_PER_RUN),
+        },
+      }));
+    },
+
+    appendMessage(sessionId, message) {
+      set((state) => ({
+        sessions: state.sessions.map((session) => {
+          if (session.id !== sessionId) return session;
+          const title =
+            session.title === DEFAULT_SESSION_TITLE && message.role === "user"
+              ? message.content.trim().slice(0, 32) || DEFAULT_SESSION_TITLE
+              : session.title;
+          return {
+            ...session,
+            title,
+            updatedAt: Date.now(),
+            messages: [...session.messages, message],
+          };
+        }),
+      }));
+    },
+
+    setStreamingText(streamingText) {
+      set({ streamingText });
+    },
+
+    appendStreamingText(delta) {
+      set((state) => ({ streamingText: state.streamingText + delta }));
+    },
+
+    cancelRun(runId, status = "cancelled") {
+      const run = get().runs[runId];
+      if (!run || !["queued", "running", "waiting_tool"].includes(run.status)) {
+        return;
+      }
+      get().updateRun(runId, { status, finishedAt: Date.now() });
+      set((state) => ({
+        activeRunId: state.activeRunId === runId ? null : state.activeRunId,
+      }));
+    },
+
+    reset() {
+      const session = createSessionData();
+      set({
+        sessions: [session],
+        activeSessionId: session.id,
+        runs: {},
+        events: {},
+        activeRunId: null,
+        streamingText: "",
+      });
+    },
+  })),
+);

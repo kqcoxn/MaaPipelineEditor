@@ -17,11 +17,19 @@ import type {
   ProviderRequest,
   RequestOptions,
   TokenUsage,
+  UnifiedFinishReason,
+  UnifiedResponse,
 } from "./types";
 
 /** Anthropic 内容块 */
 type AnthropicContentBlock =
   | { type: "text"; text: string }
+  | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> }
+  | {
+      type: "tool_result";
+      tool_use_id: string;
+      content: string;
+    }
   | {
       type: "image";
       source: {
@@ -53,7 +61,37 @@ function toAnthropicMessages(
 
     if (msg.role === "system") {
       // Anthropic 的 system prompt 放在顶层
-      system = msg.content;
+      system = system ? `${system}\n\n${msg.content}` : msg.content;
+      continue;
+    }
+
+    if (msg.role === "tool") {
+      result.push({
+        role: "user",
+        content: [
+          {
+            type: "tool_result",
+            tool_use_id: msg.toolCallId || "",
+            content: msg.content,
+          },
+        ],
+      });
+      continue;
+    }
+
+    if (msg.role === "assistant" && msg.toolCalls?.length) {
+      result.push({
+        role: "assistant",
+        content: [
+          ...(msg.content ? [{ type: "text" as const, text: msg.content }] : []),
+          ...msg.toolCalls.map((toolCall) => ({
+            type: "tool_use" as const,
+            id: toolCall.id,
+            name: toolCall.name,
+            input: toolCall.arguments,
+          })),
+        ],
+      });
       continue;
     }
 
@@ -123,6 +161,20 @@ export const anthropicProvider: AIProvider = {
     if (system) {
       body.system = system;
     }
+    if (options?.tools?.length) {
+      body.tools = options.tools.map((tool) => ({
+        name: tool.name,
+        description: tool.description,
+        input_schema: tool.inputSchema,
+      }));
+      const choice = options.toolChoice ?? "auto";
+      body.tool_choice =
+        typeof choice === "object"
+          ? { type: "tool", name: choice.name }
+          : choice === "required"
+            ? { type: "any" }
+            : { type: choice };
+    }
 
     return {
       url,
@@ -137,13 +189,21 @@ export const anthropicProvider: AIProvider = {
     };
   },
 
-  parseResponse(responseBody: any) {
+  parseResponse(responseBody: any): UnifiedResponse {
     // Anthropic 响应格式：content 是数组，取第一个 text block
     let content = "";
+    const toolCalls = [];
     if (Array.isArray(responseBody.content)) {
       for (const block of responseBody.content) {
         if (block.type === "text") {
           content += block.text;
+        } else if (block.type === "tool_use") {
+          toolCalls.push({
+            id: block.id || `anthropic_tool_${toolCalls.length}`,
+            name: block.name || "",
+            arguments:
+              block.input && typeof block.input === "object" ? block.input : {},
+          });
         }
       }
     }
@@ -160,7 +220,57 @@ export const anthropicProvider: AIProvider = {
       };
     }
 
-    return { content, usage };
+    return {
+      success: true,
+      content,
+      toolCalls,
+      finishReason: mapAnthropicFinishReason(responseBody.stop_reason),
+      usage,
+    };
+  },
+
+  parseStreamEvent(event) {
+    if (event.event === "message_stop") return { done: true };
+    if (!event.data) return {};
+    try {
+      const parsed = JSON.parse(event.data);
+      if (parsed.type === "content_block_start" && parsed.content_block?.type === "tool_use") {
+        return {
+          toolCalls: [
+            {
+              index: parsed.index ?? 0,
+              id: parsed.content_block.id,
+              name: parsed.content_block.name,
+              argumentsDelta: JSON.stringify(parsed.content_block.input ?? {}).replace("{}", ""),
+            },
+          ],
+        };
+      }
+      if (parsed.type === "content_block_delta") {
+        if (parsed.delta?.type === "text_delta") {
+          return { content: parsed.delta.text || undefined };
+        }
+        if (parsed.delta?.type === "input_json_delta") {
+          return {
+            toolCalls: [
+              {
+                index: parsed.index ?? 0,
+                argumentsDelta: parsed.delta.partial_json || "",
+              },
+            ],
+          };
+        }
+      }
+      if (parsed.type === "message_delta") {
+        return {
+          finishReason: mapAnthropicFinishReason(parsed.delta?.stop_reason),
+          usage: this.parseStreamUsage?.(parsed),
+        };
+      }
+      return { usage: this.parseStreamUsage?.(parsed) };
+    } catch {
+      return {};
+    }
   },
 
   parseStreamChunk(line: string): string | null {
@@ -223,3 +333,10 @@ export const anthropicProvider: AIProvider = {
     };
   },
 };
+
+function mapAnthropicFinishReason(reason: unknown): UnifiedFinishReason {
+  if (reason === "tool_use") return "tool_calls";
+  if (reason === "end_turn" || reason === "stop_sequence") return "stop";
+  if (reason === "max_tokens") return "length";
+  return "unknown";
+}

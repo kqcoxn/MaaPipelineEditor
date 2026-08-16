@@ -3,9 +3,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const configStoreMock = vi.hoisted(() => ({
   getState: vi.fn(),
 }));
-const historyMock = vi.hoisted(() => ({
-  addRecord: vi.fn(),
-}));
 const serverMock = vi.hoisted(() => ({
   localServer: {
     isConnected: vi.fn(),
@@ -18,9 +15,6 @@ const serverMock = vi.hoisted(() => ({
 
 vi.mock("@/stores/app/configStore", () => ({
   useConfigStore: configStoreMock,
-}));
-vi.mock("./history", () => ({
-  aiHistoryManager: historyMock,
 }));
 vi.mock("./crypto", () => ({
   decryptApiKey: vi.fn(async (value: string) => value),
@@ -132,7 +126,7 @@ describe("AIClient stream transport", () => {
     expect(fetch).toHaveBeenCalledOnce();
   });
 
-  it("estimates prompt usage before adding the completion", async () => {
+  it("keeps basic non-stream requests available without business history", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () =>
@@ -148,15 +142,44 @@ describe("AIClient stream transport", () => {
     const result = await new AIClient({ retryCount: 0 }).send("say hello");
 
     expect(result).toEqual({ success: true, content: "answer" });
-    expect(historyMock.addRecord).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        tokenUsage: {
-          promptTokens: 7,
-          completionTokens: 5,
-          totalTokens: 12,
-          isEstimated: true,
-        },
+  });
+
+  it("stitches streamed native tool-call arguments", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        const stream = createResponseStream([
+          'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call-1","function":{"name":"create_node","arguments":"{\\"name\\":"}}]}}]}\n\n',
+          'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"结束\\",\\"expectedStateVersion\\":1}"}}]},"finish_reason":"tool_calls"}]}\n\n',
+          "data: [DONE]\n\n",
+        ]);
+        return new Response(stream, { status: 200 });
       }),
     );
+
+    const result = await new AIClient({ retryCount: 0 }).complete(
+      [{ role: "user", content: "创建结束节点" }],
+      {
+        tools: [
+          {
+            name: "create_node",
+            description: "创建节点",
+            inputSchema: { type: "object" },
+          },
+        ],
+      },
+    );
+
+    expect(result).toMatchObject({
+      success: true,
+      finishReason: "tool_calls",
+      toolCalls: [
+        {
+          id: "call-1",
+          name: "create_node",
+          arguments: { name: "结束", expectedStateVersion: 1 },
+        },
+      ],
+    });
   });
 });

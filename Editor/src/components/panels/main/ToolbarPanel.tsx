@@ -1,6 +1,6 @@
 import style from "../../../styles/panels/ToolbarPanel.module.less";
 import { Button } from "antd";
-import { HistoryOutlined } from "@ant-design/icons";
+import { MessageOutlined } from "@ant-design/icons";
 import { memo } from "react";
 import ImportButton from "../toolbar/ImportButton.tsx";
 import ExportButton from "../toolbar/ExportButton.tsx";
@@ -30,13 +30,13 @@ function ToolbarPanel() {
       <EmbedSyncButton />
       {showLocalActions && <JsonPreviewButton />}
       <Button
-        icon={<HistoryOutlined />}
+        icon={<MessageOutlined />}
         onClick={() =>
           setStatus("showAIHistoryPanel", !showAIHistoryPanel)
         }
         className={`${style.toolbarButton} ${showAIHistoryPanel ? style.active : ""}`}
       >
-        AI 历史
+        AI 对话
       </Button>
       <WikiAnchor path="10.工作流面板/90.导入与导出.html" title="导入与导出" description="Pipeline文件的导入导出" />
     </div>

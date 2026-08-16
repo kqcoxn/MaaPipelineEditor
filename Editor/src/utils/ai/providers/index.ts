@@ -13,6 +13,11 @@ export type {
   TokenUsage,
   ProviderRequest,
   RequestOptions,
+  ModelToolDefinition,
+  ToolChoice,
+  UnifiedFinishReason,
+  UnifiedStreamDelta,
+  UnifiedToolCall,
 } from "./types";
 
 import type { AIProviderType, AIProvider } from "./types";

@@ -19,12 +19,21 @@ import type {
   ProviderRequest,
   RequestOptions,
   TokenUsage,
+  UnifiedFinishReason,
+  UnifiedResponse,
 } from "./types";
 
 /** Gemini 内容部分 */
 type GeminiPart =
   | { text: string }
-  | { inlineData: { mimeType: string; data: string } };
+  | { inlineData: { mimeType: string; data: string } }
+  | { functionCall: { name: string; args: Record<string, unknown> } }
+  | {
+      functionResponse: {
+        name: string;
+        response: Record<string, unknown>;
+      };
+    };
 
 /** Gemini 内容 */
 interface GeminiContent {
@@ -46,7 +55,54 @@ function toGeminiContents(
     const msg = messages[i];
 
     if (msg.role === "system") {
-      systemInstruction = { parts: [{ text: msg.content }] };
+      const previousText = systemInstruction?.parts
+        .map((part) => ("text" in part ? part.text : ""))
+        .join("");
+      systemInstruction = {
+        parts: [
+          { text: previousText ? `${previousText}\n\n${msg.content}` : msg.content },
+        ],
+      };
+      continue;
+    }
+
+    if (msg.role === "tool") {
+      let response: Record<string, unknown> = { result: msg.content };
+      try {
+        const parsed = JSON.parse(msg.content);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          response = parsed;
+        }
+      } catch {
+        // 文本结果由 result 字段承载。
+      }
+      contents.push({
+        role: "user",
+        parts: [
+          {
+            functionResponse: {
+              name: msg.name || "unknown_tool",
+              response,
+            },
+          },
+        ],
+      });
+      continue;
+    }
+
+    if (msg.role === "assistant" && msg.toolCalls?.length) {
+      contents.push({
+        role: "model",
+        parts: [
+          ...(msg.content ? [{ text: msg.content }] : []),
+          ...msg.toolCalls.map((toolCall) => ({
+            functionCall: {
+              name: toolCall.name,
+              args: toolCall.arguments,
+            },
+          })),
+        ],
+      });
       continue;
     }
 
@@ -116,6 +172,31 @@ export const geminiProvider: AIProvider = {
     if (systemInstruction) {
       body.systemInstruction = systemInstruction;
     }
+    if (options?.tools?.length) {
+      body.tools = [
+        {
+          functionDeclarations: options.tools.map((tool) => ({
+            name: tool.name,
+            description: tool.description,
+            parameters: tool.inputSchema,
+          })),
+        },
+      ];
+      const choice = options.toolChoice ?? "auto";
+      body.toolConfig = {
+        functionCallingConfig: {
+          mode:
+            choice === "none"
+              ? "NONE"
+              : choice === "required" || typeof choice === "object"
+                ? "ANY"
+                : "AUTO",
+          ...(typeof choice === "object"
+            ? { allowedFunctionNames: [choice.name] }
+            : {}),
+        },
+      };
+    }
 
     return {
       url,
@@ -129,14 +210,24 @@ export const geminiProvider: AIProvider = {
     };
   },
 
-  parseResponse(responseBody: any) {
+  parseResponse(responseBody: any): UnifiedResponse {
     // Gemini 响应格式：candidates[0].content.parts[0].text
     let content = "";
+    const toolCalls = [];
     const candidate = responseBody.candidates?.[0];
     if (candidate?.content?.parts) {
       for (const part of candidate.content.parts) {
         if (part.text) {
           content += part.text;
+        } else if (part.functionCall) {
+          toolCalls.push({
+            id: `gemini_tool_${toolCalls.length}`,
+            name: part.functionCall.name || "",
+            arguments:
+              part.functionCall.args && typeof part.functionCall.args === "object"
+                ? part.functionCall.args
+                : {},
+          });
         }
       }
     }
@@ -152,7 +243,53 @@ export const geminiProvider: AIProvider = {
       };
     }
 
-    return { content, usage };
+    return {
+      success: true,
+      content,
+      toolCalls,
+      finishReason:
+        toolCalls.length > 0
+          ? "tool_calls"
+          : mapGeminiFinishReason(candidate?.finishReason),
+      usage,
+    };
+  },
+
+  parseStreamEvent(event) {
+    if (!event.data) return {};
+    try {
+      const parsed = JSON.parse(event.data);
+      const candidate = parsed.candidates?.[0];
+      const contentParts = candidate?.content?.parts ?? [];
+      const toolCalls = contentParts.flatMap((part: any, index: number) =>
+        part.functionCall
+          ? [
+              {
+                index,
+                id: `gemini_tool_${index}`,
+                name: part.functionCall.name,
+                arguments:
+                  part.functionCall.args && typeof part.functionCall.args === "object"
+                    ? part.functionCall.args
+                    : {},
+              },
+            ]
+          : [],
+      );
+      return {
+        content:
+          contentParts.map((part: any) => part.text || "").join("") || undefined,
+        toolCalls: toolCalls.length ? toolCalls : undefined,
+        finishReason: candidate?.finishReason
+          ? toolCalls.length
+            ? "tool_calls"
+            : mapGeminiFinishReason(candidate.finishReason)
+          : undefined,
+        usage: this.parseStreamUsage?.(parsed),
+      };
+    } catch {
+      return {};
+    }
   },
 
   parseStreamChunk(line: string): string | null {
@@ -195,3 +332,9 @@ export const geminiProvider: AIProvider = {
     return undefined;
   },
 };
+
+function mapGeminiFinishReason(reason: unknown): UnifiedFinishReason {
+  if (reason === "STOP") return "stop";
+  if (reason === "MAX_TOKENS") return "length";
+  return "unknown";
+}

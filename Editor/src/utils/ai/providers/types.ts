@@ -16,10 +16,19 @@ export interface AIProviderConfig {
   temperature: number;
 }
 
+export interface UnifiedToolCall {
+  id: string;
+  name: string;
+  arguments: Record<string, unknown>;
+}
+
 /** 统一消息格式 */
 export interface UnifiedMessage {
-  role: "system" | "user" | "assistant";
+  role: "system" | "user" | "assistant" | "tool";
   content: string;
+  toolCalls?: UnifiedToolCall[];
+  toolCallId?: string;
+  name?: string;
 }
 
 /** 视觉图片 */
@@ -33,7 +42,41 @@ export interface UnifiedResponse {
   success: boolean;
   content: string;
   error?: string;
+  toolCalls: UnifiedToolCall[];
+  finishReason: UnifiedFinishReason;
   usage?: TokenUsage;
+}
+
+export type UnifiedFinishReason =
+  | "stop"
+  | "tool_calls"
+  | "length"
+  | "cancelled"
+  | "error"
+  | "unknown";
+
+export interface ModelToolDefinition {
+  name: string;
+  description: string;
+  inputSchema: Record<string, unknown>;
+}
+
+export type ToolChoice = "auto" | "none" | "required" | { name: string };
+
+export interface ToolCallDelta {
+  index: number;
+  id?: string;
+  name?: string;
+  argumentsDelta?: string;
+  arguments?: Record<string, unknown>;
+}
+
+export interface UnifiedStreamDelta {
+  content?: string;
+  toolCalls?: ToolCallDelta[];
+  finishReason?: UnifiedFinishReason;
+  usage?: TokenUsage;
+  done?: boolean;
 }
 
 /** Token 用量统计 */
@@ -57,6 +100,8 @@ export interface ProviderRequest {
 export interface RequestOptions {
   stream?: boolean;
   images?: VisionImage[];
+  tools?: ModelToolDefinition[];
+  toolChoice?: ToolChoice;
 }
 
 /** AI Provider 接口 */
@@ -81,10 +126,13 @@ export interface AIProvider {
   /**
    * 从非流式响应体中提取内容和 token 用量
    */
-  parseResponse(responseBody: any): {
-    content: string;
-    usage?: TokenUsage;
-  };
+  parseResponse(responseBody: unknown): UnifiedResponse;
+
+  /** 从一个完整 SSE 事件中提取文本、工具参数增量和用量。 */
+  parseStreamEvent?(event: {
+    event?: string;
+    data: string;
+  }): UnifiedStreamDelta;
 
   /**
    * 从流式 SSE 数据行中提取 delta 内容

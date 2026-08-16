@@ -11,6 +11,8 @@ import type {
   ProviderRequest,
   RequestOptions,
   TokenUsage,
+  UnifiedFinishReason,
+  UnifiedResponse,
 } from "./types";
 
 /** OpenAI 消息内容（Vision） */
@@ -22,8 +24,15 @@ interface OpenAIVisionContent {
 
 /** OpenAI 消息格式 */
 interface OpenAIMessage {
-  role: "system" | "user" | "assistant";
-  content: string | OpenAIVisionContent[];
+  role: "system" | "user" | "assistant" | "tool";
+  content: string | OpenAIVisionContent[] | null;
+  tool_calls?: Array<{
+    id: string;
+    type: "function";
+    function: { name: string; arguments: string };
+  }>;
+  tool_call_id?: string;
+  name?: string;
 }
 
 const CHAT_COMPLETIONS_PATH = "/chat/completions";
@@ -62,6 +71,32 @@ function toOpenAIMessages(
 
   for (let i = 0; i < messages.length; i++) {
     const msg = messages[i];
+
+    if (msg.role === "tool") {
+      result.push({
+        role: "tool",
+        content: msg.content,
+        tool_call_id: msg.toolCallId,
+        name: msg.name,
+      });
+      continue;
+    }
+
+    if (msg.role === "assistant" && msg.toolCalls?.length) {
+      result.push({
+        role: "assistant",
+        content: msg.content || null,
+        tool_calls: msg.toolCalls.map((toolCall) => ({
+          id: toolCall.id,
+          type: "function",
+          function: {
+            name: toolCall.name,
+            arguments: JSON.stringify(toolCall.arguments),
+          },
+        })),
+      });
+      continue;
+    }
 
     // 如果是最后一条用户消息且有图片，构建 Vision 内容
     if (images?.length && msg.role === "user" && i === messages.length - 1) {
@@ -124,6 +159,22 @@ export const openaiProvider: AIProvider = {
     if (options?.stream) {
       body.stream_options = { include_usage: true };
     }
+    if (options?.tools?.length) {
+      body.tools = options.tools.map((tool) => ({
+        type: "function",
+        function: {
+          name: tool.name,
+          description: tool.description,
+          parameters: tool.inputSchema,
+          strict: true,
+        },
+      }));
+      const choice = options.toolChoice ?? "auto";
+      body.tool_choice =
+        typeof choice === "object"
+          ? { type: "function", function: { name: choice.name } }
+          : choice;
+    }
 
     return {
       url,
@@ -137,8 +188,16 @@ export const openaiProvider: AIProvider = {
     };
   },
 
-  parseResponse(responseBody: any) {
-    const content = responseBody.choices?.[0]?.message?.content || "";
+  parseResponse(responseBody: any): UnifiedResponse {
+    const choice = responseBody.choices?.[0];
+    const content = choice?.message?.content || "";
+    const toolCalls = (choice?.message?.tool_calls ?? []).map(
+      (toolCall: any, index: number) => ({
+        id: toolCall.id || `openai_tool_${index}`,
+        name: toolCall.function?.name || "",
+        arguments: parseToolArguments(toolCall.function?.arguments),
+      }),
+    );
     let usage: TokenUsage | undefined;
 
     if (
@@ -156,7 +215,46 @@ export const openaiProvider: AIProvider = {
       };
     }
 
-    return { content, usage };
+    return {
+      success: true,
+      content,
+      toolCalls,
+      finishReason: mapOpenAIFinishReason(choice?.finish_reason, toolCalls.length),
+      usage,
+    };
+  },
+
+  parseStreamEvent(event) {
+    if (!event.data || event.data === "[DONE]") {
+      return { done: event.data === "[DONE]" };
+    }
+    try {
+      const parsed = JSON.parse(event.data);
+      const choice = parsed.choices?.[0];
+      const delta = choice?.delta;
+      return {
+        content: delta?.content || undefined,
+        toolCalls: delta?.tool_calls?.map((toolCall: any) => ({
+          index: toolCall.index ?? 0,
+          id: toolCall.id,
+          name: toolCall.function?.name,
+          argumentsDelta: toolCall.function?.arguments,
+        })),
+        finishReason: choice?.finish_reason
+          ? mapOpenAIFinishReason(choice.finish_reason, 0)
+          : undefined,
+        usage: parsed.usage
+          ? {
+              promptTokens: parsed.usage.prompt_tokens || 0,
+              completionTokens: parsed.usage.completion_tokens || 0,
+              totalTokens: parsed.usage.total_tokens || 0,
+              isEstimated: false,
+            }
+          : undefined,
+      };
+    } catch {
+      return {};
+    }
   },
 
   parseStreamChunk(line: string): string | null {
@@ -186,3 +284,25 @@ export const openaiProvider: AIProvider = {
     };
   },
 };
+
+function parseToolArguments(value: unknown): Record<string, unknown> {
+  if (typeof value !== "string") return {};
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? parsed
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function mapOpenAIFinishReason(
+  reason: unknown,
+  toolCallCount: number,
+): UnifiedFinishReason {
+  if (reason === "tool_calls" || toolCallCount > 0) return "tool_calls";
+  if (reason === "stop") return "stop";
+  if (reason === "length") return "length";
+  return "unknown";
+}

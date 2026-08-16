@@ -4,7 +4,6 @@
  */
 
 import { useConfigStore } from "@/stores/app/configStore";
-import { aiHistoryManager, type AIHistoryRecord } from "./history";
 import { decryptApiKey } from "./crypto";
 import {
   getProvider,
@@ -13,6 +12,10 @@ import {
   type UnifiedMessage,
   type TokenUsage,
   type ProviderRequest,
+  type RequestOptions,
+  type UnifiedFinishReason,
+  type UnifiedResponse,
+  type UnifiedToolCall,
 } from "./providers";
 import { localServer, aiProtocol } from "../../services/server";
 import { SSEParser } from "./sse";
@@ -23,12 +26,19 @@ function createAbortError(): Error {
   return error;
 }
 
+function parseStreamToolArguments(value: string): Record<string, unknown> {
+  if (!value.trim()) return {};
+  const parsed = JSON.parse(value);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("模型返回的工具参数必须是 JSON 对象");
+  }
+  return parsed;
+}
+
 /** 创建 AIClient 的配置项 */
 export interface AIClientOptions {
   /** 系统提示词 */
   systemPrompt?: string;
-  /** 将历史记录写入指定 Session；未指定时使用管理器当前 Session */
-  sessionId?: string;
   /** 保留的历史记录轮数，默认 10 */
   historyLimit?: number;
   /** 重试次数，默认 2 */
@@ -54,7 +64,6 @@ export interface ChatResult {
 export class AIClient {
   private messages: UnifiedMessage[] = [];
   private systemPrompt: string;
-  private sessionId?: string;
   private historyLimit: number;
   private retryCount: number;
   private retryDelay: number;
@@ -63,7 +72,6 @@ export class AIClient {
 
   constructor(options: AIClientOptions = {}) {
     this.systemPrompt = options.systemPrompt || "";
-    this.sessionId = options.sessionId;
     this.historyLimit = options.historyLimit ?? 10;
     this.retryCount = options.retryCount ?? 2;
     this.retryDelay = options.retryDelay ?? 1000;
@@ -275,31 +283,13 @@ export class AIClient {
     };
   }
 
-  /** 将本次请求的历史记录归入固定 Session 或当前 Session */
-  private addHistoryRecord(
-    record: Omit<AIHistoryRecord, "id" | "timestamp">,
-  ): void {
-    if (this.sessionId) {
-      aiHistoryManager.addRecord({ ...record, sessionId: this.sessionId });
-      return;
-    }
-    aiHistoryManager.addRecord(record);
-  }
-
   /**
    * 发送消息（非流式）
    */
-  async send(userMessage: string, userPrompt?: string): Promise<ChatResult> {
+  async send(userMessage: string): Promise<ChatResult> {
     return this.withRequest(async (controller) => {
       const configError = await this.validateConfig();
       if (configError) {
-        this.addHistoryRecord({
-          userPrompt: userPrompt || userMessage,
-          actualMessage: userMessage,
-          response: "",
-          success: false,
-          error: configError,
-        });
         return { success: false, content: "", error: configError };
       }
 
@@ -313,8 +303,6 @@ export class AIClient {
           const request = provider.buildRequest(this.messages, config, {
             stream: false,
           });
-          const promptText = this.messages.map((m) => m.content).join(" ");
-
           const response = await this.executeRequest(request, controller.signal);
 
           if (!response.ok) {
@@ -323,21 +311,8 @@ export class AIClient {
           }
 
           const data = await response.json();
-          const { content, usage } = provider.parseResponse(data);
+          const { content } = provider.parseResponse(data);
           this.addMessage("assistant", content);
-
-          const finalUsage =
-            usage ||
-            this.estimateTokenUsage(promptText, content);
-
-          this.addHistoryRecord({
-            userPrompt: userPrompt || userMessage,
-            actualMessage: userMessage,
-            response: content,
-            success: true,
-            textContent: userMessage,
-            tokenUsage: finalUsage,
-          });
 
           return { success: true, content };
         } catch (err: any) {
@@ -359,13 +334,6 @@ export class AIClient {
       }
 
       this.removeLastUserMessage();
-      this.addHistoryRecord({
-        userPrompt: userPrompt || userMessage,
-        actualMessage: userMessage,
-        response: "",
-        success: false,
-        error: lastError,
-      });
       return { success: false, content: "", error: lastError };
     });
   }
@@ -376,18 +344,10 @@ export class AIClient {
   async sendStream(
     userMessage: string,
     onChunk: StreamCallback,
-    userPrompt?: string,
   ): Promise<ChatResult> {
     return this.withRequest(async (controller) => {
       const configError = await this.validateConfig();
       if (configError) {
-        this.addHistoryRecord({
-          userPrompt: userPrompt || userMessage,
-          actualMessage: userMessage,
-          response: "",
-          success: false,
-          error: configError,
-        });
         return { success: false, content: "", error: configError };
       }
 
@@ -404,8 +364,6 @@ export class AIClient {
           const request = provider.buildRequest(this.messages, config, {
             stream: true,
           });
-          const promptText = this.messages.map((m) => m.content).join(" ");
-
           const response = await this.executeRequest(request, controller.signal);
 
           if (!response.ok) {
@@ -419,25 +377,10 @@ export class AIClient {
           const decoder = new TextDecoder();
           const parser = new SSEParser();
           let fullContent = "";
-          let finalUsage: TokenUsage | undefined;
           let providerDone = false;
 
           const processEvent = (event: { event?: string; data: string }) => {
             if (providerDone) return;
-
-            if (event.data) {
-              try {
-                const parsed = JSON.parse(event.data);
-                const usage = provider.parseStreamUsage?.(parsed);
-                if (usage) {
-                  finalUsage = provider.mergeStreamUsage
-                    ? provider.mergeStreamUsage(finalUsage, usage)
-                    : usage;
-                }
-              } catch {
-                // 非 JSON 的 SSE 数据交给 Provider 处理。
-              }
-            }
 
             const lines = event.event
               ? [`event: ${event.event}`, `data: ${event.data}`]
@@ -487,18 +430,6 @@ export class AIClient {
           }
 
           this.addMessage("assistant", fullContent);
-          const usage =
-            finalUsage ||
-            this.estimateTokenUsage(promptText, fullContent);
-
-          this.addHistoryRecord({
-            userPrompt: userPrompt || userMessage,
-            actualMessage: userMessage,
-            response: fullContent,
-            success: true,
-            textContent: userMessage,
-            tokenUsage: usage,
-          });
           return { success: true, content: fullContent };
         } catch (err: any) {
           if (this.isAbortError(err)) {
@@ -527,15 +458,176 @@ export class AIClient {
       }
 
       this.removeLastUserMessage();
-      this.addHistoryRecord({
-        userPrompt: userPrompt || userMessage,
-        actualMessage: userMessage,
-        response: "",
-        success: false,
-        error: lastError,
-      });
       return { success: false, content: "", error: lastError };
     });
+  }
+
+  /**
+   * 执行一次无业务历史的模型请求。Harness 通过此入口统一接收文本、
+   * 工具调用、结束原因和 Token 用量。
+   */
+  async complete(
+    messages: UnifiedMessage[],
+    options: RequestOptions = {},
+    onTextDelta?: (delta: string) => void,
+  ): Promise<UnifiedResponse> {
+    return this.withRequest(async (controller) => {
+      const configError = await this.validateConfig();
+      if (configError) {
+        return {
+          success: false,
+          content: "",
+          error: configError,
+          toolCalls: [],
+          finishReason: "error",
+        };
+      }
+
+      const config = await this.getConfig();
+      const provider = getProvider(config.type);
+      const stream = options.stream ?? true;
+      const request = provider.buildRequest(messages, config, {
+        ...options,
+        stream,
+      });
+      const promptText = messages.map((message) => message.content).join(" ");
+
+      try {
+        const response = await this.executeRequest(request, controller.signal);
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        if (!stream) {
+          const parsed = provider.parseResponse(await response.json());
+          return {
+            ...parsed,
+            usage:
+              parsed.usage ||
+              this.estimateTokenUsage(promptText, parsed.content),
+          };
+        }
+
+        return await this.readUnifiedStream(
+          response,
+          provider,
+          promptText,
+          onTextDelta,
+          controller.signal,
+        );
+      } catch (error) {
+        if (this.isAbortError(error)) {
+          return {
+            success: false,
+            content: "",
+            error: "请求已取消",
+            toolCalls: [],
+            finishReason: "cancelled",
+          };
+        }
+        return {
+          success: false,
+          content: "",
+          error: this.formatError(error),
+          toolCalls: [],
+          finishReason: "error",
+        };
+      }
+    });
+  }
+
+  async getModelConfigSnapshot(): Promise<
+    Pick<AIProviderConfig, "type" | "apiUrl" | "model" | "temperature">
+  > {
+    const { type, apiUrl, model, temperature } = await this.getConfig();
+    return { type, apiUrl, model, temperature };
+  }
+
+  private async readUnifiedStream(
+    response: Response,
+    provider: ReturnType<typeof getProvider>,
+    promptText: string,
+    onTextDelta: ((delta: string) => void) | undefined,
+    signal: AbortSignal,
+  ): Promise<UnifiedResponse> {
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error("无法获取响应流");
+
+    const parser = new SSEParser();
+    const decoder = new TextDecoder();
+    const toolFragments = new Map<
+      number,
+      {
+        id?: string;
+        name?: string;
+        argumentsText: string;
+        arguments?: Record<string, unknown>;
+      }
+    >();
+    let content = "";
+    let finishReason: UnifiedFinishReason = "unknown";
+    let usage: TokenUsage | undefined;
+
+    const processEvent = (event: { event?: string; data: string }) => {
+      const delta = provider.parseStreamEvent?.(event);
+      if (!delta) return;
+      if (delta.content) {
+        content += delta.content;
+        onTextDelta?.(delta.content);
+      }
+      if (delta.finishReason) finishReason = delta.finishReason;
+      if (delta.usage) {
+        usage = provider.mergeStreamUsage
+          ? provider.mergeStreamUsage(usage, delta.usage)
+          : delta.usage;
+      }
+      delta.toolCalls?.forEach((toolCall) => {
+        const current = toolFragments.get(toolCall.index) ?? {
+          argumentsText: "",
+        };
+        toolFragments.set(toolCall.index, {
+          id: toolCall.id ?? current.id,
+          name: toolCall.name ?? current.name,
+          argumentsText:
+            current.argumentsText + (toolCall.argumentsDelta ?? ""),
+          arguments: toolCall.arguments ?? current.arguments,
+        });
+      });
+    };
+
+    try {
+      while (!signal.aborted) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        for (const event of parser.push(decoder.decode(value, { stream: true }))) {
+          processEvent(event);
+        }
+      }
+      if (signal.aborted) throw createAbortError();
+      const trailingText = decoder.decode();
+      for (const event of parser.push(trailingText)) processEvent(event);
+      for (const event of parser.flush()) processEvent(event);
+    } finally {
+      reader.releaseLock();
+    }
+
+    const toolCalls: UnifiedToolCall[] = [...toolFragments.entries()]
+      .sort(([left], [right]) => left - right)
+      .map(([index, fragment]) => ({
+        id: fragment.id || `tool_${index}`,
+        name: fragment.name || "",
+        arguments:
+          fragment.arguments ?? parseStreamToolArguments(fragment.argumentsText),
+      }));
+
+    return {
+      success: true,
+      content,
+      toolCalls,
+      finishReason: toolCalls.length > 0 ? "tool_calls" : finishReason,
+      usage: usage || this.estimateTokenUsage(promptText, content),
+    };
   }
 
   /**
@@ -544,22 +636,10 @@ export class AIClient {
   async sendVision(
     textContent: string,
     imageBase64: string,
-    userPrompt?: string,
   ): Promise<ChatResult> {
     return this.withRequest(async (controller) => {
       const configError = await this.validateConfig();
       if (configError) {
-        this.addHistoryRecord({
-          userPrompt: userPrompt || textContent,
-          actualMessage: textContent,
-          response: "",
-          success: false,
-          error: configError,
-          hasImage: true,
-          imageBase64,
-          imageDescription: "设备截图",
-          textContent,
-        });
         return { success: false, content: "", error: configError };
       }
 
@@ -574,8 +654,6 @@ export class AIClient {
             stream: false,
             images: [{ base64: imageBase64, mimeType: "image/png" }],
           });
-          const promptText = this.messages.map((m) => m.content).join(" ");
-
           const response = await this.executeRequest(request, controller.signal);
 
           if (!response.ok) {
@@ -584,24 +662,8 @@ export class AIClient {
           }
 
           const data = await response.json();
-          const { content, usage } = provider.parseResponse(data);
+          const { content } = provider.parseResponse(data);
           this.addMessage("assistant", content);
-
-          const finalUsage =
-            usage ||
-            this.estimateTokenUsage(promptText, content);
-
-          this.addHistoryRecord({
-            userPrompt: userPrompt || textContent,
-            actualMessage: textContent,
-            response: content,
-            success: true,
-            hasImage: true,
-            imageBase64,
-            imageDescription: "设备截图",
-            textContent,
-            tokenUsage: finalUsage,
-          });
 
           return { success: true, content };
         } catch (err: any) {
@@ -622,17 +684,6 @@ export class AIClient {
       }
 
       this.removeLastUserMessage();
-      this.addHistoryRecord({
-        userPrompt: userPrompt || textContent,
-        actualMessage: textContent,
-        response: "",
-        success: false,
-        error: lastError,
-        hasImage: true,
-        imageBase64,
-        imageDescription: "设备截图",
-        textContent,
-      });
       return { success: false, content: "", error: lastError };
     });
   }
