@@ -91,7 +91,7 @@ jobs:
       - name: Modify config for production build
         run: |
           # 将configStore.ts中的globalConfig.dev改为false
-          sed -i 's/dev: true,/dev: false,/g' Editor/src/stores/configStore.ts
+          sed -i 's/dev: true,/dev: false,/g' Editor/src/stores/app/configStore.ts
           echo "已修改configStore.ts中的dev配置为false"
 
       - name: Build project (stable)

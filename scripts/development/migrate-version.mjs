@@ -36,7 +36,7 @@ const SEMVER_RE = /^\d+\.\d+\.\d+(?:-[\w.]+)?$/;
 const TARGETS = [
   {
     id: "configStore.ts (version)",
-    file: "Editor/src/stores/configStore.ts",
+    file: "Editor/src/stores/app/configStore.ts",
     re: /(version:\s*`)([^`]+)(`)/,
   },
   {
