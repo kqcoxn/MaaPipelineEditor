@@ -6,7 +6,7 @@ import { useEmbedMessageLogStore } from "@/stores/embed/embedMessageLogStore";
  * 提供与本地服务解耦的条件桥接模式
  */
 
-export const PROTOCOL_VERSION = "1.3.0";
+export const PROTOCOL_VERSION = "1.4.0";
 
 /** 协议消息信封 */
 export interface EmbedMessage {
@@ -25,6 +25,21 @@ export interface EmbedCapabilities {
   allowAutoLayout: boolean;
   allowSearch: boolean;
   allowCustomTemplate: boolean;
+  hostNodeNavigation: boolean;
+}
+
+export interface EmbedAnchorDefinition {
+  anchorName: string;
+  nodeName: string;
+  fileName: string;
+  relativePath: string;
+  isCurrentFile: boolean;
+}
+
+export interface EmbedNodeNavigationResultPayload {
+  success: boolean;
+  nodeName: string;
+  message?: string;
 }
 
 /** UI 配置 */
@@ -95,6 +110,7 @@ export const DEFAULT_CAPABILITIES: EmbedCapabilities = {
   allowAutoLayout: true,
   allowSearch: true,
   allowCustomTemplate: true,
+  hostNodeNavigation: false,
 };
 
 /** 默认 UI 配置 */

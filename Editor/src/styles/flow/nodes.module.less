@@ -477,14 +477,27 @@
   align-items: center;
   justify-content: space-between;
   padding: 6px 8px;
- margin: 2px 0;
- border-radius: 4px;
+  width: 100%;
+  margin: 2px 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.anchor-ref-item-interactive {
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease;
 
   &:hover {
     background-color: rgba(74, 157, 142, 0.1);
   }
+}
+
+.anchor-ref-item-readonly {
+  cursor: default;
 }
 
 .anchor-ref-label {
@@ -504,7 +517,7 @@
   transition: opacity 0.15s ease;
   flex-shrink: 0;
 
-  .anchor-ref-item:hover & {
+  .anchor-ref-item-interactive:hover & {
     opacity: 1;
   }
 }

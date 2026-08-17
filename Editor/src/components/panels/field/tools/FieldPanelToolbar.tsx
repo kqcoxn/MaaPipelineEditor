@@ -12,6 +12,8 @@ import {
   copyNodeRecoJSON,
 } from "../../../flow/nodes/utils/nodeOperations";
 import { crossFileService } from "../../../../services/crossFileService";
+import { isEmbedEnvironment } from "../../../../utils/embedBridge";
+import { useEmbedStore } from "../../../../stores/embed/embedStore";
 
 // 左侧工具栏
 export const FieldPanelToolbarLeft = memo(
@@ -87,6 +89,10 @@ export const FieldPanelToolbarRight = memo(
     currentNode: NodeType | null;
     onDelete?: () => void;
   }) => {
+    const isEmbed = isEmbedEnvironment();
+    const hostNodeNavigation = useEmbedStore(
+      (state) => state.capabilities.hostNodeNavigation,
+    );
     const showPipelineButtons =
       currentNode && currentNode.type === NodeTypeEnum.Pipeline;
 
@@ -94,7 +100,11 @@ export const FieldPanelToolbarRight = memo(
     const showNavigateButton =
       currentNode &&
       (currentNode.type === NodeTypeEnum.External ||
-        currentNode.type === NodeTypeEnum.Anchor);
+        (currentNode.type === NodeTypeEnum.Anchor && !isEmbed));
+    const navigationEnabled = !isEmbed || hostNodeNavigation;
+    const navigationTitle = navigationEnabled
+      ? "跳转到目标节点"
+      : "宿主未声明节点导航能力";
 
     const handleSaveTemplate = () => {
       if (!currentNode || currentNode.type !== NodeTypeEnum.Pipeline) {
@@ -141,12 +151,15 @@ export const FieldPanelToolbarRight = memo(
     return (
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         {showNavigateButton && (
-          <Tooltip placement="top" title="跳转到目标节点">
+          <Tooltip placement="top" title={navigationTitle}>
             <IconFont
-              className="icon-interactive"
+              className={navigationEnabled ? "icon-interactive" : undefined}
               name="icon-qianjin"
               size={20}
-              onClick={handleNavigate}
+              color={navigationEnabled ? undefined : "#999"}
+              aria-label={navigationTitle}
+              aria-disabled={!navigationEnabled}
+              onClick={navigationEnabled ? handleNavigate : undefined}
             />
           </Tooltip>
         )}

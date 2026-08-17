@@ -1,10 +1,10 @@
 /**
  * MPE iframe 嵌入测试宿主
- * 实现 mpe-embed 协议 v1.3.0 的通用宿主侧通信逻辑
+ * 实现 mpe-embed 协议 v1.4.0 的通用宿主侧通信逻辑
  */
 
 const PROTOCOL = "mpe-embed";
-const VERSION = "1.3.0";
+const VERSION = "1.4.0";
 const REQUEST_TIMEOUT = 10000;
 
 // DOM 元素引用
@@ -50,6 +50,7 @@ const caps = {
   allowAutoLayout: document.getElementById("cap-allowAutoLayout"),
   allowSearch: document.getElementById("cap-allowSearch"),
   allowCustomTemplate: document.getElementById("cap-allowCustomTemplate"),
+  hostNodeNavigation: document.getElementById("cap-hostNodeNavigation"),
 };
 
 // UI 配置引用
@@ -182,6 +183,7 @@ function getCapabilities() {
     allowAutoLayout: caps.allowAutoLayout.checked,
     allowSearch: caps.allowSearch.checked,
     allowCustomTemplate: caps.allowCustomTemplate.checked,
+    hostNodeNavigation: caps.hostNodeNavigation.checked,
   };
 }
 
@@ -303,6 +305,22 @@ async function handleLoadPipeline(requestId) {
   const payload = {
     fileName: "test_pipeline.json",
     data,
+    anchorDefinitions: [
+      {
+        anchorName: "TestAnchor",
+        nodeName: "Action1",
+        fileName: "test_pipeline.json",
+        relativePath: "pipeline/test_pipeline.json",
+        isCurrentFile: true,
+      },
+      {
+        anchorName: "TestAnchor",
+        nodeName: "RemoteAction",
+        fileName: "remote_pipeline.json",
+        relativePath: "pipeline/remote_pipeline.json",
+        isCurrentFile: false,
+      },
+    ],
   };
 
   try {
@@ -396,7 +414,7 @@ function loadSampleData() {
     StartAction: {
       action: "Click",
       target: [100, 200, 300, 400],
-      next: ["Action1"],
+      next: ["Action1", "[Anchor]TestAnchor"],
     },
     Action1: {
       recognition: {
@@ -404,6 +422,7 @@ function loadSampleData() {
         template: "test_template.png",
       },
       action: "Click",
+      anchor: "TestAnchor",
       target: [150, 250, 350, 450],
       next: ["Action2"],
     },
@@ -484,6 +503,24 @@ window.addEventListener("message", (event) => {
         logSystem(`拒绝打开外链: ${error.message}`);
       }
       break;
+
+    case "mpe:navigateNodeRequest": {
+      const nodeName = msg.payload?.nodeName;
+      const success = typeof nodeName === "string" && nodeName.length > 0;
+      sendMessage(
+        "mpe:navigateNodeResult",
+        {
+          success,
+          nodeName: typeof nodeName === "string" ? nodeName : "",
+          message: success
+            ? `测试宿主已接收节点导航请求: ${nodeName}`
+            : "节点名为空",
+        },
+        false,
+        msg.requestId,
+      );
+      break;
+    }
 
     case "mpe:nodeSelect":
       logSystem(`节点选中: nodeId=${msg.payload?.nodeId}`);

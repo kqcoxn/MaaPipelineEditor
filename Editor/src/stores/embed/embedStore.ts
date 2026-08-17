@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import {
   type EmbedCapabilities,
+  type EmbedAnchorDefinition,
   type EmbedHostInfo,
   type EmbedUIConfig,
   DEFAULT_CAPABILITIES,
@@ -32,6 +33,7 @@ interface EmbedState {
   ui: EmbedUIConfig;
   host: EmbedHostInfo | null;
   currentFileName: string | null;
+  anchorDefinitions: EmbedAnchorDefinition[];
   cleanPipeline: string | null;
   isDirty: boolean;
   saveOperation: EmbedOperationState;
@@ -46,6 +48,7 @@ interface EmbedState {
   ) => void;
   setReady: (ready: boolean) => void;
   setFileName: (fileName: string | null) => void;
+  setAnchorDefinitions: (definitions: EmbedAnchorDefinition[]) => void;
   markClean: (pipeline: string) => void;
   setDirty: (dirty: boolean) => void;
   beginSave: (requestId: string) => void;
@@ -83,6 +86,7 @@ export const useEmbedStore = create<EmbedState>()(
     ui: { ...DEFAULT_UI },
     host: null,
     currentFileName: null,
+    anchorDefinitions: [],
     cleanPipeline: null,
     isDirty: false,
     saveOperation: idleOperation(),
@@ -91,7 +95,11 @@ export const useEmbedStore = create<EmbedState>()(
 
     initConfig(partialCaps, partialUi, host) {
       set((state) => ({
-        capabilities: { ...state.capabilities, ...partialCaps },
+        capabilities: {
+          ...state.capabilities,
+          ...partialCaps,
+          hostNodeNavigation: partialCaps.hostNodeNavigation === true,
+        },
         ui: { ...state.ui, ...partialUi },
         host: host === undefined ? state.host : host,
       }));
@@ -103,6 +111,10 @@ export const useEmbedStore = create<EmbedState>()(
 
     setFileName(fileName) {
       set({ currentFileName: fileName });
+    },
+
+    setAnchorDefinitions(anchorDefinitions) {
+      set({ anchorDefinitions });
     },
 
     markClean(pipeline) {
@@ -194,6 +206,7 @@ export const useEmbedStore = create<EmbedState>()(
         ui: { ...DEFAULT_UI },
         host: null,
         currentFileName: null,
+        anchorDefinitions: [],
         cleanPipeline: null,
         isDirty: false,
         saveOperation: idleOperation(),

@@ -187,7 +187,7 @@ MPE iframe（可编辑嵌入模式）
 
 ## 嵌入协议调整
 
-现有 `mpe:init`、`mpe:ready`、`mpe:loadPipeline`、`mpe:loadResult`、`mpe:change`、`mpe:saveRequest`、`mpe:save` 和 `mpe:saveData` 可以复用。保存反馈与 iframe 主动同步由 v1.1.0 补齐；v1.2.0 新增宿主外链代理，均不改变 1.x 主版本兼容规则。
+现有 `mpe:init`、`mpe:ready`、`mpe:loadPipeline`、`mpe:loadResult`、`mpe:change`、`mpe:saveRequest`、`mpe:save` 和 `mpe:saveData` 可以复用。保存反馈与 iframe 主动同步由 v1.1.0 补齐，v1.2.0 新增宿主外链代理，v1.4.0 新增宿主节点导航与 Anchor 定义清单；这些变更均保持 1.x 主版本兼容。
 
 ### 初始化扩展
 
@@ -199,7 +199,8 @@ MPE iframe（可编辑嵌入模式）
     "allowUndoRedo": true,
     "allowAutoLayout": true,
     "allowSearch": true,
-    "allowCustomTemplate": true
+    "allowCustomTemplate": true,
+    "hostNodeNavigation": true
   },
   "ui": {
     "hideHeader": false,
@@ -232,6 +233,12 @@ MPE iframe（可编辑嵌入模式）
 新增 MPE 到宿主的 `mpe:reloadRequest`。MSE 收到后读取当前 `TextDocument`，解析成功则使用相同 `requestId` 复用 `mpe:loadPipeline` / `mpe:loadResult` 完成加载；读取或解析失败则发送带相同 `requestId` 的 `mpe:error`。MPE 只在 `mpe:loadResult.success` 为 true 后替换会话基线并清除 dirty。
 
 新增 MPE 到宿主的 `mpe:openExternalRequest`。MSE 收到后必须重新解析并校验 `payload.url`，只接受 `http:` / `https:`，再调用 `vscode.env.openExternal(vscode.Uri.parse(url))`。MPE iframe 内的文档、仓库和帮助链接统一走该消息，不能依赖 Webview 中可能被拦截的 `window.open`。
+
+### 节点导航与 Anchor 定义
+
+v1.4.0 新增 `hostNodeNavigation` 能力。MSE 设置为 `true` 后，MPE iframe 中的 External 节点通过 `mpe:navigateNodeRequest` 请求 MSE 在当前资源内查找、打开并定位节点；MSE 使用相同 `requestId` 返回 `mpe:navigateNodeResult`。MPE 不执行本地节点搜索、LocalBridge 查询或失败回退。
+
+`mpe:loadPipeline.payload.anchorDefinitions` 来自 `InterfaceBundle.topLayer.getAnchorList()`，其中 `belong` 映射为定义 Anchor 的 `nodeName`。MPE 以当前画布的 `anchorReferenceIndex` 作为当前文件实时结果，仅补充 `isCurrentFile === false` 的跨文件记录并按文件、节点去重。iframe 中 Anchor 定义列表只读，不发送导航请求。
 
 ### 消息时序
 
@@ -435,6 +442,8 @@ MSE 不得对 MPE 返回对象直接执行 `JSON.stringify` 后整文件覆盖�
 | MPE 保存结果与 dirty 状态 | 已完成 | 已通过 v1.1.0 补齐 |
 | MPE 嵌入态导入与同步边界 | 已完成 | MSE 下隐藏手动导入与 JSON 预览，保留同步并固定宿主写回语义 |
 | MPE 嵌入态外链代理 | MPE 侧已完成 | 等待 MSE 处理 `mpe:openExternalRequest` 并调用 `vscode.env.openExternal` |
+| MPE External 宿主导航 | MPE 侧已完成 v1.4.0 | MSE 声明能力后处理请求/结果并负责跨文件定位 |
+| MPE Anchor 跨文件定义 | MPE 侧已完成 v1.4.0 | MSE 从 topLayer Anchor 列表提供定义，iframe 列表只读 |
 | MPE 小工具/调试环境提示 | 已完成 | 已覆盖 Header、工具箱、字段快捷工具和节点调试入口 |
 | MPE 双仓库 Star 提示 | 已完成 | 由 MSE host 元数据启用 |
 | MSE WebviewPanel 与外部 iframe 基础 | 已具备 | 可复用现有 Provider 和 CSP 方案 |

@@ -7,6 +7,7 @@ import {
 } from "../actions/embedOperations";
 import { registerEmbedProtocol } from "./registerEmbedProtocol";
 import { showEmbedSaveConflict } from "../components/saveConflict";
+import { crossFileService } from "../../../services/crossFileService";
 
 vi.mock("../components/saveConflict", () => ({
   showEmbedSaveConflict: vi.fn(),
@@ -30,6 +31,7 @@ describe("registerEmbedProtocol", () => {
     cleanup?.();
     cleanup = undefined;
     vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
   function dispatchParentMessage(
@@ -91,6 +93,82 @@ describe("registerEmbedProtocol", () => {
     expect(useEmbedStore.getState().isReady).toBe(false);
     dispatchParentMessage("mpe:init", { capabilities: {}, ui: {} });
     expect(useEmbedStore.getState().isReady).toBe(false);
+  });
+
+  it("cleans up pending node navigation when the protocol is destroyed", async () => {
+    vi.useFakeTimers();
+    cleanup = registerEmbedProtocol();
+    dispatchParentMessage("mpe:init", {
+      capabilities: { hostNodeNavigation: true },
+      ui: {},
+    });
+    const navigation = crossFileService.navigateToNodeByName("RemoteNode");
+
+    dispatchParentMessage("mpe:destroy", {});
+
+    await expect(navigation).resolves.toEqual({
+      success: false,
+      message: "嵌入协议已销毁，节点导航已取消",
+    });
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("resolves node navigation from a matching protocol result", async () => {
+    cleanup = registerEmbedProtocol();
+    dispatchParentMessage("mpe:init", {
+      capabilities: { hostNodeNavigation: true },
+      ui: {},
+    });
+    const navigation = crossFileService.navigateToNodeByName("RemoteNode");
+    const request = postMessage.mock.calls
+      .map(([message]) => message)
+      .find((message) => message.type === "mpe:navigateNodeRequest");
+
+    dispatchParentMessage(
+      "mpe:navigateNodeResult",
+      {
+        success: true,
+        nodeName: "RemoteNode",
+        message: "MSE 已定位 RemoteNode",
+      },
+      request.requestId,
+    );
+
+    await expect(navigation).resolves.toEqual({
+      success: true,
+      message: "MSE 已定位 RemoteNode",
+    });
+  });
+
+  it("stores host anchor definitions from a successful pipeline load", async () => {
+    cleanup = registerEmbedProtocol();
+    dispatchParentMessage("mpe:init", { capabilities: {}, ui: {} });
+
+    dispatchParentMessage("mpe:loadPipeline", {
+      fileName: "current.json",
+      data: { Start: {} },
+      anchorDefinitions: [
+        {
+          anchorName: "Entry",
+          nodeName: "RemoteNode",
+          fileName: "remote.json",
+          relativePath: "pipelines/remote.json",
+          isCurrentFile: false,
+        },
+      ],
+    });
+
+    await vi.waitFor(() => {
+      expect(useEmbedStore.getState().anchorDefinitions).toEqual([
+        {
+          anchorName: "Entry",
+          nodeName: "RemoteNode",
+          fileName: "remote.json",
+          relativePath: "pipelines/remote.json",
+          isCurrentFile: false,
+        },
+      ]);
+    });
   });
 
   it("returns saved pipeline data as an object", () => {

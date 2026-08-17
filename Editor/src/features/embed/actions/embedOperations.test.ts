@@ -2,8 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useEmbedStore } from "@/stores/embed/embedStore";
 import {
   clearEmbedOperationTimeouts,
+  requestHostNodeNavigation,
   requestHostReload,
   requestHostSave,
+  resolveHostNodeNavigationResult,
 } from "./embedOperations";
 
 describe("embedOperations", () => {
@@ -11,6 +13,9 @@ describe("embedOperations", () => {
     vi.useFakeTimers();
     window.history.replaceState({}, "", "/?embed=true&origin=test-host");
     useEmbedStore.getState().reset();
+    useEmbedStore
+      .getState()
+      .initConfig({ hostNodeNavigation: true }, {});
     useEmbedStore.getState().setReady(true);
     vi.spyOn(window.parent, "postMessage").mockImplementation(() => undefined);
   });
@@ -86,5 +91,86 @@ describe("embedOperations", () => {
     expect(JSON.stringify(postMessage.mock.calls.at(-1))).not.toMatch(
       /vscode|disk|filesystem/i,
     );
+  });
+
+  it("waits for the matching host node navigation result", async () => {
+    const postMessage = vi.mocked(window.parent.postMessage);
+    const navigation = requestHostNodeNavigation("RemoteNode");
+    const requestId = postMessage.mock.calls.at(-1)?.[0].requestId as string;
+    let settled = false;
+    void navigation.then(() => {
+      settled = true;
+    });
+
+    expect(postMessage).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: "mpe:navigateNodeRequest",
+        requestId,
+        payload: { nodeName: "RemoteNode" },
+      }),
+      "*",
+    );
+    expect(
+      resolveHostNodeNavigationResult(
+        { success: true, nodeName: "RemoteNode" },
+        `${requestId}-stale`,
+      ),
+    ).toBe(false);
+    await Promise.resolve();
+    expect(settled).toBe(false);
+
+    expect(
+      resolveHostNodeNavigationResult(
+        {
+          success: true,
+          nodeName: "RemoteNode",
+          message: "宿主已定位 RemoteNode",
+        },
+        requestId,
+      ),
+    ).toBe(true);
+    await expect(navigation).resolves.toEqual({
+      success: true,
+      message: "宿主已定位 RemoteNode",
+    });
+  });
+
+  it("returns the host node navigation failure without local fallback", async () => {
+    const postMessage = vi.mocked(window.parent.postMessage);
+    const navigation = requestHostNodeNavigation("MissingNode");
+    const requestId = postMessage.mock.calls.at(-1)?.[0].requestId as string;
+
+    resolveHostNodeNavigationResult(
+      {
+        success: false,
+        nodeName: "MissingNode",
+        message: "MSE 中未找到节点: MissingNode",
+      },
+      requestId,
+    );
+
+    await expect(navigation).resolves.toEqual({
+      success: false,
+      message: "MSE 中未找到节点: MissingNode",
+    });
+  });
+
+  it("times out and removes a pending host node navigation request", async () => {
+    const postMessage = vi.mocked(window.parent.postMessage);
+    const navigation = requestHostNodeNavigation("SlowNode");
+    const requestId = postMessage.mock.calls.at(-1)?.[0].requestId as string;
+
+    await vi.advanceTimersByTimeAsync(10_000);
+
+    await expect(navigation).resolves.toEqual({
+      success: false,
+      message: "等待宿主节点导航响应超时",
+    });
+    expect(
+      resolveHostNodeNavigationResult(
+        { success: true, nodeName: "SlowNode" },
+        requestId,
+      ),
+    ).toBe(false);
   });
 });

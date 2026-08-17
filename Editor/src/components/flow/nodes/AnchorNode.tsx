@@ -2,7 +2,7 @@ import { memo, useMemo, useState, useCallback } from "react";
 import { type Node, type NodeProps, useReactFlow } from "@xyflow/react";
 import classNames from "classnames";
 import { useShallow } from "zustand/shallow";
-import { Popover, Empty, message } from "antd";
+import { Popover, message } from "antd";
 import { ExportOutlined } from "@ant-design/icons";
 
 import style from "../../../styles/flow/nodes.module.less";
@@ -13,18 +13,13 @@ import { NodeTypeEnum } from "./constants";
 import { NodeContextMenu } from "./components/NodeContextMenu";
 import { AnchorNodeHandles } from "./components/NodeHandles";
 import { crossFileService } from "../../../services/crossFileService";
-
-/**引用节点信息类型 */
-interface ReferenceNodeInfo {
-  id: string;
-  label: string;
-  /** 文件路径（跨文件时显示） */
-  filePath?: string;
-  /** 相对路径（用于显示） */
-  relativePath?: string;
-  /** 是否是当前文件 */
-  isCurrentFile: boolean;
-}
+import { isEmbedEnvironment } from "../../../utils/embedBridge";
+import { useEmbedStore } from "../../../stores/embed/embedStore";
+import { AnchorReferenceList } from "./AnchorReferenceList";
+import {
+  resolveAnchorReferences,
+  type AnchorReferenceNodeInfo,
+} from "./anchorReferences";
 
 /**重定向节点内容 */
 const ANodeContent = memo(
@@ -32,17 +27,19 @@ const ANodeContent = memo(
     data,
     referenceNodes,
     onNavigateToNode,
+    canNavigateReferences,
     replicaCount,
   }: {
     data: AnchorNodeDataType;
-    referenceNodes?: ReferenceNodeInfo[];
-    onNavigateToNode?: (node: ReferenceNodeInfo) => void;
+    referenceNodes?: AnchorReferenceNodeInfo[];
+    onNavigateToNode?: (node: AnchorReferenceNodeInfo) => void;
+    canNavigateReferences: boolean;
     replicaCount: number;
   }) => {
     const [popoverOpen, setPopoverOpen] = useState(false);
 
     const handleNavigate = useCallback(
-      (node: ReferenceNodeInfo) => {
+      (node: AnchorReferenceNodeInfo) => {
         onNavigateToNode?.(node);
         setPopoverOpen(false);
       },
@@ -67,41 +64,18 @@ const ANodeContent = memo(
               onOpenChange={setPopoverOpen}
               trigger="click"
               placement="right"
-              title={`引用此锚点的节点 (${referenceNodes.length})`}
+              title={`定义此 Anchor 的节点 (${referenceNodes.length})`}
               content={
-                <div className={style["anchor-ref-list"]}>
-                  {referenceNodes.length === 0 ? (
-                    <Empty
-                      description="暂无引用"
-                      image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    />
-                  ) : (
-                    referenceNodes.map((node) => (
-                      <div
-                        key={node.id}
-                        className={style["anchor-ref-item"]}
-                        onClick={() => handleNavigate(node)}
-                      >
-                        <div className={style["anchor-ref-node-info"]}>
-                          <span className={style["anchor-ref-label"]}>
-                            {node.label}
-                          </span>
-                          {!node.isCurrentFile && node.relativePath && (
-                            <span className={style["anchor-ref-file"]}>
-                              {node.relativePath}
-                            </span>
-                          )}
-                        </div>
-                        <ExportOutlined className={style["anchor-ref-icon"]} />
-                      </div>
-                    ))
-                  )}
-                </div>
+                <AnchorReferenceList
+                  referenceNodes={referenceNodes}
+                  canNavigate={canNavigateReferences}
+                  onNavigate={handleNavigate}
+                />
               }
             >
               <div
                 className={style["navigate-btn"]}
-                title={`${referenceNodes.length} 个节点引用此锚点`}
+                title={`${referenceNodes.length} 个节点定义了此 Anchor`}
               >
                 <ExportOutlined />
               </div>
@@ -118,7 +92,10 @@ type AnchorNodeData = Node<AnchorNodeDataType, NodeTypeEnum.Anchor>;
 
 /**重定向节点组件 */
 export function AnchorNode(props: NodeProps<AnchorNodeData>) {
+  const isEmbed = isEmbedEnvironment();
   const focusOpacity = useConfigStore((state) => state.configs.focusOpacity);
+  const anchorDefinitions = useEmbedStore((state) => state.anchorDefinitions);
+  const currentFileName = useEmbedStore((state) => state.currentFileName);
   const { getNode } = useReactFlow();
 
   // 右键菜单状态
@@ -165,38 +142,34 @@ export function AnchorNode(props: NodeProps<AnchorNodeData>) {
   });
 
   // 获取引用此 anchor 的节点列表（支持跨文件）
-  const referenceNodes = useMemo((): ReferenceNodeInfo[] => {
-    const result: ReferenceNodeInfo[] = [];
+  const referenceNodes = useMemo((): AnchorReferenceNodeInfo[] => {
+    const currentReferences = referencedNodes.map((node) => ({
+      id: node.id,
+      label: node.data.label,
+      isCurrentFile: true,
+    }));
 
-    // 1. 当前文件中的引用节点（从索引获取）
-    for (const node of referencedNodes) {
-      result.push({
-        id: node.id,
-        label: node.data.label,
-        isCurrentFile: true,
-      });
-    }
-
-    // 2. 跨文件搜索引用该 anchor 的节点
-    const crossFileRefs = crossFileService.getAnchorReferencesCrossFile(
-      props.data.label,
-    );
-    for (const ref of crossFileRefs) {
-      result.push({
-        id: ref.id,
-        label: ref.label,
-        filePath: ref.filePath,
-        relativePath: ref.relativePath,
-        isCurrentFile: false,
-      });
-    }
-
-    return result;
-  }, [props.data.label, referencedNodes]);
+    return resolveAnchorReferences({
+      anchorName: props.data.label,
+      currentFileName,
+      currentReferences,
+      isEmbed,
+      anchorDefinitions,
+      getCrossFileReferences: (anchorName) =>
+        crossFileService.getAnchorReferencesCrossFile(anchorName),
+    });
+  }, [
+    anchorDefinitions,
+    currentFileName,
+    isEmbed,
+    props.data.label,
+    referencedNodes,
+  ]);
 
   // 跳转到指定节点
   const handleNavigateToNode = useCallback(
-    async (node: ReferenceNodeInfo) => {
+    async (node: AnchorReferenceNodeInfo) => {
+      if (isEmbed) return;
       if (node.isCurrentFile) {
         // 当前文件内跳转
         if (!instance) return;
@@ -237,7 +210,7 @@ export function AnchorNode(props: NodeProps<AnchorNodeData>) {
         }
       }
     },
-    [instance],
+    [instance, isEmbed],
   );
 
   // 计算是否与选中元素相关联
@@ -325,6 +298,7 @@ export function AnchorNode(props: NodeProps<AnchorNodeData>) {
           data={props.data}
           referenceNodes={referenceNodes}
           onNavigateToNode={handleNavigateToNode}
+          canNavigateReferences={!isEmbed}
           replicaCount={replicaCount}
         />
       </div>
@@ -342,6 +316,7 @@ export function AnchorNode(props: NodeProps<AnchorNodeData>) {
           data={props.data}
           referenceNodes={referenceNodes}
           onNavigateToNode={handleNavigateToNode}
+          canNavigateReferences={!isEmbed}
           replicaCount={replicaCount}
         />
       </div>

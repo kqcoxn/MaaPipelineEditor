@@ -5,6 +5,7 @@ import {
   getEmbedHostName,
   initEmbedBridge,
   isCompatibleProtocolVersion,
+  PROTOCOL_VERSION,
   sendToParent,
 } from "./embedBridge";
 import { useEmbedMessageLogStore } from "@/stores/embed/embedMessageLogStore";
@@ -84,10 +85,15 @@ describe("embedBridge", () => {
   });
 
   it("accepts the same major version and rejects incompatible versions", () => {
+    expect(PROTOCOL_VERSION).toBe("1.4.0");
     expect(isCompatibleProtocolVersion("1.0.0")).toBe(true);
     expect(isCompatibleProtocolVersion("1.9.0")).toBe(true);
     expect(isCompatibleProtocolVersion("2.0.0")).toBe(false);
     expect(isCompatibleProtocolVersion(undefined)).toBe(false);
+  });
+
+  it("disables host node navigation unless the host declares it", () => {
+    expect(DEFAULT_CAPABILITIES.hostNodeNavigation).toBe(false);
   });
 
   it("reports an incompatible parent protocol version", () => {

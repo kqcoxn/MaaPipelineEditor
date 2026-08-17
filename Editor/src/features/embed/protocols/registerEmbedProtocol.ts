@@ -9,7 +9,9 @@ import {
   PROTOCOL_VERSION,
   sendToParent,
   type EmbedCapabilities,
+  type EmbedAnchorDefinition,
   type EmbedHostInfo,
+  type EmbedNodeNavigationResultPayload,
   type EmbedSaveResultPayload,
   type EmbedUIConfig,
 } from "../../../utils/embedBridge";
@@ -17,6 +19,7 @@ import {
   clearEmbedOperationTimeouts,
   clearOperationTimeout,
   requestHostSave,
+  resolveHostNodeNavigationResult,
 } from "../actions/embedOperations";
 import { registerEmbedExternalNavigation } from "../navigation/externalNavigation";
 import { showEmbedSaveConflict } from "../components/saveConflict";
@@ -53,6 +56,25 @@ function normalizeHostInfo(value: unknown): EmbedHostInfo | null {
     ...(typeof host.name === "string" ? { name: host.name } : {}),
     ...(repositoryUrl ? { repositoryUrl } : {}),
   };
+}
+
+function normalizeAnchorDefinitions(value: unknown): EmbedAnchorDefinition[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const definition = item as Partial<EmbedAnchorDefinition>;
+    if (
+      typeof definition.anchorName !== "string" ||
+      typeof definition.nodeName !== "string" ||
+      typeof definition.fileName !== "string" ||
+      typeof definition.relativePath !== "string" ||
+      typeof definition.isCurrentFile !== "boolean"
+    ) {
+      return [];
+    }
+    return [definition as EmbedAnchorDefinition];
+  });
 }
 
 function findNode(nodeId: string) {
@@ -107,9 +129,10 @@ export function registerEmbedProtocol(): Cleanup {
       completeHandshake(capabilities, requestId);
     }),
     onParentMessage("mpe:loadPipeline", async (payload, requestId) => {
-      const { fileName, data } = payload as {
+      const { fileName, data, anchorDefinitions } = payload as {
         fileName?: string;
         data: unknown;
+        anchorDefinitions?: unknown;
       };
       try {
         const success = await pipelineToFlow({ pString: JSON.stringify(data) });
@@ -118,6 +141,9 @@ export function registerEmbedProtocol(): Cleanup {
           useEmbedStore.getState().setFileName(fileName);
         }
         if (success) {
+          useEmbedStore
+            .getState()
+            .setAnchorDefinitions(normalizeAnchorDefinitions(anchorDefinitions));
           const flowStore = useFlowStore.getState();
           flowStore.initHistory(flowStore.nodes, flowStore.edges);
           useEmbedStore.getState().markClean(flowToPipelineString());
@@ -181,6 +207,12 @@ export function registerEmbedProtocol(): Cleanup {
         result.success === true,
         flowToPipelineString(),
         result.message ?? result.error,
+      );
+    }),
+    onParentMessage("mpe:navigateNodeResult", (payload, requestId) => {
+      resolveHostNodeNavigationResult(
+        payload as Partial<EmbedNodeNavigationResultPayload>,
+        requestId,
       );
     }),
     onParentMessage("mpe:error", (payload, requestId) => {

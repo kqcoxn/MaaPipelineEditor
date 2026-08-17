@@ -29,6 +29,15 @@ describe("embedStore", () => {
       { id: "mse", name: "MSE" },
     );
     state.setFileName("pipeline.json");
+    state.setAnchorDefinitions([
+      {
+        anchorName: "Entry",
+        nodeName: "RemoteNode",
+        fileName: "remote.json",
+        relativePath: "pipelines/remote.json",
+        isCurrentFile: false,
+      },
+    ]);
     state.markClean('{"A":{}}');
     state.beginSave("save-1");
     state.beginReload("reload-1");
@@ -42,6 +51,7 @@ describe("embedStore", () => {
       ui: DEFAULT_UI,
       host: null,
       currentFileName: null,
+      anchorDefinitions: [],
       cleanPipeline: null,
       isDirty: false,
       saveOperation: { status: "idle", requestId: null, error: null },

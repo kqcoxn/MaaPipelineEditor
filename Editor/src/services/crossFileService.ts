@@ -23,6 +23,8 @@ import {
   collectSearchableFieldValues,
   findMatchingFieldValue,
 } from "./nodeSearch";
+import { isEmbedEnvironment } from "../utils/embedBridge";
+import { requestHostNodeNavigation } from "../features/embed/actions/embedOperations";
 
 /**
  * 跨文件节点信息
@@ -332,6 +334,10 @@ class CrossFileService {
   }> {
     if (!nodeName.trim()) {
       return { success: false, message: "节点名为空" };
+    }
+
+    if (isEmbedEnvironment()) {
+      return requestHostNodeNavigation(nodeName);
     }
 
     // 搜索匹配的节点
