@@ -6,7 +6,6 @@ import { visit } from "jsonc-parser";
 
 import { useFlowStore, type NodeType, type EdgeType } from "@/stores/flow";
 import {
-  restoreConfigCache,
   saveConfigCache,
   useConfigStore,
 } from "@/stores/app/configStore";
@@ -554,7 +553,6 @@ export const useFileStore = create<FileState>()((set) => ({
   replace(files) {
     try {
       if (!files) {
-        restoreConfigCache();
         const ls = localStorage.getItem("_mpe_files");
         if (!ls) return Error.call("未找到本地files缓存");
         files = JSON.parse(ls) as FileType[];

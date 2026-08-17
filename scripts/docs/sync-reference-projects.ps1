@@ -132,7 +132,7 @@ foreach ($project in $projects) {
     try {
         if (-not (Test-Path -LiteralPath $targetPath)) {
             if ($PSCmdlet.ShouldProcess($targetPath, "Clone $($project.repository)")) {
-                Invoke-Git -Arguments @("clone", "--recurse-submodules", $project.repository, $targetPath)
+                Invoke-Git -Arguments @("clone", $project.repository, $targetPath)
                 $results.Add([PSCustomObject]@{
                         Project = $project.name
                         Status  = "Cloned"
@@ -191,8 +191,7 @@ foreach ($project in $projects) {
         }
 
         if ($PSCmdlet.ShouldProcess($targetPath, "Fast-forward $branch from $upstream")) {
-            Invoke-Git -Arguments @("-C", $targetPath, "pull", "--ff-only", "--recurse-submodules")
-            Invoke-Git -Arguments @("-C", $targetPath, "submodule", "update", "--init", "--recursive")
+            Invoke-Git -Arguments @("-C", $targetPath, "pull", "--ff-only")
             $results.Add([PSCustomObject]@{
                     Project = $project.name
                     Status  = "Updated"

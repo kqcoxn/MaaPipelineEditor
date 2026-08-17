@@ -477,3 +477,24 @@ export function restoreConfigCache(): void {
   delete parsed.__configuredKeys;
   useConfigStore.getState().replaceConfig(parsed, configuredKeys);
 }
+
+export function initializeConfigCache(): () => void {
+  try {
+    restoreConfigCache();
+  } catch (error) {
+    console.error("[Config] 恢复配置缓存失败:", error);
+  }
+
+  return useConfigStore.subscribe((state, prevState) => {
+    if (
+      state.configs !== prevState.configs ||
+      state.configuredKeys !== prevState.configuredKeys
+    ) {
+      try {
+        saveConfigCache();
+      } catch (error) {
+        console.error("[Config] 保存配置缓存失败:", error);
+      }
+    }
+  });
+}

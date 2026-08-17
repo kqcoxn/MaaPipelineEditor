@@ -13,7 +13,10 @@ import {
 const { Header: HeaderSection, Content } = Layout;
 
 import { useFileStore } from "@/stores/project/fileStore";
-import { saveConfigCache, useConfigStore } from "@/stores/app/configStore";
+import {
+  initializeConfigCache,
+  useConfigStore,
+} from "@/stores/app/configStore";
 import { useWSStore } from "@/stores/connection/wsStore";
 import { useMFWStore } from "@/stores/connection/mfwStore";
 import { useCustomTemplateStore } from "@/stores/project/customTemplateStore";
@@ -168,13 +171,22 @@ function App() {
   // onMounted
   useEffect(() => {
     // 检查是否为嵌入模式（最高优先级）
-    if (isEmbedEnvironment()) {
+    const embedEnvironment = isEmbedEnvironment();
+    if (embedEnvironment) {
       console.log("[App] Embed mode detected");
 
       useTermsStore.getState().closeModal();
       useNewcomerStore.getState().closeModal();
+    }
 
-      return registerEmbedProtocol();
+    const unsubscribeConfigCache = initializeConfigCache();
+
+    if (embedEnvironment) {
+      const disposeEmbedProtocol = registerEmbedProtocol();
+      return () => {
+        unsubscribeConfigCache();
+        disposeEmbedProtocol();
+      };
     }
 
     // 检查是否有分享链接参数
@@ -188,21 +200,6 @@ function App() {
       const err = useFileStore.getState().replace();
       if (!err) message.success("已读取本地缓存");
     }
-
-    const unsubscribeConfigCache = useConfigStore.subscribe(
-      (state, prevState) => {
-        if (
-          state.configs !== prevState.configs ||
-          state.configuredKeys !== prevState.configuredKeys
-        ) {
-          try {
-            saveConfigCache();
-          } catch (error) {
-            console.error("[App] 保存配置缓存失败:", error);
-          }
-        }
-      },
-    );
 
     // 从分享链接加载
     if (hasShareParam) {

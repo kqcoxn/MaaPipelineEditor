@@ -102,6 +102,7 @@ export const updateLogs: UpdateLogItem[] = [
       fixes: [
         "修复 mac 系统下字段面板无法滚动的问题",
         "修复调试模块打开 agent 配置时崩溃的问题",
+        "修复 iframe 模式无法保存配置的问题",
       ],
     },
   },
