@@ -128,9 +128,11 @@ export class CanvasCommandBus {
     return this.stateVersion;
   }
 
-  readSummary(): ToolExecutionResult {
+  readSummary(context?: ToolExecutionContext): ToolExecutionResult {
     const graph = this.adapter.read();
     const stateVersion = this.getStateVersion();
+    const scopeError = this.validateReadContext(context, graph, stateVersion);
+    if (scopeError) return scopeError;
     return {
       ok: true,
       stateVersion,
@@ -149,10 +151,12 @@ export class CanvasCommandBus {
     };
   }
 
-  readNode(nodeId: string): ToolExecutionResult {
+  readNode(nodeId: string, context?: ToolExecutionContext): ToolExecutionResult {
     const graph = this.adapter.read();
-    const node = graph.nodes.find((item) => item.id === nodeId);
     const stateVersion = this.getStateVersion();
+    const scopeError = this.validateReadContext(context, graph, stateVersion);
+    if (scopeError) return scopeError;
+    const node = graph.nodes.find((item) => item.id === nodeId);
     if (!node) return notFound(`节点不存在: ${nodeId}`, stateVersion);
 
     const pipeline = flowToPipeline({
@@ -178,11 +182,14 @@ export class CanvasCommandBus {
     };
   }
 
-  readSelection(): ToolExecutionResult {
+  readSelection(context?: ToolExecutionContext): ToolExecutionResult {
     const graph = this.adapter.read();
+    const stateVersion = this.getStateVersion();
+    const scopeError = this.validateReadContext(context, graph, stateVersion);
+    if (scopeError) return scopeError;
     return {
       ok: true,
-      stateVersion: this.getStateVersion(),
+      stateVersion,
       data: {
         selectedNodeIds: graph.selectedNodeIds,
         targetNodeId: graph.targetNodeId,
@@ -190,12 +197,15 @@ export class CanvasCommandBus {
     };
   }
 
-  validateCanvas(): ToolExecutionResult {
+  validateCanvas(context?: ToolExecutionContext): ToolExecutionResult {
     const graph = this.adapter.read();
+    const stateVersion = this.getStateVersion();
+    const scopeError = this.validateReadContext(context, graph, stateVersion);
+    if (scopeError) return scopeError;
     const errors = validateCanvasGraph(graph.nodes, graph.edges);
     return {
       ok: errors.length === 0,
-      stateVersion: this.getStateVersion(),
+      stateVersion,
       data: { valid: errors.length === 0 },
       validationErrors: errors,
       error:
@@ -208,6 +218,25 @@ export class CanvasCommandBus {
             }
           : undefined,
     };
+  }
+
+  private validateReadContext(
+    context: ToolExecutionContext | undefined,
+    graph: CanvasGraphState,
+    stateVersion: number,
+  ): ToolExecutionResult | undefined {
+    if (!context) return undefined;
+    if (context.signal.aborted) {
+      return commandError("non_retryable", "Run 已取消", stateVersion);
+    }
+    if (context.fileName !== graph.fileName) {
+      return commandError(
+        "permission_denied",
+        "工具只能读取 Run 创建时的当前文件",
+        stateVersion,
+      );
+    }
+    return undefined;
   }
 
   apply(

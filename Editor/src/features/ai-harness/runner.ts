@@ -49,63 +49,60 @@ export class HarnessRunner {
     const targetSessionId = sessionId ?? store.activeSessionId;
     const session = store.sessions.find((item) => item.id === targetSessionId);
     if (!session) throw new Error(`Session 不存在: ${targetSessionId}`);
-    const hasActiveRun = session.runIds.some((runId) => {
-      const status = store.runs[runId]?.status;
-      return status && ["queued", "running", "waiting_tool"].includes(status);
-    });
-    if (hasActiveRun) throw new Error("当前 Session 已有 Run 正在执行");
-    if (
-      store.activeRunId &&
-      ["queued", "running", "waiting_tool"].includes(
-        store.runs[store.activeRunId]?.status ?? "",
-      )
-    ) {
+    if (!store.tryReserveRun(targetSessionId)) {
       throw new Error("当前已有 AI Run 正在执行");
     }
 
-    const client = new AIClient({ retryCount: 0 });
-    const modelAdapter = new HarnessModelAdapter(client);
-    const profile = this.registry.snapshotProfile("canvas-chat");
-    const capability = this.registry.snapshotCapabilityPack(
-      profile.capabilityPackId,
-    );
-    const modelSnapshot = await client.getModelConfigSnapshot();
-    const runId = this.nextRunId();
-    const run: HarnessRun = {
-      id: runId,
-      sessionId: targetSessionId,
-      goal: normalizedGoal,
-      status: "queued",
-      createdAt: Date.now(),
-      profileSnapshot: profile,
-      capabilitySnapshot: capability,
-      policySnapshot: Object.freeze(structuredClone(profile.defaultPolicy)),
-      modelSnapshot: Object.freeze(structuredClone(modelSnapshot)),
-      turnCount: 0,
-      toolCallCount: 0,
-      tokenUsage: emptyUsage(),
-      changedCanvas: false,
-    };
+    try {
+      const client = new AIClient({ retryCount: 0 });
+      const modelAdapter = new HarnessModelAdapter(client);
+      const profile = this.registry.snapshotProfile("canvas-chat");
+      const capability = this.registry.snapshotCapabilityPack(
+        profile.capabilityPackId,
+      );
+      const modelSnapshot = await client.freezeModelConfig();
+      const runId = this.nextRunId();
+      const run: HarnessRun = {
+        id: runId,
+        sessionId: targetSessionId,
+        goal: normalizedGoal,
+        status: "queued",
+        createdAt: Date.now(),
+        profileSnapshot: profile,
+        capabilitySnapshot: capability,
+        policySnapshot: Object.freeze(structuredClone(profile.defaultPolicy)),
+        modelSnapshot: Object.freeze(structuredClone(modelSnapshot)),
+        turnCount: 0,
+        toolCallCount: 0,
+        tokenUsage: emptyUsage(),
+        changedCanvas: false,
+      };
 
-    store.addRun(run);
-    store.appendMessage(targetSessionId, {
-      id: this.nextEventId("message"),
-      runId,
-      role: "user",
-      content: normalizedGoal,
-      createdAt: Date.now(),
-    });
-    this.appendEvent(run, {
-      type: "user_message",
-      text: normalizedGoal,
-    });
+      store.addRun(run);
+      store.appendMessage(targetSessionId, {
+        id: this.nextEventId("message"),
+        runId,
+        role: "user",
+        content: normalizedGoal,
+        createdAt: Date.now(),
+      });
+      this.appendEvent(run, {
+        type: "user_message",
+        text: normalizedGoal,
+      });
 
-    const controller = new AbortController();
-    this.activeExecutions.set(runId, { client, controller });
-    void this.execute(run, modelAdapter, session.messages, controller).finally(
-      () => this.activeExecutions.delete(runId),
-    );
-    return runId;
+      const controller = new AbortController();
+      this.activeExecutions.set(runId, { client, controller });
+      void this.execute(run, modelAdapter, session.messages, controller).finally(
+        () => this.activeExecutions.delete(runId),
+      );
+      return runId;
+    } catch (error) {
+      useAIHarnessStore
+        .getState()
+        .releaseRunReservation(targetSessionId);
+      throw error;
+    }
   }
 
   stop(runId: string): boolean {
@@ -177,10 +174,6 @@ export class HarnessRunner {
         store.updateRun(initialRun.id, { turnCount: turn, status: "running" });
         const response = await modelAdapter.complete(messages, tools, (delta) => {
           store.appendStreamingText(delta);
-          this.appendEvent(initialRun, {
-            type: "assistant_delta",
-            text: delta,
-          });
         });
         this.addUsage(initialRun.id, response);
 
@@ -211,7 +204,21 @@ export class HarnessRunner {
           });
         }
 
-        const evaluation = evaluateCompletion(response, allToolResults);
+        const latestRun = useAIHarnessStore.getState().runs[initialRun.id];
+        const canvasValidation = latestRun?.changedCanvas
+          ? canvasCommandBus.validateCanvas({
+              runId: initialRun.id,
+              sessionId: initialRun.sessionId,
+              fileName,
+              expectedStateVersion: canvasCommandBus.getStateVersion(),
+              signal: controller.signal,
+            })
+          : undefined;
+        const evaluation = evaluateCompletion(response, {
+          toolResults: allToolResults,
+          changedCanvas: latestRun?.changedCanvas,
+          canvasValidation,
+        });
         if (evaluation.complete) {
           if (evaluation.status === "succeeded") {
             store.appendMessage(initialRun.sessionId, {

@@ -3,6 +3,7 @@ import { subscribeWithSelector } from "zustand/middleware";
 import {
   DEFAULT_SESSION_TITLE,
   MAX_EVENTS_PER_RUN,
+  MAX_MESSAGES_PER_SESSION,
   MAX_RUNS_PER_SESSION,
 } from "./constants";
 import type {
@@ -19,6 +20,7 @@ interface AIHarnessState {
   runs: Record<string, HarnessRun>;
   events: Record<string, RunEvent[]>;
   activeRunId: string | null;
+  pendingRunSessionId: string | null;
   streamingText: string;
 }
 
@@ -28,6 +30,8 @@ interface AIHarnessActions {
   clearSession: (sessionId?: string) => boolean;
   deleteSession: (sessionId: string) => boolean;
   addRun: (run: HarnessRun) => void;
+  tryReserveRun: (sessionId: string) => boolean;
+  releaseRunReservation: (sessionId: string) => void;
   updateRun: (runId: string, patch: Partial<HarnessRun>) => void;
   appendEvent: (event: RunEvent) => void;
   appendMessage: (sessionId: string, message: HarnessSessionMessage) => void;
@@ -64,6 +68,7 @@ const createInitialState = (): AIHarnessState => ({
   runs: {},
   events: {},
   activeRunId: null,
+  pendingRunSessionId: null,
   streamingText: "",
 });
 
@@ -91,6 +96,7 @@ export const useAIHarnessStore = create<AIHarnessStore>()(
     clearSession(sessionId = get().activeSessionId) {
       const session = get().sessions.find((item) => item.id === sessionId);
       if (!session) return false;
+      if (get().pendingRunSessionId === sessionId) return false;
       if (
         session.runIds.some((runId) =>
           ["queued", "running", "waiting_tool"].includes(
@@ -128,6 +134,7 @@ export const useAIHarnessStore = create<AIHarnessStore>()(
       if (state.sessions.length <= 1) return false;
       const session = state.sessions.find((item) => item.id === sessionId);
       if (!session) return false;
+      if (state.pendingRunSessionId === sessionId) return false;
       if (
         session.runIds.some((runId) =>
           ["queued", "running", "waiting_tool"].includes(
@@ -183,9 +190,42 @@ export const useAIHarnessStore = create<AIHarnessStore>()(
           runs,
           events,
           activeRunId: run.id,
+          pendingRunSessionId: null,
           streamingText: "",
         };
       });
+    },
+
+    tryReserveRun(sessionId) {
+      let reserved = false;
+      set((state) => {
+        if (
+          state.pendingRunSessionId ||
+          !state.sessions.some((session) => session.id === sessionId)
+        ) {
+          return {};
+        }
+        const activeStatus = state.activeRunId
+          ? state.runs[state.activeRunId]?.status
+          : undefined;
+        if (
+          activeStatus &&
+          ["queued", "running", "waiting_tool"].includes(activeStatus)
+        ) {
+          return {};
+        }
+        reserved = true;
+        return { pendingRunSessionId: sessionId };
+      });
+      return reserved;
+    },
+
+    releaseRunReservation(sessionId) {
+      set((state) =>
+        state.pendingRunSessionId === sessionId
+          ? { pendingRunSessionId: null }
+          : {},
+      );
     },
 
     updateRun(runId, patch) {
@@ -221,7 +261,9 @@ export const useAIHarnessStore = create<AIHarnessStore>()(
             ...session,
             title,
             updatedAt: Date.now(),
-            messages: [...session.messages, message],
+            messages: [...session.messages, message].slice(
+              -MAX_MESSAGES_PER_SESSION,
+            ),
           };
         }),
       }));
@@ -254,6 +296,7 @@ export const useAIHarnessStore = create<AIHarnessStore>()(
         runs: {},
         events: {},
         activeRunId: null,
+        pendingRunSessionId: null,
         streamingText: "",
       });
     },

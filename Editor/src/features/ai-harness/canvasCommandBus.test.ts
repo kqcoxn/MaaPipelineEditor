@@ -79,6 +79,29 @@ describe("CanvasCommandBus", () => {
     expect(commit).not.toHaveBeenCalled();
   });
 
+  it("拒绝非法 Pipeline 变更且不提交画布", () => {
+    const { bus, commit, getGraph } = createHarness();
+    const result = bus.apply(context(), [
+      {
+        type: "create_node",
+        name: "非法节点",
+        pipeline: {
+          recognition: "TemplateMatch",
+          template: 123,
+        },
+      },
+    ]);
+
+    expect(result.ok).toBe(false);
+    expect(result.validationErrors).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("template 类型不符合 Pipeline 协议"),
+      ]),
+    );
+    expect(commit).not.toHaveBeenCalled();
+    expect(getGraph().nodes).toHaveLength(1);
+  });
+
   it("拒绝状态版本冲突和跨文件操作", () => {
     const { bus } = createHarness();
     expect(
@@ -90,6 +113,16 @@ describe("CanvasCommandBus", () => {
         { ...context(), fileName: "other.json" },
         [{ type: "delete_node", nodeId: "1" }],
       ).error?.code,
+    ).toBe("permission_denied");
+  });
+
+  it("只读操作同样拒绝跨文件访问", () => {
+    const { bus } = createHarness();
+    expect(bus.readSummary({ ...context(), fileName: "other.json" }).error?.code).toBe(
+      "permission_denied",
+    );
+    expect(
+      bus.readNode("1", { ...context(), fileName: "other.json" }).error?.code,
     ).toBe("permission_denied");
   });
 });

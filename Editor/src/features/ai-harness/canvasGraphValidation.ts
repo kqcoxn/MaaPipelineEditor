@@ -5,6 +5,7 @@ import {
 } from "@/components/flow/nodes";
 import type { EdgeType, NodeType } from "@/stores/flow";
 import { validateAndRepairNode } from "@/utils/node/nodeJsonValidator";
+import { validatePipelineDefinition } from "./pipelineValidation";
 
 export function validateCanvasGraph(
   nodes: NodeType[],
@@ -13,6 +14,8 @@ export function validateCanvasGraph(
   const errors: string[] = [];
   const nodeIds = new Set<string>();
   const uniqueLabels = new Map<string, NodeType>();
+  const nodeNames = new Set(nodes.map((node) => node.data.label));
+  const anchorNames = collectAnchorNames(nodes);
   for (const node of nodes) {
     if (nodeIds.has(node.id)) errors.push(`节点 ID 重复: ${node.id}`);
     nodeIds.add(node.id);
@@ -24,8 +27,22 @@ export function validateCanvasGraph(
       [NodeTypeEnum.External, NodeTypeEnum.Anchor].includes(node.type);
     if (existing && !allowsReplica) errors.push(`节点名称重复: ${node.data.label}`);
     uniqueLabels.set(node.data.label, node);
-    const validation = validateAndRepairNode(node);
+    const validation = validateAndRepairNode(structuredClone(node));
     if (!validation.valid) errors.push(validation.error || `节点非法: ${node.id}`);
+    if (validation.repaired) {
+      errors.push(validation.error || `节点数据结构不完整: ${node.id}`);
+    }
+    if (node.type === NodeTypeEnum.Pipeline) {
+      validatePipelineDefinition(
+        {
+          recognition: node.data.recognition,
+          action: node.data.action,
+          ...node.data.others,
+          ...node.data.extras,
+        },
+        { nodeNames, anchorNames },
+      ).forEach((error) => errors.push(`${node.data.label}: ${error}`));
+    }
   }
 
   const edgeIds = new Set<string>();
@@ -64,6 +81,24 @@ export function validateCanvasGraph(
     }
   }
   return [...new Set(errors)];
+}
+
+function collectAnchorNames(nodes: NodeType[]): Set<string> {
+  const anchors = new Set<string>();
+  nodes.forEach((node) => {
+    if (node.type !== NodeTypeEnum.Pipeline) return;
+    const value = node.data.others.anchor;
+    if (typeof value === "string") anchors.add(value);
+    if (Array.isArray(value)) {
+      value.forEach((item) => {
+        if (typeof item === "string") anchors.add(item);
+      });
+    }
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      Object.keys(value).forEach((name) => anchors.add(name));
+    }
+  });
+  return anchors;
 }
 
 export function normalizeCanvasEdgeLabels(edges: EdgeType[]): EdgeType[] {

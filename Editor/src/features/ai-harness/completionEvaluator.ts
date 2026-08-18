@@ -7,10 +7,17 @@ export interface CompletionEvaluation {
   reason?: string;
 }
 
+export interface CompletionContext {
+  toolResults: ToolExecutionResult[];
+  changedCanvas?: boolean;
+  canvasValidation?: ToolExecutionResult;
+}
+
 export function evaluateCompletion(
   response: UnifiedResponse,
-  toolResults: ToolExecutionResult[],
+  context: CompletionContext,
 ): CompletionEvaluation {
+  const { toolResults, changedCanvas = false, canvasValidation } = context;
   if (!response.success) {
     return { complete: true, status: "failed", reason: response.error };
   }
@@ -23,6 +30,13 @@ export function evaluateCompletion(
   if (!response.content.trim()) {
     return { complete: true, status: "failed", reason: "模型未返回最终文本" };
   }
+  if (toolResults.length === 0) {
+    return {
+      complete: true,
+      status: "failed",
+      reason: "模型未执行任何画布工具，无法确认目标已完成",
+    };
+  }
   if (toolResults.some((result) => result.error?.code === "permission_denied")) {
     return {
       complete: true,
@@ -30,6 +44,23 @@ export function evaluateCompletion(
       reason: "Run 包含权限拒绝的工具调用",
     };
   }
+  const lastToolResult = toolResults.at(-1);
+  if (!lastToolResult?.ok) {
+    return {
+      complete: true,
+      status: "failed",
+      reason: lastToolResult?.error?.message || "最后一次工具调用失败",
+    };
+  }
+  if (changedCanvas && !canvasValidation?.ok) {
+    return {
+      complete: true,
+      status: "failed",
+      reason:
+        canvasValidation?.validationErrors?.join("；") ||
+        canvasValidation?.error?.message ||
+        "变更后的画布未通过最终校验",
+    };
+  }
   return { complete: true, status: "succeeded" };
 }
-

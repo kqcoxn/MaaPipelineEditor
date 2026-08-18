@@ -52,6 +52,9 @@ function AIHistoryPanel() {
   const runs = useAIHarnessStore((state) => state.runs);
   const events = useAIHarnessStore((state) => state.events);
   const activeRunId = useAIHarnessStore((state) => state.activeRunId);
+  const pendingRunSessionId = useAIHarnessStore(
+    (state) => state.pendingRunSessionId,
+  );
   const streamingText = useAIHarnessStore((state) => state.streamingText);
   const createSession = useAIHarnessStore((state) => state.createSession);
   const switchSession = useAIHarnessStore((state) => state.switchSession);
@@ -70,7 +73,7 @@ function AIHistoryPanel() {
   const isCurrentSessionRunning = Boolean(
     currentRun && currentRun.sessionId === activeSessionId,
   );
-  const isAnyRunRunning = Boolean(currentRun);
+  const isAnyRunRunning = Boolean(currentRun || pendingRunSessionId);
 
   useEffect(() => {
     messageListRef.current?.scrollTo({

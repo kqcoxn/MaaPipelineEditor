@@ -1,5 +1,6 @@
 export * from "./constants";
 export * from "./modelAdapter";
+export * from "./pipelineValidation";
 export * from "./canvasCommandBus";
 export * from "./canvasTools";
 export * from "./toolDispatcher";

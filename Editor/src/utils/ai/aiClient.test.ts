@@ -182,4 +182,36 @@ describe("AIClient stream transport", () => {
       ],
     });
   });
+
+  it("freezes model configuration for every request in a Harness Run", async () => {
+    const fetchMock = vi.fn(async () =>
+      new Response(
+        JSON.stringify({ choices: [{ message: { content: "answer" } }] }),
+        { status: 200 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const client = new AIClient({ retryCount: 0 });
+
+    const snapshot = await client.freezeModelConfig();
+    configStoreMock.getState.mockReturnValue({
+      configs: {
+        ...config,
+        aiApiUrl: "https://changed.example.com",
+        aiModel: "changed-model",
+      },
+    });
+    await client.complete([{ role: "user", content: "hello" }], {
+      stream: false,
+    });
+
+    expect(snapshot).toMatchObject({
+      apiUrl: config.aiApiUrl,
+      model: config.aiModel,
+    });
+    expect(fetchMock.mock.calls[0][0]).toContain("api.example.com");
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body as string).model).toBe(
+      "test-model",
+    );
+  });
 });

@@ -259,11 +259,14 @@ type ToolHandler = (
 ) => ToolExecutionResult | Promise<ToolExecutionResult>;
 
 export const canvasToolHandlers: Record<string, ToolHandler> = {
-  read_canvas_summary: () => canvasCommandBus.readSummary(),
-  read_node: (argumentsValue) =>
-    canvasCommandBus.readNode(argumentsValue.nodeId as string),
-  read_selection: () => canvasCommandBus.readSelection(),
-  validate_canvas: () => canvasCommandBus.validateCanvas(),
+  read_canvas_summary: (_argumentsValue, context) =>
+    canvasCommandBus.readSummary(context),
+  read_node: (argumentsValue, context) =>
+    canvasCommandBus.readNode(argumentsValue.nodeId as string, context),
+  read_selection: (_argumentsValue, context) =>
+    canvasCommandBus.readSelection(context),
+  validate_canvas: (_argumentsValue, context) =>
+    canvasCommandBus.validateCanvas(context),
   create_node: (argumentsValue, context) =>
     canvasCommandBus.apply(context, [
       { type: "create_node", ...withoutVersion(argumentsValue) } as CanvasMutation,

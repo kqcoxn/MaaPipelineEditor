@@ -69,6 +69,7 @@ export class AIClient {
   private retryDelay: number;
   private abortController: AbortController | null = null;
   private requestInFlight = false;
+  private frozenConfig: AIProviderConfig | null = null;
 
   constructor(options: AIClientOptions = {}) {
     this.systemPrompt = options.systemPrompt || "";
@@ -83,6 +84,7 @@ export class AIClient {
 
   /** 获取当前 AI 配置（含解密） */
   private async getConfig(): Promise<AIProviderConfig> {
+    if (this.frozenConfig) return { ...this.frozenConfig };
     const configs = useConfigStore.getState().configs;
     const apiKey = await decryptApiKey(configs.aiApiKey);
 
@@ -541,6 +543,15 @@ export class AIClient {
     Pick<AIProviderConfig, "type" | "apiUrl" | "model" | "temperature">
   > {
     const { type, apiUrl, model, temperature } = await this.getConfig();
+    return { type, apiUrl, model, temperature };
+  }
+
+  async freezeModelConfig(): Promise<
+    Pick<AIProviderConfig, "type" | "apiUrl" | "model" | "temperature">
+  > {
+    const config = await this.getConfig();
+    this.frozenConfig = { ...config };
+    const { type, apiUrl, model, temperature } = config;
     return { type, apiUrl, model, temperature };
   }
 

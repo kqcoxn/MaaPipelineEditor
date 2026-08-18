@@ -56,6 +56,20 @@ describe("useAIHarnessStore", () => {
     expect(state.runs["run-b"]).toBeDefined();
   });
 
+  it("原子预约单个 Run，并在登记或失败时释放", () => {
+    const store = useAIHarnessStore.getState();
+    const sessionId = store.activeSessionId;
+
+    expect(store.tryReserveRun(sessionId)).toBe(true);
+    expect(useAIHarnessStore.getState().tryReserveRun(sessionId)).toBe(false);
+    expect(useAIHarnessStore.getState().pendingRunSessionId).toBe(sessionId);
+
+    useAIHarnessStore.getState().releaseRunReservation(sessionId);
+    expect(useAIHarnessStore.getState().tryReserveRun(sessionId)).toBe(true);
+    useAIHarnessStore.getState().addRun(createRun("run-reserved", sessionId));
+    expect(useAIHarnessStore.getState().pendingRunSessionId).toBeNull();
+  });
+
   it("限制每个 Session 的 Run 和每个 Run 的 Event 数量", () => {
     const store = useAIHarnessStore.getState();
     const sessionId = store.activeSessionId;
@@ -69,7 +83,7 @@ describe("useAIHarnessStore", () => {
         id: `event-${index}`,
         runId: retainedRunId,
         sessionId,
-        type: "assistant_delta",
+        type: "run_status",
         timestamp: index,
       } satisfies RunEvent);
     }
