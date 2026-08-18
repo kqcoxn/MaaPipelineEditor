@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { canvasCapabilityPack, createCanvasHarnessRegistry } from "./canvasTools";
-import { canvasChatProfile } from "./registry";
+import {
+  canvasCapabilityPack,
+  createDefaultHarnessDependencies,
+} from "../composition/defaultHarness";
+import { canvasChatProfile } from "../capabilities/canvas/profile";
 import { ToolDispatcher } from "./toolDispatcher";
-import type { HarnessRun } from "./types";
+import type { HarnessRun } from "../core/types";
 
 const run: HarnessRun = {
   id: "run-1",
@@ -39,11 +42,45 @@ const context = {
 };
 
 describe("ToolDispatcher", () => {
+  it("通过受控工具读取 MaaFramework Pipeline Skill 参考资料", async () => {
+    const { registry, toolHandlers } = createDefaultHarnessDependencies();
+    const dispatcher = new ToolDispatcher(registry, toolHandlers);
+    const result = await dispatcher.dispatch(
+      {
+        id: "mfw-reference",
+        name: "read_mfw_pipeline_reference",
+        arguments: { section: "动作类型/Click" },
+      },
+      run,
+      canvasCapabilityPack,
+      context,
+      { toolCallCount: 0, fingerprints: new Set<string>() },
+    );
+
+    expect(result.ok).toBe(true);
+    expect((result.data as { content: string }).content).toContain(
+      "target: true | string | [x,y] | [x,y,w,h]",
+    );
+  });
+
   it("拒绝非法工具和非法参数", async () => {
-    const dispatcher = new ToolDispatcher(createCanvasHarnessRegistry(), {
+    const { registry } = createDefaultHarnessDependencies();
+    const dispatcher = new ToolDispatcher(registry, {
       read_node: async () => ({ ok: true, stateVersion: 1 }),
     });
     const budget = { toolCallCount: 0, fingerprints: new Set<string>() };
+
+    expect(
+      (
+        await dispatcher.dispatch(
+          { id: "empty", name: "", arguments: {} },
+          run,
+          canvasCapabilityPack,
+          context,
+          budget,
+        )
+      ).error?.code,
+    ).toBe("invalid_arguments");
 
     expect(
       (
@@ -67,11 +104,13 @@ describe("ToolDispatcher", () => {
         )
       ).error?.code,
     ).toBe("invalid_arguments");
+    expect(budget.toolCallCount).toBe(3);
   });
 
   it("通过指纹拒绝重复工具调用", async () => {
     const handler = async () => ({ ok: true, stateVersion: 1 });
-    const dispatcher = new ToolDispatcher(createCanvasHarnessRegistry(), {
+    const { registry } = createDefaultHarnessDependencies();
+    const dispatcher = new ToolDispatcher(registry, {
       read_canvas_summary: handler,
     });
     const budget = { toolCallCount: 0, fingerprints: new Set<string>() };

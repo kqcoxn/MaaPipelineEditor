@@ -1,9 +1,11 @@
-import { CANVAS_CHAT_POLICY } from "./constants";
 import type {
-  BusinessProfile,
   CapabilityPack,
+  BusinessProfile,
+  HarnessSkill,
   ToolDefinition,
 } from "./types";
+
+export const ALL_REGISTERED_CAPABILITIES_PACK_ID = "*";
 
 function cloneAndFreeze<T>(value: T): Readonly<T> {
   const clone = structuredClone(value);
@@ -24,6 +26,7 @@ export class HarnessRegistry {
     Readonly<CapabilityPack>
   >();
   private readonly tools = new Map<string, Readonly<ToolDefinition>>();
+  private readonly skills = new Map<string, Readonly<HarnessSkill>>();
 
   registerProfile(profile: BusinessProfile): void {
     if (this.profiles.has(profile.id)) {
@@ -33,6 +36,9 @@ export class HarnessRegistry {
   }
 
   registerCapabilityPack(capabilityPack: CapabilityPack): void {
+    if (capabilityPack.id === ALL_REGISTERED_CAPABILITIES_PACK_ID) {
+      throw new Error("Capability Pack ID * 为全部注册 Skill 与工具保留");
+    }
     if (this.capabilityPacks.has(capabilityPack.id)) {
       throw new Error(`Capability Pack 已注册: ${capabilityPack.id}`);
     }
@@ -46,6 +52,13 @@ export class HarnessRegistry {
     this.tools.set(tool.name, cloneAndFreeze(tool));
   }
 
+  registerSkill(skill: HarnessSkill): void {
+    if (this.skills.has(skill.id)) {
+      throw new Error(`Skill 已注册: ${skill.id}`);
+    }
+    this.skills.set(skill.id, cloneAndFreeze(skill));
+  }
+
   getProfile(id: string): Readonly<BusinessProfile> {
     const profile = this.profiles.get(id);
     if (!profile) throw new Error(`未知 Business Profile: ${id}`);
@@ -53,6 +66,15 @@ export class HarnessRegistry {
   }
 
   getCapabilityPack(id: string): Readonly<CapabilityPack> {
+    if (id === ALL_REGISTERED_CAPABILITIES_PACK_ID) {
+      return cloneAndFreeze({
+        id,
+        version: "runtime",
+        description: "Run 创建时已注册的全部 MPE Skill 与工具",
+        skillIds: [...this.skills.keys()],
+        toolNames: [...this.tools.keys()],
+      });
+    }
     const capabilityPack = this.capabilityPacks.get(id);
     if (!capabilityPack) throw new Error(`未知 Capability Pack: ${id}`);
     return capabilityPack;
@@ -60,6 +82,10 @@ export class HarnessRegistry {
 
   getTool(name: string): Readonly<ToolDefinition> | undefined {
     return this.tools.get(name);
+  }
+
+  getSkill(id: string): Readonly<HarnessSkill> | undefined {
+    return this.skills.get(id);
   }
 
   snapshotProfile(id: string): Readonly<BusinessProfile> {
@@ -70,16 +96,3 @@ export class HarnessRegistry {
     return cloneAndFreeze(this.getCapabilityPack(id));
   }
 }
-
-export const canvasChatProfile: BusinessProfile = {
-  id: "canvas-chat",
-  version: "1.0.0",
-  name: "画布对话",
-  description: "查询并受控修改当前文件的 Pipeline 画布",
-  capabilityPackId: "canvas",
-  maxSessionMessages: 20,
-  systemPrompt:
-    "你是 MPE 画布助手。必须通过已提供的工具读取和修改画布，不得声称执行未实际执行的操作。",
-  defaultPolicy: CANVAS_CHAT_POLICY,
-};
-

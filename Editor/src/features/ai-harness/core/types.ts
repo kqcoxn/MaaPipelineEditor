@@ -38,7 +38,16 @@ export interface CapabilityPack {
   id: string;
   version: string;
   description: string;
+  skillIds: string[];
   toolNames: string[];
+}
+
+export interface HarnessSkill {
+  id: string;
+  version: string;
+  name: string;
+  description: string;
+  instructions: string;
 }
 
 export interface BusinessProfile {
@@ -75,6 +84,19 @@ export interface ToolExecutionResult<T = unknown> {
   changes?: string[];
   validationErrors?: string[];
   undoable?: boolean;
+}
+
+export type ToolHandler = (
+  argumentsValue: Record<string, unknown>,
+  context: ToolExecutionContext,
+) => ToolExecutionResult | Promise<ToolExecutionResult>;
+
+export interface HarnessModule {
+  skills?: readonly HarnessSkill[];
+  tools?: readonly ToolDefinition[];
+  profiles?: readonly BusinessProfile[];
+  capabilityPacks?: readonly CapabilityPack[];
+  toolHandlers?: Readonly<Record<string, ToolHandler>>;
 }
 
 export type FrozenModelConfig = Pick<

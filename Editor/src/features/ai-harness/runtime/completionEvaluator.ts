@@ -1,5 +1,5 @@
 import type { UnifiedResponse } from "@/utils/ai/providers";
-import type { HarnessRunStatus, ToolExecutionResult } from "./types";
+import type { HarnessRunStatus, ToolExecutionResult } from "../core/types";
 
 export interface CompletionEvaluation {
   complete: boolean;

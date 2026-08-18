@@ -4,7 +4,7 @@ import {
   CanvasCommandBus,
   type CanvasCommandBusAdapter,
   type CanvasGraphState,
-} from "./canvasCommandBus";
+} from "./commandBus";
 
 function createHarness() {
   let graph: CanvasGraphState = {

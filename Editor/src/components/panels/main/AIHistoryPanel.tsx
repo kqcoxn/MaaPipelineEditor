@@ -1,15 +1,14 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { App as AntdApp, Button, Drawer, Empty, Input, Tooltip } from "antd";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { App as AntdApp, Button, Drawer, Popover, Tooltip } from "antd";
+import { Conversations, Sender, Welcome } from "@ant-design/x";
 import {
   ClearOutlined,
   CloseOutlined,
   DeleteOutlined,
+  DownOutlined,
+  HistoryOutlined,
   MessageOutlined,
-  PlusOutlined,
-  SendOutlined,
-  StopOutlined,
 } from "@ant-design/icons";
-import classNames from "classnames";
 
 import {
   harnessRunner,
@@ -23,7 +22,6 @@ import {
 } from "./AIConversationRun";
 import style from "../../../styles/panels/AIHistoryPanel.module.less";
 
-const { TextArea } = Input;
 const MOBILE_QUERY = "(max-width: 720px)";
 
 function useMobileDrawer(): boolean {
@@ -44,7 +42,7 @@ function AIHistoryPanel() {
   const mobile = useMobileDrawer();
   const [draft, setDraft] = useState("");
   const [drawerSize, setDrawerSize] = useState(620);
-  const messageListRef = useRef<HTMLDivElement>(null);
+  const [sessionSwitcherOpen, setSessionSwitcherOpen] = useState(false);
   const show = useConfigStore((state) => state.status.showAIHistoryPanel);
   const setStatus = useConfigStore((state) => state.setStatus);
   const sessions = useAIHarnessStore((state) => state.sessions);
@@ -75,15 +73,24 @@ function AIHistoryPanel() {
   );
   const isAnyRunRunning = Boolean(currentRun || pendingRunSessionId);
 
-  useEffect(() => {
-    messageListRef.current?.scrollTo({
-      top: messageListRef.current.scrollHeight,
-      behavior: "smooth",
-    });
-  }, [sessionRuns.length, streamingText, activeSessionId]);
+  const conversationItems = useMemo(
+    () =>
+      sessions.map((session) => ({
+        key: session.id,
+        label: (
+          <div className={style.sessionLabel} title={session.title}>
+            <span className={style.sessionTitle}>{session.title}</span>
+            <span className={style.sessionMeta}>
+              {session.runIds.length} Runs · {formatAIConversationTime(session.updatedAt)}
+            </span>
+          </div>
+        ),
+      })),
+    [sessions],
+  );
 
-  const handleSend = useCallback(async () => {
-    const goal = draft.trim();
+  const handleSend = useCallback(async (messageText: string) => {
+    const goal = messageText.trim();
     if (!goal || isAnyRunRunning) return;
     setDraft("");
     try {
@@ -92,7 +99,7 @@ function AIHistoryPanel() {
       setDraft(goal);
       message.error(error instanceof Error ? error.message : "无法启动 AI Run");
     }
-  }, [activeSessionId, draft, isAnyRunRunning, message]);
+  }, [activeSessionId, isAnyRunRunning, message]);
 
   const handleClear = useCallback(() => {
     if (!activeSession || activeSession.runIds.length === 0) return;
@@ -120,6 +127,51 @@ function AIHistoryPanel() {
     [deleteSession, modal],
   );
 
+  const sessionSwitcher = (
+    <nav className={style.sessionPopover} aria-label="AI Session 列表">
+      <Conversations
+        rootClassName={style.sessionList}
+        items={conversationItems}
+        activeKey={activeSessionId}
+        onActiveChange={(sessionId) => {
+          switchSession(sessionId);
+          setSessionSwitcherOpen(false);
+        }}
+        creation={{
+          label: "新建 Session",
+          onClick: () => {
+            createSession();
+            setSessionSwitcherOpen(false);
+          },
+        }}
+        menu={(conversation) => {
+          const session = sessions.find((item) => item.id === conversation.key);
+          const sessionRunning = session?.runIds.some((runId) =>
+            ["queued", "running", "waiting_tool"].includes(
+              runs[runId]?.status ?? "",
+            ),
+          );
+          return {
+            items: [
+              {
+                key: "delete",
+                label: "删除 Session",
+                icon: <DeleteOutlined />,
+                danger: true,
+                disabled: sessions.length <= 1 || sessionRunning,
+              },
+            ],
+            onClick: ({ key }) => {
+              if (key === "delete" && session) {
+                handleDelete(session.id, session.title);
+              }
+            },
+          };
+        }}
+      />
+    </nav>
+  );
+
   return (
     <Drawer
       open={show}
@@ -134,7 +186,11 @@ function AIHistoryPanel() {
       }
       mask={false}
       rootClassName={style.drawer}
-      classNames={{ body: style.drawerBody, header: style.drawerHeader }}
+      classNames={{
+        section: style.drawerSection,
+        body: style.drawerBody,
+        header: style.drawerHeader,
+      }}
       title={
         <div className={style.drawerTitle}>
           <MessageOutlined />
@@ -144,83 +200,29 @@ function AIHistoryPanel() {
       closeIcon={<CloseOutlined />}
     >
       <div className={style.content}>
-        <aside className={style.sessionSidebar} aria-label="AI Session 列表">
-          <div className={style.sessionHeader}>
-            <span>Session</span>
-            <Tooltip title="新建 Session">
-              <Button
-                type="text"
-                size="small"
-                aria-label="新建 Session"
-                icon={<PlusOutlined />}
-                onClick={() => createSession()}
-              />
-            </Tooltip>
-          </div>
-          <div className={style.sessionList}>
-            {sessions.map((session) => {
-              const active = session.id === activeSessionId;
-              const sessionRunning = session.runIds.some((runId) =>
-                ["queued", "running", "waiting_tool"].includes(
-                  runs[runId]?.status ?? "",
-                ),
-              );
-              return (
-                <div
-                  key={session.id}
-                  className={classNames(style.sessionItem, {
-                    [style.sessionItemActive]: active,
-                  })}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => switchSession(session.id)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      switchSession(session.id);
-                    }
-                  }}
-                >
-                  <div className={style.sessionItemMain}>
-                    <div className={style.sessionTitle} title={session.title}>
-                      {session.title}
-                    </div>
-                    <div className={style.sessionMeta}>
-                      <span>{session.runIds.length} Runs</span>
-                      <span>{formatAIConversationTime(session.updatedAt)}</span>
-                    </div>
-                  </div>
-                  <Tooltip
-                    title={
-                      sessions.length <= 1
-                        ? "至少保留一个 Session"
-                        : sessionRunning
-                          ? "运行中不可删除"
-                          : "删除 Session"
-                    }
-                  >
-                    <Button
-                      type="text"
-                      size="small"
-                      danger
-                      disabled={sessions.length <= 1 || sessionRunning}
-                      aria-label={`删除 ${session.title}`}
-                      icon={<DeleteOutlined />}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleDelete(session.id, session.title);
-                      }}
-                    />
-                  </Tooltip>
-                </div>
-              );
-            })}
-          </div>
-        </aside>
-
         <main className={style.conversation}>
           <div className={style.conversationHeader}>
-            <span title={activeSession?.title}>{activeSession?.title}</span>
+            <Popover
+              content={sessionSwitcher}
+              trigger="click"
+              placement="bottomLeft"
+              arrow={false}
+              open={sessionSwitcherOpen}
+              onOpenChange={setSessionSwitcherOpen}
+              classNames={{ container: style.sessionPopoverContainer }}
+            >
+              <Button
+                type="text"
+                className={style.sessionSwitcher}
+                aria-label="切换 Session"
+                icon={<HistoryOutlined />}
+              >
+                <span className={style.activeSessionTitle} title={activeSession?.title}>
+                  {activeSession?.title}
+                </span>
+                <DownOutlined className={style.sessionSwitcherArrow} />
+              </Button>
+            </Popover>
             <Tooltip title="清空当前 Session">
               <Button
                 type="text"
@@ -234,9 +236,9 @@ function AIHistoryPanel() {
             </Tooltip>
           </div>
 
-          <div ref={messageListRef} className={style.messageList}>
+          <div className={style.messageList}>
             {sessionRuns.length === 0 ? (
-              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无对话" />
+              <Welcome title="暂无对话" variant="borderless" />
             ) : (
               sessionRuns.map((run) => (
                 <AIConversationRun
@@ -249,42 +251,20 @@ function AIHistoryPanel() {
             )}
           </div>
 
-          <div className={style.composer}>
-            <TextArea
+          <div className={style.composerShell} data-testid="ai-composer-shell">
+            <Sender
+              rootClassName={style.composer}
               value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              onPressEnter={(event) => {
-                if (!event.shiftKey) {
-                  event.preventDefault();
-                  void handleSend();
-                }
+              onChange={setDraft}
+              onSubmit={(value) => void handleSend(value)}
+              loading={isCurrentSessionRunning}
+              onCancel={() => {
+                if (activeRunId) harnessRunner.stop(activeRunId);
               }}
-              autoSize={{ minRows: 2, maxRows: 6 }}
+              autoSize={{ minRows: 1, maxRows: 5 }}
               placeholder="输入目标或问题"
-              disabled={isAnyRunRunning}
+              disabled={isAnyRunRunning && !isCurrentSessionRunning}
             />
-            <div className={style.composerActions}>
-              {isCurrentSessionRunning && activeRunId ? (
-                <Tooltip title="停止 Run">
-                  <Button
-                    danger
-                    aria-label="停止 Run"
-                    icon={<StopOutlined />}
-                    onClick={() => harnessRunner.stop(activeRunId)}
-                  />
-                </Tooltip>
-              ) : (
-                <Tooltip title="发送">
-                  <Button
-                    type="primary"
-                    aria-label="发送"
-                    icon={<SendOutlined />}
-                    disabled={!draft.trim() || isAnyRunRunning}
-                    onClick={() => void handleSend()}
-                  />
-                </Tooltip>
-              )}
-            </div>
           </div>
         </main>
       </div>

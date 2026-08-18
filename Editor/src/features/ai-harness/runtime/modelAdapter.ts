@@ -5,6 +5,7 @@ import type {
   UnifiedMessage,
   UnifiedResponse,
   UnifiedToolCall,
+  TokenUsage,
 } from "@/utils/ai/providers";
 
 const envelopeSchema = {
@@ -29,7 +30,7 @@ const envelopeSchema = {
             type: "object",
             properties: {
               id: { type: "string" },
-              name: { type: "string" },
+              name: { type: "string", minLength: 1 },
               arguments: { type: "object" },
             },
             required: ["name", "arguments"],
@@ -81,16 +82,20 @@ export class HarnessModelAdapter {
       onTextDelta,
     );
 
-    if (
-      config.type !== "custom" ||
-      nativeResult.success ||
-      !isUnsupportedToolError(nativeResult.error)
-    ) {
+    const hasMalformedToolCall = nativeResult.toolCalls.some(
+      (call) => !call.name.trim(),
+    );
+    const shouldUseEnvelopeFallback =
+      hasMalformedToolCall ||
+      (config.type === "custom" &&
+        !nativeResult.success &&
+        isUnsupportedToolError(nativeResult.error));
+    if (!shouldUseEnvelopeFallback) {
       return nativeResult;
     }
 
     const fallbackMessages: UnifiedMessage[] = [
-      { role: "system", content: FALLBACK_INSTRUCTION },
+      { role: "system", content: buildFallbackInstruction(tools) },
       ...messages,
     ];
     const fallbackResult = await this.client.complete(fallbackMessages, {
@@ -98,7 +103,10 @@ export class HarnessModelAdapter {
     });
     if (!fallbackResult.success) return fallbackResult;
 
-    return this.parseEnvelope(fallbackResult.content, tools, fallbackResult);
+    return this.parseEnvelope(fallbackResult.content, tools, {
+      ...fallbackResult,
+      usage: mergeTokenUsage(nativeResult.usage, fallbackResult.usage),
+    });
   }
 
   parseEnvelope(
@@ -166,6 +174,30 @@ export class HarnessModelAdapter {
   }
 }
 
+function buildFallbackInstruction(tools: ModelToolDefinition[]): string {
+  const toolCatalog = tools
+    .map(
+      (tool) =>
+        `${tool.name}: ${tool.description}\n输入 Schema: ${JSON.stringify(tool.inputSchema)}`,
+    )
+    .join("\n\n");
+  return `${FALLBACK_INSTRUCTION}\n\n可用工具定义：\n${toolCatalog}`;
+}
+
+function mergeTokenUsage(
+  first?: TokenUsage,
+  second?: TokenUsage,
+): TokenUsage | undefined {
+  if (!first) return second;
+  if (!second) return first;
+  return {
+    promptTokens: first.promptTokens + second.promptTokens,
+    completionTokens: first.completionTokens + second.completionTokens,
+    totalTokens: first.totalTokens + second.totalTokens,
+    isEstimated: first.isEstimated || second.isEstimated,
+  };
+}
+
 function isUnsupportedToolError(error?: string): boolean {
   return Boolean(error && /HTTP (400|404|415|422)|tools?|tool_choice/i.test(error));
 }
@@ -183,4 +215,3 @@ function invalidEnvelopeResponse(
     usage: baseResponse?.usage,
   };
 }
-

@@ -1,13 +1,9 @@
 import type { AnySchemaObject } from "ajv";
-import type { UnifiedToolCall } from "@/utils/ai/providers";
-import { canvasCommandBus, type CanvasMutation } from "./canvasCommandBus";
-import { HarnessRegistry, canvasChatProfile } from "./registry";
+import { canvasCommandBus, type CanvasMutation } from "./commandBus";
 import type {
-  CapabilityPack,
   ToolDefinition,
-  ToolExecutionContext,
-  ToolExecutionResult,
-} from "./types";
+  ToolHandler,
+} from "../../core/types";
 
 const positionSchema = {
   type: "object",
@@ -246,18 +242,6 @@ export const canvasToolDefinitions: ToolDefinition[] = [
   },
 ];
 
-export const canvasCapabilityPack: CapabilityPack = {
-  id: "canvas",
-  version: "1.0.0",
-  description: "当前文件画布、节点和连接的完整受控操作",
-  toolNames: canvasToolDefinitions.map((tool) => tool.name),
-};
-
-type ToolHandler = (
-  argumentsValue: Record<string, unknown>,
-  context: ToolExecutionContext,
-) => ToolExecutionResult | Promise<ToolExecutionResult>;
-
 export const canvasToolHandlers: Record<string, ToolHandler> = {
   read_canvas_summary: (_argumentsValue, context) =>
     canvasCommandBus.readSummary(context),
@@ -309,17 +293,4 @@ function withoutVersion(
 ): Record<string, unknown> {
   const { expectedStateVersion: _expectedStateVersion, ...rest } = value;
   return rest;
-}
-
-export function createCanvasHarnessRegistry(): HarnessRegistry {
-  const registry = new HarnessRegistry();
-  canvasToolDefinitions.forEach((tool) => registry.registerTool(tool));
-  registry.registerCapabilityPack(canvasCapabilityPack);
-  registry.registerProfile(canvasChatProfile);
-  return registry;
-}
-
-export function summarizeToolArguments(call: UnifiedToolCall): string {
-  const value = JSON.stringify(call.arguments);
-  return value.length <= 240 ? value : `${value.slice(0, 237)}...`;
 }

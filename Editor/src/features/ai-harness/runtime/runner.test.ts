@@ -57,12 +57,22 @@ vi.mock("@/utils/ai/aiClient", () => ({
   },
 }));
 
-vi.mock("./canvasCommandBus", () => ({
+vi.mock("../capabilities/canvas/commandBus", () => ({
   canvasCommandBus: canvasMock,
 }));
 
 import { HarnessRunner } from "./runner";
-import { useAIHarnessStore } from "./store";
+import { useAIHarnessStore } from "../state/store";
+import { canvasToolDefinitions } from "../capabilities/canvas/tools";
+import {
+  mfwPipelineReferenceTool,
+  MFW_PIPELINE_SKILL_ID,
+} from "../skills/mfw-pipeline/definition";
+import { createDefaultHarnessDependencies } from "../composition/defaultHarness";
+
+function createRunner(): HarnessRunner {
+  return new HarnessRunner(createDefaultHarnessDependencies());
+}
 
 const finalResponse = (content = "完成"): UnifiedResponse => ({
   success: true,
@@ -116,13 +126,29 @@ describe("HarnessRunner", () => {
     modelMock.complete
       .mockResolvedValueOnce(readToolResponse())
       .mockResolvedValueOnce(finalResponse("读取完成"));
-    const runner = new HarnessRunner();
+    const runner = createRunner();
 
     const runId = await runner.start("读取当前节点");
     const run = await waitForRun(runId);
 
     expect(run.status).toBe("succeeded");
     expect(run.toolCallCount).toBe(1);
+    expect(run.capabilitySnapshot.toolNames).toEqual(
+      [...canvasToolDefinitions, mfwPipelineReferenceTool].map(
+        (tool) => tool.name,
+      ),
+    );
+    expect(run.capabilitySnapshot.skillIds).toEqual([MFW_PIPELINE_SKILL_ID]);
+    expect(
+      modelMock.complete.mock.calls[0][0].some((message) =>
+        message.content.includes("本次 Run 已启用的全部 MPE 工具"),
+      ),
+    ).toBe(true);
+    expect(
+      modelMock.complete.mock.calls[0][0].some((message) =>
+        message.content.includes("Pipeline 处理工作流"),
+      ),
+    ).toBe(true);
     expect(useAIHarnessStore.getState().sessions[0].messages.at(-1)).toMatchObject({
       role: "assistant",
       content: "读取完成",
@@ -136,12 +162,38 @@ describe("HarnessRunner", () => {
         toolCalls: [{ id: "bad", name: "shell", arguments: {} }],
       })
       .mockResolvedValueOnce(finalResponse());
-    const runner = new HarnessRunner();
+    const runner = createRunner();
 
     const run = await waitForRun(await runner.start("执行非法工具"));
 
     expect(run.status).toBe("failed");
     expect(run.error).toContain("权限");
+  });
+
+  it("空工具名通过兼容模式恢复后可以正常完成", async () => {
+    modelMock.complete
+      .mockResolvedValueOnce({
+        ...readToolResponse(),
+        content: "先读取当前画布状态。",
+        toolCalls: [{ id: "empty", name: "", arguments: {} }],
+      })
+      .mockResolvedValueOnce({
+        ...finalResponse(
+          '{"type":"tool_calls","calls":[{"name":"read_canvas_summary","arguments":{}}]}',
+        ),
+      })
+      .mockResolvedValueOnce(finalResponse("读取完成"));
+    const runner = createRunner();
+
+    const run = await waitForRun(await runner.start("你好"));
+
+    expect(run.status).toBe("succeeded");
+    expect(run.toolCallCount).toBe(1);
+    expect(
+      (useAIHarnessStore.getState().events[run.id] ?? []).filter(
+        (event) => event.type === "tool_requested",
+      ),
+    ).toHaveLength(1);
   });
 
   it("达到 Token、Turn 和工具次数预算后终止", async () => {
@@ -154,14 +206,14 @@ describe("HarnessRunner", () => {
         isEstimated: false,
       },
     });
-    let runner = new HarnessRunner();
+    let runner = createRunner();
     let run = await waitForRun(await runner.start("超出 Token"));
     expect(run.error).toContain("Token");
 
     modelMock.complete.mockImplementation(async () =>
       readToolResponse(String(modelMock.complete.mock.calls.length)),
     );
-    runner = new HarnessRunner();
+    runner = createRunner();
     run = await waitForRun(await runner.start("超出 Turn"));
     expect(run.turnCount).toBe(12);
     expect(run.error).toContain("Turn");
@@ -174,7 +226,7 @@ describe("HarnessRunner", () => {
         arguments: { nodeId: String(index) },
       })),
     });
-    runner = new HarnessRunner();
+    runner = createRunner();
     run = await waitForRun(await runner.start("超出工具预算"));
     expect(run.error).toContain("工具调用");
     expect(run.toolCallCount).toBe(24);
@@ -197,7 +249,7 @@ describe("HarnessRunner", () => {
         finishReason: "cancelled",
       }),
     );
-    let runner = new HarnessRunner();
+    let runner = createRunner();
     let runId = await runner.start("等待取消");
     await vi.waitFor(() => expect(modelMock.complete).toHaveBeenCalled());
     expect(runner.stop(runId)).toBe(true);
@@ -205,7 +257,7 @@ describe("HarnessRunner", () => {
 
     vi.useFakeTimers();
     resolveRequest = undefined;
-    runner = new HarnessRunner();
+    runner = createRunner();
     runId = await runner.start("等待超时");
     await vi.advanceTimersByTimeAsync(120_000);
     expect((await waitForRun(runId)).status).toBe("cancelled");
@@ -227,7 +279,7 @@ describe("HarnessRunner", () => {
         }),
     );
     modelMock.complete.mockResolvedValue(finalResponse());
-    const runner = new HarnessRunner();
+    const runner = createRunner();
     const firstStart = runner.start("第一个 Run");
 
     await expect(runner.start("第二个 Run")).rejects.toThrow("已有 AI Run");
@@ -253,7 +305,7 @@ describe("HarnessRunner", () => {
         ? readToolResponse()
         : finalResponse();
     });
-    const runner = new HarnessRunner();
+    const runner = createRunner();
     const firstSessionId = useAIHarnessStore.getState().activeSessionId;
     await waitForRun(await runner.start("第一会话目标", firstSessionId));
     const secondSessionId = useAIHarnessStore.getState().createSession("第二会话");

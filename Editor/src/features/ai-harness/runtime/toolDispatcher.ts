@@ -1,13 +1,13 @@
 import Ajv from "ajv";
 import type { UnifiedToolCall } from "@/utils/ai/providers";
-import { canvasToolHandlers } from "./canvasTools";
-import type { HarnessRegistry } from "./registry";
+import type { HarnessRegistry } from "../core/registry";
 import type {
   CapabilityPack,
   HarnessRun,
   ToolExecutionContext,
+  ToolHandler,
   ToolExecutionResult,
-} from "./types";
+} from "../core/types";
 
 export interface ToolDispatchBudget {
   toolCallCount: number;
@@ -19,7 +19,7 @@ export class ToolDispatcher {
 
   constructor(
     private readonly registry: HarnessRegistry,
-    private readonly handlers = canvasToolHandlers,
+    private readonly handlers: Readonly<Record<string, ToolHandler>>,
   ) {}
 
   async dispatch(
@@ -31,9 +31,25 @@ export class ToolDispatcher {
     retryAttempt = 0,
   ): Promise<ToolExecutionResult> {
     const currentVersion = context.expectedStateVersion;
+    if (budget.toolCallCount >= run.policySnapshot.maxToolCalls) {
+      return rejected("non_retryable", "已达到工具调用预算", currentVersion);
+    }
+    budget.toolCallCount += 1;
+
+    if (!call.name.trim()) {
+      return rejected(
+        "invalid_arguments",
+        "模型返回的工具名称不能为空",
+        currentVersion,
+      );
+    }
     const definition = this.registry.getTool(call.name);
     if (!definition || !capabilityPack.toolNames.includes(call.name)) {
-      return rejected("permission_denied", `工具不在能力白名单中: ${call.name}`, currentVersion);
+      return rejected(
+        "permission_denied",
+        `工具未注册或当前不可用: ${call.name}`,
+        currentVersion,
+      );
     }
     const handler = this.handlers[call.name];
     if (!handler) {
@@ -48,16 +64,11 @@ export class ToolDispatcher {
         currentVersion,
       );
     }
-    if (budget.toolCallCount >= run.policySnapshot.maxToolCalls) {
-      return rejected("non_retryable", "已达到工具调用预算", currentVersion);
-    }
-
     const fingerprint = `${call.name}:${stableStringify(call.arguments)}`;
     if (retryAttempt === 0 && budget.fingerprints.has(fingerprint)) {
       return rejected("non_retryable", "拒绝重复的工具和参数调用", currentVersion);
     }
     budget.fingerprints.add(fingerprint);
-    budget.toolCallCount += 1;
 
     return handler(call.arguments, {
       ...context,

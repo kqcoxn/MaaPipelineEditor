@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createPipelineNode } from "@/stores/flow";
-import { validateCanvasGraph } from "./canvasGraphValidation";
+import { validateCanvasGraph } from "./graphValidation";
 
 describe("validateCanvasGraph", () => {
   it("校验不修改原始节点，并拒绝需要隐式修复的结构", () => {

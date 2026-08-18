@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { MAX_EVENTS_PER_RUN, MAX_RUNS_PER_SESSION } from "./constants";
-import { canvasChatProfile } from "./registry";
+import { canvasChatProfile } from "../capabilities/canvas/profile";
 import { useAIHarnessStore } from "./store";
-import type { HarnessRun, RunEvent } from "./types";
+import type { HarnessRun, RunEvent } from "../core/types";
 
 function createRun(id: string, sessionId: string): HarnessRun {
   return {
@@ -16,6 +16,7 @@ function createRun(id: string, sessionId: string): HarnessRun {
       id: "canvas",
       version: "1",
       description: "canvas",
+      skillIds: [],
       toolNames: [],
     },
     policySnapshot: canvasChatProfile.defaultPolicy,

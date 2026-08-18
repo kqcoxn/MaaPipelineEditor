@@ -17,11 +17,11 @@ import { saveFlow, useFileStore } from "@/stores/project/fileStore";
 import {
   normalizeCanvasEdgeLabels,
   validateCanvasGraph,
-} from "./canvasGraphValidation";
+} from "./graphValidation";
 import type {
   ToolExecutionContext,
   ToolExecutionResult,
-} from "./types";
+} from "../../core/types";
 
 export type CanvasNodeKind =
   | "pipeline"

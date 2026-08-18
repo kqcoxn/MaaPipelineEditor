@@ -12,7 +12,7 @@ import type {
   HarnessSession,
   HarnessSessionMessage,
   RunEvent,
-} from "./types";
+} from "../core/types";
 
 interface AIHarnessState {
   sessions: HarnessSession[];
