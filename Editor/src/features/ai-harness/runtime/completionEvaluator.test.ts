@@ -35,18 +35,18 @@ describe("evaluateCompletion", () => {
     ).toMatchObject({ complete: true, status: "succeeded" });
   });
 
-  it("拒绝没有实际画布工具结果的最终文本", () => {
+  it("纯对话未调用工具时接受有效最终文本", () => {
     expect(
       evaluateCompletion(
         {
           success: true,
-          content: "已经完成",
+          content: "你好，有什么可以帮你？",
           finishReason: "stop",
           toolCalls: [],
         },
         { toolResults: [] },
       ),
-    ).toMatchObject({ complete: true, status: "failed" });
+    ).toEqual({ complete: true, status: "succeeded" });
   });
 
   it("拒绝未恢复的工具错误和未通过校验的画布变更", () => {

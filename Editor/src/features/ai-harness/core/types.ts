@@ -128,6 +128,7 @@ export type RunEventType =
   | "run_started"
   | "user_message"
   | "assistant_delta"
+  | "assistant_reasoning"
   | "assistant_message"
   | "tool_requested"
   | "tool_result"

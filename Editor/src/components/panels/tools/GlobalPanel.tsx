@@ -62,6 +62,9 @@ function GlobalPanel() {
     (state) => state.debouncedSelectedNodes,
   );
   const setStatus = useConfigStore((state) => state.setStatus);
+  const showAIHistoryPanel = useConfigStore(
+    (state) => state.status.showAIHistoryPanel,
+  );
   const focusOpacity = useConfigStore((state) => state.configs.focusOpacity);
   const setConfig = useConfigStore((state) => state.setConfig);
   const copy = useClipboardStore((state) => state.copy);
@@ -97,6 +100,13 @@ function GlobalPanel() {
         openDebugModal();
       },
     });
+  };
+  const handleToggleAIConversation = () => {
+    if (isEmbed) {
+      showEmbedServiceNotice("MPE Harness");
+      return;
+    }
+    setStatus("showAIHistoryPanel", !showAIHistoryPanel);
   };
   const badgeStatusMap: Record<
     string,
@@ -329,6 +339,23 @@ function GlobalPanel() {
                 </Tooltip>
               </Popover>
             )}
+          </li>
+        </div>
+        {/* MPE Harness 入口 */}
+        <div className={style.group}>
+          <div className={style.devider}>
+            <div></div>
+          </div>
+          <li className={style.item}>
+            <Tooltip placement="bottom" title="MPE Harness">
+              <IconFont
+                className={style.icon}
+                name="icon-jiqiren"
+                size={25}
+                style={{ opacity: showAIHistoryPanel ? 1 : 0.8 }}
+                onClick={handleToggleAIConversation}
+              />
+            </Tooltip>
           </li>
         </div>
         {/* 调试按钮 */}

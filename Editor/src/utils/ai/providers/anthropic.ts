@@ -190,13 +190,15 @@ export const anthropicProvider: AIProvider = {
   },
 
   parseResponse(responseBody: any): UnifiedResponse {
-    // Anthropic 响应格式：content 是数组，取第一个 text block
     let content = "";
+    let reasoning = "";
     const toolCalls = [];
     if (Array.isArray(responseBody.content)) {
       for (const block of responseBody.content) {
         if (block.type === "text") {
           content += block.text;
+        } else if (block.type === "thinking") {
+          reasoning += block.thinking || "";
         } else if (block.type === "tool_use") {
           toolCalls.push({
             id: block.id || `anthropic_tool_${toolCalls.length}`,
@@ -223,6 +225,7 @@ export const anthropicProvider: AIProvider = {
     return {
       success: true,
       content,
+      reasoning: reasoning || undefined,
       toolCalls,
       finishReason: mapAnthropicFinishReason(responseBody.stop_reason),
       usage,
@@ -249,6 +252,9 @@ export const anthropicProvider: AIProvider = {
       if (parsed.type === "content_block_delta") {
         if (parsed.delta?.type === "text_delta") {
           return { content: parsed.delta.text || undefined };
+        }
+        if (parsed.delta?.type === "thinking_delta") {
+          return { reasoning: parsed.delta.thinking || undefined };
         }
         if (parsed.delta?.type === "input_json_delta") {
           return {

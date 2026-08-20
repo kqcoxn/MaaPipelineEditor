@@ -1,15 +1,14 @@
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
 import type { ComponentProps, ReactNode } from "react";
 import { Avatar, Tag } from "antd";
 import {
   Bubble,
+  Think,
   ThoughtChain,
   type BubbleItemType,
   type ThoughtChainItemType,
 } from "@ant-design/x";
-import { XMarkdown } from "@ant-design/x-markdown";
 import {
-  MessageOutlined,
   ToolOutlined,
   UserOutlined,
 } from "@ant-design/icons";
@@ -19,6 +18,7 @@ import type {
   RunEvent,
 } from "@/features/ai-harness";
 import style from "../../../styles/panels/AIHistoryPanel.module.less";
+import { renderMarkdown } from "./AIConversationMarkdown";
 
 const statusLabels: Record<HarnessRunStatus, string> = {
   queued: "排队中",
@@ -30,27 +30,6 @@ const statusLabels: Record<HarnessRunStatus, string> = {
   partial: "部分完成",
 };
 
-interface MarkdownBubbleContent {
-  text: string;
-  streaming?: boolean;
-}
-
-function renderMarkdown(content: MarkdownBubbleContent) {
-  return (
-    <XMarkdown
-      content={content.text}
-      rootClassName={style.markdown}
-      openLinksInNewTab
-      escapeRawHtml
-      streaming={
-        content.streaming
-          ? { hasNextChunk: true, enableAnimation: true, tail: true }
-          : undefined
-      }
-    />
-  );
-}
-
 const bubbleRoles: ComponentProps<typeof Bubble.List>["role"] = {
   user: {
     placement: "end",
@@ -61,7 +40,14 @@ const bubbleRoles: ComponentProps<typeof Bubble.List>["role"] = {
   },
   assistant: {
     placement: "start",
-    avatar: <Avatar shape="square" size={22} icon={<MessageOutlined />} />,
+    avatar: (
+      <Avatar
+        shape="square"
+        size={28}
+        src={`${import.meta.env.BASE_URL}logo.png`}
+        alt="MPE Harness"
+      />
+    ),
     contentRender: renderMarkdown,
     variant: "borderless",
     classNames: { content: style.assistantBubbleContent },
@@ -71,6 +57,11 @@ const bubbleRoles: ComponentProps<typeof Bubble.List>["role"] = {
     avatar: <Avatar shape="square" size={22} icon={<ToolOutlined />} />,
     variant: "borderless",
     classNames: { content: style.toolBubbleContent },
+  },
+  reasoning: {
+    placement: "start",
+    variant: "borderless",
+    classNames: { content: style.reasoningBubbleContent },
   },
 };
 
@@ -106,20 +97,6 @@ function runStatusColor(status: HarnessRunStatus): string {
 interface ToolProjection {
   requested: RunEvent;
   result?: RunEvent;
-}
-
-function projectToolEvents(events: RunEvent[]): ToolProjection[] {
-  const results = new Map(
-    events
-      .filter((event) => event.type === "tool_result")
-      .map((event) => [event.toolCallId, event]),
-  );
-  return events
-    .filter((event) => event.type === "tool_requested")
-    .map((requested) => ({
-      requested,
-      result: results.get(requested.toolCallId),
-    }));
 }
 
 function formatToolValue(value: unknown): string {
@@ -206,7 +183,10 @@ function createToolChain(
   return <ThoughtChain items={items} rootClassName={style.toolChain} />;
 }
 
-function createMessageHeader(role: "你" | "AI", timestamp?: number): ReactNode {
+function createMessageHeader(
+  role: "你" | "MPE Harness",
+  timestamp?: number,
+): ReactNode {
   return (
     <span className={style.messageHeader}>
       <span>{role}</span>
@@ -215,64 +195,149 @@ function createMessageHeader(role: "你" | "AI", timestamp?: number): ReactNode 
   );
 }
 
+function createReasoningContent(
+  text: string,
+  active = false,
+  thinking = false,
+): ReactNode {
+  return (
+    <ReasoningThink text={text} active={active} thinking={thinking} />
+  );
+}
+
+function ReasoningThink({
+  text,
+  active,
+  thinking,
+}: {
+  text: string;
+  active: boolean;
+  thinking: boolean;
+}) {
+  const [expanded, setExpanded] = useState(thinking);
+
+  useEffect(() => {
+    if (active) setExpanded(thinking);
+  }, [active, thinking]);
+
+  return (
+    <Think
+      title={thinking ? "思考中" : "已思考"}
+      loading={thinking}
+      blink={thinking}
+      expanded={expanded}
+      onExpand={setExpanded}
+      rootClassName={style.reasoningThink}
+      data-streaming-expanded={active ? String(expanded) : undefined}
+    >
+      {expanded ? renderMarkdown({ text, streaming: thinking }) : null}
+    </Think>
+  );
+}
+
 function createBubbleItems(
   run: HarnessRun,
   events: RunEvent[],
   streamingText: string,
+  streamingReasoning: string,
 ): BubbleItemType[] {
   const items: BubbleItemType[] = [];
-  const userEvent = events.find((event) => event.type === "user_message");
-  const assistantEvents = events.filter(
-    (event) => event.type === "assistant_message",
+  const toolResults = new Map(
+    events
+      .filter((event) => event.type === "tool_result")
+      .map((event) => [event.toolCallId, event]),
   );
-  const toolEvents = projectToolEvents(events);
+  let toolSegment: ToolProjection[] = [];
   const isActive = ["queued", "running", "waiting_tool"].includes(run.status);
 
-  if (userEvent) {
+  const flushToolSegment = () => {
+    if (toolSegment.length === 0) return;
+    const firstRequest = toolSegment[0].requested;
     items.push({
-      key: userEvent.id,
-      role: "user",
-      content: { text: userEvent.text ?? "" },
-      header: createMessageHeader("你", userEvent.timestamp),
-      status: "local",
-    });
-  }
-  if (toolEvents.length > 0) {
-    items.push({
-      key: `${run.id}-tools`,
+      key: `${run.id}-tools-${firstRequest.id}`,
       role: "tools",
-      content: createToolChain(toolEvents, run.status),
+      content: createToolChain(toolSegment, run.status),
       header: "工具调用",
     });
-  }
-  assistantEvents.forEach((event) => {
-    items.push({
-      key: event.id,
-      role: "assistant",
-      content: { text: event.text ?? "" },
-      header: createMessageHeader("AI", event.timestamp),
-      status: "success",
-    });
+    toolSegment = [];
+  };
+
+  events.forEach((event) => {
+    if (event.type === "tool_requested") {
+      toolSegment.push({
+        requested: event,
+        result: toolResults.get(event.toolCallId),
+      });
+      return;
+    }
+    if (event.type === "user_message") {
+      flushToolSegment();
+      items.push({
+        key: event.id,
+        role: "user",
+        content: { text: event.text ?? "" },
+        header: createMessageHeader("你", event.timestamp),
+        status: "local",
+      });
+      return;
+    }
+    if (event.type === "assistant_message") {
+      flushToolSegment();
+      items.push({
+        key: event.id,
+        role: "assistant",
+        content: { text: event.text ?? "" },
+        header: createMessageHeader("MPE Harness", event.timestamp),
+        status: "success",
+      });
+      return;
+    }
+    if (event.type === "assistant_reasoning" && event.text) {
+      flushToolSegment();
+      items.push({
+        key: event.id,
+        role: "reasoning",
+        content: createReasoningContent(event.text),
+        status: "success",
+      });
+    }
   });
+  flushToolSegment();
+
   if (isActive) {
-    items.push({
-      key: `${run.id}-streaming`,
-      role: "assistant",
-      content: { text: streamingText, streaming: true },
-      header: createMessageHeader("AI"),
-      loading: !streamingText,
-      streaming: true,
-      status: "updating",
-    });
+    if (streamingReasoning) {
+      items.push({
+        key: `${run.id}-streaming-reasoning`,
+        role: "reasoning",
+        content: createReasoningContent(
+          streamingReasoning,
+          true,
+          !streamingText,
+        ),
+        status: "updating",
+      });
+    }
+    if (!streamingReasoning || streamingText) {
+      items.push({
+        key: `${run.id}-streaming`,
+        role: "assistant",
+        content: { text: streamingText, streaming: true },
+        header: createMessageHeader("MPE Harness"),
+        loading: !streamingText,
+        streaming: true,
+        status: "updating",
+      });
+    }
   }
   return items;
 }
 
 export const AIConversationRun = memo(
-  ({ run, events, streamingText }: {
+  ({ run, events, streamingText, streamingReasoning }: {
     run: HarnessRun;
     events: RunEvent[];
     streamingText: string;
+    streamingReasoning: string;
   }) => (
     <article className={style.run}>
       <div className={style.runMeta}>
@@ -288,7 +353,12 @@ export const AIConversationRun = memo(
         <span>{formatTokenCount(run.tokenUsage.totalTokens)} tokens</span>
       </div>
       <Bubble.List
-        items={createBubbleItems(run, events, streamingText)}
+        items={createBubbleItems(
+          run,
+          events,
+          streamingText,
+          streamingReasoning,
+        )}
         role={bubbleRoles}
         autoScroll
         rootClassName={style.bubbleList}

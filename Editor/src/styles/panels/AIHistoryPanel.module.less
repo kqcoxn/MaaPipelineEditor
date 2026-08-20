@@ -7,7 +7,7 @@
 }
 
 .drawerHeader {
-  min-height: 48px;
+  min-height: 52px;
   padding: 0 12px 0 16px !important;
 }
 
@@ -19,14 +19,31 @@
 .drawerTitle {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 15px;
+  gap: 7px;
+  font-size: 14px;
   font-weight: 600;
+
+  img {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+  }
+}
+
+.betaTag {
+  margin: 0;
+  padding: 0 6px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 18px;
 }
 
 .content {
+  width: 100%;
   height: 100%;
   min-height: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .conversation {
@@ -38,22 +55,22 @@
 }
 
 .conversationHeader {
-  min-height: 48px;
-  padding: 0 10px 0 12px;
+  min-height: 44px;
+  padding: 0 12px 0 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   flex-shrink: 0;
-  border-bottom: 1px solid var(--ant-color-border-secondary);
+  background: var(--ant-color-fill-quaternary);
 }
 
 .sessionSwitcher {
   min-width: 0;
   max-width: calc(100% - 36px);
-  padding-inline: 8px !important;
-  font-size: 13px;
-  font-weight: 600;
+  padding-inline: 6px !important;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .activeSessionTitle {
@@ -112,10 +129,87 @@
 
 .messageList {
   min-height: 0;
+  min-width: 0;
   flex: 1;
   padding: 16px 20px 24px;
+  overflow-x: hidden;
   overflow-y: auto;
   scroll-behavior: smooth;
+}
+
+.emptyState {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 400px;
+  min-height: 100%;
+  margin-inline: auto;
+  padding: 28px 20px 76px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.emptyWelcome {
+  width: 100%;
+  padding: 0;
+  text-align: center;
+}
+
+.emptyBrand {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+
+  img {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+  }
+}
+
+.emptyWelcomeTitle {
+  color: var(--ant-color-text);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.emptyWelcomeDescription {
+  margin-top: 6px;
+  color: var(--ant-color-text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.starterPrompts {
+  box-sizing: border-box;
+  width: min(100%, 280px);
+  min-width: 0;
+  margin-top: 20px;
+}
+
+.starterPromptList {
+  width: 100%;
+  display: grid;
+  gap: 10px;
+}
+
+.starterPromptItem {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 46px;
+}
+
+.starterPromptContent {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 18px auto;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  text-align: left;
 }
 
 .run {
@@ -162,12 +256,21 @@
 }
 
 .assistantBubbleContent,
-.toolBubbleContent {
+.toolBubbleContent,
+.reasoningBubbleContent {
   min-width: 0;
   width: min(100%, 42rem);
   max-width: 100%;
   padding-inline: 0;
   overflow-wrap: anywhere;
+}
+
+.reasoningBubbleContent {
+  margin-left: 32px;
+}
+
+.reasoningThink {
+  max-width: 100%;
 }
 
 .messageHeader {
@@ -261,6 +364,42 @@
   }
 }
 
+.mermaidBlock {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  margin-block: 10px 14px;
+  overflow: hidden;
+}
+
+.mermaidRoot,
+.mermaidGraph,
+.mermaidCode {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.mermaidGraph,
+.mermaidCode {
+  overflow: auto;
+}
+
+.mermaidFallback {
+  max-width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--ant-color-error-border);
+  border-radius: 6px;
+  background: var(--ant-color-error-bg);
+  color: var(--ant-color-error-text);
+  font-size: 12px;
+
+  pre {
+    margin: 8px 0 0;
+  }
+}
+
 .toolChain {
   max-width: 100%;
 }
@@ -303,6 +442,19 @@
   line-height: 1.5;
 }
 
+.renderError {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+  display: grid;
+  place-items: center;
+
+  > div {
+    width: min(100%, 440px);
+  }
+}
+
 .composerShell {
   padding: 8px 16px 12px;
   flex-shrink: 0;
@@ -328,6 +480,14 @@
 
   .messageList {
     padding: 14px 12px 20px;
+  }
+
+  .emptyState {
+    padding: 24px 0 48px;
+  }
+
+  .starterPrompts {
+    margin-top: 18px;
   }
 
   .runMeta {

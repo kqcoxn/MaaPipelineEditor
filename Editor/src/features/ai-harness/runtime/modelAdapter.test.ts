@@ -29,6 +29,19 @@ describe("HarnessModelAdapter JSON Envelope", () => {
     });
   });
 
+  it("兼容 Markdown JSON 代码围栏", () => {
+    const result = adapter.parseEnvelope(
+      '```json\n{"type":"final","content":"完成"}\n```',
+      tools,
+    );
+
+    expect(result).toMatchObject({
+      success: true,
+      content: "完成",
+      finishReason: "stop",
+    });
+  });
+
   it.each([
     ["非法工具", '{"type":"tool_calls","calls":[{"name":"shell","arguments":{}}]}'],
     ["非法参数", '{"type":"tool_calls","calls":[{"name":"read_canvas","arguments":{}}]}'],
@@ -75,6 +88,7 @@ describe("HarnessModelAdapter JSON Envelope", () => {
         .mockResolvedValueOnce({
           success: true,
           content: "先读取画布。",
+          reasoning: "需要先确认节点",
           toolCalls: [{ id: "empty", name: "", arguments: {} }],
           finishReason: "tool_calls",
         })
@@ -95,6 +109,8 @@ describe("HarnessModelAdapter JSON Envelope", () => {
     expect(client.complete).toHaveBeenCalledTimes(2);
     expect(result).toMatchObject({
       success: true,
+      content: "先读取画布。",
+      reasoning: "需要先确认节点",
       toolCalls: [{ name: "read_canvas", arguments: { detail: true } }],
     });
     expect(client.complete.mock.calls[1][0][0].content).toContain(
@@ -102,6 +118,48 @@ describe("HarnessModelAdapter JSON Envelope", () => {
     );
     expect(client.complete.mock.calls[1][0][0].content).toContain(
       "输入 Schema",
+    );
+  });
+
+  it("Envelope 格式错误时自动请求模型纠正一次", async () => {
+    const client = {
+      getModelConfigSnapshot: vi.fn(async () => ({ type: "openai" })),
+      complete: vi
+        .fn()
+        .mockResolvedValueOnce({
+          success: true,
+          content: "准备读取。",
+          toolCalls: [{ id: "empty", name: "", arguments: {} }],
+          finishReason: "tool_calls",
+        })
+        .mockResolvedValueOnce({
+          success: true,
+          content: "这不是 JSON",
+          toolCalls: [],
+          finishReason: "stop",
+        })
+        .mockResolvedValueOnce({
+          success: true,
+          content:
+            '{"type":"tool_calls","calls":[{"name":"read_canvas","arguments":{"detail":true}}]}',
+          toolCalls: [],
+          finishReason: "stop",
+        }),
+    };
+
+    const result = await new HarnessModelAdapter(client as never).complete(
+      [{ role: "user", content: "读取" }],
+      tools,
+    );
+
+    expect(client.complete).toHaveBeenCalledTimes(3);
+    expect(result).toMatchObject({
+      success: true,
+      content: "准备读取。",
+      toolCalls: [{ name: "read_canvas", arguments: { detail: true } }],
+    });
+    expect(client.complete.mock.calls[2][0].at(-1)?.content).toContain(
+      "上一个 JSON Envelope 无效",
     );
   });
 });

@@ -3,7 +3,7 @@ import { create } from "zustand";
 /**
  * 面板占位互斥系统
  *
- * 管理面板区域的互斥关系：同一区域内，同一时刻只有一个面板可以激活。
+ * 管理侧边面板的全局互斥关系：同一时刻只有一个主动面板可以激活。
  * 面板通过声明式注册参与系统，互斥反应有多种形态（close/hide/offset）。
  */
 
@@ -61,6 +61,36 @@ registerPanel({
   reaction: "close",
   passive: false,
 });
+registerPanel({
+  id: "aiHistory",
+  area: "right",
+  reaction: "close",
+  passive: false,
+});
+registerPanel({
+  id: "connection",
+  area: "right",
+  reaction: "close",
+  passive: false,
+});
+registerPanel({
+  id: "debug",
+  area: "right",
+  reaction: "close",
+  passive: false,
+});
+registerPanel({
+  id: "fileConfig",
+  area: "left",
+  reaction: "close",
+  passive: false,
+});
+registerPanel({
+  id: "localFile",
+  area: "left",
+  reaction: "close",
+  passive: false,
+});
 
 // 右侧区域 - 被动面板
 registerPanel({
@@ -100,9 +130,11 @@ export const usePanelOccupancyStore = create<PanelOccupancyState>((set) => ({
     if (!descriptor) return;
     if (descriptor.passive) return; // 被动面板不能抢占区域
 
-    set((state) => ({
+    set(() => ({
       activePanels: {
-        ...state.activePanels,
+        right: null,
+        left: null,
+        bottom: null,
         [descriptor.area]: panelId,
       },
     }));

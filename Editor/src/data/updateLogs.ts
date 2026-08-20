@@ -98,6 +98,7 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2026-8-10",
     type: "major",
     updates: {
+      features: ["🤖 MPE Harness (Infra BETA)"],
       perfs: ["提供边动画关闭配置项", "新手答题通关后提示可跳过方案"],
       fixes: [
         "修复 mac 系统下字段面板无法滚动的问题",

@@ -18,6 +18,7 @@ import type {
   DebugModalPanel,
 } from "../../features/debug/types";
 import { useDebugModalController } from "../../features/debug/hooks/useDebugModalController";
+import { useControlledPanelOccupancy } from "../../hooks/useControlledPanelOccupancy";
 import type { DebugModalController } from "../../features/debug/hooks/useDebugModalController";
 import { useDebugRunStatusTracker } from "../../features/debug/hooks/useDebugRunStatusTracker";
 import { OverviewPanel } from "../../features/debug/components/panels/OverviewPanel";
@@ -182,6 +183,11 @@ const drawerHeaderStyle: CSSProperties = {
 export function DebugModal() {
   const controller = useDebugModalController();
   useDebugRunStatusTracker();
+  const drawerOpen = useControlledPanelOccupancy(
+    "debug",
+    controller.modalOpen,
+    controller.closeModal,
+  );
   const [drawerWidth, setDrawerWidth] = useState(readDrawerWidth);
   const baseActivePanelMeta =
     panels.find((panel) => panel.id === controller.activePanel) ?? panels[0];
@@ -216,7 +222,7 @@ export function DebugModal() {
           </span>
         </span>
       }
-      open={controller.modalOpen}
+      open={drawerOpen}
       onClose={controller.closeModal}
       placement="right"
       mask={false}

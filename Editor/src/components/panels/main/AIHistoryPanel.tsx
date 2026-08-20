@@ -1,13 +1,15 @@
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { App as AntdApp, Button, Drawer, Popover, Tooltip } from "antd";
-import { Conversations, Sender, Welcome } from "@ant-design/x";
+import { App as AntdApp, Button, Drawer, Popover, Tag, Tooltip } from "antd";
+import { Conversations, Prompts, Sender, Welcome } from "@ant-design/x";
 import {
   ClearOutlined,
   CloseOutlined,
   DeleteOutlined,
   DownOutlined,
   HistoryOutlined,
-  MessageOutlined,
+  NodeIndexOutlined,
+  SearchOutlined,
+  ToolOutlined,
 } from "@ant-design/icons";
 
 import {
@@ -16,13 +18,33 @@ import {
   useAIHarnessStore,
 } from "@/features/ai-harness";
 import { useConfigStore } from "@/stores/app/configStore";
+import { useControlledPanelOccupancy } from "../../../hooks/useControlledPanelOccupancy";
 import {
   AIConversationRun,
   formatAIConversationTime,
 } from "./AIConversationRun";
+import { AIHarnessErrorBoundary } from "./AIHarnessErrorBoundary";
 import style from "../../../styles/panels/AIHistoryPanel.module.less";
 
 const MOBILE_QUERY = "(max-width: 720px)";
+const MPE_LOGO_URL = `${import.meta.env.BASE_URL}logo.png`;
+const STARTER_PROMPTS = [
+  {
+    key: "inspect",
+    icon: <SearchOutlined />,
+    label: "检查当前 Pipeline",
+  },
+  {
+    key: "explain",
+    icon: <NodeIndexOutlined />,
+    label: "解释选中的节点",
+  },
+  {
+    key: "improve",
+    icon: <ToolOutlined />,
+    label: "优化流程结构",
+  },
+];
 
 function useMobileDrawer(): boolean {
   const [mobile, setMobile] = useState(() =>
@@ -45,6 +67,15 @@ function AIHistoryPanel() {
   const [sessionSwitcherOpen, setSessionSwitcherOpen] = useState(false);
   const show = useConfigStore((state) => state.status.showAIHistoryPanel);
   const setStatus = useConfigStore((state) => state.setStatus);
+  const closePanel = useCallback(
+    () => setStatus("showAIHistoryPanel", false),
+    [setStatus],
+  );
+  const panelOpen = useControlledPanelOccupancy(
+    "aiHistory",
+    show,
+    closePanel,
+  );
   const sessions = useAIHarnessStore((state) => state.sessions);
   const activeSessionId = useAIHarnessStore((state) => state.activeSessionId);
   const runs = useAIHarnessStore((state) => state.runs);
@@ -54,6 +85,9 @@ function AIHistoryPanel() {
     (state) => state.pendingRunSessionId,
   );
   const streamingText = useAIHarnessStore((state) => state.streamingText);
+  const streamingReasoning = useAIHarnessStore(
+    (state) => state.streamingReasoning,
+  );
   const createSession = useAIHarnessStore((state) => state.createSession);
   const switchSession = useAIHarnessStore((state) => state.switchSession);
   const clearSession = useAIHarnessStore((state) => state.clearSession);
@@ -174,8 +208,8 @@ function AIHistoryPanel() {
 
   return (
     <Drawer
-      open={show}
-      onClose={() => setStatus("showAIHistoryPanel", false)}
+      open={panelOpen}
+      onClose={closePanel}
       placement={mobile ? "bottom" : "right"}
       size={mobile ? "72vh" : drawerSize}
       maxSize={mobile ? "90vh" : "80vw"}
@@ -193,14 +227,18 @@ function AIHistoryPanel() {
       }}
       title={
         <div className={style.drawerTitle}>
-          <MessageOutlined />
-          <span>AI 对话</span>
+          <img src={MPE_LOGO_URL} alt="" />
+          <span>MPE Harness</span>
+          <Tag color="blue" variant="filled" className={style.betaTag}>
+            Infra BETA
+          </Tag>
         </div>
       }
       closeIcon={<CloseOutlined />}
     >
-      <div className={style.content}>
-        <main className={style.conversation}>
+      <AIHarnessErrorBoundary>
+        <div className={style.content}>
+          <main className={style.conversation}>
           <div className={style.conversationHeader}>
             <Popover
               content={sessionSwitcher}
@@ -223,7 +261,7 @@ function AIHistoryPanel() {
                 <DownOutlined className={style.sessionSwitcherArrow} />
               </Button>
             </Popover>
-            <Tooltip title="清空当前 Session">
+            <Tooltip title="清空当前 Session" placement="left">
               <Button
                 type="text"
                 size="small"
@@ -238,7 +276,34 @@ function AIHistoryPanel() {
 
           <div className={style.messageList}>
             {sessionRuns.length === 0 ? (
-              <Welcome title="暂无对话" variant="borderless" />
+              <section className={style.emptyState} aria-label="开始新对话">
+                <Welcome
+                  rootClassName={style.emptyWelcome}
+                  classNames={{
+                    title: style.emptyWelcomeTitle,
+                    description: style.emptyWelcomeDescription,
+                  }}
+                  title={
+                    <span className={style.emptyBrand}>
+                      <img src={MPE_LOGO_URL} alt="MPE Harness" />
+                      <span>从当前 Pipeline 开始</span>
+                    </span>
+                  }
+                  description="询问流程逻辑，或直接让 Harness 帮你调整画布。"
+                  variant="borderless"
+                />
+                <Prompts
+                  rootClassName={style.starterPrompts}
+                  classNames={{
+                    list: style.starterPromptList,
+                    item: style.starterPromptItem,
+                    itemContent: style.starterPromptContent,
+                  }}
+                  items={STARTER_PROMPTS}
+                  vertical
+                  onItemClick={({ data }) => setDraft(String(data.label))}
+                />
+              </section>
             ) : (
               sessionRuns.map((run) => (
                 <AIConversationRun
@@ -246,6 +311,9 @@ function AIHistoryPanel() {
                   run={run}
                   events={events[run.id] ?? []}
                   streamingText={activeRunId === run.id ? streamingText : ""}
+                  streamingReasoning={
+                    activeRunId === run.id ? streamingReasoning : ""
+                  }
                 />
               ))
             )}
@@ -266,8 +334,9 @@ function AIHistoryPanel() {
               disabled={isAnyRunRunning && !isCurrentSessionRunning}
             />
           </div>
-        </main>
-      </div>
+          </main>
+        </div>
+      </AIHarnessErrorBoundary>
     </Drawer>
   );
 }

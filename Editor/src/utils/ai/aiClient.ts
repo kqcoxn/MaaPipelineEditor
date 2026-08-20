@@ -472,6 +472,7 @@ export class AIClient {
     messages: UnifiedMessage[],
     options: RequestOptions = {},
     onTextDelta?: (delta: string) => void,
+    onReasoningDelta?: (delta: string) => void,
   ): Promise<UnifiedResponse> {
     return this.withRequest(async (controller) => {
       const configError = await this.validateConfig();
@@ -516,6 +517,7 @@ export class AIClient {
           provider,
           promptText,
           onTextDelta,
+          onReasoningDelta,
           controller.signal,
         );
       } catch (error) {
@@ -560,6 +562,7 @@ export class AIClient {
     provider: ReturnType<typeof getProvider>,
     promptText: string,
     onTextDelta: ((delta: string) => void) | undefined,
+    onReasoningDelta: ((delta: string) => void) | undefined,
     signal: AbortSignal,
   ): Promise<UnifiedResponse> {
     const reader = response.body?.getReader();
@@ -577,6 +580,7 @@ export class AIClient {
       }
     >();
     let content = "";
+    let reasoning = "";
     let finishReason: UnifiedFinishReason = "unknown";
     let usage: TokenUsage | undefined;
 
@@ -586,6 +590,10 @@ export class AIClient {
       if (delta.content) {
         content += delta.content;
         onTextDelta?.(delta.content);
+      }
+      if (delta.reasoning) {
+        reasoning += delta.reasoning;
+        onReasoningDelta?.(delta.reasoning);
       }
       if (delta.finishReason) finishReason = delta.finishReason;
       if (delta.usage) {
@@ -635,6 +643,7 @@ export class AIClient {
     return {
       success: true,
       content,
+      reasoning: reasoning || undefined,
       toolCalls,
       finishReason: toolCalls.length > 0 ? "tool_calls" : finishReason,
       usage: usage || this.estimateTokenUsage(promptText, content),

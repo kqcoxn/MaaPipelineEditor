@@ -183,6 +183,38 @@ describe("AIClient stream transport", () => {
     });
   });
 
+  it("streams reasoning separately from answer content", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(
+          createResponseStream([
+            'data: {"choices":[{"delta":{"reasoning_content":"先分析"}}]}\n\n',
+            'data: {"choices":[{"delta":{"content":"再回答"},"finish_reason":"stop"}]}\n\n',
+            "data: [DONE]\n\n",
+          ]),
+          { status: 200 },
+        ),
+      ),
+    );
+    const textChunks: string[] = [];
+    const reasoningChunks: string[] = [];
+
+    const result = await new AIClient({ retryCount: 0 }).complete(
+      [{ role: "user", content: "分析" }],
+      {},
+      (delta) => textChunks.push(delta),
+      (delta) => reasoningChunks.push(delta),
+    );
+
+    expect(result).toMatchObject({
+      content: "再回答",
+      reasoning: "先分析",
+    });
+    expect(textChunks).toEqual(["再回答"]);
+    expect(reasoningChunks).toEqual(["先分析"]);
+  });
+
   it("freezes model configuration for every request in a Harness Run", async () => {
     const fetchMock = vi.fn(async () =>
       new Response(

@@ -40,13 +40,19 @@ function createRun(status: HarnessRun["status"] = "succeeded"): HarnessRun {
   };
 }
 
-function renderRun(run: HarnessRun, events: RunEvent[], streamingText = "") {
+function renderRun(
+  run: HarnessRun,
+  events: RunEvent[],
+  streamingText = "",
+  streamingReasoning = "",
+) {
   return render(
     <XProvider>
       <AIConversationRun
         run={run}
         events={events}
         streamingText={streamingText}
+        streamingReasoning={streamingReasoning}
       />
     </XProvider>,
   );
@@ -79,6 +85,29 @@ describe("AIConversationRun", () => {
     expect(screen.getByText("回答").tagName).toBe("STRONG");
     expect(container.querySelector("script")).toBeNull();
     expect(container.textContent).toContain("<script>");
+  });
+
+  it("使用产品 logo 作为 AI 头像", () => {
+    const events: RunEvent[] = [
+      {
+        id: "assistant-1",
+        runId: "run-1",
+        sessionId: "session-1",
+        type: "assistant_message",
+        timestamp: 1,
+        text: "AI 回答",
+      },
+    ];
+
+    renderRun(createRun(), events);
+
+    const avatar = screen.getByAltText("MPE Harness");
+    expect(avatar).toHaveAttribute("src", "/logo.png");
+    expect(avatar.closest("span")).toHaveStyle({
+      width: "28px",
+      height: "28px",
+    });
+    expect(screen.getByText("MPE Harness")).toBeInTheDocument();
   });
 
   it("用 ThoughtChain 展示工具审计信息", () => {
@@ -119,6 +148,61 @@ describe("AIConversationRun", () => {
     expect(screen.getByText("v7 · 可撤销")).toBeInTheDocument();
   });
 
+  it("按事件时间线交错展示 AI 消息和工具调用", () => {
+    const events: RunEvent[] = [
+      {
+        id: "assistant-before-tool",
+        runId: "run-1",
+        sessionId: "session-1",
+        type: "assistant_message",
+        timestamp: 1,
+        text: "先说明处理方式",
+      },
+      {
+        id: "tool-request",
+        runId: "run-1",
+        sessionId: "session-1",
+        type: "tool_requested",
+        timestamp: 2,
+        toolCallId: "call-1",
+        toolName: "update_node",
+        argumentsSummary: '{}',
+      },
+      {
+        id: "tool-result",
+        runId: "run-1",
+        sessionId: "session-1",
+        type: "tool_result",
+        timestamp: 3,
+        toolCallId: "call-1",
+        result: {
+          ok: true,
+          stateVersion: 2,
+        },
+      },
+      {
+        id: "assistant-after-tool",
+        runId: "run-1",
+        sessionId: "session-1",
+        type: "assistant_message",
+        timestamp: 4,
+        text: "再汇报处理结果",
+      },
+    ];
+
+    renderRun(createRun(), events);
+
+    const beforeTool = screen.getByText("先说明处理方式");
+    const tool = screen.getByText("update_node");
+    const afterTool = screen.getByText("再汇报处理结果");
+    expect(beforeTool.compareDocumentPosition(tool)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(tool.compareDocumentPosition(afterTool)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+
   it("渲染仍在生成的 Markdown 内容", () => {
     const { container } = renderRun(
       createRun("running"),
@@ -128,5 +212,121 @@ describe("AIConversationRun", () => {
 
     expect(screen.getByText("内容").closest("strong")).not.toBeNull();
     expect(container.textContent).toContain("▋");
+    expect(
+      container.querySelector('[style*="x-markdown-fade-in"]'),
+    ).toBeNull();
+  });
+
+  it("将完成的 mermaid 代码块渲染为流程图", () => {
+    const events: RunEvent[] = [
+      {
+        id: "assistant-mermaid",
+        runId: "run-1",
+        sessionId: "session-1",
+        type: "assistant_message",
+        timestamp: 1,
+        text: "```mermaid\nflowchart TD\n  A --> B\n```",
+      },
+    ];
+
+    renderRun(createRun(), events);
+
+    expect(screen.getByLabelText("Mermaid 流程图")).toBeInTheDocument();
+  });
+
+  it("流式 mermaid 未闭合时保留源码而不提前解析", () => {
+    renderRun(
+      createRun("running"),
+      [],
+      "```mermaid\nflowchart TD\n  A --> B",
+    );
+
+    expect(screen.queryByLabelText("Mermaid 流程图")).toBeNull();
+    expect(screen.getByText(/flowchart TD/).tagName).toBe("CODE");
+  });
+
+  it("普通代码块保持代码渲染", () => {
+    const events: RunEvent[] = [
+      {
+        id: "assistant-code",
+        runId: "run-1",
+        sessionId: "session-1",
+        type: "assistant_message",
+        timestamp: 1,
+        text: "```json\n{\"next\": \"B\"}\n```",
+      },
+    ];
+
+    renderRun(createRun(), events);
+
+    expect(screen.queryByLabelText("Mermaid 流程图")).toBeNull();
+    expect(screen.getByText('{"next": "B"}').tagName).toBe("CODE");
+  });
+
+  it("思考流输出期间展开，正文开始后自动折叠", () => {
+    const { rerender } = renderRun(
+      createRun("running"),
+      [],
+      "",
+      "正在分析节点关系",
+    );
+
+    expect(screen.getByText("思考中")).toBeInTheDocument();
+    expect(screen.getByText("正在分析节点关系")).toBeVisible();
+
+    rerender(
+      <XProvider>
+        <AIConversationRun
+          run={createRun("running")}
+          events={[]}
+          streamingText="开始回答"
+          streamingReasoning="正在分析节点关系"
+        />
+      </XProvider>,
+    );
+
+    const completedThinking = screen
+      .getByText("已思考")
+      .closest("[data-streaming-expanded]");
+    expect(completedThinking).toHaveAttribute("data-streaming-expanded", "false");
+    expect(screen.queryByText("正在分析节点关系")).toBeNull();
+    expect(screen.getByText("开始回答")).toBeVisible();
+
+    fireEvent.click(screen.getByText("已思考"));
+    expect(completedThinking).toHaveAttribute("data-streaming-expanded", "true");
+    expect(screen.getByText("正在分析节点关系")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("已思考"));
+    expect(completedThinking).toHaveAttribute("data-streaming-expanded", "false");
+    expect(screen.queryByText("正在分析节点关系")).toBeNull();
+  });
+
+  it("完成后的思考默认折叠且可以手动查看", () => {
+    const events: RunEvent[] = [
+      {
+        id: "reasoning-1",
+        runId: "run-1",
+        sessionId: "session-1",
+        type: "assistant_reasoning",
+        timestamp: 1,
+        text: "历史思考内容",
+      },
+      {
+        id: "assistant-1",
+        runId: "run-1",
+        sessionId: "session-1",
+        type: "assistant_message",
+        timestamp: 2,
+        text: "最终回答",
+      },
+    ];
+
+    renderRun(createRun(), events);
+
+    expect(screen.queryByText("历史思考内容")).toBeNull();
+    fireEvent.click(screen.getByText("已思考"));
+    expect(screen.getByText("历史思考内容")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("已思考"));
+    expect(screen.queryByText("历史思考内容")).toBeNull();
   });
 });

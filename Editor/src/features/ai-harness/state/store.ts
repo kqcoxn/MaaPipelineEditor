@@ -22,6 +22,7 @@ interface AIHarnessState {
   activeRunId: string | null;
   pendingRunSessionId: string | null;
   streamingText: string;
+  streamingReasoning: string;
 }
 
 interface AIHarnessActions {
@@ -37,6 +38,8 @@ interface AIHarnessActions {
   appendMessage: (sessionId: string, message: HarnessSessionMessage) => void;
   setStreamingText: (text: string) => void;
   appendStreamingText: (delta: string) => void;
+  setStreamingReasoning: (text: string) => void;
+  appendStreamingReasoning: (delta: string) => void;
   cancelRun: (runId: string, status?: HarnessRunStatus) => void;
   reset: () => void;
 }
@@ -70,6 +73,7 @@ const createInitialState = (): AIHarnessState => ({
   activeRunId: null,
   pendingRunSessionId: null,
   streamingText: "",
+  streamingReasoning: "",
 });
 
 export const useAIHarnessStore = create<AIHarnessStore>()(
@@ -89,7 +93,11 @@ export const useAIHarnessStore = create<AIHarnessStore>()(
       if (!get().sessions.some((session) => session.id === sessionId)) {
         return false;
       }
-      set({ activeSessionId: sessionId, streamingText: "" });
+      set({
+        activeSessionId: sessionId,
+        streamingText: "",
+        streamingReasoning: "",
+      });
       return true;
     },
 
@@ -125,6 +133,9 @@ export const useAIHarnessStore = create<AIHarnessStore>()(
         streamingText: runIds.has(state.activeRunId ?? "")
           ? ""
           : state.streamingText,
+        streamingReasoning: runIds.has(state.activeRunId ?? "")
+          ? ""
+          : state.streamingReasoning,
       }));
       return true;
     },
@@ -164,6 +175,9 @@ export const useAIHarnessStore = create<AIHarnessStore>()(
         streamingText: runIds.has(state.activeRunId ?? "")
           ? ""
           : state.streamingText,
+        streamingReasoning: runIds.has(state.activeRunId ?? "")
+          ? ""
+          : state.streamingReasoning,
       });
       return true;
     },
@@ -192,6 +206,7 @@ export const useAIHarnessStore = create<AIHarnessStore>()(
           activeRunId: run.id,
           pendingRunSessionId: null,
           streamingText: "",
+          streamingReasoning: "",
         };
       });
     },
@@ -277,6 +292,16 @@ export const useAIHarnessStore = create<AIHarnessStore>()(
       set((state) => ({ streamingText: state.streamingText + delta }));
     },
 
+    setStreamingReasoning(streamingReasoning) {
+      set({ streamingReasoning });
+    },
+
+    appendStreamingReasoning(delta) {
+      set((state) => ({
+        streamingReasoning: state.streamingReasoning + delta,
+      }));
+    },
+
     cancelRun(runId, status = "cancelled") {
       const run = get().runs[runId];
       if (!run || !["queued", "running", "waiting_tool"].includes(run.status)) {
@@ -298,6 +323,7 @@ export const useAIHarnessStore = create<AIHarnessStore>()(
         activeRunId: null,
         pendingRunSessionId: null,
         streamingText: "",
+        streamingReasoning: "",
       });
     },
   })),

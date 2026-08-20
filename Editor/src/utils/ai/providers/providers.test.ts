@@ -87,6 +87,26 @@ describe("OpenAI provider", () => {
       finishReason: "tool_calls",
     });
   });
+
+  it("parses OpenAI-compatible reasoning from stream and response", () => {
+    expect(
+      openaiProvider.parseStreamEvent?.({
+        data: JSON.stringify({
+          choices: [{ delta: { reasoning_content: "分析中" } }],
+        }),
+      }),
+    ).toMatchObject({ reasoning: "分析中" });
+    expect(
+      openaiProvider.parseResponse({
+        choices: [
+          {
+            message: { content: "回答", reasoning_content: "分析完成" },
+            finish_reason: "stop",
+          },
+        ],
+      }),
+    ).toMatchObject({ content: "回答", reasoning: "分析完成" });
+  });
 });
 
 describe("Anthropic and Gemini providers", () => {
@@ -182,6 +202,38 @@ describe("Anthropic and Gemini providers", () => {
       completionTokens: 20,
       totalTokens: 32,
       isEstimated: false,
+    });
+  });
+
+  it("separates Anthropic and Gemini reasoning from answer text", () => {
+    expect(
+      anthropicProvider.parseStreamEvent?.({
+        event: "content_block_delta",
+        data: JSON.stringify({
+          type: "content_block_delta",
+          delta: { type: "thinking_delta", thinking: "Anthropic 思考" },
+        }),
+      }),
+    ).toMatchObject({ reasoning: "Anthropic 思考" });
+
+    expect(
+      geminiProvider.parseStreamEvent?.({
+        data: JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  { text: "Gemini 思考", thought: true },
+                  { text: "Gemini 回答" },
+                ],
+              },
+            },
+          ],
+        }),
+      }),
+    ).toMatchObject({
+      reasoning: "Gemini 思考",
+      content: "Gemini 回答",
     });
   });
 });

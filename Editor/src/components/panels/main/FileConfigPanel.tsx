@@ -1,11 +1,12 @@
 import style from "../../../styles/panels/FileConfigPanel.module.less";
 
-import { memo, useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { Popover, Input } from "antd";
 import classNames from "classnames";
 import IconFont from "../../iconfonts";
 
 import { useConfigStore } from "@/stores/app/configStore";
+import { useControlledPanelOccupancy } from "../../../hooks/useControlledPanelOccupancy";
 import { useFileStore } from "@/stores/project/fileStore";
 import { checkRepeatNodeLabelList } from "../../../stores/flow";
 
@@ -14,6 +15,15 @@ function FileConfigPanel() {
     (state) => state.status.showFileConfigPanel,
   );
   const setStatus = useConfigStore((state) => state.setStatus);
+  const closePanel = useCallback(
+    () => setStatus("showFileConfigPanel", false),
+    [setStatus],
+  );
+  const panelOpen = useControlledPanelOccupancy(
+    "fileConfig",
+    showFileConfigPanel,
+    closePanel,
+  );
   const fileConfig = useFileStore((state) => state.currentFile.config);
   const setFileConfig = useFileStore((state) => state.setFileConfig);
 
@@ -22,9 +32,9 @@ function FileConfigPanel() {
       classNames({
         "panel-base": true,
         [style.panel]: true,
-        "panel-show": showFileConfigPanel,
+        "panel-show": panelOpen,
       }),
-    [showFileConfigPanel],
+    [panelOpen],
   );
 
   return (
@@ -36,7 +46,7 @@ function FileConfigPanel() {
             className="icon-interactive"
             name="icon-dituweizhixinxi_chahao"
             size={20}
-            onClick={() => setStatus("showFileConfigPanel", false)}
+            onClick={closePanel}
           />
         </div>
       </div>

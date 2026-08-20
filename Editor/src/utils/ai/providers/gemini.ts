@@ -211,13 +211,15 @@ export const geminiProvider: AIProvider = {
   },
 
   parseResponse(responseBody: any): UnifiedResponse {
-    // Gemini 响应格式：candidates[0].content.parts[0].text
     let content = "";
+    let reasoning = "";
     const toolCalls = [];
     const candidate = responseBody.candidates?.[0];
     if (candidate?.content?.parts) {
       for (const part of candidate.content.parts) {
-        if (part.text) {
+        if (part.text && part.thought === true) {
+          reasoning += part.text;
+        } else if (part.text) {
           content += part.text;
         } else if (part.functionCall) {
           toolCalls.push({
@@ -246,6 +248,7 @@ export const geminiProvider: AIProvider = {
     return {
       success: true,
       content,
+      reasoning: reasoning || undefined,
       toolCalls,
       finishReason:
         toolCalls.length > 0
@@ -278,7 +281,13 @@ export const geminiProvider: AIProvider = {
       );
       return {
         content:
-          contentParts.map((part: any) => part.text || "").join("") || undefined,
+          contentParts
+            .map((part: any) => (part.thought === true ? "" : part.text || ""))
+            .join("") || undefined,
+        reasoning:
+          contentParts
+            .map((part: any) => (part.thought === true ? part.text || "" : ""))
+            .join("") || undefined,
         toolCalls: toolCalls.length ? toolCalls : undefined,
         finishReason: candidate?.finishReason
           ? toolCalls.length

@@ -64,6 +64,8 @@ const FALLBACK_INSTRUCTION = `当前 Provider 不支持原生工具调用。你�
 1. {"type":"final","content":"最终回复"}
 2. {"type":"tool_calls","calls":[{"id":"可选ID","name":"工具名","arguments":{}}]}`;
 
+const ENVELOPE_REPAIR_INSTRUCTION = `上一个 JSON Envelope 无效。请根据系统消息中的格式和工具定义纠正它，只返回修正后的 JSON，不要解释、不要使用 Markdown 代码围栏。`;
+
 export class HarnessModelAdapter {
   private readonly ajv = new Ajv({ allErrors: true, strict: true });
   private readonly validateEnvelope = this.ajv.compile(envelopeSchema);
@@ -74,12 +76,14 @@ export class HarnessModelAdapter {
     messages: UnifiedMessage[],
     tools: ModelToolDefinition[],
     onTextDelta?: (delta: string) => void,
+    onReasoningDelta?: (delta: string) => void,
   ): Promise<UnifiedResponse> {
     const config = await this.client.getModelConfigSnapshot();
     const nativeResult = await this.client.complete(
       messages,
       { stream: true, tools, toolChoice: "auto" },
       onTextDelta,
+      onReasoningDelta,
     );
 
     const hasMalformedToolCall = nativeResult.toolCalls.some(
@@ -103,10 +107,42 @@ export class HarnessModelAdapter {
     });
     if (!fallbackResult.success) return fallbackResult;
 
-    return this.parseEnvelope(fallbackResult.content, tools, {
+    const fallbackUsage = mergeTokenUsage(
+      nativeResult.usage,
+      fallbackResult.usage,
+    );
+    const parsedFallback = this.parseEnvelope(fallbackResult.content, tools, {
       ...fallbackResult,
-      usage: mergeTokenUsage(nativeResult.usage, fallbackResult.usage),
+      usage: fallbackUsage,
     });
+    if (parsedFallback.success) {
+      return preserveNativeOutput(parsedFallback, nativeResult);
+    }
+
+    const repairResult = await this.client.complete(
+      [
+        ...fallbackMessages,
+        { role: "assistant", content: fallbackResult.content },
+        { role: "user", content: ENVELOPE_REPAIR_INSTRUCTION },
+      ],
+      { stream: false },
+    );
+    const repairUsage = mergeTokenUsage(fallbackUsage, repairResult.usage);
+    if (!repairResult.success) {
+      return { ...repairResult, usage: repairUsage };
+    }
+
+    const parsedRepair = this.parseEnvelope(repairResult.content, tools, {
+      ...repairResult,
+      usage: repairUsage,
+    });
+    if (parsedRepair.success) {
+      return preserveNativeOutput(parsedRepair, nativeResult);
+    }
+    return invalidEnvelopeResponse(
+      "模型返回格式异常，自动纠正后仍无法解析，请重试本次请求",
+      { ...repairResult, usage: repairUsage },
+    );
   }
 
   parseEnvelope(
@@ -116,7 +152,7 @@ export class HarnessModelAdapter {
   ): UnifiedResponse {
     let envelope: unknown;
     try {
-      envelope = JSON.parse(content);
+      envelope = JSON.parse(unwrapJsonCodeFence(content));
     } catch {
       return invalidEnvelopeResponse("JSON Envelope 不是合法 JSON", baseResponse);
     }
@@ -137,6 +173,7 @@ export class HarnessModelAdapter {
         content: typedEnvelope.content,
         toolCalls: [],
         finishReason: "stop",
+        reasoning: baseResponse?.reasoning,
         usage: baseResponse?.usage,
       };
     }
@@ -172,6 +209,26 @@ export class HarnessModelAdapter {
       usage: baseResponse?.usage,
     };
   }
+}
+
+function unwrapJsonCodeFence(content: string): string {
+  const trimmed = content.trim();
+  const match = /^```(?:json)?\s*([\s\S]*?)\s*```$/i.exec(trimmed);
+  return match?.[1].trim() ?? trimmed;
+}
+
+function preserveNativeOutput(
+  response: UnifiedResponse,
+  nativeResponse: UnifiedResponse,
+): UnifiedResponse {
+  return {
+    ...response,
+    content:
+      response.finishReason === "tool_calls" && nativeResponse.content.trim()
+        ? nativeResponse.content
+        : response.content,
+    reasoning: nativeResponse.reasoning || response.reasoning,
+  };
 }
 
 function buildFallbackInstruction(tools: ModelToolDefinition[]): string {
@@ -212,6 +269,7 @@ function invalidEnvelopeResponse(
     error,
     toolCalls: [],
     finishReason: "error",
+    reasoning: baseResponse?.reasoning,
     usage: baseResponse?.usage,
   };
 }

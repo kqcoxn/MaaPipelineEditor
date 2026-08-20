@@ -82,6 +82,8 @@ describe("AIHistoryPanel", () => {
   it("新建并切换 Session", async () => {
     renderPanel();
 
+    expect(screen.getByText("BETA")).toBeInTheDocument();
+
     fireEvent.click(await screen.findByLabelText("切换 Session"));
     fireEvent.click(await screen.findByText("新建 Session"));
     expect(useAIHarnessStore.getState().sessions).toHaveLength(2);
@@ -117,6 +119,17 @@ describe("AIHistoryPanel", () => {
 
     const sender = await screen.findByPlaceholderText("输入目标或问题");
     expect(screen.getByTestId("ai-composer-shell")).toContainElement(sender);
+  });
+
+  it("用品牌欢迎态引导新对话", async () => {
+    renderPanel();
+
+    expect(await screen.findByText("从当前 Pipeline 开始")).toBeInTheDocument();
+    expect(screen.queryByText("暂无对话")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText("检查当前 Pipeline"));
+    expect(screen.getByPlaceholderText("输入目标或问题")).toHaveValue(
+      "检查当前 Pipeline",
+    );
   });
 
   it("通过 Sender 停止当前 Run", async () => {

@@ -38,6 +38,7 @@ import {
 import { useEmbedMode } from "../hooks/useEmbedMode";
 import { showEmbedServiceNotice } from "../features/embed/components/serviceNotice";
 import { openExternalUrl } from "../features/embed/navigation/externalNavigation";
+import { usePanelOccupancy } from "../hooks/usePanelOccupancy";
 
 const versionLinks = [
   {
@@ -265,7 +266,11 @@ function Header() {
   const { isDark, toggleTheme } = useTheme();
   const { isEmbed } = useEmbedMode();
   const [updateLogOpen, setUpdateLogOpen] = useState(false);
-  const [connectionPanelOpen, setConnectionPanelOpen] = useState(false);
+  const {
+    isActive: connectionPanelOpen,
+    activate: openConnectionPanel,
+    deactivate: closeConnectionPanel,
+  } = usePanelOccupancy("connection");
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
   const [wsConnected, setWsConnected] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
@@ -409,7 +414,7 @@ function Header() {
           <ConnectionButton />
           {wsConnected && (
             <DeviceConnectionButton
-              onOpenPanel={() => setConnectionPanelOpen(true)}
+              onOpenPanel={openConnectionPanel}
             />
           )}
           <div className={style.versionInfo}>
@@ -504,7 +509,7 @@ function Header() {
       <UpdateLog open={updateLogOpen} onClose={() => setUpdateLogOpen(false)} />
       <ConnectionPanel
         open={connectionPanelOpen}
-        onClose={() => setConnectionPanelOpen(false)}
+        onClose={closeConnectionPanel}
       />
     </>
   );

@@ -95,4 +95,18 @@ describe("useAIHarnessStore", () => {
     expect(state.events[retainedRunId]).toHaveLength(MAX_EVENTS_PER_RUN);
     expect(state.events[retainedRunId][0].id).toBe("event-5");
   });
+
+  it("切换 Session 时清空正文与思考流缓存", () => {
+    const store = useAIHarnessStore.getState();
+    const secondSessionId = store.createSession("第二个");
+    store.setStreamingText("正文");
+    store.setStreamingReasoning("思考");
+
+    store.switchSession(secondSessionId);
+
+    expect(useAIHarnessStore.getState()).toMatchObject({
+      streamingText: "",
+      streamingReasoning: "",
+    });
+  });
 });

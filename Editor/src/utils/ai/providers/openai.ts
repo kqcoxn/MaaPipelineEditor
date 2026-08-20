@@ -191,6 +191,7 @@ export const openaiProvider: AIProvider = {
   parseResponse(responseBody: any): UnifiedResponse {
     const choice = responseBody.choices?.[0];
     const content = choice?.message?.content || "";
+    const reasoning = readOpenAIReasoning(choice?.message);
     const toolCalls = (choice?.message?.tool_calls ?? []).map(
       (toolCall: any, index: number) => ({
         id: toolCall.id || `openai_tool_${index}`,
@@ -218,6 +219,7 @@ export const openaiProvider: AIProvider = {
     return {
       success: true,
       content,
+      reasoning: reasoning || undefined,
       toolCalls,
       finishReason: mapOpenAIFinishReason(choice?.finish_reason, toolCalls.length),
       usage,
@@ -234,6 +236,7 @@ export const openaiProvider: AIProvider = {
       const delta = choice?.delta;
       return {
         content: delta?.content || undefined,
+        reasoning: readOpenAIReasoning(delta) || undefined,
         toolCalls: delta?.tool_calls?.map((toolCall: any) => ({
           index: toolCall.index ?? 0,
           id: toolCall.id,
@@ -284,6 +287,11 @@ export const openaiProvider: AIProvider = {
     };
   },
 };
+
+function readOpenAIReasoning(value: any): string {
+  const reasoning = value?.reasoning_content ?? value?.reasoning;
+  return typeof reasoning === "string" ? reasoning : "";
+}
 
 function parseToolArguments(value: unknown): Record<string, unknown> {
   if (typeof value !== "string") return {};

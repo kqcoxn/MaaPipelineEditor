@@ -41,6 +41,7 @@ export interface VisionImage {
 export interface UnifiedResponse {
   success: boolean;
   content: string;
+  reasoning?: string;
   error?: string;
   toolCalls: UnifiedToolCall[];
   finishReason: UnifiedFinishReason;
@@ -73,6 +74,7 @@ export interface ToolCallDelta {
 
 export interface UnifiedStreamDelta {
   content?: string;
+  reasoning?: string;
   toolCalls?: ToolCallDelta[];
   finishReason?: UnifiedFinishReason;
   usage?: TokenUsage;

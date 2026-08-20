@@ -1,6 +1,6 @@
 ﻿import { List } from "../../SimpleList";
-import { Tooltip, Badge, Button, Input, message, Empty } from "antd";
-import { useState, useMemo } from "react";
+import { App as AntdApp, Tooltip, Badge, Button, Input, Empty } from "antd";
+import { useState, useMemo, useCallback } from "react";
 import {
   FileOutlined,
   FolderOutlined,
@@ -13,6 +13,7 @@ import {
   type LocalFileInfo,
 } from "@/stores/project/localFileStore";
 import { useConfigStore } from "@/stores/app/configStore";
+import { useControlledPanelOccupancy } from "../../../hooks/useControlledPanelOccupancy";
 import { localServer } from "../../../services/server";
 import { filterLocalFilesByFolderFilter } from "../../../utils/file/folderFilter";
 import classNames from "classnames";
@@ -21,10 +22,20 @@ import { WikiAnchor } from "../../wiki/WikiAnchor";
 import styles from "../../../styles/panels/LocalFileListPanel.module.less";
 
 export const LocalFileListPanel: React.FC = () => {
+  const { message } = AntdApp.useApp();
   const showLocalFilePanel = useConfigStore(
     (state) => state.status.showLocalFilePanel,
   );
   const setStatus = useConfigStore((state) => state.setStatus);
+  const closePanel = useCallback(
+    () => setStatus("showLocalFilePanel", false),
+    [setStatus],
+  );
+  const panelOpen = useControlledPanelOccupancy(
+    "localFile",
+    showLocalFilePanel,
+    closePanel,
+  );
   const rootPath = useLocalFileStore((state) => state.rootPath);
   const files = useLocalFileStore((state) => state.files);
   const folderFilter = useConfigStore(
@@ -79,7 +90,7 @@ export const LocalFileListPanel: React.FC = () => {
     });
 
     // 关闭面板
-    setStatus("showLocalFilePanel", false);
+    closePanel();
   };
 
   // 样式
@@ -88,9 +99,9 @@ export const LocalFileListPanel: React.FC = () => {
       classNames({
         "panel-base": true,
         [styles.panel]: true,
-        "panel-show": showLocalFilePanel,
+        "panel-show": panelOpen,
       }),
-    [showLocalFilePanel],
+    [panelOpen],
   );
 
   return (
@@ -120,7 +131,7 @@ export const LocalFileListPanel: React.FC = () => {
               type="text"
               size="small"
               icon={<CloseOutlined />}
-              onClick={() => setStatus("showLocalFilePanel", false)}
+              onClick={closePanel}
             />
           </Tooltip>
         </div>

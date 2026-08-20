@@ -149,10 +149,43 @@ describe("HarnessRunner", () => {
         message.content.includes("Pipeline 处理工作流"),
       ),
     ).toBe(true);
+    expect(
+      modelMock.complete.mock.calls[0][0].some((message) =>
+        message.content.includes("必须使用 fenced ```mermaid 代码块"),
+      ),
+    ).toBe(true);
     expect(useAIHarnessStore.getState().sessions[0].messages.at(-1)).toMatchObject({
       role: "assistant",
       content: "读取完成",
     });
+  });
+
+  it("将模型思考保存为独立事件但不写入会话上下文", async () => {
+    modelMock.complete.mockResolvedValueOnce({
+      ...finalResponse("最终回答"),
+      reasoning: "内部分析过程",
+    });
+    const runner = createRunner();
+
+    const run = await waitForRun(await runner.start("分析当前流程"));
+    const state = useAIHarnessStore.getState();
+
+    expect(run.status).toBe("succeeded");
+    expect(state.events[run.id]).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "assistant_reasoning",
+          text: "内部分析过程",
+        }),
+      ]),
+    );
+    expect(state.sessions[0].messages.at(-1)).toMatchObject({
+      role: "assistant",
+      content: "最终回答",
+    });
+    expect(state.sessions[0].messages.at(-1)?.content).not.toContain(
+      "内部分析过程",
+    );
   });
 
   it("工具权限错误后不能由最终文本伪装成功", async () => {
@@ -170,13 +203,14 @@ describe("HarnessRunner", () => {
     expect(run.error).toContain("权限");
   });
 
-  it("空工具名通过兼容模式恢复后可以正常完成", async () => {
+  it("空工具名且首个 Envelope 非法时自动纠正并继续完成", async () => {
     modelMock.complete
       .mockResolvedValueOnce({
         ...readToolResponse(),
         content: "先读取当前画布状态。",
         toolCalls: [{ id: "empty", name: "", arguments: {} }],
       })
+      .mockResolvedValueOnce(finalResponse("这不是 JSON"))
       .mockResolvedValueOnce({
         ...finalResponse(
           '{"type":"tool_calls","calls":[{"name":"read_canvas_summary","arguments":{}}]}',
@@ -189,6 +223,11 @@ describe("HarnessRunner", () => {
 
     expect(run.status).toBe("succeeded");
     expect(run.toolCallCount).toBe(1);
+    expect(
+      (useAIHarnessStore.getState().events[run.id] ?? [])
+        .filter((event) => event.type === "assistant_message")
+        .map((event) => event.text),
+    ).toEqual(["先读取当前画布状态。", "读取完成"]);
     expect(
       (useAIHarnessStore.getState().events[run.id] ?? []).filter(
         (event) => event.type === "tool_requested",

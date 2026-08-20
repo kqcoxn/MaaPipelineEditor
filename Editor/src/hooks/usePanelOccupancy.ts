@@ -9,8 +9,8 @@ import {
  * 面板占位互斥 Hook
  *
  * 面板组件通过此 Hook 与占位系统交互：
- * - isActive: 是否是当前区域激活者
- * - isDisplaced: 是否被其他面板排挤（被动面板：区域有任何激活者即为 true）
+ * - isActive: 是否是当前全局激活者
+ * - isDisplaced: 是否被其他侧栏排挤
  * - activate / deactivate: 抢占 / 释放区域
  */
 export function usePanelOccupancy(panelId: string): {
@@ -31,11 +31,14 @@ export function usePanelOccupancy(panelId: string): {
     throw new Error(`[usePanelOccupancy] 未注册的面板: ${panelId}`);
   }
 
-  const { area, reaction, passive } = descriptor;
+  const { reaction, passive } = descriptor;
 
-  // 选择当前区域的激活面板 ID
+  // 主动侧栏全局互斥，被动面板会对任一区域的占用作出反应。
   const activePanelId = usePanelOccupancyStore(
-    (state) => state.activePanels[area],
+    (state) =>
+      state.activePanels.right ??
+      state.activePanels.left ??
+      state.activePanels.bottom,
   );
   const storeActivate = usePanelOccupancyStore((state) => state.activate);
   const storeDeactivate = usePanelOccupancyStore((state) => state.deactivate);
