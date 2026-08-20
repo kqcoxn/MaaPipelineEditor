@@ -52,6 +52,32 @@ func TestParseProxyRequestPreservesRequestIDOnValidationError(t *testing.T) {
 	}
 }
 
+func TestParseProxyRequestUsesConfiguredTimeout(t *testing.T) {
+	request, err := parseProxyRequest(models.Message{Data: map[string]interface{}{
+		"request_id": "request-timeout",
+		"url":        "https://api.example.com/v1/chat",
+		"method":     "POST",
+		"timeout_ms": float64((10 * time.Minute).Milliseconds()),
+	}})
+	if err != nil {
+		t.Fatalf("parseProxyRequest() error = %v", err)
+	}
+	if request.timeout != 10*time.Minute {
+		t.Fatalf("timeout = %v, want 10m", request.timeout)
+	}
+}
+
+func TestParseProxyRequestRejectsMissingTimeout(t *testing.T) {
+	_, err := parseProxyRequest(models.Message{Data: map[string]interface{}{
+		"request_id": "request-timeout",
+		"url":        "https://api.example.com/v1/chat",
+		"method":     "POST",
+	}})
+	if err == nil || !strings.Contains(err.Error(), "timeout_ms") {
+		t.Fatalf("parseProxyRequest() error = %v, want timeout_ms error", err)
+	}
+}
+
 func TestReadLimitedBody(t *testing.T) {
 	body, err := readLimitedBody(strings.NewReader("12345"), 5)
 	if err != nil {

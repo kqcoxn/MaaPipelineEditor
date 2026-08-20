@@ -3,7 +3,10 @@
  * 支持多厂商 Provider、加密存储和代理转发的统一 AI 客户端
  */
 
-import { useConfigStore } from "@/stores/app/configStore";
+import {
+  normalizeAIRequestTimeoutMs,
+  useConfigStore,
+} from "@/stores/app/configStore";
 import { decryptApiKey } from "./crypto";
 import {
   getProvider,
@@ -26,6 +29,13 @@ function createAbortError(): Error {
   return error;
 }
 
+class AIRequestTimeoutError extends Error {
+  constructor(timeoutMs: number) {
+    super(`模型请求超时（${Math.round(timeoutMs / 1000)}s）`);
+    this.name = "AIRequestTimeoutError";
+  }
+}
+
 function parseStreamToolArguments(value: string): Record<string, unknown> {
   if (!value.trim()) return {};
   const parsed = JSON.parse(value);
@@ -45,6 +55,8 @@ export interface AIClientOptions {
   retryCount?: number;
   /** 重试间隔(ms)，默认 1000 */
   retryDelay?: number;
+  /** 单次模型请求超时；默认读取 AI 设置 */
+  requestTimeoutMs?: number;
 }
 
 /** 流式响应回调 */
@@ -67,6 +79,7 @@ export class AIClient {
   private historyLimit: number;
   private retryCount: number;
   private retryDelay: number;
+  private requestTimeoutMs: number | undefined;
   private abortController: AbortController | null = null;
   private requestInFlight = false;
   private frozenConfig: AIProviderConfig | null = null;
@@ -76,6 +89,7 @@ export class AIClient {
     this.historyLimit = options.historyLimit ?? 10;
     this.retryCount = options.retryCount ?? 2;
     this.retryDelay = options.retryDelay ?? 1000;
+    this.requestTimeoutMs = options.requestTimeoutMs;
 
     if (this.systemPrompt) {
       this.messages.push({ role: "system", content: this.systemPrompt });
@@ -157,6 +171,22 @@ export class AIClient {
     return err instanceof Error && err.name === "AbortError";
   }
 
+  private getRequestTimeoutMs(): number {
+    return this.requestTimeoutMs ?? normalizeAIRequestTimeoutMs(
+      useConfigStore.getState().configs.aiRequestTimeoutMinutes,
+    );
+  }
+
+  private getAbortMessage(signal: AbortSignal): string {
+    return signal.reason instanceof AIRequestTimeoutError
+      ? signal.reason.message
+      : "请求已取消";
+  }
+
+  private isRequestTimeout(signal: AbortSignal): boolean {
+    return signal.reason instanceof AIRequestTimeoutError;
+  }
+
   private removeLastUserMessage(): void {
     const lastMessage = this.messages[this.messages.length - 1];
     if (lastMessage?.role === "user") {
@@ -203,10 +233,11 @@ export class AIClient {
   private async executeRequest(
     request: ProviderRequest,
     signal?: AbortSignal,
+    timeoutMs?: number,
   ): Promise<Response> {
     if (this.shouldUseProxy()) {
       // 通过 LocalBridge 代理
-      return this.executeProxyRequest(request, signal);
+      return this.executeProxyRequest(request, signal, timeoutMs);
     }
     // 直连
     return fetch(request.url, {
@@ -223,6 +254,7 @@ export class AIClient {
   private async executeProxyRequest(
     request: ProviderRequest,
     signal?: AbortSignal,
+    timeoutMs?: number,
   ): Promise<Response> {
     const proxyRequest = {
       url: request.url,
@@ -232,14 +264,22 @@ export class AIClient {
     };
 
     if (request.stream) {
-      const { stream } = aiProtocol.sendStreamProxyRequest(proxyRequest, signal);
+      const { stream } = aiProtocol.sendStreamProxyRequest(
+        proxyRequest,
+        timeoutMs,
+        signal,
+      );
       return new Response(stream, {
         status: 200,
         headers: { "Content-Type": "text/event-stream" },
       });
     }
 
-    const result = await aiProtocol.sendProxyRequest(proxyRequest, signal);
+    const result = await aiProtocol.sendProxyRequest(
+      proxyRequest,
+      timeoutMs,
+      signal,
+    );
 
     return new Response(result.body, {
       status: result.status,
@@ -248,18 +288,27 @@ export class AIClient {
   }
 
   private async withRequest<T>(
-    operation: (controller: AbortController) => Promise<T>,
+    operation: (
+      controller: AbortController,
+      timeoutMs: number,
+    ) => Promise<T>,
   ): Promise<T> {
     if (this.requestInFlight) {
       throw new Error("当前 AIClient 已有请求正在进行");
     }
 
     const controller = new AbortController();
+    const timeoutMs = this.getRequestTimeoutMs();
+    const timeout = setTimeout(
+      () => controller.abort(new AIRequestTimeoutError(timeoutMs)),
+      timeoutMs,
+    );
     this.requestInFlight = true;
     this.abortController = controller;
     try {
-      return await operation(controller);
+      return await operation(controller, timeoutMs);
     } finally {
+      clearTimeout(timeout);
       if (this.abortController === controller) {
         this.abortController = null;
       }
@@ -289,7 +338,7 @@ export class AIClient {
    * 发送消息（非流式）
    */
   async send(userMessage: string): Promise<ChatResult> {
-    return this.withRequest(async (controller) => {
+    return this.withRequest(async (controller, timeoutMs) => {
       const configError = await this.validateConfig();
       if (configError) {
         return { success: false, content: "", error: configError };
@@ -305,7 +354,11 @@ export class AIClient {
           const request = provider.buildRequest(this.messages, config, {
             stream: false,
           });
-          const response = await this.executeRequest(request, controller.signal);
+          const response = await this.executeRequest(
+            request,
+            controller.signal,
+            timeoutMs,
+          );
 
           if (!response.ok) {
             const errText = await response.text();
@@ -318,9 +371,13 @@ export class AIClient {
 
           return { success: true, content };
         } catch (err: any) {
-          if (this.isAbortError(err)) {
+          if (controller.signal.aborted || this.isAbortError(err)) {
             this.removeLastUserMessage();
-            return { success: false, content: "", error: "请求已取消" };
+            return {
+              success: false,
+              content: "",
+              error: this.getAbortMessage(controller.signal),
+            };
           }
           lastError = this.formatError(err);
           // CORS 类错误不重试（重试也无法解决）
@@ -329,7 +386,11 @@ export class AIClient {
             const canRetry = await this.waitForRetry(controller.signal);
             if (!canRetry) {
               this.removeLastUserMessage();
-              return { success: false, content: "", error: "请求已取消" };
+              return {
+                success: false,
+                content: "",
+                error: this.getAbortMessage(controller.signal),
+              };
             }
           }
         }
@@ -347,7 +408,7 @@ export class AIClient {
     userMessage: string,
     onChunk: StreamCallback,
   ): Promise<ChatResult> {
-    return this.withRequest(async (controller) => {
+    return this.withRequest(async (controller, timeoutMs) => {
       const configError = await this.validateConfig();
       if (configError) {
         return { success: false, content: "", error: configError };
@@ -366,7 +427,11 @@ export class AIClient {
           const request = provider.buildRequest(this.messages, config, {
             stream: true,
           });
-          const response = await this.executeRequest(request, controller.signal);
+          const response = await this.executeRequest(
+            request,
+            controller.signal,
+            timeoutMs,
+          );
 
           if (!response.ok) {
             const errText = await response.text();
@@ -434,9 +499,13 @@ export class AIClient {
           this.addMessage("assistant", fullContent);
           return { success: true, content: fullContent };
         } catch (err: any) {
-          if (this.isAbortError(err)) {
+          if (controller.signal.aborted || this.isAbortError(err)) {
             this.removeLastUserMessage();
-            return { success: false, content: "", error: "请求已取消" };
+            return {
+              success: false,
+              content: "",
+              error: this.getAbortMessage(controller.signal),
+            };
           }
           lastError = this.formatError(err);
           if (this.isCorsLikeError(err) || hasDeliveredChunk) break;
@@ -444,7 +513,11 @@ export class AIClient {
             const canRetry = await this.waitForRetry(controller.signal);
             if (!canRetry) {
               this.removeLastUserMessage();
-              return { success: false, content: "", error: "请求已取消" };
+              return {
+                success: false,
+                content: "",
+                error: this.getAbortMessage(controller.signal),
+              };
             }
           }
         } finally {
@@ -474,7 +547,7 @@ export class AIClient {
     onTextDelta?: (delta: string) => void,
     onReasoningDelta?: (delta: string) => void,
   ): Promise<UnifiedResponse> {
-    return this.withRequest(async (controller) => {
+    return this.withRequest(async (controller, timeoutMs) => {
       const configError = await this.validateConfig();
       if (configError) {
         return {
@@ -496,7 +569,11 @@ export class AIClient {
       const promptText = messages.map((message) => message.content).join(" ");
 
       try {
-        const response = await this.executeRequest(request, controller.signal);
+        const response = await this.executeRequest(
+          request,
+          controller.signal,
+          timeoutMs,
+        );
         if (!response.ok) {
           const errorText = await response.text();
           throw new Error(`HTTP ${response.status}: ${errorText}`);
@@ -521,13 +598,14 @@ export class AIClient {
           controller.signal,
         );
       } catch (error) {
-        if (this.isAbortError(error)) {
+        if (controller.signal.aborted || this.isAbortError(error)) {
+          const timedOut = this.isRequestTimeout(controller.signal);
           return {
             success: false,
             content: "",
-            error: "请求已取消",
+            error: this.getAbortMessage(controller.signal),
             toolCalls: [],
-            finishReason: "cancelled",
+            finishReason: timedOut ? "error" : "cancelled",
           };
         }
         return {
@@ -657,7 +735,7 @@ export class AIClient {
     textContent: string,
     imageBase64: string,
   ): Promise<ChatResult> {
-    return this.withRequest(async (controller) => {
+    return this.withRequest(async (controller, timeoutMs) => {
       const configError = await this.validateConfig();
       if (configError) {
         return { success: false, content: "", error: configError };
@@ -674,7 +752,11 @@ export class AIClient {
             stream: false,
             images: [{ base64: imageBase64, mimeType: "image/png" }],
           });
-          const response = await this.executeRequest(request, controller.signal);
+          const response = await this.executeRequest(
+            request,
+            controller.signal,
+            timeoutMs,
+          );
 
           if (!response.ok) {
             const errText = await response.text();
@@ -687,9 +769,13 @@ export class AIClient {
 
           return { success: true, content };
         } catch (err: any) {
-          if (this.isAbortError(err)) {
+          if (controller.signal.aborted || this.isAbortError(err)) {
             this.removeLastUserMessage();
-            return { success: false, content: "", error: "请求已取消" };
+            return {
+              success: false,
+              content: "",
+              error: this.getAbortMessage(controller.signal),
+            };
           }
           lastError = this.formatError(err);
           if (this.isCorsLikeError(err)) break;
@@ -697,7 +783,11 @@ export class AIClient {
             const canRetry = await this.waitForRetry(controller.signal);
             if (!canRetry) {
               this.removeLastUserMessage();
-              return { success: false, content: "", error: "请求已取消" };
+              return {
+                success: false,
+                content: "",
+                error: this.getAbortMessage(controller.signal),
+              };
             }
           }
         }

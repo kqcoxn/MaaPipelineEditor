@@ -40,6 +40,7 @@ const request: AIProxyRequest = {
   headers: { "Content-Type": "application/json" },
   body: "{}",
 };
+const REQUEST_TIMEOUT_MS = 600_000;
 
 function createProtocol() {
   const server = new FakeWebSocketServer();
@@ -63,7 +64,10 @@ describe("AIProtocol", () => {
 
   it("resolves a normal response and preserves its payload", async () => {
     const { protocol, server } = createProtocol();
-    const responsePromise = protocol.sendProxyRequest(request);
+    const responsePromise = protocol.sendProxyRequest(
+      request,
+      REQUEST_TIMEOUT_MS,
+    );
     const requestID = getRequestId(server);
 
     server.deliver("/lte/ai/proxy_response", {
@@ -85,6 +89,7 @@ describe("AIProtocol", () => {
     const abortController = new AbortController();
     const responsePromise = protocol.sendProxyRequest(
       request,
+      REQUEST_TIMEOUT_MS,
       abortController.signal,
     );
 
@@ -99,10 +104,13 @@ describe("AIProtocol", () => {
   it("times out a pending normal request and sends cancellation", async () => {
     vi.useFakeTimers();
     const { protocol, server } = createProtocol();
-    const responsePromise = protocol.sendProxyRequest(request);
+    const responsePromise = protocol.sendProxyRequest(
+      request,
+      REQUEST_TIMEOUT_MS,
+    );
     const rejection = expect(responsePromise).rejects.toThrow("代理请求超时");
 
-    await vi.advanceTimersByTimeAsync(60_000);
+    await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS);
 
     await rejection;
     expect(server.sent.at(-1)).toMatchObject({
@@ -112,7 +120,10 @@ describe("AIProtocol", () => {
 
   it("forwards stream chunks and closes on done", async () => {
     const { protocol, server } = createProtocol();
-    const { stream, requestId } = protocol.sendStreamProxyRequest(request);
+    const { stream, requestId } = protocol.sendStreamProxyRequest(
+      request,
+      REQUEST_TIMEOUT_MS,
+    );
     const reader = stream.getReader();
 
     server.deliver("/lte/ai/proxy_stream", {
@@ -136,7 +147,10 @@ describe("AIProtocol", () => {
 
   it("cancels the backend when a stream reader is cancelled", async () => {
     const { protocol, server } = createProtocol();
-    const { stream } = protocol.sendStreamProxyRequest(request);
+    const { stream } = protocol.sendStreamProxyRequest(
+      request,
+      REQUEST_TIMEOUT_MS,
+    );
     const reader = stream.getReader();
 
     await reader.cancel();
@@ -148,7 +162,10 @@ describe("AIProtocol", () => {
 
   it("propagates stream errors to the reader", async () => {
     const { protocol, server } = createProtocol();
-    const { stream, requestId } = protocol.sendStreamProxyRequest(request);
+    const { stream, requestId } = protocol.sendStreamProxyRequest(
+      request,
+      REQUEST_TIMEOUT_MS,
+    );
     const reader = stream.getReader();
 
     server.deliver("/lte/ai/proxy_stream", {
@@ -161,10 +178,27 @@ describe("AIProtocol", () => {
 
   it("rejects pending requests when the WebSocket disconnects", async () => {
     const { protocol, server } = createProtocol();
-    const responsePromise = protocol.sendProxyRequest(request);
+    const responsePromise = protocol.sendProxyRequest(
+      request,
+      REQUEST_TIMEOUT_MS,
+    );
 
     server.disconnect();
 
     await expect(responsePromise).rejects.toThrow("WebSocket 已断开");
+  });
+
+  it("forwards the configured timeout to LocalBridge", async () => {
+    const { protocol, server } = createProtocol();
+    const { stream } = protocol.sendStreamProxyRequest(
+      request,
+      REQUEST_TIMEOUT_MS,
+    );
+
+    expect(server.sent[0]).toMatchObject({
+      path: "/etl/ai/proxy_stream",
+      data: { timeout_ms: REQUEST_TIMEOUT_MS },
+    });
+    await stream.cancel();
   });
 });

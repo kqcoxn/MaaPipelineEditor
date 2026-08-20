@@ -8,16 +8,19 @@ import {
   DownOutlined,
   HistoryOutlined,
   NodeIndexOutlined,
+  PartitionOutlined,
   SearchOutlined,
   ToolOutlined,
 } from "@ant-design/icons";
 
 import {
   harnessRunner,
+  SEMANTIC_LAYOUT_PROFILE_ID,
   type HarnessRun,
   useAIHarnessStore,
 } from "@/features/ai-harness";
 import { useConfigStore } from "@/stores/app/configStore";
+import { useFlowStore } from "@/stores/flow";
 import { useControlledPanelOccupancy } from "../../../hooks/useControlledPanelOccupancy";
 import {
   AIConversationRun,
@@ -84,6 +87,7 @@ function AIHistoryPanel() {
   const pendingRunSessionId = useAIHarnessStore(
     (state) => state.pendingRunSessionId,
   );
+  const nodeCount = useFlowStore((state) => state.nodes.length);
   const streamingText = useAIHarnessStore((state) => state.streamingText);
   const streamingReasoning = useAIHarnessStore(
     (state) => state.streamingReasoning,
@@ -128,12 +132,28 @@ function AIHistoryPanel() {
     if (!goal || isAnyRunRunning) return;
     setDraft("");
     try {
-      await harnessRunner.start(goal, activeSessionId);
+      await harnessRunner.start(goal, { sessionId: activeSessionId });
     } catch (error) {
       setDraft(goal);
       message.error(error instanceof Error ? error.message : "无法启动 AI Run");
     }
   }, [activeSessionId, isAnyRunRunning, message]);
+
+  const handleSemanticLayout = useCallback(async () => {
+    if (isAnyRunRunning) return;
+    if (nodeCount === 0) {
+      message.error("当前画布没有可重排的节点");
+      return;
+    }
+    try {
+      await harnessRunner.start("AI 语义重排当前画布", {
+        sessionId: activeSessionId,
+        profileId: SEMANTIC_LAYOUT_PROFILE_ID,
+      });
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : "无法启动 AI 重排");
+    }
+  }, [activeSessionId, isAnyRunRunning, message, nodeCount]);
 
   const handleClear = useCallback(() => {
     if (!activeSession || activeSession.runIds.length === 0) return;
@@ -320,6 +340,17 @@ function AIHistoryPanel() {
           </div>
 
           <div className={style.composerShell} data-testid="ai-composer-shell">
+            <div className={style.composerActions}>
+              <Button
+                size="small"
+                icon={<PartitionOutlined />}
+                aria-label="AI 重排"
+                disabled={isAnyRunRunning || nodeCount === 0}
+                onClick={() => void handleSemanticLayout()}
+              >
+                AI 重排
+              </Button>
+            </div>
             <Sender
               rootClassName={style.composer}
               value={draft}

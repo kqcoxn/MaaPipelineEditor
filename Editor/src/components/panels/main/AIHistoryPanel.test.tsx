@@ -7,10 +7,12 @@ import xZhCN from "@ant-design/x/locale/zh_CN";
 import {
   canvasChatProfile,
   harnessRunner,
+  SEMANTIC_LAYOUT_PROFILE_ID,
   type HarnessRun,
   useAIHarnessStore,
 } from "@/features/ai-harness";
 import { useConfigStore } from "@/stores/app/configStore";
+import { createPipelineNode, useFlowStore } from "@/stores/flow";
 import AIHistoryPanel from "./AIHistoryPanel";
 
 describe("AIHistoryPanel", () => {
@@ -39,7 +41,10 @@ describe("AIHistoryPanel", () => {
         skillIds: [],
         toolNames: ["*"],
       },
-      policySnapshot: canvasChatProfile.defaultPolicy,
+      policySnapshot: {
+        ...canvasChatProfile.defaultPolicy,
+        maxTokens: 200_000,
+      },
       modelSnapshot: {
         type: "openai",
         apiUrl: "https://example.com",
@@ -70,6 +75,7 @@ describe("AIHistoryPanel", () => {
       dispatchEvent: vi.fn(),
     }));
     useAIHarnessStore.getState().reset();
+    useFlowStore.setState({ nodes: [], edges: [] });
     useConfigStore.getState().setStatus("showAIHistoryPanel", true);
   });
 
@@ -82,7 +88,7 @@ describe("AIHistoryPanel", () => {
   it("新建并切换 Session", async () => {
     renderPanel();
 
-    expect(screen.getByText("BETA")).toBeInTheDocument();
+    expect(screen.getByText("Infra BETA")).toBeInTheDocument();
 
     fireEvent.click(await screen.findByLabelText("切换 Session"));
     fireEvent.click(await screen.findByText("新建 Session"));
@@ -109,8 +115,25 @@ describe("AIHistoryPanel", () => {
     await waitFor(() =>
       expect(start).toHaveBeenCalledWith(
         "读取当前画布",
-        useAIHarnessStore.getState().activeSessionId,
+        { sessionId: useAIHarnessStore.getState().activeSessionId },
       ),
+    );
+  });
+
+  it("从 Harness 面板启动专用 AI 语义重排", async () => {
+    const start = vi.spyOn(harnessRunner, "start").mockResolvedValue("run-layout");
+    useFlowStore.setState({
+      nodes: [createPipelineNode("layout-node", { label: "开始" })],
+    });
+    renderPanel();
+
+    fireEvent.click(await screen.findByRole("button", { name: "AI 重排" }));
+
+    await waitFor(() =>
+      expect(start).toHaveBeenCalledWith("AI 语义重排当前画布", {
+        sessionId: useAIHarnessStore.getState().activeSessionId,
+        profileId: SEMANTIC_LAYOUT_PROFILE_ID,
+      }),
     );
   });
 

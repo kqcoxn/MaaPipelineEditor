@@ -125,4 +125,16 @@ describe("CanvasCommandBus", () => {
       bus.readNode("1", { ...context(), fileName: "other.json" }).error?.code,
     ).toBe("permission_denied");
   });
+
+  it("受控位置提交只修改指定节点并保留撤销能力", () => {
+    const { bus, commit, getGraph } = createHarness();
+
+    const result = bus.applyNodePositions(context(), {
+      "1": { x: 240, y: 160 },
+    });
+
+    expect(result).toMatchObject({ ok: true, stateVersion: 2, undoable: true });
+    expect(commit).toHaveBeenCalledOnce();
+    expect(getGraph().nodes[0].position).toEqual({ x: 240, y: 160 });
+  });
 });

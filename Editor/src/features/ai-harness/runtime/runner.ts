@@ -1,4 +1,10 @@
 import { AIClient } from "@/utils/ai/aiClient";
+import {
+  DEFAULT_AI_TOKEN_BUDGET,
+  MAX_AI_TOKEN_BUDGET,
+  MIN_AI_TOKEN_BUDGET,
+  useConfigStore,
+} from "@/stores/app/configStore";
 import type {
   ModelToolDefinition,
   TokenUsage,
@@ -47,6 +53,11 @@ export interface HarnessRunnerDependencies {
   }) => ToolExecutionResult;
 }
 
+export interface HarnessStartOptions {
+  sessionId?: string;
+  profileId?: string;
+}
+
 export class HarnessRunner {
   private readonly registry: HarnessRegistry;
   private readonly dispatcher: ToolDispatcher;
@@ -62,12 +73,15 @@ export class HarnessRunner {
     );
   }
 
-  async start(goal: string, sessionId?: string): Promise<string> {
+  async start(
+    goal: string,
+    options: HarnessStartOptions = {},
+  ): Promise<string> {
     const normalizedGoal = goal.trim();
     if (!normalizedGoal) throw new Error("用户目标不能为空");
 
     const store = useAIHarnessStore.getState();
-    const targetSessionId = sessionId ?? store.activeSessionId;
+    const targetSessionId = options.sessionId ?? store.activeSessionId;
     const session = store.sessions.find((item) => item.id === targetSessionId);
     if (!session) throw new Error(`Session 不存在: ${targetSessionId}`);
     if (!store.tryReserveRun(targetSessionId)) {
@@ -77,11 +91,16 @@ export class HarnessRunner {
     try {
       const client = new AIClient({ retryCount: 0 });
       const modelAdapter = new HarnessModelAdapter(client);
-      const profile = this.registry.snapshotProfile("canvas-chat");
+      const profile = this.registry.snapshotProfile(
+        options.profileId ?? "canvas-chat",
+      );
       const capability = this.registry.snapshotCapabilityPack(
         profile.capabilityPackId,
       );
       const modelSnapshot = await client.freezeModelConfig();
+      const tokenBudget = normalizeTokenBudget(
+        useConfigStore.getState().configs.aiTokenBudget,
+      );
       const runId = this.nextRunId();
       const run: HarnessRun = {
         id: runId,
@@ -91,7 +110,10 @@ export class HarnessRunner {
         createdAt: Date.now(),
         profileSnapshot: profile,
         capabilitySnapshot: capability,
-        policySnapshot: Object.freeze(structuredClone(profile.defaultPolicy)),
+        policySnapshot: Object.freeze({
+          ...structuredClone(profile.defaultPolicy),
+          maxTokens: tokenBudget,
+        }),
         modelSnapshot: Object.freeze(structuredClone(modelSnapshot)),
         turnCount: 0,
         toolCallCount: 0,
@@ -145,16 +167,10 @@ export class HarnessRunner {
     store.updateRun(initialRun.id, { status: "running", startedAt });
     this.appendEvent(initialRun, { type: "run_started", status: "running" });
 
-    const timeout = window.setTimeout(() => {
-      controller.abort();
-      this.activeExecutions.get(initialRun.id)?.client.abort();
-    }, initialRun.policySnapshot.timeoutMs);
-
     const canvasSnapshot = this.dependencies.readContextSnapshot();
     const canvasData = canvasSnapshot.data as { fileName?: string } | undefined;
     const fileName = canvasData?.fileName;
     if (!fileName) {
-      window.clearTimeout(timeout);
       this.finish(initialRun.id, "failed", "无法读取当前文件");
       return;
     }
@@ -177,6 +193,7 @@ export class HarnessRunner {
       fingerprints: new Set(),
     };
     const allToolResults: ToolExecutionResult[] = [];
+    const successfulToolNames = new Set<string>();
 
     try {
       for (let turn = 1; turn <= initialRun.policySnapshot.maxTurns; turn += 1) {
@@ -253,6 +270,21 @@ export class HarnessRunner {
           changedCanvas: latestRun?.changedCanvas,
           canvasValidation,
         });
+        const missingRequiredTools = initialRun.profileSnapshot.requiredToolNames.filter(
+          (toolName) => !successfulToolNames.has(toolName),
+        );
+        if (
+          evaluation.complete &&
+          evaluation.status === "succeeded" &&
+          missingRequiredTools.length > 0
+        ) {
+          this.finish(
+            initialRun.id,
+            this.partialStatus(initialRun.id, "failed"),
+            `专用流程未完成必要工具: ${missingRequiredTools.join("、")}`,
+          );
+          return;
+        }
         if (evaluation.complete) {
           if (evaluation.status === "succeeded") {
             store.appendMessage(initialRun.sessionId, {
@@ -322,6 +354,7 @@ export class HarnessRunner {
           }
           if (!result) throw new Error("工具执行器未返回结果");
           allToolResults.push(result);
+          if (result.ok) successfulToolNames.add(call.name);
           store.updateRun(initialRun.id, {
             status: "running",
             toolCallCount: budget.toolCallCount,
@@ -358,8 +391,6 @@ export class HarnessRunner {
           error instanceof Error ? error.message : String(error),
         );
       }
-    } finally {
-      window.clearTimeout(timeout);
     }
   }
 
@@ -390,9 +421,11 @@ export class HarnessRunner {
         role: "system",
         content: `MPE 内部能力包：${run.capabilitySnapshot.description}\n本次 Run 已启用的内置 Skill：\n${skillText || "无"}\n\n本次 Run 已启用的全部 MPE 工具：\n${capabilityText}`,
       },
-      ...previousMessages
-        .slice(-run.profileSnapshot.maxSessionMessages)
-        .map((message) => ({ role: message.role, content: message.content })),
+      ...(run.profileSnapshot.inheritSessionContext
+        ? previousMessages
+            .slice(-run.profileSnapshot.maxSessionMessages)
+            .map((message) => ({ role: message.role, content: message.content }))
+        : []),
       { role: "user", content: run.goal },
       {
         role: "user",
@@ -485,6 +518,14 @@ export class HarnessRunner {
     this.runSequence += 1;
     return `run_${Date.now()}_${this.runSequence}`;
   }
+}
+
+function normalizeTokenBudget(value: number): number {
+  if (!Number.isFinite(value)) return DEFAULT_AI_TOKEN_BUDGET;
+  return Math.min(
+    MAX_AI_TOKEN_BUDGET,
+    Math.max(MIN_AI_TOKEN_BUDGET, Math.trunc(value)),
+  );
 }
 
 function emptyUsage(): TokenUsage {

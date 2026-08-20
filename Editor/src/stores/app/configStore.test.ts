@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   configDefaults,
+  DEFAULT_AI_REQUEST_TIMEOUT_MINUTES,
+  DEFAULT_AI_TOKEN_BUDGET,
   getExportableConfigs,
   initializeConfigCache,
   useConfigStore,
@@ -12,6 +14,18 @@ beforeEach(() => {
 });
 
 describe("config cache", () => {
+  it("defaults the Harness Token budget to 200k", () => {
+    expect(configDefaults.aiTokenBudget).toBe(DEFAULT_AI_TOKEN_BUDGET);
+    expect(useConfigStore.getState().configs.aiTokenBudget).toBe(200_000);
+  });
+
+  it("defaults each AI request timeout to 10 minutes", () => {
+    expect(configDefaults.aiRequestTimeoutMinutes).toBe(
+      DEFAULT_AI_REQUEST_TIMEOUT_MINUTES,
+    );
+    expect(useConfigStore.getState().configs.aiRequestTimeoutMinutes).toBe(10);
+  });
+
   it("restores cached global configs during initialization", () => {
     localStorage.setItem(
       "_mpe_config",

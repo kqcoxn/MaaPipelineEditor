@@ -1,6 +1,8 @@
 import { canvasCommandBus } from "../capabilities/canvas/commandBus";
 import { canvasHarnessModule } from "../capabilities/canvas/module";
+import { CANVAS_CAPABILITY_PACK_ID } from "../capabilities/canvas/profile";
 import { canvasToolDefinitions } from "../capabilities/canvas/tools";
+import { semanticLayoutHarnessModule } from "../capabilities/semantic-layout/module";
 import type { CapabilityPack } from "../core/types";
 import { HarnessRunner, type HarnessRunnerDependencies } from "../runtime/runner";
 import {
@@ -11,7 +13,7 @@ import { mfwPipelineHarnessModule } from "../skills/mfw-pipeline/module";
 import { registerHarnessModules } from "./registerModules";
 
 export const canvasCapabilityPack: CapabilityPack = {
-  id: "canvas",
+  id: CANVAS_CAPABILITY_PACK_ID,
   version: "1.0.0",
   description: "MaaFW Pipeline 协议及当前文件画布、节点和连接的完整受控操作",
   skillIds: [mfwPipelineSkill.id],
@@ -25,6 +27,7 @@ export function createDefaultHarnessDependencies(): HarnessRunnerDependencies {
   const { registry, toolHandlers } = registerHarnessModules([
     canvasHarnessModule,
     mfwPipelineHarnessModule,
+    semanticLayoutHarnessModule,
   ]);
   registry.registerCapabilityPack(canvasCapabilityPack);
   return {

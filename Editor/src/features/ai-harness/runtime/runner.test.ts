@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { UnifiedMessage, UnifiedResponse } from "@/utils/ai/providers";
+import {
+  DEFAULT_AI_TOKEN_BUDGET,
+  useConfigStore,
+} from "@/stores/app/configStore";
 
 const modelMock = vi.hoisted(() => {
   const snapshot = {
@@ -68,6 +72,7 @@ import {
   mfwPipelineReferenceTool,
   MFW_PIPELINE_SKILL_ID,
 } from "../skills/mfw-pipeline/definition";
+import { SEMANTIC_LAYOUT_PROFILE_ID } from "../capabilities/semantic-layout/profile";
 import { createDefaultHarnessDependencies } from "../composition/defaultHarness";
 
 function createRunner(): HarnessRunner {
@@ -108,6 +113,7 @@ describe("HarnessRunner", () => {
     vi.useRealTimers();
     vi.clearAllMocks();
     useAIHarnessStore.getState().reset();
+    useConfigStore.getState().resetAllConfigs();
     modelMock.freezeModelConfig.mockResolvedValue({
       type: "openai",
       apiUrl: "https://example.com",
@@ -236,12 +242,13 @@ describe("HarnessRunner", () => {
   });
 
   it("达到 Token、Turn 和工具次数预算后终止", async () => {
+    useConfigStore.getState().setConfig("aiTokenBudget", 40_000);
     modelMock.complete.mockResolvedValueOnce({
       ...finalResponse(),
       usage: {
-        promptTokens: 32_001,
+        promptTokens: 40_001,
         completionTokens: 1,
-        totalTokens: 32_002,
+        totalTokens: 40_002,
         isEstimated: false,
       },
     });
@@ -271,7 +278,18 @@ describe("HarnessRunner", () => {
     expect(run.toolCallCount).toBe(24);
   });
 
-  it("支持用户取消和运行超时", async () => {
+  it("使用用户配置的 Token 预算并冻结到 Run 快照", async () => {
+    modelMock.complete.mockResolvedValueOnce(finalResponse());
+    const runner = createRunner();
+    const runId = await runner.start("检查预算");
+
+    useConfigStore.getState().setConfig("aiTokenBudget", 80_000);
+
+    const run = await waitForRun(runId);
+    expect(run.policySnapshot.maxTokens).toBe(DEFAULT_AI_TOKEN_BUDGET);
+  });
+
+  it("允许用户显式取消运行", async () => {
     let resolveRequest: ((response: UnifiedResponse) => void) | undefined;
     modelMock.complete.mockImplementation(
       () =>
@@ -288,17 +306,10 @@ describe("HarnessRunner", () => {
         finishReason: "cancelled",
       }),
     );
-    let runner = createRunner();
-    let runId = await runner.start("等待取消");
+    const runner = createRunner();
+    const runId = await runner.start("等待取消");
     await vi.waitFor(() => expect(modelMock.complete).toHaveBeenCalled());
     expect(runner.stop(runId)).toBe(true);
-    expect((await waitForRun(runId)).status).toBe("cancelled");
-
-    vi.useFakeTimers();
-    resolveRequest = undefined;
-    runner = createRunner();
-    runId = await runner.start("等待超时");
-    await vi.advanceTimersByTimeAsync(120_000);
     expect((await waitForRun(runId)).status).toBe("cancelled");
   });
 
@@ -346,14 +357,43 @@ describe("HarnessRunner", () => {
     });
     const runner = createRunner();
     const firstSessionId = useAIHarnessStore.getState().activeSessionId;
-    await waitForRun(await runner.start("第一会话目标", firstSessionId));
+    await waitForRun(
+      await runner.start("第一会话目标", { sessionId: firstSessionId }),
+    );
     const secondSessionId = useAIHarnessStore.getState().createSession("第二会话");
-    await waitForRun(await runner.start("第二会话目标", secondSessionId));
+    await waitForRun(
+      await runner.start("第二会话目标", { sessionId: secondSessionId }),
+    );
 
     const secondSessionFirstRequest = capturedMessages[2]
       .map((message) => message.content)
       .join("\n");
     expect(secondSessionFirstRequest).toContain("第二会话目标");
     expect(secondSessionFirstRequest).not.toContain("第一会话目标");
+  });
+
+  it("专用语义布局 Run 不继承会话历史且必须完成约定工具", async () => {
+    const capturedMessages: UnifiedMessage[][] = [];
+    modelMock.complete.mockImplementation(async (messages) => {
+      capturedMessages.push(messages);
+      return finalResponse("已完成");
+    });
+    const runner = createRunner();
+    await waitForRun(await runner.start("此前的普通对话"));
+
+    const run = await waitForRun(
+      await runner.start("AI 语义重排当前画布", {
+        profileId: SEMANTIC_LAYOUT_PROFILE_ID,
+      }),
+    );
+    const layoutRequest = capturedMessages[1]
+      .map((message) => message.content)
+      .join("\n");
+
+    expect(run.status).toBe("failed");
+    expect(run.error).toContain("未完成必要工具");
+    expect(run.profileSnapshot.id).toBe(SEMANTIC_LAYOUT_PROFILE_ID);
+    expect(layoutRequest).toContain("AI 语义重排当前画布");
+    expect(layoutRequest).not.toContain("此前的普通对话");
   });
 });

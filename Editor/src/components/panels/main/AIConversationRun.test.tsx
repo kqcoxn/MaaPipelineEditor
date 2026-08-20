@@ -12,7 +12,7 @@ function createRun(status: HarnessRun["status"] = "succeeded"): HarnessRun {
     goal: "测试 Markdown",
     status,
     createdAt: 1,
-    finishedAt: status === "succeeded" ? 2 : undefined,
+    finishedAt: status === "running" ? undefined : 2,
     profileSnapshot: canvasChatProfile,
     capabilitySnapshot: {
       id: "all",
@@ -21,7 +21,10 @@ function createRun(status: HarnessRun["status"] = "succeeded"): HarnessRun {
       skillIds: [],
       toolNames: ["*"],
     },
-    policySnapshot: canvasChatProfile.defaultPolicy,
+    policySnapshot: {
+      ...canvasChatProfile.defaultPolicy,
+      maxTokens: 200_000,
+    },
     modelSnapshot: {
       type: "openai",
       apiUrl: "https://example.com",

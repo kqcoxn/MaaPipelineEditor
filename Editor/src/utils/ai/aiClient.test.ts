@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const configStoreMock = vi.hoisted(() => ({
   getState: vi.fn(),
@@ -15,6 +15,8 @@ const serverMock = vi.hoisted(() => ({
 
 vi.mock("@/stores/app/configStore", () => ({
   useConfigStore: configStoreMock,
+  normalizeAIRequestTimeoutMs: (value: number) =>
+    Number.isFinite(value) ? value * 60_000 : 600_000,
 }));
 vi.mock("./crypto", () => ({
   decryptApiKey: vi.fn(async (value: string) => value),
@@ -30,6 +32,7 @@ const config = {
   aiTemperature: 0.7,
   aiProviderType: "openai",
   aiUseProxy: false,
+  aiRequestTimeoutMinutes: 10,
 };
 
 function createResponseStream(chunks: string[]): ReadableStream<Uint8Array> {
@@ -49,6 +52,40 @@ describe("AIClient stream transport", () => {
     vi.clearAllMocks();
     configStoreMock.getState.mockReturnValue({ configs: { ...config } });
     serverMock.localServer.isConnected.mockReturnValue(true);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it("times out one model request without reporting user cancellation", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((_url: string, init: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init.signal?.addEventListener(
+            "abort",
+            () => reject(new DOMException("aborted", "AbortError")),
+            { once: true },
+          );
+        }),
+      ),
+    );
+    const client = new AIClient({ retryCount: 0, requestTimeoutMs: 1_000 });
+    const requestPromise = client.complete(
+      [{ role: "user", content: "wait" }],
+      { stream: false },
+    );
+
+    await vi.advanceTimersByTimeAsync(1_000);
+
+    await expect(requestPromise).resolves.toMatchObject({
+      success: false,
+      error: "模型请求超时（1s）",
+      finishReason: "error",
+    });
   });
 
   it("parses SSE events across transport chunk boundaries", async () => {
@@ -95,7 +132,11 @@ describe("AIClient stream transport", () => {
     );
 
     expect(result.success).toBe(true);
-    expect(serverMock.aiProtocol.sendStreamProxyRequest).toHaveBeenCalledOnce();
+    expect(serverMock.aiProtocol.sendStreamProxyRequest).toHaveBeenCalledWith(
+      expect.any(Object),
+      600_000,
+      expect.any(AbortSignal),
+    );
     expect(serverMock.aiProtocol.sendProxyRequest).not.toHaveBeenCalled();
   });
 

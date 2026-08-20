@@ -19,9 +19,6 @@ interface AIProxyResponseData {
   done?: boolean;
 }
 
-const NON_STREAM_TIMEOUT_MS = 60_000;
-const STREAM_TIMEOUT_MS = 120_000;
-
 function createRequestId(): string {
   return `${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 }
@@ -110,6 +107,7 @@ export class AIProtocol extends BaseProtocol {
   /** 发送非流式代理请求。 */
   sendProxyRequest(
     request: AIProxyRequest,
+    timeoutMs: number,
     signal?: AbortSignal,
   ): Promise<{
     status: number;
@@ -144,8 +142,10 @@ export class AIProtocol extends BaseProtocol {
         settled = true;
         cleanup();
         this.cancelProxyRequest(requestId);
-        reject(new Error("代理请求超时（60s）"));
-      }, NON_STREAM_TIMEOUT_MS);
+        reject(
+          new Error(`代理请求超时（${Math.round(timeoutMs / 1000)}s）`),
+        );
+      }, timeoutMs);
 
       if (signal?.aborted) {
         handleAbort();
@@ -174,6 +174,7 @@ export class AIProtocol extends BaseProtocol {
         method: request.method,
         headers: request.headers,
         body: request.body,
+        timeout_ms: timeoutMs,
       });
 
       if (!success && !settled) {
@@ -187,6 +188,7 @@ export class AIProtocol extends BaseProtocol {
   /** 发送流式代理请求，ReadableStream 的 cancel 会取消后端请求。 */
   sendStreamProxyRequest(
     request: AIProxyRequest,
+    timeoutMs: number,
     signal?: AbortSignal,
   ): { stream: ReadableStream<Uint8Array>; requestId: string } {
     const requestId = createRequestId();
@@ -243,8 +245,12 @@ export class AIProtocol extends BaseProtocol {
         timeout = setTimeout(() => {
           if (closed) return;
           cleanup(true);
-          streamController.error(new Error("流式代理请求超时（120s）"));
-        }, STREAM_TIMEOUT_MS);
+          streamController.error(
+            new Error(
+              `流式代理请求超时（${Math.round(timeoutMs / 1000)}s）`,
+            ),
+          );
+        }, timeoutMs);
 
         const success = this.wsClient.send("/etl/ai/proxy_stream", {
           request_id: requestId,
@@ -252,6 +258,7 @@ export class AIProtocol extends BaseProtocol {
           method: request.method,
           headers: request.headers,
           body: request.body,
+          timeout_ms: timeoutMs,
         });
         if (!success) {
           cleanup(false);

@@ -20,12 +20,16 @@ export type ToolErrorCode =
 export interface RuntimePolicy {
   maxTurns: number;
   maxToolCalls: number;
-  timeoutMs: number;
   maxTokens: number;
   maxRetriesPerToolError: number;
   serialRunsPerSession: boolean;
   autoApproveTools: boolean;
 }
+
+export type ProfileRuntimePolicy = Omit<
+  RuntimePolicy,
+  "maxTokens"
+>;
 
 export interface ToolDefinition {
   name: string;
@@ -57,8 +61,10 @@ export interface BusinessProfile {
   description: string;
   capabilityPackId: string;
   systemPrompt: string;
+  inheritSessionContext: boolean;
   maxSessionMessages: number;
-  defaultPolicy: RuntimePolicy;
+  requiredToolNames: string[];
+  defaultPolicy: ProfileRuntimePolicy;
 }
 
 export interface ToolExecutionContext {

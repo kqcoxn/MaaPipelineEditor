@@ -344,6 +344,8 @@ export const AIConversationRun = memo(
         <Tag className={style.runStatus} color={runStatusColor(run.status)}>
           {statusLabels[run.status]}
         </Tag>
+        <span>{run.profileSnapshot.name}</span>
+        <span aria-hidden="true">·</span>
         <span>{run.turnCount} 轮</span>
         <span aria-hidden="true">·</span>
         <span>{run.toolCallCount} 次工具</span>

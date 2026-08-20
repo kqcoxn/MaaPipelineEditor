@@ -15,7 +15,10 @@ const run: HarnessRun = {
   createdAt: 1,
   profileSnapshot: canvasChatProfile,
   capabilitySnapshot: canvasCapabilityPack,
-  policySnapshot: canvasChatProfile.defaultPolicy,
+  policySnapshot: {
+    ...canvasChatProfile.defaultPolicy,
+    maxTokens: 200_000,
+  },
   modelSnapshot: {
     type: "openai",
     apiUrl: "https://example.com",

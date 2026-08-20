@@ -5,6 +5,23 @@ import { encryptApiKey, isEncryptedKey } from "@/utils/ai/crypto";
 
 let apiKeyWriteVersion = 0;
 
+export const DEFAULT_AI_TOKEN_BUDGET = 200_000;
+export const MIN_AI_TOKEN_BUDGET = 1_000;
+export const MAX_AI_TOKEN_BUDGET = 2_000_000;
+export const DEFAULT_AI_REQUEST_TIMEOUT_MINUTES = 10;
+export const MIN_AI_REQUEST_TIMEOUT_MINUTES = 1;
+export const MAX_AI_REQUEST_TIMEOUT_MINUTES = 120;
+
+export function normalizeAIRequestTimeoutMs(value: number): number {
+  const minutes = Number.isFinite(value)
+    ? Math.min(
+        MAX_AI_REQUEST_TIMEOUT_MINUTES,
+        Math.max(MIN_AI_REQUEST_TIMEOUT_MINUTES, Math.trunc(value)),
+      )
+    : DEFAULT_AI_REQUEST_TIMEOUT_MINUTES;
+  return minutes * 60_000;
+}
+
 /**固有配置 */
 export const globalConfig = {
   dev: true,
@@ -81,6 +98,8 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   aiApiKey: "ai",
   aiModel: "ai",
   aiTemperature: "ai",
+  aiTokenBudget: "ai",
+  aiRequestTimeoutMinutes: "ai",
   aiProviderType: "ai",
   aiUseProxy: "ai",
 };
@@ -188,6 +207,8 @@ const defaultConfigs = {
   aiApiKey: "",
   aiModel: "",
   aiTemperature: 0.7,
+  aiTokenBudget: DEFAULT_AI_TOKEN_BUDGET,
+  aiRequestTimeoutMinutes: DEFAULT_AI_REQUEST_TIMEOUT_MINUTES,
   aiProviderType: "custom" as const,
   aiUseProxy: true,
   // 聚焦透明度
@@ -255,6 +276,8 @@ export type ConfigState = {
     aiApiKey: string;
     aiModel: string;
     aiTemperature: number;
+    aiTokenBudget: number;
+    aiRequestTimeoutMinutes: number;
     aiProviderType: string;
     aiUseProxy: boolean;
     // 聚焦透明度

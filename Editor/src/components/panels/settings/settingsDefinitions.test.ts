@@ -19,10 +19,34 @@ describe("AI settings", () => {
       "aiModel",
       "aiTemperature",
       "aiUseProxy",
+      "aiTokenBudget",
+      "aiRequestTimeoutMinutes",
       "__testConnection",
     ]);
 
     const providerItem = aiItems.find((item) => item.key === "aiProviderType");
     expect(providerItem?.options).toEqual(getProviderOptions());
+
+    const tokenBudgetItem = aiItems.find(
+      (item) => item.key === "aiTokenBudget",
+    );
+    expect(tokenBudgetItem).toMatchObject({
+      type: "inputNumber",
+      min: 1_000,
+      max: 2_000_000,
+      step: 10_000,
+      addonAfter: "tokens",
+    });
+
+    const requestTimeoutItem = aiItems.find(
+      (item) => item.key === "aiRequestTimeoutMinutes",
+    );
+    expect(requestTimeoutItem).toMatchObject({
+      type: "inputNumber",
+      min: 1,
+      max: 120,
+      step: 1,
+      addonAfter: "分钟",
+    });
   });
 });

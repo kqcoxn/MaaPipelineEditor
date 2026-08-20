@@ -197,6 +197,22 @@ export class CanvasCommandBus {
     };
   }
 
+  readGraphState(
+    context?: ToolExecutionContext,
+  ): ToolExecutionResult<CanvasGraphState> {
+    const graph = this.adapter.read();
+    const stateVersion = this.getStateVersion();
+    const scopeError = this.validateReadContext(context, graph, stateVersion);
+    if (scopeError) {
+      return scopeError as ToolExecutionResult<CanvasGraphState>;
+    }
+    return {
+      ok: true,
+      stateVersion,
+      data: structuredClone(graph),
+    };
+  }
+
   validateCanvas(context?: ToolExecutionContext): ToolExecutionResult {
     const graph = this.adapter.read();
     const stateVersion = this.getStateVersion();
@@ -296,6 +312,64 @@ export class CanvasCommandBus {
       data: { applied: mutations.length },
       stateVersion,
       changes,
+      validationErrors: [],
+      undoable: true,
+    };
+  }
+
+  applyNodePositions(
+    context: ToolExecutionContext,
+    positions: Readonly<Record<string, { x: number; y: number }>>,
+  ): ToolExecutionResult {
+    const graph = this.adapter.read();
+    const currentVersion = this.getStateVersion();
+    if (context.signal.aborted) {
+      return commandError("non_retryable", "Run 已取消", currentVersion);
+    }
+    if (context.fileName !== graph.fileName) {
+      return commandError(
+        "permission_denied",
+        "工具只能操作 Run 创建时的当前文件",
+        currentVersion,
+      );
+    }
+    if (context.expectedStateVersion !== currentVersion) {
+      return commandError(
+        "state_conflict",
+        `画布状态已变化，期望版本 ${context.expectedStateVersion}，当前版本 ${currentVersion}`,
+        currentVersion,
+      );
+    }
+
+    const nodeIds = new Set(graph.nodes.map((node) => node.id));
+    for (const [nodeId, position] of Object.entries(positions)) {
+      if (!nodeIds.has(nodeId)) {
+        return commandError(
+          "invalid_arguments",
+          `节点不存在: ${nodeId}`,
+          currentVersion,
+        );
+      }
+      if (!Number.isFinite(position.x) || !Number.isFinite(position.y)) {
+        return commandError(
+          "invalid_arguments",
+          `节点位置不是有限数值: ${nodeId}`,
+          currentVersion,
+        );
+      }
+    }
+
+    const nextNodes = graph.nodes.map((node) => {
+      const position = positions[node.id];
+      return position ? { ...node, position: { ...position } } : node;
+    });
+    this.adapter.commit(nextNodes, graph.edges);
+    const stateVersion = this.getStateVersion();
+    return {
+      ok: true,
+      stateVersion,
+      data: { applied: Object.keys(positions).length },
+      changes: [`AI 语义重排 ${Object.keys(positions).length} 个节点`],
       validationErrors: [],
       undoable: true,
     };

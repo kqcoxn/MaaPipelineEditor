@@ -19,13 +19,12 @@ import (
 )
 
 const (
-	nonStreamTimeout = 60 * time.Second
-	streamTimeout    = 120 * time.Second
-
 	maxRequestBodySize  int64 = 16 * 1024 * 1024
 	maxResponseBodySize int64 = 16 * 1024 * 1024
 	maxErrorBodySize    int64 = 64 * 1024
 	maxStreamLineSize         = 1024 * 1024
+	minRequestTimeout         = time.Minute
+	maxRequestTimeout         = 120 * time.Minute
 )
 
 type activeRequest struct {
@@ -38,6 +37,7 @@ type proxyRequest struct {
 	method  string
 	body    string
 	headers map[string]string
+	timeout time.Duration
 }
 
 // AIHandler 只负责 AI HTTP 代理的传输，不包含 Provider 或业务逻辑。
@@ -96,6 +96,7 @@ func parseProxyRequest(msg models.Message) (proxyRequest, error) {
 	requestURL, _ := dataMap["url"].(string)
 	method, _ := dataMap["method"].(string)
 	body, _ := dataMap["body"].(string)
+	timeoutMS, _ := dataMap["timeout_ms"].(float64)
 	request := proxyRequest{id: requestID, url: requestURL, method: method, body: body}
 	if requestID == "" {
 		return request, fmt.Errorf("request_id 不能为空")
@@ -109,6 +110,14 @@ func parseProxyRequest(msg models.Message) (proxyRequest, error) {
 	if int64(len(body)) > maxRequestBodySize {
 		return request, fmt.Errorf("请求体超过限制（最大 %d bytes）", maxRequestBodySize)
 	}
+	timeout := time.Duration(timeoutMS) * time.Millisecond
+	if timeout < minRequestTimeout || timeout > maxRequestTimeout {
+		return request, fmt.Errorf(
+			"timeout_ms 必须在 %d 到 %d 之间",
+			minRequestTimeout.Milliseconds(),
+			maxRequestTimeout.Milliseconds(),
+		)
+	}
 
 	headers := make(map[string]string)
 	if rawHeaders, ok := dataMap["headers"].(map[string]interface{}); ok {
@@ -120,6 +129,7 @@ func parseProxyRequest(msg models.Message) (proxyRequest, error) {
 	}
 
 	request.headers = headers
+	request.timeout = timeout
 	return request, nil
 }
 
@@ -211,7 +221,7 @@ func (h *AIHandler) handleProxy(conn *server.Connection, msg models.Message) {
 		return
 	}
 
-	ctx, active, err := h.beginRequest(request.id, nonStreamTimeout, conn)
+	ctx, active, err := h.beginRequest(request.id, request.timeout, conn)
 	if err != nil {
 		h.sendError(conn, request.id, err.Error())
 		return
@@ -274,7 +284,7 @@ func (h *AIHandler) handleStreamProxy(conn *server.Connection, msg models.Messag
 		return
 	}
 
-	ctx, active, err := h.beginRequest(request.id, streamTimeout, conn)
+	ctx, active, err := h.beginRequest(request.id, request.timeout, conn)
 	if err != nil {
 		h.sendStreamError(conn, request.id, err.Error())
 		return

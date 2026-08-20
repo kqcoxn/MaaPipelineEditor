@@ -1,4 +1,11 @@
-import type { ConfigCategory, ConfigState } from "@/stores/app/configStore";
+import {
+  MAX_AI_TOKEN_BUDGET,
+  MAX_AI_REQUEST_TIMEOUT_MINUTES,
+  MIN_AI_TOKEN_BUDGET,
+  MIN_AI_REQUEST_TIMEOUT_MINUTES,
+  type ConfigCategory,
+  type ConfigState,
+} from "@/stores/app/configStore";
 import { HANDLE_DIRECTION_OPTIONS } from "../../flow/nodes/constants";
 import { getProviderOptions } from "@/utils/ai/providers";
 
@@ -676,6 +683,36 @@ export const settingsDefinitions: ConfigItemDef[] = [
     order: 6,
   },
   {
+    key: "aiTokenBudget",
+    category: "ai",
+    label: "Token 预算",
+    tipTitle: "单次 AI Run Token 预算",
+    tipContent:
+      "限制一次 Harness Run 内所有模型请求累计消耗的 Token。该值不是模型上下文窗口，实际请求仍受所选模型限制。",
+    type: "inputNumber",
+    min: MIN_AI_TOKEN_BUDGET,
+    max: MAX_AI_TOKEN_BUDGET,
+    step: 10_000,
+    addonAfter: "tokens",
+    controlWidth: 120,
+    order: 7,
+  },
+  {
+    key: "aiRequestTimeoutMinutes",
+    category: "ai",
+    label: "请求超时",
+    tipTitle: "单次模型请求超时",
+    tipContent:
+      "限制每次模型请求从发送到响应结束的最长时间，不限制整个 Harness Run 的总时长。",
+    type: "inputNumber",
+    min: MIN_AI_REQUEST_TIMEOUT_MINUTES,
+    max: MAX_AI_REQUEST_TIMEOUT_MINUTES,
+    step: 1,
+    addonAfter: "分钟",
+    controlWidth: 100,
+    order: 8,
+  },
+  {
     key: "__testConnection",
     category: "ai",
     label: "连接测试",
@@ -683,7 +720,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
     tipContent: "使用当前配置发送一条最小请求，检查 API 配置和传输链路。",
     type: "custom",
     customRender: "testConnection",
-    order: 7,
+    order: 9,
   },
 
   // ==================== 管理 (management) ====================

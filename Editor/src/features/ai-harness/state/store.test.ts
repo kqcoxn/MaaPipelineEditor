@@ -19,7 +19,10 @@ function createRun(id: string, sessionId: string): HarnessRun {
       skillIds: [],
       toolNames: [],
     },
-    policySnapshot: canvasChatProfile.defaultPolicy,
+    policySnapshot: {
+      ...canvasChatProfile.defaultPolicy,
+      maxTokens: 200_000,
+    },
     modelSnapshot: {
       type: "openai",
       apiUrl: "https://example.com",
