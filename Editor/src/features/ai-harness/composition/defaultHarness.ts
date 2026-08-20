@@ -1,4 +1,5 @@
 import { canvasCommandBus } from "../capabilities/canvas/commandBus";
+import { businessArchitectureHarnessModule } from "../capabilities/business-architecture/module";
 import { canvasHarnessModule } from "../capabilities/canvas/module";
 import { CANVAS_CAPABILITY_PACK_ID } from "../capabilities/canvas/profile";
 import { canvasToolDefinitions } from "../capabilities/canvas/tools";
@@ -28,6 +29,7 @@ export function createDefaultHarnessDependencies(): HarnessRunnerDependencies {
     canvasHarnessModule,
     mfwPipelineHarnessModule,
     semanticLayoutHarnessModule,
+    businessArchitectureHarnessModule,
   ]);
   registry.registerCapabilityPack(canvasCapabilityPack);
   return {

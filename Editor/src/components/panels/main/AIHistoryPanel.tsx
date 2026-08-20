@@ -7,6 +7,7 @@ import {
   DeleteOutlined,
   DownOutlined,
   HistoryOutlined,
+  ApartmentOutlined,
   NodeIndexOutlined,
   PartitionOutlined,
   SearchOutlined,
@@ -14,6 +15,7 @@ import {
 } from "@ant-design/icons";
 
 import {
+  BUSINESS_ARCHITECTURE_PROFILE_ID,
   harnessRunner,
   SEMANTIC_LAYOUT_PROFILE_ID,
   type HarnessRun,
@@ -154,6 +156,29 @@ function AIHistoryPanel() {
       message.error(error instanceof Error ? error.message : "无法启动 AI 重排");
     }
   }, [activeSessionId, isAnyRunRunning, message, nodeCount]);
+
+  const handleBusinessArchitecture = useCallback(async () => {
+    if (isAnyRunRunning) return;
+    if (nodeCount === 0) {
+      message.error("当前画布没有可梳理的节点");
+      return;
+    }
+    try {
+      await harnessRunner.start("梳理当前 Pipeline 的业务流程架构", {
+        sessionId: activeSessionId,
+        profileId: BUSINESS_ARCHITECTURE_PROFILE_ID,
+      });
+    } catch (error) {
+      message.error(
+        error instanceof Error ? error.message : "无法生成流程架构",
+      );
+    }
+  }, [
+    activeSessionId,
+    isAnyRunRunning,
+    message,
+    nodeCount,
+  ]);
 
   const handleClear = useCallback(() => {
     if (!activeSession || activeSession.runIds.length === 0) return;
@@ -341,6 +366,15 @@ function AIHistoryPanel() {
 
           <div className={style.composerShell} data-testid="ai-composer-shell">
             <div className={style.composerActions}>
+              <Button
+                size="small"
+                icon={<ApartmentOutlined />}
+                aria-label="流程架构"
+                disabled={nodeCount === 0 || isAnyRunRunning}
+                onClick={() => void handleBusinessArchitecture()}
+              >
+                流程架构
+              </Button>
               <Button
                 size="small"
                 icon={<PartitionOutlined />}

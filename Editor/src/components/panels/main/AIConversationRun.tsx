@@ -13,10 +13,13 @@ import {
   UserOutlined,
 } from "@ant-design/icons";
 import type {
+  BusinessArchitectureDocument,
   HarnessRun,
   HarnessRunStatus,
   RunEvent,
 } from "@/features/ai-harness";
+import { useBusinessArchitectureStore } from "@/features/ai-harness";
+import { BusinessArchitectureArtifact } from "@/features/ai-harness/capabilities/business-architecture/BusinessArchitectureArtifact";
 import style from "../../../styles/panels/AIHistoryPanel.module.less";
 import { renderMarkdown } from "./AIConversationMarkdown";
 
@@ -62,6 +65,19 @@ const bubbleRoles: ComponentProps<typeof Bubble.List>["role"] = {
     placement: "start",
     variant: "borderless",
     classNames: { content: style.reasoningBubbleContent },
+  },
+  artifact: {
+    placement: "start",
+    avatar: (
+      <Avatar
+        shape="square"
+        size={28}
+        src={`${import.meta.env.BASE_URL}logo.png`}
+        alt="MPE Harness"
+      />
+    ),
+    variant: "borderless",
+    classNames: { content: style.artifactBubbleContent },
   },
 };
 
@@ -240,6 +256,8 @@ function createBubbleItems(
   events: RunEvent[],
   streamingText: string,
   streamingReasoning: string,
+  architectureDocument: BusinessArchitectureDocument | undefined,
+  openArchitectureDocument: () => void,
 ): BubbleItemType[] {
   const items: BubbleItemType[] = [];
   const toolResults = new Map(
@@ -304,6 +322,21 @@ function createBubbleItems(
   });
   flushToolSegment();
 
+  if (run.status === "succeeded" && architectureDocument) {
+    items.push({
+      key: `${run.id}-business-architecture`,
+      role: "artifact",
+      content: (
+        <BusinessArchitectureArtifact
+          document={architectureDocument}
+          onOpen={openArchitectureDocument}
+        />
+      ),
+      header: createMessageHeader("MPE Harness", run.finishedAt),
+      status: "success",
+    });
+  }
+
   if (isActive) {
     if (streamingReasoning) {
       items.push({
@@ -338,8 +371,15 @@ export const AIConversationRun = memo(
     events: RunEvent[];
     streamingText: string;
     streamingReasoning: string;
-  }) => (
-    <article className={style.run}>
+  }) => {
+    const architectureDocument = useBusinessArchitectureStore(
+      (state) => state.documents[run.id],
+    );
+    const openDocument = useBusinessArchitectureStore(
+      (state) => state.openDocument,
+    );
+    return (
+      <article className={style.run}>
       <div className={style.runMeta}>
         <Tag className={style.runStatus} color={runStatusColor(run.status)}>
           {statusLabels[run.status]}
@@ -360,12 +400,15 @@ export const AIConversationRun = memo(
           events,
           streamingText,
           streamingReasoning,
+          architectureDocument,
+          () => openDocument(run.id),
         )}
         role={bubbleRoles}
         autoScroll
         rootClassName={style.bubbleList}
       />
       {run.error && <div className={style.runError}>{run.error}</div>}
-    </article>
-  ),
+      </article>
+    );
+  },
 );

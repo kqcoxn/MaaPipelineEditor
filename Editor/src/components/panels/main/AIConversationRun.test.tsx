@@ -1,7 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { XProvider } from "@ant-design/x";
 import { canvasChatProfile } from "@/features/ai-harness";
+import { useBusinessArchitectureStore } from "@/features/ai-harness";
 import type { HarnessRun, RunEvent } from "@/features/ai-harness";
 import { AIConversationRun } from "./AIConversationRun";
 
@@ -62,6 +63,10 @@ function renderRun(
 }
 
 describe("AIConversationRun", () => {
+  beforeEach(() => {
+    useBusinessArchitectureStore.getState().clear();
+  });
+
   it("用 XMarkdown 渲染双方消息并转义原始 HTML", () => {
     const events: RunEvent[] = [
       {
@@ -149,6 +154,52 @@ describe("AIConversationRun", () => {
     expect(screen.getByText('{"scope":"all"}')).toBeInTheDocument();
     expect(screen.getByText("读取 2 个节点")).toBeInTheDocument();
     expect(screen.getByText("v7 · 可撤销")).toBeInTheDocument();
+  });
+
+  it("在成功 Run 的 AI 消息中展示流程架构产物并按需打开", () => {
+    useBusinessArchitectureStore.getState().setDocument({
+      title: "日常作业",
+      summary: "完成日常作业并处理异常。",
+      fileName: "daily.json",
+      sourceRunId: "run-1",
+      sourceStateVersion: 1,
+      sourceSignature: "signature",
+      generatedAt: 1,
+      stages: [
+        {
+          id: "main",
+          title: "执行作业",
+          description: "完成主要任务。",
+          kind: "main",
+          nodeIds: ["start"],
+        },
+      ],
+      transitions: [],
+      coverage: {
+        includedNodeCount: 1,
+        totalNodeCount: 1,
+        autoAssignedNodeIds: [],
+      },
+    });
+
+    renderRun(createRun(), [
+      {
+        id: "assistant-1",
+        runId: "run-1",
+        sessionId: "session-1",
+        type: "assistant_message",
+        timestamp: 2,
+        text: "架构图已生成。",
+      },
+    ]);
+
+    expect(
+      useBusinessArchitectureStore.getState().activeDocumentRunId,
+    ).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "打开流程架构：日常作业" }));
+    expect(useBusinessArchitectureStore.getState().activeDocumentRunId).toBe(
+      "run-1",
+    );
   });
 
   it("按事件时间线交错展示 AI 消息和工具调用", () => {

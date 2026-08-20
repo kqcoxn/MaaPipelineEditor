@@ -55,6 +55,7 @@ export const pinnedNotice: PinnedNotice = {
   content: [
     "**第一次使用？请务必完整预览** [快速上手](https://mpe.codax.site/docs/guide/start/quick-start.html) **以确保您了解如何使用。**",
     "**正式版 LocalBridge🌉 已上线**！目前已全面支持**本地文档管理**、**字段快捷填充**（OCR、图片裁剪等）与**流程化调试**功能，**仅需一行指令即可下载安装**，我们十分推荐您尝试，详情可查阅 [本地服务文档](https://mpe.codax.site/docs/guide/server/deploy.html)",
+    "MPE 已深度集成至 **VSCode 插件**，点击 Pipeline JSON 右上角工具栏即可快捷打开！",
   ],
 };
 
@@ -81,12 +82,17 @@ export const longTermPreview: ForecastSection = {
 };
 
 export const nextPreview: ForecastSection = {
-  title: "Next Version 至 v1.8.0",
+  title: "Next Version 至 v1.9.0",
   notice: "预告内容会随开发进度与实际需求调整，不代表最终承诺。",
   items: [
     {
+      theme: "AI",
+      title: "MPE Harness 功能开发",
+      description: "使用 AI 操作 MPE！",
+    },
+    {
       theme: "生态",
-      title: "VSCode 插件（MSE）接入",
+      title: "VSCode 插件（MSE）优化",
       description: "以 Iframe 形式嵌入 MSE，提供文件至节点级联动相关功能",
     },
   ],
@@ -95,7 +101,7 @@ export const nextPreview: ForecastSection = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "1.8.0",
-    date: "2026-8-10",
+    date: "2026-8-20",
     type: "major",
     updates: {
       features: ["🤖 MPE Harness (Infra BETA)"],
