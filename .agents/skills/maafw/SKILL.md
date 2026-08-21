@@ -8,9 +8,25 @@ description: MaaFramework 开发与集成指南。当任务涉及 MaaFramework �
 ## 核心原则
 
 - 以 MaaFramework 官方文档、Schema 和源码为语义首要依据。
+- 在 MaaPipelineEditor 仓库中工作时，官方源码默认指 `dev/docs/社区参考项目索引.md` 登记的本地参考仓库；本地克隆与 GitHub 上游属于同一源码来源，不得因需要“官方源码”而绕过本地仓库访问远端。
 - 准确区分 Project、Pipeline、Bundle、Resource、Task、Entry、Node、Controller、Tasker、Context、Agent 等概念。
 - 不根据旧 MPE 实现反推 MaaFramework 行为；新增或修改 MFW 相关能力前核对当前参考版本的文档与 API。
 - 设计 JSON/JSONC 修改流程时考虑注释、格式、字段顺序和精确位置，禁止默认用普通反序列化再整体序列化破坏源文件。
+
+## 本地参考源码
+
+需要参考 MaaFramework 或社区项目实现时：
+
+1. 先完整读取仓库根目录的 `dev/docs/社区参考项目索引.md`，按其中的“按任务选择参考项目”确定项目，并从索引解析本地路径；不要凭记忆猜测目录。
+2. 优先使用索引中的本地仓库进行 `rg`、文件读取、`git log`、`git blame` 和版本对比。开始引用前记录其当前 commit；需要判断新旧时再检查本地分支和远端跟踪信息。
+3. 本地仓库缺失或明确需要更新时，不要在系统临时目录或其他位置另行 `git clone`。用户要求同步或更新时使用 `sync-reference-projects` skill 的统一流程；只读任务中若版本新旧会实质性影响结论，则说明本地状态并取得同步授权。
+4. 仅当索引未收录所需项目，或本地仓库确实无法提供任务所需内容时，才访问 GitHub、Raw URL 或远端 API；访问前说明原因。远端查询不得替代对现有本地参考仓库的检查。
+
+常用本地入口（均以 MaaPipelineEditor 仓库根目录为基准）：
+
+- MaaFramework：`../maa-refs/MaaFramework`
+- maa-support-extension（MSE）：`../maa-refs/maa-support-extension`
+- 其余项目：以 `dev/docs/社区参考项目索引.md` 为准。
 
 ## 参考文档索引
 
