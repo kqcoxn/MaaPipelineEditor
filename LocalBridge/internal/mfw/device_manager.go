@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	maa "github.com/MaaXYZ/maa-framework-go/v4"
+	"github.com/MaaXYZ/maa-framework-go/v4/controller/adb"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 )
 
@@ -34,30 +35,76 @@ func (dm *DeviceManager) RefreshAdbDevices() ([]AdbDeviceInfo, error) {
 		return nil, fmt.Errorf("查找 ADB 设备失败: %w", err)
 	}
 
-	// ADB 可用的截图和输入方法（完整列表供用户选择）
-	// 截图方法：编码写入后拉取、直接编码、压缩原始流、网络直连、Minicap直连/流式、模拟器扩展等
-	screencapMethods := []string{"EncodeToFileAndPull", "Encode", "RawWithGzip", "RawByNetcat", "MinicapDirect", "MinicapStream", "EmulatorExtras"}
-	// 输入方法：ADB Shell、Minitouch+ADB键盘、Maatouch、模拟器扩展
-	inputMethods := []string{"AdbShell", "MinitouchAndAdbKey", "Maatouch", "EmulatorExtras"}
-
 	dm.mu.Lock()
 	defer dm.mu.Unlock()
 
 	dm.adbDevices = make([]AdbDeviceInfo, 0, len(devices))
 	for _, dev := range devices {
 		info := AdbDeviceInfo{
-			AdbPath:          dev.AdbPath,
-			Address:          dev.Address,
-			Name:             dev.Name,
-			ScreencapMethods: screencapMethods,
-			InputMethods:     inputMethods,
-			Config:           dev.Config,
+			AdbPath:                   dev.AdbPath,
+			Address:                   dev.Address,
+			Name:                      dev.Name,
+			ScreencapMethods:          adbScreencapMethodNames(dev.ScreencapMethod),
+			InputMethods:              adbInputMethodNames(dev.InputMethod),
+			AvailableScreencapMethods: allAdbScreencapMethodNames(),
+			AvailableInputMethods:     allAdbInputMethodNames(),
+			Config:                    dev.Config,
 		}
 		dm.adbDevices = append(dm.adbDevices, info)
 	}
 
 	logger.Info("MFW", "发现 %d 个 ADB 设备", len(dm.adbDevices))
 	return dm.adbDevices, nil
+}
+
+func allAdbScreencapMethodNames() []string {
+	return []string{"EncodeToFileAndPull", "Encode", "RawWithGzip", "RawByNetcat", "MinicapDirect", "MinicapStream", "EmulatorExtras"}
+}
+
+func allAdbInputMethodNames() []string {
+	return []string{"AdbShell", "MinitouchAndAdbKey", "Maatouch", "EmulatorExtras"}
+}
+
+func adbScreencapMethodNames(methods adb.ScreencapMethod) []string {
+	ordered := []struct {
+		value adb.ScreencapMethod
+		name  string
+	}{
+		{adb.ScreencapEncodeToFileAndPull, "EncodeToFileAndPull"},
+		{adb.ScreencapEncode, "Encode"},
+		{adb.ScreencapRawWithGzip, "RawWithGzip"},
+		{adb.ScreencapRawByNetcat, "RawByNetcat"},
+		{adb.ScreencapMinicapDirect, "MinicapDirect"},
+		{adb.ScreencapMinicapStream, "MinicapStream"},
+		{adb.ScreencapEmulatorExtras, "EmulatorExtras"},
+	}
+	return adbMethodNames(uint64(methods), ordered)
+}
+
+func adbInputMethodNames(methods adb.InputMethod) []string {
+	ordered := []struct {
+		value adb.InputMethod
+		name  string
+	}{
+		{adb.InputAdbShell, "AdbShell"},
+		{adb.InputMinitouchAndAdbKey, "MinitouchAndAdbKey"},
+		{adb.InputMaatouch, "Maatouch"},
+		{adb.InputEmulatorExtras, "EmulatorExtras"},
+	}
+	return adbMethodNames(uint64(methods), ordered)
+}
+
+func adbMethodNames[T ~uint64](methods uint64, ordered []struct {
+	value T
+	name  string
+}) []string {
+	names := make([]string, 0, len(ordered))
+	for _, item := range ordered {
+		if methods&uint64(item.value) != 0 {
+			names = append(names, item.name)
+		}
+	}
+	return names
 }
 
 // 刷新 Win32 窗体列表

@@ -30,6 +30,8 @@ export interface AdbDevice {
   name: string;
   screencap_methods: string[];
   input_methods: string[];
+  available_screencap_methods?: string[];
+  available_input_methods?: string[];
   config: string;
 }
 

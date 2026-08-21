@@ -11,6 +11,7 @@ BIN_PATH="$INSTALL_DIR/$BIN_NAME"
 RUNTIME_DIR="$INSTALL_DIR/runtime"
 MAAFW_ROOT_DIR="$RUNTIME_DIR/maafw"
 MAAFW_BIN_DIR="$MAAFW_ROOT_DIR/bin"
+MAAFW_AGENT_DIR="$MAAFW_ROOT_DIR/share/MaaAgentBinary"
 MAAFW_VERSION_FILE="$MAAFW_ROOT_DIR/.version"
 OCR_DIR="$RUNTIME_DIR/resource/model/ocr"
 OCR_URL="https://download.maafw.xyz/MaaCommonAssets/OCR/ppocr_v6/ppocr_v6-small.zip"
@@ -135,7 +136,7 @@ TMP_DIR=$(mktemp -d)
 
 install_maafw() {
     local maafw_release maafw_version installed_version maafw_asset_url
-    local zip_path extract_dir lib_file bin_dir staged_bin_dir backup_bin_dir had_existing_bin
+    local zip_path extract_dir lib_file bin_dir agent_source_dir staged_bin_dir staged_agent_dir backup_bin_dir backup_agent_dir had_existing_bin had_existing_agent
     echo "📡 正在获取 MaaFramework 最新版本..."
     maafw_release=$(release_api "https://api.github.com/repos/MaaXYZ/MaaFramework/releases/latest")
     maafw_version=$(extract_json_value "$maafw_release" "tag_name")
@@ -149,13 +150,16 @@ install_maafw() {
         installed_version=$(tr -d '\r\n' < "$MAAFW_VERSION_FILE")
     fi
 
-    if is_non_empty_dir "$MAAFW_BIN_DIR" && [ "$installed_version" = "$maafw_version" ]; then
+    if is_non_empty_dir "$MAAFW_BIN_DIR" && is_non_empty_dir "$MAAFW_AGENT_DIR" && [ "$installed_version" = "$maafw_version" ]; then
         echo "✅ MaaFramework runtime 已是最新版本: $maafw_version"
         return
     fi
 
     if is_non_empty_dir "$MAAFW_BIN_DIR"; then
         echo "🔄 正在更新 MaaFramework runtime: ${installed_version:-unknown} -> $maafw_version"
+    fi
+    if is_non_empty_dir "$MAAFW_BIN_DIR" && ! is_non_empty_dir "$MAAFW_AGENT_DIR"; then
+        echo "🔄 MaaAgentBinary 缺失，正在修复 MaaFramework runtime"
     fi
 
     maafw_asset_url=$(find_asset_url "$maafw_release" "MAA-${MAAFW_OS}-${MAAFW_ARCH}-.*\\.zip")
@@ -168,7 +172,9 @@ install_maafw() {
     zip_path="$TMP_DIR/maafw.zip"
     extract_dir="$TMP_DIR/maafw"
     staged_bin_dir="$TMP_DIR/maafw-staged-bin"
+    staged_agent_dir="$TMP_DIR/maafw-staged-agent"
     backup_bin_dir="$TMP_DIR/maafw-previous-bin"
+    backup_agent_dir="$TMP_DIR/maafw-previous-agent"
     mkdir -p "$extract_dir"
 
     echo "⬇️  正在下载 MaaFramework runtime..."
@@ -189,6 +195,13 @@ install_maafw() {
 
     mkdir -p "$staged_bin_dir"
     cp -R "$bin_dir"/. "$staged_bin_dir"/
+    agent_source_dir="$(dirname "$bin_dir")/share/MaaAgentBinary"
+    if [ ! -d "$agent_source_dir" ]; then
+        echo "❌ 未能在 MaaFramework 压缩包中找到 MaaAgentBinary"
+        exit 1
+    fi
+    mkdir -p "$staged_agent_dir"
+    cp -R "$agent_source_dir"/. "$staged_agent_dir"/
     mkdir -p "$MAAFW_ROOT_DIR"
 
     had_existing_bin=0
@@ -196,19 +209,41 @@ install_maafw() {
         mv "$MAAFW_BIN_DIR" "$backup_bin_dir"
         had_existing_bin=1
     fi
+    had_existing_agent=0
+    if [ -e "$MAAFW_AGENT_DIR" ]; then
+        mv "$MAAFW_AGENT_DIR" "$backup_agent_dir"
+        had_existing_agent=1
+    fi
 
     if ! mv "$staged_bin_dir" "$MAAFW_BIN_DIR"; then
         if [ "$had_existing_bin" -eq 1 ] && [ -e "$backup_bin_dir" ]; then
             mv "$backup_bin_dir" "$MAAFW_BIN_DIR"
         fi
+        if [ "$had_existing_agent" -eq 1 ] && [ -e "$backup_agent_dir" ]; then
+            mkdir -p "$(dirname "$MAAFW_AGENT_DIR")"
+            mv "$backup_agent_dir" "$MAAFW_AGENT_DIR"
+        fi
         echo "❌ 替换 MaaFramework runtime 失败"
+        exit 1
+    fi
+    mkdir -p "$(dirname "$MAAFW_AGENT_DIR")"
+    if ! mv "$staged_agent_dir" "$MAAFW_AGENT_DIR"; then
+        rm -rf "$MAAFW_BIN_DIR"
+        if [ "$had_existing_bin" -eq 1 ] && [ -e "$backup_bin_dir" ]; then mv "$backup_bin_dir" "$MAAFW_BIN_DIR"; fi
+        if [ "$had_existing_agent" -eq 1 ] && [ -e "$backup_agent_dir" ]; then mv "$backup_agent_dir" "$MAAFW_AGENT_DIR"; fi
+        echo "❌ 安装 MaaAgentBinary 失败"
         exit 1
     fi
 
     if ! printf '%s\n' "$maafw_version" > "$MAAFW_VERSION_FILE"; then
         rm -rf "$MAAFW_BIN_DIR"
+        rm -rf "$MAAFW_AGENT_DIR"
         if [ "$had_existing_bin" -eq 1 ] && [ -e "$backup_bin_dir" ]; then
             mv "$backup_bin_dir" "$MAAFW_BIN_DIR"
+        fi
+        if [ "$had_existing_agent" -eq 1 ] && [ -e "$backup_agent_dir" ]; then
+            mkdir -p "$(dirname "$MAAFW_AGENT_DIR")"
+            mv "$backup_agent_dir" "$MAAFW_AGENT_DIR"
         fi
         echo "❌ 写入 MaaFramework 版本标记失败"
         exit 1

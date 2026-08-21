@@ -9,6 +9,7 @@ $BIN_PATH = "$INSTALL_DIR\mpelb.exe"
 $RUNTIME_DIR = "$INSTALL_DIR\runtime"
 $MAAFW_ROOT_DIR = "$RUNTIME_DIR\maafw"
 $MAAFW_BIN_DIR = "$MAAFW_ROOT_DIR\bin"
+$MAAFW_AGENT_DIR = "$MAAFW_ROOT_DIR\share\MaaAgentBinary"
 $MAAFW_VERSION_PATH = "$MAAFW_ROOT_DIR\.version"
 $OCR_DIR = "$RUNTIME_DIR\resource\model\ocr"
 $OCR_URL = "https://download.maafw.xyz/MaaCommonAssets/OCR/ppocr_v6/ppocr_v6-small.zip"
@@ -67,7 +68,8 @@ function Install-MaaFramework() {
 
     $installedVersion = Get-InstalledMaaFrameworkVersion
     $hasExistingRuntime = Test-NonEmptyDirectory $MAAFW_BIN_DIR
-    if ($hasExistingRuntime -and $installedVersion -eq $latestVersion) {
+    $hasExistingAgent = Test-NonEmptyDirectory $MAAFW_AGENT_DIR
+    if ($hasExistingRuntime -and $hasExistingAgent -and $installedVersion -eq $latestVersion) {
         Write-Host "MaaFramework runtime is up to date: $latestVersion" -ForegroundColor Green
         return
     }
@@ -75,6 +77,9 @@ function Install-MaaFramework() {
     if ($hasExistingRuntime) {
         $versionLabel = if ($installedVersion) { $installedVersion } else { "unknown" }
         Write-Host "Updating MaaFramework runtime: $versionLabel -> $latestVersion" -ForegroundColor Yellow
+    }
+    if ($hasExistingRuntime -and !$hasExistingAgent) {
+        Write-Host "MaaAgentBinary is missing; repairing MaaFramework runtime" -ForegroundColor Yellow
     }
 
     $asset = Find-MaaFrameworkAsset $maafwRelease
@@ -87,7 +92,9 @@ function Install-MaaFramework() {
     $zipPath = Join-Path $tempRoot $asset.name
     $extractDir = Join-Path $tempRoot "extract"
     $stagedBinDir = Join-Path $tempRoot "staged-bin"
+    $stagedAgentDir = Join-Path $tempRoot "staged-agent"
     $backupBinDir = Join-Path $tempRoot "previous-bin"
+    $backupAgentDir = Join-Path $tempRoot "previous-agent"
 
     try {
         Ensure-Directory $tempRoot
@@ -108,22 +115,41 @@ function Install-MaaFramework() {
         }
 
         Copy-DirectoryContents $binDir.FullName $stagedBinDir
+        $agentSourceDir = Join-Path $binDir.Parent.FullName "share\MaaAgentBinary"
+        if (!(Test-Path -LiteralPath $agentSourceDir -PathType Container)) {
+            Write-Host "Failed to locate MaaAgentBinary in MaaFramework archive" -ForegroundColor Red
+            exit 1
+        }
+        Copy-DirectoryContents $agentSourceDir $stagedAgentDir
         Ensure-Directory $MAAFW_ROOT_DIR
 
         $hadExistingBin = Test-Path -LiteralPath $MAAFW_BIN_DIR
         if ($hadExistingBin) {
             Move-Item -LiteralPath $MAAFW_BIN_DIR -Destination $backupBinDir
         }
+        $hadExistingAgent = Test-Path -LiteralPath $MAAFW_AGENT_DIR
+        if ($hadExistingAgent) {
+            Move-Item -LiteralPath $MAAFW_AGENT_DIR -Destination $backupAgentDir
+        }
 
         try {
             Move-Item -LiteralPath $stagedBinDir -Destination $MAAFW_BIN_DIR
+            Ensure-Directory (Split-Path -Parent $MAAFW_AGENT_DIR)
+            Move-Item -LiteralPath $stagedAgentDir -Destination $MAAFW_AGENT_DIR
             Set-Content -LiteralPath $MAAFW_VERSION_PATH -Value $latestVersion -Encoding UTF8 -NoNewline
         } catch {
             if (Test-Path -LiteralPath $MAAFW_BIN_DIR) {
                 Remove-Item -LiteralPath $MAAFW_BIN_DIR -Recurse -Force -ErrorAction SilentlyContinue
             }
+            if (Test-Path -LiteralPath $MAAFW_AGENT_DIR) {
+                Remove-Item -LiteralPath $MAAFW_AGENT_DIR -Recurse -Force -ErrorAction SilentlyContinue
+            }
             if ($hadExistingBin -and (Test-Path -LiteralPath $backupBinDir)) {
                 Move-Item -LiteralPath $backupBinDir -Destination $MAAFW_BIN_DIR
+            }
+            if ($hadExistingAgent -and (Test-Path -LiteralPath $backupAgentDir)) {
+                Ensure-Directory (Split-Path -Parent $MAAFW_AGENT_DIR)
+                Move-Item -LiteralPath $backupAgentDir -Destination $MAAFW_AGENT_DIR
             }
             throw
         }

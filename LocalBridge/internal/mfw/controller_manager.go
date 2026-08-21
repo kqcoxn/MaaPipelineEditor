@@ -11,6 +11,7 @@ import (
 	"github.com/MaaXYZ/maa-framework-go/v4/controller/adb"
 	"github.com/MaaXYZ/maa-framework-go/v4/controller/win32"
 	"github.com/google/uuid"
+	mpeconfig "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/config"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 )
 
@@ -48,6 +49,23 @@ func (cm *ControllerManager) CreateAdbController(adbPath, address string, screen
 		inMethod |= parsed
 	}
 
+	if strings.TrimSpace(agentPath) == "" {
+		if cfg := mpeconfig.GetGlobal(); cfg != nil {
+			agentPath = cfg.ResolvedMaaFWAgentDir()
+		}
+	}
+	warning := ""
+	if strings.TrimSpace(agentPath) == "" {
+		warning = "MaaAgentBinary 目录不存在，MaaTouch/Minitouch 不可用"
+		if requiresAdbAgent(inputMethod) && !hasAgentlessAdbFallback(inputMethod) {
+			return "", NewMFWError(ErrCodeControllerCreateFail, warning, nil)
+		}
+		logger.Warn("MFW", "%s；候选输入方式: %v", warning, inputMethod)
+	} else {
+		logger.Info("MFW", "使用 MaaAgentBinary: %s", agentPath)
+	}
+	logger.Info("MFW", "ADB 输入方式候选: %v", inputMethod)
+
 	// 创建 ADB 控制器
 	ctrl, err := maa.NewAdbController(adbPath, address, scMethod, inMethod, config, agentPath)
 	if err != nil {
@@ -61,6 +79,9 @@ func (cm *ControllerManager) CreateAdbController(adbPath, address string, screen
 		Connected:    false,
 		CreatedAt:    time.Now(),
 		LastActiveAt: time.Now(),
+		InputMethods: append([]string(nil), inputMethod...),
+		AgentPath:    agentPath,
+		Warning:      warning,
 	}
 
 	cm.mu.Lock()
@@ -69,6 +90,24 @@ func (cm *ControllerManager) CreateAdbController(adbPath, address string, screen
 
 	logger.Debug("MFW", "控制器已创建: %s", controllerID)
 	return controllerID, nil
+}
+
+func requiresAdbAgent(methods []string) bool {
+	for _, method := range methods {
+		if strings.EqualFold(method, "Maatouch") || strings.EqualFold(method, "MinitouchAndAdbKey") {
+			return true
+		}
+	}
+	return false
+}
+
+func hasAgentlessAdbFallback(methods []string) bool {
+	for _, method := range methods {
+		if strings.EqualFold(method, "AdbShell") || strings.EqualFold(method, "EmulatorExtras") {
+			return true
+		}
+	}
+	return false
 }
 
 const (
@@ -319,7 +358,11 @@ func (cm *ControllerManager) ConnectController(controllerID string) error {
 	info.Connected = true
 	info.LastActiveAt = time.Now()
 
-	logger.Info("MFW", "控制器已连接: %s", controllerID)
+	if controllerInfo, err := ctrl.GetInfo(); err == nil {
+		logger.Info("MFW", "控制器已连接: %s, info=%s", controllerID, controllerInfo)
+	} else {
+		logger.Info("MFW", "控制器已连接: %s, input_methods=%v", controllerID, info.InputMethods)
+	}
 	return nil
 }
 

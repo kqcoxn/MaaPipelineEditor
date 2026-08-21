@@ -216,7 +216,7 @@ export class MFWProtocol extends BaseProtocol {
    */
   private handleControllerCreated(data: any): void {
     try {
-      const { success, controller_id, type, error } = data;
+      const { success, controller_id, type, error, warning, input_methods } = data;
 
       const mfwStore = useMFWStore.getState();
 
@@ -228,7 +228,14 @@ export class MFWProtocol extends BaseProtocol {
             : null;
 
         mfwStore.setControllerInfo(type, controller_id, deviceInfo || null);
-        message.success(`控制器连接成功`);
+        if (warning) {
+          message.warning(`控制器已连接：${warning}`);
+        } else {
+          message.success(`控制器连接成功`);
+        }
+        if (type === "adb") {
+          console.info("[MFWProtocol] ADB input method candidates:", input_methods);
+        }
 
         // 清除记录的设备信息
         this.lastConnectionDevice = null;
@@ -460,6 +467,8 @@ export class MFWProtocol extends BaseProtocol {
         name: params.name || params.address,
         screencap_methods: params.screencap_methods,
         input_methods: params.input_methods,
+        available_screencap_methods: params.screencap_methods,
+        available_input_methods: params.input_methods,
         config: params.config || "",
       },
     };

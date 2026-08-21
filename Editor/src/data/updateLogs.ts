@@ -100,6 +100,14 @@ export const nextPreview: ForecastSection = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "1.8.1",
+    date: "2026-8",
+    type: "fix",
+    updates: {
+      perfs: ["更新 ADB 设备方法，增加可用方法支持并优化控制器连接反馈"],
+    },
+  },
+  {
     version: "1.8.0",
     date: "2026-8-20",
     type: "major",

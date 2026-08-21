@@ -246,7 +246,7 @@ export const ConnectionPanel = memo(
         setCustomScreencap(filteredScreencap);
         setCustomInput(filteredInput);
       } else if (selectedAdbDevice) {
-        // ADB 设备默认选择所有方法
+        // ADB 设备默认采用 MaaToolkit 检测出的推荐方法
         const filteredScreencap = selectedDeviceMethods.screencap.filter(
           (m) => m !== "RawByNetcat",
         );

@@ -25,10 +25,10 @@ export function normalizeAIRequestTimeoutMs(value: number): number {
 /**固有配置 */
 export const globalConfig = {
   dev: true,
-  version: `1.8.0`,
-  betaIteration: 3,
+  version: `1.8.1`,
+  betaIteration: 0,
   mfwVersion: "5.12.3",
-  protocolVersion: "1.3.0",
+  protocolVersion: "1.3.1",
 };
 
 if (globalConfig.dev) {

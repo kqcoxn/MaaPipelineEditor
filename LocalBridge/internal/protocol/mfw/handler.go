@@ -219,6 +219,11 @@ func (h *MFWHandler) handleCreateAdbController(conn *server.Connection, msg mode
 		h.sendMFWError(conn, mfw.ErrCodeControllerConnectFail, "控制器连接失败", err.Error())
 		return
 	}
+	controllerInfo, _ := h.service.ControllerManager().GetController(controllerID)
+	warning := ""
+	if controllerInfo != nil {
+		warning = controllerInfo.Warning
+	}
 
 	// 发送控制器创建响应
 	response := models.Message{
@@ -227,6 +232,8 @@ func (h *MFWHandler) handleCreateAdbController(conn *server.Connection, msg mode
 			"success":       true,
 			"controller_id": controllerID,
 			"type":          "adb",
+			"input_methods": inputMethodsStr,
+			"warning":       warning,
 		},
 	}
 	conn.Send(response)

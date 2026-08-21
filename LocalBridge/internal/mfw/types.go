@@ -7,12 +7,14 @@ import (
 
 // ADB设备信息
 type AdbDeviceInfo struct {
-	AdbPath          string   `json:"adb_path"`
-	Address          string   `json:"address"`
-	Name             string   `json:"name"`
-	ScreencapMethods []string `json:"screencap_methods"`
-	InputMethods     []string `json:"input_methods"`
-	Config           string   `json:"config"`
+	AdbPath                   string   `json:"adb_path"`
+	Address                   string   `json:"address"`
+	Name                      string   `json:"name"`
+	ScreencapMethods          []string `json:"screencap_methods"`
+	InputMethods              []string `json:"input_methods"`
+	AvailableScreencapMethods []string `json:"available_screencap_methods"`
+	AvailableInputMethods     []string `json:"available_input_methods"`
+	Config                    string   `json:"config"`
 }
 
 // Win32窗体信息
@@ -52,6 +54,9 @@ type ControllerInfo struct {
 	UUID         string    `json:"uuid"`
 	CreatedAt    time.Time `json:"created_at"`
 	LastActiveAt time.Time `json:"last_active_at"`
+	InputMethods []string  `json:"input_methods,omitempty"`
+	AgentPath    string    `json:"agent_path,omitempty"`
+	Warning      string    `json:"warning,omitempty"`
 	screenshotMu sync.Mutex
 }
 

@@ -180,6 +180,19 @@ func (c *Config) ResolvedMaaFWResourceDir() string {
 	return strings.TrimSpace(c.MaaFW.ResourceDir)
 }
 
+// ResolvedMaaFWAgentDir 返回 MaaFramework 发行包中的 MaaAgentBinary 目录。
+func (c *Config) ResolvedMaaFWAgentDir() string {
+	libDir := c.ResolvedMaaFWLibDir()
+	if libDir == "" {
+		return ""
+	}
+	candidate := filepath.Join(filepath.Dir(libDir), "share", "MaaAgentBinary")
+	if pathExists(candidate) {
+		return candidate
+	}
+	return ""
+}
+
 func pathExists(path string) bool {
 	trimmed := strings.TrimSpace(path)
 	if trimmed == "" {

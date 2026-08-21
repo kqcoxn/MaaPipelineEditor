@@ -39,8 +39,12 @@ export const MethodConfig = memo(
       const inputSet = new Set<string>();
 
       adbDevices.forEach((d) => {
-        d.screencap_methods.forEach((m) => screencapSet.add(m));
-        d.input_methods.forEach((m) => inputSet.add(m));
+        (d.available_screencap_methods ?? d.screencap_methods).forEach((m) =>
+          screencapSet.add(m),
+        );
+        (d.available_input_methods ?? d.input_methods).forEach((m) =>
+          inputSet.add(m),
+        );
       });
       win32Windows.forEach((w) => {
         w.screencap_methods.forEach((m) => screencapSet.add(m));
@@ -84,8 +88,12 @@ export const MethodConfig = memo(
         }
         if (selectedAdbDevice) {
           return {
-            screencap: selectedAdbDevice.screencap_methods,
-            input: selectedAdbDevice.input_methods,
+            screencap:
+              selectedAdbDevice.available_screencap_methods ??
+              selectedAdbDevice.screencap_methods,
+            input:
+              selectedAdbDevice.available_input_methods ??
+              selectedAdbDevice.input_methods,
           };
         }
       } else if (activeTab === "win32" && selectedWin32Window) {
