@@ -3,24 +3,31 @@ import { usePanelOccupancyStore } from "./panelOccupancyStore";
 
 beforeEach(() => {
   usePanelOccupancyStore.setState({
-    activePanels: { right: null, left: null, bottom: null },
+    activePanels: {
+      "right-sidebar": null,
+      "right-embedded": null,
+      left: null,
+      bottom: null,
+    },
   });
 });
 
 describe("panelOccupancyStore", () => {
-  it("激活任一侧栏时关闭其他区域的活动侧栏", () => {
+  it("激活面板时只关闭同一占位区域的活动面板", () => {
     const store = usePanelOccupancyStore.getState();
 
-    store.activate("json");
+    store.activate("connection");
     expect(usePanelOccupancyStore.getState().activePanels).toEqual({
-      right: "json",
+      "right-sidebar": "connection",
+      "right-embedded": null,
       left: null,
       bottom: null,
     });
 
     store.activate("localFile");
     expect(usePanelOccupancyStore.getState().activePanels).toEqual({
-      right: null,
+      "right-sidebar": "connection",
+      "right-embedded": null,
       left: "localFile",
       bottom: null,
     });
@@ -30,9 +37,25 @@ describe("panelOccupancyStore", () => {
     const store = usePanelOccupancyStore.getState();
 
     store.activate("aiHistory");
-    store.activate("debug");
+    store.activate("connection");
     store.deactivate("aiHistory");
 
-    expect(usePanelOccupancyStore.getState().activePanels.right).toBe("debug");
+    expect(usePanelOccupancyStore.getState().activePanels["right-sidebar"]).toBe(
+      "connection",
+    );
+  });
+
+  it("右侧边栏与右侧内嵌面板可以同时占位", () => {
+    const store = usePanelOccupancyStore.getState();
+
+    store.activate("debug");
+    store.activate("field");
+
+    expect(usePanelOccupancyStore.getState().activePanels).toEqual({
+      "right-sidebar": "debug",
+      "right-embedded": "field",
+      left: null,
+      bottom: null,
+    });
   });
 });

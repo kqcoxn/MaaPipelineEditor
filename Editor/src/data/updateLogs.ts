@@ -101,13 +101,14 @@ export const nextPreview: ForecastSection = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "1.8.1",
-    date: "2026-8",
+    date: "2026-8-23",
     type: "fix",
     updates: {
       perfs: [
         "更新 ADB 设备方法，增加可用方法支持并优化控制器连接反馈",
         "修复点击邻接面板后页面崩溃的问题",
       ],
+      fixes: ["修复调试模块节点线面板切换节点会导致调试面板收起的问题"],
     },
   },
   {

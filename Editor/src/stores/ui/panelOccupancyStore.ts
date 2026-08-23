@@ -3,14 +3,14 @@ import { create } from "zustand";
 /**
  * 面板占位互斥系统
  *
- * 管理侧边面板的全局互斥关系：同一时刻只有一个主动面板可以激活。
+ * 管理各占位区域内的面板互斥关系：同一区域同时只有一个主动面板可以激活。
  * 面板通过声明式注册参与系统，互斥反应有多种形态（close/hide/offset）。
  */
 
 // ========== 类型定义 ==========
 
 /**面板所属区域 */
-export type PanelArea = "right" | "left" | "bottom";
+export type PanelArea = "right-sidebar" | "right-embedded" | "left" | "bottom";
 
 /**面板被排挤时的反应形态 */
 export type PanelReaction = "close" | "hide" | "offset";
@@ -46,36 +46,46 @@ export function getPanelDescriptor(id: string): PanelDescriptor | undefined {
 
 // ========== 初始化注册所有面板 ==========
 
-// 右侧区域 - 主动面板
-registerPanel({ id: "json", area: "right", reaction: "close", passive: false });
+// 右侧内嵌区域 - 主动面板
 registerPanel({
-  id: "field",
-  area: "right",
+  id: "json",
+  area: "right-embedded",
   reaction: "close",
   passive: false,
 });
-registerPanel({ id: "edge", area: "right", reaction: "close", passive: false });
+registerPanel({
+  id: "field",
+  area: "right-embedded",
+  reaction: "close",
+  passive: false,
+});
+registerPanel({
+  id: "edge",
+  area: "right-embedded",
+  reaction: "close",
+  passive: false,
+});
 registerPanel({
   id: "nodeList",
-  area: "right",
+  area: "right-embedded",
   reaction: "close",
   passive: false,
 });
 registerPanel({
   id: "aiHistory",
-  area: "right",
+  area: "right-sidebar",
   reaction: "close",
   passive: false,
 });
 registerPanel({
   id: "connection",
-  area: "right",
+  area: "right-sidebar",
   reaction: "close",
   passive: false,
 });
 registerPanel({
   id: "debug",
-  area: "right",
+  area: "right-sidebar",
   reaction: "close",
   passive: false,
 });
@@ -92,16 +102,16 @@ registerPanel({
   passive: false,
 });
 
-// 右侧区域 - 被动面板
+// 右侧内嵌区域 - 被动面板
 registerPanel({
   id: "liveScreen",
-  area: "right",
+  area: "right-embedded",
   reaction: "hide",
   passive: true,
 });
 registerPanel({
   id: "recognition",
-  area: "right",
+  area: "right-embedded",
   reaction: "offset",
   passive: true,
 });
@@ -120,7 +130,8 @@ interface PanelOccupancyState {
 
 export const usePanelOccupancyStore = create<PanelOccupancyState>((set) => ({
   activePanels: {
-    right: null,
+    "right-sidebar": null,
+    "right-embedded": null,
     left: null,
     bottom: null,
   },
@@ -130,11 +141,9 @@ export const usePanelOccupancyStore = create<PanelOccupancyState>((set) => ({
     if (!descriptor) return;
     if (descriptor.passive) return; // 被动面板不能抢占区域
 
-    set(() => ({
+    set((state) => ({
       activePanels: {
-        right: null,
-        left: null,
-        bottom: null,
+        ...state.activePanels,
         [descriptor.area]: panelId,
       },
     }));
