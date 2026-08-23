@@ -296,7 +296,7 @@ function ControllerSection({
         type="info"
         showIcon
         title="控制器能力"
-        description="启动请求会自动使用已连接控制器（Controller）"
+        description="启动请求会自动使用已连接控制器"
       />
     </Space>
   );

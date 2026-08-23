@@ -92,7 +92,11 @@ export function useDebugRunStatusTracker(): void {
           type="link"
           size="small"
           onClick={() => {
-            useDebugSessionStore.getState().openModal();
+            useDebugSessionStore
+              .getState()
+              .openModal(
+                latest.status === "completed" ? "node-execution" : undefined,
+              );
             notification.destroy(notifyKey);
           }}
         >

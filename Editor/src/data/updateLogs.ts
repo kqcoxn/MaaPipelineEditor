@@ -102,12 +102,13 @@ export const updateLogs: UpdateLogItem[] = [
   {
     version: "1.8.1",
     date: "2026-8-23",
-    type: "fix",
+    type: "perf",
     updates: {
       perfs: [
         "更新 ADB 设备方法，增加可用方法支持并优化控制器连接反馈",
         "优化页面动态变化时兜底，减少渲染异常",
         "优化调试面板缓存加载机制",
+        "优化资源体检面板交互与排错体验",
       ],
       fixes: [
         "修复点击邻接面板后页面崩溃的问题",

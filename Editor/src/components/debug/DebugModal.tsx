@@ -65,10 +65,10 @@ const panels: PanelItem[] = [
   },
   {
     id: "resource-health",
-    label: "资源体检",
+    label: "调试检查",
     icon: <MedicineBoxOutlined />,
     description:
-      "集中查看资源路径、资源加载结果和流程图校验，加载失败时会直接列出具体线索。",
+      "检查资源路径、MaaFW 加载和流程映射，定位无法启动调试的原因。",
   },
 ];
 
@@ -291,7 +291,21 @@ export function DebugModal() {
                 type="warning"
                 showIcon
                 title="调试前置条件未满足"
-                description={controller.debugReadinessDescription}
+                description={
+                  <div>
+                    <div>{controller.debugReadinessDescription}</div>
+                    <div>
+                      详情请参考{" "}
+                      <a
+                        href="https://mpe.codax.site/docs/guide/server/debug.html#%E5%89%8D%E7%BD%AE%E6%9D%A1%E4%BB%B6"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        流程级调试-前置条件
+                      </a>
+                    </div>
+                  </div>
+                }
               />
             )}
             <div
