@@ -318,7 +318,7 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
   const collapseItems = [];
 
   if (predecessors.length > 0) {
-    items.push({
+    collapseItems.push({
       key: "predecessors",
       label: (
         <div className={style["collapse-header"]}>
@@ -332,7 +332,7 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
   }
 
   if (successors.length > 0 || !readOnly) {
-    items.push({
+    collapseItems.push({
       key: "successors",
       label: (
         <div className={style["collapse-header"]}>

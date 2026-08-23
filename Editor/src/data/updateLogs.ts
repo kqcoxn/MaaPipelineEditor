@@ -104,7 +104,10 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2026-8",
     type: "fix",
     updates: {
-      perfs: ["更新 ADB 设备方法，增加可用方法支持并优化控制器连接反馈"],
+      perfs: [
+        "更新 ADB 设备方法，增加可用方法支持并优化控制器连接反馈",
+        "修复点击邻接面板后页面崩溃的问题",
+      ],
     },
   },
   {
