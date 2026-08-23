@@ -49,6 +49,11 @@ type OpenFileRequest struct {
 	FilePath string `json:"file_path"` // 文件绝对路径
 }
 
+// 使用系统默认程序打开文件请求
+type OpenExternalFileRequest struct {
+	FilePath string `json:"file_path"` // 文件绝对路径
+}
+
 // 保存文件请求
 type SaveFileRequest struct {
 	FilePath    string `json:"file_path"`    // 文件绝对路径

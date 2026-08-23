@@ -189,6 +189,17 @@ func (s *Service) ReadFile(filePath string) (interface{}, error) {
 	return content, nil
 }
 
+// ValidateFilePath 校验文件路径位于根目录内且文件存在。
+func (s *Service) ValidateFilePath(filePath string) error {
+	if err := s.validatePath(filePath); err != nil {
+		return err
+	}
+	if _, err := os.Stat(filePath); err != nil {
+		return errors.NewFileNotFoundError(filePath)
+	}
+	return nil
+}
+
 // 保存文件
 func (s *Service) SaveFile(filePath string, content interface{}, indent int) error {
 	return s.SaveFileWithOrder(filePath, content, indent, false)

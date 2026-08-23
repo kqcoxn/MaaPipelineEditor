@@ -2,6 +2,10 @@ package file
 
 import (
 	"encoding/json"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strings"
 
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/errors"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/eventbus"
@@ -38,6 +42,7 @@ func NewHandler(fileService *fileService.Service, eventBus *eventbus.EventBus, w
 func (h *Handler) GetRoutePrefix() []string {
 	return []string{
 		"/etl/open_file",
+		"/etl/open_external",
 		"/etl/save_file",
 		"/etl/save_separated",
 		"/etl/create_file",
@@ -50,6 +55,8 @@ func (h *Handler) Handle(msg models.Message, conn *server.Connection) *models.Me
 	switch msg.Path {
 	case "/etl/open_file":
 		return h.handleOpenFile(msg, conn)
+	case "/etl/open_external":
+		return h.handleOpenExternal(msg, conn)
 	case "/etl/save_file":
 		return h.handleSaveFile(msg, conn)
 	case "/etl/save_separated":
@@ -61,6 +68,48 @@ func (h *Handler) Handle(msg models.Message, conn *server.Connection) *models.Me
 	default:
 		return nil
 	}
+}
+
+// 使用操作系统默认程序打开 JSON/JSONC 文件。
+func (h *Handler) handleOpenExternal(msg models.Message, conn *server.Connection) *models.Message {
+	var req models.OpenExternalFileRequest
+	if err := h.parseData(msg.Data, &req); err != nil {
+		h.sendError(conn, err)
+		return nil
+	}
+
+	ext := strings.ToLower(filepath.Ext(req.FilePath))
+	if ext != ".json" && ext != ".jsonc" {
+		h.sendError(conn, errors.Wrap(errors.ErrPermissionDenied, "仅支持打开 JSON/JSONC 文件", nil))
+		return nil
+	}
+	if err := h.fileService.ValidateFilePath(req.FilePath); err != nil {
+		if lbErr, ok := err.(*errors.LBError); ok {
+			h.sendError(conn, lbErr)
+		} else {
+			h.sendError(conn, errors.Wrap(errors.ErrFileReadError, "文件不存在", err))
+		}
+		return nil
+	}
+
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("cmd", "/c", "start", "", req.FilePath)
+	case "darwin":
+		cmd = exec.Command("open", req.FilePath)
+	default:
+		cmd = exec.Command("xdg-open", req.FilePath)
+	}
+	if err := cmd.Start(); err != nil {
+		conn.Send(models.Message{Path: "/ack/open_external", Data: map[string]interface{}{
+			"status": "error", "file_path": req.FilePath, "message": "打开本地文件失败: " + err.Error(),
+		}})
+		return nil
+	}
+	return &models.Message{Path: "/ack/open_external", Data: map[string]interface{}{
+		"status": "ok", "file_path": req.FilePath,
+	}}
 }
 
 // 处理打开文件请求

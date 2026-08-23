@@ -104,6 +104,7 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2026-8-23",
     type: "perf",
     updates: {
+      features: ["📤 新增在本地打开按钮，方便快捷跳转回 vscode 等编辑工具"],
       perfs: [
         "更新 ADB 设备方法，增加可用方法支持并优化控制器连接反馈",
         "优化页面动态变化时兜底，减少渲染异常",

@@ -69,6 +69,9 @@ export class FileProtocol extends BaseProtocol {
     this.wsClient.registerRoute("/ack/create_file", (data) =>
       this.handleCreateFileAck(data),
     );
+    this.wsClient.registerRoute("/ack/open_external", (data) =>
+      this.handleOpenExternalAck(data),
+    );
   }
 
   protected handleMessage(_path: string, _data: any): void {
@@ -348,6 +351,15 @@ export class FileProtocol extends BaseProtocol {
     }
   }
 
+  /** 处理系统编辑器打开请求确认 */
+  private handleOpenExternalAck(data: any): void {
+    if (data?.status === "ok") {
+      message.success(`已在本地打开: ${data.file_path || "文件"}`);
+    } else {
+      message.error(data?.message || "无法在本地打开文件");
+    }
+  }
+
   /**
    * 请求打开文件
    * 发送路由: /etl/open_file
@@ -359,6 +371,18 @@ export class FileProtocol extends BaseProtocol {
     }
 
     return this.wsClient.send("/etl/open_file", {
+      file_path: filePath,
+    });
+  }
+
+  /** 请求使用操作系统默认程序打开文件 */
+  public requestOpenExternalFile(filePath: string): boolean {
+    if (!this.wsClient) {
+      console.error("[FileProtocol] WebSocket client not initialized");
+      return false;
+    }
+
+    return this.wsClient.send("/etl/open_external", {
       file_path: filePath,
     });
   }
