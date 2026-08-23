@@ -85,6 +85,8 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   enableLiveScreen: "component",
   liveScreenRefreshRate: "component",
   historyLimit: "component",
+  showJsonPreviewButton: "component",
+  showOpenLocalButton: "component",
   screenshotResolutionMode: "local-service",
   screenshotResolutionValue: "local-service",
   // 本地服务配置
@@ -239,6 +241,9 @@ const defaultConfigs = {
   enableLiveScreen: true,
   // 实时画面刷新间隔（毫秒）
   liveScreenRefreshRate: 1000,
+  // 右上角工具栏按钮
+  showJsonPreviewButton: false,
+  showOpenLocalButton: true,
   // 截图分辨率模式
   screenshotResolutionMode: "default" as ScreenshotResolutionMode,
   // 截图分辨率值（短边/长边长度）
@@ -310,6 +315,9 @@ export type ConfigState = {
     enableLiveScreen: boolean;
     // 实时画面刷新间隔（毫秒）
     liveScreenRefreshRate: number;
+    // 右上角工具栏按钮
+    showJsonPreviewButton: boolean;
+    showOpenLocalButton: boolean;
     // 截图分辨率模式
     screenshotResolutionMode: ScreenshotResolutionMode;
     // 截图分辨率值（短边/长边长度）

@@ -15,7 +15,10 @@ function OpenLocalButton() {
   const saveFileToLocal = useFileStore((state) => state.saveFileToLocal);
 
   const handleOpen = useCallback(async () => {
-    if (!currentFilePath) return;
+    if (!currentFilePath) {
+      message.info("当前文件尚未关联本地路径");
+      return;
+    }
     if (!(await saveFileToLocal())) {
       message.error("文件保存失败，未在本地打开");
       return;
@@ -25,12 +28,14 @@ function OpenLocalButton() {
     }
   }, [currentFilePath, saveFileToLocal]);
 
-  if (!connected || !currentFilePath) return null;
+  if (!connected) return null;
 
   return (
     <Button
       icon={<FolderOpenOutlined />}
       onClick={handleOpen}
+      disabled={!currentFilePath}
+      title={currentFilePath ? "在本地打开当前文件" : "当前文件尚未关联本地路径"}
       className={style.toolbarButton}
     >
       在本地打开

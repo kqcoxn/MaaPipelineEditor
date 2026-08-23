@@ -8,6 +8,7 @@ import { WikiAnchor } from "../../wiki/WikiAnchor";
 import EmbedSyncButton from "../toolbar/EmbedSyncButton";
 import { useEmbedMode } from "../../../hooks/useEmbedMode";
 import { shouldShowLocalToolbarActions } from "./toolbarVisibility";
+import { useConfigStore } from "@/stores/app/configStore";
 
 /**
  * 横向工具栏组件
@@ -16,13 +17,19 @@ import { shouldShowLocalToolbarActions } from "./toolbarVisibility";
 function ToolbarPanel() {
   const { isEmbed } = useEmbedMode();
   const showLocalActions = shouldShowLocalToolbarActions(isEmbed);
+  const showJsonPreviewButton = useConfigStore(
+    (state) => state.configs.showJsonPreviewButton,
+  );
+  const showOpenLocalButton = useConfigStore(
+    (state) => state.configs.showOpenLocalButton,
+  );
   return (
     <div className={style.toolbarPanel}>
       <ExportButton />
       {showLocalActions && <ImportButton />}
       <EmbedSyncButton />
-      {showLocalActions && <JsonPreviewButton />}
-      {showLocalActions && <OpenLocalButton />}
+      {showLocalActions && showJsonPreviewButton && <JsonPreviewButton />}
+      {showLocalActions && showOpenLocalButton && <OpenLocalButton />}
       <WikiAnchor path="10.工作流面板/90.导入与导出.html" title="导入与导出" description="Pipeline文件的导入导出" />
     </div>
   );
