@@ -64,11 +64,6 @@ export const longTermPreview: ForecastSection = {
   notice: "不绑定具体版本，仅方向性规划，可能随时增删或调整。",
   items: [
     {
-      theme: "日志",
-      title: "集成式分析",
-      description: "支持调试与导入本地 maa.log 可视化分析",
-    },
-    {
       theme: "工具",
       title: "客制化业务增强",
       description: "支持按键工具、导入图片、自定义分辨率等",
@@ -104,7 +99,10 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2026-8-23",
     type: "perf",
     updates: {
-      features: ["📤 新增在本地打开按钮，方便快捷跳转回 vscode 等编辑工具"],
+      features: [
+        "📤 新增在本地打开按钮，方便快捷跳转回 vscode 等编辑工具",
+        "📦 新增日志一键打包功能，一步即可反馈",
+      ],
       perfs: [
         "更新 ADB 设备方法，增加可用方法支持并优化控制器连接反馈",
         "优化页面动态变化时兜底，减少渲染异常",

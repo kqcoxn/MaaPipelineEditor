@@ -34,6 +34,7 @@ export class MFWProtocol extends BaseProtocol {
   private maafwLogContentCallbacks: Array<(data: any) => void> = [];
   // maafw.log 打开结果回调函数
   private maafwLogOpenedCallbacks: Array<(data: any) => void> = [];
+  private logsExportedCallbacks: Array<(data: any) => void> = [];
   // 执行动作结果回调函数
   private executeActionCallbacks: Array<(data: any) => void> = [];
   // 记录最后一次连接请求的设备信息
@@ -126,6 +127,9 @@ export class MFWProtocol extends BaseProtocol {
     // 注册 maafw.log 打开结果路由
     this.wsClient.registerRoute("/lte/utility/maafw_log_opened", (data) =>
       this.handleMaafwLogOpened(data),
+    );
+    this.wsClient.registerRoute("/lte/utility/logs_exported", (data) =>
+      this.handleLogsExported(data),
     );
 
     // 注册操作结果路由
@@ -395,6 +399,10 @@ export class MFWProtocol extends BaseProtocol {
         console.error("[MFWProtocol] Error in maafw log opened callback:", error);
       }
     });
+  }
+
+  private handleLogsExported(data: any): void {
+    this.logsExportedCallbacks.forEach((callback) => callback(data));
   }
 
   // === 发送方法 ===
@@ -809,6 +817,24 @@ export class MFWProtocol extends BaseProtocol {
     }
 
     return this.wsClient.send("/etl/utility/open_maafw_log_dir", {});
+  }
+
+  public requestExportLogs(frontendLogs: Record<string, unknown>): boolean {
+    if (!this.wsClient) return false;
+    return this.wsClient.send("/etl/utility/export_logs", { frontend_logs: frontendLogs });
+  }
+
+  public onLogsExported(callback: (data: {
+    success: boolean;
+    filename?: string;
+    content?: string;
+    message?: string;
+  }) => void): () => void {
+    this.logsExportedCallbacks.push(callback);
+    return () => {
+      const index = this.logsExportedCallbacks.indexOf(callback);
+      if (index > -1) this.logsExportedCallbacks.splice(index, 1);
+    };
   }
 
   /**

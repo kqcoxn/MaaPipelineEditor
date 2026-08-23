@@ -11,7 +11,9 @@ import {
   GroupOutlined,
   ArrowDownOutlined,
   ArrowUpOutlined,
+  DownloadOutlined,
 } from "@ant-design/icons";
+import { message } from "antd";
 import { useLoggerStore, type LogEntry } from "@/stores/app/loggerStore";
 import {
   useOperationLogStore,
@@ -26,6 +28,7 @@ import {
 } from "@/stores/embed/embedMessageLogStore";
 import { useEmbedMode } from "../../../hooks/useEmbedMode";
 import styles from "../../../styles/panels/LoggerPanel.module.less";
+import { mfwProtocol } from "../../../services/server";
 
 type TabType = "operation" | "backend" | "embed";
 
@@ -128,6 +131,7 @@ export function LoggerPanel() {
   const listRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
   const [pulse, setPulse] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("operation");
   const prevOpLenRef = useRef(opLogs.length);
   const prevBackendLenRef = useRef(backendLogs.length);
@@ -227,6 +231,52 @@ export function LoggerPanel() {
     }
   }, [activeTab, clearOpLogs, clearBackendLogs, clearEmbedLogs]);
 
+  const handleExport = useCallback(() => {
+    if (!connected) {
+      message.warning("未连接 LocalBridge，无法导出完整日志");
+      return;
+    }
+    setExporting(true);
+    const sent = mfwProtocol.requestExportLogs({
+      backend: backendLogs,
+      operation: opLogs,
+      embed: isEmbed ? embedLogs : [],
+    });
+    if (!sent) {
+      setExporting(false);
+      message.error("发送日志导出请求失败");
+    }
+  }, [backendLogs, connected, embedLogs, isEmbed, opLogs]);
+
+  useEffect(() => {
+    return mfwProtocol.onLogsExported((data) => {
+      setExporting(false);
+      if (!data.success || !data.content) {
+        message.error(data.message || "日志导出失败");
+        return;
+      }
+      const bytes = Uint8Array.from(atob(data.content), (char) => char.charCodeAt(0));
+      const url = URL.createObjectURL(new Blob([bytes], { type: "application/zip" }));
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = data.filename || `mpe-logs-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.zip`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      message.success("日志导出成功");
+    });
+  }, []);
+
+  const exportButton = (
+    <button
+      className={styles.exportBtn}
+      onClick={(event) => { event.stopPropagation(); handleExport(); }}
+      title="导出全部日志"
+      disabled={exporting}
+    >
+      <DownloadOutlined spin={exporting} />
+    </button>
+  );
+
   // 收起态最新条目（根据当前 activeTab 显示对应日志）
   const latestOpLog = opLogs.length > 0 ? opLogs[opLogs.length - 1] : null;
   const latestBackendLog =
@@ -283,6 +333,7 @@ export function LoggerPanel() {
             <span className={styles.barMessage}>暂无日志</span>
           )}
         </div>
+        {exportButton}
       </div>
     );
   }
@@ -342,6 +393,7 @@ export function LoggerPanel() {
           )}
         </div>
       </div>
+      {exportButton}
     </div>
   );
 }

@@ -1,10 +1,17 @@
 package utility
 
 import (
+	"archive/zip"
+	"bytes"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
+	"time"
 
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/config"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
@@ -12,6 +19,65 @@ import (
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/server"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/pkg/models"
 )
+
+// handleExportLogs 将后端日志目录和前端内存日志汇总为 ZIP。
+func (h *UtilityHandler) handleExportLogs(conn *server.Connection, msg models.Message) {
+	logDir, _ := resolveMaafwLogPath()
+	var payload struct {
+		FrontendLogs map[string]interface{} `json:"frontend_logs"`
+	}
+	if data, ok := msg.Data.(map[string]interface{}); ok {
+		if raw, ok := data["frontend_logs"]; ok {
+			encoded, _ := json.Marshal(raw)
+			_ = json.Unmarshal(encoded, &payload.FrontendLogs)
+		}
+	}
+
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	if payload.FrontendLogs != nil {
+		if raw, err := json.MarshalIndent(payload.FrontendLogs, "", "  "); err == nil {
+			if w, err := zw.Create("mpe/frontend-logs.json"); err == nil {
+				_, _ = w.Write(raw)
+			}
+		}
+	}
+	if err := filepath.WalkDir(logDir, func(path string, entry os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			logger.Warn("Utility", "导出日志时跳过 %s: %v", path, walkErr)
+			return nil
+		}
+		if entry.IsDir() {
+			if strings.EqualFold(entry.Name(), "vision") {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		data, readErr := os.ReadFile(path)
+		if readErr != nil {
+			logger.Warn("Utility", "导出日志时跳过 %s: %v", path, readErr)
+			return nil
+		}
+		relativePath, relativeErr := filepath.Rel(logDir, path)
+		if relativeErr != nil {
+			return nil
+		}
+		w, createErr := zw.Create(filepath.ToSlash(filepath.Join("localbridge", relativePath)))
+		if createErr == nil {
+			_, _ = w.Write(data)
+		}
+		return nil
+	}); err != nil {
+		logger.Warn("Utility", "遍历日志目录失败: %v", err)
+	}
+	_ = zw.Close()
+	conn.Send(models.Message{Path: "/lte/utility/logs_exported", Data: map[string]interface{}{
+		"success":  true,
+		"filename": fmt.Sprintf("mpe-logs-%s.zip", time.Now().Format("20060102-150405")),
+		"content":  base64.StdEncoding.EncodeToString(buf.Bytes()),
+		"message":  "日志导出成功",
+	}})
+}
 
 // maafw.log 文件名
 const maafwLogFileName = "maafw.log"

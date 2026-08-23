@@ -43,7 +43,7 @@
   left: 55px;
   z-index: 25;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow: hidden;
+  overflow: visible;
 }
 
 // 收起态
@@ -190,6 +190,36 @@
   &:hover {
     background: #e8e8e8;
     color: #262626;
+  }
+}
+
+.exportBtn {
+  position: absolute;
+  right: -48px;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  color: #1677ff;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover:not(:disabled) {
+    color: #0958d9;
+    border-color: #91caff;
+    box-shadow: 0 3px 10px rgba(22, 119, 255, 0.25);
+  }
+
+  &:disabled {
+    color: #bfbfbf;
+    cursor: wait;
   }
 }
 
