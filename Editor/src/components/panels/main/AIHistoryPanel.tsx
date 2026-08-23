@@ -29,6 +29,7 @@ import {
   formatAIConversationTime,
 } from "./AIConversationRun";
 import { AIHarnessErrorBoundary } from "./AIHarnessErrorBoundary";
+import { WikiAnchor } from "../../wiki/WikiAnchor";
 import style from "../../../styles/panels/AIHistoryPanel.module.less";
 
 const MOBILE_QUERY = "(max-width: 720px)";
@@ -278,6 +279,11 @@ function AIHistoryPanel() {
           <Tag color="blue" variant="filled" className={style.betaTag}>
             Infra BETA
           </Tag>
+          <WikiAnchor
+            path="10.工作流面板/70.MPE%20Harness.html"
+            title="MPE Harness"
+            description="AI 对话、流程探索与自动化编辑"
+          />
         </div>
       }
       closeIcon={<CloseOutlined />}

@@ -21,20 +21,14 @@ hero:
     - theme: alt
       text: MSE 集成
       link: /guide/mse/overview
-    - theme: alt
-      text: 迁移指南
-      link: /guide/migrate/old
   image:
     src: /logo.png
     alt: logo
 
 features:
   - icon: 🎉
-    title: 简单易用
-    details: 使用流程图编写您的 Pipeline，思路清晰；基本支持所有协议内容，兼容已有项目。
-  - icon: 📝
-    title: 专注内容
-    details: “由您设计，由我们支持。” 如您所需皆已存在：添加、配置、连接，只需稍作思考，想法之外尽在其中！
+    title: 简单易用，专注内容
+    details: 使用流程图编写您的 Pipeline，思路清晰；添加、配置、连接一气呵成，让您专注于设计业务逻辑。
   - icon: 🌐
     title: 开箱即用
     details: 无需本地编译部署或下载安装，使用浏览器打开网站即可使用！
