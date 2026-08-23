@@ -5,6 +5,7 @@ import type {
   DebugArtifactPolicy,
   DebugRunInput,
   DebugNodeTarget,
+  DebugNodeResolverSnapshot,
   DebugPipelineOverride,
   DebugRunMode,
   DebugRunProfile,
@@ -187,6 +188,21 @@ export function makeDebugResourceKey(
   resourceBundles?: ResourceBundle[],
 ): string {
   return normalizeDebugResourcePaths(resourcePaths, resourceBundles).join("\n");
+}
+
+export function isDebugEntryAvailable(
+  entry: DebugNodeTarget,
+  snapshot: DebugNodeResolverSnapshot,
+): boolean {
+  return Boolean(
+    entry.runtimeName &&
+      snapshot.nodes.some(
+        (node) =>
+          node.fileId === entry.fileId &&
+          node.nodeId === entry.nodeId &&
+          node.runtimeName === entry.runtimeName,
+      ),
+  );
 }
 
 function resolveControllerType(): DebugRunProfile["controller"]["type"] {
@@ -378,7 +394,10 @@ export const useDebugRunProfileStore = create<DebugRunProfileState>(
               sourcePath: snapshotEntry.sourcePath,
             }
           : storeProfile.entry;
-        const hasStoredEntry = Boolean(storeProfile.entry.runtimeName);
+        const hasStoredEntry = isDebugEntryAvailable(
+          storeProfile.entry,
+          bundle.resolverSnapshot,
+        );
         const entry =
           target ?? (hasStoredEntry ? storeProfile.entry : fallbackEntry);
         const controllerType = resolveControllerType();

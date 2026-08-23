@@ -433,10 +433,15 @@ func (s *Service) validatePath(path string) error {
 		return errors.NewPermissionDeniedError("无效的路径")
 	}
 
-	normAbs := filepath.Clean(strings.ToLower(absPath))
-	normRoot := filepath.Clean(strings.ToLower(s.root))
+	absRoot, err := filepath.Abs(s.root)
+	if err != nil {
+		return errors.NewPermissionDeniedError("无效的根目录")
+	}
 
-	if !strings.HasPrefix(normAbs, normRoot) {
+	normAbs := filepath.Clean(strings.ToLower(absPath))
+	normRoot := filepath.Clean(strings.ToLower(absRoot))
+	rel, err := filepath.Rel(normRoot, normAbs)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
 		return errors.NewPermissionDeniedError("路径不在根目录范围内")
 	}
 

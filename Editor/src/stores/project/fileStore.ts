@@ -20,6 +20,10 @@ import { localServer } from "@/services/server";
 import { FileProtocol } from "@/services/protocols/FileProtocol";
 import { findErrorsByType, ErrorTypeEnum } from "@/stores/app/errorStore";
 import type { CoordinateMode } from "@/stores/flow/utils/coordinateUtils";
+import {
+  areFilePathsEqual,
+  isFilePathWithinRoot,
+} from "./filePathUtils";
 
 export type FileConfigType = {
   prefix: string;
@@ -35,12 +39,56 @@ export type FileConfigType = {
   nodeOrderMap?: Record<string, number>;
   nextOrderNumber?: number;
 };
-type FileType = {
+export type FileType = {
   fileName: string;
   nodes: NodeType[];
   edges: EdgeType[];
   config: FileConfigType;
 };
+
+export interface FileCacheRepairResult {
+  staleFileNames: string[];
+}
+
+/**
+ * 根据 LocalBridge 当前根目录修复旧版本留下的文件缓存。
+ *
+ * 缓存内容不会被删除；根目录外的非当前文件只标记为不可保存/不可参与
+ * 调试，待用户重新打开文件后由 openFileFromLocal 清除该标记。
+ */
+export function repairFileCacheForRoot(rootPath: string): FileCacheRepairResult {
+  const staleFileNames: string[] = [];
+  const state = useFileStore.getState();
+  const currentFileName = state.currentFile.fileName;
+
+  if (!rootPath) return { staleFileNames };
+
+  useFileStore.setState((nextState) => {
+    nextState.files = nextState.files.map((file) => {
+      const filePath = file.config.filePath;
+      if (
+        !filePath ||
+        file.fileName === currentFileName ||
+        file.config.isDeleted ||
+        isFilePathWithinRoot(filePath, rootPath)
+      ) {
+        return file;
+      }
+
+      staleFileNames.push(file.fileName);
+      return {
+        ...file,
+        config: {
+          ...file.config,
+          isDeleted: true,
+        },
+      };
+    });
+    return {};
+  });
+
+  return { staleFileNames };
+}
 
 /**辅助函数 */
 // 查找文件
@@ -283,7 +331,9 @@ export async function saveOpenedLocalFilesForDebug(): Promise<SaveOpenedLocalFil
 
   const filesToSave = useFileStore
     .getState()
-    .files.filter((file) => file.config.filePath && !file.config.isDeleted);
+    .files.filter(
+      (file) => file.config.filePath && !file.config.isDeleted,
+    );
   const failedFiles: string[] = [];
   let savedCount = 0;
 
@@ -614,6 +664,7 @@ export const useFileStore = create<FileState>()((set) => ({
       const configUpdates: Partial<FileConfigType> = {
         lastSyncTime: Date.now(),
         isModifiedExternally: false,
+        isDeleted: false,
       };
       if (configPath) {
         configUpdates.separatedConfigPath = configPath;
@@ -622,7 +673,9 @@ export const useFileStore = create<FileState>()((set) => ({
       // 查找是否已有相同路径的文件打开
       const existingFile = useFileStore
         .getState()
-        .files.find((file) => file.config.filePath === filePath);
+        .files.find((file) =>
+          areFilePathsEqual(file.config.filePath, filePath),
+        );
 
       if (existingFile) {
         // 切换到已有文件并更新内容
@@ -860,13 +913,13 @@ export const useFileStore = create<FileState>()((set) => ({
     set((state) => {
       const currentFilePath = state.currentFile.config.filePath;
       state.files = state.files.map((file) => {
-        if (file.config.filePath === filePath) {
+        if (areFilePathsEqual(file.config.filePath, filePath)) {
           const updated = {
             ...file,
             config: { ...file.config, isDeleted: true },
           };
           // 如果是当前文件，同步更新 currentFile
-          if (filePath === currentFilePath) {
+          if (areFilePathsEqual(filePath, currentFilePath)) {
             state.currentFile = updated;
           }
           return updated;
@@ -882,13 +935,13 @@ export const useFileStore = create<FileState>()((set) => ({
     set((state) => {
       const currentFilePath = state.currentFile.config.filePath;
       state.files = state.files.map((file) => {
-        if (file.config.filePath === filePath) {
+        if (areFilePathsEqual(file.config.filePath, filePath)) {
           const updated = {
             ...file,
             config: { ...file.config, isModifiedExternally: true },
           };
           // 如果是当前文件，同步更新 currentFile
-          if (filePath === currentFilePath) {
+          if (areFilePathsEqual(filePath, currentFilePath)) {
             state.currentFile = updated;
           }
           return updated;
@@ -908,7 +961,9 @@ export const useFileStore = create<FileState>()((set) => ({
       // 查找文件
       const targetFile = useFileStore
         .getState()
-        .files.find((file) => file.config.filePath === filePath);
+        .files.find((file) =>
+          areFilePathsEqual(file.config.filePath, filePath),
+        );
 
       if (!targetFile) {
         console.error("[fileStore] File not found:", filePath);
@@ -922,6 +977,7 @@ export const useFileStore = create<FileState>()((set) => ({
       // 同步 FlowStore 数据到 FileStore，清除修改标记
       syncFlowStoreToFileStore({
         isModifiedExternally: false,
+        isDeleted: false,
         lastSyncTime: Date.now(),
       });
 
@@ -936,6 +992,8 @@ export const useFileStore = create<FileState>()((set) => ({
   findFileByPath(filePath: string): FileType | undefined {
     return useFileStore
       .getState()
-      .files.find((file) => file.config.filePath === filePath);
+      .files.find((file) =>
+        areFilePathsEqual(file.config.filePath, filePath),
+      );
   },
 }));

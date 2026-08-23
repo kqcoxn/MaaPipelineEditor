@@ -76,31 +76,37 @@ function buildFileSources(): DebugFileSource[] {
     ? fileState.files
     : [...fileState.files, fileState.currentFile];
 
-  return openedFiles.map((file) => {
-    const isCurrent = file.fileName === fileState.currentFile.fileName;
-    const sourceFile = isCurrent ? fileState.currentFile : file;
-    const config = sourceFile.config;
-    const nodes = isCurrent ? flowState.nodes : file.nodes;
-    const edges = isCurrent ? flowState.edges : file.edges;
-    const pipeline = flowToPipeline({
-      nodes,
-      edges,
-      fileName: sourceFile.fileName,
-      config,
-    });
+  return openedFiles
+    .filter(
+      (file) =>
+        file.fileName === fileState.currentFile.fileName ||
+        !file.config.isDeleted,
+    )
+    .map((file) => {
+      const isCurrent = file.fileName === fileState.currentFile.fileName;
+      const sourceFile = isCurrent ? fileState.currentFile : file;
+      const config = sourceFile.config;
+      const nodes = isCurrent ? flowState.nodes : file.nodes;
+      const edges = isCurrent ? flowState.edges : file.edges;
+      const pipeline = flowToPipeline({
+        nodes,
+        edges,
+        fileName: sourceFile.fileName,
+        config,
+      });
 
-    return {
-      fileId: sourceFile.fileName,
-      path: config.filePath,
-      relativePath: config.relativePath,
-      prefix: config.prefix,
-      nodes,
-      edges,
-      pipeline,
-      config: toRecord(config),
-      dirty: !config.filePath || config.isModifiedExternally,
-    };
-  });
+      return {
+        fileId: sourceFile.fileName,
+        path: config.filePath,
+        relativePath: config.relativePath,
+        prefix: config.prefix,
+        nodes,
+        edges,
+        pipeline,
+        config: toRecord(config),
+        dirty: !config.filePath || config.isModifiedExternally,
+      };
+    });
 }
 
 function localResolverNodeId(filePath: string, runtimeName: string): string {

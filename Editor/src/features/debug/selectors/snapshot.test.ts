@@ -7,6 +7,7 @@ import {
   selectEffectiveResolverEdges,
   selectEffectiveResolverNodes,
 } from "./snapshot";
+import { repairFileCacheForRoot } from "@/stores/project/fileStore";
 import type { DebugNodeResolverSnapshot } from "../types";
 
 describe("snapshot resource override resolution", () => {
@@ -54,6 +55,7 @@ describe("snapshot resource override resolution", () => {
               label: "Live_Entry",
               prefix: "Live",
               anchors: [],
+              field_values: [],
             },
           ],
         },
@@ -113,6 +115,84 @@ describe("snapshot resource override resolution", () => {
         sourcePath: "C:/resource/base/pipeline/main.json",
       },
     ]);
+  });
+
+  it("does not include stale non-current files in the debug snapshot", () => {
+    const currentNode = makePipelineNode("current", "Current");
+    const staleNode = makePipelineNode("stale", "Stale");
+    const currentFile = {
+      fileName: "current.json",
+      nodes: [],
+      edges: [],
+      config: {
+        filePath: "C:/resource/current/pipeline/current.json",
+        prefix: "",
+      },
+    };
+    const staleFile = {
+      fileName: "stale.json",
+      nodes: [staleNode],
+      edges: [],
+      config: {
+        filePath: "C:/old-resource/pipeline/stale.json",
+        prefix: "",
+        isDeleted: true,
+      },
+    };
+
+    useFileStore.setState({ currentFile, files: [currentFile, staleFile] });
+    useFlowStore.setState({ nodes: [currentNode], edges: [] });
+
+    const bundle = buildDebugSnapshotBundle([], ["C:/resource/current"]);
+
+    expect(bundle.graphSnapshot.files.map((file) => file.fileId)).toEqual([
+      "current.json",
+    ]);
+    expect(bundle.resolverSnapshot.nodes.map((node) => node.runtimeName)).toEqual([
+      "Current",
+    ]);
+  });
+
+  it("marks old cache paths outside the active LocalBridge root as stale", () => {
+    const currentFile = {
+      fileName: "current.json",
+      nodes: [],
+      edges: [],
+      config: {
+        filePath: "C:/old-resource/pipeline/current.json",
+        prefix: "",
+      },
+    };
+    const validFile = {
+      fileName: "valid.json",
+      nodes: [],
+      edges: [],
+      config: {
+        filePath: "C:/resource/pipeline/valid.json",
+        prefix: "",
+      },
+    };
+    const staleFile = {
+      fileName: "stale.json",
+      nodes: [],
+      edges: [],
+      config: {
+        filePath: "C:/resource-old/pipeline/stale.json",
+        prefix: "",
+      },
+    };
+
+    useFileStore.setState({
+      currentFile,
+      files: [currentFile, validFile, staleFile],
+    });
+
+    expect(repairFileCacheForRoot("C:\\resource")).toEqual({
+      staleFileNames: ["stale.json"],
+    });
+    expect(useFileStore.getState().files[1].config.isDeleted).toBeUndefined();
+    expect(useFileStore.getState().files[2].config.isDeleted).toBe(true);
+    expect(useFileStore.getState().currentFile.config.isDeleted).toBeUndefined();
   });
 
   it("prefers later resource paths for duplicate runtime names", () => {

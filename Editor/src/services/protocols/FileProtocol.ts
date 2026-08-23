@@ -2,12 +2,16 @@ import { message, Modal, Button, Space } from "antd";
 import { createElement } from "react";
 import { BaseProtocol } from "./BaseProtocol";
 import type { LocalWebSocketServer } from "../server";
-import { useFileStore } from "@/stores/project/fileStore";
+import {
+  repairFileCacheForRoot,
+  useFileStore,
+} from "@/stores/project/fileStore";
 import { useConfigStore } from "@/stores/app/configStore";
 import {
   useLocalFileStore,
   type LocalFileInfo,
 } from "@/stores/project/localFileStore";
+import { areFilePathsEqual } from "@/stores/project/filePathUtils";
 
 /**
  * 文件协议处理器
@@ -92,6 +96,13 @@ export class FileProtocol extends BaseProtocol {
         files as LocalFileInfo[],
         Array.isArray(directories) ? directories : [],
       );
+
+      const repairResult = repairFileCacheForRoot(root);
+      if (repairResult.staleFileNames.length > 0) {
+        message.info(
+          `已自动停用 ${repairResult.staleFileNames.length} 条过期文件缓存，请重新打开对应文件。`,
+        );
+      }
 
       if (wasRefreshing) {
         message.success(`文件列表刷新完成，共 ${files.length} 个文件`);
@@ -215,7 +226,7 @@ export class FileProtocol extends BaseProtocol {
           const renamedFiles = fileStore.files.filter(
             (f) =>
               f.config.filePath &&
-              (f.config.filePath === file_path ||
+              (areFilePathsEqual(f.config.filePath, file_path) ||
                 f.config.filePath.startsWith(
                   file_path + (file_path.includes("/") ? "/" : "\\"),
                 )),
