@@ -264,6 +264,7 @@ function AIHistoryPanel() {
           : { onResize: (size) => setDrawerSize(Math.max(420, size)) }
       }
       mask={false}
+      rootStyle={{ overflow: "hidden" }}
       rootClassName={style.drawer}
       classNames={{
         section: style.drawerSection,

@@ -144,6 +144,15 @@ describe("AIHistoryPanel", () => {
     expect(screen.getByTestId("ai-composer-shell")).toContainElement(sender);
   });
 
+  it("将收起动画限制在 Drawer 根节点内", async () => {
+    renderPanel();
+
+    await screen.findByText("MPE Harness");
+    const drawer = document.querySelector<HTMLElement>(".ant-drawer");
+
+    expect(drawer).toHaveStyle({ overflow: "hidden" });
+  });
+
   it("用品牌欢迎态引导新对话", async () => {
     renderPanel();
 

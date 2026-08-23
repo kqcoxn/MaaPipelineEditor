@@ -673,6 +673,7 @@ export const ConnectionPanel = memo(
         size={420}
         open={open}
         onClose={onClose}
+        rootStyle={{ overflow: "hidden" }}
         styles={{
           body: { display: "flex", flexDirection: "column", padding: 0 },
         }}

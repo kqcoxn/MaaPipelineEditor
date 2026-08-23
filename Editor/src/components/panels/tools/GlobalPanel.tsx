@@ -75,15 +75,21 @@ function GlobalPanel() {
   const getHistoryState = useFlowStore((state) => state.getHistoryState);
   const pathMode = useFlowStore((state) => state.pathMode);
   const openDebugModal = useDebugSessionStore((state) => state.openModal);
+  const closeDebugModal = useDebugSessionStore((state) => state.closeModal);
+  const debugModalOpen = useDebugSessionStore((state) => state.modalOpen);
   const runBadgeStatus = useDebugSessionStore((state) => state.runBadgeStatus);
   const runBadgeAcknowledged = useDebugSessionStore(
     (state) => state.runBadgeAcknowledged,
   );
 
   const showRunBadge = !runBadgeAcknowledged && runBadgeStatus !== "idle";
-  const handleOpenDebugModal = () => {
+  const handleToggleDebugModal = () => {
     if (isEmbed) {
       showEmbedServiceNotice("流程调试");
+      return;
+    }
+    if (debugModalOpen) {
+      closeDebugModal();
       return;
     }
     if (hasConfirmedDebugIntro()) {
@@ -369,7 +375,8 @@ function GlobalPanel() {
                 className={style.icon}
                 name="icon-tiaoshi"
                 size={24}
-                onClick={handleOpenDebugModal}
+                aria-label="调试"
+                onClick={handleToggleDebugModal}
               />
             </Tooltip>
             {showRunBadge && (

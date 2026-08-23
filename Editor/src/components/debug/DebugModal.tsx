@@ -227,6 +227,7 @@ export function DebugModal() {
       placement="right"
       mask={false}
       destroyOnHidden
+      rootStyle={{ overflow: "hidden" }}
       resizable={{
         onResize: handleResize,
       }}
