@@ -46,7 +46,9 @@ func (cm *ControllerManager) Screencap(req *ScreencapRequest) (*ScreencapResult,
 		return nil, ErrNotConnected
 	}
 
-	info.screenshotMu.Lock()
+	if !info.screenshotMu.TryLock() {
+		return nil, ErrScreencapBusy
+	}
 	defer info.screenshotMu.Unlock()
 	if req.Resolution != nil {
 		if err := ApplyScreenshotResolution(ctrl, *req.Resolution); err != nil {

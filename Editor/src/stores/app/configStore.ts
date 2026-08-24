@@ -11,6 +11,24 @@ export const MAX_AI_TOKEN_BUDGET = 2_000_000;
 export const DEFAULT_AI_REQUEST_TIMEOUT_MINUTES = 10;
 export const MIN_AI_REQUEST_TIMEOUT_MINUTES = 1;
 export const MAX_AI_REQUEST_TIMEOUT_MINUTES = 120;
+export const DEFAULT_LIVE_SCREEN_FRAME_RATE = 15;
+export const MIN_LIVE_SCREEN_FRAME_RATE = 1;
+export const MAX_LIVE_SCREEN_FRAME_RATE = 60;
+
+export function normalizeLiveScreenFrameRate(frameRate: number): number {
+  if (
+    !Number.isFinite(frameRate) ||
+    frameRate < MIN_LIVE_SCREEN_FRAME_RATE ||
+    frameRate > MAX_LIVE_SCREEN_FRAME_RATE
+  ) {
+    return DEFAULT_LIVE_SCREEN_FRAME_RATE;
+  }
+  return Math.trunc(frameRate);
+}
+
+export function getLiveScreenFrameInterval(frameRate: number): number {
+  return 1000 / normalizeLiveScreenFrameRate(frameRate);
+}
 
 export function normalizeAIRequestTimeoutMs(value: number): number {
   const minutes = Number.isFinite(value)
@@ -26,9 +44,9 @@ export function normalizeAIRequestTimeoutMs(value: number): number {
 export const globalConfig = {
   dev: true,
   version: `1.8.2`,
-  betaIteration: 1,
+  betaIteration: 2,
   mfwVersion: "5.12.3",
-  protocolVersion: "1.3.2",
+  protocolVersion: "1.3.3",
 };
 
 if (globalConfig.dev) {
@@ -239,8 +257,8 @@ const defaultConfigs = {
   snapOnlyInViewport: true,
   // 实时画面预览
   enableLiveScreen: true,
-  // 实时画面刷新间隔（毫秒）
-  liveScreenRefreshRate: 1000,
+  // 实时画面刷新率（帧/秒）
+  liveScreenRefreshRate: DEFAULT_LIVE_SCREEN_FRAME_RATE,
   // 右上角工具栏按钮
   showJsonPreviewButton: false,
   showOpenLocalButton: true,
@@ -313,7 +331,7 @@ export type ConfigState = {
     snapOnlyInViewport: boolean;
     // 实时画面预览
     enableLiveScreen: boolean;
-    // 实时画面刷新间隔（毫秒）
+    // 实时画面刷新率（帧/秒）
     liveScreenRefreshRate: number;
     // 右上角工具栏按钮
     showJsonPreviewButton: boolean;
@@ -418,7 +436,11 @@ export const useConfigStore = create<ConfigState>()((set, get) => ({
             return;
           }
           (newConfigs as Record<string, unknown>)[configKey] =
-            value;
+            configKey === "liveScreenRefreshRate"
+              ? normalizeLiveScreenFrameRate(
+                  typeof value === "number" ? value : Number.NaN,
+                )
+              : value;
         }
       });
 

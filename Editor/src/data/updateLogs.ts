@@ -99,7 +99,12 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2026-8",
     type: "perf",
     updates: {
-      perfs: ["优化日志导出按钮交互体验", "优化更新日志面板视觉引导"],
+      perfs: [
+        "优化实时渲染视图交互体验",
+        "优化日志导出按钮交互体验",
+        "优化更新日志面板视觉引导",
+      ],
+      fixes: ["修复分离导出模式配置文件无隐藏前缀的问题"],
     },
   },
   {

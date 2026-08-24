@@ -1,8 +1,10 @@
 import {
   MAX_AI_TOKEN_BUDGET,
   MAX_AI_REQUEST_TIMEOUT_MINUTES,
+  MAX_LIVE_SCREEN_FRAME_RATE,
   MIN_AI_TOKEN_BUDGET,
   MIN_AI_REQUEST_TIMEOUT_MINUTES,
+  MIN_LIVE_SCREEN_FRAME_RATE,
   type ConfigCategory,
   type ConfigState,
 } from "@/stores/app/configStore";
@@ -461,14 +463,16 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "liveScreenRefreshRate",
     category: "component",
-    label: "画面刷新间隔(ms)",
-    tipTitle: "画面刷新间隔(ms)",
+    label: "画面刷新率",
+    tipTitle: "画面刷新率",
     tipContent:
-      "设置设备屏幕更新间隔（毫秒）。值越小越流畅但性能消耗越高。推荐 500-2000ms。",
+      "设置设备屏幕每秒最多更新的画面张数。设备截图较慢时会自动降低实际帧率，避免请求堆积和界面卡顿。",
     type: "inputNumber",
-    min: 200,
-    max: 5000,
-    step: 100,
+    min: MIN_LIVE_SCREEN_FRAME_RATE,
+    max: MAX_LIVE_SCREEN_FRAME_RATE,
+    step: 1,
+    addonAfter: "帧（张/秒）",
+    controlWidth: 110,
     visible: (configs) => configs.enableLiveScreen,
     order: 5,
   },

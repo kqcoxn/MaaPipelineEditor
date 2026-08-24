@@ -16,7 +16,7 @@ import (
 )
 
 // 通信协议版本
-const ProtocolVersion = "1.3.2"
+const ProtocolVersion = "1.3.3"
 
 // 版本握手路由
 const (
@@ -140,7 +140,7 @@ func (s *WebSocketServer) Stop() error {
 	// 关闭所有连接
 	s.mu.Lock()
 	for conn := range s.connections {
-		close(conn.send)
+		conn.closeSend()
 	}
 	s.mu.Unlock()
 
@@ -170,7 +170,7 @@ func (s *WebSocketServer) run() {
 			s.mu.Lock()
 			if _, ok := s.connections[conn]; ok {
 				delete(s.connections, conn)
-				close(conn.send)
+				conn.closeSend()
 			}
 			s.mu.Unlock()
 

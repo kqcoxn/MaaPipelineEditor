@@ -28,6 +28,7 @@ var (
 	ErrNotConnected       = errors.New("controller not connected")
 	ErrInvalidParameter   = errors.New("invalid parameter")
 	ErrNotInitialized     = errors.New("maa framework not initialized")
+	ErrScreencapBusy      = errors.New("screencap busy")
 )
 
 // MFW错误类型

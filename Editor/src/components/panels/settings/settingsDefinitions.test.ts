@@ -50,3 +50,19 @@ describe("AI settings", () => {
     });
   });
 });
+
+describe("live screen settings", () => {
+  it("uses frames per second for the refresh rate", () => {
+    const frameRateItem = settingsDefinitions.find(
+      (item) => item.key === "liveScreenRefreshRate",
+    );
+
+    expect(frameRateItem).toMatchObject({
+      label: "画面刷新率",
+      min: 1,
+      max: 60,
+      step: 1,
+      addonAfter: "帧（张/秒）",
+    });
+  });
+});

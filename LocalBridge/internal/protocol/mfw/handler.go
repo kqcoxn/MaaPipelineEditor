@@ -16,6 +16,8 @@ type MFWHandler struct {
 	service *mfw.Service
 }
 
+const requestScreencapPath = "/etl/mfw/request_screencap"
+
 // 创建MFW协议处理器
 func NewMFWHandler(service *mfw.Service) *MFWHandler {
 	return &MFWHandler{
@@ -31,7 +33,9 @@ func (h *MFWHandler) GetRoutePrefix() []string {
 // 处理消息
 func (h *MFWHandler) Handle(msg models.Message, conn *server.Connection) *models.Message {
 	path := msg.Path
-	logger.Debug("MFW", "处理MFW消息: %s", path)
+	if path != requestScreencapPath {
+		logger.Debug("MFW", "处理MFW消息: %s", path)
+	}
 
 	// 检查 MFW 服务是否已初始化
 	if !h.service.IsInitialized() {
@@ -66,8 +70,9 @@ func (h *MFWHandler) Handle(msg models.Message, conn *server.Connection) *models
 		h.handleCreateWlRootsController(conn, msg)
 	case "/etl/mfw/disconnect_controller":
 		h.handleDisconnectController(conn, msg)
-	case "/etl/mfw/request_screencap":
-		h.handleScreencap(conn, msg)
+	case requestScreencapPath:
+		// 截图可能受设备或驱动影响而耗时，不能阻塞 WebSocket 读循环。
+		go h.handleScreencap(conn, msg)
 	case "/etl/mfw/controller_click":
 		h.handleControllerClick(conn, msg)
 	case "/etl/mfw/controller_swipe":
@@ -454,7 +459,9 @@ func (h *MFWHandler) handleScreencap(conn *server.Connection, msg models.Message
 
 	result, err := h.service.ControllerManager().Screencap(req)
 	if err != nil {
-		logger.Error("MFW", "截图失败: %v", err)
+		if err != mfw.ErrScreencapBusy {
+			logger.Error("MFW", "截图失败: %v", err)
+		}
 		conn.Send(models.Message{
 			Path: "/lte/mfw/screencap_result",
 			Data: map[string]interface{}{

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/eventbus"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/pkg/models"
 )
 
 func TestOriginAllowed(t *testing.T) {
@@ -52,5 +53,15 @@ func TestConnectionDoneClosesOnce(t *testing.T) {
 	case <-connection.Done():
 	default:
 		t.Fatal("connection Done channel was not closed")
+	}
+}
+
+func TestConnectionRejectsSendAfterClose(t *testing.T) {
+	connection := newConnection("test", nil, nil)
+	connection.closeSend()
+	connection.closeSend()
+
+	if err := connection.Send(models.Message{Path: "/test"}); err == nil {
+		t.Fatal("Send() after close succeeded, want an error")
 	}
 }

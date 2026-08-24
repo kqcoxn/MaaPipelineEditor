@@ -6,12 +6,22 @@ import { Button, Spin, Tooltip, message } from "antd";
 import classNames from "classnames";
 
 import { useMFWStore } from "@/stores/connection/mfwStore";
-import { useConfigStore } from "@/stores/app/configStore";
+import {
+  getLiveScreenFrameInterval,
+  useConfigStore,
+} from "@/stores/app/configStore";
 import { usePanelOccupancy } from "../../../hooks/usePanelOccupancy";
 import { mfwProtocol } from "../../../services/server";
 
 // 连续截图失败阈值，超过此值自动断开设备连接
 const SCREENCAP_FAILURE_THRESHOLD = 3;
+const SCREENCAP_BUSY_RETRY_DELAY_MS = 250;
+const SCREENCAP_FAILURE_RETRY_DELAY_MS = 1000;
+const SCREENCAP_IDLE_RETRY_DELAY_MS = 1000;
+const SCREENCAP_BUSY_ERROR = "screencap busy";
+const ACTUAL_FRAME_RATE_SAMPLE_INTERVAL_MS = 1000;
+
+type ScreenshotRequestResult = "success" | "busy" | "failed" | "skipped";
 
 const LiveScreenPanel = memo(() => {
   const connectionStatus = useMFWStore((state) => state.connectionStatus);
@@ -29,9 +39,11 @@ const LiveScreenPanel = memo(() => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [actualFrameRate, setActualFrameRate] = useState(0);
   const isRequestingRef = useRef(false);
   const requestAbortControllerRef = useRef<AbortController | null>(null);
   const consecutiveFailuresRef = useRef(0);
+  const successfulFrameCountRef = useRef(0);
 
   // 页面不可见时暂停截图请求
   const isPageVisibleRef = useRef(document.visibilityState === "visible");
@@ -64,11 +76,10 @@ const LiveScreenPanel = memo(() => {
     }
   }, [clearConnection]);
 
-  // 定时截图请求
-  const requestScreenshot = useCallback(async () => {
-    if (!controllerId || isRequestingRef.current) return;
+  const requestScreenshot = useCallback(async (): Promise<ScreenshotRequestResult> => {
+    if (!controllerId || isRequestingRef.current) return "skipped";
     // 页面不可见时跳过请求
-    if (!isPageVisibleRef.current) return;
+    if (!isPageVisibleRef.current) return "skipped";
 
     isRequestingRef.current = true;
     const abortController = new AbortController();
@@ -81,20 +92,27 @@ const LiveScreenPanel = memo(() => {
         },
         abortController.signal,
       );
-      if (abortController.signal.aborted) return;
+      if (abortController.signal.aborted) return "skipped";
 
       if (result.success && result.image) {
         setScreenImage(result.image);
         setIsLoading(false);
         setHasError(false);
         consecutiveFailuresRef.current = 0;
+        successfulFrameCountRef.current++;
+        return "success";
+      } else if (result.error === SCREENCAP_BUSY_ERROR) {
+        return "busy";
       } else {
         handleScreenshotFailure();
+        return "failed";
       }
     } catch (error) {
-      if (!(error instanceof DOMException && error.name === "AbortError")) {
-        handleScreenshotFailure();
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return "skipped";
       }
+      handleScreenshotFailure();
+      return "failed";
     } finally {
       if (requestAbortControllerRef.current === abortController) {
         requestAbortControllerRef.current = null;
@@ -111,12 +129,42 @@ const LiveScreenPanel = memo(() => {
     // 重置状态
     setIsLoading(true);
     setHasError(false);
-    requestScreenshot();
+    let stopped = false;
+    let timerId: ReturnType<typeof setTimeout> | undefined;
+    const frameInterval = getLiveScreenFrameInterval(liveScreenRefreshRate);
 
-    const timerId = setInterval(requestScreenshot, liveScreenRefreshRate);
+    const scheduleNextFrame = (delay: number) => {
+      if (stopped) return;
+      timerId = setTimeout(captureNextFrame, delay);
+    };
+
+    const captureNextFrame = async () => {
+      const startedAt = performance.now();
+      const result = await requestScreenshot();
+      if (stopped) return;
+
+      if (result === "busy") {
+        scheduleNextFrame(SCREENCAP_BUSY_RETRY_DELAY_MS);
+        return;
+      }
+      if (result === "failed") {
+        scheduleNextFrame(SCREENCAP_FAILURE_RETRY_DELAY_MS);
+        return;
+      }
+      if (result === "skipped") {
+        scheduleNextFrame(SCREENCAP_IDLE_RETRY_DELAY_MS);
+        return;
+      }
+
+      const elapsed = performance.now() - startedAt;
+      scheduleNextFrame(Math.max(0, frameInterval - elapsed));
+    };
+
+    void captureNextFrame();
 
     return () => {
-      clearInterval(timerId);
+      stopped = true;
+      if (timerId !== undefined) clearTimeout(timerId);
       requestAbortControllerRef.current?.abort();
       requestAbortControllerRef.current = null;
       isRequestingRef.current = false;
@@ -127,6 +175,26 @@ const LiveScreenPanel = memo(() => {
     controllerId,
     requestScreenshot,
   ]);
+
+  useEffect(() => {
+    successfulFrameCountRef.current = 0;
+    setActualFrameRate(0);
+    if (!shouldRequestScreen) return;
+
+    let sampleStartedAt = performance.now();
+    const sampleTimerId = setInterval(() => {
+      const now = performance.now();
+      const elapsed = now - sampleStartedAt;
+      const measuredFrameRate = Math.round(
+        (successfulFrameCountRef.current * 1000) / elapsed,
+      );
+      successfulFrameCountRef.current = 0;
+      sampleStartedAt = now;
+      setActualFrameRate(measuredFrameRate);
+    }, ACTUAL_FRAME_RATE_SAMPLE_INTERVAL_MS);
+
+    return () => clearInterval(sampleTimerId);
+  }, [controllerId, shouldRequestScreen]);
 
   // 设备断开时清除画面
   useEffect(() => {
@@ -148,7 +216,15 @@ const LiveScreenPanel = memo(() => {
   return (
     <div className={panelClass}>
       <div className={style.header}>
-        <span className={style.title}>实时画面</span>
+        <div className={style.titleGroup}>
+          <span className={style.title}>实时画面</span>
+          <span
+            className={style.frameRate}
+            aria-label={`当前实际帧率 ${actualFrameRate} 帧每秒`}
+          >
+            {actualFrameRate} 帧/秒
+          </span>
+        </div>
         <div className={style.headerActions}>
           {hasError && !isCollapsed && (
             <span className={style.status}>截图异常</span>

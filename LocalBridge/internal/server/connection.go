@@ -17,6 +17,7 @@ type Connection struct {
 	done   chan struct{}
 	server *WebSocketServer
 	mu     sync.Mutex
+	closed bool
 	doneMu sync.Once
 }
 
@@ -40,6 +41,16 @@ func (c *Connection) closeDone() {
 	c.doneMu.Do(func() {
 		close(c.done)
 	})
+}
+
+func (c *Connection) closeSend() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.closed {
+		return
+	}
+	c.closed = true
+	close(c.send)
 }
 
 // 读取客户端消息
@@ -99,6 +110,9 @@ func (c *Connection) Send(msg models.Message) error {
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	if c.closed {
+		return websocket.ErrCloseSent
+	}
 
 	select {
 	case c.send <- data:

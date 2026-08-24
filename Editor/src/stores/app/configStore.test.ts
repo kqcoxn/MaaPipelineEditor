@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   configDefaults,
+  DEFAULT_LIVE_SCREEN_FRAME_RATE,
   DEFAULT_AI_REQUEST_TIMEOUT_MINUTES,
   DEFAULT_AI_TOKEN_BUDGET,
   getExportableConfigs,
+  getLiveScreenFrameInterval,
   initializeConfigCache,
   useConfigStore,
 } from "@/stores/app/configStore";
@@ -14,6 +16,32 @@ beforeEach(() => {
 });
 
 describe("config cache", () => {
+  it("defaults the live screen to 15 frames per second", () => {
+    expect(configDefaults.liveScreenRefreshRate).toBe(
+      DEFAULT_LIVE_SCREEN_FRAME_RATE,
+    );
+    expect(getLiveScreenFrameInterval(15)).toBeCloseTo(1000 / 15);
+  });
+
+  it("bounds invalid live screen frame rates", () => {
+    expect(getLiveScreenFrameInterval(0)).toBeCloseTo(1000 / 15);
+    expect(getLiveScreenFrameInterval(60)).toBeCloseTo(1000 / 60);
+    expect(getLiveScreenFrameInterval(61)).toBeCloseTo(1000 / 15);
+    expect(getLiveScreenFrameInterval(Number.NaN)).toBeCloseTo(1000 / 15);
+  });
+
+  it("resets the legacy millisecond refresh value to 15 fps", () => {
+    localStorage.setItem(
+      "_mpe_config",
+      JSON.stringify({ liveScreenRefreshRate: 1000 }),
+    );
+
+    const unsubscribe = initializeConfigCache();
+
+    expect(useConfigStore.getState().configs.liveScreenRefreshRate).toBe(15);
+    unsubscribe();
+  });
+
   it("defaults the Harness Token budget to 200k", () => {
     expect(configDefaults.aiTokenBudget).toBe(DEFAULT_AI_TOKEN_BUDGET);
     expect(useConfigStore.getState().configs.aiTokenBudget).toBe(200_000);
