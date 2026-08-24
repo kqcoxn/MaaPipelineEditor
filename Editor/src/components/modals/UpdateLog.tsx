@@ -25,6 +25,8 @@ const { Title, Text } = Typography;
 
 interface UpdateLogProps {
   open: boolean;
+  currentVersion: string;
+  lastOpenedVersion: string | null;
   onClose: () => void;
 }
 
@@ -116,6 +118,7 @@ const VersionTypeTag = ({ type }: { type: UpdateLogItem["type"] }) => (
 
 interface VersionTimelineProps {
   logs: UpdateLogItem[];
+  lastOpenedVersion: string | null;
   selectedPanel: SelectedPanel;
   onSelectForecast: () => void;
   onSelectVersion: (version: string) => void;
@@ -123,6 +126,7 @@ interface VersionTimelineProps {
 
 const VersionTimeline = ({
   logs,
+  lastOpenedVersion,
   selectedPanel,
   onSelectForecast,
   onSelectVersion,
@@ -157,10 +161,11 @@ const VersionTimeline = ({
       </button>
       <Timeline
         className={style.timeline}
-        items={logs.map((log) => {
+        items={logs.map((log, index) => {
           const isSelected =
             selectedPanel.kind === "version" &&
             log.version === selectedPanel.version;
+          const isLatest = index === 0;
 
           return {
             color: typeConfig[log.type].color,
@@ -179,6 +184,16 @@ const VersionTimeline = ({
                 <span className={style.versionButtonTop}>
                   <span className={style.versionNumber}>v{log.version}</span>
                   <VersionTypeTag type={log.type} />
+                  {isLatest && (
+                    <Tag color="cyan" variant="solid">
+                      当前版本
+                    </Tag>
+                  )}
+                  {log.version === lastOpenedVersion && (
+                    <Tag color="magenta" variant="solid">
+                      上次打开
+                    </Tag>
+                  )}
                 </span>
                 <span className={style.versionDate}>{log.date}</span>
               </button>
@@ -313,8 +328,17 @@ const ForecastPanel = ({
   </Card>
 );
 
-const UpdateLog = ({ open, onClose }: UpdateLogProps) => {
+const UpdateLog = ({
+  open,
+  currentVersion,
+  lastOpenedVersion,
+  onClose,
+}: UpdateLogProps) => {
   const latestVersion = updateLogs[0]?.version ?? "";
+  const versionTransition =
+    lastOpenedVersion && lastOpenedVersion !== currentVersion
+      ? `（由 v${lastOpenedVersion} 更新至 v${currentVersion}）`
+      : null;
   const [selectedPanel, setSelectedPanel] = useState<SelectedPanel>({
     kind: "version",
     version: latestVersion,
@@ -341,6 +365,11 @@ const UpdateLog = ({ open, onClose }: UpdateLogProps) => {
         <div className={style.modalTitle}>
           <ClockCircleOutlined className={style.modalTitleIcon} />
           <span>更新日志</span>
+          {versionTransition && (
+            <Text type="secondary" className={style.modalTitleDescription}>
+              {versionTransition}
+            </Text>
+          )}
         </div>
       }
       open={open}
@@ -379,6 +408,7 @@ const UpdateLog = ({ open, onClose }: UpdateLogProps) => {
         <div className={style.mainGrid}>
           <VersionTimeline
             logs={updateLogs}
+            lastOpenedVersion={lastOpenedVersion}
             selectedPanel={selectedPanel}
             onSelectForecast={() => setSelectedPanel({ kind: "forecast" })}
             onSelectVersion={(version) =>

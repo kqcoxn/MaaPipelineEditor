@@ -96,10 +96,10 @@ export const nextPreview: ForecastSection = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "1.8.2",
-    date: "2026-8-23",
+    date: "2026-8",
     type: "perf",
     updates: {
-      perfs: ["优化日志导出按钮交互体验"],
+      perfs: ["优化日志导出按钮交互体验", "优化更新日志面板视觉引导"],
     },
   },
   {

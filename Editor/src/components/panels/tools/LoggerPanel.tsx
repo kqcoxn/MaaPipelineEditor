@@ -13,7 +13,7 @@ import {
   ArrowUpOutlined,
   DownloadOutlined,
 } from "@ant-design/icons";
-import { message } from "antd";
+import { message, Tooltip } from "antd";
 import { useLoggerStore, type LogEntry } from "@/stores/app/loggerStore";
 import {
   useOperationLogStore,
@@ -267,14 +267,15 @@ export function LoggerPanel() {
   }, []);
 
   const exportButton = (
-    <button
-      className={styles.exportBtn}
-      onClick={(event) => { event.stopPropagation(); handleExport(); }}
-      title="导出全部日志"
-      disabled={exporting}
-    >
-      <DownloadOutlined spin={exporting} />
-    </button>
+    <Tooltip placement="right" title="导出日志">
+      <button
+        className={styles.exportBtn}
+        onClick={(event) => { event.stopPropagation(); handleExport(); }}
+        disabled={exporting}
+      >
+        <DownloadOutlined spin={exporting} />
+      </button>
+    </Tooltip>
   );
 
   // 收起态最新条目（根据当前 activeTab 显示对应日志）

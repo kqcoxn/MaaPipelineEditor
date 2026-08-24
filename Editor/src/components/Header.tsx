@@ -266,6 +266,9 @@ function Header() {
   const { isDark, toggleTheme } = useTheme();
   const { isEmbed } = useEmbedMode();
   const [updateLogOpen, setUpdateLogOpen] = useState(false);
+  const [lastOpenedVersion, setLastOpenedVersion] = useState<string | null>(
+    null,
+  );
   const {
     isActive: connectionPanelOpen,
     activate: openConnectionPanel,
@@ -317,6 +320,7 @@ function Header() {
     const currentVersion = globalConfig.version;
     if (lastVersion === currentVersion) return;
 
+    setLastOpenedVersion(lastVersion);
     let openTimer: number | null = null;
     if (!isEmbed) {
       openTimer = window.setTimeout(() => {
@@ -506,7 +510,12 @@ function Header() {
           </div>
         </div>
       </div>
-      <UpdateLog open={updateLogOpen} onClose={() => setUpdateLogOpen(false)} />
+      <UpdateLog
+        open={updateLogOpen}
+        currentVersion={globalConfig.version}
+        lastOpenedVersion={lastOpenedVersion}
+        onClose={() => setUpdateLogOpen(false)}
+      />
       <ConnectionPanel
         open={connectionPanelOpen}
         onClose={closeConnectionPanel}
