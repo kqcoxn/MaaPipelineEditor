@@ -12,6 +12,15 @@
       "mainContent": "MaaFW 协议、公开 API、运行时、示例、测试与核心源码"
     },
     {
+      "name": "MFAAvalonia",
+      "directory": "MFAAvalonia",
+      "relativePath": "../maa-refs/MFAAvalonia",
+      "repository": "https://github.com/MaaXYZ/MFAAvalonia",
+      "repositoryAliases": [],
+      "category": "通用客户端",
+      "mainContent": "基于 Avalonia UI 与 SukiUI 的 PI V2 通用 GUI，以及 MaaFW 资源项目发布后的用户配置与运行场景"
+    },
+    {
       "name": "MFW-PyQt6",
       "directory": "MFW-PyQt6",
       "relativePath": "../maa-refs/MFW-PyQt6",
