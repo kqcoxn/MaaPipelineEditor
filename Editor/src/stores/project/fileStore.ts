@@ -14,6 +14,7 @@ import {
   pipelineToFlow,
   flowToPipelineString,
   flowToSeparatedStrings,
+  getConfigFileName,
   mergePipelineAndConfig,
 } from "@/core/parser";
 import { localServer } from "@/services/server";
@@ -815,13 +816,16 @@ export const useFileStore = create<FileState>()((set) => ({
         const directory = pipelinePath.substring(0, lastSlashIndex + 1);
         const fileName = pipelinePath.substring(lastSlashIndex + 1);
 
-        // 如果已经是 .mpe.json 文件，直接返回
-        if (fileName.endsWith(".mpe.json") || fileName.endsWith(".mpe.jsonc")) {
+        // 只有带前缀点号的文件才是分离配置文件。
+        // 例如 search.mpe.json 仍可能是合法的 Pipeline 文件名，不能与配置文件混用。
+        if (
+          fileName.startsWith(".") &&
+          (fileName.endsWith(".mpe.json") || fileName.endsWith(".mpe.jsonc"))
+        ) {
           return pipelinePath;
         }
 
-        const baseName = fileName.replace(/\.(json|jsonc)$/i, "");
-        return `${directory}.${baseName}.mpe.json`;
+        return `${directory}${getConfigFileName(fileName)}`;
       };
 
       // 根据保存模式确定要等待 ACK 的文件路径

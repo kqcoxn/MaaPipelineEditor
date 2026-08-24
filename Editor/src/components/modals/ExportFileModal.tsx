@@ -6,6 +6,7 @@ import { useConfigStore } from "@/stores/app/configStore";
 import {
   flowToPipelineString,
   flowToSeparatedStrings,
+  getConfigFileName,
 } from "../../core/parser";
 
 interface ExportFileModalProps {
@@ -45,29 +46,40 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
         format: "json",
       });
 
-      // 分离模式默认导出两个文件
-      setExportTarget(configHandlingMode === "separated" ? "both" : "pipeline");
-      setPreviewFileName(`${baseName}.json`);
+      // 分离模式默认导出两个文件，并在预览中展示两个实际文件名
+      const initialExportTarget =
+        configHandlingMode === "separated" ? "both" : "pipeline";
+      const pipelineFileName = `${baseName}.json`;
+      const configFileName = getConfigFileName(pipelineFileName);
+      setExportTarget(initialExportTarget);
+      setPreviewFileName(
+        initialExportTarget === "both"
+          ? `${pipelineFileName} + ${configFileName}`
+          : pipelineFileName
+      );
     }
   }, [visible, form, currentFileName, configHandlingMode]);
 
   // 更新预览文件名
-  const updatePreview = () => {
+  const updatePreview = (
+    nextExportTarget: "pipeline" | "config" | "both" = exportTarget
+  ) => {
     const fileName = form.getFieldValue("fileName") || "";
     const format = form.getFieldValue("format") || "json";
 
     if (fileName.trim()) {
-      if (configHandlingMode === "separated" && exportTarget === "both") {
-        setPreviewFileName(
-          `${fileName.trim()}.${format} + ${fileName.trim()}.mpe.json`
-        );
+      const pipelineFileName = `${fileName.trim()}.${format}`;
+      const configFileName = getConfigFileName(pipelineFileName);
+
+      if (configHandlingMode === "separated" && nextExportTarget === "both") {
+        setPreviewFileName(`${pipelineFileName} + ${configFileName}`);
       } else if (
         configHandlingMode === "separated" &&
-        exportTarget === "config"
+        nextExportTarget === "config"
       ) {
-        setPreviewFileName(`${fileName.trim()}.mpe.json`);
+        setPreviewFileName(configFileName);
       } else {
-        setPreviewFileName(`${fileName.trim()}.${format}`);
+        setPreviewFileName(pipelineFileName);
       }
     } else {
       setPreviewFileName("");
@@ -87,7 +99,7 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
   // 处理导出目标变化
   const handleExportTargetChange = (value: "pipeline" | "config" | "both") => {
     setExportTarget(value);
-    updatePreview();
+    updatePreview(value);
   };
 
   // 验证文件名
@@ -109,21 +121,23 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
       if (configHandlingMode === "separated") {
         // 分离模式导出
         const { pipelineString, configString } = flowToSeparatedStrings();
+        const pipelineFileName = `${trimmedName}.${format}`;
+        const configFileName = getConfigFileName(pipelineFileName);
 
         if (exportTarget === "both" || exportTarget === "pipeline") {
-          await exportFile(`${trimmedName}.${format}`, pipelineString, format);
+          await exportFile(pipelineFileName, pipelineString, format);
         }
 
         if (exportTarget === "both" || exportTarget === "config") {
-          await exportFile(`${trimmedName}.mpe.json`, configString, "json");
+          await exportFile(configFileName, configString, "json");
         }
 
         message.success(
           exportTarget === "both"
-            ? `已导出 ${trimmedName}.${format} 和 ${trimmedName}.mpe.json`
+            ? `已导出 ${pipelineFileName} 和 ${configFileName}`
             : exportTarget === "pipeline"
-            ? `已导出 ${trimmedName}.${format}`
-            : `已导出 ${trimmedName}.mpe.json`
+            ? `已导出 ${pipelineFileName}`
+            : `已导出 ${configFileName}`
         );
       } else {
         // 集成模式导出
