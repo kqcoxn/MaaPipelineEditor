@@ -57,7 +57,7 @@ func (h *UtilityHandler) handleExportLogs(conn *server.Connection, msg models.Me
 			return nil
 		}
 		if entry.IsDir() {
-			if strings.EqualFold(entry.Name(), "vision") {
+			if isMPELogExcludedDirectory(entry.Name()) {
 				return filepath.SkipDir
 			}
 			return nil
@@ -86,6 +86,10 @@ func (h *UtilityHandler) handleExportLogs(conn *server.Connection, msg models.Me
 		"content":  base64.StdEncoding.EncodeToString(buf.Bytes()),
 		"message":  "日志导出成功",
 	}})
+}
+
+func isMPELogExcludedDirectory(name string) bool {
+	return strings.EqualFold(name, "vision") || strings.EqualFold(name, "on_error")
 }
 
 // handleExportMFWLogs 按 MFAAvalonia 日志包的目录结构导出 MaaFramework 日志和调试图片。

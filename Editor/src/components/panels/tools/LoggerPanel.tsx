@@ -266,8 +266,8 @@ export function LoggerPanel() {
     });
   }, []);
 
-  const exportButton = (
-    <Tooltip placement="right" title="导出日志">
+  const exportButton = !isEmbed ? (
+    <Tooltip placement="right" title="导出 MPE 日志">
       <button
         className={styles.exportBtn}
         onClick={(event) => { event.stopPropagation(); handleExport(); }}
@@ -276,7 +276,7 @@ export function LoggerPanel() {
         <DownloadOutlined spin={exporting} />
       </button>
     </Tooltip>
-  );
+  ) : null;
 
   // 收起态最新条目（根据当前 activeTab 显示对应日志）
   const latestOpLog = opLogs.length > 0 ? opLogs[opLogs.length - 1] : null;

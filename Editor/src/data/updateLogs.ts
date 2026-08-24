@@ -96,13 +96,13 @@ export const nextPreview: ForecastSection = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "1.8.2",
-    date: "2026-8",
+    date: "2026-8-25",
     type: "perf",
     updates: {
       features: ["✈️ 调试日志面板添加 MLA 链接与日志快捷打包功能"],
       perfs: [
         "优化实时渲染视图交互体验",
-        "优化日志导出按钮交互体验",
+        "优化日志导出按钮交互体验与导出范围",
         "优化更新日志面板视觉引导",
       ],
       fixes: ["修复分离导出模式配置文件无隐藏前缀的问题"],

@@ -69,3 +69,19 @@ func TestBuildMFWLogArchiveRejectsEmptyDirectory(t *testing.T) {
 		t.Fatal("buildMFWLogArchive() error = nil, want non-nil")
 	}
 }
+
+func TestMPELogExcludedDirectory(t *testing.T) {
+	tests := map[string]bool{
+		"vision":   true,
+		"VISION":   true,
+		"on_error": true,
+		"ON_ERROR": true,
+		"logs":     false,
+	}
+
+	for name, want := range tests {
+		if got := isMPELogExcludedDirectory(name); got != want {
+			t.Errorf("isMPELogExcludedDirectory(%q) = %t, want %t", name, got, want)
+		}
+	}
+}
