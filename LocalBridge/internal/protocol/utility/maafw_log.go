@@ -20,6 +20,15 @@ import (
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/pkg/models"
 )
 
+var mfwLogImageExtensions = map[string]struct{}{
+	".jpg":  {},
+	".jpeg": {},
+	".png":  {},
+	".bmp":  {},
+	".gif":  {},
+	".webp": {},
+}
+
 // handleExportLogs 将后端日志目录和前端内存日志汇总为 ZIP。
 func (h *UtilityHandler) handleExportLogs(conn *server.Connection, msg models.Message) {
 	logDir, _ := resolveMaafwLogPath()
@@ -77,6 +86,102 @@ func (h *UtilityHandler) handleExportLogs(conn *server.Connection, msg models.Me
 		"content":  base64.StdEncoding.EncodeToString(buf.Bytes()),
 		"message":  "日志导出成功",
 	}})
+}
+
+// handleExportMFWLogs 按 MFAAvalonia 日志包的目录结构导出 MaaFramework 日志和调试图片。
+func (h *UtilityHandler) handleExportMFWLogs(conn *server.Connection, _ models.Message) {
+	logDir, _ := resolveMaafwLogPath()
+	archive, fileCount, err := buildMFWLogArchive(logDir)
+	if err != nil {
+		logger.Error("Utility", "导出 MFW 日志失败: %v", err)
+		conn.Send(models.Message{Path: "/lte/utility/mfw_logs_exported", Data: map[string]interface{}{
+			"success": false,
+			"message": "MFW 日志导出失败: " + err.Error(),
+		}})
+		return
+	}
+
+	conn.Send(models.Message{Path: "/lte/utility/mfw_logs_exported", Data: map[string]interface{}{
+		"success":  true,
+		"filename": fmt.Sprintf("log_%s.zip", time.Now().Format("20060102_150405")),
+		"content":  base64.StdEncoding.EncodeToString(archive),
+		"message":  fmt.Sprintf("已打包 %d 个 MFW 日志及图片文件", fileCount),
+	}})
+}
+
+func buildMFWLogArchive(logDir string) ([]byte, int, error) {
+	if info, err := os.Stat(logDir); err != nil {
+		if os.IsNotExist(err) {
+			return nil, 0, fmt.Errorf("日志目录不存在，可能尚未执行过调试任务")
+		}
+		return nil, 0, fmt.Errorf("读取日志目录失败: %w", err)
+	} else if !info.IsDir() {
+		return nil, 0, fmt.Errorf("日志路径不是目录")
+	}
+
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	fileCount := 0
+	walkErr := filepath.WalkDir(logDir, func(path string, entry os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			logger.Warn("Utility", "导出 MFW 日志时跳过 %s: %v", path, walkErr)
+			return nil
+		}
+		if entry.IsDir() || !isMFWLogPackageFile(entry.Name()) {
+			return nil
+		}
+
+		data, err := os.ReadFile(path)
+		if err != nil {
+			logger.Warn("Utility", "导出 MFW 日志时跳过 %s: %v", path, err)
+			return nil
+		}
+		relativePath, err := filepath.Rel(logDir, path)
+		if err != nil {
+			return nil
+		}
+		header := &zip.FileHeader{
+			Name:   filepath.ToSlash(filepath.Join("debug", relativePath)),
+			Method: zip.Deflate,
+		}
+		if isMFWLogImage(entry.Name()) {
+			header.Method = zip.Store
+		}
+		writer, err := zw.CreateHeader(header)
+		if err != nil {
+			return fmt.Errorf("创建压缩包条目失败: %w", err)
+		}
+		if _, err := writer.Write(data); err != nil {
+			return fmt.Errorf("写入压缩包条目失败: %w", err)
+		}
+		fileCount++
+		return nil
+	})
+	if walkErr != nil {
+		_ = zw.Close()
+		return nil, 0, fmt.Errorf("遍历日志目录失败: %w", walkErr)
+	}
+	if fileCount == 0 {
+		_ = zw.Close()
+		return nil, 0, fmt.Errorf("未找到可导出的 MFW 日志或图片")
+	}
+	if err := zw.Close(); err != nil {
+		return nil, 0, fmt.Errorf("完成压缩包失败: %w", err)
+	}
+	return buf.Bytes(), fileCount, nil
+}
+
+func isMFWLogPackageFile(name string) bool {
+	lowerName := strings.ToLower(name)
+	return strings.HasPrefix(lowerName, "maa.log") ||
+		strings.HasPrefix(lowerName, "maafw.log") ||
+		strings.HasPrefix(lowerName, "custom.log") ||
+		isMFWLogImage(lowerName)
+}
+
+func isMFWLogImage(name string) bool {
+	_, ok := mfwLogImageExtensions[strings.ToLower(filepath.Ext(name))]
+	return ok
 }
 
 // maafw.log 文件名

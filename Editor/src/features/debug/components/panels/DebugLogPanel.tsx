@@ -1,7 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Button, Empty, Space, Tag, Typography, message } from "antd";
+import {
+  Alert,
+  App as AntdApp,
+  Button,
+  Empty,
+  Space,
+  Tag,
+  Typography,
+} from "antd";
 import {
   CopyOutlined,
+  DownloadOutlined,
   FolderOpenOutlined,
   ReloadOutlined,
 } from "@ant-design/icons";
@@ -10,6 +19,7 @@ import { DebugSection } from "../DebugSection";
 import { mfwProtocol } from "../../../../services/server";
 import { useWSStore } from "@/stores/connection/wsStore";
 import type { DebugModalController } from "../../hooks/useDebugModalController";
+import { MaaLogAnalyzerIntro } from "../MaaLogAnalyzerIntro";
 
 const { Text } = Typography;
 
@@ -62,8 +72,10 @@ export function DebugLogPanel({
   controller: DebugModalController;
 }) {
   void controller;
+  const { message } = AntdApp.useApp();
   const connected = useWSStore((state) => state.connected);
   const [logState, setLogState] = useState<MaafwLogState>(INITIAL_STATE);
+  const [exporting, setExporting] = useState(false);
   const viewerRef = useRef<HTMLPreElement>(null);
 
   const refreshLog = useCallback(() => {
@@ -80,7 +92,7 @@ export function DebugLogPanel({
         message: "发送读取 maafw.log 请求失败",
       }));
     }
-  }, [connected]);
+  }, [connected, message]);
 
   useEffect(() => {
     const unsubscribeContent = mfwProtocol.onMaafwLogContent((data) => {
@@ -114,11 +126,29 @@ export function DebugLogPanel({
         message.error(data.message);
       }
     });
+    const unsubscribeExported = mfwProtocol.onMFWLogsExported((data) => {
+      setExporting(false);
+      if (!data.success || !data.content) {
+        message.error(data.message ?? "MFW 日志打包失败");
+        return;
+      }
+
+      const binary = atob(data.content);
+      const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+      const url = URL.createObjectURL(new Blob([bytes], { type: "application/zip" }));
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = data.filename ?? "mfw-logs.zip";
+      anchor.click();
+      URL.revokeObjectURL(url);
+      message.success(data.message ?? "MFW 日志打包成功");
+    });
     return () => {
       unsubscribeContent();
       unsubscribeOpened();
+      unsubscribeExported();
     };
-  }, []);
+  }, [message]);
 
   // 面板首次挂载且已连接时自动读取
   useEffect(() => {
@@ -144,8 +174,23 @@ export function DebugLogPanel({
     }
   };
 
+  const exportMFWLogs = () => {
+    if (!connected) {
+      message.warning("未连接本地服务");
+      return;
+    }
+    setExporting(true);
+    if (!mfwProtocol.requestExportMFWLogs()) {
+      setExporting(false);
+      message.error("发送 MFW 日志打包请求失败");
+    }
+  };
+
   return (
     <Space orientation="vertical" size={14} style={{ width: "100%" }}>
+      <DebugSection title="关于调试日志">
+        <MaaLogAnalyzerIntro />
+      </DebugSection>
       {logState.status === "error" && (
         <Alert
           type="error"
@@ -166,6 +211,13 @@ export function DebugLogPanel({
             </Button>
             <Button icon={<FolderOpenOutlined />} onClick={openDir}>
               打开所在文件夹
+            </Button>
+            <Button
+              icon={<DownloadOutlined />}
+              loading={exporting}
+              onClick={exportMFWLogs}
+            >
+              一键打包 MFW 日志
             </Button>
             {logState.status === "loaded" && logState.content && (
               <Button

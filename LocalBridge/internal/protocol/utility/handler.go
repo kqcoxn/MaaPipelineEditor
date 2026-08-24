@@ -70,6 +70,9 @@ func (h *UtilityHandler) Handle(msg models.Message, conn *server.Connection) *mo
 	case "/etl/utility/export_logs":
 		h.handleExportLogs(conn, msg)
 
+	case "/etl/utility/export_mfw_logs":
+		h.handleExportMFWLogs(conn, msg)
+
 	default:
 		logger.Warn("Utility", "未知的Utility路由: %s", path)
 		h.sendError(conn, errors.NewInvalidRequestError("未知的Utility路由: "+path))
