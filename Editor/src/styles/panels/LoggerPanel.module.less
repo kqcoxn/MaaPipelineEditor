@@ -60,6 +60,10 @@
     background: rgba(255, 255, 255, 0.95);
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
   }
+
+  .exportBtn {
+    bottom: 3px;
+  }
 }
 
 // 展开态
@@ -195,13 +199,13 @@
 
 .exportBtn {
   position: absolute;
-  right: -48px;
+  right: -40px;
   bottom: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 33px;
+  height: 33px;
   padding: 0;
   color: #1677ff;
   background: #fff;
@@ -209,12 +213,19 @@
   border-radius: 50%;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   cursor: pointer;
-  transition: all 0.15s ease;
+  opacity: 0.75;
+  transition:
+    bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    opacity 0.15s ease;
 
   &:hover:not(:disabled) {
     color: #0958d9;
     border-color: #91caff;
     box-shadow: 0 3px 10px rgba(22, 119, 255, 0.25);
+    opacity: 1;
   }
 
   &:disabled {

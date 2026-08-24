@@ -98,7 +98,9 @@ export const updateLogs: UpdateLogItem[] = [
     version: "1.8.2",
     date: "2026-8-23",
     type: "perf",
-    updates: {},
+    updates: {
+      perfs: ["优化日志导出按钮交互体验"],
+    },
   },
   {
     version: "1.8.1",
