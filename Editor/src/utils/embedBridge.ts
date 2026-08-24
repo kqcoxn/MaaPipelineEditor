@@ -86,6 +86,18 @@ export interface EmbedSaveRequestPayload {
   force: boolean;
 }
 
+export type EmbedSaveMode = "integrated" | "separated";
+
+/** MPE 生成、宿主执行写入的嵌入保存数据。 */
+export interface EmbedSaveDataPayload {
+  fileName: string;
+  mode: EmbedSaveMode;
+  /** 集成格式数据；分离格式下作为旧版宿主 fallback 保留。 */
+  data?: unknown;
+  pipeline?: unknown;
+  config?: unknown;
+}
+
 export interface EmbedSaveResultPayload {
   success: boolean;
   code?: string;

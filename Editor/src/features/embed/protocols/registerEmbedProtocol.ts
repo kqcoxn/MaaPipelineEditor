@@ -1,5 +1,10 @@
-import { flowToPipelineString, pipelineToFlow } from "../../../core/parser";
+import {
+  flowToPipelineString,
+  flowToSeparatedStrings,
+  pipelineToFlow,
+} from "../../../core/parser";
 import { useEmbedStore } from "@/stores/embed/embedStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import { useFileStore } from "@/stores/project/fileStore";
 import { useFlowStore } from "../../../stores/flow";
 import {
@@ -12,6 +17,7 @@ import {
   type EmbedAnchorDefinition,
   type EmbedHostInfo,
   type EmbedNodeNavigationResultPayload,
+  type EmbedSaveDataPayload,
   type EmbedSaveResultPayload,
   type EmbedUIConfig,
 } from "../../../utils/embedBridge";
@@ -90,6 +96,13 @@ function sendNodeNotFound(nodeId: string): void {
     code: "node_not_found",
     message: `Node not found: ${nodeId}`,
   });
+}
+
+function getCurrentCanvasExportString(): string {
+  const mode = useConfigStore.getState().configs.configHandlingMode;
+  return mode === "separated"
+    ? flowToPipelineString({ forceExportConfig: true })
+    : flowToPipelineString();
 }
 
 export function registerEmbedProtocol(): Cleanup {
@@ -171,11 +184,39 @@ export function registerEmbedProtocol(): Cleanup {
     }),
     onParentMessage("mpe:save", (_payload, requestId) => {
       try {
-        const pipeline = flowToPipelineString();
-        const data = JSON.parse(pipeline) as unknown;
+        const mode = useConfigStore.getState().configs.configHandlingMode;
         const fileName = useFileStore.getState().currentFile.fileName;
-        useEmbedStore.getState().captureSavePipeline(requestId, pipeline);
-        sendToParent("mpe:saveData", { fileName, data }, requestId);
+        let payload: EmbedSaveDataPayload;
+
+        if (mode === "separated") {
+          const fullDataString = flowToPipelineString({
+            forceExportConfig: true,
+          });
+          const fullData = JSON.parse(fullDataString) as unknown;
+          const { pipelineString, configString } = flowToSeparatedStrings();
+          payload = {
+            fileName,
+            mode: "separated",
+            data: fullData,
+            pipeline: JSON.parse(pipelineString) as unknown,
+            config: JSON.parse(configString) as unknown,
+          };
+          useEmbedStore
+            .getState()
+            .captureSavePipeline(requestId, fullDataString);
+        } else {
+          const dataString = flowToPipelineString();
+          payload = {
+            fileName,
+            mode: "integrated",
+            data: JSON.parse(dataString) as unknown,
+          };
+          useEmbedStore
+            .getState()
+            .captureSavePipeline(requestId, dataString);
+        }
+
+        sendToParent("mpe:saveData", payload, requestId);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         clearOperationTimeout(requestId);
@@ -205,7 +246,7 @@ export function registerEmbedProtocol(): Cleanup {
       useEmbedStore.getState().finishSave(
         requestId,
         result.success === true,
-        flowToPipelineString(),
+        getCurrentCanvasExportString(),
         result.message ?? result.error,
       );
     }),
@@ -223,7 +264,7 @@ export function registerEmbedProtocol(): Cleanup {
         .finishReload(requestId, false, error.message ?? "宿主同步失败");
       useEmbedStore
         .getState()
-        .finishSave(requestId, false, flowToPipelineString(), error.message);
+        .finishSave(requestId, false, getCurrentCanvasExportString(), error.message);
     }),
     onParentMessage("mpe:selectNode", (payload) => {
       const { nodeId } = payload as { nodeId: string };

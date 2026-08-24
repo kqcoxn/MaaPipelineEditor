@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useEmbedStore } from "@/stores/embed/embedStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import { useFlowStore } from "../../../stores/flow";
 import {
   requestHostReload,
@@ -8,6 +9,7 @@ import {
 import { registerEmbedProtocol } from "./registerEmbedProtocol";
 import { showEmbedSaveConflict } from "../components/saveConflict";
 import { crossFileService } from "../../../services/crossFileService";
+import { NodeTypeEnum } from "../../../components/flow/nodes";
 
 vi.mock("../components/saveConflict", () => ({
   showEmbedSaveConflict: vi.fn(),
@@ -20,6 +22,7 @@ describe("registerEmbedProtocol", () => {
   beforeEach(() => {
     window.history.replaceState({}, "", "/?embed=true&origin=test-host");
     useEmbedStore.getState().reset();
+    useConfigStore.getState().resetAllConfigs();
     useFlowStore.getState().replace([], [], { skipHistory: true });
     useFlowStore.getState().clearHistory();
     postMessage = vi.fn();
@@ -32,6 +35,7 @@ describe("registerEmbedProtocol", () => {
     cleanup = undefined;
     vi.restoreAllMocks();
     vi.useRealTimers();
+    useConfigStore.getState().resetAllConfigs();
   });
 
   function dispatchParentMessage(
@@ -180,10 +184,60 @@ describe("registerEmbedProtocol", () => {
     expect(postMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         type: "mpe:saveData",
-        payload: expect.objectContaining({ data: expect.any(Object) }),
+        payload: expect.objectContaining({
+          mode: "integrated",
+          data: expect.any(Object),
+        }),
       }),
       "*",
     );
+  });
+
+  it("sends separated pipeline and MPE config when configured", () => {
+    useConfigStore.getState().setConfig("configHandlingMode", "separated");
+    useFlowStore.getState().addNode({ type: NodeTypeEnum.Pipeline });
+    cleanup = registerEmbedProtocol();
+    dispatchParentMessage("mpe:init", { capabilities: {}, ui: {} });
+
+    dispatchParentMessage("mpe:save", {}, "save-separated");
+
+    const message = postMessage.mock.calls
+      .map(([value]) => value)
+      .find((value) => value.type === "mpe:saveData");
+    expect(message.payload).toEqual(
+      expect.objectContaining({
+        fileName: expect.any(String),
+        mode: "separated",
+        pipeline: expect.any(Object),
+        config: expect.objectContaining({
+          file_config: expect.any(Object),
+          node_configs: expect.any(Object),
+        }),
+      }),
+    );
+    expect(Object.keys(message.payload.pipeline)).not.toContain(
+      "$__mpe_config_未命名",
+    );
+    expect(
+      JSON.stringify(message.payload.pipeline),
+    ).not.toContain("$__mpe_code");
+  });
+
+  it("does not export MPE fields in none mode", () => {
+    useConfigStore.getState().setConfig("configHandlingMode", "none");
+    useFlowStore.getState().addNode({ type: NodeTypeEnum.Pipeline });
+    cleanup = registerEmbedProtocol();
+    dispatchParentMessage("mpe:init", { capabilities: {}, ui: {} });
+
+    dispatchParentMessage("mpe:save", {}, "save-none");
+
+    const message = postMessage.mock.calls
+      .map(([value]) => value)
+      .find((value) => value.type === "mpe:saveData");
+    expect(message.payload).toEqual(
+      expect.objectContaining({ mode: "integrated", data: expect.any(Object) }),
+    );
+    expect(JSON.stringify(message.payload.data)).not.toContain("$__mpe");
   });
 
   it("completes a host save with the matching request id", async () => {
