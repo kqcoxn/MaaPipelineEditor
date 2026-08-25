@@ -81,10 +81,27 @@ export function useDebugRunStatusTracker(): void {
           ? notification.error
           : notification.warning;
 
+    const runMeta = `模式：${modeLabel}${durationMs !== undefined ? ` | 耗时：${formatDuration(durationMs)}` : ""}`;
+
     method({
       key: notifyKey,
       title: `调试${statusLabel}`,
-      description: `模式：${modeLabel}${durationMs !== undefined ? ` | 耗时：${formatDuration(durationMs)}` : ""}`,
+      description: (
+        <div style={{ display: "grid", gap: 4 }}>
+          <span>{runMeta}</span>
+          {latest.failure?.message && (
+            <span
+              style={{
+                color: "#cf1322",
+                overflowWrap: "anywhere",
+                whiteSpace: "pre-wrap",
+              }}
+            >
+              原因：{latest.failure.message}
+            </span>
+          )}
+        </div>
+      ),
       duration: 6,
       placement: "top",
       actions: (

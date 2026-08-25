@@ -101,6 +101,7 @@ export const updateLogs: UpdateLogItem[] = [
     updates: {
       features: ["✈️ 调试日志面板添加 MLA 链接与日志快捷打包功能"],
       perfs: [
+        "优化调试时 mfw 错误的上报提示",
         "优化实时渲染视图交互体验",
         "优化日志导出按钮交互体验与导出范围",
         "优化更新日志面板视觉引导",

@@ -263,6 +263,16 @@ func (r *Runner) failStart(
 	eventSender EventSender,
 	snapshotSender SnapshotSender,
 ) {
+	failure := newRunFailure(err, "debug.run.start_failed")
+	r.emit(eventSender, protocol.Event{
+		SessionID: sessionID,
+		RunID:     runID,
+		Source:    failure.Source,
+		Kind:      "diagnostic",
+		Phase:     "failed",
+		Status:    "failed",
+		Data:      failure.diagnosticData(),
+	})
 	snapshot, snapshotErr := r.sessions.SetFailed(sessionID)
 	if snapshotErr == nil {
 		sendSnapshot(snapshotSender, snapshot)
@@ -274,9 +284,7 @@ func (r *Runner) failStart(
 		Kind:      "session",
 		Phase:     "failed",
 		Status:    "failed",
-		Data: map[string]interface{}{
-			"error": err.Error(),
-		},
+		Data:      failure.sessionData(nil),
 	})
 }
 
@@ -334,12 +342,20 @@ func (r *Runner) wait(run *Run, eventSender EventSender, snapshotSender Snapshot
 		return
 	}
 
-	data := map[string]interface{}{
-		"status": result.Status,
+	failureErr := result.Err
+	if failureErr == nil {
+		failureErr = fmt.Errorf("MaaFramework 任务执行失败，状态：%s", result.Status)
 	}
-	if result.Err != nil {
-		data["error"] = result.Err.Error()
-	}
+	failure := newRunFailure(failureErr, "debug.run.failed")
+	r.emit(eventSender, protocol.Event{
+		SessionID: run.SessionID,
+		RunID:     run.ID,
+		Source:    failure.Source,
+		Kind:      "diagnostic",
+		Phase:     "failed",
+		Status:    "failed",
+		Data:      failure.diagnosticData(),
+	})
 	terminalEvent, ok := r.appendTerminalEventWithPerformanceSummary(run, protocol.Event{
 		SessionID: run.SessionID,
 		RunID:     run.ID,
@@ -347,7 +363,9 @@ func (r *Runner) wait(run *Run, eventSender EventSender, snapshotSender Snapshot
 		Kind:      "session",
 		Phase:     "failed",
 		Status:    "failed",
-		Data:      data,
+		Data: failure.sessionData(map[string]interface{}{
+			"status": result.Status,
+		}),
 	})
 	snapshot, err := r.sessions.SetFailed(run.SessionID)
 	if err == nil {

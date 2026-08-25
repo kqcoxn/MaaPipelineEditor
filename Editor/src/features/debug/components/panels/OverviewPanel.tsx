@@ -287,6 +287,8 @@ export function OverviewPanel({
   }, [nodeExecutionResolverNodes]);
   const overrideDefaultCollapsed =
     !hasDebugPipelineOverrideDraftContent(overrideDraft);
+  const showLastError =
+    lastError && lastError.message !== summary.failure?.message;
 
   useEffect(() => {
     if (!overrideEditorModel) {
@@ -310,12 +312,28 @@ export function OverviewPanel({
           description={capabilityError}
         />
       )}
-      {lastError && (
+      {showLastError && (
         <Alert
           type="error"
           showIcon
           title={lastError.code}
           description={lastError.message}
+        />
+      )}
+      {summary.failure && (
+        <Alert
+          type="error"
+          showIcon
+          title={
+            summary.failure.source === "maafw"
+              ? "MaaFramework 运行错误"
+              : "调试运行失败"
+          }
+          description={
+            <span style={{ overflowWrap: "anywhere", whiteSpace: "pre-wrap" }}>
+              {summary.failure.message}
+            </span>
+          }
         />
       )}
       <DebugSection title="当前 / 最新运行">

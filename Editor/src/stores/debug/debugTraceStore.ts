@@ -7,9 +7,11 @@ import {
 import type {
   DebugEvent,
   DebugPerformanceSummary,
+  DebugRunFailure,
   DebugRunMode,
   DebugTraceReplayStatus,
 } from "@/features/debug/types";
+import { debugRunFailureFromEvent } from "@/features/debug/utils/runFailure";
 
 export interface DebugTraceDisplaySession {
   id: string;
@@ -19,6 +21,7 @@ export interface DebugTraceDisplaySession {
   status?: string;
   startedAt?: string;
   completedAt?: string;
+  failure?: DebugRunFailure;
   firstSeq: number;
   lastSeq: number;
   eventCount: number;
@@ -128,6 +131,7 @@ function buildDisplaySessions(events: DebugEvent[]): DebugTraceDisplaySession[] 
     const current = sessions.get(id);
     const mode = modeFromEvent(event);
     const sessionStatus = sessionStatusFromEvent(event);
+    const failure = debugRunFailureFromEvent(event);
 
     if (!current) {
       sessions.set(id, {
@@ -138,6 +142,7 @@ function buildDisplaySessions(events: DebugEvent[]): DebugTraceDisplaySession[] 
         status: sessionStatus,
         startedAt: event.timestamp,
         completedAt: isTerminalSessionEvent(event) ? event.timestamp : undefined,
+        failure,
         firstSeq: event.seq,
         lastSeq: event.seq,
         eventCount: 1,
@@ -149,6 +154,7 @@ function buildDisplaySessions(events: DebugEvent[]): DebugTraceDisplaySession[] 
     current.lastSeq = event.seq;
     if (!current.mode && mode) current.mode = mode;
     if (sessionStatus) current.status = sessionStatus;
+    if (failure) current.failure = failure;
     if (isTerminalSessionEvent(event)) current.completedAt = event.timestamp;
   }
 

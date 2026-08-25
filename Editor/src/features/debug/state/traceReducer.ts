@@ -4,6 +4,7 @@ import type {
   DebugEvent,
   DebugEventKind,
   DebugNodeExecutionStatus,
+  DebugRunFailure,
   DebugRunMode,
   DebugSessionStatus,
   DebugSyntheticNodeKind,
@@ -12,6 +13,7 @@ import {
   isDebugTaskerBootstrapNode,
   taskerBootstrapSyntheticKindForRuntime,
 } from "../utils/syntheticNode";
+import { debugRunFailureFromEvent } from "../utils/runFailure";
 
 export interface DebugNodeRunState {
   nodeId: string;
@@ -39,6 +41,7 @@ export interface DebugTraceSummary {
   recognitionEvents: DebugEvent[];
   actionEvents: DebugEvent[];
   diagnostics: DebugDiagnostic[];
+  failure?: DebugRunFailure;
   artifacts: DebugArtifactRef[];
   lastEvent?: DebugEvent;
   nodeStates: Record<string, DebugNodeRunState>;
@@ -209,6 +212,7 @@ export function reduceDebugTrace(
   let currentNodeId: string | undefined;
   let currentRuntimeName: string | undefined;
   let lastEvent: DebugEvent | undefined;
+  let failure: DebugRunFailure | undefined;
 
   for (const event of snapshot.events) {
     sessionId = event.sessionId;
@@ -217,6 +221,17 @@ export function reduceDebugTrace(
 
     if (event.kind === "session") {
       status = resolveStatusFromSessionEvent(event);
+      const eventFailure = debugRunFailureFromEvent(event);
+      if (eventFailure) {
+        failure = eventFailure;
+      } else if (
+        event.phase === "starting" ||
+        event.phase === "completed" ||
+        event.status === "completed" ||
+        event.status === "stopped"
+      ) {
+        failure = undefined;
+      }
       if (typeof event.data?.mode === "string") {
         runMode = event.data.mode as DebugRunMode;
       }
@@ -309,6 +324,7 @@ export function reduceDebugTrace(
     recognitionEvents,
     actionEvents,
     diagnostics,
+    failure,
     artifacts: [...artifactsById.values()],
     lastEvent,
     nodeStates,

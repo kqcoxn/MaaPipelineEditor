@@ -12,6 +12,43 @@ import {
 } from "../types";
 
 describe("reduceDebugTrace node execution replays", () => {
+  it("preserves the structured reason from a failed debug run", () => {
+    const summary = reduceDebugTrace({
+      events: [
+        event(1, "session", "starting", undefined, {
+          mode: "run-from-node",
+        }),
+        event(2, "diagnostic", "failed", undefined, {
+          severity: "error",
+          code: "maafw.task.submit_failed",
+          message:
+            "MaaFramework 提交任务失败：\nregex invalid [name=新建节点33]",
+          source: "maafw",
+        }),
+        event(3, "session", "failed", undefined, {
+          error:
+            "MaaFramework 提交任务失败：\nregex invalid [name=新建节点33]",
+          errorCode: "maafw.task.submit_failed",
+          errorSource: "maafw",
+        }),
+      ],
+    });
+
+    expect(summary.status).toBe("failed");
+    expect(summary.failure).toEqual({
+      code: "maafw.task.submit_failed",
+      message:
+        "MaaFramework 提交任务失败：\nregex invalid [name=新建节点33]",
+      source: "maafw",
+    });
+    expect(summary.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "maafw.task.submit_failed",
+        severity: "error",
+      }),
+    );
+  });
+
   it("splits repeated node starts into separate occurrences", () => {
     const summary = reduceDebugTrace({
       events: [

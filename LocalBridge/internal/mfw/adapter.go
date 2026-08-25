@@ -514,25 +514,11 @@ func (a *MaaFWAdapter) IsInitialized() bool {
 
 // RunTask 运行任务（同步等待完成）
 func (a *MaaFWAdapter) RunTask(entry string, override ...interface{}) (*maa.TaskJob, error) {
-	a.mu.RLock()
-	tasker := a.tasker
-	a.mu.RUnlock()
-
-	if tasker == nil {
-		return nil, fmt.Errorf("Tasker 未初始化")
-	}
-
 	logger.Info("MaaFW", "运行任务: %s", entry)
 
-	var taskJob *maa.TaskJob
-	if len(override) > 0 {
-		taskJob = tasker.PostTask(entry, override[0])
-	} else {
-		taskJob = tasker.PostTask(entry)
-	}
-
-	if taskJob == nil {
-		return nil, fmt.Errorf("提交任务失败")
+	taskJob, err := a.PostTask(entry, override...)
+	if err != nil {
+		return nil, err
 	}
 
 	// 同步等待任务完成
@@ -552,18 +538,12 @@ func (a *MaaFWAdapter) PostTask(entry string, override ...interface{}) (*maa.Tas
 		return nil, fmt.Errorf("Tasker 未初始化")
 	}
 
-	var taskJob *maa.TaskJob
-	if len(override) > 0 {
-		taskJob = tasker.PostTask(entry, override[0])
-	} else {
-		taskJob = tasker.PostTask(entry)
-	}
-
-	if taskJob == nil {
-		return nil, fmt.Errorf("提交任务失败")
-	}
-
-	return taskJob, nil
+	return postTaskWithMaaFWDiagnostics(entry, func() *maa.TaskJob {
+		if len(override) > 0 {
+			return tasker.PostTask(entry, override[0])
+		}
+		return tasker.PostTask(entry)
+	})
 }
 
 // StopTask 停止当前任务

@@ -429,6 +429,12 @@ export interface DebugDiagnostic {
   data?: Record<string, unknown>;
 }
 
+export interface DebugRunFailure {
+  code: string;
+  message: string;
+  source: string;
+}
+
 export interface DebugEvent {
   sessionId: string;
   runId: string;
