@@ -12,15 +12,16 @@ import {
   Switch,
   Collapse,
   InputNumber,
+  Segmented,
 } from "antd";
-import {
-  DeleteOutlined,
-  PlusOutlined,
-  ReloadOutlined,
-} from "@ant-design/icons";
+import { DeleteOutlined, PlusOutlined, ReloadOutlined } from "@ant-design/icons";
 import { DebugSection } from "../DebugSection";
 import { DebugFlowScopeIntro } from "../DebugFlowScopeIntro";
 import styles from "./SetupPanel.module.less";
+import {
+  formatHotkey,
+  toggleStringSelection,
+} from "@/features/project-interface/projectInterfaceState";
 import type { DebugModalController } from "../../hooks/useDebugModalController";
 import type { DebugAgentProfile, DebugArtifactPolicy } from "../../types";
 import {
@@ -29,8 +30,18 @@ import {
 } from "../../utils/agentProfile";
 import { getDebugStatusLabel } from "../../utils/capabilityLabels";
 import { stringArray } from "../../utils/modalUtils";
+import { ProjectInterfaceAgentSection } from "./ProjectInterfaceAgentSection";
 
 const { Text } = Typography;
+
+const artifactPolicyOptions: Array<{
+  value: keyof DebugArtifactPolicy;
+  label: string;
+}> = [
+  { value: "includeRawImage", label: "原始图（Raw Image）" },
+  { value: "includeDrawImage", label: "绘制图（Draw Image）" },
+  { value: "includeActionDetail", label: "动作详情（Action Detail）" },
+];
 
 export function SetupPanel({
   controller,
@@ -42,6 +53,7 @@ export function SetupPanel({
       <DebugSection title="关于 MPE FlowScope (调试模块)">
         <DebugFlowScopeIntro />
       </DebugSection>
+      <ConfigurationSourceSection controller={controller} />
       <Collapse
         defaultActiveKey={["profile", "resources"]}
         items={[
@@ -68,6 +80,40 @@ export function SetupPanel({
         ]}
       />
     </Space>
+  );
+}
+
+function ConfigurationSourceSection({ controller }: { controller: DebugModalController }) {
+  const pi = controller.projectInterface;
+  const ready = pi.status?.state === "ready";
+  return (
+    <DebugSection title="调试配置来源">
+      <Space orientation="vertical" size={10} style={{ width: "100%" }}>
+        <Segmented
+          value={pi.mode}
+          onChange={(value) => pi.setMode(value as "project_interface" | "manual")}
+          options={[
+            { label: "Project Interface", value: "project_interface", disabled: !ready },
+            { label: "手动", value: "manual" },
+          ]}
+        />
+        {pi.status && !ready && (
+          <Alert
+            type={pi.status.state === "not_found" ? "info" : "error"}
+            showIcon
+            title={pi.status.state === "not_found" ? "未发现 interface.json" : "Project Interface 不可用"}
+            description={pi.error ?? pi.status.diagnostics?.[0]?.message}
+          />
+        )}
+        {ready && pi.snapshot && (
+          <Space wrap>
+            <Tag color="green">{String(pi.snapshot.document.label ?? pi.snapshot.document.name ?? "Project Interface")}</Tag>
+            <Tag>{pi.status?.mode === "explicit" ? "显式入口" : "自动检索"}</Tag>
+            <Text type="secondary">{pi.status?.effectivePath}</Text>
+          </Space>
+        )}
+      </Space>
+    </DebugSection>
   );
 }
 
@@ -152,27 +198,22 @@ function ProfileSection({ controller }: { controller: DebugModalController }) {
         </Space>
       </DebugSection>
       <DebugSection title="产物策略（Artifact Policy）">
-        <Checkbox.Group
-          value={Object.entries(profileState.artifactPolicy)
-            .filter(([, enabled]) => enabled)
-            .map(([key]) => key)}
-          onChange={(values) => {
-            const selected = new Set(values);
-            profileState.setArtifactPolicy({
-              includeRawImage: selected.has("includeRawImage"),
-              includeDrawImage: selected.has("includeDrawImage"),
-              includeActionDetail: selected.has("includeActionDetail"),
-            } satisfies DebugArtifactPolicy);
-          }}
-          options={[
-            { value: "includeRawImage", label: "原始图（Raw Image）" },
-            { value: "includeDrawImage", label: "绘制图（Draw Image）" },
-            {
-              value: "includeActionDetail",
-              label: "动作详情（Action Detail）",
-            },
-          ]}
-        />
+        <Space wrap>
+          {artifactPolicyOptions.map((option) => (
+            <Checkbox
+              key={option.value}
+              checked={profileState.artifactPolicy[option.value]}
+              onChange={(event) =>
+                profileState.setArtifactPolicy({
+                  ...profileState.artifactPolicy,
+                  [option.value]: event.target.checked,
+                })
+              }
+            >
+              {option.label}
+            </Checkbox>
+          ))}
+        </Space>
       </DebugSection>
     </Space>
   );
@@ -189,6 +230,10 @@ function ResourceSection({ controller }: { controller: DebugModalController }) {
     updateResourcePaths,
     resourceBundles,
   } = controller;
+
+  if (controller.projectInterface.mode === "project_interface" && controller.projectInterface.status?.state === "ready") {
+    return <ProjectInterfaceResourceSection controller={controller} />;
+  }
 
   return (
     <Space orientation="vertical" size={14} style={{ width: "100%" }}>
@@ -271,6 +316,111 @@ function ResourceSection({ controller }: { controller: DebugModalController }) {
   );
 }
 
+function ProjectInterfaceResourceSection({ controller }: { controller: DebugModalController }) {
+  const pi = controller.projectInterface;
+  const options = Object.entries(pi.context?.options ?? {});
+  return (
+    <Space orientation="vertical" size={14} style={{ width: "100%" }}>
+      <Space wrap>
+        <Select
+          style={{ minWidth: 220 }}
+          value={pi.controllerName || undefined}
+          onChange={pi.setControllerName}
+          options={pi.controllers.map((item) => ({ value: String(item.name), label: String(item.label ?? item.name) }))}
+          placeholder="Controller"
+        />
+        <Select
+          style={{ minWidth: 220 }}
+          value={pi.resourceName || undefined}
+          onChange={pi.setResourceName}
+          options={pi.resources.map((item) => ({ value: String(item.name), label: String(item.label ?? item.name) }))}
+          placeholder="Resource"
+        />
+        <Tag color={pi.context ? "green" : "processing"}>{pi.context ? "上下文已就绪" : "正在解析"}</Tag>
+      </Space>
+      {options.length > 0 && (
+        <DebugSection title="Project Interface 选项">
+          <Space orientation="vertical" size={12} style={{ width: "100%" }}>
+            {options.map(([name, definition]) => (
+              <ProjectInterfaceOption
+                key={name}
+                name={name}
+                definition={definition}
+                value={pi.optionValues[name]}
+                onChange={(value) => pi.setOptionValue(name, value)}
+              />
+            ))}
+          </Space>
+        </DebugSection>
+      )}
+      <List
+        size="small"
+        bordered
+        dataSource={pi.context?.resourcePaths ?? []}
+        locale={{ emptyText: "正在解析 Project Interface 资源路径" }}
+        renderItem={(path) => <List.Item><Text code>{path}</Text></List.Item>}
+      />
+      <Button
+        icon={<ReloadOutlined />}
+        onClick={controller.requestResourcePreflight}
+        loading={controller.resourcePreflightStatus === "checking"}
+        disabled={!pi.context}
+      >
+        重新检测资源加载
+      </Button>
+    </Space>
+  );
+}
+
+function ProjectInterfaceOption({ name, definition, value, onChange }: { name: string; definition: Record<string, unknown>; value: unknown; onChange: (value: unknown) => void }) {
+  const type = typeof definition.type === "string" ? definition.type : "select";
+  const label = String(definition.label ?? name);
+  const cases = Array.isArray(definition.cases) ? definition.cases.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object") : [];
+  if (type === "checkbox") {
+    const selected = Array.isArray(value)
+      ? value.filter((item): item is string => typeof item === "string")
+      : [];
+    return <Space orientation="vertical"><Text strong>{label}</Text><Space wrap>{cases.map((item) => {
+      const caseName = String(item.name);
+      return <Checkbox
+        key={caseName}
+        checked={selected.includes(caseName)}
+        onChange={(event) => onChange(toggleStringSelection(selected, caseName, event.target.checked))}
+      >
+        {String(item.label ?? item.name)}
+      </Checkbox>;
+    })}</Space></Space>;
+  }
+  if (type === "switch") {
+    const yes = cases.find((item) => ["yes", "y"].includes(String(item.name).toLowerCase())) ?? cases[0];
+    const no = cases.find((item) => ["no", "n"].includes(String(item.name).toLowerCase())) ?? cases[1];
+    return <Space><Text strong>{label}</Text><Switch checked={value === yes?.name} onChange={(checked) => onChange(String((checked ? yes : no)?.name ?? ""))} /></Space>;
+  }
+  if (type === "input" || type === "hotkey") {
+    const fields = (Array.isArray(type === "input" ? definition.inputs : definition.hotkeys) ? (type === "input" ? definition.inputs : definition.hotkeys) : []) as Array<Record<string, unknown>>;
+    const values = value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+    return <Space orientation="vertical" style={{ width: "100%" }}><Text strong>{label}</Text>{fields.map((field) => {
+      const fieldName = String(field.name);
+      return <Input
+        key={fieldName}
+        value={String(values[fieldName] ?? "")}
+        placeholder={String(field.label ?? field.name)}
+        readOnly={type === "hotkey"}
+        allowClear={type === "hotkey"}
+        onClear={() => onChange({ ...values, [fieldName]: "" })}
+        onChange={(event) => type === "input" && onChange({ ...values, [fieldName]: event.target.value })}
+        onKeyDown={(event) => {
+          if (type !== "hotkey") return;
+          event.preventDefault();
+          const hotkey = formatHotkey(event);
+          if (hotkey) onChange({ ...values, [fieldName]: hotkey });
+        }}
+      />;
+    })}</Space>;
+  }
+  return <Space orientation="vertical" style={{ width: "100%" }}><Text strong>{label}</Text><Select style={{ width: "100%" }} value={typeof value === "string" ? value : undefined} onChange={onChange} options={cases.map((item) => ({ value: String(item.name), label: String(item.label ?? item.name) }))} /></Space>;
+}
+
 function ControllerSection({
   controller,
 }: {
@@ -310,6 +460,9 @@ function AgentSection({ controller }: { controller: DebugModalController }) {
     testingAgentIds,
     testAgent,
   } = controller;
+  if (controller.projectInterface.mode === "project_interface" && controller.projectInterface.status?.state === "ready") {
+    return <ProjectInterfaceAgentSection controller={controller} />;
+  }
   const agents = profileState.profile.agents ?? [];
   const agentDiagnostics = diagnosticsState.diagnostics.filter(
     (d) => typeof d.code === "string" && d.code.startsWith("debug.agent."),

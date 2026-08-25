@@ -19,6 +19,7 @@ interface ResourcePreflightActionContext {
   invalidateResourcePreflight: () => void;
   resourceKey: string;
   resourcePaths: string[];
+  projectContextId?: string;
   setResourcePreflightChecking: (requestId: string, resourceKey: string) => void;
   setResourcePreflightError: (
     requestId: string,
@@ -79,6 +80,7 @@ export function requestResourcePreflightAction({
   invalidateResourcePreflight,
   resourceKey,
   resourcePaths,
+  projectContextId,
   setResourcePreflightChecking,
   setResourcePreflightError,
 }: ResourcePreflightActionContext): void {
@@ -96,6 +98,7 @@ export function requestResourcePreflightAction({
   const sent = client.preflightResources({
     requestId,
     resourcePaths,
+    projectContextId,
   });
   if (!sent) {
     setResourcePreflightError(

@@ -79,4 +79,5 @@ const (
 	EventConnectionClosed      = "connection.closed"
 	EventResourceScanCompleted = "resource.scan.completed"
 	EventConfigReload          = "config.reload"
+	EventProjectInterfaceAgent = "project_interface.agent"
 )

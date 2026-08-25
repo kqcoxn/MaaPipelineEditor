@@ -1,4 +1,4 @@
-import { message, Modal } from "antd";
+import { message } from "antd";
 import type { ReactNode } from "react";
 import { FlagOutlined, PlayCircleOutlined } from "@ant-design/icons";
 import type { Node } from "@xyflow/react";
@@ -19,28 +19,13 @@ import {
   deleteNode,
   copyNodeRecoJSON,
 } from "./utils/nodeOperations";
-import { debugProtocolClient } from "../../../services/server";
 import { useDebugModalMemoryStore } from "@/stores/debug/debugModalMemoryStore";
-import { saveOpenedLocalFilesForDebug } from "@/stores/project/fileStore";
-import {
-  makeDebugResourceKey,
-  normalizeDebugResourcePaths,
-  useDebugRunProfileStore,
-} from "@/stores/debug/debugRunProfileStore";
-import { useDebugOverrideStore } from "@/stores/debug/debugOverrideStore";
-import { useDebugSessionStore } from "@/stores/debug/debugSessionStore";
-import { useMFWStore } from "@/stores/connection/mfwStore";
-import { useWSStore } from "@/stores/connection/wsStore";
 import type {
   DebugCapabilityManifest,
   DebugRunMode,
 } from "../../../features/debug/types";
-import { getDebugReadiness } from "../../../features/debug/selectors/readiness";
 import { applyDebugNodeTarget } from "../../../features/debug/actions/nodeTargetActions";
-import {
-  DEBUG_PIPELINE_OVERRIDE_ERROR_CODE,
-  parseDebugPipelineOverrideDraft,
-} from "../../../features/debug/utils/pipelineOverride";
+import { requestDebugRun } from "../../../features/debug/actions/debugRunRequestBridge";
 import { isEmbedEnvironment } from "../../../utils/embedBridge";
 import { showEmbedServiceNotice } from "../../../features/embed/components/serviceNotice";
 
@@ -105,10 +90,6 @@ type NodeDataWithHandleDirection = {
 type NodeDataWithColor = {
   color?: string;
 };
-
-type ResourcePreflightRequestResult = "sent" | "empty" | "send-failed";
-
-const pendingResourcePreflightRuns = new Set<string>();
 
 /**复制节点名处理器 */
 function handleCopyNodeName(node: NodeContextMenuNode) {
@@ -239,121 +220,14 @@ function handleDebugRunMode(node: NodeContextMenuNode, mode: DebugRunMode) {
     return;
   }
 
-  const sessionState = useDebugSessionStore.getState();
-  const profileState = useDebugRunProfileStore.getState();
-  const mfwState = useMFWStore.getState();
-
   const target = applyDebugNodeTarget(node.id, {
     focusCanvas: true,
     rememberEntryNodeId: true,
   });
   if (!target) return;
   useDebugModalMemoryStore.getState().setLastRunMode(mode);
-
-  const capabilities = sessionState.capabilities;
-  const resourceKey = makeDebugResourceKey(profileState.profile.resourcePaths);
-  const resourcePreflight = sessionState.resourcePreflight;
-  const resourcePreflightMatches =
-    resourcePreflight.resourceKey === resourceKey;
-  const readiness = getDebugReadiness({
-    localBridgeConnected: useWSStore.getState().connected,
-    deviceConnectionStatus: mfwState.connectionStatus,
-    controllerId: mfwState.controllerId,
-    resourceStatus: resourcePreflightMatches
-      ? resourcePreflight.status
-      : "idle",
-    resourceError: resourcePreflightMatches
-      ? resourcePreflight.error
-      : undefined,
-  });
-  if (!readiness.ready) {
-    const blockingIssue = readiness.issues.find(
-      (issue) => issue.code !== "debug.resource.not_ready",
-    );
-    if (blockingIssue) {
-      message.error(blockingIssue.message);
-      return;
-    }
-
-    if (resourcePreflightMatches && resourcePreflight.status === "checking") {
-      scheduleDebugRunAfterResourcePreflight(node, mode, resourceKey);
-      message.info("资源检测完成后将自动启动调试。");
-      return;
-    }
-
-    // status 为 error 或 idle 时均重新发起检测，
-    // 避免资源修复后仍卡在旧的失败结果上。
-    const requestResult = requestDebugResourcePreflight(resourceKey);
-    if (requestResult === "sent") {
-      scheduleDebugRunAfterResourcePreflight(node, mode, resourceKey);
-      message.info("正在检测资源路径，检测完成后将自动启动调试。");
-    } else if (requestResult === "empty") {
-      message.warning("请先配置资源路径或等待 LocalBridge 扫描资源包");
-    }
-    return;
-  }
-  if (!capabilities?.runModes.includes(mode)) {
-    message.warning(`当前 LocalBridge 暂不支持调试模式: ${mode}`);
-    return;
-  }
-  void handleDebugRunModeWithInput(node, mode);
-}
-
-function scheduleDebugRunAfterResourcePreflight(
-  node: NodeContextMenuNode,
-  mode: DebugRunMode,
-  resourceKey: string,
-) {
-  const pendingKey = `${resourceKey}\u0000${node.id}\u0000${mode}`;
-  if (pendingResourcePreflightRuns.has(pendingKey)) return;
-  pendingResourcePreflightRuns.add(pendingKey);
-
-  let timeoutId: number | undefined;
-  const unsubscribe = debugProtocolClient.onResourcePreflight((result) => {
-    const resultResourceKey = normalizeDebugResourcePaths(
-      result.resourcePaths,
-      [],
-    ).join("\n");
-    if (resultResourceKey !== resourceKey) return;
-
-    cleanup();
-    if (result.status !== "ready") {
-      const firstError = result.diagnostics?.find(
-        (diagnostic) => diagnostic.severity === "error",
-      );
-      const errorMessage = firstError?.message ?? "资源加载检测失败，无法自动启动调试。";
-      Modal.error({
-        title: "资源加载检测失败",
-        content: (
-          <div>
-            <p>{errorMessage}</p>
-            <p>您可以前往「资源体检」面板查看详细诊断信息并尝试修复。</p>
-          </div>
-        ),
-        okText: "前往资源体检",
-        onOk: () => {
-          const debugSessionStore = useDebugSessionStore.getState();
-          debugSessionStore.openModal("resource-health");
-        },
-      });
-      return;
-    }
-
-    handleDebugRunMode(node, mode);
-  });
-
-  timeoutId = window.setTimeout(() => {
-    cleanup();
-    message.error("资源路径检测超时，无法自动启动调试。");
-  }, 60_000);
-
-  function cleanup() {
-    pendingResourcePreflightRuns.delete(pendingKey);
-    if (timeoutId !== undefined) {
-      window.clearTimeout(timeoutId);
-      timeoutId = undefined;
-    }
-    unsubscribe();
+  if (!requestDebugRun({ nodeId: node.id, mode })) {
+    message.error("FlowScope 调试服务尚未就绪，请稍后重试");
   }
 }
 
@@ -371,83 +245,6 @@ function handleSetDebugEntry(node: NodeContextMenuNode) {
     setEntry: true,
     successMessage: "已设为调试入口节点",
   });
-}
-
-function requestDebugResourcePreflight(
-  resourceKey: string,
-): ResourcePreflightRequestResult {
-  const resourcePaths = normalizeDebugResourcePaths(
-    useDebugRunProfileStore.getState().profile.resourcePaths,
-  );
-  if (resourcePaths.length === 0) return "empty";
-  const requestId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  const sessionState = useDebugSessionStore.getState();
-  sessionState.setResourcePreflightChecking(requestId, resourceKey);
-  const sent = debugProtocolClient.preflightResources({
-    requestId,
-    resourcePaths,
-  });
-  if (!sent) {
-    sessionState.setResourcePreflightError(
-      requestId,
-      resourceKey,
-      "发送资源加载检测请求失败。",
-    );
-    message.error("发送资源加载检测请求失败");
-    return "send-failed";
-  }
-  return "sent";
-}
-
-async function handleDebugRunModeWithInput(
-  node: NodeContextMenuNode,
-  mode: DebugRunMode,
-  input?: { confirmAction?: boolean },
-): Promise<void> {
-  if (node.type !== NodeTypeEnum.Pipeline) return;
-
-  const sessionState = useDebugSessionStore.getState();
-  const profileState = useDebugRunProfileStore.getState();
-  const overrideParseResult = parseDebugPipelineOverrideDraft(
-    useDebugOverrideStore.getState().draft,
-  );
-
-  try {
-    sessionState.clearProtocolError();
-    if (overrideParseResult.error) {
-      sessionState.setProtocolError({
-        code: DEBUG_PIPELINE_OVERRIDE_ERROR_CODE,
-        message: overrideParseResult.error,
-      });
-      message.error(overrideParseResult.error);
-      return;
-    }
-    if (profileState.profile.savePolicy === "save-open-files") {
-      const saveResult = await saveOpenedLocalFilesForDebug();
-      if (saveResult.failedFiles.length > 0) {
-        message.error(
-          `调试前保存打开文件失败：${saveResult.failedFiles.join("、")}`,
-        );
-        return;
-      }
-    }
-    const request = profileState.buildRunRequest(
-      mode,
-      node.id,
-      sessionState.session?.sessionId,
-      input,
-      overrideParseResult.overrides,
-    );
-    if (!request.target) {
-      message.error("无法解析节点运行名");
-      return;
-    }
-    profileState.setEntry(request.target);
-    const sent = debugProtocolClient.startRun(request);
-    if (!sent) message.error("发送调试启动请求失败");
-  } catch (error) {
-    message.error(error instanceof Error ? error.message : "生成调试请求失败");
-  }
 }
 
 function isDebugRunModeUnavailable(

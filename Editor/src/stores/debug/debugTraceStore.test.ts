@@ -34,4 +34,26 @@ describe("debugTraceStore", () => {
       source: "maafw",
     });
   });
+
+  it("appends a burst in one store update and deduplicates events", () => {
+    const events = Array.from({ length: 500 }, (_, index): DebugEvent => ({
+      sessionId: "session-1",
+      runId: "run-1",
+      seq: index + 1,
+      timestamp: `2026-08-25T14:00:00.${String(index).padStart(3, "0")}Z`,
+      source: "maafw",
+      kind: "node",
+      phase: "running",
+    }));
+    let updates = 0;
+    const unsubscribe = useDebugTraceStore.subscribe(() => {
+      updates += 1;
+    });
+
+    useDebugTraceStore.getState().appendEvents([...events, events[0]]);
+    unsubscribe();
+
+    expect(updates).toBe(1);
+    expect(useDebugTraceStore.getState().events).toHaveLength(500);
+  });
 });

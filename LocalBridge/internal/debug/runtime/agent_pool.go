@@ -15,6 +15,10 @@ import (
 type AgentPool struct {
 	mu      sync.Mutex
 	clients map[string]*agentEntry
+	// piIdentifiers keeps the dynamically generated identifier stable between
+	// the explicit connection test and the subsequent debug run.
+	piIdentifiers map[string]string
+	resources     map[string]*mfw.MaaFWAdapter
 }
 
 type agentEntry struct {
@@ -25,7 +29,9 @@ type agentEntry struct {
 
 func NewAgentPool() *AgentPool {
 	return &AgentPool{
-		clients: make(map[string]*agentEntry),
+		clients:       make(map[string]*agentEntry),
+		piIdentifiers: make(map[string]string),
+		resources:     make(map[string]*mfw.MaaFWAdapter),
 	}
 }
 
@@ -84,29 +90,146 @@ func (p *AgentPool) EnsureBound(agent protocol.AgentProfile, resourcePaths []str
 		if entry.client.Connected() {
 			return nil, fmt.Errorf("agent 已绑定其他资源，保持连接时不支持切换资源")
 		}
-		entry.resourceAdapter.Destroy()
 		entry.resourceAdapter = nil
 		entry.resourceKey = ""
 	}
 
-	adapter := mfw.NewMaaFWAdapter()
-	if err := adapter.LoadResolvedResources(resolutions); err != nil {
-		adapter.Destroy()
-		return nil, fmt.Errorf("加载资源失败: %w", err)
+	adapter, err := p.sharedAdapterLocked(resourceKey, resolutions)
+	if err != nil {
+		return nil, err
 	}
 	resource := adapter.GetResource()
 	if resource == nil {
-		adapter.Destroy()
 		return nil, fmt.Errorf("加载资源后资源实例为空")
 	}
 	if err := entry.client.BindResource(resource); err != nil {
-		adapter.Destroy()
 		return nil, err
 	}
 
 	entry.resourceAdapter = adapter
 	entry.resourceKey = resourceKey
 	return entry.client, nil
+}
+
+// PreparePIAgent 创建（必要时由 MaaFramework 自动生成 identifier）、启动并绑定 PI Agent。
+// starter 必须在 Connect 前启动 AgentServer 子进程。
+func (p *AgentPool) PreparePIAgent(agent protocol.AgentProfile, resourcePaths []string, starter func(identifier string) error, scope ...string) (protocol.AgentProfile, error) {
+	resourceKey, resolutions, err := resolveResourceBinding(resourcePaths)
+	if err != nil {
+		return agent, err
+	}
+	prepared := agent
+	prepared.Transport = "identifier"
+
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	var client *maa.AgentClient
+	identifier := strings.TrimSpace(prepared.Identifier)
+	profileKey := piAgentProfileKey(prepared, resourceKey, scope...)
+	if identifier == "" {
+		identifier = p.piIdentifiers[profileKey]
+	}
+	if identifier != "" {
+		if entry := p.clients["identifier:"+identifier]; entry != nil {
+			client = entry.client
+		}
+	}
+	if client == nil {
+		client, err = maa.NewAgentClient(maa.WithIdentifier(identifier))
+		if err != nil {
+			return agent, err
+		}
+		identifier, err = client.Identifier()
+		if err != nil {
+			client.Destroy()
+			return agent, err
+		}
+	}
+	prepared.Identifier = identifier
+	key := "identifier:" + identifier
+	entry := p.clients[key]
+	if entry == nil {
+		entry = &agentEntry{client: client}
+	}
+	if err := starter(identifier); err != nil {
+		if p.clients[key] == nil {
+			client.Destroy()
+		}
+		return agent, err
+	}
+
+	if entry.resourceAdapter == nil || entry.resourceKey != resourceKey {
+		if entry.resourceAdapter != nil {
+			if entry.client.Connected() {
+				return agent, fmt.Errorf("agent 已绑定其他资源，保持连接时不支持切换资源")
+			}
+		}
+		adapter, err := p.sharedAdapterLocked(resourceKey, resolutions)
+		if err != nil {
+			return agent, err
+		}
+		resource := adapter.GetResource()
+		if resource == nil {
+			return agent, fmt.Errorf("加载资源后资源实例为空")
+		}
+		if err := entry.client.BindResource(resource); err != nil {
+			return agent, err
+		}
+		entry.resourceAdapter = adapter
+		entry.resourceKey = resourceKey
+	}
+	p.clients[key] = entry
+	p.piIdentifiers[profileKey] = identifier
+	return prepared, nil
+}
+
+func (p *AgentPool) Close() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for key, entry := range p.clients {
+		if entry.client != nil {
+			if entry.client.Connected() {
+				_ = entry.client.Disconnect()
+			}
+			entry.client.Destroy()
+		}
+		delete(p.clients, key)
+	}
+	for key, adapter := range p.resources {
+		adapter.Destroy()
+		delete(p.resources, key)
+	}
+	clear(p.piIdentifiers)
+}
+
+func piAgentProfileKey(agent protocol.AgentProfile, resourceKey string, scope ...string) string {
+	profileScope := ""
+	if len(scope) > 0 {
+		profileScope = strings.TrimSpace(scope[0])
+	}
+	return strings.Join([]string{
+		strings.TrimSpace(agent.ID),
+		resourceKey,
+		profileScope,
+	}, "\x00")
+}
+
+func (p *AgentPool) sharedAdapterLocked(resourceKey string, resolutions []mfw.ResourceBundleResolution) (*mfw.MaaFWAdapter, error) {
+	if adapter := p.resources[resourceKey]; adapter != nil {
+		return adapter, nil
+	}
+	adapter := mfw.NewMaaFWAdapter()
+	if err := adapter.LoadResolvedResources(resolutions); err != nil {
+		adapter.Destroy()
+		return nil, fmt.Errorf("加载资源失败: %w", err)
+	}
+	if adapter.GetResource() == nil {
+		adapter.Destroy()
+		return nil, fmt.Errorf("加载资源后资源实例为空")
+	}
+	p.resources[resourceKey] = adapter
+	return adapter, nil
 }
 
 // GetResource 获取指定 agent 在 Pool 中绑定的 Resource。

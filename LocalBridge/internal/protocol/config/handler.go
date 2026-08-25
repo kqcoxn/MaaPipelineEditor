@@ -144,6 +144,13 @@ func (h *ConfigHandler) handleSetConfig(conn *server.Connection, msg models.Mess
 		}
 	}
 
+	if interfaceConfig, ok := dataMap["interface"].(map[string]interface{}); ok {
+		if path, ok := interfaceConfig["path"].(string); ok {
+			cfg.Interface.Path = path
+			updated = true
+		}
+	}
+
 	if !updated {
 		h.sendConfigError(conn, "NO_CHANGES", "没有有效的配置更新", nil)
 		return

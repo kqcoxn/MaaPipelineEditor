@@ -40,6 +40,8 @@ interface UseDebugResourceChecksOptions {
   connected: boolean;
   profileState: DebugResourceProfileState;
   selectedFlowNodeId?: string;
+  resourcePathsOverride?: string[];
+  projectContextId?: string;
 }
 
 export function useDebugResourceChecks({
@@ -48,6 +50,8 @@ export function useDebugResourceChecks({
   connected,
   profileState,
   selectedFlowNodeId,
+  resourcePathsOverride,
+  projectContextId,
 }: UseDebugResourceChecksOptions) {
   const { files, currentFileName } = useFileStore(
     useShallow((state) => ({
@@ -90,17 +94,17 @@ export function useDebugResourceChecks({
   );
 
   const resolvedResourcePaths = useMemo(
-    () =>
+    () => resourcePathsOverride ??
       normalizeDebugResourcePaths(
         profileState.profile.resourcePaths,
         resourceBundles,
       ),
-    [profileState.profile.resourcePaths, resourceBundles],
+    [profileState.profile.resourcePaths, resourceBundles, resourcePathsOverride],
   );
   const resourceKey = useMemo(
-    () =>
+    () => resourcePathsOverride?.join("\n") ??
       makeDebugResourceKey(profileState.profile.resourcePaths, resourceBundles),
-    [profileState.profile.resourcePaths, resourceBundles],
+    [profileState.profile.resourcePaths, resourceBundles, resourcePathsOverride],
   );
   const resourcePreflightMatches =
     resourcePreflight.resourceKey === resourceKey;
@@ -146,10 +150,11 @@ export function useDebugResourceChecks({
         selectedFlowNodeId,
       );
       const request: DebugResourceHealthRequest = {
-        resourcePaths: runRequest.profile.resourcePaths,
+        resourcePaths: resolvedResourcePaths,
         graphSnapshot: runRequest.graphSnapshot,
         resolverSnapshot: runRequest.resolverSnapshot,
         target: runRequest.target,
+        projectContextId,
       };
       return {
         request,
@@ -163,6 +168,8 @@ export function useDebugResourceChecks({
     }
   }, [
     profileState,
+    projectContextId,
+    resolvedResourcePaths,
     resourceHealthSnapshotKey,
     selectedFlowNodeId,
   ]);
@@ -200,6 +207,7 @@ export function useDebugResourceChecks({
     const sent = debugProtocolClient.preflightResources({
       requestId,
       resourcePaths: resolvedResourcePaths,
+      projectContextId,
     });
     if (!sent) {
       setResourcePreflightError(
@@ -218,6 +226,7 @@ export function useDebugResourceChecks({
     resourcePreflight.status,
     setResourcePreflightError,
     setResourcePreflightChecking,
+    projectContextId,
   ]);
 
   useEffect(() => {
@@ -256,6 +265,7 @@ export function useDebugResourceChecks({
       invalidateResourcePreflight,
       resourceKey,
       resourcePaths: resolvedResourcePaths,
+      projectContextId,
       setResourcePreflightChecking,
       setResourcePreflightError,
     });
@@ -264,6 +274,7 @@ export function useDebugResourceChecks({
     invalidateResourcePreflight,
     resolvedResourcePaths,
     resourceKey,
+    projectContextId,
     setResourcePreflightChecking,
     setResourcePreflightError,
   ]);

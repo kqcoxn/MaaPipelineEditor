@@ -41,6 +41,7 @@ interface DebugTraceState {
   selectedPerformanceSummaries: DebugPerformanceSummary[];
   performanceSummary?: DebugPerformanceSummary;
   appendEvent: (event: DebugEvent) => void;
+  appendEvents: (events: DebugEvent[]) => void;
   applyTraceSnapshot: (
     events: DebugEvent[],
     sessionId?: string,
@@ -284,25 +285,34 @@ export const useDebugTraceStore = create<DebugTraceState>((set, get) => ({
   performanceSummaries: {},
   selectedPerformanceSummaries: [],
 
-  appendEvent: (event) => {
-    const key = eventKey(event);
-    if (get().eventIndex[key]) return;
+  appendEvent: (event) => get().appendEvents([event]),
 
+  appendEvents: (incoming) => {
+    if (incoming.length === 0) return;
     set((state) => {
-      const focusedSessionId = displaySessionIdForEvent(event);
-      const existed = state.displaySessions.some(
-        (session) => session.id === focusedSessionId,
-      );
-      const events = sortEvents([...state.events, event]);
-      const selectedDisplaySessionIds = shouldFocusDisplaySession(event, existed)
-        ? [focusedSessionId]
-        : state.selectedDisplaySessionIds;
+      const eventIndex = { ...state.eventIndex };
+      const additions: DebugEvent[] = [];
+      const knownSessions = new Set(state.displaySessions.map((session) => session.id));
+      let selectedDisplaySessionIds = state.selectedDisplaySessionIds;
+
+      for (const event of incoming) {
+        const key = eventKey(event);
+        if (eventIndex[key]) continue;
+        eventIndex[key] = event;
+        additions.push(event);
+        const focusedSessionId = displaySessionIdForEvent(event);
+        const existed = knownSessions.has(focusedSessionId);
+        if (shouldFocusDisplaySession(event, existed)) {
+          selectedDisplaySessionIds = [focusedSessionId];
+        }
+        knownSessions.add(focusedSessionId);
+      }
+      if (additions.length === 0) return state;
+
+      const events = sortEvents([...state.events, ...additions]);
       return {
         events,
-        eventIndex: {
-          ...state.eventIndex,
-          [key]: event,
-        },
+        eventIndex,
         ...buildTraceView({
           events,
           performanceSummaries: state.performanceSummaries,

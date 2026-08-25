@@ -14,6 +14,7 @@ import { DebugProtocolClient } from "./protocols/DebugProtocolClient";
 import { ResourceProtocol } from "./protocols/ResourceProtocol";
 import { LoggerProtocol } from "./protocols/LoggerProtocol";
 import { AIProtocol } from "./protocols/AIProtocol";
+import { InterfaceProtocol } from "./protocols/InterfaceProtocol";
 import { globalConfig } from "@/stores/app/configStore";
 import { registerDebugProtocolListeners } from "../features/debug/protocols/registerProtocolListeners";
 import { openExternalUrl } from "../features/embed/navigation/externalNavigation";
@@ -352,6 +353,7 @@ export const configProtocol = new ConfigProtocol();
 export const debugProtocolClient = new DebugProtocolClient();
 export const resourceProtocol = new ResourceProtocol();
 export const loggerProtocol = new LoggerProtocol();
+export const interfaceProtocol = new InterfaceProtocol();
 
 /**
  * 初始化 WebSocket 连接和所有响应路由
@@ -369,6 +371,8 @@ export function initializeWebSocket() {
 
   // 注册 ConfigProtocol
   configProtocol.register(localServer);
+
+  interfaceProtocol.register(localServer);
 
   // 注册 debug-vNext 协议客户端
   debugProtocolClient.register(localServer);

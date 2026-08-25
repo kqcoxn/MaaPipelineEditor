@@ -41,12 +41,18 @@ type MaaFWConfig struct {
 	ResourceDir string `mapstructure:"resource_dir" json:"resource_dir"`
 }
 
+// InterfaceConfig 配置 Project Interface V2 入口。Path 为空时自动检索。
+type InterfaceConfig struct {
+	Path string `mapstructure:"path" json:"path"`
+}
+
 // 全局配置
 type Config struct {
-	Server ServerConfig `mapstructure:"server" json:"server"`
-	File   FileConfig   `mapstructure:"file" json:"file"`
-	Log    LogConfig    `mapstructure:"log" json:"log"`
-	MaaFW  MaaFWConfig  `mapstructure:"maafw" json:"maafw"`
+	Server    ServerConfig    `mapstructure:"server" json:"server"`
+	File      FileConfig      `mapstructure:"file" json:"file"`
+	Log       LogConfig       `mapstructure:"log" json:"log"`
+	MaaFW     MaaFWConfig     `mapstructure:"maafw" json:"maafw"`
+	Interface InterfaceConfig `mapstructure:"interface" json:"interface"`
 }
 
 // 全局单例
@@ -128,6 +134,9 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("maafw.enabled", false)
 	v.SetDefault("maafw.lib_dir", "")
 	v.SetDefault("maafw.resource_dir", "")
+
+	// Project Interface 配置
+	v.SetDefault("interface.path", "")
 }
 
 // 规范化配置路径
@@ -156,6 +165,8 @@ func (c *Config) normalize() error {
 		}
 		c.Log.Dir = absPath
 	}
+
+	c.Interface.Path = strings.TrimSpace(c.Interface.Path)
 
 	return nil
 }
@@ -211,7 +222,7 @@ func bundledMaaFWResourceDir() string {
 }
 
 // 从命令行参数覆盖配置
-func (c *Config) OverrideFromFlags(root, logDir, logLevel string, port int) {
+func (c *Config) OverrideFromFlags(root, interfacePath, logDir, logLevel string, port int, interfaceSpecified ...bool) {
 	if root != "" {
 		c.File.Root = root
 	} else {
@@ -233,6 +244,9 @@ func (c *Config) OverrideFromFlags(root, logDir, logLevel string, port int) {
 	}
 	if port > 0 {
 		c.Server.Port = port
+	}
+	if len(interfaceSpecified) > 0 && interfaceSpecified[0] {
+		c.Interface.Path = strings.TrimSpace(interfacePath)
 	}
 
 	// 重新规范化路径
@@ -278,6 +292,12 @@ func (c *Config) SetMaaFWLibDir(libDir string) error {
 // 设置 MaaFramework 资源目录并保存
 func (c *Config) SetMaaFWResourceDir(resourceDir string) error {
 	c.MaaFW.ResourceDir = resourceDir
+	return c.Save()
+}
+
+// SetInterfacePath 设置 PI 入口；空值恢复自动检索。
+func (c *Config) SetInterfacePath(interfacePath string) error {
+	c.Interface.Path = strings.TrimSpace(interfacePath)
 	return c.Save()
 }
 

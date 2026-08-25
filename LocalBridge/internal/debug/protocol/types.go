@@ -134,21 +134,24 @@ type RunInput struct {
 }
 
 type RunRequest struct {
-	SessionID        string               `json:"sessionId,omitempty"`
-	ProfileID        string               `json:"profileId,omitempty"`
-	Profile          RunProfile           `json:"profile"`
-	Mode             RunMode              `json:"mode"`
-	GraphSnapshot    GraphSnapshot        `json:"graphSnapshot"`
-	ResolverSnapshot NodeResolverSnapshot `json:"resolverSnapshot"`
-	Target           *NodeTarget          `json:"target,omitempty"`
-	Overrides        []PipelineOverride   `json:"overrides,omitempty"`
-	ArtifactPolicy   *ArtifactPolicy      `json:"artifactPolicy,omitempty"`
-	Input            *RunInput            `json:"input,omitempty"`
+	SessionID           string               `json:"sessionId,omitempty"`
+	ProfileID           string               `json:"profileId,omitempty"`
+	ConfigurationSource string               `json:"configurationSource,omitempty"`
+	ProjectContextID    string               `json:"projectContextId,omitempty"`
+	Profile             RunProfile           `json:"profile"`
+	Mode                RunMode              `json:"mode"`
+	GraphSnapshot       GraphSnapshot        `json:"graphSnapshot"`
+	ResolverSnapshot    NodeResolverSnapshot `json:"resolverSnapshot"`
+	Target              *NodeTarget          `json:"target,omitempty"`
+	Overrides           []PipelineOverride   `json:"overrides,omitempty"`
+	ArtifactPolicy      *ArtifactPolicy      `json:"artifactPolicy,omitempty"`
+	Input               *RunInput            `json:"input,omitempty"`
 }
 
 type ResourcePreflightRequest struct {
-	RequestID     string   `json:"requestId,omitempty"`
-	ResourcePaths []string `json:"resourcePaths"`
+	RequestID        string   `json:"requestId,omitempty"`
+	ResourcePaths    []string `json:"resourcePaths"`
+	ProjectContextID string   `json:"projectContextId,omitempty"`
 }
 
 type ResourcePreflightResult struct {
@@ -167,6 +170,7 @@ type ResourceHealthRequest struct {
 	GraphSnapshot    GraphSnapshot        `json:"graphSnapshot"`
 	ResolverSnapshot NodeResolverSnapshot `json:"resolverSnapshot"`
 	Target           *NodeTarget          `json:"target,omitempty"`
+	ProjectContextID string               `json:"projectContextId,omitempty"`
 }
 
 type ResourceHealthResult struct {
@@ -276,8 +280,21 @@ type ScreenshotCaptureRequest struct {
 }
 
 type AgentTestRequest struct {
-	Agent         AgentProfile `json:"agent"`
-	ResourcePaths []string     `json:"resourcePaths,omitempty"`
+	Agent            AgentProfile          `json:"agent"`
+	ResourcePaths    []string              `json:"resourcePaths,omitempty"`
+	ProjectContextID string                `json:"projectContextId,omitempty"`
+	AgentIndex       int                   `json:"agentIndex,omitempty"`
+	AgentOverride    *AgentCommandOverride `json:"agentOverride,omitempty"`
+}
+
+type AgentCommandOverride struct {
+	ChildExec string   `json:"childExec"`
+	ChildArgs []string `json:"childArgs,omitempty"`
+}
+
+type AgentStopRequest struct {
+	ProjectContextID string `json:"projectContextId"`
+	AgentIndex       int    `json:"agentIndex"`
 }
 
 type AgentTestResult struct {
@@ -285,6 +302,7 @@ type AgentTestResult struct {
 	Success            bool     `json:"success"`
 	CheckedAt          string   `json:"checkedAt"`
 	Message            string   `json:"message"`
+	FailureStage       string   `json:"failureStage,omitempty"`
 	CustomRecognitions []string `json:"customRecognitions,omitempty"`
 	CustomActions      []string `json:"customActions,omitempty"`
 }

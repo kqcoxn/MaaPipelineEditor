@@ -27,6 +27,9 @@ export interface BackendConfig {
     lib_dir: string;
     resource_dir: string;
   };
+  interface: {
+    path: string;
+  };
 }
 
 /**

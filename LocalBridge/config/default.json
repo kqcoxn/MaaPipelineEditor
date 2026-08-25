@@ -30,5 +30,8 @@
     "enabled": false,
     "lib_dir": "",
     "resource_dir": ""
+  },
+  "interface": {
+    "path": ""
   }
 }

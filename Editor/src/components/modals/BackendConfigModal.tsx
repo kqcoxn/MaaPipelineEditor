@@ -19,7 +19,8 @@ import {
   InfoCircleOutlined,
 } from "@ant-design/icons";
 import { useEffect, useState, useCallback } from "react";
-import { configProtocol, localServer } from "../../services/server";
+import { configProtocol, interfaceProtocol, localServer } from "../../services/server";
+import type { ProjectInterfaceStatus } from "@/features/project-interface/types";
 import type {
   BackendConfig,
   ConfigResponse,
@@ -35,6 +36,7 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
   const [saving, setSaving] = useState(false);
   const [reloading, setReloading] = useState(false);
   const [configPath, setConfigPath] = useState("");
+  const [interfaceStatus, setInterfaceStatus] = useState<ProjectInterfaceStatus>();
 
   // 加载配置
   const loadConfig = useCallback(() => {
@@ -71,6 +73,7 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
           maafw_enabled: data.config.maafw.enabled,
           maafw_lib_dir: data.config.maafw.lib_dir,
           maafw_resource_dir: data.config.maafw.resource_dir,
+          interface_path: data.config.interface?.path ?? "",
         });
         setConfigPath(data.config_path);
 
@@ -105,10 +108,16 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
       }
     });
 
+    const unsubscribeInterface = interfaceProtocol.onStatus(setInterfaceStatus);
+
     // 打开时加载配置
     loadConfig();
+    interfaceProtocol.requestStatus();
 
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+      unsubscribeInterface();
+    };
   }, [open, form, loadConfig, onClose]);
 
   // 监听重载响应
@@ -153,6 +162,9 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
           enabled: values.maafw_enabled,
           lib_dir: values.maafw_lib_dir,
           resource_dir: values.maafw_resource_dir,
+        },
+        interface: {
+          path: values.interface_path ?? "",
         },
       };
 
@@ -434,6 +446,30 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
           >
             <Input placeholder="OCR 资源目录路径" />
           </Form.Item>
+
+          <Divider orientation="left" plain>
+            Project Interface
+          </Divider>
+          <Form.Item
+            name="interface_path"
+            label="入口路径"
+            extra="留空时在 LocalBridge 根目录内自动检索 interface.json；多个结果会阻断 PI 功能。"
+          >
+            <Input placeholder="留空自动检索，例如：project/interface.json" />
+          </Form.Item>
+          {interfaceStatus && (
+            <Form.Item label="当前状态">
+              <Space orientation="vertical" size={4}>
+                <span>
+                  {interfaceStatus.state} · {interfaceStatus.mode === "auto" ? "自动检索" : "显式入口"}
+                </span>
+                {interfaceStatus.effectivePath && <span>{interfaceStatus.effectivePath}</span>}
+                {interfaceStatus.diagnostics?.[0] && (
+                  <span style={{ color: "#cf1322" }}>{interfaceStatus.diagnostics[0].message}</span>
+                )}
+              </Space>
+            </Form.Item>
+          )}
         </Form>
 
         <div

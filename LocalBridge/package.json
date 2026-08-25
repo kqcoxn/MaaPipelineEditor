@@ -1,7 +1,7 @@
 {
     "scripts": {
         "build": "go mod tidy && go build -o ./build/mpelb.exe ./cmd/lb",
-        "run": "./build/mpelb.exe --root ./test-json",
+        "run": "./build/mpelb.exe --root ./test-json --interface ./assets/interface.json",
         "server": "air -c .air.toml"
     }
 }

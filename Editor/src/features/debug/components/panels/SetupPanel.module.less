@@ -57,3 +57,139 @@
   width: 100%;
   margin: 0;
 }
+
+.piAgentList {
+  overflow: hidden;
+}
+
+.piAgentItem {
+  display: block;
+  padding: 14px 16px;
+}
+
+.piAgentContent {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.piAgentHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.piAgentMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  min-width: 0;
+}
+
+.piAgentCommand,
+.piAgentOutput {
+  display: block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.piAgentOverride {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+}
+
+.piAgentOverride label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.piAgentOutputBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  border: 1px solid rgba(5, 5, 5, 0.08);
+  border-radius: 6px;
+  background: rgba(5, 5, 5, 0.02);
+}
+
+.piAgentFailure {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.piAgentFailureMessage {
+  line-height: 1.55;
+}
+
+.piAgentFailureFacts {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.piAgentFailureFact {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.piAgentFailureLabel {
+  line-height: 1.55;
+  white-space: nowrap;
+}
+
+.piAgentFailureValue {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  line-height: 1.55;
+}
+
+.piAgentFailureChecks {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.piAgentFailureChecks ul {
+  margin: 0;
+  padding-left: 0;
+  list-style-position: outside;
+}
+
+.piAgentFailureChecks li {
+  line-height: 1.55;
+}
+
+.piAgentFailureChecks li + li {
+  margin-top: 4px;
+}
+
+@media (max-width: 640px) {
+  .piAgentItem {
+    padding: 12px;
+  }
+
+  .piAgentOverride {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

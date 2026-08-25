@@ -171,6 +171,10 @@ export class DebugProtocolClient extends BaseProtocol {
     return this.send("/mpe/debug/agent/test", request);
   }
 
+  stopAgent(request: { projectContextId: string; agentIndex: number }): boolean {
+    return this.send("/mpe/debug/agent/stop", request);
+  }
+
   requestTraceSnapshot(request: DebugTraceSnapshotRequest): boolean {
     return this.send("/mpe/debug/trace/snapshot", request);
   }

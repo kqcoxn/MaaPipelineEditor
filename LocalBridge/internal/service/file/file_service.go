@@ -338,7 +338,9 @@ func (s *Service) CreateFile(directory, fileName string, content interface{}) (s
 	// 添加新文件到索引
 	if fileInfo, err := s.scanner.ScanSingle(filePath); err == nil && fileInfo != nil {
 		s.mu.Lock()
-		s.fileIndex[filePath] = fileInfo
+		if _, exists := s.fileIndex[filePath]; exists || s.maxFiles <= 0 || len(s.fileIndex) < s.maxFiles {
+			s.fileIndex[filePath] = fileInfo
+		}
 		s.mu.Unlock()
 	}
 
@@ -376,7 +378,9 @@ func (s *Service) handleFileChange(change FileChange) {
 			// 文件创建
 			if fileInfo, err := s.scanner.ScanSingle(filePath); err == nil && fileInfo != nil {
 				s.mu.Lock()
-				s.fileIndex[filePath] = fileInfo
+				if _, exists := s.fileIndex[filePath]; exists || s.maxFiles <= 0 || len(s.fileIndex) < s.maxFiles {
+					s.fileIndex[filePath] = fileInfo
+				}
 				s.mu.Unlock()
 				logger.Info("FileService", "检测到新文件: %s", filePath)
 			}

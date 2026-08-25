@@ -248,6 +248,8 @@ export interface DebugRunInput {
 export interface DebugRunRequest {
   sessionId?: string;
   profileId?: string;
+  configurationSource?: "manual" | "project_interface";
+  projectContextId?: string;
   profile: DebugRunProfile;
   mode: DebugRunMode;
   graphSnapshot: DebugGraphSnapshot;
@@ -261,6 +263,7 @@ export interface DebugRunRequest {
 export interface DebugResourcePreflightRequest {
   requestId?: string;
   resourcePaths: string[];
+  projectContextId?: string;
 }
 
 export interface DebugResourcePreflightResult {
@@ -279,6 +282,7 @@ export interface DebugResourceHealthRequest {
   graphSnapshot: DebugGraphSnapshot;
   resolverSnapshot: DebugNodeResolverSnapshot;
   target?: DebugNodeTarget;
+  projectContextId?: string;
 }
 
 export interface DebugResourceHealthResult {
@@ -390,6 +394,12 @@ export interface DebugScreenshotCaptureRequest {
 export interface DebugAgentTestRequest {
   agent: DebugAgentProfile;
   resourcePaths?: string[];
+  projectContextId?: string;
+  agentIndex?: number;
+  agentOverride?: {
+    childExec: string;
+    childArgs?: string[];
+  };
 }
 
 export interface DebugAgentTestResult {
@@ -397,6 +407,7 @@ export interface DebugAgentTestResult {
   success: boolean;
   checkedAt: string;
   message: string;
+  failureStage?: string;
   customRecognitions?: string[];
   customActions?: string[];
 }

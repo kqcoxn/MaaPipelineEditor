@@ -61,6 +61,7 @@ interface DebugSessionState {
   setRunStarted: (run: DebugRunStarted) => void;
   setRunStopRequested: (request: DebugRunStopRequested) => void;
   setAgentTestResult: (result: DebugAgentTestResult) => void;
+  clearAgentTestResult: (agentId: string) => void;
   setProtocolError: (error: DebugProtocolError) => void;
   clearProtocolError: () => void;
   setCapabilitiesLoading: () => void;
@@ -153,6 +154,14 @@ export const useDebugSessionStore = create<DebugSessionState>((set) => ({
       },
     })),
 
+  clearAgentTestResult: (agentId) =>
+    set((state) => {
+      if (!state.agentTestResults[agentId]) return {};
+      const agentTestResults = { ...state.agentTestResults };
+      delete agentTestResults[agentId];
+      return { agentTestResults };
+    }),
+
   setProtocolError: (error) => set({ lastError: error }),
 
   clearProtocolError: () => set({ lastError: undefined }),
@@ -217,10 +226,21 @@ export const useDebugSessionStore = create<DebugSessionState>((set) => ({
     }),
 
   invalidateResourcePreflight: () =>
-    set({
-      resourcePreflight: {
-        status: "idle",
-      },
+    set((state) => {
+      if (
+        state.resourcePreflight.status === "idle" &&
+        state.resourcePreflight.requestId === undefined &&
+        state.resourcePreflight.resourceKey === undefined &&
+        state.resourcePreflight.result === undefined &&
+        state.resourcePreflight.error === undefined
+      ) {
+        return state;
+      }
+      return {
+        resourcePreflight: {
+          status: "idle",
+        },
+      };
     }),
 
   setResourceHealthChecking: (requestId, requestKey) =>

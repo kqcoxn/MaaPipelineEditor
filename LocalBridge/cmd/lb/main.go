@@ -25,11 +25,13 @@ import (
 	configProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/config"
 	fileProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/file"
 	mfwProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/mfw"
+	projectInterfaceProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/projectinterface"
 	resourceProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/resource"
 	utilityProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/utility"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/router"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/server"
 	fileService "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/service/file"
+	projectInterfaceService "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/service/projectinterface"
 	resourceService "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/service/resource"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/utils"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/pkg/models"
@@ -41,13 +43,14 @@ var Version = "dev"
 
 // 命令行
 var (
-	configPath   string
-	rootDir      string
-	port         int
-	logDir       string
-	logLevel     string
-	showVersion  bool
-	portableMode bool
+	configPath    string
+	rootDir       string
+	interfacePath string
+	port          int
+	logDir        string
+	logLevel      string
+	showVersion   bool
+	portableMode  bool
 )
 
 var rootCmd = &cobra.Command{
@@ -111,6 +114,13 @@ var setResourceDirCmd = &cobra.Command{
 	Run:  setResourceDir,
 }
 
+var setInterfaceCmd = &cobra.Command{
+	Use:   "set-interface [path]",
+	Short: "设置 Project Interface V2 入口（留空恢复自动检索）",
+	Args:  cobra.MaximumNArgs(1),
+	Run:   setInterfacePath,
+}
+
 var openLogDirCmd = &cobra.Command{
 	Use:   "open-log",
 	Short: "打开后端日志文件夹",
@@ -136,6 +146,7 @@ var infoCmd = &cobra.Command{
 func init() {
 	rootCmd.Flags().StringVar(&configPath, "config", "", "配置文件路径")
 	rootCmd.Flags().StringVar(&rootDir, "root", "", "文件扫描根目录")
+	rootCmd.Flags().StringVar(&interfacePath, "interface", "", "Project Interface V2 入口路径")
 	rootCmd.Flags().IntVar(&port, "port", 0, "WebSocket 监听端口")
 	rootCmd.Flags().StringVar(&logDir, "log-dir", "", "日志输出目录")
 	rootCmd.Flags().StringVar(&logLevel, "log-level", "", "日志级别 (DEBUG, INFO, WARN, ERROR)")
@@ -153,6 +164,7 @@ func init() {
 	configCmd.AddCommand(configOpenCmd)
 	configCmd.AddCommand(setLibDirCmd)
 	configCmd.AddCommand(setResourceDirCmd)
+	configCmd.AddCommand(setInterfaceCmd)
 	configCmd.AddCommand(openLogDirCmd)
 
 	configCmd.Flags().StringVar(&configPath, "config", "", "配置文件路径")
@@ -206,7 +218,7 @@ func runServer(cmd *cobra.Command, args []string) {
 	}
 
 	// 从命令行参数覆盖配置
-	cfg.OverrideFromFlags(rootDir, logDir, logLevel, port)
+	cfg.OverrideFromFlags(rootDir, interfacePath, logDir, logLevel, port, cmd.Flags().Changed("interface"))
 
 	// 初始化日志系统
 	if err := logger.Init(cfg.Log.Level, cfg.Log.Dir, cfg.Log.PushToClient); err != nil {
@@ -305,6 +317,13 @@ func runServer(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
+	piSvc, err := projectInterfaceService.NewService(cfg.File.Root, cfg.Interface.Path, fileSvc, eventBus)
+	if err != nil {
+		logger.Error("Main", "创建 Project Interface 服务失败: %v", err)
+		os.Exit(1)
+	}
+	piSvc.Start()
+
 	// 创建资源扫描服务
 	resSvc := resourceService.NewService(cfg.File.Root, eventBus)
 	if err := resSvc.Start(); err != nil {
@@ -376,6 +395,11 @@ func runServer(cmd *cobra.Command, args []string) {
 				logger.Info("Main", "资源扫描服务重载完成")
 			}
 		}
+		effectiveInterfacePath := cfg.Interface.Path
+		if cmd.Flags().Changed("interface") {
+			effectiveInterfacePath = interfacePath
+		}
+		piSvc.Reload(effectiveInterfacePath)
 
 		// 重载MFW服务（仅当启用且配置变化时）
 		if mfwSvc != nil && cfg.MaaFW.Enabled {
@@ -422,8 +446,11 @@ func runServer(cmd *cobra.Command, args []string) {
 	configHandler := configProtocol.NewConfigHandler()
 	rt.RegisterHandler(configHandler)
 
+	piHandler := projectInterfaceProtocol.NewHandler(piSvc, eventBus, wsServer)
+	rt.RegisterHandler(piHandler)
+
 	// 注册 debug-vNext 协议处理器
-	debugHandler := debugapi.NewHandler(mfwSvc, cfg.File.Root)
+	debugHandler := debugapi.NewHandler(mfwSvc, cfg.File.Root, piSvc, Version)
 	rt.RegisterHandler(debugHandler)
 
 	// 注册 Resource 协议处理器
@@ -457,6 +484,7 @@ func runServer(cmd *cobra.Command, args []string) {
 	logger.Info("Main", "正在关闭 Local Bridge 服务...")
 
 	wsServer.Stop()
+	debugHandler.Close()
 	fileSvc.Stop()
 
 	// 关闭 MFW 服务
@@ -630,6 +658,39 @@ func setResourceDir(cmd *cobra.Command, args []string) {
 	fmt.Printf("✅ OCR 资源路径已设置为: %s\n", resourceDir)
 	if resourceDir != "" {
 		fmt.Println("✅ MaaFramework 已自动启用")
+	}
+}
+
+func setInterfacePath(cmd *cobra.Command, args []string) {
+	paths.Init()
+	cfg, err := config.Load(configPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "加载配置失败: %v\n", err)
+		return
+	}
+
+	var value string
+	if len(args) > 0 {
+		value = strings.TrimSpace(args[0])
+	} else {
+		fmt.Println()
+		fmt.Println("Project Interface V2 入口路径")
+		if cfg.Interface.Path != "" {
+			fmt.Printf("当前值: %s\n", cfg.Interface.Path)
+		}
+		fmt.Print("请输入路径（留空恢复自动检索）: ")
+		reader := bufio.NewReader(os.Stdin)
+		value, _ = reader.ReadString('\n')
+		value = strings.TrimSpace(value)
+	}
+	if err := cfg.SetInterfacePath(value); err != nil {
+		fmt.Fprintf(os.Stderr, "保存配置失败: %v\n", err)
+		return
+	}
+	if value == "" {
+		fmt.Println("Project Interface 已设置为自动检索")
+	} else {
+		fmt.Printf("Project Interface 入口已设置为: %s\n", value)
 	}
 }
 

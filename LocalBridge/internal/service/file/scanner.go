@@ -214,6 +214,9 @@ func (s *Scanner) hasValidExtension(path string) bool {
 
 // 扫描单个文件信息
 func (s *Scanner) ScanSingle(absPath string) (*models.File, error) {
+	if !s.AllowsPath(absPath) {
+		return nil, nil
+	}
 	info, err := os.Stat(absPath)
 	if err != nil {
 		return nil, err
@@ -246,6 +249,28 @@ func (s *Scanner) ScanSingle(absPath string) (*models.File, error) {
 		Nodes:        nodes,
 		Prefix:       prefix,
 	}, nil
+}
+
+// AllowsPath applies the same root, exclude and depth boundaries used by the initial scan.
+func (s *Scanner) AllowsPath(absPath string) bool {
+	absPath, err := filepath.Abs(absPath)
+	if err != nil {
+		return false
+	}
+	relPath, err := filepath.Rel(s.root, absPath)
+	if err != nil || relPath == ".." || strings.HasPrefix(relPath, ".."+string(filepath.Separator)) {
+		return false
+	}
+	parts := strings.Split(filepath.Clean(relPath), string(filepath.Separator))
+	if s.maxDepth > 0 && len(parts) > s.maxDepth {
+		return false
+	}
+	for _, part := range parts[:max(0, len(parts)-1)] {
+		if s.shouldExcludeDir(part) {
+			return false
+		}
+	}
+	return true
 }
 
 // 解析文件节点列表和前缀

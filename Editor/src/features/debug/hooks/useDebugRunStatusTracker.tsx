@@ -58,9 +58,6 @@ export function useDebugRunStatusTracker(): void {
     if (notifiedRef.current.has(sessionKey)) return;
     notifiedRef.current.add(sessionKey);
 
-    // 调试窗口已打开则不弹通知
-    if (sessionStore.modalOpen) return;
-
     const started = Date.parse(latest.startedAt ?? "");
     const completed = Date.parse(latest.completedAt ?? "");
     const durationMs =

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { message } from "antd";
 import { useShallow } from "zustand/shallow";
 import {
@@ -28,6 +28,7 @@ import {
   captureScreenshotAction,
   testAgentAction,
 } from "../actions/debugModalActions";
+import { subscribeDebugRunRequests } from "../actions/debugRunRequestBridge";
 import {
   applyDebugNodeTarget,
   focusDebugCanvasNode,
@@ -55,11 +56,13 @@ import type {
 } from "../types";
 import "../contributions/runModes";
 import "../contributions/modalContributions";
+import { useProjectInterfaceDebugContext } from "@/features/project-interface/useProjectInterfaceDebugContext";
 
 export function useDebugModalController() {
   const [testingAgentIds, setTestingAgentIds] = useState<Set<string>>(
     () => new Set(),
   );
+  const agentTestTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const {
     modalOpen,
     activePanel,
@@ -76,6 +79,8 @@ export function useDebugModalController() {
     selectNode,
     clearProtocolError,
     setProtocolError,
+    setAgentTestResult,
+    clearAgentTestResult,
   } = useDebugSessionStore(
     useShallow((state) => ({
       modalOpen: state.modalOpen,
@@ -93,6 +98,8 @@ export function useDebugModalController() {
       selectNode: state.selectNode,
       clearProtocolError: state.clearProtocolError,
       setProtocolError: state.setProtocolError,
+      setAgentTestResult: state.setAgentTestResult,
+      clearAgentTestResult: state.clearAgentTestResult,
     })),
   );
   const overrideDraft = useDebugOverrideStore((state) => state.draft);
@@ -171,12 +178,37 @@ export function useDebugModalController() {
   const selectedFlowNodeId = useFlowStore((state) =>
     state.selectedNodes.length === 1 ? state.selectedNodes[0]?.id : undefined,
   );
+  const projectInterface = useProjectInterfaceDebugContext(connected);
+
+  useEffect(() => {
+    return debugProtocolClient.onAgentTested((result) => {
+      clearTimeout(agentTestTimeouts.current[result.agentId]);
+      delete agentTestTimeouts.current[result.agentId];
+      setTestingAgentIds((current) => {
+        if (!current.has(result.agentId)) return current;
+        const next = new Set(current);
+        next.delete(result.agentId);
+        return next;
+      });
+      if (result.success) {
+        message.success(result.message);
+      } else {
+        message.error(result.message);
+      }
+    });
+  }, []);
+  const piContext = projectInterface.mode === "project_interface" ? projectInterface.context : undefined;
   const resourceChecks = useDebugResourceChecks({
     modalOpen,
     activePanel,
     connected,
     profileState,
     selectedFlowNodeId,
+    resourcePathsOverride:
+      projectInterface.mode === "project_interface"
+        ? (piContext?.resourcePaths ?? [])
+        : undefined,
+    projectContextId: piContext?.contextId,
   });
   const controllerDisplayName = useMemo(
     () =>
@@ -236,24 +268,6 @@ export function useDebugModalController() {
     if (!connected || capabilities || capabilityStatus === "loading") return;
     ensureDebugCapabilitiesRequested();
   }, [connected, capabilities, capabilityStatus]);
-
-  useEffect(
-    () =>
-      debugProtocolClient.onAgentTested((result) => {
-        setTestingAgentIds((current) => {
-          if (!current.has(result.agentId)) return current;
-          const next = new Set(current);
-          next.delete(result.agentId);
-          return next;
-        });
-        if (result.success) {
-          message.success(result.message);
-        } else {
-          message.error(result.message);
-        }
-      }),
-    [],
-  );
 
   const runModes = useMemo(() => debugContributionRegistry.getRunModes(), []);
 
@@ -322,6 +336,10 @@ export function useDebugModalController() {
     input?: DebugRunRequest["input"],
   ): Promise<void> => {
     clearProtocolError();
+    if (projectInterface.mode === "project_interface" && !piContext) {
+      message.error(projectInterface.error ?? "Project Interface 上下文尚未就绪，请刷新配置或切换到手动模式");
+      return;
+    }
     if (overrideValidationError) {
       diagnosticsState.setPreflightDiagnostics([
         {
@@ -376,6 +394,9 @@ export function useDebugModalController() {
         input,
         overrideEntries,
       );
+      request.configurationSource = piContext ? "project_interface" : "manual";
+      request.projectContextId = piContext?.contextId;
+      if (piContext) request.profile.resourcePaths = piContext.resourcePaths;
       const preflightDiagnostics = validateRunRequest(request);
       diagnosticsState.setPreflightDiagnostics(preflightDiagnostics);
       const blockingDiagnostic = preflightDiagnostics.find(
@@ -406,6 +427,16 @@ export function useDebugModalController() {
       message.error(error instanceof Error ? error.message : "生成调试请求失败");
     }
   };
+
+  const startRunRef = useRef(startRun);
+  startRunRef.current = startRun;
+  useEffect(
+    () =>
+      subscribeDebugRunRequests((intent) => {
+        void startRunRef.current(intent.mode, intent.nodeId, intent.input);
+      }),
+    [],
+  );
 
 
   const stopRun = () => {
@@ -448,6 +479,74 @@ export function useDebugModalController() {
       resourcePaths: resolvedResourcePaths,
       setTestingAgentIds,
     });
+  };
+
+  const testProjectInterfaceAgent = (agentIndex: number) => {
+    if (!piContext) {
+      message.warning("Project Interface 上下文尚未就绪");
+      return;
+    }
+    const agent = piContext.agents?.[agentIndex];
+    if (!agent) return;
+    clearProtocolError();
+    clearAgentTestResult(agent.id);
+    const override = piContext ? projectInterface.agentOverrides[agent.id] : undefined;
+    setTestingAgentIds((current) => new Set(current).add(agent.id));
+    if (agentTestTimeouts.current[agent.id]) clearTimeout(agentTestTimeouts.current[agent.id]);
+    agentTestTimeouts.current[agent.id] = setTimeout(() => {
+      delete agentTestTimeouts.current[agent.id];
+      setTestingAgentIds((current) => {
+        const next = new Set(current);
+        next.delete(agent.id);
+        return next;
+      });
+      debugProtocolClient.stopAgent({ projectContextId: piContext.contextId, agentIndex });
+      const timeoutMessage = "Agent 连接测试超时，已停止启动进程";
+      setAgentTestResult({
+        agentId: agent.id,
+        success: false,
+        checkedAt: new Date().toISOString(),
+        message: timeoutMessage,
+        failureStage: "connect",
+      });
+      message.warning(timeoutMessage);
+    }, 12000);
+    const sent = debugProtocolClient.testAgent({
+      agent: { id: agent.id, enabled: true, transport: "identifier" },
+      projectContextId: piContext.contextId,
+      agentIndex,
+      agentOverride: override,
+    });
+    if (!sent) {
+      setTestingAgentIds((current) => {
+        const next = new Set(current);
+        next.delete(agent.id);
+        return next;
+      });
+      clearTimeout(agentTestTimeouts.current[agent.id]);
+      delete agentTestTimeouts.current[agent.id];
+      setAgentTestResult({
+        agentId: agent.id,
+        success: false,
+        checkedAt: new Date().toISOString(),
+        message: "发送 Agent 连接测试请求失败，请检查 LocalBridge 连接",
+        failureStage: "context",
+      });
+    }
+  };
+
+  const stopProjectInterfaceAgent = (agentIndex: number) => {
+    if (!piContext) return;
+    const agent = piContext.agents?.[agentIndex];
+    if (!agent) return;
+    clearTimeout(agentTestTimeouts.current[agent.id]);
+    delete agentTestTimeouts.current[agent.id];
+    setTestingAgentIds((current) => {
+      const next = new Set(current);
+      next.delete(agent.id);
+      return next;
+    });
+    debugProtocolClient.stopAgent({ projectContextId: piContext.contextId, agentIndex });
   };
 
   const focusNode = (nodeId: string) => {
@@ -513,6 +612,7 @@ export function useDebugModalController() {
     liveSummary,
     diagnosticsState,
     profileState,
+    projectInterface,
     overrideDraft,
     overrideEntries,
     overrideValidationError,
@@ -564,6 +664,8 @@ export function useDebugModalController() {
     selectLatestDisplaySession,
     selectAllDisplaySessions,
     testAgent,
+    testProjectInterfaceAgent,
+    stopProjectInterfaceAgent,
     selectPipelineNode,
     setIncludeAllJsonRunTargets:
       nodeExecutionController.setIncludeAllJsonRunTargets,

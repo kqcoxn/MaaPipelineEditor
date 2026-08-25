@@ -64,6 +64,11 @@ export const longTermPreview: ForecastSection = {
   notice: "不绑定具体版本，仅方向性规划，可能随时增删或调整。",
   items: [
     {
+      theme: "AI",
+      title: "MPE Harness 功能开发",
+      description: "使用 AI 操作 MPE！",
+    },
+    {
       theme: "工具",
       title: "客制化业务增强",
       description: "支持按键工具、导入图片、自定义分辨率等",
@@ -77,29 +82,28 @@ export const longTermPreview: ForecastSection = {
 };
 
 export const nextPreview: ForecastSection = {
-  title: "Next Version 至 v1.9.0",
+  title: "Next Version 至 v2.0.0",
   notice: "预告内容会随开发进度与实际需求调整，不代表最终承诺。",
   items: [
     {
-      theme: "AI",
-      title: "MPE Harness 功能开发",
-      description: "使用 AI 操作 MPE！",
-    },
-    {
-      theme: "生态",
-      title: "VSCode 插件（MSE）优化",
-      description: "以 Iframe 形式嵌入 MSE，提供文件至节点级联动相关功能",
+      theme: "PI",
+      title: "interface 功能开发",
+      description: "深度集成 interface",
     },
   ],
 };
 
 export const updateLogs: UpdateLogItem[] = [
   {
-    version: "1.8.2",
-    date: "2026-8-25",
-    type: "perf",
+    version: "1.9.0",
+    date: "2026-8-26",
+    type: "major",
     updates: {
-      features: ["✈️ 调试日志面板添加 MLA 链接与日志快捷打包功能"],
+      features: [
+        "✈️ 调试日志面板添加 MLA 链接与日志快捷打包功能",
+        "🚗 agent 支持自动挡唤起",
+        "⚙️ 支持读取 interface，并可与调试功能深度配合",
+      ],
       perfs: [
         "优化调试时 mfw 错误的上报提示",
         "优化实时渲染视图交互体验",
