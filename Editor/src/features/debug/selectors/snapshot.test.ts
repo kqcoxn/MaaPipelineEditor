@@ -221,6 +221,46 @@ describe("snapshot resource override resolution", () => {
     ).toEqual([nodes[1]]);
   });
 
+  it("preserves duplicate runtime names from files in the same bundle", () => {
+    const nodes: DebugNodeResolverSnapshot["nodes"] = [
+      {
+        fileId: "first",
+        nodeId: "first-node",
+        runtimeName: "Shared",
+        displayName: "Shared",
+        sourcePath: "C:/resource/base/pipeline/first.json",
+      },
+      {
+        fileId: "second",
+        nodeId: "second-node",
+        runtimeName: "Shared",
+        displayName: "Shared",
+        sourcePath: "C:/resource/base/pipeline/second.json",
+      },
+    ];
+
+    expect(selectEffectiveResolverNodes(nodes, ["C:/resource/base"])).toEqual(nodes);
+  });
+
+  it("treats resolver runtime names as case-sensitive", () => {
+    const nodes: DebugNodeResolverSnapshot["nodes"] = [
+      {
+        fileId: "upper",
+        nodeId: "upper-node",
+        runtimeName: "Node",
+        displayName: "Node",
+      },
+      {
+        fileId: "lower",
+        nodeId: "lower-node",
+        runtimeName: "node",
+        displayName: "node",
+      },
+    ];
+
+    expect(selectEffectiveResolverNodes(nodes)).toEqual(nodes);
+  });
+
   it("prefers later resource paths for duplicate resolver edges", () => {
     const edges: DebugNodeResolverSnapshot["edges"] = [
       {

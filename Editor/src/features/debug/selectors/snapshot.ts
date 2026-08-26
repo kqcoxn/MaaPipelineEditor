@@ -223,28 +223,17 @@ export function selectEffectiveResolverNodes(
   nodes: ResolverNode[],
   resourcePaths: string[] = [],
 ): ResolverNode[] {
-  const effective = new Map<string, { node: ResolverNode; order: number }>();
-
+  const grouped = new Map<string, Array<{ node: ResolverNode; order: number }>>();
   nodes.forEach((node, order) => {
     const runtimeName = node.runtimeName.trim();
     if (!runtimeName) return;
-    const key = runtimeName.toLowerCase();
-    const current = effective.get(key);
-    if (
-      !current ||
-      shouldPreferResolverSource(
-        current.node.sourcePath,
-        node.sourcePath,
-        resourcePaths,
-        current.order,
-        order,
-      )
-    ) {
-      effective.set(key, { node, order });
-    }
+    const entries = grouped.get(runtimeName) ?? [];
+    entries.push({ node, order });
+    grouped.set(runtimeName, entries);
   });
 
-  return [...effective.values()]
+  return [...grouped.values()]
+    .flatMap((entries) => selectWinningBundleEntries(entries, resourcePaths))
     .sort((left, right) => left.order - right.order)
     .map((entry) => entry.node);
 }
@@ -253,50 +242,41 @@ export function selectEffectiveResolverEdges(
   edges: ResolverEdge[],
   resourcePaths: string[] = [],
 ): ResolverEdge[] {
-  const effective = new Map<string, { edge: ResolverEdge; order: number }>();
+  const grouped = new Map<string, Array<{ edge: ResolverEdge; order: number }>>();
 
   edges.forEach((edge, order) => {
     const key = [
-      edge.fromRuntimeName.trim().toLowerCase(),
-      edge.toRuntimeName.trim().toLowerCase(),
+      edge.fromRuntimeName.trim(),
+      edge.toRuntimeName.trim(),
       edge.reason,
     ].join("\x00");
-    const current = effective.get(key);
-    if (
-      !current ||
-      shouldPreferResolverSource(
-        current.edge.sourcePath,
-        edge.sourcePath,
-        resourcePaths,
-        current.order,
-        order,
-      )
-    ) {
-      effective.set(key, { edge, order });
-    }
+    const entries = grouped.get(key) ?? [];
+    entries.push({ edge, order });
+    grouped.set(key, entries);
   });
 
-  return [...effective.values()]
+  return [...grouped.values()]
+    .flatMap((entries) => selectWinningBundleEntries(entries, resourcePaths))
     .sort((left, right) => left.order - right.order)
     .map((entry) => entry.edge);
 }
 
-function shouldPreferResolverSource(
-  currentSourcePath: string | undefined,
-  nextSourcePath: string | undefined,
+function selectWinningBundleEntries<T extends { sourcePath?: string }>(
+  entries: Array<{ node: T; order: number }> | Array<{ edge: T; order: number }>,
   resourcePaths: string[],
-  currentOrder: number,
-  nextOrder: number,
-): boolean {
-  const currentPriority = resolveResolverSourcePriority(
-    currentSourcePath,
-    resourcePaths,
-  );
-  const nextPriority = resolveResolverSourcePriority(nextSourcePath, resourcePaths);
-  if (currentPriority !== nextPriority) {
-    return nextPriority > currentPriority;
+): typeof entries {
+  let winningPriority = -1;
+  for (const entry of entries) {
+    const value = "node" in entry ? entry.node : entry.edge;
+    winningPriority = Math.max(
+      winningPriority,
+      resolveResolverSourcePriority(value.sourcePath, resourcePaths),
+    );
   }
-  return nextOrder > currentOrder;
+  return entries.filter((entry) => {
+    const value = "node" in entry ? entry.node : entry.edge;
+    return resolveResolverSourcePriority(value.sourcePath, resourcePaths) === winningPriority;
+  }) as typeof entries;
 }
 
 function resolveResolverSourcePriority(
