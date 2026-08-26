@@ -10,8 +10,10 @@ export interface LogEntry {
 
 interface LoggerState {
   logs: LogEntry[];
+  importantLogs: LogEntry[];
   expanded: boolean;
   maxLogs: number;
+  maxImportantLogs: number;
   addLog: (entry: Omit<LogEntry, "id">) => void;
   clearLogs: () => void;
   toggleExpanded: () => void;
@@ -20,8 +22,10 @@ interface LoggerState {
 
 export const useLoggerStore = create<LoggerState>((set) => ({
   logs: [],
+  importantLogs: [],
   expanded: false,
-  maxLogs: 100,
+  maxLogs: 1000,
+  maxImportantLogs: 500,
 
   addLog: (entry) =>
     set((state) => {
@@ -31,13 +35,16 @@ export const useLoggerStore = create<LoggerState>((set) => ({
       };
       const newLogs = [...state.logs, newLog];
       // 保持队列长度不超过 maxLogs
-      if (newLogs.length > state.maxLogs) {
-        return { logs: newLogs.slice(-state.maxLogs) };
-      }
-      return { logs: newLogs };
+      const logs = newLogs.length > state.maxLogs
+        ? newLogs.slice(-state.maxLogs)
+        : newLogs;
+      const importantLogs = entry.level === "INFO"
+        ? state.importantLogs
+        : [...state.importantLogs, newLog].slice(-state.maxImportantLogs);
+      return { logs, importantLogs };
     }),
 
-  clearLogs: () => set({ logs: [] }),
+  clearLogs: () => set({ logs: [], importantLogs: [] }),
 
   toggleExpanded: () => set((state) => ({ expanded: !state.expanded })),
 
