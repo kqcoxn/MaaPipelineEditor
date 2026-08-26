@@ -80,10 +80,40 @@ func (s *Service) CheckResourceHealth(
 	return result
 }
 
+func (s *Service) CheckResourcePreflight(
+	req protocol.ResourcePreflightRequest,
+) protocol.ResourcePreflightResult {
+	startedAt := time.Now()
+	paths := runutil.NonEmptyResourcePaths(req.ResourcePaths)
+	result := protocol.ResourcePreflightResult{
+		RequestID:     strings.TrimSpace(req.RequestID),
+		ResourcePaths: paths,
+		Status:        "failed",
+		CheckedAt:     startedAt.UTC().Format(time.RFC3339Nano),
+	}
+
+	resolutions, resourceDiagnostics := s.resolveResources(paths)
+	resolutionDiagnostics := annotateResourceHealthDiagnostics(
+		resourceDiagnostics,
+		resourceHealthCategoryResolution,
+		resourceResolutionSuggestion,
+	)
+	loadResult := s.checkResourceLoadDiagnostics(resolutions, resolutionDiagnostics)
+	result.Diagnostics = append(result.Diagnostics, resolutionDiagnostics...)
+	result.Diagnostics = append(result.Diagnostics, loadResult.diagnostics...)
+	result.DurationMS = time.Since(startedAt).Milliseconds()
+	if !HasBlockingDiagnostic(result.Diagnostics) {
+		result.Status = "ready"
+		result.Hash = loadResult.hash
+	}
+	return result
+}
+
 func (s *Service) checkResourceLoadDiagnostics(
 	resolutions []mfw.ResourceBundleResolution,
 	resolutionDiagnostics []protocol.Diagnostic,
 ) resourceHealthLoadCheckResult {
+	staticDiagnostics := s.checkBundlePipelineDiagnostics(resolutions)
 	switch {
 	case len(resolutions) == 0:
 		return resourceHealthLoadCheckResult{
@@ -105,19 +135,22 @@ func (s *Service) checkResourceLoadDiagnostics(
 				"先修复资源路径解析错误，再重新体检。",
 			)},
 		}
+	case HasBlockingDiagnostic(staticDiagnostics):
+		return resourceHealthLoadCheckResult{diagnostics: staticDiagnostics}
 	case s.resourceLoadAvailableFn == nil || !s.resourceLoadAvailableFn():
 		return resourceHealthLoadCheckResult{
-			diagnostics: []protocol.Diagnostic{newResourceHealthDiagnostic(
+			diagnostics: append(staticDiagnostics, newResourceHealthDiagnostic(
 				resourceHealthCategoryLoading,
 				"error",
 				"debug.resource.load_unavailable",
 				"MaaFramework 未初始化，无法执行资源真实加载。",
 				"先连接 LocalBridge 并完成 MaaFramework 初始化，再重新体检。",
-			)},
+			)),
 		}
 	}
 
 	loadDiagnostics := make([]protocol.Diagnostic, 0)
+	loadDiagnostics = append(loadDiagnostics, staticDiagnostics...)
 	checkedResolutions := uniqueResourceHealthResolutions(resolutions)
 	hashes := make([]string, 0, len(checkedResolutions))
 	for _, resolution := range checkedResolutions {
@@ -155,10 +188,6 @@ func (s *Service) checkSingleResourceLoadDiagnostics(
 				"resolutions":  resourceHealthResolutionData(checkedResolutions),
 			},
 		}, resourceHealthCategoryLoading, "检查该 bundle 目录结构、Lib 目录与资源版本是否匹配后重新体检。")}
-		diagnostics = append(
-			diagnostics,
-			s.runLoadFailureChecklist([]mfw.ResourceBundleResolution{resolution})...,
-		)
 		return resourceHealthLoadCheckResult{
 			diagnostics: diagnostics,
 			resolutions: []mfw.ResourceBundleResolution{resolution},
@@ -351,7 +380,7 @@ func (s *Service) checkGraphHealth(
 			nodeIndex[nodeKey] = node
 		}
 
-		runtimeKey := strings.ToLower(runtimeName)
+		runtimeKey := runtimeName
 		if previous, exists := runtimeIndex[runtimeKey]; exists {
 			diagnostics = append(diagnostics, withResourceHealthMeta(protocol.Diagnostic{
 				Severity:   "error",
@@ -385,7 +414,7 @@ func (s *Service) checkGraphHealth(
 				fmt.Sprintf("%s.fromRuntimeName", fieldPrefix),
 				"补齐边的起点 runtimeName 后重新体检。",
 			))
-		} else if _, exists := runtimeIndex[strings.ToLower(fromRuntimeName)]; !exists {
+		} else if _, exists := runtimeIndex[fromRuntimeName]; !exists {
 			diagnostics = append(diagnostics, withResourceHealthMeta(protocol.Diagnostic{
 				Severity:  "error",
 				Code:      "debug.resolver.edge_source_unknown",
@@ -406,7 +435,7 @@ func (s *Service) checkGraphHealth(
 				fmt.Sprintf("%s.toRuntimeName", fieldPrefix),
 				"补齐边的终点 runtimeName 后重新体检。",
 			))
-		} else if _, exists := runtimeIndex[strings.ToLower(toRuntimeName)]; !exists {
+		} else if _, exists := runtimeIndex[toRuntimeName]; !exists {
 			diagnostics = append(diagnostics, withResourceHealthMeta(protocol.Diagnostic{
 				Severity:  "error",
 				Code:      "debug.resolver.edge_target_unknown",
@@ -461,7 +490,7 @@ func (s *Service) checkGraphTarget(
 		}, resourceHealthCategoryGraph, "重新选择调试目标，确保目标节点能解析到完整的 fileId / nodeId / runtimeName。")}
 	}
 
-	node, exists := runtimeIndex[strings.ToLower(strings.TrimSpace(target.RuntimeName))]
+	node, exists := runtimeIndex[strings.TrimSpace(target.RuntimeName)]
 	if !exists || node.FileID != target.FileID || node.NodeID != target.NodeID {
 		return []protocol.Diagnostic{withResourceHealthMeta(protocol.Diagnostic{
 			Severity:   "error",
@@ -479,6 +508,12 @@ func (s *Service) checkGraphTarget(
 }
 
 func (s *Service) runLoadFailureChecklist(
+	resolutions []mfw.ResourceBundleResolution,
+) []protocol.Diagnostic {
+	return s.checkBundlePipelineDiagnostics(resolutions)
+}
+
+func (s *Service) checkBundlePipelineDiagnostics(
 	resolutions []mfw.ResourceBundleResolution,
 ) []protocol.Diagnostic {
 	bundleFiles, inspectionDiagnostics := s.inspectBundlePipelineFiles(resolutions)
@@ -614,47 +649,73 @@ func (s *Service) checkBundlePipelineDuplicateNodeNames(
 	ctx resourceHealthChecklistContext,
 ) []protocol.Diagnostic {
 	diagnostics := make([]protocol.Diagnostic, 0)
+	type occurrence struct {
+		bundleFile resourceHealthBundlePipelineFile
+	}
+	byBundle := make(map[string]map[string][]occurrence)
 	for _, bundleFile := range ctx.bundleFiles {
 		if bundleFile.parsed == nil {
 			continue
 		}
-		for _, name := range resourceHealthDuplicateNodeNames(*bundleFile.parsed) {
+		object, ok := bundleFile.parsed.Value.(*hujson.Object)
+		if !ok {
+			continue
+		}
+		bundleKey := resolvedPathKey(bundleFile.bundlePath)
+		if byBundle[bundleKey] == nil {
+			byBundle[bundleKey] = make(map[string][]occurrence)
+		}
+		for _, member := range object.Members {
+			name := resourceHealthObjectMemberName(member)
+			if name == "" || strings.HasPrefix(name, "$") {
+				continue
+			}
+			byBundle[bundleKey][name] = append(byBundle[bundleKey][name], occurrence{bundleFile: bundleFile})
+		}
+	}
+
+	bundleKeys := make([]string, 0, len(byBundle))
+	for bundleKey := range byBundle {
+		bundleKeys = append(bundleKeys, bundleKey)
+	}
+	sort.Strings(bundleKeys)
+	for _, bundleKey := range bundleKeys {
+		names := make([]string, 0)
+		for name, occurrences := range byBundle[bundleKey] {
+			if len(occurrences) > 1 {
+				names = append(names, name)
+			}
+		}
+		sort.Strings(names)
+		for _, name := range names {
+			occurrences := byBundle[bundleKey][name]
+			conflictFiles := make([]string, 0, len(occurrences))
+			seenFiles := make(map[string]struct{}, len(occurrences))
+			for _, item := range occurrences {
+				if _, exists := seenFiles[item.bundleFile.relativePath]; exists {
+					continue
+				}
+				seenFiles[item.bundleFile.relativePath] = struct{}{}
+				conflictFiles = append(conflictFiles, item.bundleFile.relativePath)
+			}
+			first := occurrences[0].bundleFile
 			diagnostics = append(diagnostics, withResourceHealthMeta(protocol.Diagnostic{
 				Severity:   "error",
 				Code:       "debug.resource.pipeline_node_name_duplicate",
-				Message:    fmt.Sprintf("为定位 MaaFW 加载失败，检查到资源目录中的 Pipeline 文件存在重复节点名：%s。", name),
-				FieldPath:  bundleFile.relativePath,
-				SourcePath: bundleFile.sourcePath,
+				Message:    fmt.Sprintf("同一 Bundle 中存在重复节点名 %s：%s。", name, strings.Join(conflictFiles, "、")),
+				FieldPath:  first.relativePath,
+				SourcePath: first.sourcePath,
 				Data: map[string]interface{}{
-					"bundlePath":   bundleFile.bundlePath,
-					"relativePath": bundleFile.relativePath,
-					"nodeName":     name,
+					"bundlePath":      first.bundlePath,
+					"relativePath":    first.relativePath,
+					"nodeName":        name,
+					"conflictFiles":   conflictFiles,
+					"occurrenceCount": len(occurrences),
 				},
-			}, resourceHealthCategoryLoading, "修改该 Pipeline 文件中的重复节点名，确保同一文件内每个节点名唯一后重新体检，确认 MaaFW 是否恢复可加载。"))
+			}, resourceHealthCategoryLoading, "修改冲突节点名，确保同一 Bundle 内所有 Pipeline 文件的节点名唯一后重新体检。"))
 		}
 	}
 	return diagnostics
-}
-
-func resourceHealthDuplicateNodeNames(value hujson.Value) []string {
-	object, ok := value.Value.(*hujson.Object)
-	if !ok {
-		return nil
-	}
-	counts := make(map[string]int, len(object.Members))
-	duplicates := make([]string, 0)
-	for _, member := range object.Members {
-		name := resourceHealthObjectMemberName(member)
-		if name == "" || strings.HasPrefix(name, "$") {
-			continue
-		}
-		counts[name]++
-		if counts[name] == 2 {
-			duplicates = append(duplicates, name)
-		}
-	}
-	sort.Strings(duplicates)
-	return duplicates
 }
 
 func resourceHealthObjectMemberName(member hujson.ObjectMember) string {

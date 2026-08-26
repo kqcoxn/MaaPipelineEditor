@@ -290,66 +290,7 @@ func (h *Handler) handleResourcePreflight(conn *server.Connection, msg models.Me
 		req.ResourcePaths = plan.ResourcePaths
 	}
 
-	startedAt := time.Now()
-	checkedAt := startedAt.UTC().Format(time.RFC3339Nano)
-	paths := nonEmptyStrings(req.ResourcePaths)
-	result := protocol.ResourcePreflightResult{
-		RequestID:     strings.TrimSpace(req.RequestID),
-		ResourcePaths: paths,
-		Status:        "failed",
-		CheckedAt:     checkedAt,
-	}
-
-	if len(paths) == 0 {
-		result.Diagnostics = []protocol.Diagnostic{{
-			Severity: "error",
-			Code:     "debug.resource.empty",
-			Message:  "资源路径为空，请先配置至少一个资源路径。",
-		}}
-		h.send(conn, "/lte/debug/resource_preflight", result)
-		return
-	}
-	if !h.service.IsInitialized() {
-		result.Diagnostics = []protocol.Diagnostic{{
-			Severity: "error",
-			Code:     "debug_not_initialized",
-			Message:  "MaaFramework 未初始化，无法加载资源。",
-		}}
-		result.DurationMS = time.Since(startedAt).Milliseconds()
-		h.send(conn, "/lte/debug/resource_preflight", result)
-		return
-	}
-
-	hash, resolutions, loadErr := mfw.CheckResourceBundlesDetailed(paths)
-	result.DurationMS = time.Since(startedAt).Milliseconds()
-	resolutionDiagnostics := debugdiagnostics.BuildResourceResolutionDiagnostics(resolutions)
-	if loadErr != nil {
-		diagnostic := protocol.Diagnostic{
-			Severity: "error",
-			Code:     "debug.resource.load_failed",
-			Message:  loadErr.Error(),
-		}
-		var resolveErr *mfw.ResourceBundleResolveError
-		if errors.As(loadErr, &resolveErr) {
-			diagnostic = debugdiagnostics.BuildResourceResolveErrorDiagnostic(-1, loadErr)
-		}
-		result.Diagnostics = append(resolutionDiagnostics, diagnostic)
-		h.send(conn, "/lte/debug/resource_preflight", result)
-		return
-	}
-
-	result.Status = "ready"
-	result.Hash = hash
-	result.Diagnostics = append(resolutionDiagnostics, protocol.Diagnostic{
-		Severity: "info",
-		Code:     "debug.resource.ready",
-		Message:  "资源加载检测通过。",
-		Data: map[string]interface{}{
-			"hash":        hash,
-			"durationMs":  result.DurationMS,
-			"resolutions": resourceResolutionData(resolutions),
-		},
-	})
+	result := h.diagnostics.CheckResourcePreflight(req)
 	h.send(conn, "/lte/debug/resource_preflight", result)
 }
 

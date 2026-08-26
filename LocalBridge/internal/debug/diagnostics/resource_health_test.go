@@ -254,6 +254,79 @@ func TestRunLoadFailureChecklist_DetectsDuplicateNodeNamesFromResolvedBundle(t *
 	assertDiagnosticCategory(t, diagnostics, "debug.resource.pipeline_node_name_duplicate", "loading")
 }
 
+func TestRunLoadFailureChecklist_DetectsDuplicateNodeNamesAcrossFilesInBundle(t *testing.T) {
+	service := NewService(nil, "")
+	bundleDir := createResourceBundleDir(t)
+	firstPath := filepath.Join(bundleDir, "pipeline", "first.json")
+	secondPath := filepath.Join(bundleDir, "pipeline", "sub", "second.json")
+	if err := os.MkdirAll(filepath.Dir(secondPath), 0o755); err != nil {
+		t.Fatalf("MkdirAll failed: %v", err)
+	}
+	if err := os.WriteFile(firstPath, []byte(`{"Shared": {}}`), 0o644); err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+	if err := os.WriteFile(secondPath, []byte(`{"Shared": {}}`), 0o644); err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+
+	diagnostics := service.runLoadFailureChecklist([]mfw.ResourceBundleResolution{{ResolvedPath: bundleDir}})
+	diagnostic := findDiagnostic(t, diagnostics, "debug.resource.pipeline_node_name_duplicate")
+	files, ok := diagnostic.Data["conflictFiles"].([]string)
+	if !ok || len(files) != 2 {
+		t.Fatalf("unexpected conflictFiles: %#v", diagnostic.Data["conflictFiles"])
+	}
+}
+
+func TestResourcePreflightReportsDuplicateBeforeMaaFWLoad(t *testing.T) {
+	service := NewService(nil, "")
+	bundleDir := createResourceBundleDir(t)
+	for _, name := range []string{"first.json", "second.json"} {
+		if err := os.WriteFile(filepath.Join(bundleDir, "pipeline", name), []byte(`{"Shared": {}}`), 0o644); err != nil {
+			t.Fatalf("WriteFile failed: %v", err)
+		}
+	}
+
+	result := service.CheckResourcePreflight(protocol.ResourcePreflightRequest{
+		ResourcePaths: []string{bundleDir},
+	})
+	if result.Status != "failed" {
+		t.Fatalf("status = %q, want failed", result.Status)
+	}
+	assertDiagnosticCode(t, result.Diagnostics, "debug.resource.pipeline_node_name_duplicate")
+	assertDiagnosticMissing(t, result.Diagnostics, "debug.resource.load_unavailable")
+}
+
+func TestRunLoadFailureChecklist_NodeNamesAreCaseSensitive(t *testing.T) {
+	service := NewService(nil, "")
+	bundleDir := createResourceBundleDir(t)
+	if err := os.WriteFile(filepath.Join(bundleDir, "pipeline", "upper.json"), []byte(`{"Node": {}}`), 0o644); err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(bundleDir, "pipeline", "lower.json"), []byte(`{"node": {}}`), 0o644); err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+
+	diagnostics := service.runLoadFailureChecklist([]mfw.ResourceBundleResolution{{ResolvedPath: bundleDir}})
+	assertDiagnosticMissing(t, diagnostics, "debug.resource.pipeline_node_name_duplicate")
+}
+
+func TestRunLoadFailureChecklist_AllowsDuplicateNodeNamesAcrossBundles(t *testing.T) {
+	service := NewService(nil, "")
+	firstBundle := createResourceBundleDir(t)
+	secondBundle := createResourceBundleDir(t)
+	for _, bundleDir := range []string{firstBundle, secondBundle} {
+		if err := os.WriteFile(filepath.Join(bundleDir, "pipeline", "nodes.json"), []byte(`{"Shared": {}}`), 0o644); err != nil {
+			t.Fatalf("WriteFile failed: %v", err)
+		}
+	}
+
+	diagnostics := service.runLoadFailureChecklist([]mfw.ResourceBundleResolution{
+		{ResolvedPath: firstBundle},
+		{ResolvedPath: secondBundle},
+	})
+	assertDiagnosticMissing(t, diagnostics, "debug.resource.pipeline_node_name_duplicate")
+}
+
 func TestRunLoadFailureChecklist_ScansFilesOutsideGraphSnapshot(t *testing.T) {
 	service := NewService(nil, "")
 	bundleDir := createResourceBundleDir(t)
@@ -311,6 +384,17 @@ func assertDiagnosticCode(
 		}
 	}
 	t.Fatalf("diagnostics do not contain %s: %+v", code, diagnostics)
+}
+
+func findDiagnostic(t *testing.T, diagnostics []protocol.Diagnostic, code string) protocol.Diagnostic {
+	t.Helper()
+	for _, diagnostic := range diagnostics {
+		if diagnostic.Code == code {
+			return diagnostic
+		}
+	}
+	t.Fatalf("diagnostics do not contain %s: %+v", code, diagnostics)
+	return protocol.Diagnostic{}
 }
 
 func assertDiagnosticSuggestion(
