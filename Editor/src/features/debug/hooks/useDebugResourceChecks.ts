@@ -65,10 +65,11 @@ export function useDebugResourceChecks({
       flowEdges: state.edges,
     })),
   );
-  const { resourceBundles, localFiles } = useLocalFileStore(
+  const { resourceBundles, localFiles, localFilesRevision } = useLocalFileStore(
     useShallow((state) => ({
       resourceBundles: state.resourceBundles,
       localFiles: state.files,
+      localFilesRevision: state.lastUpdateTime,
     })),
   );
   const {
@@ -102,9 +103,12 @@ export function useDebugResourceChecks({
     [profileState.profile.resourcePaths, resourceBundles, resourcePathsOverride],
   );
   const resourceKey = useMemo(
-    () => resourcePathsOverride?.join("\n") ??
-      makeDebugResourceKey(profileState.profile.resourcePaths, resourceBundles),
-    [profileState.profile.resourcePaths, resourceBundles, resourcePathsOverride],
+    () => makeDebugResourceKey(
+      resourcePathsOverride ?? profileState.profile.resourcePaths,
+      resourceBundles,
+      localFiles,
+    ),
+    [profileState.profile.resourcePaths, resourceBundles, resourcePathsOverride, localFiles],
   );
   const resourcePreflightMatches =
     resourcePreflight.resourceKey === resourceKey;
@@ -136,10 +140,13 @@ export function useDebugResourceChecks({
         localFiles: localFiles.map((file) => ({
           path: file.file_path,
           prefix: file.prefix,
+          revision: file.last_modified,
+          contentHash: file.content_hash,
           nodeCount: file.nodes?.length ?? 0,
         })),
+        localFilesRevision,
       }),
-    [currentFileName, files, flowEdges, flowNodes, localFiles],
+    [currentFileName, files, flowEdges, flowNodes, localFiles, localFilesRevision],
   );
 
   const resourceHealthDraft = useMemo(() => {

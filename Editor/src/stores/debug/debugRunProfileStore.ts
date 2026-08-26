@@ -19,7 +19,11 @@ import {
   DEFAULT_DEBUG_AGENT_TIMEOUT_MS,
   getDebugAgentProfileKey,
 } from "@/features/debug/utils/agentProfile";
-import { useLocalFileStore, type ResourceBundle } from "@/stores/project/localFileStore";
+import {
+  useLocalFileStore,
+  type LocalFileInfo,
+  type ResourceBundle,
+} from "@/stores/project/localFileStore";
 import { useMFWStore } from "@/stores/connection/mfwStore";
 import {
   getScreenshotResolutionParams,
@@ -186,8 +190,26 @@ export function normalizeDebugResourcePaths(
 export function makeDebugResourceKey(
   resourcePaths: string[],
   resourceBundles?: ResourceBundle[],
+  localFiles: LocalFileInfo[] = useLocalFileStore.getState().files,
 ): string {
-  return normalizeDebugResourcePaths(resourcePaths, resourceBundles).join("\n");
+  const paths = normalizeDebugResourcePaths(resourcePaths, resourceBundles);
+  const revisions = localFiles
+    .filter((file) => paths.some((path) => isPathWithin(file.file_path, path)))
+    .map((file) =>
+      `${normalizeDebugPath(file.file_path)}:${file.content_hash || file.last_modified || 0}`,
+    )
+    .sort();
+  return JSON.stringify({ paths, revisions });
+}
+
+function isPathWithin(filePath: string, rootPath: string): boolean {
+  const file = normalizeDebugPath(filePath);
+  const root = normalizeDebugPath(rootPath).replace(/\/+$/, "");
+  return file === root || file.startsWith(`${root}/`);
+}
+
+function normalizeDebugPath(path: string): string {
+  return path.trim().replace(/\\/g, "/").toLowerCase();
 }
 
 export function isDebugEntryAvailable(

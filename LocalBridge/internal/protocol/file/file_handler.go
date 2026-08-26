@@ -213,6 +213,7 @@ func (h *Handler) handleSaveFile(msg models.Message, conn *server.Connection) *m
 		}
 		return nil
 	}
+	h.pushFileList()
 
 	// 返回确认
 	return &models.Message{
@@ -274,6 +275,7 @@ func (h *Handler) handleSaveSeparated(msg models.Message, conn *server.Connectio
 	}
 
 	logger.Debug("FileService", "分离模式保存成功: %s + %s", req.PipelinePath, req.ConfigPath)
+	h.pushFileList()
 
 	// 返回确认
 	return &models.Message{
@@ -360,7 +362,7 @@ func (h *Handler) subscribeEvents() {
 			// created: 新文件/目录加入
 			// deleted (目录): 多个文件被移除
 			// renamed: 路径变更
-			if changeType == "created" || (changeType == "deleted" && isDirectory) || changeType == "renamed" {
+			if changeType == "created" || changeType == "modified" || (changeType == "deleted" && isDirectory) || changeType == "renamed" {
 				h.pushFileList()
 			}
 		}

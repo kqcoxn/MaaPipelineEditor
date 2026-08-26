@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { isDebugEntryAvailable } from "./debugRunProfileStore";
+import {
+  isDebugEntryAvailable,
+  makeDebugResourceKey,
+} from "./debugRunProfileStore";
 
 const snapshot = {
   generatedAt: "2026-08-23T00:00:00.000Z",
@@ -50,5 +53,24 @@ describe("debug profile entry recovery", () => {
         snapshot,
       ),
     ).toBe(false);
+  });
+});
+
+describe("debug resource cache key", () => {
+  it("changes when a pipeline file content hash changes", () => {
+    const file = {
+      file_path: "C:/resource/pipeline/main.json",
+      file_name: "main.json",
+      relative_path: "pipeline/main.json",
+      nodes: [],
+      prefix: "",
+      content_hash: "before",
+    };
+    const before = makeDebugResourceKey(["C:/resource"], [], [file]);
+    const after = makeDebugResourceKey(["C:/resource"], [], [
+      { ...file, content_hash: "after" },
+    ]);
+
+    expect(after).not.toBe(before);
   });
 });

@@ -1,6 +1,8 @@
 package file
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
@@ -124,13 +126,15 @@ func (s *Scanner) ScanWithLimit() (*ScanResult, error) {
 
 		// 解析文件节点列表和前缀
 		nodes, prefix := s.parseFileNodes(path)
+		contentHash := fileContentHash(path)
 
 		// 添加到文件列表
 		result.Files = append(result.Files, models.File{
 			AbsPath:      path,
 			RelPath:      relPath,
 			Name:         info.Name(),
-			LastModified: info.ModTime().Unix(),
+			LastModified: info.ModTime().UnixNano(),
+			ContentHash:  contentHash,
 			Nodes:        nodes,
 			Prefix:       prefix,
 		})
@@ -240,15 +244,26 @@ func (s *Scanner) ScanSingle(absPath string) (*models.File, error) {
 
 	// 解析文件节点列表和前缀
 	nodes, prefix := s.parseFileNodes(absPath)
+	contentHash := fileContentHash(absPath)
 
 	return &models.File{
 		AbsPath:      absPath,
 		RelPath:      relPath,
 		Name:         info.Name(),
-		LastModified: info.ModTime().Unix(),
+		LastModified: info.ModTime().UnixNano(),
+		ContentHash:  contentHash,
 		Nodes:        nodes,
 		Prefix:       prefix,
 	}, nil
+}
+
+func fileContentHash(filePath string) string {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return ""
+	}
+	sum := sha256.Sum256(data)
+	return hex.EncodeToString(sum[:])
 }
 
 // AllowsPath applies the same root, exclude and depth boundaries used by the initial scan.

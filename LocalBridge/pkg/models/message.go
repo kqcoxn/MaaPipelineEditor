@@ -18,6 +18,8 @@ type FileInfo struct {
 	FilePath     string     `json:"file_path"`     // 文件绝对路径
 	FileName     string     `json:"file_name"`     // 文件名
 	RelativePath string     `json:"relative_path"` // 相对路径
+	LastModified int64      `json:"last_modified"` // 文件修改版本（Unix 纳秒）
+	ContentHash  string     `json:"content_hash"`  // 文件内容 SHA-256
 	Nodes        []FileNode `json:"nodes"`         // 节点列表
 	Prefix       string     `json:"prefix"`        // 文件前缀
 }

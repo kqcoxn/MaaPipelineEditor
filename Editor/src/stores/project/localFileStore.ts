@@ -17,6 +17,8 @@ export type LocalFileInfo = {
   file_path: string; // 绝对路径
   file_name: string; // 文件名
   relative_path: string; // 相对路径
+  last_modified?: number; // 文件修改版本（Unix 纳秒）
+  content_hash?: string; // 文件内容 SHA-256
   nodes: FileNodeInfo[]; // 节点列表
   prefix: string; // 文件前缀
 };
@@ -94,7 +96,7 @@ type LocalFileState = {
   addFileWithInfo: (filePath: string, info: Partial<LocalFileInfo>) => void;
 
   // 更新文件（修改时间戳）
-  updateFile: (filePath: string) => void;
+  updateFile: (filePath: string, file?: LocalFileInfo) => void;
 
   // 根据路径查找文件
   findFileByPath: (filePath: string) => LocalFileInfo | undefined;
@@ -236,10 +238,13 @@ export const useLocalFileStore = create<LocalFileState>()((set, get) => ({
   },
 
   // 更新文件
-  updateFile(_filePath) {
-    set({
+  updateFile(filePath, file) {
+    set((state) => ({
+      files: file
+        ? state.files.map((item) => item.file_path === filePath ? file : item)
+        : state.files,
       lastUpdateTime: Date.now(),
-    });
+    }));
   },
 
   // 根据路径查找文件

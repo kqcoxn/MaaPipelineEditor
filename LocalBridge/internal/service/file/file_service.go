@@ -254,6 +254,7 @@ func (s *Service) SaveFileWithOrder(filePath string, content interface{}, indent
 	if s.watcher != nil {
 		s.watcher.ClearDebounce(normalizedPath)
 	}
+	s.refreshFileIndex(normalizedPath)
 
 	logger.Info("FileService", "文件已保存: %s", filePath)
 	return nil
@@ -392,7 +393,8 @@ func (s *Service) handleFileChange(change FileChange) {
 			return
 		}
 
-		logger.Warn("FileService", "文件已被外部修改: %s", filePath)
+		s.refreshFileIndex(filePath)
+		logger.Warn("FileService", "文件已被外部修改并重新索引: %s", filePath)
 
 	case ChangeTypeDeleted:
 		if change.IsDirectory {
@@ -439,6 +441,22 @@ func (s *Service) handleFileChange(change FileChange) {
 		"file_path":    filePath,
 		"is_directory": change.IsDirectory,
 	})
+}
+
+func (s *Service) refreshFileIndex(filePath string) {
+	fileInfo, err := s.scanner.ScanSingle(filePath)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err != nil || fileInfo == nil {
+		delete(s.fileIndex, filePath)
+		if err != nil {
+			logger.Warn("FileService", "重新解析文件索引失败: %s: %v", filePath, err)
+		}
+		return
+	}
+	if _, exists := s.fileIndex[filePath]; exists || s.maxFiles <= 0 || len(s.fileIndex) < s.maxFiles {
+		s.fileIndex[filePath] = fileInfo
+	}
 }
 
 // 验证路径安全性

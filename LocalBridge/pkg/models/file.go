@@ -14,6 +14,7 @@ type File struct {
 	RelPath      string     // 相对于根目录的路径
 	Name         string     // 文件名（含扩展名）
 	LastModified int64      // 最后修改时间（Unix时间戳）
+	ContentHash  string     // 文件内容 SHA-256
 	Nodes        []FileNode // 节点列表
 	Prefix       string     // 文件前缀
 }
@@ -24,6 +25,8 @@ func (f *File) ToFileInfo() FileInfo {
 		FilePath:     f.AbsPath,
 		FileName:     f.Name,
 		RelativePath: f.RelPath,
+		LastModified: f.LastModified,
+		ContentHash:  f.ContentHash,
 		Nodes:        f.Nodes,
 		Prefix:       f.Prefix,
 	}
