@@ -3,6 +3,7 @@ package utility
 import (
 	"archive/zip"
 	"bytes"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"sort"
@@ -83,5 +84,74 @@ func TestMPELogExcludedDirectory(t *testing.T) {
 		if got := isMPELogExcludedDirectory(name); got != want {
 			t.Errorf("isMPELogExcludedDirectory(%q) = %t, want %t", name, got, want)
 		}
+	}
+}
+
+func TestBuildMPELogArchiveIncludesManifestFrontendStateAndOpenedFiles(t *testing.T) {
+	root := t.TempDir()
+	logDir := filepath.Join(root, "logs")
+	if err := os.MkdirAll(logDir, 0o755); err != nil {
+		t.Fatalf("MkdirAll failed: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(logDir, "maafw.log"), []byte("framework log"), 0o644); err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+	openedPath := filepath.Join(root, "assets", "resource", "pipeline", "main.json")
+	if err := os.MkdirAll(filepath.Dir(openedPath), 0o755); err != nil {
+		t.Fatalf("MkdirAll failed: %v", err)
+	}
+	if err := os.WriteFile(openedPath, []byte(`{"Entry": {}}`), 0o644); err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+
+	archive, err := buildMPELogArchive(logDir, root, "test-version", mpeLogExportPayload{
+		FrontendLogs:  map[string]interface{}{"backend": []interface{}{}},
+		FrontendState: map[string]interface{}{"workspace": map[string]interface{}{"current": "main.json"}},
+		OpenedFiles:   []mpeLogOpenedFile{{FilePath: openedPath, FileName: "main.json", Current: true}},
+		Manifest:      map[string]interface{}{"editorVersion": "test-editor"},
+	})
+	if err != nil {
+		t.Fatalf("buildMPELogArchive failed: %v", err)
+	}
+
+	reader, err := zip.NewReader(bytes.NewReader(archive), int64(len(archive)))
+	if err != nil {
+		t.Fatalf("NewReader failed: %v", err)
+	}
+	entries := make(map[string]*zip.File, len(reader.File))
+	for _, file := range reader.File {
+		entries[file.Name] = file
+	}
+	for _, name := range []string{
+		"manifest.json",
+		"mpe/frontend-logs.json",
+		"mpe/frontend-state.json",
+		"mpe/open-files/disk/assets/resource/pipeline/main.json",
+		"localbridge/maafw.log",
+	} {
+		if entries[name] == nil {
+			t.Fatalf("archive does not contain %s; entries=%v", name, entries)
+		}
+	}
+
+	manifestReader, err := entries["manifest.json"].Open()
+	if err != nil {
+		t.Fatalf("open manifest failed: %v", err)
+	}
+	defer manifestReader.Close()
+	manifest := map[string]interface{}{}
+	if err := json.NewDecoder(manifestReader).Decode(&manifest); err != nil {
+		t.Fatalf("decode manifest failed: %v", err)
+	}
+	if manifest["localBridgeVersion"] != "test-version" {
+		t.Fatalf("unexpected localBridgeVersion: %#v", manifest["localBridgeVersion"])
+	}
+}
+
+func TestOpenedFileArchivePathRejectsFilesOutsideRoot(t *testing.T) {
+	root := t.TempDir()
+	outside := filepath.Join(t.TempDir(), "outside.json")
+	if _, err := openedFileArchivePath(root, outside); err == nil {
+		t.Fatal("expected path outside root to be rejected")
 	}
 }

@@ -29,28 +29,103 @@ var mfwLogImageExtensions = map[string]struct{}{
 	".webp": {},
 }
 
+type mpeLogOpenedFile struct {
+	FilePath string `json:"filePath"`
+	FileName string `json:"fileName"`
+	Current  bool   `json:"current"`
+}
+
+type mpeLogExportPayload struct {
+	FrontendLogs  map[string]interface{} `json:"frontend_logs"`
+	FrontendState map[string]interface{} `json:"frontend_state"`
+	OpenedFiles   []mpeLogOpenedFile     `json:"opened_files"`
+	Manifest      map[string]interface{} `json:"manifest"`
+}
+
 // handleExportLogs 将后端日志目录和前端内存日志汇总为 ZIP。
 func (h *UtilityHandler) handleExportLogs(conn *server.Connection, msg models.Message) {
 	logDir, _ := resolveMaafwLogPath()
-	var payload struct {
-		FrontendLogs map[string]interface{} `json:"frontend_logs"`
+	payload := mpeLogExportPayload{}
+	if encoded, err := json.Marshal(msg.Data); err == nil {
+		_ = json.Unmarshal(encoded, &payload)
 	}
-	if data, ok := msg.Data.(map[string]interface{}); ok {
-		if raw, ok := data["frontend_logs"]; ok {
-			encoded, _ := json.Marshal(raw)
-			_ = json.Unmarshal(encoded, &payload.FrontendLogs)
+	archive, err := buildMPELogArchive(logDir, h.root, h.version, payload)
+	if err != nil {
+		logger.Error("Utility", "导出日志失败: %v", err)
+		conn.Send(models.Message{Path: "/lte/utility/logs_exported", Data: map[string]interface{}{
+			"success": false,
+			"message": "日志导出失败: " + err.Error(),
+		}})
+		return
+	}
+	conn.Send(models.Message{Path: "/lte/utility/logs_exported", Data: map[string]interface{}{
+		"success":  true,
+		"filename": fmt.Sprintf("mpe-logs-%s.zip", time.Now().Format("20060102-150405")),
+		"content":  base64.StdEncoding.EncodeToString(archive),
+		"message":  "日志导出成功",
+	}})
+}
+
+func buildMPELogArchive(logDir, root, version string, payload mpeLogExportPayload) ([]byte, error) {
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	writeJSON := func(name string, value interface{}) error {
+		raw, err := json.MarshalIndent(value, "", "  ")
+		if err != nil {
+			return err
+		}
+		writer, err := zw.Create(name)
+		if err != nil {
+			return err
+		}
+		_, err = writer.Write(raw)
+		return err
+	}
+	if payload.FrontendLogs != nil {
+		if err := writeJSON("mpe/frontend-logs.json", payload.FrontendLogs); err != nil {
+			return nil, fmt.Errorf("写入前端日志失败: %w", err)
+		}
+	}
+	if payload.FrontendState != nil {
+		if err := writeJSON("mpe/frontend-state.json", payload.FrontendState); err != nil {
+			return nil, fmt.Errorf("写入前端状态失败: %w", err)
 		}
 	}
 
-	var buf bytes.Buffer
-	zw := zip.NewWriter(&buf)
-	if payload.FrontendLogs != nil {
-		if raw, err := json.MarshalIndent(payload.FrontendLogs, "", "  "); err == nil {
-			if w, err := zw.Create("mpe/frontend-logs.json"); err == nil {
-				_, _ = w.Write(raw)
-			}
+	openedFileResults := make([]map[string]interface{}, 0, len(payload.OpenedFiles))
+	for _, opened := range payload.OpenedFiles {
+		result := map[string]interface{}{
+			"filePath": opened.FilePath,
+			"fileName": opened.FileName,
+			"current":  opened.Current,
 		}
+		archivePath, err := openedFileArchivePath(root, opened.FilePath)
+		if err != nil {
+			result["error"] = err.Error()
+			openedFileResults = append(openedFileResults, result)
+			continue
+		}
+		data, err := os.ReadFile(opened.FilePath)
+		if err != nil {
+			result["error"] = err.Error()
+			openedFileResults = append(openedFileResults, result)
+			continue
+		}
+		writer, err := zw.Create(archivePath)
+		if err != nil {
+			return nil, fmt.Errorf("创建用户文件条目失败: %w", err)
+		}
+		if _, err := writer.Write(data); err != nil {
+			return nil, fmt.Errorf("写入用户文件失败: %w", err)
+		}
+		result["archivePath"] = archivePath
+		result["size"] = len(data)
+		if info, statErr := os.Stat(opened.FilePath); statErr == nil {
+			result["modifiedAt"] = info.ModTime().UTC().Format(time.RFC3339Nano)
+		}
+		openedFileResults = append(openedFileResults, result)
 	}
+
 	if err := filepath.WalkDir(logDir, func(path string, entry os.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			logger.Warn("Utility", "导出日志时跳过 %s: %v", path, walkErr)
@@ -76,16 +151,43 @@ func (h *UtilityHandler) handleExportLogs(conn *server.Connection, msg models.Me
 			_, _ = w.Write(data)
 		}
 		return nil
-	}); err != nil {
+	}); err != nil && !os.IsNotExist(err) {
 		logger.Warn("Utility", "遍历日志目录失败: %v", err)
 	}
-	_ = zw.Close()
-	conn.Send(models.Message{Path: "/lte/utility/logs_exported", Data: map[string]interface{}{
-		"success":  true,
-		"filename": fmt.Sprintf("mpe-logs-%s.zip", time.Now().Format("20060102-150405")),
-		"content":  base64.StdEncoding.EncodeToString(buf.Bytes()),
-		"message":  "日志导出成功",
-	}})
+	manifest := make(map[string]interface{}, len(payload.Manifest)+8)
+	for key, value := range payload.Manifest {
+		manifest[key] = value
+	}
+	manifest["exportedAt"] = time.Now().UTC().Format(time.RFC3339Nano)
+	manifest["localBridgeVersion"] = version
+	manifest["localBridgeProtocolVersion"] = server.ProtocolVersion
+	manifest["platform"] = runtime.GOOS + "/" + runtime.GOARCH
+	manifest["scanRoot"] = root
+	manifest["logDirectory"] = logDir
+	manifest["openedFiles"] = openedFileResults
+	if err := writeJSON("manifest.json", manifest); err != nil {
+		return nil, fmt.Errorf("写入日志清单失败: %w", err)
+	}
+	if err := zw.Close(); err != nil {
+		return nil, fmt.Errorf("完成压缩包失败: %w", err)
+	}
+	return buf.Bytes(), nil
+}
+
+func openedFileArchivePath(root, filePath string) (string, error) {
+	absRoot, err := filepath.Abs(root)
+	if err != nil {
+		return "", fmt.Errorf("解析扫描根目录失败: %w", err)
+	}
+	absPath, err := filepath.Abs(filePath)
+	if err != nil {
+		return "", fmt.Errorf("解析文件路径失败: %w", err)
+	}
+	relativePath, err := filepath.Rel(absRoot, absPath)
+	if err != nil || relativePath == ".." || strings.HasPrefix(relativePath, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("文件不在 LocalBridge 扫描根目录内")
+	}
+	return filepath.ToSlash(filepath.Join("mpe", "open-files", "disk", relativePath)), nil
 }
 
 func isMPELogExcludedDirectory(name string) bool {

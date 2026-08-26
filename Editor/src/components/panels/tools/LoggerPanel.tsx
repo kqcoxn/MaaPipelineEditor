@@ -29,6 +29,7 @@ import {
 import { useEmbedMode } from "../../../hooks/useEmbedMode";
 import styles from "../../../styles/panels/LoggerPanel.module.less";
 import { mfwProtocol } from "../../../services/server";
+import { buildMPELogExportPayload } from "@/utils/logExportPayload";
 
 type TabType = "operation" | "backend" | "embed";
 
@@ -237,11 +238,13 @@ export function LoggerPanel() {
       return;
     }
     setExporting(true);
-    const sent = mfwProtocol.requestExportLogs({
+    const payload = buildMPELogExportPayload({
       backend: backendLogs,
+      importantBackend: useLoggerStore.getState().importantLogs,
       operation: opLogs,
       embed: isEmbed ? embedLogs : [],
     });
+    const sent = mfwProtocol.requestExportLogs(payload);
     if (!sent) {
       setExporting(false);
       message.error("发送日志导出请求失败");

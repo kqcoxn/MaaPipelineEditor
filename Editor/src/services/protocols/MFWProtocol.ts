@@ -827,9 +827,19 @@ export class MFWProtocol extends BaseProtocol {
     return this.wsClient.send("/etl/utility/open_maafw_log_dir", {});
   }
 
-  public requestExportLogs(frontendLogs: Record<string, unknown>): boolean {
+  public requestExportLogs(payload: {
+    frontendLogs: Record<string, unknown>;
+    frontendState: Record<string, unknown>;
+    openedFiles: Array<{ filePath: string; fileName: string; current: boolean }>;
+    manifest: Record<string, unknown>;
+  }): boolean {
     if (!this.wsClient) return false;
-    return this.wsClient.send("/etl/utility/export_logs", { frontend_logs: frontendLogs });
+    return this.wsClient.send("/etl/utility/export_logs", {
+      frontend_logs: payload.frontendLogs,
+      frontend_state: payload.frontendState,
+      opened_files: payload.openedFiles,
+      manifest: payload.manifest,
+    });
   }
 
   public onLogsExported(callback: (data: {

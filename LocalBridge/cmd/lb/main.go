@@ -439,7 +439,7 @@ func runServer(cmd *cobra.Command, args []string) {
 	rt.RegisterHandler(mfwHandler)
 
 	// 注册 Utility 协议处理器
-	utilityHandler := utilityProtocol.NewUtilityHandler(mfwSvc, cfg.File.Root)
+	utilityHandler := utilityProtocol.NewUtilityHandler(mfwSvc, cfg.File.Root, Version)
 	rt.RegisterHandler(utilityHandler)
 
 	// 注册 Config 协议处理器

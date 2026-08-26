@@ -27,13 +27,15 @@ import (
 type UtilityHandler struct {
 	mfwService *mfw.Service
 	root       string // 根目录路径
+	version    string
 }
 
 // 创建Utility协议处理器
-func NewUtilityHandler(mfwService *mfw.Service, root string) *UtilityHandler {
+func NewUtilityHandler(mfwService *mfw.Service, root string, version string) *UtilityHandler {
 	return &UtilityHandler{
 		mfwService: mfwService,
 		root:       root,
+		version:    version,
 	}
 }
 
