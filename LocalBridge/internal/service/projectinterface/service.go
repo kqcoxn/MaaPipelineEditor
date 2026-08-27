@@ -191,14 +191,7 @@ func (s *Service) resolveDiscoveredEntry(candidate string) (string, error) {
 }
 
 func (s *Service) discover() []string {
-	var result []string
-	for _, file := range s.files.GetFileList() {
-		if file.FileName == "interface.json" {
-			result = append(result, filepath.Clean(file.FilePath))
-		}
-	}
-	sort.Strings(result)
-	return result
+	return s.files.FindFilesByName("interface.json")
 }
 
 func (s *Service) commit(status Status, snapshot *ProjectSnapshot) {
@@ -225,9 +218,37 @@ func (s *Service) commit(status Status, snapshot *ProjectSnapshot) {
 	status.HasLastGood = s.lastGood != nil
 	s.status = status
 	s.mu.Unlock()
+	if snapshot == nil {
+		s.files.SetPipelineRoots(nil)
+	} else {
+		s.files.SetPipelineRoots(projectPipelineRoots(snapshot))
+	}
 	s.updateWatchedSources(status, snapshot)
 	s.publishDisposed(invalidated)
 	s.eventBus.Publish(EventChanged, ChangeEvent{Status: status})
+}
+
+func projectPipelineRoots(snapshot *ProjectSnapshot) []string {
+	values := make([]string, 0)
+	for _, resource := range objectArray(snapshot.Document["resource"]) {
+		values = append(values, stringSlice(resource["path"])...)
+	}
+	for _, controller := range objectArray(snapshot.Document["controller"]) {
+		values = append(values, stringSlice(controller["attach_resource_path"])...)
+	}
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		path := value
+		if !filepath.IsAbs(path) {
+			path = filepath.Join(snapshot.InterfaceRoot, path)
+		}
+		resolved, err := filepath.EvalSymlinks(path)
+		if err != nil {
+			continue
+		}
+		result = append(result, filepath.Join(resolved, "pipeline"))
+	}
+	return result
 }
 
 func (s *Service) updateWatchedSources(status Status, snapshot *ProjectSnapshot) {
@@ -259,8 +280,8 @@ func (s *Service) shouldRefreshForFileEvent(event eventbus.Event) bool {
 	current, lastGood := s.current, s.lastGood
 	s.mu.RUnlock()
 	if strings.EqualFold(filepath.Base(path), "interface.json") {
-		for _, file := range s.files.GetFileList() {
-			if samePath(file.FilePath, path) {
+		for _, entry := range s.files.FindFilesByName("interface.json") {
+			if samePath(entry, path) {
 				return true
 			}
 		}

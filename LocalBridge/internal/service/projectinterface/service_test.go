@@ -308,6 +308,65 @@ func TestServiceMultipleDiscoveryAndExplicitOverride(t *testing.T) {
 	}
 }
 
+func TestReadyInterfaceRestrictsPipelineIndexToDeclaredBundles(t *testing.T) {
+	root := t.TempDir()
+	resourceRoot := filepath.Join(root, "resource")
+	attachedRoot := filepath.Join(root, "attached")
+	unrelatedRoot := filepath.Join(root, "unrelated")
+	for _, bundle := range []string{resourceRoot, attachedRoot, unrelatedRoot} {
+		mustMkdir(t, filepath.Join(bundle, "pipeline"))
+		mustWrite(t, filepath.Join(bundle, "pipeline", filepath.Base(bundle)+".json"), `{"Node":{}}`)
+	}
+	entry := filepath.Join(root, "interface.json")
+	mustWrite(t, entry, `{
+  "interface_version": 2,
+  "name": "filtered-index",
+  "controller": [{"name":"c","label":"c","type":"Adb","adb":{},"attach_resource_path":["attached"]}],
+  "resource": [{"name":"r","path":["resource"]}]
+}`)
+
+	bus := eventbus.New()
+	files, err := fileservice.NewService(root, nil, []string{".json"}, 10, 100, bus)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := files.Start(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(files.Stop)
+	if got := files.GetFileList(); len(got) != 3 {
+		t.Fatalf("fallback index should include every pipeline directory: %#v", got)
+	}
+
+	service, err := NewService(root, "", files, bus)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(service.Close)
+	service.Start()
+	if service.Status().State != StateReady {
+		t.Fatalf("PI should be ready: %#v", service.Status())
+	}
+	got := files.GetFileList()
+	if len(got) != 2 {
+		t.Fatalf("PI should retain resource and attached pipelines only: %#v", got)
+	}
+	for _, file := range got {
+		if isWithin(unrelatedRoot, file.FilePath) {
+			t.Fatalf("unrelated pipeline remained indexed: %#v", got)
+		}
+	}
+
+	mustWrite(t, entry, `{ invalid`)
+	service.Refresh()
+	if service.Status().State != StateInvalid {
+		t.Fatalf("PI should become invalid: %#v", service.Status())
+	}
+	if got := files.GetFileList(); len(got) != 3 {
+		t.Fatalf("invalid PI should restore pipeline-directory fallback: %#v", got)
+	}
+}
+
 func TestServiceKeepsLastGoodForDisplayButBlocksRuntime(t *testing.T) {
 	root := t.TempDir()
 	mustMkdir(t, filepath.Join(root, "resource"))

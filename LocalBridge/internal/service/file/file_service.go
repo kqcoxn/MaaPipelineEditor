@@ -26,6 +26,8 @@ type Service struct {
 	eventBus  *eventbus.EventBus
 	maxDepth  int
 	maxFiles  int
+	// nil means fallback mode: every pipeline directory below root is visible.
+	pipelineRoots []string
 
 	// 最近写入的文件记录（用于忽略自身触发的文件变化）
 	recentlyWrittenFiles map[string]int64 // key: 文件路径, value: 写入时间戳
@@ -108,6 +110,9 @@ func (s *Service) GetFileList() []models.FileInfo {
 
 	fileList := make([]models.FileInfo, 0, len(s.fileIndex))
 	for _, file := range s.fileIndex {
+		if !s.isVisiblePipelineFileLocked(file.AbsPath) {
+			continue
+		}
 		fileList = append(fileList, file.ToFileInfo())
 	}
 
@@ -121,12 +126,107 @@ func (s *Service) GetFileList() []models.FileInfo {
 
 // 获取子目录列表（包括空目录）
 func (s *Service) GetDirectories() []string {
-	dirs := s.scanner.ScanDirectories()
+	candidates := s.scanner.ScanDirectories()
+	s.mu.RLock()
+	dirs := make([]string, 0, len(candidates)+1)
+	if s.isVisiblePipelineDirectoryLocked(s.root) {
+		dirs = append(dirs, s.root)
+	}
+	for _, dir := range candidates {
+		if s.isVisiblePipelineDirectoryLocked(dir) {
+			dirs = append(dirs, dir)
+		}
+	}
+	s.mu.RUnlock()
 
 	// 按路径排序
 	sort.Strings(dirs)
 
 	return dirs
+}
+
+// FindFilesByName queries the internal metadata index without exposing non-Pipeline JSON to clients.
+func (s *Service) FindFilesByName(name string) []string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	result := make([]string, 0)
+	for _, file := range s.fileIndex {
+		if strings.EqualFold(file.Name, name) {
+			result = append(result, filepath.Clean(file.AbsPath))
+		}
+	}
+	sort.Strings(result)
+	return result
+}
+
+// SetPipelineRoots applies PI-derived <bundle>/pipeline directories. nil restores fallback mode.
+func (s *Service) SetPipelineRoots(roots []string) {
+	var normalized []string
+	if roots != nil {
+		seen := map[string]bool{}
+		normalized = make([]string, 0, len(roots))
+		for _, root := range roots {
+			abs, err := filepath.Abs(root)
+			if err != nil {
+				continue
+			}
+			abs = filepath.Clean(abs)
+			key := strings.ToLower(abs)
+			if !seen[key] {
+				seen[key] = true
+				normalized = append(normalized, abs)
+			}
+		}
+		sort.Strings(normalized)
+	}
+
+	s.mu.Lock()
+	if stringSlicesEqual(s.pipelineRoots, normalized) && (s.pipelineRoots == nil) == (normalized == nil) {
+		s.mu.Unlock()
+		return
+	}
+	s.pipelineRoots = normalized
+	s.mu.Unlock()
+	s.eventBus.Publish(eventbus.EventFileListChanged, nil)
+}
+
+func (s *Service) isVisiblePipelineFileLocked(path string) bool {
+	if strings.EqualFold(filepath.Base(path), "interface.json") || !IsPipelineFile(s.root, path) {
+		return false
+	}
+	if s.pipelineRoots == nil {
+		return true
+	}
+	for _, root := range s.pipelineRoots {
+		if isWithinPath(root, path) {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Service) isVisiblePipelineDirectoryLocked(path string) bool {
+	if s.pipelineRoots == nil {
+		return isPipelineDirectory(s.root, path)
+	}
+	for _, root := range s.pipelineRoots {
+		if isWithinPath(root, path) {
+			return true
+		}
+	}
+	return false
+}
+
+func stringSlicesEqual(left, right []string) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for index := range left {
+		if left[index] != right[index] {
+			return false
+		}
+	}
+	return true
 }
 
 // Rescan 重新扫描文件系统，刷新内存索引
@@ -351,6 +451,9 @@ func (s *Service) CreateFile(directory, fileName string, content interface{}) (s
 // 处理文件变化事件
 func (s *Service) handleFileChange(change FileChange) {
 	filePath := filepath.Clean(change.FilePath)
+	if !change.IsDirectory && !s.scanner.IsIndexablePath(filePath) {
+		return
+	}
 
 	// 检查是否是自身写入的文件（在忽略窗口期内）
 	s.writtenMu.RLock()

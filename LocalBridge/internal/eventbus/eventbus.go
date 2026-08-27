@@ -75,6 +75,7 @@ func GetGlobalBus() *EventBus {
 const (
 	EventFileScanCompleted     = "file.scan.completed"
 	EventFileChanged           = "file.changed"
+	EventFileListChanged       = "file.list.changed"
 	EventConnectionEstablished = "connection.established"
 	EventConnectionClosed      = "connection.closed"
 	EventResourceScanCompleted = "resource.scan.completed"

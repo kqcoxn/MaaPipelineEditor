@@ -100,16 +100,15 @@ func (s *Scanner) ScanWithLimit() (*ScanResult, error) {
 			return nil
 		}
 
+		if !s.IsIndexablePath(path) {
+			return nil
+		}
+
 		// 检查文件数量限制
 		if s.maxFiles > 0 && len(result.Files) >= s.maxFiles {
 			result.Truncated = true
 			result.LimitReason = fmt.Sprintf("已达到最大文件数量限制 (%d)", s.maxFiles)
 			return errors.New("stop") // 用于停止遍历
-		}
-
-		// 检查文件扩展名
-		if !s.hasValidExtension(path) {
-			return nil
 		}
 
 		// 获取文件信息
@@ -124,9 +123,12 @@ func (s *Scanner) ScanWithLimit() (*ScanResult, error) {
 			return nil
 		}
 
-		// 解析文件节点列表和前缀
-		nodes, prefix := s.parseFileNodes(path)
-		contentHash := fileContentHash(path)
+		var nodes []models.FileNode
+		var prefix, contentHash string
+		if IsPipelineFile(s.root, path) && !isInterfaceFile(path) {
+			nodes, prefix = s.parseFileNodes(path)
+			contentHash = fileContentHash(path)
+		}
 
 		// 添加到文件列表
 		result.Files = append(result.Files, models.File{
@@ -216,6 +218,75 @@ func (s *Scanner) hasValidExtension(path string) bool {
 	return false
 }
 
+// IsIndexablePath reports whether a file is needed by the Pipeline index or PI discovery.
+func (s *Scanner) IsIndexablePath(path string) bool {
+	if !s.hasValidExtension(path) {
+		return false
+	}
+	return isInterfaceFile(path) || IsPipelineFile(s.root, path)
+}
+
+func isInterfaceFile(path string) bool {
+	return strings.EqualFold(filepath.Base(path), "interface.json")
+}
+
+// IsPipelineFile identifies JSON files below a directory named pipeline.
+func IsPipelineFile(root, path string) bool {
+	return !strings.HasPrefix(filepath.Base(path), ".") && isPipelineDirectory(root, filepath.Dir(path))
+}
+
+func isPipelineDirectory(root, path string) bool {
+	rel, err := filepath.Rel(root, path)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return false
+	}
+
+	// The scan root may itself be pipeline/ or one of its descendants.
+	pipelineRoot := ""
+	for current := filepath.Clean(root); ; current = filepath.Dir(current) {
+		if strings.EqualFold(filepath.Base(current), "pipeline") {
+			pipelineRoot = current
+			break
+		}
+		parent := filepath.Dir(current)
+		if parent == current {
+			break
+		}
+	}
+	if pipelineRoot == "" {
+		parts := strings.Split(filepath.Clean(rel), string(filepath.Separator))
+		current := filepath.Clean(root)
+		for _, part := range parts {
+			current = filepath.Join(current, part)
+			if strings.EqualFold(part, "pipeline") {
+				pipelineRoot = current
+				break
+			}
+		}
+		if pipelineRoot == "" {
+			return false
+		}
+	}
+
+	pipelineRel, err := filepath.Rel(pipelineRoot, path)
+	if err != nil || pipelineRel == ".." || strings.HasPrefix(pipelineRel, ".."+string(filepath.Separator)) {
+		return false
+	}
+	if pipelineRel != "." {
+		for _, part := range strings.Split(filepath.Clean(pipelineRel), string(filepath.Separator)) {
+			if strings.HasPrefix(part, ".") {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func isWithinPath(root, path string) bool {
+	rel, err := filepath.Rel(root, path)
+	return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
+}
+
 // 扫描单个文件信息
 func (s *Scanner) ScanSingle(absPath string) (*models.File, error) {
 	if !s.AllowsPath(absPath) {
@@ -231,8 +302,7 @@ func (s *Scanner) ScanSingle(absPath string) (*models.File, error) {
 		return nil, nil
 	}
 
-	// 检查扩展名
-	if !s.hasValidExtension(absPath) {
+	if !s.IsIndexablePath(absPath) {
 		return nil, nil
 	}
 
@@ -242,9 +312,12 @@ func (s *Scanner) ScanSingle(absPath string) (*models.File, error) {
 		return nil, err
 	}
 
-	// 解析文件节点列表和前缀
-	nodes, prefix := s.parseFileNodes(absPath)
-	contentHash := fileContentHash(absPath)
+	var nodes []models.FileNode
+	var prefix, contentHash string
+	if IsPipelineFile(s.root, absPath) && !isInterfaceFile(absPath) {
+		nodes, prefix = s.parseFileNodes(absPath)
+		contentHash = fileContentHash(absPath)
+	}
 
 	return &models.File{
 		AbsPath:      absPath,

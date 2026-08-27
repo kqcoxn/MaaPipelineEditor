@@ -6,8 +6,15 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/eventbus"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/pkg/models"
 )
+
+func TestMain(m *testing.M) {
+	_ = logger.Init("ERROR", "", false)
+	os.Exit(m.Run())
+}
 
 func TestValidatePathUsesRootBoundary(t *testing.T) {
 	root := t.TempDir()
@@ -32,6 +39,54 @@ func TestValidatePathUsesRootBoundary(t *testing.T) {
 	// The comparison is case-insensitive on Windows, matching the frontend cache repair.
 	if err := service.validatePath(strings.ToUpper(insidePath)); err != nil {
 		t.Fatalf("validatePath() rejected a case-variant path inside root: %v", err)
+	}
+}
+
+func TestPipelineRootsFilterFilesAndDirectories(t *testing.T) {
+	root := t.TempDir()
+	selectedRoot := filepath.Join(root, "selected", "pipeline")
+	otherRoot := filepath.Join(root, "other", "pipeline")
+	selectedFile := filepath.Join(selectedRoot, "nested", "selected.json")
+	otherFile := filepath.Join(otherRoot, "other.json")
+	for _, path := range []string{selectedFile, otherFile} {
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(`{"Node":{}}`), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	bus := eventbus.New()
+	service, err := NewService(root, nil, []string{".json"}, 10, 100, bus)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := service.Rescan(); err != nil {
+		t.Fatal(err)
+	}
+	if files := service.GetFileList(); len(files) != 2 {
+		t.Fatalf("fallback mode should expose every pipeline directory: %#v", files)
+	}
+
+	changed := 0
+	bus.Subscribe(eventbus.EventFileListChanged, func(eventbus.Event) { changed++ })
+	service.SetPipelineRoots([]string{selectedRoot})
+	files := service.GetFileList()
+	if len(files) != 1 || files[0].FilePath != selectedFile {
+		t.Fatalf("PI roots did not filter files: %#v", files)
+	}
+	directories := service.GetDirectories()
+	if len(directories) != 2 || directories[0] != selectedRoot || directories[1] != filepath.Dir(selectedFile) {
+		t.Fatalf("PI roots did not filter directories: %#v", directories)
+	}
+	if changed != 1 {
+		t.Fatalf("filter change should publish one list event, got %d", changed)
+	}
+
+	service.SetPipelineRoots(nil)
+	if files := service.GetFileList(); len(files) != 2 {
+		t.Fatalf("nil roots should restore fallback mode: %#v", files)
 	}
 }
 

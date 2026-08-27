@@ -33,11 +33,6 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
   const directoryOptions = useMemo(() => {
     const dirSet = new Set<string>();
 
-    // 添加根目录
-    if (rootPath) {
-      dirSet.add(rootPath);
-    }
-
     // 添加后端提供的子目录列表（包括空目录）
     directories.forEach((dir) => {
       dirSet.add(dir);
@@ -53,7 +48,7 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
     });
 
     return Array.from(dirSet).sort();
-  }, [rootPath, files, directories]);
+  }, [files, directories]);
 
   // 显示名称
   const getDisplayPath = (
@@ -147,14 +142,20 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
     form.resetFields();
     setPreviewFileName("");
     const initialFileName = currentFileName || "";
-    let initialDirectory = rootPath || "";
+    let initialDirectory = directories[0] || "";
     if (currentFilePath) {
       const lastSeparatorIndex = Math.max(
         currentFilePath.lastIndexOf("/"),
         currentFilePath.lastIndexOf("\\"),
       );
       if (lastSeparatorIndex > 0) {
-        initialDirectory = currentFilePath.substring(0, lastSeparatorIndex);
+        const currentDirectory = currentFilePath.substring(
+          0,
+          lastSeparatorIndex,
+        );
+        if (directories.includes(currentDirectory)) {
+          initialDirectory = currentDirectory;
+        }
       }
     }
 
@@ -178,9 +179,9 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
     checkDuplicateFileName,
     currentFileName,
     currentFilePath,
+    directories,
     form,
     normalizeFileName,
-    rootPath,
     validateFileName,
     visible,
   ]);
@@ -296,7 +297,7 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
         layout="vertical"
         autoComplete="off"
         initialValues={{
-          directory: rootPath || "",
+          directory: directories[0] || "",
           saveToLocal: true,
         }}
       >

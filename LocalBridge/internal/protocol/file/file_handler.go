@@ -338,6 +338,9 @@ func (h *Handler) subscribeEvents() {
 		// 推送文件列表
 		h.pushFileList()
 	})
+	h.eventBus.Subscribe(eventbus.EventFileListChanged, func(event eventbus.Event) {
+		h.pushFileList()
+	})
 
 	// 订阅文件变化事件
 	h.eventBus.Subscribe(eventbus.EventFileChanged, func(event eventbus.Event) {
