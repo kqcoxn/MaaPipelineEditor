@@ -8,7 +8,7 @@ Local Bridge (lb) 是连接本地文件系统与 MaaPipelineEditor 前端的桥�
 
 - **本地文件协议**
 
-  - 文件扫描：递归扫描根目录下的 `.json` 和 `.jsonc` 文件
+  - 文件扫描：索引项目根目录内的 Project Interface，以及各 Bundle 的 `pipeline` 目录中的 `.json` 和 `.jsonc` 文件
   - 文件读取：读取并解析 JSON/JSONC 文件内容
   - 文件保存：保存编辑后的 pipeline 文件到本地
   - 文件创建：在指定目录创建新的 pipeline 文件
@@ -48,6 +48,8 @@ go build -o mpelb.exe ./cmd/lb
 
 ### 运行
 
+建议在 MaaFramework 项目根目录运行 LocalBridge。项目根目录通常包含 `interface.json`、资源目录和 Agent 目录；不要将单个 Bundle 或 `pipeline` 目录作为启动目录。
+
 使用默认配置运行（根目录为当前目录，端口 9066）：
 
 ```bash
@@ -57,7 +59,7 @@ mpelb
 指定根目录和端口：
 
 ```bash
-mpelb --root ./pipelines --port 9066
+mpelb --root ./MaaProject --port 9066
 ```
 
 使用配置文件：
@@ -69,7 +71,7 @@ mpelb --config ./config/default.json
 完整参数示例：
 
 ```bash
-mpelb --root D:/pipelines --port 9066 --log-level DEBUG --log-dir ./logs
+mpelb --root D:/MaaProject --port 9066 --log-level DEBUG --log-dir ./logs
 ```
 
 ### 配置文件
@@ -91,7 +93,9 @@ mpelb --root D:/pipelines --port 9066 --log-level DEBUG --log-dir ./logs
   "file": {
     "root": "./",
     "exclude": ["node_modules", ".git", "dist", "build"],
-    "extensions": [".json", ".jsonc"]
+    "extensions": [".json", ".jsonc"],
+    "max_depth": 10,
+    "max_files": 10000
   },
   "log": {
     "level": "INFO",
@@ -101,6 +105,9 @@ mpelb --root D:/pipelines --port 9066 --log-level DEBUG --log-dir ./logs
   "maafw": {
     "enabled": false,
     "lib_dir": ""
+  },
+  "interface": {
+    "path": ""
   }
 }
 ```
@@ -110,7 +117,8 @@ mpelb --root D:/pipelines --port 9066 --log-level DEBUG --log-dir ./logs
 | 参数          | 说明                                | 默认值   |
 | ------------- | ----------------------------------- | -------- |
 | `--config`    | 配置文件路径                        | 空       |
-| `--root`      | 文件扫描根目录                      | `./`     |
+| `--root`      | MaaFramework 项目根目录             | `./`     |
+| `--interface` | Project Interface V2 入口路径       | 自动检索 |
 | `--port`      | WebSocket 监听端口                  | `9066`   |
 | `--log-dir`   | 日志输出目录                        | `./logs` |
 | `--log-level` | 日志级别 (DEBUG, INFO, WARN, ERROR) | `INFO`   |
