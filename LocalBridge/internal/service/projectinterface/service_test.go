@@ -60,6 +60,7 @@ func TestServiceDiscoveryAndContextResolution(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(service.Close)
 	service.Start()
 	status := service.Status()
 	if status.State != StateReady {
@@ -107,7 +108,7 @@ func TestServiceDiscoveryAndContextResolution(t *testing.T) {
 	}
 }
 
-func TestNestedInterfaceUsesProjectRootForAgentAndInterfaceRootForAssets(t *testing.T) {
+func TestNestedInterfaceUsesInterfaceDirectoryAsProjectRoot(t *testing.T) {
 	root := t.TempDir()
 	assetsRoot := filepath.Join(root, "assets")
 	resourceRoot := filepath.Join(assetsRoot, "resource", "base")
@@ -126,12 +127,12 @@ func TestNestedInterfaceUsesProjectRootForAgentAndInterfaceRootForAssets(t *test
 	if err != nil {
 		t.Fatal(err)
 	}
-	snapshot, err := (&loader{root: root, schema: schema}).load(filepath.Join(assetsRoot, "interface.json"))
+	snapshot, err := (&loader{schema: schema}).load(filepath.Join(assetsRoot, "interface.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if snapshot.ProjectRoot != root {
-		t.Fatalf("project root should remain LocalBridge root: got %s, want %s", snapshot.ProjectRoot, root)
+	if snapshot.ProjectRoot != assetsRoot {
+		t.Fatalf("project root should be the interface directory: got %s, want %s", snapshot.ProjectRoot, assetsRoot)
 	}
 	if snapshot.InterfaceRoot != assetsRoot {
 		t.Fatalf("interface root should be the entry directory: got %s, want %s", snapshot.InterfaceRoot, assetsRoot)
@@ -149,12 +150,132 @@ func TestNestedInterfaceUsesProjectRootForAgentAndInterfaceRootForAssets(t *test
 	if len(plan.ResourcePaths) != 1 || plan.ResourcePaths[0] != resourceRoot {
 		t.Fatalf("resource path should resolve from interface root: %#v", plan.ResourcePaths)
 	}
-	if plan.ProjectRoot != root || plan.InterfaceRoot != assetsRoot {
+	if plan.ProjectRoot != assetsRoot || plan.InterfaceRoot != assetsRoot {
 		t.Fatalf("runtime roots are incorrect: %#v", plan)
 	}
 	if len(plan.Agents) != 1 || plan.Agents[0].ChildExec != "python" || !containsString(plan.Agents[0].ChildArgs, "./agent/main.py") {
 		t.Fatalf("agent override should be part of the runtime plan: %#v", plan.Agents)
 	}
+}
+
+func TestExplicitInterfaceMayBeOutsideFileRootAndReloadsOnChange(t *testing.T) {
+	base := t.TempDir()
+	fileRoot := filepath.Join(base, "pipeline")
+	interfaceRoot := filepath.Join(base, "project")
+	mustMkdir(t, fileRoot)
+	mustMkdir(t, filepath.Join(interfaceRoot, "resource"))
+	translationPath := filepath.Join(interfaceRoot, "interface_zh.json")
+	entryPath := filepath.Join(interfaceRoot, "interface.json")
+	mustWrite(t, translationPath, `{"Project":"初始名称"}`)
+	mustWrite(t, entryPath, `{
+  "interface_version": 2,
+  "name": "external-project",
+  "label": "$Project",
+  "languages": {"zh_cn":"interface_zh.json"},
+  "controller": [{"name":"c","label":"c","type":"Adb","adb":{}}],
+  "resource": [{"name":"r","path":["resource"]}]
+}`)
+
+	bus := eventbus.New()
+	files, err := fileservice.NewService(fileRoot, nil, []string{".json"}, 10, 100, bus)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := files.Start(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(files.Stop)
+	service, err := NewService(fileRoot, filepath.Join("..", "project", "interface.json"), files, bus)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(service.Close)
+	service.Start()
+
+	status := service.Status()
+	if status.State != StateReady || status.EffectivePath != entryPath {
+		t.Fatalf("relative external PI entry should be ready: %#v", status)
+	}
+	snapshot, err := service.Snapshot("zh_cn")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if snapshot.ProjectRoot != interfaceRoot || snapshot.InterfaceRoot != interfaceRoot {
+		t.Fatalf("PI roots should be independent from file root: %#v", snapshot)
+	}
+	if snapshot.Document["label"] != "初始名称" {
+		t.Fatalf("unexpected initial localization: %#v", snapshot.Document["label"])
+	}
+
+	initialRevision := status.Revision
+	mustWrite(t, translationPath, `{"Project":"更新名称"}`)
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		status = service.Status()
+		if status.Revision != initialRevision {
+			break
+		}
+		time.Sleep(25 * time.Millisecond)
+	}
+	if status.Revision == initialRevision {
+		t.Fatal("external PI source change did not trigger a reload")
+	}
+	snapshot, err = service.Snapshot("zh_cn")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if snapshot.Document["label"] != "更新名称" {
+		t.Fatalf("external localization was not reloaded: %#v", snapshot.Document["label"])
+	}
+
+	service.Reload(entryPath)
+	if service.Status().State != StateReady {
+		t.Fatalf("absolute external PI entry should be ready: %#v", service.Status())
+	}
+}
+
+func TestExplicitMissingExternalInterfaceLoadsWhenCreated(t *testing.T) {
+	base := t.TempDir()
+	fileRoot := filepath.Join(base, "pipeline")
+	interfaceRoot := filepath.Join(base, "project")
+	mustMkdir(t, fileRoot)
+	mustMkdir(t, interfaceRoot)
+	entryPath := filepath.Join(interfaceRoot, "interface.json")
+
+	bus := eventbus.New()
+	files, err := fileservice.NewService(fileRoot, nil, []string{".json"}, 10, 100, bus)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := files.Start(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(files.Stop)
+	service, err := NewService(fileRoot, entryPath, files, bus)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(service.Close)
+	service.Start()
+	if service.Status().State != StateInvalid {
+		t.Fatalf("missing explicit PI entry should be invalid: %#v", service.Status())
+	}
+
+	mustMkdir(t, filepath.Join(interfaceRoot, "resource"))
+	mustWrite(t, entryPath, `{
+  "interface_version": 2,
+  "name": "created-later",
+  "controller": [{"name":"c","label":"c","type":"Adb","adb":{}}],
+  "resource": [{"name":"r","path":["resource"]}]
+}`)
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		if service.Status().State == StateReady {
+			return
+		}
+		time.Sleep(25 * time.Millisecond)
+	}
+	t.Fatalf("created external PI entry did not become ready: %#v", service.Status())
 }
 
 func TestServiceMultipleDiscoveryAndExplicitOverride(t *testing.T) {
@@ -176,6 +297,7 @@ func TestServiceMultipleDiscoveryAndExplicitOverride(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(service.Close)
 	service.Start()
 	if service.Status().State != StateMultiple {
 		t.Fatalf("expected multiple, got %#v", service.Status())
@@ -204,6 +326,7 @@ func TestServiceKeepsLastGoodForDisplayButBlocksRuntime(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(service.Close)
 	service.Start()
 	revision := service.Status().Revision
 	mustWrite(t, entry, `{ invalid`)
@@ -232,15 +355,15 @@ func TestInvalidRevisionAndPathBoundary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	loaded, err := (&loader{root: root, schema: schema}).load(filepath.Join(root, "interface.json"))
+	loaded, err := (&loader{schema: schema}).load(filepath.Join(root, "interface.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if _, err := loaded.ResolveContext(ContextRequest{Revision: "stale", ControllerName: "c", ResourceName: "r"}); err == nil {
 		t.Fatal("stale revision should fail")
 	}
-	if _, err := (&loader{root: root, schema: schema}).resolveProjectPath(root, filepath.Join(outside, "interface.json"), false); err == nil {
-		t.Fatal("out-of-root path should fail")
+	if _, err := (&loader{schema: schema}).resolveProjectPath(root, filepath.Join(outside, "interface.json"), false); err == nil {
+		t.Fatal("path outside the interface directory should fail")
 	}
 }
 
@@ -360,6 +483,7 @@ func TestRevisionChangePublishesContextDisposal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(service.Close)
 	service.Start()
 	plan, err := service.ResolveContext(ContextRequest{Revision: service.Status().Revision, ControllerName: "c", ResourceName: "r"})
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -203,6 +204,7 @@ func (w *Watcher) hasValidExtension(path string) bool {
 
 // 防抖器
 type debouncer struct {
+	mu      sync.Mutex
 	delay   time.Duration
 	timers  map[string]*time.Timer
 	stopped bool
@@ -218,6 +220,8 @@ func newDebouncer(delay time.Duration) *debouncer {
 
 // 对指定键的函数调用进行防抖
 func (d *debouncer) debounce(key string, fn func()) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	if d.stopped {
 		return
 	}
@@ -229,13 +233,21 @@ func (d *debouncer) debounce(key string, fn func()) {
 
 	// 创建新的定时器
 	d.timers[key] = time.AfterFunc(d.delay, func() {
+		d.mu.Lock()
 		delete(d.timers, key)
+		if d.stopped {
+			d.mu.Unlock()
+			return
+		}
+		d.mu.Unlock()
 		fn()
 	})
 }
 
 // 停止所有定时器
 func (d *debouncer) stop() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	d.stopped = true
 	for _, timer := range d.timers {
 		timer.Stop()
@@ -245,6 +257,8 @@ func (d *debouncer) stop() {
 
 // 清除指定键的防抖定时器
 func (d *debouncer) clear(key string) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	if d.stopped {
 		return
 	}

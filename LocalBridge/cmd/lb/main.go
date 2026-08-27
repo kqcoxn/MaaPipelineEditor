@@ -485,6 +485,7 @@ func runServer(cmd *cobra.Command, args []string) {
 
 	wsServer.Stop()
 	debugHandler.Close()
+	piSvc.Close()
 	fileSvc.Stop()
 
 	// 关闭 MFW 服务

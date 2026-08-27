@@ -99,7 +99,11 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2026-8-28",
     type: "fix",
     updates: {
-      perfs: ["优化资源预检与提示交互", "优化日志导出的范围与敏感内容保护"],
+      perfs: [
+        "优化资源预检与提示交互",
+        "优化日志导出的范围与敏感内容保护",
+        "允许在根目录外加载 interface，独立 interface 相关资源检测",
+      ],
       fixes: [
         "修复重启 localbridge 后无法继续调试的问题",
         "修复打开调试面板前无法调试的问题",

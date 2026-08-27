@@ -18,11 +18,13 @@ const EventContextResolved = "project_interface.context_resolved"
 
 type Service struct {
 	mu             sync.RWMutex
+	refreshMu      sync.Mutex
 	root           string
 	configuredPath string
 	files          *fileservice.Service
 	eventBus       *eventbus.EventBus
 	loader         *loader
+	watcher        *sourceWatcher
 	status         Status
 	current        *ProjectSnapshot
 	lastGood       *ProjectSnapshot
@@ -40,9 +42,14 @@ func NewService(root, configuredPath string, files *fileservice.Service, eventBu
 	}
 	service := &Service{
 		root: filepath.Clean(root), configuredPath: strings.TrimSpace(configuredPath),
-		files: files, eventBus: eventBus, loader: &loader{root: filepath.Clean(root), schema: schema},
+		files: files, eventBus: eventBus, loader: &loader{schema: schema},
 		contexts: map[string]*RuntimePlan{},
 	}
+	watcher, err := newSourceWatcher(service.Refresh)
+	if err != nil {
+		return nil, fmt.Errorf("创建 Project Interface 文件监听器失败: %w", err)
+	}
+	service.watcher = watcher
 	eventBus.Subscribe(eventbus.EventFileChanged, func(event eventbus.Event) {
 		if service.shouldRefreshForFileEvent(event) {
 			service.Refresh()
@@ -52,6 +59,12 @@ func NewService(root, configuredPath string, files *fileservice.Service, eventBu
 }
 
 func (s *Service) Start() { s.Refresh() }
+
+func (s *Service) Close() {
+	if s.watcher != nil {
+		s.watcher.Close()
+	}
+}
 
 func (s *Service) Reload(configuredPath string) {
 	s.mu.Lock()
@@ -63,6 +76,9 @@ func (s *Service) Reload(configuredPath string) {
 }
 
 func (s *Service) Refresh() {
+	s.refreshMu.Lock()
+	defer s.refreshMu.Unlock()
+
 	s.mu.RLock()
 	configured := s.configuredPath
 	previous := s.status
@@ -71,18 +87,17 @@ func (s *Service) Refresh() {
 	var entry string
 	if configured != "" {
 		status.Mode = "explicit"
-		path := configured
-		if !filepath.IsAbs(path) {
-			path = filepath.Join(s.root, path)
-		}
-		abs, err := filepath.Abs(path)
-		if err != nil || !isWithin(s.root, abs) {
+		abs, err := s.resolveExplicitEntry(configured)
+		if err != nil {
 			status.State = StateInvalid
-			status.Diagnostics = []Diagnostic{{Severity: "error", Category: "path", Code: "pi.entry.out_of_root", Message: "显式 PI 入口越出 LocalBridge 根目录", File: configured}}
+			status.Diagnostics = []Diagnostic{{Severity: "error", Category: "path", Code: "pi.entry.invalid", Message: err.Error(), File: configured}}
+			if candidate, candidateErr := s.explicitEntryCandidate(configured); candidateErr == nil {
+				status.EffectivePath = candidate
+			}
 			s.commit(status, nil)
 			return
 		}
-		entry = filepath.Clean(abs)
+		entry = abs
 		status.EffectivePath = entry
 	} else {
 		candidates := s.discover()
@@ -93,7 +108,15 @@ func (s *Service) Refresh() {
 			s.commit(status, nil)
 			return
 		case 1:
-			entry = candidates[0]
+			resolved, err := s.resolveDiscoveredEntry(candidates[0])
+			if err != nil {
+				status.State = StateInvalid
+				status.EffectivePath = candidates[0]
+				status.Diagnostics = []Diagnostic{{Severity: "error", Category: "path", Code: "pi.discovery.path_invalid", Message: err.Error(), File: candidates[0]}}
+				s.commit(status, nil)
+				return
+			}
+			entry = resolved
 			status.EffectivePath = entry
 		default:
 			status.State = StateMultiple
@@ -122,6 +145,49 @@ func (s *Service) Refresh() {
 	if previous.Revision != status.Revision || previous.State != status.State || previous.EffectivePath != status.EffectivePath {
 		// commit 已经发布事件；条件保留用于明确 revision 变化语义。
 	}
+}
+
+func (s *Service) explicitEntryCandidate(configured string) (string, error) {
+	path := strings.TrimSpace(configured)
+	if !filepath.IsAbs(path) {
+		path = filepath.Join(s.root, path)
+	}
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Clean(abs), nil
+}
+
+func (s *Service) resolveExplicitEntry(configured string) (string, error) {
+	candidate, err := s.explicitEntryCandidate(configured)
+	if err != nil {
+		return "", fmt.Errorf("解析显式 PI 入口失败: %w", err)
+	}
+	resolved, err := filepath.EvalSymlinks(candidate)
+	if err != nil {
+		return "", fmt.Errorf("解析显式 PI 入口失败: %w", err)
+	}
+	return filepath.Clean(resolved), nil
+}
+
+func (s *Service) resolveDiscoveredEntry(candidate string) (string, error) {
+	abs, err := filepath.Abs(candidate)
+	if err != nil {
+		return "", err
+	}
+	abs = filepath.Clean(abs)
+	if !isWithin(s.root, abs) {
+		return "", fmt.Errorf("自动发现的 PI 入口越出 LocalBridge 根目录")
+	}
+	resolved, err := filepath.EvalSymlinks(abs)
+	if err != nil {
+		return "", err
+	}
+	if !isWithin(s.root, resolved) {
+		return "", fmt.Errorf("自动发现的 PI 入口通过符号链接越出 LocalBridge 根目录")
+	}
+	return filepath.Clean(resolved), nil
 }
 
 func (s *Service) discover() []string {
@@ -159,8 +225,23 @@ func (s *Service) commit(status Status, snapshot *ProjectSnapshot) {
 	status.HasLastGood = s.lastGood != nil
 	s.status = status
 	s.mu.Unlock()
+	s.updateWatchedSources(status, snapshot)
 	s.publishDisposed(invalidated)
 	s.eventBus.Publish(EventChanged, ChangeEvent{Status: status})
+}
+
+func (s *Service) updateWatchedSources(status Status, snapshot *ProjectSnapshot) {
+	if s.watcher == nil || status.Mode != "explicit" {
+		if s.watcher != nil {
+			s.watcher.Update(nil)
+		}
+		return
+	}
+	paths := []string{status.EffectivePath}
+	if snapshot != nil {
+		paths = append(paths, snapshot.Sources...)
+	}
+	s.watcher.Update(paths)
 }
 
 func (s *Service) shouldRefreshForFileEvent(event eventbus.Event) bool {

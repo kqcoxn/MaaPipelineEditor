@@ -453,9 +453,9 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
           <Form.Item
             name="interface_path"
             label="入口路径"
-            extra="留空时在 LocalBridge 根目录内自动检索 interface.json；多个结果会阻断 PI 功能。"
+            extra="留空时在文件根目录内自动检索；显式入口可使用根目录外的绝对路径，或相对于文件根目录的路径。"
           >
-            <Input placeholder="留空自动检索，例如：project/interface.json" />
+            <Input placeholder="留空自动检索，例如：../assets/interface.json" />
           </Form.Item>
           {interfaceStatus && (
             <Form.Item label="当前状态">

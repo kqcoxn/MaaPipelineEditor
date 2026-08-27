@@ -16,12 +16,17 @@ import (
 )
 
 type loader struct {
-	root   string
 	schema *jsonschema.Schema
 }
 
 func (l *loader) load(entryPath string) (*ProjectSnapshot, error) {
-	entry, err := l.readDocument(entryPath)
+	entryPath, err := filepath.Abs(entryPath)
+	if err != nil {
+		return nil, err
+	}
+	entryPath = filepath.Clean(entryPath)
+	interfaceRoot := filepath.Dir(entryPath)
+	entry, err := l.readDocument(interfaceRoot, entryPath)
 	if err != nil {
 		return nil, err
 	}
@@ -32,14 +37,12 @@ func (l *loader) load(entryPath string) (*ProjectSnapshot, error) {
 	merged := cloneMap(entry.Data)
 	documents := map[string]*SourceDocument{entry.Path: entry}
 	provenance := documentProvenance(entry)
-	interfaceRoot := filepath.Dir(entry.Path)
-
 	for index, importPath := range stringSlice(entry.Data["import"]) {
 		resolved, err := l.resolveProjectPath(interfaceRoot, importPath, true)
 		if err != nil {
 			return nil, fmt.Errorf("import[%d]: %w", index, err)
 		}
-		doc, err := l.readDocument(resolved)
+		doc, err := l.readDocument(interfaceRoot, resolved)
 		if err != nil {
 			return nil, fmt.Errorf("读取 import %s 失败: %w", importPath, err)
 		}
@@ -55,7 +58,7 @@ func (l *loader) load(entryPath string) (*ProjectSnapshot, error) {
 		if err != nil {
 			return nil, fmt.Errorf("languages.%s: %w", code, err)
 		}
-		doc, err := l.readDocument(resolved)
+		doc, err := l.readDocument(interfaceRoot, resolved)
 		if err != nil {
 			return nil, fmt.Errorf("读取语言文件 %s 失败: %w", languagePath, err)
 		}
@@ -75,14 +78,14 @@ func (l *loader) load(entryPath string) (*ProjectSnapshot, error) {
 	revision := hashDocuments(documents, sources)
 	projectID := hashString(strings.ToLower(filepath.Clean(entry.Path)))
 	return &ProjectSnapshot{
-		ProjectID: projectID, EntryPath: entry.Path, ProjectRoot: l.root, InterfaceRoot: interfaceRoot,
+		ProjectID: projectID, EntryPath: entry.Path, ProjectRoot: interfaceRoot, InterfaceRoot: interfaceRoot,
 		Revision: revision, Document: merged, Provenance: provenance,
 		Diagnostics: diagnostics, Sources: sources, documents: documents,
 	}, nil
 }
 
-func (l *loader) readDocument(path string) (*SourceDocument, error) {
-	resolved, err := l.resolveProjectPath(l.root, path, true)
+func (l *loader) readDocument(interfaceRoot, path string) (*SourceDocument, error) {
+	resolved, err := l.resolveProjectPath(interfaceRoot, path, true)
 	if err != nil {
 		return nil, err
 	}
@@ -122,16 +125,16 @@ func (l *loader) resolveProjectPath(base, value string, mustExist bool) (string,
 		return "", err
 	}
 	abs = filepath.Clean(abs)
-	if !isWithin(l.root, abs) {
-		return "", fmt.Errorf("路径越出 LocalBridge 根目录: %s", value)
+	if !isWithin(base, abs) {
+		return "", fmt.Errorf("路径越出 interface.json 所在目录: %s", value)
 	}
 	if mustExist {
 		resolved, err := filepath.EvalSymlinks(abs)
 		if err != nil {
 			return "", err
 		}
-		if !isWithin(l.root, resolved) {
-			return "", fmt.Errorf("符号链接越出 LocalBridge 根目录: %s", value)
+		if !isWithin(base, resolved) {
+			return "", fmt.Errorf("符号链接越出 interface.json 所在目录: %s", value)
 		}
 		abs = resolved
 	}
