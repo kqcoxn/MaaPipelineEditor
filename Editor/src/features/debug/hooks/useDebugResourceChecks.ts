@@ -193,7 +193,6 @@ export function useDebugResourceChecks({
     : resourceHealthDraft.error;
 
   useEffect(() => {
-    if (!modalOpen) return;
     if (!connected) {
       invalidateResourcePreflight();
       return;
@@ -226,7 +225,6 @@ export function useDebugResourceChecks({
   }, [
     connected,
     invalidateResourcePreflight,
-    modalOpen,
     resolvedResourcePaths,
     resourceKey,
     resourcePreflight.resourceKey,

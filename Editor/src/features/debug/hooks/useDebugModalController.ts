@@ -63,6 +63,14 @@ export function useDebugModalController() {
     () => new Set(),
   );
   const agentTestTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const pendingRunRef = useRef<
+    | {
+        mode: DebugRunMode;
+        nodeId?: string;
+        input?: DebugRunRequest["input"];
+      }
+    | undefined
+  >();
   const {
     modalOpen,
     activePanel,
@@ -356,6 +364,23 @@ export function useDebugModalController() {
       return;
     }
     if (!debugReadiness.ready) {
+      const blockingIssue = debugReadiness.issues.find(
+        (issue) => issue.code !== "debug.resource.not_ready",
+      );
+      if (
+        !blockingIssue &&
+        resourcePreflightStatus !== "error" &&
+        resolvedResourcePaths.length > 0
+      ) {
+        pendingRunRef.current = { mode, nodeId, input };
+        message.info(
+          resourcePreflightStatus === "checking"
+            ? "资源检测完成后将自动启动调试。"
+            : "正在检测资源路径，检测完成后将自动启动调试。",
+        );
+        return;
+      }
+
       const diagnostics = debugReadiness.issues.map((issue) => ({
         severity: "error" as const,
         code: issue.code,
@@ -430,6 +455,27 @@ export function useDebugModalController() {
 
   const startRunRef = useRef(startRun);
   startRunRef.current = startRun;
+  useEffect(() => {
+    if (!pendingRunRef.current) return;
+    if (resourcePreflightStatus === "error") {
+      pendingRunRef.current = undefined;
+      message.error(
+        resourcePreflight.error ?? "资源加载检测失败，无法启动调试。",
+      );
+      return;
+    }
+    if (resourcePreflightStatus !== "ready") return;
+    const pendingRun = pendingRunRef.current;
+    pendingRunRef.current = undefined;
+    void startRunRef.current(
+      pendingRun.mode,
+      pendingRun.nodeId,
+      pendingRun.input,
+    );
+  }, [resourcePreflight.error, resourcePreflightStatus]);
+  useEffect(() => {
+    if (!connected) pendingRunRef.current = undefined;
+  }, [connected]);
   useEffect(
     () =>
       subscribeDebugRunRequests((intent) => {

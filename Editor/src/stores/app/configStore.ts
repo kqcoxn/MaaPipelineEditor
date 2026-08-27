@@ -44,9 +44,9 @@ export function normalizeAIRequestTimeoutMs(value: number): number {
 export const globalConfig = {
   dev: true,
   version: `1.9.1`,
-  betaIteration: 1,
+  betaIteration: 2,
   mfwVersion: "5.12.3",
-  protocolVersion: "1.4.1",
+  protocolVersion: "1.4.2",
 };
 
 if (globalConfig.dev) {

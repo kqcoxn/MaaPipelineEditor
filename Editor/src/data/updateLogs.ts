@@ -96,11 +96,13 @@ export const nextPreview: ForecastSection = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "1.9.1",
-    date: "2026-8",
+    date: "2026-8-28",
     type: "fix",
     updates: {
       perfs: ["优化资源预检与提示交互", "优化日志导出的范围与敏感内容保护"],
       fixes: [
+        "修复重启 localbridge 后无法继续调试的问题",
+        "修复打开调试面板前无法调试的问题",
         "修复临时文件与本地文件跨文件冲突无法被检测的问题",
         "修复 OCR 小工具同步 ROI 功能无法使用的问题",
       ],
