@@ -238,8 +238,12 @@ func (h *Handler) handleRunStart(conn *server.Connection, msg models.Message) {
 		h.send(conn, "/lte/debug/session_created", snapshot)
 	} else {
 		if _, err := h.sessions.Snapshot(req.SessionID); err != nil {
-			h.sendError(conn, "debug_session_not_found", err.Error(), nil)
-			return
+			// Session 状态保存在 LocalBridge 内存中，服务重启后前端可能仍带着旧 ID。
+			// 启动调试是可恢复操作，此时创建新会话并通知前端使用新 ID。
+			logger.Warn("DebugVNext", "run 请求使用了不存在的 session，创建新会话: stale=%s", req.SessionID)
+			snapshot := h.sessions.Create(h.capabilities)
+			req.SessionID = snapshot.SessionID
+			h.send(conn, "/lte/debug/session_created", snapshot)
 		}
 	}
 

@@ -58,6 +58,7 @@ interface DebugSessionState {
   selectNode: (nodeId?: string) => void;
   setSessionSnapshot: (session: DebugSessionSnapshot) => void;
   clearSession: (sessionId?: string) => void;
+  resetForConnectionLoss: () => void;
   setRunStarted: (run: DebugRunStarted) => void;
   setRunStopRequested: (request: DebugRunStopRequested) => void;
   setAgentTestResult: (result: DebugAgentTestResult) => void;
@@ -135,6 +136,26 @@ export const useDebugSessionStore = create<DebugSessionState>((set) => ({
         lastStopRequest: undefined,
         agentTestResults: {},
       };
+    }),
+
+  resetForConnectionLoss: () =>
+    set({
+      session: undefined,
+      activeRun: undefined,
+      lastStopRequest: undefined,
+      agentTestResults: {},
+      lastError: undefined,
+      capabilities: undefined,
+      capabilityStatus: "idle",
+      capabilityError: undefined,
+      resourcePreflight: {
+        status: "idle",
+      },
+      resourceHealth: {
+        status: "idle",
+      },
+      runBadgeStatus: "idle",
+      runBadgeAcknowledged: true,
     }),
 
   setRunStarted: (run) =>

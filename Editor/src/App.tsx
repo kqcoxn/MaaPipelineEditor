@@ -21,6 +21,7 @@ import { useWSStore } from "@/stores/connection/wsStore";
 import { useMFWStore } from "@/stores/connection/mfwStore";
 import { useCustomTemplateStore } from "@/stores/project/customTemplateStore";
 import { localServer } from "./services/server";
+import { resetDebugProtocolStateForConnectionLoss } from "./features/debug/protocols/registerProtocolListeners";
 
 import Header from "./components/Header";
 import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
@@ -245,6 +246,8 @@ function App() {
       // WebSocket 断开时清除设备连接状态，确保实时画面等 UI 正确隐藏
       if (!connected) {
         clearMFWConnection();
+        // 调试会话只存在于当前 LocalBridge 进程，断线/重启后必须丢弃旧 ID。
+        resetDebugProtocolStateForConnectionLoss();
       }
     });
     localServer.onConnecting((isConnecting) => {

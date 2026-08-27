@@ -178,6 +178,23 @@ export function registerDebugProtocolListeners(
   });
 }
 
+/**
+ * LocalBridge 重启后，旧进程内的调试会话、trace 和产物都不可再访问。
+ * 一并清理旧 trace，避免用户继续对已失效的 sessionId 发起回放或产物请求。
+ */
+export function resetDebugProtocolStateForConnectionLoss(): void {
+  if (debugEventFlushTimer !== undefined) {
+    clearTimeout(debugEventFlushTimer);
+    debugEventFlushTimer = undefined;
+  }
+  pendingDebugEvents = [];
+  useDebugSessionStore.getState().resetForConnectionLoss();
+  useDebugArtifactStore.getState().resetArtifacts();
+  useDebugDiagnosticsStore.getState().clearDiagnostics();
+  useDebugTraceStore.getState().resetTrace();
+  useDebugOverlayStore.getState().clearOverlay();
+}
+
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
