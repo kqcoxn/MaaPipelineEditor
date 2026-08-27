@@ -17,6 +17,7 @@ export type LocalFileInfo = {
   file_path: string; // 绝对路径
   file_name: string; // 文件名
   relative_path: string; // 相对路径
+  bundle_name: string; // 所属资源 Bundle 目录名
   last_modified?: number; // 文件修改版本（Unix 纳秒）
   content_hash?: string; // 文件内容 SHA-256
   nodes: FileNodeInfo[]; // 节点列表
@@ -226,6 +227,7 @@ export const useLocalFileStore = create<LocalFileState>()((set, get) => ({
         file_path: filePath,
         file_name: fileName,
         relative_path: relPath,
+        bundle_name: info.bundle_name || "",
         nodes: info.nodes || [],
         prefix: info.prefix || "",
       };

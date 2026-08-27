@@ -62,6 +62,7 @@ describe("debug resource cache key", () => {
       file_path: "C:/resource/pipeline/main.json",
       file_name: "main.json",
       relative_path: "pipeline/main.json",
+      bundle_name: "resource",
       nodes: [],
       prefix: "",
       content_hash: "before",

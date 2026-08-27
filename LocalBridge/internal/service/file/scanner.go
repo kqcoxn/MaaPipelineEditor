@@ -236,9 +236,29 @@ func IsPipelineFile(root, path string) bool {
 }
 
 func isPipelineDirectory(root, path string) bool {
+	pipelineRoot, ok := pipelineRootForPath(root, path)
+	if !ok {
+		return false
+	}
+
+	pipelineRel, err := filepath.Rel(pipelineRoot, path)
+	if err != nil || pipelineRel == ".." || strings.HasPrefix(pipelineRel, ".."+string(filepath.Separator)) {
+		return false
+	}
+	if pipelineRel != "." {
+		for _, part := range strings.Split(filepath.Clean(pipelineRel), string(filepath.Separator)) {
+			if strings.HasPrefix(part, ".") {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func pipelineRootForPath(root, path string) (string, bool) {
 	rel, err := filepath.Rel(root, path)
 	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
-		return false
+		return "", false
 	}
 
 	// The scan root may itself be pipeline/ or one of its descendants.
@@ -264,22 +284,10 @@ func isPipelineDirectory(root, path string) bool {
 			}
 		}
 		if pipelineRoot == "" {
-			return false
+			return "", false
 		}
 	}
-
-	pipelineRel, err := filepath.Rel(pipelineRoot, path)
-	if err != nil || pipelineRel == ".." || strings.HasPrefix(pipelineRel, ".."+string(filepath.Separator)) {
-		return false
-	}
-	if pipelineRel != "." {
-		for _, part := range strings.Split(filepath.Clean(pipelineRel), string(filepath.Separator)) {
-			if strings.HasPrefix(part, ".") {
-				return false
-			}
-		}
-	}
-	return true
+	return pipelineRoot, true
 }
 
 func isWithinPath(root, path string) bool {

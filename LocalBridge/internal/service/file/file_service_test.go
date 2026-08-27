@@ -76,6 +76,9 @@ func TestPipelineRootsFilterFilesAndDirectories(t *testing.T) {
 	if len(files) != 1 || files[0].FilePath != selectedFile {
 		t.Fatalf("PI roots did not filter files: %#v", files)
 	}
+	if files[0].BundleName != "selected" {
+		t.Fatalf("Pipeline file should identify its resource Bundle: %#v", files[0])
+	}
 	directories := service.GetDirectories()
 	if len(directories) != 2 || directories[0] != selectedRoot || directories[1] != filepath.Dir(selectedFile) {
 		t.Fatalf("PI roots did not filter directories: %#v", directories)
@@ -87,6 +90,14 @@ func TestPipelineRootsFilterFilesAndDirectories(t *testing.T) {
 	service.SetPipelineRoots(nil)
 	if files := service.GetFileList(); len(files) != 2 {
 		t.Fatalf("nil roots should restore fallback mode: %#v", files)
+	}
+}
+
+func TestPipelineBundleNameUsesTheFirstPipelineBoundary(t *testing.T) {
+	root := t.TempDir()
+	path := filepath.Join(root, "base", "pipeline", "nested", "pipeline", "main.json")
+	if got := pipelineBundleName(root, path); got != "base" {
+		t.Fatalf("pipelineBundleName() = %q, want %q", got, "base")
 	}
 }
 

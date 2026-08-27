@@ -106,13 +106,30 @@
   min-width: 0;
 }
 
+.fileNameRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin-bottom: 4px;
+}
+
 .fileName {
+  flex: 1;
+  min-width: 0;
   font-size: 14px;
   color: #000000d9;
-  margin-bottom: 4px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.bundleTag {
+  flex-shrink: 0;
+  max-width: 96px;
+  margin-inline-end: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .filePath {

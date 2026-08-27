@@ -113,7 +113,9 @@ func (s *Service) GetFileList() []models.FileInfo {
 		if !s.isVisiblePipelineFileLocked(file.AbsPath) {
 			continue
 		}
-		fileList = append(fileList, file.ToFileInfo())
+		info := file.ToFileInfo()
+		info.BundleName = pipelineBundleName(s.root, file.AbsPath)
+		fileList = append(fileList, info)
 	}
 
 	// 按相对路径排序，确保列表顺序稳定
@@ -215,6 +217,14 @@ func (s *Service) isVisiblePipelineDirectoryLocked(path string) bool {
 		}
 	}
 	return false
+}
+
+func pipelineBundleName(root, path string) string {
+	pipelineRoot, ok := pipelineRootForPath(root, filepath.Dir(path))
+	if !ok {
+		return ""
+	}
+	return filepath.Base(filepath.Dir(pipelineRoot))
 }
 
 func stringSlicesEqual(left, right []string) bool {

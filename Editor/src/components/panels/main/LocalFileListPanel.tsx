@@ -1,5 +1,13 @@
 ﻿import { List } from "../../SimpleList";
-import { App as AntdApp, Tooltip, Badge, Button, Input, Empty } from "antd";
+import {
+  App as AntdApp,
+  Tooltip,
+  Badge,
+  Button,
+  Input,
+  Empty,
+  Tag,
+} from "antd";
 import { useState, useMemo, useCallback } from "react";
 import {
   FileOutlined,
@@ -58,7 +66,8 @@ export const LocalFileListPanel: React.FC = () => {
     return folderFilteredFiles.filter(
       (file) =>
         file.file_name.toLowerCase().includes(searchLower) ||
-        file.relative_path.toLowerCase().includes(searchLower),
+        file.relative_path.toLowerCase().includes(searchLower) ||
+        file.bundle_name.toLowerCase().includes(searchLower),
     );
   }, [files, folderFilter, searchText]);
 
@@ -176,7 +185,16 @@ export const LocalFileListPanel: React.FC = () => {
                 <div className={styles.fileInfo}>
                   <FileOutlined className={styles.fileIcon} />
                   <div className={styles.fileDetails}>
-                    <div className={styles.fileName}>{file.file_name}</div>
+                    <div className={styles.fileNameRow}>
+                      <div className={styles.fileName}>{file.file_name}</div>
+                      {file.bundle_name && (
+                        <Tooltip title={`所属资源：${file.bundle_name}`}>
+                          <Tag className={styles.bundleTag} variant="filled">
+                            {file.bundle_name}
+                          </Tag>
+                        </Tooltip>
+                      )}
+                    </div>
                     <div className={styles.filePath}>{file.relative_path}</div>
                   </div>
                 </div>

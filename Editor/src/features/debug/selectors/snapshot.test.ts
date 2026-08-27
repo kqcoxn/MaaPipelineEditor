@@ -49,6 +49,7 @@ describe("snapshot resource override resolution", () => {
           file_path: "C:/resource/base/pipeline/main.json",
           file_name: "main.json",
           relative_path: "pipeline/main.json",
+          bundle_name: "base",
           prefix: "Live",
           nodes: [
             {

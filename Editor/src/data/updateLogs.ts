@@ -104,6 +104,7 @@ export const updateLogs: UpdateLogItem[] = [
         "优化日志导出的范围与敏感内容保护",
         "允许在根目录外加载 interface，独立 interface 相关资源检测",
         "本地文件目录仅索引 pipeline 文件夹下的资源，指定 interface 后仅索引",
+        "优化多资源情况下的文件目录标识",
       ],
       fixes: [
         "修复重启 localbridge 后无法继续调试的问题",
