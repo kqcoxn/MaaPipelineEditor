@@ -242,7 +242,7 @@ export const ParamFieldListElem = memo(
     const handleOCRConfirm = useCallback(
       (
         text: string,
-        _roi?: [number, number, number, number],
+        roi?: [number, number, number, number],
         withROI?: boolean,
       ) => {
         if (currentExpectedKey) {
