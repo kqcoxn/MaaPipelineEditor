@@ -433,6 +433,7 @@ func (h *MFWHandler) handleScreencap(conn *server.Connection, msg models.Message
 	controllerID, _ := dataMap["controller_id"].(string)
 	requestID, _ := dataMap["request_id"].(string)
 	useCache, _ := dataMap["use_cache"].(bool)
+	background, _ := dataMap["background"].(bool)
 
 	resolution, err := mfw.ParseOptionalScreenshotResolution(dataMap)
 	if err != nil {
@@ -451,6 +452,7 @@ func (h *MFWHandler) handleScreencap(conn *server.Connection, msg models.Message
 	req := &mfw.ScreencapRequest{
 		ControllerID: controllerID,
 		UseCache:     useCache,
+		Background:   background,
 		Resolution:   resolution,
 	}
 	if value, ok := dataMap["output_long_side"].(float64); ok && value > 0 {
@@ -459,7 +461,7 @@ func (h *MFWHandler) handleScreencap(conn *server.Connection, msg models.Message
 
 	result, err := h.service.ControllerManager().Screencap(req)
 	if err != nil {
-		if err != mfw.ErrScreencapBusy {
+		if err != mfw.ErrScreencapBusy && err != mfw.ErrScreencapSkipped {
 			logger.Error("MFW", "截图失败: %v", err)
 		}
 		conn.Send(models.Message{

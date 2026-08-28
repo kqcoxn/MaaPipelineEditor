@@ -19,8 +19,8 @@
     "sync:references": "node scripts/docs/run-sync-reference-projects.mjs",
     "migrate": "node scripts/development/migrate-version.mjs",
     "proto": "node scripts/development/proto-version.mjs",
-    "release": "git tag -a v1.9.1 -m \"v1.9.1\" && git push origin v1.9.1",
-    "retag": "git tag -d v1.9.1",
+    "release": "git tag -a v1.9.2 -m \"v1.9.2\" && git push origin v1.9.2",
+    "retag": "git tag -d v1.9.2",
     "reset": "git reset --soft HEAD~1"
   }
 }

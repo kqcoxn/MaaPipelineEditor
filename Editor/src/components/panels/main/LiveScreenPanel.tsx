@@ -19,9 +19,15 @@ const SCREENCAP_BUSY_RETRY_DELAY_MS = 250;
 const SCREENCAP_FAILURE_RETRY_DELAY_MS = 1000;
 const SCREENCAP_IDLE_RETRY_DELAY_MS = 1000;
 const SCREENCAP_BUSY_ERROR = "screencap busy";
+const SCREENCAP_SKIPPED_ERROR = "screencap skipped";
 const ACTUAL_FRAME_RATE_SAMPLE_INTERVAL_MS = 1000;
 
-type ScreenshotRequestResult = "success" | "busy" | "failed" | "skipped";
+type ScreenshotRequestResult =
+  | "success"
+  | "busy"
+  | "failed"
+  | "skipped"
+  | "superseded";
 
 const LiveScreenPanel = memo(() => {
   const connectionStatus = useMFWStore((state) => state.connectionStatus);
@@ -88,6 +94,7 @@ const LiveScreenPanel = memo(() => {
       const result = await mfwProtocol.requestScreencap(
         {
           controller_id: controllerId,
+          background: true,
           output_long_side: 400,
         },
         abortController.signal,
@@ -103,6 +110,8 @@ const LiveScreenPanel = memo(() => {
         return "success";
       } else if (result.error === SCREENCAP_BUSY_ERROR) {
         return "busy";
+      } else if (result.error === SCREENCAP_SKIPPED_ERROR) {
+        return "superseded";
       } else {
         handleScreenshotFailure();
         return "failed";
@@ -153,6 +162,10 @@ const LiveScreenPanel = memo(() => {
       }
       if (result === "skipped") {
         scheduleNextFrame(SCREENCAP_IDLE_RETRY_DELAY_MS);
+        return;
+      }
+      if (result === "superseded") {
+        scheduleNextFrame(SCREENCAP_BUSY_RETRY_DELAY_MS);
         return;
       }
 

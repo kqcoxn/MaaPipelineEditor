@@ -95,6 +95,14 @@ export const nextPreview: ForecastSection = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "1.9.2",
+    date: "2026-8",
+    type: "fix",
+    updates: {
+      fixes: ["修复截图竟态问题，优化冲突排解方案"],
+    },
+  },
+  {
     version: "1.9.1",
     date: "2026-8-28",
     type: "fix",

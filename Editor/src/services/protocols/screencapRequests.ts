@@ -5,6 +5,7 @@ const REQUEST_TIMEOUT_MS = 10000;
 export interface ScreencapRequestParams {
   controller_id: string;
   use_cache?: boolean;
+  background?: boolean;
   target_long_side?: number;
   target_short_side?: number;
   use_raw_size?: boolean;

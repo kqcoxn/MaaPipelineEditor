@@ -223,10 +223,16 @@ export const ScreenshotModalBase = memo(
       onScreenshotChangeRef.current?.(null);
       resetViewport();
       onResetRef.current?.();
+      let requestTimerId: ReturnType<typeof setTimeout> | undefined;
       if (connectionStatus === "connected" && controllerId) {
-        requestScreenshot();
+        // StrictMode 会对首次挂载执行一次 setup/cleanup 探测。延迟到下一任务，
+        // 使探测轮能在请求到达 MaaFW 前取消，避免连续发出两个主动截图。
+        requestTimerId = setTimeout(() => {
+          void requestScreenshot();
+        }, 0);
       }
       return () => {
+        if (requestTimerId !== undefined) clearTimeout(requestTimerId);
         requestAbortControllerRef.current?.abort();
       };
     }, [open, requestScreenshot, resetViewport, connectionStatus, controllerId]);

@@ -1,7 +1,6 @@
 package mfw
 
 import (
-	"sync"
 	"time"
 )
 
@@ -47,17 +46,17 @@ type WlRootsCompositorInfo struct {
 
 // 控制器实例信息
 type ControllerInfo struct {
-	ControllerID string    `json:"controller_id"`
-	Type         string    `json:"type"` // ADB/Win32/WlRoots/Custom
-	Controller   any       `json:"-"`    // *maa.Controller
-	Connected    bool      `json:"connected"`
-	UUID         string    `json:"uuid"`
-	CreatedAt    time.Time `json:"created_at"`
-	LastActiveAt time.Time `json:"last_active_at"`
-	InputMethods []string  `json:"input_methods,omitempty"`
-	AgentPath    string    `json:"agent_path,omitempty"`
-	Warning      string    `json:"warning,omitempty"`
-	screenshotMu sync.Mutex
+	ControllerID   string    `json:"controller_id"`
+	Type           string    `json:"type"` // ADB/Win32/WlRoots/Custom
+	Controller     any       `json:"-"`    // *maa.Controller
+	Connected      bool      `json:"connected"`
+	UUID           string    `json:"uuid"`
+	CreatedAt      time.Time `json:"created_at"`
+	LastActiveAt   time.Time `json:"last_active_at"`
+	InputMethods   []string  `json:"input_methods,omitempty"`
+	AgentPath      string    `json:"agent_path,omitempty"`
+	Warning        string    `json:"warning,omitempty"`
+	screenshotGate screenshotGate
 }
 
 // 资源实例信息
@@ -91,6 +90,7 @@ type ScreenshotResolution struct {
 type ScreencapRequest struct {
 	ControllerID   string
 	UseCache       bool
+	Background     bool
 	Resolution     *ScreenshotResolution
 	OutputLongSide int32
 }

@@ -29,6 +29,7 @@ var (
 	ErrInvalidParameter   = errors.New("invalid parameter")
 	ErrNotInitialized     = errors.New("maa framework not initialized")
 	ErrScreencapBusy      = errors.New("screencap busy")
+	ErrScreencapSkipped   = errors.New("screencap skipped")
 )
 
 // MFW错误类型
