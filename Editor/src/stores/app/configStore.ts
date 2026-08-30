@@ -44,7 +44,7 @@ export function normalizeAIRequestTimeoutMs(value: number): number {
 export const globalConfig = {
   dev: true,
   version: `1.9.2`,
-  betaIteration: 1,
+  betaIteration: 2,
   mfwVersion: "5.12.3",
   protocolVersion: "1.4.3",
 };
@@ -79,6 +79,7 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   configHandlingMode: "export",
   // 节点配置
   nodeStyle: "node",
+  showNodeShadows: "node",
   showNodeDetailFields: "node",
   showNodeTemplateImages: "node",
   showNodeFlowSection: "node",
@@ -208,6 +209,7 @@ const defaultConfigs = {
   useDarkMode: false,
   historyLimit: 100,
   nodeStyle: "modern" as NodeStyleType,
+  showNodeShadows: true,
   nodeAttrExportStyle: "prefix" as NodeAttrExportStyle,
   defaultHandleDirection: "left-right" as HandleDirection,
   quickCreateNodeOnConnectBlank: true,
@@ -282,6 +284,7 @@ export type ConfigState = {
     useDarkMode: boolean;
     historyLimit: number;
     nodeStyle: NodeStyleType;
+    showNodeShadows: boolean;
     nodeAttrExportStyle: NodeAttrExportStyle;
     defaultHandleDirection: HandleDirection;
     quickCreateNodeOnConnectBlank: boolean;

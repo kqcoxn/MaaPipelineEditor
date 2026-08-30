@@ -1,6 +1,22 @@
 @import "../base/global.less";
 @import "./flow.less";
 
+// 从画布根层统一关闭全部节点阴影，避免逐节点订阅显示配置。
+:global([data-node-shadows="false"]) {
+  .node,
+  .node *,
+  .sticker-node,
+  .sticker-node *,
+  .group-node,
+  .group-node * {
+    box-shadow: none !important;
+  }
+
+  .anchor-ref-highlighted {
+    animation: none;
+  }
+}
+
 .node {
   position: relative;
   width: 210px;

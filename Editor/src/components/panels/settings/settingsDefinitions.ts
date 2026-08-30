@@ -235,6 +235,18 @@ export const settingsDefinitions: ConfigItemDef[] = [
     order: 1,
   },
   {
+    key: "showNodeShadows",
+    category: "node",
+    label: "显示节点阴影",
+    tipTitle: "显示节点阴影",
+    tipContent:
+      "关闭时完全禁用节点及节点内部元素的阴影和阴影动画，可降低大量节点场景下的渲染开销。",
+    type: "switch",
+    checkedChildren: "显示",
+    unCheckedChildren: "关闭",
+    order: 2,
+  },
+  {
     key: "showNodeDetailFields",
     category: "node",
     label: "节点显示二级字段",
@@ -244,7 +256,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
     type: "switch",
     checkedChildren: "详细",
     unCheckedChildren: "精简",
-    order: 2,
+    order: 3,
   },
   {
     key: "showNodeTemplateImages",
@@ -256,7 +268,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
     type: "switch",
     checkedChildren: "显示",
     unCheckedChildren: "隐藏",
-    order: 3,
+    order: 4,
   },
   {
     key: "showNodeFlowSection",
@@ -267,7 +279,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
     type: "switch",
     checkedChildren: "显示",
     unCheckedChildren: "隐藏",
-    order: 4,
+    order: 5,
   },
   {
     key: "defaultHandleDirection",
@@ -278,7 +290,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
       "新创建节点的默认端点位置\n左右：左侧输入，右侧输出（默认）\n右左：右侧输入，左侧输出\n上下：上方输入，下方输出\n下上：下方输入，上方输出",
     type: "select",
     options: HANDLE_DIRECTION_OPTIONS,
-    order: 4,
+    order: 6,
   },
   {
     key: "__applyToAll",
@@ -288,7 +300,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
     tipContent: "将所有节点的端点位置更改为当前选中的默认位置",
     type: "custom",
     customRender: "applyToAll",
-    order: 5,
+    order: 7,
   },
   {
     key: "enableNodeSnap",
@@ -300,7 +312,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
     type: "switch",
     checkedChildren: "启用",
     unCheckedChildren: "关闭",
-    order: 6,
+    order: 8,
   },
   {
     key: "snapOnlyInViewport",
@@ -312,7 +324,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
     checkedChildren: "启用",
     unCheckedChildren: "关闭",
     visible: (configs) => configs.enableNodeSnap,
-    order: 7,
+    order: 9,
   },
 
   // ==================== 连接 (connection) ====================

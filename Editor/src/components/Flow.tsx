@@ -262,6 +262,9 @@ function MainFlow() {
   const canvasBackgroundMode = useConfigStore(
     (state) => state.configs.canvasBackgroundMode,
   );
+  const showNodeShadows = useConfigStore(
+    (state) => state.configs.showNodeShadows,
+  );
   const enableNodeSnap = useConfigStore(
     (state) => state.configs.enableNodeSnap,
   );
@@ -673,7 +676,11 @@ function MainFlow() {
 
   // 渲染
   return (
-    <div className={style.editor} ref={ref}>
+    <div
+      className={style.editor}
+      data-node-shadows={showNodeShadows}
+      ref={ref}
+    >
       <ReactFlow
         ref={selfElem}
         nodeTypes={nodeTypes}

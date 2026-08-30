@@ -16,6 +16,10 @@ beforeEach(() => {
 });
 
 describe("config cache", () => {
+  it("shows node shadows by default", () => {
+    expect(configDefaults.showNodeShadows).toBe(true);
+  });
+
   it("defaults the live screen to 15 frames per second", () => {
     expect(configDefaults.liveScreenRefreshRate).toBe(
       DEFAULT_LIVE_SCREEN_FRAME_RATE,
@@ -121,6 +125,15 @@ describe("config cache", () => {
 });
 
 describe("config export", () => {
+  it("exports the node shadow preference", () => {
+    const configs = {
+      ...configDefaults,
+      showNodeShadows: false,
+    };
+
+    expect(getExportableConfigs(configs).showNodeShadows).toBe(false);
+  });
+
   it("does not include the AI API key", () => {
     const configs = {
       ...configDefaults,

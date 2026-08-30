@@ -2,6 +2,21 @@ import { describe, expect, it } from "vitest";
 import { getProviderOptions } from "@/utils/ai/providers";
 import { settingsDefinitions, settingsTabs } from "./settingsDefinitions";
 
+describe("node settings", () => {
+  it("exposes the node shadow switch", () => {
+    const nodeShadowItem = settingsDefinitions.find(
+      (item) => item.key === "showNodeShadows",
+    );
+
+    expect(nodeShadowItem).toMatchObject({
+      category: "node",
+      type: "switch",
+      checkedChildren: "显示",
+      unCheckedChildren: "关闭",
+    });
+  });
+});
+
 describe("AI settings", () => {
   it("exposes the persisted AI configuration fields", () => {
     const aiItems = settingsDefinitions.filter((item) => item.category === "ai");

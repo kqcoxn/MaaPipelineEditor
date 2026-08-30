@@ -96,12 +96,13 @@ export const nextPreview: ForecastSection = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "1.9.2",
-    date: "2026-8",
-    type: "fix",
+    date: "2026-8-30",
+    type: "feature",
     updates: {
       features: [
         "🧠 新增记录上次连接的控制器功能，开启后自动回复控制器连接（默认开启，可在配置中关闭）",
         "🔍 控制器列表新增搜索功能",
+        "🌒  新增“显示节点阴影”选项（默认开启，可在配置中关闭）",
       ],
       fixes: ["修复截图竟态问题，优化冲突排解方案"],
     },
