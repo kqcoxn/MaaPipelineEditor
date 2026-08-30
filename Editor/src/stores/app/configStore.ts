@@ -218,6 +218,7 @@ const defaultConfigs = {
   jsonIndent: 4,
   wsPort: 9066,
   wsAutoConnect: false,
+  autoConnectLastController: true,
   fileAutoReload: false,
   saveFilesBeforeDebug: true,
   enableCrossFileSearch: true,
@@ -291,6 +292,7 @@ export type ConfigState = {
     jsonIndent: number;
     wsPort: number;
     wsAutoConnect: boolean;
+    autoConnectLastController: boolean;
     fileAutoReload: boolean;
     saveFilesBeforeDebug: boolean;
     crossFileSearchFolderFilter: string;

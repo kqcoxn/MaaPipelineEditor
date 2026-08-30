@@ -570,6 +570,18 @@ export const settingsDefinitions: ConfigItemDef[] = [
     order: 3,
   },
   {
+    key: "autoConnectLastController",
+    category: "local-service",
+    label: "自动连接上次控制器",
+    tipTitle: "自动连接上次控制器",
+    tipContent:
+      "开启后，LocalBridge 连接成功时会自动尝试连接上一次成功连接的控制器。连接失败不会弹出提示，可在连接面板中手动重试。",
+    type: "switch",
+    checkedChildren: "开启",
+    unCheckedChildren: "关闭",
+    order: 4,
+  },
+  {
     key: "fileAutoReload",
     category: "local-service",
     label: "自动重载变更文件",
@@ -579,7 +591,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
     type: "switch",
     checkedChildren: "开启",
     unCheckedChildren: "关闭",
-    order: 4,
+    order: 5,
   },
   {
     key: "enableCrossFileSearch",
@@ -590,7 +602,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
     type: "switch",
     checkedChildren: "开启",
     unCheckedChildren: "关闭",
-    order: 5,
+    order: 6,
   },
   {
     key: "crossFileSearchFolderFilter",
@@ -601,7 +613,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
       "前端过滤本地文件列表与跨文件搜索候选。填写相对于本地服务根目录的文件夹路径，多个目录可用逗号、分号或换行分隔；留空表示不过滤。",
     type: "textarea",
     placeholder: "例如：pipeline\npipeline/sub",
-    order: 6,
+    order: 7,
   },
   {
     key: "screenshotResolutionMode",

@@ -20,7 +20,7 @@ import {
 import { useWSStore } from "@/stores/connection/wsStore";
 import { useMFWStore } from "@/stores/connection/mfwStore";
 import { useCustomTemplateStore } from "@/stores/project/customTemplateStore";
-import { localServer } from "./services/server";
+import { localServer, mfwProtocol } from "./services/server";
 import { resetDebugProtocolStateForConnectionLoss } from "./features/debug/protocols/registerProtocolListeners";
 
 import Header from "./components/Header";
@@ -254,6 +254,8 @@ function App() {
         clearMFWConnection();
         // 调试会话只存在于当前 LocalBridge 进程，断线/重启后必须丢弃旧 ID。
         resetDebugProtocolStateForConnectionLoss();
+      } else {
+        mfwProtocol.autoConnectLastController();
       }
     });
     localServer.onConnecting((isConnecting) => {

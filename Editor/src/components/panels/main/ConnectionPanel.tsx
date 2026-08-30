@@ -337,13 +337,9 @@ export const ConnectionPanel = memo(
       setWlrootsSocketPath,
     ]);
 
-    // 未连接且第一次打开时自动刷新设备列表
+    // 第一次打开时自动刷新设备列表，即使当前已有控制器连接
     useEffect(() => {
-      if (
-        open &&
-        !visitedTabs.has(activeTab) &&
-        connectionStatus !== "connected"
-      ) {
+      if (open && !visitedTabs.has(activeTab)) {
         setVisitedTabs((prev) => new Set(prev).add(activeTab));
         handleRefresh();
       }
@@ -518,6 +514,7 @@ export const ConnectionPanel = memo(
     const handleDisconnect = useCallback(() => {
       if (controllerId) {
         mfwProtocol.disconnectController(controllerId);
+        mfwProtocol.forgetLastController();
       }
     }, [controllerId]);
 

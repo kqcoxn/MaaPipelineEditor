@@ -99,6 +99,9 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2026-8",
     type: "fix",
     updates: {
+      features: [
+        "🧠 新增记录上次连接的控制器功能，开启后自动回复控制器连接（默认开启，可在配置中关闭）",
+      ],
       fixes: ["修复截图竟态问题，优化冲突排解方案"],
     },
   },

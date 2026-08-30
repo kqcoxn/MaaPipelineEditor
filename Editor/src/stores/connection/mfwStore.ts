@@ -121,6 +121,7 @@ interface MFWState {
     id: string | null,
     info: DeviceInfo,
   ) => void;
+  updateDeviceInfo: (info: DeviceInfo) => void;
   updateAdbDevices: (devices: AdbDevice[]) => void;
   updateWin32Windows: (windows: Win32Window[]) => void;
   updateWlRootsCompositors: (compositors: WlRootsCompositor[]) => void;
@@ -158,6 +159,8 @@ export const useMFWStore = create<MFWState>()((set) => ({
       connectionStatus: id ? "connected" : "disconnected",
       errorMessage: null,
     }),
+
+  updateDeviceInfo: (info) => set({ deviceInfo: info }),
 
   // 更新 ADB 设备列表
   updateAdbDevices: (devices) =>

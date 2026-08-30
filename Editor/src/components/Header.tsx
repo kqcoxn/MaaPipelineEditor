@@ -216,17 +216,28 @@ const DeviceConnectionButton: React.FC<{ onOpenPanel: () => void }> = ({
   };
 
   const isConnected = connectionStatus === "connected";
+  const isConnecting = connectionStatus === "connecting";
 
-  if (isConnected) {
+  if (isConnected || isConnecting) {
     return (
-      <Tooltip placement="bottom" title="点击管理设备连接">
+      <Tooltip
+        placement="bottom"
+        title={isConnecting ? "正在连接设备" : "点击管理设备连接"}
+      >
         <Button
-          type="primary"
+          type={isConnecting ? "default" : "primary"}
           size="small"
           icon={
-            controllerType === "adb" ? <MobileOutlined /> : <DesktopOutlined />
+            isConnecting ? (
+              <LoadingOutlined />
+            ) : controllerType === "adb" ? (
+              <MobileOutlined />
+            ) : (
+              <DesktopOutlined />
+            )
           }
-          onClick={onOpenPanel}
+          onClick={isConnecting ? undefined : onOpenPanel}
+          disabled={isConnecting}
           className={style.deviceButton}
           style={{
             borderRadius: "999px",
@@ -235,7 +246,7 @@ const DeviceConnectionButton: React.FC<{ onOpenPanel: () => void }> = ({
             maxWidth: "140px",
           }}
         >
-          {getDeviceName()}
+          {isConnecting ? "连接设备中..." : getDeviceName()}
         </Button>
       </Tooltip>
     );
