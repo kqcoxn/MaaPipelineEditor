@@ -64,6 +64,8 @@ import { TermsAgreementModal } from "./components/modals/TermsAgreementModal";
 import { useEmbedStarReminder } from "./hooks/useEmbedStarReminder";
 import { openExternalUrl } from "./features/embed/navigation/externalNavigation";
 
+const isPreviewMode = import.meta.env.MODE === "preview";
+
 const JsonViewer = lazy(() => import("./components/JsonViewer"));
 const DebugModal = lazy(() =>
   import("./components/debug/DebugModal").then((module) => ({
@@ -128,6 +130,7 @@ const GlobalListener = memo(() => {
 function App() {
   // 嵌入模式状态
   const { isEmbed, isReady, isCapAllowed, isPanelHidden } = useEmbedMode();
+  const shouldSkipNewcomerGuide = isEmbed || isPreviewMode;
 
   // 处理文件拖拽
   const handleFileDrop = useCallback(async (e: DragEvent) => {
@@ -178,6 +181,9 @@ function App() {
       console.log("[App] Embed mode detected");
 
       useTermsStore.getState().closeModal();
+      useNewcomerStore.getState().closeModal();
+    } else if (isPreviewMode) {
+      console.log("[App] Preview mode detected");
       useNewcomerStore.getState().closeModal();
     }
 
@@ -274,14 +280,14 @@ function App() {
     // 使用协议检测（优先于新手引导）
     if (!isTermsAccepted()) {
       useTermsStore.getState().openModal();
-    } else if (!isNewcomerPassed()) {
+    } else if (!isPreviewMode && !isNewcomerPassed()) {
       // 协议已接受，检测新手引导
       useNewcomerStore.getState().openModal();
     }
 
     // 监听协议接受事件，接受后再触发新手引导检测
     const handleTermsAccepted = () => {
-      if (!isNewcomerPassed()) {
+      if (!isPreviewMode && !isNewcomerPassed()) {
         useNewcomerStore.getState().openModal();
       }
     };
@@ -364,7 +370,7 @@ function App() {
         <DebugModal />
       </Suspense>
       {!isEmbed && <TermsAgreementModal />}
-      {!isEmbed && <NewcomerGuideModal />}
+      {!shouldSkipNewcomerGuide && <NewcomerGuideModal />}
       <GlobalListener />
     </ThemeProvider>
   );
