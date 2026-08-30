@@ -20,6 +20,7 @@ import {
   type EmbedSaveDataPayload,
   type EmbedSaveResultPayload,
   type EmbedUIConfig,
+  isMseHost,
 } from "../../../utils/embedBridge";
 import {
   clearEmbedOperationTimeouts,
@@ -39,6 +40,12 @@ function applyEmbedConfig(
 ): void {
   const store = useEmbedStore.getState();
   store.initConfig(capabilities, ui, host);
+  if (
+    isMseHost(host) &&
+    useConfigStore.getState().configs.configHandlingMode === "separated"
+  ) {
+    useConfigStore.getState().setConfig("configHandlingMode", "integrated");
+  }
   store.setReady(true);
 }
 
@@ -99,7 +106,9 @@ function sendNodeNotFound(nodeId: string): void {
 }
 
 function getCurrentCanvasExportString(): string {
-  const mode = useConfigStore.getState().configs.configHandlingMode;
+  const mode = isMseHost(useEmbedStore.getState().host)
+    ? "integrated"
+    : useConfigStore.getState().configs.configHandlingMode;
   return mode === "separated"
     ? flowToPipelineString({ forceExportConfig: true })
     : flowToPipelineString();
@@ -184,7 +193,9 @@ export function registerEmbedProtocol(): Cleanup {
     }),
     onParentMessage("mpe:save", (_payload, requestId) => {
       try {
-        const mode = useConfigStore.getState().configs.configHandlingMode;
+        const mode = isMseHost(useEmbedStore.getState().host)
+          ? "integrated"
+          : useConfigStore.getState().configs.configHandlingMode;
         const fileName = useFileStore.getState().currentFile.fileName;
         let payload: EmbedSaveDataPayload;
 

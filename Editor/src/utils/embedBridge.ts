@@ -56,6 +56,11 @@ export interface EmbedHostInfo {
   repositoryUrl?: string;
 }
 
+/** MSE 不支持独立的 MPE 配置文件。 */
+export function isMseHost(host: EmbedHostInfo | null | undefined): boolean {
+  return host?.id === "mse";
+}
+
 export type EmbedLocale = "zh-cn" | "en-us";
 
 export function getEmbedLocale(): EmbedLocale {

@@ -15,6 +15,8 @@ import { useConfigStore } from "@/stores/app/configStore";
 import { configDefaults } from "@/stores/app/configStore";
 import type { ConfigItemDef } from "./settingsDefinitions";
 import { customRenderers } from "./customRenderers";
+import { useEmbedStore } from "@/stores/embed/embedStore";
+import { isMseHost } from "@/utils/embedBridge";
 
 interface ConfigItemRendererProps {
   item: ConfigItemDef;
@@ -30,6 +32,7 @@ const ConfigItemRenderer = memo(
       return state.configs[item.key as keyof typeof state.configs];
     });
     const configs = useConfigStore((state) => state.configs);
+    const host = useEmbedStore((state) => state.host);
     const setConfig = useConfigStore((state) => state.setConfig);
     const resetConfig = useConfigStore((state) => state.resetConfig);
 
@@ -81,17 +84,22 @@ const ConfigItemRenderer = memo(
             />
           );
 
-        case "select":
+        case "select": {
+          const options =
+            item.key === "configHandlingMode" && isMseHost(host)
+              ? item.options?.filter((option) => option.value !== "separated")
+              : item.options;
           return (
             <Select
               value={value}
               style={{ width: item.controlWidth || 120 }}
-              options={item.options}
+              options={options}
               onChange={(val) =>
                 setConfig(item.key as keyof typeof configDefaults, val)
               }
             />
           );
+        }
 
         case "inputNumber": {
           const inputNumber = (
