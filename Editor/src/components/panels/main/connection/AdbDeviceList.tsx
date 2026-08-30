@@ -1,9 +1,14 @@
 ﻿import { List } from "../../../SimpleList";
-import { memo } from "react";
-import { Typography } from "antd";
-import { MobileOutlined, CheckCircleOutlined } from "@ant-design/icons";
+import { memo, useMemo, useState } from "react";
+import { Input, Typography } from "antd";
+import {
+  MobileOutlined,
+  CheckCircleOutlined,
+  SearchOutlined,
+} from "@ant-design/icons";
 import type { AdbDevice } from "@/stores/connection/mfwStore";
 import { AdbManualForm } from "./AdbManualForm";
+import { filterControllerList } from "./listSearch";
 
 const { Text } = Typography;
 
@@ -37,6 +42,17 @@ export const AdbDeviceList = memo(
     onManualConfigChange,
     onManualNameChange,
   }: AdbDeviceListProps) => {
+    const [searchText, setSearchText] = useState("");
+    const filteredDevices = useMemo(
+      () =>
+        filterControllerList(devices, searchText, (device) => [
+          device.name,
+          device.address,
+          device.adb_path,
+        ]),
+      [devices, searchText],
+    );
+
     const handleSelectPreset = (device: AdbDevice) => {
       onSelect(device);
       // 清空手动输入
@@ -71,10 +87,23 @@ export const AdbDeviceList = memo(
           <Text type="secondary" style={{ display: "block", marginBottom: 8 }}>
             已发现的设备
           </Text>
+          <Input
+            placeholder="搜索设备名称、地址或 ADB 路径..."
+            prefix={<SearchOutlined />}
+            value={searchText}
+            onChange={(event) => setSearchText(event.target.value)}
+            allowClear
+            style={{ marginBottom: 12 }}
+          />
           <List
             loading={loading}
-            dataSource={devices}
-            locale={{ emptyText: "暂无设备,请点击刷新" }}
+            dataSource={filteredDevices}
+            locale={{
+              emptyText:
+                devices.length === 0
+                  ? "暂无设备，请点击刷新"
+                  : "未找到匹配的设备",
+            }}
             split={false}
             renderItem={(device) => {
               const isSelected = selectedDevice?.address === device.address;

@@ -1,8 +1,13 @@
 ﻿import { List } from "../../../SimpleList";
-import { memo } from "react";
-import { Typography, Alert } from "antd";
-import { DesktopOutlined, CheckCircleOutlined } from "@ant-design/icons";
+import { memo, useMemo, useState } from "react";
+import { Typography, Alert, Input } from "antd";
+import {
+  DesktopOutlined,
+  CheckCircleOutlined,
+  SearchOutlined,
+} from "@ant-design/icons";
 import type { Win32Window } from "@/stores/connection/mfwStore";
+import { filterControllerList } from "./listSearch";
 
 const { Text } = Typography;
 
@@ -14,72 +19,102 @@ interface Win32WindowListProps {
 }
 
 export const Win32WindowList = memo(
-  ({ windows, selectedWindow, onSelect, loading }: Win32WindowListProps) => (
-    <>
-      <Alert
-        title="权限提示"
-        description="大多数 Win32 控制需要以管理员模式启动 LocalBridge 才能正常工作。如果遇到连接失败或控制无响应的情况，请尝试以管理员身份重新启动 LocalBridge。"
-        type="info"
-        showIcon
-        style={{ marginBottom: 16 }}
-      />
-      <List
-        loading={loading}
-        dataSource={windows}
-        locale={{ emptyText: "暂无窗口,请点击刷新" }}
-        split={false}
-        renderItem={(window) => {
-          const isSelected = selectedWindow?.hwnd === window.hwnd;
-          return (
-            <div
-              onClick={() => onSelect(window)}
-              style={{
-                cursor: "pointer",
-                padding: "12px 16px",
-                marginBottom: 8,
-                borderRadius: 8,
-                border: isSelected ? "2px solid #1890ff" : "1px solid #f0f0f0",
-                backgroundColor: isSelected ? "#e6f7ff" : "#fafafa",
-                transition: "all 0.2s ease",
-              }}
-              onMouseEnter={(e) => {
-                if (!isSelected)
-                  e.currentTarget.style.backgroundColor = "#f5f5f5";
-              }}
-              onMouseLeave={(e) => {
-                if (!isSelected)
-                  e.currentTarget.style.backgroundColor = "#fafafa";
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <DesktopOutlined
-                  style={{
-                    fontSize: 24,
-                    color: isSelected ? "#1890ff" : "#999",
-                  }}
-                />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <Text
-                    strong
-                    ellipsis
-                    style={{ display: "block", marginBottom: 4 }}
-                  >
-                    {window.window_name || window.class_name}
-                  </Text>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    句柄: {window.hwnd}
-                  </Text>
-                </div>
-                {isSelected && (
-                  <CheckCircleOutlined
-                    style={{ color: "#1890ff", fontSize: 18 }}
+  ({ windows, selectedWindow, onSelect, loading }: Win32WindowListProps) => {
+    const [searchText, setSearchText] = useState("");
+    const filteredWindows = useMemo(
+      () =>
+        filterControllerList(windows, searchText, (window) => [
+          window.window_name,
+          window.class_name,
+          window.hwnd,
+        ]),
+      [searchText, windows],
+    );
+
+    return (
+      <>
+        <Alert
+          title="权限提示"
+          description="大多数 Win32 控制需要以管理员模式启动 LocalBridge 才能正常工作。如果遇到连接失败或控制无响应的情况，请尝试以管理员身份重新启动 LocalBridge。"
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+        <Input
+          placeholder="搜索窗口名称、类名或句柄..."
+          prefix={<SearchOutlined />}
+          value={searchText}
+          onChange={(event) => setSearchText(event.target.value)}
+          allowClear
+          style={{ marginBottom: 12 }}
+        />
+        <List
+          loading={loading}
+          dataSource={filteredWindows}
+          locale={{
+            emptyText:
+              windows.length === 0
+                ? "暂无窗口，请点击刷新"
+                : "未找到匹配的窗口",
+          }}
+          split={false}
+          renderItem={(window) => {
+            const isSelected = selectedWindow?.hwnd === window.hwnd;
+            return (
+              <div
+                onClick={() => onSelect(window)}
+                style={{
+                  cursor: "pointer",
+                  padding: "12px 16px",
+                  marginBottom: 8,
+                  borderRadius: 8,
+                  border: isSelected
+                    ? "2px solid #1890ff"
+                    : "1px solid #f0f0f0",
+                  backgroundColor: isSelected ? "#e6f7ff" : "#fafafa",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSelected)
+                    e.currentTarget.style.backgroundColor = "#f5f5f5";
+                }}
+                onMouseLeave={(e) => {
+                  if (!isSelected)
+                    e.currentTarget.style.backgroundColor = "#fafafa";
+                }}
+              >
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: 12 }}
+                >
+                  <DesktopOutlined
+                    style={{
+                      fontSize: 24,
+                      color: isSelected ? "#1890ff" : "#999",
+                    }}
                   />
-                )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Text
+                      strong
+                      ellipsis
+                      style={{ display: "block", marginBottom: 4 }}
+                    >
+                      {window.window_name || window.class_name}
+                    </Text>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      句柄: {window.hwnd}
+                    </Text>
+                  </div>
+                  {isSelected && (
+                    <CheckCircleOutlined
+                      style={{ color: "#1890ff", fontSize: 18 }}
+                    />
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        }}
-      />
-    </>
-  ),
+            );
+          }}
+        />
+      </>
+    );
+  },
 );

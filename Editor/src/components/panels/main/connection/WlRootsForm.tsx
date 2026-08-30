@@ -1,8 +1,13 @@
 ﻿import { List } from "../../../SimpleList";
-import { memo } from "react";
+import { memo, useMemo, useState } from "react";
 import { Typography, Input, Alert, Checkbox } from "antd";
-import { DesktopOutlined, CheckCircleOutlined } from "@ant-design/icons";
+import {
+  DesktopOutlined,
+  CheckCircleOutlined,
+  SearchOutlined,
+} from "@ant-design/icons";
 import type { WlRootsCompositor } from "@/stores/connection/mfwStore";
+import { filterControllerList } from "./listSearch";
 
 const { Text } = Typography;
 
@@ -28,6 +33,16 @@ export const WlRootsForm = memo(
     onUseWin32VkCodeChange,
     loading,
   }: WlRootsFormProps) => {
+    const [searchText, setSearchText] = useState("");
+    const filteredSockets = useMemo(
+      () =>
+        filterControllerList(sockets, searchText, (socket) => [
+          socket.name,
+          socket.socket_path,
+        ]),
+      [searchText, sockets],
+    );
+
     const handleSelectPreset = (socket: WlRootsCompositor) => {
       onSelect(socket);
       onManualPathChange(""); // 清空手动输入
@@ -50,10 +65,23 @@ export const WlRootsForm = memo(
           <Text type="secondary" style={{ display: "block", marginBottom: 8 }}>
             可用 Socket 路径
           </Text>
+          <Input
+            placeholder="搜索名称或 Socket 路径..."
+            prefix={<SearchOutlined />}
+            value={searchText}
+            onChange={(event) => setSearchText(event.target.value)}
+            allowClear
+            style={{ marginBottom: 12 }}
+          />
           <List
             loading={loading}
-            dataSource={sockets}
-            locale={{ emptyText: "暂无可用路径，请手动输入或点击刷新" }}
+            dataSource={filteredSockets}
+            locale={{
+              emptyText:
+                sockets.length === 0
+                  ? "暂无可用路径，请手动输入或点击刷新"
+                  : "未找到匹配的 Socket 路径",
+            }}
             split={false}
             renderItem={(socket) => {
               const isSelected =
