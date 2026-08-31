@@ -429,6 +429,7 @@ function AIHistoryPanelContent({
                 if (activeRunId) harnessRunner.stop(activeRunId);
               }}
               autoSize={{ minRows: 1, maxRows: 5 }}
+              styles={{ input: { fontSize: 14, lineHeight: "22px" } }}
               placeholder="输入目标或问题"
               disabled={isAnyRunRunning && !isCurrentSessionRunning}
             />

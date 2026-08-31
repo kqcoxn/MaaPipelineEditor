@@ -1,10 +1,21 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { XProvider } from "@ant-design/x";
 import { canvasChatProfile } from "@/features/ai-harness";
 import { useBusinessArchitectureStore } from "@/features/ai-harness";
 import type { HarnessRun, RunEvent } from "@/features/ai-harness";
 import { AIConversationRun } from "./AIConversationRun";
+
+vi.mock("@ant-design/x", async () => {
+  const actual = await vi.importActual<typeof import("@ant-design/x")>(
+    "@ant-design/x",
+  );
+  return {
+    ...actual,
+    Mermaid: ({ children }: { children?: import("react").ReactNode }) =>
+      <div data-testid="mermaid-test-renderer">{children}</div>,
+  };
+});
 
 function createRun(status: HarnessRun["status"] = "succeeded"): HarnessRun {
   return {

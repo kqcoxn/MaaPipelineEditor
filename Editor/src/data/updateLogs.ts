@@ -96,9 +96,10 @@ export const nextPreview: ForecastSection = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "1.9.3",
-    date: "2026-8",
+    date: "2026-9",
     type: "perf",
     updates: {
+      perfs: ["优化操作页面时的渲染性能"],
       fixes: ["修复根目录来源覆盖错误与监听死锁问题"],
     },
   },
