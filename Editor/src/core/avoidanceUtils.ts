@@ -2,11 +2,25 @@
  * 边避让走线算法
  */
 
-import type { NodeType } from "../stores/flow/types";
-import { getNodeAbsolutePosition } from "../stores/flow/utils/coordinateUtils";
+import type { EdgeType, NodeType } from "../stores/flow/types";
+import { NodeTypeEnum } from "../components/flow/nodes/constants";
+import {
+  getNodeAbsolutePosition,
+  type NodeLookup,
+} from "../stores/flow/utils/coordinateUtils";
 
 /** 点坐标 */
 export type Point = { x: number; y: number };
+
+export type AvoidancePathResult = {
+  path: string;
+  labelX: number;
+  labelY: number;
+  /** 路径折点，供缓存失效判断使用，不参与渲染语义。 */
+  points: Point[];
+  /** 计算候选路径时实际阻挡过路径的节点 ID。 */
+  blockingNodeIds: string[];
+};
 
 /** 节点边界框 */
 export type NodeBounds = {
@@ -207,6 +221,7 @@ function findBlockingNode(
   nodeBoundsList: NodeBounds[],
   excludeIds: Set<string>,
   checkInternalOnly: boolean = false,
+  blockingNodeIds?: Set<string>,
 ): NodeBounds | null {
   let closestDistance = Number.MAX_SAFE_INTEGER;
   let closest: NodeBounds | null = null;
@@ -227,6 +242,7 @@ function findBlockingNode(
     );
 
     if (isIntersecting) {
+      blockingNodeIds?.add(nodeBounds.id);
       // 计算节点中心到起点的距离
       const centerX = (nodeBounds.minX + nodeBounds.maxX) / 2;
       const centerY = (nodeBounds.minY + nodeBounds.maxY) / 2;
@@ -257,6 +273,7 @@ function testPath(
   nodeBoundsList: NodeBounds[],
   excludeIds: Set<string>,
   checkInternalOnly: boolean = false,
+  blockingNodeIds?: Set<string>,
 ): NodeBounds | null {
   for (let i = 0; i < points.length - 1; i++) {
     const blocking = findBlockingNode(
@@ -265,6 +282,7 @@ function testPath(
       nodeBoundsList,
       excludeIds,
       checkInternalOnly,
+      blockingNodeIds,
     );
     if (blocking) return blocking;
   }
@@ -387,6 +405,7 @@ function calculateAvoidancePathRecursive(
   config: AvoidanceConfig,
   depth: number,
   blockedCount: Record<string, number>,
+  blockingNodeIds: Set<string>,
 ): Point[] {
   // 计算距离
   const dx = targetXY.x - sourceXY.x;
@@ -403,6 +422,7 @@ function calculateAvoidancePathRecursive(
     nodeBoundsList,
     excludeIds,
     true, // 检测内部穿过，包括目标节点
+    blockingNodeIds,
   );
 
   // 如果没有节点被穿过，直接连接
@@ -428,7 +448,7 @@ function calculateAvoidancePathRecursive(
       { x: targetXY.x - offset, y: sourceXY.y },
       targetXY,
     ];
-    if (!testPath(pathA, nodeBoundsList, excludeIds, true)) {
+    if (!testPath(pathA, nodeBoundsList, excludeIds, true, blockingNodeIds)) {
       return pathA;
     }
 
@@ -438,7 +458,7 @@ function calculateAvoidancePathRecursive(
       { x: sourceXY.x + offset, y: targetXY.y },
       targetXY,
     ];
-    if (!testPath(pathB, nodeBoundsList, excludeIds, true)) {
+    if (!testPath(pathB, nodeBoundsList, excludeIds, true, blockingNodeIds)) {
       return pathB;
     }
   }
@@ -455,7 +475,7 @@ function calculateAvoidancePathRecursive(
       { x: sourceXY.x, y: targetXY.y - offset },
       targetXY,
     ];
-    if (!testPath(pathA, nodeBoundsList, excludeIds, true)) {
+    if (!testPath(pathA, nodeBoundsList, excludeIds, true, blockingNodeIds)) {
       return pathA;
     }
 
@@ -465,7 +485,7 @@ function calculateAvoidancePathRecursive(
       { x: targetXY.x, y: sourceXY.y + offset },
       targetXY,
     ];
-    if (!testPath(pathB, nodeBoundsList, excludeIds, true)) {
+    if (!testPath(pathB, nodeBoundsList, excludeIds, true, blockingNodeIds)) {
       return pathB;
     }
   }
@@ -477,7 +497,13 @@ function calculateAvoidancePathRecursive(
     { x: sourceXY.x, y: targetXY.y },
     targetXY,
   ];
-  const blockingA = testPath(pathStraight90A, nodeBoundsList, excludeIds, true);
+  const blockingA = testPath(
+    pathStraight90A,
+    nodeBoundsList,
+    excludeIds,
+    true,
+    blockingNodeIds,
+  );
   if (!blockingA) {
     return pathStraight90A;
   }
@@ -488,7 +514,13 @@ function calculateAvoidancePathRecursive(
     { x: targetXY.x, y: sourceXY.y },
     targetXY,
   ];
-  const blockingB = testPath(pathStraight90B, nodeBoundsList, excludeIds, true);
+  const blockingB = testPath(
+    pathStraight90B,
+    nodeBoundsList,
+    excludeIds,
+    true,
+    blockingNodeIds,
+  );
   if (!blockingB) {
     return pathStraight90B;
   }
@@ -571,6 +603,7 @@ function calculateAvoidancePathRecursive(
     config,
     depth + 1,
     blockedCount,
+    blockingNodeIds,
   );
 
   return [sourceXY, ...bypassPoints, ...remainingPath.slice(1)];
@@ -663,15 +696,23 @@ function calculateSelfLoopPath(
  * 从节点列表构建边界框列表
  * 使用默认尺寸作为后备，确保所有节点都被包含
  */
-export function buildNodeBoundsList(nodes: NodeType[]): NodeBounds[] {
+export function buildNodeBoundsList(
+  nodes: NodeType[],
+  nodeLookup: NodeLookup = nodes,
+): NodeBounds[] {
   // 默认节点尺寸
   const DEFAULT_NODE_WIDTH = 200;
   const DEFAULT_NODE_HEIGHT = 100;
 
+  const resolvedNodeLookup: NodeLookup =
+    nodeLookup === nodes
+      ? new Map(nodes.map((node) => [node.id, node]))
+      : nodeLookup;
+
   return nodes.map((node) => {
     const width = node.measured?.width ?? DEFAULT_NODE_WIDTH;
     const height = node.measured?.height ?? DEFAULT_NODE_HEIGHT;
-    const absolutePosition = getNodeAbsolutePosition(node, nodes);
+    const absolutePosition = getNodeAbsolutePosition(node, resolvedNodeLookup);
 
     return {
       id: node.id,
@@ -681,6 +722,54 @@ export function buildNodeBoundsList(nodes: NodeType[]): NodeBounds[] {
       maxY: absolutePosition.y + height,
     };
   });
+}
+
+/**
+ * 构建避让算法使用的节点边界。
+ * Group 只用于承载子节点，不应作为避让障碍物。
+ */
+export function buildAvoidanceNodeBounds(
+  nodes: NodeType[],
+  nodeLookup: NodeLookup = nodes,
+): NodeBounds[] {
+  const groupIds = new Set(
+    nodes
+      .filter((node) => node.type === NodeTypeEnum.Group)
+      .map((node) => node.id),
+  );
+  return buildNodeBoundsList(nodes, nodeLookup).filter(
+    (bounds) => !groupIds.has(bounds.id),
+  );
+}
+
+export type ParallelEdgeInfo = {
+  edgeIndex: number;
+  totalParallelEdges: number;
+};
+
+/**
+ * 按源节点和目标节点建立平行边索引。
+ * 边的顺序与 FlowStore.edges 保持一致，以保留原有偏移语义。
+ */
+export function buildParallelEdgeInfo(
+  edges: EdgeType[],
+): Map<string, ParallelEdgeInfo> {
+  const groups = new Map<string, string[]>();
+  for (const edge of edges) {
+    const key = `${edge.source}\u0000${edge.target}`;
+    const group = groups.get(key) ?? [];
+    group.push(edge.id);
+    groups.set(key, group);
+  }
+
+  const result = new Map<string, ParallelEdgeInfo>();
+  for (const edgeIds of groups.values()) {
+    const totalParallelEdges = edgeIds.length;
+    edgeIds.forEach((edgeId, edgeIndex) => {
+      result.set(edgeId, { edgeIndex, totalParallelEdges });
+    });
+  }
+  return result;
 }
 
 /**
@@ -698,12 +787,10 @@ export function calculateAvoidancePath(
   config: AvoidanceConfig = DEFAULT_AVOIDANCE_CONFIG,
   edgeIndex: number = 0,
   totalParallelEdges: number = 1,
-): { path: string; labelX: number; labelY: number } {
-  // 检查是否为自循环
-  // 自循环时 excludeIds 有两个相同元素
+): AvoidancePathResult {
   const excludeIdsArray = [...excludeIds];
-  const isSelfLoop =
-    excludeIdsArray.length === 2 && excludeIdsArray[0] === excludeIdsArray[1];
+  // Set 会自动去重，因此自循环在调用方只保留一个端点 ID。
+  const isSelfLoop = excludeIdsArray.length === 1;
 
   // 计算边偏移量，用于边-边避让
   // 当多条边连接相同的源节点和目标节点时，将它们分散开
@@ -742,6 +829,8 @@ export function calculateAvoidancePath(
     y: targetXY.y + offsetTargetY,
   };
 
+  const blockingNodeIds = new Set<string>();
+
   if (isSelfLoop) {
     // 自循环：找到当前节点边界
     const nodeId = excludeIdsArray[0];
@@ -755,7 +844,13 @@ export function calculateAvoidancePath(
       );
       const path = buildPathString(points, config.cornerRadius);
       const mid = getPathMidpoint(points);
-      return { path, labelX: mid.x, labelY: mid.y };
+      return {
+        path,
+        labelX: mid.x,
+        labelY: mid.y,
+        points,
+        blockingNodeIds: [nodeId],
+      };
     }
   }
 
@@ -770,10 +865,17 @@ export function calculateAvoidancePath(
     config,
     0,
     {},
+    blockingNodeIds,
   );
 
   const path = buildPathString(points, config.cornerRadius);
   const mid = getPathMidpoint(points);
 
-  return { path, labelX: mid.x, labelY: mid.y };
+  return {
+    path,
+    labelX: mid.x,
+    labelY: mid.y,
+    points,
+    blockingNodeIds: [...blockingNodeIds],
+  };
 }

@@ -8,6 +8,14 @@ import {
   getNodeAbsolutePosition,
   useFlowStore,
 } from "../../stores/flow";
+import {
+  buildAvoidanceNodeBounds,
+  buildParallelEdgeInfo,
+} from "../avoidanceUtils";
+import {
+  AvoidanceRouteCache,
+  type AvoidanceRouteRequest,
+} from "../avoidanceRoutingCache";
 import { pipelineToFlow, resetIdCounter } from ".";
 
 const DATASET_CASES = [
@@ -206,6 +214,107 @@ describe("PERF-001 performance datasets", () => {
     expect(indexedReplicaLookups).toBeLessThan(legacyReplicaNodeVisits);
     console.info(
       `[PERF-004] large selector visits: flow-tags=${legacyFlowTagEdgeVisits}->${indexedFlowTagEdgeVisits}, focus=${legacyFocusEdgeVisits}->${indexedFocusEdgeVisits}, replicas=${legacyReplicaNodeVisits}->${indexedReplicaLookups}`,
+    );
+  });
+
+  it("measures PERF-005A shared avoidance inputs", async () => {
+    const datasetPath = resolve(
+      process.cwd(),
+      "../dev/performance/editor/datasets/performance-large-300.json",
+    );
+    const pipelineText = await readFile(datasetPath, "utf8");
+
+    expect(await pipelineToFlow({ pString: pipelineText })).toBe(true);
+    const state = useFlowStore.getState();
+    const nodeBounds = buildAvoidanceNodeBounds(state.nodes);
+    const parallelEdgeInfo = buildParallelEdgeInfo(state.edges);
+
+    expect(nodeBounds).toHaveLength(
+      state.nodes.filter((node) => node.type !== NodeTypeEnum.Group).length,
+    );
+    expect(parallelEdgeInfo.size).toBe(state.edges.length);
+
+    // 旧路径在每条边中重复构建这两份公共输入；画布级上下文各构建一次。
+    const legacyBoundsBuilds = state.edges.length;
+    const sharedBoundsBuilds = 1;
+    const legacyParallelGroupBuilds = state.edges.length;
+    const sharedParallelGroupBuilds = 1;
+    expect(sharedBoundsBuilds).toBeLessThan(legacyBoundsBuilds);
+    expect(sharedParallelGroupBuilds).toBeLessThan(legacyParallelGroupBuilds);
+
+    console.info(
+      `[PERF-005A] large shared inputs: bounds-builds=${legacyBoundsBuilds}->${sharedBoundsBuilds}, parallel-groups=${legacyParallelGroupBuilds}->${sharedParallelGroupBuilds}, bounds=${nodeBounds.length}, edges=${parallelEdgeInfo.size}`,
+    );
+  });
+
+  it("measures PERF-005B avoidance result cache reuse", async () => {
+    const datasetPath = resolve(
+      process.cwd(),
+      "../dev/performance/editor/datasets/performance-large-300.json",
+    );
+    const pipelineText = await readFile(datasetPath, "utf8");
+
+    expect(await pipelineToFlow({ pString: pipelineText })).toBe(true);
+    const state = useFlowStore.getState();
+    const nodeBounds = buildAvoidanceNodeBounds(state.nodes);
+    const nodeBoundsById = new Map(nodeBounds.map((bounds) => [bounds.id, bounds]));
+    const parallelEdgeInfoById = buildParallelEdgeInfo(state.edges);
+    const cache = new AvoidanceRouteCache();
+    const requests: AvoidanceRouteRequest[] = state.edges.map((edge) => {
+      const sourceBounds = nodeBoundsById.get(edge.source);
+      const targetBounds = nodeBoundsById.get(edge.target);
+      const sourceXY = {
+        x: sourceBounds?.maxX ?? 0,
+        y: sourceBounds ? (sourceBounds.minY + sourceBounds.maxY) / 2 : 0,
+      };
+      const targetXY = {
+        x: targetBounds?.minX ?? 100,
+        y: targetBounds ? (targetBounds.minY + targetBounds.maxY) / 2 : 0,
+      };
+      return {
+        edgeId: edge.id,
+        sourceId: edge.source,
+        targetId: edge.target,
+        sourceXY,
+        targetXY,
+        sourcePosition: "right",
+        targetPosition: "left",
+        parallelEdgeInfo: parallelEdgeInfoById.get(edge.id),
+        config: {
+          maxRecursionDepth: 3,
+          avoidMargin: 20,
+          cornerRadius: 8,
+          directLineMaxDistance: 200,
+          edgeOffsetStep: 15,
+        },
+      };
+    });
+
+    let algorithmExecutions = 0;
+    const calculate = (request: AvoidanceRouteRequest) => {
+      algorithmExecutions += 1;
+      return {
+        path: `M ${request.sourceXY.x} ${request.sourceXY.y} L ${request.targetXY.x} ${request.targetXY.y}`,
+        labelX: (request.sourceXY.x + request.targetXY.x) / 2,
+        labelY: (request.sourceXY.y + request.targetXY.y) / 2,
+        points: [request.sourceXY, request.targetXY],
+        blockingNodeIds: [],
+      };
+    };
+
+    for (const request of requests) {
+      cache.get(request, nodeBoundsById, new Map(), () => calculate(request));
+    }
+    for (const request of requests) {
+      cache.get(request, nodeBoundsById, new Map(), () => calculate(request));
+    }
+
+    const stats = cache.getStats();
+    expect(algorithmExecutions).toBe(requests.length);
+    expect(stats.hits).toBe(requests.length);
+    expect(stats.misses).toBe(requests.length);
+    console.info(
+      `[PERF-005B] large cache reuse: requests=${requests.length}x2, algorithm=${algorithmExecutions}, hits=${stats.hits}, misses=${stats.misses}, invalidations=${stats.invalidations}`,
     );
   });
 });

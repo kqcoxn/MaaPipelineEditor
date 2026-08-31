@@ -11,25 +11,18 @@ import {
   Position,
 } from "@xyflow/react";
 import classNames from "classnames";
-import { useShallow } from "zustand/shallow";
 
 import { useConfigStore } from "@/stores/app/configStore";
 import { useFlowStore } from "../../stores/flow";
 import {
   SourceHandleTypeEnum,
   TargetHandleTypeEnum,
-  NodeTypeEnum,
 } from "./nodes";
-import type { EdgeType, NodeType } from "../../stores/flow/types";
-import {
-  calculateAvoidancePath,
-  buildNodeBoundsList,
-  DEFAULT_AVOIDANCE_CONFIG,
-} from "../../core/avoidanceUtils";
 import { useEdgeFocusRelated } from "./focusSelectors";
-
-const EMPTY_NODES: NodeType[] = [];
-const EMPTY_EDGES: EdgeType[] = [];
+import {
+  useAvoidanceRoutingContext,
+  type AvoidanceRoutingContextValue,
+} from "./avoidanceRoutingContext";
 
 // 判断位置是否为水平方向
 function isHorizontalPosition(position: string): boolean {
@@ -261,8 +254,7 @@ function getAvoidanceEdgePath({
   targetPosition,
   sourceId,
   targetId,
-  nodes,
-  edges,
+  getAvoidancePath,
   edgeId,
 }: {
   sourceX: number;
@@ -273,38 +265,18 @@ function getAvoidanceEdgePath({
   targetPosition: string;
   sourceId: string;
   targetId: string;
-  nodes: NodeType[];
-  edges: EdgeType[];
+  getAvoidancePath: AvoidanceRoutingContextValue["getAvoidancePath"];
   edgeId: string;
 }): [string, number, number] {
-  // 构建节点边界框列表
-  const nodeBoundsList = buildNodeBoundsList(nodes).filter((bounds) => {
-    const node = nodes.find((n) => n.id === bounds.id);
-    return node?.type !== NodeTypeEnum.Group;
-  });
-
-  // 排除源节点和目标节点
-  const excludeIds = new Set([sourceId, targetId]);
-
-  // 检测平行边（连接相同源节点和目标节点的边）
-  const parallelEdges = edges.filter(
-    (e) => e.source === sourceId && e.target === targetId,
-  );
-  const edgeIndex = parallelEdges.findIndex((e) => e.id === edgeId);
-  const totalParallelEdges = parallelEdges.length;
-
-  // 计算避让路径
-  const result = calculateAvoidancePath(
-    { x: sourceX, y: sourceY },
-    { x: targetX, y: targetY },
+  const result = getAvoidancePath({
+    edgeId,
+    sourceId,
+    targetId,
+    sourceXY: { x: sourceX, y: sourceY },
+    targetXY: { x: targetX, y: targetY },
     sourcePosition,
     targetPosition,
-    nodeBoundsList,
-    excludeIds,
-    DEFAULT_AVOIDANCE_CONFIG,
-    edgeIndex,
-    totalParallelEdges,
-  );
+  });
 
   return [result.path, result.labelX, result.labelY];
 }
@@ -320,16 +292,7 @@ function MarkedEdge(props: EdgeProps) {
     (state) => state.configs.enableEdgeAnimation,
   );
   const edgePathMode = useConfigStore((state) => state.configs.edgePathMode);
-
-  // 避让模式才需要订阅完整图数据
-  const { nodes, edges } = useFlowStore(
-    useShallow((state) => {
-      return {
-        nodes: edgePathMode === "avoid" ? state.nodes : EMPTY_NODES,
-        edges: edgePathMode === "avoid" ? state.edges : EMPTY_EDGES,
-      };
-    }),
-  );
+  const { getAvoidancePath } = useAvoidanceRoutingContext();
 
   const actualSourcePosition = props.sourcePosition.toLowerCase();
   const actualTargetPosition = props.targetPosition.toLowerCase();
@@ -371,8 +334,7 @@ function MarkedEdge(props: EdgeProps) {
         targetPosition: actualTargetPosition,
         sourceId: props.source,
         targetId: props.target,
-        nodes,
-        edges,
+        getAvoidancePath,
         edgeId: props.id,
       });
     }
@@ -421,11 +383,10 @@ function MarkedEdge(props: EdgeProps) {
     actualTargetPosition,
     controlOffset,
     edgePathMode,
-    nodes,
+    getAvoidancePath,
     props.source,
     props.target,
     props.id,
-    edges,
   ]);
 
   // 处理拖拽开始

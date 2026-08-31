@@ -33,6 +33,7 @@ import { useClipboardStore } from "@/stores/flow/clipboardStore";
 import { nodeTypes } from "./flow/nodes";
 import { NodeTypeEnum } from "./flow/nodes/constants";
 import { edgeTypes } from "./flow/edges";
+import { AvoidanceRoutingProvider } from "./flow/avoidanceRoutingContext";
 import { SelectionContextMenu } from "./flow/components/SelectionContextMenu";
 import { localSave, useFileStore } from "@/stores/project/fileStore";
 import NodeAddPanel, {
@@ -274,6 +275,7 @@ function MainFlow() {
   const quickCreateNodeOnConnectBlank = useConfigStore(
     (state) => state.configs.quickCreateNodeOnConnectBlank,
   );
+  const edgePathMode = useConfigStore((state) => state.configs.edgePathMode);
 
   // 嵌入模式权限控制
   const { isEmbed, isCapAllowed } = useEmbedMode();
@@ -681,52 +683,54 @@ function MainFlow() {
       data-node-shadows={showNodeShadows}
       ref={ref}
     >
-      <ReactFlow
-        ref={selfElem}
-        nodeTypes={nodeTypes}
-        nodes={nodes}
-        onNodesChange={onNodesChange}
-        edgeTypes={edgeTypes}
-        edges={edges}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onConnectStart={onConnectStart}
-        onConnectEnd={onConnectEnd}
-        onSelectionChange={onSelectionChange}
-        defaultViewport={defaultViewport}
-        minZoom={0.2}
-        maxZoom={2.5}
-        onPaneClick={onPaneClick}
-        onDoubleClick={onDoubleClick}
-        onPaneContextMenu={onPaneContextMenu}
-        onSelectionContextMenu={onSelectionContextMenu}
-        onNodeDrag={onNodeDrag}
-        onNodeDragStop={onNodeDragStop}
-        nodesDraggable={!readOnly}
-        nodesConnectable={!readOnly}
-        elementsSelectable={true}
-        autoPanOnConnect={false}
-        autoPanOnNodeDrag={false}
-        preventScrolling={true}
-        elevateNodesOnSelect={true}
-      >
-        <Background bgColor={backgroundColor} />
-        <Controls orientation="vertical" />
-        <InstanceMonitor />
-        <ViewportChangeMonitor />
-        <KeyListener targetRef={selfElem} allowCopy={allowCopy} />
-        <UpdateMonitor />
-        <NodeAddPanelController
-          visible={nodeAddPanelVisible}
-          screenPos={nodeAddPanelPos}
-          quickCreateConnection={quickCreateConnection}
-          setScreenPos={setNodeAddPanelPos}
-          onClose={closeNodeAddPanel}
-        />
-        <InlineFieldPanel />
-        <InlineEdgePanel />
-        <SnapGuidelines guidelines={snapGuidelines} />
-      </ReactFlow>
+      <AvoidanceRoutingProvider enabled={edgePathMode === "avoid"}>
+        <ReactFlow
+          ref={selfElem}
+          nodeTypes={nodeTypes}
+          nodes={nodes}
+          onNodesChange={onNodesChange}
+          edgeTypes={edgeTypes}
+          edges={edges}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onConnectStart={onConnectStart}
+          onConnectEnd={onConnectEnd}
+          onSelectionChange={onSelectionChange}
+          defaultViewport={defaultViewport}
+          minZoom={0.2}
+          maxZoom={2.5}
+          onPaneClick={onPaneClick}
+          onDoubleClick={onDoubleClick}
+          onPaneContextMenu={onPaneContextMenu}
+          onSelectionContextMenu={onSelectionContextMenu}
+          onNodeDrag={onNodeDrag}
+          onNodeDragStop={onNodeDragStop}
+          nodesDraggable={!readOnly}
+          nodesConnectable={!readOnly}
+          elementsSelectable={true}
+          autoPanOnConnect={false}
+          autoPanOnNodeDrag={false}
+          preventScrolling={true}
+          elevateNodesOnSelect={true}
+        >
+          <Background bgColor={backgroundColor} />
+          <Controls orientation="vertical" />
+          <InstanceMonitor />
+          <ViewportChangeMonitor />
+          <KeyListener targetRef={selfElem} allowCopy={allowCopy} />
+          <UpdateMonitor />
+          <NodeAddPanelController
+            visible={nodeAddPanelVisible}
+            screenPos={nodeAddPanelPos}
+            quickCreateConnection={quickCreateConnection}
+            setScreenPos={setNodeAddPanelPos}
+            onClose={closeNodeAddPanel}
+          />
+          <InlineFieldPanel />
+          <InlineEdgePanel />
+          <SnapGuidelines guidelines={snapGuidelines} />
+        </ReactFlow>
+      </AvoidanceRoutingProvider>
       {/* 选区右键菜单 */}
       <SelectionContextMenu
         position={selectionMenuPos}
