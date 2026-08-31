@@ -3,6 +3,12 @@ import { setDevFlag } from "./devConsole";
 import { useFlowStore } from "../stores/flow";
 import { useConfigStore } from "@/stores/app/configStore";
 import { useNewcomerStore } from "@/stores/ui/newcomerStore";
+import { useLoggerStore } from "@/stores/app/loggerStore";
+import { useEmbedMessageLogStore } from "@/stores/embed/embedMessageLogStore";
+import {
+  collectPerformanceSnapshot,
+  createPerformanceLogFixtures,
+} from "./performanceBaseline";
 
 export function registerBuiltinDevCommands() {
   registerDevCommand("nodes", () => {
@@ -53,6 +59,24 @@ export function registerBuiltinDevCommands() {
   registerDevCommand("clearSelection", () => {
     useFlowStore.getState().clearSelection();
     return "done";
+  });
+
+  registerDevCommand("preparePerformanceLogs", () => {
+    const fixtures = createPerformanceLogFixtures();
+    useLoggerStore.setState({
+      logs: fixtures.backendLogs,
+      importantLogs: fixtures.importantBackendLogs,
+    });
+    useEmbedMessageLogStore.setState({ logs: fixtures.embedLogs });
+    return {
+      backendLogs: fixtures.backendLogs.length,
+      importantBackendLogs: fixtures.importantBackendLogs.length,
+      embedLogs: fixtures.embedLogs.length,
+    };
+  });
+
+  registerDevCommand("performanceSnapshot", () => {
+    return collectPerformanceSnapshot();
   });
 
   registerDevCommand("state", (storeName?: unknown) => {

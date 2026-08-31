@@ -16,6 +16,8 @@
     "landing:build": "yarn --cwd Landing build",
     "landing:test": "yarn --cwd Landing verify",
     "landing:preview": "yarn --cwd Landing preview",
+    "perf:generate": "node scripts/performance/generate-editor-datasets.mjs",
+    "perf:verify": "node --test scripts/performance/generate-editor-datasets.test.mjs",
     "sync:references": "node scripts/docs/run-sync-reference-projects.mjs",
     "migrate": "node scripts/development/migrate-version.mjs",
     "proto": "node scripts/development/proto-version.mjs",

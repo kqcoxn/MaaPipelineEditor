@@ -1,0 +1,5068 @@
+{
+  "$__mpe_config_performance-medium-200.json": {
+    "$__mpe_code": {
+      "filename": "performance-medium-200.json",
+      "coordinateMode": "absolute-v1",
+      "performanceDataset": {
+        "version": 1,
+        "name": "medium",
+        "seed": 130363,
+        "nodes": 200,
+        "edges": 500,
+        "images": 25,
+        "groupingTiers": 2,
+        "typeCounts": {
+          "pipeline": 164,
+          "external": 10,
+          "anchor": 10,
+          "sticker": 10,
+          "group": 6
+        }
+      }
+    }
+  },
+  "Perf_Node_0001": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "templates/perf-template-00.png"
+        ],
+        "threshold": [
+          0.8
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          80,
+          120,
+          24,
+          24
+        ]
+      }
+    },
+    "timeout": 20758,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 100,
+        "y": 120
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0002",
+      "Perf_Node_0036"
+    ],
+    "on_error": [
+      "Perf_Node_0002",
+      "Perf_Node_0053"
+    ]
+  },
+  "Perf_Node_0002": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "templates/perf-template-01.png"
+        ],
+        "threshold": [
+          0.8
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20693,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 450,
+        "y": 120
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      {
+        "name": "Perf_Node_0002",
+        "jump_back": true
+      },
+      "Perf_Node_0037"
+    ],
+    "on_error": [
+      "Perf_Node_0020",
+      "Perf_Node_0054"
+    ]
+  },
+  "Perf_Node_0003": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "templates/perf-template-02.png"
+        ],
+        "threshold": [
+          0.8
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20444,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 800,
+        "y": 120
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      {
+        "name": "Perf_Anchor_001",
+        "anchor": true
+      },
+      "Perf_Node_0038"
+    ],
+    "on_error": [
+      "Perf_Node_0021",
+      "Perf_Node_0055"
+    ]
+  },
+  "Perf_Node_0004": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "templates/perf-template-03.png"
+        ],
+        "threshold": [
+          0.8
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20232,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 100,
+        "y": 380
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0005",
+      "Perf_Node_0039"
+    ],
+    "on_error": [
+      "Perf_External_001",
+      "Perf_Node_0056"
+    ]
+  },
+  "Perf_Node_0005": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "templates/perf-template-04.png"
+        ],
+        "threshold": [
+          0.8
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20924,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 450,
+        "y": 380
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      {
+        "name": "Perf_Node_0162",
+        "jump_back": true
+      },
+      "Perf_Node_0040"
+    ],
+    "on_error": [
+      "Perf_Node_0023",
+      "Perf_Node_0057"
+    ]
+  },
+  "Perf_Node_0006": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "templates/perf-template-05.png"
+        ],
+        "threshold": [
+          0.8
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20453,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 800,
+        "y": 380
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0007",
+      "Perf_Node_0041"
+    ],
+    "on_error": [
+      "Perf_Node_0024",
+      "Perf_Node_0058"
+    ]
+  },
+  "Perf_Node_0007": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "templates/perf-template-06.png"
+        ],
+        "threshold": [
+          0.8
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20624,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 1500,
+        "y": 120
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0008",
+      "Perf_Node_0042"
+    ],
+    "on_error": [
+      "Perf_Node_0025",
+      "Perf_Node_0059"
+    ]
+  },
+  "Perf_Node_0008": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "templates/perf-template-07.png"
+        ],
+        "threshold": [
+          0.8
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          120,
+          120,
+          24,
+          24
+        ]
+      }
+    },
+    "timeout": 20088,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 1850,
+        "y": 120
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0009",
+      "Perf_Node_0043"
+    ],
+    "on_error": [
+      "Perf_Node_0026",
+      "Perf_Node_0060"
+    ]
+  },
+  "Perf_Node_0009": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "templates/perf-template-08.png"
+        ],
+        "threshold": [
+          0.8
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20138,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 2200,
+        "y": 120
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0010",
+      "Perf_Node_0044"
+    ],
+    "on_error": [
+      "Perf_Node_0027"
+    ]
+  },
+  "Perf_Node_0010": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "templates/perf-template-09.png"
+        ],
+        "threshold": [
+          0.8
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20739,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 1500,
+        "y": 380
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0011",
+      "Perf_Node_0045"
+    ],
+    "on_error": [
+      "Perf_Node_0028"
+    ]
+  },
+  "Perf_Node_0011": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "templates/perf-template-00.png"
+        ],
+        "threshold": [
+          0.8
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20833,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 1850,
+        "y": 380
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0012",
+      "Perf_Node_0046"
+    ],
+    "on_error": [
+      "Perf_Node_0029"
+    ]
+  },
+  "Perf_Node_0012": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "templates/perf-template-01.png"
+        ],
+        "threshold": [
+          0.8
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20906,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 2200,
+        "y": 380
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0013",
+      "Perf_Node_0047"
+    ],
+    "on_error": [
+      "Perf_Node_0030"
+    ]
+  },
+  "Perf_Node_0013": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "templates/perf-template-02.png"
+        ],
+        "threshold": [
+          0.8
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20175,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 2900,
+        "y": 120
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0014",
+      "Perf_Node_0048"
+    ],
+    "on_error": [
+      "Perf_Node_0031"
+    ]
+  },
+  "Perf_Node_0014": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "templates/perf-template-03.png"
+        ],
+        "threshold": [
+          0.8
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20685,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 3250,
+        "y": 120
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0015",
+      "Perf_Node_0049"
+    ],
+    "on_error": [
+      "Perf_Node_0032"
+    ]
+  },
+  "Perf_Node_0015": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "templates/perf-template-04.png"
+        ],
+        "threshold": [
+          0.8
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          160,
+          120,
+          24,
+          24
+        ]
+      }
+    },
+    "timeout": 20357,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 3600,
+        "y": 120
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0016",
+      "Perf_Node_0050"
+    ],
+    "on_error": [
+      "Perf_Node_0033"
+    ]
+  },
+  "Perf_Node_0016": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "templates/perf-template-05.png"
+        ],
+        "threshold": [
+          0.8
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20086,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 2900,
+        "y": 380
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0017",
+      "Perf_Node_0051"
+    ],
+    "on_error": [
+      "Perf_Node_0034"
+    ]
+  },
+  "Perf_Node_0017": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "templates/perf-template-06.png"
+        ],
+        "threshold": [
+          0.8
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20350,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 3250,
+        "y": 380
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0018",
+      "Perf_Node_0052"
+    ],
+    "on_error": [
+      "Perf_Node_0035"
+    ]
+  },
+  "Perf_Node_0018": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "templates/perf-template-07.png"
+        ],
+        "threshold": [
+          0.8
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20869,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 3600,
+        "y": 380
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0019",
+      "Perf_Node_0053"
+    ],
+    "on_error": [
+      "Perf_Node_0036"
+    ]
+  },
+  "Perf_Node_0019": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "templates/perf-template-08.png"
+        ],
+        "threshold": [
+          0.8
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20717,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 4300,
+        "y": 120
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0020",
+      "Perf_Node_0054"
+    ],
+    "on_error": [
+      "Perf_Node_0037"
+    ]
+  },
+  "Perf_Node_0020": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "templates/perf-template-09.png"
+        ],
+        "threshold": [
+          0.8
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20040,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 4650,
+        "y": 120
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0021",
+      "Perf_Node_0055"
+    ],
+    "on_error": [
+      "Perf_Node_0038"
+    ]
+  },
+  "Perf_Node_0021": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "templates/perf-template-00.png"
+        ],
+        "threshold": [
+          0.8
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20697,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 5000,
+        "y": 120
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0022",
+      "Perf_Node_0056"
+    ],
+    "on_error": [
+      "Perf_Node_0039"
+    ]
+  },
+  "Perf_Node_0022": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "templates/perf-template-01.png"
+        ],
+        "threshold": [
+          0.8
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          100,
+          120,
+          24,
+          24
+        ]
+      }
+    },
+    "timeout": 20597,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 4300,
+        "y": 380
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0023",
+      "Perf_Node_0057"
+    ],
+    "on_error": [
+      "Perf_Node_0040"
+    ]
+  },
+  "Perf_Node_0023": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "templates/perf-template-02.png"
+        ],
+        "threshold": [
+          0.8
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20944,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 4650,
+        "y": 380
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0024",
+      "Perf_Node_0058"
+    ],
+    "on_error": [
+      "Perf_Node_0041"
+    ]
+  },
+  "Perf_Node_0024": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "templates/perf-template-03.png"
+        ],
+        "threshold": [
+          0.8
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20501,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 5000,
+        "y": 380
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0025",
+      "Perf_Node_0059"
+    ],
+    "on_error": [
+      "Perf_Node_0042"
+    ]
+  },
+  "Perf_Node_0025": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "templates/perf-template-04.png"
+        ],
+        "threshold": [
+          0.8
+        ]
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20331,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 100,
+        "y": 940
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0026",
+      "Perf_Node_0060"
+    ],
+    "on_error": [
+      "Perf_Node_0043"
+    ]
+  },
+  "Perf_Node_0026": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20084,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 450,
+        "y": 940
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0027",
+      "Perf_Node_0061"
+    ],
+    "on_error": [
+      "Perf_Node_0044"
+    ]
+  },
+  "Perf_Node_0027": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20048,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 800,
+        "y": 940
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0028",
+      "Perf_Node_0062"
+    ],
+    "on_error": [
+      "Perf_Node_0045"
+    ]
+  },
+  "Perf_Node_0028": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20833,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 100,
+        "y": 1200
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0029",
+      "Perf_Node_0063"
+    ],
+    "on_error": [
+      "Perf_Node_0046"
+    ]
+  },
+  "Perf_Node_0029": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          140,
+          120,
+          24,
+          24
+        ]
+      }
+    },
+    "timeout": 20323,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 450,
+        "y": 1200
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0030",
+      "Perf_Node_0064"
+    ],
+    "on_error": [
+      "Perf_Node_0047"
+    ]
+  },
+  "Perf_Node_0030": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20803,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 800,
+        "y": 1200
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0031",
+      "Perf_Node_0065"
+    ],
+    "on_error": [
+      "Perf_Node_0048"
+    ]
+  },
+  "Perf_Node_0031": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20132,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 1500,
+        "y": 940
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0032",
+      "Perf_Node_0066"
+    ],
+    "on_error": [
+      "Perf_Node_0049"
+    ]
+  },
+  "Perf_Node_0032": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20231,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 1850,
+        "y": 940
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0033",
+      "Perf_Node_0067"
+    ],
+    "on_error": [
+      "Perf_Node_0050"
+    ]
+  },
+  "Perf_Node_0033": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20667,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 2200,
+        "y": 940
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0034",
+      "Perf_Node_0068"
+    ],
+    "on_error": [
+      "Perf_Node_0051"
+    ]
+  },
+  "Perf_Node_0034": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20516,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 1500,
+        "y": 1200
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0035",
+      "Perf_Node_0069"
+    ],
+    "on_error": [
+      "Perf_Node_0052"
+    ]
+  },
+  "Perf_Node_0035": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20855,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 1850,
+        "y": 1200
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0036",
+      "Perf_Node_0070"
+    ],
+    "on_error": [
+      "Perf_Node_0053"
+    ]
+  },
+  "Perf_Node_0036": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          80,
+          120,
+          24,
+          24
+        ]
+      }
+    },
+    "timeout": 20959,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 2200,
+        "y": 1200
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0037",
+      "Perf_Node_0071"
+    ],
+    "on_error": [
+      "Perf_Node_0054"
+    ]
+  },
+  "Perf_Node_0037": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20164,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 0,
+        "y": 1840
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0038",
+      "Perf_Node_0072"
+    ],
+    "on_error": [
+      "Perf_Node_0055"
+    ]
+  },
+  "Perf_Node_0038": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20742,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 300,
+        "y": 1840
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0039",
+      "Perf_Node_0073"
+    ],
+    "on_error": [
+      "Perf_Node_0056"
+    ]
+  },
+  "Perf_Node_0039": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20195,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 600,
+        "y": 1840
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0040",
+      "Perf_Node_0074"
+    ],
+    "on_error": [
+      "Perf_Node_0057"
+    ]
+  },
+  "Perf_Node_0040": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20001,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 900,
+        "y": 1840
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0041",
+      "Perf_Node_0075"
+    ],
+    "on_error": [
+      "Perf_Node_0058"
+    ]
+  },
+  "Perf_Node_0041": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20304,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 1200,
+        "y": 1840
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0042",
+      "Perf_Node_0076"
+    ],
+    "on_error": [
+      "Perf_Node_0059"
+    ]
+  },
+  "Perf_Node_0042": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20700,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 1500,
+        "y": 1840
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0043",
+      "Perf_Node_0077"
+    ],
+    "on_error": [
+      "Perf_Node_0060"
+    ]
+  },
+  "Perf_Node_0043": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          120,
+          120,
+          24,
+          24
+        ]
+      }
+    },
+    "timeout": 20722,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 1800,
+        "y": 1840
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0044",
+      "Perf_Node_0078"
+    ],
+    "on_error": [
+      "Perf_Node_0061"
+    ]
+  },
+  "Perf_Node_0044": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20788,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 2100,
+        "y": 1840
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0045",
+      "Perf_Node_0079"
+    ],
+    "on_error": [
+      "Perf_Node_0062"
+    ]
+  },
+  "Perf_Node_0045": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20476,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 2400,
+        "y": 1840
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0046",
+      "Perf_Node_0080"
+    ],
+    "on_error": [
+      "Perf_Node_0063"
+    ]
+  },
+  "Perf_Node_0046": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20970,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 2700,
+        "y": 1840
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0047",
+      "Perf_Node_0081"
+    ],
+    "on_error": [
+      "Perf_Node_0064"
+    ]
+  },
+  "Perf_Node_0047": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20821,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 3000,
+        "y": 1840
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0048",
+      "Perf_Node_0082"
+    ],
+    "on_error": [
+      "Perf_Node_0065"
+    ]
+  },
+  "Perf_Node_0048": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20866,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 3300,
+        "y": 1840
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0049",
+      "Perf_Node_0083"
+    ],
+    "on_error": [
+      "Perf_Node_0066"
+    ]
+  },
+  "Perf_Node_0049": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20074,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 3600,
+        "y": 1840
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0050",
+      "Perf_Node_0084"
+    ],
+    "on_error": [
+      "Perf_Node_0067"
+    ]
+  },
+  "Perf_Node_0050": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          160,
+          120,
+          24,
+          24
+        ]
+      }
+    },
+    "timeout": 20402,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 3900,
+        "y": 1840
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0051",
+      "Perf_Node_0085"
+    ],
+    "on_error": [
+      "Perf_Node_0068"
+    ]
+  },
+  "Perf_Node_0051": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20582,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 4200,
+        "y": 1840
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0052",
+      "Perf_Node_0086"
+    ],
+    "on_error": [
+      "Perf_Node_0069"
+    ]
+  },
+  "Perf_Node_0052": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20670,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 4500,
+        "y": 1840
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0053",
+      "Perf_Node_0087"
+    ],
+    "on_error": [
+      "Perf_Node_0070"
+    ]
+  },
+  "Perf_Node_0053": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20343,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 4800,
+        "y": 1840
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0054",
+      "Perf_Node_0088"
+    ],
+    "on_error": [
+      "Perf_Node_0071"
+    ]
+  },
+  "Perf_Node_0054": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20029,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 5100,
+        "y": 1840
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0055",
+      "Perf_Node_0089"
+    ],
+    "on_error": [
+      "Perf_Node_0072"
+    ]
+  },
+  "Perf_Node_0055": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20305,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 5400,
+        "y": 1840
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0056",
+      "Perf_Node_0090"
+    ],
+    "on_error": [
+      "Perf_Node_0073"
+    ]
+  },
+  "Perf_Node_0056": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20775,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 5700,
+        "y": 1840
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0057",
+      "Perf_Node_0091"
+    ],
+    "on_error": [
+      "Perf_Node_0074"
+    ]
+  },
+  "Perf_Node_0057": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          100,
+          120,
+          24,
+          24
+        ]
+      }
+    },
+    "timeout": 20029,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 0,
+        "y": 2030
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0058",
+      "Perf_Node_0092"
+    ],
+    "on_error": [
+      "Perf_Node_0075"
+    ]
+  },
+  "Perf_Node_0058": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20012,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 300,
+        "y": 2030
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0059",
+      "Perf_Node_0093"
+    ],
+    "on_error": [
+      "Perf_Node_0076"
+    ]
+  },
+  "Perf_Node_0059": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20818,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 600,
+        "y": 2030
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0060",
+      "Perf_Node_0094"
+    ],
+    "on_error": [
+      "Perf_Node_0077"
+    ]
+  },
+  "Perf_Node_0060": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20280,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 900,
+        "y": 2030
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0061",
+      "Perf_Node_0095"
+    ],
+    "on_error": [
+      "Perf_Node_0078"
+    ]
+  },
+  "Perf_Node_0061": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20171,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 1200,
+        "y": 2030
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0062",
+      "Perf_Node_0096"
+    ],
+    "on_error": [
+      "Perf_Node_0079"
+    ]
+  },
+  "Perf_Node_0062": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20864,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 1500,
+        "y": 2030
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0063",
+      "Perf_Node_0097"
+    ],
+    "on_error": [
+      "Perf_Node_0080"
+    ]
+  },
+  "Perf_Node_0063": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20065,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 1800,
+        "y": 2030
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0064",
+      "Perf_Node_0098"
+    ],
+    "on_error": [
+      "Perf_Node_0081"
+    ]
+  },
+  "Perf_Node_0064": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          140,
+          120,
+          24,
+          24
+        ]
+      }
+    },
+    "timeout": 20201,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 2100,
+        "y": 2030
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0065",
+      "Perf_Node_0099"
+    ],
+    "on_error": [
+      "Perf_Node_0082"
+    ]
+  },
+  "Perf_Node_0065": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20600,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 2400,
+        "y": 2030
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0066",
+      "Perf_Node_0100"
+    ],
+    "on_error": [
+      "Perf_Node_0083"
+    ]
+  },
+  "Perf_Node_0066": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20496,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 2700,
+        "y": 2030
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0067",
+      "Perf_Node_0101"
+    ],
+    "on_error": [
+      "Perf_Node_0084"
+    ]
+  },
+  "Perf_Node_0067": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20678,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 3000,
+        "y": 2030
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0068",
+      "Perf_Node_0102"
+    ],
+    "on_error": [
+      "Perf_Node_0085"
+    ]
+  },
+  "Perf_Node_0068": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20028,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 3300,
+        "y": 2030
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0069",
+      "Perf_Node_0103"
+    ],
+    "on_error": [
+      "Perf_Node_0086"
+    ]
+  },
+  "Perf_Node_0069": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20995,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 3600,
+        "y": 2030
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0070",
+      "Perf_Node_0104"
+    ],
+    "on_error": [
+      "Perf_Node_0087"
+    ]
+  },
+  "Perf_Node_0070": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20813,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 3900,
+        "y": 2030
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0071",
+      "Perf_Node_0105"
+    ],
+    "on_error": [
+      "Perf_Node_0088"
+    ]
+  },
+  "Perf_Node_0071": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          80,
+          120,
+          24,
+          24
+        ]
+      }
+    },
+    "timeout": 20458,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 4200,
+        "y": 2030
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0072",
+      "Perf_Node_0106"
+    ],
+    "on_error": [
+      "Perf_Node_0089"
+    ]
+  },
+  "Perf_Node_0072": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20826,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 4500,
+        "y": 2030
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0073",
+      "Perf_Node_0107"
+    ],
+    "on_error": [
+      "Perf_Node_0090"
+    ]
+  },
+  "Perf_Node_0073": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20551,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 4800,
+        "y": 2030
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0074",
+      "Perf_Node_0108"
+    ],
+    "on_error": [
+      "Perf_Node_0091"
+    ]
+  },
+  "Perf_Node_0074": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20919,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 5100,
+        "y": 2030
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0075",
+      "Perf_Node_0109"
+    ],
+    "on_error": [
+      "Perf_Node_0092"
+    ]
+  },
+  "Perf_Node_0075": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20006,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 5400,
+        "y": 2030
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0076",
+      "Perf_Node_0110"
+    ],
+    "on_error": [
+      "Perf_Node_0093"
+    ]
+  },
+  "Perf_Node_0076": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20526,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 5700,
+        "y": 2030
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0077",
+      "Perf_Node_0111"
+    ],
+    "on_error": [
+      "Perf_Node_0094"
+    ]
+  },
+  "Perf_Node_0077": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20599,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 0,
+        "y": 2220
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0078",
+      "Perf_Node_0112"
+    ],
+    "on_error": [
+      "Perf_Node_0095"
+    ]
+  },
+  "Perf_Node_0078": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          120,
+          120,
+          24,
+          24
+        ]
+      }
+    },
+    "timeout": 20155,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 300,
+        "y": 2220
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0079",
+      "Perf_Node_0113"
+    ],
+    "on_error": [
+      "Perf_Node_0096"
+    ]
+  },
+  "Perf_Node_0079": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20919,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 600,
+        "y": 2220
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0080",
+      "Perf_Node_0114"
+    ],
+    "on_error": [
+      "Perf_Node_0097"
+    ]
+  },
+  "Perf_Node_0080": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20294,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 900,
+        "y": 2220
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0081",
+      "Perf_Node_0115"
+    ],
+    "on_error": [
+      "Perf_Node_0098"
+    ]
+  },
+  "Perf_Node_0081": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20760,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 1200,
+        "y": 2220
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0082",
+      "Perf_Node_0116"
+    ],
+    "on_error": [
+      "Perf_Node_0099"
+    ]
+  },
+  "Perf_Node_0082": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20522,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 1500,
+        "y": 2220
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0083",
+      "Perf_Node_0117"
+    ],
+    "on_error": [
+      "Perf_Node_0100"
+    ]
+  },
+  "Perf_Node_0083": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20283,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 1800,
+        "y": 2220
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0084",
+      "Perf_Node_0118"
+    ],
+    "on_error": [
+      "Perf_Node_0101"
+    ]
+  },
+  "Perf_Node_0084": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20124,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 2100,
+        "y": 2220
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0085",
+      "Perf_Node_0119"
+    ],
+    "on_error": [
+      "Perf_Node_0102"
+    ]
+  },
+  "Perf_Node_0085": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          160,
+          120,
+          24,
+          24
+        ]
+      }
+    },
+    "timeout": 20445,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 2400,
+        "y": 2220
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0086",
+      "Perf_Node_0120"
+    ],
+    "on_error": [
+      "Perf_Node_0103"
+    ]
+  },
+  "Perf_Node_0086": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20222,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 2700,
+        "y": 2220
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0087",
+      "Perf_Node_0121"
+    ],
+    "on_error": [
+      "Perf_Node_0104"
+    ]
+  },
+  "Perf_Node_0087": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20404,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 3000,
+        "y": 2220
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0088",
+      "Perf_Node_0122"
+    ],
+    "on_error": [
+      "Perf_Node_0105"
+    ]
+  },
+  "Perf_Node_0088": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20030,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 3300,
+        "y": 2220
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0089",
+      "Perf_Node_0123"
+    ],
+    "on_error": [
+      "Perf_Node_0106"
+    ]
+  },
+  "Perf_Node_0089": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20804,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 3600,
+        "y": 2220
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0090",
+      "Perf_Node_0124"
+    ],
+    "on_error": [
+      "Perf_Node_0107"
+    ]
+  },
+  "Perf_Node_0090": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20363,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 3900,
+        "y": 2220
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0091",
+      "Perf_Node_0125"
+    ],
+    "on_error": [
+      "Perf_Node_0108"
+    ]
+  },
+  "Perf_Node_0091": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20978,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 4200,
+        "y": 2220
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0092",
+      "Perf_Node_0126"
+    ],
+    "on_error": [
+      "Perf_Node_0109"
+    ]
+  },
+  "Perf_Node_0092": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          100,
+          120,
+          24,
+          24
+        ]
+      }
+    },
+    "timeout": 20506,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 4500,
+        "y": 2220
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0093",
+      "Perf_Node_0127"
+    ],
+    "on_error": [
+      "Perf_Node_0110"
+    ]
+  },
+  "Perf_Node_0093": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20419,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 4800,
+        "y": 2220
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0094",
+      "Perf_Node_0128"
+    ],
+    "on_error": [
+      "Perf_Node_0111"
+    ]
+  },
+  "Perf_Node_0094": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20070,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 5100,
+        "y": 2220
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0095",
+      "Perf_Node_0129"
+    ],
+    "on_error": [
+      "Perf_Node_0112"
+    ]
+  },
+  "Perf_Node_0095": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20157,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 5400,
+        "y": 2220
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0096",
+      "Perf_Node_0130"
+    ],
+    "on_error": [
+      "Perf_Node_0113"
+    ]
+  },
+  "Perf_Node_0096": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20110,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 5700,
+        "y": 2220
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0097",
+      "Perf_Node_0131"
+    ],
+    "on_error": [
+      "Perf_Node_0114"
+    ]
+  },
+  "Perf_Node_0097": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20360,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 0,
+        "y": 2410
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0098",
+      "Perf_Node_0132"
+    ],
+    "on_error": [
+      "Perf_Node_0115"
+    ]
+  },
+  "Perf_Node_0098": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20527,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 300,
+        "y": 2410
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0099",
+      "Perf_Node_0133"
+    ],
+    "on_error": [
+      "Perf_Node_0116"
+    ]
+  },
+  "Perf_Node_0099": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          140,
+          120,
+          24,
+          24
+        ]
+      }
+    },
+    "timeout": 20217,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 600,
+        "y": 2410
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0100",
+      "Perf_Node_0134"
+    ],
+    "on_error": [
+      "Perf_Node_0117"
+    ]
+  },
+  "Perf_Node_0100": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20346,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 900,
+        "y": 2410
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0101",
+      "Perf_Node_0135"
+    ],
+    "on_error": [
+      "Perf_Node_0118"
+    ]
+  },
+  "Perf_Node_0101": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20388,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 1200,
+        "y": 2410
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0102",
+      "Perf_Node_0136"
+    ],
+    "on_error": [
+      "Perf_Node_0119"
+    ]
+  },
+  "Perf_Node_0102": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20720,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 1500,
+        "y": 2410
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0103",
+      "Perf_Node_0137"
+    ],
+    "on_error": [
+      "Perf_Node_0120"
+    ]
+  },
+  "Perf_Node_0103": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20775,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 1800,
+        "y": 2410
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0104",
+      "Perf_Node_0138"
+    ],
+    "on_error": [
+      "Perf_Node_0121"
+    ]
+  },
+  "Perf_Node_0104": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20205,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 2100,
+        "y": 2410
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0105",
+      "Perf_Node_0139"
+    ],
+    "on_error": [
+      "Perf_Node_0122"
+    ]
+  },
+  "Perf_Node_0105": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20421,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 2400,
+        "y": 2410
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0106",
+      "Perf_Node_0140"
+    ],
+    "on_error": [
+      "Perf_Node_0123"
+    ]
+  },
+  "Perf_Node_0106": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          80,
+          120,
+          24,
+          24
+        ]
+      }
+    },
+    "timeout": 20888,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 2700,
+        "y": 2410
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0107",
+      "Perf_Node_0141"
+    ],
+    "on_error": [
+      "Perf_Node_0124"
+    ]
+  },
+  "Perf_Node_0107": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20759,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 3000,
+        "y": 2410
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0108",
+      "Perf_Node_0142"
+    ],
+    "on_error": [
+      "Perf_Node_0125"
+    ]
+  },
+  "Perf_Node_0108": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20030,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 3300,
+        "y": 2410
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0109",
+      "Perf_Node_0143"
+    ],
+    "on_error": [
+      "Perf_Node_0126"
+    ]
+  },
+  "Perf_Node_0109": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20567,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 3600,
+        "y": 2410
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0110",
+      "Perf_Node_0144"
+    ],
+    "on_error": [
+      "Perf_Node_0127"
+    ]
+  },
+  "Perf_Node_0110": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20952,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 3900,
+        "y": 2410
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0111",
+      "Perf_Node_0145"
+    ],
+    "on_error": [
+      "Perf_Node_0128"
+    ]
+  },
+  "Perf_Node_0111": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20594,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 4200,
+        "y": 2410
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0112",
+      "Perf_Node_0146"
+    ],
+    "on_error": [
+      "Perf_Node_0129"
+    ]
+  },
+  "Perf_Node_0112": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20581,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 4500,
+        "y": 2410
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0113",
+      "Perf_Node_0147"
+    ],
+    "on_error": [
+      "Perf_Node_0130"
+    ]
+  },
+  "Perf_Node_0113": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          120,
+          120,
+          24,
+          24
+        ]
+      }
+    },
+    "timeout": 20315,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 4800,
+        "y": 2410
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0114",
+      "Perf_Node_0148"
+    ],
+    "on_error": [
+      "Perf_Node_0131"
+    ]
+  },
+  "Perf_Node_0114": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20442,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 5100,
+        "y": 2410
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0115",
+      "Perf_Node_0149"
+    ],
+    "on_error": [
+      "Perf_Node_0132"
+    ]
+  },
+  "Perf_Node_0115": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20289,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 5400,
+        "y": 2410
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0116",
+      "Perf_Node_0150"
+    ],
+    "on_error": [
+      "Perf_Node_0133"
+    ]
+  },
+  "Perf_Node_0116": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20442,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 5700,
+        "y": 2410
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0117",
+      "Perf_Node_0151"
+    ],
+    "on_error": [
+      "Perf_Node_0134"
+    ]
+  },
+  "Perf_Node_0117": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20702,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 0,
+        "y": 2600
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0118",
+      "Perf_Node_0152"
+    ],
+    "on_error": [
+      "Perf_Node_0135"
+    ]
+  },
+  "Perf_Node_0118": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20672,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 300,
+        "y": 2600
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0119",
+      "Perf_Node_0153"
+    ],
+    "on_error": [
+      "Perf_Node_0136"
+    ]
+  },
+  "Perf_Node_0119": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20392,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 600,
+        "y": 2600
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0120",
+      "Perf_Node_0154"
+    ],
+    "on_error": [
+      "Perf_Node_0137"
+    ]
+  },
+  "Perf_Node_0120": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          160,
+          120,
+          24,
+          24
+        ]
+      }
+    },
+    "timeout": 20167,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 900,
+        "y": 2600
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0121",
+      "Perf_Node_0155"
+    ],
+    "on_error": [
+      "Perf_Node_0138"
+    ]
+  },
+  "Perf_Node_0121": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20548,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 1200,
+        "y": 2600
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0122",
+      "Perf_Node_0156"
+    ],
+    "on_error": [
+      "Perf_Node_0139"
+    ]
+  },
+  "Perf_Node_0122": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20201,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 1500,
+        "y": 2600
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0123",
+      "Perf_Node_0157"
+    ],
+    "on_error": [
+      "Perf_Node_0140"
+    ]
+  },
+  "Perf_Node_0123": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20019,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 1800,
+        "y": 2600
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0124",
+      "Perf_Node_0158"
+    ],
+    "on_error": [
+      "Perf_Node_0141"
+    ]
+  },
+  "Perf_Node_0124": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20802,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 2100,
+        "y": 2600
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0125",
+      "Perf_Node_0159"
+    ],
+    "on_error": [
+      "Perf_Node_0142"
+    ]
+  },
+  "Perf_Node_0125": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20067,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 2400,
+        "y": 2600
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0126",
+      "Perf_Node_0160"
+    ],
+    "on_error": [
+      "Perf_Node_0143"
+    ]
+  },
+  "Perf_Node_0126": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20828,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 2700,
+        "y": 2600
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0127",
+      "Perf_Node_0161"
+    ],
+    "on_error": [
+      "Perf_Node_0144"
+    ]
+  },
+  "Perf_Node_0127": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          100,
+          120,
+          24,
+          24
+        ]
+      }
+    },
+    "timeout": 20391,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 3000,
+        "y": 2600
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0128",
+      "Perf_Node_0162"
+    ],
+    "on_error": [
+      "Perf_Node_0145"
+    ]
+  },
+  "Perf_Node_0128": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20675,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 3300,
+        "y": 2600
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0129",
+      "Perf_Node_0163"
+    ],
+    "on_error": [
+      "Perf_Node_0146"
+    ]
+  },
+  "Perf_Node_0129": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20455,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 3600,
+        "y": 2600
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0130",
+      "Perf_Node_0164"
+    ],
+    "on_error": [
+      "Perf_Node_0147"
+    ]
+  },
+  "Perf_Node_0130": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20644,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 3900,
+        "y": 2600
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0131",
+      "Perf_Node_0001"
+    ],
+    "on_error": [
+      "Perf_Node_0148"
+    ]
+  },
+  "Perf_Node_0131": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20607,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 4200,
+        "y": 2600
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0132",
+      "Perf_Node_0002"
+    ],
+    "on_error": [
+      "Perf_Node_0149"
+    ]
+  },
+  "Perf_Node_0132": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20584,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 4500,
+        "y": 2600
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0133",
+      "Perf_Node_0003"
+    ],
+    "on_error": [
+      "Perf_Node_0150"
+    ]
+  },
+  "Perf_Node_0133": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20266,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 4800,
+        "y": 2600
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0134",
+      "Perf_Node_0004"
+    ],
+    "on_error": [
+      "Perf_Node_0151"
+    ]
+  },
+  "Perf_Node_0134": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          140,
+          120,
+          24,
+          24
+        ]
+      }
+    },
+    "timeout": 20904,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 5100,
+        "y": 2600
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0135",
+      "Perf_Node_0005"
+    ],
+    "on_error": [
+      "Perf_Node_0152"
+    ]
+  },
+  "Perf_Node_0135": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20585,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 5400,
+        "y": 2600
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0136",
+      "Perf_Node_0006"
+    ],
+    "on_error": [
+      "Perf_Node_0153"
+    ]
+  },
+  "Perf_Node_0136": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20797,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 5700,
+        "y": 2600
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0137",
+      "Perf_Node_0007"
+    ],
+    "on_error": [
+      "Perf_Node_0154"
+    ]
+  },
+  "Perf_Node_0137": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20659,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 0,
+        "y": 2790
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0138",
+      "Perf_Node_0008"
+    ],
+    "on_error": [
+      "Perf_Node_0155"
+    ]
+  },
+  "Perf_Node_0138": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20738,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 300,
+        "y": 2790
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0139",
+      "Perf_Node_0009"
+    ],
+    "on_error": [
+      "Perf_Node_0156"
+    ]
+  },
+  "Perf_Node_0139": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20385,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 600,
+        "y": 2790
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0140",
+      "Perf_Node_0010"
+    ],
+    "on_error": [
+      "Perf_Node_0157"
+    ]
+  },
+  "Perf_Node_0140": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20478,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 900,
+        "y": 2790
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0141",
+      "Perf_Node_0011"
+    ],
+    "on_error": [
+      "Perf_Node_0158"
+    ]
+  },
+  "Perf_Node_0141": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          80,
+          120,
+          24,
+          24
+        ]
+      }
+    },
+    "timeout": 20852,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 1200,
+        "y": 2790
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0142",
+      "Perf_Node_0012"
+    ],
+    "on_error": [
+      "Perf_Node_0159"
+    ]
+  },
+  "Perf_Node_0142": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20964,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 1500,
+        "y": 2790
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0143",
+      "Perf_Node_0013"
+    ],
+    "on_error": [
+      "Perf_Node_0160"
+    ]
+  },
+  "Perf_Node_0143": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20370,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 1800,
+        "y": 2790
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0144",
+      "Perf_Node_0014"
+    ],
+    "on_error": [
+      "Perf_Node_0161"
+    ]
+  },
+  "Perf_Node_0144": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20451,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 2100,
+        "y": 2790
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0145",
+      "Perf_Node_0015"
+    ],
+    "on_error": [
+      "Perf_Node_0162"
+    ]
+  },
+  "Perf_Node_0145": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20347,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 2400,
+        "y": 2790
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0146",
+      "Perf_Node_0016"
+    ],
+    "on_error": [
+      "Perf_Node_0163"
+    ]
+  },
+  "Perf_Node_0146": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20518,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 2700,
+        "y": 2790
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0147",
+      "Perf_Node_0017"
+    ],
+    "on_error": [
+      "Perf_Node_0164"
+    ]
+  },
+  "Perf_Node_0147": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20897,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 3000,
+        "y": 2790
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0148",
+      "Perf_Node_0018"
+    ],
+    "on_error": [
+      "Perf_Node_0001"
+    ]
+  },
+  "Perf_Node_0148": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          120,
+          120,
+          24,
+          24
+        ]
+      }
+    },
+    "timeout": 20429,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 3300,
+        "y": 2790
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0149",
+      "Perf_Node_0019"
+    ],
+    "on_error": [
+      "Perf_Node_0002"
+    ]
+  },
+  "Perf_Node_0149": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20764,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 3600,
+        "y": 2790
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0150",
+      "Perf_Node_0020"
+    ],
+    "on_error": [
+      "Perf_Node_0003"
+    ]
+  },
+  "Perf_Node_0150": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20267,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 3900,
+        "y": 2790
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0151",
+      "Perf_Node_0021"
+    ],
+    "on_error": [
+      "Perf_Node_0004"
+    ]
+  },
+  "Perf_Node_0151": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20498,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 4200,
+        "y": 2790
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0152",
+      "Perf_Node_0022"
+    ],
+    "on_error": [
+      "Perf_Node_0005"
+    ]
+  },
+  "Perf_Node_0152": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20101,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 4500,
+        "y": 2790
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0153",
+      "Perf_Node_0023"
+    ],
+    "on_error": [
+      "Perf_Node_0006"
+    ]
+  },
+  "Perf_Node_0153": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20361,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 4800,
+        "y": 2790
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0154",
+      "Perf_Node_0024"
+    ],
+    "on_error": [
+      "Perf_Node_0007"
+    ]
+  },
+  "Perf_Node_0154": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20226,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 5100,
+        "y": 2790
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0155",
+      "Perf_Node_0025"
+    ],
+    "on_error": [
+      "Perf_Node_0008"
+    ]
+  },
+  "Perf_Node_0155": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          160,
+          120,
+          24,
+          24
+        ]
+      }
+    },
+    "timeout": 20756,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 5400,
+        "y": 2790
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0156",
+      "Perf_Node_0026"
+    ],
+    "on_error": [
+      "Perf_Node_0009"
+    ]
+  },
+  "Perf_Node_0156": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20729,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 5700,
+        "y": 2790
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0157",
+      "Perf_Node_0027"
+    ],
+    "on_error": [
+      "Perf_Node_0010"
+    ]
+  },
+  "Perf_Node_0157": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20565,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 0,
+        "y": 2980
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0158",
+      "Perf_Node_0028"
+    ],
+    "on_error": [
+      "Perf_Node_0011"
+    ]
+  },
+  "Perf_Node_0158": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20435,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 300,
+        "y": 2980
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0159",
+      "Perf_Node_0029"
+    ],
+    "on_error": [
+      "Perf_Node_0012"
+    ]
+  },
+  "Perf_Node_0159": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20328,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 600,
+        "y": 2980
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0160",
+      "Perf_Node_0030"
+    ],
+    "on_error": [
+      "Perf_Node_0013"
+    ]
+  },
+  "Perf_Node_0160": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20128,
+    "rate_limit": 180,
+    "$__mpe_code": {
+      "position": {
+        "x": 900,
+        "y": 2980
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0161",
+      "Perf_Node_0031"
+    ],
+    "on_error": [
+      "Perf_Node_0014"
+    ]
+  },
+  "Perf_Node_0161": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20096,
+    "rate_limit": 100,
+    "$__mpe_code": {
+      "position": {
+        "x": 1200,
+        "y": 2980
+      },
+      "handleDirection": "left-right"
+    },
+    "next": [
+      "Perf_Node_0162",
+      "Perf_Node_0032"
+    ],
+    "on_error": [
+      "Perf_Node_0015"
+    ]
+  },
+  "Perf_Node_0162": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          100,
+          120,
+          24,
+          24
+        ]
+      }
+    },
+    "timeout": 20021,
+    "rate_limit": 120,
+    "$__mpe_code": {
+      "position": {
+        "x": 1500,
+        "y": 2980
+      },
+      "handleDirection": "top-bottom"
+    },
+    "next": [
+      "Perf_Node_0163",
+      "Perf_Node_0033"
+    ],
+    "on_error": [
+      "Perf_Node_0016"
+    ]
+  },
+  "Perf_Node_0163": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20809,
+    "rate_limit": 140,
+    "$__mpe_code": {
+      "position": {
+        "x": 1800,
+        "y": 2980
+      },
+      "handleDirection": "right-left"
+    },
+    "next": [
+      "Perf_Node_0164",
+      "Perf_Node_0034"
+    ],
+    "on_error": [
+      "Perf_Node_0017"
+    ]
+  },
+  "Perf_Node_0164": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "timeout": 20180,
+    "rate_limit": 160,
+    "$__mpe_code": {
+      "position": {
+        "x": 2100,
+        "y": 2980
+      },
+      "handleDirection": "bottom-top"
+    },
+    "next": [
+      "Perf_Node_0001",
+      "Perf_Node_0035"
+    ],
+    "on_error": [
+      "Perf_Node_0018"
+    ]
+  },
+  "$__mpe_external_Perf_External_001_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": -650,
+        "y": 200
+      },
+      "handleDirection": "left-right"
+    }
+  },
+  "$__mpe_external_Perf_External_002_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": -650,
+        "y": 370
+      },
+      "handleDirection": "right-left"
+    }
+  },
+  "$__mpe_external_Perf_External_003_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": -650,
+        "y": 540
+      },
+      "handleDirection": "left-right"
+    }
+  },
+  "$__mpe_external_Perf_External_004_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": -650,
+        "y": 710
+      },
+      "handleDirection": "right-left"
+    }
+  },
+  "$__mpe_external_Perf_External_005_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": -650,
+        "y": 880
+      },
+      "handleDirection": "left-right"
+    }
+  },
+  "$__mpe_external_Perf_External_006_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": -650,
+        "y": 1050
+      },
+      "handleDirection": "right-left"
+    }
+  },
+  "$__mpe_external_Perf_External_007_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": -650,
+        "y": 1220
+      },
+      "handleDirection": "left-right"
+    }
+  },
+  "$__mpe_external_Perf_External_008_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": -650,
+        "y": 1390
+      },
+      "handleDirection": "right-left"
+    }
+  },
+  "$__mpe_external_Perf_External_009_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": -650,
+        "y": 1560
+      },
+      "handleDirection": "left-right"
+    }
+  },
+  "$__mpe_external_Perf_External_010_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": -650,
+        "y": 1730
+      },
+      "handleDirection": "right-left"
+    }
+  },
+  "$__mpe_anchor_Perf_Anchor_001_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": 6400,
+        "y": 200
+      },
+      "handleDirection": "right-left"
+    }
+  },
+  "$__mpe_anchor_Perf_Anchor_002_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": 6400,
+        "y": 370
+      },
+      "handleDirection": "left-right"
+    }
+  },
+  "$__mpe_anchor_Perf_Anchor_003_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": 6400,
+        "y": 540
+      },
+      "handleDirection": "right-left"
+    }
+  },
+  "$__mpe_anchor_Perf_Anchor_004_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": 6400,
+        "y": 710
+      },
+      "handleDirection": "left-right"
+    }
+  },
+  "$__mpe_anchor_Perf_Anchor_005_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": 6400,
+        "y": 880
+      },
+      "handleDirection": "right-left"
+    }
+  },
+  "$__mpe_anchor_Perf_Anchor_006_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": 6400,
+        "y": 1050
+      },
+      "handleDirection": "left-right"
+    }
+  },
+  "$__mpe_anchor_Perf_Anchor_007_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": 6400,
+        "y": 1220
+      },
+      "handleDirection": "right-left"
+    }
+  },
+  "$__mpe_anchor_Perf_Anchor_008_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": 6400,
+        "y": 1390
+      },
+      "handleDirection": "left-right"
+    }
+  },
+  "$__mpe_anchor_Perf_Anchor_009_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": 6400,
+        "y": 1560
+      },
+      "handleDirection": "right-left"
+    }
+  },
+  "$__mpe_anchor_Perf_Anchor_010_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": 6400,
+        "y": 1730
+      },
+      "handleDirection": "left-right"
+    }
+  },
+  "$__mpe_sticker_Perf_Sticker_001_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": 6800,
+        "y": 200
+      },
+      "content": "PERF-001 fixture medium / sticker 1",
+      "color": "yellow",
+      "width": 240,
+      "height": 180
+    }
+  },
+  "$__mpe_sticker_Perf_Sticker_002_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": 7100,
+        "y": 200
+      },
+      "content": "PERF-001 fixture medium / sticker 2",
+      "color": "green",
+      "width": 240,
+      "height": 180
+    }
+  },
+  "$__mpe_sticker_Perf_Sticker_003_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": 7400,
+        "y": 200
+      },
+      "content": "PERF-001 fixture medium / sticker 3",
+      "color": "blue",
+      "width": 240,
+      "height": 180
+    }
+  },
+  "$__mpe_sticker_Perf_Sticker_004_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": 6800,
+        "y": 440
+      },
+      "content": "PERF-001 fixture medium / sticker 4",
+      "color": "pink",
+      "width": 240,
+      "height": 180
+    }
+  },
+  "$__mpe_sticker_Perf_Sticker_005_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": 7100,
+        "y": 440
+      },
+      "content": "PERF-001 fixture medium / sticker 5",
+      "color": "purple",
+      "width": 240,
+      "height": 180
+    }
+  },
+  "$__mpe_sticker_Perf_Sticker_006_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": 7400,
+        "y": 440
+      },
+      "content": "PERF-001 fixture medium / sticker 6",
+      "color": "yellow",
+      "width": 240,
+      "height": 180
+    }
+  },
+  "$__mpe_sticker_Perf_Sticker_007_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": 6800,
+        "y": 680
+      },
+      "content": "PERF-001 fixture medium / sticker 7",
+      "color": "green",
+      "width": 240,
+      "height": 180
+    }
+  },
+  "$__mpe_sticker_Perf_Sticker_008_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": 7100,
+        "y": 680
+      },
+      "content": "PERF-001 fixture medium / sticker 8",
+      "color": "blue",
+      "width": 240,
+      "height": 180
+    }
+  },
+  "$__mpe_sticker_Perf_Sticker_009_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": 7400,
+        "y": 680
+      },
+      "content": "PERF-001 fixture medium / sticker 9",
+      "color": "pink",
+      "width": 240,
+      "height": 180
+    }
+  },
+  "$__mpe_sticker_Perf_Sticker_010_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": 6800,
+        "y": 920
+      },
+      "content": "PERF-001 fixture medium / sticker 10",
+      "color": "purple",
+      "width": 240,
+      "height": 180
+    }
+  },
+  "$__mpe_group_Perf_Group_T1_001_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "color": "blue",
+      "width": 1160,
+      "height": 680,
+      "childrenLabels": [
+        "Perf_Node_0001",
+        "Perf_Node_0002",
+        "Perf_Node_0003",
+        "Perf_Node_0004",
+        "Perf_Node_0005",
+        "Perf_Node_0006"
+      ],
+      "performanceTier": 1
+    }
+  },
+  "$__mpe_group_Perf_Group_T2_002_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": 1400,
+        "y": 0
+      },
+      "color": "green",
+      "width": 1160,
+      "height": 680,
+      "childrenLabels": [
+        "Perf_Node_0007",
+        "Perf_Node_0008",
+        "Perf_Node_0009",
+        "Perf_Node_0010",
+        "Perf_Node_0011",
+        "Perf_Node_0012"
+      ],
+      "performanceTier": 2
+    }
+  },
+  "$__mpe_group_Perf_Group_T1_003_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": 2800,
+        "y": 0
+      },
+      "color": "blue",
+      "width": 1160,
+      "height": 680,
+      "childrenLabels": [
+        "Perf_Node_0013",
+        "Perf_Node_0014",
+        "Perf_Node_0015",
+        "Perf_Node_0016",
+        "Perf_Node_0017",
+        "Perf_Node_0018"
+      ],
+      "performanceTier": 1
+    }
+  },
+  "$__mpe_group_Perf_Group_T2_004_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": 4200,
+        "y": 0
+      },
+      "color": "green",
+      "width": 1160,
+      "height": 680,
+      "childrenLabels": [
+        "Perf_Node_0019",
+        "Perf_Node_0020",
+        "Perf_Node_0021",
+        "Perf_Node_0022",
+        "Perf_Node_0023",
+        "Perf_Node_0024"
+      ],
+      "performanceTier": 2
+    }
+  },
+  "$__mpe_group_Perf_Group_T1_005_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": 0,
+        "y": 820
+      },
+      "color": "blue",
+      "width": 1160,
+      "height": 680,
+      "childrenLabels": [
+        "Perf_Node_0025",
+        "Perf_Node_0026",
+        "Perf_Node_0027",
+        "Perf_Node_0028",
+        "Perf_Node_0029",
+        "Perf_Node_0030"
+      ],
+      "performanceTier": 1
+    }
+  },
+  "$__mpe_group_Perf_Group_T2_006_performance-medium-200.json": {
+    "$__mpe_code": {
+      "position": {
+        "x": 1400,
+        "y": 820
+      },
+      "color": "green",
+      "width": 1160,
+      "height": 680,
+      "childrenLabels": [
+        "Perf_Node_0031",
+        "Perf_Node_0032",
+        "Perf_Node_0033",
+        "Perf_Node_0034",
+        "Perf_Node_0035",
+        "Perf_Node_0036"
+      ],
+      "performanceTier": 2
+    }
+  }
+}

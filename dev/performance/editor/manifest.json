@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "generator": "scripts/performance/generate-editor-datasets.mjs",
+  "templateFiles": 10,
+  "templateSha256": "a0fe93d528d9d065b64f4109772fe609015dee6c60a1a894d54864094f647ce1",
+  "datasets": [
+    {
+      "name": "small",
+      "seed": 104729,
+      "nodes": 100,
+      "edges": 200,
+      "images": 10,
+      "groupingTiers": 1,
+      "file": "datasets/performance-small-100.json",
+      "sha256": "d8b513bcc6b8df7bc4e3f69257812eee2ceea49717d84b4c115848c2485d4568",
+      "summary": {
+        "nodes": 100,
+        "edges": 200,
+        "images": 10,
+        "positionedNodes": 100,
+        "typeCounts": {
+          "pipeline": 82,
+          "external": 5,
+          "anchor": 5,
+          "sticker": 5,
+          "group": 3
+        },
+        "selfLoops": 1,
+        "jumpBackEdges": 2,
+        "anchorEdges": 1,
+        "parallelPairs": 1
+      }
+    },
+    {
+      "name": "medium",
+      "seed": 130363,
+      "nodes": 200,
+      "edges": 500,
+      "images": 25,
+      "groupingTiers": 2,
+      "file": "datasets/performance-medium-200.json",
+      "sha256": "53270033fb49baa6ec76fe3e013ab571a03a908a1eb6812ca0d51bf9f8470c1e",
+      "summary": {
+        "nodes": 200,
+        "edges": 500,
+        "images": 25,
+        "positionedNodes": 200,
+        "typeCounts": {
+          "pipeline": 164,
+          "external": 10,
+          "anchor": 10,
+          "sticker": 10,
+          "group": 6
+        },
+        "selfLoops": 1,
+        "jumpBackEdges": 2,
+        "anchorEdges": 1,
+        "parallelPairs": 1
+      }
+    },
+    {
+      "name": "large",
+      "seed": 155921,
+      "nodes": 300,
+      "edges": 900,
+      "images": 40,
+      "groupingTiers": 3,
+      "file": "datasets/performance-large-300.json",
+      "sha256": "37cf8a603bef5d34a083cf16437c9d6021ae73527040b390739bb90fb9e3c62d",
+      "summary": {
+        "nodes": 300,
+        "edges": 900,
+        "images": 40,
+        "positionedNodes": 300,
+        "typeCounts": {
+          "pipeline": 246,
+          "external": 15,
+          "anchor": 15,
+          "sticker": 15,
+          "group": 9
+        },
+        "selfLoops": 1,
+        "jumpBackEdges": 2,
+        "anchorEdges": 1,
+        "parallelPairs": 1
+      }
+    }
+  ]
+}
