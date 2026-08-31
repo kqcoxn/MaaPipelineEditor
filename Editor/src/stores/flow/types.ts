@@ -234,6 +234,12 @@ export type NodeType =
   | StickerNodeType
   | GroupNodeType;
 
+export type NodeSemanticSummary = {
+  id: string;
+  type: NodeTypeEnum;
+  label: string;
+};
+
 // ========== Slice 状态类型定义 ==========
 
 // 视口 Slice 状态
@@ -258,6 +264,25 @@ export interface FlowSelectionState {
   updateSelection: (nodes: NodeType[], edges: EdgeType[]) => void;
   setTargetNode: (node: NodeType | null) => void;
   clearSelection: () => void;
+}
+
+// Graph indexes and independently invalidated revision counters.
+export interface FlowGraphIndexState {
+  nodeById: Map<string, NodeType>;
+  nodeSemanticById: Map<string, NodeSemanticSummary>;
+  edgeById: Map<string, EdgeType>;
+  outgoingEdgeIdsByNodeId: Map<string, string[]>;
+  incomingEdgeIdsByNodeId: Map<string, string[]>;
+  nodeIdsByTypeAndLabel: Map<string, Set<string>>;
+  anchorReferenceIndex: Map<string, Set<string>>;
+  selectedNodeIds: Set<string>;
+  selectedEdgeIds: Set<string>;
+  selectedEdgeEndpointNodeIds: Set<string>;
+  hasSelectedSticker: boolean;
+  layoutRevision: number;
+  topologyRevision: number;
+  semanticRevision: number;
+  selectionRevision: number;
 }
 
 // 历史 Slice 状态
@@ -359,14 +384,10 @@ export interface FlowPathState {
 
 // Anchor 引用索引 Slice 状态
 export interface FlowAnchorRefState {
-  /** anchor 名称 -> 使用该 anchor 的节点 ID 集合 */
-  anchorReferenceIndex: Map<string, Set<string>>;
   /** 当前高亮的 anchor 引用节点 ID 集合 */
   anchorRefHighlightedNodeIds: Set<string>;
   /** 当前选中的 anchor 节点名称 */
   selectedAnchorName: string | null;
-  /** 重建 anchor 引用索引 */
-  rebuildAnchorReferenceIndex: () => void;
   /** 设置选中的 anchor 名称（用于高亮引用节点） */
   setSelectedAnchorName: (anchorName: string | null) => void;
   /** 获取使用指定 anchor 的节点 ID 列表 */
@@ -376,6 +397,7 @@ export interface FlowAnchorRefState {
 // 合并的 Flow Store 类型
 export type FlowStore = FlowViewState &
   FlowSelectionState &
+  FlowGraphIndexState &
   FlowHistoryState &
   FlowNodeState &
   FlowEdgeState &

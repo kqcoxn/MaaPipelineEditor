@@ -177,12 +177,18 @@ export function useDebugModalController() {
       deviceInfo: state.deviceInfo,
     })),
   );
-  const { flowEdges, flowNodes } = useFlowStore(
+  const { semanticRevision, topologyRevision } = useFlowStore(
     useShallow((state) => ({
-      flowEdges: state.edges,
-      flowNodes: state.nodes,
+      semanticRevision: state.semanticRevision,
+      topologyRevision: state.topologyRevision,
     })),
   );
+  const { flowEdges, flowNodes } = useMemo(() => {
+    void semanticRevision;
+    void topologyRevision;
+    const state = useFlowStore.getState();
+    return { flowEdges: state.edges, flowNodes: state.nodes };
+  }, [semanticRevision, topologyRevision]);
   const selectedFlowNodeId = useFlowStore((state) =>
     state.selectedNodes.length === 1 ? state.selectedNodes[0]?.id : undefined,
   );

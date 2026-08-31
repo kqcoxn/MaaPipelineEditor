@@ -61,10 +61,12 @@ export function useDebugResourceChecks({
       currentFileName: activePanel === "resource-health" ? state.currentFile.fileName : "",
     })),
   );
-  const { flowNodes, flowEdges } = useFlowStore(
+  const { semanticRevision, topologyRevision } = useFlowStore(
     useShallow((state) => ({
-      flowNodes: activePanel === "resource-health" ? state.nodes : EMPTY_ARRAY,
-      flowEdges: activePanel === "resource-health" ? state.edges : EMPTY_ARRAY,
+      semanticRevision:
+        activePanel === "resource-health" ? state.semanticRevision : -1,
+      topologyRevision:
+        activePanel === "resource-health" ? state.topologyRevision : -1,
     })),
   );
   const { resourceBundles, localFiles, localFilesRevision } = useLocalFileStore(
@@ -127,18 +129,8 @@ export function useDebugResourceChecks({
           relativePath: file.config.relativePath,
           prefix: file.config.prefix,
         })),
-        flowNodes: flowNodes.map((node) => ({
-          id: node.id,
-          type: node.type,
-          label: node.data.label,
-        })),
-        flowEdges: flowEdges.map((edge) => ({
-          id: edge.id,
-          source: edge.source,
-          target: edge.target,
-          sourceHandle: edge.sourceHandle,
-          targetHandle: edge.targetHandle,
-        })),
+        semanticRevision,
+        topologyRevision,
         localFiles: localFiles.map((file) => ({
           path: file.file_path,
           prefix: file.prefix,
@@ -148,7 +140,14 @@ export function useDebugResourceChecks({
         })),
         localFilesRevision,
       }),
-    [currentFileName, files, flowEdges, flowNodes, localFiles, localFilesRevision],
+    [
+      currentFileName,
+      files,
+      localFiles,
+      localFilesRevision,
+      semanticRevision,
+      topologyRevision,
+    ],
   );
 
   const resourceHealthDraft = useMemo(() => {

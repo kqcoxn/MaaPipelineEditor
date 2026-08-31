@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { subscribeWithSelector } from "zustand/middleware";
 import type { FlowStore } from "./types";
 import { createViewSlice } from "./slices/viewSlice";
 import { createSelectionSlice } from "./slices/selectionSlice";
@@ -8,13 +9,14 @@ import { createEdgeSlice } from "./slices/edgeSlice";
 import { createGraphSlice } from "./slices/graphSlice";
 import { createPathSlice } from "./slices/pathSlice";
 import { createAnchorRefSlice } from "./slices/anchorRefSlice";
+import { createGraphIndexSlice } from "./slices/graphIndexSlice";
 import { checkRepeatNodeLabelList as checkRepeatNodeLabelListUtil } from "./utils/nodeUtils";
 import { ErrorTypeEnum, useErrorStore } from "@/stores/app/errorStore";
 import { useConfigStore } from "@/stores/app/configStore";
 import { useFileStore } from "@/stores/project/fileStore";
 
 // 组合所有 slices
-export const useFlowStore = create<FlowStore>()((...a) => ({
+export const useFlowStore = create<FlowStore>()(subscribeWithSelector((...a) => ({
   ...createViewSlice(...a),
   ...createSelectionSlice(...a),
   ...createHistorySlice(...a),
@@ -23,7 +25,8 @@ export const useFlowStore = create<FlowStore>()((...a) => ({
   ...createGraphSlice(...a),
   ...createPathSlice(...a),
   ...createAnchorRefSlice(...a),
-}));
+  ...createGraphIndexSlice(...a),
+})));
 export type {
   NodeType,
   PipelineNodeType,
@@ -45,6 +48,7 @@ export type {
   StickerColorTheme,
   GroupNodeDataType,
   GroupColorTheme,
+  NodeSemanticSummary,
 } from "./types";
 export {
   createPipelineNode,
@@ -75,6 +79,7 @@ export {
   calcuLinkOrder,
 } from "./utils/edgeUtils";
 export { fitFlowView } from "./utils/viewportUtils";
+export { getNodeTypeLabelKey } from "./utils/graphIndex";
 
 // 检查节点名重复
 export function checkRepeatNodeLabelList(): string[] {
@@ -104,15 +109,19 @@ export function checkRepeatNodeLabelList(): string[] {
  * @returns 下一个节点 ID 数组
  */
 export function getNextNodes(nodeId: string): string[] {
-  const edges = useFlowStore.getState().edges;
+  const state = useFlowStore.getState();
+  const edgeIds = state.outgoingEdgeIdsByNodeId.get(nodeId) ?? [];
 
-  // 筛选出 source 为指定 nodeId 且 sourceHandle 包含 "next" 的边
-  const nextEdges = edges.filter(
-    (edge) => edge.source === nodeId && edge.sourceHandle?.includes("next"),
-  );
+  const nextEdges = edgeIds
+    .map((edgeId) => state.edgeById.get(edgeId))
+    .filter(
+      (edge) => edge?.sourceHandle?.includes("next"),
+    );
 
   // 提取 target 节点 ID 并去重
-  const nextNodeIds = Array.from(new Set(nextEdges.map((edge) => edge.target)));
+  const nextNodeIds = Array.from(
+    new Set(nextEdges.map((edge) => edge!.target)),
+  );
 
   return nextNodeIds;
 }

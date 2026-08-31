@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import type { NodeChange, XYPosition } from "@xyflow/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LayoutHelper } from "../layout";
+import { NodeTypeEnum } from "../../components/flow/nodes";
 import {
   getNodeAbsolutePosition,
   useFlowStore,
@@ -166,6 +167,45 @@ describe("PERF-001 performance datasets", () => {
       )} ms, release-schedule=${releaseScheduleDuration.toFixed(
         3,
       )} ms, release-settled=${releaseSettledDuration.toFixed(3)} ms`,
+    );
+  });
+
+  it("measures PERF-004 indexed selector fan-out", async () => {
+    const datasetPath = resolve(
+      process.cwd(),
+      "../dev/performance/editor/datasets/performance-large-300.json",
+    );
+    const pipelineText = await readFile(datasetPath, "utf8");
+
+    expect(await pipelineToFlow({ pString: pipelineText })).toBe(true);
+    const state = useFlowStore.getState();
+    const legacyFlowTagEdgeVisits = state.nodes.length * state.edges.length;
+    const indexedFlowTagEdgeVisits = state.nodes.reduce(
+      (total, node) =>
+        total + (state.outgoingEdgeIdsByNodeId.get(node.id)?.length ?? 0),
+      0,
+    );
+    const legacyFocusEdgeVisits = state.nodes.length * state.edges.length;
+    const indexedFocusEdgeVisits = state.nodes.reduce(
+      (total, node) =>
+        total +
+        (state.outgoingEdgeIdsByNodeId.get(node.id)?.length ?? 0) +
+        (state.incomingEdgeIdsByNodeId.get(node.id)?.length ?? 0),
+      0,
+    );
+    const replicaNodeCount = state.nodes.filter(
+      (node) =>
+        node.type === NodeTypeEnum.Anchor ||
+        node.type === NodeTypeEnum.External,
+    ).length;
+    const legacyReplicaNodeVisits = replicaNodeCount * state.nodes.length;
+    const indexedReplicaLookups = replicaNodeCount;
+
+    expect(indexedFlowTagEdgeVisits).toBe(state.edges.length);
+    expect(indexedFocusEdgeVisits).toBe(state.edges.length * 2);
+    expect(indexedReplicaLookups).toBeLessThan(legacyReplicaNodeVisits);
+    console.info(
+      `[PERF-004] large selector visits: flow-tags=${legacyFlowTagEdgeVisits}->${indexedFlowTagEdgeVisits}, focus=${legacyFocusEdgeVisits}->${indexedFocusEdgeVisits}, replicas=${legacyReplicaNodeVisits}->${indexedReplicaLookups}`,
     );
   });
 });

@@ -26,6 +26,7 @@ import {
   buildNodeBoundsList,
   DEFAULT_AVOIDANCE_CONFIG,
 } from "../../core/avoidanceUtils";
+import { useEdgeFocusRelated } from "./focusSelectors";
 
 const EMPTY_NODES: NodeType[] = [];
 const EMPTY_EDGES: EdgeType[] = [];
@@ -487,58 +488,13 @@ function MarkedEdge(props: EdgeProps) {
     setControlOffset({ x: 0, y: 0 });
   }, []);
 
-  // 获取选中状态和路径状态
-  const { selectedNodes, selectedEdges, pathMode, pathEdgeIds } = useFlowStore(
-    useShallow((state) => ({
-      selectedNodes: state.selectedNodes,
-      selectedEdges: state.selectedEdges,
-      pathMode: state.pathMode,
-      pathEdgeIds: state.pathEdgeIds,
-    })),
-  );
-
-  // 计算是否与选中元素相关联
-  const isRelated = useMemo(() => {
-    if (focusOpacity === 1) return true;
-
-    // 路径模式
-    if (pathMode && pathEdgeIds.size > 0) {
-      return pathEdgeIds.has(props.id);
-    }
-
-    if (selectedNodes.length === 0 && selectedEdges.length === 0) return true;
-    if (props.selected) return true;
-
-    // 检查是否有便签节点被选中
-    const hasStickerSelected = selectedNodes.some(
-      (node) => node.type === NodeTypeEnum.Sticker,
-    );
-
-    // 如果选中的是便签节点，则不产生聚焦效果
-    if (hasStickerSelected) return true;
-
-    // 检查边是否连接到选中的节点
-    for (const selectedNode of selectedNodes) {
-      if (
-        props.source === selectedNode.id ||
-        props.target === selectedNode.id
-      ) {
-        return true;
-      }
-    }
-
-    return false;
-  }, [
+  const isRelated = useEdgeFocusRelated({
+    edgeId: props.id,
+    sourceId: props.source,
+    targetId: props.target,
+    selected: props.selected ?? false,
     focusOpacity,
-    selectedNodes,
-    selectedEdges,
-    props.source,
-    props.target,
-    props.selected,
-    props.id,
-    pathMode,
-    pathEdgeIds,
-  ]);
+  });
 
   const edgeClass = useMemo(() => {
     let markClass = "";

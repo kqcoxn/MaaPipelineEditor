@@ -6,6 +6,7 @@ import type {
   EdgeType,
 } from "../types";
 import { NodeTypeEnum } from "../../../components/flow/nodes";
+import { buildSelectionIndexUpdate } from "../utils/graphIndex";
 
 // 全局防抖定时器
 let debounceTimeout: NodeJS.Timeout | null = null;
@@ -31,6 +32,7 @@ export const createSelectionSlice: StateCreator<
       const newState: Partial<FlowSelectionState> = {
         selectedNodes: nodes,
         selectedEdges: edges,
+        ...buildSelectionIndexUpdate(state, nodes, edges),
       };
 
       // 更新目标节点
@@ -98,7 +100,7 @@ export const createSelectionSlice: StateCreator<
       debounceTimeout = null;
     }
 
-    set({
+    set((state) => ({
       selectedNodes: [],
       selectedEdges: [],
       targetNode: null,
@@ -106,6 +108,7 @@ export const createSelectionSlice: StateCreator<
       debouncedSelectedEdges: [],
       debouncedTargetNode: null,
       debounceTimeouts: {},
-    });
+      ...buildSelectionIndexUpdate(state, [], []),
+    }));
   },
 });

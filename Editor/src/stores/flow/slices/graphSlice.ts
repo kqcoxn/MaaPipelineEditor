@@ -11,6 +11,13 @@ import {
 } from "../utils/coordinateUtils";
 import { fitFlowView } from "../utils/viewportUtils";
 import { assignNodeOrder } from "@/stores/project/fileStore";
+import {
+  buildEdgeIndexes,
+  buildNodeIndexes,
+  bumpGraphRevisions,
+  createNodeIndexPatches,
+  patchNodeIndexes,
+} from "../utils/graphIndex";
 
 export const createGraphSlice: StateCreator<
   FlowStore,
@@ -51,9 +58,6 @@ export const createGraphSlice: StateCreator<
         }
       }
 
-      // 清空选择
-      get().clearSelection();
-
       // 聚焦视图
       if (isFitView) {
         fitFlowView(state.instance, state.viewport);
@@ -62,13 +66,18 @@ export const createGraphSlice: StateCreator<
       return {
         nodes: processedNodes,
         edges: processedEdges,
+        ...buildNodeIndexes(processedNodes),
+        ...buildEdgeIndexes(processedEdges),
+        ...bumpGraphRevisions(state, {
+          layout: true,
+          topology: true,
+          semantic: true,
+        }),
         pasteIdCounter: Math.max(state.pasteIdCounter, maxPasteId + 1),
         nodeIdCounter: Math.max(state.nodeIdCounter, maxNodeId + 1),
       };
     });
-
-    // 重建 anchor 引用索引
-    get().rebuildAnchorReferenceIndex();
+    get().clearSelection();
 
     if (!skipHistory) {
       get().saveHistory(0, {
@@ -88,6 +97,7 @@ export const createGraphSlice: StateCreator<
     if (nodes.length === 0) return [];
 
     let pastedNodes: NodeType[] = [];
+    let pastedEdges: EdgeType[] = [];
 
     set((state) => {
       // 取消所有选中
@@ -103,6 +113,7 @@ export const createGraphSlice: StateCreator<
       // 克隆并更新节点数据
       nodes = cloneDeep(nodes);
       const sourceNodes = ensureGroupNodeOrder([...cloneDeep(nodes), ...state.nodes]);
+      const sourceNodeById = new Map(sourceNodes.map((node) => [node.id, node]));
       const pairs: Record<string, string> = {};
       let pasteCounter = state.pasteIdCounter;
 
@@ -119,7 +130,7 @@ export const createGraphSlice: StateCreator<
 
       nodes.forEach((node) => {
         const originalId = node.id;
-        const absolutePosition = getNodeAbsolutePosition(node, sourceNodes);
+        const absolutePosition = getNodeAbsolutePosition(node, sourceNodeById);
         sourceAbsolutePositions.set(originalId, absolutePosition);
         minLeft = Math.min(minLeft, absolutePosition.x);
         minTop = Math.min(minTop, absolutePosition.y);
@@ -215,7 +226,7 @@ export const createGraphSlice: StateCreator<
         if (shouldCheckGroupMembership && existingGroups.length > 0) {
           // 检查与现有组的交集
           for (const groupNode of existingGroups) {
-            const groupRect = getNodeAbsoluteRect(groupNode, state.nodes);
+            const groupRect = getNodeAbsoluteRect(groupNode, state.nodeById);
             const nodeRect = {
               ...finalAbsolutePosition,
               width: node.measured?.width ?? 200,
@@ -237,7 +248,7 @@ export const createGraphSlice: StateCreator<
               node.position = toRelativePosition(
                 finalAbsolutePosition,
                 groupNode,
-                state.nodes,
+                state.nodeById,
               );
               break;
             }
@@ -258,19 +269,28 @@ export const createGraphSlice: StateCreator<
         edge.target = pairs[edge.target];
         edge.id = `${edge.source}_${edge.sourceHandle}_${edge.target}`;
       });
-
-      // 更新选择状态
-      get().updateSelection(nodes, edges);
+      pastedEdges = edges;
 
       // 自动聚焦（暂时硬编码）
       fitFlowView(state.instance, state.viewport, { focusNodes: nodes });
 
+      const nextNodes = ensureGroupNodeOrder([...originNodes, ...nodes]);
+      const nextEdges = [...originEdges, ...edges];
       return {
-        nodes: ensureGroupNodeOrder([...originNodes, ...nodes]),
-        edges: [...originEdges, ...edges],
+        nodes: nextNodes,
+        edges: nextEdges,
+        ...buildNodeIndexes(nextNodes),
+        ...buildEdgeIndexes(nextEdges),
+        ...bumpGraphRevisions(state, {
+          layout: true,
+          topology: true,
+          semantic: true,
+        }),
         pasteIdCounter: pasteCounter,
       };
     });
+
+    get().updateSelection(pastedNodes, pastedEdges);
 
     // 保存历史记录
     get().saveHistory(0, {
@@ -330,7 +350,14 @@ export const createGraphSlice: StateCreator<
         }
         return { ...node, position: newPosition };
       });
-      return { nodes };
+      const patches = createNodeIndexPatches(state.nodes, nodes).map(
+        (patch) => ({ ...patch, semanticChanged: false }),
+      );
+      return {
+        nodes,
+        ...patchNodeIndexes(state, patches),
+        ...bumpGraphRevisions(state, { layout: true }),
+      };
     });
 
     // 保存历史记录

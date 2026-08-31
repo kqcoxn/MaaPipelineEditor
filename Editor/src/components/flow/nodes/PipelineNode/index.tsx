@@ -4,7 +4,6 @@ import { useReactFlow } from "@xyflow/react";
 import classNames from "classnames";
 import style from "../../../../styles/flow/nodes.module.less";
 import type { PipelineNodeDataType } from "../../../../stores/flow";
-import { useFlowStore } from "../../../../stores/flow";
 import { useConfigStore } from "@/stores/app/configStore";
 import { NodeTypeEnum } from "../constants";
 import { ModernContent } from "./ModernContent";
@@ -13,10 +12,9 @@ import { MinimalContent } from "./MinimalContent";
 import { useShallow } from "zustand/shallow";
 import { NodeContextMenu } from "../components/NodeContextMenu";
 import { useDebugOverlayStore } from "@/stores/debug/debugOverlayStore";
+import { useNodeFocusState } from "../../focusSelectors";
 
 type PNodeData = Node<PipelineNodeDataType, NodeTypeEnum.Pipeline>;
-type ParentNodeRef = { parentId?: string };
-
 /**Pipeline节点组件 */
 export function PipelineNode(props: NodeProps<PNodeData>) {
   const nodeStyle = useConfigStore((state) => state.configs.nodeStyle);
@@ -31,23 +29,6 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
     | Node<PipelineNodeDataType, NodeTypeEnum.Pipeline>
     | undefined;
 
-  // 获取选中状态、边信息和路径状态
-  const {
-    selectedNodes,
-    selectedEdges,
-    pathMode,
-    pathNodeIds,
-    anchorRefHighlightedNodeIds,
-  } = useFlowStore(
-    useShallow((state) => ({
-      selectedNodes: state.selectedNodes,
-      selectedEdges: state.selectedEdges,
-      pathMode: state.pathMode,
-      pathNodeIds: state.pathNodeIds,
-      anchorRefHighlightedNodeIds: state.anchorRefHighlightedNodeIds,
-    })),
-  );
-  const edges = useFlowStore((state) => state.edges);
   const debugOverlay = useDebugOverlayStore(
     useShallow((state) => ({
       currentNodeId: state.currentNodeId,
@@ -55,85 +36,12 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
     })),
   );
 
-  // 计算是否与选中元素相关联
-  const isRelated = useMemo(() => {
-    // 透明度为1或当前节点被选中
-    if (focusOpacity === 1 || props.selected) return true;
-
-    // 路径模式
-    if (pathMode && pathNodeIds.size > 0) {
-      return pathNodeIds.has(props.id);
-    }
-
-    // Anchor 引用高亮模式高亮的节点也视为相关
-    if (
-      anchorRefHighlightedNodeIds.size > 0 &&
-      anchorRefHighlightedNodeIds.has(props.id)
-    ) {
-      return true;
-    }
-
-    // 没有选中任何内容
-    if (selectedNodes.length === 0 && selectedEdges.length === 0) return true;
-
-    const nodeId = props.id;
-    const selectedNodeIds = new Set(selectedNodes.map((n) => n.id));
-
-    // 检查是否有便签节点被选中
-    const hasStickerSelected = selectedNodes.some(
-      (node) => node.type === NodeTypeEnum.Sticker,
-    );
-
-    // 如果选中的是便签节点，则不产生聚焦效果
-    if (hasStickerSelected) return true;
-
-    // 检查分组关系
-    const thisNode = useFlowStore.getState().nodes.find((n) => n.id === nodeId);
-    const parentId = (thisNode as ParentNodeRef | undefined)?.parentId;
-    if (
-      parentId &&
-      selectedNodeIds.has(parentId)
-    ) {
-      return true;
-    }
-
-    // 检查是否与选中的边相连
-    for (const selectedEdge of selectedEdges) {
-      if (selectedEdge.source === nodeId || selectedEdge.target === nodeId) {
-        return true;
-      }
-    }
-
-    // 仅在有选中节点时检查节点连接关系
-    if (selectedNodes.length > 0) {
-      // 只检查与当前节点相关的边
-      for (const edge of edges) {
-        if (edge.target === nodeId && selectedNodeIds.has(edge.source)) {
-          return true;
-        }
-        if (edge.source === nodeId && selectedNodeIds.has(edge.target)) {
-          return true;
-        }
-      }
-    }
-
-    return false;
-  }, [
+  const { isRelated, isAnchorRefHighlighted } = useNodeFocusState({
+    nodeId: props.id,
+    selected: props.selected,
     focusOpacity,
-    props.selected,
-    pathMode,
-    pathNodeIds,
-    anchorRefHighlightedNodeIds,
-    props.id,
-    selectedNodes,
-    selectedEdges,
-    edges,
-  ]);
-
-  // 计算 anchor 引用高亮状态
-  const isAnchorRefHighlighted = useMemo(() => {
-    return anchorRefHighlightedNodeIds.has(props.id);
-  }, [anchorRefHighlightedNodeIds, props.id]);
+    includeAnchorReference: true,
+  });
 
   const nodeClass = useMemo(
     () =>

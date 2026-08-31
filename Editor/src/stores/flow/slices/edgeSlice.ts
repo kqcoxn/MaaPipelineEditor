@@ -8,10 +8,15 @@ import {
 import type { FlowStore, FlowEdgeState, EdgeType } from "../types";
 import { SourceHandleTypeEnum } from "../../../components/flow/nodes";
 import {
-  findEdgeById,
   calcuLinkOrder,
   getSelectedEdges,
 } from "../utils/edgeUtils";
+import {
+  buildEdgeIndexes,
+  bumpGraphRevisions,
+  createEdgeIndexPatches,
+  patchEdgeIndexes,
+} from "../utils/graphIndex";
 
 export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
   set,
@@ -30,7 +35,7 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
       // 更新前处理
       changes.forEach((change) => {
         if (change.type === "remove") {
-          const removedEdge = findEdgeById(edges, change.id);
+          const removedEdge = state.edgeById.get(change.id);
           if (removedEdge) {
             edges = edges.map((edge) => {
               if (
@@ -51,7 +56,28 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
       const newEdges = updatedEdges as EdgeType[];
       const selectedEdges = getSelectedEdges(updatedEdges as EdgeType[]);
       get().updateSelection(state.selectedNodes, selectedEdges);
-      return { edges: newEdges };
+      const patches = createEdgeIndexPatches(state.edges, newEdges);
+      const hasTopologyChange = changes.some(
+        (change) =>
+          change.type === "add" ||
+          change.type === "remove" ||
+          change.type === "replace",
+      );
+      const hasSemanticChange = patches.some(
+        (patch) =>
+          patch.previous !== undefined &&
+          patch.next !== undefined &&
+          (patch.previous.label !== patch.next.label ||
+            patch.previous.attributes !== patch.next.attributes),
+      );
+      return {
+        edges: newEdges,
+        ...patchEdgeIndexes(state, patches),
+        ...bumpGraphRevisions(state, {
+          topology: hasTopologyChange,
+          semantic: hasSemanticChange,
+        }),
+      };
     });
 
     // 保存历史记录
@@ -97,7 +123,13 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
       const selectedEdges = getSelectedEdges(edges);
       get().updateSelection(state.selectedNodes, selectedEdges);
 
-      return { edges };
+      return {
+        edges,
+        ...patchEdgeIndexes(state, [
+          { previous: state.edges[edgeIndex], next: targetEdge },
+        ]),
+        ...bumpGraphRevisions(state, { semantic: true }),
+      };
     });
 
     // 保存历史记录
@@ -150,7 +182,14 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
       const selectedEdges = getSelectedEdges(edges);
       get().updateSelection(state.selectedNodes, selectedEdges);
 
-      return { edges };
+      return {
+        edges,
+        ...patchEdgeIndexes(
+          state,
+          createEdgeIndexPatches(state.edges, edges),
+        ),
+        ...bumpGraphRevisions(state, { semantic: true }),
+      };
     });
 
     // 保存历史记录
@@ -175,14 +214,25 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
       // 同组判定 = source + sourceHandle，与 setEdgeLabel 一致
       orderedEdgeIds.forEach((id, index) => {
         const edgeIndex = edges.findIndex((e) => e.id === id);
-        if (edgeIndex >= 0) {
+        if (
+          edgeIndex >= 0 &&
+          edges[edgeIndex].source === source &&
+          edges[edgeIndex].sourceHandle === sourceHandle
+        ) {
           edges[edgeIndex] = { ...edges[edgeIndex], label: index + 1 };
         }
       });
 
       const selectedEdges = getSelectedEdges(edges);
       get().updateSelection(state.selectedNodes, selectedEdges);
-      return { edges };
+      return {
+        edges,
+        ...patchEdgeIndexes(
+          state,
+          createEdgeIndexPatches(state.edges, edges),
+        ),
+        ...bumpGraphRevisions(state, { semantic: true }),
+      };
     });
 
     // 保存历史记录（拖拽结束是一次性动作，立即落盘）
@@ -242,7 +292,14 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
       } as EdgeType;
 
       const newEdges = addEdgeRF(newEdge, state.edges);
-      return { edges: newEdges };
+      return {
+        edges: newEdges,
+        ...patchEdgeIndexes(
+          state,
+          createEdgeIndexPatches(state.edges, newEdges),
+        ),
+        ...bumpGraphRevisions(state, { topology: true }),
+      };
     });
 
     // 保存历史记录
@@ -255,7 +312,14 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
 
   // 设置边列表
   setEdges(edges: EdgeType[]) {
-    set({ edges });
+    set((state) => ({
+      edges,
+      ...buildEdgeIndexes(edges),
+      ...bumpGraphRevisions(state, {
+        topology: true,
+        semantic: true,
+      }),
+    }));
   },
 
   // 重置所有边的控制点

@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { useShallow } from "zustand/shallow";
 
 import { useFlowStore } from "../../../../stores/flow";
 import {
@@ -7,39 +6,38 @@ import {
   SourceHandleTypeEnum,
   TargetHandleTypeEnum,
 } from "../constants";
+import type { EdgeType } from "../../../../stores/flow";
 
 type NodeFlowItem = {
   label: string;
   variant: "normal" | "jumpback" | "anchor";
 };
 
+const EMPTY_EDGE_IDS: string[] = [];
+
 export function useNodeFlowItems(nodeId: string) {
-  const edges = useFlowStore((state) => state.edges);
-  const outEdges = useMemo(
-    () =>
-      edges
-        .filter((edge) => edge.source === nodeId)
-        .sort((a, b) => a.label - b.label),
-    [edges, nodeId],
-  );
-  const targetNodeIds = useMemo(
-    () => new Set(outEdges.map((edge) => edge.target)),
-    [outEdges],
-  );
-  const targetNodes = useFlowStore(
-    useShallow((state) =>
-      state.nodes.filter((node) => targetNodeIds.has(node.id)),
-    ),
+  const graphRevision = useFlowStore(
+    (state) => `${state.semanticRevision}:${state.topologyRevision}`,
   );
 
   return useMemo(() => {
-    const nodeMap = new Map(targetNodes.map((node) => [node.id, node]));
+    // The revision is the invalidation key; read the matching snapshot below.
+    void graphRevision;
+    const state = useFlowStore.getState();
+    const outEdges = (state.outgoingEdgeIdsByNodeId.get(nodeId) ?? EMPTY_EDGE_IDS)
+      .map((edgeId) => state.edgeById.get(edgeId))
+      .filter((edge): edge is EdgeType => edge !== undefined);
     const nextItems: NodeFlowItem[] = [];
     const errorItems: NodeFlowItem[] = [];
 
-    for (const edge of outEdges) {
-      const targetNode = nodeMap.get(edge.target);
-      const label = targetNode?.data.label ?? edge.target;
+    const sortedEdges = outEdges
+      .map((edge) => ({
+        edge,
+        targetNode: state.nodeSemanticById.get(edge.target),
+      }))
+      .sort((left, right) => left.edge.label - right.edge.label);
+    for (const { edge, targetNode } of sortedEdges) {
+      const label = targetNode?.label ?? edge.target;
       const isJumpBack = edge.targetHandle === TargetHandleTypeEnum.JumpBack;
       const isAnchor =
         targetNode?.type === NodeTypeEnum.Anchor || !!edge.attributes?.anchor;
@@ -53,5 +51,5 @@ export function useNodeFlowItems(nodeId: string) {
     }
 
     return { nextItems, errorItems };
-  }, [outEdges, targetNodes]);
+  }, [graphRevision, nodeId]);
 }

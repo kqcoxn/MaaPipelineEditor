@@ -13,6 +13,7 @@ const DEFAULT_NODE_WIDTH = 200;
 const DEFAULT_NODE_HEIGHT = 100;
 
 type NodeWithParent = NodeType & { parentId?: string };
+export type NodeLookup = NodeType[] | ReadonlyMap<string, NodeType>;
 type NodeWithLayout = {
   measured?: {
     width?: number;
@@ -30,8 +31,10 @@ function getParentId(node: NodeType): string | undefined {
   return (node as NodeWithParent).parentId;
 }
 
-function findNodeById(nodes: NodeType[], id: string): NodeType | undefined {
-  return nodes.find((node) => node.id === id);
+function findNodeById(nodes: NodeLookup, id: string): NodeType | undefined {
+  return Array.isArray(nodes)
+    ? nodes.find((node) => node.id === id)
+    : (nodes as ReadonlyMap<string, NodeType>).get(id);
 }
 
 function resolveRectDimensions(
@@ -63,7 +66,7 @@ export function toRelativePositionFromParentAbsolute(
 
 export function resolveParentChain(
   node: NodeType,
-  allNodes: NodeType[],
+  allNodes: NodeLookup,
 ): NodeType[] {
   const chain: NodeType[] = [];
   const visited = new Set<string>();
@@ -84,7 +87,7 @@ export function resolveParentChain(
 
 export function getNodeAbsolutePosition(
   node: NodeType,
-  allNodes: NodeType[],
+  allNodes: NodeLookup,
 ): PositionType {
   const absolutePosition = { ...node.position };
   const parentChain = resolveParentChain(node, allNodes);
@@ -99,7 +102,7 @@ export function getNodeAbsolutePosition(
 
 export function getNodeAbsoluteRect(
   node: NodeType,
-  allNodes: NodeType[],
+  allNodes: NodeLookup,
 ): RectLike {
   const absolutePosition = getNodeAbsolutePosition(node, allNodes);
   const { width, height } = resolveRectDimensions(node as NodeWithLayout);
@@ -116,7 +119,7 @@ export function getRuntimeNodeAbsoluteRect(
   instance: ReactFlowInstance | null,
   nodeId: string,
   fallbackNode?: NodeType,
-  allNodes?: NodeType[],
+  allNodes?: NodeLookup,
 ): RectLike | undefined {
   const runtimeNode = instance?.getInternalNode(nodeId);
   const runtimePosition = runtimeNode?.internals?.positionAbsolute;
@@ -146,7 +149,7 @@ export function getRuntimeNodeAbsoluteRect(
 export function toRelativePosition(
   absolutePosition: PositionType,
   parentNode: NodeType,
-  allNodes?: NodeType[],
+  allNodes?: NodeLookup,
 ): PositionType {
   const parentAbsolute = allNodes
     ? getNodeAbsolutePosition(parentNode, allNodes)
@@ -160,7 +163,7 @@ export function toRelativePosition(
 
 export function normalizeImportedNodePosition(
   node: NodeType,
-  allNodes: NodeType[],
+  allNodes: NodeLookup,
   coordinateMode: CoordinateMode,
 ): NodeType {
   const parentId = getParentId(node);
@@ -192,7 +195,7 @@ export function normalizeImportedNodePosition(
 
 export function serializeNodePosition(
   node: NodeType,
-  allNodes: NodeType[],
+  allNodes: NodeLookup,
 ): PositionType {
   return getNodeAbsolutePosition(node, allNodes);
 }

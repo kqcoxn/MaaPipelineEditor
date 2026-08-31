@@ -8,6 +8,7 @@ import {
   ReactFlow,
   type NodeMouseHandler,
 } from "@xyflow/react";
+import { useShallow } from "zustand/shallow";
 
 import { useBusinessArchitectureStore } from "@/features/ai-harness";
 import { buildBusinessArchitectureSourceSignature } from "@/features/ai-harness/capabilities/business-architecture/architectureModel";
@@ -39,8 +40,12 @@ function BusinessArchitecturePanelContent() {
   const closeDocument = useBusinessArchitectureStore(
     (state) => state.closeDocument,
   );
-  const nodes = useFlowStore((state) => state.nodes);
-  const edges = useFlowStore((state) => state.edges);
+  const { semanticRevision, topologyRevision } = useFlowStore(
+    useShallow((state) => ({
+      semanticRevision: state.semanticRevision,
+      topologyRevision: state.topologyRevision,
+    })),
+  );
   const instance = useFlowStore((state) => state.instance);
   const currentFile = useFileStore((state) => state.currentFile);
   const document = activeDocumentRunId
@@ -50,6 +55,9 @@ function BusinessArchitecturePanelContent() {
   const currentSignature = useMemo(
     () => {
       if (!document || !isCurrentFile) return "";
+      void semanticRevision;
+      void topologyRevision;
+      const { nodes, edges } = useFlowStore.getState();
       return buildBusinessArchitectureSourceSignature({
         nodes,
         edges,
@@ -63,9 +71,9 @@ function BusinessArchitecturePanelContent() {
       currentFile.config.prefix,
       currentFile.fileName,
       document,
-      edges,
       isCurrentFile,
-      nodes,
+      semanticRevision,
+      topologyRevision,
     ],
   );
   const stale = Boolean(
