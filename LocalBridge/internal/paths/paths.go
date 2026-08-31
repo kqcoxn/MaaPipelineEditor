@@ -197,7 +197,6 @@ func GetDefaultConfigContent() []byte {
     "host": "localhost"
   },
   "file": {
-    "root": "./",
     "exclude": ["node_modules", ".git", "dist", "build", ".cache", ".venv", "__pycache__", ".idea", ".vscode"],
     "extensions": [".json", ".jsonc"],
     "max_depth": 10,

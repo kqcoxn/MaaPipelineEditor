@@ -23,6 +23,7 @@ import { configProtocol, interfaceProtocol, localServer } from "../../services/s
 import type { ProjectInterfaceStatus } from "@/features/project-interface/types";
 import type {
   BackendConfig,
+  BackendRuntimeConfig,
   ConfigResponse,
 } from "../../services/protocols/ConfigProtocol";
 interface BackendConfigModalProps {
@@ -30,12 +31,19 @@ interface BackendConfigModalProps {
   onClose: () => void;
 }
 
+const rootSourceLabels: Record<BackendRuntimeConfig["root_source"], string> = {
+  cli: "命令行参数",
+  config: "配置文件",
+  cwd: "启动工作目录",
+};
+
 const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [reloading, setReloading] = useState(false);
   const [configPath, setConfigPath] = useState("");
+  const [runtimeConfig, setRuntimeConfig] = useState<BackendRuntimeConfig>();
   const [interfaceStatus, setInterfaceStatus] = useState<ProjectInterfaceStatus>();
 
   // 加载配置
@@ -76,6 +84,7 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
           interface_path: data.config.interface?.path ?? "",
         });
         setConfigPath(data.config_path);
+        setRuntimeConfig(data.runtime);
 
         // 如果是保存后的响应，自动触发重载并关闭面板
         if (data.message) {
@@ -84,8 +93,8 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
             content: (
               <div>
                 <p>{data.message}</p>
-                <p style={{ marginTop: 12, color: "#52c41a" }}>
-                  已重载配置，部分配置（如端口）可能需要重启服务才能生效
+                <p style={{ marginTop: 12, color: "#8c8c8c" }}>
+                  已请求重载可动态应用的配置；根目录和监听地址需重启 LocalBridge
                 </p>
               </div>
             ),
@@ -294,16 +303,25 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
             label={
               <span>
                 根目录
-                <Tooltip title="文件扫描的根目录路径，修改后需重启服务。仅在 LocalBridge 指定了配置文件时生效。">
+                <Tooltip title="文件扫描根目录。留空时使用 LocalBridge 的启动工作目录，修改后需重启服务。">
                   <InfoCircleOutlined
                     style={{ marginLeft: 4, color: "#8c8c8c" }}
                   />
                 </Tooltip>
               </span>
             }
-            extra="仅在 LocalBridge 指定了配置文件（--config）时生效。"
+            extra={
+              runtimeConfig ? (
+                <span style={{ overflowWrap: "anywhere" }}>
+                  当前使用：{runtimeConfig.file_root}（来源：
+                  {rootSourceLabels[runtimeConfig.root_source]}）
+                </span>
+              ) : (
+                "留空时使用 LocalBridge 的启动工作目录。"
+              )
+            }
           >
-            <Input placeholder="文件扫描根目录" />
+            <Input placeholder="留空时使用启动工作目录" />
           </Form.Item>
 
           <Form.Item

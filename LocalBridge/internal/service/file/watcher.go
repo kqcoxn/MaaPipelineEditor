@@ -1,6 +1,7 @@
 package file
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -34,50 +35,80 @@ type ChangeHandler func(change FileChange)
 
 // 文件监听器
 type Watcher struct {
-	watcher    *fsnotify.Watcher
-	root       string
-	extensions []string
-	handler    ChangeHandler
-	debouncer  *debouncer
+	backend       watcherBackend
+	root          string
+	extensions    []string
+	allowDir      func(string) bool
+	handler       ChangeHandler
+	debouncer     *debouncer
+	registrations *directoryRegistrationQueue
+	stopCh        chan struct{}
+	stopOnce      sync.Once
+	workers       sync.WaitGroup
+	watchedMu     sync.Mutex
+	watchedDirs   map[string]struct{}
 }
 
 // 创建文件监听器
-func NewWatcher(root string, extensions []string, handler ChangeHandler) (*Watcher, error) {
+func NewWatcher(
+	root string,
+	extensions []string,
+	allowDir func(string) bool,
+	handler ChangeHandler,
+) (*Watcher, error) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, err
 	}
+	return newWatcherWithBackend(
+		root,
+		extensions,
+		allowDir,
+		handler,
+		&fsnotifyBackend{watcher: watcher},
+	), nil
+}
 
-	w := &Watcher{
-		watcher:    watcher,
-		root:       root,
-		extensions: extensions,
-		handler:    handler,
-		debouncer:  newDebouncer(300 * time.Millisecond),
+func newWatcherWithBackend(
+	root string,
+	extensions []string,
+	allowDir func(string) bool,
+	handler ChangeHandler,
+	backend watcherBackend,
+) *Watcher {
+	return &Watcher{
+		backend:       backend,
+		root:          filepath.Clean(root),
+		extensions:    extensions,
+		allowDir:      allowDir,
+		handler:       handler,
+		debouncer:     newDebouncer(300 * time.Millisecond),
+		registrations: newDirectoryRegistrationQueue(),
+		stopCh:        make(chan struct{}),
+		watchedDirs:   make(map[string]struct{}),
 	}
-
-	return w, nil
 }
 
 // 启动文件监听
 func (w *Watcher) Start() error {
-	// 递归添加所有子目录到监听
-	err := filepath.Walk(w.root, func(path string, info os.FileInfo, err error) error {
+	w.workers.Add(2)
+	go w.handleEvents()
+	go w.handleRegistrations()
+
+	result := make(chan error, 1)
+	if !w.registrations.enqueue(directoryRegistration{root: w.root, result: result}) {
+		w.Stop()
+		return fmt.Errorf("文件监听器已停止")
+	}
+	select {
+	case err := <-result:
 		if err != nil {
+			w.Stop()
 			return err
 		}
-		if info.IsDir() {
-			return w.watcher.Add(path)
-		}
-		return nil
-	})
-
-	if err != nil {
-		return err
+	case <-w.stopCh:
+		return fmt.Errorf("文件监听器在启动完成前已停止")
 	}
-
-	// 启动事件处理协程
-	go w.handleEvents()
 
 	logger.Debug("FileWatcher", "文件监听器已启动，监听根目录: %s", w.root)
 	return nil
@@ -85,28 +116,47 @@ func (w *Watcher) Start() error {
 
 // 停止文件监听
 func (w *Watcher) Stop() {
-	if w.watcher != nil {
-		w.watcher.Close()
-	}
-	w.debouncer.stop()
-	logger.Debug("FileWatcher", "文件监听器已停止")
+	w.stopOnce.Do(func() {
+		w.registrations.close()
+		if w.backend != nil {
+			_ = w.backend.Close()
+		}
+		close(w.stopCh)
+		w.workers.Wait()
+		w.debouncer.stop()
+		logger.Debug("FileWatcher", "文件监听器已停止")
+	})
 }
 
 // 处理文件系统事件
 func (w *Watcher) handleEvents() {
+	defer w.workers.Done()
+	events := w.backend.Events()
+	errors := w.backend.Errors()
 	for {
 		select {
-		case event, ok := <-w.watcher.Events:
+		case event, ok := <-events:
 			if !ok {
-				return
+				events = nil
+				if errors == nil {
+					return
+				}
+				continue
 			}
 			w.processEvent(event)
 
-		case err, ok := <-w.watcher.Errors:
+		case err, ok := <-errors:
 			if !ok {
-				return
+				errors = nil
+				if events == nil {
+					return
+				}
+				continue
 			}
 			logger.Error("FileWatcher", "文件监听错误: %v", err)
+
+		case <-w.stopCh:
+			return
 		}
 	}
 }
@@ -133,10 +183,11 @@ func (w *Watcher) processEvent(event fsnotify.Event) {
 
 		// 新建目录添加到监听
 		if isDir {
-			if err := w.watcher.Add(event.Name); err != nil {
-				logger.Error("FileWatcher", "添加目录监听失败: %s, %v", event.Name, err)
-			} else {
-				logger.Debug("FileWatcher", "新增目录监听: %s", event.Name)
+			if w.allowDir != nil && !w.allowDir(event.Name) {
+				return
+			}
+			if w.registrations.enqueue(directoryRegistration{root: event.Name}) {
+				logger.Debug("FileWatcher", "提交新增目录监听: %s", event.Name)
 			}
 		}
 
@@ -163,6 +214,9 @@ func (w *Watcher) processEvent(event fsnotify.Event) {
 
 	} else {
 		return
+	}
+	if isDirectory && (changeType == ChangeTypeDeleted || changeType == ChangeTypeRenamed) {
+		w.forgetWatchedTree(event.Name)
 	}
 
 	// 规范化路径，确保与 FileService 中的路径格式一致

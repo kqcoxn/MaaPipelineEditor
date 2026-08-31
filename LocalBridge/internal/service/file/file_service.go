@@ -54,7 +54,7 @@ func NewService(root string, exclude []string, extensions []string, maxDepth, ma
 	s.scanner.SetMaxFiles(maxFiles)
 
 	// 创建文件监听器
-	watcher, err := NewWatcher(root, extensions, s.handleFileChange)
+	watcher, err := NewWatcher(root, extensions, s.scanner.AllowsDir, s.handleFileChange)
 	if err != nil {
 		return nil, err
 	}

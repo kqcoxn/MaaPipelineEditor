@@ -217,8 +217,19 @@ func runServer(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	// 从命令行参数覆盖配置
-	cfg.OverrideFromFlags(rootDir, interfacePath, logDir, logLevel, port, cmd.Flags().Changed("interface"))
+	// 从命令行参数解析当前进程的有效配置
+	if err := cfg.OverrideFromFlags(
+		rootDir,
+		interfacePath,
+		logDir,
+		logLevel,
+		port,
+		cmd.Flags().Changed("root"),
+		cmd.Flags().Changed("interface"),
+	); err != nil {
+		fmt.Fprintf(os.Stderr, "解析运行配置失败: %v\n", err)
+		os.Exit(1)
+	}
 
 	// 初始化日志系统
 	if err := logger.Init(cfg.Log.Level, cfg.Log.Dir, cfg.Log.PushToClient); err != nil {
@@ -229,7 +240,7 @@ func runServer(cmd *cobra.Command, args []string) {
 	logger.Info("Main", "Local Bridge 启动中... 版本: %s", Version)
 	logger.Debug("Main", "运行模式: %s", paths.GetModeName())
 	logger.Debug("Main", "数据目录: %s", paths.GetDataDir())
-	logger.Info("Main", "运行目录: %s", cfg.File.Root)
+	logger.Info("Main", "运行目录: %s (来源: %s)", cfg.EffectiveRoot(), cfg.Runtime().RootSource)
 	logger.Debug("Main", "监听端口: %d", cfg.Server.Port)
 	logger.Debug("Main", "扫描限制: 深度=%d, 文件数=%d", cfg.File.MaxDepth, cfg.File.MaxFiles)
 
@@ -280,7 +291,7 @@ func runServer(cmd *cobra.Command, args []string) {
 
 	// 创建文件服务
 	fileSvc, err := fileService.NewService(
-		cfg.File.Root,
+		cfg.EffectiveRoot(),
 		cfg.File.Exclude,
 		cfg.File.Extensions,
 		cfg.File.MaxDepth,
@@ -317,7 +328,7 @@ func runServer(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	piSvc, err := projectInterfaceService.NewService(cfg.File.Root, cfg.Interface.Path, fileSvc, eventBus)
+	piSvc, err := projectInterfaceService.NewService(cfg.EffectiveRoot(), cfg.Interface.Path, fileSvc, eventBus)
 	if err != nil {
 		logger.Error("Main", "创建 Project Interface 服务失败: %v", err)
 		os.Exit(1)
@@ -325,7 +336,7 @@ func runServer(cmd *cobra.Command, args []string) {
 	piSvc.Start()
 
 	// 创建资源扫描服务
-	resSvc := resourceService.NewService(cfg.File.Root, eventBus)
+	resSvc := resourceService.NewService(cfg.EffectiveRoot(), eventBus)
 	if err := resSvc.Start(); err != nil {
 		logger.Warn("Main", "资源扫描服务启动失败: %v", err)
 	} else {
@@ -389,7 +400,7 @@ func runServer(cmd *cobra.Command, args []string) {
 
 		// 重载资源扫描服务
 		if resSvc != nil {
-			if err := resSvc.Reload(cfg.File.Root); err != nil {
+			if err := resSvc.Reload(cfg.EffectiveRoot()); err != nil {
 				logger.Error("Main", "资源扫描服务重载失败: %v", err)
 			} else {
 				logger.Info("Main", "资源扫描服务重载完成")
@@ -431,7 +442,7 @@ func runServer(cmd *cobra.Command, args []string) {
 	})
 
 	// 注册协议处理器
-	fileHandler := fileProtocol.NewHandler(fileSvc, eventBus, wsServer, cfg.File.Root)
+	fileHandler := fileProtocol.NewHandler(fileSvc, eventBus, wsServer, cfg.EffectiveRoot())
 	rt.RegisterHandler(fileHandler)
 
 	// 注册 MFW 协议处理器
@@ -439,7 +450,7 @@ func runServer(cmd *cobra.Command, args []string) {
 	rt.RegisterHandler(mfwHandler)
 
 	// 注册 Utility 协议处理器
-	utilityHandler := utilityProtocol.NewUtilityHandler(mfwSvc, cfg.File.Root, Version)
+	utilityHandler := utilityProtocol.NewUtilityHandler(mfwSvc, cfg.EffectiveRoot(), Version)
 	rt.RegisterHandler(utilityHandler)
 
 	// 注册 Config 协议处理器
@@ -450,11 +461,11 @@ func runServer(cmd *cobra.Command, args []string) {
 	rt.RegisterHandler(piHandler)
 
 	// 注册 debug-vNext 协议处理器
-	debugHandler := debugapi.NewHandler(mfwSvc, cfg.File.Root, piSvc, Version)
+	debugHandler := debugapi.NewHandler(mfwSvc, cfg.EffectiveRoot(), piSvc, Version)
 	rt.RegisterHandler(debugHandler)
 
 	// 注册 Resource 协议处理器
-	resourceHandler := resourceProtocol.NewHandler(resSvc, eventBus, wsServer, cfg.File.Root)
+	resourceHandler := resourceProtocol.NewHandler(resSvc, eventBus, wsServer, cfg.EffectiveRoot())
 	rt.RegisterHandler(resourceHandler)
 
 	// 注册 AI 代理协议处理器。业务入口可以暂时没有，但传输基础设施保持可用。

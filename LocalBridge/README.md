@@ -91,7 +91,6 @@ mpelb --root D:/MaaProject --port 9066 --log-level DEBUG --log-dir ./logs
     ]
   },
   "file": {
-    "root": "./",
     "exclude": ["node_modules", ".git", "dist", "build"],
     "extensions": [".json", ".jsonc"],
     "max_depth": 10,
@@ -111,6 +110,8 @@ mpelb --root D:/MaaProject --port 9066 --log-level DEBUG --log-dir ./logs
   }
 }
 ```
+
+文件根目录按 `--root`、配置文件 `file.root`、启动工作目录的顺序确定。默认配置不写入 `file.root`。`--root` 的相对路径以启动工作目录为基准；配置文件中的相对路径以配置文件所在目录为基准。命令行值仅对当前进程生效，不会在保存其他配置时写回配置文件。
 
 ## 命令行参数
 

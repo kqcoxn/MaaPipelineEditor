@@ -20,7 +20,7 @@ type ServerConfig struct {
 
 // 文件相关配置
 type FileConfig struct {
-	Root       string   `mapstructure:"root" json:"root"`
+	Root       string   `mapstructure:"root" json:"root,omitempty"`
 	Exclude    []string `mapstructure:"exclude" json:"exclude"`
 	Extensions []string `mapstructure:"extensions" json:"extensions"`
 	MaxDepth   int      `mapstructure:"max_depth" json:"max_depth"` // 最大扫描深度，0 表示无限制
@@ -53,6 +53,9 @@ type Config struct {
 	Log       LogConfig       `mapstructure:"log" json:"log"`
 	MaaFW     MaaFWConfig     `mapstructure:"maafw" json:"maafw"`
 	Interface InterfaceConfig `mapstructure:"interface" json:"interface"`
+
+	configFilePath string
+	runtime        RuntimeConfig
 }
 
 // 全局单例
@@ -84,17 +87,14 @@ func Load(configPath string) (*Config, error) {
 		}
 	}
 
-	// 记录配置文件路径
-	configFilePath = v.ConfigFileUsed()
-
 	// 解析配置
 	cfg := &Config{}
 	if err := v.Unmarshal(cfg); err != nil {
 		return nil, fmt.Errorf("解析配置失败: %w", err)
 	}
 
-	// 处理相对路径
-	if err := cfg.normalize(); err != nil {
+	cfg.configFilePath = v.ConfigFileUsed()
+	if err := cfg.normalizePersistent(); err != nil {
 		return nil, err
 	}
 
@@ -139,23 +139,9 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("interface.path", "")
 }
 
-// 规范化配置路径
-func (c *Config) normalize() error {
-	// 处理文件根目录路径
-	if c.File.Root != "" && !filepath.IsAbs(c.File.Root) {
-		absPath, err := filepath.Abs(c.File.Root)
-		if err != nil {
-			return fmt.Errorf("解析根目录路径失败: %w", err)
-		}
-		c.File.Root = absPath
-	}
-
-	// 验证根目录是否存在
-	if c.File.Root != "" {
-		if _, err := os.Stat(c.File.Root); os.IsNotExist(err) {
-			return fmt.Errorf("根目录不存在: %s", c.File.Root)
-		}
-	}
+// normalizePersistent 只规范化磁盘配置，不解析运行时文件根目录。
+func (c *Config) normalizePersistent() error {
+	c.File.Root = normalizeConfiguredRoot(c.File.Root)
 
 	// 处理日志目录路径
 	if c.Log.Dir != "" && !filepath.IsAbs(c.Log.Dir) {
@@ -221,20 +207,22 @@ func bundledMaaFWResourceDir() string {
 	return filepath.Join(paths.GetExeDir(), "runtime", "resource")
 }
 
-// 从命令行参数覆盖配置
-func (c *Config) OverrideFromFlags(root, interfacePath, logDir, logLevel string, port int, interfaceSpecified ...bool) {
-	if root != "" {
-		c.File.Root = root
-	} else {
-		// 使用当前工作目录
-		wd, err := os.Getwd()
-		if err != nil {
-			// 如果获取失败，回退到 "./"
-			c.File.Root = "./"
-		} else {
-			c.File.Root = wd
-		}
+// OverrideFromFlags 解析当前进程的有效配置。命令行值只在运行时生效。
+func (c *Config) OverrideFromFlags(
+	root, interfacePath, logDir, logLevel string,
+	port int,
+	rootSpecified, interfaceSpecified bool,
+) error {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("获取当前工作目录失败: %w", err)
 	}
+
+	runtime, err := resolveFileRoot(c.File.Root, root, rootSpecified, c.configFilePath, cwd)
+	if err != nil {
+		return err
+	}
+	c.runtime = runtime
 
 	if logDir != "" {
 		c.Log.Dir = logDir
@@ -245,38 +233,46 @@ func (c *Config) OverrideFromFlags(root, interfacePath, logDir, logLevel string,
 	if port > 0 {
 		c.Server.Port = port
 	}
-	if len(interfaceSpecified) > 0 && interfaceSpecified[0] {
+	if interfaceSpecified {
 		c.Interface.Path = strings.TrimSpace(interfacePath)
 	}
 
-	// 重新规范化路径
-	c.normalize()
+	return c.normalizeRuntimePaths()
 }
 
-// 配置文件路径
-var configFilePath string
+func (c *Config) normalizeRuntimePaths() error {
+	if c.Log.Dir != "" && !filepath.IsAbs(c.Log.Dir) {
+		absPath, err := filepath.Abs(c.Log.Dir)
+		if err != nil {
+			return fmt.Errorf("解析日志目录路径失败: %w", err)
+		}
+		c.Log.Dir = absPath
+	}
+	return nil
+}
 
 // 返回当前配置文件路径
 func GetConfigFilePath() string {
-	if configFilePath != "" {
-		return configFilePath
+	if globalConfig != nil && globalConfig.configFilePath != "" {
+		return globalConfig.configFilePath
 	}
 	return paths.GetConfigFile()
 }
 
 // 保存配置到文件
 func (c *Config) Save() error {
-	if configFilePath == "" {
+	if c.configFilePath == "" {
 		return fmt.Errorf("配置文件路径未知，无法保存")
 	}
 
-	// 序列化配置
-	data, err := json.MarshalIndent(c, "", "    ")
+	persistent := *c
+	persistent.File.Root = normalizeConfiguredRoot(persistent.File.Root)
+	data, err := json.MarshalIndent(&persistent, "", "    ")
 	if err != nil {
 		return fmt.Errorf("序列化配置失败: %w", err)
 	}
 
-	if err := os.WriteFile(configFilePath, data, 0644); err != nil {
+	if err := os.WriteFile(c.configFilePath, data, 0644); err != nil {
 		return fmt.Errorf("写入配置文件失败: %w", err)
 	}
 
@@ -316,11 +312,11 @@ func (c *Config) CheckRootSafety() SafetyCheckResult {
 		Suggestions: []string{},
 	}
 
-	if c.File.Root == "" {
+	if c.EffectiveRoot() == "" {
 		return result
 	}
 
-	root := filepath.Clean(c.File.Root)
+	root := filepath.Clean(c.EffectiveRoot())
 
 	// 高风险目录检测
 	highRiskDirs := getHighRiskDirs()

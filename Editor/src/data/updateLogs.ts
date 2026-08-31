@@ -95,6 +95,14 @@ export const nextPreview: ForecastSection = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "1.9.3",
+    date: "2026-8",
+    type: "perf",
+    updates: {
+      fixes: ["修复根目录来源覆盖错误与监听死锁问题"],
+    },
+  },
+  {
     version: "1.9.2",
     date: "2026-8-30",
     type: "feature",

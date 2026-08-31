@@ -62,6 +62,7 @@ func (h *ConfigHandler) handleGetConfig(conn *server.Connection, msg models.Mess
 		Data: map[string]interface{}{
 			"success":     true,
 			"config":      cfg,
+			"runtime":     cfg.Runtime(),
 			"config_path": config.GetConfigFilePath(),
 		},
 	})
@@ -99,7 +100,7 @@ func (h *ConfigHandler) handleSetConfig(conn *server.Connection, msg models.Mess
 	// 更新文件配置
 	if fileConfig, ok := dataMap["file"].(map[string]interface{}); ok {
 		if root, ok := fileConfig["root"].(string); ok {
-			cfg.File.Root = root
+			cfg.SetFileRoot(root)
 			updated = true
 		}
 		if exclude, ok := fileConfig["exclude"].([]interface{}); ok {
@@ -171,8 +172,9 @@ func (h *ConfigHandler) handleSetConfig(conn *server.Connection, msg models.Mess
 		Data: map[string]interface{}{
 			"success":     true,
 			"config":      cfg,
+			"runtime":     cfg.Runtime(),
 			"config_path": config.GetConfigFilePath(),
-			"message":     "配置已保存，部分配置可能需要重启服务才能生效",
+			"message":     "配置已保存；文件根目录和监听地址需重启服务后生效",
 		},
 	})
 }

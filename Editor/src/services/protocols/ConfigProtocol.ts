@@ -32,12 +32,18 @@ export interface BackendConfig {
   };
 }
 
+export interface BackendRuntimeConfig {
+  file_root: string;
+  root_source: "cli" | "config" | "cwd";
+}
+
 /**
  * 配置响应数据结构
  */
 export interface ConfigResponse {
   success: boolean;
   config: BackendConfig;
+  runtime: BackendRuntimeConfig;
   config_path: string;
   message?: string;
 }

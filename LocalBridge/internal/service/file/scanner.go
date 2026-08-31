@@ -349,6 +349,15 @@ func fileContentHash(filePath string) string {
 
 // AllowsPath applies the same root, exclude and depth boundaries used by the initial scan.
 func (s *Scanner) AllowsPath(absPath string) bool {
+	return s.allowsPath(absPath, false)
+}
+
+// AllowsDir applies the same root, exclude and depth boundaries to a directory.
+func (s *Scanner) AllowsDir(absPath string) bool {
+	return s.allowsPath(absPath, true)
+}
+
+func (s *Scanner) allowsPath(absPath string, isDir bool) bool {
 	absPath, err := filepath.Abs(absPath)
 	if err != nil {
 		return false
@@ -357,11 +366,18 @@ func (s *Scanner) AllowsPath(absPath string) bool {
 	if err != nil || relPath == ".." || strings.HasPrefix(relPath, ".."+string(filepath.Separator)) {
 		return false
 	}
+	if relPath == "." {
+		return true
+	}
 	parts := strings.Split(filepath.Clean(relPath), string(filepath.Separator))
 	if s.maxDepth > 0 && len(parts) > s.maxDepth {
 		return false
 	}
-	for _, part := range parts[:max(0, len(parts)-1)] {
+	partsToCheck := parts
+	if !isDir {
+		partsToCheck = parts[:max(0, len(parts)-1)]
+	}
+	for _, part := range partsToCheck {
 		if s.shouldExcludeDir(part) {
 			return false
 		}
