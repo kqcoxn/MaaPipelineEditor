@@ -1,5 +1,5 @@
-import { memo, useMemo, useState } from "react";
-import { type Node, type NodeProps, useReactFlow } from "@xyflow/react";
+import { memo, useMemo } from "react";
+import { type Node, type NodeProps } from "@xyflow/react";
 import classNames from "classnames";
 
 import style from "../../../styles/flow/nodes.module.less";
@@ -7,7 +7,6 @@ import type { ExternalNodeDataType } from "../../../stores/flow";
 import { getNodeTypeLabelKey, useFlowStore } from "../../../stores/flow";
 import { useConfigStore } from "@/stores/app/configStore";
 import { NodeTypeEnum } from "./constants";
-import { NodeContextMenu } from "./components/NodeContextMenu";
 import { useNodeFocusState } from "../focusSelectors";
 import { ExternalNodeHandles } from "./components/NodeHandles";
 
@@ -44,16 +43,6 @@ type ExternalNodeData = Node<ExternalNodeDataType, NodeTypeEnum.External>;
 /**外部节点组件 */
 export function ExternalNode(props: NodeProps<ExternalNodeData>) {
   const focusOpacity = useConfigStore((state) => state.configs.focusOpacity);
-  const { getNode } = useReactFlow();
-
-  // 右键菜单状态
-  const [contextMenuOpen, setContextMenuOpen] = useState(false);
-
-  // 获取完整的 Node 对象
-  const node = getNode(props.id) as
-    | Node<ExternalNodeDataType, NodeTypeEnum.External>
-    | undefined;
-
   // 视觉副本数量（同 label 的其他 External 节点）
   const replicaCount = useFlowStore((state) =>
     Math.max(
@@ -85,24 +74,10 @@ export function ExternalNode(props: NodeProps<ExternalNodeData>) {
     return { opacity: focusOpacity };
   }, [isRelated, focusOpacity]);
 
-  if (!node) {
-    return (
-      <div className={nodeClass} style={opacityStyle}>
-        <ENodeContent data={props.data} replicaCount={replicaCount} />
-      </div>
-    );
-  }
-
   return (
-    <NodeContextMenu
-      node={node}
-      open={contextMenuOpen}
-      onOpenChange={setContextMenuOpen}
-    >
-      <div className={nodeClass} style={opacityStyle}>
-        <ENodeContent data={props.data} replicaCount={replicaCount} />
-      </div>
-    </NodeContextMenu>
+    <div className={nodeClass} style={opacityStyle}>
+      <ENodeContent data={props.data} replicaCount={replicaCount} />
+    </div>
   );
 }
 

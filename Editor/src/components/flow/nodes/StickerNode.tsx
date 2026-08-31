@@ -9,8 +9,6 @@ import type {
 } from "../../../stores/flow";
 import { useFlowStore } from "../../../stores/flow";
 import { NodeTypeEnum } from "./constants";
-import { NodeContextMenu } from "./components/NodeContextMenu";
-import type { NodeContextMenuNode } from "./nodeContextMenu";
 
 /**便签颜色主题配置 */
 export const STICKER_COLOR_THEMES: Record<
@@ -163,8 +161,6 @@ const StickerContent = memo(
 
 /**便签节点组件 */
 export function StickerNode(props: NodeProps<StickerNodeData>) {
-  const [contextMenuOpen, setContextMenuOpen] = useState(false);
-
   const theme =
     STICKER_COLOR_THEMES[props.data.color] || STICKER_COLOR_THEMES.yellow;
 
@@ -177,33 +173,17 @@ export function StickerNode(props: NodeProps<StickerNodeData>) {
     [props.selected],
   );
 
-  const node = {
-    id: props.id,
-    type: NodeTypeEnum.Sticker,
-    data: props.data,
-    position: {
-      x: props.positionAbsoluteX ?? 0,
-      y: props.positionAbsoluteY ?? 0,
-    },
-  } as unknown as NodeContextMenuNode;
-
   return (
-    <NodeContextMenu
-      node={node}
-      open={contextMenuOpen}
-      onOpenChange={setContextMenuOpen}
-    >
-      <div className={nodeClass}>
-        <NodeResizer
-          minWidth={140}
-          minHeight={100}
-          isVisible={props.selected}
-          lineStyle={{ borderColor: theme.border }}
-          handleStyle={{ backgroundColor: theme.border, borderColor: "#fff" }}
-        />
-        <StickerContent data={props.data} nodeId={props.id} />
-      </div>
-    </NodeContextMenu>
+    <div className={nodeClass}>
+      <NodeResizer
+        minWidth={140}
+        minHeight={100}
+        isVisible={props.selected}
+        lineStyle={{ borderColor: theme.border }}
+        handleStyle={{ backgroundColor: theme.border, borderColor: "#fff" }}
+      />
+      <StickerContent data={props.data} nodeId={props.id} />
+    </div>
   );
 }
 

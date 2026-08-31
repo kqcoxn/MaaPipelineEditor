@@ -1,4 +1,4 @@
-import { memo, useMemo, useState, useCallback, useRef } from "react";
+import { memo, useMemo, useCallback, useRef } from "react";
 import { type Node, type NodeProps, NodeResizer } from "@xyflow/react";
 import classNames from "classnames";
 
@@ -6,8 +6,6 @@ import style from "../../../styles/flow/nodes.module.less";
 import type { GroupNodeDataType, GroupColorTheme } from "../../../stores/flow";
 import { useFlowStore } from "../../../stores/flow";
 import { NodeTypeEnum } from "./constants";
-import { NodeContextMenu } from "./components/NodeContextMenu";
-import type { NodeContextMenuNode } from "./nodeContextMenu";
 
 /**分组颜色主题配置 */
 export const GROUP_COLOR_THEMES: Record<
@@ -108,8 +106,6 @@ const GroupContent = memo(
 
 /**分组节点组件 */
 export function GroupNode(props: NodeProps<GroupNodeData>) {
-  const [contextMenuOpen, setContextMenuOpen] = useState(false);
-
   const theme = GROUP_COLOR_THEMES[props.data.color] || GROUP_COLOR_THEMES.blue;
 
   const nodeClass = useMemo(
@@ -121,36 +117,20 @@ export function GroupNode(props: NodeProps<GroupNodeData>) {
     [props.selected],
   );
 
-  const node = {
-    id: props.id,
-    type: NodeTypeEnum.Group,
-    data: props.data,
-    position: {
-      x: props.positionAbsoluteX ?? 0,
-      y: props.positionAbsoluteY ?? 0,
-    },
-  } as unknown as NodeContextMenuNode;
-
   return (
-    <NodeContextMenu
-      node={node}
-      open={contextMenuOpen}
-      onOpenChange={setContextMenuOpen}
-    >
-      <div className={nodeClass}>
-        <NodeResizer
-          minWidth={200}
-          minHeight={150}
-          isVisible={props.selected}
-          lineStyle={{ borderColor: theme.border }}
-          handleStyle={{
-            backgroundColor: theme.border,
-            borderColor: "#fff",
-          }}
-        />
-        <GroupContent data={props.data} nodeId={props.id} />
-      </div>
-    </NodeContextMenu>
+    <div className={nodeClass}>
+      <NodeResizer
+        minWidth={200}
+        minHeight={150}
+        isVisible={props.selected}
+        lineStyle={{ borderColor: theme.border }}
+        handleStyle={{
+          backgroundColor: theme.border,
+          borderColor: "#fff",
+        }}
+      />
+      <GroupContent data={props.data} nodeId={props.id} />
+    </div>
   );
 }
 

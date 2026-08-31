@@ -1,6 +1,5 @@
-import { memo, useMemo, useState } from "react";
+import { memo, useMemo } from "react";
 import type { Node, NodeProps } from "@xyflow/react";
-import { useReactFlow } from "@xyflow/react";
 import classNames from "classnames";
 import style from "../../../../styles/flow/nodes.module.less";
 import type { PipelineNodeDataType } from "../../../../stores/flow";
@@ -10,7 +9,6 @@ import { ModernContent } from "./ModernContent";
 import { ClassicContent } from "./ClassicContent";
 import { MinimalContent } from "./MinimalContent";
 import { useShallow } from "zustand/shallow";
-import { NodeContextMenu } from "../components/NodeContextMenu";
 import { useDebugOverlayStore } from "@/stores/debug/debugOverlayStore";
 import { useNodeFocusState } from "../../focusSelectors";
 
@@ -19,16 +17,6 @@ type PNodeData = Node<PipelineNodeDataType, NodeTypeEnum.Pipeline>;
 export function PipelineNode(props: NodeProps<PNodeData>) {
   const nodeStyle = useConfigStore((state) => state.configs.nodeStyle);
   const focusOpacity = useConfigStore((state) => state.configs.focusOpacity);
-  const { getNode } = useReactFlow();
-
-  // 右键菜单状态
-  const [contextMenuOpen, setContextMenuOpen] = useState(false);
-
-  // 获取完整的 Node 对象
-  const node = getNode(props.id) as
-    | Node<PipelineNodeDataType, NodeTypeEnum.Pipeline>
-    | undefined;
-
   const debugOverlay = useDebugOverlayStore(
     useShallow((state) => ({
       currentNodeId: state.currentNodeId,
@@ -85,24 +73,10 @@ export function PipelineNode(props: NodeProps<PNodeData>) {
     }
   };
 
-  if (!node) {
-    return (
-      <div className={nodeClass} style={opacityStyle}>
-        {renderContent()}
-      </div>
-    );
-  }
-
   return (
-    <NodeContextMenu
-      node={node}
-      open={contextMenuOpen}
-      onOpenChange={setContextMenuOpen}
-    >
-      <div className={nodeClass} style={opacityStyle}>
-        {renderContent()}
-      </div>
-    </NodeContextMenu>
+    <div className={nodeClass} style={opacityStyle}>
+      {renderContent()}
+    </div>
   );
 }
 

@@ -35,6 +35,7 @@ import { NodeTypeEnum } from "./flow/nodes/constants";
 import { edgeTypes } from "./flow/edges";
 import { AvoidanceRoutingProvider } from "./flow/avoidanceRoutingContext";
 import { SelectionContextMenu } from "./flow/components/SelectionContextMenu";
+import { CanvasNodeContextMenu } from "./flow/nodes/components/CanvasNodeContextMenu";
 import { localSave, useFileStore } from "@/stores/project/fileStore";
 import NodeAddPanel, {
   type QuickCreateConnection,
@@ -302,6 +303,13 @@ function MainFlow() {
     y: number;
   } | null>(null);
 
+  // 节点右键菜单状态由画布统一持有，避免每个节点创建 Dropdown 和 Modal。
+  const [nodeContextMenu, setNodeContextMenu] = useState<{
+    nodeId: string;
+    position: { x: number; y: number };
+    open: boolean;
+  } | null>(null);
+
   // 回调
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
@@ -452,6 +460,9 @@ function MainFlow() {
         setNodeAddPanelVisible(false);
         setQuickCreateConnection(null);
       }
+      setNodeContextMenu((current) =>
+        current ? { ...current, open: false } : null,
+      );
     },
     [nodeAddPanelVisible],
   );
@@ -460,6 +471,7 @@ function MainFlow() {
   const onDoubleClick = useCallback(
     (event: React.MouseEvent | MouseEvent) => {
       if (readOnly) return;
+      setNodeContextMenu(null);
       setQuickCreateConnection(null);
       setNodeAddPanelPos({ x: event.clientX, y: event.clientY });
       setNodeAddPanelVisible(true);
@@ -472,12 +484,34 @@ function MainFlow() {
     (event: React.MouseEvent | MouseEvent) => {
       if (readOnly) return;
       event.preventDefault();
+      setNodeContextMenu(null);
       setQuickCreateConnection(null);
       setNodeAddPanelPos({ x: event.clientX, y: event.clientY });
       setNodeAddPanelVisible(true);
     },
     [readOnly],
   );
+
+  // 节点右键菜单使用固定屏幕坐标定位，菜单内容由单例宿主渲染。
+  const onNodeContextMenu = useCallback(
+    (event: React.MouseEvent, node: NodeType) => {
+      event.preventDefault();
+      setNodeAddPanelVisible(false);
+      setQuickCreateConnection(null);
+      setNodeContextMenu({
+        nodeId: node.id,
+        position: { x: event.clientX, y: event.clientY },
+        open: true,
+      });
+    },
+    [],
+  );
+
+  const onNodeContextMenuOpenChange = useCallback((open: boolean) => {
+    setNodeContextMenu((current) =>
+      current ? { ...current, open } : current,
+    );
+  }, []);
 
   // 关闭节点添加面板
   const closeNodeAddPanel = useCallback(() => {
@@ -702,6 +736,7 @@ function MainFlow() {
           onPaneClick={onPaneClick}
           onDoubleClick={onDoubleClick}
           onPaneContextMenu={onPaneContextMenu}
+          onNodeContextMenu={onNodeContextMenu}
           onSelectionContextMenu={onSelectionContextMenu}
           onNodeDrag={onNodeDrag}
           onNodeDragStop={onNodeDragStop}
@@ -731,6 +766,12 @@ function MainFlow() {
           <SnapGuidelines guidelines={snapGuidelines} />
         </ReactFlow>
       </AvoidanceRoutingProvider>
+      <CanvasNodeContextMenu
+        nodeId={nodeContextMenu?.nodeId ?? null}
+        position={nodeContextMenu?.position ?? null}
+        open={nodeContextMenu?.open ?? false}
+        onOpenChange={onNodeContextMenuOpenChange}
+      />
       {/* 选区右键菜单 */}
       <SelectionContextMenu
         position={selectionMenuPos}

@@ -1,5 +1,5 @@
 import { memo, useMemo, useState, useCallback } from "react";
-import { type Node, type NodeProps, useReactFlow } from "@xyflow/react";
+import { type Node, type NodeProps } from "@xyflow/react";
 import classNames from "classnames";
 import { useShallow } from "zustand/shallow";
 import { Popover, message } from "antd";
@@ -14,7 +14,6 @@ import {
 } from "../../../stores/flow";
 import { useConfigStore } from "@/stores/app/configStore";
 import { NodeTypeEnum } from "./constants";
-import { NodeContextMenu } from "./components/NodeContextMenu";
 import { AnchorNodeHandles } from "./components/NodeHandles";
 import { crossFileService } from "../../../services/crossFileService";
 import { isEmbedEnvironment } from "../../../utils/embedBridge";
@@ -103,16 +102,6 @@ export function AnchorNode(props: NodeProps<AnchorNodeData>) {
   const focusOpacity = useConfigStore((state) => state.configs.focusOpacity);
   const anchorDefinitions = useEmbedStore((state) => state.anchorDefinitions);
   const currentFileName = useEmbedStore((state) => state.currentFileName);
-  const { getNode } = useReactFlow();
-
-  // 右键菜单状态
-  const [contextMenuOpen, setContextMenuOpen] = useState(false);
-
-  // 获取完整的 Node 对象
-  const node = getNode(props.id) as
-    | Node<AnchorNodeDataType, NodeTypeEnum.Anchor>
-    | undefined;
-
   const instance = useFlowStore((state) => state.instance);
   const referencedNodes = useFlowStore(
     useShallow((state) => {
@@ -231,36 +220,16 @@ export function AnchorNode(props: NodeProps<AnchorNodeData>) {
     return { opacity: focusOpacity };
   }, [isRelated, focusOpacity]);
 
-  if (!node) {
-    return (
-      <div className={nodeClass} style={opacityStyle}>
-        <ANodeContent
-          data={props.data}
-          referenceNodes={referenceNodes}
-          onNavigateToNode={handleNavigateToNode}
-          canNavigateReferences={!isEmbed}
-          replicaCount={replicaCount}
-        />
-      </div>
-    );
-  }
-
   return (
-    <NodeContextMenu
-      node={node}
-      open={contextMenuOpen}
-      onOpenChange={setContextMenuOpen}
-    >
-      <div className={nodeClass} style={opacityStyle}>
-        <ANodeContent
-          data={props.data}
-          referenceNodes={referenceNodes}
-          onNavigateToNode={handleNavigateToNode}
-          canNavigateReferences={!isEmbed}
-          replicaCount={replicaCount}
-        />
-      </div>
-    </NodeContextMenu>
+    <div className={nodeClass} style={opacityStyle}>
+      <ANodeContent
+        data={props.data}
+        referenceNodes={referenceNodes}
+        onNavigateToNode={handleNavigateToNode}
+        canNavigateReferences={!isEmbed}
+        replicaCount={replicaCount}
+      />
+    </div>
   );
 }
 
