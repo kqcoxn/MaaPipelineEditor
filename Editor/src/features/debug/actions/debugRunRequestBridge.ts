@@ -22,6 +22,11 @@ export function requestDebugRun(intent: DebugRunRequestIntent): boolean {
   return true;
 }
 
+/** Queue an intent for the lazily mounted debug content without notifying the host. */
+export function queueDebugRun(intent: DebugRunRequestIntent): void {
+  pendingIntent = intent;
+}
+
 export function subscribeDebugRunRequests(
   listener: DebugRunRequestListener,
 ): () => void {

@@ -23,6 +23,14 @@ import style from "@/styles/panels/BusinessArchitecturePanel.module.less";
 const nodeTypes = { businessStage: BusinessStageNodeComponent };
 
 function BusinessArchitecturePanel() {
+  const activeDocumentRunId = useBusinessArchitectureStore(
+    (state) => state.activeDocumentRunId,
+  );
+  if (!activeDocumentRunId) return null;
+  return <BusinessArchitecturePanelContent />;
+}
+
+function BusinessArchitecturePanelContent() {
   const { message } = AntdApp.useApp();
   const documents = useBusinessArchitectureStore((state) => state.documents);
   const activeDocumentRunId = useBusinessArchitectureStore(

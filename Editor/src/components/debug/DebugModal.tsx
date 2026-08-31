@@ -1,6 +1,8 @@
 ﻿import {
   useState,
   useCallback,
+  useEffect,
+  useRef,
   type CSSProperties,
   type ReactNode,
 } from "react";
@@ -21,6 +23,8 @@ import { useDebugModalController } from "../../features/debug/hooks/useDebugModa
 import { useControlledPanelOccupancy } from "../../hooks/useControlledPanelOccupancy";
 import type { DebugModalController } from "../../features/debug/hooks/useDebugModalController";
 import { useDebugRunStatusTracker } from "../../features/debug/hooks/useDebugRunStatusTracker";
+import { subscribeDebugRunRequests, queueDebugRun, type DebugRunRequestIntent } from "../../features/debug/actions/debugRunRequestBridge";
+import { useDebugSessionStore } from "@/stores/debug/debugSessionStore";
 import { OverviewPanel } from "../../features/debug/components/panels/OverviewPanel";
 import { SetupPanel } from "../../features/debug/components/panels/SetupPanel";
 import { ResourceHealthPanel } from "../../features/debug/components/panels/ResourceHealthPanel";
@@ -181,8 +185,31 @@ const drawerHeaderStyle: CSSProperties = {
 };
 
 export function DebugModal() {
-  const controller = useDebugModalController();
+  const modalOpen = useDebugSessionStore((state) => state.modalOpen);
+  const openModal = useDebugSessionStore((state) => state.openModal);
+  const modalOpenRef = useRef(modalOpen);
+  modalOpenRef.current = modalOpen;
   useDebugRunStatusTracker();
+
+  // Keep the bridge alive while the heavy drawer content is unloaded. The
+  // intent is queued again and consumed by DebugModalContent after mount.
+  useEffect(
+    () =>
+      subscribeDebugRunRequests((intent: DebugRunRequestIntent) => {
+        // The content has its own listener while open. Only the host needs to
+        // open the drawer and requeue intents received while it is unloaded.
+        if (modalOpenRef.current) return;
+        openModal("overview");
+        window.setTimeout(() => queueDebugRun(intent), 0);
+      }),
+    [openModal],
+  );
+
+  return modalOpen ? <DebugModalContent /> : null;
+}
+
+function DebugModalContent() {
+  const controller = useDebugModalController();
   const drawerOpen = useControlledPanelOccupancy(
     "debug",
     controller.modalOpen,

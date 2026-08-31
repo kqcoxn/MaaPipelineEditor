@@ -44,6 +44,8 @@ interface UseDebugResourceChecksOptions {
   projectContextId?: string;
 }
 
+const EMPTY_ARRAY: never[] = [];
+
 export function useDebugResourceChecks({
   modalOpen,
   activePanel,
@@ -55,14 +57,14 @@ export function useDebugResourceChecks({
 }: UseDebugResourceChecksOptions) {
   const { files, currentFileName } = useFileStore(
     useShallow((state) => ({
-      files: state.files,
-      currentFileName: state.currentFile.fileName,
+      files: activePanel === "resource-health" ? state.files : EMPTY_ARRAY,
+      currentFileName: activePanel === "resource-health" ? state.currentFile.fileName : "",
     })),
   );
   const { flowNodes, flowEdges } = useFlowStore(
     useShallow((state) => ({
-      flowNodes: state.nodes,
-      flowEdges: state.edges,
+      flowNodes: activePanel === "resource-health" ? state.nodes : EMPTY_ARRAY,
+      flowEdges: activePanel === "resource-health" ? state.edges : EMPTY_ARRAY,
     })),
   );
   const { resourceBundles, localFiles, localFilesRevision } = useLocalFileStore(
@@ -150,6 +152,7 @@ export function useDebugResourceChecks({
   );
 
   const resourceHealthDraft = useMemo(() => {
+    if (activePanel !== "resource-health") return {};
     try {
       void resourceHealthSnapshotKey;
       const runRequest = profileState.buildRunRequest(
@@ -174,6 +177,7 @@ export function useDebugResourceChecks({
       };
     }
   }, [
+    activePanel,
     profileState,
     projectContextId,
     resolvedResourcePaths,

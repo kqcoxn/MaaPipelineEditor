@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  queueDebugRun,
   requestDebugRun,
   subscribeDebugRunRequests,
   type DebugRunRequestIntent,
@@ -37,6 +38,19 @@ describe("debugRunRequestBridge", () => {
     expect(
       requestDebugRun(intent),
     ).toBe(true);
+
+    const listener = vi.fn();
+    unsubscribers.push(subscribeDebugRunRequests(listener));
+    expect(listener).toHaveBeenCalledOnce();
+    expect(listener).toHaveBeenCalledWith(intent);
+  });
+
+  it("宿主打开抽屉后重新排队的请求可由内容启动器消费", () => {
+    const intent: DebugRunRequestIntent = {
+      nodeId: "pipeline-node",
+      mode: "single-node-run",
+    };
+    queueDebugRun(intent);
 
     const listener = vi.fn();
     unsubscribers.push(subscribeDebugRunRequests(listener));

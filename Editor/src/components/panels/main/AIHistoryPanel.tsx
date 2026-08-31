@@ -66,11 +66,6 @@ function useMobileDrawer(): boolean {
 }
 
 function AIHistoryPanel() {
-  const { modal, message } = AntdApp.useApp();
-  const mobile = useMobileDrawer();
-  const [draft, setDraft] = useState("");
-  const [drawerSize, setDrawerSize] = useState(620);
-  const [sessionSwitcherOpen, setSessionSwitcherOpen] = useState(false);
   const show = useConfigStore((state) => state.status.showAIHistoryPanel);
   const setStatus = useConfigStore((state) => state.setStatus);
   const closePanel = useCallback(
@@ -82,6 +77,38 @@ function AIHistoryPanel() {
     show,
     closePanel,
   );
+  const [draft, setDraft] = useState("");
+  const [drawerSize, setDrawerSize] = useState(620);
+
+  if (!panelOpen) return null;
+  return (
+    <AIHistoryPanelContent
+      closePanel={closePanel}
+      draft={draft}
+      setDraft={setDraft}
+      drawerSize={drawerSize}
+      setDrawerSize={setDrawerSize}
+    />
+  );
+}
+
+function AIHistoryPanelContent({
+  closePanel,
+  draft,
+  setDraft,
+  drawerSize,
+  setDrawerSize,
+}: {
+  closePanel: () => void;
+  draft: string;
+  setDraft: (value: string) => void;
+  drawerSize: number;
+  setDrawerSize: (value: number) => void;
+}) {
+  const { modal, message } = AntdApp.useApp();
+  const mobile = useMobileDrawer();
+  const [sessionSwitcherOpen, setSessionSwitcherOpen] = useState(false);
+  const panelOpen = true;
   const sessions = useAIHarnessStore((state) => state.sessions);
   const activeSessionId = useAIHarnessStore((state) => state.activeSessionId);
   const runs = useAIHarnessStore((state) => state.runs);
@@ -140,7 +167,7 @@ function AIHistoryPanel() {
       setDraft(goal);
       message.error(error instanceof Error ? error.message : "无法启动 AI Run");
     }
-  }, [activeSessionId, isAnyRunRunning, message]);
+  }, [activeSessionId, isAnyRunRunning, message, setDraft]);
 
   const handleSemanticLayout = useCallback(async () => {
     if (isAnyRunRunning) return;
