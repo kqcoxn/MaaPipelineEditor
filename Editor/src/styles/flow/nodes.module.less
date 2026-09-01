@@ -331,20 +331,28 @@
     align-items: center;
     border-radius: 0 0 6px 6px;
 
+    .nodeTemplateImageSlot {
+      width: 60px;
+      height: 36px;
+      flex: 0 0 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background-color: #fff;
+      border: 1px solid #e8e8e8;
+      border-radius: 2px;
+    }
+
     :global(.ant-image) {
       display: flex;
       align-items: center;
       justify-content: center;
-      background-color: #fff;
-      border: 1px solid #e8e8e8;
-      border-radius: 2px;
-      padding: 2px;
       transition: transform 0.15s ease;
       cursor: pointer;
 
       &:hover {
         transform: scale(1.05);
-        border-color: #1890ff;
       }
 
       img {

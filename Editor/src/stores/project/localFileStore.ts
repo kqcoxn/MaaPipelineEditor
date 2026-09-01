@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { subscribeWithSelector } from "zustand/middleware";
 
 /**
  * 文件节点信息
@@ -42,7 +43,8 @@ export type ResourceBundle = {
  * 图片缓存项
  */
 export type ImageCacheItem = {
-  base64: string; // base64 编码
+  blob: Blob; // 解码后的图片数据
+  url: string; // 复用的 Object URL
   mimeType: string; // MIME 类型
   width: number; // 图片宽度
   height: number; // 图片高度
@@ -62,7 +64,7 @@ export type ImageFileInfo = {
 /**
  * 本地文件缓存状态
  */
-type LocalFileState = {
+export type LocalFileState = {
   rootPath: string; // 根目录路径
   files: LocalFileInfo[]; // 文件列表
   directories: string[]; // 子目录绝对路径列表（包括空目录）
@@ -74,6 +76,7 @@ type LocalFileState = {
   imageDirs: string[]; // 所有 image 目录的绝对路径
   imageCache: Map<string, ImageCacheItem>; // 图片缓存
   pendingImageRequests: Set<string>; // 正在请求的图片路径
+  imageCacheGeneration: number; // 缓存清理代次，用于重新声明图片需求
 
   // 图片列表相关
   imageList: ImageFileInfo[]; // 图片文件列表
@@ -110,9 +113,15 @@ type LocalFileState = {
 
   // 图片缓存相关
   setImageCache: (relativePath: string, data: ImageCacheItem) => void;
+  setImageCaches: (
+    entries: ReadonlyArray<readonly [string, ImageCacheItem]>,
+    completedPaths?: readonly string[],
+  ) => void;
   getImageCache: (relativePath: string) => ImageCacheItem | undefined;
   setPendingImageRequest: (relativePath: string, pending: boolean) => void;
+  setPendingImageRequests: (relativePaths: string[], pending: boolean) => void;
   isImagePending: (relativePath: string) => boolean;
+  clearImageCache: () => void;
 
   // 图片列表相关
   setImageList: (
@@ -132,7 +141,14 @@ type LocalFileState = {
  * 用于存储从LocalBridge接收的文件列表
  * 不进行localStorage持久化，始终从后端实时获取
  */
-export const useLocalFileStore = create<LocalFileState>()((set, get) => ({
+function revokeImageCache(cache: Map<string, ImageCacheItem>): void {
+  for (const item of cache.values()) {
+    URL.revokeObjectURL(item.url);
+  }
+}
+
+export const useLocalFileStore = create<LocalFileState>()(
+  subscribeWithSelector((set, get) => ({
   rootPath: "",
   files: [],
   directories: [],
@@ -144,6 +160,7 @@ export const useLocalFileStore = create<LocalFileState>()((set, get) => ({
   imageDirs: [],
   imageCache: new Map<string, ImageCacheItem>(),
   pendingImageRequests: new Set<string>(),
+  imageCacheGeneration: 0,
 
   // 图片列表相关
   imageList: [],
@@ -153,12 +170,28 @@ export const useLocalFileStore = create<LocalFileState>()((set, get) => ({
 
   // 更新文件列表
   setFileList(rootPath, files, directories) {
-    set({
-      rootPath,
-      files,
-      directories,
-      lastUpdateTime: Date.now(),
-      isRefreshing: false,
+    set((state) => {
+      const rootChanged = state.rootPath !== "" && state.rootPath !== rootPath;
+      if (rootChanged) revokeImageCache(state.imageCache);
+
+      return {
+        rootPath,
+        files,
+        directories,
+        lastUpdateTime: Date.now(),
+        isRefreshing: false,
+        ...(rootChanged
+          ? {
+              imageCache: new Map<string, ImageCacheItem>(),
+              pendingImageRequests: new Set<string>(),
+              imageCacheGeneration: state.imageCacheGeneration + 1,
+              imageList: [],
+              imageListBundleName: "",
+              imageListIsFiltered: false,
+              imageListLoading: false,
+            }
+          : {}),
+      };
     });
   },
 
@@ -269,11 +302,24 @@ export const useLocalFileStore = create<LocalFileState>()((set, get) => ({
 
   // 设置图片缓存
   setImageCache(relativePath, data) {
+    get().setImageCaches([[relativePath, data]], [relativePath]);
+  },
+
+  // 批量设置图片缓存，一次响应只广播一次 Store 更新
+  setImageCaches(entries, completedPaths = entries.map(([path]) => path)) {
     set((state) => {
       const newCache = new Map(state.imageCache);
-      newCache.set(relativePath, data);
       const newPending = new Set(state.pendingImageRequests);
-      newPending.delete(relativePath);
+
+      for (const [relativePath, data] of entries) {
+        const previous = newCache.get(relativePath);
+        if (previous && previous.url !== data.url) {
+          URL.revokeObjectURL(previous.url);
+        }
+        newCache.set(relativePath, data);
+      }
+      completedPaths.forEach((path) => newPending.delete(path));
+
       return {
         imageCache: newCache,
         pendingImageRequests: newPending,
@@ -288,14 +334,25 @@ export const useLocalFileStore = create<LocalFileState>()((set, get) => ({
 
   // 设置图片请求状态
   setPendingImageRequest(relativePath, pending) {
+    get().setPendingImageRequests([relativePath], pending);
+  },
+
+  // 批量设置图片请求状态
+  setPendingImageRequests(relativePaths, pending) {
+    if (relativePaths.length === 0) return;
+
     set((state) => {
       const newPending = new Set(state.pendingImageRequests);
-      if (pending) {
-        newPending.add(relativePath);
-      } else {
-        newPending.delete(relativePath);
+      let changed = false;
+      for (const relativePath of relativePaths) {
+        if (pending && !newPending.has(relativePath)) {
+          newPending.add(relativePath);
+          changed = true;
+        } else if (!pending && newPending.delete(relativePath)) {
+          changed = true;
+        }
       }
-      return { pendingImageRequests: newPending };
+      return changed ? { pendingImageRequests: newPending } : {};
     });
   },
 
@@ -304,8 +361,21 @@ export const useLocalFileStore = create<LocalFileState>()((set, get) => ({
     return get().pendingImageRequests.has(relativePath);
   },
 
+  clearImageCache() {
+    const { imageCache, imageCacheGeneration } = get();
+    revokeImageCache(imageCache);
+
+    set({
+      imageCache: new Map<string, ImageCacheItem>(),
+      pendingImageRequests: new Set<string>(),
+      imageCacheGeneration: imageCacheGeneration + 1,
+    });
+  },
+
   // 清空缓存
   clear() {
+    const { imageCache, imageCacheGeneration } = get();
+    revokeImageCache(imageCache);
     set({
       rootPath: "",
       files: [],
@@ -316,6 +386,7 @@ export const useLocalFileStore = create<LocalFileState>()((set, get) => ({
       imageDirs: [],
       imageCache: new Map<string, ImageCacheItem>(),
       pendingImageRequests: new Set<string>(),
+      imageCacheGeneration: imageCacheGeneration + 1,
       imageList: [],
       imageListBundleName: "",
       imageListIsFiltered: false,
@@ -347,4 +418,5 @@ export const useLocalFileStore = create<LocalFileState>()((set, get) => ({
       imageListLoading: false,
     });
   },
-}));
+  })),
+);

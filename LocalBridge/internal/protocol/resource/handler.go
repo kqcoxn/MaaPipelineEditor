@@ -99,7 +99,8 @@ func (h *Handler) handleGetImages(msg models.Message, conn *server.Connection) *
 	return &models.Message{
 		Path: "/lte/images",
 		Data: models.GetImagesResponse{
-			Images: images,
+			RequestID: req.RequestID,
+			Images:    images,
 		},
 	}
 }

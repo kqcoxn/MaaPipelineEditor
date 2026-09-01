@@ -2,6 +2,7 @@ import { memo, useState, useEffect, useCallback, useMemo } from "react";
 import { AutoComplete, Image, Spin, Empty } from "antd";
 import { useLocalFileStore } from "@/stores/project/localFileStore";
 import { resourceProtocol } from "../../../../services/server";
+import { useResourceImages } from "@/hooks/useResourceImages";
 import { useWSStore } from "@/stores/connection/wsStore";
 import { useFileStore } from "@/stores/project/fileStore";
 import style from "../../../../styles/panels/FieldPanel.module.less";
@@ -34,11 +35,6 @@ export const ImageSelect = memo(
     const imageListIsFiltered = useLocalFileStore(
       (state) => state.imageListIsFiltered,
     );
-    const imageCache = useLocalFileStore((state) => state.imageCache);
-    const pendingImageRequests = useLocalFileStore(
-      (state) => state.pendingImageRequests,
-    );
-
     const [open, setOpen] = useState(false);
     const [searchValue, setSearchValue] = useState(value || "");
 
@@ -69,10 +65,8 @@ export const ImageSelect = memo(
       );
     }, [imageList, searchValue]);
 
-    // 请求过滤后选项的缩略图
-    useEffect(() => {
-      if (!connected || !open) return;
-
+    const preloadPaths = useMemo(() => {
+      if (!open) return [];
       // 只请求前50个可见项的缩略图，避免一次性加载过多
       const MAX_PRELOAD = 50;
       const pathsToLoad = filteredOptions
@@ -83,20 +77,13 @@ export const ImageSelect = memo(
       if (value && !pathsToLoad.includes(value)) {
         pathsToLoad.push(value);
       }
-
-      pathsToLoad.forEach((path) => {
-        if (!imageCache.has(path) && !pendingImageRequests.has(path)) {
-          resourceProtocol.requestImage(path);
-        }
-      });
-    }, [
-      connected,
-      open,
-      filteredOptions,
-      value,
-      imageCache,
-      pendingImageRequests,
-    ]);
+      return pathsToLoad;
+    }, [filteredOptions, open, value]);
+    const { images: thumbnailImages } = useResourceImages(preloadPaths, open);
+    const thumbnailByPath = useMemo(
+      () => new Map(thumbnailImages.map((item) => [item.path, item])),
+      [thumbnailImages],
+    );
 
     // 生成下拉选项
     const options = useMemo(() => {
@@ -145,8 +132,9 @@ export const ImageSelect = memo(
       }
 
       return filteredOptions.map((img) => {
-        const cache = imageCache.get(img.relativePath);
-        const isPending = pendingImageRequests.has(img.relativePath);
+        const thumbnail = thumbnailByPath.get(img.relativePath);
+        const cache = thumbnail?.image;
+        const isPending = thumbnail?.pending === true;
 
         return {
           value: img.relativePath,
@@ -194,10 +182,11 @@ export const ImageSelect = memo(
                 </div>
               ) : (
                 <Image
-                  src={`data:${cache.mimeType};base64,${cache.base64}`}
+                  src={cache.url}
                   alt={img.relativePath}
                   width={THUMBNAIL_SIZE}
                   height={THUMBNAIL_SIZE}
+                  decoding="async"
                   style={{
                     objectFit: "cover",
                     borderRadius: 4,
@@ -233,8 +222,7 @@ export const ImageSelect = memo(
       imageListLoading,
       filteredOptions,
       imageListIsFiltered,
-      imageCache,
-      pendingImageRequests,
+      thumbnailByPath,
       searchValue,
     ]);
 

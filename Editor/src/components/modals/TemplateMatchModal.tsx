@@ -5,8 +5,11 @@ import {
   ScreenshotModalBase,
   type CanvasRenderProps,
 } from "./ScreenshotModalBase";
-import { mfwProtocol, resourceProtocol } from "../../services/server";
-import { useLocalFileStore } from "@/stores/project/localFileStore";
+import { mfwProtocol } from "../../services/server";
+import {
+  imageBlobToDataUrl,
+  useResourceImages,
+} from "@/hooks/useResourceImages";
 import type { Rectangle } from "../../utils/data/roiNegativeCoord";
 
 interface MatchBox {
@@ -83,15 +86,12 @@ export const TemplateMatchModal = memo(
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const viewportPropsRef = useRef<CanvasRenderProps | null>(null);
 
-    const imageCache = useLocalFileStore((state) => state.imageCache);
     const templatePath = firstTemplatePath(templateValue);
-
-    // 打开时按需请求模板图
-    useEffect(() => {
-      if (open && templatePath && !imageCache.has(templatePath)) {
-        resourceProtocol.requestImage(templatePath);
-      }
-    }, [open, templatePath, imageCache]);
+    const { images: templateImages } = useResourceImages(
+      templatePath ? [templatePath] : [],
+      open,
+    );
+    const templateImage = templateImages[0]?.image;
 
     // 初始化 ROI
     const initializedRef = useRef(false);
@@ -108,26 +108,30 @@ export const TemplateMatchModal = memo(
       if (!open) initializedRef.current = false;
     }, [initialROI, screenshot, open]);
 
-    // 解析模板图为 dataURL
-    const templateDataUrl = useCallback((): string | null => {
-      const cache = imageCache.get(templatePath);
-      if (!cache) return null;
-      return `data:${cache.mimeType};base64,${cache.base64}`;
-    }, [imageCache, templatePath]);
-
     // 发起验证
-    const handleVerify = useCallback(() => {
+    const handleVerify = useCallback(async () => {
       if (!screenshot) {
         message.warning("请先截图或上传底图");
         return;
       }
-      const tpl = templateDataUrl();
-      if (!tpl) {
+      if (!templateImage) {
         message.warning(
           templatePath
             ? "模板图尚未加载，请稍候或确认 template 路径正确"
             : "当前节点未设置 template 路径",
         );
+        return;
+      }
+
+      setIsMatching(true);
+      setResult(null);
+      let templateDataUrl: string;
+      try {
+        templateDataUrl = await imageBlobToDataUrl(templateImage.blob);
+      } catch (error) {
+        setIsMatching(false);
+        console.error("[TemplateMatchModal] 模板图转换失败:", error);
+        message.error("模板图读取失败，请重新打开后再试");
         return;
       }
 
@@ -140,17 +144,23 @@ export const TemplateMatchModal = memo(
           ]
         : [0, 0, 0, 0];
 
-      setIsMatching(true);
-      setResult(null);
       mfwProtocol.requestTemplateMatch({
         base_image: screenshot,
-        template_image: tpl,
+        template_image: templateDataUrl,
         roi,
         threshold,
         method,
         green_mask: greenMask,
       });
-    }, [screenshot, templateDataUrl, templatePath, rectangle, threshold, method, greenMask]);
+    }, [
+      screenshot,
+      templateImage,
+      templatePath,
+      rectangle,
+      threshold,
+      method,
+      greenMask,
+    ]);
 
     // 监听匹配结果
     useEffect(() => {
@@ -343,7 +353,7 @@ export const TemplateMatchModal = memo(
 
     // PLACEHOLDER_RENDER
 
-    const tplUrl = templateDataUrl();
+    const tplUrl = templateImage?.url;
 
     return (
       <ScreenshotModalBase
@@ -386,6 +396,7 @@ export const TemplateMatchModal = memo(
                 <img
                   src={tplUrl}
                   alt="template"
+                  decoding="async"
                   style={{
                     maxWidth: "100%",
                     maxHeight: 100,
@@ -540,5 +551,3 @@ export const TemplateMatchModal = memo(
     );
   },
 );
-
-

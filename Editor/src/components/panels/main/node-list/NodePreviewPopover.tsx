@@ -3,11 +3,9 @@
  * 在 hover 节点列表项时显示节点详细信息预览
  */
 
-import { memo, useState, useEffect, useMemo } from "react";
+import { memo, useState, useMemo } from "react";
 import { Popover, Image, Spin } from "antd";
-import { useLocalFileStore } from "@/stores/project/localFileStore";
-import { resourceProtocol } from "../../../../services/server";
-import { useWSStore } from "@/stores/connection/wsStore";
+import { useResourceImages } from "@/hooks/useResourceImages";
 import { NodeTypeEnum } from "../../../flow/nodes/constants";
 import {
   getRecognitionIcon,
@@ -42,10 +40,6 @@ const formatParamValue = (value: any, maxLength = 30): string => {
 
 /** 节点预览内容组件 */
 const NodePreviewContent = memo(({ node }: { node: NodeListItemInfo }) => {
-  const connected = useWSStore((state) => state.connected);
-  const imageCache = useLocalFileStore((state) => state.imageCache);
-  const pendingImageRequests = useLocalFileStore((state) => state.pendingImageRequests);
-
   // 节点类型图标
   const nodeTypeIconConfig = useMemo(() => {
     if (node.nodeType === NodeTypeEnum.External) {
@@ -69,56 +63,45 @@ const NodePreviewContent = memo(({ node }: { node: NodeListItemInfo }) => {
 
   // 模板图片
   const templatePaths = node.templatePaths || [];
-  const validPaths = templatePaths.filter((p) => p && p.trim());
-
-  // 请求图片
-  useEffect(() => {
-    if (connected && validPaths.length > 0) {
-      validPaths.forEach((path) => {
-        if (!imageCache.has(path) && !pendingImageRequests.has(path)) {
-          resourceProtocol.requestImage(path);
-        }
-      });
-    }
-  }, [connected, validPaths, imageCache, pendingImageRequests]);
+  const { images } = useResourceImages(templatePaths);
 
   // 渲染模板图片
   const renderTemplateImages = () => {
-    if (validPaths.length === 0) return null;
+    if (images.length === 0) return null;
 
     return (
       <div className={style["preview-images"]}>
-        {validPaths.map((path) => {
-          const cached = imageCache.get(path);
-          const isPending = pendingImageRequests.has(path);
-
-          if (isPending) {
+        {images.map(({ path, image, pending }, index) => {
+          if (pending && !image) {
             return (
-              <div key={path} className={style["preview-image-loading"]}>
+              <div
+                key={`${path}-${index}`}
+                className={style["preview-image-loading"]}
+              >
                 <Spin size="small" />
               </div>
             );
           }
 
-          if (!cached) {
+          if (!image) {
             return (
-              <div key={path} className={style["preview-image-placeholder"]}>
+              <div
+                key={`${path}-${index}`}
+                className={style["preview-image-placeholder"]}
+              >
                 ?
               </div>
             );
           }
 
-          const { base64, mimeType, width, height } = cached;
-          const displayHeight = 40;
-          const displayWidth = Math.round((width / height) * displayHeight);
-
           return (
             <Image
-              key={path}
-              src={`data:${mimeType};base64,${base64}`}
+              key={`${path}-${index}`}
+              src={image.url}
               alt={path}
-              width={Math.min(displayWidth, 60)}
-              height={displayHeight}
+              width={40}
+              height={40}
+              decoding="async"
               style={{ objectFit: "contain", borderRadius: 2 }}
               preview={false}
             />
@@ -282,7 +265,7 @@ export const NodePreviewPopover = memo(
 
     return (
       <Popover
-        content={<NodePreviewContent node={node} />}
+        content={open ? <NodePreviewContent node={node} /> : null}
         trigger="hover"
         placement="left"
         mouseEnterDelay={0.3}

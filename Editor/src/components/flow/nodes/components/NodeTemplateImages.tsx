@@ -1,8 +1,6 @@
-import { memo, useEffect, useMemo, useRef, useCallback } from "react";
-import { Image as AntImage } from "antd";
-import { useLocalFileStore } from "@/stores/project/localFileStore";
-import { resourceProtocol } from "../../../../services/server";
-import { useWSStore } from "@/stores/connection/wsStore";
+import { memo } from "react";
+import { Image as AntImage, Spin } from "antd";
+import { useResourceImages } from "@/hooks/useResourceImages";
 import style from "../../../../styles/flow/nodes.module.less";
 
 interface NodeTemplateImagesProps {
@@ -11,8 +9,26 @@ interface NodeTemplateImagesProps {
 
 // 单张图片的最大高度
 const MAX_IMAGE_HEIGHT = 36;
-// 请求防抖延迟
-const REQUEST_DEBOUNCE_MS = 300;
+const MAX_IMAGE_WIDTH = 60;
+
+function getDisplaySize(width: number, height: number): {
+  width: number;
+  height: number;
+} {
+  if (width <= 0 || height <= 0) {
+    return { width: MAX_IMAGE_HEIGHT, height: MAX_IMAGE_HEIGHT };
+  }
+
+  const scale = Math.min(
+    MAX_IMAGE_WIDTH / width,
+    MAX_IMAGE_HEIGHT / height,
+    1,
+  );
+  return {
+    width: Math.max(1, Math.round(width * scale)),
+    height: Math.max(1, Math.round(height * scale)),
+  };
+}
 
 /**
  * 节点模板图片显示组件
@@ -20,99 +36,41 @@ const REQUEST_DEBOUNCE_MS = 300;
  */
 export const NodeTemplateImages = memo(
   ({ templatePaths }: NodeTemplateImagesProps) => {
-    const connected = useWSStore((state) => state.connected);
-
-    // 订阅图片缓存
-    const imageCache = useLocalFileStore((state) => state.imageCache);
-    const pendingImageRequests = useLocalFileStore(
-      (state) => state.pendingImageRequests,
-    );
-
-    // 过滤有效路径
-    const validPaths = useMemo(
-      () => templatePaths.filter((p) => p && p.trim() !== ""),
-      [templatePaths],
-    );
-
-    // 请求图片
-    const requestTimerRef = useRef<number | null>(null);
-
-    const requestImages = useCallback(() => {
-      if (!connected || validPaths.length === 0) return;
-
-      validPaths.forEach((path) => {
-        if (!imageCache.has(path) && !pendingImageRequests.has(path)) {
-          resourceProtocol.requestImage(path);
-        }
-      });
-    }, [connected, validPaths, imageCache, pendingImageRequests]);
-
-    useEffect(() => {
-      if (requestTimerRef.current) {
-        clearTimeout(requestTimerRef.current);
-      }
-
-      requestTimerRef.current = window.setTimeout(() => {
-        requestImages();
-      }, REQUEST_DEBOUNCE_MS);
-
-      return () => {
-        if (requestTimerRef.current) {
-          clearTimeout(requestTimerRef.current);
-        }
-      };
-    }, [requestImages]);
+    const { connected, paths, images } = useResourceImages(templatePaths);
 
     // 无有效路径或未连接
-    if (validPaths.length === 0 || !connected) {
-      return null;
-    }
-
-    // 筛选已加载成功的图片
-    const loadedImages = validPaths
-      .map((path) => {
-        const cache = imageCache.get(path);
-        if (!cache) return null;
-        return { path, ...cache };
-      })
-      .filter((item): item is NonNullable<typeof item> => item !== null);
-
-    // 无加载成功的图片
-    if (loadedImages.length === 0) {
+    if (paths.length === 0 || !connected) {
       return null;
     }
 
     return (
       <div className={style.nodeTemplateImages}>
-        {loadedImages.map((item, index) => {
-          const { path, base64, mimeType, width, height } = item;
-
-          // 计算显示尺寸，保持比例，限制高度
-          let displayHeight = Math.min(height, MAX_IMAGE_HEIGHT);
-          let displayWidth = Math.round((width / height) * displayHeight);
-
-          // 限制最大宽度
-          const maxWidth = 60;
-          if (displayWidth > maxWidth) {
-            displayWidth = maxWidth;
-            displayHeight = Math.round((height / width) * displayWidth);
-          }
+        {images.map(({ path, image, pending }, index) => {
+          const displaySize = image
+            ? getDisplaySize(image.width, image.height)
+            : null;
 
           return (
-            <AntImage
+            <div
               key={`${path}-${index}`}
-              src={`data:${mimeType};base64,${base64}`}
-              alt={path}
-              width={displayWidth}
-              height={displayHeight}
-              style={{
-                objectFit: "contain",
-                borderRadius: 2,
-              }}
-              preview={{
-                mask: null,
-              }}
-            />
+              className={style.nodeTemplateImageSlot}
+            >
+              {pending && !image && <Spin size="small" />}
+              {image && displaySize && (
+                <AntImage
+                  src={image.url}
+                  alt={path}
+                  width={displaySize.width}
+                  height={displaySize.height}
+                  decoding="async"
+                  style={{
+                    objectFit: "contain",
+                    borderRadius: 2,
+                  }}
+                  preview={{ mask: null }}
+                />
+              )}
+            </div>
           );
         })}
       </div>

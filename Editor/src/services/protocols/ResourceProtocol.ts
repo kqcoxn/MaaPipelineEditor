@@ -5,12 +5,58 @@ import {
   type ResourceBundle,
   type ImageCacheItem,
 } from "@/stores/project/localFileStore";
+import {
+  ImageRequestScheduler,
+  type ImageRequestBatch,
+} from "../imageRequestScheduler";
+
+interface ImageResponseData {
+  success?: boolean;
+  relative_path?: string;
+  absolute_path?: string;
+  bundle_name?: string;
+  base64?: string;
+  mime_type?: string;
+  width?: number;
+  height?: number;
+  message?: string;
+}
+
+function createImageCacheItem(data: ImageResponseData): ImageCacheItem {
+  const mimeType = data.mime_type || "image/png";
+  const binary = atob(data.base64 ?? "");
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  const blob = new Blob([bytes], { type: mimeType });
+
+  return {
+    blob,
+    url: URL.createObjectURL(blob),
+    mimeType,
+    width: data.width || 0,
+    height: data.height || 0,
+    bundleName: data.bundle_name || "",
+    absPath: data.absolute_path || "",
+    timestamp: Date.now(),
+  };
+}
 
 /**
  * 资源协议处理器
  * 处理资源目录和图片预览相关的 WebSocket 消息
  */
 export class ResourceProtocol extends BaseProtocol {
+  private statusUnsubscribe: (() => void) | null = null;
+  private rootUnsubscribe: (() => void) | null = null;
+  private readonly imageRequestScheduler = new ImageRequestScheduler({
+    isCached: (path) => useLocalFileStore.getState().getImageCache(path) != null,
+    setPending: (paths, pending) =>
+      useLocalFileStore.getState().setPendingImageRequests(paths, pending),
+    sendBatch: (batch) => this.sendImageBatch(batch),
+  });
+
   getName(): string {
     return "ResourceProtocol";
   }
@@ -21,6 +67,19 @@ export class ResourceProtocol extends BaseProtocol {
 
   register(wsClient: LocalWebSocketServer): void {
     this.wsClient = wsClient;
+    this.statusUnsubscribe?.();
+    this.rootUnsubscribe?.();
+    this.statusUnsubscribe = wsClient.onStatus((connected) => {
+      if (!connected) this.resetImageResources();
+    });
+    this.rootUnsubscribe = useLocalFileStore.subscribe(
+      (state) => state.rootPath,
+      (rootPath, previousRootPath) => {
+        if (previousRootPath && rootPath !== previousRootPath) {
+          this.imageRequestScheduler.clear();
+        }
+      },
+    );
 
     // 注册接收路由
     this.wsClient.registerRoute("/lte/resource_bundles", (data) =>
@@ -39,6 +98,15 @@ export class ResourceProtocol extends BaseProtocol {
     // 统一的消息处理入口
   }
 
+  override unregister(): void {
+    this.statusUnsubscribe?.();
+    this.rootUnsubscribe?.();
+    this.statusUnsubscribe = null;
+    this.rootUnsubscribe = null;
+    this.resetImageResources();
+    super.unregister();
+  }
+
   /**
    * 处理资源包列表推送
    * 路由: /lte/resource_bundles
@@ -55,7 +123,8 @@ export class ResourceProtocol extends BaseProtocol {
         return;
       }
 
-      // 更新本地文件缓存中的资源包信息
+      // 资源扫描结果可能对应新项目或已变化的图片文件。
+      this.resetImageResources();
       const localFileStore = useLocalFileStore.getState();
       localFileStore.setResourceBundles(
         bundles as ResourceBundle[],
@@ -74,50 +143,7 @@ export class ResourceProtocol extends BaseProtocol {
    * 路由: /lte/image
    */
   private handleImage(data: any): void {
-    try {
-      const {
-        success,
-        relative_path,
-        absolute_path,
-        bundle_name,
-        base64,
-        mime_type,
-        width,
-        height,
-        message,
-      } = data;
-
-      if (!relative_path) {
-        console.error("[ResourceProtocol] Invalid image data:", data);
-        return;
-      }
-
-      const localFileStore = useLocalFileStore.getState();
-
-      if (success && base64) {
-        // 缓存图片数据
-        const cacheItem: ImageCacheItem = {
-          base64,
-          mimeType: mime_type || "image/png",
-          width: width || 0,
-          height: height || 0,
-          bundleName: bundle_name || "",
-          absPath: absolute_path || "",
-          timestamp: Date.now(),
-        };
-        localFileStore.setImageCache(relative_path, cacheItem);
-      } else {
-        console.warn(
-          "[ResourceProtocol] 图片加载失败:",
-          relative_path,
-          message
-        );
-        // 请求失败，移除 pending 状态
-        localFileStore.setPendingImageRequest(relative_path, false);
-      }
-    } catch (error) {
-      console.error("[ResourceProtocol] Failed to handle image:", error);
-    }
+    this.commitImageResponses([data as ImageResponseData]);
   }
 
   /**
@@ -126,50 +152,34 @@ export class ResourceProtocol extends BaseProtocol {
    */
   private handleImages(data: any): void {
     try {
-      const { images } = data;
+      const { request_id, images } = data;
 
-      if (!Array.isArray(images)) {
+      if (typeof request_id !== "string" || !Array.isArray(images)) {
         console.error("[ResourceProtocol] Invalid images data:", data);
         return;
       }
+      if (!this.imageRequestScheduler.hasActiveBatch(request_id)) {
+        console.warn("[ResourceProtocol] 忽略过期图片批次:", request_id);
+        return;
+      }
 
-      // 逐个处理
-      images.forEach((imageData: any) => {
-        this.handleImage(imageData);
-      });
+      const requestedPaths =
+        this.imageRequestScheduler.getActiveBatchPaths(request_id);
+      this.commitImageResponses(
+        images as ImageResponseData[],
+        requestedPaths,
+      );
+      this.imageRequestScheduler.complete(request_id);
     } catch (error) {
       console.error("[ResourceProtocol] Failed to handle images:", error);
     }
   }
 
   /**
-   * 请求获取单张图片
-   * 发送路由: /etl/get_image
+   * 请求获取单张图片，统一进入批量调度
    */
   public requestImage(relativePath: string): boolean {
-    if (!this.wsClient) {
-      console.error("[ResourceProtocol] WebSocket client not initialized");
-      return false;
-    }
-
-    const localFileStore = useLocalFileStore.getState();
-
-    // 已缓存，不重复请求
-    if (localFileStore.getImageCache(relativePath)) {
-      return true;
-    }
-
-    // 正在请求中，不重复请求
-    if (localFileStore.isImagePending(relativePath)) {
-      return true;
-    }
-
-    // 标记为请求中
-    localFileStore.setPendingImageRequest(relativePath, true);
-
-    return this.wsClient.send("/etl/get_image", {
-      relative_path: relativePath,
-    });
+    return this.requestImages([relativePath]);
   }
 
   /**
@@ -182,28 +192,7 @@ export class ResourceProtocol extends BaseProtocol {
       return false;
     }
 
-    const localFileStore = useLocalFileStore.getState();
-
-    // 过滤已缓存和正在请求的
-    const pathsToRequest = relativePaths.filter((path) => {
-      return (
-        !localFileStore.getImageCache(path) &&
-        !localFileStore.isImagePending(path)
-      );
-    });
-
-    if (pathsToRequest.length === 0) {
-      return true;
-    }
-
-    // 标记为请求中
-    pathsToRequest.forEach((path) => {
-      localFileStore.setPendingImageRequest(path, true);
-    });
-
-    return this.wsClient.send("/etl/get_images", {
-      relative_paths: pathsToRequest,
-    });
+    return this.imageRequestScheduler.request(relativePaths);
   }
 
   /**
@@ -266,5 +255,66 @@ export class ResourceProtocol extends BaseProtocol {
       const localFileStore = useLocalFileStore.getState();
       localFileStore.setImageListLoading(false);
     }
+  }
+
+  private sendImageBatch(batch: ImageRequestBatch): boolean {
+    if (!this.wsClient) return false;
+    return this.wsClient.send("/etl/get_images", {
+      request_id: batch.requestId,
+      relative_paths: batch.paths,
+    });
+  }
+
+  private commitImageResponses(
+    images: ImageResponseData[],
+    requestedPaths?: readonly string[],
+  ): void {
+    const completedPaths = requestedPaths ? [...requestedPaths] : [];
+    const requestedPathSet = requestedPaths
+      ? new Set(requestedPaths)
+      : undefined;
+    const entries: Array<readonly [string, ImageCacheItem]> = [];
+
+    for (const image of images) {
+      const relativePath = image.relative_path;
+      if (!relativePath) {
+        console.error("[ResourceProtocol] Invalid image data:", image);
+        continue;
+      }
+      if (requestedPathSet && !requestedPathSet.has(relativePath)) {
+        console.error(
+          "[ResourceProtocol] 图片响应包含未请求路径:",
+          relativePath,
+        );
+        continue;
+      }
+
+      if (!requestedPaths) completedPaths.push(relativePath);
+      if (!image.success || !image.base64) {
+        console.warn(
+          "[ResourceProtocol] 图片加载失败:",
+          relativePath,
+          image.message,
+        );
+        continue;
+      }
+
+      try {
+        entries.push([relativePath, createImageCacheItem(image)]);
+      } catch (error) {
+        console.error(
+          "[ResourceProtocol] 图片解码失败:",
+          relativePath,
+          error,
+        );
+      }
+    }
+
+    useLocalFileStore.getState().setImageCaches(entries, completedPaths);
+  }
+
+  private resetImageResources(): void {
+    useLocalFileStore.getState().clearImageCache();
+    this.imageRequestScheduler.clear();
   }
 }

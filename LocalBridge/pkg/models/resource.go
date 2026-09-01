@@ -39,12 +39,14 @@ type GetImageResponse struct {
 
 // 批量获取图片请求
 type GetImagesRequest struct {
+	RequestID     string   `json:"request_id"`     // 前端请求批次 ID
 	RelativePaths []string `json:"relative_paths"` // 相对路径列表
 }
 
 // 批量获取图片响应
 type GetImagesResponse struct {
-	Images []GetImageResponse `json:"images"` // 图片列表
+	RequestID string             `json:"request_id"` // 对应的请求批次 ID
+	Images    []GetImageResponse `json:"images"`     // 图片列表
 }
 
 // 图片文件信息
