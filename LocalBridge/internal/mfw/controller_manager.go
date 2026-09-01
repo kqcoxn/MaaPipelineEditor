@@ -108,19 +108,6 @@ func hasAgentlessAdbFallback(methods []string) bool {
 	return false
 }
 
-const (
-	win32InputMethodInterceptionName  = "Interception"
-	win32InputMethodInterceptionValue = win32.InputMethod(1 << 9)
-)
-
-// parseWin32InputMethod 在 Go 绑定提供正式枚举前兼容 MaaFramework 5.12.1 的 Interception。
-func parseWin32InputMethod(name string) (win32.InputMethod, error) {
-	if strings.EqualFold(strings.TrimSpace(name), win32InputMethodInterceptionName) {
-		return win32InputMethodInterceptionValue, nil
-	}
-	return win32.ParseInputMethod(name)
-}
-
 // win32ScreencapMethodMapping 额外的截图方法映射（WithPseudoMinimize 变体）
 // MaaFramework 中 FramePool=2, PrintWindow=16
 var win32ScreencapMethodMapping = map[string]win32.ScreencapMethod{
@@ -158,7 +145,7 @@ func (cm *ControllerManager) CreateWin32Controller(hwnd, screencapMethod, inputM
 	}
 
 	// 解析鼠标输入方法，默认使用 SendMessageWithCursorPos
-	mouseMethod, err := parseWin32InputMethod(inputMethod)
+	mouseMethod, err := win32.ParseInputMethod(inputMethod)
 	if err != nil || mouseMethod == win32.InputNone {
 		mouseMethod = win32.InputSendMessageWithCursorPos
 		logger.Debug("MFW", "使用默认输入方法: SendMessageWithCursorPos")

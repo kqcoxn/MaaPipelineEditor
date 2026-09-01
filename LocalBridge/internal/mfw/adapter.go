@@ -131,7 +131,7 @@ func (a *MaaFWAdapter) ConnectWin32(hwnd uintptr, screencapMethod, inputMethod s
 	scMethod, _ := win32.ParseScreencapMethod(screencapMethod)
 
 	// 解析输入方法
-	mouseMethod, _ := parseWin32InputMethod(inputMethod)
+	mouseMethod, _ := win32.ParseInputMethod(inputMethod)
 
 	// 创建 Win32 控制器
 	ctrl, err := maa.NewWin32Controller(nativeWindowHandle(hwnd), scMethod, mouseMethod, mouseMethod)
