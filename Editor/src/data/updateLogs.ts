@@ -96,13 +96,16 @@ export const nextPreview: ForecastSection = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "1.9.3",
-    date: "2026-9",
+    date: "2026-9-2",
     type: "perf",
     updates: {
       features: [
         "⏸ 新增操作时暂停动画选项，智能平衡性能（默认开启，可在配置中关闭）",
       ],
-      perfs: ["优化操作画布时的渲染性能"],
+      perfs: [
+        "大幅优化操作画布时的渲染性能",
+        "添加高复杂度功能的过渡动画，提升操作体验",
+      ],
       fixes: [
         "修复部分情况下调试节点时开始节点错误的问题",
         "修复根目录来源覆盖错误与监听死锁问题",

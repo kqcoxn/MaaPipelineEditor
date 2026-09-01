@@ -385,9 +385,13 @@ function NodeAddPanel({
   );
 
   // 粘贴板节点
-  const handlePasteFromClipboard = useCallback(() => {
+  const handlePasteFromClipboard = useCallback(async () => {
     if (!hasClipboardContent || !flowPosition) return;
-    const pastedNodes = paste(clipboardNodes, clipboardEdges, flowPosition);
+    const pastedNodes = await paste(
+      clipboardNodes,
+      clipboardEdges,
+      flowPosition,
+    );
     const targetNode = findQuickCreateTarget(pastedNodes);
 
     if (quickCreateConnection && targetNode) {

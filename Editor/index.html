@@ -15,6 +15,251 @@
     <link rel="icon" href="/logo.png" />
     <title>MaaPipelineEditor</title>
     <script>
+      try {
+        var mpeCachedConfig = JSON.parse(
+          localStorage.getItem("_mpe_config") || "null",
+        );
+        if (mpeCachedConfig && mpeCachedConfig.useDarkMode) {
+          document.documentElement.dataset.mpeBootTheme = "dark";
+        }
+      } catch (_error) {
+        // Invalid or unavailable local storage falls back to the light theme.
+      }
+    </script>
+    <style>
+      :root {
+        --mpe-boot-page: #f5f6f8;
+        --mpe-boot-overlay: rgba(247, 248, 250, 0.82);
+        --mpe-boot-surface: rgba(255, 255, 255, 0.92);
+        --mpe-boot-text: rgba(0, 0, 0, 0.88);
+        --mpe-boot-secondary: rgba(0, 0, 0, 0.58);
+        --mpe-boot-tertiary: rgba(0, 0, 0, 0.45);
+        --mpe-boot-border: #e5e7eb;
+        --mpe-boot-fill: rgba(0, 0, 0, 0.04);
+        --mpe-boot-track: #e9ebef;
+        --mpe-boot-primary: #1677ff;
+        --mpe-boot-success: #52c41a;
+      }
+
+      :root[data-mpe-boot-theme="dark"] {
+        color-scheme: dark;
+        --mpe-boot-page: #141414;
+        --mpe-boot-overlay: rgba(20, 20, 20, 0.84);
+        --mpe-boot-surface: rgba(31, 31, 31, 0.92);
+        --mpe-boot-text: rgba(255, 255, 255, 0.88);
+        --mpe-boot-secondary: rgba(255, 255, 255, 0.62);
+        --mpe-boot-tertiary: rgba(255, 255, 255, 0.46);
+        --mpe-boot-border: #424242;
+        --mpe-boot-fill: rgba(255, 255, 255, 0.08);
+        --mpe-boot-track: #303030;
+        --mpe-boot-primary: #4096ff;
+        --mpe-boot-success: #73d13d;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        background: var(--mpe-boot-page);
+      }
+
+      .mpe-boot-screen {
+        position: fixed;
+        inset: 0;
+        z-index: 3000;
+        display: grid;
+        place-items: center;
+        box-sizing: border-box;
+        padding: 24px;
+        background: var(--mpe-boot-overlay);
+        backdrop-filter: blur(6px) saturate(0.8);
+        color: var(--mpe-boot-text);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        animation: mpe-boot-screen-enter 520ms ease-out both;
+      }
+
+      .mpe-boot-surface {
+        box-sizing: border-box;
+        width: min(380px, calc(100vw - 48px));
+        padding: 22px 24px 18px;
+        border: 1px solid var(--mpe-boot-border);
+        border-radius: 10px;
+        background: var(--mpe-boot-surface);
+        box-shadow:
+          0 18px 48px rgba(0, 0, 0, 0.12),
+          0 2px 8px rgba(0, 0, 0, 0.06);
+        animation: mpe-boot-surface-enter 720ms
+          cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      .mpe-boot-header {
+        display: grid;
+        grid-template-columns: 38px minmax(0, 1fr);
+        align-items: center;
+        gap: 14px;
+      }
+
+      .mpe-boot-icon {
+        display: grid;
+        width: 38px;
+        height: 38px;
+        place-items: center;
+        box-sizing: border-box;
+        border: 1px solid var(--mpe-boot-border);
+        border-radius: 6px;
+        background: var(--mpe-boot-fill);
+      }
+
+      .mpe-boot-spinner {
+        width: 17px;
+        height: 17px;
+        box-sizing: border-box;
+        border: 2px solid
+          color-mix(in srgb, var(--mpe-boot-primary) 22%, transparent);
+        border-top-color: var(--mpe-boot-primary);
+        border-radius: 50%;
+        animation: mpe-boot-spin 1.1s linear infinite;
+      }
+
+      .mpe-boot-copy {
+        display: grid;
+        min-width: 0;
+        gap: 3px;
+      }
+
+      .mpe-boot-copy strong {
+        overflow-wrap: anywhere;
+        font-size: 15px;
+        font-weight: 600;
+        line-height: 22px;
+      }
+
+      .mpe-boot-copy span {
+        overflow-wrap: anywhere;
+        color: var(--mpe-boot-secondary);
+        font-size: 13px;
+        line-height: 20px;
+      }
+
+      .mpe-boot-progress {
+        height: 4px;
+        margin-top: 20px;
+        overflow: hidden;
+        background: var(--mpe-boot-track);
+      }
+
+      .mpe-boot-progress i {
+        display: block;
+        width: 12%;
+        height: 100%;
+        background: var(--mpe-boot-primary);
+        transition: width 880ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .mpe-boot-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 8px;
+        color: var(--mpe-boot-tertiary);
+        font-size: 12px;
+        line-height: 18px;
+      }
+
+      .mpe-boot-activity {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .mpe-boot-activity i {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--mpe-boot-success);
+        animation: mpe-boot-pulse 1.8s ease-in-out infinite;
+      }
+
+      .mpe-boot-screen--leaving {
+        pointer-events: none;
+        animation: mpe-boot-screen-exit 480ms ease-in both;
+      }
+
+      .mpe-boot-screen--leaving .mpe-boot-surface {
+        animation: mpe-boot-surface-exit 420ms ease-in both;
+      }
+
+      @keyframes mpe-boot-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @keyframes mpe-boot-pulse {
+        0%,
+        100% {
+          opacity: 0.4;
+          transform: scale(0.8);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      @keyframes mpe-boot-screen-enter {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      @keyframes mpe-boot-surface-enter {
+        from {
+          opacity: 0;
+          transform: translateY(10px) scale(0.985);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      @keyframes mpe-boot-screen-exit {
+        to {
+          opacity: 0;
+        }
+      }
+
+      @keyframes mpe-boot-surface-exit {
+        to {
+          opacity: 0;
+          transform: translateY(-4px) scale(0.99);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .mpe-boot-screen {
+          backdrop-filter: none;
+        }
+
+        .mpe-boot-screen,
+        .mpe-boot-surface,
+        .mpe-boot-spinner,
+        .mpe-boot-activity i {
+          animation: none;
+        }
+
+        .mpe-boot-progress i {
+          transition: none;
+        }
+      }
+    </style>
+    <script>
       var _hmt = _hmt || [];
       (function () {
         var isLocalDev =
@@ -32,6 +277,67 @@
   </head>
   <body>
     <div id="root"></div>
+    <div
+      id="mpe-boot-screen"
+      class="mpe-boot-screen"
+      role="status"
+      aria-live="polite"
+    >
+      <div class="mpe-boot-surface">
+        <div class="mpe-boot-header">
+          <span class="mpe-boot-icon" aria-hidden="true">
+            <i class="mpe-boot-spinner"></i>
+          </span>
+          <div class="mpe-boot-copy">
+            <strong>正在启动 MaaPipelineEditor</strong>
+            <span id="mpe-boot-detail">正在加载核心资源</span>
+          </div>
+        </div>
+        <div
+          class="mpe-boot-progress"
+          role="progressbar"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow="12"
+        >
+          <i id="mpe-boot-progress"></i>
+        </div>
+        <div class="mpe-boot-meta">
+          <span class="mpe-boot-activity"><i></i>启动中</span>
+          <span id="mpe-boot-percent">12%</span>
+        </div>
+      </div>
+    </div>
+    <script>
+      (function () {
+        var screen = document.getElementById("mpe-boot-screen");
+        var detail = document.getElementById("mpe-boot-detail");
+        var progress = document.getElementById("mpe-boot-progress");
+        var percent = document.getElementById("mpe-boot-percent");
+        if (!screen || !detail || !progress || !percent) return;
+
+        screen.dataset.startedAt = String(Date.now());
+        if ("%MODE%" === "development") return;
+        [
+          [360, "正在载入应用资源", 34],
+          [920, "正在初始化编辑器", 58],
+          [1500, "正在准备编辑器工作区", 82],
+        ].forEach(function (stage) {
+          window.setTimeout(function () {
+            if (
+              screen.dataset.runtimeOwned === "true" ||
+              screen.dataset.dismissScheduled === "true"
+            ) {
+              return;
+            }
+            detail.textContent = stage[1];
+            progress.style.width = stage[2] + "%";
+            percent.textContent = stage[2] + "%";
+            progress.parentElement.setAttribute("aria-valuenow", String(stage[2]));
+          }, stage[0]);
+        });
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

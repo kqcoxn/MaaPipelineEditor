@@ -1,8 +1,6 @@
 import { SourceHandleTypeEnum, TargetHandleTypeEnum } from "@/components/flow/nodes";
-import {
-  convertMfwToStoreFormat,
-  flowToPipeline,
-} from "@/core/parser";
+import { flowToPipeline } from "@/core/parser/exporter";
+import { convertMfwToStoreFormat } from "@/core/parser/nodeParser";
 import {
   createEdgeIdAllocator,
   createAnchorNode,

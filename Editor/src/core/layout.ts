@@ -2,6 +2,10 @@ import { type NodeChange } from "@xyflow/react";
 import ELK from "elkjs/lib/elk.bundled.js";
 
 import { useFlowStore, type EdgeType, type NodeType } from "../stores/flow";
+import {
+  runWithProcess,
+  type ProcessUpdate,
+} from "../stores/ui/processStore";
 
 export enum AlignmentEnum {
   Left,
@@ -29,16 +33,24 @@ const elkOptions = {
 };
 
 export class LayoutHelper {
-  static auto() {
-    requestAnimationFrame(() => LayoutHelper.performLayout());
+  static async auto(): Promise<void> {
+    if (useFlowStore.getState().nodes.length === 0) return;
+    await runWithProcess("正在重排节点", (update) =>
+      LayoutHelper.performLayout(undefined, update),
+    );
   }
 
-  static autoPartial(selectedNodes: NodeType[]) {
+  static async autoPartial(selectedNodes: NodeType[]): Promise<void> {
     if (selectedNodes.length < 2) return;
-    requestAnimationFrame(() => LayoutHelper.performLayout(selectedNodes));
+    await runWithProcess("正在重排节点", (update) =>
+      LayoutHelper.performLayout(selectedNodes, update),
+    );
   }
 
-  private static async performLayout(targetNodes?: NodeType[]) {
+  private static async performLayout(
+    targetNodes?: NodeType[],
+    updateProcess: (update: ProcessUpdate) => void = () => undefined,
+  ) {
     const flowState = useFlowStore.getState();
     const allNodes = flowState.nodes as NodeType[];
     const allEdges = flowState.edges as EdgeType[];
@@ -48,16 +60,17 @@ export class LayoutHelper {
 
     if (nodes.length === 0) return;
 
+    updateProcess({ detail: "正在读取节点尺寸", progress: 14 });
     const allMeasured = nodes.every(
       (node) => node.measured?.width && node.measured?.height,
     );
     if (!allMeasured) {
-      setTimeout(() => {
-        LayoutHelper.performLayout(targetNodes);
-      }, 10);
-      return;
+      updateProcess({ detail: "正在等待节点完成测量", progress: 18 });
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      return LayoutHelper.performLayout(targetNodes, updateProcess);
     }
 
+    updateProcess({ detail: "正在整理节点与连线", progress: 28 });
     // 局部排版时，仅保留选中节点之间的边
     const selectedNodeIds = isPartial ? new Set(nodes.map((n) => n.id)) : null;
     const edges = isPartial
@@ -92,9 +105,14 @@ export class LayoutHelper {
     };
 
     try {
+      updateProcess({ detail: "正在计算节点位置", progress: 46 });
       const layoutedGraph = await elk.layout(graph);
 
       if (!layoutedGraph?.children) return;
+      updateProcess({ detail: "正在应用新布局", progress: 84 });
+      const layoutedNodeById = new Map(
+        layoutedGraph.children.map((node) => [node.id, node]),
+      );
 
       if (isPartial) {
         // 局部排版：将布局结果偏移到原始包围盒位置
@@ -110,9 +128,7 @@ export class LayoutHelper {
         const selectedNodeMap = new Map(nodes.map((n) => [n.id, n]));
         const updatedNodes = allNodes.map((node) => {
           if (!selectedNodeMap.has(node.id)) return node;
-          const layoutedNode = layoutedGraph.children!.find(
-            (layoutNode) => layoutNode.id === node.id,
-          );
+          const layoutedNode = layoutedNodeById.get(node.id);
           if (!layoutedNode) return node;
           return {
             ...node,
@@ -127,9 +143,7 @@ export class LayoutHelper {
       } else {
         // 全局排版
         const layoutedNodes = allNodes.map((node) => {
-          const layoutedNode = layoutedGraph.children!.find(
-            (layoutNode) => layoutNode.id === node.id,
-          );
+          const layoutedNode = layoutedNodeById.get(node.id);
           if (!layoutedNode) return node;
           return {
             ...node,
@@ -142,6 +156,7 @@ export class LayoutHelper {
 
         flowState.replace(layoutedNodes, allEdges);
       }
+      updateProcess({ detail: "正在刷新画布", progress: 96 });
     } catch (error) {
       console.error("Elkjs layout error:", error);
     }

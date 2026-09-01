@@ -1,29 +1,18 @@
-import { lazy, memo, Suspense } from "react";
-import { Spin } from "antd";
+import { memo } from "react";
 import type { EditorProps } from "@monaco-editor/react";
-import { loader } from "@monaco-editor/react";
 
-loader.config({
-  paths: {
-    vs: `${import.meta.env.BASE_URL}monaco-editor/min/vs`,
-  },
-});
+import { LazyFeature } from "@/components/async/LazyFeature";
 
-const MonacoEditor = lazy(() => import("@monaco-editor/react"));
-
-function EditorLoading() {
-  return (
-    <div style={{ display: "flex", justifyContent: "center", padding: 24 }}>
-      <Spin size="small" />
-    </div>
-  );
-}
+const loadMonacoEditor = () => import("./MonacoEditorFeature");
 
 export const MfwJsonEditor = memo((props: EditorProps) => {
   return (
-    <Suspense fallback={<EditorLoading />}>
-      <MonacoEditor {...props} />
-    </Suspense>
+    <LazyFeature
+      loader={loadMonacoEditor}
+      loadingLabel="正在加载 JSON 编辑器功能包"
+      componentProps={props}
+      mode="inline"
+    />
   );
 });
 

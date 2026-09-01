@@ -2,11 +2,16 @@ import { create } from "zustand";
 import { message } from "antd";
 import { cloneDeep } from "lodash";
 import type { NodeType, EdgeType } from "./types";
+import {
+  runWithProcess,
+  shouldShowBulkProcess,
+  type ProcessUpdate,
+} from "@/stores/ui/processStore";
 
 type ClipboardState = {
   clipboardNodes: NodeType[];
   clipboardEdges: EdgeType[];
-  copy: (nodes?: NodeType[], edges?: EdgeType[]) => void;
+  copy: (nodes?: NodeType[], edges?: EdgeType[]) => Promise<void>;
   paste: () => { nodes: NodeType[]; edges: EdgeType[] } | null;
   hasContent: () => boolean;
 };
@@ -19,15 +24,29 @@ export const useClipboardStore = create<ClipboardState>()((set, get) => ({
   copy(nodes, edges) {
     if (!nodes || nodes.length === 0) {
       message.error("未选中节点");
-      return;
+      return Promise.resolve();
     }
 
-    set({
-      clipboardNodes: cloneDeep(nodes),
-      clipboardEdges: cloneDeep(edges || []),
-    });
+    const sourceEdges = edges ?? [];
+    const executeCopy = (
+      updateProcess?: (update: ProcessUpdate) => void,
+    ) => {
+      const clipboardNodes = cloneDeep(nodes);
+      const clipboardEdges = cloneDeep(sourceEdges);
+      updateProcess?.({ detail: "正在写入内部粘贴板", progress: 96 });
+      set({ clipboardNodes, clipboardEdges });
+      message.success("已将选中节点加载至内部粘贴板");
+    };
 
-    message.success("已将选中节点加载至内部粘贴板");
+    if (shouldShowBulkProcess(nodes.length)) {
+      return runWithProcess("正在复制节点", executeCopy, {
+        detail: `正在复制 ${nodes.length} 个节点`,
+        progress: 28,
+      });
+    }
+
+    executeCopy();
+    return Promise.resolve();
   },
 
   // 从剪贴板粘贴

@@ -332,18 +332,31 @@ export async function saveOpenedLocalFilesForDebug(): Promise<SaveOpenedLocalFil
   };
 }
 
-// 分配新的顺序号
-export function assignNodeOrder(nodeId: string): number {
+// 批量分配新的顺序号，避免大批量操作逐节点触发文件配置订阅。
+export function assignNodeOrders(nodeIds: string[]): number[] {
+  if (nodeIds.length === 0) return [];
+
   const state = useFileStore.getState();
   const config = state.currentFile.config;
   const orderMap = { ...(config.nodeOrderMap ?? {}) };
   const nextOrder = config.nextOrderNumber ?? 0;
+  const orders = nodeIds.map((nodeId, index) => {
+    const order = nextOrder + index;
+    orderMap[nodeId] = order;
+    return order;
+  });
 
-  orderMap[nodeId] = nextOrder;
-  useFileStore.getState().setFileConfig("nodeOrderMap", orderMap);
-  useFileStore.getState().setFileConfig("nextOrderNumber", nextOrder + 1);
+  state.setFileConfigs({
+    nodeOrderMap: orderMap,
+    nextOrderNumber: nextOrder + nodeIds.length,
+  });
 
-  return nextOrder;
+  return orders;
+}
+
+// 分配新的顺序号
+export function assignNodeOrder(nodeId: string): number {
+  return assignNodeOrders([nodeId])[0];
 }
 
 // 移除节点顺序
@@ -369,6 +382,7 @@ type FileState = {
     key: K,
     value: FileConfigType[K],
   ) => void;
+  setFileConfigs: (values: Partial<FileConfigType>) => void;
   switchFile: (fileName: string) => string | null;
   addFile: (options?: { isSwitch: boolean }) => string | null;
   removeFile: (fileName: string) => string | null;
@@ -391,6 +405,25 @@ type FileState = {
   reloadFileFromLocal: (filePath: string, content: any) => Promise<boolean>;
   findFileByPath: (filePath: string) => FileType | undefined;
 };
+
+function updateFileConfigState(
+  state: FileState,
+  values: Partial<FileConfigType>,
+): Pick<FileState, "currentFile" | "files"> {
+  const config = { ...state.currentFile.config, ...values };
+  const currentFile = { ...state.currentFile, config };
+  const currentFileIndex = state.files.findIndex(
+    (file) => file.fileName === currentFile.fileName,
+  );
+  const files =
+    currentFileIndex >= 0
+      ? state.files.map((file, index) =>
+          index === currentFileIndex ? currentFile : file,
+        )
+      : state.files;
+  return { currentFile, files };
+}
+
 export const useFileStore = create<FileState>()(subscribeWithSelector((set) => ({
   files: [defaltFile],
   currentFile: defaltFile,
@@ -427,22 +460,12 @@ export const useFileStore = create<FileState>()(subscribeWithSelector((set) => (
 
   // 设置文件配置
   setFileConfig(key, value) {
-    set((state) => {
-      const config = { ...state.currentFile.config, [key]: value };
-      const currentFile = { ...state.currentFile, config };
-      const currentFileIndex = state.files.findIndex(
-        (file) => file.fileName === currentFile.fileName,
-      );
-      const files =
-        currentFileIndex >= 0
-          ? state.files.map((file, index) =>
-              index === currentFileIndex ? currentFile : file,
-            )
-          : state.files;
-      state.currentFile = currentFile;
-      state.files = files;
-      return {};
-    });
+    set((state) => updateFileConfigState(state, { [key]: value }));
+  },
+
+  // 批量设置文件配置
+  setFileConfigs(values) {
+    set((state) => updateFileConfigState(state, values));
   },
 
   // 切换文件

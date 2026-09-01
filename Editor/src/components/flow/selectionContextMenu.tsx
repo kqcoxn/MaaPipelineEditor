@@ -127,26 +127,28 @@ function hasGroupedNodes(selection: SelectionContextMenuSelection): boolean {
   );
 }
 
-function handleCopySelection(selection: SelectionContextMenuSelection): void {
+async function handleCopySelection(
+  selection: SelectionContextMenuSelection,
+): Promise<void> {
   if (!hasSelectedNodes(selection)) {
     message.error("未选中节点");
     return;
   }
 
-  useClipboardStore
+  await useClipboardStore
     .getState()
     .copy(selection.selectedNodes, getSelectionRelatedEdges(selection));
 }
 
-function handleDuplicateSelection(
+async function handleDuplicateSelection(
   selection: SelectionContextMenuSelection,
-): void {
+): Promise<void> {
   if (!hasSelectedNodes(selection)) {
     message.error("未选中节点");
     return;
   }
 
-  useFlowStore
+  await useFlowStore
     .getState()
     .paste(selection.selectedNodes, getSelectionRelatedEdges(selection));
   message.success("已创建副本");
@@ -301,7 +303,7 @@ function handleAutoLayoutSelection(
     return;
   }
 
-  LayoutHelper.autoPartial(selection.selectedNodes);
+  void LayoutHelper.autoPartial(selection.selectedNodes);
 }
 
 function handleResetEdgeControls(

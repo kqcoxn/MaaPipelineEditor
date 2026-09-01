@@ -1,6 +1,6 @@
 import style from "./styles/layout/App.module.less";
 
-import { memo, Suspense, lazy, useCallback, useEffect } from "react";
+import { memo, useCallback, useEffect } from "react";
 import {
   Flex,
   Layout,
@@ -39,8 +39,6 @@ import SettingsPanel from "./components/panels/settings/SettingsPanel";
 import FileConfigPanel from "./components/panels/main/FileConfigPanel";
 import { LocalFileListPanel } from "./components/panels/main/LocalFileListPanel";
 import ErrorPanel from "./components/panels/main/ErrorPanel";
-import AIHistoryPanel from "./components/panels/main/AIHistoryPanel";
-import BusinessArchitecturePanel from "./components/panels/main/BusinessArchitecturePanel";
 import ToolbarPanel from "./components/panels/main/ToolbarPanel";
 import { LoggerPanel } from "./components/panels/tools/LoggerPanel";
 import { pipelineToFlow } from "./core/parser";
@@ -66,15 +64,18 @@ import { useTermsStore, isTermsAccepted } from "@/stores/ui/termsStore";
 import { TermsAgreementModal } from "./components/modals/TermsAgreementModal";
 import { useEmbedStarReminder } from "./hooks/useEmbedStarReminder";
 import { openExternalUrl } from "./features/embed/navigation/externalNavigation";
+import { LazyFeature } from "./components/async/LazyFeature";
+import { OptionalFeatureHosts } from "./components/async/OptionalFeatureHosts";
+import { GlobalProcessOverlay } from "./components/async/GlobalProcessOverlay";
+import {
+  finishBootScreenWhenReady,
+  updateBootScreen,
+} from "./components/async/bootScreen";
+import { DebugRuntimeHost } from "./components/debug/DebugRuntimeHost";
 
 const isPreviewMode = import.meta.env.MODE === "preview";
 
-const JsonViewer = lazy(() => import("./components/JsonViewer"));
-const DebugModal = lazy(() =>
-  import("./components/debug/DebugModal").then((module) => ({
-    default: module.DebugModal,
-  })),
-);
+const loadJsonViewer = () => import("./components/JsonViewer");
 
 // 轮询提醒
 let isShowStarRemind = false;
@@ -197,7 +198,12 @@ function App() {
 
     if (embedEnvironment) {
       const disposeEmbedProtocol = registerEmbedProtocol();
+      void finishBootScreenWhenReady({
+        detail: "正在呈现嵌入式编辑器",
+      });
       return () => {
+        disposed = true;
+        fileCacheRestoreController.abort();
         unsubscribeConfigCache();
         disposeEmbedProtocol();
       };
@@ -209,23 +215,66 @@ function App() {
     // 检查是否有导入请求
     const { hasPending, startIn, expectedFile } = checkPendingImport();
 
+    let startupContentTask: Promise<
+      "history" | "shared" | "workspace"
+    >;
+
     // 读取本地存储
     if (!hasShareParam && !hasPending) {
-      void restoreFileCache(fileCacheRestoreController.signal).then(
-        (restored) => {
-          if (disposed) return;
+      updateBootScreen({
+        detail: "正在恢复上次编辑内容",
+        progress: 72,
+      });
+      startupContentTask = (async () => {
+        let restored = false;
+        try {
+          restored = await restoreFileCache(
+            fileCacheRestoreController.signal,
+          );
+        } catch (error) {
+          console.error("[App] Failed to restore local file cache:", error);
+        }
+
+        if (!disposed) {
           if (restored) message.success("已读取本地缓存");
           disposeFileCache = initializeFileCachePersistence();
-        },
-      );
+        }
+        return restored ? "history" : "workspace";
+      })();
     } else {
       disposeFileCache = initializeFileCachePersistence();
+      if (hasShareParam) {
+        updateBootScreen({ detail: "正在载入分享画布", progress: 72 });
+        startupContentTask = loadFromShareUrl().then(() => "shared");
+      } else {
+        updateBootScreen({
+          detail: "正在准备编辑器工作区",
+          progress: 82,
+        });
+        startupContentTask = Promise.resolve("workspace");
+      }
     }
 
-    // 从分享链接加载
-    if (hasShareParam) {
-      loadFromShareUrl();
-    }
+    void startupContentTask.then(
+      (content) => {
+        if (disposed) return;
+        const detail =
+          content === "history"
+            ? "正在呈现上次编辑画布"
+            : content === "shared"
+              ? "正在呈现分享画布"
+              : "正在呈现编辑器工作区";
+        void finishBootScreenWhenReady({ detail });
+      },
+      (error) => {
+        console.error("[App] Failed to prepare startup content:", error);
+        if (!disposed) {
+          void finishBootScreenWhenReady({
+            detail: "正在呈现编辑器工作区",
+          });
+        }
+      },
+    );
 
     // 处理导入请求
     if (hasPending) {
@@ -359,14 +408,15 @@ function App() {
             <div className={style.workspace}>
               {showToolbar && <ToolbarPanel />}
               <MainFlow />
-              {showPanel("ai-history") && <AIHistoryPanel />}
-              {showPanel("business-architecture") && (
-                <BusinessArchitecturePanel />
-              )}
+              <OptionalFeatureHosts
+                allowAIHistory={showPanel("ai-history")}
+                allowBusinessArchitecture={showPanel("business-architecture")}
+              />
               {showPanel("json") && (
-                <Suspense fallback={null}>
-                  <JsonViewer />
-                </Suspense>
+                <LazyFeature
+                  loader={loadJsonViewer}
+                  loadingLabel="正在加载 JSON 预览功能包"
+                />
               )}
               {showPanel("liveScreen") && <LiveScreenPanel />}
               {showPanel("field") && <FieldPanel />}
@@ -384,9 +434,8 @@ function App() {
           </Content>
         </Layout>
       </Flex>
-      <Suspense fallback={null}>
-        <DebugModal />
-      </Suspense>
+      <DebugRuntimeHost />
+      <GlobalProcessOverlay />
       {!isEmbed && <TermsAgreementModal />}
       {!shouldSkipNewcomerGuide && <NewcomerGuideModal />}
       <GlobalListener />

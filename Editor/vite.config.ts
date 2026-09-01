@@ -16,27 +16,6 @@ export default defineConfig(({ mode }) => {
       port: 3000,
     },
     plugins: [react()],
-    build: {
-      rollupOptions: {
-        output: {
-          manualChunks(id) {
-            if (
-              id.includes("monaco-editor") ||
-              id.includes("@monaco-editor/react")
-            ) {
-              return "monaco-editor";
-            }
-            if (id.includes("tesseract.js")) {
-              return "tesseract";
-            }
-            if (id.includes("@microlink/react-json-view")) {
-              return "react-json-view";
-            }
-            return undefined;
-          },
-        },
-      },
-    },
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),

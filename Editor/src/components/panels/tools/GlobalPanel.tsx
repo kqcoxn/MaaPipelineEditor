@@ -1,7 +1,5 @@
 import {
   memo,
-  lazy,
-  Suspense,
   useMemo,
   useState,
 } from "react";
@@ -20,8 +18,9 @@ import style from "../../../styles/panels/ToolPanel.module.less";
 import { useEmbedMode } from "../../../hooks/useEmbedMode";
 import { showEmbedServiceNotice } from "../../../features/embed/components/serviceNotice";
 import { openExternalUrl } from "../../../features/embed/navigation/externalNavigation";
+import { LazyFeature } from "../../async/LazyFeature";
 
-const ToolboxPanel = lazy(() => import("./ToolboxPanel"));
+const loadToolboxPanel = () => import("./ToolboxPanel");
 
 /** 全局工具 */
 type GlobalToolType = {
@@ -171,7 +170,7 @@ function GlobalPanel() {
         iconName: "icon-a-copyfubenfuzhi",
         iconSize: 25,
         disabled: debouncedSelectedNodes.length === 0,
-        onClick: () => copy(debouncedSelectedNodes, []),
+        onClick: () => void copy(debouncedSelectedNodes, []),
         onDisabledClick: () => message.error("未选中节点"),
       },
       {
@@ -183,7 +182,7 @@ function GlobalPanel() {
         onClick: () => {
           const content = clipboardPaste();
           if (content) {
-            flowPaste(content.nodes, content.edges);
+            void flowPaste(content.nodes, content.edges);
           }
         },
       },
@@ -330,9 +329,11 @@ function GlobalPanel() {
                   </span>
                 }
                 content={
-                  <Suspense fallback={null}>
-                    <ToolboxPanel />
-                  </Suspense>
+                  <LazyFeature
+                    loader={loadToolboxPanel}
+                    loadingLabel="正在加载字段工具包"
+                    mode="inline"
+                  />
                 }
                 trigger="click"
               >

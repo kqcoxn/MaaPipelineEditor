@@ -1,4 +1,4 @@
-import { memo, lazy, Suspense, useState, useCallback } from "react";
+import { memo, useState, useCallback } from "react";
 import { message, Tooltip, Button } from "antd";
 import { CopyOutlined } from "@ant-design/icons";
 import IconFont from "../../iconfonts";
@@ -7,37 +7,32 @@ import { useMFWStore } from "@/stores/connection/mfwStore";
 import style from "../../../styles/panels/ToolboxPanel.module.less";
 import { useEmbedMode } from "../../../hooks/useEmbedMode";
 import { showEmbedServiceNotice } from "../../../features/embed/components/serviceNotice";
+import { LazyFeature } from "../../async/LazyFeature";
 
-const ROIModal = lazy(() =>
+const loadROIModal = () =>
   import("../../modals/ROIModal").then((module) => ({
     default: module.ROIModal,
-  })),
-);
-const ROIOffsetModal = lazy(() =>
+  }));
+const loadROIOffsetModal = () =>
   import("../../modals/ROIOffsetModal").then((module) => ({
     default: module.ROIOffsetModal,
-  })),
-);
-const OCRModal = lazy(() =>
+  }));
+const loadOCRModal = () =>
   import("../../modals/OCRModal").then((module) => ({
     default: module.OCRModal,
-  })),
-);
-const TemplateModal = lazy(() =>
+  }));
+const loadTemplateModal = () =>
   import("../../modals/TemplateModal").then((module) => ({
     default: module.TemplateModal,
-  })),
-);
-const ColorModal = lazy(() =>
+  }));
+const loadColorModal = () =>
   import("../../modals/ColorModal").then((module) => ({
     default: module.ColorModal,
-  })),
-);
-const DeltaModal = lazy(() =>
+  }));
+const loadDeltaModal = () =>
   import("../../modals/DeltaModal").then((module) => ({
     default: module.DeltaModal,
-  })),
-);
+  }));
 
 // 工具配置类型
 interface ToolConfig {
@@ -470,59 +465,71 @@ function ToolboxPanel() {
 
       {/* Modals */}
       {ocrModalOpen && (
-        <Suspense fallback={null}>
-          <OCRModal
-            open={ocrModalOpen}
-            onClose={() => setOcrModalOpen(false)}
-            onConfirm={handleOCRConfirm}
-          />
-        </Suspense>
+        <LazyFeature
+          loader={loadOCRModal}
+          loadingLabel="正在加载 OCR 工具包"
+          componentProps={{
+            open: ocrModalOpen,
+            onClose: () => setOcrModalOpen(false),
+            onConfirm: handleOCRConfirm,
+          }}
+        />
       )}
       {templateModalOpen && (
-        <Suspense fallback={null}>
-          <TemplateModal
-            open={templateModalOpen}
-            onClose={() => setTemplateModalOpen(false)}
-            onConfirm={handleTemplateConfirm}
-          />
-        </Suspense>
+        <LazyFeature
+          loader={loadTemplateModal}
+          loadingLabel="正在加载模板截图工具包"
+          componentProps={{
+            open: templateModalOpen,
+            onClose: () => setTemplateModalOpen(false),
+            onConfirm: handleTemplateConfirm,
+          }}
+        />
       )}
       {colorModalOpen && (
-        <Suspense fallback={null}>
-          <ColorModal
-            open={colorModalOpen}
-            onClose={() => setColorModalOpen(false)}
-            onConfirm={handleColorConfirm}
-          />
-        </Suspense>
+        <LazyFeature
+          loader={loadColorModal}
+          loadingLabel="正在加载取色工具包"
+          componentProps={{
+            open: colorModalOpen,
+            onClose: () => setColorModalOpen(false),
+            onConfirm: handleColorConfirm,
+          }}
+        />
       )}
       {roiModalOpen && (
-        <Suspense fallback={null}>
-          <ROIModal
-            open={roiModalOpen}
-            onClose={() => setRoiModalOpen(false)}
-            onConfirm={handleROIConfirm}
-          />
-        </Suspense>
+        <LazyFeature
+          loader={loadROIModal}
+          loadingLabel="正在加载 ROI 工具包"
+          componentProps={{
+            open: roiModalOpen,
+            onClose: () => setRoiModalOpen(false),
+            onConfirm: handleROIConfirm,
+          }}
+        />
       )}
       {roiOffsetModalOpen && (
-        <Suspense fallback={null}>
-          <ROIOffsetModal
-            open={roiOffsetModalOpen}
-            onClose={() => setRoiOffsetModalOpen(false)}
-            onConfirm={handleROIOffsetConfirm}
-          />
-        </Suspense>
+        <LazyFeature
+          loader={loadROIOffsetModal}
+          loadingLabel="正在加载偏移测量工具包"
+          componentProps={{
+            open: roiOffsetModalOpen,
+            onClose: () => setRoiOffsetModalOpen(false),
+            onConfirm: handleROIOffsetConfirm,
+          }}
+        />
       )}
       {deltaModalOpen && (
-        <Suspense fallback={null}>
-          <DeltaModal
-            open={deltaModalOpen}
-            onClose={() => setDeltaModalOpen(false)}
-            onConfirm={handleDeltaConfirm}
-            initialMode="dx"
-          />
-        </Suspense>
+        <LazyFeature
+          loader={loadDeltaModal}
+          loadingLabel="正在加载位移测量工具包"
+          componentProps={{
+            open: deltaModalOpen,
+            onClose: () => setDeltaModalOpen(false),
+            onConfirm: handleDeltaConfirm,
+            initialMode: "dx" as const,
+          }}
+        />
       )}
     </div>
   );

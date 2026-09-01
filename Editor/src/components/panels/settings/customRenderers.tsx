@@ -10,7 +10,7 @@ import { useFlowStore } from "../../../stores/flow";
 import { localServer } from "../../../services";
 import { AIClient } from "@/utils/ai/aiClient";
 import { SYSTEM_PROMPTS } from "@/utils/ai/aiPrompts";
-import { BackendConfigModal } from "../../modals";
+import BackendConfigModal from "../../modals/BackendConfigModal";
 import FieldSortModal from "../../modals/FieldSortModal";
 import { HANDLE_DIRECTION_OPTIONS } from "../../flow/nodes/constants";
 

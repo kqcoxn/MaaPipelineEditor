@@ -140,9 +140,9 @@ function LayoutPanel() {
             return;
           }
           if (debouncedSelectedNodes.length >= 2) {
-            LayoutHelper.autoPartial(debouncedSelectedNodes as any);
+            void LayoutHelper.autoPartial(debouncedSelectedNodes as any);
           } else {
-            LayoutHelper.auto();
+            void LayoutHelper.auto();
           }
         },
         onDisabledClick: () => {

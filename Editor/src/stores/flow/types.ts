@@ -390,7 +390,8 @@ export interface FlowGraphState {
     nodes: NodeType[],
     edges: EdgeType[],
     position?: { x: number; y: number },
-  ) => NodeType[];
+    skipProcessFeedback?: boolean,
+  ) => Promise<NodeType[]>;
   shiftNodes: (
     direction: "horizontal" | "vertical",
     delta: number,

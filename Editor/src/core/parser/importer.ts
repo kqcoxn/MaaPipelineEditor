@@ -43,6 +43,23 @@ import {
 import { parseNodeField } from "./nodeParser";
 import { mergePipelineAndConfig } from "./configSplitter";
 import { rerouteEdgesToNearestReplica } from "./edgeRerouter";
+import {
+  runWithProcess,
+  shouldShowBulkProcess,
+  type ProcessUpdate,
+} from "@/stores/ui/processStore";
+
+function isPipelineConfigKey(key: string): boolean {
+  return (
+    key.startsWith("$__mpe_config_") ||
+    key.startsWith("__mpe_config_") ||
+    key.startsWith("__yamaape_config_")
+  );
+}
+
+function countPipelineNodes(keys: string[]): number {
+  return keys.filter((key) => !isPipelineConfigKey(key)).length;
+}
 
 /**
  * 迁移 Pipeline v5.1 废弃字段
@@ -158,6 +175,14 @@ function migratePipelineV5(
 export async function pipelineToFlow(
   options?: PipelineToFlowOptions,
 ): Promise<boolean> {
+  return pipelineToFlowInternal(options, true);
+}
+
+async function pipelineToFlowInternal(
+  options: PipelineToFlowOptions | undefined,
+  allowProcessFeedback: boolean,
+  updateProcess?: (update: ProcessUpdate) => void,
+): Promise<boolean> {
   try {
     // 获取参数
     let pString = options?.pString ?? (await ClipboardHelper.read());
@@ -197,6 +222,29 @@ export async function pipelineToFlow(
       );
     }
 
+    const sourceNodeCount = countPipelineNodes(originalKeyOrder);
+    if (
+      allowProcessFeedback &&
+      shouldShowBulkProcess(sourceNodeCount)
+    ) {
+      return runWithProcess(
+        "正在导入节点",
+        async (update) => {
+          const success = await pipelineToFlowInternal(
+            { ...(options ?? {}), pString },
+            false,
+            update,
+          );
+          update({ detail: "正在刷新画布", progress: 94 });
+          return success;
+        },
+        {
+          detail: `正在读取 ${sourceNodeCount} 个节点`,
+          progress: 18,
+        },
+      );
+    }
+
     // 合并外部配置
     let pipelineObj: Record<string, any> | undefined;
     if (mpeConfig) {
@@ -220,6 +268,7 @@ export async function pipelineToFlow(
     if (!pipelineObj || typeof pipelineObj !== "object") {
       pipelineObj = {};
     }
+    updateProcess?.({ detail: "正在解析节点配置", progress: 34 });
 
     // 解析配置
     const configs = parsePipelineConfig(pipelineObj);
@@ -246,15 +295,12 @@ export async function pipelineToFlow(
     const orderMap: Record<string, number> = {};
     let nextOrder = 0;
 
+    updateProcess?.({ detail: "正在创建节点", progress: 48 });
     objKeys.forEach((objKey) => {
       const obj = pipelineObj[objKey];
 
       // 跳过配置键
-      if (
-        objKey.startsWith("$__mpe_config_") ||
-        objKey.startsWith("__mpe_config_") ||
-        objKey.startsWith("__yamaape_config_")
-      ) {
+      if (isPipelineConfigKey(objKey)) {
         return;
       }
 
@@ -477,6 +523,7 @@ export async function pipelineToFlow(
     );
     nodes = ensureGroupNodeOrder(nodes);
 
+    updateProcess?.({ detail: "正在建立节点连接", progress: 68 });
     // 解析连接
     let edges: EdgeType[] = [];
     for (let index = 0; index < originLabels.length; index++) {
@@ -521,6 +568,7 @@ export async function pipelineToFlow(
     // 视觉副本就近匹配：把指向 External / Anchor 的边重定向到最近的副本
     edges = rerouteEdgesToNearestReplica(nodes, edges);
 
+    updateProcess?.({ detail: "正在写入画布", progress: 86 });
     // 先追加历史记录（此时 state.nodes 仍为导入前状态，可正确保存）
     useFlowStore.getState().importHistory(nodes, edges);
 
@@ -542,7 +590,7 @@ export async function pipelineToFlow(
     setFileConfig("nextOrderNumber", nextOrder);
 
     // 自动布局
-    if (!isIncludePos) LayoutHelper.auto();
+    if (!isIncludePos) void LayoutHelper.auto();
 
     return true;
   } catch (err) {

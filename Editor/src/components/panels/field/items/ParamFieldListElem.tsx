@@ -6,21 +6,42 @@ import type { ParamType } from "../../../../stores/flow";
 import type { FieldType } from "../../../../core/fields";
 import { FieldTypeEnum } from "../../../../core/fields";
 import { JsonHelper } from "../../../../utils/data/jsonHelper";
-import {
-  ROIModal,
-  ROIOffsetModal,
-  OCRModal,
-  TemplateModal,
-  TemplateMatchModal,
-  ColorModal,
-  DeltaModal,
-} from "../../../modals";
+import { LazyFeature } from "../../../async/LazyFeature";
 import { ListValueElem } from "./ListValueElem";
 import { TemplatePreview } from "./TemplatePreview";
 import { ImageSelect } from "./ImageSelect";
 import { sortKeysByOrder } from "../../../../core/sorting";
 import { useEmbedMode } from "../../../../hooks/useEmbedMode";
 import { showEmbedServiceNotice } from "../../../../features/embed/components/serviceNotice";
+
+const loadROIModal = () =>
+  import("../../../modals/ROIModal").then((module) => ({
+    default: module.ROIModal,
+  }));
+const loadROIOffsetModal = () =>
+  import("../../../modals/ROIOffsetModal").then((module) => ({
+    default: module.ROIOffsetModal,
+  }));
+const loadOCRModal = () =>
+  import("../../../modals/OCRModal").then((module) => ({
+    default: module.OCRModal,
+  }));
+const loadTemplateModal = () =>
+  import("../../../modals/TemplateModal").then((module) => ({
+    default: module.TemplateModal,
+  }));
+const loadTemplateMatchModal = () =>
+  import("../../../modals/TemplateMatchModal").then((module) => ({
+    default: module.TemplateMatchModal,
+  }));
+const loadColorModal = () =>
+  import("../../../modals/ColorModal").then((module) => ({
+    default: module.ColorModal,
+  }));
+const loadDeltaModal = () =>
+  import("../../../modals/DeltaModal").then((module) => ({
+    default: module.DeltaModal,
+  }));
 
 /**
  * 将可能为字符串的 ROI 值解析为 [number, number, number, number] 元组
@@ -736,116 +757,141 @@ export const ParamFieldListElem = memo(
       <>
         {paramFields}
         {currentROIKey && (
-          <ROIModal
-            open={roiModalOpen}
-            onClose={() => {
-              setRoiModalOpen(false);
-              setCurrentROIKey(null);
-              setCurrentListIndex(null);
+          <LazyFeature
+            loader={loadROIModal}
+            loadingLabel="正在加载 ROI 工具包"
+            componentProps={{
+              open: roiModalOpen,
+              onClose: () => {
+                setRoiModalOpen(false);
+                setCurrentROIKey(null);
+                setCurrentListIndex(null);
+              },
+              onConfirm: handleROIConfirm,
+              initialROI:
+                currentListIndex !== null &&
+                Array.isArray(paramData[currentROIKey])
+                  ? parseROIValue(paramData[currentROIKey][currentListIndex])
+                  : parseROIValue(paramData[currentROIKey]),
             }}
-            onConfirm={handleROIConfirm}
-            initialROI={
-              currentListIndex !== null &&
-              Array.isArray(paramData[currentROIKey])
-                ? parseROIValue(paramData[currentROIKey][currentListIndex])
-                : parseROIValue(paramData[currentROIKey])
-            }
           />
         )}
         {currentExpectedKey && (
-          <OCRModal
-            open={ocrModalOpen}
-            onClose={() => {
-              setOcrModalOpen(false);
-              setCurrentExpectedKey(null);
-              setCurrentListIndex(null);
+          <LazyFeature
+            loader={loadOCRModal}
+            loadingLabel="正在加载 OCR 工具包"
+            componentProps={{
+              open: ocrModalOpen,
+              onClose: () => {
+                setOcrModalOpen(false);
+                setCurrentExpectedKey(null);
+                setCurrentListIndex(null);
+              },
+              onConfirm: handleOCRConfirm,
             }}
-            onConfirm={handleOCRConfirm}
           />
         )}
         {currentTemplateKey && (
-          <TemplateModal
-            open={templateModalOpen}
-            onClose={() => {
-              setTemplateModalOpen(false);
-              setCurrentTemplateKey(null);
-              setCurrentListIndex(null);
+          <LazyFeature
+            loader={loadTemplateModal}
+            loadingLabel="正在加载模板截图工具包"
+            componentProps={{
+              open: templateModalOpen,
+              onClose: () => {
+                setTemplateModalOpen(false);
+                setCurrentTemplateKey(null);
+                setCurrentListIndex(null);
+              },
+              onConfirm: handleTemplateConfirm,
             }}
-            onConfirm={handleTemplateConfirm}
           />
         )}
         {currentTemplateKey && templateMatchModalOpen && (
-          <TemplateMatchModal
-            open={templateMatchModalOpen}
-            onClose={() => {
-              setTemplateMatchModalOpen(false);
-              setCurrentTemplateKey(null);
-              setCurrentListIndex(null);
-            }}
-            templateValue={
-              paramData[currentTemplateKey] as string | string[]
-            }
-            initialROI={parseROIValue(paramData["roi"])}
-            initialThreshold={
-              Array.isArray(paramData["threshold"])
+          <LazyFeature
+            loader={loadTemplateMatchModal}
+            loadingLabel="正在加载模板匹配工具包"
+            componentProps={{
+              open: templateMatchModalOpen,
+              onClose: () => {
+                setTemplateMatchModalOpen(false);
+                setCurrentTemplateKey(null);
+                setCurrentListIndex(null);
+              },
+              templateValue: paramData[currentTemplateKey] as
+                | string
+                | string[],
+              initialROI: parseROIValue(paramData["roi"]),
+              initialThreshold: Array.isArray(paramData["threshold"])
                 ? (paramData["threshold"] as number[])[0]
-                : (paramData["threshold"] as number | undefined)
-            }
-            initialMethod={paramData["method"] as number | undefined}
-            initialGreenMask={paramData["green_mask"] as boolean | undefined}
+                : (paramData["threshold"] as number | undefined),
+              initialMethod: paramData["method"] as number | undefined,
+              initialGreenMask: paramData["green_mask"] as boolean | undefined,
+            }}
           />
         )}
         {currentColorKey && (
-          <ColorModal
-            open={colorModalOpen}
-            onClose={() => {
-              setColorModalOpen(false);
-              setCurrentColorKey(null);
-              setCurrentListIndex(null);
+          <LazyFeature
+            loader={loadColorModal}
+            loadingLabel="正在加载取色工具包"
+            componentProps={{
+              open: colorModalOpen,
+              onClose: () => {
+                setColorModalOpen(false);
+                setCurrentColorKey(null);
+                setCurrentListIndex(null);
+              },
+              onConfirm: handleColorConfirm,
+              targetKey: currentColorKey,
+              initialMethod: paramData["method"] as number | undefined,
+              initialLower: (() => {
+                const val = paramData["lower"] as unknown;
+                if (!val || !Array.isArray(val)) return undefined;
+                if (val.length > 0 && Array.isArray(val[0])) {
+                  return val[currentListIndex ?? 0] as number[];
+                }
+                return val as number[];
+              })(),
+              initialUpper: (() => {
+                const val = paramData["upper"] as unknown;
+                if (!val || !Array.isArray(val)) return undefined;
+                if (val.length > 0 && Array.isArray(val[0])) {
+                  return val[currentListIndex ?? 0] as number[];
+                }
+                return val as number[];
+              })(),
             }}
-            onConfirm={handleColorConfirm}
-            targetKey={currentColorKey}
-            initialMethod={paramData["method"] as number | undefined}
-            initialLower={(() => {
-              const val = paramData["lower"] as unknown;
-              if (!val || !Array.isArray(val)) return undefined;
-              if (val.length > 0 && Array.isArray(val[0])) {
-                return val[currentListIndex ?? 0] as number[];
-              }
-              return val as number[];
-            })()}
-            initialUpper={(() => {
-              const val = paramData["upper"] as unknown;
-              if (!val || !Array.isArray(val)) return undefined;
-              if (val.length > 0 && Array.isArray(val[0])) {
-                return val[currentListIndex ?? 0] as number[];
-              }
-              return val as number[];
-            })()}
           />
         )}
         {currentDeltaKey && (
-          <DeltaModal
-            open={deltaModalOpen}
-            onClose={() => {
-              setDeltaModalOpen(false);
-              setCurrentDeltaKey(null);
-              setCurrentListIndex(null);
+          <LazyFeature
+            loader={loadDeltaModal}
+            loadingLabel="正在加载位移测量工具包"
+            componentProps={{
+              open: deltaModalOpen,
+              onClose: () => {
+                setDeltaModalOpen(false);
+                setCurrentDeltaKey(null);
+                setCurrentListIndex(null);
+              },
+              onConfirm: handleDeltaConfirm,
+              initialMode: currentDeltaKey as "dx" | "dy",
             }}
-            onConfirm={handleDeltaConfirm}
-            initialMode={currentDeltaKey as "dx" | "dy"}
           />
         )}
         {currentROIOffsetKey && (
-          <ROIOffsetModal
-            open={roiOffsetModalOpen}
-            onClose={() => {
-              setRoiOffsetModalOpen(false);
-              setCurrentROIOffsetKey(null);
-              setCurrentListIndex(null);
+          <LazyFeature
+            loader={loadROIOffsetModal}
+            loadingLabel="正在加载偏移测量工具包"
+            componentProps={{
+              open: roiOffsetModalOpen,
+              onClose: () => {
+                setRoiOffsetModalOpen(false);
+                setCurrentROIOffsetKey(null);
+                setCurrentListIndex(null);
+              },
+              onConfirm: handleROIOffsetConfirm,
+              initialROI: parseROIValue(paramData["roi"]),
             }}
-            onConfirm={handleROIOffsetConfirm}
-            initialROI={parseROIValue(paramData["roi"])}
           />
         )}
       </>

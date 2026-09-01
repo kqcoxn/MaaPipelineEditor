@@ -1,17 +1,34 @@
 import { StrictMode, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render } from "@testing-library/react";
+import { act, cleanup, render } from "@testing-library/react";
 import { useConfigStore } from "@/stores/app/configStore";
 import App from "./App";
 
 const embedMocks = vi.hoisted(() => ({
   dispose: vi.fn(),
   register: vi.fn(),
+  isEmbedEnvironment: vi.fn(() => true),
+}));
+
+const startupMocks = vi.hoisted(() => ({
+  restoreFileCache: vi.fn<() => Promise<boolean>>(),
+  initializeFileCachePersistence: vi.fn(() => vi.fn()),
+  updateBootScreen: vi.fn(),
+  finishBootScreenWhenReady: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock("./utils/embedBridge", async (importOriginal) => ({
   ...(await importOriginal<typeof import("./utils/embedBridge")>()),
-  isEmbedEnvironment: () => true,
+  isEmbedEnvironment: embedMocks.isEmbedEnvironment,
+}));
+vi.mock("./stores/project/fileCachePersistence", () => ({
+  restoreFileCache: startupMocks.restoreFileCache,
+  initializeFileCachePersistence:
+    startupMocks.initializeFileCachePersistence,
+}));
+vi.mock("./components/async/bootScreen", () => ({
+  updateBootScreen: startupMocks.updateBootScreen,
+  finishBootScreenWhenReady: startupMocks.finishBootScreenWhenReady,
 }));
 vi.mock("./hooks/useEmbedMode", () => ({
   useEmbedMode: () => ({
@@ -40,7 +57,15 @@ vi.mock("./contexts/ThemeContext", () => ({
 vi.mock("./components/Header", () => ({ default: () => null }));
 vi.mock("./components/Flow", () => ({ default: () => null }));
 vi.mock("./components/JsonViewer", () => ({ default: () => null }));
-vi.mock("./components/debug/DebugModal", () => ({ DebugModal: () => null }));
+vi.mock("./components/debug/DebugRuntimeHost", () => ({
+  DebugRuntimeHost: () => null,
+}));
+vi.mock("./components/async/OptionalFeatureHosts", () => ({
+  OptionalFeatureHosts: () => null,
+}));
+vi.mock("./components/async/GlobalProcessOverlay", () => ({
+  GlobalProcessOverlay: () => null,
+}));
 vi.mock("./components/panels/main/FieldPanel", () => ({ default: () => null }));
 vi.mock("./components/panels/main/EdgePanel", () => ({ default: () => null }));
 vi.mock("./components/panels/main/LiveScreenPanel", () => ({
@@ -73,13 +98,21 @@ vi.mock("./components/panels/tools/ToolPanel", () => ({
   },
 }));
 
-describe("App embed startup", () => {
+describe("App startup", () => {
   beforeEach(() => {
     localStorage.clear();
     useConfigStore.getState().resetAllConfigs();
     embedMocks.dispose.mockReset();
     embedMocks.register.mockReset();
     embedMocks.register.mockReturnValue(embedMocks.dispose);
+    embedMocks.isEmbedEnvironment.mockReset();
+    embedMocks.isEmbedEnvironment.mockReturnValue(true);
+    startupMocks.restoreFileCache.mockReset();
+    startupMocks.restoreFileCache.mockResolvedValue(false);
+    startupMocks.initializeFileCachePersistence.mockClear();
+    startupMocks.updateBootScreen.mockClear();
+    startupMocks.finishBootScreenWhenReady.mockClear();
+    startupMocks.finishBootScreenWhenReady.mockResolvedValue();
   });
 
   afterEach(() => {
@@ -117,5 +150,33 @@ describe("App embed startup", () => {
 
     expect(localStorage.getItem("_mpe_config")).toBe(cachedConfig);
     expect(embedMocks.dispose).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps the boot screen until cached canvas restoration completes", async () => {
+    embedMocks.isEmbedEnvironment.mockReturnValue(false);
+    let resolveRestore: (restored: boolean) => void = () => undefined;
+    startupMocks.restoreFileCache.mockReturnValue(
+      new Promise((resolve) => {
+        resolveRestore = resolve;
+      }),
+    );
+
+    const view = render(<App />);
+
+    expect(startupMocks.updateBootScreen).toHaveBeenCalledWith({
+      detail: "正在恢复上次编辑内容",
+      progress: 72,
+    });
+    expect(startupMocks.finishBootScreenWhenReady).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveRestore(true);
+      await Promise.resolve();
+    });
+
+    expect(startupMocks.finishBootScreenWhenReady).toHaveBeenCalledWith({
+      detail: "正在呈现上次编辑画布",
+    });
+    view.unmount();
   });
 });

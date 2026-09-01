@@ -112,7 +112,7 @@ const KeyListener = memo(
       ) {
         return;
       }
-      copy(selectedNodes, selectedEdges);
+      void copy(selectedNodes, selectedEdges);
     }, [allowCopy, copy, copyPressed, isTextEditorFocused, selectedEdges, selectedNodes]);
 
     // 粘贴节点
@@ -128,7 +128,7 @@ const KeyListener = memo(
       }
       const content = paste();
       if (content) {
-        flowPaste(content.nodes, content.edges);
+        void flowPaste(content.nodes, content.edges);
       }
     }, [allowCopy, clipboardNodes, flowPaste, isTextEditorFocused, paste, pastePressed]);
 

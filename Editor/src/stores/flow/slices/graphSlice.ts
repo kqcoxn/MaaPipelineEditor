@@ -6,11 +6,10 @@ import { ensureGroupNodeOrder } from "../utils/nodeUtils";
 import {
   getNodeAbsolutePosition,
   getNodeAbsoluteRect,
-  toRelativePosition,
   toRelativePositionFromParentAbsolute,
 } from "../utils/coordinateUtils";
 import { fitFlowView } from "../utils/viewportUtils";
-import { assignNodeOrder } from "@/stores/project/fileStore";
+import { assignNodeOrders } from "@/stores/project/fileStore";
 import {
   buildEdgeIndexes,
   buildNodeIndexes,
@@ -26,6 +25,12 @@ import {
   allocateEdgeId,
   getNextEdgeIdCounter,
 } from "../utils/edgeId";
+import {
+  runWithProcess,
+  shouldShowBulkProcess,
+  type ProcessUpdate,
+  yieldToBrowserPaint,
+} from "@/stores/ui/processStore";
 
 function createCopyLabel(
   sourceLabel: string,
@@ -100,17 +105,20 @@ export const createGraphSlice: StateCreator<
   },
 
   // 批量粘贴
-  paste(
-    nodes: NodeType[],
-    edges: EdgeType[],
+  async paste(
+    sourceNodesToPaste: NodeType[],
+    sourceEdgesToPaste: EdgeType[],
     position?: { x: number; y: number },
+    skipProcessFeedback = false,
   ) {
-    if (nodes.length === 0) return [];
+    if (sourceNodesToPaste.length === 0) return [];
 
-    let pastedNodes: NodeType[] = [];
-    let pastedEdges: EdgeType[] = [];
+    const executePaste = async (
+      updateProcess?: (update: ProcessUpdate) => void,
+    ): Promise<NodeType[]> => {
+      const state = get();
+      const totalNodes = sourceNodesToPaste.length;
 
-    set((state) => {
       // 取消所有选中
       const originNodes = state.nodes.map((node) => ({
         ...node,
@@ -121,29 +129,37 @@ export const createGraphSlice: StateCreator<
         selected: false,
       }));
 
-      // 克隆并更新节点数据
-      nodes = cloneDeep(nodes);
-      const sourceNodes = ensureGroupNodeOrder([...cloneDeep(nodes), ...state.nodes]);
-      const sourceNodeById = new Map(sourceNodes.map((node) => [node.id, node]));
+      const pastedNodes = cloneDeep(sourceNodesToPaste);
+
+      const sourceNodes = ensureGroupNodeOrder([
+        ...pastedNodes,
+        ...state.nodes,
+      ]);
+      const sourceNodeById = new Map(
+        sourceNodes.map((node) => [node.id, node]),
+      );
       const pairs: Record<string, string> = {};
       let nodeIdCounter = state.nodeIdCounter;
       let edgeIdCounter = state.edgeIdCounter;
 
       const existingLabels = new Set(
-        [...originNodes, ...nodes].map((n) => n.data.label),
+        [...originNodes, ...pastedNodes].map((node) => node.data.label),
       );
-
-      // 收集所有已存在的节点 ID，用于检测冲突
-      const existingIds = new Set(originNodes.map((n) => n.id));
-
+      const existingIds = new Set(originNodes.map((node) => node.id));
       let minLeft = Infinity;
       let minTop = Infinity;
-      const sourceAbsolutePositions = new Map<string, { x: number; y: number }>();
+      const sourceAbsolutePositions = new Map<
+        string,
+        { x: number; y: number }
+      >();
 
-      nodes.forEach((node) => {
+      pastedNodes.forEach((node) => {
         const originalId = node.id;
         node.selected = true;
-        const absolutePosition = getNodeAbsolutePosition(node, sourceNodeById);
+        const absolutePosition = getNodeAbsolutePosition(
+          node,
+          sourceNodeById,
+        );
         sourceAbsolutePositions.set(originalId, absolutePosition);
         minLeft = Math.min(minLeft, absolutePosition.x);
         minTop = Math.min(minTop, absolutePosition.y);
@@ -157,26 +173,28 @@ export const createGraphSlice: StateCreator<
         pairs[originalId] = idAllocation.id;
         node.id = idAllocation.id;
 
-        // External / Anchor 节点保留原 label，作为视觉副本
         const isReplica =
           node.type === NodeTypeEnum.External ||
           node.type === NodeTypeEnum.Anchor;
-
         if (!isReplica) {
-          node.data.label = createCopyLabel(node.data.label, existingLabels);
+          node.data.label = createCopyLabel(
+            node.data.label,
+            existingLabels,
+          );
         }
 
-        // 分配顺序号
-        assignNodeOrder(node.id);
         (node as any)._originalId = originalId;
         (node as any)._originalParentId = (node as any).parentId;
       });
+      assignNodeOrders(pastedNodes.map((node) => node.id));
 
       const offset = position
         ? { x: position.x - minLeft, y: position.y - minTop }
         : { x: 100, y: 50 };
-      const finalAbsolutePositions = new Map<string, { x: number; y: number }>();
-
+      const finalAbsolutePositions = new Map<
+        string,
+        { x: number; y: number }
+      >();
       sourceAbsolutePositions.forEach((absolutePosition, originalId) => {
         finalAbsolutePositions.set(originalId, {
           x: absolutePosition.x + offset.x,
@@ -184,13 +202,15 @@ export const createGraphSlice: StateCreator<
         });
       });
 
-      // 处理parentId映射和最终位置
-      const pastedNodeIds = new Set(nodes.map((n) => n.id));
-      const existingGroups = state.nodes.filter(
-        (n) => n.type === NodeTypeEnum.Group,
-      );
+      const pastedNodeIds = new Set(pastedNodes.map((node) => node.id));
+      const existingGroupRects = state.nodes
+        .filter((node) => node.type === NodeTypeEnum.Group)
+        .map((groupNode) => ({
+          groupNode,
+          rect: getNodeAbsoluteRect(groupNode, state.nodeById),
+        }));
 
-      nodes.forEach((node) => {
+      pastedNodes.forEach((node) => {
         const originalId = (node as any)._originalId as string;
         const originalParentId = (node as any)._originalParentId;
         const finalAbsolutePosition =
@@ -199,7 +219,6 @@ export const createGraphSlice: StateCreator<
 
         if (originalParentId) {
           const newParentId = pairs[originalParentId];
-
           if (newParentId && pastedNodeIds.has(newParentId)) {
             const parentAbsolutePosition =
               finalAbsolutePositions.get(originalParentId);
@@ -223,50 +242,35 @@ export const createGraphSlice: StateCreator<
           node.position = { ...finalAbsolutePosition };
         }
 
-        // 检测是否应该加入现有组
-        if (shouldCheckGroupMembership && existingGroups.length > 0) {
-          // 检查与现有组的交集
-          for (const groupNode of existingGroups) {
-            const groupRect = getNodeAbsoluteRect(groupNode, state.nodeById);
-            const nodeRect = {
-              ...finalAbsolutePosition,
-              width: node.measured?.width ?? 200,
-              height: node.measured?.height ?? 100,
-            };
-
-            // 检查节点中心是否在组内
-            const cx = nodeRect.x + nodeRect.width / 2;
-            const cy = nodeRect.y + nodeRect.height / 2;
-
+        if (shouldCheckGroupMembership) {
+          for (const { groupNode, rect } of existingGroupRects) {
+            const width = node.measured?.width ?? 200;
+            const height = node.measured?.height ?? 100;
+            const centerX = finalAbsolutePosition.x + width / 2;
+            const centerY = finalAbsolutePosition.y + height / 2;
             if (
-              cx >= groupRect.x &&
-              cy >= groupRect.y &&
-              cx <= groupRect.x + groupRect.width &&
-              cy <= groupRect.y + groupRect.height
+              centerX >= rect.x &&
+              centerY >= rect.y &&
+              centerX <= rect.x + rect.width &&
+              centerY <= rect.y + rect.height
             ) {
-              // 节点中心在组内，自动加入该组
               (node as any).parentId = groupNode.id;
-              node.position = toRelativePosition(
+              node.position = toRelativePositionFromParentAbsolute(
                 finalAbsolutePosition,
-                groupNode,
-                state.nodeById,
+                rect,
               );
               break;
             }
           }
         }
 
-        // 清理临时属性
         delete (node as any)._originalId;
         delete (node as any)._originalParentId;
       });
 
-      pastedNodes = nodes;
-
-      // 克隆并更新边数据
-      edges = cloneDeep(edges);
+      const pastedEdges = cloneDeep(sourceEdgesToPaste);
       const existingEdgeIds = new Set(originEdges.map((edge) => edge.id));
-      edges.forEach((edge) => {
+      pastedEdges.forEach((edge) => {
         const idAllocation = allocateEdgeId(
           (edgeId) => existingEdgeIds.has(edgeId),
           edgeIdCounter,
@@ -278,14 +282,14 @@ export const createGraphSlice: StateCreator<
         edge.target = pairs[edge.target];
         edge.id = idAllocation.id;
       });
-      pastedEdges = edges;
 
-      // 自动聚焦（暂时硬编码）
-      fitFlowView(state.instance, state.viewport, { focusNodes: nodes });
+      updateProcess?.({ detail: "正在刷新画布", progress: 90 });
+      if (updateProcess) await yieldToBrowserPaint();
 
-      const nextNodes = ensureGroupNodeOrder([...originNodes, ...nodes]);
-      const nextEdges = [...originEdges, ...edges];
-      return {
+      fitFlowView(state.instance, state.viewport, { focusNodes: pastedNodes });
+      const nextNodes = ensureGroupNodeOrder([...originNodes, ...pastedNodes]);
+      const nextEdges = [...originEdges, ...pastedEdges];
+      set({
         nodes: nextNodes,
         edges: nextEdges,
         ...buildNodeIndexes(nextNodes),
@@ -297,19 +301,31 @@ export const createGraphSlice: StateCreator<
         }),
         nodeIdCounter,
         edgeIdCounter,
-      };
-    });
+      });
 
-    get().updateSelection(pastedNodes, pastedEdges);
+      get().updateSelection(pastedNodes, pastedEdges);
+      get().saveHistory(0, {
+        category: "graph",
+        action: "paste",
+        description: `粘贴 ${totalNodes} 个节点`,
+      });
+      return pastedNodes;
+    };
 
-    // 保存历史记录
-    get().saveHistory(0, {
-      category: "graph",
-      action: "paste",
-      description: `粘贴 ${nodes.length} 个节点`,
-    });
-
-    return pastedNodes;
+    if (
+      shouldShowBulkProcess(sourceNodesToPaste.length) &&
+      !skipProcessFeedback
+    ) {
+      return runWithProcess(
+        "正在粘贴节点",
+        executePaste,
+        {
+          detail: `正在复制 ${sourceNodesToPaste.length} 个节点`,
+          progress: 28,
+        },
+      );
+    }
+    return executePaste();
   },
 
   // 移动节点
