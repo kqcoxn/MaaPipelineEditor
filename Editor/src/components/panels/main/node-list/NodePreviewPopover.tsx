@@ -3,7 +3,7 @@
  * 在 hover 节点列表项时显示节点详细信息预览
  */
 
-import { memo, useState, useMemo } from "react";
+import { memo, useMemo } from "react";
 import { Popover, Image, Spin } from "antd";
 import { useResourceImages } from "@/hooks/useResourceImages";
 import { NodeTypeEnum } from "../../../flow/nodes/constants";
@@ -19,6 +19,8 @@ import style from "./NodeListPanel.module.less";
 interface NodePreviewPopoverProps {
   node: NodeListItemInfo;
   children: React.ReactNode;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 /** 格式化参数值显示 */
@@ -39,7 +41,7 @@ const formatParamValue = (value: any, maxLength = 30): string => {
 };
 
 /** 节点预览内容组件 */
-const NodePreviewContent = memo(({ node }: { node: NodeListItemInfo }) => {
+export const NodePreviewContent = memo(({ node }: { node: NodeListItemInfo }) => {
   // 节点类型图标
   const nodeTypeIconConfig = useMemo(() => {
     if (node.nodeType === NodeTypeEnum.External) {
@@ -260,36 +262,32 @@ NodePreviewContent.displayName = "NodePreviewContent";
 
 /** 节点预览 Popover */
 export const NodePreviewPopover = memo(
-  ({ node, children }: NodePreviewPopoverProps) => {
-    const [open, setOpen] = useState(false);
-
-    return (
-      <Popover
-        content={open ? <NodePreviewContent node={node} /> : null}
-        trigger="hover"
-        placement="left"
-        mouseEnterDelay={0.3}
-        mouseLeaveDelay={0.1}
-        open={open}
-        onOpenChange={setOpen}
-        styles={{
-          root: {
-            maxWidth: 280,
-            position: "fixed",
-          },
-          container: {
-            padding: 0,
-          },
-        }}
-        align={{
-          overflow: { adjustX: true, adjustY: true },
-        }}
-        destroyOnHidden
-      >
-        {children}
-      </Popover>
-    );
-  }
+  ({ node, children, open, onOpenChange }: NodePreviewPopoverProps) => (
+    <Popover
+      content={open ? <NodePreviewContent node={node} /> : null}
+      trigger="hover"
+      placement="left"
+      mouseEnterDelay={0.3}
+      mouseLeaveDelay={0.1}
+      open={open}
+      onOpenChange={onOpenChange}
+      styles={{
+        root: {
+          maxWidth: 280,
+          position: "fixed",
+        },
+        container: {
+          padding: 0,
+        },
+      }}
+      align={{
+        overflow: { adjustX: true, adjustY: true },
+      }}
+      destroyOnHidden
+    >
+      {children}
+    </Popover>
+  ),
 );
 
 NodePreviewPopover.displayName = "NodePreviewPopover";

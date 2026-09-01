@@ -2,10 +2,9 @@
  * 节点列表项组件
  */
 
-import { memo, useCallback } from "react";
+import { forwardRef, memo, useCallback } from "react";
 import classNames from "classnames";
 import type { NodeListItemInfo } from "./types";
-import { NodePreviewPopover } from "./NodePreviewPopover";
 import style from "./NodeListPanel.module.less";
 
 export interface NodeListItemProps {
@@ -19,12 +18,10 @@ export interface NodeListItemProps {
   onHover?: (node: NodeListItemInfo | null) => void;
 }
 
-function NodeListItem({
-  node,
-  isHighlighted,
-  onClick,
-  onHover,
-}: NodeListItemProps) {
+const NodeListItem = forwardRef<HTMLDivElement, NodeListItemProps>(function NodeListItem(
+  { node, isHighlighted, onClick, onHover },
+  ref,
+) {
   // 点击节点项
   const handleClick = useCallback(() => {
     onClick?.(node);
@@ -61,48 +58,47 @@ function NodeListItem({
   };
 
   return (
-    <NodePreviewPopover node={node}>
-      <div
-        className={classNames(style["node-item"], {
-          [style.highlighted]: isHighlighted,
-        })}
-        onClick={handleClick}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-      >
-        <div className={style["node-item-main"]}>
-          <div className={style["node-item-label"]}>{node.label}</div>
-          <div className={style["node-item-info"]}>
-            <div className={style["node-item-type"]}>
-              {node.recognitionType && (
-                <span className={style["recognition-type"]}>
-                  {node.recognitionType}
-                </span>
-              )}
-              {node.recognitionType && node.actionType && (
-                <span className={style["edge-arrow"]}>→</span>
-              )}
-              {node.actionType && (
-                <span className={style["action-type"]}>{node.actionType}</span>
-              )}
-              {!node.recognitionType && !node.actionType && (
-                <span style={{ color: "#999" }}>{getNodeDescription()}</span>
-              )}
-            </div>
+    <div
+      ref={ref}
+      className={classNames(style["node-item"], {
+        [style.highlighted]: isHighlighted,
+      })}
+      onClick={handleClick}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <div className={style["node-item-main"]}>
+        <div className={style["node-item-label"]}>{node.label}</div>
+        <div className={style["node-item-info"]}>
+          <div className={style["node-item-type"]}>
+            {node.recognitionType && (
+              <span className={style["recognition-type"]}>
+                {node.recognitionType}
+              </span>
+            )}
+            {node.recognitionType && node.actionType && (
+              <span className={style["edge-arrow"]}>→</span>
+            )}
+            {node.actionType && (
+              <span className={style["action-type"]}>{node.actionType}</span>
+            )}
+            {!node.recognitionType && !node.actionType && (
+              <span style={{ color: "#999" }}>{getNodeDescription()}</span>
+            )}
           </div>
         </div>
-        <div className={style["node-item-edges"]}>
-          <span className={classNames(style["edge-count"], style.in)}>
-            ←{node.inEdgeCount}
-          </span>
-          <span className={style["edge-arrow"]}>/</span>
-          <span className={classNames(style["edge-count"], style.out)}>
-            →{node.outEdgeCount}
-          </span>
-        </div>
       </div>
-    </NodePreviewPopover>
+      <div className={style["node-item-edges"]}>
+        <span className={classNames(style["edge-count"], style.in)}>
+          ←{node.inEdgeCount}
+        </span>
+        <span className={style["edge-arrow"]}>/</span>
+        <span className={classNames(style["edge-count"], style.out)}>
+          →{node.outEdgeCount}
+        </span>
+      </div>
+    </div>
   );
-}
+});
 
 export default memo(NodeListItem);

@@ -48,6 +48,18 @@ export interface NodeGroup {
   count: number;
 }
 
+export type NodeListRow =
+  | {
+      key: string;
+      kind: "group";
+      group: NodeGroup;
+    }
+  | {
+      key: string;
+      kind: "node";
+      node: NodeListItemInfo;
+    };
+
 /**
  * 节点类型配置
  */

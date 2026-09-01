@@ -15,11 +15,17 @@
 
   .list {
     margin-bottom: 8px;
+    overflow: hidden;
 
     .item {
+      box-sizing: border-box;
+      min-height: 26px;
+      padding: 2px 0;
       color: @color;
       text-align: center;
-      font-size: 16px;
+      font-size: 14px;
+      line-height: 22px;
+      overflow-wrap: anywhere;
     }
   }
 }

@@ -25,6 +25,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@microlink/react-json-view": "^1.27.0",
     "@monaco-editor/react": "^4.7.0",
+    "@rc-component/virtual-list": "1.4.0",
     "@xyflow/react": "^12.7.1",
     "ahooks": "^3.9.4",
     "ajv": "^8.17.1",

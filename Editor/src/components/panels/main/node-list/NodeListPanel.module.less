@@ -70,21 +70,16 @@
 .node-list-content {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 4px 0;
-}
-
-.node-group {
-  &:not(:last-child) {
-    border-bottom: 1px solid #f0f0f0;
-  }
+  overflow: hidden;
 }
 
 .node-group-header {
   display: flex;
   align-items: center;
+  box-sizing: border-box;
+  height: @node-list-item-height;
   padding: 8px 12px;
+  border-bottom: 1px solid #f0f0f0;
   cursor: pointer;
   background-color: #fafafa;
   user-select: none;
@@ -121,18 +116,14 @@
   }
 }
 
-.node-group-content {
-  overflow: hidden;
-  transition: max-height 0.2s ease-out;
-}
-
 .node-item {
   display: flex;
   align-items: center;
+  box-sizing: border-box;
+  height: @node-list-item-height;
   padding: 6px 12px 6px 28px;
   cursor: pointer;
   transition: background-color 0.15s;
-  min-height: @node-list-item-height;
 
   &:hover {
     background-color: #e6f4ff;

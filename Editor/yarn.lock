@@ -1036,22 +1036,22 @@
     is-mobile "^5.0.0"
     react-is "^19.2.7"
 
+"@rc-component/virtual-list@1.4.0", "@rc-component/virtual-list@^1.2.0":
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/@rc-component/virtual-list/-/virtual-list-1.4.0.tgz#f71c23866504b9e390eb49254eca63ec3253a5ce"
+  integrity sha512-qoyNStkTJQDezPjBibGA5HNxS9NiKJvemD1bLp7qfyxDlwy7ofPLUP0ZqJ47hR8AKcFaizd0AP/7QWLTLpudKQ==
+  dependencies:
+    "@babel/runtime" "^8.0.0"
+    "@rc-component/resize-observer" "^1.0.1"
+    "@rc-component/util" "^1.4.0"
+    clsx "^2.1.1"
+
 "@rc-component/virtual-list@^1.0.1":
   version "1.0.2"
   resolved "https://registry.npmjs.org/@rc-component/virtual-list/-/virtual-list-1.0.2.tgz#356c465de522ae3834731827d9fb2311ed09b7e9"
   integrity sha512-uvTol/mH74FYsn5loDGJxo+7kjkO4i+y4j87Re1pxJBs0FaeuMuLRzQRGaXwnMcV1CxpZLi2Z56Rerj2M00fjQ==
   dependencies:
     "@babel/runtime" "^7.20.0"
-    "@rc-component/resize-observer" "^1.0.1"
-    "@rc-component/util" "^1.4.0"
-    clsx "^2.1.1"
-
-"@rc-component/virtual-list@^1.2.0":
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/@rc-component/virtual-list/-/virtual-list-1.4.0.tgz#f71c23866504b9e390eb49254eca63ec3253a5ce"
-  integrity sha512-qoyNStkTJQDezPjBibGA5HNxS9NiKJvemD1bLp7qfyxDlwy7ofPLUP0ZqJ47hR8AKcFaizd0AP/7QWLTLpudKQ==
-  dependencies:
-    "@babel/runtime" "^8.0.0"
     "@rc-component/resize-observer" "^1.0.1"
     "@rc-component/util" "^1.4.0"
     clsx "^2.1.1"

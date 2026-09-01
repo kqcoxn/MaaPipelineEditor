@@ -1,127 +1,51 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  InfoCircleOutlined,
-  WarningOutlined,
-  CloseCircleOutlined,
   DeleteOutlined,
   DownOutlined,
-  NodeIndexOutlined,
-  BranchesOutlined,
-  AppstoreOutlined,
-  GroupOutlined,
   ArrowDownOutlined,
   ArrowUpOutlined,
   DownloadOutlined,
 } from "@ant-design/icons";
-import { message, Tooltip } from "antd";
-import { useLoggerStore, type LogEntry } from "@/stores/app/loggerStore";
-import {
-  useOperationLogStore,
-  type OperationLog,
-  type OperationCategory,
-} from "@/stores/flow/operationLogStore";
+import { App, Tooltip } from "antd";
+import type { VirtualListHandle } from "@/components/common/VirtualList";
+import { useLoggerStore } from "@/stores/app/loggerStore";
+import { useOperationLogStore } from "@/stores/flow/operationLogStore";
 import { useWSStore } from "@/stores/connection/wsStore";
-import { useFlowStore, findNodeById, fitFlowView } from "../../../stores/flow";
-import {
-  useEmbedMessageLogStore,
-  type EmbedMessageLog,
-} from "@/stores/embed/embedMessageLogStore";
+import { useEmbedMessageLogStore } from "@/stores/embed/embedMessageLogStore";
 import { useEmbedMode } from "../../../hooks/useEmbedMode";
 import styles from "../../../styles/panels/LoggerPanel.module.less";
 import { mfwProtocol } from "../../../services/server";
 import { buildMPELogExportPayload } from "@/utils/logExportPayload";
+import {
+  BackendLogList,
+  EmbedMessageLogList,
+  OperationLogList,
+  getCategoryClass,
+  getCategoryIcon,
+  getLevelClass,
+  getLevelIcon,
+  type LoggerTabType,
+} from "./logger/LoggerVirtualLists";
 
-type TabType = "operation" | "backend" | "embed";
+const LOGGER_LIST_HEIGHT = 308;
 
-// ========== 后端日志工具函数 ==========
+interface TabScrollState {
+  offset: number;
+  atBottom: boolean;
+}
 
-const getLevelIcon = (level: LogEntry["level"]) => {
-  switch (level) {
-    case "INFO":
-      return <InfoCircleOutlined />;
-    case "WARN":
-      return <WarningOutlined />;
-    case "ERROR":
-      return <CloseCircleOutlined />;
-  }
-};
-
-const getLevelClass = (level: LogEntry["level"]) => {
-  switch (level) {
-    case "INFO":
-      return styles.levelInfo;
-    case "WARN":
-      return styles.levelWarn;
-    case "ERROR":
-      return styles.levelError;
-  }
-};
-
-// ========== 操作日志工具函数 ==========
-
-const getCategoryIcon = (category: OperationCategory) => {
-  switch (category) {
-    case "node":
-      return <NodeIndexOutlined />;
-    case "edge":
-      return <BranchesOutlined />;
-    case "graph":
-      return <AppstoreOutlined />;
-    case "group":
-      return <GroupOutlined />;
-  }
-};
-
-const getCategoryClass = (category: OperationCategory) => {
-  switch (category) {
-    case "node":
-      return styles.categoryNode;
-    case "edge":
-      return styles.categoryEdge;
-    case "graph":
-      return styles.categoryGraph;
-    case "group":
-      return styles.categoryGroup;
-  }
-};
-
-const formatTimestamp = (ts: number) => {
-  const date = new Date(ts);
-  return date.toLocaleTimeString("zh-CN", { hour12: false });
-};
-
-const formatISOTime = (isoString: string) => {
-  try {
-    const date = new Date(isoString);
-    return date.toLocaleTimeString("zh-CN", { hour12: false });
-  } catch {
-    return "";
-  }
-};
-
-// ========== 操作日志跳转 ==========
-
-function handleOperationLogClick(log: OperationLog) {
-  if (!log.targetIds || log.targetIds.length === 0) return;
-
-  const state = useFlowStore.getState();
-  const targetNodes = log.targetIds
-    .map((id) => findNodeById(state.nodes, id))
-    .filter(Boolean);
-
-  if (targetNodes.length === 0) return;
-
-  // 选中目标节点
-  state.updateSelection(targetNodes as any[], []);
-  // 聚焦视图
-  fitFlowView(state.instance, state.viewport, {
-    focusNodes: targetNodes as any[],
-  });
+function createInitialScrollState(): Record<LoggerTabType, TabScrollState> {
+  return {
+    operation: { offset: 0, atBottom: true },
+    backend: { offset: 0, atBottom: true },
+    embed: { offset: 0, atBottom: true },
+  };
 }
 
 // ========== 主组件 ==========
 
 export function LoggerPanel() {
+  const { message } = App.useApp();
   const { logs: backendLogs, expanded, toggleExpanded, clearLogs: clearBackendLogs } =
     useLoggerStore();
   const { logs: opLogs, clearLogs: clearOpLogs } = useOperationLogStore();
@@ -129,14 +53,17 @@ export function LoggerPanel() {
   const embedLogs = useEmbedMessageLogStore((state) => state.logs);
   const clearEmbedLogs = useEmbedMessageLogStore((state) => state.clearLogs);
   const { isEmbed } = useEmbedMode();
-  const listRef = useRef<HTMLDivElement>(null);
-  const [autoScroll, setAutoScroll] = useState(true);
+  const listRef = useRef<VirtualListHandle>(null);
+  const tabScrollStateRef = useRef(createInitialScrollState());
   const [pulse, setPulse] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>("operation");
-  const prevOpLenRef = useRef(opLogs.length);
-  const prevBackendLenRef = useRef(backendLogs.length);
-  const prevEmbedLenRef = useRef(embedLogs.length);
+  const [activeTab, setActiveTab] = useState<LoggerTabType>("operation");
+  const latestOpId = opLogs.at(-1)?.id;
+  const latestBackendId = backendLogs.at(-1)?.id;
+  const latestEmbedId = embedLogs.at(-1)?.id;
+  const prevOpIdRef = useRef(latestOpId);
+  const prevBackendIdRef = useRef(latestBackendId);
+  const prevEmbedIdRef = useRef(latestEmbedId);
 
   const currentLogs =
     activeTab === "operation"
@@ -144,85 +71,92 @@ export function LoggerPanel() {
       : activeTab === "backend"
         ? backendLogs
         : embedLogs;
+  const currentLastLogId = currentLogs.at(-1)?.id;
 
-  // 自动滚动到底部
   useEffect(() => {
-    if (expanded && autoScroll && listRef.current) {
-      listRef.current.scrollTop = listRef.current.scrollHeight;
-    }
-  }, [currentLogs, expanded, autoScroll]);
+    if (!expanded || !currentLastLogId) return;
+    const scrollState = tabScrollStateRef.current[activeTab];
+    if (!scrollState.atBottom) return;
+    const frame = requestAnimationFrame(() => {
+      listRef.current?.scrollToEnd();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [activeTab, currentLastLogId, currentLogs.length, expanded]);
 
-  // 新操作日志到达时自动切换到操作记录 tab
   useEffect(() => {
-    if (opLogs.length > prevOpLenRef.current) {
+    if (latestOpId && latestOpId !== prevOpIdRef.current) {
       setActiveTab("operation");
       if (!expanded) {
         setPulse(true);
         const timer = setTimeout(() => setPulse(false), 1600);
+        prevOpIdRef.current = latestOpId;
         return () => clearTimeout(timer);
       }
-      setAutoScroll(true);
     }
-    prevOpLenRef.current = opLogs.length;
-  }, [opLogs.length, expanded]);
+    prevOpIdRef.current = latestOpId;
+  }, [latestOpId, expanded]);
 
-  // 新后端日志到达时自动切换到后端日志 tab
   useEffect(() => {
-    if (backendLogs.length > prevBackendLenRef.current) {
-      if (connected) {
-        setActiveTab("backend");
-      }
+    if (latestBackendId && latestBackendId !== prevBackendIdRef.current) {
+      if (connected) setActiveTab("backend");
       if (!expanded) {
         setPulse(true);
         const timer = setTimeout(() => setPulse(false), 1600);
+        prevBackendIdRef.current = latestBackendId;
         return () => clearTimeout(timer);
       }
-      setAutoScroll(true);
     }
-    prevBackendLenRef.current = backendLogs.length;
-  }, [backendLogs.length, expanded, connected]);
+    prevBackendIdRef.current = latestBackendId;
+  }, [latestBackendId, expanded, connected]);
 
   useEffect(() => {
-    if (isEmbed && embedLogs.length > prevEmbedLenRef.current) {
+    if (isEmbed && latestEmbedId && latestEmbedId !== prevEmbedIdRef.current) {
       setActiveTab("embed");
       if (!expanded) {
         setPulse(true);
         const timer = setTimeout(() => setPulse(false), 1600);
+        prevEmbedIdRef.current = latestEmbedId;
         return () => clearTimeout(timer);
       }
-      setAutoScroll(true);
     }
-    prevEmbedLenRef.current = embedLogs.length;
-  }, [embedLogs.length, expanded, isEmbed]);
+    prevEmbedIdRef.current = latestEmbedId;
+  }, [latestEmbedId, expanded, isEmbed]);
 
-  // 监听滚动事件
-  const handleScroll = () => {
-    if (!listRef.current) return;
-    const { scrollTop, scrollHeight, clientHeight } = listRef.current;
-    const isAtBottom = scrollHeight - scrollTop - clientHeight < 10;
-    setAutoScroll(isAtBottom);
-  };
+  const handleScroll = useCallback(
+    (event: React.UIEvent<HTMLElement>) => {
+      const { scrollTop, scrollHeight, clientHeight } = event.currentTarget;
+      tabScrollStateRef.current[activeTab] = {
+        offset: scrollTop,
+        atBottom: scrollHeight - scrollTop - clientHeight < 10,
+      };
+    },
+    [activeTab],
+  );
 
-  // 展开时重置自动滚动
   useEffect(() => {
-    if (expanded) {
-      setAutoScroll(true);
-    }
-  }, [expanded]);
+    if (!expanded) return;
+    const scrollState = tabScrollStateRef.current[activeTab];
+    const frame = requestAnimationFrame(() => {
+      if (scrollState.atBottom && currentLogs.length > 0) {
+        listRef.current?.scrollToEnd();
+      } else {
+        listRef.current?.scrollToOffset(scrollState.offset);
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [activeTab, currentLogs.length, expanded]);
 
-  // 切换 tab
   const handleTabChange = useCallback(
-    (tab: TabType) => {
+    (tab: LoggerTabType) => {
       if (tab === "backend" && !connected) return;
       if (tab === "embed" && !isEmbed) return;
       setActiveTab(tab);
-      setAutoScroll(true);
     },
     [connected, isEmbed],
   );
 
-  // 清空当前 tab 日志
   const handleClear = useCallback(() => {
+    tabScrollStateRef.current[activeTab] = { offset: 0, atBottom: true };
     if (activeTab === "operation") {
       clearOpLogs();
     } else if (activeTab === "backend") {
@@ -249,7 +183,7 @@ export function LoggerPanel() {
       setExporting(false);
       message.error("发送日志导出请求失败");
     }
-  }, [backendLogs, connected, embedLogs, isEmbed, opLogs]);
+  }, [backendLogs, connected, embedLogs, isEmbed, message, opLogs]);
 
   useEffect(() => {
     return mfwProtocol.onLogsExported((data) => {
@@ -267,7 +201,7 @@ export function LoggerPanel() {
       URL.revokeObjectURL(url);
       message.success("日志导出成功");
     });
-  }, []);
+  }, [message]);
 
   const exportButton = !isEmbed ? (
     <Tooltip placement="right" title="导出 MPE 日志">
@@ -387,132 +321,30 @@ export function LoggerPanel() {
             </button>
           </div>
         </div>
-        <div ref={listRef} className={styles.logList} onScroll={handleScroll}>
-          {activeTab === "operation" ? (
-            <OperationLogList logs={opLogs} />
-          ) : activeTab === "backend" ? (
-            <BackendLogList logs={backendLogs} />
-          ) : (
-            <EmbedMessageLogList logs={embedLogs} />
-          )}
-        </div>
+        {activeTab === "operation" ? (
+          <OperationLogList
+            ref={listRef}
+            logs={opLogs}
+            height={LOGGER_LIST_HEIGHT}
+            onScroll={handleScroll}
+          />
+        ) : activeTab === "backend" ? (
+          <BackendLogList
+            ref={listRef}
+            logs={backendLogs}
+            height={LOGGER_LIST_HEIGHT}
+            onScroll={handleScroll}
+          />
+        ) : (
+          <EmbedMessageLogList
+            ref={listRef}
+            logs={embedLogs}
+            height={LOGGER_LIST_HEIGHT}
+            onScroll={handleScroll}
+          />
+        )}
       </div>
       {exportButton}
     </div>
-  );
-}
-
-function formatPayload(payload: unknown): string {
-  try {
-    return JSON.stringify(payload, null, 2);
-  } catch {
-    return String(payload);
-  }
-}
-
-function formatMessageTimestamp(timestamp: number): string {
-  return new Date(timestamp).toISOString().slice(11, 23);
-}
-
-function EmbedMessageLogList({ logs }: { logs: EmbedMessageLog[] }) {
-  if (logs.length === 0) {
-    return <div className={styles.empty}>暂无嵌入通信记录</div>;
-  }
-
-  return (
-    <>
-      {logs.map((log) => (
-        <div key={log.id} className={`${styles.logItem} ${styles.embedMessage}`}>
-          <span className={styles.logIcon}>
-            {log.direction === "incoming" ? (
-              <ArrowDownOutlined />
-            ) : (
-              <ArrowUpOutlined />
-            )}
-          </span>
-          <div className={styles.logContent}>
-            <div className={styles.logMeta}>
-              <span className={styles.logTime}>
-                {formatMessageTimestamp(log.timestamp)}
-              </span>
-              <span className={styles.embedDirection}>
-                {log.direction === "incoming" ? "接收" : "发送"}
-              </span>
-              <span className={styles.embedType}>{log.type}</span>
-            </div>
-            {(log.requestId || log.origin) && (
-              <div className={styles.embedContext}>
-                {log.requestId && <span>{log.requestId}</span>}
-                {log.origin && <span>{log.origin}</span>}
-              </div>
-            )}
-            <details className={styles.embedPayload}>
-              <summary>payload</summary>
-              <pre>{formatPayload(log.payload)}</pre>
-            </details>
-          </div>
-        </div>
-      ))}
-    </>
-  );
-}
-
-// ========== 子组件 ==========
-
-function OperationLogList({ logs }: { logs: OperationLog[] }) {
-  if (logs.length === 0) {
-    return <div className={styles.empty}>暂无操作记录</div>;
-  }
-
-  return (
-    <>
-      {logs.map((log) => (
-        <div
-          key={log.id}
-          className={`${styles.logItem} ${getCategoryClass(log.category)} ${log.targetIds?.length ? styles.clickable : ""}`}
-          onClick={() => handleOperationLogClick(log)}
-        >
-          <span className={styles.logIcon}>
-            {getCategoryIcon(log.category)}
-          </span>
-          <div className={styles.logContent}>
-            <div className={styles.logMeta}>
-              <span className={styles.logTime}>
-                {formatTimestamp(log.timestamp)}
-              </span>
-            </div>
-            <div className={styles.logMessage}>{log.description}</div>
-          </div>
-        </div>
-      ))}
-    </>
-  );
-}
-
-function BackendLogList({ logs }: { logs: LogEntry[] }) {
-  if (logs.length === 0) {
-    return <div className={styles.empty}>暂无日志</div>;
-  }
-
-  return (
-    <>
-      {logs.map((log) => (
-        <div
-          key={log.id}
-          className={`${styles.logItem} ${getLevelClass(log.level)}`}
-        >
-          <span className={styles.logIcon}>{getLevelIcon(log.level)}</span>
-          <div className={styles.logContent}>
-            <div className={styles.logMeta}>
-              <span className={styles.logTime}>
-                {formatISOTime(log.timestamp)}
-              </span>
-              <span className={styles.logModule}>{log.module}</span>
-            </div>
-            <div className={styles.logMessage}>{log.message}</div>
-          </div>
-        </div>
-      ))}
-    </>
   );
 }
