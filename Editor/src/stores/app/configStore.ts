@@ -97,6 +97,7 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   isAutoFocus: "canvas",
   focusOpacity: "canvas",
   useDarkMode: "canvas",
+  enableCanvasMotionPause: "canvas",
   // 组件配置
   saveFilesBeforeDebug: "component",
   fieldPanelMode: "component",
@@ -244,6 +245,8 @@ const defaultConfigs = {
   edgePathMode: "bezier" as EdgePathMode,
   // 画布背景模式
   canvasBackgroundMode: "eyecare" as CanvasBackgroundMode,
+  // 交互期间暂停装饰动画
+  enableCanvasMotionPause: true,
   // 字段面板模式
   fieldPanelMode: "fixed" as FieldPanelMode,
   // 内嵌面板缩放比例
@@ -320,6 +323,8 @@ export type ConfigState = {
     enableCrossFileSearch: boolean;
     // 画布背景模式
     canvasBackgroundMode: CanvasBackgroundMode;
+    // 交互期间暂停装饰动画
+    enableCanvasMotionPause: boolean;
     // 字段面板模式
     fieldPanelMode: FieldPanelMode;
     // 内嵌面板缩放比例

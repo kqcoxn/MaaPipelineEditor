@@ -51,6 +51,8 @@ import {
 } from "../core/snapUtils";
 import { useEmbedMode } from "../hooks/useEmbedMode";
 import { sendToParent } from "../utils/embedBridge";
+import { useCanvasMotionPause } from "../hooks/useCanvasMotionPause";
+import { CanvasMotionContext } from "./flow/canvasMotionContext";
 
 /**工作流 */
 // 按键监听
@@ -244,6 +246,9 @@ function MainFlow() {
     (state) => state.configs.quickCreateNodeOnConnectBlank,
   );
   const edgePathMode = useConfigStore((state) => state.configs.edgePathMode);
+  const enableCanvasMotionPause = useConfigStore(
+    (state) => state.configs.enableCanvasMotionPause,
+  );
 
   // 嵌入模式权限控制
   const { isEmbed, isCapAllowed } = useEmbedMode();
@@ -254,6 +259,34 @@ function MainFlow() {
   const pendingConnectionRef = useRef<OnConnectStartParams | null>(null);
   const connectionCompletedRef = useRef(false);
   const suppressNextPaneClickRef = useRef(false);
+
+  const ref = useRef<HTMLDivElement>(null);
+  const { beginCanvasMotionPause, endCanvasMotionPause } =
+    useCanvasMotionPause(ref, enableCanvasMotionPause);
+  const canvasMotionContext = useMemo(
+    () => ({ beginCanvasMotionPause, endCanvasMotionPause }),
+    [beginCanvasMotionPause, endCanvasMotionPause],
+  );
+  const pauseViewportMotion = useCallback(
+    () => beginCanvasMotionPause("viewport"),
+    [beginCanvasMotionPause],
+  );
+  const resumeViewportMotion = useCallback(
+    () => endCanvasMotionPause("viewport"),
+    [endCanvasMotionPause],
+  );
+  const pauseNodeDragMotion = useCallback(
+    () => beginCanvasMotionPause("node-drag"),
+    [beginCanvasMotionPause],
+  );
+  const pauseSelectionDragMotion = useCallback(
+    () => beginCanvasMotionPause("selection-drag"),
+    [beginCanvasMotionPause],
+  );
+  const resumeSelectionDragMotion = useCallback(
+    () => endCanvasMotionPause("selection-drag"),
+    [endCanvasMotionPause],
+  );
 
   // 节点添加面板状态
   const [nodeAddPanelVisible, setNodeAddPanelVisible] = useState(false);
@@ -340,16 +373,18 @@ function MainFlow() {
   );
   const onConnectStart = useCallback(
     (_event: MouseEvent | TouchEvent, params: OnConnectStartParams) => {
+      beginCanvasMotionPause("connection");
       pendingConnectionRef.current = params;
       connectionCompletedRef.current = false;
     },
-    [],
+    [beginCanvasMotionPause],
   );
   const onConnectEnd = useCallback(
     (
       event: MouseEvent | TouchEvent,
       connectionState?: FinalConnectionState,
     ) => {
+      endCanvasMotionPause("connection");
       if (readOnly) return;
 
       const connectStart = pendingConnectionRef.current;
@@ -405,7 +440,7 @@ function MainFlow() {
 
       connectionCompletedRef.current = false;
     },
-    [quickCreateNodeOnConnectBlank, readOnly],
+    [endCanvasMotionPause, quickCreateNodeOnConnectBlank, readOnly],
   );
   const onSelectionChange = useCallback(
     (params: OnSelectionChangeParams) => {
@@ -531,6 +566,7 @@ function MainFlow() {
 
   const onNodeDragStop = useCallback(
     (_event: React.MouseEvent, draggedNode: NodeType) => {
+      endCanvasMotionPause("node-drag");
       setSnapGuidelines([]);
 
       // 磁吸对齐
@@ -632,6 +668,7 @@ function MainFlow() {
       updateNodes,
       attachNodeToGroup,
       detachNodeFromGroup,
+      endCanvasMotionPause,
     ],
   );
 
@@ -655,7 +692,6 @@ function MainFlow() {
   }, [canvasBackgroundMode]);
 
   // hook
-  const ref = useRef(null);
   const { run: updateCanvasSize } = useDebounceFn(
     (width: number, height: number) => updateSize(width, height),
     { wait: 300 },
@@ -684,54 +720,61 @@ function MainFlow() {
       data-node-shadows={showNodeShadows}
       ref={ref}
     >
-      <AvoidanceRoutingProvider enabled={edgePathMode === "avoid"}>
-        <ReactFlow
-          ref={selfElem}
-          nodeTypes={nodeTypes}
-          nodes={nodes}
-          onNodesChange={onNodesChange}
-          edgeTypes={edgeTypes}
-          edges={edges}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onConnectStart={onConnectStart}
-          onConnectEnd={onConnectEnd}
-          onSelectionChange={onSelectionChange}
-          defaultViewport={defaultViewport}
-          minZoom={0.2}
-          maxZoom={2.5}
-          onPaneClick={onPaneClick}
-          onDoubleClick={onDoubleClick}
-          onPaneContextMenu={onPaneContextMenu}
-          onNodeContextMenu={onNodeContextMenu}
-          onSelectionContextMenu={onSelectionContextMenu}
-          onNodeDrag={onNodeDrag}
-          onNodeDragStop={onNodeDragStop}
-          nodesDraggable={!readOnly}
-          nodesConnectable={!readOnly}
-          elementsSelectable={true}
-          autoPanOnConnect={false}
-          autoPanOnNodeDrag={false}
-          preventScrolling={true}
-          elevateNodesOnSelect={true}
-        >
-          <Background bgColor={backgroundColor} />
-          <Controls orientation="vertical" />
-          <InstanceMonitor />
-          <ViewportChangeMonitor />
-          <KeyListener targetRef={selfElem} allowCopy={allowCopy} />
-          <NodeAddPanelController
-            visible={nodeAddPanelVisible}
-            screenPos={nodeAddPanelPos}
-            quickCreateConnection={quickCreateConnection}
-            setScreenPos={setNodeAddPanelPos}
-            onClose={closeNodeAddPanel}
-          />
-          <InlineFieldPanel />
-          <InlineEdgePanel />
-          <SnapGuidelines guidelines={snapGuidelines} />
-        </ReactFlow>
-      </AvoidanceRoutingProvider>
+      <CanvasMotionContext.Provider value={canvasMotionContext}>
+        <AvoidanceRoutingProvider enabled={edgePathMode === "avoid"}>
+          <ReactFlow
+            ref={selfElem}
+            nodeTypes={nodeTypes}
+            nodes={nodes}
+            onNodesChange={onNodesChange}
+            edgeTypes={edgeTypes}
+            edges={edges}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onConnectStart={onConnectStart}
+            onConnectEnd={onConnectEnd}
+            onMoveStart={pauseViewportMotion}
+            onMoveEnd={resumeViewportMotion}
+            onNodeDragStart={pauseNodeDragMotion}
+            onSelectionChange={onSelectionChange}
+            onSelectionDragStart={pauseSelectionDragMotion}
+            onSelectionDragStop={resumeSelectionDragMotion}
+            defaultViewport={defaultViewport}
+            minZoom={0.2}
+            maxZoom={2.5}
+            onPaneClick={onPaneClick}
+            onDoubleClick={onDoubleClick}
+            onPaneContextMenu={onPaneContextMenu}
+            onNodeContextMenu={onNodeContextMenu}
+            onSelectionContextMenu={onSelectionContextMenu}
+            onNodeDrag={onNodeDrag}
+            onNodeDragStop={onNodeDragStop}
+            nodesDraggable={!readOnly}
+            nodesConnectable={!readOnly}
+            elementsSelectable={true}
+            autoPanOnConnect={false}
+            autoPanOnNodeDrag={false}
+            preventScrolling={true}
+            elevateNodesOnSelect={true}
+          >
+            <Background bgColor={backgroundColor} />
+            <Controls orientation="vertical" />
+            <InstanceMonitor />
+            <ViewportChangeMonitor />
+            <KeyListener targetRef={selfElem} allowCopy={allowCopy} />
+            <NodeAddPanelController
+              visible={nodeAddPanelVisible}
+              screenPos={nodeAddPanelPos}
+              quickCreateConnection={quickCreateConnection}
+              setScreenPos={setNodeAddPanelPos}
+              onClose={closeNodeAddPanel}
+            />
+            <InlineFieldPanel />
+            <InlineEdgePanel />
+            <SnapGuidelines guidelines={snapGuidelines} />
+          </ReactFlow>
+        </AvoidanceRoutingProvider>
+      </CanvasMotionContext.Provider>
       <CanvasNodeContextMenu
         nodeId={nodeContextMenu?.nodeId ?? null}
         position={nodeContextMenu?.position ?? null}

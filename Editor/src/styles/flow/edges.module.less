@@ -13,6 +13,7 @@
 
 .edge-animated {
   animation: dash-animation 1s linear infinite;
+  animation-play-state: var(--mpe-canvas-animation-play-state, running);
 }
 
 @keyframes dash-animation {
@@ -53,7 +54,7 @@
   box-sizing: border-box;
   z-index: 11;
   @trans: 0.2s ease;
-  transition: background-color @trans, border @trans, font-size @trans,
+  transition: background-color @trans, border-color @trans, font-size @trans,
     opacity @trans;
 }
 
@@ -96,5 +97,11 @@
 
   &:hover {
     background-color: #fde68a;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edge-animated {
+    animation: none;
   }
 }

@@ -17,6 +17,21 @@ describe("node settings", () => {
   });
 });
 
+describe("canvas settings", () => {
+  it("exposes the canvas motion pause switch", () => {
+    const motionPauseItem = settingsDefinitions.find(
+      (item) => item.key === "enableCanvasMotionPause",
+    );
+
+    expect(motionPauseItem).toMatchObject({
+      category: "canvas",
+      type: "switch",
+      checkedChildren: "开启",
+      unCheckedChildren: "关闭",
+    });
+  });
+});
+
 describe("AI settings", () => {
   it("exposes the persisted AI configuration fields", () => {
     const aiItems = settingsDefinitions.filter((item) => item.category === "ai");

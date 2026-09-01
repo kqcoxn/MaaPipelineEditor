@@ -2,5 +2,9 @@
   position: relative;
   width: 100%;
   height: 100%;
-}
+  --mpe-canvas-animation-play-state: running;
 
+  &[data-canvas-motion="paused"] {
+    --mpe-canvas-animation-play-state: paused;
+  }
+}

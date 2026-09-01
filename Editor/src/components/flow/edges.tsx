@@ -23,6 +23,7 @@ import {
   useAvoidanceRoutingContext,
   type AvoidanceRoutingContextValue,
 } from "./avoidanceRoutingContext";
+import { useCanvasMotionContext } from "./canvasMotionContext";
 
 // 判断位置是否为水平方向
 function isHorizontalPosition(position: string): boolean {
@@ -293,6 +294,8 @@ function MarkedEdge(props: EdgeProps) {
   );
   const edgePathMode = useConfigStore((state) => state.configs.edgePathMode);
   const { getAvoidancePath } = useAvoidanceRoutingContext();
+  const { beginCanvasMotionPause, endCanvasMotionPause } =
+    useCanvasMotionContext();
 
   const actualSourcePosition = props.sourcePosition.toLowerCase();
   const actualTargetPosition = props.targetPosition.toLowerCase();
@@ -394,11 +397,12 @@ function MarkedEdge(props: EdgeProps) {
     (e: React.MouseEvent) => {
       e.stopPropagation();
       e.preventDefault();
+      beginCanvasMotionPause("edge-control");
       setIsDragging(true);
       dragStartRef.current = { x: e.clientX, y: e.clientY };
       initialOffsetRef.current = { ...controlOffset };
     },
-    [controlOffset],
+    [beginCanvasMotionPause, controlOffset],
   );
 
   // 处理拖拽移动
@@ -429,6 +433,7 @@ function MarkedEdge(props: EdgeProps) {
     };
 
     const handleMouseUp = () => {
+      endCanvasMotionPause("edge-control");
       setIsDragging(false);
       dragStartRef.current = null;
     };
@@ -439,8 +444,9 @@ function MarkedEdge(props: EdgeProps) {
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
+      endCanvasMotionPause("edge-control");
     };
-  }, [isDragging, screenToFlowPosition]);
+  }, [endCanvasMotionPause, isDragging, screenToFlowPosition]);
 
   // 双击重置控制点
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {

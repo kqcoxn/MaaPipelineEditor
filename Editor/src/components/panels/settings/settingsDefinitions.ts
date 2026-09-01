@@ -461,6 +461,18 @@ export const settingsDefinitions: ConfigItemDef[] = [
     order: 3,
   },
   {
+    key: "enableCanvasMotionPause",
+    category: "canvas",
+    label: "交互期间暂停画布动画",
+    tipTitle: "交互期间暂停画布动画",
+    tipContent:
+      "开启时，拖动节点、平移/缩放画布、拖动边控制点或创建连线期间暂停边流动和 Anchor 高亮脉冲，页面切换到后台时也会暂停。单选、框选和取消选择不会暂停动画。",
+    type: "switch",
+    checkedChildren: "开启",
+    unCheckedChildren: "关闭",
+    order: 4,
+  },
+  {
     key: "enableLiveScreen",
     category: "component",
     label: "实时画面预览",

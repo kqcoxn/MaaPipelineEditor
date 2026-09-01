@@ -20,6 +20,11 @@ describe("config cache", () => {
     expect(configDefaults.showNodeShadows).toBe(true);
   });
 
+  it("enables canvas motion pausing by default", () => {
+    expect(configDefaults.enableCanvasMotionPause).toBe(true);
+    expect(useConfigStore.getState().configs.enableCanvasMotionPause).toBe(true);
+  });
+
   it("defaults the live screen to 15 frames per second", () => {
     expect(configDefaults.liveScreenRefreshRate).toBe(
       DEFAULT_LIVE_SCREEN_FRAME_RATE,
@@ -132,6 +137,15 @@ describe("config export", () => {
     };
 
     expect(getExportableConfigs(configs).showNodeShadows).toBe(false);
+  });
+
+  it("exports the canvas motion pause preference", () => {
+    const configs = {
+      ...configDefaults,
+      enableCanvasMotionPause: false,
+    };
+
+    expect(getExportableConfigs(configs).enableCanvasMotionPause).toBe(false);
   });
 
   it("does not include the AI API key", () => {

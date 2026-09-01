@@ -27,7 +27,8 @@
   border-radius: 4px;
   background-color: white;
   font-size: 12px;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    box-shadow 0.15s ease;
 
   .title {
     text-align: center;
@@ -138,7 +139,7 @@
         border-radius: 4px;
         cursor: pointer;
         color: #999;
-        transition: all 0.15s ease;
+        transition: background-color 0.15s ease, color 0.15s ease;
 
         &:hover {
           background-color: #e0e0e0;
@@ -231,7 +232,8 @@
               padding: 0 6px;
               font-size: 11px;
               border: 1px solid #f0f0f0;
-              transition: all 0.15s ease;
+              transition: background-color 0.15s ease,
+                border-color 0.15s ease;
             }
           }
         }
@@ -382,6 +384,7 @@
   box-shadow: 0 0 0 2px #4a9d8e, 0 0 12px rgba(74, 157, 142, 0.3);
   border-color: rgba(#4a9d8e, 0.8);
   animation: anchor-ref-pulse 1.5s ease-in-out infinite;
+  animation-play-state: var(--mpe-canvas-animation-play-state, running);
 }
 
 @keyframes anchor-ref-pulse {
@@ -431,7 +434,7 @@
       border-radius: 4px;
       cursor: pointer;
       opacity: 0.7;
-      transition: all 0.15s ease;
+      transition: background-color 0.15s ease, opacity 0.15s ease;
 
       &:hover {
         opacity: 1;
@@ -479,7 +482,7 @@
       border-radius: 4px;
       cursor: pointer;
       opacity: 0.7;
-      transition: all 0.15s ease;
+      transition: background-color 0.15s ease, opacity 0.15s ease;
 
       &:hover {
         opacity: 1;
@@ -568,7 +571,7 @@
   height: 18px !important;
   width: 8px !important;
   border-radius: 4px !important;
-  transition: all 0.1s ease;
+  transition: width 0.1s ease, height 0.1s ease;
 
   &:hover {
     width: 9px !important;
@@ -582,7 +585,7 @@
   width: 18px !important;
   height: 8px !important;
   border-radius: 4px !important;
-  transition: all 0.1s ease;
+  transition: width 0.1s ease, height 0.1s ease;
 
   &:hover {
     width: 20px !important;
@@ -663,7 +666,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
+    transition: background-color 0.2s ease, border-color 0.2s ease,
+      box-shadow 0.2s ease, transform 0.2s ease;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     position: relative;
 
@@ -712,7 +716,8 @@
   border-radius: 50% !important;
   border: 2px solid white !important;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
-  transition: all 0.15s ease;
+  transition: width 0.15s ease, height 0.15s ease,
+    box-shadow 0.15s ease;
 
   &:hover {
     width: 14px !important;
@@ -753,7 +758,8 @@
   border-radius: 50% !important;
   border: 2px solid white !important;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
-  transition: all 0.15s ease;
+  transition: width 0.15s ease, height 0.15s ease,
+    box-shadow 0.15s ease;
 
   &:hover {
     width: 14px !important;
@@ -939,5 +945,11 @@
   .groupInner {
     box-shadow: 0 0 0 1.5px rgba(24, 144, 255, 0.6),
       0 0 16px rgba(24, 144, 255, 0.1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anchor-ref-highlighted {
+    animation: none;
   }
 }
