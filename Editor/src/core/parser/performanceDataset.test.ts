@@ -19,6 +19,10 @@ import {
 import { pipelineToFlow, resetIdCounter } from ".";
 import { serializeFileForCache } from "../../stores/project/fileCache";
 import type { FileType } from "../../stores/project/fileStore";
+import {
+  buildSnapAlignmentIndex,
+  findSnapAlignmentWithIndex,
+} from "../snapUtils";
 
 const DATASET_CASES = [
   { fileName: "performance-small-100.json", nodes: 100, edges: 200 },
@@ -408,6 +412,58 @@ describe("PERF-001 performance datasets", () => {
     expect(stats.misses).toBe(requests.length);
     console.info(
       `[PERF-005B] large cache reuse: requests=${requests.length}x2, algorithm=${algorithmExecutions}, hits=${stats.hits}, misses=${stats.misses}, invalidations=${stats.invalidations}`,
+    );
+  });
+
+  it("measures PERF-013 indexed snap queries", async () => {
+    const datasetPath = resolve(
+      process.cwd(),
+      "../dev/performance/editor/datasets/performance-large-300.json",
+    );
+    const pipelineText = await readFile(datasetPath, "utf8");
+    expect(await pipelineToFlow({ pString: pipelineText })).toBe(true);
+
+    const state = useFlowStore.getState();
+    const draggedNode = state.nodes.find(
+      (node) => node.data.label === "Perf_Node_0050",
+    );
+    expect(draggedNode).toBeDefined();
+    const measured = { width: 200, height: 100 };
+    const candidates = state.nodes
+      .filter(
+        (node) =>
+          node.id !== draggedNode!.id && node.type !== NodeTypeEnum.Group,
+      )
+      .map((node) => ({
+        id: node.id,
+        position: getNodeAbsolutePosition(node, state.nodeById),
+        measured,
+      }));
+    const index = buildSnapAlignmentIndex(candidates);
+    const dragPositions = createDragPositions(
+      getNodeAbsolutePosition(draggedNode!, state.nodeById),
+    );
+    let inspectedCoordinates = 0;
+    let maxInspectedCoordinates = 0;
+
+    for (const position of dragPositions) {
+      const result = findSnapAlignmentWithIndex(
+        { id: draggedNode!.id, position, measured },
+        index,
+      );
+      inspectedCoordinates += result.inspectedCoordinates;
+      maxInspectedCoordinates = Math.max(
+        maxInspectedCoordinates,
+        result.inspectedCoordinates,
+      );
+    }
+
+    const legacyCandidateVisits = candidates.length * dragPositions.length;
+    const legacyPointComparisons = legacyCandidateVisits * 18;
+    expect(maxInspectedCoordinates).toBeLessThanOrEqual(12);
+    expect(inspectedCoordinates).toBeLessThan(legacyCandidateVisits);
+    console.info(
+      `[PERF-013] 300-node/300-move snap: candidate-visits=${legacyCandidateVisits}->0, point-comparisons=${legacyPointComparisons}->${inspectedCoordinates}, max-query-coordinates=${maxInspectedCoordinates}`,
     );
   });
 });

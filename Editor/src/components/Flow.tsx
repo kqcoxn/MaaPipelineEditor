@@ -44,11 +44,7 @@ import InlineFieldPanel from "./panels/main/InlineFieldPanel";
 import InlineEdgePanel from "./panels/main/InlineEdgePanel";
 import { useConfigStore } from "@/stores/app/configStore";
 import SnapGuidelines from "./flow/SnapGuidelines";
-import {
-  findSnapAlignment,
-  filterNodesInViewport,
-  type SnapGuideline,
-} from "../core/snapUtils";
+import { useNodeSnap } from "./flow/useNodeSnap";
 import { useEmbedMode } from "../hooks/useEmbedMode";
 import { sendToParent } from "../utils/embedBridge";
 import { useCanvasMotionPause } from "../hooks/useCanvasMotionPause";
@@ -275,10 +271,6 @@ function MainFlow() {
     () => endCanvasMotionPause("viewport"),
     [endCanvasMotionPause],
   );
-  const pauseNodeDragMotion = useCallback(
-    () => beginCanvasMotionPause("node-drag"),
-    [beginCanvasMotionPause],
-  );
   const pauseSelectionDragMotion = useCallback(
     () => beginCanvasMotionPause("selection-drag"),
     [beginCanvasMotionPause],
@@ -294,8 +286,16 @@ function MainFlow() {
   const [quickCreateConnection, setQuickCreateConnection] =
     useState<QuickCreateConnection | null>(null);
 
-  // 磁吸对齐参考线
-  const [snapGuidelines, setSnapGuidelines] = useState<SnapGuideline[]>([]);
+  const {
+    guidelines: snapGuidelines,
+    start: startNodeSnap,
+    update: updateNodeSnap,
+    stop: stopNodeSnap,
+  } = useNodeSnap({
+    enabled: enableNodeSnap,
+    onlyInViewport: snapOnlyInViewport,
+    updateNodes,
+  });
 
   // 选区右键菜单
   const [selectionMenuPos, setSelectionMenuPos] = useState<{
@@ -521,87 +521,38 @@ function MainFlow() {
     setQuickCreateConnection(null);
   }, []);
 
+  const onNodeDragStart = useCallback(
+    (
+      _event: React.MouseEvent,
+      draggedNode: NodeType,
+      eventDraggedNodes: NodeType[],
+    ) => {
+      beginCanvasMotionPause("node-drag");
+      startNodeSnap(draggedNode, eventDraggedNodes);
+    },
+    [beginCanvasMotionPause, startNodeSnap],
+  );
+
   // 节点拖拽磁吸对齐
   const onNodeDrag = useCallback(
-    (_event: React.MouseEvent, draggedNode: NodeType) => {
-      if (!enableNodeSnap) return;
-      const {
-        nodes: currentNodes,
-        viewport: currentViewport,
-        size: currentSize,
-      } = useFlowStore.getState();
-      // 过滤拖拽节点和分组节点
-      let otherNodes = currentNodes.filter(
-        (n) => n.id !== draggedNode.id && n.type !== NodeTypeEnum.Group,
-      );
-      // 过滤可视范围内的节点
-      if (snapOnlyInViewport) {
-        otherNodes = filterNodesInViewport(otherNodes, {
-          ...currentViewport,
-          ...currentSize,
-        });
-      }
-      if (otherNodes.length === 0) {
-        setSnapGuidelines([]);
-        return;
-      }
-      const result = findSnapAlignment(draggedNode, otherNodes);
-      setSnapGuidelines(result.guidelines);
-
-      const dx = result.position.x - draggedNode.position.x;
-      const dy = result.position.y - draggedNode.position.y;
-      if (dx !== 0 || dy !== 0) {
-        updateNodes([
-          {
-            type: "position",
-            id: draggedNode.id,
-            position: result.position,
-            dragging: true,
-          },
-        ]);
-      }
+    (
+      _event: React.MouseEvent,
+      draggedNode: NodeType,
+      eventDraggedNodes: NodeType[],
+    ) => {
+      updateNodeSnap(draggedNode, eventDraggedNodes);
     },
-    [enableNodeSnap, snapOnlyInViewport, updateNodes],
+    [updateNodeSnap],
   );
 
   const onNodeDragStop = useCallback(
-    (_event: React.MouseEvent, draggedNode: NodeType) => {
+    (
+      _event: React.MouseEvent,
+      draggedNode: NodeType,
+      eventDraggedNodes: NodeType[],
+    ) => {
       endCanvasMotionPause("node-drag");
-      setSnapGuidelines([]);
-
-      // 磁吸对齐
-      if (enableNodeSnap) {
-        const {
-          nodes: currentNodes,
-          viewport: currentViewport,
-          size: currentSize,
-        } = useFlowStore.getState();
-        // 过滤掉拖拽节点和分组节点
-        let otherNodes = currentNodes.filter(
-          (n) => n.id !== draggedNode.id && n.type !== NodeTypeEnum.Group,
-        );
-        // 过滤可视范围内的节点
-        if (snapOnlyInViewport) {
-          otherNodes = filterNodesInViewport(otherNodes, {
-            ...currentViewport,
-            ...currentSize,
-          });
-        }
-        if (otherNodes.length > 0) {
-          const result = findSnapAlignment(draggedNode, otherNodes);
-          const dx = result.position.x - draggedNode.position.x;
-          const dy = result.position.y - draggedNode.position.y;
-          if (dx !== 0 || dy !== 0) {
-            updateNodes([
-              {
-                type: "position",
-                id: draggedNode.id,
-                position: result.position,
-              },
-            ]);
-          }
-        }
-      }
+      stopNodeSnap(draggedNode, eventDraggedNodes);
 
       // 拖入/拖出分组检测
       if (draggedNode.type === NodeTypeEnum.Group) return;
@@ -663,9 +614,7 @@ function MainFlow() {
       });
     },
     [
-      enableNodeSnap,
-      snapOnlyInViewport,
-      updateNodes,
+      stopNodeSnap,
       attachNodeToGroup,
       detachNodeFromGroup,
       endCanvasMotionPause,
@@ -735,7 +684,7 @@ function MainFlow() {
             onConnectEnd={onConnectEnd}
             onMoveStart={pauseViewportMotion}
             onMoveEnd={resumeViewportMotion}
-            onNodeDragStart={pauseNodeDragMotion}
+            onNodeDragStart={onNodeDragStart}
             onSelectionChange={onSelectionChange}
             onSelectionDragStart={pauseSelectionDragMotion}
             onSelectionDragStop={resumeSelectionDragMotion}
