@@ -39,9 +39,15 @@ describe("CanvasCommandBus", () => {
       { type: "create_node", nodeRef: "batch-end", name: "结束" },
       {
         type: "create_connection",
+        edgeRef: "batch-connection",
         sourceId: "1",
         targetId: "batch-end",
         sourceHandle: "next" as never,
+      },
+      {
+        type: "update_connection",
+        connectionId: "batch-connection",
+        attributes: { anchor: true },
       },
     ]);
 
@@ -50,9 +56,14 @@ describe("CanvasCommandBus", () => {
     expect(getGraph().nodes).toHaveLength(2);
     expect(getGraph().edges).toHaveLength(1);
     expect(getGraph().nodes[1].id).toBe("node_1");
+    expect(getGraph().edges[0].id).toBe("edge_1");
     expect(getGraph().edges[0].target).toBe("node_1");
+    expect(getGraph().edges[0].attributes).toEqual({ anchor: true });
     expect(result.data).toMatchObject({
       createdNodes: [{ nodeRef: "batch-end", nodeId: "node_1" }],
+      createdConnections: [
+        { edgeRef: "batch-connection", connectionId: "edge_1" },
+      ],
     });
   });
 
@@ -83,6 +94,26 @@ describe("CanvasCommandBus", () => {
     expect(result).toMatchObject({
       ok: false,
       error: { message: "节点临时引用不可用: node_10" },
+    });
+    expect(commit).not.toHaveBeenCalled();
+  });
+
+  it("拒绝临时引用占用正式连接 ID 命名空间", () => {
+    const { bus, commit } = createHarness();
+
+    const result = bus.apply(context(), [
+      {
+        type: "create_connection",
+        edgeRef: "edge_10",
+        sourceId: "1",
+        targetId: "1",
+        sourceHandle: "next" as never,
+      },
+    ]);
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: { message: "连接临时引用不可用: edge_10" },
     });
     expect(commit).not.toHaveBeenCalled();
   });

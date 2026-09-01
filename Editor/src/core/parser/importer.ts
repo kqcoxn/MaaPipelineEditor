@@ -7,6 +7,7 @@ import {
   createAnchorNode,
   createStickerNode,
   createGroupNode,
+  createEdgeIdAllocator,
   createNodeIdAllocator,
   ensureGroupNodeOrder,
   normalizeImportedNodePosition,
@@ -238,6 +239,8 @@ export async function pipelineToFlow(
     let isIncludePos = false;
     const nodeIdAllocator = createNodeIdAllocator();
     const allocateNodeId = () => nodeIdAllocator.allocate().id;
+    const edgeIdAllocator = createEdgeIdAllocator();
+    const allocateEdgeId = () => edgeIdAllocator.allocate().id;
 
     // 初始化顺序映射
     const orderMap: Record<string, number> = {};
@@ -491,6 +494,7 @@ export async function pipelineToFlow(
           SourceHandleTypeEnum.Next,
           idOLPairs,
           allocateNodeId,
+          allocateEdgeId,
         );
         if (newEdges.length > 0) edges = edges.concat(newEdges);
         if (newNodes.length > 0) nodes = nodes.concat(newNodes);
@@ -506,6 +510,7 @@ export async function pipelineToFlow(
           SourceHandleTypeEnum.Error,
           idOLPairs,
           allocateNodeId,
+          allocateEdgeId,
         );
         if (newEdges.length > 0) edges = edges.concat(newEdges);
         if (newNodes.length > 0) nodes = nodes.concat(newNodes);

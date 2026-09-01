@@ -9,6 +9,7 @@ describe("flow node id allocation", () => {
       skipHistory: true,
     });
     useFlowStore.getState().resetNodeCounter();
+    useFlowStore.getState().resetEdgeCounter();
   });
 
   it("shares one id sequence across node types", () => {
@@ -44,5 +45,20 @@ describe("flow node id allocation", () => {
       .getState()
       .nodes.find((node) => node.type === NodeTypeEnum.Group);
     expect(group?.id).toBe("node_1");
+  });
+
+  it("uses the shared edge sequence for automatic linking", () => {
+    const sourceId = useFlowStore.getState().addNode({
+      type: NodeTypeEnum.Pipeline,
+    });
+    const source = useFlowStore.getState().nodeById.get(sourceId)!;
+    useFlowStore.getState().updateSelection([source], []);
+
+    useFlowStore.getState().addNode({
+      type: NodeTypeEnum.Pipeline,
+      link: true,
+    });
+
+    expect(useFlowStore.getState().edges[0].id).toBe("edge_1");
   });
 });

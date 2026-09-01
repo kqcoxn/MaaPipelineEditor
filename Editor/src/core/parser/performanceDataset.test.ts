@@ -105,6 +105,9 @@ describe("PERF-001 performance datasets", () => {
       expect(
         flowState.nodes.every((node) => /^node_[1-9]\d*$/.test(node.id)),
       ).toBe(true);
+      expect(
+        flowState.edges.every((edge) => /^edge_[1-9]\d*$/.test(edge.id)),
+      ).toBe(true);
       expect(autoLayout).not.toHaveBeenCalled();
       expect(firstNode).toBeDefined();
       expect(getNodeAbsolutePosition(firstNode!, flowState.nodes)).toEqual(

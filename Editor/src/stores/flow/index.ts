@@ -83,7 +83,10 @@ export {
   findEdgeById,
   getSelectedEdges,
   calcuLinkOrder,
+  getConnectionKey,
+  hasMatchingConnection,
 } from "./utils/edgeUtils";
+export type { ConnectionEndpoints } from "./utils/edgeUtils";
 export { fitFlowView } from "./utils/viewportUtils";
 export { getNodeTypeLabelKey } from "./utils/graphIndex";
 export {
@@ -93,6 +96,13 @@ export {
   NODE_ID_PREFIX,
 } from "./utils/nodeId";
 export type { NodeIdAllocation, NodeIdAllocator } from "./utils/nodeId";
+export {
+  allocateEdgeId,
+  createEdgeIdAllocator,
+  getNextEdgeIdCounter,
+  EDGE_ID_PREFIX,
+} from "./utils/edgeId";
+export type { EdgeIdAllocation, EdgeIdAllocator } from "./utils/edgeId";
 
 // 检查节点名重复
 export function checkRepeatNodeLabelList(): string[] {

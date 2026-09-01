@@ -94,7 +94,7 @@ describe("AvoidanceRoutingProvider", () => {
         source: "source",
         sourceHandle: SourceHandleTypeEnum.Next,
         target: "target",
-        targetHandle: TargetHandleTypeEnum.Target,
+        targetHandle: TargetHandleTypeEnum.JumpBack,
       });
     });
     expect(values.at(-1)?.nodeBoundsList).toBe(afterLayout.nodeBoundsList);

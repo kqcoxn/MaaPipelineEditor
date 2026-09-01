@@ -77,6 +77,7 @@ export function linkEdge(
   type: SourceHandleTypeEnum,
   idOLPairs: IdLabelPairsType,
   allocateNodeId: () => string,
+  allocateEdgeId: () => string,
 ): [EdgeType[], NodeType[], IdLabelPairsType] {
   // 检索源节点ID
   const sourceId = idOLPairs.find((pair) => pair.label === oSourceLabel)
@@ -125,7 +126,7 @@ export function linkEdge(
 
     // 创建连接
     const edge: EdgeType = {
-      id: `${sourceId}_${type}_${targetId}`,
+      id: allocateEdgeId(),
       source: sourceId,
       sourceHandle: type,
       target: targetId,

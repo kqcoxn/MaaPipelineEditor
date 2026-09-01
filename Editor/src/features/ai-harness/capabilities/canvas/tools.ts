@@ -72,6 +72,12 @@ const mutationSchemas: Record<CanvasMutation["type"], AnySchemaObject> = {
     type: "object",
     properties: {
       type: { const: "create_connection" },
+      edgeRef: {
+        type: "string",
+        minLength: 1,
+        maxLength: 128,
+        description: "同一批变更内引用新连接的临时名称",
+      },
       sourceId: { type: "string", minLength: 1 },
       targetId: { type: "string", minLength: 1 },
       sourceHandle: { enum: ["next", "on_error"] },
@@ -201,6 +207,12 @@ export const canvasToolDefinitions: ToolDefinition[] = [
     destructive: true,
     inputSchema: writeSchema(
       {
+        edgeRef: {
+          type: "string",
+          minLength: 1,
+          maxLength: 128,
+          description: "同一批变更内引用新连接的临时名称",
+        },
         sourceId: { type: "string", minLength: 1 },
         targetId: { type: "string", minLength: 1 },
         sourceHandle: { enum: ["next", "on_error"] },

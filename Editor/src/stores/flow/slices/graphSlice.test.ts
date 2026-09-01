@@ -16,6 +16,7 @@ describe("flow paste", () => {
       skipHistory: true,
     });
     useFlowStore.getState().resetNodeCounter();
+    useFlowStore.getState().resetEdgeCounter();
   });
 
   it("returns the nodes created by the paste with their new ids", () => {
@@ -68,6 +69,8 @@ describe("flow paste", () => {
       .filter((edge) => edge.selected)
       .map((edge) => edge.id);
 
+    expect(visuallySelectedEdgeIds).toEqual(["edge_1"]);
+
     expect(visuallySelectedNodeIds).toEqual(
       pastedNodes.map((node) => node.id),
     );
@@ -79,5 +82,43 @@ describe("flow paste", () => {
       state.selectedEdges.map((edge) => edge.id),
     );
     expect(visuallySelectedEdgeIds).toEqual([...state.selectedEdgeIds]);
+  });
+
+  it("restores the edge id counter when replacing the graph", () => {
+    const source = createPipelineNode("source", { label: "Source" });
+    const firstTarget = createPipelineNode("first-target", {
+      label: "First target",
+    });
+    const secondTarget = createPipelineNode("second-target", {
+      label: "Second target",
+    });
+    const existingEdge: EdgeType = {
+      id: "edge_7",
+      source: source.id,
+      sourceHandle: SourceHandleTypeEnum.Next,
+      target: firstTarget.id,
+      targetHandle: TargetHandleTypeEnum.Target,
+      label: 1,
+      type: "marked",
+    };
+
+    useFlowStore
+      .getState()
+      .replace([source, firstTarget, secondTarget], [existingEdge], {
+        isFitView: false,
+        skipHistory: true,
+      });
+    useFlowStore.getState().addEdge({
+      source: source.id,
+      sourceHandle: SourceHandleTypeEnum.Next,
+      target: secondTarget.id,
+      targetHandle: TargetHandleTypeEnum.Target,
+    });
+
+    expect(useFlowStore.getState().edges.map((edge) => edge.id)).toEqual([
+      "edge_7",
+      "edge_8",
+    ]);
+    expect(useFlowStore.getState().edgeIdCounter).toBe(9);
   });
 });

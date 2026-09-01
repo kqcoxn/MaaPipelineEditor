@@ -22,6 +22,10 @@ import {
   allocateNodeId,
   getNextNodeIdCounter,
 } from "../utils/nodeId";
+import {
+  allocateEdgeId,
+  getNextEdgeIdCounter,
+} from "../utils/edgeId";
 
 function createCopyLabel(
   sourceLabel: string,
@@ -78,6 +82,10 @@ export const createGraphSlice: StateCreator<
           processedNodes.map((node) => node.id),
           state.nodeIdCounter,
         ),
+        edgeIdCounter: getNextEdgeIdCounter(
+          processedEdges.map((edge) => edge.id),
+          state.edgeIdCounter,
+        ),
       };
     });
     get().clearSelection();
@@ -119,6 +127,7 @@ export const createGraphSlice: StateCreator<
       const sourceNodeById = new Map(sourceNodes.map((node) => [node.id, node]));
       const pairs: Record<string, string> = {};
       let nodeIdCounter = state.nodeIdCounter;
+      let edgeIdCounter = state.edgeIdCounter;
 
       const existingLabels = new Set(
         [...originNodes, ...nodes].map((n) => n.data.label),
@@ -256,11 +265,18 @@ export const createGraphSlice: StateCreator<
 
       // 克隆并更新边数据
       edges = cloneDeep(edges);
+      const existingEdgeIds = new Set(originEdges.map((edge) => edge.id));
       edges.forEach((edge) => {
+        const idAllocation = allocateEdgeId(
+          (edgeId) => existingEdgeIds.has(edgeId),
+          edgeIdCounter,
+        );
+        edgeIdCounter = idAllocation.nextCounter;
+        existingEdgeIds.add(idAllocation.id);
         edge.selected = true;
         edge.source = pairs[edge.source];
         edge.target = pairs[edge.target];
-        edge.id = `${edge.source}_${edge.sourceHandle}_${edge.target}`;
+        edge.id = idAllocation.id;
       });
       pastedEdges = edges;
 
@@ -280,6 +296,7 @@ export const createGraphSlice: StateCreator<
           semantic: true,
         }),
         nodeIdCounter,
+        edgeIdCounter,
       };
     });
 

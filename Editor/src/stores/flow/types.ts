@@ -358,6 +358,7 @@ export interface FlowNodeState {
 // 边 Slice 状态
 export interface FlowEdgeState {
   edges: EdgeType[];
+  edgeIdCounter: number;
   edgeControlResetKey: number;
   edgeControlResetTargetIds: string[] | null;
   updateEdges: (changes: EdgeChange[]) => void;
@@ -370,6 +371,7 @@ export interface FlowEdgeState {
   ) => void;
   addEdge: (co: Connection, options?: { isCheck?: boolean }) => void;
   setEdges: (edges: EdgeType[]) => void;
+  resetEdgeCounter: () => void;
   resetEdgeControls: (targetEdgeIds?: string[]) => void;
 }
 

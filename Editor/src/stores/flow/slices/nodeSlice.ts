@@ -37,6 +37,7 @@ import { checkRepeatNodeLabelList } from "../index";
 import { calcuLinkOrder } from "../utils/edgeUtils";
 import { applyNodeDataUpdates } from "../utils/nodeDataUtils";
 import { allocateNodeId } from "../utils/nodeId";
+import { createEdgeIdAllocator } from "../utils/edgeId";
 import {
   buildNodeIndexes,
   buildSelectionIndexUpdate,
@@ -358,6 +359,10 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       }
 
       let edges = state.edges;
+      const edgeIdAllocator = createEdgeIdAllocator(
+        edges.map((edge) => edge.id),
+        state.edgeIdCounter,
+      );
       // 添加连接
       if (
         link &&
@@ -373,6 +378,7 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
           )
             return;
           const newEdge = {
+            id: edgeIdAllocator.allocate().id,
             type: "marked",
             label: calcuLinkOrder(
               edges,
@@ -405,6 +411,7 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
         ...(edges !== state.edges
           ? {
               edges,
+              edgeIdCounter: edgeIdAllocator.getNextCounter(),
               ...patchEdgeIndexes(
                 state,
                 createEdgeIndexPatches(state.edges, edges),

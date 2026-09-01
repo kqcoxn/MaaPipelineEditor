@@ -82,7 +82,6 @@ export function rerouteEdgesToNearestReplica(
     return {
       ...edge,
       target: bestId,
-      id: `${edge.source}_${edge.sourceHandle}_${bestId}`,
     };
   });
 }

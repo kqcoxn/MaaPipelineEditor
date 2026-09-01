@@ -10,6 +10,7 @@ import { SourceHandleTypeEnum } from "../../../components/flow/nodes";
 import {
   calcuLinkOrder,
   getSelectedEdges,
+  hasMatchingConnection,
 } from "../utils/edgeUtils";
 import {
   buildEdgeIndexes,
@@ -17,6 +18,10 @@ import {
   createEdgeIndexPatches,
   patchEdgeIndexes,
 } from "../utils/graphIndex";
+import {
+  allocateEdgeId,
+  getNextEdgeIdCounter,
+} from "../utils/edgeId";
 
 export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
   set,
@@ -24,6 +29,7 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
 ) => ({
   // 初始状态
   edges: [],
+  edgeIdCounter: 1,
   edgeControlResetKey: 0,
   edgeControlResetTargetIds: null,
 
@@ -258,6 +264,8 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
       // 检查冲突项
       if (isCheck) {
         const edges = state.edges;
+        if (hasMatchingConnection(edges, co)) return {};
+
         let crash = null;
 
         switch (co.sourceHandle) {
@@ -292,14 +300,25 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
       );
 
       const newEdge = {
+        id: allocateEdgeId(
+          (edgeId) => state.edgeById.has(edgeId),
+          state.edgeIdCounter,
+        ).id,
         type: "marked",
         label: order,
         ...co,
       } as EdgeType;
 
       const newEdges = addEdgeRF(newEdge, state.edges);
+      if (newEdges.length === state.edges.length) return {};
+
+      const edgeIdCounter = getNextEdgeIdCounter(
+        [newEdge.id],
+        state.edgeIdCounter,
+      );
       return {
         edges: newEdges,
+        edgeIdCounter,
         ...patchEdgeIndexes(
           state,
           createEdgeIndexPatches(state.edges, newEdges),
@@ -320,12 +339,20 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
   setEdges(edges: EdgeType[]) {
     set((state) => ({
       edges,
+      edgeIdCounter: getNextEdgeIdCounter(
+        edges.map((edge) => edge.id),
+        state.edgeIdCounter,
+      ),
       ...buildEdgeIndexes(edges),
       ...bumpGraphRevisions(state, {
         topology: true,
         semantic: true,
       }),
     }));
+  },
+
+  resetEdgeCounter() {
+    set({ edgeIdCounter: 1 });
   },
 
   // 重置所有边的控制点

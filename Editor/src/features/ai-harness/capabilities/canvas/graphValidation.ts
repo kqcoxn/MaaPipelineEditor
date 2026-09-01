@@ -3,7 +3,11 @@ import {
   SourceHandleTypeEnum,
   TargetHandleTypeEnum,
 } from "@/components/flow/nodes";
-import type { EdgeType, NodeType } from "@/stores/flow";
+import {
+  getConnectionKey,
+  type EdgeType,
+  type NodeType,
+} from "@/stores/flow";
 import { validateAndRepairNode } from "@/utils/node/nodeJsonValidator";
 import { validatePipelineDefinition } from "./pipelineValidation";
 
@@ -66,7 +70,7 @@ export function validateCanvasGraph(
     if (!Object.values(TargetHandleTypeEnum).includes(edge.targetHandle)) {
       errors.push(`非法目标句柄: ${edge.targetHandle}`);
     }
-    const key = `${edge.source}|${edge.sourceHandle}|${edge.target}|${edge.targetHandle}`;
+    const key = getConnectionKey(edge);
     if (connectionKeys.has(key)) errors.push(`重复连接: ${key}`);
     connectionKeys.add(key);
     const oppositeHandle =

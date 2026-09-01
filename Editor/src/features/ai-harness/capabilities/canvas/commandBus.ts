@@ -4,12 +4,14 @@ import {
   flowToPipeline,
 } from "@/core/parser";
 import {
+  createEdgeIdAllocator,
   createAnchorNode,
   createExternalNode,
   createGroupNode,
   createNodeIdAllocator,
   createPipelineNode,
   createStickerNode,
+  EDGE_ID_PREFIX,
   NODE_ID_PREFIX,
   type EdgeType,
   type NodeType,
@@ -53,6 +55,7 @@ export type CanvasMutation =
   | { type: "delete_node"; nodeId: string }
   | {
       type: "create_connection";
+      edgeRef?: string;
       sourceId: string;
       targetId: string;
       sourceHandle: SourceHandleTypeEnum;
@@ -74,6 +77,7 @@ export interface CanvasGraphState {
   nodes: NodeType[];
   edges: EdgeType[];
   nodeIdCounter?: number;
+  edgeIdCounter?: number;
   selectedNodeIds: string[];
   targetNodeId: string | null;
   fileName: string;
@@ -94,6 +98,7 @@ function createDefaultAdapter(): CanvasCommandBusAdapter {
         nodes: flow.nodes,
         edges: flow.edges,
         nodeIdCounter: flow.nodeIdCounter,
+        edgeIdCounter: flow.edgeIdCounter,
         selectedNodeIds: flow.selectedNodes.map((node) => node.id),
         targetNodeId: flow.targetNode?.id ?? null,
         fileName: file.fileName,
@@ -114,7 +119,6 @@ function createDefaultAdapter(): CanvasCommandBusAdapter {
 export class CanvasCommandBus {
   private stateVersion = 1;
   private lastFingerprint = "";
-  private idSequence = 0;
 
   constructor(
     private readonly adapter: CanvasCommandBusAdapter = createDefaultAdapter(),
@@ -286,10 +290,19 @@ export class CanvasCommandBus {
     let edges = structuredClone(graph.edges);
     const changes: string[] = [];
     const nodeReferences = new Map<string, string>();
+    const edgeReferences = new Map<string, string>();
     const createdNodes: Array<{ nodeRef?: string; nodeId: string }> = [];
+    const createdConnections: Array<{
+      edgeRef?: string;
+      connectionId: string;
+    }> = [];
     const nodeIdAllocator = createNodeIdAllocator(
       nodes.map((node) => node.id),
       graph.nodeIdCounter,
+    );
+    const edgeIdAllocator = createEdgeIdAllocator(
+      edges.map((edge) => edge.id),
+      graph.edgeIdCounter,
     );
     try {
       for (const mutation of mutations) {
@@ -299,8 +312,11 @@ export class CanvasCommandBus {
           mutation,
           changes,
           nodeReferences,
+          edgeReferences,
           createdNodes,
+          createdConnections,
           () => nodeIdAllocator.allocate().id,
+          () => edgeIdAllocator.allocate().id,
         ));
       }
     } catch (error) {
@@ -327,7 +343,7 @@ export class CanvasCommandBus {
     const stateVersion = this.getStateVersion();
     return {
       ok: true,
-      data: { applied: mutations.length, createdNodes },
+      data: { applied: mutations.length, createdNodes, createdConnections },
       stateVersion,
       changes,
       validationErrors: [],
@@ -399,8 +415,14 @@ export class CanvasCommandBus {
     mutation: CanvasMutation,
     changes: string[],
     nodeReferences: Map<string, string>,
+    edgeReferences: Map<string, string>,
     createdNodes: Array<{ nodeRef?: string; nodeId: string }>,
+    createdConnections: Array<{
+      edgeRef?: string;
+      connectionId: string;
+    }>,
     allocateNodeId: () => string,
+    allocateEdgeId: () => string,
   ): { nodes: NodeType[]; edges: EdgeType[] } {
     switch (mutation.type) {
       case "create_node": {
@@ -463,12 +485,20 @@ export class CanvasCommandBus {
         };
       }
       case "create_connection": {
+        if (
+          mutation.edgeRef &&
+          (mutation.edgeRef.startsWith(EDGE_ID_PREFIX) ||
+            edgeReferences.has(mutation.edgeRef) ||
+            edges.some((edge) => edge.id === mutation.edgeRef))
+        ) {
+          throw new Error(`连接临时引用不可用: ${mutation.edgeRef}`);
+        }
         const sourceId =
           nodeReferences.get(mutation.sourceId) ?? mutation.sourceId;
         const targetId =
           nodeReferences.get(mutation.targetId) ?? mutation.targetId;
         const edge: EdgeType = {
-          id: this.nextId("ai_edge"),
+          id: allocateEdgeId(),
           source: sourceId,
           target: targetId,
           sourceHandle: mutation.sourceHandle,
@@ -482,12 +512,21 @@ export class CanvasCommandBus {
             ).length + 1,
           attributes: mutation.attributes,
         };
+        if (mutation.edgeRef) {
+          edgeReferences.set(mutation.edgeRef, edge.id);
+        }
+        createdConnections.push({
+          ...(mutation.edgeRef ? { edgeRef: mutation.edgeRef } : {}),
+          connectionId: edge.id,
+        });
         changes.push(`创建连接 ${edge.source} -> ${edge.target}`);
         return { nodes, edges: [...edges, edge] };
       }
       case "update_connection": {
-        const index = edges.findIndex((edge) => edge.id === mutation.connectionId);
-        if (index < 0) throw new Error(`连接不存在: ${mutation.connectionId}`);
+        const connectionId =
+          edgeReferences.get(mutation.connectionId) ?? mutation.connectionId;
+        const index = edges.findIndex((edge) => edge.id === connectionId);
+        if (index < 0) throw new Error(`连接不存在: ${connectionId}`);
         const current = edges[index];
         const updated: EdgeType = {
           ...current,
@@ -507,13 +546,15 @@ export class CanvasCommandBus {
         return { nodes, edges: normalizeCanvasEdgeLabels(nextEdges) };
       }
       case "delete_connection": {
-        const edge = edges.find((item) => item.id === mutation.connectionId);
-        if (!edge) throw new Error(`连接不存在: ${mutation.connectionId}`);
+        const connectionId =
+          edgeReferences.get(mutation.connectionId) ?? mutation.connectionId;
+        const edge = edges.find((item) => item.id === connectionId);
+        if (!edge) throw new Error(`连接不存在: ${connectionId}`);
         changes.push(`删除连接 ${edge.id}`);
         return {
           nodes,
           edges: normalizeCanvasEdgeLabels(
-            edges.filter((item) => item.id !== mutation.connectionId),
+            edges.filter((item) => item.id !== connectionId),
           ),
         };
       }
@@ -559,10 +600,6 @@ export class CanvasCommandBus {
     });
   }
 
-  private nextId(prefix: string): string {
-    this.idSequence += 1;
-    return `${prefix}_${Date.now()}_${this.idSequence}`;
-  }
 }
 
 function toConnectionSummary(edge: EdgeType) {
