@@ -1,11 +1,9 @@
 package mfw
 
 import (
-	"strconv"
 	"strings"
 	"sync"
 	"time"
-	"unsafe"
 
 	maa "github.com/MaaXYZ/maa-framework-go/v4"
 	"github.com/MaaXYZ/maa-framework-go/v4/controller/adb"
@@ -144,18 +142,12 @@ func (cm *ControllerManager) CreateWin32Controller(hwnd, screencapMethod, inputM
 
 	controllerID := uuid.New().String()
 
-	// 解析窗口句柄
-	var hwndPtr unsafe.Pointer
-	if hwnd != "" {
-		// 去掉 "0x" 或 "0X" 前缀
-		hexStr := strings.TrimPrefix(hwnd, "0x")
-		hexStr = strings.TrimPrefix(hexStr, "0X")
-		if val, err := strconv.ParseUint(hexStr, 16, 64); err == nil {
-			hwndPtr = unsafe.Pointer(uintptr(val))
-			logger.Debug("MFW", "解析窗口句柄: %s -> %v", hwnd, hwndPtr)
-		} else {
-			logger.Error("MFW", "解析窗口句柄失败: %s, %v", hwnd, err)
-		}
+	hwndPtr, err := parseWindowHandle(hwnd)
+	if err != nil {
+		return "", NewMFWError(ErrCodeInvalidParameter, err.Error(), nil)
+	}
+	if hwndPtr != nil {
+		logger.Debug("MFW", "解析窗口句柄: %s -> %v", hwnd, hwndPtr)
 	}
 
 	// 解析截图方法，默认使用 FramePool
@@ -231,18 +223,12 @@ func (cm *ControllerManager) CreateGamepadController(hwnd, gamepadType, screenca
 
 	controllerID := uuid.New().String()
 
-	// 解析窗口句柄（可选）
-	var hwndPtr unsafe.Pointer
-	if hwnd != "" {
-		// 去掉 "0x" 或 "0X" 前缀
-		hexStr := strings.TrimPrefix(hwnd, "0x")
-		hexStr = strings.TrimPrefix(hexStr, "0X")
-		if val, err := strconv.ParseUint(hexStr, 16, 64); err == nil {
-			hwndPtr = unsafe.Pointer(uintptr(val))
-			logger.Debug("MFW", "解析窗口句柄: %s -> %v", hwnd, hwndPtr)
-		} else {
-			logger.Error("MFW", "解析窗口句柄失败: %s, %v", hwnd, err)
-		}
+	hwndPtr, err := parseWindowHandle(hwnd)
+	if err != nil {
+		return "", NewMFWError(ErrCodeInvalidParameter, err.Error(), nil)
+	}
+	if hwndPtr != nil {
+		logger.Debug("MFW", "解析窗口句柄: %s -> %v", hwnd, hwndPtr)
 	}
 
 	// 解析游戏pad类型

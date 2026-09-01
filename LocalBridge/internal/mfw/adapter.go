@@ -10,7 +10,6 @@ import (
 	"runtime"
 	"sync"
 	"time"
-	"unsafe"
 
 	maa "github.com/MaaXYZ/maa-framework-go/v4"
 	"github.com/MaaXYZ/maa-framework-go/v4/controller/adb"
@@ -135,7 +134,7 @@ func (a *MaaFWAdapter) ConnectWin32(hwnd uintptr, screencapMethod, inputMethod s
 	mouseMethod, _ := parseWin32InputMethod(inputMethod)
 
 	// 创建 Win32 控制器
-	ctrl, err := maa.NewWin32Controller(unsafe.Pointer(hwnd), scMethod, mouseMethod, mouseMethod)
+	ctrl, err := maa.NewWin32Controller(nativeWindowHandle(hwnd), scMethod, mouseMethod, mouseMethod)
 	if err != nil {
 		return fmt.Errorf("创建 Win32 控制器失败: %w", err)
 	}
