@@ -25,7 +25,7 @@ import {
   type OnSelectionChangeParams,
   useKeyPress,
 } from "@xyflow/react";
-import { useDebounceEffect, useDebounceFn } from "ahooks";
+import { useDebounceFn } from "ahooks";
 
 import { useFlowStore, type EdgeType, type NodeType } from "../stores/flow";
 import { useShallow } from "zustand/shallow";
@@ -36,7 +36,7 @@ import { edgeTypes } from "./flow/edges";
 import { AvoidanceRoutingProvider } from "./flow/avoidanceRoutingContext";
 import { SelectionContextMenu } from "./flow/components/SelectionContextMenu";
 import { CanvasNodeContextMenu } from "./flow/nodes/components/CanvasNodeContextMenu";
-import { localSave, useFileStore } from "@/stores/project/fileStore";
+import { useFileStore } from "@/stores/project/fileStore";
 import NodeAddPanel, {
   type QuickCreateConnection,
 } from "./panels/main/NodeAddPanel";
@@ -159,39 +159,6 @@ const ViewportChangeMonitor = memo(() => {
   });
   return null;
 });
-// 更新器
-const UpdateMonitor = memo(() => {
-  const {
-    debouncedSelectedNodes,
-    debouncedSelectedEdges,
-    debouncedTargetNode,
-  } = useFlowStore(
-    useShallow((state) => ({
-      debouncedSelectedNodes: state.debouncedSelectedNodes,
-      debouncedSelectedEdges: state.debouncedSelectedEdges,
-      debouncedTargetNode: state.debouncedTargetNode,
-    })),
-  );
-  const filesLength = useFileStore((state) => state.files.length);
-
-  useDebounceEffect(
-    () => {
-      localSave();
-    },
-    [
-      debouncedSelectedNodes,
-      debouncedSelectedEdges,
-      debouncedTargetNode,
-      filesLength,
-    ],
-    {
-      wait: 500,
-    },
-  );
-
-  return null;
-});
-
 // 节点添加面板控制器
 interface NodeAddPanelControllerProps {
   visible: boolean;
@@ -753,7 +720,6 @@ function MainFlow() {
           <InstanceMonitor />
           <ViewportChangeMonitor />
           <KeyListener targetRef={selfElem} allowCopy={allowCopy} />
-          <UpdateMonitor />
           <NodeAddPanelController
             visible={nodeAddPanelVisible}
             screenPos={nodeAddPanelPos}

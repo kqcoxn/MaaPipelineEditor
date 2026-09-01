@@ -17,6 +17,8 @@ import {
   type AvoidanceRouteRequest,
 } from "../avoidanceRoutingCache";
 import { pipelineToFlow, resetIdCounter } from ".";
+import { serializeFileForCache } from "../../stores/project/fileCache";
+import type { FileType } from "../../stores/project/fileStore";
 
 const DATASET_CASES = [
   { fileName: "performance-small-100.json", nodes: 100, edges: 200 },
@@ -231,6 +233,41 @@ describe("PERF-001 performance datasets", () => {
     expect(patchHistoryBytes).toBeLessThan(legacyHistoryBytes / 10);
     console.info(
       `[PERF-009] 300-node/100-move history: ${legacyHistoryBytes}->${patchHistoryBytes} serialized bytes, entries=${historyStack.length}`,
+    );
+  });
+
+  it("measures PERF-010 single-file cache serialization", async () => {
+    const datasetPath = resolve(
+      process.cwd(),
+      "../dev/performance/editor/datasets/performance-large-300.json",
+    );
+    const pipelineText = await readFile(datasetPath, "utf8");
+    expect(await pipelineToFlow({ pString: pipelineText })).toBe(true);
+
+    const flowState = useFlowStore.getState();
+    const openFiles: FileType[] = Array.from({ length: 5 }, (_, index) => ({
+      fileName: `pipeline-${index}`,
+      nodes: flowState.nodes,
+      edges: flowState.edges,
+      config: { prefix: "" },
+    }));
+    const legacyBytes = JSON.stringify(
+      openFiles.map(serializeFileForCache),
+    ).length;
+    const changedFileBytes = JSON.stringify(
+      serializeFileForCache({
+        ...openFiles[0],
+        nodes: openFiles[0].nodes.map((node, index) =>
+          index === 0
+            ? { ...node, position: { x: node.position.x + 10, y: node.position.y } }
+            : node,
+        ),
+      }),
+    ).length;
+
+    expect(changedFileBytes).toBeLessThan(legacyBytes / 4);
+    console.info(
+      `[PERF-010] 300-node/900-edge cache serialization: all-5-files=${legacyBytes} bytes, dirty-file=${changedFileBytes} bytes`,
     );
   });
 

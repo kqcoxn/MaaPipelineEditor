@@ -12,7 +12,10 @@ import {
 } from "antd";
 const { Header: HeaderSection, Content } = Layout;
 
-import { useFileStore } from "@/stores/project/fileStore";
+import {
+  initializeFileCachePersistence,
+  restoreFileCache,
+} from "@/stores/project/fileCachePersistence";
 import {
   initializeConfigCache,
   useConfigStore,
@@ -175,6 +178,9 @@ function App() {
 
   // onMounted
   useEffect(() => {
+    let disposed = false;
+    let disposeFileCache = () => undefined;
+    const fileCacheRestoreController = new AbortController();
     // 检查是否为嵌入模式（最高优先级）
     const embedEnvironment = isEmbedEnvironment();
     if (embedEnvironment) {
@@ -205,8 +211,15 @@ function App() {
 
     // 读取本地存储
     if (!hasShareParam && !hasPending) {
-      const err = useFileStore.getState().replace();
-      if (!err) message.success("已读取本地缓存");
+      void restoreFileCache(fileCacheRestoreController.signal).then(
+        (restored) => {
+          if (disposed) return;
+          if (restored) message.success("已读取本地缓存");
+          disposeFileCache = initializeFileCachePersistence();
+        },
+      );
+    } else {
+      disposeFileCache = initializeFileCachePersistence();
     }
 
     // 从分享链接加载
@@ -316,6 +329,9 @@ function App() {
 
     // 清理监听器
     return () => {
+      disposed = true;
+      fileCacheRestoreController.abort();
+      disposeFileCache();
       unsubscribeConfigCache();
       window.removeEventListener("mpe:terms-accepted", handleTermsAccepted);
       document.removeEventListener("drop", handleFileDrop);

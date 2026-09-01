@@ -1,15 +1,12 @@
 import { create } from "zustand";
+import { subscribeWithSelector } from "zustand/middleware";
 import type { DragEndEvent } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 import { notification } from "antd";
 import { visit } from "jsonc-parser";
 
 import { useFlowStore, type NodeType, type EdgeType } from "@/stores/flow";
-import {
-  saveConfigCache,
-  useConfigStore,
-} from "@/stores/app/configStore";
-import { normalizeViewport } from "@/stores/flow/utils/viewportUtils";
+import { useConfigStore } from "@/stores/app/configStore";
 import {
   pipelineToFlow,
   flowToPipelineString,
@@ -138,6 +135,8 @@ function createFile(options?: { fileName?: string; config?: any }): FileType {
   };
 }
 const defaltFile = createFile();
+let lastSyncedGraphRevision = -1;
+let lastSyncedFileName = "";
 
 /** 同步 FlowStore 数据到 FileStore.currentFile 和 files 数组 */
 function syncFlowStoreToFileStore(
@@ -145,38 +144,38 @@ function syncFlowStoreToFileStore(
 ): void {
   const flowStore = useFlowStore.getState();
   useFileStore.setState((state) => {
-    // 更新 currentFile
-    state.currentFile.nodes = flowStore.nodes.map((node: NodeType) => ({
+    const nodes = flowStore.nodes.map((node: NodeType) => ({
       ...node,
       selected: undefined,
     }));
-    state.currentFile.edges = flowStore.edges.map((edge: EdgeType) => ({
+    const edges = flowStore.edges.map((edge: EdgeType) => ({
       ...edge,
       selected: undefined,
     }));
-    if (additionalConfig) {
-      state.currentFile.config = {
-        ...state.currentFile.config,
-        ...additionalConfig,
-      };
-    }
+    const currentFile: FileType = {
+      ...state.currentFile,
+      nodes,
+      edges,
+      config: additionalConfig
+        ? { ...state.currentFile.config, ...additionalConfig }
+        : state.currentFile.config,
+    };
 
     // 同步更新 files 数组中对应的文件
-    const currentFileName = state.currentFile.fileName;
+    const currentFileName = currentFile.fileName;
     const fileIndex = state.files.findIndex(
       (f) => f.fileName === currentFileName,
     );
-    if (fileIndex >= 0) {
-      state.files[fileIndex] = {
-        ...state.files[fileIndex],
-        nodes: state.currentFile.nodes,
-        edges: state.currentFile.edges,
-        config: state.currentFile.config,
-      };
-    }
-
-    return {};
+    const files =
+      fileIndex >= 0
+        ? state.files.map((file, index) =>
+            index === fileIndex ? currentFile : file,
+          )
+        : state.files;
+    return { currentFile, files };
   });
+  lastSyncedGraphRevision = flowStore.graphRevision;
+  lastSyncedFileName = useFileStore.getState().currentFile.fileName;
 }
 
 /** 从 JSONC 内容中提取顶层键顺序 */
@@ -242,6 +241,12 @@ export function saveFlow(): FileType | null {
     const flowState = useFlowStore.getState();
     const fileState = useFileStore.getState();
     const currentFileName = fileState.currentFile.fileName;
+    if (
+      lastSyncedGraphRevision === flowState.graphRevision &&
+      lastSyncedFileName === currentFileName
+    ) {
+      return fileState.currentFile;
+    }
     const fileIndex = fileState.files.findIndex(
       (f) => f.fileName === currentFileName,
     );
@@ -263,16 +268,19 @@ export function saveFlow(): FileType | null {
 
     // 更新状态
     useFileStore.setState((state) => {
-      state.currentFile.nodes = updatedNodes;
-      state.currentFile.edges = updatedEdges;
-      // 确保 files 数组中的对应文件也被更新
-      state.files[fileIndex] = {
-        ...state.files[fileIndex],
+      const currentFile = {
+        ...state.currentFile,
         nodes: updatedNodes,
         edges: updatedEdges,
       };
-      return {};
+      const files = state.files.map((file, index) =>
+        index === fileIndex ? currentFile : file,
+      );
+      return { currentFile, files };
     });
+
+    lastSyncedGraphRevision = flowState.graphRevision;
+    lastSyncedFileName = currentFileName;
 
     return useFileStore.getState().currentFile;
   } catch (err) {
@@ -280,48 +288,6 @@ export function saveFlow(): FileType | null {
     return null;
   }
 }
-// 本地存储
-export function localSave(): { success: boolean; error?: string } {
-  if (!saveFlow()) {
-    console.warn("[fileStore] localSave: 页面未初始化结束");
-    return { success: false, error: "页面未初始化结束" };
-  }
-  try {
-    const fileState = useFileStore.getState();
-    const filesToSave = fileState.files.map((file) => ({
-      ...file,
-      config: {
-        ...file.config,
-        nodeOrderMap: undefined,
-        nextOrderNumber: undefined,
-        // 对 savedViewport 的值取整
-        savedViewport: normalizeViewport(file.config.savedViewport),
-      },
-    }));
-    localStorage.setItem("_mpe_files", JSON.stringify(filesToSave));
-
-    saveConfigCache();
-
-    return { success: true };
-  } catch (err) {
-    const errorMsg = err instanceof Error ? err.message : String(err);
-    console.error("[fileStore] localSave 失败:", errorMsg);
-
-    // 检测是否是 localStorage 配额超限
-    if (err instanceof DOMException && err.name === "QuotaExceededError") {
-      notification.error({
-        title: "本地存储空间不足",
-        description:
-          "浏览器本地存储空间已满，无法保存文件缓存。建议清理本域名在浏览器中的数据或减少文件数量。",
-        placement: "topRight",
-        duration: 10,
-      });
-    }
-
-    return { success: false, error: errorMsg };
-  }
-}
-
 export interface SaveOpenedLocalFilesResult {
   savedCount: number;
   failedFiles: string[];
@@ -407,7 +373,7 @@ type FileState = {
   addFile: (options?: { isSwitch: boolean }) => string | null;
   removeFile: (fileName: string) => string | null;
   onDragEnd: (result: DragEndEvent) => void;
-  replace: (files?: FileType[]) => any;
+  replace: (files: FileType[], currentFileName?: string) => unknown;
   // 本地文件操作方法
   openFileFromLocal: (
     filePath: string,
@@ -425,7 +391,7 @@ type FileState = {
   reloadFileFromLocal: (filePath: string, content: any) => Promise<boolean>;
   findFileByPath: (filePath: string) => FileType | undefined;
 };
-export const useFileStore = create<FileState>()((set) => ({
+export const useFileStore = create<FileState>()(subscribeWithSelector((set) => ({
   files: [defaltFile],
   currentFile: defaltFile,
 
@@ -601,20 +567,19 @@ export const useFileStore = create<FileState>()((set) => ({
   },
 
   // 替换
-  replace(files) {
+  replace(files, currentFileName) {
     try {
-      if (!files) {
-        const ls = localStorage.getItem("_mpe_files");
-        if (!ls) return Error.call("未找到本地files缓存");
-        files = JSON.parse(ls) as FileType[];
-      }
-      const currentFile = files[0];
+      if (files.length === 0) return Error.call("文件缓存为空");
+      const currentFile =
+        files.find((file) => file.fileName === currentFileName) ?? files[0];
       set({ files, currentFile });
       useFlowStore
         .getState()
         .replace(currentFile.nodes, currentFile.edges, { skipSave: true });
       // 初始化历史记录
       useFlowStore.getState().initHistory(currentFile.nodes, currentFile.edges);
+      lastSyncedGraphRevision = useFlowStore.getState().graphRevision;
+      lastSyncedFileName = currentFile.fileName;
     } catch (err) {
       return err;
     }
@@ -1000,4 +965,4 @@ export const useFileStore = create<FileState>()((set) => ({
         areFilePathsEqual(file.config.filePath, filePath),
       );
   },
-}));
+})));
