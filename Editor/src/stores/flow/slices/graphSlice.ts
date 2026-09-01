@@ -18,6 +18,26 @@ import {
   createNodeIndexPatches,
   patchNodeIndexes,
 } from "../utils/graphIndex";
+import {
+  allocateNodeId,
+  getNextNodeIdCounter,
+} from "../utils/nodeId";
+
+function createCopyLabel(
+  sourceLabel: string,
+  existingLabels: Set<string>,
+): string {
+  let suffix = 1;
+  let label = `${sourceLabel}_副本${suffix}`;
+
+  while (existingLabels.has(label)) {
+    suffix += 1;
+    label = `${sourceLabel}_副本${suffix}`;
+  }
+
+  existingLabels.add(label);
+  return label;
+}
 
 export const createGraphSlice: StateCreator<
   FlowStore,
@@ -25,9 +45,6 @@ export const createGraphSlice: StateCreator<
   [],
   FlowGraphState
 > = (set, get) => ({
-  // 初始状态
-  pasteIdCounter: 1,
-
   // 替换节点与边
   replace(nodes: NodeType[], edges: EdgeType[], options) {
     const {
@@ -41,22 +58,6 @@ export const createGraphSlice: StateCreator<
 
       // 确保 Group 节点排在子节点之前
       processedNodes = ensureGroupNodeOrder(processedNodes);
-
-      let maxPasteId = 0;
-      let maxNodeId = 0;
-      for (const node of processedNodes) {
-        if (node.id.startsWith("paste_")) {
-          const num = parseInt(node.id.slice(6), 10);
-          if (!isNaN(num) && num > maxPasteId) {
-            maxPasteId = num;
-          }
-        } else {
-          const num = parseInt(node.id, 10);
-          if (!isNaN(num) && num > maxNodeId) {
-            maxNodeId = num;
-          }
-        }
-      }
 
       // 聚焦视图
       if (isFitView) {
@@ -73,8 +74,10 @@ export const createGraphSlice: StateCreator<
           topology: true,
           semantic: true,
         }),
-        pasteIdCounter: Math.max(state.pasteIdCounter, maxPasteId + 1),
-        nodeIdCounter: Math.max(state.nodeIdCounter, maxNodeId + 1),
+        nodeIdCounter: getNextNodeIdCounter(
+          processedNodes.map((node) => node.id),
+          state.nodeIdCounter,
+        ),
       };
     });
     get().clearSelection();
@@ -115,7 +118,7 @@ export const createGraphSlice: StateCreator<
       const sourceNodes = ensureGroupNodeOrder([...cloneDeep(nodes), ...state.nodes]);
       const sourceNodeById = new Map(sourceNodes.map((node) => [node.id, node]));
       const pairs: Record<string, string> = {};
-      let pasteCounter = state.pasteIdCounter;
+      let nodeIdCounter = state.nodeIdCounter;
 
       const existingLabels = new Set(
         [...originNodes, ...nodes].map((n) => n.data.label),
@@ -136,16 +139,14 @@ export const createGraphSlice: StateCreator<
         minLeft = Math.min(minLeft, absolutePosition.x);
         minTop = Math.min(minTop, absolutePosition.y);
 
-        const newId = "paste_" + pasteCounter;
-        // 检测 ID 冲突，跳过已存在的 paste_ ID
-        let safeId = newId;
-        while (existingIds.has(safeId)) {
-          pasteCounter++;
-          safeId = "paste_" + pasteCounter;
-        }
-        existingIds.add(safeId);
-        pairs[originalId] = safeId;
-        node.id = safeId;
+        const idAllocation = allocateNodeId(
+          (nodeId) => existingIds.has(nodeId),
+          nodeIdCounter,
+        );
+        nodeIdCounter = idAllocation.nextCounter;
+        existingIds.add(idAllocation.id);
+        pairs[originalId] = idAllocation.id;
+        node.id = idAllocation.id;
 
         // External / Anchor 节点保留原 label，作为视觉副本
         const isReplica =
@@ -153,21 +154,11 @@ export const createGraphSlice: StateCreator<
           node.type === NodeTypeEnum.Anchor;
 
         if (!isReplica) {
-          // 生成不重复的节点名
-          let newLabel = node.data.label + "_副本" + pasteCounter;
-          let labelCounter = pasteCounter;
-          while (existingLabels.has(newLabel)) {
-            labelCounter++;
-            newLabel = node.data.label + "_副本" + labelCounter;
-          }
-
-          node.data.label = newLabel;
-          existingLabels.add(newLabel);
+          node.data.label = createCopyLabel(node.data.label, existingLabels);
         }
-        pasteCounter++;
 
         // 分配顺序号
-        assignNodeOrder(newId);
+        assignNodeOrder(node.id);
         (node as any)._originalId = originalId;
         (node as any)._originalParentId = (node as any).parentId;
       });
@@ -288,7 +279,7 @@ export const createGraphSlice: StateCreator<
           topology: true,
           semantic: true,
         }),
-        pasteIdCounter: pasteCounter,
+        nodeIdCounter,
       };
     });
 
@@ -302,11 +293,6 @@ export const createGraphSlice: StateCreator<
     });
 
     return pastedNodes;
-  },
-
-  // 重置粘贴计数器
-  resetPasteCounter() {
-    set({ pasteIdCounter: 1 });
   },
 
   // 移动节点

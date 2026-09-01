@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
   createPipelineNode,
   useFlowStore,
@@ -10,12 +10,12 @@ import {
 } from "@/components/flow/nodes/constants";
 
 describe("flow paste", () => {
-  afterEach(() => {
+  beforeEach(() => {
     useFlowStore.getState().replace([], [], {
       isFitView: false,
       skipHistory: true,
     });
-    useFlowStore.getState().resetPasteCounter();
+    useFlowStore.getState().resetNodeCounter();
   });
 
   it("returns the nodes created by the paste with their new ids", () => {
@@ -28,10 +28,19 @@ describe("flow paste", () => {
 
     expect(pastedNodes).toHaveLength(1);
     expect(pastedNodes[0]).toMatchObject({
-      id: "paste_1",
+      id: "node_1",
       position: { x: 120, y: 80 },
+      data: { label: "Source_副本1" },
     });
     expect(useFlowStore.getState().nodes[0]).toBe(pastedNodes[0]);
+
+    const nextPastedNodes = useFlowStore
+      .getState()
+      .paste([createPipelineNode("source", { label: "Source" })], []);
+    expect(nextPastedNodes[0]).toMatchObject({
+      id: "node_2",
+      data: { label: "Source_副本2" },
+    });
   });
 
   it("keeps multi-paste node and edge selection representations consistent", () => {

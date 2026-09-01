@@ -29,7 +29,12 @@ const mutationSchemas: Record<CanvasMutation["type"], AnySchemaObject> = {
     type: "object",
     properties: {
       type: { const: "create_node" },
-      nodeId: { type: "string", minLength: 1, maxLength: 128 },
+      nodeRef: {
+        type: "string",
+        minLength: 1,
+        maxLength: 128,
+        description: "同一批变更内引用新节点的临时名称",
+      },
       name: { type: "string", minLength: 1 },
       nodeType: {
         enum: ["pipeline", "external", "anchor", "sticker", "group"],
@@ -150,7 +155,12 @@ export const canvasToolDefinitions: ToolDefinition[] = [
     inputSchema: writeSchema(
       {
         name: { type: "string", minLength: 1 },
-        nodeId: { type: "string", minLength: 1, maxLength: 128 },
+        nodeRef: {
+          type: "string",
+          minLength: 1,
+          maxLength: 128,
+          description: "同一批变更内引用新节点的临时名称",
+        },
         nodeType: {
           enum: ["pipeline", "external", "anchor", "sticker", "group"],
         },

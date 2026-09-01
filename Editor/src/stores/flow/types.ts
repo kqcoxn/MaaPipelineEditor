@@ -375,7 +375,6 @@ export interface FlowEdgeState {
 
 // 图数据 Slice 状态
 export interface FlowGraphState {
-  pasteIdCounter: number;
   replace: (
     nodes: NodeType[],
     edges: EdgeType[],
@@ -390,7 +389,6 @@ export interface FlowGraphState {
     edges: EdgeType[],
     position?: { x: number; y: number },
   ) => NodeType[];
-  resetPasteCounter: () => void;
   shiftNodes: (
     direction: "horizontal" | "vertical",
     delta: number,

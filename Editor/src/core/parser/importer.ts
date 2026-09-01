@@ -7,6 +7,7 @@ import {
   createAnchorNode,
   createStickerNode,
   createGroupNode,
+  createNodeIdAllocator,
   ensureGroupNodeOrder,
   normalizeImportedNodePosition,
 } from "../../stores/flow";
@@ -35,7 +36,6 @@ import { parsePipelineConfig, isMark } from "./configParser";
 import { detectNodeVersion } from "./versionDetector";
 import {
   linkEdge,
-  getNextId,
   type NodeRefType,
   type NodeAttr,
 } from "./edgeLinker";
@@ -236,6 +236,8 @@ export async function pipelineToFlow(
     const originalKeys: string[] = [];
     let idOLPairs: IdLabelPairsType = [];
     let isIncludePos = false;
+    const nodeIdAllocator = createNodeIdAllocator();
+    const allocateNodeId = () => nodeIdAllocator.allocate().id;
 
     // 初始化顺序映射
     const orderMap: Record<string, number> = {};
@@ -255,7 +257,7 @@ export async function pipelineToFlow(
 
       // 便签节点
       if (objKey.startsWith(stickerMarkPrefix)) {
-        const id = "sticker_" + getNextId();
+        const id = allocateNodeId();
         let label = objKey.substring(stickerMarkPrefix.length);
         const filename = configs.filename;
         if (filename) {
@@ -286,7 +288,7 @@ export async function pipelineToFlow(
 
       // 分组节点
       if (objKey.startsWith(groupMarkPrefix)) {
-        const id = "group_" + getNextId();
+        const id = allocateNodeId();
         let label = objKey.substring(groupMarkPrefix.length);
         const filename = configs.filename;
         if (filename) {
@@ -324,7 +326,7 @@ export async function pipelineToFlow(
       const { recognitionVersion, actionVersion } = detectNodeVersion(obj);
 
       // 处理节点名
-      const id = "p_" + getNextId();
+      const id = allocateNodeId();
       let label = objKey;
 
       // 分配顺序号
@@ -427,8 +429,7 @@ export async function pipelineToFlow(
       // 创建额外副本（不进 idOLPairs，避免被 linkEdge 当做新目标）
       if (extraPositions && extraPositions.length > 0) {
         for (const pos of extraPositions) {
-          const replicaId =
-            (type === NodeTypeEnum.External ? "e_" : "a_") + getNextId();
+          const replicaId = allocateNodeId();
           const replica =
             type === NodeTypeEnum.External
               ? (createExternalNode(replicaId, { label }) as PipelineNodeType)
@@ -489,6 +490,7 @@ export async function pipelineToFlow(
           next,
           SourceHandleTypeEnum.Next,
           idOLPairs,
+          allocateNodeId,
         );
         if (newEdges.length > 0) edges = edges.concat(newEdges);
         if (newNodes.length > 0) nodes = nodes.concat(newNodes);
@@ -503,6 +505,7 @@ export async function pipelineToFlow(
           onError,
           SourceHandleTypeEnum.Error,
           idOLPairs,
+          allocateNodeId,
         );
         if (newEdges.length > 0) edges = edges.concat(newEdges);
         if (newNodes.length > 0) nodes = nodes.concat(newNodes);

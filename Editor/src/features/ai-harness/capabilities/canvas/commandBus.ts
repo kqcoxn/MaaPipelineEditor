@@ -7,8 +7,10 @@ import {
   createAnchorNode,
   createExternalNode,
   createGroupNode,
+  createNodeIdAllocator,
   createPipelineNode,
   createStickerNode,
+  NODE_ID_PREFIX,
   type EdgeType,
   type NodeType,
   useFlowStore,
@@ -33,7 +35,7 @@ export type CanvasNodeKind =
 export type CanvasMutation =
   | {
       type: "create_node";
-      nodeId?: string;
+      nodeRef?: string;
       name: string;
       nodeType?: CanvasNodeKind;
       pipeline?: Record<string, unknown>;
@@ -71,6 +73,7 @@ export type CanvasMutation =
 export interface CanvasGraphState {
   nodes: NodeType[];
   edges: EdgeType[];
+  nodeIdCounter?: number;
   selectedNodeIds: string[];
   targetNodeId: string | null;
   fileName: string;
@@ -90,6 +93,7 @@ function createDefaultAdapter(): CanvasCommandBusAdapter {
       return {
         nodes: flow.nodes,
         edges: flow.edges,
+        nodeIdCounter: flow.nodeIdCounter,
         selectedNodeIds: flow.selectedNodes.map((node) => node.id),
         targetNodeId: flow.targetNode?.id ?? null,
         fileName: file.fileName,
@@ -281,9 +285,23 @@ export class CanvasCommandBus {
     let nodes = structuredClone(graph.nodes);
     let edges = structuredClone(graph.edges);
     const changes: string[] = [];
+    const nodeReferences = new Map<string, string>();
+    const createdNodes: Array<{ nodeRef?: string; nodeId: string }> = [];
+    const nodeIdAllocator = createNodeIdAllocator(
+      nodes.map((node) => node.id),
+      graph.nodeIdCounter,
+    );
     try {
       for (const mutation of mutations) {
-        ({ nodes, edges } = this.applyMutation(nodes, edges, mutation, changes));
+        ({ nodes, edges } = this.applyMutation(
+          nodes,
+          edges,
+          mutation,
+          changes,
+          nodeReferences,
+          createdNodes,
+          () => nodeIdAllocator.allocate().id,
+        ));
       }
     } catch (error) {
       return commandError(
@@ -309,7 +327,7 @@ export class CanvasCommandBus {
     const stateVersion = this.getStateVersion();
     return {
       ok: true,
-      data: { applied: mutations.length },
+      data: { applied: mutations.length, createdNodes },
       stateVersion,
       changes,
       validationErrors: [],
@@ -380,16 +398,33 @@ export class CanvasCommandBus {
     edges: EdgeType[],
     mutation: CanvasMutation,
     changes: string[],
+    nodeReferences: Map<string, string>,
+    createdNodes: Array<{ nodeRef?: string; nodeId: string }>,
+    allocateNodeId: () => string,
   ): { nodes: NodeType[]; edges: EdgeType[] } {
     switch (mutation.type) {
       case "create_node": {
-        const node = this.createNode(mutation, nodes);
+        if (
+          mutation.nodeRef &&
+          (mutation.nodeRef.startsWith(NODE_ID_PREFIX) ||
+            nodeReferences.has(mutation.nodeRef) ||
+            nodes.some((node) => node.id === mutation.nodeRef))
+        ) {
+          throw new Error(`节点临时引用不可用: ${mutation.nodeRef}`);
+        }
+        const node = this.createNode(mutation, nodes, allocateNodeId());
+        if (mutation.nodeRef) nodeReferences.set(mutation.nodeRef, node.id);
+        createdNodes.push({
+          ...(mutation.nodeRef ? { nodeRef: mutation.nodeRef } : {}),
+          nodeId: node.id,
+        });
         changes.push(`创建节点 ${node.data.label}`);
         return { nodes: [...nodes, node], edges };
       }
       case "update_node": {
-        const index = nodes.findIndex((node) => node.id === mutation.nodeId);
-        if (index < 0) throw new Error(`节点不存在: ${mutation.nodeId}`);
+        const nodeId = nodeReferences.get(mutation.nodeId) ?? mutation.nodeId;
+        const index = nodes.findIndex((node) => node.id === nodeId);
+        if (index < 0) throw new Error(`节点不存在: ${nodeId}`);
         const original = nodes[index];
         const data = mutation.pipeline
           ? convertMfwToStoreFormat(
@@ -415,29 +450,34 @@ export class CanvasCommandBus {
         return { nodes: nextNodes, edges };
       }
       case "delete_node": {
-        const node = nodes.find((item) => item.id === mutation.nodeId);
-        if (!node) throw new Error(`节点不存在: ${mutation.nodeId}`);
+        const nodeId = nodeReferences.get(mutation.nodeId) ?? mutation.nodeId;
+        const node = nodes.find((item) => item.id === nodeId);
+        if (!node) throw new Error(`节点不存在: ${nodeId}`);
         changes.push(`删除节点 ${node.data.label}`);
         return {
-          nodes: nodes.filter((item) => item.id !== mutation.nodeId),
+          nodes: nodes.filter((item) => item.id !== nodeId),
           edges: edges.filter(
             (edge) =>
-              edge.source !== mutation.nodeId && edge.target !== mutation.nodeId,
+              edge.source !== nodeId && edge.target !== nodeId,
           ),
         };
       }
       case "create_connection": {
+        const sourceId =
+          nodeReferences.get(mutation.sourceId) ?? mutation.sourceId;
+        const targetId =
+          nodeReferences.get(mutation.targetId) ?? mutation.targetId;
         const edge: EdgeType = {
           id: this.nextId("ai_edge"),
-          source: mutation.sourceId,
-          target: mutation.targetId,
+          source: sourceId,
+          target: targetId,
           sourceHandle: mutation.sourceHandle,
           targetHandle: mutation.targetHandle ?? TargetHandleTypeEnum.Target,
           type: "marked",
           label:
             edges.filter(
               (item) =>
-                item.source === mutation.sourceId &&
+                item.source === sourceId &&
                 item.sourceHandle === mutation.sourceHandle,
             ).length + 1,
           attributes: mutation.attributes,
@@ -451,8 +491,12 @@ export class CanvasCommandBus {
         const current = edges[index];
         const updated: EdgeType = {
           ...current,
-          source: mutation.sourceId ?? current.source,
-          target: mutation.targetId ?? current.target,
+          source: mutation.sourceId
+            ? (nodeReferences.get(mutation.sourceId) ?? mutation.sourceId)
+            : current.source,
+          target: mutation.targetId
+            ? (nodeReferences.get(mutation.targetId) ?? mutation.targetId)
+            : current.target,
           sourceHandle: mutation.sourceHandle ?? current.sourceHandle,
           targetHandle: mutation.targetHandle ?? current.targetHandle,
           attributes: mutation.attributes ?? current.attributes,
@@ -479,8 +523,8 @@ export class CanvasCommandBus {
   private createNode(
     mutation: Extract<CanvasMutation, { type: "create_node" }>,
     nodes: NodeType[],
+    id: string,
   ): NodeType {
-    const id = mutation.nodeId ?? this.nextId("ai_node");
     const position =
       mutation.position ?? {
         x: Math.max(0, ...nodes.map((node) => node.position.x)) + 260,

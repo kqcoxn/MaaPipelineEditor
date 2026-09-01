@@ -16,7 +16,7 @@ import {
   AvoidanceRouteCache,
   type AvoidanceRouteRequest,
 } from "../avoidanceRoutingCache";
-import { pipelineToFlow, resetIdCounter } from ".";
+import { pipelineToFlow } from ".";
 import { serializeFileForCache } from "../../stores/project/fileCache";
 import type { FileType } from "../../stores/project/fileStore";
 import {
@@ -63,7 +63,6 @@ function percentile(samples: number[], ratio: number): number {
 
 describe("PERF-001 performance datasets", () => {
   beforeEach(() => {
-    resetIdCounter();
     useFlowStore.setState({
       nodes: [],
       edges: [],
@@ -103,6 +102,9 @@ describe("PERF-001 performance datasets", () => {
       expect(imported).toBe(true);
       expect(flowState.nodes).toHaveLength(nodes);
       expect(flowState.edges).toHaveLength(edges);
+      expect(
+        flowState.nodes.every((node) => /^node_[1-9]\d*$/.test(node.id)),
+      ).toBe(true);
       expect(autoLayout).not.toHaveBeenCalled();
       expect(firstNode).toBeDefined();
       expect(getNodeAbsolutePosition(firstNode!, flowState.nodes)).toEqual(

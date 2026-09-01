@@ -36,6 +36,7 @@ import { useConfigStore } from "@/stores/app/configStore";
 import { checkRepeatNodeLabelList } from "../index";
 import { calcuLinkOrder } from "../utils/edgeUtils";
 import { applyNodeDataUpdates } from "../utils/nodeDataUtils";
+import { allocateNodeId } from "../utils/nodeId";
 import {
   buildNodeIndexes,
   buildSelectionIndexUpdate,
@@ -253,7 +254,11 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
 
     // 获取当前状态以生成 ID
     const state = get();
-    let id = String(state.nodeIdCounter);
+    const idAllocation = allocateNodeId(
+      (nodeId) => state.nodeById.has(nodeId),
+      state.nodeIdCounter,
+    );
+    const id = idAllocation.id;
     let labelBase;
     let useNumberSuffix = true;
 
@@ -277,23 +282,18 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
         break;
     }
 
-    let label = useNumberSuffix ? labelBase + id : labelBase;
-    let counter = state.nodeIdCounter;
+    let labelCounter = idAllocation.sequence;
+    let label = useNumberSuffix ? labelBase + labelCounter : labelBase;
 
-    // 对需要唯一标识的节点检查重复
+    // 节点名称独立于内部 ID 生成，避免把创建来源或 ID 格式带入名称。
     if (useNumberSuffix) {
-      while (
-        findNodeByLabel(state.nodes, label) ||
-        state.nodeById.has(id)
-      ) {
-        counter++;
-        id = String(counter);
-        label = labelBase + id;
+      while (findNodeByLabel(state.nodes, label)) {
+        labelCounter += 1;
+        label = labelBase + labelCounter;
       }
     }
 
     const finalId = id;
-    const finalCounter = counter;
     let createdNode: NodeType | undefined;
 
     set((state) => {
@@ -418,7 +418,7 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
           layout: true,
           topology: true,
         }),
-        nodeIdCounter: finalCounter + 1,
+        nodeIdCounter: idAllocation.nextCounter,
       };
     });
 
@@ -583,13 +583,11 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       const groupW = maxX - minX + PADDING * 2;
       const groupH = maxY - minY + PADDING * 2 + HEADER_HEIGHT;
 
-      // 生成 Group ID
-      let counter = state.nodeIdCounter;
-      let groupId = "group_" + counter;
-      while (state.nodeById.has(groupId)) {
-        counter++;
-        groupId = "group_" + counter;
-      }
+      const idAllocation = allocateNodeId(
+        (nodeId) => state.nodeById.has(nodeId),
+        state.nodeIdCounter,
+      );
+      const groupId = idAllocation.id;
 
       const groupNode = createGroupNode(groupId, {
         label: "分组",
@@ -630,7 +628,7 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
           layout: true,
           topology: true,
         }),
-        nodeIdCounter: counter + 1,
+        nodeIdCounter: idAllocation.nextCounter,
       };
     });
 

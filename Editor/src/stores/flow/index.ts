@@ -86,6 +86,13 @@ export {
 } from "./utils/edgeUtils";
 export { fitFlowView } from "./utils/viewportUtils";
 export { getNodeTypeLabelKey } from "./utils/graphIndex";
+export {
+  allocateNodeId,
+  createNodeIdAllocator,
+  getNextNodeIdCounter,
+  NODE_ID_PREFIX,
+} from "./utils/nodeId";
+export type { NodeIdAllocation, NodeIdAllocator } from "./utils/nodeId";
 
 // 检查节点名重复
 export function checkRepeatNodeLabelList(): string[] {

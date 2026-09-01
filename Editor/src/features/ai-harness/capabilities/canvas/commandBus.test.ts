@@ -36,7 +36,7 @@ describe("CanvasCommandBus", () => {
   it("原子提交批量变更并返回版本、diff 和撤销信息", () => {
     const { bus, commit, getGraph } = createHarness();
     const result = bus.apply(context(), [
-      { type: "create_node", nodeId: "batch-end", name: "结束" },
+      { type: "create_node", nodeRef: "batch-end", name: "结束" },
       {
         type: "create_connection",
         sourceId: "1",
@@ -49,6 +49,11 @@ describe("CanvasCommandBus", () => {
     expect(commit).toHaveBeenCalledOnce();
     expect(getGraph().nodes).toHaveLength(2);
     expect(getGraph().edges).toHaveLength(1);
+    expect(getGraph().nodes[1].id).toBe("node_1");
+    expect(getGraph().edges[0].target).toBe("node_1");
+    expect(result.data).toMatchObject({
+      createdNodes: [{ nodeRef: "batch-end", nodeId: "node_1" }],
+    });
   });
 
   it("成功写入后同步增加状态版本", () => {
@@ -65,6 +70,21 @@ describe("CanvasCommandBus", () => {
     expect(result.changes?.[0]).toContain("创建节点 结束");
     expect(commit).toHaveBeenCalledOnce();
     expect(getGraph().nodes).toHaveLength(2);
+    expect(getGraph().nodes[1].id).toBe("node_1");
+  });
+
+  it("拒绝临时引用占用正式节点 ID 命名空间", () => {
+    const { bus, commit } = createHarness();
+
+    const result = bus.apply(context(), [
+      { type: "create_node", nodeRef: "node_10", name: "结束" },
+    ]);
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: { message: "节点临时引用不可用: node_10" },
+    });
+    expect(commit).not.toHaveBeenCalled();
   });
 
   it("拒绝重复节点名且不提交部分结果", () => {

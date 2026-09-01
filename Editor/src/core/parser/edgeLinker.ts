@@ -20,23 +20,6 @@ export type NodeAttr = {
 // 节点引用类型
 export type NodeRefType = string | NodeAttr;
 
-// 全局ID计数器
-let idCounter = 1;
-
-/**
- * 重置ID计数器
- */
-export function resetIdCounter(): void {
-  idCounter = 1;
-}
-
-/**
- * 获取下一个ID
- */
-export function getNextId(): number {
-  return idCounter++;
-}
-
 /**
  * 解析节点引用 - 支持两种格式
  * 1. 字符串形式: "NodeName" 或 "[Anchor][JumpBack]NodeName"
@@ -92,7 +75,8 @@ export function linkEdge(
   oSourceLabel: string,
   oTargetLabels: NodeRefType[],
   type: SourceHandleTypeEnum,
-  idOLPairs: IdLabelPairsType
+  idOLPairs: IdLabelPairsType,
+  allocateNodeId: () => string,
 ): [EdgeType[], NodeType[], IdLabelPairsType] {
   // 检索源节点ID
   const sourceId = idOLPairs.find((pair) => pair.label === oSourceLabel)
@@ -113,12 +97,12 @@ export function linkEdge(
 
     let targetId = idOLPairs.find((pair) => pair.label === targetLabel)?.id;
 
-    // 如果目标节点不存在，创建外部节点或锤点节点
-    const externalId = (attributes.anchor ? "a_" : "e_") + idCounter++;
+    // 如果目标节点不存在，创建外部节点或锚点节点
     if (!targetId) {
+      const externalId = allocateNodeId();
       let node: NodeType;
       if (attributes.anchor) {
-        // 创建锤点节点
+        // 创建锚点节点
         node = createAnchorNode(externalId, { label: targetLabel });
       } else {
         // 创建外部节点
@@ -141,10 +125,10 @@ export function linkEdge(
 
     // 创建连接
     const edge: EdgeType = {
-      id: `${sourceId}_${type}_${targetId ?? externalId}`,
+      id: `${sourceId}_${type}_${targetId}`,
       source: sourceId,
       sourceHandle: type,
-      target: targetId ?? externalId,
+      target: targetId,
       targetHandle: targetHandle,
       label: index + 1,
       type: "marked",

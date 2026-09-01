@@ -70,8 +70,6 @@ export {
 } from "./configParser";
 export {
   linkEdge,
-  resetIdCounter,
-  getNextId,
   parseNodeRef,
 } from "./edgeLinker";
 export type { NodeAttr, NodeRefType } from "./edgeLinker";
