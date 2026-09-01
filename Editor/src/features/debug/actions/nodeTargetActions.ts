@@ -2,11 +2,12 @@ import { message } from "antd";
 import type { DebugModalPanel, DebugNodeTarget } from "../types";
 import {
   buildDebugSnapshotBundle,
-  resolveDebugNodeTarget,
+  resolveCurrentDebugNodeTarget,
 } from "../selectors/snapshot";
 import { useDebugModalMemoryStore } from "@/stores/debug/debugModalMemoryStore";
 import { useDebugRunProfileStore } from "@/stores/debug/debugRunProfileStore";
 import { useDebugSessionStore } from "@/stores/debug/debugSessionStore";
+import { useFileStore } from "@/stores/project/fileStore";
 import {
   useFlowStore,
   getRuntimeNodeAbsoluteRect,
@@ -31,14 +32,13 @@ export function getDebugNodeTarget(
     undefined,
     useDebugRunProfileStore.getState().profile.resourcePaths,
   );
-  return resolveDebugNodeTarget(nodeId, bundle.resolverSnapshot);
+  return resolveCurrentDebugNodeTarget(nodeId, bundle.resolverSnapshot);
 }
 
 export function applyDebugNodeTarget(
-  nodeId: string | undefined,
+  target: DebugNodeTarget | undefined,
   options: ApplyDebugNodeTargetOptions = {},
 ): DebugNodeTarget | undefined {
-  const target = getDebugNodeTarget(nodeId);
   if (!target) {
     message.warning("请选择可调试的 Pipeline 节点");
     return undefined;
@@ -46,8 +46,10 @@ export function applyDebugNodeTarget(
 
   const sessionState = useDebugSessionStore.getState();
   const memoryState = useDebugModalMemoryStore.getState();
+  const isCurrentFile =
+    target.fileId === useFileStore.getState().currentFile.fileName;
 
-  sessionState.selectNode(target.nodeId);
+  sessionState.selectNode(isCurrentFile ? target.nodeId : undefined);
 
   if (options.setEntry) {
     useDebugRunProfileStore.getState().setEntry(target);
@@ -61,7 +63,7 @@ export function applyDebugNodeTarget(
   if (options.openPanel && options.rememberPanel) {
     memoryState.setLastPanel(options.openPanel);
   }
-  if (options.focusCanvas) {
+  if (options.focusCanvas && isCurrentFile) {
     focusDebugCanvasNode(target.nodeId);
   }
   if (options.successMessage) {

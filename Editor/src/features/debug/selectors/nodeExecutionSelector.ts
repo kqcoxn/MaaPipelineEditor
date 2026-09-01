@@ -324,8 +324,8 @@ function toRecordFromSeed(
   },
 ): DebugNodeExecutionRecord {
   const resolverNode =
-    (seed.nodeId ? nodeById.get(seed.nodeId) : undefined) ??
-    nodeByRuntime.get(seed.runtimeName);
+    nodeByRuntime.get(seed.runtimeName) ??
+    (seed.nodeId ? nodeById.get(seed.nodeId) : undefined);
   const resolvedNodeId = seed.nodeId ?? resolverNode?.nodeId;
   const syntheticKind = seed.syntheticKind;
   const syntheticNode = isDebugTaskerBootstrapNode({

@@ -4,6 +4,9 @@ import { useFileStore } from "@/stores/project/fileStore";
 import { useFlowStore, type PipelineNodeType } from "../../../stores/flow";
 import {
   buildDebugSnapshotBundle,
+  getDebugNodeTargetKey,
+  resolveCurrentDebugNodeTarget,
+  resolveDebugNodeTarget,
   selectEffectiveResolverEdges,
   selectEffectiveResolverNodes,
 } from "./snapshot";
@@ -241,6 +244,53 @@ describe("snapshot resource override resolution", () => {
     ];
 
     expect(selectEffectiveResolverNodes(nodes, ["C:/resource/base"])).toEqual(nodes);
+  });
+
+  it("resolves duplicate canvas node ids within the current file", () => {
+    const resolverSnapshot: DebugNodeResolverSnapshot = {
+      generatedAt: "2026-09-01T00:00:00.000Z",
+      rootFileId: "live",
+      nodes: [
+        {
+          fileId: "start",
+          nodeId: "p_7",
+          runtimeName: "start_task_stop",
+          displayName: "start_task_stop",
+          sourcePath: "C:/resource/pipeline/start.json",
+        },
+        {
+          fileId: "live",
+          nodeId: "p_7",
+          runtimeName: "live_failed",
+          displayName: "live_failed",
+          sourcePath: "C:/resource/pipeline/live.json",
+        },
+      ],
+      edges: [],
+    };
+
+    const liveTarget = {
+      fileId: "live",
+      nodeId: "p_7",
+      runtimeName: "live_failed",
+      sourcePath: "C:/resource/pipeline/live.json",
+    };
+
+    expect(resolveCurrentDebugNodeTarget("p_7", resolverSnapshot)).toEqual(
+      liveTarget,
+    );
+    expect(resolveDebugNodeTarget(liveTarget, resolverSnapshot)).toEqual(
+      liveTarget,
+    );
+    expect(
+      resolveDebugNodeTarget(
+        { ...liveTarget, runtimeName: "start_task_stop" },
+        resolverSnapshot,
+      ),
+    ).toBeUndefined();
+    expect(
+      getDebugNodeTargetKey(resolverSnapshot.nodes[0]),
+    ).not.toBe(getDebugNodeTargetKey(resolverSnapshot.nodes[1]));
   });
 
   it("treats resolver runtime names as case-sensitive", () => {

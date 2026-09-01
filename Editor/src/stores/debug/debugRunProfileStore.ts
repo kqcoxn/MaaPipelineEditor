@@ -79,7 +79,7 @@ interface DebugRunProfileState extends DebugRunProfilePreset {
   setArtifactPolicy: (policy: DebugArtifactPolicy) => void;
   buildRunRequest: (
     mode: DebugRunMode,
-    targetNodeId?: string,
+    target?: DebugNodeTarget,
     sessionId?: string,
     input?: DebugRunInput,
     overrides?: DebugPipelineOverride[],
@@ -390,7 +390,7 @@ export const useDebugRunProfileStore = create<DebugRunProfileState>(
           },
         })),
 
-      buildRunRequest: (mode, targetNodeId, sessionId, input, overrides) => {
+      buildRunRequest: (mode, requestedTarget, sessionId, input, overrides) => {
         const storeProfile = get().profile;
         const bundle = buildDebugSnapshotBundle(
           undefined,
@@ -398,10 +398,10 @@ export const useDebugRunProfileStore = create<DebugRunProfileState>(
         );
         const mfwState = useMFWStore.getState();
         const target =
-          targetNodeId !== undefined
-            ? resolveDebugNodeTarget(targetNodeId, bundle.resolverSnapshot)
+          requestedTarget !== undefined
+            ? resolveDebugNodeTarget(requestedTarget, bundle.resolverSnapshot)
             : undefined;
-        if (targetNodeId !== undefined && !target) {
+        if (requestedTarget !== undefined && !target) {
           throw new Error("所选入口节点不在当前调试快照中，请重新打开入口节点所在文件后再试。");
         }
         const snapshotEntry =

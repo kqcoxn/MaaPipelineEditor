@@ -32,6 +32,7 @@ import {
   setMfwJsonCompletionContext,
 } from "../../../../components/json/mfwJsonCompletion";
 import { MfwJsonEditor } from "../../../../components/json/MfwJsonEditor";
+import { getDebugNodeTargetKey } from "../../selectors/snapshot";
 
 const { Text } = Typography;
 
@@ -142,7 +143,8 @@ export function OverviewPanel({
     availableModeIds,
     runTargetNodes,
     includeAllJsonRunTargets,
-    selectedRunTargetNodeId,
+    selectedRunTargetNode,
+    selectedRunTargetKey,
     session,
     activeRun,
     summary,
@@ -174,7 +176,7 @@ export function OverviewPanel({
   const nodeOptions = useMemo(
     () =>
       runTargetNodes.map((node) => ({
-        value: node.nodeId,
+        value: getDebugNodeTargetKey(node),
         label: node.displayName,
       })),
     [runTargetNodes],
@@ -183,7 +185,7 @@ export function OverviewPanel({
     const map = new Map<string, string>();
     runTargetNodes.forEach((node) => {
       map.set(
-        node.nodeId,
+        getDebugNodeTargetKey(node),
         [
           node.displayName,
           node.runtimeName,
@@ -225,7 +227,7 @@ export function OverviewPanel({
     });
     return map;
   }, [displaySessions]);
-  const hasSelectedNode = Boolean(selectedRunTargetNodeId);
+  const hasSelectedNode = Boolean(selectedRunTargetNode);
   const runLocked = ["preparing", "running", "stopping"].includes(
     session?.status ?? "idle",
   );
@@ -342,7 +344,7 @@ export function OverviewPanel({
             <div style={nodePickerStyle}>
               <Select
                 showSearch
-                value={selectedRunTargetNodeId}
+                value={selectedRunTargetKey}
                 style={nodeSelectStyle}
                 placeholder="搜索并选择 Pipeline 节点"
                 filterOption={(input, option) =>
@@ -355,7 +357,7 @@ export function OverviewPanel({
                 notFoundContent="当前图没有可调试 Pipeline 节点"
                 optionRender={(option) => {
                   const node = runTargetNodes.find(
-                    (item) => item.nodeId === option.value,
+                    (item) => getDebugNodeTargetKey(item) === option.value,
                   );
                   if (!node) return option.label;
                   return (
@@ -383,7 +385,7 @@ export function OverviewPanel({
                 type="primary"
                 icon={<CaretRightOutlined />}
                 onClick={() =>
-                  startRun("run-from-node", selectedRunTargetNodeId)
+                  startRun("run-from-node", selectedRunTargetNode)
                 }
                 disabled={
                   !canStartRun ||
@@ -396,7 +398,7 @@ export function OverviewPanel({
               <Button
                 icon={<CaretRightOutlined />}
                 onClick={() =>
-                  startRun("single-node-run", selectedRunTargetNodeId)
+                  startRun("single-node-run", selectedRunTargetNode)
                 }
                 disabled={
                   !canStartRun ||
@@ -409,7 +411,7 @@ export function OverviewPanel({
               <Button
                 icon={<FileSearchOutlined />}
                 onClick={() =>
-                  startRun("recognition-only", selectedRunTargetNodeId)
+                  startRun("recognition-only", selectedRunTargetNode)
                 }
                 disabled={
                   !canStartRun ||
@@ -422,7 +424,7 @@ export function OverviewPanel({
               <Button
                 danger
                 icon={<CaretRightOutlined />}
-                onClick={() => startRun("action-only", selectedRunTargetNodeId)}
+                onClick={() => startRun("action-only", selectedRunTargetNode)}
                 disabled={
                   !canStartRun ||
                   !hasSelectedNode ||

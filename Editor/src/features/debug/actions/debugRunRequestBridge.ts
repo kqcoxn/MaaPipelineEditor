@@ -1,7 +1,11 @@
-import type { DebugRunMode, DebugRunRequest } from "../types";
+import type {
+  DebugNodeTarget,
+  DebugRunMode,
+  DebugRunRequest,
+} from "../types";
 
 export interface DebugRunRequestIntent {
-  nodeId: string;
+  target: DebugNodeTarget;
   mode: DebugRunMode;
   input?: DebugRunRequest["input"];
 }

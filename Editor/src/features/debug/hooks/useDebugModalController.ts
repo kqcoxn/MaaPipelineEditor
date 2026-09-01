@@ -32,6 +32,7 @@ import { subscribeDebugRunRequests } from "../actions/debugRunRequestBridge";
 import {
   applyDebugNodeTarget,
   focusDebugCanvasNode,
+  getDebugNodeTarget,
 } from "../actions/nodeTargetActions";
 import {
   formatDebugReadinessMessage,
@@ -51,6 +52,7 @@ import { useDebugNodeExecutionController } from "./useDebugNodeExecutionControll
 import type {
   DebugAgentProfile,
   DebugModalPanel,
+  DebugNodeTarget,
   DebugRunMode,
   DebugRunRequest,
 } from "../types";
@@ -66,7 +68,7 @@ export function useDebugModalController() {
   const pendingRunRef = useRef<
     | {
         mode: DebugRunMode;
-        nodeId?: string;
+        target?: DebugNodeTarget;
         input?: DebugRunRequest["input"];
       }
     | undefined
@@ -192,6 +194,11 @@ export function useDebugModalController() {
   const selectedFlowNodeId = useFlowStore((state) =>
     state.selectedNodes.length === 1 ? state.selectedNodes[0]?.id : undefined,
   );
+  const selectedFlowTarget = useMemo(() => {
+    void semanticRevision;
+    void topologyRevision;
+    return getDebugNodeTarget(selectedFlowNodeId);
+  }, [selectedFlowNodeId, semanticRevision, topologyRevision]);
   const projectInterface = useProjectInterfaceDebugContext(connected);
 
   useEffect(() => {
@@ -217,7 +224,7 @@ export function useDebugModalController() {
     activePanel,
     connected,
     profileState,
-    selectedFlowNodeId,
+    selectedFlowTarget,
     resourcePathsOverride:
       projectInterface.mode === "project_interface"
         ? (piContext?.resourcePaths ?? [])
@@ -346,7 +353,7 @@ export function useDebugModalController() {
 
   const startRun = async (
     mode: DebugRunMode,
-    nodeId?: string,
+    target?: DebugNodeTarget,
     input?: DebugRunRequest["input"],
   ): Promise<void> => {
     clearProtocolError();
@@ -378,7 +385,7 @@ export function useDebugModalController() {
         resourcePreflightStatus !== "error" &&
         resolvedResourcePaths.length > 0
       ) {
-        pendingRunRef.current = { mode, nodeId, input };
+        pendingRunRef.current = { mode, target, input };
         message.info(
           resourcePreflightStatus === "checking"
             ? "资源检测完成后将自动启动调试。"
@@ -420,7 +427,7 @@ export function useDebugModalController() {
       }
       const request = profileState.buildRunRequest(
         mode,
-        nodeId,
+        target,
         session?.sessionId,
         input,
         overrideEntries,
@@ -449,7 +456,7 @@ export function useDebugModalController() {
       setLastRunMode(mode);
       if (request.target) {
         profileState.setEntry(request.target);
-        applyDebugNodeTarget(request.target.nodeId, {
+        applyDebugNodeTarget(request.target, {
           focusCanvas: true,
           rememberEntryNodeId: true,
         });
@@ -475,7 +482,7 @@ export function useDebugModalController() {
     pendingRunRef.current = undefined;
     void startRunRef.current(
       pendingRun.mode,
-      pendingRun.nodeId,
+      pendingRun.target,
       pendingRun.input,
     );
   }, [resourcePreflight.error, resourcePreflightStatus]);
@@ -485,7 +492,7 @@ export function useDebugModalController() {
   useEffect(
     () =>
       subscribeDebugRunRequests((intent) => {
-        void startRunRef.current(intent.mode, intent.nodeId, intent.input);
+        void startRunRef.current(intent.mode, intent.target, intent.input);
       }),
     [],
   );
@@ -694,7 +701,7 @@ export function useDebugModalController() {
     resolverEdgeIndex: nodeExecutionController.resolverEdgeIndex,
     includeAllJsonRunTargets: nodeExecutionController.includeAllJsonRunTargets,
     selectedRunTargetNode: nodeExecutionController.selectedRunTargetNode,
-    selectedRunTargetNodeId: nodeExecutionController.selectedRunTargetNodeId,
+    selectedRunTargetKey: nodeExecutionController.selectedRunTargetKey,
     allNodeExecutionRecords: nodeExecutionController.allNodeExecutionRecords,
     nodeExecutionRecords: nodeExecutionController.nodeExecutionRecords,
     nodeExecutionResolverNodes: nodeExecutionController.nodeExecutionResolverNodes,

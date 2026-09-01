@@ -100,7 +100,10 @@ export const updateLogs: UpdateLogItem[] = [
     type: "perf",
     updates: {
       perfs: ["优化操作画布时的渲染性能"],
-      fixes: ["修复根目录来源覆盖错误与监听死锁问题"],
+      fixes: [
+        "修复部分情况下调试节点时开始节点错误的问题",
+        "修复根目录来源覆盖错误与监听死锁问题",
+      ],
     },
   },
   {

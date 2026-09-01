@@ -46,6 +46,55 @@ describe("selectDebugNodeExecutionRecords", () => {
     });
   });
 
+  it("resolves record metadata by runtime name when canvas node ids repeat", () => {
+    const summary = reduceDebugTrace({
+      events: [
+        event(1, "node", "starting", {
+          fileId: "live.json",
+          nodeId: "p_7",
+          runtimeName: "live_failed",
+          label: "failed",
+        }),
+        event(2, "node", "succeeded", {
+          fileId: "live.json",
+          nodeId: "p_7",
+          runtimeName: "live_failed",
+          label: "failed",
+        }),
+      ],
+    });
+    const duplicateIdResolvers = [
+      {
+        fileId: "live.json",
+        nodeId: "p_7",
+        runtimeName: "live_failed",
+        displayName: "Live failed",
+        sourcePath: "project/live.json",
+      },
+      {
+        fileId: "start.json",
+        nodeId: "p_7",
+        runtimeName: "start_task_stop",
+        displayName: "Start task stop",
+        sourcePath: "project/start.json",
+      },
+    ];
+
+    const [record] = selectDebugNodeExecutionRecords(
+      summary,
+      duplicateIdResolvers,
+      { status: "all" },
+    );
+
+    expect(record).toMatchObject({
+      fileId: "live.json",
+      nodeId: "p_7",
+      runtimeName: "live_failed",
+      label: "Live failed",
+      sourcePath: "project/live.json",
+    });
+  });
+
   it("filters by status", () => {
     const summary = reduceDebugTrace({
       events: [

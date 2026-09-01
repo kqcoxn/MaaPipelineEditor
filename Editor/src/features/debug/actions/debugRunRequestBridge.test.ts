@@ -8,6 +8,12 @@ import {
 
 describe("debugRunRequestBridge", () => {
   const unsubscribers: Array<() => void> = [];
+  const target = {
+    fileId: "pipeline",
+    nodeId: "pipeline-node",
+    runtimeName: "pipeline_entry",
+    sourcePath: "C:/resource/pipeline/pipeline.json",
+  };
 
   afterEach(() => {
     while (unsubscribers.length > 0) unsubscribers.pop()?.();
@@ -20,7 +26,7 @@ describe("debugRunRequestBridge", () => {
     const listener = vi.fn();
     unsubscribers.push(subscribeDebugRunRequests(listener));
     const intent: DebugRunRequestIntent = {
-      nodeId: "pipeline-node",
+      target,
       mode: "single-node-run",
       input: { confirmAction: true },
     };
@@ -32,7 +38,7 @@ describe("debugRunRequestBridge", () => {
 
   it("启动器尚未挂载时保留请求，挂载后自动交给启动器", () => {
     const intent: DebugRunRequestIntent = {
-      nodeId: "pipeline-node",
+      target,
       mode: "run-from-node",
     };
     expect(
@@ -47,7 +53,7 @@ describe("debugRunRequestBridge", () => {
 
   it("宿主打开抽屉后重新排队的请求可由内容启动器消费", () => {
     const intent: DebugRunRequestIntent = {
-      nodeId: "pipeline-node",
+      target,
       mode: "single-node-run",
     };
     queueDebugRun(intent);

@@ -17,6 +17,7 @@ import {
 import { makeDebugResourceHealthRequestKey } from "../selectors/resourceHealth";
 import type {
   DebugModalPanel,
+  DebugNodeTarget,
   DebugResourceHealthRequest,
   DebugRunProfile,
   DebugRunRequest,
@@ -26,7 +27,7 @@ interface DebugResourceProfileState {
   profile: DebugRunProfile;
   buildRunRequest: (
     mode: DebugRunRequest["mode"],
-    targetNodeId?: string,
+    target?: DebugNodeTarget,
     sessionId?: string,
     input?: DebugRunRequest["input"],
     overrides?: DebugRunRequest["overrides"],
@@ -39,7 +40,7 @@ interface UseDebugResourceChecksOptions {
   activePanel: DebugModalPanel;
   connected: boolean;
   profileState: DebugResourceProfileState;
-  selectedFlowNodeId?: string;
+  selectedFlowTarget?: DebugNodeTarget;
   resourcePathsOverride?: string[];
   projectContextId?: string;
 }
@@ -51,7 +52,7 @@ export function useDebugResourceChecks({
   activePanel,
   connected,
   profileState,
-  selectedFlowNodeId,
+  selectedFlowTarget,
   resourcePathsOverride,
   projectContextId,
 }: UseDebugResourceChecksOptions) {
@@ -156,7 +157,7 @@ export function useDebugResourceChecks({
       void resourceHealthSnapshotKey;
       const runRequest = profileState.buildRunRequest(
         "run-from-node",
-        selectedFlowNodeId,
+        selectedFlowTarget,
       );
       const request: DebugResourceHealthRequest = {
         resourcePaths: resolvedResourcePaths,
@@ -181,7 +182,7 @@ export function useDebugResourceChecks({
     projectContextId,
     resolvedResourcePaths,
     resourceHealthSnapshotKey,
-    selectedFlowNodeId,
+    selectedFlowTarget,
   ]);
   const resourceHealthMatches =
     resourceHealth.requestKey === resourceHealthDraft.requestKey;

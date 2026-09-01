@@ -314,16 +314,50 @@ function normalizeResolverPath(path?: string): string {
   return path?.trim().replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase() ?? "";
 }
 
-export function resolveDebugNodeTarget(
-  nodeId: string,
-  snapshot: DebugNodeResolverSnapshot,
-): DebugNodeTarget | undefined {
-  const node = snapshot.nodes.find((item) => item.nodeId === nodeId);
-  if (!node) return undefined;
+export function toDebugNodeTarget(node: ResolverNode): DebugNodeTarget {
   return {
     fileId: node.fileId,
     nodeId: node.nodeId,
     runtimeName: node.runtimeName,
     sourcePath: node.sourcePath,
   };
+}
+
+export function getDebugNodeTargetKey(
+  target: Pick<
+    DebugNodeTarget,
+    "fileId" | "nodeId" | "runtimeName" | "sourcePath"
+  >,
+): string {
+  return JSON.stringify([
+    target.fileId,
+    target.nodeId,
+    target.runtimeName,
+    target.sourcePath ?? "",
+  ]);
+}
+
+export function resolveCurrentDebugNodeTarget(
+  nodeId: string,
+  snapshot: DebugNodeResolverSnapshot,
+): DebugNodeTarget | undefined {
+  const node = snapshot.nodes.find(
+    (item) =>
+      item.fileId === snapshot.rootFileId && item.nodeId === nodeId,
+  );
+  if (!node) return undefined;
+  return toDebugNodeTarget(node);
+}
+
+export function resolveDebugNodeTarget(
+  target: DebugNodeTarget,
+  snapshot: DebugNodeResolverSnapshot,
+): DebugNodeTarget | undefined {
+  const node = snapshot.nodes.find(
+    (item) =>
+      item.fileId === target.fileId &&
+      item.nodeId === target.nodeId &&
+      item.runtimeName === target.runtimeName,
+  );
+  return node ? toDebugNodeTarget(node) : undefined;
 }

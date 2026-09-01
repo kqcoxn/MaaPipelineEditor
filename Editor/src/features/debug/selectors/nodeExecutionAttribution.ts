@@ -144,8 +144,8 @@ function identityFromEventNode(
     syntheticKind,
   });
   const resolverNode =
-    (event.node.nodeId ? nodeById.get(event.node.nodeId) : undefined) ??
-    nodeByRuntime.get(runtimeName);
+    nodeByRuntime.get(runtimeName) ??
+    (event.node.nodeId ? nodeById.get(event.node.nodeId) : undefined);
   return {
     nodeId: syntheticNode ? undefined : event.node.nodeId ?? resolverNode?.nodeId,
     runtimeName,

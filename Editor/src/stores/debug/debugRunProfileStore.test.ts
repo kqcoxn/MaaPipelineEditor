@@ -1,8 +1,22 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { NodeTypeEnum } from "@/components/flow/nodes";
+import { useFlowStore, type PipelineNodeType } from "@/stores/flow";
+import { useFileStore } from "@/stores/project/fileStore";
 import {
   isDebugEntryAvailable,
   makeDebugResourceKey,
+  useDebugRunProfileStore,
 } from "./debugRunProfileStore";
+
+const initialFileState = {
+  currentFile: useFileStore.getState().currentFile,
+  files: useFileStore.getState().files,
+};
+
+afterEach(() => {
+  useFileStore.setState(initialFileState);
+  useFlowStore.setState({ nodes: [], edges: [] });
+});
 
 const snapshot = {
   generatedAt: "2026-08-23T00:00:00.000Z",
@@ -54,6 +68,47 @@ describe("debug profile entry recovery", () => {
       ),
     ).toBe(false);
   });
+
+  it("keeps the requested file when canvas node ids repeat across files", () => {
+    const startNode = makePipelineNode("p_7", "task_stop");
+    const liveNode = makePipelineNode("p_7", "failed");
+    const startFile = {
+      fileName: "start.json",
+      nodes: [startNode],
+      edges: [],
+      config: {
+        prefix: "start",
+        filePath: "C:/resource/pipeline/start.json",
+      },
+    };
+    const liveFile = {
+      fileName: "live.json",
+      nodes: [liveNode],
+      edges: [],
+      config: {
+        prefix: "live",
+        filePath: "C:/resource/pipeline/live.json",
+      },
+    };
+    useFileStore.setState({
+      currentFile: liveFile,
+      files: [startFile, liveFile],
+    });
+    useFlowStore.setState({ nodes: [liveNode], edges: [] });
+    const target = {
+      fileId: "live.json",
+      nodeId: "p_7",
+      runtimeName: "live_failed",
+      sourcePath: "C:/resource/pipeline/live.json",
+    };
+
+    const request = useDebugRunProfileStore
+      .getState()
+      .buildRunRequest("single-node-run", target);
+
+    expect(request.target).toEqual(target);
+    expect(request.profile.entry).toEqual(target);
+  });
 });
 
 describe("debug resource cache key", () => {
@@ -75,3 +130,23 @@ describe("debug resource cache key", () => {
     expect(after).not.toBe(before);
   });
 });
+
+function makePipelineNode(id: string, label: string): PipelineNodeType {
+  return {
+    id,
+    type: NodeTypeEnum.Pipeline,
+    data: {
+      label,
+      recognition: {
+        type: "DirectHit",
+        param: {},
+      },
+      action: {
+        type: "DoNothing",
+        param: {},
+      },
+      others: {},
+    },
+    position: { x: 0, y: 0 },
+  };
+}

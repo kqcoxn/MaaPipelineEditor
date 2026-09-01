@@ -24,7 +24,10 @@ import type {
   DebugCapabilityManifest,
   DebugRunMode,
 } from "../../../features/debug/types";
-import { applyDebugNodeTarget } from "../../../features/debug/actions/nodeTargetActions";
+import {
+  applyDebugNodeTarget,
+  getDebugNodeTarget,
+} from "../../../features/debug/actions/nodeTargetActions";
 import { requestDebugRun } from "../../../features/debug/actions/debugRunRequestBridge";
 import { isEmbedEnvironment } from "../../../utils/embedBridge";
 import { showEmbedServiceNotice } from "../../../features/embed/components/serviceNotice";
@@ -220,13 +223,17 @@ function handleDebugRunMode(node: NodeContextMenuNode, mode: DebugRunMode) {
     return;
   }
 
-  const target = applyDebugNodeTarget(node.id, {
+  const target = getDebugNodeTarget(node.id);
+  if (!target) {
+    message.warning("请选择可调试的 Pipeline 节点");
+    return;
+  }
+  applyDebugNodeTarget(target, {
     focusCanvas: true,
     rememberEntryNodeId: true,
   });
-  if (!target) return;
   useDebugModalMemoryStore.getState().setLastRunMode(mode);
-  if (!requestDebugRun({ nodeId: node.id, mode })) {
+  if (!requestDebugRun({ target, mode })) {
     message.error("FlowScope 调试服务尚未就绪，请稍后重试");
   }
 }
@@ -238,7 +245,7 @@ function handleSetDebugEntry(node: NodeContextMenuNode) {
     return;
   }
 
-  applyDebugNodeTarget(node.id, {
+  applyDebugNodeTarget(getDebugNodeTarget(node.id), {
     focusCanvas: true,
     openPanel: "overview",
     rememberPanel: true,
