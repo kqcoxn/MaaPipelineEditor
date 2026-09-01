@@ -5,8 +5,9 @@ import type {
   NodeType,
   EdgeType,
 } from "../types";
-import { NodeTypeEnum } from "../../../components/flow/nodes";
+import { NodeTypeEnum } from "../../../components/flow/nodes/constants";
 import { buildSelectionIndexUpdate } from "../utils/graphIndex";
+import { buildIncrementalSelectionChanges } from "../utils/selectionUtils";
 
 // 全局防抖定时器
 let debounceTimeout: NodeJS.Timeout | null = null;
@@ -75,6 +76,40 @@ export const createSelectionSlice: StateCreator<
       // 非单选 Anchor 节点时清除高亮
       get().setSelectedAnchorName(null);
     }
+  },
+
+  selectNodeIds(nodeIds, options) {
+    const initialState = get();
+    const targetNodeIds = new Set(
+      nodeIds.filter((id) => initialState.nodeById.has(id)),
+    );
+    const targetEdgeIds = new Set(
+      (options?.edgeIds ?? []).filter((id) => initialState.edgeById.has(id)),
+    );
+    const { nodeChanges, edgeChanges } = buildIncrementalSelectionChanges({
+      selectedNodeIds: initialState.selectedNodeIds,
+      selectedEdgeIds: initialState.selectedEdgeIds,
+      targetNodeIds,
+      targetEdgeIds,
+    });
+
+    if (nodeChanges.length === 0 && edgeChanges.length === 0) return;
+
+    if (nodeChanges.length > 0) {
+      initialState.updateNodes(nodeChanges);
+    }
+    if (edgeChanges.length > 0) {
+      get().updateEdges(edgeChanges);
+    }
+
+    const currentState = get();
+    const selectedNodes = [...targetNodeIds]
+      .map((id) => currentState.nodeById.get(id))
+      .filter((node): node is NodeType => node !== undefined);
+    const selectedEdges = [...targetEdgeIds]
+      .map((id) => currentState.edgeById.get(id))
+      .filter((edge): edge is EdgeType => edge !== undefined);
+    currentState.updateSelection(selectedNodes, selectedEdges);
   },
 
   // 设置目标节点

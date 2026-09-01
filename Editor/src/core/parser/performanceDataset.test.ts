@@ -23,6 +23,7 @@ import {
   buildSnapAlignmentIndex,
   findSnapAlignmentWithIndex,
 } from "../snapUtils";
+import { buildIncrementalSelectionChanges } from "../../stores/flow/utils/selectionUtils";
 
 const DATASET_CASES = [
   { fileName: "performance-small-100.json", nodes: 100, edges: 200 },
@@ -464,6 +465,33 @@ describe("PERF-001 performance datasets", () => {
     expect(inspectedCoordinates).toBeLessThan(legacyCandidateVisits);
     console.info(
       `[PERF-013] 300-node/300-move snap: candidate-visits=${legacyCandidateVisits}->0, point-comparisons=${legacyPointComparisons}->${inspectedCoordinates}, max-query-coordinates=${maxInspectedCoordinates}`,
+    );
+  });
+
+  it("measures PERF-014 incremental programmatic selection", async () => {
+    const datasetPath = resolve(
+      process.cwd(),
+      "../dev/performance/editor/datasets/performance-large-300.json",
+    );
+    const pipelineText = await readFile(datasetPath, "utf8");
+    expect(await pipelineToFlow({ pString: pipelineText })).toBe(true);
+
+    const state = useFlowStore.getState();
+    const previousNodeId = state.nodes[0].id;
+    const targetNodeId = state.nodes[1].id;
+    const previousEdgeId = state.edges[0].id;
+    const changes = buildIncrementalSelectionChanges({
+      selectedNodeIds: new Set([previousNodeId]),
+      selectedEdgeIds: new Set([previousEdgeId]),
+      targetNodeIds: new Set([targetNodeId]),
+      targetEdgeIds: new Set(),
+    });
+
+    expect(changes.nodeChanges).toHaveLength(2);
+    expect(changes.edgeChanges).toHaveLength(1);
+    expect(changes.nodeChanges.length).toBeLessThan(state.nodes.length);
+    console.info(
+      `[PERF-014] 300-node single navigation: node-select-changes=${state.nodes.length}->${changes.nodeChanges.length}, edge-clear-changes=${changes.edgeChanges.length}`,
     );
   });
 });

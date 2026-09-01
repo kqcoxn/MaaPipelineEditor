@@ -30,6 +30,10 @@ import {
 } from "../actions/embedOperations";
 import { registerEmbedExternalNavigation } from "../navigation/externalNavigation";
 import { showEmbedSaveConflict } from "../components/saveConflict";
+import {
+  findNodeIdByLabel,
+  selectAndFitNodeIds,
+} from "../../../services/flowNavigationService";
 
 type Cleanup = () => void;
 
@@ -91,11 +95,8 @@ function normalizeAnchorDefinitions(value: unknown): EmbedAnchorDefinition[] {
 }
 
 function findNode(nodeId: string) {
-  const { nodes } = useFlowStore.getState();
-  return (
-    nodes.find((node) => node.id === nodeId) ??
-    nodes.find((node) => node.data?.label === nodeId)
-  );
+  const { nodeById } = useFlowStore.getState();
+  return nodeById.get(nodeId) ?? nodeById.get(findNodeIdByLabel(nodeId) ?? "");
 }
 
 function sendNodeNotFound(nodeId: string): void {
@@ -285,14 +286,7 @@ export function registerEmbedProtocol(): Cleanup {
         return;
       }
 
-      const { nodes, updateNodes } = useFlowStore.getState();
-      updateNodes(
-        nodes.map((node) => ({
-          type: "select" as const,
-          id: node.id,
-          selected: node.id === targetNode.id,
-        })),
-      );
+      useFlowStore.getState().selectNodeIds([targetNode.id]);
     }),
     onParentMessage("mpe:focusNode", (payload) => {
       const { nodeId } = payload as { nodeId: string };
@@ -302,8 +296,8 @@ export function registerEmbedProtocol(): Cleanup {
         return;
       }
 
-      useFlowStore.getState().instance?.fitView({
-        nodes: [{ id: targetNode.id }],
+      selectAndFitNodeIds([targetNode.id], {
+        select: false,
         duration: 300,
       });
     }),

@@ -7,11 +7,6 @@ import { DownOutlined } from "@ant-design/icons";
 import classNames from "classnames";
 import { useDebounceFn } from "ahooks";
 import IconFont from "../../iconfonts";
-import {
-  useFlowStore,
-  getNodeAbsolutePosition,
-  type NodeType,
-} from "../../../stores/flow";
 import { useConfigStore } from "@/stores/app/configStore";
 import { usePanelOccupancy } from "../../../hooks/usePanelOccupancy";
 import {
@@ -20,11 +15,14 @@ import {
 } from "../../../services/crossFileService";
 import { NodeListPanel } from "./node-list";
 import { useEmbedMode } from "../../../hooks/useEmbedMode";
+import {
+  findNodeIdByLabel,
+  selectAndCenterNode,
+} from "../../../services/flowNavigationService";
 
 /**搜索工具 */
 function SearchPanel() {
   // store
-  const instance = useFlowStore((state) => state.instance);
   const enableCrossFileSearch = useConfigStore(
     (state) => state.configs.enableCrossFileSearch,
   );
@@ -89,32 +87,10 @@ function SearchPanel() {
   // 选中节点并聚焦
   const focusNodeInCurrentFile = useCallback(
     (label: string) => {
-      const currentNodes = useFlowStore.getState().nodes;
-      const targetNode = currentNodes.find(
-        (node: NodeType) => node.data.label === label,
-      );
-      if (!targetNode) {
+      const targetNodeId = findNodeIdByLabel(label);
+      if (!targetNodeId || !selectAndCenterNode(targetNodeId)) {
         message.warning("未找到该节点");
         return;
-      }
-
-      // 选中节点
-      useFlowStore.getState().updateNodes(
-        currentNodes.map((node: NodeType) => ({
-          type: "select" as const,
-          id: node.id,
-          selected: node.id === targetNode.id,
-        })),
-      );
-
-      // 聚焦视图到该节点
-      if (instance) {
-        const { x, y } = getNodeAbsolutePosition(targetNode, currentNodes);
-        const { width = 200, height = 100 } = targetNode.measured || {};
-        instance.setCenter(x + width / 2, y + height / 2, {
-          duration: 500,
-          zoom: 1.5,
-        });
       }
 
       message.success(`已定位到节点: ${label}`);
@@ -123,7 +99,7 @@ function SearchPanel() {
       setOptions([]);
       setSearchResults([]);
     },
-    [instance],
+    [],
   );
 
   // 跨文件跳转到节点

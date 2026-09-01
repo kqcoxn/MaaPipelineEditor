@@ -6,10 +6,9 @@ import { Popover, message } from "antd";
 import { ExportOutlined } from "@ant-design/icons";
 
 import style from "../../../styles/flow/nodes.module.less";
-import type { AnchorNodeDataType, NodeType } from "../../../stores/flow";
+import type { AnchorNodeDataType } from "../../../stores/flow";
 import {
   useFlowStore,
-  getNodeAbsolutePosition,
   getNodeTypeLabelKey,
 } from "../../../stores/flow";
 import { useConfigStore } from "@/stores/app/configStore";
@@ -24,6 +23,7 @@ import {
   type AnchorReferenceNodeInfo,
 } from "./anchorReferences";
 import { useNodeFocusState } from "../focusSelectors";
+import { selectAndCenterNode } from "../../../services/flowNavigationService";
 
 const EMPTY_NODE_IDS = new Set<string>();
 
@@ -102,7 +102,6 @@ export function AnchorNode(props: NodeProps<AnchorNodeData>) {
   const focusOpacity = useConfigStore((state) => state.configs.focusOpacity);
   const anchorDefinitions = useEmbedStore((state) => state.anchorDefinitions);
   const currentFileName = useEmbedStore((state) => state.currentFileName);
-  const instance = useFlowStore((state) => state.instance);
   const referencedNodes = useFlowStore(
     useShallow((state) => {
       const referencedNodeIds =
@@ -153,33 +152,7 @@ export function AnchorNode(props: NodeProps<AnchorNodeData>) {
     async (node: AnchorReferenceNodeInfo) => {
       if (isEmbed) return;
       if (node.isCurrentFile) {
-        // 当前文件内跳转
-        if (!instance) return;
-
-        const flowState = useFlowStore.getState();
-        const currentNodes = flowState.nodes;
-        const targetNode = flowState.nodeById.get(node.id);
-        if (!targetNode) return;
-
-        // 取消所有选中，选中目标节点
-        useFlowStore.getState().updateNodes(
-          currentNodes.map((n: NodeType) => ({
-            type: "select" as const,
-            id: n.id,
-            selected: n.id === node.id,
-          })),
-        );
-
-        // 聚焦到目标节点
-        const { x, y } = getNodeAbsolutePosition(
-          targetNode,
-          flowState.nodeById,
-        );
-        const { width = 200, height = 100 } = targetNode.measured || {};
-        instance.setCenter(x + width / 2, y + height / 2, {
-          duration: 500,
-          zoom: 1.5,
-        });
+        selectAndCenterNode(node.id);
       } else if (node.filePath) {
         // 跨文件跳转（支持前端多 tab 场景）
         const success = await crossFileService.navigateToNodeByFileAndLabel(
@@ -196,7 +169,7 @@ export function AnchorNode(props: NodeProps<AnchorNodeData>) {
         }
       }
     },
-    [instance, isEmbed],
+    [isEmbed],
   );
 
   const { isRelated } = useNodeFocusState({

@@ -9,8 +9,6 @@ import { useFileStore } from "@/stores/project/fileStore";
 import { useConfigStore } from "@/stores/app/configStore";
 import {
   useFlowStore,
-  getNodeAbsolutePosition,
-  type NodeType,
 } from "../stores/flow";
 import { localServer } from "./server";
 import { NodeTypeEnum } from "../components/flow/nodes/constants";
@@ -25,6 +23,10 @@ import {
 } from "./nodeSearch";
 import { isEmbedEnvironment } from "../utils/embedBridge";
 import { requestHostNodeNavigation } from "../features/embed/actions/embedOperations";
+import {
+  findNodeIdByLabel,
+  selectAndCenterNode,
+} from "./flowNavigationService";
 
 /**
  * 跨文件节点信息
@@ -375,7 +377,7 @@ class CrossFileService {
 
     // 如果是当前文件，直接定位
     if (nodeInfo.isCurrentFile) {
-      return this.focusNodeInCurrentFile(nodeInfo.label);
+      return this.focusNodeInCurrentFile(nodeInfo.label, nodeInfo.nodeType);
     }
 
     // 如果已加载，切换文件并定位
@@ -390,7 +392,7 @@ class CrossFileService {
         fileStore.switchFile(targetFile.fileName);
         // 等待切换完成后定位节点
         await new Promise((resolve) => setTimeout(resolve, 100));
-        return this.focusNodeInCurrentFile(nodeInfo.label);
+        return this.focusNodeInCurrentFile(nodeInfo.label, nodeInfo.nodeType);
       }
     }
 
@@ -458,36 +460,12 @@ class CrossFileService {
   /**
    * 在当前文件中定位节点
    */
-  private focusNodeInCurrentFile(label: string): boolean {
-    const flowStore = useFlowStore.getState();
-    const nodes = flowStore.nodes;
-    const instance = flowStore.instance;
-
-    const targetNode = nodes.find((n: NodeType) => n.data.label === label);
-    if (!targetNode) {
-      return false;
-    }
-
-    // 选中节点
-    flowStore.updateNodes(
-      nodes.map((node: NodeType) => ({
-        type: "select" as const,
-        id: node.id,
-        selected: node.id === targetNode.id,
-      })),
-    );
-
-    // 聚焦视图
-    if (instance) {
-      const { x, y } = getNodeAbsolutePosition(targetNode, nodes);
-      const { width = 200, height = 100 } = targetNode.measured || {};
-      instance.setCenter(x + width / 2, y + height / 2, {
-        duration: 500,
-        zoom: 1.5,
-      });
-    }
-
-    return true;
+  private focusNodeInCurrentFile(
+    label: string,
+    nodeType?: NodeTypeEnum,
+  ): boolean {
+    const targetNodeId = findNodeIdByLabel(label, nodeType);
+    return targetNodeId ? selectAndCenterNode(targetNodeId) : false;
   }
 
   /**
@@ -540,14 +518,10 @@ class CrossFileService {
             setTimeout(resolve, nodeAttemptInterval),
           );
 
-          const flowStore = useFlowStore.getState();
-          const nodes = flowStore.nodes;
-          const targetNode = nodes.find(
-            (n: NodeType) => n.data.label === nodeLabel,
-          );
+          const targetNodeId = findNodeIdByLabel(nodeLabel);
 
           // 找到节点，执行定位
-          if (targetNode) {
+          if (targetNodeId) {
             return this.focusNodeInCurrentFile(nodeLabel);
           }
         }
@@ -555,7 +529,7 @@ class CrossFileService {
         // 超时仍未找到节点
         console.warn(
           `[loadAndNavigate] 节点 "${nodeLabel}" 超时未找到，当前节点列表:`,
-          useFlowStore.getState().nodes.map((n: NodeType) => n.data.label),
+          useFlowStore.getState().nodes.map((node) => node.data.label),
         );
         return false;
       }

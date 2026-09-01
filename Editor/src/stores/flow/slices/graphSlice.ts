@@ -130,6 +130,7 @@ export const createGraphSlice: StateCreator<
 
       nodes.forEach((node) => {
         const originalId = node.id;
+        node.selected = true;
         const absolutePosition = getNodeAbsolutePosition(node, sourceNodeById);
         sourceAbsolutePositions.set(originalId, absolutePosition);
         minLeft = Math.min(minLeft, absolutePosition.x);
@@ -265,6 +266,7 @@ export const createGraphSlice: StateCreator<
       // 克隆并更新边数据
       edges = cloneDeep(edges);
       edges.forEach((edge) => {
+        edge.selected = true;
         edge.source = pairs[edge.source];
         edge.target = pairs[edge.target];
         edge.id = `${edge.source}_${edge.sourceHandle}_${edge.target}`;

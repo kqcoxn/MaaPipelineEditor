@@ -262,6 +262,10 @@ export interface FlowSelectionState {
   debouncedTargetNode: NodeType | null;
   debounceTimeouts: Record<string, number>;
   updateSelection: (nodes: NodeType[], edges: EdgeType[]) => void;
+  selectNodeIds: (
+    nodeIds: readonly string[],
+    options?: { edgeIds?: readonly string[] },
+  ) => void;
   setTargetNode: (node: NodeType | null) => void;
   clearSelection: () => void;
 }

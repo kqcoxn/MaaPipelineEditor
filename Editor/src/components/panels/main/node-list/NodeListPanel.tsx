@@ -13,10 +13,10 @@ import type { SelectProps } from "antd";
 import classNames from "classnames";
 import {
   useFlowStore,
-  getNodeAbsolutePosition,
   type NodeType,
   type EdgeType,
 } from "../../../../stores/flow";
+import { selectAndCenterNode } from "../../../../services/flowNavigationService";
 import { VirtualList } from "../../../common/VirtualList";
 import { NodeTypeEnum } from "../../../flow/nodes/constants";
 import { WikiAnchor } from "../../../wiki/WikiAnchor";
@@ -70,7 +70,6 @@ function NodeListPanel({ visible, onClose, anchorEl }: NodeListPanelProps) {
   const edges = useFlowStore((state) =>
     shouldRender ? state.edges : EMPTY_EDGES,
   );
-  const instance = useFlowStore((state) => state.instance);
 
   const [keyword, setKeyword] = useState("");
   const deferredKeyword = useDeferredValue(keyword);
@@ -147,25 +146,10 @@ function NodeListPanel({ visible, onClose, anchorEl }: NodeListPanelProps) {
 
   const handleNodeClick = useCallback(
     (item: NodeListItemInfo) => {
-      const targetNode = nodes.find((node) => node.id === item.id);
-      if (targetNode && instance) {
-        useFlowStore.getState().updateNodes(
-          nodes.map((node) => ({
-            type: "select" as const,
-            id: node.id,
-            selected: node.id === targetNode.id,
-          })),
-        );
-        const { x, y } = getNodeAbsolutePosition(targetNode, nodes);
-        const { width = 200, height = 100 } = targetNode.measured ?? {};
-        instance.setCenter(x + width / 2, y + height / 2, {
-          duration: 500,
-          zoom: 1.5,
-        });
-      }
+      selectAndCenterNode(item.id);
       onClose?.();
     },
-    [nodes, instance, onClose],
+    [onClose],
   );
 
   const handleNodeHover = useCallback((node: NodeListItemInfo | null) => {

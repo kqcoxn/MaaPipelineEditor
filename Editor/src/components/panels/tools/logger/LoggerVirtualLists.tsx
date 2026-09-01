@@ -20,7 +20,8 @@ import {
   VirtualList,
   type VirtualListHandle,
 } from "@/components/common/VirtualList";
-import { useFlowStore, findNodeById, fitFlowView, type NodeType } from "@/stores/flow";
+import { useFlowStore } from "@/stores/flow";
+import { selectAndFitNodeIds } from "@/services/flowNavigationService";
 import type { LogEntry } from "@/stores/app/loggerStore";
 import type {
   OperationCategory,
@@ -124,13 +125,12 @@ function formatPayload(log: EmbedMessageLog): string {
 function handleOperationLogClick(log: OperationLog) {
   if (!log.targetIds?.length) return;
   const state = useFlowStore.getState();
-  const targetNodes = log.targetIds
-    .map((id) => findNodeById(state.nodes, id))
-    .filter((node): node is NodeType => node !== undefined);
-  if (targetNodes.length === 0) return;
-
-  state.updateSelection(targetNodes, []);
-  fitFlowView(state.instance, state.viewport, { focusNodes: targetNodes });
+  selectAndFitNodeIds(log.targetIds, {
+    delay: 100,
+    duration: 500,
+    minZoom: state.viewport.zoom,
+    maxZoom: state.viewport.zoom,
+  });
 }
 
 function EmptyLogList({ text, height }: { text: string; height: number }) {

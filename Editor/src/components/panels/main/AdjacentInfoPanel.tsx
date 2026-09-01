@@ -22,7 +22,6 @@ import {
 } from "@dnd-kit/sortable";
 import {
   useFlowStore,
-  getNodeAbsolutePosition,
   findNodeByLabel,
 } from "../../../stores/flow";
 import { useEmbedMode } from "../../../hooks/useEmbedMode";
@@ -35,6 +34,7 @@ import type { EdgeType } from "../../../stores/flow/types";
 import { crossFileService } from "../../../services/crossFileService";
 import { useShallow } from "zustand/shallow";
 import style from "./AdjacentInfoPanel.module.less";
+import { selectAndCenterNode } from "../../../services/flowNavigationService";
 
 /**邻接信息面板 - 展示选中节点的前驱和后继节点信息 */
 
@@ -88,7 +88,6 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
       state.nodes.filter((node) => adjacentNodeIds.has(node.id)),
     ),
   );
-  const instance = useFlowStore((state) => state.instance);
   const reorderEdges = useFlowStore((state) => state.reorderEdges);
 
   // 嵌入模式权限控制（与 Flow.tsx 一致）
@@ -171,29 +170,8 @@ function AdjacentInfoPanel({ currentNodeId, currentNodeLabel }: AdjacentInfoPane
 
   // 点击节点跳转
   const handleNodeClick = useCallback((nodeId: string) => {
-    const currentNodes = useFlowStore.getState().nodes;
-    const targetNode = currentNodes.find((n) => n.id === nodeId);
-    if (!targetNode) return;
-
-    // 取消其他节点的选中状态，选中目标节点
-    useFlowStore.getState().updateNodes(
-      currentNodes.map((n) => ({
-        type: "select" as const,
-        id: n.id,
-        selected: n.id === nodeId,
-      }))
-    );
-
-    // 聚焦视图到该节点
-    if (instance) {
-      const { x, y } = getNodeAbsolutePosition(targetNode, currentNodes);
-      const { width = 200, height = 100 } = targetNode.measured || {};
-      instance.setCenter(x + width / 2, y + height / 2, {
-        duration: 500,
-        zoom: 1.5,
-      });
-    }
-  }, [instance]);
+    selectAndCenterNode(nodeId);
+  }, []);
 
   // 渲染节点标签
   const renderNodeTag = (

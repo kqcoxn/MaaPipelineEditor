@@ -8,11 +8,8 @@ import { useDebugModalMemoryStore } from "@/stores/debug/debugModalMemoryStore";
 import { useDebugRunProfileStore } from "@/stores/debug/debugRunProfileStore";
 import { useDebugSessionStore } from "@/stores/debug/debugSessionStore";
 import { useFileStore } from "@/stores/project/fileStore";
-import {
-  useFlowStore,
-  getRuntimeNodeAbsoluteRect,
-  type NodeType,
-} from "../../../stores/flow";
+import { useFlowStore } from "../../../stores/flow";
+import { selectAndCenterNode } from "../../../services/flowNavigationService";
 
 interface ApplyDebugNodeTargetOptions {
   focusCanvas?: boolean;
@@ -74,33 +71,6 @@ export function applyDebugNodeTarget(
 }
 
 export function focusDebugCanvasNode(nodeId: string): boolean {
-  const flowState = useFlowStore.getState();
-  const targetNode = flowState.nodes.find((node) => node.id === nodeId);
-  if (!targetNode) return false;
-
-  flowState.updateNodes(
-    flowState.nodes.map((node: NodeType) => ({
-      type: "select" as const,
-      id: node.id,
-      selected: node.id === targetNode.id,
-    })),
-  );
-  flowState.updateSelection([targetNode], []);
-
-  if (!flowState.instance) return false;
-
-  const rect = getRuntimeNodeAbsoluteRect(
-    flowState.instance,
-    targetNode.id,
-    targetNode,
-    flowState.nodes,
-  );
-  if (!rect) return false;
-
-  flowState.instance.setCenter(rect.x + rect.width / 2, rect.y + rect.height / 2, {
-    duration: 500,
-    zoom: 1.5,
-  });
-
-  return true;
+  const found = selectAndCenterNode(nodeId);
+  return found && useFlowStore.getState().instance !== null;
 }

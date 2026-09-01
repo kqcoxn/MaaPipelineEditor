@@ -19,6 +19,7 @@ import {
 import { BusinessStageNodeComponent } from "@/features/ai-harness/capabilities/business-architecture/BusinessStageNode";
 import { useFlowStore } from "@/stores/flow";
 import { useFileStore } from "@/stores/project/fileStore";
+import { selectAndFitNodeIds } from "@/services/flowNavigationService";
 import style from "@/styles/panels/BusinessArchitecturePanel.module.less";
 
 const nodeTypes = { businessStage: BusinessStageNodeComponent };
@@ -46,7 +47,6 @@ function BusinessArchitecturePanelContent() {
       topologyRevision: state.topologyRevision,
     })),
   );
-  const instance = useFlowStore((state) => state.instance);
   const currentFile = useFileStore((state) => state.currentFile);
   const document = activeDocumentRunId
     ? documents[activeDocumentRunId]
@@ -94,30 +94,19 @@ function BusinessArchitecturePanelContent() {
         return;
       }
       const memberIds = new Set(stageNode.data.stage.nodeIds);
-      const currentNodes = useFlowStore.getState().nodes;
-      const focusNodes = currentNodes.filter((node) => memberIds.has(node.id));
+      const focusNodes = selectAndFitNodeIds([...memberIds], {
+        delay: 120,
+        duration: 500,
+        padding: 0.3,
+        maxZoom: 1.35,
+      });
       if (focusNodes.length === 0) {
         message.warning("该阶段的节点已不在当前画布中");
         return;
       }
-      useFlowStore.getState().updateNodes(
-        currentNodes.map((node) => ({
-          type: "select" as const,
-          id: node.id,
-          selected: memberIds.has(node.id),
-        })),
-      );
       closeDocument();
-      window.setTimeout(() => {
-        void instance?.fitView({
-          nodes: focusNodes,
-          duration: 500,
-          padding: 0.3,
-          maxZoom: 1.35,
-        });
-      }, 120);
     },
-    [closeDocument, instance, isCurrentFile, message],
+    [closeDocument, isCurrentFile, message],
   );
 
   return (
