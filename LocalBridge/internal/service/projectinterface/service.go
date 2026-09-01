@@ -20,6 +20,7 @@ type Service struct {
 	mu             sync.RWMutex
 	refreshMu      sync.Mutex
 	root           string
+	canonicalRoot  string
 	configuredPath string
 	files          *fileservice.Service
 	eventBus       *eventbus.EventBus
@@ -40,8 +41,13 @@ func NewService(root, configuredPath string, files *fileservice.Service, eventBu
 	if err != nil {
 		return nil, err
 	}
+	root = filepath.Clean(root)
+	canonicalRoot, err := canonicalExistingPath(root)
+	if err != nil {
+		return nil, fmt.Errorf("解析 LocalBridge 根目录失败: %w", err)
+	}
 	service := &Service{
-		root: filepath.Clean(root), configuredPath: strings.TrimSpace(configuredPath),
+		root: root, canonicalRoot: filepath.Clean(canonicalRoot), configuredPath: strings.TrimSpace(configuredPath),
 		files: files, eventBus: eventBus, loader: &loader{schema: schema},
 		contexts: map[string]*RuntimePlan{},
 	}
@@ -184,7 +190,7 @@ func (s *Service) resolveDiscoveredEntry(candidate string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if !isWithin(s.root, resolved) {
+	if !isWithin(s.canonicalRoot, resolved) {
 		return "", fmt.Errorf("自动发现的 PI 入口通过符号链接越出 LocalBridge 根目录")
 	}
 	return filepath.Clean(resolved), nil
@@ -310,6 +316,11 @@ func (s *Service) shouldRefreshForFileEvent(event eventbus.Event) bool {
 }
 
 func samePath(left, right string) bool {
+	leftCanonical, leftErr := canonicalExistingPath(left)
+	rightCanonical, rightErr := canonicalExistingPath(right)
+	if leftErr == nil && rightErr == nil {
+		return strings.EqualFold(leftCanonical, rightCanonical)
+	}
 	return strings.EqualFold(filepath.Clean(left), filepath.Clean(right))
 }
 

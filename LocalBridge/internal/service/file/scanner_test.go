@@ -103,6 +103,24 @@ func TestPipelineRootDescendantIsIndexable(t *testing.T) {
 	}
 }
 
+func TestIsWithinPathAcceptsEquivalentSymlinkPath(t *testing.T) {
+	root := t.TempDir()
+	filePath := filepath.Join(root, "pipeline", "main.json")
+	if err := os.MkdirAll(filepath.Dir(filePath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filePath, []byte(`{"Node":{}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	aliasRoot := filepath.Join(t.TempDir(), "project")
+	if err := os.Symlink(root, aliasRoot); err != nil {
+		t.Skipf("当前环境无法创建目录符号链接: %v", err)
+	}
+	if !isWithinPath(filepath.Join(aliasRoot, "pipeline"), filePath) {
+		t.Fatalf("equivalent filesystem paths should share the same boundary: root=%s path=%s", aliasRoot, filePath)
+	}
+}
+
 func TestScanSingleKeepsPipelineInterfaceAsDiscoveryMetadata(t *testing.T) {
 	root := t.TempDir()
 	path := filepath.Join(root, "pipeline", "interface.json")

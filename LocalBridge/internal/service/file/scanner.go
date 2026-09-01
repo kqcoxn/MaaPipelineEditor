@@ -291,6 +291,12 @@ func pipelineRootForPath(root, path string) (string, bool) {
 }
 
 func isWithinPath(root, path string) bool {
+	rootResolved, rootErr := filepath.EvalSymlinks(root)
+	pathResolved, pathErr := filepath.EvalSymlinks(path)
+	if rootErr == nil && pathErr == nil {
+		root = rootResolved
+		path = pathResolved
+	}
 	rel, err := filepath.Rel(root, path)
 	return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
 }

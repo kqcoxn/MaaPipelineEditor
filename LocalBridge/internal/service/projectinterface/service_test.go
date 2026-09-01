@@ -131,10 +131,10 @@ func TestNestedInterfaceUsesInterfaceDirectoryAsProjectRoot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if snapshot.ProjectRoot != assetsRoot {
+	if !samePath(snapshot.ProjectRoot, assetsRoot) {
 		t.Fatalf("project root should be the interface directory: got %s, want %s", snapshot.ProjectRoot, assetsRoot)
 	}
-	if snapshot.InterfaceRoot != assetsRoot {
+	if !samePath(snapshot.InterfaceRoot, assetsRoot) {
 		t.Fatalf("interface root should be the entry directory: got %s, want %s", snapshot.InterfaceRoot, assetsRoot)
 	}
 	plan, err := snapshot.ResolveContext(ContextRequest{
@@ -147,14 +147,62 @@ func TestNestedInterfaceUsesInterfaceDirectoryAsProjectRoot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(plan.ResourcePaths) != 1 || plan.ResourcePaths[0] != resourceRoot {
+	if len(plan.ResourcePaths) != 1 || !samePath(plan.ResourcePaths[0], resourceRoot) {
 		t.Fatalf("resource path should resolve from interface root: %#v", plan.ResourcePaths)
 	}
-	if plan.ProjectRoot != assetsRoot || plan.InterfaceRoot != assetsRoot {
+	if !samePath(plan.ProjectRoot, assetsRoot) || !samePath(plan.InterfaceRoot, assetsRoot) {
 		t.Fatalf("runtime roots are incorrect: %#v", plan)
 	}
 	if len(plan.Agents) != 1 || plan.Agents[0].ChildExec != "python" || !containsString(plan.Agents[0].ChildArgs, "./agent/main.py") {
 		t.Fatalf("agent override should be part of the runtime plan: %#v", plan.Agents)
+	}
+}
+
+func TestAliasedInterfaceRootUsesCanonicalPathBoundary(t *testing.T) {
+	physicalRoot := t.TempDir()
+	aliasRoot := filepath.Join(t.TempDir(), "project")
+	if err := os.Symlink(physicalRoot, aliasRoot); err != nil {
+		t.Skipf("当前环境无法创建目录符号链接: %v", err)
+	}
+	mustMkdir(t, filepath.Join(physicalRoot, "resource"))
+	entryPath := filepath.Join(physicalRoot, "interface.json")
+	mustWrite(t, entryPath, `{
+  "interface_version": 2,
+  "name": "aliased-root",
+  "controller": [{"name":"c","label":"c","type":"Adb","adb":{}}],
+  "resource": [{"name":"r","path":["resource"]}]
+}`)
+
+	schema, err := compileSchema()
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := (&loader{schema: schema}).load(filepath.Join(aliasRoot, "interface.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !samePath(snapshot.InterfaceRoot, physicalRoot) {
+		t.Fatalf("interface root should resolve to the canonical directory: got %s, want %s", snapshot.InterfaceRoot, physicalRoot)
+	}
+}
+
+func TestDiscoveredEntryRejectsSymlinkOutsideCanonicalRoot(t *testing.T) {
+	root := t.TempDir()
+	outsideRoot := t.TempDir()
+	outsideEntry := filepath.Join(outsideRoot, "interface.json")
+	mustWrite(t, outsideEntry, `{"interface_version":2}`)
+	linkedEntry := filepath.Join(root, "interface.json")
+	if err := os.Symlink(outsideEntry, linkedEntry); err != nil {
+		t.Skipf("当前环境无法创建文件符号链接: %v", err)
+	}
+
+	service, err := NewService(root, "", nil, eventbus.New())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(service.Close)
+	if _, err := service.resolveDiscoveredEntry(linkedEntry); err == nil || !strings.Contains(err.Error(), "符号链接越出") {
+		t.Fatalf("discovered entry escaping through a symlink should be rejected, got %v", err)
 	}
 }
 
@@ -193,14 +241,14 @@ func TestExplicitInterfaceMayBeOutsideFileRootAndReloadsOnChange(t *testing.T) {
 	service.Start()
 
 	status := service.Status()
-	if status.State != StateReady || status.EffectivePath != entryPath {
+	if status.State != StateReady || !samePath(status.EffectivePath, entryPath) {
 		t.Fatalf("relative external PI entry should be ready: %#v", status)
 	}
 	snapshot, err := service.Snapshot("zh_cn")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if snapshot.ProjectRoot != interfaceRoot || snapshot.InterfaceRoot != interfaceRoot {
+	if !samePath(snapshot.ProjectRoot, interfaceRoot) || !samePath(snapshot.InterfaceRoot, interfaceRoot) {
 		t.Fatalf("PI roots should be independent from file root: %#v", snapshot)
 	}
 	if snapshot.Document["label"] != "初始名称" {
@@ -572,11 +620,29 @@ func TestSupervisorEnvironmentOutputAndConflict(t *testing.T) {
 	bus := eventbus.New()
 	var mu sync.Mutex
 	var statuses []AgentProcessStatus
+	expectedOutput := "MPE|" + filepath.Base(root) + "|identifier-a"
+	outputReady := make(chan struct{}, 1)
+	exitedReady := make(chan struct{}, 1)
 	bus.Subscribe(eventbus.EventProjectInterfaceAgent, func(event eventbus.Event) {
 		if status, ok := event.Data.(AgentProcessStatus); ok {
 			mu.Lock()
 			statuses = append(statuses, status)
 			mu.Unlock()
+			for _, line := range status.Output {
+				if strings.Contains(line, expectedOutput) {
+					select {
+					case outputReady <- struct{}{}:
+					default:
+					}
+					if status.State == "exited" {
+						select {
+						case exitedReady <- struct{}{}:
+						default:
+						}
+					}
+					break
+				}
+			}
 		}
 	})
 	supervisor := NewSupervisor(bus)
@@ -590,6 +656,14 @@ func TestSupervisorEnvironmentOutputAndConflict(t *testing.T) {
 	err := supervisor.Ensure(plan, agent, "identifier-a", map[string]string{"MPE_PI_AGENT_HELPER": "1", "MPE_PI_AGENT_WAIT": "1", "PI_CLIENT_NAME": "MPE"})
 	if err != nil {
 		t.Fatal(err)
+	}
+	select {
+	case <-outputReady:
+	case <-time.After(3 * time.Second):
+		mu.Lock()
+		snapshot := append([]AgentProcessStatus(nil), statuses...)
+		mu.Unlock()
+		t.Fatalf("timed out waiting for PI Agent output, got %#v", snapshot)
 	}
 	conflictPlan := *plan
 	conflictPlan.ContextID = "context-b"
@@ -608,21 +682,28 @@ func TestSupervisorEnvironmentOutputAndConflict(t *testing.T) {
 		t.Fatalf("disposing previous context should keep adopted agent: %v", err)
 	}
 	supervisor.StopContext(reusedPlan.ContextID)
-	deadline := time.Now().Add(3 * time.Second)
-	for time.Now().Before(deadline) {
+	select {
+	case <-exitedReady:
+	case <-time.After(3 * time.Second):
 		mu.Lock()
 		snapshot := append([]AgentProcessStatus(nil), statuses...)
 		mu.Unlock()
-		for _, status := range snapshot {
-			for _, line := range status.Output {
-				if strings.Contains(line, "MPE|"+filepath.Base(root)+"|identifier-a") {
-					return
-				}
+		t.Fatalf("timed out waiting for PI Agent exited status, got %#v", snapshot)
+	}
+	mu.Lock()
+	snapshot := append([]AgentProcessStatus(nil), statuses...)
+	mu.Unlock()
+	for _, status := range snapshot {
+		if status.State != "exited" {
+			continue
+		}
+		for _, line := range status.Output {
+			if strings.Contains(line, expectedOutput) {
+				return
 			}
 		}
-		time.Sleep(20 * time.Millisecond)
 	}
-	t.Fatalf("expected captured PI environment/cwd/identifier output, got %#v", statuses)
+	t.Fatalf("expected exited status to retain PI environment/cwd/identifier output, got %#v", snapshot)
 }
 
 func TestSupervisorFailedStartCanRetryImmediately(t *testing.T) {

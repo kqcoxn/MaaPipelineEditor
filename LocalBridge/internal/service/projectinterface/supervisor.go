@@ -35,6 +35,7 @@ type supervisedProcess struct {
 	captureDone       sync.WaitGroup
 	done              chan struct{}
 	contexts          map[string]bool
+	running           bool
 }
 
 type Supervisor struct {
@@ -58,7 +59,7 @@ func (s *Supervisor) Ensure(plan *RuntimePlan, agent AgentPlan, identifier strin
 		s.mu.Unlock()
 		return fmt.Errorf("PI Agent 启动已取消")
 	}
-	if current := s.processes[key]; current != nil && processRunning(current.cmd) {
+	if current := s.processes[key]; current != nil && current.running {
 		current.contexts[plan.ContextID] = true
 		current.contextID = plan.ContextID
 		s.mu.Unlock()
@@ -108,6 +109,7 @@ func (s *Supervisor) Ensure(plan *RuntimePlan, agent AgentPlan, identifier strin
 		s.publish(process, "failed", nil, "PI Agent 启动已取消")
 		return fmt.Errorf("PI Agent 启动已取消")
 	}
+	process.running = true
 	s.processes[key] = process
 	s.identifiers[identifier] = key
 	s.mu.Unlock()
@@ -194,7 +196,7 @@ func (s *Supervisor) AdoptContext(plan *RuntimePlan) {
 		if !agent.Enabled {
 			continue
 		}
-		if process := s.processes[agentReuseKey(plan, agent)]; process != nil && processRunning(process.cmd) {
+		if process := s.processes[agentReuseKey(plan, agent)]; process != nil && process.running {
 			process.contexts[plan.ContextID] = true
 			process.contextID = plan.ContextID
 		}
@@ -249,6 +251,7 @@ func (s *Supervisor) wait(process *supervisedProcess) {
 		message = err.Error()
 	}
 	s.mu.Lock()
+	process.running = false
 	delete(s.processes, process.key)
 	if s.identifiers[process.identifier] == process.key {
 		delete(s.identifiers, process.identifier)
@@ -298,10 +301,6 @@ func mergeEnvironment(values map[string]string) []string {
 		result = append(result, key+"="+value)
 	}
 	return result
-}
-
-func processRunning(cmd *exec.Cmd) bool {
-	return cmd != nil && cmd.Process != nil && cmd.ProcessState == nil
 }
 
 func agentReuseKey(plan *RuntimePlan, agent AgentPlan) string {

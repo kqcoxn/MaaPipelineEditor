@@ -20,11 +20,10 @@ type loader struct {
 }
 
 func (l *loader) load(entryPath string) (*ProjectSnapshot, error) {
-	entryPath, err := filepath.Abs(entryPath)
+	entryPath, err := canonicalExistingPath(entryPath)
 	if err != nil {
 		return nil, err
 	}
-	entryPath = filepath.Clean(entryPath)
 	interfaceRoot := filepath.Dir(entryPath)
 	entry, err := l.readDocument(interfaceRoot, entryPath)
 	if err != nil {
@@ -431,6 +430,18 @@ func isWithin(root, path string) bool {
 	}
 	rel, err := filepath.Rel(rootAbs, pathAbs)
 	return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
+}
+
+func canonicalExistingPath(path string) (string, error) {
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return "", err
+	}
+	resolved, err := filepath.EvalSymlinks(filepath.Clean(abs))
+	if err != nil {
+		return "", err
+	}
+	return filepath.Clean(resolved), nil
 }
 
 func hasErrorDiagnostics(items []Diagnostic) bool {
