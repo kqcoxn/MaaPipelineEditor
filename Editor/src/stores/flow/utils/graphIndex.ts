@@ -24,6 +24,7 @@ type EdgeIndexState = Pick<
 
 type RevisionState = Pick<
   FlowGraphIndexState,
+  | "graphRevision"
   | "layoutRevision"
   | "topologyRevision"
   | "semanticRevision"
@@ -374,7 +375,12 @@ export function bumpGraphRevisions(
   state: RevisionState,
   changes: GraphRevisionChanges,
 ): Partial<FlowGraphIndexState> {
+  const hasGraphChange =
+    changes.layout || changes.topology || changes.semantic;
   return {
+    ...(hasGraphChange
+      ? { graphRevision: state.graphRevision + 1 }
+      : {}),
     ...(changes.layout
       ? { layoutRevision: state.layoutRevision + 1 }
       : {}),

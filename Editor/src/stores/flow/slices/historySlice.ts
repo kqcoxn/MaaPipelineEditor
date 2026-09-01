@@ -1,50 +1,107 @@
 import type { StateCreator } from "zustand";
-import type { FlowStore, FlowHistoryState, NodeType, EdgeType } from "../types";
+
+import { useConfigStore } from "@/stores/app/configStore";
 import {
   useOperationLogStore,
   type OperationDescriptor,
 } from "@/stores/flow/operationLogStore";
+import type {
+  EdgeType,
+  FlowGraphHistoryPatch,
+  FlowHistoryEntry,
+  FlowHistoryState,
+  FlowStore,
+  NodeType,
+} from "../types";
+import {
+  applyGraphHistoryPatch,
+  createGraphHistoryPatch,
+  hasGraphHistoryChanges,
+} from "../utils/historyPatch";
+import { ensureGroupNodeOrder } from "../utils/nodeUtils";
 
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 
+const BASELINE_ENTRY: FlowHistoryEntry = { kind: "baseline" };
+
 function clearSaveTimeout() {
-  if (saveTimeout !== null) {
-    clearTimeout(saveTimeout);
-    saveTimeout = null;
-  }
+  if (saveTimeout === null) return;
+  clearTimeout(saveTimeout);
+  saveTimeout = null;
 }
 
-// 快速序列化状态（排除 UI 状态）
-function serializeState(nodes: NodeType[], edges: EdgeType[]): string {
-  const cleanNodes = nodes.map((node) => ({
-    id: node.id,
-    type: node.type,
-    data: node.data,
-    position: node.position,
-    measured: node.measured,
-  }));
-  const cleanEdges = edges.map((edge) => ({
-    id: edge.id,
-    source: edge.source,
-    sourceHandle: edge.sourceHandle,
-    target: edge.target,
-    targetHandle: edge.targetHandle,
-    label: edge.label,
-    attributes: edge.attributes,
-  }));
-  return JSON.stringify({ nodes: cleanNodes, edges: cleanEdges });
+function normalizeHistoryLimit(limit: number): number {
+  if (!Number.isFinite(limit)) return 100;
+  return Math.max(1, Math.trunc(limit));
 }
 
-// 快速克隆
-function fastClone<T>(data: T): T {
-  if (typeof structuredClone !== "undefined") {
-    try {
-      return structuredClone(data);
-    } catch (_error) {
-      // 降级到 JSON 方式
-    }
+function appendPatch(
+  historyStack: FlowHistoryEntry[],
+  historyIndex: number,
+  patch: FlowGraphHistoryPatch,
+  limit: number,
+): { historyStack: FlowHistoryEntry[]; historyIndex: number } {
+  let nextStack = historyStack.slice(0, historyIndex + 1);
+  let nextIndex = historyIndex;
+
+  if (nextStack.length === 0) {
+    nextStack.push(BASELINE_ENTRY);
+    nextIndex = 0;
   }
-  return JSON.parse(JSON.stringify(data));
+
+  nextStack.push({ kind: "patch", patch });
+  nextIndex += 1;
+
+  const normalizedLimit = normalizeHistoryLimit(limit);
+  if (nextStack.length > normalizedLimit) {
+    const removeCount = nextStack.length - normalizedLimit;
+    nextStack = nextStack.slice(removeCount);
+    nextStack[0] = BASELINE_ENTRY;
+    nextIndex -= removeCount;
+  }
+
+  return { historyStack: nextStack, historyIndex: nextIndex };
+}
+
+function trimHistoryWindow(
+  historyStack: FlowHistoryEntry[],
+  historyIndex: number,
+  limit: number,
+): { historyStack: FlowHistoryEntry[]; historyIndex: number } {
+  const normalizedLimit = normalizeHistoryLimit(limit);
+  if (historyStack.length <= normalizedLimit) {
+    return { historyStack, historyIndex };
+  }
+
+  const latestWindowStart = historyStack.length - normalizedLimit;
+  const start = Math.min(latestWindowStart, Math.max(0, historyIndex));
+  const nextStack = historyStack.slice(start, start + normalizedLimit);
+  nextStack[0] = BASELINE_ENTRY;
+  return {
+    historyStack: nextStack,
+    historyIndex: Math.max(0, historyIndex - start),
+  };
+}
+
+function addOperationLog(opDescriptor: OperationDescriptor | undefined) {
+  if (!opDescriptor) return;
+  useOperationLogStore.getState().addLog({
+    category: opDescriptor.category,
+    action: opDescriptor.action,
+    description: opDescriptor.description,
+    targetIds: opDescriptor.targetIds,
+  });
+}
+
+function clearGraphSelection(nodes: NodeType[], edges: EdgeType[]) {
+  return {
+    nodes: nodes.map((node) => ({
+      ...node,
+      selected: false,
+      dragging: false,
+    })),
+    edges: edges.map((edge) => ({ ...edge, selected: false })),
+  };
 }
 
 export const createHistorySlice: StateCreator<
@@ -53,243 +110,225 @@ export const createHistorySlice: StateCreator<
   [],
   FlowHistoryState
 > = (set, get) => ({
-  // 初始状态
   historyStack: [],
   historyIndex: -1,
-  lastSnapshot: null,
+  historyBaseline: {
+    nodes: [],
+    edges: [],
+    graphRevision: 0,
+  },
 
-  // 保存历史记录
   saveHistory(delay: number = 500, opDescriptor?: OperationDescriptor) {
-    // 清除旧的超时
     clearSaveTimeout();
 
     saveTimeout = setTimeout(() => {
       saveTimeout = null;
       const currentState = get();
+      const baseline = currentState.historyBaseline;
+      if (baseline.graphRevision === currentState.graphRevision) return;
 
-      // 获取历史限制配置
-      const limit = 100;
-
-      // 差异检测
-      const currentStateStr = serializeState(
+      const patch = createGraphHistoryPatch(
+        baseline.nodes,
+        baseline.edges,
         currentState.nodes,
-        currentState.edges
+        currentState.edges,
       );
-      if (currentState.lastSnapshot === currentStateStr) {
+      const historyBaseline = {
+        nodes: currentState.nodes,
+        edges: currentState.edges,
+        graphRevision: currentState.graphRevision,
+      };
+
+      if (!hasGraphHistoryChanges(patch)) {
+        set({ historyBaseline });
         return;
       }
 
-      // 写入操作日志（仅在有实际变化时）
-      if (opDescriptor) {
-        useOperationLogStore.getState().addLog({
-          category: opDescriptor.category,
-          action: opDescriptor.action,
-          description: opDescriptor.description,
-          targetIds: opDescriptor.targetIds,
-        });
-      }
-
-      const snapshot = {
-        nodes: fastClone(currentState.nodes),
-        edges: fastClone(currentState.edges),
-      };
-
-      set((state) => {
-        let newStack = [...state.historyStack];
-        let newIndex = state.historyIndex;
-
-        // 如果当前不在栈顶，删除后面的记录
-        if (newIndex < newStack.length - 1) {
-          newStack = newStack.slice(0, newIndex + 1);
-        }
-
-        // 添加新记录
-        newStack.push(snapshot);
-
-        // 限制历史记录数量
-        if (newStack.length > limit) {
-          newStack.shift();
-        } else {
-          newIndex++;
-        }
-
-        return {
-          historyStack: newStack,
-          historyIndex: newIndex,
-          lastSnapshot: currentStateStr,
-        };
-      });
+      addOperationLog(opDescriptor);
+      const limit = useConfigStore.getState().configs.historyLimit;
+      set((state) => ({
+        ...appendPatch(
+          state.historyStack,
+          state.historyIndex,
+          patch,
+          limit,
+        ),
+        historyBaseline,
+      }));
     }, delay);
   },
 
-  // 撤销
   undo() {
     const state = get();
     if (state.historyIndex <= 0) return false;
 
-    // 清除保存超时
     clearSaveTimeout();
+    const entry = state.historyStack[state.historyIndex];
+    if (entry.kind !== "patch") return false;
 
-    const newIndex = state.historyIndex - 1;
-    const snapshot = state.historyStack[newIndex];
-
-    // 清除选中状态
-    const nodes = fastClone(snapshot.nodes).map((node: NodeType) => ({
-      ...node,
-      selected: false,
-    }));
-    const edges = fastClone(snapshot.edges).map((edge: EdgeType) => ({
-      ...edge,
-      selected: false,
-    }));
-
-    // 更新状态
-    const newSnapshot = serializeState(nodes, edges);
-    set({
-      historyIndex: newIndex,
-      lastSnapshot: newSnapshot,
-    });
-
-    // 调用 replace 更新图数据（不保存历史）
-    get().replace(nodes, edges, {
+    const patched = applyGraphHistoryPatch(
+      state.nodes,
+      state.edges,
+      entry.patch,
+      "undo",
+    );
+    const graph = clearGraphSelection(patched.nodes, patched.edges);
+    get().replace(graph.nodes, graph.edges, {
       isFitView: false,
       skipHistory: true,
     });
 
+    const currentState = get();
+    set({
+      historyIndex: state.historyIndex - 1,
+      historyBaseline: {
+        nodes: currentState.nodes,
+        edges: currentState.edges,
+        graphRevision: currentState.graphRevision,
+      },
+    });
     return true;
   },
 
-  // 重做
   redo() {
     const state = get();
     if (state.historyIndex >= state.historyStack.length - 1) return false;
 
-    // 清除保存超时
     clearSaveTimeout();
+    const entry = state.historyStack[state.historyIndex + 1];
+    if (entry.kind !== "patch") return false;
 
-    const newIndex = state.historyIndex + 1;
-    const snapshot = state.historyStack[newIndex];
-
-    // 清除选中状态
-    const nodes = fastClone(snapshot.nodes).map((node: NodeType) => ({
-      ...node,
-      selected: false,
-    }));
-    const edges = fastClone(snapshot.edges).map((edge: EdgeType) => ({
-      ...edge,
-      selected: false,
-    }));
-
-    // 更新状态
-    const newSnapshot = serializeState(nodes, edges);
-    set({
-      historyIndex: newIndex,
-      lastSnapshot: newSnapshot,
-    });
-
-    // 调用 replace 更新图数据（不保存历史）
-    get().replace(nodes, edges, {
+    const patched = applyGraphHistoryPatch(
+      state.nodes,
+      state.edges,
+      entry.patch,
+      "redo",
+    );
+    const graph = clearGraphSelection(patched.nodes, patched.edges);
+    get().replace(graph.nodes, graph.edges, {
       isFitView: false,
       skipHistory: true,
     });
 
+    const currentState = get();
+    set({
+      historyIndex: state.historyIndex + 1,
+      historyBaseline: {
+        nodes: currentState.nodes,
+        edges: currentState.edges,
+        graphRevision: currentState.graphRevision,
+      },
+    });
     return true;
   },
 
-  // 初始化历史记录
-  initHistory(nodes: NodeType[], edges: EdgeType[]) {
+  initHistory() {
     clearSaveTimeout();
+    const state = get();
+    set({
+      historyStack: [BASELINE_ENTRY],
+      historyIndex: 0,
+      historyBaseline: {
+        nodes: state.nodes,
+        edges: state.edges,
+        graphRevision: state.graphRevision,
+      },
+    });
+  },
 
-    const snapshot = {
-      nodes: fastClone(nodes),
-      edges: fastClone(edges),
+  importHistory(nodes: NodeType[], edges: EdgeType[]) {
+    clearSaveTimeout();
+    const state = get();
+    const normalizedNodes = ensureGroupNodeOrder(nodes);
+
+    if (state.historyStack.length === 0) {
+      set({
+        historyStack: [BASELINE_ENTRY],
+        historyIndex: 0,
+        historyBaseline: {
+          nodes: normalizedNodes,
+          edges,
+          // importHistory 紧接着由 importer 调用一次 replace。
+          graphRevision: state.graphRevision + 1,
+        },
+      });
+      return;
+    }
+
+    const limit = useConfigStore.getState().configs.historyLimit;
+    let historyState = {
+      historyStack: state.historyStack,
+      historyIndex: state.historyIndex,
     };
-    const snapshotStr = serializeState(nodes, edges);
+
+    if (state.historyBaseline.graphRevision !== state.graphRevision) {
+      const pendingPatch = createGraphHistoryPatch(
+        state.historyBaseline.nodes,
+        state.historyBaseline.edges,
+        state.nodes,
+        state.edges,
+      );
+      if (hasGraphHistoryChanges(pendingPatch)) {
+        historyState = appendPatch(
+          historyState.historyStack,
+          historyState.historyIndex,
+          pendingPatch,
+          limit,
+        );
+      }
+    }
+
+    const importPatch = createGraphHistoryPatch(
+      state.nodes,
+      state.edges,
+      normalizedNodes,
+      edges,
+    );
+    if (hasGraphHistoryChanges(importPatch)) {
+      historyState = appendPatch(
+        historyState.historyStack,
+        historyState.historyIndex,
+        importPatch,
+        limit,
+      );
+    } else if (historyState.historyStack.length === 0) {
+      historyState = {
+        historyStack: [BASELINE_ENTRY],
+        historyIndex: 0,
+      };
+    }
 
     set({
-      historyStack: [snapshot],
-      historyIndex: 0,
-      lastSnapshot: snapshotStr,
+      ...historyState,
+      historyBaseline: {
+        nodes: normalizedNodes,
+        edges,
+        // importHistory 紧接着由 importer 调用一次 replace。
+        graphRevision: state.graphRevision + 1,
+      },
     });
   },
 
-  // 导入历史记录（追加模式，保留撤销能力）
-  // 与 initHistory 不同，此方法不清空历史栈，
-  // 而是将导入前状态和导入后状态依次追加，使 undo 可以回到导入前
-  importHistory(nodes: NodeType[], edges: EdgeType[]) {
-    // 清除待保存的超时
-    clearSaveTimeout();
-
-    const importSnapshotStr = serializeState(nodes, edges);
-    const importSnapshot = {
-      nodes: fastClone(nodes),
-      edges: fastClone(edges),
-    };
-
-    set((state) => {
-      let newStack = [...state.historyStack];
-      let newIndex = state.historyIndex;
-
-      // 如果历史栈为空，直接初始化（与 initHistory 行为一致）
-      if (newStack.length === 0) {
-        return {
-          historyStack: [importSnapshot],
-          historyIndex: 0,
-          lastSnapshot: importSnapshotStr,
-        };
-      }
-
-      // 截断 redo 分支
-      if (newIndex < newStack.length - 1) {
-        newStack = newStack.slice(0, newIndex + 1);
-      }
-
-      // 如果当前画布有内容，且与栈顶不同，先把当前状态（导入前）压入栈
-      // 这样 undo 可以回到导入前的状态
-      if (state.nodes.length > 0) {
-        const currentStr = serializeState(state.nodes, state.edges);
-        if (currentStr !== state.lastSnapshot) {
-          const currentSnapshot = {
-            nodes: fastClone(state.nodes),
-            edges: fastClone(state.edges),
-          };
-          newStack.push(currentSnapshot);
-          if (newStack.length > 100) {
-            newStack.shift();
-          } else {
-            newIndex++;
-          }
-        }
-      }
-
-      // 添加导入后的状态
-      newStack.push(importSnapshot);
-      if (newStack.length > 100) {
-        newStack.shift();
-      } else {
-        newIndex++;
-      }
-
-      return {
-        historyStack: newStack,
-        historyIndex: newIndex,
-        lastSnapshot: importSnapshotStr,
-      };
-    });
-  },
-
-  // 清空历史记录
   clearHistory() {
     clearSaveTimeout();
-
+    const state = get();
     set({
       historyStack: [],
       historyIndex: -1,
-      lastSnapshot: null,
+      historyBaseline: {
+        nodes: state.nodes,
+        edges: state.edges,
+        graphRevision: state.graphRevision,
+      },
     });
   },
 
-  // 获取历史状态
+  trimHistory(limit: number) {
+    set((state) =>
+      trimHistoryWindow(state.historyStack, state.historyIndex, limit),
+    );
+  },
+
   getHistoryState() {
     const state = get();
     return {

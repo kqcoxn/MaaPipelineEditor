@@ -82,6 +82,7 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
         const nodes = applyNodeChanges(changes, state.nodes) as NodeType[];
         return {
           nodes,
+          graphRevision: state.graphRevision + 1,
           layoutRevision: state.layoutRevision + 1,
         };
       }
@@ -200,6 +201,11 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
     // 保存历史记录
     const hasRemove = changes.some((change) => change.type === "remove");
     const hasPosition = changes.some((change) => change.type === "position");
+    const hasReplace = changes.some((change) => change.type === "replace");
+    const hasAdd = changes.some((change) => change.type === "add");
+    const hasFinishedResize = changes.some(
+      (change) => change.type === "dimensions" && change.resizing === false,
+    );
     const isDragging = changes.some(
       (change) => change.type === "position" && change.dragging,
     );
@@ -218,6 +224,18 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
         category: "node",
         action: "move",
         description: "移动节点",
+      });
+    } else if (hasReplace || hasAdd) {
+      get().saveHistory(0, {
+        category: "node",
+        action: hasAdd ? "add" : "update",
+        description: hasAdd ? "添加节点" : "更新节点",
+      });
+    } else if (hasFinishedResize) {
+      get().saveHistory(0, {
+        category: "group",
+        action: "update",
+        description: "调整分组尺寸",
       });
     }
   },

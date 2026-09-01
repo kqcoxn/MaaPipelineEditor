@@ -20,6 +20,7 @@ const ApplyToAllRenderer = memo(() => {
     (state) => state.configs.defaultHandleDirection,
   );
   const setNodes = useFlowStore((state) => state.setNodes);
+  const saveHistory = useFlowStore((state) => state.saveHistory);
 
   const handleApplyToAll = useCallback(() => {
     const newNodes = useFlowStore.getState().nodes.map((node) => ({
@@ -33,13 +34,19 @@ const ApplyToAllRenderer = memo(() => {
       },
     }));
     setNodes(newNodes);
+    saveHistory(0, {
+      category: "node",
+      action: "update",
+      description: "批量设置端点位置",
+      targetIds: newNodes.map((node) => node.id),
+    });
     message.success(
       `已将所有节点端点位置更改为「${
         HANDLE_DIRECTION_OPTIONS.find((o) => o.value === defaultHandleDirection)
           ?.label
       }」`,
     );
-  }, [setNodes, defaultHandleDirection]);
+  }, [setNodes, saveHistory, defaultHandleDirection]);
 
   return (
     <Button size="small" onClick={handleApplyToAll}>

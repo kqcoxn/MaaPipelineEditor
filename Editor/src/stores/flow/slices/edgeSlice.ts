@@ -82,11 +82,19 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
 
     // 保存历史记录
     const hasRemove = changes.some((change) => change.type === "remove");
+    const hasReplace = changes.some((change) => change.type === "replace");
+    const hasAdd = changes.some((change) => change.type === "add");
     if (hasRemove) {
       get().saveHistory(0, {
         category: "edge",
         action: "delete",
         description: "删除连接",
+      });
+    } else if (hasReplace || hasAdd) {
+      get().saveHistory(0, {
+        category: "edge",
+        action: hasAdd ? "add" : "update",
+        description: hasAdd ? "添加连接" : "重连连接",
       });
     }
   },
@@ -98,12 +106,10 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
       if (edgeIndex < 0) return {};
 
       const edges = [...state.edges];
-      const targetEdge = { ...edges[edgeIndex] };
-
-      // 更新 attributes
-      if (!targetEdge.attributes) {
-        targetEdge.attributes = {};
-      }
+      const targetEdge = {
+        ...edges[edgeIndex],
+        attributes: { ...edges[edgeIndex].attributes },
+      };
 
       if (value === undefined || value === null || value === false) {
         // 删除属性

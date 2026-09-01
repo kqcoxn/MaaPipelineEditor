@@ -64,9 +64,9 @@ describe("PERF-001 performance datasets", () => {
       selectedEdges: [],
       historyStack: [],
       historyIndex: -1,
-      lastSnapshot: null,
       instance: null,
     });
+    useFlowStore.getState().clearHistory();
   });
 
   afterEach(() => {
@@ -175,6 +175,62 @@ describe("PERF-001 performance datasets", () => {
       )} ms, release-schedule=${releaseScheduleDuration.toFixed(
         3,
       )} ms, release-settled=${releaseSettledDuration.toFixed(3)} ms`,
+    );
+  });
+
+  it("measures PERF-009 patch history on 100 committed moves", async () => {
+    const datasetPath = resolve(
+      process.cwd(),
+      "../dev/performance/editor/datasets/performance-large-300.json",
+    );
+    const pipelineText = await readFile(datasetPath, "utf8");
+    expect(await pipelineToFlow({ pString: pipelineText })).toBe(true);
+
+    const initialState = useFlowStore.getState();
+    const draggedNode = initialState.nodes.find(
+      (node) => node.data.label === "Perf_Node_0050",
+    );
+    expect(draggedNode).toBeDefined();
+    const legacySnapshotBytes = JSON.stringify({
+      nodes: initialState.nodes,
+      edges: initialState.edges,
+    }).length;
+
+    for (let index = 1; index <= 100; index += 1) {
+      useFlowStore.getState().updateNodes([
+        {
+          type: "position",
+          id: draggedNode!.id,
+          position: {
+            x: draggedNode!.position.x + index * 3,
+            y: draggedNode!.position.y + index * 2,
+          },
+          dragging: false,
+        },
+      ]);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+
+    const historyStack = useFlowStore.getState().historyStack;
+    const patchEntries = historyStack.filter(
+      (entry) => entry.kind === "patch",
+    );
+    expect(historyStack).toHaveLength(100);
+    expect(patchEntries).toHaveLength(99);
+    expect(
+      patchEntries.every(
+        (entry) =>
+          entry.kind === "patch" &&
+          entry.patch.nodes.length === 1 &&
+          entry.patch.edges.length === 0,
+      ),
+    ).toBe(true);
+
+    const patchHistoryBytes = JSON.stringify(historyStack).length;
+    const legacyHistoryBytes = legacySnapshotBytes * historyStack.length;
+    expect(patchHistoryBytes).toBeLessThan(legacyHistoryBytes / 10);
+    console.info(
+      `[PERF-009] 300-node/100-move history: ${legacyHistoryBytes}->${patchHistoryBytes} serialized bytes, entries=${historyStack.length}`,
     );
   });
 

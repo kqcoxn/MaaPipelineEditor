@@ -279,23 +279,49 @@ export interface FlowGraphIndexState {
   selectedEdgeIds: Set<string>;
   selectedEdgeEndpointNodeIds: Set<string>;
   hasSelectedSticker: boolean;
+  graphRevision: number;
   layoutRevision: number;
   topologyRevision: number;
   semanticRevision: number;
   selectionRevision: number;
 }
 
+export interface FlowHistoryEntityPatch<T> {
+  id: string;
+  before: T | null;
+  after: T | null;
+  beforeIndex: number;
+  afterIndex: number;
+  moved: boolean;
+}
+
+export interface FlowGraphHistoryPatch {
+  nodes: FlowHistoryEntityPatch<NodeType>[];
+  edges: FlowHistoryEntityPatch<EdgeType>[];
+}
+
+export type FlowHistoryEntry =
+  | { kind: "baseline" }
+  | { kind: "patch"; patch: FlowGraphHistoryPatch };
+
+export interface FlowHistoryBaseline {
+  nodes: NodeType[];
+  edges: EdgeType[];
+  graphRevision: number;
+}
+
 // 历史 Slice 状态
 export interface FlowHistoryState {
-  historyStack: Array<{ nodes: NodeType[]; edges: EdgeType[] }>;
+  historyStack: FlowHistoryEntry[];
   historyIndex: number;
-  lastSnapshot: string | null;
+  historyBaseline: FlowHistoryBaseline;
   saveHistory: (delay?: number, opDescriptor?: OperationDescriptor) => void;
   undo: () => boolean;
   redo: () => boolean;
   initHistory: (nodes: NodeType[], edges: EdgeType[]) => void;
   importHistory: (nodes: NodeType[], edges: EdgeType[]) => void;
   clearHistory: () => void;
+  trimHistory: (limit: number) => void;
   getHistoryState: () => { canUndo: boolean; canRedo: boolean };
 }
 

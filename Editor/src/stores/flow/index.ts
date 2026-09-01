@@ -27,6 +27,12 @@ export const useFlowStore = create<FlowStore>()(subscribeWithSelector((...a) => 
   ...createAnchorRefSlice(...a),
   ...createGraphIndexSlice(...a),
 })));
+
+useConfigStore.subscribe((state, previousState) => {
+  const historyLimit = state.configs.historyLimit;
+  if (historyLimit === previousState.configs.historyLimit) return;
+  useFlowStore.getState().trimHistory(historyLimit);
+});
 export type {
   NodeType,
   PipelineNodeType,

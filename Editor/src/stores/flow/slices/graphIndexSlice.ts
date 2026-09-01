@@ -18,6 +18,7 @@ export const createGraphIndexSlice: StateCreator<
   selectedEdgeIds: new Set(),
   selectedEdgeEndpointNodeIds: new Set(),
   hasSelectedSticker: false,
+  graphRevision: 0,
   layoutRevision: 0,
   topologyRevision: 0,
   semanticRevision: 0,

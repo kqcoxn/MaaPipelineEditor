@@ -150,24 +150,32 @@ export class LayoutHelper {
   static align(direction: AlignmentEnum, nodes: NodeType[]) {
     if (nodes.length < 2) return;
 
+    const nextPositionById = new Map(
+      nodes.map((node) => [node.id, { ...node.position }]),
+    );
     switch (direction) {
       case AlignmentEnum.Left: {
         const left = Math.min(...nodes.map((node) => node.position.x));
-        nodes.forEach((node) => (node.position.x = left));
+        nodes.forEach((node) => {
+          nextPositionById.get(node.id)!.x = left;
+        });
         break;
       }
       case AlignmentEnum.Right: {
         const right = Math.max(
           ...nodes.map((node) => node.position.x + (node.measured?.width ?? 0)),
         );
-        nodes.forEach(
-          (node) => (node.position.x = right - (node.measured?.width ?? 0)),
-        );
+        nodes.forEach((node) => {
+          nextPositionById.get(node.id)!.x =
+            right - (node.measured?.width ?? 0);
+        });
         break;
       }
       case AlignmentEnum.Top: {
         const top = Math.min(...nodes.map((node) => node.position.y));
-        nodes.forEach((node) => (node.position.y = top));
+        nodes.forEach((node) => {
+          nextPositionById.get(node.id)!.y = top;
+        });
         break;
       }
       case AlignmentEnum.Bottom: {
@@ -176,9 +184,10 @@ export class LayoutHelper {
             (node) => node.position.y + (node.measured?.height ?? 0),
           ),
         );
-        nodes.forEach(
-          (node) => (node.position.y = bottom - (node.measured?.height ?? 0)),
-        );
+        nodes.forEach((node) => {
+          nextPositionById.get(node.id)!.y =
+            bottom - (node.measured?.height ?? 0);
+        });
         break;
       }
       case AlignmentEnum.Center: {
@@ -187,10 +196,10 @@ export class LayoutHelper {
           ...nodes.map((node) => node.position.x + (node.measured?.width ?? 0)),
         );
         const center = (left + right) / 2;
-        nodes.forEach(
-          (node) =>
-            (node.position.x = center - (node.measured?.width ?? 0) / 2),
-        );
+        nodes.forEach((node) => {
+          nextPositionById.get(node.id)!.x =
+            center - (node.measured?.width ?? 0) / 2;
+        });
         break;
       }
       case AlignmentEnum.Middle: {
@@ -201,10 +210,10 @@ export class LayoutHelper {
           ),
         );
         const middle = (top + bottom) / 2;
-        nodes.forEach(
-          (node) =>
-            (node.position.y = middle - (node.measured?.height ?? 0) / 2),
-        );
+        nodes.forEach((node) => {
+          nextPositionById.get(node.id)!.y =
+            middle - (node.measured?.height ?? 0) / 2;
+        });
         break;
       }
     }
@@ -212,7 +221,7 @@ export class LayoutHelper {
     const changes = nodes.map((node) => ({
       id: node.id,
       type: "position",
-      position: node.position,
+      position: nextPositionById.get(node.id)!,
     })) as NodeChange[];
     useFlowStore.getState().updateNodes(changes);
   }

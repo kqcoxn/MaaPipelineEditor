@@ -109,9 +109,16 @@ function LayoutPanel() {
         iconName: "icon-connecting_line",
         iconSize: 24,
         onClick: () => {
-          const { nodes, edges, setEdges } = useFlowStore.getState();
+          const { nodes, edges, setEdges, saveHistory } =
+            useFlowStore.getState();
           const rerouted = rerouteEdgesToNearestReplica(nodes, edges);
           setEdges(rerouted);
+          saveHistory(0, {
+            category: "edge",
+            action: "update",
+            description: "还原连接线路径",
+            targetIds: rerouted.map((edge) => edge.id),
+          });
           resetEdgeControls();
           message.success("连接线路径已还原");
         },
