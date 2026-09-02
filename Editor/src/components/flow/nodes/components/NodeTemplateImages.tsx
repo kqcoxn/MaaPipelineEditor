@@ -53,12 +53,13 @@ export const NodeTemplateImages = memo(
           return (
             <div
               key={`${path}-${index}`}
-              className={style.nodeTemplateImageSlot}
+              className={`${style.nodeTemplateImageSlot} nodrag`}
             >
               {pending && !image && <Spin size="small" />}
               {image && displaySize && (
                 <AntImage
                   src={image.url}
+                  fallback={image.dataUrl}
                   alt={path}
                   width={displaySize.width}
                   height={displaySize.height}
@@ -67,7 +68,7 @@ export const NodeTemplateImages = memo(
                     objectFit: "contain",
                     borderRadius: 2,
                   }}
-                  preview={{ mask: null }}
+                  preview={{ src: image.dataUrl, mask: null }}
                 />
               )}
             </div>

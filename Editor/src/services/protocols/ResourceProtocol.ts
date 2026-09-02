@@ -24,16 +24,24 @@ interface ImageResponseData {
 
 function createImageCacheItem(data: ImageResponseData): ImageCacheItem {
   const mimeType = data.mime_type || "image/png";
-  const binary = atob(data.base64 ?? "");
+  const encodedData = data.base64 ?? "";
+  const rawBase64 = encodedData.startsWith("data:")
+    ? encodedData.slice(encodedData.indexOf(",") + 1)
+    : encodedData;
+  const binary = atob(rawBase64);
   const bytes = new Uint8Array(binary.length);
   for (let index = 0; index < binary.length; index += 1) {
     bytes[index] = binary.charCodeAt(index);
   }
   const blob = new Blob([bytes], { type: mimeType });
+  const dataUrl = encodedData.startsWith("data:")
+    ? encodedData
+    : `data:${mimeType};base64,${encodedData}`;
 
   return {
     blob,
     url: URL.createObjectURL(blob),
+    dataUrl,
     mimeType,
     width: data.width || 0,
     height: data.height || 0,
@@ -123,8 +131,6 @@ export class ResourceProtocol extends BaseProtocol {
         return;
       }
 
-      // 资源扫描结果可能对应新项目或已变化的图片文件。
-      this.resetImageResources();
       const localFileStore = useLocalFileStore.getState();
       localFileStore.setResourceBundles(
         bundles as ResourceBundle[],

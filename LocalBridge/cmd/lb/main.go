@@ -336,7 +336,7 @@ func runServer(cmd *cobra.Command, args []string) {
 	piSvc.Start()
 
 	// 创建资源扫描服务
-	resSvc := resourceService.NewService(cfg.EffectiveRoot(), eventBus)
+	resSvc := resourceService.NewService(cfg.EffectiveRoot(), eventBus, cfg.File.MaxDepth)
 	if err := resSvc.Start(); err != nil {
 		logger.Warn("Main", "资源扫描服务启动失败: %v", err)
 	} else {

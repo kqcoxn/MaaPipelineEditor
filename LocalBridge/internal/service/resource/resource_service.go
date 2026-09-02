@@ -16,16 +16,23 @@ type Service struct {
 	root      string
 	bundles   []models.ResourceBundle
 	imageDirs []string // 所有 image 目录的绝对路径
+	maxDepth  int      // 资源包扫描最大深度，0 表示无限制
 	mu        sync.RWMutex
 	eventBus  *eventbus.EventBus
 }
 
-// 创建资源服务
-func NewService(root string, eb *eventbus.EventBus) *Service {
+// NewService 创建资源服务。maxDepth 与文件服务的扫描深度保持一致；使用可选参数
+// 是为了保留内部调用方在未传入配置时的默认行为。
+func NewService(root string, eb *eventbus.EventBus, maxDepth ...int) *Service {
+	scanDepth := 10
+	if len(maxDepth) > 0 {
+		scanDepth = maxDepth[0]
+	}
 	return &Service{
 		root:      root,
 		bundles:   make([]models.ResourceBundle, 0),
 		imageDirs: make([]string, 0),
+		maxDepth:  scanDepth,
 		eventBus:  eb,
 	}
 }
@@ -61,15 +68,16 @@ func (s *Service) Scan() error {
 		}
 	}
 
-	// 递归扫描子目录（最多2层）
-	s.scanDirectory(s.root, "", 0, 2)
+	// 递归扫描子目录。资源包通常位于 assets/resource/base（相对项目根目录三层），
+	// 因此不能使用过浅的固定深度；0 表示按配置约定不限制深度。
+	s.scanDirectory(s.root, "", 0, s.maxDepth)
 
 	return nil
 }
 
 // 递归扫描目录
 func (s *Service) scanDirectory(absPath, relPath string, depth, maxDepth int) {
-	if depth >= maxDepth {
+	if maxDepth > 0 && depth >= maxDepth {
 		return
 	}
 

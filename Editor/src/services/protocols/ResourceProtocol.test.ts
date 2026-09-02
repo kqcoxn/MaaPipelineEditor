@@ -95,6 +95,9 @@ describe("ResourceProtocol image requests", () => {
     expect(imageCacheUpdates).toHaveBeenCalledTimes(1);
     expect(useLocalFileStore.getState().imageCache.size).toBe(2);
     expect(useLocalFileStore.getState().pendingImageRequests.size).toBe(0);
+    expect(useLocalFileStore.getState().getImageCache("a.png")?.dataUrl).toBe(
+      "data:image/png;base64,YQ==",
+    );
     unsubscribe();
 
     server.emitStatus(false);
@@ -124,6 +127,31 @@ describe("ResourceProtocol image requests", () => {
     expect(useLocalFileStore.getState().imageCache.size).toBe(0);
     expect(URL.createObjectURL).not.toHaveBeenCalled();
     expect(consoleWarn).toHaveBeenCalled();
+  });
+
+  it("资源包列表更新不会取消活动图片批次", async () => {
+    protocol.requestImage("a.png");
+    await vi.advanceTimersByTimeAsync(50);
+    const requestId = server.sent[0].data.request_id;
+
+    server.deliver("/lte/resource_bundles", {
+      root: "/project",
+      bundles: [],
+      image_dirs: [],
+    });
+    server.deliver("/lte/images", {
+      request_id: requestId,
+      images: [
+        {
+          success: true,
+          relative_path: "a.png",
+          base64: btoa("a"),
+        },
+      ],
+    });
+
+    expect(useLocalFileStore.getState().getImageCache("a.png")).toBeDefined();
+    expect(useLocalFileStore.getState().pendingImageRequests.size).toBe(0);
   });
 
   it("不完整响应也会结束整批 pending", async () => {

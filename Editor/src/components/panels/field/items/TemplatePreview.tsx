@@ -91,6 +91,7 @@ const TemplatePreviewContent = memo(
               <div key={`${path}-${index}`} style={{ textAlign: "center" }}>
                 <Image
                   src={image.url}
+                  fallback={image.dataUrl}
                   alt={path}
                   width={displayWidth}
                   height={displayHeight}

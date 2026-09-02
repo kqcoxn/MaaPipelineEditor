@@ -100,6 +100,7 @@ export const NodePreviewContent = memo(({ node }: { node: NodeListItemInfo }) =>
             <Image
               key={`${path}-${index}`}
               src={image.url}
+              fallback={image.dataUrl}
               alt={path}
               width={40}
               height={40}

@@ -45,6 +45,7 @@ export type ResourceBundle = {
 export type ImageCacheItem = {
   blob: Blob; // 解码后的图片数据
   url: string; // 复用的 Object URL
+  dataUrl?: string; // 稳定的 data URL，在 Object URL 失效时作为兜底
   mimeType: string; // MIME 类型
   width: number; // 图片宽度
   height: number; // 图片高度

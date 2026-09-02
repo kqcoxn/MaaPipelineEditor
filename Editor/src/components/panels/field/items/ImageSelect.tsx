@@ -183,6 +183,7 @@ export const ImageSelect = memo(
               ) : (
                 <Image
                   src={cache.url}
+                  fallback={cache.dataUrl}
                   alt={img.relativePath}
                   width={THUMBNAIL_SIZE}
                   height={THUMBNAIL_SIZE}
